@@ -1,5 +1,5 @@
 -- migrations/004_owned_pokemon.sql
--- 育成済みポケモン管理機能 (docs/育成データ管理計画.md §3)。
+-- 育成済みポケモン管理機能 (docs/plan/育成データ管理計画.md §3)。
 -- poke-commonsで初めて auth.users に紐づく「本人所有」データを保持するテーブル群。
 -- pgcrypto (gen_random_uuid()) は 001_initial.sql で既に有効化済みのため追加対応は不要。
 

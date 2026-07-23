@@ -3,7 +3,7 @@
 このディレクトリは [jpoke](https://github.com/tmwork1/jpoke) (v0.2.0時点) の `src/`,
 `pyproject.toml`, `README.md`, `LICENSE`, `LICENSE-DATA` をそのままコピーしたものです。
 
-開発プラン (`docs/開発プラン.md` §4リスク表) の方針「jpoke をバージョン固定で
+開発プラン (`docs/plan/開発プラン.md` §4リスク表) の方針「jpoke をバージョン固定で
 vendoring し、更新は回帰テスト付きで取り込む」に基づき、CI・Cloudflareのビルド環境に
 存在しない `../jpoke`(兄弟ディレクトリ)への依存を無くすために導入した。
 

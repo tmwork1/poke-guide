@@ -1,5 +1,5 @@
 -- migrations/005_owned_pokemon_rls.sql
--- owned_pokemon/opponent_notes のRLS有効化 (docs/育成データ管理計画.md §3.3)。
+-- owned_pokemon/opponent_notes のRLS有効化 (docs/plan/育成データ管理計画.md §3.3)。
 --
 -- 002_enable_rls.sql の冒頭コメントは「poke-commonsには auth.uid() ベースの『本人限定』ポリシー
 -- は存在しない」と明言しているが、本マイグレーションでその前提に初めて例外を作る。この2テーブル
