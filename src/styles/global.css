@@ -24,6 +24,18 @@
    neutral=#aaaaaa(maximize-B/D)。影は使わず、ボーダー同色の塗り+ホバーで白地に反転する
    battle-assistant-sv方式のボタンにする。 */
 :root {
+	/* ラウンド14 B-7: color-scheme の宣言が1つも無く、ダークモードでもチェックボックス・
+	   ラジオボタン・selectのポップアップ・スクロールバーがOS既定の「ライト」前提で描画されて
+	   いた(未選択のラジオが白い塗りつぶし円のまま浮いて見える主因)。このアプリは
+	   `@media (prefers-color-scheme: dark)` でトークンを切り替える設計であり、実際にサポート
+	   しているのは常に両方(light dark)なので、それをブラウザに申告してネイティブ描画も
+	   追従させる。実測(ラウンド14): このプロジェクトのフォームコントロールは背景色を
+	   --color-surface 等で明示指定しているため見た目は変わらず、影響が出るのはチェックボックス/
+	   ラジオボタンの枠・塗り、select開いた際のポップアップ、input[type=number]のスピン
+	   ボタン、スクロールバーのみ。/box/[id] 詳細設定サイドバーのアイコントグル(天候/
+	   フィールド)は<button>実装でネイティブフォームコントロールではないため対象外。 */
+	color-scheme: light dark;
+
 	--color-bg: #f3f4f8;
 	--color-surface: #ffffff;
 	--color-surface-alt: #f8f9fc;

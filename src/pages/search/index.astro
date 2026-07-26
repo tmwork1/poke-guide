@@ -78,6 +78,19 @@ import AppLayout from '../../layouts/AppLayout.astro';
 			.radio-label { min-width: auto; font-weight: normal; margin-right: 1rem; }
 			.result-block { margin: 0.8rem 0; }
 			.result-block ul { padding-left: 1.2em; }
+			/* B-6: キーワード入力欄が .panel-content(1080px)の中で207pxのまま伸びず、
+			   placeholderが「特性」で切れていた。.row (global.css) はflex-wrapのみで
+			   flex-directionをcolumnに切り替えないため、#queryの伸長がそのまま横幅に
+			   反映される。 */
+			#query { flex: 1 1 320px; max-width: 36rem; }
+			/* pitfalls.md: `flex: 1 1 320px` は縦積み(flex-direction: column)に切り替わる
+			   ブレークポイントでflex-basisが主軸=高さの基準として解釈され、入力欄が320px
+			   まで伸びる事故が/boxのツールバーで実際に起きた。.rowはこのページでは常に
+			   flex-direction: row(columnへの切り替えを持たない)ため実害は無いはずだが、
+			   将来の回帰に備えて同じガードをここにも置く。 */
+			@media (max-width: 640px) {
+				#query { flex-basis: auto; }
+			}
 		</style>
 		<style is:global>
 			/* 以下の2ルールは document.createElement() で生成する要素(検索結果の<a>と

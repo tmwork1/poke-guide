@@ -5,6 +5,16 @@
 // prerender=false は付けない)。該当技が存在しない name は getStaticPaths() の
 // 対象外になるため自然に404になる。
 import movesDetailRaw from '../../../public/master-data/detail/moves.json';
+// ラウンド14 B-3: ヒット回数(hits: [min, max])は autocomplete/moves.json 側だけが持つ
+// (detail/moves.json にはこのフィールドが無い。scripts/build-master-data/extract_autocomplete.py
+// build_moves() 参照)。detail側のpower/accuracy等と技名でjoinして使う。
+import movesAutocompleteRaw from '../../../public/master-data/autocomplete/moves.json';
+// ラウンド14 B-10: 「この技を覚えるポケモン」の逆引きに使う。detail/pokemon.json の
+// learnset は「自分が覚える技の一覧」の順方向データしか持たないため、全1290種ぶんを
+// ビルド時に1回走査して技名→ポケモン名配列の逆引きマップを作る(pokemon/[name].astro の
+// B-9(進化後)が preEvolution を逆引きしたのと同じ方針。追加データ生成は不要)。
+import pokemonDetailRaw from '../../../public/master-data/detail/pokemon.json';
+import { toPokemonPathSegment } from '../../lib/pokemon-slug';
 import AppLayout from '../../layouts/AppLayout.astro';
 // ラウンド13 A-9: /box が確立した「公式絵/タイプアイコンPNGによる同定」の語彙をこのページにも
 // 移植する。typeIconUrl() は和名タイプ名からURLを組み立てるだけの純粋関数なので、
@@ -44,6 +54,40 @@ export function getStaticPaths() {
 
 interface Props {
 	move: MoveDetail;
+}
+
+// ラウンド14 B-3: autocomplete/moves.json の hits ([min, max])を技名でjoinする。
+// 716件中hitsを持つのは連続技23件のみ(それ以外はキー自体が無い)。
+interface MoveAutocompleteEntry {
+	name: string;
+	type: string | null;
+	category: MoveCategory;
+	hits?: [number, number];
+}
+const movesAutocompleteMap = new Map(
+	(movesAutocompleteRaw as MoveAutocompleteEntry[]).map((m) => [m.name, m]),
+);
+
+// ラウンド14 B-10: 技名 -> 覚えるポケモン名配列の逆引きマップ。モジュールスコープで1回だけ
+// 全1290種のlearnsetを走査する(716ページそれぞれで毎回全件スキャンする無駄を避ける)。
+interface PokemonDetailForLearners {
+	name: string;
+	learnset: string[];
+}
+const pokemonDetailForLearners = Object.values(
+	pokemonDetailRaw as Record<string, PokemonDetailForLearners>,
+);
+const TOTAL_POKEMON_COUNT = pokemonDetailForLearners.length;
+const learnerNamesByMove = new Map<string, string[]>();
+for (const p of pokemonDetailForLearners) {
+	for (const moveName of p.learnset) {
+		const list = learnerNamesByMove.get(moveName);
+		if (list) {
+			list.push(p.name);
+		} else {
+			learnerNamesByMove.set(moveName, [p.name]);
+		}
+	}
 }
 
 const { move } = Astro.props as Props;
@@ -105,6 +149,89 @@ if (isStatusMove) {
 	const accuracyFormulaLabel = move.accuracy != null ? `${move.accuracy}%` : '必中(100%として計算)';
 	expectedValue = { display, formula: `威力${move.power} × 命中${accuracyFormulaLabel}` };
 }
+
+// --- 2段目の下: B-3 連続技のヒット回数(round-09.md B-3) ---
+// hitsが無い技(716件中693件)は単発技なので、この節自体を出さない(空枠や"-"を出さない)。
+// 2〜5回技の内訳は均等ではない。出典は
+// .claude/skills/jpoke/references/damage-calc.md「3. 急所・命中・多段ヒットの扱い」
+// (vendor/jpoke/src/jpoke/core/move_executor.py:22-27,129-138 の MULTI_HIT_DISTRIBUTION_2_TO_5)。
+//
+// 【damage-calc.mdに無かったため今回ソースを読んで確認した点(→ 同ファイルに出典つきで追記済み)】
+// 固定回数(min===max)の技23件中3件(ネズミざん/トリプルキック/トリプルアクセル)は
+// check_hit_each_time=Trueで「1ヒットごとに命中判定」される。他の固定回数技(check_hit_each_time
+// =False)は最初の1回だけ命中判定し、当たれば残りは自動で全ヒットする。この3件だけ「技が当たれば
+// 必ずN回」という説明が誤りになるため、個別の文言に分ける。
+// さらにふくろだたき(hits: [1,6])はこの一般ルートを通らず、ON_MODIFY_HIT_COUNTハンドラ
+// (vendor/jpoke/src/jpoke/handlers/move_attack.py:3049-3054)が選出中の生存かつ状態異常でない
+// ポケモン数をそのままヒット回数にする。乱数ではなくパーティ構成で決まるため、確率分布としては
+// 出さない(誤解を招くため)。
+const HIT_CHECK_EACH_TIME_MOVES = new Set(['ネズミざん', 'トリプルキック', 'トリプルアクセル']);
+const MULTI_HIT_DISTRIBUTION_2_TO_5: [number, number][] = [
+	[2, 0.375],
+	[3, 0.375],
+	[4, 0.125],
+	[5, 0.125],
+];
+
+type HitsView =
+	| { kind: 'party'; note: string }
+	| { kind: 'guaranteed'; note: string }
+	| { kind: 'per-hit-check'; note: string; expectedNote: string }
+	| { kind: 'uniform'; note: string }
+	| { kind: 'distribution'; rows: { count: number; pctLabel: string }[]; averageLabel: string };
+
+const hits = movesAutocompleteMap.get(move.name)?.hits ?? null;
+const hitsRangeLabel = hits ? (hits[0] === hits[1] ? `${hits[0]}回` : `${hits[0]}〜${hits[1]}回`) : null;
+let hitsView: HitsView | null = null;
+if (hits) {
+	const [minHits, maxHits] = hits;
+	if (move.name === 'ふくろだたき') {
+		hitsView = {
+			kind: 'party',
+			note:
+				'ランダムな抽選ではなく、選出したポケモンのうち「ひんし」でも「状態異常」でもない数だけヒットします(最小1回・最大6回)。1ヒットあたりの威力も使用者の攻撃種族値で決まるため、上の「威力」欄の値とは別物です。',
+		};
+	} else if (minHits === maxHits) {
+		if (HIT_CHECK_EACH_TIME_MOVES.has(move.name)) {
+			const p = (move.accuracy ?? 100) / 100;
+			const expected = p >= 1 ? maxHits : (p * (1 - p ** maxHits)) / (1 - p);
+			hitsView = {
+				kind: 'per-hit-check',
+				note: `最大${maxHits}回ヒットを試みますが、1回でも外れるとそこで止まります(1ヒットごとに命中率${accuracyLabel}で判定)。`,
+				expectedNote: `命中率${accuracyLabel}として計算すると、期待ヒット回数は約${expected.toFixed(1)}回です。`,
+			};
+		} else {
+			hitsView = {
+				kind: 'guaranteed',
+				note: `技が命中すれば、追加の抽選なく必ず${maxHits}回ヒットします(外れれば0回)。`,
+			};
+		}
+	} else if (minHits === 2 && maxHits === 5) {
+		const averageValue = MULTI_HIT_DISTRIBUTION_2_TO_5.reduce((sum, [count, prob]) => sum + count * prob, 0);
+		hitsView = {
+			kind: 'distribution',
+			rows: MULTI_HIT_DISTRIBUTION_2_TO_5.map(([count, prob]) => ({
+				count,
+				pctLabel: `${(prob * 100).toFixed(1)}%`,
+			})),
+			averageLabel: averageValue.toFixed(1),
+		};
+	} else {
+		// 現在の全716件データでは到達しない防御的フォールバック(2〜5回・固定回数のどちらでもない
+		// 範囲が将来のデータ更新で増えた場合に、無表示や誤表示になるより一様抽選として説明する)。
+		hitsView = {
+			kind: 'uniform',
+			note: `${minHits}〜${maxHits}回の範囲でランダムに決まります(範囲内は均等な確率)。`,
+		};
+	}
+}
+
+// --- 3段目その3: B-10 この技を覚えるポケモン(round-09.md B-10) ---
+// round-09.md の判断: 「まもるは1267/1290種なので全件リストは無意味。件数のみ、または
+// 100種未満のときだけリスト」。0種のケース(全716技中218技)も実在するため、0/1〜99/100以上の
+// 3パターンに分ける。
+const learnerNames = learnerNamesByMove.get(move.name) ?? [];
+const learnerCount = learnerNames.length;
 ---
 <AppLayout title={move.name} backHref="/search" backLabel="検索に戻る">
 	<style>
@@ -297,6 +424,71 @@ if (isStatusMove) {
 			font-size: var(--font-size-sm);
 			color: var(--color-text-muted);
 		}
+
+		/* --- 2段目の下: B-3 連続技のヒット回数 ---
+		   6列グリッド(既存の実測値・座標は不変)の下に続く追加ブロック。新しいpanelは作らず
+		   既存panel内に収める(B-8「1行のためにパネルを作らない」の裏返しで、こちらは
+		   1行に収まらない内容なので既存panel内に増築するのが妥当という判断)。 */
+		.move-hits {
+			margin-top: var(--space-5);
+		}
+		.move-hits .move-note + .move-note {
+			margin-top: var(--space-2);
+		}
+		.move-hit-dist {
+			display: flex;
+			flex-wrap: wrap;
+			gap: var(--space-4);
+			margin: 0 0 var(--space-3);
+			padding: 0;
+			list-style: none;
+		}
+		.move-hit-dist-row {
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			gap: 0.15em;
+			min-width: 4.5em;
+		}
+		.move-hit-dist-count {
+			font-size: var(--font-size-xl);
+			font-weight: 700;
+		}
+		.move-hit-dist-pct {
+			font-size: var(--font-size-sm);
+			color: var(--color-text-muted);
+		}
+
+		/* --- 3段目の下: B-10 この技を覚えるポケモン ---
+		   round-09.md「まもるは1267/1290種なので全件リストは無意味。件数のみ、または
+		   100種未満のときだけリスト」の判断どおり、件数は必ず出しリストは条件付き。
+		   タイプ相性/期待値の2列グリッドの下に続くので.move-type-chipと同じ「淡い背景の
+		   ピル」語彙を流用しつつ、こちらはリンクなのでクラス名を分ける。 */
+		.move-learners {
+			margin-top: var(--space-5);
+		}
+		.move-learner-list {
+			display: flex;
+			flex-wrap: wrap;
+			gap: var(--space-2);
+			margin: var(--space-2) 0 0;
+			padding: 0;
+			list-style: none;
+		}
+		.move-learner-chip a {
+			display: inline-flex;
+			padding: 0.25em 0.75em;
+			border-radius: 999px;
+			background: var(--color-surface-alt);
+			color: var(--color-text);
+			text-decoration: none;
+			font-size: var(--font-size-sm);
+		}
+		.move-learner-chip a:hover,
+		.move-learner-chip a:focus-visible {
+			outline: 2px solid var(--color-primary);
+			outline-offset: -2px;
+		}
 	</style>
 	<div class="page">
 		<section class="panel">
@@ -332,6 +524,29 @@ if (isStatusMove) {
 					<span class="move-stat-grid-value tnum">{critLabel}</span>
 					<span class="move-stat-grid-value">{TARGET_LABELS[move.target]}</span>
 				</div>
+				{hits && hitsView && (
+					<div class="move-hits">
+						<h3 class="move-section-title">連続ヒット({hitsRangeLabel})</h3>
+						{hitsView.kind === 'distribution' ? (
+							<div>
+								<ul class="move-hit-dist">
+									{hitsView.rows.map((row) => (
+										<li class="move-hit-dist-row">
+											<span class="move-hit-dist-count tnum">{row.count}回</span>
+											<span class="move-hit-dist-pct tnum">{row.pctLabel}</span>
+										</li>
+									))}
+								</ul>
+								<p class="move-note">技が命中した場合、平均<span class="tnum"> {hitsView.averageLabel} </span>回ヒットします。</p>
+							</div>
+						) : (
+							<>
+								<p class="move-note">{hitsView.note}</p>
+								{hitsView.kind === 'per-hit-check' && <p class="move-note">{hitsView.expectedNote}</p>}
+							</>
+						)}
+					</div>
+				)}
 			</div>
 		</section>
 
@@ -381,6 +596,28 @@ if (isStatusMove) {
 							<p class="move-note">{expectedValueNote}</p>
 						)}
 					</div>
+				</div>
+				<div class="move-learners">
+					<h3 class="move-section-title">この技を覚えるポケモン</h3>
+					{learnerCount === 0 ? (
+						<p class="move-note">現在のデータでは、この技を覚えるポケモンはいません。</p>
+					) : (
+						<>
+							<p class="move-note">
+								<span class="tnum">{learnerCount}</span> / <span class="tnum">{TOTAL_POKEMON_COUNT}</span> 種が覚えます。
+								{learnerCount >= 100 && '(100種以上のため一覧は省略します)'}
+							</p>
+							{learnerCount < 100 && (
+								<ul class="move-learner-list">
+									{learnerNames.map((name) => (
+										<li class="move-learner-chip">
+											<a href={`/pokemon/${encodeURIComponent(toPokemonPathSegment(name))}`}>{name}</a>
+										</li>
+									))}
+								</ul>
+							)}
+						</>
+					)}
 				</div>
 			</div>
 		</section>

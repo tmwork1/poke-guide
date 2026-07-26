@@ -90,6 +90,15 @@ cache-first。対象は正規表現2本のみ: `^https://cdn\.jsdelivr\.net/pyod
 
 `src/pages/api/search.ts`はこれら4つのautocomplete JSONをビルド時にVite静的importでバンドルする(実行時fetchではない、出典: `api/search.ts:22-25,36-41`)。
 
+### learnset は「チャンピオンズで覚えられる技」であって全世代の技ではない(誤解の常連)
+
+`detail/pokemon.json` の `learnset` は `jpoke.data.LEARNSETS` 由来で、その実体は **`vendor/jpoke/src/jpoke/data/ps-champ-ja/learnsets.json`(1.8MB、1288種)**(出典: `vendor/jpoke/src/jpoke/data/learnset.py:15`、`extract_autocomplete.py:223`)。**ポケモンチャンピオンズというフォーマット固有の習得データ**であり、本編シリーズ全世代の技マシン・遺伝技を網羅したものではない。
+
+- 結果として、**技の総数716に対し「覚えるポケモンが0種」の技が218件(30%)存在する**(2026-07-27にCoordinatorが全件集計して確認)。例: `トリプルキック`、`あくうせつだん`、`あやしいかぜ`、`あわ`、`アロマセラピー`。
+- **これはデータの欠落ではない。** 実例として `サワムラー` は在籍していて learnset を67件持つが、その中に `トリプルキック` は無い。「種は居るのに技が紐づいていない」ので**欠落に見えるが、フォーマットの仕様である**。
+- **UIで「0種」と出すときは断定しないこと。** `/moves/[name]` は「**現在のデータでは**、この技を覚えるポケモンはいません。」という限定つきの文言を使っている(`src/pages/moves/[name].astro`)。ここを「誰も覚えません」と断定すると嘘になりうる。
+- 逆に `moves.json`(716件)は**エンジンが持つ技の全量**なので、「技は存在するが、このフォーマットでは誰も使えない」という組み合わせが正常に起こりうる。
+
 ## 5. 移植・派生ロジック(jpoke更新で追随が要る箇所)
 
 | poke-commons側 | jpoke参照実装 | 何を移植したか |

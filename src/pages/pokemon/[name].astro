@@ -19,6 +19,10 @@ import movesDetailRaw from '../../../public/master-data/detail/moves.json';
 import { toPokemonPathSegment } from '../../lib/pokemon-slug';
 import { officialArtworkUrl } from '../../lib/pokemon-master-data';
 import { typeIconUrl } from '../../lib/sprite-urls';
+// C-3: タイプ絞り込みの選択肢の並び順に使う(18タイプの正準順序)。このファイルは読むだけで
+// 編集しない(src/lib/type-chart.ts はround-13でsrc/pages/moves/[name].astroが新設した
+// 読み取り専用の18×18タイプ相性表)。
+import { TYPE_CHART } from '../../lib/type-chart';
 import AppLayout from '../../layouts/AppLayout.astro';
 
 interface PokemonDetail {
@@ -91,6 +95,7 @@ const movesDetailMap = new Map((movesDetailRaw as MoveDetail[]).map((m) => [m.na
 interface LearnsetMoveInfo {
 	name: string;
 	type: string | null;
+	category: MoveCategory;
 	power: number | null;
 	isStab: boolean;
 }
@@ -100,6 +105,10 @@ const learnsetMoves: LearnsetMoveInfo[] = pokemon.learnset.map((name) => {
 	return {
 		name,
 		type,
+		// C-3の絞り込みに使う分類。detail/moves.json全716件はlearnsetの全参照(全1290種・
+		// 73362件)を100%カバーしている(欠落0件、node で実測確認済み)ため、
+		// フォールバックの'status'は実際には発生しない防御的な既定値。
+		category: detail?.category ?? 'status',
 		power: detail?.power ?? null,
 		isStab: type !== null && pokemon.types.includes(type),
 	};
@@ -107,6 +116,74 @@ const learnsetMoves: LearnsetMoveInfo[] = pokemon.learnset.map((name) => {
 // タイプ一致(STAB)技を先頭に固める。Array.prototype.sort はES2019以降で安定ソートが仕様上
 // 保証されているため、isStabのみをキーにした比較で同グループ内の相対順序(learnsetの元順序)が保たれる。
 const sortedLearnsetMoves = [...learnsetMoves].sort((a, b) => Number(b.isStab) - Number(a.isStab));
+
+// C-3: タイプ・分類フィルタの選択肢。このポケモンのlearnsetに実在するタイプだけを候補にする
+// (18タイプ全部を出すと大半が「該当技0件」になり選択肢として無意味なため)。並び順は
+// src/lib/type-chart.tsのキー順(18タイプの正準順序)に合わせ、出現順のようなランダムさを避ける。
+// このポケモンのlearnsetにタイプ無し技(わるあがき等)は1件も含まれない
+// (全1290種のlearnset実データで確認済み。type: nullの技はそもそもlearnsetに現れない)ため、
+// 「タイプなし」の選択肢は用意しない。
+const TYPE_ORDER = Object.keys(TYPE_CHART);
+const learnsetTypeOptions = [...new Set(learnsetMoves.map((m) => m.type).filter((t): t is string => t !== null))].sort(
+	(a, b) => TYPE_ORDER.indexOf(a) - TYPE_ORDER.indexOf(b),
+);
+
+// B-9: 「進化後」の逆引きマップ。pokemon.jsonの各エントリはpreEvolution(自分の進化元)しか
+// 持たないため、「自分の進化先」(イーブイのように複数のことがある)を得るには全1290件を
+// ビルド時に1回走査して逆引きするだけでよい(round-09.md B-9の指示どおり、追加データ生成は
+// 不要)。preEvolutionを持つエントリが1件も無いキーはMapに現れないため、
+// evolutionForwardMap.get(pokemon.name) が undefined になるケース(進化後が無い)を
+// 空配列にフォールバックして扱う。
+const evolutionForwardMap = new Map<string, string[]>();
+for (const p of Object.values(pokemonDetailRaw as Record<string, PokemonDetail>)) {
+	if (p.preEvolution) {
+		const siblings = evolutionForwardMap.get(p.preEvolution);
+		if (siblings) {
+			siblings.push(p.name);
+		} else {
+			evolutionForwardMap.set(p.preEvolution, [p.name]);
+		}
+	}
+}
+const postEvolutions = evolutionForwardMap.get(pokemon.name) ?? [];
+
+// B-1: 種族値グリッドに実数(無振)・実数(全振)の2行を追加する。
+// 計算式の出典: src/pages/box/index.astro の chmpToLegacyEffort/calcHpStat/calcOtherStat
+// (2026-07-27時点でL744-755付近。box/index.astroは今ラウンド編集禁止のためコピーで進める。
+// /share/[slug].astroに続き3箇所目のコピーになる件はround-09.md A-2/round-13.mdで
+// 「次ラウンドでsrc/lib/stats.tsへ統合する」と積み残し済み)。
+// vendor/jpoke/src/jpoke/model/stats.py の calc_hp/calc_stat/chmp_to_legacy_effort と
+// 完全に同じ式であることは .claude/skills/jpoke/references/ruleset.md
+// 「1. チャンピオンズルール」「2. 実数値の計算式」に出典つきで要約済み。
+// 0〜32スケール→素の努力値の変換式は 8n-4(n=0のときだけ0)であって単純な×8ではない点に注意。
+//
+// 【性格補正の扱い(このページ独自の判断)】このページは「種族(ポケモン単体)」の基礎データを
+// 示す画面であり、box/[id].astroや/shareのような「特定の性格を持つ個体」を扱わない。
+// 26通りの性格それぞれの▲▼を7列グリッドに全部並べるのは現実的でないため、
+// 性格補正なし(nc=1.0固定)の値のみを出す。ただし「これが何の値か」が画面から読み取れないと
+// 誤読される(例: 「実数値」とだけ書くと個体値・努力値・性格まで含めた最終値だと誤解されうる)
+// ため、行ラベルに「(無振/全振)」を付けたうえで、直後にヒント文で
+// 「性格補正なし・個体値31・Lv50」であることを明示する。
+const LEVEL = 50;
+const IV = 31;
+function chmpToLegacyEffort(evChamp: number): number {
+	return evChamp === 0 ? 0 : 8 * evChamp - 4;
+}
+function calcHpStat(base: number, evChamp: number): number {
+	if (base === 1) return 1; // ヌケニン特例(vendor/jpoke/src/jpoke/model/stats.pyと同じ)
+	const effort = chmpToLegacyEffort(evChamp);
+	return Math.floor(((base * 2 + IV + Math.floor(effort / 4)) * LEVEL) / 100) + LEVEL + 10;
+}
+function calcOtherStat(base: number, evChamp: number): number {
+	const effort = chmpToLegacyEffort(evChamp);
+	// nc(性格補正)は上記コメントのとおり常に1.0(補正なし)。
+	return Math.floor((Math.floor(((base * 2 + IV + Math.floor(effort / 4)) * LEVEL) / 100) + 5) * 1.0);
+}
+function realStatRow(evChamp: number): number[] {
+	return pokemon.baseStats.map((base, i) => (i === 0 ? calcHpStat(base, evChamp) : calcOtherStat(base, evChamp)));
+}
+const realStatsNoEv = realStatRow(0);
+const realStatsMaxEv = realStatRow(32);
 ---
 <AppLayout title={pokemon.name} backHref="/search" backLabel="検索に戻る">
 	<style>
@@ -218,6 +295,16 @@ const sortedLearnsetMoves = [...learnsetMoves].sort((a, b) => Number(b.isStab) -
 			font-size: 1.05em;
 			font-weight: 700;
 		}
+		/* B-1: 実数(無振)/実数(全振)行の直後の注記。汎用クラス.card-hintは
+		   「見出し直下に置く」前提でmargin-topが負値なので、見出しではなくグリッドの直後に
+		   置くこのページのケースでは(/shareが同じ罠を踏んだ前例どおり)グローバル側は変えず
+		   ページscopedのクラスとして別途用意する(.card-hintを流用して打ち消すのではなく、
+		   最初から見出し依存の前提を持たない専用クラスにした)。 */
+		.stat-grid-hint {
+			margin: var(--space-3) 0 0;
+			font-size: var(--font-size-sm);
+			color: var(--color-text-muted);
+		}
 
 		/* --- 覚えられる技(A-4→ラウンド13後の是正): 6列(1セル173px)では技名が省略され、
 		   「ほのおのうず/ほのおのキバ/ほのおのちかい」のような別の技が区別できなくなっていた。
@@ -235,6 +322,42 @@ const sortedLearnsetMoves = [...learnsetMoves].sort((a, b) => Number(b.isStab) -
 		   (実測は .tmp-pkfix-* スクリプトで検証、結果は報告に記載)。
 		   タイプ一致技は背景色+★マーク(role="img" aria-label)で視覚的な印を付ける
 		   (色だけに頼らない、WCAG 1.4.1対応。この表現は変更しない)。 */
+		/* --- C-3: タイプ・分類フィルタ。round-13で4列化した技一覧がミュウ(301件)で
+		   3648pxまで伸びた問題を、畳まずに解くための絞り込みUI。 */
+		.moves-filter {
+			display: flex;
+			flex-wrap: wrap;
+			align-items: center;
+			gap: var(--space-2) var(--space-5);
+			margin-bottom: var(--space-4);
+		}
+		.moves-filter-field {
+			display: flex;
+			align-items: center;
+			gap: var(--space-2);
+		}
+		.moves-filter-field label {
+			font-size: var(--font-size-sm);
+			font-weight: 700;
+			color: var(--color-text-muted);
+		}
+		.moves-filter-count {
+			margin: 0 0 0 auto;
+			font-size: var(--font-size-sm);
+			color: var(--color-text-muted);
+		}
+		/* 絞り込み結果0件の表示。document.createElement()で作らず最初から静的HTMLに置いておき、
+		   JSはhidden属性を切り替えるだけにする(scoped styleが効かない罠の回避、上記script参照)。
+		   ダッシュの羅列ではなく文章で「0件である」ことを明示し、データ破損に見えないようにする。 */
+		.moves-empty-state {
+			margin: 0;
+			padding: var(--space-5);
+			text-align: center;
+			font-size: var(--font-size-sm);
+			color: var(--color-text-muted);
+			background: var(--color-surface-alt);
+			border-radius: var(--radius-sm);
+		}
 		.moves-grid {
 			display: grid;
 			grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
@@ -349,6 +472,24 @@ const sortedLearnsetMoves = [...learnsetMoves].sort((a, b) => Number(b.isStab) -
 								<p class="card-hint">なし</p>
 							)}
 						</div>
+						<div>
+							{/* B-9: 進化後(逆引きマップの結果)。イーブイのように複数いるケースは
+							    リンクの箇条書きにする(進化前と同じ<ul class="identity-plain-list">の型を再利用)。
+							    0件のときは「-」やダッシュの羅列ではなく「進化前」と同じ"なし"の1行にし、
+							    データ破損に見えないようにする(空のパネルも作らない)。 */}
+							<h3 class="identity-field-label">進化後</h3>
+							{postEvolutions.length > 0 ? (
+								<ul class="identity-plain-list">
+									{postEvolutions.map((name) => (
+										<li>
+											<a href={`/pokemon/${encodeURIComponent(toPokemonPathSegment(name))}`}>{name}</a>
+										</li>
+									))}
+								</ul>
+							) : (
+								<p class="card-hint">なし</p>
+							)}
+						</div>
 					</div>
 					{artworkUrl && (
 						<div class="identity-artwork">
@@ -371,7 +512,16 @@ const sortedLearnsetMoves = [...learnsetMoves].sort((a, b) => Number(b.isStab) -
 						<span class="stat-grid-label">種族値</span>
 						{pokemon.baseStats.map((v) => <span class="stat-grid-value tnum">{v}</span>)}
 					</div>
+					<div class="stat-grid-row">
+						<span class="stat-grid-label">実数(無振)</span>
+						{realStatsNoEv.map((v) => <span class="stat-grid-value tnum">{v}</span>)}
+					</div>
+					<div class="stat-grid-row">
+						<span class="stat-grid-label">実数(全振)</span>
+						{realStatsMaxEv.map((v) => <span class="stat-grid-value tnum">{v}</span>)}
+					</div>
 				</div>
+				<p class="stat-grid-hint">実数値は性格補正なし(&times;1.0)・個体値31・Lv50固定(チャンピオンズルール)で計算。無振=努力値0、全振=努力値32。実際に性格を選ぶと&plusmn;10%前後で変動する。</p>
 			</div>
 		</section>
 
@@ -379,31 +529,94 @@ const sortedLearnsetMoves = [...learnsetMoves].sort((a, b) => Number(b.isStab) -
 			<div class="panel-content">
 				<h2>覚えられる技({pokemon.learnset.length}種)</h2>
 				{sortedLearnsetMoves.length > 0 ? (
-					<ul class="moves-grid">
-						{sortedLearnsetMoves.map((m) => {
-							const iconUrl = m.type ? typeIconUrl(m.type) : null;
-							return (
-								<li class={`move-cell${m.isStab ? ' is-stab' : ''}`}>
-									<a href={`/moves/${encodeURIComponent(m.name)}`}>
-										{iconUrl && <img class="move-cell-icon" src={iconUrl} width="16" height="16" alt={m.type ?? ''} />}
-										<span class="move-cell-name" title={m.name}>{m.name}</span>
-										{m.isStab && (
-											<span class="move-cell-stab" role="img" aria-label="タイプ一致">★</span>
-										)}
-										{m.power != null ? (
-											<span class="move-cell-power tnum">{m.power}</span>
-										) : (
-											<span class="move-cell-power move-cell-power-status">変化</span>
-										)}
-									</a>
-								</li>
-							);
-						})}
-					</ul>
+					<>
+						{/* C-3: タイプ・分類フィルタ。round-13で技一覧を4列化した結果ミュウ(301件)で
+						    ページが3648pxまで伸びたため、round-13.mdの判断(「畳むのではなくC-3で解く」)
+						    どおりに絞り込みを追加する(「畳む」実装は禁止・再提起もしないため不採用)。
+						    データはdetail/moves.jsonから既にjoin済みなので追加データ生成は不要。
+						    選択肢はこのポケモンのlearnsetに実在するタイプ・分類のみ。 */}
+						<div class="moves-filter">
+							<div class="moves-filter-field">
+								<label for="moves-filter-type">タイプ</label>
+								<select id="moves-filter-type">
+									<option value="">すべて</option>
+									{learnsetTypeOptions.map((t) => <option value={t}>{t}</option>)}
+								</select>
+							</div>
+							<div class="moves-filter-field">
+								<label for="moves-filter-category">分類</label>
+								<select id="moves-filter-category">
+									<option value="">すべて</option>
+									<option value="physical">物理</option>
+									<option value="special">特殊</option>
+									<option value="status">変化</option>
+								</select>
+							</div>
+							<p id="moves-filter-count" class="moves-filter-count tnum" aria-live="polite"></p>
+						</div>
+						<ul class="moves-grid" id="moves-grid">
+							{sortedLearnsetMoves.map((m) => {
+								const iconUrl = m.type ? typeIconUrl(m.type) : null;
+								return (
+									<li class={`move-cell${m.isStab ? ' is-stab' : ''}`} data-move-type={m.type ?? ''} data-move-category={m.category}>
+										<a href={`/moves/${encodeURIComponent(m.name)}`}>
+											{iconUrl && <img class="move-cell-icon" src={iconUrl} width="16" height="16" alt={m.type ?? ''} />}
+											<span class="move-cell-name" title={m.name}>{m.name}</span>
+											{m.isStab && (
+												<span class="move-cell-stab" role="img" aria-label="タイプ一致">★</span>
+											)}
+											{m.power != null ? (
+												<span class="move-cell-power tnum">{m.power}</span>
+											) : (
+												<span class="move-cell-power move-cell-power-status">変化</span>
+											)}
+										</a>
+									</li>
+								);
+							})}
+						</ul>
+						{/* フィルタの結果0件になったときの表示。document.createElement()で新規に要素を
+						    作るのではなく、この静的HTMLに最初から存在する要素をhidden属性で出し入れするだけ
+						    にすることで、「JS生成要素にAstro scoped styleが効かない」罠(このプロジェクトで
+						    何度も踏まれている)を最初から回避する。 */}
+						<p id="moves-empty-state" class="moves-empty-state" hidden>絞り込み条件に一致する技がありません。</p>
+					</>
 				) : (
 					<p>データなし</p>
 				)}
 			</div>
 		</section>
 	</div>
+	<script>
+		// C-3: タイプ・分類フィルタの動作。全ての.move-cellは上のフロントマターで静的HTMLとして
+		// 既に出力済みなので、このスクリプトはdata-move-type/data-move-categoryを見て
+		// hidden属性を付け外しするだけで、新規に要素を作らない(scoped styleが効かない罠を踏まない)。
+		// フィルタ用のselect自体が存在しないページ(learnset 0件の理論上のケース)でも
+		// getElementByIdはnullを返すだけなので、以下は安全に何もしない。
+		const typeSelect = document.getElementById('moves-filter-type') as HTMLSelectElement | null;
+		const categorySelect = document.getElementById('moves-filter-category') as HTMLSelectElement | null;
+		const countEl = document.getElementById('moves-filter-count');
+		const emptyStateEl = document.getElementById('moves-empty-state') as HTMLElement | null;
+		const cells = Array.from(document.querySelectorAll<HTMLLIElement>('.move-cell'));
+		const total = cells.length;
+
+		function applyFilter() {
+			const type = typeSelect?.value ?? '';
+			const category = categorySelect?.value ?? '';
+			let visibleCount = 0;
+			for (const cell of cells) {
+				const visible =
+					(type === '' || cell.dataset.moveType === type) &&
+					(category === '' || cell.dataset.moveCategory === category);
+				cell.hidden = !visible;
+				if (visible) visibleCount++;
+			}
+			if (countEl) countEl.textContent = `${visibleCount} / ${total} 件を表示`;
+			if (emptyStateEl) emptyStateEl.hidden = visibleCount !== 0;
+		}
+
+		typeSelect?.addEventListener('change', applyFilter);
+		categorySelect?.addEventListener('change', applyFilter);
+		applyFilter();
+	</script>
 </AppLayout>

@@ -95,6 +95,17 @@
 - ダメージそのものの分布(`damage_dist`)・HP分布(`hp_dist`)は内部的に`StateDist`(`{State: 出現頻度}`の辞書)で表現され、複数回攻撃・複数の分岐(急所/追加効果/特性発動有無等)を畳み込み演算で合成する(出典: `vendor/jpoke/src/jpoke/utils/lethal_dist.py`全体、特に`_convolve`:94-121)。
 - (poke-commons側の実装を参照した限り、jpokeのコードそのものではないため参考情報)アプリ側 `src/lib/pyodide-engine.ts` は `battle.calc_lethal()` の結果を `{attackCount, probability}` の配列に変換して返すのみで、確率計算自体は行っていない。`src/pages/box/[id].astro` の `formatVerdict()`/`describeSeriesVerdict()` が `probability >= 0.9999` を「確N」、それ未満を「乱N (xx.x%)」という文字列に整形しているだけで、統計計算はしていない。したがって**「この画面の確定/乱数表示がおかしい」と疑う場合、まず疑うべきはjpokeの`calc_lethal`ではなく、アプリ側のラベル整形・閾値・入力(技構成/急所有無等の指定)の方が高い**。
 
+## 3補: 多段ヒット技23件の内訳(2026-07-27、UI改善ラウンド14 B-3実装時に追記)
+
+**背景**: `public/master-data/autocomplete/moves.json` の `hits` フィールドを持つのは716技中23技のみ(`scripts/build-master-data/extract_autocomplete.py` の `build_moves()` が `data.multi_hit` から抽出)。`/moves/[name].astro` にこれを表示するにあたり、§3の記述だけでは「固定回数の技は技が命中すれば必ずその回数ヒットする」という前提が一部の技で成り立たないことが分かったため、`vendor/jpoke` を読んで確認し追記する。
+
+- **23技の内訳**(`(min,max)`の分布): `(2,5)`が11技/`(2,2)`が5技/`(3,3)`が4技/`(10,10)`が1技(ネズミざん)/`(1,6)`が1技(ふくろだたき)。実測は `node` で `public/master-data/autocomplete/moves.json` を走査して確認済み(出典: `scripts/build-master-data/extract_autocomplete.py:178-207` のロジックが生成したデータそのもの)。
+- **`check_hit_each_time` フラグ(§3で未記載だった論点)**: `move_executor.py` のヒットループは「命中判定を毎ヒット行うか、最初の1回だけ行うか」を技ごとのフラグで切り替えている(出典: `vendor/jpoke/src/jpoke/core/move_executor.py:560-581`、`need_hit_check = accuracy is not None and (hit_index == 1 or check_hit_each_time)`)。`False`(既定)の技は**最初の1回だけ命中判定し、当たれば残りは自動で全ヒット確定**(=「命中すれば必ずN回」という説明が成立する)。`True`の技は**ヒットごとに毎回命中判定し、1回でも外れた時点でそこまでの回数で打ち切る**(break)。
+- **`check_hit_each_time: True` は23技中3技のみ**: ネズミざん(`multi_hit: {min:10, max:10}`, 出典: `vendor/jpoke/src/jpoke/data/moves/move_na.py:288-293`)、トリプルキック(`multi_hit: {min:3, max:3}`, 出典: `vendor/jpoke/src/jpoke/data/moves/move_ta.py:986-996`)、トリプルアクセル(`multi_hit: {min:3, max:3}`, 出典: `vendor/jpoke/src/jpoke/data/moves/move_ta.py:976-985`)。3技とも `accuracy: 90`(`public/master-data/detail/moves.json` で実測確認)。他の固定回数技(すいりゅうれんだ/タキオンカッター/ダブルアタック/ダブルウイング/ツインビーム/ドラゴンアロー/にどげり/トリプルダイブ)は全て `check_hit_each_time: False` で、「命中すれば必ずN回」が成立する。
+  - この3技の**期待ヒット回数**は幾何分布の打ち切り版として `E[hits] = p*(1-p^N)/(1-p)`(p=命中率, N=固定回数)で計算できる(1ヒット目の判定に外れれば技自体が「外れ」ログになる点は他の技と同じ。2ヒット目以降で外れると、そこまでの成功ヒット数で打ち切り)。p=0.9として: ネズミざん(N=10)は約5.9回、トリプルキック/トリプルアクセル(N=3)は約2.4回。`/moves/[name].astro` はこの式をそのままフロントマターで計算して表示している(新規データ生成不要、既存の`accuracy`と`hits`から導出可能)。
+- **ふくろだたき(`multi_hit: {min:1, max:6}`)は上記のどちらの一般ルートも通らない**: `ON_MODIFY_HIT_COUNT` イベントに専用ハンドラ `ha.ふくろだたき_hit_count` が登録されており(出典: `vendor/jpoke/src/jpoke/data/moves/move_ha.py:690-704`)、ヒット回数は乱数ではなく「**選出中のポケモンのうち、ひんし・状態異常のいずれでもない数**」で決定的に決まる(出典: `vendor/jpoke/src/jpoke/handlers/move_attack.py:3049-3054`、`count = sum(1 for mon in state.selection if mon.alive and not mon.ailment.is_active)`、`max(1, count)`)。したがって「1〜6回の範囲でランダム」という説明は誤りで、UI側は確率分布ではなく「パーティ構成で決まる」という定性的な説明にする必要がある。
+  - 同じ技のヒットごとの威力も基礎威力(`power: 1`)ではなく `ON_CALC_POWER_MODIFIER` の専用ハンドラ `ha.ふくろだたき_calc_power` が「使用者の基礎こうげき種族値 / 10 + 5」で毎ヒット上書きする(出典: `vendor/jpoke/src/jpoke/handlers/move_attack.py:3034-3046`)。`detail/moves.json` の `power: 1` は実戦の威力を表さない値である点に注意(ヨワシは「たんどくのすがた」の種族値を使う特例あり)。
+
 ## 上流との差分(v0.2.0時点)
 
 - `vendor/jpoke/src` と `../jpoke/src` を `diff -rq` で比較した結果、ビルド生成物(`__pycache__`/`jpoke.egg-info`)と上流にだけある空ディレクトリ `src/jpoke/utils/type_defs/`(中身0件・参照なし)を除き**一致**しており、`damage.py`・`move_executor.py`・`lethal.py` 等ダメージ計算関連ファイルに差分は無かった。両方とも `version = "0.2.0"`。
