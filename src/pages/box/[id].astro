@@ -52,13 +52,18 @@ const TERA_TYPES = [
 // ブラウザ側の<script>から参照できないため。src/pages/damage-calc/index.astro のWEATHERS/TERRAINS/
 // SIDE_FIELDSと同じ選択肢で同期させること)。
 
-const STAT_LABELS: Array<{ key: string; label: string }> = [
-	{ key: "hp", label: "HP" },
-	{ key: "atk", label: "攻撃" },
-	{ key: "def", label: "防御" },
-	{ key: "spa", label: "特攻" },
-	{ key: "spd", label: "特防" },
-	{ key: "spe", label: "素早さ" },
+// ラウンド12指摘(A-3): 能力値ラベルは全角表記(「素早さ」等)だとラベル列(最大幅)が
+// スライダー列(最狭・操作対象)を圧迫していたため、表示上はH/A/B/C/D/Sの1文字表記に
+// 統一する(相手ビルド箱・/box一覧のSTAT_LABELS = ["H","A","B","C","D","S"]と表記を揃える。
+// 統一感の要件でもある)。full(素早さ等の正式名称)はaria-label/titleに必ず残し、
+// アクセシビリティ上「短縮表記だけになる」ことを避ける。
+const STAT_LABELS: Array<{ key: string; label: string; short: string }> = [
+	{ key: "hp", label: "HP", short: "H" },
+	{ key: "atk", label: "攻撃", short: "A" },
+	{ key: "def", label: "防御", short: "B" },
+	{ key: "spa", label: "特攻", short: "C" },
+	{ key: "spd", label: "特防", short: "D" },
+	{ key: "spe", label: "素早さ", short: "S" },
 ];
 
 const MOVE_SLOTS = [1, 2, 3, 4];
@@ -238,7 +243,12 @@ const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 			align-items: center;
 			justify-content: space-between;
 			gap: 0.5rem;
-			padding: 0.9rem 1rem 0.7rem;
+			/* ラウンド12指摘(A-5): 3カラム1行目の縦位置が左y=97/中央y=89/右y=79とバラバラ
+			   だった。右側(このパネル見出し)はpadding-topが0.9remで最も浅く、中央カラム
+			   (ダメージ計算カード、y=89)に合わせて1.5remへ広げる。1600px未満のオーバーレイ表示
+			   (このパネルがposition:fixedになる@media側)でも同じ値がそのまま効く
+			   (別のpadding上書きが無いことを確認済み)。 */
+			padding: 1.5rem 1rem 0.7rem;
 			border-bottom: 1px solid var(--color-border);
 			flex-shrink: 0;
 		}
@@ -380,10 +390,18 @@ const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 		/* UI品質改善(ラウンド8 A-4): このヘッダはfont-size:0.78remの上でem指定の
 		   grid-template-columnsを使っていたが、.stat-row側はfont-size指定なし(=1rem)で
 		   同じem指定だったため、emの基準が食い違い実寸が別物になっていた(1列目で23.8pxずれ)。
-		   両方をremに統一する(行側の実寸は変わらない、ヘッダ側だけが正しい位置に揃う)。 */
+		   両方をremに統一する(行側の実寸は変わらない、ヘッダ側だけが正しい位置に揃う)。
+		   ラウンド12指摘(A-3): 操作対象のスライダー(3列目)が実測89.6px(1段階2.8px)しかない
+		   一方、ラベル列(1列目)が108.8pxで最大になっていた。ラベルをH/A/B/C/D/S表記に
+		   統一したことで1列目の必要幅が縮むため、6.8rem→4.2rem・2列目3.2rem→2.6rem・
+		   4列目3.4rem→3.2rem・5列目3.6rem→3.4remに詰め、浮いた分をすべて3列目
+		   (スライダー)へ回す(89.6px→約147px)。
+		   ラウンド8 A-4の事故(このヘッダだけfont-sizeが違いem解釈がずれた)を再発させない
+		   ため、.stat-table-headerと.stat-rowのgrid-template-columnsは必ず同じ値にすること
+		   (どちらか一方だけ変更しないこと)。 */
 		.stat-table-header {
 			display: grid;
-			grid-template-columns: 6.8rem 3.2rem minmax(0, 1fr) 3.4rem 3.6rem;
+			grid-template-columns: 4.2rem 2.6rem minmax(0, 1fr) 3.2rem 3.4rem;
 			gap: 0.6rem;
 			font-size: 0.78rem;
 			font-weight: 600;
@@ -420,7 +438,9 @@ const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 		.ev-remaining:empty { display: none; }
 		.stat-row {
 			display: grid;
-			grid-template-columns: 6.8rem 3.2rem minmax(0, 1fr) 3.4rem 3.6rem;
+			/* ラウンド12指摘(A-3): .stat-table-header と必ず同じ値にすること(上のヘッダ側の
+			   コメント参照。ラウンド8 A-4のem解釈ずれ事故の再発防止)。 */
+			grid-template-columns: 4.2rem 2.6rem minmax(0, 1fr) 3.2rem 3.4rem;
 			align-items: center;
 			gap: 0.6rem;
 		}
@@ -483,7 +503,11 @@ const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 		.stat-row-real { text-align: right; font-size: 1.05em; }
 		@media (max-width: 460px) {
 			.stat-table-header { display: none; }
-			.stat-row { grid-template-columns: 5.4em 2.2em 1fr; row-gap: 0.2rem; }
+			/* ラウンド12指摘(A-3)追随: 1列目はもともと「とくこう」等の全角ラベル+▲▼ボタンの
+			   幅として5.4emを確保していたが、ラベルがH/A/B/C/D/Sの1文字になったぶん
+			   3.6emまで詰めても収まる(▲▼ボタン18px×2+1文字+gapの実測から算出)。
+			   浮いた1.8emはそのままスライダー(3列目、1fr)に回る。 */
+			.stat-row { grid-template-columns: 3.6em 2.2em 1fr; row-gap: 0.2rem; }
 			/* 460px以下では努力値のスライダー+数値入力を再びひとまとめの1セルに戻す
 			   (デスクトップの5列グリッドは幅が無いと成立しないため)。 */
 			.stat-row .stat-input-controls { display: flex; }
@@ -501,25 +525,42 @@ const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 		   表示自体を撤去した(.ev-total-line/#ev-totalのマークアップとJSも削除)。 */
 
 		/* UI刷新: 種族アイコン(公式絵)ボックス(Pokemon.png参照)。右上に「タイプ画像」バッジを重ねる。
-		   ラウンド4ユーザー指示「ポケモンのアイコンが小さい」: 88px/72pxから拡大する。 */
+		   ラウンド4ユーザー指示「ポケモンのアイコンが小さい」: 88px/72pxから拡大する。
+		   ラウンド12指摘(A-2): .top-block-fieldsの幅をflex-basis指定から比率指定に変えた
+		   ことで浮いた約64px(下記.top-block-fields参照)をここへ回し、128px→160pxに拡大する
+		   (縦の高さコストは無い=行の高さは元々.top-block-fields側の3行入力で決まっていたため)。
+		   スプライト側は元の余白比率(128px箱に112pxスプライト=片側8px)を保ったまま
+		   160px箱に144pxスプライトへ揃える。 */
 		.species-icon-box {
 			position: relative;
 			display: flex;
 			align-items: center;
 			justify-content: center;
-			width: 128px;
-			height: 128px;
+			width: 160px;
+			height: 160px;
 			border-radius: var(--radius-md);
 			background: var(--color-surface-alt);
 			flex-shrink: 0;
 		}
-		.species-sprite-img { width: 112px; height: 112px; object-fit: contain; }
-		.species-sprite-fallback-lg { width: 112px; height: 112px; font-size: 2.6rem; }
+		.species-sprite-img { width: 144px; height: 144px; object-fit: contain; }
+		.species-sprite-fallback-lg { width: 144px; height: 144px; font-size: 3.2rem; }
 
 		/* UI刷新: Pokemon.png レイアウト。上部ブロック(種族/ニックネーム/特性 + アイコン)。
 		   ラウンド4ユーザー指示により性格は表示しなくなった(能力値ラベルのクリックへ移行)。 */
 		.top-block { display: flex; gap: 0.8rem; align-items: flex-start; flex-wrap: wrap; margin-bottom: 0.3rem; }
-		.top-block-fields { flex: 1 1 220px; min-width: 200px; }
+		/* ラウンド12指摘(A-2): 実測259pxで、下の.field-grid(列幅195px)や能力値グリッドと揃わない
+		   「3本目の縦線」を作っていた(flex:1 1 220pxのbasisは目安に過ぎず、.top-block内の
+		   実際の空き幅をすべて吸ってしまっていたため)。.top-blockの残り幅を.top-block-icon
+		   (固定幅)と折半する比率指定にして、下の2列グリッドと視覚的な列幅を揃える。
+		   gapが0.8remなので、片側に按分されるgapぶん(0.4rem)より少し控えめな0.3remを
+		   引いた計算式にする(両側で若干の余裕を持たせるため)。 */
+		.top-block-fields { flex: 0 1 calc(50% - 0.3rem); min-width: 200px; }
+
+		/* ラウンド12指摘(A-5): 3カラム1行目の縦位置が左y=97/中央y=89/右y=79とバラバラだった。
+		   左側の原因は基底.field(global.css)のmargin: var(--space-2) 0が.top-block-fields内の
+		   1つ目の.field(種族名)にも掛かり、.top-block自身のmargin-topが無いぶん、その分だけ
+		   上に余計な余白が乗っていたこと。中央カラム(y=89)に揃える。 */
+		#edit-form .top-block .field:first-child { margin-top: 0; }
 
 		/* ラウンド5ユーザー指示: 第4弾でラベル(.field-label)を復活させたが「ラベルをやめ
 		   placeholderにする」という撤回指示により、ここでは .field は単なる幅100%の
@@ -576,6 +617,12 @@ const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 		#edit-form .field-with-image > img,
 		#edit-form .field-with-image > span,
 		#edit-form .field-with-image > a { flex: 0 0 auto; }
+		/* ラウンド12指摘(A-1): .field-with-image自体には親(.field)いっぱいに広がる指定が無く、
+		   中身(inputの内容幅)に収縮フィットしていたため、持ち物(実測189px)/テラス(113px)/技
+		   (164px)の右端が列幅195pxに対してバラバラだった。.field-gridの直下(.field経由)にある
+		   ものだけ、列幅いっぱいに伸びるようflex/width/min-widthを明示する(左パネルの外で
+		   .field-with-imageが別の使われ方をしていないか確認した上でセレクタをこの階層に絞る)。 */
+		#edit-form .field-grid > .field > .field-with-image { flex: 1 1 auto; width: 100%; min-width: 0; }
 
 		/* UI品質改善(2026-07-26 第4弾 11-3): 技名が確定した技の枠線・背景を
 		   タイプ色にする(<script>のupdateMoveTypeColor/TYPE_COLORS参照)。色そのものは
@@ -901,9 +948,18 @@ const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 		   リングは「このカードのどれかの技列が選択中(=サイドバーの内容はこのカードのもの)」の
 		   意味のまま残す(縦に長く連なるカード一覧の中で、いま操作中の1枚を見つけやすくする
 		   ため)。技列側の詳細は.damage-column.is-selectedに委ねる(.damage-row-build側の
-		   is-selectedマーカーは廃止した)。 */
+		   is-selectedマーカーは廃止した)。
+		   ラウンド12指摘(B-4): 右サイドバーは未選択でも初期状態で「技1の設定」を表示する
+		   仕様(意図的、変更対象外)のため、ページを開いた直後から1枚目のカード+技列1に
+		   is-selectedが付く。このカード側の強調が下の.damage-column.is-selected(強いprimary
+		   実線)と同じ強さの全周primary実線だと、「何も操作していないのに選択済みに見える」
+		   二重強調になっていた。カード側はborder-colorを基底.card.is-selectedのprimaryから
+		   通常のborder-colorへ戻し、左端3pxのinsetバーだけの弱いマークにする
+		   (「このカードのどれかの技列が選択中」という意味は保ったまま、強調の主役は技列側
+		   1つだけにする)。 */
 		#opponent-notes-section .card-damage.is-selected {
-			box-shadow: 0 0 0 2px var(--color-primary-soft);
+			border-color: var(--color-border);
+			box-shadow: inset 3px 0 0 var(--color-primary);
 		}
 
 		/* ラウンド4で「相手ビルドの箱と技列の箱をalign-items:stretchで同じ高さに揃える」設計を
@@ -1231,12 +1287,17 @@ const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 			align-items: center;
 			gap: 0.1rem;
 		}
+		/* ラウンド12指摘(A-4): width/heightがem指定(1.15em/0.95em)で、基準になるfont-sizeも
+		   このルール自身の0.62rem(=9.92px)だったため、実寸11.4×9.4pxしか出ていなかった
+		   (ラウンド8 A-7で左パネルの.stat-nature-btnに対して潰したのと同型のemの入れ子事故の
+		   取りこぼし)。px指定に変えて18×14pxにする(左パネルの同機能ボタン22×20pxには及ばないが、
+		   このカードは3枚並べたときに1080pxへ収める制約があるため、そちらを優先する)。 */
 		#opponent-notes-section .damage-ev-nature-btn {
 			display: inline-flex;
 			align-items: center;
 			justify-content: center;
-			width: 1.15em;
-			height: 0.95em;
+			width: 18px;
+			height: 14px;
 			padding: 0;
 			font-size: 0.62rem;
 			line-height: 1;
@@ -1350,14 +1411,21 @@ const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 		/* 「この相手を削除」はアイコンボタン化(要件)。名前行に同居させて専用の行を
 		   持たせないことで、その1行分の高さをまるごと節約する(「⚙詳細」も同じ理由で
 		   アイコンボタン化していたが、ラウンド6で廃止した)。
-		   タップ対象は最低28px角を確保(要件)。 */
+		   タップ対象は最低28px角を確保(要件)。
+		   ラウンド12指摘(B-2): アイコンボタンが/box(24px円形)とこのページ(30px角形)で
+		   2規格に分かれていた。統一先の28px・円形・shadow-smに合わせる(/box側は別エージェント
+		   の担当範囲なのでこのページ側だけ変更する)。中身はtextContent="🗑"のみ(画像を隠す
+		   ラッパー構造は無い)ため、border-radiusだけ足しても「隠しきれていない画像」が
+		   露出する心配はない。 */
 		#opponent-notes-section .damage-row-icon-button {
 			flex-shrink: 0;
-			width: 30px;
-			height: 30px;
+			width: 28px;
+			height: 28px;
 			padding: 0;
-			font-size: 1rem;
+			font-size: 0.95rem;
 			line-height: 1;
+			border-radius: 50%;
+			box-shadow: var(--shadow-sm);
 		}
 
 		/* 右: 技列(縦積み=加算ダメージ計算)。
@@ -1493,9 +1561,11 @@ const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 			display: none;
 		}
 		/* 技名inputと結果表示の間の領域(DamageCard.pngで空白になっている部分)。
-		   図の注記どおり「計算の細かい条件」をこの列単位で置く場所であり、現時点では連続回数だけが
-		   入る(削除ボタンはラウンド3 B-2で技名行へ移した)。将来ここに条件が増えても結果表示は
-		   margin-top:auto で箱の下端に留まるので、レイアウトを作り直す必要はない。 */
+		   図の注記どおり「計算の細かい条件」をこの列単位で置く場所(削除ボタンはラウンド3 B-2で
+		   技名行へ移した)。ラウンド12指摘(B-3)で連続回数(.damage-column-hitcount-row)も
+		   技名行(moveRow)側へ同居させたため、現時点でここに入るのは撃破済み注記のみ。
+		   将来ここに条件が増えても結果表示は margin-top:auto で箱の下端に留まるので、
+		   レイアウトを作り直す必要はない。 */
 		#opponent-notes-section .damage-column-conditions {
 			display: flex;
 			flex-direction: column;
@@ -1506,10 +1576,17 @@ const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 		   ラウンド3 B-2: 以前は×だけが技名直下の中空に取り残され、その下に200px以上の空白が
 		   できていた(削除ボタンだけ.damage-column-conditions側にあったため)。
 		   [技名][×]の1行にまとめる(<script>のrenderColumns参照。要素自体は改名していない)。 */
+		/* ラウンド12指摘(B-3): ヒット回数(.damage-column-hitcount-row)をこの行の3人目の
+		   子要素として同居させた(<script>のrenderColumns参照、moveRow.appendChild(hitRow))。
+		   技名(1〜2文字目)+削除ボタン(×)+ヒット回数(2桁+「回ヒット」)が並ぶと、1600px/1280px
+		   境界(.damage-columnが149〜151pxまで潰れる、ラウンド10で実測済みの既知の制約)では
+		   1行に収まらない。flex-wrapで潰れたときだけヒット回数側を次の行へ折り返す
+		   (技名inputの下のmin-widthで「無限に0まで縮む」のを止め、ここで折り返しを発生させる)。 */
 		#opponent-notes-section .damage-column-move-row {
 			display: flex;
 			align-items: center;
 			gap: 0.25rem;
+			flex-wrap: wrap;
 		}
 
 		/* ラウンド10ユーザー指示「N発目と技を同行にすれば入る?」への対応。
@@ -1560,10 +1637,20 @@ const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 		}
 		#opponent-notes-section .damage-column-move-row input[type="text"] {
 			flex: 1 1 0;
-			min-width: 0;
+			/* ラウンド12指摘(B-3): min-width:0のままだとこのinputが際限なく0まで縮んで
+			   ヒット回数側が絶対に折り返されない(flex-basis:0の項目は行の折り返し判定に
+			   0として寄与するため)。技名が最低限読める幅(実測「みだれひっかき」相当)を
+			   下限にして、それでも収まらない分はヒット回数側をflex-wrapで次行へ落とす。 */
+			min-width: 3.4em;
 		}
 		#opponent-notes-section .damage-column-move-row .damage-column-remove-button {
 			align-self: center;
+			flex: 0 0 auto;
+		}
+		/* ラウンド12指摘(B-3): moveRowの子として同居するようになったヒット回数行。
+		   内容(数値入力+単位ラベル)ぶんの幅で確保し、収まらないときは行ごと折り返す
+		   (flex-shrinkを0にして中途半端に潰れないようにする)。 */
+		#opponent-notes-section .damage-column-move-row .damage-column-hitcount-row {
 			flex: 0 0 auto;
 		}
 		/* ラウンド6ユーザー指示(要件1): 歯車(⚙)ボタンを廃止した。技列の設定はこの技列
@@ -1714,8 +1801,14 @@ const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 			font-weight: 700;
 		}
 		/* ラウンド3 A-6由来: この行のすべての技列に共通で適用される旨を見出し直下に添える。
-		   ラウンド11ユーザー指示(省スペース化)で下マージンを詰めた(0.9rem→0.6rem)。 */
+		   ラウンド11ユーザー指示(省スペース化)で下マージンを詰めた(0.9rem→0.6rem)。
+		   ラウンド12指摘(B-1): 「この技列だけに適用されます。」が見出し「技N(技名)の設定」の
+		   言い換えでしかなく重複していた。文言変更とセットで対応: 見出し側を
+		   「技N(技名)だけの設定」に畳んで「他の技列には効かない」という非自明な情報を
+		   見出し1つで担保し、この説明文はDOM(<script>のrenderColumnLevelDetailPanel)は
+		   残したままCSSで非表示にする(このプロジェクトの「消す指示でもDOMは残す」方針)。 */
 		#damage-detail-panel-body .damage-detail-subtitle {
+			display: none;
 			margin: 0.1rem 0 0.6rem;
 			font-size: 0.8rem;
 			color: var(--color-text-muted);
@@ -2128,7 +2221,7 @@ const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 							</span>
 							<span class="stat-table-header-real">実数値</span>
 						</div>
-						{STAT_LABELS.map(({ key, label: statLabel }, i) => (
+						{STAT_LABELS.map(({ key, label: statLabel, short: statShort }, i) => (
 							<div class="stat-row">
 								{/* ラウンド5ユーザー指示: ステータスラベルのクリックによる上昇/下降切り替えを
 								    作り直す。以前は1個のボタンを「無補正→上昇→下降→無補正」と巡回させて
@@ -2143,13 +2236,13 @@ const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 								    aria-pressedで明示する。HPは性格補正の対象外なのでボタン自体を置かず、
 								    位置だけ揃えるプレースホルダーを入れる。 */}
 								{key === "hp" ? (
-									<span class="stat-row-label" title="HPは性格の影響を受けません">
+									<span class="stat-row-label" aria-label={statLabel} title={`${statLabel}(性格の影響を受けません)`}>
 										<span class="stat-nature-btn stat-nature-placeholder" aria-hidden="true"></span>
-										{statLabel}
+										{statShort}
 										<span class="stat-nature-btn stat-nature-placeholder" aria-hidden="true"></span>
 									</span>
 								) : (
-									<span class="stat-row-label">
+									<span class="stat-row-label" aria-label={statLabel} title={statLabel}>
 										<button
 											type="button"
 											id={`nature-up-${key}`}
@@ -2158,7 +2251,7 @@ const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 											aria-label={`${statLabel}を性格補正で上昇させる`}
 											title={`${statLabel}を上昇に設定`}
 										>▲</button>
-										{statLabel}
+										{statShort}
 										<button
 											type="button"
 											id={`nature-down-${key}`}
@@ -4226,7 +4319,8 @@ const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 						row.columnChipEls.push(conditionChips);
 
 						// 技名inputと結果表示の間: DamageCard.pngで「計算の細かい条件を入れる予定」と
-						// されている領域。連続回数(連続技のみ)を置く(削除ボタンはB-2で技名行へ移した)。
+						// されている領域。ラウンド12指摘(B-3)で連続回数(.damage-column-hitcount-row)は
+						// 技名行(moveRow)側へ移したため、ここに残るのは撃破済み注記のみ。
 						const conditions = document.createElement("div");
 						conditions.className = "damage-column-conditions";
 						col.appendChild(conditions);
@@ -4239,6 +4333,12 @@ const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 						overkillNote.hidden = true;
 						conditions.appendChild(overkillNote);
 
+						// ラウンド12指摘(B-3): 技名入力400pxに対し中身が118px(最長でも176px)しか
+						// 使っていなかった。「N発目+技名」の同行化(ラウンド10)の延長として、
+						// ヒット回数もこの技名行(moveRow)へ同居させ、多段ヒット技の行ぶん
+						// (実測約28px)の縦を回収する。クラス名 .damage-column-hitcount-row は
+						// E2Eが参照しているため改名しない(要素をmoveRowへappendするだけで、
+						// クラス名・[hidden]による表示/非表示ロジックは変えない)。
 						const hitRow = document.createElement("div");
 						hitRow.className = "damage-column-hitcount-row";
 						const hitInput = document.createElement("input");
@@ -4257,7 +4357,7 @@ const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 						unit.className = "damage-column-hitcount-unit";
 						unit.textContent = "回ヒット";
 						hitRow.appendChild(unit);
-						conditions.appendChild(hitRow);
+						moveRow.appendChild(hitRow);
 
 						// 要件: 連続回数の指定は連続技のときだけ表示する。連続技かどうかは
 						// マスタデータ(moves.jsonのhits)で判定する。連続技でない技に切り替えられた
@@ -4716,12 +4816,20 @@ const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 					const heading = document.createElement("h3");
 					heading.className = "damage-detail-row-heading";
 					const moveName = column.moveName.trim();
-					heading.textContent = moveName ? `技${idx + 1}(${moveName})の設定` : `技${idx + 1}の設定`;
+					// ラウンド12指摘(B-1): 直下の説明文「この技列だけに適用されます。」が見出しの
+					// 言い換えでしかなく重複していた。「だけの設定」を見出し自体に畳み込み、
+					// 「他の技列には効かない」という非自明な情報をこの1行で担保する
+					// (説明文自体はscoped <style>側でCSS非表示にした。DOMは残す)。
+					heading.textContent = moveName ? `技${idx + 1}(${moveName})だけの設定` : `技${idx + 1}だけの設定`;
 					detailPanelBodyEl.appendChild(heading);
 
 					const subtitle = document.createElement("p");
 					subtitle.className = "damage-detail-subtitle";
 					// ラウンド8指摘(B-6): 説明文4行が設定項目より縦に長かったため1行に短縮する。
+					// ラウンド12指摘(B-1): 見出し側に「だけの設定」を畳み込んだため、この説明文は
+					// 見出しと完全重複になった。DOMは残す(要素自体はscoped<style>側で非表示、
+					// このプロジェクトの「消す指示でもDOMは残す」方針)が、テキストは空にせず
+					// 保持する(将来また見出しから離す判断になったときに文言を作り直さずに済む)。
 					subtitle.textContent = "この技列だけに適用されます。";
 					detailPanelBodyEl.appendChild(subtitle);
 

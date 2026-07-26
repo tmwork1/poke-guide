@@ -77,8 +77,13 @@ const user = Astro.locals.user;
 		/* 検索欄: 入力の左側に虫眼鏡アイコン(SVG、AppLayoutのハンバーガーと同じ線画トーン)を重ねる。
 		   UI品質改善ラウンド2(B-2): ツールバーの右半分が空くのを解消するため、検索欄を
 		   flex-growさせてバーの余白を吸収させる。 */
+		/* UI品質改善ラウンド12 A-1: ラウンド2 B-2(検索欄をflex-growさせてバーの余白を
+		   吸収させる)を撤回する。placeholder実測約240px・実クエリ約160pxしか要らないのに
+		   検索欄がツールバー幅の72%(1192px)を占有していたため、機能に見合う上限
+		   (26rem=416px)を設けて検索/絞り込み/並べ替えを左詰めに揃える
+		   (ワイヤーフレームが左詰め構造であることを優先)。 */
 		.toolbar-search {
-			flex: 1 1 320px;
+			flex: 0 1 26rem;
 		}
 		.search-input-wrap {
 			position: relative;
@@ -101,16 +106,16 @@ const user = Astro.locals.user;
 		/* タグチップ自体は下の is:global ブロックで定義する(JSが動的生成するため)。 */
 		.tag-filter-list { display: flex; flex-wrap: wrap; gap: var(--space-2); }
 
-		/* 並べ替えをバーの右端に押し出す(B-2: 検索(左)—絞り込み(中)—並べ替え(右)の3分割)。 */
-		.toolbar-sort {
-			margin-left: auto;
-		}
+		/* UI品質改善ラウンド12 A-1: 旧 `.toolbar-sort { margin-left: auto }`(検索(左)—絞り込み(中)—
+		   並べ替え(右)の3分割、ラウンド2 B-2)は撤回。検索欄の幅を26remに絞ったことで、
+		   検索/絞り込み/並べ替えの3つはflexの既定(左詰め)のまま並ぶ。 */
 
 		@media (max-width: 640px) {
 			.panel-toolbar { flex-direction: column; align-items: stretch; }
 			.toolbar-item { width: 100%; margin-left: 0; }
-			/* B-2の `.toolbar-search { flex: 1 1 320px }` は横並び(flex-direction: row)前提の
-			   flex-basisで、縦積みに切り替わるこのブレークポイントでは主軸(縦方向)の基準値として
+			/* ラウンド12 A-1で `.toolbar-search { flex: 0 1 26rem }` に変更した後も、この
+			   flex-basis(26rem)は横並び(flex-direction: row)前提の値で、縦積みに切り替わる
+			   このブレークポイントでは主軸(縦方向)の基準値として
 			   解釈され、検索欄の高さが320pxまで伸びてしまう(実測で判明した回帰)。ここで
 			   flex-basisをリセットして内容ぶんの高さに戻す。 */
 			.toolbar-search { flex-basis: auto; }
@@ -180,15 +185,18 @@ const user = Astro.locals.user;
 		.box-grid .add-card-tile:hover {
 			background: var(--color-primary-soft);
 		}
+		/* UI品質改善ラウンド12 A-2: 見出し「個体を追加」の言い換えでしかなかった
+		   .add-card-tile-hint(「新しい個体を登録します」)をCSSで非表示にした(DOMは残す、
+		   このプロジェクトの原則)。空いた縦を使って＋アイコンを36px→44pxへ拡大する。 */
 		.box-grid .add-card-tile .add-card-tile-icon {
 			display: inline-flex;
 			align-items: center;
 			justify-content: center;
-			width: 36px;
-			height: 36px;
+			width: 44px;
+			height: 44px;
 			border-radius: 50%;
 			border: 1px solid var(--color-border);
-			font-size: 1.2rem;
+			font-size: 1.4rem;
 			font-weight: 300;
 			line-height: 1;
 			color: inherit;
@@ -201,11 +209,7 @@ const user = Astro.locals.user;
 			font-size: 0.9em;
 		}
 		.box-grid .add-card-tile-hint {
-			font-size: 0.78em;
-			font-weight: 400;
-			color: var(--color-text-muted);
-			text-align: center;
-			max-width: 100%;
+			display: none;
 		}
 		@media (prefers-reduced-motion: reduce) {
 			.box-grid .add-card-tile,
@@ -334,13 +338,19 @@ const user = Astro.locals.user;
 
 		/* --- 公式絵(要件5)。正方形カードの大半をここに割り当てる(優先順位1位)。
 		   ラウンド5: 持ち物・技のぶんだけ下半分の予算が増えたため58%→48%へ少し縮小した。
+		   ラウンド12 B-1: 1fr行(実測117px)に対しmin(48%,104px)=97pxしか使えておらず
+		   余った行高を使い切っていなかったため、min(56%,113px)へ拡大する(カード高さ218pxは
+		   据え置き)。この拡大により中央寄せの右端が.card-actions(横並び24px、旧来ぎりぎり
+		   重ならない調整だった)と実際に重なり、ディンルーの角がボタンに隠れることを
+		   Playwrightのスクリーンショットで確認した。.card-actions側をflex-direction:columnに
+		   変更して専有幅を狭めることで解消した(詳細は.card-actionsのコメント参照)。
 		   position: relative は持ち物バッジ(.card-item-badge)を右下に重ねるための基準。 --- */
 		.box-grid .card-pokemon .card-art {
 			display: flex;
 			align-items: center;
 			justify-content: center;
 			position: relative;
-			width: min(48%, 104px);
+			width: min(56%, 113px);
 			aspect-ratio: 1 / 1;
 			flex: 0 1 auto;
 		}
@@ -399,18 +409,35 @@ const user = Astro.locals.user;
 			.box-grid .card-pokemon .card-item-badge {
 				border-color: #5a6377;
 			}
+			/* ラウンド12 B-3: .card-moves-grid の区切り線がダークで --color-border(#2d313d)の
+			   ままだったため、上の.card-item-badgeと濃さの系統が2つ混在していた。同じ
+			   #5a6377 に揃える(新色は作らない)。 */
+			.box-grid .card-pokemon .card-moves-grid {
+				border-top-color: #5a6377;
+			}
 		}
 
 		/* --- ピン留め/削除(要件7): ★は状態表示として常時可視、🗑は誤操作防止のため
 		   hover/focus-within時のみ可視にする(キーボード操作はTabで delete-button に
 		   フォーカスが入った瞬間 :focus-within が発火するので到達可能)。
 		   タッチ操作(hover非対応端末)では常時可視のままにして操作不能にならないようにする。
-		   ラウンド4: 200px正方形に収めるためアイコンボタンを2rem→1.5remへ縮小する。 --- */
+		   ラウンド4: 200px正方形に収めるためアイコンボタンを2rem→1.5remへ縮小する。
+		   ラウンド12(B-1とアイコンボタン規格統一の両立): B-1で.card-artをmin(56%,113px)へ
+		   拡大した結果、横並び(flex-direction: row)のcard-actions(top/right:8px固定)と
+		   実測で重なりが出た(ディンルーの角がボタンの下に隠れることをスクリーンショットで確認)。
+		   旧来の横並び24pxでもart右端が667.6px、actions左端が667.6px(重なり量ほぼ0px)と
+		   ぎりぎりの調整だったため、B-1の拡大幅ぶんだけ確実に重なってしまう。
+		   flex-direction: column(縦積み)に変更してactionsの専有幅を52px→28pxに縮め、
+		   actions左端を大きく右へ寄せることで重なりを解消した。これにより28px統一
+		   (アイコンボタンの規格統一)も同時に達成でき、24pxへの妥協は不要になった。
+		   実測(1920px): .card-art 右端x=675.5、.card-actions(縦積み・28px)左端x≈691.6と
+		   16px以上のクリアランスを確保(重なりなし)。 --- */
 		.box-grid .card-pokemon .card-actions {
 			position: absolute;
 			top: var(--space-2);
 			right: var(--space-2);
 			display: flex;
+			flex-direction: column;
 			gap: 0.25rem;
 			z-index: 2;
 		}
@@ -418,14 +445,14 @@ const user = Astro.locals.user;
 			display: inline-flex;
 			align-items: center;
 			justify-content: center;
-			width: 1.5rem;
-			height: 1.5rem;
+			width: 28px;
+			height: 28px;
 			padding: 0;
 			border-radius: 999px;
 			border: 1px solid var(--color-border);
 			background: var(--color-surface);
 			color: var(--color-text-muted);
-			font-size: 0.8rem;
+			font-size: 0.85rem;
 			line-height: 1;
 			box-shadow: var(--shadow-sm);
 		}
@@ -504,8 +531,11 @@ const user = Astro.locals.user;
 			gap: 0.05rem 0.1rem;
 			width: 100%;
 		}
+		/* ラウンド12 B-2(Coordinator判断: 穏当案採用): H/A/B/C/D/S見出しが0.58em(=9.3px)で
+		   装飾的に潰れていた指摘に対し、見出し自体は削除せず0.58em→0.64emへ拡大するに留める
+		   (実数値本体のサイズは変更しない。理由はround-12.md「Coordinator判断」節参照)。 */
 		.box-grid .card-pokemon .card-stat-col-label {
-			font-size: 0.58em;
+			font-size: 0.64em;
 			line-height: 1.1;
 			font-weight: 700;
 			text-align: center;

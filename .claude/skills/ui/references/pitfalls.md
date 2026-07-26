@@ -50,6 +50,11 @@ await page.waitForFunction(() => {
 ### ダークモードは `emulateMedia`
 `await page.emulateMedia({ colorScheme: 'dark' })`。**毎ラウンド両方撮る。** ダークでだけコントラストが落ちる/バッジが背景に溶ける事故が実際に起きている。
 
+### 画面下端中央の黒い角丸ツールバーは Astro の開発ツールバー
+全ページのスクリーンショット下端中央に、アイコンが並んだ黒い角丸の帯が写り込む。**これはUIの欠陥ではない。** `document.elementFromPoint()` で調べると `<astro-dev-toolbar>` で、`astro dev` のときだけ出る。ビルド成果物には含まれない。
+- **実例**: ラウンド12の実装エージェントがDOMを調べたが自ページの要素と一致せず、「Chromiumの実験的機能(Compose系オーバーレイ)」と誤って推定して時間を使った。
+- 消したい場合は `astro.config.mjs` の `devToolbar: { enabled: false }`。**ただし撮影のためだけに設定を変えないこと**(他の開発体験に影響する)。写っていても無視してよい。
+
 ### 「エラーなし」は品質の証明にならない
 `pageerror` / `console.error` / 横スクロールの有無は**最低ライン**。必ず画像を Read tool で見る。
 
