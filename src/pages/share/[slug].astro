@@ -12,6 +12,19 @@ import { getPublicOwnedPokemonBySlug, type PublicOwnedPokemonRecord } from '../.
 // pokemon/[name].astro と同じく public/master-data/detail/pokemon.json をビルド時 import する
 // (ビルド時に確定する静的データなのでfetchではなくESM importで読める)。
 import pokemonDetailRaw from '../../../public/master-data/detail/pokemon.json';
+// ラウンド15 A-2: タイプ欄+公式絵を追加するための画像ID・タイプデータ。
+// detail/pokemon.json は types は持つが imageId(公式絵のPokeAPI ID)を持たないため、
+// pokemon/[name].astro が使っているのと同じ autocomplete/pokemon.json
+// (dexNo+imageId+types を name で引ける軽量データ)をこちらもビルド時 import で読む。
+import pokemonMasterRaw from '../../../public/master-data/autocomplete/pokemon.json';
+// ラウンド15 A-4: 技名を /moves/[name] へリンクしてよいか(=そのページが実在するか)の判定用。
+// moves/[name].astro の getStaticPaths() は detail/moves.json (Object.values) をそのまま
+// パス生成に使っているため、同じソースから作ったSetで存在確認すれば、リンク切れ・404遷移を
+// 作らずに済む(存在しない技名は素のテキストのままにする)。
+import movesDetailRaw from '../../../public/master-data/detail/moves.json';
+import { toPokemonPathSegment } from '../../lib/pokemon-slug';
+import { officialArtworkUrl } from '../../lib/pokemon-master-data';
+import { typeIconUrl } from '../../lib/sprite-urls';
 
 // API ルート (src/pages/api/**) と同じく、動的ルートはSSRで都度サーバレンダリングする
 // (ビルド時の静的プリレンダリングではなく、リクエストのたびにDBを参照するため)。
@@ -39,6 +52,27 @@ interface PokemonDetailEntry {
 
 const baseStatsMap = new Map<string, number[]>(
 	Object.values(pokemonDetailRaw as Record<string, PokemonDetailEntry>).map((p) => [p.name, p.baseStats]),
+);
+
+// ラウンド15 A-2: 種族名からタイプ・公式絵IDを引くための軽量マップ
+// (pokemon/[name].astro の masterEntry/artworkUrl と同じ組み立て方)。
+interface PokemonMasterEntry {
+	name: string;
+	dexNo: number;
+	imageId: number;
+	forme: string | null;
+	types: string[];
+}
+const pokemonMasterMap = new Map<string, PokemonMasterEntry>(
+	(pokemonMasterRaw as PokemonMasterEntry[]).map((p) => [p.name, p]),
+);
+
+// ラウンド15 A-4: /moves/[name] が実在する技名の集合(存在しない技名はリンク化せず素のテキストにする)。
+interface MoveDetailNameOnly {
+	name: string;
+}
+const moveNameSet = new Set<string>(
+	Object.values(movesDetailRaw as Record<string, MoveDetailNameOnly>).map((m) => m.name),
 );
 
 const NATURE_STAT_MODIFIERS: Record<string, { up: StatKey | null; down: StatKey | null }> = {
@@ -136,6 +170,18 @@ if (pokemon) {
 	});
 }
 
+// ラウンド15 A-2: masterEntry が見つからない種族名(データに無い)では画像・タイプ欄を
+// 一切出さない。過去に「<img>だけ隠して空のラッパー(白い丸)が残り続ける」事故が3回
+// 起きているため、<img>単体ではなく右カラムのラッパーごと隠す(下のテンプレート側で
+// masterEntry の有無だけを条件にする)。
+const masterEntry = pokemon ? pokemonMasterMap.get(pokemon.species_name) ?? null : null;
+const artworkUrl = masterEntry ? officialArtworkUrl(masterEntry.imageId) : null;
+
+// ラウンド15 A-4: 種族名の詳細ページ(/pokemon/[name])が実在するか。
+// baseStatsMap は /pokemon/[name].astro の getStaticPaths() と同じ detail/pokemon.json 由来なので、
+// ここに無い名前は静的パスも生成されておらず、リンクにすると必ず404になる。
+const speciesHasPage = pokemon ? baseStatsMap.has(pokemon.species_name) : false;
+
 // A-1: 未使用だった description props を実際に渡す(公開ページなのに meta description が
 // 無かった)。
 const description = pokemon
@@ -156,20 +202,61 @@ const description = pokemon
 				<section class="panel">
 					<div class="panel-content">
 						<h2>育成内容</h2>
-						<dl>
-							<dt>ポケモン</dt>
-							<dd>{pokemon.species_name}</dd>
-							<dt>性格</dt>
-							<dd>{pokemon.nature ?? '(未設定)'}</dd>
-							<dt>特性</dt>
-							<dd>{pokemon.ability_name ?? '(未設定)'}</dd>
-							<dt>持ち物</dt>
-							<dd>{pokemon.item_name ?? '(未設定)'}</dd>
-							<dt>テラスタイプ</dt>
-							<dd>{pokemon.tera_type ?? '(未設定)'}</dd>
-							<dt>技構成</dt>
-							<dd>{pokemon.move_names.length > 0 ? pokemon.move_names.join(' / ') : '(未設定)'}</dd>
-						</dl>
+						{/* ラウンド15 A-2/A-4: 左にテキスト情報(dl)、右に公式絵+タイプアイコンピルを
+						    flexで並べる(pokemon/[name].astro の .identity-block と同じ
+						    「テキスト flex:1 / 画像 flex:0 0 auto + margin-left:auto」構成に揃える。
+						    編集禁止ファイルのクラスは流用せずこのページ専用に新設した)。
+						    ポケモン名・技名は詳細ページが実在する場合のみ<a>化し、区切りの" / "は
+						    リンク外に置く。 */}
+						<div class="share-identity">
+							<dl>
+								<dt>ポケモン</dt>
+								<dd>
+									{speciesHasPage ? (
+										<a href={`/pokemon/${encodeURIComponent(toPokemonPathSegment(pokemon.species_name))}`}>{pokemon.species_name}</a>
+									) : pokemon.species_name}
+								</dd>
+								<dt>性格</dt>
+								<dd>{pokemon.nature ?? '(未設定)'}</dd>
+								<dt>特性</dt>
+								<dd>{pokemon.ability_name ?? '(未設定)'}</dd>
+								<dt>持ち物</dt>
+								<dd>{pokemon.item_name ?? '(未設定)'}</dd>
+								<dt>テラスタイプ</dt>
+								<dd>{pokemon.tera_type ?? '(未設定)'}</dd>
+								<dt>技構成</dt>
+								<dd>
+									{pokemon.move_names.length > 0 ? (
+										pokemon.move_names.map((moveName, i) => (
+											<>
+												{i > 0 && ' / '}
+												{moveNameSet.has(moveName) ? (
+													<a href={`/moves/${encodeURIComponent(moveName)}`}>{moveName}</a>
+												) : moveName}
+											</>
+										))
+									) : '(未設定)'}
+								</dd>
+							</dl>
+							{masterEntry && (
+								<div class="share-identity-media">
+									{artworkUrl && <img src={artworkUrl} width="160" height="160" alt="" />}
+									{masterEntry.types.length > 0 && (
+										<ul class="share-identity-type-list">
+											{masterEntry.types.map((t) => {
+												const iconUrl = typeIconUrl(t);
+												return (
+													<li class="share-identity-type-chip">
+														{iconUrl && <img src={iconUrl} width="28" height="28" alt="" />}
+														<span>{t}</span>
+													</li>
+												);
+											})}
+										</ul>
+									)}
+								</div>
+							)}
+						</div>
 					</div>
 				</section>
 
@@ -211,6 +298,68 @@ const description = pokemon
 </AppLayout>
 
 <style>
+	/* ラウンド15 A-2: 育成内容パネルを「テキスト情報(dl) + 右に公式絵/タイプ」の
+	   flex行にする。pokemon/[name].astro の .identity-block と同じ考え方
+	   (dl側 flex:1、画像側 flex:0 0 auto + margin-left:auto で右詰め、
+	   幅が足りない画面では折り返す)だが、編集禁止ファイルのクラスは流用せず
+	   このページ専用クラスとして新設した。.panel-content の max-width: 1080px は
+	   変更しない(このflex行はその内側で完結する)。 */
+	.share-identity {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: flex-start;
+		gap: var(--space-6);
+	}
+	.share-identity dl {
+		flex: 1 1 320px;
+		min-width: 0;
+	}
+	.share-identity-media {
+		flex: 0 0 auto;
+		margin-left: auto;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: var(--space-3);
+	}
+	.share-identity-media img {
+		display: block;
+		width: 160px;
+		height: 160px;
+		object-fit: contain;
+	}
+	.share-identity-type-list {
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: center;
+		gap: var(--space-2);
+		list-style: none;
+		margin: 0;
+		padding: 0;
+	}
+	/* pokemon/[name].astro の .identity-type-chip と同形(アイコン+タイプ名テキストの併記、
+	   色だけに意味を持たせない)。 */
+	.share-identity-type-chip {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.4em;
+		padding: 0.2em 0.7em 0.2em 0.3em;
+		border-radius: 999px;
+		background: var(--color-surface-alt);
+		font-weight: 600;
+	}
+	.share-identity-type-chip img {
+		display: block;
+		width: 28px;
+		height: 28px;
+		border-radius: 50%;
+	}
+	@media (max-width: 640px) {
+		.share-identity-media {
+			margin-left: 0;
+		}
+	}
+
 	/* ラウンド13 A-5: 4.5rem(行ラベル列)+ 6列(H/A/B/C/D/S)の7列グリッド。
 	   罫線は使わない(旧<table>のライト1.25:1/ダーク1.27:1問題はこれ自体で解消する)。 */
 	.share-stat-grid {

@@ -336,15 +336,50 @@ const realStatsMaxEv = realStatRow(32);
 			align-items: center;
 			gap: var(--space-2);
 		}
-		.moves-filter-field label {
+		.moves-filter-label {
 			font-size: var(--font-size-sm);
 			font-weight: 700;
 			color: var(--color-text-muted);
+		}
+		/* B-5: 「分類」フィルタをセレクト(実測94px、開かないと選択肢が見えない)からラジオへ変更。
+		   /search の「カテゴリ」5択(.radio-label、実測418px)と全く同じ語彙を使う。
+		   .radio-label は global.css ではなく src/pages/search/index.astro のscoped styleにしか
+		   無い(このページとは別ファイルなので継承されない)ため、ここに同じ内容を複製する。
+		   「タイプ」は13〜18択で概算1150〜1600px超のため意図的にセレクトのまま維持する
+		   (round-15.md B-5: ラジオ化するとここだけ折り返し、状態異常7択アイコントグル化が
+		   同ラウンド内で撤回された前例と同型になるため)。 */
+		.moves-filter-field-radio {
+			flex-wrap: wrap;
+		}
+		.moves-filter-field-radio .radio-label {
+			display: inline-flex;
+			align-items: center;
+			min-width: auto;
+			margin-right: 1rem;
+			font-weight: normal;
+			font-size: var(--font-size-md);
+			color: var(--color-text);
+		}
+		.moves-filter-field-radio .radio-label:last-child {
+			margin-right: 0;
 		}
 		.moves-filter-count {
 			margin: 0 0 0 auto;
 			font-size: var(--font-size-sm);
 			color: var(--color-text-muted);
+		}
+		/* B-1: ★(タイプ一致)の可視凡例。role="img" aria-labelはスクリーンリーダー限定で、
+		   目視ユーザーは★の意味を推測するしかなかった。フィルタ行の直後に1行で説明する。
+		   .card-hintは「見出し直下に置く」前提でmargin-topが負値なので、見出しではなく
+		   .moves-filterの直後に置くここでは(.stat-grid-hintと同じ理由で)使わずページscopedの
+		   専用クラスにする。 */
+		.moves-legend-hint {
+			margin: 0 0 var(--space-4);
+			font-size: var(--font-size-sm);
+			color: var(--color-text-muted);
+		}
+		.moves-legend-hint .move-cell-stab {
+			margin-right: 0.2em;
 		}
 		/* 絞り込み結果0件の表示。document.createElement()で作らず最初から静的HTMLに置いておき、
 		   JSはhidden属性を切り替えるだけにする(scoped styleが効かない罠の回避、上記script参照)。
@@ -528,38 +563,56 @@ const realStatsMaxEv = realStatRow(32);
 		<section class="panel">
 			<div class="panel-content">
 				<h2>覚えられる技({pokemon.learnset.length}種)</h2>
+				{/* B-8: /moves側は0件時に「現在のデータでは」と限定しているのに、このページの
+				    見出しには限定表現が無かった。learnsetの実体はポケモンチャンピオンズの
+				    フォーマット固有データ(vendor/jpoke/src/jpoke/data/ps-champ-ja/learnsets.json)で
+				    あって全世代の技マシン・遺伝技を網羅したものではない
+				    (.claude/skills/jpoke/references/integration.md「learnsetは『チャンピオンズで
+				    覚えられる技』であって全世代の技ではない」節)。見出し直下なので.card-hintの
+				    負のmargin-top(見出し直下に置く前提)がそのまま成立する。 */}
+				<p class="card-hint">現在のデータ(ポケモンチャンピオンズ)で覚えられる技のみを表示しています。全世代の技マシン・遺伝技を網羅した一覧ではありません。</p>
 				{sortedLearnsetMoves.length > 0 ? (
 					<>
 						{/* C-3: タイプ・分類フィルタ。round-13で技一覧を4列化した結果ミュウ(301件)で
 						    ページが3648pxまで伸びたため、round-13.mdの判断(「畳むのではなくC-3で解く」)
 						    どおりに絞り込みを追加する(「畳む」実装は禁止・再提起もしないため不採用)。
 						    データはdetail/moves.jsonから既にjoin済みなので追加データ生成は不要。
-						    選択肢はこのポケモンのlearnsetに実在するタイプ・分類のみ。 */}
+						    選択肢はこのポケモンのlearnsetに実在するタイプ・分類のみ。
+						    B-5: 「分類」はround-15.mdの実測(/search 5択418px、4択概算306px)に基づき
+						    セレクトからラジオへ変更。「タイプ」は13〜18択で折り返す(概算1150〜1600px超)
+						    ため意図的にセレクトのまま維持する。 */}
 						<div class="moves-filter">
 							<div class="moves-filter-field">
-								<label for="moves-filter-type">タイプ</label>
+								<label for="moves-filter-type" class="moves-filter-label">タイプ</label>
 								<select id="moves-filter-type">
 									<option value="">すべて</option>
 									{learnsetTypeOptions.map((t) => <option value={t}>{t}</option>)}
 								</select>
 							</div>
-							<div class="moves-filter-field">
-								<label for="moves-filter-category">分類</label>
-								<select id="moves-filter-category">
-									<option value="">すべて</option>
-									<option value="physical">物理</option>
-									<option value="special">特殊</option>
-									<option value="status">変化</option>
-								</select>
+							<div class="moves-filter-field moves-filter-field-radio" role="radiogroup" aria-labelledby="moves-filter-category-label">
+								<span id="moves-filter-category-label" class="moves-filter-label">分類</span>
+								<label class="radio-label"><input type="radio" name="moves-filter-category" value="" checked /> すべて</label>
+								<label class="radio-label"><input type="radio" name="moves-filter-category" value="physical" /> 物理</label>
+								<label class="radio-label"><input type="radio" name="moves-filter-category" value="special" /> 特殊</label>
+								<label class="radio-label"><input type="radio" name="moves-filter-category" value="status" /> 変化</label>
 							</div>
 							<p id="moves-filter-count" class="moves-filter-count tnum" aria-live="polite"></p>
 						</div>
+						{/* B-1: ★(タイプ一致)の可視凡例。role="img" aria-label="タイプ一致"はスクリーン
+						    リーダー限定で、目視ユーザーは★の意味を推測するしかなかった。STAB技が先頭に
+						    固められる設計のため初画面はほぼ全セルに★が付き「おすすめ」等と誤読されうる。 */}
+						<p class="moves-legend-hint"><span class="move-cell-stab" aria-hidden="true">★</span> = タイプ一致(自分と同じタイプの技。ダメージ計算で威力1.5倍になる)</p>
 						<ul class="moves-grid" id="moves-grid">
 							{sortedLearnsetMoves.map((m) => {
 								const iconUrl = m.type ? typeIconUrl(m.type) : null;
+								// A-5: 技セルのリンクに ?from=pokemon:<このポケモン名> を付ける(値はencodeURIComponent)。
+								// 共通契約(round-15.md A-5): /moves側が着地時にlocation.searchのfromを読み、
+								// "pokemon:<名前>" なら戻るリンクを "← <名前>に戻る" に書き換える。/moves側の実装は
+								// 別エージェント担当(src/pages/moves/[name].astroは編集禁止)。
+								const moveHref = `/moves/${encodeURIComponent(m.name)}?from=${encodeURIComponent(`pokemon:${pokemon.name}`)}`;
 								return (
 									<li class={`move-cell${m.isStab ? ' is-stab' : ''}`} data-move-type={m.type ?? ''} data-move-category={m.category}>
-										<a href={`/moves/${encodeURIComponent(m.name)}`}>
+										<a href={moveHref}>
 											{iconUrl && <img class="move-cell-icon" src={iconUrl} width="16" height="16" alt={m.type ?? ''} />}
 											<span class="move-cell-name" title={m.name}>{m.name}</span>
 											{m.isStab && (
@@ -594,7 +647,8 @@ const realStatsMaxEv = realStatRow(32);
 		// フィルタ用のselect自体が存在しないページ(learnset 0件の理論上のケース)でも
 		// getElementByIdはnullを返すだけなので、以下は安全に何もしない。
 		const typeSelect = document.getElementById('moves-filter-type') as HTMLSelectElement | null;
-		const categorySelect = document.getElementById('moves-filter-category') as HTMLSelectElement | null;
+		// B-5: 「分類」はセレクトからラジオ(name="moves-filter-category")へ変更。選択中の値はチェック済みのinputから読む。
+		const categoryRadios = Array.from(document.querySelectorAll<HTMLInputElement>('input[name="moves-filter-category"]'));
 		const countEl = document.getElementById('moves-filter-count');
 		const emptyStateEl = document.getElementById('moves-empty-state') as HTMLElement | null;
 		const cells = Array.from(document.querySelectorAll<HTMLLIElement>('.move-cell'));
@@ -602,7 +656,7 @@ const realStatsMaxEv = realStatRow(32);
 
 		function applyFilter() {
 			const type = typeSelect?.value ?? '';
-			const category = categorySelect?.value ?? '';
+			const category = categoryRadios.find((radio) => radio.checked)?.value ?? '';
 			let visibleCount = 0;
 			for (const cell of cells) {
 				const visible =
@@ -616,7 +670,35 @@ const realStatsMaxEv = realStatRow(32);
 		}
 
 		typeSelect?.addEventListener('change', applyFilter);
-		categorySelect?.addEventListener('change', applyFilter);
+		for (const radio of categoryRadios) {
+			radio.addEventListener('change', applyFilter);
+		}
 		applyFilter();
+	</script>
+	<script define:vars={{ validMoveNames: Array.from(movesDetailMap.keys()) }}>
+		// A-5: /moves側の「この技を覚えるポケモン」リンクが付ける ?from=move:<技名> を読み、
+		// 戻るリンク(AppLayoutが描画する.app-topbar-back、既定は"/search")をその技のページへ
+		// 書き換える。共通契約(round-15.md A-5、round-13.md A-6と同じ「URLクエリをページ内
+		// スクリプトが読んで静的HTMLを書き換える」パターン): fromが無い/不正値/未知の接頭辞
+		// ("move:"以外)なら既定の"/search"のまま何もしない。存在しない技名
+		// (?from=move:存在しない技)も、getStaticPathsが生成した全技名の一覧
+		// (validMoveNames、define:varsでフロントマターのmovesDetailMapから注入)に無ければ
+		// 既定のままにする(壊れたリンクへの書き換えを防ぐ)。
+		// 注: define:varsを使うscriptはAstroにより暗黙にis:inline扱いになりTypeScript構文
+		// (型アサーション・ジェネリクス)を処理できないため、素のJavaScriptのみで書く
+		// (src/pages/box/[id].astroの既存コメントに同じ注意が記録済み)。
+		const params = new URLSearchParams(location.search);
+		const from = params.get('from');
+		const MOVE_PREFIX = 'move:';
+		if (from && from.startsWith(MOVE_PREFIX)) {
+			const moveName = from.slice(MOVE_PREFIX.length);
+			if (moveName && validMoveNames.includes(moveName)) {
+				const backLink = document.querySelector('.app-topbar-back');
+				if (backLink) {
+					backLink.setAttribute('href', `/moves/${encodeURIComponent(moveName)}`);
+					backLink.textContent = `← ${moveName}に戻る`;
+				}
+			}
+		}
 	</script>
 </AppLayout>

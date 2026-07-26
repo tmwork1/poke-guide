@@ -55,6 +55,11 @@ await page.waitForFunction(() => {
 - **実例**: ラウンド12の実装エージェントがDOMを調べたが自ページの要素と一致せず、「Chromiumの実験的機能(Compose系オーバーレイ)」と誤って推定して時間を使った。
 - 消したい場合は `astro.config.mjs` の `devToolbar: { enabled: false }`。**ただし撮影のためだけに設定を変えないこと**(他の開発体験に影響する)。写っていても無視してよい。
 
+### 「HTMLに文字列が含まれるか」で情報漏れを判定すると誤検知する
+`/share`(公開ページ)にログイン情報が出ていないことを確かめるとき、`page.content()` に `.app-sidebar` 等が含まれるかを**文字列一致**で見ると、**`<style>` 内のセレクタ名にヒットして「漏れている」と誤判定する**。
+- **実例**: ラウンド15で `/share` の検証がこれで誤検知し、locator で数え直して0件だと確認できた。
+- **対策**: 要素の有無は `page.locator('.app-sidebar').count()` のように**DOMとして数える**。文字列一致を使うのは、`dev@localhost` のような**セレクタ名になり得ない値**に限る。
+
 ### 「エラーなし」は品質の証明にならない
 `pageerror` / `console.error` / 横スクロールの有無は**最低ライン**。必ず画像を Read tool で見る。
 
@@ -74,6 +79,11 @@ scoped style は `.foo` に `[data-astro-cid-*]` を付けるので実質 **(0,2
 - **実例**: `global.css` の `.app-topbar-account-desktop { display: none }` が `AppLayout.astro` の scoped `.app-topbar-account { display: flex }` に負け、**モバイルでログイン表示が2箇所に出て101pxの横スクロール**が発生。ページタイトルは幅2pxに潰れていた。
 - **`global.css` 側で詳細度を上げても直らない。** scoped style は `global.css` より**後ろに注入される**ため、同詳細度なら後勝ちする。
 - **対策**: 打ち消したい指定を**同じコンポーネントの scoped `<style>` へ移設する**。これが唯一の解。
+
+### `define:vars` を付けた `<script>` では TypeScript が使えない
+Astro は `define:vars` を指定した `<script>` を**暗黙に `is:inline` 扱い**にするため、型アサーションなどのTypeScript構文を書くと壊れる。
+- **実例**: ラウンド15で `/pokemon/[name].astro` に「URLクエリを読んで戻るリンクを書き換える」スクリプトを足したとき、`define:vars` でサーバ側の値を渡す必要があり、この制約に当たった。
+- **対策**: `define:vars` を使うスクリプトは**素のJavaScriptだけで書く**。型が欲しいなら `define:vars` をやめて `data-*` 属性経由で値を渡し、通常の `<script>` にする。
 
 ### Astroのscoped styleはJSで生成した要素に効かない
 scoped style は `data-astro-cid-*` 属性が付いた**静的マークアップにしか当たらない**。`document.createElement()` で作った要素には一切効かず、既定値のままになる。

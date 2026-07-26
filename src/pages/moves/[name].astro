@@ -128,28 +128,6 @@ const isStatusMove = move.category === 'status';
 // 「4. タイプ相性」の追記を参照: TYPE_MODIFIER.get(None, {}) が空dictを返すため。)
 const typeEffectivenessGroups = isStatusMove ? [] : getTypeEffectiveness(move.type);
 
-// --- 3段目その2: B-4 期待値(威力×命中) ---
-// 「-」を並べるとデータ破損に見えるため、数値を出せない2パターン(変化技/威力が固定値でない
-// 攻撃技)はそれぞれ理由の分かる注記にする。命中「必中」(accuracy: null)の技は
-// 常に命中する技なので、命中率100%として計算する(必中を0%相当として扱うと期待値が0になり誤り)。
-let expectedValue: { display: string; formula: string } | null = null;
-let expectedValueNote: string | null = null;
-if (isStatusMove) {
-	expectedValueNote = '変化技はダメージを与えないため、期待値は算出できません。';
-} else if (move.power == null) {
-	// moves.jsonの実データ確認: カウンター/じわれ/ぜったいれいど/ミラーコート/メタルバースト等、
-	// 変化技ではないのに威力が固定値ではない(相手の残りHPや受けたダメージ量などで決まる)技が
-	// 14件存在する。round-09.md B-4の「威力が無い変化技」の指示は変化技のケースのみ触れているが、
-	// 同じ理由(数値がないのに'-'を出すと壊れて見える)がこの14件にも当てはまるため同様に扱う。
-	expectedValueNote = 'この技は威力が固定値ではなく特殊な計算式(相手の残りHPや受けたダメージ量など)で決まるため、期待値は算出できません。';
-} else {
-	const effectiveAccuracy = move.accuracy ?? 100;
-	const raw = (move.power * effectiveAccuracy) / 100;
-	const display = Number.isInteger(raw) ? String(raw) : raw.toFixed(1);
-	const accuracyFormulaLabel = move.accuracy != null ? `${move.accuracy}%` : '必中(100%として計算)';
-	expectedValue = { display, formula: `威力${move.power} × 命中${accuracyFormulaLabel}` };
-}
-
 // --- 2段目の下: B-3 連続技のヒット回数(round-09.md B-3) ---
 // hitsが無い技(716件中693件)は単発技なので、この節自体を出さない(空枠や"-"を出さない)。
 // 2〜5回技の内訳は均等ではない。出典は
@@ -165,6 +143,10 @@ if (isStatusMove) {
 // (vendor/jpoke/src/jpoke/handlers/move_attack.py:3049-3054)が選出中の生存かつ状態異常でない
 // ポケモン数をそのままヒット回数にする。乱数ではなくパーティ構成で決まるため、確率分布としては
 // 出さない(誤解を招くため)。
+//
+// ラウンド15 A-1: hitsView は「連続ヒット」節の説明文だけでなく、下の期待値(B-4)節が
+// 「技1回あたりの平均ヒット回数」を再利用するための数値も一緒に持たせる(hitsが無いhitsView===null
+// 時は単発技=1ヒット=1回なので期待値側は従来どおり1段のみ表示する)。
 const HIT_CHECK_EACH_TIME_MOVES = new Set(['ネズミざん', 'トリプルキック', 'トリプルアクセル']);
 const MULTI_HIT_DISTRIBUTION_2_TO_5: [number, number][] = [
 	[2, 0.375],
@@ -175,10 +157,10 @@ const MULTI_HIT_DISTRIBUTION_2_TO_5: [number, number][] = [
 
 type HitsView =
 	| { kind: 'party'; note: string }
-	| { kind: 'guaranteed'; note: string }
-	| { kind: 'per-hit-check'; note: string; expectedNote: string }
-	| { kind: 'uniform'; note: string }
-	| { kind: 'distribution'; rows: { count: number; pctLabel: string }[]; averageLabel: string };
+	| { kind: 'guaranteed'; note: string; avgHitsGivenHit: number }
+	| { kind: 'per-hit-check'; note: string; expectedNote: string; expectedHitsUnconditional: number }
+	| { kind: 'uniform'; note: string; avgHitsGivenHit: number }
+	| { kind: 'distribution'; rows: { count: number; pctLabel: string }[]; averageLabel: string; avgHitsGivenHit: number };
 
 const hits = movesAutocompleteMap.get(move.name)?.hits ?? null;
 const hitsRangeLabel = hits ? (hits[0] === hits[1] ? `${hits[0]}回` : `${hits[0]}〜${hits[1]}回`) : null;
@@ -199,11 +181,13 @@ if (hits) {
 				kind: 'per-hit-check',
 				note: `最大${maxHits}回ヒットを試みますが、1回でも外れるとそこで止まります(1ヒットごとに命中率${accuracyLabel}で判定)。`,
 				expectedNote: `命中率${accuracyLabel}として計算すると、期待ヒット回数は約${expected.toFixed(1)}回です。`,
+				expectedHitsUnconditional: expected,
 			};
 		} else {
 			hitsView = {
 				kind: 'guaranteed',
 				note: `技が命中すれば、追加の抽選なく必ず${maxHits}回ヒットします(外れれば0回)。`,
+				avgHitsGivenHit: maxHits,
 			};
 		}
 	} else if (minHits === 2 && maxHits === 5) {
@@ -215,6 +199,7 @@ if (hits) {
 				pctLabel: `${(prob * 100).toFixed(1)}%`,
 			})),
 			averageLabel: averageValue.toFixed(1),
+			avgHitsGivenHit: averageValue,
 		};
 	} else {
 		// 現在の全716件データでは到達しない防御的フォールバック(2〜5回・固定回数のどちらでもない
@@ -222,7 +207,68 @@ if (hits) {
 		hitsView = {
 			kind: 'uniform',
 			note: `${minHits}〜${maxHits}回の範囲でランダムに決まります(範囲内は均等な確率)。`,
+			avgHitsGivenHit: (minHits + maxHits) / 2,
 		};
+	}
+}
+
+// --- 3段目その2: B-4 期待値(威力×命中) ---
+// 「-」を並べるとデータ破損に見えるため、数値を出せない3パターン(変化技/威力が固定値でない
+// 攻撃技/ふくろだたき)はそれぞれ理由の分かる注記にする。命中「必中」(accuracy: null)の技は
+// 常に命中する技なので、命中率100%として計算する(必中を0%相当として扱うと期待値が0になり誤り)。
+//
+// ラウンド15 A-1(実バグ修正): 旧実装は `move.power * accuracy / 100` のみで hits を無視しており、
+// 連続技23件すべてで「技1回あたり」の期待値を過小評価していた(例: スケイルショットは同じ画面に
+// 「平均3.0回ヒットします」と書きながら期待値22.5=1ヒット分のみを表示していた)。
+// hitsView が持つ平均ヒット回数を使い、「1ヒットあたり」(raw = power×accuracy/100、従来どおり)と
+// 「技1回あたり」(raw × 平均ヒット回数)の2段に分ける。単発技(hitsが無い技)は1ヒット=1回のため
+// 従来どおり1段のみ表示する。
+//
+// per-hit-check(ネズミざん/トリプルキック/トリプルアクセル)は「命中率を織り込んだ技1回あたりの
+// 平均ヒット回数」(expectedHitsUnconditional、上の「連続ヒット」節で表示済みの数値と同一)が
+// 既にあるため、raw(命中率を含む1ヒット期待値)に再度掛けるのではなく威力に直接掛ける
+// (命中率を二重に掛けてしまう誤りを避けるため。damage-calc.md「3補」参照)。
+let expectedValue: { display: string; formula: string } | null = null;
+let expectedValuePerMove: { display: string; formula: string } | null = null;
+let expectedValueNote: string | null = null;
+if (move.name === 'ふくろだたき') {
+	// hitsView側('party'扱い)と同じ条件で期待値からも除外する。detail/moves.jsonのpower:1は
+	// UI上「期待値1」という無意味な数値に見えるダミー値であり、実際の1ヒットあたりの威力は
+	// 使用者の攻撃種族値で決まる(damage-calc.md「3補」参照)。
+	expectedValueNote = '1ヒットあたりの威力が使用者の攻撃種族値で決まる特殊な技のため、期待値は算出できません。';
+} else if (isStatusMove) {
+	expectedValueNote = '変化技はダメージを与えないため、期待値は算出できません。';
+} else if (move.power == null) {
+	// moves.jsonの実データ確認: カウンター/じわれ/ぜったいれいど/ミラーコート/メタルバースト等、
+	// 変化技ではないのに威力が固定値ではない(相手の残りHPや受けたダメージ量などで決まる)技が
+	// 14件存在する。round-09.md B-4の「威力が無い変化技」の指示は変化技のケースのみ触れているが、
+	// 同じ理由(数値がないのに'-'を出すと壊れて見える)がこの14件にも当てはまるため同様に扱う。
+	expectedValueNote = 'この技は威力が固定値ではなく特殊な計算式(相手の残りHPや受けたダメージ量など)で決まるため、期待値は算出できません。';
+} else {
+	const effectiveAccuracy = move.accuracy ?? 100;
+	const raw = (move.power * effectiveAccuracy) / 100;
+	const display = Number.isInteger(raw) ? String(raw) : raw.toFixed(1);
+	const accuracyFormulaLabel = move.accuracy != null ? `${move.accuracy}%` : '必中(100%として計算)';
+	expectedValue = { display, formula: `威力${move.power} × 命中${accuracyFormulaLabel}` };
+
+	if (hits && hitsView && hitsView.kind !== 'party') {
+		if (hitsView.kind === 'per-hit-check') {
+			const perMoveValue = move.power * hitsView.expectedHitsUnconditional;
+			const perMoveDisplay = Number.isInteger(perMoveValue) ? String(perMoveValue) : perMoveValue.toFixed(1);
+			expectedValuePerMove = {
+				display: perMoveDisplay,
+				formula: `威力${move.power} × 期待ヒット回数約${hitsView.expectedHitsUnconditional.toFixed(1)}回(命中率${accuracyFormulaLabel}を考慮済み)`,
+			};
+		} else {
+			const avgHits = hitsView.avgHitsGivenHit;
+			const avgHitsLabel = Number.isInteger(avgHits) ? String(avgHits) : avgHits.toFixed(1);
+			const perMoveValue = raw * avgHits;
+			const perMoveDisplay = Number.isInteger(perMoveValue) ? String(perMoveValue) : perMoveValue.toFixed(1);
+			expectedValuePerMove = {
+				display: perMoveDisplay,
+				formula: `1ヒットの期待値${display} × 平均${avgHitsLabel}回ヒット`,
+			};
+		}
 	}
 }
 
@@ -323,6 +369,13 @@ const learnerCount = learnerNames.length;
 			grid-template-columns: 1fr 1fr;
 			gap: var(--space-6);
 		}
+		/* B-3: 変化技はタイプ相性・期待値とも「該当なし」の1行注記だけになり、左右2列を
+		   維持すると内容量に対して縦の空白が肥大化する(実測592px)。isStatusMoveのときだけ
+		   1カラムに切り替える。これは緩和策であり、空白の大半は情報量そのものの少なさに
+		   起因するため抜本解決ではない(round-15.md B-3)。 */
+		.move-extra-grid.move-extra-grid-status {
+			grid-template-columns: 1fr;
+		}
 		@media (max-width: 640px) {
 			.move-extra-grid {
 				grid-template-columns: 1fr;
@@ -349,6 +402,13 @@ const learnerCount = learnerNames.length;
 			border-radius: var(--radius-md);
 			padding: var(--space-3);
 			margin-bottom: var(--space-3);
+			/* B-4: 1バッジしか無いケース(専有率21%)で板全体を専有していた問題への対応。
+			   左端(このブロック自体の開始位置)は揃えたまま、右端だけ内容に応じて縮める。
+			   min-widthで極端に細くなり過ぎるのを防ぎつつ、max-widthで多バッジ時は
+			   従来どおり親要素いっぱいまで伸びる(round-15.md B-4)。 */
+			width: fit-content;
+			min-width: min(50%, 260px);
+			max-width: 100%;
 		}
 		.move-type-group:last-child {
 			margin-bottom: 0;
@@ -413,7 +473,19 @@ const learnerCount = learnerNames.length;
 		.move-expected-value-body {
 			display: flex;
 			flex-direction: column;
+			gap: var(--space-3);
+		}
+		/* ラウンド15 A-1: 「1ヒットあたり」「技1回あたり」の2行を積むための行コンテナ。
+		   単発技(hitsが無い技)は1行のみ描画するため、その場合ラベルは出さない(従来どおりの見た目)。 */
+		.move-expected-value-row {
+			display: flex;
+			flex-direction: column;
 			gap: var(--space-1);
+		}
+		.move-expected-value-label {
+			font-size: var(--font-size-sm);
+			font-weight: 700;
+			color: var(--color-text-muted);
 		}
 		.move-expected-value-number {
 			font-size: var(--font-size-2xl);
@@ -423,6 +495,12 @@ const learnerCount = learnerNames.length;
 		.move-expected-value-formula {
 			font-size: var(--font-size-sm);
 			color: var(--color-text-muted);
+		}
+		/* A-7: タイプ相性パネル下の複合タイプ注記。.move-note単体を見出し直後ではなく
+		   ばつぐん/いまひとつ等のブロック直後に置くため、独自にmargin-topを足す
+		   (.card-hintの負マージン罠を避ける。制約節参照)。 */
+		.move-type-compound-note {
+			margin-top: var(--space-3);
 		}
 
 		/* --- 2段目の下: B-3 連続技のヒット回数 ---
@@ -552,7 +630,7 @@ const learnerCount = learnerNames.length;
 
 		<section class="panel">
 			<div class="panel-content">
-				<div class="move-extra-grid">
+				<div class:list={['move-extra-grid', isStatusMove && 'move-extra-grid-status']}>
 					<div>
 						<h3 class="move-section-title">タイプ相性</h3>
 						{isStatusMove ? (
@@ -584,13 +662,28 @@ const learnerCount = learnerNames.length;
 								))}
 							</div>
 						)}
+						{!isStatusMove && (
+							<p class="move-note move-type-compound-note">
+								相手が複数タイプを持つ場合は、各タイプの倍率を掛け合わせてください(例: ほのお/ひこう相手にこおり技は 0.5×2 = 等倍)。
+							</p>
+						)}
 					</div>
 					<div>
 						<h3 class="move-section-title">期待値(威力 × 命中)</h3>
 						{expectedValue ? (
 							<div class="move-expected-value-body">
-								<span class="move-expected-value-number tnum">{expectedValue.display}</span>
-								<span class="move-expected-value-formula">{expectedValue.formula}</span>
+								<div class="move-expected-value-row">
+									{expectedValuePerMove && <span class="move-expected-value-label">1ヒットあたり</span>}
+									<span class="move-expected-value-number tnum">{expectedValue.display}</span>
+									<span class="move-expected-value-formula">{expectedValue.formula}</span>
+								</div>
+								{expectedValuePerMove && (
+									<div class="move-expected-value-row">
+										<span class="move-expected-value-label">技1回あたり(平均ヒット回数を考慮)</span>
+										<span class="move-expected-value-number tnum">{expectedValuePerMove.display}</span>
+										<span class="move-expected-value-formula">{expectedValuePerMove.formula}</span>
+									</div>
+								)}
 							</div>
 						) : (
 							<p class="move-note">{expectedValueNote}</p>
@@ -611,7 +704,11 @@ const learnerCount = learnerNames.length;
 								<ul class="move-learner-list">
 									{learnerNames.map((name) => (
 										<li class="move-learner-chip">
-											<a href={`/pokemon/${encodeURIComponent(toPokemonPathSegment(name))}`}>{name}</a>
+											{/* A-5: 「この技を覚えるポケモン」から遷移した先(/pokemon/<name>)が、戻るリンクを
+											    「← <この技名>に戻る」に書き換えられるようにする共通契約(round-15.md A-5)。
+											    値はencodeURIComponent(移動先のクエリパーサがURLSearchParams.get()で
+											    自動デコードするため、着地側で二重デコードしないこと)。 */}
+											<a href={`/pokemon/${encodeURIComponent(toPokemonPathSegment(name))}?from=move:${encodeURIComponent(move.name)}`}>{name}</a>
 										</li>
 									))}
 								</ul>
@@ -622,4 +719,44 @@ const learnerCount = learnerNames.length;
 			</div>
 		</section>
 	</div>
+	<script>
+		import { toPokemonPathSegment } from '../../lib/pokemon-slug';
+
+		// A-5: /pokemon → /moves の戻るリンクを遷移元に応じて書き換える。
+		// 共通契約(round-15.md A-5、ラウンド13 A-6の「URLクエリをページ内スクリプトが読んで
+		// 静的HTMLを書き換える」パターンを踏襲): リンク元が ?from=pokemon:<名前> を付与していれば、
+		// AppLayoutがSSGで焼き込んだ既定の戻るリンク(backHref="/search")を /pokemon/<名前> に、
+		// 文言を「← <名前>に戻る」に書き換える。from が無い/不正な接頭辞/実在しない名前は
+		// 既定の /search のままにする(未知の接頭辞・不正値は無視して既定へフォールバック)。
+		async function applyBackLinkFromQuery(): Promise<void> {
+			const params = new URLSearchParams(location.search);
+			const from = params.get('from');
+			if (!from || !from.startsWith('pokemon:')) return;
+			// URLSearchParams.get() の時点でパーセントエンコードは既にデコード済みなので
+			// ここでdecodeURIComponentを重ねて呼ばない(二重デコードになるため)。
+			const name = from.slice('pokemon:'.length);
+			if (!name) return;
+
+			// 実在しないポケモン名で /pokemon/<不正な名前> という404リンクへ書き換えてしまわないよう、
+			// 既に公開アセットであるautocomplete用マスターデータで実在確認する。
+			let exists = false;
+			try {
+				const res = await fetch('/master-data/autocomplete/pokemon.json');
+				if (res.ok) {
+					const list = (await res.json()) as { name: string }[];
+					exists = list.some((p) => p.name === name);
+				}
+			} catch {
+				// フェッチ失敗時は安全側(既定の/search)に倒す。
+			}
+			if (!exists) return;
+
+			const backLink = document.querySelector<HTMLAnchorElement>('.app-topbar-back');
+			if (!backLink) return;
+			backLink.href = `/pokemon/${encodeURIComponent(toPokemonPathSegment(name))}`;
+			backLink.textContent = `← ${name}に戻る`;
+		}
+
+		void applyBackLinkFromQuery();
+	</script>
 </AppLayout>

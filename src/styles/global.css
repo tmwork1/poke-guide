@@ -485,6 +485,93 @@ input::placeholder {
 	opacity: 0.8;
 }
 
+/* --- チェックボックス・ラジオ(ラウンド15 A-6/B-10) ---
+   これまで accent-color が input[type=range] にしか指定されておらず、ラジオ/チェックボックスは
+   ブラウザ既定描画のままだった。ダーク(color-scheme: light dark、ラウンド14 B-7)では
+   未選択のラジオが塗りつぶし円 RGB(59,59,59) 対 パネル背景 RGB(28,31,40) で約1.47:1しかなく、
+   非テキスト要素の目安3:1を大きく下回っていた。選択色も既定の RGB(0,117,255) でサイトの
+   primary(シアン系)と色相が合っていなかった。
+   ラウンド15実装時にまず accent-color: var(--color-primary) だけを試したが、実測したところ
+   未選択の塗り色はRGB(59,59,59)のまま変化せず1.47:1のままだった(accent-colorは選択状態の
+   色にしか効かず、未選択の枠・塗りはブラウザ既定描画に委ねられたまま)。round-15.md A-6の
+   「3:1に届かなければ appearance:none + カスタムborderへ切り替える」という条件に従い、
+   ネイティブ描画をやめて自前で描く方式に切り替えた。
+   未選択の枠色には --color-text-muted を採用する(ライト #5b6472 は白背景に対し実測5.98:1、
+   ダーク #9aa1b0 はパネル背景 #1c1f28 に対し計算上6.34:1で、いずれも3:1を大きく上回る。
+   どちらも既に他要素のテキストで使われている検証済みの色なので新色は作らない)。
+   選択時は枠・中央のドット/チェックマークを --color-primary にし、サイトのprimaryと
+   色相を揃える。
+   B-10: ラジオ本体13pxはラベル文字14〜16pxに対して操作対象として小さすぎるため、
+   1.05em(≒約1文字分)に拡大する。 */
+input[type="radio"],
+input[type="checkbox"] {
+	appearance: none;
+	-webkit-appearance: none;
+	-moz-appearance: none;
+	width: 1.05em;
+	height: 1.05em;
+	margin: 0;
+	flex-shrink: 0;
+	vertical-align: middle;
+	position: relative;
+	border: 2px solid var(--color-text-muted);
+	background: var(--color-surface);
+	cursor: pointer;
+	transition: border-color 0.15s, background-color 0.15s;
+}
+
+input[type="radio"] {
+	border-radius: 50%;
+}
+
+input[type="checkbox"] {
+	border-radius: 3px;
+}
+
+input[type="radio"]:checked,
+input[type="checkbox"]:checked {
+	border-color: var(--color-primary);
+}
+
+/* ラジオ選択時: 外枠(primary)+中央の塗りドット(primary)という、ネイティブ描画と
+   同じ「リング+ドット」の見た目にする。 */
+input[type="radio"]:checked::after {
+	content: "";
+	position: absolute;
+	inset: 3px;
+	border-radius: 50%;
+	background: var(--color-primary);
+}
+
+/* チェックボックス選択時: 塗りつぶし+チェックマーク(surface色の折れ線)。 */
+input[type="checkbox"]:checked {
+	background: var(--color-primary);
+}
+
+input[type="checkbox"]:checked::after {
+	content: "";
+	position: absolute;
+	left: 0.3em;
+	top: 0.06em;
+	width: 0.28em;
+	height: 0.52em;
+	border: solid var(--color-surface);
+	border-width: 0 0.15em 0.15em 0;
+	transform: rotate(40deg);
+}
+
+input[type="radio"]:disabled,
+input[type="checkbox"]:disabled {
+	cursor: not-allowed;
+	opacity: 0.5;
+}
+
+input[type="radio"]:focus-visible,
+input[type="checkbox"]:focus-visible {
+	outline: 2px solid var(--color-primary);
+	outline-offset: 2px;
+}
+
 /* --- レンジスライダー ---
    既定の accent-color 頼りだと Chrome で黒い太トラックになるため、
    トラック/つまみを明示指定して細く小さくする。つまみより左側(進捗)を着色したい
@@ -1005,8 +1092,16 @@ dialog#opponent-note-form-container::backdrop {
 	}
 
 	/* ハンバーガー行(サイト名+モバイル用アカウント情報)はデスクトップでは不要
-	   (サイドバーが常設でブランドリンクを持ち、アカウント情報は本体行側に表示するため)。 */
-	.app-topbar-row-brand {
+	   (サイドバーが常設でブランドリンクを持ち、アカウント情報は本体行側に表示するため)。
+	   ラウンド15 A-3: この前提は chrome="app"(AppSidebarを描画する通常画面)専用。
+	   ラウンド13で chrome="public"(/share等、AppSidebarを描画しない公開ページ)を追加した結果、
+	   公開ページはブランドリンクを持つサイドバーが無いのに、このルールでサイト名表示行ごと
+	   デスクトップで消えてしまい、「これは何のサービスか」が本文からも読み取れない状態に
+	   なっていた(404画面も含む)。.is-public のときは対象から除外し、ブランド行を残す。
+	   AppLayout.astro の scoped <style> 側には書かないこと(ラウンド13 A-1 で確立した
+	   「global.cssの詳細度で打ち消す」設計を保つため。scoped側はglobal.cssより後に注入され、
+	   同詳細度でも後勝ちで負けるので、scoped側に書くと表示できなくなる)。 */
+	.app-shell:not(.is-public) .app-topbar-row-brand {
 		display: none;
 	}
 
