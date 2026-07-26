@@ -533,19 +533,34 @@ input[type="checkbox"]:checked {
 	border-color: var(--color-primary);
 }
 
-/* ラジオ選択時: 外枠(primary)+中央の塗りドット(primary)という、ネイティブ描画と
-   同じ「リング+ドット」の見た目にする。 */
+/* ラジオ選択時: 外枠(primary)+中央の塗りドット(ラウンド17 A-4で --color-primary-strong に変更)
+   という、ネイティブ描画と同じ「リング+ドット」の見た目にする。
+   ラウンド17 A-4: ドットは --color-surface(=このinput自体の背景。checked時もradioは
+   backgroundを上書きしていないため surface のまま)の上に primary を乗せる構造で、
+   チェックマークと同じ組み合わせのためライトで約2.63:1しかなかった。ドットのみ
+   --color-primary-strong に差し替えて4.62:1に是正する(外枠のリングは --color-primary の
+   ままで変更しない。ダークは --color-primary-strong が --color-primary にエイリアスされる
+   ため見た目は変化しない)。 */
 input[type="radio"]:checked::after {
 	content: "";
 	position: absolute;
 	inset: 3px;
 	border-radius: 50%;
-	background: var(--color-primary);
+	background: var(--color-primary-strong);
 }
 
-/* チェックボックス選択時: 塗りつぶし+チェックマーク(surface色の折れ線)。 */
+/* チェックボックス選択時: 塗りつぶし+チェックマーク(surface色の折れ線)。
+   ラウンド17 A-4: 塗りが --color-primary のままだとライトでチェックマーク(白)との
+   コントラストが約2.63:1しかなく、非文字要素の目安3:1を割っていた(ダークは
+   --color-surface が #1c1f28 になるため約6.26:1で問題なし)。塗りを
+   --color-primary-strong(#1a7ea1、ラウンド13でリンク色のAA対応用に追加済みのトークン)
+   に差し替えると白マークとの比が4.62:1になる。border-color もここで同じ値に揃えて
+   おかないと、枠だけ --color-primary(明るいシアン)のまま残り縁取りだけ浮いて見える
+   ため合わせて上書きする(ダークは --color-primary-strong が --color-primary に
+   エイリアスされるので見た目は変化しない)。 */
 input[type="checkbox"]:checked {
-	background: var(--color-primary);
+	background: var(--color-primary-strong);
+	border-color: var(--color-primary-strong);
 }
 
 input[type="checkbox"]:checked::after {

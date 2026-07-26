@@ -99,8 +99,14 @@ const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 	{pokemon && (
 		<Fragment slot="topbar-status">
 			<p id="autosave-status" class="status-text" data-state="saved">
-				<span id="autosave-status-text">保存済み</span><button id="retry-button" type="button">再試行</button>
+				<span id="autosave-status-text">保存済み</span><button id="retry-button" type="button" title="保存に失敗しました。クリックして再試行" aria-label="保存に失敗しました。クリックして再試行">再試行</button>
 			</p>
+			{/* ラウンド17指摘(B-1): ダメージ計算カードは行ごとに独立して自動保存されるため、
+			    画面外にスクロールしたカードの保存失敗はカード自身のfooter(保存失敗時のみ表示)を
+			    見ないと気づけない。常時可視なスティッキー上部バー(AppLayoutのtopbar、
+			    このスロットの中)に失敗件数だけを出す(<script>のupdateOpponentNotesFailureAlert
+			    参照)。通常時はhiddenで何も見えない(A-2と同じく「通常時は非表示」を崩さない)。 */}
+			<span id="opponent-notes-save-alert" class="opponent-notes-save-alert" hidden></span>
 		</Fragment>
 	)}
 	{pokemon && (
@@ -132,8 +138,19 @@ const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 		   描画されなくなり、保存失敗時の唯一のリカバリ手段(クリックでの再試行)に気づく
 		   手段が完全に無くなってしまうため、#retry-button自身の表示/非表示は既存どおり
 		   .visibleクラス(保存失敗時にJSが付与)に委ねる=失敗時だけ「再試行」ボタンが
-		   単独で現れる形にした(通常時は何も見えない)。 */
+		   単独で現れる形にした(通常時は何も見えない)。
+		   ラウンド17指摘(A-2): 上記の「常時非表示」は保存失敗時も理由(「保存に失敗しました。」)を
+		   一切見せていなかった。#retry-buttonが唐突に現れるだけで、なぜ現れたのかが画面から
+		   分からない(このページは保存ボタンが無く自動保存に全面依存し、過去に個体データが
+		   書き換わる事故も起きている場所のため、失敗理由を隠したままにする割に合わない)。
+		   保存失敗時(data-state="error")だけテキストを見せ、通常時(saved/saving/idle)は
+		   上記のとおり非表示のまま据え置く(ラウンド11の要件「ヘッダーから保存済み表示を削除」は
+		   壊さない)。 */
 		#autosave-status-text { display: none; }
+		#autosave-status[data-state="error"] #autosave-status-text {
+			display: inline;
+			color: var(--color-danger);
+		}
 		/* 共通トップバー移行(2026-07-26・実測バグ修正): #delete-buttonはbutton基底ルール
 		   (global.css)のfont:inheritにより、周囲(.app-topbar-actions)が独自のfont-sizeを
 		   持たないぶん既定の1rem(16px)まで祖先から継承してしまい、右側のログアウトボタン
@@ -147,6 +164,21 @@ const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 		   縦に折り返り(実測46×169px)、w900でも3行に折れていた。1行に固定する
 		   (トップバー側の折り返し対策はglobal.css/AppLayout.astro担当の別エージェントの範囲)。 */
 		#delete-button { white-space: nowrap; }
+
+		/* ラウンド17指摘(B-1): ダメージ計算カード(#opponent-notes-section)は行(相手)ごとに
+		   独立して自動保存されるため、カード自身のfooter(失敗時のみ表示)は画面外へ
+		   スクロールすると見えなくなる。AppLayoutのトップバーはposition:stickyで常時可視なので
+		   ここに失敗件数だけを出す(<script>のupdateOpponentNotesFailureAlert参照)。
+		   .app-topbar-status(親のspan)がwhite-space:nowrapの1行構成のため、<p>ではなく
+		   同じ<span>系で追加し、ブロック化してトップバーの実高さ(--topbar-height)を
+		   広げないようにする(#autosave-statusの<p>まわりの実測バグ修正コメント参照)。 */
+		.opponent-notes-save-alert {
+			display: inline;
+			margin-left: 0.6em;
+			color: var(--color-danger);
+			font-weight: 700;
+		}
+		.opponent-notes-save-alert[hidden] { display: none; }
 
 		/* 共通トップバー移行(2026-07-26): 独自の.page-header/.edit-page-header-*(戻る/
 		   保存状態/ポケモン名見出し/削除ボタン)はAppLayoutのbackHref/title/topbar-status/
@@ -501,6 +533,13 @@ const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 		.stat-nature-placeholder { border-color: transparent; background: transparent; }
 		.stat-row-base { color: var(--color-text-muted); }
 		.stat-row-real { text-align: right; font-size: 1.05em; }
+		/* ラウンド17指摘(B-5): ヌケニン限定の注記。既定は非表示(hidden属性)、通常種族では
+		   何も増えない(<script>のapplyBaseStats参照)。 */
+		.hp-fixed-note {
+			margin: 0.3rem 0 0;
+			font-size: 0.72rem;
+			color: var(--color-text-muted);
+		}
 		@media (max-width: 460px) {
 			.stat-table-header { display: none; }
 			/* ラウンド12指摘(A-3)追随: 1列目はもともと「とくこう」等の全角ラベル+▲▼ボタンの
@@ -665,6 +704,14 @@ const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 			background: var(--color-primary-soft);
 			outline: 2px solid var(--color-primary);
 			outline-offset: 1px;
+		}
+		/* ラウンド17指摘(B-2): 技名が空のスロットは表示すべき内容が無いため、ホバーの
+		   当たり判定自体を消す(<script>のupdate()参照。cursor:helpも外して「ホバーすると
+		   何か出る」という誤った期待を与えない)。 */
+		.move-detail-trigger.is-empty {
+			pointer-events: none;
+			cursor: default;
+			opacity: 0.5;
 		}
 		.move-detail-tooltip {
 			position: absolute;
@@ -915,6 +962,14 @@ const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 		}
 		#opponent-notes-section .damage-calc-engine-status[hidden] {
 			display: none;
+		}
+		/* ラウンド17指摘(A-5): 確N/乱N/未撃破の凡例。カードごとに繰り返さず1行だけ常時表示する
+		   (WCAG 1.4.1対応で色だけに頼らない。severity-barの赤/黄/緑と重複してよい説明のため
+		   崩れても実害は小さい)。 */
+		#opponent-notes-section .damage-verdict-legend {
+			margin: 0 0 0.5rem;
+			font-size: 0.72rem;
+			color: var(--color-text-muted);
 		}
 		/* ラウンド3 B-11の積み残し: 相手ビルドの箱・技名入力も左パネルと同じく、
 		   placeholder表示中(空欄)は破線+透明背景にする(#edit-form側と同じ考え方)。 */
@@ -1931,6 +1986,13 @@ const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 			min-width: auto;
 			font-weight: normal;
 		}
+		/* ラウンド17指摘(A-1・実バグ): テラスタイプ未設定で使用不可のときに添える常時見える
+		   注記(buildSideSection参照)。disabledによる灰色化と合わせ、色だけに意味を
+		   持たせない(WCAG 1.4.1)。 */
+		#damage-detail-panel-body .damage-detail-tera-note {
+			font-size: 0.68rem;
+			color: var(--color-text-muted);
+		}
 		/* ラウンド5ユーザー指示(要件12): 能力ランクは攻撃側・防御側それぞれ1つの入力にする
 		   (旧・5能力×2側のセレクト10個は廃止)。
 		   ラウンド11ユーザー指示(要件11-7): <select>から<input type="number">の
@@ -1976,9 +2038,14 @@ const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 			font-weight: 600;
 			color: var(--color-text-muted);
 		}
+		/* ラウンド17指摘(A-3): flex:1 1 autoが行内の余白を全部飲み、選択肢の最長「もうどく」
+		   (4文字、必要幅は矢印込み80px程度)に対しセレクト本体が約267pxまで伸びていた
+		   (267/80≈3.3倍、固定1の基準3倍を超過。ラウンド12 A-1の検索欄1192px問題と同型)。
+		   幅を内容に見合うサイズへ固定し、伸縮をやめる。空いた余白はこの行(ラベル+セレクト)の
+		   右側に残るだけで、他の行(ランク・テラスタル)のレイアウトには影響しない。 */
 		#damage-detail-panel-body .damage-detail-ailment-select {
-			flex: 1 1 auto;
-			min-width: 0;
+			flex: 0 0 auto;
+			width: 6.5em;
 			min-height: 0;
 			padding: 0.2em 0.3em;
 			font-size: 0.78rem;
@@ -2089,6 +2156,10 @@ const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 						    透けて見えるので実運用上大きな問題にならないというユーザー判断)。
 						    aria-labelはスクリーンリーダー対応のため必ず残す。.field/.field-controlは
 						    flexコンテナなのでlabel(1つ目の子)を無くしても崩れない(global.css参照)。 */}
+						{/* ラウンド17指摘(B-4): 入力順が「種族→ニックネーム→特性」だと、プレイヤーの
+						    思考順(種族→特性(種族依存)→持ち物→…→技)をニックネーム(対戦の意思決定に
+						    関与しない装飾項目)が分断していた。DOM順だけを種族→特性→ニックネームに
+						    入れ替える(flexは.field単位のためこの並び替えは幅計算に影響しない)。 */}
 						<div class="top-block-fields">
 							<div class="field">
 								<input
@@ -2105,10 +2176,10 @@ const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 								/>
 							</div>
 							<div class="field">
-								<input id="nickname" class="field-control" type="text" autocomplete="off" placeholder="ニックネーム" aria-label="ニックネーム" value={pokemon.nickname ?? ""} />
+								<input id="ability" class="field-control" type="text" list="ability-list" autocomplete="off" placeholder="特性" aria-label="特性" value={pokemon.ability_name ?? ""} title={pokemon.ability_name ?? ""} />
 							</div>
 							<div class="field">
-								<input id="ability" class="field-control" type="text" list="ability-list" autocomplete="off" placeholder="特性" aria-label="特性" value={pokemon.ability_name ?? ""} title={pokemon.ability_name ?? ""} />
+								<input id="nickname" class="field-control" type="text" autocomplete="off" placeholder="ニックネーム" aria-label="ニックネーム" value={pokemon.nickname ?? ""} />
 							</div>
 						</div>
 						{/* 画像はいずれも初期状態が display:none で、読み込み成功時(onload)に表示する方式。
@@ -2289,6 +2360,16 @@ const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 							</div>
 						))}
 					</div>
+					{/* ラウンド17指摘(B-5): ヌケニン(HP種族値1、全1290種でヌケニンのみ)はHの努力値
+					    スライダーを操作しても実数値が変わらない(vendor/jpoke/src/jpoke/model/stats.py
+					    の`if base == 1: return 1`、アプリ側の複製はcalcHpStat参照)。何も注記が無いと
+					    「バグでは」と誤解しうるため、該当種族を選んだときだけ見える注記を出す
+					    (<script>のapplyBaseStats参照。baseStats[0]===1のときだけhidden解除)。
+					    数値グリッド(.stat-table)は5列固定グリッドで新しい列を増やす余地が無いため、
+					    グリッドの外(直下)に1行だけ追加する。 */}
+					<p id="hp-fixed-note" class="hp-fixed-note" hidden>
+						H(種族値1で固定): このポケモンはHPの種族値が1のため、努力値を振っても実数値は常に1のままです。
+					</p>
 					{/* ラウンド3 B-7: 「努力値合計」は要件により削除した。チャンピオンズルールは合計上限が
 					    無く、この数値は何の判断にも使えない(「510の残り」を連想させる誤った示唆に
 					    なる)ため撤去した。 */}
@@ -2322,6 +2403,14 @@ const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 				<p id="damage-calc-engine-status" class="status-text damage-calc-engine-status" data-state="idle">
 					<span id="damage-calc-engine-status-text">計算エンジンを準備しています(自動で開始します)...</span>
 					<button id="damage-calc-engine-reload-button" type="button" class="btn-ghost" hidden>再読み込み</button>
+				</p>
+				{/* ラウンド17指摘(A-5): 確N/乱N/未撃破の判定表記と赤/黄/緑の重大度配色を説明する
+				    可視テキストが画面のどこにも無く、唯一の補足(TOTAL_RESULT_HINT)もtitle属性で
+				    ホバー時にしか読めなかった。カード(相手)ごとに繰り返さず、結果表示(各カード
+				    最下段の判定チップ)の直前に1回だけ常時見える1行キャプションを置く
+				    (ホバーtitleは補助として維持、B-1のTOTAL_RESULT_HINTとは別件)。 */}
+				<p class="damage-verdict-legend">
+					確N=乱数最小でもN発で確定 / 乱N=N発目から確率で撃破 / 未撃破=このN発では倒せない
 				</p>
 				<div id="damage-rows-list" class="damage-rows-list">
 					<p>読み込み中...</p>
@@ -2768,6 +2857,11 @@ const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 					if (!el2) continue;
 					el2.textContent = base ? String(base[i]) : "-";
 				}
+				// ラウンド17指摘(B-5): HP種族値1(全1290種でヌケニンのみ)は努力値を振っても
+				// 実数値が動かない(calcHpStatのbase===1特例と同じ判定)。誤解を招かないよう
+				// 注記の表示/非表示をここで切り替える。
+				const hpFixedNoteEl = document.getElementById("hp-fixed-note");
+				if (hpFixedNoteEl) hpFixedNoteEl.hidden = !(base && base[0] === 1);
 			}
 
 			// UI品質改善(2026-07-26 第4弾 11-4): 技候補(#move-list)を種族の覚え技(learnset)
@@ -2959,7 +3053,16 @@ const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 				const update = async () => {
 					const name = input.value.trim();
 					tooltip.innerHTML = "";
-					if (name === "") return;
+					// ラウンド17指摘(B-2): 技名が空でもトリガー(ⓘ)自体は常に存在するため、
+					// ホバー/フォーカスすると中身が無い(枠線+box-shadowだけの)吹き出しが
+					// ポップアップしていた。空のときはトリガーごとpointer-events:noneにして
+					// マウスホバーそのものを起こさせない。キーボード到達(tabindex)も併せて
+					// 外す(技が無いスロットに「詳細を見る」操作は元々存在しないため、
+					// フォーカス順から抜いても実害はない)。技名が入力されたら両方元に戻す。
+					const isEmpty = name === "";
+					trigger.classList.toggle("is-empty", isEmpty);
+					trigger.tabIndex = isEmpty ? -1 : 0;
+					if (isEmpty) return;
 					const detail = (await loadMoveDetailMap()).get(name);
 					if (!detail) {
 						const line = document.createElement("span");
@@ -3282,6 +3385,26 @@ const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 			// 1対1で対応する。相手ポケモン名が非空になった時点で初めてPOSTし、以降はPUTで更新する。 ---
 			const opponentNotesSection = document.getElementById("opponent-notes-section");
 			if (opponentNotesSection) {
+				// ラウンド17指摘(B-1): ダメージ計算カードは行(相手)ごとに独立して自動保存されるため、
+				// カード自身のfooter(失敗時のみ表示)は画面外にスクロールすると見えなくなる。
+				// AppLayoutのトップバー(position:sticky)は常時可視なので、失敗している行数だけを
+				// ここに出す(setRowSaveStatus/deleteRowの呼び出し箇所からupdateOpponentNotesFailure
+				// Alert()を呼ぶ。rowsは下方で `let rows: DamageRowState[] = []` として宣言される変数を
+				// 参照するが、この関数は実際に保存イベントが起きた時点で初めて呼ばれるため、
+				// スクリプト初期化順の問題は無い)。
+				const opponentNotesSaveAlertEl = document.getElementById("opponent-notes-save-alert");
+				function updateOpponentNotesFailureAlert(): void {
+					if (!opponentNotesSaveAlertEl) return;
+					const failedCount = rows.filter((r) => r.saveStatusEl?.dataset.state === "error").length;
+					if (failedCount > 0) {
+						opponentNotesSaveAlertEl.textContent = `⚠ ${failedCount}件保存に失敗`;
+						opponentNotesSaveAlertEl.hidden = false;
+					} else {
+						opponentNotesSaveAlertEl.textContent = "";
+						opponentNotesSaveAlertEl.hidden = true;
+					}
+				}
+
 				// UI刷新: 相手ビルドselect用。Astroフロントマターの値はブラウザ側の<script>から
 				// 参照できないため、フロントマター(TERA_TYPES)と同じ選択肢をここに複製する
 				// (すぐ上のTYPE_COLORSと同じ理由)。
@@ -4075,13 +4198,31 @@ const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 						const opponentSpec: PokemonSpec = buildDefenderStatsSpec(row);
 						const attackerSpec = selfIsAttacker ? selfSpec : opponentSpec;
 						const defenderSpec = selfIsAttacker ? opponentSpec : selfSpec;
+						// ラウンド17指摘(A-1・実バグ)の核心対応: jpokeはteraType未指定でも
+						// テラスタル発動すると自身の第1タイプへ黙ってフォールバックし、無警告で
+						// 2.0倍のタイプ一致補正がかかる(`.claude/skills/jpoke/references/ruleset.md`
+						// §4・`damage-calc.md` 3補参照)。サイドバーのチェックボックスはテラスタイプが
+						// 空のとき既にdisabledにしているが(buildSideSection参照)、それだけでは
+						// 「サイドバーを一度も開いていない既存データにattacker/defenderTerastallized:
+						// trueが残っている」ケースを救えない。計算に使う直前でも、対応する側の
+						// specにteraTypeが無ければterastallizedを強制的にfalseへ落とし、
+						// 保存データの状態に関わらず無警告2倍が絶対に起きないようにする
+						// (このクランプは「保存データの補正」ではなく「テラスタル発動は有効な
+						// テラスタイプがあって初めて意味を持つ」という仕様の一貫した適用)。
+						const attackerTeraAvailable = !!attackerSpec.teraType;
+						const defenderTeraAvailable = !!defenderSpec.teraType;
+						const safeAttacks: SequenceAttack[] = (attacks as SequenceAttack[]).map((a) => ({
+							...a,
+							attackerTerastallized: (a.attackerTerastallized ?? false) && attackerTeraAvailable,
+							defenderTerastallized: (a.defenderTerastallized ?? false) && defenderTeraAvailable,
+						}));
 						// 場の状態・急所も技カードごとの値なので、カード共通のoptionsには
 						// 乱数シード(UIからは廃止済みだが既存メモの値は尊重する)だけを渡す。
 						const options: CalcDamagesOptions = {
 							seed: parseSeed(row.seedRaw),
 						};
 						const [seqResult, statsResult] = await Promise.all([
-							calcLethalSequence(attackerSpec, defenderSpec, attacks as SequenceAttack[], options),
+							calcLethalSequence(attackerSpec, defenderSpec, safeAttacks, options),
 							calcStats(defenderSpec),
 						]);
 						row.clientResult = {
@@ -4125,6 +4266,9 @@ const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 						row.saveStatusEl.textContent = text;
 					}
 					if (row.footerEl) row.footerEl.hidden = state !== "error";
+					// ラウンド17指摘(B-1): この行の保存状態が変わるたびに、常時可視なトップバーの
+					// 失敗件数表示も更新する。
+					updateOpponentNotesFailureAlert();
 				}
 
 				function scheduleRowSave(row: DamageRowState): void {
@@ -4251,6 +4395,8 @@ const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 					if (idx !== -1) rows.splice(idx, 1);
 					deselectRowIfCurrent(row);
 					rebuildRowsList();
+					// ラウンド17指摘(B-1): 保存失敗中だった行を削除した場合、失敗件数から除外する。
+					updateOpponentNotesFailureAlert();
 				}
 
 				// --- 列(攻撃)のDOM構築 ---
@@ -4655,12 +4801,21 @@ const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 				// blurは「空欄のまま離れた」場合を0にフォールバックさせるための保険)。フォーカス中の
 				// wheelで値が変わる事故はpreventDefaultで防ぐ。iOSで矢印が出ないためinputmode="numeric"
 				// を付与する(ネイティブspinnerの矢印自体は出したいのでCSSでは消さない)。
+				// ラウンド17指摘(A-1・実バグ): teraTypeValueは、この側(攻撃側 or 防御側)が
+				// 実際に使っているポケモンの現在のテラスタイプ文字列(空文字="テラスなし")。
+				// jpokeはteraType未指定でテラスタル発動すると自身の第1タイプへ黙ってフォールバックし、
+				// 意図せず2.0倍のタイプ一致補正がかかる(画面表示は「テラスなし」のまま)。
+				// `.claude/skills/jpoke/references/ruleset.md` §4「テラスタイプ未指定時のデフォルト」・
+				// `damage-calc.md` 3補参照。呼び出し側(renderColumnLevelDetailPanel)が
+				// 攻撃側/防御側それぞれについて、対応するビルド(この個体の#tera select、または
+				// 相手ビルド箱のrow.teraType)の現在値をそのまま渡す。
 				function buildSideSection(
 					row: DamageRowState,
 					title: string,
 					rank: number,
 					ailment: string,
 					terastallized: boolean,
+					teraTypeValue: string,
 					critical: boolean | undefined,
 					onRankChange: (value: number) => void,
 					onAilmentChange: (value: string) => void,
@@ -4728,10 +4883,18 @@ const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 					compactRow.className = "row";
 					const teraLabel = document.createElement("label");
 					teraLabel.className = "damage-checkbox-label";
-					teraLabel.title = "テラスタル発動";
+					// ラウンド17指摘(A-1・実バグ): テラスタイプが未設定(""=「テラスなし」)のビルドで
+					// チェックすると、jpokeが黙って第1タイプへフォールバックし無警告で2.0倍の
+					// タイプ一致補正がかかる。対応するビルドのテラスタイプが空のときはチェックボックス
+					// 自体をdisabledにし、常時見えるテキスト+titleの両方で理由を示す(推奨案どおり。
+					// 「代替案」の表示だけで済ませる案は、チェックできてしまう=誤って2倍を発動できて
+					// しまう余地を残すため不採用)。checkedは「有効かつterastallized」で決める
+					// (無効なのに見た目だけチェック済みという矛盾状態を作らない)。
+					const teraAvailable = teraTypeValue !== "";
 					const teraCheckbox = document.createElement("input");
 					teraCheckbox.type = "checkbox";
-					teraCheckbox.checked = terastallized;
+					teraCheckbox.checked = teraAvailable && terastallized;
+					teraCheckbox.disabled = !teraAvailable;
 					teraCheckbox.addEventListener("change", () => {
 						onTeraChange(teraCheckbox.checked);
 						scheduleRowCalc(row);
@@ -4739,6 +4902,17 @@ const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 						refreshRowConditionChips(row);
 					});
 					teraLabel.append(teraCheckbox, document.createTextNode("テラスタル"));
+					if (teraAvailable) {
+						teraLabel.title = "テラスタル発動";
+					} else {
+						teraLabel.title =
+							"テラスタイプが未設定のため使用できません(未設定のままテラスタル発動すると、" +
+							"元の第1タイプへ自動フォールバックし意図しない2倍のタイプ一致補正になるため)";
+						const teraNote = document.createElement("span");
+						teraNote.className = "damage-detail-tera-note";
+						teraNote.textContent = "(テラスタイプ未設定)";
+						teraLabel.appendChild(teraNote);
+					}
 					compactRow.appendChild(teraLabel);
 					if (critical !== undefined && onCriticalChange) {
 						const criticalLabel = document.createElement("label");
@@ -4820,7 +4994,14 @@ const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 					// 言い換えでしかなく重複していた。「だけの設定」を見出し自体に畳み込み、
 					// 「他の技列には効かない」という非自明な情報をこの1行で担保する
 					// (説明文自体はscoped <style>側でCSS非表示にした。DOMは残す)。
-					heading.textContent = moveName ? `技${idx + 1}(${moveName})だけの設定` : `技${idx + 1}だけの設定`;
+					// ラウンド17指摘(B-3): 見出しが技名だけだと、同じ技名を複数カードが持つ場合に
+					// カード列をスクロールした後どのカード(相手)の設定か分からなくなる
+					// (カード側の選択強調はラウンド12 B-4で意図的に弱い左3pxバーにしているため、
+					// 対象カードが画面外だと強調も見えない)。相手個体名(row.name、カードの
+					// 「相手ポケモン名」入力欄の値)を先頭に足す。未入力なら従来どおり技名のみ。
+					const opponentName = row.name.trim();
+					const columnLabel = moveName ? `技${idx + 1}(${moveName})` : `技${idx + 1}`;
+					heading.textContent = opponentName ? `${opponentName}: ${columnLabel}だけの設定` : `${columnLabel}だけの設定`;
 					detailPanelBodyEl.appendChild(heading);
 
 					const subtitle = document.createElement("p");
@@ -4839,12 +5020,20 @@ const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 					// attackerRank等は常に「攻撃側という役割」に対する値であり、どちらが
 					// この個体なのかはrow.directionで決まる(recalcRow()のspec組み立てを参照)。
 					const selfIsAttackerForDialog = row.direction !== "defense";
+					// ラウンド17指摘(A-1・実バグ): buildSideSection()にテラスタイプの実値を渡す
+					// (この個体=左パネルの#tera select、相手=このカードのrow.teraType)。
+					// どちらが攻撃側/防御側になるかはrow.direction(攻守切り替え)で入れ替わるため、
+					// selfIsAttackerForDialogと同じ条件分岐で対応させる(specの組み立て方は
+					// recalcRow()のattackerSpec/defenderSpecの入れ替えと揃えている)。
+					const selfTeraTypeValue = teraSelect.value;
+					const opponentTeraTypeValue = row.teraType;
 					buildSideSection(
 						row,
 						selfIsAttackerForDialog ? "攻撃側(この個体)" : "攻撃側(相手)",
 						column.attackerRank,
 						column.attackerAilment,
 						column.attackerTerastallized,
+						selfIsAttackerForDialog ? selfTeraTypeValue : opponentTeraTypeValue,
 						column.critical,
 						(value) => { column.attackerRank = value; },
 						(value) => { column.attackerAilment = value; },
@@ -4857,6 +5046,7 @@ const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 						column.defenderRank,
 						column.defenderAilment,
 						column.defenderTerastallized,
+						selfIsAttackerForDialog ? opponentTeraTypeValue : selfTeraTypeValue,
 						undefined,
 						(value) => { column.defenderRank = value; },
 						(value) => { column.defenderAilment = value; },
