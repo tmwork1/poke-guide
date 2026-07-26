@@ -681,6 +681,14 @@ const user = Astro.locals.user;
 		// インポートする(box/[id].astroが使っているものと同一のヘルパー、src/lib/sprite-urls.ts)。
 		import { loadImageIdMap, officialArtworkUrl, loadBaseStatsMap } from "../../lib/pokemon-master-data";
 		import { loadItemSpriteMap, itemImageUrl } from "../../lib/sprite-urls";
+		// ラウンド18: 実数値計算の共通化。box/[id].astro・share/[slug].astro・pokemon/[name].astro
+		// と4箇所にコピーされていた chmpToLegacyEffort/calcHpStat/calcOtherStat/
+		// NATURE_STAT_MODIFIERS を src/lib/stats.ts に統合した(このファイルが原本だった)。
+		import {
+			NATURE_STAT_MODIFIERS,
+			calcHpStat,
+			calcOtherStat,
+		} from "../../lib/stats";
 
 		interface OwnedPokemon {
 			id: string;
@@ -704,55 +712,12 @@ const user = Astro.locals.user;
 		// 実数値計算共通の列順(evs/ivs配列の並びと一致)。
 		// [HP, 攻撃, 防御, 特攻, 特防, 素早さ] (box/[id].astro の STAT_KEYS と同じ順序)。
 		const STAT_KEYS = ["hp", "atk", "def", "spa", "spd", "spe"] as const;
-		type StatKey = (typeof STAT_KEYS)[number];
 		const STAT_LABELS = ["H", "A", "B", "C", "D", "S"] as const;
 
-		// UI刷新(要件4): 実数値の常時表示。box/[id].astroはPyodide(jpoke)で計算しているが、
-		// 一覧ページで個体ごとにPyodideを初期化するのは重すぎる(全ページ共通の「操作まで遅延初期化」
-		// 方針にも反する)。チャンピオンズルールはIV=31固定・レベル常時50なので、
+		// ラウンド18: NATURE_STAT_MODIFIERS・chmpToLegacyEffort・calcHpStat・calcOtherStatは
+		// src/lib/stats.ts に統合した(このファイルが原本だったコピーは削除。上のimport参照)。
 		// vendor/jpoke/src/jpoke/model/stats.py の calc_hp/calc_stat/chmp_to_legacy_effort と
-		// 完全に同じ式を純粋なJS関数として再実装し、種族値データ(/master-data/detail/pokemon.json)
-		// だけで実数値を出す。
-		const NATURE_STAT_MODIFIERS: Record<string, { up: StatKey | null; down: StatKey | null }> = {
-			"まじめ": { up: null, down: null },
-			"さみしがり": { up: "atk", down: "def" },
-			"いじっぱり": { up: "atk", down: "spa" },
-			"やんちゃ": { up: "atk", down: "spd" },
-			"ゆうかん": { up: "atk", down: "spe" },
-			"ずぶとい": { up: "def", down: "atk" },
-			"わんぱく": { up: "def", down: "spa" },
-			"のうてんき": { up: "def", down: "spd" },
-			"のんき": { up: "def", down: "spe" },
-			"ひかえめ": { up: "spa", down: "atk" },
-			"おっとり": { up: "spa", down: "def" },
-			"うっかりや": { up: "spa", down: "spd" },
-			"れいせい": { up: "spa", down: "spe" },
-			"おだやか": { up: "spd", down: "atk" },
-			"おとなしい": { up: "spd", down: "def" },
-			"しんちょう": { up: "spd", down: "spa" },
-			"なまいき": { up: "spd", down: "spe" },
-			"おくびょう": { up: "spe", down: "atk" },
-			"せっかち": { up: "spe", down: "def" },
-			"ようき": { up: "spe", down: "spa" },
-			"むじゃき": { up: "spe", down: "spd" },
-			"てれや": { up: null, down: null },
-			"がんばりや": { up: null, down: null },
-			"すなお": { up: null, down: null },
-			"きまぐれ": { up: null, down: null },
-		};
-
-		function chmpToLegacyEffort(evChamp: number): number {
-			return evChamp === 0 ? 0 : 8 * evChamp - 4;
-		}
-		function calcHpStat(level: number, base: number, iv: number, evChamp: number): number {
-			if (base === 1) return 1; // ヌケニン特例(vendor/jpoke/src/jpoke/model/stats.pyと同じ)
-			const effort = chmpToLegacyEffort(evChamp);
-			return Math.floor(((base * 2 + iv + Math.floor(effort / 4)) * level) / 100) + level + 10;
-		}
-		function calcOtherStat(level: number, base: number, iv: number, evChamp: number, nc: number): number {
-			const effort = chmpToLegacyEffort(evChamp);
-			return Math.floor((Math.floor(((base * 2 + iv + Math.floor(effort / 4)) * level) / 100) + 5) * nc);
-		}
+		// 完全に同じ式であることの出典は src/lib/stats.ts 冒頭のコメント参照。
 
 		function el<T extends HTMLElement>(id: string): T {
 			const found = document.getElementById(id);

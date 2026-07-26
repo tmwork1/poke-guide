@@ -2499,6 +2499,10 @@ const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 		// モジュール(合意済みシグネチャ)。存在しない/取得失敗時は必ずフォールバックする
 		// (applyTypeBadge/applyTeraImage/applyItemImage参照)。
 		import { loadItemSpriteMap, itemImageUrl, typeIconUrl, teraTypeIconUrl } from "../../lib/sprite-urls";
+		// ラウンド18: 実数値計算の共通化。box/index.astro・share/[slug].astro・pokemon/[name].astro
+		// と4箇所にコピーされていた chmpToLegacyEffort/calcHpStat/calcOtherStat/
+		// NATURE_STAT_MODIFIERSをsrc/lib/stats.tsに統合した。
+		import { type StatKey, NATURE_STAT_MODIFIERS, calcHpStat, calcOtherStat } from "../../lib/stats";
 
 		// 画像用ID(imageId)の一覧はページ表示直後に一度だけfetchしておき、以後は同じPromiseを使い回す
 		// (種族名入力/対戦相手名入力の両方で共有する)。dexNo(全国図鑑番号)ではなく imageId を
@@ -2742,34 +2746,10 @@ const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 		// UI刷新: 性格による実数値の上昇/下降ステータスの判定テーブル
 		// (vendor/jpoke/src/jpoke/data/nature.py の NATURE_MODIFIER と同期させること。
 		// まじめ・すなお・てれや・がんばりや・きまぐれの5つは補正なし)。
-		type StatKey = "hp" | "atk" | "def" | "spa" | "spd" | "spe";
-		const NATURE_STAT_MODIFIERS: Record<string, { up: StatKey | null; down: StatKey | null }> = {
-			"まじめ": { up: null, down: null },
-			"さみしがり": { up: "atk", down: "def" },
-			"いじっぱり": { up: "atk", down: "spa" },
-			"やんちゃ": { up: "atk", down: "spd" },
-			"ゆうかん": { up: "atk", down: "spe" },
-			"ずぶとい": { up: "def", down: "atk" },
-			"わんぱく": { up: "def", down: "spa" },
-			"のうてんき": { up: "def", down: "spd" },
-			"のんき": { up: "def", down: "spe" },
-			"ひかえめ": { up: "spa", down: "atk" },
-			"おっとり": { up: "spa", down: "def" },
-			"うっかりや": { up: "spa", down: "spd" },
-			"れいせい": { up: "spa", down: "spe" },
-			"おだやか": { up: "spd", down: "atk" },
-			"おとなしい": { up: "spd", down: "def" },
-			"しんちょう": { up: "spd", down: "spa" },
-			"なまいき": { up: "spd", down: "spe" },
-			"おくびょう": { up: "spe", down: "atk" },
-			"せっかち": { up: "spe", down: "def" },
-			"ようき": { up: "spe", down: "spa" },
-			"むじゃき": { up: "spe", down: "spd" },
-			"てれや": { up: null, down: null },
-			"がんばりや": { up: null, down: null },
-			"すなお": { up: null, down: null },
-			"きまぐれ": { up: null, down: null },
-		};
+		// StatKeyはsrc/lib/stats.tsからimportしたものを使う(下のimport参照。ラウンド18で統合)。
+		// ラウンド18: NATURE_STAT_MODIFIERSはsrc/lib/stats.tsに統合した(このファイルにあった
+		// コピーは削除。上のimport参照。vendor/jpoke/src/jpoke/data/nature.pyのNATURE_MODIFIERと
+		// 同期させること、という注記もsrc/lib/stats.ts側に引き継いである)。
 
 		// ラウンド4ユーザー指示: 性格の選択UIを廃止し、能力値ラベルのクリックによる上昇/下降の
 		// 指定(StatKey、HP以外)から性格名を逆算する。上のNATURE_STAT_MODIFIERS(nature.pyから
@@ -2826,24 +2806,12 @@ const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 
 		// ラウンド3 B-12: 実数値の常時表示がPyodide(jpoke)の初期化完了に依存していたため、
 		// CDNが不通のときは左パネル・ダメージカードの実数値6個すべてが「(未計算)」のままに
-		// なっていた。/box/index.astroが一覧カードの実数値表示のために純JSで再実装した
-		// vendor/jpoke/src/jpoke/model/stats.py の calc_hp/calc_stat/chmp_to_legacy_effort と
-		// 完全に同じ式をこのページにも複製する(チャンピオンズルールはIV=31固定・レベル常時50
-		// なので種族値データだけで実数値が出せる)。ダメージ計算(calcLethalSequence)自体は
-		// 引き続きエンジン(isEngineReady())待ちのままにする(実数値だけがエンジン非依存になる
-		// のが正しい。エンジンが要るのはダメージ計算だけ)。
-		function chmpToLegacyEffort(evChamp: number): number {
-			return evChamp === 0 ? 0 : 8 * evChamp - 4;
-		}
-		function calcHpStat(level: number, base: number, iv: number, evChamp: number): number {
-			if (base === 1) return 1; // ヌケニン特例(vendor/jpoke/src/jpoke/model/stats.pyと同じ)
-			const effort = chmpToLegacyEffort(evChamp);
-			return Math.floor(((base * 2 + iv + Math.floor(effort / 4)) * level) / 100) + level + 10;
-		}
-		function calcOtherStat(level: number, base: number, iv: number, evChamp: number, nc: number): number {
-			const effort = chmpToLegacyEffort(evChamp);
-			return Math.floor((Math.floor(((base * 2 + iv + Math.floor(effort / 4)) * level) / 100) + 5) * nc);
-		}
+		// なっていた。チャンピオンズルールはIV=31固定・レベル常時50なので、種族値データだけで
+		// 実数値が出せる純JS計算(calcHpStat/calcOtherStat、上のimport参照)に切り替えた。
+		// ダメージ計算(calcLethalSequence)自体は引き続きエンジン(isEngineReady())待ちのまま
+		// にする(実数値だけがエンジン非依存になるのが正しい。エンジンが要るのはダメージ計算だけ)。
+		// ラウンド18: chmpToLegacyEffort・calcHpStat・calcOtherStatはsrc/lib/stats.tsに統合した
+		// (このファイルにあったコピーは削除。出典はsrc/lib/stats.ts冒頭のコメント参照)。
 
 		const form = document.getElementById("edit-form") as HTMLFormElement | null;
 		if (form) {

@@ -19,6 +19,10 @@ import movesDetailRaw from '../../../public/master-data/detail/moves.json';
 import { toPokemonPathSegment } from '../../lib/pokemon-slug';
 import { officialArtworkUrl } from '../../lib/pokemon-master-data';
 import { typeIconUrl } from '../../lib/sprite-urls';
+// ラウンド18: 実数値計算の共通化。box/index.astro・box/[id].astro・share/[slug].astroと
+// 4箇所にコピーされていたchmpToLegacyEffort/calcHpStat/calcOtherStatをsrc/lib/stats.tsに統合した。
+// このページは種族単位(Lv50・IV31固定・性格補正なし)のため専用の薄いラッパーを使う。
+import { calcHpStatAtLv50Iv31, calcOtherStatAtLv50Iv31 } from '../../lib/stats';
 // C-3: タイプ絞り込みの選択肢の並び順に使う(18タイプの正準順序)。このファイルは読むだけで
 // 編集しない(src/lib/type-chart.ts はround-13でsrc/pages/moves/[name].astroが新設した
 // 読み取り専用の18×18タイプ相性表)。
@@ -148,14 +152,11 @@ for (const p of Object.values(pokemonDetailRaw as Record<string, PokemonDetail>)
 const postEvolutions = evolutionForwardMap.get(pokemon.name) ?? [];
 
 // B-1: 種族値グリッドに実数(無振)・実数(全振)の2行を追加する。
-// 計算式の出典: src/pages/box/index.astro の chmpToLegacyEffort/calcHpStat/calcOtherStat
-// (2026-07-27時点でL744-755付近。box/index.astroは今ラウンド編集禁止のためコピーで進める。
-// /share/[slug].astroに続き3箇所目のコピーになる件はround-09.md A-2/round-13.mdで
-// 「次ラウンドでsrc/lib/stats.tsへ統合する」と積み残し済み)。
+// 計算式(chmpToLegacyEffort/calcHpStat/calcOtherStat)はsrc/lib/stats.tsに統合済み
+// (ラウンド18。旧: box/index.astroからのコピーをこのページに直接持っていた)。
 // vendor/jpoke/src/jpoke/model/stats.py の calc_hp/calc_stat/chmp_to_legacy_effort と
 // 完全に同じ式であることは .claude/skills/jpoke/references/ruleset.md
-// 「1. チャンピオンズルール」「2. 実数値の計算式」に出典つきで要約済み。
-// 0〜32スケール→素の努力値の変換式は 8n-4(n=0のときだけ0)であって単純な×8ではない点に注意。
+// 「1. チャンピオンズルール」「2. 実数値の計算式」に出典つきで要約済み(src/lib/stats.ts冒頭にも転記)。
 //
 // 【性格補正の扱い(このページ独自の判断)】このページは「種族(ポケモン単体)」の基礎データを
 // 示す画面であり、box/[id].astroや/shareのような「特定の性格を持つ個体」を扱わない。
@@ -164,23 +165,12 @@ const postEvolutions = evolutionForwardMap.get(pokemon.name) ?? [];
 // 誤読される(例: 「実数値」とだけ書くと個体値・努力値・性格まで含めた最終値だと誤解されうる)
 // ため、行ラベルに「(無振/全振)」を付けたうえで、直後にヒント文で
 // 「性格補正なし・個体値31・Lv50」であることを明示する。
-const LEVEL = 50;
-const IV = 31;
-function chmpToLegacyEffort(evChamp: number): number {
-	return evChamp === 0 ? 0 : 8 * evChamp - 4;
-}
-function calcHpStat(base: number, evChamp: number): number {
-	if (base === 1) return 1; // ヌケニン特例(vendor/jpoke/src/jpoke/model/stats.pyと同じ)
-	const effort = chmpToLegacyEffort(evChamp);
-	return Math.floor(((base * 2 + IV + Math.floor(effort / 4)) * LEVEL) / 100) + LEVEL + 10;
-}
-function calcOtherStat(base: number, evChamp: number): number {
-	const effort = chmpToLegacyEffort(evChamp);
-	// nc(性格補正)は上記コメントのとおり常に1.0(補正なし)。
-	return Math.floor((Math.floor(((base * 2 + IV + Math.floor(effort / 4)) * LEVEL) / 100) + 5) * 1.0);
-}
+// calcHpStatAtLv50Iv31/calcOtherStatAtLv50Iv31はsrc/lib/stats.ts側でLv50・IV31固定・
+// 性格補正なしに固定した薄いラッパー(引数はbaseとevChampの2つのみ、呼び出し側の使い勝手は変えていない)。
 function realStatRow(evChamp: number): number[] {
-	return pokemon.baseStats.map((base, i) => (i === 0 ? calcHpStat(base, evChamp) : calcOtherStat(base, evChamp)));
+	return pokemon.baseStats.map((base, i) =>
+		i === 0 ? calcHpStatAtLv50Iv31(base, evChamp) : calcOtherStatAtLv50Iv31(base, evChamp),
+	);
 }
 const realStatsNoEv = realStatRow(0);
 const realStatsMaxEv = realStatRow(32);
