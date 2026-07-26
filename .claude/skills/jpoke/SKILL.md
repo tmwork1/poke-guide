@@ -11,8 +11,13 @@ description: ダメージ計算エンジン jpoke の仕様・API・データを
 
 | | パス | 位置づけ |
 |---|---|---|
-| **仕様の正** | `vendor/jpoke/` | **アプリが実際に実行しているのはこちら。v0.2.0で固定。** 配布物は `public/master-data/pyodide/wheels/jpoke-0.2.0-py3-none-any.whl` |
-| 上流 | `../jpoke/`(`C:\Users\tmtmp\Documents\pokemon\jpoke`) | 開発リポジトリ。**v0.2.0より先に進んでいる。** 読解の補助にはしてよいが、食い違ったら `vendor/jpoke` が勝つ |
+| **仕様の正** | `vendor/jpoke/` | **アプリが実際に実行しているのはこちら。v0.2.0。** 配布物は `public/master-data/pyodide/wheels/jpoke-0.2.0-py3-none-any.whl` |
+| 上流 | `../jpoke/`(`C:\Users\tmtmp\Documents\pokemon\jpoke`) | 開発リポジトリ。読解の補助にはしてよいが、**食い違ったら `vendor/jpoke` が勝つ** |
+
+**2026-07-27時点の両者の関係(実測)**: `diff -rq` の結果、`src/` の中身は**実質同一**。差分は上流にだけある空ディレクトリ `src/jpoke/utils/type_defs/`(中身0件、どこからも参照なし)のみで、`pyproject.toml` も両方 `version = "0.2.0"`。上流のgit HEAD(`d51e9c96b`)はドキュメントのみの変更だった。
+
+- つまり**今は乖離していない**。「vendorが古い」という前提で上流を見に行く必要は現時点では無い。
+- ただし**この関係は上流が動けば静かに崩れる**。乖離を疑う根拠にすべきは上流のコミット履歴ではなく、`diff -rq --exclude=__pycache__ --exclude='*.egg-info' vendor/jpoke/src ../jpoke/src` の実行結果。**履歴が進んでいること = ソースが乖離していること、ではない**(実際このドキュメント作成時、上流のコミットが進んでいるのを見て乖離していると誤認した)。
 
 - `../jpoke/docs/quick_reference.md` は60KBある。**丸ごと読まない。** ここに要約が無い論点に限って、必要な節だけ開く。
 - vendoring の方針と更新手順は `vendor/jpoke/VENDORING.md`。**このスキルはそれを複製しない**ので、更新作業をするときは必ずそちらを読む。
