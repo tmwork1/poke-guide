@@ -21,7 +21,7 @@ export async function GET({ request, cookies, redirect }: APIContext) {
     return jsonResponse({ error: error.message }, 500);
   }
 
-  return redirect('/mypage');
+  return redirect('/box');
 }
 
 export const POST = () => methodNotAllowed(['GET']);

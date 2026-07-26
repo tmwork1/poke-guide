@@ -5,17 +5,14 @@
 // 詳細は src/lib/owned-pokemon.ts 冒頭のコメント参照)。
 // 対象が存在しない場合と他人の所有物である場合はいずれも同じ404を返し、存在の有無を漏らさない。
 import type { APIContext } from 'astro';
-import { badRequest, isSameOrigin, jsonResponse, methodNotAllowed, readJsonBody } from '../_shared';
+import { badRequest, isSameOrigin, isValidUuid, jsonResponse, methodNotAllowed, readJsonBody } from '../_shared';
 import { getSessionUser } from '../../../lib/user-session';
 import { getSupabaseAdminClient } from '../../../lib/supabase';
 import { validateOwnedPokemonRequestBody } from '../../../lib/owned-pokemon-validation';
 import { deleteOwnedPokemon, getOwnedPokemon, updateOwnedPokemon } from '../../../lib/owned-pokemon';
+import { ownedPokemonRateLimiter } from '../../../lib/rate-limit';
 
 export const prerender = false;
-
-// owned_pokemon.id は uuid 列のため、明らかに不正な形式のパスパラメータは早期に404として扱う
-// (DBへ投げて Postgrest の invalid input syntax エラーを露出させないため)。
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function notFound(): Response {
   return jsonResponse({ error: 'Owned pokemon not found' }, 404);
@@ -26,7 +23,7 @@ export async function GET({ request, cookies, params }: APIContext): Promise<Res
   if (!user) return jsonResponse({ error: 'Unauthorized' }, 401);
 
   const id = params.id;
-  if (!id || !UUID_PATTERN.test(id)) return notFound();
+  if (!isValidUuid(id)) return notFound();
 
   const supabase = await getSupabaseAdminClient();
   const result = await getOwnedPokemon(user.id, id, supabase);
@@ -44,8 +41,13 @@ export async function PUT({ request, cookies, params }: APIContext): Promise<Res
     return jsonResponse({ error: 'Forbidden' }, 403);
   }
 
+  const rateLimit = ownedPokemonRateLimiter.check(user.id);
+  if (!rateLimit.allowed) {
+    return jsonResponse({ error: 'Too many requests' }, 429);
+  }
+
   const id = params.id;
-  if (!id || !UUID_PATTERN.test(id)) return notFound();
+  if (!isValidUuid(id)) return notFound();
 
   const body = await readJsonBody<unknown>(request);
   if (body.response) return body.response;
@@ -69,8 +71,13 @@ export async function DELETE({ request, cookies, params }: APIContext): Promise<
     return jsonResponse({ error: 'Forbidden' }, 403);
   }
 
+  const rateLimit = ownedPokemonRateLimiter.check(user.id);
+  if (!rateLimit.allowed) {
+    return jsonResponse({ error: 'Too many requests' }, 429);
+  }
+
   const id = params.id;
-  if (!id || !UUID_PATTERN.test(id)) return notFound();
+  if (!isValidUuid(id)) return notFound();
 
   const supabase = await getSupabaseAdminClient();
   const result = await deleteOwnedPokemon(user.id, id, supabase);

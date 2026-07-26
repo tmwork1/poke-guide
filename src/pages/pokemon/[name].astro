@@ -7,6 +7,7 @@
 // 該当ポケモンが存在しない name は getStaticPaths() の対象外になるため自然に404になる。
 import pokemonDetailRaw from '../../../public/master-data/detail/pokemon.json';
 import { toPokemonPathSegment } from '../../lib/pokemon-slug';
+import AppLayout from '../../layouts/AppLayout.astro';
 
 interface PokemonDetail {
 	name: string;
@@ -42,108 +43,91 @@ const { pokemon } = Astro.props as Props;
 
 const STAT_LABELS: string[] = ['HP', '攻撃', '防御', '特攻', '特防', '素早さ'];
 ---
-<!doctype html>
-<html lang="ja">
-	<head>
-		<meta charset="utf-8" />
-		<meta name="viewport" content="width=device-width, initial-scale=1" />
-		<title>{pokemon.name} | Poke-Commons</title>
-		<style>
-			body {
-				font-family: system-ui, sans-serif;
-				max-width: 720px;
-				margin: 2rem auto;
-				padding: 0 1rem;
-				line-height: 1.6;
-			}
-			h1 { font-size: 1.5rem; }
-			h2 { font-size: 1.15rem; }
-			section {
-				border: 1px solid #ccc;
-				border-radius: 8px;
-				padding: 1rem;
-				margin: 1rem 0;
-			}
-			table { border-collapse: collapse; width: 100%; }
-			th, td { border: 1px solid #ddd; padding: 0.4em 0.6em; text-align: right; }
-			th:first-child, td:first-child { text-align: left; }
-			.type-badge {
-				display: inline-block;
-				border: 1px solid #999;
-				border-radius: 4px;
-				padding: 0.15em 0.6em;
-				margin-right: 0.4em;
-				font-size: 0.9em;
-			}
-			ul.plain { padding-left: 1.2em; }
-			ul.moves { columns: 2; padding-left: 1.2em; }
-			@media (max-width: 640px) {
-				ul.moves { columns: 1; }
-			}
-			ul.moves li { break-inside: avoid; }
-			a { text-decoration: none; }
-			a:hover { text-decoration: underline; }
-		</style>
-	</head>
-	<body>
-		<p><a href="/">トップへ戻る</a> / <a href="/search">検索に戻る</a></p>
-
-		<h1>{pokemon.name}</h1>
-
-		<section>
-			<h2>タイプ</h2>
-			<p>
-				{pokemon.types.map((t) => <span class="type-badge">{t}</span>)}
-			</p>
+<AppLayout title={pokemon.name} backHref="/search" backLabel="検索に戻る">
+	<style>
+		table { border-collapse: collapse; width: 100%; }
+		th, td { border: 1px solid var(--color-border); padding: 0.4em 0.6em; text-align: right; }
+		th:first-child, td:first-child { text-align: left; }
+		.type-badge {
+			display: inline-block;
+			border: 1px solid var(--color-border);
+			border-radius: var(--radius-sm);
+			padding: 0.15em 0.6em;
+			margin-right: 0.4em;
+			font-size: 0.9em;
+		}
+		ul.plain { padding-left: 1.2em; }
+		ul.moves { columns: 2; padding-left: 1.2em; }
+		@media (max-width: 640px) {
+			ul.moves { columns: 1; }
+		}
+		ul.moves li { break-inside: avoid; }
+	</style>
+	<div class="page">
+		<section class="panel">
+			<div class="panel-content">
+				<h2>タイプ</h2>
+				<p>
+					{pokemon.types.map((t) => <span class="type-badge">{t}</span>)}
+				</p>
+			</div>
 		</section>
 
-		<section>
-			<h2>種族値</h2>
-			<table>
-				<thead>
-					<tr>
-						{STAT_LABELS.map((label) => <th>{label}</th>)}
-					</tr>
-				</thead>
-				<tbody>
-					<tr>
-						{pokemon.baseStats.map((v) => <td>{v}</td>)}
-					</tr>
-				</tbody>
-			</table>
+		<section class="panel">
+			<div class="panel-content">
+				<h2>種族値</h2>
+				<table>
+					<thead>
+						<tr>
+							{STAT_LABELS.map((label) => <th>{label}</th>)}
+						</tr>
+					</thead>
+					<tbody>
+						<tr>
+							{pokemon.baseStats.map((v) => <td>{v}</td>)}
+						</tr>
+					</tbody>
+				</table>
+			</div>
 		</section>
 
-		<section>
-			<h2>覚えられる特性</h2>
-			{pokemon.abilities.length > 0 ? (
-				<ul class="plain">
-					{pokemon.abilities.map((a) => <li>{a}</li>)}
-				</ul>
-			) : (
-				<p>データなし</p>
-			)}
+		<section class="panel">
+			<div class="panel-content">
+				<h2>覚えられる特性</h2>
+				{pokemon.abilities.length > 0 ? (
+					<ul class="plain">
+						{pokemon.abilities.map((a) => <li>{a}</li>)}
+					</ul>
+				) : (
+					<p>データなし</p>
+				)}
+			</div>
 		</section>
 
-		<section>
-			<h2>進化前</h2>
-			{pokemon.preEvolution ? (
-				<p><a href={`/pokemon/${encodeURIComponent(toPokemonPathSegment(pokemon.preEvolution))}`}>{pokemon.preEvolution}</a></p>
-			) : (
-				<p>なし</p>
-			)}
+		<section class="panel">
+			<div class="panel-content">
+				<h2>進化前</h2>
+				{pokemon.preEvolution ? (
+					<p><a href={`/pokemon/${encodeURIComponent(toPokemonPathSegment(pokemon.preEvolution))}`}>{pokemon.preEvolution}</a></p>
+				) : (
+					<p>なし</p>
+				)}
+			</div>
 		</section>
 
-		<section>
-			<h2>覚えられる技({pokemon.learnset.length}種)</h2>
-			{pokemon.learnset.length > 0 ? (
-				<ul class="moves">
-					{pokemon.learnset.map((m) => (
-						<li><a href={`/moves/${encodeURIComponent(m)}`}>{m}</a></li>
-					))}
-				</ul>
-			) : (
-				<p>データなし</p>
-			)}
+		<section class="panel">
+			<div class="panel-content">
+				<h2>覚えられる技({pokemon.learnset.length}種)</h2>
+				{pokemon.learnset.length > 0 ? (
+					<ul class="moves">
+						{pokemon.learnset.map((m) => (
+							<li><a href={`/moves/${encodeURIComponent(m)}`}>{m}</a></li>
+						))}
+					</ul>
+				) : (
+					<p>データなし</p>
+				)}
+			</div>
 		</section>
-	</body>
-</html>
+	</div>
+</AppLayout>

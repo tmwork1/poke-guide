@@ -1,6 +1,8 @@
-// src/pages/mypage/new.astro・src/pages/mypage/[id].astro が共有するブラウザ専用のフォーム
-// ヘルパー(育成データ管理計画.md §8 Phase C-3・C-4)。
-// src/pages/builds/new.astro の loadAutocomplete()/readEv()/readIv() 等と同じ実装パターン。
+// src/pages/box/[id].astro が使うブラウザ専用のフォームヘルパー(育成データ管理計画.md
+// §8 Phase C-3・C-4)。旧 src/pages/box/new.astro と共有していたが、個体追加が自動登録
+// フローに変わったため new.astro は廃止済み。
+// src/pages/builds/new.astro の loadAutocomplete()/readEv() 等と同じ実装パターン。
+// IVは「チャンピオンズ」ルールで常に31固定のため readIv は廃止済み(呼び出し元は常に31を直接送る)。
 // SSR環境(Astroのフロントマター)からは呼び出さないこと(document/fetchに依存する)。
 
 export const STAT_KEYS = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'] as const;
@@ -24,29 +26,13 @@ export function readEv(stat: string): number {
   return clamp(raw, 0, 32);
 }
 
-export function readIv(stat: string): number {
-  const raw = el<HTMLInputElement>(`iv-${stat}`).value.trim();
-  if (raw === '') return 31;
-  const n = Number(raw);
-  if (!Number.isFinite(n)) return 31;
-  return clamp(n, 0, 31);
-}
-
 export function readMoveNames(): string[] {
   return MOVE_SLOTS.map((slot) => el<HTMLInputElement>(`move-${slot}`).value.trim()).filter((name) => name !== '');
 }
 
-// タグ入力はカンマ区切りの簡易テキスト入力(育成データ管理計画.md §8 Phase C-3)。
-export function parseTagsInput(value: string): string[] {
-  return value
-    .split(',')
-    .map((t) => t.trim())
-    .filter((t) => t.length > 0);
-}
-
-export function formatTagsForInput(tags: string[]): string {
-  return tags.join(', ');
-}
+// タグ入力(カンマ区切りテキスト)のヘルパー parseTagsInput / formatTagsForInput は、
+// 個体編集画面から「その他の設定(レベル・タグ・ピン留め・共有)」を廃止して呼び出し元が
+// 無くなったため削除した。タグ自体はDBに残り、ボックス一覧の絞り込みは引き続き機能する。
 
 async function fillDatalist(res: Response, datalistId: string): Promise<void> {
   const list = (await res.json()) as Array<{ name: string }>;
@@ -81,17 +67,9 @@ export async function loadAutocomplete(): Promise<void> {
   }
 }
 
-// ポケモン名を /pokemon/[name] へのURLパスセグメントへ変換する際の既知の例外
-// (src/lib/pokemon-slug.ts と同じ処理。SSR専用の toPokemonPathSegment をブラウザ側の
-// 軽量スクリプトに再import するほどではないため、ここでは同じロジックを直接持つ)。
-export function toPokemonPathSegment(name: string): string {
-  return name.replace(/[%:]/g, '');
-}
-
-export function pokemonDetailHref(name: string): string {
-  return `/pokemon/${encodeURIComponent(toPokemonPathSegment(name))}`;
-}
-
+// 種族名から図鑑ページへのリンク(pokemonDetailHref)は、個体編集画面の「図鑑で見る」を
+// 廃止したことで呼び出し元が無くなったため削除した。ポケモン名→URLパスセグメントの変換が
+// 再び必要になった場合は src/lib/pokemon-slug.ts の toPokemonPathSegment を使うこと。
 export function moveDetailHref(name: string): string {
   return `/moves/${encodeURIComponent(name)}`;
 }

@@ -12,94 +12,76 @@
 //   Response: { data: { query, category, hitCount, results: { pokemon, move, ability, item } } }
 // 特性・持ち物は詳細ページを作らない(jpokeに説明文データが無いため)ので、
 // 検索結果では名前のみ表示しリンクは張らない。
+import AppLayout from '../../layouts/AppLayout.astro';
 ---
-<!doctype html>
-<html lang="ja">
-	<head>
-		<meta charset="utf-8" />
-		<meta name="viewport" content="width=device-width, initial-scale=1" />
-		<title>検索 | Poke-Commons</title>
+<AppLayout title="検索">
+	<div class="page">
+		<section class="panel">
+			<div class="panel-content">
+				<h2>キーワード検索</h2>
+				<div class="row">
+					<label for="query">キーワード</label>
+					<input id="query" type="text" autocomplete="off" placeholder="ポケモン名・技名・特性名・持ち物名の一部" />
+				</div>
+				<div class="row">
+					<span>カテゴリ</span>
+					<label class="radio-label"><input type="radio" name="category" value="" checked /> すべて</label>
+					<label class="radio-label"><input type="radio" name="category" value="pokemon" /> ポケモン</label>
+					<label class="radio-label"><input type="radio" name="category" value="move" /> 技</label>
+					<label class="radio-label"><input type="radio" name="category" value="ability" /> 特性</label>
+					<label class="radio-label"><input type="radio" name="category" value="item" /> 持ち物</label>
+				</div>
+				<p id="search-status" class="status-text" data-state="idle">キーワードを入力してください</p>
+			</div>
+		</section>
+
+		<section class="panel" id="results-section" hidden>
+			<div class="panel-content">
+				<h2>検索結果</h2>
+				<div class="result-block" id="result-pokemon-block" hidden>
+					<h3>ポケモン</h3>
+					<ul id="result-pokemon"></ul>
+				</div>
+				<div class="result-block" id="result-move-block" hidden>
+					<h3>技</h3>
+					<ul id="result-move"></ul>
+				</div>
+				<div class="result-block" id="result-ability-block" hidden>
+					<h3>特性</h3>
+					<ul id="result-ability"></ul>
+				</div>
+				<div class="result-block" id="result-item-block" hidden>
+					<h3>持ち物</h3>
+					<ul id="result-item"></ul>
+				</div>
+			</div>
+		</section>
+
+		<section class="panel">
+			<div class="panel-content">
+				<h2>最近注目されているもの</h2>
+				<p class="card-hint">みんなの検索から傾向が見えてくると、ここに表示されます。</p>
+				<div id="trending-search">読み込み中...</div>
+			</div>
+		</section>
+
 		<style>
-			body {
-				font-family: system-ui, sans-serif;
-				max-width: 720px;
-				margin: 2rem auto;
-				padding: 0 1rem;
-				line-height: 1.6;
-			}
-			h1 { font-size: 1.5rem; }
-			h2 { font-size: 1.15rem; }
 			h3 { font-size: 1rem; margin-bottom: 0.3rem; }
-			section {
-				border: 1px solid #ccc;
-				border-radius: 8px;
-				padding: 1rem;
-				margin: 1rem 0;
-			}
-			.row { margin: 0.5rem 0; }
-			label { display: inline-block; min-width: 5em; }
-			input[type="text"] {
-				padding: 0.4em 0.6em;
-				font-size: 1rem;
-				width: 100%;
-				max-width: 24em;
-				box-sizing: border-box;
+			/* global.css の `label { min-width: 6.5em }` 撤廃(UI品質改善タスクA)に伴い、
+			   キーワード欄のラベル幅をこのページ側で維持する(.radio-labelは対象外)。 */
+			.row > label:not(.radio-label) {
+				min-width: 6.5em;
+				font-size: var(--font-size-sm);
+				font-weight: 600;
+				color: var(--color-text-muted);
 			}
 			.radio-label { min-width: auto; font-weight: normal; margin-right: 1rem; }
-			#search-status { color: #555; font-size: 0.9em; }
 			.result-block { margin: 0.8rem 0; }
 			.result-block ul { padding-left: 1.2em; }
 			.result-block a { text-decoration: none; }
 			.result-block a:hover { text-decoration: underline; }
-			.suggestion-empty { color: #666; font-style: italic; }
+			.suggestion-empty { color: var(--color-text-muted); font-style: italic; }
 		</style>
-	</head>
-	<body>
-		<h1>検索</h1>
-		<p><a href="/">トップへ戻る</a></p>
-
-		<section>
-			<h2>キーワード検索</h2>
-			<div class="row">
-				<label for="query">キーワード</label>
-				<input id="query" type="text" autocomplete="off" placeholder="ポケモン名・技名・特性名・持ち物名の一部" />
-			</div>
-			<div class="row">
-				<span>カテゴリ</span>
-				<label class="radio-label"><input type="radio" name="category" value="" checked /> すべて</label>
-				<label class="radio-label"><input type="radio" name="category" value="pokemon" /> ポケモン</label>
-				<label class="radio-label"><input type="radio" name="category" value="move" /> 技</label>
-				<label class="radio-label"><input type="radio" name="category" value="ability" /> 特性</label>
-				<label class="radio-label"><input type="radio" name="category" value="item" /> 持ち物</label>
-			</div>
-			<p id="search-status">キーワードを入力してください</p>
-		</section>
-
-		<section id="results-section" hidden>
-			<h2>検索結果</h2>
-			<div class="result-block" id="result-pokemon-block" hidden>
-				<h3>ポケモン</h3>
-				<ul id="result-pokemon"></ul>
-			</div>
-			<div class="result-block" id="result-move-block" hidden>
-				<h3>技</h3>
-				<ul id="result-move"></ul>
-			</div>
-			<div class="result-block" id="result-ability-block" hidden>
-				<h3>特性</h3>
-				<ul id="result-ability"></ul>
-			</div>
-			<div class="result-block" id="result-item-block" hidden>
-				<h3>持ち物</h3>
-				<ul id="result-item"></ul>
-			</div>
-		</section>
-
-		<section>
-			<h2>最近注目されているもの</h2>
-			<p>みんなの検索から傾向が見えてくると、ここに表示されます。</p>
-			<div id="trending-search">読み込み中...</div>
-		</section>
 
 		<script>
 			import { toPokemonPathSegment } from "../../lib/pokemon-slug";
@@ -278,5 +260,5 @@
 
 			void loadTrendingSearches();
 		</script>
-	</body>
-</html>
+	</div>
+</AppLayout>

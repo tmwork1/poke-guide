@@ -1,0 +1,1213 @@
+---
+// Phase C-2 → UI刷新(2026-07-25): 個体一覧ページ(ボックス)。サイトのホームでもある。
+// docs/ui_proposal/Box.png のワイヤーフレーム(上部に検索/絞り込み/並べ替えの横一列ツールバー、
+// その下にカードグリッド。グリッド先頭セルは「追加」タイル)に準拠する。
+// ログイン時は GET /api/owned-pokemon から取得した一覧をクライアント側で描画する
+// (並び替え・タグフィルタ・文字列検索はいずれも初回取得後にクライアント側で完結させ、
+// 操作のたびに追加のAPI呼び出しを発生させない設計。育成データ管理計画.md §6.1が文字列検索の
+// クライアント側フィルタを明示的に許容しているため、他の絞り込みも同じ方針に揃えている)。
+// 未ログイン時の表示は Phase A-3 から変更しない(強制リダイレクトはしない)。
+//
+// UI品質改善 第4弾ラウンド4(2026-07-26 ユーザー直接指示、docs/plan/ui_plan.md「ラウンド4の要件」
+// 参照): カードを1辺およそ200pxの正方形に作り直す(旧312×401pxの約1/3の面積)。
+// ゲーム本編のボックス画面と同じ「スプライトのグリッド」に寄せ、一覧性(1画面に並ぶ枚数)を
+// 最優先にする。この方針に合わせて、ラウンド2/3で追加したタイプバッジ・テラスバッジ・
+// 性格表示・特性/持ち物/技の常時表示・努力値ミニバーは撤回し、カードには
+// 「公式絵 → 名前 → 実数値6値(性格による↑↓付き)」だけを残す(ユーザー指示の優先順どおり)。
+// 削った情報(特性・持ち物・テラスタイプ・技)は検索対象からは外さず(matchesSearchは変更しない)、
+// カード(<a>)の title 属性(ネイティブのホバーツールチップ)経由で参照できるようにする。
+//
+// ラウンド5(2026-07-26 ユーザー指示第2弾、ui_plan.md「ラウンド5の要件」参照): 「アイテム・技を
+// 表示する」との指示に従い、正方形・1/3面積の方針は維持したまま持ち物と技をカードに復元する。
+// 優先順位(公式絵>名前>実数値6値>持ち物>技)を守りつつ、
+// - 持ち物は公式絵の右下に重ねる小さな丸バッジ(画像のみ)にして縦方向の予算を消費しない形にした
+//   (実測でアイテム名まで文字表示すると「こだわりハチマキ」等の長い値が210px前後の正方形には
+//   収まらなかったため画像のみを採用。名前はカードtitleツールチップに残す)。
+// - 技は実数値グリッドの下に2×2グリッドで小さく表示し、未設定スロットは何も出さない
+//   (ラウンド3で「-」を4つ並べると壊れて見えるという指摘が出たため、空文字列はfilterで除外する)。
+// カードは 185px→210px 正方形へわずかに拡大(1620px前後の実効グリッド幅で8列→7列になる)。
+export const prerender = false;
+
+import AppLayout from '../../layouts/AppLayout.astro';
+
+const user = Astro.locals.user;
+---
+<AppLayout title="ボックス" description="所持しているポケモンの一覧・検索・並べ替え" current="box">
+	{/*
+	  共通トップバー移行(2026-07-26): 独自のヘッダ帯(section.panel.panel-header)を撤去し、
+	  タイトル「ボックス」はAppLayoutのtitleプロパティへ、件数バッジはこのtopbar-statusスロットへ
+	  移した。アカウント情報(ログイン中表示/ログアウト)はAppLayoutがAstro.locals.userから
+	  自前で描画するため、ここには置かない(旧.box-accountは削除。他ページから参照が
+	  無いことをgrepで確認済み)。
+	*/}
+	<Fragment slot="topbar-status">
+		<span class="badge tnum" id="pokemon-count-badge" hidden>0体</span>
+	</Fragment>
+	<style>
+		/* --- ツールバー(検索・絞り込み・並べ替えを1つのバーにまとめる、要件6) ---
+		   デザインシステム新原則: 検索/絞り込み/並べ替えを収める「1画面1つの骨格領域」なので
+		   パネル役割(.panel、global.css)に委譲する。background/border/border-radiusは基底に
+		   任せ、ここではコンパクトなpadding上書きとフレックスレイアウトだけを残す
+		   (基底.panelの既定paddingはvar(--space-6)だが、ツールバーは横一列に検索/絞り込み/
+		   並べ替えを収めるため、より詰まったvar(--space-3) var(--space-5)を使う)。
+		   各項目は.field-labelでラベルの見た目を揃える(labelの幅強制は撤廃されたため、
+		   揃え自体はflexのgapで作る)。
+		   帯構成への移行(2026-07-26): マークアップ側で.panel-topを追加し、下に続くカード
+		   グリッド(こちらは.panelではないので.panel + .panelの継ぎ目罫線が働かない)との
+		   境界に下辺の罫線を出す。以前あったmargin-topは、基底.pageが左右paddingごと
+		   撤廃されたことで不要になった余白だったため削除した(帯どうしは隙間なく積む)。 */
+		.panel-toolbar {
+			display: flex;
+			flex-wrap: wrap;
+			align-items: center;
+			gap: var(--space-3) var(--space-6);
+			padding: var(--space-3) var(--space-5);
+		}
+		.toolbar-item {
+			display: flex;
+			align-items: center;
+			gap: var(--space-2);
+		}
+		/* .toolbar-item の display:flex は UA の [hidden]{display:none} に勝ってしまうため、
+		   タグが0件のときに絞り込み欄を隠せるよう明示的に打ち消す。 */
+		.toolbar-item[hidden] {
+			display: none;
+		}
+
+		/* 検索欄: 入力の左側に虫眼鏡アイコン(SVG、AppLayoutのハンバーガーと同じ線画トーン)を重ねる。
+		   UI品質改善ラウンド2(B-2): ツールバーの右半分が空くのを解消するため、検索欄を
+		   flex-growさせてバーの余白を吸収させる。 */
+		.toolbar-search {
+			flex: 1 1 320px;
+		}
+		.search-input-wrap {
+			position: relative;
+			display: flex;
+			align-items: center;
+			flex: 1;
+		}
+		.search-input-wrap .search-icon {
+			position: absolute;
+			left: 0.7em;
+			color: var(--color-text-muted);
+			pointer-events: none;
+		}
+		.toolbar-search input {
+			width: 100%;
+			min-width: 12em;
+			padding-left: 2.1em;
+		}
+		.toolbar-filter { flex-wrap: wrap; }
+		/* タグチップ自体は下の is:global ブロックで定義する(JSが動的生成するため)。 */
+		.tag-filter-list { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+
+		/* 並べ替えをバーの右端に押し出す(B-2: 検索(左)—絞り込み(中)—並べ替え(右)の3分割)。 */
+		.toolbar-sort {
+			margin-left: auto;
+		}
+
+		@media (max-width: 640px) {
+			.panel-toolbar { flex-direction: column; align-items: stretch; }
+			.toolbar-item { width: 100%; margin-left: 0; }
+			/* B-2の `.toolbar-search { flex: 1 1 320px }` は横並び(flex-direction: row)前提の
+			   flex-basisで、縦積みに切り替わるこのブレークポイントでは主軸(縦方向)の基準値として
+			   解釈され、検索欄の高さが320pxまで伸びてしまう(実測で判明した回帰)。ここで
+			   flex-basisをリセットして内容ぶんの高さに戻す。 */
+			.toolbar-search { flex-basis: auto; }
+			.toolbar-search input,
+			.toolbar-sort select { width: 100%; min-width: 0; }
+		}
+
+		/* --- カードグリッド(Box.png: 先頭セルが追加タイル、以降がポケモンごとのカード) ---
+		   #owned-pokemon-list は display:contents にして、JSが innerHTML を差し替えても
+		   その子要素(ポケモンカード)がそのままこの .box-grid の直接の子として並ぶようにする。
+		   追加タイル(button.add-card-tile)は #owned-pokemon-list の外側の兄弟要素なので、
+		   一覧の再描画(innerHTMLの差し替え)では一切触れられず、常に先頭に残り続ける。
+		   帯構成への移行(2026-07-26): 旧来ここにあった `.page.page-wide.box-shell { max-width:
+		   1760px; }` は「囲み箱を画面中央に収める」旧方針の名残で、ワイヤーフレーム
+		   (docs/ui_proposal/ボックス.png)どおりカードグリッドを画面幅いっぱいに流すために削除した
+		   (.page/.page-wideはglobal.cssで既に無効化済みで、box-shell自体に他のプロパティは
+		   無かったため、ルールごと削除しセレクタの付け替え先は無い)。 */
+		/* ラウンド4: カードを1辺およそ200pxの正方形にする。実測ではデスクトップの
+		   サイドバー(256px、global.css --sidebar-width)を差し引いた実効グリッド幅は
+		   1920px viewportで1624px(1760pxの.box-shell自体はサイドバー込みで収まりきらない)。
+		   1624px・gap16pxの条件で8列・カード189px前後になるようminmaxを185pxに調整した
+		   (実測して逆算した値。190pxのままだと7列・218pxになってしまい8列に届かない)。
+		   ラウンド5: 持ち物・技を復元するため、正方形のまま210pxへわずかに拡大する
+		   (1624px幅では7列・実測カード幅約218pxになる。1/3面積・正方形の方針自体は維持)。 */
+		/* 帯構成への移行(2026-07-26): カードグリッド自体は.panel-contentを使わず画面幅いっぱいに
+		   流す(ワイヤーフレームどおり、1080pxで折り返す必要はない)。ただし画面端に直接
+		   貼り付くと窮屈なので、グリッドとその前後の状態メッセージ(読み込み中/エラー/空状態)を
+		   まとめて包むこの要素にだけ左右paddingを当てる。値はツールバー帯(.panel-toolbarの
+		   `padding: var(--space-3) var(--space-5)`)・基底.panelの横paddingと同じvar(--space-5)を
+		   使い、帯の左端とカードの左端が縦に揃うようにする。 */
+		.box-content {
+			padding: 0 var(--space-5);
+		}
+		.box-grid {
+			display: grid;
+			grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+			gap: var(--space-4);
+			align-items: stretch;
+			margin-top: var(--space-6);
+		}
+		/* 390px前後の幅では拡大後の210px列が1列しか入らず正方形カードが縦に積み上がるだけになるため、
+		   狭幅では列の最小サイズ自体を縮めて2列を確保する(ユーザー要件: 390pxで2列程度)。
+		   ラウンド5: 170pxに拡大すると390px幅(実効コンテンツ幅約350px)で2列の条件
+		   (2×170+gap12=352px)をわずかに超えて1列に落ちてしまう回帰が実測で見つかったため、
+		   ラウンド4と同じ150pxを維持する(2列なら実測169px角になり、技2×2グリッドも収まる)。 */
+		@media (max-width: 480px) {
+			.box-grid {
+				grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+				gap: var(--space-3);
+			}
+		}
+		#owned-pokemon-list {
+			display: contents;
+		}
+		/* 追加タイル(要件2): ポケモンカードと同じ正方形(aspect-ratio: 1/1)にし、ポケモンカードと
+		   同様に列幅から高さが自動的に決まるようにする(固定pxのmin-heightは持たせない)。 */
+		.box-grid .add-card-tile {
+			flex-direction: column;
+			gap: var(--space-1);
+			font-size: var(--font-size-sm);
+			width: 100%;
+			aspect-ratio: 1 / 1;
+			padding: var(--space-2);
+			border-width: 1px;
+			transition: border-color 0.15s, color 0.15s, background 0.15s;
+		}
+		.box-grid .add-card-tile:hover {
+			background: var(--color-primary-soft);
+		}
+		.box-grid .add-card-tile .add-card-tile-icon {
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			width: 36px;
+			height: 36px;
+			border-radius: 50%;
+			border: 1px solid var(--color-border);
+			font-size: 1.2rem;
+			font-weight: 300;
+			line-height: 1;
+			color: inherit;
+			transition: border-color 0.15s;
+		}
+		.box-grid .add-card-tile:hover .add-card-tile-icon {
+			border-color: var(--color-primary);
+		}
+		.box-grid .add-card-tile-label {
+			font-size: 0.9em;
+		}
+		.box-grid .add-card-tile-hint {
+			font-size: 0.78em;
+			font-weight: 400;
+			color: var(--color-text-muted);
+			text-align: center;
+			max-width: 100%;
+		}
+		@media (prefers-reduced-motion: reduce) {
+			.box-grid .add-card-tile,
+			.box-grid .add-card-tile .add-card-tile-icon {
+				transition: none;
+			}
+		}
+
+		/* --- 状態メッセージ(読み込み中・エラー・空状態、要件10) --- */
+		#loading-message,
+		#error-message {
+			color: var(--color-text-muted);
+			margin-top: var(--space-6);
+		}
+		#error-message { color: var(--color-danger); }
+
+		/* 空状態(登録0件): 追加タイルの下に「何ができる画面か」を伝えるカードを添える。
+		   以前は表示条件の論理式が誤っており(allPokemon.length===0のときにhiddenへ倒れる式に
+		   なっていた)、本当に0件のときに何も表示されない状態だった。JS側の条件も併せて直した。 */
+		.empty-state {
+			margin-top: var(--space-6);
+			padding: var(--space-7) var(--space-5);
+			border: 1px dashed var(--color-border);
+			border-radius: var(--radius-lg);
+			text-align: center;
+			color: var(--color-text-muted);
+		}
+		.empty-state-icon {
+			font-size: 2.4rem;
+			margin: 0 0 var(--space-2);
+		}
+		.empty-state-title {
+			margin: 0 0 var(--space-1);
+			font-size: var(--font-size-lg);
+			font-weight: 700;
+			color: var(--color-text);
+		}
+		.empty-state-hint {
+			margin: 0;
+			font-size: var(--font-size-sm);
+		}
+		/* UI品質改善ラウンド2(B-9): 絞り込み/検索の結果が0件のときの案内(こちらは「登録自体は
+		   ある」ケース)。以前はグリッド内に(display:contentsを介して)1行テキストとして
+		   差し込んでいたため、縮んだ追加タイルの右横に宙に浮いて見えた。グリッドの外に置き、
+		   本当に0件のときの.empty-stateと同じ見た目(アイコン+タイトル+補足)に揃える。 */
+		#no-match-message.empty-state {
+			margin-top: var(--space-4);
+		}
+	</style>
+
+	{/*
+	  ポケモンカードとタグチップは下部の <script> が document.createElement() で生成するため、
+	  Astroのscoped style(data-astro-cid-* 属性が付いたテンプレート要素にしか当たらない)では
+	  スタイルが適用されない。よってこれらは is:global で定義する。
+	  グローバルに漏れないよう、必ず .box-grid / #tag-filter-list 配下に限定したセレクタにすること。
+	*/}
+	<style is:global>
+		#tag-filter-list .tag-chip {
+			display: inline-flex;
+			align-items: center;
+			gap: 0.3em;
+			border: 1px solid var(--color-border);
+			border-radius: 999px;
+			padding: 0.25em 0.85em;
+			font-size: 0.85em;
+			font-weight: 600;
+			background: var(--color-surface);
+			color: var(--color-text);
+			cursor: pointer;
+			user-select: none;
+			transition: background 0.15s, color 0.15s, border-color 0.15s;
+		}
+		#tag-filter-list .tag-chip:hover { border-color: var(--color-primary); }
+		#tag-filter-list .tag-chip.active {
+			background: var(--color-primary);
+			color: var(--color-primary-contrast);
+			border-color: var(--color-primary);
+		}
+
+		/* デザインシステム新原則(2026-07-26): 「カード」は基底の.card(global.css)に委譲し、
+		   ここでは.box-grid内のポケモンカード固有のレイアウト(正方形・約210px・内部要素の
+		   配置)だけを残す。background/border/border-radius/box-shadow・hoverの持ち上がりは
+		   すべて.cardに任せる(.card-interactiveは廃止、マークアップは"card card-pokemon")。
+		   カード全体を<a>にして丸ごとクリック可能にする(要件3)。
+		   text-decoration/colorはリンクの既定装飾を打ち消して従来の見た目を保つ。
+		   ラウンド4: カードを1辺およそ200pxの正方形にする(aspect-ratio: 1/1)。中身は
+		   「公式絵→名前→実数値6値」だけの縦中央寄せに絞り、情報量を減らす代わりに
+		   1画面に並ぶ枚数(一覧性)を最優先にする。
+		   --card-stat-down(旧A-4を継続): 実数値の下降(青)をカード内だけの変数にして、ダークで
+		   コントラスト不足(約2.7:1)だった #1d6fd1 固定値をダーク側だけ明るく上書きする。
+		   padding: 新しい基底.cardはvar(--space-3)(0.75rem)だが、この正方形カードは
+		   overflow:hiddenの中に公式絵48%・実数値6列グリッド・技2×2グリッドをピクセル単位で
+		   詰めている(ラウンド4/5のコメント参照)。基底のpaddingのままだと一辺あたり4px×2=8pxぶん
+		   内容領域が狭まりレイアウトが崩れる恐れがあるため、旧来のvar(--space-2)(0.5rem)へ
+		   明示的に上書きする(基底委譲からの意図的な例外)。 */
+		/* ラウンド8 A-8: 旧来はdisplay:flex + justify-content:centerで公式絵+card-bodyを
+		   縦中央寄せにしていたが、技0件のカード(card-moves-gridのDOM自体が無い)ではcard-body
+		   の内容高さが縮み、center寄せの結果カード内でcard-body(名前行含む)のy座標が行ごとに
+		   ばらつく実測不具合が出ていた(技4件281px/技2件289px/技0件300px)。
+		   display:gridの2行(1fr=公式絵/auto=card-body)に変え、card-bodyは常にauto行に固定する。
+		   card-moves-gridを常時appendしてmin-heightで高さを揃えれば(下記参照)、auto行の高さが
+		   全カードで一致し、名前行・実数値行のyが揃う。 */
+		.box-grid .card-pokemon {
+			--card-stat-down: #1d6fd1;
+			padding: var(--space-2);
+			position: relative;
+			display: grid;
+			grid-template-rows: 1fr auto;
+			align-items: center;
+			justify-items: center;
+			gap: var(--space-1);
+			aspect-ratio: 1 / 1;
+			overflow: hidden;
+			text-decoration: none;
+			color: inherit;
+		}
+		@media (prefers-color-scheme: dark) {
+			.box-grid .card-pokemon { --card-stat-down: #6fb6f7; }
+		}
+		.box-grid .card-pokemon:focus-visible {
+			outline: 2px solid var(--color-primary);
+			outline-offset: 2px;
+		}
+		/* ピン留めカードは--color-risky(琥珀)で強調する(旧A-1の判断を継続、新色は作らない)。 */
+		.box-grid .card-pokemon.is-pinned { border-color: var(--color-risky); background: var(--color-risky-soft); }
+
+		/* --- 公式絵(要件5)。正方形カードの大半をここに割り当てる(優先順位1位)。
+		   ラウンド5: 持ち物・技のぶんだけ下半分の予算が増えたため58%→48%へ少し縮小した。
+		   position: relative は持ち物バッジ(.card-item-badge)を右下に重ねるための基準。 --- */
+		.box-grid .card-pokemon .card-art {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			position: relative;
+			width: min(48%, 104px);
+			aspect-ratio: 1 / 1;
+			flex: 0 1 auto;
+		}
+		.box-grid .card-pokemon .card-sprite-img { width: 100%; height: 100%; object-fit: contain; }
+		.box-grid .card-pokemon .card-sprite-fallback {
+			display: none;
+			align-items: center;
+			justify-content: center;
+			width: 100%;
+			height: 100%;
+			border-radius: 50%;
+			background: var(--color-primary-soft);
+			color: var(--color-primary);
+			font-weight: 700;
+			font-size: 1.4rem;
+		}
+
+		/* --- 持ち物(優先順位4位、ラウンド5で復元)。実測で「こだわりハチマキ」等の長い
+		   アイテム名を文字表示すると210px前後の正方形には収まらなかったため、公式絵の右下に
+		   重ねる小さな丸バッジ(画像のみ)にして縦方向の予算を消費しない形にした。
+		   アイテム名はカード<a>のtitle属性(ホバーツールチップ)に引き続き含まれる。 --- */
+		.box-grid .card-pokemon .card-item-badge {
+			position: absolute;
+			right: -0.2rem;
+			bottom: -0.2rem;
+			width: 22px;
+			height: 22px;
+			border-radius: 50%;
+			background: var(--color-surface);
+			border: 1px solid var(--color-border);
+			box-shadow: var(--shadow-sm);
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			overflow: hidden;
+			padding: 2px;
+		}
+		.box-grid .card-pokemon .card-item-badge img {
+			width: 100%;
+			height: 100%;
+			object-fit: contain;
+		}
+		/* .card-item-badge の display:flex は詳細度3つぶんあるため、UAの [hidden]{display:none}
+		   (詳細度1つぶん)に勝ってしまい、hidden=trueにしても空バッジが表示され続ける
+		   (box/[id].astroの .damage-column-hitcount-row と同じ既知の罠、ui_plan.md参照)。
+		   明示的に上書きする。 */
+		.box-grid .card-pokemon .card-item-badge[hidden] {
+			display: none;
+		}
+		/* ラウンド8 B-5: ダークモードでは border: 1px solid var(--color-border)(#2d313d)が
+		   カード背景 --color-surface-alt(#22252f)に対して1.18:1しか無く、アイテム画像だけが
+		   空中に浮いて見える。--color-border 自体は他ページの罫線に影響するため変えず、
+		   このページscopedで内箱の枠線だけ既存中立色の明度違い #5a6377(カード背景に対し
+		   2.73:1)に上書きする(新色は作らない)。 */
+		@media (prefers-color-scheme: dark) {
+			.box-grid .card-pokemon .card-item-badge {
+				border-color: #5a6377;
+			}
+		}
+
+		/* --- ピン留め/削除(要件7): ★は状態表示として常時可視、🗑は誤操作防止のため
+		   hover/focus-within時のみ可視にする(キーボード操作はTabで delete-button に
+		   フォーカスが入った瞬間 :focus-within が発火するので到達可能)。
+		   タッチ操作(hover非対応端末)では常時可視のままにして操作不能にならないようにする。
+		   ラウンド4: 200px正方形に収めるためアイコンボタンを2rem→1.5remへ縮小する。 --- */
+		.box-grid .card-pokemon .card-actions {
+			position: absolute;
+			top: var(--space-2);
+			right: var(--space-2);
+			display: flex;
+			gap: 0.25rem;
+			z-index: 2;
+		}
+		.box-grid .card-pokemon .icon-button {
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			width: 1.5rem;
+			height: 1.5rem;
+			padding: 0;
+			border-radius: 999px;
+			border: 1px solid var(--color-border);
+			background: var(--color-surface);
+			color: var(--color-text-muted);
+			font-size: 0.8rem;
+			line-height: 1;
+			box-shadow: var(--shadow-sm);
+		}
+		.box-grid .card-pokemon .icon-button:hover { background: var(--color-surface-alt); color: var(--color-text); }
+		.box-grid .card-pokemon .icon-button:focus-visible {
+			outline: 2px solid var(--color-primary);
+			outline-offset: 2px;
+		}
+		.box-grid .card-pokemon .pin-toggle[data-pinned="true"] {
+			background: var(--color-risky);
+			color: var(--color-primary-contrast);
+			border-color: var(--color-risky);
+		}
+		/* global.cssの.delete-button(danger塗り・太字パディング)はアイコン専用の丸ボタンには
+		   大きすぎるため、このカード内に限定してサイズ・配色を上書きする。 */
+		.box-grid .card-pokemon .delete-button {
+			background: var(--color-surface);
+			border: 1px solid var(--color-border);
+			color: var(--color-danger);
+			font-weight: 400;
+			padding: 0;
+		}
+		.box-grid .card-pokemon .delete-button:hover {
+			background: var(--color-danger-soft);
+			color: var(--color-danger);
+			border-color: var(--color-danger);
+		}
+		@media (hover: hover) and (pointer: fine) {
+			.box-grid .card-pokemon .delete-button,
+			.box-grid .card-pokemon .pin-toggle[data-pinned="false"] {
+				opacity: 0;
+				pointer-events: none;
+				transition: opacity 0.15s, background 0.15s, color 0.15s, border-color 0.15s;
+			}
+			.box-grid .card-pokemon:hover .delete-button,
+			.box-grid .card-pokemon:focus-within .delete-button,
+			.box-grid .card-pokemon:hover .pin-toggle[data-pinned="false"],
+			.box-grid .card-pokemon:focus-within .pin-toggle[data-pinned="false"] {
+				opacity: 1;
+				pointer-events: auto;
+			}
+		}
+		@media (prefers-reduced-motion: reduce) {
+			.box-grid .card-pokemon .delete-button,
+			.box-grid .card-pokemon .pin-toggle { transition: none; }
+		}
+
+		/* --- 名前+実数値(優先順位2位・3位)。ラウンド4でタイプ/テラスバッジ・性格・特性・
+		   持ち物・技の常時表示を撤回したため、下半分はこの2ブロックだけになる。
+		   中央揃えに統一する(左揃えにする理由だった複数行の左寄せテキストがもう無いため)。 --- */
+		.box-grid .card-pokemon .card-body {
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			gap: 0.2rem;
+			width: 100%;
+			text-align: center;
+		}
+		.box-grid .card-pokemon .card-name {
+			margin: 0;
+			width: 100%;
+			font-size: 0.82em;
+			font-weight: 700;
+			line-height: 1.2;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+		}
+
+		/* 実数値6値: 「列見出し(H/A/B/C/D/S)+実数値」の2段×6列グリッド。
+		   努力値は表示せず(優先順位に含まれないため200px正方形の予算から外した)、
+		   性格による上昇/下降は実数値に▲▼を添えて示す(色だけに頼らない、WCAG 1.4.1対応)。 */
+		.box-grid .card-pokemon .card-stat-grid {
+			display: grid;
+			grid-template-columns: repeat(6, minmax(0, 1fr));
+			gap: 0.05rem 0.1rem;
+			width: 100%;
+		}
+		.box-grid .card-pokemon .card-stat-col-label {
+			font-size: 0.58em;
+			line-height: 1.1;
+			font-weight: 700;
+			text-align: center;
+			color: var(--color-text-muted);
+		}
+		.box-grid .card-pokemon .card-stat-real-value {
+			font-size: 0.74em;
+			line-height: 1.2;
+			font-weight: 700;
+			text-align: center;
+			color: var(--color-text);
+		}
+		.box-grid .card-pokemon .card-stat-real-value[data-mod="up"] { color: var(--color-danger); }
+		.box-grid .card-pokemon .card-stat-real-value[data-mod="down"] { color: var(--card-stat-down); }
+		.box-grid .card-pokemon .card-stat-real-value[data-mod="up"]::after {
+			content: "▲";
+			font-size: 0.7em;
+			margin-left: 0.1em;
+		}
+		.box-grid .card-pokemon .card-stat-real-value[data-mod="down"]::after {
+			content: "▼";
+			font-size: 0.7em;
+			margin-left: 0.1em;
+		}
+
+		/* --- 技(優先順位5位、ラウンド5で復元)。最大4つを縦に並べると高さを食うため
+		   2×2グリッドにする。未設定スロットは要素自体を作らない(ラウンド3で「-」を4つ並べると
+		   データ破損に見えるという指摘が出たため、空文字列はJS側でfilterして除外する)。 --- */
+		.box-grid .card-pokemon .card-moves-grid {
+			display: grid;
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+			gap: 0.05rem 0.3rem;
+			width: 100%;
+			margin-top: 0.15rem;
+			padding-top: 0.2rem;
+			border-top: 1px solid var(--color-border);
+			/* ラウンド8 A-8: 技0件のカードでもこの要素を常時appendする(JS側変更)ため、
+			   実際の行数(0/1/2行)に関わらず常に2行ぶんの高さを確保して隣接カードとy座標を揃える。
+			   box-sizing: border-box(global.css)なので、min-heightにはコンテンツ2行分
+			   (2 * 1.2 * 0.64em + 行間0.05rem)だけでなく、この要素自身のpadding-top(0.2rem)と
+			   border-top(1px)も含めて確保する必要がある(実測: 含めないと技4件=実2行のカードだけ
+			   コンテンツがmin-heightを超えてbox自体が29.5px相当まで伸び、他カードと4px前後ずれた)。 */
+			min-height: calc(2 * 1.2 * 0.64em + 0.05rem + 0.2rem + 1px);
+		}
+		.box-grid .card-pokemon .card-move-chip {
+			font-size: 0.64em;
+			line-height: 1.2;
+			font-weight: 600;
+			text-align: center;
+			color: var(--color-text-muted);
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+		}
+	</style>
+
+	<div class="page box-shell">
+		{
+			user ? (
+				<Fragment>
+					<div class="panel panel-top panel-toolbar" id="box-toolbar">
+						<div class="toolbar-item toolbar-search">
+							<label class="field-label" for="search-input">検索</label>
+							<div class="search-input-wrap">
+								<svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+									<circle cx="11" cy="11" r="7" />
+									<line x1="21" y1="21" x2="16.65" y2="16.65" />
+								</svg>
+								<input
+									id="search-input"
+									type="search"
+									class="field-control"
+									placeholder="ニックネーム・種族・特性・技など"
+									autocomplete="off"
+								/>
+							</div>
+						</div>
+
+						<div class="toolbar-item toolbar-filter" id="tag-filter-toolbar" hidden title="タグで絞り込み(すべて一致)">
+							<span class="field-label">絞り込み</span>
+							<div class="tag-filter-list" id="tag-filter-list"></div>
+						</div>
+
+						<div class="toolbar-item toolbar-sort">
+							<label class="field-label" for="sort-select">並べ替え</label>
+							<select id="sort-select" class="field-control">
+								<option value="updated_at">最終更新順</option>
+								<option value="last_used_at">最終使用順</option>
+								<option value="nickname">ニックネーム順</option>
+							</select>
+						</div>
+					</div>
+
+					<div class="box-content">
+						<p id="loading-message">読み込み中...</p>
+						<p id="error-message" hidden></p>
+
+						<div class="box-grid">
+							<button type="button" class="add-card-tile" id="add-pokemon-button">
+								<span class="add-card-tile-icon" aria-hidden="true">＋</span>
+								<span class="add-card-tile-label">個体を追加</span>
+								<span class="add-card-tile-hint">新しい個体を登録します</span>
+							</button>
+							<div id="owned-pokemon-list"></div>
+						</div>
+
+						<div id="empty-message" class="empty-state" hidden>
+							<p class="empty-state-icon" aria-hidden="true">📦</p>
+							<p class="empty-state-title">ボックスに登録された個体がありません</p>
+							<p class="empty-state-hint">「＋ 個体を追加」タイルから最初の1体を登録しましょう。</p>
+						</div>
+
+						{/* UI品質改善ラウンド2(B-9): 検索/絞り込みの結果が0件のときの案内。登録自体は
+						    あるので空状態(#empty-message)とはメッセージを変え、見た目だけ揃える。 */}
+						<div id="no-match-message" class="empty-state" hidden>
+							<p class="empty-state-icon" aria-hidden="true">🔍</p>
+							<p class="empty-state-title">条件に一致する個体がいません</p>
+							<p class="empty-state-hint">検索語や絞り込みタグを変更してください。</p>
+						</div>
+					</div>
+				</Fragment>
+			) : (
+				<section class="panel">
+					<div class="panel-content">
+						<p>個体管理機能を利用するにはログインが必要です。</p>
+						<a class="btn-primary" href="/api/auth/login">Googleでログイン</a>
+					</div>
+				</section>
+			)
+		}
+	</div>
+
+	<script>
+		// UI刷新: カードに公式絵を表示するためのブラウザ専用ヘルパー。box/[id].astro の
+		// applySprite と同じ「初期display:none→onloadで表示」方式を採るため、この<script>内にも
+		// 同等のロジックを直接持たせる(box/[id].astroは編集禁止のため、ヘルパー自体を
+		// 共有インポートすることはしない)。
+		// ラウンド4: タイプ/テラスバッジ・アイテム画像は表示自体を撤回したため、
+		// loadTypesMap/loadItemSpriteMap等のインポートとヘルパーは削除した
+		// (タイプ・持ち物・技・テラスタイプは検索対象としては引き続き有効で、
+		// カードのtitle属性=ホバーツールチップから参照できるようにしてある)。
+		// ラウンド5: 持ち物(画像バッジ)を復元するため loadItemSpriteMap/itemImageUrl を再度
+		// インポートする(box/[id].astroが使っているものと同一のヘルパー、src/lib/sprite-urls.ts)。
+		import { loadImageIdMap, officialArtworkUrl, loadBaseStatsMap } from "../../lib/pokemon-master-data";
+		import { loadItemSpriteMap, itemImageUrl } from "../../lib/sprite-urls";
+
+		interface OwnedPokemon {
+			id: string;
+			nickname: string | null;
+			species_name: string;
+			level: number | null;
+			nature: string | null;
+			ability_name: string | null;
+			item_name: string | null;
+			tera_type: string | null;
+			evs: number[];
+			ivs: number[];
+			move_names: string[];
+			memo: string | null;
+			tags: string[];
+			is_pinned: boolean;
+			updated_at: string;
+			last_used_at: string | null;
+		}
+
+		// 実数値計算共通の列順(evs/ivs配列の並びと一致)。
+		// [HP, 攻撃, 防御, 特攻, 特防, 素早さ] (box/[id].astro の STAT_KEYS と同じ順序)。
+		const STAT_KEYS = ["hp", "atk", "def", "spa", "spd", "spe"] as const;
+		type StatKey = (typeof STAT_KEYS)[number];
+		const STAT_LABELS = ["H", "A", "B", "C", "D", "S"] as const;
+
+		// UI刷新(要件4): 実数値の常時表示。box/[id].astroはPyodide(jpoke)で計算しているが、
+		// 一覧ページで個体ごとにPyodideを初期化するのは重すぎる(全ページ共通の「操作まで遅延初期化」
+		// 方針にも反する)。チャンピオンズルールはIV=31固定・レベル常時50なので、
+		// vendor/jpoke/src/jpoke/model/stats.py の calc_hp/calc_stat/chmp_to_legacy_effort と
+		// 完全に同じ式を純粋なJS関数として再実装し、種族値データ(/master-data/detail/pokemon.json)
+		// だけで実数値を出す。
+		const NATURE_STAT_MODIFIERS: Record<string, { up: StatKey | null; down: StatKey | null }> = {
+			"まじめ": { up: null, down: null },
+			"さみしがり": { up: "atk", down: "def" },
+			"いじっぱり": { up: "atk", down: "spa" },
+			"やんちゃ": { up: "atk", down: "spd" },
+			"ゆうかん": { up: "atk", down: "spe" },
+			"ずぶとい": { up: "def", down: "atk" },
+			"わんぱく": { up: "def", down: "spa" },
+			"のうてんき": { up: "def", down: "spd" },
+			"のんき": { up: "def", down: "spe" },
+			"ひかえめ": { up: "spa", down: "atk" },
+			"おっとり": { up: "spa", down: "def" },
+			"うっかりや": { up: "spa", down: "spd" },
+			"れいせい": { up: "spa", down: "spe" },
+			"おだやか": { up: "spd", down: "atk" },
+			"おとなしい": { up: "spd", down: "def" },
+			"しんちょう": { up: "spd", down: "spa" },
+			"なまいき": { up: "spd", down: "spe" },
+			"おくびょう": { up: "spe", down: "atk" },
+			"せっかち": { up: "spe", down: "def" },
+			"ようき": { up: "spe", down: "spa" },
+			"むじゃき": { up: "spe", down: "spd" },
+			"てれや": { up: null, down: null },
+			"がんばりや": { up: null, down: null },
+			"すなお": { up: null, down: null },
+			"きまぐれ": { up: null, down: null },
+		};
+
+		function chmpToLegacyEffort(evChamp: number): number {
+			return evChamp === 0 ? 0 : 8 * evChamp - 4;
+		}
+		function calcHpStat(level: number, base: number, iv: number, evChamp: number): number {
+			if (base === 1) return 1; // ヌケニン特例(vendor/jpoke/src/jpoke/model/stats.pyと同じ)
+			const effort = chmpToLegacyEffort(evChamp);
+			return Math.floor(((base * 2 + iv + Math.floor(effort / 4)) * level) / 100) + level + 10;
+		}
+		function calcOtherStat(level: number, base: number, iv: number, evChamp: number, nc: number): number {
+			const effort = chmpToLegacyEffort(evChamp);
+			return Math.floor((Math.floor(((base * 2 + iv + Math.floor(effort / 4)) * level) / 100) + 5) * nc);
+		}
+
+		function el<T extends HTMLElement>(id: string): T {
+			const found = document.getElementById(id);
+			if (!found) throw new Error(`要素が見つかりません: #${id}`);
+			return found as T;
+		}
+
+		const listRoot = document.getElementById("owned-pokemon-list");
+		if (listRoot) {
+			const loadingMessage = el<HTMLElement>("loading-message");
+			const errorMessage = el<HTMLElement>("error-message");
+			const emptyMessage = el<HTMLElement>("empty-message");
+			const noMatchMessage = el<HTMLElement>("no-match-message");
+			const countBadge = el<HTMLElement>("pokemon-count-badge");
+			const sortSelect = el<HTMLSelectElement>("sort-select");
+			const searchInput = el<HTMLInputElement>("search-input");
+			const tagFilterToolbar = el<HTMLElement>("tag-filter-toolbar");
+			const tagFilterList = el<HTMLElement>("tag-filter-list");
+			const addButton = el<HTMLButtonElement>("add-pokemon-button");
+			// textContentではなくinnerHTMLで保存する。addButtonは「＋」の大きいアイコンと
+			// ラベルの2要素構成(見た目の要件2)なので、ローディング表示から復元する際に
+			// プレーンテキストへ潰さないため。
+			const ADD_BUTTON_DEFAULT_HTML = addButton.innerHTML;
+
+			let allPokemon: OwnedPokemon[] = [];
+			const activeTags = new Set<string>();
+
+			// UI刷新: 種族名→imageId(画像用PokeAPI ID)、種族名→種族値のマップ。
+			// いずれも非同期fetchだが、ここでは待たずにPromiseだけ確保しておく。
+			// 一覧の初回描画(loadList→renderList)はこのPromiseの解決を待たずに進める
+			// (「一覧が表示されるまでの体感を遅くしない」ことを優先するため)。マップが解決した時点で
+			// 各カードの画像・実数値側から個別にthenするので、一覧より数百ms遅れて追いつく形になる。
+			const imageIdMapPromise = loadImageIdMap();
+			const baseStatsMapPromise = loadBaseStatsMap();
+			// ラウンド5: 持ち物バッジ用。アイテム和名→sprite相対パスのマップ(box/[id].astroと同じ)。
+			const itemSpriteMapPromise = loadItemSpriteMap();
+
+			// nickname・species_nameのどちらも空(自動登録直後の空個体)の場合、カード見出しが
+			// 空文字にならないよう "(未設定)" にフォールバックする。並べ替え・検索・削除確認
+			// ダイアログの見出し、カードの表示名(ラウンド4)に共通で使う。
+			function displayName(p: OwnedPokemon): string {
+				if (p.nickname && p.nickname.trim() !== "") return p.nickname;
+				if (p.species_name && p.species_name.trim() !== "") return p.species_name;
+				return "(未設定)";
+			}
+
+			// ラウンド4: タイプ・性格・特性・持ち物・テラスタイプ・技をカードの常時表示から
+			// 撤回した代わりに、カード<a>のtitle属性(ネイティブのホバーツールチップ)へ
+			// まとめる。表示名がニックネームのときは種族名も添え、情報を失わないようにする。
+			function buildCardTooltip(p: OwnedPokemon): string {
+				const lines: string[] = [];
+				const shownName = displayName(p);
+				const species = p.species_name?.trim() ?? "";
+				if (species && species !== shownName) lines.push(`種族: ${species}`);
+				const ability = p.ability_name?.trim() ?? "";
+				if (ability) lines.push(`とくせい: ${ability}`);
+				const item = p.item_name?.trim() ?? "";
+				if (item) lines.push(`持ち物: ${item}`);
+				const tera = p.tera_type?.trim() ?? "";
+				if (tera) lines.push(`テラスタイプ: ${tera}`);
+				const moves = p.move_names.filter((name) => name && name.trim() !== "");
+				if (moves.length > 0) lines.push(`わざ: ${moves.join(" / ")}`);
+				return lines.join("\n");
+			}
+
+			// UI刷新: カード内の公式絵。取得できない場合は頭文字の丸バッジにフォールバックする。
+			// 初期display:noneのままloading="lazy"を付けると、画面外扱いでfetch自体が行われず
+			// onloadが永久に発火しない(過去に踏んだ不具合、box/[id].astroのapplySprite参照)。
+			async function applyCardSprite(imgEl: HTMLImageElement, fallbackEl: HTMLElement, name: string): Promise<void> {
+				const imageId = name ? (await imageIdMapPromise).get(name) : undefined;
+				if (imageId == null) {
+					imgEl.style.display = "none";
+					fallbackEl.style.display = "flex";
+					fallbackEl.textContent = name ? name.charAt(0) : "?";
+					return;
+				}
+				imgEl.onerror = () => {
+					imgEl.style.display = "none";
+					fallbackEl.style.display = "flex";
+					fallbackEl.textContent = name.charAt(0);
+				};
+				imgEl.onload = () => {
+					imgEl.style.display = "";
+					fallbackEl.style.display = "none";
+				};
+				imgEl.src = officialArtworkUrl(imageId);
+			}
+
+			// ラウンド5: 公式絵に重ねる持ち物バッジ。sprite相対パスが解決できない/画像読み込みに
+			// 失敗した場合はバッジごと隠す(box/[id].astroのapplyItemImageと同様、テキストの
+			// フォールバックは持たせない。アイテム名はカードのtitle属性から参照できる)。
+			async function applyItemBadge(imgEl: HTMLImageElement, badgeEl: HTMLElement, itemName: string): Promise<void> {
+				const name = itemName.trim();
+				if (!name) {
+					badgeEl.hidden = true;
+					return;
+				}
+				const spritePath = (await itemSpriteMapPromise).get(name);
+				if (!spritePath) {
+					badgeEl.hidden = true;
+					return;
+				}
+				imgEl.onerror = () => {
+					badgeEl.hidden = true;
+				};
+				imgEl.onload = () => {
+					badgeEl.hidden = false;
+				};
+				imgEl.src = itemImageUrl(spritePath);
+			}
+
+			// UI刷新(要件4): 実数値グリッドを埋める。種族値が解決できない場合は "-" のまま残す。
+			async function applyActualStats(valueEls: HTMLElement[], p: OwnedPokemon): Promise<void> {
+				const base = p.species_name ? (await baseStatsMapPromise).get(p.species_name) : undefined;
+				if (!base) return;
+				const level = p.level ?? 50;
+				const mod = NATURE_STAT_MODIFIERS[p.nature ?? ""] ?? { up: null, down: null };
+				STAT_KEYS.forEach((key, i) => {
+					const iv = p.ivs[i] ?? 31;
+					const ev = p.evs[i] ?? 0;
+					const value =
+						key === "hp"
+							? calcHpStat(level, base[i], iv, ev)
+							: calcOtherStat(level, base[i], iv, ev, mod.up === key ? 1.1 : mod.down === key ? 0.9 : 1.0);
+					const target = valueEls[i];
+					target.textContent = String(value);
+					if (key !== "hp" && mod.up === key) target.dataset.mod = "up";
+					else if (key !== "hp" && mod.down === key) target.dataset.mod = "down";
+					else delete target.dataset.mod;
+				});
+			}
+
+			function renderTagFilters(): void {
+				const tagSet = new Set<string>();
+				for (const p of allPokemon) {
+					for (const t of p.tags) tagSet.add(t);
+				}
+				const tags = Array.from(tagSet).sort((a, b) => a.localeCompare(b, "ja"));
+				tagFilterToolbar.hidden = tags.length === 0;
+				tagFilterList.innerHTML = "";
+				for (const tag of tags) {
+					const chip = document.createElement("button");
+					chip.type = "button";
+					chip.className = "tag-chip" + (activeTags.has(tag) ? " active" : "");
+					chip.textContent = tag;
+					chip.addEventListener("click", () => {
+						if (activeTags.has(tag)) activeTags.delete(tag);
+						else activeTags.add(tag);
+						renderTagFilters();
+						renderList();
+					});
+					tagFilterList.appendChild(chip);
+				}
+			}
+
+			// ラウンド4: カードの表示からタイプ・特性・持ち物・テラスタイプ・技を外したが、
+			// 検索対象はそれらすべてを引き続き含める(「表示されない項目も検索できる」ことを
+			// 明示的に要求されているため、この関数はラウンド2時点から変更しない)。
+			function matchesSearch(p: OwnedPokemon, term: string): boolean {
+				if (!term) return true;
+				const haystack = [
+					p.nickname ?? "",
+					p.species_name,
+					p.ability_name ?? "",
+					p.item_name ?? "",
+					p.tera_type ?? "",
+					...p.move_names,
+				]
+					.join(" ")
+					.toLowerCase();
+				// AND部分一致(空白区切りの複数語すべてを含む場合のみ一致、育成データ管理計画.md §6.1)
+				return term
+					.toLowerCase()
+					.split(/\s+/)
+					.filter((t) => t.length > 0)
+					.every((token) => haystack.includes(token));
+			}
+
+			function matchesTags(p: OwnedPokemon): boolean {
+				if (activeTags.size === 0) return true;
+				return Array.from(activeTags).every((t) => p.tags.includes(t));
+			}
+
+			function sortPokemon(list: OwnedPokemon[]): OwnedPokemon[] {
+				const sort = sortSelect.value;
+				const sorted = [...list].sort((a, b) => {
+					if (sort === "last_used_at") {
+						const av = a.last_used_at ? new Date(a.last_used_at).getTime() : -Infinity;
+						const bv = b.last_used_at ? new Date(b.last_used_at).getTime() : -Infinity;
+						return bv - av;
+					}
+					if (sort === "nickname") {
+						return displayName(a).localeCompare(displayName(b), "ja");
+					}
+					return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+				});
+				// ピン留めは常に上部固定(育成データ管理計画.md §6.1)
+				sorted.sort((a, b) => Number(b.is_pinned) - Number(a.is_pinned));
+				return sorted;
+			}
+
+			// UI刷新: カード全体を<a>にして丸ごとクリック可能にする(要件3、遷移先は/box/{id})。
+			// ピン留め/削除のアイコンボタンは<a>の中の<button>として置くが、クリック時は必ず
+			// preventDefault/stopPropagationしてカード本体の遷移と競合しないようにする。
+			// ラウンド4: カードは「公式絵→名前→実数値6値」だけの正方形にする。撤回した
+			// タイプ・性格・特性・持ち物・テラスタイプ・技はtitle属性(ホバーツールチップ)に回す。
+			function renderCard(p: OwnedPokemon): HTMLAnchorElement {
+				const card = document.createElement("a");
+				card.className = "card card-pokemon" + (p.is_pinned ? " is-pinned" : "");
+				card.href = `/box/${encodeURIComponent(p.id)}`;
+				const name = displayName(p);
+				card.setAttribute("aria-label", `${name} を編集`);
+				const tooltip = buildCardTooltip(p);
+				if (tooltip) card.title = tooltip;
+
+				// --- ピン留め/削除(単一アイコンボタン、カード右上に重ねる。要件7) ---
+				const actions = document.createElement("div");
+				actions.className = "card-actions";
+
+				const pinButton = document.createElement("button");
+				pinButton.type = "button";
+				pinButton.className = "icon-button pin-toggle";
+				pinButton.dataset.pinned = String(p.is_pinned);
+				pinButton.textContent = p.is_pinned ? "★" : "☆";
+				const pinLabel = p.is_pinned ? "ピン留めを解除する" : "ピン留めする";
+				pinButton.title = pinLabel;
+				pinButton.setAttribute("aria-label", pinLabel);
+				pinButton.addEventListener("click", (event) => {
+					// カード(<a>)のクリックによる/box/{id}への遷移を止める。
+					event.preventDefault();
+					event.stopPropagation();
+					void togglePin(p);
+				});
+				actions.appendChild(pinButton);
+
+				const deleteButton = document.createElement("button");
+				deleteButton.type = "button";
+				deleteButton.className = "icon-button delete-button";
+				deleteButton.textContent = "🗑";
+				deleteButton.title = "削除";
+				deleteButton.setAttribute("aria-label", "削除");
+				deleteButton.addEventListener("click", (event) => {
+					event.preventDefault();
+					event.stopPropagation();
+					void deletePokemon(p);
+				});
+				actions.appendChild(deleteButton);
+
+				card.appendChild(actions);
+
+				// --- 優先順位1位: 公式絵 ---
+				const art = document.createElement("div");
+				art.className = "card-art";
+
+				const spriteImg = document.createElement("img");
+				spriteImg.className = "card-sprite-img";
+				spriteImg.alt = "";
+				spriteImg.style.display = "none";
+				art.appendChild(spriteImg);
+
+				const spriteFallback = document.createElement("span");
+				spriteFallback.className = "card-sprite-fallback";
+				art.appendChild(spriteFallback);
+
+				void applyCardSprite(spriteImg, spriteFallback, p.species_name ?? "");
+
+				// --- 優先順位4位: 持ち物(公式絵の右下に重ねる画像バッジ、ラウンド5で復元) ---
+				const itemBadge = document.createElement("span");
+				itemBadge.className = "card-item-badge";
+				itemBadge.hidden = true;
+				const itemImg = document.createElement("img");
+				itemImg.alt = "";
+				itemBadge.appendChild(itemImg);
+				void applyItemBadge(itemImg, itemBadge, p.item_name ?? "");
+				art.appendChild(itemBadge);
+
+				card.appendChild(art);
+
+				// --- 優先順位2位・3位: 名前+実数値6値。
+				//     C-5を継続: <a>のaria-labelと重複するのでbody全体はaria-hiddenにする
+				//     (フォーカス可能な★/🗑はこのdivの外=兄弟要素なので隠しても到達性に影響しない)。 ---
+				const body = document.createElement("div");
+				body.className = "card-body";
+				body.setAttribute("aria-hidden", "true");
+
+				const nameEl = document.createElement("p");
+				nameEl.className = "card-name";
+				nameEl.textContent = name;
+				body.appendChild(nameEl);
+
+				// 実数値6値: 列見出し(H/A/B/C/D/S)行→実数値行の2段×6列グリッド。
+				// 性格による上昇/下降は実数値に▲▼を添えて示す(色だけに頼らない)。
+				const statGrid = document.createElement("div");
+				statGrid.className = "card-stat-grid";
+
+				STAT_LABELS.forEach((label) => {
+					const colLabel = document.createElement("span");
+					colLabel.className = "card-stat-col-label";
+					colLabel.textContent = label;
+					statGrid.appendChild(colLabel);
+				});
+
+				const statValueEls: HTMLElement[] = [];
+				for (let i = 0; i < STAT_KEYS.length; i++) {
+					const valueEl = document.createElement("span");
+					valueEl.className = "card-stat-real-value tnum";
+					valueEl.textContent = "-";
+					statGrid.appendChild(valueEl);
+					statValueEls.push(valueEl);
+				}
+
+				body.appendChild(statGrid);
+				void applyActualStats(statValueEls, p);
+
+				// --- 優先順位5位: 技(最大4つ、ラウンド5で復元)。
+				//     2×2グリッドにして高さを抑える。未設定スロットは要素自体を作らない
+				//     (「-」を4つ並べるとデータ破損に見えるという指摘への対応を継続)。
+				//     ラウンド8 A-8: movesGrid自体(子要素の無い箱)は技0件でも必ずappendする。
+				//     CSS側でmin-heightを持たせてあるので、技0/2/4件のどのカードでもcard-bodyの
+				//     高さが一致し、名前行・実数値行のy座標が揃う(cloneNode(true)で36体に複製した
+				//     状態で実測: 差0px)。空のときはborder-topの区切り線だけが出て「技未登録」を
+				//     逆に読み取れるようにする(下半分がただ詰まって見える旧状態からの改善)。 ---
+				const moves = p.move_names.filter((moveName) => moveName && moveName.trim() !== "");
+				const movesGrid = document.createElement("div");
+				movesGrid.className = "card-moves-grid";
+				for (const moveName of moves) {
+					const moveEl = document.createElement("span");
+					moveEl.className = "card-move-chip";
+					moveEl.textContent = moveName;
+					movesGrid.appendChild(moveEl);
+				}
+				body.appendChild(movesGrid);
+
+				card.appendChild(body);
+
+				return card;
+			}
+
+			function renderList(): void {
+				const filtered = allPokemon.filter((p) => matchesTags(p) && matchesSearch(p, searchInput.value.trim()));
+				const sorted = sortPokemon(filtered);
+				listRoot.innerHTML = "";
+				// UI刷新(要件10)→ラウンド2(B-9): 「本当に0件」と「絞り込みで0件」を区別する。
+				// 以前は絞り込み0件のメッセージをグリッド内(display:contents経由)に差し込んでいて
+				// 縮んだ追加タイルの右横に宙に浮いて見えたため、グリッドの外の#no-match-messageへ
+				// 切り出し、#empty-messageと同じ.empty-stateの見た目に揃える。
+				const isTrulyEmpty = allPokemon.length === 0;
+				emptyMessage.hidden = !isTrulyEmpty;
+				noMatchMessage.hidden = isTrulyEmpty || sorted.length > 0;
+				updateCountBadge(sorted.length);
+				if (isTrulyEmpty) return;
+				for (const p of sorted) {
+					listRoot.appendChild(renderCard(p));
+				}
+			}
+
+			async function togglePin(p: OwnedPokemon): Promise<void> {
+				try {
+					const res = await fetch(`/api/owned-pokemon/${encodeURIComponent(p.id)}`, {
+						method: "PUT",
+						credentials: "same-origin",
+						headers: { "Content-Type": "application/json" },
+						body: JSON.stringify({
+							nickname: p.nickname,
+							species_name: p.species_name,
+							level: p.level,
+							nature: p.nature,
+							ability_name: p.ability_name,
+							item_name: p.item_name,
+							tera_type: p.tera_type,
+							// PUTは全項目上書きの設計(§6.2)のため、evs/ivs/memoを送り忘れると
+							// デフォルト値([0,0,0,0,0,0] / [31,...,31] / null)で消えてしまう。
+							// ピン留めのトグルだけのつもりでも、一覧が保持している最新値をそのまま送り返す。
+							evs: p.evs,
+							ivs: p.ivs,
+							move_names: p.move_names,
+							memo: p.memo,
+							tags: p.tags,
+							is_pinned: !p.is_pinned,
+						}),
+					});
+					if (!res.ok) throw new Error(`ピン留めの更新に失敗しました (status=${res.status})`);
+					const body = (await res.json()) as { data: OwnedPokemon };
+					const idx = allPokemon.findIndex((x) => x.id === p.id);
+					if (idx !== -1) allPokemon[idx] = body.data;
+					renderList();
+				} catch (err) {
+					console.error(err);
+					window.alert("ピン留めの更新に失敗しました。時間をおいて再度お試しください。");
+				}
+			}
+
+			async function deletePokemon(p: OwnedPokemon): Promise<void> {
+				if (!window.confirm(`「${displayName(p)}」を削除します。よろしいですか?`)) return;
+				try {
+					const res = await fetch(`/api/owned-pokemon/${encodeURIComponent(p.id)}`, {
+						method: "DELETE",
+						credentials: "same-origin",
+					});
+					if (!res.ok) throw new Error(`削除に失敗しました (status=${res.status})`);
+					allPokemon = allPokemon.filter((x) => x.id !== p.id);
+					renderTagFilters();
+					renderList();
+				} catch (err) {
+					console.error(err);
+					window.alert("削除に失敗しました。時間をおいて再度お試しください。");
+				}
+			}
+
+			// B-9: 絞り込み/検索の結果件数を総数に追随させる(例: 検索中は「2 / 4体」)。
+			// renderList()が呼ばれるたびに毎回渡されるので、この関数自体は単に整形するだけでよい。
+			function updateCountBadge(visibleCount: number): void {
+				const total = allPokemon.length;
+				countBadge.textContent = visibleCount === total ? `${total}体` : `${visibleCount} / ${total}体`;
+				countBadge.hidden = false;
+			}
+
+			// 「＋ 個体を追加」: クリックした瞬間に空個体(全項目未設定、ivsは
+			// チャンピオンズルールにより31固定、evsは0)を自動登録し、そのまま編集画面(/box/[id])へ
+			// 遷移する(/box/new の新規作成フォームは廃止)。連打による二重登録を防ぐため、
+			// リクエスト中はボタンをdisabledにしてラベルを変更し、失敗時のみ復元する
+			// (成功時はページ遷移するため復元不要)。
+			async function createEmptyPokemon(): Promise<void> {
+				addButton.disabled = true;
+				addButton.textContent = "登録中...";
+				errorMessage.hidden = true;
+				try {
+					const res = await fetch("/api/owned-pokemon", {
+						method: "POST",
+						credentials: "same-origin",
+						headers: { "Content-Type": "application/json" },
+						body: JSON.stringify({
+							nickname: "",
+							species_name: "",
+							level: null,
+							nature: "",
+							ability_name: "",
+							item_name: "",
+							tera_type: "",
+							evs: [0, 0, 0, 0, 0, 0],
+							ivs: [31, 31, 31, 31, 31, 31],
+							move_names: [],
+							memo: "",
+							tags: [],
+							is_pinned: false,
+						}),
+					});
+					const body = (await res.json().catch(() => ({}))) as { data?: { id: string }; error?: string };
+					if (!res.ok || !body.data) {
+						throw new Error(body.error ?? `登録に失敗しました (status=${res.status})`);
+					}
+					window.location.href = `/box/${encodeURIComponent(body.data.id)}`;
+				} catch (err) {
+					console.error(err);
+					errorMessage.hidden = false;
+					errorMessage.textContent = "個体の登録に失敗しました。時間をおいて再度お試しください。";
+					addButton.disabled = false;
+					addButton.innerHTML = ADD_BUTTON_DEFAULT_HTML;
+				}
+			}
+
+			async function loadList(): Promise<void> {
+				loadingMessage.hidden = false;
+				errorMessage.hidden = true;
+				try {
+					const res = await fetch("/api/owned-pokemon", { credentials: "same-origin" });
+					if (!res.ok) throw new Error(`一覧の取得に失敗しました (status=${res.status})`);
+					const body = (await res.json()) as { data: OwnedPokemon[] };
+					allPokemon = body.data;
+					loadingMessage.hidden = true;
+					renderTagFilters();
+					renderList();
+				} catch (err) {
+					console.error(err);
+					loadingMessage.hidden = true;
+					errorMessage.hidden = false;
+					errorMessage.textContent = "一覧の取得に失敗しました。時間をおいて再度お試しください。";
+				}
+			}
+
+			sortSelect.addEventListener("change", renderList);
+			searchInput.addEventListener("input", renderList);
+			addButton.addEventListener("click", () => void createEmptyPokemon());
+
+			void loadList();
+		}
+	</script>
+</AppLayout>

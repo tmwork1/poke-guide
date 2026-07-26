@@ -5,6 +5,7 @@
 // prerender=false は付けない)。該当技が存在しない name は getStaticPaths() の
 // 対象外になるため自然に404になる。
 import movesDetailRaw from '../../../public/master-data/detail/moves.json';
+import AppLayout from '../../layouts/AppLayout.astro';
 
 type MoveCategory = 'physical' | 'special' | 'status';
 type MoveTarget = 'foe' | 'self' | 'field' | 'own_side' | 'foe_side';
@@ -57,67 +58,39 @@ const powerLabel = move.power != null ? String(move.power) : '-';
 const accuracyLabel = move.accuracy != null ? `${move.accuracy}%` : '必中';
 const critLabel = move.critRatio > 0 ? `通常+${move.critRatio}段階` : '通常';
 ---
-<!doctype html>
-<html lang="ja">
-	<head>
-		<meta charset="utf-8" />
-		<meta name="viewport" content="width=device-width, initial-scale=1" />
-		<title>{move.name} | Poke-Commons</title>
-		<style>
-			body {
-				font-family: system-ui, sans-serif;
-				max-width: 720px;
-				margin: 2rem auto;
-				padding: 0 1rem;
-				line-height: 1.6;
-			}
-			h1 { font-size: 1.5rem; }
-			h2 { font-size: 1.15rem; }
-			section {
-				border: 1px solid #ccc;
-				border-radius: 8px;
-				padding: 1rem;
-				margin: 1rem 0;
-			}
-			dl { display: grid; grid-template-columns: 8em 1fr; gap: 0.5rem 1rem; margin: 0; }
-			dt { font-weight: bold; color: #555; }
-			dd { margin: 0; }
-			.type-badge {
-				display: inline-block;
-				border: 1px solid #999;
-				border-radius: 4px;
-				padding: 0.15em 0.6em;
-				font-size: 0.9em;
-			}
-			a { text-decoration: none; }
-			a:hover { text-decoration: underline; }
-		</style>
-	</head>
-	<body>
-		<p><a href="/">トップへ戻る</a> / <a href="/search">検索に戻る</a></p>
-
-		<h1>{move.name}</h1>
-
-		<section>
-			<h2>技データ</h2>
-			<dl>
-				<dt>タイプ</dt>
-				<dd>{move.type ? <span class="type-badge">{move.type}</span> : '(タイプなし)'}</dd>
-				<dt>分類</dt>
-				<dd>{CATEGORY_LABELS[move.category]}</dd>
-				<dt>威力</dt>
-				<dd>{powerLabel}</dd>
-				<dt>命中率</dt>
-				<dd>{accuracyLabel}</dd>
-				<dt>PP</dt>
-				<dd>{move.pp}</dd>
-				<dt>優先度</dt>
-				<dd>{move.priority}</dd>
-				<dt>急所ランク</dt>
-				<dd>{critLabel}</dd>
-				<dt>対象</dt>
-				<dd>{TARGET_LABELS[move.target]}</dd>
-			</dl>
+<AppLayout title={move.name} backHref="/search" backLabel="検索に戻る">
+	<style>
+		.type-badge {
+			display: inline-block;
+			border: 1px solid var(--color-border);
+			border-radius: var(--radius-sm);
+			padding: 0.15em 0.6em;
+			font-size: 0.9em;
+		}
+	</style>
+	<div class="page">
+		<section class="panel">
+			<div class="panel-content">
+				<h2>技データ</h2>
+				<dl>
+					<dt>タイプ</dt>
+					<dd>{move.type ? <span class="type-badge">{move.type}</span> : '(タイプなし)'}</dd>
+					<dt>分類</dt>
+					<dd>{CATEGORY_LABELS[move.category]}</dd>
+					<dt>威力</dt>
+					<dd>{powerLabel}</dd>
+					<dt>命中率</dt>
+					<dd>{accuracyLabel}</dd>
+					<dt>PP</dt>
+					<dd>{move.pp}</dd>
+					<dt>優先度</dt>
+					<dd>{move.priority}</dd>
+					<dt>急所ランク</dt>
+					<dd>{critLabel}</dd>
+					<dt>対象</dt>
+					<dd>{TARGET_LABELS[move.target]}</dd>
+				</dl>
+			</div>
 		</section>
-	</body>
-</html>
+	</div>
+</AppLayout>

@@ -1,10 +1,12 @@
 // /api/owned-pokemon・/api/owned-pokemon/:id のリクエストボディ検証ロジック。
 // Astro/Cloudflare ランタイムに依存しない純粋な関数として切り出し、node --test で
-// ユニットテストできるようにする（src/lib/build-validation.ts と同じ方針）。
+// ユニットテストできるようにする（廃止済みの src/lib/build-validation.ts と同じ方針を踏襲）。
 //
 // PUT(更新)は「全項目を毎回送る」楽観的自動保存の設計(育成データ管理計画.md §6.2)のため、
-// POST(新規作成)と同じ形の全項目バリデーションを共有する(build-validation.ts と同様、
+// POST(新規作成)と同じ形の全項目バリデーションを共有する(廃止済みの build-validation.ts と同様、
 // evs/ivs は builds と同じ「6要素配列」形式に統一する。オブジェクト形式にはしない)。
+
+import { isMoveNamesArray, isPlainObject, isStatArray, isStringArray } from './validation-primitives.ts';
 
 export interface OwnedPokemonRequestBody {
   nickname: string | null;
@@ -29,35 +31,10 @@ export type OwnedPokemonValidationResult =
   | { ok: true; value: OwnedPokemonRequestBody }
   | { ok: false; error: string };
 
-const STAT_COUNT = 6;
 const DEFAULT_EVS = [0, 0, 0, 0, 0, 0];
 const DEFAULT_IVS = [31, 31, 31, 31, 31, 31];
-const MAX_MOVE_COUNT = 4;
 const MIN_LEVEL = 1;
 const MAX_LEVEL = 100;
-
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-function isNonEmptyString(value: unknown): value is string {
-  return typeof value === 'string' && value.trim().length > 0;
-}
-
-// evs/ivs 用: 長さ6の数値配列で、各要素が [0, max] の整数であることを検証する。
-function isStatArray(value: unknown, max: number): value is number[] {
-  if (!Array.isArray(value) || value.length !== STAT_COUNT) return false;
-  return value.every((v) => typeof v === 'number' && Number.isInteger(v) && v >= 0 && v <= max);
-}
-
-function isMoveNamesArray(value: unknown): value is string[] {
-  if (!Array.isArray(value) || value.length > MAX_MOVE_COUNT) return false;
-  return value.every((v) => typeof v === 'string');
-}
-
-function isStringArray(value: unknown): value is string[] {
-  return Array.isArray(value) && value.every((v) => typeof v === 'string');
-}
 
 // 空文字は「未指定/クリア」として null に正規化する(フォームの自動保存が毎回全項目を
 // 送ってくる設計上、空欄に戻された項目を null として保存できるようにするため)。
@@ -87,8 +64,13 @@ export function validateOwnedPokemonRequestBody(body: unknown): OwnedPokemonVali
     is_pinned,
   } = body;
 
-  if (!isNonEmptyString(species_name)) {
-    return { ok: false, error: 'species_name must be a non-empty string' };
+  // 「＋ 個体を追加」による空個体の自動登録(ボックス一覧UI改修)のため、
+  // species_name は空文字/未指定を許容する(未指定は空文字として扱う)。
+  // DB(migrations/004_owned_pokemon.sql)側は NOT NULL のみでCHECK制約が無いため
+  // 空文字を保存できる。ただし string 以外の型(nullを含む)は従来どおり拒否する
+  // (nullを許容するとNOT NULL制約に反するDBエラーになるため)。
+  if (species_name !== undefined && typeof species_name !== 'string') {
+    return { ok: false, error: 'species_name must be a string' };
   }
   if (nickname !== undefined && nickname !== null && typeof nickname !== 'string') {
     return { ok: false, error: 'nickname must be a string' };
@@ -133,7 +115,7 @@ export function validateOwnedPokemonRequestBody(body: unknown): OwnedPokemonVali
     ok: true,
     value: {
       nickname: typeof nickname === 'string' ? normalizeOptionalString(nickname) : null,
-      species_name: species_name.trim(),
+      species_name: typeof species_name === 'string' ? species_name.trim() : '',
       level: (level as number | undefined) ?? null,
       nature: typeof nature === 'string' ? normalizeOptionalString(nature) : null,
       ability_name: typeof ability_name === 'string' ? normalizeOptionalString(ability_name) : null,

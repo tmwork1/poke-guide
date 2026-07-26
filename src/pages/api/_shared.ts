@@ -25,6 +25,15 @@ export function badRequest(message: string): Response {
   return jsonResponse({ error: message }, 400);
 }
 
+// owned_pokemon.id / opponent_notes.id 等の uuid 列のパスパラメータ・クエリパラメータを
+// 早期に検証するためのパターン。DBへ投げて Postgrest の invalid input syntax エラーを
+// 露出させないための、各APIエンドポイント共通のチェック。
+export const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export function isValidUuid(value: string | undefined | null): value is string {
+  return !!value && UUID_PATTERN.test(value);
+}
+
 // リクエストボディの文字数上限(64K文字)。このアプリのJSONペイロード(計算条件・育成データ)は
 // 実際には数百文字〜数KB程度で収まるため、巨大なペイロードを送りつけて jsonb 列の
 // ストレージ・帯域を消費させる行為への歯止めとして十分すぎる余裕を持たせている。

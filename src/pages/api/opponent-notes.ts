@@ -7,7 +7,7 @@
 // 生の Supabase クエリを書かない(userIdフィルタ漏れ・owned_pokemon所有権チェック漏れによる
 // 他人データ露出を防ぐための設計、詳細は src/lib/opponent-notes.ts 冒頭のコメント参照)。
 import type { APIContext } from 'astro';
-import { badRequest, isSameOrigin, jsonResponse, methodNotAllowed, readJsonBody } from './_shared';
+import { badRequest, isSameOrigin, isValidUuid, jsonResponse, methodNotAllowed, readJsonBody } from './_shared';
 import { getSessionUser } from '../../lib/user-session';
 import { getSupabaseAdminClient } from '../../lib/supabase';
 import { validateOpponentNoteRequestBody } from '../../lib/opponent-notes-validation';
@@ -18,16 +18,12 @@ import { recordOpponentNoteAnonymized } from '../../lib/opponent-note-secondary-
 
 export const prerender = false;
 
-// opponent_notes.owned_pokemon_id は uuid 列のため、明らかに不正な形式のクエリパラメータは
-// 早期に400として扱う(owned-pokemon/[id].ts の UUID_PATTERN と同じ方針)。
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
 export async function GET({ request, cookies, url }: APIContext): Promise<Response> {
   const user = await getSessionUser(request, cookies);
   if (!user) return jsonResponse({ error: 'Unauthorized' }, 401);
 
   const ownedPokemonId = url.searchParams.get('owned_pokemon_id');
-  if (!ownedPokemonId || !UUID_PATTERN.test(ownedPokemonId)) {
+  if (!isValidUuid(ownedPokemonId)) {
     return badRequest('owned_pokemon_id query parameter is required and must be a valid uuid');
   }
 

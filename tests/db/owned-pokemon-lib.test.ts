@@ -36,7 +36,9 @@ import {
   createOwnedPokemon,
   deleteOwnedPokemon,
   getOwnedPokemon,
+  getPublicOwnedPokemonBySlug,
   listOwnedPokemon,
+  setOwnedPokemonSharing,
   updateOwnedPokemon,
 } from '../../src/lib/owned-pokemon.ts';
 import type { OwnedPokemonRequestBody } from '../../src/lib/owned-pokemon-validation.ts';
@@ -199,5 +201,101 @@ describe('src/lib/owned-pokemon.ts のuserId分離(userIdフィルタが唯一�
     const deleted = await deleteOwnedPokemon(userA, missingId, supabase);
     assert.equal(deleted.ok, true);
     if (deleted.ok) assert.equal(deleted.data, false);
+  });
+
+  it('非公開の個体をsetOwnedPokemonSharingで公開にするとshare_slugが新規発行される', async () => {
+    const created = await createOwnedPokemon(userA, makeInput({ nickname: '共有テスト' }), supabase);
+    assert.equal(created.ok, true);
+    if (!created.ok) return;
+    assert.equal(created.data.is_public, false);
+    assert.equal(created.data.share_slug, null);
+
+    const shared = await setOwnedPokemonSharing(userA, created.data.id, true, supabase);
+    assert.equal(shared.ok, true);
+    if (!shared.ok) return;
+    assert.notEqual(shared.data, null);
+    assert.equal(shared.data?.is_public, true);
+    assert.equal(typeof shared.data?.share_slug, 'string');
+    assert.notEqual(shared.data?.share_slug, '');
+  });
+
+  it('一度公開にした個体を非公開→再度公開にすると同じshare_slugが再利用される', async () => {
+    const created = await createOwnedPokemon(userA, makeInput({ nickname: '再公開テスト' }), supabase);
+    assert.equal(created.ok, true);
+    if (!created.ok) return;
+
+    const firstShare = await setOwnedPokemonSharing(userA, created.data.id, true, supabase);
+    assert.equal(firstShare.ok, true);
+    if (!firstShare.ok) return;
+    const firstSlug = firstShare.data?.share_slug;
+    assert.equal(typeof firstSlug, 'string');
+
+    const madePrivate = await setOwnedPokemonSharing(userA, created.data.id, false, supabase);
+    assert.equal(madePrivate.ok, true);
+    if (!madePrivate.ok) return;
+    assert.equal(madePrivate.data?.is_public, false);
+    // 非公開化してもshare_slugは保持される。
+    assert.equal(madePrivate.data?.share_slug, firstSlug);
+
+    const republished = await setOwnedPokemonSharing(userA, created.data.id, true, supabase);
+    assert.equal(republished.ok, true);
+    if (!republished.ok) return;
+    assert.equal(republished.data?.is_public, true);
+    assert.equal(republished.data?.share_slug, firstSlug);
+  });
+
+  it('userBはuserAの個体をsetOwnedPokemonSharingで操作できない(0件更新でdata:null)', async () => {
+    const created = await createOwnedPokemon(userA, makeInput({ nickname: '他人共有テスト' }), supabase);
+    assert.equal(created.ok, true);
+    if (!created.ok) return;
+
+    const result = await setOwnedPokemonSharing(userB, created.data.id, true, supabase);
+    assert.equal(result.ok, true);
+    if (!result.ok) return;
+    assert.equal(result.data, null);
+
+    // 実際に公開されていないことをuserA視点でも確認する。
+    const check = await getOwnedPokemon(userA, created.data.id, supabase);
+    assert.equal(check.ok, true);
+    if (!check.ok) return;
+    assert.equal(check.data?.is_public, false);
+    assert.equal(check.data?.share_slug, null);
+  });
+
+  it('getPublicOwnedPokemonBySlugは公開済みslugなら取得でき、非公開/存在しないslugではnullが返る', async () => {
+    const created = await createOwnedPokemon(userA, makeInput({ nickname: '公開閲覧テスト' }), supabase);
+    assert.equal(created.ok, true);
+    if (!created.ok) return;
+
+    // 公開前は取得できない(share_slugがまだ無い)。
+    const shared = await setOwnedPokemonSharing(userA, created.data.id, true, supabase);
+    assert.equal(shared.ok, true);
+    if (!shared.ok) return;
+    const slug = shared.data?.share_slug as string;
+    assert.equal(typeof slug, 'string');
+
+    const publicResult = await getPublicOwnedPokemonBySlug(slug, supabase);
+    assert.equal(publicResult.ok, true);
+    if (!publicResult.ok) return;
+    assert.notEqual(publicResult.data, null);
+    assert.equal(publicResult.data?.species_name, 'ピカチュウ');
+    assert.equal(publicResult.data?.nickname, '公開閲覧テスト');
+    assert.equal(publicResult.data?.share_slug, slug);
+
+    // 非公開に戻すとslugが同じでも取得できなくなる。
+    const madePrivate = await setOwnedPokemonSharing(userA, created.data.id, false, supabase);
+    assert.equal(madePrivate.ok, true);
+    if (!madePrivate.ok) return;
+
+    const afterPrivate = await getPublicOwnedPokemonBySlug(slug, supabase);
+    assert.equal(afterPrivate.ok, true);
+    if (!afterPrivate.ok) return;
+    assert.equal(afterPrivate.data, null);
+
+    // 存在しないslugでも取得できない。
+    const missing = await getPublicOwnedPokemonBySlug('does-not-exist-slug', supabase);
+    assert.equal(missing.ok, true);
+    if (!missing.ok) return;
+    assert.equal(missing.data, null);
   });
 });

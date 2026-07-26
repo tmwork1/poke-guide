@@ -68,13 +68,24 @@ describe('validateOwnedPokemonRequestBody', () => {
     }
   });
 
-  it('species_nameが空文字の場合は拒否する', () => {
+  it('species_nameが空文字の場合は受け入れる(空個体の自動登録用)', () => {
     const result = validateOwnedPokemonRequestBody({ species_name: '' });
-    assert.equal(result.ok, false);
+    assert.equal(result.ok, true);
+    if (result.ok) {
+      assert.equal(result.value.species_name, '');
+    }
   });
 
-  it('species_nameが無い場合は拒否する', () => {
+  it('species_nameが無い場合は受け入れ、空文字に正規化される(空個体の自動登録用)', () => {
     const result = validateOwnedPokemonRequestBody({});
+    assert.equal(result.ok, true);
+    if (result.ok) {
+      assert.equal(result.value.species_name, '');
+    }
+  });
+
+  it('species_nameが文字列でない場合は拒否する', () => {
+    const result = validateOwnedPokemonRequestBody({ species_name: 12345 });
     assert.equal(result.ok, false);
   });
 

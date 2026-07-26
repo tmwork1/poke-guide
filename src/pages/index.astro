@@ -1,19 +1,5 @@
 ---
-// Phase 1-1: リポジトリ雛形用の暫定プレースホルダー。
-// ダメージ計算機・育成ビルダー・検索 UI は Phase 2 以降で実装する(開発プラン §3)。
+// ホームはボックス(所持ポケモン一覧)に統合したため /box へ転送する。
+export const prerender = false;
+return Astro.redirect("/box", 302);
 ---
-<!doctype html>
-<html lang="ja">
-	<head>
-		<meta charset="utf-8" />
-		<meta name="viewport" content="width=device-width, initial-scale=1" />
-		<title>Poke-Commons</title>
-	</head>
-	<body>
-		<h1>Poke-Commons</h1>
-		<p>ポケモンチャンピオンズ向けダメージ計算・育成ビルダー・検索の共通データベース(準備中)</p>
-		<p><a href="/damage-calc">ダメージ計算はこちら</a></p>
-		<p><a href="/builds/new">育成ビルダーはこちら</a></p>
-		<p><a href="/search">検索はこちら</a></p>
-	</body>
-</html>

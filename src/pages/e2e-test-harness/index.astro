@@ -11,16 +11,11 @@
 // Playwright は `page.evaluate()` で直接これらの関数を呼び出し、任意の
 // PokemonSpec / FieldSpec / CalcDamagesOptions を渡してブラウザ内Pyodide経由の
 // 計算結果を取得する。
+import AppLayout from '../../layouts/AppLayout.astro';
 ---
-<!doctype html>
-<html lang="ja">
-	<head>
-		<meta charset="utf-8" />
-		<meta name="viewport" content="width=device-width, initial-scale=1" />
-		<title>E2Eテストハーネス (非公開・テスト専用) | Poke-Commons</title>
-	</head>
-	<body>
-		<h1>E2Eテストハーネス</h1>
+<AppLayout title="E2Eテストハーネス (非公開・テスト専用)" current="dev">
+	<div class="page">
+		<h1 class="page-title">E2Eテストハーネス</h1>
 		<p>
 			このページはPlaywright E2Eテスト (Phase 2-5) 専用です。UIはありません。
 			<code>window.__pyodideEngine__</code> 経由で <code>src/lib/pyodide-engine.ts</code> の
@@ -75,5 +70,5 @@
 			readyEl.dataset.ready = "true";
 			readyEl.textContent = "harness ready: " + JSON.stringify(getEngineProgress());
 		</script>
-	</body>
-</html>
+	</div>
+</AppLayout>

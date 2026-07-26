@@ -7,20 +7,16 @@
 // 対象が存在しない場合と他人の所有物である場合はいずれも同じ404を返し、存在の有無を漏らさない
 // (src/pages/api/owned-pokemon/[id].ts と同じ方針)。
 import type { APIContext } from 'astro';
-import { badRequest, isSameOrigin, jsonResponse, methodNotAllowed, readJsonBody } from '../_shared';
+import { badRequest, isSameOrigin, isValidUuid, jsonResponse, methodNotAllowed, readJsonBody } from '../_shared';
 import { getSessionUser } from '../../../lib/user-session';
 import { getSupabaseAdminClient } from '../../../lib/supabase';
 import { validateOpponentNoteRequestBody } from '../../../lib/opponent-notes-validation';
 import { deleteOpponentNote, getOpponentNote, updateOpponentNote } from '../../../lib/opponent-notes';
 import { getOwnedPokemon } from '../../../lib/owned-pokemon';
 import { recordOpponentNoteAnonymized } from '../../../lib/opponent-note-secondary-record';
+import { opponentNotesRateLimiter } from '../../../lib/rate-limit';
 
 export const prerender = false;
-
-// opponent_notes.id は uuid 列のため、明らかに不正な形式のパスパラメータは早期に404として扱う
-// (owned-pokemon/[id].ts と同じ方針、DBへ投げて Postgrest の invalid input syntax エラーを
-// 露出させないため)。
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function notFound(): Response {
   return jsonResponse({ error: 'Opponent note not found' }, 404);
@@ -31,7 +27,7 @@ export async function GET({ request, cookies, params }: APIContext): Promise<Res
   if (!user) return jsonResponse({ error: 'Unauthorized' }, 401);
 
   const id = params.id;
-  if (!id || !UUID_PATTERN.test(id)) return notFound();
+  if (!isValidUuid(id)) return notFound();
 
   const supabase = await getSupabaseAdminClient();
   const result = await getOpponentNote(user.id, id, supabase);
@@ -49,8 +45,13 @@ export async function PUT({ request, cookies, params }: APIContext): Promise<Res
     return jsonResponse({ error: 'Forbidden' }, 403);
   }
 
+  const rateLimit = opponentNotesRateLimiter.check(user.id);
+  if (!rateLimit.allowed) {
+    return jsonResponse({ error: 'Too many requests' }, 429);
+  }
+
   const id = params.id;
-  if (!id || !UUID_PATTERN.test(id)) return notFound();
+  if (!isValidUuid(id)) return notFound();
 
   const body = await readJsonBody<unknown>(request);
   if (body.response) return body.response;
@@ -85,8 +86,13 @@ export async function DELETE({ request, cookies, params }: APIContext): Promise<
     return jsonResponse({ error: 'Forbidden' }, 403);
   }
 
+  const rateLimit = opponentNotesRateLimiter.check(user.id);
+  if (!rateLimit.allowed) {
+    return jsonResponse({ error: 'Too many requests' }, 429);
+  }
+
   const id = params.id;
-  if (!id || !UUID_PATTERN.test(id)) return notFound();
+  if (!isValidUuid(id)) return notFound();
 
   const supabase = await getSupabaseAdminClient();
   const result = await deleteOpponentNote(user.id, id, supabase);

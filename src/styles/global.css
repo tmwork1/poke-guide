@@ -1,0 +1,1020 @@
+/* デザインシステム(2026-07-24 UI刷新)。トークン(色・角丸・影)+ 全ページ共通のコンポーネント
+   クラス(パネル・カード・ボタン・入力欄・バッジ等)をここに集約する。ページ側の<style>には
+   レイアウト固有のルール(グリッド構成など)だけを残す。
+   2026-07-26 デザイン原則整理: 「パネル」と「カード」は役割で区別する。
+     .panel = 1画面に1つの骨格領域(検索結果領域・種族値表・ツールバー・サイドバー等)。影なし。
+     .card  = 可算・追加削除できるコレクション要素(ポケモンカード・チームカード・
+              ダメージ計算カード等)。影ありでhover時に持ち上がる。 */
+
+/* --- ブレークポイント(採用値は 900 / 1200 / 1600px の3段のみ。新規の@mediaを追加する場合は
+   このいずれかに揃えること) ---
+   900px:  レイアウトの土台が切り替わる最初の段。AppSidebar がモバイル用ドロワー
+           (ハンバーガー開閉)からデスクトップの固定表示サイドバーに変わる
+           (このファイル末尾の .app-sidebar 関連@media参照)。
+   1200px: 横に並べる余白ができる段。box/[id].astro の編集レイアウトが
+           1カラムから2カラム構成に広がる(ローカルscoped styleで使用)。
+   1600px: 最も広い段。box/[id].astro のダメージ計算詳細パネルが、画面右からの
+           スライドオーバー(オーバーレイ)表示から常設の3カラム目(sticky)表示に
+           切り替わる(同じくローカルscoped styleで使用)。
+   ※ 640px(max-width)は上記3段とは別軸の「コンポーネント単位の縦積み切り替え」に
+   使われている値で、レイアウト土台の段ではない(詳細は各使用箇所のコメント参照)。 */
+
+/* 配色は旧battle-assistant-sv(css/manager.css・common.css)のボタン配色をそのまま踏襲する:
+   primary=#27acd9(new-button)、success=#409f89(maximize-BD)、danger=#f8705b(delete-button)、
+   neutral=#aaaaaa(maximize-B/D)。影は使わず、ボーダー同色の塗り+ホバーで白地に反転する
+   battle-assistant-sv方式のボタンにする。 */
+:root {
+	--color-bg: #f3f4f8;
+	--color-surface: #ffffff;
+	--color-surface-alt: #f8f9fc;
+	--color-border: #e3e6ee;
+	--color-text: #1f2430;
+	/* 2026-07-26 ラウンド8 A-6: #6b7280 は --color-surface-alt(.card背景)上で4.26:1となりWCAG AA(4.5:1)を割っていた
+	   (技名チップ・実数値ラベル等の小さい文字で発生)。#5b6472 に暗くして白上5.98:1・surface-alt上5.68:1に是正。
+	   ダーク側(下の@media (prefers-color-scheme: dark)内)は既に5.89:1で問題ないため触っていない。 */
+	--color-text-muted: #5b6472;
+
+	--color-primary: #27acd9;
+	--color-primary-hover: #27acd9;
+	--color-primary-soft: #e6f6fb;
+	--color-primary-contrast: #ffffff;
+
+	--color-success: #409f89;
+	--color-success-soft: #e6f4f1;
+	--color-danger: #f8705b;
+	--color-danger-soft: #fdece8;
+	--color-warning: #aaaaaa;
+	--color-warning-soft: #eeeeee;
+	--color-risky: #c9820f;
+	--color-risky-soft: #fbeed4;
+
+	/* ライトモードでは --color-danger/-risky/-success をそのまま文字色に使うと
+	   WCAG AA(4.5:1)を大きく割る(いずれも背景の-softに対して2.5〜2.9:1程度)。
+	   ボタンの塗り/枠線に使われている本体トークンは変えず、「濃色の背景上に
+	   読ませる文字」専用の派生トークンをここに用意する(.severity-barが参照する)。
+	   ダーク側は元々AAを満たしているため、ダークの@media内で本体トークンと
+	   同じ値に戻す。 */
+	--color-danger-strong: #b23a26;
+	--color-risky-strong: #8a5806;
+	--color-success-strong: #2b6b5c;
+
+	--radius-sm: 6px;
+	--radius-md: 10px;
+	--radius-lg: 12px;
+
+	/* --- 余白スケール(2026-07-26 UI品質改善: タスクA) ---
+	   全ページの padding/margin/gap はこの8段階から選ぶ。根拠のない 1.4rem / 0.65rem 等の
+	   直値を新規に増やさないこと。既存の直値は意味が近いトークンへ順次寄せている。 */
+	--space-1: 0.25rem;
+	--space-2: 0.5rem;
+	--space-3: 0.75rem;
+	--space-4: 1rem;
+	--space-5: 1.25rem;
+	--space-6: 1.5rem;
+	--space-7: 2rem;
+	--space-8: 3rem;
+
+	/* --- タイポグラフィスケール --- */
+	--font-size-xs: 0.75rem;
+	--font-size-sm: 0.85rem;
+	--font-size-md: 0.95rem;
+	--font-size-base: 1rem;
+	--font-size-lg: 1.05rem;
+	--font-size-xl: 1.5rem;
+	--font-size-2xl: 1.9rem;
+
+	--line-height-tight: 1.25;
+	--line-height-snug: 1.4;
+	--line-height-normal: 1.6;
+
+	/* --- 影の階層(「持ち上がり」表現に使う。.panelは影なしのまま据え置き、
+	   .card(コレクション要素)がsm/mdを既定で使う。lgはカード等より一段上の
+	   浮き上がり(スライドオーバーパネル等)向け) --- */
+	--shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.07), 0 1px 1px rgba(15, 23, 42, 0.04);
+	--shadow-md: 0 10px 24px rgba(15, 23, 42, 0.12), 0 2px 6px rgba(15, 23, 42, 0.07);
+	/* box/[id].astro のスライドオーバー詳細パネルなど、カード・パネルより一段上の
+	   浮き上がりを表現する用途。sm/mdと同じ2層構成でスケールだけ拡大する。 */
+	--shadow-lg: 0 20px 48px rgba(15, 23, 42, 0.18), 0 6px 16px rgba(15, 23, 42, 0.1);
+}
+
+@media (prefers-color-scheme: dark) {
+	:root {
+		--color-bg: #14161d;
+		--color-surface: #1c1f28;
+		--color-surface-alt: #22252f;
+		--color-border: #2d313d;
+		--color-text: #e7e9ee;
+		--color-text-muted: #9aa1b0;
+
+		--color-primary: #4dc3ea;
+		--color-primary-hover: #4dc3ea;
+		--color-primary-soft: rgba(77, 195, 234, 0.16);
+		--color-primary-contrast: #14161d;
+
+		--color-success: #55b6a0;
+		--color-success-soft: rgba(85, 182, 160, 0.16);
+		--color-danger: #ff8b78;
+		--color-danger-soft: rgba(255, 139, 120, 0.16);
+		--color-warning: #9aa1b0;
+		--color-warning-soft: rgba(154, 161, 176, 0.16);
+		--color-risky: #e0a940;
+		--color-risky-soft: rgba(224, 169, 64, 0.16);
+
+		/* ダークは本体トークンが既にAAを満たしているため、ライト用に用意した
+		   -strong 派生トークンは本体トークンと同じ値に戻す。 */
+		--color-danger-strong: var(--color-danger);
+		--color-risky-strong: var(--color-risky);
+		--color-success-strong: var(--color-success);
+
+		/* ダークでは黒背景に対して光の影がほぼ見えないため、暗い背景でも輪郭が読める
+		   濃いめの黒影に差し替える(色トークン自体は変えない)。 */
+		--shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+		--shadow-md: 0 12px 28px rgba(0, 0, 0, 0.55), 0 2px 8px rgba(0, 0, 0, 0.4);
+		--shadow-lg: 0 24px 56px rgba(0, 0, 0, 0.65), 0 8px 20px rgba(0, 0, 0, 0.45);
+	}
+}
+
+* {
+	box-sizing: border-box;
+}
+
+html,
+body {
+	background: var(--color-bg);
+	color: var(--color-text);
+}
+
+body {
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
+	margin: 0;
+	line-height: 1.6;
+	-webkit-font-smoothing: antialiased;
+}
+
+a {
+	color: var(--color-primary);
+}
+
+/* --- ページ共通コンテナ ---
+   2026-07-26 「浮いた囲み箱」から「画面端まで伸びる帯」への刷新に伴い、.page による
+   中央寄せ(max-width + margin:0 auto)と左右paddingを廃止した。帯(.panel系、下記)が
+   画面端まで届くようにするための変更で、縦paddingも帯自身が持つようになったため外す。
+   .page は現状「ページ全体のルート」を示すだけの実質空クラスになっている
+   (マークアップ側の移行が済み次第、クラス自体の要否を再検討してよい)。 */
+.page {
+}
+
+.page-title {
+	font-size: var(--font-size-xl);
+	line-height: var(--line-height-tight);
+	font-weight: 700;
+	margin: 0 0 var(--space-2);
+	letter-spacing: -0.01em;
+}
+
+.page-subtitle {
+	color: var(--color-text-muted);
+	margin: 0 0 var(--space-6);
+	font-size: var(--font-size-md);
+}
+
+/* ページヘッダ(タイトル + 右側のアカウント情報/アクションを横並びにする共通クラス)。
+   使い方: <div class="page-header"><h1 class="page-title">…</h1><div>…右側…</div></div>
+   ページ固有の追加装飾が要る場合は、このクラスと併用する形で独自クラスを足してよい
+   (box/index.astro の .box-page-header はこのクラスと同型の独自実装)。 */
+.page-header {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: var(--space-3);
+	margin-bottom: var(--space-5);
+}
+
+.page-header .page-title {
+	margin: 0;
+}
+
+@media (max-width: 640px) {
+	.page-header {
+		flex-direction: column;
+		align-items: flex-start;
+	}
+}
+
+.back-link {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.3em;
+	font-size: var(--font-size-md);
+	font-weight: 500;
+	text-decoration: none;
+	color: var(--color-text-muted);
+	margin-bottom: var(--space-4);
+}
+
+.back-link:hover {
+	color: var(--color-primary);
+}
+
+/* --- パネル(1画面に1つの骨格領域: 検索結果領域・種族値表・ツールバー・サイドバー等)。
+   2026-07-26 「浮いた囲み箱」から「画面端(または本文内で縦に積んだ帯どうしの継ぎ目)まで
+   伸びる帯」に作り直した。角丸・外側marginを持たず、影も使わない。
+   borderは既定でゼロにし、「どの画面端に接するか」を表す修飾子(.panel-left/-right/-top、
+   下記)だけに絞って付与する。中身の可読幅を制限したい場合は .panel-content(下記)を
+   帯の内側に置く(帯自体の背景・罫線は画面端まで伸ばしたまま、中身だけ幅を絞る)。 --- */
+.panel {
+	background: var(--color-surface);
+	border: 0;
+	padding: var(--space-6) var(--space-5);
+}
+
+/* 画面の左端に固定される帯(例: 育成情報バー)。隣接する右側の内容と区切る右辺のみに罫線。 */
+.panel-left {
+	border-right: 1px solid var(--color-border);
+}
+
+/* 画面の右端に固定される帯(例: 詳細設定サイドバー)。隣接する左側の内容と区切る左辺のみに罫線。 */
+.panel-right {
+	border-left: 1px solid var(--color-border);
+}
+
+/* 画面の上端に固定される帯(例: トップバー・ツールバー)。下に続く内容と区切る下辺のみに罫線。 */
+.panel-top {
+	border-bottom: 1px solid var(--color-border);
+}
+
+/* 本文中で帯を縦に積む構成(/search, /pokemon/[name] 等で今後採用)向け: 隣接する2枚の帯の
+   継ぎ目に罫線を1本だけ引く。修飾子クラスの付け忘れを避けるため、使用箇所ごとにクラスを
+   足す方式ではなく汎用の隣接セレクタで賄う判断にした。.panel-left/-right/-top は画面端に
+   固定表示されるバー用でDOM上この隣接関係には現れない想定のため、このルールと衝突しない
+   (もし将来 .panel 同士を横並びに置く構成が出てきた場合は、このセレクタが意図しない上辺の
+   線を作らないか確認すること)。 */
+.panel + .panel {
+	border-top: 1px solid var(--color-border);
+}
+
+.panel > h2,
+.panel > h3:first-child {
+	margin-top: 0;
+}
+
+.panel h2 {
+	font-size: var(--font-size-lg);
+	line-height: var(--line-height-snug);
+	font-weight: 700;
+	margin: 0 0 var(--space-4);
+	padding-bottom: var(--space-3);
+	border-bottom: 1px solid var(--color-border);
+}
+
+/* 帯(.panel)の内側に置き、中身(本文・表・カードグリッド等)の可読幅を制限する。
+   帯自体の背景/罫線は画面端まで伸ばす一方、中身まで1920px幅いっぱいに広げると
+   /pokemon/[name] の技一覧や /share の本文で1行が極端に長くなり読めなくなるための
+   意図的な設計判断。中央寄せはしない(margin:0 auto を付けない): 設計図では内容が
+   左から流れているため。値は旧 .page の既定 max-width(1080px)を踏襲し、既存ページの
+   読みやすさの基準をそのまま維持する。 */
+.panel-content {
+	max-width: 1080px;
+}
+
+.card-hint {
+	color: var(--color-text-muted);
+	font-size: var(--font-size-sm);
+	margin-top: calc(var(--space-2) * -1);
+	margin-bottom: var(--space-4);
+}
+
+.card-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+	gap: var(--space-4);
+}
+
+/* --- カード(可算・追加削除できるコレクション要素: ポケモンカード・チームカード・
+   ダメージ計算カード等)。既定から影と微細なhover持ち上がりを持つ(旧.card-interactiveを統合)。
+   選択状態は既存コードの慣習(box/[id].astroの.damage-row.is-selected、
+   box/index.astroの.pokemon-card.is-pinnedがいずれも`.is-*`状態クラス)に合わせて
+   `.is-selected` を採用する。 --- */
+.card {
+	background: var(--color-surface-alt);
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius-md);
+	padding: var(--space-3);
+	box-shadow: var(--shadow-sm);
+	transition: box-shadow 0.18s ease, transform 0.18s ease, border-color 0.18s ease;
+}
+
+.card:hover,
+.card:focus-within {
+	box-shadow: var(--shadow-md);
+	transform: translateY(-2px);
+}
+
+.card.is-selected {
+	border-color: var(--color-primary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.card {
+		transition: none;
+	}
+	.card:hover,
+	.card:focus-within {
+		transform: none;
+	}
+}
+
+/* 実数値・ダメージ量など、桁が変化する数値表示に使う共通クラス。
+   等幅数字(tabular-nums)にして桁が揃うようにする。 */
+.tnum {
+	font-variant-numeric: tabular-nums;
+	font-feature-settings: "tnum" 1, "lnum" 1;
+}
+
+/* --- フォーム --- */
+fieldset {
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius-md);
+	padding: var(--space-3) var(--space-4);
+	margin: 0;
+}
+
+legend {
+	font-size: var(--font-size-sm);
+	font-weight: 600;
+	color: var(--color-text-muted);
+	padding: 0 0.4em;
+}
+
+/* 素の <label> の見た目(色・サイズ)だけを揃える。
+   2026-07-25までは `min-width: 6.5em` で全ページのラベル幅を強制していたが、ラベルの
+   長さに関係なく余白が空いたり、逆に長いラベル(例:テラスタイプ)は素通りしたりして
+   整列に寄与していなかった上、ページ側レイアウトを歪めていたため撤廃した。
+   ラベルと入力欄を意図的に整列させたい場合は、下の .field / .field-label を使うこと。 */
+label {
+	display: inline-block;
+	font-size: var(--font-size-md);
+	color: var(--color-text);
+}
+
+.row {
+	margin: var(--space-3) 0;
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	flex-wrap: wrap;
+}
+
+/* --- ラベル付きフィールド(2026-07-26 UI品質改善: タスクA新設) ---
+   素の label 要素に幅を強制する代わりに、明示的にこのクラスを付けて使う。
+   既定は横並び(ラベル/コントロール)。.field-stack で縦積みに切り替えられる
+   (例: テキストエリアの上にラベルを置きたい場合)。
+   複数の .field を並べてラベル幅を揃えたい場合は、親要素(fieldsetなど)に
+   `style="--field-label-width: 6em"` のように CSS変数を設定する(既定は auto)。
+   使い方:
+     <div class="field">
+       <span class="field-label">ニックネーム</span>
+       <input class="field-control" type="text" />
+     </div> */
+.field {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	margin: var(--space-2) 0;
+}
+
+.field.field-stack {
+	flex-direction: column;
+	align-items: stretch;
+	gap: var(--space-1);
+}
+
+.field-label {
+	flex-shrink: 0;
+	min-width: var(--field-label-width, auto);
+	font-size: var(--font-size-sm);
+	font-weight: 600;
+	color: var(--color-text-muted);
+}
+
+.field-stack > .field-label {
+	color: var(--color-text);
+}
+
+.field-control {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.field-hint {
+	margin: calc(var(--space-1) * -1) 0 0;
+	font-size: var(--font-size-xs);
+	color: var(--color-text-muted);
+}
+
+/* --- 入力欄 ---
+   input/select は1行コントロールとして高さを揃える(min-height)。textareaは
+   複数行前提のため高さは揃えず、paddingのみ他のコントロールと統一する。 */
+input[type="text"],
+input[type="number"],
+input[type="search"],
+select,
+textarea {
+	font: inherit;
+	color: var(--color-text);
+	background: var(--color-surface);
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius-sm);
+	padding: var(--space-2) var(--space-3);
+	line-height: var(--line-height-snug);
+	transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+input[type="text"],
+input[type="number"],
+input[type="search"],
+select {
+	min-height: 2.35rem;
+}
+
+input[type="text"] {
+	min-width: 12em;
+}
+
+textarea {
+	width: 100%;
+	min-height: 4em;
+	font-family: inherit;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+	outline: 2px solid var(--color-primary);
+	outline-offset: 1px;
+	border-color: var(--color-primary);
+}
+
+input::placeholder {
+	color: var(--color-text-muted);
+	opacity: 0.8;
+}
+
+/* --- レンジスライダー ---
+   既定の accent-color 頼りだと Chrome で黒い太トラックになるため、
+   トラック/つまみを明示指定して細く小さくする。つまみより左側(進捗)を着色したい
+   呼び出し側は、JSで `inputEl.style.setProperty('--slider-progress', `${percent}%`)`
+   を設定すること(Chrome/Edge/Safari向け。Firefoxは ::-moz-range-progress が
+   value に応じて自動で着色されるため設定不要)。未設定時は --slider-progress の
+   既定値(50%)で見た目上トラック全体が薄い色になる。 */
+input[type="range"] {
+	appearance: none;
+	-webkit-appearance: none;
+	-moz-appearance: none;
+	width: 100%;
+	height: 1.4em;
+	margin: 0;
+	background: transparent;
+	cursor: pointer;
+	--slider-progress: 50%;
+}
+
+input[type="range"]:disabled {
+	cursor: not-allowed;
+	opacity: 0.5;
+}
+
+input[type="range"]::-webkit-slider-runnable-track {
+	height: 5px;
+	border-radius: 999px;
+	background: linear-gradient(
+		to right,
+		var(--color-primary) var(--slider-progress),
+		var(--color-border) var(--slider-progress)
+	);
+}
+
+input[type="range"]::-webkit-slider-thumb {
+	appearance: none;
+	-webkit-appearance: none;
+	width: 14px;
+	height: 14px;
+	margin-top: -4.5px;
+	border-radius: 50%;
+	background: var(--color-primary);
+	border: 2px solid var(--color-surface);
+	box-shadow: var(--shadow-sm);
+}
+
+input[type="range"]::-moz-range-track {
+	height: 5px;
+	border-radius: 999px;
+	background: var(--color-border);
+}
+
+input[type="range"]::-moz-range-progress {
+	height: 5px;
+	border-radius: 999px;
+	background: var(--color-primary);
+}
+
+input[type="range"]::-moz-range-thumb {
+	width: 14px;
+	height: 14px;
+	border-radius: 50%;
+	background: var(--color-primary);
+	border: 2px solid var(--color-surface);
+	box-shadow: var(--shadow-sm);
+}
+
+input[type="range"]:focus-visible::-webkit-slider-thumb {
+	outline: 2px solid var(--color-primary);
+	outline-offset: 2px;
+}
+
+input[type="range"]:focus-visible::-moz-range-thumb {
+	outline: 2px solid var(--color-primary);
+	outline-offset: 2px;
+}
+
+.stat-grid-label {
+	display: block;
+	font-size: var(--font-size-sm);
+	font-weight: 600;
+	color: var(--color-text-muted);
+	margin-bottom: var(--space-2);
+}
+
+.stat-inputs {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--space-3);
+}
+
+.stat-input {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: var(--space-1);
+	font-size: var(--font-size-xs);
+	font-weight: 600;
+	color: var(--color-text-muted);
+	min-width: 0;
+}
+
+.stat-input input {
+	width: 4.4em;
+}
+
+.stat-input-controls {
+	display: flex;
+	align-items: center;
+	gap: var(--space-1);
+}
+/* input[type=range] の見た目自体は上の共通ルール(-webkit-slider-系 / -moz-range-系)に
+   統一済み。ここでは能力値スライダー用の幅のみ指定する(accent-colorは非対応ブラウザ向けの
+   フォールバックとして残す)。 */
+.stat-input-controls input[type="range"] {
+	width: 5.5em;
+	accent-color: var(--color-primary);
+}
+
+.sprite-icon {
+	border-radius: 50%;
+	background: var(--color-surface-alt);
+	object-fit: contain;
+	flex-shrink: 0;
+}
+.sprite-fallback {
+	display: none;
+	align-items: center;
+	justify-content: center;
+	border-radius: 50%;
+	background: var(--color-primary-soft);
+	color: var(--color-primary);
+	font-weight: 700;
+	flex-shrink: 0;
+}
+
+.add-card-tile {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 8rem;
+	border: 2px dashed var(--color-border);
+	border-radius: var(--radius-lg);
+	background: transparent;
+	color: var(--color-text-muted);
+	font-weight: 600;
+	cursor: pointer;
+	transition: border-color 0.15s, color 0.15s;
+}
+.add-card-tile:hover {
+	border-color: var(--color-primary);
+	color: var(--color-primary);
+}
+
+.move-inputs {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.7rem;
+}
+
+/* --- ボタン ---
+   旧battle-assistant-sv(manager.css #new-button/.tuning-button/#delete-button)の方式を踏襲:
+   影は使わず、ボーダーと同色の塗り+白文字。ホバーで背景と文字色を反転させ、太字にする。
+   この「反転ホバー」はa要素(ログインボタン等)にも .btn-primary 等のクラスを付ければ同じ
+   見た目になるよう button/a 両方をセレクタに含める。 */
+button,
+a.btn-primary,
+a.btn-danger,
+a.btn-ghost {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.4em;
+	font: inherit;
+	font-weight: 600;
+	color: var(--color-text);
+	background: var(--color-surface);
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius-sm);
+	padding: 0.55em 1.1em;
+	cursor: pointer;
+	text-decoration: none;
+	transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+
+button:hover:not(:disabled) {
+	background: var(--color-surface-alt);
+}
+
+button:disabled {
+	cursor: not-allowed;
+	opacity: 0.55;
+}
+
+button.btn-primary,
+a.btn-primary {
+	background: var(--color-primary);
+	border: 2px solid var(--color-primary);
+	color: var(--color-primary-contrast);
+	padding: calc(0.55em - 1px) calc(1.1em - 1px);
+	font-weight: 700;
+}
+
+button.btn-primary:hover:not(:disabled),
+a.btn-primary:hover {
+	background: var(--color-surface);
+	color: var(--color-primary);
+}
+
+button.btn-success {
+	background: var(--color-success);
+	border: 2px solid var(--color-success);
+	color: var(--color-primary-contrast);
+	padding: calc(0.55em - 1px) calc(1.1em - 1px);
+	font-weight: 700;
+}
+
+button.btn-success:hover:not(:disabled) {
+	background: var(--color-surface);
+	color: var(--color-success);
+}
+
+button.btn-danger,
+a.btn-danger,
+.delete-button {
+	background: var(--color-danger);
+	border: 2px solid var(--color-danger);
+	color: var(--color-primary-contrast);
+	padding: calc(0.55em - 1px) calc(1.1em - 1px);
+	font-weight: 700;
+}
+
+button.btn-danger:hover:not(:disabled),
+a.btn-danger:hover,
+.delete-button:hover:not(:disabled) {
+	background: var(--color-surface);
+	color: var(--color-danger);
+}
+
+button.btn-ghost,
+a.btn-ghost {
+	background: transparent;
+	border-color: transparent;
+	color: var(--color-text-muted);
+}
+
+button.btn-ghost:hover:not(:disabled),
+a.btn-ghost:hover {
+	background: var(--color-surface-alt);
+}
+
+/* --- バッジ・チップ --- */
+.badge {
+	display: inline-flex;
+	align-items: center;
+	padding: 0.2em 0.7em;
+	border-radius: 999px;
+	background: var(--color-primary-soft);
+	color: var(--color-primary);
+	font-size: 0.78em;
+	font-weight: 700;
+}
+
+.badge.badge-muted {
+	background: var(--color-surface-alt);
+	color: var(--color-text-muted);
+}
+
+/* --- ステータステキスト(自動保存・エンジン読み込み等の状態表示で共通利用) --- */
+.status-text {
+	font-weight: 600;
+	font-size: var(--font-size-md);
+	display: inline-flex;
+	align-items: center;
+	gap: 0.4em;
+}
+
+.status-text[data-state="saving"],
+.status-text[data-state="loading"] {
+	color: var(--color-warning);
+}
+
+.status-text[data-state="saved"],
+.status-text[data-state="ready"],
+.status-text[data-state="success"],
+.status-text[data-state="public"] {
+	color: var(--color-success);
+}
+
+.status-text[data-state="error"] {
+	color: var(--color-danger);
+}
+
+.status-text[data-state="private"],
+.status-text[data-state="idle"] {
+	color: var(--color-text-muted);
+	font-weight: 500;
+}
+
+.severity-bar {
+	border-radius: var(--radius-sm);
+	padding: var(--space-2) var(--space-3);
+	margin: var(--space-3) 0;
+	font-weight: 700;
+	font-variant-numeric: tabular-nums;
+	border-left: 4px solid transparent;
+}
+.severity-bar[data-severity="lethal"] {
+	background: var(--color-danger-soft);
+	border-left-color: var(--color-danger);
+	color: var(--color-danger-strong);
+}
+.severity-bar[data-severity="risky"] {
+	background: var(--color-risky-soft);
+	border-left-color: var(--color-risky);
+	color: var(--color-risky-strong);
+}
+.severity-bar[data-severity="safe"] {
+	background: var(--color-success-soft);
+	border-left-color: var(--color-success);
+	color: var(--color-success-strong);
+}
+.severity-bar[data-severity="none"] {
+	background: var(--color-surface-alt);
+	border-left-color: var(--color-border);
+	color: var(--color-text-muted);
+	font-weight: 500;
+}
+
+.spinner {
+	display: inline-block;
+	width: 1em;
+	height: 1em;
+	border: 2px solid var(--color-border);
+	border-top-color: currentColor;
+	border-radius: 50%;
+	animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+/* --- 表 --- */
+table {
+	border-collapse: collapse;
+	width: 100%;
+}
+
+th,
+td {
+	border: 1px solid var(--color-border);
+	padding: var(--space-2) var(--space-3);
+	text-align: right;
+	font-variant-numeric: tabular-nums;
+}
+
+th:first-child,
+td:first-child {
+	text-align: left;
+}
+
+th {
+	background: var(--color-surface-alt);
+	font-weight: 700;
+	font-size: var(--font-size-sm);
+	color: var(--color-text-muted);
+}
+
+dl {
+	display: grid;
+	grid-template-columns: 8em 1fr;
+	gap: var(--space-2) var(--space-4);
+	margin: 0;
+}
+
+dt {
+	font-weight: 600;
+	color: var(--color-text-muted);
+}
+
+dd {
+	margin: 0;
+}
+
+/* --- ダイアログ(対戦相手メモの追加/編集フォーム) --- */
+dialog#opponent-note-form-container {
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius-lg);
+	padding: var(--space-6);
+	max-width: min(560px, 92vw);
+	max-height: 88vh;
+	overflow-y: auto;
+	background: var(--color-surface);
+	color: var(--color-text);
+}
+dialog#opponent-note-form-container::backdrop {
+	background: rgba(0, 0, 0, 0.45);
+}
+
+/* --- 共通レイアウト(AppLayout.astro / AppSidebar.astro、UI刷新 2026-07-25) ---
+   デスクトップ(900px以上)はサイドバーを固定表示し、モバイルはハンバーガーで開閉する
+   ドロワーにする。ここでは位置・幅・開閉のtransformなど「土台」のみを定義し、
+   サイドバー内部の見た目(余白・タイポグラフィ等)は AppSidebar.astro 側のscoped styleに置く。 */
+:root {
+	--sidebar-width: 256px;
+	/* 2026-07-26 トップバー新設: 個体編集ページ等の左右の帯(panel-left/panel-right)が
+	   `height: calc(100vh - var(--topbar-height))` を組むための実測値。トップバーの
+	   padding/構成を変えた場合は、必ずブラウザで実測して以下2箇所(既定値=モバイル2段、
+	   @media (min-width: 900px)内=デスクトップ1段)を合わせ直すこと。値がずれると
+	   左右の帯の高さが余ったり不足したりする。 */
+	--topbar-height: 129px;
+}
+
+.app-shell {
+	min-height: 100vh;
+}
+
+/* トップバー(2026-07-26 新設: デスクトップでもサイドバー右隣から画面右端まで伸びる帯として
+   常設表示する。デスクトップは.app-topbar-row-mainのみの1段、モバイル(900px未満)は
+   ハンバーガー行(.app-topbar-row-brand)+本体行(.app-topbar-row-main)の2段。
+   sticky top:0で常に画面上端に残す。z-indexは既存の.app-sidebar-overlay(25)/
+   .app-sidebar(30)/box/[id].astroのdamage-detail-backdrop(55)・damage-detail-panel(60)
+   より低い20を維持し、ドロワー開閉やダメージ計算詳細パネルが常にトップバーの上に
+   被さるようにする(操作を妨げないため)。 */
+.app-topbar {
+	background: var(--color-surface);
+	border-bottom: 1px solid var(--color-border);
+	position: sticky;
+	top: 0;
+	z-index: 20;
+}
+
+.app-topbar-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--space-3);
+	padding: var(--space-3) var(--space-4);
+}
+
+.app-topbar-row + .app-topbar-row {
+	border-top: 1px solid var(--color-border);
+}
+
+.app-topbar-left,
+.app-topbar-right {
+	display: flex;
+	align-items: center;
+	gap: var(--space-3);
+	min-width: 0;
+}
+
+/* 2026-07-26 ラウンド8 A-5: .app-topbar-account-desktop / -mobile の display 切り替えは
+   以前ここにあったが、AppLayout.astro の scoped style 側の `.app-topbar-account { display: flex }`
+   (Astroが data-astro-cid-* を付与するため実質詳細度 0,2,0)に、ここ(global.css、詳細度0,1,0)の
+   `display: none` が負けて効かない事故があった。scopedスタイルはglobal.cssより後ろに注入されるため、
+   詳細度を同じ0,1,0のまま揃えても後勝ちで負ける。唯一の直し方は同じscoped詳細度に揃えることなので、
+   両方の display 切り替えと、それに付随する @media (max-width: 899px) の
+   .app-topbar-account-email / .app-topbar-row-main の調整は AppLayout.astro の <style> 内に移設した。
+   ここには置かないこと(再発する)。 */
+
+.app-sidebar {
+	position: fixed;
+	top: 0;
+	left: 0;
+	bottom: 0;
+	width: var(--sidebar-width);
+	background: var(--color-surface);
+	border-right: 1px solid var(--color-border);
+	overflow-y: auto;
+	z-index: 30;
+	transform: translateX(-100%);
+	/* 閉じているドロワー内のリンクにTabフォーカスが入らないよう visibility も落とす。 */
+	visibility: hidden;
+	transition: transform 0.25s ease, visibility 0.25s ease;
+}
+
+.app-sidebar.is-open {
+	transform: translateX(0);
+	visibility: visible;
+}
+
+.app-sidebar-overlay {
+	position: fixed;
+	inset: 0;
+	background: rgba(0, 0, 0, 0.45);
+	z-index: 25;
+	opacity: 0;
+	pointer-events: none;
+	transition: opacity 0.2s ease;
+}
+
+.app-sidebar-overlay.is-open {
+	opacity: 1;
+	pointer-events: auto;
+}
+
+.app-main {
+	/* 2026-07-26 修正: .app-topbar は position:sticky でフロー内に高さを持つため、
+	   ここを 100vh のままにすると「トップバー高さ + 100vh」分の高さが要求され、
+	   コンテンツが画面に収まっていても縦スクロールバーが出てしまっていた。
+	   トップバー高さ(--topbar-height、デスクトップ/モバイルとも @media で追従)を
+	   差し引くことで、.app-shell 全体がちょうど 100vh に収まるようにする。 */
+	min-height: calc(100vh - var(--topbar-height));
+}
+
+@media (min-width: 900px) {
+	:root {
+		/* デスクトップは.app-topbar-row-mainのみの1段になるため、モバイルより低い。 */
+		--topbar-height: 65px;
+	}
+
+	.app-topbar {
+		margin-left: var(--sidebar-width);
+	}
+
+	/* ハンバーガー行(サイト名+モバイル用アカウント情報)はデスクトップでは不要
+	   (サイドバーが常設でブランドリンクを持ち、アカウント情報は本体行側に表示するため)。 */
+	.app-topbar-row-brand {
+		display: none;
+	}
+
+	.app-topbar-row-main {
+		border-top: 0;
+	}
+
+	/* .app-topbar-account-mobile / -desktop の display 切り替えは AppLayout.astro の
+	   <style> 内(同じ @media (min-width: 900px))に移設済み。ここには戻さないこと
+	   (ラウンド8 A-5、上の .app-sidebar 直前のコメント参照)。 */
+
+	.app-sidebar-overlay {
+		display: none;
+	}
+
+	.app-sidebar {
+		transform: none;
+		visibility: visible;
+		transition: none;
+	}
+
+	.app-main {
+		margin-left: var(--sidebar-width);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.app-sidebar {
+		transition: none;
+	}
+
+	.app-sidebar-overlay {
+		transition: none;
+	}
+}

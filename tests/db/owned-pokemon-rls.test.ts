@@ -47,6 +47,16 @@ describe('owned_pokemon / opponent_notes の RLS (本人限定ポリシー)', { 
     return c;
   }
 
+  // migrations/006 で追加された owned_pokemon_select_public ポリシー(is_public = true の行を
+  // anon/authenticated に公開)と、anonロールへの新規GRANT SELECTを検証するためのヘルパー。
+  // 実際のPostgREST未認証リクエストと同じく、認証GUC(request.jwt.claims)は一切設定しない。
+  async function clientAsAnon(): Promise<Client> {
+    const c = new Client({ connectionString: DATABASE_URL });
+    await c.connect();
+    await c.query('SET ROLE anon');
+    return c;
+  }
+
   before(async () => {
     admin = new Client({ connectionString: DATABASE_URL });
     await admin.connect();
@@ -169,6 +179,41 @@ describe('owned_pokemon / opponent_notes の RLS (本人限定ポリシー)', { 
   it('未認証(auth.uid()がNULL)ではowned_pokemonへアクセスできない', async () => {
     const asAnon = await clientAs(null);
     try {
+      const res = await asAnon.query('SELECT * FROM owned_pokemon WHERE id = $1', [ownedPokemonId]);
+      assert.equal(res.rowCount, 0);
+    } finally {
+      await asAnon.end();
+    }
+  });
+
+  it('is_public = true の行はanonロール(認証GUCなし)からSELECTできる(migrations/006の公開共有ポリシー)', async () => {
+    const asA = await clientAs(userA);
+    let publicOwnedPokemonId: string;
+    try {
+      const insertRes = await asA.query(
+        "INSERT INTO owned_pokemon (user_id, species_name, is_public, share_slug) VALUES ($1, $2, true, $3) RETURNING id",
+        [userA, 'コイキング', `anon-rls-test-${crypto.randomUUID()}`],
+      );
+      publicOwnedPokemonId = insertRes.rows[0].id;
+    } finally {
+      await asA.end();
+    }
+
+    const asAnon = await clientAsAnon();
+    try {
+      const res = await asAnon.query('SELECT * FROM owned_pokemon WHERE id = $1', [publicOwnedPokemonId]);
+      assert.equal(res.rowCount, 1);
+      assert.equal(res.rows[0].species_name, 'コイキング');
+      assert.equal(res.rows[0].is_public, true);
+    } finally {
+      await asAnon.end();
+    }
+  });
+
+  it('is_public = false の他人の行はanonロールからSELECTできない(anonへのGRANT追加で誤って全開放していないことの回帰確認)', async () => {
+    const asAnon = await clientAsAnon();
+    try {
+      // ownedPokemonId は is_public のデフォルト値(false)のまま(この時点ではまだ削除されていない)。
       const res = await asAnon.query('SELECT * FROM owned_pokemon WHERE id = $1', [ownedPokemonId]);
       assert.equal(res.rowCount, 0);
     } finally {

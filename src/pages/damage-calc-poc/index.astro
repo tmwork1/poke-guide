@@ -12,28 +12,10 @@
 // に閉じ込めている。src/lib/pyodide-engine.ts はここ以外からimportしないこと
 // (SSR側・middleware.ts・worker.ts 等でimportすると `window` が無い環境で
 // 実行され失敗する)。
+import AppLayout from '../../layouts/AppLayout.astro';
 ---
-<!doctype html>
-<html lang="ja">
-	<head>
-		<meta charset="utf-8" />
-		<meta name="viewport" content="width=device-width, initial-scale=1" />
-		<title>計算エンジン検証 (PoC) | Poke-Commons</title>
-		<style>
-			body {
-				font-family: system-ui, sans-serif;
-				max-width: 720px;
-				margin: 2rem auto;
-				padding: 0 1rem;
-				line-height: 1.6;
-			}
-			h1 { font-size: 1.4rem; }
-			section {
-				border: 1px solid #ccc;
-				border-radius: 8px;
-				padding: 1rem;
-				margin: 1rem 0;
-			}
+<AppLayout title="計算エンジン検証 (PoC)" current="dev">
+	<style>
 			label { display: inline-block; min-width: 8em; }
 			.row { margin: 0.4rem 0; }
 			input[type="text"], input[type="number"] {
@@ -47,70 +29,76 @@
 			}
 			button:disabled { cursor: not-allowed; opacity: 0.6; }
 			#engine-status { font-weight: bold; }
-			#engine-status[data-state="loading"] { color: #b8860b; }
-			#engine-status[data-state="ready"] { color: #2e7d32; }
-			#engine-status[data-state="error"] { color: #c62828; }
+			#engine-status[data-state="loading"] { color: var(--color-warning); }
+			#engine-status[data-state="ready"] { color: var(--color-success); }
+			#engine-status[data-state="error"] { color: var(--color-danger); }
 			.spinner {
-				display: inline-block; width: 1em; height: 1em; border: 2px solid #ccc;
-				border-top-color: #b8860b; border-radius: 50%; animation: spin 0.8s linear infinite;
+				display: inline-block; width: 1em; height: 1em; border: 2px solid var(--color-border);
+				border-top-color: var(--color-warning); border-radius: 50%; animation: spin 0.8s linear infinite;
 				margin-right: 0.5em; vertical-align: -0.15em;
 			}
 			@keyframes spin { to { transform: rotate(360deg); } }
 			pre {
-				background: #f0f0f0;
+				background: var(--color-surface-alt);
 				padding: 1rem;
 				overflow-x: auto;
 				white-space: pre-wrap;
 				word-break: break-all;
 			}
-			#calc-log { font-size: 0.85em; color: #666; }
+			#calc-log { font-size: 0.85em; color: var(--color-text-muted); }
 		</style>
-	</head>
-	<body>
-		<h1>計算エンジン検証 (PoC)</h1>
-		<p>
-			Phase 1-7: クライアント計算エンジン(Pyodide + jpoke)の組み込み動作確認用ページです。
-			本格的な入力フォーム(努力値・性格など)は Phase 2 で実装します。
-		</p>
-
-		<section>
-			<h2>1. 計算エンジンの読み込み</h2>
-			<p>
-				<button id="init-button" type="button">計算エンジンを読み込む</button>
-			</p>
-			<p id="engine-status" data-state="idle">未初期化(ボタンを押すまでPyodideはロードされません)</p>
+	<div class="page">
+		<section class="panel">
+			<div class="panel-content">
+				<p>
+					Phase 1-7: クライアント計算エンジン(Pyodide + jpoke)の組み込み動作確認用ページです。
+					本格的な入力フォーム(努力値・性格など)は Phase 2 で実装します。
+				</p>
+			</div>
 		</section>
 
-		<section>
-			<h2>2. ダメージ計算</h2>
-			<p>
-				既定値は Phase 0 PoC と同一条件(攻撃側: ピカチュウ「でんきショック」/ 防御側: フシギダネ / seed=1)です。
-			</p>
-			<div class="row">
-				<label for="attacker-name">攻撃側ポケモン</label>
-				<input id="attacker-name" type="text" list="pokemon-list" value="ピカチュウ" />
+		<section class="panel">
+			<div class="panel-content">
+				<h2>1. 計算エンジンの読み込み</h2>
+				<p>
+					<button id="init-button" type="button">計算エンジンを読み込む</button>
+				</p>
+				<p id="engine-status" data-state="idle">未初期化(ボタンを押すまでPyodideはロードされません)</p>
 			</div>
-			<div class="row">
-				<label for="move-name">技</label>
-				<input id="move-name" type="text" list="move-list" value="でんきショック" />
+		</section>
+
+		<section class="panel">
+			<div class="panel-content">
+				<h2>2. ダメージ計算</h2>
+				<p>
+					既定値は Phase 0 PoC と同一条件(攻撃側: ピカチュウ「でんきショック」/ 防御側: フシギダネ / seed=1)です。
+				</p>
+				<div class="row">
+					<label for="attacker-name">攻撃側ポケモン</label>
+					<input id="attacker-name" type="text" list="pokemon-list" value="ピカチュウ" />
+				</div>
+				<div class="row">
+					<label for="move-name">技</label>
+					<input id="move-name" type="text" list="move-list" value="でんきショック" />
+				</div>
+				<div class="row">
+					<label for="defender-name">防御側ポケモン</label>
+					<input id="defender-name" type="text" list="pokemon-list" value="フシギダネ" />
+				</div>
+				<div class="row">
+					<label for="seed">seed(乱数固定・任意)</label>
+					<input id="seed" type="number" value="1" />
+				</div>
+				<datalist id="pokemon-list"></datalist>
+				<datalist id="move-list"></datalist>
+				<p>
+					<button id="calc-button" type="button" disabled>計算する</button>
+					<span id="calc-count"></span>
+				</p>
+				<h3>calc_damages() の結果</h3>
+				<pre id="result">(計算前)</pre>
+				<p id="calc-log"></p>
 			</div>
-			<div class="row">
-				<label for="defender-name">防御側ポケモン</label>
-				<input id="defender-name" type="text" list="pokemon-list" value="フシギダネ" />
-			</div>
-			<div class="row">
-				<label for="seed">seed(乱数固定・任意)</label>
-				<input id="seed" type="number" value="1" />
-			</div>
-			<datalist id="pokemon-list"></datalist>
-			<datalist id="move-list"></datalist>
-			<p>
-				<button id="calc-button" type="button" disabled>計算する</button>
-				<span id="calc-count"></span>
-			</p>
-			<h3>calc_damages() の結果</h3>
-			<pre id="result">(計算前)</pre>
-			<p id="calc-log"></p>
 		</section>
 
 		<script>
@@ -224,5 +212,5 @@
 			// pyodide.js/wheelの再ダウンロードを避けるため、ページ読み込み時に登録しておく。
 			registerOfflineCache();
 		</script>
-	</body>
-</html>
+	</div>
+</AppLayout>

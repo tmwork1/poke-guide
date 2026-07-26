@@ -1,0 +1,179 @@
+---
+// 全ページ共通のサイドバー(UI刷新、2026-07-25)。docs/ui_proposal/Box.png 等のワイヤーフレームに準拠する。
+// アイコンは外部ライブラリを使わず、lucide風の線画をインラインSVGとして自前定義する。
+interface Props {
+	current?: "box" | "dev";
+}
+
+const { current } = Astro.props;
+
+const ICONS = {
+	home: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg>`,
+	users: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
+	"trending-up": `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>`,
+	code: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>`,
+} as const;
+
+type IconKey = keyof typeof ICONS;
+
+interface SidebarItem {
+	key: string;
+	label: string;
+	icon: IconKey;
+	href?: string;
+	disabled?: boolean;
+}
+
+const SECTIONS: { heading: string; items: SidebarItem[] }[] = [
+	{
+		heading: "育成",
+		items: [
+			{ key: "box", label: "ボックス", href: "/box", icon: "home" },
+			{ key: "team", label: "チーム", icon: "users", disabled: true },
+			{ key: "trend", label: "トレンド", icon: "trending-up", disabled: true },
+		],
+	},
+	{
+		heading: "その他",
+		items: [
+			{ key: "dev", label: "開発者向け", href: "/e2e-test-harness", icon: "code" },
+		],
+	},
+];
+---
+
+<aside class="app-sidebar" id="app-sidebar">
+	<a class="app-sidebar-brand" href="/box">Poke-Commons</a>
+	<nav class="app-sidebar-nav" aria-label="サイドナビゲーション">
+		{SECTIONS.map((section) => (
+			<div class="app-sidebar-section">
+				<p class="app-sidebar-heading">{section.heading}</p>
+				<ul class="app-sidebar-list">
+					{section.items.map((item) => {
+						const isActive = !item.disabled && current === item.key;
+						return (
+							<li>
+								{item.disabled ? (
+									<span class="app-sidebar-link app-sidebar-link-disabled" aria-disabled="true">
+										<span class="app-sidebar-icon" set:html={ICONS[item.icon]} />
+										<span class="app-sidebar-label">{item.label}</span>
+										<span class="badge badge-muted app-sidebar-badge">準備中</span>
+									</span>
+								) : (
+									<a
+										class="app-sidebar-link"
+										href={item.href}
+										data-active={isActive ? "true" : "false"}
+										aria-current={isActive ? "page" : undefined}
+									>
+										<span class="app-sidebar-icon" set:html={ICONS[item.icon]} />
+										<span class="app-sidebar-label">{item.label}</span>
+									</a>
+								)}
+							</li>
+						);
+					})}
+				</ul>
+			</div>
+		))}
+	</nav>
+</aside>
+
+<style>
+	/* サイドバーの固定位置・開閉(transform)は global.css の .app-sidebar 側で定義する。
+	   ここではサイドバー内部の見た目(余白・タイポグラフィ・アクティブ表示)のみを扱う。 */
+	.app-sidebar-brand {
+		display: block;
+		padding: var(--space-5) var(--space-5) var(--space-4);
+		font-size: 1.3rem;
+		font-weight: 800;
+		color: var(--color-text);
+		text-decoration: none;
+		letter-spacing: -0.01em;
+	}
+
+	.app-sidebar-brand:hover {
+		color: var(--color-primary);
+	}
+
+	.app-sidebar-nav {
+		padding: var(--space-1) 0 var(--space-6);
+	}
+
+	.app-sidebar-section + .app-sidebar-section {
+		margin-top: var(--space-5);
+	}
+
+	.app-sidebar-heading {
+		margin: 0 0 var(--space-2);
+		padding: 0 var(--space-5);
+		font-size: var(--font-size-xs);
+		font-weight: 700;
+		letter-spacing: 0.02em;
+		color: var(--color-text-muted);
+	}
+
+	.app-sidebar-list {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+	}
+
+	.app-sidebar-link {
+		position: relative;
+		display: flex;
+		align-items: center;
+		gap: var(--space-3);
+		margin: 0.15rem var(--space-3);
+		padding: var(--space-3) var(--space-3);
+		border-radius: var(--radius-md);
+		font-size: var(--font-size-md);
+		font-weight: 500;
+		color: var(--color-text);
+		text-decoration: none;
+		transition: background 0.15s, color 0.15s;
+	}
+
+	a.app-sidebar-link:hover {
+		background: var(--color-surface-alt);
+	}
+
+	/* アクティブ項目: primary-soft背景+primary文字色に加え、サイドバー左端に4pxの
+	   インジケータを出す(margin分だけ左にはみ出させ、サイドバー本体の縁に接触させる)。 */
+	.app-sidebar-link[data-active="true"] {
+		background: var(--color-primary-soft);
+		color: var(--color-primary);
+		font-weight: 700;
+	}
+
+	.app-sidebar-link[data-active="true"]::before {
+		content: "";
+		position: absolute;
+		left: calc(var(--space-3) * -1);
+		top: var(--space-2);
+		bottom: var(--space-2);
+		width: 4px;
+		border-radius: 0 4px 4px 0;
+		background: var(--color-primary);
+	}
+
+	.app-sidebar-link-disabled {
+		color: var(--color-text-muted);
+		cursor: default;
+	}
+
+	.app-sidebar-icon {
+		display: inline-flex;
+		flex-shrink: 0;
+	}
+
+	.app-sidebar-label {
+		flex: 1;
+	}
+
+	.app-sidebar-badge {
+		font-size: 0.65rem;
+		padding: 0.15em 0.55em;
+		flex-shrink: 0;
+	}
+</style>

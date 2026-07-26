@@ -31,6 +31,15 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { OpponentNoteRequestBody } from './opponent-notes-validation';
 
+// UI層(対戦相手メモの入力フォーム)がインポートして使うための型。実体は
+// opponent-notes-validation.ts で定義している(バリデーションロジックと乖離させないため、
+// ここでは re-export のみ行う)。
+export type {
+  OpponentAttackInput,
+  OpponentFieldInput,
+  OpponentClientResultInput,
+} from './opponent-notes-validation';
+
 export interface OpponentNoteRecord {
   id: string;
   owned_pokemon_id: string;
