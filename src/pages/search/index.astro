@@ -78,6 +78,19 @@ import AppLayout from '../../layouts/AppLayout.astro';
 			.radio-label { min-width: auto; font-weight: normal; margin-right: 1rem; }
 			.result-block { margin: 0.8rem 0; }
 			.result-block ul { padding-left: 1.2em; }
+			/* B-2: 結果リストの実コンテンツ幅は最長「リザードン(キョダイ)」でも171pxしかないのに
+			   .panel-content は1080px確保しているため、4件表示時にパネル右側84%が空白になる。
+			   カテゴリ(ポケモン/技/特性/持ち物)ごとに独立した<ul>をCSS multi-columnで多段化し、
+			   少数件でも横方向に密度を持たせる。<ul>自体はこのページの静的マークアップ内にあり
+			   (中身の<li>/<a>のみJSで動的生成)、data-astro-cid-*が付与されるためscoped styleで
+			   問題なく効く(A-7で対処した「JS生成要素にscopedが効かない」問題とは別レイヤー)。 */
+			.result-block ul {
+				column-width: 220px;
+				column-gap: var(--space-6);
+			}
+			.result-block li {
+				break-inside: avoid;
+			}
 			/* B-6: キーワード入力欄が .panel-content(1080px)の中で207pxのまま伸びず、
 			   placeholderが「特性」で切れていた。.row (global.css) はflex-wrapのみで
 			   flex-directionをcolumnに切り替えないため、#queryの伸長がそのまま横幅に

@@ -289,15 +289,26 @@ const learnerCount = learnerNames.length;
 			align-items: center;
 			gap: var(--space-4);
 		}
-		.move-type-icon {
+		/* round-16.md B-6: 識別ブロックのタイプ表示を pokemon/[name].astro の
+		   .identity-type-chip(アイコン+タイプ名テキストの角丸ピル、背景--color-surface-alt)と
+		   同じ構成に揃える。以前は「40pxの裸の円形アイコン(ピルなし・境界線のみ)」+
+		   別要素の素のタイプ名テキストという/moves独自の規格だった(/pokemonの28pxピル、
+		   タイプ相性ボックス内の20pxピルと合わせて1画面ペアで3規格が混在していた)。
+		   サイズは40pxのまま(識別ブロックはこのページの主識別要素なので大きくてよい)。 */
+		.move-identity-type-chip {
+			display: inline-flex;
+			align-items: center;
+			gap: 0.4em;
+			padding: 0.2em 0.9em 0.2em 0.3em;
+			border-radius: 999px;
+			background: var(--color-surface-alt);
+			font-weight: 600;
+		}
+		.move-identity-type-chip img {
 			display: block;
 			width: 40px;
 			height: 40px;
 			border-radius: 50%;
-			/* box/[id].astroの.type-badge-img等と同じ理屈: 事前生成済みの正方形アイコンなので
-			   object-fitでの切り出しは不要。淡い背景に重なっても輪郭が見えるよう縁取りだけ足す。 */
-			filter: drop-shadow(0 0 1px var(--color-surface));
-			border: 1px solid var(--color-border);
 		}
 		.move-name {
 			/* global.cssの.panel h2(区切り線付きセクション見出し)を打ち消す。
@@ -315,10 +326,6 @@ const learnerCount = learnerNames.length;
 			flex-wrap: wrap;
 			gap: var(--space-3);
 			margin-top: var(--space-2);
-		}
-		.move-type-name {
-			font-weight: 600;
-			color: var(--color-text-muted);
 		}
 		/* 分類バッジは既存の.badge(global.css)の形状をそのまま流用し、色だけ物理/特殊/変化で
 		   出し分ける。severity-bar/.status-textと同じ「data属性で配色を切り替える」語彙に揃える。
@@ -496,9 +503,12 @@ const learnerCount = learnerNames.length;
 			font-size: var(--font-size-sm);
 			color: var(--color-text-muted);
 		}
-		/* A-7: タイプ相性パネル下の複合タイプ注記。.move-note単体を見出し直後ではなく
-		   ばつぐん/いまひとつ等のブロック直後に置くため、独自にmargin-topを足す
-		   (.card-hintの負マージン罠を避ける。制約節参照)。 */
+		/* A-7 + round-16.md B-9: タイプ相性パネル下の注記。「複合タイプは掛け合わせ」(A-7)と
+		   「テラスタル時は防御側の実効タイプが単一化する」(B-9)は、どちらも「この表をどう
+		   読むか」という同じ性質の注意書きなので1つの段落にまとめた(注記が増えすぎて
+		   読まれなくなるのを避けるため。ruleset.md「4. タイプ相性」参照)。.move-note単体を
+		   見出し直後ではなくばつぐん/いまひとつ等のブロック直後に置くため、独自にmargin-topを
+		   足す(.card-hintの負マージン罠を避ける。制約節参照)。 */
 		.move-type-compound-note {
 			margin-top: var(--space-3);
 		}
@@ -572,13 +582,15 @@ const learnerCount = learnerNames.length;
 		<section class="panel">
 			<div class="panel-content">
 				<div class="move-identity">
-					{move.type && typeIconSrc && (
-						<img class="move-type-icon" src={typeIconSrc} width="40" height="40" alt="" />
-					)}
+					<span class="move-identity-type-chip">
+						{move.type && typeIconSrc && (
+							<img src={typeIconSrc} width="40" height="40" alt="" />
+						)}
+						<span>{move.type ?? 'タイプなし'}</span>
+					</span>
 					<div>
 						<h2 class="move-name">{move.name}</h2>
 						<div class="move-identity-meta">
-							<span class="move-type-name">{move.type ?? 'タイプなし'}</span>
 							<span class="badge category-badge" data-category={move.category}>{CATEGORY_LABELS[move.category]}</span>
 						</div>
 					</div>
@@ -664,7 +676,7 @@ const learnerCount = learnerNames.length;
 						)}
 						{!isStatusMove && (
 							<p class="move-note move-type-compound-note">
-								相手が複数タイプを持つ場合は、各タイプの倍率を掛け合わせてください(例: ほのお/ひこう相手にこおり技は 0.5×2 = 等倍)。
+								相手が複数タイプを持つ場合は、各タイプの倍率を掛け合わせてください(例: ほのお/ひこう相手にこおり技は 0.5×2 = 等倍)。相手がテラスタルしている場合はこの限りではなく、防御側の実効タイプがテラスタイプ1つに置き換わります(テラスタイプが「ステラ」の場合のみ、元の複合タイプのまま判定してください)。
 							</p>
 						)}
 					</div>
