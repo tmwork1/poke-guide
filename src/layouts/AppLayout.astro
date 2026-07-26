@@ -27,15 +27,25 @@ interface Props {
 	backHref?: string;
 	/** backHref 指定時のみ使用。省略時は「戻る」。 */
 	backLabel?: string;
+	/**
+	 * ラウンド13 A-1: "public" にすると第三者向けの公開ページ用シェルにする
+	 * (AppSidebar と .app-sidebar-overlay を描画せず、アカウント欄は常にログイン導線のみ)。
+	 * 既定 "app"(従来どおりログイン中ユーザー向けのシェル)。
+	 * 公開ページのスクリーンショットがそのままメールアドレス("ログイン中: dev@localhost")や
+	 * 未ログイン第三者には1つも成立しないサイドバー4項目を晒していた問題への対応。
+	 */
+	chrome?: "app" | "public";
 }
 
-const { title, description, current, bodyClass, backHref, backLabel } = Astro.props;
+const { title, description, current, bodyClass, backHref, backLabel, chrome = "app" } = Astro.props;
+const isPublicChrome = chrome === "public";
 
 const pageTitle = title === "Poke-Commons" ? title : `${title} | Poke-Commons`;
 
 // 個体管理機能専用のログインレーン(src/middleware.ts が locals.user にセットする)。
 // ダメージ計算・検索等の既存の匿名機能はこの値を参照しないため、ここで読むだけでは
-// 既存ページの挙動に影響しない。
+// 既存ページの挙動に影響しない。chrome="public" のときはこの値の有無に関わらず
+// 常にログイン導線のみを出す(第三者に自分のログイン状態・メールアドレスを見せないため)。
 const user = Astro.locals.user;
 ---
 
@@ -49,31 +59,41 @@ const user = Astro.locals.user;
 		<slot name="head" />
 	</head>
 	<body class={bodyClass}>
-		<div class="app-shell">
+		<div class={`app-shell${isPublicChrome ? " is-public" : ""}`}>
 			<header class="app-topbar">
 				<!-- モバイル(900px未満)専用の1段目: ハンバーガー + サイト名 + アカウント情報。
 				     デスクトップでは非表示(サイドバーに常時ブランドリンクがあるため不要)。 -->
 				<div class="app-topbar-row app-topbar-row-brand">
 					<div class="app-topbar-row-left">
-						<button
-							type="button"
-							class="app-topbar-menu-button btn-ghost"
-							id="app-sidebar-toggle"
-							aria-controls="app-sidebar"
-							aria-expanded="false"
-							aria-label="メニューを開く"
-						>
-							<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-								<line x1="4" y1="7" x2="20" y2="7" />
-								<line x1="4" y1="12" x2="20" y2="12" />
-								<line x1="4" y1="17" x2="20" y2="17" />
-							</svg>
-						</button>
+						{
+							/* ラウンド13追補: chrome="public" では .app-sidebar 自体を描画しないため、
+							   このボタンは押しても何も起きない死んだ操作になる(スクリーンリーダーからも
+							   到達できてしまう)。CSSで隠すだけでは不十分なので、他の「消す」指示とは異なり
+							   ここは条件付きレンダリングでDOM自体を出さない。 */
+							!isPublicChrome && (
+								<button
+									type="button"
+									class="app-topbar-menu-button btn-ghost"
+									id="app-sidebar-toggle"
+									aria-controls="app-sidebar"
+									aria-expanded="false"
+									aria-label="メニューを開く"
+								>
+									<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+										<line x1="4" y1="7" x2="20" y2="7" />
+										<line x1="4" y1="12" x2="20" y2="12" />
+										<line x1="4" y1="17" x2="20" y2="17" />
+									</svg>
+								</button>
+							)
+						}
 						<span class="app-topbar-brand">Poke-Commons</span>
 					</div>
 					<div class="app-topbar-account app-topbar-account-mobile">
 						{
-							user ? (
+							isPublicChrome ? (
+								<a class="btn-primary" href="/api/auth/login">自分の育成を管理する</a>
+							) : user ? (
 								<Fragment>
 									<span class="app-topbar-account-email">ログイン中: {user.email ?? user.displayName ?? user.id}</span>
 									<form method="POST" action="/api/auth/logout">
@@ -113,7 +133,9 @@ const user = Astro.locals.user;
 						)}
 						<div class="app-topbar-account app-topbar-account-desktop">
 							{
-								user ? (
+								isPublicChrome ? (
+									<a class="btn-primary" href="/api/auth/login">自分の育成を管理する</a>
+								) : user ? (
 									<Fragment>
 										<span class="app-topbar-account-email">ログイン中: {user.email ?? user.displayName ?? user.id}</span>
 										<form method="POST" action="/api/auth/logout">
@@ -129,9 +151,9 @@ const user = Astro.locals.user;
 				</div>
 			</header>
 
-			<AppSidebar current={current} />
+			{!isPublicChrome && <AppSidebar current={current} />}
 
-			<div class="app-sidebar-overlay" id="app-sidebar-overlay"></div>
+			{!isPublicChrome && <div class="app-sidebar-overlay" id="app-sidebar-overlay"></div>}
 
 			<main class="app-main">
 				<slot />

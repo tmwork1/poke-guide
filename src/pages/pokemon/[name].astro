@@ -5,8 +5,20 @@
 // DB依存の動的ルートとは異なり prerender=false は付けない。このプロジェクトの既定出力モードは
 // static なので、何も指定しなければ自動的に事前生成される)。
 // 該当ポケモンが存在しない name は getStaticPaths() の対象外になるため自然に404になる。
+//
+// UI改善ラウンド13(round-09.md A-3/A-4/A-5): /box が確立した「公式絵+タイプアイコン」
+// 「H/A/B/C/D/Sの6列グリッド+.tnum」の語彙をこのページに移植する。
+// - identity block(タイプ/覚えられる特性/進化前を1枚に統合、公式絵+タイプアイコンを追加)
+// - 種族値を素のtableから7列グリッド(4.5rem repeat(6, minmax(0,1fr)))に置き換え
+// - 覚えられる技を6列グリッド化し、タイプ一致(STAB)技を先頭に固める
+// 画像URLはどちらも純粋関数(officialArtworkUrl/typeIconUrl)なのでフロントマターで解決し、
+// 静的HTMLに焼く(クライアントJSは不要)。
 import pokemonDetailRaw from '../../../public/master-data/detail/pokemon.json';
+import pokemonMasterRaw from '../../../public/master-data/autocomplete/pokemon.json';
+import movesDetailRaw from '../../../public/master-data/detail/moves.json';
 import { toPokemonPathSegment } from '../../lib/pokemon-slug';
+import { officialArtworkUrl } from '../../lib/pokemon-master-data';
+import { typeIconUrl } from '../../lib/sprite-urls';
 import AppLayout from '../../layouts/AppLayout.astro';
 
 interface PokemonDetail {
@@ -41,88 +53,352 @@ interface Props {
 
 const { pokemon } = Astro.props as Props;
 
-const STAT_LABELS: string[] = ['HP', '攻撃', '防御', '特攻', '特防', '素早さ'];
+const STAT_COLUMN_LABELS: string[] = ['H', 'A', 'B', 'C', 'D', 'S'];
+
+// autocomplete/pokemon.json: dexNo(図鑑番号)+imageId(公式絵のPokeAPI ID、メガシンカ等の
+// 特殊フォルムはベース種族と異なるIDを持つ)を name で引く。
+interface PokemonMasterEntry {
+	name: string;
+	dexNo: number;
+	imageId: number;
+	forme: string | null;
+	types: string[];
+}
+const pokemonMasterMap = new Map(
+	(pokemonMasterRaw as PokemonMasterEntry[]).map((p) => [p.name, p]),
+);
+const masterEntry = pokemonMasterMap.get(pokemon.name) ?? null;
+// 図鑑番号は3桁ゼロ埋め("No.006")。masterEntry が見つからない場合は行ごと出さない。
+const dexNoLabel = masterEntry ? String(masterEntry.dexNo).padStart(3, '0') : null;
+const artworkUrl = masterEntry ? officialArtworkUrl(masterEntry.imageId) : null;
+
+// detail/moves.json: 技名から type/category/power を引き、learnset を「タイプ一致技が先頭」に
+// 並べ替える。新規データ生成は不要(既存の全件保持データをjoinするだけ)。
+type MoveCategory = 'physical' | 'special' | 'status';
+interface MoveDetail {
+	name: string;
+	type: string | null;
+	category: MoveCategory;
+	power: number | null;
+	accuracy: number | null;
+	pp: number;
+	priority: number;
+	critRatio: number;
+	target: string;
+}
+const movesDetailMap = new Map((movesDetailRaw as MoveDetail[]).map((m) => [m.name, m]));
+
+interface LearnsetMoveInfo {
+	name: string;
+	type: string | null;
+	power: number | null;
+	isStab: boolean;
+}
+const learnsetMoves: LearnsetMoveInfo[] = pokemon.learnset.map((name) => {
+	const detail = movesDetailMap.get(name);
+	const type = detail?.type ?? null;
+	return {
+		name,
+		type,
+		power: detail?.power ?? null,
+		isStab: type !== null && pokemon.types.includes(type),
+	};
+});
+// タイプ一致(STAB)技を先頭に固める。Array.prototype.sort はES2019以降で安定ソートが仕様上
+// 保証されているため、isStabのみをキーにした比較で同グループ内の相対順序(learnsetの元順序)が保たれる。
+const sortedLearnsetMoves = [...learnsetMoves].sort((a, b) => Number(b.isStab) - Number(a.isStab));
 ---
 <AppLayout title={pokemon.name} backHref="/search" backLabel="検索に戻る">
 	<style>
-		table { border-collapse: collapse; width: 100%; }
-		th, td { border: 1px solid var(--color-border); padding: 0.4em 0.6em; text-align: right; }
-		th:first-child, td:first-child { text-align: left; }
-		.type-badge {
-			display: inline-block;
-			border: 1px solid var(--color-border);
-			border-radius: var(--radius-sm);
-			padding: 0.15em 0.6em;
-			margin-right: 0.4em;
-			font-size: 0.9em;
+		/* --- identity block(A-3): タイプ/覚えられる特性/進化前を1枚に統合し、
+		   右に公式絵+タイプアイコンを添える(docs/ui_proposal/個体編集.png の
+		   「縦積み + 右に公式絵 + タイプ画像」を踏襲)。 */
+		.identity-block {
+			display: flex;
+			flex-wrap: wrap;
+			align-items: flex-start;
+			gap: var(--space-6);
 		}
-		ul.plain { padding-left: 1.2em; }
-		ul.moves { columns: 2; padding-left: 1.2em; }
+		.identity-info {
+			flex: 1 1 320px;
+			min-width: 0;
+			display: flex;
+			flex-direction: column;
+			gap: var(--space-4);
+		}
+		.identity-dexno {
+			margin: 0;
+			font-size: var(--font-size-sm);
+			font-weight: 700;
+			color: var(--color-text-muted);
+		}
+		.identity-field-label {
+			margin: 0 0 var(--space-2);
+			font-size: var(--font-size-sm);
+			font-weight: 700;
+			color: var(--color-text-muted);
+		}
+		.identity-type-list {
+			display: flex;
+			flex-wrap: wrap;
+			gap: var(--space-2);
+			list-style: none;
+			margin: 0;
+			padding: 0;
+		}
+		.identity-type-chip {
+			display: inline-flex;
+			align-items: center;
+			gap: 0.4em;
+			padding: 0.2em 0.7em 0.2em 0.3em;
+			border-radius: 999px;
+			background: var(--color-surface-alt);
+			font-weight: 600;
+		}
+		.identity-type-chip img {
+			display: block;
+			border-radius: 50%;
+		}
+		.identity-plain-list {
+			margin: 0;
+			padding-left: 1.2em;
+		}
+		.identity-pre-evolution {
+			margin: 0;
+		}
+		.identity-artwork {
+			flex: 0 0 auto;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			width: 160px;
+			height: 160px;
+			margin-left: auto;
+		}
+		.identity-artwork img {
+			display: block;
+			max-width: 100%;
+			max-height: 100%;
+		}
 		@media (max-width: 640px) {
-			ul.moves { columns: 1; }
+			.identity-artwork {
+				margin-left: 0;
+			}
 		}
-		ul.moves li { break-inside: avoid; }
+
+		/* --- 種族値(A-5): 素のtableを捨て、行ラベル1列+H/A/B/C/D/Sの7列グリッドに統一。
+		   /box の実数値グリッドと同じ「行優先」DOM。このページ専用のscopedクラス名で新設し、
+		   /box のクラス名は流用しない。 */
+		.stat-grid {
+			display: flex;
+			flex-direction: column;
+		}
+		.stat-grid-row {
+			display: grid;
+			grid-template-columns: 4.5rem repeat(6, minmax(0, 1fr));
+			align-items: center;
+			padding: var(--space-2) 0;
+		}
+		.stat-grid-row + .stat-grid-row {
+			border-top: 1px solid var(--color-border);
+		}
+		.stat-grid-label {
+			font-weight: 700;
+			font-size: 0.85em;
+			color: var(--color-text-muted);
+		}
+		.stat-grid-col-label {
+			text-align: center;
+			font-size: 0.8em;
+			font-weight: 700;
+			color: var(--color-text-muted);
+		}
+		.stat-grid-value {
+			text-align: center;
+			font-size: 1.05em;
+			font-weight: 700;
+		}
+
+		/* --- 覚えられる技(A-4→ラウンド13後の是正): 6列(1セル173px)では技名が省略され、
+		   「ほのおのうず/ほのおのキバ/ほのおのちかい」のような別の技が区別できなくなっていた。
+		   public/master-data/detail/moves.json 全716件の技名は最長でも8文字(全角カナ)で、
+		   実測(.move-cell-name のフォントでの自然幅)では8文字名の最大が128px。
+		   さらに「8文字名+タイプ一致★+3桁威力(例: アストラルビット★120)」という実在する
+		   最悪ケースを実際にDOMへ組んで測ると a要素の必要幅は約207px(206.8px)。
+		   minmax(168px,...)ではこれより38px以上も狭く、省略が起きて当然だった。
+		   → 1080px幅・gap 8pxでの auto-fill の列数はブレークポイントがあり、
+		   minmax(209px,1fr)までは5列(1セル209.6px、最悪ケースとの余裕は2.8pxしかない)、
+		   minmax(210px,1fr)から4列(1セル264px)に切り替わる。2.8pxはOS/ブラウザの
+		   フォントレンダリング差(サブピクセル丸め等)で再び省略が起きかねない薄い余裕なので、
+		   あえて4列側(minmax(210px,1fr))を選び、最悪ケースに対して57pxの余裕を確保した。
+		   列数を5にすること自体が目的ではなく「技名が省略されないこと」が目的
+		   (実測は .tmp-pkfix-* スクリプトで検証、結果は報告に記載)。
+		   タイプ一致技は背景色+★マーク(role="img" aria-label)で視覚的な印を付ける
+		   (色だけに頼らない、WCAG 1.4.1対応。この表現は変更しない)。 */
+		.moves-grid {
+			display: grid;
+			grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+			gap: 0.4rem var(--space-2);
+			list-style: none;
+			margin: 0;
+			padding: 0;
+		}
+		/* 1セル=1行(タイプアイコン+技名+[一致バッジ]+威力)。当初は名前行/威力行の2段組みだったが、
+		   実測したところ ul の高さが 921px(旧2カラム版)→890px(2段組み6カラム版)とほぼ縮まなかった
+		   (行数は36→12に減ったが1行の高さが約3倍になり相殺されたため)。1段組みに変更して
+		   1行の高さを詰め、行数を減らした効果がそのまま高さ削減に反映されるようにした。 */
+		.move-cell a {
+			display: flex;
+			align-items: center;
+			gap: 0.35em;
+			height: 100%;
+			padding: 0.28em 0.55em;
+			border-radius: var(--radius-sm);
+			background: var(--color-surface-alt);
+			color: var(--color-text);
+			text-decoration: none;
+		}
+		.move-cell.is-stab a {
+			background: var(--color-primary-soft);
+		}
+		.move-cell a:hover,
+		.move-cell a:focus-visible {
+			outline: 2px solid var(--color-primary);
+			outline-offset: -2px;
+		}
+		.move-cell-icon {
+			flex: 0 0 auto;
+			display: block;
+		}
+		.move-cell-name {
+			flex: 1 1 auto;
+			min-width: 0;
+			font-weight: 600;
+			font-size: 0.92em;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+		}
+		/* タイプ一致(STAB)の視覚的な印。背景色の違いだけに頼らない(WCAG 1.4.1)ための★マーク。
+		   スクリーンリーダー向けには aria-label で「タイプ一致」を読み上げさせ、
+		   グリフ自体は aria-hidden にする(◎「一致」の2文字テキストバッジだと技名の表示幅を
+		   圧迫し省略記号が多発したため、1グリフの★に差し替えて幅を確保した)。 */
+		.move-cell-stab {
+			flex: 0 0 auto;
+			font-size: 0.95em;
+			line-height: 1;
+			color: var(--color-primary);
+		}
+		.move-cell-power {
+			flex: 0 0 auto;
+			min-width: 1.6em;
+			font-weight: 700;
+			font-size: 0.85em;
+			color: var(--color-text-muted);
+			text-align: right;
+		}
+		/* 変化技は「威力」という概念自体を持たないデータ(未設定ではない)。
+		   数値スロットに "-" を並べると空欄スロットに見え「データ破損」に読める
+		   (docs/plan/ui_rounds/round-02.md B-1の教訓)。数値ではないので tabular-nums
+		   (.tnum)も外し、通常の文字幅で「変化」という区分名そのものを表示することで
+		   「威力の代わりに区分を示している」ことを明示する(物理/特殊とは違い技グリッド上に
+		   区分表示が無いので、変化技だけはここで区分名を出す)。 */
+		.move-cell-power-status {
+			font-weight: 600;
+			font-size: 0.78em;
+		}
 	</style>
 	<div class="page">
 		<section class="panel">
 			<div class="panel-content">
-				<h2>タイプ</h2>
-				<p>
-					{pokemon.types.map((t) => <span class="type-badge">{t}</span>)}
-				</p>
+				<h2>基本情報</h2>
+				<div class="identity-block">
+					<div class="identity-info">
+						{dexNoLabel && <p class="identity-dexno tnum">No.{dexNoLabel}</p>}
+						<div>
+							<h3 class="identity-field-label">タイプ</h3>
+							<ul class="identity-type-list">
+								{pokemon.types.map((t) => {
+									const iconUrl = typeIconUrl(t);
+									return (
+										<li class="identity-type-chip">
+											{iconUrl && <img src={iconUrl} width="28" height="28" alt="" />}
+											<span>{t}</span>
+										</li>
+									);
+								})}
+							</ul>
+						</div>
+						<div>
+							<h3 class="identity-field-label">覚えられる特性</h3>
+							{pokemon.abilities.length > 0 ? (
+								<ul class="identity-plain-list">
+									{pokemon.abilities.map((a) => <li>{a}</li>)}
+								</ul>
+							) : (
+								<p class="card-hint">データなし</p>
+							)}
+						</div>
+						<div>
+							<h3 class="identity-field-label">進化前</h3>
+							{pokemon.preEvolution ? (
+								<p class="identity-pre-evolution">
+									<a href={`/pokemon/${encodeURIComponent(toPokemonPathSegment(pokemon.preEvolution))}`}>{pokemon.preEvolution}</a>
+								</p>
+							) : (
+								<p class="card-hint">なし</p>
+							)}
+						</div>
+					</div>
+					{artworkUrl && (
+						<div class="identity-artwork">
+							<img src={artworkUrl} width="160" height="160" alt={`${pokemon.name}の公式絵`} loading="lazy" />
+						</div>
+					)}
+				</div>
 			</div>
 		</section>
 
 		<section class="panel">
 			<div class="panel-content">
 				<h2>種族値</h2>
-				<table>
-					<thead>
-						<tr>
-							{STAT_LABELS.map((label) => <th>{label}</th>)}
-						</tr>
-					</thead>
-					<tbody>
-						<tr>
-							{pokemon.baseStats.map((v) => <td>{v}</td>)}
-						</tr>
-					</tbody>
-				</table>
-			</div>
-		</section>
-
-		<section class="panel">
-			<div class="panel-content">
-				<h2>覚えられる特性</h2>
-				{pokemon.abilities.length > 0 ? (
-					<ul class="plain">
-						{pokemon.abilities.map((a) => <li>{a}</li>)}
-					</ul>
-				) : (
-					<p>データなし</p>
-				)}
-			</div>
-		</section>
-
-		<section class="panel">
-			<div class="panel-content">
-				<h2>進化前</h2>
-				{pokemon.preEvolution ? (
-					<p><a href={`/pokemon/${encodeURIComponent(toPokemonPathSegment(pokemon.preEvolution))}`}>{pokemon.preEvolution}</a></p>
-				) : (
-					<p>なし</p>
-				)}
+				<div class="stat-grid">
+					<div class="stat-grid-row">
+						<span class="stat-grid-label" aria-hidden="true"></span>
+						{STAT_COLUMN_LABELS.map((label) => <span class="stat-grid-col-label">{label}</span>)}
+					</div>
+					<div class="stat-grid-row">
+						<span class="stat-grid-label">種族値</span>
+						{pokemon.baseStats.map((v) => <span class="stat-grid-value tnum">{v}</span>)}
+					</div>
+				</div>
 			</div>
 		</section>
 
 		<section class="panel">
 			<div class="panel-content">
 				<h2>覚えられる技({pokemon.learnset.length}種)</h2>
-				{pokemon.learnset.length > 0 ? (
-					<ul class="moves">
-						{pokemon.learnset.map((m) => (
-							<li><a href={`/moves/${encodeURIComponent(m)}`}>{m}</a></li>
-						))}
+				{sortedLearnsetMoves.length > 0 ? (
+					<ul class="moves-grid">
+						{sortedLearnsetMoves.map((m) => {
+							const iconUrl = m.type ? typeIconUrl(m.type) : null;
+							return (
+								<li class={`move-cell${m.isStab ? ' is-stab' : ''}`}>
+									<a href={`/moves/${encodeURIComponent(m.name)}`}>
+										{iconUrl && <img class="move-cell-icon" src={iconUrl} width="16" height="16" alt={m.type ?? ''} />}
+										<span class="move-cell-name" title={m.name}>{m.name}</span>
+										{m.isStab && (
+											<span class="move-cell-stab" role="img" aria-label="タイプ一致">★</span>
+										)}
+										{m.power != null ? (
+											<span class="move-cell-power tnum">{m.power}</span>
+										) : (
+											<span class="move-cell-power move-cell-power-status">変化</span>
+										)}
+									</a>
+								</li>
+							);
+						})}
 					</ul>
 				) : (
 					<p>データなし</p>

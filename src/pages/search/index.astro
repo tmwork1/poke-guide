@@ -78,9 +78,17 @@ import AppLayout from '../../layouts/AppLayout.astro';
 			.radio-label { min-width: auto; font-weight: normal; margin-right: 1rem; }
 			.result-block { margin: 0.8rem 0; }
 			.result-block ul { padding-left: 1.2em; }
-			.result-block a { text-decoration: none; }
-			.result-block a:hover { text-decoration: underline; }
-			.suggestion-empty { color: var(--color-text-muted); font-style: italic; }
+		</style>
+		<style is:global>
+			/* 以下の2ルールは document.createElement() で生成する要素(検索結果の<a>と
+			   サジェスト空状態の<p>)に適用する。Astroの scoped style は data-astro-cid-*
+			   属性が付いた要素にしか効かず、JSで生成した要素には付与されないため、
+			   上の scoped <style> に書いても効かない(scopedのまま詳細度を上げても直らない)。
+			   このページ内で一意な id (#results-section / #trending-search) を前置し、
+			   他ページへスコープが漏れないようにする。 */
+			#results-section .result-block a { text-decoration: none; }
+			#results-section .result-block a:hover { text-decoration: underline; }
+			#trending-search .suggestion-empty { color: var(--color-text-muted); font-style: italic; }
 		</style>
 
 		<script>
@@ -110,6 +118,12 @@ import AppLayout from '../../layouts/AppLayout.astro';
 				{ key: "item", linkBase: null },
 			];
 
+			const VALID_CATEGORIES = CATEGORY_CONFIG.map((c) => c.key);
+			// URLクエリ・sessionStorage経由で受け取る category は不正値の可能性があるため検証する。
+			function isValidCategory(value: string): value is SearchCategory {
+				return (VALID_CATEGORIES as string[]).includes(value);
+			}
+
 			interface SearchResultItem {
 				name: string;
 			}
@@ -124,6 +138,59 @@ import AppLayout from '../../layouts/AppLayout.astro';
 			function getSelectedCategory(): string {
 				const checked = document.querySelector<HTMLInputElement>('input[name="category"]:checked');
 				return checked?.value ?? "";
+			}
+
+			function setCategoryRadio(category: string): void {
+				const target =
+					document.querySelector<HTMLInputElement>(`input[name="category"][value="${category}"]`) ??
+					document.querySelector<HTMLInputElement>('input[name="category"][value=""]');
+				if (target) {
+					target.checked = true;
+				}
+			}
+
+			// 検索状態をURLクエリに反映する。history.pushState は使わない
+			// (300msデバウンスの入力ごとに履歴が積もり、戻るボタンが壊れるため)。
+			function updateUrlState(query: string, category: string): void {
+				const params = new URLSearchParams();
+				if (query) params.set("q", query);
+				if (category) params.set("category", category);
+				const search = params.toString();
+				const newUrl = `${location.pathname}${search ? `?${search}` : ""}`;
+				history.replaceState(null, "", newUrl);
+			}
+
+			// /pokemon /moves は静的プリレンダリングのため backHref (常に "/search") に
+			// 検索語を焼き込めない。ブラウザバックでURLそのものが失われるケースの保険として、
+			// sessionStorage にも直近の検索状態を残す(復元優先度: URLクエリ > sessionStorage > 空)。
+			const STORAGE_KEY = "poke-commons:search-state";
+
+			interface StoredSearchState {
+				query: string;
+				category: string;
+			}
+
+			function saveSearchState(query: string, category: string): void {
+				try {
+					sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ query, category }));
+				} catch {
+					// sessionStorage が使えない環境(プライベートモード等)では諦める。
+				}
+			}
+
+			function loadSearchState(): StoredSearchState | null {
+				try {
+					const raw = sessionStorage.getItem(STORAGE_KEY);
+					if (!raw) return null;
+					const parsed = JSON.parse(raw) as Partial<StoredSearchState>;
+					if (typeof parsed.query !== "string") return null;
+					return {
+						query: parsed.query,
+						category: typeof parsed.category === "string" ? parsed.category : "",
+					};
+				} catch {
+					return null;
+				}
 			}
 
 			function renderResults(data: SearchResponseData | null): void {
@@ -171,6 +238,8 @@ import AppLayout from '../../layouts/AppLayout.astro';
 				if (!query) {
 					statusEl.textContent = "キーワードを入力してください";
 					renderResults(null);
+					updateUrlState("", "");
+					saveSearchState("", "");
 					return;
 				}
 				const category = getSelectedCategory();
@@ -192,6 +261,11 @@ import AppLayout from '../../layouts/AppLayout.astro';
 					const body = (await res.json()) as { data: SearchResponseData };
 					statusEl.textContent = body.data.hitCount === 0 ? "該当なし" : `${body.data.hitCount}件ヒットしました`;
 					renderResults(body.data);
+					// searchToken のチェック(token !== searchToken の早期returnの内側)を通過した、
+					// すなわち最新の応答であることを確認した後に replaceState を呼ぶ。
+					// 古い(デバウンス中に上書きされた)応答でURLを書き戻さないため。
+					updateUrlState(query, category);
+					saveSearchState(query, category);
 				} catch (err) {
 					if (token !== searchToken) return;
 					console.error(err);
@@ -259,6 +333,33 @@ import AppLayout from '../../layouts/AppLayout.astro';
 			}
 
 			void loadTrendingSearches();
+
+			// --- A-6: 検索状態をURLに読み書きする ---
+			// /search は /pokemon /moves の唯一の入口であり、両詳細ページの backHref="/search" が
+			// 指す唯一の戻り先。URLクエリ優先 → sessionStorage → 空、の順で復元することで、
+			// 「検索 → 詳細を開く → 戻る」で検索語と結果が失われないようにする。
+			function restoreSearchState(): void {
+				const params = new URLSearchParams(location.search);
+				let query = "";
+				let category = "";
+				if (params.has("q")) {
+					query = params.get("q") ?? "";
+					const rawCategory = params.get("category") ?? "";
+					category = isValidCategory(rawCategory) ? rawCategory : "";
+				} else {
+					const stored = loadSearchState();
+					if (stored) {
+						query = stored.query;
+						category = isValidCategory(stored.category) ? stored.category : "";
+					}
+				}
+				if (!query) return;
+				queryInput.value = query;
+				setCategoryRadio(category);
+				void runSearch();
+			}
+
+			restoreSearchState();
 		</script>
 	</div>
 </AppLayout>

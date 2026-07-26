@@ -64,6 +64,7 @@ def calc_stat(level, base, indiv, effort, nc):
 - **ステラ技**: 相手がテラスタル済みなら、タイプ相性表を無視して常に効果抜群(8192 = 2.0倍)固定になる(出典: `vendor/jpoke/src/jpoke/core/damage.py:227-232`)。
 - **テラスタル時の防御側タイプ判定**: `Pokemon.types` プロパティがテラスタル状態を自動的に反映するため、タイプ相性計算(`calc_def_type_modifier`)は常にテラス後の実効タイプに対して行われる。テラスタイプが「ステラ」の場合のみ元の複合タイプを維持し、それ以外のテラスタイプは単一タイプに置き換わる(出典: `vendor/jpoke/src/jpoke/model/pokemon.py:537-560`)。
 - 内部的にはすべて4096を1.0倍とする固定小数点整数で表現される(出典: `vendor/jpoke/src/jpoke/core/damage.py:222,234-253`)。
+- **タイプ無し技(`type: None`、例: わるあがき)の扱い**: `calc_def_type_modifier()` は `TYPE_MODIFIER.get(move_type, {})` で相性表を引く。`move_type` が `None` のとき `TYPE_MODIFIER` に `None` というキーは存在しないため(存在するのは空文字列 `""` キーで、`None` とは別物)、`.get()` は既定値の空dict `{}` を返す。以降 `type_chart.get(def_type, 1.0)` で各防御タイプを引いても該当キーが無いため常に既定値 `1.0` になり、結果としてタイプ無し技は防御側のタイプに関わらず常に等倍(4096のまま)になる(出典: `vendor/jpoke/src/jpoke/core/damage.py:225,235,249-251`)。**`TYPE_MODIFIER[""]` キー自体(全防御タイプに対し1.0)は、この経路では一度も参照されない実質未使用のデータ**(出典: `vendor/jpoke/src/jpoke/data/type_chart.py:2-22`)。UI側でタイプ無し技の相性を扱う場合は「該当キーが無いので1.0」という空dictフォールバックの結果を再現すればよく、`""` キーを直接引く必要はない(結果は同じ1.0だが経路が違う)。
 
 ## 5. ステータスランク補正
 

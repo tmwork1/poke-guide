@@ -8,6 +8,10 @@
 import AppLayout from '../../layouts/AppLayout.astro';
 import { getSupabasePublicClient } from '../../lib/supabase';
 import { getPublicOwnedPokemonBySlug, type PublicOwnedPokemonRecord } from '../../lib/owned-pokemon';
+// ラウンド13 A-2: 実数値をサーバ側(フロントマター)で計算するための種族値データ。
+// pokemon/[name].astro と同じく public/master-data/detail/pokemon.json をビルド時 import する
+// (ビルド時に確定する静的データなのでfetchではなくESM importで読める)。
+import pokemonDetailRaw from '../../../public/master-data/detail/pokemon.json';
 
 // API ルート (src/pages/api/**) と同じく、動的ルートはSSRで都度サーバレンダリングする
 // (ビルド時の静的プリレンダリングではなく、リクエストのたびにDBを参照するため)。
@@ -15,14 +19,75 @@ export const prerender = false;
 
 const { slug } = Astro.params;
 
-const STAT_LABELS: Array<{ key: 'hp' | 'atk' | 'def' | 'spa' | 'spd' | 'spe'; label: string }> = [
-	{ key: 'hp', label: 'HP' },
-	{ key: 'atk', label: '攻撃' },
-	{ key: 'def', label: '防御' },
-	{ key: 'spa', label: '特攻' },
-	{ key: 'spd', label: '特防' },
-	{ key: 'spe', label: '素早さ' },
-];
+// 努力値・実数値グリッドの列順([HP, 攻撃, 防御, 特攻, 特防, 素早さ])。
+// evs/ivs配列の並びと一致させる(box/index.astro の STAT_KEYS と同じ順序)。
+const STAT_KEYS = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'] as const;
+type StatKey = (typeof STAT_KEYS)[number];
+const STAT_LABELS = ['H', 'A', 'B', 'C', 'D', 'S'] as const;
+
+// ラウンド13 A-2: 実数値の純JS計算式。
+// 出典: src/pages/box/index.astro の chmpToLegacyEffort/calcHpStat/calcOtherStat/
+// NATURE_STAT_MODIFIERS (2026-07-27時点でL716-755付近) をそのままコピーしたもの。
+// vendor/jpoke/src/jpoke/model/stats.py の calc_hp/calc_stat/chmp_to_legacy_effort と
+// 完全に同じ式(box/index.astroのコメント参照)。box/index.astro は今ラウンドの担当外
+// (編集禁止)のため、共通化(src/lib/stats.tsへの切り出し)は次ラウンドの積み残しとして
+// round-09.md/round-13.md に記録済み。式を変更する場合は box/index.astro 側と両方直すこと。
+interface PokemonDetailEntry {
+	name: string;
+	baseStats: number[];
+}
+
+const baseStatsMap = new Map<string, number[]>(
+	Object.values(pokemonDetailRaw as Record<string, PokemonDetailEntry>).map((p) => [p.name, p.baseStats]),
+);
+
+const NATURE_STAT_MODIFIERS: Record<string, { up: StatKey | null; down: StatKey | null }> = {
+	'まじめ': { up: null, down: null },
+	'さみしがり': { up: 'atk', down: 'def' },
+	'いじっぱり': { up: 'atk', down: 'spa' },
+	'やんちゃ': { up: 'atk', down: 'spd' },
+	'ゆうかん': { up: 'atk', down: 'spe' },
+	'ずぶとい': { up: 'def', down: 'atk' },
+	'わんぱく': { up: 'def', down: 'spa' },
+	'のうてんき': { up: 'def', down: 'spd' },
+	'のんき': { up: 'def', down: 'spe' },
+	'ひかえめ': { up: 'spa', down: 'atk' },
+	'おっとり': { up: 'spa', down: 'def' },
+	'うっかりや': { up: 'spa', down: 'spd' },
+	'れいせい': { up: 'spa', down: 'spe' },
+	'おだやか': { up: 'spd', down: 'atk' },
+	'おとなしい': { up: 'spd', down: 'def' },
+	'しんちょう': { up: 'spd', down: 'spa' },
+	'なまいき': { up: 'spd', down: 'spe' },
+	'おくびょう': { up: 'spe', down: 'atk' },
+	'せっかち': { up: 'spe', down: 'def' },
+	'ようき': { up: 'spe', down: 'spa' },
+	'むじゃき': { up: 'spe', down: 'spd' },
+	'てれや': { up: null, down: null },
+	'がんばりや': { up: null, down: null },
+	'すなお': { up: null, down: null },
+	'きまぐれ': { up: null, down: null },
+};
+
+function chmpToLegacyEffort(evChamp: number): number {
+	return evChamp === 0 ? 0 : 8 * evChamp - 4;
+}
+function calcHpStat(level: number, base: number, iv: number, evChamp: number): number {
+	if (base === 1) return 1; // ヌケニン特例(vendor/jpoke/src/jpoke/model/stats.pyと同じ)
+	const effort = chmpToLegacyEffort(evChamp);
+	return Math.floor(((base * 2 + iv + Math.floor(effort / 4)) * level) / 100) + level + 10;
+}
+function calcOtherStat(level: number, base: number, iv: number, evChamp: number, nc: number): number {
+	const effort = chmpToLegacyEffort(evChamp);
+	return Math.floor((Math.floor(((base * 2 + iv + Math.floor(effort / 4)) * level) / 100) + 5) * nc);
+}
+
+interface StatCell {
+	label: (typeof STAT_LABELS)[number];
+	ev: number;
+	value: number | null;
+	mod: 'up' | 'down' | null;
+}
 
 let pokemon: PublicOwnedPokemonRecord | null = null;
 
@@ -45,23 +110,39 @@ if (!pokemon) {
 
 const displayName = pokemon ? (pokemon.nickname || pokemon.species_name) : '';
 
-// species_name 等は自由入力文字列(実在ポケモン名限定のバリデーションはしていない)なので、
-// <script>タグへ埋め込む際に "</script>" 等でタグを閉じて注入されないよう "</" をエスケープする
-// (JSONをscriptタグに安全に埋め込む定石)。
-function safeJsonForScript(value: unknown): string {
-	return JSON.stringify(value).replace(/</g, '\\u003c');
+// ラウンド13 A-2: 実数値をリクエスト時にサーバ側で計算し、静的HTMLとして焼く
+// (クライアントJS・Pyodideは一切使わない)。種族値が解決できない場合は value を null のまま
+// 残し、表示側で "-" にフォールバックする。
+let statCells: StatCell[] = STAT_LABELS.map((label) => ({ label, ev: 0, value: null, mod: null }));
+
+if (pokemon) {
+	const base = baseStatsMap.get(pokemon.species_name);
+	const level = pokemon.level ?? 50;
+	const mod = NATURE_STAT_MODIFIERS[pokemon.nature ?? ''] ?? { up: null, down: null };
+	statCells = STAT_KEYS.map((key, i) => {
+		const iv = pokemon!.ivs[i] ?? 31;
+		const ev = pokemon!.evs[i] ?? 0;
+		const value = base
+			? key === 'hp'
+				? calcHpStat(level, base[i], iv, ev)
+				: calcOtherStat(level, base[i], iv, ev, mod.up === key ? 1.1 : mod.down === key ? 0.9 : 1.0)
+			: null;
+		return {
+			label: STAT_LABELS[i],
+			ev,
+			value,
+			mod: key !== 'hp' && mod.up === key ? 'up' : key !== 'hp' && mod.down === key ? 'down' : null,
+		};
+	});
 }
+
+// A-1: 未使用だった description props を実際に渡す(公開ページなのに meta description が
+// 無かった)。
+const description = pokemon
+	? `${displayName}(${pokemon.species_name})の育成データを公開しています。性格・特性・持ち物・技構成・努力値・実数値を確認できます。`
+	: '指定された個体は存在しないか、非公開に設定されています。';
 ---
-<AppLayout title={pokemon ? `${displayName}の個体` : '見つかりません'}>
-	<style>
-		/* 帯化(.panel-content max-width:1080px)に伴い、努力値/個体値・実数値の表が
-		   global.css の table { width:100% } のまま伸びると間延びするため、
-		   このページの表だけ内容幅に留める(第三者が閲覧する公開ページなので読みやすさ優先)。 */
-		table {
-			width: auto;
-			min-width: 26em;
-		}
-	</style>
+<AppLayout title={pokemon ? `${displayName}の個体` : '見つかりません'} description={description} chrome="public">
 	<div class="page">
 
 		{!pokemon ? (
@@ -94,131 +175,96 @@ function safeJsonForScript(value: unknown): string {
 
 				<section class="panel">
 					<div class="panel-content">
-						<h2>努力値・個体値</h2>
-						<table>
-							<thead>
-								<tr>
-									<th>ステータス</th>
-									{STAT_LABELS.map(({ label }) => <th>{label}</th>)}
-								</tr>
-							</thead>
-							<tbody>
-								<tr>
-									<td>努力値</td>
-									{STAT_LABELS.map((_, i) => <td>{pokemon!.evs[i] ?? 0}</td>)}
-								</tr>
-								<tr>
-									<td>個体値</td>
-									{STAT_LABELS.map((_, i) => <td>{pokemon!.ivs[i] ?? 31}</td>)}
-								</tr>
-							</tbody>
-						</table>
+						<h2>能力値</h2>
+						{/* ラウンド13 A-5: 素の<table>をやめ、/boxの数値グリッド語彙(行ラベル1列+H/A/B/C/D/Sの
+						    6列の7列グリッド)に統一する。クラス名は/boxから流用せずこのページ専用に新設した。
+						    DOMは行優先(見出し7セル→努力値7セル→実数値7セル)。個体値の行はIV=31固定という
+						    仕様上つねに同じ値が並ぶだけで情報量が無いため削除し、.card-hintの1行に置き換える。 */}
+						<div class="share-stat-grid">
+							<span class="share-stat-row-label" aria-hidden="true"></span>
+							{STAT_LABELS.map((label) => <span class="share-stat-col-label">{label}</span>)}
+
+							<span class="share-stat-row-label">努力値</span>
+							{statCells.map((cell) => <span class="share-stat-cell tnum">{cell.ev}</span>)}
+
+							<span class="share-stat-row-label">実数値</span>
+							{statCells.map((cell) => (
+								<span class="share-stat-cell share-stat-cell-real tnum" data-mod={cell.mod ?? undefined}>
+									{cell.value ?? '-'}
+									{cell.mod === 'up' && <span aria-hidden="true">▲</span>}
+									{cell.mod === 'down' && <span aria-hidden="true">▼</span>}
+								</span>
+							))}
+						</div>
+						{/* ラウンド13追補: グローバルの.card-hintは「見出し直下に詰めて置く」前提で
+						    margin-top: calc(var(--space-2) * -1) を持つ(box/[id].astro・pokemon/[name].astro・
+						    search/index.astroの各.card-hintは全てh2/h3直後で使われている)。このページだけは
+						    見出しではなく7列グリッドの直後に置くため、他画面の.card-hintの意味を変えずに
+						    ここだけ打ち消す(グローバル側は編集しない)。詳細度はscoped属性2つぶん
+						    (0,3,0)でグローバルの0,1,0に確実に勝つ。 */}
+						<p class="share-stat-hint card-hint">個体値は全て31(チャンピオンズルール)</p>
 					</div>
 				</section>
-
-				<section class="panel">
-					<div class="panel-content">
-						<h2>実数値</h2>
-						<p>
-							<button id="calc-stats-button" class="btn-primary" type="button">実数値を計算する</button>
-						</p>
-						<p id="engine-status" class="status-text" data-state="idle">未計算(ボタンを押すまでPyodideはロードされません)</p>
-						<table id="stats-table" hidden>
-							<thead>
-								<tr>
-									{STAT_LABELS.map(({ label }) => <th>{label}</th>)}
-								</tr>
-							</thead>
-							<tbody>
-								<tr id="stats-row">
-									{STAT_LABELS.map(() => <td>-</td>)}
-								</tr>
-							</tbody>
-						</table>
-					</div>
-				</section>
-
-				{/* サーバ側で取得した個体データをブラウザ専用<script>へ橋渡しするためのJSON。
-					Astroのdefine:varsはスクリプトを非処理(inline)化しVite経由の静的importが
-					使えなくなるため、damage-calcページと同じ「static importするmoduleスクリプト」
-					のパターンを保つ目的でこの方式を採る。 */}
-				<script type="application/json" id="pokemon-data" set:html={safeJsonForScript(pokemon)} />
-
-				<script>
-					import { initEngine, calcStats, registerOfflineCache, type PokemonSpec } from "../../lib/pyodide-engine";
-
-					interface PokemonData {
-						species_name: string;
-						nature: string | null;
-						ability_name: string | null;
-						item_name: string | null;
-						tera_type: string | null;
-						evs: number[];
-						ivs: number[];
-						move_names: string[];
-					}
-
-					function el<T extends HTMLElement>(id: string): T {
-						const found = document.getElementById(id);
-						if (!found) {
-							throw new Error(`要素が見つかりません: #${id}`);
-						}
-						return found as T;
-					}
-
-					const STAT_KEYS = ["hp", "atk", "def", "spa", "spd", "spe"] as const;
-
-					const pokemonDataEl = el<HTMLScriptElement>("pokemon-data");
-					const pokemon = JSON.parse(pokemonDataEl.textContent ?? "null") as PokemonData | null;
-
-					const statusEl = el<HTMLElement>("engine-status");
-					const calcButton = el<HTMLButtonElement>("calc-stats-button");
-					const statsTable = el<HTMLTableElement>("stats-table");
-					const statsRow = el<HTMLTableRowElement>("stats-row");
-
-					function renderProgress(progress: { status: string; message: string }) {
-						statusEl.dataset.state = progress.status;
-						const spinner = progress.status === "loading" ? '<span class="spinner"></span>' : "";
-						statusEl.innerHTML = spinner + progress.message;
-					}
-
-					calcButton.addEventListener("click", async () => {
-						if (!pokemon) return;
-						calcButton.disabled = true;
-						try {
-							await initEngine(renderProgress);
-							const spec: PokemonSpec = {
-								name: pokemon.species_name,
-								nature: pokemon.nature ?? undefined,
-								abilityName: pokemon.ability_name ?? undefined,
-								itemName: pokemon.item_name ?? undefined,
-								teraType: pokemon.tera_type ?? undefined,
-								moveNames: pokemon.move_names,
-								evs: pokemon.evs,
-								ivs: pokemon.ivs,
-							};
-							const { stats } = await calcStats(spec);
-							statsRow.innerHTML = "";
-							for (const key of STAT_KEYS) {
-								const td = document.createElement("td");
-								td.textContent = String(stats[key]);
-								statsRow.appendChild(td);
-							}
-							statsTable.hidden = false;
-						} catch (err) {
-							console.error(err);
-							statusEl.dataset.state = "error";
-							statusEl.textContent = "エラー: " + (err instanceof Error ? err.message : String(err));
-						} finally {
-							calcButton.disabled = false;
-						}
-					});
-
-					renderProgress({ status: "idle", message: "未計算(ボタンを押すまでPyodideはロードされません)" });
-					// Pyodide自体のロードは開始しない(SW登録のみ)。damage-calc ページと同じ方針。
-					registerOfflineCache();
-				</script>
 			</>
 		)}
 		</div>
 </AppLayout>
+
+<style>
+	/* ラウンド13 A-5: 4.5rem(行ラベル列)+ 6列(H/A/B/C/D/S)の7列グリッド。
+	   罫線は使わない(旧<table>のライト1.25:1/ダーク1.27:1問題はこれ自体で解消する)。 */
+	.share-stat-grid {
+		display: grid;
+		grid-template-columns: 4.5rem repeat(6, minmax(0, 1fr));
+		gap: 0.3rem 0.4rem;
+		align-items: center;
+	}
+	/* グローバルの.card-hintが持つ margin-top: calc(var(--space-2) * -1) を打ち消す
+	   (このページでは見出しではなく上のグリッド直後に置くため、負マージンだとグリッドに
+	   食い込んで「実数値」ラベルの注記に見えてしまう)。グリッドとの間は通常の余白
+	   (--space-3)を空け、グリッド左端と揃う独立した1行として読めるようにする。
+	   .card-hintクラス自体は他画面(box/[id].astro・pokemon/[name].astro・search/index.astro)
+	   でも見出し直下の詰め配置に使われているため、グローバル側は変更せずこのページ専用の
+	   .share-stat-hintをscoped styleで足して打ち消す(scoped属性2つぶんの詳細度で確実に勝つ)。 */
+	.share-stat-hint {
+		margin-top: var(--space-3);
+	}
+	.share-stat-row-label {
+		font-size: var(--font-size-sm);
+		font-weight: 700;
+		color: var(--color-text-muted);
+		white-space: nowrap;
+	}
+	.share-stat-col-label {
+		font-size: var(--font-size-sm);
+		font-weight: 700;
+		text-align: center;
+		color: var(--color-text-muted);
+	}
+	.share-stat-cell {
+		text-align: center;
+		font-size: var(--font-size-md);
+	}
+	.share-stat-cell-real {
+		font-size: 1.1em;
+		font-weight: 700;
+	}
+	/* box/[id].astroの--stat-up/--stat-downと同じ配色(上昇=赤系/下降=青系)。
+	   このページ専用のスコープ変数として.pageに持たせる(他ページの値と混線しない)。 */
+	.page {
+		--share-stat-up: #c9432c;
+		--share-stat-down: #1d6fd1;
+	}
+	@media (prefers-color-scheme: dark) {
+		.page {
+			--share-stat-up: var(--color-danger);
+			--share-stat-down: #6fb6f7;
+		}
+	}
+	.share-stat-cell-real[data-mod='up'] {
+		color: var(--share-stat-up);
+	}
+	.share-stat-cell-real[data-mod='down'] {
+		color: var(--share-stat-down);
+	}
+</style>

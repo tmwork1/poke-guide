@@ -57,6 +57,13 @@
 	--color-danger-strong: #b23a26;
 	--color-risky-strong: #8a5806;
 	--color-success-strong: #2b6b5c;
+	/* ラウンド13 A-8: 既定のリンク色(下の `a { color: var(--color-primary) }`)が
+	   #27acd9 on #ffffff = 2.63:1 でWCAG AA(4.5:1)を割っていた(ダークは8.08:1で問題なし)。
+	   --color-danger-strong 等と同じ設計で「リンク文字専用の濃色派生」を用意する。
+	   #1a7ea1 は白地に対し4.62:1。ボタン・枠線・アイコン・スライダーが参照する
+	   --color-primary 本体は一切変えない(それらは背景色として使われるため文字コントラストの
+	   問題が無く、変えると配色トークンが増える制約に抵触する)。 */
+	--color-primary-strong: #1a7ea1;
 
 	--radius-sm: 6px;
 	--radius-md: 10px;
@@ -125,6 +132,9 @@
 		--color-danger-strong: var(--color-danger);
 		--color-risky-strong: var(--color-risky);
 		--color-success-strong: var(--color-success);
+		/* ダークの --color-primary(#4dc3ea) は白文字ではなく暗背景に対して既に8.08:1あるため、
+		   -strongはライト用の別色にせず本体トークンへエイリアスする(-danger等と同じ扱い)。 */
+		--color-primary-strong: var(--color-primary);
 
 		/* ダークでは黒背景に対して光の影がほぼ見えないため、暗い背景でも輪郭が読める
 		   濃いめの黒影に差し替える(色トークン自体は変えない)。 */
@@ -151,8 +161,10 @@ body {
 	-webkit-font-smoothing: antialiased;
 }
 
+/* ラウンド13 A-8: リンクの既定色だけ --color-primary-strong に向ける
+   (ボタン・枠線・アイコン・スライダー等が参照する --color-primary 本体は触らない)。 */
 a {
-	color: var(--color-primary);
+	color: var(--color-primary-strong);
 }
 
 /* --- ページ共通コンテナ ---
@@ -1006,6 +1018,17 @@ dialog#opponent-note-form-container::backdrop {
 
 	.app-main {
 		margin-left: var(--sidebar-width);
+	}
+
+	/* ラウンド13 A-1: 公開共有ページ(chrome="public")はサイドバーを描画しないため、
+	   トップバー・本文がサイドバー幅ぶん空けている必要が無い。詳細度 0,3,0 で
+	   直前の .app-topbar/.app-main(詳細度 0,1,0)に確実に勝たせる。
+	   AppLayout.astro の scoped <style> 側には margin-left を一切書き足さないこと
+	   (scoped styleはこのファイルより後に注入されるため、同詳細度なら後勝ちでここの
+	   指定を打ち消してしまう。ラウンド8で実際に横スクロール101pxの事故が起きた)。 */
+	.app-shell.is-public .app-topbar,
+	.app-shell.is-public .app-main {
+		margin-left: 0;
 	}
 }
 
