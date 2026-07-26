@@ -508,7 +508,15 @@ const learnerCount = learnerNames.length;
 		   読むか」という同じ性質の注意書きなので1つの段落にまとめた(注記が増えすぎて
 		   読まれなくなるのを避けるため。ruleset.md「4. タイプ相性」参照)。.move-note単体を
 		   見出し直後ではなくばつぐん/いまひとつ等のブロック直後に置くため、独自にmargin-topを
-		   足す(.card-hintの負マージン罠を避ける。制約節参照)。 */
+		   足す(.card-hintの負マージン罠を避ける。制約節参照)。
+		   ラウンド19: この注記はtypeEffectivenessGroups.length > 0のときだけ表示する(表示側で
+		   同じ条件を「常に等倍」メッセージの出し分けに使っている、上の650行目付近参照)。
+		   わるあがき(type: null)は18タイプ全てに対して等倍固定のためgroups.length===0になり、
+		   すぐ上に「相手のタイプに関わらず、常に等倍(×1)のダメージになります。」と表示される。
+		   その状態で「掛け合わせ/テラスタル」注記まで出すと、常に等倍と矛盾する不要な情報になる
+		   (round-15.md A-7で注記を入れた時からの既存挙動、round-16.md 積み残し)。実在する18種の
+		   攻撃技タイプはいずれかのタイプに2/0.5/0倍率を持つため、実データ上この条件で消えるのは
+		   わるあがきのみ(type-chart.tsのTYPE_CHART参照)。 */
 		.move-type-compound-note {
 			margin-top: var(--space-3);
 		}
@@ -674,7 +682,7 @@ const learnerCount = learnerNames.length;
 								))}
 							</div>
 						)}
-						{!isStatusMove && (
+						{!isStatusMove && typeEffectivenessGroups.length > 0 && (
 							<p class="move-note move-type-compound-note">
 								相手が複数タイプを持つ場合は、各タイプの倍率を掛け合わせてください(例: ほのお/ひこう相手にこおり技は 0.5×2 = 等倍)。相手がテラスタルしている場合はこの限りではなく、防御側の実効タイプがテラスタイプ1つに置き換わります(テラスタイプが「ステラ」の場合のみ、元の複合タイプのまま判定してください)。
 							</p>

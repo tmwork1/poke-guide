@@ -2502,7 +2502,7 @@ const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 		// ラウンド18: 実数値計算の共通化。box/index.astro・share/[slug].astro・pokemon/[name].astro
 		// と4箇所にコピーされていた chmpToLegacyEffort/calcHpStat/calcOtherStat/
 		// NATURE_STAT_MODIFIERSをsrc/lib/stats.tsに統合した。
-		import { type StatKey, NATURE_STAT_MODIFIERS, calcHpStat, calcOtherStat } from "../../lib/stats";
+		import { type StatKey, STAT_KEYS, NATURE_STAT_MODIFIERS, calcHpStat, calcOtherStat } from "../../lib/stats";
 
 		// 画像用ID(imageId)の一覧はページ表示直後に一度だけfetchしておき、以後は同じPromiseを使い回す
 		// (種族名入力/対戦相手名入力の両方で共有する)。dexNo(全国図鑑番号)ではなく imageId を
@@ -2576,6 +2576,48 @@ const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 			if (!trimmed || !moveDetailMapCache) return null;
 			return moveDetailMapCache.get(trimmed)?.category ?? null;
 		}
+
+		// ラウンド19最優先: moves.jsonで power:null かつ category!=="status" の技(カウンター・
+		// ちきゅうなげ・OHKO技など14件)は、jpokeのcalc_lethal経路(pyodide-engine.ts)が
+		// 特別扱いしないため威力nullがそのままダメージ0として計算される
+		// (vendor/jpoke/src/jpoke/core/lethal.py・core/damage.pyにohkoの参照が0件。
+		// .claude/skills/jpoke/references/damage-calc.md参照)。結果を確N/乱N/未撃破に
+		// 通すと「この技はダメージが出ない」と誤解される。変化技(category==="status"。
+		// まもる等)は同じpower:nullでも「ダメージを与えない技」という別の意味であり、
+		// ここでは対象外にする(=まもる等の既存の表示挙動には一切触れない)。
+		function isVariablePowerMove(name: string): boolean {
+			const trimmed = name.trim();
+			if (!trimmed || !moveDetailMapCache) return false;
+			const detail = moveDetailMapCache.get(trimmed);
+			if (!detail) return false;
+			return detail.power == null && detail.category !== "status";
+		}
+
+		// /moves/[name].astro:246 の語彙(「この技は威力が固定値ではなく特殊な計算式(相手の
+		// 残りHPや受けたダメージ量など)で決まるため、期待値は算出できません。」)と同じ概念を
+		// このページの文脈(期待値ではなくダメージ・確N/乱N表示)に合わせて言い換えたもの。
+		// 新しい言い方を増やさないよう、この定数だけを両方の表示箇所(技列・カード合計)で使い回す。
+		const VARIABLE_POWER_NOTE =
+			"この技は威力が固定値ではなく特殊な計算式(相手の残りHPや受けたダメージ量など)で決まるため、ダメージを算出できません。";
+		// OHKO技(一撃必殺技)4件は上記の「算出できない」に加えて、命中すれば相手の残りHPに
+		// 関わらず即座に倒すという性質そのものが伝わらないと、逆に「弱い技」に見えてしまう。
+		// まず0ダメージと誤解させないことを優先しつつ、この4件だけは追加の一文で補足する。
+		const OHKO_MOVE_NAMES = new Set(["じわれ", "ハサミギロチン", "ぜったいれいど", "つのドリル"]);
+		const OHKO_NOTE = "一撃必殺技のため、命中すれば相手の残りHPに関わらず倒します(命中率30%)。";
+		function variablePowerNoteFor(name: string): string {
+			return OHKO_MOVE_NAMES.has(name.trim()) ? `${VARIABLE_POWER_NOTE} ${OHKO_NOTE}` : VARIABLE_POWER_NOTE;
+		}
+		// カード合計(renderTotalDisplay)用の断り書き。エンジン(calc_lethal_sequence_json)は
+		// 技列にvariable-power技を含んでいてもエラーにはならず、その技の寄与を0として
+		// 他の技と合成した数値をそのまま返す。数値自体は「算出できる技だけを合算した値」として
+		// 意味を持つため隠さず表示するが、素の確N/乱N表示と見分けが付かないと過信を招くため、
+		// 参考値であることを明示する。全ての技が算出不能なとき(合算しても常に0)は、その参考値
+		// すら「0ダメージ」に見えて主目的の誤解(この最優先項目そのもの)を再現してしまうため、
+		// 数値を出さずプレーンな理由文言に切り替える。
+		const VARIABLE_POWER_TOTAL_NOTE_SOME =
+			"技列に威力が固定値ではない技を含むため、算出できる技だけを合算した参考値です(該当技は0ダメージとして計算されています)。";
+		const VARIABLE_POWER_TOTAL_NOTE_ALL =
+			"技列がすべて威力が固定値ではない技のため、合計のダメージを算出できません。";
 
 		// タイプごとの色(タイプ画像/テラスタイプ画像が取得できない場合の色ボックスフォールバック用、
 		// Pokemon.pngワイヤーフレーム参照)。慣習的なタイプカラー。ステラは公式に単色が無いため近似値。
@@ -2812,11 +2854,12 @@ const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 		// にする(実数値だけがエンジン非依存になるのが正しい。エンジンが要るのはダメージ計算だけ)。
 		// ラウンド18: chmpToLegacyEffort・calcHpStat・calcOtherStatはsrc/lib/stats.tsに統合した
 		// (このファイルにあったコピーは削除。出典はsrc/lib/stats.ts冒頭のコメント参照)。
+		// ラウンド19: STAT_KEYS(evs/ivs配列の並び順)のローカル再定義もsrc/lib/stats.tsのものと
+		// 完全に同一の値だったため、冒頭のimportに寄せて削除した(この<script>はdefine:varsを
+		// 使っていないimportが効くモジュールスクリプトのため、統合に制約は無かった)。
 
 		const form = document.getElementById("edit-form") as HTMLFormElement | null;
 		if (form) {
-			const STAT_KEYS = ["hp", "atk", "def", "spa", "spd", "spe"] as const;
-
 			// UI刷新: 種族値の常時表示(実数値と同じ行に並べる)。
 			async function applyBaseStats(name: string): Promise<void> {
 				const base = name ? (await baseStatsMapPromise).get(name) : undefined;
@@ -4033,6 +4076,14 @@ const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 						// のような撃破済みキャプションを添えて控えめにする(第3弾の「列は独立判定」の
 						// 方針どおり数値自体は変えない)。
 						applyOverkill(confirmedKillAt != null && validPos > confirmedKillAt);
+						// ラウンド19最優先: 威力が固定値ではない技(カウンター・ちきゅうなげ・OHKO技等)は
+						// エンジンの計算結果を待たず(静的な技データだけで判定できるため)、確N/乱N/
+						// N発以上のような「0ダメージ」に見える表示を出さず理由を示す。
+						if (isVariablePowerMove(attack.moveName)) {
+							setResultPlain(target, variablePowerNoteFor(attack.moveName));
+							target.dataset.severity = "none";
+							return;
+						}
 						if (!result || !Array.isArray(result.perAttackDamages)) {
 							setResultPlain(target, isEngineReady() ? "(計算前)" : "(計算エンジンの初期化待ち)");
 							target.dataset.severity = "none";
@@ -4058,9 +4109,21 @@ const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 					const target = row.totalResultEl;
 					if (!target) return;
 					const result = row.clientResult;
-					const validCount = validAttacksOf(row).length;
-					if (validCount === 0) {
+					const validAttacks = validAttacksOf(row);
+					if (validAttacks.length === 0) {
 						setResultPlain(target, "(技名を入力)");
+						target.dataset.severity = "none";
+						return;
+					}
+					// ラウンド19最優先: 技列に威力が固定値ではない技(カウンター等)を含む場合、
+					// エンジン(calc_lethal_sequence_json)はその技の寄与を0として他の技と合成した
+					// 値をそのまま返す。全技がその対象(合算しても常に0)なら、素の確N/乱N表示は
+					// この最優先項目そのものの「0ダメージに見える」誤解を再現するため、静的な
+					// 技データの時点で数値を出さず理由だけ示す(こちらもエンジン結果を待たない)。
+					const hasVariablePower = validAttacks.some((a) => isVariablePowerMove(a.moveName));
+					const allVariablePower = hasVariablePower && validAttacks.every((a) => isVariablePowerMove(a.moveName));
+					if (allVariablePower) {
+						setResultPlain(target, VARIABLE_POWER_TOTAL_NOTE_ALL);
 						target.dataset.severity = "none";
 						return;
 					}
@@ -4071,6 +4134,14 @@ const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 					}
 					const damageText = formatCumulativeDamage(row, result);
 					const { label, severity } = describeSeriesVerdict(result.lethal, "未撃破");
+					if (hasVariablePower) {
+						// 数値自体は「算出できる技だけを合算した値」として意味があるため隠さず表示し、
+						// 断り書きを添えて過信(色による確定的な印象)を防ぐ(severityは中立のnoneに)。
+						const detail = damageText ? `${damageText} ${VARIABLE_POWER_TOTAL_NOTE_SOME}` : VARIABLE_POWER_TOTAL_NOTE_SOME;
+						setResultVerdict(target, detail, label);
+						target.dataset.severity = "none";
+						return;
+					}
 					setResultVerdict(target, damageText, label);
 					target.dataset.severity = severity;
 				}
@@ -4511,7 +4582,16 @@ const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 							const label = range[0] === range[1]
 								? `ヒット数(${range[0]}回固定)`
 								: `ヒット数(${range[0]}〜${range[1]}回)`;
-							hitInput.title = label;
+							// ラウンド19: 「2〜5」という範囲の表示だけでは、実際のヒット数がプレイヤーの
+							// 入力ではなく技ごとの確率で決まる乱数であり、この入力欄は「何回ヒットしたと
+							// 仮定するか」を指定するものだと伝わらない(初回選択時に最小値へクランプされる
+							// 理由も分からない)。確率の出典: .claude/skills/jpoke/references/damage-calc.md
+							// 「3. 急所・命中・多段ヒットの扱い」(2〜5回技は37.5%/37.5%/12.5%/12.5%、
+							// それ以外の範囲は一様分布)。range[0]===range[1](固定回数技)は乱数の要素が
+							// 無いため対象外のまま。
+							hitInput.title = range[0] === range[1]
+								? label
+								: `${label}。実際のヒット数は技ごとの確率で決まる乱数です。ここでは指定した回数ヒットした場合を計算します。`;
 							hitInput.setAttribute("aria-label", label);
 							unit.textContent = range[0] === range[1] ? "回ヒット" : `回ヒット(${range[0]}〜${range[1]})`;
 							applyCorrection(clampInt(attackState.hitCount, range[0], range[1]));
