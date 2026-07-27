@@ -29,10 +29,19 @@ interface Props {
 	backLabel?: string;
 	/**
 	 * ラウンド13 A-1: "public" にすると第三者向けの公開ページ用シェルにする
-	 * (AppSidebar と .app-sidebar-overlay を描画せず、アカウント欄は常にログイン導線のみ)。
-	 * 既定 "app"(従来どおりログイン中ユーザー向けのシェル)。
-	 * 公開ページのスクリーンショットがそのままメールアドレス("ログイン中: dev@localhost")や
-	 * 未ログイン第三者には1つも成立しないサイドバー4項目を晒していた問題への対応。
+	 * (AppSidebar と .app-sidebar-overlay を描画しない)。既定 "app"(従来どおり
+	 * ログイン中ユーザー向けのシェル)。公開ページのスクリーンショットがそのまま
+	 * メールアドレス("ログイン中: dev@localhost")や未ログイン第三者には1つも
+	 * 成立しないサイドバー4項目を晒していた問題への対応。
+	 * 2026-07-27 ラウンド20 20-H2: ログイン中ユーザー向けのアカウント情報表示
+	 * (ログイン状態表示・ログイン/ログアウト導線)はトップバーから AppSidebar.astro の
+	 * 最下段へ移設した。この移設作業の際、"public" 専用の「自分の育成を管理する」誘導リンクも
+	 * 巻き添えで削除してしまっていた(未ログインの第三者が使える唯一の導線だったため、
+	 * サインアップ導線の欠落という回帰だった)。
+	 * 2026-07-28 ラウンド21: 上記の巻き添え削除を修正。"public" のときだけトップバーに
+	 * 「自分の育成を管理する」CTAを復元した(AppSidebar は chrome="public" では描画されないため
+	 * ログイン導線と一緒にサイドバーへは移せず、トップバーに残す必要がある)。
+	 * ログイン中ユーザー向けのアカウント表示は引き続きサイドバー側のみで、トップバーには戻さない。
 	 */
 	chrome?: "app" | "public";
 }
@@ -61,8 +70,14 @@ const user = Astro.locals.user;
 	<body class={bodyClass}>
 		<div class={`app-shell${isPublicChrome ? " is-public" : ""}`}>
 			<header class="app-topbar">
-				<!-- モバイル(900px未満)専用の1段目: ハンバーガー + サイト名 + アカウント情報。
-				     デスクトップでは非表示(サイドバーに常時ブランドリンクがあるため不要)。 -->
+				<!-- モバイル(900px未満)専用の1段目: ハンバーガー + サイト名 (+ chrome="public" 限定でCTA)。
+				     デスクトップでは非表示(サイドバーに常時ブランドリンクがあるため不要)。
+				     2026-07-27 ラウンド20 20-H2: ログイン中ユーザー向けのアカウント情報表示
+				     (「ログイン中: xxx」+ ログアウト)はここに重複表示していたが、
+				     AppSidebar.astro の最下段(.app-sidebar-account)へ1箇所に統合したため削除した。
+				     2026-07-28 ラウンド21: ただし chrome="public" 専用の「自分の育成を管理する」CTAは
+				     AppSidebar 自体が chrome="public" では描画されないため移設できず、20-H2で誤って
+				     道連れに削除されていた(未ログインの第三者向け唯一の導線)。ここに復元する。 -->
 				<div class="app-topbar-row app-topbar-row-brand">
 					<div class="app-topbar-row-left">
 						{
@@ -89,26 +104,20 @@ const user = Astro.locals.user;
 						}
 						<span class="app-topbar-brand">Poke-Commons</span>
 					</div>
-					<div class="app-topbar-account app-topbar-account-mobile">
-						{
-							isPublicChrome ? (
+					{
+						isPublicChrome && (
+							<div class="app-topbar-account app-topbar-account-mobile">
 								<a class="btn-primary" href="/api/auth/login">自分の育成を管理する</a>
-							) : user ? (
-								<Fragment>
-									<span class="app-topbar-account-email">ログイン中: {user.email ?? user.displayName ?? user.id}</span>
-									<form method="POST" action="/api/auth/logout">
-										<button type="submit" class="btn-ghost">ログアウト</button>
-									</form>
-								</Fragment>
-							) : (
-								<a class="btn-primary" href="/api/auth/login">ログイン</a>
-							)
-						}
-					</div>
+							</div>
+						)
+					}
 				</div>
 
-				<!-- 全画面幅で使う本体行: 左=戻る+タイトル+状態、右=ページ固有操作+アカウント情報。
-				     デスクトップではこれが唯一の行、モバイルでは2段目になる。 -->
+				<!-- 全画面幅で使う本体行: 左=戻る+タイトル+状態、右=ページ固有操作 (+ chrome="public" 限定でCTA)。
+				     デスクトップではこれが唯一の行、モバイルでは2段目になる。
+				     2026-07-27 ラウンド20 20-H2: ログイン中ユーザー向けのアカウント情報表示はここにもあったが、
+				     AppSidebar.astro の最下段(.app-sidebar-account)へ1箇所に統合したため削除した
+				     (chrome="public" 専用CTAの復元経緯は上のコメント参照)。 -->
 				<div class="app-topbar-row app-topbar-row-main">
 					<div class="app-topbar-left">
 						{
@@ -131,27 +140,18 @@ const user = Astro.locals.user;
 								<slot name="topbar-actions" />
 							</div>
 						)}
-						<div class="app-topbar-account app-topbar-account-desktop">
-							{
-								isPublicChrome ? (
+						{
+							isPublicChrome && (
+								<div class="app-topbar-account app-topbar-account-desktop">
 									<a class="btn-primary" href="/api/auth/login">自分の育成を管理する</a>
-								) : user ? (
-									<Fragment>
-										<span class="app-topbar-account-email">ログイン中: {user.email ?? user.displayName ?? user.id}</span>
-										<form method="POST" action="/api/auth/logout">
-											<button type="submit" class="btn-ghost">ログアウト</button>
-										</form>
-									</Fragment>
-								) : (
-									<a class="btn-primary" href="/api/auth/login">ログイン</a>
-								)
-							}
-						</div>
+								</div>
+							)
+						}
 					</div>
 				</div>
 			</header>
 
-			{!isPublicChrome && <AppSidebar current={current} />}
+			{!isPublicChrome && <AppSidebar current={current} user={user} />}
 
 			{!isPublicChrome && <div class="app-sidebar-overlay" id="app-sidebar-overlay"></div>}
 
@@ -263,6 +263,15 @@ const user = Astro.locals.user;
 		flex-wrap: wrap;
 	}
 
+	/* 2026-07-27 ラウンド20 20-H2: ログイン中ユーザー向けのアカウント情報自体
+	   (「ログイン中: xxx」+ ログアウト、および .app-topbar-account-email)は
+	   AppSidebar.astro の最下段(.app-sidebar-account)へ移設したため削除したまま。
+	   2026-07-28 ラウンド21: ただし chrome="public" 専用CTA用に .app-topbar-account と
+	   そのモバイル/デスクトップ切り替えだけは復元する。旧ラウンド8 A-5で踏んだ罠
+	   (global.css 側で `.app-topbar-account-desktop { display: none }` を書くと、
+	   scoped styleの実質詳細度 0,2,0 に付ける `.app-topbar-account { display: flex }` に負けて
+	   モバイルで2重表示・横スクロールが起きた)を再発させないため、この切り替えは
+	   このファイルの scoped style 内だけで完結させ、global.css 側には一切書かない。 */
 	.app-topbar-account {
 		display: flex;
 		align-items: center;
@@ -270,30 +279,12 @@ const user = Astro.locals.user;
 		font-size: var(--font-size-sm);
 		color: var(--color-text-muted);
 		white-space: nowrap;
-		/* 2026-07-26 ラウンド8 A-5 検証中に発見: flex-shrink:0 だとこのブロックが一切縮まず、
-		   幅900px(モバイル/デスクトップの境界)かつページ固有アクション(例: /box/[id]の
-		   「この個体を削除」)がある画面で .app-topbar-account-email の overflow:hidden による
-		   自動収縮(0まで縮む設計、下の.app-topbar-account-email参照)が効かず、
-		   アカウント情報ブロックごと画面右にはみ出して横スクロールになっていた
-		   (実測 scrollWidth 928 / clientWidth 900)。flex-shrink を既定値(1)に戻し
-		   min-width: 0 を足して .app-topbar-left/.app-topbar-right と同じ縮小方針に揃える。 */
+		/* 旧ラウンド8 A-5: flex-shrink:0 だとこのブロックが縮まず、幅900px境界かつ
+		   ページ固有操作がある画面で右にはみ出して横スクロールしていた。
+		   flex-shrink を既定値(1)に戻し min-width: 0 を足して他の帯と同じ縮小方針に揃える。 */
 		min-width: 0;
 	}
 
-	.app-topbar-account-email {
-		white-space: nowrap;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		max-width: 16em;
-	}
-
-	/* 2026-07-26 ラウンド8 A-5: このデスクトップ/モバイルのdisplay切り替えは元は global.css 側にあったが、
-	   このブロック内の `.app-topbar-account { display: flex }` は Astro の scoped style により
-	   実質詳細度 0,2,0 になる(`[data-astro-cid-*]` が付くため)。global.css 側の
-	   `.app-topbar-account-desktop { display: none }`(詳細度 0,1,0)は scoped styleより先に
-	   注入されるため、同じ詳細度でも後勝ちのscoped側に負けて常に `flex` のままだった
-	   (アカウント情報がモバイル行・本体行の両方に重複表示され、横スクロールの原因になっていた)。
-	   同じscoped詳細度レイヤーに揃える必要があるため、この切り替えは移設してここに置く。 */
 	.app-topbar-account-desktop {
 		display: none;
 	}
@@ -308,17 +299,10 @@ const user = Astro.locals.user;
 		}
 	}
 
-	/* 2026-07-26 ラウンド8 A-5: 幅390pxでメールアドレスとページ固有操作が原因で
-	   1段目・2段目とも横に収まらず横スクロールしていた。メールアドレスはモバイルでは
-	   必須情報ではないため隠し、本体行(.app-topbar-row-main)はページ固有操作
-	   (.app-topbar-actions)を2行目に折り返せるようにする。
-	   上のdisplay切り替えと必ず同じファイル・同じscoped詳細度レイヤーに置くこと
-	   (別ファイルに分けると詳細度の事故が再発する)。 */
 	@media (max-width: 899px) {
-		.app-topbar-account-email {
-			display: none;
-		}
-
+		/* 2026-07-26 ラウンド8 A-5: 幅390pxでページ固有操作(例: /box/[id]の「この個体を削除」)が
+		   原因で本体行が横に収まらず横スクロールしていた。ページ固有操作(.app-topbar-actions)を
+		   2行目に折り返せるようにする。 */
 		.app-topbar-row-main {
 			flex-wrap: wrap;
 			row-gap: var(--space-2);

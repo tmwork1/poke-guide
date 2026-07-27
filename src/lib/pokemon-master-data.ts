@@ -57,6 +57,7 @@ interface PokemonDetailEntry {
   name: string;
   baseStats: number[];
   learnset: string[];
+  abilities: string[];
 }
 
 let baseStatsCache: Promise<Map<string, number[]>> | null = null;
@@ -93,6 +94,29 @@ export function loadLearnsetMap(): Promise<Map<string, string[]>> {
       });
   }
   return learnsetCache;
+}
+
+let abilitiesCache: Promise<Map<string, string[]>> | null = null;
+
+// 種族名 -> その種族が持ちうる特性名の配列(loadBaseStatsMap/loadLearnsetMapと同じ
+// detail/pokemon.jsonをソースにしているが、キャッシュ済みPromiseパターンを揃えるため
+// あえて別関数・別キャッシュにしている)。box/[id].astro 左パネルの特性selectを、
+// 種族に属する特性だけに絞り込むために使う(21-L5)。
+// ⚠️ 隠れ特性(夢特性)の区別データは存在しない。abilities は単なるフラット配列で、
+// どれが隠れ特性かを示すキーは vendor/jpoke の生データ(ps-champ-ja/pokedex.json)の
+// 時点で既に失われている。区別しようとしないこと。
+export function loadAbilitiesMap(): Promise<Map<string, string[]>> {
+  if (!abilitiesCache) {
+    abilitiesCache = fetch("/master-data/detail/pokemon.json")
+      .then((res) => res.json())
+      .then((list: PokemonDetailEntry[]) => new Map(list.map((p) => [p.name, p.abilities])))
+      .catch((err) => {
+        console.warn("特性データの読み込みに失敗しました", err);
+        abilitiesCache = null;
+        return new Map<string, string[]>();
+      });
+  }
+  return abilitiesCache;
 }
 
 // autocomplete/moves.json の各レコードが持ちうる "hits" キー([最小ヒット数, 最大ヒット数])。

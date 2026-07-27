@@ -1,7 +1,7 @@
 # jpoke ダメージ計算の契約
 
-**検証時点**: jpoke v0.2.0 (`vendor/jpoke`) / 2026-07-27
-**上流リポジトリの参照コミット**: d51e9c96b (`../jpoke`、補助参照のみ)
+**検証時点**: jpoke v0.2.0 (`vendor/jpoke`) / 2026-07-27(§7追記時点でvendor更新済み)
+**上流リポジトリの参照コミット**: 3dd183ee5 (`../jpoke`、PR#355 `fix/lethal-fixed-damage-moves` マージ後。vendor/jpokeもこの時点のsrcと完全一致)
 
 > このファイルは `vendor/jpoke` のコードを読んで書いた要約です。**すべての事実に出典(ファイル:行)を付けること。**
 > 出典の無い記述は次に読むエージェントが信用できないため、書かないでください。
@@ -115,9 +115,50 @@
 - **ふくろだたき(`multi_hit: {min:1, max:6}`)は上記のどちらの一般ルートも通らない**: `ON_MODIFY_HIT_COUNT` イベントに専用ハンドラ `ha.ふくろだたき_hit_count` が登録されており(出典: `vendor/jpoke/src/jpoke/data/moves/move_ha.py:690-704`)、ヒット回数は乱数ではなく「**選出中のポケモンのうち、ひんし・状態異常のいずれでもない数**」で決定的に決まる(出典: `vendor/jpoke/src/jpoke/handlers/move_attack.py:3049-3054`、`count = sum(1 for mon in state.selection if mon.alive and not mon.ailment.is_active)`、`max(1, count)`)。したがって「1〜6回の範囲でランダム」という説明は誤りで、UI側は確率分布ではなく「パーティ構成で決まる」という定性的な説明にする必要がある。
   - 同じ技のヒットごとの威力も基礎威力(`power: 1`)ではなく `ON_CALC_POWER_MODIFIER` の専用ハンドラ `ha.ふくろだたき_calc_power` が「使用者の基礎こうげき種族値 / 10 + 5」で毎ヒット上書きする(出典: `vendor/jpoke/src/jpoke/handlers/move_attack.py:3034-3046`)。`detail/moves.json` の `power: 1` は実戦の威力を表さない値である点に注意(ヨワシは「たんどくのすがた」の種族値を使う特例あり)。
 
-## 上流との差分(v0.2.0時点)
+## 7. calc_lethal が「通常のダメージ計算に従わない技」を計算する仕組み(2026-07-27、jpoke PR#355取り込み時に追記)
 
-- `vendor/jpoke/src` と `../jpoke/src` を `diff -rq` で比較した結果、ビルド生成物(`__pycache__`/`jpoke.egg-info`)と上流にだけある空ディレクトリ `src/jpoke/utils/type_defs/`(中身0件・参照なし)を除き**一致**しており、`damage.py`・`move_executor.py`・`lethal.py` 等ダメージ計算関連ファイルに差分は無かった。両方とも `version = "0.2.0"`。
+**背景**: `Battle.calc_lethal()` は `battle.calc_damages()` のみを呼び、実戦の技実行フロー(`MoveExecutor`が発火する`Event.ON_MODIFY_MOVE_DAMAGE`等)を一切通らない(§3参照)。固定ダメージ技・割合ダメージ技・一撃必殺技・反射技は、威力そのものが`Event.ON_MODIFY_MOVE_DAMAGE`ハンドラで実戦時に動的に決まる(`MoveData.power`は`None`)ため、この経路では**威力None→ダメージ0**になっていた(`core/damage.py`の`if not move.base_power: return [0]`)。jpoke PR#355(`fix/lethal-fixed-damage-moves`)がこれを修正した(出典: `vendor/jpoke/src/jpoke/core/lethal.py`・`handlers/lethal.py`)。
+
+- **仕組み**: `MoveData.lethal_handlers`という技専用の`LethalEvent.ON_BEFORE_HIT`ハンドラで、`LethalContext.damage_from_hp`(防御側HP→ダメージを返すクロージャ)または`ctx.damage_dist`を直接設定する。`damage_from_hp`が設定されている間は、`_apply_damage`が通常の`damage_dist`一括適用ではなく`_apply_damage_by_branch`(HP分布の枝ごとに`damage_from_hp(state.value)`を呼ぶ)に分岐する(出典: `core/lethal.py`の`_apply_damage`/`_apply_damage_by_branch`)。がんじょう・きあいのタスキ等のHP1耐えは、HP満タン枝でだけ`ON_APPLY_DAMAGE`ハンドラを通す既存の仕組みがそのまま使われるため、一撃必殺技をがんじょうが防ぐ挙動も自然に再現される。
+- **対応した技(15件、`LethalHandler`を新規登録)**: いかりのまえば・カタストロフィ(`half_damage`=現在HP1/2)/いのちがけ(使用者の現在HP固定・技後に使用者HP0)/ハサミギロチン・じわれ・ぜったいれいど・つのドリル(`ohko_damage`=命中すれば必ず現在HPそのもの。**命中率は考慮しない**。ぜったいれいど→こおりタイプのみ別途無効化)/ほうふく・メタルバースト(直近被ダメージ×1.5)/カウンター(直近の物理被ダメージ×2)/ミラーコート(直近の特殊被ダメージ×2)/がむしゃら(相手HP−自分HP、最低0)/みねうち(通常ダメージをHP-1でキャップ。**唯一base_powerを持つ通常攻撃技**で、`_calc_damage_dist`の`damage_dist`をそのまま枝ごとキャップ関数に閉じ込める)/ナイトヘッド・ちきゅうなげ(`level_fixed_damage`=使用者レベル固定)。全て`_is_immune()`(タイプ相性0倍・ふしぎなまもり)でダメージ0に倒す。
+- **対応していない技**: **はきだす**は`power: null`かつ変化技でない14件の1つだが、この修正の対象外のまま。理由: 威力が「ためこむ」の使用回数で決まり、その回数を威力へ反映する`ha.はきだす_set_power`は実戦の`Event.ON_TRY_MOVE_1`でのみ発火するため、`calc_lethal`のフロー(ON_BEFORE_HITベース)では拾えない。既存の`lethal_handlers`には`ON_HIT`で使用後のたくわえるランクを巻き戻す`はきだす_reset_stockpile`だけがあり、ダメージ自体を設定するハンドラは無い(出典: `handlers/lethal.py`の`はきだす_reset_stockpile`、`data/moves/move_ha.py`の`"はきだす"`エントリ)。**calc_lethalでは`はきだす`は今も常にダメージ0になる。**
+- **OHKO技はlethal計算上「命中すれば確定1発」になる**: `ohko_damage`は命中率を無視して常に致死ダメージを返す設計(他の技も含め、`calc_lethal`全体が命中判定自体をモデル化していないため、これはOHKO技特有の欠陥ではなく仕様通りの一貫した挙動)。実際の命中率(OHKO技は一律30%)は`calc_lethal`の確率には現れない。UI側で命中率を併記する場合は静的な`detail.accuracy`から読む必要がある(出典: `public/master-data/detail/moves.json`のOHKO技4件は全て`accuracy: 30`)。
+- **poke-commons側の対応**: `src/pages/box/[id].astro`はラウンド19でこの14件全てに対し「ダメージ算出不能」と表示する抑止(`isVariablePowerMove`)を追加していたが、ラウンド20でこの修正の取り込みに合わせて`はきだす`のみに限定した(`isUnsupportedLethalMove`)。OHKO技には引き続き命中率30%の補足を追記するが、数値自体は隠さず表示するよう変更した。
+
+## 8. 揮発状態(volatile)の付与APIと「片側性」(2026-07-27、UI改善ラウンド20 20-R3実装時に追記)
+
+**背景**: `.claude/skills/jpoke/`にvolatile関連の記述が1件も無かった(grep 0件)ため、`vendor/jpoke`を実読・実行して確認した。
+
+- **付与API**: `Battle.set_volatile(target, name, count=None, source=None) -> bool`(出典: `vendor/jpoke/src/jpoke/core/battle.py:1221-1239`)。`set_ailment`/`set_weather`と同じ「シナリオ構築・ダメージ計算検証用」の直接付与API。`volatile_manager.apply()`を呼ぶだけの薄いラッパーで、戻り値boolは**「既に同じ揮発性状態がある場合は失敗」**という契約(重複時のみFalse)。
+- **定義**: `vendor/jpoke/src/jpoke/data/volatile.py`の`VOLATILES: dict[str, VolatileData]`(約70種)。各エントリは`handlers: dict[Event, VolatileHandler]`(実戦・`calc_damages`双方が通る通常のイベント系統)と、致死率計算専用の`lethal_handlers: dict[LethalEvent, LethalHandler]`を持つ。
+
+### 8-1. `subject`/`subject_spec`による片側性(★誤解の常連になりうる最重要点)
+
+`VolatileHandler`/`LethalHandler`はいずれも`subject`(`LethalHandler`)または`subject_spec`(`VolatileHandler`、例`"attacker:self"`/`"defender:self"`)を持ち、**「攻撃側/防御側のどちらの役割に付与されたときだけ効くか」が揮発状態ごとに固定**されている(出典: `vendor/jpoke/src/jpoke/core/lethal.py:554-565`の`_get_pokemon_handlers`が`h.subject in {subject, None}`でフィルタする箇所、`data/volatile.py`各エントリの`subject_spec`引数)。**逆側に付与しても`set_volatile()`自体は成功(True)するのに、計算結果(ダメージ・確定数)には一切反映されない**。
+
+**実機検証(vendor/jpokeをネイティブPythonで実行して実測、2026-07-27)**:
+```
+のろい を防御側(HP追跡対象)に付与 → 2発必要だった相手が1発で確殺(乱数依存が消え確1化)
+のろい を攻撃側に付与             → 変化なし(baseline と同一)
+タールショット を防御側に付与     → かえんほうしゃ 91〜108 → 182〜216(2倍、ほのお技弱点化)
+タールショット を攻撃側に付与     → 変化なし(baseline と同一)
+じゅうでん を攻撃側に付与         → 10まんボルト 76〜91 → 153〜180(2倍、自分の技威力up)
+じゅうでん を防御側に付与         → 変化なし(baseline と同一)
+やどりぎのタネ を防御側に付与     → 4発必要だった相手が3発で確殺
+```
+(検証コード: `LethalHitResult`/`calc_damages`を直接呼ぶ最小スクリプト。attacker=ハバタクカミ/カイリュー/リザードン/サンダー、defender=ディンルー/カビゴンで確認)
+
+- **A分類(ターン終了時HP増減)は全件`subject="defender"`固定**: のろい/やどりぎのタネ/しおづけ/バインド/アクアリング/ねをはるの`LethalHandler`はすべて`subject="defender"`(出典: `data/volatile.py:37,385,706,718,738,891`)。これは`Battle.calc_lethal()`が**防御側(=攻撃を受け続ける側)のHP分布だけを追跡する**設計(攻撃側のHPはそもそも管理されない)ため、defender側に付与したときしか意味を持たない。
+- **B分類(1発分のダメージ補正)は項目ごとにattacker:self/defender:selfが分かれる**: `じゅうでん`(`ON_CALC_POWER_MODIFIER`)のみ`subject_spec="attacker:self"`(出典: `data/volatile.py:405-411`、自分の技威力を上げる効果のため)。`タールショット`(`ON_CALC_DEF_TYPE_MODIFIER`)・`ちいさくなる`(`ON_CALC_POWER_MODIFIER`ほか)・`きょけんとつげき`(`ON_CALC_DAMAGE_MODIFIER`ほか)はいずれも`subject_spec="defender:self"`(出典: `data/volatile.py:556-559,599-601,203-205`)。B分類はこの通常の`Event`系統がフックなので、`calc_lethal()`が内部で`battle.calc_damages()`をそのまま呼ぶ(`core/lethal.py:401-415`)経路を通り、`calc_damages()`単体でも同じ片側性が再現する。
+- **UI設計への含意**: 「攻撃側/防御側どちらのセクションにも同じ10項目を並べる」実装は、9/10項目(じゅうでん以外)が攻撃側セクションでは無効、じゅうでんが防御側セクションでは無効という「設定できるのに数値が動かない」チェックボックスを生む。poke-commonsの`box/[id].astro`はこの実測に基づき、`DAMAGE_ATTACKER_VOLATILES`(じゅうでんのみ)と`DAMAGE_DEFENDER_VOLATILES`(残り9件)を別々の選択肢配列にして、効果のある側にしか出していない。
+
+### 8-2. 実装しない揮発状態(効かないイベント)
+
+みがわり・まもる系・こんらん・ちょうはつ・アンコール・きゅうしょアップ・めいちゅうアップ/ロックオンは、`ON_TRY_ACTION`/`ON_MODIFY_COMMAND_OPTIONS`/`ON_BEFORE_APPLY_MOVE`/`ON_MODIFY_MOVE_DAMAGE`/`ON_TRY_MOVE_1`/`ON_MODIFY_ACCURACY`(命中率)いずれかにのみ登録されており、`Battle.calc_damages()`/`calc_lethal()`はこれらを発火しない(コマンド選択・行動実行フェーズ・命中判定のフックで、単発のダメージ計算経路には無い)。詳細な対応表は`docs/plan/ui_rounds/round-20.md`の20-R3節(出典つき)を参照。
+
+## 上流との差分(2026-07-27、PR#355取り込み後)
+
+- `vendor/jpoke/src` と `../jpoke/src` を `diff -rq` で比較した結果、ビルド生成物(`__pycache__`/`jpoke.egg-info`)を除き**一致**。両方とも `version = "0.2.0"`(バージョン番号は据え置きのまま機能追加された点に注意。`pyodide-engine.ts`のwheel URLハードコードは変更不要だった)。
 - 上流 `docs/quick_reference.md` には丸め順序・`round_half_down`の定義・急所率テーブルなど本ファイルの核心部分の記載が見当たらず、突き合わせによる差分検出はできなかった。
 
 ## 未確認(コードで確認できなかった項目)

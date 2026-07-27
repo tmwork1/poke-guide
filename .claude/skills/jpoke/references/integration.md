@@ -1,6 +1,8 @@
 # poke-commons と jpoke の接続面
 
-**検証時点**: jpoke v0.2.0 (`vendor/jpoke`) / poke-commons `160fb1b` / 2026-07-27
+**検証時点**: jpoke v0.2.0 (`vendor/jpoke`、上流3dd183ee5相当) / poke-commons `160fb1b` / 2026-07-27(vendor更新は同日中に追加実施)
+
+**2026-07-27追記**: 上流PR#355(`fix/lethal-fixed-damage-moves`)を`vendor/jpoke`に取り込み済み。`calc_lethal`が固定ダメージ技・OHKO技等を正しく計算するようになった詳細は`damage-calc.md`§7を参照。これに伴い`src/pages/box/[id].astro`の`isVariablePowerMove`抑止ロジックを`isUnsupportedLethalMove`(対象は`はきだす`のみ)に縮小した。wheelバージョン文字列(`pyodide-engine.ts`の`0.2.0`)は変更不要だった(`pyproject.toml`のバージョン据え置きのため)。`npm test`・`npm run test:e2e`・上流`tests/test_lethal.py`(139件)は全てパス済み。
 
 > このファイルは実際のコードを読んで書いた要約です。**すべての事実に出典(ファイル:行)を付けること。**
 > 出典の無い記述は次に読むエージェントが信用できないため、書かないでください。
@@ -18,7 +20,7 @@ jpoke は大きいパッケージだが、poke-commons が触れているのは�
 | 列挙 | `jpoke.enums.Event`(`ON_TERASTALLIZE`のみ使用) | 同上 | 同上(出典: `pyodide-engine.ts:370,463`) |
 | 定数 | `jpoke.utils.constants.STATS, STAT_RANK_MIN, STAT_RANK_MAX` | ランク補正クランプ・stat配列の並び対応 | 同上(出典: `pyodide-engine.ts:371`) |
 | 関数 | `jpoke.utils.lethal_dist.State, add_dist` | 打点分布のクランプ・畳み込み | 同上(出典: `pyodide-engine.ts:372`) |
-| メソッド | `Battle.start/set_ailment/set_weather/set_terrain/activate_side_field/calc_damages/calc_lethal`, `Pokemon.set_evs/set_ivs/terastallize`, `battle.events.emit` | 対戦構築・ダメージ計算本体 | 同上(定義: `vendor/jpoke/src/jpoke/core/battle.py:96,132,470,929,1187,1241,1262,1298,1378`) |
+| メソッド | `Battle.start/set_ailment/set_volatile/set_weather/set_terrain/activate_side_field/calc_damages/calc_lethal`, `Pokemon.set_evs/set_ivs/terastallize`, `battle.events.emit` | 対戦構築・ダメージ計算本体。`set_volatile(target, name)`はUI改善ラウンド20(20-R3)で追加(揮発状態。片側性の注意は`damage-calc.md`§8参照) | 同上(定義: `vendor/jpoke/src/jpoke/core/battle.py:96,132,1221,1241,1262,1298,1378`) |
 | データ | `jpoke.data.POKEDEX, MOVES, ABILITIES, ITEMS` | マスタデータ生成の一次情報源 | `extract_autocomplete.py:343` |
 | データファイル | `jpoke/data/ps-champ-ja/pokedex.json`(生JSON、`num`/`forme`) | 図鑑番号・フォルム名の補完 | `extract_autocomplete.py:346-347` |
 | データファイル | `jpoke/data/pokeapi/ja_to_id_map.json`, `id_map.json`, `item_sprite_subdir_map.json` | 画像URL解決(ポケモン画像ID・アイテムsprite相対パス) | `extract_autocomplete.py:37-49,257-292`、参照実装 `vendor/jpoke/src/jpoke/utils/pokeapi.py:167-222` |

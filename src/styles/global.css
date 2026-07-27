@@ -102,6 +102,14 @@
 	--font-size-xl: 1.5rem;
 	--font-size-2xl: 1.9rem;
 
+	/* --- アイコンサイズ規格(2026-07-27 ラウンド20 20-G1) ---
+	   アイテム・タイプ・テラスタル等の画像アイコンはこの3段階から選ぶ。根拠のない px 直値を
+	   新規に増やさないこと。トークン定義はここまでが担当範囲で、各ページへの適用は別ラウンド/
+	   別エージェントが行う(box/index.astro 等)。 */
+	--icon-size-sm: 20px;
+	--icon-size-md: 28px;
+	--icon-size-lg: 40px;
+
 	--line-height-tight: 1.25;
 	--line-height-snug: 1.4;
 	--line-height-normal: 1.6;
@@ -114,6 +122,18 @@
 	/* box/[id].astro のスライドオーバー詳細パネルなど、カード・パネルより一段上の
 	   浮き上がりを表現する用途。sm/mdと同じ2層構成でスケールだけ拡大する。 */
 	--shadow-lg: 0 20px 48px rgba(15, 23, 42, 0.18), 0 6px 16px rgba(15, 23, 42, 0.1);
+
+	/* ラウンド21 21-G1: 元々 box/[id].astro の .edit-shell にページscopedで定義されていた
+	   select用の矢印(SVGデータURI)を全ページ共通のトークンへ昇格させる。
+	   経緯: ラウンド4ユーザー指示「2種類のドロップダウンが混在している。ホバーしたときだけ
+	   下向き記号が表示されるほうに統一する」を受けて box/[id].astro だけがhover/focus限定の
+	   矢印方式(このトークン)に統一されていたが、box/index.astro・pokemon/[name].astro の
+	   selectはOSネイティブの▼が常時表示されたままで、ラウンド21で同じ指摘が再度来た
+	   (ラウンド4はbox/[id].astroの中だけ直して他ページを直し忘れていた)。ここに昇格させ、
+	   下記の select 共通ルールで appearance:none + hover/focus時のみ background-image を
+	   当てることで、全ページのselectが自動的にこの方式に揃う。値は box/[id].astro の
+	   .edit-shell --select-arrow から変更せずそのまま移した。 */
+	--select-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1.5 2L6 6.2L10.5 2' fill='none' stroke='%236b7280' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
 @media (prefers-color-scheme: dark) {
@@ -153,6 +173,9 @@
 		--shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
 		--shadow-md: 0 12px 28px rgba(0, 0, 0, 0.55), 0 2px 8px rgba(0, 0, 0, 0.4);
 		--shadow-lg: 0 24px 56px rgba(0, 0, 0, 0.65), 0 8px 20px rgba(0, 0, 0, 0.45);
+
+		/* ラウンド21 21-G1: box/[id].astro .edit-shell のダーク値をそのまま移した(値は不変)。 */
+		--select-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1.5 2L6 6.2L10.5 2' fill='none' stroke='%239aa1b0' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 	}
 }
 
@@ -326,27 +349,26 @@ a {
 	border-radius: var(--radius-md);
 	padding: var(--space-3);
 	box-shadow: var(--shadow-sm);
-	transition: box-shadow 0.18s ease, transform 0.18s ease, border-color 0.18s ease;
+	transition: box-shadow 0.18s ease, border-color 0.18s ease, background-color 0.18s ease;
 }
 
+/* 2026-07-27 ラウンド20 20-G2: hover の translateY(-2px) は「鬱陶しい」というユーザー指摘で撤去し、
+   位置の動かない静止したハイライトに変えた(box-shadow sm→mdの変化は残す)。
+   background の変化を主にし、border-color は「選択中でない」ときだけ変える
+   (.is-selected の border-color: --color-primary を hover が上書き/衝突しないようにするため)。 */
 .card:hover,
 .card:focus-within {
 	box-shadow: var(--shadow-md);
-	transform: translateY(-2px);
+	background: color-mix(in srgb, var(--color-surface-alt) 90%, var(--color-primary) 10%);
+}
+
+.card:not(.is-selected):hover,
+.card:not(.is-selected):focus-within {
+	border-color: var(--color-primary);
 }
 
 .card.is-selected {
 	border-color: var(--color-primary);
-}
-
-@media (prefers-reduced-motion: reduce) {
-	.card {
-		transition: none;
-	}
-	.card:hover,
-	.card:focus-within {
-		transform: none;
-	}
 }
 
 /* 実数値・ダメージ量など、桁が変化する数値表示に使う共通クラス。
@@ -464,6 +486,32 @@ select {
 
 input[type="text"] {
 	min-width: 12em;
+}
+
+/* ラウンド21 21-G1: 全ページのselectをhover/focus限定の矢印方式に統一する。
+   従来は box/index.astro / pokemon/[name].astro の select がここまでの共通ルールしか
+   継承しておらずOSネイティブの▼が常時表示される一方、box/[id].astro だけが appearance:none +
+   hover/focus時のみ background-image という別方式だった(ラウンド4指摘の再発、詳細は
+   :root の --select-arrow のコメント参照)。ここに appearance:none とhover/focus時の
+   矢印表示を統合し、box/[id].astro 側の重複定義(#edit-form select / is:global側の
+   #opponent-notes-section select)と同じ内容にする(box/[id].astro側の削除は別担当)。
+   appearance:none にすると非hover時は矢印が消え、「選べる」手掛かりがborderのみになる
+   ことに注意(box/[id].astroで先行導入済みの挙動をそのまま全ページに広げるだけなので、
+   本ラウンドでは追加の判断はしない)。 */
+select {
+	appearance: none;
+	-webkit-appearance: none;
+	-moz-appearance: none;
+	background-repeat: no-repeat;
+	background-position: right 0.6em center;
+	background-size: 10px 7px;
+	padding-right: 1.7em;
+}
+
+select:hover,
+select:focus,
+select:focus-visible {
+	background-image: var(--select-arrow);
 }
 
 textarea {
@@ -846,7 +894,9 @@ a.btn-ghost:hover {
 	border-radius: 999px;
 	background: var(--color-primary-soft);
 	color: var(--color-primary);
-	font-size: 0.78em;
+	/* 2026-07-27 ラウンド20 20-G3: 0.78em は親フォントサイズ次第で12px未満に沈む
+	   (実測: 親13.6pxのとき10.6px)。下限12pxを固定で満たす --font-size-xs に変更する。 */
+	font-size: var(--font-size-xs);
 	font-weight: 700;
 }
 
@@ -1042,14 +1092,12 @@ dialog#opponent-note-form-container::backdrop {
 	min-width: 0;
 }
 
-/* 2026-07-26 ラウンド8 A-5: .app-topbar-account-desktop / -mobile の display 切り替えは
-   以前ここにあったが、AppLayout.astro の scoped style 側の `.app-topbar-account { display: flex }`
-   (Astroが data-astro-cid-* を付与するため実質詳細度 0,2,0)に、ここ(global.css、詳細度0,1,0)の
-   `display: none` が負けて効かない事故があった。scopedスタイルはglobal.cssより後ろに注入されるため、
-   詳細度を同じ0,1,0のまま揃えても後勝ちで負ける。唯一の直し方は同じscoped詳細度に揃えることなので、
-   両方の display 切り替えと、それに付随する @media (max-width: 899px) の
-   .app-topbar-account-email / .app-topbar-row-main の調整は AppLayout.astro の <style> 内に移設した。
-   ここには置かないこと(再発する)。 */
+/* 2026-07-27 ラウンド20 20-H2: トップバー上のログイン情報(.app-topbar-account-desktop/-mobile、
+   旧ラウンド8 A-5でここに書くと scoped style に詳細度で負けると分かっていた箇所)は、
+   ログイン情報自体をサイドバー最下段(AppSidebar.astro の .app-sidebar-account)へ移設したため
+   AppLayout.astro からマークアップごと削除した。この節はもう存在しないため、
+   「scoped styleに詳細度で負ける」という罠自体は .claude/skills/ui/references/pitfalls.md に
+   記録を残し、ここの残骸コメントは削除した。 */
 
 .app-sidebar {
 	position: fixed;
@@ -1061,6 +1109,10 @@ dialog#opponent-note-form-container::backdrop {
 	border-right: 1px solid var(--color-border);
 	overflow-y: auto;
 	z-index: 30;
+	/* 2026-07-27 ラウンド20 20-H2: ログイン情報をサイドバー最下段に固定表示するため flex 化した
+	   (AppSidebar.astro 側の .app-sidebar-account に margin-top: auto を付けて下端に押し出す)。 */
+	display: flex;
+	flex-direction: column;
 	transform: translateX(-100%);
 	/* 閉じているドロワー内のリンクにTabフォーカスが入らないよう visibility も落とす。 */
 	visibility: hidden;
@@ -1123,10 +1175,6 @@ dialog#opponent-note-form-container::backdrop {
 	.app-topbar-row-main {
 		border-top: 0;
 	}
-
-	/* .app-topbar-account-mobile / -desktop の display 切り替えは AppLayout.astro の
-	   <style> 内(同じ @media (min-width: 900px))に移設済み。ここには戻さないこと
-	   (ラウンド8 A-5、上の .app-sidebar 直前のコメント参照)。 */
 
 	.app-sidebar-overlay {
 		display: none;

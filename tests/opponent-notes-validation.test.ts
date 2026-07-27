@@ -576,6 +576,55 @@ describe('validateOpponentNoteRequestBody', () => {
     assert.equal(result.ok, false);
   });
 
+  // ##### 揮発状態(volatile)対応の追加スキーマ(UI改善ラウンド20 20-R3) #####
+
+  it('field.attacksの要素にattackerVolatiles/defenderVolatilesを指定したものを受け入れる', () => {
+    const result = validateOpponentNoteRequestBody(
+      {
+        owned_pokemon_id: VALID_UUID,
+        opponent_build: { name: 'カイリュー' },
+        field: {
+          attacks: [
+            { moveName: 'じしん', attackerVolatiles: ['じゅうでん'], defenderVolatiles: ['のろい', 'タールショット'] },
+            { moveName: 'げきりん' },
+          ],
+        },
+      },
+      { requireOwnedPokemonId: true },
+    );
+    assert.equal(result.ok, true);
+    if (result.ok) {
+      assert.deepEqual(result.value.field.attacks, [
+        { moveName: 'じしん', attackerVolatiles: ['じゅうでん'], defenderVolatiles: ['のろい', 'タールショット'] },
+        { moveName: 'げきりん' },
+      ]);
+    }
+  });
+
+  it('field.attacksの要素のattackerVolatilesが文字列配列でない場合は拒否する', () => {
+    const result = validateOpponentNoteRequestBody(
+      {
+        owned_pokemon_id: VALID_UUID,
+        opponent_build: { name: 'カイリュー' },
+        field: { attacks: [{ moveName: 'じしん', attackerVolatiles: [1, 2] }] },
+      },
+      { requireOwnedPokemonId: true },
+    );
+    assert.equal(result.ok, false);
+  });
+
+  it('field.attacksの要素のdefenderVolatilesが文字列配列でない場合は拒否する', () => {
+    const result = validateOpponentNoteRequestBody(
+      {
+        owned_pokemon_id: VALID_UUID,
+        opponent_build: { name: 'カイリュー' },
+        field: { attacks: [{ moveName: 'じしん', defenderVolatiles: 'のろい' }] },
+      },
+      { requireOwnedPokemonId: true },
+    );
+    assert.equal(result.ok, false);
+  });
+
   it('field.attacksの要素に含まれる未知キーは既存の流儀どおりサイレントに読み捨てられる(拒否はしない)', () => {
     const result = validateOpponentNoteRequestBody(
       {
