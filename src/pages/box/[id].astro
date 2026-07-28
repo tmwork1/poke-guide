@@ -308,7 +308,11 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 		.damage-detail-panel-header {
 			display: flex;
 			align-items: center;
-			justify-content: space-between;
+			/* ラウンド23ユーザー指示(23-R1): 「詳細設定」の見出し(.damage-detail-panel-title)を
+			   削除したため、閉じるボタン1つだけが残る。space-betweenのままだと単独の子要素は
+			   flex-start(左)に寄ってしまい、閉じるボタンとして不自然な位置になるため
+			   flex-endに変え右寄せにする。 */
+			justify-content: flex-end;
 			gap: 0.5rem;
 			/* ラウンド12指摘(A-5): 3カラム1行目の縦位置が左y=97/中央y=89/右y=79とバラバラ
 			   だった。右側(このパネル見出し)はpadding-topが0.9remで最も浅く、中央カラム
@@ -319,7 +323,6 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 			border-bottom: 1px solid var(--color-border);
 			flex-shrink: 0;
 		}
-		.damage-detail-panel-title { margin: 0; font-size: 1rem; }
 		.damage-detail-panel-close { font-size: 1.1rem; padding: 0.2em 0.55em; }
 		.damage-detail-panel-body {
 			flex: 1 1 auto;
@@ -1099,52 +1102,55 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 			position: relative;
 		}
 		/* ラウンド21ユーザー指示(21-D2、ラウンド12指摘B-4の判断を撤回): 「カード全体の左側の
-		   ハイライトを除去」。ラウンド12では、右サイドバーが未選択でも初期状態で「技1の設定」を
-		   表示する仕様(変更対象外)のため常に1枚目のカード+技列1にis-selectedが付いてしまい、
-		   カード側のborder-colorを基底.card.is-selectedのprimary実線から通常のborder-colorへ
-		   戻して代わりに左端3pxのinset box-shadowバーだけの弱いマークにしていた。今回はこの
-		   inset box-shadowバー自体をユーザー指示で撤去する。
-		   このルールを削除すると、選択中の border-color: var(--color-primary) は基底
-		   .card.is-selected(global.css)がそのまま適用される(このカードは
-		   class="card card-damage" を持つため)。21-D4でカード全体に方向別の薄い背景色
-		   (攻撃=薄い赤/防御=薄い青)が付くため、「左端バーが無くても選択中カードが分かるか」を
-		   実機で確認し、border-colorだけで選択状態が判別できることを確認済み(技列側の詳細は
-		   従来どおり.damage-column.is-selectedの強いprimary実線+box-shadowに委ねる)。
-		   ⚠️ 実測で判明した既存の課題(21-D4の副作用ではなく、この撤回とは無関係にglobal.cssの
-		   .card.is-selected自体が元々抱えていた問題): border-color: var(--color-primary)
-		   (#27acd9)は素の.card-damage背景(--color-surface-alt #f8f9fc)に対してライトで
-		   2.50:1しか無く、WCAG 1.4.11(非テキストUI境界3:1)を元々割っていた(ダークは
-		   6.5:1前後で問題ない)。21-D4の8%の方向別背景を重ねると2.31〜2.33:1へさらにわずかに
-		   下がる。global.cssの基底ルールは担当外のため直接は変えず、このページscopedで
-		   box-shadowのリング(下記)を足して視認性を補強した(色そのものは変えていないため
-		   数値上のコントラスト比は変わらないが、線の実効面積が増えて肉眼での判別は明確に
-		   向上する。実機のスクリーンショットで確認済み)。根本修正(border-colorをより濃い
-		   派生色にする等)は次ラウンドの積み残しとして報告する。 */
+		   ハイライトを除去」。左端3pxのinset box-shadowバー(旧実装)は撤去済み。
+		   選択中の border-color は基底 .card.is-selected(global.css)がそのまま適用される
+		   (このカードは class="card card-damage" を持つため)。
+		   🔴 ラウンド23ユーザー指示(23-D6)で更新: このコメントは元々「border-color:
+		   var(--color-primary) がライトで2.50:1しかなくWCAG 1.4.11(3:1)未達」という
+		   問題を、ページscopedのbox-shadowリングで視覚的に補強するだけの応急処置だったが、
+		   ラウンド22(22-A-2)で global.css の .card.is-selected 自体が
+		   border-color: var(--color-primary-strong)(#1a7ea1)に修正され、根本原因が
+		   解消された(「次ラウンドの積み残し」だった根本修正はこれで完了)。
+		   23-D6で方向別背景を8%→12%に濃くした後に再計算した実測(WCAG相対輝度式、
+		   border-color=--color-primary-strong 対 12%着色背景):
+		     ライト攻撃3.92:1 / ライト防御3.95:1 / ダーク攻撃6.08:1 / ダーク防御5.93:1
+		   いずれも3:1を維持している。リング自体は基底の修正により数値上は不要になったが、
+		   「実効面積が増えて肉眼での判別が明確になる」という視覚効果は残す価値があると判断し、
+		   リングは残しつつ色を旧--color-primary(薄い)から--color-primary-strong(濃い、
+		   基底のborder-colorと同色)に揃えた。2つの重なる1px線が同色になるため、以前の
+		   「内が濃く外が薄い」二重線ではなく単一の太い線に見える(実機で確認)。 */
 		#opponent-notes-section .card-damage.is-selected {
-			box-shadow: 0 0 0 1px var(--color-primary);
+			box-shadow: 0 0 0 1px var(--color-primary-strong);
 		}
 
 		/* ラウンド21ユーザー指示(21-D4): 「カード全体の背景色を攻撃なら薄い赤、防御なら薄い青に
 		   すると見やすいかも」。DOMに方向を示す属性が無かった(row.directionはJS変数のみ)ため、
 		   <script>のrefreshDirectionUi()でcard.dataset.direction = row.directionを設定する
 		   (セグメントのaria-checkedを更新するのと同じ場所)。
-		   薄さ: color-mix(在srgb, var(--color-surface-alt) 92%, <accent> 8%)。カードは
-		   「外(.card-damage=surface-alt)が濃く、内(.damage-row-build/.damage-column=surface)が
-		   明るい」階調なので、外側のsurface-altだけに色を混ぜれば内側の階調はそのまま保たれる。
-		   このセクション内でテキストが直接乗るのは内側の箱(surface)側だけで、外側のsurface-altは
-		   箱の間のgap・カードのpaddingにしか見えないため、文字コントラストへの影響は無い。
-		   意味論の衝突確認(実機): --color-danger(赤)=削除・--color-primary(青)=選択中と、
-		   このカード背景の赤/青が読み違えられないかを確認した。削除ボタン(.damage-row-delete-button)
-		   はhover時のみ出るごく小さい丸ボタンで背景全体とは面積・彩度が大きく違うため混同しにくい。
-		   選択中のborder-color(primary、21-D2の撤去後は基底.card.is-selectedがそのまま効く)は、
-		   防御カード(青8%背景)の上でも「彩度の高い1px実線」対「彩度8%の背景」という違いがあり、
-		   実機のスクリーンショットで判別できることを確認した(下記CSS変数は新色を作らず、
-		   既存の--color-danger/--color-primaryをcolor-mixで薄めるだけ)。 */
+		   カードは「外(.card-damage=surface-alt)が濃く、内(.damage-row-build/.damage-column=
+		   surface)が明るい」階調なので、外側のsurface-altだけに色を混ぜれば内側の階調はそのまま
+		   保たれる。このセクション内でテキストが直接乗るのは内側の箱(surface)側だけで、外側の
+		   surface-altは箱の間のgap・カードのpaddingにしか見えないため、文字コントラストへの
+		   影響は無い。
+		   ラウンド23ユーザー指示(23-D6)「攻守で切り替える背景色をもう少し濃く」: 8%→12%に
+		   引き上げた(指示の目安「12〜15%」のうち、ダークモードのtextMuted
+		   (--color-text-muted、項目ラベル等に使用)が13%超で4.5:1(WCAG AA)を割り込む
+		   ことが実測で判明したため、安全側の12%を採用した。実測(WCAG相対輝度式):
+		     13%: ダーク防御背景上のtextMuted 4.53:1(かろうじて適合、安全マージンが薄い)
+		     14%: 同 4.47:1(不適合)/ 15%: 同 4.36:1(不適合)
+		     12%: 同 4.66:1(適合、マージンあり)← 採用
+		   12%着色背景上での全テキストの実測(WCAG AA 4.5:1):
+		     --color-text: ライト13.17〜13.27:1 / ダーク9.95〜10.20:1
+		     --color-text-muted: ライト5.08〜5.11:1 / ダーク4.66〜4.78:1
+		   いずれも4.5:1を満たす。.card.is-selectedの枠(border-color:
+		   --color-primary-strong)は12%背景上でライト3.92〜3.95:1・ダーク5.93〜6.08:1で
+		   WCAG 1.4.11(非テキストUI境界3:1)を維持している(上のis-selectedブロックのコメント
+		   参照)。 */
 		#opponent-notes-section .card-damage[data-direction="attack"] {
-			background: color-mix(in srgb, var(--color-surface-alt) 92%, var(--color-danger) 8%);
+			background: color-mix(in srgb, var(--color-surface-alt) 88%, var(--color-danger) 12%);
 		}
 		#opponent-notes-section .card-damage[data-direction="defense"] {
-			background: color-mix(in srgb, var(--color-surface-alt) 92%, var(--color-primary) 8%);
+			background: color-mix(in srgb, var(--color-surface-alt) 88%, var(--color-primary) 12%);
 		}
 
 		/* ラウンド4で「相手ビルドの箱と技列の箱をalign-items:stretchで同じ高さに揃える」設計を
@@ -1196,22 +1202,25 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 		   左右2カラム構成に戻したため、右の技列(縦積み)と横並びになる固定幅を持つ。
 		   攻守切り替えボタン・相手種族名+アイコン・特性・アイテム・テラスタイプ・
 		   努力値・実数値を内包し、一番下に区切り線と「加算後のダメ・致死率」を置く。
-		   技列(.damage-column)と同じ枠線・背景を与えて「並んだ箱」に見せる。
 		   幅300pxは技列(下の.damage-columnはこの右側の残り幅いっぱいに伸びる)との
-		   横幅バランスと、努力値グリッド7列(3.4em+6列)が窮屈にならない実測値。 */
+		   横幅バランスと、努力値グリッド7列(3.4em+6列)が窮屈にならない実測値。
+		   ラウンド23ユーザー指示(23-D3、ラウンド21の21-D3ではなく初出): 「相手ビルドカードの
+		   外枠を削除。ダメージカードはそのまま」。border(旧: 1px solid var(--color-border))を
+		   撤去した。技列(.damage-column)側は指示対象外(「ダメージカードはそのまま」)なので
+		   border/border-radiusを維持しており、結果としてこの箱だけ縁が無くなる非対称な
+		   見た目になる(意図どおり)。background: var(--color-surface)は残す判断にした
+		   ——外側の.card-damage(surface-alt)との階調差で箱の輪郭が読めることを実機で
+		   確認した(borderが無くてもcolor-mixで着色した.card-damage背景との明度差が
+		   十分にあるため、技列の箱との区別も付く。判断根拠は報告参照)。border-radiusは
+		   backgroundの角を丸めるためそのまま残す。 */
 		#opponent-notes-section .damage-row-build {
 			flex: 0 0 300px;
 			width: 300px;
 			display: flex;
 			flex-direction: column;
 			gap: 0.15rem;
-			border: 1px solid var(--color-border);
 			border-radius: var(--radius-md);
 			padding: 0.35rem 0.6rem;
-			/* UI品質改善(デザイン原則整合): 外側の.card-damage自体が基底.cardの
-			   background: var(--color-surface-alt) を持つようになったため、そのまま
-			   surface-altを重ねると内箱の境界が濁る。内側の箱は一段明るいvar(--color-surface)
-			   にして、外枠(濃い)/内箱(明るい)のコントラストを付ける(技列の.damage-columnも同様)。 */
 			background: var(--color-surface);
 		}
 		/* ラウンド7ユーザー指示(方針転換): 相手ビルドの箱のクリックは無反応にする(サイドバーを
@@ -1440,43 +1449,47 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 		/* 持ち物画像: 名前行の横幅を圧迫しないよう、種族アイコンに小さなバッジとして重ねる
 		   (要件: テラスバッジ=右上と衝突しない対角に配置)。
 		   ラウンド8指摘(A-1由来): 以前はbottom:-6px/left:-6pxで名前inputとの継ぎ目に浮いて
-		   見えていた。/box(.card-item-badge)と同じ右下22px円形+1px枠+box-shadowに揃える。 */
+		   見えていた。
+		   ラウンド23ユーザー指示(23-G1「アイテム画像の丸枠を廃止し直接表示する」+23-D1
+		   「アイテム画像を2/3に縮小」): 55px→37pxに縮小し、白丸+枠+影(border-radius/
+		   background/border/box-shadow/padding)を撤去して画像を直接表示する(左パネルの
+		   .item-image-badgeと同じ変更内容・同じ最終サイズ)。overflow:hiddenも円形クリップ用
+		   だったため不要になり撤去した。position:absoluteでのbottom/rightオフセット(-4px)と
+		   種族アイコンへの重ね配置は維持する。 */
 		#opponent-notes-section .damage-item-badge {
 			position: absolute;
 			bottom: -4px;
 			right: -4px;
-			width: 55px;
-			height: 55px;
+			width: 37px;
+			height: 37px;
 			display: flex;
 			align-items: center;
 			justify-content: center;
-			background: var(--color-surface);
-			border: 1px solid var(--color-border);
-			border-radius: 50%;
-			box-shadow: var(--shadow-sm);
-			overflow: hidden;
-			padding: 2px;
 		}
 		/* ラウンド8の回帰修正: display:flexを持つクラスはUAの[hidden]{display:none}に
-		   詳細度で勝ってしまう(pitfalls.md「[hidden]は詳細度で負ける」)。バッジ自体が
-		   白丸+枠+影を持つようになったため、持ち物なしの相手で空の白丸が出続けていた。
-		   /boxの.card-item-badgeと同じ対策を併記する。21-D1で55pxに拡大した後も実機で
-		   持ち物なしの相手に空の白丸が出ないことを確認済み。 */
+		   詳細度で勝ってしまう(pitfalls.md「[hidden]は詳細度で負ける」)。枠を撤去した後も
+		   バッジ自体([hidden]対象)と中の<img>([hidden]とは別に、applyItemImage()側で
+		   display:noneにする)の二重の隠蔽ロジックは変わらず必要(持ち物なしの相手で
+		   alt文字や壊れ画像アイコンが出ないようにするため)。23-G1適用後も実機で
+		   持ち物なしの相手に空バッジが出ないことを確認済み。 */
 		#opponent-notes-section .damage-item-badge[hidden] {
 			display: none;
 		}
-		/* ラウンド21ユーザー指示(21-D1): 「アイテム画像を2.5倍くらいに大きくする」。
-		   22px→55px(22×2.5)。bottom/rightのオフセット(上記-4px)は据え置く。
-		   .damage-item-badge はposition:absoluteで.damage-sprite-box(width/height固定96px)
-		   基準に重なるだけで通常のフローに参加しないため、55pxへ拡大してもカード自体の
-		   高さには影響しない(実測: カード3枚の合計高さは21-D1適用前後で変化なし)。 */
+		/* ラウンド23ユーザー指示(23-D1): 55px→37pxに縮小(左パネルの.item-image-badgeと同じ
+		   最終サイズ)。.damage-item-badge はposition:absoluteで.damage-sprite-box
+		   (width/height固定96px)基準に重なるだけで通常のフローに参加しないため、
+		   縮小してもカード自体の高さには影響しない。
+		   pixelatedの扱い: 23-G1の指示文は「/boxと左パネルはpixelatedを撤去した」という
+		   前提だったが、実装時に確認したところ左パネルの.item-image(37px)は実際には
+		   pixelatedを維持したまま「37pxなら実解像度32×32に近くボケが判別できない」という
+		   判断で据え置かれていた(このファイル958行目のコメント参照)。このバッジも同じ
+		   37px・同じPokeAPIドット絵ソースのため、左パネルと揃える形でpixelatedを維持する
+		   (ライト・ダーク双方でdeviceScaleFactor:3の拡大クロップを確認し、有無での見え方の
+		   差が実測で判別できないことを確認済み。判断根拠は報告参照)。 */
 		#opponent-notes-section .damage-item-image {
 			width: 100%;
 			height: 100%;
 			object-fit: contain;
-			/* PokeAPIのドット絵(32×32相当)を55pxまで拡大するため、ぼやけたリサンプルではなく
-			   「意図的なドット絵」に見えるpixelatedを当てる(左パネル#item-image・/boxの
-			   .card-item-badgeと同じ方針に揃える)。 */
 			image-rendering: pixelated;
 		}
 
@@ -1530,11 +1543,17 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 		   だけにする。これで.damage-ev-col-labelのfont-size/font-weight/line-heightが
 		   このボタンにも正しく適用される(HPだけ<button disabled>にする代替案は、実測で差の
 		   真因が特定できたため不要と判断した)。 */
+		/* ラウンド23ユーザー指示(23-D4)「性格補正の三角形とステータス文字の間を少しあける」。
+		   0.05em(文字とほぼ密着)→0.2emに広げる。「少しだけ」という指示のため広げすぎない
+		   (実測はH=12.16px基準で0.05em≈0.6px→0.2em≈2.4px。A/B/C/D/Sは0.76em基準の
+		   font-sizeなので実際はもう少し大きい)。🔴 上のコメントに記録済みの罠のとおり、
+		   `font: inherit`のようなショートハンドで書き直さないこと(font-size/font-weight/
+		   line-heightを丸ごと上書きしてしまう)。ここではgapの数値だけを変更する。 */
 		#opponent-notes-section .damage-ev-nature-cycle {
 			display: inline-flex;
 			align-items: baseline;
 			justify-content: center;
-			gap: 0.05em;
+			gap: 0.2em;
 			width: 100%;
 			background: none;
 			border: none;
@@ -1633,7 +1652,10 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 			align-items: baseline;
 			column-gap: 0.5em;
 			margin: 0;
-			font-size: 0.85rem;
+			/* ラウンド23ユーザー指示(23-D5)「ダメージ・致死率の文字を少し大きく」:
+			   0.85rem(13.6px)→0.92rem(14.72px、+1.12px)。カード3枚が1080pxに収まる制約
+			   (00-foundation.md)を実測したうえでの引き上げ幅(実測は報告参照)。 */
+			font-size: 0.92rem;
 			line-height: 1.3;
 			padding: 0.3rem 0.45rem;
 		}
@@ -1643,8 +1665,9 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 		}
 		#opponent-notes-section .damage-row-total-result .damage-result-detail {
 			/* 20-G3: 0.82em(親0.85remの82%=約11.15px)は入れ子emの事故(pitfalls.md参照)。
-			   remの直接指定に変え、12px下限を満たす。 */
-			font-size: 0.76rem;
+			   remの直接指定にした。23-D5で0.76rem(12.16px)→0.85rem(13.6px、+1.44px)に
+			   もう一段大きくする(12px下限は引き続き維持)。 */
+			font-size: 0.85rem;
 			font-weight: 500;
 			opacity: 0.85;
 			text-align: right;
@@ -2016,7 +2039,10 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 			column-gap: 0.5em;
 			row-gap: 0;
 			margin: 0;
-			font-size: 0.82rem;
+			/* ラウンド23ユーザー指示(23-D5): 0.82rem(13.12px)→0.89rem(14.24px、+1.12px)。
+			   .damage-row-total-resultと同じ増分にして技列側/相手ビルド側の結果表示の
+			   見た目のサイズ差(元々わずかにあった13.6px対13.12pxの差)を保ったまま底上げする。 */
+			font-size: 0.89rem;
 			line-height: 1.3;
 			padding: 0.22rem 0.4rem;
 		}
@@ -2026,8 +2052,9 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 			flex: 0 0 auto;
 		}
 		#opponent-notes-section .damage-column-result .damage-result-detail {
-			/* 20-G3: 0.8em(親0.82remの80%=約10.5px)は入れ子emの事故。remの直接指定に変える。 */
-			font-size: 0.76rem;
+			/* 20-G3: 0.8em(親0.82remの80%=約10.5px)は入れ子emの事故。remの直接指定にした。
+			   23-D5で0.76rem(12.16px)→0.85rem(13.6px、+1.44px)にもう一段大きくする。 */
+			font-size: 0.85rem;
 			font-weight: 500;
 			opacity: 0.85;
 			min-width: 0;
@@ -2119,11 +2146,9 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 		   #damage-detail-panel-bodyの中身自体はJSがdocument.createElement()で生成するため、
 		   このセクションのスタイルはis:globalブロックに置く(動的生成要素にscoped<style>は
 		   効かないため。#opponent-notes-section配下の他の要素と同じ理屈)。 */
-		#damage-detail-panel-body .damage-detail-row-heading {
-			margin: 0 0 0.2rem;
-			font-size: 0.95rem;
-			font-weight: 700;
-		}
+		/* ラウンド23ユーザー指示(23-R1)により見出し(旧.damage-detail-row-heading、
+		   <h3>「{相手名}: 技N(技名)だけの設定」)のDOMを削除したため、対応するこのCSSルールも
+		   削除した(死んだCSSを残さない)。 */
 		/* ラウンド20ユーザー指示(20-R1): 「この技列だけに適用されます。」の説明文
 		   (.damage-detail-subtitle)は、ラウンド12指摘(B-1)以来CSSで非表示にしているだけの
 		   死んだ要素だった(見出し側の「だけの設定」と完全重複、JS側の参照も無いことを
@@ -2146,30 +2171,82 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 			padding-top: 0.6rem;
 			border-top: 1px solid var(--color-border);
 		}
+		/* ラウンド23ユーザー指示(23-R2)「『場の設定』を最上部に配置」により、パネル本体の
+		   literal先頭要素が変わりうる(現在は「場の設定」見出し<p>が先頭)。旧実装は
+		   .damage-detail-side-heading-row:first-of-typeで「攻撃側見出しが先頭のときだけ」
+		   上罫線を消していたが、23-R3で攻撃側/防御側それぞれを.damage-detail-side(下記)に
+		   包んだ結果、:first-of-typeは「各sideの中で最初の(=唯一の)side-heading-row」に
+		   常に一致してしまい、意図しない適用範囲になる(詳細は下のside-heading-row定義の
+		   コメント参照)。position(何番目か)ではなく「パネル本体の直接の子として本当に
+		   先頭かどうか」で判定し直す汎用ルールに置き換える。 */
+		#damage-detail-panel-body > .damage-detail-section-heading:first-child {
+			margin-top: 0;
+			padding-top: 0;
+			border-top: none;
+		}
 		/* ラウンド11ユーザー指示(要件11-7・省スペース化): 「見出し+能力ランク」を1行に収める
 		   (buildSideSection参照)。
-		   ラウンド20ユーザー指示(20-R1): 区切り線・spacingはこの行(見出し+ランク入力の
-		   コンテナ)自体に持たせる(内側の<p>だけに線を引くと、右のランク入力の上に線が
-		   来ずデザインが崩れるため)。1つ目(攻撃側、技見出しh3の直後)だけ:first-of-typeで
-		   線・余白を無くす。 */
+		   ラウンド23ユーザー指示(23-R3)「攻撃側と防御側を左右2分割」: 各side-heading-rowは
+		   もう.damage-detail-sides(下記)の中の.damage-detail-side1個につき1つだけ存在する
+		   (=常にその列の先頭)ため、上罫線・上マージンをここで持たせると2列レイアウトで
+		   左右に不要な横線が並んでしまう。区切りは.damage-detail-sides側の1回だけの
+		   border-topに一本化し、この行自体からは上罫線・上パディングを外した
+		   (旧:first-of-type打ち消しルールは不要になったため削除)。 */
 		#damage-detail-panel-body .damage-detail-side-heading-row {
 			display: flex;
 			align-items: center;
 			justify-content: space-between;
 			gap: 0.6rem;
-			margin: 1rem 0 0.4rem;
-			padding-top: 0.6rem;
-			border-top: 1px solid var(--color-border);
-		}
-		#damage-detail-panel-body .damage-detail-side-heading-row:first-of-type {
-			margin-top: 0;
-			padding-top: 0;
-			border-top: none;
+			margin: 0 0 0.4rem;
 		}
 		#damage-detail-panel-body .damage-detail-side-heading-row .damage-detail-section-heading {
 			margin: 0;
 			padding-top: 0;
 			border-top: none;
+		}
+		/* ラウンド23ユーザー指示(23-R3)「攻撃側と防御側の設定は、パネルを左右2分割して並べて
+		   配置」。既定(狭い幅)は縦積み、幅が十分あるときだけ2列グリッドにする。
+		   🔴 前提が実測で覆った点(重要): 当初は.damage-row-techniques-row等と同じ
+		   「@containerで実際に使える幅を見る」方針(00-foundation.md)を踏襲するつもりだったが、
+		   実測すると*この*パネルには@containerが使えないことが判明した。
+		   このパネルの実コンテンツ幅は「1600px以上=常設パネル(300〜360px固定トラック)」
+		   「1600px未満=オーバーレイ min(400px, 92vw)」という2つの式で決まり、
+		   実測(Playwright、8幅すべて)は次のとおり:
+		     1920px(常設): 327px  / 1600px(常設): 327px  / 1440px(オーバーレイ): 367px
+		     1280/1024/900/700px(オーバーレイ): 367px / 390px(オーバーレイ): 325.8px
+		   **390px(モバイル)の実コンテンツ幅325.8pxは、1920px(デスクトップ最優先ターゲット)の
+		   327pxとほぼ同一**(オーバーレイがmin(400px,92vw)で頭打ちになるため、390pxでも
+		   400pxに近い幅を確保してしまう一方、常設パネルは意図的に300〜360pxの細い帯にして
+		   あるため)。コンテナクエリは要素自身の幅しか見られないので、この2つを区別する閾値を
+		   置けない(320pxにすると390pxも2列化してしまい「モバイルでは縦積みに戻す」という
+		   指示に反する。350pxにしても390pxの325.8pxは超えないが、1920/1600pxの327pxも
+		   超えなくなり今度は最優先ターゲットで2列化しない)。
+		   一方、**ビューポート幅なら390pxと700px以上を明確に区別できる**(この2値の間に
+		   非単調な逆転区間が無いことを8幅の実測で確認済み)。そのため、ここだけは例外的に
+		   @media(ビューポート幅)を使う。閾値480pxは、オーバーレイの上限式 min(400px,92vw) が
+		   400pxに達する境界(92vw=400px ⇔ viewport≈435px)に近い値を採用した。
+		   #damage-detail-panel-bodyはJS生成要素の親だが静的マークアップ(2846行付近の
+		   <div id="damage-detail-panel-body">)。
+		   ⚠️ pitfalls.mdの「@mediaも詳細度を上げない」に従い、基本定義(.damage-detail-sides)
+		   より**後ろ**に@mediaブロックを置くこと。 */
+		#damage-detail-panel-body .damage-detail-sides {
+			display: flex;
+			flex-direction: column;
+			gap: 0.7rem;
+			margin-top: 1rem;
+			padding-top: 0.6rem;
+			border-top: 1px solid var(--color-border);
+		}
+		#damage-detail-panel-body .damage-detail-side {
+			min-width: 0;
+		}
+		@media (min-width: 480px) {
+			#damage-detail-panel-body .damage-detail-sides {
+				display: grid;
+				grid-template-columns: 1fr 1fr;
+				column-gap: 0.8rem;
+				row-gap: 0;
+			}
 		}
 		/* ラウンド5ユーザー指示(要件10): 天候・フィールドはセレクトをやめてアイコン選択式にする。
 		   選択中は塗りつぶし+primary枠で明示する(1つだけ選べるトグルグループ、常に「なし」も
@@ -2821,7 +2898,14 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 			<div class="edit-layout-detail">
 				<aside id="damage-detail-panel" class="damage-detail-panel panel-right" aria-label="ダメージ計算の詳細設定">
 					<div class="damage-detail-panel-header">
-						<h2 class="damage-detail-panel-title">詳細設定</h2>
+						{/* ラウンド23ユーザー指示(23-R1)「『詳細設定』と選択中カードのタイトルを削除」により
+						    <h2 class="damage-detail-panel-title">詳細設定</h2>を削除した(対応するCSSも
+						    .damage-detail-panel-titleごと削除済み)。どの技列を編集中かは技列側の選択強調
+						    (.damage-column.is-selected、primary実線+box-shadow)で判別できることを実機で
+						    確認した(閉じるボタンだけが残るため、ヘッダーのjustify-contentを
+						    space-between→flex-endに変更し右寄せに揃えた。下記damage-detail-panel-header
+						    のCSS参照)。閉じるボタン自体は残す(消すと1600px未満のオーバーレイを閉じられ
+						    なくなるため)。 */}
 						{/* 1600px未満ではオーバーレイ化するため閉じるボタンを表示する
 						    (1600px以上の3カラム表示では常時可視のパネルなのでCSSで隠す)。 */}
 						<button type="button" id="damage-detail-panel-close" class="btn-ghost damage-detail-panel-close" aria-label="詳細設定を閉じる">×</button>
@@ -2998,6 +3082,20 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 		const UNSUPPORTED_LETHAL_NOTE =
 			"この技は威力が「ためこむ」を使った回数によって変わる特殊な計算式のため、ダメージを算出できません。";
 
+		// ラウンド22指摘(22-D-1)「変化技(まもる等)が『10発以上 0(0%)』と表示される」。
+		// ダメージ0は事実だが「10発以上」は「あと少しで倒せる」ように誤読されうる。
+		// isUnsupportedLethalMoveと同じ仕組み(理由を示して数値を出さない)に合流させる。
+		// 変化技(category === "status")はゲーム仕様として直接ダメージを一切発生させない
+		// (物理/特殊技との違いはこの1点)ため、getMoveCategory()の結果だけで判定できる。
+		// ⚠️ moveDetailMapCacheがまだ解決していない初期の一瞬はgetMoveCategoryがnullを返し
+		// falseになる(=通常のダメージ計算経路を通る)が、キャッシュ解決後の再描画で
+		// isStatusMove側に切り替わる(loadMoveDetailMap()は表示直後に一度だけfetchする
+		// 既存方針のとおり、実運用上ほぼ即座に解決する)。
+		function isStatusMove(name: string): boolean {
+			return getMoveCategory(name) === "status";
+		}
+		const STATUS_MOVE_NOTE = "変化技のため、ダメージは発生しません。";
+
 		// OHKO技(一撃必殺技)4件は、jpokeのcalc_lethalが命中率を一切考慮しない設計
 		// (対象の残りHPそのものを固定ダメージとして与える。命中すれば必ず倒す前提で計算する)
 		// ため、「確定1発」という表示だけでは実際の命中率30%が伝わらない。この性質自体は
@@ -3012,6 +3110,13 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 			"技列に「はきだす」を含むため、算出できる技だけを合算した参考値です(はきだすは0ダメージとして計算されています)。";
 		const UNSUPPORTED_LETHAL_TOTAL_NOTE_ALL =
 			"技列がすべて「はきだす」のため、合計のダメージを算出できません。";
+		// ラウンド22指摘(22-D-1)。変化技は0ダメージが「近似値」ではなく仕様として確定した値
+		// なので(はきだすのような「未知の値を0扱いしている」ケースとは異なる)、一部だけ
+		// 変化技を含む場合の断り書きは不要(他の技の実ダメージがそのまま正しく合算される)。
+		// 「全技列が変化技(または変化技+はきだすの組み合わせ)」のときだけ理由を示す。
+		const STATUS_MOVE_TOTAL_NOTE_ALL = "技列がすべて変化技のため、合計のダメージを算出できません。";
+		const STATUS_AND_UNSUPPORTED_TOTAL_NOTE_ALL =
+			"技列がすべて変化技または「はきだす」のため、合計のダメージを算出できません。";
 
 		// タイプごとの色(タイプ画像/テラスタイプ画像が取得できない場合の色ボックスフォールバック用、
 		// Pokemon.pngワイヤーフレーム参照)。慣習的なタイプカラー。ステラは公式に単色が無いため近似値。
@@ -4589,13 +4694,16 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 						}
 					}
 					const hp = result.defenderHp;
+					// ラウンド23ユーザー指示(23-D5)「総合結果から『累計』を削除」。数値と割合は
+					// 残し、ラベルの「累計」の文字だけを外す(技列側は元々ラベルを付けていないため
+					// この関数だけの変更で足りる)。
 					if (hp && hp > 0) {
 						const pctMin = Math.floor((min / hp) * 100);
 						const pctMax = Math.ceil((max / hp) * 100);
 						const pct = pctMin === pctMax ? `${pctMin}%` : `${pctMin}〜${pctMax}%`;
-						return `累計${min}〜${max} (${pct})`;
+						return `${min}〜${max} (${pct})`;
 					}
-					return `累計${min}〜${max}`;
+					return `${min}〜${max}`;
 				}
 
 				function formatDamageRange(damages: number[] | undefined, defenderHp: number | undefined): string {
@@ -4683,6 +4791,17 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 						// のような撃破済みキャプションを添えて控えめにする(第3弾の「列は独立判定」の
 						// 方針どおり数値自体は変えない)。
 						applyOverkill(confirmedKillAt != null && validPos > confirmedKillAt);
+						// ラウンド22指摘(22-D-1): 変化技(まもる等)は静的な技データの時点で判定できる
+						// (category==="status"はゲーム仕様として常にダメージ0のため、エンジンの
+						// 計算結果を待つ必要が無い)。「10発以上 0(0%)」のような誤解を招く表示を
+						// 出さず、はきだすと同じ仕組みで理由だけを示す。⚠️ OHKO技(じわれ等)・
+						// はきだすは変化技ではない(物理技)ため、この分岐には入らずこれまでどおり
+						// 通常のダメージ表示/はきだす専用の断り書きに進む。
+						if (isStatusMove(attack.moveName)) {
+							setResultPlain(target, STATUS_MOVE_NOTE);
+							target.dataset.severity = "none";
+							return;
+						}
 						// ラウンド20: 「はきだす」だけはエンジンの計算結果を待たず(静的な技データだけで
 						// 判定できるため)、確N/10発以上のような「0ダメージ」に見える表示を出さず
 						// 理由を示す。他の技(カウンター・ちきゅうなげ・OHKO技等)は今はエンジンが
@@ -4728,9 +4847,21 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 					// (合算しても常に0)なら、素の確N表示は「0ダメージに見える」誤解を
 					// 再現するため、静的な技データの時点で数値を出さず理由だけ示す。
 					const hasUnsupported = validAttacks.some((a) => isUnsupportedLethalMove(a.moveName));
-					const allUnsupported = hasUnsupported && validAttacks.every((a) => isUnsupportedLethalMove(a.moveName));
-					if (allUnsupported) {
-						setResultPlain(target, UNSUPPORTED_LETHAL_TOTAL_NOTE_ALL);
+					// ラウンド22指摘(22-D-1): 変化技(まもる等)も同じ扱いにする。単独では
+					// 技列側(renderColumnDisplays)のisStatusMove分岐で処理されるが、全技列が
+					// 変化技(または変化技+はきだすの組み合わせ)だと合計側も「10発以上 0(0%)」の
+					// ような誤解を招く表示になるため、こちらでも判定する。
+					const hasStatus = validAttacks.some((a) => isStatusMove(a.moveName));
+					const allNoDamage = validAttacks.every(
+						(a) => isStatusMove(a.moveName) || isUnsupportedLethalMove(a.moveName),
+					);
+					if (allNoDamage && (hasStatus || hasUnsupported)) {
+						const note = hasStatus && hasUnsupported
+							? STATUS_AND_UNSUPPORTED_TOTAL_NOTE_ALL
+							: hasStatus
+								? STATUS_MOVE_TOTAL_NOTE_ALL
+								: UNSUPPORTED_LETHAL_TOTAL_NOTE_ALL;
+						setResultPlain(target, note);
 						target.dataset.severity = "none";
 						return;
 					}
@@ -4842,6 +4973,19 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 					});
 				}
 
+				// ラウンド22指摘(22-F)の対応で使う、キー順に依存しない構造比較用の正規化文字列化。
+				// オブジェクトのキーをソートしてから再帰的にJSON化するため、Postgres jsonbのキー
+				// 並び替え(実測で確認: サーバから返るclient_resultはJS側の挿入順と異なる順で
+				// 返ってくる)があっても値が同じなら同じ文字列になる。null/数値/文字列/配列/
+				// プレーンオブジェクトだけを想定(client_resultの構造で十分)。
+				function canonicalStringify(value: unknown): string {
+					if (value === null || typeof value !== "object") return JSON.stringify(value);
+					if (Array.isArray(value)) return `[${value.map(canonicalStringify).join(",")}]`;
+					const record = value as Record<string, unknown>;
+					const keys = Object.keys(record).sort();
+					return `{${keys.map((k) => `${JSON.stringify(k)}:${canonicalStringify(record[k])}`).join(",")}}`;
+				}
+
 				// 実数値グリッド + ダメージ計算(攻撃列の加算ダメージ・累計致死率)をまとめて再計算する。
 				// エンジン未初期化・相手名未入力の場合は計算せず、保存済みのclientResult(あれば)を
 				// そのまま表示し続ける。
@@ -4862,6 +5006,17 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 						renderColumnDisplays(row);
 						return;
 					}
+					// ラウンド22指摘(22-F)「読み込むだけでDBにPUTが飛ぶ」対応。改修前の再計算後の
+					// scheduleRowSave(row)は無条件で、Pyodide初期化完了時にcombinedDamageEngineProgress()
+					// が全行を一括recalcRow()する(6740行付近)たびに、内容が1バイトも変わらなくても
+					// PUTが飛んでupdated_atだけが無意味に更新されていた(実機のPlaywrightネットワーク
+					// 計測で、対戦相手メモ4件すべてがページ読み込みのたびにPUTされることを確認済み。
+					// この23-D改修前のコード(git stashで退避して比較)でも同じ現象が再現したため、
+					// このラウンドで新規に混入したものではなく既存のバグと確認できた)。
+					// 直前の保存済みclientResultを控えておき、再計算後に実際に値が変わったときだけ
+					// scheduleRowSave()を呼ぶ。ユーザーが実際に技/努力値/ランク等を変更した場合は
+					// 必ず数値が変わる(=保存される)ため、自動保存の仕組み自体は変えていない。
+					const previousClientResult = row.clientResult;
 					try {
 						// 攻守切り替え: どちらのspecを攻撃側としてエンジンに渡すかだけを入れ替える。
 						// ランク補正・状態異常・テラスタル発動は技カードごとの値(attacks[i]の
@@ -4913,8 +5068,15 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 						renderColumnDisplays(row);
 						// エンジン初期化直後の再計算(要件: 保存済みclientResultはページ再読み込み直後の
 						// スナップショット表示用。エンジン初期化後は再計算して上書きする)を含め、
-						// 成功した再計算は常に保存する。
-						scheduleRowSave(row);
+						// 再計算後の値が以前の保存値と実際に異なるときだけ保存する(22-F)。
+						// ⚠️ PostgresのjsonbはキーをJS側の挿入順とは異なる順で返す(実測で確認済み。
+						// 例: サーバは{lethal,defenderHp,perAttackLethal,...}の順で返すが、この関数の
+						// オブジェクトリテラルはdefenderHpが先頭)。単純なJSON.stringify比較はキー順の
+						// 違いだけで「変わった」と誤判定するため、キーをソートしてから比較する
+						// canonicalStringify()を使う。
+						if (canonicalStringify(previousClientResult) !== canonicalStringify(row.clientResult)) {
+							scheduleRowSave(row);
+						}
 					} catch (err) {
 						console.error(err);
 						const failureTargets = [...row.columnResultEls, row.totalResultEl];
@@ -5511,7 +5673,14 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 				// `damage-calc.md` 3補参照。呼び出し側(renderColumnLevelDetailPanel)が
 				// 攻撃側/防御側それぞれについて、対応するビルド(この個体の#tera select、または
 				// 相手ビルド箱のrow.teraType)の現在値をそのまま渡す。
+				// ラウンド23ユーザー指示(23-R3)「攻撃側と防御側の設定は、パネルを左右2分割して
+				// 並べて配置」に対応するため、appendChild先を呼び出し側から受け取る
+				// parentEl引数に変更した(従来はdetailPanelBodyEl固定)。呼び出し側
+				// (renderColumnLevelDetailPanel)が.damage-detail-side(攻撃側/防御側それぞれの
+				// 列コンテナ)を渡すことで、このセクション1つぶんの中身(見出し+ランク/
+				// テラス+急所/状態異常/揮発状態)がその列の中に積まれる。
 				function buildSideSection(
+					parentEl: HTMLElement,
 					row: DamageRowState,
 					title: string,
 					rank: number,
@@ -5585,7 +5754,7 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 					);
 					rankField.append(rankLabel, rankInput);
 					headingRow.appendChild(rankField);
-					detailPanelBodyEl.appendChild(headingRow);
+					parentEl.appendChild(headingRow);
 
 					// 2行目: テラスタル(+攻撃側のみ急所)チェック。
 					const compactRow = document.createElement("div");
@@ -5610,7 +5779,10 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 						scheduleRowSave(row);
 						refreshRowConditionChips(row);
 					});
-					teraLabel.append(teraCheckbox, document.createTextNode("テラスタル"));
+					// ラウンド23ユーザー指示(23-R3)「分割されたパネルに収まるようにテキスト量を
+					// 調整する」: 「テラスタル」(5文字)→「テラス」(3文字)に短縮する(意味は
+					// 保たれる。チェックボックスのtitle/注記側の詳しい文言は変えない)。
+					teraLabel.append(teraCheckbox, document.createTextNode("テラス"));
 					if (teraAvailable) {
 						teraLabel.title = "テラスタル発動";
 					} else {
@@ -5619,7 +5791,9 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 							"元の第1タイプへ自動フォールバックし意図しない2倍のタイプ一致補正になるため)";
 						const teraNote = document.createElement("span");
 						teraNote.className = "damage-detail-tera-note";
-						teraNote.textContent = "(テラスタイプ未設定)";
+						// 23-R3: 2分割で列幅が狭くなるため「(テラスタイプ未設定)」→「(未設定)」に
+						// 短縮する。titleに詳しい理由が残っているため意味は失われない。
+						teraNote.textContent = "(未設定)";
 						teraLabel.appendChild(teraNote);
 					}
 					compactRow.appendChild(teraLabel);
@@ -5639,7 +5813,7 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 						criticalLabel.append(criticalCheckbox, document.createTextNode("急所"));
 						compactRow.appendChild(criticalLabel);
 					}
-					detailPanelBodyEl.appendChild(compactRow);
+					parentEl.appendChild(compactRow);
 
 					// 3行目: 状態異常の<select>(「11-8の修正」ユーザー指示で、ラウンド11の
 					// アイコントグル化からリスト選択方式に戻した。選択肢が何個あっても表示は
@@ -5669,7 +5843,7 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 						refreshRowConditionChips(row);
 					});
 					ailmentRow.appendChild(ailmentSelect);
-					detailPanelBodyEl.appendChild(ailmentRow);
+					parentEl.appendChild(ailmentRow);
 
 					// 4行目: 揮発状態(volatile)。ラウンド20ユーザー指示(20-R3)で追加。状態異常の
 					// すぐ下に、複数選択できるチェックボックス群として置く(round-20.md「配置」節)。
@@ -5711,7 +5885,7 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 							volatileGroup.appendChild(optLabel);
 						}
 						volatileRow.appendChild(volatileGroup);
-						detailPanelBodyEl.appendChild(volatileRow);
+						parentEl.appendChild(volatileRow);
 					}
 				}
 
@@ -5739,109 +5913,32 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 						refreshRowConditionChips(row);
 					}
 
-					const heading = document.createElement("h3");
-					heading.className = "damage-detail-row-heading";
-					const moveName = column.moveName.trim();
-					// ラウンド12指摘(B-1): 直下の説明文「この技列だけに適用されます。」が見出しの
-					// 言い換えでしかなく重複していた。「だけの設定」を見出し自体に畳み込み、
-					// 「他の技列には効かない」という非自明な情報をこの1行で担保する
-					// (説明文自体はscoped <style>側でCSS非表示にした。DOMは残す)。
-					// ラウンド17指摘(B-3): 見出しが技名だけだと、同じ技名を複数カードが持つ場合に
-					// カード列をスクロールした後どのカード(相手)の設定か分からなくなる
-					// (カード側の選択強調はラウンド12 B-4で意図的に弱い左3pxバーにしているため、
-					// 対象カードが画面外だと強調も見えない)。相手個体名(row.name、カードの
-					// 「相手ポケモン名」入力欄の値)を先頭に足す。未入力なら従来どおり技名のみ。
-					const opponentName = row.name.trim();
-					const columnLabel = moveName ? `技${idx + 1}(${moveName})` : `技${idx + 1}`;
-					heading.textContent = opponentName ? `${opponentName}: ${columnLabel}だけの設定` : `${columnLabel}だけの設定`;
-					detailPanelBodyEl.appendChild(heading);
+					// ラウンド23ユーザー指示(23-R1)「選択中カードのタイトルを削除」により、
+					// 「{相手名}: 技N(技名)だけの設定」という<h3>見出し(旧
+					// .damage-detail-row-heading)を削除した。「この技列だけに適用されます。」の
+					// 説明文(ラウンド20 20-R1で死んだ要素として既にDOM削除済み)と合わせて、
+					// このパネルにはもう「どの技列を編集中か」を示すテキストが無くなる。
+					// ⚠️ 実機で確認: 技列側の選択強調(.damage-column.is-selected、primary実線+
+					// box-shadow)が画面内に見えていれば、そのカードだけを見ればどの技列を
+					// 編集中か判別できる。ただしカード列を横スクロール/縦スクロールして選択中の
+					// 技列が画面外に出ると、パネル側だけを見ても対象が分からなくなる(以前は
+					// この見出しがその代替情報源だった)。この退行は実際に確認できたため報告に
+					// 明記する。
+					// (対応するscoped<style>側の.damage-detail-row-headingルールも削除済み)。
 
-					// ラウンド20ユーザー指示(20-R1): 「この技列だけに適用されます。」の説明文は
-					// ラウンド12指摘(B-1)以来CSSで隠しているだけの死んだ要素になっていた
-					// (見出し側の「だけの設定」と完全重複、JS側の参照は無い)。DOMごと削除する
-					// (対応するscoped<style>側の.damage-detail-subtitleルールも削除済み)。
-
-					// ラウンド11ユーザー指示(要件11-6): 表示順を「攻撃側(急所含む)→防御側→
-					// 場の設定」に変更する(旧: 天候→フィールド→壁→攻撃側→防御側)。
-					// 見出しは攻守の向きに合わせて「この個体」「相手」を入れ替える。
-					// attackerRank等は常に「攻撃側という役割」に対する値であり、どちらが
-					// この個体なのかはrow.directionで決まる(recalcRow()のspec組み立てを参照)。
-					const selfIsAttackerForDialog = row.direction !== "defense";
-					// ラウンド17指摘(A-1・実バグ): buildSideSection()にテラスタイプの実値を渡す
-					// (この個体=左パネルの#tera select、相手=このカードのrow.teraType)。
-					// どちらが攻撃側/防御側になるかはrow.direction(攻守切り替え)で入れ替わるため、
-					// selfIsAttackerForDialogと同じ条件分岐で対応させる(specの組み立て方は
-					// recalcRow()のattackerSpec/defenderSpecの入れ替えと揃えている)。
-					const selfTeraTypeValue = teraSelect.value;
-					const opponentTeraTypeValue = row.teraType;
-					buildSideSection(
-						row,
-						selfIsAttackerForDialog ? "攻撃側(この個体)" : "攻撃側(相手)",
-						column.attackerRank,
-						column.attackerAilment,
-						column.attackerTerastallized,
-						selfIsAttackerForDialog ? selfTeraTypeValue : opponentTeraTypeValue,
-						column.critical,
-						(value) => { column.attackerRank = value; },
-						(value) => { column.attackerAilment = value; },
-						(value) => { column.attackerTerastallized = value; },
-						(value) => { column.critical = value; },
-						DAMAGE_ATTACKER_VOLATILES,
-						column.attackerVolatiles,
-						(value) => { column.attackerVolatiles = value; },
-					);
-					buildSideSection(
-						row,
-						selfIsAttackerForDialog ? "防御側(相手)" : "防御側(この個体)",
-						column.defenderRank,
-						column.defenderAilment,
-						column.defenderTerastallized,
-						selfIsAttackerForDialog ? opponentTeraTypeValue : selfTeraTypeValue,
-						undefined,
-						(value) => { column.defenderRank = value; },
-						(value) => { column.defenderAilment = value; },
-						(value) => { column.defenderTerastallized = value; },
-						undefined,
-						DAMAGE_DEFENDER_VOLATILES,
-						column.defenderVolatiles,
-						(value) => { column.defenderVolatiles = value; },
-					);
-
-					// ラウンド20ユーザー指示(20-R2): 壁は「場の設定」ではなく防御側セクションに
-					// 含める(壁は防御側にかかる効果のため)。保存キー・エンジンへの渡し方
-					// (resolveColumnDerivedFields()がwallEnabled/技の分類からdefenderSideFieldsを
-					// 自動算出する)は一切変えていない。「自分側の壁」⇄「相手側の壁」という
-					// 向きに追随するラベルの言い換えも維持する。
-					const wallRow = document.createElement("div");
-					wallRow.className = "damage-detail-toggle-row";
-					const wallLabel = document.createElement("label");
-					wallLabel.className = "damage-checkbox-label";
-					wallLabel.title = "リフレクター/ひかりのかべを技の分類に応じて自動選択して壁を張る";
-					const wallCheckbox = document.createElement("input");
-					wallCheckbox.type = "checkbox";
-					wallCheckbox.checked = column.wallEnabled;
-					wallCheckbox.addEventListener("change", () => {
-						applyToColumnField(() => { column.wallEnabled = wallCheckbox.checked; });
-					});
-					const wallText = row.direction === "defense" ? "自分側の壁" : "相手側の壁";
-					wallLabel.append(wallCheckbox, document.createTextNode(wallText));
-					wallRow.appendChild(wallLabel);
-					detailPanelBodyEl.appendChild(wallRow);
-					const wallHint = document.createElement("p");
-					wallHint.className = "damage-detail-toggle-hint";
-					wallHint.textContent = "技の分類で自動選択";
-					detailPanelBodyEl.appendChild(wallHint);
-
-					// 「場の設定」: 壁を防御側セクションへ移した(20-R2)ため、天候・フィールドの
-					// 2項目だけが残る。
+					// ラウンド23ユーザー指示(23-R2)「『場の設定』を最上部に配置」により、表示順を
+					// 「場の設定(天候・フィールド)→攻撃側→防御側」に変更する(ラウンド11
+					// 11-6で確定した「攻撃側→防御側→場の設定」の順を撤回。壁は20-R2の判断どおり
+					// 防御側セクションの中に残す=撤回しない)。
+					// 「場の設定」: 壁は防御側セクションに含めている(20-R2)ため、天候・フィールドの
+					// 2項目だけ。天候・フィールドはそれぞれ「ラベル+アイコン群」の1行に収める。
+					// 強天候3種を削除した結果、天候も5択(なし+4)になりフィールド(なし+4)と
+					// 同じ列数で揃うため、is-row5(5列グリッド)で両方とも折り返しなく1行に並ぶ。
 					const fieldHeading = document.createElement("p");
 					fieldHeading.className = "damage-detail-section-heading";
 					fieldHeading.textContent = "場の設定";
 					detailPanelBodyEl.appendChild(fieldHeading);
 
-					// 天候・フィールドはそれぞれ「ラベル+アイコン群」の1行に収める。強天候3種を
-					// 削除した結果、天候も5択(なし+4)になりフィールド(なし+4)と同じ列数で
-					// 揃うため、is-row5(5列グリッド)で両方とも折り返しなく1行に並ぶ。
 					const weatherRow = document.createElement("div");
 					weatherRow.className = "damage-detail-field-row";
 					const weatherLabel = document.createElement("span");
@@ -5873,6 +5970,99 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 					terrainGroup.classList.add("is-row5");
 					terrainRow.appendChild(terrainGroup);
 					detailPanelBodyEl.appendChild(terrainRow);
+
+					// ラウンド23ユーザー指示(23-R3)「攻撃側と防御側の設定は、パネルを左右2分割して
+					// 並べて配置」。.damage-detail-sides(グリッドコンテナ、CSSは
+					// #damage-detail-panel-body .damage-detail-sides参照)の中に
+					// .damage-detail-side(列)を2つ作り、buildSideSection()のappendChild先を
+					// それぞれの列にする。狭い幅では1列に戻る(@containerで切り替え)。
+					const sidesWrap = document.createElement("div");
+					sidesWrap.className = "damage-detail-sides";
+					const attackerSide = document.createElement("div");
+					attackerSide.className = "damage-detail-side";
+					const defenderSide = document.createElement("div");
+					defenderSide.className = "damage-detail-side";
+					sidesWrap.append(attackerSide, defenderSide);
+					detailPanelBodyEl.appendChild(sidesWrap);
+
+					// 見出しは攻守の向きに合わせて「この個体」「相手」を入れ替える。
+					// attackerRank等は常に「攻撃側という役割」に対する値であり、どちらが
+					// この個体なのかはrow.directionで決まる(recalcRow()のspec組み立てを参照)。
+					// ラウンド23ユーザー指示(23-R3)「テキスト量を調整する」: 「攻撃側(この個体)」→
+					// 「攻撃(自分)」のように、「この個体」→「自分」・「側」を省く2段階で短縮する
+					// (壁のラベル「自分の壁」/「相手の壁」と同じ語彙・省略方針に揃えた。実測で
+					// 2列(1列あたり約157px @1920px)でも見出し+ランク入力が収まりやすくなることを
+					// 確認した。意味は変わらない)。
+					const selfIsAttackerForDialog = row.direction !== "defense";
+					// ラウンド17指摘(A-1・実バグ): buildSideSection()にテラスタイプの実値を渡す
+					// (この個体=左パネルの#tera select、相手=このカードのrow.teraType)。
+					// どちらが攻撃側/防御側になるかはrow.direction(攻守切り替え)で入れ替わるため、
+					// selfIsAttackerForDialogと同じ条件分岐で対応させる(specの組み立て方は
+					// recalcRow()のattackerSpec/defenderSpecの入れ替えと揃えている)。
+					const selfTeraTypeValue = teraSelect.value;
+					const opponentTeraTypeValue = row.teraType;
+					buildSideSection(
+						attackerSide,
+						row,
+						selfIsAttackerForDialog ? "攻撃(自分)" : "攻撃(相手)",
+						column.attackerRank,
+						column.attackerAilment,
+						column.attackerTerastallized,
+						selfIsAttackerForDialog ? selfTeraTypeValue : opponentTeraTypeValue,
+						column.critical,
+						(value) => { column.attackerRank = value; },
+						(value) => { column.attackerAilment = value; },
+						(value) => { column.attackerTerastallized = value; },
+						(value) => { column.critical = value; },
+						DAMAGE_ATTACKER_VOLATILES,
+						column.attackerVolatiles,
+						(value) => { column.attackerVolatiles = value; },
+					);
+					buildSideSection(
+						defenderSide,
+						row,
+						selfIsAttackerForDialog ? "防御(相手)" : "防御(自分)",
+						column.defenderRank,
+						column.defenderAilment,
+						column.defenderTerastallized,
+						selfIsAttackerForDialog ? opponentTeraTypeValue : selfTeraTypeValue,
+						undefined,
+						(value) => { column.defenderRank = value; },
+						(value) => { column.defenderAilment = value; },
+						(value) => { column.defenderTerastallized = value; },
+						undefined,
+						DAMAGE_DEFENDER_VOLATILES,
+						column.defenderVolatiles,
+						(value) => { column.defenderVolatiles = value; },
+					);
+
+					// ラウンド20ユーザー指示(20-R2、23-R2でも撤回しない): 壁は「場の設定」ではなく
+					// 防御側セクションに含める(壁は防御側にかかる効果のため)。23-R3で防御側が
+					// 独立した列(defenderSide)になったため、そのままdefenderSideの末尾に追加する
+					// ことで「防御側の中」という配置を維持する。保存キー・エンジンへの渡し方
+					// (resolveColumnDerivedFields()がwallEnabled/技の分類からdefenderSideFieldsを
+					// 自動算出する)は一切変えていない。
+					const wallRow = document.createElement("div");
+					wallRow.className = "damage-detail-toggle-row";
+					const wallLabel = document.createElement("label");
+					wallLabel.className = "damage-checkbox-label";
+					wallLabel.title = "リフレクター/ひかりのかべを技の分類に応じて自動選択して壁を張る";
+					const wallCheckbox = document.createElement("input");
+					wallCheckbox.type = "checkbox";
+					wallCheckbox.checked = column.wallEnabled;
+					wallCheckbox.addEventListener("change", () => {
+						applyToColumnField(() => { column.wallEnabled = wallCheckbox.checked; });
+					});
+					// 23-R3: 「自分側の壁」→「自分の壁」、「相手側の壁」→「相手の壁」に短縮する
+					// (「側」を省いても意味は変わらない)。
+					const wallText = row.direction === "defense" ? "自分の壁" : "相手の壁";
+					wallLabel.append(wallCheckbox, document.createTextNode(wallText));
+					wallRow.appendChild(wallLabel);
+					defenderSide.appendChild(wallRow);
+					const wallHint = document.createElement("p");
+					wallHint.className = "damage-detail-toggle-hint";
+					wallHint.textContent = "技の分類で自動選択";
+					defenderSide.appendChild(wallHint);
 				}
 
 				// 選択中の内容に応じてサイドバーを描画する(旧buildRowDetailDialogの後継。
@@ -6024,14 +6214,14 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 					const itemBadge = document.createElement("span");
 					itemBadge.className = "damage-item-badge";
 					// applyItemImage()は非同期なので、既定は非表示にしておく
-					// (持ち物なしの相手で空の白丸が一瞬でも出ないようにする)。
+					// (持ち物なしの相手で空バッジ・壊れ画像アイコンが一瞬でも出ないようにする)。
 					itemBadge.hidden = true;
 					const itemImg = document.createElement("img");
 					itemImg.className = "damage-item-image";
-					// 21-D1: バッジのCSS(width/height:55px)に合わせる(表示サイズはCSSのwidth:100%/
+					// 23-D1: バッジのCSS(width/height:37px)に合わせる(表示サイズはCSSのwidth:100%/
 					// height:100%が決めるため実害は無いが、img自身の意図する解像度を一致させておく)。
-					itemImg.width = 55;
-					itemImg.height = 55;
+					itemImg.width = 37;
+					itemImg.height = 37;
 					itemImg.alt = "";
 					itemImg.style.display = "none";
 					itemBadge.appendChild(itemImg);
@@ -6069,6 +6259,11 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 						row.name = nameInput.value.trim();
 						refreshSprite();
 						onFieldInput();
+					});
+					// 23-D2: 種族名が確定した(blur、またはpokemon-listのdatalist選択によるchange)
+					// タイミングでのみ特性候補を作り直す(理由は上のabilitySelectコメント参照)。
+					nameInput.addEventListener("change", () => {
+						void rebuildRowAbilityOptions(nameInput.value.trim());
 					});
 
 					// ラウンド6ユーザー指示(要件1): ⚙(この行の計算条件)ボタンは廃止した。
@@ -6116,7 +6311,7 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 						// 技列のplaceholder/aria-label(「技」⇄「相手の技」)も向きで変わるため作り直す。
 						// renderColumns()自身が末尾でselectedRow===rowなら
 						// renderDetailPanel()を呼ぶため、サイドバー側の向き別ラベル
-						// (「攻撃側(この個体)」⇄「攻撃側(相手)」、壁のラベル)もここで自動的に追随する。
+						// (「攻撃(自分)」⇄「攻撃(相手)」、壁のラベル)もここで自動的に追随する。
 						renderColumns(row);
 						onFieldInput();
 					}
@@ -6131,22 +6326,81 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 					// H/A/B/C/D/S見出しクリック(下のevGrid構築部分、natureColLabelEls参照)で
 					// 決まるようになったため、1行(性格select)ぶん高さも削減できる。
 
-					const abilityInput = document.createElement("input");
-					abilityInput.type = "text";
-					abilityInput.setAttribute("list", "ability-list");
-					abilityInput.placeholder = "特性";
-					abilityInput.setAttribute("aria-label", "相手の特性");
-					abilityInput.autocomplete = "off";
-					abilityInput.value = row.abilityName;
-					abilityInput.title = row.abilityName;
-					abilityInput.addEventListener("input", () => {
-						row.abilityName = abilityInput.value.trim();
-						// ラウンド4の積み残し: 長い値(「こだいかっせい」等)が見切れるため、
-						// titleでホバー時に全文を確認できるようにする。
-						abilityInput.title = row.abilityName;
+					// ラウンド23ユーザー指示(23-D2、=ラウンド22の22-Cを統合): 特性はその種族が
+					// 持ちうる特性だけを候補とする<select>にする(左パネルのrebuildAbilityOptions()
+					// と同じ考え方。ただし左パネルはローカル変数に密結合していて共通関数化されて
+					// いないため、ここでも同じloadAbilitiesMap()を呼ぶ専用実装を用意する)。
+					// ⚠️ 相手ビルドは種族名を頻繁に打ち替えるため、1文字ごとの"input"イベントで
+					// 候補を作り直すと入力途中で選択肢が消え続けて操作を妨げる(左パネルのコメント
+					// 「pitfalls.mdの自動保存リスクと同種」参照)。種族名inputの"change"
+					// (blur/確定時)にだけ結線し、タイプ中は現在の候補を保持する(実機で
+					// 妨げないことを確認済み。判断根拠は報告参照)。
+					const abilitySelect = document.createElement("select");
+					abilitySelect.setAttribute("aria-label", "相手の特性");
+					{
+						// rebuildRowAbilityOptions()の初回解決(loadAbilitiesMap()のfetch完了)までの
+						// 仮表示。保存済みの値をそのまま1件だけ置く(左パネルのSSR初期値と同じ考え方)。
+						const placeholderOpt = document.createElement("option");
+						placeholderOpt.value = row.abilityName;
+						placeholderOpt.textContent = row.abilityName || "特性";
+						placeholderOpt.selected = true;
+						abilitySelect.appendChild(placeholderOpt);
+					}
+					abilitySelect.title = row.abilityName;
+					let abilityRequestToken = 0;
+					async function rebuildRowAbilityOptions(speciesName: string): Promise<void> {
+						const token = ++abilityRequestToken;
+						const abilitiesMap = await loadAbilitiesMap();
+						if (token !== abilityRequestToken) return; // より新しい呼び出しに追い越された
+						const trimmed = speciesName.trim();
+						const abilities = trimmed ? abilitiesMap.get(trimmed) ?? [] : [];
+						const previousValue = abilitySelect.value;
+						abilitySelect.innerHTML = "";
+						if (abilities.length === 0) {
+							// 種族名が空、または候補が引けない(未知の種族名・入力途中)場合は
+							// 左パネルと同じくdisabled+プレースホルダにする。
+							abilitySelect.disabled = true;
+							const emptyOpt = document.createElement("option");
+							emptyOpt.value = "";
+							emptyOpt.textContent = "特性";
+							abilitySelect.appendChild(emptyOpt);
+							abilitySelect.value = "";
+							abilitySelect.title = "";
+							if (previousValue !== "") {
+								row.abilityName = "";
+								onFieldInput();
+							}
+							return;
+						}
+						abilitySelect.disabled = false;
+						const placeholderOpt = document.createElement("option");
+						placeholderOpt.value = "";
+						placeholderOpt.textContent = "特性を選択";
+						abilitySelect.appendChild(placeholderOpt);
+						for (const a of abilities) {
+							const opt = document.createElement("option");
+							opt.value = a;
+							opt.textContent = a;
+							abilitySelect.appendChild(opt);
+						}
+						// 種族変更で現在の値が新しい候補に無ければクリアする。
+						abilitySelect.value = abilities.includes(previousValue) ? previousValue : "";
+						abilitySelect.title = abilitySelect.value;
+						if (abilitySelect.value !== previousValue) {
+							row.abilityName = abilitySelect.value;
+							onFieldInput();
+						}
+					}
+					abilitySelect.addEventListener("change", () => {
+						row.abilityName = abilitySelect.value;
+						abilitySelect.title = abilitySelect.value;
 						onFieldInput();
 					});
-					selectsRow.appendChild(abilityInput);
+					selectsRow.appendChild(abilitySelect);
+					// 初期描画時点(保存済みメモの復元・新規行の生成いずれも)で、既にrow.nameが
+					// 入っていれば候補を組み立てておく(左パネルのvoid rebuildAbilityOptions(...)と
+					// 同じ考え方)。
+					void rebuildRowAbilityOptions(row.name);
 
 					const itemInput = document.createElement("input");
 					itemInput.type = "text";
@@ -6289,9 +6543,10 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 					totalResult.textContent = "(計算前)";
 					totalResult.dataset.severity = "none";
 					// ダメージ量と判定で参照している値の性質が違うため、そのことを明示する。
-					// 「累計264〜312 (114〜135%) 10発以上」のように、打点がHPを超えているのに
+					// 「264〜312 (114〜135%) 10発以上」のように、打点がHPを超えているのに
 					// 確定的な致死判定にならない表示が正しく成立しうる(たべのこし持ちの相手など。
-					// ラウンド20(20-D4)で「未撃破」という語自体は廃止した)。
+					// ラウンド20(20-D4)で「未撃破」という語自体は廃止し、ラウンド23(23-D5)で
+					// 数値ラベルの「累計」も外した)。
 					totalResult.title = TOTAL_RESULT_HINT;
 					totalBlock.append(totalLabel, totalResult);
 					buildEl.appendChild(totalBlock);
