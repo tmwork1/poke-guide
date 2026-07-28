@@ -249,7 +249,12 @@ const user = Astro.locals.user;
 			color: var(--color-text-muted);
 			margin-top: var(--space-6);
 		}
-		#error-message { color: var(--color-danger); }
+		/* ラウンド22 22-A-3追加分: color: var(--color-danger)がこの要素の実背景(--color-bgを
+		   継承、#f3f4f8)に対し実測2.56:1でWCAG AA(4.5:1)未達だった(Playwrightでhiddenを外して
+		   getComputedStyleを実測)。delete-buttonと同じ--color-danger-strong(#b23a26)に
+		   差し替える(実測5.42:1)。ダークは元々7.93:1で問題なく、--color-danger-strongは
+		   ダーク側でvar(--color-danger)にエイリアスされているため変化しない。 */
+		#error-message { color: var(--color-danger-strong); }
 
 		/* 空状態(登録0件): 追加タイルの下に「何ができる画面か」を伝えるカードを添える。
 		   以前は表示条件の論理式が誤っており(allPokemon.length===0のときにhiddenへ倒れる式に
@@ -395,7 +400,7 @@ const user = Astro.locals.user;
 
 		/* --- 持ち物(優先順位4位、ラウンド5で復元)+ テラスタイプ(ラウンド20 B1で追加)。
 		   実測で「こだわりハチマキ」等の長いアイテム名を文字表示すると正方形には
-		   収まらなかったため、公式絵の右下に重ねる小さな丸バッジ(画像のみ)にして縦方向の
+		   収まらなかったため、公式絵の右下に重ねる小さな画像バッジにして縦方向の
 		   予算を消費しない形にした。アイテム名・テラスタイプ名はカード<a>のtitle属性
 		   (ホバーツールチップ)に引き続き含まれる。
 		   ラウンド20 B1: 持ち物バッジの右にテラスタイプ画像も並べる(ユーザー指示)。
@@ -403,15 +408,16 @@ const user = Astro.locals.user;
 		   両方の<span>を最初から静的な順序でDOMに置き、既定でhidden=trueにしてから
 		   非同期でsrc/hiddenを埋める方式にしている(挿入順を実行順に依存させないため。
 		   pitfalls.md「非同期の描画関数をvoidで投げっぱなしにしない」参照)。
-		   ラウンド20 G1: サイズを22px→28px(--icon-size-md)に拡大する。トークンは
-		   エージェントAがglobal.cssに定義する想定だが、この回では未定義だったため
-		   var(..., 28px)のフォールバックで28px直書きと同じ値を使う。
-		   ラウンド21 21-B1/21-B2: 持ち物画像をさらに28px→42pxへ拡大し(サイズの詳細は
-		   下の.card-item-badgeのコメント参照)、テラス画像は宝石型アイコン(teraTypeIconUrl)から
-		   通常タイプの丸アイコン(typeIconUrl、border-radius: 50%で丸く見せるのは従来どおり)へ
-		   差し替える(ユーザー指示。どちらのアセットも正方形切り出し済みで、丸く見えているのは
-		   CSSのborder-radiusによるもの。形状の違いはジグザグ縁の有無だけ、
-		   scripts/type-icons/generate_type_icons.py:31 のコメント参照)。 */
+		   ラウンド23 23-G1: 持ち物バッジの白丸の枠(border-radius/background/border/box-shadow/
+		   padding)を撤去し、画像を直接表示する(ユーザー指示は「アイテム画像の丸枠」)。
+		   テラス画像側の「枠」(background/border/box-shadow/padding)も、隣に並んだときの
+		   不揃いを避けるため同様に撤去した。ただしテラス画像の丸み(border-radius: 50%)は
+		   「枠」ではなく個体編集ページの.type-badge-img(box/[id].astro)と同じ
+		   「画像そのものを円形に見せる」表現なので残す(23-B2「個体編集のタイプアイコンと
+		   同じ丸アイコン」の意図を汲んだ判断。実機で見比べた経緯は報告参照)。
+		   ラウンド23 23-B1/23-B2: 持ち物画像を42px→28px(--icon-size-md)へ縮小し(ラウンド21
+		   21-B1を実質的に戻す)、テラス画像もサイズを合わせて28pxに揃える(アセットは
+		   typeIconUrlのまま変更なし、揃えるのはサイズだけ)。 */
 		.box-grid .card-pokemon .card-badge-row {
 			position: absolute;
 			right: -0.2rem;
@@ -422,30 +428,10 @@ const user = Astro.locals.user;
 		}
 		.box-grid .card-pokemon .card-item-badge,
 		.box-grid .card-pokemon .card-tera-badge {
-			border-radius: 50%;
-			background: var(--color-surface);
-			border: 1px solid var(--color-border);
-			box-shadow: var(--shadow-sm);
 			display: flex;
 			align-items: center;
 			justify-content: center;
-			overflow: hidden;
-			padding: 2px;
 			flex: none;
-		}
-		/* ラウンド21 21-B1: 持ち物画像を28px→42px(28×1.5、ユーザー指示)に拡大する。テラス画像は
-		   21-B2でアイコン種別だけ差し替え、サイズは--icon-size-md(28px)のまま据え置く
-		   (指示に42pxの対象として挙がっているのは持ち物画像のみ)。
-		   持ち物画像はPokeAPIのドット絵(実測32×32相当)を都度フェッチしており、42pxは元解像度を
-		   明確に超える。実機のdeviceScaleFactor:3拡大クロップで確認した結果、pixelated無しでは
-		   輪郭がぼやけて「大きくしたのに解像感が下がった」ように見えたため、
-		   image-rendering: pixelatedを当てて「意図的なドット絵」に見せる方を選んだ
-		   (ぼやけるより許容できると判断。判断根拠は報告参照)。 */
-		.box-grid .card-pokemon .card-item-badge {
-			width: 42px;
-			height: 42px;
-		}
-		.box-grid .card-pokemon .card-tera-badge {
 			width: var(--icon-size-md, 28px);
 			height: var(--icon-size-md, 28px);
 		}
@@ -455,33 +441,33 @@ const user = Astro.locals.user;
 			height: 100%;
 			object-fit: contain;
 		}
-		.box-grid .card-pokemon .card-item-badge img {
-			image-rendering: pixelated;
+		/* テラス画像だけ円形に見せる(box/[id].astroの.type-badge-imgと同じ手法: <img>自体に
+		   border-radius: 50%。淡い背景に重なっても輪郭が見えるよう薄いdrop-shadowも同様に付ける)。
+		   typeIconUrlのアセットは正方形切り出し済みなので、CSSのborder-radiusだけで丸く見える。 */
+		.box-grid .card-pokemon .card-tera-badge img {
+			border-radius: 50%;
+			filter: drop-shadow(0 0 1px var(--color-surface));
 		}
+		/* ラウンド21 21-B1でPokeAPIのドット絵(実測32×32相当)を42pxへ拡大した際に
+		   ぼやけを避けるため付けたimage-rendering: pixelatedは、23-B1で28pxへ縮小したことで
+		   実解像度(32×32相当)の枠内に収まるため撤去した。deviceScaleFactor:3の拡大クロップで
+		   pixelated無しでも輪郭がぼやけないことを確認済み(判断根拠は報告参照)。 */
 		/* .card-item-badge/.card-tera-badge の display:flex は詳細度3つぶんあるため、UAの
 		   [hidden]{display:none}(詳細度1つぶん)に勝ってしまい、hidden=trueにしても空バッジが
 		   表示され続ける(box/[id].astroの .damage-column-hitcount-row と同じ既知の罠、
 		   pitfalls.md参照)。明示的に上書きする。ラッパー.card-badge-row自体は背景/枠を
-		   持たないため、両方hiddenでも空の白丸が残ることはない(確認済み)。 */
+		   持たないため、両方hiddenでも空の白丸が残ることはない(確認済み)。
+		   23-G1で枠(background/border)自体を撤去したため「空の白丸」は構造的に起こり得なく
+		   なったが、img自体を隠すロジックとこの[hidden]上書きは alt テキストや壊れ画像
+		   アイコンが出ないようにするため引き続き必要(実機で確認済み)。 */
 		.box-grid .card-pokemon .card-item-badge[hidden],
 		.box-grid .card-pokemon .card-tera-badge[hidden] {
 			display: none;
 		}
-		/* ラウンド8 B-5: ダークモードでは border: 1px solid var(--color-border)(#2d313d)が
-		   カード背景 --color-surface-alt(#22252f)に対して1.18:1しか無く、アイテム画像だけが
-		   空中に浮いて見える。--color-border 自体は他ページの罫線に影響するため変えず、
-		   このページscopedで内箱の枠線だけ既存中立色の明度違い #5a6377(カード背景に対し
-		   2.73:1)に上書きする(新色は作らない)。 */
+		/* ラウンド8 B-5で付けたダークモードの枠線色上書き(#5a6377)は、23-G1で
+		   .card-item-badge/.card-tera-badgeのborderそのものを撤去したため不要になり削除した。
+		   .card-stat-grid の区切り線(ラウンド12 B-3)は無関係なので維持する。 */
 		@media (prefers-color-scheme: dark) {
-			.box-grid .card-pokemon .card-item-badge,
-			.box-grid .card-pokemon .card-tera-badge {
-				border-color: #5a6377;
-			}
-			/* ラウンド12 B-3: 区切り線がダークで --color-border(#2d313d)のままだったため、
-			   上の.card-item-badgeと濃さの系統が2つ混在していた。同じ#5a6377に揃える
-			   (新色は作らない)。ラウンド20 B2で名前→技→実数値の順に入れ替え、区切り線を
-			   .card-moves-grid(技)から.card-stat-grid(実数値)の上端に付け替えたため、
-			   対象セレクタもそれに追随させる。 */
 			.box-grid .card-pokemon .card-stat-grid {
 				border-top-color: #5a6377;
 			}
@@ -537,18 +523,30 @@ const user = Astro.locals.user;
 			border-color: var(--color-risky);
 		}
 		/* global.cssの.delete-button(danger塗り・太字パディング)はアイコン専用の丸ボタンには
-		   大きすぎるため、このカード内に限定してサイズ・配色を上書きする。 */
+		   大きすぎるため、このカード内に限定してサイズ・配色を上書きする。
+		   ラウンド22 22-A-3: color: var(--color-danger)(#f8705b)がライトモードで
+		   背景(--color-surface、白)に対し2.82:1しか無くWCAG AA(4.5:1)未達だった
+		   (実測はPlaywrightのgetComputedStyleで確認、docs/plan/ui_rounds/round-22.mdの
+		   実測値2.82:1と一致)。新色は作らずラウンド21で/box/[id]の削除ボタンに使った
+		   --color-danger-strong(#b23a26)に差し替える(白地5.96:1)。
+		   :hover時のborder-colorも同じ--color-danger(非テキストだがWCAG 1.4.11の3:1を
+		   --color-danger-soft背景に対し2.46:1で下回っていた)を使っていたため、text/borderとも
+		   --color-danger-strongに揃える(--color-danger-soft背景に対し5.20:1)。
+		   背景に使うbackground: var(--color-danger-soft)自体はテキストではないので変更不要。
+		   ダーク側は--color-danger-strongがglobal.css内で`var(--color-danger)`にエイリアスされて
+		   おり(既にAA達成: 単体7.22:1・hover合成背景5.43:1)、この変更でダークの見た目は
+		   一切変わらない(実測で確認済み)。 */
 		.box-grid .card-pokemon .delete-button {
 			background: var(--color-surface);
 			border: 1px solid var(--color-border);
-			color: var(--color-danger);
+			color: var(--color-danger-strong);
 			font-weight: 400;
 			padding: 0;
 		}
 		.box-grid .card-pokemon .delete-button:hover {
 			background: var(--color-danger-soft);
-			color: var(--color-danger);
-			border-color: var(--color-danger);
+			color: var(--color-danger-strong);
+			border-color: var(--color-danger-strong);
 		}
 		@media (hover: hover) and (pointer: fine) {
 			.box-grid .card-pokemon .delete-button,
@@ -627,7 +625,13 @@ const user = Astro.locals.user;
 			text-align: center;
 			color: var(--color-text);
 		}
-		.box-grid .card-pokemon .card-stat-real-value[data-mod="up"] { color: var(--color-danger); }
+		/* ラウンド22 22-A-3追加分: color: var(--color-danger)がカード背景(--color-surface-alt、
+		   #f8f9fc)に対し実測2.67:1でWCAG AA(4.5:1)未達だった。delete-button/#error-messageと
+		   同じ--color-danger-strong(#b23a26)に差し替える(実測5.66:1)。ダークは元々6.71:1で
+		   問題なく、--color-danger-strongはダーク側でvar(--color-danger)にエイリアスされている
+		   ため変化しない。下降側(--card-stat-down、青)は元々ライト4.70:1・ダーク7.07:1でAA
+		   達成済みのため変更しない(実測で確認済み)。 */
+		.box-grid .card-pokemon .card-stat-real-value[data-mod="up"] { color: var(--color-danger-strong); }
 		.box-grid .card-pokemon .card-stat-real-value[data-mod="down"] { color: var(--card-stat-down); }
 		/* ▲▼マーカーは以前 親の0.74em(em)に対する0.7em(em)指定で、入れ子emにより実測8.3pxまで
 		   潰れていた(pitfalls.md「emの入れ子」)。ラウンド20 G3でfont-sizeの上書き自体を止め、
@@ -650,6 +654,18 @@ const user = Astro.locals.user;
 		.box-grid .card-pokemon .card-moves-grid {
 			display: grid;
 			grid-template-columns: repeat(2, minmax(0, 1fr));
+			/* ラウンド23 23-B3: 技1個分しか無い行(技2件=1行)でも、.card-move-chipの背景
+			   (color-mix、下記参照)がmin-heightで確保した2行ぶんの高さまで縦にストレッチされ、
+			   「技チップの背景が技1行分より大きい」というユーザー指摘の実体だった。実測すると
+			   修正前は.card-move-chipのgetBoundingClientRect().height=34.72px(2行ぶん)、
+			   1行のあるべき高さ(line-height 14.4px + padding上下0.08rem*2=2.56px)は16.96pxで、
+			   ちょうど2倍にストレッチされていた。原因はCSS Gridの既定align-items:stretchが、
+			   1行しか無いのにmin-heightで確保した2行ぶんの高さをその1行に配分してしまうこと。
+			   align-items: startにすると各チップは自身の内容の高さだけを取り、行の見た目上の
+			   高さ(min-height由来の予約分)には影響しない。修正後の実測: 技0/1/2/4件いずれも
+			   チップの高さ16.92px(1行分)・.card-moves-grid自体の高さは34.72pxのまま(全カードの
+			   高さ揃えは維持、cloneNode複製で技0/1/2/4件混在させ257.34375pxで一致を確認済み)。 */
+			align-items: start;
 			gap: 0.05rem 0.3rem;
 			width: 100%;
 			margin-top: 0.15rem;

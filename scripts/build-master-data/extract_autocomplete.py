@@ -254,6 +254,58 @@ def build_abilities(abilities: dict) -> list[dict]:
     return [{"name": name} for name in abilities if _is_real_name(name)]
 
 
+def build_mega_stones(raw_pokedex: dict, items: dict) -> list[dict]:
+    """ps-champ-ja/pokedex.json の forme(``"Mega"`` を含む)+ requiredItem から、
+    「メガ後種族名 -> メガストーン名」の前向き対応表を直接構築する
+    (jpoke.data.megaevol.MEGA_STONES の反転ではない。UI改善ラウンド23 23-G3で調査確定)。
+
+    MEGA_STONES は「メガストーン -> (進化前種族名, メガ後種族名)」の逆引きで再構築されており、
+    1アイテムに複数のメガ後フォルムが対応する場合(メガニャオニクスの性別違い「(オス)」
+    「(メス)」が同じアイテム「ニャオニクスナイト」を使う)は曖昧になるため、
+    megaevol.py の _build_mega_stones() は該当アイテムを丸ごと除外する
+    (``if len(mega_names) != 1: continue``。実測: 両方とも MEGA_STONES から漏れており、
+    「片方だけ入る」ではなく「両方とも入らない」)。前向き(種族 -> アイテム)に作れば
+    曖昧性が無いため両方カバーできる。
+
+    除外するもの:
+      - requiredItem が空文字のフォルム(メガレックウザ。技「ガリョウテンセイ」が条件で
+        メガストーン自体を必要としない)。
+      - forme に "Mega" を含まないフォルム(原始回帰 forme="Primal" のゲンシカイオーガ/
+        ゲンシグラードンは対象外。メガニウム・メガヤンマは forme が空文字でそもそも
+        該当しない。名前の「メガ」プレフィックスでは判定しない)。
+
+    ⚠️ 実データで確認した既知の不整合(このスクリプトの範囲では解決できない):
+    「ニャオニクスナイト」は上記の理由で MEGA_STONES に無く、item.py の _add_mega_stones() は
+    MEGA_STONES を単一の情報源にして jpoke.data.ITEMS へメガストーンを登録しているため、
+    「ニャオニクスナイト」自体が jpoke の ITEMS に存在せず、autocomplete/items.json にも
+    出てこない。つまりメガニャオニクス(オス)/(メス)の2件は、この対応表には前向きに
+    含まれるが、対応する持ち物名自体がUIの持ち物オートコンプリートに存在しないという
+    非対称が残る(jpoke側のデータギャップであり、名前を書き換えて辻褄を合わせないこと)。
+    """
+    result = []
+    unmatched_items: list[str] = []
+    for name, entry in raw_pokedex.items():
+        forme = entry.get("forme") or ""
+        if "Mega" not in forme:
+            continue
+        item = entry.get("requiredItem") or ""
+        if not item:
+            continue
+        if item not in items:
+            unmatched_items.append(f"{name}->{item}")
+        result.append({"species": name, "item": item})
+
+    if unmatched_items:
+        sample = ", ".join(unmatched_items[:5])
+        print(
+            f"警告: メガストーン名がjpokeのITEMS(=items.json)に存在しません: {len(unmatched_items)}件"
+            f" (例: {sample})",
+            file=sys.stderr,
+        )
+
+    return result
+
+
 def _load_item_sprite_paths(jpoke_src_dir: Path) -> dict[str, str]:
     """アイテム和名 -> sprite相対パス(例 "choice-band" / "gen9/booster-energy")のマップを作る。
 
@@ -355,6 +407,7 @@ def main() -> None:
         "moves.json": build_moves(MOVES),
         "abilities.json": build_abilities(ABILITIES),
         "items.json": build_items(ITEMS, jpoke_src_dir),
+        "mega-stones.json": build_mega_stones(raw_pokedex, ITEMS),
     }
     detail_datasets = {
         "pokemon.json": build_pokemon_detail(POKEDEX),

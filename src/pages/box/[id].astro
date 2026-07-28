@@ -15,6 +15,7 @@ export const prerender = false;
 import AppLayout from '../../layouts/AppLayout.astro';
 import { getSupabaseAdminClient } from '../../lib/supabase';
 import { getOwnedPokemon, type OwnedPokemonRecord } from '../../lib/owned-pokemon';
+import { TERA_TYPES } from '../../lib/tera-types';
 
 const user = Astro.locals.user;
 const id = Astro.params.id;
@@ -41,10 +42,9 @@ if (user && id) {
 // 選択肢一覧)はもうフロントマターで使わない。対応表(NATURE_STAT_MODIFIERS)は<script>側に
 // 定義しており、vendor/jpoke/src/jpoke/data/nature.py の NATURE_MODIFIER と一致させている。
 
-const TERA_TYPES = [
-	"ノーマル", "ほのお", "みず", "でんき", "くさ", "こおり", "かくとう", "どく", "じめん",
-	"ひこう", "エスパー", "むし", "いわ", "ゴースト", "ドラゴン", "あく", "はがね", "フェアリー", "ステラ",
-];
+// TERA_TYPES(19タイプの選択肢一覧)は src/lib/tera-types.ts へ切り出し済み(2026-07-28
+// ラウンド23 22-B-1)。以前はここに直接定義していたが、左パネル用<script>と
+// #opponent-notes-section用<script>にも同じ配列が複製されていた(3箇所重複)。値・順序は不変。
 
 // UI刷新(ダメージ計算カード化): 天候/地形/相手側の壁/状態異常の選択肢は、行(対戦相手)ごとに
 // JSで動的生成するカードの中で使うため、Astroフロントマター側では定義せず、ブラウザ専用<script>内に
@@ -85,8 +85,17 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 // (<script>)も同じ理由でニックネームを見ないよう合わせて変更している(そうしないと
 // ページ読み込み直後にJSがニックネーム入りの文字列で上書きしてしまうため)。
 const pageTitle = pokemon ? pokemon.species_name : "個体編集";
+// ラウンド23ユーザー指示(23-H1): 「種族名を削除」。<title>タグ(ブラウザタブ・履歴での
+// 個体識別に必要)には残しつつ、トップバーの可視の見出しからだけ種族名を消す。AppLayoutの
+// titleプロパティは<title>と.app-topbar-titleの両方を兼ねており、AppLayout自体は編集禁止
+// (全ページに影響するため)。AppLayoutが既に持っているbodyClass propを使い、
+// body要素にこのページだけのクラスを付け、その配下の.app-topbar-titleを
+// このページのCSSだけで非表示にする(AppLayout.astroのマークアップ・propは一切変更しない)。
+// pokemonがnull(個体が見つからない)のときはpageTitleが種族名ではなく固定文言「個体編集」
+// (エラー状態の案内)なので、そちらは隠さない(bodyClassをpokemon存在時だけ付与する)。
+const bodyClass = pokemon ? "box-edit-page" : undefined;
 ---
-<AppLayout title={pageTitle} current="box" backHref="/box">
+<AppLayout title={pageTitle} current="box" backHref="/box" bodyClass={bodyClass}>
 	{/* 共通トップバー移行(2026-07-26): 独自の.page-header(戻る/保存状態/ポケモン名/削除ボタン)を
 	    撤去し、AppLayoutのbackHref/title/topbar-status/topbar-actionsへ移した(box/index.astroの
 	    先行移行と同じ方針)。保存状態(#autosave-status等)と削除ボタン(#delete-button)は
@@ -95,7 +104,11 @@ const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 	    ポケモン名の見出しはtitleプロパティ(pageTitle、上のフロントマターで算出済み。
 	    pokemonがnullなら固定文言「個体編集」)に委譲したため、旧#header-title/#header-subtitle
 	    のマークアップは廃止した。以後のニックネーム/種族名入力への追随(旧updateHeaderIdentity)は
-	    idを持たないAppLayout側の.app-topbar-titleをquerySelectorで直接更新する(<script>参照)。 */}
+	    idを持たないAppLayout側の.app-topbar-titleをquerySelectorで直接更新する(<script>参照)。
+	    ラウンド23(23-H1): .app-topbar-title自体はAppLayout側の要素なのでこのページのscoped
+	    <style>では選択できない(scoped styleはdata-astro-cid-*がこのファイル由来の要素にしか
+	    効かない)。bodyClass="box-edit-page"を付け、下の<style is:global>側で
+	    `body.box-edit-page .app-topbar-title`として非表示にする。 */}
 	{pokemon && (
 		<Fragment slot="topbar-status">
 			<p id="autosave-status" class="status-text" data-state="saved">
@@ -173,26 +186,18 @@ const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 		   縦に折り返り(実測46×169px)、w900でも3行に折れていた。1行に固定する
 		   (トップバー側の折り返し対策はglobal.css/AppLayout.astro担当の別エージェントの範囲)。 */
 		#delete-button { white-space: nowrap; }
-		/* ラウンド21ユーザー指示(21-H1)コントラスト是正: global.cssの.btn-danger は
-		   background: var(--color-danger) + color: var(--color-primary-contrast)。
-		   ライトモードでは --color-danger(#f8705b)に白文字(--color-primary-contrast: #fff)を
-		   乗せると実測2.82:1でWCAG AA(4.5:1)を大きく割る(ダークは--color-danger-strongが
-		   --color-danger自体にエイリアスされておりcolor: var(--color-primary-contrast)が
-		   ダークでは#14161d相当になるため実測7.93:1で問題ない。ライトだけ片側落ち)。
-		   新色は作らず、既存の --color-danger-strong(ライト専用の濃色派生、#b23a26)を
-		   このボタンの背景にだけページscopedで差し替える。ダークは --color-danger-strong が
-		   --color-dangerにエイリアスされているため見た目は変わらない(このルールは実質
-		   ライトモードにのみ効く)。実測: 白文字 on #b23a26 = 5.97:1(AA適合)。
-		   hover時の反転(surface背景+danger文字)も同じ理由でstrongに揃える(白地に
-		   #f8705bのままだと同じ2.82:1に落ちるため)。 */
-		#delete-button {
-			background: var(--color-danger-strong);
-			border-color: var(--color-danger-strong);
-		}
-		#delete-button:hover:not(:disabled) {
-			color: var(--color-danger-strong);
-			border-color: var(--color-danger-strong);
-		}
+		/* ラウンド23実バグ修正: 上記の21-H1コントラスト是正ブロック(ページscoped)を撤去した。
+		   ラウンド22の22-A-1でglobal.cssの.btn-danger自体を--color-danger-strongに直したため、
+		   このページscopedブロックは基底(global.css)と完全に同じ値になり不要だった。
+		   問題は「不要」だけでなく実害があった: このブロックの#delete-button{background:...}が
+		   常にbackgroundを上書きし続けるため、hover時にglobal.cssの
+		   .btn-danger:hover{background:var(--color-surface)}(白地反転)が詳細度で負けて
+		   適用されなかった。一方この#delete-button:hoverブロックのcolorだけは
+		   --color-danger-strongに変わるため、hover時に文字色=背景色(どちらも
+		   --color-danger-strong)になり「この個体を削除」の文字が完全に見えなくなっていた
+		   (実測: コントラスト比 1.00:1、ライト/ダーク両方で再現)。ブロックを削除すれば
+		   global.cssの基底hoverルール(background:surface + color:danger-strong)がそのまま効き、
+		   自動的に直る(削除後の実測: hover文字コントラスト5.96:1、AA適合)。 */
 
 		/* ラウンド17指摘(B-1): ダメージ計算カード(#opponent-notes-section)は行(相手)ごとに
 		   独立して自動保存されるため、カード自身のfooter(失敗時のみ表示)は画面外へ
@@ -452,6 +457,13 @@ const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 		/* ラウンド8指摘(A-4): 残りポイント(#ev-remaining)を「実数値」側から移し、
 		   左「努力値(0〜32)」・右「残りN」に分ける(残ポイントが努力値入力欄の真上に来て
 		   意味も合う。<script>のupdateEvRemaining参照)。 */
+		/* ラウンド23ユーザー指示(23-L5)「ステータス関連のラベルと数値をすべて中央揃え」に対し、
+		   ここだけは意図的に対象外にした。「努力値」(列見出し)と「残りN」(努力値合計の
+		   ライブ残量表示、<script>のupdateEvRemaining参照)は役割が異なる2つのテキストで、
+		   space-betweenは「左=見出し/右=残量インジケータ」という意味を担っている。中央揃えに
+		   すると2つのテキストが隣接して団子になり、「見出しなのか値なのか」が読み取りにくくなる
+		   ことを実物で確認した(判断根拠は報告参照)。他の見出し・行(種族値/努力値数値/実数値)は
+		   すべて中央揃えに統一した。 */
 		.stat-table-header-ev {
 			grid-column: span 2;
 			display: flex;
@@ -459,11 +471,13 @@ const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 			justify-content: space-between;
 			gap: 0.4em;
 		}
-		/* UI品質改善(2026-07-26 第4弾): 見出しの列と値の列が視覚的にずれていた原因は、
-		   「実数値」ヘッダが(他の見出しと同様に)左寄せのままだったこと
-		   (.stat-row-real側は数字を右寄せしているため、右端が揃わなかった)。
-		   見出し側もそれぞれのデータ列の寄せに合わせる。 */
-		.stat-table-header > span:last-child { text-align: right; }
+		/* ラウンド23ユーザー指示(23-L5)「ステータス関連のラベルと数値をすべて中央揃えにする」。
+		   以前は「実数値」ヘッダだけ右寄せ(.stat-row-real側の数字が右寄せだったのに合わせた
+		   ためのUI品質改善第4弾の対応)だったが、種族値・実数値とも中央揃えに統一する。
+		   .stat-table-header-ev(「努力値」/「残りN」の2テキスト)は justify-content:space-between の
+		   まま維持する(下の.stat-table-header-evのコメント参照。他の見出しとは性質が違うため
+		   このラウンドでは中央揃え化の対象から外す判断をした)。 */
+		.stat-table-header > span:not(.stat-table-header-ev) { text-align: center; }
 		/* ラウンド8指摘(A-4): 残りポイントを.stat-table-header-ev側へ移したため、この見出しは
 		   「実数値」の1行だけになった(以前のflex-direction:columnの2行構成を廃止、
 		   ヘッダ高さが2行→1行になる)。 */
@@ -490,9 +504,13 @@ const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 		   まとまってしまい、5列グリッドに分割した意味が無くなる。 */
 		.stat-row .stat-input-controls { display: contents; }
 		/* 努力値の数値入力も左パネル用の詰めた寸法に揃える(6行あるので効き方が大きい)。 */
-		.stat-row input[type="number"] { font-size: 0.94rem; padding: 0.3em 0.5em; width: 100%; }
+		/* ラウンド23ユーザー指示(23-L5): 努力値の数値入力も中央揃えにする。 */
+		.stat-row input[type="number"] { font-size: 0.94rem; padding: 0.3em 0.5em; width: 100%; text-align: center; }
 		.stat-row input[type="range"] { width: 100%; }
-		.stat-row-label { font-weight: 700; white-space: nowrap; display: flex; align-items: center; gap: 0.3em; }
+		/* ラウンド23ユーザー指示(23-L5): ラベル列も中央揃えにする(justify-content:center追加)。
+		   このspanは▲ボタン+短縮ラベル+▼ボタンの3要素をflexで横並びにしており、列幅5remに
+		   対して内容幅が余るぶん左に寄っていた。 */
+		.stat-row-label { font-weight: 700; white-space: nowrap; display: flex; align-items: center; justify-content: center; gap: 0.3em; }
 		/* ラウンド21ユーザー指示(21-L7)「A,B,...のラベル色も赤・青に変わるようにする」。
 		   相手ビルドカード側(20-D3)の--stat-up/--stat-down(このページの.edit-shellで定義、
 		   DOM継承でis:global側からも参照できる。ライト4.86-4.94:1・ダーク7.2-7.6:1)を
@@ -561,8 +579,12 @@ const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 		/* HPは性格補正の対象外(クリック不可)。位置を揃えるためのプレースホルダーで、
 		   ::beforeを持たない(=何も描画されない)ため「押せない」ことを見た目でも伝える。 */
 		.stat-nature-placeholder { cursor: default; }
-		.stat-row-base { color: var(--color-text-muted); }
-		.stat-row-real { text-align: right; font-size: 1.05em; }
+		/* ラウンド23ユーザー指示(23-L5)「ステータス関連のラベルと数値をすべて中央揃え」。
+		   種族値・実数値とも中央揃えにする(実数値は以前 text-align: right だった)。
+		   ⚠️ どちらも.tnum(tabular-nums)を維持しており、桁が変わっても列内でガタつかない
+		   (中央揃えは桁ズレが目立ちやすいため、tabular-numsの維持が特に重要)。 */
+		.stat-row-base { color: var(--color-text-muted); text-align: center; }
+		.stat-row-real { text-align: center; font-size: 1.05em; }
 		/* ラウンド17指摘(B-5): ヌケニン限定の注記。既定は非表示(hidden属性)、通常種族では
 		   何も増えない(<script>のapplyBaseStats参照)。 */
 		.hp-fixed-note {
@@ -586,6 +608,11 @@ const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 			.stat-row .stat-input-controls { display: flex; }
 			.stat-row .stat-input-controls input[type="range"] { flex: 1 1 auto; width: auto; min-width: 0; }
 			.stat-row .stat-input-controls input[type="number"] { flex: 0 0 3.4em; width: 3.4em; }
+			/* ラウンド23ユーザー指示(23-L5)の中央揃え化は、この460px以下の1行レイアウト
+			   (実数値がラベル列の下にpadding-leftで字下げして続く行内表示、デスクトップの
+			   5列グリッドとは別構造)には適用しない。ここで中央揃えにすると値がラベルの
+			   真下から離れて意味的なつながりが読み取りにくくなるため、意図的に除外した
+			   (判断根拠は報告参照)。 */
 			.stat-row-real { grid-column: 1 / -1; text-align: left; padding-left: 4.6em; font-weight: 700; }
 			.stat-row-label { gap: 0.2em; }
 		}
@@ -660,10 +687,11 @@ const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 			margin-bottom: 0.5rem;
 		}
 		#edit-form .field-grid > .field { margin: 0; }
-		/* ラウンド21ユーザー指示(21-L6)で導入。field-gridは2列グリッドだが、19タイプの
-		   アイコンを並べるテラスタイプ欄は2列目の狭い幅に収まらないため、このクラスを
-		   付けたフィールドはgrid-column: 1 / -1で自分の行を丸ごと占有する。 */
-		#edit-form .field-grid > .field.field-span-all { grid-column: 1 / -1; }
+		/* ラウンド21ユーザー指示(21-L6)で導入した.field-span-all(テラスタイプ欄が19タイプの
+		   アイコンを並べるため2列目の狭い幅に収まらず、grid-column: 1 / -1で自分の行を占有する
+		   ためのクラス)は、ラウンド23(23-L3)でテラスタイプを<select>に戻したことで不要になった
+		   (再び持ち物と同じ2列グリッドに収まる幅のため)。マークアップからクラスを外し、この
+		   定義も削除した。 */
 		/* 2列に詰めたぶん1つあたりの幅が狭いので、この左パネル内だけ文字と余白を少し詰めて
 		   「ブーストエナジー」「こだいかっせい」クラスの長さが枠内に収まるようにする。 */
 		#edit-form .field-grid .field-with-image > input,
@@ -698,45 +726,44 @@ const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 		   .field-with-imageが別の使われ方をしていないか確認した上でセレクタをこの階層に絞る)。 */
 		#edit-form .field-grid > .field > .field-with-image { flex: 1 1 auto; width: 100%; min-width: 0; }
 
-		/* ラウンド21ユーザー指示(21-L6)「テラスタイプを画像選択ボックス化し、『テラスなし』を
-		   未選択(placeholder)で代用する」。右パネルのbuildIconToggleGroup()と同型の実装を
-		   このページ用に複製した(#damage-detail-panel-bodyスコープの.damage-detail-icon-*に
-		   依存させたくない・関数自体が別ブロックのローカル関数のため。判断根拠は報告参照)。
-		   #tera(<select>)自体はhidden属性でDOM上に残るのでスタイル不要。 */
-		.tera-select-status {
+		/* ラウンド23ユーザー指示(23-L3)「テラスタイプは文字セレクトボックスに戻し、技と同様に
+		   文字の左側にタイプアイコンを表示」。ラウンド21(21-L6)のアイコントグル群
+		   (.tera-select-status/.tera-select-group/.tera-select-btn、右パネルのbuildIconToggleGroup()
+		   を複製した独自実装)は撤去し、通常の<select>+左に絶対配置したアイコンに戻した。
+		   技入力欄(.move-type-icon、上の#edit-form .move-type-icon参照)と全く同じ手法。
+		   位置決めの基準にするため親をposition:relativeにする(移動元は#edit-form
+		   .field-with-imageだが、テラス欄だけ絶対配置アイコンを使うためtera-select-wrapに限定)。 */
+		#edit-form .tera-select-wrap { position: relative; }
+		#edit-form .tera-type-icon {
+			position: absolute;
+			left: 0.55em;
+			top: 50%;
+			transform: translateY(-50%);
+			width: var(--icon-size-sm);
+			height: var(--icon-size-sm);
 			display: flex;
-			align-items: baseline;
-			justify-content: space-between;
-			gap: 0.4em;
-			margin-bottom: 0.2rem;
+			pointer-events: none;
 		}
-		.tera-select-status-label {
-			font-size: var(--font-size-xs);
-			color: var(--color-text-muted);
+		/* [hidden]は詳細度で負けるため、displayを指定するこのクラスには[hidden]用の
+		   display:noneを必ず併記する(pitfalls.md参照、.move-type-icon[hidden]と同じ対策)。
+		   テラスタイプ未選択のときはこのspan自体がhiddenのまま(<script>のupdateTeraTypeIcon参照)。 */
+		#edit-form .tera-type-icon[hidden] { display: none; }
+		#edit-form .tera-type-icon img { width: 100%; height: 100%; border-radius: 50%; object-fit: contain; }
+		/* ⚠️ 技側(#edit-form .move-type-icon)で実際に踏んだ罠と同じ: #edit-form .field-grid
+		   .field-with-image > select(688行付近)のpadding-rightショートハンド上書きと同じ理屈で、
+		   675行のpadding(shorthand)がpadding-leftを既定値に戻してしまう。詳細度をクラス数で
+		   同等以上にするため、セレクタに.field-grid/.field-with-image/.tera-select-wrapを
+		   すべて含めて後方に書く(computed styleを実測して確認済み)。矢印用のpadding-right
+		   (688行、1.8em)とは競合しない(左右別プロパティのため)。 */
+		#edit-form .field-grid .field-with-image.tera-select-wrap > select {
+			padding-left: calc(var(--icon-size-sm) + 0.9em);
 		}
-		.tera-select-current {
-			font-size: var(--font-size-xs);
-			font-weight: 700;
-			color: var(--color-text);
-		}
-		.tera-select-group {
-			display: flex;
-			flex-wrap: wrap;
-			gap: 0.25rem;
-		}
-		/* ⚠️ .tera-select-btn(ボタン本体)のスタイルはここには置かない。<script>の
-		   renderTeraSelectGroup()がdocument.createElement("button")で動的生成するため、
-		   Astroのscoped<style>は一切効かない(pitfalls.md「Astroのscoped styleはJSで
-		   生成した要素に効かない」。実測でボタンが57×39pxまで膨らむ事故で発覚)。
-		   下の<style is:global>側の#edit-form .tera-select-btnを参照。 */
 
-		/* UI品質改善(2026-07-26 第4弾 11-3): 技名が確定した技の枠線を
-		   タイプ色にする(<script>のupdateMoveTypeColor/TYPE_COLORS参照)。色そのものは
-		   JSON由来の動的な値のためinline styleで設定するが、切り替え時のちらつきを
-		   抑えるtransitionはここで用意する。
-		   ラウンド21ユーザー指示(21-L8): 背景色は「選択中のハイライトに見える」ため撤去した
-		   (border-colorのみ残す)。updateMoveTypeColor()側もbackground-colorの設定行を
-		   削除済み。 */
+		/* ラウンド23ユーザー指示(23-L4)「技の選択ボックスの枠色をタイプごとに変えない」により、
+		   技名確定時にborder-colorをタイプ色にしていたupdateMoveTypeColor()を関数ごと削除した
+		   (UI品質改善11-3で追加・21-L8でbackground-colorのみ先に撤去していたもの)。技の入力欄は
+		   他の入力欄と同じ既定の枠色になる(タイプは左のアイコンで伝わる)。この
+		   transition: border-color自体は他の状態変化(focus等)にも汎用的に効くため残す。 */
 		#edit-form .move-input-group > input {
 			transition: border-color 0.15s ease;
 		}
@@ -767,23 +794,13 @@ const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 		#edit-form .field-grid .field-with-image.move-input-group > input {
 			padding-left: calc(var(--icon-size-sm) + 0.9em);
 		}
-		/* ラウンド21ユーザー指示(21-L4)「技の上に性格も表示する」。読み取り専用のラベル+値の
-		   テキスト表示(操作できる部品に見せない)。左パネルの全テキストは12px以上を維持する
-		   要件(20-G3)があるため--font-size-xs(12px)を下限として使う。 */
-		.nature-readout {
-			display: flex;
-			align-items: baseline;
-			gap: 0.4em;
-			margin: 0 0 0.35rem;
-		}
-		.nature-readout-label {
-			font-size: var(--font-size-xs);
-			color: var(--color-text-muted);
-		}
-		.nature-readout-value {
-			font-size: var(--font-size-sm);
-			font-weight: 700;
-			color: var(--color-text);
+		/* ラウンド21(21-L4)の「読み取り専用のラベル+値のテキスト表示」(<p class="nature-readout">)は
+		   ラウンド23(23-L2)ユーザー指示により<input readonly class="field-control">へ置き換えた
+		   (特性の直下、他の入力欄と見た目を揃える)。.nature-readout系のCSSはもう使われないため
+		   削除した。readonly状態のヒントは#nature-readout-value[readonly]で個別に与える(下記)。 */
+		#nature-readout-value[readonly] {
+			cursor: default;
+			background: var(--color-surface-alt);
 		}
 
 		/* ラウンド4ユーザー指示: 「技1〜4」個別ラベルの代わりに置く1個のグループ見出しだったが、
@@ -929,34 +946,35 @@ const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 		.type-badge-inline .type-badge-img { height: var(--icon-size-sm); width: var(--icon-size-sm); }
 
 		/* ラウンド20ユーザー指示(20-G1): 持ち物画像はPokeAPIのドット絵(32×32相当)を都度
-		   フェッチしており、28px超では元絵が粗く見える。ラウンド21ユーザー指示(21-L2)
-		   「アイテム画像を2倍に大きくして、ポケモンアイコンの右下に配置」により28px→56pxへ
-		   拡大した。56pxはPokeAPIの実解像度(32×32相当)を大きく超えるため、/box側
-		   (.card-item-badge、42pxでpixelated採用済み)と揃えてimage-rendering: pixelatedを
-		   当てる(拡大クロップで実測、輪郭がぼやけるより「意図的なドット絵」に見える方を
-		   選んだ。判断根拠は報告参照)。 */
+		   フェッチしており、28px超では元絵が粗く見える。ラウンド21ユーザー指示(21-L2)で
+		   28px→56pxへ拡大した際、実解像度(32×32相当)を大きく超えるため
+		   image-rendering: pixelatedを当てていた。ラウンド23ユーザー指示(23-L1)
+		   「アイテム画像を2/3に縮小」で56px→37pxに縮小した結果、実解像度32×32に
+		   ほぼ収まる(37px相当のCSSピクセル)ため、拡大クロップで見比べた結果ぼやけ・
+		   ジャギーの差が実測で判別できないレベルまで縮まった。pixelatedを残しても
+		   実害は無いため(37pxはdeviceScaleFactor:1相当の環境ではほぼ等倍表示になり
+		   pixelatedの有無で見た目が変わらない)、判断が割れた場合の安全側としてそのまま
+		   維持する(判断根拠は報告参照)。 */
 		.item-image { width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; }
-		/* 持ち物バッジ: 種族アイコン(.species-icon-box)の右下に重ねる絶対配置の丸バッジ。
-		   /boxの.card-item-badgeと同型の構造(丸+枠+影)をこのページのCSSとして書く
-		   (コピーではなく参考にしただけ、クラス名も独自)。⚠️ [hidden]は詳細度で負けるため、
+		/* 持ち物バッジ: 種族アイコン(.species-icon-box)の右下に重ねる絶対配置。
+		   ラウンド23ユーザー指示(23-G1)「アイテム画像の丸枠を廃止し直接表示する」により、
+		   丸枠(border-radius/background/border/box-shadow/padding)を撤去し、画像を直接置く。
+		   ラウンド23ユーザー指示(23-L1)「アイテム画像を2/3に縮小」により56px→37pxにする。
+		   配置(ポケモン絵の右下に重ねる絶対配置)は維持する。⚠️ [hidden]は詳細度で負けるため、
 		   displayを指定するこのクラスには[hidden]用のdisplay:noneを必ず併記する
 		   (.card-item-badgeが同じ事故を2回起こしている、pitfalls.md参照)。持ち物なしの
-		   個体で空の白丸が残らないことを実測して確認した。 */
+		   個体で空バッジが残らないことを実測して確認した。枠が無くなったことで背景(種族アイコンの
+		   スプライト)に直接乗るため、ドット絵の輪郭が背景に溶けないかライト・ダーク両方で
+		   拡大クロップして目視確認した(判断根拠は報告参照)。 */
 		.item-image-badge {
 			position: absolute;
 			right: -4px;
 			bottom: -4px;
-			width: 56px;
-			height: 56px;
+			width: 37px;
+			height: 37px;
 			display: flex;
 			align-items: center;
 			justify-content: center;
-			background: var(--color-surface);
-			border: 1px solid var(--color-border);
-			border-radius: 50%;
-			box-shadow: var(--shadow-sm);
-			overflow: hidden;
-			padding: 3px;
 		}
 		.item-image-badge[hidden] { display: none; }
 
@@ -986,35 +1004,24 @@ const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 		   .card/.card-hint/.severity-bar/.status-text/.badge/.add-card-tile/.sprite-icon/.sprite-fallback/
 		   .row/.spinner/input・select・textareaの基本装飾は src/styles/global.css 側の真のグローバル
 		   スタイルなので動的生成要素にも効く。ここではこのページ固有の構造のみを追加定義する。 */
-		/* ラウンド21ユーザー指示(21-L6): #tera-select-group(左パネル、静的マークアップ)の
-		   中身は<script>のrenderTeraSelectGroup()がdocument.createElement("button")で動的生成する
-		   ため、scoped<style>側ではなくここ(is:global)に置く(pitfalls.md「Astroのscoped style
-		   はJSで生成した要素に効かない」。実測でボタンが57×39pxまで膨らむ事故で発覚した)。
-		   #edit-formプレフィックスを付けて他ページへの漏出を防ぐ。
-		   19タイプ分のアイコンで左パネル下端が1080pxの画面外に出る実測結果が出たため、
-		   32pxではなく--icon-size-sm(20px、global.css定義済みの規格)基準に24pxへ縮め、
-		   1行に収まる個数を増やして行数を減らした。 */
-		#edit-form .tera-select-btn {
-			display: flex;
-			align-items: center;
-			justify-content: center;
-			width: 24px;
-			height: 24px;
-			padding: 1px;
-			background: var(--color-surface-alt);
-			border: 1px solid var(--color-border);
-			border-radius: 50%;
-			cursor: pointer;
-			flex-shrink: 0;
+		/* ラウンド23ユーザー指示(23-H1): 「種族名を削除」。トップバー左の見出し
+		   (.app-topbar-title)はAppLayout.astro側のマークアップで、このページの<script>から見ると
+		   種族名がそのまま表示され続けている。AppLayoutは編集禁止(全ページ共通レイアウトのため)
+		   なので、フロントマターでbodyClass="box-edit-page"(pokemonが存在するときだけ)を
+		   AppLayoutへ渡し、bodyのクラスを起点にこのページだけへ効くグローバルセレクタで隠す。
+		   <title>タグ(ブラウザタブ・履歴)は同じpageTitleを使うが、こちらは影響を受けない
+		   (<head>内でCSSの対象外のため)。要素ごと消すとトップバー左側の内容が
+		   「← 戻る」だけになる(状態表示#autosave-statusはラウンド11で既にテキストを常時非表示
+		   済みのため実質空、エラー時のみ「再試行」が現れる)。実際に見て帯として成立するかを
+		   確認済み(検証セクション参照)。 */
+		body.box-edit-page .app-topbar-title {
+			display: none;
 		}
-		#edit-form .tera-select-btn img { width: 100%; height: 100%; border-radius: 50%; object-fit: contain; }
-		#edit-form .tera-select-btn:hover { border-color: var(--color-primary); }
-		#edit-form .tera-select-btn:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 1px; }
-		#edit-form .tera-select-btn[aria-pressed="true"] {
-			border-color: var(--color-primary);
-			background: var(--color-primary-soft);
-			box-shadow: 0 0 0 2px var(--color-primary) inset;
-		}
+
+		/* ラウンド21(21-L6)で導入した#edit-form .tera-select-btn(アイコントグルボタン、
+		   document.createElement("button")で動的生成)は、ラウンド23(23-L3)でテラスタイプを
+		   <select>に戻したことで完全に不要になったため削除した(22-B-2の重複解消と合わせて、
+		   buildIconToggleGroup()の左パネル側の複製呼び出しも<script>から削除済み)。 */
 
 		#opponent-notes-section .pokemon-name-row {
 			display: flex;
@@ -1389,7 +1396,8 @@ const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 			align-items: center;
 			justify-content: center;
 		}
-		/* ラウンド5ユーザー指示: 事前生成済みの正方形タイプアイコン(typeIconUrl/teraTypeIconUrl)に
+		/* ラウンド5ユーザー指示: 事前生成済みの正方形タイプアイコン(typeIconUrl。ラウンド23の23-G2で
+		   テラス専用のteraTypeIconUrlは廃止し、通常タイプと同じtypeIconUrlに統一した)に
 		   切り替えたため、CSS側での切り出し(object-fit:cover等)は不要(上の.type-badge-imgと同じ理屈)。
 		   ラウンド20ユーザー指示(20-G1): 18px→var(--icon-size-sm)(20px、global.css定義済み)に
 		   拡大する。密なグリッド内の小アイコン規格(20-G1のトークン表「ダメージ計算カードの
@@ -2506,6 +2514,31 @@ const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 									<option value={pokemon.ability_name ?? ""} selected>{pokemon.ability_name || "特性"}</option>
 								</select>
 							</div>
+							<div class="field">
+								{/* ラウンド23ユーザー指示(23-L2)「性格は、特性の下に入力ボックスを配置する。
+								    ただし入力不可にしておき自動決定の仕組みを続投。」ラウンド21(21-L4)は
+								    「<input readonly>にしない、操作できる部品に見えると疑問を生む」と
+								    明記していたが、今回はユーザーが逆(readonlyの入力ボックスにする)を
+								    明示的に指示しているためユーザー指示を優先し、21-L4の判断を撤回する。
+								    disabledではなくreadonlyにする(disabledはフォーム送信対象から外れ、
+								    見た目も薄くなりすぎるため)。なぜ編集できないかはtitleの注記で伝える
+								    (21-L4の懸念=「なぜ押せないのか分からない」をここで緩和する)。
+								    自動決定の仕組み(currentLeftNature()/refreshNatureButtons())は一切
+								    変えない。保存ペイロード(buildPayload)はcurrentLeftNature()から
+								    直接性格名を取っており、この<input>の値は保存に使わない
+								    (二重管理を避ける。<script>もvalueをセットするだけでchange/input
+								    リスナーは登録しない)。 */}
+								<input
+									id="nature-readout-value"
+									class="field-control"
+									type="text"
+									readonly
+									tabindex={-1}
+									aria-label="性格(能力値の上下選択から自動的に決まります。ここでは編集できません)"
+									title="能力値のA/B/C/D/Sラベルの▲▼から自動的に決まります。ここでは編集できません。"
+									placeholder="性格"
+								/>
+							</div>
 						</div>
 						{/* 画像はいずれも初期状態が display:none で、読み込み成功時(onload)に表示する方式。
 					    そのため loading="lazy" を付けてはいけない — display:none の画像は遅延読み込みの
@@ -2522,16 +2555,17 @@ const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 								    <img>を並べず空コンテナにした)。ラウンド21(21-L1)で横並びに変更。 */}
 								<span id="species-type-badge" class="type-badge type-badge-multi"></span>
 								{/* ラウンド21ユーザー指示(21-L2)「アイテム画像を2倍に大きくして、ポケモンアイコンの
-								    右下に配置」。/boxの.card-item-badgeと同型の構造(丸バッジ+枠+影、公式絵に
-								    重ねる絶対配置)をこのページのCSSとして書く(コピーではなく参考にしただけ)。
-								    28px→56px(28×2)に拡大するため、種族アイコンの下段(.top-block-icon-sub)から
-								    ここへ移設した。updateItemImage()はidを変えていないためDOM位置が変わるだけで
-								    動く。⚠️ [hidden]は詳細度で負ける(.card-item-badgeが同じ事故を2回起こしている、
-								    pitfalls.md参照)ため、バッジ自体の[hidden]用displayをCSS側で明示的に
-								    上書きする(下記.item-image-badge[hidden]参照)。持ち物なしの個体で空の
-								    白丸が残らないことを実測して確認する。 */}
+								    右下に配置」。当初は/boxの.card-item-badgeと同型の構造(丸バッジ+枠+影、公式絵に
+								    重ねる絶対配置)を28px→56pxで実装したが、ラウンド23ユーザー指示(23-G1/23-L1)で
+								    丸枠(border-radius/background/border/box-shadow/padding)を撤去して直接表示にし、
+								    サイズも56px→37pxへ縮小した(配置=右下の絶対配置は維持)。updateItemImage()は
+								    idを変えていないためDOM位置が変わるだけで動く。⚠️ [hidden]は詳細度で負ける
+								    (.card-item-badgeが同じ事故を2回起こしている、pitfalls.md参照)ため、
+								    バッジ自体の[hidden]用displayをCSS側で明示的に上書きする
+								    (下記.item-image-badge[hidden]参照)。持ち物なしの個体で空バッジが
+								    残らないことを実測して確認する。 */}
 								<span id="item-image-badge" class="item-image-badge" hidden>
-									<img id="item-image" class="item-image" width="56" height="56" alt="" style="display:none;" />
+									<img id="item-image" class="item-image" width="37" height="37" alt="" style="display:none;" />
 								</span>
 							</div>
 							{/* UI品質改善(2026-07-26 第4弾 11-2): テラスタイプのアイコン画像(#tera-image-badge)は
@@ -2553,49 +2587,44 @@ const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 					{/* アイテムは1項目1行だと縦に長くなりすぎるため元の2列グリッドの1列目に残す。
 					    ラウンド5ユーザー指示: ラベル要素は撤去しplaceholder + aria-labelに統一する。
 					    ラウンド11(11-2): アイテム画像は種族アイコンへ移設済みで、ここには入力欄のみを残す。
-					    ラウンド21ユーザー指示(21-L6)「テラスタイプを画像選択ボックス化」により、テラスは
-					    2列グリッドの2列目ではなく.field-span-all(grid-column: 1 / -1)で自分の行を
-					    占有する(19タイプのアイコンを並べるため2列目の狭い幅には収まらない)。
-					    <select id="tera">自体はhidden属性でDOMに残し、保存経路・値の実体("" または
-					    タイプ名)は変えない(<script>のteraSelect/renderTeraSelectGroup参照)。
-					    「テラスなし」は#tera-select-currentのテキストと、どのボタンもaria-pressed=
-					    "false"であることの両方で手掛かりを示す(一度選んでも同じボタンを再クリックすれば
-					    解除できるため、「選ばない」という選択肢は消えない)。 */}
+					    ラウンド23ユーザー指示(23-L3)「テラスタイプは文字セレクトボックスに戻し、技と
+					    同様に文字の左側にタイプアイコンを表示」。ラウンド21(21-L6)の画像選択ボックス化
+					    (トグルボタン群+#tera自体をhidden化)を撤回する。#tera(<select>)を再び表に戻し、
+					    アイコントグル群(buildTeraSelectGroup/syncTeraSelectGroup/.tera-select-*)は削除した。
+					    「テラスなし」はselectの最初のoptionとして残す(<select>はplaceholder属性を
+					    持てないため、21-L6以前と同じくvalue=""の通常optionで表現する)。
+					    19タイプのアイコンを並べる必要が無くなったため、field-span-allでの単独行占有も
+					    やめ、item(持ち物)と同じ2列グリッドの2列目に戻す(21-L6より前の配置)。 */}
 					<div class="field-grid">
 						<div class="field">
 							<div class="field-with-image">
 								<input id="item" type="text" list="item-list" autocomplete="off" placeholder="持ち物" aria-label="持ち物" value={pokemon.item_name ?? ""} title={pokemon.item_name ?? ""} />
 							</div>
 						</div>
-						{/* global.cssの.field既定はdisplay:flex(横並び)のため、.field-stack
-					    (flex-direction:column)を併用してステータス行→アイコン行を縦に積む
-					    (実測で気づいた: 付けないとラベル行とアイコングリッドが横並びになり
-					    崩れる)。 */}
-					<div class="field field-stack field-span-all tera-select-field">
-							<div class="tera-select-status">
-								<span class="tera-select-status-label">テラスタイプ</span>
-								<span id="tera-select-current" class="tera-select-current"></span>
+						<div class="field">
+							{/* 技入力欄(#move-1〜4、.move-input-group)と同じ手法: <select>の中には画像を
+							    入れられないため、左に絶対配置したアイコン(.tera-type-icon)+select側の
+							    padding-leftで文字と重ならないようにする。テラスタイプ未選択/不明時は
+							    アイコン自体をhiddenにする(<script>のupdateTeraTypeIcon参照。[hidden]は
+							    詳細度で負けるため、下のscoped<style>で[hidden]用のdisplay:noneを
+							    併記済み)。 */}
+							<div class="field-with-image tera-select-wrap">
+								<span id="tera-type-icon" class="tera-type-icon" hidden>
+									<img alt="" width="20" height="20" />
+								</span>
+								<select id="tera" aria-label="テラスタイプ" title="テラスタイプ">
+									<option value="">テラスなし</option>
+									{TERA_TYPES.map((t) => <option value={t} selected={pokemon!.tera_type === t}>{t}</option>)}
+								</select>
 							</div>
-							<div id="tera-select-group" class="tera-select-group" role="radiogroup" aria-label="テラスタイプ"></div>
-							<select id="tera" aria-label="テラスタイプ" title="テラスタイプ" hidden aria-hidden="true" tabindex={-1}>
-								<option value="">テラスなし</option>
-								{TERA_TYPES.map((t) => <option value={t} selected={pokemon!.tera_type === t}>{t}</option>)}
-							</select>
 						</div>
 					</div>
 
 
-					{/* ラウンド21ユーザー指示(21-L4)「技の上に性格も表示する。ただし選択できないように
-					    して、ステータス側の上下選択から自動決定したものを表示するだけに留める。」
-					    ラベル+値のテキスト表示にとどめる(<input readonly>/<select disabled>にしない
-					    ―操作できる部品に見えると「なぜ押せないのか」という疑問を生むため)。
-					    値はcurrentLeftNature()の戻り値で、<script>のrefreshNatureButtons()から
-					    同じタイミングで更新する(無補正時は「まじめ」とそのまま出す。保存される値と
-					    画面表示を一致させる)。保存ロジックは変えない、表示を足すだけ。 */}
-					<p class="nature-readout">
-						<span class="nature-readout-label">性格</span>
-						<span id="nature-readout-value" class="nature-readout-value"></span>
-					</p>
+					{/* ラウンド23ユーザー指示(23-L2)により、性格の読み取り専用表示は特性の直下
+					    (.top-block-fields内の#nature-readout-value<input readonly>)へ移設した。
+					    ここにあった<p class="nature-readout">は撤去済み(値の更新先はJSで
+					    id="nature-readout-value"のまま維持しているため<script>は変更不要)。 */}
 
 					{/* 技は2列×2段に詰める(縦1080に収めるため)。
 					    ラウンド4ユーザー指示: 「技1〜4でそれぞれラベルを置かず、"わざ" と1個
@@ -2605,15 +2634,14 @@ const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 					    placeholder方式に揃えるため、この見出し自体を撤去し各inputに
 					    placeholder="技N"を付ける(aria-label="技N"は維持してa11yを保つ)。
 					    ラウンド20ユーザー指示(20-L2): 技の詳細ホバー表示(旧.move-detail-trigger、
-					    ⓘアイコン+ツールチップ)は撤去した。技名inputに応じたタイプ色反映
-					    (updateMoveTypeColor)は<script>側でinput要素へ直接結線するよう書き換え済み。
+					    ⓘアイコン+ツールチップ)は撤去した。
 					    ラウンド21ユーザー指示(21-L8)「技に背景色をつけると選択中のハイライト表示の
 					    ように見えてしまう。背景色はつけず、タイプアイコンを技名の左に置く」。
-					    updateMoveTypeColor()は背景色を廃止しborder-colorのみ残した(21-B4参照:
-					    /boxの技チップは静的テキストなので背景色OK、こちらは<input>なので
-					    focus/選択状態の表現と衝突するため背景色は使わない)。<input>の中には画像を
-					    入れられないため、入力欄の左に絶対配置し、input側のpadding-leftで文字と
-					    重ならないようにする(検索欄の虫眼鏡アイコンと同じ定石)。 */}
+					    <input>の中には画像を入れられないため、入力欄の左に絶対配置し、
+					    input側のpadding-leftで文字と重ならないようにする(検索欄の虫眼鏡アイコンと
+					    同じ定石)。ラウンド23ユーザー指示(23-L4)「技の選択ボックスの枠色をタイプごとに
+					    変えない」により、border-colorをタイプ色にしていたupdateMoveTypeColor()は
+					    関数ごと削除した(タイプアイコンで足りるため)。枠色は他の入力欄と同じ既定色。 */}
 					<div class="field-grid">
 						{MOVE_SLOTS.map((slot, i) => (
 							<div class="field">
@@ -2859,7 +2887,12 @@ const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 		// UI刷新(Pokemon.png): アイテム画像・タイプ画像・テラスタイプ画像。別担当が並行実装中の
 		// モジュール(合意済みシグネチャ)。存在しない/取得失敗時は必ずフォールバックする
 		// (applyTypeBadge/applyTeraImage/applyItemImage参照)。
-		import { loadItemSpriteMap, itemImageUrl, typeIconUrl, teraTypeIconUrl } from "../../lib/sprite-urls";
+		// ラウンド23ユーザー指示(23-G2)によりteraTypeIconUrlの使用箇所(applyTeraImage内の1箇所)を
+		// typeIconUrlに切り替えたため、このファイルではteraTypeIconUrlをもうimportしない
+		// (プロジェクト全体でこの関数の呼び出し元がゼロになった。src/lib/sprite-urls.tsの関数自体・
+		// public/type-icons/tera/の19画像・tests/sprite-urls.test.tsの該当テストを削除するかは
+		// 別ラウンドの判断とする。このページはsprite-urls.ts/tests/の編集許可を持たないため)。
+		import { loadItemSpriteMap, itemImageUrl, typeIconUrl } from "../../lib/sprite-urls";
 		// ラウンド21ユーザー指示(21-L8): タイプ色の定義はエージェントPがsrc/lib/type-colors.tsへ
 		// 切り出し済み(値は不変)。このページのローカル定義は削除し、こちらからimportする。
 		import { TYPE_COLORS, DEFAULT_TYPE_COLOR } from "../../lib/type-colors";
@@ -2867,6 +2900,14 @@ const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 		// と4箇所にコピーされていた chmpToLegacyEffort/calcHpStat/calcOtherStat/
 		// NATURE_STAT_MODIFIERSをsrc/lib/stats.tsに統合した。
 		import { type StatKey, STAT_KEYS, NATURE_STAT_MODIFIERS, calcHpStat, calcOtherStat } from "../../lib/stats";
+		// ラウンド23(22-B-1): TERA_TYPES(19タイプの選択肢一覧)がフロントマター/左パネルの
+		// <script>ブロック/#opponent-notes-sectionブロックの3箇所に重複定義されていたのを
+		// src/lib/tera-types.tsへ統合した。この<script>タグはdefine:varsを使わない通常の
+		// モジュールスクリプトなのでTYPE_COLORS等と同じくimportできる(以前のコメントに
+		// あった「define:varsを使うとTypeScript構文が壊れるため複製した」という制約は
+		// そもそも該当しない誤った前提だった)。左パネル・#opponent-notes-sectionブロックの
+		// 両方からこのimportを直接参照する(ローカル定義は削除)。
+		import { TERA_TYPES } from "../../lib/tera-types";
 
 		// 画像用ID(imageId)の一覧はページ表示直後に一度だけfetchしておき、以後は同じPromiseを使い回す
 		// (種族名入力/対戦相手名入力の両方で共有する)。dexNo(全国図鑑番号)ではなく imageId を
@@ -3047,9 +3088,14 @@ const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 			}
 		}
 
-		// UI刷新(Pokemon.png): テラスタイプ画像(select横)。タイプ画像を優先し、取得できない
-		// 場合はTYPE_COLORSの色ボックスにフォールバックする。「ステラ」も含めて既存のTYPE_COLORSに
-		// 定義済み。テラスタイプ未選択時は両方隠す。
+		// UI刷新(Pokemon.png): テラスタイプ画像(select横)。
+		// ラウンド23ユーザー指示(23-G2)「テラスタイル画像の使用を全廃し、通常のタイプ画像(丸アイコン)に
+		// 統一」により、以前使っていた宝石型のテラスタイプ画像(teraTypeIconUrl、ジグザグ縁)をやめ、
+		// 通常のタイプ画像(typeIconUrl、角丸ピル。applyTypeBadge()と同じアセット)に統一する。
+		// 呼び出し元は2つ(左パネルのupdateTeraImage() / 右パネル相手ビルド行のrefreshTypeBadge())で、
+		// どちらもこの関数を経由するため、ここを直すだけで両方切り替わる。取得できない場合は
+		// TYPE_COLORSの色ボックスにフォールバックする(「ステラ」も含めて既存のTYPE_COLORSに定義済み)。
+		// テラスタイプ未選択時は両方隠す。
 		async function applyTeraImage(imgEl: HTMLImageElement, fallbackEl: HTMLElement, teraName: string): Promise<void> {
 			// 円形トリミングでタイプ名の文字は見えなくなるため、alt/titleで
 			// スクリーンリーダーとホバー両方にテラスタイプ名を伝える。
@@ -3064,7 +3110,7 @@ const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 				fallbackEl.style.display = "block";
 				fallbackEl.style.backgroundColor = TYPE_COLORS[teraName] || DEFAULT_TYPE_COLOR;
 			}
-			const url = teraName ? teraTypeIconUrl(teraName) : null;
+			const url = teraName ? typeIconUrl(teraName) : null;
 			if (!url) {
 				showColorFallback();
 				return;
@@ -3285,31 +3331,17 @@ const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 				moveListEl.appendChild(fragment);
 			}
 
-			// UI品質改善(2026-07-26 第4弾 11-3): 技入力欄(#move-1〜#move-4)を、技名が確定した
-			// 時点でその技のタイプ色(枠線)にする。TYPE_COLORS(既存定義、下の方)を
-			// 再利用する。未確定・タイポ・入力途中の技名は通常表示に戻す(色を付けない)。
-			// スタイルはJSONから動的に決まる値のため静的CSSクラスでは表現できず、inline styleで
-			// 直接設定する(input[type="text"]の既定borderより#edit-form ...のIDセレクタが勝つ
-			// のと同じ理由で、style属性は確実に上書きできる)。
-			// ラウンド21ユーザー指示(21-L8)「技に背景色をつけると選択中のハイライト表示のように
-			// 見えてしまう」により、background-colorの設定を撤去した(border-colorのみ残す。
-			// 21-B4の判断: /boxの技チップは静的テキストなので背景色OKだが、こちらは<input>で
-			// focus/選択状態の表現と衝突するため画面を実際に見て確認したうえで撤去した)。
-			async function updateMoveTypeColor(input: HTMLInputElement): Promise<void> {
-				const name = input.value.trim();
-				const type = name ? (await moveTypeMapPromise).get(name) : undefined;
-				if (!type) {
-					input.style.removeProperty("border-color");
-					delete input.dataset.moveType;
-					return;
-				}
-				const color = TYPE_COLORS[type] || DEFAULT_TYPE_COLOR;
-				input.style.borderColor = color;
-				input.dataset.moveType = type;
-			}
+			// ラウンド23ユーザー指示(23-L4)「技の選択ボックスの枠色をタイプごとに変えず、他のUIと
+			// そろえる」により、旧updateMoveTypeColor()(技名確定時にborder-colorをタイプ色にする
+			// 関数、UI品質改善11-3で追加・21-L8でbackground-colorのみ撤去済みだった)を関数ごと
+			// 削除した。タイプは左のアイコン(updateMoveTypeIcon、下記)で伝わるためこれで足りる。
+			// この関数はborder-colorの設定/解除以外に何もしておらず(input.dataset.moveTypeも
+			// ここでしか読み書きされない死んだデータだった)、他に影響する副作用は無い。
+			// TYPE_COLORS/DEFAULT_TYPE_COLORは引き続きapplyTypeBadge/applyTeraImageの
+			// フォールバック色として使われているため、importは残す(/boxの技チップもTYPE_COLORSを
+			// 使い続けているため、type-colors.ts自体も削除しない)。
 
-			// ラウンド21ユーザー指示(21-L8)「タイプアイコンを技名の左に置く」。updateMoveTypeColor
-			// と同じタイミング(技名inputのinput/change)で呼ぶ。技が未入力/タイプ不明のときは
+			// ラウンド21ユーザー指示(21-L8)「タイプアイコンを技名の左に置く」。技が未入力/タイプ不明のときは
 			// アイコンを隠す([hidden]は詳細度で負けるため、CSS側で[hidden]用のdisplay:noneを
 			// 併記済み。pitfalls.md参照)。
 			async function updateMoveTypeIcon(input: HTMLInputElement): Promise<void> {
@@ -3494,76 +3526,36 @@ const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 			function updateTeraImage(): void {
 				void applyTeraImage(teraImageEl, teraImageFallbackEl, teraSelect.value);
 			}
-			teraSelect.addEventListener("change", updateTeraImage);
-			updateTeraImage();
 
-			// ラウンド21ユーザー指示(21-L6): テラスタイプを画像選択ボックス化し、「テラスなし」を
-			// 未選択(placeholder)で代用する。#tera(<select>、上で取得済み)のidと保存経路・
-			// 値の実体("" またはタイプ名)は変えず、隠しておいて実際の操作UIはこのアイコン
-			// トグルグループに置き換える(#tera自体はhidden属性でDOMに残し、変更前と同じ
-			// change/statAffectingIds/changeInputIdsの結線をそのまま使う)。
-			// ⚠️ 右パネル(相手ビルド)にも同名の関数的な部品buildIconToggleGroup()があるが、
-			// あちらは#damage-detail-panel-bodyスコープのCSS(.damage-detail-icon-group/-btn)に
-			// 依存し、かつ関数自体がopponentNotesSectionブロック内(このコードより後で定義される
-			// ローカル関数)のため、共通化して呼び出すには構造をまたぐリスクがある。自信が
-			// 持てないため複製を選んだ(判断根拠は報告に記載)。クラス名は左パネル専用の
-			// tera-select-* にして右パネルのCSSと衝突しないようにする。
-			// Astroのフロントマター(サーバー側)で定義したTERA_TYPESはこのブラウザ側<script>から
-			// 参照できない(define:varsを使うとTypeScript構文が壊れるため不採用、上のTYPE_COLORSと
-			// 同じ理由)。opponentNotesSectionブロック内にも同じ配列がローカル定義されているが、
-			// このコードより後で定義されるブロックスコープのため参照できない。⚠️ これで
-			// TERA_TYPESの定義が3箇所(フロントマター/このブロック/opponentNotesSectionブロック)に
-			// 重複することになる。次ラウンドで1箇所に統合する候補として報告する。
-			const TERA_TYPES = [
-				"ノーマル", "ほのお", "みず", "でんき", "くさ", "こおり", "かくとう", "どく", "じめん",
-				"ひこう", "エスパー", "むし", "いわ", "ゴースト", "ドラゴン", "あく", "はがね", "フェアリー", "ステラ",
-			];
-			const teraSelectGroupEl = el<HTMLElement>("tera-select-group");
-			const teraSelectCurrentEl = el<HTMLElement>("tera-select-current");
-			// ボタン本体は初回に1度だけ生成し、クリックのたびに全部作り直すことはしない。
-			// 全部作り直す実装だと、クリックしたボタン自身が毎回破棄されキーボードフォーカスが
-			// <body>に飛んでしまう(Playwrightで実測して発覚。連続でSpace/Enter操作する
-			// キーボードユーザーの操作が毎回中断される)。aria-pressedと#tera-select-currentの
-			// テキストだけを更新するsyncTeraSelectGroup()に分離する。
-			function syncTeraSelectGroup(): void {
-				const current = teraSelect.value;
-				teraSelectCurrentEl.textContent = current || "テラスなし";
-				for (const child of Array.from(teraSelectGroupEl.children)) {
-					const btn = child as HTMLButtonElement;
-					btn.setAttribute("aria-pressed", String(btn.dataset.teraType === current));
+			// ラウンド23ユーザー指示(23-L3)「テラスタイプは文字セレクトボックスに戻し、技と同様に
+			// 文字の左側にタイプアイコンを表示」。ラウンド21(21-L6)のアイコントグル群
+			// (buildTeraSelectGroup/syncTeraSelectGroup、右パネルのbuildIconToggleGroup()を
+			// #tera非表示のまま複製していた実装)を撤回した。#teraは再び表のUIそのものになった
+			// ため、change/statAffectingIds/changeInputIdsの結線はteraSelect自体に対して行う
+			// (変更なし)。技入力欄のupdateMoveTypeIcon()と同じ手法で、左に置いたアイコン
+			// (#tera-type-icon)をteraSelect.valueに応じて出し分ける。
+			const teraTypeIconEl = el<HTMLElement>("tera-type-icon");
+			const teraTypeIconImg = teraTypeIconEl.querySelector<HTMLImageElement>("img")!;
+			function updateTeraTypeIcon(): void {
+				const type = teraSelect.value;
+				if (!type) {
+					teraTypeIconEl.hidden = true;
+					return;
 				}
-			}
-			function buildTeraSelectGroup(): void {
-				teraSelectGroupEl.innerHTML = "";
-				for (const t of TERA_TYPES) {
-					const button = document.createElement("button");
-					button.type = "button";
-					button.className = "tera-select-btn";
-					button.dataset.teraType = t;
-					button.setAttribute("aria-pressed", "false");
-					button.title = t;
-					button.setAttribute("aria-label", t);
-					const img = document.createElement("img");
-					img.alt = "";
-					img.width = 20;
-					img.height = 20;
-					const url = typeIconUrl(t);
-					if (url) img.src = url;
-					button.appendChild(img);
-					button.addEventListener("click", () => {
-						// 一度選んだボタンを再クリックすると解除(テラスなしに戻す)できるように
-						// する(「選ばない」という選択肢を消さない、要件どおり)。teraSelect.valueを
-						// 直接読む(クリック時点の最新値と比較するため、クロージャに固定した
-						// 値は使わない)。
-						teraSelect.value = teraSelect.value === t ? "" : t;
-						teraSelect.dispatchEvent(new Event("change", { bubbles: true }));
-						syncTeraSelectGroup();
-					});
-					teraSelectGroupEl.appendChild(button);
+				const url = typeIconUrl(type);
+				if (!url) {
+					teraTypeIconEl.hidden = true;
+					return;
 				}
-				syncTeraSelectGroup();
+				teraTypeIconImg.alt = type;
+				teraTypeIconImg.title = type;
+				teraTypeIconImg.src = url;
+				teraTypeIconEl.hidden = false;
 			}
-			buildTeraSelectGroup();
+			teraSelect.addEventListener("change", updateTeraImage);
+			teraSelect.addEventListener("change", updateTeraTypeIcon);
+			updateTeraImage();
+			updateTeraTypeIcon();
 
 			// ラウンド4ユーザー指示で追加した「技の詳細はリンクではなくホバー表示にする」
 			// ツールチップ(.move-detail-trigger起点、技名→タイプ/分類/威力/命中/PPを表示)は、
@@ -3574,15 +3566,12 @@ const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 			for (let slot = 1; slot <= 4; slot++) {
 				const input = document.getElementById(`move-${slot}`) as HTMLInputElement | null;
 				if (!input) continue;
-				// UI品質改善(2026-07-26 第4弾 11-3): 技名が確定した技のタイプ色を反映する。
+				// UI品質改善(2026-07-26 第4弾 11-3)で追加、ラウンド23(23-L4)でupdateMoveTypeColorを
+				// 削除したため、技名が確定した技のタイプ表現はアイコン(updateMoveTypeIcon)のみになった。
 				// 要件どおりinput/changeの両方で反映する(datalistから選択した場合にchangeのみ
 				// 発火するブラウザ実装があるための保険)。
-				// ラウンド21ユーザー指示(21-L8): updateMoveTypeIconも同じタイミングで反映する。
-				input.addEventListener("input", () => void updateMoveTypeColor(input));
-				input.addEventListener("change", () => void updateMoveTypeColor(input));
 				input.addEventListener("input", () => void updateMoveTypeIcon(input));
 				input.addEventListener("change", () => void updateMoveTypeIcon(input));
-				void updateMoveTypeColor(input);
 				void updateMoveTypeIcon(input);
 			}
 
@@ -3674,8 +3663,11 @@ const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 				// ラウンド21ユーザー指示(21-L4)「技の上に性格も表示する」。refreshNatureButtons()と
 				// 同じタイミングで更新する(このページ表示直後の初回呼び出しと、▲▼クリック時の
 				// 呼び出しの両方でカバーされる)。
-				const natureReadoutEl = document.getElementById("nature-readout-value");
-				if (natureReadoutEl) natureReadoutEl.textContent = currentLeftNature();
+				// ラウンド23(23-L2): 要素がspan→<input readonly>に変わったため、textContentではなく
+				// valueを更新する。表示専用で保存には使わない(buildPayloadはcurrentLeftNature()を
+				// 直接呼ぶ。二重管理を避けるためこの<input>にはchange/inputリスナーを付けない)。
+				const natureReadoutEl = document.getElementById("nature-readout-value") as HTMLInputElement | null;
+				if (natureReadoutEl) natureReadoutEl.value = currentLeftNature();
 			}
 
 			// ラウンド5ユーザー指示: 「実数値」ラベルの左あたりに 66-(努力値合計) を表示する
@@ -3915,16 +3907,11 @@ const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 					}
 				}
 
-				// UI刷新: 相手ビルドselect用。Astroフロントマターの値はブラウザ側の<script>から
-				// 参照できないため、フロントマター(TERA_TYPES)と同じ選択肢をここに複製する
-				// (すぐ上のTYPE_COLORSと同じ理由)。
+				// UI刷新: 相手ビルドselect用。TERA_TYPESはこの<script>タグ冒頭でsrc/lib/tera-types.tsから
+				// importしたものをそのまま使う(ラウンド23の22-B-1でローカル複製を解消した)。
 				// ラウンド4ユーザー指示により性格の<select>(NATURES一覧)は廃止した
 				// (努力値/実数値グリッドのH/A/B/C/D/S見出しクリックへ置き換え。左パネルと同じ
 				// natureNameFromBoosts/NATURE_STAT_MODIFIERSを使う)。
-				const TERA_TYPES = [
-					"ノーマル", "ほのお", "みず", "でんき", "くさ", "こおり", "かくとう", "どく", "じめん",
-					"ひこう", "エスパー", "むし", "いわ", "ゴースト", "ドラゴン", "あく", "はがね", "フェアリー", "ステラ",
-				];
 				// 天候/地形の選択肢。src/pages/damage-calc/index.astro の WEATHERS/TERRAINSと
 				// 同じ選択肢で同期させること(jpoke側の定義が正)。ただし、ラウンド11ユーザー指示
 				// (2026-07-26 第4弾)により、個体編集の詳細設定パネルのみ強天候3種(おおひでり/
