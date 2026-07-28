@@ -5,7 +5,7 @@
 // このファイル自身は生の Supabase クエリを書かない(../[id].ts と同じ設計方針)。
 // 対象が存在しない場合と他人の所有物である場合はいずれも同じ404を返し、存在の有無を漏らさない。
 import type { APIContext } from 'astro';
-import { badRequest, isSameOrigin, isValidUuid, jsonResponse, methodNotAllowed, readJsonBody } from '../../_shared';
+import { badRequest, isSameOrigin, isValidUuid, jsonResponse, methodNotAllowed, readRequiredJsonBody } from '../../_shared';
 import { getSessionUser } from '../../../../lib/user-session';
 import { getSupabaseAdminClient } from '../../../../lib/supabase';
 import { setOwnedPokemonSharing } from '../../../../lib/owned-pokemon';
@@ -33,10 +33,10 @@ export async function PUT({ request, cookies, params }: APIContext): Promise<Res
   const id = params.id;
   if (!isValidUuid(id)) return notFound();
 
-  const body = await readJsonBody<unknown>(request);
+  const body = await readRequiredJsonBody<unknown>(request);
   if (body.response) return body.response;
 
-  const payload = (body.data ?? {}) as Record<string, unknown>;
+  const payload = body.data as Record<string, unknown>;
   if (typeof payload.is_public !== 'boolean') {
     return badRequest('is_public must be a boolean');
   }

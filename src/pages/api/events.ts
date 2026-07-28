@@ -3,7 +3,7 @@
 // client_result のような未検証値が payload に含まれていても events.payload (jsonb) は
 // 何でも受け付けるため、ここでは分岐せずそのまま保存する（真正性は集計側 [Phase 5] が扱う）。
 import type { APIContext } from 'astro';
-import { badRequest, jsonResponse, methodNotAllowed, readJsonBody } from './_shared';
+import { badRequest, jsonResponse, methodNotAllowed, readRequiredJsonBody } from './_shared';
 import { validateEventRequestBody } from '../../lib/event-validation';
 import {
   computeSessionHash,
@@ -19,10 +19,10 @@ import { readEnv } from '../../config/env';
 export const prerender = false;
 
 export async function POST({ request, cookies }: APIContext): Promise<Response> {
-  const body = await readJsonBody<unknown>(request);
+  const body = await readRequiredJsonBody<unknown>(request);
   if (body.response) return body.response;
 
-  const validation = validateEventRequestBody(body.data ?? {});
+  const validation = validateEventRequestBody(body.data);
   if (!validation.ok) return badRequest(validation.error);
 
   // セッションCookie (pc_sid): 非個人情報のランダムID。無ければここで発行する。

@@ -5,7 +5,7 @@
 // 生の Supabase クエリを書かない(userIdフィルタ漏れによる他人データ露出を防ぐための設計、
 // 詳細は src/lib/owned-pokemon.ts 冒頭のコメント参照)。
 import type { APIContext } from 'astro';
-import { badRequest, isSameOrigin, jsonResponse, methodNotAllowed, readJsonBody } from './_shared';
+import { badRequest, isSameOrigin, jsonResponse, methodNotAllowed, readRequiredJsonBody } from './_shared';
 import { getSessionUser } from '../../lib/user-session';
 import { getSupabaseAdminClient } from '../../lib/supabase';
 import { validateOwnedPokemonRequestBody } from '../../lib/owned-pokemon-validation';
@@ -55,10 +55,10 @@ export async function POST({ request, cookies }: APIContext): Promise<Response> 
     return jsonResponse({ error: 'Too many requests' }, 429);
   }
 
-  const body = await readJsonBody<unknown>(request);
+  const body = await readRequiredJsonBody<unknown>(request);
   if (body.response) return body.response;
 
-  const validation = validateOwnedPokemonRequestBody(body.data ?? {});
+  const validation = validateOwnedPokemonRequestBody(body.data);
   if (!validation.ok) return badRequest(validation.error);
 
   const supabase = await getSupabaseAdminClient();

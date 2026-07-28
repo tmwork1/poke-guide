@@ -3,7 +3,7 @@
 // フィルタする(全文検索エンジン・形態素解析は導入しない、YAGNI)。検索ログは searches +
 // events へ二重記録する (damage-calcs.ts / builds.ts と同じ流儀)。
 import type { APIContext } from 'astro';
-import { badRequest, jsonResponse, methodNotAllowed, readJsonBody } from './_shared';
+import { badRequest, jsonResponse, methodNotAllowed, readRequiredJsonBody } from './_shared';
 import { validateSearchRequestBody, type SearchCategory } from '../../lib/search-validation';
 import {
   computeSessionHash,
@@ -53,10 +53,10 @@ function searchCategory(category: SearchCategory, query: string): { hits: NamedR
 }
 
 export async function POST({ request, cookies }: APIContext): Promise<Response> {
-  const body = await readJsonBody<unknown>(request);
+  const body = await readRequiredJsonBody<unknown>(request);
   if (body.response) return body.response;
 
-  const validation = validateSearchRequestBody(body.data ?? {});
+  const validation = validateSearchRequestBody(body.data);
   if (!validation.ok) return badRequest(validation.error);
 
   const { query, category } = validation.value;

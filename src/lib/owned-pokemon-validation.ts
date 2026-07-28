@@ -31,6 +31,37 @@ export type OwnedPokemonValidationResult =
   | { ok: true; value: OwnedPokemonRequestBody }
   | { ok: false; error: string };
 
+// validateOpponentNoteRequestBody(body, { requireOwnedPokemonId }) と同じ流儀の
+// オプション引数。PUT(全項目を毎回送る「置換」契約)のときだけ 'replace' を渡すと、
+// 置換対象の全フィールドが payload に「存在すること」(undefined=未送信は拒否、
+// nullは許容)を必須にする。POST(新規作成)は省略したままでよく、その場合は従来どおり
+// 全フィールド任意のまま(「＋ 個体を追加」による空個体の自動登録を壊さないため)。
+//
+// 背景: {} のようなpayloadは「全フィールド未送信」であり、置換契約のPUTに対しては
+// 既存データの全消去を意味する。ボディの有無(readRequiredJsonBody)だけでは
+// {} を検出できないため、フィールド単位の必須チェックをここに追加する。
+export interface ValidateOwnedPokemonOptions {
+  mode?: 'replace';
+}
+
+// buildPayload() (src/pages/box/[id].astro) が実際に自動保存で送る全キー。
+// mode: 'replace' のときはこれら全キーの存在を必須にする。
+const REPLACE_REQUIRED_FIELDS: Array<keyof OwnedPokemonRequestBody> = [
+  'nickname',
+  'species_name',
+  'level',
+  'nature',
+  'ability_name',
+  'item_name',
+  'tera_type',
+  'evs',
+  'ivs',
+  'move_names',
+  'memo',
+  'tags',
+  'is_pinned',
+];
+
 const DEFAULT_EVS = [0, 0, 0, 0, 0, 0];
 const DEFAULT_IVS = [31, 31, 31, 31, 31, 31];
 const MIN_LEVEL = 1;
@@ -43,9 +74,20 @@ function normalizeOptionalString(value: string): string | null {
   return trimmed === '' ? null : trimmed;
 }
 
-export function validateOwnedPokemonRequestBody(body: unknown): OwnedPokemonValidationResult {
+export function validateOwnedPokemonRequestBody(
+  body: unknown,
+  options: ValidateOwnedPokemonOptions = {},
+): OwnedPokemonValidationResult {
   if (!isPlainObject(body)) {
     return { ok: false, error: 'Request body must be a JSON object' };
+  }
+
+  if (options.mode === 'replace') {
+    for (const field of REPLACE_REQUIRED_FIELDS) {
+      if ((body as Record<string, unknown>)[field] === undefined) {
+        return { ok: false, error: `${field} is required (missing or undefined) for a PUT (replace) request` };
+      }
+    }
   }
 
   const {

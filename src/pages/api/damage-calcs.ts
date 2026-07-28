@@ -2,7 +2,7 @@
 // damage_calcs へ計算条件+client_result(未検証)を保存すると同時に、events へも計算条件のみを
 // 正データとして二重記録する (events.ts と同じ session_hash 発行・レートリミットの流儀)。
 import type { APIContext } from 'astro';
-import { badRequest, jsonResponse, methodNotAllowed, readJsonBody } from './_shared';
+import { badRequest, jsonResponse, methodNotAllowed, readRequiredJsonBody } from './_shared';
 import { validateDamageCalcRequestBody } from '../../lib/damage-calc-validation';
 import {
   computeSessionHash,
@@ -18,10 +18,10 @@ import { readEnv } from '../../config/env';
 export const prerender = false;
 
 export async function POST({ request, cookies }: APIContext): Promise<Response> {
-  const body = await readJsonBody<unknown>(request);
+  const body = await readRequiredJsonBody<unknown>(request);
   if (body.response) return body.response;
 
-  const validation = validateDamageCalcRequestBody(body.data ?? {});
+  const validation = validateDamageCalcRequestBody(body.data);
   if (!validation.ok) return badRequest(validation.error);
 
   // セッションCookie (pc_sid): 非個人情報のランダムID。無ければここで発行する (events.ts と同じ)。

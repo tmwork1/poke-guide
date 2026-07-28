@@ -7,7 +7,7 @@
 // 対象が存在しない場合と他人の所有物である場合はいずれも同じ404を返し、存在の有無を漏らさない
 // (src/pages/api/owned-pokemon/[id].ts と同じ方針)。
 import type { APIContext } from 'astro';
-import { badRequest, isSameOrigin, isValidUuid, jsonResponse, methodNotAllowed, readJsonBody } from '../_shared';
+import { badRequest, isSameOrigin, isValidUuid, jsonResponse, methodNotAllowed, readRequiredJsonBody } from '../_shared';
 import { getSessionUser } from '../../../lib/user-session';
 import { getSupabaseAdminClient } from '../../../lib/supabase';
 import { validateOpponentNoteRequestBody } from '../../../lib/opponent-notes-validation';
@@ -53,11 +53,11 @@ export async function PUT({ request, cookies, params }: APIContext): Promise<Res
   const id = params.id;
   if (!isValidUuid(id)) return notFound();
 
-  const body = await readJsonBody<unknown>(request);
+  const body = await readRequiredJsonBody<unknown>(request);
   if (body.response) return body.response;
 
   // 更新時は owned_pokemon_id の付け替えを許可しない(紐づく個体は作成時に固定)。
-  const validation = validateOpponentNoteRequestBody(body.data ?? {}, { requireOwnedPokemonId: false });
+  const validation = validateOpponentNoteRequestBody(body.data, { requireOwnedPokemonId: false });
   if (!validation.ok) return badRequest(validation.error);
 
   const supabase = await getSupabaseAdminClient();

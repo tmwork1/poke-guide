@@ -60,6 +60,8 @@ export function isSameOrigin(request: Request): boolean {
 export async function readJsonBody<T>(request: Request): Promise<{ data: T | null; response?: Response }> {
   try {
     // 空ボディは null として扱い、JSON でない入力だけをエラーにする。
+    // 呼び出し側で「ボディ必須」を強制したい場合は readJsonBody を直接使わず、
+    // 下の readRequiredJsonBody を使うこと(空ボディの穴を1箇所にまとめる狙い)。
     const text = await request.text();
     if (!text.trim()) {
       return { data: null };
@@ -77,4 +79,28 @@ export async function readJsonBody<T>(request: Request): Promise<{ data: T | nul
       response: badRequest('Invalid JSON payload'),
     };
   }
+}
+
+// readJsonBody はボディなしを「JSONでない入力」と区別して { data: null } (エラー無し) を返す。
+// これを書き込み系API側で `body.data ?? {}` のように穴埋めすると、全フィールドが任意項目の
+// バリデータ(owned-pokemon-validation.ts 等、PUTの「全項目を毎回送る」設計のため必須項目が無い)
+// では {} がそのまま検証を通過してしまい、更新系エンドポイントでは既存データの全消去、
+// 作成系エンドポイントでは空レコード作成につながる。
+//
+// ボディが必須のエンドポイントは readJsonBody の代わりにこちらを使い、空ボディを
+// 「JSONオブジェクトでない」ボディと同じクラスの400エラーに合流させる
+// (各バリデータが返す 'Request body must be a JSON object' と同じメッセージにするため、
+// バリデータの手前でここで弾く)。呼び出し側の使い方(`if (body.response) return body.response`)は
+// readJsonBody と揃えてあるので置き換えるだけでよい。
+//
+// 例外: ボディなしのリクエストで既定値のレコードを作ってよい正当な用途がある場合は、
+// そのエンドポイントは readJsonBody を使い続けること(2026-07時点でそのような用途は無いことを
+// 確認済み。「＋ 個体を追加」等の作成系UIも常に全項目を含むJSONボディを送っている)。
+export async function readRequiredJsonBody<T>(request: Request): Promise<{ data: T | null; response?: Response }> {
+  const body = await readJsonBody<T>(request);
+  if (body.response) return body;
+  if (body.data === null) {
+    return { data: null, response: badRequest('Request body must be a JSON object') };
+  }
+  return body;
 }

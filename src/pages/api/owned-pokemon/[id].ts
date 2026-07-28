@@ -5,7 +5,7 @@
 // 詳細は src/lib/owned-pokemon.ts 冒頭のコメント参照)。
 // 対象が存在しない場合と他人の所有物である場合はいずれも同じ404を返し、存在の有無を漏らさない。
 import type { APIContext } from 'astro';
-import { badRequest, isSameOrigin, isValidUuid, jsonResponse, methodNotAllowed, readJsonBody } from '../_shared';
+import { badRequest, isSameOrigin, isValidUuid, jsonResponse, methodNotAllowed, readRequiredJsonBody } from '../_shared';
 import { getSessionUser } from '../../../lib/user-session';
 import { getSupabaseAdminClient } from '../../../lib/supabase';
 import { validateOwnedPokemonRequestBody } from '../../../lib/owned-pokemon-validation';
@@ -49,10 +49,14 @@ export async function PUT({ request, cookies, params }: APIContext): Promise<Res
   const id = params.id;
   if (!isValidUuid(id)) return notFound();
 
-  const body = await readJsonBody<unknown>(request);
+  const body = await readRequiredJsonBody<unknown>(request);
   if (body.response) return body.response;
 
-  const validation = validateOwnedPokemonRequestBody(body.data ?? {});
+  // PUT は「全項目を毎回送る」置換契約(育成データ管理計画.md §6.2)のため、置換対象の
+  // 全フィールドが payload に存在することを必須にする(mode: 'replace')。これが無いと
+  // {} のような部分的なpayloadが検証を素通りし、既存データが既定値で全消去されてしまう
+  // (2026-07に実際に発生したデータ消失バグ、owned-pokemon-validation.ts のコメント参照)。
+  const validation = validateOwnedPokemonRequestBody(body.data, { mode: 'replace' });
   if (!validation.ok) return badRequest(validation.error);
 
   const supabase = await getSupabaseAdminClient();
