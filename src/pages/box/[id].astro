@@ -729,6 +729,16 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 		   .field-with-imageが別の使われ方をしていないか確認した上でセレクタをこの階層に絞る)。 */
 		#edit-form .field-grid > .field > .field-with-image { flex: 1 1 auto; width: 100%; min-width: 0; }
 
+		/* UI改善ラウンド23(23-G3): メガシンカ種族選択時に持ち物をメガストーンへ自動設定した
+		   ことを示す一時的なハイライト(JSがis-autofilledクラスを付け、約1.4秒後に自動で外す。
+		   flashAutofillHint参照)。box-shadowのみで高さを取らないため、下端が画面ギリギリの
+		   左パネルのレイアウトを崩さない。input:focus(global.css)と同系統の色だが、リング幅を
+		   広げて別要素と誤認しないようにする。 */
+		#edit-form #item.is-autofilled {
+			border-color: var(--color-primary);
+			box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 30%, transparent);
+		}
+
 		/* ラウンド23ユーザー指示(23-L3)「テラスタイプは文字セレクトボックスに戻し、技と同様に
 		   文字の左側にタイプアイコンを表示」。ラウンド21(21-L6)のアイコントグル群
 		   (.tera-select-status/.tera-select-group/.tera-select-btn、右パネルのbuildIconToggleGroup()
@@ -1370,6 +1380,15 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 		   (このルールの方が後ろにあるので勝つ)。 */
 		#opponent-notes-section .damage-row-build-grid select {
 			padding-right: 1.3em;
+		}
+
+		/* UI改善ラウンド23(23-G3): 左パネル(#edit-form #item.is-autofilled、上の
+		   scoped<style>参照)と同じ内容。JS生成要素にはscoped<style>が効かないため
+		   (pitfalls.md「AstroのscopedスタイルはJSで生成した要素に効かない」)、
+		   ここに複製する。 */
+		#opponent-notes-section .damage-row-build-grid input.is-autofilled {
+			border-color: var(--color-primary);
+			box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 30%, transparent);
 		}
 
 		/* 種族アイコン(公式絵)+ 右上テラスタイプバッジ + 右下持ち物バッジ。
@@ -2965,6 +2984,7 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 			loadMoveTypeMap,
 			loadLearnsetMap,
 			loadAbilitiesMap,
+			loadMegaStoneMap,
 			spriteUrl,
 			officialArtworkUrl,
 		} from "../../lib/pokemon-master-data";
@@ -3005,6 +3025,41 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 		// 一度だけfetchして使い回す。
 		const moveTypeMapPromise = loadMoveTypeMap();
 		const learnsetMapPromise = loadLearnsetMap();
+		// UI改善ラウンド23(23-G3): メガシンカ後種族名 -> メガストーン名(前向き対応表)。
+		// 左パネル・相手ビルドの両方で使うため、他の*MapPromiseと同じくトップレベルで一度だけ
+		// fetchして使い回す。
+		const megaStoneMapPromise = loadMegaStoneMap();
+
+		// メガシンカ種族が確定したとき、対応するメガストーン名を返す(該当しなければnull)。
+		// ⚠️ loadMegaStoneMap()自体は「メガレックウザ」等メガストーン不要の種族を含まず、
+		// 「ニャオニクスナイト」のようにitems.json(=loadItemSpriteMap())に存在しない
+		// アイテム名も含みうる(jpoke側のMEGA_STONES逆引きがオス/メスで曖昧になり登録漏れ
+		// している既知の不整合、pokemon-master-data.tsのloadMegaStoneMapコメント参照)。
+		// 後者を弾かないと、持ち物画像が出ずダメージ計算にも反映されない「設定できるのに
+		// 効かない」UIになるため、items.jsonに実在するかを都度確認する(特定のアイテム名を
+		// ハードコードしない。将来jpoke側の不整合が直れば自動的に有効になる)。
+		async function resolveMegaStoneItem(speciesName: string): Promise<string | null> {
+			const trimmed = speciesName.trim();
+			if (!trimmed) return null;
+			const [megaStoneMap, itemSpriteMap] = await Promise.all([megaStoneMapPromise, itemSpriteMapPromise]);
+			const stoneName = megaStoneMap.get(trimmed);
+			if (!stoneName) return null;
+			if (!itemSpriteMap.has(stoneName)) return null;
+			return stoneName;
+		}
+
+		// メガストーンを自動設定したことが分かる一時的な手掛かり(黙って値が変わると混乱するため)。
+		// レイアウトを崩さないよう高さを取らないbox-shadowのみで表現し(is-autofilledクラス、
+		// 下のscoped/is:globalスタイル参照)、約1.4秒後に自動で外す。titleも一時的に
+		// 「自動設定」である旨を添え、消灯時にrevertTitleで通常のtitle(値そのもの)へ戻す。
+		function flashAutofillHint(inputEl: HTMLInputElement, revertTitle: () => void): void {
+			inputEl.classList.add("is-autofilled");
+			inputEl.title = `${inputEl.value}(メガシンカに伴い自動設定)`;
+			window.setTimeout(() => {
+				inputEl.classList.remove("is-autofilled");
+				revertTitle();
+			}, 1400);
+		}
 
 		// UI品質改善(2026-07-26 第4弾 11-4): #move-listのlearnset優先並び替え
 		// (rebuildMoveListForSpecies、下で定義)は #move-list に既に候補が入っている前提で
@@ -3619,8 +3674,30 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 			// 「確定した」タイミング(blur、またはdatalistからの選択によるchangeイベント)でのみ
 			// 再構築する(このページの入力・クリックは自動保存を伴うため、意図しないデータ消失を
 			// 避ける判断。pitfalls.md「自動保存があるので検証クリックがデータを壊す」と同種のリスク)。
+			// UI改善ラウンド23(23-G3): メガシンカ種族が確定したら持ち物を対応するメガストーンに
+			// 自動設定する。持ち物が既に入っている場合は上書きしない(ユーザーが既に入れた値を
+			// 尊重する)。rebuildAbilityOptionsと同じくinput(1文字ごと)ではなくchange
+			// (blur/確定)にのみ結線する(理由も同じ: 入力途中の不完全な種族名で誤発火させない)。
+			// ⚠️ ページ読み込み時には呼ばない(22-Fで塞いだ「読み込むだけでPUTが飛ぶ」問題を
+			// 再発させないため。ユーザー操作由来のchangeイベントでのみ発火させる)。
+			let megaStoneAutofillToken = 0;
+			async function applyLeftMegaStoneAutofill(speciesName: string): Promise<void> {
+				const token = ++megaStoneAutofillToken;
+				if (itemInput.value.trim() !== "") return; // 持ち物が既に入っているので何もしない
+				const stoneName = await resolveMegaStoneItem(speciesName);
+				if (token !== megaStoneAutofillToken) return; // より新しい呼び出しに追い越された
+				if (!stoneName) return;
+				if (itemInput.value.trim() !== "") return; // 待機中にユーザーが入力した場合は上書きしない
+				itemInput.value = stoneName;
+				updateItemImage();
+				updateItemTitle();
+				scheduleSave();
+				void recalcStats();
+				flashAutofillHint(itemInput, () => updateItemTitle());
+			}
 			speciesInput.addEventListener("change", () => {
 				void rebuildAbilityOptions(speciesInput.value.trim());
+				void applyLeftMegaStoneAutofill(speciesInput.value.trim());
 			});
 			void rebuildAbilityOptions(speciesInput.value.trim());
 
@@ -6264,6 +6341,7 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 					// タイミングでのみ特性候補を作り直す(理由は上のabilitySelectコメント参照)。
 					nameInput.addEventListener("change", () => {
 						void rebuildRowAbilityOptions(nameInput.value.trim());
+						void applyRowMegaStoneAutofill(nameInput.value.trim());
 					});
 
 					// ラウンド6ユーザー指示(要件1): ⚙(この行の計算条件)ボタンは廃止した。
@@ -6417,6 +6495,27 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 						onFieldInput();
 					});
 					selectsRow.appendChild(itemInput);
+
+					// UI改善ラウンド23(23-G3): 左パネルと同じ扱いを相手ビルドにも適用する。相手の
+					// 種族は頻繁に打ち替えるため、rebuildRowAbilityOptionsと同じくnameInputの
+					// "change"(blur/確定)にのみ結線し、持ち物が既に入っている場合は上書きしない。
+					let rowMegaStoneAutofillToken = 0;
+					async function applyRowMegaStoneAutofill(speciesName: string): Promise<void> {
+						const token = ++rowMegaStoneAutofillToken;
+						if (row.itemName.trim() !== "") return; // 持ち物が既に入っているので何もしない
+						const stoneName = await resolveMegaStoneItem(speciesName);
+						if (token !== rowMegaStoneAutofillToken) return; // より新しい呼び出しに追い越された
+						if (!stoneName) return;
+						if (row.itemName.trim() !== "") return; // 待機中にユーザーが入力した場合は上書きしない
+						row.itemName = stoneName;
+						itemInput.value = stoneName;
+						itemInput.title = stoneName;
+						refreshItemImage();
+						onFieldInput();
+						flashAutofillHint(itemInput, () => {
+							itemInput.title = row.itemName;
+						});
+					}
 
 					const teraSelect = document.createElement("select");
 					teraSelect.setAttribute("aria-label", "相手のテラスタイプ");
