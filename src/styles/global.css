@@ -367,8 +367,17 @@ a {
 	border-color: var(--color-primary);
 }
 
+/* ラウンド22 22-A-2: border-color: var(--color-primary)(#27acd9)が --color-surface-alt
+   (#f8f9fc)に対しライトで2.50:1しか無く、WCAG 1.4.11(非テキストUI境界3:1)未達だった
+   (ダークは約6.5:1で問題なし)。「選択状態が見える」ことが目的で色相自体を変える意図は
+   無いため、新色は作らずライト用に既に用意されている --color-primary-strong(#1a7ea1、
+   ラウンド13でリンク文字用に追加、ラジオ選択のドット色にも流用済み)を使う。
+   --color-primary-strong はダークでは `var(--color-primary)` にエイリアスされているため、
+   ダークの見た目は変わらない。実測(手計算、WCAG相対輝度式): plain --color-surface-alt上で
+   4.39:1、/box/[id]の方向別8%着色背景(color-mix、--color-danger 8%/--color-primary 8%)
+   上でもそれぞれ4.07:1・4.09:1で3:1を満たす。 */
 .card.is-selected {
-	border-color: var(--color-primary);
+	border-color: var(--color-primary-strong);
 }
 
 /* 実数値・ダメージ量など、桁が変化する数値表示に使う共通クラス。
@@ -857,11 +866,18 @@ button.btn-success:hover:not(:disabled) {
 	color: var(--color-success);
 }
 
+/* ラウンド22 22-A-1: background: var(--color-danger) + 白文字がライトで2.82:1しか無く
+   WCAG AA(4.5:1)未達だった(ダークは--color-dangerが#ff8b78で7.93:1あり問題なし)。
+   ラウンド21で/box/[id]の#delete-buttonにページscopedで適用した--color-danger-strong
+   (#b23a26、白地5.96:1)を基底のここに適用し、二重管理を解消する。--color-danger-strongは
+   ダークではglobal.css内で`var(--color-danger)`にエイリアスされているため、ダークの見た目は
+   一切変わらない。hover時の文字色もbackground:白地に対し同じ2.82:1の問題を抱えていたため
+   同じトークンに揃える(ラウンド21の#delete-button:hoverが先行して同じ対応をしていた)。 */
 button.btn-danger,
 a.btn-danger,
 .delete-button {
-	background: var(--color-danger);
-	border: 2px solid var(--color-danger);
+	background: var(--color-danger-strong);
+	border: 2px solid var(--color-danger-strong);
 	color: var(--color-primary-contrast);
 	padding: calc(0.55em - 1px) calc(1.1em - 1px);
 	font-weight: 700;
@@ -871,7 +887,7 @@ button.btn-danger:hover:not(:disabled),
 a.btn-danger:hover,
 .delete-button:hover:not(:disabled) {
 	background: var(--color-surface);
-	color: var(--color-danger);
+	color: var(--color-danger-strong);
 }
 
 button.btn-ghost,

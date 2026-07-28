@@ -230,9 +230,6 @@ const realStatsMaxEv = realStatRow(32);
 			margin: 0;
 			padding-left: 1.2em;
 		}
-		.identity-pre-evolution {
-			margin: 0;
-		}
 		.identity-artwork {
 			flex: 0 0 auto;
 			display: flex;
@@ -478,29 +475,40 @@ const realStatsMaxEv = realStatRow(32);
 							</ul>
 						</div>
 						<div>
+							{/* round-22 22-D-2(round-15.md優先度C): 覚えられる特性/進化前/進化後の3項目で
+							    箇条書きの有無が不統一だった(進化前だけ<p>の単発リンクで、他の2項目は
+							    <ul class="identity-plain-list">)。進化前も同じ<ul>に揃える(値は常に
+							    0〜1件だが、複数件になりうる他の2項目と同じ「リストとして読む」構造に
+							    そろえたほうが、3項目を見比べたときの一貫性が高い)。
+							    「値が無い」ことを示す語彙も「データなし」「なし」の2種が混在していたため、
+							    /share・/box の同種の空欄表示で最も使われている「(未設定)」に統一する
+							    (/share/[slug].astroのdd要素5箇所、/box/index.astroのdisplayName()で使用。
+							    /box/[id].astroの「なし」はセレクトの選択肢ラベルで役割が異なるため対象外)。 */}
 							<h3 class="identity-field-label">覚えられる特性</h3>
 							{pokemon.abilities.length > 0 ? (
 								<ul class="identity-plain-list">
 									{pokemon.abilities.map((a) => <li>{a}</li>)}
 								</ul>
 							) : (
-								<p class="card-hint">データなし</p>
+								<p class="card-hint">(未設定)</p>
 							)}
 						</div>
 						<div>
 							<h3 class="identity-field-label">進化前</h3>
 							{pokemon.preEvolution ? (
-								<p class="identity-pre-evolution">
-									<a href={`/pokemon/${encodeURIComponent(toPokemonPathSegment(pokemon.preEvolution))}`}>{pokemon.preEvolution}</a>
-								</p>
+								<ul class="identity-plain-list">
+									<li>
+										<a href={`/pokemon/${encodeURIComponent(toPokemonPathSegment(pokemon.preEvolution))}`}>{pokemon.preEvolution}</a>
+									</li>
+								</ul>
 							) : (
-								<p class="card-hint">なし</p>
+								<p class="card-hint">(未設定)</p>
 							)}
 						</div>
 						<div>
 							{/* B-9: 進化後(逆引きマップの結果)。イーブイのように複数いるケースは
 							    リンクの箇条書きにする(進化前と同じ<ul class="identity-plain-list">の型を再利用)。
-							    0件のときは「-」やダッシュの羅列ではなく「進化前」と同じ"なし"の1行にし、
+							    0件のときは「-」やダッシュの羅列ではなく、他の2項目と同じ"(未設定)"の1行にし、
 							    データ破損に見えないようにする(空のパネルも作らない)。 */}
 							<h3 class="identity-field-label">進化後</h3>
 							{postEvolutions.length > 0 ? (
@@ -512,7 +520,7 @@ const realStatsMaxEv = realStatRow(32);
 									))}
 								</ul>
 							) : (
-								<p class="card-hint">なし</p>
+								<p class="card-hint">(未設定)</p>
 							)}
 						</div>
 					</div>

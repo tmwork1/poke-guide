@@ -1,0 +1,48 @@
+[
+  {
+    "id": "stats_baseline_default_ivs_no_evs",
+    "description": "個体値省略(全て31)・努力値省略(全て0)のデフォルト実数値: ピカチュウ、まじめ",
+    "spec": { "name": "ピカチュウ", "nature": "まじめ", "level": 50 }
+  },
+  {
+    "id": "stats_plus_nature_full_evs",
+    "description": "上昇補正性格+特定ステータス努力値32(Championsスケール最大)全振り: ピカチュウ(いじっぱり、攻撃32/素早さ32)",
+    "spec": {
+      "name": "ピカチュウ",
+      "nature": "いじっぱり",
+      "level": 50,
+      "evs": [0, 32, 0, 0, 0, 32],
+      "ivs": [31, 31, 31, 31, 31, 31]
+    }
+  },
+  {
+    "id": "stats_minus_nature",
+    "description": "下降補正性格(とくこうダウン)を含む実数値: フシギダネ(ようき)、努力値を各ステータスに分散",
+    "spec": {
+      "name": "フシギダネ",
+      "nature": "ようき",
+      "level": 50,
+      "evs": [8, 8, 8, 8, 8, 8]
+    }
+  },
+  {
+    "id": "stats_zero_ivs",
+    "description": "個体値0(最低値)の実数値: カビゴン、無補正性格(がんばりや)",
+    "spec": {
+      "name": "カビゴン",
+      "nature": "がんばりや",
+      "level": 50,
+      "ivs": [0, 0, 0, 0, 0, 0]
+    }
+  },
+  {
+    "id": "stats_empty_move_names",
+    "description": "moveNamesが空配列(技を1つも選んでいない育成ビルダーの状態)でもエラーにならないことの確認: ゼニガメ",
+    "spec": { "name": "ゼニガメ", "nature": "まじめ", "level": 50, "moveNames": [] }
+  },
+  {
+    "id": "stats_boosts_do_not_affect_stats",
+    "description": "boosts(ランク補正)を指定してもPokemon.statsには反映されないことの確認(pyodide-engine.tsのcalcStats()コメント通りの挙動。stats_baseline_default_ivs_no_evsと同一のベース値になるはず): ピカチュウ、boosts全ランク+6",
+    "spec": { "name": "ピカチュウ", "nature": "まじめ", "level": 50, "boosts": [0, 6, 6, 6, 6, 6] }
+  }
+]

@@ -4,6 +4,12 @@
 
 **2026-07-27追記**: 上流PR#355(`fix/lethal-fixed-damage-moves`)を`vendor/jpoke`に取り込み済み。`calc_lethal`が固定ダメージ技・OHKO技等を正しく計算するようになった詳細は`damage-calc.md`§7を参照。これに伴い`src/pages/box/[id].astro`の`isVariablePowerMove`抑止ロジックを`isUnsupportedLethalMove`(対象は`はきだす`のみ)に縮小した。wheelバージョン文字列(`pyodide-engine.ts`の`0.2.0`)は変更不要だった(`pyproject.toml`のバージョン据え置きのため)。`npm test`・`npm run test:e2e`・上流`tests/test_lethal.py`(139件)は全てパス済み。
 
+**2026-07-28追記(UI改善ラウンド22 22-E、round-12.mdで指摘された「jpoke更新時の回帰検出の穴」3件への対応)**: 詳細は§6・§7・§2(初期化フロー4番)に反映済み。要約:
+- **22-E-1/22-E-2**: `tests/e2e/fixtures/generate_expected.py`が`BOOTSTRAP_PYTHON`を手書き複製していたのをやめ、`pyodide-engine.ts`からソース文字列を直接抽出・execする方式に変更。`calcStats()`/`calcLethalSequence()`もネイティブ一致確認の対象に追加(`tests/e2e/stats-lethal-sequence.spec.ts`、fixtureは`stats-cases.json`6件/`lethal-sequence-cases.json`8件)。既存の`expected.json`(10件)はバイト単位で不変(=既存テストへの実害は元々無かったことを確認)。
+- **22-E-3**: `JPOKE_WHEEL_URL`のバージョン文字列ハードコードを解消。`build.mjs`が`wheel-manifest.json`を書き出し、`pyodide-engine.ts`がそれをVite静的importで読む方式に変更(実行時fetch無し)。
+- **前提の誤り(訂正)**: 本ファイルの旧版が「ハードコードは`pyodide-engine.ts:36,924`の2箇所」と記録していたが、2026-07-28時点で実測すると**1箇所のみ**だった(§2参照)。round-22.md指示書の「924行目」記述もこの誤りを引き継いでいた。
+- `npm test`(256件)・`npm run test:e2e`(3 spec、うち新規2件)は全てパス。新規比較が実際に差分を検出できることを、期待値を意図的にずらして失敗することを確認(その後復元)。
+
 > このファイルは実際のコードを読んで書いた要約です。**すべての事実に出典(ファイル:行)を付けること。**
 > 出典の無い記述は次に読むエージェントが信用できないため、書かないでください。
 
@@ -36,7 +42,9 @@ jpoke は大きいパッケージだが、poke-commons が触れているのは�
 1. Pyodide本体をCDNから`<script>`タグで読み込む: `https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js`(出典: `pyodide-engine.ts:30-32,911`)
 2. `window.loadPyodide({ indexURL: ... })` でランタイム起動(出典: `pyodide-engine.ts:917`)
 3. `pyodide.loadPackage("micropip")`(出典: `pyodide-engine.ts:920`)
-4. `micropip.install("/master-data/pyodide/wheels/jpoke-0.2.0-py3-none-any.whl")` でjpoke wheelをインストール。**バージョン文字列 `0.2.0` はハードコード**(出典: `pyodide-engine.ts:36,924`)。`vendor/jpoke`を更新して`build.mjs`が別バージョンのwheelを生成しても、この文字列を書き換えない限り古いファイル名を探しにいき404で失敗する。
+4. `micropip.install(JPOKE_WHEEL_URL)` でjpoke wheelをインストール。**(2026-07-28 UI改善ラウンド22 22-E-3で解消済み)** 以前は `JPOKE_WHEEL_URL` にバージョン文字列 `0.2.0` を直書きしていたが、現在は `public/master-data/pyodide/wheel-manifest.json`(`build.mjs`のwheelビルド完了直後に実際に生成されたファイル名で書き出す)をVite静的import(`src/pages/api/search.ts`が`public/master-data/autocomplete/*.json`を静的importしているのと同じ方式)で読み込み、`` `/master-data/pyodide/wheels/${jpokeWheelManifest.filename}` `` としてURLを組み立てる(出典: `pyodide-engine.ts:34-42`、生成側: `scripts/build-master-data/build.mjs`の`buildPyodideWheel()`末尾)。ビルド時(Vite)に解決されるため実行時fetchは増えない。**実測確認済み**: `wheel-manifest.json`の`filename`を`jpoke-0.3.0-py3-none-any.whl`に手動で書き換えて`astro build`し直したところ、`pyodide-engine.ts`を一切編集せずに`dist/client/_astro/pyodide-engine.*.js`が新しいファイル名を参照するようになった(2026-07-28実測)。
+   - **旧記述の訂正**: このファイルの旧版には「バージョン文字列0.2.0は`pyodide-engine.ts:36,924`の2箇所にハードコード」と書かれていたが、2026-07-28時点でコードを確認したところ**実際には36行目の1箇所のみ**だった(`micropip.install(JPOKE_WHEEL_URL)`は変数参照であり文字列直書きではない)。「924行目にも同じ文字列がある」という記述はこの時点で誤りだった(いつ・なぜ1箇所に減ったかは不明。round-22.mdの22-E-3指示に924行目の記載があったが実物と食い違っていたため、実測を優先してこの記述に訂正した)。
+   - **未解決の制約(残存)**: `wheel-manifest.json`は`public/master-data/`配下でgit管理外のため、`npm run build:master-data`を一度も実行していないクローン直後の環境では`astro dev`/型チェックがこのJSON importの解決に失敗する。これは`search.ts`が`public/master-data/autocomplete/*.json`を静的importしている既存の制約と同じ(このプロジェクトでは「初回は`npm run build:master-data`が前提」という既存方針を踏襲しており、新たな問題ではない)。
 5. `pyodide.runPythonAsync(BOOTSTRAP_PYTHON)` で固定Pythonコードを実行し、`calc_damages_json`/`calc_stats_json`/`calc_lethal_sequence_json`の3関数を`pyodide.globals.get(...)`で取得(出典: `pyodide-engine.ts:927-932`)。
 
 ### 公開API(TS側)と対応するPython関数
@@ -112,24 +120,39 @@ cache-first。対象は正規表現2本のみ: `^https://cdn\.jsdelivr\.net/pyod
 
 ## 6. テスト: jpokeネイティブ実行との一致確認
 
-`tests/e2e/fixtures/generate_expected.py`が`vendor/jpoke/src`をネイティブPythonで実行し、`expected.json`を事前生成する(既定ソースは`vendor/jpoke/src`、`JPOKE_SRC_DIR`で上書き可、出典: `generate_expected.py:31-37`)。`tests/e2e/damage-calc.spec.ts`が実ブラウザ(Chromium)上の`calcDamages()`と`expected.json`を完全一致比較する(出典: `damage-calc.spec.ts:1-12,90-101`)。
+**(2026-07-28 UI改善ラウンド22 22-E-1/22-E-2で全面的に作り直した。以下は現行版の記述。)**
 
-**注意(このスキル作成時に発見した既存の乖離)**: `generate_expected.py`の`_build_pokemon`/`calc_damages_json`(出典: 同:42-121)は、`pyodide-engine.ts`の`BOOTSTRAP_PYTHON`の**古い版**を複製したものであり、現行版と以下の点で異なる:
-- `boosts`(ランク補正)の反映が無い(出典: `generate_expected.py:42-67`には`spec.get("boosts")`が存在しない。現行版は`pyodide-engine.ts:432-437`で反映する)
-- 技解決のフォールバックが`active_attacker.moves[0]`(無関係な技への暗黙フォールバック、出典: `generate_expected.py:107-110`)だが、現行`_resolve_move`は`Move(move_name)`を新規生成する(出典: `pyodide-engine.ts:466-477`、この変更理由も同箇所コメントに明記)
+`tests/e2e/fixtures/generate_expected.py`が`vendor/jpoke/src`をネイティブPythonで実行し、3種類の期待値ファイルを事前生成する(既定ソースは`vendor/jpoke/src`、`JPOKE_SRC_DIR`で上書き可、出典: `generate_expected.py:31-37`)。
 
-`tests/e2e/fixtures/cases.json`は現時点で`boosts`/`ailment`/`terastallized`/`hitCount`/存在しない技名を使うケースを含んでいない(出典: 目視確認、`cases.json`全件が`attacker/defender/moveName/seed/critical/field/maxLethalAttackCount`のみ)ため、この乖離は**今は**テスト結果に影響していない。しかし今後これらの条件を使うケースを追加すると、`expected.json`が実際の`calcDamages()`の挙動と異なる値になり、**テストが「一致」と誤判定する(=検出すべき乖離を検出できない)**リスクがある。
+| 期待値ファイル | ケース定義 | 対応するTS関数 | 比較するPlaywright spec |
+|---|---|---|---|
+| `expected.json` | `cases.json`(10件) | `calcDamages()` | `damage-calc.spec.ts` |
+| `expected-stats.json` | `stats-cases.json`(6件) | `calcStats()` | `stats-lethal-sequence.spec.ts` |
+| `expected-lethal-sequence.json` | `lethal-sequence-cases.json`(8件) | `calcLethalSequence()` | `stats-lethal-sequence.spec.ts` |
 
-**さらに重要**: このE2Eテストが検証しているのは`calc_damages_json`(`calcDamages()`)のみであり、**box/[id].astroが実際に使っている`calc_stats_json`/`calc_lethal_sequence_json`(`calcStats()`/`calcLethalSequence()`)はネイティブ実行との一致確認の対象外**(出典: `damage-calc.spec.ts`全体、`window.__pyodideEngine__`に`calc`=`calcDamages`しか公開していない `e2e-test-harness/index.astro:40-49`)。
+**旧実装との違い(重要な設計変更)**: 以前の`generate_expected.py`は`pyodide-engine.ts`の`BOOTSTRAP_PYTHON`(`_build_pokemon`/`calc_damages_json`等)を**手書きで複製**していた。この複製が古くなり、`boosts`(ランク補正)を一切反映しない状態のまま長期間放置されていたことが判明した(下記「発見した乖離」参照)。2026-07-28に、複製をやめて**`pyodide-engine.ts`から`BOOTSTRAP_PYTHON`のPythonソース文字列をそのまま抽出し`exec()`する方式**に変更した(`generate_expected.py`の`_extract_bootstrap_python()`/`_load_bootstrap_namespace()`)。これにより、ブラウザ(Pyodide)側とネイティブ側が**文字通り同一のPythonコード**を実行するようになり、複製による乖離が構造的に起こらなくなった(「片方はPyodide用・片方はネイティブ用」という実行環境の違いは残るが、ロジックの二重管理は解消した)。抽出はBOOTSTRAP_PYTHON文字列内にバッククォートが1つも無いこと(`pyodide-engine.ts`側の既存の制約と同じ)を前提にした単純な文字列切り出しで実装している。
+
+**発見した乖離(修正前、22-E-2の調査結果)**: 旧`generate_expected.py`の`_build_pokemon`/`calc_damages_json`は`BOOTSTRAP_PYTHON`の**古い版**の複製で、以下が未反映だった:
+- `boosts`(ランク補正)が一切反映されない(`spec.get("boosts")`が存在しなかった)
+- 状態異常(`ailment`)・テラスタル(`terastallized`)・**揮発性状態(`volatiles`、UI改善ラウンド20 20-R3で`_apply_battle_only_state`に追加)**のいずれも未反映(旧版には`_apply_battle_only_state`関数自体が存在しなかった)
+- 連続ヒット回数(`hitCount`)が未反映(`calc_damages_json`の引数に無かった)
+- 技解決のフォールバックが`active_attacker.moves[0]`(無関係な技への暗黙フォールバック)だったが、現行`_resolve_move`は`Move(move_name)`を新規生成する
+- `calc_stats_json`/`calc_lethal_sequence_json`に相当する関数が旧版には**存在しなかった**(§7参照)
+
+`tests/e2e/fixtures/cases.json`(既存10件)はこれらの条件を使っていなかったため、修正前でも既存テストへの実害は無かった(実測: 抽出方式に切り替えた後も`expected.json`はバイト単位で不変だった)。しかし`boosts`等を使うケースが追加された瞬間、期待値が実際の挙動とずれたまま「一致」と誤判定される状態だった。**新しいfixture(`stats-cases.json`/`lethal-sequence-cases.json`)は意図的に`boosts`/`ailment`/`terastallized`/`volatiles`/`hitCount`/per-attack上書きを網羅しており、この種の乖離を今後も検出できる。**
+
+`tests/e2e/damage-calc.spec.ts`が実ブラウザ(Chromium)上の`calcDamages()`と`expected.json`を完全一致比較する(出典: `damage-calc.spec.ts:1-12,90-101`)。`tests/e2e/stats-lethal-sequence.spec.ts`が同様に`calcStats()`/`calcLethalSequence()`と`expected-stats.json`/`expected-lethal-sequence.json`を完全一致比較する(浮動小数点の`probability`も含め完全一致で通ることを実測済み。Pyodide=WASM上のCPythonとネイティブCPythonのIEEE754倍精度演算がbit単位で一致することを前提にしており、2026-07-28時点で実際に一致することを確認した)。
+
+**ブラウザ側での関数公開(`e2e-test-harness/index.astro`)**: 元々`window.__pyodideEngine__`には`calc`(=`calcDamages`)しか公開されていなかった。22-E-1でこのページに`calcStats`/`calcLethalSequence`を追加公開した。**このページは`src/pages/e2e-test-harness/`配下だが、Playwright専用のテストハーネス(本番導線に一切リンクされない)であり、UI改善ラウンド22の他エージェント(α/β/γ/ε)の担当ファイルとは重複しない。**
 
 ## 7. jpoke更新で「黙って壊れる」場所(重要度順)
 
 型エラーにならず実行時に**間違った値**が出る箇所。上から順にリスクが高い。
 
-1. **`STATS[1:6]`のインデックス対応**(`pyodide-engine.ts:434-437`): `jpoke.types.literals.Stat`の要素順(現在`["hp","atk","def","spa","spd","spe",...]`、出典: `vendor/jpoke/src/jpoke/types/literals.py:56`)が変わると、`boosts`配列の値が別のステータスに適用される。TypeScript側は文字列インデックスを検証しないため、コンパイルは通り、ダメージ計算の結果だけが静かにおかしくなる。
-2. **`LethalHitResult.__add__`/`subtract_dist`の内部挙動への依存**(`calc_lethal_sequence_json`全体、出典: `pyodide-engine.ts:635-882`のコメント群、特に649-728行の「重要」注記): 打点とHPを分けて集計するロジック・単調性クランプは、jpokeの`jpoke/core/lethal.py`の非公開実装詳細(`_lethal_loop`の打ち切り仕様、`__add__`のダメージ/HP合成規則)への深い依存。ここが変わっても型は壊れず、累計致死率・打点の数値だけがずれる。
-3. **`tests/e2e/fixtures/generate_expected.py`のBOOTSTRAP_PYTHON複製が古い**(§6参照): 「jpoke更新時にnpm testで検出できる」という前提のvendoring更新手順(`VENDORING.md`手順4)自体が、実際には`calcStats`/`calcLethalSequence`(box/[id].astroの主要導線)を一切カバーしていない。jpoke更新後に`npm test`が通っても、本番で使われている計算経路の回帰は検出されない。
-4. **`extract_autocomplete.py`の`_IMAGE_ID_OVERRIDES`**(同:73-113): PokeAPI実測値の手書き表。jpokeの`ja_to_id_map.json`が該当フォルムを解決できるようになっても、この表が優先されず古い値のまま残り得る(コード上の優先順位は①`ja_to_id_map.json`が先、出典: 同:138-141なので実際には②より①が優先されるが、①側のキー名表記がわずかに変わると①で解決できず②の古い値にフォールバックしてしまう、という形で顕在化する)。
+1. **`STATS[1:6]`のインデックス対応**(`pyodide-engine.ts:434-437`付近): `jpoke.types.literals.Stat`の要素順(現在`["hp","atk","def","spa","spd","spe",...]`、出典: `vendor/jpoke/src/jpoke/types/literals.py:56`)が変わると、`boosts`配列の値が別のステータスに適用される。TypeScript側は文字列インデックスを検証しないため、コンパイルは通り、ダメージ計算の結果だけが静かにおかしくなる。
+2. **`LethalHitResult.__add__`/`subtract_dist`の内部挙動への依存**(`calc_lethal_sequence_json`全体): 打点とHPを分けて集計するロジック・単調性クランプは、jpokeの`jpoke/core/lethal.py`の非公開実装詳細(`_lethal_loop`の打ち切り仕様、`__add__`のダメージ/HP合成規則)への深い依存。ここが変わっても型は壊れず、累計致死率・打点の数値だけがずれる。**(2026-07-28時点)** §6の一致確認(`stats-lethal-sequence.spec.ts`)がこの経路をカバーするようになったため、この種の変化はテストで検出できるようになった。
+3. **~~`tests/e2e/fixtures/generate_expected.py`のBOOTSTRAP_PYTHON複製が古い~~ → 2026-07-28 UI改善ラウンド22 22-E-1/22-E-2で解消済み**(§6参照)。複製をやめてBOOTSTRAP_PYTHONを直接execする方式に変更し、`calcStats`/`calcLethalSequence`の一致確認も追加した。`vendoring更新手順(VENDORING.md`手順4)の前提「jpoke更新後にnpm testで検出できる」は、`npm run test:e2e`(`test:e2e:update-fixtures`で期待値再生成後)まで含めれば、`/box/[id].astro`が実際に使う計算経路(`calcStats`/`calcLethalSequence`)もカバーするようになった。
+4. **`extract_autocomplete.py`の`_IMAGE_ID_OVERRIDES`**: PokeAPI実測値の手書き表。jpokeの`ja_to_id_map.json`が該当フォルムを解決できるようになっても、この表が優先されず古い値のまま残り得る(コード上の優先順位は①`ja_to_id_map.json`が先なので実際には②より①が優先されるが、①側のキー名表記がわずかに変わると①で解決できず②の古い値にフォールバックしてしまう、という形で顕在化する)。
 5. **`sprite-urls.ts`/`pokemon-master-data.ts`のURLテンプレート**: `pokeapi.py`のディレクトリ構成・拡張子が変わっても、これらのTS側文字列リテラルは自動追随しない。結果は例外ではなく画像404(表示崩れ)として現れる。
 
 ## 8. Pyodide経由であることに起因する制約
@@ -137,6 +160,6 @@ cache-first。対象は正規表現2本のみ: `^https://cdn\.jsdelivr\.net/pyod
 - **初期化が重い**: Pyodideランタイム(wasm)+ micropipによるjpoke wheelインストールを経る。E2Eテスト(`tests/e2e/damage-calc.spec.ts`)は初期化+10ケース分の直列計算を`test.setTimeout(180_000)`(180秒)に設定している(既定の`playwright.config.ts`のグローバル`timeout: 120_000`より延長、出典: `damage-calc.spec.ts:78`、`playwright.config.ts:24`)。
 - **Python↔JS値変換**: `pyodide.toPy()`で明示変換したPyProxyオブジェクトのみを引数に渡し、使用後は`.destroy()`で破棄が必須(破棄漏れはPython側メモリリーク、出典: `pyodide-engine.ts:999-1004`)。戻り値はPython側で`json.dumps()`した文字列をJS側で`JSON.parse()`する方式で、PyProxyをそのままJSオブジェクトとして扱う経路は使っていない(出典: `pyodide-engine.ts:556,565,882,997,1039,1100`)。
 - **コード注入対策**: BOOTSTRAP_PYTHONはビルド時に確定した固定文字列で、ユーザー入力を文字列結合しない。計算対象データは常に関数引数(`toPy()`変換済み)として渡す(出典: `pyodide-engine.ts:353-358`)。
-- **wheelバージョンのハードコード**(§2参照): `JPOKE_WHEEL_URL`のファイル名にバージョン番号が直書きされているため、`vendor/jpoke`更新時は`build.mjs`の生成物だけでなくこの文字列も手動更新が要る(`VENDORING.md`の手順には明記が無いため見落としやすい)。
-- **オフラインキャッシュとバージョン更新の相互作用**: `public/pyodide-sw.js`は`/master-data/pyodide/`配下をcache-firstで保存する(出典: `pyodide-sw.js:9`)。wheelファイル名にバージョンが含まれるため、jpoke更新でファイル名が変われば新URLとして扱われキャッシュミス→再取得されるが、`CACHE_NAME`(`"pyodide-engine-v1"`)自体は更新時に変更されない(出典: `pyodide-sw.js:8`)ため、キャッシュの世代管理は「URLが変わることに依存」している。
+- **~~wheelバージョンのハードコード~~ → 2026-07-28 UI改善ラウンド22 22-E-3で解消済み**(§2参照): `JPOKE_WHEEL_URL`は`wheel-manifest.json`(build.mjsが実際に生成したファイル名で書き出す)からのVite静的importで組み立てるようになった。`vendor/jpoke`更新時は`build.mjs`の生成物(=`npm run build:master-data`を実行すること)だけで追随し、`pyodide-engine.ts`の手動更新は不要になった。
+- **オフラインキャッシュとバージョン更新の相互作用**: `public/pyodide-sw.js`は`/master-data/pyodide/`配下をcache-firstで保存する(出典: `pyodide-sw.js:9`)。wheelファイル名にバージョンが含まれるため、jpoke更新でファイル名が変われば新URLとして扱われキャッシュミス→再取得されるが、`CACHE_NAME`(`"pyodide-engine-v1"`)自体は更新時に変更されない(出典: `pyodide-sw.js:8`)ため、キャッシュの世代管理は「URLが変わることに依存」している。**この構造は22-E-3後も変わらない**(`wheel-manifest.json`自体も`/master-data/pyodide/`配下なのでcache-first対象だが、`wheel-manifest.json`はHTMLに埋め込まれるのではなくビルド時にJSバンドルへインライン化されるため、SWのキャッシュ対象としては現在も参照されない。実行時に`wheel-manifest.json`をfetchする経路が無いことに変わりはない)。
 - (未確認) Pyodide上で使えないPython機能(C拡張モジュール依存など)がjpoke側に将来追加された場合にどう壊れるかは、現状jpokeが「ランタイム依存ゼロの純Python」(出典: `extract_autocomplete.py:4-5`)であるため未検証。

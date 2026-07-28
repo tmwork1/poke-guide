@@ -1,16 +1,25 @@
 ---
-// Phase 2-5: E2E回帰テスト専用の最小ハーネスページ。
+// Phase 2-5 / UI改善ラウンド22 22-E-1: E2E回帰テスト専用の最小ハーネスページ。
 //
-// **これはPlaywrightのE2Eテスト (tests/e2e/damage-calc.spec.ts) からのみ使う、
-// テスト専用ページです。** 本番導線には一切リンクされない。
+// **これはPlaywrightのE2Eテスト (tests/e2e/damage-calc.spec.ts,
+// tests/e2e/stats-lethal-sequence.spec.ts) からのみ使う、テスト専用ページです。**
+// 本番導線には一切リンクされない。
 //
 // damage-calc-poc (Phase 1-7の動作確認ページ) はDOM入力フォーム経由でしか
 // 計算を実行できず、努力値・特性・持ち物・フィールド状態などを網羅的に
 // スクリプトから叩けない。このページは `src/lib/pyodide-engine.ts` の
-// `initEngine()` / `calcDamages()` をそのまま `window` に晒すだけの薄いラッパーで、
-// Playwright は `page.evaluate()` で直接これらの関数を呼び出し、任意の
-// PokemonSpec / FieldSpec / CalcDamagesOptions を渡してブラウザ内Pyodide経由の
-// 計算結果を取得する。
+// `initEngine()` / `calcDamages()` / `calcStats()` / `calcLethalSequence()` を
+// そのまま `window` に晒すだけの薄いラッパーで、Playwright は `page.evaluate()` で
+// 直接これらの関数を呼び出し、任意の PokemonSpec / FieldSpec / CalcDamagesOptions /
+// SequenceAttack を渡してブラウザ内Pyodide経由の計算結果を取得する。
+//
+// 追記(UI改善ラウンド22 22-E-1): 元々 `calc`(calcDamages)しか公開しておらず、
+// `/box/[id].astro` が実際に使う `calcStats`/`calcLethalSequence` はネイティブjpoke
+// 実行との一致確認の対象外だった(`.claude/skills/jpoke/references/integration.md` §6・
+// round-12.mdの指摘)。この穴を塞ぐため `calcStats`/`calcLethalSequence` も公開する。
+// このページはテスト専用ハーネスで本番導線に一切リンクされないため、担当外の他エージェント
+// (α/β/γ/ε)が同時編集している他ファイル(global.css・box/index.astro・
+// pokemon/[name].astro・box/[id].astro)と衝突する余地は無い。
 import AppLayout from '../../layouts/AppLayout.astro';
 ---
 <AppLayout title="E2Eテストハーネス (非公開・テスト専用)" current="dev">
@@ -24,12 +33,22 @@ import AppLayout from '../../layouts/AppLayout.astro';
 		<p id="harness-ready" data-ready="false">initializing</p>
 
 		<script>
-			import { initEngine, calcDamages, isEngineReady, getEngineProgress } from "../../lib/pyodide-engine";
+			import {
+				initEngine,
+				calcDamages,
+				calcStats,
+				calcLethalSequence,
+				isEngineReady,
+				getEngineProgress,
+			} from "../../lib/pyodide-engine";
 			import type {
 				PokemonSpec,
 				FieldSpec,
 				CalcDamagesOptions,
 				CalcDamagesResult,
+				Stats,
+				SequenceAttack,
+				CalcLethalSequenceResult,
 			} from "../../lib/pyodide-engine";
 
 			// Playwrightからテスト対象APIを直接呼び出せるよう window に公開する。
@@ -45,6 +64,15 @@ import AppLayout from '../../layouts/AppLayout.astro';
 							moveName: string,
 							options?: CalcDamagesOptions,
 						) => Promise<CalcDamagesResult>;
+						// UI改善ラウンド22 22-E-1: /box/[id].astro が実際に使う calcStats()/
+						// calcLethalSequence() もネイティブjpoke実行との一致確認の対象にするため公開する。
+						calcStats: (spec: PokemonSpec) => Promise<{ stats: Stats }>;
+						calcLethalSequence: (
+							attacker: PokemonSpec,
+							defender: PokemonSpec,
+							attacks: SequenceAttack[],
+							options?: CalcDamagesOptions,
+						) => Promise<CalcLethalSequenceResult>;
 						isReady: () => boolean;
 					};
 				}
@@ -63,6 +91,9 @@ import AppLayout from '../../layouts/AppLayout.astro';
 					}),
 				calc: (attacker, defender, moveName, options) =>
 					calcDamages(attacker, defender, moveName, options ?? {}),
+				calcStats: (spec) => calcStats(spec),
+				calcLethalSequence: (attacker, defender, attacks, options) =>
+					calcLethalSequence(attacker, defender, attacks, options ?? {}),
 				isReady: () => isEngineReady(),
 			};
 

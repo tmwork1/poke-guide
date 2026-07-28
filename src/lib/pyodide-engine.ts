@@ -33,7 +33,16 @@ const PYODIDE_SCRIPT_URL = `${PYODIDE_CDN_BASE}pyodide.js`;
 
 // build:master-data (scripts/build-master-data/build.mjs) が生成する静的アセット。
 // public/ 配下はAstroが素通しで配信するため、このパスがそのままURLになる。
-const JPOKE_WHEEL_URL = "/master-data/pyodide/wheels/jpoke-0.2.0-py3-none-any.whl";
+//
+// wheelのファイル名(バージョン番号を含む)はここに手書きしない。build.mjs が
+// wheel生成のたびに書き出す public/master-data/pyodide/wheel-manifest.json を
+// ビルド時にVite静的import(src/pages/api/search.ts が同ディレクトリ配下の
+// autocomplete/*.json を静的importしているのと同じ方式)で読み込み、URLを組み立てる。
+// これにより vendor/jpoke のバージョンが上がって wheel ファイル名が変わっても、
+// このファイルを手動更新する必要が無くなる(UI改善ラウンド22 22-E-3で対応。
+// 実行時fetchを増やさないよう、あえて静的importにしている)。
+import jpokeWheelManifest from "../../public/master-data/pyodide/wheel-manifest.json";
+const JPOKE_WHEEL_URL = `/master-data/pyodide/wheels/${jpokeWheelManifest.filename}`;
 
 // public/pyodide-sw.js: Pyodide CDN + jpoke wheel のみを対象にした cache-first Service Worker。
 const SERVICE_WORKER_URL = "/pyodide-sw.js";
