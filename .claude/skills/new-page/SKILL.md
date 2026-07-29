@@ -125,7 +125,7 @@ description: このプロジェクトにまだ存在しないページ(画面)�
 
 1. `npm run build` 成功 / `npm test` **全件pass**(新規バリデーションのユニットテストが増えていること。**テストが1件も増えていない新規ページは未完成とみなす**)
 2. **受け入れ基準を1件ずつ潰す。** 番号ごとに「どう確認したか」を書く。実測できる基準は `getBoundingClientRect()` / API叩き / Playwright で**実際に測る**
-3. 1920×1080 ライト・ダークのスクリーンショットを撮り、**Read tool で自分の目で見る**
+3. **`npm run shot -- --page <新ページのパス> --page box`** で1920×1080ライト・ダークを撮り、**Read tool で自分の目で見る**(Playwrightスクリプトを書き起こさない。→ `.claude/skills/ui/references/pitfalls.md`「撮影は `npm run shot`」)
 4. **既存ページの回帰確認**: `/box` `/box/[id]` が壊れていないこと(共通ファイルを触っているので必ず見る)
 5. **DBが元の状態に戻っているか確認**(→ `pitfalls.md`「データ事故」)
 6. 回帰・欠陥を見つけたら `<slug>.md` に記録してから直す

@@ -72,3 +72,9 @@ export const ownedPokemonRateLimiter = createFixedWindowRateLimiter(EVENTS_RATE_
 // user.id をキーにするが、Mapを共有しない独立したインスタンスにしている(別エンドポイント・
 // 別軸で計測するため)。
 export const opponentNotesRateLimiter = createFixedWindowRateLimiter(EVENTS_RATE_LIMIT);
+
+// POST /api/teams(チーム新規作成)・PUT /api/teams/:id(メンバー編成の自動保存)に適用する
+// 専用インスタンス(docs/plan/pages/team.md)。ownedPokemonRateLimiter/opponentNotesRateLimiter と
+// 同じ設定値・同じく user.id をキーにするが、Mapを共有しない独立したインスタンスにしている
+// (別エンドポイント・別軸で計測するため)。
+export const teamsRateLimiter = createFixedWindowRateLimiter(EVENTS_RATE_LIMIT);

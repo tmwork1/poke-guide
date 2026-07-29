@@ -145,6 +145,23 @@ cache-first。対象は正規表現2本のみ: `^https://cdn\.jsdelivr\.net/pyod
 
 **ブラウザ側での関数公開(`e2e-test-harness/index.astro`)**: 元々`window.__pyodideEngine__`には`calc`(=`calcDamages`)しか公開されていなかった。22-E-1でこのページに`calcStats`/`calcLethalSequence`を追加公開した。**このページは`src/pages/e2e-test-harness/`配下だが、Playwright専用のテストハーネス(本番導線に一切リンクされない)であり、UI改善ラウンド22の他エージェント(α/β/γ/ε)の担当ファイルとは重複しない。**
 
+## 6補: 右パネルの単一「ランク」入力は技分類でatk/spaを自動判定する(2026-07-29追記)
+
+`resolveColumnDerivedFields()`(`box/[id].astro:4929-4947`)は、右パネルの単一「ランク」入力値(`column.attackerRank`/`column.defenderRank`、UI上は物理/特殊で分かれていない1つのスピンボックス)を、その技カードの技分類(`getMoveCategory()`)に応じて`atk`/`spa`(攻撃側)、`def`/`spd`(防御側)のいずれか一方にのみ反映し、jpokeへ渡す`boosts`配列(`PokemonSpec.boosts`)を組み立てる。技が変化技/未入力で分類不明のときはランク自体を無効化する(壁の自動選択・28-R7と同じ理由: どちらの能力に載せるべきか決められないため)。**この自動判定により、UIの「ランク」入力欄が1つしかなくても計算上は正しい能力(物理技ならA/B、特殊技ならC/D)に載る**。一方、条件チップの表記(`collectConditionChips()`, `box/[id].astro:6253-6254`)は技分類に関わらず常に`"攻撃+N"`/`"防御+N"`という同じ文言を使うため、特殊技のカードでも「攻撃+6」と表示される(計算上はC/Dに正しく載っているが、文言だけを見ると物理技のAランクだと誤読しうる)。
+
+## 6補2: `Battle.start()`の switch-in イベントが「手動ランク」を上書きする(2026-07-29、UI改善ラウンド29プレイヤー視点レビューで発見)
+
+`_build_pokemon()`は`boosts`(UIの「ランク」入力値)を**`Battle`構築より前**に`pokemon.boosts[stat]`へ直接代入する(出典: `pyodide-engine.ts:460-466`)。その後`calc_damages_json`/`calc_lethal_sequence_json`はいずれも`Battle(p1, p2, seed=seed); battle.start()`を呼ぶ(出典: `pyodide-engine.ts:576-577`, `:802-803`)。**jpokeの`Battle.start()`は両者の場に出た(switch-in)イベントを発火し、いかく(`Event.ON_SWITCH_IN`, `subject_spec`で相手を対象にする)のような自動発動特性を実際に適用する。** 実機検証(ネイティブPython、2026-07-29):
+
+```
+防御側の攻撃ランクを手動で+2に設定 → battle.start()後、いかく持ちの攻撃側と対面させると
+防御側の実際のboosts["atk"]は+1になる(+2 - 1、加算方式でクランプされる。上書きではない)。
+```
+
+- **影響**: UIの「ランク」欄はユーザーが最後に入力した値をそのまま表示し続けるが、**カードの相手/自分いずれかが いかく のような switch-in 自動発動特性を持つ場合、実際の計算に使われるランクは表示値と一致しない**(この例では表示+2、実際+1)。UI側にはこの自動適用を示す表示も、無効化する手段も無い。`いかく`を持つ種族はこのフォーマットのマスタデータに47種存在する(`public/master-data/detail/pokemon.json`の`abilities`に`"いかく"`を含む種族数、2026-07-29集計)。
+- **天候/フィールドは影響を受けない**: `_apply_field()`は`battle.start()`の**後**に呼ばれる(出典: `pyodide-engine.ts:578`, `:804`)ため、ひでり/あめふらし等の switch-in 自動発動の天候があっても、UIで選んだ天候チップが最後に上書きして勝つ。**ランク(`boosts`)だけが`battle.start()`より前に設定されるため、この非対称性が生じる**。
+- **こだいかっせい/クォークチャージも同じ`ON_SWITCH_IN`経路で自動発動する**(§9参照)が、こちらはUIの「ランク」欄と競合しない(パラドックス補正は`boosts`ではなく`mon.paradox_boost_stat`という別の内部状態に乗るため)。ランクと競合しうるのは、いかく・ダウンロード・威嚇系など`ON_SWITCH_IN`で`boosts`を直接書き換える特性。
+
 ## 7. jpoke更新で「黙って壊れる」場所(重要度順)
 
 型エラーにならず実行時に**間違った値**が出る箇所。上から順にリスクが高い。

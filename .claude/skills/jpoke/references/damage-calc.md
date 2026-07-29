@@ -156,6 +156,14 @@
 
 みがわり・まもる系・こんらん・ちょうはつ・アンコール・きゅうしょアップ・めいちゅうアップ/ロックオンは、`ON_TRY_ACTION`/`ON_MODIFY_COMMAND_OPTIONS`/`ON_BEFORE_APPLY_MOVE`/`ON_MODIFY_MOVE_DAMAGE`/`ON_TRY_MOVE_1`/`ON_MODIFY_ACCURACY`(命中率)いずれかにのみ登録されており、`Battle.calc_damages()`/`calc_lethal()`はこれらを発火しない(コマンド選択・行動実行フェーズ・命中判定のフックで、単発のダメージ計算経路には無い)。詳細な対応表は`docs/plan/ui_rounds/round-20.md`の20-R3節(出典つき)を参照。
 
+## 9. 接触判定・特性の発動条件(2026-07-29、UI改善ラウンド29プレイヤー視点レビューで追記)
+
+- **接触判定のデフォルト**: `BattleQuery.is_contact()` は `ctx.move.has_flag("contact")` を既定値として `Event.ON_CHECK_CONTACT` を発火する(出典: `vendor/jpoke/src/jpoke/core/query.py:121-133`)。**技の`flags`に`"contact"`が無ければ非接触技として扱われ、かたいツメ/どくしゅ等の接触技依存の特性は発動しない**。スケイルショットは`MoveData`に`flags`自体が定義されておらず非接触技であり、かたいツメの1.3倍は乗らない(出典: `vendor/jpoke/src/jpoke/data/moves/move_sa.py:743-755`)。じしんも`flags={"spread"}`のみで接触技ではない(本編仕様と一致)。フレアドライブは`flags={"contact",...}`を持ち接触技(出典: `vendor/jpoke/src/jpoke/data/moves/move_ha.py:843-844`)。
+- **マルチスケイル(`full_hp_damage_modifier`フラグ)と多段ヒットの相互作用**: `core/lethal.py`は防御側がこのフラグを持ち、かつHP分布に満タン枝が存在する場合のみ`calc_damages`を2回呼んで満タン枝用/非満タン枝用のダメージ分布を別々に計算する(出典: `vendor/jpoke/src/jpoke/core/lethal.py:382-394`)。**多段ヒット技(例: スケイルショット2ヒット)では1ヒット目だけがHP満タン(マルチスケイル発動、0.5倍)で、2ヒット目は1ヒット目で減ったHPを参照するため非発動(等倍)になる**。実機検証(ネイティブPython、2026-07-29): メガリザードンX(いじっぱり/かたいツメ/こだわりハチマキ/A32S16)のスケイルショット2ヒット vs カイリュー(マルチスケイル/あつぞこブーツ/A32S16)で、1ヒット目のダメージ分布`{37,39,40,42,43,45}`(16通り)、2ヒット目`{74,78,80,84,86,90}`(=1ヒット目のちょうど2倍、マルチスケイル不発)。合計(`add_dist`畳み込み)の最小・最大は111〜135となり、poke-commonsの`calc_lethal_sequence_json`が返す`perAttackDamages`(`/box/[id].astro`のカード表示値)と一致することを確認した。**これにより「(未確認)poke-commons UIが多段ヒット技の合計ダメージレンジをどう算出しているか」は解消**: `pyodide-engine.ts`の`compute_attack_result`が、その攻撃のn_hits全ヒット分の`LethalHitResult.damage_dist`を`add_dist`で畳み込んだ`attack_damage_dist`から求めている(出典: `src/lib/pyodide-engine.ts:826-833`)。
+- **パラドックス特性(こだいかっせい/クォークチャージ)の発動条件**: こだいかっせいは**天候「はれ」**、クォークチャージは**フィールド「エレキフィールド」**で発動する(名前の響きに反して「こだいかっせい=でんき系」ではない。こだいかっせいは太古(化石)ポケモン用で天候はれ、クォークチャージは未来ポケモン用でフィールドエレキがトリガー。出典: `vendor/jpoke/src/jpoke/handlers/ability_paradox.py:89-93`)。**ブーストエナジー(`item_name`)を持たせている場合は天候・フィールドに関係なく常時発動**(`source="item"`分岐、出典: 同ファイル:71-72,100-101)。
+- **パラドックス特性が上昇させる能力の決定式**: 「ランク補正込みの実数値が最も高い能力」を選ぶ(HP除く5能力、同値時はA>B>C>D>Sの順)。ワンダールーム下では防御/特防を入れ替えて比較する(出典: `vendor/jpoke/src/jpoke/handlers/ability_paradox.py:16-41`)。**この能力は物理/特殊いずれか、あるいは素早さになることもある**。素早さが最大値になる努力値配分では、パラドックス補正はダメージ計算に一切寄与しない(素早さの1.3倍はダメージにもHPにも影響しない)。実機検証: ハバタクカミ(こだいかっせい/ブーストエナジー、努力値C32S32、実数値187-155-205)は`paradox_boost_stat == "spe"`(素早さ)になり、フレアドライブ(物理)のダメージにも自身の特防にも影響しない。
+- **メガランチャー(パルス技1.5倍)は`subject_spec="attacker:self"`固定**(出典: `vendor/jpoke/src/jpoke/data/ability.py:3415-3422`)。**特性の持ち主が攻撃側のときにしか発動しない**。防御側として登場する場面(例: メガカメックスが技を受ける側)では、あくのはどう等のパルス技を受けてもメガランチャーは一切関与しない。
+
 ## 上流との差分(2026-07-27、PR#355取り込み後)
 
 - `vendor/jpoke/src` と `../jpoke/src` を `diff -rq` で比較した結果、ビルド生成物(`__pycache__`/`jpoke.egg-info`)を除き**一致**。両方とも `version = "0.2.0"`(バージョン番号は据え置きのまま機能追加された点に注意。`pyodide-engine.ts`のwheel URLハードコードは変更不要だった)。
@@ -163,6 +171,5 @@
 
 ## 未確認(コードで確認できなかった項目)
 
-- (未確認) poke-commons UIが多段ヒット技の合計ダメージレンジ(最小合計〜最大合計)をどう算出しているか(`calc_damages()`をヒット数分呼んで畳み込んでいるのか、`calc_lethal()`の`damage_dist`をそのまま使っているのか)。
 - (未確認) `ON_CALC_PROTECT_MODIFIER`(まもる貫通系)がこのプロジェクトの対戦フォーマット(ダイマックス・Z技なし想定)で実際に非4096の値を返すケースが存在するか。
 - (未確認) `battle.option.damage_roll` のUI側デフォルト設定値(jpoke自体のデフォルトは`"normal"`)。

@@ -2,7 +2,7 @@
 // 全ページ共通のサイドバー(UI刷新、2026-07-25)。docs/ui_proposal/Box.png 等のワイヤーフレームに準拠する。
 // アイコンは外部ライブラリを使わず、lucide風の線画をインラインSVGとして自前定義する。
 interface Props {
-	current?: "box" | "dev";
+	current?: "box" | "team" | "dev";
 	/**
 	 * 2026-07-27 ラウンド20 20-H2: ログイン情報をサイドバー最下段に表示するため、
 	 * AppLayout.astro が Astro.locals.user から読んだ値をそのまま受け取る。
@@ -36,7 +36,7 @@ const SECTIONS: { heading: string; items: SidebarItem[] }[] = [
 		heading: "育成",
 		items: [
 			{ key: "box", label: "ボックス", href: "/box", icon: "home" },
-			{ key: "team", label: "チーム", icon: "users", disabled: true },
+			{ key: "team", label: "チーム", href: "/team", icon: "users" },
 			{ key: "trend", label: "トレンド", icon: "trending-up", disabled: true },
 		],
 	},
