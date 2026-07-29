@@ -88,7 +88,13 @@ const SECTIONS: { heading: string; items: SidebarItem[] }[] = [
 		{
 			user ? (
 				<Fragment>
-					<span class="app-sidebar-account-email">ログイン中: {user.email ?? user.displayName ?? user.id}</span>
+					{/* UI改善ラウンド33 33-G1(ユーザー判断待ちキューの回答「接頭辞を削除」): 可視テキストからは
+					    「ログイン中: 」を削除しメールアドレスのみ表示する(移設先がログアウトボタンの真上のため
+					    文脈で伝わる、というユーザーの判断)。読み上げでは引き続き「ログイン中のアカウントである」
+					    ことが伝わるよう、aria-labelに接頭辞付きの文言を残す(28-R9と同じ「視覚的に消しても
+					    読み上げ情報は落とさない」方針)。クラス名 app-sidebar-account-email は改名しない
+					    (global.cssのモバイル二重表示打ち消しが依存している)。 */}
+					<span class="app-sidebar-account-email" aria-label={`ログイン中: ${user.email ?? user.displayName ?? user.id}`}>{user.email ?? user.displayName ?? user.id}</span>
 					<form method="POST" action="/api/auth/logout">
 						<button type="submit" class="btn-ghost">ログアウト</button>
 					</form>

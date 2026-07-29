@@ -41,10 +41,18 @@ description: **既に存在するページ**のUI品質を1ラウンドぶん改
    git worktree add ../poke-commons-ui-round-NN -b ui/round-NN
    ```
 3. **worktreeには `node_modules` が無いので `npm install` を実行する。**
-4. **dev serverはworktree側で起動する**(`npm run dev`)。**ポートは4321とは限らない**ので、`npm run shot` には `--base http://localhost:<実ポート>` を明示する(判定は `curl -s -o /dev/null -w "%{http_code}" http://localhost:<port>/box`。`npx astro dev status` は起動していても `No dev server is running.` を返すことがある)。
-5. **サブエージェントには必ずworktreeの絶対パスをプロジェクトルートとして渡す。** 元のリポジトリのパスを渡すと共有ツリーを汚す。
-6. **ローカルSupabaseのDBはworktree間で共有される。** フィクスチャは同じものを見るので、**データ事故の注意(自動保存・復元・並列アクセス)は従来どおりすべて有効**。
-7. ラウンドが終わってユーザーに報告するまで、**worktreeは残したままにする**(`ExitWorktree` を呼ぶなら `action: "keep"`)。**マージ・削除・commit の判断はユーザーに委ねる。Coordinatorも実装者も `git commit` / `git push` はしない。**
+4. 🔴 **gitignoreされているファイルはworktreeに来ない。次の2つを元のリポジトリからコピーする**(2026-07-30 ラウンド33の初回運用で判明。**これを忘れるとdev serverがDBにつながらず、`/search` などが空になる**):
+   ```bash
+   cp ../poke-commons/.env ../poke-commons/.env.local .        # Supabase接続情報
+   cp -r ../poke-commons/public/master-data ./public/          # ポケモン・技のマスターデータ(約2.9MB)
+   ```
+   コピー漏れが無いかは `cd ../poke-commons && git status --short --ignored=matching | grep '^!!'` で確認できる(`node_modules` や `vendor/jpoke/__pycache__` などビルド成果物は不要)。
+5. **dev serverはworktree側で起動する**(`npm run dev`)。⚠️ **元のリポジトリのdev serverが4321で動いたままだと、worktree側は4322以降を掴む。両方が200を返すので、どちらを見ているか必ず確認すること**(実際にラウンド33で 4321=元ツリー / 4322=worktree の2つが同時に動いた)。**現在のポートは `npx astro dev status` が返す値**(worktree内で実行すればそのworktreeのサーバーが答える)。`npm run shot` には **`--base http://localhost:<実ポート>` を必ず明示**し、サブエージェントにもそのポートを渡す(自動検出に任せると元ツリー側を撮る危険がある)。
+6. **サブエージェントには必ずworktreeの絶対パスをプロジェクトルートとして渡す。** 元のリポジトリのパスを渡すと共有ツリーを汚す。
+7. **ローカルSupabaseのDBはworktree間で共有される。** フィクスチャは同じものを見るので、**データ事故の注意(自動保存・復元・並列アクセス)は従来どおりすべて有効**。worktreeを分けても**データ事故のリスクは一切減らない**。
+8. ラウンドが終わってユーザーに報告するまで、**worktreeは残したままにする**(`ExitWorktree` を呼ぶなら `action: "keep"`)。**マージ・削除の判断はユーザーに委ねる。**
+
+**⚠️ worktreeは HEAD ベースで作られるので、前のラウンドの未コミット変更は持ち込めない。** 前ラウンドの成果が未コミットのまま残っている場合は、**先にユーザーの許可を得てコミットしてから** worktree を切る(ラウンド32→33でこの順序を踏んだ)。`git commit` は**ユーザーが明示的に許可したときだけ**行い、`git push` はしない。
 
 **⚠️ サブエージェントが走行中にworktreeを移動しないこと。** エージェントは起動時の作業ディレクトリに固定されるため、途中で移すと担当ファイルを見失う。**ラウンドの一番最初に分けること。**
 

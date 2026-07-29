@@ -87,6 +87,11 @@ Coordinatorが実測して発覚し、2回目でバリデーション層を直�
 - **⚠️ エージェント走行中にworktreeを移動しない。** エージェントは起動時の作業ディレクトリに固定されるので、途中で移すと担当ファイルを見失う。
 - **ローカルSupabaseのDBはworktree間で共有される。** worktreeを分けてもデータ事故の注意(自動保存・復元・並列アクセス)は**一切軽くならない**。
 
+**worktreeを実際に立てて分かった3つの穴(2026-07-30 ラウンド33の初回運用)**:
+1. **gitignoreされたファイルはworktreeに来ない。** `.env` / `.env.local`(Supabase接続情報)と `public/master-data/`(ポケモン・技のマスターデータ、約2.9MB)を**手でコピーする**。忘れるとdev serverがDBにつながらず、`/search` などが空になる。漏れの確認は元ツリーで `git status --short --ignored=matching | grep '^!!'`。
+2. **元ツリーのdev serverが4321で動いたままだと、worktree側は4322以降を掴む。両方が200を返す。** どちらを撮っているか気づけないので、**worktree内で `npx astro dev status` を実行して実ポートを確認し、`npm run shot --base` とサブエージェントへの指示に明示する**(自動検出に任せると元ツリーを撮る)。
+3. **worktreeは HEAD ベースなので、前ラウンドの未コミット変更は持ち込めない。** 前ラウンドが未コミットなら、**ユーザーの許可を得てコミットしてから** worktree を切る。
+
 ---
 
 ## Playwright
