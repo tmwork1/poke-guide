@@ -476,7 +476,10 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 			display: grid;
 			grid-template-columns: 5rem 2.6rem minmax(0, 1fr) 3.2rem 3.4rem;
 			gap: 0.6rem;
-			font-size: 0.78rem;
+			/* UI統一感レビュー(32-U-B1): 同じ行内の.ev-remaining(「残りN」)が持つ
+			   共通トークンvar(--font-size-xs)(12px)に対し、ここだけ直値0.78rem(12.48px)
+			   だった。共通トークンを持つ側を基準に寄せる(太さ600/700の差は階層差として維持)。 */
+			font-size: var(--font-size-xs);
 			font-weight: 600;
 			color: var(--color-text-muted);
 			padding: 0 0.1rem 0.35rem;
@@ -610,21 +613,51 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 		   通常のoutline/borderでは縁取りできない。drop-shadowを上下左右1pxずつ4方向に重ねて
 		   図形の輪郭に沿った縁取りを作る(既知の技法)。色は新色を作らず既存トークン
 		   --color-text(ライト/ダーク両方で背景・塗り色との対比が付く中立色)を使う。 */
+		/* 🔴 UI改善ラウンド32ユーザー指示(32-L6)「三角形の縁取りの色は、塗りつぶし色と同系色で
+		   強調するデザインにする」により、31-L8の黒縁(--color-text)を撤回し、塗り色と同系統の
+		   より濃い/深い既存トークンに変える。上昇=danger系の塗り(--stat-up)に対し
+		   --color-danger-strong、下降=primary系の塗り(--stat-down)に対し--color-primary-strong
+		   (いずれもglobal.cssで既に用意済みの「濃色派生」トークン。29-R2の区切り線でも同じ
+		   トークンを使っていた実績がある)。新色は作らない。「非選択と一目で区別できる」
+		   (31-L8の要件)は縁取り+塗り色の両方(非選択はfilter:noneかつmuted一色)で引き続き
+		   満たす。ライト/ダーク両方で--scale 3の拡大クロップを撮り、縁取りが背景に沈んでいないか
+		   目視確認する(報告参照)。 */
 		.stat-nature-up[aria-pressed="true"]::before {
 			border-bottom-color: var(--stat-up);
 			filter:
-				drop-shadow(1px 0 0 var(--color-text))
-				drop-shadow(-1px 0 0 var(--color-text))
-				drop-shadow(0 1px 0 var(--color-text))
-				drop-shadow(0 -1px 0 var(--color-text));
+				drop-shadow(1px 0 0 var(--color-danger-strong))
+				drop-shadow(-1px 0 0 var(--color-danger-strong))
+				drop-shadow(0 1px 0 var(--color-danger-strong))
+				drop-shadow(0 -1px 0 var(--color-danger-strong));
 		}
 		.stat-nature-down[aria-pressed="true"]::before {
 			border-top-color: var(--stat-down);
 			filter:
-				drop-shadow(1px 0 0 var(--color-text))
-				drop-shadow(-1px 0 0 var(--color-text))
-				drop-shadow(0 1px 0 var(--color-text))
-				drop-shadow(0 -1px 0 var(--color-text));
+				drop-shadow(1px 0 0 var(--color-primary-strong))
+				drop-shadow(-1px 0 0 var(--color-primary-strong))
+				drop-shadow(0 1px 0 var(--color-primary-strong))
+				drop-shadow(0 -1px 0 var(--color-primary-strong));
+		}
+		/* 🔴 32-L6-dark(前任者の積み残し課題): ダークモードでは global.css:164
+		   `--color-danger-strong: var(--color-danger)` により、上の.stat-nature-upの縁取り色
+		   (--color-danger-strong)がダーク時の塗り色(--stat-up、420-426行目で
+		   `--color-danger` にエイリアス)と完全に一致し、縁取りが塗りに沈んで消える
+		   (.stat-nature-downは--color-primary-strongがダークで--stat-down(#6fb6f7、
+		   --color-primaryとは別値)と食い違ったままなので問題なし)。
+		   新色・新トークンは作らずに解決する: ダークのときだけ縁取り色を同系統の別トークン
+		   --color-danger-soft(rgba(255,139,120,0.16)、global.css:156で定義済みの半透明版)に
+		   差し替える。色相は塗りと同じ(同系色の要件を維持)だが不透明度が違うため、暗い背景
+		   (--color-surface #1c1f28)の上では「塗りより淡いにじみ」として輪郭が視認できる
+		   (ライト側は元のまま--color-danger-strongを使うので変更なし)。@mediaは基本定義より
+		   後ろに書かないと無効化されるため、この位置に置く(pitfalls.md)。 */
+		@media (prefers-color-scheme: dark) {
+			.stat-nature-up[aria-pressed="true"]::before {
+				filter:
+					drop-shadow(1px 0 0 var(--color-danger-soft))
+					drop-shadow(-1px 0 0 var(--color-danger-soft))
+					drop-shadow(0 1px 0 var(--color-danger-soft))
+					drop-shadow(0 -1px 0 var(--color-danger-soft));
+			}
 		}
 		/* HPは性格補正の対象外(クリック不可)。位置を揃えるためのプレースホルダーで、
 		   ::beforeを持たない(=何も描画されない)ため「押せない」ことを見た目でも伝える。 */
@@ -670,6 +703,17 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 		/* ラウンド3 B-7: 「努力値合計」は要件により削除した。チャンピオンズルールは合計上限が
 		   無く、この数値は何の判断にも使えない(「510の残り」を連想させる誤った示唆になる)ため、
 		   表示自体を撤去した(.ev-total-line/#ev-totalのマークアップとJSも削除)。 */
+
+		/* 🔴 UI改善ラウンド32ユーザー指示(32-L1)「上側とヘッダーの間の余白を少し減らし」により、
+		   .panel-left(基底は共通クラス.panel、src/styles/global.cssのpadding: var(--space-6)
+		   var(--space-5)=24px 20px)のpadding-topだけを1rem(16px)へ減らす。⚠️ .panel-leftは
+		   /team/[id].astroも使う共有クラス名だが、Astroのscoped<style>はコンパイル時に
+		   data-astro-cid-*付きセレクタへ変換されるため、このファイル由来の要素にしか効かない
+		   (pitfalls.md「AstroのscopedスタイルはJSで生成した要素に効かない」の裏返しで、
+		   逆に「静的マークアップにはこのファイル限定で効く」)。global.css自体・/team側は
+		   変更しない。ユーザー追加指示「ポケモンアイコンサイズ変更はなし」により
+		   .species-sprite-img(144×144)は変更しない(下記参照)。 */
+		.panel-left { padding-top: 1rem; }
 
 		/* UI刷新: 種族アイコン(公式絵)ボックス(Pokemon.png参照)。右上に「タイプ画像」バッジを重ねる。
 		   ラウンド4ユーザー指示「ポケモンのアイコンが小さい」: 88px/72pxから拡大する。
@@ -782,9 +826,17 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 		   #edit-form .field-grid.field-grid-single参照)、gap(b)(c)とも「このmove-fields-gridの
 		   margin-top/margin-bottomだけ」で決まるようにする。1remずつ(16px)で統一し、
 		   修正前(b)9.6px/(c)8.0pxからどちらも拡大する。 */
+		/* 🔴 UI改善ラウンド32ユーザー指示(32-L4)「技とステータスの間の間隔をさらに広げて、
+		   アイテムと技の間のスペースと揃える」により、両方をさらに広げる。31-L7時点では
+		   margin-top(持ち物→技のgap)=margin-bottom(技→ステータスのgap)=1rem(16px)の
+		   同値だったが、round-32.mdの分析どおり「持ち物→技は入力欄の枠と枠の間」「技→
+		   ステータスは入力欄の枠と.stat-table-header(文字ラベル、padding-bottom 0.35rem)の間」で
+		   境界の性質が違うため、同じ数値でも技→ステータス側が詰まって見える。単純に同値へ
+		   揃えるだけでは31-L7の再演になるため、技→ステータス側(margin-bottom)を持ち物→技側
+		   (margin-top)よりさらに広く取り、視覚的な余白量を揃える。 */
 		#edit-form .field-grid.move-fields-grid {
-			margin-top: 1rem;
-			margin-bottom: 1rem;
+			margin-top: 1.5rem;
+			margin-bottom: 2rem;
 		}
 		/* 🔴 UI改善ラウンド31ユーザー指示(31-L7)対応の一部: 持ち物/テラス行(.field-grid-single)
 		   自身のmargin-bottom(基底#edit-form .field-gridの0.5rem)を0にし、直後の
@@ -997,7 +1049,11 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 		   引き上げる(4.4em→8em / 10em→16em)。左パネルは縦フレックスで余白をメモ欄が
 		   吸収する設計のため、拡張後も左パネル下端が画面外に出ないことを実測済み
 		   (1440×1080・1920×1080、実装時の検証記録参照)。 */
-		#edit-form .memo-input { width: 100%; min-width: 0; min-height: 8em; max-height: 16em; margin: 0 0 0.5rem; resize: vertical; }
+		/* 🔴 UI改善ラウンド32ユーザー指示(32-L5)「ステータスとメモの間の間隔を広げる」により、
+		   margin-topを0(実測0.06px=ほぼ密着)から1.75rem(28px)へ広げる。32-L4で技→ステータス
+		   側に設定したmargin-bottom(2rem=32px)と近い値にしつつ、「メモは別の情報ブロックなので
+		   同値以上が妥当」という要件に沿って若干広めにする。 */
+		#edit-form .memo-input { width: 100%; min-width: 0; min-height: 8em; max-height: 16em; margin: 1.75rem 0 0.5rem; resize: vertical; }
 		@media (max-width: 520px) {
 			#edit-form .field-grid { grid-template-columns: 1fr; }
 			/* UI改善ラウンド26(26-L2): 種族/ニックネーム/特性/性格の2列グリッドも、狭幅では
@@ -1098,7 +1154,16 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 			width: 180px;
 			display: flex;
 			flex-direction: column;
-			align-items: flex-end;
+			/* 🔴 UI改善ラウンド32ユーザー指示(32-L2)「タイプ画像はアイテム表示と同じ位置で左揃え」
+			   により、flex-end(右揃え)→flex-startへ変更する。この列の直接の子は
+			   #species-type-badge(タイプバッジ)と.top-block-icon-info(アイテム表示+テラス画像)の
+			   2つで、どちらも自分自身の内容幅ぶんしか占めない(stretchしない)ため、
+			   flex-startにすると両方が独立にこの列の左端(=.top-block-icon-corner自身の
+			   左端)へ揃う。.top-block-icon-info側は内部もalign-items:flex-start(28-L6で確立済み)
+			   なので、その最初の子である.top-block-item-display(→.item-image)の左端も
+			   同じ列左端に揃い、結果としてタイプバッジと.item-imageのx座標が一致する
+			   (実測して報告する)。 */
+			align-items: flex-start;
 			justify-content: space-between;
 			gap: 0.4rem;
 		}
@@ -1155,8 +1220,18 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 		   据え置き(このプロパティの1emはこの要素自身のfont-sizeを基準に計算されるため、
 		   フォント拡大後もem値をそのまま保てば文字数換算の収容量が変わらない=
 		   「こだわりハチマキ」等8文字クラスがellipsisなしで収まる比率を維持できる)。 */
+		/* 🔴 UI改善ラウンド32ユーザー指示(32-L3)「アイテム画像+名前表示のサイズを、種族名などと
+		   揃える」により、31-L2で1.125rem(18px)へ拡大したのを種族名入力欄(.field-control、
+		   0.94rem=15.04px)に揃える。31-L2の部分撤回(round-32.md「この指示で撤回される過去の
+		   判断」表に明記)。max-width: 8.05emはこの要素自身のfont-sizeを基準に再計算されるため
+		   (31-L2のコメント参照)、em値は変更しなくても文字数換算の収容量が保たれる
+		   (「こだわりハチマキ」でscrollWidth===clientWidthを実測して確認する)。 */
+		/* UI統一感レビュー(32-U-C1): /boxカードの.card-item-name(600)に対しここは既定の400で
+		   ウェイトが逆転していた。視認性重視で/box側が意図的に太くしているため600に揃える
+		   (サイズ15.04pxとアイコン比は箱の制約が違うため揃えない、と裁定済み)。 */
 		.item-name-display {
-			font-size: 1.125rem;
+			font-size: 0.94rem;
+			font-weight: 600;
 			color: var(--color-text);
 			max-width: 8.05em;
 			overflow: hidden;
@@ -1248,7 +1323,9 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 		.type-badge-multi {
 			flex-direction: row;
 			align-items: center;
-			gap: 2px;
+			/* 🔴 UI改善ラウンド32ユーザー指示(32-L2)「2タイプ間の距離を少しあける」により
+			   2px→6pxへ広げる。 */
+			gap: 6px;
 		}
 		/* ラウンド20(20-G1)以前は種族アイコンからのはみ出しを抑えるため14pxまで縮めていたが、
 		   --icon-size-sm(20px)を下回るのは12px下限とは別の「アイコン規格」統一の要件に反する
@@ -1304,9 +1381,11 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 		   このバッジだけの固定値24pxにする(維持すべき点「アイコン規格20px…他のアイコンまで
 		   一緒に大きくしないこと」に従い、共有トークン自体は変更しない)。隣のアイテム名
 		   (.item-name-display、1.125rem=18px)との比は24/18=1.33倍。 */
+		/* 🔴 UI改善ラウンド32ユーザー指示(32-L3)により、31-L2で持ち物だけの固定値24pxにしていたのを
+		   アイコン規格20px(var(--icon-size-sm)、28-L1〜L6で確定した既存トークン)へ戻す。 */
 		.item-image-badge {
-			width: 24px;
-			height: 24px;
+			width: var(--icon-size-sm);
+			height: var(--icon-size-sm);
 			display: flex;
 			align-items: center;
 			justify-content: center;
@@ -1801,6 +1880,20 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 		   アイコン+余白ぶん確保する(#edit-form .move-input-groupの技名inputと同じ計算)。 */
 		#opponent-notes-section .damage-row-build-grid .damage-row-tera-field select {
 			padding-left: calc(var(--icon-size-sm) + 0.9em);
+			/* 🔴 UI改善ラウンド32ユーザー指示(32-D2)「テラスなし表示は左寄せ」。appearance:none
+			   (global.css)を適用したネイティブ<select>の閉時表示は、ブラウザ既定で中央寄せに
+			   なる実測結果だったため明示的に左寄せへ固定する。31-L5・31-D4で左パネル側の
+			   テラス選択欄(.tera-dropdown-button)を左揃えにしてあるので、そちらと見た目を揃える。 */
+			text-align: left;
+		}
+		/* 🔴 UI改善ラウンド32ユーザー指示(32-D2)「placeholderのように薄い文字色にする」。
+		   ネイティブ<select>には:placeholder-shownが効かない(inputだけの擬似クラス)ため、
+		   JS側(<script>のteraSelect change/初期化)がvalue===""のときだけ
+		   .is-value-emptyクラスを付け外しする(下記teraSelect.classList.toggle参照)。
+		   新色は作らず既存のmutedトークンを使う。選択済み(value!=="")では通常の文字色
+		   (input,select,textareaの基底color: var(--color-text)、global.css)のまま。 */
+		#opponent-notes-section .damage-row-tera-field select.is-value-empty {
+			color: var(--color-text-muted);
 		}
 
 		/* UI改善ラウンド23(23-G3): 左パネル(#edit-form #item.is-autofilled、上の
@@ -1824,12 +1917,20 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 		   追随させる。widthは112px固定のまま(buildLeftの隣に残る余白から算出される値と
 		   ほぼ一致する)。画像自体はobject-fit:containで箱いっぱいに収め、縦横比は保つ
 		   (下のimg.sprite-icon参照)。 */
+		/* 🔴 UI改善ラウンド32ユーザー指示(32-D1)「相手ポケモンのアイコンを6%ほど小さくする」により、
+		   112px→105.28px(112×0.94)に縮小する。実測対象としてround-32.mdが挙げている
+		   `.sprite-icon`(相手側のimg)はwidth:100%;height:100%でこの.damage-sprite-box箱に
+		   フィットしているだけの共有クラス(src/styles/global.css)なので、.sprite-icon自体は
+		   一切変更しない(global.css編集禁止)。この箱(.damage-sprite-box、ページ限定の
+		   #opponent-notes-section接頭辞つきセレクタ)のwidthだけを縮小すれば、中のimg.sprite-icon
+		   も追随して縮む。実装後に左パネルの.species-sprite-img(144×144)と他ページの
+		   img.sprite-icon(/box一覧・/team)が巻き添えで縮んでいないことを実測して確認する。 */
 		#opponent-notes-section .damage-sprite-box {
 			position: relative;
 			display: flex;
 			align-items: center;
 			justify-content: center;
-			width: 112px;
+			width: 105.28px;
 			height: auto;
 			border-radius: var(--radius-md);
 			/* UI改善ラウンド31ユーザー指示(31-D3)「ポケモン画像の背景色を削除」(31-L1と同じ処置を
@@ -2092,8 +2193,10 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 			width: 100%;
 			min-width: 0;
 			padding: 0.08em 0.1em;
-			/* ラウンド26ユーザー指示(26-D4)により0.78rem→0.88rem(14.08px、+1.6px)へ一段上げる。 */
-			font-size: 0.88rem;
+			/* ラウンド26ユーザー指示(26-D4)により0.78rem→0.88rem(14.08px、+1.6px)へ一段上げたが、
+			   同時に上げた行ラベル/列見出し/実数値(いずれも0.86rem)と0.02rem(0.32px)の差が
+			   残っていた(UI統一感レビュー32-U-B2)。他の3要素に揃えて0.86remへ統一する。 */
+			font-size: 0.86rem;
 			line-height: 1.2;
 			text-align: center;
 			/* ラウンド3 A-1: 努力値グリッドの数値入力もglobal.cssのmin-height:2.35remを
@@ -2181,6 +2284,12 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 			align-items: baseline;
 			column-gap: 0.5em;
 			margin: 0;
+			/* 🔴 UI改善ラウンド32ユーザー指示(32-D3)「技カードの幅を少し減らし、右側の余剰スペースの
+			   最下部(累計結果の右側)に削除ボタンを配置」。40px(削除ボタン28px+右クリアランス)ぶん
+			   幅を減らし、右側に削除ボタンの居場所を空ける(下の.damage-row-delete-buttonを
+			   bottom基準に変更した内容と対になる)。.damage-row-columns-wrap(下記)と同じ削減幅にして
+			   技カード列と累計結果の右端を揃える。 */
+			max-width: calc(100% - 40px);
 			/* ラウンド23ユーザー指示(23-D5)「ダメージ・致死率の文字を少し大きく」:
 			   0.85rem(13.6px)→0.92rem(14.72px、+1.12px)。カード3枚が1080pxに収まる制約
 			   (00-foundation.md)を実測したうえでの引き上げ幅(実測は報告参照)。 */
@@ -2256,9 +2365,16 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 		   (--color-danger-strongはライト#b23a26+白文字5.96:1、ダークは--color-dangerに
 		   エイリアスされ#ff8b78+ダーク文字--color-primary-contrast(#14161d)の組み合わせで
 		   button.btn-danger既存パターンと同一のコントラスト設計を再利用する。新色は作らない)。 */
+		/* 🔴 UI改善ラウンド32ユーザー指示(32-D3)「削除ボタンを累計結果の右側(カード右下)へ移す」
+		   により、top基準からbottom基準に変える(right基準はそのまま)。.card-damageは
+		   position:relativeのまま(31-D2以前から不変)。.damage-row-total(累計結果の外枠)は
+		   通常フローでtechniquesRowの最後の子として自然にカード下端付近に来るため、右下の
+		   var(--space-2)オフセットだけで累計結果の右側に重なる位置になる。31-D2で確立した
+		   「hover時に赤背景+文字」「常時表示(opacity:1のまま=このルールにopacity指定は無い)」の
+		   挙動は変更しない。 */
 		#opponent-notes-section .damage-row-delete-button {
 			position: absolute;
-			top: var(--space-2);
+			bottom: var(--space-2);
 			right: var(--space-2);
 			z-index: 2;
 			background: var(--color-surface);
@@ -2277,19 +2393,14 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 		@media (prefers-reduced-motion: reduce) {
 			#opponent-notes-section .damage-row-delete-button { transition: none; }
 		}
-		/* 🔴 UI改善ラウンド31(31-D2)実装後にCoordinatorとの検証で発覚した実バグ: この削除ボタンは
-		   これまでcard:hover時だけopacity:0→1で現れる仕組みだったため、カード右上(絶対配置)に
-		   常駐していても普段は見えず、技列(1発目、技列は縦積みで常に1発目がカードの最上部=
-		   ボタンと同じ高さに来る)のヒット回数ラベルと重なっても実害が無かった。31-D2で
-		   「hover時のopacity変化をやめ、常時表示にする」よう変更した結果、この重なりが常時
-		   見える実バグになった(実測: ボタンx=[1480.6,1508.6] y=[97.7,125.7]、1発目の
-		   ヒット回数ラベルx=[1459.3,1498]が重なる)。1発目(.damage-column:first-child)の
-		   技名行にだけ右側のクリアランスを確保し、ヒット回数側がボタンの領域を避けて折り返す
-		   ようにする(既存のflex-wrapが折り返し先を自動で処理する。2発目以降は縦積みで
-		   ボタンから離れるため対象外でよい)。 */
-		#opponent-notes-section .damage-row-columns > .damage-column:first-child .damage-column-move-row {
-			padding-right: 40px;
-		}
+		/* 🔴 UI改善ラウンド31(31-D2)実装後にCoordinatorとの検証で発覚した実バグへの対応
+		   (.damage-row-columns > .damage-column:first-child .damage-column-move-rowへの
+		   padding-right: 40px)は、UI改善ラウンド32ユーザー指示(32-D3)「削除ボタンを累計結果の
+		   右側(カード右下)へ移す」により削除した。削除ボタンがカード右上から居なくなり
+		   1発目の技名行と同じ高さに来なくなったため、このクリアランス確保は不要になった
+		   (round-32.md「31-D2の副作用で入れたpadding-right: 40pxは...不要になったら消すこと」)。
+		   技列3列以上のカードでも削除ボタン(カード右下、bottom基準)と技カード・累計結果が
+		   重ならないことを実測して確認した(報告参照)。 */
 
 		/* 右: 技列(縦積み=加算ダメージ計算)。
 		   ラウンド5では技列を横並び(横スクロール)にしていたが、ラウンド6ユーザー指示
@@ -2330,6 +2441,13 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 			   下の.damage-row-columnsと値を揃えておく)。 */
 			gap: 0.22rem;
 			min-width: 0;
+			/* 🔴 UI改善ラウンド32ユーザー指示(32-D3)「技カードの幅を少し減らし」。
+			   .damage-row-total-resultと同じ40px(削除ボタン28px+クリアランス)を減らし、
+			   技カード列の右端と累計結果の右端を揃える。align-items:stretchが既定の
+			   .damage-row-techniques-row(親)の中でこのwrapが従来100%幅相当に伸びていたため、
+			   max-widthで頭打ちにする(width自体は指定しない=100%未満の幅でも縮小できるように
+			   維持)。 */
+			max-width: calc(100% - 40px);
 		}
 		/* 技列同士(.damage-column)は幅を揃える(align-items:stretchが既定=cross-axisの
 		   幅いっぱいに広がる)。高さは各列の内容に応じて個別に決まる。 */
@@ -2896,9 +3014,13 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 			gap: 1.05rem;
 			margin-top: 1rem;
 			padding-top: 0.6rem;
-			/* UI改善ラウンド29(29-R2): 攻撃側の直前に位置する区切り線なので、カードの攻撃/防御
-			   トグルと同じ赤(var(--color-danger-strong))に転用する(新色は作らない)。 */
-			border-top: 1px solid var(--color-danger-strong);
+			/* 🔴 UI改善ラウンド32ユーザー指示(32-R3)「横棒は色付けしない」により、29-R2で赤
+			   (--color-danger-strong)に色付けしていた区切り線を無彩色の--color-borderへ戻す
+			   (29-R2の一部撤回。round-32.md「この指示で撤回される過去の判断」表に明記)。
+			   ⚠️ 見出しの文字色(下記.damage-detail-sides > .damage-detail-side:first-child
+			   .damage-detail-side-heading-row .damage-detail-section-heading)と形状マーカー
+			   (.damage-detail-side-icon)はWCAG 1.4.1対応として維持し、変更しない。 */
+			border-top: 1px solid var(--color-border);
 		}
 		#damage-detail-panel-body .damage-detail-side {
 			min-width: 0;
@@ -2910,9 +3032,10 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 		   すべてborder-topに統一し、二重線(border-bottom+隣接要素border-topの重なり)を
 		   作らない。 */
 		#damage-detail-panel-body .damage-detail-side + .damage-detail-side {
-			/* UI改善ラウンド29(29-R2): 防御側の直前に位置する区切り線なので、カードの攻撃/防御
-			   トグルと同じ青(var(--color-primary-strong))に転用する(新色は作らない)。 */
-			border-top: 1px solid var(--color-primary-strong);
+			/* 🔴 UI改善ラウンド32ユーザー指示(32-R3)「横棒は色付けしない」により、29-R2で青
+			   (--color-primary-strong)に色付けしていた区切り線を無彩色の--color-borderへ戻す。
+			   見出しの文字色・形状マーカーは維持(上のルールと同じ注記)。 */
+			border-top: 1px solid var(--color-border);
 			padding-top: 0.7rem;
 		}
 		/* UI改善ラウンド27ユーザー指示(27-R1)「攻撃側と防御側の設定を別セクションにして縦に
@@ -3090,8 +3213,14 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 		#damage-detail-panel-body .damage-detail-rank-field input[type="number"] {
 			width: 3.4em;
 			min-height: 0;
-			padding: 0.15em 0.3em;
-			font-size: 0.82rem;
+			/* UI統一感レビュー(32-U-A2): 同じ.damage-detail-chip-row内で横並びになる
+			   状態異常selectとテラスタルbutton(.is-text-only)に対し、ここだけ font-size が
+			   0.82remで高さも1段高い「3段階の割れ」の1つだった。テラスタルボタン側の
+			   font-size(0.75rem)・縦padding(0.3em)を基準にrank inputとselectの両方を
+			   揃える(下のailment-selectも同じ値に変更、round-32.md「統一感レビューの指摘」
+			   32-U-A2)。 */
+			padding: 0.3em 0.3em;
+			font-size: 0.75rem;
 			text-align: center;
 			background: var(--color-surface-alt);
 		}
@@ -3119,7 +3248,11 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 			display: flex;
 			flex-wrap: wrap;
 			align-items: center;
-			gap: 0.5rem;
+			/* UI統一感レビュー(32-U-B3): 同じ右パネル内で.damage-detail-icon-group(天候・
+			   フィールド)と.damage-detail-volatile-group(その他の状態)がgap:0.35remなのに対し、
+			   ここだけ0.5remで割れていた。多数派(2対1)の0.35remに寄せる(32-R4で急所+じゅうでんを
+			   同じ行に収める都合上、詰まる方向の変更は好都合)。 */
+			gap: 0.35rem;
 			margin-bottom: 0.3rem;
 		}
 		/* ラウンド17指摘(A-3): flex:1 1 autoが行内の余白を全部飲み、選択肢の最長「もうどく」
@@ -3132,11 +3265,15 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 			width: 6.5em;
 			min-height: 0;
 			/* UI改善ラウンド29(29-R3): チップ行(.damage-detail-chip-row)でテラスタルボタン
-			   (.damage-detail-icon-btn)と横並びになるため、上下paddingをボタン側の実測高さ
-			   (28.375px)に近づけて行の頭を揃える(0.2em→0.32em、実測でボタンとの差が
-			   3.9px→0.4px程度まで縮むことを確認)。 */
-			padding: 0.32em 0.3em;
-			font-size: 0.78rem;
+			   (.damage-detail-icon-btn)と横並びになるため、上下paddingをボタン側の高さに
+			   近づけて行の頭を揃える(0.2em→0.32em)対応を行ったが、font-sizeが0.78remのまま
+			   だったためテラスタルボタン(0.75rem)・rank input(当時0.82rem)との3段階の割れが
+			   残っていた。UI統一感レビュー(32-U-A2)により、テラスタルボタン側のfont-size
+			   (0.75rem)・縦padding(0.3em)にrank inputとこのselectの両方を揃える
+			   (global.cssのbutton基底修正でボタン側の実測高さが変わったため、揃える先は
+			   px直値ではなくボタン側と同じfont-size/padding値に統一する方式にした)。 */
+			padding: 0.3em 0.3em;
+			font-size: 0.75rem;
 			/* ラウンド20ユーザー指示(20-R1): rank-field inputと同じ理由でbackgroundを
 			   --color-surface-altにする。 */
 			background: var(--color-surface-alt);
@@ -3216,16 +3353,19 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 		   (round-31.md「アイコンサイズは/box /box/[id]の既存規格(20pxまたは28px)から選び、
 		   新しい規格を作らないこと」)。official artworkは正方形透過画像なのでobject-fit:containで
 		   収める。 */
+		/* 🔴 UI改善ラウンド32ユーザー指示(32-R1)「ヘッダの画像を少し大きく」により28px→32pxへ。
+		   round-31.mdの「アイコンサイズは/box /box/[id]の既存規格(20pxまたは28px)から選ぶ」は
+		   このR1自体がユーザー明示指示による例外(round-32.md「維持すべき点」に明記)。 */
 		#damage-detail-panel-body .damage-detail-selection-icon {
-			width: 28px;
-			height: 28px;
+			width: 32px;
+			height: 32px;
 			object-fit: contain;
 			flex-shrink: 0;
 		}
 		#damage-detail-panel-body .damage-detail-selection-icon-fallback {
 			display: none;
-			width: 28px;
-			height: 28px;
+			width: 32px;
+			height: 32px;
 			border-radius: 50%;
 			flex-shrink: 0;
 			align-items: center;
@@ -3234,11 +3374,21 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 			background: var(--color-surface-alt);
 			border: 1px solid var(--color-border);
 		}
+		/* 🔴 UI改善ラウンド32ユーザー指示(32-R1)「矢印を太くて見やすいデザインに変更」により、
+		   テキストの「→」/「←」(フォント依存で細く見える)から、太いストローク(stroke-width 2.5)の
+		   インラインSVGシェブロンへ作り替える。<script>のbuildSelectionHeadingRow参照。
+		   向き(direction追随、31-R1で確立済み)は右向きSVGを基本形にし、防御カード(自分が
+		   受け側)のときだけ.is-reversedクラスでtransform: scaleX(-1)して左向きにする(アイコンの
+		   左右位置は固定のまま矢印だけ反転する、という31-R1の実装方針を踏襲)。色はcurrentColorで
+		   --color-textを継承する(mutedより高コントラストにし「見やすさ」を上げる)。 */
 		#damage-detail-panel-body .damage-detail-selection-arrow {
 			flex-shrink: 0;
-			font-size: 1rem;
-			font-weight: 700;
-			color: var(--color-text-muted);
+			width: 22px;
+			height: 22px;
+			color: var(--color-text);
+		}
+		#damage-detail-panel-body .damage-detail-selection-arrow.is-reversed {
+			transform: scaleX(-1);
 		}
 		#damage-detail-panel-body .damage-detail-selection-move {
 			min-width: 0;
@@ -3254,22 +3404,15 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 		   ユーザー指示(28-R2)「急所を最上部に配置し、その下に横線を追加」により25-R1の位置
 		   (detailPanelBodyElの先頭、天候より前)に一度戻していた。
 		   🔴 UI改善ラウンド31ユーザー指示(31-R2)「急所も攻撃側の設定に移動」により、28-R2を
-		   撤回し、27-R2の形(attackerSideの先頭)に戻す。急所が攻撃側だけの設定という仕様
-		   (ラウンド3 A-6(4))は変えない(column.criticalの読み書き先はそのまま)。このルール自体は
-		   attackerSideの中に置かれても見た目は変わらないため変更していない。 */
-		#damage-detail-panel-body .damage-detail-critical-row {
-			display: flex;
-			align-items: center;
-			gap: 0.5rem;
-			margin-bottom: 0.6rem;
-		}
-		/* 28-R2で導入した「急所行の直下に区切り線」(旧
-		   .damage-detail-critical-row + .damage-detail-field-row)は、🔴 UI改善ラウンド31(31-R2)で
-		   急所がattackerSideの中へ移り天候行の直前ではなくなったため、このセレクタはもう発火
-		   しない死んだCSSになった。代わりに、31-R1で新設した絵的見出し(.damage-detail-
-		   selection-heading)の直後にある天候行との区切りを、ここで担う(見出し側は上記の
-		   border-bottomで区切り自体を持つため、この天候行側のborder-topは付けない=二重線を
-		   作らない)。 */
+		   撤回し、27-R2の形(attackerSideの先頭)に戻していた。急所が攻撃側だけの設定という仕様
+		   (ラウンド3 A-6(4))は変えない(column.criticalの読み書き先はそのまま)。
+		   🔴 UI改善ラウンド32ユーザー指示(32-R4)「攻撃側の2段目は、急所,じゅうでんの順に同じ
+		   グループとして配置」により、急所は独立した.damage-detail-critical-row(このルール)を
+		   もう使わなくなった(<script>のbuildCriticalButton参照。じゅうでんと同じ
+		   .damage-detail-chip-rowへ混ぜる)ため、このルール自体を削除した(死んだCSSを残さない)。
+		   32-R2「天候・フィールドを一番下へ移動」により、この見出し直後に来るのは天候行では
+		   なく攻撃側セクション(.damage-detail-sides)になった。見出し側のborder-bottomが
+		   引き続き区切りを担う。 */
 
 		/* 「+ 相手を追加」タイルは全体の共通クラス.add-card-tileを流用しているが、
 		   グローバル既定値(min-height:8rem)のままだと3行目安の高さ予算を圧迫するため、
@@ -6883,8 +7026,13 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 					// 唯一の項目)を1行にまとめる指示のため、この1件だけは下のchipRowへ混ぜ込む。
 					// 防御側の9件の揮発状態は従来どおり独立したグループのまま(呼び出し側
 					// =renderColumnLevelDetailPanelがtrue/falseを渡す)。
+					// 🔴 UI改善ラウンド32ユーザー指示(32-R4)「攻撃側の2段目は、急所,じゅうでんの順に
+					// 同じグループとして配置」対応: mergeVolatileIntoChipRow=trueの側(攻撃側)では
+					// じゅうでんを1段目のchipRowではなく新設の2段目(chipRow2)へ入れ、その要素を
+					// 呼び出し元へ返す(呼び出し元が急所ボタンをchipRow2の先頭に挿入するため)。
+					// 防御側(false)ではchipRow2を作らずnullを返す。
 					mergeVolatileIntoChipRow: boolean,
-				): void {
+				): HTMLElement | null {
 					// ラウンド25ユーザー指示(25-R1)「ランク、状態異常を同じグループにする」により、
 					// 見出し+ランクの行と状態異常の行を1つのグループ(.damage-detail-group)に
 					// まとめる(グループ化のCSSはCSS側の#damage-detail-panel-body
@@ -7085,20 +7233,29 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 					}
 
 					// 🔴 UI改善ラウンド29(29-R3): 攻撃側だけ、揮発状態の唯一の項目(じゅうでん)を
-					// chipRowへ混ぜ込む(mergeVolatileIntoChipRow=true)。防御側(9件)は従来どおり
-					// 独立したグループのまま(下のelse節)。
+					// 1段目のchipRowではなく独立した2段目(chipRow2)へ混ぜ込む(mergeVolatileIntoChipRow=
+					// true)。防御側(9件)は従来どおり独立したグループのまま(下のelse節)。
+					// 🔴 UI改善ラウンド32ユーザー指示(32-R4)「攻撃側の2段目は、急所,じゅうでんの順に
+					// 同じグループとして配置」により、29-R3時点では1段目のchipRowに混ぜていた
+					// じゅうでんを、新設の2段目(secondaryChipRow、同じ.damage-detail-chip-rowクラス)へ
+					// 分離する。呼び出し元(renderColumnLevelDetailPanel)がこの行を返り値として受け取り、
+					// 急所ボタンをこの行の先頭に挿入する(1段目=ランク/状態異常/テラスタルは変更なし、
+					// 2段目=急所→じゅうでんの順になる)。
+					let secondaryChipRow: HTMLElement | null = null;
 					if (mergeVolatileIntoChipRow && volatilesOptions.length > 0) {
+						secondaryChipRow = document.createElement("div");
+						secondaryChipRow.className = "damage-detail-chip-row";
+						rankAilmentGroup.appendChild(secondaryChipRow);
 						for (const opt of volatilesOptions) {
 							const optButton = buildToggleButton(
 								opt.label,
 								volatilesValue.includes(opt.value),
 								() => {
-									// chipRowにはailmentSelect/teraButtonなど揮発状態以外の
-									// aria-pressed要素も同居するため、data-volatile-value属性を
-									// 持つボタンだけに限定して現在の選択状態を読み直す(旧実装の
-									// volatileGroup限定クエリと同じ考え方)。
+									// この行にはじゅうでん以外にも急所ボタン(呼び出し元が挿入)が
+									// 同居しうるため、data-volatile-value属性を持つボタンだけに
+									// 限定して現在の選択状態を読み直す(旧chipRow版と同じ考え方)。
 									const next = Array.from(
-										chipRow.querySelectorAll<HTMLButtonElement>('button[data-volatile-value][aria-pressed="true"]'),
+										secondaryChipRow!.querySelectorAll<HTMLButtonElement>('button[data-volatile-value][aria-pressed="true"]'),
 									).map((btn) => btn.dataset.volatileValue ?? "");
 									onVolatilesChange(next);
 									scheduleRowCalc(row);
@@ -7107,7 +7264,7 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 								},
 							);
 							optButton.dataset.volatileValue = opt.value;
-							chipRow.appendChild(optButton);
+							secondaryChipRow.appendChild(optButton);
 						}
 					}
 
@@ -7161,8 +7318,15 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 								opt.label,
 								volatilesValue.includes(opt.value),
 								() => {
+									// 🔴 UI改善ラウンド32ユーザー指示(32-R5)「かべをその他の状態と同じ
+									// グループに入れる」対応: このvolatileGroupには呼び出し元
+									// (renderColumnLevelDetailPanel)がかべボタンも挿入するようになった
+									// (data-volatile-value属性を持たない)。フィルタを付けないと
+									// かべのon/off状態が空文字列としてvolatilesValueに混入してしまうため、
+									// data-volatile-value属性を持つボタンだけに限定する(攻撃側chipRow2と
+									// 同じ考え方)。
 									const next = Array.from(
-										volatileGroup.querySelectorAll<HTMLButtonElement>('button[aria-pressed="true"]'),
+										volatileGroup.querySelectorAll<HTMLButtonElement>('button[data-volatile-value][aria-pressed="true"]'),
 									).map((btn) => btn.dataset.volatileValue ?? "");
 									onVolatilesChange(next);
 									scheduleRowCalc(row);
@@ -7176,6 +7340,7 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 						volatileRow.appendChild(volatileGroup);
 						volatileGroupWrap.appendChild(volatileRow);
 					}
+					return secondaryChipRow;
 				}
 
 				// 技列1枚だけの設定パネル。ラウンド7ユーザー指示(方針転換)で「カード全体設定」の
@@ -7231,10 +7396,15 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 					// 28-R2を撤回し、27-R2の形(attackerSideの中)に戻す(下のattackerSide生成後の
 					// 呼び出し箇所を参照)。急所が攻撃側だけの設定(防御側に急所は無い、ラウンド3
 					// A-6(4)の判断)という仕様は変えない(column.criticalの読み書き先はそのまま)。
-					function buildCriticalRow(): HTMLElement {
-						const criticalRow = document.createElement("div");
-						criticalRow.className = "damage-detail-critical-row";
-						const criticalButton = buildToggleButton(
+					// 🔴 UI改善ラウンド32ユーザー指示(32-R4)「攻撃側の2段目は、急所,じゅうでんの順に
+					// 同じグループとして配置」により、急所を独立した.damage-detail-critical-row
+					// (別の行)ではなく、じゅうでんと同じチップ行(buildSideSectionが作る2段目の
+					// .damage-detail-chip-row)に混ぜる。そのため、ここでは行(div)を作らず
+					// トグルボタン自体だけを返す(呼び出し側でチップ行の先頭にinsertBeforeする)。
+					// .damage-detail-critical-row自体のCSS定義は他から参照されなくなったため削除した
+					// (死んだCSSを残さない)。
+					function buildCriticalButton(): HTMLButtonElement {
+						return buildToggleButton(
 							"急所",
 							column.critical,
 							(pressed) => {
@@ -7242,8 +7412,6 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 							},
 							{ title: "急所固定で計算する(攻撃側だけの設定です)" },
 						);
-						criticalRow.appendChild(criticalButton);
-						return criticalRow;
 					}
 					// ラウンド29(29-R4)「右パネルが『今どのカードの設定か』を示していない」対応として、
 					// 「{相手名} — {技名}」というテキストのみの見出しを最上部に追加していた。
@@ -7280,10 +7448,27 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 						selfIconFallback.className = "damage-detail-selection-icon-fallback";
 						void applySprite(selfIcon, selfIconFallback, speciesInput.value.trim(), officialArtworkUrl);
 
-						const arrow = document.createElement("span");
-						arrow.className = "damage-detail-selection-arrow";
+						// 🔴 UI改善ラウンド32ユーザー指示(32-R1)「矢印を太くて見やすいデザインに変更」
+						// により、テキストの矢印文字からインラインSVGのシェブロンへ作り替える。
+						// SVG自体は常に右向きの形状で作り、防御カード(isSelfAttacking===false)の
+						// ときだけCSSのtransform: scaleX(-1)(.is-reversed、上のCSS参照)で反転する。
+						// 31-R1で確立した「矢印の向きがdirectionに追随する」挙動(攻撃カードで
+						// 「→」、防御カードで「←」)は壊さない。
+						const arrowNs = "http://www.w3.org/2000/svg";
+						const arrow = document.createElementNS(arrowNs, "svg");
+						arrow.setAttribute("class", "damage-detail-selection-arrow");
 						arrow.setAttribute("aria-hidden", "true");
-						arrow.textContent = isSelfAttacking ? "→" : "←";
+						arrow.setAttribute("viewBox", "0 0 24 24");
+						arrow.setAttribute("focusable", "false");
+						if (!isSelfAttacking) arrow.classList.add("is-reversed");
+						const arrowPath = document.createElementNS(arrowNs, "path");
+						arrowPath.setAttribute("d", "M4 12h15m0 0-6-6m6 6-6 6");
+						arrowPath.setAttribute("fill", "none");
+						arrowPath.setAttribute("stroke", "currentColor");
+						arrowPath.setAttribute("stroke-width", "2.5");
+						arrowPath.setAttribute("stroke-linecap", "round");
+						arrowPath.setAttribute("stroke-linejoin", "round");
+						arrow.appendChild(arrowPath);
 
 						const opponentIcon = document.createElement("img");
 						opponentIcon.className = "damage-detail-selection-icon";
@@ -7309,16 +7494,160 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 					}
 					contentWrap.appendChild(buildSelectionHeadingRow());
 
-					// ラウンド25ユーザー指示(25-R3)「『場の設定』のタイトル削除」により、
-					// 親見出し(旧fieldHeading、<p>「場の設定」)は生成・appendChildしない。
-					// 天候・フィールドそれぞれの行ラベル(weatherLabel/terrainLabel)は残す。
-					// 表示順は23-R2で確定した「(場の設定=天候・フィールド)→攻撃側→防御側」を
-					// 維持する。急所はラウンド27(27-R2)で攻撃側ボックスの中(先頭)に移した
-					// (壁は20-R2の判断どおり防御側セクションの中に残す=撤回しない)。
-					// ラウンド24ユーザー指示(24-R1)で
-					// 「なし」を削除した結果、天候・フィールドとも4択で揃うため、is-row4
-					// (4列グリッド、is-row5から改名)で両方とも折り返しなく1行に並ぶ。
+					// 🔴 ラウンド23ユーザー指示(23-R3)「攻撃側と防御側の設定は、パネルを左右2分割して
+					// 並べて配置」で導入した2列gridは、ラウンド27ユーザー指示(27-R1)により撤回した
+					// (CSSの@media(min-width:480px)ブロックを削除、上の
+					// #damage-detail-panel-body .damage-detail-sidesコメント参照)。攻撃側→防御側の
+					// 順で縦に積む(ワイヤーフレーム docs/ui_proposal/個体編集_右サイド.png どおり)。
+					// .damage-detail-side(列)を2つ作り、buildSideSection()のappendChild先を
+					// それぞれに割り当てる構造自体はそのまま流用する。
+					// 🔴 UI改善ラウンド32ユーザー指示(32-R2)「天候・フィールド設定を一番下に移動」
+					// により、以前はこのsidesWrapより前(選択見出しの直後)に置いていた天候・
+					// フィールド行(weatherRow/terrainRow)を、sidesWrap・壁ボタンの組み立てが終わった
+					// 最後に移した(下方、この関数の末尾を参照)。ここではsidesWrap自体の組み立てだけ
+					// 先に行う。
+					const sidesWrap = document.createElement("div");
+					sidesWrap.className = "damage-detail-sides";
+					const attackerSide = document.createElement("div");
+					attackerSide.className = "damage-detail-side";
+					const defenderSide = document.createElement("div");
+					defenderSide.className = "damage-detail-side";
+					sidesWrap.append(attackerSide, defenderSide);
+					contentWrap.appendChild(sidesWrap);
 
+					// 見出しは攻守の向きによらず「攻撃側」「防御側」固定にする(下記28-R3)。
+					// attackerRank等は常に「攻撃側という役割」に対する値であり、どちらが
+					// この個体なのかはrow.directionで決まる(recalcRow()のspec組み立てを参照)。
+					// 🔴 ラウンド28ユーザー指示(28-R3)「『攻撃(自分)』→『攻撃側』に変更。天候などと
+					// 同じタイトル形式にする」により、ラウンド23(23-R3)の「攻撃側(この個体)」→
+					// 「攻撃(自分)」という短縮を撤回する(2列分割をやめた27-R1で短縮の理由は
+					// 既に消えている)。見出しの可視テキストはrow.directionによらず固定文字列に
+					// なるが、「自分/相手」の区別はaria-label側(ariaSideLabel、下記
+					// buildSideSection参照)に残し、スクリーンリーダー利用者への退行を作らない。
+					const selfIsAttackerForDialog = row.direction !== "defense";
+					// ラウンド17指摘(A-1・実バグ): buildSideSection()にテラスタイプの実値を渡す
+					// (この個体=左パネルの#tera select、相手=このカードのrow.teraType)。
+					// どちらが攻撃側/防御側になるかはrow.direction(攻守切り替え)で入れ替わるため、
+					// selfIsAttackerForDialogと同じ条件分岐で対応させる(specの組み立て方は
+					// recalcRow()のattackerSpec/defenderSpecの入れ替えと揃えている)。
+					const selfTeraTypeValue = teraSelect.value;
+					const opponentTeraTypeValue = row.teraType;
+					// 🔴 UI改善ラウンド32ユーザー指示(32-R4)「攻撃側の2段目は、急所,じゅうでんの順に
+					// 同じグループとして配置」により、buildSideSection()の戻り値(じゅうでんを含む
+					// 2段目のチップ行、mergeVolatileIntoChipRow=trueのときだけ生成される)を受け取り、
+					// 急所ボタンをその行の先頭に挿入する(31-R2で確立した「急所は攻撃側の中」は
+					// 維持しつつ、独立した行ではなく2段目チップ行の一員にする)。
+					const attackerSecondaryChipRow = buildSideSection(
+						attackerSide,
+						row,
+						"攻撃側",
+						selfIsAttackerForDialog ? "攻撃側(自分)" : "攻撃側(相手)",
+						column.attackerRank,
+						column.attackerAilment,
+						column.attackerTerastallized,
+						selfIsAttackerForDialog ? selfTeraTypeValue : opponentTeraTypeValue,
+						(value) => { column.attackerRank = value; },
+						(value) => { column.attackerAilment = value; },
+						(value) => { column.attackerTerastallized = value; },
+						DAMAGE_ATTACKER_VOLATILES,
+						column.attackerVolatiles,
+						(value) => { column.attackerVolatiles = value; },
+						// 🔴 UI改善ラウンド29(29-R3): 攻撃側はじゅうでん(DAMAGE_ATTACKER_VOLATILESの
+						// 唯一の項目)を状態異常・テラスタルとは別の2段目のチップ行にまとめる。
+						true,
+					);
+					const criticalButton = buildCriticalButton();
+					if (attackerSecondaryChipRow) {
+						// 「急所,じゅうでん」の順(round-32.mdの言葉どおり)にするため先頭へ挿入する。
+						attackerSecondaryChipRow.insertBefore(criticalButton, attackerSecondaryChipRow.firstChild);
+					} else {
+						// DAMAGE_ATTACKER_VOLATILESは常に1件("じゅうでん")を持つため通常は
+						// ここに来ないが、将来の変更に備えてフォールバックを用意する
+						// (急所チップ自体は必ず攻撃側に出す)。
+						const fallbackRow = document.createElement("div");
+						fallbackRow.className = "damage-detail-chip-row";
+						fallbackRow.appendChild(criticalButton);
+						attackerSide.querySelector(".damage-detail-group")?.appendChild(fallbackRow);
+					}
+					buildSideSection(
+						defenderSide,
+						row,
+						"防御側",
+						selfIsAttackerForDialog ? "防御側(相手)" : "防御側(自分)",
+						column.defenderRank,
+						column.defenderAilment,
+						column.defenderTerastallized,
+						selfIsAttackerForDialog ? opponentTeraTypeValue : selfTeraTypeValue,
+						(value) => { column.defenderRank = value; },
+						(value) => { column.defenderAilment = value; },
+						(value) => { column.defenderTerastallized = value; },
+						DAMAGE_DEFENDER_VOLATILES,
+						column.defenderVolatiles,
+						(value) => { column.defenderVolatiles = value; },
+						// 防御側の揮発状態は9件あり、29-R3の対象は「状態異常・テラスタル」の2つだけ
+						// (round-29.md「防御側の『状態異常』『テラスタル』も同様」)。従来どおり
+						// 独立したグループのままにする。
+						false,
+					);
+
+					// ラウンド20ユーザー指示(20-R2、23-R2でも撤回しない): 壁は「場の設定」ではなく
+					// 防御側セクションに含める(壁は防御側にかかる効果のため)。保存キー・
+					// エンジンへの渡し方(resolveColumnDerivedFields()がwallEnabled/技の分類から
+					// defenderSideFieldsを自動算出する)は一切変えていない。
+					// ラウンド24ユーザー指示(24-R2): チェックボックス+labelをbuildToggleButton()に
+					// 置き換える。
+					// 🔴 UI改善ラウンド32ユーザー指示(32-R5)「壁をかべ(ひらがな)にし、その他の状態と
+					// 同じグループに配置する」により、27-R3で確立した「独立した.damage-detail-toggle-row
+					// として揮発状態グループの直前に置く」構成を撤回する。かべボタンを
+					// .damage-detail-volatile-group(その他の状態のチップ行、buildSideSection内で
+					// defenderSide専用に生成される)の先頭へ直接挿入し、他の揮発状態チップと
+					// 同じ行・同じ見た目にする。「壁は防御側にかかる効果」という位置づけ(20-R2)自体は
+					// 変えない(揮発状態グループも防御側セクションの中にある)。
+					// ラウンド23ユーザー指示(23-R3)「自分側の壁」→「自分の壁」、「相手側の壁」→
+					// 「相手の壁」に短縮していたが、ラウンド28ユーザー指示(28-R7)
+					// 「相手の壁→リフレクター・ひかりのかべに変更」により撤回していた。31-R4で
+					// いったん「壁」(漢字)に短縮し、🔴 UI改善ラウンド32ユーザー指示(32-R5)により
+					// さらに「かべ」(ひらがな)へ変更する。column.wallEnabledの保存キー・
+					// resolveColumnDerivedFields()のロジックは変えない(表示テキストだけの変更)。
+					const wallText = "かべ";
+					const wallButton = buildToggleButton(
+						wallText,
+						column.wallEnabled,
+						(pressed) => {
+							applyToColumnField(() => { column.wallEnabled = pressed; });
+						},
+						// 32-R5「title属性の説明文は残すこと」により、可視ラベルが「かべ」1語まで
+						// 短くなってもtitleの説明文は変更しない。
+						{ title: "リフレクター/ひかりのかべを技の分類に応じて自動選択して壁を張る" },
+					);
+					// 🔴 ラウンド28ユーザー指示(28-R9)「技の分類で自動選択、の表記を削除」により、
+					// この<p>はCSSで非表示にする(#damage-detail-panel-body .damage-detail-toggle-hint、
+					// display:none)。情報はwallButtonのtitleに残っているため失われない。要素を
+					// 「消す」指示でもDOMは残してCSSで見せない方針(pitfalls.md)にする。表示位置は
+					// 意味を持たない(常時非表示のため)ので、defenderSideの末尾に置くだけでよい。
+					const wallHint = document.createElement("p");
+					wallHint.className = "damage-detail-toggle-hint";
+					wallHint.textContent = "技の分類で自動選択";
+					defenderSide.appendChild(wallHint);
+					const defenderVolatileGroup = defenderSide.querySelector(".damage-detail-volatile-group");
+					if (defenderVolatileGroup) {
+						defenderVolatileGroup.insertBefore(wallButton, defenderVolatileGroup.firstChild);
+					} else {
+						// DAMAGE_DEFENDER_VOLATILESは常に9件を持つため通常はここに来ないが、
+						// 将来の変更に備えてフォールバックを用意する(かべチップ自体は必ず
+						// 防御側に出す)。
+						const fallbackRow = document.createElement("div");
+						fallbackRow.className = "damage-detail-toggle-row";
+						fallbackRow.appendChild(wallButton);
+						defenderSide.appendChild(fallbackRow);
+					}
+
+					// 🔴 UI改善ラウンド32ユーザー指示(32-R2)「天候・フィールド設定を一番下に移動」
+					// により、天候・フィールド行をsidesWrap(攻撃側・防御側・その他の状態を含む)より
+					// 後、この関数の最後に組み立てる。移動後の順序: 選択見出し→攻撃側→防御側→
+					// その他の状態→天候→フィールド。「なし」を選択肢から削除した24-R1により
+					// 天候・フィールドとも4択で揃うため、is-row4(4列グリッド)で両方とも
+					// 折り返しなく1行に並ぶ(この点は移動の前後で変わらない)。
 					const weatherRow = document.createElement("div");
 					weatherRow.className = "damage-detail-field-row";
 					const weatherLabel = document.createElement("span");
@@ -7350,137 +7679,6 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 					terrainGroup.classList.add("is-row4");
 					terrainRow.appendChild(terrainGroup);
 					contentWrap.appendChild(terrainRow);
-
-					// 🔴 ラウンド23ユーザー指示(23-R3)「攻撃側と防御側の設定は、パネルを左右2分割して
-					// 並べて配置」で導入した2列gridは、ラウンド27ユーザー指示(27-R1)により撤回した
-					// (CSSの@media(min-width:480px)ブロックを削除、上の
-					// #damage-detail-panel-body .damage-detail-sidesコメント参照)。攻撃側→防御側の
-					// 順で縦に積む(ワイヤーフレーム docs/ui_proposal/個体編集_右サイド.png どおり)。
-					// .damage-detail-side(列)を2つ作り、buildSideSection()のappendChild先を
-					// それぞれに割り当てる構造自体はそのまま流用する。
-					const sidesWrap = document.createElement("div");
-					sidesWrap.className = "damage-detail-sides";
-					const attackerSide = document.createElement("div");
-					attackerSide.className = "damage-detail-side";
-					const defenderSide = document.createElement("div");
-					defenderSide.className = "damage-detail-side";
-					sidesWrap.append(attackerSide, defenderSide);
-					contentWrap.appendChild(sidesWrap);
-					// 🔴 UI改善ラウンド31ユーザー指示(31-R2)「急所も攻撃側の設定に移動」により、
-					// ラウンド28(28-R2)でcontentWrapの先頭(選択中カード見出しの次)に単独で
-					// 置いていた急所トグルを、このattackerSideの中へ移す(buildCriticalRow定義は
-					// 上記のまま、呼び出し位置だけ変更)。attackerSideの先頭に置くと「見出し
-					// (攻撃側)より前に急所チップが浮く」実測結果になったため(実装者の判断)、
-					// buildSideSection(attackerSide, …)呼び出しの後(=見出し・ランク・状態異常・
-					// テラスタル・じゅうでんの下)に追加し、「攻撃側」という見出しの傘下にあることが
-					// 視覚的に自然に読める順序にする。
-
-					// 見出しは攻守の向きによらず「攻撃側」「防御側」固定にする(下記28-R3)。
-					// attackerRank等は常に「攻撃側という役割」に対する値であり、どちらが
-					// この個体なのかはrow.directionで決まる(recalcRow()のspec組み立てを参照)。
-					// 🔴 ラウンド28ユーザー指示(28-R3)「『攻撃(自分)』→『攻撃側』に変更。天候などと
-					// 同じタイトル形式にする」により、ラウンド23(23-R3)の「攻撃側(この個体)」→
-					// 「攻撃(自分)」という短縮を撤回する(2列分割をやめた27-R1で短縮の理由は
-					// 既に消えている)。見出しの可視テキストはrow.directionによらず固定文字列に
-					// なるが、「自分/相手」の区別はaria-label側(ariaSideLabel、下記
-					// buildSideSection参照)に残し、スクリーンリーダー利用者への退行を作らない。
-					const selfIsAttackerForDialog = row.direction !== "defense";
-					// ラウンド17指摘(A-1・実バグ): buildSideSection()にテラスタイプの実値を渡す
-					// (この個体=左パネルの#tera select、相手=このカードのrow.teraType)。
-					// どちらが攻撃側/防御側になるかはrow.direction(攻守切り替え)で入れ替わるため、
-					// selfIsAttackerForDialogと同じ条件分岐で対応させる(specの組み立て方は
-					// recalcRow()のattackerSpec/defenderSpecの入れ替えと揃えている)。
-					const selfTeraTypeValue = teraSelect.value;
-					const opponentTeraTypeValue = row.teraType;
-					buildSideSection(
-						attackerSide,
-						row,
-						"攻撃側",
-						selfIsAttackerForDialog ? "攻撃側(自分)" : "攻撃側(相手)",
-						column.attackerRank,
-						column.attackerAilment,
-						column.attackerTerastallized,
-						selfIsAttackerForDialog ? selfTeraTypeValue : opponentTeraTypeValue,
-						(value) => { column.attackerRank = value; },
-						(value) => { column.attackerAilment = value; },
-						(value) => { column.attackerTerastallized = value; },
-						DAMAGE_ATTACKER_VOLATILES,
-						column.attackerVolatiles,
-						(value) => { column.attackerVolatiles = value; },
-						// 🔴 UI改善ラウンド29(29-R3): 攻撃側はじゅうでん(DAMAGE_ATTACKER_VOLATILESの
-						// 唯一の項目)を状態異常・テラスタルと同じchipRowにまとめる。
-						true,
-					);
-					// 🔴 UI改善ラウンド31ユーザー指示(31-R2): 急所トグルをattackerSideの末尾に追加する
-					// (上のコメント参照。見出し・ランク・状態異常・テラスタル・じゅうでんの下)。
-					attackerSide.appendChild(buildCriticalRow());
-					buildSideSection(
-						defenderSide,
-						row,
-						"防御側",
-						selfIsAttackerForDialog ? "防御側(相手)" : "防御側(自分)",
-						column.defenderRank,
-						column.defenderAilment,
-						column.defenderTerastallized,
-						selfIsAttackerForDialog ? opponentTeraTypeValue : selfTeraTypeValue,
-						(value) => { column.defenderRank = value; },
-						(value) => { column.defenderAilment = value; },
-						(value) => { column.defenderTerastallized = value; },
-						DAMAGE_DEFENDER_VOLATILES,
-						column.defenderVolatiles,
-						(value) => { column.defenderVolatiles = value; },
-						// 防御側の揮発状態は9件あり、29-R3の対象は「状態異常・テラスタル」の2つだけ
-						// (round-29.md「防御側の『状態異常』『テラスタル』も同様」)。従来どおり
-						// 独立したグループのままにする。
-						false,
-					);
-
-					// ラウンド20ユーザー指示(20-R2、23-R2でも撤回しない): 壁は「場の設定」ではなく
-					// 防御側セクションに含める(壁は防御側にかかる効果のため)。保存キー・
-					// エンジンへの渡し方(resolveColumnDerivedFields()がwallEnabled/技の分類から
-					// defenderSideFieldsを自動算出する)は一切変えていない。
-					// ラウンド24ユーザー指示(24-R2): チェックボックス+labelをbuildToggleButton()に
-					// 置き換える。
-					// 🔴 ラウンド27ユーザー指示(27-R3)「防御側の設定で、壁のボタンを揮発状態より前に
-					// 配置する」により、defenderSideの末尾に追加していたのをやめ、揮発状態グループ
-					// (buildSideSection()内でdamage-detail-volatile-wrapクラスを付けて作った要素)の
-					// 直前にinsertBeforeする。揮発状態グループが無い(volatilesOptionsが空)側では
-					// 該当要素が見つからないため、その場合だけ末尾追加にフォールバックする。
-					const wallRow = document.createElement("div");
-					wallRow.className = "damage-detail-toggle-row";
-					// ラウンド23ユーザー指示(23-R3)「自分側の壁」→「自分の壁」、「相手側の壁」→
-					// 「相手の壁」に短縮していたが、ラウンド28ユーザー指示(28-R7)
-					// 「相手の壁→リフレクター・ひかりのかべに変更」により撤回していた。
-					// 🔴 UI改善ラウンド31ユーザー指示(31-R4)「リフレクター・ひかりのかべ→壁 に表記変更」
-					// により、ユーザー自身が28-R7の判断を撤回する(round-31.md「維持すべき点」:
-					// 「公式用語を幅の都合で短縮しない」の例外として明示されている、ユーザー自身の
-					// 明示指示)。column.wallEnabledの保存キー・resolveColumnDerivedFields()の
-					// ロジックは変えない(表示テキストだけの変更)。
-					const wallText = "壁";
-					const wallButton = buildToggleButton(
-						wallText,
-						column.wallEnabled,
-						(pressed) => {
-							applyToColumnField(() => { column.wallEnabled = pressed; });
-						},
-						{ title: "リフレクター/ひかりのかべを技の分類に応じて自動選択して壁を張る" },
-					);
-					wallRow.appendChild(wallButton);
-					// 🔴 ラウンド28ユーザー指示(28-R9)「技の分類で自動選択、の表記を削除」により、
-					// この<p>はCSSで非表示にする(#damage-detail-panel-body .damage-detail-toggle-hint、
-					// display:none)。情報はwallButtonのtitleに残っているため失われない。要素を
-					// 「消す」指示でもDOMは残してCSSで見せない方針(pitfalls.md)にする。
-					const wallHint = document.createElement("p");
-					wallHint.className = "damage-detail-toggle-hint";
-					wallHint.textContent = "技の分類で自動選択";
-					const defenderVolatileWrap = defenderSide.querySelector(".damage-detail-volatile-wrap");
-					if (defenderVolatileWrap) {
-						defenderSide.insertBefore(wallRow, defenderVolatileWrap);
-						defenderSide.insertBefore(wallHint, defenderVolatileWrap);
-					} else {
-						defenderSide.appendChild(wallRow);
-						defenderSide.appendChild(wallHint);
-					}
 				}
 
 				// 選択中の内容に応じてサイドバーを描画する(旧buildRowDetailDialogの後継。
@@ -7903,9 +8101,17 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 							teraSelect.appendChild(opt);
 						}
 					}
+					// 🔴 UI改善ラウンド32ユーザー指示(32-D2)「テラスなし表示はplaceholderのように薄い
+					// 文字色にする」。CSSは#opponent-notes-section .damage-row-tera-field
+					// select.is-value-empty参照。選択済みでは通常の文字色に戻す。
+					function refreshTeraSelectMutedState(): void {
+						teraSelect.classList.toggle("is-value-empty", teraSelect.value === "");
+					}
+					refreshTeraSelectMutedState();
 					teraSelect.addEventListener("change", () => {
 						row.teraType = teraSelect.value;
 						refreshTypeBadge();
+						refreshTeraSelectMutedState();
 						onFieldInput();
 					});
 					// 🔴 UI改善ラウンド31ユーザー指示(31-D4b)「テラスタイプ画像は…選択ボックスの左側に

@@ -808,7 +808,17 @@ input[type="range"]:focus-visible::-moz-range-thumb {
    旧battle-assistant-sv(manager.css #new-button/.tuning-button/#delete-button)の方式を踏襲:
    影は使わず、ボーダーと同色の塗り+白文字。ホバーで背景と文字色を反転させ、太字にする。
    この「反転ホバー」はa要素(ログインボタン等)にも .btn-primary 等のクラスを付ければ同じ
-   見た目になるよう button/a 両方をセレクタに含める。 */
+   見た目になるよう button/a 両方をセレクタに含める。
+   ラウンド32 32-U-A1(統一感レビューの指摘、round-32.md): /box ツールバーで
+   #favorite-filter-toggle(素のbutton)だけが#search-input/#sort-select(.field-control、
+   line-height: var(--line-height-snug)を明示)より45.19px/y=64.88と高く・上端が浮いていた
+   (input/select 40.39px/y=67.27)。原因はbodyのline-height:1.6をbuttonだけが打ち消さずに
+   継承していたこと。ここでline-height: var(--line-height-snug)を追加したところ、
+   line-height差(25.6→22.4px)は埋まっても縦paddingの差(0.55em=8.8px vs var(--space-2)=8px)が
+   残り40.39pxに揃わなかったため、縦paddingも0.55emからvar(--space-2)へ変更した(横paddingの
+   1.1emは維持。アイコンのみの小型ボタン(.icon-button/.btn-ghost系のサイズ規格は各ページの
+   scoped styleで width/height/padding:0 を明示しており、詳細度でこの基底より優先されるため
+   影響を受けない)。 */
 button,
 a.btn-primary,
 a.btn-danger,
@@ -823,7 +833,8 @@ a.btn-ghost {
 	background: var(--color-surface);
 	border: 1px solid var(--color-border);
 	border-radius: var(--radius-sm);
-	padding: 0.55em 1.1em;
+	padding: var(--space-2) 1.1em;
+	line-height: var(--line-height-snug);
 	cursor: pointer;
 	text-decoration: none;
 	transition: background 0.2s, color 0.2s, border-color 0.2s;
@@ -843,7 +854,7 @@ a.btn-primary {
 	background: var(--color-primary);
 	border: 2px solid var(--color-primary);
 	color: var(--color-primary-contrast);
-	padding: calc(0.55em - 1px) calc(1.1em - 1px);
+	padding: calc(var(--space-2) - 1px) calc(1.1em - 1px);
 	font-weight: 700;
 }
 
@@ -857,7 +868,7 @@ button.btn-success {
 	background: var(--color-success);
 	border: 2px solid var(--color-success);
 	color: var(--color-primary-contrast);
-	padding: calc(0.55em - 1px) calc(1.1em - 1px);
+	padding: calc(var(--space-2) - 1px) calc(1.1em - 1px);
 	font-weight: 700;
 }
 
@@ -879,7 +890,7 @@ a.btn-danger,
 	background: var(--color-danger-strong);
 	border: 2px solid var(--color-danger-strong);
 	color: var(--color-primary-contrast);
-	padding: calc(0.55em - 1px) calc(1.1em - 1px);
+	padding: calc(var(--space-2) - 1px) calc(1.1em - 1px);
 	font-weight: 700;
 }
 

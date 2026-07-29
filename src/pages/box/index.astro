@@ -180,11 +180,22 @@ const user = Astro.locals.user;
 		/* ラウンド20 B3: 20-G3(文字サイズ12px下限)の受け皿としてカードを拡大する
 		   (210px→240px、ユーザー指示。1920pxで1行7枚→6枚になる)。
 		   ラウンド24 24-B2: 「カードサイズを少し縮小」(ユーザー指示)により240px→220pxへ縮める。
+		   ラウンド32 32-B1(ユーザー指示第15弾、round-32.md): 「ステータスをカードから削除し、
+		   カードを小型化する」。.card-stat-gridをdisplay:noneにしただけでは、正方形を
+		   grid-template-rows: 1fr auto + aspect-ratio: 1/1で維持している都合上(1fr行の公式絵が
+		   空いた高さを吸収するだけでカード自体は縮まない)、カードは縮小されない。よって
+		   ここのminmaxを220px→210pxへ引き下げて実際にカードの一辺を縮める(正方形は
+		   aspect-ratio: 1/1のまま維持、値自体は指示により変更可)。180pxまで縮めると、
+		   32-B2で.card-artの右に追加したバッジ列(アイテム18px+テラス25px+gap)の縦の
+		   置き場所が.card-actions(固定60px)と.card-body(名前など、カード幅に依存せずほぼ
+		   固定高)の間に収まりきらないことが実測で判明したため、両方を避けられる高さを
+		   確保できる210pxまで戻した(180pxのままだと重なる。実測は報告参照)。縮小後の
+		   実測値・1画面あたりの表示体数は報告参照。
 		   狭幅側(下の480pxメディアクエリの150px)はラウンド21で390px/360px幅の2列維持のため
 		   意図的に戻した値であり、このラウンドの対象外(デスクトップ側のみ縮める)。 */
 		.box-grid {
 			display: grid;
-			grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+			grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
 			gap: var(--space-4);
 			align-items: stretch;
 			margin-top: var(--space-6);
@@ -414,43 +425,44 @@ const user = Astro.locals.user;
 			font-size: 1.4rem;
 		}
 
-		/* --- テラスタイプ(優先順位4位、ラウンド20 B1で追加。公式絵の右下に重ねるバッジ)。
-		   ラウンド27 27-B1(ユーザー指示)で持ち物画像をこの重ね配置から分離し、.card-body内の
-		   新しい行(.card-item-row、下の「持ち物」セクション参照)へ移した。このバッジには
-		   27-B2時点でテラスタイプ画像だけが残る。テラスタイプ名はカード<a>のtitle属性
-		   (ホバーツールチップ)に引き続き含まれる。
-		   ラウンド23 23-G1: 白丸の枠(background/border/box-shadow/padding)を撤去し、画像を
-			      (丸トリミングは28-G1で撤回。詳細は下の.card-tera-badge img参照)
-		   直接表示する。丸み(border-radius: 50%)は「枠」ではなく個体編集ページの
-		   .type-badge-img(box/[id].astro)と同じ「画像そのものを円形に見せる」表現として付けていた。
-		   ラウンド23 23-B1/23-B2: テラス画像を28px(--icon-size-md)に統一。
-		   ラウンド24 24-B1: さらに28×0.9≈25pxへ縮小。
-		   ラウンド27 27-B2(ユーザー指示): 「アイコンと被らない程度に右へ寄せる」。持ち物を
-		   分離したことで右側に余裕ができたため、rightオフセットを-0.2rem→-1.5rem
-		   (バッジ幅25px≈1.5625remとほぼ同じ)に深くし、テラス画像がほぼ公式絵の輪郭の外側
-		   (右下角の外)に出るようにした。実測ではcard-artとcard-tera-badgeの重なりが
-		   ごくわずか(1px程度)まで減り、overflow:hiddenのカード外郭まではまだ十分な
-		   余白がありクリップされないことも確認した(実測値は報告参照)。 */
-		/* ラウンド31 31-B1(ユーザー指示): 「テラスアイコンの位置を少し上げる」。
-		   bottomをマイナス値(-0.2rem、下寄りにはみ出す配置)から1remへ引き上げ、公式絵の
-		   輪郭内に収まって見える高さまでバッジを上へ移動する。アイコン自体のサイズ(25px)は
-		   変更しない(サイズではなく位置の指示のため)。お気に入り/削除アイコン
-		   (.card-actions、y=156.1/188.1)・持ち物行(.card-item-row、y=298)と重ならないことを
-		   実測で確認済み(報告参照)。 */
+		/* --- アイテム+テラスタイプ(優先順位4位。公式絵.card-artの右側に縦に並べる列)。
+		   ラウンド32 32-B2(ユーザー指示第15弾、round-32.md): 「アイテムアイコンをポケモンアイコンの
+		   右側(テラスタル画像の上)に配置」。旧来はテラス画像だけがこのバッジ列(公式絵の右下に
+		   重ねる配置)にあり、アイテム画像は27-B1で.card-item-row側へ分離されていたが、
+		   今回その分離を撤回し、アイテムバッジをこの列へ戻したうえでテラスバッジと縦に並べる
+		   (アイテムが上・テラスが下。DOM生成順もこの順、下のscript参照)。
+		   .card-artは position: relative を持つ基準要素なので、この列を「右下に重ねるバッジ」から
+		   「右側に添えるバッジ列」へ配置し直す: left:100%でcard-artの右外側に置く。
+		   縦位置はcard-art自身の縦中央(top:50%)ではなく、.card-actions(お気に入り/削除、
+		   top: var(--space-2)+高さ60px固定)の下端をfixed pxで避ける値にする。
+		   実装時に50%centerで試したところ、.card-artはgrid-template-rowsの1fr行内で
+		   ほぼ余白なく上端に接する(実測: art上端とカード上端の差が実質padding-top分のみ)ため、
+		   縦中央だと.card-actionsの直下(y方向)に重なることが実測で判明した(カード右上の
+		   アクションボタンと重ならないこと、という要件に反する)。.card-actionsのサイズは
+		   カード幅に依存せず固定(28px×2+gap)なので、top位置もカード幅に依存しないfixed px
+		   (60px)にすることで全ブレークポイントで安定してアクションの下に収める。 */
 		.box-grid .card-pokemon .card-badge-row {
 			position: absolute;
-			right: -1.5rem;
-			bottom: 1rem;
+			left: 100%;
+			top: 60px;
+			margin-left: 0.3rem;
 			display: flex;
+			flex-direction: column;
 			align-items: center;
+			gap: 0.2rem;
 		}
 		.box-grid .card-pokemon .card-tera-badge {
 			display: flex;
 			align-items: center;
 			justify-content: center;
 			flex: none;
-			width: 25px;
-			height: 25px;
+			/* ラウンド32 32-B5(統一感レビュアーCoordinator裁定、round-32.md): 32-B2で
+			   .card-item-badge(18px)と縦に並んだことで、旧25pxとの寸法差7px・左端の3.5px
+			   ズレが直接見比べられる状態になった。確立規格の20px(28-L1〜L6)に揃える
+			   (旧25pxから縮小)。左端も.card-item-badgeと同じ20px幅にすることで、
+			   .card-badge-rowのalign-items:centerが自動的に左端を一致させる。 */
+			width: 20px;
+			height: 20px;
 		}
 		.box-grid .card-pokemon .card-tera-badge img {
 			width: 100%;
@@ -595,33 +607,24 @@ const user = Astro.locals.user;
 			text-overflow: ellipsis;
 		}
 
-		/* --- 持ち物(優先順位4位、ラウンド5で復元)。
-		   ラウンド27 27-B1(ユーザー指示)により、公式絵に重ねる画像バッジ(.card-badge-row)から
-		   分離し、.card-body内の名前行と技グリッドの間に新しい行として配置する。画像の右に
-		   アイテム名(テキスト)を表示する。
-		   持ち物なしの個体は、行自体(.card-item-row)は常時appendして高さを揃えるが
-		   (ラウンド8 A-8のcard-moves-gridと同じ「予約して隠す」方式。全カードの高さを揃える
-		   ためこの行だけ無いカードを作らない)、画像は非表示・テキストは空文字のままにして
-		   「何も表示しない」を実現する(要件の「何も表示しない、または薄い表現にする」のうち
-		   前者を採用)。
-		   アイテム画像はもう「重ねるバッジ」ではなく本文中のテキスト行の一部なので、
-		   31pxだったサイズは名前(0.82em)・技チップ(0.75rem)の文字列と釣り合う18pxへ縮小した。 */
-		.box-grid .card-pokemon .card-item-row {
-			display: flex;
-			align-items: center;
-			justify-content: center;
-			gap: 0.3rem;
-			width: 100%;
-			margin-top: 0.1rem;
-			min-height: 18px;
-		}
+		/* --- アイテム画像(.card-artの右に添えるバッジ列の1枚目、上記.card-badge-row参照)。
+		   ラウンド27 27-B1でこのバッジ列から.card-item-row(名前行と技グリッドの間のテキスト行)へ
+		   分離していたが、ラウンド32 32-B2(ユーザー指示第15弾)で「ポケモンアイコンの右側
+		   (テラスタル画像の上)に配置」と指示され、.card-badge-row側へ戻した(このセレクタ自体は
+		   width/heightの定義のみでDOM上の親は.card-badge-rowだが、クラス名は改名禁止のため
+		   .card-item-badgeのまま維持する)。32-B2実装当初は18pxだったが、32-B5
+		   (統一感レビュアーCoordinator裁定、round-32.md)で.card-tera-badgeと合わせて
+		   20pxへ変更した(下の本体コメント参照)。 */
 		.box-grid .card-pokemon .card-item-badge {
 			display: flex;
 			align-items: center;
 			justify-content: center;
 			flex: none;
-			width: 18px;
-			height: 18px;
+			/* ラウンド32 32-B5(統一感レビュアーCoordinator裁定、round-32.md): .card-tera-badge
+			   (25px)との寸法差7px・左端の3.5pxズレが縦に並んだことで露出したため、確立規格の
+			   20px(28-L1〜L6)に揃える(旧18pxから拡大)。 */
+			width: 20px;
+			height: 20px;
 		}
 		.box-grid .card-pokemon .card-item-badge img {
 			width: 100%;
@@ -629,24 +632,47 @@ const user = Astro.locals.user;
 			object-fit: contain;
 		}
 		/* .card-item-badge の display:flex は詳細度3つぶんあるため、UAの[hidden]{display:none}
-		   (詳細度1つぶん)に勝ってしまう(pitfalls.md参照)。明示的に上書きする。 */
+		   (詳細度1つぶん)に勝ってしまう(pitfalls.md参照)。この事故は.card-item-badge/
+		   .card-tera-badgeで過去に4回起きているため、位置を移した今回も明示的に上書きする。
+		   持ち物なし・テラスなしの個体(42ccb527)で空バッジが出ないことを実機確認済み(報告参照)。 */
 		.box-grid .card-pokemon .card-item-badge[hidden] {
 			display: none;
 		}
-		/* アイテム名: 名前(card-name)・技チップ(card-move-chip)と同様に1行で省略する
-		   (「こだわりハチマキ」等の長い名前がカード幅を超える対策)。技チップと同じ12px
-		   (0.75rem)・muted色にして、名前ほど主張しない「補助情報」の階層に置く。
-		   持ち物なしの個体はtextContentが空文字のまま(何も表示しない)。 */
+
+		/* --- 特性+持ち物(優先順位4位。名前行と技グリッドの間のテキスト行)。
+		   ラウンド27 27-B1で新設したときは「アイコン+アイテム名」の中央寄せ1行だったが、
+		   ラウンド32 32-B3(ユーザー指示第15弾、round-32.md): 「特性をアイテムの左側に表示」。
+		   アイコンは32-B2で.card-badge-row側へ移したため、この行は
+		   [特性名(.card-ability-name)]-[持ち物名(.card-item-name)]のテキスト2列・左右振り分けに
+		   作り直す。特性・持ち物のどちらか一方だけの個体(42ccb527=特性あり・持ち物なし)でも
+		   flexが自然に片方だけ空文字のまま(何も表示しない)になり、列自体は崩れない。 */
+		.box-grid .card-pokemon .card-item-row {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			gap: 0.4rem;
+			width: 100%;
+			margin-top: 0.1rem;
+			min-height: calc(1.2 * 0.75rem);
+		}
+		/* 特性名・持ち物名: 名前(card-name)・技チップ(card-move-chip)と同様に1行で省略する
+		   (折り返さない)。20-G3の12px下限ちょうど(0.75rem)にし、名前ほど主張しない
+		   「補助情報」の階層に置く(旧.card-item-nameの文字設計を踏襲)。左右の列が互いの
+		   領域を侵さないよう flex:1 1 0 + min-width:0 で幅を等分し、それぞれの中で省略する。 */
+		.box-grid .card-pokemon .card-ability-name,
 		.box-grid .card-pokemon .card-item-name {
 			font-size: 0.75rem;
 			line-height: 1.2;
 			font-weight: 600;
 			color: var(--color-text-muted);
-			max-width: calc(100% - 18px - 0.3rem);
+			flex: 1 1 0;
+			min-width: 0;
 			white-space: nowrap;
 			overflow: hidden;
 			text-overflow: ellipsis;
 		}
+		.box-grid .card-pokemon .card-ability-name { text-align: left; }
+		.box-grid .card-pokemon .card-item-name { text-align: right; }
 
 		/* 実数値6値: 「列見出し(H/A/B/C/D/S)+実数値」の2段×6列グリッド。
 		   努力値は表示せず(優先順位に含まれないため200px正方形の予算から外した)、
@@ -655,14 +681,16 @@ const user = Astro.locals.user;
 		   実数値グリッドの上に区切り線(旧来.card-moves-gridが持っていたborder-top)を移設する
 		   (技block0件のときに区切り線だけが名前直下に浮くよりも、実数値ブロックの前に
 		   固定して置く方が自然と判断した)。 */
-		/* ラウンド31 31-B2(ユーザー指示): 「ステータス直上の横棒を削除」。border-topを外す。
-		   罫線を消すと技行とステータス行が地続きに見える(31-L7と同じ考え方、round-31.md参照)
-		   ため、消した罫線ぶんの区切りを間隔で肩代わりできるよう、margin-topを0.15rem→0.6remへ
-		   広げる(視覚的に「別の行グループ」と読める余白を確保する)。カード全体は
-		   grid-template-rows: 1fr auto の1fr行(公式絵)が余白を吸収するため、257.34pxの正方形には
-		   影響しない(実測で確認済み、報告参照)。 */
+		/* ラウンド31 31-B2(ユーザー指示): 「ステータス直上の横棒を削除」。border-topを外し、
+		   margin-topを0.15rem→0.6remへ広げていた(round-31.md参照)。
+		   ラウンド32 32-B1(ユーザー指示第15弾、round-32.md): 「ステータスをカードから削除し、
+		   カードを小型化する」。DOMは残してCSSで見せない方針(pitfalls.md)に従い、
+		   display:noneでこのグリッド自体を非表示にする(grid-template-columns等の残りの
+		   プロパティは display:none 下では効果を持たないが、JS側(script内のstatGrid生成)を
+		   変更せずに済むよう構造の記録として残す)。カード自体の小型化は下の.box-gridの
+		   grid-template-columns(旧220px)側で対応した。 */
 		.box-grid .card-pokemon .card-stat-grid {
-			display: grid;
+			display: none;
 			grid-template-columns: repeat(6, minmax(0, 1fr));
 			gap: 0.05rem 0.1rem;
 			width: 100%;
@@ -795,6 +823,31 @@ const user = Astro.locals.user;
 				/* 技4件ぶん(1列4行)の高さを常に確保する(min-height計算式は上の基本定義と
 				   同じ1行あたりの高さを4倍にしたもの)。 */
 				min-height: calc(4 * (1.2 * 0.75rem + 0.16rem) + 3 * 0.05rem);
+			}
+			/* ラウンド32 32-B2追加分(実装者の判断): この幅ではカード全体(≈169px)に対し
+			   .card-art自体が90.9px程度まで縮み、.card-badge-row(上の基本定義でtop:60px、
+			   .card-actionsの下端を避ける値)とカード名(.card-body)の間の安全域が実測34.9px
+			   しかない。デスクトップ寸法のまま(アイテム18px+テラス25px+gap0.2rem=46.2px)だと
+			   この安全域に収まらず、Playwrightで実測したところテラスバッジがポケモン名の文字と
+			   重なる事故が確認された(390px幅、`c8680844`で確認)。この幅に限りバッジを
+			   縮小して安全域(34.9px)に収める(実測33.28px、クリアランス約1.6px)。
+			   ラウンド32.mdはPC/フルHD(1920×1080)が主対象で狭幅のバッジ縮小までは明示していないが、
+			   「アクションボタンや公式絵と重ならない」「破綻しないこと」の制約を満たすための
+			   実装者の判断。
+			   32-B5追加分(実装者の判断): デスクトップ側を20px統一(item 18→20px、tera 25→20px)に
+			   揃えたのに合わせ、この幅の値も14px/18pxの2種類から16px/16pxの1種類へ統一する。
+			   14+18=32=16+16 のため合計高さ(+gap)は変わらず、上記の安全域34.9px・クリアランス
+			   約1.6pxは変化しない(実測は報告参照)。 */
+			.box-grid .card-pokemon .card-item-badge {
+				width: 16px;
+				height: 16px;
+			}
+			.box-grid .card-pokemon .card-tera-badge {
+				width: 16px;
+				height: 16px;
+			}
+			.box-grid .card-pokemon .card-badge-row {
+				gap: 0.08rem;
 			}
 		}
 	</style>
@@ -1005,23 +1058,29 @@ const user = Astro.locals.user;
 				return "(未設定)";
 			}
 
-			// ラウンド4: タイプ・性格・特性・持ち物・テラスタイプ・技をカードの常時表示から
-			// 撤回した代わりに、カード<a>のtitle属性(ネイティブのホバーツールチップ)へ
-			// まとめる。表示名がニックネームのときは種族名も添え、情報を失わないようにする。
-			function buildCardTooltip(p: OwnedPokemon): string {
+			// ラウンド32 32-B4(ユーザー指示第15弾): 「カードのホバー表示にはステータスやメモなど、
+			// カード上に表示されていない情報だけ表示する」。旧title(とくせい/持ち物/わざ)は
+			// 32-B2・32-B3でその3つがカード上に常時可視になったため重複と判断し、実数値
+			// (H/A/B/C/D/S)とメモに入れ替える(round-32.mdより)。実数値はapplyActualStats()が
+			// 非同期(種族値マップ解決待ち)でstatValueEls/data-modを埋めるため、そちらが解決した
+			// 後に呼び出す(下のrenderCard内、applyActualStats(...).then(...)参照)。
+			// 種族値が解決できずstatValueElsが"-"のままの個体は実数値行を省略する(嘘の値は出さない)。
+			// メモ・実数値のどちらも無ければtitle属性自体を出さない(ユーザー指示どおり)。
+			function buildStatSummary(statValueEls: HTMLElement[]): string | null {
+				if (statValueEls.some((valueEl) => valueEl.textContent === "-")) return null;
+				return STAT_LABELS.map((label, i) => {
+					const valueEl = statValueEls[i];
+					const mark = valueEl.dataset.mod === "up" ? "▲" : valueEl.dataset.mod === "down" ? "▼" : "";
+					return `${label}${valueEl.textContent}${mark}`;
+				}).join(" ");
+			}
+			function applyCardTooltip(card: HTMLAnchorElement, statValueEls: HTMLElement[], memo: string | null): void {
 				const lines: string[] = [];
-				const shownName = displayName(p);
-				const species = p.species_name?.trim() ?? "";
-				if (species && species !== shownName) lines.push(`種族: ${species}`);
-				const ability = p.ability_name?.trim() ?? "";
-				if (ability) lines.push(`とくせい: ${ability}`);
-				const item = p.item_name?.trim() ?? "";
-				if (item) lines.push(`持ち物: ${item}`);
-				const tera = p.tera_type?.trim() ?? "";
-				if (tera) lines.push(`テラスタイプ: ${tera}`);
-				const moves = p.move_names.filter((name) => name && name.trim() !== "");
-				if (moves.length > 0) lines.push(`わざ: ${moves.join(" / ")}`);
-				return lines.join("\n");
+				const statSummary = buildStatSummary(statValueEls);
+				if (statSummary) lines.push(`実数値: ${statSummary}`);
+				const memoText = memo?.trim() ?? "";
+				if (memoText) lines.push(`メモ: ${memoText}`);
+				if (lines.length > 0) card.title = lines.join("\n");
 			}
 
 			// UI刷新: カード内の公式絵。取得できない場合は頭文字の丸バッジにフォールバックする。
@@ -1199,8 +1258,8 @@ const user = Astro.locals.user;
 				card.href = `/box/${encodeURIComponent(p.id)}`;
 				const name = displayName(p);
 				card.setAttribute("aria-label", `${name} を編集`);
-				const tooltip = buildCardTooltip(p);
-				if (tooltip) card.title = tooltip;
+				// title(ホバーツールチップ)は下のapplyActualStats().then(...)で実数値が
+				// 解決してから設定する(32-B4)。
 
 				// --- ピン留め/削除(単一アイコンボタン、カード右上に重ねる。要件7) ---
 				const actions = document.createElement("div");
@@ -1253,15 +1312,26 @@ const user = Astro.locals.user;
 
 				void applyCardSprite(spriteImg, spriteFallback, p.species_name ?? "");
 
-				// --- 優先順位4位: テラスタイプ(公式絵の右下に重ねる画像バッジ、20-B1で追加)。
-				//     ラウンド27 27-B1(ユーザー指示)で持ち物画像はこの重ね配置から分離し、
-				//     .card-body内(名前と技グリッドの間)の新しい行へ移した(下記参照)。
-				//     既定でhidden=trueにしてから非同期でsrc/hiddenを埋める
+				// --- 優先順位4位: アイテム画像+テラスタイプ(公式絵の右側に縦に並べるバッジ列)。
+				//     ラウンド32 32-B2(ユーザー指示第15弾): 「アイテムアイコンをポケモンアイコンの
+				//     右側(テラスタル画像の上)に配置」。従来は.card-item-badgeが.card-item-row
+				//     (持ち物のテキスト行)側にあったが、.card-art側のこの列へ移し、
+				//     テラスバッジ(.card-tera-badge)と縦に並べる(アイテムが上、テラスが下)。
+				//     どちらも既定でhidden=trueにしてから非同期でsrc/hiddenを埋める
 				//     (挿入順を実行順に依存させないための対策。pitfalls.md参照。
 				//     ラッパー.card-badge-row自体は背景/枠を持たないので、隠れていても
 				//     空の白丸は残らない)。 ---
 				const badgeRow = document.createElement("span");
 				badgeRow.className = "card-badge-row";
+
+				const itemBadge = document.createElement("span");
+				itemBadge.className = "card-item-badge";
+				itemBadge.hidden = true;
+				const itemImg = document.createElement("img");
+				itemImg.alt = "";
+				itemBadge.appendChild(itemImg);
+				badgeRow.appendChild(itemBadge);
+				void applyItemBadge(itemImg, itemBadge, p.item_name ?? "");
 
 				const teraBadge = document.createElement("span");
 				teraBadge.className = "card-tera-badge";
@@ -1288,23 +1358,20 @@ const user = Astro.locals.user;
 				nameEl.textContent = name;
 				body.appendChild(nameEl);
 
-				// --- 優先順位4位: 持ち物(画像+名前、ラウンド27 27-B1でユーザー指示により
-				//     公式絵への重ね配置から分離)。.card-body内の名前行と技グリッドの間に
-				//     新しい行として配置する。画像の右にアイテム名(テキスト)を表示する。
-				//     持ち物なしの個体は行自体(.card-item-row)は常時appendして高さを揃えるが
-				//     (ラウンド8 A-8のcard-moves-gridと同じ「予約して隠す」方式)、画像は
-				//     非表示・テキストは空文字のままにして何も表示しない。 ---
+				// --- 優先順位4位: 特性+持ち物(テキスト2列、ラウンド27 27-B1で新設した行を
+				//     ラウンド32 32-B3(ユーザー指示第15弾)で作り直したもの)。
+				//     「特性をアイテムの左側に表示」の指示どおり、.card-item-rowを
+				//     [特性名]-[持ち物名]の2列左右振り分けにする(アイコンは32-B2で
+				//     .card-art側へ移ったため、この行はテキスト2つだけになる)。
+				//     特性・持ち物のどちらか一方だけの個体でも列が崩れないよう、
+				//     もう片方は空文字列のまま(何も表示しない)にする。 ---
 				const itemRow = document.createElement("div");
 				itemRow.className = "card-item-row";
 
-				const itemBadge = document.createElement("span");
-				itemBadge.className = "card-item-badge";
-				itemBadge.hidden = true;
-				const itemImg = document.createElement("img");
-				itemImg.alt = "";
-				itemBadge.appendChild(itemImg);
-				itemRow.appendChild(itemBadge);
-				void applyItemBadge(itemImg, itemBadge, p.item_name ?? "");
+				const abilityNameEl = document.createElement("span");
+				abilityNameEl.className = "card-ability-name";
+				abilityNameEl.textContent = p.ability_name?.trim() ?? "";
+				itemRow.appendChild(abilityNameEl);
 
 				const itemNameEl = document.createElement("span");
 				itemNameEl.className = "card-item-name";
@@ -1363,7 +1430,7 @@ const user = Astro.locals.user;
 				}
 
 				body.appendChild(statGrid);
-				void applyActualStats(statValueEls, p);
+				void applyActualStats(statValueEls, p).then(() => applyCardTooltip(card, statValueEls, p.memo));
 
 				card.appendChild(body);
 
