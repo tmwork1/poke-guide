@@ -46,3 +46,11 @@ pnpm-debug.log*
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+
+# Claude Code: skills/ はチーム共有のためコミットするが、ローカル状態は除外する
+.claude/settings.local.json
+.claude/scheduled_tasks.lock
+
+# UI検証で一時的に作る Playwright スクリプト (作った本人が消す運用)
+/.tmp-*
+

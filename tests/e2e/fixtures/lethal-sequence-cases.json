@@ -1,0 +1,108 @@
+[
+  {
+    "id": "lethal_seq_basic_two_attacks",
+    "description": "基本の2連続攻撃(状態異常・ランク補正等の上書きなし): ピカチュウ「でんきショック」→「たいあたり」vs フシギダネ",
+    "attacker": { "name": "ピカチュウ", "moveNames": ["でんきショック", "たいあたり"] },
+    "defender": { "name": "フシギダネ" },
+    "attacks": [
+      { "moveName": "でんきショック" },
+      { "moveName": "たいあたり" }
+    ],
+    "seed": 1,
+    "critical": false,
+    "field": {}
+  },
+  {
+    "id": "lethal_seq_hit_count_multi",
+    "description": "hitCount>1の多段技1回ぶんの打点合成(全ヒット分がadd_distで畳み込まれることの確認): ピカチュウ「みだれひっかき」(3ヒット)vs フシギダネ",
+    "attacker": { "name": "ピカチュウ", "moveNames": ["みだれひっかき"] },
+    "defender": { "name": "フシギダネ" },
+    "attacks": [
+      { "moveName": "みだれひっかき", "hitCount": 3 }
+    ],
+    "seed": 9,
+    "critical": false,
+    "field": {}
+  },
+  {
+    "id": "lethal_seq_per_attack_boosts_override",
+    "description": "攻撃側ランク補正のper-attack上書きとカード共通値へのフォールバック: ピカチュウ「たいあたり」(1発目のみ攻撃ランク+2)vs カビゴン",
+    "attacker": { "name": "ピカチュウ", "moveNames": ["たいあたり"] },
+    "defender": { "name": "カビゴン" },
+    "attacks": [
+      { "moveName": "たいあたり", "attackerBoosts": [0, 2, 0, 0, 0, 0] },
+      { "moveName": "たいあたり" }
+    ],
+    "seed": 5,
+    "critical": false,
+    "field": {}
+  },
+  {
+    "id": "lethal_seq_per_attack_terastallize",
+    "description": "テラスタル発動のper-attack上書き(1発目のみ発動、2発目は解除状態にフォールバック): ヒトカゲ(テラスタイプほのお)「ひのこ」vs フシギダネ",
+    "attacker": { "name": "ヒトカゲ", "moveNames": ["ひのこ"], "teraType": "ほのお" },
+    "defender": { "name": "フシギダネ" },
+    "attacks": [
+      { "moveName": "ひのこ", "attackerTerastallized": true },
+      { "moveName": "ひのこ" }
+    ],
+    "seed": 3,
+    "critical": false,
+    "field": {}
+  },
+  {
+    "id": "lethal_seq_defender_ailment_burn",
+    "description": "防御側状態異常(やけど)のper-attack上書き(物理技ダメージ半減): ピカチュウ「たいあたり」vs カビゴン",
+    "attacker": { "name": "ピカチュウ", "moveNames": ["たいあたり"] },
+    "defender": { "name": "カビゴン" },
+    "attacks": [
+      { "moveName": "たいあたり", "defenderAilment": "やけど" },
+      { "moveName": "たいあたり" }
+    ],
+    "seed": 4,
+    "critical": false,
+    "field": {}
+  },
+  {
+    "id": "lethal_seq_defender_volatile_curse",
+    "description": "防御側揮発性状態(のろい)のper-attack上書き(UI改善ラウンド20 20-R3で追加されたvolatilesがcalc_lethal_sequence_jsonへ正しく反映されることの確認。防御側は片側性に注意): カビゴン「たいあたり」vs ディンルー",
+    "attacker": { "name": "カビゴン", "moveNames": ["たいあたり"] },
+    "defender": { "name": "ディンルー" },
+    "attacks": [
+      { "moveName": "たいあたり", "defenderVolatiles": ["のろい"] },
+      { "moveName": "たいあたり" }
+    ],
+    "seed": 6,
+    "critical": false,
+    "field": {}
+  },
+  {
+    "id": "lethal_seq_per_attack_field_override",
+    "description": "サイドフィールド・天候のper-attack上書き: ヒトカゲ「ひっかく」(1発目、防御側リフレクター)→「ひのこ」(2発目、はれ)vs ゼニガメ",
+    "attacker": { "name": "ヒトカゲ", "moveNames": ["ひっかく", "ひのこ"] },
+    "defender": { "name": "ゼニガメ" },
+    "attacks": [
+      { "moveName": "ひっかく", "defenderSideFields": ["リフレクター"] },
+      { "moveName": "ひのこ", "weather": "はれ" }
+    ],
+    "seed": 2,
+    "critical": false,
+    "field": {}
+  },
+  {
+    "id": "lethal_seq_early_termination",
+    "description": "累計致死率が100%に達した時点でlethal配列が打ち切られる(attacksより短くなり得る)ことの確認: ピカチュウ(ちからもち・急所固定)「たいあたり」を5回連続 vs ピカチュウ",
+    "attacker": { "name": "ピカチュウ", "abilityName": "ちからもち", "moveNames": ["たいあたり"] },
+    "defender": { "name": "ピカチュウ" },
+    "attacks": [
+      { "moveName": "たいあたり" },
+      { "moveName": "たいあたり" },
+      { "moveName": "たいあたり" },
+      { "moveName": "たいあたり" },
+      { "moveName": "たいあたり" }
+    ],
+    "seed": 5,
+    "critical": true,
+    "field": {}
+  }
+]

@@ -41,9 +41,16 @@ export interface OpponentAttackInput {
   attackerBoosts?: number[];
   attackerAilment?: string;
   attackerTerastallized?: boolean;
+  // 揮発性状態名の一覧(例 "じゅうでん")。src/lib/pyodide-engine.ts の
+  // PokemonSpec.volatiles/SequenceAttack.attackerVolatiles/defenderVolatiles に対応する
+  // 追加キー(UI改善ラウンド20 20-R3)。状態異常名(attackerAilment/defenderAilment)と同様、
+  // 許容リストはjpoke側の定義が正であり、ここでは二重管理のホワイトリストを作らず
+  // 「文字列配列であること」のみを検証する。
+  attackerVolatiles?: string[];
   defenderBoosts?: number[];
   defenderAilment?: string;
   defenderTerastallized?: boolean;
+  defenderVolatiles?: string[];
   defenderSideFields?: string[];
   weather?: string;
   terrain?: string;
@@ -212,9 +219,11 @@ function isAttacksArray(value: unknown): value is OpponentAttackInput[] {
     if (v.attackerBoosts !== undefined && !isBoostArray(v.attackerBoosts)) return false;
     if (v.attackerAilment !== undefined && typeof v.attackerAilment !== 'string') return false;
     if (v.attackerTerastallized !== undefined && typeof v.attackerTerastallized !== 'boolean') return false;
+    if (v.attackerVolatiles !== undefined && !isStringArray(v.attackerVolatiles)) return false;
     if (v.defenderBoosts !== undefined && !isBoostArray(v.defenderBoosts)) return false;
     if (v.defenderAilment !== undefined && typeof v.defenderAilment !== 'string') return false;
     if (v.defenderTerastallized !== undefined && typeof v.defenderTerastallized !== 'boolean') return false;
+    if (v.defenderVolatiles !== undefined && !isStringArray(v.defenderVolatiles)) return false;
     if (v.defenderSideFields !== undefined && !isStringArray(v.defenderSideFields)) return false;
     if (v.weather !== undefined && typeof v.weather !== 'string') return false;
     if (v.terrain !== undefined && typeof v.terrain !== 'string') return false;
@@ -379,9 +388,11 @@ function validateOpponentField(value: unknown): { ok: true; value: OpponentField
       if (attack.attackerBoosts !== undefined) normalized.attackerBoosts = attack.attackerBoosts;
       if (attack.attackerAilment !== undefined) normalized.attackerAilment = attack.attackerAilment;
       if (attack.attackerTerastallized !== undefined) normalized.attackerTerastallized = attack.attackerTerastallized;
+      if (attack.attackerVolatiles !== undefined) normalized.attackerVolatiles = attack.attackerVolatiles;
       if (attack.defenderBoosts !== undefined) normalized.defenderBoosts = attack.defenderBoosts;
       if (attack.defenderAilment !== undefined) normalized.defenderAilment = attack.defenderAilment;
       if (attack.defenderTerastallized !== undefined) normalized.defenderTerastallized = attack.defenderTerastallized;
+      if (attack.defenderVolatiles !== undefined) normalized.defenderVolatiles = attack.defenderVolatiles;
       if (attack.defenderSideFields !== undefined) normalized.defenderSideFields = attack.defenderSideFields;
       if (attack.weather !== undefined) normalized.weather = attack.weather;
       if (attack.terrain !== undefined) normalized.terrain = attack.terrain;

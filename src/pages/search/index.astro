@@ -1,10 +1,14 @@
 ---
 // Phase 4-2: 検索UI(ポケモン・技・特性・持ち物の横断検索)。
-// Phase 4-3: 「最近注目されているもの」表示枠(GET /api/suggestions?kind=trending_search)。
+// 🔴 UI改善ラウンド33 33-S1(ユーザー判断待ちキューの回答「DOMごと削除」): Phase 4-3で
+// 実装した「最近注目されているもの」表示枠(GET /api/suggestions?kind=trending_search)は
+// 常に空のまま10ラウンド以上放置されていたため、DOMごと削除した(→ round-33.md)。
+// API本体(src/pages/api/suggestions.ts)は他ページからの参照が無いことをgrepで確認した
+// うえでサーバー側はそのまま残している。クライアント側のfetch処理のみ削除した。
 //
 // 設計方針は damage-calc/index.astro を踏襲する:
 //   - このページ自体は SSR のプレースホルダー(静的なフォームの描画のみ)。
-//   - 検索・サジェスト取得はすべて下部の <script>(ブラウザ専用)に閉じ込める。
+//   - 検索はすべて下部の <script>(ブラウザ専用)に閉じ込める。
 //   - 素のDOM操作(el<T>() ヘルパー)、フレームワーク非導入。
 //
 // POST /api/search の契約(Phase 4-1で実装済み):
@@ -57,14 +61,6 @@ import AppLayout from '../../layouts/AppLayout.astro';
 			</div>
 		</section>
 
-		<section class="panel">
-			<div class="panel-content">
-				<h2>最近注目されているもの</h2>
-				<p class="card-hint">みんなの検索から傾向が見えてくると、ここに表示されます。</p>
-				<div id="trending-search">読み込み中...</div>
-			</div>
-		</section>
-
 		<style>
 			h3 { font-size: 1rem; margin-bottom: 0.3rem; }
 			/* global.css の `label { min-width: 6.5em }` 撤廃(UI品質改善タスクA)に伴い、
@@ -78,9 +74,42 @@ import AppLayout from '../../layouts/AppLayout.astro';
 			.radio-label { min-width: auto; font-weight: normal; margin-right: 1rem; }
 			.result-block { margin: 0.8rem 0; }
 			.result-block ul { padding-left: 1.2em; }
-			.result-block a { text-decoration: none; }
-			.result-block a:hover { text-decoration: underline; }
-			.suggestion-empty { color: var(--color-text-muted); font-style: italic; }
+			/* B-2: 結果リストの実コンテンツ幅は最長「リザードン(キョダイ)」でも171pxしかないのに
+			   .panel-content は1080px確保しているため、4件表示時にパネル右側84%が空白になる。
+			   カテゴリ(ポケモン/技/特性/持ち物)ごとに独立した<ul>をCSS multi-columnで多段化し、
+			   少数件でも横方向に密度を持たせる。<ul>自体はこのページの静的マークアップ内にあり
+			   (中身の<li>/<a>のみJSで動的生成)、data-astro-cid-*が付与されるためscoped styleで
+			   問題なく効く(A-7で対処した「JS生成要素にscopedが効かない」問題とは別レイヤー)。 */
+			.result-block ul {
+				column-width: 220px;
+				column-gap: var(--space-6);
+			}
+			.result-block li {
+				break-inside: avoid;
+			}
+			/* B-6: キーワード入力欄が .panel-content(1080px)の中で207pxのまま伸びず、
+			   placeholderが「特性」で切れていた。.row (global.css) はflex-wrapのみで
+			   flex-directionをcolumnに切り替えないため、#queryの伸長がそのまま横幅に
+			   反映される。 */
+			#query { flex: 1 1 320px; max-width: 36rem; }
+			/* pitfalls.md: `flex: 1 1 320px` は縦積み(flex-direction: column)に切り替わる
+			   ブレークポイントでflex-basisが主軸=高さの基準として解釈され、入力欄が320px
+			   まで伸びる事故が/boxのツールバーで実際に起きた。.rowはこのページでは常に
+			   flex-direction: row(columnへの切り替えを持たない)ため実害は無いはずだが、
+			   将来の回帰に備えて同じガードをここにも置く。 */
+			@media (max-width: 640px) {
+				#query { flex-basis: auto; }
+			}
+		</style>
+		<style is:global>
+			/* 以下の2ルールは document.createElement() で生成する要素(検索結果の<a>と
+			   サジェスト空状態の<p>)に適用する。Astroの scoped style は data-astro-cid-*
+			   属性が付いた要素にしか効かず、JSで生成した要素には付与されないため、
+			   上の scoped <style> に書いても効かない(scopedのまま詳細度を上げても直らない)。
+			   このページ内で一意な id (#results-section / #trending-search) を前置し、
+			   他ページへスコープが漏れないようにする。 */
+			#results-section .result-block a { text-decoration: none; }
+			#results-section .result-block a:hover { text-decoration: underline; }
 		</style>
 
 		<script>
@@ -97,7 +126,6 @@ import AppLayout from '../../layouts/AppLayout.astro';
 			const queryInput = el<HTMLInputElement>("query");
 			const statusEl = el<HTMLElement>("search-status");
 			const resultsSection = el<HTMLElement>("results-section");
-			const trendingEl = el<HTMLElement>("trending-search");
 
 			type SearchCategory = "pokemon" | "move" | "ability" | "item";
 
@@ -109,6 +137,12 @@ import AppLayout from '../../layouts/AppLayout.astro';
 				{ key: "ability", linkBase: null },
 				{ key: "item", linkBase: null },
 			];
+
+			const VALID_CATEGORIES = CATEGORY_CONFIG.map((c) => c.key);
+			// URLクエリ・sessionStorage経由で受け取る category は不正値の可能性があるため検証する。
+			function isValidCategory(value: string): value is SearchCategory {
+				return (VALID_CATEGORIES as string[]).includes(value);
+			}
 
 			interface SearchResultItem {
 				name: string;
@@ -124,6 +158,59 @@ import AppLayout from '../../layouts/AppLayout.astro';
 			function getSelectedCategory(): string {
 				const checked = document.querySelector<HTMLInputElement>('input[name="category"]:checked');
 				return checked?.value ?? "";
+			}
+
+			function setCategoryRadio(category: string): void {
+				const target =
+					document.querySelector<HTMLInputElement>(`input[name="category"][value="${category}"]`) ??
+					document.querySelector<HTMLInputElement>('input[name="category"][value=""]');
+				if (target) {
+					target.checked = true;
+				}
+			}
+
+			// 検索状態をURLクエリに反映する。history.pushState は使わない
+			// (300msデバウンスの入力ごとに履歴が積もり、戻るボタンが壊れるため)。
+			function updateUrlState(query: string, category: string): void {
+				const params = new URLSearchParams();
+				if (query) params.set("q", query);
+				if (category) params.set("category", category);
+				const search = params.toString();
+				const newUrl = `${location.pathname}${search ? `?${search}` : ""}`;
+				history.replaceState(null, "", newUrl);
+			}
+
+			// /pokemon /moves は静的プリレンダリングのため backHref (常に "/search") に
+			// 検索語を焼き込めない。ブラウザバックでURLそのものが失われるケースの保険として、
+			// sessionStorage にも直近の検索状態を残す(復元優先度: URLクエリ > sessionStorage > 空)。
+			const STORAGE_KEY = "poke-commons:search-state";
+
+			interface StoredSearchState {
+				query: string;
+				category: string;
+			}
+
+			function saveSearchState(query: string, category: string): void {
+				try {
+					sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ query, category }));
+				} catch {
+					// sessionStorage が使えない環境(プライベートモード等)では諦める。
+				}
+			}
+
+			function loadSearchState(): StoredSearchState | null {
+				try {
+					const raw = sessionStorage.getItem(STORAGE_KEY);
+					if (!raw) return null;
+					const parsed = JSON.parse(raw) as Partial<StoredSearchState>;
+					if (typeof parsed.query !== "string") return null;
+					return {
+						query: parsed.query,
+						category: typeof parsed.category === "string" ? parsed.category : "",
+					};
+				} catch {
+					return null;
+				}
 			}
 
 			function renderResults(data: SearchResponseData | null): void {
@@ -171,6 +258,8 @@ import AppLayout from '../../layouts/AppLayout.astro';
 				if (!query) {
 					statusEl.textContent = "キーワードを入力してください";
 					renderResults(null);
+					updateUrlState("", "");
+					saveSearchState("", "");
 					return;
 				}
 				const category = getSelectedCategory();
@@ -192,6 +281,11 @@ import AppLayout from '../../layouts/AppLayout.astro';
 					const body = (await res.json()) as { data: SearchResponseData };
 					statusEl.textContent = body.data.hitCount === 0 ? "該当なし" : `${body.data.hitCount}件ヒットしました`;
 					renderResults(body.data);
+					// searchToken のチェック(token !== searchToken の早期returnの内側)を通過した、
+					// すなわち最新の応答であることを確認した後に replaceState を呼ぶ。
+					// 古い(デバウンス中に上書きされた)応答でURLを書き戻さないため。
+					updateUrlState(query, category);
+					saveSearchState(query, category);
 				} catch (err) {
 					if (token !== searchToken) return;
 					console.error(err);
@@ -215,50 +309,32 @@ import AppLayout from '../../layouts/AppLayout.astro';
 				radio.addEventListener("change", scheduleSearch);
 			});
 
-			// --- Phase 4-3: 「最近注目されているもの」表示枠 ---
-			// suggestions テーブルは Phase 5 まで空のため、空状態表示になる
-			// (damage-calc/index.astro のサジェスト空枠と同じパターン)。
-			interface SuggestionItem {
-				kind: string;
-				subject_key: string;
-				payload: unknown;
-				computed_at: string;
-			}
-
-			async function loadTrendingSearches(): Promise<void> {
-				try {
-					const res = await fetch("/api/suggestions?kind=trending_search&limit=10", {
-						credentials: "same-origin",
-					});
-					if (!res.ok) {
-						console.warn(`サジェスト取得に失敗しました (status=${res.status})`);
-						trendingEl.textContent = "読み込みに失敗しました";
-						return;
+			// --- A-6: 検索状態をURLに読み書きする ---
+			// /search は /pokemon /moves の唯一の入口であり、両詳細ページの backHref="/search" が
+			// 指す唯一の戻り先。URLクエリ優先 → sessionStorage → 空、の順で復元することで、
+			// 「検索 → 詳細を開く → 戻る」で検索語と結果が失われないようにする。
+			function restoreSearchState(): void {
+				const params = new URLSearchParams(location.search);
+				let query = "";
+				let category = "";
+				if (params.has("q")) {
+					query = params.get("q") ?? "";
+					const rawCategory = params.get("category") ?? "";
+					category = isValidCategory(rawCategory) ? rawCategory : "";
+				} else {
+					const stored = loadSearchState();
+					if (stored) {
+						query = stored.query;
+						category = isValidCategory(stored.category) ? stored.category : "";
 					}
-					const body = (await res.json()) as { data?: SuggestionItem[] };
-					const items = body.data ?? [];
-					trendingEl.innerHTML = "";
-					if (items.length === 0) {
-						const p = document.createElement("p");
-						p.className = "suggestion-empty";
-						p.textContent = "まだデータがありません(集合知はこれから育っていきます)";
-						trendingEl.appendChild(p);
-						return;
-					}
-					const ul = document.createElement("ul");
-					for (const item of items) {
-						const li = document.createElement("li");
-						li.textContent = JSON.stringify(item.payload);
-						ul.appendChild(li);
-					}
-					trendingEl.appendChild(ul);
-				} catch (err) {
-					console.warn("サジェスト取得に失敗しました", err);
-					trendingEl.textContent = "読み込みに失敗しました";
 				}
+				if (!query) return;
+				queryInput.value = query;
+				setCategoryRadio(category);
+				void runSearch();
 			}
 
-			void loadTrendingSearches();
+			restoreSearchState();
 		</script>
 	</div>
 </AppLayout>

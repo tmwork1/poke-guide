@@ -8,6 +8,27 @@
 import AppLayout from '../../layouts/AppLayout.astro';
 import { getSupabasePublicClient } from '../../lib/supabase';
 import { getPublicOwnedPokemonBySlug, type PublicOwnedPokemonRecord } from '../../lib/owned-pokemon';
+// ラウンド13 A-2: 実数値をサーバ側(フロントマター)で計算するための種族値データ。
+// pokemon/[name].astro と同じく public/master-data/detail/pokemon.json をビルド時 import する
+// (ビルド時に確定する静的データなのでfetchではなくESM importで読める)。
+import pokemonDetailRaw from '../../../public/master-data/detail/pokemon.json';
+// ラウンド15 A-2: タイプ欄+公式絵を追加するための画像ID・タイプデータ。
+// detail/pokemon.json は types は持つが imageId(公式絵のPokeAPI ID)を持たないため、
+// pokemon/[name].astro が使っているのと同じ autocomplete/pokemon.json
+// (dexNo+imageId+types を name で引ける軽量データ)をこちらもビルド時 import で読む。
+import pokemonMasterRaw from '../../../public/master-data/autocomplete/pokemon.json';
+// ラウンド15 A-4: 技名を /moves/[name] へリンクしてよいか(=そのページが実在するか)の判定用。
+// moves/[name].astro の getStaticPaths() は detail/moves.json (Object.values) をそのまま
+// パス生成に使っているため、同じソースから作ったSetで存在確認すれば、リンク切れ・404遷移を
+// 作らずに済む(存在しない技名は素のテキストのままにする)。
+import movesDetailRaw from '../../../public/master-data/detail/moves.json';
+import { toPokemonPathSegment } from '../../lib/pokemon-slug';
+import { officialArtworkUrl } from '../../lib/pokemon-master-data';
+import { typeIconUrl } from '../../lib/sprite-urls';
+// ラウンド18: 実数値計算の共通化。box/index.astro・box/[id].astro・pokemon/[name].astroと
+// 4箇所にコピーされていたchmpToLegacyEffort/calcHpStat/calcOtherStat/NATURE_STAT_MODIFIERSを
+// src/lib/stats.tsに統合した。
+import { NATURE_STAT_MODIFIERS, calcHpStat, calcOtherStat } from '../../lib/stats';
 
 // API ルート (src/pages/api/**) と同じく、動的ルートはSSRで都度サーバレンダリングする
 // (ビルド時の静的プリレンダリングではなく、リクエストのたびにDBを参照するため)。
@@ -15,14 +36,50 @@ export const prerender = false;
 
 const { slug } = Astro.params;
 
-const STAT_LABELS: Array<{ key: 'hp' | 'atk' | 'def' | 'spa' | 'spd' | 'spe'; label: string }> = [
-	{ key: 'hp', label: 'HP' },
-	{ key: 'atk', label: '攻撃' },
-	{ key: 'def', label: '防御' },
-	{ key: 'spa', label: '特攻' },
-	{ key: 'spd', label: '特防' },
-	{ key: 'spe', label: '素早さ' },
-];
+// 努力値・実数値グリッドの列順([HP, 攻撃, 防御, 特攻, 特防, 素早さ])。
+// evs/ivs配列の並びと一致させる(box/index.astro の STAT_KEYS と同じ順序)。
+const STAT_KEYS = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'] as const;
+const STAT_LABELS = ['H', 'A', 'B', 'C', 'D', 'S'] as const;
+
+// ラウンド18: 実数値の計算式(chmpToLegacyEffort/calcHpStat/calcOtherStat/
+// NATURE_STAT_MODIFIERS)はsrc/lib/stats.tsに統合した(このファイルにあったコピーは削除。
+// 上のimport参照。出典はsrc/lib/stats.ts冒頭のコメント参照)。
+interface PokemonDetailEntry {
+	name: string;
+	baseStats: number[];
+}
+
+const baseStatsMap = new Map<string, number[]>(
+	Object.values(pokemonDetailRaw as Record<string, PokemonDetailEntry>).map((p) => [p.name, p.baseStats]),
+);
+
+// ラウンド15 A-2: 種族名からタイプ・公式絵IDを引くための軽量マップ
+// (pokemon/[name].astro の masterEntry/artworkUrl と同じ組み立て方)。
+interface PokemonMasterEntry {
+	name: string;
+	dexNo: number;
+	imageId: number;
+	forme: string | null;
+	types: string[];
+}
+const pokemonMasterMap = new Map<string, PokemonMasterEntry>(
+	(pokemonMasterRaw as PokemonMasterEntry[]).map((p) => [p.name, p]),
+);
+
+// ラウンド15 A-4: /moves/[name] が実在する技名の集合(存在しない技名はリンク化せず素のテキストにする)。
+interface MoveDetailNameOnly {
+	name: string;
+}
+const moveNameSet = new Set<string>(
+	Object.values(movesDetailRaw as Record<string, MoveDetailNameOnly>).map((m) => m.name),
+);
+
+interface StatCell {
+	label: (typeof STAT_LABELS)[number];
+	ev: number;
+	value: number | null;
+	mod: 'up' | 'down' | null;
+}
 
 let pokemon: PublicOwnedPokemonRecord | null = null;
 
@@ -45,23 +102,51 @@ if (!pokemon) {
 
 const displayName = pokemon ? (pokemon.nickname || pokemon.species_name) : '';
 
-// species_name 等は自由入力文字列(実在ポケモン名限定のバリデーションはしていない)なので、
-// <script>タグへ埋め込む際に "</script>" 等でタグを閉じて注入されないよう "</" をエスケープする
-// (JSONをscriptタグに安全に埋め込む定石)。
-function safeJsonForScript(value: unknown): string {
-	return JSON.stringify(value).replace(/</g, '\\u003c');
+// ラウンド13 A-2: 実数値をリクエスト時にサーバ側で計算し、静的HTMLとして焼く
+// (クライアントJS・Pyodideは一切使わない)。種族値が解決できない場合は value を null のまま
+// 残し、表示側で "-" にフォールバックする。
+let statCells: StatCell[] = STAT_LABELS.map((label) => ({ label, ev: 0, value: null, mod: null }));
+
+if (pokemon) {
+	const base = baseStatsMap.get(pokemon.species_name);
+	const level = pokemon.level ?? 50;
+	const mod = NATURE_STAT_MODIFIERS[pokemon.nature ?? ''] ?? { up: null, down: null };
+	statCells = STAT_KEYS.map((key, i) => {
+		const iv = pokemon!.ivs[i] ?? 31;
+		const ev = pokemon!.evs[i] ?? 0;
+		const value = base
+			? key === 'hp'
+				? calcHpStat(level, base[i], iv, ev)
+				: calcOtherStat(level, base[i], iv, ev, mod.up === key ? 1.1 : mod.down === key ? 0.9 : 1.0)
+			: null;
+		return {
+			label: STAT_LABELS[i],
+			ev,
+			value,
+			mod: key !== 'hp' && mod.up === key ? 'up' : key !== 'hp' && mod.down === key ? 'down' : null,
+		};
+	});
 }
+
+// ラウンド15 A-2: masterEntry が見つからない種族名(データに無い)では画像・タイプ欄を
+// 一切出さない。過去に「<img>だけ隠して空のラッパー(白い丸)が残り続ける」事故が3回
+// 起きているため、<img>単体ではなく右カラムのラッパーごと隠す(下のテンプレート側で
+// masterEntry の有無だけを条件にする)。
+const masterEntry = pokemon ? pokemonMasterMap.get(pokemon.species_name) ?? null : null;
+const artworkUrl = masterEntry ? officialArtworkUrl(masterEntry.imageId) : null;
+
+// ラウンド15 A-4: 種族名の詳細ページ(/pokemon/[name])が実在するか。
+// baseStatsMap は /pokemon/[name].astro の getStaticPaths() と同じ detail/pokemon.json 由来なので、
+// ここに無い名前は静的パスも生成されておらず、リンクにすると必ず404になる。
+const speciesHasPage = pokemon ? baseStatsMap.has(pokemon.species_name) : false;
+
+// A-1: 未使用だった description props を実際に渡す(公開ページなのに meta description が
+// 無かった)。
+const description = pokemon
+	? `${displayName}(${pokemon.species_name})の育成データを公開しています。性格・特性・持ち物・技構成・努力値・実数値を確認できます。`
+	: '指定された個体は存在しないか、非公開に設定されています。';
 ---
-<AppLayout title={pokemon ? `${displayName}の個体` : '見つかりません'}>
-	<style>
-		/* 帯化(.panel-content max-width:1080px)に伴い、努力値/個体値・実数値の表が
-		   global.css の table { width:100% } のまま伸びると間延びするため、
-		   このページの表だけ内容幅に留める(第三者が閲覧する公開ページなので読みやすさ優先)。 */
-		table {
-			width: auto;
-			min-width: 26em;
-		}
-	</style>
+<AppLayout title={pokemon ? `${displayName}の個体` : '見つかりません'} description={description} chrome="public">
 	<div class="page">
 
 		{!pokemon ? (
@@ -75,150 +160,218 @@ function safeJsonForScript(value: unknown): string {
 				<section class="panel">
 					<div class="panel-content">
 						<h2>育成内容</h2>
-						<dl>
-							<dt>ポケモン</dt>
-							<dd>{pokemon.species_name}</dd>
-							<dt>性格</dt>
-							<dd>{pokemon.nature ?? '(未設定)'}</dd>
-							<dt>特性</dt>
-							<dd>{pokemon.ability_name ?? '(未設定)'}</dd>
-							<dt>持ち物</dt>
-							<dd>{pokemon.item_name ?? '(未設定)'}</dd>
-							<dt>テラスタイプ</dt>
-							<dd>{pokemon.tera_type ?? '(未設定)'}</dd>
-							<dt>技構成</dt>
-							<dd>{pokemon.move_names.length > 0 ? pokemon.move_names.join(' / ') : '(未設定)'}</dd>
-						</dl>
+						{/* ラウンド15 A-2/A-4: 左にテキスト情報(dl)、右に公式絵+タイプアイコンピルを
+						    flexで並べる(pokemon/[name].astro の .identity-block と同じ
+						    「テキスト flex:1 / 画像 flex:0 0 auto + margin-left:auto」構成に揃える。
+						    編集禁止ファイルのクラスは流用せずこのページ専用に新設した)。
+						    ポケモン名・技名は詳細ページが実在する場合のみ<a>化し、区切りの" / "は
+						    リンク外に置く。 */}
+						<div class="share-identity">
+							<dl>
+								<dt>ポケモン</dt>
+								<dd>
+									{speciesHasPage ? (
+										<a href={`/pokemon/${encodeURIComponent(toPokemonPathSegment(pokemon.species_name))}`}>{pokemon.species_name}</a>
+									) : pokemon.species_name}
+								</dd>
+								<dt>性格</dt>
+								<dd>{pokemon.nature ?? '(未設定)'}</dd>
+								<dt>特性</dt>
+								<dd>{pokemon.ability_name ?? '(未設定)'}</dd>
+								<dt>持ち物</dt>
+								<dd>{pokemon.item_name ?? '(未設定)'}</dd>
+								<dt>テラスタイプ</dt>
+								<dd>{pokemon.tera_type ?? '(未設定)'}</dd>
+								<dt>技構成</dt>
+								<dd>
+									{pokemon.move_names.length > 0 ? (
+										pokemon.move_names.map((moveName, i) => (
+											<>
+												{i > 0 && ' / '}
+												{moveNameSet.has(moveName) ? (
+													<a href={`/moves/${encodeURIComponent(moveName)}`}>{moveName}</a>
+												) : moveName}
+											</>
+										))
+									) : '(未設定)'}
+								</dd>
+							</dl>
+							{masterEntry && (
+								<div class="share-identity-media">
+									{artworkUrl && <img src={artworkUrl} width="160" height="160" alt="" />}
+									{masterEntry.types.length > 0 && (
+										<ul class="share-identity-type-list">
+											{masterEntry.types.map((t) => {
+												const iconUrl = typeIconUrl(t);
+												return (
+													<li class="share-identity-type-chip">
+														{iconUrl && <img src={iconUrl} width="28" height="28" alt="" />}
+														<span>{t}</span>
+													</li>
+												);
+											})}
+										</ul>
+									)}
+								</div>
+							)}
+						</div>
 					</div>
 				</section>
 
 				<section class="panel">
 					<div class="panel-content">
-						<h2>努力値・個体値</h2>
-						<table>
-							<thead>
-								<tr>
-									<th>ステータス</th>
-									{STAT_LABELS.map(({ label }) => <th>{label}</th>)}
-								</tr>
-							</thead>
-							<tbody>
-								<tr>
-									<td>努力値</td>
-									{STAT_LABELS.map((_, i) => <td>{pokemon!.evs[i] ?? 0}</td>)}
-								</tr>
-								<tr>
-									<td>個体値</td>
-									{STAT_LABELS.map((_, i) => <td>{pokemon!.ivs[i] ?? 31}</td>)}
-								</tr>
-							</tbody>
-						</table>
+						<h2>能力値</h2>
+						{/* ラウンド13 A-5: 素の<table>をやめ、/boxの数値グリッド語彙(行ラベル1列+H/A/B/C/D/Sの
+						    6列の7列グリッド)に統一する。クラス名は/boxから流用せずこのページ専用に新設した。
+						    DOMは行優先(見出し7セル→努力値7セル→実数値7セル)。個体値の行はIV=31固定という
+						    仕様上つねに同じ値が並ぶだけで情報量が無いため削除し、.card-hintの1行に置き換える。 */}
+						<div class="share-stat-grid">
+							<span class="share-stat-row-label" aria-hidden="true"></span>
+							{STAT_LABELS.map((label) => <span class="share-stat-col-label">{label}</span>)}
+
+							<span class="share-stat-row-label">努力値</span>
+							{statCells.map((cell) => <span class="share-stat-cell tnum">{cell.ev}</span>)}
+
+							<span class="share-stat-row-label">実数値</span>
+							{statCells.map((cell) => (
+								<span class="share-stat-cell share-stat-cell-real tnum" data-mod={cell.mod ?? undefined}>
+									{cell.value ?? '-'}
+									{cell.mod === 'up' && <span aria-hidden="true">▲</span>}
+									{cell.mod === 'down' && <span aria-hidden="true">▼</span>}
+								</span>
+							))}
+						</div>
+						{/* ラウンド13追補: グローバルの.card-hintは「見出し直下に詰めて置く」前提で
+						    margin-top: calc(var(--space-2) * -1) を持つ(box/[id].astro・pokemon/[name].astro・
+						    search/index.astroの各.card-hintは全てh2/h3直後で使われている)。このページだけは
+						    見出しではなく7列グリッドの直後に置くため、他画面の.card-hintの意味を変えずに
+						    ここだけ打ち消す(グローバル側は編集しない)。詳細度はscoped属性2つぶん
+						    (0,3,0)でグローバルの0,1,0に確実に勝つ。 */}
+						<p class="share-stat-hint card-hint">個体値は全て31(チャンピオンズルール)</p>
 					</div>
 				</section>
-
-				<section class="panel">
-					<div class="panel-content">
-						<h2>実数値</h2>
-						<p>
-							<button id="calc-stats-button" class="btn-primary" type="button">実数値を計算する</button>
-						</p>
-						<p id="engine-status" class="status-text" data-state="idle">未計算(ボタンを押すまでPyodideはロードされません)</p>
-						<table id="stats-table" hidden>
-							<thead>
-								<tr>
-									{STAT_LABELS.map(({ label }) => <th>{label}</th>)}
-								</tr>
-							</thead>
-							<tbody>
-								<tr id="stats-row">
-									{STAT_LABELS.map(() => <td>-</td>)}
-								</tr>
-							</tbody>
-						</table>
-					</div>
-				</section>
-
-				{/* サーバ側で取得した個体データをブラウザ専用<script>へ橋渡しするためのJSON。
-					Astroのdefine:varsはスクリプトを非処理(inline)化しVite経由の静的importが
-					使えなくなるため、damage-calcページと同じ「static importするmoduleスクリプト」
-					のパターンを保つ目的でこの方式を採る。 */}
-				<script type="application/json" id="pokemon-data" set:html={safeJsonForScript(pokemon)} />
-
-				<script>
-					import { initEngine, calcStats, registerOfflineCache, type PokemonSpec } from "../../lib/pyodide-engine";
-
-					interface PokemonData {
-						species_name: string;
-						nature: string | null;
-						ability_name: string | null;
-						item_name: string | null;
-						tera_type: string | null;
-						evs: number[];
-						ivs: number[];
-						move_names: string[];
-					}
-
-					function el<T extends HTMLElement>(id: string): T {
-						const found = document.getElementById(id);
-						if (!found) {
-							throw new Error(`要素が見つかりません: #${id}`);
-						}
-						return found as T;
-					}
-
-					const STAT_KEYS = ["hp", "atk", "def", "spa", "spd", "spe"] as const;
-
-					const pokemonDataEl = el<HTMLScriptElement>("pokemon-data");
-					const pokemon = JSON.parse(pokemonDataEl.textContent ?? "null") as PokemonData | null;
-
-					const statusEl = el<HTMLElement>("engine-status");
-					const calcButton = el<HTMLButtonElement>("calc-stats-button");
-					const statsTable = el<HTMLTableElement>("stats-table");
-					const statsRow = el<HTMLTableRowElement>("stats-row");
-
-					function renderProgress(progress: { status: string; message: string }) {
-						statusEl.dataset.state = progress.status;
-						const spinner = progress.status === "loading" ? '<span class="spinner"></span>' : "";
-						statusEl.innerHTML = spinner + progress.message;
-					}
-
-					calcButton.addEventListener("click", async () => {
-						if (!pokemon) return;
-						calcButton.disabled = true;
-						try {
-							await initEngine(renderProgress);
-							const spec: PokemonSpec = {
-								name: pokemon.species_name,
-								nature: pokemon.nature ?? undefined,
-								abilityName: pokemon.ability_name ?? undefined,
-								itemName: pokemon.item_name ?? undefined,
-								teraType: pokemon.tera_type ?? undefined,
-								moveNames: pokemon.move_names,
-								evs: pokemon.evs,
-								ivs: pokemon.ivs,
-							};
-							const { stats } = await calcStats(spec);
-							statsRow.innerHTML = "";
-							for (const key of STAT_KEYS) {
-								const td = document.createElement("td");
-								td.textContent = String(stats[key]);
-								statsRow.appendChild(td);
-							}
-							statsTable.hidden = false;
-						} catch (err) {
-							console.error(err);
-							statusEl.dataset.state = "error";
-							statusEl.textContent = "エラー: " + (err instanceof Error ? err.message : String(err));
-						} finally {
-							calcButton.disabled = false;
-						}
-					});
-
-					renderProgress({ status: "idle", message: "未計算(ボタンを押すまでPyodideはロードされません)" });
-					// Pyodide自体のロードは開始しない(SW登録のみ)。damage-calc ページと同じ方針。
-					registerOfflineCache();
-				</script>
 			</>
 		)}
 		</div>
 </AppLayout>
+
+<style>
+	/* ラウンド15 A-2: 育成内容パネルを「テキスト情報(dl) + 右に公式絵/タイプ」の
+	   flex行にする。pokemon/[name].astro の .identity-block と同じ考え方
+	   (dl側 flex:1、画像側 flex:0 0 auto + margin-left:auto で右詰め、
+	   幅が足りない画面では折り返す)だが、編集禁止ファイルのクラスは流用せず
+	   このページ専用クラスとして新設した。.panel-content の max-width: 1080px は
+	   変更しない(このflex行はその内側で完結する)。 */
+	.share-identity {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: flex-start;
+		gap: var(--space-6);
+	}
+	.share-identity dl {
+		flex: 1 1 320px;
+		min-width: 0;
+	}
+	.share-identity-media {
+		flex: 0 0 auto;
+		margin-left: auto;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: var(--space-3);
+	}
+	.share-identity-media img {
+		display: block;
+		width: 160px;
+		height: 160px;
+		object-fit: contain;
+	}
+	.share-identity-type-list {
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: center;
+		gap: var(--space-2);
+		list-style: none;
+		margin: 0;
+		padding: 0;
+	}
+	/* pokemon/[name].astro の .identity-type-chip と同形(アイコン+タイプ名テキストの併記、
+	   色だけに意味を持たせない)。 */
+	.share-identity-type-chip {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.4em;
+		padding: 0.2em 0.7em 0.2em 0.3em;
+		border-radius: 999px;
+		background: var(--color-surface-alt);
+		font-weight: 600;
+	}
+	.share-identity-type-chip img {
+		display: block;
+		width: 28px;
+		height: 28px;
+		border-radius: 50%;
+	}
+	@media (max-width: 640px) {
+		.share-identity-media {
+			margin-left: 0;
+		}
+	}
+
+	/* ラウンド13 A-5: 4.5rem(行ラベル列)+ 6列(H/A/B/C/D/S)の7列グリッド。
+	   罫線は使わない(旧<table>のライト1.25:1/ダーク1.27:1問題はこれ自体で解消する)。 */
+	.share-stat-grid {
+		display: grid;
+		grid-template-columns: 4.5rem repeat(6, minmax(0, 1fr));
+		gap: 0.3rem 0.4rem;
+		align-items: center;
+	}
+	/* グローバルの.card-hintが持つ margin-top: calc(var(--space-2) * -1) を打ち消す
+	   (このページでは見出しではなく上のグリッド直後に置くため、負マージンだとグリッドに
+	   食い込んで「実数値」ラベルの注記に見えてしまう)。グリッドとの間は通常の余白
+	   (--space-3)を空け、グリッド左端と揃う独立した1行として読めるようにする。
+	   .card-hintクラス自体は他画面(box/[id].astro・pokemon/[name].astro・search/index.astro)
+	   でも見出し直下の詰め配置に使われているため、グローバル側は変更せずこのページ専用の
+	   .share-stat-hintをscoped styleで足して打ち消す(scoped属性2つぶんの詳細度で確実に勝つ)。 */
+	.share-stat-hint {
+		margin-top: var(--space-3);
+	}
+	.share-stat-row-label {
+		font-size: var(--font-size-sm);
+		font-weight: 700;
+		color: var(--color-text-muted);
+		white-space: nowrap;
+	}
+	.share-stat-col-label {
+		font-size: var(--font-size-sm);
+		font-weight: 700;
+		text-align: center;
+		color: var(--color-text-muted);
+	}
+	.share-stat-cell {
+		text-align: center;
+		font-size: var(--font-size-md);
+	}
+	.share-stat-cell-real {
+		font-size: 1.1em;
+		font-weight: 700;
+	}
+	/* box/[id].astroの--stat-up/--stat-downと同じ配色(上昇=赤系/下降=青系)。
+	   このページ専用のスコープ変数として.pageに持たせる(他ページの値と混線しない)。 */
+	.page {
+		--share-stat-up: #c9432c;
+		--share-stat-down: #1d6fd1;
+	}
+	@media (prefers-color-scheme: dark) {
+		.page {
+			--share-stat-up: var(--color-danger);
+			--share-stat-down: #6fb6f7;
+		}
+	}
+	.share-stat-cell-real[data-mod='up'] {
+		color: var(--share-stat-up);
+	}
+	.share-stat-cell-real[data-mod='down'] {
+		color: var(--share-stat-down);
+	}
+</style>

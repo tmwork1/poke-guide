@@ -2,10 +2,17 @@
 // 全ページ共通のサイドバー(UI刷新、2026-07-25)。docs/ui_proposal/Box.png 等のワイヤーフレームに準拠する。
 // アイコンは外部ライブラリを使わず、lucide風の線画をインラインSVGとして自前定義する。
 interface Props {
-	current?: "box" | "dev";
+	current?: "box" | "team" | "dev";
+	/**
+	 * 2026-07-27 ラウンド20 20-H2: ログイン情報をサイドバー最下段に表示するため、
+	 * AppLayout.astro が Astro.locals.user から読んだ値をそのまま受け取る。
+	 * AppSidebar は chrome="public"(/share 等)では描画されないため、ここに渡らない
+	 * = 未ログインの第三者にログイン情報が漏れることはない。
+	 */
+	user?: { email?: string | null; displayName?: string | null; id?: string } | null;
 }
 
-const { current } = Astro.props;
+const { current, user } = Astro.props;
 
 const ICONS = {
 	home: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg>`,
@@ -29,7 +36,7 @@ const SECTIONS: { heading: string; items: SidebarItem[] }[] = [
 		heading: "育成",
 		items: [
 			{ key: "box", label: "ボックス", href: "/box", icon: "home" },
-			{ key: "team", label: "チーム", icon: "users", disabled: true },
+			{ key: "team", label: "チーム", href: "/team", icon: "users" },
 			{ key: "trend", label: "トレンド", icon: "trending-up", disabled: true },
 		],
 	},
@@ -77,6 +84,26 @@ const SECTIONS: { heading: string; items: SidebarItem[] }[] = [
 			</div>
 		))}
 	</nav>
+	<div class="app-sidebar-account">
+		{
+			user ? (
+				<Fragment>
+					{/* UI改善ラウンド33 33-G1(ユーザー判断待ちキューの回答「接頭辞を削除」): 可視テキストからは
+					    「ログイン中: 」を削除しメールアドレスのみ表示する(移設先がログアウトボタンの真上のため
+					    文脈で伝わる、というユーザーの判断)。読み上げでは引き続き「ログイン中のアカウントである」
+					    ことが伝わるよう、aria-labelに接頭辞付きの文言を残す(28-R9と同じ「視覚的に消しても
+					    読み上げ情報は落とさない」方針)。クラス名 app-sidebar-account-email は改名しない
+					    (global.cssのモバイル二重表示打ち消しが依存している)。 */}
+					<span class="app-sidebar-account-email" aria-label={`ログイン中: ${user.email ?? user.displayName ?? user.id}`}>{user.email ?? user.displayName ?? user.id}</span>
+					<form method="POST" action="/api/auth/logout">
+						<button type="submit" class="btn-ghost">ログアウト</button>
+					</form>
+				</Fragment>
+			) : (
+				<a class="btn-primary" href="/api/auth/login">ログイン</a>
+			)
+		}
+	</div>
 </aside>
 
 <style>
@@ -172,8 +199,32 @@ const SECTIONS: { heading: string; items: SidebarItem[] }[] = [
 	}
 
 	.app-sidebar-badge {
-		font-size: 0.65rem;
+		/* 2026-07-27 ラウンド20 20-G3: 0.65rem(10.4px)は下限12pxを割っていた。
+		   --font-size-xs(0.75rem=12px)に是正する。 */
+		font-size: var(--font-size-xs);
 		padding: 0.15em 0.55em;
 		flex-shrink: 0;
+	}
+
+	/* 2026-07-27 ラウンド20 20-H2: ログイン情報をサイドバー最下段に固定表示する。
+	   global.css 側で .app-sidebar を display:flex; flex-direction:column にしてあるので、
+	   margin-top: auto でこのブロックだけ下端に押し出す。 */
+	.app-sidebar-account {
+		margin-top: auto;
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: var(--space-2);
+		padding: var(--space-4) var(--space-5);
+		border-top: 1px solid var(--color-border);
+		font-size: var(--font-size-sm);
+		color: var(--color-text-muted);
+	}
+
+	.app-sidebar-account-email {
+		max-width: 100%;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 </style>

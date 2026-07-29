@@ -161,3 +161,99 @@ describe('validateOwnedPokemonRequestBody', () => {
     assert.equal(result.ok, false);
   });
 });
+
+// mode: 'replace' (PUT /api/owned-pokemon/:id 用) の回帰テスト。
+// 直前の修正(readRequiredJsonBody追加)は「ボディが無い」ケースしか塞いでおらず、
+// {} のような「ボディはあるが全フィールド未送信」のPUTは validateOwnedPokemonRequestBody(body)
+// (optionsなし=従来の全項目任意)を素通りして既存個体の全消去を招いていた
+// (2026-07に実際に発生し、フィクスチャが1件消えた)。
+// mode: 'replace' は「置換対象の全フィールドがpayloadに存在すること」(undefined=未送信は拒否、
+// nullは許容)を検証することでこの穴を塞ぐ。
+describe('validateOwnedPokemonRequestBody(body, { mode: "replace" })', () => {
+  const FULL_REPLACE_BODY = {
+    nickname: null,
+    species_name: 'メガリザードンX',
+    level: null,
+    nature: 'いじっぱり',
+    ability_name: 'かたいツメ',
+    item_name: 'こだわりハチマキ',
+    tera_type: null,
+    evs: [0, 32, 0, 0, 0, 16],
+    ivs: [31, 31, 31, 31, 31, 31],
+    move_names: ['フレアドライブ', 'がんせきふうじ'],
+    memo: null,
+    tags: [],
+    is_pinned: false,
+  };
+
+  it('{} (全フィールド未送信) は拒否する(今回のバグの直接的な再現テスト)', () => {
+    const result = validateOwnedPokemonRequestBody({}, { mode: 'replace' });
+    assert.equal(result.ok, false);
+    if (!result.ok) {
+      // REPLACE_REQUIRED_FIELDS の先頭(nickname)で最初に引っかかる。
+      // どのキーが足りないかがエラーメッセージに含まれることが本質のため、対象キー名は問わない。
+      assert.match(result.error, /is required \(missing or undefined\) for a PUT \(replace\) request/);
+    }
+  });
+
+  it('全フィールドを指定したPUTは従来どおり受け入れる(退行がないことの確認)', () => {
+    const result = validateOwnedPokemonRequestBody(FULL_REPLACE_BODY, { mode: 'replace' });
+    assert.equal(result.ok, true);
+    if (result.ok) {
+      assert.equal(result.value.species_name, 'メガリザードンX');
+      assert.deepEqual(result.value.evs, [0, 32, 0, 0, 0, 16]);
+      assert.deepEqual(result.value.move_names, ['フレアドライブ', 'がんせきふうじ']);
+    }
+  });
+
+  it('species_nameだけ欠けたPUTは拒否し、species_nameが足りないことをエラーメッセージに含める', () => {
+    const { species_name, ...withoutSpeciesName } = FULL_REPLACE_BODY;
+    const result = validateOwnedPokemonRequestBody(withoutSpeciesName, { mode: 'replace' });
+    assert.equal(result.ok, false);
+    if (!result.ok) {
+      assert.match(result.error, /species_name/);
+    }
+  });
+
+  it('move_namesだけ欠けたPUTは拒否し、どのキーが足りないかをエラーメッセージに含める', () => {
+    const { move_names, ...withoutMoveNames } = FULL_REPLACE_BODY;
+    const result = validateOwnedPokemonRequestBody(withoutMoveNames, { mode: 'replace' });
+    assert.equal(result.ok, false);
+    if (!result.ok) {
+      assert.match(result.error, /move_names/);
+    }
+  });
+
+  it('evs/ivsだけ欠けたPUTも拒否する', () => {
+    const { evs, ivs, ...rest } = FULL_REPLACE_BODY;
+    const result = validateOwnedPokemonRequestBody(rest, { mode: 'replace' });
+    assert.equal(result.ok, false);
+  });
+
+  it('nickname/tera_type/level/memo等のnull許容フィールドはnullのまま(キーが存在すれば)受け入れる', () => {
+    // FULL_REPLACE_BODY は nickname/level/tera_type/memo をすでに null にしているため、
+    // これがそのまま通ることを確認するだけで「undefinedとの区別」の要点をカバーする。
+    const result = validateOwnedPokemonRequestBody(FULL_REPLACE_BODY, { mode: 'replace' });
+    assert.equal(result.ok, true);
+    if (result.ok) {
+      assert.equal(result.value.nickname, null);
+      assert.equal(result.value.level, null);
+      assert.equal(result.value.tera_type, null);
+      assert.equal(result.value.memo, null);
+    }
+  });
+
+  it('nicknameキー自体が無い(undefined)PUTは、値がnullでも拒否する(undefinedとnullを区別する)', () => {
+    const { nickname, ...withoutNickname } = FULL_REPLACE_BODY;
+    const result = validateOwnedPokemonRequestBody(withoutNickname, { mode: 'replace' });
+    assert.equal(result.ok, false);
+    if (!result.ok) {
+      assert.match(result.error, /nickname/);
+    }
+  });
+
+  it('mode指定なしの従来呼び出しは{}を引き続き受け入れる(POST/既存呼び出しへの非退行)', () => {
+    const result = validateOwnedPokemonRequestBody({});
+    assert.equal(result.ok, true);
+  });
+});

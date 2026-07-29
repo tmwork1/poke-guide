@@ -26,6 +26,16 @@
 // - 技は実数値グリッドの下に2×2グリッドで小さく表示し、未設定スロットは何も出さない
 //   (ラウンド3で「-」を4つ並べると壊れて見えるという指摘が出たため、空文字列はfilterで除外する)。
 // カードは 185px→210px 正方形へわずかに拡大(1620px前後の実効グリッド幅で8列→7列になる)。
+//
+// ラウンド27(2026-07-29 ユーザー指示第12弾、docs/plan/ui_rounds/round-27.md「ボックス画面」節
+// 参照): 27-B1 アイテム画像を公式絵への重ね配置(.card-badge-row)から分離し、.card-body内の
+// 名前行と技グリッドの間の新しい行(.card-item-row)へ移動。画像の右にアイテム名を表示する。
+// 27-B2 テラスバッジは.card-badge-rowに残るが、アイコンと被らない程度に右へ深く寄せる。
+// 27-B3 タグ絞り込みUI(複数タグ選択、旧activeTags/renderTagFilters/matchesTags)を廃止し、
+// 「お気に入りのみ表示」の単一トグル(favoriteFilterToggle/matchesFavorite)に置き換えた
+// (タグ自体のデータ・保存経路は変更しない。一覧の絞り込みUIだけを対象にした縮小)。
+// 27-B4 ピン留め(お気に入り)時のカード全体のハイライト(.is-pinnedのborder/background)を
+// 廃止し、★/☆マーク表示だけを残す。
 export const prerender = false;
 
 import AppLayout from '../../layouts/AppLayout.astro';
@@ -69,7 +79,9 @@ const user = Astro.locals.user;
 			gap: var(--space-2);
 		}
 		/* .toolbar-item の display:flex は UA の [hidden]{display:none} に勝ってしまうため、
-		   タグが0件のときに絞り込み欄を隠せるよう明示的に打ち消す。 */
+		   ツールバー項目をhidden属性で隠したい場合に備えて明示的に打ち消しておく
+		   (ラウンド27 27-B3でタグ絞り込み欄自体は廃止したが、pitfalls.mdの既知の罠として
+		   この上書き自体は汎用的に維持する)。 */
 		.toolbar-item[hidden] {
 			display: none;
 		}
@@ -77,8 +89,13 @@ const user = Astro.locals.user;
 		/* 検索欄: 入力の左側に虫眼鏡アイコン(SVG、AppLayoutのハンバーガーと同じ線画トーン)を重ねる。
 		   UI品質改善ラウンド2(B-2): ツールバーの右半分が空くのを解消するため、検索欄を
 		   flex-growさせてバーの余白を吸収させる。 */
+		/* UI品質改善ラウンド12 A-1: ラウンド2 B-2(検索欄をflex-growさせてバーの余白を
+		   吸収させる)を撤回する。placeholder実測約240px・実クエリ約160pxしか要らないのに
+		   検索欄がツールバー幅の72%(1192px)を占有していたため、機能に見合う上限
+		   (26rem=416px)を設けて検索/絞り込み/並べ替えを左詰めに揃える
+		   (ワイヤーフレームが左詰め構造であることを優先)。 */
 		.toolbar-search {
-			flex: 1 1 320px;
+			flex: 0 1 26rem;
 		}
 		.search-input-wrap {
 			position: relative;
@@ -97,20 +114,36 @@ const user = Astro.locals.user;
 			min-width: 12em;
 			padding-left: 2.1em;
 		}
-		.toolbar-filter { flex-wrap: wrap; }
-		/* タグチップ自体は下の is:global ブロックで定義する(JSが動的生成するため)。 */
-		.tag-filter-list { display: flex; flex-wrap: wrap; gap: var(--space-2); }
-
-		/* 並べ替えをバーの右端に押し出す(B-2: 検索(左)—絞り込み(中)—並べ替え(右)の3分割)。 */
-		.toolbar-sort {
-			margin-left: auto;
+		/* ラウンド27 27-B3(ユーザー指示): タグ絞り込みUI(複数タグ選択+すべて一致)を
+		   「お気に入りのみ表示」の単一トグルボタンに置き換える。このボタンは静的マークアップ
+		   (JS生成ではない)なので、他のツールバー部品と同じくこのscoped styleで定義する。
+		   非活性=global.cssのbutton既定(枠線のみ)、活性=primaryで塗り、hoverで反転する
+		   (global.cssのbtn-primaryのhover反転と同じ配色トークンの使い方)。 */
+		.favorite-filter-toggle {
+			display: inline-flex;
+			align-items: center;
+			gap: 0.35em;
 		}
+		.favorite-filter-toggle[data-active="true"] {
+			background: var(--color-primary);
+			border-color: var(--color-primary);
+			color: var(--color-primary-contrast);
+		}
+		.favorite-filter-toggle[data-active="true"]:hover:not(:disabled) {
+			background: var(--color-surface);
+			color: var(--color-primary);
+		}
+
+		/* UI品質改善ラウンド12 A-1: 旧 `.toolbar-sort { margin-left: auto }`(検索(左)—絞り込み(中)—
+		   並べ替え(右)の3分割、ラウンド2 B-2)は撤回。検索欄の幅を26remに絞ったことで、
+		   検索/絞り込み/並べ替えの3つはflexの既定(左詰め)のまま並ぶ。 */
 
 		@media (max-width: 640px) {
 			.panel-toolbar { flex-direction: column; align-items: stretch; }
 			.toolbar-item { width: 100%; margin-left: 0; }
-			/* B-2の `.toolbar-search { flex: 1 1 320px }` は横並び(flex-direction: row)前提の
-			   flex-basisで、縦積みに切り替わるこのブレークポイントでは主軸(縦方向)の基準値として
+			/* ラウンド12 A-1で `.toolbar-search { flex: 0 1 26rem }` に変更した後も、この
+			   flex-basis(26rem)は横並び(flex-direction: row)前提の値で、縦積みに切り替わる
+			   このブレークポイントでは主軸(縦方向)の基準値として
 			   解釈され、検索欄の高さが320pxまで伸びてしまう(実測で判明した回帰)。ここで
 			   flex-basisをリセットして内容ぶんの高さに戻す。 */
 			.toolbar-search { flex-basis: auto; }
@@ -144,6 +177,22 @@ const user = Astro.locals.user;
 		.box-content {
 			padding: 0 var(--space-5);
 		}
+		/* ラウンド20 B3: 20-G3(文字サイズ12px下限)の受け皿としてカードを拡大する
+		   (210px→240px、ユーザー指示。1920pxで1行7枚→6枚になる)。
+		   ラウンド24 24-B2: 「カードサイズを少し縮小」(ユーザー指示)により240px→220pxへ縮める。
+		   ラウンド32 32-B1(ユーザー指示第15弾、round-32.md): 「ステータスをカードから削除し、
+		   カードを小型化する」。.card-stat-gridをdisplay:noneにしただけでは、正方形を
+		   grid-template-rows: 1fr auto + aspect-ratio: 1/1で維持している都合上(1fr行の公式絵が
+		   空いた高さを吸収するだけでカード自体は縮まない)、カードは縮小されない。よって
+		   ここのminmaxを220px→210pxへ引き下げて実際にカードの一辺を縮める(正方形は
+		   aspect-ratio: 1/1のまま維持、値自体は指示により変更可)。180pxまで縮めると、
+		   32-B2で.card-artの右に追加したバッジ列(アイテム18px+テラス25px+gap)の縦の
+		   置き場所が.card-actions(固定60px)と.card-body(名前など、カード幅に依存せずほぼ
+		   固定高)の間に収まりきらないことが実測で判明したため、両方を避けられる高さを
+		   確保できる210pxまで戻した(180pxのままだと重なる。実測は報告参照)。縮小後の
+		   実測値・1画面あたりの表示体数は報告参照。
+		   狭幅側(下の480pxメディアクエリの150px)はラウンド21で390px/360px幅の2列維持のため
+		   意図的に戻した値であり、このラウンドの対象外(デスクトップ側のみ縮める)。 */
 		.box-grid {
 			display: grid;
 			grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
@@ -151,15 +200,38 @@ const user = Astro.locals.user;
 			align-items: stretch;
 			margin-top: var(--space-6);
 		}
-		/* 390px前後の幅では拡大後の210px列が1列しか入らず正方形カードが縦に積み上がるだけになるため、
+		/* 390px前後の幅では拡大後の240px列が1列しか入らず正方形カードが縦に積み上がるだけになるため、
 		   狭幅では列の最小サイズ自体を縮めて2列を確保する(ユーザー要件: 390pxで2列程度)。
 		   ラウンド5: 170pxに拡大すると390px幅(実効コンテンツ幅約350px)で2列の条件
 		   (2×170+gap12=352px)をわずかに超えて1列に落ちてしまう回帰が実測で見つかったため、
-		   ラウンド4と同じ150pxを維持する(2列なら実測169px角になり、技2×2グリッドも収まる)。 */
+		   ラウンド4と同じ150pxを維持していた。
+		   ラウンド20 B3: 親グリッドを240pxへ拡大したのに合わせ、狭幅側も150px→170pxへ引き上げた
+		   (「実装後に実測して確認する」とTODOを残したまま検証されていなかった)。
+		   ラウンド21(Coordinator指摘): 実測したところ170pxは390px幅(実効コンテンツ幅350px)で
+		   2×170+12=352px>350pxとなり1列に落ちる回帰が実際に発生していた(360px幅ではさらに悪化)。
+		   170px→150pxに戻す(2×150+12=312pxで390px・360pxのどちらでも2列が成立することを
+		   実測確認済み。実測カード幅: 390px→169px、360px→154px)。 */
+		/* ラウンド21: 150pxまでカードが縮んだ状態で実測したところ、実数値6列グリッド
+		   (1列あたり約21〜24px)は3桁の実数値+性格補正の▲▼マーカー(scrollWidth実測34px)を
+		   収めきれず、技チップ(2列、1列あたり約66〜73px)も8文字の技名
+		   (例:マジカルシャイン、scrollWidth実測107px)を省略なしには収められないことが判明した。
+		   240px以上のカードを前提にした6列/2列レイアウトのまま列幅だけを縮めても
+		   「はみ出さない・省略しない」の両立は不可能なため、この幅だけレイアウトを組み替える
+		   (実数値6列→3列、技2列→1列)。この組み替え先(.card-pokemon/.card-stat-grid/
+		   .card-moves-grid)はJS生成要素なので、対応するメディアクエリは下の
+		   <style is:global> 側に置く(このscoped <style>に書いても効かない。
+		   pitfalls.md「Astroのscoped styleはJSで生成した要素に効かない」参照)。
+		   ここ(scoped側)では静的マークアップである.box-grid本体と.add-card-tileの
+		   ぶんだけを扱う。 */
 		@media (max-width: 480px) {
 			.box-grid {
 				grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
 				gap: var(--space-3);
+			}
+			/* カード側をaspect-ratio: auto(縦長許容)に変えるのに合わせ、追加タイルも
+			   正方形をやめて高さを追随させる(is:global側の.card-pokemonの変更とセット)。 */
+			.box-grid .add-card-tile {
+				aspect-ratio: auto;
 			}
 		}
 		#owned-pokemon-list {
@@ -180,15 +252,18 @@ const user = Astro.locals.user;
 		.box-grid .add-card-tile:hover {
 			background: var(--color-primary-soft);
 		}
+		/* UI品質改善ラウンド12 A-2: 見出し「個体を追加」の言い換えでしかなかった
+		   .add-card-tile-hint(「新しい個体を登録します」)をCSSで非表示にした(DOMは残す、
+		   このプロジェクトの原則)。空いた縦を使って＋アイコンを36px→44pxへ拡大する。 */
 		.box-grid .add-card-tile .add-card-tile-icon {
 			display: inline-flex;
 			align-items: center;
 			justify-content: center;
-			width: 36px;
-			height: 36px;
+			width: 44px;
+			height: 44px;
 			border-radius: 50%;
 			border: 1px solid var(--color-border);
-			font-size: 1.2rem;
+			font-size: 1.4rem;
 			font-weight: 300;
 			line-height: 1;
 			color: inherit;
@@ -201,11 +276,7 @@ const user = Astro.locals.user;
 			font-size: 0.9em;
 		}
 		.box-grid .add-card-tile-hint {
-			font-size: 0.78em;
-			font-weight: 400;
-			color: var(--color-text-muted);
-			text-align: center;
-			max-width: 100%;
+			display: none;
 		}
 		@media (prefers-reduced-motion: reduce) {
 			.box-grid .add-card-tile,
@@ -220,7 +291,12 @@ const user = Astro.locals.user;
 			color: var(--color-text-muted);
 			margin-top: var(--space-6);
 		}
-		#error-message { color: var(--color-danger); }
+		/* ラウンド22 22-A-3追加分: color: var(--color-danger)がこの要素の実背景(--color-bgを
+		   継承、#f3f4f8)に対し実測2.56:1でWCAG AA(4.5:1)未達だった(Playwrightでhiddenを外して
+		   getComputedStyleを実測)。delete-buttonと同じ--color-danger-strong(#b23a26)に
+		   差し替える(実測5.42:1)。ダークは元々7.93:1で問題なく、--color-danger-strongは
+		   ダーク側でvar(--color-danger)にエイリアスされているため変化しない。 */
+		#error-message { color: var(--color-danger-strong); }
 
 		/* 空状態(登録0件): 追加タイルの下に「何ができる画面か」を伝えるカードを添える。
 		   以前は表示条件の論理式が誤っており(allPokemon.length===0のときにhiddenへ倒れる式に
@@ -257,34 +333,15 @@ const user = Astro.locals.user;
 	</style>
 
 	{/*
-	  ポケモンカードとタグチップは下部の <script> が document.createElement() で生成するため、
+	  ポケモンカードは下部の <script> が document.createElement() で生成するため、
 	  Astroのscoped style(data-astro-cid-* 属性が付いたテンプレート要素にしか当たらない)では
-	  スタイルが適用されない。よってこれらは is:global で定義する。
-	  グローバルに漏れないよう、必ず .box-grid / #tag-filter-list 配下に限定したセレクタにすること。
+	  スタイルが適用されない。よってこれは is:global で定義する。
+	  グローバルに漏れないよう、必ず .box-grid 配下に限定したセレクタにすること。
+	  (旧#tag-filter-list .tag-chipはラウンド27 27-B3でタグ絞り込みUI自体を廃止したため
+	  削除した。置き換えの「お気に入りのみ表示」トグルは静的マークアップなので通常の
+	  scoped styleに定義してある。)
 	*/}
 	<style is:global>
-		#tag-filter-list .tag-chip {
-			display: inline-flex;
-			align-items: center;
-			gap: 0.3em;
-			border: 1px solid var(--color-border);
-			border-radius: 999px;
-			padding: 0.25em 0.85em;
-			font-size: 0.85em;
-			font-weight: 600;
-			background: var(--color-surface);
-			color: var(--color-text);
-			cursor: pointer;
-			user-select: none;
-			transition: background 0.15s, color 0.15s, border-color 0.15s;
-		}
-		#tag-filter-list .tag-chip:hover { border-color: var(--color-primary); }
-		#tag-filter-list .tag-chip.active {
-			background: var(--color-primary);
-			color: var(--color-primary-contrast);
-			border-color: var(--color-primary);
-		}
-
 		/* デザインシステム新原則(2026-07-26): 「カード」は基底の.card(global.css)に委譲し、
 		   ここでは.box-grid内のポケモンカード固有のレイアウト(正方形・約210px・内部要素の
 		   配置)だけを残す。background/border/border-radius/box-shadow・hoverの持ち上がりは
@@ -329,18 +386,28 @@ const user = Astro.locals.user;
 			outline: 2px solid var(--color-primary);
 			outline-offset: 2px;
 		}
-		/* ピン留めカードは--color-risky(琥珀)で強調する(旧A-1の判断を継続、新色は作らない)。 */
-		.box-grid .card-pokemon.is-pinned { border-color: var(--color-risky); background: var(--color-risky-soft); }
+		/* ラウンド27 27-B4(ユーザー指示): ピン留め(お気に入り)時のカード全体のハイライト
+		   (border-color/backgroundを--color-risky系にする、旧A-1の判断)を廃止した。
+		   ★/☆マーク(.pin-toggle、下記.card-actions参照)がお気に入り状態の表示を担うため、
+		   カード自体の枠線・背景は選択状態(.is-selected、--color-primary)と無関係な
+		   通常状態のまま変えない。クラス名.is-pinned・JS側のis_pinned判定は変更しない
+		   (このラウンドは見た目=ハイライトの有無だけを変える)。 */
 
 		/* --- 公式絵(要件5)。正方形カードの大半をここに割り当てる(優先順位1位)。
 		   ラウンド5: 持ち物・技のぶんだけ下半分の予算が増えたため58%→48%へ少し縮小した。
+		   ラウンド12 B-1: 1fr行(実測117px)に対しmin(48%,104px)=97pxしか使えておらず
+		   余った行高を使い切っていなかったため、min(56%,113px)へ拡大する(カード高さ218pxは
+		   据え置き)。この拡大により中央寄せの右端が.card-actions(横並び24px、旧来ぎりぎり
+		   重ならない調整だった)と実際に重なり、ディンルーの角がボタンに隠れることを
+		   Playwrightのスクリーンショットで確認した。.card-actions側をflex-direction:columnに
+		   変更して専有幅を狭めることで解消した(詳細は.card-actionsのコメント参照)。
 		   position: relative は持ち物バッジ(.card-item-badge)を右下に重ねるための基準。 --- */
 		.box-grid .card-pokemon .card-art {
 			display: flex;
 			align-items: center;
 			justify-content: center;
 			position: relative;
-			width: min(48%, 104px);
+			width: min(56%, 113px);
 			aspect-ratio: 1 / 1;
 			flex: 0 1 auto;
 		}
@@ -358,59 +425,92 @@ const user = Astro.locals.user;
 			font-size: 1.4rem;
 		}
 
-		/* --- 持ち物(優先順位4位、ラウンド5で復元)。実測で「こだわりハチマキ」等の長い
-		   アイテム名を文字表示すると210px前後の正方形には収まらなかったため、公式絵の右下に
-		   重ねる小さな丸バッジ(画像のみ)にして縦方向の予算を消費しない形にした。
-		   アイテム名はカード<a>のtitle属性(ホバーツールチップ)に引き続き含まれる。 --- */
-		.box-grid .card-pokemon .card-item-badge {
+		/* --- アイテム+テラスタイプ(優先順位4位。公式絵.card-artの右側に縦に並べる列)。
+		   ラウンド32 32-B2(ユーザー指示第15弾、round-32.md): 「アイテムアイコンをポケモンアイコンの
+		   右側(テラスタル画像の上)に配置」。旧来はテラス画像だけがこのバッジ列(公式絵の右下に
+		   重ねる配置)にあり、アイテム画像は27-B1で.card-item-row側へ分離されていたが、
+		   今回その分離を撤回し、アイテムバッジをこの列へ戻したうえでテラスバッジと縦に並べる
+		   (アイテムが上・テラスが下。DOM生成順もこの順、下のscript参照)。
+		   .card-artは position: relative を持つ基準要素なので、この列を「右下に重ねるバッジ」から
+		   「右側に添えるバッジ列」へ配置し直す: left:100%でcard-artの右外側に置く。
+		   縦位置はcard-art自身の縦中央(top:50%)ではなく、.card-actions(お気に入り/削除、
+		   top: var(--space-2)+高さ60px固定)の下端をfixed pxで避ける値にする。
+		   実装時に50%centerで試したところ、.card-artはgrid-template-rowsの1fr行内で
+		   ほぼ余白なく上端に接する(実測: art上端とカード上端の差が実質padding-top分のみ)ため、
+		   縦中央だと.card-actionsの直下(y方向)に重なることが実測で判明した(カード右上の
+		   アクションボタンと重ならないこと、という要件に反する)。.card-actionsのサイズは
+		   カード幅に依存せず固定(28px×2+gap)なので、top位置もカード幅に依存しないfixed px
+		   (60px)にすることで全ブレークポイントで安定してアクションの下に収める。 */
+		.box-grid .card-pokemon .card-badge-row {
 			position: absolute;
-			right: -0.2rem;
-			bottom: -0.2rem;
-			width: 22px;
-			height: 22px;
-			border-radius: 50%;
-			background: var(--color-surface);
-			border: 1px solid var(--color-border);
-			box-shadow: var(--shadow-sm);
+			left: 100%;
+			top: 60px;
+			margin-left: 0.3rem;
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			gap: 0.2rem;
+		}
+		.box-grid .card-pokemon .card-tera-badge {
 			display: flex;
 			align-items: center;
 			justify-content: center;
-			overflow: hidden;
-			padding: 2px;
+			flex: none;
+			/* ラウンド32 32-B5(統一感レビュアーCoordinator裁定、round-32.md): 32-B2で
+			   .card-item-badge(18px)と縦に並んだことで、旧25pxとの寸法差7px・左端の3.5px
+			   ズレが直接見比べられる状態になった。確立規格の20px(28-L1〜L6)に揃える
+			   (旧25pxから縮小)。左端も.card-item-badgeと同じ20px幅にすることで、
+			   .card-badge-rowのalign-items:centerが自動的に左端を一致させる。 */
+			width: 20px;
+			height: 20px;
 		}
-		.box-grid .card-pokemon .card-item-badge img {
+		.box-grid .card-pokemon .card-tera-badge img {
 			width: 100%;
 			height: 100%;
 			object-fit: contain;
+			/* ラウンド23 23-G1〜27まで、テラス画像を円形に見せるためborder-radius: 50%を当てていた
+			   (box/[id].astroの.type-badge-imgと同じ手法)。ラウンド28 28-G1(ユーザー指示)で
+			   テラス画像を専用アイコン(teraTypeIconUrl、宝石型のジグザグ縁を持つ正方形画像)へ
+			   戻したことに伴い、border-radius: 50%は撤去した(丸くトリミングすると尖った縁が
+			   削れてしまうため)。drop-shadowは丸みと無関係に淡い背景でも輪郭が見えるように
+			   するためのものなので維持する。 */
+			filter: drop-shadow(0 0 1px var(--color-surface));
 		}
-		/* .card-item-badge の display:flex は詳細度3つぶんあるため、UAの [hidden]{display:none}
+		/* .card-tera-badge の display:flex は詳細度3つぶんあるため、UAの[hidden]{display:none}
 		   (詳細度1つぶん)に勝ってしまい、hidden=trueにしても空バッジが表示され続ける
-		   (box/[id].astroの .damage-column-hitcount-row と同じ既知の罠、ui_plan.md参照)。
-		   明示的に上書きする。 */
-		.box-grid .card-pokemon .card-item-badge[hidden] {
+		   (box/[id].astroの .damage-column-hitcount-row と同じ既知の罠、pitfalls.md参照)。
+		   明示的に上書きする。ラッパー.card-badge-row自体は背景/枠を持たないため、hiddenでも
+		   空の白丸が残ることはない(確認済み)。 */
+		.box-grid .card-pokemon .card-tera-badge[hidden] {
 			display: none;
 		}
-		/* ラウンド8 B-5: ダークモードでは border: 1px solid var(--color-border)(#2d313d)が
-		   カード背景 --color-surface-alt(#22252f)に対して1.18:1しか無く、アイテム画像だけが
-		   空中に浮いて見える。--color-border 自体は他ページの罫線に影響するため変えず、
-		   このページscopedで内箱の枠線だけ既存中立色の明度違い #5a6377(カード背景に対し
-		   2.73:1)に上書きする(新色は作らない)。 */
-		@media (prefers-color-scheme: dark) {
-			.box-grid .card-pokemon .card-item-badge {
-				border-color: #5a6377;
-			}
-		}
+		/* ラウンド8 B-5で付けたダークモードの枠線色上書き(#5a6377)は、23-G1で
+		   .card-item-badge/.card-tera-badgeのborderそのものを撤去したため一度不要化したが、
+		   .card-stat-grid の区切り線(ラウンド12 B-3)には維持していた。ラウンド31 31-B2で
+		   その区切り線自体をborder-topごと削除した(上の.card-stat-grid参照)ため、この
+		   ダークモード上書きも対象を失い完全に不要になり削除した。 */
 
 		/* --- ピン留め/削除(要件7): ★は状態表示として常時可視、🗑は誤操作防止のため
 		   hover/focus-within時のみ可視にする(キーボード操作はTabで delete-button に
 		   フォーカスが入った瞬間 :focus-within が発火するので到達可能)。
 		   タッチ操作(hover非対応端末)では常時可視のままにして操作不能にならないようにする。
-		   ラウンド4: 200px正方形に収めるためアイコンボタンを2rem→1.5remへ縮小する。 --- */
+		   ラウンド4: 200px正方形に収めるためアイコンボタンを2rem→1.5remへ縮小する。
+		   ラウンド12(B-1とアイコンボタン規格統一の両立): B-1で.card-artをmin(56%,113px)へ
+		   拡大した結果、横並び(flex-direction: row)のcard-actions(top/right:8px固定)と
+		   実測で重なりが出た(ディンルーの角がボタンの下に隠れることをスクリーンショットで確認)。
+		   旧来の横並び24pxでもart右端が667.6px、actions左端が667.6px(重なり量ほぼ0px)と
+		   ぎりぎりの調整だったため、B-1の拡大幅ぶんだけ確実に重なってしまう。
+		   flex-direction: column(縦積み)に変更してactionsの専有幅を52px→28pxに縮め、
+		   actions左端を大きく右へ寄せることで重なりを解消した。これにより28px統一
+		   (アイコンボタンの規格統一)も同時に達成でき、24pxへの妥協は不要になった。
+		   実測(1920px): .card-art 右端x=675.5、.card-actions(縦積み・28px)左端x≈691.6と
+		   16px以上のクリアランスを確保(重なりなし)。 --- */
 		.box-grid .card-pokemon .card-actions {
 			position: absolute;
 			top: var(--space-2);
 			right: var(--space-2);
 			display: flex;
+			flex-direction: column;
 			gap: 0.25rem;
 			z-index: 2;
 		}
@@ -418,14 +518,14 @@ const user = Astro.locals.user;
 			display: inline-flex;
 			align-items: center;
 			justify-content: center;
-			width: 1.5rem;
-			height: 1.5rem;
+			width: 28px;
+			height: 28px;
 			padding: 0;
 			border-radius: 999px;
 			border: 1px solid var(--color-border);
 			background: var(--color-surface);
 			color: var(--color-text-muted);
-			font-size: 0.8rem;
+			font-size: 0.85rem;
 			line-height: 1;
 			box-shadow: var(--shadow-sm);
 		}
@@ -440,18 +540,30 @@ const user = Astro.locals.user;
 			border-color: var(--color-risky);
 		}
 		/* global.cssの.delete-button(danger塗り・太字パディング)はアイコン専用の丸ボタンには
-		   大きすぎるため、このカード内に限定してサイズ・配色を上書きする。 */
+		   大きすぎるため、このカード内に限定してサイズ・配色を上書きする。
+		   ラウンド22 22-A-3: color: var(--color-danger)(#f8705b)がライトモードで
+		   背景(--color-surface、白)に対し2.82:1しか無くWCAG AA(4.5:1)未達だった
+		   (実測はPlaywrightのgetComputedStyleで確認、docs/plan/ui_rounds/round-22.mdの
+		   実測値2.82:1と一致)。新色は作らずラウンド21で/box/[id]の削除ボタンに使った
+		   --color-danger-strong(#b23a26)に差し替える(白地5.96:1)。
+		   :hover時のborder-colorも同じ--color-danger(非テキストだがWCAG 1.4.11の3:1を
+		   --color-danger-soft背景に対し2.46:1で下回っていた)を使っていたため、text/borderとも
+		   --color-danger-strongに揃える(--color-danger-soft背景に対し5.20:1)。
+		   背景に使うbackground: var(--color-danger-soft)自体はテキストではないので変更不要。
+		   ダーク側は--color-danger-strongがglobal.css内で`var(--color-danger)`にエイリアスされて
+		   おり(既にAA達成: 単体7.22:1・hover合成背景5.43:1)、この変更でダークの見た目は
+		   一切変わらない(実測で確認済み)。 */
 		.box-grid .card-pokemon .delete-button {
 			background: var(--color-surface);
 			border: 1px solid var(--color-border);
-			color: var(--color-danger);
+			color: var(--color-danger-strong);
 			font-weight: 400;
 			padding: 0;
 		}
 		.box-grid .card-pokemon .delete-button:hover {
 			background: var(--color-danger-soft);
-			color: var(--color-danger);
-			border-color: var(--color-danger);
+			color: var(--color-danger-strong);
+			border-color: var(--color-danger-strong);
 		}
 		@media (hover: hover) and (pointer: fine) {
 			.box-grid .card-pokemon .delete-button,
@@ -495,63 +607,175 @@ const user = Astro.locals.user;
 			text-overflow: ellipsis;
 		}
 
+		/* --- アイテム画像(.card-artの右に添えるバッジ列の1枚目、上記.card-badge-row参照)。
+		   ラウンド27 27-B1でこのバッジ列から.card-item-row(名前行と技グリッドの間のテキスト行)へ
+		   分離していたが、ラウンド32 32-B2(ユーザー指示第15弾)で「ポケモンアイコンの右側
+		   (テラスタル画像の上)に配置」と指示され、.card-badge-row側へ戻した(このセレクタ自体は
+		   width/heightの定義のみでDOM上の親は.card-badge-rowだが、クラス名は改名禁止のため
+		   .card-item-badgeのまま維持する)。32-B2実装当初は18pxだったが、32-B5
+		   (統一感レビュアーCoordinator裁定、round-32.md)で.card-tera-badgeと合わせて
+		   20pxへ変更した(下の本体コメント参照)。 */
+		.box-grid .card-pokemon .card-item-badge {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			flex: none;
+			/* ラウンド32 32-B5(統一感レビュアーCoordinator裁定、round-32.md): .card-tera-badge
+			   (25px)との寸法差7px・左端の3.5pxズレが縦に並んだことで露出したため、確立規格の
+			   20px(28-L1〜L6)に揃える(旧18pxから拡大)。 */
+			width: 20px;
+			height: 20px;
+		}
+		.box-grid .card-pokemon .card-item-badge img {
+			width: 100%;
+			height: 100%;
+			object-fit: contain;
+		}
+		/* .card-item-badge の display:flex は詳細度3つぶんあるため、UAの[hidden]{display:none}
+		   (詳細度1つぶん)に勝ってしまう(pitfalls.md参照)。この事故は.card-item-badge/
+		   .card-tera-badgeで過去に4回起きているため、位置を移した今回も明示的に上書きする。
+		   持ち物なし・テラスなしの個体(42ccb527)で空バッジが出ないことを実機確認済み(報告参照)。 */
+		.box-grid .card-pokemon .card-item-badge[hidden] {
+			display: none;
+		}
+
+		/* --- 特性+持ち物(優先順位4位。名前行と技グリッドの間のテキスト行)。
+		   ラウンド27 27-B1で新設したときは「アイコン+アイテム名」の中央寄せ1行だったが、
+		   ラウンド32 32-B3(ユーザー指示第15弾、round-32.md): 「特性をアイテムの左側に表示」。
+		   アイコンは32-B2で.card-badge-row側へ移したため、この行は
+		   [特性名(.card-ability-name)]-[持ち物名(.card-item-name)]のテキスト2列・左右振り分けに
+		   作り直す。特性・持ち物のどちらか一方だけの個体(42ccb527=特性あり・持ち物なし)でも
+		   flexが自然に片方だけ空文字のまま(何も表示しない)になり、列自体は崩れない。 */
+		.box-grid .card-pokemon .card-item-row {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			gap: 0.4rem;
+			width: 100%;
+			margin-top: 0.1rem;
+			min-height: calc(1.2 * 0.75rem);
+		}
+		/* 特性名・持ち物名: 名前(card-name)・技チップ(card-move-chip)と同様に1行で省略する
+		   (折り返さない)。20-G3の12px下限ちょうど(0.75rem)にし、名前ほど主張しない
+		   「補助情報」の階層に置く(旧.card-item-nameの文字設計を踏襲)。左右の列が互いの
+		   領域を侵さないよう flex:1 1 0 + min-width:0 で幅を等分し、それぞれの中で省略する。 */
+		.box-grid .card-pokemon .card-ability-name,
+		.box-grid .card-pokemon .card-item-name {
+			font-size: 0.75rem;
+			line-height: 1.2;
+			font-weight: 600;
+			color: var(--color-text-muted);
+			flex: 1 1 0;
+			min-width: 0;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+		}
+		.box-grid .card-pokemon .card-ability-name { text-align: left; }
+		.box-grid .card-pokemon .card-item-name { text-align: right; }
+
 		/* 実数値6値: 「列見出し(H/A/B/C/D/S)+実数値」の2段×6列グリッド。
 		   努力値は表示せず(優先順位に含まれないため200px正方形の予算から外した)、
 		   性格による上昇/下降は実数値に▲▼を添えて示す(色だけに頼らない、WCAG 1.4.1対応)。 */
+		/* ラウンド20 B2: .card-body内の順序を「名前→技→実数値」に入れ替えたのに合わせ、
+		   実数値グリッドの上に区切り線(旧来.card-moves-gridが持っていたborder-top)を移設する
+		   (技block0件のときに区切り線だけが名前直下に浮くよりも、実数値ブロックの前に
+		   固定して置く方が自然と判断した)。 */
+		/* ラウンド31 31-B2(ユーザー指示): 「ステータス直上の横棒を削除」。border-topを外し、
+		   margin-topを0.15rem→0.6remへ広げていた(round-31.md参照)。
+		   ラウンド32 32-B1(ユーザー指示第15弾、round-32.md): 「ステータスをカードから削除し、
+		   カードを小型化する」。DOMは残してCSSで見せない方針(pitfalls.md)に従い、
+		   display:noneでこのグリッド自体を非表示にする(grid-template-columns等の残りの
+		   プロパティは display:none 下では効果を持たないが、JS側(script内のstatGrid生成)を
+		   変更せずに済むよう構造の記録として残す)。カード自体の小型化は下の.box-gridの
+		   grid-template-columns(旧220px)側で対応した。 */
 		.box-grid .card-pokemon .card-stat-grid {
-			display: grid;
+			display: none;
 			grid-template-columns: repeat(6, minmax(0, 1fr));
 			gap: 0.05rem 0.1rem;
 			width: 100%;
+			margin-top: 0.6rem;
+			padding-top: 0.2rem;
 		}
+		/* ラウンド20 G3(12px下限): 0.64em(≈10.2px)は違反だったため、emの入れ子事故を避ける
+		   ためrem基準に変え0.75rem(=12px、--font-size-xsと同値)へ引き上げる。 */
 		.box-grid .card-pokemon .card-stat-col-label {
-			font-size: 0.58em;
+			font-size: 0.75rem;
 			line-height: 1.1;
 			font-weight: 700;
 			text-align: center;
 			color: var(--color-text-muted);
 		}
+		/* ラウンド20 G3: 0.74em(≈11.8px、00-foundation.mdが「12px以上に改める」と明記した
+		   箇所)を0.8rem(=12.8px)へ引き上げる。カード拡大(210→240px、20-B3)で生まれた余白で
+		   吸収する。列見出し(0.75rem)よりわずかに大きくして本体値の主役感を残す。 */
 		.box-grid .card-pokemon .card-stat-real-value {
-			font-size: 0.74em;
+			font-size: 0.8rem;
 			line-height: 1.2;
 			font-weight: 700;
 			text-align: center;
 			color: var(--color-text);
 		}
-		.box-grid .card-pokemon .card-stat-real-value[data-mod="up"] { color: var(--color-danger); }
+		/* ラウンド22 22-A-3追加分: color: var(--color-danger)がカード背景(--color-surface-alt、
+		   #f8f9fc)に対し実測2.67:1でWCAG AA(4.5:1)未達だった。delete-button/#error-messageと
+		   同じ--color-danger-strong(#b23a26)に差し替える(実測5.66:1)。ダークは元々6.71:1で
+		   問題なく、--color-danger-strongはダーク側でvar(--color-danger)にエイリアスされている
+		   ため変化しない。下降側(--card-stat-down、青)は元々ライト4.70:1・ダーク7.07:1でAA
+		   達成済みのため変更しない(実測で確認済み)。 */
+		.box-grid .card-pokemon .card-stat-real-value[data-mod="up"] { color: var(--color-danger-strong); }
 		.box-grid .card-pokemon .card-stat-real-value[data-mod="down"] { color: var(--card-stat-down); }
+		/* ▲▼マーカーは以前 親の0.74em(em)に対する0.7em(em)指定で、入れ子emにより実測8.3pxまで
+		   潰れていた(pitfalls.md「emの入れ子」)。ラウンド20 G3でfont-sizeの上書き自体を止め、
+		   親(.card-stat-real-value、0.8rem=12.8px)をそのまま継承させることで12px以上を確保する。 */
 		.box-grid .card-pokemon .card-stat-real-value[data-mod="up"]::after {
 			content: "▲";
-			font-size: 0.7em;
 			margin-left: 0.1em;
 		}
 		.box-grid .card-pokemon .card-stat-real-value[data-mod="down"]::after {
 			content: "▼";
-			font-size: 0.7em;
 			margin-left: 0.1em;
 		}
 
 		/* --- 技(優先順位5位、ラウンド5で復元)。最大4つを縦に並べると高さを食うため
 		   2×2グリッドにする。未設定スロットは要素自体を作らない(ラウンド3で「-」を4つ並べると
-		   データ破損に見えるという指摘が出たため、空文字列はJS側でfilterして除外する)。 --- */
+		   データ破損に見えるという指摘が出たため、空文字列はJS側でfilterして除外する)。
+		   ラウンド20 B2: .card-body内の順序を「名前→技→実数値」に変更したのに合わせ、
+		   区切り線(border-top)は下の.card-stat-grid側に移設した(このブロック自体はもう
+		   罫線を持たない)。 --- */
 		.box-grid .card-pokemon .card-moves-grid {
 			display: grid;
 			grid-template-columns: repeat(2, minmax(0, 1fr));
+			/* ラウンド23 23-B3: 技1個分しか無い行(技2件=1行)でも、.card-move-chipの背景
+			   (color-mix、下記参照)がmin-heightで確保した2行ぶんの高さまで縦にストレッチされ、
+			   「技チップの背景が技1行分より大きい」というユーザー指摘の実体だった。実測すると
+			   修正前は.card-move-chipのgetBoundingClientRect().height=34.72px(2行ぶん)、
+			   1行のあるべき高さ(line-height 14.4px + padding上下0.08rem*2=2.56px)は16.96pxで、
+			   ちょうど2倍にストレッチされていた。原因はCSS Gridの既定align-items:stretchが、
+			   1行しか無いのにmin-heightで確保した2行ぶんの高さをその1行に配分してしまうこと。
+			   align-items: startにすると各チップは自身の内容の高さだけを取り、行の見た目上の
+			   高さ(min-height由来の予約分)には影響しない。修正後の実測: 技0/1/2/4件いずれも
+			   チップの高さ16.92px(1行分)・.card-moves-grid自体の高さは34.72pxのまま(全カードの
+			   高さ揃えは維持、cloneNode複製で技0/1/2/4件混在させ257.34375pxで一致を確認済み)。 */
+			align-items: start;
 			gap: 0.05rem 0.3rem;
 			width: 100%;
 			margin-top: 0.15rem;
-			padding-top: 0.2rem;
-			border-top: 1px solid var(--color-border);
 			/* ラウンド8 A-8: 技0件のカードでもこの要素を常時appendする(JS側変更)ため、
 			   実際の行数(0/1/2行)に関わらず常に2行ぶんの高さを確保して隣接カードとy座標を揃える。
-			   box-sizing: border-box(global.css)なので、min-heightにはコンテンツ2行分
-			   (2 * 1.2 * 0.64em + 行間0.05rem)だけでなく、この要素自身のpadding-top(0.2rem)と
-			   border-top(1px)も含めて確保する必要がある(実測: 含めないと技4件=実2行のカードだけ
-			   コンテンツがmin-heightを超えてbox自体が29.5px相当まで伸び、他カードと4px前後ずれた)。 */
-			min-height: calc(2 * 1.2 * 0.64em + 0.05rem + 0.2rem + 1px);
+			   ラウンド20 B2で順序が末尾→中段に変わったため、この高さ確保は「最下段の余白」ではなく
+			   「中段の空白」になる(技0件の個体で中段に穴が空かないかを実機で確認した。
+			   メガフシギバナ(42ccb527-...)で確認: 名前の下に技ぶんの空白ができるが、
+			   区切り線を実数値側へ移したことで「罫線だけ浮く」見た目にはならない)。
+			   ラウンド20 G3でfont-sizeを0.64em→0.75rem(rem化)にしたため、この計算式も
+			   0.75remベースに更新する(border-top/padding-topはもうこの要素に無いため式から除去)。
+			   ラウンド21 21-B3: 技チップに上下0.08remのpaddingを追加したため(下の.card-move-chip
+			   参照)、1行あたり+0.16rem(2*0.08rem)ぶん計算式に加算する。 */
+			min-height: calc(2 * (1.2 * 0.75rem + 0.16rem) + 0.05rem);
 		}
+		/* ラウンド20 G3: 0.64em(≈10.2px)は違反だったため、emの入れ子を避けてrem基準の
+		   0.75rem(=12px)へ引き上げる。 */
 		.box-grid .card-pokemon .card-move-chip {
-			font-size: 0.64em;
+			font-size: 0.75rem;
 			line-height: 1.2;
 			font-weight: 600;
 			text-align: center;
@@ -559,6 +783,72 @@ const user = Astro.locals.user;
 			white-space: nowrap;
 			overflow: hidden;
 			text-overflow: ellipsis;
+			/* ラウンド21 21-B3: 技の背景にタイプ背景色を置く(ユーザー指示)。背景そのものは
+			   JS側(applyMoveChipTypeColors)がcolor-mixで敷く(タイプが引けないときは背景なし)。
+			   ここではチップらしく見せるための余白と角丸だけを用意する。
+			   コントラスト実測: color-mix(in srgb, <タイプ色> 10%, transparent)を
+			   --color-surface-alt(カード背景)の上に敷いた場合、--color-text-mutedとの比は
+			   19タイプ中最悪でもライト4.88:1(かくとう)・ダーク4.66:1(こおり)で、WCAG AA(4.5:1)を
+			   ライト・ダーク両方で全タイプが満たす(15〜20%では一部タイプがダークで4.5:1を割ることを
+			   計算で確認したため10%を採用。詳細は報告参照)。 */
+			padding: 0.08rem 0.35rem;
+			border-radius: 4px;
+		}
+
+		/* ラウンド21(Coordinator指摘の390px/360px 1列落ち修正): 狭幅(max-width: 480px)で
+		   カード幅が150px前後まで縮んだ状態では、240px以上を前提にした実数値6列・技2列の
+		   レイアウトのまま列幅だけ縮めても「はみ出さない・省略しない」を両立できないと実測で
+		   判明した(実数値: 21〜24px/列に3桁+▲▼マーカーのscrollWidth実測34pxが収まらない。
+		   技: 66〜73px/列に8文字の技名のscrollWidth実測107pxが収まらない)。
+		   この幅だけ実数値を6列→3列(2段組×2)、技を2列→1列に組み替えて1列あたりの実効幅を
+		   倍以上に広げる。この変更はJS生成要素(.card-pokemon等)に対するものなので、
+		   同じis:globalブロック内、かつ上の基本定義より後ろに置く(@media は詳細度を
+		   上げないため、後続の無条件ルールに書くと先に書いた@media側が負けて何も起きない
+		   ---実際にこの罠を1回踏んで検証時に発覚した。pitfalls.mdの「@containerは詳細度を
+		   上げない」と同種の事故)。
+		   縦に伸びる分、正方形(aspect-ratio: 1/1)は維持できないため縦長に変える。グリッドの
+		   列幅はauto-fill(1fr)で全カード共通なので、aspect-ratioを外してauto高さにしても、
+		   技0件時の.card-moves-gridのmin-height予約(常に4行ぶん確保)により全カードの高さは
+		   揃う(実機でcloneNode複製し、技0/2/4件のカード混在で高さ差0pxを確認済み)。 */
+		@media (max-width: 480px) {
+			.box-grid .card-pokemon {
+				aspect-ratio: auto;
+				grid-template-rows: auto auto;
+			}
+			.box-grid .card-pokemon .card-stat-grid {
+				grid-template-columns: repeat(3, minmax(0, 1fr));
+			}
+			.box-grid .card-pokemon .card-moves-grid {
+				grid-template-columns: minmax(0, 1fr);
+				/* 技4件ぶん(1列4行)の高さを常に確保する(min-height計算式は上の基本定義と
+				   同じ1行あたりの高さを4倍にしたもの)。 */
+				min-height: calc(4 * (1.2 * 0.75rem + 0.16rem) + 3 * 0.05rem);
+			}
+			/* ラウンド32 32-B2追加分(実装者の判断): この幅ではカード全体(≈169px)に対し
+			   .card-art自体が90.9px程度まで縮み、.card-badge-row(上の基本定義でtop:60px、
+			   .card-actionsの下端を避ける値)とカード名(.card-body)の間の安全域が実測34.9px
+			   しかない。デスクトップ寸法のまま(アイテム18px+テラス25px+gap0.2rem=46.2px)だと
+			   この安全域に収まらず、Playwrightで実測したところテラスバッジがポケモン名の文字と
+			   重なる事故が確認された(390px幅、`c8680844`で確認)。この幅に限りバッジを
+			   縮小して安全域(34.9px)に収める(実測33.28px、クリアランス約1.6px)。
+			   ラウンド32.mdはPC/フルHD(1920×1080)が主対象で狭幅のバッジ縮小までは明示していないが、
+			   「アクションボタンや公式絵と重ならない」「破綻しないこと」の制約を満たすための
+			   実装者の判断。
+			   32-B5追加分(実装者の判断): デスクトップ側を20px統一(item 18→20px、tera 25→20px)に
+			   揃えたのに合わせ、この幅の値も14px/18pxの2種類から16px/16pxの1種類へ統一する。
+			   14+18=32=16+16 のため合計高さ(+gap)は変わらず、上記の安全域34.9px・クリアランス
+			   約1.6pxは変化しない(実測は報告参照)。 */
+			.box-grid .card-pokemon .card-item-badge {
+				width: 16px;
+				height: 16px;
+			}
+			.box-grid .card-pokemon .card-tera-badge {
+				width: 16px;
+				height: 16px;
+			}
+			.box-grid .card-pokemon .card-badge-row {
+				gap: 0.08rem;
+			}
 		}
 	</style>
 
@@ -578,15 +868,26 @@ const user = Astro.locals.user;
 									id="search-input"
 									type="search"
 									class="field-control"
-									placeholder="ニックネーム・種族・特性・技など"
+									placeholder="ニックネーム・種族・持ち物・特性・技など"
 									autocomplete="off"
 								/>
 							</div>
 						</div>
 
-						<div class="toolbar-item toolbar-filter" id="tag-filter-toolbar" hidden title="タグで絞り込み(すべて一致)">
-							<span class="field-label">絞り込み</span>
-							<div class="tag-filter-list" id="tag-filter-list"></div>
+						<div class="toolbar-item toolbar-favorite">
+							{/* ラウンド27 27-B3(ユーザー指示)によりタグ絞り込みUI(#tag-filter-toolbar、
+							    複数タグ選択+すべて一致)を廃止し、「お気に入りのみ表示」の単一トグルに
+							    置き換えた。データ側のtagsフィールド・保存経路は変更しない
+							    (削除するのは一覧画面の絞り込みUIだけ)。 */}
+							<button
+								type="button"
+								id="favorite-filter-toggle"
+								class="favorite-filter-toggle"
+								data-active="false"
+								aria-pressed="false"
+							>
+								<span aria-hidden="true">★</span> お気に入りのみ表示
+							</button>
 						</div>
 
 						<div class="toolbar-item toolbar-sort">
@@ -623,7 +924,7 @@ const user = Astro.locals.user;
 						<div id="no-match-message" class="empty-state" hidden>
 							<p class="empty-state-icon" aria-hidden="true">🔍</p>
 							<p class="empty-state-title">条件に一致する個体がいません</p>
-							<p class="empty-state-hint">検索語や絞り込みタグを変更してください。</p>
+							<p class="empty-state-hint">検索語や「お気に入りのみ表示」の条件を変更してください。</p>
 						</div>
 					</div>
 				</Fragment>
@@ -649,8 +950,32 @@ const user = Astro.locals.user;
 		// カードのtitle属性=ホバーツールチップから参照できるようにしてある)。
 		// ラウンド5: 持ち物(画像バッジ)を復元するため loadItemSpriteMap/itemImageUrl を再度
 		// インポートする(box/[id].astroが使っているものと同一のヘルパー、src/lib/sprite-urls.ts)。
-		import { loadImageIdMap, officialArtworkUrl, loadBaseStatsMap } from "../../lib/pokemon-master-data";
-		import { loadItemSpriteMap, itemImageUrl } from "../../lib/sprite-urls";
+		// ラウンド21 21-B3: 技名→タイプの解決に loadMoveTypeMap を追加 import する(既存関数、
+		// box/[id].astroが技入力欄の枠色付けに使っているものと同一)。
+		import {
+			loadImageIdMap,
+			officialArtworkUrl,
+			loadBaseStatsMap,
+			loadMoveTypeMap,
+		} from "../../lib/pokemon-master-data";
+		// ラウンド21 21-B2でテラスタイプ表示を宝石型アイコン(teraTypeIconUrl)から通常タイプの
+		// 丸アイコン(typeIconUrl)へ差し替えたが、ラウンド28 28-G1(ユーザー指示)で
+		// generate_type_icons.pyが作り直され宝石型の縁を綺麗に繋ぎ合わせたテラス専用アイコンが
+			// 再生成されたため、21-B2(および23-G2)を撤回してteraTypeIconUrlへ戻す。typeIconUrlは
+			// このファイル内で他に使っていないためimportから外す(sprite-urls.tsの関数自体は
+			// 共通ファイルのため消さない)。
+		import { loadItemSpriteMap, itemImageUrl, teraTypeIconUrl } from "../../lib/sprite-urls";
+		// ラウンド21 21-B3: 技チップの背景色付け用。値そのものは type-colors.ts(エージェントPが
+		// box/[id].astro からの切り出しとして新規作成)からimportし、コピー定義は作らない。
+		import { TYPE_COLORS, DEFAULT_TYPE_COLOR } from "../../lib/type-colors";
+		// ラウンド18: 実数値計算の共通化。box/[id].astro・share/[slug].astro・pokemon/[name].astro
+		// と4箇所にコピーされていた chmpToLegacyEffort/calcHpStat/calcOtherStat/
+		// NATURE_STAT_MODIFIERS を src/lib/stats.ts に統合した(このファイルが原本だった)。
+		import {
+			NATURE_STAT_MODIFIERS,
+			calcHpStat,
+			calcOtherStat,
+		} from "../../lib/stats";
 
 		interface OwnedPokemon {
 			id: string;
@@ -674,55 +999,12 @@ const user = Astro.locals.user;
 		// 実数値計算共通の列順(evs/ivs配列の並びと一致)。
 		// [HP, 攻撃, 防御, 特攻, 特防, 素早さ] (box/[id].astro の STAT_KEYS と同じ順序)。
 		const STAT_KEYS = ["hp", "atk", "def", "spa", "spd", "spe"] as const;
-		type StatKey = (typeof STAT_KEYS)[number];
 		const STAT_LABELS = ["H", "A", "B", "C", "D", "S"] as const;
 
-		// UI刷新(要件4): 実数値の常時表示。box/[id].astroはPyodide(jpoke)で計算しているが、
-		// 一覧ページで個体ごとにPyodideを初期化するのは重すぎる(全ページ共通の「操作まで遅延初期化」
-		// 方針にも反する)。チャンピオンズルールはIV=31固定・レベル常時50なので、
+		// ラウンド18: NATURE_STAT_MODIFIERS・chmpToLegacyEffort・calcHpStat・calcOtherStatは
+		// src/lib/stats.ts に統合した(このファイルが原本だったコピーは削除。上のimport参照)。
 		// vendor/jpoke/src/jpoke/model/stats.py の calc_hp/calc_stat/chmp_to_legacy_effort と
-		// 完全に同じ式を純粋なJS関数として再実装し、種族値データ(/master-data/detail/pokemon.json)
-		// だけで実数値を出す。
-		const NATURE_STAT_MODIFIERS: Record<string, { up: StatKey | null; down: StatKey | null }> = {
-			"まじめ": { up: null, down: null },
-			"さみしがり": { up: "atk", down: "def" },
-			"いじっぱり": { up: "atk", down: "spa" },
-			"やんちゃ": { up: "atk", down: "spd" },
-			"ゆうかん": { up: "atk", down: "spe" },
-			"ずぶとい": { up: "def", down: "atk" },
-			"わんぱく": { up: "def", down: "spa" },
-			"のうてんき": { up: "def", down: "spd" },
-			"のんき": { up: "def", down: "spe" },
-			"ひかえめ": { up: "spa", down: "atk" },
-			"おっとり": { up: "spa", down: "def" },
-			"うっかりや": { up: "spa", down: "spd" },
-			"れいせい": { up: "spa", down: "spe" },
-			"おだやか": { up: "spd", down: "atk" },
-			"おとなしい": { up: "spd", down: "def" },
-			"しんちょう": { up: "spd", down: "spa" },
-			"なまいき": { up: "spd", down: "spe" },
-			"おくびょう": { up: "spe", down: "atk" },
-			"せっかち": { up: "spe", down: "def" },
-			"ようき": { up: "spe", down: "spa" },
-			"むじゃき": { up: "spe", down: "spd" },
-			"てれや": { up: null, down: null },
-			"がんばりや": { up: null, down: null },
-			"すなお": { up: null, down: null },
-			"きまぐれ": { up: null, down: null },
-		};
-
-		function chmpToLegacyEffort(evChamp: number): number {
-			return evChamp === 0 ? 0 : 8 * evChamp - 4;
-		}
-		function calcHpStat(level: number, base: number, iv: number, evChamp: number): number {
-			if (base === 1) return 1; // ヌケニン特例(vendor/jpoke/src/jpoke/model/stats.pyと同じ)
-			const effort = chmpToLegacyEffort(evChamp);
-			return Math.floor(((base * 2 + iv + Math.floor(effort / 4)) * level) / 100) + level + 10;
-		}
-		function calcOtherStat(level: number, base: number, iv: number, evChamp: number, nc: number): number {
-			const effort = chmpToLegacyEffort(evChamp);
-			return Math.floor((Math.floor(((base * 2 + iv + Math.floor(effort / 4)) * level) / 100) + 5) * nc);
-		}
+		// 完全に同じ式であることの出典は src/lib/stats.ts 冒頭のコメント参照。
 
 		function el<T extends HTMLElement>(id: string): T {
 			const found = document.getElementById(id);
@@ -739,8 +1021,10 @@ const user = Astro.locals.user;
 			const countBadge = el<HTMLElement>("pokemon-count-badge");
 			const sortSelect = el<HTMLSelectElement>("sort-select");
 			const searchInput = el<HTMLInputElement>("search-input");
-			const tagFilterToolbar = el<HTMLElement>("tag-filter-toolbar");
-			const tagFilterList = el<HTMLElement>("tag-filter-list");
+			// ラウンド27 27-B3(ユーザー指示)によりタグ絞り込みUI(tagFilterToolbar/
+			// tagFilterList、複数タグ選択)を廃止し、「お気に入りのみ表示」の単一トグルに
+			// 置き換えた。
+			const favoriteFilterToggle = el<HTMLButtonElement>("favorite-filter-toggle");
 			const addButton = el<HTMLButtonElement>("add-pokemon-button");
 			// textContentではなくinnerHTMLで保存する。addButtonは「＋」の大きいアイコンと
 			// ラベルの2要素構成(見た目の要件2)なので、ローディング表示から復元する際に
@@ -748,7 +1032,9 @@ const user = Astro.locals.user;
 			const ADD_BUTTON_DEFAULT_HTML = addButton.innerHTML;
 
 			let allPokemon: OwnedPokemon[] = [];
-			const activeTags = new Set<string>();
+			// ラウンド27 27-B3: 旧activeTags(複数タグの絞り込み状態)を単一boolean(お気に入りの
+			// みを表示するか)に置き換える。
+			let favoriteOnly = false;
 
 			// UI刷新: 種族名→imageId(画像用PokeAPI ID)、種族名→種族値のマップ。
 			// いずれも非同期fetchだが、ここでは待たずにPromiseだけ確保しておく。
@@ -759,6 +1045,9 @@ const user = Astro.locals.user;
 			const baseStatsMapPromise = loadBaseStatsMap();
 			// ラウンド5: 持ち物バッジ用。アイテム和名→sprite相対パスのマップ(box/[id].astroと同じ)。
 			const itemSpriteMapPromise = loadItemSpriteMap();
+			// ラウンド21 21-B3: 技チップの背景色付け用。技名→タイプのマップ(box/[id].astroが
+			// 技入力欄の枠色付けに使っているものと同一関数)。
+			const moveTypeMapPromise = loadMoveTypeMap();
 
 			// nickname・species_nameのどちらも空(自動登録直後の空個体)の場合、カード見出しが
 			// 空文字にならないよう "(未設定)" にフォールバックする。並べ替え・検索・削除確認
@@ -769,23 +1058,29 @@ const user = Astro.locals.user;
 				return "(未設定)";
 			}
 
-			// ラウンド4: タイプ・性格・特性・持ち物・テラスタイプ・技をカードの常時表示から
-			// 撤回した代わりに、カード<a>のtitle属性(ネイティブのホバーツールチップ)へ
-			// まとめる。表示名がニックネームのときは種族名も添え、情報を失わないようにする。
-			function buildCardTooltip(p: OwnedPokemon): string {
+			// ラウンド32 32-B4(ユーザー指示第15弾): 「カードのホバー表示にはステータスやメモなど、
+			// カード上に表示されていない情報だけ表示する」。旧title(とくせい/持ち物/わざ)は
+			// 32-B2・32-B3でその3つがカード上に常時可視になったため重複と判断し、実数値
+			// (H/A/B/C/D/S)とメモに入れ替える(round-32.mdより)。実数値はapplyActualStats()が
+			// 非同期(種族値マップ解決待ち)でstatValueEls/data-modを埋めるため、そちらが解決した
+			// 後に呼び出す(下のrenderCard内、applyActualStats(...).then(...)参照)。
+			// 種族値が解決できずstatValueElsが"-"のままの個体は実数値行を省略する(嘘の値は出さない)。
+			// メモ・実数値のどちらも無ければtitle属性自体を出さない(ユーザー指示どおり)。
+			function buildStatSummary(statValueEls: HTMLElement[]): string | null {
+				if (statValueEls.some((valueEl) => valueEl.textContent === "-")) return null;
+				return STAT_LABELS.map((label, i) => {
+					const valueEl = statValueEls[i];
+					const mark = valueEl.dataset.mod === "up" ? "▲" : valueEl.dataset.mod === "down" ? "▼" : "";
+					return `${label}${valueEl.textContent}${mark}`;
+				}).join(" ");
+			}
+			function applyCardTooltip(card: HTMLAnchorElement, statValueEls: HTMLElement[], memo: string | null): void {
 				const lines: string[] = [];
-				const shownName = displayName(p);
-				const species = p.species_name?.trim() ?? "";
-				if (species && species !== shownName) lines.push(`種族: ${species}`);
-				const ability = p.ability_name?.trim() ?? "";
-				if (ability) lines.push(`とくせい: ${ability}`);
-				const item = p.item_name?.trim() ?? "";
-				if (item) lines.push(`持ち物: ${item}`);
-				const tera = p.tera_type?.trim() ?? "";
-				if (tera) lines.push(`テラスタイプ: ${tera}`);
-				const moves = p.move_names.filter((name) => name && name.trim() !== "");
-				if (moves.length > 0) lines.push(`わざ: ${moves.join(" / ")}`);
-				return lines.join("\n");
+				const statSummary = buildStatSummary(statValueEls);
+				if (statSummary) lines.push(`実数値: ${statSummary}`);
+				const memoText = memo?.trim() ?? "";
+				if (memoText) lines.push(`メモ: ${memoText}`);
+				if (lines.length > 0) card.title = lines.join("\n");
 			}
 
 			// UI刷新: カード内の公式絵。取得できない場合は頭文字の丸バッジにフォールバックする。
@@ -834,6 +1129,56 @@ const user = Astro.locals.user;
 				imgEl.src = itemImageUrl(spritePath);
 			}
 
+			// ラウンド20 B1: 持ち物バッジの右に並べるテラスタイプ画像。teraTypeIconUrlは
+			// 静的マップからの同期解決(sprite-urls.ts)なのでPromiseを待つ必要は無い。
+			// テラス未設定の個体ではバッジごと隠す(applyItemBadgeと同じ設計)。
+			// ラウンド21 21-B2で宝石型のteraTypeIconUrl(ジグザグ縁)から通常タイプの丸アイコン
+			// typeIconUrlへ差し替えたが、ラウンド28 28-G1(ユーザー指示)でgenerate_type_icons.pyが
+			// 作り直され、宝石型の縁を綺麗に繋ぎ合わせたテラス専用アイコンが再生成されたため、
+			// 21-B2(および23-G2)を撤回してteraTypeIconUrlへ戻す。専用アイコンは宝石型(ジグザグの
+			// 尖った縁)を持つ正方形画像のため、border-radius: 50%で丸くトリミングしてはいけない
+			// (縁が削れてしまう)。丸トリミングのCSS(.card-tera-badge img)側も外す(下のCSS参照)。
+			function applyTeraBadge(imgEl: HTMLImageElement, badgeEl: HTMLElement, teraType: string): void {
+				const type = teraType.trim();
+				if (!type) {
+					badgeEl.hidden = true;
+					return;
+				}
+				const url = teraTypeIconUrl(type);
+				if (!url) {
+					badgeEl.hidden = true;
+					return;
+				}
+				imgEl.onerror = () => {
+					badgeEl.hidden = true;
+				};
+				imgEl.onload = () => {
+					badgeEl.hidden = false;
+				};
+				imgEl.src = url;
+			}
+
+			// ラウンド21 21-B3: 技チップの背景にタイプカラーを敷く。技名→タイプの解決は非同期
+			// (loadMoveTypeMap)だが、対象のspan要素は呼び出し前に既に静的な順序でDOMへ
+			// 配置済みなので、色を後から埋めても挿入順には影響しない
+			// (pitfalls.md「非同期の描画関数をvoidで投げっぱなしにしない」の事故は複数要素間の
+			// 挿入順が競合する場合の話で、この関数は既存の要素に背景色を1回書き込むだけなので
+			// 該当しない)。技名からタイプが引けない(未入力・データに無い技)場合は背景を付けない。
+			// コントラストは実測済み(color-mix 10%、--color-text-mutedとの比が最悪でも
+			// ライト4.88:1・ダーク4.66:1でWCAG AA 4.5:1を19タイプ全てで満たす。詳細は報告参照)。
+			async function applyMoveChipTypeColors(
+				entries: { el: HTMLElement; moveName: string }[],
+			): Promise<void> {
+				if (entries.length === 0) return;
+				const typeMap = await moveTypeMapPromise;
+				for (const { el, moveName } of entries) {
+					const type = typeMap.get(moveName);
+					if (!type) continue;
+					const color = TYPE_COLORS[type] ?? DEFAULT_TYPE_COLOR;
+					el.style.background = `color-mix(in srgb, ${color} 10%, transparent)`;
+				}
+			}
+
 			// UI刷新(要件4): 実数値グリッドを埋める。種族値が解決できない場合は "-" のまま残す。
 			async function applyActualStats(valueEls: HTMLElement[], p: OwnedPokemon): Promise<void> {
 				const base = p.species_name ? (await baseStatsMapPromise).get(p.species_name) : undefined;
@@ -853,29 +1198,6 @@ const user = Astro.locals.user;
 					else if (key !== "hp" && mod.down === key) target.dataset.mod = "down";
 					else delete target.dataset.mod;
 				});
-			}
-
-			function renderTagFilters(): void {
-				const tagSet = new Set<string>();
-				for (const p of allPokemon) {
-					for (const t of p.tags) tagSet.add(t);
-				}
-				const tags = Array.from(tagSet).sort((a, b) => a.localeCompare(b, "ja"));
-				tagFilterToolbar.hidden = tags.length === 0;
-				tagFilterList.innerHTML = "";
-				for (const tag of tags) {
-					const chip = document.createElement("button");
-					chip.type = "button";
-					chip.className = "tag-chip" + (activeTags.has(tag) ? " active" : "");
-					chip.textContent = tag;
-					chip.addEventListener("click", () => {
-						if (activeTags.has(tag)) activeTags.delete(tag);
-						else activeTags.add(tag);
-						renderTagFilters();
-						renderList();
-					});
-					tagFilterList.appendChild(chip);
-				}
 			}
 
 			// ラウンド4: カードの表示からタイプ・特性・持ち物・テラスタイプ・技を外したが、
@@ -901,9 +1223,10 @@ const user = Astro.locals.user;
 					.every((token) => haystack.includes(token));
 			}
 
-			function matchesTags(p: OwnedPokemon): boolean {
-				if (activeTags.size === 0) return true;
-				return Array.from(activeTags).every((t) => p.tags.includes(t));
+			// ラウンド27 27-B3(ユーザー指示): 「しぼりこみ条件はお気に入りだけにする」。
+			// お気に入り=is_pinnedと同義(pinButtonの★/☆と同じデータ)。
+			function matchesFavorite(p: OwnedPokemon): boolean {
+				return !favoriteOnly || p.is_pinned;
 			}
 
 			function sortPokemon(list: OwnedPokemon[]): OwnedPokemon[] {
@@ -935,8 +1258,8 @@ const user = Astro.locals.user;
 				card.href = `/box/${encodeURIComponent(p.id)}`;
 				const name = displayName(p);
 				card.setAttribute("aria-label", `${name} を編集`);
-				const tooltip = buildCardTooltip(p);
-				if (tooltip) card.title = tooltip;
+				// title(ホバーツールチップ)は下のapplyActualStats().then(...)で実数値が
+				// 解決してから設定する(32-B4)。
 
 				// --- ピン留め/削除(単一アイコンボタン、カード右上に重ねる。要件7) ---
 				const actions = document.createElement("div");
@@ -989,15 +1312,37 @@ const user = Astro.locals.user;
 
 				void applyCardSprite(spriteImg, spriteFallback, p.species_name ?? "");
 
-				// --- 優先順位4位: 持ち物(公式絵の右下に重ねる画像バッジ、ラウンド5で復元) ---
+				// --- 優先順位4位: アイテム画像+テラスタイプ(公式絵の右側に縦に並べるバッジ列)。
+				//     ラウンド32 32-B2(ユーザー指示第15弾): 「アイテムアイコンをポケモンアイコンの
+				//     右側(テラスタル画像の上)に配置」。従来は.card-item-badgeが.card-item-row
+				//     (持ち物のテキスト行)側にあったが、.card-art側のこの列へ移し、
+				//     テラスバッジ(.card-tera-badge)と縦に並べる(アイテムが上、テラスが下)。
+				//     どちらも既定でhidden=trueにしてから非同期でsrc/hiddenを埋める
+				//     (挿入順を実行順に依存させないための対策。pitfalls.md参照。
+				//     ラッパー.card-badge-row自体は背景/枠を持たないので、隠れていても
+				//     空の白丸は残らない)。 ---
+				const badgeRow = document.createElement("span");
+				badgeRow.className = "card-badge-row";
+
 				const itemBadge = document.createElement("span");
 				itemBadge.className = "card-item-badge";
 				itemBadge.hidden = true;
 				const itemImg = document.createElement("img");
 				itemImg.alt = "";
 				itemBadge.appendChild(itemImg);
+				badgeRow.appendChild(itemBadge);
 				void applyItemBadge(itemImg, itemBadge, p.item_name ?? "");
-				art.appendChild(itemBadge);
+
+				const teraBadge = document.createElement("span");
+				teraBadge.className = "card-tera-badge";
+				teraBadge.hidden = true;
+				const teraImg = document.createElement("img");
+				teraImg.alt = "";
+				teraBadge.appendChild(teraImg);
+				badgeRow.appendChild(teraBadge);
+				applyTeraBadge(teraImg, teraBadge, p.tera_type ?? "");
+
+				art.appendChild(badgeRow);
 
 				card.appendChild(art);
 
@@ -1012,6 +1357,56 @@ const user = Astro.locals.user;
 				nameEl.className = "card-name";
 				nameEl.textContent = name;
 				body.appendChild(nameEl);
+
+				// --- 優先順位4位: 特性+持ち物(テキスト2列、ラウンド27 27-B1で新設した行を
+				//     ラウンド32 32-B3(ユーザー指示第15弾)で作り直したもの)。
+				//     「特性をアイテムの左側に表示」の指示どおり、.card-item-rowを
+				//     [特性名]-[持ち物名]の2列左右振り分けにする(アイコンは32-B2で
+				//     .card-art側へ移ったため、この行はテキスト2つだけになる)。
+				//     特性・持ち物のどちらか一方だけの個体でも列が崩れないよう、
+				//     もう片方は空文字列のまま(何も表示しない)にする。 ---
+				const itemRow = document.createElement("div");
+				itemRow.className = "card-item-row";
+
+				const abilityNameEl = document.createElement("span");
+				abilityNameEl.className = "card-ability-name";
+				abilityNameEl.textContent = p.ability_name?.trim() ?? "";
+				itemRow.appendChild(abilityNameEl);
+
+				const itemNameEl = document.createElement("span");
+				itemNameEl.className = "card-item-name";
+				itemNameEl.textContent = p.item_name?.trim() ?? "";
+				itemRow.appendChild(itemNameEl);
+
+				body.appendChild(itemRow);
+
+				// --- 優先順位5位: 技(最大4つ、ラウンド5で復元)。
+				//     2×2グリッドにして高さを抑える。未設定スロットは要素自体を作らない
+				//     (「-」を4つ並べるとデータ破損に見えるという指摘への対応を継続)。
+				//     ラウンド8 A-8: movesGrid自体(子要素の無い箱)は技0件でも必ずappendする。
+				//     CSS側でmin-heightを持たせてあるので、技0/2/4件のどのカードでもcard-bodyの
+				//     高さが一致し、名前行・実数値行のy座標が揃う(cloneNode(true)で36体に複製した
+				//     状態で実測: 差0px)。
+				//     ラウンド20 B2: 「名前→技→実数値」の順に入れ替えた(ユーザー指示)。
+				//     区切り線は下の実数値グリッド側に移設したので、このブロック自体は
+				//     技0件でも罫線を出さず、ただの空白として中段に収まる
+				//     (メガフシギバナ(42ccb527-...)で実機確認: 空白は出るが浮いた罫線には見えない)。 ---
+				const moves = p.move_names.filter((moveName) => moveName && moveName.trim() !== "");
+				const movesGrid = document.createElement("div");
+				movesGrid.className = "card-moves-grid";
+				// ラウンド21 21-B3: 技チップにタイプ背景色を敷く。チップ自体は他の要素と同様に
+				// ここで同期的に静的な順序でappendし、色付けだけを後から非同期で行う
+				// (applyMoveChipTypeColorsのコメント参照)。
+				const moveChipEntries: { el: HTMLElement; moveName: string }[] = [];
+				for (const moveName of moves) {
+					const moveEl = document.createElement("span");
+					moveEl.className = "card-move-chip";
+					moveEl.textContent = moveName;
+					movesGrid.appendChild(moveEl);
+					moveChipEntries.push({ el: moveEl, moveName });
+				}
+				void applyMoveChipTypeColors(moveChipEntries);
+				body.appendChild(movesGrid);
 
 				// 実数値6値: 列見出し(H/A/B/C/D/S)行→実数値行の2段×6列グリッド。
 				// 性格による上昇/下降は実数値に▲▼を添えて示す(色だけに頼らない)。
@@ -1035,26 +1430,7 @@ const user = Astro.locals.user;
 				}
 
 				body.appendChild(statGrid);
-				void applyActualStats(statValueEls, p);
-
-				// --- 優先順位5位: 技(最大4つ、ラウンド5で復元)。
-				//     2×2グリッドにして高さを抑える。未設定スロットは要素自体を作らない
-				//     (「-」を4つ並べるとデータ破損に見えるという指摘への対応を継続)。
-				//     ラウンド8 A-8: movesGrid自体(子要素の無い箱)は技0件でも必ずappendする。
-				//     CSS側でmin-heightを持たせてあるので、技0/2/4件のどのカードでもcard-bodyの
-				//     高さが一致し、名前行・実数値行のy座標が揃う(cloneNode(true)で36体に複製した
-				//     状態で実測: 差0px)。空のときはborder-topの区切り線だけが出て「技未登録」を
-				//     逆に読み取れるようにする(下半分がただ詰まって見える旧状態からの改善)。 ---
-				const moves = p.move_names.filter((moveName) => moveName && moveName.trim() !== "");
-				const movesGrid = document.createElement("div");
-				movesGrid.className = "card-moves-grid";
-				for (const moveName of moves) {
-					const moveEl = document.createElement("span");
-					moveEl.className = "card-move-chip";
-					moveEl.textContent = moveName;
-					movesGrid.appendChild(moveEl);
-				}
-				body.appendChild(movesGrid);
+				void applyActualStats(statValueEls, p).then(() => applyCardTooltip(card, statValueEls, p.memo));
 
 				card.appendChild(body);
 
@@ -1062,7 +1438,7 @@ const user = Astro.locals.user;
 			}
 
 			function renderList(): void {
-				const filtered = allPokemon.filter((p) => matchesTags(p) && matchesSearch(p, searchInput.value.trim()));
+				const filtered = allPokemon.filter((p) => matchesFavorite(p) && matchesSearch(p, searchInput.value.trim()));
 				const sorted = sortPokemon(filtered);
 				listRoot.innerHTML = "";
 				// UI刷新(要件10)→ラウンド2(B-9): 「本当に0件」と「絞り込みで0件」を区別する。
@@ -1124,7 +1500,6 @@ const user = Astro.locals.user;
 					});
 					if (!res.ok) throw new Error(`削除に失敗しました (status=${res.status})`);
 					allPokemon = allPokemon.filter((x) => x.id !== p.id);
-					renderTagFilters();
 					renderList();
 				} catch (err) {
 					console.error(err);
@@ -1193,7 +1568,6 @@ const user = Astro.locals.user;
 					const body = (await res.json()) as { data: OwnedPokemon[] };
 					allPokemon = body.data;
 					loadingMessage.hidden = true;
-					renderTagFilters();
 					renderList();
 				} catch (err) {
 					console.error(err);
@@ -1205,6 +1579,12 @@ const user = Astro.locals.user;
 
 			sortSelect.addEventListener("change", renderList);
 			searchInput.addEventListener("input", renderList);
+			favoriteFilterToggle.addEventListener("click", () => {
+				favoriteOnly = !favoriteOnly;
+				favoriteFilterToggle.dataset.active = String(favoriteOnly);
+				favoriteFilterToggle.setAttribute("aria-pressed", String(favoriteOnly));
+				renderList();
+			});
 			addButton.addEventListener("click", () => void createEmptyPokemon());
 
 			void loadList();

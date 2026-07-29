@@ -33,7 +33,16 @@ const PYODIDE_SCRIPT_URL = `${PYODIDE_CDN_BASE}pyodide.js`;
 
 // build:master-data (scripts/build-master-data/build.mjs) が生成する静的アセット。
 // public/ 配下はAstroが素通しで配信するため、このパスがそのままURLになる。
-const JPOKE_WHEEL_URL = "/master-data/pyodide/wheels/jpoke-0.2.0-py3-none-any.whl";
+//
+// wheelのファイル名(バージョン番号を含む)はここに手書きしない。build.mjs が
+// wheel生成のたびに書き出す public/master-data/pyodide/wheel-manifest.json を
+// ビルド時にVite静的import(src/pages/api/search.ts が同ディレクトリ配下の
+// autocomplete/*.json を静的importしているのと同じ方式)で読み込み、URLを組み立てる。
+// これにより vendor/jpoke のバージョンが上がって wheel ファイル名が変わっても、
+// このファイルを手動更新する必要が無くなる(UI改善ラウンド22 22-E-3で対応。
+// 実行時fetchを増やさないよう、あえて静的importにしている)。
+import jpokeWheelManifest from "../../public/master-data/pyodide/wheel-manifest.json";
+const JPOKE_WHEEL_URL = `/master-data/pyodide/wheels/${jpokeWheelManifest.filename}`;
 
 // public/pyodide-sw.js: Pyodide CDN + jpoke wheel のみを対象にした cache-first Service Worker。
 const SERVICE_WORKER_URL = "/pyodide-sw.js";
@@ -87,6 +96,21 @@ export interface PokemonSpec {
    * 指定すれば発動する(「teraType未設定なら発動しない」という誤った前提は採用していない)。
    */
   terastallized?: boolean;
+  /**
+   * 揮発性状態名の一覧(例 "のろい" "やどりぎのタネ" "タールショット")。
+   * jpoke の `Battle.set_volatile(target, name)` で個別に付与する(`_apply_battle_only_state`
+   * 参照)。ailment と同様、Battle のイベント機構(EventManagerへのハンドラ登録)を
+   * 経由する必要があるため、Pokemon構築時ではなくBattle開始後に反映される。
+   *
+   * 重要(subject_spec による片側性): jpoke の揮発状態ハンドラは
+   * `subject_spec="attacker:self"` / `"defender:self"` のいずれかに固定されており、
+   * 「攻撃側に付与したら攻撃側の技にだけ効く」「防御側に付与したら防御側が受けるダメージ・
+   * ターン終了処理にだけ効く」という一方向の効果しか持たない(`vendor/jpoke/src/jpoke/data/volatile.py`
+   * の該当エントリ参照)。呼び出し側(box/[id].astro)は、この一方向性を踏まえて
+   * 各揮発性状態を効果のある側のspecにだけ渡すこと(逆側に渡しても`battle.set_volatile()`
+   * 自体は成功するが、計算結果には一切反映されない=「設定できるのに数値が動かない」状態になる)。
+   */
+  volatiles?: string[];
 }
 
 /**
@@ -181,6 +205,10 @@ export interface SequenceAttack {
   defenderAilment?: string;
   /** この攻撃時点で防御側がテラスタル発動済みか。省略時は defenderSpec.terastallized にフォールバックする */
   defenderTerastallized?: boolean;
+  /** この攻撃時点での攻撃側の揮発性状態名一覧。省略時は attackerSpec.volatiles にフォールバックする */
+  attackerVolatiles?: string[];
+  /** この攻撃時点での防御側の揮発性状態名一覧。省略時は defenderSpec.volatiles にフォールバックする */
+  defenderVolatiles?: string[];
   /**
    * この攻撃時点で防御側に発動している壁等のサイドフィールド効果名一覧。
    * 省略時は options.field.defenderSideFields にフォールバックする。
@@ -462,6 +490,16 @@ def _apply_battle_only_state(battle, mon, spec):
         mon.terastallize()
         battle.events.emit(Event.ON_TERASTALLIZE, EventContext(source=mon))
 
+    # 揮発性状態: battle.set_volatile()もset_ailment()と同じくBattleのイベント機構
+    # (EventManagerへのハンドラ登録)を経由するAPIで、シナリオ構築・ダメージ計算検証用
+    # (vendor/jpoke/src/jpoke/core/battle.py:1221-1239)。戻り値boolは「既に同じ揮発性
+    # 状態がある場合は失敗」という契約だが、呼び出し側(box/[id].astro)のvolatilesは
+    # チェックボックス集合(名前重複なし)から作られるため、通常は常にTrueになる。
+    # Falseは無視して構わない(既に付与済みなら状態は変わらないため、失敗を検知しても
+    # やり直す意味がない)。
+    for volatile_name in (spec.get("volatiles") or []):
+        battle.set_volatile(mon, volatile_name)
+
 
 def _resolve_move(pokemon, move_name):
     """ポケモンの技リストからmove_nameに一致する技を探す。
@@ -617,18 +655,19 @@ def _resolve_attack_override(card_common_value, per_attack_value):
     return per_attack_value if per_attack_value is not None else card_common_value
 
 
-def _build_per_attack_spec(base_spec, boosts_key, ailment_key, tera_key, attack):
+def _build_per_attack_spec(base_spec, boosts_key, ailment_key, tera_key, volatiles_key, attack):
     """base_spec(攻撃側/防御側どちらかのカード共通PokemonSpec dict)に、attack(1攻撃分の
-    dict)側のper-attackキー(boosts_key/ailment_key/tera_key。呼び出し側が
-    'attackerBoosts'/'attackerAilment'/'attackerTerastallized' か
-    'defenderBoosts'/'defenderAilment'/'defenderTerastallized' のいずれかを渡す)を
-    マージした新しいdictを返す。base_specへの副作用を避けるためdict(base_spec)で
-    浅いコピーを作ってから上書きする。
+    dict)側のper-attackキー(boosts_key/ailment_key/tera_key/volatiles_key。呼び出し側が
+    'attackerBoosts'/'attackerAilment'/'attackerTerastallized'/'attackerVolatiles' か
+    'defenderBoosts'/'defenderAilment'/'defenderTerastallized'/'defenderVolatiles' の
+    いずれかを渡す)をマージした新しいdictを返す。base_specへの副作用を避けるため
+    dict(base_spec)で浅いコピーを作ってから上書きする。
     """
     spec = dict(base_spec)
     spec["boosts"] = _resolve_attack_override(base_spec.get("boosts"), attack.get(boosts_key))
     spec["ailment"] = _resolve_attack_override(base_spec.get("ailment"), attack.get(ailment_key))
     spec["terastallized"] = _resolve_attack_override(base_spec.get("terastallized"), attack.get(tera_key))
+    spec["volatiles"] = _resolve_attack_override(base_spec.get("volatiles"), attack.get(volatiles_key))
     return spec
 
 
@@ -637,7 +676,7 @@ def calc_lethal_sequence_json(attacker_spec, defender_spec, attacks, seed, criti
     先頭から順に当てていったときの、各段階での累計致死率・技ごとの参考値を計算する。
 
     per-attack条件(優先順位: per-attack指定 > カード共通 > 未設定。'_resolve_attack_override'
-    参照): 急所('critical')・攻守双方のランク補正/状態異常/テラスタル発動
+    参照): 急所('critical')・攻守双方のランク補正/状態異常/テラスタル発動/揮発性状態
     ('attacker*'/'defender*')・天候('weather')・地形('terrain')・防御側サイド
     フィールド('defenderSideFields')は、attacksの各要素で個別に上書きできる
     (詳細設定はビルドカードではなく技カードごとに持たせたいというUI要件に合わせた)。
@@ -735,10 +774,12 @@ def calc_lethal_sequence_json(attacker_spec, defender_spec, attacks, seed, criti
         critical_for_attack = _resolve_attack_override(critical, attack.get("critical"))
 
         attacker_spec_for_attack = _build_per_attack_spec(
-            attacker_spec, "attackerBoosts", "attackerAilment", "attackerTerastallized", attack
+            attacker_spec, "attackerBoosts", "attackerAilment", "attackerTerastallized",
+            "attackerVolatiles", attack
         )
         defender_spec_for_attack = _build_per_attack_spec(
-            defender_spec, "defenderBoosts", "defenderAilment", "defenderTerastallized", attack
+            defender_spec, "defenderBoosts", "defenderAilment", "defenderTerastallized",
+            "defenderVolatiles", attack
         )
         # field_spec(カード共通)にattack側のper-attack上書きをマージする。
         # weather/terrain/defenderSideFieldsのいずれも、このBattle専用の

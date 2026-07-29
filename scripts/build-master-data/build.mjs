@@ -21,7 +21,7 @@
  *                jpoke 専用の venv がある場合はそのパスを指定してもよい)
  */
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, copyFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, copyFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
@@ -45,6 +45,11 @@ const jpokePython = process.env.JPOKE_PYTHON ?? (existsSync(venvPython) ? venvPy
 const autocompleteOutDir = path.join(repoRoot, 'public', 'master-data', 'autocomplete');
 const detailOutDir = path.join(repoRoot, 'public', 'master-data', 'detail');
 const wheelOutDir = path.join(repoRoot, 'public', 'master-data', 'pyodide', 'wheels');
+// UI改善ラウンド22 22-E-3: wheelのファイル名(バージョン番号を含む)を1箇所(ここ)でしか
+// 書かない。src/lib/pyodide-engine.ts はこのJSONをビルド時にVite静的import(src/pages/api/search.ts
+// が public/master-data/autocomplete/*.json を静的importしているのと同じ方式)で読み、
+// wheel URL を組み立てる。ハードコードした文字列を2箇所で手動同期する必要が無くなる。
+const wheelManifestPath = path.join(repoRoot, 'public', 'master-data', 'pyodide', 'wheel-manifest.json');
 
 function run(command, args, options = {}) {
   console.log(`> ${command} ${args.join(' ')}`);
@@ -110,6 +115,21 @@ function buildPyodideWheel() {
       copyFileSync(path.join(tmpOutDir, wheel), path.join(wheelOutDir, wheel));
       console.log(`wrote ${path.join(wheelOutDir, wheel)}`);
     }
+
+    // jpoke (pyproject.toml) のバージョンが変わると生成されるファイル名も変わる
+    // (例: jpoke-0.2.0-py3-none-any.whl → jpoke-0.3.0-py3-none-any.whl)。
+    // 実際に生成されたファイル名をそのままマニフェストに書き出し、
+    // src/lib/pyodide-engine.ts 側はこれを読むだけにする(バージョン文字列を
+    // アプリ側で手書きしない)。複数wheelが生成されるケースは想定していない
+    // (wheelOutDir は毎回全削除してから1回だけビルドするため)が、
+    // 万一複数生成された場合はソートして最初の1件を採用する。
+    const wheelFilename = [...wheels].sort()[0];
+    writeFileSync(
+      wheelManifestPath,
+      JSON.stringify({ filename: wheelFilename }, null, 2) + '\n',
+      'utf-8',
+    );
+    console.log(`wrote ${wheelManifestPath} (filename: ${wheelFilename})`);
   } finally {
     rmSync(tmpOutDir, { recursive: true, force: true });
   }

@@ -57,6 +57,7 @@ interface PokemonDetailEntry {
   name: string;
   baseStats: number[];
   learnset: string[];
+  abilities: string[];
 }
 
 let baseStatsCache: Promise<Map<string, number[]>> | null = null;
@@ -93,6 +94,29 @@ export function loadLearnsetMap(): Promise<Map<string, string[]>> {
       });
   }
   return learnsetCache;
+}
+
+let abilitiesCache: Promise<Map<string, string[]>> | null = null;
+
+// 種族名 -> その種族が持ちうる特性名の配列(loadBaseStatsMap/loadLearnsetMapと同じ
+// detail/pokemon.jsonをソースにしているが、キャッシュ済みPromiseパターンを揃えるため
+// あえて別関数・別キャッシュにしている)。box/[id].astro 左パネルの特性selectを、
+// 種族に属する特性だけに絞り込むために使う(21-L5)。
+// ⚠️ 隠れ特性(夢特性)の区別データは存在しない。abilities は単なるフラット配列で、
+// どれが隠れ特性かを示すキーは vendor/jpoke の生データ(ps-champ-ja/pokedex.json)の
+// 時点で既に失われている。区別しようとしないこと。
+export function loadAbilitiesMap(): Promise<Map<string, string[]>> {
+  if (!abilitiesCache) {
+    abilitiesCache = fetch("/master-data/detail/pokemon.json")
+      .then((res) => res.json())
+      .then((list: PokemonDetailEntry[]) => new Map(list.map((p) => [p.name, p.abilities])))
+      .catch((err) => {
+        console.warn("特性データの読み込みに失敗しました", err);
+        abilitiesCache = null;
+        return new Map<string, string[]>();
+      });
+  }
+  return abilitiesCache;
 }
 
 // autocomplete/moves.json の各レコードが持ちうる "hits" キー([最小ヒット数, 最大ヒット数])。
@@ -155,4 +179,36 @@ export function loadMoveTypeMap(): Promise<Map<string, string>> {
       });
   }
   return moveTypeCache;
+}
+
+// autocomplete/mega-stones.json の各レコード
+// (scripts/build-master-data/extract_autocomplete.py の build_mega_stones を参照)。
+interface MegaStoneAutocompleteEntry {
+  species: string;
+  item: string;
+}
+
+let megaStoneCache: Promise<Map<string, string>> | null = null;
+
+// メガ後種族名 -> メガストーン名(例: "メガリザードンX" -> "リザードナイトX")。
+// UI改善ラウンド23 23-G3: メガシンカポケモンを選択したら持ち物を対応するメガストーンに
+// 自動設定するために使う。前向き(種族 -> アイテム)の対応表なので、jpoke.data.megaevol.
+// MEGA_STONES(逆引き)では曖昧になって漏れる「メガニャオニクス(オス)/(メス)」も含む。
+// ⚠️ ただし「ニャオニクスナイト」自体はjpokeのITEMS(=items.json)に存在しないという
+// 既知の不整合がある(build_mega_stonesのdocstring参照)。呼び出し側は値をそのまま
+// items.json の存在確認なしに信用しないこと。
+// 命名規則("メガXXX"→"XXXナイト")では導出できない例が85件中32件(約38%)あるため、
+// 必ずこの静的JSONを情報源にすること(命名規則から推測しない)。
+export function loadMegaStoneMap(): Promise<Map<string, string>> {
+  if (!megaStoneCache) {
+    megaStoneCache = fetch("/master-data/autocomplete/mega-stones.json")
+      .then((res) => res.json())
+      .then((list: MegaStoneAutocompleteEntry[]) => new Map(list.map((m) => [m.species, m.item])))
+      .catch((err) => {
+        console.warn("メガストーンデータの読み込みに失敗しました", err);
+        megaStoneCache = null;
+        return new Map<string, string>();
+      });
+  }
+  return megaStoneCache;
 }

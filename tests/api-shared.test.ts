@@ -9,6 +9,7 @@ import {
   jsonResponse,
   methodNotAllowed,
   readJsonBody,
+  readRequiredJsonBody,
   MAX_REQUEST_BODY_LENGTH,
 } from '../src/pages/api/_shared.ts';
 
@@ -65,6 +66,75 @@ describe('readJsonBody', () => {
     assert.equal(result.response?.status, 400);
     const responseBody = await result.response!.json();
     assert.equal(responseBody.error, 'Request body too large');
+  });
+});
+
+// readRequiredJsonBody: 空ボディが書き込み系APIの「全フィールド任意」なバリデータを素通りして
+// 既存データを消してしまうバグ(owned-pokemon/[id].ts PUT で発生)の修正で追加したヘルパー。
+// 空ボディを「JSONオブジェクトでないボディ」と同じ400に合流させる。
+describe('readRequiredJsonBody', () => {
+  it('正しいJSONはパースされたデータを返す(readJsonBodyと同じ)', async () => {
+    const request = new Request('http://localhost/api/owned-pokemon', {
+      method: 'POST',
+      body: JSON.stringify({ species_name: 'ピカチュウ' }),
+    });
+    const result = await readRequiredJsonBody<{ species_name: string }>(request);
+    assert.deepEqual(result.data, { species_name: 'ピカチュウ' });
+    assert.equal(result.response, undefined);
+  });
+
+  it('空ボディは400を返し、dataはnullのまま(readJsonBodyと異なりエラー無し扱いにしない)', async () => {
+    const request = new Request('http://localhost/api/owned-pokemon/some-id', { method: 'PUT', body: '' });
+    const result = await readRequiredJsonBody(request);
+    assert.equal(result.data, null);
+    assert.ok(result.response);
+    assert.equal(result.response?.status, 400);
+    const body = await result.response!.json();
+    // 各バリデータが非オブジェクトボディに対して返すメッセージと揃える
+    // (owned-pokemon-validation.ts 等の 'Request body must be a JSON object' と同じ)。
+    assert.equal(body.error, 'Request body must be a JSON object');
+  });
+
+  it('空白のみのボディも400を返す(trim後に空と判定されるケース)', async () => {
+    const request = new Request('http://localhost/api/owned-pokemon/some-id', { method: 'PUT', body: '   \n  ' });
+    const result = await readRequiredJsonBody(request);
+    assert.equal(result.data, null);
+    assert.equal(result.response?.status, 400);
+  });
+
+  it('壊れたJSONは従来どおり "Invalid JSON payload" の400を返す(空ボディと区別する)', async () => {
+    const request = new Request('http://localhost/api/owned-pokemon/some-id', {
+      method: 'PUT',
+      body: '{not valid json',
+    });
+    const result = await readRequiredJsonBody(request);
+    assert.equal(result.data, null);
+    assert.equal(result.response?.status, 400);
+    const body = await result.response!.json();
+    assert.equal(body.error, 'Invalid JSON payload');
+  });
+
+  it('サイズ超過は従来どおり "Request body too large" の400を返す', async () => {
+    const value = 'a'.repeat(MAX_REQUEST_BODY_LENGTH);
+    const body = JSON.stringify({ payload: value });
+    const request = new Request('http://localhost/api/owned-pokemon/some-id', { method: 'PUT', body });
+    const result = await readRequiredJsonBody(request);
+    assert.equal(result.data, null);
+    assert.equal(result.response?.status, 400);
+    const responseBody = await result.response!.json();
+    assert.equal(responseBody.error, 'Request body too large');
+  });
+
+  it('JSONの null リテラル("null"という文字列)も400にする(空ボディと同じdata:null経路)', async () => {
+    // "null" は構文としては有効なJSONだが、パース結果がnullになる点は空ボディ(readJsonBodyがdata:nullを
+    // 返す)と区別が付かない。readRequiredJsonBodyはこの2つを同じ扱いにする(どちらもJSONオブジェクトでは
+    // ないため、後段のバリデータに通しても同じ 'Request body must be a JSON object' で拒否されるだけ)。
+    const request = new Request('http://localhost/api/owned-pokemon/some-id', { method: 'PUT', body: 'null' });
+    const result = await readRequiredJsonBody(request);
+    assert.equal(result.data, null);
+    assert.equal(result.response?.status, 400);
+    const body = await result.response!.json();
+    assert.equal(body.error, 'Request body must be a JSON object');
   });
 });
 

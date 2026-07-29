@@ -1,0 +1,1186 @@
+---
+// チーム編集ページ(docs/plan/pages/team.md「確定した設計 > 画面 > /team/[id](編集)」)。
+// 初期表示データは box/[id].astro と同じ方針で、API経由のfetchではなくAstroのフロントマター
+// (SSR)で src/lib/team.ts の getTeam() を直接呼び出す(初期表示が速く、「生のSupabaseクエリは
+// lib層に集約する」という設計原則にも合致する)。
+//
+// 未ログイン時、および他人のチーム/存在しないIDの場合はいずれもログイン導線・見つからない旨の
+// メッセージを表示するのみで、強制リダイレクトはしない(box/[id].astroと同じ既存方針)。
+export const prerender = false;
+
+import AppLayout from '../../layouts/AppLayout.astro';
+import { getSupabaseAdminClient } from '../../lib/supabase';
+import { getTeam, type Team } from '../../lib/team';
+
+const user = Astro.locals.user;
+const id = Astro.params.id;
+
+let team: Team | null = null;
+let loadError = false;
+
+if (user && id) {
+	const supabase = await getSupabaseAdminClient();
+	const result = await getTeam(user.id, id, supabase);
+	if (result.ok) {
+		team = result.data;
+	} else {
+		loadError = true;
+	}
+	if (!team && !loadError) {
+		Astro.response.status = 404;
+	}
+}
+
+// 一覧(/team)の「無題のチーム」表記(R-14)とトップバー見出しを揃える。
+function displayTeamName(t: Team): string {
+	return t.name && t.name.trim() !== '' ? t.name : '無題のチーム';
+}
+
+const pageTitle = team ? displayTeamName(team) : 'チーム編集';
+
+// 初期メンバー(0〜6要素、SSR取得済み)をクライアント<script>へそのまま引き渡す。
+// Astroの属性値は自動でHTMLエスケープされるので、ニックネーム等に " や < が
+// 含まれていても壊れない(pokemon.tsの data-tags={JSON.stringify(...)} と同じ手法)。
+const initialTeamJson = team
+	? JSON.stringify({ id: team.id, name: team.name, memo: team.memo, members: team.members })
+	: '';
+---
+<AppLayout title={pageTitle} current="team" backHref="/team" backLabel="チーム">
+	{team && (
+		<Fragment slot="topbar-status">
+			<p id="autosave-status" class="status-text" data-state="saved">
+				<span id="autosave-status-text">保存済み</span>
+				<button id="retry-button" type="button" title="保存に失敗しました。クリックして再試行" aria-label="保存に失敗しました。クリックして再試行">再試行</button>
+			</p>
+		</Fragment>
+	)}
+	<style>
+		/* 基本のトークン・カード・ボタン・フォーム部品は src/styles/global.css に集約済み。
+		   ここにはこのページ固有のレイアウト・状態表現だけを残す。 */
+		#retry-button {
+			display: none;
+			margin-left: 0.4em;
+		}
+		#retry-button.visible {
+			display: inline-flex;
+		}
+		#autosave-status {
+			margin: 0;
+		}
+		/* pitfalls.md「[hidden]は詳細度で負ける」: global.cssの.status-textが
+		   display: inline-flexを持つため、UA既定の[hidden]{display:none}に勝ってしまい
+		   hidden=trueにしても消えない。明示的に上書きする。 */
+		#select-loading-message[hidden],
+		#select-error-message[hidden] {
+			display: none;
+		}
+
+		/* --- 全体レイアウト: 左=ポケモン選択バー(帯)/ 中央=チーム名・メモ・6枠(可読幅1080px) ---
+		   docs/plan/ui_rounds/00-foundation.md「レイアウト原則」どおり、選択バーは画面端から
+		   画面端まで伸びる帯(.panel.panel-left)。中央は.panel-contentで1080pxに絞る(R-11)。
+		   受け入れ検証で実測バグ修正: 閾値をもともと900pxにしていたが、900px幅ではサイドバー(256px)+
+		   選択バー(約380px)を引くと中央カラムが約264pxしか残らず、そこへ横長の6枠カードを
+		   入れていたため、ポケモン名・技名が1文字ずつ縦に折り返されて読めなくなっていた(実測で発覚)。
+		   これはbox/[id].astroの.edit-layoutが900px→1200pxに引き上げた過去の罠
+		   (docs/plan/ui_rounds/00-foundation.md 245行目)と同一原因なので、同じ閾値に揃える。 */
+		.team-edit-layout {
+			display: block;
+		}
+		@media (min-width: 1200px) {
+			.team-edit-layout {
+				display: grid;
+				grid-template-columns: minmax(300px, 380px) 1fr;
+				align-items: stretch;
+			}
+		}
+
+		.team-select-bar {
+			display: flex;
+			flex-direction: column;
+			min-width: 0;
+		}
+		/* box/[id].astroの.panel-leftと同じ考え方: トップバー直下から画面下端まで帯を伸ばす。
+		   帯自体の高さはビューポート基準(calc(100vh - var(--topbar-height)))で決め、
+		   個体数が少なくても背景色が画面下端まで届くようにする。1200px未満(縦積み)では
+		   sticky/固定高さにせず、通常のブロックとして中央カラムの上に積む(box/[id].astroの
+		   .edit-layout-leftがmin-width:1200pxのメディアクエリでだけheight:100%を付けているのと
+		   同じ考え方。縦積み時に選択バーが画面いっぱいの高さを占有すると、6枠に到達するまで
+		   1画面ぶん余計にスクロールする羽目になる)。閾値は.team-edit-layoutの2カラム化と
+		   必ず揃えること。 */
+		@media (min-width: 1200px) {
+			.team-select-bar {
+				position: sticky;
+				top: var(--topbar-height);
+				height: calc(100vh - var(--topbar-height));
+			}
+		}
+
+		.team-select-search {
+			flex: 0 0 auto;
+			padding-bottom: var(--space-3);
+			margin-bottom: var(--space-3);
+			border-bottom: 1px solid var(--color-border);
+		}
+		.search-input-wrap {
+			position: relative;
+			display: flex;
+			align-items: center;
+		}
+		.search-input-wrap .search-icon {
+			position: absolute;
+			left: 0.7em;
+			color: var(--color-text-muted);
+			pointer-events: none;
+		}
+		#pokemon-search-input {
+			width: 100%;
+			padding-left: 2.1em;
+		}
+
+		.team-select-list-wrap {
+			flex: 1 1 auto;
+			min-height: 0;
+			overflow-y: auto;
+			/* B-1は実装後にCoordinatorが差し戻した(round-30.md「Coordinatorの実測検証で
+			   差し戻した変更」節)。29-R1と同型の margin-block: auto による上下中央寄せを
+			   一度入れたが、実機では検索欄の直下に約310pxの空白が空き、リストが宙に浮いて
+			   「検索欄と選択リストが別の帯」に見えた。同じラウンドでユーザーが右パネルに
+			   対して「最上部」(31-R1)を明示し 29-R1 の中央寄せ自体を撤回しているため、
+			   この帯にだけ同じパターンを新規導入するのは最新の方針と逆行する。
+			   下端の空白(657px)は個体が増えれば自然に埋まる性質のものなので、
+			   上端起点のまま据え置く。 */
+			display: flex;
+			flex-direction: column;
+		}
+		/* 1200px未満(選択バーが帯ではなく縦積みの通常ブロックになる)では高さを固定せず、
+		   代わりに際限なく伸びないよう上限を設ける(ボックスの個体数が多いユーザー向け)。 */
+		@media (max-width: 1199px) {
+			.team-select-list-wrap {
+				max-height: 60vh;
+			}
+		}
+
+		#pokemon-select-list {
+			display: flex;
+			flex-direction: column;
+			gap: var(--space-2);
+		}
+
+		/* 選択バー内の空状態(0件/検索一致0件)。box/index.astroの.empty-stateと同じ語彙・見た目。 */
+		.empty-state {
+			margin-top: var(--space-4);
+			padding: var(--space-5) var(--space-3);
+			border: 1px dashed var(--color-border);
+			border-radius: var(--radius-lg);
+			text-align: center;
+			color: var(--color-text-muted);
+		}
+		.empty-state-icon {
+			font-size: 2rem;
+			margin: 0 0 var(--space-2);
+		}
+		.empty-state-title {
+			margin: 0 0 var(--space-1);
+			font-size: var(--font-size-md);
+			font-weight: 700;
+			color: var(--color-text);
+		}
+		.empty-state-hint {
+			margin: 0 0 var(--space-3);
+			font-size: var(--font-size-sm);
+		}
+
+		/* --- 中央カラム: チーム名・メモ + 6枠(R-11: .panel-contentで1080pxに収める) --- */
+		.team-edit-main {
+			min-width: 0;
+		}
+		.team-meta-fields {
+			margin-bottom: var(--space-6);
+		}
+		.team-name-input {
+			width: 100%;
+			/* global.cssの input[type="text"] { min-width: 12em } は、このinputのfont-size
+			   (--font-size-xl、24px)基準だと288pxの下限になり、900px幅(2カラム化する最小幅)で
+			   横スクロールを引き起こしていた(実測: scrollWidth 924px / clientWidth 900px)。
+			   width:100%で親に追従させたいので明示的に打ち消す。 */
+			min-width: 0;
+			font-size: var(--font-size-xl);
+			font-weight: 700;
+		}
+		.team-memo-input {
+			width: 100%;
+			min-width: 0;
+			margin-top: var(--space-2);
+		}
+
+		.team-slots {
+			display: flex;
+			flex-direction: column;
+			gap: var(--space-3);
+		}
+	</style>
+
+	<div class="page">
+		{
+			!user ? (
+				<section class="panel">
+					<div class="panel-content">
+						<p>チームを編集するにはログインが必要です。</p>
+						<a class="btn-primary" href="/api/auth/login">Googleでログイン</a>
+					</div>
+				</section>
+			) : loadError ? (
+				<section class="panel">
+					<div class="panel-content">
+						<p>チーム情報の取得に失敗しました。時間をおいて再度お試しください。</p>
+					</div>
+				</section>
+			) : !team ? (
+				<section class="panel">
+					<div class="panel-content">
+						<p>指定されたチームが見つかりませんでした(削除された、または他のアカウントのチームである可能性があります)。</p>
+					</div>
+				</section>
+			) : (
+				<div class="team-edit-layout" id="team-edit-layout" data-team-id={team.id} data-initial-team={initialTeamJson}>
+					{/* --- 左: ポケモン選択バー(帯)。R-7: 検索欄を上部に固定し、下にボックスの個体を
+					    縦一列に並べる。行自体はJS(document.createElement)で生成するため、
+					    pitfalls.md「Astroのscoped styleはJSで生成した要素に効かない」に従い
+					    #pokemon-select-list の中身のスタイルは下の<style is:global>側に置く。 --- */}
+					<section class="panel panel-left team-select-bar">
+						<div class="team-select-search">
+							<div class="search-input-wrap">
+								<svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+									<circle cx="11" cy="11" r="7" />
+									<line x1="21" y1="21" x2="16.65" y2="16.65" />
+								</svg>
+								<input
+									id="pokemon-search-input"
+									type="search"
+									class="field-control"
+									placeholder="ニックネーム・種族名で検索"
+									aria-label="ニックネーム・種族名で検索"
+									autocomplete="off"
+								/>
+							</div>
+						</div>
+						<div class="team-select-list-wrap">
+							<p id="select-loading-message" class="status-text" data-state="loading">読み込み中...</p>
+							<p id="select-error-message" class="status-text" data-state="error" hidden>個体一覧の取得に失敗しました。時間をおいて再度お試しください。</p>
+							<div id="pokemon-select-list"></div>
+							{/* R-9: ボックス0件のときの空状態。/boxの.empty-stateと同じ語彙 + /boxへのリンク。 */}
+							<div id="select-empty-state" class="empty-state" hidden>
+								<p class="empty-state-icon" aria-hidden="true">📦</p>
+								<p class="empty-state-title">ボックスに個体がありません</p>
+								<p class="empty-state-hint">先にボックスで個体を登録してください。</p>
+								<a class="btn-primary" href="/box">ボックスへ</a>
+							</div>
+							<div id="select-no-match-state" class="empty-state" hidden>
+								<p class="empty-state-icon" aria-hidden="true">🔍</p>
+								<p class="empty-state-title">条件に一致する個体がいません</p>
+								<p class="empty-state-hint">検索語を変更してください。</p>
+							</div>
+						</div>
+					</section>
+
+					{/* --- 中央: チーム名・メモ + 6枠。.panel-contentで可読幅1080pxに収める(R-11・基準23)。 --- */}
+					<div class="team-edit-main">
+						<div class="panel-content">
+							<div class="team-meta-fields">
+								<input
+									id="team-name"
+									class="field-control team-name-input"
+									type="text"
+									placeholder="チーム名"
+									aria-label="チーム名"
+									autocomplete="off"
+									value={team.name ?? ''}
+								/>
+								<p class="field-hint">未設定の場合、一覧には「無題のチーム」と表示されます。</p>
+								<input
+									id="team-memo"
+									class="field-control team-memo-input"
+									type="text"
+									placeholder="メモ(この構成は誰向けか、など)"
+									aria-label="メモ"
+									autocomplete="off"
+									value={team.memo ?? ''}
+								/>
+							</div>
+
+							{/* 6枠(基準3)。空き枠も枠として常に描く。中身はJS(renderSlots)が生成するため、
+							    子要素(.card-team-slot)のスタイルは下の<style is:global>側に置く。 */}
+							<div id="team-slots" class="team-slots"></div>
+						</div>
+					</div>
+				</div>
+			)
+		}
+	</div>
+
+	{/* --- JS生成要素(選択バーの行・6枠カード)のスタイル。pitfalls.md「Astroのscoped styleは
+	    JSで生成した要素に効かない」に従い is:global で定義する。.team-select-bar / .team-slots
+	    配下に限定したセレクタにしてグローバルへ漏れないようにする。 --- */}
+	<style is:global>
+		/* ------------------------------------------------------------------ */
+		/* 選択バーの1行(.pokemon-select-row)                                  */
+		/* ------------------------------------------------------------------ */
+		.team-select-bar .pokemon-select-row {
+			display: flex;
+			align-items: center;
+			gap: var(--space-2);
+			width: 100%;
+			padding: var(--space-2);
+			border: 1px solid var(--color-border);
+			border-radius: var(--radius-md);
+			background: var(--color-surface);
+			text-align: left;
+			cursor: pointer;
+		}
+		.team-select-bar .pokemon-select-row:hover:not(:disabled) {
+			border-color: var(--color-primary);
+			background: color-mix(in srgb, var(--color-surface) 90%, var(--color-primary) 10%);
+		}
+		.team-select-bar .pokemon-select-row:focus-visible {
+			outline: 2px solid var(--color-primary);
+			outline-offset: 1px;
+		}
+		/* 選択不可(基準6・7・21): グレーアウト + 理由を常時テキスト表示する(titleに頼らない)。 */
+		.team-select-bar .pokemon-select-row:disabled {
+			cursor: not-allowed;
+			opacity: 0.55;
+		}
+		.team-select-bar .select-row-art {
+			flex: 0 0 auto;
+			width: 36px;
+			height: 36px;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			position: relative;
+		}
+		.team-select-bar .select-row-sprite-img {
+			width: 100%;
+			height: 100%;
+			object-fit: contain;
+		}
+		.team-select-bar .select-row-sprite-fallback {
+			display: none;
+			align-items: center;
+			justify-content: center;
+			width: 100%;
+			height: 100%;
+			border-radius: 50%;
+			background: var(--color-primary-soft);
+			color: var(--color-primary);
+			font-weight: 700;
+			font-size: 0.9rem;
+		}
+		.team-select-bar .select-row-body {
+			flex: 1 1 auto;
+			min-width: 0;
+			width: 0;
+			display: flex;
+			flex-direction: column;
+		}
+		.team-select-bar .select-row-name {
+			font-size: 0.88rem;
+			font-weight: 700;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+		}
+		.team-select-bar .select-row-species {
+			/* A-3(b): 0.74rem(11.84px)は12px下限を割っていた。0.75rem(12px)に是正。 */
+			font-size: 0.75rem;
+			color: var(--color-text-muted);
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+		}
+		/* A-3(a): 「編成済み」(already-in-team、正常)と禁止3種(6体編成済み/種族が重複/
+		   持ち物が重複)が同じ危険色・同じ書式だったため、4/6のように複数体が既に編成済み
+		   だと選択バー全体が赤く見え「エラーが起きている」と誤読された。data-reasonで
+		   実質3値(選べる/もう入っている/禁止)を色で伝える。--color-danger-strongは
+		   自動保存失敗の表示(#autosave-status)と共有するトークンなので、正常状態からは
+		   外す。新色は作らない。 */
+		.team-select-bar .select-row-reason {
+			/* A-3(b): 0.74rem(11.84px)は12px下限を割っていた。0.75rem(12px)に是正。 */
+			font-size: 0.75rem;
+			font-weight: 700;
+		}
+		.team-select-bar .select-row-reason[data-reason="already-in-team"] {
+			color: var(--color-text-muted);
+			font-weight: 600;
+		}
+		.team-select-bar .select-row-reason:not([data-reason="already-in-team"]) {
+			color: var(--color-danger-strong);
+		}
+
+		/* ------------------------------------------------------------------ */
+		/* 6枠カード(.card-team-slot)。中身はfilled/emptyのいずれか(R-8)。       */
+		/* ------------------------------------------------------------------ */
+		.team-slots .card-team-slot {
+			display: flex;
+			align-items: stretch;
+			min-height: 108px;
+		}
+		/* 空き枠プレースホルダー(要件6)。A-1: 実際に個体が入るのは常に選択ルール(受け入れ
+		   基準4で確定済み、変更不可)が返す最小番号の空き枠だけなので、「＋ この枠に入れる」
+		   が押せるのは<button>で描く最小番号の1枠だけにする(<script>のbuildEmptySlotContent
+		   参照)。それ以外の空き枠は押しても何も起きない<div>で「選択すると若い番号から
+		   埋まります」の非アクション文言にする(実態と食い違わせない)。共通のレイアウトは
+		   ここでまとめ、押せる/押せないの違いはタグ名(button/div)セレクタで出し分ける。 */
+		.team-slots .slot-empty-cta {
+			flex: 1 1 auto;
+			display: flex;
+			align-items: center;
+			justify-content: flex-start;
+			gap: var(--space-3);
+			background: transparent;
+			border: 0;
+			/* global.cssの汎用button{ padding: 0.55em 1.1em }を打ち消す。<button>版だけ
+			   このpaddingが残ると左インセットが付き、<div>版(空き枠の非アクション表示)と
+			   番号のx座標がずれる(A-5の実測で発覚: button版のみx=665.7、div版はx=649)。 */
+			padding: 0;
+			color: var(--color-text-muted);
+			font-weight: 600;
+			font-size: var(--font-size-md);
+			cursor: default;
+		}
+		.team-slots button.slot-empty-cta {
+			cursor: pointer;
+		}
+		/* .cardのhover(border-color: primary / background色付け、global.css)は両方の
+		   空き枠に等しく効くため、「押せそう」に見える文字色のホバー強調は実際に押せる
+		   <button>版だけに限定する。 */
+		.team-slots .card-team-slot:hover button.slot-empty-cta,
+		.team-slots .card-team-slot:focus-within button.slot-empty-cta {
+			color: var(--color-primary);
+		}
+
+		/* A-5: 埋まった枠(.slot-number)と空き枠(.slot-empty-number)の番号を、同じ円形
+		   バッジ・同じ幅(2rem)・同じx位置(カード左端、.cardのpadding直後)に統一する。
+		   以前は.slot-numberが幅2.2rem・枠線なしのプレーンテキストで.card-team-slotの
+		   直接の子(x=649)、.slot-empty-numberは幅2remの円形バッジだが親の.slot-empty-cta
+		   がjustify-content: centerだったためカード中央(x=1091.1)にずれていた
+		   (align-items: stretchを持つ.card-team-slotの直接の子は明示的な高さを持つと
+		   ストレッチされず既定でflex-start相当になるため、align-selfで明示的に中央寄せする)。
+		   状態の違いは実線(埋まり)/破線(空き)の罫線スタイルだけで表現し、data-filled属性を
+		   実際にCSSから参照する(以前はJSがセットするだけで参照するセレクタが0件だった)。 */
+		.team-slots .slot-number,
+		.team-slots .slot-empty-number {
+			flex: 0 0 auto;
+			align-self: center;
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			width: 2rem;
+			height: 2rem;
+			border-radius: 50%;
+			font-weight: 800;
+			font-size: 1rem;
+			color: var(--color-text-muted);
+		}
+		.team-slots .card-team-slot[data-filled="true"] .slot-number {
+			border: 1px solid var(--color-border);
+		}
+		/* A-4: ダークで約1.18:1(#2d313d on #22252f)しか出ず「値がある/ない」を伝える罫線
+		   として機能していなかったため、.slot-empty-numberに限りAA適合済みの補助色
+		   --color-text-muted(ライト#5b6472/ダーク#9aa1b0)へ転用する。--color-borderを
+		   使う他の「弱くてよい罫線」(カード外枠・検索欄の下罫線など)は対象外。
+		   A-5(c): あわせてborder-styleをdashedにし、/team一覧の.card-team-thumb.is-empty
+		   と同じ「空き=破線」の文法に揃える。 */
+		.team-slots .card-team-slot[data-filled="false"] .slot-empty-number {
+			border: 1px dashed var(--color-text-muted);
+		}
+		.team-slots .slot-art {
+			flex: 0 0 auto;
+			width: 72px;
+			height: 72px;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			margin-right: var(--space-3);
+		}
+		.team-slots .slot-sprite-img {
+			width: 100%;
+			height: 100%;
+			object-fit: contain;
+		}
+		.team-slots .slot-sprite-fallback {
+			display: none;
+			align-items: center;
+			justify-content: center;
+			width: 100%;
+			height: 100%;
+			border-radius: 50%;
+			background: var(--color-primary-soft);
+			color: var(--color-primary);
+			font-weight: 700;
+			font-size: 1.4rem;
+		}
+		.team-slots .slot-info {
+			flex: 1 1 auto;
+			min-width: 0;
+			width: 0;
+			display: flex;
+			flex-direction: column;
+			justify-content: center;
+			gap: 0.3rem;
+		}
+		.team-slots .slot-name-row {
+			display: flex;
+			align-items: baseline;
+			gap: 0.5em;
+			flex-wrap: wrap;
+		}
+		.team-slots .slot-nickname {
+			font-size: 1rem;
+			font-weight: 700;
+		}
+		.team-slots .slot-species {
+			font-size: 0.82rem;
+			color: var(--color-text-muted);
+		}
+		.team-slots .slot-meta-row {
+			display: flex;
+			/* A-8で特性を足して項目が2→3になったことで、pitfalls.md「横スクロールが無い
+			   ことは狭幅レイアウトの合格条件ではない」の実例と同型の破綻が390px幅で発生した
+			   (flex-wrapが無いと、各項目が1文字ずつ縦積みになるまで潰れる)。wrapを許可し、
+			   幅が足りない項目は単位(アイコン+ラベル)ごと次の行へ送る(2〜3行の折り返しは可)。 */
+			flex-wrap: wrap;
+			align-items: center;
+			row-gap: 0.3rem;
+			column-gap: var(--space-3);
+			font-size: 0.82rem;
+			color: var(--color-text-muted);
+		}
+		.team-slots .slot-meta-item {
+			display: inline-flex;
+			align-items: center;
+			gap: 0.35rem;
+		}
+		.team-slots .slot-meta-icon {
+			width: 20px;
+			height: 20px;
+			object-fit: contain;
+		}
+		/* A-6: テラスタイプ・特性が未設定のとき(ゲーム上「値が無い」状態が存在しない項目)を
+		   明示するための強調。新色は作らず既存の--color-danger-strongを流用する。
+		   持ち物(合法な空)には使わない。 */
+		.team-slots .slot-meta-unset {
+			color: var(--color-danger-strong);
+			font-weight: 700;
+		}
+		.team-slots .slot-moves {
+			display: flex;
+			flex-wrap: wrap;
+			gap: 0.3rem;
+		}
+		.team-slots .slot-move-chip {
+			font-size: 0.78rem;
+			font-weight: 600;
+			color: var(--color-text-muted);
+			background: var(--color-surface);
+			border: 1px solid var(--color-border);
+			border-radius: 4px;
+			padding: 0.1rem 0.45rem;
+		}
+		/* A-6: 技0件の明示。同じく--color-danger-strongを流用する。 */
+		.team-slots .slot-move-chip-unset {
+			color: var(--color-danger-strong);
+			border-color: var(--color-danger-strong);
+			font-weight: 700;
+		}
+		.team-slots .slot-actions {
+			flex: 0 0 auto;
+			display: flex;
+			flex-direction: column;
+			align-items: flex-end;
+			justify-content: center;
+			gap: 0.4rem;
+			margin-left: var(--space-3);
+		}
+		.team-slots .slot-actions .btn-ghost,
+		.team-slots .slot-actions .btn-danger {
+			font-size: var(--font-size-sm);
+			white-space: nowrap;
+		}
+		/* B-2: 「枠から外す」は自動保存つきで即座に確定する破壊操作なので、隣の「個体を編集」
+		   (遷移・安全)と文字色だけ分ける(確認ダイアログは操作頻度から見て過剰と判断し追加
+		   しない → round-30.md「Coordinatorの判断」)。新色は作らず既存トークンを流用する。 */
+		.team-slots .slot-actions .slot-remove-btn {
+			color: var(--color-danger-strong);
+		}
+	</style>
+
+	<script>
+		// チーム編集: ポケモン選択バー(左)と6枠(中央)を描画し、自動保存する。
+		// 自動保存のデバウンス方式は box/[id].astro と同じ(700ms・保存ボタンは作らない・
+		// topbar-statusスロットで状態表示)。初期表示データ(SSR取得済みのチーム)は
+		// #team-edit-layout の data-initial-team から読む(fetch往復を待たずに6枠を描ける)。
+		import { loadImageIdMap, officialArtworkUrl } from "../../lib/pokemon-master-data";
+		import { loadItemSpriteMap, itemImageUrl, teraTypeIconUrl } from "../../lib/sprite-urls";
+		import { resolveDexNo } from "../../lib/species-dex";
+		import { selectionBlockReason, type SelectionCandidate, type SelectionBlockReason } from "../../lib/team-validation";
+
+		interface OwnedPokemonRecord {
+			id: string;
+			nickname: string | null;
+			species_name: string;
+			// A-8: SSR(TEAM_MEMBER_SELECT)・GET /api/owned-pokemon(OWNED_POKEMON_COLUMNS)の
+			// 両方が既にability_nameを含んでいる。新規フェッチ・新規計算は不要で、この型に
+			// 足すだけで枠カード・選択バーの両方から読める。
+			ability_name: string | null;
+			item_name: string | null;
+			tera_type: string | null;
+			move_names: string[];
+		}
+
+		interface TeamMemberData {
+			slot: number;
+			owned_pokemon: OwnedPokemonRecord;
+		}
+
+		interface InitialTeam {
+			id: string;
+			name: string | null;
+			memo: string | null;
+			members: TeamMemberData[];
+		}
+
+		const layoutRoot = document.getElementById("team-edit-layout");
+		if (layoutRoot) {
+			const teamId = layoutRoot.dataset.teamId as string;
+			const initialTeam: InitialTeam = JSON.parse(layoutRoot.dataset.initialTeam || "{}");
+
+			function el<T extends HTMLElement>(id: string): T {
+				const found = document.getElementById(id);
+				if (!found) throw new Error(`要素が見つかりません: #${id}`);
+				return found as T;
+			}
+
+			const nameInput = el<HTMLInputElement>("team-name");
+			const memoInput = el<HTMLInputElement>("team-memo");
+			const slotsRoot = el<HTMLElement>("team-slots");
+
+			const searchInput = el<HTMLInputElement>("pokemon-search-input");
+			const selectListRoot = el<HTMLElement>("pokemon-select-list");
+			const selectLoadingMessage = el<HTMLElement>("select-loading-message");
+			const selectErrorMessage = el<HTMLElement>("select-error-message");
+			const selectEmptyState = el<HTMLElement>("select-empty-state");
+			const selectNoMatchState = el<HTMLElement>("select-no-match-state");
+
+			const statusEl = el<HTMLElement>("autosave-status");
+			const statusTextEl = el<HTMLElement>("autosave-status-text");
+			const retryButton = el<HTMLButtonElement>("retry-button");
+
+			const imageIdMapPromise = loadImageIdMap();
+			const itemSpriteMapPromise = loadItemSpriteMap();
+
+			// 6枠の現在状態(slot 1..6 -> 個体。無ければ空き)。
+			const membersBySlot = new Map<number, OwnedPokemonRecord>();
+			for (const m of initialTeam.members ?? []) {
+				membersBySlot.set(m.slot, m.owned_pokemon);
+			}
+
+			// ボックスの全個体(選択バーの中身)。GET /api/owned-pokemon から取得する。
+			let allPokemon: OwnedPokemonRecord[] = [];
+
+			// nickname・species_nameのどちらも空の場合のフォールバック(/boxのdisplayNameと同じ語彙)。
+			function displayName(p: OwnedPokemonRecord): string {
+				if (p.nickname && p.nickname.trim() !== "") return p.nickname;
+				if (p.species_name && p.species_name.trim() !== "") return p.species_name;
+				return "(未設定)";
+			}
+
+			function candidateOf(p: OwnedPokemonRecord): SelectionCandidate {
+				return {
+					dexNo: resolveDexNo(p.species_name),
+					itemName: p.item_name,
+					ownedPokemonId: p.id,
+				};
+			}
+
+			function currentCandidates(): SelectionCandidate[] {
+				return Array.from(membersBySlot.values()).map(candidateOf);
+			}
+
+			function firstEmptySlot(): number | null {
+				for (let slot = 1; slot <= 6; slot += 1) {
+					if (!membersBySlot.has(slot)) return slot;
+				}
+				return null;
+			}
+
+			const BLOCK_REASON_LABELS: Record<Exclude<SelectionBlockReason, null>, string> = {
+				"already-in-team": "編成済み",
+				"team-full": "6体編成済み",
+				"duplicate-species": "種族が重複",
+				"duplicate-item": "持ち物が重複",
+			};
+
+			// 公式絵。取得できない場合は頭文字の丸バッジにフォールバックする
+			// (box/index.astroのapplyCardSpriteと同じ方式。loading="lazy"は付けない
+			// ---display:noneの<img>は遅延読み込みの対象外としてonloadが発火しない)。
+			async function applySprite(imgEl: HTMLImageElement, fallbackEl: HTMLElement, name: string): Promise<void> {
+				const imageId = name ? (await imageIdMapPromise).get(name) : undefined;
+				if (imageId == null) {
+					imgEl.style.display = "none";
+					fallbackEl.style.display = "flex";
+					fallbackEl.textContent = name ? name.charAt(0) : "?";
+					return;
+				}
+				imgEl.onerror = () => {
+					imgEl.style.display = "none";
+					fallbackEl.style.display = "flex";
+					fallbackEl.textContent = name.charAt(0);
+				};
+				imgEl.onload = () => {
+					imgEl.style.display = "";
+					fallbackEl.style.display = "none";
+				};
+				imgEl.src = officialArtworkUrl(imageId);
+			}
+
+			// 持ち物アイコン(アイコン+名前、R-8)。アイコンが解決できない/読み込み失敗のときも
+			// 名前のテキストは残す(box/index.astroの持ち物行と同じ考え方)。
+			async function applyItemIcon(imgEl: HTMLImageElement, itemName: string): Promise<void> {
+				const spritePath = (await itemSpriteMapPromise).get(itemName);
+				if (!spritePath) {
+					imgEl.style.display = "none";
+					return;
+				}
+				imgEl.onerror = () => {
+					imgEl.style.display = "none";
+				};
+				imgEl.onload = () => {
+					imgEl.style.display = "";
+				};
+				imgEl.src = itemImageUrl(spritePath);
+			}
+
+			// テラスタイプアイコン(アイコン+名前)。teraTypeIconUrlは同期解決(静的マップ)。
+			function applyTeraIcon(imgEl: HTMLImageElement, teraName: string): void {
+				const url = teraTypeIconUrl(teraName);
+				if (!url) {
+					imgEl.style.display = "none";
+					return;
+				}
+				imgEl.onerror = () => {
+					imgEl.style.display = "none";
+				};
+				imgEl.onload = () => {
+					imgEl.style.display = "";
+				};
+				imgEl.src = url;
+			}
+
+			// --- 6枠の描画(基準3: 常に6枠) ---
+			// A-1: 選択バーで個体をクリックすると常に「空き枠のうち最小番号」に入る
+			// (選択ルールは受け入れ基準4で確定済み・変更不可)。4/6のように空き枠が複数
+			// 同時にあるとき、以前は全ての空き枠が「＋ この枠に入れる」を表示し、
+			// aria-labelも「{slot}番目の枠にポケモンを入れる」と個別の枠を特定していたが、
+			// 実際にはどの空き枠を押しても最小番号にしか入らず、約束と実態が食い違っていた。
+			// 表示側だけを実態に合わせる: isNextToFill(=firstEmptySlot()と一致)の1枠だけ
+			// 実際に押せる<button>にし、それ以外は非アクションの<div>にする。
+			function buildEmptySlotContent(slot: number, isNextToFill: boolean): HTMLElement {
+				const number = document.createElement("span");
+				number.className = "slot-empty-number";
+				number.setAttribute("aria-hidden", "true");
+				number.textContent = String(slot);
+
+				if (isNextToFill) {
+					const button = document.createElement("button");
+					button.type = "button";
+					button.className = "slot-empty-cta";
+					button.setAttribute("aria-label", `${slot}番目の枠にポケモンを入れる`);
+					const label = document.createElement("span");
+					label.textContent = "＋ この枠に入れる";
+					button.append(number, label);
+					// 実際の追加操作は左の選択バーから行う(R-7)。このボタンは検索欄へ誘導するだけの
+					// 補助動線(必須要件ではないが、6枠側からも選択バーに気付けるようにする)。
+					button.addEventListener("click", () => {
+						searchInput.focus();
+						searchInput.scrollIntoView({ block: "nearest" });
+					});
+					return button;
+				}
+
+				const placeholder = document.createElement("div");
+				placeholder.className = "slot-empty-cta";
+				placeholder.setAttribute("aria-label", `${slot}番目の枠は空きです。選択すると若い番号から埋まります`);
+				const label = document.createElement("span");
+				label.textContent = "選択すると若い番号から埋まります";
+				placeholder.append(number, label);
+				return placeholder;
+			}
+
+			function buildFilledSlotContent(slot: number, p: OwnedPokemonRecord): HTMLElement {
+				const wrap = document.createDocumentFragment();
+
+				const numberEl = document.createElement("div");
+				numberEl.className = "slot-number";
+				numberEl.textContent = String(slot);
+
+				const artEl = document.createElement("div");
+				artEl.className = "slot-art";
+				const spriteImg = document.createElement("img");
+				spriteImg.className = "slot-sprite-img";
+				spriteImg.alt = "";
+				spriteImg.style.display = "none";
+				const spriteFallback = document.createElement("span");
+				spriteFallback.className = "slot-sprite-fallback";
+				artEl.append(spriteImg, spriteFallback);
+				void applySprite(spriteImg, spriteFallback, p.species_name);
+
+				const infoEl = document.createElement("div");
+				infoEl.className = "slot-info";
+
+				const nameRow = document.createElement("div");
+				nameRow.className = "slot-name-row";
+				const name = displayName(p);
+				const nicknameEl = document.createElement("span");
+				nicknameEl.className = "slot-nickname";
+				nicknameEl.textContent = name;
+				nameRow.appendChild(nicknameEl);
+				// ニックネームと種族名が異なる場合のみ種族名を併記する(R-8)。
+				if (p.species_name && p.species_name.trim() !== "" && p.species_name !== name) {
+					const speciesEl = document.createElement("span");
+					speciesEl.className = "slot-species";
+					speciesEl.textContent = p.species_name;
+					nameRow.appendChild(speciesEl);
+				}
+				infoEl.appendChild(nameRow);
+
+				const metaRow = document.createElement("div");
+				metaRow.className = "slot-meta-row";
+
+				// A-8: 特性は既にSSR(TEAM_MEMBER_SELECT)・GET /api/owned-pokemon
+				// (OWNED_POKEMON_COLUMNS)の両方でability_nameとして届いている。
+				// アイコンは付けない(特性の画像素材が他画面にも無いため)。
+				const abilityName = p.ability_name?.trim() ?? "";
+				const abilityItem = document.createElement("span");
+				abilityItem.className = "slot-meta-item";
+				const abilityLabel = document.createElement("span");
+				if (abilityName) {
+					abilityLabel.textContent = `特性: ${abilityName}`;
+				} else {
+					// A-6と同じ理由(「特性なし」もゲーム上存在しない状態)で未設定を明示する。
+					abilityLabel.textContent = "特性: 未設定";
+					abilityLabel.classList.add("slot-meta-unset");
+				}
+				abilityItem.appendChild(abilityLabel);
+				metaRow.appendChild(abilityItem);
+
+				// A-6: テラスタイプ未設定はjpoke側で第1タイプへ静かにフォールバックする
+				// (vendor/jpoke/src/jpoke/model/pokemon.py:89)ため、行を消すと「まだ表示
+				// されていないだけ」に見え、対戦に出せない未完成状態であることが伝わらない。
+				// 常に行を出し、値が無ければdisplayNameと同じ「未設定」を明示する。
+				// A-7: 「テラス」は口語短縮なので公式用語「テラスタイプ」に統一する。
+				const teraType = p.tera_type?.trim() ?? "";
+				const teraItem = document.createElement("span");
+				teraItem.className = "slot-meta-item";
+				const teraImg = document.createElement("img");
+				teraImg.className = "slot-meta-icon";
+				teraImg.alt = "";
+				teraImg.style.display = "none";
+				const teraLabel = document.createElement("span");
+				if (teraType) {
+					applyTeraIcon(teraImg, teraType);
+					teraLabel.textContent = `テラスタイプ: ${teraType}`;
+				} else {
+					teraLabel.textContent = "テラスタイプ: 未設定";
+					teraLabel.classList.add("slot-meta-unset");
+				}
+				teraItem.append(teraImg, teraLabel);
+				metaRow.appendChild(teraItem);
+
+				// 持ち物なし(null/空文字)は合法な対戦状態(G-3も対象外にしている)なので、
+				// テラスタイプ・特性とは違い、これまでどおり行自体を出さない。
+				const itemName = p.item_name?.trim() ?? "";
+				if (itemName) {
+					const itemEl = document.createElement("span");
+					itemEl.className = "slot-meta-item";
+					const itemImg = document.createElement("img");
+					itemImg.className = "slot-meta-icon";
+					itemImg.alt = "";
+					itemImg.style.display = "none";
+					void applyItemIcon(itemImg, itemName);
+					const itemLabel = document.createElement("span");
+					itemLabel.textContent = itemName;
+					itemEl.append(itemImg, itemLabel);
+					metaRow.appendChild(itemEl);
+				}
+				// 特性・テラスタイプを常に出すようにしたため、metaRowは常に非空になる。
+				infoEl.appendChild(metaRow);
+
+				// A-6: 技0件も行ごと消さず「未設定」を明示する(技0件・テラス未設定の
+				// ディンルーが「情報が少ないだけのカード」に見え、対戦に出せない未完成状態だと
+				// 伝わらなかったため)。
+				const moves = p.move_names.filter((m) => m && m.trim() !== "");
+				const movesEl = document.createElement("div");
+				movesEl.className = "slot-moves";
+				if (moves.length > 0) {
+					for (const move of moves) {
+						const chip = document.createElement("span");
+						chip.className = "slot-move-chip";
+						chip.textContent = move;
+						movesEl.appendChild(chip);
+					}
+				} else {
+					const chip = document.createElement("span");
+					chip.className = "slot-move-chip slot-move-chip-unset";
+					chip.textContent = "未設定";
+					movesEl.appendChild(chip);
+				}
+				infoEl.appendChild(movesEl);
+
+				const actionsEl = document.createElement("div");
+				actionsEl.className = "slot-actions";
+				const editLink = document.createElement("a");
+				editLink.className = "btn-ghost";
+				editLink.href = `/box/${encodeURIComponent(p.id)}`;
+				editLink.textContent = "個体を編集";
+				const removeButton = document.createElement("button");
+				removeButton.type = "button";
+				// B-2: 「個体を編集」(遷移・安全)と同一書式で隣接していたため、破壊操作である
+				// ことが文字色だけでも分かるよう.slot-remove-btnを足す(CSSで--color-danger-strong
+				// を適用。確認ダイアログは操作頻度から見て過剰と判断し追加しない)。
+				removeButton.className = "btn-ghost slot-remove-btn";
+				removeButton.textContent = "枠から外す";
+				removeButton.setAttribute("aria-label", `${name}を${slot}番目の枠から外す`);
+				removeButton.addEventListener("click", () => {
+					membersBySlot.delete(slot);
+					renderSlots();
+					renderSelectList();
+					scheduleSave();
+				});
+				actionsEl.append(editLink, removeButton);
+
+				wrap.append(numberEl, artEl, infoEl, actionsEl);
+				return wrap as unknown as HTMLElement;
+			}
+
+			function renderSlots(): void {
+				slotsRoot.innerHTML = "";
+				// A-1: 「押せる」空き枠は選択ルールが実際に埋める最小番号の1枠だけ。
+				const nextEmptySlot = firstEmptySlot();
+				for (let slot = 1; slot <= 6; slot += 1) {
+					const card = document.createElement("article");
+					card.className = "card card-team-slot";
+					card.dataset.slot = String(slot);
+					const p = membersBySlot.get(slot);
+					if (p) {
+						card.dataset.filled = "true";
+						card.appendChild(buildFilledSlotContent(slot, p));
+					} else {
+						card.dataset.filled = "false";
+						card.appendChild(buildEmptySlotContent(slot, slot === nextEmptySlot));
+					}
+					slotsRoot.appendChild(card);
+				}
+			}
+
+			// --- 選択バーの描画(R-7・R-10) ---
+			function matchesSearch(p: OwnedPokemonRecord, term: string): boolean {
+				if (!term) return true;
+				const haystack = [p.nickname ?? "", p.species_name].join(" ").toLowerCase();
+				return term
+					.toLowerCase()
+					.split(/\s+/)
+					.filter((t) => t.length > 0)
+					.every((token) => haystack.includes(token));
+			}
+
+			function buildSelectRow(p: OwnedPokemonRecord): HTMLButtonElement {
+				const row = document.createElement("button");
+				row.type = "button";
+				row.className = "pokemon-select-row";
+
+				const artEl = document.createElement("span");
+				artEl.className = "select-row-art";
+				const spriteImg = document.createElement("img");
+				spriteImg.className = "select-row-sprite-img";
+				spriteImg.alt = "";
+				spriteImg.style.display = "none";
+				const spriteFallback = document.createElement("span");
+				spriteFallback.className = "select-row-sprite-fallback";
+				artEl.append(spriteImg, spriteFallback);
+				void applySprite(spriteImg, spriteFallback, p.species_name);
+
+				const bodyEl = document.createElement("span");
+				bodyEl.className = "select-row-body";
+				const name = displayName(p);
+				const nameEl = document.createElement("span");
+				nameEl.className = "select-row-name";
+				nameEl.textContent = name;
+				bodyEl.appendChild(nameEl);
+				if (p.species_name && p.species_name.trim() !== "" && p.species_name !== name) {
+					const speciesEl = document.createElement("span");
+					speciesEl.className = "select-row-species";
+					speciesEl.textContent = p.species_name;
+					bodyEl.appendChild(speciesEl);
+				}
+
+				const reason = selectionBlockReason(candidateOf(p), currentCandidates());
+				if (reason) {
+					row.disabled = true;
+					const reasonEl = document.createElement("span");
+					reasonEl.className = "select-row-reason";
+					// A-3(a): 「編成済み」(already-in-team、正常)と禁止3種を色で書き分けるため、
+					// data-reasonをCSSセレクタのフックにする(is:globalスタイル側で参照)。
+					reasonEl.dataset.reason = reason;
+					reasonEl.textContent = BLOCK_REASON_LABELS[reason];
+					bodyEl.appendChild(reasonEl);
+					row.setAttribute("aria-label", `${name}(${BLOCK_REASON_LABELS[reason]}、選択できません)`);
+				} else {
+					row.setAttribute("aria-label", `${name}を空き枠に入れる`);
+					row.addEventListener("click", () => {
+						const slot = firstEmptySlot();
+						if (slot == null) return;
+						membersBySlot.set(slot, p);
+						renderSlots();
+						renderSelectList();
+						scheduleSave();
+					});
+				}
+
+				row.append(artEl, bodyEl);
+				return row;
+			}
+
+			function renderSelectList(): void {
+				if (allPokemon.length === 0) {
+					selectListRoot.innerHTML = "";
+					selectEmptyState.hidden = false;
+					selectNoMatchState.hidden = true;
+					return;
+				}
+				selectEmptyState.hidden = true;
+
+				const term = searchInput.value.trim();
+				const filtered = allPokemon.filter((p) => matchesSearch(p, term));
+				selectListRoot.innerHTML = "";
+				if (filtered.length === 0) {
+					selectNoMatchState.hidden = false;
+					return;
+				}
+				selectNoMatchState.hidden = true;
+				for (const p of filtered) {
+					selectListRoot.appendChild(buildSelectRow(p));
+				}
+			}
+
+			// --- 自動保存(box/[id].astroと同じデバウンス方式。保存ボタンは作らない) ---
+			function buildPayload(): { name: string | null; memo: string | null; members: { slot: number; owned_pokemon_id: string }[] } {
+				const members = Array.from(membersBySlot.entries())
+					.sort((a, b) => a[0] - b[0])
+					.map(([slot, p]) => ({ slot, owned_pokemon_id: p.id }));
+				const name = nameInput.value.trim();
+				const memo = memoInput.value.trim();
+				return {
+					name: name === "" ? null : name,
+					memo: memo === "" ? null : memo,
+					members,
+				};
+			}
+
+			const DEBOUNCE_MS = 700;
+			let debounceTimer: ReturnType<typeof setTimeout> | undefined;
+			let saving = false;
+			let pendingRetry = false;
+
+			async function saveNow(): Promise<void> {
+				if (saving) {
+					pendingRetry = true;
+					return;
+				}
+				const payload = buildPayload();
+				saving = true;
+				statusEl.dataset.state = "saving";
+				statusTextEl.textContent = "保存中...";
+				retryButton.classList.remove("visible");
+
+				try {
+					const res = await fetch(`/api/teams/${encodeURIComponent(teamId)}`, {
+						method: "PUT",
+						credentials: "same-origin",
+						headers: { "Content-Type": "application/json" },
+						body: JSON.stringify(payload),
+					});
+					if (!res.ok) {
+						const body = (await res.json().catch(() => ({}))) as { error?: string };
+						throw new Error(body.error ?? `保存に失敗しました (status=${res.status})`);
+					}
+					statusEl.dataset.state = "saved";
+					statusTextEl.textContent = "保存済み";
+				} catch (err) {
+					console.error(err);
+					statusEl.dataset.state = "error";
+					statusTextEl.textContent = err instanceof Error ? err.message : "保存に失敗しました。";
+					retryButton.classList.add("visible");
+				} finally {
+					saving = false;
+					if (pendingRetry) {
+						pendingRetry = false;
+						void saveNow();
+					}
+				}
+			}
+
+			function scheduleSave(): void {
+				statusEl.dataset.state = "saving";
+				statusTextEl.textContent = "編集中...";
+				retryButton.classList.remove("visible");
+				if (debounceTimer) clearTimeout(debounceTimer);
+				debounceTimer = setTimeout(() => {
+					void saveNow();
+				}, DEBOUNCE_MS);
+			}
+
+			retryButton.addEventListener("click", () => {
+				void saveNow();
+			});
+
+			// A-2(実バグ): トップバーはSSR時点のpageTitleで固定され、#team-nameのinputイベントで
+			// 追随する処理が存在しなかった(トップバーへの参照が本ファイルに0件だった)。
+			// box/[id].astroのupdateHeaderIdentity()(:4239-4257)と同じ手法を移植する:
+			// AppLayout.astroは編集禁止(全ページ共通)なので、トップバー側の要素はclass経由で
+			// このページのscriptから直接更新する。
+			const topbarTitleEl = document.querySelector<HTMLElement>(".app-topbar-title");
+			function updateHeaderIdentity(): void {
+				const name = nameInput.value.trim();
+				if (topbarTitleEl) {
+					topbarTitleEl.textContent = name || "無題のチーム";
+				}
+			}
+
+			nameInput.addEventListener("input", () => {
+				updateHeaderIdentity();
+				scheduleSave();
+			});
+			memoInput.addEventListener("input", scheduleSave);
+			searchInput.addEventListener("input", renderSelectList);
+
+			// --- 初期化 ---
+			// SSR取得済みのメンバーは fetch を待たずに即描画する(6枠が空でも一瞬も待たせない)。
+			renderSlots();
+
+			fetch("/api/owned-pokemon", { credentials: "same-origin" })
+				.then(async (res) => {
+					if (!res.ok) throw new Error(`個体一覧の取得に失敗しました (status=${res.status})`);
+					const body = (await res.json()) as { data: OwnedPokemonRecord[] };
+					allPokemon = body.data;
+					selectLoadingMessage.hidden = true;
+					renderSelectList();
+				})
+				.catch((err) => {
+					console.error(err);
+					selectLoadingMessage.hidden = true;
+					selectErrorMessage.hidden = false;
+				});
+		}
+	</script>
+</AppLayout>
