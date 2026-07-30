@@ -1054,6 +1054,9 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	   揃える」により、min-height/line-heightを明示する(<button>はglobal.cssの
 	   `input[type="text"], select { min-height: 2.35rem; line-height: var(--line-height-snug); }`
 	   の対象に含まれず、UAデフォルトのline-heightのまま高さがinput/selectと1.1pxずれていた)。 */
+	/* UI改善ラウンド44(A-2): <button>要素はglobal.cssの共通buttonルール(font-weight: 600)を
+	   暗黙継承しており、34-L4で確定した「入力欄はすべて400にフラット化する」方針
+	   (.item-name-display等)から漏れていた。同じ方針の延長としてfont-weight: 400を明示する。 */
 	#edit-form .tera-dropdown-button {
 		display: flex;
 		align-items: center;
@@ -1067,6 +1070,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		background: var(--color-surface);
 		cursor: pointer;
 		font-size: 0.94rem;
+		font-weight: 400;
 		line-height: var(--line-height-snug);
 		color: var(--color-text);
 		text-align: left;
@@ -1139,6 +1143,8 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	   ブロック(.move-picker-*と同居)に置く(box/[id].astroは編集禁止のため、テラスのように
 	   box/[id].astro側の<style is:global>には置けない)。 */
 	#edit-form .item-dropdown-wrap { position: relative; width: 100%; }
+	/* UI改善ラウンド44(A-3): テラスボタン(A-2)と同じ理由でfont-weight未指定によりbutton基底の
+	   600を継承していた。34-L4の「入力欄はすべて400にフラット化する」方針に揃えるため明示する。 */
 	#edit-form .item-dropdown-button {
 		display: flex;
 		align-items: center;
@@ -1152,6 +1158,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		background: var(--color-surface);
 		cursor: pointer;
 		font-size: 0.94rem;
+		font-weight: 400;
 		line-height: var(--line-height-snug);
 		color: var(--color-text);
 		text-align: left;

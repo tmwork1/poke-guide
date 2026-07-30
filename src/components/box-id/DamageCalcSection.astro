@@ -378,7 +378,10 @@ const { pokemonId } = Astro.props;
 		flex: 1 1 0;
 		min-width: 0;
 		font-size: 0.92rem;
-		font-weight: 700;
+		/* ラウンド44 A-4(ユーザー指示第28弾): 種族名入力欄だけfont-weight 700で浮いており、
+		   同じ箱のA-1で400に揃えた特性・持ち物・テラスから1項目だけ太さが違っていた。
+		   ユーザー指示「ダメージカードの種族名も他とそろえる」により400に統一する。 */
+		font-weight: 400;
 		padding: 0.32em 0.45em;
 		line-height: 1.2;
 	}
@@ -548,7 +551,7 @@ const { pokemonId } = Astro.props;
 		border-radius: var(--radius-sm);
 		background: var(--color-surface);
 		cursor: pointer;
-		font-weight: 600;
+		font-weight: 400;
 		color: var(--color-text);
 		text-align: left;
 	}
@@ -563,7 +566,11 @@ const { pokemonId } = Astro.props;
 	   min-height 0(実測height 23.86px)。この4値をそのままテラスボタンにも適用し、
 	   実測height 23.88px相当まで縮める(特性selectの23.86pxとほぼ一致)。
 	   font-weight(600)は「書式」の対象外(サイズの見た目には寄与しないため)として維持し、
-	   ボタンであることが分かるようにする。 */
+	   ボタンであることが分かるようにする。
+	   🔴 UI改善ラウンド44ユーザー指示(44-A1)「ダメージカードのテラス選択ボタンだけが
+	   button要素の基底font-weight:600の継承(43-D4での明示維持を含む)により、隣接する
+	   特性・持ち物(400)と不揃いに見える」との4レビュアー一致指摘を受け、43-D4で対象外と
+	   した上記のfont-weight判断を撤回し、400に統一する(下のルールで明示指定)。 */
 	#opponent-notes-section .tera-dropdown-button {
 		font-size: 0.86rem;
 		padding: 0.22em 0.38em;
