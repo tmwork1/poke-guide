@@ -41,7 +41,7 @@
 - ワイヤーフレーム(構造の正): `docs/ui_proposal/<...>.png`
 - 旧アプリの実物(情報密度の参考。**この密度が目標**): `docs/ui_proposal/battle_assistant.jpg`
 - 計画書: `docs/plan/ui_rounds/00-foundation.md`(レイアウト原則。「第2弾」「第3弾」には実測知見と『やってはいけないこと』がある)と `docs/plan/ui_rounds/round-<N>.md`。**「<該当節>」を読むこと**(索引は `docs/plan/ui_plan.md`)
-- 踏んだ罠と修正済み欠陥の一覧: `.claude/skills/ui/references/pitfalls.md`(特に「CSS/DOMの罠」「品質の判断基準」。下の【固定3】の欠陥種リストの出典)
+- 踏んだ罠と修正済み欠陥の一覧: `.claude/skills/ui-loop/references/pitfalls.md`(特に「CSS/DOMの罠」「品質の判断基準」。下の【固定3】の欠陥種リストの出典)
 - 実装: `<ファイルパス>`、デザイントークンは `src/styles/global.css`
 
 ## 重要な作業ルール
@@ -255,7 +255,7 @@
 - <Coordinatorの実測値>
 
 ## 参照資料
-- 確立済み規格の出典: `docs/plan/ui_rounds/00-foundation.md`(タイポグラフィ原則・階層)と `.claude/skills/ui/references/pitfalls.md`「壊してはいけないもの」「品質の判断基準」
+- 確立済み規格の出典: `docs/plan/ui_rounds/00-foundation.md`(タイポグラフィ原則・階層)と `.claude/skills/ui-loop/references/pitfalls.md`「壊してはいけないもの」「品質の判断基準」
 - 直近ラウンドの計画書: `docs/plan/ui_rounds/round-<N>.md`(**「維持すべき点」と、ユーザーが明示指定した値を必ず確認すること**)
 - 実装: <ファイルパス>、デザイントークンは `src/styles/global.css`
 
@@ -374,7 +374,7 @@
 ## 読むもの
 - **直近3ラウンド分の `docs/plan/ui_rounds/round-<N-2>.md` 〜 `round-<N>.md`**(3ファイルそのまま)。各ラウンドで「指摘者: UI/UX/プレイヤー視点」がそれぞれ何を指摘したか
   - **注意**: 単一アドバイザー運用だったラウンドや、ユーザーの直接指示で回ったラウンドでは、指摘者の分離が記録上あいまいです。その場合は「**この指摘はUI/UX/プレイヤー視点のどのレビュアーが本来拾うべきだったか**」に読み替えて分析すること(実装後の検証やユーザー指摘で初めて出た問題ほど、この読み替えの価値が高い)
-- `.claude/skills/ui/references/pitfalls.md`(実際に踏んだ罠。レビュアーが気づくべきだったのに気づかなかった問題の実例)
+- `.claude/skills/ui-loop/references/pitfalls.md`(実際に踏んだ罠。レビュアーが気づくべきだったのに気づかなかった問題の実例)
 - `references/agent-prompts.md` のUIレビュアー用・UXレビュアー用・プレイヤー視点レビュアー用・統一感レビュアー用の4テンプレート(特に「特に見てほしい観点」節)
 
 ## 分析してほしいこと
