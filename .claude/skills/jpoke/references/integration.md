@@ -69,6 +69,8 @@ jpoke は大きいパッケージだが、poke-commons が触れているのは�
 ### Service Worker: `public/pyodide-sw.js`
 cache-first。対象は正規表現2本のみ: `^https://cdn\.jsdelivr\.net/pyodide/`(Pyodide CDN)と`/master-data/pyodide/`(jpoke wheel)。GET以外・対象外URLは素通し(出典: `pyodide-sw.js:8-29`)。`initEngine()`とは独立で、`registerOfflineCache()`はページ読み込み時に呼んでもPyodide自体のロードは開始しない(出典: `pyodide-engine.ts:307-323`)。
 
+🔴 **キャッシュキーはURL・`CACHE_NAME`は固定文字列で期限もバージョニングも無い**(出典: `pyodide-sw.js:8`)。**2026-07-30に実際に発生した事故**: `resume_from`取り込み(§10)でwheelの中身だけ更新しバージョン番号(`0.2.0`)を据え置いたところ、既にService Workerを登録済みのブラウザは古いキャッシュ済みバイト列を無期限に使い続け、実行中のJS側だけが新しい契約を期待してブラウザ上で`TypeError: Battle.calc_lethal() got an unexpected keyword argument 'resume_from'`→`damage-calc.ts`の catch経由で「エラー: 計算に失敗しました」が全カードに出る事故になった(`npm test`・`npx astro build`はどちらもこの経路を通らないため検出できない。実ブラウザでのみ再現)。**恒久対応済み**: `build.mjs`のwheelビルド後にsha256内容ハッシュ(先頭10桁)をwheelファイル名へビルドタグとして埋め込むようにした(§4参照)。中身が変わればURLも変わるため、cache-firstでも安全になった。
+
 ## 3. 呼び出し側ページ
 
 | ページ | 初期化トリガー | 使うAPI | 備考 |
@@ -82,7 +84,7 @@ cache-first。対象は正規表現2本のみ: `^https://cdn\.jsdelivr\.net/pyod
 `npm run build:master-data` → `scripts/build-master-data/build.mjs`。既定で`vendor/jpoke`を参照し、`JPOKE_DIR`/`JPOKE_PYTHON`で上書き可能(出典: `build.mjs:32-43`)。
 
 1. **オートコンプリート/検索詳細JSON**: `jpokePython extract_autocomplete.py <jpokeSrcDir> <autocompleteOutDir> <detailOutDir>`(出典: `build.mjs:75-85`)
-2. **Pyodide wheel**: `jpokePython -m build --wheel --outdir <tmp>`を`vendor/jpoke`直下で実行し、`public/master-data/pyodide/wheels/*.whl`へコピー。既存wheelは事前に全削除(出典: `build.mjs:87-116`)
+2. **Pyodide wheel**: `jpokePython -m build --wheel --outdir <tmp>`を`vendor/jpoke`直下で実行し、`public/master-data/pyodide/wheels/*.whl`へコピー。既存wheelは事前に全削除(出典: `build.mjs:87-116`)。**2026-07-30以降**: コピー前にビルド済みwheelのsha256ハッシュ(先頭10桁)を計算し、`{name}-{version}-0{hash}-{pyver}-{abi}-{plat}.whl`という**ビルドタグ付きファイル名**にリネームしてから書き出す(PEP 427のwheel命名規則が任意で許すビルドタグを利用。先頭を数字にする制約があるため`0`を前置する)。理由: Service Workerのcache-firstキャッシュ(上記§2「Service Worker」参照)はURLをキーにするため、jpokeのバージョン番号を上げずに中身だけ更新するとURLが変わらず、既存ブラウザが古いキャッシュを無期限に使い続けてしまう事故が実際に起きた。ハッシュを含めることで中身が変わるたびにURLも変わり、cache-firstでも安全になる。
 
 ### 生成物のパスとスキーマ(`extract_autocomplete.py`)
 | 出力パス | 生成関数 | フィールド | 出典 |
@@ -172,6 +174,7 @@ cache-first。対象は正規表現2本のみ: `^https://cdn\.jsdelivr\.net/pyod
 4. **`extract_autocomplete.py`の`_IMAGE_ID_OVERRIDES`**: PokeAPI実測値の手書き表。jpokeの`ja_to_id_map.json`が該当フォルムを解決できるようになっても、この表が優先されず古い値のまま残り得る(コード上の優先順位は①`ja_to_id_map.json`が先なので実際には②より①が優先されるが、①側のキー名表記がわずかに変わると①で解決できず②の古い値にフォールバックしてしまう、という形で顕在化する)。
 5. **`sprite-urls.ts`/`pokemon-master-data.ts`のURLテンプレート**: `pokeapi.py`のディレクトリ構成・拡張子が変わっても、これらのTS側文字列リテラルは自動追随しない。結果は例外ではなく画像404(表示崩れ)として現れる。
 6. **`jpoke.utils.lethal_dist.State`のフィールド構成に直接依存するpoke-commons側コード**(`pyodide-engine.ts`の`_clamp_hp_dist_min0`が`State(...)`を再構築している箇所): `State`はjpoke内部のprivateなデータクラスだが、poke-commons側がフィールド名を直接コピーする形で依存している。jpoke側でフィールドが増減すると、型エラーではなく`TypeError`(存在しないキーワード引数)/`AttributeError`(存在しないフィールド読み取り)で実行時に壊れる(2026-07-30に実際に発生。詳細はdamage-calc.md§10)。
+7. **✅ 2026-07-30解消済み: wheelバージョンを据え置いたままBOOTSTRAP_PYTHON側の契約だけを変えると、Service Workerのcache-firstキャッシュ(既存ブラウザ)が古いwheelを無期限に使い続ける**(§2「Service Worker」参照)。`npm test`・`npx astro build`はこの経路を通らないため検出できず、実際に本番相当の挙動(ブラウザでの再訪問)でのみ再現した。**対応**: `build.mjs`がwheelファイル名にsha256内容ハッシュを埋め込むようにしたため、今後は中身が変わるたびにURLも自動的に変わり、この種の事故は起きなくなった。
 
 ## 8. Pyodide経由であることに起因する制約
 

@@ -21,7 +21,8 @@
  *                jpoke 専用の venv がある場合はそのパスを指定してもよい)
  */
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, copyFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
@@ -111,19 +112,39 @@ function buildPyodideWheel() {
     if (wheels.length === 0) {
       throw new Error('wheel のビルドに成功しましたが .whl ファイルが見つかりませんでした。');
     }
-    for (const wheel of wheels) {
-      copyFileSync(path.join(tmpOutDir, wheel), path.join(wheelOutDir, wheel));
-      console.log(`wrote ${path.join(wheelOutDir, wheel)}`);
-    }
+    // 複数wheelが生成されるケースは想定していない(wheelOutDir は毎回全削除してから
+    // 1回だけビルドするため)が、万一複数生成された場合はソートして最初の1件を採用する。
+    const builtFilename = [...wheels].sort()[0];
+    const builtBytes = readFileSync(path.join(tmpOutDir, builtFilename));
 
-    // jpoke (pyproject.toml) のバージョンが変わると生成されるファイル名も変わる
-    // (例: jpoke-0.2.0-py3-none-any.whl → jpoke-0.3.0-py3-none-any.whl)。
-    // 実際に生成されたファイル名をそのままマニフェストに書き出し、
-    // src/lib/pyodide-engine.ts 側はこれを読むだけにする(バージョン文字列を
-    // アプリ側で手書きしない)。複数wheelが生成されるケースは想定していない
-    // (wheelOutDir は毎回全削除してから1回だけビルドするため)が、
-    // 万一複数生成された場合はソートして最初の1件を採用する。
-    const wheelFilename = [...wheels].sort()[0];
+    // 🔴 2026-07-30発覚のバグ対応: public/pyodide-sw.js はこの wheel を cache-first で
+    // キャッシュする(CACHE_NAME固定・期限なし)。jpoke のバージョン(pyproject.toml)を
+    // 上げずに中身だけ更新すると wheel のファイル名が変わらないため、既にService Workerを
+    // 登録済みのブラウザは古いキャッシュ済みバイト列を無期限に使い続け、実行中のJS側だけが
+    // 新しい契約(例: Battle.calc_lethal()のresume_from引数)を期待してTypeErrorで
+    // 全計算が失敗する事故が実際に発生した(round-46調査、damage-calc.tsの
+    // 「エラー: 計算に失敗しました」で顕在化)。
+    // 対策: wheel の内容ハッシュ(sha256先頭10桁)を「ビルドタグ」としてファイル名に
+    // 埋め込み、内容が変わるたびにURL自体が変わるようにする(cache-first でも安全になる)。
+    // ビルドタグは PEP 427 のwheelファイル名仕様で `{name}-{version}(-{build tag})?-
+    // {python tag}-{abi tag}-{platform tag}.whl` の任意要素として正式にサポートされており、
+    // 「数字から始まる」制約があるため先頭に "0" を付ける(micropip/pip 共通の
+    // WHEEL_INFO_RE = `...((-(?P<build>\d[^-]*?))?-(?P<pyver>.+?)-...)` に適合させるため)。
+    const nameMatch = /^(?<name>.+?)-(?<version>[^-]+)-(?<pyver>[^-]+)-(?<abi>[^-]+)-(?<plat>[^-]+)\.whl$/.exec(
+      builtFilename,
+    );
+    if (!nameMatch) {
+      throw new Error(`想定外のwheelファイル名形式です(ビルドタグ挿入に失敗): ${builtFilename}`);
+    }
+    const { name, version, pyver, abi, plat } = nameMatch.groups;
+    const contentHash = createHash('sha256').update(builtBytes).digest('hex').slice(0, 10);
+    const wheelFilename = `${name}-${version}-0${contentHash}-${pyver}-${abi}-${plat}.whl`;
+
+    writeFileSync(path.join(wheelOutDir, wheelFilename), builtBytes);
+    console.log(`wrote ${path.join(wheelOutDir, wheelFilename)} (元のビルド出力名: ${builtFilename})`);
+
+    // src/lib/pyodide-engine.ts 側はこのJSONを読むだけにする(ファイル名をアプリ側で
+    // 手書きしない。UI改善ラウンド22 22-E-3由来の既存方針、上記コメント参照)。
     writeFileSync(
       wheelManifestPath,
       JSON.stringify({ filename: wheelFilename }, null, 2) + '\n',
