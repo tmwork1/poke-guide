@@ -2535,6 +2535,11 @@ const { pokemonId } = Astro.props;
 		gap: 0.2rem;
 		min-width: 0;
 	}
+	/* UI改善ラウンド46ユーザー指示(第30弾、B-2): max-width:14em(206.08px)はラウンド45で
+	   親(.damage-row-collapsed-summary)の幅を115.2px→234.42pxへ拡幅する前の値が
+	   未更新のまま残っていた棚卸し対象(round-46.md、UIレビュアー指摘)。実害は無かったが、
+	   親のflex:1 1 autoにまかせて100%へ更新する(親幅が変わってもここを個別に
+	   追随させる必要がなくなる)。 */
 	#opponent-notes-section .damage-row-collapsed-name {
 		font-size: 0.92rem;
 		font-weight: 700;
@@ -2542,7 +2547,7 @@ const { pokemonId } = Astro.props;
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
-		max-width: 14em;
+		max-width: 100%;
 	}
 	#opponent-notes-section .damage-row-collapsed-direction {
 		display: inline-flex;
@@ -2561,6 +2566,26 @@ const { pokemonId } = Astro.props;
 	}
 	#opponent-notes-section .damage-row-collapsed-direction[data-role="defense"] {
 		background: var(--color-primary-strong);
+	}
+	/* UI改善ラウンド46ユーザー指示(第30弾、A-1): 折りたたみ左ブロックに特性(とくせい)行を
+	   追加する。docs/ui_proposal/ダメージカード_圧縮.png(種族名→攻撃or防御→特性→
+	   H-A-B-C-D-Sの4行構成)どおり、与ダメ/被ダメバッジと実数値グリッドの間に挿入する
+	   (<script>のcollapsedAbilityEl参照)。42-D4時点では「340px幅に名前・攻守バッジ・
+	   実数値6つを収める時点で十分密」という理由でこの行を意図的に外していたが、
+	   ラウンド45でこの箱(.damage-row-collapsed-summary)の幅が115.2px→234.42pxに
+	   拡張され、当時の空間制約の前提が変わったため追加する(round-46.md、UI・プレイヤー
+	   視点レビュアーとも優先度A)。右側の技列2段目(.damage-row-collapsed-detail-line、
+	   下方参照)と同一仕様(0.76rem/font-weight 400/var(--color-text-muted)/
+	   nowrap+ellipsis+title)にし、新色・新フォントサイズは増やさない。max-widthは
+	   付けない(親の.damage-row-collapsed-summaryがflex:1 1 autoで234.42pxまで
+	   自然に伸びるため)。 */
+	#opponent-notes-section .damage-row-collapsed-ability {
+		font-size: 0.76rem;
+		font-weight: 400;
+		color: var(--color-text-muted);
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
 	}
 	/* 🔴 UI改善ラウンド42ユーザー指示(42-D4/42-D5、38-D6を撤回): 旧.damage-row-collapsed-moves
 	   (名前・攻守の下に使用技名を「/」区切りで1行表示していた要素)は削除した。round-42.mdの
@@ -2633,6 +2658,18 @@ const { pokemonId } = Astro.props;
 	   をそのまま1つの技カードとして流用する。36-1の設計判断どおりこちら側は一切変更しない)。 */
 	#opponent-notes-section .card-damage[data-collapsed="true"] .damage-row-body {
 		align-items: center;
+	}
+	/* UI改善ラウンド46ユーザー指示(第30弾、B-1): A-1で左ブロック(.damage-row-collapsed-summary)
+	   の高さが96.34px→118.97pxに伸びた結果、上のalign-items:centerにより右ブロック
+	   (.damage-row-techniques-row、技名+結果バーの2段のみで48〜75px)との上下の空白が
+	   実測で片側22〜34px(左右合計で44〜68px)まで拡大した(round-46.md実測予測どおり)。
+	   右ブロックだけflex-start(左ブロックの1行目=種族名と天面を揃える)にし、微調整の
+	   padding-topで技名行を種族名の高さに近づける。実測(Playwright、フィクスチャ
+	   c8680844-...)で4枚とも改善を確認: 空白が上下に分散せず下側にまとまり、右ブロックが
+	   宙に浮いて見える問題を解消した。新しい罫線・新色は追加していない。 */
+	#opponent-notes-section .card-damage[data-collapsed="true"] .damage-row-techniques-row {
+		align-self: flex-start;
+		padding-top: 0.5rem;
 	}
 	/* 🔴 UI改善ラウンド42ユーザー指示(42-D4)「圧縮後も左右のビルド/ダメージの幅の配分を
 	   維持する」により、旧・折りたたみ限定の上書き(flex: 0 0 auto; width: auto;、

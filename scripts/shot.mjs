@@ -36,6 +36,12 @@
  *   --clip-pad <px>     --clip の周囲に余白を足して撮る(既定 0)
  *   --clone <selector>  その要素を複製して件数を水増しする(DBは汚さない)
  *   --clone-count <n>   --clone の目標件数。既定 40
+ *   --click <selector>  Pyodide待ち完了後にクリックする(複数指定可、指定順)。
+ *                       トグル系のUI状態(例: 折りたたみ表示)を撮るためのオプトイン。
+ *                       ⚠️ このスクリプトは既定では一切「触らない」(冒頭コメント参照)。
+ *                       クリックしても安全(自動保存を誘発しない、DBを汚さない)と
+ *                       確認済みの要素だけに使うこと。text=から始めると
+ *                       `getByText(...).click()` 相当(完全一致)、それ以外は通常のCSSセレクタ。
  *   --wait <selector>   撮る前に待つ要素
  *   --out <dir>         出力先。既定 .tmp-shots
  *   --tag <str>         ファイル名の末尾に付ける識別子
@@ -78,6 +84,7 @@ function parseArgs(argv) {
 		clipPad: 0,
 		clone: null,
 		cloneCount: 40,
+		click: [],
 		wait: null,
 		out: ".tmp-shots",
 		tag: null,
@@ -124,6 +131,9 @@ function parseArgs(argv) {
 				break;
 			case "--clone-count":
 				opts.cloneCount = Number(next());
+				break;
+			case "--click":
+				opts.click.push(next());
 				break;
 			case "--wait":
 				opts.wait = next();
@@ -307,6 +317,13 @@ async function shootOne(context, opts, pagePath, theme, viewport) {
 	const pyodideWaited = pyodideResult !== null;
 	const engineStatusVisible = pyodideResult?.engineStatusVisible ?? false;
 
+	for (const selector of opts.click) {
+		const locator = selector.startsWith("text=")
+			? page.getByText(selector.slice("text=".length), { exact: true })
+			: page.locator(selector);
+		await locator.first().click({ timeout: 30_000 });
+	}
+
 	let cloned = null;
 	if (opts.clone) {
 		cloned = await cloneNodes(page, opts.clone, opts.cloneCount);
@@ -382,6 +399,7 @@ async function main() {
 				"  --scale 3                           細部を見るときの拡大率",
 				"  --clip <selector> [--clip-pad 24]   その要素だけを撮る",
 				"  --clone <selector> --clone-count 40 密度検証用にDOMを複製(DBは汚さない)",
+				"  --click <selector>   安全と確認済みの要素をクリックしてから撮る(複数指定可)",
 				"  --full / --wait <sel> / --tag <str> / --out <dir> / --keep-toolbar",
 				"",
 				"詳細はこのファイル冒頭のコメントを参照。",

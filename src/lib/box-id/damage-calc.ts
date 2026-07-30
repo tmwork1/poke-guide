@@ -2166,6 +2166,20 @@ if (opponentNotesSection) {
 		collapsedNameEl.className = "damage-row-collapsed-name";
 		const collapsedDirectionEl = document.createElement("span");
 		collapsedDirectionEl.className = "damage-row-collapsed-direction";
+		// UI改善ラウンド46ユーザー指示(第30弾、A-1): ラウンド42時点では「340px幅に名前・
+		// 攻守バッジ・実数値6つを収める時点で十分密になっており、特性名まで足すと1行に
+		// 収まらず可読性を損なう」と判断して特性名を出していなかった(下のコメント参照)。
+		// ラウンド45でこの左ブロック(.damage-row-collapsed-summary)の幅が115.2px→234.42pxに
+		// 拡張され、当時の空間制約の前提が変わったため、round-46.mdのワイヤーフレーム
+		// (docs/ui_proposal/ダメージカード_圧縮.png、種族名→攻撃or防御→特性→実数値の
+		// 4行構成)どおり特性行を追加する。特性はマルチスケイル・しんりょく・こだいかっせい・
+		// メガランチャーのようにダメージ計算そのものに直結する情報であり、折りたたみ一覧
+		// だけで相手を見比べる場面での判断ミスを防ぐ(round-46.md、プレイヤー視点レビュアー
+		// 指摘)。右側の技列2段目(.damage-row-collapsed-detail-line)と同一仕様
+		// (0.76rem/font-weight 400/var(--color-text-muted)/nowrap+ellipsis+title)で新設し、
+		// 新色・新フォントサイズは増やさない(round-46.md、UIレビュアー指摘の実装方針)。
+		const collapsedAbilityEl = document.createElement("span");
+		collapsedAbilityEl.className = "damage-row-collapsed-ability";
 		// 🔴 UI改善ラウンド42ユーザー指示(42-D4、38-D6を撤回): 使用技名を「/」区切りで
 		// 列挙していた旧collapsedMovesEl(.damage-row-collapsed-moves)は削除した。
 		// round-42.mdの総評「圧縮前後で情報の欠落が大きい」を受け、使用技はヒット数・
@@ -2175,8 +2189,9 @@ if (opponentNotesSection) {
 		// 出さない。展開時の.damage-ev-gridをまるごと出す旧方式とは別に、実数値だけの
 		// コンパクトな新規表示にする)。テラスタイプは既存のtypeBadge(spriteBoxに重ねる
 		// アイコン、42-D4「アイテム・テラスタルはアイコンのみ」の対象)で既に見えているため
-		// テキストでは重複表示しない。特性名はこのラウンドの指示に明記が無いため、
-		// 実装者判断で表示しない(下のCSSコメント・報告に理由を記載)。
+		// テキストでは重複表示しない。特性名は42-D4時点では「実装者判断で表示しない」
+		// としていたが、🔴 UI改善ラウンド46ユーザー指示(第30弾、A-1)でこの判断を撤回し、
+		// 上のcollapsedAbilityElとして追加した(理由は上のコメント参照)。
 		// 実測(round-42.md検証時、フィクスチャc8680844-...のカイリュー行)で判明: 6項目を
 		// flex-wrapの1コンテナに任せると、build幅340px(スプライト80px分を引いた残り
 		// 約234px)ぎりぎりのところで「S116だけ2行目に孤立して折り返る」ような不揃いな
@@ -2205,7 +2220,7 @@ if (opponentNotesSection) {
 			collapsedStatValueEls[key] = valueEl;
 		});
 		collapsedStatsEl.append(statRow1, statRow2);
-		collapsedSummary.append(collapsedNameEl, collapsedDirectionEl, collapsedStatsEl);
+		collapsedSummary.append(collapsedNameEl, collapsedDirectionEl, collapsedAbilityEl, collapsedStatsEl);
 		buildMain.appendChild(collapsedSummary);
 		function refreshCollapsedSummary(): void {
 			collapsedNameEl.textContent = row.name.trim() || "(名前未設定)";
@@ -2220,6 +2235,13 @@ if (opponentNotesSection) {
 			// 表現に差し替える(新規UI要素は追加しない)。
 			collapsedDirectionEl.textContent = selfAttacks ? "与ダメ" : "被ダメ";
 			collapsedDirectionEl.dataset.role = selfAttacks ? "attack" : "defense";
+			// UI改善ラウンド46ユーザー指示(第30弾、A-1): 名前欄の
+			// row.name.trim() || "(名前未設定)" と同じフォールバック文法に揃える。
+			// title属性にもフルテキストを持たせ、ellipsis省略時のツールチップにする
+			// (round-46.md、UI・プレイヤー視点レビュアー重複指摘、統合済み)。
+			const abilityText = row.abilityName.trim() || "(特性未設定)";
+			collapsedAbilityEl.textContent = abilityText;
+			collapsedAbilityEl.title = abilityText;
 		}
 		// 42-D4: H/A/B/C/D/Sの実数値だけをこの折りたたみ用の行へ複製する。実数値の算出
 		// ロジック自体(性格補正込み)は展開時の.damage-ev-grid(row.statValueEls)を
@@ -2463,6 +2485,9 @@ if (opponentNotesSection) {
 				abilitySelect.title = "";
 				if (previousValue !== "") {
 					row.abilityName = "";
+					// UI改善ラウンド46ユーザー指示(第30弾、A-1): 折りたたみ左ブロックの
+					// 特性行(collapsedAbilityEl)もrow.abilityNameの変化に追随させる。
+					refreshCollapsedSummary();
 					onFieldInput();
 				}
 				return;
@@ -2486,12 +2511,18 @@ if (opponentNotesSection) {
 			abilitySelect.title = abilitySelect.value;
 			if (abilitySelect.value !== previousValue) {
 				row.abilityName = abilitySelect.value;
+				// UI改善ラウンド46ユーザー指示(第30弾、A-1): 特性のデフォルト設定
+				// (26-L1/26-R2)でも折りたたみ左ブロックの特性行を最新化する。
+				refreshCollapsedSummary();
 				onFieldInput();
 			}
 		}
 		abilitySelect.addEventListener("change", () => {
 			row.abilityName = abilitySelect.value;
 			abilitySelect.title = abilitySelect.value;
+			// UI改善ラウンド46ユーザー指示(第30弾、A-1): 特性<select>のchangeイベントで
+			// row.abilityNameが変わるたびに折りたたみ左ブロックの特性行も追随させる。
+			refreshCollapsedSummary();
 			onFieldInput();
 		});
 		selectsRow.appendChild(abilitySelect);
