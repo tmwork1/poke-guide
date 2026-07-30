@@ -258,6 +258,73 @@ export function clampInt(n: number, min: number, max: number): number {
 	return Math.min(max, Math.max(min, Math.round(n)));
 }
 
+// UI改善ラウンド48(A-4)ユーザー指示(第32弾)「相手ビルドの情報を種族ごとにローカルに
+// 記録しておき、次に同じ種族をビルドする際にデフォルト値として設定する」。
+// DBの opponent_notes.opponent_build はカード単位の保存のみで、同じ種族を別カードで
+// 再入力するたびに性格・特性・持ち物・テラス・努力値を打ち直す必要があったため、
+// ブラウザの localStorage に「種族名→最後に使ったビルド」を記録する(DBへの
+// 新規カラム追加はしない、というユーザー指示による新規実装)。他機能と衝突しない
+// 名前空間にする。
+const OPPONENT_BUILD_PRESET_KEY_PREFIX = "poke-commons:opponent-build-preset:";
+
+interface OpponentBuildPreset {
+	nature: string;
+	natureUp: StatKey | null;
+	natureDown: StatKey | null;
+	abilityName: string;
+	itemName: string;
+	teraType: string;
+	evs: number[];
+}
+
+function opponentBuildPresetKey(speciesName: string): string {
+	return `${OPPONENT_BUILD_PRESET_KEY_PREFIX}${speciesName}`;
+}
+
+// localStorageが使用不可(プライベートブラウジング等で例外を投げる環境)でもページ全体が
+// 壊れないよう、読み書きは必ずtry/catchで包む。失敗時はこの機能が使えないだけにする。
+function saveOpponentBuildPreset(speciesName: string, preset: OpponentBuildPreset): void {
+	try {
+		window.localStorage.setItem(opponentBuildPresetKey(speciesName), JSON.stringify(preset));
+	} catch {
+		// 使用不可環境では何もしない(他の動作に影響させない)。
+	}
+}
+
+function loadOpponentBuildPreset(speciesName: string): OpponentBuildPreset | null {
+	try {
+		const raw = window.localStorage.getItem(opponentBuildPresetKey(speciesName));
+		if (!raw) return null;
+		const parsed = JSON.parse(raw) as Partial<OpponentBuildPreset> | null;
+		if (!parsed || !Array.isArray(parsed.evs) || parsed.evs.length !== STAT_KEYS.length) return null;
+		return {
+			nature: typeof parsed.nature === "string" ? parsed.nature : "まじめ",
+			natureUp: STAT_KEYS.includes(parsed.natureUp as StatKey) ? (parsed.natureUp as StatKey) : null,
+			natureDown: STAT_KEYS.includes(parsed.natureDown as StatKey) ? (parsed.natureDown as StatKey) : null,
+			abilityName: typeof parsed.abilityName === "string" ? parsed.abilityName : "",
+			itemName: typeof parsed.itemName === "string" ? parsed.itemName : "",
+			teraType: typeof parsed.teraType === "string" ? parsed.teraType : "",
+			evs: parsed.evs.map((v) => (typeof v === "number" && Number.isFinite(v) ? clampInt(v, 0, 32) : 0)),
+		};
+	} catch {
+		return null;
+	}
+}
+
+// 「相手ビルド5項目がすべて未設定」の判定(A-4の適用条件)。DBから読み込んだ既存カードは
+// 通常これらのどれかが埋まっているため、この判定を通らずプリセット適用の対象外になる
+// (=既存の値を勝手に上書きしない)。
+function isOpponentBuildUnset(row: DamageRowState): boolean {
+	return (
+		row.natureUp === null &&
+		row.natureDown === null &&
+		row.abilityName.trim() === "" &&
+		row.itemName.trim() === "" &&
+		row.teraType.trim() === "" &&
+		row.evs.every((v) => v === 0)
+	);
+}
+
 const opponentNotesSection = document.getElementById("opponent-notes-section");
 if (opponentNotesSection) {
 	// ラウンド18ユーザー指示の実装当時、この値は左パネルの `const form` の
@@ -1335,6 +1402,18 @@ if (opponentNotesSection) {
 			setRowSaveStatus(row, "idle", "未保存(相手ポケモン名を入力すると保存されます)");
 			return;
 		}
+		// UI改善ラウンド48(A-4): 相手ポケモン名が非空で保存が起きるたびに、相手ビルド
+		// (性格・特性・持ち物・テラス・努力値)を種族名キーでlocalStorageへ上書き記録する
+		// (「最後に使ったビルド」がその種族の既定値になる、という指示どおりの挙動)。
+		saveOpponentBuildPreset(name, {
+			nature: row.nature,
+			natureUp: row.natureUp,
+			natureDown: row.natureDown,
+			abilityName: row.abilityName,
+			itemName: row.itemName,
+			teraType: row.teraType,
+			evs: [...row.evs],
+		});
 		if (row.saving) {
 			row.pendingSave = true;
 			return;
@@ -1902,7 +1981,7 @@ if (opponentNotesSection) {
 		initialValue: string,
 		ariaLabelPrefix: string,
 		onChange: (value: string) => void,
-	): { wrap: HTMLElement } {
+	): { wrap: HTMLElement; setValue: (value: string) => void } {
 		const wrap = document.createElement("div");
 		wrap.className = "damage-row-tera-field tera-dropdown-wrap";
 
@@ -1918,7 +1997,7 @@ if (opponentNotesSection) {
 		image.style.display = "none";
 		const placeholder = document.createElement("span");
 		placeholder.className = "tera-dropdown-placeholder";
-		placeholder.textContent = "テラスなし";
+		placeholder.textContent = "テラスタルなし";
 		button.append(image, placeholder);
 
 		const list = document.createElement("ul");
@@ -1937,7 +2016,7 @@ if (opponentNotesSection) {
 			placeholder.classList.toggle("is-tera-value-text", !isUnselected);
 			if (isUnselected) {
 				image.style.display = "none";
-				placeholder.textContent = "テラスなし";
+				placeholder.textContent = "テラスタルなし";
 				return;
 			}
 			placeholder.textContent = value;
@@ -1987,10 +2066,10 @@ if (opponentNotesSection) {
 			li.tabIndex = -1;
 			li.dataset.value = optValue;
 			if (optValue === "") {
-				li.setAttribute("aria-label", "テラスなし");
+				li.setAttribute("aria-label", "テラスタルなし");
 				const textEl = document.createElement("span");
 				textEl.className = "tera-dropdown-option-text";
-				textEl.textContent = "テラスなし";
+				textEl.textContent = "テラスタルなし";
 				li.appendChild(textEl);
 			} else {
 				li.setAttribute("aria-label", label);
@@ -2018,13 +2097,22 @@ if (opponentNotesSection) {
 			optionEls.push({ value: optValue, li });
 		}
 
-		addOption("", "テラスなし");
+		addOption("", "テラスタルなし");
 		for (const t of TERA_TYPES) addOption(t, t);
 
 		wrap.append(button, list);
 		updateButton();
 
-		return { wrap };
+		// UI改善ラウンド48(A-4): 種族プリセット適用時に、クリック操作を介さず外部から
+		// 表示だけを更新できるようにする(onChangeは呼ばない。値の反映・再計算・保存の
+		// トリガーは呼び出し側=applyOpponentBuildPreset側でまとめて行う)。
+		function setValue(newValue: string): void {
+			value = newValue;
+			for (const opt of optionEls) opt.li.classList.toggle("is-active", opt.value === value);
+			updateButton();
+		}
+
+		return { wrap, setValue };
 	}
 
 	// --- 行(相手1体)のDOM構築 ---
@@ -2387,9 +2475,21 @@ if (opponentNotesSection) {
 		});
 		// 23-D2: 種族名が確定した(blur、またはpokemon-listのdatalist選択によるchange)
 		// タイミングでのみ特性候補を作り直す(理由は上のabilitySelectコメント参照)。
+		// UI改善ラウンド48(A-4): 同じタイミングで、種族ごとのローカルプリセット(性格・特性・
+		// 持ち物・テラス・努力値)の自動適用も試みる(applyOpponentBuildPresetは同期関数。
+		// 下方でabilitySelect/itemInput/teraDropdown/evInputEls定義後に関数宣言するが、
+		// 関数宣言はホイストされ、実行時(=ユーザーが種族名を確定した後)には既に
+		// 全て初期化済みのため、rebuildRowAbilityOptions/applyRowMegaStoneAutofillと
+		// 同じ理由で呼び出し位置がここでも問題ない)。
+		// 呼び出し順の意図: applyOpponentBuildPresetは同期的に完了するため、この後で
+		// 非同期に再開するrebuildRowAbilityOptions(previousValueを見て候補に無ければ
+		// abilities[0]へフォールバック)・applyRowMegaStoneAutofill(row.itemNameが
+		// 非空なら何もしない)の判定に、プリセットで設定した値がそのまま使われる
+		// (=プリセットの特性/持ち物が、既存の自動候補選定で上書きされない)。
 		nameInput.addEventListener("change", () => {
 			void rebuildRowAbilityOptions(nameInput.value.trim());
 			void applyRowMegaStoneAutofill(nameInput.value.trim());
+			applyOpponentBuildPreset(nameInput.value.trim());
 		});
 
 		// ラウンド6ユーザー指示(要件1): ⚙(この行の計算条件)ボタンは廃止した。
@@ -2721,6 +2821,10 @@ if (opponentNotesSection) {
 		evRowLabel.className = "damage-ev-row-label";
 		evRowLabel.textContent = "努力値";
 		evGrid.appendChild(evRowLabel);
+		// UI改善ラウンド48(A-4): 種族プリセット適用時にこの行の努力値入力欄へ直接
+		// 値を書き戻せるよう、STAT_KEYS順で参照を保持しておく(row自体には型を
+		// 追加しない。renderRowのローカルクロージャで完結させる)。
+		const evInputEls: HTMLInputElement[] = [];
 		STAT_KEYS.forEach((key, i) => {
 			const input = document.createElement("input");
 			input.type = "number";
@@ -2736,7 +2840,64 @@ if (opponentNotesSection) {
 				onFieldInput();
 			});
 			evGrid.appendChild(input);
+			evInputEls.push(input);
 		});
+
+		// UI改善ラウンド48(A-4)ユーザー指示(第32弾)「相手ビルドの情報を種族ごとにローカルに
+		// 記録しておき、次に同じ種族をビルドする際にデフォルト値として設定する」の適用側。
+		// 保存側はsaveRow()参照(モジュール先頭のsaveOpponentBuildPreset/loadOpponentBuildPreset/
+		// isOpponentBuildUnset)。この行の相手ビルド5項目(性格/特性/持ち物/テラス/努力値)が
+		// すべて未設定のときに限り、種族名に対応するプリセットがあれば適用する。
+		// 🔴 既存カード(DBから読み込んだ行)を絶対に上書きしない: isOpponentBuildUnset()が
+		// falseならここで即return するため、何か1つでも値が入っている行(=既存カードの
+		// 典型)には一切触れない。発動するのは「新規に追加した空行へ初めて種族名を
+		// 入力したとき」だけ。
+		function applyOpponentBuildPreset(speciesName: string): void {
+			const trimmed = speciesName.trim();
+			if (trimmed === "") return;
+			if (!isOpponentBuildUnset(row)) return;
+			const preset = loadOpponentBuildPreset(trimmed);
+			if (!preset) return;
+
+			row.nature = preset.nature;
+			row.natureUp = preset.natureUp;
+			row.natureDown = preset.natureDown;
+			row.abilityName = preset.abilityName;
+			row.itemName = preset.itemName;
+			row.teraType = preset.teraType;
+			row.evs = [...preset.evs];
+
+			refreshRowNatureButtons(row);
+
+			// abilitySelectはこの時点でまだ「入力途中の仮プレースホルダ」しか持たない
+			// (候補一覧はこの後rebuildRowAbilityOptionsが非同期に組み立てる)ため、値を
+			// 一致させるための一時optionを追加してからvalueを設定する(初期描画時の
+			// プレースホルダ生成と同じ考え方)。rebuildRowAbilityOptions再開時、
+			// abilities.includes(previousValue)がtrueならこの値がそのまま維持される。
+			if (row.abilityName) {
+				const opt = document.createElement("option");
+				opt.value = row.abilityName;
+				opt.textContent = row.abilityName;
+				abilitySelect.appendChild(opt);
+			}
+			abilitySelect.value = row.abilityName;
+			abilitySelect.title = row.abilityName;
+
+			itemInput.value = row.itemName;
+			itemInput.title = row.itemName;
+			refreshItemImage();
+
+			teraDropdown.setValue(row.teraType);
+			refreshTypeBadge();
+
+			STAT_KEYS.forEach((_key, i) => {
+				const evInput = evInputEls[i];
+				if (evInput) evInput.value = String(row.evs[i] ?? 0);
+			});
+
+			refreshCollapsedSummary();
+			onFieldInput();
+		}
 
 		// 3段目: 実数値(性格による上昇/下降は文字色で表現する)。
 		const statRowLabel = document.createElement("span");

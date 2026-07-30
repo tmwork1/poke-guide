@@ -9,11 +9,17 @@
 // 副作用importする(共有コア関数は src/lib/box-id/shared-core.ts 経由で left-panel.ts が使う)。
 import type { OwnedPokemonRecord } from '../../lib/owned-pokemon';
 import { TERA_TYPES } from '../../lib/tera-types';
+import { NATURE_STAT_MODIFIERS } from '../../lib/stats';
 
 interface Props {
 	pokemon: OwnedPokemonRecord;
 }
 const { pokemon } = Astro.props;
+
+// ラウンド48ユーザー追加指示(A-7)「性格の欄から性格を直接変更できるようにする」用の
+// <datalist>候補。NATURE_STAT_MODIFIERSのキー(25種類、まじめ等の補正なし5種を含む)を
+// そのまま使う(値の実体は二重管理せずstats.ts側を正とする)。
+const NATURE_NAMES = Object.keys(NATURE_STAT_MODIFIERS);
 
 // ラウンド12指摘(A-3): 能力値ラベルは全角表記(「素早さ」等)だとラベル列(最大幅)が
 // スライダー列(最狭・操作対象)を圧迫していたため、表示上はH/A/B/C/D/Sの1文字表記に
@@ -174,30 +180,33 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 					{/* ラウンド23ユーザー指示(23-L2)「性格は、特性の下に入力ボックスを配置する。
 					    ただし入力不可にしておき自動決定の仕組みを続投。」ラウンド21(21-L4)は
 					    「<input readonly>にしない、操作できる部品に見えると疑問を生む」と
-					    明記していたが、今回はユーザーが逆(readonlyの入力ボックスにする)を
-					    明示的に指示しているためユーザー指示を優先し、21-L4の判断を撤回する。
-					    disabledではなくreadonlyにする(disabledはフォーム送信対象から外れ、
-					    見た目も薄くなりすぎるため)。なぜ編集できないかはtitleの注記で伝える
-					    (21-L4の懸念=「なぜ押せないのか分からない」をここで緩和する)。
-					    ラウンド43ユーザー指示(43-L1)「ホバー時にテキスト表示はせず、代わりに
-					    マウスが編集不可マークになるようにする」により上記titleのブラウザ標準
-					    ツールチップ表示は撤回し、title属性自体を削除した(aria-labelはスクリーン
-					    リーダー用に維持)。編集不可であることはcursor: not-allowed(下記CSS)で
-					    視覚的に伝える。
-					    自動決定の仕組み(currentLeftNature()/refreshNatureButtons())は一切
-					    変えない。保存ペイロード(buildPayload)はcurrentLeftNature()から
-					    直接性格名を取っており、この<input>の値は保存に使わない
-					    (二重管理を避ける。<script>もvalueをセットするだけでchange/input
-					    リスナーは登録しない)。 */}
+					    明記していた。
+					    🔴 ラウンド48ユーザー追加指示(2026-07-31、A-7)「性格の欄から性格を
+					    直接変更できるようにする。ステータスも連動して変更する。」により、
+					    23-L2の「入力不可(readonly)」判断をここで撤回し、readonly/tabindex
+					    を外して直接編集可能にする(21-L4「readonlyにしない」の判断が結果的に
+					    再び有効になった形)。▲/▼ボタンによる上昇/下降切り替え方式は残したまま、
+					    この入力欄からも直接性格名を入力できるようにする(両方から同じ状態=
+					    leftNatureUp/leftNatureDownを操作する)。
+					    候補は#nature-list<datalist>(25種類、NATURE_STAT_MODIFIERSのキー)。
+					    <script>のchangeハンドラ(left-panel.ts)が、入力値がNATURE_STAT_MODIFIERS
+					    に実在する性格名ならleftNatureUp/leftNatureDownを上書きしてrefreshNatureButtons/
+					    recalcStats/scheduleSaveを呼ぶ。実在しない文字列が入力された場合は
+					    currentLeftNature()の値に戻す(不正値を保存しない)。
+					    保存ペイロード(buildPayload)は引き続きcurrentLeftNature()から性格名を
+					    取る(二重管理を避ける設計自体は維持)。 */}
 					<input
 						id="nature-readout-value"
 						class="field-control"
 						type="text"
-						readonly
-						tabindex={-1}
-						aria-label="性格(能力値の上下選択から自動的に決まります。ここでは編集できません)"
+						list="nature-list"
+						autocomplete="off"
+						aria-label="性格(直接入力するか、各ステータス見出し横の上昇/下降ボタンで変更できます)"
 						placeholder="性格"
 					/>
+					<datalist id="nature-list">
+						{NATURE_NAMES.map((name) => <option value={name} />)}
+					</datalist>
 				</div>
 			</div>
 		</div>
@@ -269,7 +278,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 				    参照。未設定時は従来どおり「テラスなし」のplaceholder)。 */}
 				<div class="field-with-image tera-dropdown-wrap">
 					<select id="tera" aria-label="テラスタイプ" title="テラスタイプ" hidden>
-						<option value="">テラスなし</option>
+						<option value="">テラスタルなし</option>
 						{TERA_TYPES.map((t) => <option value={t} selected={pokemon.tera_type === t}>{t}</option>)}
 					</select>
 					<button
@@ -280,7 +289,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 						aria-expanded="false"
 					>
 						<img id="tera-dropdown-image" class="tera-dropdown-image" alt="" style="display:none;" />
-						<span id="tera-dropdown-placeholder" class="tera-dropdown-placeholder">テラスなし</span>
+						<span id="tera-dropdown-placeholder" class="tera-dropdown-placeholder">テラスタルなし</span>
 					</button>
 					<ul
 						id="tera-dropdown-list"
@@ -504,6 +513,15 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	#edit-form input:placeholder-shown:not(:focus) {
 		border-style: dashed;
 		background: transparent;
+	}
+	/* ラウンド48追加指示(2026-07-30、A-5): ユーザー「ニックネーム入力欄の枠も実線にする」。
+	   #nicknameだけ上記の破線ルールから除外し、global.css:474-487の基底input style
+	   (border: 1px solid var(--color-border); background: var(--color-surface))と
+	   同じ見た目に戻す。IDセレクタを2つ重ねているため詳細度(0,2,0)は上記ルール(0,1,0)
+	   より高く、記載順に関わらず勝つ。 */
+	#edit-form input#nickname:placeholder-shown:not(:focus) {
+		border-style: solid;
+		background: var(--color-surface);
 	}
 	.stat-value { display: inline-block; margin-top: 0.15em; font-size: 1.15em; font-weight: 700; color: var(--color-text); }
 	.stat-value[data-mod="up"] { color: var(--stat-up); }
@@ -1297,15 +1315,13 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	/* ラウンド21(21-L4)の「読み取り専用のラベル+値のテキスト表示」(<p class="nature-readout">)は
 	   ラウンド23(23-L2)ユーザー指示により<input readonly class="field-control">へ置き換えた
 	   (特性の直下、他の入力欄と見た目を揃える)。.nature-readout系のCSSはもう使われないため
-	   削除した。readonly状態のヒントは#nature-readout-value[readonly]で個別に与える(下記)。
-	   ラウンド43ユーザー指示(43-L1)「ホバー時にテキスト表示はせず、代わりにマウスが編集不可
-	   マークになるようにする」により、title属性(ブラウザ標準ツールチップ)は削除し、代わりに
-	   ここのcursorをdefaultからnot-allowed(編集不可マーク)へ変更した。.field-control基底の
-	   cursor指定はこのIDセレクタで上書きされる。 */
-	#nature-readout-value[readonly] {
-		cursor: not-allowed;
-		background: var(--color-surface-alt);
-	}
+	   削除した。ラウンド43ユーザー指示(43-L1)「ホバー時にテキスト表示はせず、代わりにマウスが
+	   編集不可マークになるようにする」により、title属性(ブラウザ標準ツールチップ)は削除し、
+	   代わりにcursorをdefaultからnot-allowed(編集不可マーク)へ変更していた
+	   (#nature-readout-value[readonly]セレクタ)。
+	   🔴 ラウンド48ユーザー追加指示(A-7)によりreadonly属性自体を外して直接編集可能にした
+	   ため、上記の[readonly]セレクタは要素にマッチしなくなり無意味化した。編集可能な通常の
+	   input(.field-control基底のcursor: text)に戻すため、このルールごと削除する。 */
 
 	/* ラウンド4ユーザー指示: 「技1〜4」個別ラベルの代わりに置く1個のグループ見出しだったが、
 	   ラウンド20ユーザー指示(20-L1)でplaceholder方式に統一したため.field-group-label自体を

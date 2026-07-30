@@ -713,10 +713,10 @@ if (form) {
 		li.tabIndex = -1;
 		li.dataset.value = value;
 		if (value === "") {
-			li.setAttribute("aria-label", "テラスなし");
+			li.setAttribute("aria-label", "テラスタルなし");
 			const textEl = document.createElement("span");
 			textEl.className = "tera-dropdown-option-text";
-			textEl.textContent = "テラスなし";
+			textEl.textContent = "テラスタルなし";
 			li.appendChild(textEl);
 		} else {
 			li.setAttribute("aria-label", value);
@@ -778,7 +778,7 @@ if (form) {
 		teraDropdownPlaceholder.hidden = false;
 		if (isUnselected) {
 			teraDropdownImage.style.display = "none";
-			teraDropdownPlaceholder.textContent = "テラスなし";
+			teraDropdownPlaceholder.textContent = "テラスタルなし";
 			return;
 		}
 		teraDropdownPlaceholder.textContent = value;
@@ -1033,6 +1033,29 @@ if (form) {
 			scheduleSave();
 		});
 	}
+
+	// 🔴 ラウンド48ユーザー追加指示(A-7)「性格の欄から性格を直接変更できるようにする。
+	// ステータスも連動して変更する。」により、#nature-readout-value(readonly解除済み、
+	// LeftPanel.astro参照)から直接性格名を打ち込んで変更できるようにする。▲/▼方式は
+	// そのまま残し、両方から同じ状態(leftNatureUp/leftNatureDown)を操作する。
+	// 呼び出す関数列は上のupButton/downButtonクリックハンドラと完全に同じ並びにする
+	// (refreshNatureButtons→recalcStats→scheduleSave)。
+	const natureReadoutInput = document.getElementById("nature-readout-value") as HTMLInputElement | null;
+	natureReadoutInput?.addEventListener("change", () => {
+		const entered = natureReadoutInput.value.trim();
+		const modifier = NATURE_STAT_MODIFIERS[entered];
+		if (!modifier) {
+			// datalistに無い文字列が手入力された場合は不正値として保存せず、現在の
+			// 実際の性格名に表示を戻す(データ事故防止: 未定義の性格名を保存しない)。
+			natureReadoutInput.value = currentLeftNature();
+			return;
+		}
+		leftNatureUp = modifier.up;
+		leftNatureDown = modifier.down;
+		refreshNatureButtons();
+		void recalcStats();
+		scheduleSave();
+	});
 
 	// UI刷新: 努力値の各スライダーを数値入力とペアリングする。
 	for (const k of STAT_KEYS) {

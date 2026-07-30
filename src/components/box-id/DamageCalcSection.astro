@@ -1417,6 +1417,9 @@ const { pokemonId } = Astro.props;
 	   狭くする」により、font-size 1.25rem(20px)→0.8rem(12.8px、文字12px下限を割らない
 	   範囲)、width 1.7em→1.4em(この要素自身のfont-sizeが基準になるem指定のため、縮小後の
 	   実寸は1.4×12.8px=17.92px)に縮める。 */
+	/* UI改善ラウンド48ユーザー指示(第32弾)「N発目の数字の右側の縦棒を削除」により、
+	   border-rightを撤去した。番号帯の幅(1.4em)・中央寄せは維持し、区切りは既存の
+	   gap/paddingの余白のみで表現する(新しい罫線は足さない)。 */
 	#opponent-notes-section .damage-column-order-label {
 		flex: 0 0 auto;
 		width: 1.4em;
@@ -1427,7 +1430,6 @@ const { pokemonId } = Astro.props;
 		font-weight: 700;
 		color: var(--color-text-muted);
 		line-height: 1;
-		border-right: 1px solid var(--color-border);
 	}
 	/* ラウンド25ユーザー指示(25-D2): 技名行・ヒット回数行・条件・結果表示など、以前
 	   .damage-column直下に縦積みしていた残り全部をまとめる右側のラッパー
@@ -1559,13 +1561,16 @@ const { pokemonId } = Astro.props;
 	/* 技列の最下段: 区切り線 + 「技ごとのダメ・致死率」。相手ビルドの箱の
 	   .damage-row-total と同じ作り(margin-top:auto + 上罫線)にして下端を揃える。
 	   結果表示は最重要情報のため.damage-row-total-resultと同じサイズまで底上げする。 */
+	/* UI改善ラウンド48ユーザー指示(第32弾)「結果表示の上の横点線を削除」により、
+	   border-topを撤去した。相手ビルド箱側の.damage-row-totalの点線はラウンド34で
+	   既に撤去済みだが、この技カード単体側の点線は本ラウンドが初の撤去対象(混同注意)。
+	   padding-topは区切りの余白として残す。 */
 	#opponent-notes-section .damage-column-footer {
 		margin-top: auto;
 		/* UI品質改善(要件5・実測調整): 技列3枚を積んだときの合計高さを箱に近づけるため詰めた。
 		   ラウンド24ユーザー指示(24-D1)「カード全体の縦サイズを縮小」対応でさらに
 		   0.28rem→0.22remに詰める。 */
 		padding-top: 0.15rem;
-		border-top: 1px dashed var(--color-border);
 	}
 	/* ラウンド4の積み残し(ラウンド3 C-4): 判定を大きく太字・詳細を小さく添える。
 	   ラウンド11ユーザー指示(要件11-5)により、縦2段(column)を撤回して行
@@ -1677,13 +1682,25 @@ const { pokemonId } = Astro.props;
 	   常時表示にするか判断が必要だったが、カード全体の削除ボタンが31-D2以降「常時表示+
 	   ホバー時のみ赤背景」方式に統一されているため、この技カード単位の削除ボタンも
 	   同じ表示方式に揃える(ホバー限定表示にはしない)。 */
+	/* UI改善ラウンド48ユーザー指示(第32弾)「技カード削除ボタンの丸枠を非表示にして、
+	   ボタンをもう少し右上に配置」により、共通クラス.damage-row-icon-button自体は
+	   編集せず(カード全体削除ボタン.damage-row-delete-button・折りたたみボタン
+	   .damage-row-collapse-toggle-buttonが同じクラスを共有するため)、このセレクタ限定で
+	   background/border/box-shadowを打ち消して丸い枠を非表示にする。クリック領域(28px)は
+	   縮めず、hover時の赤背景(下のルール)はそのまま維持する。位置のinsetを
+	   var(--space-2)(8px)から2pxへ詰めて右上寄りにする(技名行側は
+	   .damage-column.has-remove-button .damage-column-move-rowでpadding-right:40px確保済みで、
+	   insetを縮める方向の変更のため重なりは発生しない。npm run shotの拡大クロップ
+	   (--clip .damage-column --scale 4)で技名/ヒット数入力との重なりが無いことを
+	   ライト/ダーク両テーマで実測確認済み)。 */
 	#opponent-notes-section .damage-column-remove-button {
 		position: absolute;
-		top: var(--space-2);
-		right: var(--space-2);
+		top: 2px;
+		right: 2px;
 		z-index: 2;
-		background: var(--color-surface);
-		border: 1px solid var(--color-border);
+		background: transparent;
+		border: none;
+		box-shadow: none;
 		transition: background 0.15s, color 0.15s, border-color 0.15s;
 	}
 	#opponent-notes-section .damage-column-remove-button:hover:not(:disabled) {
@@ -2247,11 +2264,24 @@ const { pokemonId } = Astro.props;
 	}
 	/* ラウンド25ユーザー指示(25-R2)「未選択時のplaceholderにする」。ラウンド24(24-L3)の
 	   テラスなしと同じ視覚言語(破線枠+透明背景+muted文字色)を、状態異常「なし」選択中
-	   にも適用する(<script>のupdateAilmentPlaceholderState参照)。 */
+	   にも適用していたが、🔴 UI改善ラウンド48ユーザー指示(48-A-6a)「右サイドの状態異常の
+	   入力欄も破線ではなく実線にする」により破線枠+透明背景は撤去し、基底の
+	   .damage-detail-ailment-select(solid border・--color-surface-alt背景)へ戻す。
+	   セレクタ自体はJS側(updateAilmentPlaceholderState)が引き続き
+	   is-ailment-unselectedクラスをトグルするため削除しない。muted文字色は
+	   「なし」プレースホルダーであることを示す手掛かりとして維持する(コントラスト実測
+	   済み、下記コメント参照)。 */
 	#damage-detail-panel-body .damage-detail-ailment-select.is-ailment-unselected {
-		border-style: dashed;
-		background: transparent;
 		color: var(--color-text-muted);
+	}
+	/* UI改善ラウンド48ユーザー指示(48-A-6b)「状態異常が入力されているときはハイライト表示する」。
+	   同じ右パネル内で確立済みの「値が非既定のとき強調する」パターン
+	   (.damage-detail-rank-field input.is-nonzero、上記2208行目)と同じ語彙(--color-primary)
+	   を流用し、新色は作らない。 */
+	#damage-detail-panel-body .damage-detail-ailment-select:not(.is-ailment-unselected) {
+		font-weight: 700;
+		color: var(--color-primary);
+		border-color: var(--color-primary);
 	}
 	/* ラウンド20ユーザー指示(20-R3): 揮発状態(volatile)。天候/フィールドの
 	   .damage-detail-field-rowと同じ「ラベル上・コントロール下」の縦積み構成にする
