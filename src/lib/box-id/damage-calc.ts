@@ -930,12 +930,27 @@ if (opponentNotesSection) {
 	// 2分割構造にする。
 	// severity(背景色・左罫線の色)は引き続き.severity-bar[data-severity]が
 	// 要素全体に適用するため、ここでは中身のDOM構造だけを変える。
+	// UI改善ラウンド42ユーザー指示(42-D3)「計算結果が10発以上のときは確定数表記をせず、
+	// ダメージ量のみ表示する」。describeStandaloneLethal/describeSeriesVerdictが
+	// 10発当てても確殺に至らないケースで返すラベルは`${MAX_STANDALONE_ATTACKS}発以上`
+	// (="10発以上")の1種類だけ(上のMAX_STANDALONE_ATTACKS定義・両関数参照)。この値と
+	// 一致するときだけverdictSpan(太字の確定数ラベル)自体を生成・appendしない
+	// (detailSpanのみ残す)。呼び出し元(renderColumnDisplays=個別技カード側/
+	// renderTotalDisplay=累計結果側、いずれもこの関数を経由する)を区別する必要はなく、
+	// この1関数を直せば両方に適用される。
+	// severity(背景色。.severity-bar[data-severity]、確3以降と同じsafe=薄青系
+	// (41-D4)のまま)は据え置く判断にした(round-42.md「見た目上違和感が強ければ
+	// safeのままとする」という実装者判断に委ねられた項目。色付きの帯にダメージ量だけが
+	// 載る見た目を実機で確認し、違和感が無かったため変更しない)。
+	const TEN_OR_MORE_LABEL = `${MAX_STANDALONE_ATTACKS}発以上`;
 	function setResultVerdict(el: HTMLElement, detailText: string, label: string): void {
 		el.innerHTML = "";
-		const verdictSpan = document.createElement("span");
-		verdictSpan.className = "damage-result-verdict";
-		verdictSpan.textContent = label;
-		el.appendChild(verdictSpan);
+		if (label !== TEN_OR_MORE_LABEL) {
+			const verdictSpan = document.createElement("span");
+			verdictSpan.className = "damage-result-verdict";
+			verdictSpan.textContent = label;
+			el.appendChild(verdictSpan);
+		}
 		if (detailText !== "") {
 			const detailSpan = document.createElement("span");
 			detailSpan.className = "damage-result-detail";
@@ -1659,13 +1674,17 @@ if (opponentNotesSection) {
 			hitRow.hidden = true; // マスタデータの読み込み完了まではひとまず隠しておく
 			void refreshHitCountVisibility({ silent: true });
 
+			// UI改善ラウンド43ユーザー指示(43-D6)「技カードの削除ボタンを技カード右上に固定」。
+			// 以前は[技名][×]を技名行(moveRow)にまとめてインライン配置していた(ラウンド3 B-2)が、
+			// カード全体の削除ボタン(.damage-row-delete-button、position:absolute; top; right)と
+			// 同じ考え方で、この技カード(col、.damage-column)自身を基準に右上へ絶対配置する。
+			// moveRowへは追加せず、col直下へ直接appendする(CSSはDamageCalcSection.astroの
+			// .damage-column-remove-button参照。.damage-columnにposition:relativeを追加済み)。
+			col.classList.toggle("has-remove-button", row.attacks.length > 1);
 			if (row.attacks.length > 1) {
-				// ラウンド3 B-2: [技名][×]を1行にまとめる(以前はconditions側にあり、
-				// 技名直下の中空に取り残されていた)。ラウンド6で⚙は廃止した
-				// (技列自体のクリックがこの技の設定を開くトリガーになったため)。
 				const removeBtn = document.createElement("button");
 				removeBtn.type = "button";
-				removeBtn.className = "btn-ghost damage-column-remove-button";
+				removeBtn.className = "btn-ghost damage-row-icon-button damage-column-remove-button";
 				removeBtn.textContent = "×";
 				removeBtn.title = "この技カードを削除";
 				removeBtn.addEventListener("click", () => {
@@ -1674,7 +1693,7 @@ if (opponentNotesSection) {
 					scheduleRowCalc(row);
 					scheduleRowSave(row);
 				});
-				moveRow.appendChild(removeBtn);
+				col.appendChild(removeBtn);
 			}
 
 			// 最下段(区切り線の下)に「技ごとのダメ・致死率」。margin-top:autoで
@@ -2108,28 +2127,69 @@ if (opponentNotesSection) {
 		collapsedNameEl.className = "damage-row-collapsed-name";
 		const collapsedDirectionEl = document.createElement("span");
 		collapsedDirectionEl.className = "damage-row-collapsed-direction";
-		// UI改善ラウンド38ユーザー指示(38-D6)「折りたたみ状態の情報量を増やす」。折りたたみ後の
-		// 高さ上限(ラウンド36実測の.damage-sprite-box基準・約102.75px、下のCSS
-		// .card-damage[data-collapsed="true"] .damage-sprite-box参照)を超えないよう、
-		// 名前・攻守に加えて1行だけ追加する。使用技名(row.attacks、覚え技全体ではなくこの
-		// カードで実際に入力されている技)を「/」区切りで列挙し、テラスタルが設定されている
-		// ときだけ「・テラス:〜」を追記する(未設定=既定値なので省略し行の圧迫を避ける)。
-		// 1行に収まらない分はCSSのtext-overflow:ellipsisで省略し、title属性に全文を残す
-		// (collapsedNameEl.max-width:14emと同じ考え方)。
-		const collapsedMovesEl = document.createElement("span");
-		collapsedMovesEl.className = "damage-row-collapsed-moves";
-		collapsedSummary.append(collapsedNameEl, collapsedDirectionEl, collapsedMovesEl);
+		// 🔴 UI改善ラウンド42ユーザー指示(42-D4、38-D6を撤回): 使用技名を「/」区切りで
+		// 列挙していた旧collapsedMovesEl(.damage-row-collapsed-moves)は削除した。
+		// round-42.mdの総評「圧縮前後で情報の欠落が大きい」を受け、使用技はヒット数・
+		// 詳細設定込みで右側の新設3段表示(refreshCollapsedTechniques、下方参照)へ
+		// 表示場所を移す。この左側summaryには代わりに、42-D4が要件とする「H/A/B/C/D/Sの
+		// 実数値のみ」の行(collapsedStatsEl)を追加する(種族値・努力値・スライダーは
+		// 出さない。展開時の.damage-ev-gridをまるごと出す旧方式とは別に、実数値だけの
+		// コンパクトな新規表示にする)。テラスタイプは既存のtypeBadge(spriteBoxに重ねる
+		// アイコン、42-D4「アイテム・テラスタルはアイコンのみ」の対象)で既に見えているため
+		// テキストでは重複表示しない。特性名はこのラウンドの指示に明記が無いため、
+		// 実装者判断で表示しない(下のCSSコメント・報告に理由を記載)。
+		// 実測(round-42.md検証時、フィクスチャc8680844-...のカイリュー行)で判明: 6項目を
+		// flex-wrapの1コンテナに任せると、build幅340px(スプライト80px分を引いた残り
+		// 約234px)ぎりぎりのところで「S116だけ2行目に孤立して折り返る」ような不揃いな
+		// 折り返りが起き、カード同士の高さが行によって102.75px/116.06pxとばらつく事故が
+		// 実測で見つかった(3桁の実数値が並ぶと数px単位でギリギリ)。「1行(または2行)」の
+		// うち2行を確定で採用し、H/A/B(1行目)・C/D/S(2行目)に固定で分けることで、
+		// 実数値の桁数によらず常に2行・高さが揃うようにする。
+		const collapsedStatsEl = document.createElement("div");
+		collapsedStatsEl.className = "damage-row-collapsed-stats";
+		const collapsedStatValueEls: Partial<Record<StatKey, HTMLElement>> = {};
+		const statRow1 = document.createElement("div");
+		statRow1.className = "damage-row-collapsed-stats-line";
+		const statRow2 = document.createElement("div");
+		statRow2.className = "damage-row-collapsed-stats-line";
+		STAT_KEYS.forEach((key, i) => {
+			const statSpan = document.createElement("span");
+			statSpan.className = "damage-row-collapsed-stat";
+			const keyEl = document.createElement("span");
+			keyEl.className = "damage-row-collapsed-stat-key";
+			keyEl.textContent = STAT_KANJI[key];
+			const valueEl = document.createElement("span");
+			valueEl.className = "damage-row-collapsed-stat-value tnum";
+			valueEl.textContent = "-";
+			statSpan.append(keyEl, valueEl);
+			(i < 3 ? statRow1 : statRow2).appendChild(statSpan);
+			collapsedStatValueEls[key] = valueEl;
+		});
+		collapsedStatsEl.append(statRow1, statRow2);
+		collapsedSummary.append(collapsedNameEl, collapsedDirectionEl, collapsedStatsEl);
 		buildMain.appendChild(collapsedSummary);
 		function refreshCollapsedSummary(): void {
 			collapsedNameEl.textContent = row.name.trim() || "(名前未設定)";
 			const selfAttacks = row.direction !== "defense";
 			collapsedDirectionEl.textContent = selfAttacks ? "攻撃" : "防御";
 			collapsedDirectionEl.dataset.role = selfAttacks ? "attack" : "defense";
-			const moveNames = row.attacks.map((a) => a.moveName.trim()).filter((name) => name !== "");
-			const movesText = moveNames.length > 0 ? moveNames.join("/") : "(技未設定)";
-			const teraSuffix = row.teraType.trim() !== "" ? ` ・テラス:${row.teraType.trim()}` : "";
-			collapsedMovesEl.textContent = `${movesText}${teraSuffix}`;
-			collapsedMovesEl.title = `${movesText}${teraSuffix}`;
+		}
+		// 42-D4: H/A/B/C/D/Sの実数値だけをこの折りたたみ用の行へ複製する。実数値の算出
+		// ロジック自体(性格補正込み)は展開時の.damage-ev-grid(row.statValueEls)を
+		// recalcRowStatsOnly()が最新化しており、この関数はその結果(表示済みのtextContent/
+		// data-mod)をそのまま読み写すだけ(計算式を二重に持たない)。折りたたみ中は
+		// 入力欄が隠れて編集不可なため(36-1の既存方針)、この読み写しはsetCollapsed()の
+		// タイミングだけで行えば値がずれることはない(下のsetCollapsed参照)。
+		function refreshCollapsedStats(): void {
+			for (const key of STAT_KEYS) {
+				const target = collapsedStatValueEls[key];
+				const source = row.statValueEls[key];
+				if (!target) continue;
+				target.textContent = source?.textContent ?? "-";
+				const mod = source?.dataset.mod;
+				if (mod) target.dataset.mod = mod;
+				else delete target.dataset.mod;
+			}
 		}
 
 		const nameInput = document.createElement("input");
@@ -2209,7 +2269,19 @@ if (opponentNotesSection) {
 		// 右向きの>>2つ)で固定し、90度の回転方向だけをCSS側([aria-expanded]、下の
 		// .damage-row-collapse-toggle-button参照)で状態ごとに切り替える(回転後は
 		// 展開中=上向き"^^"、折りたたみ中=下向き"vv"に見える)。枠(border)はCSS側で除去する。
-		collapseToggleButton.textContent = "»";
+		// 🔴 UI改善ラウンド43ユーザー指示(43-D5)「丸枠の中心と記号の中心を一致させる」対応:
+		// 以前はボタン自身(textContent="»")にtransform(rotate)を掛けていたが、ボタン自身に
+		// transformを掛けると円形の背景(border-radius:50%の丸枠)も一緒に動く/回転する
+		// (円は回転しても見た目が変わらないため回転自体は無害だったが、中心を補正する
+		// translateYを足すと、円と文字が一緒にずれるだけで「円の中の文字の位置」は
+		// 一切変わらないことが実測で判明した)。円(ボタン自身の背景)を動かさずに文字だけを
+		// 補正するため、glyph用の<span>を新設し、rotate/translateYはこのspanにだけ適用する
+		// (CSSはDamageCalcSection.astroの.damage-row-collapse-toggle-glyph参照)。
+		const collapseToggleGlyph = document.createElement("span");
+		collapseToggleGlyph.className = "damage-row-collapse-toggle-glyph";
+		collapseToggleGlyph.textContent = "»";
+		collapseToggleGlyph.setAttribute("aria-hidden", "true");
+		collapseToggleButton.appendChild(collapseToggleGlyph);
 		function setCollapsed(collapsed: boolean): void {
 			if (collapsed) collapsedRowSet.add(row);
 			else collapsedRowSet.delete(row);
@@ -2221,6 +2293,17 @@ if (opponentNotesSection) {
 			);
 			collapseToggleButton.setAttribute("aria-expanded", String(!collapsed));
 			refreshCollapsedSummary();
+			// 🔴 UI改善ラウンド42ユーザー指示(42-D4/42-D5): 折りたたみ時にだけ見える
+			// 実数値行(refreshCollapsedStats)・技列3段表示(refreshCollapsedTechniques)も
+			// このタイミングで最新化する。両関数とも、参照するDOM要素(collapsedStatsEl配下・
+			// collapsedTechniques配下)はrenderRowの後半(techniquesRow組み立て時)で
+			// constされるため、この関数自体は先に定義されていても、実際に呼ばれる
+			// (=setCollapsed()が呼ばれる)のはrenderRow全体の構築が完了した後(下方の
+			// 初回setCollapsed(false)呼び出し、またはユーザーのクリック)に限られる限り
+			// 問題ない(関数宣言のホイストと、それが参照するconst変数の初期化完了は別物
+			// なので、初回呼び出し位置をrenderRowの末尾に置いている。下方参照)。
+			refreshCollapsedStats();
+			refreshCollapsedTechniques();
 			// 🔴 38-H1: 個別行の折りたたみ切り替え(このボタン自身のクリックでも、
 			// ヘッダーの単一トグルボタンからのsetAllRowsCollapsed()経由でも)のたびに、
 			// ヘッダーボタンのラベルを最新の「全部畳まれているか」判定で更新する。
@@ -2231,7 +2314,14 @@ if (opponentNotesSection) {
 		// row参照をキーにしたWeakMapへ登録する(DamageRowState自体にコールバック用フィールドを
 		// 増やさないための実装手段。上のimport元のshared-core.tsは編集対象外ファイルのため)。
 		rowCollapseHandles.set(row, { setCollapsed });
-		setCollapsed(false); // 初期状態は展開(ページ再読み込みでは既定に戻ってよい、という要件どおり)
+		// 🔴 UI改善ラウンド42ユーザー指示(42-D4/42-D5)対応: 初回のsetCollapsed(false)呼び出しは
+		// renderRow末尾(techniquesRow/collapsedTechniques・totalBlock等すべてのconst構築が
+		// 完了した後、下方のrefreshSprite()等の初期描画呼び出しの並びに移設した。旧実装は
+		// ここ(buildLeft/ev-grid/techniques-rowを組み立てるより前)で即座に呼んでいたが、
+		// setCollapsed()がrefreshCollapsedTechniques()(collapsedMoveListEl/
+		// collapsedDetailLineEl等、techniquesRow組み立て時に初めてconstされる変数を参照する)を
+		// 呼ぶようになったため、ここで即座に呼ぶとTDZ(初期化前のconst参照)でエラーになる。
+		// 呼び出しタイミングを移すだけで、「初期状態は展開」という結果自体は変わらない。
 
 		// 攻守切り替え。「攻撃」「防御」どちらを押しても、押した側の値になる
 		// (同じ側を押しても意味は変わらないが、setDirectionは冪等なので害はない)。
@@ -2549,6 +2639,72 @@ if (opponentNotesSection) {
 		techniquesRow.appendChild(addColumnSlot);
 		row.addColumnSlotEl = addColumnSlot;
 		renderColumns(row);
+
+		// 🔴 UI改善ラウンド42ユーザー指示(42-D5)「ダメージカードは3段表示。1段目は技名、
+		// 2段目に詳細設定、3段目に累計の結果」。折りたたみ時の技列側(旧・「/」区切り
+		// 1行、collapsedMovesEl)を作り直す。1段目(collapsedMoveListEl)・2段目
+		// (collapsedDetailLineEl)をこのブロックで新設し、3段目は既存のtotalBlock
+		// (.damage-row-total、下でappendする)をそのまま流用する(クラス名・要素とも
+		// 変更しない。壊してはいけないクラス名、pitfalls.md参照)。
+		const collapsedTechniques = document.createElement("div");
+		collapsedTechniques.className = "damage-row-collapsed-techniques";
+		const collapsedMoveListEl = document.createElement("p");
+		collapsedMoveListEl.className = "damage-row-collapsed-move-list";
+		const collapsedDetailLineEl = document.createElement("p");
+		collapsedDetailLineEl.className = "damage-row-collapsed-detail-line";
+		collapsedTechniques.append(collapsedMoveListEl, collapsedDetailLineEl);
+		techniquesRow.appendChild(collapsedTechniques);
+		// 折りたたみ中は技列の入力欄(.damage-row-columns-wrap)が隠れて編集不可になる
+		// (36-1の既存方針)ため、row.attacksはsetCollapsed()呼び出し時点で確定した値に
+		// なっている。展開中の編集のたびに追随させる必要は無く、setCollapsed()の
+		// タイミングだけで読み直せば表示がずれることはない(refreshCollapsedStatsと
+		// 同じ考え方)。
+		function refreshCollapsedTechniques(): void {
+			// 1段目: 技名(+複数回ヒットする技には"(N発)"を付記。round-42.mdの例
+			// 「スケイルショット(5発) + フレアドライブ」どおり、hitCount===1のときは
+			// 付記しない)。技名が空の列(技が無い列)は列挙から除く。
+			const namedAttacks = row.attacks.filter((a) => a.moveName.trim() !== "");
+			if (namedAttacks.length === 0) {
+				collapsedMoveListEl.textContent = "(技未設定)";
+				collapsedMoveListEl.title = "";
+			} else {
+				const movesText = namedAttacks
+					.map((a) => {
+						const name = a.moveName.trim();
+						return a.hitCount > 1 ? `${name}(${a.hitCount}発)` : name;
+					})
+					.join(" + ");
+				collapsedMoveListEl.textContent = movesText;
+				collapsedMoveListEl.title = movesText;
+			}
+			// 2段目: 詳細設定。既存のcollectConditionChips()(技列側の条件チップ、
+			// .damage-row-condition-chipsと同じ判定ロジック)を技列ごとに呼び、右パネル・
+			// 技列チップと同じ語彙(攻撃側どく/防御側テラス/急所/かべ等)で列挙する。
+			// 技列が複数あり、かつ条件が付いている列が複数あるときだけ列番号
+			// (.damage-column-order-labelと同じ1始まりの番号)を先頭に付けて区別する
+			// (単一技列、または条件が1列にしか付いていない場合は番号を付けない=
+			// 冗長な"1: "を出さない)。
+			const chipGroups: { index: number; chips: string[] }[] = [];
+			row.attacks.forEach((a, i) => {
+				if (a.moveName.trim() === "") return;
+				const chips = collectConditionChips(a);
+				if (chips.length > 0) chipGroups.push({ index: i + 1, chips });
+			});
+			if (chipGroups.length === 0) {
+				collapsedDetailLineEl.hidden = true;
+				collapsedDetailLineEl.textContent = "";
+				collapsedDetailLineEl.title = "";
+			} else {
+				const showIndex = namedAttacks.length > 1 && chipGroups.length > 0;
+				const detailText = chipGroups
+					.map((g) => (showIndex ? `${g.index}: ${g.chips.join("・")}` : g.chips.join("・")))
+					.join(" ｜ ");
+				collapsedDetailLineEl.hidden = false;
+				collapsedDetailLineEl.textContent = detailText;
+				collapsedDetailLineEl.title = detailText;
+			}
+		}
+
 		// 24-D1(訂正後): totalBlockはbuildElでもrootでもなく、techniquesRow
 		// (columnsWrap・addColumnSlotの後)の子にする。これにより技列カラムの下端に
 		// 収まる1行になり、相手ビルドの箱(左側)には掛からない。
@@ -2586,6 +2742,11 @@ if (opponentNotesSection) {
 		refreshDirectionUi();
 		renderColumnDisplays(row); // 保存済みclientResultをまず即座に表示する
 		void recalcRow(row); // エンジン初期化済みなら実数値・ダメージを再計算して上書きする
+		// UI改善ラウンド36ユーザー指示(36-1)「初期状態は展開」。🔴 UI改善ラウンド42
+		// ユーザー指示(42-D4/42-D5)対応でこの呼び出し位置をrenderRow冒頭付近から
+		// ここ(techniquesRow/collapsedTechniques・totalBlock等すべての構築完了後)へ
+		// 移した(上のsetCollapsed定義の直後にあったコメント参照。TDZ回避のため)。
+		setCollapsed(false);
 
 		// ラウンド5ユーザー指示(要件9)・ラウンド6ユーザー指示(要件1・2)・
 		// ラウンド7ユーザー指示(方針転換): ⚙ボタンは廃止したままだが、「相手ビルドの
@@ -2634,11 +2795,31 @@ if (opponentNotesSection) {
 	// ホイストされ、かつ実際に呼ばれるのは行の初期化時=この行の実行より後になるため問題ない
 	// 既存のregisterDamageCalcBridge等と同じ考え方)。
 	const damageCollapseToggleButtonEl = el<HTMLButtonElement>("damage-collapse-toggle-button");
+	// UI改善ラウンド43ユーザー指示(43-H1)「すべて折りたたむ・すべて展開ボタンにも>>記号を
+	// 追加(左端)」。box/[id].astro側の静的マークアップを
+	// <span class="damage-collapse-toggle-chevron">»</span><span class="damage-collapse-toggle-label">
+	// の2要素構成にしたため(<Fragment slot="topbar-actions">参照)、ここではlabelSpan側の
+	// textContentだけを差し替える(textContent全体を上書きするとchevronSpanごと消えてしまうため)。
+	// 個別カードの折りたたみボタン(.damage-row-collapse-toggle-button)と同じ回転ロジックを
+	// 流用する: このボタン自身にaria-expandedを立て、CSS側(DamageCalcSection.astro、
+	// #damage-collapse-toggle-button .damage-collapse-toggle-chevron)がその属性値で
+	// chevronSpanだけを回転させる(ボタン本体やlabelSpanは回転しない)。
+	// 「現在すべて折りたたまれていない(=少なくとも1枚は展開中)」を"expanded"寄りの状態とみなし、
+	// 個別ボタンの「展開中=aria-expanded="true"で上向き」と同じ向きの対応にする。
+	const damageCollapseToggleLabelEl = damageCollapseToggleButtonEl.querySelector<HTMLElement>(
+		".damage-collapse-toggle-label",
+	);
 	function updateCollapseToggleButtonLabel(): void {
 		damageCollapseToggleButtonEl.disabled = rows.length === 0;
 		const allCollapsed = rows.length > 0 && rows.every((r) => collapsedRowSet.has(r));
 		const label = allCollapsed ? "すべて展開する" : "すべて折りたたむ";
-		damageCollapseToggleButtonEl.textContent = label;
+		if (damageCollapseToggleLabelEl) {
+			damageCollapseToggleLabelEl.textContent = label;
+		} else {
+			// 万一マークアップがこの構成でない場合のフォールバック(従来どおりボタン全体に文言を出す)。
+			damageCollapseToggleButtonEl.textContent = label;
+		}
+		damageCollapseToggleButtonEl.setAttribute("aria-expanded", allCollapsed ? "false" : "true");
 		const describedLabel = `${label}(ダメージ計算カード全件)`;
 		damageCollapseToggleButtonEl.setAttribute("aria-label", describedLabel);
 		damageCollapseToggleButtonEl.title = describedLabel;
@@ -2679,18 +2860,18 @@ if (opponentNotesSection) {
 	function buildEmptyState(): HTMLElement {
 		const wrap = document.createElement("div");
 		wrap.className = "damage-empty-state";
-		const title = document.createElement("p");
-		title.className = "damage-empty-state-title";
-		title.textContent = "まだダメージ計算がありません";
-		const hint = document.createElement("p");
-		hint.className = "damage-empty-state-hint";
-		hint.textContent = "相手ポケモンを登録すると、被弾/与ダメージの乱数・確定数を自動で計算します。";
+		// UI改善ラウンド42ユーザー指示(42-D1)「"相手ポケモンを登録すると、被弾/与ダメージの
+		// 乱数・確定数を自動で計算します。"削除」により、ヒント文(旧hint要素、
+		// .damage-empty-state-hint)の生成・appendを既に削除済み。
+		// UI改善ラウンド43ユーザー指示(43-D1)「"まだダメージ計算がありません"削除」により、
+		// 見出し(旧title要素、.damage-empty-state-title)の生成・appendも削除する。
+		// これで空状態はCTAボタン(cta)だけになる。
 		const cta = document.createElement("button");
 		cta.type = "button";
 		cta.className = "btn-primary damage-empty-state-cta";
 		cta.textContent = "+ ダメージ計算を追加";
 		cta.addEventListener("click", addNewRowAndFocus);
-		wrap.append(title, hint, cta);
+		wrap.append(cta);
 		return wrap;
 	}
 

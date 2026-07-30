@@ -502,8 +502,20 @@ const user = Astro.locals.user;
 			   詰める=見た目には左に寄る)へそれぞれ縮小した。gapを1.6px縮めた分、39-B1が
 			   合わせたテラス画像の底辺位置(ポケモン画像の底辺と一致、実測diff 0.04375px)が
 			   上へずれてしまうため、topを縮小分だけ+1.6pxして48.96875px→50.56875pxに補正し、
-			   底辺の一致を維持する(実測diffは報告参照)。 */
-			top: 50.56875px;
+			   底辺の一致を維持する(実測diffは報告参照)。
+			   41-B1(ユーザー指示第23弾、round-41.md): 上記の固定px(1920px・特定カードの実測基準)は
+			   .card-artが縮む条件で底辺がずれる懸念があった。実機実測(Playwright、複数幅)の結果、
+			   1920px〜900px・500px以下(モバイル配色)では.card-artはmin(56%,113px)の113px上限で
+			   頭打ちのため実害なしだったが、481px(480pxブレークポイント直前、デスクトップ側の
+			   バッジ寸法36px/24pxのままcard-artだけ108.90625pxまで縮む区間)でテラスバッジ底辺が
+			   スプライト底辺より+3.25px下にずれる(見切れる)ことを実測で確認した。
+			   .card-badge-rowの位置基準(offsetParent)は.card-art自身(position:relativeを持つ)
+			   であり、.card-sprite-imgはwidth/height:100%でart全体を占めるため、art自身の高さに
+			   対する相対値(%)で置けば.card-artがどの幅に縮んでも底辺が自動的に一致する。
+			   top: calc(100% - <バッジ列自身の高さ>) にすることで、バッジ列の底辺が常にart
+			   (=スプライト)の底辺と一致する(固定pxの再calibrationが不要になる)。
+			   バッジ列自身の高さ = itemBadge(36px) + gap(0.1rem) + teraBadge(24px)。 */
+			top: calc(100% - 36px - 0.1rem - 24px);
 			margin-left: 0.15rem;
 			display: flex;
 			flex-direction: column;
@@ -758,48 +770,36 @@ const user = Astro.locals.user;
 			display: none;
 		}
 
-		/* --- 特性+持ち物(優先順位4位。名前行と技グリッドの間のテキスト行)。
-		   ラウンド27 27-B1で新設したときは「アイコン+アイテム名」の中央寄せ1行だったが、
-		   ラウンド32 32-B3(ユーザー指示第15弾、round-32.md): 「特性をアイテムの左側に表示」。
-		   アイコンは32-B2で.card-badge-row側へ移したため、この行は
-		   [特性名(.card-ability-name)]-[持ち物名(.card-item-name)]のテキスト2列・左右振り分けに
-		   作り直す。特性・持ち物のどちらか一方だけの個体(42ccb527=特性あり・持ち物なし)でも
-		   flexが自然に片方だけ空文字のまま(何も表示しない)になり、列自体は崩れない。 */
+		/* --- 特性(優先順位4位。名前行と技グリッドの間のテキスト行)。
+		   ラウンド27 27-B1で新設したときは「アイコン+アイテム名」の中央寄せ1行、
+		   ラウンド32 32-B3で[特性名]-[持ち物名]の2列左右振り分けに作り直していたが、
+		   ラウンド43 43-B1(ユーザー指示第23弾、round-43.md): 「アイテムのアイコンは
+		   .card-badge-row側に既にあるため、この行のアイテム名テキストは二重表示。
+		   アイテム名テキストを削除し、特性名を行全体の中央に配置する」。
+		   .card-item-name要素の生成・appendをJS側で削除し、この行は特性名1つだけになった。 */
 		.box-grid .card-pokemon .card-item-row {
 			display: flex;
 			align-items: center;
-			justify-content: space-between;
-			gap: 0.4rem;
+			justify-content: center;
 			width: 100%;
 			margin-top: 0.1rem;
 			min-height: calc(1.2 * 0.75rem);
 		}
-		/* 特性名・持ち物名: 名前(card-name)・技チップ(card-move-chip)と同様に1行で省略する
+		/* 特性名: 名前(card-name)・技チップ(card-move-chip)と同様に1行で省略する
 		   (折り返さない)。20-G3の12px下限ちょうど(0.75rem)にし、名前ほど主張しない
-		   「補助情報」の階層に置く(旧.card-item-nameの文字設計を踏襲)。左右の列が互いの
-		   領域を侵さないよう flex:1 1 0 + min-width:0 で幅を等分し、それぞれの中で省略する。 */
-		.box-grid .card-pokemon .card-ability-name,
-		.box-grid .card-pokemon .card-item-name {
+		   「補助情報」の階層に置く。43-B1で持ち物名との2列振り分けをやめ、行全体の幅
+		   いっぱいに1列だけになったため width:100% + text-align:center で中央揃えにする。 */
+		.box-grid .card-pokemon .card-ability-name {
 			font-size: 0.75rem;
 			line-height: 1.2;
 			font-weight: 600;
 			color: var(--color-text-muted);
-			flex: 1 1 0;
-			min-width: 0;
+			width: 100%;
+			text-align: center;
 			white-space: nowrap;
 			overflow: hidden;
 			text-overflow: ellipsis;
 		}
-		/* 34-B4/34-B5(ユーザー指示第16弾、round-34.md): 「特性名は右寄せ・アイテム名は左寄せ
-		   にして、中央に寄るように配置する」。32-B3で外側に開く配置(特性=左寄せ・
-		   アイテム=右寄せ)にしていたが、今回はその逆(内側=行の中央の隙間に寄る配置)へ
-		   入れ替える。
-		   35-B2(ユーザー指示第17弾、round-35.md)により中央揃えに変更: 「特性は左半分・
-		   アイテムは右半分の領域でそれぞれ中央揃え」。.card-ability-name/.card-item-name は
-		   既にそれぞれ左右の列に flex:1 1 0 で分かれているため、text-align:center だけで
-		   各半分の中央に来る(34-B5の右寄せ/左寄せは撤回、方向性=「中央に寄せる」は継続)。 */
-		.box-grid .card-pokemon .card-ability-name { text-align: center; }
-		.box-grid .card-pokemon .card-item-name { text-align: center; }
 
 		/* 実数値6値: 「列見出し(H/A/B/C/D/S)+実数値」の2段×6列グリッド。
 		   努力値は表示せず(優先順位に含まれないため200px正方形の予算から外した)、
@@ -900,9 +900,24 @@ const user = Astro.locals.user;
 			min-height: calc(2 * (1.2 * 0.75rem + 0.16rem) + 0.05rem);
 		}
 		/* ラウンド20 G3: 0.64em(≈10.2px)は違反だったため、emの入れ子を避けてrem基準の
-		   0.75rem(=12px)へ引き上げる。 */
+		   0.75rem(=12px)へ引き上げる。
+		   ラウンド42 42-B2(ユーザー指示): 「マジカルシャイン」等の長い技名がellipsis省略される
+		   問題に対し、技名の文字サイズを下げて対応する。0.75rem(12px)は00-foundation.mdおよび
+		   20-G3で確立された「フォントサイズの下限」だが、今回はユーザーが明示的にこのチップの
+		   文字サイズを下げるよう指示しているため、この1箇所に限定した例外として12px未満に
+		   下げる(ラウンド32-R1のアイコンサイズ例外と同種の扱い)。
+		   実測(public/master-data/autocomplete/moves.json、716技): 技名の文字数分布は
+		   2文字1件・3文字28件・4文字106件・5文字127件・6文字134件・7文字248件・8文字72件で、
+		   最長は8文字(「マジカルシャイン」を含む)。チップの実効幅(padding 0.35rem×2を除いた
+		   内側幅)は実測86.8px(カード幅218.3px、2列グリッドの1セル=クライアント幅98px)。
+		   8文字技名72件をすべて実測した結果、12pxでのワーストケースは「アストラルビット」等
+		   (96px、86.8pxを9.2pxオーバー)で、「マジカルシャイン」も同じ96px。
+		   font-sizeを段階的に下げてワーストケースの幅を再計測すると、10.5px(84px)から
+		   86.8pxに収まり始め、10px(=0.625rem)では80pxとなり6.8pxの余裕を持って収まる。
+		   rem値のきりの良さと安全マージンを優先し0.625rem(10px)を採用した(実機の
+		   getBoundingClientRect()でoverflow無しを確認済み、詳細は報告参照)。 */
 		.box-grid .card-pokemon .card-move-chip {
-			font-size: 0.75rem;
+			font-size: 0.625rem;
 			line-height: 1.2;
 			font-weight: 600;
 			text-align: center;
@@ -999,6 +1014,11 @@ const user = Astro.locals.user;
 			.box-grid .card-pokemon .card-badge-row {
 				gap: 0.08rem;
 				margin-left: 0;
+				/* 41-B1(round-41.md): この幅ではitem/tera badgeが16px/16px・gap 0.08remに
+				   縮小されるため、バッジ列自身の高さも基本定義(60px+0.1rem)と異なる
+				   (16px+0.08rem+16px)。上の基本定義と同じ「calc(100% - バッジ列自身の高さ)」を
+				   この幅の実値で計算し直す。 */
+				top: calc(100% - 16px - 0.08rem - 16px);
 			}
 		}
 	</style>
@@ -1009,7 +1029,9 @@ const user = Astro.locals.user;
 				<Fragment>
 					<div class="panel panel-top panel-toolbar" id="box-toolbar">
 						<div class="toolbar-item toolbar-search">
-							<label class="field-label" for="search-input">検索</label>
+							{/* ラウンド42 42-B1(ユーザー指示)により可視の「検索」ラベルを削除。
+							    このプロジェクトで確立済みの「ラベル要素を廃止しplaceholder+aria-labelに
+							    統一」パターンに合わせ、アクセシビリティ上のラベルはaria-labelで維持する。 */}
 							<div class="search-input-wrap">
 								<svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 									<circle cx="11" cy="11" r="7" />
@@ -1020,6 +1042,7 @@ const user = Astro.locals.user;
 									type="search"
 									class="field-control"
 									placeholder="ニックネーム・種族・持ち物・特性・技など"
+									aria-label="検索"
 									autocomplete="off"
 								/>
 							</div>
@@ -1405,15 +1428,18 @@ const user = Astro.locals.user;
 				});
 				// ピン留めは常に上部固定(育成データ管理計画.md §6.1)。
 				// 40-B1(ユーザー指示第22弾、round-40.md): 「更新順」(sort==="updated_at")選択時は
-				// このピン優先の再ソートを外す。お気に入りトグルAPI(togglePin)はPUTが全項目上書き
-				// 契約のため、サーバ側(updateOwnedPokemon)がupdated_atを必ず現在時刻へ更新する
-				// (実測確認済み)。従来はこの無条件ピン優先ソートと相まって、「更新順」表示中に
-				// お気に入りを押すと、トグルした個体だけでなく他個体の見た目上の並び位置まで
-				// ずれて見えた。ピン優先を外すことで「更新順」表示は純粋にupdated_at降順のみになり、
-				// トグルした個体自身が新しいupdated_atで最上部付近へ動くこと(要件で明示的に許容)
-				// 以外、他個体同士の相対順は変わらない(比較関数がa/bの属性だけに依存し第三者の
-				// トグルに影響されないため、数学的にも保証される)。「最終使用順」「ニックネーム順」
-				// では従来どおりピン優先を維持する。
+				// このピン優先の再ソートを外す。当時のお気に入りトグルAPI(togglePin)はPUTが
+				// 全項目上書き契約のため、サーバ側(updateOwnedPokemon)がupdated_atを必ず現在時刻へ
+				// 更新しており、この無条件ピン優先ソートと相まって「更新順」表示中にお気に入りを
+				// 押すと他個体の見た目上の並び位置までずれて見えた。ピン優先を外すことで
+				// 「更新順」表示は純粋にupdated_at降順のみになる。
+				// 41-B2(ユーザー指示第23弾、round-41.md): 40-B1は「トグルした個体自身が新しい
+				// updated_atで動くことは要件で明示的に許容」としていたが、この許容判断を撤回した。
+				// togglePin()を(全項目上書きPUTではなく)is_pinnedだけを更新しupdated_atに
+				// 触れない専用PATCH経路(updatePinStatus)へ切り替えたことで、「更新順」表示中の
+				// トグルはupdated_atを一切変えず、トグルした個体自身を含めどの個体の相対順も
+				// 動かなくなった(比較関数がa/bのupdated_atだけに依存するため、数学的にも保証される)。
+				// 「最終使用順」「ニックネーム順」では従来どおりピン優先を維持する。
 				if (sort !== "updated_at") {
 					sorted.sort((a, b) => Number(b.is_pinned) - Number(a.is_pinned));
 				}
@@ -1539,13 +1565,11 @@ const user = Astro.locals.user;
 				nameEl.textContent = name;
 				body.appendChild(nameEl);
 
-				// --- 優先順位4位: 特性+持ち物(テキスト2列、ラウンド27 27-B1で新設した行を
-				//     ラウンド32 32-B3(ユーザー指示第15弾)で作り直したもの)。
-				//     「特性をアイテムの左側に表示」の指示どおり、.card-item-rowを
-				//     [特性名]-[持ち物名]の2列左右振り分けにする(アイコンは32-B2で
-				//     .card-art側へ移ったため、この行はテキスト2つだけになる)。
-				//     特性・持ち物のどちらか一方だけの個体でも列が崩れないよう、
-				//     もう片方は空文字列のまま(何も表示しない)にする。 ---
+				// --- 優先順位4位: 特性(ラウンド27 27-B1で新設した行をラウンド32 32-B3で
+				//     [特性名]-[持ち物名]の2列左右振り分けに作り直していたが、
+				//     ラウンド43 43-B1(ユーザー指示第23弾)でアイテム名テキストを削除。
+				//     アイテムのアイコン自体は.card-badge-row側に既に表示されているため、
+				//     この行は特性名だけの1列にし、行全体の中央に配置する(CSS側で対応)。 ---
 				const itemRow = document.createElement("div");
 				itemRow.className = "card-item-row";
 
@@ -1553,11 +1577,6 @@ const user = Astro.locals.user;
 				abilityNameEl.className = "card-ability-name";
 				abilityNameEl.textContent = p.ability_name?.trim() ?? "";
 				itemRow.appendChild(abilityNameEl);
-
-				const itemNameEl = document.createElement("span");
-				itemNameEl.className = "card-item-name";
-				itemNameEl.textContent = p.item_name?.trim() ?? "";
-				itemRow.appendChild(itemNameEl);
 
 				body.appendChild(itemRow);
 
@@ -1638,28 +1657,19 @@ const user = Astro.locals.user;
 
 			async function togglePin(p: OwnedPokemon): Promise<void> {
 				try {
+					// 41-B2(ユーザー指示第23弾、round-41.md): 従来はPUT(全項目上書き契約、§6.2)を
+					// 経由していたため、サーバ側(updateOwnedPokemon)が無条件でupdated_atを
+					// 現在時刻へ進めてしまい、「更新順」表示中にお気に入りをトグルするとトグルした
+					// 個体自身の表示順位置まで動いてしまっていた(round-40.mdの40-B1はこれを
+					// 「要件で明示的に許容」としていたが、round-41.mdの41-B2はこの判断を撤回した)。
+					// is_pinnedだけを更新しupdated_atに触れない専用のPATCH経路
+					// (updatePinStatus、src/lib/owned-pokemon.ts)を呼ぶことで、「更新順」表示中の
+					// トグル操作がトグルした個体自身を含めどの個体の位置も動かさないようにする。
 					const res = await fetch(`/api/owned-pokemon/${encodeURIComponent(p.id)}`, {
-						method: "PUT",
+						method: "PATCH",
 						credentials: "same-origin",
 						headers: { "Content-Type": "application/json" },
-						body: JSON.stringify({
-							nickname: p.nickname,
-							species_name: p.species_name,
-							level: p.level,
-							nature: p.nature,
-							ability_name: p.ability_name,
-							item_name: p.item_name,
-							tera_type: p.tera_type,
-							// PUTは全項目上書きの設計(§6.2)のため、evs/ivs/memoを送り忘れると
-							// デフォルト値([0,0,0,0,0,0] / [31,...,31] / null)で消えてしまう。
-							// ピン留めのトグルだけのつもりでも、一覧が保持している最新値をそのまま送り返す。
-							evs: p.evs,
-							ivs: p.ivs,
-							move_names: p.move_names,
-							memo: p.memo,
-							tags: p.tags,
-							is_pinned: !p.is_pinned,
-						}),
+						body: JSON.stringify({ is_pinned: !p.is_pinned }),
 					});
 					if (!res.ok) throw new Error(`ピン留めの更新に失敗しました (status=${res.status})`);
 					const body = (await res.json()) as { data: OwnedPokemon };

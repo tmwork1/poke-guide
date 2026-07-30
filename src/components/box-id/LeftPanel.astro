@@ -179,6 +179,11 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 					    disabledではなくreadonlyにする(disabledはフォーム送信対象から外れ、
 					    見た目も薄くなりすぎるため)。なぜ編集できないかはtitleの注記で伝える
 					    (21-L4の懸念=「なぜ押せないのか分からない」をここで緩和する)。
+					    ラウンド43ユーザー指示(43-L1)「ホバー時にテキスト表示はせず、代わりに
+					    マウスが編集不可マークになるようにする」により上記titleのブラウザ標準
+					    ツールチップ表示は撤回し、title属性自体を削除した(aria-labelはスクリーン
+					    リーダー用に維持)。編集不可であることはcursor: not-allowed(下記CSS)で
+					    視覚的に伝える。
 					    自動決定の仕組み(currentLeftNature()/refreshNatureButtons())は一切
 					    変えない。保存ペイロード(buildPayload)はcurrentLeftNature()から
 					    直接性格名を取っており、この<input>の値は保存に使わない
@@ -191,7 +196,6 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 						readonly
 						tabindex={-1}
 						aria-label="性格(能力値の上下選択から自動的に決まります。ここでは編集できません)"
-						title="能力値のA/B/C/D/Sラベルの▲▼から自動的に決まります。ここでは編集できません。"
 						placeholder="性格"
 					/>
 				</div>
@@ -212,8 +216,48 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		    repeat(2, minmax(0, 1fr))に揃う)。 */}
 		<div class="field-grid field-grid-single">
 			<div class="field">
-				<div class="field-with-image">
-					<input id="item" type="text" list="item-list" autocomplete="off" placeholder="持ち物" aria-label="持ち物" value={pokemon.item_name ?? ""} title={pokemon.item_name ?? ""} />
+				{/* UI改善ラウンド41ユーザー指示(41-L1)「アイテム選択ボックスもテラスタルと同様に、
+				    選択肢をアイコン+テキストで表示」。テラスドロップダウン(#tera-dropdown-*、下記
+				    tera-dropdown-wrap参照)一式を参照実装にする。保存経路(buildPayloadが参照する
+				    #itemの値)は変えない: #item自体(<input type="text">)を実体として残し、
+				    テラスの#tera(隠しselect)と同じくhidden化する(#item-list<datalist>自体は
+				    右パネル等が引き続き使う可能性があるため削除しない)。
+				    テラス(19種)と違いアイテムは候補が数百件規模(#item-listの候補元、
+				    <script>のgetItemOptionNames参照)のため、テラスと同じ全件表示ではなく
+				    開いたときに絞り込み入力(#item-dropdown-search)付きの一覧を作る
+				    (既存の「アイテム名を打って絞り込む」操作性を維持するため)。
+				    アイコン解決はshared-core.tsの共有関数applyItemImage()をコピーせず
+				    そのまま再利用する(<script>のupdateItemDropdownButton/
+				    buildItemDropdownOptions参照)。 */}
+				<div class="field-with-image item-dropdown-wrap">
+					<input id="item" type="text" list="item-list" autocomplete="off" aria-label="持ち物" value={pokemon.item_name ?? ""} title={pokemon.item_name ?? ""} hidden />
+					<button
+						type="button"
+						id="item-dropdown-button"
+						class="item-dropdown-button"
+						aria-haspopup="listbox"
+						aria-expanded="false"
+					>
+						<img id="item-dropdown-image" class="item-dropdown-image" alt="" style="display:none;" />
+						<span id="item-dropdown-placeholder" class="item-dropdown-placeholder">持ち物なし</span>
+					</button>
+					<div id="item-dropdown-panel" class="item-dropdown-panel" hidden>
+						<input
+							type="text"
+							id="item-dropdown-search"
+							class="item-dropdown-search"
+							placeholder="アイテム名で絞り込み"
+							aria-label="持ち物候補を絞り込み"
+							autocomplete="off"
+						/>
+						<ul
+							id="item-dropdown-list"
+							class="item-dropdown-list"
+							role="listbox"
+							aria-label="持ち物を選択"
+						>
+						</ul>
+					</div>
 				</div>
 			</div>
 			<div class="field">
@@ -612,10 +656,35 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	   (アクセシブルネームはaria-labelが優先されるため実害なし)が、視覚的にはfont-size:0で
 	   隠す。#nature-up-{key}/#nature-down-{key}のID・aria-pressed/aria-label/titleは
 	   <script>側が参照しているため一切変更しない。 */
+	/* 🔴 UI改善ラウンド41ユーザー指示(41-L2)「技選択テーブルを最前面に配置。現在は性格補正▲より
+	   後ろにある」により、ラウンド40(40-L3-2)で「対症療法」のまま残っていた根本原因をここで
+	   是正する。実機調査(Playwright、document.elementFromPoint・getComputedStyleの祖先総当たり)
+	   で判明した根本原因: このボタン自身・祖先(.stat-row-label/.stat-row/.stat-table/
+	   .panel-left/#edit-form等)はいずれもposition:static・filter:none(実測済み)だが、
+	   押下時(aria-pressed="true")だけ::beforeにfilter: drop-shadow(...)を適用していた
+	   (旧実装)。この filter がホスト要素(.stat-nature-btn自体)を暗黙にスタッキング
+	   コンテキスト化してしまい(Chromiumの実挙動として実測確認済み: 非押下ボタン<filterなし>
+	   では.move-picker-window側の要素がelementFromPointで取得されて正しく手前に来るのに対し、
+	   押下ボタン<filterあり>だけ強制的に重ねてもボタン自身が取得され続けた)、
+	   `.move-picker-window`(document.bodyの先頭子。position:fixed・z-index:auto)と同じ
+	   スタッキングレイヤーに昇格したこのボタンが、DOM順のタイブレーク(ウィンドウがbody先頭子=
+	   DOM順で先)で不利になり手前に出ていた。
+	   対応: 縁取りをfilter(drop-shadow)ではなく、CSSトライアングルの定石である
+	   「一回り大きい三角形(::before、縁取り色)の上に、現在サイズの三角形(::after、塗り色)を
+	   重ねる」二重三角形方式に置き換える。両方とも同じグリッドセル(grid-area: 1 / 1)に
+	   固定することで、position:absolute/relativeやfilterなど新しいスタッキングコンテキストを
+	   生成するプロパティを一切使わずに重ね合わせる(displayをinline-flexからinline-gridに
+	   変更。grid/flexアイテムはz-index:autoのままなら新しいスタッキングコンテキストを
+	   作らない、CSS Grid/Flexbox仕様の「z-index other than auto」条項どおり)。これにより
+	   このボタンは常にposition指定のない通常フロー要素のままとなり、`.move-picker-window`
+	   (position:fixed)より必ず背面になる(CSS2.1 Appendix Eのスタッキング順どおりに戻る)。
+	   実機再検証(Playwright、ウィンドウをボタン座標に強制的に重ねてelementFromPoint)で、
+	   修正後は押下状態でも`.move-picker-window`側の要素が取得されることを確認した(報告参照)。
+	   `reposition()`(left-panel.ts)の座標回避ロジックはこの修正後も残す(41-L2要件どおり、
+	   重なりそのものを避ける挙動自体は無害なUXのため)。 */
 	.stat-nature-btn {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
+		display: inline-grid;
+		place-items: center;
 		width: 24px;
 		height: 24px;
 		padding: 0;
@@ -626,18 +695,21 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		cursor: pointer;
 		flex-shrink: 0;
 	}
-	.stat-nature-btn::before {
+	/* ::before = 押下時だけ縁取り(一回り大きい三角形)を描く(下の[aria-pressed="true"]参照。
+	   非押下時はborderを持たないため0×0で何も描画されない)。::after = 常時表示する塗りの
+	   三角形本体(旧実装では::beforeが兼ねていたが、縁取りとの二重表示のため分離した)。
+	   grid-area: 1 / 1 で両方を同じセルに固定し、place-items: centerで中央に重ねる。 */
+	.stat-nature-btn::before,
+	.stat-nature-btn::after {
 		content: "";
-		display: block;
+		grid-area: 1 / 1;
 		width: 0;
 		height: 0;
-		border-left: 7px solid transparent;
-		border-right: 7px solid transparent;
 	}
-	.stat-nature-up::before { border-bottom: 9px solid var(--color-text-muted); }
-	.stat-nature-down::before { border-top: 9px solid var(--color-text-muted); }
-	.stat-nature-btn:hover::before { border-bottom-color: var(--color-primary); border-top-color: var(--color-primary); }
-	.stat-row:hover .stat-nature-btn::before { border-bottom-color: var(--color-primary); border-top-color: var(--color-primary); }
+	.stat-nature-up::after { border-left: 7px solid transparent; border-right: 7px solid transparent; border-bottom: 9px solid var(--color-text-muted); }
+	.stat-nature-down::after { border-left: 7px solid transparent; border-right: 7px solid transparent; border-top: 9px solid var(--color-text-muted); }
+	.stat-nature-btn:hover::after { border-bottom-color: var(--color-primary); border-top-color: var(--color-primary); }
+	.stat-row:hover .stat-nature-btn::after { border-bottom-color: var(--color-primary); border-top-color: var(--color-primary); }
 	.stat-nature-btn:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 1px; }
 	/* 塗り色(--stat-up/--stat-down、新色は作らない)で押下状態を示す。aria-pressedも
 	   セットで書き戻しており(<script>のrefreshNatureButtons参照)、色だけに頼らず
@@ -670,23 +742,34 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	   このトークンはダークモードでも既存の32-L6-darkの暫定回避策(下記参照)と同じ値
 	   (rgba(255,139,120,0.16))に自動で切り替わるカスタムプロパティのため、
 	   ダーク専用の@media上書きが不要になった(下記32-L6-darkのブロックごと削除、
-	   ベース定義のvar(--color-danger-soft)がライト/ダーク両方の値を担う)。 */
+	   ベース定義のvar(--color-danger-soft)がライト/ダーク両方の値を担う)。
+	   🔴 UI改善ラウンド41ユーザー指示(41-L3)「性格上昇補正の上三角の強調表示も、下降補正と
+	   同様に縁取りする」により、下降側の縁取り色を再調整する。技法自体(縁取り)は既にラウンド
+	   34-L3の時点で上昇・下降の両方にあったが、実測(相対輝度からのコントラスト比算出、
+	   WCAG式)したところ下降側の「塗り--stat-down(#1d6fd1)と縁取り--color-primary-strong
+	   (#1a7ea1)」は約1.07:1(ライト)・約1.06:1(ダーク)しか無く、この記録が過去に想定していた
+	   「輝度差が大きくたまたま識別しやすかった」は誤りで、実際には上昇側の34-L3修正前
+	   (約1.23:1)と同程度かそれ以下の、ほぼ視認できない組み合わせだったと判明した
+	   (ユーザーが今回「下降と同様になっていない」と指摘したのは、実際には下降側の縁取りも
+	   十分ではなく、相対的に上昇側の方だけが34-L3の修正でしっかり見えるようになっていた
+	   ためと考えられる)。新色は作らず、34-L3と同じ考え方(塗りに対して輝度差が大きい
+	   「soft」系トークンを使う)で--color-primary-strongを--color-primary-soft
+	   (ライト#e6f6fb、ダークrgba(77,195,234,0.16))に差し替える。実測コントラスト比:
+	   ライト約4.46:1・ダーク約5.54:1(上昇側のライト約4.24:1・ダーク約5.45:1とほぼ同等)。
+	   --color-primary-softは32-U-B1等で既に使われている既存トークン(新色ではない)で、
+	   「primary系のsoft(薄色)」という上昇側--color-danger-softと対になる自然な選択でもある。 */
 	.stat-nature-up[aria-pressed="true"]::before {
-		border-bottom-color: var(--stat-up);
-		filter:
-			drop-shadow(1px 0 0 var(--color-danger-soft))
-			drop-shadow(-1px 0 0 var(--color-danger-soft))
-			drop-shadow(0 1px 0 var(--color-danger-soft))
-			drop-shadow(0 -1px 0 var(--color-danger-soft));
+		border-left: 8px solid transparent;
+		border-right: 8px solid transparent;
+		border-bottom: 10px solid var(--color-danger-soft);
 	}
+	.stat-nature-up[aria-pressed="true"]::after { border-bottom-color: var(--stat-up); }
 	.stat-nature-down[aria-pressed="true"]::before {
-		border-top-color: var(--stat-down);
-		filter:
-			drop-shadow(1px 0 0 var(--color-primary-strong))
-			drop-shadow(-1px 0 0 var(--color-primary-strong))
-			drop-shadow(0 1px 0 var(--color-primary-strong))
-			drop-shadow(0 -1px 0 var(--color-primary-strong));
+		border-left: 8px solid transparent;
+		border-right: 8px solid transparent;
+		border-top: 10px solid var(--color-primary-soft);
 	}
+	.stat-nature-down[aria-pressed="true"]::after { border-top-color: var(--stat-down); }
 	/* HPは性格補正の対象外(クリック不可)。位置を揃えるためのプレースホルダーで、
 	   ::beforeを持たない(=何も描画されない)ため「押せない」ことを見た目でも伝える。 */
 	.stat-nature-placeholder { cursor: default; }
@@ -1045,6 +1128,89 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	   box/[id].astro側の<style is:global>に定義する(#species-type-badge .type-badge-fallbackの
 	   直後)。 */
 
+	/* UI改善ラウンド41ユーザー指示(41-L1)。アイテム選択ドロップダウンのボタン・パネル自体は
+	   このコンポーネントの静的マークアップ(上記item-dropdown-wrap)なのでscoped<style>が効く。
+	   見た目はテラスの#edit-form .tera-dropdown-button/.tera-dropdown-list(上記)と完全に
+	   揃える(枠・高さ・角丸・影は同じトークンを再利用、新色は作らない)。ただし候補が
+	   数百件規模のため、パネル内部に絞り込み入力(.item-dropdown-search)を追加した分だけ
+	   構造がテラスと異なる(テラスの<ul>単体に対し、アイテムは検索欄+<ul>を1枚のパネルに
+	   まとめる)。<li>/<img>/<span>はテラスと同様<script>のbuildItemDropdownOptionsが
+	   動的生成するため、それらのスタイルは下のLeftPanel.astro自身の<style is:global>
+	   ブロック(.move-picker-*と同居)に置く(box/[id].astroは編集禁止のため、テラスのように
+	   box/[id].astro側の<style is:global>には置けない)。 */
+	#edit-form .item-dropdown-wrap { position: relative; width: 100%; }
+	#edit-form .item-dropdown-button {
+		display: flex;
+		align-items: center;
+		justify-content: flex-start;
+		gap: 0.35rem;
+		width: 100%;
+		min-height: 2.35rem;
+		padding: 0.42em 0.6em;
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-sm);
+		background: var(--color-surface);
+		cursor: pointer;
+		font-size: 0.94rem;
+		line-height: var(--line-height-snug);
+		color: var(--color-text);
+		text-align: left;
+	}
+	#edit-form .item-dropdown-button:hover { border-color: var(--color-primary); }
+	#edit-form .item-dropdown-button:focus-visible {
+		outline: 2px solid var(--color-primary);
+		outline-offset: 1px;
+	}
+	/* ラウンド23(23-G3)のメガストーン自動設定ハイライトは、従来は#item自体(hidden化前は
+	   可視の<input>)へ付けていたが、hidden化した今は入力欄自体を見せる場所が無いため、
+	   このボタン側に同じ視覚言語(既存の#edit-form #item.is-autofilledと同じトークン)で
+	   付け直す(<script>のapplyLeftMegaStoneAutofill参照。新色は作らない)。 */
+	#edit-form .item-dropdown-button.is-autofilled {
+		border-color: var(--color-primary);
+		box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 30%, transparent);
+	}
+	#edit-form .item-dropdown-button.is-item-unselected {
+		border-style: dashed;
+		background: transparent;
+	}
+	#edit-form .item-dropdown-image { width: var(--icon-size-sm); height: var(--icon-size-sm); object-fit: contain; flex-shrink: 0; }
+	#edit-form .item-dropdown-placeholder {
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+		color: var(--color-text-muted);
+	}
+	#edit-form .item-dropdown-placeholder.is-item-value-text { color: var(--color-text); }
+	/* パネル(絞り込み入力+<ul>)。テラスの.tera-dropdown-listと同じ位置決め・枠・影。 */
+	#edit-form .item-dropdown-panel {
+		position: absolute;
+		top: calc(100% + 0.25rem);
+		left: 0;
+		right: 0;
+		z-index: 5;
+		padding: 0.3rem;
+		background: var(--color-surface);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-md);
+		box-shadow: var(--shadow-md);
+	}
+	#edit-form .item-dropdown-panel[hidden] { display: none; }
+	#edit-form .item-dropdown-search {
+		display: block;
+		width: 100%;
+		box-sizing: border-box;
+		margin-bottom: 0.3rem;
+		padding: 0.35em 0.5em;
+		font-size: 0.88rem;
+	}
+	#edit-form .item-dropdown-list {
+		margin: 0;
+		padding: 0;
+		list-style: none;
+		max-height: 14rem;
+		overflow-y: auto;
+	}
+
 	/* ラウンド23ユーザー指示(23-L4)「技の選択ボックスの枠色をタイプごとに変えない」により、
 	   技名確定時にborder-colorをタイプ色にしていたupdateMoveTypeColor()を関数ごと削除した
 	   (UI品質改善11-3で追加・21-L8でbackground-colorのみ先に撤去していたもの)。技の入力欄は
@@ -1124,9 +1290,13 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	/* ラウンド21(21-L4)の「読み取り専用のラベル+値のテキスト表示」(<p class="nature-readout">)は
 	   ラウンド23(23-L2)ユーザー指示により<input readonly class="field-control">へ置き換えた
 	   (特性の直下、他の入力欄と見た目を揃える)。.nature-readout系のCSSはもう使われないため
-	   削除した。readonly状態のヒントは#nature-readout-value[readonly]で個別に与える(下記)。 */
+	   削除した。readonly状態のヒントは#nature-readout-value[readonly]で個別に与える(下記)。
+	   ラウンド43ユーザー指示(43-L1)「ホバー時にテキスト表示はせず、代わりにマウスが編集不可
+	   マークになるようにする」により、title属性(ブラウザ標準ツールチップ)は削除し、代わりに
+	   ここのcursorをdefaultからnot-allowed(編集不可マーク)へ変更した。.field-control基底の
+	   cursor指定はこのIDセレクタで上書きされる。 */
 	#nature-readout-value[readonly] {
-		cursor: default;
+		cursor: not-allowed;
 		background: var(--color-surface-alt);
 	}
 
@@ -1608,13 +1778,82 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	.move-picker-toggle {
 		display: flex;
 		align-items: center;
-		gap: 0.35rem;
+		gap: 0.4rem;
 		font-size: var(--font-size-xs);
 		color: var(--color-text-muted);
 		white-space: nowrap;
 		cursor: pointer;
 	}
-	.move-picker-toggle input { cursor: pointer; }
+	/* UI改善ラウンド41ユーザー指示(41-L4)「チェックボックスの代わりにトグルスイッチを使う」。
+	   このプロジェクトに既存のtoggle/switch規格が無いか確認済み(grep該当ゼロ)のため新規に作る。
+	   一般的な規格(角丸の背景トラック+丸いつまみ)。<input type="checkbox">自体は
+	   visually-hiddenの定石(絶対配置+1pxサイズ+overflow:hidden、display:noneにしないのは
+	   スクリーンリーダー・キーボードフォーカスを保つため)で隠し、隣接する.toggle-switch-trackを
+	   CSSだけで描く(<script>のsetupMovePickerWindow参照。checked状態・changeイベント・
+	   aria-labelは一切変えない)。 */
+	.toggle-switch { position: relative; display: inline-flex; align-items: center; width: 34px; height: 18px; flex-shrink: 0; }
+	.toggle-switch-input {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		margin: -1px;
+		padding: 0;
+		overflow: hidden;
+		clip: rect(0 0 0 0);
+		white-space: nowrap;
+		border: 0;
+		cursor: pointer;
+	}
+	.toggle-switch-track {
+		position: absolute;
+		inset: 0;
+		border-radius: 999px;
+		background: var(--color-border);
+		transition: background-color 0.15s ease;
+		pointer-events: none;
+	}
+	.toggle-switch-thumb {
+		position: absolute;
+		top: 2px;
+		left: 2px;
+		width: 14px;
+		height: 14px;
+		border-radius: 50%;
+		background: var(--color-surface);
+		box-shadow: var(--shadow-sm);
+		transition: transform 0.15s ease;
+	}
+	.toggle-switch-input:checked + .toggle-switch-track { background: var(--color-primary); }
+	.toggle-switch-input:checked + .toggle-switch-track .toggle-switch-thumb { transform: translateX(16px); }
+	.toggle-switch-input:focus-visible + .toggle-switch-track { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+
+	/* UI改善ラウンド41ユーザー指示(41-L1)。アイテムドロップダウンの<li>/<img>/<span>は
+	   <script>のbuildItemDropdownOptionsがdocument.createElement()で動的生成するため、
+	   上のscoped<style>は効かない(.tera-dropdown-option系と同じ理由、このファイル冒頭の
+	   コメント参照)。box/[id].astroは編集禁止のため、テラスのようにそちらのis:globalへは
+	   置けない。このファイル自身の<style is:global>(.move-picker-*と同居)にまとめる。 */
+	.item-dropdown-option {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		padding: 0.35rem 0.5rem;
+		border-radius: var(--radius-sm);
+		cursor: pointer;
+		font-size: 0.9rem;
+		color: var(--color-text);
+	}
+	.item-dropdown-option:hover,
+	.item-dropdown-option.is-active { background: var(--color-surface-alt); }
+	.item-dropdown-option-image { width: var(--icon-size-sm); height: var(--icon-size-sm); object-fit: contain; flex-shrink: 0; }
+	.item-dropdown-option-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+	.item-dropdown-option[hidden] { display: none; }
+	.item-dropdown-empty {
+		padding: 0.5rem;
+		font-size: var(--font-size-xs);
+		color: var(--color-text-muted);
+		text-align: center;
+	}
+	.item-dropdown-empty[hidden] { display: none; }
 	.move-picker-close {
 		flex-shrink: 0;
 		width: 24px;

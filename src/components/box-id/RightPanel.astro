@@ -48,11 +48,13 @@
 		<div id="damage-detail-panel-body" class="damage-detail-panel-body">
 			{/* UI改善ラウンド29(29-R1): JS初期化前・失敗時のフォールバックもJS生成側
 			    (renderDetailPanelEmpty)と同じ.damage-detail-panel-body-innerでラップし、
-			    margin-block:autoの対象にする。文言もrenderDetailPanelEmptyと同内容に
-			    揃える(29-R1: 存在しない「技列のクリック」を促さない)。 */}
-			<div class="damage-detail-panel-body-inner">
-				<p class="damage-detail-panel-empty">相手ポケモンを登録すると、ここに設定が表示されます。</p>
-			</div>
+			    margin-block:autoの対象にする。
+			    UI改善ラウンド42ユーザー指示(42-R1)「"相手ポケモンを登録すると、ここに設定が
+			    表示されます。"削除」により、この空状態のヒント文を削除した(right-panel.tsの
+			    renderDetailPanelEmptyも同時に空にしてあり、JS初期化前後で表示が食い違わない
+			    ようにしている)。ラッパー自体は維持する(margin-block:autoの対象、pitfalls.md
+			    「[hidden]は詳細度で負ける」と同種の理由でDOM構造は残す)。 */}
+			<div class="damage-detail-panel-body-inner"></div>
 		</div>
 	</aside>
 </div>

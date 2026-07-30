@@ -1,5 +1,7 @@
 """PokeAPI のタイプ画像(横長リボン: 左に丸いマーク+右に英字)から、
-左側のマーク部分だけを正方形に切り出した画像を生成し、public/type-icons/ に置くスクリプト。
+左側のマーク部分だけを切り出し、通常タイプは円形アルファマスクを適用した
+画像ファイル自体が円形のPNG(四隅が透明)を生成し、public/type-icons/ に置く
+スクリプト(テラスタイプは従来どおり横長リボンを繋ぎ合わせた正方形のまま)。
 
 ## 背景
 src/lib/sprite-urls.ts の typeImageUrl() / teraTypeImageUrl() が返す画像は
@@ -28,9 +30,35 @@ https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/types/generatio
     「アイコンだけ」の水平範囲を検出する。
   - 通常タイプ(角丸ピル)は、「画像の高さ」を一辺とする正方形を検出した中心に
     合わせて水平方向だけスライドさせて切り出す(縦方向は画像そのままの範囲=中央
-    基準)。背景の縁(角丸ピル)はアイコン中心基準の正方形の内接円の中に収まる限り
-    透明・欠けが生じないことを実測で確認済み(角の透明領域は表示側の
-    border-radius: 50% でどのみち切り落とされる部分にしか出ない)。
+    基準)。
+    🔴 2026-07-30 ユーザー報告「一部タイプでタイプアイコンの模様(マーク)が見切れる」
+    を受けて実測し直したところ、上記の前提(「アイコン中心基準の正方形の内接円の
+    中に収まる限り欠けが生じない」)は誤りだったと判明した。alpha>0の外接範囲は
+    19タイプ全部で正方形の角まで達しており(背景の角丸ピルが正方形の隅を透明
+    ではなく塗りつぶしていることが多いため)、そもそも「不透明ピクセル=マーク」
+    という判定は使えない。実際に見るべきは「白色系のマーク自体」の外接範囲で、
+    これをWHITE_CHANNEL_MIN(245)相当のしきい値で測ると、19タイプ中
+    ひこう・くさ・フェアリーの3タイプで内接円(半径48px、96x96キャンバス)から
+    はみ出す量が-1.3px〜+0.1px(ほぼゼロ、しきい値や丸め誤差次第でどちらにも
+    転びうる)という「実質マージンほぼゼロ」の状態だったことを確認した
+    (実測スクリプトはround-42.md 42-T1のコメント参照)。マージンがほぼゼロだと、
+    ブラウザ側のリサイズ・アンチエイリアシングの実装差でどちら側に転ぶかが
+    変わるため、「一部タイプで見切れる」というユーザー報告と矛盾しない。
+    対策として、背景(角丸ピルの塗り)はそのまま維持しつつ、マーク(白色系の
+    絵柄)だけを検出・分離し、中心基準で少し縮小してから再合成する方式にした
+    (build_mark_shrunk_icon()参照)。背景を一切いじらないため、「マークだけを
+    縮小した」ことによる余分な透明の縁(ハロー)が生じない
+    (背景全体を縮小してから透明パディングで埋め戻す案も試したが、LANCZOS
+    リサイズによる縁の半透明化が薄い縁取り状のハローとして視認でき、
+    見た目の劣化が大きかったため不採用にした)。
+    🔴 2026-07-30 追加報告: 上記の対応(マーク縮小)だけでは、保存される
+    public/type-icons/N.png 自体は依然として正方形(角まで角丸ピルの塗りが
+    残る)のままで、表示側のCSS `border-radius: 50%` に円形化を依存していた。
+    ユーザーの要求は「画像ファイル自体が円形であること」だったため、
+    apply_circular_mask() で出力直前に円形アルファマスクを掛け、ファイルの
+    四隅を完全透明にするようにした。円の内側(色・マークの位置)は一切変更
+    しない。表示側は従来どおり border-radius: 50% を適用したままだが、
+    同じ円を二重に描くだけなので見た目上の副作用はない。
   - テラスタイプ(宝石型のジグザグ縁)は上記の中心クロップ方式ではなく、
     stitch_tera_icon() で英字部分だけを削除して残りを繋ぎ合わせる方式にする
     (2026-07-29 ユーザー提案)。テラスタイプの縁は左端(3本トゲ)と右端がほぼ
@@ -61,7 +89,7 @@ from collections import Counter
 from pathlib import Path
 
 try:
-    from PIL import Image
+    from PIL import Image, ImageChops, ImageDraw
 except ImportError as exc:  # pragma: no cover
     print(
         "Pillow が見つかりません。`pip install Pillow` を実行してから再実行してください。",
@@ -113,6 +141,31 @@ ALPHA_MIN = 100
 # アイコン-英字間の隙間は実測で常に12px以上あり、これより明確に小さい値にしている。
 GAP_MERGE_THRESHOLD = 6
 
+# --- 通常タイプ用: マーク(白色系の絵柄)だけを縮小して見切れを防ぐための定数 ---
+#
+# WHITE_CHANNEL_MIN(245)は「マークかどうか」を厳密に判定するには適切だが、
+# アンチエイリアスされた縁のピクセル(例: 240程度)を取りこぼす。取りこぼした
+# ピクセルは後述のrow_fill_background()で「背景」として扱われてしまい、
+# 縮小されずに元の位置に残ってしまう(実測: どくタイプでこの不具合により
+# 縮小が効かないケースを確認し、このしきい値を分離する形で修正した)。
+# 19タイプ全ての背景色はmin(r,g,b)が最大でも159(ノーマルタイプ)までしか
+# 白に近づかないため、190あれば「背景を誤ってマーク判定する」リスクなしに、
+# アンチエイリアス縁まで含めて「マークらしきピクセル」を粗く判定できる。
+ROUGH_WHITE_MIN = 190
+ROUGH_ALPHA_MIN = 60
+
+# マークの縮小率。実測(WHITE_CHANNEL_MIN=245/ALPHA_MIN=100)で、修正前の19タイプ中
+# 最もはみ出し量が大きかったくさタイプの内接円はみ出し量(+0.09px、ほぼゼロ)を
+# 基準に、0.84倍に縮小すると全19タイプで内接円から最低でも7.6px(約16%)の
+# マージンが残ることを確認した(詳細はround-42.md 42-T1参照)。背景(角丸ピルの
+# 塗り)は縮小せず元のまま維持するため、縮小してもハロー(縁の半透明の輪)は
+# 生じない。
+MARK_SCALE = 0.84
+
+# 円形マスクのアンチエイリアス品質。マスクをOUTPUT_SIZEのSUPERSAMPLE倍の解像度で
+# 描画してからLANCZOSで縮小することで、円周のジャギーを抑える。
+CIRCLE_MASK_SUPERSAMPLE = 4
+
 
 def fetch_image(url: str) -> Image.Image:
     req = urllib.request.Request(url, headers={"User-Agent": "poke-commons-type-icon-generator"})
@@ -156,8 +209,9 @@ def detect_icon_x_range(im: Image.Image) -> tuple[int, int]:
     return start, end
 
 
-def crop_icon_square(im: Image.Image) -> Image.Image:
-    """アイコン中心に合わせて「画像高さ×画像高さ」の正方形を切り出し、OUTPUT_SIZE にリサイズする。
+def crop_icon_square(im: Image.Image) -> tuple[Image.Image, tuple[int, int, int, int]]:
+    """アイコン中心に合わせて「画像高さ×画像高さ」の正方形を切り出す(まだOUTPUT_SIZEには
+    リサイズしない。マーク縮小処理を先に済ませてから最後に1回だけリサイズするため)。
     通常タイプ用(角丸ピル。両端に尖った縁がないため単純な中心クロップで問題ない)。
     """
     w, h = im.size
@@ -171,7 +225,124 @@ def crop_icon_square(im: Image.Image) -> Image.Image:
     box = (crop_x0, 0, crop_x0 + side, h)
 
     cropped = im.crop(box)
-    return cropped.resize((OUTPUT_SIZE, OUTPUT_SIZE), Image.LANCZOS), box
+    return cropped, box
+
+
+def _is_rough_fg(pixel: tuple[int, int, int, int]) -> bool:
+    r, g, b, a = pixel
+    return a >= ROUGH_ALPHA_MIN and min(r, g, b) >= ROUGH_WHITE_MIN
+
+
+def _row_fill_background(im: Image.Image, rough_mask: list[list[bool]]) -> Image.Image:
+    """rough_mask[y][x]がTrue(マークらしき画素)の位置を、同じ行で最も近い
+    「マークではない」画素の色で塗りつぶした「背景だけ」の画像を作る(行内近傍埋め)。
+
+    背景は縦グラデーションを持つタイプ(ステラ)を除き基本的に単色/横方向グラデーション
+    なので、同じ行の近傍から埋めれば十分自然な背景になる。
+    """
+    w, h = im.size
+    px = im.load()
+    out = Image.new("RGBA", (w, h))
+    out_px = out.load()
+    for y in range(h):
+        row_is_mark = rough_mask[y]
+        for x in range(w):
+            if not row_is_mark[x]:
+                out_px[x, y] = px[x, y]
+                continue
+            left = next((xx for xx in range(x - 1, -1, -1) if not row_is_mark[xx]), None)
+            right = next((xx for xx in range(x + 1, w) if not row_is_mark[xx]), None)
+            if left is not None and (right is None or (x - left) <= (right - x)):
+                out_px[x, y] = px[left, y]
+            elif right is not None:
+                out_px[x, y] = px[right, y]
+            else:
+                out_px[x, y] = px[x, y]  # 行全体がマーク(通常は起こらない)のフォールバック
+    return out
+
+
+def _compute_mark_alpha(im: Image.Image, bg: Image.Image) -> list[list[float]]:
+    """各画素が「背景色からどれだけ白側に混ざっているか」を0〜1で返す
+    (アンチエイリアスされた縁も滑らかな値になる)。"""
+    w, h = im.size
+    px = im.load()
+    bg_px = bg.load()
+    alpha = [[0.0] * w for _ in range(h)]
+    for y in range(h):
+        for x in range(w):
+            r, g, b, a = px[x, y]
+            br, bgc, bb, _ = bg_px[x, y]
+            ts = []
+            for c, bc in ((r, br), (g, bgc), (b, bb)):
+                denom = 255 - bc
+                if denom > 0:
+                    ts.append((c - bc) / denom)
+            t = sum(ts) / len(ts) if ts else 0.0
+            alpha[y][x] = max(0.0, min(1.0, t)) * (a / 255.0)
+    return alpha
+
+
+def build_mark_shrunk_icon(cropped: Image.Image) -> Image.Image:
+    """crop_icon_square()が返す h×h の正方形から、白色系の「マーク」だけを検出・分離し、
+    中心基準でMARK_SCALEに縮小してから、変更していない背景に再合成する。
+
+    背景(角丸ピルの塗り)は一切縮小・移動しないため、この処理をしても背景の見た目
+    (色・角の透明具合)は変わらない。変わるのはマークが内接円からのマージンを
+    多く持つようになる点だけ。処理の必要性・不採用にした代替案は本ファイル冒頭の
+    docstring参照。
+    """
+    w, h = cropped.size
+    px = cropped.load()
+    rough_mask = [[_is_rough_fg(px[x, y]) for x in range(w)] for y in range(h)]
+    bg = _row_fill_background(cropped, rough_mask)
+    mark_alpha = _compute_mark_alpha(cropped, bg)
+
+    mark_layer = Image.new("RGBA", (w, h), (255, 255, 255, 0))
+    mark_px = mark_layer.load()
+    for y in range(h):
+        for x in range(w):
+            mark_px[x, y] = (255, 255, 255, round(255 * mark_alpha[y][x]))
+
+    new_side = round(w * MARK_SCALE)
+    mark_small = mark_layer.resize((new_side, new_side), Image.LANCZOS)
+    mark_canvas = Image.new("RGBA", (w, h), (255, 255, 255, 0))
+    offset = (w - new_side) // 2
+    mark_canvas.paste(mark_small, (offset, offset), mark_small)
+
+    result = bg.convert("RGBA")
+    result.alpha_composite(mark_canvas)
+    return result
+
+
+def _circular_mask(size: int) -> Image.Image:
+    """size x size の"L"モード画像で、中心(size/2, size/2)・半径(size/2)の円の内側を
+    255(不透明)、外側を0(透明)にしたマスクを作る。CIRCLE_MASK_SUPERSAMPLE倍の
+    解像度で描いてからLANCZOSで縮小し、円周のアンチエイリアスを滑らかにする。
+    """
+    big = size * CIRCLE_MASK_SUPERSAMPLE
+    mask_big = Image.new("L", (big, big), 0)
+    draw = ImageDraw.Draw(mask_big)
+    draw.ellipse((0, 0, big - 1, big - 1), fill=255)
+    return mask_big.resize((size, size), Image.LANCZOS)
+
+
+def apply_circular_mask(im: Image.Image) -> Image.Image:
+    """通常タイプ用: 出力直前の正方形画像(角丸ピルの背景+縮小済みマーク)に
+    円形アルファマスクを適用し、円の外側(四隅)を完全に透明(alpha=0)にする。
+
+    円の内側の色・マークの位置は一切変更しない(既存のalphaチャンネルと
+    円マスクをImageChops.multiplyで掛け合わせるだけなので、背景がもともと
+    部分的に透明だった場合もその情報は保持される)。
+    """
+    w, h = im.size
+    if w != h:
+        raise ValueError(f"円形マスクは正方形画像のみ対応: got {w}x{h}")
+    mask = _circular_mask(w)
+    result = im.convert("RGBA")
+    r, g, b, a = result.split()
+    masked_alpha = ImageChops.multiply(a, mask)
+    result.putalpha(masked_alpha)
+    return result
 
 
 def _column_alpha_span(im: Image.Image, x: int) -> tuple[int, int] | None:
@@ -269,7 +440,10 @@ def generate_one(type_id: int, *, tera: bool) -> tuple[Path, tuple[int, int, int
         box = (0, 0, stitched.width, stitched.height)
         result = pad_to_square(stitched).resize((OUTPUT_SIZE, OUTPUT_SIZE), Image.LANCZOS)
     else:
-        result, box = crop_icon_square(im)
+        cropped, box = crop_icon_square(im)
+        shrunk = build_mark_shrunk_icon(cropped)
+        resized = shrunk.resize((OUTPUT_SIZE, OUTPUT_SIZE), Image.LANCZOS)
+        result = apply_circular_mask(resized)
 
     out_dir = TERA_OUT_DIR if tera else OUT_DIR
     out_dir.mkdir(parents=True, exist_ok=True)

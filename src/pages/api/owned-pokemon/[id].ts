@@ -9,7 +9,7 @@ import { badRequest, isSameOrigin, isValidUuid, jsonResponse, methodNotAllowed, 
 import { getSessionUser } from '../../../lib/user-session';
 import { getSupabaseAdminClient } from '../../../lib/supabase';
 import { validateOwnedPokemonRequestBody } from '../../../lib/owned-pokemon-validation';
-import { deleteOwnedPokemon, getOwnedPokemon, updateOwnedPokemon } from '../../../lib/owned-pokemon';
+import { deleteOwnedPokemon, getOwnedPokemon, updateOwnedPokemon, updatePinStatus } from '../../../lib/owned-pokemon';
 import { ownedPokemonRateLimiter } from '../../../lib/rate-limit';
 
 export const prerender = false;
@@ -91,5 +91,46 @@ export async function DELETE({ request, cookies, params }: APIContext): Promise<
   return jsonResponse({ data: { id } }, 200);
 }
 
-export const POST = () => methodNotAllowed(['GET', 'PUT', 'DELETE']);
-export const PATCH = POST;
+// PATCH /api/owned-pokemon/:id: is_pinned のみを更新する軽量経路(41-B2、round-41.md)。
+// PUT(全項目上書き契約、§6.2)とは別の追加経路であり、PUTの契約は変更しない。
+// updatePinStatus() は is_pinned 列だけを UPDATE し updated_at には触れないため、
+// 「更新順」表示中にお気に入りをトグルしても対象個体自身の表示順位置が動かないことを保証する
+// (round-40.mdの40-B1が「トグルした個体自身が動くことは許容」としていた判断を、
+// round-41.mdの41-B2がここで撤回した)。
+export async function PATCH({ request, cookies, params }: APIContext): Promise<Response> {
+  const user = await getSessionUser(request, cookies);
+  if (!user) return jsonResponse({ error: 'Unauthorized' }, 401);
+
+  if (!isSameOrigin(request)) {
+    return jsonResponse({ error: 'Forbidden' }, 403);
+  }
+
+  const rateLimit = ownedPokemonRateLimiter.check(user.id);
+  if (!rateLimit.allowed) {
+    return jsonResponse({ error: 'Too many requests' }, 429);
+  }
+
+  const id = params.id;
+  if (!isValidUuid(id)) return notFound();
+
+  const body = await readRequiredJsonBody<unknown>(request);
+  if (body.response) return body.response;
+
+  // このエンドポイントは { is_pinned: boolean } のみを受け付ける(それ以外のフィールドは
+  // 全項目上書き契約のPUTの役割のため、ここでは受け付けない)。
+  const payload = body.data;
+  const isPlainObject = typeof payload === 'object' && payload !== null && !Array.isArray(payload);
+  const isPinned = isPlainObject ? (payload as { is_pinned?: unknown }).is_pinned : undefined;
+  if (!isPlainObject || typeof isPinned !== 'boolean' || Object.keys(payload as object).length !== 1) {
+    return badRequest('Request body must be exactly { is_pinned: boolean }');
+  }
+
+  const supabase = await getSupabaseAdminClient();
+  const result = await updatePinStatus(user.id, id, isPinned, supabase);
+  if (!result.ok) return jsonResponse({ error: result.error }, 500);
+  if (!result.data) return notFound();
+
+  return jsonResponse({ data: result.data }, 200);
+}
+
+export const POST = () => methodNotAllowed(['GET', 'PUT', 'PATCH', 'DELETE']);

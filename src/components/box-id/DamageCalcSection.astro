@@ -34,22 +34,14 @@ const { pokemonId } = Astro.props;
 		<button id="damage-calc-engine-reload-button" type="button" class="btn-ghost" hidden>再読み込み</button>
 	</p>
 	{/* UI改善ラウンド36ユーザー指示(36-3)で新設した「すべて折りたたむ・展開する」の専用行
-	    (#damage-rows-toolbar、2ボタン版)は、UI改善ラウンド38ユーザー指示(38-H1)
-	    「ヘッダーに移動し単一ボタンで交互切り替え」によりページ共通ヘッダー(トップバー、
-	    src/pages/box/[id].astroの<Fragment slot="topbar-actions">)へ一度移設していたが、
-	    🔴 UI改善ラウンド40ユーザー指示(40-H1)「ダメージカード領域の上に置く」により撤回し、
-	    この#damage-rows-list直上に単一ボタン(38-H1の交互切り替えロジックはそのまま)として
-	    再設置する。ロジック(状態判定・setAllRowsCollapsedの呼び出し・ラベルの出し分け)は
-	    <script>のupdateCollapseToggleButtonLabel/damageCollapseToggleButtonEl(src/lib/box-id/
-	    damage-calc.ts)に集約されており、el("damage-collapse-toggle-button")はDOM上の位置に
-	    依存しないgetElementById経由のため、置き場所を変えてもidさえ変えなければ動く。
-	    ダメージ計算カードが1件も無い個体では押しても意味が無いため、<script>側でdisabled
-	    切り替えを行う(初期表示はdisabled、フェッチ完了後にJSが調整する)。 */}
-	<div class="damage-rows-toolbar">
-		<button id="damage-collapse-toggle-button" class="btn-ghost" type="button" disabled>
-			すべて折りたたむ
-		</button>
-	</div>
+	    (damage-rows-toolbar、2ボタン版)は、UI改善ラウンド38ユーザー指示(38-H1)
+	    「ヘッダーに移動し単一ボタンで交互切り替え」によりページ共通ヘッダーへ一度移設し、
+	    ラウンド40ユーザー指示(40-H1)「ダメージカード領域の上に置く」で一度撤回してこの
+	    直上に戻していたが、UI改善ラウンド41ユーザー指示(41-H1)「X位置はそのままでヘッダへ
+	    移す」により再びヘッダー(src/pages/box/[id].astroの<Fragment slot="topbar-actions">)へ
+	    移設した。このセクションのdamage-rows-toolbar div自体は重複UIを残さないため撤去する
+	    (ボタンのロジックはel("damage-collapse-toggle-button")のgetElementById経由でDOM上の
+	    位置に依存しないため、置き場所を変えてもidさえ変えなければそのまま動く)。 */}
 	<div id="damage-rows-list" class="damage-rows-list">
 		<p>読み込み中...</p>
 	</div>
@@ -268,6 +260,18 @@ const { pokemonId } = Astro.props;
 	   「デスクトップでの望ましい幅」であり、下限を保証する値ではない)。
 	   1920/1600/1440/1280/1024/900/700/390/360pxすべてで横スクロールが起きないことを
 	   実測確認済み(報告参照)。 */
+	/* 🔴 UI改善ラウンド42ユーザー指示(42-D2)「相手ビルドカードを覆う背景領域を削除」により、
+	   background: var(--color-surface) を撤去する。この箱は23-D3で外枠(border)を既に
+	   撤去済みで、今回背景も無くすと.damage-row-build自体は視覚的な境界を持たない
+	   透明領域になる(親.card-damageの背景がそのまま透ける)。これは00-foundation.mdの
+	   「外が濃く内が明るい」という階調ルール(2026-07-26導入、ラウンド36実装のコメント
+	   「外側カードが--color-surface-altになったため、内側の.damage-row-build/.damage-columnは
+	   --color-surfaceに変更」)を、この箱(.damage-row-build)に限り撤回するものである
+	   (技列側.damage-columnの背景はユーザー指示の対象外なので変更しない。下記
+	   .damage-column参照、border/backgroundとも維持)。削除前にgetComputedStyleで
+	   実測し、この背景色の出どころが.damage-row-build自身であること(親の.card-damageや
+	   .damage-row-bodyには背景が無いこと)をライト/ダーク両方で確認済み(pitfalls.mdの
+	   「打ち消したつもりで1階層上を打ち消している」事故を避けるための確認)。 */
 	#opponent-notes-section .damage-row-build {
 		flex: 0 1 340px;
 		width: 340px;
@@ -277,7 +281,6 @@ const { pokemonId } = Astro.props;
 		gap: 0.15rem;
 		border-radius: var(--radius-md);
 		padding: 0.35rem 0.6rem;
-		background: var(--color-surface);
 	}
 	/* ラウンド7ユーザー指示(方針転換): 相手ビルドの箱のクリックは無反応にする(サイドバーを
 	   開くのは技列の箱だけ)確定仕様になったため、この箱自体のis-selectedマーカー・
@@ -541,17 +544,31 @@ const { pokemonId } = Astro.props;
 		justify-content: flex-start;
 		gap: 0.35rem;
 		width: 100%;
-		min-height: 2.35rem;
-		padding: 0.42em 0.6em;
 		border: 1px solid var(--color-border);
 		border-radius: var(--radius-sm);
 		background: var(--color-surface);
 		cursor: pointer;
-		font-size: 0.94rem;
 		font-weight: 600;
-		line-height: var(--line-height-snug);
 		color: var(--color-text);
 		text-align: left;
+	}
+	/* 🔴 UI改善ラウンド43ユーザー指示(43-D4)「相手ビルドのテラスタイプの書式を特性入力
+	   ボックスに揃える」により、40-D1「高さ・書体は左パネルの値をそのまま流用する
+	   (min-height:2.35rem・font-size:0.94rem)」をこのセクション限定で撤回する
+	   (左パネル#edit-formのテラスドロップダウンは対象外・無変更)。
+	   実測(getComputedStyle、特性<select>=#opponent-notes-section
+	   select[aria-label="相手の特性"]、DamageCalcSection.astro 503〜514行目の
+	   .damage-row-build-grid select共通ルールが実際に適用する値):
+	   font-size 13.76px(0.86rem)・padding 0.22em 0.38em・line-height 1.15・
+	   min-height 0(実測height 23.86px)。この4値をそのままテラスボタンにも適用し、
+	   実測height 23.88px相当まで縮める(特性selectの23.86pxとほぼ一致)。
+	   font-weight(600)は「書式」の対象外(サイズの見た目には寄与しないため)として維持し、
+	   ボタンであることが分かるようにする。 */
+	#opponent-notes-section .tera-dropdown-button {
+		font-size: 0.86rem;
+		padding: 0.22em 0.38em;
+		line-height: 1.15;
+		min-height: 0;
 	}
 	#opponent-notes-section .tera-dropdown-button:hover { border-color: var(--color-primary); }
 	#opponent-notes-section .tera-dropdown-button:focus-visible {
@@ -661,6 +678,22 @@ const { pokemonId } = Astro.props;
 	#opponent-notes-section .damage-sprite-box .sprite-fallback {
 		font-size: 2.1rem;
 	}
+	/* UI改善ラウンド43ユーザー指示(43-D2)「相手ポケモン画像が右寄りに見える。中央になるよう
+	   左へ移動」。実測(Playwright、getBoundingClientRect): img.sprite-icon自体は
+	   .damage-sprite-box(80×80固定)に対しwidth:100%;height:100%で敷き詰められており、
+	   両者の中心座標は完全に一致していた(差分0px、4フィクスチャ全件)。公式絵PNG自体の
+	   透過ピクセルの外接矩形中心も画像キャンバス中心とほぼ一致(オフセット0.1%未満、
+	   カイリュー/フシギバナ(キョダイ)/ハバタクカミ/メガカメックスの4種で実測)。
+	   つまりCSS・画像アセットのどちらにも幾何学的なズレは無い。ズレて見える原因は
+	   .damage-item-badge(持ち物、bottom:-4px; right:-4px、33×33px)が画像に重ねて
+	   右下に絶対配置されていること: バッジが実際に見えている(hidden属性が外れている)
+	   ときだけ、視覚的な重心が右下に寄って見える(バッジ非表示の相手では発生しない)。
+	   このため、バッジ側ではなく画像側を少し左へずらして補正する(バッジの位置は
+	   他の相手ビルドとの対角配置の前提を崩さないため動かさない)。バッジが無いときは
+	   ずらさない(:has()でitemBadgeの表示状態を判定。ずらすと逆に不自然な左寄りになる)。 */
+	#opponent-notes-section .damage-sprite-box:has(.damage-item-badge:not([hidden])) img.sprite-icon {
+		transform: translateX(-4px);
+	}
 	/* 🔴 UI改善ラウンド31ユーザー指示(31-D4a)「テラスタイプ画像は…ポケモン画像の右上の表示を
 	   廃止」により常時非表示にする。DOMは残す(<script>のrefreshTypeBadge/applyTeraImageが
 	   引き続きtypeBadgeImg/typeBadgeFallbackを参照するため要素自体は削除しない)。
@@ -759,6 +792,19 @@ const { pokemonId } = Astro.props;
 	#opponent-notes-section .tera-dropdown-option-image { width: var(--icon-size-sm); height: var(--icon-size-sm); object-fit: contain; flex-shrink: 0; }
 	#edit-form .tera-dropdown-option-text,
 	#opponent-notes-section .tera-dropdown-option-text { font-size: 0.9rem; color: var(--color-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+	/* UI改善ラウンド41ユーザー指示(41-D1)「ダメージカードのテラス選択をタイプ名の文字だけに
+	   簡素化する」。40-D1で左パネルと共通化したカスタムドロップダウン(アイコン+テキスト)の
+	   うち、ダメージカード(#opponent-notes-section)側だけアイコンを外しテキストのみにする
+	   (左パネル=#edit-formのテラスドロップダウンはアイコン+テキストのまま変更しない)。
+	   JS(buildTeraDropdown、damage-calc.ts)は左右で共有したまま変えず、CSSのdisplay:noneで
+	   このセクション限定の表示だけを外す(左パネルとのJS共有コードを変えずに済む)。
+	   ボタン・リストの高さはmin-height:2.35rem(上の.tera-dropdown-button定義)が支配して
+	   いるため、アイコン分の--icon-size-sm(20px)を消しても高さは変わらない(displayを
+	   noneにした子はflexのgap計算に含まれないため、アイコンぶんの隙間も残らない)。 */
+	#opponent-notes-section .tera-dropdown-image,
+	#opponent-notes-section .tera-dropdown-option-image {
+		display: none;
+	}
 	/* 持ち物画像: 名前行の横幅を圧迫しないよう、種族アイコンに小さなバッジとして重ねる
 	   (要件: テラスバッジ=右上と衝突しない対角に配置)。
 	   ラウンド8指摘(A-1由来): 以前はbottom:-6px/left:-6pxで名前inputとの継ぎ目に浮いて
@@ -1052,10 +1098,11 @@ const { pokemonId } = Astro.props;
 	   .damage-row-total-result限定でsafeの配色だけ確2(risky)と同じ値に上書きする
 	   (#opponent-notes-section+クラス+属性の詳細度でglobal.cssの
 	   .severity-bar[data-severity="safe"](クラス+属性のみ)より確実に優先する)。 */
+	/* UI改善ラウンド41ユーザー指示(41-D4)「確定数2系は黄色のままでよいが、3以上は薄青系に変更」により、39-D2の「safeもriskyと同じ色にする」という判断をこの範囲で撤回する。riskyの黄色系はそのまま維持し、safe(確3・確4・10発以上)だけ既存の--color-primary/--color-primary-soft/--color-primary-strong(ライト#27acd9系、global.css。他ページで既に「薄い青」として確立済みのトークン)を.severity-barの他severityと同じ「soft背景+base枠線+strong文字」の語彙に合わせて使う。新色は作らず、global.css自体も編集しない(このファイル側の上書きブロックの値変更だけで完結させる)。 */
 	#opponent-notes-section .damage-row-total-result[data-severity="safe"] {
-		background: var(--color-risky-soft);
-		border-left-color: var(--color-risky);
-		color: var(--color-risky-strong);
+		background: var(--color-primary-soft);
+		border-left-color: var(--color-primary);
+		color: var(--color-primary-strong);
 	}
 
 	/* アイコンボタンの共通規格(円形28px・shadow-sm)。「⚙詳細」も同じ理由でアイコンボタン化
@@ -1257,6 +1304,11 @@ const { pokemonId } = Astro.props;
 	   (.damage-row-techniques-row)の残り幅いっぱいに広げる(横スクロールが無くなった分、
 	   205px固定より遥かに広い実測290px前後を使えるようになり、可読性が上がる)。 */
 	#opponent-notes-section .damage-column {
+		/* UI改善ラウンド43ユーザー指示(43-D6)「技カードの削除ボタンを技カード右上に固定」の
+		   ため、この技カード自身を削除ボタン(.damage-column-remove-button、position:absolute)の
+		   包含ブロックにする(カード全体の削除ボタン.damage-row-delete-buttonが
+		   .card-damageを基準にするのと同じ考え方)。 */
+		position: relative;
 		width: 100%;
 		border: 1px solid var(--color-border);
 		border-radius: var(--radius-md);
@@ -1416,9 +1468,16 @@ const { pokemonId } = Astro.props;
 		   下限にして、それでも収まらない分はヒット回数側をflex-wrapで次行へ落とす。 */
 		min-width: 3.4em;
 	}
-	#opponent-notes-section .damage-column-move-row .damage-column-remove-button {
-		align-self: center;
-		flex: 0 0 auto;
+	/* UI改善ラウンド43ユーザー指示(43-D6)「技カードの削除ボタンを技カード右上に固定」により、
+	   .damage-column-remove-buttonはmoveRowの子ではなくなった(damage-calc.tsのrenderColumns
+	   参照、colへ直接appendする)。旧.damage-column-move-row .damage-column-remove-button
+	   (align-self/flex調整)は死んだセレクタになったため削除した。代わりに、技名input側が
+	   カード右上の削除ボタン(28px+余白)と重ならないよう、削除ボタンを持つ列
+	   (.damage-column.has-remove-button、row.attacks.length>1のときだけJSが付与)にだけ
+	   技名行の右padding-rightを確保する(ボタンが無い列=技が1つだけの行では不要な余白を
+	   作らないよう、無条件のクラス無し.damage-column-move-rowには適用しない)。 */
+	#opponent-notes-section .damage-column.has-remove-button .damage-column-move-row {
+		padding-right: 40px;
 	}
 	/* ラウンド12指摘(B-3): moveRowの子として同居するようになったヒット回数行。
 	   内容(数値入力+単位ラベル)ぶんの幅で確保し、収まらないときは行ごと折り返す
@@ -1548,10 +1607,35 @@ const { pokemonId } = Astro.props;
 		min-width: 0;
 		overflow-wrap: anywhere;
 	}
+	/* 🔴 UI改善ラウンド43ユーザー指示(43-D6)「技カードの削除ボタンを技カード右上に固定」により、
+	   moveRow内のインライン配置(align-self:flex-end等)を撤回し、カード全体の削除ボタン
+	   (.damage-row-delete-button、上方参照)と同じ考え方でposition:absoluteによりカード
+	   (.damage-column、position:relativeを追加済み)の右上へ固定する。サイズはJS側で
+	   className に .damage-row-icon-button を追加したため28px円形・shadow-sm規格を
+	   そのまま流用する(このルールでは位置・背景・ホバー色だけを定義する)。
+	   常時表示にするか判断が必要だったが、カード全体の削除ボタンが31-D2以降「常時表示+
+	   ホバー時のみ赤背景」方式に統一されているため、この技カード単位の削除ボタンも
+	   同じ表示方式に揃える(ホバー限定表示にはしない)。 */
 	#opponent-notes-section .damage-column-remove-button {
-		align-self: flex-end;
-		font-size: 0.78rem;
-		padding: 0.18em 0.45em;
+		position: absolute;
+		top: var(--space-2);
+		right: var(--space-2);
+		z-index: 2;
+		background: var(--color-surface);
+		border: 1px solid var(--color-border);
+		transition: background 0.15s, color 0.15s, border-color 0.15s;
+	}
+	#opponent-notes-section .damage-column-remove-button:hover:not(:disabled) {
+		background: var(--color-danger-strong);
+		color: var(--color-primary-contrast);
+		border-color: var(--color-danger-strong);
+	}
+	#opponent-notes-section .damage-column-remove-button:focus-visible {
+		outline: 2px solid var(--color-primary);
+		outline-offset: 2px;
+	}
+	@media (prefers-reduced-motion: reduce) {
+		#opponent-notes-section .damage-column-remove-button { transition: none; }
 	}
 	/* ラウンド6ユーザー指示(要件5): 技列が縦積みになったので、この「加算条件追加ボタン」も
 	   技列と同じ横幅いっぱいに広がる横長バーにする。3つに達すると無効化するだけでなく、
@@ -1560,21 +1644,25 @@ const { pokemonId } = Astro.props;
 	   ラウンド20ユーザー指示(20-D5、ラウンド8 A-3の「48px→約34pxに圧縮する」判断を撤回):
 	   技カード(.damage-column)と同じ幅・同じ高さにする。以前は「技列3枚と高さを揃える
 	   ため圧縮する」という理由でこのボタン1個だけpadding/font-sizeを削っていたが、
-	   ユーザーから「技カードの直下に、技カードと同じサイズで置く」と明示指示された。
-	   paddingを.damage-columnと同じ値にし、min-heightで技カード1枚ぶんの実測高さを
-	   確保する(実測値は下記コメント参照)。破線枠のままにして「まだ中身が無い枠」だと
-	   分かるようにし、技カードと混同されないようにする。 */
+	   ユーザーから「技カードの直下に、技カードと同じサイズで置く」と明示指示された結果、
+	   min-height: 92px(技カード1枚ぶんの実測高さ)にしていた。
+	   UI改善ラウンド41ユーザー指示(41-D2)「技を追加ボタンの高さをテキスト2段分に縮小」
+	   により、20-D5の「技カード1枚と同じ高さ」判断を撤回する。line-heightを明示せず
+	   bodyの1.6を継承していたため、まずline-height: var(--line-height-snug)(1.4)を
+	   明示したうえで、font-size(0.82rem)×line-height(1.4)×2行=2.296rem(≒36.7px)を
+	   基準行高とし、上下padding 0.4rem×2(=0.8rem、上限到達時の2行文言
+	   「技列は最大3つまでです」がそのまま収まる余地込み)を加えたmin-height 3.1rem
+	   (≒49.6px)に置き換える。クリック領域24×24px相当は幅100%×49.6pxで十分満たす
+	   (スクリーンショットで隣接する技カード・削除ボタンとの整列破綻が無いことを確認)。 */
 	#opponent-notes-section .damage-add-column-button {
 		width: 100%;
 		display: flex;
 		align-items: center;
 		justify-content: center;
 		gap: 0.35em;
-		padding: 0.3rem 0.5rem;
-		/* 実測(1920×1080、技列1枚のカードの.damage-column高さ)に合わせた値。
-		   技名入力1行+連続回数非表示+結果表示1行という最小構成の技カードと同程度になる
-		   よう調整している(playwrightでの実測手順はround-20の検証記録を参照)。 */
-		min-height: 92px;
+		padding: 0.4rem 0.5rem;
+		line-height: var(--line-height-snug);
+		min-height: 3.1rem;
 		font-size: 0.82rem;
 		font-weight: 600;
 		border: 1px dashed var(--color-border);
@@ -1736,8 +1824,10 @@ const { pokemonId } = Astro.props;
 		   だったが、27-R1で2列化自体を撤回済みのため理由は既に無い)。ベース宣言
 		   (margin: 1rem 0 0.4rem、上記参照)の下マージン0.4remの1.5倍(1.4〜1.6倍の中央値)
 		   にあたる0.6remを与え、見出し直下(ランク欄との間)に余白を追加する。
-		   下の.damage-detail-side-iconとgapで並べるため、display:flexにする(WCAG 1.4.1、
-		   29-R2参照)。 */
+		   29-R2で追加した.damage-detail-side-iconと並べるためdisplay:flex+gapにしていたが、
+		   UI改善ラウンド41ユーザー指示(41-R3)によりそのアイコン自体を削除した(下方参照)。
+		   見出しテキストのみの1子要素になった今もdisplay:flex/gapは無害なため、レイアウト
+		   変更を最小限にする目的でそのまま残す。 */
 		display: flex;
 		align-items: center;
 		gap: 0.35rem;
@@ -1759,32 +1849,14 @@ const { pokemonId } = Astro.props;
 	#damage-detail-panel-body .damage-detail-side + .damage-detail-side .damage-detail-side-heading-row .damage-detail-section-heading {
 		color: var(--color-primary-strong);
 	}
-	/* 色だけに依存しない代替(WCAG 1.4.1)。round-29.mdは「既存の攻撃/防御ボタン内で使っている
-	   アイコンを再利用」と指示しているが、実際の.damage-row-direction-option(カードの攻撃/
-	   防御トグル)にはアイコンが無く「攻撃」「防御」の2文字のみ(ラウンド26直前のコメント
-	   「絵文字⚔🛡も判断に委ねられていたが、両方が並んで見える形なら文字だけで十分伝わるため
-	   外した」参照)。再利用できる既存アイコンが実在しないため、実装者の判断として
-	   .stat-nature-btn(このファイル内、ラウンド20-L4で確立済みのborder-trickによる三角形)と
-	   同じ技法で、形の違う小さなマーカー(攻撃=三角形/防御=盾形のclip-path)を新設する。
-	   色はcurrentColorで見出しの文字色(上記、既存の赤/青トークン)をそのまま継承するため、
-	   ここでも新色は作らない。 */
-	#damage-detail-panel-body .damage-detail-side-icon {
-		flex-shrink: 0;
-		display: inline-block;
-		width: 11px;
-		height: 12px;
-	}
-	#damage-detail-panel-body .damage-detail-side-icon.is-attack {
-		width: 0;
-		height: 0;
-		border-top: 6px solid transparent;
-		border-bottom: 6px solid transparent;
-		border-left: 8px solid currentColor;
-	}
-	#damage-detail-panel-body .damage-detail-side-icon.is-defense {
-		background: currentColor;
-		clip-path: polygon(50% 0%, 100% 20%, 100% 55%, 50% 100%, 0% 55%, 0% 20%);
-	}
+	/* 色だけに依存しない代替(WCAG 1.4.1)として、以前はここに.damage-detail-side-icon
+	   (攻撃=三角形/防御=盾形のclip-path、round-29.md 29-R2で新設)を定義していたが、
+	   UI改善ラウンド41ユーザー指示(41-R3)「攻撃側と防御側の▲盾アイコンは不要」により
+	   このCSSも死んだセレクタとして削除する(right-panel.tsのsideIcon生成・
+	   heading2.append(sideIcon, ...)自体も同ラウンドで削除済み)。見出し文字色による
+	   赤(攻撃側)/青(防御側)の区別(上のCSSルール)は独立しているため引き続き残るが、
+	   このアイコン削除後は色分けだけが唯一の判別手段になる(将来ユーザーから同種の
+	   指摘(色だけでは分からない)が出た場合の参考にする)。 */
 	/* ラウンド23ユーザー指示(23-R3)「攻撃側と防御側の設定は、パネルを左右2分割して並べて
 	   配置」。既定(狭い幅)は縦積み、幅が十分あるときだけ2列グリッドにする。
 	   🔴 前提が実測で覆った点(重要): 当初は.damage-row-techniques-row等と同じ
@@ -2190,16 +2262,17 @@ const { pokemonId } = Astro.props;
 	/* 🔴 UI改善ラウンド32ユーザー指示(32-R1)「ヘッダの画像を少し大きく」により28px→32pxへ。
 	   round-31.mdの「アイコンサイズは/box /box/[id]の既存規格(20pxまたは28px)から選ぶ」は
 	   このR1自体がユーザー明示指示による例外(round-32.md「維持すべき点」に明記)。 */
+	/* UI改善ラウンド41ユーザー指示(41-R1)「ヘッダーのポケモン画像を+20%」により、32-R1で確立した32pxの120%=38.4pxへ拡大する(フォールバック用の-icon-fallbackも同じサイズに揃える)。 */
 	#damage-detail-panel-body .damage-detail-selection-icon {
-		width: 32px;
-		height: 32px;
+		width: 38.4px;
+		height: 38.4px;
 		object-fit: contain;
 		flex-shrink: 0;
 	}
 	#damage-detail-panel-body .damage-detail-selection-icon-fallback {
 		display: none;
-		width: 32px;
-		height: 32px;
+		width: 38.4px;
+		height: 38.4px;
 		border-radius: 50%;
 		flex-shrink: 0;
 		align-items: center;
@@ -2215,10 +2288,16 @@ const { pokemonId } = Astro.props;
 	   受け側)のときだけ.is-reversedクラスでtransform: scaleX(-1)して左向きにする(アイコンの
 	   左右位置は固定のまま矢印だけ反転する、という31-R1の実装方針を踏襲)。色はcurrentColorで
 	   --color-textを継承する(mutedより高コントラストにし「見やすさ」を上げる)。 */
+	/* UI改善ラウンド41ユーザー指示(41-R2)「ヘッダーの矢印は>>>のデザインに変更」により、right-panel.ts側のviewBoxを正方形(24×24)から横長(36×24)へ変えたのに合わせ、widthを22px×(36/24)=33pxへ広げる(高さ22pxは維持し、横だけ間延びさせる)。
+	   🔴 UI改善ラウンド43ユーザー指示(43-R1)「>>>の文字を少し小さくする」により、41-R2の
+	   サイズを一回り縮小する(41-R2自体は撤回しない。viewBox 0 0 36 24とscaleX(-1)の
+	   反転ロジックはそのまま)。33×22px→27×18px(viewBoxの比率3:2=36:24を維持したまま
+	   about18%縮小)。名前・矢印・相手アイコンとのバランスを見ながらの縮小のため、
+	   41-R1で+20%した相手アイコン(38.4px)より一回り小さい値にとどめている。 */
 	#damage-detail-panel-body .damage-detail-selection-arrow {
 		flex-shrink: 0;
-		width: 22px;
-		height: 22px;
+		width: 27px;
+		height: 18px;
 		color: var(--color-text);
 	}
 	#damage-detail-panel-body .damage-detail-selection-arrow.is-reversed {
@@ -2274,18 +2353,12 @@ const { pokemonId } = Astro.props;
 		background: var(--color-surface-alt);
 		margin-bottom: 0.6rem;
 	}
-	#opponent-notes-section .damage-empty-state-title {
-		margin: 0;
-		font-size: 1.05rem;
-		font-weight: 700;
-		color: var(--color-text);
-	}
-	#opponent-notes-section .damage-empty-state-hint {
-		margin: 0 0 0.3rem;
-		font-size: 0.85rem;
-		color: var(--color-text-muted);
-		max-width: 34em;
-	}
+	/* UI改善ラウンド42ユーザー指示(42-D1)「ヒント文削除」により、対応するJS側の
+	   hint要素(.damage-empty-state-hint、damage-calc.tsのbuildEmptyState参照)自体の
+	   生成をやめたため、このCSSルールは死んだセレクタになり削除した。
+	   UI改善ラウンド43ユーザー指示(43-D1)「"まだダメージ計算がありません"削除」により、
+	   見出し(.damage-empty-state-title、damage-calc.tsのbuildEmptyState参照)の
+	   生成・appendもやめたため、対応するこのCSSルールも死んだセレクタになり削除した。 */
 	#opponent-notes-section .damage-empty-state-cta {
 		font-size: 0.95rem;
 	}
@@ -2336,6 +2409,22 @@ const { pokemonId } = Astro.props;
 	   ここでtransformにより90度回転させる(展開中=aria-expanded="true"で反時計回り90度回転
 	   =上向き"^^"、折りたたみ中=aria-expanded="false"で時計回り90度回転=下向き"vv"。
 	   回転軸は円形ボタンの中心(transform-originの既定=50% 50%)のため位置は動かない)。 */
+	/* UI改善ラウンド41ユーザー指示(41-D3)「折りたたみの>>記号が小さくて見づらい。書式を調整」対応: 38-D5の「枠は表示しない」判断は維持したまま、共通の.damage-row-icon-button規格(28px円形・font-size 0.95rem)をこのボタンだけ上書きする。font-sizeを0.95rem→1.3remに拡大し、既定色も.btn-ghost由来のmuted(var(--color-text-muted))からコントラストの高いvar(--color-text)に変える(枠を足さずに視認性だけを上げる)。
+	   🔴 UI改善ラウンド43ユーザー指示(43-D7)「圧縮展開ボタンの>>を少し細字化する」により、
+	   41-D3のfont-weight:700部分だけを撤回する(font-size拡大・color変更は撤回しない)。
+	   700→600(セミボールドまで下げる。実測しながら「太すぎず視認性は保つ」バランスを探した
+	   結果、標準のfont-weight刻み=600を採用。500まで下げると28px円形の中でやや薄く見えたため
+	   600にとどめた)。
+	   🔴 UI改善ラウンド43ユーザー指示(43-D5)「削除・圧縮展開ボタンの丸枠が中央からずれている」対応の
+	   ため、font-size/font-weight/colorと回転transformを、ボタン自身ではなく内側の
+	   .damage-row-collapse-toggle-glyph(<script>のdamage-calc.tsで新設したspan)側へ移した。
+	   理由(実測で判明した誤り): 円形の背景(border-radius:50%)を持つボタン自身にtransformで
+	   translateYの補正を足しても、円という背景そのものが文字と一緒に平行移動するだけで
+	   「円の中の文字の位置」は一切変わらない(Playwrightで要素をスクリーンショットすると
+	   要素の post-transform bounding box に追随してクロップされるため、ボタン全体の平行移動は
+	   常に相殺されて見えなくなる。純粋な回転(rotate)は円が回転対称なため見た目上無害だが、
+	   translateはボタン単位では意味を持たない)。文字だけを含むglyph spanにtransformを
+	   掛けることで、円形の背景(ボタン自身)を動かさずに文字だけを中心へ寄せられる。 */
 	#opponent-notes-section .damage-row-collapse-toggle-button {
 		position: absolute;
 		bottom: var(--space-2);
@@ -2343,25 +2432,50 @@ const { pokemonId } = Astro.props;
 		z-index: 2;
 		background: var(--color-surface);
 		border: none;
-		transition: background 0.15s, color 0.15s, transform 0.15s;
+		transition: background 0.15s, color 0.15s;
 	}
-	#opponent-notes-section .damage-row-collapse-toggle-button[aria-expanded="true"] {
-		transform: rotate(-90deg);
+	#opponent-notes-section .damage-row-collapse-toggle-glyph {
+		display: inline-block;
+		font-size: 1.3rem;
+		font-weight: 600;
+		line-height: 1;
+		color: var(--color-text);
+		transition: transform 0.15s;
 	}
-	#opponent-notes-section .damage-row-collapse-toggle-button[aria-expanded="false"] {
-		transform: rotate(90deg);
+	/* 実測(Playwright screenshot + sharpによるインクピクセルの外接矩形分析、28px円形ボタンを
+	   deviceScaleFactor4で撮影): 削除ボタン(×)はボタン中心とインク中心の差がほぼ0
+	   (offset 0.5px/116px≈0.4%、無視できる範囲)だったが、この折りたたみトグル(»)は
+	   回転前(transform:none)の状態でインク中心がボタン中心よりY方向に約7.5px(4倍相当。
+	   論理px換算で約1.8px)下にずれていた(「»」グリフがフォントのem-box内でx-height寄りの
+	   低い位置に描画されるため、line-height基準の中央寄せでは幾何学的な円の中心と一致しない。
+	   41-D3でfont-sizeを1.3remへ拡大した際、この既存のズレも比例して拡大されたと見られる)。
+	   glyph span自身にtranslateY(-2px)で上方向へ補正してからrotateする(rotateより右に
+	   書くことで、transform関数合成の順序上translateYが先に=このspanのローカル座標系で
+	   効いた状態でrotateされる。CSSのtransformは右側の関数が先に点へ適用され、左側の関数が
+	   その結果へさらに適用されるため)。補正後、円の中心と文字のインク中心のズレが
+	   縮小したことをスクリーンショット実測で確認済み(報告参照)。 */
+	#opponent-notes-section .damage-row-collapse-toggle-button[aria-expanded="true"] .damage-row-collapse-toggle-glyph {
+		transform: rotate(-90deg) translateY(-2px);
+	}
+	#opponent-notes-section .damage-row-collapse-toggle-button[aria-expanded="false"] .damage-row-collapse-toggle-glyph {
+		transform: rotate(90deg) translateY(-2px);
 	}
 	#opponent-notes-section .damage-row-collapse-toggle-button:hover:not(:disabled) {
 		border-color: var(--color-primary);
-		color: var(--color-primary);
 		background: var(--color-primary-soft);
+	}
+	#opponent-notes-section .damage-row-collapse-toggle-button:hover:not(:disabled) .damage-row-collapse-toggle-glyph {
+		color: var(--color-primary);
 	}
 	#opponent-notes-section .damage-row-collapse-toggle-button:focus-visible {
 		outline: 2px solid var(--color-primary);
 		outline-offset: 2px;
 	}
 	@media (prefers-reduced-motion: reduce) {
-		#opponent-notes-section .damage-row-collapse-toggle-button { transition: none; }
+		#opponent-notes-section .damage-row-collapse-toggle-button,
+		#opponent-notes-section .damage-row-collapse-toggle-glyph {
+			transition: none;
+		}
 	}
 
 	/* 36-1: 折りたたみ時に代わりに出す「相手ポケモン名(読み取り専用)+攻守の向き」の
@@ -2401,20 +2515,45 @@ const { pokemonId } = Astro.props;
 	#opponent-notes-section .damage-row-collapsed-direction[data-role="defense"] {
 		background: var(--color-primary-strong);
 	}
-	/* 🔴 UI改善ラウンド38ユーザー指示(38-D6)「折りたたみ状態の情報量を増やす」。名前・攻守の
-	   下にもう1行だけ追加し、使用技名(row.attacks由来、<script>のrefreshCollapsedSummary参照)+
-	   設定中のテラスタイプ(あれば)を1行で示す。折りたたみ後の高さ上限(下の
-	   .card-damage[data-collapsed="true"] .damage-sprite-box、80px四方)を超えないよう、
-	   名前(0.92rem)・攻守バッジ(0.76rem)より一段小さいmutedな0.72remにして、1行・
-	   ellipsis省略に収める(3行合計の実測は<script>側の検証・報告を参照)。 */
-	#opponent-notes-section .damage-row-collapsed-moves {
-		font-size: 0.72rem;
-		color: var(--color-text-muted);
-		white-space: nowrap;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		max-width: 14em;
+	/* 🔴 UI改善ラウンド42ユーザー指示(42-D4/42-D5、38-D6を撤回): 旧.damage-row-collapsed-moves
+	   (名前・攻守の下に使用技名を「/」区切りで1行表示していた要素)は削除した。round-42.mdの
+	   「圧縮前後で情報の欠落が大きい」という総評を受け、使用技(ヒット数・詳細設定込み)は
+	   左側のこの1行では表現しきれないと判断し、右側の技列領域に新設する3段表示
+	   (.damage-row-collapsed-techniques、下方参照)へ役割を移した。左側(この
+	   .damage-row-collapsed-summary)には代わりに、42-D4が要件とする「H/A/B/C/D/Sの
+	   実数値のみ」の行を追加する(種族値・努力値・スライダーは出さない。下の
+	   .damage-row-collapsed-stats参照)。特性名はこのラウンドの指示に明記が無いため、
+	   実装者判断で表示しない(340px幅に名前・攻守バッジ・実数値6つを収める時点で
+	   十分密になっており、特性名まで足すと1行に収まらず可読性を損なうと判断した)。 */
+	/* 実測(round-42.md検証): flex-wrapまかせの1コンテナだと、実数値の桁数の違いだけで
+	   6項目のうち1項目だけ2行目に孤立して折り返り、行ごとにカード高さが不揃いになる
+	   事故があった。H/A/B(1行目)・C/D/S(2行目)を固定行(.damage-row-collapsed-stats-line、
+	   flex-wrap無し)にし、常に2行・同じ高さになるようにする。 */
+	#opponent-notes-section .damage-row-collapsed-stats {
+		display: flex;
+		flex-direction: column;
+		row-gap: 0.1rem;
+		margin-top: 0.1rem;
 	}
+	#opponent-notes-section .damage-row-collapsed-stats-line {
+		display: flex;
+		column-gap: 0.5em;
+	}
+	#opponent-notes-section .damage-row-collapsed-stat {
+		display: inline-flex;
+		align-items: baseline;
+		gap: 0.2em;
+		font-size: 0.82rem;
+		color: var(--color-text);
+	}
+	#opponent-notes-section .damage-row-collapsed-stat-key {
+		font-weight: 700;
+		color: var(--color-text-muted);
+	}
+	/* 性格補正による上昇/下降は、努力値グリッドの実数値(.damage-stat-value[data-mod])と
+	   同じ色トークンをそのまま流用する(新色を作らない)。 */
+	#opponent-notes-section .damage-row-collapsed-stat-value[data-mod="up"] { color: var(--stat-up); }
+	#opponent-notes-section .damage-row-collapsed-stat-value[data-mod="down"] { color: var(--stat-down); }
 
 	/* 36-1: 折りたたみ状態そのもの(<script>のsetCollapsed/applyCollapsedStateが
 	   root.dataset.collapsed = "true"/"false" を切り替える)。
@@ -2431,10 +2570,11 @@ const { pokemonId } = Astro.props;
 	#opponent-notes-section .card-damage[data-collapsed="true"] .damage-row-body {
 		align-items: center;
 	}
-	#opponent-notes-section .card-damage[data-collapsed="true"] .damage-row-build {
-		flex: 0 0 auto;
-		width: auto;
-	}
+	/* 🔴 UI改善ラウンド42ユーザー指示(42-D4)「圧縮後も左右のビルド/ダメージの幅の配分を
+	   維持する」により、旧・折りたたみ限定の上書き(flex: 0 0 auto; width: auto;、
+	   内容量ぶんの幅266.84pxまで縮めていた)を撤回する。基底ルール(上方の
+	   #opponent-notes-section .damage-row-build、flex: 0 1 340px; width: 340px;)を
+	   折りたたみ時にも適用したままにする(展開時と同じ340px配分を維持)。 */
 	/* 🔴 UI改善ラウンド39ユーザー指示(39-D4)により、.damage-row-build-mainのalign-itemsは
 	   展開/折りたたみ両状態でcenterに統一された(基底ルール、上方の.damage-row-build-main
 	   参照)ため、この折りたたみ限定の上書き(以前はここでだけcenterにしていた)は
@@ -2448,28 +2588,137 @@ const { pokemonId } = Astro.props;
 	#opponent-notes-section .card-damage[data-collapsed="true"] .damage-row-collapsed-summary {
 		display: flex;
 	}
+	/* 🔴 UI改善ラウンド42ユーザー指示(42-D4)「アイテム・テラスタルはアイコンのみ」対応。
+	   round-42.mdは「既存のアイコンが『見える状態』になっていることを確認してください」と
+	   指示しているが、実測したところ.damage-type-badge(テラスタイプ専用バッジ)は
+	   ラウンド31ユーザー指示(31-D4a)「ポケモン画像の右上の表示を廃止」により常時
+	   display:noneのままだった(上方の#opponent-notes-section .damage-type-badge参照)。
+	   つまり展開時・折りたたみ時のどちらでも現状は非表示で、42-D4の要件(テラスタルを
+	   アイコンで見せる)を満たしていない。31-D4aは展開時の見た目を意図した決定であり、
+	   これをこのラウンドで全面的に覆すのはスコープ外と判断し、折りたたみ状態限定で
+	   このバッジだけ再度見せる(展開時は31-D4aのまま非表示を維持する)。テラスタイプ
+	   未設定の個体はapplyTeraImage()がimg/fallback両方をdisplay:noneにするため、
+	   バッジを見せても実害(空バッジ)は出ない。 */
+	#opponent-notes-section .card-damage[data-collapsed="true"] .damage-type-badge {
+		display: flex;
+	}
 	/* 「現在のポケモンアイコンの高さ」(実測147.66px、round-36.md参照)は元々折りたたみ後の
 	   カード全体の高さ上限の基準として、80px四方への縮小をここ(折りたたみ限定)だけに
 	   適用していた。🔴 UI改善ラウンド39ユーザー指示(39-D4)「圧縮後のデザインを展開状態にも
 	   適用する」により、この80×80は基底ルール(上方の.damage-sprite-box参照)へ統合済みの
 	   ため、この折りたたみ限定の上書きは基底と同値になり冗長になった。削除する。 */
 
+	/* 🔴 UI改善ラウンド42ユーザー指示(42-D5)「ダメージカードは3段表示。1段目は技名、
+	   2段目に詳細設定、3段目に累計の結果」。右側(技列領域)の折りたたみ時の表示を
+	   新設する(damage-calc.tsのrenderRow、collapsedTechniques/refreshCollapsedTechniques
+	   参照)。1段目(.damage-row-collapsed-move-list)・2段目(.damage-row-collapsed-detail-line)は
+	   このブロックで新規に定義する。3段目は既存の.damage-row-total(.damage-row-total-result)
+	   をそのまま流用するため、ここでは新規CSSを追加しない(壊してはいけないクラス名、
+	   pitfalls.md参照)。既定(展開状態)は非表示、折りたたみ時だけ縦積みで見せる。 */
+	#opponent-notes-section .damage-row-collapsed-techniques {
+		display: none;
+	}
+	#opponent-notes-section .card-damage[data-collapsed="true"] .damage-row-collapsed-techniques {
+		display: flex;
+		flex-direction: column;
+		gap: 0.1rem;
+		min-width: 0;
+	}
+	/* 1段目: 技名(+複数回ヒットする技には"(N発)"を付記)。「 + 」区切りで連結する
+	   (round-42.mdの例「スケイルショット(5発) + フレアドライブ」どおり)。技列が
+	   複数ある場合に長くなりすぎたらellipsisで省略し、title属性でフルテキストを保持する
+	   (旧.damage-row-collapsed-movesと同じ考え方)。 */
+	#opponent-notes-section .damage-row-collapsed-move-list {
+		margin: 0;
+		font-size: 0.85rem;
+		font-weight: 700;
+		color: var(--color-text);
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+	/* 2段目: 詳細設定(ランク補正・状態異常・テラスタル発動・急所・揮発状態等)。
+	   技列(damage-column)ごとに値が異なりうるため、複数列あるときは列番号
+	   (.damage-column-order-labelと同じ1始まりの番号)を先頭に付けて列ごとに区切る
+	   (「列ごとに異なる設定があるのに1つにまとめて誤解を招く」ことを避けるための
+	   実装者判断、round-42.md 42-D5の制約参照)。すべての列が既定値(チップ無し)の
+	   ときはこの段自体をJS側でhidden=trueにする(空段を確保しない)。既存の
+	   .damage-condition-chip(技列側の条件チップ)と同じmuted色調で揃え、新しい語彙は
+	   作らない。1行に収まらない場合はellipsis+titleでフルテキストを保持する。 */
+	#opponent-notes-section .damage-row-collapsed-detail-line {
+		margin: 0;
+		font-size: 0.76rem;
+		color: var(--color-text-muted);
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+	#opponent-notes-section .damage-row-collapsed-detail-line[hidden] {
+		display: none;
+	}
+
 	/* UI改善ラウンド38ユーザー指示(38-H1)「すべて折りたたむ・展開するボタンをヘッダーに
 	   移動。単一ボタンで交互に切り替える」でボタンをsrc/pages/box/[id].astro の
-	   <Fragment slot="topbar-actions">(AppLayoutの共通トップバー)へ一度移設したが、
-	   🔴 UI改善ラウンド40ユーザー指示(40-H1)「ダメージカード領域の上に置く」により撤回し、
-	   #opponent-notes-section内(#damage-rows-list直上、上のテンプレート参照)へ戻した。
-	   #id指定なのでセレクタ自体は#opponent-notes-section接頭辞の有無に関わらず一意に効くが、
-	   置き場所が明確になったため接頭辞を付けて他のこのセクション内ルールと並びを揃える。
+	   <Fragment slot="topbar-actions">(AppLayoutの共通トップバー)へ一度移設し、
+	   ラウンド40ユーザー指示(40-H1)「ダメージカード領域の上に置く」により撤回して
+	   #opponent-notes-section内(#damage-rows-list直上)へ戻していたが、UI改善ラウンド41
+	   ユーザー指示(41-H1)「X位置はそのままでヘッダへ移す」により再びsrc/pages/box/[id].astro
+	   の<Fragment slot="topbar-actions">へ移設する(このファイルのdamage-rows-toolbar div/
+	   damage-collapse-toggle-buttonのマークアップは撤去済み、上のテンプレート参照)。
+	   「X位置はそのまま」の実測対応: 移動前(#opponent-notes-section内、右寄せ)の
+	   #damage-collapse-toggle-buttonは1920px基準でgetBoundingClientRect().left=1376.78125px
+	   だった(round-41.md 41-H1、Playwright実測)。ヘッダー内の.app-topbar-actionsは通常の
+	   flexで他の項目(削除ボタン)と右寄せに並ぶため、単純にDOM上だけ移してもこのX座標には
+	   ならない。移設後もこのX座標を維持するため、position:fixedで直接その左端座標を再現する
+	   (このボタンはこのラウンドのターゲットであるPC/フルHD(1920px)専用の絶対座標指定であり、
+	   他の幅での厳密な位置一致は保証しない)。垂直方向はトップバーの実高さ
+	   var(--topbar-height、global.css定義・デスクトップ65px)の中央に合わせる。.app-topbar
+	   自体はposition:stickyだが、position:fixedの包含ブロックはtransform等の包含ブロック
+	   生成プロパティを持たないsticky祖先の影響を受けない(spec上fixedの包含ブロックは
+	   初期包含ブロック=ビューポートのまま)ため、left/topはビューポート基準でよい。
+	   z-indexは.app-topbar(20、global.css)より高くし、ヘッダー内で確実に前面に来るようにする。
 	   フォントサイズ・disabled時の見た目以外はglobal.cssの.btn-ghostに委ねる
 	   (このページ固有の上書きを最小限にする)。 */
-	#opponent-notes-section .damage-rows-toolbar {
-		display: flex;
-		justify-content: flex-end;
-		margin-bottom: 0.4rem;
-	}
 	#damage-collapse-toggle-button {
+		position: fixed;
+		left: 1376.78px;
+		top: calc(var(--topbar-height) / 2);
+		transform: translateY(-50%);
+		z-index: 21;
 		font-size: 0.86rem;
+		/* UI改善ラウンド43ユーザー指示(43-H1)「すべて折りたたむ・すべて展開ボタンにも>>記号を
+		   追加(左端)」。chevron(左端)+label(既存の文言)の2要素構成にしたため
+		   (box/[id].astroの<Fragment slot="topbar-actions">参照、damage-calc.tsの
+		   updateCollapseToggleButtonLabelがlabelSpanのtextContentだけを差し替える)、
+		   横並びにするためdisplay:flexにする(元は単一テキストノードでbutton既定のinline
+		   flowのままでよかったが、chevronとlabelの間隔をgapで安定させるためflex化する)。 */
+		display: flex;
+		align-items: center;
+		gap: 0.32em;
+	}
+	/* 個別カードの折りたたみボタン(.damage-row-collapse-toggle-button、既存)と同じ「»」グリフ・
+	   回転ロジックを流用する(43-H1「既存の折りたたみシェブロンと統一した記号」「個別カードの
+	   折りたたみボタンと同じ回転ロジックが使えるなら流用する」)。「現在すべて折りたたまれて
+	   いない(=aria-expanded="true")」を個別ボタンの「展開中=上向き」と同じ向きに対応させる。
+	   43-D5(丸枠と記号の中心ズレ補正)・43-D7(font-weightを細く)はこのヘッダーボタンには
+	   適用対象外(41-D3/41-D5の対象は行単位の.damage-row-collapse-toggle-buttonのみ)だが、
+	   新規に追加するこのchevronも視認性のため同じfont-size 1.3rem・font-weight 600を
+	   最初から採用する(新しい規格を作らず、43-D7で調整済みの値をそのまま流用)。 */
+	#damage-collapse-toggle-button .damage-collapse-toggle-chevron {
+		display: inline-block;
+		font-size: 1.3rem;
+		font-weight: 600;
+		line-height: 1;
+		transition: transform 0.15s;
+	}
+	#damage-collapse-toggle-button[aria-expanded="true"] .damage-collapse-toggle-chevron {
+		transform: rotate(-90deg);
+	}
+	#damage-collapse-toggle-button[aria-expanded="false"] .damage-collapse-toggle-chevron {
+		transform: rotate(90deg);
+	}
+	@media (prefers-reduced-motion: reduce) {
+		#damage-collapse-toggle-button .damage-collapse-toggle-chevron { transition: none; }
 	}
 </style>
 <script>

@@ -89,14 +89,18 @@ export function closeDetailPanelOverlay(): void {
 // 実際に押せる操作(相手ポケモンの登録)を指す文言に差し替える(round-29.mdの
 // 提案例をそのまま採用)。あわせて.damage-detail-panel-body-innerでラップし、
 // margin-block:autoによる上下中央寄せ(29-R1)の対象にする。
+// 🔴 UI改善ラウンド42ユーザー指示(42-R1)「"相手ポケモンを登録すると、ここに設定が
+// 表示されます。"削除」により、このヒント文(<p class="damage-detail-panel-empty">)の
+// 生成・appendを削除する。空の.damage-detail-panel-body-innerだけが残る形でよい
+// (round-42.md 42-R1の対応どおり)。⚠️ この文言はRightPanel.astroの静的マークアップ
+// (JS初期化前のフォールバック、#damage-detail-panel-body .damage-detail-panel-empty)
+// にも同じ文言が存在するが、RightPanel.astroはこのラウンドの編集対象ファイル一覧に
+// 含まれていない(担当外ファイル)ため、このファイル(JS生成側)だけを直す。
+// 静的マークアップ側の削除は別途担当者が行う必要がある(報告に明記)。
 export function renderDetailPanelEmpty(): void {
 	detailPanelBodyEl.innerHTML = "";
 	const inner = document.createElement("div");
 	inner.className = "damage-detail-panel-body-inner";
-	const p = document.createElement("p");
-	p.className = "damage-detail-panel-empty";
-	p.textContent = "相手ポケモンを登録すると、ここに設定が表示されます。";
-	inner.appendChild(p);
 	detailPanelBodyEl.appendChild(inner);
 }
 
@@ -280,12 +284,13 @@ export function buildSideSection(
 	// 見出しの文言自体は変えず(28-R3のユーザー指示に抵触するため)、区切り線・
 	// ラベル文字色をカードの攻撃/防御トグルと同じ赤/青トークンに転用する(CSS側の
 	// .damage-detail-sides / .damage-detail-side + .damage-detail-side 参照)。
-	// 色だけに依存しない代替(WCAG 1.4.1)として、既存アイコンの転用が実在しない
-	// ため(実装者の判断、CSS側コメント参照)新設した形状マーカーを見出し直後に添える。
-	const sideIcon = document.createElement("span");
-	sideIcon.className = `damage-detail-side-icon ${title === "攻撃側" ? "is-attack" : "is-defense"}`;
-	sideIcon.setAttribute("aria-hidden", "true");
-	heading2.append(sideIcon, document.createTextNode(title));
+	// 色だけに依存しない代替(WCAG 1.4.1)として、以前は既存アイコンの転用が実在しない
+	// ため新設した形状マーカー(.damage-detail-side-icon、▲/盾形)を見出し直後に
+	// 添えていたが、UI改善ラウンド41ユーザー指示(41-R3)「攻撃側と防御側の▲盾アイコンは
+	// 不要」により削除する。見出し文字色による赤(攻撃側)/青(防御側)の区別自体
+	// (このsideIconとは独立したCSSルール、上のコメント参照)は残るため、色分けが
+	// 唯一の判別手段になる点は報告に明記する。
+	heading2.append(document.createTextNode(title));
 	headingRow.appendChild(heading2);
 
 	const rankField = document.createElement("div");
@@ -689,15 +694,22 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 		// ときだけCSSのtransform: scaleX(-1)(.is-reversed、上のCSS参照)で反転する。
 		// 31-R1で確立した「矢印の向きがdirectionに追随する」挙動(攻撃カードで
 		// 「→」、防御カードで「←」)は壊さない。
+		// UI改善ラウンド41ユーザー指示(41-R2)「ヘッダーの矢印は>>>のデザインに変更」により、
+		// 32-R1の単一シェブロン(シャフト+矢じり1個)から、シャフトの無い三重シェブロン
+		// (">"形状のパスを3つ横に並べる)へ作り替える。1個ぶんの">"形状(幅6・高さ12、
+		// 中心yは元の矢印と同じ12)を12単位間隔で3つ並べるため、viewBoxを正方形(24×24)から
+		// 横長(36×24、高さ22pxは維持しつつ幅だけ広げる)に変える。色(currentColorで
+		// --color-text継承)・is-reversedによるscaleX(-1)反転ロジックはそのまま流用する
+		// (3つとも同じ向きの相似形なので、反転させても3つまとめて正しく逆向きになる)。
 		const arrowNs = "http://www.w3.org/2000/svg";
 		const arrow = document.createElementNS(arrowNs, "svg");
 		arrow.setAttribute("class", "damage-detail-selection-arrow");
 		arrow.setAttribute("aria-hidden", "true");
-		arrow.setAttribute("viewBox", "0 0 24 24");
+		arrow.setAttribute("viewBox", "0 0 36 24");
 		arrow.setAttribute("focusable", "false");
 		if (!isSelfAttacking) arrow.classList.add("is-reversed");
 		const arrowPath = document.createElementNS(arrowNs, "path");
-		arrowPath.setAttribute("d", "M4 12h15m0 0-6-6m6 6-6 6");
+		arrowPath.setAttribute("d", "M2 6L8 12L2 18M14 6L20 12L14 18M26 6L32 12L26 18");
 		arrowPath.setAttribute("fill", "none");
 		arrowPath.setAttribute("stroke", "currentColor");
 		arrowPath.setAttribute("stroke-width", "2.5");

@@ -434,8 +434,173 @@ if (form) {
 	updateItemTitle();
 	updateItemNameDisplay();
 	// UI改善ラウンド34ユーザー指示(34-C1): 再クリック時に他の持ち物候補が隠れてしまう
-	// ネイティブdatalistフィルタを回避する(上のsetupDatalistRefocus参照)。
+	// ネイティブdatalistフィルタを回避する(上のsetupDatalistRefocus参照)。#itemはこの後
+	// hidden化する(下記41-L1参照)ため、これ以降ユーザーが直接クリックすることは無くなるが、
+	// 挙動自体は無害なので変更しない。
 	setupDatalistRefocus(itemInput, el<HTMLDataListElement>("item-list"));
+
+	// UI改善ラウンド41ユーザー指示(41-L1)「アイテム選択ボックスもテラスタルと同様に、
+	// 選択肢をアイコン+テキストで表示」。テラス側(下のteraSelect一式、buildTeraDropdown相当)を
+	// 参照実装にする。#item(上のitemInput、LeftPanel.astro側でhidden化済み)は保存経路の
+	// 実体として残し、値の変更はitemInput.value経由のまま(buildPayloadは変えない)。
+	// テラス(19種、SSR時に<select>へ全option埋め込み済み)と違い、アイテムは候補が
+	// #item-list(datalist、loadAutocomplete()がitems.jsonから流し込む、270件規模)にしか
+	// 無く、しかも非同期取得のため、初回ドロップダウンを開いたタイミングで1回だけ
+	// <li>一覧を構築する(遅延構築。ページ表示直後に270件ぶんのアイコン画像を全部
+	// フェッチするコストを避けるため)。絞り込み入力(#item-dropdown-search)は既存の
+	// 「アイテム名を打って絞り込む」操作性を維持するための追加要素(テラスには無い)。
+	const itemDropdownButton = el<HTMLButtonElement>("item-dropdown-button");
+	const itemDropdownImage = el<HTMLImageElement>("item-dropdown-image");
+	const itemDropdownPlaceholder = el<HTMLElement>("item-dropdown-placeholder");
+	const itemDropdownPanel = el<HTMLElement>("item-dropdown-panel");
+	const itemDropdownSearch = el<HTMLInputElement>("item-dropdown-search");
+	const itemDropdownListEl = el<HTMLUListElement>("item-dropdown-list");
+
+	// #item-listはloadAutocomplete()(autocompleteReadyPromise)が非同期でoptionを流し込むため、
+	// getAllMoveNames()(上記rebuildMoveListForSpecies参照)と同じパターンで一度だけ読み取って
+	// キャッシュする。
+	let itemOptionNamesCache: string[] | null = null;
+	async function getItemOptionNames(): Promise<string[]> {
+		await autocompleteReadyPromise;
+		if (!itemOptionNamesCache) {
+			itemOptionNamesCache = Array.from(el<HTMLDataListElement>("item-list").options).map((o) => o.value);
+		}
+		return itemOptionNamesCache;
+	}
+
+	const itemDropdownOptionEls: { value: string; li: HTMLLIElement }[] = [];
+	const itemDropdownEmptyEl = document.createElement("li");
+	itemDropdownEmptyEl.className = "item-dropdown-empty";
+	itemDropdownEmptyEl.textContent = "該当する持ち物がありません";
+	itemDropdownEmptyEl.setAttribute("aria-disabled", "true");
+	itemDropdownEmptyEl.hidden = true;
+
+	function selectItem(value: string): void {
+		if (itemInput.value !== value) {
+			itemInput.value = value;
+			// textInputIds(scheduleSave)・statAffectingIds(recalcStats)の両方に"item"が
+			// 登録されているため(下記参照)、input/changeの両方を発火させる必要がある。
+			itemInput.dispatchEvent(new Event("input"));
+			itemInput.dispatchEvent(new Event("change"));
+		}
+		closeItemDropdown();
+	}
+
+	let itemDropdownBuilt = false;
+	async function buildItemDropdownOptions(): Promise<void> {
+		if (itemDropdownBuilt) return;
+		itemDropdownBuilt = true;
+		const names = await getItemOptionNames();
+		const fragment = document.createDocumentFragment();
+		// テラスの「テラスなし」(value="")と同じ扱いで、持ち物を外す選択肢を先頭に置く
+		// (ドロップダウン化に伴い、候補一覧から選ぶだけでは持ち物を空にする操作が失われて
+		// しまうため、テラス実装に倣い明示的な「持ち物なし」項目を追加する)。
+		{
+			const li = document.createElement("li");
+			li.className = "item-dropdown-option";
+			li.setAttribute("role", "option");
+			li.tabIndex = -1;
+			li.dataset.value = "";
+			li.setAttribute("aria-label", "持ち物なし");
+			const textEl = document.createElement("span");
+			textEl.className = "item-dropdown-option-text";
+			textEl.textContent = "持ち物なし";
+			li.appendChild(textEl);
+			li.addEventListener("click", () => selectItem(""));
+			fragment.appendChild(li);
+			itemDropdownOptionEls.push({ value: "", li });
+		}
+		for (const value of names) {
+			const li = document.createElement("li");
+			li.className = "item-dropdown-option";
+			li.setAttribute("role", "option");
+			li.tabIndex = -1;
+			li.dataset.value = value;
+			li.setAttribute("aria-label", value);
+			const imgEl = document.createElement("img");
+			imgEl.className = "item-dropdown-option-image";
+			imgEl.alt = "";
+			void applyItemImage(imgEl, value);
+			li.appendChild(imgEl);
+			const textEl = document.createElement("span");
+			textEl.className = "item-dropdown-option-text";
+			textEl.textContent = value;
+			li.appendChild(textEl);
+			li.addEventListener("click", () => selectItem(value));
+			fragment.appendChild(li);
+			itemDropdownOptionEls.push({ value, li });
+		}
+		itemDropdownListEl.appendChild(fragment);
+		itemDropdownListEl.appendChild(itemDropdownEmptyEl);
+	}
+
+	function filterItemDropdown(): void {
+		const query = itemDropdownSearch.value.trim().toLowerCase();
+		let anyVisible = false;
+		for (const opt of itemDropdownOptionEls) {
+			const match = query === "" || opt.value.toLowerCase().includes(query);
+			opt.li.hidden = !match;
+			if (match) anyVisible = true;
+		}
+		itemDropdownEmptyEl.hidden = anyVisible;
+	}
+	itemDropdownSearch.addEventListener("input", filterItemDropdown);
+
+	function closeItemDropdown(): void {
+		itemDropdownPanel.hidden = true;
+		itemDropdownButton.setAttribute("aria-expanded", "false");
+	}
+	async function openItemDropdown(): Promise<void> {
+		await buildItemDropdownOptions();
+		itemDropdownSearch.value = "";
+		for (const opt of itemDropdownOptionEls) {
+			opt.li.classList.toggle("is-active", opt.value === itemInput.value);
+			opt.li.hidden = false;
+		}
+		itemDropdownEmptyEl.hidden = true;
+		itemDropdownPanel.hidden = false;
+		itemDropdownButton.setAttribute("aria-expanded", "true");
+		itemDropdownSearch.focus();
+	}
+	itemDropdownButton.addEventListener("click", () => {
+		if (itemDropdownPanel.hidden) void openItemDropdown();
+		else closeItemDropdown();
+	});
+	// リストの外側をクリックしたら閉じる(#tera-dropdown-listと同じ一般的な挙動)。
+	document.addEventListener("click", (e) => {
+		if (itemDropdownPanel.hidden) return;
+		const target = e.target as Node;
+		if (itemDropdownButton.contains(target) || itemDropdownPanel.contains(target)) return;
+		closeItemDropdown();
+	});
+	itemDropdownButton.addEventListener("keydown", (e) => {
+		if (e.key === "Escape") closeItemDropdown();
+	});
+	itemDropdownSearch.addEventListener("keydown", (e) => {
+		if (e.key === "Escape") {
+			closeItemDropdown();
+			itemDropdownButton.focus();
+		}
+	});
+
+	// ボタン(閉じた状態)に現在選択中の持ち物を表示する(テラスのupdateTeraDropdownButtonと
+	// 同じ役割)。
+	function updateItemDropdownButton(): void {
+		const value = itemInput.value.trim();
+		const isUnselected = value === "";
+		itemDropdownButton.classList.toggle("is-item-unselected", isUnselected);
+		itemDropdownButton.setAttribute("aria-label", value ? `持ち物: ${value}` : "持ち物: 未選択");
+		itemDropdownPlaceholder.classList.toggle("is-item-value-text", !isUnselected);
+		if (isUnselected) {
+			itemDropdownImage.style.display = "none";
+			itemDropdownPlaceholder.textContent = "持ち物なし";
+			return;
+		}
+		itemDropdownPlaceholder.textContent = value;
+		void applyItemImage(itemDropdownImage, value);
+	}
+	itemInput.addEventListener("input", updateItemDropdownButton);
+	updateItemDropdownButton();
 
 	// ラウンド21ユーザー指示(21-L5): 特性はそのポケモンに属する特性だけを候補とする
 	// <select>にする(予測変換のinput/datalistは不要という指示のため撤去)。種族が
@@ -507,9 +672,16 @@ if (form) {
 		updateItemImage();
 		updateItemTitle();
 		updateItemNameDisplay();
+		updateItemDropdownButton();
 		scheduleSave();
 		void recalcStats();
 		flashAutofillHint(itemInput, () => updateItemTitle());
+		// UI改善ラウンド41ユーザー指示(41-L1)で#item自体をhidden化したため、
+		// flashAutofillHint()がitemInputに付ける視覚的なハイライト(border-color+box-shadow)は
+		// 見えなくなった。表示を担う#item-dropdown-button側にも同じ視覚言語(既存の
+		// #edit-form #item.is-autofilledと同じトークン、上記CSS参照)で一時的にハイライトする。
+		itemDropdownButton.classList.add("is-autofilled");
+		window.setTimeout(() => itemDropdownButton.classList.remove("is-autofilled"), 1400);
 	}
 	speciesInput.addEventListener("change", () => {
 		void rebuildAbilityOptions(speciesInput.value.trim());
@@ -1038,12 +1210,32 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 	titleEl.textContent = "技を選択";
 	headerEl.appendChild(titleEl);
 
+	// UI改善ラウンド41ユーザー指示(41-L4)。
+	// 1. 文言修正: 「覚える技だけ表示する」→「覚える技のみ表示」。
+	// 2. 見た目をチェックボックスからトグルスイッチに変更する(このプロジェクトに既存の
+	//    toggle/switch規格が無いことをgrepで確認済み。LeftPanel.astro側の<style is:global>に
+	//    汎用の.toggle-switch一式を新規に作った)。<input type="checkbox">自体は
+	//    visually-hidden化するだけで、checked状態・change イベント・aria-labelは
+	//    一切変えない(下のtoggleInput参照はこれまでどおり)。
 	const toggleLabel = document.createElement("label");
 	toggleLabel.className = "move-picker-toggle";
+	const toggleSwitchEl = document.createElement("span");
+	toggleSwitchEl.className = "toggle-switch";
 	const toggleInput = document.createElement("input");
 	toggleInput.type = "checkbox";
+	toggleInput.className = "toggle-switch-input";
 	toggleInput.checked = true;
-	toggleLabel.append(toggleInput, document.createTextNode("覚える技だけ表示する"));
+	toggleInput.setAttribute("aria-label", "覚える技のみ表示");
+	const toggleTrackEl = document.createElement("span");
+	toggleTrackEl.className = "toggle-switch-track";
+	toggleTrackEl.setAttribute("aria-hidden", "true");
+	const toggleThumbEl = document.createElement("span");
+	toggleThumbEl.className = "toggle-switch-thumb";
+	toggleTrackEl.appendChild(toggleThumbEl);
+	toggleSwitchEl.append(toggleInput, toggleTrackEl);
+	const toggleTextEl = document.createElement("span");
+	toggleTextEl.textContent = "覚える技のみ表示";
+	toggleLabel.append(toggleSwitchEl, toggleTextEl);
 	headerEl.appendChild(toggleLabel);
 
 	const closeButton = document.createElement("button");
@@ -1444,18 +1636,30 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 			if (r.width <= 0 || r.height <= 0) continue;
 			if (r.bottom > positionedBottom) positionedBottom = r.bottom;
 		}
-		// UI改善ラウンド40ユーザー指示(40-L3-2)追記: 性格補正の上下ボタン
-		// (.stat-nature-up/.stat-nature-down、stat-tableの各行)がこのウィンドウより
-		// 手前に表示されるバグを実測(Playwright、document.elementFromPoint・実スクリーン
-		// ショットの両方)で確認した。このボタン自身はposition:staticのまま(getComputedStyle
-		// で実測済み)で、祖先チェーン(.stat-row-label→.stat-row→.stat-table→…→body)も
-		// すべてposition:static・z-index:auto・transform/opacity/filter/will-change/
-		// contain/isolationいずれも既定値であることを1つずつ実測したが、それでも実際の
-		// ページでは(position:fixedであるはずの)このウィンドウより手前に描画される
-		// (同じ入れ子構造を持たない最小再現ページでは、position:fixedの要素が正しく
-		// 手前に来ることも確認済みのため、このアプリ固有の何らかの描画順要因があると
-		// 見られるが、根本原因は特定できていない=未確認)。上のposition!=staticの走査
-		// だけではこの2クラスを拾えないため、position値に関係なく明示的に対象へ加える。
+		// UI改善ラウンド40ユーザー指示(40-L3-2)追記、ラウンド41ユーザー指示(41-L2)で根本原因を
+		// 特定・是正済み: 性格補正の上下ボタン(.stat-nature-up/.stat-nature-down、
+		// stat-tableの各行)がこのウィンドウより手前に表示されるバグがあった。
+		// 【根本原因(41-L2で特定)】ボタン自身・祖先はすべてposition:static・z-index:auto・
+		// transform/opacity/willChange/contain/isolationいずれも既定値だったが、押下時
+		// (aria-pressed="true")の縁取り表現にfilter: drop-shadow(...)を::beforeへ適用して
+		// いた。filterはスタッキングコンテキストを生成するプロパティで、実測(Playwright、
+		// document.elementFromPoint)したところ、この::beforeのfilterが**ホスト要素
+		// (.stat-nature-btn自身)を暗黙にスタッキングコンテキスト化**しており、非押下時
+		// (filterなし)は正しくこのウィンドウが手前に来る一方、押下時だけボタンが
+		// 「position指定+z-index:auto」と同じレイヤーに昇格してDOM順のタイブレークで
+		// 勝ってしまっていた(このウィンドウはdocument.bodyの先頭子=DOM順で先のため、
+		// 同レイヤーの要素には後から現れるものが勝つ)。
+		// 【是正】LeftPanel.astro側の.stat-nature-btnの縁取りを、filterを使わない
+		// 「二重三角形(::before=一回り大きい縁取り色、::after=現在サイズの塗り色、
+		// grid-area:1/1で重ねる)」方式に置き換え、スタッキングコンテキストを生成する
+		// プロパティを一切使わないようにした(LeftPanel.astroの.stat-nature-btn CSSコメント
+		// 参照)。これによりこのウィンドウは常にこのボタンより手前になるため、このバグ自体は
+		// 解消済みだが、このスキャンロジック(reposition()が性格補正ボタンの下端も座標回避の
+		// 対象に含める処理)自体は「重ならない方が見た目に自然」という理由で無害なため残す
+		// (41-L2要件「座標のずらしは残してよい」より)。将来また同種の「filterや
+		// transform等を::before/::afterに使う新要素」を追加する際は、同じ罠(ホスト要素が
+		// 暗黙にスタッキングコンテキスト化する)を踏まないよう、position/z-index/filter/
+		// transform/opacity/will-change/contain/isolationのいずれも使わない実装を優先すること。
 		for (const el of Array.from(anchor.querySelectorAll<HTMLElement>(".stat-nature-up, .stat-nature-down"))) {
 			const r = el.getBoundingClientRect();
 			if (r.width <= 0 || r.height <= 0) continue;

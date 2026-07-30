@@ -254,6 +254,38 @@ export async function updateOwnedPokemon(
   return { ok: true, data: (data as OwnedPokemonRecord | null) ?? null };
 }
 
+// ピン留め(お気に入り)状態のみを更新する専用経路(41-B2、round-41.md)。
+// 対象が存在しない、または他人の所有物の場合は data: null を返す(updateOwnedPokemonと同じ流儀)。
+//
+// 経緯: togglePin()(box/index.astro)は従来 updateOwnedPokemon() 経由(全項目上書きPUT、
+// §6.2契約)でis_pinnedだけを変えていたが、updateOwnedPokemonは無条件でupdated_atを
+// 現在時刻へ進めるため、「更新順」表示中にお気に入りをトグルするとトグルした個体自身の
+// 表示順位置までもが動いてしまっていた(round-40.mdの40-B1では「トグルした個体自身が
+// 動くことは要件で明示的に許容」としていたが、round-41.mdの41-B2はこの許容判断を撤回し、
+// トグルした個体自身の位置も含めて一切動いてはいけないとした)。
+// is_pinned列だけをUPDATEし、updated_atには一切触れないことで、「更新順」ソートの
+// 基準値(updated_at)がトグル操作によって変化しないことを保証する。
+export async function updatePinStatus(
+  userId: string,
+  id: string,
+  isPinned: boolean,
+  supabase: SupabaseClient,
+): Promise<OwnedPokemonResult<OwnedPokemonRecord | null>> {
+  const { data, error } = await supabase
+    .from('owned_pokemon')
+    .update({ is_pinned: isPinned })
+    .eq('id', id)
+    .eq('user_id', userId) // これが無いと他人の行を更新できてしまう(このファイルの最重要事項)
+    .select(OWNED_POKEMON_COLUMNS)
+    .maybeSingle();
+
+  if (error) {
+    logError('updatePinStatus failed', error);
+    return { ok: false, error: 'Failed to update pin status' };
+  }
+  return { ok: true, data: (data as OwnedPokemonRecord | null) ?? null };
+}
+
 // 削除できた場合は true、対象が存在しない/他人の所有物の場合は false を返す。
 export async function deleteOwnedPokemon(
   userId: string,

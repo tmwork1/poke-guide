@@ -109,18 +109,34 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 	)}
 	{pokemon && (
 		<Fragment slot="topbar-actions">
-			{/* 🔴 UI改善ラウンド40ユーザー指示(40-H1)「すべて折りたたむボタンはダメージカード領域の
-			    上に置く」により、ラウンド38(38-H1)「ヘッダーに移動」を撤回する。
-			    #damage-collapse-toggle-button(単一トグルボタン、交互切り替えのロジックは
-			    src/lib/box-id/damage-calc.ts側にそのまま残す)は
-			    src/components/box-id/DamageCalcSection.astro の #damage-rows-list 直上へ移設した。
-			    このFragmentにはページ共通ヘッダー本来の項目(削除ボタン)だけが残る。 */}
+			{/* UI改善ラウンド41ユーザー指示(41-H1)「すべて折りたたむボタンは、X位置はそのままで、
+			    個体編集画面のヘッダ(戻るボタンがある領域)に移す」により、ラウンド40(40-H1)
+			    「ダメージカード領域の上に置く」を撤回し、38-H1と同じくヘッダーへ再移動する。
+			    damage-collapse-toggle-button(単一トグルボタン、交互切り替えのロジックは
+			    src/lib/box-id/damage-calc.ts側にそのまま。elはgetElementById経由のためDOM上の
+			    位置に依存しない)をこのFragmentへ追加する。「X位置はそのまま」の実測対応
+			    (position:fixedで移動前の左端座標を再現する)はCSS側(src/components/box-id/
+			    DamageCalcSection.astro の damage-collapse-toggle-button ルール、is:globalのため
+			    置き場所を問わず効く)で行う。旧 damage-rows-toolbar(DamageCalcSection.astro、
+			    damage-rows-list直上)は撤去し、重複UIを残さない。 */}
 			{/* ラウンド21ユーザー指示(21-H1): 「個体削除はゴミ箱+赤背景の定番デザインにする」。
 			    ラウンド3 B-9(既定はmuted、hover時だけdangerに転じ誤操作を抑止する設計)を撤回する。
 			    アイコンはインラインSVGのゴミ箱(絵文字🗑はOS/フォントで見た目が変わるため
 			    定番デザインに向かない、という判断で新規に書き起こした)。誤操作の抑止は
 			    常時赤にする代わりに既存のwindow.confirm()(<script>のdeleteButtonクリック
 			    ハンドラ、変更していない)に委ねる。 */}
+			{/* UI改善ラウンド43ユーザー指示(43-H1)「すべて折りたたむ・すべて展開ボタンにも>>記号を
+			    追加(左端)」。左端にchevron(既存の個別カード折りたたみボタンと同じ»グリフ)を
+			    追加し、状態(折りたたみ中/展開中)に応じて回転させる(CSSはDamageCalcSection.astro
+			    の#damage-collapse-toggle-button .damage-collapse-toggle-chevron参照)。
+			    labelはdamage-calc.tsのupdateCollapseToggleButtonLabel()がテキストを差し替える
+			    対象を.damage-collapse-toggle-labelに変更したため、ここでもspanで囲む
+			    (ボタン全体のtextContentを差し替えるとchevronごと消えてしまうため)。
+			    aria-expanded初期値はJS初期化直後にupdateCollapseToggleButtonLabel()が
+			    必ず上書きするため、静的マークアップ上の値はプレースホルダーでよい。 */}
+			<button id="damage-collapse-toggle-button" class="btn-ghost" type="button" disabled aria-expanded="false">
+				<span class="damage-collapse-toggle-chevron" aria-hidden="true">»</span><span class="damage-collapse-toggle-label">すべて折りたたむ</span>
+			</button>
 			<button id="delete-button" class="btn-danger" type="button">
 				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
 				削除
