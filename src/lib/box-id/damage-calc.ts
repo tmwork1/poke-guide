@@ -2320,13 +2320,16 @@ if (opponentNotesSection) {
 				// ▲/▼記号として追加したが(色のみ表現はWCAG 1.4.1に抵触するため)、
 				// UI改善ラウンド47ユーザー指示(第31弾、A-1、Coordinator追加指示)により
 				// 「ラベル行+実数値行の2段・6列表」への変更に伴い、記号の付与位置がラベル側
-				// (H/A/B/C/D/Sの文字)へ移り、▲/▼ではなく+/-をラベル文字に直接付記する形に
-				// 変更された(例: 上昇ならA+、下降ならC-)。展開時の▲/▼(describeNatureCycleState、
-				// 上方参照)とは表現を変える圧縮表示限定の確定仕様(round-47.md A-1)。値側には
-				// 記号を付けない。色は新色を作らず、既存の--stat-up/--stat-down
-				// (.damage-row-collapsed-stat-key[data-mod]、DamageCalcSection.astro)を
-				// そのままラベル側に付け替えて流用する。
-				const suffix = mod === "up" ? "+" : mod === "down" ? "-" : "";
+				// (H/A/B/C/D/Sの文字)へ移り、一時的に▲/▼ではなく+/-をラベル文字に直接付記する
+				// 形にしていた(例: 上昇ならA+、下降ならC-)。
+				// 🔴 UI改善ラウンド47ユーザー指示(第31弾、A-7実装後にさらに追加)「性格補正は
+				// +/-ではなく展開中と同じ三角形で表現する」により、記号だけを+/-→▲/▼に戻す
+				// (付与位置=ラベル文字への直接付記はそのまま変更しない、例: 上昇ならA▲、
+				// 下降ならC▼)。展開時の.damage-ev-nature-indicator(describeNatureCycleState、
+				// 上方参照)と同じグリフを使う。値側には記号を付けない。色は新色を作らず、
+				// 既存の--stat-up/--stat-down(.damage-row-collapsed-stat-key[data-mod]、
+				// DamageCalcSection.astro)をそのままラベル側に付け替えて流用する。
+				const suffix = mod === "up" ? "▲" : mod === "down" ? "▼" : "";
 				keyTarget.textContent = STAT_KANJI[key] + suffix;
 				if (mod) keyTarget.dataset.mod = mod;
 				else delete keyTarget.dataset.mod;

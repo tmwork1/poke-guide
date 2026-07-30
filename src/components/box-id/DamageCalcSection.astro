@@ -897,6 +897,12 @@ const { pokemonId } = Astro.props;
 		color: var(--color-text-muted);
 		white-space: nowrap;
 	}
+	/* 🔴 UI改善ラウンド47ユーザー指示(第31弾、追加指示): 「カード圧縮後の文字の色と
+	   フォントは展開中のものとできるだけそろえる」。折りたたみ側のH/A/B/C/D/S見出し
+	   (.damage-row-collapsed-stat-key、下方参照)を白/font-weight 600に変更したのに合わせ、
+	   この展開表示側のラベルも同じ書式(color: #fff / font-weight: 600)に揃える。
+	   フォントサイズ・line-height・text-alignは展開表示側の既存規格(0.86rem)を維持する
+	   (揃えるのは色と太さのみ)。 */
 	#opponent-notes-section .damage-ev-col-label {
 		/* 20-G3: 0.68rem(10.9px)→0.76rem(12.16px、12px下限を満たす)。
 		   ラウンド26ユーザー指示(26-D4)により0.76rem→0.86rem(13.76px、+1.6px)へさらに
@@ -904,10 +910,10 @@ const { pokemonId } = Astro.props;
 		   font-sizeがそのまま適用される。font-family: inheritのみでfont-sizeは
 		   上書きしていない設計を維持)。 */
 		font-size: 0.86rem;
-		font-weight: 700;
+		font-weight: 600;
 		line-height: 1.2;
 		text-align: center;
-		color: var(--color-text-muted);
+		color: #fff;
 	}
 	/* ラウンド20ユーザー指示(20-D3、ラウンド5の「▲/▼を独立ボタン化する」という判断を撤回):
 	   H/A/B/C/D/S見出し(HP以外)自体をクリックすると無補正→上昇→下降→無補正と3循環する
@@ -1617,11 +1623,28 @@ const { pokemonId } = Astro.props;
 	   方針を引き継いだまま、中立色から確2色に差し替えるだけの変更)。背景・左罫線は
 	   35-D1の「個別カードの枠を削除」を維持し引き続きnoneのまま(このラウンドの要件は
 	   文字の「色」のみ)。累計側(.damage-row-total-result、下方のスタイル参照)は
-	   別ルール(39-D2)で扱う。 */
+	   別ルール(39-D2)で扱う。
+	   🔴 UI改善ラウンド47ユーザー指示(第31弾、追加指示)「累計結果では確定数3以上で
+	   青色だが、個別の技カードがまだ青色になっていない。技カードの配色もそろえる」により、
+	   39-D1の「確定数の値に関わらず常に確2色で固定」という判断を撤回する。累計側
+	   (.damage-row-total-result[data-severity]、下方参照)は41-D4で「確1=赤/確2=黄/
+	   確3以降(safe)=青」の3色構成になっているため、個別カードもこれと同じ3色構成に揃える
+	   (下記[data-severity="lethal"/"risky"/"safe"]の3ルール参照)。背景・左罫線は
+	   35-D1のまま引き続きnone(このルールは全severity共通でそのまま適用する)。 */
 	#opponent-notes-section .damage-column-result[data-severity] {
 		background: none;
 		border-left: none;
+	}
+	#opponent-notes-section .damage-column-result[data-severity="lethal"] {
+		color: var(--color-danger-strong);
+	}
+	#opponent-notes-section .damage-column-result[data-severity="risky"] {
 		color: var(--color-risky-strong);
+	}
+	/* 累計側の.damage-row-total-result[data-severity="safe"](41-D4)と同じ
+	   --color-primary-strong(薄青系)を使う。新色は作らない。 */
+	#opponent-notes-section .damage-column-result[data-severity="safe"] {
+		color: var(--color-primary-strong);
 	}
 	/* 🔴 UI改善ラウンド40ユーザー指示(40-D2)「個別技カードの確定数のフォントサイズは、
 	   ダメージ量表示にそろえる。太字は維持」。以前は1.05em(親.damage-column-resultの
@@ -2475,11 +2498,17 @@ const { pokemonId } = Astro.props;
 	/* UI改善ラウンド45(ユーザー指示第29弾、A-2): 圧縮時、中身(アイコン+summary、
 	   align-items:center)は縦中央寄せなのに対しこのボタンだけbottom基準でカード下端に
 	   張り付き、周囲に大きな余白が残る問題(round-45.md実測)。圧縮状態限定でtop:50%+
-	   translateY(-50%)による縦中央寄せに切り替える(展開時のbottom基準は変更しない)。 */
+	   translateY(-50%)による縦中央寄せに切り替えていた(展開時のbottom基準は変更しない)。
+	   🔴 UI改善ラウンド47ユーザー指示(第31弾、追加指示)「圧縮展開ボタンは常にダメージ
+	   カードの右下に固定」により、この圧縮状態限定の縦中央寄せを撤回する。折りたたみ・
+	   展開のどちらでも基底ルール(上方の#opponent-notes-section
+	   .damage-row-collapse-toggle-button、bottom: var(--space-2); right: var(--space-2))の
+	   右下固定のまま変えない。セレクタ自体は既存クラス削除禁止の規約により残し、
+	   プロパティを基底と同値へ戻す形で無効化する。 */
 	#opponent-notes-section .card-damage[data-collapsed="true"] .damage-row-collapse-toggle-button {
-		top: 50%;
-		bottom: auto;
-		transform: translateY(-50%);
+		top: auto;
+		bottom: var(--space-2);
+		transform: none;
 	}
 	#opponent-notes-section .damage-row-collapse-toggle-glyph {
 		display: inline-block;
@@ -2600,12 +2629,16 @@ const { pokemonId } = Astro.props;
 	   🔴 UI改善ラウンド47ユーザー指示(第31弾、追加指示A-7、A-5を撤回して差し替え):
 	   A-5では1段目(名前・バッジと同じ行)に置いていたが、ユーザーの再指定
 	   「2段目: 特性、テラスタル」により、この要素を2段目の.damage-row-collapsed-tera-row
-	   (下記)へ移した。フォント・色・ellipsis仕様自体は変更しない。max-widthは付けない
-	   (2段目の残り幅までflex:1 1 autoで自然に伸びる、下記flexの説明参照)。 */
+	   (下記)へ移した。フォント・ellipsis仕様自体は変更しない。max-widthは付けない
+	   (2段目の残り幅までflex:1 1 autoで自然に伸びる、下記flexの説明参照)。
+	   🔴 UI改善ラウンド47ユーザー指示(第31弾、追加指示)「特性とタイプのテキストも同じ
+	   白色にする」により、色をvar(--color-text-muted)から白(#fff、上方の
+	   .damage-row-collapsed-stat-key・下方の.damage-row-collapsed-tera-nameと同じ色)へ
+	   変更する。font-weight/font-sizeは変更しない。 */
 	#opponent-notes-section .damage-row-collapsed-ability {
 		font-size: 0.76rem;
 		font-weight: 400;
-		color: var(--color-text-muted);
+		color: #fff;
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
@@ -2624,11 +2657,13 @@ const { pokemonId } = Astro.props;
 		min-width: 0;
 	}
 	/* 🔴 UI改善ラウンド47ユーザー指示(第31弾、追加指示A-7): 2段目(特性→テラス情報)の
-	   新設行。<script>のcollapsedTeraRow参照。gap値は実装者判断(round-47.md A-7)。 */
+	   新設行。<script>のcollapsedTeraRow参照。
+	   🔴 UI改善ラウンド47ユーザー指示(第31弾、追加指示)「特性とテラスタルの間の
+	   スペースを少しあける」により、gapを0.35rem→0.55remに広げる。 */
 	#opponent-notes-section .damage-row-collapsed-tera-row {
 		display: flex;
 		align-items: center;
-		gap: 0.4rem;
+		gap: 0.55rem;
 		min-width: 0;
 	}
 	/* round-47.md A-7「テキストラベル(タイプ名)を併記するかは実装者判断でよい」により
@@ -2675,14 +2710,16 @@ const { pokemonId } = Astro.props;
 		border: 1px solid var(--color-border);
 	}
 	/* round-47.md A-7「テキストラベル(タイプ名)を併記するかは実装者判断でよい」に基づく
-	   タイプ名テキスト。特性行(.damage-row-collapsed-ability)と同一仕様(0.76rem/
-	   var(--color-text-muted))にし、新色・新フォントサイズは増やさない。テラスタイプ名は
-	   最長でも「フェアリー」等の数文字のため折り返り事故は起きにくいが、念のため
-	   white-space:nowrapにしておく(テラスタイプ未設定時は<script>側でtextContentを
-	   空文字にし、実質何も表示しない)。 */
+	   タイプ名テキスト。特性行(.damage-row-collapsed-ability)と同一仕様(0.76rem)にし、
+	   新フォントサイズは増やさない。テラスタイプ名は最長でも「フェアリー」等の数文字のため
+	   折り返り事故は起きにくいが、念のためwhite-space:nowrapにしておく(テラスタイプ
+	   未設定時は<script>側でtextContentを空文字にし、実質何も表示しない)。
+	   🔴 UI改善ラウンド47ユーザー指示(第31弾、追加指示)「特性とタイプのテキストも同じ
+	   白色にする」により、色をvar(--color-text-muted)から白(#fff、上方の
+	   .damage-row-collapsed-ability/.damage-row-collapsed-stat-keyと同じ色)へ変更する。 */
 	#opponent-notes-section .damage-row-collapsed-tera-name {
 		font-size: 0.76rem;
-		color: var(--color-text-muted);
+		color: #fff;
 		white-space: nowrap;
 		flex: 0 0 auto;
 	}
@@ -2745,20 +2782,23 @@ const { pokemonId } = Astro.props;
 		align-items: baseline;
 		gap: 0.05em;
 	}
-	/* 🔴 UI改善ラウンド47ユーザー指示(第31弾、追加指示A-8→追加指示で撤回): 一時的に
-	   無補正時の色をvar(--color-text-muted)から白へ、太さをfont-weight 700→400へ変更したが、
-	   直後にユーザーから「カード圧縮後の文字の色とフォントは展開中のものとできるだけそろえる」
-	   との指示があり、A-8自体を撤回した(round-47.md参照)。展開表示の対応要素
-	   (.damage-ev-col-label、上方参照)と同じ書式(color: var(--color-text-muted) /
-	   font-weight: 700)に戻す。 */
+	/* 🔴 UI改善ラウンド47ユーザー指示(第31弾、追加指示A-8): 「ステータスラベル文字を
+	   白く細くする」というユーザー指示により、無補正時の色をvar(--color-text-muted)から
+	   白(#fff)へ、太さをfont-weight 700→400へ変更した。
+	   🔴 UI改善ラウンド47ユーザー指示(第31弾、A-8着手後にさらに追加)「ステータスラベルは
+	   もう少し太くして、展開中のラベルも同じ書式にそろえる」により、font-weightを400→600へ
+	   再調整する(白のまま、細すぎたのを少し戻す)。同時に、展開表示側のラベル
+	   (.damage-ev-col-label、上方参照)も同じ書式(色white/font-weight 600)へ揃える。
+	   性格補正時の色([data-mod="up"]/[data-mod="down"]、下記)は変更しない(この基底ルール
+	   より後ろに定義されているため引き続き優先される)。 */
 	#opponent-notes-section .damage-row-collapsed-stat-key {
 		display: block;
 		text-align: center;
-		font-weight: 700;
+		font-weight: 600;
 		font-size: 0.88rem;
 		/* UI改善ラウンド47(A-6): 行間の余白を詰めるためline-heightを明示指定する。 */
 		line-height: 1.15;
-		color: var(--color-text-muted);
+		color: #fff;
 	}
 	/* 🔴 UI改善ラウンド47(A-1): 性格補正の色付けが値側からラベル側に移った
 	   (<script>のrefreshCollapsedStats参照)。努力値グリッドの実数値
