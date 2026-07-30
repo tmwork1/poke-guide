@@ -51,6 +51,23 @@ https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/types/generatio
     (背景全体を縮小してから透明パディングで埋め戻す案も試したが、LANCZOS
     リサイズによる縁の半透明化が薄い縁取り状のハローとして視認でき、
     見た目の劣化が大きかったため不採用にした)。
+    🔴 2026-07-30 追加報告「中央の模様がかすんでしまっている」。実測で原因を2つ特定した。
+    (1) リサンプルが2回かかっていた: マーク縮小を元解像度(40x40)で行ってから
+        OUTPUT_SIZE(96)へ拡大していたため、40 -> 34 -> 96 と2回リサンプルされ、
+        1回目の縮小で捨てた細部が2回目の拡大で戻らずボケていた。マークの縮小は
+        「元解像度 -> round(OUTPUT_SIZE * MARK_SCALE)」の1回のリサンプルで済むので、
+        build_mark_shrunk_icon() が出力解像度まで面倒を見る形に変えた。
+    (2) 元位置にマークの残像(ゴースト)が残っていた: _row_fill_background() が
+        「マークらしき画素(ROUGH_WHITE_MIN=190)」だけを埋めていたため、その1px外側に
+        ある「背景よりは明るいがしきい値には届かないアンチエイリアス縁」(実測で
+        min(r,g,b)が185程度)が背景として温存され、縮小したマークの外側に薄い輪郭が
+        そのまま残っていた。これがマークの周りの霞(にじみ)として見えていた。
+        MARK_MASK_DILATE で mask を1px膨張させてから埋めることで解消した。
+    さらに mark_canvas.paste(mark_small, offset, mark_small) が「透明キャンバスへ自分自身を
+    マスクにしてpaste」していたため、出力alphaが a*a と二乗されアンチエイリアス縁が
+    実測で1割ほど薄くなっていた(型1で総alphaが72876 -> 65204)。paste先が完全に透明な
+    キャンバスなのでマスクは不要であり、マスクなしのpasteに変えて二乗化をなくした。
+
     🔴 2026-07-30 追加報告: 上記の対応(マーク縮小)だけでは、保存される
     public/type-icons/N.png 自体は依然として正方形(角まで角丸ピルの塗りが
     残る)のままで、表示側のCSS `border-radius: 50%` に円形化を依存していた。
@@ -162,6 +179,14 @@ ROUGH_ALPHA_MIN = 60
 # 生じない。
 MARK_SCALE = 0.84
 
+# マーク判定マスクを膨張させる半径(px, 元画像解像度基準)。
+# ROUGH_WHITE_MIN(190)でも取りこぼす「背景よりわずかに明るいだけのアンチエイリアス縁」
+# (実測でmin(r,g,b)=185程度)が背景側に残ると、マークを縮小したあとも元位置に薄い輪郭
+# =残像が残り、これが「模様がかすむ」原因になる(2026-07-30 ユーザー報告)。
+# 実測(半径0/1/2の比較)で半径1あれば19タイプ全てで残像が視認できなくなり、かつ
+# 埋め距離が伸びることによる背景グラデーション(ステラ)の劣化も起きないことを確認した。
+MARK_MASK_DILATE = 1
+
 # 円形マスクのアンチエイリアス品質。マスクをOUTPUT_SIZEのSUPERSAMPLE倍の解像度で
 # 描画してからLANCZOSで縮小することで、円周のジャギーを抑える。
 CIRCLE_MASK_SUPERSAMPLE = 4
@@ -233,6 +258,32 @@ def _is_rough_fg(pixel: tuple[int, int, int, int]) -> bool:
     return a >= ROUGH_ALPHA_MIN and min(r, g, b) >= ROUGH_WHITE_MIN
 
 
+def _dilate_mask(mask: list[list[bool]], radius: int) -> list[list[bool]]:
+    """mask をおおむね円形の構造要素で radius px 膨張させたコピーを返す。
+    マーク周辺のアンチエイリアス縁まで「マーク扱い」にして背景から確実に除くために使う。
+    """
+    if radius <= 0:
+        return mask
+    h = len(mask)
+    w = len(mask[0])
+    offsets = [
+        (dx, dy)
+        for dy in range(-radius, radius + 1)
+        for dx in range(-radius, radius + 1)
+        if dx * dx + dy * dy <= radius * radius + radius
+    ]
+    out = [[False] * w for _ in range(h)]
+    for y in range(h):
+        for x in range(w):
+            if not mask[y][x]:
+                continue
+            for dx, dy in offsets:
+                yy, xx = y + dy, x + dx
+                if 0 <= yy < h and 0 <= xx < w:
+                    out[yy][xx] = True
+    return out
+
+
 def _row_fill_background(im: Image.Image, rough_mask: list[list[bool]]) -> Image.Image:
     """rough_mask[y][x]がTrue(マークらしき画素)の位置を、同じ行で最も近い
     「マークではない」画素の色で塗りつぶした「背景だけ」の画像を作る(行内近傍埋め)。
@@ -282,19 +333,26 @@ def _compute_mark_alpha(im: Image.Image, bg: Image.Image) -> list[list[float]]:
     return alpha
 
 
-def build_mark_shrunk_icon(cropped: Image.Image) -> Image.Image:
+def build_mark_shrunk_icon(cropped: Image.Image, size: int) -> Image.Image:
     """crop_icon_square()が返す h×h の正方形から、白色系の「マーク」だけを検出・分離し、
-    中心基準でMARK_SCALEに縮小してから、変更していない背景に再合成する。
+    中心基準でMARK_SCALEに縮小してから、変更していない背景に再合成した size×size を返す。
 
     背景(角丸ピルの塗り)は一切縮小・移動しないため、この処理をしても背景の見た目
     (色・角の透明具合)は変わらない。変わるのはマークが内接円からのマージンを
     多く持つようになる点だけ。処理の必要性・不採用にした代替案は本ファイル冒頭の
     docstring参照。
+
+    出力解像度へのリサイズもこの関数の中で行う(呼び出し側で別途resizeしない)。
+    マークは「元解像度 -> round(size * MARK_SCALE)」の1回のリサンプルだけで目標サイズに
+    なるため、元解像度で縮小してから拡大していた頃のボケが生じない(冒頭docstringの
+    「かすんでしまっている」報告への対応)。
     """
     w, h = cropped.size
     px = cropped.load()
     rough_mask = [[_is_rough_fg(px[x, y]) for x in range(w)] for y in range(h)]
-    bg = _row_fill_background(cropped, rough_mask)
+    # 膨張させたマスクで埋めることで、マーク周辺のアンチエイリアス縁が背景に残像として
+    # 焼き付くのを防ぐ(MARK_MASK_DILATEのコメント参照)。
+    bg = _row_fill_background(cropped, _dilate_mask(rough_mask, MARK_MASK_DILATE))
     mark_alpha = _compute_mark_alpha(cropped, bg)
 
     mark_layer = Image.new("RGBA", (w, h), (255, 255, 255, 0))
@@ -303,13 +361,16 @@ def build_mark_shrunk_icon(cropped: Image.Image) -> Image.Image:
         for x in range(w):
             mark_px[x, y] = (255, 255, 255, round(255 * mark_alpha[y][x]))
 
-    new_side = round(w * MARK_SCALE)
-    mark_small = mark_layer.resize((new_side, new_side), Image.LANCZOS)
-    mark_canvas = Image.new("RGBA", (w, h), (255, 255, 255, 0))
-    offset = (w - new_side) // 2
-    mark_canvas.paste(mark_small, (offset, offset), mark_small)
+    bg_resized = bg.resize((size, size), Image.LANCZOS)
+    new_side = round(size * MARK_SCALE)
+    mark_resized = mark_layer.resize((new_side, new_side), Image.LANCZOS)
+    mark_canvas = Image.new("RGBA", (size, size), (255, 255, 255, 0))
+    offset = (size - new_side) // 2
+    # paste先が完全に透明なキャンバスなのでマスクは渡さない。マスクに自分自身を渡すと
+    # 出力alphaが a*a と二乗され、アンチエイリアス縁が薄くなる(冒頭docstring参照)。
+    mark_canvas.paste(mark_resized, (offset, offset))
 
-    result = bg.convert("RGBA")
+    result = bg_resized.convert("RGBA")
     result.alpha_composite(mark_canvas)
     return result
 
@@ -441,9 +502,7 @@ def generate_one(type_id: int, *, tera: bool) -> tuple[Path, tuple[int, int, int
         result = pad_to_square(stitched).resize((OUTPUT_SIZE, OUTPUT_SIZE), Image.LANCZOS)
     else:
         cropped, box = crop_icon_square(im)
-        shrunk = build_mark_shrunk_icon(cropped)
-        resized = shrunk.resize((OUTPUT_SIZE, OUTPUT_SIZE), Image.LANCZOS)
-        result = apply_circular_mask(resized)
+        result = apply_circular_mask(build_mark_shrunk_icon(cropped, OUTPUT_SIZE))
 
     out_dir = TERA_OUT_DIR if tera else OUT_DIR
     out_dir.mkdir(parents=True, exist_ok=True)
