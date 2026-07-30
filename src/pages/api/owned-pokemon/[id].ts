@@ -9,7 +9,13 @@ import { badRequest, isSameOrigin, isValidUuid, jsonResponse, methodNotAllowed, 
 import { getSessionUser } from '../../../lib/user-session';
 import { getSupabaseAdminClient } from '../../../lib/supabase';
 import { validateOwnedPokemonRequestBody } from '../../../lib/owned-pokemon-validation';
-import { deleteOwnedPokemon, getOwnedPokemon, updateOwnedPokemon, updatePinStatus } from '../../../lib/owned-pokemon';
+import {
+  deleteOwnedPokemon,
+  getOwnedPokemon,
+  updateCollectionOptOut,
+  updateOwnedPokemon,
+  updatePinStatus,
+} from '../../../lib/owned-pokemon';
 import { ownedPokemonRateLimiter } from '../../../lib/rate-limit';
 
 export const prerender = false;
@@ -91,12 +97,13 @@ export async function DELETE({ request, cookies, params }: APIContext): Promise<
   return jsonResponse({ data: { id } }, 200);
 }
 
-// PATCH /api/owned-pokemon/:id: is_pinned のみを更新する軽量経路(41-B2、round-41.md)。
+// PATCH /api/owned-pokemon/:id: is_pinned または collection_opt_out のみを更新する軽量経路
+// (is_pinnedは41-B2、round-41.md。collection_opt_outは匿名集計サジェスト機能・第1段階で追加)。
 // PUT(全項目上書き契約、§6.2)とは別の追加経路であり、PUTの契約は変更しない。
-// updatePinStatus() は is_pinned 列だけを UPDATE し updated_at には触れないため、
-// 「更新順」表示中にお気に入りをトグルしても対象個体自身の表示順位置が動かないことを保証する
-// (round-40.mdの40-B1が「トグルした個体自身が動くことは許容」としていた判断を、
-// round-41.mdの41-B2がここで撤回した)。
+// updatePinStatus()/updateCollectionOptOut() はそれぞれの対象列だけを UPDATE し updated_at には
+// 触れないため、「更新順」表示中にこれらをトグルしても対象個体自身の表示順位置が動かないことを
+// 保証する(is_pinnedについては round-40.mdの40-B1が「トグルした個体自身が動くことは許容」と
+// していた判断を、round-41.mdの41-B2がここで撤回した。collection_opt_outも同じ理由で踏襲する)。
 export async function PATCH({ request, cookies, params }: APIContext): Promise<Response> {
   const user = await getSessionUser(request, cookies);
   if (!user) return jsonResponse({ error: 'Unauthorized' }, 401);
@@ -116,21 +123,42 @@ export async function PATCH({ request, cookies, params }: APIContext): Promise<R
   const body = await readRequiredJsonBody<unknown>(request);
   if (body.response) return body.response;
 
-  // このエンドポイントは { is_pinned: boolean } のみを受け付ける(それ以外のフィールドは
-  // 全項目上書き契約のPUTの役割のため、ここでは受け付けない)。
+  // このエンドポイントは { is_pinned: boolean } または { collection_opt_out: boolean } の
+  // どちらか一方のみを受け付ける(それ以外のフィールドは全項目上書き契約のPUTの役割のため、
+  // ここでは受け付けない)。
   const payload = body.data;
   const isPlainObject = typeof payload === 'object' && payload !== null && !Array.isArray(payload);
-  const isPinned = isPlainObject ? (payload as { is_pinned?: unknown }).is_pinned : undefined;
-  if (!isPlainObject || typeof isPinned !== 'boolean' || Object.keys(payload as object).length !== 1) {
-    return badRequest('Request body must be exactly { is_pinned: boolean }');
+  const keys = isPlainObject ? Object.keys(payload as object) : [];
+
+  if (isPlainObject && keys.length === 1 && keys[0] === 'is_pinned') {
+    const isPinned = (payload as { is_pinned?: unknown }).is_pinned;
+    if (typeof isPinned !== 'boolean') {
+      return badRequest('Request body must be exactly { is_pinned: boolean }');
+    }
+
+    const supabase = await getSupabaseAdminClient();
+    const result = await updatePinStatus(user.id, id, isPinned, supabase);
+    if (!result.ok) return jsonResponse({ error: result.error }, 500);
+    if (!result.data) return notFound();
+
+    return jsonResponse({ data: result.data }, 200);
   }
 
-  const supabase = await getSupabaseAdminClient();
-  const result = await updatePinStatus(user.id, id, isPinned, supabase);
-  if (!result.ok) return jsonResponse({ error: result.error }, 500);
-  if (!result.data) return notFound();
+  if (isPlainObject && keys.length === 1 && keys[0] === 'collection_opt_out') {
+    const optOut = (payload as { collection_opt_out?: unknown }).collection_opt_out;
+    if (typeof optOut !== 'boolean') {
+      return badRequest('Request body must be exactly { collection_opt_out: boolean }');
+    }
 
-  return jsonResponse({ data: result.data }, 200);
+    const supabase = await getSupabaseAdminClient();
+    const result = await updateCollectionOptOut(user.id, id, optOut, supabase);
+    if (!result.ok) return jsonResponse({ error: result.error }, 500);
+    if (!result.data) return notFound();
+
+    return jsonResponse({ data: result.data }, 200);
+  }
+
+  return badRequest('Request body must be exactly { is_pinned: boolean } or { collection_opt_out: boolean }');
 }
 
 export const POST = () => methodNotAllowed(['GET', 'PUT', 'PATCH', 'DELETE']);

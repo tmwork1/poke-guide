@@ -48,6 +48,9 @@ export interface OwnedPokemonRecord {
   created_at: string;
   updated_at: string;
   last_used_at: string | null;
+  // 匿名集計サジェスト機能の収集拒否(migrations/008)。NULL=収集対象。値が未来なら拒否期間中、
+  // 過去日付でも収集対象として扱う(都度判定、詳細はmigrations/008のコメント参照)。
+  collection_opt_out_until: string | null;
 }
 
 // 公開共有(share.ts / owned-pokemon/[id]/share.ts)経由で第三者に見せてよい列のみを持つ型。
@@ -82,7 +85,7 @@ export interface ListOwnedPokemonOptions {
 export type OwnedPokemonResult<T> = { ok: true; data: T } | { ok: false; error: string };
 
 const OWNED_POKEMON_COLUMNS =
-  'id, user_id, nickname, species_name, level, nature, ability_name, item_name, tera_type, evs, ivs, move_names, memo, tags, is_pinned, source_build_slug, share_slug, is_public, created_at, updated_at, last_used_at';
+  'id, user_id, nickname, species_name, level, nature, ability_name, item_name, tera_type, evs, ivs, move_names, memo, tags, is_pinned, source_build_slug, share_slug, is_public, created_at, updated_at, last_used_at, collection_opt_out_until';
 
 // 公開共有用に安全な列だけを取得する(memo・tags・user_id・is_pinned 等は含めない)。
 const PUBLIC_OWNED_POKEMON_COLUMNS =
@@ -282,6 +285,40 @@ export async function updatePinStatus(
   if (error) {
     logError('updatePinStatus failed', error);
     return { ok: false, error: 'Failed to update pin status' };
+  }
+  return { ok: true, data: (data as OwnedPokemonRecord | null) ?? null };
+}
+
+// 匿名集計サジェスト機能の収集拒否状態のみを更新する専用経路(匿名集計サジェスト機能・第1段階)。
+// updatePinStatusと同じ流儀: 対象が存在しない/他人の所有物の場合は data: null を返し、
+// updated_atには触れない(この操作で「更新順」表示の並びが動くべきではないため)。
+//
+// optOut === true の場合、拒否の期限(現在時刻+30日)はこの関数内でサーバー側が計算する。
+// 呼び出し元(APIルート)から生の日時を受け取らないことで、クライアントが任意の未来日時を
+// 送りつけて拒否期間を不当に延長する経路を作らない。
+const COLLECTION_OPT_OUT_DAYS = 30;
+
+export async function updateCollectionOptOut(
+  userId: string,
+  id: string,
+  optOut: boolean,
+  supabase: SupabaseClient,
+): Promise<OwnedPokemonResult<OwnedPokemonRecord | null>> {
+  const collectionOptOutUntil = optOut
+    ? new Date(Date.now() + COLLECTION_OPT_OUT_DAYS * 24 * 60 * 60 * 1000).toISOString()
+    : null;
+
+  const { data, error } = await supabase
+    .from('owned_pokemon')
+    .update({ collection_opt_out_until: collectionOptOutUntil })
+    .eq('id', id)
+    .eq('user_id', userId) // これが無いと他人の行を更新できてしまう(このファイルの最重要事項)
+    .select(OWNED_POKEMON_COLUMNS)
+    .maybeSingle();
+
+  if (error) {
+    logError('updateCollectionOptOut failed', error);
+    return { ok: false, error: 'Failed to update collection opt-out status' };
   }
   return { ok: true, data: (data as OwnedPokemonRecord | null) ?? null };
 }
