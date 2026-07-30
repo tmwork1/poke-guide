@@ -1084,6 +1084,30 @@ const { pokemonId } = Astro.props;
 		font-size: 1.05em;
 		font-weight: 800;
 	}
+	/* UI改善ラウンド45(ユーザー指示第29弾、B-3): 技列が2つ以上あるとき、この合計行
+	   「確N」が何を数えているか(技セット周回数かヒット数か)が圧縮表示だけでは伝わらない
+	   という指摘(round-45.md、プレイヤー視点レビュアー)。.damage-row-total(totalBlock)は
+	   展開/圧縮で共有要素のため、JS側(damage-calc.ts renderTotalDisplay)で技列2つ以上の
+	   ときだけrow.totalResultElにdata-multi-move="true"を立て、ここでは圧縮状態限定の
+	   セレクタでCSS生成コンテンツ(::after)として軽い注記を足す(展開時は無条件で
+	   非表示、data-multi-move自体は展開時にも付くがdata-collapsed="true"の祖先が無いため
+	   このルールは発火しない=展開表示は変わらない)。 */
+	/* 🔴 UI改善ラウンド45 Coordinator実測検証時の調整: 実装者が仮置きした「(技を順に)」は、
+	   「技セット周回数かヒット数か」というプレイヤー視点レビュアーの疑問(round-45.md参照)に
+	   対して曖昧だった(「順に」が何を修飾するか不明瞭)ため、「これらの技を合計した結果」だと
+	   直接伝わる表現に差し替える。 */
+	/* 🔴 UI改善ラウンド45 統一感レビュアー指摘(A-2): 実装者が仮置きしたfont-size:0.62em
+	   (親.damage-result-verdictの15.456px基準で約9.58px)は、このプロジェクトで確立している
+	   muted系注記の12px下限規約(.damage-condition-chip/.damage-row-collapsed-detail-line等が
+	   採用する0.76rem=12.16px)を下回っていた。20-G3の教訓(入れ子emは事故りやすい)どおり
+	   remの直接指定に変え、既存の12.16px規格に揃える。 */
+	#opponent-notes-section .card-damage[data-collapsed="true"] .damage-row-total-result[data-multi-move="true"] .damage-result-verdict::after {
+		content: "(技の合計)";
+		margin-left: 0.3em;
+		font-size: 0.76rem;
+		font-weight: 500;
+		opacity: 0.75;
+	}
 	#opponent-notes-section .damage-row-total-result .damage-result-detail {
 		/* 20-G3: 0.82em(親0.85remの82%=約11.15px)は入れ子emの事故(pitfalls.md参照)。
 		   remの直接指定にした。23-D5で0.76rem(12.16px)→0.85rem(13.6px、+1.44px)に
@@ -2441,6 +2465,15 @@ const { pokemonId } = Astro.props;
 		border: none;
 		transition: background 0.15s, color 0.15s;
 	}
+	/* UI改善ラウンド45(ユーザー指示第29弾、A-2): 圧縮時、中身(アイコン+summary、
+	   align-items:center)は縦中央寄せなのに対しこのボタンだけbottom基準でカード下端に
+	   張り付き、周囲に大きな余白が残る問題(round-45.md実測)。圧縮状態限定でtop:50%+
+	   translateY(-50%)による縦中央寄せに切り替える(展開時のbottom基準は変更しない)。 */
+	#opponent-notes-section .card-damage[data-collapsed="true"] .damage-row-collapse-toggle-button {
+		top: 50%;
+		bottom: auto;
+		transform: translateY(-50%);
+	}
 	#opponent-notes-section .damage-row-collapse-toggle-glyph {
 		display: inline-block;
 		font-size: 1.3rem;
@@ -2488,8 +2521,15 @@ const { pokemonId } = Astro.props;
 	/* 36-1: 折りたたみ時に代わりに出す「相手ポケモン名(読み取り専用)+攻守の向き」の
 	   小さな読み取り専用表示(<script>のrefreshCollapsedSummary参照)。.damage-sprite-boxの
 	   隣(damage-row-build-main内)に置く。展開中は常時非表示。 */
+	/* UI改善ラウンド45(ユーザー指示第29弾、A-1): flex-growが無く、中身(実数値6つが
+	   2行固定グリッド)の自然幅ぶんしか広がらないため、340px幅の箱のうち実際に使うのは
+	   約202pxだけで残り約138pxが技列側まで空白のまま続いていた(round-45.md実測)。
+	   展開時に同位置へ入る.damage-row-build-leftはflex:1 1 autoで残り幅いっぱいに
+	   伸びるのに対し、圧縮時だけこの挙動が無かったのが原因。flex:1 1 autoを追加して
+	   残り幅を占有させる。 */
 	#opponent-notes-section .damage-row-collapsed-summary {
 		display: none;
+		flex: 1 1 auto;
 		flex-direction: column;
 		justify-content: center;
 		gap: 0.2rem;
@@ -2536,21 +2576,32 @@ const { pokemonId } = Astro.props;
 	   6項目のうち1項目だけ2行目に孤立して折り返り、行ごとにカード高さが不揃いになる
 	   事故があった。H/A/B(1行目)・C/D/S(2行目)を固定行(.damage-row-collapsed-stats-line、
 	   flex-wrap無し)にし、常に2行・同じ高さになるようにする。 */
+	/* UI改善ラウンド45(ユーザー指示第29弾、A-1提案2): flex-growでsummary自体の幅が
+	   広がった分、H/A/B・C/D/Sの2行を横に並べ直し、H↑C・A↑D・B↑Sが縦に揃うようにする。
+	   .damage-row-collapsed-stats-lineにdisplay:contentsを指定して自身のボックスを
+	   持たせず、中の.damage-row-collapsed-stat(1行あたり3個)を親のgridへ直接
+	   3列グリッドとして参加させる(クラス名・マークアップ<script>側は変更しない)。
+	   column-gapはdisplay:contentsの要素では意味を持たないため、grid containerである
+	   このstatsEl側に持たせる。 */
 	#opponent-notes-section .damage-row-collapsed-stats {
-		display: flex;
-		flex-direction: column;
+		display: grid;
+		grid-template-columns: repeat(3, 1fr);
 		row-gap: 0.1rem;
+		/* 🔴 UI改善ラウンド45 統一感レビュアー指摘: emは祖先の実フォントサイズに追随してしまう
+		   (20-G3と同型の入れ子事故リスク)。remの直接指定にする(実測値8pxは変えない)。 */
+		column-gap: 0.5rem;
 		margin-top: 0.1rem;
 	}
 	#opponent-notes-section .damage-row-collapsed-stats-line {
-		display: flex;
-		column-gap: 0.5em;
+		display: contents;
 	}
 	#opponent-notes-section .damage-row-collapsed-stat {
 		display: inline-flex;
 		align-items: baseline;
 		gap: 0.2em;
-		font-size: 0.82rem;
+		/* UI改善ラウンド45(A-1提案3): flex:1 1 auto+3列グリッド化で生まれた余裕分、
+		   0.82rem→0.88remへ拡大する(実測して窮屈にならない範囲、検証セクション参照)。 */
+		font-size: 0.88rem;
 		color: var(--color-text);
 	}
 	#opponent-notes-section .damage-row-collapsed-stat-key {
@@ -2561,6 +2612,12 @@ const { pokemonId } = Astro.props;
 	   同じ色トークンをそのまま流用する(新色を作らない)。 */
 	#opponent-notes-section .damage-row-collapsed-stat-value[data-mod="up"] { color: var(--stat-up); }
 	#opponent-notes-section .damage-row-collapsed-stat-value[data-mod="down"] { color: var(--stat-down); }
+	/* 🔴 UI改善ラウンド45 統一感レビュアー指摘(A-1): 展開表示の実数値(.damage-stat-value)は
+	   font-weight:700だが、この圧縮表示側には太さの指定が無くブラウザ既定(400)のままだった。
+	   同じ「実数値」という役割なので揃える。 */
+	#opponent-notes-section .damage-row-collapsed-stat-value {
+		font-weight: 700;
+	}
 
 	/* 36-1: 折りたたみ状態そのもの(<script>のsetCollapsed/applyCollapsedStateが
 	   root.dataset.collapsed = "true"/"false" を切り替える)。

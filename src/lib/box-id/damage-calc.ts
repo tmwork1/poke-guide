@@ -1043,6 +1043,16 @@ if (opponentNotesSection) {
 		if (!target) return;
 		const result = row.clientResult;
 		const validAttacks = validAttacksOf(row);
+		// UI改善ラウンド45(ユーザー指示第29弾、B-3): 技列が2つ以上あるとき、合計行「確N」が
+		// 何を数えているか圧縮表示だけでは伝わらない指摘(round-45.md)への対応。totalBlock
+		// (.damage-row-total)は展開/圧縮で共有要素なので、DOM構造自体は変えず、ここで
+		// data-multi-move属性だけを立てる(見た目には影響しない)。実際の注記表示は
+		// CSS側(#opponent-notes-section .card-damage[data-collapsed="true"]
+		// .damage-row-total-result[data-multi-move="true"] .damage-result-verdict::after、
+		// DamageCalcSection.astro)が圧縮状態限定のセレクタで生成コンテンツとして足すため、
+		// 展開表示は変わらない。全てのreturnパスで参照される属性のため、早期returnより
+		// 前(このtarget取得直後)に設定する。
+		target.dataset.multiMove = validAttacks.length >= 2 ? "true" : "false";
 		if (validAttacks.length === 0) {
 			setResultPlain(target, "(技名を入力)");
 			target.dataset.severity = "none";
@@ -1816,6 +1826,35 @@ if (opponentNotesSection) {
 		return chips;
 	}
 
+	// UI改善ラウンド45(ユーザー指示第29弾、B-1): 圧縮表示の詳細設定行
+	// (collapsedDetailLineEl、refreshCollapsedTechniques参照)専用のチップ生成。
+	// collectConditionChips()(上、展開表示の技列チップ.damage-condition-chipと共有)は
+	// 状態異常には「攻撃側」「防御側」の側prefixを付けるが、ランクチップ(攻撃+6等)には
+	// 付けておらず、同じ行内で表記が混在している(round-45.md B-1、プレイヤー視点
+	// レビュアー指摘)。展開表示側(collectConditionChips/renderConditionChipsInto)は
+	// 変更禁止(展開の見た目を一切変えない制約)のため、圧縮表示専用にランクチップにも
+	// 側prefixを付けた別関数を新設して表記を揃える(全チップに側prefixを付ける方針。
+	// 状態異常側を省略する方針は、攻撃側/防御側の状態異常が同一列に同時発生しうる
+	// (attackerAilment/defenderAilmentが独立フィールド)ため、省略すると区別できなくなる
+	// 実装者判断で採らなかった)。
+	function collectConditionChipsForCollapsed(a: DamageColumnState): string[] {
+		const chips: string[] = [];
+		if (a.weather) chips.push(a.weather);
+		if (a.terrain) chips.push(a.terrain);
+		if (a.wallEnabled) chips.push("壁");
+		if (a.critical) chips.push("急所");
+		if (a.attackerAilment) chips.push(`攻撃側${a.attackerAilment}`);
+		if (a.defenderAilment) chips.push(`防御側${a.defenderAilment}`);
+		if (a.attackerTerastallized) chips.push("攻撃側テラス");
+		if (a.defenderTerastallized) chips.push("防御側テラス");
+		const moveCategory = getMoveCategory(a.moveName);
+		const atkRankLabel = moveCategory === "special" ? "特攻" : "攻撃";
+		const defRankLabel = moveCategory === "special" ? "特防" : "防御";
+		if (a.attackerRank !== 0) chips.push(`攻撃側${atkRankLabel}${a.attackerRank > 0 ? "+" : ""}${a.attackerRank}`);
+		if (a.defenderRank !== 0) chips.push(`防御側${defRankLabel}${a.defenderRank > 0 ? "+" : ""}${a.defenderRank}`);
+		return chips;
+	}
+
 	// 1枚の技列チップ器(.damage-row-condition-chips)の中身を、その技カードの
 	// 現在値で作り直す。
 	function renderConditionChipsInto(container: HTMLElement, attack: DamageColumnState): void {
@@ -2171,7 +2210,15 @@ if (opponentNotesSection) {
 		function refreshCollapsedSummary(): void {
 			collapsedNameEl.textContent = row.name.trim() || "(名前未設定)";
 			const selfAttacks = row.direction !== "defense";
-			collapsedDirectionEl.textContent = selfAttacks ? "攻撃" : "防御";
+			// UI改善ラウンド45(ユーザー指示第29弾、A-4): 圧縮時のこの読み取り専用バッジは
+			// 「攻撃」「防御」の2語だけで、実数値の%がどちらのポケモンのHPを基準にしているか
+			// (攻撃=相手のHPを分母とした与ダメ、防御=このポケモンのHPを分母とした被ダメ)を
+			// 示せていなかった(round-45.md、プレイヤー視点レビュアー指摘)。展開時の
+			// インタラクティブなセグメントコントロール(.damage-row-direction-option、
+			// 下のattackOption/defenseOption)は「攻撃」「防御」のまま変更しない(別要素・
+			// 別の確定仕様)。ここは読み取り専用バッジのテキストのみを「%の基準」が伝わる
+			// 表現に差し替える(新規UI要素は追加しない)。
+			collapsedDirectionEl.textContent = selfAttacks ? "与ダメ" : "被ダメ";
 			collapsedDirectionEl.dataset.role = selfAttacks ? "attack" : "defense";
 		}
 		// 42-D4: H/A/B/C/D/Sの実数値だけをこの折りたたみ用の行へ複製する。実数値の算出
@@ -2185,8 +2232,16 @@ if (opponentNotesSection) {
 				const target = collapsedStatValueEls[key];
 				const source = row.statValueEls[key];
 				if (!target) continue;
-				target.textContent = source?.textContent ?? "-";
 				const mod = source?.dataset.mod;
+				// UI改善ラウンド45(ユーザー指示第29弾、A-3): 性格補正の上昇/下降が圧縮表示では
+				// 色のみで表現されており、展開表示(describeNatureCycleState、上方参照)にある
+				// ▲/▼記号が消えていた(WCAG 1.4.1、色のみへの依存。round-45.md、UI/プレイヤー
+				// 視点レビュアー重複指摘)。展開表示と同じ記号(▲=上昇/▼=下降)を実数値の前に
+				// 文字として添える。新色は作らず、既存の--stat-up/--stat-down
+				// (.damage-row-collapsed-stat-value[data-mod]、DamageCalcSection.astro)を
+				// そのまま流用する。
+				const indicator = mod === "up" ? "▲" : mod === "down" ? "▼" : "";
+				target.textContent = indicator + (source?.textContent ?? "-");
 				if (mod) target.dataset.mod = mod;
 				else delete target.dataset.mod;
 			}
@@ -2687,7 +2742,9 @@ if (opponentNotesSection) {
 			const chipGroups: { index: number; chips: string[] }[] = [];
 			row.attacks.forEach((a, i) => {
 				if (a.moveName.trim() === "") return;
-				const chips = collectConditionChips(a);
+				// B-1: 展開表示のcollectConditionChips()ではなく、側prefixを統一した
+				// collectConditionChipsForCollapsed()(上方参照)を使う。
+				const chips = collectConditionChipsForCollapsed(a);
 				if (chips.length > 0) chipGroups.push({ index: i + 1, chips });
 			});
 			if (chipGroups.length === 0) {
