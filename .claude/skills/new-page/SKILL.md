@@ -7,6 +7,8 @@ description: このプロジェクトにまだ存在しないページ(画面)�
 
 **1回の呼び出し = 1フェーズ。** 状態は `docs/plan/pages/index.md`(索引)と `docs/plan/pages/<slug>.md`(ページごとの仕様・設計・受け入れ基準・実施結果)に永続化されているので、途中から再開できる。`/loop new-page` で繰り返し起動される前提で書かれている。
 
+**特に指示のない限り `main` で直接作業する**(専用worktree/ブランチは作らない)。**各フェーズの作業が一区切りついたら Coordinator が `git commit` する**(`git push` はしない)。→ ルートの `CLAUDE.md`「作業方針」。
+
 ## `ui` skill との境界(重要)
 
 | | `new-page`(このskill) | `ui` |
@@ -145,6 +147,7 @@ description: このプロジェクトにまだ存在しないページ(画面)�
 そのうえで:
 - `docs/plan/pages/index.md` のバックログ表で当該ページを **✅完了** にする
 - **`docs/plan/ui_plan.md` の「現在の状態」に「`/<path>` が新設されたため未講評」と1行足す。** これをやらないと `ui` skill が新しいページの存在に気づかない(`ui` は `ui_plan.md` の索引しか読まない)
+- **Coordinatorが `git commit` する**(特に指示のない限り。`git push` はしない)
 - ユーザーに「`/loop ui` を回せば見た目の磨き込みに入れる」と報告する
 
 ## ループの終了条件

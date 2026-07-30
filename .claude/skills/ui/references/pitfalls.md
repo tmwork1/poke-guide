@@ -89,7 +89,8 @@ Coordinatorが実測して発覚し、2回目でバリデーション層を直�
 
 **ラウンド32(2026-07-30)で実際に起きた。** 実装エージェント2体が走行中に、**別セッション(別プロセス)が同じワーキングツリーで `git commit` を実行し、書きかけのファイル・記録途中の計画書が丸ごと1コミット `e82db52` に混入した**(コミットメッセージは「ラウンド24-32 + チーム編成機能」で、実際には32は未完成だった)。
 
-- **対策(ユーザー指示により `SKILL.md` の Step -1 に手順化した)**: **ラウンドの一番最初に、専用のworktreeとブランチを作ってからそこで作業する。** `EnterWorktree` ツール(`name: "ui-round-NN"`)か `git worktree add ../poke-commons-ui-round-NN -b ui/round-NN`。
+- **対策(ラウンド32〜34は `SKILL.md` の Step -1 でworktree分離を必須化していた)**: ラウンドの一番最初に、専用のworktreeとブランチを作ってからそこで作業する。`EnterWorktree` ツール(`name: "ui-round-NN"`)か `git worktree add ../poke-commons-ui-round-NN -b ui/round-NN`。
+- **🔴 2026-07-30、ユーザーの明示指示によりこのリスクを承知の上でworktree分離をデフォルトから外した。** 現在は特に指示のない限り `main` で直接作業する(→ ルートの `CLAUDE.md`「作業方針」、`SKILL.md` Step -1)。他セッションと並行作業する予定がある場合のみ、その都度ユーザーと相談してworktreeを分ける。以下は**worktreeを分ける場合の**注意点として残す。
 - **worktreeには `node_modules` が無いので `npm install` が要る。** dev serverもworktree側で起動し、**ポートが4321とは限らない**ので `npm run shot -- --base http://localhost:<実ポート>` を明示する。
 - **サブエージェントには必ずworktreeの絶対パスを渡す。** 元のパスを渡すと共有ツリーを汚す。
 - **⚠️ エージェント走行中にworktreeを移動しない。** エージェントは起動時の作業ディレクトリに固定されるので、途中で移すと担当ファイルを見失う。
