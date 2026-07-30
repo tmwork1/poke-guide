@@ -2196,44 +2196,104 @@ if (opponentNotesSection) {
 		// flex-wrapの1コンテナに任せると、build幅340px(スプライト80px分を引いた残り
 		// 約234px)ぎりぎりのところで「S116だけ2行目に孤立して折り返る」ような不揃いな
 		// 折り返りが起き、カード同士の高さが行によって102.75px/116.06pxとばらつく事故が
-		// 実測で見つかった(3桁の実数値が並ぶと数px単位でギリギリ)。「1行(または2行)」の
-		// うち2行を確定で採用し、H/A/B(1行目)・C/D/S(2行目)に固定で分けることで、
-		// 実数値の桁数によらず常に2行・高さが揃うようにする。
+		// 実測で見つかった(3桁の実数値が並ぶと数px単位でギリギリ)。ラウンド45はH/A/B
+		// (1行目)・C/D/S(2行目)に固定で分けた3列×2行gridで対応した。
+		// 🔴 UI改善ラウンド47ユーザー指示(第31弾、A-1): 当初「6項目を1行flexに詰める」案を
+		// 実装したが、Coordinatorから追加指示があり「ラベル行(H/A/B/C/D/S)+実数値行の
+		// 2段・6列表」という確定仕様に差し替えられた(1行flexだと最悪ケースでフォントを
+		// 12px下限ギリギリまで縮める必要があり見た目が窮屈になるため撤回)。6個のラベル要素を
+		// 先に1段目、6個の実数値要素を2段目に配置し、6列グリッド(grid-auto-flow:row既定)へ
+		// display:contentsで直接参加させることで、同じ列位置に縦の対応が取れる
+		// (H↑値、A↑値…と6列すべてが揃う)。性格補正の上昇/下降は、ラウンド45で追加した
+		// 値側の▲/▼記号ではなく、ラベル文字への+/-付記(例: A+/C-)で表現する新仕様になった
+		// (refreshCollapsedStats参照、値には記号を付けない)。
 		const collapsedStatsEl = document.createElement("div");
 		collapsedStatsEl.className = "damage-row-collapsed-stats";
+		const collapsedStatKeyEls: Partial<Record<StatKey, HTMLElement>> = {};
 		const collapsedStatValueEls: Partial<Record<StatKey, HTMLElement>> = {};
-		const statRow1 = document.createElement("div");
-		statRow1.className = "damage-row-collapsed-stats-line";
-		const statRow2 = document.createElement("div");
-		statRow2.className = "damage-row-collapsed-stats-line";
-		STAT_KEYS.forEach((key, i) => {
-			const statSpan = document.createElement("span");
-			statSpan.className = "damage-row-collapsed-stat";
+		const statLabelRow = document.createElement("div");
+		statLabelRow.className = "damage-row-collapsed-stats-line";
+		const statValueRow = document.createElement("div");
+		statValueRow.className = "damage-row-collapsed-stats-line";
+		STAT_KEYS.forEach((key) => {
 			const keyEl = document.createElement("span");
 			keyEl.className = "damage-row-collapsed-stat-key";
 			keyEl.textContent = STAT_KANJI[key];
+			statLabelRow.appendChild(keyEl);
+			collapsedStatKeyEls[key] = keyEl;
+		});
+		STAT_KEYS.forEach((key) => {
 			const valueEl = document.createElement("span");
 			valueEl.className = "damage-row-collapsed-stat-value tnum";
 			valueEl.textContent = "-";
-			statSpan.append(keyEl, valueEl);
-			(i < 3 ? statRow1 : statRow2).appendChild(statSpan);
+			statValueRow.appendChild(valueEl);
 			collapsedStatValueEls[key] = valueEl;
 		});
-		collapsedStatsEl.append(statRow1, statRow2);
-		collapsedSummary.append(collapsedNameEl, collapsedDirectionEl, collapsedAbilityEl, collapsedStatsEl);
+		collapsedStatsEl.append(statLabelRow, statValueRow);
+		// 🔴 UI改善ラウンド47ユーザー指示(第31弾、追加指示A-7、A-5を撤回して差し替え):
+		// 直前のA-5実装(種族名・攻撃/防御バッジ・特性を1段の.damage-row-collapsed-meta-rowに
+		// まとめる)を、ユーザーの再指定「1段目: 攻撃/防御 種族名 / 2段目: 特性、テラスタル」
+		// により2段構成へ作り直す。
+		// 1段目(.damage-row-collapsed-meta-row、既存クラス名を流用): 攻撃/防御バッジ
+		// (collapsedDirectionEl)→種族名(collapsedNameEl)の順(ユーザー指定の並び順に合わせて
+		// DOM追加順を変更。以前のA-5はnameEl→directionElの順だった)。特性(collapsedAbilityEl)は
+		// この行から外す。バッジ・種族名とも省略しない(flex:0 0 auto、下のCSS参照)。
+		// 2段目(.damage-row-collapsed-tera-row、新設): 特性(collapsedAbilityEl、既存要素を
+		// そのままこちらへ移動。スタイル・ellipsis仕様は維持)→テラス情報の順。
+		// テラス情報はスプライト画像に重ねていた既存の.damage-type-badge(typeBadgeImg/
+		// typeBadgeFallback)をやめ(折りたたみ時限定でCSS側をdisplay:noneに戻す、下方の
+		// [data-collapsed="true"] .damage-type-badge参照)、ここに新しい小アイコン
+		// (collapsedTeraImg/collapsedTeraFallback)として表示する。applyTeraImage()の
+		// シグネチャ(imgEl, fallbackEl, teraName)はtypeBadgeImg/typeBadgeFallbackへの
+		// 呼び出しと同一で、同じ関数を2組の要素へそれぞれ適用するだけでよい(下方の
+		// refreshTypeBadge参照)。特性・テラアイコンの合計が234.42px幅を超える場合は
+		// A-5と同じ考え方で特性側だけellipsis省略する(flex:1 1 auto; min-width:0、
+		// テラアイコン側はflex:0 0 auto固定サイズ)。
+		const collapsedTeraImg = document.createElement("img");
+		collapsedTeraImg.className = "damage-row-collapsed-tera-icon-img";
+		collapsedTeraImg.width = 16;
+		collapsedTeraImg.height = 16;
+		collapsedTeraImg.alt = "";
+		// typeBadgeImgと同じ理由(applyTeraImage解決前に壊れ画像アイコンが一瞬出ないよう
+		// 既定で隠す)。
+		collapsedTeraImg.style.display = "none";
+		const collapsedTeraFallback = document.createElement("span");
+		collapsedTeraFallback.className = "damage-row-collapsed-tera-icon-fallback";
+		const collapsedTeraIconEl = document.createElement("span");
+		collapsedTeraIconEl.className = "damage-row-collapsed-tera-icon";
+		collapsedTeraIconEl.append(collapsedTeraImg, collapsedTeraFallback);
+		// round-47.md A-7「テキストラベル(タイプ名)を併記するかは実装者判断でよい」に基づき、
+		// アイコンの右にタイプ名テキストを添える。アイコン・名前とも省略対象にしない固定サイズの
+		// 塊としてまとめる(.damage-row-collapsed-tera-info、下記append参照。CSSは
+		// DamageCalcSection.astro参照)。
+		const collapsedTeraNameEl = document.createElement("span");
+		collapsedTeraNameEl.className = "damage-row-collapsed-tera-name";
+		const collapsedTeraInfoEl = document.createElement("span");
+		collapsedTeraInfoEl.className = "damage-row-collapsed-tera-info";
+		collapsedTeraInfoEl.append(collapsedTeraIconEl, collapsedTeraNameEl);
+
+		const collapsedMetaRow = document.createElement("div");
+		collapsedMetaRow.className = "damage-row-collapsed-meta-row";
+		collapsedMetaRow.append(collapsedDirectionEl, collapsedNameEl);
+		const collapsedTeraRow = document.createElement("div");
+		collapsedTeraRow.className = "damage-row-collapsed-tera-row";
+		collapsedTeraRow.append(collapsedAbilityEl, collapsedTeraInfoEl);
+		collapsedSummary.append(collapsedMetaRow, collapsedTeraRow, collapsedStatsEl);
 		buildMain.appendChild(collapsedSummary);
 		function refreshCollapsedSummary(): void {
 			collapsedNameEl.textContent = row.name.trim() || "(名前未設定)";
 			const selfAttacks = row.direction !== "defense";
-			// UI改善ラウンド45(ユーザー指示第29弾、A-4): 圧縮時のこの読み取り専用バッジは
-			// 「攻撃」「防御」の2語だけで、実数値の%がどちらのポケモンのHPを基準にしているか
-			// (攻撃=相手のHPを分母とした与ダメ、防御=このポケモンのHPを分母とした被ダメ)を
-			// 示せていなかった(round-45.md、プレイヤー視点レビュアー指摘)。展開時の
+			// UI改善ラウンド45(ユーザー指示第29弾、A-4)で「攻撃/防御」→「与ダメ/被ダメ」に
+			// 変更したが(%の基準が伝わらないというプレイヤー視点レビュアー指摘への対応)、
+			// 🔴 UI改善ラウンド47ユーザー指示(第31弾、A-2)によりユーザーが明示的にこれを
+			// 撤回し「攻撃/防御」への復帰を指示した(ワイヤーフレーム
+			// docs/ui_proposal/ダメージカード_圧縮.png の表記に合わせる)。ユーザー判断が
+			// 最優先のため撤回する。ラウンド45が指摘した「%の基準が伝わらない」問題自体は
+			// 復活する(再度指摘があれば別解決策を検討する、round-47.md参照)。展開時の
 			// インタラクティブなセグメントコントロール(.damage-row-direction-option、
-			// 下のattackOption/defenseOption)は「攻撃」「防御」のまま変更しない(別要素・
-			// 別の確定仕様)。ここは読み取り専用バッジのテキストのみを「%の基準」が伝わる
-			// 表現に差し替える(新規UI要素は追加しない)。
-			collapsedDirectionEl.textContent = selfAttacks ? "与ダメ" : "被ダメ";
+			// 下のattackOption/defenseOption)は「攻撃」「防御」のまま元々変更していない
+			// (別要素・別の確定仕様)。dataset.role(色分け用)はラウンド45のまま変更しない。
+			collapsedDirectionEl.textContent = selfAttacks ? "攻撃" : "防御";
 			collapsedDirectionEl.dataset.role = selfAttacks ? "attack" : "defense";
 			// UI改善ラウンド46ユーザー指示(第30弾、A-1): 名前欄の
 			// row.name.trim() || "(名前未設定)" と同じフォールバック文法に揃える。
@@ -2251,21 +2311,26 @@ if (opponentNotesSection) {
 		// タイミングだけで行えば値がずれることはない(下のsetCollapsed参照)。
 		function refreshCollapsedStats(): void {
 			for (const key of STAT_KEYS) {
-				const target = collapsedStatValueEls[key];
+				const keyTarget = collapsedStatKeyEls[key];
+				const valueTarget = collapsedStatValueEls[key];
 				const source = row.statValueEls[key];
-				if (!target) continue;
+				if (!keyTarget || !valueTarget) continue;
 				const mod = source?.dataset.mod;
-				// UI改善ラウンド45(ユーザー指示第29弾、A-3): 性格補正の上昇/下降が圧縮表示では
-				// 色のみで表現されており、展開表示(describeNatureCycleState、上方参照)にある
-				// ▲/▼記号が消えていた(WCAG 1.4.1、色のみへの依存。round-45.md、UI/プレイヤー
-				// 視点レビュアー重複指摘)。展開表示と同じ記号(▲=上昇/▼=下降)を実数値の前に
-				// 文字として添える。新色は作らず、既存の--stat-up/--stat-down
-				// (.damage-row-collapsed-stat-value[data-mod]、DamageCalcSection.astro)を
-				// そのまま流用する。
-				const indicator = mod === "up" ? "▲" : mod === "down" ? "▼" : "";
-				target.textContent = indicator + (source?.textContent ?? "-");
-				if (mod) target.dataset.mod = mod;
-				else delete target.dataset.mod;
+				// UI改善ラウンド45(ユーザー指示第29弾、A-3)で性格補正の上昇/下降を値側に
+				// ▲/▼記号として追加したが(色のみ表現はWCAG 1.4.1に抵触するため)、
+				// UI改善ラウンド47ユーザー指示(第31弾、A-1、Coordinator追加指示)により
+				// 「ラベル行+実数値行の2段・6列表」への変更に伴い、記号の付与位置がラベル側
+				// (H/A/B/C/D/Sの文字)へ移り、▲/▼ではなく+/-をラベル文字に直接付記する形に
+				// 変更された(例: 上昇ならA+、下降ならC-)。展開時の▲/▼(describeNatureCycleState、
+				// 上方参照)とは表現を変える圧縮表示限定の確定仕様(round-47.md A-1)。値側には
+				// 記号を付けない。色は新色を作らず、既存の--stat-up/--stat-down
+				// (.damage-row-collapsed-stat-key[data-mod]、DamageCalcSection.astro)を
+				// そのままラベル側に付け替えて流用する。
+				const suffix = mod === "up" ? "+" : mod === "down" ? "-" : "";
+				keyTarget.textContent = STAT_KANJI[key] + suffix;
+				if (mod) keyTarget.dataset.mod = mod;
+				else delete keyTarget.dataset.mod;
+				valueTarget.textContent = source?.textContent ?? "-";
 			}
 		}
 
@@ -2289,6 +2354,18 @@ if (opponentNotesSection) {
 			// 参照。row.teraTypeが変わるたびに内部でteraTypeIconUrlを引き直す)に一本化された
 			// ため不要になった(選択欄の外に重ねる専用アイコンはもう無い)。
 			void applyTeraImage(typeBadgeImg, typeBadgeFallback, row.teraType);
+			// 🔴 UI改善ラウンド47ユーザー指示(第31弾、A-7): 折りたたみ2段目
+			// (collapsedTeraRow)の小アイコンも同じrow.teraTypeで更新する。上のtypeBadgeImg/
+			// typeBadgeFallbackへの呼び出しと同じapplyTeraImage()を、別の要素ペア
+			// (collapsedTeraImg/collapsedTeraFallback)へそのまま適用するだけでよい。
+			void applyTeraImage(collapsedTeraImg, collapsedTeraFallback, row.teraType);
+			// round-47.md A-7「テキストラベル(タイプ名)を併記するかは実装者判断でよい」に
+			// 基づき、アイコンの隣にタイプ名テキストを表示する。テラスタイプ未設定
+			// (row.teraType==="")のときは空文字にし、アイコン(applyTeraImageがimg/fallback
+			// 両方をdisplay:noneにする)と同じく何も見えない状態にする。
+			const teraTypeText = row.teraType.trim();
+			collapsedTeraNameEl.textContent = teraTypeText;
+			collapsedTeraNameEl.title = teraTypeText;
 		}
 		function refreshItemImage(): void {
 			void applyItemImage(itemImg, row.itemName.trim());

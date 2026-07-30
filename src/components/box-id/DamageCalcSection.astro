@@ -707,11 +707,18 @@ const { pokemonId } = Astro.props;
 	   applyTeraImage()はこの2要素のstyle.displayを直接インライン指定するだけ(親span自体の
 	   displayは触らない)なので、親.damage-type-badgeをdisplay:noneにするだけで両方隠れる
 	   (31-L3の.top-block-tera-imageと違い、こちらは!important不要)。 */
+	/* 🔴 UI改善ラウンド47ユーザー指示(第31弾、A-3): 折りたたみ時にこのバッジを表示した際
+	   (下方の[data-collapsed="true"] .damage-type-badge参照)、top/right:-6pxだと
+	   .damage-sprite-box(80×80)との重なりが縦横とも70%程度にとどまり、右上に浮いて
+	   見える(Coordinator実測、round-47.md)。比較対象の持ち物バッジ(.damage-item-badge、
+	   bottom/right:-4px、33×33px)は重なりが88%で「乗っている」印象が強い。それに近づける
+	   ため-6px→-2pxに縮小する。展開表示側はこの基底ルール自体がdisplay:noneのまま
+	   (31-D4a、下記コメント参照)なので、この変更は折りたたみ時の見た目にのみ影響する。 */
 	#opponent-notes-section .damage-type-badge {
 		display: none;
 		position: absolute;
-		top: -6px;
-		right: -6px;
+		top: -2px;
+		right: -2px;
 		align-items: center;
 		justify-content: center;
 	}
@@ -2540,6 +2547,18 @@ const { pokemonId } = Astro.props;
 	   未更新のまま残っていた棚卸し対象(round-46.md、UIレビュアー指摘)。実害は無かったが、
 	   親のflex:1 1 autoにまかせて100%へ更新する(親幅が変わってもここを個別に
 	   追随させる必要がなくなる)。 */
+	/* 🔴 UI改善ラウンド47ユーザー指示(第31弾、追加指示A-7、A-5を撤回して差し替え):
+	   種族名・攻撃/防御バッジ・特性を1段にまとめていたA-5実装を撤回し、1段目=攻撃/防御
+	   バッジ(collapsedDirectionEl)→種族名(collapsedNameEl)の2要素だけの行に作り直す
+	   (ユーザー指定の並び順「攻撃/防御 種族名」に合わせ、<script>側のDOM追加順も
+	   directionEl→nameElに変更した)。特性は2段目(下記.damage-row-collapsed-tera-row)へ
+	   移した。バッジ・種族名とも省略しない要素として扱う(flex:0 0 auto、下記)。 */
+	#opponent-notes-section .damage-row-collapsed-meta-row {
+		display: flex;
+		align-items: center;
+		gap: 0.4rem;
+		min-width: 0;
+	}
 	#opponent-notes-section .damage-row-collapsed-name {
 		font-size: 0.92rem;
 		font-weight: 700;
@@ -2548,16 +2567,22 @@ const { pokemonId } = Astro.props;
 		overflow: hidden;
 		text-overflow: ellipsis;
 		max-width: 100%;
+		/* UI改善ラウンド47(A-7): 1段目の中で種族名は省略しない要素にする(自然幅を確保)。 */
+		flex: 0 0 auto;
 	}
 	#opponent-notes-section .damage-row-collapsed-direction {
 		display: inline-flex;
-		align-self: flex-start;
 		font-size: 0.76rem;
 		font-weight: 600;
 		padding: 0.1em 0.55em;
 		border-radius: var(--radius-sm);
 		color: var(--color-primary-contrast);
 		line-height: 1.3;
+		/* UI改善ラウンド47(A-7): 1段目の中でバッジも省略しない要素にする。
+		   親が縦積み(flex-direction:column)だった頃のalign-self:flex-startは
+		   横並び行では不要になったため削除し、親.damage-row-collapsed-meta-rowの
+		   align-items:centerに任せる。 */
+		flex: 0 0 auto;
 	}
 	/* 攻撃=赤/防御=青は.damage-row-direction-option[data-role][aria-checked="true"]
 	   (このファイル上部)と同じ配色トークンを再利用する(新色は作らない)。 */
@@ -2568,17 +2593,15 @@ const { pokemonId } = Astro.props;
 		background: var(--color-primary-strong);
 	}
 	/* UI改善ラウンド46ユーザー指示(第30弾、A-1): 折りたたみ左ブロックに特性(とくせい)行を
-	   追加する。docs/ui_proposal/ダメージカード_圧縮.png(種族名→攻撃or防御→特性→
-	   H-A-B-C-D-Sの4行構成)どおり、与ダメ/被ダメバッジと実数値グリッドの間に挿入する
-	   (<script>のcollapsedAbilityEl参照)。42-D4時点では「340px幅に名前・攻守バッジ・
-	   実数値6つを収める時点で十分密」という理由でこの行を意図的に外していたが、
-	   ラウンド45でこの箱(.damage-row-collapsed-summary)の幅が115.2px→234.42pxに
-	   拡張され、当時の空間制約の前提が変わったため追加する(round-46.md、UI・プレイヤー
-	   視点レビュアーとも優先度A)。右側の技列2段目(.damage-row-collapsed-detail-line、
-	   下方参照)と同一仕様(0.76rem/font-weight 400/var(--color-text-muted)/
-	   nowrap+ellipsis+title)にし、新色・新フォントサイズは増やさない。max-widthは
-	   付けない(親の.damage-row-collapsed-summaryがflex:1 1 autoで234.42pxまで
-	   自然に伸びるため)。 */
+	   追加した(<script>のcollapsedAbilityEl参照)。右側の技列2段目
+	   (.damage-row-collapsed-detail-line、下方参照)と同一仕様(0.76rem/font-weight 400/
+	   var(--color-text-muted)/nowrap+ellipsis+title)にし、新色・新フォントサイズは
+	   増やさない。
+	   🔴 UI改善ラウンド47ユーザー指示(第31弾、追加指示A-7、A-5を撤回して差し替え):
+	   A-5では1段目(名前・バッジと同じ行)に置いていたが、ユーザーの再指定
+	   「2段目: 特性、テラスタル」により、この要素を2段目の.damage-row-collapsed-tera-row
+	   (下記)へ移した。フォント・色・ellipsis仕様自体は変更しない。max-widthは付けない
+	   (2段目の残り幅までflex:1 1 autoで自然に伸びる、下記flexの説明参照)。 */
 	#opponent-notes-section .damage-row-collapsed-ability {
 		font-size: 0.76rem;
 		font-weight: 400;
@@ -2586,6 +2609,82 @@ const { pokemonId } = Astro.props;
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
+		/* UI改善ラウンド47(A-7): 2段目(.damage-row-collapsed-tera-row)の中で、テラアイコン
+		   (flex:0 0 auto固定サイズ、下記.damage-row-collapsed-tera-icon参照)は省略しない
+		   代わりに、幅が足りないときは特性側だけがellipsis省略されるようにする。
+		   ⚠️ 実装当初はA-5(種族名・バッジ・特性の1段まとめ)と同じflex:1 1 autoを
+		   流用したが、Playwright実測で「特性テキストが短いときアイコンが行の右端まで
+		   押し出され、特性とアイコンの間に不自然な空白ができる」不具合が見つかった
+		   (flex-growが特性側の箱をコンテナ全幅まで広げ、後続のテラアイコンがその箱の
+		   右端＝行の右端に押し出されるため。A-5では特性が最後の要素だったため同じ問題が
+		   表面化しなかった)。flex-growを0にし(flex: 0 1 auto)、特性は自然幅で
+		   アイコンのすぐ隣に並び、幅が不足する場合だけflex-shrink:1で縮んでellipsisに
+		   なるようにする(min-width:0は縮小時にoverflow:hiddenを効かせるために維持)。 */
+		flex: 0 1 auto;
+		min-width: 0;
+	}
+	/* 🔴 UI改善ラウンド47ユーザー指示(第31弾、追加指示A-7): 2段目(特性→テラス情報)の
+	   新設行。<script>のcollapsedTeraRow参照。gap値は実装者判断(round-47.md A-7)。 */
+	#opponent-notes-section .damage-row-collapsed-tera-row {
+		display: flex;
+		align-items: center;
+		gap: 0.4rem;
+		min-width: 0;
+	}
+	/* round-47.md A-7「テキストラベル(タイプ名)を併記するかは実装者判断でよい」により
+	   タイプ名テキストを併記する構成にした新設ラッパー。
+	   アイコン(.damage-row-collapsed-tera-icon)とタイプ名テキスト
+	   (.damage-row-collapsed-tera-name、<script>のcollapsedTeraNameEl)をひとまとめにし、
+	   テラアイコンと同じく省略対象にしない固定サイズ(flex:0 0 auto)にする。 */
+	#opponent-notes-section .damage-row-collapsed-tera-info {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.25rem;
+		flex: 0 0 auto;
+	}
+	/* テラスタイプの小アイコン。スプライト画像に重ねていた.damage-type-badge
+	   (top/right:-2px、20×20px、下方で折りたたみ時限定の表示をdisplay:noneに戻した)の
+	   代わりに、この2段目へ移設した表示。特性行(0.76rem)との釣り合いと
+	   --icon-size-sm(20px)を参考に16px角にした(<script>のcollapsedTeraImg/
+	   collapsedTeraFallback、applyTeraImage()呼び出しはtypeBadgeImg/typeBadgeFallbackと
+	   同じ関数を再利用している)。 */
+	#opponent-notes-section .damage-row-collapsed-tera-icon {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 16px;
+		height: 16px;
+		flex: 0 0 auto;
+	}
+	/* ⚠️ applyTeraImage()の警告どおり、テラスタイプ専用アイコンは宝石型(ジグザグの
+	   尖った縁)の正方形画像のため、border-radius: 50%による丸トリミングを掛けない
+	   (掛けると縁が削れる。上方の.damage-type-badge-imgコメント参照)。 */
+	#opponent-notes-section .damage-row-collapsed-tera-icon-img {
+		width: 16px;
+		height: 16px;
+		filter: drop-shadow(0 0 1px var(--color-surface));
+	}
+	/* 色フォールバック(取得できないテラスタイプの色ボックス)は宝石画像ではなくただの
+	   色見本なので、他の色フォールバック(.damage-type-badge-fallback等)と同様に
+	   border-radius: 50%で丸くしてよい。 */
+	#opponent-notes-section .damage-row-collapsed-tera-icon-fallback {
+		display: none;
+		width: 16px;
+		height: 16px;
+		border-radius: 50%;
+		border: 1px solid var(--color-border);
+	}
+	/* round-47.md A-7「テキストラベル(タイプ名)を併記するかは実装者判断でよい」に基づく
+	   タイプ名テキスト。特性行(.damage-row-collapsed-ability)と同一仕様(0.76rem/
+	   var(--color-text-muted))にし、新色・新フォントサイズは増やさない。テラスタイプ名は
+	   最長でも「フェアリー」等の数文字のため折り返り事故は起きにくいが、念のため
+	   white-space:nowrapにしておく(テラスタイプ未設定時は<script>側でtextContentを
+	   空文字にし、実質何も表示しない)。 */
+	#opponent-notes-section .damage-row-collapsed-tera-name {
+		font-size: 0.76rem;
+		color: var(--color-text-muted);
+		white-space: nowrap;
+		flex: 0 0 auto;
 	}
 	/* 🔴 UI改善ラウンド42ユーザー指示(42-D4/42-D5、38-D6を撤回): 旧.damage-row-collapsed-moves
 	   (名前・攻守の下に使用技名を「/」区切りで1行表示していた要素)は削除した。round-42.mdの
@@ -2599,49 +2698,84 @@ const { pokemonId } = Astro.props;
 	   十分密になっており、特性名まで足すと1行に収まらず可読性を損なうと判断した)。 */
 	/* 実測(round-42.md検証): flex-wrapまかせの1コンテナだと、実数値の桁数の違いだけで
 	   6項目のうち1項目だけ2行目に孤立して折り返り、行ごとにカード高さが不揃いになる
-	   事故があった。H/A/B(1行目)・C/D/S(2行目)を固定行(.damage-row-collapsed-stats-line、
-	   flex-wrap無し)にし、常に2行・同じ高さになるようにする。 */
-	/* UI改善ラウンド45(ユーザー指示第29弾、A-1提案2): flex-growでsummary自体の幅が
-	   広がった分、H/A/B・C/D/Sの2行を横に並べ直し、H↑C・A↑D・B↑Sが縦に揃うようにする。
-	   .damage-row-collapsed-stats-lineにdisplay:contentsを指定して自身のボックスを
-	   持たせず、中の.damage-row-collapsed-stat(1行あたり3個)を親のgridへ直接
-	   3列グリッドとして参加させる(クラス名・マークアップ<script>側は変更しない)。
-	   column-gapはdisplay:contentsの要素では意味を持たないため、grid containerである
-	   このstatsEl側に持たせる。 */
+	   事故があった。ラウンド45はH/A/B(1行目)・C/D/S(2行目)を固定行
+	   (.damage-row-collapsed-stats-line、flex-wrap無し)にした3列×2行gridで対応した。 */
+	/* 🔴 UI改善ラウンド47ユーザー指示(第31弾、A-1): 当初はワイヤーフレーム
+	   (docs/ui_proposal/ダメージカード_圧縮.png)の「H-A-B-C-D-Sを1行で表記」という見た目に
+	   合わせて1行flexへ変更したが(フォント0.76rem・gap圧縮で実装・検証まで実施)、
+	   Coordinatorから追加指示があり「ラベル行(H/A/B/C/D/S)+実数値行の2段・6列表」という
+	   確定仕様に差し替えられた(1行flexは最悪ケースでフォントを12px下限ギリギリまで縮める
+	   必要があり見た目が窮屈になるため撤回)。6列のCSS Gridを2段重ねる: 1段目に6個の
+	   .damage-row-collapsed-stat-key(ラベル)、2段目に6個の.damage-row-collapsed-stat-value
+	   (実数値)を、同じ列位置に縦の対応が取れるよう配置する(<script>側でstatLabelRow/
+	   statValueRowに分けてDOM順に追加するだけで、display:contentsとgrid-auto-flow:row
+	   既定により自動的に1段目/2段目へ割り振られる)。性格補正の上昇/下降は、ラウンド45で
+	   追加した値側の▲/▼記号ではなく、ラベル文字への+/-付記(例: A+/C-)に変更された
+	   (<script>のrefreshCollapsedStats参照)。色は新色を作らず、既存の
+	   --stat-up/--stat-downをラベル側([data-mod])へ付け替えて流用する。フォントサイズは
+	   6列表になったことで1行flex時代ほど窮屈にならないため、ラウンド45時点の0.88remの
+	   まま実装し、実機確認で収まることを確認した(下方の実施結果参照)。 */
+	/* 🔴 UI改善ラウンド47ユーザー指示(第31弾、追加指示A-6): ラベル行と実数値行の間の
+	   縦間隔が目立って空いて見えていた。row-gap自体は0.1rem(1.6px)と小さかったが、
+	   .damage-row-collapsed-stat-key/-valueがdisplay:blockでline-heightを指定して
+	   いなかったため、既定のline-height(祖先から継承、約1.5)による行間の余白が
+	   主因だった。row-gapを0にし、key/value側にline-height:1.15を明示指定して
+	   余白そのものを削る(下記.damage-row-collapsed-stat-key/-value参照)。 */
+	/* 🔴 UI改善ラウンド47ユーザー指示(第31弾、追加指示A-9): 「ステータス間の左右スペースを
+	   減らす」というユーザー指示により、column-gapを0.3rem(4.8px)→0.15rem(2.4px)に詰める
+	   (row-gapはA-6で既に0のため変更しない)。実装後に隣接する列のラベル/値が接触しないか
+	   実機確認する。 */
 	#opponent-notes-section .damage-row-collapsed-stats {
 		display: grid;
-		grid-template-columns: repeat(3, 1fr);
-		row-gap: 0.1rem;
-		/* 🔴 UI改善ラウンド45 統一感レビュアー指摘: emは祖先の実フォントサイズに追随してしまう
-		   (20-G3と同型の入れ子事故リスク)。remの直接指定にする(実測値8pxは変えない)。 */
-		column-gap: 0.5rem;
+		grid-template-columns: repeat(6, 1fr);
+		column-gap: 0.15rem;
+		row-gap: 0;
 		margin-top: 0.1rem;
 	}
 	#opponent-notes-section .damage-row-collapsed-stats-line {
 		display: contents;
 	}
+	/* 🔴 UI改善ラウンド47(A-1): 旧DOM構造(key+valueをペアで1つの.damage-row-collapsed-stat
+	   spanにまとめ、それを3列×2行または1行flexで並べる方式)は「ラベル行/実数値行の
+	   2段・6列」構造への変更に伴い、<script>側で生成しなくなった。既存クラス名は残す
+	   方針(このプロジェクトの規約)のためルール定義自体は削除しないが、現在のDOMでは
+	   このクラスは使われない。 */
 	#opponent-notes-section .damage-row-collapsed-stat {
 		display: inline-flex;
 		align-items: baseline;
-		gap: 0.2em;
-		/* UI改善ラウンド45(A-1提案3): flex:1 1 auto+3列グリッド化で生まれた余裕分、
-		   0.82rem→0.88remへ拡大する(実測して窮屈にならない範囲、検証セクション参照)。 */
-		font-size: 0.88rem;
-		color: var(--color-text);
+		gap: 0.05em;
 	}
+	/* 🔴 UI改善ラウンド47ユーザー指示(第31弾、追加指示A-8→追加指示で撤回): 一時的に
+	   無補正時の色をvar(--color-text-muted)から白へ、太さをfont-weight 700→400へ変更したが、
+	   直後にユーザーから「カード圧縮後の文字の色とフォントは展開中のものとできるだけそろえる」
+	   との指示があり、A-8自体を撤回した(round-47.md参照)。展開表示の対応要素
+	   (.damage-ev-col-label、上方参照)と同じ書式(color: var(--color-text-muted) /
+	   font-weight: 700)に戻す。 */
 	#opponent-notes-section .damage-row-collapsed-stat-key {
+		display: block;
+		text-align: center;
 		font-weight: 700;
+		font-size: 0.88rem;
+		/* UI改善ラウンド47(A-6): 行間の余白を詰めるためline-heightを明示指定する。 */
+		line-height: 1.15;
 		color: var(--color-text-muted);
 	}
-	/* 性格補正による上昇/下降は、努力値グリッドの実数値(.damage-stat-value[data-mod])と
-	   同じ色トークンをそのまま流用する(新色を作らない)。 */
-	#opponent-notes-section .damage-row-collapsed-stat-value[data-mod="up"] { color: var(--stat-up); }
-	#opponent-notes-section .damage-row-collapsed-stat-value[data-mod="down"] { color: var(--stat-down); }
+	/* 🔴 UI改善ラウンド47(A-1): 性格補正の色付けが値側からラベル側に移った
+	   (<script>のrefreshCollapsedStats参照)。努力値グリッドの実数値
+	   (.damage-stat-value[data-mod])と同じ色トークンをそのまま流用する(新色を作らない)。 */
+	#opponent-notes-section .damage-row-collapsed-stat-key[data-mod="up"] { color: var(--stat-up); }
+	#opponent-notes-section .damage-row-collapsed-stat-key[data-mod="down"] { color: var(--stat-down); }
 	/* 🔴 UI改善ラウンド45 統一感レビュアー指摘(A-1): 展開表示の実数値(.damage-stat-value)は
 	   font-weight:700だが、この圧縮表示側には太さの指定が無くブラウザ既定(400)のままだった。
 	   同じ「実数値」という役割なので揃える。 */
 	#opponent-notes-section .damage-row-collapsed-stat-value {
+		display: block;
+		text-align: center;
 		font-weight: 700;
+		font-size: 0.88rem;
+		/* UI改善ラウンド47(A-6): 行間の余白を詰めるためline-heightを明示指定する。 */
+		line-height: 1.15;
+		color: var(--color-text);
 	}
 
 	/* 36-1: 折りたたみ状態そのもの(<script>のsetCollapsed/applyCollapsedStateが
@@ -2689,19 +2823,18 @@ const { pokemonId } = Astro.props;
 	#opponent-notes-section .card-damage[data-collapsed="true"] .damage-row-collapsed-summary {
 		display: flex;
 	}
-	/* 🔴 UI改善ラウンド42ユーザー指示(42-D4)「アイテム・テラスタルはアイコンのみ」対応。
-	   round-42.mdは「既存のアイコンが『見える状態』になっていることを確認してください」と
-	   指示しているが、実測したところ.damage-type-badge(テラスタイプ専用バッジ)は
-	   ラウンド31ユーザー指示(31-D4a)「ポケモン画像の右上の表示を廃止」により常時
-	   display:noneのままだった(上方の#opponent-notes-section .damage-type-badge参照)。
-	   つまり展開時・折りたたみ時のどちらでも現状は非表示で、42-D4の要件(テラスタルを
-	   アイコンで見せる)を満たしていない。31-D4aは展開時の見た目を意図した決定であり、
-	   これをこのラウンドで全面的に覆すのはスコープ外と判断し、折りたたみ状態限定で
-	   このバッジだけ再度見せる(展開時は31-D4aのまま非表示を維持する)。テラスタイプ
-	   未設定の個体はapplyTeraImage()がimg/fallback両方をdisplay:noneにするため、
-	   バッジを見せても実害(空バッジ)は出ない。 */
+	/* 🔴 UI改善ラウンド42ユーザー指示(42-D4)「アイテム・テラスタルはアイコンのみ」対応で、
+	   折りたたみ状態限定でこのバッジ(.damage-type-badge、スプライト右上重畳)を
+	   display:flexへ再表示していた(展開時は31-D4aのまま非表示)。
+	   🔴 UI改善ラウンド47ユーザー指示(第31弾、追加指示A-7)「スプライト上のアイコンを
+	   やめて、2段目にテラス情報をテキスト/小アイコンで移動」により、この折りたたみ限定の
+	   再表示を撤回し、31-D4aと同じdisplay:noneに戻す(展開時の扱いは変更しない)。
+	   テラス情報は代わりに.damage-row-collapsed-tera-row内の小アイコン
+	   (collapsedTeraImg/collapsedTeraFallback、上方参照)で表示する。A-3で調整した
+	   このバッジのオフセット(top/right:-2px)自体は既存クラス削除禁止の規約により
+	   残す(表示自体が無くなるため実質使われなくなるだけで、CSSルールは削除しない)。 */
 	#opponent-notes-section .card-damage[data-collapsed="true"] .damage-type-badge {
-		display: flex;
+		display: none;
 	}
 	/* 「現在のポケモンアイコンの高さ」(実測147.66px、round-36.md参照)は元々折りたたみ後の
 	   カード全体の高さ上限の基準として、80px四方への縮小をここ(折りたたみ限定)だけに
