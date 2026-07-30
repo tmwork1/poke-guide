@@ -1,0 +1,2110 @@
+---
+// box/[id].astro 構造分割ラウンド(フェーズ2)。
+//
+// ダメージ計算(#opponent-notes-section)専用のテンプレート・<style is:global>ブロックを
+// 切り出したコンポーネント。ロジック(スクリプト)は src/lib/box-id/damage-calc.ts へ
+// 切り出し済みで、下の<script>から副作用importする(モジュール読み込み時に自身で
+// document.getElementById("opponent-notes-section")を取得し初期化する。LeftPanel.astro/
+// left-panel.tsと同じ構成)。
+//
+// <style is:global>ブロック(2,065行)は元のbox/[id].astroにあった内容を、内部の順序を
+// 一切変えずにそのままここへ移した(docs/plan/ui_parallelization.md 3節: 適用順序に依存する
+// ルールが複数あるため分割・並べ替えはしない、という方針どおり)。is:globalの大半が
+// ダメージ計算カード関連のためこのファイルに置いたが、RightPanel.astro(詳細設定サイドバー)が
+// 必要とするグローバルスタイル(#damage-detail-panel-body配下の動的生成要素向けルール等)も
+// 同じブロック内にあるため、そのまま一緒に持ってきている(RightPanel.astroを分けて
+// 呼び出しても、is:globalはページ全体に効くため問題なく届く)。
+interface Props {
+	pokemonId: string;
+}
+const { pokemonId } = Astro.props;
+---
+{/* battle-assistant同様、ダメージ計算カードは「ダメージ計算」パネル(=.cardの枠+見出し)の
+    中に入れず、ページ直下にカードを直接並べる(要件)。そのため<section>には.cardを付けず、
+    見出し・説明文も置かない(カード自体が何であるかは中身の入力欄とボタンで分かる)。
+    id="opponent-notes-section"は<style is:global>のスコープ接頭辞とJSの初期化ガードが
+    参照しているため、枠を外しても維持する。 */}
+<section id="opponent-notes-section" class="damage-calc-area" data-owned-pokemon-id={pokemonId}>
+	{/* ラウンド3 B-12: 読み込みに失敗した場合、以前はpyodide-engine.ts由来の生の
+	    メッセージ(CDN URLを含みうる)をそのまま表示していた。テキストをspanに分離し、
+	    エラー時だけ<script>側で内部URLを含まない文言に差し替えたうえで再読み込み
+	    ボタンを出す(テキストをtextContentで丸ごと差し替えるとボタンごと消えるため分離した)。 */}
+	<p id="damage-calc-engine-status" class="status-text damage-calc-engine-status" data-state="idle">
+		<span id="damage-calc-engine-status-text">計算エンジンを準備しています(自動で開始します)...</span>
+		<button id="damage-calc-engine-reload-button" type="button" class="btn-ghost" hidden>再読み込み</button>
+	</p>
+	<div id="damage-rows-list" class="damage-rows-list">
+		<p>読み込み中...</p>
+	</div>
+</section>
+
+<style is:global>
+	/* ダメージ計算カード(UI刷新): AstroのScoped<style>はJSがdocument.createElement()で生成した
+	   要素には適用されない(data-astro-cid-*が付与されないため)。行(対戦相手1体につき1行)・
+	   列(攻撃1つにつき1列)・詳細状況設定ダイアログはすべて<script>側で動的生成するため、
+	   以下は#opponent-notes-section限定のグローバルセレクタとして定義する(他ページへの漏出を
+	   防ぐため、必ずこの接頭辞を付ける)。
+	   .card/.card-hint/.severity-bar/.status-text/.badge/.add-card-tile/.sprite-icon/.sprite-fallback/
+	   .row/.spinner/input・select・textareaの基本装飾は src/styles/global.css 側の真のグローバル
+	   スタイルなので動的生成要素にも効く。ここではこのページ固有の構造のみを追加定義する。 */
+	/* ラウンド23ユーザー指示(23-H1): 「種族名を削除」。トップバー左の見出し
+	   (.app-topbar-title)はAppLayout.astro側のマークアップで、このページの<script>から見ると
+	   種族名がそのまま表示され続けている。AppLayoutは編集禁止(全ページ共通レイアウトのため)
+	   なので、フロントマターでbodyClass="box-edit-page"(pokemonが存在するときだけ)を
+	   AppLayoutへ渡し、bodyのクラスを起点にこのページだけへ効くグローバルセレクタで隠す。
+	   <title>タグ(ブラウザタブ・履歴)は同じpageTitleを使うが、こちらは影響を受けない
+	   (<head>内でCSSの対象外のため)。要素ごと消すとトップバー左側の内容が
+	   「← 戻る」だけになる(状態表示#autosave-statusはラウンド11で既にテキストを常時非表示
+	   済みのため実質空、エラー時のみ「再試行」が現れる)。実際に見て帯として成立するかを
+	   確認済み(検証セクション参照)。 */
+	body.box-edit-page .app-topbar-title {
+		display: none;
+	}
+
+	/* ラウンド21(21-L6)で導入した#edit-form .tera-select-btn(アイコントグルボタン、
+	   document.createElement("button")で動的生成)は、ラウンド23(23-L3)でテラスタイプを
+	   <select>に戻したことで完全に不要になったため削除した(22-B-2の重複解消と合わせて、
+	   buildIconToggleGroup()の左パネル側の複製呼び出しも<script>から削除済み)。 */
+
+	#opponent-notes-section .pokemon-name-row {
+		display: flex;
+		align-items: center;
+		gap: 0.35rem;
+		flex-wrap: nowrap;
+	}
+
+	/* UI品質改善(デザイン原則整合): ダメージ計算1件=対戦相手1体は「追加/削除できる
+	   コレクション要素」なのでカード(.card)として扱う。旧来はここに「battle-assistant
+	   同様、カードを囲むパネルを持たないため枠も背景も付けない」と書いていたが、これは
+	   骨格領域としてパネルで包まない旨の説明であり今も有効(この.damage-rows-list自体は
+	   パネルにしない)。変わったのは個々のカード側で、基底.card(global.css)の枠線+
+	   box-shadowを持つようになったため、カード同士の区切りは各カードの枠線・影と、この
+	   gap の両方で表現する(影が付いた分、詰めて並べても1枚ずつが浮いて見え、区切りが
+	   以前より明瞭になる)。
+	   UI品質改善(2026-07-26 第4弾): 1920pxで右カラムにデッドスペースが残る問題は
+	   align-items:flex-start(カードを内容幅までしか広げない)で解消を試みたが、
+	   .damage-row-columns-wrapのflex-grow:1(flex-basis:0)と組み合わせると、コンテナの
+	   利用可能幅が不定になり.damage-row-body全体のレイアウトが崩れる回帰が実機で発生したため
+	   撤回した(flex-basis:0はflex-wrap誤爆防止の安全策として変更不可、と第3弾の知見にある)。
+	   デッドスペース自体は.damage-row-build/.damage-columnの拡幅(320→340px/190→205px)で
+	   ある程度緩和するに留める。 */
+	/* ラウンド3 C-3: カード枠・内箱枠・フッター罫線が同じ濃さで多層に並び切れ目が読みにくかった
+	   (A-4でフッター罫線自体は定常時に消えるので改善するが、gapも広げる)。
+	   A-2で1枚303pxを達成し、3枚でも1080pxに収まる(実測1064〜1072px)ため8→12pxに広げる。 */
+	/* ラウンド10: 「カードを2×2に並べる」案を実装したが、ユーザー判断により中止して
+	   1列の縦積みに戻した。撤去したのは #opponent-notes-section / .card-damage の
+	   container化と、@container dmgsection (min-width: 740px) による2列グリッド、
+	   および2列時に相手ビルド箱を行いっぱいへ広げる @container dmgcard の指定。
+	   実測での比較(1920px・カード4枚): 1列=1210px / 2×2=1144px。総高さは2×2が66px短いが、
+	   カード1枚が276〜289px → 407〜559pxに伸び、1画面に入る枚数が3枚→2枚半に減る。
+	   左右の行で高さが揃わない段差(実測152px)も出る。**再提案しないこと。** */
+	#opponent-notes-section .damage-rows-list {
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
+	}
+	/* エンジン初期化状況の1行。パネルの見出しを廃したので、この行だけが浮いて見えないよう
+	   控えめな文字サイズにし、準備完了後は表示自体を隠す(JS側でhidden属性を付ける)。 */
+	#opponent-notes-section .damage-calc-engine-status {
+		margin: 0 0 0.4rem;
+		font-size: 0.8rem;
+	}
+	#opponent-notes-section .damage-calc-engine-status[hidden] {
+		display: none;
+	}
+	/* ラウンド20ユーザー指示(20-D1、ラウンド17 A-5の判断を撤回): 確N/乱N/未撃破の凡例は
+	   「未撃破」の語を20-D4で廃止し必要性が下がったうえ、ユーザーから明示的に
+	   「確N=...の説明書きを削除」と指示されたため、DOM(下記JSX)ごと削除した。 */
+	/* ラウンド3 B-11の積み残し: 相手ビルドの箱・技名入力も左パネルと同じく、
+	   placeholder表示中(空欄)は破線+透明背景にする(#edit-form側と同じ考え方)。 */
+	#opponent-notes-section input:placeholder-shown:not(:focus) {
+		border-style: dashed;
+		background: transparent;
+	}
+
+	/* コンパクト化(battle_assistant.jpg / DamageCard.jpg準拠): このセクションの余白・
+	   フォントサイズはここから下、意図的に通常より詰めている。
+	   なお当初あった「1行160px以下」の目安は、DamageCard.pngで相手ビルドの箱に
+	   攻守切り替え・実数値・加算後の結果が縦に積まれる構成が指定されたため撤回した
+	   (図の構成では1行あたり240px前後になる)。「複数のカードを縦に並列表示できる」
+	   という要件自体は、行を縦積みにするこのレイアウトで引き続き満たしている。 */
+	#opponent-notes-section .card-damage {
+		/* ラウンド24ユーザー指示(24-D1)「カード全体の縦サイズを縮小」対応: 上下paddingを詰める
+		   (0.3rem→0.22rem)。 */
+		padding: 0.2rem 0.6rem;
+		margin: 0;
+		max-width: 100%;
+		/* ラウンド21ユーザー指示(21-D3): 削除ボタン(.damage-row-delete-button)をカード右上に
+		   position:absoluteで置くための基準にする。 */
+		position: relative;
+	}
+	/* 🔴 ラウンド25ユーザー指示(25-D1)「全体カードの選択ハイライトを廃止、ダメージカード
+	   ごとのハイライトは残す」により、このカード全体(.card-damage)へのリング付与
+	   (旧 #opponent-notes-section .card-damage.is-selected { box-shadow: ... }、
+	   ラウンド21(21-D2)〜23(23-D6)の経緯を経て導入されていたもの)を廃止した。
+	   <script>のclearSelectionMarks/applySelectionMarksからrow.root(このカード自体)
+	   への is-selected 付け外しを削除したため、このルールはもう付与されない死んだCSSに
+	   なる(grepで.card-damageへのis-selected付与経路が他に無いことを確認済み)。
+	   選択のハイライトは技列(.damage-column.is-selected、下記参照)だけに残す。
+	   ⚠️ グローバル基底の .card.is-selected(global.css)自体はこのラウンドの対象外
+	   (他ページの選択状態にも使われる共通ルールのため)。このカードは class="card
+	   card-damage" を持つが、is-selectedクラス自体がもう付与されないため基底ルールも
+	   このページでは発火しない。 */
+
+	/* 🔴 UI改善ラウンド31ユーザー指示(31-D1)「全体カードのホバーハイライトを廃止」により、
+	   .card-damageのhover/focus-within時の変化(box-shadow: shadow-sm→shadow-md、
+	   background: color-mixによる薄いprimary着色)を打ち消す。translateY(-2px)自体は
+	   ラウンド20(20-G2)で既に撤去済みでもう存在しない(hover時に位置が動くことはない)。
+	   ⚠️ .card共通のhover効果(global.css)自体は変更しない(全ページに波及するため)。
+	   この打ち消しは.card-damageだけに限定したセレクタ(#opponent-notes-section
+	   .card-damage:hover、ID+2クラス=global.cssの`.card:hover`(1クラス)より詳細度が高い)で行う。
+	   選択中(.is-selected)の表現は元々このカード自体には付与されない(25-D1参照、上の
+	   コメント)ため、打ち消す対象がそもそも存在せず、technical的にも意図せず消していない。 */
+	#opponent-notes-section .card-damage:hover,
+	#opponent-notes-section .card-damage:focus-within {
+		box-shadow: var(--shadow-sm);
+		background: var(--color-surface-alt);
+		border-color: var(--color-border);
+	}
+
+	/* 🔴 ラウンド21ユーザー指示(21-D4)で導入し、ラウンド23(23-D6)で8%→12%に濃くした
+	   「カード全体の背景色を攻撃なら薄い赤、防御なら薄い青にする」(.card-damage[data-direction]の
+	   color-mix着色)は、ラウンド26ユーザー指示(26-D1)「攻守を参照したカード全体の背景色の
+	   切り替えを廃止。代わりに、攻撃・防御選択ボタンのハイライト色を赤・青に変更」により
+	   実質的に撤回した。カードの背景は方向によらず基底の--color-surface-altに戻る
+	   (root.dataset.direction自体はrefreshDirectionUi()に残しているが、このCSSルールが
+	   無くなったことで見た目には反映されない。将来別用途で使う可能性を考慮しdatasetは
+	   残す判断)。方向の見分けは下のdamage-row-direction-option(セグメントボタン)の色で
+	   伝える(WCAG 1.4.1対応として、ボタンの文字自体(「攻撃」「防御」)も引き続き残る)。 */
+
+	/* ラウンド4で「相手ビルドの箱と技列の箱をalign-items:stretchで同じ高さに揃える」設計を
+	   破棄し、技列側をalign-self:flex-startで「行の高さに合わせて伸びる」対象から外したが、
+	   ラウンド5ユーザー指示で「まだ空きが目立つ」と再指摘され、一度は相手ビルドの箱を上段
+	   (カード全幅)・技列を下段(横スクロール可)の2段組に作り直した。
+	   ラウンド6ユーザー指示(更新された設計図): 技列を横並びから縦積みに変更したところ、
+	   「技列3つぶんの縦積み高さ」が「相手ビルドの箱の高さ」と自然に近い値になったため、
+	   ラウンド5で問題視されていた「高さの違うものを横に並べる」ことによる大きな余白が
+	   生じにくくなった。設計図(ダメージ計算カード.png)どおり左=相手ビルドの箱・右=技列の
+	   縦積みという横並び2カラム構成に戻す(.damage-row-bodyをflex-direction:rowに戻す)。
+	   両側の高さは意図的に強制一致(stretch)させない: 技数が少ない行まで無理に伸ばすと
+	   ラウンド5で指摘された空白が再発するため、align-items:flex-startで両箱とも内容の
+	   高さのぶんだけを占め、技列3つのときに実測値がおおむね揃うよう内側の余白側で調整する
+	   (下の.damage-row-build/.damage-columnの実測コメント参照)。
+	   クラス名(.damage-row-build/.damage-row-columns-wrap/.damage-row-columns等)は
+	   このラウンドでも改名・削除していない(JS/E2E依存を壊さないため)。 */
+	/* UI品質改善(ラウンド8 A-3): 技列が1〜2つのカードは、右カラム(techniquesRow)の
+	   自然な高さが左の相手ビルド箱より短く、下端に「意味のない空白」が残っていた
+	   (align-items:flex-startだと右カラムは内容ぶんの高さしか占めない)。
+	   align-items:stretchに変え、右カラムの高さを箱の高さに揃える
+	   (=空白を「末尾の穴」から「意図的な余白」に変える)。
+	   技列3つ(=右カラムの内容が箱より高い)側は右カラムが基準になり、箱側が
+	   その高さまでstretchされるだけで、内容が窮屈になることはない。
+	   ラウンド20ユーザー指示(20-D5): 「+技を追加」をmargin-top:autoで下端へ押し出す
+	   設計は撤回した。技カードと同サイズの破線枠にしたことで技列1〜2つのときの
+	   余白自体がほぼ解消されたため、最後の技カードの直後に自然に置く方式に変えた
+	   (詳細は.damage-add-column-slotのコメント参照)。 */
+	/* ラウンド10で発見した既存バグの修正: .damage-row-build は全幅で300px固定なので、
+	   狭いビューポートでも横並びが維持され、技列が潰れていた(実測: 幅390pxで
+	   .damage-row-body 329px のうち箱が300pxを取り、技列は残り19px)。
+	   19pxの技列に連続技のヒット回数行(数値入力51px + 「回」22px)が入ると
+	   right=427px まで飛び出し、幅390pxで37pxの横スクロールが発生していた
+	   (ラウンド8の検証に連続技のカードを含めていなかったため見逃していた)。
+	   → flex-wrapを許可し、技列に最小幅を与えて「箱+技列が入らない幅では
+	   技列を次の行へ折り返す」ようにする。
+	   実測での安全性: 1920px(body 758) / 1600px(459) では 300+9.6+150=460 が
+	   body幅以下なので折り返さず、既存のデスクトップ2カラムは一切変わらない。 */
+	#opponent-notes-section .damage-row-body {
+		display: flex;
+		flex-direction: row;
+		flex-wrap: wrap;
+		align-items: stretch;
+		gap: 0.6rem;
+		/* 24-D1: 0.3rem→0.2remに詰める(カード全体の縦サイズ縮小)。 */
+		padding-bottom: 0.2rem;
+	}
+
+	/* 左: 相手ビルドの箱(DamageCard.pngの左側のボックス)。ラウンド6ユーザー指示で
+	   左右2カラム構成に戻したため、右の技列(縦積み)と横並びになる固定幅を持つ。
+	   攻守切り替えボタン・相手種族名+アイコン・特性・アイテム・テラスタイプ・
+	   努力値・実数値を内包し、一番下に区切り線と「加算後のダメ・致死率」を置く。
+	   幅300pxは技列(下の.damage-columnはこの右側の残り幅いっぱいに伸びる)との
+	   横幅バランスと、努力値グリッド7列(3.4em+6列)が窮屈にならない実測値。
+	   ラウンド23ユーザー指示(23-D3、ラウンド21の21-D3ではなく初出): 「相手ビルドカードの
+	   外枠を削除。ダメージカードはそのまま」。border(旧: 1px solid var(--color-border))を
+	   撤去した。技列(.damage-column)側は指示対象外(「ダメージカードはそのまま」)なので
+	   border/border-radiusを維持しており、結果としてこの箱だけ縁が無くなる非対称な
+	   見た目になる(意図どおり)。background: var(--color-surface)は残す判断にした
+	   ——外側の.card-damage(surface-alt)との階調差で箱の輪郭が読めることを実機で
+	   確認した(borderが無くてもcolor-mixで着色した.card-damage背景との明度差が
+	   十分にあるため、技列の箱との区別も付く。判断根拠は報告参照)。border-radiusは
+	   backgroundの角を丸めるためそのまま残す。 */
+	/* UI改善ラウンド26ユーザー指示(26-D3)「攻撃・防御ボタンの幅を短縮し、空いた分で
+	   ポケモンアイコンを大きくする。相手ビルドカード領域を右に伸ばしてよい」により
+	   300px→340pxに広げる(技列側(.damage-row-columns-wrap)の幅はその分縮む)。
+	   ⚠️ ラウンド10で発見した「箱を固定幅にした結果、狭い幅で技列が潰れて横スクロールが
+	   発生した」実バグと同型の事故が、この箱自体の固定幅拡大で新たに発生することを実測で
+	   発見した: 300pxのときは360px幅ビューポートでも箱がぎりぎり収まっていたが、340pxに
+	   広げたことで箱自体が.damage-row-bodyの折り返し後の1行(≒330px)にも収まりきらず、
+	   ページ全体で約10.6pxの横スクロールが発生した(flex-shrink:0だと.damage-row-bodyが
+	   折り返しても箱自体は縮まないため)。flex-shrinkを1にしてmax-width:100%を足し、
+	   箱が入りきらない狭幅では340pxを上限に縮小できるようにする(340pxはあくまで
+	   「デスクトップでの望ましい幅」であり、下限を保証する値ではない)。
+	   1920/1600/1440/1280/1024/900/700/390/360pxすべてで横スクロールが起きないことを
+	   実測確認済み(報告参照)。 */
+	#opponent-notes-section .damage-row-build {
+		flex: 0 1 340px;
+		width: 340px;
+		max-width: 100%;
+		display: flex;
+		flex-direction: column;
+		gap: 0.15rem;
+		border-radius: var(--radius-md);
+		padding: 0.35rem 0.6rem;
+		background: var(--color-surface);
+	}
+	/* ラウンド7ユーザー指示(方針転換): 相手ビルドの箱のクリックは無反応にする(サイドバーを
+	   開くのは技列の箱だけ)確定仕様になったため、この箱自体のis-selectedマーカー・
+	   選択時transitionは廃止した(以前は.damage-column.is-selectedと対になっていた)。
+	   ラウンド8指摘(B-4): 「クリック非反応であることが画面から分からない」の積み残しに
+	   対応し、cursor:defaultを明示する(.damage-columnのcursor:pointerと対比させる)。 */
+	#opponent-notes-section .damage-row-build { cursor: default; }
+	/* UI品質改善(ラウンド8 A-1): 相手名input(29px)の右に公式絵72pxが乗っていたため、
+	   名前行だけで72pxを占有し43pxが空気になっていた(特性/持ち物/テラスの3入力はその
+	   下から始まる縦積み一本道だったため)。スプライトを名前行の外へ出し、入力ボックス一式と
+	   横に並べる(.damage-row-build-main)。
+	   ラウンド26ユーザー指示(26-D3)でスプライト(.damage-sprite-box)を攻守セグメントの行
+	   (.damage-row-actions)へ一時的に移設していたが、🔴 ラウンド27ユーザー指示(27-D1)
+	   「相手アイコンの左側スペースに入力ボックスを配置する(以前のように)」により、
+	   このdamage-row-build-mainへ戻す。今回は「名前・特性・持ち物・テラス選択・
+	   努力値グリッド」の入力ボックス一式(.damage-row-build-left、下記)をまとめてスプライトの
+	   左に置く2カラム構成にする(以前は名前+3セレクトだけがスプライトの隣で、努力値
+	   グリッドはさらに下の全幅行だったが、今回はユーザー指示によりEVグリッドも含める)。
+	   クラス自体は改名していない(JS/E2E依存を壊さないため)。 */
+	/* 🔴 UI改善ラウンド28ユーザー指示(28-D1)「ポケモンアイコンは最初の5段分使う」:
+	   align-items を flex-start → stretch に変更する。buildLeft(1段目=攻守トグル+
+	   2〜5段目=種族名/特性/持ち物/テラス)の実高さに、隣のspriteBoxを丈いっぱい
+	   追随させるため(spriteBox側は固定height を持たず、このstretchで高さが決まる)。 */
+	#opponent-notes-section .damage-row-build-main {
+		display: flex;
+		align-items: stretch;
+		gap: 0.4rem;
+	}
+	/* ラウンド27ユーザー指示(27-D1)で新設。damage-row-build-main内でスプライト
+	   (.damage-sprite-box、幅112px固定・flex-shrink:0)の左隣に置く列。
+	   🔴 UI改善ラウンド28ユーザー指示(28-D1/28-D2/28-D3)により、この列の中身は
+	   actionsRow(1段目、攻守切替)+ buildFields(2〜5段目、種族名/特性/持ち物/テラス)の
+	   2つだけになった(以前ここに含めていたdamage-ev-gridは、28-D3によりbuildElの
+	   直接の子=相手ビルド領域の全幅に移した。下のdamage-ev-grid参照)。
+	   スプライトぶんの幅(112px+gap)を差し引いた残り幅を占める(flex:1 1 auto+min-width:0)。 */
+	#opponent-notes-section .damage-row-build-left {
+		display: flex;
+		flex-direction: column;
+		gap: 0.15rem;
+		min-width: 0;
+		flex: 1 1 auto;
+	}
+	#opponent-notes-section .damage-row-build-fields {
+		display: flex;
+		flex-direction: column;
+		gap: 0.15rem;
+		min-width: 0;
+	}
+	#opponent-notes-section .damage-row-build select,
+	#opponent-notes-section .damage-row-build input[type="text"] {
+		width: 100%;
+		min-width: 0;
+		/* ラウンド3 A-1: global.cssの input/select { min-height: 2.35rem }(=37.6px)が
+		   ここで一度も打ち消されておらず、内容高さ24.6px(font-size 0.82rem/padding 0.28em)が
+		   37.6pxに引き伸ばされて1行あたり13pxが空気になっていた(414px膨張の主因)。
+		   タップ対象28pxの要件はアイコンボタン側(.damage-row-icon-button等)の話であり、
+		   このページのテキスト入力には適用されないため、min-height自体を打ち消す。
+		   フォントサイズは第4弾の底上げを維持し、変更しない。 */
+		min-height: 0;
+	}
+	/* 名前行(アイコン+相手名input+アイコンボタン2つ)は上のwidth:100%を打ち消し、
+	   flexで残り幅いっぱいまで伸ばす(打ち消さないと相手名inputが行全体の幅を
+	   取ろうとして、隣のアイコンボタンが28px未満に潰れてしまう)。
+	   font-size/paddingも他の入力欄同様に詰める(既定のinput[type=text]は
+	   line-height:1.6を継承するため、詰めないとこの1個の入力欄だけ突出して高くなる)。 */
+	#opponent-notes-section .pokemon-name-row input[type="text"] {
+		width: auto;
+		flex: 1 1 0;
+		min-width: 0;
+		font-size: 0.92rem;
+		font-weight: 700;
+		padding: 0.32em 0.45em;
+		line-height: 1.2;
+	}
+
+	/* 相手ビルドの箱の1行目: 攻守切り替えボタン(⚙詳細ボタンはラウンド6で廃止し、箱自体の
+	   クリックに置き換えた)。
+	   DamageCard.pngで最上段に置かれている「攻守切り替えボタン」の行にあたる。
+	   ラウンド21ユーザー指示(21-D3): 「この相手を削除」(🗑→×)はこの行から
+	   カード右上(.damage-row-delete-button、position:absolute)へ移した。以前は
+	   このactionsRowに攻守切り替えと同居していたが、移設後はこの行に攻守切り替えの
+	   セグメントコントロールだけが残る(ラウンド20 20-D2で作ったレイアウトはそのまま)。 */
+	/* ラウンド26ユーザー指示(26-D3)で、内容量に応じた幅に縮めた攻守セグメント
+	   (.damage-row-direction-toggle)の隣にポケモンアイコン(.damage-sprite-box)を
+	   一時的に並べていたが、ラウンド27ユーザー指示(27-D1)によりスプライトは
+	   damage-row-build-main側(入力ボックス一式の右)へ戻したため、この行はもう
+	   攻守セグメントだけになる。justify-content:space-betweenは子が1個だと無害
+	   (単に左寄せになるだけ)なので、害が無い設定として残す。
+	   🔴 UI改善ラウンド28ユーザー指示(28-D1)により、この行はbuildEl直下ではなく
+	   buildLeft(名前/特性/持ち物/テラス入力欄と同じ列)の1段目になった。display:flexの
+	   直下でwidth指定が無いブロックはデフォルトで親(buildLeft)の全幅に伸びるため、
+	   直下の.damage-row-direction-toggleがwidth:100%(下記28-D2)を指定すれば
+	   入力欄と同じ幅になる。 */
+	#opponent-notes-section .damage-row-actions {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.3rem;
+	}
+
+	/* ラウンド20ユーザー指示(20-D2、旧・単一トグルボタンを撤回): 「攻撃」「防御」の
+	   2値セグメントコントロールにする。1個のボタンで「今どちらか」を読んで理解するのでは
+	   なく、両方の選択肢が常に見えていて片方が選ばれている形にする方が直感的、というのが
+	   ユーザーの弁。「この個体が」は冗長として省き、ラベルは「攻撃」「防御」の2語のみにした
+	   (絵文字⚔🛡も判断に委ねられていたが、両方が並んで見える形なら文字だけで十分伝わる
+	   ため外した)。role="radiogroup"+role="radio"+aria-checkedで実装し、どちらが選択中かを
+	   スクリーンリーダーにも伝える。field.directionの保存形式("attack"|"defense")・
+	   向きに追随する既存の言い換え(技列のplaceholder、詳細パネルの見出し、壁のラベル)は
+	   一切変えない(<script>のrefreshDirectionUi/renderColumns参照)。 */
+	/* UI改善ラウンド26ユーザー指示(26-D3)「攻撃・防御ボタンの幅を短縮し、空いた分で
+	   ポケモンアイコンを大きくする」により、行全幅を占有していたflex:1 1 0を撤回し、
+	   内容量に応じた幅(flex:0 0 auto)にしていた(pitfalls.mdの「flex:1 1 0は余白を全部飲む」
+	   と同型の是正)。
+	   🔴 UI改善ラウンド28ユーザー指示(28-D2)「攻撃・防御切り替えボタンは種族名などの
+	   入力欄と同じ幅にする」により、26-D3の幅短縮部分だけを撤回する(赤/青ハイライトの
+	   配色=.damage-row-direction-option[data-role=...][aria-checked="true"]は維持)。
+	   実測75px→種族名等の入力欄と同じ202px相当(width:100%、buildLeftの全幅)にする。
+	   スプライトの拡大は28-D1で「箱の高さをbuildLeftの高さに追随させる」形に変わった
+	   ため、このボタンの幅短縮でスプライトの横幅を捻出する必要はもう無い。 */
+	#opponent-notes-section .damage-row-direction-toggle {
+		display: flex;
+		width: 100%;
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-md);
+		overflow: hidden;
+	}
+	#opponent-notes-section .damage-row-direction-option {
+		flex: 1 1 0;
+		min-width: 0;
+		border: none;
+		background: var(--color-surface);
+		color: var(--color-text-muted);
+		font-size: 0.8rem;
+		font-weight: 600;
+		padding: 0.25em 0.4em;
+		line-height: 1.2;
+		cursor: pointer;
+		transition: background 0.15s, color 0.15s;
+	}
+	#opponent-notes-section .damage-row-direction-option + .damage-row-direction-option {
+		border-left: 1px solid var(--color-border);
+	}
+	#opponent-notes-section .damage-row-direction-option:hover:not([aria-checked="true"]) {
+		color: var(--color-primary);
+		background: var(--color-primary-soft);
+	}
+	#opponent-notes-section .damage-row-direction-option:focus-visible {
+		outline: 2px solid var(--color-primary);
+		outline-offset: -2px;
+	}
+	/* UI改善ラウンド26ユーザー指示(26-D1)「攻撃・防御選択ボタンのハイライト色を赤・青に
+	   変更」対応: attackOption/defenseOptionを区別する属性が無かったため、<script>の
+	   renderRowでattackOption.dataset.role="attack"/defenseOption.dataset.role="defense"を
+	   新設し、選択中(aria-checked="true")の配色を方向ごとに分ける。
+	   防御側(青)は既存の配色をそのまま維持する(コントラストはライト4.62:1/ダーク8.87:1、
+	   いずれもWCAG AA 4.5:1を満たす。--color-primary背景+--color-primary-contrast文字という
+	   素直な組み合わせは、ライトモードで実測2.66:1しか無く不合格だったため(pitfalls.mdの
+	   「結果チップの低コントラスト事故」と同型)、背景を一段暗い--color-primary-strongに
+	   差し替えて解決した経緯がある)。
+	   攻撃側(赤)は新色を作らず、global.cssのbutton.btn-danger/.delete-buttonで既に
+	   採用済みの組み合わせ(--color-danger-strong背景+--color-primary-contrast文字)を
+	   流用する。この組み合わせは同ファイルのコメント(ラウンド22 22-A-1)によりライト5.96:1・
+	   ダーク7.93:1で選定済み(ダークは--color-danger-strongが--color-dangerにエイリアスされる)、
+	   いずれもWCAG AA 4.5:1に適合する。素の--color-danger+白文字はライト2.82:1で不合格
+	   だった実例が既にあるため、-strong側を使う。 */
+	#opponent-notes-section .damage-row-direction-option[data-role="attack"][aria-checked="true"] {
+		background: var(--color-danger-strong);
+		color: var(--color-primary-contrast);
+	}
+	#opponent-notes-section .damage-row-direction-option[data-role="defense"][aria-checked="true"] {
+		background: var(--color-primary-strong);
+		color: var(--color-primary-contrast);
+	}
+
+	/* 相手ビルドの入力欄(特性・アイテム・テラスタイプ)は、DamageCard.png準拠で
+	   1項目1行の縦積みを既定にする。ラベルは置かずplaceholder/aria-labelのみ(既存方針を維持)。 */
+	#opponent-notes-section .damage-row-build-grid {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr);
+		/* ラウンド3 A-2(e): 0.2rem→0.15remに詰める。 */
+		gap: 0.15rem;
+	}
+	/* ラウンド5で「箱が全幅のときは3列に並べる」@containerクエリを追加していたが、
+	   ラウンド6で箱を固定300px幅の左カラムに戻したため480px以上になることがなく
+	   常に不発になる。実体のないルールを残すと紛らわしいため削除し、1列縦積み
+	   (上の基本定義)のみにする。 */
+	/* ラウンド5ユーザー指示: 「特性などの入力ボックスが無駄に大きい。さらに詰める」。
+	   font-size/paddingを一段階詰める(0.82rem/0.28em 0.4em → 0.76rem/0.2em 0.35em)。
+	   UI改善ラウンド26ユーザー指示(26-D4)「相手ビルドの種族名以外の文字が小さい」により、
+	   一段階上げる(0.76rem(12.16px)→0.86rem(13.76px)、+1.6px)。26-D3でアイコンを
+	   大きくした際に生まれた縦の余白を、ここでの文字サイズ拡大にも充てる(カード3枚が
+	   1080pxに収まる制約は実測のうえ維持。before/afterの実測値は報告参照)。 */
+	#opponent-notes-section .damage-row-build-grid select,
+	#opponent-notes-section .damage-row-build-grid input[type="text"] {
+		font-size: 0.86rem;
+		padding: 0.22em 0.38em;
+		line-height: 1.15;
+		/* ラウンド3 A-1: 相手ビルド箱の性格/特性/持ち物/テラスの4行がglobal.cssの
+		   min-height:2.35remで各行13px膨らんでいた(4行で52px)。打ち消す。 */
+		min-height: 0;
+		/* ラウンド4の積み残し: 特性・持ち物欄が長い値で見切れる(全文はtitle属性で確認)。 */
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+	/* ドロップダウン統一(ラウンド4): 上のpadding(shorthand)がpadding-rightも
+	   戻してしまうため、矢印ぶんの余白をselectだけ個別に広げ直す
+	   (このルールの方が後ろにあるので勝つ)。 */
+	#opponent-notes-section .damage-row-build-grid select {
+		padding-right: 1.3em;
+	}
+
+	/* 🔴 UI改善ラウンド31ユーザー指示(31-D4b)「テラスタイプ画像は左パネルと同様に選択ボックスの
+	   左側に表示する」。31-D4aで隠したスプライト右上のオーバーレイとは別に、テラスタイプ<select>の
+	   左側にアイコンを重ねる(#edit-form .move-type-icon(技名入力の左アイコン)と同じ
+	   「input/selectの左にposition:absoluteでアイコンを重ね、padding-leftで文字と被らないように
+	   する」定石)。アイコン+選択中のタイプ名(<select>自身が表示する選択済みoptionの文字、既定で
+	   左揃え)という並びは、左パネルの.tera-dropdown-button(アイコン+タイプ名テキストの左揃え、
+	   31-L5)と揃う。サイズはvar(--icon-size-sm、20px、既存のアイコン規格トークン)を使う
+	   (新規サイズは作らない)。 */
+	#opponent-notes-section .damage-row-tera-field { position: relative; }
+	#opponent-notes-section .damage-row-tera-icon {
+		position: absolute;
+		left: 0.5em;
+		top: 50%;
+		transform: translateY(-50%);
+		width: var(--icon-size-sm);
+		height: var(--icon-size-sm);
+		object-fit: contain;
+		pointer-events: none;
+		filter: drop-shadow(0 0 1px var(--color-surface));
+	}
+	#opponent-notes-section .damage-row-tera-icon-fallback {
+		position: absolute;
+		left: 0.5em;
+		top: 50%;
+		transform: translateY(-50%);
+		display: none;
+		width: var(--icon-size-sm);
+		height: var(--icon-size-sm);
+		border-radius: 50%;
+		border: 1px solid var(--color-border);
+	}
+	/* テラスタイプは宝石型の専用アイコン(28-G1)なのでborder-radius:50%は掛けない
+	   (アイコン自体の丸トリミングは.damage-row-tera-icon側で行わない)。selectのpadding-leftを
+	   アイコン+余白ぶん確保する(#edit-form .move-input-groupの技名inputと同じ計算)。 */
+	#opponent-notes-section .damage-row-build-grid .damage-row-tera-field select {
+		padding-left: calc(var(--icon-size-sm) + 0.9em);
+		/* 🔴 UI改善ラウンド32ユーザー指示(32-D2)「テラスなし表示は左寄せ」。appearance:none
+		   (global.css)を適用したネイティブ<select>の閉時表示は、ブラウザ既定で中央寄せに
+		   なる実測結果だったため明示的に左寄せへ固定する。31-L5・31-D4で左パネル側の
+		   テラス選択欄(.tera-dropdown-button)を左揃えにしてあるので、そちらと見た目を揃える。 */
+		text-align: left;
+	}
+	/* 🔴 UI改善ラウンド32ユーザー指示(32-D2)「placeholderのように薄い文字色にする」。
+	   ネイティブ<select>には:placeholder-shownが効かない(inputだけの擬似クラス)ため、
+	   JS側(<script>のteraSelect change/初期化)がvalue===""のときだけ
+	   .is-value-emptyクラスを付け外しする(下記teraSelect.classList.toggle参照)。
+	   新色は作らず既存のmutedトークンを使う。選択済み(value!=="")では通常の文字色
+	   (input,select,textareaの基底color: var(--color-text)、global.css)のまま。 */
+	#opponent-notes-section .damage-row-tera-field select.is-value-empty {
+		color: var(--color-text-muted);
+	}
+
+	/* UI改善ラウンド23(23-G3): 左パネル(#edit-form #item.is-autofilled、上の
+	   scoped<style>参照)と同じ内容。JS生成要素にはscoped<style>が効かないため
+	   (pitfalls.md「AstroのscopedスタイルはJSで生成した要素に効かない」)、
+	   ここに複製する。 */
+	#opponent-notes-section .damage-row-build-grid input.is-autofilled {
+		border-color: var(--color-primary);
+		box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 30%, transparent);
+	}
+
+	/* 種族アイコン(公式絵)+ 右上テラスタイプバッジ + 右下持ち物バッジ。
+	   #edit-form側の.species-icon-box/.type-badge等はAstroのscoped<style>で定義されており
+	   動的生成要素には適用されないため、同等の見た目をここに再定義する。
+	   ラウンド4で32px/28pxから56px/48pxに拡大、ラウンド5ユーザー指示で「まだ小さい」との
+	   再指摘があり72px/64pxへ拡大、ラウンド8指摘(A-1)で名前行から出したぶんの余白を使い
+	   96px/88pxへさらに拡大、ラウンド26ユーザー指示(26-D3)で112px/104pxへさらに拡大した。
+	   🔴 UI改善ラウンド28ユーザー指示(28-D1)「ポケモンアイコンは最初の5段分使う」により、
+	   固定height(112px)をやめてheight:autoにし、親(.damage-row-build-main、
+	   align-items:stretch)が決める高さ(=buildLeftの1〜5段目ぶんの高さ)にstretchで
+	   追随させる。widthは112px固定のまま(buildLeftの隣に残る余白から算出される値と
+	   ほぼ一致する)。画像自体はobject-fit:containで箱いっぱいに収め、縦横比は保つ
+	   (下のimg.sprite-icon参照)。 */
+	/* 🔴 UI改善ラウンド32ユーザー指示(32-D1)「相手ポケモンのアイコンを6%ほど小さくする」により、
+	   112px→105.28px(112×0.94)に縮小する。実測対象としてround-32.mdが挙げている
+	   `.sprite-icon`(相手側のimg)はwidth:100%;height:100%でこの.damage-sprite-box箱に
+	   フィットしているだけの共有クラス(src/styles/global.css)なので、.sprite-icon自体は
+	   一切変更しない(global.css編集禁止)。この箱(.damage-sprite-box、ページ限定の
+	   #opponent-notes-section接頭辞つきセレクタ)のwidthだけを縮小すれば、中のimg.sprite-icon
+	   も追随して縮む。実装後に左パネルの.species-sprite-img(144×144)と他ページの
+	   img.sprite-icon(/box一覧・/team)が巻き添えで縮んでいないことを実測して確認する。 */
+	#opponent-notes-section .damage-sprite-box {
+		position: relative;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 105.28px;
+		height: auto;
+		border-radius: var(--radius-md);
+		/* UI改善ラウンド31ユーザー指示(31-D3)「ポケモン画像の背景色を削除」(31-L1と同じ処置を
+		   相手側にも行う)により透明にする。 */
+		background: transparent;
+		flex-shrink: 0;
+	}
+	/* 🔴 UI改善ラウンド31ユーザー指示(31-D3)追加対応: 背景色の出どころは.damage-sprite-box
+	   (このファイル内、下で透明化済み)ではなく、img自身が持つ共通クラス.sprite-icon
+	   (src/styles/global.css、`.sprite-icon { background: var(--color-surface-alt);
+	   border-radius: 50%; }`)だった。.sprite-iconは複数ページで共有される真のグローバル
+	   スタイルのため、global.css側は変更せず、このページ限定のセレクタで打ち消す
+	   (#opponent-notes-section接頭辞があるため/box一覧・/teamのimg.sprite-iconには影響しない。
+	   実測で確認済み)。border-radius:50%も外す: 背景を消しても円形トリミング自体は画像
+	   コンテンツを角で切り抜き続ける(公式絵は正方形いっぱいに手足・尻尾が伸びる個体がある)。
+	   31-L1(左パネルの.species-sprite-img)は円形トリミングを持たず全身が見えるため、
+	   これと見た目を揃える意味でもborder-radiusを外す判断とした(実装者の判断)。 */
+	#opponent-notes-section .damage-sprite-box img.sprite-icon {
+		width: 100%;
+		height: 100%;
+		object-fit: contain;
+		background: transparent;
+		border-radius: 0;
+	}
+	#opponent-notes-section .damage-sprite-box .sprite-fallback {
+		font-size: 2.1rem;
+	}
+	/* 🔴 UI改善ラウンド31ユーザー指示(31-D4a)「テラスタイプ画像は…ポケモン画像の右上の表示を
+	   廃止」により常時非表示にする。DOMは残す(<script>のrefreshTypeBadge/applyTeraImageが
+	   引き続きtypeBadgeImg/typeBadgeFallbackを参照するため要素自体は削除しない)。
+	   applyTeraImage()はこの2要素のstyle.displayを直接インライン指定するだけ(親span自体の
+	   displayは触らない)なので、親.damage-type-badgeをdisplay:noneにするだけで両方隠れる
+	   (31-L3の.top-block-tera-imageと違い、こちらは!important不要)。 */
+	#opponent-notes-section .damage-type-badge {
+		display: none;
+		position: absolute;
+		top: -6px;
+		right: -6px;
+		align-items: center;
+		justify-content: center;
+	}
+	/* ラウンド20ユーザー指示(20-G1): 18px→var(--icon-size-sm)(20px、global.css定義済み)に
+	   拡大する。密なグリッド内の小アイコン規格(20-G1のトークン表「ダメージ計算カードの
+	   相手ビルド箱」)に合わせる。持ち物画像(.damage-item-badge、下記)は既に22pxで
+	   20px以上を満たしているため今回は変更しない。
+	   ⚠️ このバッジは通常のタイプバッジではなく、applyTeraImage(row.teraType)が唯一のソース
+	   (このファイル内のtypeBadgeImg/typeBadgeFallback、<script>のrefreshTypeBadge参照)、
+	   つまりテラスタイプ専用のバッジである。UI改善ラウンド28ユーザー指示(28-G1)「テラスタイプ
+	   画像には専用アイコンを使う」によりapplyTeraImage()がteraTypeIconUrl(宝石型・ジグザグの
+	   尖った縁を持つ正方形画像)を返すようになったため、border-radius: 50%による丸トリミングを
+	   外す(掛けたままだと縁が削れてユーザーが直した意味が無くなる)。ラウンド5時点のコメントは
+	   このバッジが「通常タイプアイコンと同じ丸トリミング」だった頃の記述で、28-G1により
+	   そのままでは成立しなくなったため削除した(ダメージ計算カード自体のレイアウトは
+	   別担当エージェントの範囲だが、border-radiusの撤去はapplyTeraImage側の変更に伴う
+	   1点修正としてこのラウンドで対応する)。 */
+	#opponent-notes-section .damage-type-badge-img {
+		height: var(--icon-size-sm);
+		width: var(--icon-size-sm);
+		filter: drop-shadow(0 0 1px var(--color-surface));
+	}
+	#opponent-notes-section .damage-type-badge-fallback {
+		display: none;
+		width: var(--icon-size-sm);
+		height: var(--icon-size-sm);
+		border-radius: 50%;
+		border: 1px solid var(--color-border);
+	}
+	/* #species-type-badge自体は静的マークアップだが、中の<img>/<span>はapplyTypeBadge()が
+	   document.createElement()で動的追加するため、上のscoped <style>の.type-badge-imgは
+	   付与されない(data-astro-cid-*が無い要素にはscoped <style>が効かない。
+	   #opponent-notes-section .damage-type-badge-imgと同じ理屈)。同じ値をここに複製する。
+	   ラウンド5ユーザー指示: 正方形の事前生成アイコンに切り替えたため object-fit:cover 等の
+	   切り出しは不要(border-radius:50%だけで円形に見える)。 */
+	/* ラウンド20ユーザー指示(20-G1): 14px→--icon-size-sm(20px、global.css定義済み)に
+	   拡大する。is:globalブロック内(:root継承)なのでカスタムプロパティは通常どおり参照できる。 */
+	#species-type-badge .type-badge-img {
+		height: var(--icon-size-sm);
+		width: var(--icon-size-sm);
+		border-radius: 50%;
+		filter: drop-shadow(0 0 1px var(--color-surface));
+	}
+	#species-type-badge .type-badge-fallback {
+		display: none;
+		width: var(--icon-size-sm);
+		height: var(--icon-size-sm);
+		border-radius: 50%;
+		border: 1px solid var(--color-border);
+	}
+	/* UI改善ラウンド28ユーザー指示(28-G1/28-L4): テラスタル選択ボックスのリスト項目
+	   (#tera-dropdown-list配下の<li>、<script>のbuildTeraDropdownがdocument.createElement()で
+	   動的生成する)は、上の#species-type-badgeと同じ理由でscoped <style>が効かない
+	   (data-astro-cid-*が無い要素には効かない。pitfalls.md参照)。実際のスタイルはここに置く。
+	   専用アイコン(teraTypeIconUrl、宝石型)は幅を持て余すため固定サイズにし
+	   (通常タイプアイコンと同じ--icon-size-sm、20px)、隣にタイプ名テキストを並べる。
+	   宝石型アイコンはジグザグの尖った縁を持つため、border-radius: 50%は掛けない
+	   (掛けると縁が削れる)。 */
+	#edit-form .tera-dropdown-option {
+		display: flex;
+		align-items: center;
+		gap: 0.35rem;
+		padding: 0.25em 0.4em;
+		border-radius: var(--radius-sm);
+		cursor: pointer;
+	}
+	#edit-form .tera-dropdown-option:hover,
+	#edit-form .tera-dropdown-option:focus-visible {
+		background: var(--color-surface-alt);
+		outline: none;
+	}
+	#edit-form .tera-dropdown-option.is-active {
+		background: var(--color-primary-soft);
+	}
+	#edit-form .tera-dropdown-option-image { width: var(--icon-size-sm); height: var(--icon-size-sm); object-fit: contain; flex-shrink: 0; }
+	#edit-form .tera-dropdown-option-text { font-size: 0.9rem; color: var(--color-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+	/* 持ち物画像: 名前行の横幅を圧迫しないよう、種族アイコンに小さなバッジとして重ねる
+	   (要件: テラスバッジ=右上と衝突しない対角に配置)。
+	   ラウンド8指摘(A-1由来): 以前はbottom:-6px/left:-6pxで名前inputとの継ぎ目に浮いて
+	   見えていた。
+	   ラウンド23ユーザー指示(23-G1「アイテム画像の丸枠を廃止し直接表示する」+23-D1
+	   「アイテム画像を2/3に縮小」): 55px→37pxに縮小し、白丸+枠+影(border-radius/
+	   background/border/box-shadow/padding)を撤去して画像を直接表示する(左パネルの
+	   .item-image-badgeと同じ変更内容・同じ最終サイズ)。overflow:hiddenも円形クリップ用
+	   だったため不要になり撤去した。position:absoluteでのbottom/rightオフセット(-4px)と
+	   種族アイコンへの重ね配置は維持する。 */
+	#opponent-notes-section .damage-item-badge {
+		position: absolute;
+		bottom: -4px;
+		right: -4px;
+		width: 37px;
+		height: 37px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+	/* ラウンド8の回帰修正: display:flexを持つクラスはUAの[hidden]{display:none}に
+	   詳細度で勝ってしまう(pitfalls.md「[hidden]は詳細度で負ける」)。枠を撤去した後も
+	   バッジ自体([hidden]対象)と中の<img>([hidden]とは別に、applyItemImage()側で
+	   display:noneにする)の二重の隠蔽ロジックは変わらず必要(持ち物なしの相手で
+	   alt文字や壊れ画像アイコンが出ないようにするため)。23-G1適用後も実機で
+	   持ち物なしの相手に空バッジが出ないことを確認済み。 */
+	#opponent-notes-section .damage-item-badge[hidden] {
+		display: none;
+	}
+	/* ラウンド23ユーザー指示(23-D1): 55px→37pxに縮小(左パネルの.item-image-badgeと同じ
+	   最終サイズ)。.damage-item-badge はposition:absoluteで.damage-sprite-box
+	   (width/height固定96px)基準に重なるだけで通常のフローに参加しないため、
+	   縮小してもカード自体の高さには影響しない。
+	   pixelatedの扱い: 23-G1の指示文は「/boxと左パネルはpixelatedを撤去した」という
+	   前提だったが、実装時に確認したところ左パネルの.item-image(37px)は実際には
+	   pixelatedを維持したまま「37pxなら実解像度32×32に近くボケが判別できない」という
+	   判断で据え置かれていた(このファイル958行目のコメント参照)。このバッジも同じ
+	   37px・同じPokeAPIドット絵ソースのため、左パネルと揃える形でpixelatedを維持する
+	   (ライト・ダーク双方でdeviceScaleFactor:3の拡大クロップを確認し、有無での見え方の
+	   差が実測で判別できないことを確認済み。判断根拠は報告参照)。 */
+	#opponent-notes-section .damage-item-image {
+		width: 100%;
+		height: 100%;
+		object-fit: contain;
+		image-rendering: pixelated;
+	}
+
+	/* 努力値/実数値グリッド(DamageCard.pngの「努力値 ＨＡＢＣＤＳ」「実数値 ＨＡＢＣＤＳ」の2行)。
+	   1列目に行ラベル(努力値/実数値)を置き、その右にH/A/B/C/D/Sの6列を並べる3段構成
+	   (1段目はH/A/B/C/D/Sの見出し)。DOMも行優先(見出し7セル→努力値7セル→実数値7セル)で
+	   生成すること。列ごとに縦積みしていた旧構造では行ラベルを付けられなかったため入れ替えた。
+	   UI品質改善(2026-07-26 第4弾): 文字が実測~10pxと小さすぎたため、行ラベル/列見出し/
+	   数値のフォントサイズを底上げした(桁揃えのため.tnumも<script>側の生成コードに追加)。
+	   🔴 UI改善ラウンド28ユーザー指示(28-D3)「ステータスは相手ビルド領域の全幅を使う」により、
+	   親を.damage-row-build-left(202px相当)からbuildEl(相手ビルド領域そのもの、321px相当)へ
+	   変更した(<script>のrenderRow、buildEl.appendChild(evGrid)参照)。CSS自体は
+	   width:100%(buildElへのstretch)がデフォルトで効くため変更不要。 */
+	#opponent-notes-section .damage-ev-grid {
+		display: grid;
+		grid-template-columns: 3.4em repeat(6, minmax(0, 1fr));
+		gap: 0.15rem 0.15rem;
+		align-items: center;
+		margin-top: 0.15rem;
+	}
+	#opponent-notes-section .damage-ev-row-label {
+		/* 20-G3: 0.66rem(10.6px)→0.76rem(12.16px、12px下限を満たす)。
+		   ラウンド26ユーザー指示(26-D4)「相手ビルドの種族名以外の文字が小さい」により
+		   0.76rem→0.86rem(13.76px、+1.6px)へさらに一段上げる。 */
+		font-size: 0.86rem;
+		font-weight: 700;
+		line-height: 1.2;
+		color: var(--color-text-muted);
+		white-space: nowrap;
+	}
+	#opponent-notes-section .damage-ev-col-label {
+		/* 20-G3: 0.68rem(10.9px)→0.76rem(12.16px、12px下限を満たす)。
+		   ラウンド26ユーザー指示(26-D4)により0.76rem→0.86rem(13.76px、+1.6px)へさらに
+		   一段上げる(.damage-ev-nature-cycleボタンも同じクラスを併せ持つため、この
+		   font-sizeがそのまま適用される。font-family: inheritのみでfont-sizeは
+		   上書きしていない設計を維持)。 */
+		font-size: 0.86rem;
+		font-weight: 700;
+		line-height: 1.2;
+		text-align: center;
+		color: var(--color-text-muted);
+	}
+	/* ラウンド20ユーザー指示(20-D3、ラウンド5の「▲/▼を独立ボタン化する」という判断を撤回):
+	   H/A/B/C/D/S見出し(HP以外)自体をクリックすると無補正→上昇→下降→無補正と3循環する
+	   1個のボタンに作り直した(旧・上下2ボタン+縦3段の.damage-ev-col-header/
+	   .damage-ev-nature-btn/.damage-ev-nature-up/.damage-ev-nature-downは廃止)。
+	   ボタンは.damage-ev-col-labelの見た目(サイズ・太字・中央寄せ)をそのまま引き継ぐ……
+	   はずだったが、ラウンド21ユーザー指示(21-D5)で実測したところ意図どおりに引き継げて
+	   いなかった。
+	   実測(getComputedStyle、H=<span class="damage-ev-col-label">・A=このボタン):
+	     修正前 H: font-size 12.16px / font-weight 700 / line-height 14.592px
+	            A: font-size 16px    / font-weight 400 / line-height 25.6px
+	   原因: 下の`font: inherit`がfont-size/font-weight/line-heightをすべて含む
+	   ショートハンドで、このセレクタ(#opponent-notes-section .damage-ev-nature-cycle、
+	   特異度=ID1+class1)が.damage-ev-col-label(同じくID1+class1、上記グリッド見出しの
+	   共通ルール)と同じ特異度でこちらのほうが後方に書かれているため、ソース順で
+	   font-weight:700/font-size:0.76remを丸ごと上書きしてしまっていた(ボタンのUAスタイル
+	   由来のfont-synthesis/font-smoothingの違いという当初の推定は誤りで、実測では両者とも
+	   同一だった。真因はこの1行の特異度衝突)。
+	   修正: `font: inherit`(全サブプロパティを継承値で上書き)ではなく`font-family: inherit`
+	   だけにする。これで.damage-ev-col-labelのfont-size/font-weight/line-heightが
+	   このボタンにも正しく適用される(HPだけ<button disabled>にする代替案は、実測で差の
+	   真因が特定できたため不要と判断した)。 */
+	/* ラウンド23ユーザー指示(23-D4)「性格補正の三角形とステータス文字の間を少しあける」。
+	   0.05em(文字とほぼ密着)→0.2emに広げる。「少しだけ」という指示のため広げすぎない
+	   (実測はH=12.16px基準で0.05em≈0.6px→0.2em≈2.4px。A/B/C/D/Sは0.76em基準の
+	   font-sizeなので実際はもう少し大きい)。🔴 上のコメントに記録済みの罠のとおり、
+	   `font: inherit`のようなショートハンドで書き直さないこと(font-size/font-weight/
+	   line-heightを丸ごと上書きしてしまう)。ここではgapの数値だけを変更する。 */
+	#opponent-notes-section .damage-ev-nature-cycle {
+		display: inline-flex;
+		align-items: baseline;
+		justify-content: center;
+		gap: 0.2em;
+		width: 100%;
+		background: none;
+		border: none;
+		padding: 0.05rem 0;
+		font-family: inherit;
+		cursor: pointer;
+	}
+	#opponent-notes-section .damage-ev-nature-cycle:hover { color: var(--color-primary); }
+	#opponent-notes-section .damage-ev-nature-cycle:focus-visible {
+		outline: 2px solid var(--color-primary);
+		outline-offset: 1px;
+	}
+	/* 色だけで状態を伝えない(WCAG 1.4.1)。上昇/下降は文字色(--stat-up/--stat-down、
+	   新色は作らない)に加えて、文字の直後に小さく▲/▼を添える(装飾専用。実際の
+	   状態説明はボタンのaria-label/titleが担う。<script>のdescribeNatureCycleState参照)。
+	   無補正のときは空文字列にする(何も足さない)。 */
+	#opponent-notes-section .damage-ev-nature-indicator {
+		/* 20-G3: 親(.damage-ev-col-label)の0.76rem(12.16px)をそのまま継承する
+		   (emで縮めると12px下限を割るため、縮小しない)。 */
+		line-height: 1;
+	}
+	#opponent-notes-section .damage-ev-col-label[data-mod="up"] { color: var(--stat-up); }
+	#opponent-notes-section .damage-ev-col-label[data-mod="down"] { color: var(--stat-down); }
+	/* グリッドのセル幅に完全に従わせる(width:100%とmin-width:0の両方が必要。
+	   min-width:0を省くと、global.cssのinput既定幅がグリッドの最小コンテンツ幅として
+	   効いてしまい、6列が箱の横幅を超えてはみ出す)。 */
+	#opponent-notes-section .damage-ev-grid input[type="number"] {
+		width: 100%;
+		min-width: 0;
+		padding: 0.08em 0.1em;
+		/* ラウンド26ユーザー指示(26-D4)により0.78rem→0.88rem(14.08px、+1.6px)へ一段上げたが、
+		   同時に上げた行ラベル/列見出し/実数値(いずれも0.86rem)と0.02rem(0.32px)の差が
+		   残っていた(UI統一感レビュー32-U-B2)。他の3要素に揃えて0.86remへ統一する。 */
+		font-size: 0.86rem;
+		line-height: 1.2;
+		text-align: center;
+		/* ラウンド3 A-1: 努力値グリッドの数値入力もglobal.cssのmin-height:2.35remを
+		   打ち消す(努力値/実数値グリッドの無駄18.6pxのうち大半を占める)。 */
+		min-height: 0;
+	}
+	#opponent-notes-section .damage-stat-value {
+		display: block;
+		/* ラウンド26ユーザー指示(26-D4)により0.76rem→0.86rem(13.76px、+1.6px)へ一段上げる。 */
+		font-size: 0.86rem;
+		line-height: 1.2;
+		font-weight: 700;
+		text-align: center;
+		color: var(--color-text);
+	}
+	#opponent-notes-section .damage-stat-value[data-mod="up"] { color: var(--stat-up); }
+	#opponent-notes-section .damage-stat-value[data-mod="down"] { color: var(--stat-down); }
+	/* 条件チップ(A-6): 既定以外の詳細設定(天候・急所・壁など)が設定されているのに
+	   カード上に何の表示も無いと「素のカードと数値だけ違う」ように見えてバグに見える。
+	   ラウンド6ユーザー指示(要件8): 以前は相手ビルドの箱(努力値グリッド直下)に1個だけ
+	   置いていたが、設計図で「技ごとにONにした条件をまとめて表示する」よう変わったため、
+	   このクラス(スタイルはそのまま流用)を技列(.damage-column)側へ移し、技列1枚につき
+	   1インスタンス生成する(renderColumns参照)。カード全体の設定(天候・フィールド・壁)は
+	   全技列で同じ値なので重複表示になるが、これはユーザーの明示的な選択(要件8)。 */
+	#opponent-notes-section .damage-row-condition-chips {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.25rem;
+		margin-top: 0.1rem;
+	}
+	#opponent-notes-section .damage-row-condition-chips[hidden] { display: none; }
+	#opponent-notes-section .damage-condition-chip {
+		/* 20-G3: 0.66rem(10.6px)→0.76rem(12.16px)。 */
+		font-size: 0.76rem;
+		padding: 0.1em 0.5em;
+	}
+
+	/* 「加算後のダメ・致死率」(全ての技列を順に当てた合計)。
+	   🔴 ラウンド24ユーザー指示(24-D1、実装中にユーザーから訂正): 当初「カード全体(root)の
+	   全幅フッター」として実装したが誤りだった。正しい要件は「相手ビルドの箱
+	   (.damage-row-build)の最下段ではなく、ダメージカード領域=技列側(techniquesRow、
+	   .damage-row-techniques-row)の最下部」に移動すること。<script>のrenderRow()が
+	   totalBlockをbuildElでもrootでもなくtechniquesRowの子(columnsWrap・addColumnSlotの後)
+	   としてappendするようになったため、このブロックは技列カラムの幅に収まる1行になり、
+	   相手ビルドの箱(左側)には掛からない。
+	   margin-top:auto(旧実装、buildElの最下段へ押し下げるためのもの)は付けていない:
+	   techniquesRowはdisplay:flex; flex-direction:column(1814行目)で、直前の
+	   addColumnSlotが flex:1 1 auto(伸びて余白を吸う、1857行目付近)を持つため、
+	   totalBlockは最後の子として自然にtechniquesRowの下端に来る(実測で確認済み)。
+	   border-top(点線の区切り線)は「技列カードと結果フッターの区切り」として引き続き
+	   活かす。結果表示はこの画面で最も重要な情報のため、フォントサイズ・太さを他より
+	   一段階上げる(この方針は変えない)。
+	   ⚠️ 実測で発覚した回帰と対策(「カード全体の縦サイズを縮小」への対応):
+	   totalBlockをtechniquesRowの3つ目の子にしたことで、親のgap:0.3rem
+	   (.damage-row-techniques-row、1814行目付近)がaddColumnSlotとtotalBlockの間にも
+	   新たに入るようになった。ここにmargin-topを追加すると「flexのgap」と「margin-top」の
+	   二重の空きができてしまう(技列が高さの支配要因のカードでは、そのぶんがそのまま
+	   カード全体の高さに上乗せされて実測で判明した)ため、margin-topは0にしてgapだけに
+	   間隔を委ね、padding-topも0.35rem→0.25remに詰める。詳細な実測値(before/after)は
+	   round-24.mdの実施結果に記録する。 */
+	#opponent-notes-section .damage-row-total {
+		margin-top: 0;
+		padding-top: 0.25rem;
+		border-top: 1px dashed var(--color-border);
+	}
+	/* ラウンド3 A-2(c): チップ本文が「累計351〜414…」のようにラベルの内容を完全に
+	   繰り返して書いているため冗長(高さの無駄15.1px)。要素は残し(JSは参照していないが
+	   念のためDOM削除はしない)、視覚的にのみ隠す。 */
+	#opponent-notes-section .damage-row-total-label {
+		display: none;
+		/* 20-G3: display:noneで非表示のため実害は無いが、念のため12px下限に揃える。 */
+		font-size: 0.76rem;
+		font-weight: 700;
+		line-height: 1.2;
+		color: var(--color-text-muted);
+		margin-bottom: 0.15rem;
+	}
+	/* ラウンド4の積み残し(ラウンド3 C-4「結果チップの主役化」): 判定(21-D7以降は「確N」
+	   「10発以上」のいずれか1つだけ。旧「乱N」「未撃破」は廃止済み)を大きく太字で左に、
+	   ダメージ量の詳細を小さく右に配置する(<script>のsetResultVerdict参照)。3枚並べたときに
+	   結論だけを縦に読めるようにする。 */
+	#opponent-notes-section .damage-row-total-result {
+		display: grid;
+		grid-template-columns: auto 1fr;
+		align-items: baseline;
+		column-gap: 0.5em;
+		margin: 0;
+		/* 🔴 UI改善ラウンド32ユーザー指示(32-D3)「技カードの幅を少し減らし、右側の余剰スペースの
+		   最下部(累計結果の右側)に削除ボタンを配置」。40px(削除ボタン28px+右クリアランス)ぶん
+		   幅を減らし、右側に削除ボタンの居場所を空ける(下の.damage-row-delete-buttonを
+		   bottom基準に変更した内容と対になる)。.damage-row-columns-wrap(下記)と同じ削減幅にして
+		   技カード列と累計結果の右端を揃える。 */
+		max-width: calc(100% - 40px);
+		/* ラウンド23ユーザー指示(23-D5)「ダメージ・致死率の文字を少し大きく」:
+		   0.85rem(13.6px)→0.92rem(14.72px、+1.12px)。カード3枚が1080pxに収まる制約
+		   (00-foundation.md)を実測したうえでの引き上げ幅(実測は報告参照)。 */
+		font-size: 0.92rem;
+		line-height: 1.2;
+		/* ラウンド24ユーザー指示(24-D1)「カード全体の縦サイズを縮小」対応: totalBlockが
+		   techniquesRow内の1行として追加された高さ増分を相殺するため、上下paddingを詰める
+		   (0.3rem→0.22rem。文字サイズ・横paddingは23-D5の判断のまま変えない)。 */
+		padding: 0.18rem 0.45rem;
+	}
+	#opponent-notes-section .damage-row-total-result .damage-result-verdict {
+		font-size: 1.05em;
+		font-weight: 800;
+	}
+	#opponent-notes-section .damage-row-total-result .damage-result-detail {
+		/* 20-G3: 0.82em(親0.85remの82%=約11.15px)は入れ子emの事故(pitfalls.md参照)。
+		   remの直接指定にした。23-D5で0.76rem(12.16px)→0.85rem(13.6px、+1.44px)に
+		   もう一段大きくする(12px下限は引き続き維持)。 */
+		font-size: 0.85rem;
+		font-weight: 500;
+		opacity: 0.85;
+		text-align: right;
+	}
+
+	/* アイコンボタンの共通規格(円形28px・shadow-sm)。「⚙詳細」も同じ理由でアイコンボタン化
+	   していたが、ラウンド6で廃止した。
+	   ラウンド12指摘(B-2): アイコンボタンが/box(24px円形)とこのページ(30px角形)で
+	   2規格に分かれていた。統一先の28px・円形・shadow-smに合わせる(/box側は別エージェント
+	   の担当範囲なのでこのページ側だけ変更する)。 */
+	#opponent-notes-section .damage-row-icon-button {
+		flex-shrink: 0;
+		width: 28px;
+		height: 28px;
+		padding: 0;
+		font-size: 0.95rem;
+		line-height: 1;
+		border-radius: 50%;
+		box-shadow: var(--shadow-sm);
+	}
+	/* ラウンド21ユーザー指示(21-D3): 「削除ボタンはカード全体の右上に移動。×印を使うと
+	   よいかも」。以前は.damage-row-actions(相手ビルド箱の1行目、攻守切り替えと同居)に
+	   あったが、.card-damage直下へ移しposition:absoluteでカード右上に置く(/boxの
+	   .card-actions/.icon-buttonと同型の構造を参考にしたが、コピーではなくこのページの
+	   CSSとして書く)。中身はtextContent="×"のみ(画像を隠すラッパー構造は無い)ため、
+	   .damage-row-icon-buttonの円形28pxをそのまま流用してよい。
+	   誤操作の抑止(判断): 右上常時表示は/boxより押しやすい導線になるため、/boxの
+	   .delete-buttonと同じくhover/focus-within時のみ可視にする(下のcursor:hover
+	   メディアクエリ参照)。加えて、このボタンが呼ぶdeleteRow()は保存済み行(row.id有り)に
+	   対して既存のwindow.confirm()(<script>のdeleteRow参照)を伴うため、hover限定表示+
+	   確認ダイアログの二重の抑止になる(削除ボタンの可視性と確認ダイアログのどちらか一方で
+	   足りるという指示に対し、既存のconfirm()に加えてhover限定も採用した)。
+	   コントラスト: 既定色は.btn-ghost由来のvar(--color-text-muted)のまま(muted 5.98:1)にし、
+	   hover時だけvar(--color-danger-strong)文字+var(--color-danger-soft)背景にする
+	   (5.20:1、AA適合)。/boxの.delete-buttonが既定からvar(--color-danger)を使っているのは
+	   実測するとライトで2.82:1しかなくAA未達だったため、同じ配色は踏襲しなかった
+	   (/box側は担当外ファイルのため直接は直さず、この事実だけ報告する)。
+	   実機で発覚した回帰: カードの右上は技列側(.damage-row-techniques-row)の右上とも重なる
+	   位置のため、.btn-ghost由来の透明背景のままだと技名行の「回ヒット(2〜5)」等の文字に
+	   ×が透けて重なって見えた(PlaywrightのdeviceScaleFactor:3クロップで発見)。/boxの
+	   .icon-buttonと同じくbackground/border/box-shadowを不透明にして、下の文字を完全に
+	   覆い隠す円形にする(hover時だけ色を変えるのではなく、可視状態そのものを不透明にする)。 */
+	/* 🔴 UI改善ラウンド31ユーザー指示(31-D2)「カード削除のホバー時の透過を廃止し、ホバー時は
+	   赤背景＋文字で表示する」により、以下2点を変更する。
+	   (1) ラウンド21(21-D3)で導入した「card:hover/focus-withinでopacity:0→1にフェード
+	   表示する」誤操作抑止の仕組みを撤回する(round-31.mdが名指ししている「hover時のopacity
+	   変化」はこの仕組みそのもの)。ボタン自体は常時表示(.btn-ghost由来の控えめなmuted文字)
+	   にし、下の@media(hover:hover)ブロックとopacity/pointer-eventsの切り替えを削除する。
+	   誤操作の抑止は、既存のwindow.confirm()(<script>のdeleteRow参照、変更なし)に加えて、
+	   常時薄い表示(ghost)+ホバー時だけ強い赤に変わる視覚的コントラストの2段構えに変える。
+	   (2) ホバー時の背景を、透け感のある薄い色(--color-danger-soft)から
+	   --color-danger-strong(「反転ホバー」ボタン方式で使っている既存トークン、button.btn-danger
+	   と同じ配色)の塗りつぶしに変え、文字色もその上で読める--color-primary-contrastにする
+	   (--color-danger-strongはライト#b23a26+白文字5.96:1、ダークは--color-dangerに
+	   エイリアスされ#ff8b78+ダーク文字--color-primary-contrast(#14161d)の組み合わせで
+	   button.btn-danger既存パターンと同一のコントラスト設計を再利用する。新色は作らない)。 */
+	/* 🔴 UI改善ラウンド32ユーザー指示(32-D3)「削除ボタンを累計結果の右側(カード右下)へ移す」
+	   により、top基準からbottom基準に変える(right基準はそのまま)。.card-damageは
+	   position:relativeのまま(31-D2以前から不変)。.damage-row-total(累計結果の外枠)は
+	   通常フローでtechniquesRowの最後の子として自然にカード下端付近に来るため、右下の
+	   var(--space-2)オフセットだけで累計結果の右側に重なる位置になる。31-D2で確立した
+	   「hover時に赤背景+文字」「常時表示(opacity:1のまま=このルールにopacity指定は無い)」の
+	   挙動は変更しない。 */
+	#opponent-notes-section .damage-row-delete-button {
+		position: absolute;
+		bottom: var(--space-2);
+		right: var(--space-2);
+		z-index: 2;
+		background: var(--color-surface);
+		border: 1px solid var(--color-border);
+		transition: background 0.15s, color 0.15s, border-color 0.15s;
+	}
+	#opponent-notes-section .damage-row-delete-button:hover:not(:disabled) {
+		background: var(--color-danger-strong);
+		color: var(--color-primary-contrast);
+		border-color: var(--color-danger-strong);
+	}
+	#opponent-notes-section .damage-row-delete-button:focus-visible {
+		outline: 2px solid var(--color-primary);
+		outline-offset: 2px;
+	}
+	@media (prefers-reduced-motion: reduce) {
+		#opponent-notes-section .damage-row-delete-button { transition: none; }
+	}
+	/* 🔴 UI改善ラウンド31(31-D2)実装後にCoordinatorとの検証で発覚した実バグへの対応
+	   (.damage-row-columns > .damage-column:first-child .damage-column-move-rowへの
+	   padding-right: 40px)は、UI改善ラウンド32ユーザー指示(32-D3)「削除ボタンを累計結果の
+	   右側(カード右下)へ移す」により削除した。削除ボタンがカード右上から居なくなり
+	   1発目の技名行と同じ高さに来なくなったため、このクリアランス確保は不要になった
+	   (round-32.md「31-D2の副作用で入れたpadding-right: 40pxは...不要になったら消すこと」)。
+	   技列3列以上のカードでも削除ボタン(カード右下、bottom基準)と技カード・累計結果が
+	   重ならないことを実測して確認した(報告参照)。 */
+
+	/* 右: 技列(縦積み=加算ダメージ計算)。
+	   ラウンド5では技列を横並び(横スクロール)にしていたが、ラウンド6ユーザー指示
+	   (更新された設計図)で縦積みに作り直した。旧ラウンドの「横スクロールのために
+	   コンテナの自動最小幅を潰す」min-width:0や、「列が少ないときに＋を最終列の
+	   隣へ寄せる」max-width:max-content、はみ出し対策のoverflow-x:autoは、
+	   縦積みでは主軸が「幅」から「高さ」に変わるため不要(付けたままだと横幅が
+	   本来より狭く固定されたり、意味のないスクロール領域ができたりして有害)。
+	   .damage-row-columns-wrap/.damage-add-column-slot自体のクラス名・要素は
+	   このラウンドでも改名・削除していない(JS/E2E依存を壊さないため)。 */
+	#opponent-notes-section .damage-row-techniques-row {
+		flex: 1 1 0;
+		/* ラウンド10: min-width:0 のままだと .damage-row-body の flex-wrap が
+		   絶対に発動せず(flex-basis:0の項目は0まで潰れるため)、狭い幅で技列が
+		   19pxに潰れる既存バグが直らない。折り返しのトリガーとして下限を与える。
+		   flex-basis:0 は第3弾の「flex-wrap誤爆防止の安全策として変更不可」に従いそのまま。
+
+		   140pxという値は「壊れている幅だけを折り返し、既存のデスクトップ挙動は
+		   1pxも変えない」ように実測から逆算したもの。折り返しの閾値は
+		   箱300 + gap9.6 + この値 なので:
+		     140 → 449.6。390px(body 329)は折り返す / 1600px(459)・1280px(460)は
+		     折り返さず従来どおり(技列149px・151px)。
+		   150pxにすると1600pxと1280pxまで折り返してしまい、3カラム常設境界での
+		   カード高さが変わる(=デスクトップの密度を無断で変える)ので採らない。
+		   ※1600px/1280pxで技列が149〜151pxしかないのは別の既存課題として
+		   計画書に記録済み(この修正の対象外)。 */
+		min-width: 140px;
+		display: flex;
+		flex-direction: column;
+		/* 24-D1: 0.3rem→0.22remに詰める(このgapがtotalBlockの直前にも入るようになったため、
+		   カード全体の縦サイズ縮小に寄与させる)。 */
+		gap: 0.22rem;
+	}
+	#opponent-notes-section .damage-row-columns-wrap {
+		display: flex;
+		flex-direction: column;
+		/* 24-D1: 0.3rem→0.22rem(このラッパーは子が1つ(damage-row-columns)なので実質無効だが、
+		   下の.damage-row-columnsと値を揃えておく)。 */
+		gap: 0.22rem;
+		min-width: 0;
+		/* 🔴 UI改善ラウンド32ユーザー指示(32-D3)「技カードの幅を少し減らし」。
+		   .damage-row-total-resultと同じ40px(削除ボタン28px+クリアランス)を減らし、
+		   技カード列の右端と累計結果の右端を揃える。align-items:stretchが既定の
+		   .damage-row-techniques-row(親)の中でこのwrapが従来100%幅相当に伸びていたため、
+		   max-widthで頭打ちにする(width自体は指定しない=100%未満の幅でも縮小できるように
+		   維持)。 */
+		max-width: calc(100% - 40px);
+	}
+	/* 技列同士(.damage-column)は幅を揃える(align-items:stretchが既定=cross-axisの
+	   幅いっぱいに広がる)。高さは各列の内容に応じて個別に決まる。 */
+	#opponent-notes-section .damage-row-columns {
+		display: flex;
+		flex-direction: column;
+		/* 24-D1: 技列同士の間隔を0.3rem→0.22remに詰める(カード全体の縦サイズ縮小)。 */
+		gap: 0.22rem;
+		min-width: 0;
+	}
+	/* 「加算条件追加ボタン」(要件: 技列の下に置く)。技列の縦積みの最後に続くので、
+	   技列と同じ横幅いっぱいに広がるブロックにする(横スクロール時代の
+	   flex:0 0 auto/align-self:flex-startは幅を揃える横並びが前提だったため撤去)。
+	   ラウンド20ユーザー指示(20-D5): margin-top:autoを削除した。以前はこれで
+	   .damage-row-techniques-row(縦flex)の下端に押し出していたが、技列が1〜2枚の
+	   ときに最後の技カードから離れて浮いて見える問題があった。auto marginを外すと、
+	   flex-directon:columnの並び順どおり「最後の技カードの直後」に自然に来る
+	   (00-foundation.mdの「列追加の＋は横スクロール領域の外に置く」という過去の罠は、
+	   .damage-row-columns-wrapが横スクロール領域だった旧設計(ラウンド5)の話で、
+	   ラウンド6以降は.damage-row-techniques-row/.damage-row-columns-wrapとも
+	   flex-direction:columnの縦積みに変わっており、実測(1920/1440/1280/900px、
+	   技列3枚)でも横スクロールは発生しない。addColumnSlot自体はcolumnsWrapの中には
+	   移していない(techniquesRow内でcolumnsWrapの直後に置かれる、DOM構造は不変)が、
+	   margin-top:autoを外したことでcolumnsWrapの直後=最後の技カードの直後に自然に
+	   来るようになる。技列が最大3つで上限に達するとボタン自体がdisabledになる点も
+	   踏まえ、この位置で問題ないと判断した)。
+	   実測での回帰(20-D5検証時に発覚): 技列が1枚だけの行は、相手ビルド箱(実測約250px)
+	   より技列+ボタン(実測約170px)のほうが短く、align-items:stretchで揃えられた
+	   カード全体の高さのうち約80〜90pxがボタンの下に何も装飾されない空白として
+	   残ってしまう(ラウンド8 A-3で問題視された「意味のない空白」の再発)。
+	   flex:1 1 autoでスロット自体をtechniquesRowの残り高さまで伸ばし、その中で
+	   align-items:centerによりボタン本体(高さは技カードとほぼ同じ92pxのまま)を
+	   縦方向中央に置くことで、「ボタンは最後の技カードのすぐ下」という位置を保ちながら
+	   カード下端の未装飾の空白を解消する。 */
+	#opponent-notes-section .damage-add-column-slot {
+		display: flex;
+		align-items: center;
+		flex: 1 1 auto;
+	}
+	/* UI品質改善(ラウンド8 A-2): 技列が上限(3つ)に達すると、破線ボタンが
+	   disabled+opacity:0.4になり「技列は最大3つまでです」がコントラスト1.68:1で
+	   ほぼ読めないまま48px居座っていた。上限時はスロットごとCSSで隠す(DOMは残す。
+	   <script>のrenderColumns、addColumnSlot.dataset.max参照)。 */
+	#opponent-notes-section .damage-add-column-slot[data-max="true"] {
+		display: none;
+	}
+	/* 技名(「あんこくきょうだ」等の7〜8文字)が読み切れる幅を確保する。
+	   ラウンド6ユーザー指示: 技列を縦積みにしたため、固定205px幅ではなく右カラム
+	   (.damage-row-techniques-row)の残り幅いっぱいに広げる(横スクロールが無くなった分、
+	   205px固定より遥かに広い実測290px前後を使えるようになり、可読性が上がる)。 */
+	#opponent-notes-section .damage-column {
+		width: 100%;
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-md);
+		/* UI品質改善(要件5・実測調整): 技列3枚(3枚ぶんの枠線・padding・gapが積み重なる)が
+		   相手ビルドの箱1枚と高さを揃えられるよう、padding/gapを控えめに詰める
+		   (実測: 詰める前は技列3枚+追加ボタンで箱よりおよそ85px高くなっていた)。
+		   ラウンド24ユーザー指示(24-D1)「カード全体の縦サイズを縮小」対応で上下を
+		   さらに0.3rem→0.24remに詰める。 */
+		padding: 0.16rem 0.5rem;
+		/* 🔴 ラウンド25ユーザー指示(25-D2)「ダメージカードのN発目表記は、ダメージカード
+		   全体を左右分割し(左は狭い)、左側に数字を書く」により、縦積み(orderLabelが
+		   技名行等と同列に並ぶ)から常時左右分割へ変える。これは24-D2(「N発目」→「N」への
+		   文言変更のみ)を拡張・実質的に置き換えるもの(文言短縮自体はそのまま活かす)。
+		   左: .damage-column-order-label(狭い固定幅、番号だけを縦中央に大きめ表示)。
+		   右: .damage-column-body(新設ラッパー。技名行・ヒット回数行・条件・結果表示など
+		   残り全部をまとめる。<script>のrenderColumns参照)。
+		   これに伴い、以前orderLabelと技名行を同じ行に並べていた
+		   @container dmgtech (min-width: 240px) は常時左右分割になったため不要になり
+		   削除した(狭幅での圧迫は実測して報告する。技名行側のflex-wrapで既に
+		   折り返し対応済み)。 */
+		display: flex;
+		flex-direction: row;
+		align-items: stretch;
+		gap: 0.5rem;
+		/* UI品質改善(デザイン原則整合): .damage-row-buildと同じ理由でsurface-altから
+		   surfaceに変更(外側の.card-damageがsurface-altになったため)。 */
+		background: var(--color-surface);
+		/* ラウンド6ユーザー指示(要件2): 技列をクリックするとこの技だけの設定に切り替わる。
+		   選択中はこの箱自体にprimary枠を付けて「この技列が選択されている」ことを示す
+		   (<script>のselectColumn/applySelectionMarks参照)。 */
+		transition: border-color 0.15s, box-shadow 0.15s;
+		/* ラウンド8指摘(B-4): クリックすると設定が開くことが画面から分からなかった
+		   (ラウンド7積み残し)。cursor:pointerを明示する(.damage-row-buildの
+		   cursor:defaultと対比させる)。 */
+		cursor: pointer;
+	}
+	#opponent-notes-section .damage-column:hover {
+		border-color: var(--color-primary);
+	}
+	#opponent-notes-section .damage-column.is-selected {
+		border-color: var(--color-primary);
+		box-shadow: 0 0 0 1px var(--color-primary);
+	}
+	/* is-selectedはbox-shadowも持つため、hoverだけの状態と区別が付く
+	   (選択中の技列に重ねてhoverしても見た目が変わらない=誤って「選択が外れた」ように
+	   見えることはない)。 */
+	#opponent-notes-section .damage-column input[type="text"],
+	#opponent-notes-section .damage-column input[type="number"] {
+		width: 100%;
+		min-width: 0;
+		font-size: 0.88rem;
+		padding: 0.28em 0.35em;
+		line-height: 1.2;
+		/* ラウンド3 A-1: 技列側の技名/ヒット数入力も同様にmin-heightを打ち消す。 */
+		min-height: 0;
+	}
+	/* ラウンド3 B-3: 技列を横に連結する=加算という関係が伝わりにくかったため、
+	   各列に「1発目」「2発目」…の順序キャプションを添える(<script>のrenderColumns参照)。
+	   ラウンド25ユーザー指示(25-D2)により、左側の狭い帯として番号だけを縦中央に
+	   大きめ表示する(以前は技名行と同じ行に収まる横並びテキストだった)。 */
+	/* 🔴 UI改善ラウンド31ユーザー指示(31-D5)「技カードのN発目の数字を小さくし、領域の幅も
+	   狭くする」により、font-size 1.25rem(20px)→0.8rem(12.8px、文字12px下限を割らない
+	   範囲)、width 1.7em→1.4em(この要素自身のfont-sizeが基準になるem指定のため、縮小後の
+	   実寸は1.4×12.8px=17.92px)に縮める。 */
+	#opponent-notes-section .damage-column-order-label {
+		flex: 0 0 auto;
+		width: 1.4em;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 0.8rem;
+		font-weight: 700;
+		color: var(--color-text-muted);
+		line-height: 1;
+		border-right: 1px solid var(--color-border);
+	}
+	/* ラウンド25ユーザー指示(25-D2): 技名行・ヒット回数行・条件・結果表示など、以前
+	   .damage-column直下に縦積みしていた残り全部をまとめる右側のラッパー
+	   (<script>のrenderColumns参照)。 */
+	#opponent-notes-section .damage-column-body {
+		flex: 1 1 0;
+		min-width: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 0.15rem;
+	}
+	/* ラウンド3 B-4: 累計で既に撃破済みになった以降の列を視覚的に控えめにし、
+	   「何発目で撃破済みか」を添える(数値自体は第3弾の「列は独立判定」の方針どおり変えない。
+	   <script>のrenderColumnDisplays/computeConfirmedKillAttackCount参照)。 */
+	#opponent-notes-section .damage-column.is-overkill {
+		opacity: 0.55;
+	}
+	#opponent-notes-section .damage-column-overkill-note {
+		margin: 0;
+		/* 20-G3: 0.66rem(10.6px)→0.76rem(12.16px)。 */
+		font-size: 0.76rem;
+		color: var(--color-text-muted);
+	}
+	#opponent-notes-section .damage-column-overkill-note[hidden] {
+		display: none;
+	}
+	/* 技名inputと結果表示の間の領域(DamageCard.pngで空白になっている部分)。
+	   図の注記どおり「計算の細かい条件」をこの列単位で置く場所(削除ボタンはラウンド3 B-2で
+	   技名行へ移した)。ラウンド12指摘(B-3)で連続回数(.damage-column-hitcount-row)も
+	   技名行(moveRow)側へ同居させたため、現時点でここに入るのは撃破済み注記のみ。
+	   将来ここに条件が増えても結果表示は margin-top:auto で箱の下端に留まるので、
+	   レイアウトを作り直す必要はない。 */
+	#opponent-notes-section .damage-column-conditions {
+		display: flex;
+		flex-direction: column;
+		gap: 0.2rem;
+	}
+	/* 技名input + 削除ボタン(×)(⚙はラウンド6で廃止。技列自体のクリックが
+	   この技の設定を開くトリガーになった)。
+	   ラウンド3 B-2: 以前は×だけが技名直下の中空に取り残され、その下に200px以上の空白が
+	   できていた(削除ボタンだけ.damage-column-conditions側にあったため)。
+	   [技名][×]の1行にまとめる(<script>のrenderColumns参照。要素自体は改名していない)。 */
+	/* ラウンド12指摘(B-3): ヒット回数(.damage-column-hitcount-row)をこの行の3人目の
+	   子要素として同居させた(<script>のrenderColumns参照、moveRow.appendChild(hitRow))。
+	   技名(1〜2文字目)+削除ボタン(×)+ヒット回数(2桁+「回ヒット」)が並ぶと、1600px/1280px
+	   境界(.damage-columnが149〜151pxまで潰れる、ラウンド10で実測済みの既知の制約)では
+	   1行に収まらない。flex-wrapで潰れたときだけヒット回数側を次の行へ折り返す
+	   (技名inputの下のmin-widthで「無限に0まで縮む」のを止め、ここで折り返しを発生させる)。 */
+	#opponent-notes-section .damage-column-move-row {
+		display: flex;
+		align-items: center;
+		gap: 0.25rem;
+		flex-wrap: wrap;
+	}
+
+	/* ラウンド10ユーザー指示「N発目と技を同行にすれば入る?」への対応として導入した
+	   @container dmgtech (min-width: 240px)(順序ラベルを技名行と同じ行に載せる処理)は、
+	   🔴 ラウンド25ユーザー指示(25-D2)「ダメージカードを左右分割し、左側に数字を書く」
+	   により.damage-columnが常時左右分割(flex-row)になったため不要になり削除した
+	   (上の.damage-column定義参照)。container-type自体は将来「狭幅では左右分割を
+	   縦積みに戻す」対応が必要になった場合にすぐ使えるよう残す(実測結果は報告参照。
+	   900px/390pxでの圧迫は技名行側のflex-wrapで折り返し対応済み)。 */
+	#opponent-notes-section .damage-row-techniques-row {
+		container-type: inline-size;
+		/* ラウンド10: 参照先を名前で固定する(無名だと最近傍のコンテナに解決されるため、
+		   将来このページにコンテナを増やしたときに黙って壊れる)。 */
+		container-name: dmgtech;
+	}
+	#opponent-notes-section .damage-column-move-row input[type="text"] {
+		flex: 1 1 0;
+		/* ラウンド12指摘(B-3): min-width:0のままだとこのinputが際限なく0まで縮んで
+		   ヒット回数側が絶対に折り返されない(flex-basis:0の項目は行の折り返し判定に
+		   0として寄与するため)。技名が最低限読める幅(実測「みだれひっかき」相当)を
+		   下限にして、それでも収まらない分はヒット回数側をflex-wrapで次行へ落とす。 */
+		min-width: 3.4em;
+	}
+	#opponent-notes-section .damage-column-move-row .damage-column-remove-button {
+		align-self: center;
+		flex: 0 0 auto;
+	}
+	/* ラウンド12指摘(B-3): moveRowの子として同居するようになったヒット回数行。
+	   内容(数値入力+単位ラベル)ぶんの幅で確保し、収まらないときは行ごと折り返す
+	   (flex-shrinkを0にして中途半端に潰れないようにする)。 */
+	#opponent-notes-section .damage-column-move-row .damage-column-hitcount-row {
+		flex: 0 0 auto;
+	}
+	/* ラウンド6ユーザー指示(要件1): 歯車(⚙)ボタンを廃止した。技列の設定はこの技列
+	   自体をクリックして開く(要件2)ため、.damage-column-detail-buttonという専用の
+	   トリガー要素・data-modified装飾は不要になった(既定以外の設定が入っていることは
+	   要件4の条件チップ表示で分かるため、別途「変更済み」の印は不要と判断)。 */
+	#opponent-notes-section .damage-column-hitcount-row {
+		display: flex;
+		align-items: center;
+		gap: 0.3rem;
+	}
+	/* 連続技でないときはヒット数入力を出さない(要件)。display:flexを指定している要素は
+	   ブラウザ既定の [hidden] { display: none } に勝ってしまうため、明示的に打ち消す。 */
+	#opponent-notes-section .damage-column-hitcount-row[hidden] {
+		display: none;
+	}
+	/* 🔴 UI改善ラウンド31ユーザー指示(31-D6)「ヒット数は数字2桁が入れば十分。幅を狭く
+	   できる」により、3.6emから縮める。2.6emでは実測「10」でscrollWidth40px>clientWidth35px
+	   となりはみ出したため、3.0emへ調整した(実測でscrollWidth<=clientWidthを確認済み、
+	   報告参照)。ネイティブのnumber inputのスピンボタンぶんの余白を残しつつ、2桁「10」が
+	   省略・はみ出しなく入る最小幅。 */
+	#opponent-notes-section .damage-column-hitcount-row input[type="number"] {
+		width: 3em;
+		flex: 0 0 auto;
+	}
+	#opponent-notes-section .damage-column-hitcount-unit {
+		font-size: 0.76rem;
+		color: var(--color-text-muted);
+	}
+	/* 技列の最下段: 区切り線 + 「技ごとのダメ・致死率」。相手ビルドの箱の
+	   .damage-row-total と同じ作り(margin-top:auto + 上罫線)にして下端を揃える。
+	   結果表示は最重要情報のため.damage-row-total-resultと同じサイズまで底上げする。 */
+	#opponent-notes-section .damage-column-footer {
+		margin-top: auto;
+		/* UI品質改善(要件5・実測調整): 技列3枚を積んだときの合計高さを箱に近づけるため詰めた。
+		   ラウンド24ユーザー指示(24-D1)「カード全体の縦サイズを縮小」対応でさらに
+		   0.28rem→0.22remに詰める。 */
+		padding-top: 0.15rem;
+		border-top: 1px dashed var(--color-border);
+	}
+	/* ラウンド4の積み残し(ラウンド3 C-4): 判定を大きく太字・詳細を小さく添える。
+	   ラウンド11ユーザー指示(要件11-5)により、縦2段(column)を撤回して行
+	   (.damage-row-total-result)と同じ横並び1段(row)に変更し、縦サイズを圧縮する
+	   (太字強調という主役化の趣旨自体は維持。<script>のsetResultVerdict参照。
+	   DOM構造は.damage-row-total-resultと共通)。長い数値
+	   (例:「254〜299 (165〜195%)」)がrow化ではみ出さないよう、detail側にmin-width:0+
+	   overflow-wrap:anywhereを付け、極端に幅が無いときだけflex-wrapで2段に逃がす
+	   (通常幅では1段のまま。実測結果はui_plan.md参照)。 */
+	#opponent-notes-section .damage-column-result {
+		display: flex;
+		flex-direction: row;
+		flex-wrap: wrap;
+		align-items: baseline;
+		column-gap: 0.5em;
+		row-gap: 0;
+		margin: 0;
+		/* ラウンド23ユーザー指示(23-D5): 0.82rem(13.12px)→0.89rem(14.24px、+1.12px)。
+		   .damage-row-total-resultと同じ増分にして技列側/相手ビルド側の結果表示の
+		   見た目のサイズ差(元々わずかにあった13.6px対13.12pxの差)を保ったまま底上げする。 */
+		font-size: 0.89rem;
+		line-height: 1.3;
+		padding: 0.22rem 0.4rem;
+	}
+	/* UI改善ラウンド26ユーザー指示(26-D2)「確定数による色の切り替えは累計ダメージ表示に
+	   のみ行い、個別ダメージカードの背景色は固定」。.severity-bar(global.css)は
+	   [data-severity]の値ごとにbackground/border-left-color/colorを変えるが、この技列側
+	   (.damage-column-result)だけbackground/border-left-colorを固定色に上書きする。
+	   文字色(color、確定数ごとの--color-danger-strong等)と判定文言はこれまでどおり残す
+	   (色分けだけを無くす。DOM/クラス名/data-severity属性自体は変えない。JS側の
+	   setResultVerdict等が参照するため)。#opponent-notes-section(ID)込みの詳細度で
+	   global.cssの.severity-bar[data-severity="..."](クラスのみ)より確実に優先する。
+	   累計側(.damage-row-total-result)は上書きしないため、従来どおり.severity-barの
+	   色分けを維持する。 */
+	#opponent-notes-section .damage-column-result[data-severity] {
+		background: var(--color-surface-alt);
+		border-left-color: var(--color-border);
+	}
+	#opponent-notes-section .damage-column-result .damage-result-verdict {
+		font-size: 1.05em;
+		font-weight: 800;
+		flex: 0 0 auto;
+	}
+	#opponent-notes-section .damage-column-result .damage-result-detail {
+		/* 20-G3: 0.8em(親0.82remの80%=約10.5px)は入れ子emの事故。remの直接指定にした。
+		   23-D5で0.76rem(12.16px)→0.85rem(13.6px、+1.44px)にもう一段大きくする。 */
+		font-size: 0.85rem;
+		font-weight: 500;
+		opacity: 0.85;
+		min-width: 0;
+		overflow-wrap: anywhere;
+	}
+	#opponent-notes-section .damage-column-remove-button {
+		align-self: flex-end;
+		font-size: 0.78rem;
+		padding: 0.18em 0.45em;
+	}
+	/* ラウンド6ユーザー指示(要件5): 技列が縦積みになったので、この「加算条件追加ボタン」も
+	   技列と同じ横幅いっぱいに広がる横長バーにする。3つに達すると無効化するだけでなく、
+	   ラベル文言自体を理由の説明に差し替える(<script>のrenderColumns参照。無効化理由を
+	   ホバー頼みのtitleだけにしない)。
+	   ラウンド20ユーザー指示(20-D5、ラウンド8 A-3の「48px→約34pxに圧縮する」判断を撤回):
+	   技カード(.damage-column)と同じ幅・同じ高さにする。以前は「技列3枚と高さを揃える
+	   ため圧縮する」という理由でこのボタン1個だけpadding/font-sizeを削っていたが、
+	   ユーザーから「技カードの直下に、技カードと同じサイズで置く」と明示指示された。
+	   paddingを.damage-columnと同じ値にし、min-heightで技カード1枚ぶんの実測高さを
+	   確保する(実測値は下記コメント参照)。破線枠のままにして「まだ中身が無い枠」だと
+	   分かるようにし、技カードと混同されないようにする。 */
+	#opponent-notes-section .damage-add-column-button {
+		width: 100%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.35em;
+		padding: 0.3rem 0.5rem;
+		/* 実測(1920×1080、技列1枚のカードの.damage-column高さ)に合わせた値。
+		   技名入力1行+連続回数非表示+結果表示1行という最小構成の技カードと同程度になる
+		   よう調整している(playwrightでの実測手順はround-20の検証記録を参照)。 */
+		min-height: 92px;
+		font-size: 0.82rem;
+		font-weight: 600;
+		border: 1px dashed var(--color-border);
+		background: var(--color-surface-alt);
+		color: var(--color-text-muted);
+		border-radius: var(--radius-md);
+		transition: background 0.15s, color 0.15s, border-color 0.15s;
+	}
+	#opponent-notes-section .damage-add-column-button:hover:not(:disabled) {
+		border-color: var(--color-primary);
+		border-style: solid;
+		color: var(--color-primary);
+		background: var(--color-primary-soft);
+	}
+	#opponent-notes-section .damage-add-column-button:disabled {
+		opacity: 0.4;
+	}
+
+	/* メモ欄を廃止して保存状態だけになったので、右寄せの細い1行にする。 */
+	#opponent-notes-section .damage-row-footer {
+		display: flex;
+		align-items: center;
+		justify-content: flex-end;
+		gap: 0.4rem;
+		margin-top: 0.2rem;
+		padding-top: 0.2rem;
+		border-top: 1px solid var(--color-border);
+		flex-wrap: wrap;
+	}
+	/* ラウンド3 A-4: display:flexを指定している要素はブラウザ既定の[hidden]{display:none}に
+	   詳細度で勝ってしまうため(.damage-column-hitcount-row[hidden]と同じ理由、実測で発覚)、
+	   明示的に打ち消す。これを付け忘れるとfooter.hidden=trueにしても実際には隠れず、
+	   保存済みカードでも22px前後が消えないままになる。 */
+	#opponent-notes-section .damage-row-footer[hidden] {
+		display: none;
+	}
+	/* .damage-row-save-status は<p>要素(ブラウザ既定でmargin:1em 0が付く)。
+	   このmarginを消し忘れると、footerがdisplay:flex; align-items:centerであっても
+	   marginぶんだけ行の高さが押し上げられてしまう(実測で発覚)。 */
+	#opponent-notes-section .damage-row-save-status {
+		flex: 0 0 auto;
+		font-size: 0.78rem;
+		margin: 0;
+		line-height: 1.2;
+	}
+	#opponent-notes-section .damage-row-retry-button {
+		display: none;
+		font-size: 0.76rem;
+		padding: 0.2em 0.5em;
+	}
+	#opponent-notes-section .damage-row-retry-button.visible {
+		display: inline-flex;
+	}
+
+	/* ラウンド5ユーザー指示(要件9): ⚙クリックで開いていた<dialog>を廃止し、右サイドバー
+	   (#damage-detail-panel、静的マークアップ)の中身をJSが差し替える方式にした。
+	   #damage-detail-panel-bodyの中身自体はJSがdocument.createElement()で生成するため、
+	   このセクションのスタイルはis:globalブロックに置く(動的生成要素にscoped<style>は
+	   効かないため。#opponent-notes-section配下の他の要素と同じ理屈)。 */
+	/* ラウンド29(29-R1)「右パネルの余剰空白と空状態の文言」: 密な状態(ダメージ計算
+	   カード4枚)でも中身が.damage-detail-sides下端(y=749)で終わり、パネル下端(y=1080)まで
+	   331pxが完全な空白になっていた。空状態はほぼ全体(約950px)が空白になる。対応として
+	   margin-block:autoを与え、中身がパネルより短い間は上下の余白が均等に割り振られて
+	   中央へ寄るようにしていた(長くなればautoが0に収束して上端起点のoverflow-y:auto
+	   スクロールに戻る)。
+	   🔴 UI改善ラウンド31ユーザー指示(31-R1)「最上部のタイトルは…パネル上端に固定する」
+	   (round-31.mdの言葉を借りれば「29-R1の中央寄せをこの範囲で撤回する」)により、この
+	   margin-block:autoを撤回し、常に上端起点(margin-block: 0)にする(round-31.md
+	   「この指示で撤回される過去の判断」表に明記)。密な状態の331px空白を埋める狙いだった
+	   29-R1のうち、中央寄せ以外の対応(.damage-detail-section-headingのmargin・
+	   .damage-detail-sidesのgapを1.4〜1.6倍に広げる措置)はこの範囲外なので撤回しない
+	   (下の該当ルール参照、値は変更していない)。renderDetailPanelEmpty()/
+	   renderColumnLevelDetailPanel()の両方が、実際の中身をこの
+	   .damage-detail-panel-body-innerで一度だけラップしてから#damage-detail-panel-body
+	   (スコープド<style>側、display:flex;flex-direction:column)へappendする(<script>参照)。
+	   width:100%は親のalign-items既定(stretch)でも本来満たされるが、明示しておく。 */
+	#damage-detail-panel-body .damage-detail-panel-body-inner {
+		margin-block: 0;
+		width: 100%;
+	}
+	/* UI改善ラウンド29(29-R1): .damage-detail-panel-emptyは元はscoped<style>側にあったが、
+	   JS生成(renderDetailPanelEmpty)の<p>にはscoped<style>が効かない(pitfalls.md)ため、
+	   静的マークアップ・JS生成のどちらにも確実に効くこちらへ統合した。 */
+	#damage-detail-panel-body .damage-detail-panel-empty {
+		color: var(--color-text-muted);
+		font-size: 0.85rem;
+		line-height: 1.6;
+	}
+	/* ラウンド23ユーザー指示(23-R1)により見出し(旧.damage-detail-row-heading、
+	   <h3>「{相手名}: 技N(技名)だけの設定」)のDOMを削除したため、対応するこのCSSルールも
+	   削除した(死んだCSSを残さない)。 */
+	/* ラウンド20ユーザー指示(20-R1): 「この技列だけに適用されます。」の説明文
+	   (.damage-detail-subtitle)は、ラウンド12指摘(B-1)以来CSSで非表示にしているだけの
+	   死んだ要素だった(見出し側の「だけの設定」と完全重複、JS側の参照も無いことを
+	   確認済み)。DOM(renderColumnLevelDetailPanel)ごと削除したため、対応するこの
+	   CSSルールも削除する(死んだCSSを残さない)。 */
+	/* ラウンド20ユーザー指示(20-R1): 「セクション見出しが項目ラベルより薄い」という
+	   逆転を解消する。旧: font-size 0.85rem・color: --color-text-muted で項目ラベル
+	   (0.72〜0.78rem・同じくmuted)と大きさ・太さ・色がほぼ同じで階層が読めなかった。
+	   新: 見出しは--color-text(mutedをやめる)+ 上に区切り線(border-top)+ 上マージンを
+	   厚くする(0.6rem→1rem)ことで、項目ラベル群から明確に引き離す。項目ラベル側は
+	   --color-text-mutedのまま小さく保つ(下記各ラベルクラス参照)。
+	   攻撃側/防御側の見出しは.damage-detail-side-heading-row側で見た目(border/margin/
+	   padding)をラップ側に持たせ、内側の<p>はmargin:0で無効化する(下記)。
+	   🔴 ラウンド25ユーザー指示(25-R3)「『場の設定』のタイトル削除」により、このベース
+	   宣言が素のまま効いていた唯一の対象(旧fieldHeading、<p>「場の設定」)はDOMごと
+	   削除した。このベース宣言自体は.damage-detail-side-heading-row内の<p>(下記
+	   .damage-detail-side-heading-row .damage-detail-section-heading参照、margin:0で
+	   打ち消し済み)からも参照され続けるため残す。 */
+	#damage-detail-panel-body .damage-detail-section-heading {
+		font-size: 0.85rem;
+		font-weight: 700;
+		color: var(--color-text);
+		margin: 1rem 0 0.4rem;
+		padding-top: 0.6rem;
+		border-top: 1px solid var(--color-border);
+	}
+	/* ラウンド11ユーザー指示(要件11-7・省スペース化): 「見出し+能力ランク」を1行に収める
+	   (buildSideSection参照)。
+	   ラウンド23ユーザー指示(23-R3)「攻撃側と防御側を左右2分割」: 各side-heading-rowは
+	   もう.damage-detail-sides(下記)の中の.damage-detail-side1個につき1つだけ存在する
+	   (=常にその列の先頭)ため、上罫線・上マージンをここで持たせると2列レイアウトで
+	   左右に不要な横線が並んでしまう。区切りは.damage-detail-sides側の1回だけの
+	   border-topに一本化し、この行自体からは上罫線・上パディングを外した
+	   (旧:first-of-type打ち消しルールは不要になったため削除)。
+	   🔴 UI改善ラウンド28ユーザー指示(28-R5)「ランク入力欄はタイトルの次の行に移動」により、
+	   横並び(display:flex;justify-content:space-between)を縦積みに変える。JS側
+	   (buildSideSection)はheading2(見出し)→rankField(ランク)の順でこの要素に
+	   appendChildしているので、CSSをcolumnにするだけで「見出し単独行→ランク欄が次の行」
+	   になる(クラス名.damage-detail-side-heading-row/.damage-detail-rank-field/
+	   .damage-detail-rank-input/.is-nonzeroはいずれも改名しない)。 */
+	#damage-detail-panel-body .damage-detail-side-heading-row {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 0.3rem;
+		margin: 0 0 0.4rem;
+	}
+	#damage-detail-panel-body .damage-detail-side-heading-row .damage-detail-section-heading {
+		margin: 0;
+		padding-top: 0;
+		border-top: none;
+		/* 🔴 UI改善ラウンド28ユーザー指示(28-R3)「見出しの見た目は天候・フィールドのラベル
+		   (.damage-detail-field-row-label)と同じタイポグラフィにする」。天候/フィールドの
+		   ラベルと同じ値(0.75rem/600/muted)に揃える(このセレクタはID+class2つで
+		   ベースの.damage-detail-section-heading、ID+class1より詳細度が高いため確実に勝つ)。 */
+		font-size: 0.75rem;
+		font-weight: 600;
+		color: var(--color-text-muted);
+		/* UI改善ラウンド29(29-R1)「密な状態の331pxは中央寄せだけでは埋まらないので、
+		   .damage-detail-section-headingのmarginを1.4〜1.6倍に広げ、5ブロック間の余白として
+		   分散させる」。実装者の判断: このセレクタ(side-heading-row側の上書き)は元々margin:0
+		   だった(23-R3時代の2列レイアウトで左右に不要な横線が並ぶのを避けるための打ち消し
+		   だったが、27-R1で2列化自体を撤回済みのため理由は既に無い)。ベース宣言
+		   (margin: 1rem 0 0.4rem、上記参照)の下マージン0.4remの1.5倍(1.4〜1.6倍の中央値)
+		   にあたる0.6remを与え、見出し直下(ランク欄との間)に余白を追加する。
+		   下の.damage-detail-side-iconとgapで並べるため、display:flexにする(WCAG 1.4.1、
+		   29-R2参照)。 */
+		display: flex;
+		align-items: center;
+		gap: 0.35rem;
+		margin-bottom: 0.6rem;
+	}
+	/* UI改善ラウンド29(29-R2)「攻撃側/防御側がどちらの個体か色でも判別できるように」:
+	   カードの攻撃/防御トグルで既に使っている配色(.damage-row-direction-option[data-role]、
+	   赤=攻撃はvar(--color-danger-strong)、青=防御はvar(--color-primary-strong))を、
+	   このパネルの攻撃側/防御側セクションの区切り線とラベル文字色に転用する(新色は作らない)。
+	   見出しの文言自体は変えない(28-R3のユーザー指示に抵触するため)。
+	   .damage-detail-sides(下記)のborder-topは「攻撃側の直前」に位置する1本(常に
+	   .damage-detail-sidesの中の最初の.damage-detail-sideの直上)なので攻撃側の区切り線として
+	   赤くする。.damage-detail-side + .damage-detail-side(下記)は「防御側の直前」の1本
+	   なので青くする(いずれも28-R2/28-R4で確立した「border-topへの統一・二重線を作らない」
+	   構造は変えない)。 */
+	#damage-detail-panel-body .damage-detail-sides > .damage-detail-side:first-child .damage-detail-side-heading-row .damage-detail-section-heading {
+		color: var(--color-danger-strong);
+	}
+	#damage-detail-panel-body .damage-detail-side + .damage-detail-side .damage-detail-side-heading-row .damage-detail-section-heading {
+		color: var(--color-primary-strong);
+	}
+	/* 色だけに依存しない代替(WCAG 1.4.1)。round-29.mdは「既存の攻撃/防御ボタン内で使っている
+	   アイコンを再利用」と指示しているが、実際の.damage-row-direction-option(カードの攻撃/
+	   防御トグル)にはアイコンが無く「攻撃」「防御」の2文字のみ(ラウンド26直前のコメント
+	   「絵文字⚔🛡も判断に委ねられていたが、両方が並んで見える形なら文字だけで十分伝わるため
+	   外した」参照)。再利用できる既存アイコンが実在しないため、実装者の判断として
+	   .stat-nature-btn(このファイル内、ラウンド20-L4で確立済みのborder-trickによる三角形)と
+	   同じ技法で、形の違う小さなマーカー(攻撃=三角形/防御=盾形のclip-path)を新設する。
+	   色はcurrentColorで見出しの文字色(上記、既存の赤/青トークン)をそのまま継承するため、
+	   ここでも新色は作らない。 */
+	#damage-detail-panel-body .damage-detail-side-icon {
+		flex-shrink: 0;
+		display: inline-block;
+		width: 11px;
+		height: 12px;
+	}
+	#damage-detail-panel-body .damage-detail-side-icon.is-attack {
+		width: 0;
+		height: 0;
+		border-top: 6px solid transparent;
+		border-bottom: 6px solid transparent;
+		border-left: 8px solid currentColor;
+	}
+	#damage-detail-panel-body .damage-detail-side-icon.is-defense {
+		background: currentColor;
+		clip-path: polygon(50% 0%, 100% 20%, 100% 55%, 50% 100%, 0% 55%, 0% 20%);
+	}
+	/* ラウンド23ユーザー指示(23-R3)「攻撃側と防御側の設定は、パネルを左右2分割して並べて
+	   配置」。既定(狭い幅)は縦積み、幅が十分あるときだけ2列グリッドにする。
+	   🔴 前提が実測で覆った点(重要): 当初は.damage-row-techniques-row等と同じ
+	   「@containerで実際に使える幅を見る」方針(00-foundation.md)を踏襲するつもりだったが、
+	   実測すると*この*パネルには@containerが使えないことが判明した。
+	   このパネルの実コンテンツ幅は「1600px以上=常設パネル(300〜360px固定トラック)」
+	   「1600px未満=オーバーレイ min(400px, 92vw)」という2つの式で決まり、
+	   実測(Playwright、8幅すべて)は次のとおり:
+	     1920px(常設): 327px  / 1600px(常設): 327px  / 1440px(オーバーレイ): 367px
+	     1280/1024/900/700px(オーバーレイ): 367px / 390px(オーバーレイ): 325.8px
+	   **390px(モバイル)の実コンテンツ幅325.8pxは、1920px(デスクトップ最優先ターゲット)の
+	   327pxとほぼ同一**(オーバーレイがmin(400px,92vw)で頭打ちになるため、390pxでも
+	   400pxに近い幅を確保してしまう一方、常設パネルは意図的に300〜360pxの細い帯にして
+	   あるため)。コンテナクエリは要素自身の幅しか見られないので、この2つを区別する閾値を
+	   置けない(320pxにすると390pxも2列化してしまい「モバイルでは縦積みに戻す」という
+	   指示に反する。350pxにしても390pxの325.8pxは超えないが、1920/1600pxの327pxも
+	   超えなくなり今度は最優先ターゲットで2列化しない)。
+	   一方、**ビューポート幅なら390pxと700px以上を明確に区別できる**(この2値の間に
+	   非単調な逆転区間が無いことを8幅の実測で確認済み)。そのため、ここだけは例外的に
+	   @media(ビューポート幅)を使う。閾値480pxは、オーバーレイの上限式 min(400px,92vw) が
+	   400pxに達する境界(92vw=400px ⇔ viewport≈435px)に近い値を採用した。
+	   #damage-detail-panel-bodyはJS生成要素の親だが静的マークアップ(2846行付近の
+	   <div id="damage-detail-panel-body">)。
+	   ⚠️ pitfalls.mdの「@mediaも詳細度を上げない」に従い、基本定義(.damage-detail-sides)
+	   より**後ろ**に@mediaブロックを置くこと。 */
+	#damage-detail-panel-body .damage-detail-sides {
+		display: flex;
+		flex-direction: column;
+		/* UI改善ラウンド29(29-R1)「.damage-detail-sidesのgapを1.4〜1.6倍に広げ、5ブロック間の
+		   余白として分散させる」。0.7rem×1.5(1.4〜1.6倍の中央値)=1.05rem。 */
+		gap: 1.05rem;
+		margin-top: 1rem;
+		padding-top: 0.6rem;
+		/* 🔴 UI改善ラウンド32ユーザー指示(32-R3)「横棒は色付けしない」により、29-R2で赤
+		   (--color-danger-strong)に色付けしていた区切り線を無彩色の--color-borderへ戻す
+		   (29-R2の一部撤回。round-32.md「この指示で撤回される過去の判断」表に明記)。
+		   ⚠️ 見出しの文字色(下記.damage-detail-sides > .damage-detail-side:first-child
+		   .damage-detail-side-heading-row .damage-detail-section-heading)と形状マーカー
+		   (.damage-detail-side-icon)はWCAG 1.4.1対応として維持し、変更しない。 */
+		border-top: 1px solid var(--color-border);
+	}
+	#damage-detail-panel-body .damage-detail-side {
+		min-width: 0;
+	}
+	/* 🔴 UI改善ラウンド28ユーザー指示(28-R4)「攻撃側・防御側もそれぞれ横線でセクションを
+	   区切る」。攻撃側の上は.damage-detail-sidesのborder-top(上のルール)が既に区切りに
+	   なっているため、ここでは2番目の.damage-detail-side(=防御側)の上にだけ追加する
+	   (隣接セレクタで、攻撃側自身には当たらない)。28-R2の急所下の線(下記)と合わせて
+	   すべてborder-topに統一し、二重線(border-bottom+隣接要素border-topの重なり)を
+	   作らない。 */
+	#damage-detail-panel-body .damage-detail-side + .damage-detail-side {
+		/* 🔴 UI改善ラウンド32ユーザー指示(32-R3)「横棒は色付けしない」により、29-R2で青
+		   (--color-primary-strong)に色付けしていた区切り線を無彩色の--color-borderへ戻す。
+		   見出しの文字色・形状マーカーは維持(上のルールと同じ注記)。 */
+		border-top: 1px solid var(--color-border);
+		padding-top: 0.7rem;
+	}
+	/* UI改善ラウンド27ユーザー指示(27-R1)「攻撃側と防御側の設定を別セクションにして縦に
+	   分けて配置する」により、ラウンド23(23-R3)の2列grid化を撤回する。
+	   ワイヤーフレーム(docs/ui_proposal/個体編集_右サイド.png)が縦1列(攻撃側→防御側)を
+	   示しており、ユーザーが改めて明示的に指示したため、上の基本定義
+	   (display:flex;flex-direction:column、縦積み)がそのまま効くようにこの@media
+	   ブロックを削除した。ラウンド25(25-R1)で報告されていた「攻撃(自分)」「攻撃(相手)」
+	   見出しの2列時の折り返し問題も、縦1列化で幅の制約が緩み実測で解消を確認した
+	   (報告参照)。 */
+	/* ラウンド5ユーザー指示(要件10): 天候・フィールドはセレクトをやめてアイコン選択式にする。
+	   選択中は塗りつぶし+primary枠で明示する(1つだけ選べるトグルグループ)。
+	   ⚠️ ラウンド24ユーザー指示(24-R1)により「常に『なし』も選択肢の1つとして並べる」という
+	   前提を撤回する。「なし」はもう選択肢配列に無く、全ボタンaria-pressed="false"の状態
+	   (下の[aria-pressed="true"]のスタイルが1つも当たらない状態)がそのまま「なし」の代用に
+	   なる(非選択ボタンの既定の見た目=muted文字+surface-alt背景で、選択中の primary 強調とは
+	   明確に区別できることを実機で確認した)。 */
+	/* UI品質改善(ラウンド8 B-2): flex-wrapだと4.4em(≈47.9px)固定幅の8個(天候)が
+	   利用幅約320pxに収まらず6+2の不格好な2行に割れ、「すなあらし」等5字ラベルが
+	   さらに折り返して2行になっていた。4列グリッドに変え、幅を枠(minmax(0,1fr))任せに
+	   することで天候8個が4×2、フィールド5個が4+1で並ぶ(width:4.4emは削除)。
+	   margin-bottomは省スペース化のため0.9rem→0.5remに詰めた。
+	   ラウンド11では状態異常もこの4列既定を使っていたが、「11-8の修正」ユーザー指示で
+	   状態異常はnative <select>(.damage-detail-ailment-select、下記)に戻したため、
+	   このicon-group基底クラスは現在は天候/フィールド(常にis-row4併用)専用になっている。 */
+	#damage-detail-panel-body .damage-detail-icon-group {
+		display: grid;
+		grid-template-columns: repeat(4, minmax(0, 1fr));
+		gap: 0.35rem;
+		margin-bottom: 0.5rem;
+	}
+	/* ラウンド11ユーザー指示(要件11-9): 強天候3種を削除した結果、天候(なし+4)・
+	   フィールド(なし+4)がどちらも5択になったため、「場の設定」内では5列グリッドにして
+	   1行に収めていた(is-row5)。
+	   ⚠️ ラウンド24ユーザー指示(24-R1)で「なし」を両方の配列から削除したため天候・
+	   フィールドとも4択になり、上の基底(repeat(4,...))とちょうど一致するようになった。
+	   is-row5(5列)のままだと4個のボタンが5列グリッドに間延びして並ぶため、is-row4に改名し
+	   4列のまま(margin-bottomだけ0にする)ようにする(renderColumnLevelDetailPanel参照)。 */
+	#damage-detail-panel-body .damage-detail-icon-group.is-row4 {
+		grid-template-columns: repeat(4, minmax(0, 1fr));
+		margin-bottom: 0;
+	}
+	#damage-detail-panel-body .damage-detail-icon-btn {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 0.2rem;
+		padding: 0.35em 0.15em;
+		/* 20-G3(下限12px): 0.66rem(10.6px)は違反していたため0.75rem(12px)に引き上げる。 */
+		font-size: 0.75rem;
+		color: var(--color-text-muted);
+		background: var(--color-surface-alt);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-sm);
+		cursor: pointer;
+	}
+	/* ラウンド24ユーザー指示(24-R2)「テラスタル発動・急所・揮発状態・壁のチェックボックスを、
+	   天候・フィールドと同じ『クリックでONになるボタン』に置き換える」。これらはアイコンを
+	   持たない(テキストのみの)トグルボタン(<script>のbuildToggleButton参照)なので、
+	   上の基底クラスが持つ縦積み(flex-direction:column、アイコン+ラベルの2段)ではなく、
+	   .damage-checkbox-label(旧チェックボックスラベル)と同じ横並び1段に変えるモディファイア。
+	   色・枠・aria-pressed時の強調(下の[aria-pressed="true"]ルール)は基底のまま流用し、
+	   レイアウトだけこのクラスで上書きする。 */
+	#damage-detail-panel-body .damage-detail-icon-btn.is-text-only {
+		flex-direction: row;
+		padding: 0.3em 0.55em;
+	}
+	#damage-detail-panel-body .damage-detail-icon-btn:hover {
+		border-color: var(--color-primary);
+		color: var(--color-primary);
+	}
+	#damage-detail-panel-body .damage-detail-icon-btn:focus-visible {
+		outline: 2px solid var(--color-primary);
+		outline-offset: 1px;
+	}
+	#damage-detail-panel-body .damage-detail-icon-btn[aria-pressed="true"] {
+		border-color: var(--color-primary);
+		background: var(--color-primary-soft);
+		color: var(--color-primary);
+		font-weight: 700;
+	}
+	/* 24-R2: テラスタル発動ボタンはテラスタイプ未設定時にdisabledになる(既存ロジック、
+	   buildSideSection参照)。旧.damage-checkbox-label:has(input:disabled)と同じ見た目
+	   (灰色化+cursor:default)をボタン自身のdisabled擬似クラスで再現する。 */
+	#damage-detail-panel-body .damage-detail-icon-btn:disabled {
+		cursor: default;
+		opacity: 0.7;
+	}
+	#damage-detail-panel-body .damage-detail-icon-btn:disabled:hover {
+		border-color: var(--color-border);
+		color: var(--color-text-muted);
+	}
+	/* ラウンド11ユーザー指示(省スペース化): 「場の設定」内の天候/フィールドは
+	   ラベル(1行)+アイコン群(1行)のセットで1フィールド=縦積み2行に圧縮する
+	   (以前の独立見出しpより行間が詰まる)。 */
+	#damage-detail-panel-body .damage-detail-field-row {
+		display: flex;
+		flex-direction: column;
+		gap: 0.2rem;
+		margin-bottom: 0.45rem;
+	}
+	#damage-detail-panel-body .damage-detail-field-row-label {
+		/* 20-G3(下限12px): 0.72rem(11.5px)→0.75rem(12px)。 */
+		font-size: 0.75rem;
+		font-weight: 600;
+		color: var(--color-text-muted);
+	}
+	/* ラウンド5ユーザー指示(要件11): 壁は種類の区別をやめ、on/offの1トグルにする。
+	   ラウンド11ユーザー指示(省スペース化): margin-bottomを0.6rem→0.3remに詰めた
+	   (独立見出しを廃止しチェックボックスのラベル自体に方向を含めたため、
+	   このtoggle-rowの直前にはもう「場の設定」見出しか天候/フィールド行しか来ない)。 */
+	#damage-detail-panel-body .damage-detail-toggle-row {
+		display: flex;
+		align-items: center;
+		gap: 0.6rem;
+		margin-bottom: 0.3rem;
+	}
+	/* ラウンド28ユーザー指示(28-R7)「相手の壁→リフレクター・ひかりのかべに変更」で文言が
+	   長くなった際、折り返し・はみ出しを避けてボタンを行の全幅にしていた。
+	   🔴 UI改善ラウンド31ユーザー指示(31-R4)「リフレクター・ひかりのかべ→壁」により文言が
+	   1文字まで短くなったため、全幅の巨大ボタンにする必要が無くなった。width:100%を撤回し、
+	   他のトグルボタン(急所・テラスタル等)と同じ内容幅に戻す。 */
+	/* ヒント文<p>はデフォルトのブラウザmargin(1em 0)を打ち消していなかったため、
+	   実測で見えないぶんの縦の空気(約23px)が生まれていた(pitfalls.mdと同種の
+	   「default margin未打ち消し」の見落とし)。ラウンド11の省スペース化で修正。
+	   🔴 UI改善ラウンド28ユーザー指示(28-R9)「技の分類で自動選択、の表記を削除」により
+	   display:noneを追加する。DOM自体は残す(pitfalls.mdの「要素を消す指示でもDOMは残す」
+	   方針)。情報は壁ボタンのtitle属性に残っているため失われない。 */
+	#damage-detail-panel-body .damage-detail-toggle-hint {
+		display: none;
+		margin: 0.15rem 0 0;
+		/* 20-G3(下限12px): 0.72rem(11.5px)→0.75rem(12px)。 */
+		font-size: 0.75rem;
+		color: var(--color-text-muted);
+	}
+	/* ラウンド20ユーザー指示(20-R1): 「入力部品(UI)とラベルの区別」。チェックボックス+
+	   ラベルのテキストをそれ自体で1つの操作できる小さな箱にする、という設計だった。
+	   ⚠️ ラウンド24ユーザー指示(24-R2)「テラスタル発動・急所・揮発状態・壁のチェックボックスを
+	   クリックでONになるボタンに置き換える」により、この.damage-checkbox-labelを使う
+	   <label>+<input type="checkbox">は全4箇所(テラス/急所/揮発状態/壁)とも
+	   buildToggleButton()の<button>(.damage-detail-icon-btn.is-text-only)に置き換わり、
+	   このクラスを使うマークアップが無くなったため、ルールごと削除した(同じ「囲まれた箱に
+	   見せる」役割は.damage-detail-icon-btnが引き継いでいる)。 */
+	/* ラウンド17指摘(A-1・実バグ): テラスタイプ未設定で使用不可のときに添える常時見える
+	   注記(buildSideSection参照)。disabledによる灰色化と合わせ、色だけに意味を
+	   持たせない(WCAG 1.4.1)。
+	   🔴 UI改善ラウンド28ユーザー指示(28-R6)「テラス(未設定)→テラスタルに表記変更」により
+	   display:noneを追加する(「テラスタル」表記後は「(未設定)」注記が意味的に重複するため)。
+	   DOM自体・disabled/titleによるラウンド17 A-1の実バグ対応は一切変えない。 */
+	#damage-detail-panel-body .damage-detail-tera-note {
+		display: none;
+		/* 20-G3(下限12px): 0.68rem(10.9px)→0.75rem(12px)。 */
+		font-size: 0.75rem;
+		color: var(--color-text-muted);
+	}
+	/* ラウンド5ユーザー指示(要件12): 能力ランクは攻撃側・防御側それぞれ1つの入力にする
+	   (旧・5能力×2側のセレクト10個は廃止)。
+	   ラウンド11ユーザー指示(要件11-7): <select>から<input type="number">の
+	   ネイティブスピンボックスに変更。見出しと同じ行に収めるため横並びにする
+	   (旧.damage-detail-rank-rowは廃止。見出しごとラップするのは
+	   .damage-detail-side-heading-row側の役目になった)。 */
+	#damage-detail-panel-body .damage-detail-rank-field {
+		display: flex;
+		align-items: center;
+		gap: 0.35rem;
+		flex: 0 0 auto;
+		/* 20-G3(下限12px): 0.72rem(11.5px)→0.75rem(12px)。 */
+		font-size: 0.75rem;
+		color: var(--color-text-muted);
+	}
+	/* pitfalls.md: input/select { min-height: 2.35rem }(global.css)が密な行では
+	   1行あたり13pxの空気になる。この数値スピンボックスも同様に効くため明示的に詰める。
+	   ラウンド20ユーザー指示(20-R1): backgroundを--color-surface-alt(パネル本体は
+	   --color-surface)にして「操作できる部品」であることを地色でも示す。 */
+	#damage-detail-panel-body .damage-detail-rank-field input[type="number"] {
+		width: 3.4em;
+		min-height: 0;
+		/* UI統一感レビュー(32-U-A2): 同じ.damage-detail-chip-row内で横並びになる
+		   状態異常selectとテラスタルbutton(.is-text-only)に対し、ここだけ font-size が
+		   0.82remで高さも1段高い「3段階の割れ」の1つだった。テラスタルボタン側の
+		   font-size(0.75rem)・縦padding(0.3em)を基準にrank inputとselectの両方を
+		   揃える(下のailment-selectも同じ値に変更、round-32.md「統一感レビューの指摘」
+		   32-U-A2)。 */
+		padding: 0.3em 0.3em;
+		font-size: 0.75rem;
+		text-align: center;
+		background: var(--color-surface-alt);
+	}
+	#damage-detail-panel-body .damage-detail-rank-field input.is-nonzero {
+		font-weight: 700;
+		color: var(--color-primary);
+		border-color: var(--color-primary);
+	}
+	/* 「11-8の修正」ユーザー指示(2026-07-26追加): 状態異常は種類が多く、アイコン1行
+	   (複数行に折り返すことがある)だと場所を取るため、常に1行に収まるnative <select>に
+	   戻した(buildSideSection参照)。セレクトはselect { min-height: 2.35rem }
+	   (global.css)がそのままだと行が膨らむため他の狭い入力欄
+	   (.damage-detail-rank-field input等)と同じ理屈でmin-heightを明示的に詰める。
+	   🔴 ラウンド25ユーザー指示(25-R2)「可視ラベルを削除」により、可視ラベル
+	   (旧.damage-detail-ailment-row-label、<span>「状態異常」)は生成しなくなったため、
+	   対応するCSSルールも削除した(死んだCSSを残さない。意味はaria-label/titleで残す、
+	   <script>のbuildSideSection参照)。
+	   🔴 UI改善ラウンド29(29-R3)「攻撃側・防御側のチップ列が列幅の半分しか使っていない」に
+	   より、.damage-detail-ailment-row(状態異常selectだけを包む行)・旧.row(テラスタル
+	   ボタンだけを包む行)は廃止し、状態異常・テラスタル(・攻撃側だけはじゅうでん)を
+	   1つの.damage-detail-chip-row(下記)にまとめる(<script>のbuildSideSection参照。
+	   327px幅に対し状態異常≈104px+テラスタル≈90px+じゅうでん≈90pxがgap込みで
+	   収まることを実測で確認、収まらない場合はflex-wrapで2行に折り返す)。 */
+	#damage-detail-panel-body .damage-detail-chip-row {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		/* UI統一感レビュー(32-U-B3): 同じ右パネル内で.damage-detail-icon-group(天候・
+		   フィールド)と.damage-detail-volatile-group(その他の状態)がgap:0.35remなのに対し、
+		   ここだけ0.5remで割れていた。多数派(2対1)の0.35remに寄せる(32-R4で急所+じゅうでんを
+		   同じ行に収める都合上、詰まる方向の変更は好都合)。 */
+		gap: 0.35rem;
+		margin-bottom: 0.3rem;
+	}
+	/* ラウンド17指摘(A-3): flex:1 1 autoが行内の余白を全部飲み、選択肢の最長「もうどく」
+	   (4文字、必要幅は矢印込み80px程度)に対しセレクト本体が約267pxまで伸びていた
+	   (267/80≈3.3倍、固定1の基準3倍を超過。ラウンド12 A-1の検索欄1192px問題と同型)。
+	   幅を内容に見合うサイズへ固定し、伸縮をやめる。空いた余白はこの行(セレクトのみ)の
+	   右側に残るだけで、他の行(ランク・テラスタル)のレイアウトには影響しない。 */
+	#damage-detail-panel-body .damage-detail-ailment-select {
+		flex: 0 0 auto;
+		width: 6.5em;
+		min-height: 0;
+		/* UI改善ラウンド29(29-R3): チップ行(.damage-detail-chip-row)でテラスタルボタン
+		   (.damage-detail-icon-btn)と横並びになるため、上下paddingをボタン側の高さに
+		   近づけて行の頭を揃える(0.2em→0.32em)対応を行ったが、font-sizeが0.78remのまま
+		   だったためテラスタルボタン(0.75rem)・rank input(当時0.82rem)との3段階の割れが
+		   残っていた。UI統一感レビュー(32-U-A2)により、テラスタルボタン側のfont-size
+		   (0.75rem)・縦padding(0.3em)にrank inputとこのselectの両方を揃える
+		   (global.cssのbutton基底修正でボタン側の実測高さが変わったため、揃える先は
+		   px直値ではなくボタン側と同じfont-size/padding値に統一する方式にした)。 */
+		padding: 0.3em 0.3em;
+		font-size: 0.75rem;
+		/* ラウンド20ユーザー指示(20-R1): rank-field inputと同じ理由でbackgroundを
+		   --color-surface-altにする。 */
+		background: var(--color-surface-alt);
+	}
+	/* ラウンド25ユーザー指示(25-R2)「未選択時のplaceholderにする」。ラウンド24(24-L3)の
+	   テラスなしと同じ視覚言語(破線枠+透明背景+muted文字色)を、状態異常「なし」選択中
+	   にも適用する(<script>のupdateAilmentPlaceholderState参照)。 */
+	#damage-detail-panel-body .damage-detail-ailment-select.is-ailment-unselected {
+		border-style: dashed;
+		background: transparent;
+		color: var(--color-text-muted);
+	}
+	/* ラウンド20ユーザー指示(20-R3): 揮発状態(volatile)。天候/フィールドの
+	   .damage-detail-field-rowと同じ「ラベル上・コントロール下」の縦積み構成にする
+	   (チェックボックスの個数が可変で1行に収まらないため、状態異常selectのような
+	   横並び1行にはできない)。 */
+	#damage-detail-panel-body .damage-detail-volatile-row {
+		display: flex;
+		flex-direction: column;
+		gap: 0.3rem;
+		margin-bottom: 0.4rem;
+	}
+	/* 🔴 UI改善ラウンド28ユーザー指示(28-R9)「その他の状態、の表記を削除」により
+	   display:noneを追加する。DOM自体は残す。読み上げ用の意味は
+	   .damage-detail-volatile-group(下記)のrole="group"+aria-labelで維持する
+	   (<script>のbuildSideSection参照)。 */
+	#damage-detail-panel-body .damage-detail-volatile-row-label {
+		display: none;
+		font-size: 0.75rem;
+		font-weight: 600;
+		color: var(--color-text-muted);
+	}
+	#damage-detail-panel-body .damage-detail-volatile-group {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.35rem;
+	}
+	/* UI改善ラウンド29(29-R3): 旧.row(テラスタルボタンだけを包むcompactRow用のクラス)は
+	   .damage-detail-chip-row(上記)への統合に伴い、JS側で生成しなくなったため
+	   このCSSルールも削除した(死んだCSSを残さない)。 */
+	/* ラウンド25ユーザー指示(25-R1)「ランク・状態異常」「テラスタル」「その他の状態」を
+	   それぞれ別グループにする(buildSideSection参照。ワイヤーフレーム
+	   docs/ui_proposal/個体編集_右サイド.pngの箇条書き3グループに対応)。区切りは
+	   新色を作らずグループ間の余白だけで表現する。 */
+	#damage-detail-panel-body .damage-detail-group {
+		margin-bottom: 0.5rem;
+	}
+	#damage-detail-panel-body .damage-detail-group:last-child {
+		margin-bottom: 0;
+	}
+	/* ラウンド29(29-R4)「右パネルが『今どのカードの設定か』を示していない」対応として、
+	   「相手ポケモン名 — 技名」というテキストのみの見出しを最上部(.damage-detail-panel-body-inner
+	   の先頭)に追加していた。
+	   🔴 UI改善ラウンド31ユーザー指示(31-R1)「最上部のタイトルはパネルor横棒で領域を区切る。
+	   文字ではなく、[自分アイコン] <攻撃方向矢印> [相手アイコン] <技名> のように絵的に表現
+	   する」により、テキスト1行だったものを[自分アイコン]→矢印→[相手アイコン]→技名の
+	   横並びに作り替える(<script>のbuildSelectionHeadingRow参照)。クラス名は改名しない。
+	   空状態(選択なし)のときはrenderDetailPanelEmpty()が呼ばれこの行自体を生成しないため、
+	   28-R1で消した「中身が空の36px帯」は復活しない。
+	   【29-R1の中央寄せをこの範囲で撤回】: 29-R1が.damage-detail-panel-body-innerに与えた
+	   margin-block:autoにより、この見出しを含むパネルの中身全体がパネル縦中央に浮いていた
+	   (中身がパネルより短い密度のとき)。「最上部」というユーザーの言葉に従い、下の
+	   #damage-detail-panel-body .damage-detail-panel-body-inner(is:globalブロック)側で
+	   margin-block:autoを撤回し上端固定にする(round-31.md「この指示で撤回される過去の
+	   判断」表に明記)。 */
+	#damage-detail-panel-body .damage-detail-selection-heading {
+		display: flex;
+		align-items: center;
+		gap: 0.4rem;
+		margin: 0 0 0.7rem;
+		padding-bottom: 0.7rem;
+		/* 「下側に区切り(border-bottomかパネル化)を入れて以下の設定群と領域を分ける」対応。
+		   他の区切り線と同じトークン(1px solid var(--color-border))で揃える。 */
+		border-bottom: 1px solid var(--color-border);
+	}
+	/* アイコンサイズは新規規格を作らず、.damage-row-icon-button等で確立済みの28px規格を使う
+	   (round-31.md「アイコンサイズは/box /box/[id]の既存規格(20pxまたは28px)から選び、
+	   新しい規格を作らないこと」)。official artworkは正方形透過画像なのでobject-fit:containで
+	   収める。 */
+	/* 🔴 UI改善ラウンド32ユーザー指示(32-R1)「ヘッダの画像を少し大きく」により28px→32pxへ。
+	   round-31.mdの「アイコンサイズは/box /box/[id]の既存規格(20pxまたは28px)から選ぶ」は
+	   このR1自体がユーザー明示指示による例外(round-32.md「維持すべき点」に明記)。 */
+	#damage-detail-panel-body .damage-detail-selection-icon {
+		width: 32px;
+		height: 32px;
+		object-fit: contain;
+		flex-shrink: 0;
+	}
+	#damage-detail-panel-body .damage-detail-selection-icon-fallback {
+		display: none;
+		width: 32px;
+		height: 32px;
+		border-radius: 50%;
+		flex-shrink: 0;
+		align-items: center;
+		justify-content: center;
+		font-size: 0.85rem;
+		background: var(--color-surface-alt);
+		border: 1px solid var(--color-border);
+	}
+	/* 🔴 UI改善ラウンド32ユーザー指示(32-R1)「矢印を太くて見やすいデザインに変更」により、
+	   テキストの「→」/「←」(フォント依存で細く見える)から、太いストローク(stroke-width 2.5)の
+	   インラインSVGシェブロンへ作り替える。<script>のbuildSelectionHeadingRow参照。
+	   向き(direction追随、31-R1で確立済み)は右向きSVGを基本形にし、防御カード(自分が
+	   受け側)のときだけ.is-reversedクラスでtransform: scaleX(-1)して左向きにする(アイコンの
+	   左右位置は固定のまま矢印だけ反転する、という31-R1の実装方針を踏襲)。色はcurrentColorで
+	   --color-textを継承する(mutedより高コントラストにし「見やすさ」を上げる)。 */
+	#damage-detail-panel-body .damage-detail-selection-arrow {
+		flex-shrink: 0;
+		width: 22px;
+		height: 22px;
+		color: var(--color-text);
+	}
+	#damage-detail-panel-body .damage-detail-selection-arrow.is-reversed {
+		transform: scaleX(-1);
+	}
+	#damage-detail-panel-body .damage-detail-selection-move {
+		min-width: 0;
+		font-size: 0.85rem;
+		font-weight: 700;
+		color: var(--color-text);
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+	/* ラウンド27ユーザー指示(27-R2)「急所を攻撃側の設定に移動する」で、ラウンド25(25-R1)の
+	   「急所を独立した帯として天候より前に出す」を一度撤回していたが、ラウンド28
+	   ユーザー指示(28-R2)「急所を最上部に配置し、その下に横線を追加」により25-R1の位置
+	   (detailPanelBodyElの先頭、天候より前)に一度戻していた。
+	   🔴 UI改善ラウンド31ユーザー指示(31-R2)「急所も攻撃側の設定に移動」により、28-R2を
+	   撤回し、27-R2の形(attackerSideの先頭)に戻していた。急所が攻撃側だけの設定という仕様
+	   (ラウンド3 A-6(4))は変えない(column.criticalの読み書き先はそのまま)。
+	   🔴 UI改善ラウンド32ユーザー指示(32-R4)「攻撃側の2段目は、急所,じゅうでんの順に同じ
+	   グループとして配置」により、急所は独立した.damage-detail-critical-row(このルール)を
+	   もう使わなくなった(<script>のbuildCriticalButton参照。じゅうでんと同じ
+	   .damage-detail-chip-rowへ混ぜる)ため、このルール自体を削除した(死んだCSSを残さない)。
+	   32-R2「天候・フィールドを一番下へ移動」により、この見出し直後に来るのは天候行では
+	   なく攻撃側セクション(.damage-detail-sides)になった。見出し側のborder-bottomが
+	   引き続き区切りを担う。 */
+
+	/* 「+ 相手を追加」タイルは全体の共通クラス.add-card-tileを流用しているが、
+	   グローバル既定値(min-height:8rem)のままだと3行目安の高さ予算を圧迫するため、
+	   このセクション内に限り薄い横長ボタンに詰め直す。 */
+	#opponent-notes-section .add-card-tile {
+		min-height: 0;
+		padding: 0.6em 1em;
+		font-size: 0.9rem;
+	}
+
+	/* ラウンド3 B-5: 以前は点線パネル2枚(説明文+追加タイル)が重なり、主CTAが下の小さい
+	   ほうに埋もれていた上、説明文3行の最終行が「できます。」1語だけで間延びしていた。
+	   1枚に統合し、実体のあるprimaryボタン(.damage-empty-state-cta)を中央に置く。
+	   max-width:720pxにして1900px幅いっぱいの空パネルにしない(左寄せ)。 */
+	#opponent-notes-section .damage-empty-state {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		text-align: center;
+		gap: 0.5rem;
+		max-width: 720px;
+		padding: 2.2rem 1.5rem;
+		border: 1px dashed var(--color-border);
+		border-radius: var(--radius-lg);
+		background: var(--color-surface-alt);
+		margin-bottom: 0.6rem;
+	}
+	#opponent-notes-section .damage-empty-state-title {
+		margin: 0;
+		font-size: 1.05rem;
+		font-weight: 700;
+		color: var(--color-text);
+	}
+	#opponent-notes-section .damage-empty-state-hint {
+		margin: 0 0 0.3rem;
+		font-size: 0.85rem;
+		color: var(--color-text-muted);
+		max-width: 34em;
+	}
+	#opponent-notes-section .damage-empty-state-cta {
+		font-size: 0.95rem;
+	}
+
+	/* ラウンド6ユーザー指示: モバイル対応はこのラウンドのスコープ外(デスクトップ1920px基準)。
+	   以前あった「640px以下では.damage-columnを180px固定幅にする」ルールは、技列を
+	   横スクロールで並べていた時代の詰め対応であり、縦積み+width:100%の現行レイアウトとは
+	   噛み合わない(固定180pxが右カラムの実幅より狭くなり不自然)ため削除した。 */
+
+	/* UI品質改善(ラウンド8 A-6ダーク側): ダークで --color-border #2d313d が
+	   .card(--color-surface-alt #22252f)に対し1.18:1しか無く、相手ビルド箱・技列箱の
+	   輪郭がほぼ見えなかった(カード全体が1枚の黒い塊に見え、「2つの箱が並んでいる」構造が
+	   伝わらない。ライトは白背景+影で分離が読めるが、ダークは影が効かない)。
+	   新色は作らず既存中立色の明度違いをページscopedで使う(--color-border自体は変えない。
+	   全ページの罫線が太く見えてしまうため)。#5a6377はカード背景に対し2.73:1。
+	   is:globalブロックに置く理由: .damage-row-build/.damage-columnはJSの
+	   document.createElement()で生成される要素なので、scoped<style>側に書いても
+	   data-astro-cid-*が付かず一切効かない(pitfalls.mdの既知の罠と同じ)。 */
+	@media (prefers-color-scheme: dark) {
+		#opponent-notes-section .damage-row-build,
+		#opponent-notes-section .damage-column {
+			border-color: #5a6377;
+		}
+	}
+</style>
+<script>
+	import "../../lib/box-id/damage-calc";
+</script>

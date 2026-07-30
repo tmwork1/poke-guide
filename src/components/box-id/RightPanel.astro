@@ -1,0 +1,199 @@
+---
+// box/[id].astro 構造分割ラウンド(フェーズ2)。
+//
+// 右サイド(詳細設定サイドバー、#damage-detail-panel + #damage-detail-backdrop)専用の
+// テンプレート・scoped styleを切り出したコンポーネント。ロジック(スクリプト)は
+// src/lib/box-id/right-panel.ts へ切り出し済みで、そちらは damage-calc.ts の
+// <script>タグ(DamageCalcSection.astro)から副作用importされる(このコンポーネント自身は
+// <script>タグを持たない。damage-calc.tsがright-panel.tsをimportするため、バンドルには
+// 自動的に含まれる)。
+//
+// props不要(SSRデータに依存しない静的な空状態マークアップのみで、実際の中身はJSの
+// renderColumnLevelDetailPanel/renderDetailPanelEmptyが書き換える)。
+//
+// .edit-layout-detail(グリッドの3カラム目)・#damage-detail-backdrop(1600px未満の
+// オーバーレイ背景)はどちらもこのコンポーネントの一部として扱う(元は
+// box/[id].astroの.edit-layoutの直接の子だったが、対応するCSS(.damage-detail-panel*等)が
+// Astroのscoped styleである以上、要素とCSSは同じコンポーネントに属する必要があるため)。
+// box/[id].astro側は <div class="edit-layout">...<RightPanel /></div> の形で、
+// 他の2カラム(.edit-layout-left/.edit-layout-right)と同じ並びに呼び出すだけでよい。
+---
+{/* ラウンド5ユーザー指示(要件9・構造変更): ⚙クリックで<dialog>を開く方式をやめ、
+    カードを選択すると右サイドバーに詳細設定を表示する方式にする。
+    「カードの面積による制限を気にしなくてよくなる」というのがユーザーの弁。
+    ページは 左=編集フォーム/中央=ダメージ計算カード/右=詳細設定サイドバー の
+    3カラム構成になる(1600px以上。それ未満は#damage-detail-panelがオーバーレイ化する。
+    <script>のCSS・JS両方参照)。#damage-detail-panel自体はどの行も選択されていない
+    ときも常に存在し、空状態を表示する(JSのrenderDetailPanel参照)。
+    ラウンド6ユーザー指示(要件1・2): ⚙ボタン自体を廃止したため、静的な空状態文言
+    (JS初期化前・またはJS失敗時のフォールバック)も「相手ビルドの箱/技列をクリックする」
+    という新しい操作方法に合わせて更新した(JS側のrenderDetailPanelEmptyも同内容)。
+    ラウンド7ユーザー指示(方針転換): 「カード全体の設定」という概念自体を廃止し、
+    相手ビルドの箱のクリックは無反応になったため、案内文からもその記述を除いた。 */}
+<div class="edit-layout-detail">
+	<aside id="damage-detail-panel" class="damage-detail-panel panel-right" aria-label="ダメージ計算の詳細設定">
+		<div class="damage-detail-panel-header">
+			{/* ラウンド23ユーザー指示(23-R1)「『詳細設定』と選択中カードのタイトルを削除」により
+			    <h2 class="damage-detail-panel-title">詳細設定</h2>を削除した(対応するCSSも
+			    .damage-detail-panel-titleごと削除済み)。どの技列を編集中かは技列側の選択強調
+			    (.damage-column.is-selected、primary実線+box-shadow)で判別できることを実機で
+			    確認した(閉じるボタンだけが残るため、ヘッダーのjustify-contentを
+			    space-between→flex-endに変更し右寄せに揃えた。下記damage-detail-panel-header
+			    のCSS参照)。閉じるボタン自体は残す(消すと1600px未満のオーバーレイを閉じられ
+			    なくなるため)。 */}
+			{/* 1600px未満ではオーバーレイ化するため閉じるボタンを表示する
+			    (1600px以上の3カラム表示では常時可視のパネルなのでCSSで隠す)。 */}
+			<button type="button" id="damage-detail-panel-close" class="btn-ghost damage-detail-panel-close" aria-label="詳細設定を閉じる">×</button>
+		</div>
+		<div id="damage-detail-panel-body" class="damage-detail-panel-body">
+			{/* UI改善ラウンド29(29-R1): JS初期化前・失敗時のフォールバックもJS生成側
+			    (renderDetailPanelEmpty)と同じ.damage-detail-panel-body-innerでラップし、
+			    margin-block:autoの対象にする。文言もrenderDetailPanelEmptyと同内容に
+			    揃える(29-R1: 存在しない「技列のクリック」を促さない)。 */}
+			<div class="damage-detail-panel-body-inner">
+				<p class="damage-detail-panel-empty">相手ポケモンを登録すると、ここに設定が表示されます。</p>
+			</div>
+		</div>
+	</aside>
+</div>
+{/* 1600px未満でサイドバーをオーバーレイ表示する際の背景(クリックで閉じる)。 */}
+<div id="damage-detail-backdrop" class="damage-detail-backdrop" hidden></div>
+
+<style>
+	/* ラウンド5ユーザー指示(要件9): ⚙クリックで<dialog>を開く方式をやめ、カードを選択すると
+	   右サイドバーに詳細設定を表示する方式にする。「カードの面積による制限を気にしなくて
+	   よくなるので、レイアウトの自由度が生まれる」というのがユーザーの弁。
+	   1920px幅を基準に3カラム(左=編集フォーム/中央=ダメージ計算カード/右=詳細設定)を
+	   組めるだけの余地がある閾値として1600pxを採用した(実測: 編集フォーム最小幅約480px+
+	   ダメージ計算カード1枚実測約620px+サイドバー320px+gap×2+サイドナビ256px+
+	   ページ余白 ≒ 1600px弱)。1600px未満(2カラム/縦積みいずれの場合も)ではサイドバーを
+	   画面右端からのオーバーレイ(スライドイン)にする。
+	   ラウンド6ユーザー指示(要件1・2): ⚙ボタン自体を廃止した。カード内の入力欄クリックで
+	   意図せず選択が走らないルールは維持しつつ、選択トリガーを「相手ビルドの箱のクリック→
+	   カード全体の設定」「技列の箱のクリック→その技だけの設定」の2種類に分けていたが、
+	   ラウンド7ユーザー指示(方針転換)で「カード全体の設定」という概念自体を廃止した。
+	   相手ビルドの箱のクリックは無反応(サイドバーを開閉しない)になり、選択トリガーは
+	   「技列の箱のクリック(フォーム要素の外側)→その技だけの設定」の1種類だけになった
+	   (<script>のselectColumn/renderRow末尾のroot.addEventListener参照)。 */
+	.edit-layout-detail { display: contents; }
+	/* UI品質改善(帯構成への刷新): 右端に接する罫線(border-left)は.panel-right修飾子
+	   (global.css)と役割が完全に一致するため、マークアップ側に panel-right クラスを
+	   追加してそちらに委ねる(下のmarkup、#damage-detail-panel参照)。position:fixed/
+	   width/transformによるスライドイン・box-shadowは.panel基底が持たない固有の
+	   振る舞いのため、無理に.panel基底へ寄せずこのスコープドスタイルに残す。 */
+	.damage-detail-panel {
+		position: fixed;
+		top: 0;
+		right: 0;
+		bottom: 0;
+		width: min(400px, 92vw);
+		z-index: 60;
+		display: flex;
+		flex-direction: column;
+		background: var(--color-surface);
+		box-shadow: var(--shadow-lg);
+		transform: translateX(100%);
+		transition: transform 0.2s ease;
+	}
+	.damage-detail-panel.is-open { transform: translateX(0); }
+	.damage-detail-backdrop {
+		position: fixed;
+		inset: 0;
+		z-index: 55;
+		background: rgba(0, 0, 0, 0.35);
+	}
+	.damage-detail-backdrop[hidden] { display: none; }
+	.damage-detail-panel-header {
+		display: flex;
+		align-items: center;
+		/* ラウンド23ユーザー指示(23-R1): 「詳細設定」の見出し(.damage-detail-panel-title)を
+		   削除したため、閉じるボタン1つだけが残る。space-betweenのままだと単独の子要素は
+		   flex-start(左)に寄ってしまい、閉じるボタンとして不自然な位置になるため
+		   flex-endに変え右寄せにする。 */
+		justify-content: flex-end;
+		gap: 0.5rem;
+		/* ラウンド12指摘(A-5): 3カラム1行目の縦位置が左y=97/中央y=89/右y=79とバラバラ
+		   だった。右側(このパネル見出し)はpadding-topが0.9remで最も浅く、中央カラム
+		   (ダメージ計算カード、y=89)に合わせて1.5remへ広げる。1600px未満のオーバーレイ表示
+		   (このパネルがposition:fixedになる@media側)でも同じ値がそのまま効く
+		   (別のpadding上書きが無いことを確認済み)。 */
+		padding: 1.5rem 1rem 0.7rem;
+		border-bottom: 1px solid var(--color-border);
+		flex-shrink: 0;
+	}
+	.damage-detail-panel-close { font-size: 1.1rem; padding: 0.2em 0.55em; }
+	/* UI改善ラウンド29(29-R1)「右パネルの余剰空白」: 密な状態(カード4枚)でも中身が
+	   .damage-detail-sides下端で終わり、パネル下端まで331pxが完全な空白になっていた。
+	   逆に空状態は950px近い空白になる。#damage-detail-panel-body自体をflex column化し、
+	   中身(JS生成の.damage-detail-panel-body-inner、is:global側で定義)にmargin-block:auto
+	   を持たせることで、中身がこの箱より短い間は上下中央に寄り、長くなればautoが0に収束して
+	   従来どおり上端起点のoverflow-y:autoスクロールに戻る(⚠️
+	   justify-content:centerをこちら側に付ける方法は不採用: 中身がこの箱より長くなったとき
+	   上端がoverflowで見切れる既知の不具合があるため、round-29.mdが明示的に避けるよう指示している)。
+	   #damage-detail-panel-body自体は静的マークアップ(下記<div id="damage-detail-panel-body">)
+	   なのでscoped<style>がそのまま効くが、中のinnerラッパーはJSのdocument.createElement()で
+	   生成するため、そちらのスタイルはis:global側に置く(pitfalls.mdの既知の罠)。 */
+	.damage-detail-panel-body {
+		flex: 1 1 auto;
+		display: flex;
+		flex-direction: column;
+		overflow-y: auto;
+		padding: 0.9rem 1rem 1.4rem;
+	}
+	/* UI改善ラウンド29(29-R1)により.damage-detail-panel-emptyはis:global側
+	   (#damage-detail-panel-body .damage-detail-panel-empty)へ移した。理由: このpは
+	   静的マークアップ(JS初期化前のフォールバック)とJS生成(renderDetailPanelEmpty)の
+	   両方から使われるが、後者はscoped<style>が効かない(pitfalls.md)。同じ1つの定義で
+	   両方に効かせるため、静的/動的どちらの経路でも確実に効くis:global側に統一する。 */
+	@media (min-width: 1600px) {
+		.edit-layout-detail { display: block; min-width: 0; height: 100%; }
+		/* UI品質改善(帯構成への刷新): このブロックは元々「浮いた角丸カード」を作っていた
+		   (top:1remで上下に隙間を空け、border-radius+全周borderで枠を作る)。設計図
+		   (docs/ui_proposal/個体編集_全体レイアウト.png)では右の詳細設定は画面右端に
+		   密着し、上下いっぱいに伸びる帯なので、top/bottomの隙間・角丸・全周borderを外す。
+		   border-leftは.panel-right修飾子(global.css。マークアップ側は既に
+		   class="damage-detail-panel panel-right"を持つ)と役割が完全に一致するため、
+		   宣言ごと削除して委譲する(このブロックにはborder-leftとborder全周が重複宣言
+		   されており、後者が前者を無効化していた既知の死んだ宣言だった。整理を兼ねて
+		   両方外す)。
+		   top:1rem/max-height: calc(100vh - 2rem) はtop:0にして画面上端に密着させる…はずだったが、
+		   共通トップバー新設(2026-07-26)により画面上端はサイドバー右隣から伸びる
+		   position:sticky; top:0 のトップバー(--topbar-height、デスクトップ65px)が
+		   占めるようになった。位置基準の document scroll はトップバーと共有しているため、
+		   このパネルのtopを0のままにするとトップバーの裏に隠れて上端が食い込む
+		   (実機で発覚)。トップバーの直下に張り付くよう top: var(--topbar-height) にする。
+		   高さは height:100% (行の実高さ、.edit-layout-leftと同じ連鎖) を基本にしつつ、
+		   max-height:calc(100vh - var(--topbar-height)) で上限を「ビューポートからトップバー
+		   ぶんを引いた残り1画面」に固定する。これにより:
+		   (a) 通常時(行がちょうど1画面に収まる)はheight:100%がそのまま効き、左の帯と
+		   ぴったり同じ高さで画面いっぱいに伸びる(height:100vh一本だと、行の高さが
+		   「ページ見出しの実高さ+100vh」まで押し上げられ、ページ全体に見出し分の
+		   余計な縦スクロールが生まれてしまうことを実測で確認したため採用しなかった)。
+		   (b) ダメージ計算カード側(中央カラム)が増えて行がビューポートより長くなった
+		   場合はmax-heightが効いて「トップバーを除いた1画面ぶん」で頭打ちになり、
+		   position:stickyでの追随+内部スクロール(.damage-detail-panel-bodyの
+		   overflow-y:auto)が従来どおり働く。 */
+		.damage-detail-panel {
+			position: sticky;
+			top: var(--topbar-height);
+			right: auto;
+			bottom: auto;
+			width: 100%;
+			height: 100%;
+			max-height: calc(100vh - var(--topbar-height));
+			box-shadow: none;
+			transform: none;
+		}
+		/* 1600px以上では常時表示のパネルなので閉じるボタン・背景オーバーレイは不要。 */
+		.damage-detail-panel-close { display: none; }
+		.damage-detail-backdrop { display: none !important; }
+		/* 🔴 UI改善ラウンド28ユーザー指示(28-R1)「天候の上の空白領域を削除」:
+		   .damage-detail-panel-headerは閉じるボタン(#damage-detail-panel-close)だけを
+		   持つ帯だが、この幅(常時表示パネル)ではそのボタン自体が上のルールで
+		   display:noneになり実質空の36px帯として残っていた。ヘッダーごと消す
+		   (中の#damage-detail-panel-closeのDOM・IDは削除しない。1600px未満の
+		   オーバーレイ表示では、このmediaブロックの外なので従来どおりヘッダーごと
+		   表示され閉じるボタンが機能する)。 */
+		.damage-detail-panel-header { display: none; }
+	}
+</style>
