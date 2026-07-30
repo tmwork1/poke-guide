@@ -181,6 +181,42 @@ export function loadMoveTypeMap(): Promise<Map<string, string>> {
   return moveTypeCache;
 }
 
+// UI改善ラウンド37(37-1〜37-3): 左パネルの技選択専用ウィンドウ(box-id/left-panel.ts)が
+// 技名・タイプ・分類・威力・命中・PPの列表示/フィルタ/ソートに使う詳細データ。
+// detail/moves.json は元々 src/pages/moves/[name].astro がビルド時にimportして使うだけで、
+// クライアント側からfetchするローダーが無かった(round-37.md調査済み)。他のload*Map()と
+// 同じ「fetch→Map化→モジュールスコープでキャッシュ→失敗時はconsole.warn+空Mapで握りつぶす」
+// パターンに従う(162〜182行目のloadMoveTypeMap参照)。
+// MoveCategory型はsrc/pages/moves/[name].astroの同名型と同じ定義。.astroからexportできない
+// ため、型だけこちらに複製している(round-37.md「対象ファイル」節に明記の既知の重複)。
+export type MoveCategory = "physical" | "special" | "status";
+
+export interface MoveDetail {
+  name: string;
+  type: string | null;
+  category: MoveCategory;
+  power: number | null;
+  accuracy: number | null;
+  pp: number;
+}
+
+let moveDetailCache: Promise<Map<string, MoveDetail>> | null = null;
+
+// 技名 -> 詳細情報(タイプ/分類/威力/命中/PP)。全716件。
+export function loadMoveDetailMap(): Promise<Map<string, MoveDetail>> {
+  if (!moveDetailCache) {
+    moveDetailCache = fetch("/master-data/detail/moves.json")
+      .then((res) => res.json())
+      .then((list: MoveDetail[]) => new Map(list.map((m) => [m.name, m])))
+      .catch((err) => {
+        console.warn("技詳細データの読み込みに失敗しました", err);
+        moveDetailCache = null;
+        return new Map<string, MoveDetail>();
+      });
+  }
+  return moveDetailCache;
+}
+
 // autocomplete/mega-stones.json の各レコード
 // (scripts/build-master-data/extract_autocomplete.py の build_mega_stones を参照)。
 interface MegaStoneAutocompleteEntry {

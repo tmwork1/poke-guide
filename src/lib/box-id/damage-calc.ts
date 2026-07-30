@@ -50,6 +50,10 @@ import {
 } from "../pokemon-master-data";
 import { type StatKey, STAT_KEYS, NATURE_STAT_MODIFIERS, calcHpStat, calcOtherStat } from "../stats";
 import { TERA_TYPES } from "../tera-types";
+// UI改善ラウンド40ユーザー指示(40-D1)「テラス選択ボックスを左パネルと共通化する」用。
+// shared-core.tsは"../sprite-urls"からteraTypeIconUrlをimportしているが再exportしていない
+// ため(shared-core.tsはこのラウンドの編集対象外)、ここで直接importする。
+import { teraTypeIconUrl } from "../sprite-urls";
 import {
 	applySprite,
 	applyTeraImage,
@@ -216,16 +220,16 @@ function cycleColumnNature(row: DamageRowState, key: StatKey): void {
 // 構造分割ラウンド(フェーズ2)でこのファイル先頭へ引き上げた6つ(right-panel.tsへexportするため。
 // 上のファイル冒頭コメント参照)。
 export const DAMAGE_WEATHERS = [
-	{ value: "はれ", label: "はれ", icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4.5"/><line x1="12" y1="1.5" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22.5"/><line x1="4" y1="4" x2="5.8" y2="5.8"/><line x1="18.2" y1="18.2" x2="20" y2="20"/><line x1="1.5" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22.5" y2="12"/><line x1="4" y1="20" x2="5.8" y2="18.2"/><line x1="18.2" y1="5.8" x2="20" y2="4"/></svg>` },
-	{ value: "あめ", label: "あめ", icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 15.5a4 4 0 0 0 0-8 5.5 5.5 0 0 0-10.6 1.7A3.5 3.5 0 0 0 7 15.5z"/><line x1="9" y1="18" x2="9" y2="21"/><line x1="13" y1="18" x2="13" y2="21"/></svg>` },
-	{ value: "すなあらし", label: "すなあらし", icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 8h12a3 3 0 1 0-3-3"/><path d="M2 16h14a3 3 0 1 1-3 3"/><path d="M2 12h18"/></svg>` },
-	{ value: "ゆき", label: "ゆき", icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="2" x2="12" y2="22"/><line x1="4" y1="7" x2="20" y2="17"/><line x1="4" y1="17" x2="20" y2="7"/></svg>` },
+	{ value: "はれ", label: "はれ", icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4.5"/><line x1="12" y1="1.5" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22.5"/><line x1="4" y1="4" x2="5.8" y2="5.8"/><line x1="18.2" y1="18.2" x2="20" y2="20"/><line x1="1.5" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22.5" y2="12"/><line x1="4" y1="20" x2="5.8" y2="18.2"/><line x1="18.2" y1="5.8" x2="20" y2="4"/></svg>` },
+	{ value: "あめ", label: "あめ", icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 15.5a4 4 0 0 0 0-8 5.5 5.5 0 0 0-10.6 1.7A3.5 3.5 0 0 0 7 15.5z"/><line x1="9" y1="18" x2="9" y2="21"/><line x1="13" y1="18" x2="13" y2="21"/></svg>` },
+	{ value: "すなあらし", label: "すなあらし", icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 5c4 1.6 9 1.6 13 .3s4.5-1 4 .5"/><path d="M6 9.5c3 1.2 6.5 1.2 9.5 0s3.5-.9 3.7.2"/><path d="M8.5 14c2 1 4.2 1 6 0s2.6-.8 2.7.2"/><path d="M10.5 18.3c1.2.6 2.4.6 3.4 0"/><path d="M12 21.5v.8"/></svg>` },
+	{ value: "ゆき", label: "ゆき", icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="2" x2="12" y2="22"/><line x1="4" y1="7" x2="20" y2="17"/><line x1="4" y1="17" x2="20" y2="7"/></svg>` },
 ];
 export const DAMAGE_TERRAINS = [
-	{ value: "エレキフィールド", label: "エレキ", icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>` },
-	{ value: "グラスフィールド", label: "グラス", icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 20A7 7 0 0 1 4 13c0-6 7-11 7-11s7 5 7 11a7 7 0 0 1-7 7z"/><line x1="11" y1="20" x2="11" y2="11"/></svg>` },
-	{ value: "サイコフィールド", label: "サイコ", icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2l2.5 7.5L22 12l-7.5 2.5L12 22l-2.5-7.5L2 12l7.5-2.5z"/></svg>` },
-	{ value: "ミストフィールド", label: "ミスト", icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/><path d="M4 14c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/><path d="M4 20c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/></svg>` },
+	{ value: "エレキフィールド", label: "エレキ", icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>` },
+	{ value: "グラスフィールド", label: "グラス", icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 20A7 7 0 0 1 4 13c0-6 7-11 7-11s7 5 7 11a7 7 0 0 1-7 7z"/><line x1="11" y1="20" x2="11" y2="11"/></svg>` },
+	{ value: "サイコフィールド", label: "サイコ", icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1.5 12s4-7.5 10.5-7.5S22.5 12 22.5 12 18.5 19.5 12 19.5 1.5 12 1.5 12z"/><circle cx="12" cy="12" r="3" fill="currentColor" stroke="none"/></svg>` },
+	{ value: "ミストフィールド", label: "ミスト", icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><g fill="currentColor" stroke="none"><circle cx="5" cy="7" r="1.45"/><circle cx="11" cy="5.3" r="1.25"/><circle cx="17.5" cy="7.5" r="1.45"/><circle cx="4" cy="13" r="1.25"/><circle cx="10.5" cy="12" r="1.55"/><circle cx="17" cy="12.8" r="1.25"/><circle cx="7" cy="18.3" r="1.35"/><circle cx="13.5" cy="18.7" r="1.35"/><circle cx="19.5" cy="17.5" r="1.15"/></g></svg>` },
 ];
 export const DAMAGE_AILMENTS = [
 	{ value: "", label: "なし" },
@@ -322,7 +326,14 @@ if (opponentNotesSection) {
 	// 未変更のまま)。
 	// ラウンド5ユーザー指示(要件10): 天候・フィールドはセレクトをやめてアイコン選択式に
 	// する。このプロジェクトはAppSidebar.astroでlucide風のインラインSVGを自前定義する
-	// 流儀のため、同じ流儀(24x24 viewBox・stroke-width 1.75)で簡易アイコンを用意する。
+	// 流儀のため、同じ流儀(24x24 viewBox)で簡易アイコンを用意する。
+	// 🔴 UI改善ラウンド39ユーザー指示(39-R1、同ターン内で「ミストフィールドに限らず天候・
+	// フィールドアイコン全部」と訂正)・ラウンド40ユーザー指示(40-R1、対象をラウンド38-R1で
+	// 差し替えたすなあらし/サイコ/ミストも含む全アイコンへ拡大)により、線をわずかに太くする。
+	// stroke-width 1.75→2.1(DAMAGE_WEATHERS/DAMAGE_TERRAINSの8アイコン全部で統一)。
+	// ミストフィールドは線でなく塗りつぶしの円(斑点)なのでstroke-widthの変更自体は見た目に
+	// 影響しないが、同ラウンドの指示にある「斑点も見やすさ優先で微調整してよい」に従い、
+	// 各circleのrを一律+0.15して粒を少し大きくした(1.3→1.45等、下記DAMAGE_TERRAINS参照)。
 	// ラウンド11ユーザー指示(要件11-9): 強天候(おおひでり/おおあめ/らんきりゅう)は選択肢から削除。
 	// ⚠️ ラウンド24ユーザー指示(24-R1)「天候・フィールドの"なし"を廃止し、未選択なら"なし"扱いにする」
 	// により、「なしも選択肢の1つとして常に並べる(radiogroupで必ずどれか1つを選ぶ)」という設計を
@@ -419,6 +430,33 @@ if (opponentNotesSection) {
 			defenderTerastallized: false,
 			defenderVolatiles: [],
 			...legacy,
+		};
+	}
+
+	// UI改善ラウンド38ユーザー指示(38-D7): 「技を追加」で2個目以降の技カラムを
+	// 増やすとき、直前のカラムの「詳細設定」(天候・フィールド・壁・急所・ランク補正・
+	// 状態異常・じゅうでん等のvolatile・テラスタル発動)を引き継ぐ。技名・ヒット回数は
+	// 技固有の値のため引き継がない(moveName/hitCountをこの戻り値に含めない)。
+	// createEmptyColumn()の`legacy`引数(既存メモの旧形式互換用、上のコメント参照)を
+	// そのまま再利用し、この関数が作るPartial<DamageColumnState>を渡す形にする
+	// (createEmptyColumnの引数自体は増やさない)。
+	function inheritedColumnDetailDefaults(previous: DamageColumnState): Partial<DamageColumnState> {
+		return {
+			critical: previous.critical,
+			weather: previous.weather,
+			terrain: previous.terrain,
+			wallEnabled: previous.wallEnabled,
+			defenderSideFields: [...previous.defenderSideFields],
+			attackerRank: previous.attackerRank,
+			defenderRank: previous.defenderRank,
+			attackerBoosts: [...previous.attackerBoosts],
+			attackerAilment: previous.attackerAilment,
+			attackerTerastallized: previous.attackerTerastallized,
+			attackerVolatiles: [...previous.attackerVolatiles],
+			defenderBoosts: [...previous.defenderBoosts],
+			defenderAilment: previous.defenderAilment,
+			defenderTerastallized: previous.defenderTerastallized,
+			defenderVolatiles: [...previous.defenderVolatiles],
 		};
 	}
 
@@ -1379,6 +1417,48 @@ if (opponentNotesSection) {
 		updateOpponentNotesFailureAlert();
 	}
 
+	// UI改善ラウンド38ユーザー指示(38-D2): 攻撃側(row.direction === "attack"、
+	// このポケモン自身が攻撃する行)の技候補は、種族の覚え技全体(#move-listの並び、
+	// left-panel.tsのrebuildMoveListForSpeciesが管理)ではなく、左パネルの技1〜4欄に
+	// 現在入力されている値(=このポケモン固有の実際の選択)を最上位に表示する。
+	// 共有<datalist id="move-list">自体を書き換えると左パネル本体・受け(defense)側の
+	// 技候補まで巻き込むため、この専用の<datalist id="move-list-self-first">を新設し、
+	// 攻撃側のmoveInputだけlist属性をこちらに向ける(left-panel.ts/LeftPanel.astroは
+	// 一切編集しない。#move-1〜#move-4のvalueをDOM経由で読むだけ)。
+	const SELF_FIRST_MOVE_DATALIST_ID = "move-list-self-first";
+	function ensureSelfFirstMoveDatalist(): HTMLDataListElement {
+		let list = document.getElementById(SELF_FIRST_MOVE_DATALIST_ID) as HTMLDataListElement | null;
+		if (!list) {
+			list = document.createElement("datalist");
+			list.id = SELF_FIRST_MOVE_DATALIST_ID;
+			document.body.appendChild(list);
+		}
+		return list;
+	}
+	// 呼ばれるたびに現在の#move-1〜#move-4の値・#move-listの中身から最新の候補順を作り直す
+	// (技名inputにフォーカスするたび=編集を始める直前に呼べば十分新しい)。
+	function refreshSelfFirstMoveDatalist(): void {
+		const list = ensureSelfFirstMoveDatalist();
+		const learnedMoves = ["move-1", "move-2", "move-3", "move-4"]
+			.map((id) => (document.getElementById(id) as HTMLInputElement | null)?.value.trim() ?? "")
+			.filter((name) => name !== "");
+		const baseList = document.getElementById("move-list") as HTMLDataListElement | null;
+		const baseOptions = baseList ? Array.from(baseList.options).map((o) => o.value) : [];
+		const seen = new Set<string>();
+		const ordered: string[] = [];
+		for (const name of [...learnedMoves, ...baseOptions]) {
+			if (seen.has(name)) continue;
+			seen.add(name);
+			ordered.push(name);
+		}
+		list.innerHTML = "";
+		for (const name of ordered) {
+			const option = document.createElement("option");
+			option.value = name;
+			list.appendChild(option);
+		}
+	}
+
 	// --- 列(攻撃)のDOM構築 ---
 	function renderColumns(row: DamageRowState): void {
 		if (!row.columnsEl) return;
@@ -1410,11 +1490,21 @@ if (opponentNotesSection) {
 
 			const moveInput = document.createElement("input");
 			moveInput.type = "text";
-			moveInput.setAttribute("list", "move-list");
 			// 攻守を切り替えると技列は「相手が撃ってくる技」になるので、入力欄の
 			// placeholder/aria-labelも向きに合わせて言い換える(誰の技を入れる欄なのかが
 			// 分からないと、受け計算のときに自分の技を入れてしまう)。
 			const attackerIsOpponent = row.direction === "defense";
+			// 38-D2: 自分(このポケモン)が攻撃側のときだけ、左パネルの技1〜4を最上位にした
+			// 専用datalistを使う(上のensureSelfFirstMoveDatalist/refreshSelfFirstMoveDatalist参照)。
+			// 相手が攻撃側(受け計算)のときは種族全体の候補(#move-list)のまま変えない。
+			if (attackerIsOpponent) {
+				moveInput.setAttribute("list", "move-list");
+			} else {
+				ensureSelfFirstMoveDatalist();
+				moveInput.setAttribute("list", SELF_FIRST_MOVE_DATALIST_ID);
+				moveInput.addEventListener("focus", () => refreshSelfFirstMoveDatalist());
+				refreshSelfFirstMoveDatalist();
+			}
 			moveInput.placeholder = attackerIsOpponent ? "相手の技" : "技";
 			moveInput.setAttribute(
 				"aria-label",
@@ -1627,7 +1717,9 @@ if (opponentNotesSection) {
 		}
 		addButton.addEventListener("click", () => {
 			if (row.attacks.length >= MAX_COLUMNS_TO_ADD) return;
-			row.attacks.push(createEmptyColumn());
+			// 38-D7: 直前のカラム(row.attacks末尾)があれば、その詳細設定を引き継ぐ。
+			const previousColumn = row.attacks[row.attacks.length - 1];
+			row.attacks.push(createEmptyColumn(previousColumn ? inheritedColumnDetailDefaults(previousColumn) : undefined));
 			renderColumns(row);
 			scheduleRowCalc(row);
 			scheduleRowSave(row);
@@ -1722,6 +1814,160 @@ if (opponentNotesSection) {
 	// refreshRowConditionChipsは構造分割ラウンド(フェーズ1)でshared-core.tsへ移設した
 	// (row.columnChipEls[i]へのrenderConditionChipsInto呼び出しはregisterDamageCalcBridge
 	// 経由になる。上のimport参照)。
+
+	// UI改善ラウンド36ユーザー指示(第18弾・機能追加)「ダメージカードの折りたたみ機能」。
+	// 状態はDBに保存しない(ページ再読み込みでは既定=展開状態に戻ってよい、というユーザー
+	// 指示どおり)ため、JSメモリ内(このモジュールのクロージャ)だけで完結させる。
+	// DamageRowState(shared-core.ts、このラウンドの編集対象外ファイル)にはフィールドを
+	// 追加せず、row参照をキーにしたWeakSet/WeakMapで折りたたみ状態と行ごとの
+	// setCollapsed()を保持する(WeakなのでrowがGCされれば自動的に参照も外れる)。
+	const collapsedRowSet = new WeakSet<DamageRowState>();
+	const rowCollapseHandles = new WeakMap<DamageRowState, { setCollapsed: (collapsed: boolean) => void }>();
+	function setAllRowsCollapsed(collapsed: boolean): void {
+		for (const row of rows) {
+			rowCollapseHandles.get(row)?.setCollapsed(collapsed);
+		}
+	}
+
+	// 🔴 UI改善ラウンド40ユーザー指示(40-D1)「テラスタイプ選択ボックスは、左パネルのもの
+	// (選択肢にアイコンが見えるカスタムドロップダウン)と共通化する」。LeftPanel.astro
+	// 226〜249行目・left-panel.ts 500〜613行目の#tera-dropdown-button/#tera-dropdown-list
+	// (ボタン+リストボックスのカスタムドロップダウン)と同じ見た目・挙動を持つが、左パネル側は
+	// ページに1個しか無い前提でid固定のgetElementById()を使っているのに対し、ダメージカードは
+	// 1枚につき1個・複数枚同時に存在しうるため、idを一切使わずクロージャで状態を閉じ込める
+	// ファクトリ関数として書き直した(コピーではなく複数インスタンス生成できる形に再実装)。
+	// CSSは#opponent-notes-section .tera-dropdown-button/.tera-dropdown-list/
+	// .tera-dropdown-image/.tera-dropdown-placeholder/.tera-dropdown-option等
+	// (DamageCalcSection.astroの<style is:global>、左パネルの#edit-form接頭辞ルールと
+	// 値を共有)を参照する。
+	function buildTeraDropdown(
+		initialValue: string,
+		ariaLabelPrefix: string,
+		onChange: (value: string) => void,
+	): { wrap: HTMLElement } {
+		const wrap = document.createElement("div");
+		wrap.className = "damage-row-tera-field tera-dropdown-wrap";
+
+		const button = document.createElement("button");
+		button.type = "button";
+		button.className = "tera-dropdown-button";
+		button.setAttribute("aria-haspopup", "listbox");
+		button.setAttribute("aria-expanded", "false");
+
+		const image = document.createElement("img");
+		image.className = "tera-dropdown-image";
+		image.alt = "";
+		image.style.display = "none";
+		const placeholder = document.createElement("span");
+		placeholder.className = "tera-dropdown-placeholder";
+		placeholder.textContent = "テラスなし";
+		button.append(image, placeholder);
+
+		const list = document.createElement("ul");
+		list.className = "tera-dropdown-list";
+		list.setAttribute("role", "listbox");
+		list.setAttribute("aria-label", `${ariaLabelPrefix}を選択`);
+		list.hidden = true;
+
+		let value = initialValue;
+		const optionEls: { value: string; li: HTMLLIElement }[] = [];
+
+		function updateButton(): void {
+			const isUnselected = value === "";
+			button.classList.toggle("is-tera-unselected", isUnselected);
+			button.setAttribute("aria-label", value ? `${ariaLabelPrefix}: ${value}` : `${ariaLabelPrefix}: 未選択`);
+			placeholder.classList.toggle("is-tera-value-text", !isUnselected);
+			if (isUnselected) {
+				image.style.display = "none";
+				placeholder.textContent = "テラスなし";
+				return;
+			}
+			placeholder.textContent = value;
+			const url = teraTypeIconUrl(value);
+			if (!url) {
+				image.style.display = "none";
+				return;
+			}
+			image.alt = value;
+			image.onload = () => {
+				image.style.display = "";
+			};
+			image.onerror = () => {
+				image.style.display = "none";
+			};
+			image.src = url;
+		}
+
+		function closeList(): void {
+			list.hidden = true;
+			button.setAttribute("aria-expanded", "false");
+		}
+		function openList(): void {
+			for (const opt of optionEls) opt.li.classList.toggle("is-active", opt.value === value);
+			list.hidden = false;
+			button.setAttribute("aria-expanded", "true");
+		}
+		button.addEventListener("click", () => {
+			if (list.hidden) openList();
+			else closeList();
+		});
+		// リストの外側をクリックしたら閉じる(左パネル側と同じ一般的な挙動。pitfalls.md参照)。
+		document.addEventListener("click", (e) => {
+			if (list.hidden) return;
+			const target = e.target as Node;
+			if (button.contains(target) || list.contains(target)) return;
+			closeList();
+		});
+		button.addEventListener("keydown", (e) => {
+			if (e.key === "Escape") closeList();
+		});
+
+		function addOption(optValue: string, label: string): void {
+			const li = document.createElement("li");
+			li.className = "tera-dropdown-option";
+			li.setAttribute("role", "option");
+			li.tabIndex = -1;
+			li.dataset.value = optValue;
+			if (optValue === "") {
+				li.setAttribute("aria-label", "テラスなし");
+				const textEl = document.createElement("span");
+				textEl.className = "tera-dropdown-option-text";
+				textEl.textContent = "テラスなし";
+				li.appendChild(textEl);
+			} else {
+				li.setAttribute("aria-label", label);
+				const imgEl = document.createElement("img");
+				imgEl.className = "tera-dropdown-option-image";
+				imgEl.alt = label;
+				const url = teraTypeIconUrl(optValue);
+				if (url) imgEl.src = url;
+				li.appendChild(imgEl);
+				const textEl = document.createElement("span");
+				textEl.className = "tera-dropdown-option-text";
+				textEl.textContent = label;
+				li.appendChild(textEl);
+			}
+			li.addEventListener("click", () => {
+				if (value !== optValue) {
+					value = optValue;
+					updateButton();
+					onChange(value);
+				}
+				for (const opt of optionEls) opt.li.classList.toggle("is-active", opt.value === value);
+				closeList();
+			});
+			list.appendChild(li);
+			optionEls.push({ value: optValue, li });
+		}
+
+		addOption("", "テラスなし");
+		for (const t of TERA_TYPES) addOption(t, t);
+
+		wrap.append(button, list);
+		updateButton();
+
+		return { wrap };
+	}
 
 	// --- 行(相手1体)のDOM構築 ---
 	function renderRow(row: DamageRowState): HTMLElement {
@@ -1850,6 +2096,42 @@ if (opponentNotesSection) {
 		// ことで、このspriteBoxも1〜5段目ぶんの高さまで自動的に伸びる。
 		buildMain.appendChild(spriteBox);
 
+		// UI改善ラウンド36ユーザー指示(36-1)「折りたたみ時に代わりに出す要素」: 相手ポケモン名
+		// (読み取り専用)+攻守の向き。buildLeft(入力欄一式)を隠す折りたたみ時だけCSSで
+		// display:flexにする(#opponent-notes-section .damage-row-collapsed-summary参照)。
+		// 実体の<input>/トグルボタンを複製せず、値をtextContentへ反映するだけの
+		// 読み取り専用表示にすることで、自動保存契約(row.name/row.direction)には
+		// 一切影響しない(refreshCollapsedSummary参照、下で定義)。
+		const collapsedSummary = document.createElement("div");
+		collapsedSummary.className = "damage-row-collapsed-summary";
+		const collapsedNameEl = document.createElement("span");
+		collapsedNameEl.className = "damage-row-collapsed-name";
+		const collapsedDirectionEl = document.createElement("span");
+		collapsedDirectionEl.className = "damage-row-collapsed-direction";
+		// UI改善ラウンド38ユーザー指示(38-D6)「折りたたみ状態の情報量を増やす」。折りたたみ後の
+		// 高さ上限(ラウンド36実測の.damage-sprite-box基準・約102.75px、下のCSS
+		// .card-damage[data-collapsed="true"] .damage-sprite-box参照)を超えないよう、
+		// 名前・攻守に加えて1行だけ追加する。使用技名(row.attacks、覚え技全体ではなくこの
+		// カードで実際に入力されている技)を「/」区切りで列挙し、テラスタルが設定されている
+		// ときだけ「・テラス:〜」を追記する(未設定=既定値なので省略し行の圧迫を避ける)。
+		// 1行に収まらない分はCSSのtext-overflow:ellipsisで省略し、title属性に全文を残す
+		// (collapsedNameEl.max-width:14emと同じ考え方)。
+		const collapsedMovesEl = document.createElement("span");
+		collapsedMovesEl.className = "damage-row-collapsed-moves";
+		collapsedSummary.append(collapsedNameEl, collapsedDirectionEl, collapsedMovesEl);
+		buildMain.appendChild(collapsedSummary);
+		function refreshCollapsedSummary(): void {
+			collapsedNameEl.textContent = row.name.trim() || "(名前未設定)";
+			const selfAttacks = row.direction !== "defense";
+			collapsedDirectionEl.textContent = selfAttacks ? "攻撃" : "防御";
+			collapsedDirectionEl.dataset.role = selfAttacks ? "attack" : "defense";
+			const moveNames = row.attacks.map((a) => a.moveName.trim()).filter((name) => name !== "");
+			const movesText = moveNames.length > 0 ? moveNames.join("/") : "(技未設定)";
+			const teraSuffix = row.teraType.trim() !== "" ? ` ・テラス:${row.teraType.trim()}` : "";
+			collapsedMovesEl.textContent = `${movesText}${teraSuffix}`;
+			collapsedMovesEl.title = `${movesText}${teraSuffix}`;
+		}
+
 		const nameInput = document.createElement("input");
 		nameInput.type = "text";
 		nameInput.setAttribute("list", "pokemon-list");
@@ -1863,14 +2145,13 @@ if (opponentNotesSection) {
 			void applySprite(spriteImg, spriteFallback, row.name.trim(), officialArtworkUrl);
 		}
 		function refreshTypeBadge(): void {
+			// 🔴 UI改善ラウンド31ユーザー指示(31-D4b)で追加していた選択欄左の専用アイコン
+			// (teraFieldIcon/teraFieldIconFallback)への同時更新は、🔴 UI改善ラウンド40
+			// ユーザー指示(40-D1)「テラス選択ボックスを左パネルと共通化する」により、
+			// アイコン表示自体がbuildTeraDropdown()のボタン内蔵アイコン(下方のteraDropdown
+			// 参照。row.teraTypeが変わるたびに内部でteraTypeIconUrlを引き直す)に一本化された
+			// ため不要になった(選択欄の外に重ねる専用アイコンはもう無い)。
 			void applyTeraImage(typeBadgeImg, typeBadgeFallback, row.teraType);
-			// 🔴 UI改善ラウンド31ユーザー指示(31-D4b): テラスタイプ選択欄左のアイコン
-			// (下方で定義するteraFieldIcon/teraFieldIconFallback、31-D4b新設)も同じ
-			// ソース(row.teraType)から同時に更新する。この関数自体は下方のteraSelect定義後
-			// (change時とrow初期化時)にしか呼ばれないため、クロージャ経由の参照で問題ない
-			// (JSの関数宣言は呼び出し時点の変数の値を見るため、定義順は呼び出し順より前で
-			// あればよい)。
-			void applyTeraImage(teraFieldIcon, teraFieldIconFallback, row.teraType);
 		}
 		function refreshItemImage(): void {
 			void applyItemImage(itemImg, row.itemName.trim());
@@ -1884,6 +2165,7 @@ if (opponentNotesSection) {
 		nameInput.addEventListener("input", () => {
 			row.name = nameInput.value.trim();
 			refreshSprite();
+			refreshCollapsedSummary();
 			onFieldInput();
 		});
 		// 23-D2: 種族名が確定した(blur、またはpokemon-listのdatalist選択によるchange)
@@ -1912,6 +2194,45 @@ if (opponentNotesSection) {
 		deleteRowButton.addEventListener("click", () => void deleteRow(row));
 		root.appendChild(deleteRowButton);
 
+		// UI改善ラウンド36ユーザー指示(36-2)「折りたたみ・展開のきりかえボタンを右下に配置」。
+		// 削除ボタンが右上に戻ったことで空いた右下の座席(CSSは
+		// .damage-row-collapse-toggle-button参照)に、この行専用の折りたたみ/展開トグルを置く。
+		// 状態はDBに保存しない(row.collapsed相当のフィールドをDamageRowState自体には追加せず、
+		// このファイル内のWeakSet/WeakMapだけで完結させる。下のsetCollapsed/collapsedRowSet参照)。
+		const collapseToggleButton = document.createElement("button");
+		collapseToggleButton.type = "button";
+		collapseToggleButton.className = "btn-ghost damage-row-icon-button damage-row-collapse-toggle-button";
+		root.appendChild(collapseToggleButton);
+
+		// UI改善ラウンド38ユーザー指示(38-D5)「折りたたみ・展開ボタンは >> を90度回転させた
+		// デザインにする。ボタンに枠は表示しない」。文字自体は常に"»"(二重山括弧、見た目は
+		// 右向きの>>2つ)で固定し、90度の回転方向だけをCSS側([aria-expanded]、下の
+		// .damage-row-collapse-toggle-button参照)で状態ごとに切り替える(回転後は
+		// 展開中=上向き"^^"、折りたたみ中=下向き"vv"に見える)。枠(border)はCSS側で除去する。
+		collapseToggleButton.textContent = "»";
+		function setCollapsed(collapsed: boolean): void {
+			if (collapsed) collapsedRowSet.add(row);
+			else collapsedRowSet.delete(row);
+			root.dataset.collapsed = collapsed ? "true" : "false";
+			collapseToggleButton.title = collapsed ? "この相手の入力欄を展開する" : "この相手の入力欄を折りたたむ";
+			collapseToggleButton.setAttribute(
+				"aria-label",
+				collapsed ? "この相手の入力欄を展開する" : "この相手の入力欄を折りたたむ",
+			);
+			collapseToggleButton.setAttribute("aria-expanded", String(!collapsed));
+			refreshCollapsedSummary();
+			// 🔴 38-H1: 個別行の折りたたみ切り替え(このボタン自身のクリックでも、
+			// ヘッダーの単一トグルボタンからのsetAllRowsCollapsed()経由でも)のたびに、
+			// ヘッダーボタンのラベルを最新の「全部畳まれているか」判定で更新する。
+			updateCollapseToggleButtonLabel();
+		}
+		collapseToggleButton.addEventListener("click", () => setCollapsed(!collapsedRowSet.has(row)));
+		// 36-3「すべて折りたたむ・展開する」ツールバーが行ごとのsetCollapsed()を呼べるように、
+		// row参照をキーにしたWeakMapへ登録する(DamageRowState自体にコールバック用フィールドを
+		// 増やさないための実装手段。上のimport元のshared-core.tsは編集対象外ファイルのため)。
+		rowCollapseHandles.set(row, { setCollapsed });
+		setCollapsed(false); // 初期状態は展開(ページ再読み込みでは既定に戻ってよい、という要件どおり)
+
 		// 攻守切り替え。「攻撃」「防御」どちらを押しても、押した側の値になる
 		// (同じ側を押しても意味は変わらないが、setDirectionは冪等なので害はない)。
 		// 技列に入れる技は常に攻撃側の技なので、切り替えると技列の意味も入れ替わる
@@ -1936,6 +2257,7 @@ if (opponentNotesSection) {
 			if (row.direction === next) return;
 			row.direction = next;
 			refreshDirectionUi();
+			refreshCollapsedSummary();
 			// 技列のplaceholder/aria-label(「技」⇄「相手の技」)も向きで変わるため作り直す。
 			// renderColumns()自身が末尾でselectedRow===rowなら
 			// renderDetailPanel()を呼ぶため、サイドバー側の向き別ラベル
@@ -2070,49 +2392,20 @@ if (opponentNotesSection) {
 			});
 		}
 
-		const teraSelect = document.createElement("select");
-		teraSelect.setAttribute("aria-label", "相手のテラスタイプ");
-		{
-			const emptyOpt = document.createElement("option");
-			emptyOpt.value = "";
-			emptyOpt.textContent = "テラスなし";
-			teraSelect.appendChild(emptyOpt);
-			for (const t of TERA_TYPES) {
-				const opt = document.createElement("option");
-				opt.value = t;
-				opt.textContent = t;
-				if (t === row.teraType) opt.selected = true;
-				teraSelect.appendChild(opt);
-			}
-		}
-		// 🔴 UI改善ラウンド32ユーザー指示(32-D2)「テラスなし表示はplaceholderのように薄い
-		// 文字色にする」。CSSは#opponent-notes-section .damage-row-tera-field
-		// select.is-value-empty参照。選択済みでは通常の文字色に戻す。
-		function refreshTeraSelectMutedState(): void {
-			teraSelect.classList.toggle("is-value-empty", teraSelect.value === "");
-		}
-		refreshTeraSelectMutedState();
-		teraSelect.addEventListener("change", () => {
-			row.teraType = teraSelect.value;
+		// 🔴 UI改善ラウンド40ユーザー指示(40-D1)「テラスタイプ選択ボックスは、左パネルのもの
+		// (選択肢にアイコンが見えるカスタムドロップダウン)と共通化する」。以前の<select>+
+		// 左に絶対配置したアイコンのオーバーレイを撤回し、buildTeraDropdown()(下方定義。
+		// LeftPanel.astro/left-panel.tsの#tera-dropdown-button/#tera-dropdown-list相当を
+		// idを使わないクロージャ実装に書き直したもの)でこのカードの相手テラスタイプ
+		// ドロップダウンを1つ生成する。ダメージカードは複数枚同時に存在しうるため、
+		// idの一意性に依存しないこの実装が必要(左パネルはページ内に1個だけなのでidで
+		// 事足りるが、こちらは行の数だけインスタンスが要る)。
+		const teraDropdown = buildTeraDropdown(row.teraType, "相手のテラスタイプ", (newValue) => {
+			row.teraType = newValue;
 			refreshTypeBadge();
-			refreshTeraSelectMutedState();
 			onFieldInput();
 		});
-		// 🔴 UI改善ラウンド31ユーザー指示(31-D4b)「テラスタイプ画像は…選択ボックスの左側に
-		// 表示する」。31-D4aでスプライト右上のオーバーレイ(typeBadgeImg/typeBadgeFallback)を
-		// 隠した代わりに、この<select>の左に重ねる専用のicon/fallbackを新設する
-		// (typeBadgeImg自体は「DOMは残す」方針によりそのまま維持し、別要素として追加する)。
-		// CSSは#opponent-notes-section .damage-row-tera-field/.damage-row-tera-icon参照。
-		const teraFieldWrap = document.createElement("div");
-		teraFieldWrap.className = "damage-row-tera-field";
-		const teraFieldIcon = document.createElement("img");
-		teraFieldIcon.className = "damage-row-tera-icon";
-		teraFieldIcon.alt = "";
-		teraFieldIcon.style.display = "none";
-		const teraFieldIconFallback = document.createElement("span");
-		teraFieldIconFallback.className = "damage-row-tera-icon-fallback";
-		teraFieldWrap.append(teraFieldIcon, teraFieldIconFallback, teraSelect);
-		selectsRow.appendChild(teraFieldWrap);
+		selectsRow.appendChild(teraDropdown.wrap);
 
 		// 努力値/実数値グリッド(DamageCard.pngの「努力値 ＨＡＢＣＤＳ」「実数値 ＨＡＢＣＤＳ」)。
 		// CSSが7列グリッド(行ラベル1列 + H/A/B/C/D/Sの6列)なので、DOMも行優先で
@@ -2326,6 +2619,38 @@ if (opponentNotesSection) {
 	const engineReloadButton = el<HTMLButtonElement>("damage-calc-engine-reload-button");
 	engineReloadButton.addEventListener("click", () => window.location.reload());
 
+	// UI改善ラウンド36ユーザー指示(36-3)で「すべて折りたたむ・展開する」の2ボタン版を導入し、
+	// 🔴 UI改善ラウンド38ユーザー指示(38-H1)「ヘッダーに移動し単一ボタンで交互切り替え」により
+	// 単一トグルボタンへ統合した。ボタン本体はDamageCalcSection.astroではなく
+	// src/pages/box/[id].astro の<Fragment slot="topbar-actions">内(AppLayout共通トップバー)
+	// にあるが、id経由のel()で問題なく取得できる(同じページのDOMツリーに含まれるため)。
+	// 個々の行の折りたたみボタン(setCollapsed、上のrowCollapseHandles参照)との状態整合は
+	// setAllRowsCollapsed()が各行のsetCollapsed()をそのまま呼ぶことで保つ(全展開後に1行だけ
+	// 再度折りたたむ、といった操作も個別ボタン側のsetCollapsedがそのまま効くため破綻しない)。
+	// ボタンのラベル/disabled切り替えはupdateCollapseToggleButtonLabel()に集約し、
+	// 「行の追加・削除」「個別行の折りたたみ切り替え」「このボタン自身のクリック」の
+	// 3経路すべてから呼ぶ(setCollapsed内・rebuildRowsList内、下方の該当箇所を参照。
+	// この関数はここより上のsetCollapsed定義から前方参照されるが、関数宣言はブロック内で
+	// ホイストされ、かつ実際に呼ばれるのは行の初期化時=この行の実行より後になるため問題ない
+	// 既存のregisterDamageCalcBridge等と同じ考え方)。
+	const damageCollapseToggleButtonEl = el<HTMLButtonElement>("damage-collapse-toggle-button");
+	function updateCollapseToggleButtonLabel(): void {
+		damageCollapseToggleButtonEl.disabled = rows.length === 0;
+		const allCollapsed = rows.length > 0 && rows.every((r) => collapsedRowSet.has(r));
+		const label = allCollapsed ? "すべて展開する" : "すべて折りたたむ";
+		damageCollapseToggleButtonEl.textContent = label;
+		const describedLabel = `${label}(ダメージ計算カード全件)`;
+		damageCollapseToggleButtonEl.setAttribute("aria-label", describedLabel);
+		damageCollapseToggleButtonEl.title = describedLabel;
+	}
+	damageCollapseToggleButtonEl.addEventListener("click", () => {
+		const allCollapsed = rows.length > 0 && rows.every((r) => collapsedRowSet.has(r));
+		// 押した結果が直感的であること(要件): 1枚でも展開中なら「すべて折りたたむ」を押した
+		// ことになり、全部畳まれているときだけ「すべて展開する」を押したことになる。
+		setAllRowsCollapsed(!allCollapsed);
+		updateCollapseToggleButtonLabel();
+	});
+
 	// カード追加処理を1箇所にまとめる(通常の追加タイルと、0件時の空状態内CTAの両方から呼ぶ。
 	// ラウンド3 B-5参照)。
 	function addNewRowAndFocus(): void {
@@ -2370,6 +2695,12 @@ if (opponentNotesSection) {
 	}
 
 	function rebuildRowsList(): void {
+		// UI改善ラウンド36ユーザー指示(36-3)「相手が0件のときはツールバー自体が意味を
+		// 持たない」→ 🔴 38-H1でヘッダーの単一ボタンに統合した後も同じ考え方を踏襲し、
+		// 0件のときはボタンをdisabledにする(updateCollapseToggleButtonLabel内)。
+		// 行の追加・削除のたびに「全部畳まれているか」の判定結果が変わりうるため、ここでも
+		// 呼び直す。
+		updateCollapseToggleButtonLabel();
 		damageRowsListEl.innerHTML = "";
 		if (rows.length === 0) {
 			damageRowsListEl.appendChild(buildEmptyState());

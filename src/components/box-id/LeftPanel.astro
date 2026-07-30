@@ -111,7 +111,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 					<div class="top-block-icon-info">
 						<div class="top-block-item-display">
 							<span id="item-image-badge" class="item-image-badge" hidden>
-								<img id="item-image" class="item-image" width="24" height="24" alt="" style="display:none;" />
+								<img id="item-image" class="item-image" width="30" height="30" alt="" style="display:none;" />
 							</span>
 							<span id="item-name-display" class="item-name-display"></span>
 						</div>
@@ -275,22 +275,44 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		    同じ定石)。ラウンド23ユーザー指示(23-L4)「技の選択ボックスの枠色をタイプごとに
 		    変えない」により、border-colorをタイプ色にしていたupdateMoveTypeColor()は
 		    関数ごと削除した(タイプアイコンで足りるため)。枠色は他の入力欄と同じ既定色。 */}
+		{/* UI改善ラウンド38ユーザー指示(38-L1)「技の順番をドラッグアンドドロップで入れ替え」。
+		    各技入力欄の右端に専用のドラッグハンドル(.move-drag-handle)を追加する。
+		    ハンドルを入力欄自体ではなく別要素にした理由: 入力欄自体をdraggable/pointerの
+		    起点にすると、ラウンド37の技選択ウィンドウ(setupMovePickerWindow、
+		    input.mousedownでopenPicker)やテキスト選択・キャレット移動と操作が競合する。
+		    ハンドルはinputの兄弟要素(#move-N入力欄自体はDOM上の位置・idを一切動かさない)
+		    なので、input側の既存リスナー(mousedown→openPicker、setupDatalistRefocus等)には
+		    無関係。装飾的なグリップ(CSSのドット格子、下記.move-drag-handle参照)のみで、
+		    aria-hidden="true"にしてスクリンリーダーには公開しない(マウス操作専用の追加手段
+		    という位置づけ。技名の直接入力・技選択ウィンドウはキーボードでも引き続き
+		    全機能利用できるため、代替経路が失われるわけではない)。
+		    並び替えの実装はleft-panel.tsのsetupMoveReorderDrag()参照(値をスワップする方式、
+		    詳細は同関数のコメント)。 */}
 		<div class="field-grid move-fields-grid">
 			{MOVE_SLOTS.map((slot, i) => (
 				<div class="field">
-					<div class="field-with-image move-input-group">
+					<div class="field-with-image move-input-group" data-move-slot={slot}>
 						<span class="move-type-icon" hidden>
 							<img alt="" width="20" height="20" />
 						</span>
 						<input
 							id={`move-${slot}`}
 							type="text"
-							list="move-list"
+							{/* UI改善ラウンド40ユーザー指示(40-L3-1)「技選択テーブル導入後も古い技候補表示
+							    (ブラウザ標準datalist)が残っている」対応。ラウンド37で専用の技選択
+							    ウィンドウ(.move-picker-window、setupMovePickerWindow)を追加したが、
+							    この#move-1〜#move-4の<input>にはlist="move-list"が残ったままだった
+							    ため、ネイティブdatalist候補と専用ウィンドウが同時に表示されていた。
+							    共有の<datalist id="move-list">自体(box/[id].astro側で定義)は
+							    右パネル(相手ビルド)の技入力欄がまだ使用するため削除しない
+							    (168行目付近コメント参照)。左パネルのこの4つの<input>だけ
+							    list属性を外す(右パネル側のinputには一切影響しない)。 */}
 							autocomplete="off"
 							placeholder={`技${slot}`}
 							aria-label={`技${slot}`}
 							value={pokemon.move_names[i] ?? ""}
 						/>
+						<span class="move-drag-handle" aria-hidden="true" title="ドラッグで技の順番を並び替え"></span>
 					</div>
 				</div>
 			))}
@@ -382,13 +404,21 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 							aria-label={`${statLabel}の努力値(スライダー)`}
 							value={statAt(pokemon.evs, i, 0)}
 						/>
+						{/* UI改善ラウンド40ユーザー指示(40-T2)「スピンボックスは上下限で打ち切らず
+						    循環するUIにする」対応。min/max属性を残したままだと、ブラウザ既定の
+						    増減スピナー矢印・ArrowUp/ArrowDownキー・ホイール操作のいずれも上下限で
+						    値を静かに止めてしまい、そもそも範囲外の値でinputイベント自体が
+						    発火しない(実測、Playwright: min/max属性ありのままArrowUpを押しても
+						    値が変化しない)。育成ルール(努力値0〜32)自体は変えないが、
+						    「上下限を超えたら循環させる」挙動はJS側(left-panel.tsのwrapToRange、
+						    pairEvSlider内)でしか実現できないため、あえてmin/max属性を外す
+						    (実際の範囲チェック・保存時のクランプはowned-pokemon-form.tsの
+						    readEv()が引き続き0〜32でクランプするため、育成ルールが破られることはない)。 */}
 						<input
 							id={`ev-${key}`}
 							type="number"
-							min="0"
-							max="32"
 							step="1"
-							aria-label={`${statLabel}の努力値`}
+							aria-label={`${statLabel}の努力値(0から32の範囲を循環します)`}
 							value={statAt(pokemon.evs, i, 0)}
 						/>
 					</div>
@@ -442,6 +472,19 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	   スライダー/数値入力を独立した5列目・4列目に分け、ヘッダ側の「努力値」だけ
 	   grid-column:span 2 でその2列を跨がせることで、実際に数値入力の真上にも
 	   見出しの範囲が届くようにする。 */
+	/* UI改善ラウンド39ユーザー指示(39-L2)「.stat-table配下のテキストフォントを、特性・
+	   アイテム等の入力欄(global.cssの共通フォント)に統一する」への対応。
+	   実測(Playwright、getComputedStyle().fontFamily): #ability(select)・#item/#nickname
+	   (input)・#move-1・#ev-hp(input[type=number])はいずれも
+	   `-apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Kaku Gothic ProN",
+	   "Noto Sans JP", sans-serif`(global.cssのbody指定、input/select/textareaの
+	   font:inheritで継承)。.stat-table配下(#base-hp・#stat-hp・.stat-row-label・
+	   .stat-table-header内のspan・.stat-row-real)も同じ文字列を実測し、両者は既に完全に
+	   一致していた。LeftPanel.astro側のscoped styleにも.stat-table系にfont-familyを
+	   個別指定する規則は元々存在しない(このファイルをgrepしてfont-family宣言が1件も
+	   無いことを確認済み)。そのため「上書きを外す/合わせる」対応が必要な差分自体が
+	   存在しない(=既に統一済み)。今回は測定結果をここに残すだけに留め、CSSの変更は
+	   行わない(将来また同じ疑いで再調査されるのを防ぐため、判断根拠を明記する)。 */
 	.stat-table { display: flex; flex-direction: column; gap: 0.2rem; }
 	/* UI品質改善(ラウンド8 A-4): このヘッダはfont-size:0.78remの上でem指定の
 	   grid-template-columnsを使っていたが、.stat-row側はfont-size指定なし(=1rem)で
@@ -486,13 +529,22 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	   中央に来ない。マークアップを.stat-table-header-ev-label(3列目単独)/
 	   .stat-table-header-ev-remaining(4列目単独)の2つのgridアイテムに分離し、
 	   「努力値」は他の見出しと同じ中央揃えルールに合流させ、「残りN」だけ右寄せを維持することで
-	   見た目上の位置(残りNの右端=努力値数値列の右端)は変えずに「努力値」だけ中央へ動かす。 */
+	   見た目上の位置(残りNの右端=努力値数値列の右端)は変えずに「努力値」だけ中央へ動かす。
+	   🔴 UI改善ラウンド35ユーザー指示(35-L2)「努力値の"残りN"をスピンボックスの中心に揃える」
+	   により、23-L5/24-L4で意図的に据え置いた上記の右寄せ判断を撤回し、text-align: centerへ
+	   変更する。.stat-row側の努力値数値入力(4列目、.stat-row input[type="number"]、
+	   23-L5によりtext-align:centerかつwidth:100%で3.2rem列いっぱいに広がる)と同じ列(4列目)
+	   のこのヘッダも中央揃えにすることで、入力欄の中心x座標と「残りN」テキストの中心x座標が
+	   一致する(実測して確認、報告参照)。 */
 	.stat-table-header-ev-remaining {
-		text-align: right;
+		text-align: center;
 	}
 	/* ラウンド24ユーザー指示(24-L4)対応: 「残りN」(.stat-table-header-ev-remaining)だけを
 	   中央揃え化の対象から除外する。「努力値」(.stat-table-header-ev-label)は他の見出しと
-	   同じ挙動でよいため、あえて:not()の対象に加えない(=下のルールで自動的に中央揃えになる)。 */
+	   同じ挙動でよいため、あえて:not()の対象に加えない(=下のルールで自動的に中央揃えになる)。
+	   🔴 ラウンド35(35-L2)で.stat-table-header-ev-remaining自体もtext-align:centerに
+	   変更したため、結果的にこの:not()による除外は無意味(両方centerになる)になったが、
+	   セレクタ自体は将来また「残りNだけ別扱い」に戻す可能性を考慮しそのまま残す。 */
 	.stat-table-header > span:not(.stat-table-header-ev-remaining) { text-align: center; }
 	/* ラウンド8指摘(A-4): 残りポイントを.stat-table-header-ev側へ移したため、この見出しは
 	   「実数値」の1行だけになった(以前のflex-direction:columnの2行構成を廃止、
@@ -604,14 +656,28 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	   トークンを使っていた実績がある)。新色は作らない。「非選択と一目で区別できる」
 	   (31-L8の要件)は縁取り+塗り色の両方(非選択はfilter:noneかつmuted一色)で引き続き
 	   満たす。ライト/ダーク両方で--scale 3の拡大クロップを撮り、縁取りが背景に沈んでいないか
-	   目視確認する(報告参照)。 */
+	   目視確認する(報告参照)。
+	   🔴 UI改善ラウンド34ユーザー指示(34-L3)「性格補正の上三角(▲)の強調表示が効いていない」
+	   により、上昇側の縁取り色を再修正する。実測(相対輝度からのコントラスト比算出): ライトの
+	   塗り--stat-up(#c9432c、L=0.166)と縁取り--color-danger-strong(#b23a26、L=0.126)は
+	   コントラスト比 約1.23:1 しか無く、ほぼ同じ濃さの隣接色同士でほぼ視認できない
+	   (下降側は塗り--stat-down(#1d6fd1)と縁取り--color-primary-strong(#1a7ea1)で
+	   輝度差が大きく、たまたま識別しやすかった。32-L6の「同系色で強調」という設計意図自体は
+	   維持しつつ、上昇側だけ濃さがほぼ同じという偶然の不具合を直す)。
+	   新色は作らず、同じdanger系統の既存トークンの中から塗りとの輝度差が大きい
+	   --color-danger-soft(ライト#fdece8、L=0.868)を選ぶ。塗りとのコントラスト比は
+	   約4.25:1まで改善する(--color-danger #f8705b も試したが約1.73:1でまだ不足)。
+	   このトークンはダークモードでも既存の32-L6-darkの暫定回避策(下記参照)と同じ値
+	   (rgba(255,139,120,0.16))に自動で切り替わるカスタムプロパティのため、
+	   ダーク専用の@media上書きが不要になった(下記32-L6-darkのブロックごと削除、
+	   ベース定義のvar(--color-danger-soft)がライト/ダーク両方の値を担う)。 */
 	.stat-nature-up[aria-pressed="true"]::before {
 		border-bottom-color: var(--stat-up);
 		filter:
-			drop-shadow(1px 0 0 var(--color-danger-strong))
-			drop-shadow(-1px 0 0 var(--color-danger-strong))
-			drop-shadow(0 1px 0 var(--color-danger-strong))
-			drop-shadow(0 -1px 0 var(--color-danger-strong));
+			drop-shadow(1px 0 0 var(--color-danger-soft))
+			drop-shadow(-1px 0 0 var(--color-danger-soft))
+			drop-shadow(0 1px 0 var(--color-danger-soft))
+			drop-shadow(0 -1px 0 var(--color-danger-soft));
 	}
 	.stat-nature-down[aria-pressed="true"]::before {
 		border-top-color: var(--stat-down);
@@ -620,27 +686,6 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 			drop-shadow(-1px 0 0 var(--color-primary-strong))
 			drop-shadow(0 1px 0 var(--color-primary-strong))
 			drop-shadow(0 -1px 0 var(--color-primary-strong));
-	}
-	/* 🔴 32-L6-dark(前任者の積み残し課題): ダークモードでは global.css:164
-	   `--color-danger-strong: var(--color-danger)` により、上の.stat-nature-upの縁取り色
-	   (--color-danger-strong)がダーク時の塗り色(--stat-up、box/[id].astroの.edit-shellで
-	   `--color-danger` にエイリアス)と完全に一致し、縁取りが塗りに沈んで消える
-	   (.stat-nature-downは--color-primary-strongがダークで--stat-down(#6fb6f7、
-	   --color-primaryとは別値)と食い違ったままなので問題なし)。
-	   新色・新トークンは作らずに解決する: ダークのときだけ縁取り色を同系統の別トークン
-	   --color-danger-soft(rgba(255,139,120,0.16)、global.css:156で定義済みの半透明版)に
-	   差し替える。色相は塗りと同じ(同系色の要件を維持)だが不透明度が違うため、暗い背景
-	   (--color-surface #1c1f28)の上では「塗りより淡いにじみ」として輪郭が視認できる
-	   (ライト側は元のまま--color-danger-strongを使うので変更なし)。@mediaは基本定義より
-	   後ろに書かないと無効化されるため、この位置に置く(pitfalls.md)。 */
-	@media (prefers-color-scheme: dark) {
-		.stat-nature-up[aria-pressed="true"]::before {
-			filter:
-				drop-shadow(1px 0 0 var(--color-danger-soft))
-				drop-shadow(-1px 0 0 var(--color-danger-soft))
-				drop-shadow(0 1px 0 var(--color-danger-soft))
-				drop-shadow(0 -1px 0 var(--color-danger-soft));
-		}
 	}
 	/* HPは性格補正の対象外(クリック不可)。位置を揃えるためのプレースホルダーで、
 	   ::beforeを持たない(=何も描画されない)ため「押せない」ことを見た目でも伝える。 */
@@ -704,22 +749,33 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	   ことで浮いた約64px(下記.top-block-fields参照)をここへ回し、128px→160pxに拡大する
 	   (縦の高さコストは無い=行の高さは元々.top-block-fields側の3行入力で決まっていたため)。
 	   スプライト側は元の余白比率(128px箱に112pxスプライト=片側8px)を保ったまま
-	   160px箱に144pxスプライトへ揃える。 */
+	   160px箱に144pxスプライトへ揃える。
+	   🔴 UI改善ラウンド34ユーザー指示(34-L1)「ポケモンアイコンを+10%」により、
+	   ラウンド32(32-L1)でユーザーが明示した「ポケモンアイコンサイズ変更はなし」を撤回する
+	   (今回はユーザーが再度明示的に拡大を指示しているため)。144px→158px(144×1.1=158.4を
+	   四捨五入)。箱(.species-icon-box)は画像より一回り大きい箱として設計されているため
+	   (従来160px箱-144px画像=片側8px余白)、画像だけ拡大すると余白が1pxしか残らず窮屈になる。
+	   箱側も比例して158+18=176px(片側9px余白、従来とほぼ同じ余白比率)に拡大する。
+	   #species-icon-boxは.top-block-icon-corner(固定幅180px、後述)と横並びで
+	   margin-inline:autoにより残り幅の中で中央寄せされるため、拡大後もこの2要素が
+	   重ならないことをgetBoundingClientRectで実測して確認した(報告参照)。 */
 	.species-icon-box {
 		position: relative;
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		width: 160px;
-		height: 160px;
+		width: 176px;
+		height: 176px;
 		border-radius: var(--radius-md);
 		/* UI改善ラウンド31ユーザー指示(31-L1)「ポケモン画像の背景色を除去」により、
-		   角丸の薄い箱の背景(--color-surface-alt)を撤去する。画像自体は144×144のまま。 */
+		   角丸の薄い箱の背景(--color-surface-alt)を撤去する。画像自体は158×158のまま。 */
 		background: transparent;
 		flex-shrink: 0;
 	}
-	.species-sprite-img { width: 144px; height: 144px; object-fit: contain; }
-	.species-sprite-fallback-lg { width: 144px; height: 144px; font-size: 3.2rem; }
+	.species-sprite-img { width: 158px; height: 158px; object-fit: contain; }
+	/* フォールバック(画像取得失敗時の代替表示)も本体画像と同じ1.1倍率で拡大し、
+	   本体と入れ替わっても箱内のサイズ感が変わらないようにする。 */
+	.species-sprite-fallback-lg { width: 158px; height: 158px; font-size: 3.52rem; }
 
 	/* UI刷新: Pokemon.png レイアウト。上部ブロック(種族/ニックネーム/特性 + アイコン)。
 	   ラウンド4ユーザー指示により性格は表示しなくなった(能力値ラベルのクリックへ移行)。
@@ -731,8 +787,13 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	   により、0.3rem(4.8px)→0.75rem(12px、下のgap値と揃える)へ変更する。この margin-bottom は
 	   .top-block(種族/ニックネーム/特性/性格)と直後の.field-grid.field-grid-single(持ち物/
 	   テラスタル)の間の縦間隔そのものになる(31-L4の対応で.top-block-fields内の各.fieldの
-	   margin-topを0にしたため、この行間はここの一箇所だけで決まる)。 */
-	.top-block { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 0.75rem; }
+	   margin-topを0にしたため、この行間はここの一箇所だけで決まる)。
+	   🔴 UI改善ラウンド34ユーザー指示(34-L2)「種族名〜テラスタイプの縦余白も、技どうしの
+	   縦余白と同じになるように詰める」により、0.75rem(12px)→0.4rem(6.4px、下の
+	   #edit-form .field-grid のgap値と同じ)へさらに詰める。31-L6/32-L4の「間隔を広げる」
+	   判断をこの一点(種族〜テラスタイプの縦間隔)に限り反転させる(技→ステータス間の
+	   margin-bottom(2rem)等、このラウンドの対象外の間隔は変更しない)。 */
+	.top-block { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 0.4rem; }
 	/* ラウンド26ユーザー指示(26-L2)により全幅の下段になったため、空いた横幅を活かして
 	   種族/ニックネーム/特性/性格を2列×2行のグリッドに詰める(以前は.top-block-icon
 	   固定幅と折半する片側カラムの縦1列だった)。狭幅(520px以下)は既存の.field-gridと
@@ -740,11 +801,15 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	   🔴 UI改善ラウンド31ユーザー指示(31-L6)「種族〜テラスタルの入力ボックスのY間隔を詰める」
 	   により、row-gapを0.3rem(4.8px)→0.75rem(12px)に変更する。列内の2行(種族/ニックネーム行→
 	   特性/性格行)の間隔はこのgapだけで決まる(下の.field:first-child撤回参照。修正前は
-	   これに各.fieldの margin-top(--space-2)が積み重なって20.8pxになっていた)。 */
+	   これに各.fieldの margin-top(--space-2)が積み重なって20.8pxになっていた)。
+	   🔴 UI改善ラウンド34ユーザー指示(34-L2)「種族名〜テラスタイプの縦余白も、技どうしの
+	   縦余白と同じになるように詰める」により、row-gapを0.75rem(12px)→0.4rem(6.4px、下の
+	   #edit-form .field-grid のgap値と同じ)へさらに詰める(31-L6の「間隔を広げる」判断を
+	   この一点に限り反転)。列間(column-gap 0.6rem)はこのラウンドの対象外のため変更しない。 */
 	.top-block-fields {
 		display: grid;
 		grid-template-columns: repeat(2, minmax(0, 1fr));
-		gap: 0.75rem 0.6rem;
+		gap: 0.4rem 0.6rem;
 		width: 100%;
 	}
 
@@ -778,11 +843,17 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 
 	/* アイテム/テラスタイプ、技1〜4はカードの横幅に対して2列グリッドのまま維持する。
 	   ラウンド5ユーザー指示によりラベル(A-8で統一した横並びラベル)は撤去し、
-	   placeholder + aria-labelに戻したため、--field-label-widthはもう使わない。 */
+	   placeholder + aria-labelに戻したため、--field-label-widthはもう使わない。
+	   🔴 UI改善ラウンド34ユーザー指示(34-L2)「技ボックス間の縦横スペースを等間隔にして
+	   少し詰める」により、column-gapを0.6rem(9.6px)→0.4rem(6.4px)へ詰め、row-gap(既に
+	   0.4rem=6.4px)と揃える(技ボックスは.move-fields-gridがこの基底クラスをそのまま
+	   継承するため、ここを直接変更する)。.field-grid-single(持ち物/テラス)は1行しか
+	   ないためrow-gapは実質無関係で、column-gapが9.6px→6.4pxへ詰まるだけ(実測して
+	   窮屈になっていないことを確認した。報告参照)。 */
 	#edit-form .field-grid {
 		display: grid;
 		grid-template-columns: repeat(2, minmax(0, 1fr));
-		gap: 0.4rem 0.6rem;
+		gap: 0.4rem 0.4rem;
 		margin-bottom: 0.5rem;
 	}
 	#edit-form .field-grid > .field { margin: 0; }
@@ -986,13 +1057,20 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	   画像を入れられないため、入力欄の左に絶対配置し、input側のpadding-leftで
 	   文字と重ならないようにする(検索欄の虫眼鏡アイコンと同じ定石)。 */
 	#edit-form .move-input-group { position: relative; }
+	/* UI改善ラウンド40ユーザー指示(40-L1)「タイプアイコン+10%」により、共通トークン
+	   --icon-size-sm(20px、他の箇所=アイテム/テラス画像等でも使い回している)自体は
+	   変更せず(他箇所への影響を避ける)、この技タイプアイコンだけ--move-type-icon-size
+	   という専用の変数(20px×1.1=22px)を定義してwidth/heightに使う。padding-left側
+	   (下記.field-with-image.move-input-group > input)も同じ変数を参照するように
+	   揃えることで、アイコンが大きくなった分だけ技名の文字と重ならないよう再計算する。 */
 	#edit-form .move-type-icon {
 		position: absolute;
 		left: 0.55em;
 		top: 50%;
 		transform: translateY(-50%);
-		width: var(--icon-size-sm);
-		height: var(--icon-size-sm);
+		--move-type-icon-size: calc(var(--icon-size-sm) * 1.1);
+		width: var(--move-type-icon-size);
+		height: var(--move-type-icon-size);
 		display: flex;
 		pointer-events: none;
 	}
@@ -1005,9 +1083,43 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		padding: 0.42em 0.6em というshorthandを持ち、classが1つ多い(.field-grid
 		.field-with-imageの2つ+要素結合子)ぶんこちらより詳細度が高いため、後方に書いても
 		padding-leftの値は上書きされない実測結果が出た(技名の先頭文字とアイコンが重なる
-		事故)。セレクタに.field-grid/.field-with-imageを含めて詳細度を同等以上にする。 */
+		事故)。セレクタに.field-grid/.field-with-imageを含めて詳細度を同等以上にする。
+		🔴 ラウンド40(40-L1)でアイコン本体を1.1倍にしたため、ここも同じ計算式
+		(--icon-size-sm * 1.1)に合わせる(20px→22pxぶん、+2pxだけ余裕を広げる)。 */
 	#edit-form .field-grid .field-with-image.move-input-group > input {
-		padding-left: calc(var(--icon-size-sm) + 0.9em);
+		padding-left: calc((var(--icon-size-sm) * 1.1) + 0.9em);
+		/* UI改善ラウンド38(38-L1): 右端に追加したドラッグハンドル(.move-drag-handle、
+		   下記)と技名の文字が重ならないよう、右側にもパディングを確保する。詳細度は
+		   上のpadding-leftと同じ理由(コメント参照)でこのセレクタに揃える必要がある。 */
+		padding-right: calc(14px + 0.9em);
+	}
+	/* UI改善ラウンド38ユーザー指示(38-L1)「技の順番をドラッグアンドドロップで入れ替え」。
+	   ドラッグハンドルはCSSのみで描く簡易グリップ(ドット格子)。装飾要素なので
+	   aria-hidden="true"(マークアップ側)、キーボード操作対象にもしない
+	   (判断根拠は上のマークアップ側コメント参照)。
+	   並び替え中の視覚フィードバック: ドラッグ元(.is-dragging)は半透明化、ドロップ先候補
+	   (.is-drag-over)は既存の他要素のfocus-visibleと同じ色系統(--color-primary、
+	   .stat-nature-btn:focus-visible参照)の点線アウトラインで示す。 */
+	#edit-form .move-drag-handle {
+		position: absolute;
+		right: 0.4em;
+		top: 50%;
+		transform: translateY(-50%);
+		width: 12px;
+		height: 20px;
+		flex-shrink: 0;
+		cursor: grab;
+		background-image: radial-gradient(circle, var(--color-text-muted) 1.1px, transparent 1.3px);
+		background-size: 6px 6px;
+		opacity: 0.55;
+	}
+	#edit-form .move-drag-handle:hover { opacity: 1; }
+	#edit-form .move-input-group.is-dragging { opacity: 0.5; }
+	#edit-form .move-input-group.is-dragging .move-drag-handle { cursor: grabbing; }
+	#edit-form .move-input-group.is-drag-over {
+		outline: 2px dashed var(--color-primary);
+		outline-offset: 2px;
+		border-radius: var(--radius-md);
 	}
 	/* ラウンド21(21-L4)の「読み取り専用のラベル+値のテキスト表示」(<p class="nature-readout">)は
 	   ラウンド23(23-L2)ユーザー指示により<input readonly class="field-control">へ置き換えた
@@ -1190,10 +1302,17 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		   (「こだわりハチマキ」でscrollWidth===clientWidthを実測して確認する)。 */
 		/* UI統一感レビュー(32-U-C1): /boxカードの.card-item-name(600)に対しここは既定の400で
 		   ウェイトが逆転していた。視認性重視で/box側が意図的に太くしているため600に揃える
-		   (サイズ15.04pxとアイコン比は箱の制約が違うため揃えない、と裁定済み)。 */
+		   (サイズ15.04pxとアイコン比は箱の制約が違うため揃えない、と裁定済み)。
+		   🔴 UI改善ラウンド34ユーザー指示(34-L4)「アイテムの画像サイズを+50%して、文字は
+		   入力欄と同じ書式にする」により、32-U-C1の裁定(600への統一)を部分撤回する。
+		   入力欄(#edit-form .top-block-fields .field > input.field-control等)はfont-weightを
+		   指定しておらず既定のnormal(400)のままなので、ここも600→400に戻して「入力欄と
+		   同じ書式」というユーザー指示に合わせる(font-size: 0.94remは元々入力欄と同値で
+		   変更不要)。/boxカード側の.card-item-name(600)は対象ファイル外(box/index.astro)
+		   のため今回は変更しない。 */
 		.item-name-display {
 			font-size: 0.94rem;
-			font-weight: 600;
+			font-weight: 400;
 			color: var(--color-text);
 			max-width: 8.05em;
 			overflow: hidden;
@@ -1312,8 +1431,25 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		   ジャギーの差が実測で判別できないレベルまで縮まった。pixelatedを残しても
 		   実害は無いため(37pxはdeviceScaleFactor:1相当の環境ではほぼ等倍表示になり
 		   pixelatedの有無で見た目が変わらない)、判断が割れた場合の安全側としてそのまま
-		   維持する(判断根拠は報告参照)。 */
-		.item-image { width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; }
+		   維持していた。
+		   🔴 UI改善ラウンド40ユーザー指示(40-L2)「ブーストエナジーのアイコンの模様が
+		   つぶれて見える」により上記の前提を再検証した。実際に取得できる画像アセット
+		   (public/master-data/autocomplete/items.json のspritePath)を実測すると、
+		   270件中210件は末尾ディレクトリ無し(sprites/items/{name}.png)で実解像度30×30
+		   (旧コメントの「32×32相当」はほぼ正しい)だが、gen8/gen9配下の53件
+		   (ブーストエナジー=gen9/booster-energy.png含む)は実解像度160×160の、
+		   輪郭のアンチエイリアス・グラデーションを持つ高精細イラストであり、ドット絵ではない
+		   (実測、Python/PILでダウンロード・サイズ確認)。この160×160画像を31pxまで
+		   縮小する際にimage-rendering: pixelated(最近傍補間を強制)を適用すると、
+		   本来なめらかな輪郭・グラデーションがブロック状に劣化する(実ブラウザ
+		   スクリーンショットで比較、booster-energyの球体・縁取りの縮小結果がpixelatedでは
+		   ギザギザに、autoでは滑らかに描画されることを確認)。これが「模様がつぶれて
+		   見える」の原因と判断する。
+		   一方、30×30のroot直下アイテム(210件)は31pxとほぼ等倍(拡大率1.03倍)のため、
+		   pixelated→autoに変えても実測で見分けが付かないレベルの差しか出ない
+		   (choice-band.pngで同様に比較確認済み)。そのため、pixelatedを外して
+		   autoに統一しても既存の低解像度アイテムを退行させることはない。 */
+		.item-image { width: 100%; height: 100%; object-fit: contain; image-rendering: auto; }
 		/* 持ち物バッジ: 種族アイコン(.species-icon-box)の右下に重ねる絶対配置。
 		   ラウンド23ユーザー指示(23-G1)「アイテム画像の丸枠を廃止し直接表示する」により、
 		   丸枠(border-radius/background/border/box-shadow/padding)を撤去し、画像を直接置く。
@@ -1345,15 +1481,243 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		   (.item-name-display、1.125rem=18px)との比は24/18=1.33倍。 */
 		/* 🔴 UI改善ラウンド32ユーザー指示(32-L3)により、31-L2で持ち物だけの固定値24pxにしていたのを
 		   アイコン規格20px(var(--icon-size-sm)、28-L1〜L6で確定した既存トークン)へ戻す。 */
+		/* 🔴 UI改善ラウンド34ユーザー指示(34-L4)「アイテムの画像サイズを+50%」により、
+		   20px→30pxへ拡大する。共有トークン--icon-size-sm自体は変更禁止(他の20px規格
+		   アイコン=タイプバッジ・テラス画像等に影響するため)、このバッジだけ固定値で
+		   上書きする(31-L2で一度固定値24pxにした前例と同じやり方)。拡大後もコーナー列
+		   (.top-block-icon-corner、幅180px)との重なりが無いことを実測して確認した
+		   (画像30px+gap+アイテム名max-width121px相当の合計約153.5pxで180px以内に収まる。
+		   報告参照)。 */
+		/* 🔴 UI改善ラウンド35ユーザー指示(35-L1)「アイテムアイコン+10%」により、
+		   30px→33px(30×1.1)へ拡大する。共有トークン--icon-size-sm自体は変更しない
+		   (これまでと同じ、このバッジだけの固定値上書き)。拡大後もコーナー列
+		   (.top-block-icon-corner、幅180px)との重なりが無いことを実測して確認した
+		   (画像33px+gap2.4px+アイテム名max-width121.07px相当の合計約156.5pxで
+		   180px以内、余裕23.5px)。
+		   🔴 UI改善ラウンド39ユーザー指示(39-L1)「アイテムアイコンを現在値の95%に縮小」により、
+		   33px→31px(33×0.95=31.35を四捨五入)へ縮小する。他要素との重なり判定は
+		   縮小方向のみでコーナー列(180px)にはさらに余裕ができるため再実測は不要
+		   (拡大時の36-L1〜35-L1の実測結果がそのまま安全側の上限として成立する)。 */
 		.item-image-badge {
-			width: var(--icon-size-sm);
-			height: var(--icon-size-sm);
+			width: 31px;
+			height: 31px;
 			display: flex;
 			align-items: center;
 			justify-content: center;
 			flex-shrink: 0;
 		}
 		.item-image-badge[hidden] { display: none; }
+</style>
+{/* UI改善ラウンド37(37-1〜37-3)「左パネルの技選択の専用ウィンドウ」。
+    #move-1〜#move-4のいずれかにフォーカス/クリックすると、box-id/left-panel.tsの
+    setupMovePickerWindow()がdocument.body直下にdocument.createElement()で組み立てる
+    (4スロット共有の1インスタンス、内部状態でどのスロットに入力中かを管理)。
+    このコンポーネントのAstro scoped <style>は「そのコンポーネントが描画した要素」にしか
+    data-astro-cid-*を付与しないため、JSが動的生成するこのウィンドウ一式には一切効かない
+    (#edit-form .tera-dropdown-list直後のコメント、pitfalls.md「AstroのscopedスタイルはJSで
+    生成した要素に効かない」を参照)。box/[id].astro側の<style is:global>(RightPanel/
+    DamageCalcSection領域)とは無関係な新規ブロックとして、このコンポーネント自身に
+    <style is:global>を新設する(クラス名はすべて.move-picker-*で他コンポーネントの
+    グローバルスタイルと衝突しないようにした)。
+    🔴 37-1の要件「ダメージカードと一部被るが、背後にそのまま置いておく」への対応。
+    round-37.mdの指示どおりまず`position:fixed; z-index:-1`で実装し、Playwrightで実機検証
+    したところ致命的な罠が実測で見つかったため、z-indexの与え方を1回撤回して設計し直した
+    (経緯を残す。同じ罠にまた落ちないため必ず読むこと):
+    - 【当初案とその失敗】z-index:-1をdocument.body直下のこのウィンドウに与えたところ、
+      技入力欄をクリックしてもトグルスイッチ1つクリックできない(Playwrightの
+      page.click()が30秒timeoutで失敗)という致命的な状態になった。原因を
+      document.elementFromPointで調査したところ、`.edit-layout-right`(box/[id].astro側、
+      DamageCalcSectionを包むグリッド列。position指定を一切持たない通常フロー要素)が
+      クリックを奪っていた。
+    - 【原因】CSS2.1 Appendix Eのスタッキング順(背面から前面へ): (1)背景 (2)負のz-index
+      (3)position指定のない通常フロー要素 (4)float (5)インライン (6)position指定
+      +z-index:auto/0の要素 (7)正のz-index。`.card-damage`自体は`position:relative`
+      (z-index:auto、DamageCalcSection.astro内で削除ボタンのabsolute配置の基準にするため
+      既に設定されている)なので実は(6)に属し、(2)の自ウィンドウより確実に前面になる
+      (これは要件どおり)。しかし`.edit-layout-right`(カードを包む1frのグリッド列。
+      左右padding付きで実質ビューポート右側の全域を占める)はposition未指定=(3)に属し、
+      (3)は(2)より前面。つまり「カードの手前に見える」だけでなく「カードが描画されて
+      いない`.edit-layout-right`の余白部分」まで丸ごと(2)の自ウィンドウより前面になり、
+      ウィンドウの実質ほぼ全域(технически右カラムに重なる範囲すべて)がクリック不能になった。
+      `.edit-layout-right`はbox/[id].astro側の編集禁止ファイルにあり、position指定を
+      追加できない。
+    - 【解決】z-index:-1をやめ、z-index指定なし(auto)のままにする。
+      `position:fixed`だけで既に(6)「position指定+z-index:auto」に属するため、
+      `.edit-layout-right`(3)には確実に勝つ(=重ならない領域で操作可能)。
+      `.card-damage`(同じく(6))とは同一区分内のDOM順で前後が決まる仕様のため、
+      このウィンドウをdocument.bodyの**先頭の子**として挿入する(<script>のsetupMovePickerWindow
+      内、insertBefore(el, body.firstChild)参照)。box/[id].astro側でSSR済みの
+      `.edit-shell`(→`.card-damage`を含む)は必ずこのウィンドウより後にDOMへ現れるため、
+      同区分内のDOM順比較でウィンドウが常に先(=背面)になり、「カードと重なる部分は
+      カードが前面」を満たしたまま、「重ならない部分はウィンドウが操作可能」も両立する
+      (`.app-topbar`z-index:20/`.app-sidebar`z-index:30等の明示的な正のz-index要素は
+      区分(7)のためこのウィンドウより常に前面のままで無関係)。
+    - fixedを選んだ理由: containing blockを.panel-left等の中間要素に依存させず
+      (position:relativeを与えるだけでは新しいstacking contextにならないため祖先を
+      辿る不確実性が残る)、document.body直下+fixedにすることでスタッキング上の祖先を
+      html/body(いずれもposition/transform/filter/opacityを持たないことをglobal.cssで
+      確認済み)だけに単純化した。
+    - 実測確認(Playwright、document.elementFromPointで実施): カードと重なる領域では
+      `.card-damage`(またはその子孫)が取得され(=カードが前面)、重ならない右側の
+      はみ出し領域では`#move-picker-window`配下の要素が取得される(=操作可能)ことを
+      確認した。トグル/フィルタ/ソート/行クリックのPlaywright実機操作もすべて成功した
+      (実装報告参照)。
+    - .move-picker-window自体は`display:flex`を持つため、[hidden]属性だけではUAの
+      `display:none`がこのdisplay:flexに詳細度で負ける(pitfalls.md既知の罠、このファイル内の
+      .move-type-icon[hidden]等と同じパターン)。`.move-picker-window[hidden]`で明示的に
+      display:noneを上書きする。
+    🔴 UI改善ラウンド38追記: 上記のz-index/DOM順によるスタッキング設計自体はそのまま有効だが、
+    37-1実装時点の「.panel-leftの右端(=ダメージカード列の真上)に外付けする」という水平位置の
+    決め方には別の致命的な不具合があった(ダメージカードが複数枚あると実質ウィンドウの
+    大部分が操作不能になる。round-37.md「実装中に見つかったバグ」節参照)。ラウンド38で
+    水平位置の決め方を「.panel-left自体の列に重ねる(position:staticなのでこのウィンドウが
+    常に前面になる)」へ変更した。詳細な実測値・ジオメトリの説明はsrc/lib/box-id/left-panel.ts
+    の reposition() 直前のコメントに集約したので、位置計算を読む場合はそちらを参照。 */}
+<style is:global>
+	.move-picker-window {
+		position: fixed;
+		/* z-indexは明示的に指定しない(auto)。理由はこのブロック直前のコメント参照
+		   (position:fixed + z-index:autoのままCSS区分(6)に属させ、`.edit-layout-right`等の
+		   position未指定な通常フロー要素(区分(3))には確実に勝ち、`.card-damage`
+		   (同じく区分(6)、position:relative)とはDOM順で決まる背面側にする)。 */
+		display: flex;
+		flex-direction: column;
+		background: var(--color-surface);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-md);
+		box-shadow: var(--shadow-md);
+		overflow: hidden;
+	}
+	.move-picker-window[hidden] { display: none; }
+
+	.move-picker-header {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		padding: 0.6rem 0.8rem;
+		border-bottom: 1px solid var(--color-border);
+		flex-shrink: 0;
+	}
+	.move-picker-title {
+		font-weight: 700;
+		font-size: var(--font-size-sm);
+		color: var(--color-text);
+		flex: 1 1 auto;
+		white-space: nowrap;
+	}
+	.move-picker-toggle {
+		display: flex;
+		align-items: center;
+		gap: 0.35rem;
+		font-size: var(--font-size-xs);
+		color: var(--color-text-muted);
+		white-space: nowrap;
+		cursor: pointer;
+	}
+	.move-picker-toggle input { cursor: pointer; }
+	.move-picker-close {
+		flex-shrink: 0;
+		width: 24px;
+		height: 24px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		border: none;
+		background: transparent;
+		color: var(--color-text-muted);
+		font-size: 1.1rem;
+		line-height: 1;
+		cursor: pointer;
+		border-radius: var(--radius-sm);
+	}
+	.move-picker-close:hover { background: var(--color-surface-alt); color: var(--color-text); }
+	.move-picker-close:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 1px; }
+
+	.move-picker-note {
+		margin: 0;
+		padding: 0.5rem 0.8rem;
+		font-size: var(--font-size-xs);
+		color: var(--color-text-muted);
+		border-bottom: 1px solid var(--color-border);
+		flex-shrink: 0;
+	}
+
+	.move-picker-table-wrap {
+		overflow-y: auto;
+		flex: 1 1 auto;
+		min-height: 0;
+	}
+	.move-picker-table {
+		width: 100%;
+		border-collapse: collapse;
+		font-size: var(--font-size-xs);
+	}
+	.move-picker-table thead th {
+		position: sticky;
+		top: 0;
+		background: var(--color-surface);
+		border-bottom: 1px solid var(--color-border);
+		padding: 0.35rem 0.4rem;
+		text-align: left;
+		vertical-align: top;
+		z-index: 1;
+	}
+	.move-picker-th { display: flex; }
+	.move-picker-th-filter { margin-top: 0.25rem; }
+	.move-picker-th-filter input,
+	.move-picker-th-filter select {
+		width: 100%;
+		min-width: 0;
+		font-size: var(--font-size-xs);
+		padding: 0.2em 0.3em;
+		box-sizing: border-box;
+	}
+	.move-picker-sort-btn {
+		display: flex;
+		align-items: center;
+		gap: 0.2rem;
+		border: none;
+		background: transparent;
+		color: var(--color-text);
+		font-weight: 700;
+		font-size: var(--font-size-xs);
+		padding: 0;
+		cursor: pointer;
+		white-space: nowrap;
+	}
+	.move-picker-sort-btn:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 1px; }
+	.move-picker-sort-btn::after {
+		content: "⇅";
+		color: var(--color-text-muted);
+		font-size: 0.85em;
+	}
+	.move-picker-sort-btn.is-active::after {
+		content: "▲";
+		color: var(--color-primary);
+	}
+	.move-picker-sort-btn.is-active[data-sort-dir="desc"]::after {
+		content: "▼";
+	}
+	.move-picker-table tbody td {
+		padding: 0.3rem 0.4rem;
+		border-bottom: 1px solid var(--color-border);
+		color: var(--color-text);
+	}
+	.move-picker-cell-num { text-align: right; font-variant-numeric: tabular-nums; }
+	.move-picker-cell-type { display: flex; align-items: center; gap: 0.3rem; white-space: nowrap; }
+	.move-picker-type-icon { flex-shrink: 0; border-radius: 50%; }
+	.move-picker-row { cursor: pointer; }
+	.move-picker-row:hover { background: var(--color-surface-alt); }
+	.move-picker-row.is-selected { background: color-mix(in srgb, var(--color-primary) 18%, transparent); }
+	.move-picker-row:focus-visible { outline: 2px solid var(--color-primary); outline-offset: -2px; }
+
+	.move-picker-empty {
+		margin: 0;
+		padding: 1rem;
+		text-align: center;
+		color: var(--color-text-muted);
+		font-size: var(--font-size-sm);
+	}
 </style>
 <script>
 	import "../../lib/box-id/left-panel";
