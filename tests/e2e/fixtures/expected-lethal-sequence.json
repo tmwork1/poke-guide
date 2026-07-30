@@ -634,6 +634,120 @@
       "max": 28
     }
   },
+  "lethal_seq_defender_multiscale_second_hit": {
+    "lethal": [
+      {
+        "attackCount": 1,
+        "probability": 0.0
+      },
+      {
+        "attackCount": 2,
+        "probability": 0.0
+      }
+    ],
+    "perAttackDamages": [
+      [
+        7,
+        8,
+        9
+      ],
+      [
+        7,
+        8,
+        9
+      ]
+    ],
+    "perAttackLethal": [
+      [
+        {
+          "attackCount": 1,
+          "probability": 0.0
+        },
+        {
+          "attackCount": 2,
+          "probability": 0.0
+        },
+        {
+          "attackCount": 3,
+          "probability": 0.0
+        },
+        {
+          "attackCount": 4,
+          "probability": 0.0
+        },
+        {
+          "attackCount": 5,
+          "probability": 0.0
+        },
+        {
+          "attackCount": 6,
+          "probability": 0.0
+        },
+        {
+          "attackCount": 7,
+          "probability": 0.0
+        },
+        {
+          "attackCount": 8,
+          "probability": 0.0
+        },
+        {
+          "attackCount": 9,
+          "probability": 0.0
+        },
+        {
+          "attackCount": 10,
+          "probability": 0.0
+        }
+      ],
+      [
+        {
+          "attackCount": 1,
+          "probability": 0.0
+        },
+        {
+          "attackCount": 2,
+          "probability": 0.0
+        },
+        {
+          "attackCount": 3,
+          "probability": 0.0
+        },
+        {
+          "attackCount": 4,
+          "probability": 0.0
+        },
+        {
+          "attackCount": 5,
+          "probability": 0.0
+        },
+        {
+          "attackCount": 6,
+          "probability": 0.0
+        },
+        {
+          "attackCount": 7,
+          "probability": 0.0
+        },
+        {
+          "attackCount": 8,
+          "probability": 0.0
+        },
+        {
+          "attackCount": 9,
+          "probability": 0.0
+        },
+        {
+          "attackCount": 10,
+          "probability": 0.0
+        }
+      ]
+    ],
+    "cumulativeDamage": {
+      "min": 22,
+      "max": 27
+    }
+  },
   "lethal_seq_early_termination": {
     "lethal": [
       {

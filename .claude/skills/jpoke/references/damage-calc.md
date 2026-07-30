@@ -1,7 +1,7 @@
 # jpoke ダメージ計算の契約
 
-**検証時点**: jpoke v0.2.0 (`vendor/jpoke`) / 2026-07-27(§7追記時点でvendor更新済み)
-**上流リポジトリの参照コミット**: 3dd183ee5 (`../jpoke`、PR#355 `fix/lethal-fixed-damage-moves` マージ後。vendor/jpokeもこの時点のsrcと完全一致)
+**検証時点**: jpoke v0.2.0 (`vendor/jpoke`) / 2026-07-27(§7追記時点でvendor更新済み)。§10は2026-07-30に`resume_from`追加取り込み時点で追記・再検証済み。
+**上流リポジトリの参照コミット**: 3dd183ee5 (`../jpoke`、PR#355 `fix/lethal-fixed-damage-moves` マージ後。vendor/jpokeもこの時点のsrcと完全一致)。2026-07-30時点、上流はCHANGELOG.mdの`[Unreleased]`に`resume_from`追加(バージョン番号は0.2.0のまま据え置き)。
 
 > このファイルは `vendor/jpoke` のコードを読んで書いた要約です。**すべての事実に出典(ファイル:行)を付けること。**
 > 出典の無い記述は次に読むエージェントが信用できないため、書かないでください。
@@ -164,9 +164,19 @@
 - **パラドックス特性が上昇させる能力の決定式**: 「ランク補正込みの実数値が最も高い能力」を選ぶ(HP除く5能力、同値時はA>B>C>D>Sの順)。ワンダールーム下では防御/特防を入れ替えて比較する(出典: `vendor/jpoke/src/jpoke/handlers/ability_paradox.py:16-41`)。**この能力は物理/特殊いずれか、あるいは素早さになることもある**。素早さが最大値になる努力値配分では、パラドックス補正はダメージ計算に一切寄与しない(素早さの1.3倍はダメージにもHPにも影響しない)。実機検証: ハバタクカミ(こだいかっせい/ブーストエナジー、努力値C32S32、実数値187-155-205)は`paradox_boost_stat == "spe"`(素早さ)になり、フレアドライブ(物理)のダメージにも自身の特防にも影響しない。
 - **メガランチャー(パルス技1.5倍)は`subject_spec="attacker:self"`固定**(出典: `vendor/jpoke/src/jpoke/data/ability.py:3415-3422`)。**特性の持ち主が攻撃側のときにしか発動しない**。防御側として登場する場面(例: メガカメックスが技を受ける側)では、あくのはどう等のパルス技を受けてもメガランチャーは一切関与しない。
 
-## 上流との差分(2026-07-27、PR#355取り込み後)
+## 10. `calc_lethal`の`resume_from`引数(2026-07-30追加。技列の複数攻撃をまたぐ状態継続)
 
-- `vendor/jpoke/src` と `../jpoke/src` を `diff -rq` で比較した結果、ビルド生成物(`__pycache__`/`jpoke.egg-info`)を除き**一致**。両方とも `version = "0.2.0"`(バージョン番号は据え置きのまま機能追加された点に注意。`pyodide-engine.ts`のwheel URLハードコードは変更不要だった)。
+**背景**: poke-commonsの`calc_lethal_sequence_json`(技列全体の累計致死率・ダメージ計算)は、攻撃1件ごとに専用の`Battle`をフルHPから新規構築する設計(§9参照、per-attack条件の独立性を保つため)。この設計だと、防御側が`full_hp_damage_modifier`フラグ(マルチスケイル等、出典: §9)を持つ場合、**2発目以降も「HP満タン」と誤認識され続け、本来1発目にしか乗らないはずのダメージ補正が毎回かかり続けるバグ**があった。`Battle.calc_lethal()`に`resume_from: LethalHitResult | None`引数を追加してこれを解決した(出典: `vendor/jpoke/src/jpoke/core/battle.py:470-522`、実装本体`vendor/jpoke/src/jpoke/core/lethal.py:167-241`)。
+
+- **契約**: `resume_from`に前の`calc_lethal()`呼び出しの`results[-1]`を渡すと、フルHPからの新規計算ではなく、その`LethalHitResult`が表す状態から計算を再開する。引き継がれるのは`initial_hp`(チェーン全体の起点HP)・`hp_dist`(分岐ごとの特性/道具消費フラグ込み)・`attack_count`(後続攻撃回数へのオフセット)の3つのみ。**攻撃側・防御側のランク補正(`boosts`)・状態異常・揮発性状態はいずれも引き継がれない**(jpoke側の既知の制約、出典: 同ファイルdocstring)。`resume_from`指定時、`defender.hp`はループ開始前に`min(state.value for state in hp_dist)`へ同期される(出典: `lethal.py:224-226`)。
+- **戻り値は新規計算したヒット分のみ**: `resume_from`自体やそれ以前の履歴は返り値の`list[LethalHitResult]`に含まれない。呼び出し側で必要なら`resume_from`の元リストと連結する(出典: 同docstring)。
+- **単調性クランプが内部で完結する**: `resume_from`経由で継続した`hp_dist`は、`_apply_damage`/`_apply_damage_by_branch`が`subtract_dist(..., minimum=0)`を使っているため常に0未満にならない(出典: `lethal.py:442,484,490`)。これは`LethalHitResult.__add__`(`subtract_dist`に`minimum`を渡さない別経路、出典: `lethal.py:98-99`)とは異なる。**`resume_from`ベースの継続では、poke-commons側が独自に実装していた`_clamp_hp_dist_min0`ワークアラウンド(`pyodide-engine.ts`)が不要になる**(`__add__`を使う箇所にだけ引き続き必要)。
+- **`State`データクラスの簡略化**: この変更に合わせて`jpoke.utils.lethal_dist.State`から`attacker_boosts`/`attacker_ailment`/`defender_boosts`/`defender_ailment`フィールドが削除された(出典: `vendor/jpoke/src/jpoke/utils/lethal_dist.py`、旧版は「その枝が観測された時点のポケモン状態を分岐ごとに保持する」設計だったが、`resume_from`という呼び出し側完結の仕組みに置き換わり不要になった)。**この変更は型エラーにならず実行時エラーになる**(`State(...)`に存在しないキーワード引数を渡すと`AttributeError`ではなく`TypeError`、既存の`State`インスタンスから無いフィールドを読むと`AttributeError`)。実際に`pyodide-engine.ts`の`_clamp_hp_dist_min0`がこの4フィールドをコピーする実装のまま残っていたため、vendor更新直後に`AttributeError: 'State' object has no attribute 'attacker_boosts'`で全`calc_lethal_sequence_json`呼び出しが壊れた(2026-07-30、`tests/e2e/fixtures/generate_expected.py`実行時に検出)。**vendor更新時はこの手のフィールド削除がないか、`State`を直接触っているpoke-commons側コード(`pyodide-engine.ts`の`_clamp_hp_dist_min0`等)を必ず確認すること**。
+- **poke-commons側の適用**: `calc_lethal_sequence_json`(`pyodide-engine.ts`)は攻撃ごとに`attack_battle.calc_lethal()`を**2回**呼ぶようになった。`resume_from`未指定の`isolated`呼び出し(perAttackDamages/perAttackLethal=「この技カード単体を見た場合」用、意図的にフルHP前提のまま)と、前の攻撃の結果を`resume_from`に渡す`sequential`呼び出し(lethal/cumulativeDamage=技列全体の累計用)を分けている。同じ`attack_battle`に対して`resume_from`の有無だけを変えて2回呼んでも、`calc_lethal()`が呼び出しごとに`battle`を`deepcopy`するため干渉しない(出典: `lethal.py:210-211`)。
+
+## 上流との差分(2026-07-30、resume_from取り込み後)
+
+- `vendor/jpoke/src` と `../jpoke/src` を `diff -rq` で比較した結果、ビルド生成物(`__pycache__`/`*.egg-info`)を除き**一致**。両方とも `version = "0.2.0"`(2026-07-27時点から据え置きのまま、`resume_from`含め機能追加された。上流CHANGELOG.mdは`[Unreleased]`扱い)。
 - 上流 `docs/quick_reference.md` には丸め順序・`round_half_down`の定義・急所率テーブルなど本ファイルの核心部分の記載が見当たらず、突き合わせによる差分検出はできなかった。
 
 ## 未確認(コードで確認できなかった項目)

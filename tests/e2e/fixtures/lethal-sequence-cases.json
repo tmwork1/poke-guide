@@ -90,6 +90,19 @@
     "field": {}
   },
   {
+    "id": "lethal_seq_defender_multiscale_second_hit",
+    "description": "2026-07-30修正の回帰確認: 防御側マルチスケイル(HP満タン時ダメージ半減)持ちに同じ技を2連続で当てたとき、2発目はresume_fromでHPが満タンでないと正しく認識され、半減がかからないこと(以前は毎回フルHPの専用Battleを作り直していたため2発目も誤って半減されていた): ピカチュウ「でんきショック」を2連続 vs カイリュー(マルチスケイル)",
+    "attacker": { "name": "ピカチュウ", "moveNames": ["でんきショック"] },
+    "defender": { "name": "カイリュー", "abilityName": "マルチスケイル" },
+    "attacks": [
+      { "moveName": "でんきショック" },
+      { "moveName": "でんきショック" }
+    ],
+    "seed": 7,
+    "critical": false,
+    "field": {}
+  },
+  {
     "id": "lethal_seq_early_termination",
     "description": "累計致死率が100%に達した時点でlethal配列が打ち切られる(attacksより短くなり得る)ことの確認: ピカチュウ(ちからもち・急所固定)「たいあたり」を5回連続 vs ピカチュウ",
     "attacker": { "name": "ピカチュウ", "abilityName": "ちからもち", "moveNames": ["たいあたり"] },

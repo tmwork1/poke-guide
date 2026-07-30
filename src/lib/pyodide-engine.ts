@@ -229,6 +229,14 @@ export interface CalcLethalSequenceResult {
    * 打ち切り、それ以降の attacks は計算されない(配列は attacks より短くなり得る)。
    * 部分的な致死可能性(確率が0%より大きく100%未満)だけでは打ち切らず、
    * 生存分岐に対して後続の攻撃を計算し続ける。
+   *
+   * 2026-07-30時点: 各攻撃は`battle.calc_lethal()`の`resume_from`引数
+   * (jpoke側にこの日に追加された機能)で前の攻撃終了時点のHP状態を引き継いで
+   * 計算する(BOOTSTRAP_PYTHON内`calc_lethal_sequence_json`の`sequential_hits`
+   * 参照)。これにより、防御側がマルチスケイル等の「HPが満タンかどうか」で
+   * ダメージが変わる特性を持つ場合でも、2発目以降で正しく「満タンではない」
+   * 状態として計算される(以前は攻撃ごとに専用Battleを毎回フルHPから作り直す
+   * 実装だったため、2発目以降も誤ってマルチスケイル等が発動し続けるバグがあった)。
    */
   lethal: LethalResult[];
   /**
@@ -253,11 +261,13 @@ export interface CalcLethalSequenceResult {
   /**
    * 攻撃列を先頭から実際に合成した(`lethal`と同じ範囲の)累計ダメージの
    * 厳密な最小値・最大値。各攻撃の最小同士・最大同士を単純加算した近似値ではなく、
-   * `LethalHitResult.__add__` による分布合成から求めた値。
+   * `resume_from` で引き継いだ各攻撃の `damage_dist`(全ヒット分を`add_dist`で
+   * 畳み込み済み)をさらに攻撃列ぶん`add_dist`で合成した値(2026-07-30以前は
+   * `LethalHitResult.__add__` で独立計算した結果同士を合成していたが、`lethal`と
+   * 同じ理由で`resume_from`ベースに切り替えた)。
    *
    * 重要: これは「与えた打点の合計」であり、**たべのこし等の回復やどく・やけどの
-   * 継続ダメージは含まない**。`__add__` が合成するのは `damage_dist`(そのヒットで
-   * 与えたダメージの分布)であり、jpokeはターン終了時処理を `hp_dist` 側にしか
+   * 継続ダメージは含まない**。jpokeはターン終了時処理を `hp_dist` 側にしか
    * 反映しないためである(実測で確認: たべのこし持ちの相手に8発当てたとき、
    * `lethal` は明確に下がるが `cumulativeDamage` は持ち物なしと同一の264〜312になる)。
    * 回復・継続ダメージまで含んだ「実際に倒せるか」は `lethal` 側にのみ現れるので、
@@ -623,10 +633,6 @@ def _clamp_hp_dist_min0(hp_dist):
                 value=0,
                 ability_enabled=state.ability_enabled,
                 item_enabled=state.item_enabled,
-                attacker_boosts=state.attacker_boosts,
-                attacker_ailment=state.attacker_ailment,
-                defender_boosts=state.defender_boosts,
-                defender_ailment=state.defender_ailment,
             )
         result[state] = result.get(state, 0) + freq
     return result
@@ -690,9 +696,8 @@ def calc_lethal_sequence_json(attacker_spec, defender_spec, attacks, seed, criti
     'mon.terastallize()'・'battle.activate_side_field()'はいずれも「設定する」
     方向にしか効かないAPIのため、1つのBattleを使い回すと「2発目でテラスタルを
     解除する」「2発目で壁を消す」といった、後続の攻撃で状態を弱める方向の変化を
-    一切表現できない。Battleを作り直せば各攻撃が完全に独立した初期状態(同じ
-    defender_specから組み立てた満タンHPの防御側)から計算されるため、この制約が
-    まるごと消える。
+    一切表現できない。Battleを作り直せば各攻撃が完全に独立した初期状態から
+    計算できるため、この制約がまるごと消える。
 
     重要(2): 当初はjpokeの'Battle.calc_lethal()'に攻撃列全体を(技, ヒット数)の
     リストとしてそのまま渡し、max_attack=1で「1周だけ」実行させる実装にしていたが、
@@ -703,45 +708,61 @@ def calc_lethal_sequence_json(attacker_spec, defender_spec, attacks, seed, criti
     1発目の技だけで一部の乱数が既に致死する組み合わせで2発目以降が計算されない
     ことがあった。
 
-    しかし本関数は「攻撃1件につき、その攻撃専用のBattle上でcalc_lethalを
-    max_attack=1で1回だけ呼ぶ」構成であるため、上記バグは構造的に発生し得ない
+    本関数は「攻撃1件につき、その攻撃専用のBattle上でcalc_lethalを
+    max_attack=1で呼ぶ」構成であるため、上記バグは構造的に発生し得ない
     ('_lethal_loop'の'ctx_list'は常に1要素=1つの技(のヒット数タプル)のみであり、
     「異なる技が複数まとめて渡され、どれか1つの致死でまとめて打ち切られる」状況が
     そもそも起こらない。加えて'_lethal_loop'は'results.append(result)'の**後**に
     致死判定するため、1回の呼び出しは常に1件以上の結果を返す)。
 
-    攻撃をまたぐ累計は、各攻撃を独立に計算した'LethalHitResult'を
-    'LethalHitResult.__add__'で合成することで求める('jpoke/src/jpoke/core/lethal.py'
-    参照。'other.initial_hp - other.hp_dist'を「合成される側が実際に受けた
-    ダメージ分布」とみなして'self.hp_dist'から差し引くため、2つの結果が別々の
-    Battle上で独立に計算されていても正しく合成できる)。これにより、'calc_lethal()'
-    が内部で行うターン終了時処理(たべのこし回復・どく/やけどの継続ダメージ)や
-    ON_APPLY_DAMAGE系ハンドラ(がんじょう・きあいのタスキ等のHP1耐え)が、
-    以前の自前HP分布積算(to_dist/subtract_dist)方式では反映されていなかったのに対し、
-    本方式では正しく反映されるようになる。
+    重要(3・2種類の計算を分けて行う理由。2026-07-30改修): 攻撃1件につき
+    'attack_battle.calc_lethal()'を**2回**呼ぶ。同じ'attack_battle'に対して
+    'resume_from'の有無だけを変えて呼んでも、'calc_lethal()'は呼び出しのたびに
+    battleをdeepcopyするだけで干渉しない。
+      - 'isolated'(resume_from未指定・常にフルHPから計算): perAttackDamages/
+        perAttackLethal(「この技カード単体を見た場合」のカード表示用参考値)専用。
+        この2つは技列の中での位置に関わらず「この技だけを使ったら」を表す値なので、
+        意図的にフルHP前提のまま変更しない。
+      - 'sequential'(前の攻撃終了時点のLethalHitResultを'resume_from'に渡す):
+        lethal/cumulativeDamage(技列を先頭から実際に当てていった累計)専用。
 
-    重要(3・単調性クランプ): 'LethalHitResult.__add__'が内部で呼ぶ'subtract_dist'は
-    minimumを指定せずクランプしない。そのため、既にHP=0(致死済み)の枝を含む
-    結果にさらに攻撃を'__add__'で合成すると、その枝のHPが負の値になり得て
-    「HP=0の頻度」から外れてしまい、致死率が後続の攻撃で見かけ上下がる
-    (一度死んだ枝が復活したように見える)非単調な不具合が生じる(実測で確認済み)。
-    このため'_clamp_hp_dist_min0'を各合成の直後に適用し、HPを0未満にクランプする
-    ことで「一度致死した枝は致死したまま」という単調性を保証している
-    (perAttackLethalの自己合成・lethalの攻撃間合成の両方に適用)。
+    'resume_from'はjpoke側にこの日('2026-07-30')追加された機能
+    ('jpoke/src/jpoke/core/lethal.py'の'calc_lethal()'引数、
+    'Battle.calc_lethal()'から委譲)で、フルHPからの新規計算ではなく、渡した
+    'LethalHitResult'の'initial_hp'・'hp_dist'(分岐ごとの特性/道具消費フラグ込み)・
+    'attack_count'から計算を再開できる。防御側が「HPが満タんかどうか」でダメージが
+    変わる特性(マルチスケイル等、'full_hp_damage_modifier'フラグ)を持つ場合、
+    以前の実装(攻撃ごとに毎回フルHPの新規Battleでcalc_lethalする)では2発目以降も
+    「HP満タン」と誤認識され続け、本来2発目では発動しないはずのダメージ減少が
+    かかり続けるバグがあった(実測で確認済み: マルチスケイル持ちの防御側に対する
+    スケイルショット2連続で、2発目のダメージが誤って半減されたままだった)。
+    'resume_from'は防御側の'hp_dist'を正しく引き継ぐため、'_calc_damage_dist()'の
+    「'hp_dist'に満タン枝が残っているか」判定が2発目以降で正しく「残っていない」に
+    倒れ、この誤発動が解消される。'resume_from'は'hp_dist'のみを引き継ぎ、
+    攻撃側・防御側のランク補正/状態異常/揮発性状態は引き継がない(jpoke側の既知の
+    制約。ただし本関数はそれらを毎攻撃'_build_per_attack_spec'で明示的に組み立て直す
+    ため、この制約と衝突しない)。
 
-    重要(4・打点(damage)とHP(hp_dist)は別系統で扱う): 'LethalHitResult.damage_dist'は
+    重要(4・単調性クランプはisolated側にのみ必要): 'jpoke/core/lethal.py'内部の
+    'subtract_dist'呼び出しは全て'minimum=0'を指定しており('_apply_damage'/
+    '_apply_damage_by_branch'参照)、'calc_lethal()'(resume_from経由の合成も含む)が
+    返す'hp_dist'は常に0未満にならない。そのため'sequential'側(lethal/
+    cumulativeDamageの元になる'sequential_result')はクランプ不要になった
+    (2026-07-30改修前は'LethalHitResult.__add__'内部の'subtract_dist'が
+    'minimum'を指定しない別経路だったため、'_clamp_hp_dist_min0'が必須だった)。
+    一方'perAttackLethal'の「同じ技を自分自身に'__add__'で繰り返し加算する」自己合成
+    (下記'repeat_acc')は引き続き'__add__'経由のため、'_clamp_hp_dist_min0'を
+    そのまま維持する。
+
+    重要(5・打点(damage)とHP(hp_dist)は別系統で扱う): 'LethalHitResult.damage_dist'は
     「そのヒット1発分」の打点分布であり、n_hits回のヒットをまたいで累積されない
     ('ctx.damage_dist'をそのまま持つだけ。'_lethal_loop'参照)。そのため
-    'hit_results[-1].damage_dist'(最後のヒットのみ)や、それを合成した
-    'LethalHitResult.__add__'の結果をそのまま'perAttackDamages'/'cumulativeDamage'に
-    使うと、hitCount>1の技で「最後の1ヒット分」の打点しか反映されない
-    (実測で確認済みのバグ: hitCountを1/2/3/5と変えても打点が変化しなかった)。
-    このため打点専用に、各攻撃のn_hits全ヒット分の'damage_dist'を'add_dist'で
-    畳み込んだ'attack_damage_dist'(compute_attack_result参照)を別途保持し、
-    'perAttackDamages'/'cumulativeDamage'はこちらから求める。一方
-    'hp_dist'/'lethal_probability'(lethal/perAttackLethal)は'LethalHitResult.__add__'
-    ('other.initial_hp - other.hp_dist'によるHP合成。全ヒット+ターン終了時処理を
-    正しく反映済み)のままで問題ないため変更しない。
+    'hit_results[-1].damage_dist'(最後のヒットのみ)をそのまま使うと、hitCount>1の
+    技で「最後の1ヒット分」の打点しか反映されない(実測で確認済みのバグ: hitCountを
+    1/2/3/5と変えても打点が変化しなかった)。このため打点専用に、各攻撃のn_hits
+    全ヒット分の'damage_dist'を'add_dist'で畳み込んだ値を別途保持し、
+    'perAttackDamages'/'cumulativeDamage'はこちらから求める('isolated'/'sequential'
+    それぞれで独立に畳み込む。一方の畳み込み結果をもう一方に転用しない)。
     打点(perAttackDamages/cumulativeDamage)は「与えたダメージの単純合計」であり、
     たべのこし等の回復・どく/やけどの継続ダメージは含まない(含めると回復分だけ
     実質的なダメージが差し引かれてしまい、「確定1発で本来何%与えられるか」という
@@ -752,23 +773,24 @@ def calc_lethal_sequence_json(attacker_spec, defender_spec, attacks, seed, criti
     perAttackDamages/perAttackLethalは「その攻撃を単体で見た場合」の参考値
     (カード表示用)であり、致死済み以降かどうかに関わらず常に全攻撃ぶん計算する
     (lethal/cumulativeDamageの打ち切りとは独立)。
-      - perAttackDamages[i]: 攻撃iの'attack_damage_dist'(n_hits全ヒット分を
-        add_distで畳み込んだ打点分布)に出現する値を、重複を除いて昇順に並べた配列
-        ('_dist_values_sorted'参照)。連続技(hitCount>1)は全ヒット合計のダメージに
-        意味が変わっている点に注意(1発分の乱数16段階ではない)。
-      - perAttackLethal[i]: 攻撃iの結果(this_result。HP分布ベース)を最大10回、
+      - perAttackDamages[i]: 攻撃iの'isolated'畳み込み打点分布に出現する値を、
+        重複を除いて昇順に並べた配列('_dist_values_sorted'参照)。連続技
+        (hitCount>1)は全ヒット合計のダメージに意味が変わっている点に注意
+        (1発分の乱数16段階ではない)。
+      - perAttackLethal[i]: 攻撃iの'isolated_result'(HP分布ベース)を最大10回、
         自分自身に'__add__'で繰り返し加算した場合の確定数系列
         (「この技だけを連発したら何発で倒れるか」)。確率100%に達したらそこで打ち切る。
 
-    lethal/cumulativeDamageは、attacksを先頭から実際に合成した累計であり、
+    lethal/cumulativeDamageは、attacksを先頭から'resume_from'で実際に繋いだ累計であり、
     途中で確率100%(全ての乱数分岐で確実に致死)に達した場合はそこで打ち切られ、
     lethalはattacksより短い配列になり得る(cumulativeDamageもその時点までの
     合成結果になる)。
     """
 
-    def compute_attack_result(attack):
-        # 攻撃1件につき、フルHPの防御側から始まる専用Battleを新規構築する
-        # (このBattleは使い捨てで、次の攻撃には引き継がない)。
+    def compute_attack_result(attack, resume_from, need_sequential):
+        # 攻撃1件につき、専用のBattleを新規構築する(このBattleは使い捨てで、
+        # 次の攻撃には引き継がない。引き継ぐのはBattleそのものではなく、下で
+        # calc_lethalに渡すresume_from=LethalHitResultだけ)。
         move_name = attack["moveName"]
         n_hits = _clamp_hit_count(attack.get("hitCount"))
         critical_for_attack = _resolve_attack_override(critical, attack.get("critical"))
@@ -809,105 +831,105 @@ def calc_lethal_sequence_json(attacker_spec, defender_spec, attacks, seed, criti
 
         move = _resolve_move(active_att, move_name)
         move_arg = move if n_hits <= 1 else (move, n_hits)
+
+        def fold_damage_dist(hit_results):
+            # 'LethalHitResult.damage_dist'は「そのヒット1発分」の打点分布であり
+            # 累積ではないため('_lethal_loop'参照)、n_hits全ヒット分を
+            # add_distで畳み込んで「この攻撃1回ぶん」の打点分布を組み立てる
+            # (重要(5)参照)。
+            folded = 0
+            for hr in hit_results:
+                folded = add_dist(folded, hr.damage_dist)
+            return folded
+
         # max_attack=1: この1回の呼び出しでこの技(のn_hitsぶんの全ヒット)だけを
-        # 適用させ、ターン終了時処理まで終えた結果を得る。'hit_results'にはヒット
-        # ごとに1件(n_hits件)の'LethalHitResult'が入り、最後の要素がHP分布
-        # (hp_dist)としては全ヒット+ターン終了時処理まで反映済みの値になる
-        # ('_lethal_loop'参照)。
-        hit_results = attack_battle.calc_lethal(
+        # 適用させ、ターン終了時処理まで終えた結果を得る(重要(2)参照)。
+        # 'isolated': 「この技カード単体を見た場合」用。常にフルHPから計算する
+        # (resume_from未指定)。
+        isolated_hits = attack_battle.calc_lethal(
             active_att, move_arg, critical=critical_for_attack, max_attack=1
         )
-        if not hit_results:
+        if not isolated_hits:
             # 理論上到達しない(上記docstring「重要(2)」参照。calc_lethalは
             # 1回の呼び出しで必ず1件以上返す)が、万一の安全策としてNoneを返し、
             # 呼び出し側で「この攻撃は計算不能だった」ことが分かる形にする。
-            return None, None
+            return None
 
-        # 重要: 'LethalHitResult.damage_dist'は「そのヒット1発分」の打点分布であり、
-        # 累積ではない('ctx.damage_dist'をそのまま持つだけ。'_lethal_loop'参照)。
-        # そのため最後の要素(hit_results[-1])だけを使うと、hitCount>1の技で
-        # 「最後の1ヒット分」の打点しか取れず、n_hits倍になるはずの合計打点が
-        # 1ヒット分のまま変わらないというバグになる(実測で確認済み: hitCountを
-        # 1/2/3/5と変えても'perAttackDamages'が変化しなかった)。
-        # 全ヒットの'damage_dist'を'add_dist'で畳み込み、「この攻撃1回ぶん
-        # (n_hits全ヒット合計)」の打点分布を別途組み立てる。これは
-        # 'hp_dist'/'lethal_probability'とは独立な「打点(与えたダメージの合計)」
-        # 専用の値であり、hp_dist側(HPの実際の増減。回復・クランプ込み)には
-        # 一切手を加えない。
-        attack_damage_dist = 0
-        for hr in hit_results:
-            attack_damage_dist = add_dist(attack_damage_dist, hr.damage_dist)
+        result = {
+            "isolated_result": isolated_hits[-1],
+            "isolated_damage_dist": fold_damage_dist(isolated_hits),
+            "sequential_result": None,
+            "sequential_damage_dist": None,
+        }
 
-        return hit_results[-1], attack_damage_dist
+        if need_sequential:
+            # 'sequential': 技列全体の累計(lethal/cumulativeDamage)用。前の攻撃
+            # 終了時点のLethalHitResult(resume_from)からHP状態を引き継いで計算する
+            # (重要(3)参照。マルチスケイル等のHP依存効果を修正する本体)。
+            sequential_hits = attack_battle.calc_lethal(
+                active_att, move_arg, critical=critical_for_attack, max_attack=1,
+                resume_from=resume_from,
+            )
+            if sequential_hits:
+                result["sequential_result"] = sequential_hits[-1]
+                result["sequential_damage_dist"] = fold_damage_dist(sequential_hits)
+
+        return result
 
     per_attack_damages = []
     per_attack_lethal = []
-    # resolvedはhp_dist/lethal/perAttackLethal用(最後のヒットのLethalHitResult)。
-    # damage_dists_by_attackは打点(perAttackDamages/cumulativeDamage)専用で、
-    # 各攻撃のn_hits全ヒット分をadd_distで畳み込んだ後のStateDist。
-    # 両者を別々に持つのは、hp側(回復・クランプ込みの実際のHP増減)と
-    # 打点側(与えたダメージの単純合計。回復等は含まない)の役割が異なるため
-    # (詳細はCalcLethalSequenceResult.cumulativeDamageのコメント参照)。
-    resolved = []
-    damage_dists_by_attack = []
-    for attack in attacks:
-        this_result, attack_damage_dist = compute_attack_result(attack)
-        resolved.append(this_result)
-        damage_dists_by_attack.append(attack_damage_dist)
+    lethal = []
+    cumulative_damage_dist = None
+    # resume_stateは技列全体の累計計算(sequential側)専用の引き継ぎ状態。
+    # sequence_resolvedがTrueになった(=途中で致死率100%に到達した)後は、以降の
+    # 攻撃で'sequential'計算自体を行わない(結果を使わないため計算を省略する)。
+    resume_state = None
+    sequence_resolved = False
 
-        if this_result is None:
+    for attack in attacks:
+        computed = compute_attack_result(attack, resume_state, not sequence_resolved)
+
+        if computed is None:
             per_attack_damages.append([])
             per_attack_lethal.append([])
             continue
 
-        # 全ヒット分を畳み込んだ打点分布(attack_damage_dist)のキーを昇順に並べる。
-        per_attack_damages.append(_dist_values_sorted(attack_damage_dist))
+        isolated_result = computed["isolated_result"]
+        # 全ヒット分を畳み込んだ打点分布のキーを昇順に並べる。
+        per_attack_damages.append(_dist_values_sorted(computed["isolated_damage_dist"]))
 
-        repeat_acc = this_result
+        repeat_acc = isolated_result
         this_attack_lethal = [{"attackCount": 1, "probability": repeat_acc.lethal_probability}]
         for k in range(2, 11):
             if this_attack_lethal[-1]["probability"] >= 1.0:
                 break
-            repeat_acc = repeat_acc + this_result
+            repeat_acc = repeat_acc + isolated_result
             # 一度致死した枝が後続の合成で「生き返る」ことがないようクランプする
-            # ('_clamp_hp_dist_min0'のコメント参照)。
+            # (重要(4)参照。'__add__'経由の自己合成にのみ必要)。
             repeat_acc.hp_dist = _clamp_hp_dist_min0(repeat_acc.hp_dist)
             this_attack_lethal.append({"attackCount": k, "probability": repeat_acc.lethal_probability})
         per_attack_lethal.append(this_attack_lethal)
 
-    lethal = []
-    acc = None
-    # cumulative_damage_distは打点(cumulativeDamage)専用の累計。accのdamage_dist
-    # (最後に合成したLethalHitResultのdamage_dist)は使わない。'LethalHitResult.__add__'の
-    # damage_distはヒット単位の合成であってhitCountを畳み込まないため、accから
-    # 求めるとhitCount>1の攻撃が1ヒット分のまま反映されないバグになる
-    # (実測で確認済み: hitCountを1/2/3/5と変えても打点側が変化しなかった)。
-    # 代わりに、各攻撃ごとに既にn_hits分を畳み込み済みのdamage_dists_by_attackを
-    # 'lethal'と同じ範囲(打ち切りも含めて)だけadd_distでさらに攻撃列ぶん畳み込む。
-    cumulative_damage_dist = None
-    for i, this_result in enumerate(resolved):
-        if this_result is None:
+        if sequence_resolved:
+            continue
+        sequential_result = computed["sequential_result"]
+        if sequential_result is None:
             # 安全策発動時(理論上到達しない)は累計への合成を諦め、この攻撃だけを
             # 読み飛ばして次の攻撃から累計を継続する('lethal'の該当attackCountは
             # 欠番になるが、attacksより短い配列になり得ることは元々の仕様の範囲内)。
             continue
-        if acc is not None and acc.lethal_probability >= 1.0:
-            # 既に確率100%で致死が確定している(これより前の攻撃で到達した)ため、
-            # 以降の攻撃は合成せずここで打ち切る。cumulative_damage_distもここで
-            # 一緒に打ち切ることで、lethalと同じ範囲(打ち切られた攻撃を含まない)に揃える。
-            break
-        acc = this_result if acc is None else acc + this_result
-        # 一度致死した枝が後続の攻撃の合成で「生き返る」ことがないようクランプする
-        # ('_clamp_hp_dist_min0'のコメント参照。単調性(致死率は攻撃を重ねるごとに
-        # 非減少)を保証するために必須)。
-        acc.hp_dist = _clamp_hp_dist_min0(acc.hp_dist)
-        lethal.append({"attackCount": i + 1, "probability": acc.lethal_probability})
 
-        attack_damage_dist = damage_dists_by_attack[i]
+        lethal.append({"attackCount": len(lethal) + 1, "probability": sequential_result.lethal_probability})
         cumulative_damage_dist = (
-            attack_damage_dist if cumulative_damage_dist is None
-            else add_dist(cumulative_damage_dist, attack_damage_dist)
+            computed["sequential_damage_dist"] if cumulative_damage_dist is None
+            else add_dist(cumulative_damage_dist, computed["sequential_damage_dist"])
         )
+        resume_state = sequential_result
+        if sequential_result.lethal_probability >= 1.0:
+            # 既に確率100%で致死が確定したため、以降の攻撃はsequential計算・
+            # lethal/cumulativeDamageへの合成の両方を打ち切る(perAttackDamages/
+            # perAttackLethalは引き続き全攻撃ぶん計算を続ける)。
+            sequence_resolved = True
 
     if cumulative_damage_dist is not None:
         cumulative_values = _dist_values_sorted(cumulative_damage_dist)

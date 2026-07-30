@@ -14,7 +14,7 @@ Battle に依存しないため `jpoke.utils.lethal_dist` に置く。
 """
 
 from __future__ import annotations
-from typing import TYPE_CHECKING, Callable, cast
+from typing import TYPE_CHECKING, Callable
 if TYPE_CHECKING:
     from jpoke.core import Battle, SideFieldManager
     from jpoke.model import Pokemon, Move
@@ -24,9 +24,9 @@ from copy import deepcopy
 from dataclasses import dataclass, field
 from collections import defaultdict
 
-from jpoke.types import Stat, AilmentName, LethalSubject
+from jpoke.types import LethalSubject
 from jpoke.enums import LethalEvent
-from jpoke.utils.lethal_dist import State, StateDist, to_dist, add_dist, subtract_dist
+from jpoke.utils.lethal_dist import StateDist, to_dist, add_dist, subtract_dist
 
 
 @dataclass(frozen=True)
@@ -68,23 +68,6 @@ class LethalContext:
 
 
 @dataclass
-class LethalPokemonState:
-    """致死率計算時点でのポケモン片側の状態スナップショット。
-
-    実体は hp_dist の各 State が枝ごとに保持する attacker_boosts/attacker_ailment/
-    defender_boosts/defender_ailment（utils/lethal_dist.State）であり、この
-    dataclass はそこから代表枝を読み出した表示用のビューにすぎない
-    （`_pokemon_states` 参照）。
-
-    Attributes:
-        boosts: 計算時のランク補正
-        ailment: 計算時の状態異常
-    """
-    boosts: dict[Stat, int] = field(default_factory=dict)
-    ailment: AilmentName = ""
-
-
-@dataclass
 class LethalHitResult:
     """1ヒットごとの致死率計算結果。
 
@@ -95,7 +78,6 @@ class LethalHitResult:
         hit_count: 多段技の何ヒット目か（1始まり）
         hp_dist: ダメージ適用後のHP分布
         damage_dist: このヒットで与えたダメージの分布
-        attacker_state / defender_state: 計算時の攻撃側・防御側の状態スナップショット
     """
     initial_hp: int
     move: Move
@@ -103,10 +85,6 @@ class LethalHitResult:
     hit_count: int
     hp_dist: StateDist
     damage_dist: StateDist
-    attacker_state: LethalPokemonState = field(
-        default_factory=LethalPokemonState)
-    defender_state: LethalPokemonState = field(
-        default_factory=LethalPokemonState)
 
     def __add__(self, other: LethalHitResult) -> LethalHitResult:
         """2つのLethalHitResultのHP分布・ダメージ分布を合成する。
@@ -120,9 +98,6 @@ class LethalHitResult:
         hp_dist = subtract_dist(self.hp_dist, subtract_dist(
             other.initial_hp, other.hp_dist))
         damage_dist = add_dist(self.damage_dist, other.damage_dist)
-        # hp_dist の各枝には other 側の状態タグ（attacker_boosts 等）が引き継がれる
-        # （subtract_dist は同期済み=Noneでない側を優先するため。utils/lethal_dist._convolve 参照）。
-        attacker_state, defender_state = _pokemon_states(hp_dist)
         return LethalHitResult(
             initial_hp=self.initial_hp,
             move=other.move,
@@ -130,8 +105,6 @@ class LethalHitResult:
             hit_count=1,
             hp_dist=hp_dist,
             damage_dist=damage_dist,
-            attacker_state=attacker_state,
-            defender_state=defender_state,
         )
 
     def _counter(self, dist: StateDist) -> dict[int, int]:
@@ -173,49 +146,22 @@ def fainted(dist: StateDist) -> bool:
     return any(state.value == 0 for state in dist)
 
 
-def _boosts_key(boosts: dict[Stat, int]) -> tuple[tuple[str, int], ...]:
-    """dict[Stat, int] を State のタグとして使えるハッシュ可能な形に変換する。"""
-    return tuple(sorted(boosts.items()))
+@dataclass
+class LethalMonitor:
+    """テスト・デバッグ専用: calc_lethal 内部で使われる（deepcopyされた）攻撃側・
+    防御側の Pokemon への参照を保持する。呼び出し前に空のインスタンスを渡すと、
+    呼び出し後に attacker/defender が設定され、ランク補正・状態異常などの
+    内部状態を外部から確認できる。本番の対戦進行やロジックでは使わないこと
+    （calc_lethal は本来 battle を deepcopy して副作用を外部に漏らさない設計であり、
+    この monitor はテストの検証のためだけにその deepcopy 内部への参照を意図的に
+    漏らす後方口である）。
 
-
-def _stamp_dist(hp_dist: StateDist, *,
-                attacker_boosts: tuple[tuple[str, int], ...],
-                attacker_ailment: str,
-                defender_boosts: tuple[tuple[str, int], ...],
-                defender_ailment: str) -> StateDist:
-    """hp_dist の全ての枝に、現在の攻撃側・防御側の状態タグを同期する。
-
-    ハンドラは ctx.attacker / ctx.defender という実体を分岐によらず一括で書き換えるため、
-    ここで全枝に同じタグを書き込むことで hp_dist と実体の状態を一致させる
-    （個々のハンドラが分岐ごとに異なる状態を作るようになった場合はこの一括同期は不要になる）。
+    Attributes:
+        attacker: calc_lethal 呼び出し完了時点の攻撃側 Pokemon（deepcopy後の実体）
+        defender: calc_lethal 呼び出し完了時点の防御側 Pokemon（deepcopy後の実体）
     """
-    result: StateDist = defaultdict(int)
-    for state, freq in hp_dist.items():
-        new_state = State(
-            value=state.value,
-            ability_enabled=state.ability_enabled,
-            item_enabled=state.item_enabled,
-            attacker_boosts=attacker_boosts,
-            attacker_ailment=attacker_ailment,
-            defender_boosts=defender_boosts,
-            defender_ailment=defender_ailment,
-        )
-        result[new_state] += freq
-    return dict(result)
-
-
-def _pokemon_states(hp_dist: StateDist) -> tuple[LethalPokemonState, LethalPokemonState]:
-    """hp_dist の代表枝（同期済みなら全枝で共通）から攻撃側・防御側のスナップショットを復元する。"""
-    state = next(iter(hp_dist))
-    attacker_state = LethalPokemonState(
-        boosts=cast("dict[Stat, int]", dict(state.attacker_boosts or ())),
-        ailment=cast(AilmentName, state.attacker_ailment or ""),
-    )
-    defender_state = LethalPokemonState(
-        boosts=cast("dict[Stat, int]", dict(state.defender_boosts or ())),
-        ailment=cast(AilmentName, state.defender_ailment or ""),
-    )
-    return attacker_state, defender_state
+    attacker: Pokemon | None = None
+    defender: Pokemon | None = None
 
 
 def calc_lethal(battle: Battle,
@@ -224,7 +170,9 @@ def calc_lethal(battle: Battle,
                 | list[MoveName | Move | tuple[MoveName | Move, int]],
                 critical: bool,
                 move_secondary: bool,
-                max_attack: int) -> list[LethalHitResult]:
+                max_attack: int,
+                resume_from: LethalHitResult | None = None,
+                monitor: LethalMonitor | None = None) -> list[LethalHitResult]:
     """致死率計算のエントリーポイント。
 
     Args:
@@ -235,9 +183,26 @@ def calc_lethal(battle: Battle,
         critical: 急所計算をするか
         move_secondary: 追加効果ハンドラを適用するか
         max_attack: 最大攻撃回数
+        resume_from: 指定した場合、フルHPからの新規計算ではなく、この
+            `LethalHitResult`（通常は直前の `calc_lethal()` 呼び出しの
+            `results[-1]`）が表す状態から計算を再開する。引き継がれるのは
+            チェーン全体の起点HP（`initial_hp`）、`resume_from` 終了時点の
+            HP分布（`hp_dist`、分岐ごとの特性/道具消費フラグを含む）、
+            `attack_count`（後続の攻撃回数に加算されるオフセットとして使う）
+            の3つのみ。**攻撃側・防御側のランク補正（`boosts`）・状態異常
+            （`ailment`）・揮発性状態（バインド・しおづけ・かいふくふうじ・
+            こんらん・たくわえる等）はいずれも引き継がれない**（既知の制約）。
+            `None`（デフォルト）の場合は従来通りフルHPから新規に計算する。
+        monitor: テスト・デバッグ専用。通常の利用では指定しないこと。指定すると
+            計算に使う（deepcopyされた）攻撃側・防御側 Pokemon への参照を
+            `monitor.attacker` / `monitor.defender` に設定する。詳細は
+            `LethalMonitor` のdocstring参照。
 
     Returns:
-        各ヒット後の LethalHitResult のリスト（確定数が出た時点で打ち切り）
+        各ヒット後の LethalHitResult のリスト（確定数が出た時点で打ち切り）。
+        `resume_from` を指定した場合でも、返るのは新規に計算したヒット分のみ
+        （`resume_from` 自体やそれ以前の履歴は含まない）。呼び出し側で必要なら
+        `resume_from` の元リストと連結すればよい。
     """
     # 攻撃側のインデックスを取得
     attacker_index = battle._get_player_index(attacker)
@@ -246,16 +211,34 @@ def calc_lethal(battle: Battle,
     battle = deepcopy(battle)
     attacker = battle.actives[attacker_index]
     defender = battle.foe(attacker)
-    initial_hp = defender.hp
 
-    hp_dist = to_dist(
-        defender.hp,
-        ability_enabled=defender.ability.enabled,
-        item_enabled=defender.item.enabled
-    )
+    if monitor is not None:
+        monitor.attacker = attacker
+        monitor.defender = defender
+
+    if resume_from is not None:
+        initial_hp = resume_from.initial_hp
+        hp_dist = resume_from.hp_dist
+        attack_offset = resume_from.attack_count
+
+        # _update_hp が通常行っている同期をループ開始前に前倒しで行う
+        # （ループ内の最初のイベントで ctx.defender.hp を参照するハンドラのために必要）。
+        defender.hp = min(state.value for state in hp_dist)
+    else:
+        initial_hp = defender.hp
+        hp_dist = to_dist(
+            defender.hp,
+            ability_enabled=defender.ability.enabled,
+            item_enabled=defender.item.enabled
+        )
+        attack_offset = 0
+
     move_list = _generate_move_list(moves)
 
-    return _lethal_loop(initial_hp, hp_dist, battle, attacker, defender, move_list, critical, move_secondary, max_attack)
+    return _lethal_loop(
+        initial_hp, hp_dist, battle, attacker, defender, move_list,
+        critical, move_secondary, max_attack, attack_offset=attack_offset,
+    )
 
 
 def _generate_move_list(
@@ -296,11 +279,17 @@ def _lethal_loop(initial_hp: int,
                  move_list: list[tuple[Move, int]],
                  critical: bool,
                  move_secondary: bool,
-                 max_attack: int) -> list[LethalHitResult]:
+                 max_attack: int,
+                 attack_offset: int = 0) -> list[LethalHitResult]:
     """致死率計算のメインループ。
 
     max_attack 回分、move_list の技を順に使用し、各ヒット後の LethalHitResult を返す。
     いずれかの時点で HP=0 の状態が現れたら途中で打ち切る。
+
+    Args:
+        attack_offset: `resume_from` 指定時、`ctx.attack_count` に加算するオフセット
+            （`resume_from.attack_count`）。`hit_count` には影響しない
+            （各ラウンドで1から数え直す既存の挙動のまま）。
     """
     # move ごとに LethalContext を作成しておく（ループ内で毎回作る必要がないため）
     ctx_list: list[tuple[int, LethalContext]] = [
@@ -312,7 +301,7 @@ def _lethal_loop(initial_hp: int,
     results = []
     for atk in range(1, max_attack + 1):
         for n_hits, ctx in ctx_list:
-            ctx.attack_count = atk
+            ctx.attack_count = atk + attack_offset
             # ON_EVERY_EVENT ハンドラは同じ ctx では変化しないため、1回だけ取得する
             every_event_handlers = _get_handlers(
                 LethalEvent.ON_EVERY_EVENT, battle, ctx)
@@ -325,7 +314,6 @@ def _lethal_loop(initial_hp: int,
                 # 技の適用
                 hp_dist = _run_move(battle, ctx, hp_dist, every_event_handlers)
 
-                attacker_state, defender_state = _pokemon_states(hp_dist)
                 result = LethalHitResult(
                     initial_hp=initial_hp,
                     move=ctx.move,
@@ -333,8 +321,6 @@ def _lethal_loop(initial_hp: int,
                     hit_count=ctx.hit_count,
                     hp_dist=hp_dist,
                     damage_dist=ctx.damage_dist,
-                    attacker_state=attacker_state,
-                    defender_state=defender_state,
                 )
                 results.append(result)
 
@@ -361,7 +347,6 @@ def _lethal_loop(initial_hp: int,
             # ターン終了時のハンドラを適用（たべのこし回復など）
             hp_dist = _run_turn_end(battle, ctx, hp_dist, every_event_handlers)
             results[-1].hp_dist = hp_dist  # ターン終了後の HP 分布を反映
-            results[-1].attacker_state, results[-1].defender_state = _pokemon_states(hp_dist)
             if fainted(hp_dist):
                 return results
 
@@ -623,17 +608,9 @@ def _apply_handlers(battle: Battle,
 
 
 def _update_hp(ctx: LethalContext, hp_dist: StateDist) -> StateDist:
-    """分布内の最小 HP を防御側の hp にセットし（後続ハンドラが参照するため）、
-    hp_dist の全枝に現在の攻撃側・防御側の状態タグ（ランク補正・状態異常）を同期する。
-    """
+    """分布内の最小 HP を防御側の hp にセットする（後続ハンドラが参照するため）。"""
     ctx.defender.hp = min(state.value for state in hp_dist)
-    return _stamp_dist(
-        hp_dist,
-        attacker_boosts=_boosts_key(ctx.attacker.boosts),
-        attacker_ailment=ctx.attacker.ailment.name,
-        defender_boosts=_boosts_key(ctx.defender.boosts),
-        defender_ailment=ctx.defender.ailment.name,
-    )
+    return hp_dist
 
 
 def _emit(event: LethalEvent,
