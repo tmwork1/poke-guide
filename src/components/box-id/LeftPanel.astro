@@ -570,7 +570,11 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		font-size: var(--font-size-xs);
 		font-weight: 600;
 		color: var(--color-text-muted);
-		padding: 0 0.1rem 0.35rem;
+		/* UI改善ラウンド49(B-3): 左右paddingを外す。以前は0.1rem(1.6px)あり、
+		   .stat-row(paddingなし)と同じgrid-template-columnsを共有しているにも関わらず
+		   列境界が1.6pxずれていた(見出し・データ行の実測で確認、round-49.md参照)。
+		   下パディング(0.35rem、見出しとデータ行の間隔)は変更しない。 */
+		padding: 0 0 0.35rem;
 		margin-bottom: 0.15rem;
 		border-bottom: 1px solid var(--color-border);
 	}

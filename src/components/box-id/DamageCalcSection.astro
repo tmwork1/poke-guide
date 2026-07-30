@@ -832,13 +832,16 @@ const { pokemonId } = Astro.props;
 	/* 🔴 UI改善ラウンド34ユーザー指示(34-D1)「アイテムアイコンのサイズを-10%」により、
 	   37px→33px(37×0.9=33.3を四捨五入)に縮小する。.damage-sprite-box(96px固定)基準の
 	   絶対配置(bottom:-4px; right:-4px)のままなので、縮小してもカード全体の高さには
-	   影響しない。 */
+	   影響しない。
+	   🔴 ラウンド49 B-2: 34-D1のコメントは「左パネルの.item-image-badgeと同じ最終サイズ」
+	   と明記していたが、その後ラウンド39(39-L1)で左パネル側が31pxへ再縮小され追随して
+	   いなかった(2pxドリフト、統一感レビュアーの指摘)。33px→31pxに揃える。 */
 	#opponent-notes-section .damage-item-badge {
 		position: absolute;
 		bottom: -4px;
 		right: -4px;
-		width: 33px;
-		height: 33px;
+		width: 31px;
+		height: 31px;
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -908,12 +911,18 @@ const { pokemonId } = Astro.props;
 		   ラウンド26ユーザー指示(26-D4)により0.76rem→0.86rem(13.76px、+1.6px)へさらに
 		   一段上げる(.damage-ev-nature-cycleボタンも同じクラスを併せ持つため、この
 		   font-sizeがそのまま適用される。font-family: inheritのみでfont-sizeは
-		   上書きしていない設計を維持)。 */
+		   上書きしていない設計を維持)。
+		   🔴 ラウンド49 A-1: ラウンド47で color: #fff に揃えたが、ライトテーマの
+		   背景(--color-surface-alt)に対しコントラスト約1.05:1で実質視認不能と判明
+		   (4レビュアー全員が最優先指摘)。var(--color-text-muted)に戻す
+		   (font-weight 600 はラウンド47の値のまま維持。性格補正時の
+		   [data-mod="up"/"down"] による色上書きはこの後方に定義されているため
+		   引き続き優先される)。 */
 		font-size: 0.86rem;
 		font-weight: 600;
 		line-height: 1.2;
 		text-align: center;
-		color: #fff;
+		color: var(--color-text-muted);
 	}
 	/* ラウンド20ユーザー指示(20-D3、ラウンド5の「▲/▼を独立ボタン化する」という判断を撤回):
 	   H/A/B/C/D/S見出し(HP以外)自体をクリックすると無補正→上昇→下降→無補正と3循環する
@@ -2206,9 +2215,13 @@ const { pokemonId } = Astro.props;
 		background: var(--color-surface-alt);
 	}
 	#damage-detail-panel-body .damage-detail-rank-field input.is-nonzero {
+		/* 🔴 ラウンド49 A-2: var(--color-primary)はライトで実測コントラスト約2.50:1
+		   (WCAG AA 4.5:1未達)。round-13/17でチェックボックス/ラジオの同型問題を
+		   解決した実績のあるvar(--color-primary-strong)に差し替える(ダークでは
+		   --color-primaryへのエイリアスのため見た目は変化しない)。font-weightは変更しない。 */
 		font-weight: 700;
-		color: var(--color-primary);
-		border-color: var(--color-primary);
+		color: var(--color-primary-strong);
+		border-color: var(--color-primary-strong);
 	}
 	/* 「11-8の修正」ユーザー指示(2026-07-26追加): 状態異常は種類が多く、アイコン1行
 	   (複数行に折り返すことがある)だと場所を取るため、常に1行に収まるnative <select>に
@@ -2279,9 +2292,11 @@ const { pokemonId } = Astro.props;
 	   (.damage-detail-rank-field input.is-nonzero、上記2208行目)と同じ語彙(--color-primary)
 	   を流用し、新色は作らない。 */
 	#damage-detail-panel-body .damage-detail-ailment-select:not(.is-ailment-unselected) {
+		/* 🔴 ラウンド49 A-2: 上記rank-field input.is-nonzeroと同じ理由でvar(--color-primary-strong)
+		   に差し替える(ライト低コントラスト2.50:1の是正、ダークは見た目変化なし)。 */
 		font-weight: 700;
-		color: var(--color-primary);
-		border-color: var(--color-primary);
+		color: var(--color-primary-strong);
+		border-color: var(--color-primary-strong);
 	}
 	/* ラウンド20ユーザー指示(20-R3): 揮発状態(volatile)。天候/フィールドの
 	   .damage-detail-field-rowと同じ「ラベル上・コントロール下」の縦積み構成にする
@@ -2664,11 +2679,14 @@ const { pokemonId } = Astro.props;
 	   🔴 UI改善ラウンド47ユーザー指示(第31弾、追加指示)「特性とタイプのテキストも同じ
 	   白色にする」により、色をvar(--color-text-muted)から白(#fff、上方の
 	   .damage-row-collapsed-stat-key・下方の.damage-row-collapsed-tera-nameと同じ色)へ
-	   変更する。font-weight/font-sizeは変更しない。 */
+	   変更する。font-weight/font-sizeは変更しない。
+	   🔴 ラウンド49 A-1: 上記の白固定はライトテーマの背景(--color-surface-alt)に対し
+	   コントラスト約1.05:1で実質視認不能と判明(4レビュアー全員が最優先指摘)。
+	   var(--color-text-muted)に戻す(font-weightは変更しない)。 */
 	#opponent-notes-section .damage-row-collapsed-ability {
 		font-size: 0.76rem;
 		font-weight: 400;
-		color: #fff;
+		color: var(--color-text-muted);
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
@@ -2746,10 +2764,12 @@ const { pokemonId } = Astro.props;
 	   未設定時は<script>側でtextContentを空文字にし、実質何も表示しない)。
 	   🔴 UI改善ラウンド47ユーザー指示(第31弾、追加指示)「特性とタイプのテキストも同じ
 	   白色にする」により、色をvar(--color-text-muted)から白(#fff、上方の
-	   .damage-row-collapsed-ability/.damage-row-collapsed-stat-keyと同じ色)へ変更する。 */
+	   .damage-row-collapsed-ability/.damage-row-collapsed-stat-keyと同じ色)へ変更する。
+	   🔴 ラウンド49 A-1: 上記の白固定はライトテーマで実質視認不能と判明。
+	   var(--color-text-muted)に戻す。 */
 	#opponent-notes-section .damage-row-collapsed-tera-name {
 		font-size: 0.76rem;
-		color: #fff;
+		color: var(--color-text-muted);
 		white-space: nowrap;
 		flex: 0 0 auto;
 	}
@@ -2820,7 +2840,11 @@ const { pokemonId } = Astro.props;
 	   再調整する(白のまま、細すぎたのを少し戻す)。同時に、展開表示側のラベル
 	   (.damage-ev-col-label、上方参照)も同じ書式(色white/font-weight 600)へ揃える。
 	   性格補正時の色([data-mod="up"]/[data-mod="down"]、下記)は変更しない(この基底ルール
-	   より後ろに定義されているため引き続き優先される)。 */
+	   より後ろに定義されているため引き続き優先される)。
+	   🔴 ラウンド49 A-1: 上記の白固定はライトテーマの背景(--color-surface-alt)に対し
+	   コントラスト約1.05:1で実質視認不能と判明(4レビュアー全員が最優先指摘)。
+	   var(--color-text-muted)に戻す(font-weight 600はそのまま維持。性格補正時の
+	   色上書きはこの基底ルールより後方にあるため引き続き優先される)。 */
 	#opponent-notes-section .damage-row-collapsed-stat-key {
 		display: block;
 		text-align: center;
@@ -2828,7 +2852,7 @@ const { pokemonId } = Astro.props;
 		font-size: 0.88rem;
 		/* UI改善ラウンド47(A-6): 行間の余白を詰めるためline-heightを明示指定する。 */
 		line-height: 1.15;
-		color: #fff;
+		color: var(--color-text-muted);
 	}
 	/* 🔴 UI改善ラウンド47(A-1): 性格補正の色付けが値側からラベル側に移った
 	   (<script>のrefreshCollapsedStats参照)。努力値グリッドの実数値
