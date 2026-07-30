@@ -10,6 +10,13 @@
 	},
 	"observability": {
 		"enabled": true
+	},
+	// Phase 5-1 の集計バッチ(開発プラン §2.5, §3 Phase5-1)。集計ジョブが1種類のみのため
+	// 分スロット分岐(poke-research の DAILY_SLOT_JOBS パターン)は導入せず、cron 1件から
+	// src/worker.ts の scheduled ハンドラで refresh_popular_builds を直接呼ぶ。
+	// ジョブが増えたら scheduled 側で event.cron の値により分岐する(Cron Trigger は
+	// アカウントごと上限5件、poke-commonsはこの1件に集約する方針)。
+	"triggers": {
+		"crons": ["0 18 * * *"]
 	}
-	// triggers/crons (Cron Trigger) は Phase 5 の集計バッチ導入時に追加する(開発プラン §2.5, §3 Phase5-1)。
 }
