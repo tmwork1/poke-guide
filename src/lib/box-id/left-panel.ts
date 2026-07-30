@@ -23,6 +23,9 @@ import {
 	loadLearnsetMap,
 	loadAbilitiesMap,
 	officialArtworkUrl,
+	loadMoveDetailMap,
+	type MoveDetail,
+	type MoveCategory,
 } from "../pokemon-master-data";
 import { typeIconUrl, teraTypeIconUrl } from "../sprite-urls";
 import { TYPE_COLORS, DEFAULT_TYPE_COLOR } from "../type-colors";
@@ -109,6 +112,15 @@ function updateSliderProgress(rangeInput: HTMLInputElement): void {
 	const percent = Math.min(100, Math.max(0, (value / 32) * 100));
 	rangeInput.style.setProperty("--slider-progress", `${percent}%`);
 }
+// UI改善ラウンド40ユーザー指示(40-T2)「スピンボックスは上下限で打ち切らず循環するUIにする」。
+// [min, max]の範囲外の値を、範囲の反対側から続くように循環(モジュロ演算)させる。
+// 例: min=0,max=32のとき 33→0、-1→32、50→17(50 mod 33)。育成ルールの範囲自体
+// (min/max引数)は呼び出し側がそのまま渡すだけで、この関数は「範囲を超えたときの
+// 挙動」だけを変える(上下限の値自体は変更しない)。
+function wrapToRange(value: number, min: number, max: number): number {
+	const size = max - min + 1;
+	return (((value - min) % size) + size) % size + min;
+}
 function pairEvSlider(numberId: string, rangeId: string, onSync: () => void): void {
 	const numberInput = el<HTMLInputElement>(numberId);
 	const rangeInput = el<HTMLInputElement>(rangeId);
@@ -119,10 +131,120 @@ function pairEvSlider(numberId: string, rangeId: string, onSync: () => void): vo
 		updateSliderProgress(rangeInput);
 		onSync();
 	});
+	// ラウンド40(40-T2)対応: numberInput側はLeftPanel.astroでmin/max属性を外して
+	// あるため、ネイティブの増減スピナー矢印・ArrowUp/ArrowDown・ホイール操作のいずれも
+	// 範囲外の値(33や-1等)をそのままinputイベントで渡してくる。ここでwrapToRange()に
+	// 通してから range 側・number 側の両方に書き戻す(numberInput.value自体も
+	// 循環後の値に補正することで、表示上も「32の次は0」に見えるようにする)。
+	// range側(スライダー)は据え置き(ドラッグ操作は循環させると直感に反するため、
+	// 40-T2の対象はあくまで増減ボタン付きの数値入力=スピンボックスのみ)。
 	numberInput.addEventListener("input", () => {
 		const n = Number(numberInput.value);
-		if (Number.isFinite(n)) rangeInput.value = String(Math.min(32, Math.max(0, Math.round(n))));
+		if (Number.isFinite(n)) {
+			const wrapped = wrapToRange(Math.round(n), 0, 32);
+			if (String(wrapped) !== numberInput.value) numberInput.value = String(wrapped);
+			rangeInput.value = String(wrapped);
+		}
 		updateSliderProgress(rangeInput);
+	});
+}
+
+// UI改善ラウンド34ユーザー指示(34-C1)「種族名・特性・アイテム・技の選択ボックスは
+// 一度選択した状態で再クリックしても、フィルタが適用されており他の選択肢が表示されない。
+// フィルタ結果だけ表示するのではなく、フィルタ結果を最上位に表示するようにしたい」対応。
+//
+// 診断: #species-name/#item/#move-1〜#move-4はネイティブ<input list="...">+<datalist>。
+// Chromium系ブラウザは「現在の入力値と一致しない<option>を候補から除外(非表示)する」
+// 独自フィルタを持つ。値が確定済み(=候補の1つと完全一致)の状態で再度フォーカスすると、
+// ブラウザは現在値でフィルタをかけ直すため他の選択肢がほぼ隠れる(候補1件になることが多い)。
+// これはCSS/DOM順の変更だけでは制御できないブラウザ既定動作。
+//
+// 方針: フォーカス時に現在値を一時変数へ退避してからinput.valueを空にし、ブラウザに
+// 全件を表示させる。空にする直前に<datalist>内の<option>を退避した現在値に近い順
+// (完全一致→前方一致→部分一致→残り、安定ソートで同順位内の相対順序=既存の並びは維持)に
+// 並べ替えておくことで、「フィルタ結果(=現在値に近いもの)が実質的に最上位に来る」体裁に
+// する。blur時、ユーザーが新しい値を選ばず(=inputイベントが発火せず)値が空のままなら、
+// 退避値を書き戻す(誤って値を消したままにしない)。ユーザーが実際に打鍵/datalistから
+// 選択した場合はinputイベントが発火するため、その後は書き戻さない(新しい値を尊重する)。
+//
+// 技(#move-1〜#move-4)は#move-listを4つのinputで共有しており、rebuildMoveListForSpecies()
+// が既にlearnset優先で並べ替え済み(下記参照)。安定ソートで同順位(rank)内の相対順序を
+// 保つため、learnset優先の並びを壊さずに「現在値との近さ」だけをさらに上乗せできる。
+function rankByProximity(optionValue: string, currentValue: string): number {
+	if (optionValue === currentValue) return 0;
+	if (optionValue.startsWith(currentValue)) return 1;
+	if (optionValue.includes(currentValue)) return 2;
+	return 3;
+}
+function sortDatalistByProximity(datalist: HTMLDataListElement, currentValue: string): void {
+	if (!currentValue) return; // 値が空なら並べ替える意味が無い(元の並び=learnset優先等をそのまま保つ)
+	const decorated = Array.from(datalist.options).map((option, index) => ({
+		option,
+		index,
+		rank: rankByProximity(option.value, currentValue),
+	}));
+	// Array.prototype.sortはES2019以降で安定ソートが仕様上保証されているため、
+	// 明示的なindexタイブレークは無くても同順位内の相対順序は保たれるが、
+	// 意図を明確にするため保険として残す。
+	decorated.sort((a, b) => a.rank - b.rank || a.index - b.index);
+	const fragment = document.createDocumentFragment();
+	for (const d of decorated) fragment.appendChild(d.option);
+	datalist.appendChild(fragment);
+}
+// 実装上の注意(Playwrightでの実機検証で判明): 「フォーカスが変わった瞬間」を意味する
+// focusイベント単体には2つの穴がある。
+// (a) #species-nameはSSRで`autofocus`属性が付いており、ページ読み込み直後に(ユーザー操作を
+//     伴わず)最初のfocusイベントが発火する。ここで無条件にクリアすると、ページを開いた
+//     瞬間に種族名欄が空に見えてしまう(実際に検証して再現した)。
+// (b) このラウンドが解決すべき本来のバグ(「一度選択した状態で再クリックしても…」)は、
+//     まさに「既にフォーカスが当たっている入力欄を、フォーカスを外さないままもう一度
+//     クリックする」操作であり、この場合ブラウザはfocusイベントを再発火しない
+//     (フォーカス先が変わっていないため)。focusイベントだけに頼ると、報告された
+//     バグの本丸である「再クリック」そのものを取りこぼす(これも実機検証で確認した)。
+// そのため、クリック(mousedown、フォーカス有無に関係なく毎回発火する)を主トリガーにし、
+// 新規フォーカス(a以外のケース)も拾えるようfocusイベントも併用するが、(a)を除外するため
+// 「ページ読み込み直後の同期的なautofocus」だけを短いタイムアウトで見分けて無視する
+// (ユーザーの実操作は最短でも数十ms以上かかるため、次のタスク(0ms後)まで生き残っている
+// 「読み込み直後ウィンドウ」内のfocusだけを弾けば十分)。
+function setupDatalistRefocus(input: HTMLInputElement, datalist: HTMLDataListElement): void {
+	let savedValue = "";
+	let awaitingUserInput = false;
+	let earlyLoadWindowOpen = true;
+	setTimeout(() => {
+		earlyLoadWindowOpen = false;
+	}, 0);
+	function openWithFullList(): void {
+		if (awaitingUserInput) return; // 既にクリア済み(直前のmousedown/focusで処理済み)なら二重に走らせない
+		const currentValue = input.value;
+		if (currentValue === "") return; // 未入力なら退避/クリアの必要が無い
+		savedValue = currentValue;
+		sortDatalistByProximity(datalist, savedValue);
+		awaitingUserInput = true;
+		// プログラムでの.value代入はinput/changeイベントを発火させないため、
+		// updateSpeciesDisplay/updateItemNameDisplay/updateMoveTypeIcon等の
+		// 既存リスナー(自動保存含む)は一切トリガーされない。
+		input.value = "";
+	}
+	// mousedownはフォーカスの有無に関係なく毎回発火するため、上記(b)「フォーカスを
+	// 外さないままの再クリック」を確実に拾う(クリック直後のfocusイベントより先に
+	// 発火するため、値のクリア→ブラウザの候補フィルタ計算、の順序も自然に守られる)。
+	input.addEventListener("mousedown", openWithFullList);
+	// キーボード操作(Tabでのフォーカス移動)でも同じ体験にするためfocusも併用するが、
+	// autofocusによる読み込み直後の1回だけは上記(a)の理由で除外する。
+	input.addEventListener("focus", () => {
+		if (earlyLoadWindowOpen) return;
+		openWithFullList();
+	});
+	input.addEventListener("input", () => {
+		// ユーザーが実際に打鍵/datalistから選択した(本物のinputイベント)ため、
+		// blur時の書き戻しはもう不要。
+		awaitingUserInput = false;
+	});
+	input.addEventListener("blur", () => {
+		if (awaitingUserInput && input.value.trim() === "") {
+			input.value = savedValue;
+		}
+		awaitingUserInput = false;
 	});
 }
 
@@ -274,6 +396,9 @@ if (form) {
 	}
 	speciesInput.addEventListener("input", updateSpeciesDisplay);
 	updateSpeciesDisplay();
+	// UI改善ラウンド34ユーザー指示(34-C1): 再クリック時に他の種族候補が隠れてしまう
+	// ネイティブdatalistフィルタを回避する(上のsetupDatalistRefocus参照)。
+	setupDatalistRefocus(speciesInput, el<HTMLDataListElement>("pokemon-list"));
 	// ラウンド3 B-12: 実数値は純JS計算になったので、エンジンの初期化を待たず
 	// ページ表示直後に計算する(以前はcombinedDamageEngineProgress経由でエンジン
 	// 準備完了後にしか呼ばれておらず、それまで「(未計算)」のままだった)。
@@ -308,6 +433,9 @@ if (form) {
 	updateItemImage();
 	updateItemTitle();
 	updateItemNameDisplay();
+	// UI改善ラウンド34ユーザー指示(34-C1): 再クリック時に他の持ち物候補が隠れてしまう
+	// ネイティブdatalistフィルタを回避する(上のsetupDatalistRefocus参照)。
+	setupDatalistRefocus(itemInput, el<HTMLDataListElement>("item-list"));
 
 	// ラウンド21ユーザー指示(21-L5): 特性はそのポケモンに属する特性だけを候補とする
 	// <select>にする(予測変換のinput/datalistは不要という指示のため撤去)。種族が
@@ -333,10 +461,15 @@ if (form) {
 			return;
 		}
 		abilitySelectEl.disabled = false;
-		const placeholderOpt = document.createElement("option");
-		placeholderOpt.value = "";
-		placeholderOpt.textContent = "特性を選択";
-		abilitySelectEl.appendChild(placeholderOpt);
+		// UI改善ラウンド34ユーザー指示(34-C2)「ポケモンが選択されている状態での、特性選択
+		// ボックスの"特性を選択"という候補を削除」。ここに到達するのは種族(pokemon)が
+		// 確定していてabilities.length>0の場合に限る(nameが空/該当なしならabilities=[]と
+		// なり上のガード節で早期returnする)。この分岐では下のvalue決定ロジックが
+		// 必ずどれか実在の特性(previousValueかabilities[0])を選ぶため、「特性を選択」の
+		// プレースホルダーは選んでも意味の無い余剰候補でしかなかった(誤って選ぶと
+		// ability_name=""で保存されてしまう入口にもなっていた)。種族未選択時
+		// (abilities.length===0の分岐、上記)のプレースホルダー(textContent="特性")は
+		// 今回のスコープ外のため変更しない。
 		for (const a of abilities) {
 			const opt = document.createElement("option");
 			opt.value = a;
@@ -521,6 +654,11 @@ if (form) {
 		input.addEventListener("input", () => void updateMoveTypeIcon(input));
 		input.addEventListener("change", () => void updateMoveTypeIcon(input));
 		void updateMoveTypeIcon(input);
+		// UI改善ラウンド34ユーザー指示(34-C1): 再クリック時に他の技候補が隠れてしまう
+		// ネイティブdatalistフィルタを回避する(上のsetupDatalistRefocus参照)。#move-listは
+		// 4つの技inputで共有しているが、安定ソートのためlearnset優先の並び
+		// (rebuildMoveListForSpecies参照)は壊さない。
+		setupDatalistRefocus(input, moveListEl);
 	}
 
 	// レベル・タグ・ピン留めの入力UIは廃止したが、PUT /api/owned-pokemon/:id は
@@ -754,4 +892,639 @@ if (form) {
 	// 個体の公開共有トグル(PUT /api/owned-pokemon/:id/share)のUIは要件により廃止した。
 	// APIと公開ページ(/share/[slug])自体は残っているので、UIを再び付けたくなった場合は
 	// git履歴のこの位置にあった renderShareStatus / is-public チェックボックスの実装を参照すること。
+
+	// ============================================================
+	// UI改善ラウンド37(37-1〜37-3): 技選択の専用ウィンドウ
+	// ============================================================
+	// 技入力欄(#move-1〜#move-4)は普通のリストボックス(<input list="move-list">、
+	// setupDatalistRefocus参照)のままだと、タイプ/分類/PPで絞り込んだりソートしたり
+	// できない。4スロット共有の1ウィンドウ・インスタンスを作り、「どのスロットに
+	// 入力中か」をactiveSlotという内部状態で管理する(RightPanel.astroの詳細設定
+	// サイドバーが「選択中の技列」を切り替えて表示するのと同じ考え方、round-37.md参照)。
+	// 既存のdatalist挙動(直接タイプでの絞り込み・再クリック時フィルタ対策)は
+	// setupDatalistRefocusのまま一切変更しない。このウィンドウは追加の選択手段。
+	setupMovePickerWindow(speciesInput);
+
+	// ============================================================
+	// UI改善ラウンド38(38-L1): 技1〜4のドラッグ&ドロップ並び替え
+	// ============================================================
+	setupMoveReorderDrag();
+}
+
+// UI改善ラウンド38ユーザー指示(38-L1)「技の順番をドラッグアンドドロップで入れ替えられる
+// ようにしたい」への対応。
+//
+// 設計方針: #move-1〜#move-4のDOM位置・id自体は一切動かさない。代わりに、ドラッグ&ドロップの
+// 結果として4つの入力欄の「値」を並べ替える。理由は、この4つのidに依存する既存ロジックが
+// 複数あり、DOM位置を動かす実装だとそれらとの整合を都度取り直す必要が出るため:
+//   - setupMovePickerWindow()のactiveSlot(上記参照)は`move-${activeSlot}`というidで
+//     document.getElementByIdを都度呼ぶ設計(DOM位置に依存しない)。値スワップ方式なら
+//     このロジックには一切手を入れずに済む(ドラッグ後も「今開いているウィンドウがどの
+//     スロット向けか」の対応関係が崩れない)。
+//   - setupDatalistRefocus・updateMoveTypeIcon・textInputIds(自動保存)はいずれも
+//     document.getElementById("move-N")で固定id参照するため、DOM位置が変わっても
+//     動作自体は変わらないが、値スワップ方式ならそもそも影響が及ばない。
+//   - readMoveNames()(owned-pokemon-form.ts)はmove-1→move-4の順でidを読んで
+//     move_names配列を作る。DOM位置ではなくid順で読むため、値スワップ方式が
+//     「画面上の並び=保存される並び」を保証するのに最も直接的。
+//
+// ドラッグの実装はHTML5 Drag and Drop API(dragstart/dragover/drop)ではなく、
+// mousedown/mousemove/mouseupの手実装にした。ネイティブDnD APIはブラウザ間の実装差・
+// dataTransferのセキュリティ制約があり、Playwrightでの自動テスト時にdragstart/drop相当の
+// イベントを安定して発火させるにはpage.mouse.down/move/upで十分な素朴な実装の方が検証しやすい
+// (mousedown/mousemove/mouseupは通常のマウス操作そのものであり、Playwrightのmouse APIが
+// そのままdispatchする)。
+//
+// ハンドル(.move-drag-handle)は入力欄の兄弟要素(input自体ではない)。#move-N入力欄自体には
+// 一切リスナーを追加しないため、ラウンド37の技選択ウィンドウ(input.mousedown→openPicker)や
+// setupDatalistRefocus(input.mousedown→openWithFullList)の挙動と競合しない。
+function setupMoveReorderDrag(): void {
+	const groups = ([1, 2, 3, 4] as const)
+		.map((slot) => {
+			const input = document.getElementById(`move-${slot}`) as HTMLInputElement | null;
+			const group = input?.closest<HTMLElement>(".move-input-group") ?? null;
+			const handle = group?.querySelector<HTMLElement>(".move-drag-handle") ?? null;
+			return input && group && handle ? { slot, input, group, handle } : null;
+		})
+		.filter((g): g is { slot: number; input: HTMLInputElement; group: HTMLElement; handle: HTMLElement } => g !== null);
+	if (groups.length !== 4) return; // 想定外のマークアップでは何もしない(安全側)
+
+	// ドラッグ元(fromSlot)の値を抜き取り、ドロップ先(toSlot)の直前に挿入する形で
+	// 4値の配列を並べ替え、#move-1〜#move-4へ書き戻す。書き戻しはプログラムでの
+	// .value代入(input/changeイベントを発火させない)なので、既存のupdateMoveTypeIcon
+	// (タイプアイコン反映)・scheduleSave(自動保存、textInputIds参照)がそのまま動くよう
+	// 明示的にinput/changeイベントをdispatchする(choose()関数と同じ手法)。
+	function moveValueTo(fromSlot: number, toSlot: number): void {
+		if (fromSlot === toSlot) return;
+		const values = groups.map((g) => g.input.value);
+		const [moved] = values.splice(fromSlot - 1, 1);
+		values.splice(toSlot - 1, 0, moved);
+		groups.forEach((g, i) => {
+			if (g.input.value === values[i]) return;
+			g.input.value = values[i];
+			g.input.dispatchEvent(new Event("input", { bubbles: true }));
+			g.input.dispatchEvent(new Event("change", { bubbles: true }));
+		});
+	}
+
+	for (const g of groups) {
+		g.handle.addEventListener("mousedown", (downEvent) => {
+			// 既定のテキスト選択・フォーカス移動を防ぐ(ハンドルは<span>なので実害は
+			// 小さいが、ドラッグ中に隣接テキストが選択されるちらつきを避ける)。
+			downEvent.preventDefault();
+			let hoverSlot: number | null = null;
+			g.group.classList.add("is-dragging");
+
+			function onMove(moveEvent: MouseEvent): void {
+				const target = document.elementFromPoint(moveEvent.clientX, moveEvent.clientY);
+				const hoveredGroup = (target as HTMLElement | null)?.closest<HTMLElement>(".move-input-group") ?? null;
+				for (const other of groups) other.group.classList.remove("is-drag-over");
+				hoverSlot = null;
+				if (hoveredGroup && hoveredGroup !== g.group) {
+					hoveredGroup.classList.add("is-drag-over");
+					const found = groups.find((o) => o.group === hoveredGroup);
+					hoverSlot = found ? found.slot : null;
+				}
+			}
+			function onUp(): void {
+				document.removeEventListener("mousemove", onMove);
+				document.removeEventListener("mouseup", onUp);
+				for (const other of groups) other.group.classList.remove("is-dragging", "is-drag-over");
+				if (hoverSlot != null) moveValueTo(g.slot, hoverSlot);
+			}
+			document.addEventListener("mousemove", onMove);
+			document.addEventListener("mouseup", onUp);
+		});
+	}
+}
+
+function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
+	const moveInputEls = ([1, 2, 3, 4] as const)
+		.map((slot) => document.getElementById(`move-${slot}`) as HTMLInputElement | null)
+		.filter((input): input is HTMLInputElement => input !== null);
+	if (moveInputEls.length === 0) return; // #move-1〜#move-4が無いページでは何もしない(安全側)
+
+	type SortKey = "name" | "type" | "category" | "power" | "accuracy" | "pp";
+	type SortDir = "asc" | "desc";
+
+	const CATEGORY_LABELS: Record<MoveCategory, string> = { physical: "物理", special: "特殊", status: "変化" };
+	// タイプ/分類は「文字列/カテゴリ順で構わない」(round-37.md 37-3)。物理→特殊→変化の
+	// 慣習的な並びをランクで表現する(アルファベット順だと直感に反するため)。
+	const CATEGORY_RANK: Record<MoveCategory, number> = { physical: 0, special: 1, status: 2 };
+
+	let activeSlot: number | null = null;
+	let learnsetOnly = true; // 37-2: 既定ON
+	let sortKey: SortKey = "name";
+	let sortDir: SortDir = "asc";
+	const filters = { name: "", type: "", category: "", pp: "" };
+
+	let allMoves: MoveDetail[] = [];
+	let allMovesReady = false;
+	let currentPool: MoveDetail[] = [];
+
+	// --- DOM構築(1回だけ。document.body直下にappendする理由は
+	//     LeftPanel.astro側の<style is:global>直前コメント参照) ---
+	const windowEl = document.createElement("div");
+	windowEl.id = "move-picker-window";
+	windowEl.className = "move-picker-window";
+	windowEl.hidden = true;
+	windowEl.setAttribute("role", "dialog");
+	windowEl.setAttribute("aria-label", "技を選択");
+
+	const headerEl = document.createElement("div");
+	headerEl.className = "move-picker-header";
+	const titleEl = document.createElement("span");
+	titleEl.className = "move-picker-title";
+	titleEl.textContent = "技を選択";
+	headerEl.appendChild(titleEl);
+
+	const toggleLabel = document.createElement("label");
+	toggleLabel.className = "move-picker-toggle";
+	const toggleInput = document.createElement("input");
+	toggleInput.type = "checkbox";
+	toggleInput.checked = true;
+	toggleLabel.append(toggleInput, document.createTextNode("覚える技だけ表示する"));
+	headerEl.appendChild(toggleLabel);
+
+	const closeButton = document.createElement("button");
+	closeButton.type = "button";
+	closeButton.className = "move-picker-close";
+	closeButton.setAttribute("aria-label", "技選択ウィンドウを閉じる");
+	closeButton.textContent = "×";
+	headerEl.appendChild(closeButton);
+
+	windowEl.appendChild(headerEl);
+
+	const noteEl = document.createElement("p");
+	noteEl.className = "move-picker-note";
+	noteEl.hidden = true;
+	windowEl.appendChild(noteEl);
+
+	const tableWrap = document.createElement("div");
+	tableWrap.className = "move-picker-table-wrap";
+	const table = document.createElement("table");
+	table.className = "move-picker-table";
+	const thead = document.createElement("thead");
+	const headerRow = document.createElement("tr");
+
+	function makeSortButton(label: string, key: SortKey): HTMLButtonElement {
+		const btn = document.createElement("button");
+		btn.type = "button";
+		btn.className = "move-picker-sort-btn";
+		btn.dataset.sortKey = key;
+		btn.textContent = label;
+		btn.addEventListener("click", () => {
+			if (sortKey === key) {
+				sortDir = sortDir === "asc" ? "desc" : "asc";
+			} else {
+				sortKey = key;
+				sortDir = "asc";
+			}
+			updateSortButtonIndicators();
+			renderRows();
+		});
+		return btn;
+	}
+
+	function makeHeaderCell(label: string, key: SortKey, filterEl: HTMLElement | null): HTMLTableCellElement {
+		const th = document.createElement("th");
+		const top = document.createElement("div");
+		top.className = "move-picker-th";
+		top.appendChild(makeSortButton(label, key));
+		th.appendChild(top);
+		if (filterEl) {
+			const filterWrap = document.createElement("div");
+			filterWrap.className = "move-picker-th-filter";
+			filterWrap.appendChild(filterEl);
+			th.appendChild(filterWrap);
+		}
+		return th;
+	}
+
+	const nameFilterInput = document.createElement("input");
+	nameFilterInput.type = "text";
+	nameFilterInput.placeholder = "技名で絞り込み";
+	nameFilterInput.setAttribute("aria-label", "技名で絞り込み");
+	nameFilterInput.addEventListener("input", () => {
+		filters.name = nameFilterInput.value.trim();
+		renderRows();
+	});
+
+	const typeFilterSelect = document.createElement("select");
+	typeFilterSelect.setAttribute("aria-label", "タイプで絞り込み");
+	typeFilterSelect.addEventListener("change", () => {
+		filters.type = typeFilterSelect.value;
+		renderRows();
+	});
+
+	const categoryFilterSelect = document.createElement("select");
+	categoryFilterSelect.setAttribute("aria-label", "分類で絞り込み");
+	for (const [value, label] of [
+		["", "すべて"],
+		["physical", "物理"],
+		["special", "特殊"],
+		["status", "変化"],
+	] as const) {
+		const opt = document.createElement("option");
+		opt.value = value;
+		opt.textContent = label;
+		categoryFilterSelect.appendChild(opt);
+	}
+	categoryFilterSelect.addEventListener("change", () => {
+		filters.category = categoryFilterSelect.value;
+		renderRows();
+	});
+
+	const ppFilterInput = document.createElement("input");
+	ppFilterInput.type = "text";
+	ppFilterInput.placeholder = "PP(完全一致)";
+	ppFilterInput.setAttribute("aria-label", "PPで絞り込み");
+	ppFilterInput.addEventListener("input", () => {
+		filters.pp = ppFilterInput.value.trim();
+		renderRows();
+	});
+
+	headerRow.appendChild(makeHeaderCell("技名", "name", nameFilterInput));
+	headerRow.appendChild(makeHeaderCell("タイプ", "type", typeFilterSelect));
+	headerRow.appendChild(makeHeaderCell("分類", "category", categoryFilterSelect));
+	headerRow.appendChild(makeHeaderCell("威力", "power", null));
+	headerRow.appendChild(makeHeaderCell("命中", "accuracy", null));
+	headerRow.appendChild(makeHeaderCell("PP", "pp", ppFilterInput));
+
+	thead.appendChild(headerRow);
+	table.appendChild(thead);
+	const tbody = document.createElement("tbody");
+	table.appendChild(tbody);
+	tableWrap.appendChild(table);
+	windowEl.appendChild(tableWrap);
+
+	const emptyMessageEl = document.createElement("p");
+	emptyMessageEl.className = "move-picker-empty";
+	emptyMessageEl.textContent = "該当する技がありません。";
+	emptyMessageEl.hidden = true;
+	windowEl.appendChild(emptyMessageEl);
+
+	// 37-1: LeftPanel.astro側の<style is:global>直前コメントで詳述した実測結果により、
+	// z-index:-1ではなくauto(position:fixedのみ)を使う。このウィンドウをbodyの
+	// 「先頭の子」として挿入することで、box/[id].astroがSSRで描画する`.card-damage`
+	// (position:relative、同じCSS区分(6))よりも必ずDOM順で先(=同区分内比較で背面)になる。
+	document.body.insertBefore(windowEl, document.body.firstChild);
+
+	function updateSortButtonIndicators(): void {
+		for (const btn of Array.from(table.querySelectorAll<HTMLButtonElement>(".move-picker-sort-btn"))) {
+			const key = btn.dataset.sortKey as SortKey;
+			btn.classList.toggle("is-active", key === sortKey);
+			btn.dataset.sortDir = key === sortKey ? sortDir : "";
+		}
+	}
+
+	function populateTypeFilterOptions(): void {
+		const types = Array.from(new Set(allMoves.map((m) => m.type).filter((t): t is string => !!t))).sort((a, b) =>
+			a.localeCompare(b, "ja"),
+		);
+		const previousValue = typeFilterSelect.value;
+		typeFilterSelect.innerHTML = "";
+		const allOpt = document.createElement("option");
+		allOpt.value = "";
+		allOpt.textContent = "すべて";
+		typeFilterSelect.appendChild(allOpt);
+		for (const t of types) {
+			const opt = document.createElement("option");
+			opt.value = t;
+			opt.textContent = t;
+			typeFilterSelect.appendChild(opt);
+		}
+		if (types.includes(previousValue)) typeFilterSelect.value = previousValue;
+	}
+
+	async function ensureAllMovesLoaded(): Promise<void> {
+		if (allMovesReady) return;
+		const map = await loadMoveDetailMap();
+		allMoves = [...map.values()];
+		allMovesReady = true;
+		populateTypeFilterOptions();
+	}
+
+	function comparator(a: MoveDetail, b: MoveDetail): number {
+		let result = 0;
+		switch (sortKey) {
+			case "name":
+				result = a.name.localeCompare(b.name, "ja");
+				break;
+			case "type":
+				result = (a.type ?? "").localeCompare(b.type ?? "", "ja");
+				break;
+			case "category":
+				result = CATEGORY_RANK[a.category] - CATEGORY_RANK[b.category];
+				break;
+			case "power":
+				result = (a.power ?? -1) - (b.power ?? -1);
+				break;
+			case "accuracy":
+				result = (a.accuracy ?? -1) - (b.accuracy ?? -1);
+				break;
+			case "pp":
+				result = a.pp - b.pp;
+				break;
+		}
+		return sortDir === "asc" ? result : -result;
+	}
+
+	// 種族の覚え技(learnsetMapPromiseはこのファイル上部で既にモジュールスコープ定義済み、
+	// rebuildMoveListForSpeciesと共用)でプールを絞り込む。種族未選択/該当なしのときは
+	// クラッシュせず全件表示にフォールバックする(round-37.md 37-2の要件どおり)。
+	async function refreshPool(): Promise<void> {
+		await ensureAllMovesLoaded();
+		const speciesName = speciesInput.value.trim();
+		if (learnsetOnly && speciesName) {
+			const learnsetMap = await learnsetMapPromise;
+			const learnset = learnsetMap.get(speciesName);
+			if (learnset && learnset.length > 0) {
+				const learnsetSet = new Set(learnset);
+				currentPool = allMoves.filter((m) => learnsetSet.has(m.name));
+				noteEl.hidden = true;
+				renderRows();
+				return;
+			}
+		}
+		currentPool = allMoves;
+		if (learnsetOnly) {
+			noteEl.hidden = false;
+			noteEl.textContent = speciesName
+				? "このポケモンの覚え技情報が見つからないため、全件表示しています。"
+				: "種族が未選択のため、全件表示しています。";
+		} else {
+			noteEl.hidden = true;
+		}
+		renderRows();
+	}
+
+	function passesFilters(m: MoveDetail): boolean {
+		if (filters.name && !m.name.includes(filters.name)) return false;
+		if (filters.type && m.type !== filters.type) return false;
+		if (filters.category && m.category !== filters.category) return false;
+		if (filters.pp) {
+			const n = Number(filters.pp);
+			if (Number.isFinite(n) && m.pp !== n) return false;
+		}
+		return true;
+	}
+
+	function choose(move: MoveDetail): void {
+		if (activeSlot == null) return;
+		const targetInput = document.getElementById(`move-${activeSlot}`) as HTMLInputElement | null;
+		if (!targetInput) return;
+		targetInput.value = move.name;
+		// プログラムでの.value代入はinput/changeイベントを発火させないため明示的にdispatchする。
+		// これで既存のupdateMoveTypeIcon(input/changeリスナー)・scheduleSave(textInputIdsの
+		// inputリスナー、buildPayload経由の自動保存)がそのまま動く(左パネル側のコードは
+		// 一切変更していない)。
+		targetInput.dispatchEvent(new Event("input", { bubbles: true }));
+		targetInput.dispatchEvent(new Event("change", { bubbles: true }));
+		for (const el2 of Array.from(tbody.querySelectorAll(".move-picker-row.is-selected"))) {
+			el2.classList.remove("is-selected");
+		}
+		const row = tbody.querySelector<HTMLElement>(`[data-move-name="${CSS.escape(move.name)}"]`);
+		row?.classList.add("is-selected");
+	}
+
+	function renderRows(): void {
+		const rows = currentPool.filter(passesFilters).slice().sort(comparator);
+		tbody.innerHTML = "";
+		const fragment = document.createDocumentFragment();
+		const currentValue = activeSlot != null ? (document.getElementById(`move-${activeSlot}`) as HTMLInputElement | null)?.value.trim() : "";
+		for (const m of rows) {
+			const tr = document.createElement("tr");
+			tr.tabIndex = 0;
+			tr.setAttribute("role", "button");
+			tr.className = "move-picker-row";
+			tr.dataset.moveName = m.name;
+			if (m.name === currentValue) tr.classList.add("is-selected");
+
+			const nameTd = document.createElement("td");
+			nameTd.className = "move-picker-cell-name";
+			nameTd.textContent = m.name;
+			tr.appendChild(nameTd);
+
+			const typeTd = document.createElement("td");
+			typeTd.className = "move-picker-cell-type";
+			if (m.type) {
+				const iconUrl = typeIconUrl(m.type);
+				if (iconUrl) {
+					const img = document.createElement("img");
+					img.src = iconUrl;
+					img.alt = m.type;
+					img.width = 16;
+					img.height = 16;
+					img.className = "move-picker-type-icon";
+					typeTd.appendChild(img);
+				}
+				typeTd.appendChild(document.createTextNode(m.type));
+			} else {
+				typeTd.textContent = "-";
+			}
+			tr.appendChild(typeTd);
+
+			const categoryTd = document.createElement("td");
+			categoryTd.textContent = CATEGORY_LABELS[m.category];
+			tr.appendChild(categoryTd);
+
+			const powerTd = document.createElement("td");
+			powerTd.className = "move-picker-cell-num";
+			powerTd.textContent = m.power == null ? "-" : String(m.power);
+			tr.appendChild(powerTd);
+
+			const accuracyTd = document.createElement("td");
+			accuracyTd.className = "move-picker-cell-num";
+			accuracyTd.textContent = m.accuracy == null ? "-" : String(m.accuracy);
+			tr.appendChild(accuracyTd);
+
+			const ppTd = document.createElement("td");
+			ppTd.className = "move-picker-cell-num";
+			ppTd.textContent = String(m.pp);
+			tr.appendChild(ppTd);
+
+			tr.addEventListener("click", () => choose(m));
+			tr.addEventListener("keydown", (e) => {
+				if (e.key === "Enter" || e.key === " ") {
+					e.preventDefault();
+					choose(m);
+				}
+			});
+
+			fragment.appendChild(tr);
+		}
+		tbody.appendChild(fragment);
+		const isEmpty = rows.length === 0;
+		emptyMessageEl.hidden = !isEmpty;
+		tableWrap.hidden = isEmpty;
+	}
+
+	// 🔴 UI改善ラウンド38(round-37.mdの「実装中に見つかったバグ」節への対応)。
+	// 37-1時点の実装は「.panel-leftの右端に外付け」(left = anchorRect.right + gap)
+	// だったが、これは.edit-layout-right(ダメージカード列)の真上に重なる位置になる。
+	// 実測(Playwright、フィクスチャc8680844-...・ダメージカード4枚、ビューポート1920x1080)で
+	// 判明した実際のジオメトリ:
+	//   .panel-left        x: 256.0 〜 696.0  (position:static、レイヤー3)
+	//   .edit-layout-right x: 718.4 〜 1537.6 (position:static、レイヤー3。ただしこの中の
+	//                                          .card-damage自体はposition:relativeでレイヤー6)
+	//   .card-damage       x: 738.4 〜 1517.6 (position:relative、レイヤー6。z-index:auto)
+	//   .edit-layout-detail(#damage-detail-panel) x: 1560 〜 1920
+	//                      (1600px以上でposition:sticky、z-index:60=レイヤー7、常に最前面)
+	//   .app-sidebar       x: 0 〜 256 (position:fixed、z-index:30=レイヤー7、常に最前面)
+	// このウィンドウ自身はposition:fixed・z-index:auto(レイヤー6)。CSS2.1 Appendix Eの
+	// スタッキング順では「レイヤー3(position指定なし)」は「レイヤー6(position指定+
+	// z-index:auto)」より必ず背面になるため、.panel-left自体や.edit-layout-right自身の
+	// 余白部分(グリッドgap・padding、position指定なし)は、このウィンドウと重なっても
+	// **常にこのウィンドウの背面**になる(=重なってもウィンドウが操作可能)。
+	// 一方.card-damage(レイヤー6)とはDOM順のタイブレークになるため、37-1の設計どおり
+	// このウィンドウをdocument.bodyの先頭子として挿入していることで、重なる部分は
+	// 引き続きカードが前面になる。.damage-detail-panel/.app-sidebarはレイヤー7(正のz-index)
+	// で常に最前面のため、この2つの矩形とだけは重ねてはいけない(重ねてもウィンドウ側が
+	// 常に埋もれて一切操作できなくなるだけで、「一部は操作できる」にすらならない)。
+	//
+	// 上記の理由により、右へ外付けする37-1時点の設計を撤回し、.panel-left自身の列
+	// (position:staticなので重ねてもこのウィンドウが前面になる)に重ねる形へ変更する。
+	// 具体的には、left = anchorRect.left(.panel-leftの左端に揃える。.app-sidebarの右端と
+	// 一致するため.app-sidebarへの食い込みも起きない)。右端は「実在する.card-damageの中で
+	// 最も左の座標」の直前までに制限する(.edit-layout-right自身の左paddingぶんの余白
+	// (.panel-left右端〜カード左端、実測で約42px)まではレイヤー3同士なので安全に使える)。
+	// .card-damageが1つも無いフィクスチャ、または(900〜1199px幅の縦積みレイアウトのように)
+	// カードがこのウィンドウの左位置とほぼ同じx(=真下にあるだけで隣り合っていない)の場合は、
+	// この制限を適用せず画面右端近くまで幅を確保してよい(「隣り合っていないカード」に
+	// 合わせて幅を潰してしまう回帰を防ぐガード。 left + 200 未満のカードは「隣ではなく下」と
+	// みなす)。
+	//
+	// 縦位置(top)は37-1時点の「今フォーカスしている技入力欄の上端」から変更した。
+	// .panel-leftへ重ねる方式にしたことで新たに実測で見つかった罠: .panel-left内は
+	// 全体がposition:staticではなく、アイコン画像を添える入力欄だけ`.field-with-image`系の
+	// ラッパー(.species-icon-box/.tera-dropdown-wrap/.move-input-group、いずれも
+	// position:relative・z-index:auto)がある。これらはこのウィンドウと同じレイヤー6のため、
+	// DOM順のタイブレークで(このウィンドウがbody先頭子=DOM順で先=背面のため)これらの
+	// ラッパーがこのウィンドウより前面になり、重なるとクリックを奪われる
+	// (実測: #move-1をクリックして開いたウィンドウの先頭行(トグル)が、隣の#move-2の
+	// `.move-input-group`(同じ行の別スロット)に重なりクリック不能だった)。
+	// .panel-left内でposition:relative/absoluteなのはこの少数の「アイコン付き入力欄」
+	// ラッパー群だけで、いずれも上部(種族名・テラス・技1〜4の行)に集中しており、その他大部分
+	// (能力値テーブル・メモ欄等)はposition:staticであることを実測(全descendantsの
+	// computedStyleを走査)で確認済み。そのため、ウィンドウのtopをこれらポジション付き
+	// ラッパー群の最下端より下に固定できれば、ウィンドウの全域(ヘッダー行含む)がその後
+	// 一切衝突しなくなる。特定のピクセル値を決め打ちにせず、実行時に
+	// `.panel-left`配下のposition!=staticな要素をすべて洗い出し、その最下端(bottom)の
+	// 最大値をtopの下限にする(将来.panel-left側にアイコン付き入力欄が増減しても
+	// 追随できるようにするため)。 */
+	function reposition(inputEl: HTMLInputElement): void {
+		const anchor = document.querySelector<HTMLElement>(".panel-left") ?? document.getElementById("edit-form");
+		if (!anchor) return;
+		const anchorRect = anchor.getBoundingClientRect();
+		const inputRect = inputEl.getBoundingClientRect();
+		const gap = 8;
+		const left = Math.max(gap, anchorRect.left);
+
+		let rightLimit = window.innerWidth - gap;
+		const cardEls = Array.from(document.querySelectorAll<HTMLElement>(".card-damage"));
+		if (cardEls.length > 0) {
+			const minCardLeft = Math.min(...cardEls.map((el) => el.getBoundingClientRect().left));
+			// カード列がこのウィンドウの左位置よりはっきり右にある(=隣に並んでいる)場合だけ、
+			// その手前までに幅を制限する。ほぼ同じx(縦積みで真下にあるだけ)の場合は無視する。
+			if (minCardLeft > left + 200) {
+				rightLimit = Math.min(rightLimit, minCardLeft - gap);
+			}
+		}
+		const width = Math.max(320, Math.min(640, rightLimit - left));
+
+		// .panel-left配下でposition:static以外(=このウィンドウと同じレイヤー6でDOM順が
+		// このウィンドウより後になり得る)要素の最下端を求め、そこより下にウィンドウ全体を
+		// 逃がす。該当が無ければ0(=inputRect.top基準のみで決まる)。
+		let positionedBottom = 0;
+		for (const el of Array.from(anchor.querySelectorAll<HTMLElement>("*"))) {
+			const pos = getComputedStyle(el).position;
+			if (pos === "static") continue;
+			const r = el.getBoundingClientRect();
+			if (r.width <= 0 || r.height <= 0) continue;
+			if (r.bottom > positionedBottom) positionedBottom = r.bottom;
+		}
+		// UI改善ラウンド40ユーザー指示(40-L3-2)追記: 性格補正の上下ボタン
+		// (.stat-nature-up/.stat-nature-down、stat-tableの各行)がこのウィンドウより
+		// 手前に表示されるバグを実測(Playwright、document.elementFromPoint・実スクリーン
+		// ショットの両方)で確認した。このボタン自身はposition:staticのまま(getComputedStyle
+		// で実測済み)で、祖先チェーン(.stat-row-label→.stat-row→.stat-table→…→body)も
+		// すべてposition:static・z-index:auto・transform/opacity/filter/will-change/
+		// contain/isolationいずれも既定値であることを1つずつ実測したが、それでも実際の
+		// ページでは(position:fixedであるはずの)このウィンドウより手前に描画される
+		// (同じ入れ子構造を持たない最小再現ページでは、position:fixedの要素が正しく
+		// 手前に来ることも確認済みのため、このアプリ固有の何らかの描画順要因があると
+		// 見られるが、根本原因は特定できていない=未確認)。上のposition!=staticの走査
+		// だけではこの2クラスを拾えないため、position値に関係なく明示的に対象へ加える。
+		for (const el of Array.from(anchor.querySelectorAll<HTMLElement>(".stat-nature-up, .stat-nature-down"))) {
+			const r = el.getBoundingClientRect();
+			if (r.width <= 0 || r.height <= 0) continue;
+			if (r.bottom > positionedBottom) positionedBottom = r.bottom;
+		}
+		const desiredTop = Math.max(inputRect.top, positionedBottom > 0 ? positionedBottom + gap : 0);
+		const top = Math.max(8, Math.min(desiredTop, window.innerHeight - 240));
+		windowEl.style.left = `${left}px`;
+		windowEl.style.top = `${top}px`;
+		windowEl.style.width = `${width}px`;
+		const maxHeight = window.innerHeight - top - 16;
+		windowEl.style.maxHeight = `${Math.max(240, maxHeight)}px`;
+	}
+
+	function onScrollOrResize(): void {
+		if (activeSlot == null) return;
+		const activeInput = document.getElementById(`move-${activeSlot}`) as HTMLInputElement | null;
+		if (activeInput) reposition(activeInput);
+	}
+
+	function openPicker(slot: number, inputEl: HTMLInputElement): void {
+		// 幅の狭い画面(デスクトップ2カラム構成が成立しない1200px未満相当)では
+		// 「左パネルの右側に外付け」という前提が成立しない。この場合は開かず、
+		// 既存のdatalist(直接タイプ)による絞り込みだけを使ってもらう(壊さない)。
+		if (window.innerWidth < 900) return;
+		activeSlot = slot;
+		titleEl.textContent = `技${slot}を選択`;
+		windowEl.hidden = false;
+		reposition(inputEl);
+		window.addEventListener("resize", onScrollOrResize);
+		window.addEventListener("scroll", onScrollOrResize, true);
+		void refreshPool();
+	}
+
+	function closePicker(): void {
+		windowEl.hidden = true;
+		window.removeEventListener("resize", onScrollOrResize);
+		window.removeEventListener("scroll", onScrollOrResize, true);
+	}
+
+	closeButton.addEventListener("click", closePicker);
+	toggleInput.addEventListener("change", () => {
+		learnsetOnly = toggleInput.checked;
+		void refreshPool();
+	});
+	windowEl.addEventListener("keydown", (e) => {
+		if (e.key === "Escape") closePicker();
+	});
+	// リストの外側をクリックしたら閉じる(#tera-dropdown-listと同じ一般的な挙動)。
+	// ただし#move-1〜#move-4のいずれかのクリックは「別スロットへの切り替え」を意味するため
+	// (各inputのmousedownリスナーが先にactiveSlotを切り替える。バブリング順序により
+	// documentのこのリスナーはその後に実行されるため、対象に含めて早期returnする)。
+	document.addEventListener("mousedown", (e) => {
+		if (windowEl.hidden) return;
+		const target = e.target as Node;
+		if (windowEl.contains(target)) return;
+		if (moveInputEls.some((input) => input.contains(target))) return;
+		closePicker();
+	});
+	// 種族名を編集中にウィンドウが開いていたら、覚え技プールを追随させる。
+	speciesInput.addEventListener("input", () => {
+		if (!windowEl.hidden) void refreshPool();
+	});
+
+	for (const input of moveInputEls) {
+		const slot = Number(input.id.replace("move-", ""));
+		input.addEventListener("focus", () => openPicker(slot, input));
+		input.addEventListener("mousedown", () => openPicker(slot, input));
+	}
+
+	updateSortButtonIndicators();
 }

@@ -138,6 +138,27 @@ const user = Astro.locals.user;
 		   並べ替え(右)の3分割、ラウンド2 B-2)は撤回。検索欄の幅を26remに絞ったことで、
 		   検索/絞り込み/並べ替えの3つはflexの既定(左詰め)のまま並ぶ。 */
 
+		/* 34-B2(ユーザー指示第16弾、round-34.md): 「並べ替え」の<label>を削除し、ソートアイコンを
+		   selectの左側に重ねる。検索欄(.search-input-wrap/.search-icon)と同じ手法
+		   (position:absoluteのアイコン+input側padding-leftをselect側に適用)を踏襲する。
+		   ラベル削除によるアクセシビリティ低下を防ぐため、<select>にaria-label="並べ替え"を付与する
+		   (マークアップ側、下記参照)。 */
+		.sort-select-wrap {
+			position: relative;
+			display: flex;
+			align-items: center;
+			flex: 1;
+		}
+		.sort-select-wrap .sort-icon {
+			position: absolute;
+			left: 0.7em;
+			color: var(--color-text-muted);
+			pointer-events: none;
+		}
+		.toolbar-sort select {
+			padding-left: 2.1em;
+		}
+
 		@media (max-width: 640px) {
 			.panel-toolbar { flex-direction: column; align-items: stretch; }
 			.toolbar-item { width: 100%; margin-left: 0; }
@@ -441,15 +462,53 @@ const user = Astro.locals.user;
 		   アクションボタンと重ならないこと、という要件に反する)。.card-actionsのサイズは
 		   カード幅に依存せず固定(28px×2+gap)なので、top位置もカード幅に依存しないfixed px
 		   (60px)にすることで全ブレークポイントで安定してアクションの下に収める。 */
+		/* 35-B1(ユーザー指示第17弾、round-35.md): 「Y位置(top:60px)は変えず、並び方
+		   (縦→横)だけ変える」。flex-direction を column→row に変更する。旧・縦積みは
+		   アイテム40px+gap+テラス30px=約73pxの高さを専有し、top:60pxを足すと下端が約133px
+		   相当まで達していたが、横並びにすると縦の専有幅は最大アイコン高さ(36px、下記参照)
+		   だけになるため、top:60pxのままでも.card-body(名前行)・.card-actionsと重ならない
+		   (アイコン縮小とあわせて実測、報告参照)。 */
+		/* 38-B1(ユーザー指示、round-38.md): 「アイテムとテラスタル画像は左右ではなく上下に
+		   配置する」。flex-direction を row→column に戻す。
+		   併せて、35-B1のrow化以降に生じていた見切れ(.card-pokemonのoverflow:hiddenで
+		   バッジ列の右端が切られる)を実測した: grid-template-columns: minmax(210px,1fr)の
+		   影響でブラウザ幅500〜850px付近(カード幅212〜260px程度、ごく普通のウィンドウ幅で
+		   頻繁に発生する)ではrow配置(アイテム36px+gap+テラス24px=63.2px幅)が
+		   .card-pokemon右端を最大+16.2px(幅481px時)はみ出し、overflow:hiddenで
+		   実際に切れていた(幅500px:+13.5px、520px:+8.5px、750px:+11.5px、800px:+3.1pxも
+		   同様に超過。Playwrightのcloneで複数カード・複数幅を実測、報告参照)。
+		   column化するとバッジ列の専有幅は最大子要素(アイテム36px)だけになり63.2px→36pxへ
+		   縮むため、上記のはみ出しはすべて解消する(実測: 幅481pxで-11.0px、幅800pxで-24.1px
+		   などすべて負値=はみ出しなしに転換、報告参照)。
+		   縦の専有幅はアイテム36px+gap(0.2rem≈3.2px)+テラス24px=約63.2pxに増えるが、
+		   top:60px起点でも下端は約123.2px相当までしか達せず、.card-body(名前行、
+		   art上端からの相対距離は幅により変動するが実測では最小でも20px超のクリアランスを
+		   確保できることを確認、報告参照)・.card-actions(art上端からの相対位置は負〜33px、
+		   badge開始位置60pxより上)のどちらとも重ならないことを全ブレークポイントで実測確認した。
+			   39-B1(ユーザー指示第21弾、round-39.md追記): 「テラスタル画像の底辺位置をポケモン
+			   画像の底辺位置に揃える(上方向に移動)」。getBoundingClientRectで実測(1920px、
+			   カミ様/メガリザードンX): top:60px時の.card-art .card-sprite-img bottom=267.875px、
+			   .card-tera-badge bottom=278.90625px(テラスが11.03125px下にずれ)。アイテムバッジとの
+			   縦の並び順・間隔(column、gap 0.2rem)は変えず、row全体をこの差の分だけ上へ移動させれば
+			   足りるため、top を 60px→48.96875px(=60-11.03125)へ変更した。変更後の実測:
+			   テラスバッジbottom=267.91875px、artbottom=267.875pxで差0.04375px(丸め誤差程度)に一致。
+			   アイテムバッジは連動して11px上に動くが、要件で明示的に許容されている(報告参照)。 */
 		.box-grid .card-pokemon .card-badge-row {
 			position: absolute;
 			left: 100%;
-			top: 60px;
-			margin-left: 0.3rem;
+			/* 40-B2(ユーザー指示第22弾、round-40.md): 「アイテムとテラスタルのアイコン間の
+			   スペースを狭める。配置を少し左に移動」。gapを0.2rem→0.1rem(3.2px→1.6px)へ、
+			   margin-leftを0.3rem→0.15rem(4.8px→2.4px、右方向のオフセットを縮めて.card-art側へ
+			   詰める=見た目には左に寄る)へそれぞれ縮小した。gapを1.6px縮めた分、39-B1が
+			   合わせたテラス画像の底辺位置(ポケモン画像の底辺と一致、実測diff 0.04375px)が
+			   上へずれてしまうため、topを縮小分だけ+1.6pxして48.96875px→50.56875pxに補正し、
+			   底辺の一致を維持する(実測diffは報告参照)。 */
+			top: 50.56875px;
+			margin-left: 0.15rem;
 			display: flex;
 			flex-direction: column;
 			align-items: center;
-			gap: 0.2rem;
+			gap: 0.1rem;
 		}
 		.box-grid .card-pokemon .card-tera-badge {
 			display: flex;
@@ -460,9 +519,15 @@ const user = Astro.locals.user;
 			   .card-item-badge(18px)と縦に並んだことで、旧25pxとの寸法差7px・左端の3.5px
 			   ズレが直接見比べられる状態になった。確立規格の20px(28-L1〜L6)に揃える
 			   (旧25pxから縮小)。左端も.card-item-badgeと同じ20px幅にすることで、
-			   .card-badge-rowのalign-items:centerが自動的に左端を一致させる。 */
-			width: 20px;
-			height: 20px;
+			   .card-badge-rowのalign-items:centerが自動的に左端を一致させる。
+			   34-B4(ユーザー指示第16弾、round-34.md): 「テラスタルアイコンを1.5倍する」。
+			   20px×1.5=30pxへ拡大(実測: .card-badge-row top:60px起点でも.card-actions
+			   (右上、高さ60px)・.card-body(名前行以下)と重ならないことを確認済み、報告参照)。
+			   35-B1(ユーザー指示第17弾、round-35.md): 「テラスタルアイコンを-20%する」。
+			   30px×0.8=24pxへ縮小。.card-badge-rowをrow(横並び)に変えたことと合わせて、
+			   top:60px起点でも.card-body・.card-actionsと重ならないことを実測済み(報告参照)。 */
+			width: 24px;
+			height: 24px;
 		}
 		.box-grid .card-pokemon .card-tera-badge img {
 			width: 100%;
@@ -490,10 +555,13 @@ const user = Astro.locals.user;
 		   その区切り線自体をborder-topごと削除した(上の.card-stat-grid参照)ため、この
 		   ダークモード上書きも対象を失い完全に不要になり削除した。 */
 
-		/* --- ピン留め/削除(要件7): ★は状態表示として常時可視、🗑は誤操作防止のため
+		/* --- ピン留め(お気に入り)/削除(要件7): ★は状態表示として常時可視、🗑は誤操作防止のため
 		   hover/focus-within時のみ可視にする(キーボード操作はTabで delete-button に
 		   フォーカスが入った瞬間 :focus-within が発火するので到達可能)。
 		   タッチ操作(hover非対応端末)では常時可視のままにして操作不能にならないようにする。
+		   39-B2/39-B3(ユーザー指示第21弾、round-39.md): お気に入り(左上・三角形トリム)と
+		   削除(右上・丸ボタン)を対角配置にする。ピン留めは三角形の意匠自体を常時見せる方針に
+		   変更したため☆状態も常時可視にした(下の.pin-toggle/@media (hover:hover)参照)。
 		   ラウンド4: 200px正方形に収めるためアイコンボタンを2rem→1.5remへ縮小する。
 		   ラウンド12(B-1とアイコンボタン規格統一の両立): B-1で.card-artをmin(56%,113px)へ
 		   拡大した結果、横並び(flex-direction: row)のcard-actions(top/right:8px固定)と
@@ -506,6 +574,10 @@ const user = Astro.locals.user;
 		   実測(1920px): .card-art 右端x=675.5、.card-actions(縦積み・28px)左端x≈691.6と
 		   16px以上のクリアランスを確保(重なりなし)。 --- */
 		.box-grid .card-pokemon .card-actions {
+			/* 39-B2/39-B3(ユーザー指示第21弾、round-39.md): 「お気に入りは左上角の三角形トリム、
+			   削除は右上」の対角配置にするため、ピン留めボタン(.pin-toggle)をこの.card-actions
+			   から分離しcard直下へ直接置いた(下の.pin-toggle個別スタイル参照)。.card-actions自体は
+			   削除ボタン1個だけの箱として残り、位置(top/right: var(--space-2))は変えない。 */
 			position: absolute;
 			top: var(--space-2);
 			right: var(--space-2);
@@ -534,10 +606,46 @@ const user = Astro.locals.user;
 			outline: 2px solid var(--color-primary);
 			outline-offset: 2px;
 		}
+		.box-grid .card-pokemon .pin-toggle {
+			/* 39-B2(ユーザー指示第21弾、round-39.md): 「カード左上の角を三角形にトリムした領域が
+			   お気に入り状態でハイライトされる」UIに変更する。.icon-button共通(円形28px・枠線・
+			   影)をここで上書きし、カード左上の角(top:0/left:0、カードはposition:relativeかつ
+			   overflow:hiddenなので角からはみ出す部分は自動的に切られる)にclip-pathで直角二等辺
+			   三角形を作る。クリック領域もclip-pathに追随するため、切り取られた外側(カード本体側)
+			   はカードの<a>へのクリックが素通りし、三角形の内側だけがボタンとして反応する
+			   (クリックでお気に入りをトグルする機能はJS側を変更していないため維持)。
+			   アイコン文字(★/☆)は直角三角形の重心付近(左上から辺の1/3の位置)に来るよう
+			   paddingで寄せる。hoverでの表示/非表示ロジック(下の@media (hover:hover)ブロック、
+			   data-pinned="false"のとき非表示)はこのラウンドでは変更しない(見た目の形だけを
+			   変える指示のため)。 */
+			position: absolute;
+			top: 0;
+			left: 0;
+			z-index: 2;
+			width: 36px;
+			height: 36px;
+			padding: 5px 0 0 5px;
+			border: none;
+			border-radius: 0;
+			box-shadow: none;
+			clip-path: polygon(0 0, 100% 0, 0 100%);
+			background: var(--color-surface-alt);
+			color: var(--color-text-muted);
+			align-items: flex-start;
+			justify-content: flex-start;
+			font-size: 0.72rem;
+		}
+		.box-grid .card-pokemon .pin-toggle:hover {
+			background: var(--color-surface);
+			color: var(--color-text);
+		}
 		.box-grid .card-pokemon .pin-toggle[data-pinned="true"] {
 			background: var(--color-risky);
 			color: var(--color-primary-contrast);
-			border-color: var(--color-risky);
+		}
+		.box-grid .card-pokemon .pin-toggle[data-pinned="true"]:hover {
+			background: var(--color-risky);
+			color: var(--color-primary-contrast);
 		}
 		/* global.cssの.delete-button(danger塗り・太字パディング)はアイコン専用の丸ボタンには
 		   大きすぎるため、このカード内に限定してサイズ・配色を上書きする。
@@ -565,17 +673,22 @@ const user = Astro.locals.user;
 			color: var(--color-danger-strong);
 			border-color: var(--color-danger-strong);
 		}
+		/* 39-B2(ユーザー指示第21弾、round-39.md)により、.pin-toggle(お気に入り)は
+		   hover限定表示の対象から外した。三角形トリムは「常にそこにトリムされた領域がある」
+		   ことを見せるデザインのため、非お気に入り状態でも薄い三角形(background:
+		   var(--color-surface-alt))を常時表示し、お気に入り状態(risky色)との違いを
+		   hoverせずに視認できるようにする(旧来は☆状態を隠していたが、三角形デザインでは
+		   常時可視の方が「お気に入り状態とそうでない状態が視覚的に明確に区別できる」という
+		   要件に合致すると判断した)。削除ボタンは引き続き誤操作防止のためhover/focus-within
+		   限定で可視にする。 */
 		@media (hover: hover) and (pointer: fine) {
-			.box-grid .card-pokemon .delete-button,
-			.box-grid .card-pokemon .pin-toggle[data-pinned="false"] {
+			.box-grid .card-pokemon .delete-button {
 				opacity: 0;
 				pointer-events: none;
 				transition: opacity 0.15s, background 0.15s, color 0.15s, border-color 0.15s;
 			}
 			.box-grid .card-pokemon:hover .delete-button,
-			.box-grid .card-pokemon:focus-within .delete-button,
-			.box-grid .card-pokemon:hover .pin-toggle[data-pinned="false"],
-			.box-grid .card-pokemon:focus-within .pin-toggle[data-pinned="false"] {
+			.box-grid .card-pokemon:focus-within .delete-button {
 				opacity: 1;
 				pointer-events: auto;
 			}
@@ -622,9 +735,15 @@ const user = Astro.locals.user;
 			flex: none;
 			/* ラウンド32 32-B5(統一感レビュアーCoordinator裁定、round-32.md): .card-tera-badge
 			   (25px)との寸法差7px・左端の3.5pxズレが縦に並んだことで露出したため、確立規格の
-			   20px(28-L1〜L6)に揃える(旧18pxから拡大)。 */
-			width: 20px;
-			height: 20px;
+			   20px(28-L1〜L6)に揃える(旧18pxから拡大)。
+			   34-B4(ユーザー指示第16弾、round-34.md): 「アイテムアイコンを2倍する」。
+			   20px×2=40pxへ拡大(実測: .card-badge-row top:60px起点でも.card-actions・
+			   .card-bodyと重ならないことを確認済み、報告参照)。
+			   35-B1(ユーザー指示第17弾、round-35.md): 「アイテムアイコンを-10%する」。
+			   40px×0.9=36pxへ縮小。.card-badge-rowをrow(横並び)に変えたことと合わせて、
+			   top:60px起点でも.card-body・.card-actionsと重ならないことを実測済み(報告参照)。 */
+			width: 36px;
+			height: 36px;
 		}
 		.box-grid .card-pokemon .card-item-badge img {
 			width: 100%;
@@ -671,8 +790,16 @@ const user = Astro.locals.user;
 			overflow: hidden;
 			text-overflow: ellipsis;
 		}
-		.box-grid .card-pokemon .card-ability-name { text-align: left; }
-		.box-grid .card-pokemon .card-item-name { text-align: right; }
+		/* 34-B4/34-B5(ユーザー指示第16弾、round-34.md): 「特性名は右寄せ・アイテム名は左寄せ
+		   にして、中央に寄るように配置する」。32-B3で外側に開く配置(特性=左寄せ・
+		   アイテム=右寄せ)にしていたが、今回はその逆(内側=行の中央の隙間に寄る配置)へ
+		   入れ替える。
+		   35-B2(ユーザー指示第17弾、round-35.md)により中央揃えに変更: 「特性は左半分・
+		   アイテムは右半分の領域でそれぞれ中央揃え」。.card-ability-name/.card-item-name は
+		   既にそれぞれ左右の列に flex:1 1 0 で分かれているため、text-align:center だけで
+		   各半分の中央に来る(34-B5の右寄せ/左寄せは撤回、方向性=「中央に寄せる」は継続)。 */
+		.box-grid .card-pokemon .card-ability-name { text-align: center; }
+		.box-grid .card-pokemon .card-item-name { text-align: center; }
 
 		/* 実数値6値: 「列見出し(H/A/B/C/D/S)+実数値」の2段×6列グリッド。
 		   努力値は表示せず(優先順位に含まれないため200px正方形の予算から外した)、
@@ -786,11 +913,17 @@ const user = Astro.locals.user;
 			/* ラウンド21 21-B3: 技の背景にタイプ背景色を置く(ユーザー指示)。背景そのものは
 			   JS側(applyMoveChipTypeColors)がcolor-mixで敷く(タイプが引けないときは背景なし)。
 			   ここではチップらしく見せるための余白と角丸だけを用意する。
-			   コントラスト実測: color-mix(in srgb, <タイプ色> 10%, transparent)を
+			   コントラスト実測(21-B3時点): color-mix(in srgb, <タイプ色> 10%, transparent)を
 			   --color-surface-alt(カード背景)の上に敷いた場合、--color-text-mutedとの比は
-			   19タイプ中最悪でもライト4.88:1(かくとう)・ダーク4.66:1(こおり)で、WCAG AA(4.5:1)を
+			   19タイプ中最悪でもライト4.88:1(かくとう)・ダーク4.67:1(でんき)で、WCAG AA(4.5:1)を
 			   ライト・ダーク両方で全タイプが満たす(15〜20%では一部タイプがダークで4.5:1を割ることを
-			   計算で確認したため10%を採用。詳細は報告参照)。 */
+			   計算で確認したため10%を採用)。
+			   35-B3(ユーザー指示第17弾、round-35.md): 「技の背景色を少し濃くする」。19タイプ全てを
+			   ライト・ダーク両方で再計算した結果、12%時点で「でんき」(ダーク4.43:1)・「こおり」
+			   (ダーク4.44:1)がAAを割ることを確認した(タイプ別の限界値: でんき11.42%・
+			   こおり11.49%が最小)。11%までなら全19タイプがライト・ダーク両方でAAを満たす
+			   (実測: ライト最悪4.81:1(かくとう)・ダーク最悪4.55:1(でんき))ため、10%→11%に
+			   引き上げる(下のJS側 applyMoveChipTypeColors 参照)。詳細は報告参照。 */
 			padding: 0.08rem 0.35rem;
 			border-radius: 4px;
 		}
@@ -837,7 +970,24 @@ const user = Astro.locals.user;
 			   32-B5追加分(実装者の判断): デスクトップ側を20px統一(item 18→20px、tera 25→20px)に
 			   揃えたのに合わせ、この幅の値も14px/18pxの2種類から16px/16pxの1種類へ統一する。
 			   14+18=32=16+16 のため合計高さ(+gap)は変わらず、上記の安全域34.9px・クリアランス
-			   約1.6pxは変化しない(実測は報告参照)。 */
+			   約1.6pxは変化しない(実測は報告参照)。
+			   35-B1(ユーザー指示第17弾、round-35.md): この@media内では flex-direction を
+			   個別に上書きしていないため、基本定義(上記、column→row変更済み)がそのまま
+			   継承され、この幅でも横並びになる。サイズ(16px/16px)自体は今回のユーザー指示の
+			   対象(デスクトップ側の.card-item-badge/.card-tera-badge)ではないため据え置き、
+			   横並びになったことで縦の専有幅が16pxまで縮み、.card-body・.card-actionsと
+			   重ならないことを実測で確認した(報告参照)。
+			   38-B1(ユーザー指示、round-38.md): この@media内でも個別上書きをしていないため、
+			   基本定義(上記、row→column変更済み)がそのまま継承され、この幅でも縦積みになる。
+			   縦の専有幅は16px+gap(下記0.08rem≈1.28px)+16px≈33.28pxとなり、top:60px起点でも
+			   .card-body(名前行)までの安全域34.9px以内に収まる(クリアランス約1.6px、
+			   32-B2時点の実測値を踏襲。実測で再確認、報告参照)。
+			   一方、column化で幅方向のはみ出しは大半解消したが(row時63.2px→column時16px)、
+			   ブラウザ全幅360px(このブレークポイントの下限側、カード幅154px)では
+			   margin-left:0.3rem(基本定義)のままだとアイテムバッジ単体でも+2.5px
+			   .card-pokemonの右端をはみ出す(overflow:hiddenで実際に切れる)ことを実測した。
+			   この幅専用にmargin-leftを0へ詰めて解消する(実測: 0.3rem時+2.5px→0時-2.3px、
+			   報告参照)。 */
 			.box-grid .card-pokemon .card-item-badge {
 				width: 16px;
 				height: 16px;
@@ -848,6 +998,7 @@ const user = Astro.locals.user;
 			}
 			.box-grid .card-pokemon .card-badge-row {
 				gap: 0.08rem;
+				margin-left: 0;
 			}
 		}
 	</style>
@@ -886,17 +1037,24 @@ const user = Astro.locals.user;
 								data-active="false"
 								aria-pressed="false"
 							>
-								<span aria-hidden="true">★</span> お気に入りのみ表示
+								<span aria-hidden="true">★</span> お気に入り
 							</button>
 						</div>
 
 						<div class="toolbar-item toolbar-sort">
-							<label class="field-label" for="sort-select">並べ替え</label>
-							<select id="sort-select" class="field-control">
-								<option value="updated_at">最終更新順</option>
-								<option value="last_used_at">最終使用順</option>
-								<option value="nickname">ニックネーム順</option>
-							</select>
+							<div class="sort-select-wrap">
+								<svg class="sort-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+									<path d="M7 4v16" />
+									<path d="M4 7l3-3 3 3" />
+									<path d="M17 20V4" />
+									<path d="M14 17l3 3 3-3" />
+								</svg>
+								<select id="sort-select" class="field-control" aria-label="並べ替え">
+									<option value="updated_at">最終更新順</option>
+									<option value="last_used_at">最終使用順</option>
+									<option value="nickname">ニックネーム順</option>
+								</select>
+							</div>
 						</div>
 					</div>
 
@@ -1066,18 +1224,21 @@ const user = Astro.locals.user;
 			// 後に呼び出す(下のrenderCard内、applyActualStats(...).then(...)参照)。
 			// 種族値が解決できずstatValueElsが"-"のままの個体は実数値行を省略する(嘘の値は出さない)。
 			// メモ・実数値のどちらも無ければtitle属性自体を出さない(ユーザー指示どおり)。
+			// 34-B3(ユーザー指示第16弾、round-34.md): 「ホバー時のステータス表記から"実数値:"を
+			// 削除し、性格補正はA200+, C135-のように数値の後に+/-をつける」。
+			// mark を▲/▼から+/-へ変更(ラベル→値→記号の順は維持、結果 `A200+` `C135-` になる)。
 			function buildStatSummary(statValueEls: HTMLElement[]): string | null {
 				if (statValueEls.some((valueEl) => valueEl.textContent === "-")) return null;
 				return STAT_LABELS.map((label, i) => {
 					const valueEl = statValueEls[i];
-					const mark = valueEl.dataset.mod === "up" ? "▲" : valueEl.dataset.mod === "down" ? "▼" : "";
+					const mark = valueEl.dataset.mod === "up" ? "+" : valueEl.dataset.mod === "down" ? "-" : "";
 					return `${label}${valueEl.textContent}${mark}`;
 				}).join(" ");
 			}
 			function applyCardTooltip(card: HTMLAnchorElement, statValueEls: HTMLElement[], memo: string | null): void {
 				const lines: string[] = [];
 				const statSummary = buildStatSummary(statValueEls);
-				if (statSummary) lines.push(`実数値: ${statSummary}`);
+				if (statSummary) lines.push(statSummary);
 				const memoText = memo?.trim() ?? "";
 				if (memoText) lines.push(`メモ: ${memoText}`);
 				if (lines.length > 0) card.title = lines.join("\n");
@@ -1175,7 +1336,7 @@ const user = Astro.locals.user;
 					const type = typeMap.get(moveName);
 					if (!type) continue;
 					const color = TYPE_COLORS[type] ?? DEFAULT_TYPE_COLOR;
-					el.style.background = `color-mix(in srgb, ${color} 10%, transparent)`;
+					el.style.background = `color-mix(in srgb, ${color} 11%, transparent)`;
 				}
 			}
 
@@ -1242,8 +1403,20 @@ const user = Astro.locals.user;
 					}
 					return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
 				});
-				// ピン留めは常に上部固定(育成データ管理計画.md §6.1)
-				sorted.sort((a, b) => Number(b.is_pinned) - Number(a.is_pinned));
+				// ピン留めは常に上部固定(育成データ管理計画.md §6.1)。
+				// 40-B1(ユーザー指示第22弾、round-40.md): 「更新順」(sort==="updated_at")選択時は
+				// このピン優先の再ソートを外す。お気に入りトグルAPI(togglePin)はPUTが全項目上書き
+				// 契約のため、サーバ側(updateOwnedPokemon)がupdated_atを必ず現在時刻へ更新する
+				// (実測確認済み)。従来はこの無条件ピン優先ソートと相まって、「更新順」表示中に
+				// お気に入りを押すと、トグルした個体だけでなく他個体の見た目上の並び位置まで
+				// ずれて見えた。ピン優先を外すことで「更新順」表示は純粋にupdated_at降順のみになり、
+				// トグルした個体自身が新しいupdated_atで最上部付近へ動くこと(要件で明示的に許容)
+				// 以外、他個体同士の相対順は変わらない(比較関数がa/bの属性だけに依存し第三者の
+				// トグルに影響されないため、数学的にも保証される)。「最終使用順」「ニックネーム順」
+				// では従来どおりピン優先を維持する。
+				if (sort !== "updated_at") {
+					sorted.sort((a, b) => Number(b.is_pinned) - Number(a.is_pinned));
+				}
 				return sorted;
 			}
 
@@ -1261,10 +1434,13 @@ const user = Astro.locals.user;
 				// title(ホバーツールチップ)は下のapplyActualStats().then(...)で実数値が
 				// 解決してから設定する(32-B4)。
 
-				// --- ピン留め/削除(単一アイコンボタン、カード右上に重ねる。要件7) ---
-				const actions = document.createElement("div");
-				actions.className = "card-actions";
-
+				// --- ピン留め(お気に入り、カード左上の三角形トリム領域)/削除(カード右上)。
+				//     39-B2/39-B3(ユーザー指示第21弾、round-39.md): 対角配置にするため、
+				//     旧来の単一.card-actions(右上に2つ縦積み)から分離する。ピン留めボタンは
+				//     .card-actionsの外に出し、card直下へ直接appendして左上に固定する
+				//     (.card-pokemonがposition:relativeなので基準になる)。クリックでお気に入りを
+				//     トグルする機能・data-pinned属性・イベントリスナーは変更しない
+				//     (見た目=CSSのclip-pathで三角形にするだけ、round-39.md 39-B2の指示どおり)。 ---
 				const pinButton = document.createElement("button");
 				pinButton.type = "button";
 				pinButton.className = "icon-button pin-toggle";
@@ -1279,7 +1455,12 @@ const user = Astro.locals.user;
 					event.stopPropagation();
 					void togglePin(p);
 				});
-				actions.appendChild(pinButton);
+				card.appendChild(pinButton);
+
+				// 削除ボタン: 39-B3で右上へ移動(旧来から位置は変えず、お気に入りが左上へ
+				// 抜けたことで対角配置になる)。.card-actionsはこの1個だけを持つ箱として維持する。
+				const actions = document.createElement("div");
+				actions.className = "card-actions";
 
 				const deleteButton = document.createElement("button");
 				deleteButton.type = "button";

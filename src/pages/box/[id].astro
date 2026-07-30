@@ -109,6 +109,12 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 	)}
 	{pokemon && (
 		<Fragment slot="topbar-actions">
+			{/* 🔴 UI改善ラウンド40ユーザー指示(40-H1)「すべて折りたたむボタンはダメージカード領域の
+			    上に置く」により、ラウンド38(38-H1)「ヘッダーに移動」を撤回する。
+			    #damage-collapse-toggle-button(単一トグルボタン、交互切り替えのロジックは
+			    src/lib/box-id/damage-calc.ts側にそのまま残す)は
+			    src/components/box-id/DamageCalcSection.astro の #damage-rows-list 直上へ移設した。
+			    このFragmentにはページ共通ヘッダー本来の項目(削除ボタン)だけが残る。 */}
 			{/* ラウンド21ユーザー指示(21-H1): 「個体削除はゴミ箱+赤背景の定番デザインにする」。
 			    ラウンド3 B-9(既定はmuted、hover時だけdangerに転じ誤操作を抑止する設計)を撤回する。
 			    アイコンはインラインSVGのゴミ箱(絵文字🗑はOS/フォントで見た目が変わるため
