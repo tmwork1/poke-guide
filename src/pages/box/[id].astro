@@ -79,6 +79,22 @@ const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 // pokemonがnull(個体が見つからない)のときはpageTitleが種族名ではなく固定文言「個体編集」
 // (エラー状態の案内)なので、そちらは隠さない(bodyClassをpokemon存在時だけ付与する)。
 const bodyClass = pokemon ? "box-edit-page" : undefined;
+
+// 匿名集計サジェスト機能・第4段階(UI: 収集拒否トグル)。owned_pokemon.collection_opt_out_until
+// (null=収集対象、未来日時=拒否期間中)から、SSR時点での「拒否中かどうか」と「残り日数」を
+// 算出する。過去日時(期限切れ)はnullと同じ扱い(=収集対象。拒否中の表示は出さない)にする。
+// このロジックは<script>側(src/lib/box-id/left-panel.ts)のPATCH成功時レスポンス反映でも
+// 同じ計算式(ミリ秒差をceilして日数化)を使うので、変更する場合は両方揃えること。
+function formatOptOutRemaining(until: string | null | undefined): string {
+	if (!until) return "";
+	const untilMs = new Date(until).getTime();
+	const diffMs = untilMs - Date.now();
+	if (diffMs <= 0) return "";
+	const days = Math.ceil(diffMs / (24 * 60 * 60 * 1000));
+	return `あと${days}日`;
+}
+const optOutRemainingText = pokemon ? formatOptOutRemaining(pokemon.collection_opt_out_until) : "";
+const isOptedOut = optOutRemainingText !== "";
 ---
 <AppLayout title={pageTitle} current="box" backHref="/box" bodyClass={bodyClass}>
 	{/* 共通トップバー移行(2026-07-26): 独自の.page-header(戻る/保存状態/ポケモン名/削除ボタン)を
@@ -137,6 +153,27 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 			<button id="damage-collapse-toggle-button" class="btn-ghost" type="button" disabled aria-expanded="false">
 				<span class="damage-collapse-toggle-chevron" aria-hidden="true">»</span><span class="damage-collapse-toggle-label">すべて折りたたむ</span>
 			</button>
+			{/* 匿名集計サジェスト機能・第4段階(UI: 収集拒否トグル)。この個体を性格/アイテム/
+			    テラス/技の匿名集計対象から除外するトグル。マークアップは
+			    src/components/box-id/LeftPanel.astro の is:global <style> に既にある
+			    .toggle-switch一式(.toggle-switch-input/.toggle-switch-track/.toggle-switch-thumb、
+			    実際の使用例は src/lib/box-id/left-panel.ts の setupMovePickerWindow が動的生成する
+			    マークアップ)をそのまま流用する(is:globalのためコンポーネント境界をまたいで効く。
+			    CSSの重複定義はしない)。初期のchecked属性はSSRで算出したisOptedOutをそのまま出し分ける
+			    (フロントマター側のコメント参照)。状態テキスト(#collection-opt-out-status)は
+			    拒否中のときだけ残り日数を表示し、収集対象時は何も見えないようhidden属性を付ける
+			    (ラウンド33で「常時表示される空枠」が撤去された経緯を踏襲)。変更イベントの結線は
+			    src/lib/box-id/left-panel.ts 側(#delete-buttonのクリックハンドラの近く)。 */}
+			<label class="collection-opt-out-toggle" for="collection-opt-out-toggle">
+				<span class="toggle-switch">
+					<input id="collection-opt-out-toggle" type="checkbox" class="toggle-switch-input" checked={isOptedOut} aria-label="匿名データ収集を拒否" />
+					<span class="toggle-switch-track" aria-hidden="true">
+						<span class="toggle-switch-thumb"></span>
+					</span>
+				</span>
+				<span class="collection-opt-out-toggle-label">匿名データ収集を拒否</span>
+				<span id="collection-opt-out-status" class="collection-opt-out-status" hidden={!isOptedOut}>{optOutRemainingText}</span>
+			</label>
 			<button id="delete-button" class="btn-danger" type="button">
 				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
 				削除
@@ -193,6 +230,32 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 		   縦に折り返り(実測46×169px)、w900でも3行に折れていた。1行に固定する
 		   (トップバー側の折り返し対策はglobal.css/AppLayout.astro担当の別エージェントの範囲)。 */
 		#delete-button { white-space: nowrap; }
+		/* 匿名集計サジェスト機能・第4段階(UI: 収集拒否トグル)。.toggle-switch本体のCSSは
+		   src/components/box-id/LeftPanel.astro の is:global <style> 側に既にあるためここでは
+		   重複定義しない。ここはラベル・状態テキストのレイアウトだけを追加する。
+		   #delete-button と同じ実測バグパターン(祖先のfont: inheritによりトップバー内で
+		   フォントサイズだけ肥大化する)を避けるため、ここでもvar(--font-size-sm)を明示する。
+		   トーンは#damage-collapse-toggle-button(.btn-ghost)に揃え、既定でmuted、常時色付きの
+		   目立つ表示にはしない。 */
+		.collection-opt-out-toggle {
+			display: inline-flex;
+			align-items: center;
+			gap: 0.4em;
+			font-size: var(--font-size-sm);
+			color: var(--color-text-muted);
+			white-space: nowrap;
+			cursor: pointer;
+		}
+		.collection-opt-out-status {
+			color: var(--color-text-muted);
+		}
+		.collection-opt-out-status[hidden] { display: none; }
+		/* PATCH失敗時のみ(<script>側がdata-state="error"を付与)最小限のエラー色を出す。
+		   #autosave-status[data-state="error"] #autosave-status-text と同じ温度感(赤字テキストの
+		   み、追加のUI装飾なし)。 */
+		.collection-opt-out-status[data-state="error"] {
+			color: var(--color-danger);
+		}
 		/* ラウンド23実バグ修正: 上記の21-H1コントラスト是正ブロック(ページscoped)を撤去した。
 		   ラウンド22の22-A-1でglobal.cssの.btn-danger自体を--color-danger-strongに直したため、
 		   このページscopedブロックは基底(global.css)と完全に同じ値になり不要だった。

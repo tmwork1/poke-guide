@@ -1084,6 +1084,66 @@ if (form) {
 		})();
 	});
 
+	// 匿名集計サジェスト機能・第4段階(UI: 収集拒否トグル)。この個体を性格/アイテム/テラス/
+	// 技の匿名集計対象から除外する。PATCH /api/owned-pokemon/:id に { collection_opt_out: boolean }
+	// を送るだけの軽量経路(is_pinnedのPATCHと同じパターン、上のdeleteButton同様ownedPokemonIdを
+	// 使う)で、フォーム全体の自動保存(saveNow/scheduleSave、デバウンス付きPUT)とは完全に別経路
+	// ——チェックのたびに即座に送信し、PUTのpayload(buildPayload)には一切含めない。
+	const collectionOptOutToggle = document.getElementById("collection-opt-out-toggle") as HTMLInputElement | null;
+	const collectionOptOutStatusEl = document.getElementById("collection-opt-out-status");
+
+	// box/[id].astro フロントマターの formatOptOutRemaining と同じ計算式(ミリ秒差をceilして
+	// 日数化)。SSR初期表示とPATCH成功後のクライアント側更新で表示がずれないよう揃えている
+	// (変更する場合は両方直すこと)。
+	function formatOptOutRemaining(until: string | null | undefined): string {
+		if (!until) return "";
+		const untilMs = new Date(until).getTime();
+		const diffMs = untilMs - Date.now();
+		if (diffMs <= 0) return "";
+		const days = Math.ceil(diffMs / (24 * 60 * 60 * 1000));
+		return `あと${days}日`;
+	}
+
+	function renderOptOutStatus(until: string | null | undefined): void {
+		if (!collectionOptOutStatusEl) return;
+		const text = formatOptOutRemaining(until);
+		collectionOptOutStatusEl.textContent = text;
+		collectionOptOutStatusEl.hidden = text === "";
+		delete collectionOptOutStatusEl.dataset.state;
+	}
+
+	if (collectionOptOutToggle) {
+		collectionOptOutToggle.addEventListener("change", () => {
+			void (async () => {
+				const nextChecked = collectionOptOutToggle.checked;
+				collectionOptOutToggle.disabled = true;
+				try {
+					const res = await fetch(`/api/owned-pokemon/${encodeURIComponent(ownedPokemonId)}`, {
+						method: "PATCH",
+						credentials: "same-origin",
+						headers: { "Content-Type": "application/json" },
+						body: JSON.stringify({ collection_opt_out: nextChecked }),
+					});
+					if (!res.ok) throw new Error(`更新に失敗しました (status=${res.status})`);
+					const body = (await res.json()) as { data?: { collection_opt_out_until?: string | null } };
+					renderOptOutStatus(body.data?.collection_opt_out_until ?? null);
+				} catch (err) {
+					console.error(err);
+					// 失敗時: チェック状態を元に戻し、#autosave-status[data-state="error"]と同じ
+					// 温度感(最小限の赤字テキストのみ)でエラーを示す。
+					collectionOptOutToggle.checked = !nextChecked;
+					if (collectionOptOutStatusEl) {
+						collectionOptOutStatusEl.textContent = "更新に失敗しました";
+						collectionOptOutStatusEl.hidden = false;
+						collectionOptOutStatusEl.dataset.state = "error";
+					}
+				} finally {
+					collectionOptOutToggle.disabled = false;
+				}
+			})();
+		});
+	}
+
 	// 個体の公開共有トグル(PUT /api/owned-pokemon/:id/share)のUIは要件により廃止した。
 	// APIと公開ページ(/share/[slug])自体は残っているので、UIを再び付けたくなった場合は
 	// git履歴のこの位置にあった renderShareStatus / is-public チェックボックスの実装を参照すること。
