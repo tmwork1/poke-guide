@@ -45,13 +45,23 @@ const initialTeamJson = team
 	? JSON.stringify({ id: team.id, name: team.name, memo: team.memo, members: team.members })
 	: '';
 ---
-<AppLayout title={pageTitle} current="team" backHref="/team" backLabel="チーム">
+<AppLayout title={pageTitle} current="team" backHref="/team">
 	{team && (
 		<Fragment slot="topbar-status">
 			<p id="autosave-status" class="status-text" data-state="saved">
 				<span id="autosave-status-text">保存済み</span>
 				<button id="retry-button" type="button" title="保存に失敗しました。クリックして再試行" aria-label="保存に失敗しました。クリックして再試行">再試行</button>
 			</p>
+		</Fragment>
+	)}
+	{/* UI改修依頼(チーム編集ヘッダー)「右端に削除ボタン追加」。box/[id].astroの
+	    #delete-buttonと同じマークアップ・確認ダイアログ・アイコンにする。 */}
+	{team && (
+		<Fragment slot="topbar-actions">
+			<button id="delete-team-button" class="btn-danger" type="button">
+				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+				削除
+			</button>
 		</Fragment>
 	)}
 	<style>
@@ -91,6 +101,16 @@ const initialTeamJson = team
 				display: grid;
 				grid-template-columns: minmax(300px, 380px) 1fr;
 				align-items: stretch;
+			}
+		}
+		/* UI改修依頼(チーム編集左パネル)「右パネルを追加」対応。box/[id].astroの
+		   .edit-layout(1600px以上で3カラム化、RightPanel.astro参照)と同じ閾値・考え方で
+		   3カラム目(.team-preview-panel)を追加する。1200〜1599pxでは右パネルは
+		   非表示にする(下の.team-preview-panel参照)、幅が無いところに無理に3カラム目を
+		   押し込むと中央カラムの6枠カードが再び潰れるため(上のコメントの実測バグと同じ罠)。 */
+		@media (min-width: 1600px) {
+			.team-edit-layout {
+				grid-template-columns: minmax(300px, 380px) 1fr minmax(280px, 340px);
 			}
 		}
 
@@ -207,16 +227,39 @@ const initialTeamJson = team
 			font-size: var(--font-size-xl);
 			font-weight: 700;
 		}
+		/* UI改修依頼(チーム編集中央パネル)「メモは下に移動」により6枠の下へ動いたため、
+		   margin-topではなく6枠との間隔をteam-slots側のmargin-bottomで確保する
+		   (このinput自体は他の場所にmarginを持たない)。 */
 		.team-memo-input {
 			width: 100%;
 			min-width: 0;
-			margin-top: var(--space-2);
 		}
 
+		/* UI改修依頼(チーム編集中央パネル)「2x3配置に変更」。1列縦積みから3列2行のグリッドへ。 */
 		.team-slots {
-			display: flex;
-			flex-direction: column;
+			display: grid;
+			grid-template-columns: repeat(3, minmax(0, 1fr));
 			gap: var(--space-3);
+			margin-bottom: var(--space-4);
+		}
+
+		/* --- 右: プレビューパネル(UI改修依頼、チーム編集左パネル)。box/[id].astroの
+		   RightPanel.astroと同じく1600px未満では表示しない(グリッド自体も2カラムのため)。 --- */
+		.team-preview-panel {
+			display: none;
+		}
+		@media (min-width: 1600px) {
+			.team-preview-panel {
+				display: block;
+				position: sticky;
+				top: var(--topbar-height);
+				height: calc(100vh - var(--topbar-height));
+				overflow-y: auto;
+			}
+		}
+		.team-preview-empty {
+			color: var(--color-text-muted);
+			font-size: var(--font-size-sm);
 		}
 	</style>
 
@@ -283,7 +326,9 @@ const initialTeamJson = team
 						</div>
 					</section>
 
-					{/* --- 中央: チーム名・メモ + 6枠。.panel-contentで可読幅1080pxに収める(R-11・基準23)。 --- */}
+					{/* --- 中央: チーム名 + 6枠 + メモ。.panel-contentで可読幅1080pxに収める(R-11・基準23)。
+					    UI改修依頼(チーム編集中央パネル)「未設定の場合...を削除」「メモは下に移動」により、
+					    ヒント文言を削除しメモ欄を6枠の下へ移動した。 --- */}
 					<div class="team-edit-main">
 						<div class="panel-content">
 							<div class="team-meta-fields">
@@ -296,23 +341,34 @@ const initialTeamJson = team
 									autocomplete="off"
 									value={team.name ?? ''}
 								/>
-								<p class="field-hint">未設定の場合、一覧には「無題のチーム」と表示されます。</p>
-								<input
-									id="team-memo"
-									class="field-control team-memo-input"
-									type="text"
-									placeholder="メモ(この構成は誰向けか、など)"
-									aria-label="メモ"
-									autocomplete="off"
-									value={team.memo ?? ''}
-								/>
 							</div>
 
 							{/* 6枠(基準3)。空き枠も枠として常に描く。中身はJS(renderSlots)が生成するため、
-							    子要素(.card-team-slot)のスタイルは下の<style is:global>側に置く。 */}
+							    子要素(.card-team-slot)のスタイルは下の<style is:global>側に置く。
+							    UI改修依頼(チーム編集中央パネル)「2x3配置に変更」により、1列縦積みから
+							    3列2行のグリッドへ変更する(CSSは下の.team-slots参照)。 */}
 							<div id="team-slots" class="team-slots"></div>
+
+							<input
+								id="team-memo"
+								class="field-control team-memo-input"
+								type="text"
+								placeholder="メモ(この構成は誰向けか、など)"
+								aria-label="メモ"
+								autocomplete="off"
+								value={team.memo ?? ''}
+							/>
 						</div>
 					</div>
+
+					{/* --- 右: 選択バーで1回クリックしたポケモンの詳細プレビュー(UI改修依頼
+					    「右パネルを追加し、1回クリックでポケモンの詳細を見れるようにする」)。
+					    中身はJS(renderPreviewPanel)が生成する。box/[id].astroのRightPanelと同じく
+					    幅の無い環境(1600px未満)では非表示にする(下の.team-preview-panel参照)。 --- */}
+					<aside class="panel team-preview-panel" id="team-preview-panel">
+						<p class="team-preview-empty" id="team-preview-empty">左の一覧からポケモンをクリックすると、ここに詳細が表示されます。</p>
+						<div class="team-preview-content" id="team-preview-content" hidden></div>
+					</aside>
 				</div>
 			)
 		}
@@ -324,12 +380,29 @@ const initialTeamJson = team
 	<style is:global>
 		/* ------------------------------------------------------------------ */
 		/* 選択バーの1行(.pokemon-select-row)                                  */
+		/* UI改修依頼(チーム編集左パネル)「特性/アイテム/ステータスも表示」「ダブルクリックと
+		   ドラッグアンドドロップでチームに設定」「編集リンクを追加」対応で、行全体を1個の
+		   <button>にする構造から「プレビュー用button(.select-row-main)」+
+		   「編集リンク(.select-row-edit-link)」を横に並べる<div>構造へ組み替えた
+		   (<button>の中に<a>を入れることはHTML的に無効なため)。 */
 		/* ------------------------------------------------------------------ */
 		.team-select-bar .pokemon-select-row {
 			display: flex;
-			align-items: center;
+			align-items: stretch;
 			gap: var(--space-2);
 			width: 100%;
+		}
+		/* ドラッグ中の行自身を半透明にして「持ち上げている」感を出す(is-dragging、
+		   <script>のdragstart/dragend参照)。 */
+		.team-select-bar .pokemon-select-row.is-dragging {
+			opacity: 0.5;
+		}
+		.team-select-bar .select-row-main {
+			flex: 1 1 auto;
+			min-width: 0;
+			display: flex;
+			align-items: center;
+			gap: var(--space-2);
 			padding: var(--space-2);
 			border: 1px solid var(--color-border);
 			border-radius: var(--radius-md);
@@ -337,16 +410,21 @@ const initialTeamJson = team
 			text-align: left;
 			cursor: pointer;
 		}
-		.team-select-bar .pokemon-select-row:hover:not(:disabled) {
+		.team-select-bar .select-row-main:hover:not(:disabled) {
 			border-color: var(--color-primary);
 			background: color-mix(in srgb, var(--color-surface) 90%, var(--color-primary) 10%);
 		}
-		.team-select-bar .pokemon-select-row:focus-visible {
+		.team-select-bar .select-row-main:focus-visible {
 			outline: 2px solid var(--color-primary);
 			outline-offset: 1px;
 		}
-		/* 選択不可(基準6・7・21): グレーアウト + 理由を常時テキスト表示する(titleに頼らない)。 */
-		.team-select-bar .pokemon-select-row:disabled {
+		/* 選択不可(基準6・7・21): グレーアウト + 理由を常時テキスト表示する(titleに頼らない)。
+		   なお選択不可でもプレビュー(1回クリック)は引き続きできる(disabledはダブルクリックの
+		   追加操作だけを止めるためのものではなく、ボタン全体を無効化する。プレビューはボタン
+		   要素自体をclickするため、disabled中はプレビューも一緒に止まる。「選べない個体は
+		   詳細も見られない」状態は既存のブロック理由表示(select-row-reason)と矛盾しないため
+		   許容する)。 */
+		.team-select-bar .select-row-main:disabled {
 			cursor: not-allowed;
 			opacity: 0.55;
 		}
@@ -382,6 +460,7 @@ const initialTeamJson = team
 			width: 0;
 			display: flex;
 			flex-direction: column;
+			gap: 0.15rem;
 		}
 		.team-select-bar .select-row-name {
 			font-size: 0.88rem;
@@ -398,6 +477,42 @@ const initialTeamJson = team
 			overflow: hidden;
 			text-overflow: ellipsis;
 		}
+		/* UI改修依頼(チーム編集左パネル)「特性/アイテムも表示」。 */
+		.team-select-bar .select-row-meta-row {
+			display: flex;
+			flex-wrap: wrap;
+			align-items: center;
+			gap: 0.5rem;
+			font-size: 0.72rem;
+			color: var(--color-text-muted);
+		}
+		.team-select-bar .select-row-meta-item {
+			display: inline-flex;
+			align-items: center;
+			gap: 0.25rem;
+		}
+		.team-select-bar .select-row-meta-icon {
+			width: 16px;
+			height: 16px;
+			object-fit: contain;
+		}
+		/* UI改修依頼(チーム編集左パネル)「ステータスも表示」。6値だと選択バーの1行としては
+		   縦に伸びすぎるため、H/A/B/C/D/Sをラベル+数値の短いチップにして折り返す。 */
+		.team-select-bar .select-row-stat-row {
+			display: flex;
+			flex-wrap: wrap;
+			gap: 0.3rem;
+		}
+		.team-select-bar .select-row-stat-chip {
+			font-size: 0.68rem;
+			font-weight: 700;
+			color: var(--color-text-muted);
+			background: var(--color-surface-alt);
+			border-radius: 3px;
+			padding: 0.05rem 0.3rem;
+		}
+		.team-select-bar .select-row-stat-chip[data-mod="up"] { color: var(--color-danger-strong); }
+		.team-select-bar .select-row-stat-chip[data-mod="down"] { color: var(--color-primary); }
 		/* A-3(a): 「編成済み」(already-in-team、正常)と禁止3種(6体編成済み/種族が重複/
 		   持ち物が重複)が同じ危険色・同じ書式だったため、4/6のように複数体が既に編成済み
 		   だと選択バー全体が赤く見え「エラーが起きている」と誤読された。data-reasonで
@@ -416,14 +531,38 @@ const initialTeamJson = team
 		.team-select-bar .select-row-reason:not([data-reason="already-in-team"]) {
 			color: var(--color-danger-strong);
 		}
+		/* UI改修依頼(チーム編集左パネル)「編集リンクを追加」。行の右側に縦長のボタンとして
+		   独立させる(.select-row-main<button>とは兄弟要素なので入れ子の制約を受けない)。 */
+		.team-select-bar .select-row-edit-link {
+			flex: 0 0 auto;
+			display: flex;
+			align-items: center;
+			font-size: var(--font-size-sm);
+			white-space: nowrap;
+		}
 
 		/* ------------------------------------------------------------------ */
 		/* 6枠カード(.card-team-slot)。中身はfilled/emptyのいずれか(R-8)。       */
-		/* ------------------------------------------------------------------ */
+		/* UI改修依頼(チーム編集中央パネル)「2x3配置に変更」「ポケモンの情報の見せ方を
+		   ボックス画面と表記をそろえる」により、横並び(番号+絵+情報+操作)から
+		   ボックス画面の.card-pokemonと同じ縦積み(絵を中央上・情報を下)へ組み替える
+		   (3列グリッドの1マスは幅が半分弱に狭まるため、横並びのままだと窮屈になる)。
+		   番号バッジは絵の左上に重ねる(box画面のバッジ重畳と同じ考え方)ため、
+		   position:relativeを持たせる。 --- */
 		.team-slots .card-team-slot {
+			position: relative;
 			display: flex;
-			align-items: stretch;
+			flex-direction: column;
+			align-items: center;
+			text-align: center;
+			gap: 0.3rem;
 			min-height: 108px;
+		}
+		/* ドラッグ&ドロップの受け入れ先であることを示すハイライト(左パネルのpokemon-select-rowを
+		   ドラッグ中にこのカードの上に重なると付く。<script>のドラッグハンドラ参照)。 */
+		.team-slots .card-team-slot.is-drop-target {
+			border-color: var(--color-primary);
+			background: color-mix(in srgb, var(--color-surface) 90%, var(--color-primary) 10%);
 		}
 		/* 空き枠プレースホルダー(要件6)。A-1: 実際に個体が入るのは常に選択ルール(受け入れ
 		   基準4で確定済み、変更不可)が返す最小番号の空き枠だけなので、「＋ この枠に入れる」
@@ -433,10 +572,15 @@ const initialTeamJson = team
 		   ここでまとめ、押せる/押せないの違いはタグ名(button/div)セレクタで出し分ける。 */
 		.team-slots .slot-empty-cta {
 			flex: 1 1 auto;
+			width: 100%;
 			display: flex;
+			/* UI改修依頼(チーム編集中央パネル)2x3グリッド化に伴い、カード全体を縦積みにした
+			   (上の.card-team-slotコメント参照)。空き枠プレースホルダーも同じ縦積みに揃え、
+			   カードの中央に番号+ラベルを配置する。 */
+			flex-direction: column;
 			align-items: center;
-			justify-content: flex-start;
-			gap: var(--space-3);
+			justify-content: center;
+			gap: var(--space-2);
 			background: transparent;
 			border: 0;
 			/* global.cssの汎用button{ padding: 0.55em 1.1em }を打ち消す。<button>版だけ
@@ -447,6 +591,7 @@ const initialTeamJson = team
 			font-weight: 600;
 			font-size: var(--font-size-md);
 			cursor: default;
+			text-align: center;
 		}
 		.team-slots button.slot-empty-cta {
 			cursor: pointer;
@@ -471,7 +616,6 @@ const initialTeamJson = team
 		.team-slots .slot-number,
 		.team-slots .slot-empty-number {
 			flex: 0 0 auto;
-			align-self: center;
 			display: inline-flex;
 			align-items: center;
 			justify-content: center;
@@ -481,9 +625,17 @@ const initialTeamJson = team
 			font-weight: 800;
 			font-size: 1rem;
 			color: var(--color-text-muted);
+			background: var(--color-surface);
 		}
 		.team-slots .card-team-slot[data-filled="true"] .slot-number {
 			border: 1px solid var(--color-border);
+			/* UI改修依頼(チーム編集中央パネル)「ボックス画面と表記をそろえる」対応で縦積みに
+			   組み替えたため、番号バッジはbox画面のバッジ重畳と同じくカード左上に重ねて置く
+			   (.card-team-slotのposition:relativeを基準にする)。 */
+			position: absolute;
+			top: var(--space-2);
+			left: var(--space-2);
+			box-shadow: var(--shadow-sm);
 		}
 		/* A-4: ダークで約1.18:1(#2d313d on #22252f)しか出ず「値がある/ない」を伝える罫線
 		   として機能していなかったため、.slot-empty-numberに限りAA適合済みの補助色
@@ -496,12 +648,11 @@ const initialTeamJson = team
 		}
 		.team-slots .slot-art {
 			flex: 0 0 auto;
-			width: 72px;
-			height: 72px;
+			width: 88px;
+			height: 88px;
 			display: flex;
 			align-items: center;
 			justify-content: center;
-			margin-right: var(--space-3);
 		}
 		.team-slots .slot-sprite-img {
 			width: 100%;
@@ -523,15 +674,16 @@ const initialTeamJson = team
 		.team-slots .slot-info {
 			flex: 1 1 auto;
 			min-width: 0;
-			width: 0;
+			width: 100%;
 			display: flex;
 			flex-direction: column;
-			justify-content: center;
+			align-items: center;
 			gap: 0.3rem;
 		}
 		.team-slots .slot-name-row {
 			display: flex;
 			align-items: baseline;
+			justify-content: center;
 			gap: 0.5em;
 			flex-wrap: wrap;
 		}
@@ -551,6 +703,7 @@ const initialTeamJson = team
 			   幅が足りない項目は単位(アイコン+ラベル)ごと次の行へ送る(2〜3行の折り返しは可)。 */
 			flex-wrap: wrap;
 			align-items: center;
+			justify-content: center;
 			row-gap: 0.3rem;
 			column-gap: var(--space-3);
 			font-size: 0.82rem;
@@ -576,6 +729,7 @@ const initialTeamJson = team
 		.team-slots .slot-moves {
 			display: flex;
 			flex-wrap: wrap;
+			justify-content: center;
 			gap: 0.3rem;
 		}
 		.team-slots .slot-move-chip {
@@ -595,12 +749,13 @@ const initialTeamJson = team
 		}
 		.team-slots .slot-actions {
 			flex: 0 0 auto;
+			width: 100%;
 			display: flex;
-			flex-direction: column;
-			align-items: flex-end;
+			flex-direction: row;
+			align-items: center;
 			justify-content: center;
 			gap: 0.4rem;
-			margin-left: var(--space-3);
+			margin-top: 0.2rem;
 		}
 		.team-slots .slot-actions .btn-ghost,
 		.team-slots .slot-actions .btn-danger {
@@ -613,6 +768,105 @@ const initialTeamJson = team
 		.team-slots .slot-actions .slot-remove-btn {
 			color: var(--color-danger-strong);
 		}
+
+		/* ------------------------------------------------------------------ */
+		/* 右: プレビューパネル(UI改修依頼、チーム編集左パネル「右パネルを追加」)。       */
+		/* box/[id].astroのRightPanel.astroと似た縦積み構成にする。                */
+		/* ------------------------------------------------------------------ */
+		.team-preview-panel .team-preview-content {
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			text-align: center;
+			gap: var(--space-2);
+		}
+		.team-preview-panel .team-preview-art {
+			width: 120px;
+			height: 120px;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+		}
+		.team-preview-panel .team-preview-sprite-img {
+			width: 100%;
+			height: 100%;
+			object-fit: contain;
+		}
+		.team-preview-panel .team-preview-sprite-fallback {
+			display: none;
+			align-items: center;
+			justify-content: center;
+			width: 100%;
+			height: 100%;
+			border-radius: 50%;
+			background: var(--color-primary-soft);
+			color: var(--color-primary);
+			font-weight: 700;
+			font-size: 2rem;
+		}
+		.team-preview-panel .team-preview-name {
+			margin: 0;
+			font-size: var(--font-size-lg);
+			font-weight: 800;
+		}
+		.team-preview-panel .team-preview-species {
+			margin: 0;
+			font-size: var(--font-size-sm);
+			color: var(--color-text-muted);
+		}
+		.team-preview-panel .team-preview-meta-row {
+			display: flex;
+			flex-wrap: wrap;
+			justify-content: center;
+			gap: var(--space-3);
+			font-size: 0.85rem;
+			color: var(--color-text-muted);
+		}
+		.team-preview-panel .team-preview-meta-row > span {
+			display: inline-flex;
+			align-items: center;
+			gap: 0.3rem;
+		}
+		.team-preview-panel .team-preview-meta-icon {
+			width: 20px;
+			height: 20px;
+			object-fit: contain;
+		}
+		.team-preview-panel .team-preview-stat-grid {
+			display: grid;
+			grid-template-columns: repeat(6, minmax(0, 1fr));
+			gap: 0.2rem 0.4rem;
+			width: 100%;
+		}
+		.team-preview-panel .team-preview-stat-label {
+			font-size: 0.75rem;
+			font-weight: 700;
+			color: var(--color-text-muted);
+		}
+		.team-preview-panel .team-preview-stat-label[data-mod="up"] { color: var(--color-danger-strong); }
+		.team-preview-panel .team-preview-stat-label[data-mod="down"] { color: var(--color-primary); }
+		.team-preview-panel .team-preview-stat-value {
+			font-size: 0.9rem;
+			font-weight: 800;
+		}
+		.team-preview-panel .team-preview-moves {
+			display: flex;
+			flex-wrap: wrap;
+			justify-content: center;
+			gap: 0.3rem;
+		}
+		.team-preview-panel .team-preview-move-chip {
+			font-size: 0.78rem;
+			font-weight: 600;
+			color: var(--color-text-muted);
+			background: var(--color-surface);
+			border: 1px solid var(--color-border);
+			border-radius: 4px;
+			padding: 0.1rem 0.45rem;
+		}
+		.team-preview-panel .team-preview-edit-link {
+			margin-top: var(--space-2);
+		}
 	</style>
 
 	<script>
@@ -620,10 +874,11 @@ const initialTeamJson = team
 		// 自動保存のデバウンス方式は box/[id].astro と同じ(700ms・保存ボタンは作らない・
 		// topbar-statusスロットで状態表示)。初期表示データ(SSR取得済みのチーム)は
 		// #team-edit-layout の data-initial-team から読む(fetch往復を待たずに6枠を描ける)。
-		import { loadImageIdMap, officialArtworkUrl } from "../../lib/pokemon-master-data";
+		import { loadImageIdMap, officialArtworkUrl, loadBaseStatsMap } from "../../lib/pokemon-master-data";
 		import { loadItemSpriteMap, itemImageUrl, teraTypeIconUrl } from "../../lib/sprite-urls";
 		import { resolveDexNo } from "../../lib/species-dex";
 		import { selectionBlockReason, type SelectionCandidate, type SelectionBlockReason } from "../../lib/team-validation";
+		import { STAT_KEYS, NATURE_STAT_MODIFIERS, calcHpStat, calcOtherStat } from "../../lib/stats";
 
 		interface OwnedPokemonRecord {
 			id: string;
@@ -636,6 +891,13 @@ const initialTeamJson = team
 			item_name: string | null;
 			tera_type: string | null;
 			move_names: string[];
+			// UI改修依頼(チーム編集左パネル)「ステータスも表示」対応で追加。box/index.astroと同じ
+			// 実数値計算(src/lib/stats.ts)に使う。level/nature/evs/ivsもSSR・GET /api/owned-pokemon
+			// の両方に既に含まれているため、フロント側の型に足すだけでよい。
+			level: number | null;
+			nature: string | null;
+			evs: number[];
+			ivs: number[];
 		}
 
 		interface TeamMemberData {
@@ -675,9 +937,44 @@ const initialTeamJson = team
 			const statusEl = el<HTMLElement>("autosave-status");
 			const statusTextEl = el<HTMLElement>("autosave-status-text");
 			const retryButton = el<HTMLButtonElement>("retry-button");
+			const deleteTeamButton = el<HTMLButtonElement>("delete-team-button");
+
+			const previewEmptyEl = el<HTMLElement>("team-preview-empty");
+			const previewContentEl = el<HTMLElement>("team-preview-content");
+
+			// UI改修依頼(チーム編集左パネル)「ドラッグアンドドロップでチームに設定できるように
+			// する」。dataTransferはドラッグ元(別ウィンドウ等)の互換性のため一応セットするが、
+			// 同一ページ内のドラッグしか想定していないため、実際の受け渡しはこのモジュール内の
+			// 変数(draggedPokemonId)で行う(dataTransfer.getData()はdragover中は読めない
+			// ブラウザ実装が多く、dropまで値を保持する目的にも向かないため)。
+			let draggedPokemonId: string | null = null;
 
 			const imageIdMapPromise = loadImageIdMap();
 			const itemSpriteMapPromise = loadItemSpriteMap();
+			const baseStatsMapPromise = loadBaseStatsMap();
+
+			const STAT_LABELS: Record<(typeof STAT_KEYS)[number], string> = {
+				hp: "H", atk: "A", def: "B", spa: "C", spd: "D", spe: "S",
+			};
+
+			// UI改修依頼(チーム編集左パネル/右パネル)「ステータスも表示」。box/index.astroの
+			// applyActualStatsと同じ式・同じフォールバック(level??50, iv??31, ev??0)。
+			async function computeStats(p: OwnedPokemonRecord): Promise<{ key: string; label: string; value: number; mod: "up" | "down" | null }[] | null> {
+				const base = p.species_name ? (await baseStatsMapPromise).get(p.species_name) : undefined;
+				if (!base) return null;
+				const level = p.level ?? 50;
+				const mod = NATURE_STAT_MODIFIERS[p.nature ?? ""] ?? { up: null, down: null };
+				return STAT_KEYS.map((key, i) => {
+					const iv = p.ivs[i] ?? 31;
+					const ev = p.evs[i] ?? 0;
+					const value =
+						key === "hp"
+							? calcHpStat(level, base[i], iv, ev)
+							: calcOtherStat(level, base[i], iv, ev, mod.up === key ? 1.1 : mod.down === key ? 0.9 : 1.0);
+					const statMod = key === "hp" ? null : mod.up === key ? "up" : mod.down === key ? "down" : null;
+					return { key, label: STAT_LABELS[key], value, mod: statMod };
+				});
+			}
 
 			// 6枠の現在状態(slot 1..6 -> 個体。無ければ空き)。
 			const membersBySlot = new Map<number, OwnedPokemonRecord>();
@@ -705,6 +1002,14 @@ const initialTeamJson = team
 
 			function currentCandidates(): SelectionCandidate[] {
 				return Array.from(membersBySlot.values()).map(candidateOf);
+			}
+
+			// UI改修依頼(チーム編集左パネル)「ドラッグアンドドロップで設定」用。既に埋まっている
+			// 枠へドロップして入れ替える(=その枠自身の在籍は重複扱いしない)場合に使う。
+			function currentCandidatesExcludingSlot(slot: number): SelectionCandidate[] {
+				return Array.from(membersBySlot.entries())
+					.filter(([s]) => s !== slot)
+					.map(([, p]) => candidateOf(p));
 			}
 
 			function firstEmptySlot(): number | null {
@@ -775,6 +1080,126 @@ const initialTeamJson = team
 					imgEl.style.display = "";
 				};
 				imgEl.src = url;
+			}
+
+			// UI改修依頼(チーム編集左パネル)「1回クリックでポケモンの詳細を見れるように」。
+			// 右パネル(1600px未満では非表示)にプレビューを描く。チーム編成そのものには影響しない
+			// (membersBySlotを一切変更しない、見るだけの機能)。
+			async function renderPreviewPanel(p: OwnedPokemonRecord): Promise<void> {
+				previewEmptyEl.hidden = true;
+				previewContentEl.hidden = false;
+				previewContentEl.innerHTML = "";
+
+				const artEl = document.createElement("div");
+				artEl.className = "team-preview-art";
+				const spriteImg = document.createElement("img");
+				spriteImg.className = "team-preview-sprite-img";
+				spriteImg.alt = "";
+				spriteImg.style.display = "none";
+				const spriteFallback = document.createElement("span");
+				spriteFallback.className = "team-preview-sprite-fallback";
+				artEl.append(spriteImg, spriteFallback);
+				void applySprite(spriteImg, spriteFallback, p.species_name);
+				previewContentEl.appendChild(artEl);
+
+				const name = displayName(p);
+				const nameEl = document.createElement("p");
+				nameEl.className = "team-preview-name";
+				nameEl.textContent = name;
+				previewContentEl.appendChild(nameEl);
+				if (p.species_name && p.species_name.trim() !== "" && p.species_name !== name) {
+					const speciesEl = document.createElement("p");
+					speciesEl.className = "team-preview-species";
+					speciesEl.textContent = p.species_name;
+					previewContentEl.appendChild(speciesEl);
+				}
+
+				const metaRow = document.createElement("div");
+				metaRow.className = "team-preview-meta-row";
+				const abilityEl = document.createElement("span");
+				abilityEl.textContent = p.ability_name?.trim() || "特性未設定";
+				metaRow.appendChild(abilityEl);
+				const teraType = p.tera_type?.trim() ?? "";
+				if (teraType) {
+					const teraEl = document.createElement("span");
+					const teraImg = document.createElement("img");
+					teraImg.className = "team-preview-meta-icon";
+					teraImg.alt = "";
+					teraImg.style.display = "none";
+					applyTeraIcon(teraImg, teraType);
+					const teraLabel = document.createElement("span");
+					teraLabel.textContent = teraType;
+					teraEl.append(teraImg, teraLabel);
+					metaRow.appendChild(teraEl);
+				}
+				const itemName = p.item_name?.trim() ?? "";
+				if (itemName) {
+					const itemEl = document.createElement("span");
+					const itemImg = document.createElement("img");
+					itemImg.className = "team-preview-meta-icon";
+					itemImg.alt = "";
+					itemImg.style.display = "none";
+					void applyItemIcon(itemImg, itemName);
+					const itemLabel = document.createElement("span");
+					itemLabel.textContent = itemName;
+					itemEl.append(itemImg, itemLabel);
+					metaRow.appendChild(itemEl);
+				}
+				previewContentEl.appendChild(metaRow);
+
+				const statGrid = document.createElement("div");
+				statGrid.className = "team-preview-stat-grid";
+				const stats = await computeStats(p);
+				if (stats) {
+					for (const s of stats) {
+						const labelEl = document.createElement("span");
+						labelEl.className = "team-preview-stat-label";
+						labelEl.textContent = s.label + (s.mod === "up" ? "▲" : s.mod === "down" ? "▼" : "");
+						if (s.mod) labelEl.dataset.mod = s.mod;
+						const valueEl = document.createElement("span");
+						valueEl.className = "team-preview-stat-value";
+						valueEl.textContent = String(s.value);
+						statGrid.append(labelEl, valueEl);
+					}
+					previewContentEl.appendChild(statGrid);
+				}
+
+				const moves = p.move_names.filter((m) => m && m.trim() !== "");
+				if (moves.length > 0) {
+					const movesEl = document.createElement("div");
+					movesEl.className = "team-preview-moves";
+					for (const move of moves) {
+						const chip = document.createElement("span");
+						chip.className = "team-preview-move-chip";
+						chip.textContent = move;
+						movesEl.appendChild(chip);
+					}
+					previewContentEl.appendChild(movesEl);
+				}
+
+				const editLink = document.createElement("a");
+				editLink.className = "btn-ghost team-preview-edit-link";
+				editLink.href = `/box/${encodeURIComponent(p.id)}`;
+				editLink.textContent = "個体を編集";
+				previewContentEl.appendChild(editLink);
+			}
+
+			// UI改修依頼(チーム編集左パネル)「ダブルクリックとドラッグアンドドロップでチームに
+			// 設定できるように」。クリック単体での追加(旧仕様)はプレビュー表示に譲り、実際の
+			// 追加操作はダブルクリック/ドラッグ&ドロップに一本化する。targetSlotを指定した場合は
+			// その枠へ(既に埋まっていれば入れ替え)、省略時は空き枠のうち最小番号に入れる
+			// (旧仕様のfirstEmptySlotと同じ)。選択ルール(selectionBlockReason)は入れ替え先の枠
+			// 自身の在籍を重複扱いしないよう、対象枠を除いた候補リストで判定する。
+			function assignToSlot(p: OwnedPokemonRecord, targetSlot?: number): void {
+				const slot = targetSlot ?? firstEmptySlot();
+				if (slot == null) return;
+				const candidates = currentCandidatesExcludingSlot(slot);
+				const reason = selectionBlockReason(candidateOf(p), candidates);
+				if (reason) return;
+				membersBySlot.set(slot, p);
+				renderSlots();
+				renderSelectList();
+				scheduleSave();
 			}
 
 			// --- 6枠の描画(基準3: 常に6枠) ---
@@ -864,11 +1289,14 @@ const initialTeamJson = team
 				const abilityItem = document.createElement("span");
 				abilityItem.className = "slot-meta-item";
 				const abilityLabel = document.createElement("span");
+				// UI改修依頼(チーム編集中央パネル)「ボックス画面と表記をそろえる」対応:
+				// box/index.astroの.card-ability-nameはラベル無しの特性名だけを出すため、
+				// ここも「特性: 」の接頭辞を外し値だけにする(未設定の強調自体は残す)。
 				if (abilityName) {
-					abilityLabel.textContent = `特性: ${abilityName}`;
+					abilityLabel.textContent = abilityName;
 				} else {
 					// A-6と同じ理由(「特性なし」もゲーム上存在しない状態)で未設定を明示する。
-					abilityLabel.textContent = "特性: 未設定";
+					abilityLabel.textContent = "特性未設定";
 					abilityLabel.classList.add("slot-meta-unset");
 				}
 				abilityItem.appendChild(abilityLabel);
@@ -889,9 +1317,11 @@ const initialTeamJson = team
 				const teraLabel = document.createElement("span");
 				if (teraType) {
 					applyTeraIcon(teraImg, teraType);
-					teraLabel.textContent = `テラスタイプ: ${teraType}`;
+					// UI改修依頼(チーム編集中央パネル)「ボックス画面と表記をそろえる」対応:
+					// box/index.astroのアイコン+値のみの表記に揃え「テラスタイプ: 」の接頭辞を外す。
+					teraLabel.textContent = teraType;
 				} else {
-					teraLabel.textContent = "テラスタイプ: 未設定";
+					teraLabel.textContent = "テラスタイプ未設定";
 					teraLabel.classList.add("slot-meta-unset");
 				}
 				teraItem.append(teraImg, teraLabel);
@@ -979,6 +1409,27 @@ const initialTeamJson = team
 						card.dataset.filled = "false";
 						card.appendChild(buildEmptySlotContent(slot, slot === nextEmptySlot));
 					}
+
+					// UI改修依頼(チーム編集左パネル)「ドラッグアンドドロップでチームに設定」。
+					// 空き枠・埋まっている枠のどちらにもドロップできる(埋まっている枠は入れ替え)。
+					card.addEventListener("dragover", (event) => {
+						if (!draggedPokemonId) return;
+						event.preventDefault();
+						card.classList.add("is-drop-target");
+					});
+					card.addEventListener("dragleave", () => {
+						card.classList.remove("is-drop-target");
+					});
+					card.addEventListener("drop", (event) => {
+						event.preventDefault();
+						card.classList.remove("is-drop-target");
+						const id = draggedPokemonId;
+						draggedPokemonId = null;
+						if (!id) return;
+						const p = allPokemon.find((x) => x.id === id);
+						if (!p) return;
+						assignToSlot(p, slot);
+					});
 					slotsRoot.appendChild(card);
 				}
 			}
@@ -994,10 +1445,23 @@ const initialTeamJson = team
 					.every((token) => haystack.includes(token));
 			}
 
-			function buildSelectRow(p: OwnedPokemonRecord): HTMLButtonElement {
-				const row = document.createElement("button");
-				row.type = "button";
+			// UI改修依頼(チーム編集左パネル)により、行全体を1個の<button>にする旧構造から
+			// 「プレビュー用のbutton」+「編集リンク(<a>)」を横に並べた<div>構造へ変更した
+			// (<button>の中に<a>や別の<button>を入れることはHTML的に無効なため、編集リンクを
+			// 追加するにはbuttonで丸ごと囲む方式をやめる必要があった)。
+			// 操作の割り当て:
+			//   - 1回クリック(mainButton) : 右パネルにプレビュー表示(チーム編成は変更しない)
+			//   - ダブルクリック(mainButton): 空き枠のうち最小番号に追加(旧・単クリックの動作を踏襲)
+			//   - ドラッグ&ドロップ(row全体): ドラッグ先の枠(空き/埋まり問わず)に設定
+			//   - 「個体を編集」(editLink): /box/{id}へ遷移
+			function buildSelectRow(p: OwnedPokemonRecord): HTMLElement {
+				const row = document.createElement("div");
 				row.className = "pokemon-select-row";
+				row.draggable = true;
+
+				const mainButton = document.createElement("button");
+				mainButton.type = "button";
+				mainButton.className = "select-row-main";
 
 				const artEl = document.createElement("span");
 				artEl.className = "select-row-art";
@@ -1024,9 +1488,47 @@ const initialTeamJson = team
 					bodyEl.appendChild(speciesEl);
 				}
 
+				// UI改修依頼(チーム編集左パネル)「特性/アイテム/ステータスも表示」。
+				const metaRow = document.createElement("span");
+				metaRow.className = "select-row-meta-row";
+				const abilityEl = document.createElement("span");
+				abilityEl.className = "select-row-meta-item";
+				abilityEl.textContent = p.ability_name?.trim() || "特性未設定";
+				metaRow.appendChild(abilityEl);
+				const itemName = p.item_name?.trim() ?? "";
+				if (itemName) {
+					const itemEl = document.createElement("span");
+					itemEl.className = "select-row-meta-item";
+					const itemImg = document.createElement("img");
+					itemImg.className = "select-row-meta-icon";
+					itemImg.alt = "";
+					itemImg.style.display = "none";
+					void applyItemIcon(itemImg, itemName);
+					const itemLabel = document.createElement("span");
+					itemLabel.textContent = itemName;
+					itemEl.append(itemImg, itemLabel);
+					metaRow.appendChild(itemEl);
+				}
+				bodyEl.appendChild(metaRow);
+
+				const statRow = document.createElement("span");
+				statRow.className = "select-row-stat-row";
+				void computeStats(p).then((stats) => {
+					if (!stats) return;
+					statRow.innerHTML = "";
+					for (const s of stats) {
+						const chip = document.createElement("span");
+						chip.className = "select-row-stat-chip";
+						if (s.mod) chip.dataset.mod = s.mod;
+						chip.textContent = `${s.label}${s.value}`;
+						statRow.appendChild(chip);
+					}
+				});
+				bodyEl.appendChild(statRow);
+
 				const reason = selectionBlockReason(candidateOf(p), currentCandidates());
 				if (reason) {
-					row.disabled = true;
+					mainButton.disabled = true;
 					const reasonEl = document.createElement("span");
 					reasonEl.className = "select-row-reason";
 					// A-3(a): 「編成済み」(already-in-team、正常)と禁止3種を色で書き分けるため、
@@ -1034,20 +1536,36 @@ const initialTeamJson = team
 					reasonEl.dataset.reason = reason;
 					reasonEl.textContent = BLOCK_REASON_LABELS[reason];
 					bodyEl.appendChild(reasonEl);
-					row.setAttribute("aria-label", `${name}(${BLOCK_REASON_LABELS[reason]}、選択できません)`);
+					mainButton.setAttribute("aria-label", `${name}(${BLOCK_REASON_LABELS[reason]}、選択できません)の詳細を見る`);
 				} else {
-					row.setAttribute("aria-label", `${name}を空き枠に入れる`);
-					row.addEventListener("click", () => {
-						const slot = firstEmptySlot();
-						if (slot == null) return;
-						membersBySlot.set(slot, p);
-						renderSlots();
-						renderSelectList();
-						scheduleSave();
+					mainButton.setAttribute("aria-label", `${name}の詳細を見る(ダブルクリックで空き枠に追加)`);
+					mainButton.addEventListener("dblclick", () => {
+						assignToSlot(p);
 					});
 				}
+				mainButton.addEventListener("click", () => {
+					void renderPreviewPanel(p);
+				});
 
-				row.append(artEl, bodyEl);
+				mainButton.append(artEl, bodyEl);
+				row.appendChild(mainButton);
+
+				const editLink = document.createElement("a");
+				editLink.className = "btn-ghost select-row-edit-link";
+				editLink.href = `/box/${encodeURIComponent(p.id)}`;
+				editLink.textContent = "編集";
+				editLink.setAttribute("aria-label", `${name}を編集`);
+				row.appendChild(editLink);
+
+				row.addEventListener("dragstart", () => {
+					draggedPokemonId = p.id;
+					row.classList.add("is-dragging");
+				});
+				row.addEventListener("dragend", () => {
+					draggedPokemonId = null;
+					row.classList.remove("is-dragging");
+				});
+
 				return row;
 			}
 
@@ -1142,6 +1660,27 @@ const initialTeamJson = team
 
 			retryButton.addEventListener("click", () => {
 				void saveNow();
+			});
+
+			// UI改修依頼(チーム編集ヘッダー)「右端に削除ボタン追加」。box/[id].astroの
+			// deleteButtonハンドラと同じ確認ダイアログ→DELETE→遷移のパターン。
+			deleteTeamButton.addEventListener("click", () => {
+				void (async () => {
+					if (!window.confirm("このチームを削除します。よろしいですか?")) return;
+					deleteTeamButton.disabled = true;
+					try {
+						const res = await fetch(`/api/teams/${encodeURIComponent(teamId)}`, {
+							method: "DELETE",
+							credentials: "same-origin",
+						});
+						if (!res.ok) throw new Error(`削除に失敗しました (status=${res.status})`);
+						window.location.href = "/team";
+					} catch (err) {
+						console.error(err);
+						window.alert("削除に失敗しました。時間をおいて再度お試しください。");
+						deleteTeamButton.disabled = false;
+					}
+				})();
 			});
 
 			// A-2(実バグ): トップバーはSSR時点のpageTitleで固定され、#team-nameのinputイベントで
