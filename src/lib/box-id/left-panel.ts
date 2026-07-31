@@ -1183,54 +1183,43 @@ if (form) {
 		})();
 	});
 
-	// 匿名集計サジェスト機能・第4段階(UI: 収集拒否トグル)。この個体を性格/アイテム/テラス/
+	// 匿名集計サジェスト機能・第4段階(UI: データ提供トグル)。この個体を性格/アイテム/テラス/
 	// 技の匿名集計対象から除外する。PATCH /api/owned-pokemon/:id に { collection_opt_out: boolean }
 	// を送るだけの軽量経路(is_pinnedのPATCHと同じパターン、上のdeleteButton同様ownedPokemonIdを
 	// 使う)で、フォーム全体の自動保存(saveNow/scheduleSave、デバウンス付きPUT)とは完全に別経路
 	// ——チェックのたびに即座に送信し、PUTのpayload(buildPayload)には一切含めない。
+	//
+	// UI改修依頼(個体編集ヘッダー)により、チェックの意味を「拒否」(true=拒否)から
+	// 「匿名でデータ提供する」(true=提供)へ反転させた。UIのcheckedはずっと「提供する」側の
+	// 意味のまま保ち、サーバーへ送るcollection_opt_out(true=拒否)はその論理否定を送る。
+	// あわせて「あとN日」のカウントダウン表示(旧renderOptOutStatus)は撤去し、30日で自動的に
+	// 解除される旨はラベルのtitle属性(box/[id].astro側の静的な説明文)でホバー説明に一本化した。
+	// このステータス要素はPATCH失敗時のエラーメッセージ表示にのみ引き続き使う。
 	const collectionOptOutToggle = document.getElementById("collection-opt-out-toggle") as HTMLInputElement | null;
 	const collectionOptOutStatusEl = document.getElementById("collection-opt-out-status");
-
-	// box/[id].astro フロントマターの formatOptOutRemaining と同じ計算式(ミリ秒差をceilして
-	// 日数化)。SSR初期表示とPATCH成功後のクライアント側更新で表示がずれないよう揃えている
-	// (変更する場合は両方直すこと)。
-	function formatOptOutRemaining(until: string | null | undefined): string {
-		if (!until) return "";
-		const untilMs = new Date(until).getTime();
-		const diffMs = untilMs - Date.now();
-		if (diffMs <= 0) return "";
-		const days = Math.ceil(diffMs / (24 * 60 * 60 * 1000));
-		return `あと${days}日`;
-	}
-
-	function renderOptOutStatus(until: string | null | undefined): void {
-		if (!collectionOptOutStatusEl) return;
-		const text = formatOptOutRemaining(until);
-		collectionOptOutStatusEl.textContent = text;
-		collectionOptOutStatusEl.hidden = text === "";
-		delete collectionOptOutStatusEl.dataset.state;
-	}
 
 	if (collectionOptOutToggle) {
 		collectionOptOutToggle.addEventListener("change", () => {
 			void (async () => {
-				const nextChecked = collectionOptOutToggle.checked;
+				const nextProviding = collectionOptOutToggle.checked;
 				collectionOptOutToggle.disabled = true;
 				try {
 					const res = await fetch(`/api/owned-pokemon/${encodeURIComponent(ownedPokemonId)}`, {
 						method: "PATCH",
 						credentials: "same-origin",
 						headers: { "Content-Type": "application/json" },
-						body: JSON.stringify({ collection_opt_out: nextChecked }),
+						body: JSON.stringify({ collection_opt_out: !nextProviding }),
 					});
 					if (!res.ok) throw new Error(`更新に失敗しました (status=${res.status})`);
-					const body = (await res.json()) as { data?: { collection_opt_out_until?: string | null } };
-					renderOptOutStatus(body.data?.collection_opt_out_until ?? null);
+					if (collectionOptOutStatusEl) {
+						collectionOptOutStatusEl.hidden = true;
+						delete collectionOptOutStatusEl.dataset.state;
+					}
 				} catch (err) {
 					console.error(err);
 					// 失敗時: チェック状態を元に戻し、#autosave-status[data-state="error"]と同じ
 					// 温度感(最小限の赤字テキストのみ)でエラーを示す。
-					collectionOptOutToggle.checked = !nextChecked;
+					collectionOptOutToggle.checked = !nextProviding;
 					if (collectionOptOutStatusEl) {
 						collectionOptOutStatusEl.textContent = "更新に失敗しました";
 						collectionOptOutStatusEl.hidden = false;
@@ -1787,36 +1776,44 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 	// `.panel-left`配下のposition!=staticな要素をすべて洗い出し、その最下端(bottom)の
 	// 最大値をtopの下限にする(将来.panel-left側にアイコン付き入力欄が増減しても
 	// 追随できるようにするため)。 */
+	// UI改修依頼(個体編集左パネル)「技選択テーブルは左パネルの右側に併設する」により、
+	// ラウンド38の「.panel-left自体に重ねる」設計から「.panel-leftの右側に外付けする」
+	// (ラウンド37-1と同じ水平配置)へ戻す。ラウンド38で問題になった「ダメージカード列に
+	// 重なると背面に埋もれて操作不能になる」点は、今回`.move-picker-window`にz-index:10を
+	// 明示指定したことで解消済み(このファイル冒頭のCSSコメント参照。`.card-damage`
+	// (position:relative・z-index:auto)に確実に勝つ)。
+	// ただし900〜1199px幅(1200px未満)は.edit-layoutが2カラムグリッド化されず.panel-leftが
+	// 全幅ブロックになるため、右側に外付けする余地(最低320px)が無い。この場合はラウンド38の
+	// 「.panel-left自体に重ねる」動作にフォールバックする(z-index:10が.move-input-group等の
+	// レイヤー6ラッパーには引き続き確実に勝つため、重ねても操作不能にはならない)。
 	function reposition(inputEl: HTMLInputElement): void {
 		const anchor = document.querySelector<HTMLElement>(".panel-left") ?? document.getElementById("edit-form");
 		if (!anchor) return;
 		const anchorRect = anchor.getBoundingClientRect();
 		const inputRect = inputEl.getBoundingClientRect();
 		const gap = 8;
-		const left = Math.max(gap, anchorRect.left);
+		const rightEdge = window.innerWidth - gap;
+		const dockedLeft = anchorRect.right + gap;
+		const canDockRight = dockedLeft + 320 <= rightEdge;
+		const left = canDockRight ? dockedLeft : Math.max(gap, anchorRect.left);
+		const width = Math.max(320, Math.min(640, rightEdge - left));
 
-		let rightLimit = window.innerWidth - gap;
-		const cardEls = Array.from(document.querySelectorAll<HTMLElement>(".card-damage"));
-		if (cardEls.length > 0) {
-			const minCardLeft = Math.min(...cardEls.map((el) => el.getBoundingClientRect().left));
-			// カード列がこのウィンドウの左位置よりはっきり右にある(=隣に並んでいる)場合だけ、
-			// その手前までに幅を制限する。ほぼ同じx(縦積みで真下にあるだけ)の場合は無視する。
-			if (minCardLeft > left + 200) {
-				rightLimit = Math.min(rightLimit, minCardLeft - gap);
-			}
-		}
-		const width = Math.max(320, Math.min(640, rightLimit - left));
-
-		// .panel-left配下でposition:static以外(=このウィンドウと同じレイヤー6でDOM順が
-		// このウィンドウより後になり得る)要素の最下端を求め、そこより下にウィンドウ全体を
-		// 逃がす。該当が無ければ0(=inputRect.top基準のみで決まる)。
+		// .panel-left配下でposition:static以外の要素を避けてtopを下げる以下の座標回避は、
+		// 「.panel-left自体に重ねる」(canDockRight===false のフォールバック時)にのみ意味がある。
+		// 右へ外付けする(canDockRight===true)場合はそもそも.panel-leftと水平に重ならないため、
+		// この回避は不要かつ有害(隣接表示のはずがinputの行より大きく下にずれてしまう)。
 		let positionedBottom = 0;
-		for (const el of Array.from(anchor.querySelectorAll<HTMLElement>("*"))) {
-			const pos = getComputedStyle(el).position;
-			if (pos === "static") continue;
-			const r = el.getBoundingClientRect();
-			if (r.width <= 0 || r.height <= 0) continue;
-			if (r.bottom > positionedBottom) positionedBottom = r.bottom;
+		if (!canDockRight) {
+			// .panel-left配下でposition:static以外(=このウィンドウと同じレイヤー6でDOM順が
+			// このウィンドウより後になり得る)要素の最下端を求め、そこより下にウィンドウ全体を
+			// 逃がす。該当が無ければ0(=inputRect.top基準のみで決まる)。
+			for (const el of Array.from(anchor.querySelectorAll<HTMLElement>("*"))) {
+				const pos = getComputedStyle(el).position;
+				if (pos === "static") continue;
+				const r = el.getBoundingClientRect();
+				if (r.width <= 0 || r.height <= 0) continue;
+				if (r.bottom > positionedBottom) positionedBottom = r.bottom;
+			}
 		}
 		// UI改善ラウンド40ユーザー指示(40-L3-2)追記、ラウンド41ユーザー指示(41-L2)で根本原因を
 		// 特定・是正済み: 性格補正の上下ボタン(.stat-nature-up/.stat-nature-down、
@@ -1842,10 +1839,12 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 		// transform等を::before/::afterに使う新要素」を追加する際は、同じ罠(ホスト要素が
 		// 暗黙にスタッキングコンテキスト化する)を踏まないよう、position/z-index/filter/
 		// transform/opacity/will-change/contain/isolationのいずれも使わない実装を優先すること。
-		for (const el of Array.from(anchor.querySelectorAll<HTMLElement>(".stat-nature-up, .stat-nature-down"))) {
-			const r = el.getBoundingClientRect();
-			if (r.width <= 0 || r.height <= 0) continue;
-			if (r.bottom > positionedBottom) positionedBottom = r.bottom;
+		if (!canDockRight) {
+			for (const el of Array.from(anchor.querySelectorAll<HTMLElement>(".stat-nature-up, .stat-nature-down"))) {
+				const r = el.getBoundingClientRect();
+				if (r.width <= 0 || r.height <= 0) continue;
+				if (r.bottom > positionedBottom) positionedBottom = r.bottom;
+			}
 		}
 		const desiredTop = Math.max(inputRect.top, positionedBottom > 0 ? positionedBottom + gap : 0);
 		const top = Math.max(8, Math.min(desiredTop, window.innerHeight - 240));

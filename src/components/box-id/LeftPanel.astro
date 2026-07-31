@@ -1836,10 +1836,16 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 <style is:global>
 	.move-picker-window {
 		position: fixed;
-		/* z-indexは明示的に指定しない(auto)。理由はこのブロック直前のコメント参照
-		   (position:fixed + z-index:autoのままCSS区分(6)に属させ、`.edit-layout-right`等の
-		   position未指定な通常フロー要素(区分(3))には確実に勝ち、`.card-damage`
-		   (同じく区分(6)、position:relative)とはDOM順で決まる背面側にする)。 */
+		/* UI改修依頼(個体編集左パネル)「技選択テーブルは左パネルの右側に併設する」対応で
+		   z-index:autoから明示的な正の値へ変更した。ラウンド38時点はz-index:autoのまま
+		   (このブロック直前のコメント参照)`.card-damage`に必ず負けるDOM順の背面側に留めることで
+		   「.panel-left自体に重ねる」設計を成立させていたが、今回は逆に`.card-damage`列に
+		   併設(=重なった場合は前面に出したい)する設計へ変更したため、position:relativeで
+		   z-index:autoな`.card-damage`(CSS2.1 Appendix E区分6)に確実に勝つよう区分7へ上げる。
+		   `.app-sidebar`(z-index:30)・`#damage-detail-panel`(z-index:60)より小さい値にして
+		   常時最前面のその2つには引き続き負ける(reposition()側でこの2つとの幾何的な重なり
+		   自体を避ける設計は変えていないが、保険としても安全側)。 */
+		z-index: 10;
 		display: flex;
 		flex-direction: column;
 		background: var(--color-surface);
@@ -1881,7 +1887,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	   スクリーンリーダー・キーボードフォーカスを保つため)で隠し、隣接する.toggle-switch-trackを
 	   CSSだけで描く(<script>のsetupMovePickerWindow参照。checked状態・changeイベント・
 	   aria-labelは一切変えない)。 */
-	.toggle-switch { position: relative; display: inline-flex; align-items: center; width: 34px; height: 18px; flex-shrink: 0; }
+	.toggle-switch { position: relative; display: inline-flex; align-items: center; width: 38px; height: 20px; flex-shrink: 0; }
 	.toggle-switch-input {
 		position: absolute;
 		width: 1px;
@@ -1899,22 +1905,30 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		inset: 0;
 		border-radius: 999px;
 		background: var(--color-border);
-		transition: background-color 0.15s ease;
+		/* UI改修依頼(個体編集ヘッダー)「トグルスイッチの見た目が悪い」対応: offの状態が
+		   トラック背景色(--color-border)だけだと周辺との境目が曖昧だったため、薄い枠線を足して
+		   輪郭をはっきりさせる。 */
+		border: 1px solid var(--color-border);
+		transition: background-color 0.15s ease, border-color 0.15s ease;
 		pointer-events: none;
 	}
 	.toggle-switch-thumb {
 		position: absolute;
 		top: 2px;
 		left: 2px;
-		width: 14px;
-		height: 14px;
+		width: 16px;
+		height: 16px;
 		border-radius: 50%;
-		background: var(--color-surface);
-		box-shadow: var(--shadow-sm);
+		/* つまみは常に白固定(トークン化しない)。以前は--color-surfaceを使っていたが、
+		   ダークモードでは--color-surfaceがトラックとほぼ同じ暗さになり、box-shadowの縁だけが
+		   浮いた黒い塊に見えてしまっていた(「見た目が悪い」の実体)。iOS/Material同様、
+		   状態はトラックの色で示しつまみは常に白のニュートラルにする定番構成にする。 */
+		background: #ffffff;
+		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
 		transition: transform 0.15s ease;
 	}
-	.toggle-switch-input:checked + .toggle-switch-track { background: var(--color-primary); }
-	.toggle-switch-input:checked + .toggle-switch-track .toggle-switch-thumb { transform: translateX(16px); }
+	.toggle-switch-input:checked + .toggle-switch-track { background: var(--color-primary); border-color: var(--color-primary); }
+	.toggle-switch-input:checked + .toggle-switch-track .toggle-switch-thumb { transform: translateX(18px); }
 	.toggle-switch-input:focus-visible + .toggle-switch-track { outline: 2px solid var(--color-primary); outline-offset: 2px; }
 
 	/* UI改善ラウンド41ユーザー指示(41-L1)。アイテムドロップダウンの<li>/<img>/<span>は
