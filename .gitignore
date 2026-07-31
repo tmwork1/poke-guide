@@ -18,7 +18,9 @@ public/master-data/
 # されるためコミットしない。
 vendor/jpoke/build/
 vendor/jpoke/src/*.egg-info/
-vendor/jpoke/**/__pycache__/
+
+# Python のバイトコードキャッシュ (scripts/type-icons, scripts/ranker 等が生成する)
+__pycache__/
 
 # generated types
 .astro/
