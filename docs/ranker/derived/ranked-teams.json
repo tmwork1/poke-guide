@@ -4131,12 +4131,24 @@
      "category": "一般",
      "item_name": "ギャラドスナイト",
      "tera_type": null,
-     "nature": null,
-     "ability": null,
-     "move_names": null,
-     "evs": null,
-     "extraction_source": null,
-     "extraction_confidence": null
+     "nature": "いじっぱり",
+     "ability": "かたやぶり",
+     "move_names": [
+      "たきのぼり",
+      "かみくだく",
+      "じしん",
+      "りゅうのまい"
+     ],
+     "evs": [
+      1,
+      32,
+      1,
+      0,
+      0,
+      32
+     ],
+     "extraction_source": "llm",
+     "extraction_confidence": "high"
     },
     {
      "slot": 2,
@@ -4149,12 +4161,24 @@
      "category": "一般",
      "item_name": "こだわりスカーフ",
      "tera_type": null,
-     "nature": null,
-     "ability": null,
-     "move_names": null,
-     "evs": null,
-     "extraction_source": null,
-     "extraction_confidence": null
+     "nature": "いじっぱり",
+     "ability": "さめはだ",
+     "move_names": [
+      "じしん",
+      "げきりん",
+      "いわなだれ",
+      "ほのおのキバ"
+     ],
+     "evs": [
+      0,
+      32,
+      2,
+      0,
+      0,
+      32
+     ],
+     "extraction_source": "llm",
+     "extraction_confidence": "high"
     },
     {
      "slot": 3,
@@ -4167,12 +4191,24 @@
      "category": "一般",
      "item_name": "オボンのみ",
      "tera_type": null,
-     "nature": null,
-     "ability": null,
-     "move_names": null,
-     "evs": null,
-     "extraction_source": null,
-     "extraction_confidence": null
+     "nature": "おくびょう",
+     "ability": "がんじょう",
+     "move_names": [
+      "りゅうせいぐん",
+      "てっていこうせん",
+      "ほえる",
+      "ステルスロック"
+     ],
+     "evs": [
+      2,
+      0,
+      0,
+      32,
+      0,
+      32
+     ],
+     "extraction_source": "llm",
+     "extraction_confidence": "high"
     },
     {
      "slot": 4,
@@ -4185,12 +4221,24 @@
      "category": "一般",
      "item_name": "たべのこし",
      "tera_type": null,
-     "nature": null,
-     "ability": null,
-     "move_names": null,
-     "evs": null,
-     "extraction_source": null,
-     "extraction_confidence": null
+     "nature": "ずぶとい",
+     "ability": "げきりゅう",
+     "move_names": [
+      "うたかたのアリア",
+      "ムーンフォース",
+      "クイックターン",
+      "ほろびのうた"
+     ],
+     "evs": [
+      32,
+      0,
+      32,
+      1,
+      1,
+      0
+     ],
+     "extraction_source": "llm",
+     "extraction_confidence": "high"
     },
     {
      "slot": 5,
@@ -4203,12 +4251,24 @@
      "category": "一般",
      "item_name": "ルカリオナイト",
      "tera_type": null,
-     "nature": null,
-     "ability": null,
-     "move_names": null,
-     "evs": null,
-     "extraction_source": null,
-     "extraction_confidence": null
+     "nature": "おくびょう",
+     "ability": "てきおうりょく",
+     "move_names": [
+      "しんくうは",
+      "きあいだま",
+      "ラスターカノン",
+      "てっていこうせん"
+     ],
+     "evs": [
+      0,
+      0,
+      2,
+      32,
+      0,
+      32
+     ],
+     "extraction_source": "llm",
+     "extraction_confidence": "high"
     },
     {
      "slot": 6,
@@ -4221,12 +4281,24 @@
      "category": "一般",
      "item_name": "きあいのタスキ",
      "tera_type": null,
-     "nature": null,
-     "ability": null,
-     "move_names": null,
-     "evs": null,
-     "extraction_source": null,
-     "extraction_confidence": null
+     "nature": "いじっぱり",
+     "ability": "てきおうりょく",
+     "move_names": [
+      "アクアジェット",
+      "ウェーブタックル",
+      "おはかまいり",
+      "こうそくいどう"
+     ],
+     "evs": [
+      0,
+      32,
+      2,
+      0,
+      0,
+      32
+     ],
+     "extraction_source": "llm",
+     "extraction_confidence": "high"
     }
    ]
   },
@@ -11882,12 +11954,24 @@
      "category": "一般",
      "item_name": "ハッサムナイト",
      "tera_type": null,
-     "nature": null,
-     "ability": null,
-     "move_names": null,
-     "evs": null,
-     "extraction_source": null,
-     "extraction_confidence": null
+     "nature": "わんぱく",
+     "ability": "テクニシャン",
+     "move_names": [
+      "バレットパンチ",
+      "はたきおとす",
+      "とんぼがえり",
+      "はねやすめ"
+     ],
+     "evs": [
+      32,
+      2,
+      32,
+      0,
+      0,
+      0
+     ],
+     "extraction_source": "llm",
+     "extraction_confidence": "high"
     },
     {
      "slot": 2,
@@ -11900,12 +11984,24 @@
      "category": "一般",
      "item_name": "たべのこし",
      "tera_type": null,
-     "nature": null,
-     "ability": null,
-     "move_names": null,
-     "evs": null,
-     "extraction_source": null,
-     "extraction_confidence": null
+     "nature": "おだやか",
+     "ability": "さいせいりょく",
+     "move_names": [
+      "かえんほうしゃ",
+      "めいそう",
+      "どくどく",
+      "なまける"
+     ],
+     "evs": [
+      31,
+      0,
+      5,
+      0,
+      30,
+      0
+     ],
+     "extraction_source": "llm",
+     "extraction_confidence": "high"
     },
     {
      "slot": 3,
@@ -11918,12 +12014,21 @@
      "category": "一般",
      "item_name": "こだわりスカーフ",
      "tera_type": null,
-     "nature": null,
-     "ability": null,
-     "move_names": null,
-     "evs": null,
-     "extraction_source": null,
-     "extraction_confidence": null
+     "nature": "のんき",
+     "ability": "かわりもの",
+     "move_names": [
+      "へんしん"
+     ],
+     "evs": [
+      32,
+      2,
+      32,
+      0,
+      0,
+      0
+     ],
+     "extraction_source": "llm",
+     "extraction_confidence": "high"
     },
     {
      "slot": 4,
@@ -11936,12 +12041,24 @@
      "category": "一般",
      "item_name": "オボンのみ",
      "tera_type": null,
-     "nature": null,
-     "ability": null,
-     "move_names": null,
-     "evs": null,
-     "extraction_source": null,
-     "extraction_confidence": null
+     "nature": "わんぱく",
+     "ability": "きれあじ",
+     "move_names": [
+      "ひけん・ちえなみ",
+      "せいなるつるぎ",
+      "アンコール",
+      "ふいうち"
+     ],
+     "evs": [
+      32,
+      0,
+      25,
+      0,
+      0,
+      9
+     ],
+     "extraction_source": "llm",
+     "extraction_confidence": "high"
     },
     {
      "slot": 5,
@@ -11954,12 +12071,24 @@
      "category": "一般",
      "item_name": "きあいのタスキ",
      "tera_type": null,
-     "nature": null,
-     "ability": null,
-     "move_names": null,
-     "evs": null,
-     "extraction_source": null,
-     "extraction_confidence": null
+     "nature": "いじっぱり",
+     "ability": "さめはだ",
+     "move_names": [
+      "じしん",
+      "スケイルショット",
+      "ストーンエッジ",
+      "つるぎのまい"
+     ],
+     "evs": [
+      2,
+      32,
+      0,
+      0,
+      0,
+      32
+     ],
+     "extraction_source": "llm",
+     "extraction_confidence": "high"
     },
     {
      "slot": 6,
@@ -11972,12 +12101,24 @@
      "category": "一般",
      "item_name": "カイリュナイト",
      "tera_type": null,
-     "nature": null,
-     "ability": null,
-     "move_names": null,
-     "evs": null,
-     "extraction_source": null,
-     "extraction_confidence": null
+     "nature": "おくびょう",
+     "ability": "マルチスケイル",
+     "move_names": [
+      "りゅうせいぐん",
+      "れいとうビーム",
+      "10まんボルト",
+      "しんそく"
+     ],
+     "evs": [
+      13,
+      0,
+      0,
+      32,
+      0,
+      21
+     ],
+     "extraction_source": "llm",
+     "extraction_confidence": "high"
     }
    ]
   },
@@ -13306,10 +13447,13 @@
      "tera_type": null,
      "nature": null,
      "ability": null,
-     "move_names": null,
+     "move_names": [
+      "カウンター",
+      "じばく"
+     ],
      "evs": null,
-     "extraction_source": null,
-     "extraction_confidence": null
+     "extraction_source": "llm",
+     "extraction_confidence": "medium"
     },
     {
      "slot": 2,
@@ -13324,10 +13468,14 @@
      "tera_type": null,
      "nature": null,
      "ability": null,
-     "move_names": null,
+     "move_names": [
+      "りゅうのまい",
+      "たきのぼり",
+      "アイアンヘッド"
+     ],
      "evs": null,
-     "extraction_source": null,
-     "extraction_confidence": null
+     "extraction_source": "llm",
+     "extraction_confidence": "low"
     },
     {
      "slot": 3,
@@ -13378,10 +13526,12 @@
      "tera_type": null,
      "nature": null,
      "ability": null,
-     "move_names": null,
+     "move_names": [
+      "じゃれつく"
+     ],
      "evs": null,
-     "extraction_source": null,
-     "extraction_confidence": null
+     "extraction_source": "llm",
+     "extraction_confidence": "high"
     },
     {
      "slot": 6,
@@ -13396,10 +13546,13 @@
      "tera_type": null,
      "nature": null,
      "ability": null,
-     "move_names": null,
+     "move_names": [
+      "ミラーコート",
+      "ほえる"
+     ],
      "evs": null,
-     "extraction_source": null,
-     "extraction_confidence": null
+     "extraction_source": "llm",
+     "extraction_confidence": "medium"
     }
    ]
   },
@@ -14180,12 +14333,24 @@
      "category": "一般",
      "item_name": "フシギバナイト",
      "tera_type": null,
-     "nature": null,
-     "ability": null,
-     "move_names": null,
-     "evs": null,
-     "extraction_source": null,
-     "extraction_confidence": null
+     "nature": "ずぶとい",
+     "ability": "あついしぼう",
+     "move_names": [
+      "アシッドボム",
+      "だいちのちから",
+      "やどりぎのタネ",
+      "ねむりごな"
+     ],
+     "evs": [
+      32,
+      0,
+      21,
+      0,
+      0,
+      13
+     ],
+     "extraction_source": "llm",
+     "extraction_confidence": "high"
     },
     {
      "slot": 2,
@@ -14198,12 +14363,24 @@
      "category": "一般",
      "item_name": "カシブのみ",
      "tera_type": null,
-     "nature": null,
-     "ability": null,
-     "move_names": null,
-     "evs": null,
-     "extraction_source": null,
-     "extraction_confidence": null
+     "nature": "おくびょう",
+     "ability": "かそく",
+     "move_names": [
+      "ルミナコリジョン",
+      "たたりめ",
+      "マジカルシャイン",
+      "さいみんじゅつ"
+     ],
+     "evs": [
+      31,
+      0,
+      0,
+      0,
+      3,
+      32
+     ],
+     "extraction_source": "llm",
+     "extraction_confidence": "high"
     },
     {
      "slot": 3,
@@ -14216,12 +14393,24 @@
      "category": "一般",
      "item_name": "リリバのみ",
      "tera_type": null,
-     "nature": null,
-     "ability": null,
-     "move_names": null,
-     "evs": null,
-     "extraction_source": null,
-     "extraction_confidence": null
+     "nature": "ずぶとい",
+     "ability": "マジックガード",
+     "move_names": [
+      "ムーンフォース",
+      "だいもんじ",
+      "ステルスロック",
+      "いやしのねがい"
+     ],
+     "evs": [
+      31,
+      0,
+      32,
+      3,
+      0,
+      0
+     ],
+     "extraction_source": "llm",
+     "extraction_confidence": "high"
     },
     {
      "slot": 4,
@@ -14234,12 +14423,24 @@
      "category": "一般",
      "item_name": "たべのこし",
      "tera_type": null,
-     "nature": null,
-     "ability": null,
-     "move_names": null,
-     "evs": null,
-     "extraction_source": null,
-     "extraction_confidence": null
+     "nature": "わんぱく",
+     "ability": "あついしぼう",
+     "move_names": [
+      "サンダーダイブ",
+      "じばく",
+      "あくび",
+      "じわれ"
+     ],
+     "evs": [
+      0,
+      32,
+      32,
+      0,
+      2,
+      0
+     ],
+     "extraction_source": "llm",
+     "extraction_confidence": "high"
     },
     {
      "slot": 5,
@@ -14252,12 +14453,24 @@
      "category": "一般",
      "item_name": "オボンのみ",
      "tera_type": null,
-     "nature": null,
-     "ability": null,
-     "move_names": null,
-     "evs": null,
-     "extraction_source": null,
-     "extraction_confidence": null
+     "nature": "いじっぱり",
+     "ability": "ばけのかわ",
+     "move_names": [
+      "じゃれつく",
+      "シャドークロー",
+      "かげうち",
+      "つるぎのまい"
+     ],
+     "evs": [
+      29,
+      18,
+      6,
+      0,
+      0,
+      13
+     ],
+     "extraction_source": "llm",
+     "extraction_confidence": "high"
     },
     {
      "slot": 6,
@@ -14270,12 +14483,24 @@
      "category": "一般",
      "item_name": "きあいのタスキ",
      "tera_type": null,
-     "nature": null,
-     "ability": null,
-     "move_names": null,
-     "evs": null,
-     "extraction_source": null,
-     "extraction_confidence": null
+     "nature": "おくびょう",
+     "ability": "のろわれボディ",
+     "move_names": [
+      "たたりめ",
+      "きあいだま",
+      "こごえるかぜ",
+      "さいみんじゅつ"
+     ],
+     "evs": [
+      0,
+      0,
+      2,
+      32,
+      0,
+      32
+     ],
+     "extraction_source": "llm",
+     "extraction_confidence": "high"
     }
    ]
   },
@@ -67607,12 +67832,17 @@
      "category": "一般",
      "item_name": "ハッサムナイト",
      "tera_type": null,
-     "nature": null,
-     "ability": null,
-     "move_names": null,
+     "nature": "いじっぱり",
+     "ability": "テクニシャン",
+     "move_names": [
+      "つるぎのまい",
+      "バレットパンチ",
+      "はたきおとす",
+      "インファイト"
+     ],
      "evs": null,
-     "extraction_source": null,
-     "extraction_confidence": null
+     "extraction_source": "llm",
+     "extraction_confidence": "medium"
     },
     {
      "slot": 2,
@@ -67627,10 +67857,15 @@
      "tera_type": null,
      "nature": null,
      "ability": null,
-     "move_names": null,
+     "move_names": [
+      "つるぎのまい",
+      "だましうち",
+      "ポルターガイスト",
+      "インファイト"
+     ],
      "evs": null,
-     "extraction_source": null,
-     "extraction_confidence": null
+     "extraction_source": "llm",
+     "extraction_confidence": "medium"
     },
     {
      "slot": 3,
@@ -67644,11 +67879,11 @@
      "item_name": "オボンのみ",
      "tera_type": null,
      "nature": null,
-     "ability": null,
+     "ability": "さめはだ",
      "move_names": null,
      "evs": null,
-     "extraction_source": null,
-     "extraction_confidence": null
+     "extraction_source": "llm",
+     "extraction_confidence": "low"
     },
     {
      "slot": 4,
@@ -67661,12 +67896,14 @@
      "category": "一般",
      "item_name": "フラエッテナイト",
      "tera_type": null,
-     "nature": null,
+     "nature": "ようき",
      "ability": null,
-     "move_names": null,
+     "move_names": [
+      "めいそう"
+     ],
      "evs": null,
-     "extraction_source": null,
-     "extraction_confidence": null
+     "extraction_source": "llm",
+     "extraction_confidence": "low"
     },
     {
      "slot": 5,
@@ -67681,10 +67918,13 @@
      "tera_type": null,
      "nature": null,
      "ability": null,
-     "move_names": null,
+     "move_names": [
+      "ボルトチェンジ",
+      "トリック"
+     ],
      "evs": null,
-     "extraction_source": null,
-     "extraction_confidence": null
+     "extraction_source": "llm",
+     "extraction_confidence": "medium"
     },
     {
      "slot": 6,
@@ -69043,12 +69283,15 @@
      "category": "一般",
      "item_name": "オボンのみ",
      "tera_type": null,
-     "nature": null,
+     "nature": "ようき",
      "ability": null,
-     "move_names": null,
+     "move_names": [
+      "ステルスロック",
+      "ドラゴンテール"
+     ],
      "evs": null,
-     "extraction_source": null,
-     "extraction_confidence": null
+     "extraction_source": "llm",
+     "extraction_confidence": "medium"
     },
     {
      "slot": 2,
@@ -69061,12 +69304,15 @@
      "category": "一般",
      "item_name": "こだわりスカーフ",
      "tera_type": null,
-     "nature": null,
-     "ability": null,
-     "move_names": null,
+     "nature": "しんちょう",
+     "ability": "がんじょう",
+     "move_names": [
+      "りゅうせいぐん",
+      "はどうだん"
+     ],
      "evs": null,
-     "extraction_source": null,
-     "extraction_confidence": null
+     "extraction_source": "llm",
+     "extraction_confidence": "medium"
     },
     {
      "slot": 3,
@@ -69080,11 +69326,14 @@
      "item_name": "ギャラドスナイト",
      "tera_type": null,
      "nature": null,
-     "ability": null,
-     "move_names": null,
+     "ability": "いかく",
+     "move_names": [
+      "ちょうはつ",
+      "りゅうのまい"
+     ],
      "evs": null,
-     "extraction_source": null,
-     "extraction_confidence": null
+     "extraction_source": "llm",
+     "extraction_confidence": "medium"
     },
     {
      "slot": 4,
@@ -69117,10 +69366,12 @@
      "tera_type": null,
      "nature": null,
      "ability": null,
-     "move_names": null,
+     "move_names": [
+      "だいちのちから"
+     ],
      "evs": null,
-     "extraction_source": null,
-     "extraction_confidence": null
+     "extraction_source": "llm",
+     "extraction_confidence": "low"
     },
     {
      "slot": 6,
@@ -69134,11 +69385,14 @@
      "item_name": "きあいのタスキ",
      "tera_type": null,
      "nature": null,
-     "ability": null,
-     "move_names": null,
+     "ability": "むしのしらせ",
+     "move_names": [
+      "むしのさざめき",
+      "ギガドレイン"
+     ],
      "evs": null,
-     "extraction_source": null,
-     "extraction_confidence": null
+     "extraction_source": "llm",
+     "extraction_confidence": "medium"
     }
    ]
   },
@@ -69464,10 +69718,12 @@
      "tera_type": null,
      "nature": null,
      "ability": null,
-     "move_names": null,
+     "move_names": [
+      "どくびし"
+     ],
      "evs": null,
-     "extraction_source": null,
-     "extraction_confidence": null
+     "extraction_source": "llm",
+     "extraction_confidence": "high"
     },
     {
      "slot": 3,
@@ -69500,10 +69756,14 @@
      "tera_type": null,
      "nature": null,
      "ability": null,
-     "move_names": null,
+     "move_names": [
+      "ローキック",
+      "とんぼがえり",
+      "どくびし"
+     ],
      "evs": null,
-     "extraction_source": null,
-     "extraction_confidence": null
+     "extraction_source": "llm",
+     "extraction_confidence": "medium"
     },
     {
      "slot": 5,
@@ -72152,10 +72412,13 @@
      "tera_type": null,
      "nature": null,
      "ability": null,
-     "move_names": null,
+     "move_names": [
+      "あくび",
+      "まもる"
+     ],
      "evs": null,
-     "extraction_source": null,
-     "extraction_confidence": null
+     "extraction_source": "llm",
+     "extraction_confidence": "medium"
     },
     {
      "slot": 2,
@@ -72170,10 +72433,13 @@
      "tera_type": null,
      "nature": null,
      "ability": null,
-     "move_names": null,
+     "move_names": [
+      "サイコキネシス",
+      "ドレインキッス"
+     ],
      "evs": null,
-     "extraction_source": null,
-     "extraction_confidence": null
+     "extraction_source": "llm",
+     "extraction_confidence": "medium"
     },
     {
      "slot": 3,
@@ -72188,10 +72454,13 @@
      "tera_type": null,
      "nature": null,
      "ability": null,
-     "move_names": null,
+     "move_names": [
+      "つるぎのまい",
+      "スケイルショット"
+     ],
      "evs": null,
-     "extraction_source": null,
-     "extraction_confidence": null
+     "extraction_source": "llm",
+     "extraction_confidence": "medium"
     },
     {
      "slot": 4,
@@ -72206,10 +72475,12 @@
      "tera_type": null,
      "nature": null,
      "ability": null,
-     "move_names": null,
+     "move_names": [
+      "ドラゴンテール"
+     ],
      "evs": null,
-     "extraction_source": null,
-     "extraction_confidence": null
+     "extraction_source": "llm",
+     "extraction_confidence": "low"
     },
     {
      "slot": 5,
@@ -72224,10 +72495,15 @@
      "tera_type": null,
      "nature": null,
      "ability": null,
-     "move_names": null,
+     "move_names": [
+      "サイコキネシス",
+      "マジカルフレイム",
+      "おにび",
+      "アンコール"
+     ],
      "evs": null,
-     "extraction_source": null,
-     "extraction_confidence": null
+     "extraction_source": "llm",
+     "extraction_confidence": "high"
     },
     {
      "slot": 6,
@@ -72240,12 +72516,16 @@
      "category": "一般",
      "item_name": "きあいのタスキ",
      "tera_type": null,
-     "nature": null,
-     "ability": null,
-     "move_names": null,
+     "nature": "いじっぱり",
+     "ability": "しんりょく",
+     "move_names": [
+      "トリックフラワー",
+      "はたきおとす",
+      "ちょうはつ"
+     ],
      "evs": null,
-     "extraction_source": null,
-     "extraction_confidence": null
+     "extraction_source": "llm",
+     "extraction_confidence": "medium"
     }
    ]
   },
@@ -72662,10 +72942,12 @@
      "tera_type": null,
      "nature": null,
      "ability": null,
-     "move_names": null,
+     "move_names": [
+      "ステルスロック"
+     ],
      "evs": null,
-     "extraction_source": null,
-     "extraction_confidence": null
+     "extraction_source": "llm",
+     "extraction_confidence": "medium"
     },
     {
      "slot": 2,
@@ -72680,10 +72962,12 @@
      "tera_type": null,
      "nature": null,
      "ability": null,
-     "move_names": null,
+     "move_names": [
+      "ちょうのまい"
+     ],
      "evs": null,
-     "extraction_source": null,
-     "extraction_confidence": null
+     "extraction_source": "llm",
+     "extraction_confidence": "high"
     },
     {
      "slot": 3,
@@ -72698,10 +72982,12 @@
      "tera_type": null,
      "nature": null,
      "ability": null,
-     "move_names": null,
+     "move_names": [
+      "あくのはどう"
+     ],
      "evs": null,
-     "extraction_source": null,
-     "extraction_confidence": null
+     "extraction_source": "llm",
+     "extraction_confidence": "medium"
     },
     {
      "slot": 4,
@@ -72715,11 +73001,13 @@
      "item_name": "きあいのタスキ",
      "tera_type": null,
      "nature": null,
-     "ability": null,
-     "move_names": null,
+     "ability": "げきりゅう",
+     "move_names": [
+      "あくのはどう"
+     ],
      "evs": null,
-     "extraction_source": null,
-     "extraction_confidence": null
+     "extraction_source": "llm",
+     "extraction_confidence": "high"
     },
     {
      "slot": 5,
@@ -73260,10 +73548,12 @@
      "tera_type": null,
      "nature": null,
      "ability": null,
-     "move_names": null,
+     "move_names": [
+      "フリーズドライ"
+     ],
      "evs": null,
-     "extraction_source": null,
-     "extraction_confidence": null
+     "extraction_source": "llm",
+     "extraction_confidence": "medium"
     },
     {
      "slot": 2,
@@ -73278,10 +73568,13 @@
      "tera_type": null,
      "nature": null,
      "ability": null,
-     "move_names": null,
+     "move_names": [
+      "サイコカッター",
+      "つじぎり"
+     ],
      "evs": null,
-     "extraction_source": null,
-     "extraction_confidence": null
+     "extraction_source": "llm",
+     "extraction_confidence": "medium"
     },
     {
      "slot": 3,
@@ -73350,10 +73643,14 @@
      "tera_type": null,
      "nature": null,
      "ability": null,
-     "move_names": null,
+     "move_names": [
+      "じしん",
+      "アイアンヘッド",
+      "つのドリル"
+     ],
      "evs": null,
-     "extraction_source": null,
-     "extraction_confidence": null
+     "extraction_source": "llm",
+     "extraction_confidence": "high"
     }
    ]
   },
@@ -74780,12 +75077,17 @@
      "category": "一般",
      "item_name": "フシギバナイト",
      "tera_type": null,
-     "nature": null,
+     "nature": "おくびょう",
      "ability": null,
-     "move_names": null,
+     "move_names": [
+      "リーフストーム",
+      "だいちのちから",
+      "やどりぎのタネ",
+      "こうごうせい"
+     ],
      "evs": null,
-     "extraction_source": null,
-     "extraction_confidence": null
+     "extraction_source": "llm",
+     "extraction_confidence": "high"
     },
     {
      "slot": 2,
@@ -74799,11 +75101,16 @@
      "item_name": "たべのこし",
      "tera_type": null,
      "nature": null,
-     "ability": null,
-     "move_names": null,
+     "ability": "てんねん",
+     "move_names": [
+      "めいそう",
+      "ねがいごと",
+      "まもる",
+      "ムーンフォース"
+     ],
      "evs": null,
-     "extraction_source": null,
-     "extraction_confidence": null
+     "extraction_source": "llm",
+     "extraction_confidence": "high"
     },
     {
      "slot": 3,
@@ -74818,10 +75125,14 @@
      "tera_type": null,
      "nature": null,
      "ability": null,
-     "move_names": null,
+     "move_names": [
+      "つるぎのまい",
+      "ポルターガイスト",
+      "インファイト"
+     ],
      "evs": null,
-     "extraction_source": null,
-     "extraction_confidence": null
+     "extraction_source": "llm",
+     "extraction_confidence": "medium"
     },
     {
      "slot": 4,
@@ -74834,12 +75145,15 @@
      "category": "一般",
      "item_name": "こだわりスカーフ",
      "tera_type": null,
-     "nature": null,
-     "ability": null,
-     "move_names": null,
+     "nature": "ひかえめ",
+     "ability": "ふゆう",
+     "move_names": [
+      "だいちのちから",
+      "とんぼがえり"
+     ],
      "evs": null,
-     "extraction_source": null,
-     "extraction_confidence": null
+     "extraction_source": "llm",
+     "extraction_confidence": "high"
     },
     {
      "slot": 5,
@@ -74853,11 +75167,13 @@
      "item_name": "オボンのみ",
      "tera_type": null,
      "nature": null,
-     "ability": null,
-     "move_names": null,
+     "ability": "いかく",
+     "move_names": [
+      "おにび"
+     ],
      "evs": null,
-     "extraction_source": null,
-     "extraction_confidence": null
+     "extraction_source": "llm",
+     "extraction_confidence": "medium"
     },
     {
      "slot": 6,
@@ -74872,10 +75188,13 @@
      "tera_type": null,
      "nature": null,
      "ability": null,
-     "move_names": null,
+     "move_names": [
+      "おにび",
+      "ボルトチェンジ"
+     ],
      "evs": null,
-     "extraction_source": null,
-     "extraction_confidence": null
+     "extraction_source": "llm",
+     "extraction_confidence": "medium"
     }
    ]
   },
@@ -76166,10 +76485,14 @@
      "tera_type": null,
      "nature": null,
      "ability": null,
-     "move_names": null,
+     "move_names": [
+      "マッドショット",
+      "だいちのちから",
+      "どくびし"
+     ],
      "evs": null,
-     "extraction_source": null,
-     "extraction_confidence": null
+     "extraction_source": "llm",
+     "extraction_confidence": "medium"
     },
     {
      "slot": 3,
@@ -76183,11 +76506,11 @@
      "item_name": "オボンのみ",
      "tera_type": null,
      "nature": null,
-     "ability": null,
+     "ability": "さめはだ",
      "move_names": null,
      "evs": null,
-     "extraction_source": null,
-     "extraction_confidence": null
+     "extraction_source": "llm",
+     "extraction_confidence": "medium"
     },
     {
      "slot": 4,
@@ -76218,12 +76541,12 @@
      "category": "一般",
      "item_name": "こだわりスカーフ",
      "tera_type": null,
-     "nature": null,
+     "nature": "ようき",
      "ability": null,
      "move_names": null,
      "evs": null,
-     "extraction_source": null,
-     "extraction_confidence": null
+     "extraction_source": "llm",
+     "extraction_confidence": "medium"
     },
     {
      "slot": 6,
@@ -76238,10 +76561,13 @@
      "tera_type": null,
      "nature": null,
      "ability": null,
-     "move_names": null,
+     "move_names": [
+      "ふいうち",
+      "つるぎのまい"
+     ],
      "evs": null,
-     "extraction_source": null,
-     "extraction_confidence": null
+     "extraction_source": "llm",
+     "extraction_confidence": "medium"
     }
    ]
   },
@@ -77425,12 +77751,23 @@
      "category": "一般",
      "item_name": "ゴルーグナイト",
      "tera_type": null,
-     "nature": null,
-     "ability": null,
-     "move_names": null,
-     "evs": null,
-     "extraction_source": null,
-     "extraction_confidence": null
+     "nature": "のうてんき",
+     "ability": "くいしんぼう",
+     "move_names": [
+      "なげつける",
+      "ゲップ",
+      "さわぐ"
+     ],
+     "evs": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "extraction_source": "llm",
+     "extraction_confidence": "high"
     },
     {
      "slot": 2,
@@ -77443,12 +77780,24 @@
      "category": "一般",
      "item_name": "たべのこし",
      "tera_type": null,
-     "nature": null,
-     "ability": null,
-     "move_names": null,
-     "evs": null,
-     "extraction_source": null,
-     "extraction_confidence": null
+     "nature": "おくびょう",
+     "ability": "ムラっけ",
+     "move_names": [
+      "かえんほうしゃ",
+      "やどりぎのタネ",
+      "みがわり",
+      "まもる"
+     ],
+     "evs": [
+      21,
+      0,
+      6,
+      0,
+      7,
+      32
+     ],
+     "extraction_source": "llm",
+     "extraction_confidence": "high"
     },
     {
      "slot": 3,
@@ -77461,12 +77810,24 @@
      "category": "一般",
      "item_name": "ピクシナイト",
      "tera_type": null,
-     "nature": null,
-     "ability": null,
-     "move_names": null,
-     "evs": null,
-     "extraction_source": null,
-     "extraction_confidence": null
+     "nature": "ずぶとい",
+     "ability": "マジックミラー",
+     "move_names": [
+      "ムーンフォース",
+      "アシストパワー",
+      "コスモパワー",
+      "つきのひかり"
+     ],
+     "evs": [
+      32,
+      0,
+      31,
+      0,
+      0,
+      3
+     ],
+     "extraction_source": "llm",
+     "extraction_confidence": "high"
     },
     {
      "slot": 4,
@@ -77479,12 +77840,24 @@
      "category": "一般",
      "item_name": "ギャラドスナイト",
      "tera_type": null,
-     "nature": null,
-     "ability": null,
-     "move_names": null,
-     "evs": null,
-     "extraction_source": null,
-     "extraction_confidence": null
+     "nature": "ようき",
+     "ability": "かたやぶり",
+     "move_names": [
+      "たきのぼり",
+      "じしん",
+      "パワーウィップ",
+      "りゅうのまい"
+     ],
+     "evs": [
+      1,
+      32,
+      1,
+      0,
+      0,
+      32
+     ],
+     "extraction_source": "llm",
+     "extraction_confidence": "high"
     },
     {
      "slot": 5,
@@ -77497,12 +77870,24 @@
      "category": "一般",
      "item_name": "でんきだま",
      "tera_type": null,
-     "nature": null,
-     "ability": null,
-     "move_names": null,
-     "evs": null,
-     "extraction_source": null,
-     "extraction_confidence": null
+     "nature": "おくびょう",
+     "ability": "へんげんじざい",
+     "move_names": [
+      "なげつける",
+      "ちょうはつ",
+      "どろかけ",
+      "どくびし"
+     ],
+     "evs": [
+      32,
+      0,
+      1,
+      0,
+      1,
+      32
+     ],
+     "extraction_source": "llm",
+     "extraction_confidence": "high"
     },
     {
      "slot": 6,
@@ -77515,12 +77900,24 @@
      "category": "一般",
      "item_name": "きあいのタスキ",
      "tera_type": null,
-     "nature": null,
-     "ability": null,
-     "move_names": null,
-     "evs": null,
-     "extraction_source": null,
-     "extraction_confidence": null
+     "nature": "おくびょう",
+     "ability": "どくげしょう",
+     "move_names": [
+      "キラースピン",
+      "マッドショット",
+      "ステルスロック",
+      "どくびし"
+     ],
+     "evs": [
+      32,
+      0,
+      2,
+      0,
+      0,
+      32
+     ],
+     "extraction_source": "llm",
+     "extraction_confidence": "high"
     }
    ]
   },
@@ -79356,10 +79753,12 @@
      "tera_type": null,
      "nature": null,
      "ability": null,
-     "move_names": null,
+     "move_names": [
+      "クイックターン"
+     ],
      "evs": null,
-     "extraction_source": null,
-     "extraction_confidence": null
+     "extraction_source": "llm",
+     "extraction_confidence": "low"
     },
     {
      "slot": 2,
@@ -79374,10 +79773,13 @@
      "tera_type": null,
      "nature": null,
      "ability": null,
-     "move_names": null,
+     "move_names": [
+      "れいとうビーム",
+      "とんぼがえり"
+     ],
      "evs": null,
-     "extraction_source": null,
-     "extraction_confidence": null
+     "extraction_source": "llm",
+     "extraction_confidence": "medium"
     },
     {
      "slot": 3,
@@ -79422,10 +79824,12 @@
      "tera_type": null,
      "nature": null,
      "ability": null,
-     "move_names": null,
+     "move_names": [
+      "ウェーブタックル"
+     ],
      "evs": null,
-     "extraction_source": null,
-     "extraction_confidence": null
+     "extraction_source": "llm",
+     "extraction_confidence": "low"
     },
     {
      "slot": 5,
@@ -79470,10 +79874,13 @@
      "tera_type": null,
      "nature": null,
      "ability": null,
-     "move_names": null,
+     "move_names": [
+      "つるぎのまい",
+      "トリプルアクセル"
+     ],
      "evs": null,
-     "extraction_source": null,
-     "extraction_confidence": null
+     "extraction_source": "llm",
+     "extraction_confidence": "low"
     }
    ]
   },
@@ -102023,10 +102430,12 @@
      "tera_type": null,
      "nature": null,
      "ability": null,
-     "move_names": null,
+     "move_names": [
+      "リフレクター"
+     ],
      "evs": null,
-     "extraction_source": null,
-     "extraction_confidence": null
+     "extraction_source": "llm",
+     "extraction_confidence": "low"
     },
     {
      "slot": 2,
@@ -102041,10 +102450,13 @@
      "tera_type": null,
      "nature": null,
      "ability": null,
-     "move_names": null,
+     "move_names": [
+      "ダストシュート",
+      "てっぺき"
+     ],
      "evs": null,
-     "extraction_source": null,
-     "extraction_confidence": null
+     "extraction_source": "llm",
+     "extraction_confidence": "medium"
     },
     {
      "slot": 3,
@@ -102059,10 +102471,12 @@
      "tera_type": null,
      "nature": null,
      "ability": null,
-     "move_names": null,
+     "move_names": [
+      "くろいきり"
+     ],
      "evs": null,
-     "extraction_source": null,
-     "extraction_confidence": null
+     "extraction_source": "llm",
+     "extraction_confidence": "low"
     },
     {
      "slot": 4,
@@ -102094,11 +102508,14 @@
      "item_name": "たべのこし",
      "tera_type": null,
      "nature": null,
-     "ability": null,
-     "move_names": null,
+     "ability": "きゅうばん",
+     "move_names": [
+      "かげぶんしん",
+      "さいみんじゅつ"
+     ],
      "evs": null,
-     "extraction_source": null,
-     "extraction_confidence": null
+     "extraction_source": "llm",
+     "extraction_confidence": "high"
     },
     {
      "slot": 6,
@@ -102113,10 +102530,12 @@
      "tera_type": null,
      "nature": null,
      "ability": null,
-     "move_names": null,
+     "move_names": [
+      "あくのはどう"
+     ],
      "evs": null,
-     "extraction_source": null,
-     "extraction_confidence": null
+     "extraction_source": "llm",
+     "extraction_confidence": "medium"
     }
    ]
   },
@@ -106644,12 +107063,24 @@
      "category": "一般",
      "item_name": "バシャーモナイト",
      "tera_type": null,
-     "nature": null,
-     "ability": null,
-     "move_names": null,
-     "evs": null,
-     "extraction_source": null,
-     "extraction_confidence": null
+     "nature": "いじっぱり",
+     "ability": "かそく",
+     "move_names": [
+      "フレアドライブ",
+      "インファイト",
+      "ストーンエッジ",
+      "つるぎのまい"
+     ],
+     "evs": [
+      32,
+      10,
+      0,
+      0,
+      6,
+      18
+     ],
+     "extraction_source": "llm",
+     "extraction_confidence": "high"
     },
     {
      "slot": 2,
@@ -106662,12 +107093,24 @@
      "category": "一般",
      "item_name": "ゲンガナイト",
      "tera_type": null,
-     "nature": null,
-     "ability": null,
-     "move_names": null,
-     "evs": null,
-     "extraction_source": null,
-     "extraction_confidence": null
+     "nature": "ひかえめ",
+     "ability": "かげふみ",
+     "move_names": [
+      "ヘドロウェーブ",
+      "シャドーボール",
+      "わるだくみ",
+      "はたきおとす"
+     ],
+     "evs": [
+      24,
+      0,
+      0,
+      10,
+      0,
+      32
+     ],
+     "extraction_source": "llm",
+     "extraction_confidence": "high"
     },
     {
      "slot": 3,
@@ -106680,12 +107123,24 @@
      "category": "一般",
      "item_name": "ゲッコウガナイト",
      "tera_type": null,
-     "nature": null,
-     "ability": null,
-     "move_names": null,
-     "evs": null,
-     "extraction_source": null,
-     "extraction_confidence": null
+     "nature": "おくびょう",
+     "ability": "へんげんじざい",
+     "move_names": [
+      "ヘドロウェーブ",
+      "あくのはどう",
+      "れいとうビーム",
+      "じんつうりき"
+     ],
+     "evs": [
+      2,
+      0,
+      0,
+      32,
+      0,
+      32
+     ],
+     "extraction_source": "llm",
+     "extraction_confidence": "high"
     },
     {
      "slot": 4,
@@ -106698,12 +107153,24 @@
      "category": "一般",
      "item_name": "きあいのタスキ",
      "tera_type": null,
-     "nature": null,
-     "ability": null,
-     "move_names": null,
-     "evs": null,
-     "extraction_source": null,
-     "extraction_confidence": null
+     "nature": "いじっぱり",
+     "ability": "しんりょく",
+     "move_names": [
+      "トリックフラワー",
+      "はたきおとす",
+      "トリプルアクセル",
+      "まきびし"
+     ],
+     "evs": [
+      2,
+      32,
+      0,
+      0,
+      0,
+      32
+     ],
+     "extraction_source": "llm",
+     "extraction_confidence": "high"
     },
     {
      "slot": 5,
@@ -106716,12 +107183,24 @@
      "category": "一般",
      "item_name": "オボンのみ",
      "tera_type": null,
-     "nature": null,
-     "ability": null,
-     "move_names": null,
-     "evs": null,
-     "extraction_source": null,
-     "extraction_confidence": null
+     "nature": "おくびょう",
+     "ability": "がんじょう",
+     "move_names": [
+      "りゅうせいぐん",
+      "てっていこうせん",
+      "がんせきふうじ",
+      "ステルスロック"
+     ],
+     "evs": [
+      2,
+      0,
+      0,
+      32,
+      0,
+      32
+     ],
+     "extraction_source": "llm",
+     "extraction_confidence": "high"
     },
     {
      "slot": 6,
@@ -106734,12 +107213,24 @@
      "category": "一般",
      "item_name": "たべのこし",
      "tera_type": null,
-     "nature": null,
-     "ability": null,
-     "move_names": null,
-     "evs": null,
-     "extraction_source": null,
-     "extraction_confidence": null
+     "nature": "わんぱく",
+     "ability": "すなおこし",
+     "move_names": [
+      "じしん",
+      "あくび",
+      "まもる",
+      "なまける"
+     ],
+     "evs": [
+      32,
+      0,
+      32,
+      0,
+      2,
+      0
+     ],
+     "extraction_source": "llm",
+     "extraction_confidence": "high"
     }
    ]
   },
@@ -108180,10 +108671,13 @@
      "tera_type": null,
      "nature": null,
      "ability": null,
-     "move_names": null,
+     "move_names": [
+      "オーバーヒート",
+      "はねやすめ"
+     ],
      "evs": null,
-     "extraction_source": null,
-     "extraction_confidence": null
+     "extraction_source": "llm",
+     "extraction_confidence": "medium"
     },
     {
      "slot": 2,
@@ -108197,11 +108691,15 @@
      "item_name": "ラムのみ",
      "tera_type": null,
      "nature": null,
-     "ability": null,
-     "move_names": null,
+     "ability": "さめはだ",
+     "move_names": [
+      "つるぎのまい",
+      "かみなりのキバ",
+      "スケイルショット"
+     ],
      "evs": null,
-     "extraction_source": null,
-     "extraction_confidence": null
+     "extraction_source": "llm",
+     "extraction_confidence": "high"
     },
     {
      "slot": 3,
@@ -108216,10 +108714,13 @@
      "tera_type": null,
      "nature": null,
      "ability": null,
-     "move_names": null,
+     "move_names": [
+      "はめつのひかり",
+      "めいそう"
+     ],
      "evs": null,
-     "extraction_source": null,
-     "extraction_confidence": null
+     "extraction_source": "llm",
+     "extraction_confidence": "medium"
     },
     {
      "slot": 4,
@@ -108252,10 +108753,14 @@
      "tera_type": null,
      "nature": null,
      "ability": null,
-     "move_names": null,
+     "move_names": [
+      "つるぎのまい",
+      "かげうち",
+      "インファイト"
+     ],
      "evs": null,
-     "extraction_source": null,
-     "extraction_confidence": null
+     "extraction_source": "llm",
+     "extraction_confidence": "high"
     },
     {
      "slot": 6,
@@ -108270,10 +108775,13 @@
      "tera_type": null,
      "nature": null,
      "ability": null,
-     "move_names": null,
+     "move_names": [
+      "じしん",
+      "ステルスロック"
+     ],
      "evs": null,
-     "extraction_source": null,
-     "extraction_confidence": null
+     "extraction_source": "llm",
+     "extraction_confidence": "medium"
     }
    ]
   },

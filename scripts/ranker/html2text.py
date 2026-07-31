@@ -8,6 +8,26 @@
 import json, os, re, sys, glob
 from bs4 import BeautifulSoup
 
+CHARSET_RE = re.compile(rb'charset=["\']?([A-Za-z0-9_-]+)', re.I)
+
+
+def read_html(path):
+    """宣言された charset に従ってデコードする。
+
+    UTF-8決め打ちで読むと EUC-JP のサイト(yakkun.com 等)が丸ごと文字化けし、
+    「本文に個体情報が無い記事」に見えてしまう。実際に4件これで取りこぼした。
+    """
+    raw = open(path, 'rb').read()
+    m = CHARSET_RE.search(raw[:4000])
+    encodings = [m.group(1).decode('ascii', 'ignore')] if m else []
+    encodings += ['utf-8', 'cp932', 'euc_jp']
+    for enc in encodings:
+        try:
+            return raw.decode(enc)
+        except (UnicodeDecodeError, LookupError):
+            continue
+    return raw.decode('utf-8', errors='replace')
+
 DROP = ['script', 'style', 'noscript', 'svg', 'iframe', 'nav', 'header', 'footer',
         'aside', 'form', 'button', 'select']
 # 本文コンテナの候補(はてな/note/naver/独自CMSでよく使われるもの)を優先度順に試す
@@ -56,7 +76,7 @@ if __name__ == '__main__':
     rows = []
     for p in sorted(glob.glob(os.path.join(cache, '*.html'))):
         key = os.path.splitext(os.path.basename(p))[0]
-        raw = open(p, encoding='utf-8', errors='replace').read()
+        raw = read_html(p)
         try:
             txt = to_text(raw)
         except Exception as e:
