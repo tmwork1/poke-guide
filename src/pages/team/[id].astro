@@ -86,13 +86,13 @@ const initialTeamJson = team
 		}
 
 		/* --- 全体レイアウト: 左=ポケモン選択バー(帯)/ 中央=チーム名・メモ・6枠(可読幅1080px) ---
-		   docs/plan/ui_rounds/00-foundation.md「レイアウト原則」どおり、選択バーは画面端から
+		   docs/plan/00-foundation.md「レイアウト原則」どおり、選択バーは画面端から
 		   画面端まで伸びる帯(.panel.panel-left)。中央は.panel-contentで1080pxに絞る(R-11)。
 		   受け入れ検証で実測バグ修正: 閾値をもともと900pxにしていたが、900px幅ではサイドバー(256px)+
 		   選択バー(約380px)を引くと中央カラムが約264pxしか残らず、そこへ横長の6枠カードを
 		   入れていたため、ポケモン名・技名が1文字ずつ縦に折り返されて読めなくなっていた(実測で発覚)。
 		   これはbox/[id].astroの.edit-layoutが900px→1200pxに引き上げた過去の罠
-		   (docs/plan/ui_rounds/00-foundation.md 245行目)と同一原因なので、同じ閾値に揃える。 */
+		   (docs/plan/00-foundation.md 245行目)と同一原因なので、同じ閾値に揃える。 */
 		.team-edit-layout {
 			display: block;
 		}

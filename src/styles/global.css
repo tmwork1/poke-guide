@@ -1123,7 +1123,7 @@ dialog#opponent-note-form-container::backdrop {
    旧ラウンド8 A-5でここに書くと scoped style に詳細度で負けると分かっていた箇所)は、
    ログイン情報自体をサイドバー最下段(AppSidebar.astro の .app-sidebar-account)へ移設したため
    AppLayout.astro からマークアップごと削除した。この節はもう存在しないため、
-   「scoped styleに詳細度で負ける」という罠自体は .claude/skills/ui-loop/references/pitfalls.md に
+   「scoped styleに詳細度で負ける」という罠自体は .claude/skills/ui/references/pitfalls.md に
    記録を残し、ここの残骸コメントは削除した。 */
 
 .app-sidebar {

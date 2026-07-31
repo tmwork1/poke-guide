@@ -2,9 +2,9 @@
 /**
  * UI講評用スクリーンショット撮影スクリプト。
  *
- * `.claude/skills/ui-loop` / `.claude/skills/new-page` の Step 1(撮影)で毎ラウンド
+ * `.claude/skills/ui` / `.claude/skills/new-page` の撮影ステップで毎回
  * `.tmp-shot.mjs` を書き起こしていたものを、手順ごとスクリプトに固定したもの。
- * `.claude/skills/ui-loop/references/pitfalls.md` の「Playwright」節の内容
+ * `.claude/skills/ui/references/pitfalls.md` の「Playwright」節の内容
  * (ライト/ダーク両方・Pyodide初期化待ち・拡大クロップ・dev toolbar)は
  * すべてここに実装済みなので、撮る側が思い出す必要はない。
  *
