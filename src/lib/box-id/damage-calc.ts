@@ -2540,8 +2540,25 @@ if (opponentNotesSection) {
 		collapseToggleGlyph.setAttribute("aria-hidden", "true");
 		collapseToggleButton.appendChild(collapseToggleGlyph);
 		function setCollapsed(collapsed: boolean): void {
-			if (collapsed) collapsedRowSet.add(row);
-			else collapsedRowSet.delete(row);
+			// UI改修依頼(ダメージカード)「圧縮前後で全体の横幅が変わらないようにする」対応。
+			// .card-damageは幅を指定せず内容量(技列の枚数等)で決まるため、折りたたみで
+			// .damage-row-columns-wrap等がdisplay:noneになると内容が減り、カード自体の横幅も
+			// 一緒に縮んでいた。まだ展開状態のレイアウトが残っている(=dataset.collapsedを
+			// 書き換える前)今のうちに実測幅を固定し、折りたたみ後もその幅を維持する。
+			// getBoundingClientRect()はレイアウトを強制するため、必ずdataset.collapsedの
+			// 変更より前に呼ぶこと(後に呼ぶと既に折りたたみ後の縮んだ幅を読んでしまう)。
+			if (collapsed && root.dataset.collapsed !== "true") {
+				const expandedWidth = root.getBoundingClientRect().width;
+				if (expandedWidth > 0) root.style.width = `${expandedWidth}px`;
+			}
+			if (collapsed) {
+				collapsedRowSet.add(row);
+			} else {
+				collapsedRowSet.delete(row);
+				// 展開に戻すときは固定幅を解除し、内容量に応じた自然なサイズに戻す
+				// (技列の追加・削除で幅が変わる既存の挙動を壊さないため)。
+				root.style.width = "";
+			}
 			root.dataset.collapsed = collapsed ? "true" : "false";
 			collapseToggleButton.title = collapsed ? "この相手の入力欄を展開する" : "この相手の入力欄を折りたたむ";
 			collapseToggleButton.setAttribute(
