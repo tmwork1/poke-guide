@@ -248,6 +248,83 @@ function setupDatalistRefocus(input: HTMLInputElement, datalist: HTMLDataListEle
 	});
 }
 
+// 匿名集計サジェスト機能・第5段階(UI: 性格/アイテム/テラス/技のサジェスト表示)。
+// 編集中の個体と同じ種族(species_name)について、他ユーザーが登録した個体を匿名集計した
+// 「よく使われる性格/アイテム/テラス/技」を、対応する入力欄の近くに控えめなヒントとして
+// 表示する読み取り専用の機能。バックエンド(GET /api/suggestions、変更不要)は該当種族の
+// サンプル数がk-匿名性の閾値(既定5件)未満だと該当kindの行自体が存在しない(data: []) ——
+// この場合はヒント要素をhiddenのままにする(このプロジェクトでは過去に「常時表示される
+// 空枠」がユーザー指摘で撤去された経緯があるため、空データ時に枠だけ見える状態を
+// 絶対に作らない)。個体データの自動保存(saveNow/scheduleSave)や収集拒否トグルの
+// PATCH処理とは完全に独立した読み取り専用のGETのみで完結する。
+type SuggestionOption = { value: string; count: number; ratio: number };
+type SuggestionPayload = { sample_size: number; options: SuggestionOption[] };
+type SuggestionRow = { payload?: SuggestionPayload };
+type SuggestionApiResponse = { data?: SuggestionRow[] };
+
+// kind ↔ 表示先ヒント要素のid、上位何件を表示するか(性格/アイテム/テラスは1〜3件、
+// 技は5件表示するという要件どおり)の対応表。
+const SUGGESTION_HINT_CONFIG: ReadonlyArray<{ kind: string; elementId: string; topN: number }> = [
+	{ kind: "popular_nature", elementId: "nature-suggestion-hint", topN: 3 },
+	{ kind: "popular_item", elementId: "item-suggestion-hint", topN: 3 },
+	{ kind: "popular_tera", elementId: "tera-suggestion-hint", topN: 3 },
+	{ kind: "popular_move", elementId: "move-suggestion-hint", topN: 5 },
+];
+
+// 表示イメージ: 「人気: ようき(47%)・ひかえめ(20%)」(ratioは0〜1の小数なので100倍して
+// 四捨五入した整数%にする)。クリックで値を反映する機能は今回のスコープ外のため、
+// 単なるテキスト表示に留める。
+function formatSuggestionText(payload: SuggestionPayload, topN: number): string {
+	const parts = payload.options
+		.slice(0, topN)
+		.map((o) => `${o.value}(${Math.round(o.ratio * 100)}%)`);
+	return `人気: ${parts.join("・")}`;
+}
+
+function renderSuggestionHint(elementId: string, payload: SuggestionPayload | undefined, topN: number): void {
+	const hintEl = document.getElementById(elementId);
+	if (!hintEl) return;
+	if (!payload || payload.options.length === 0) {
+		// データ無し(サンプル数不足でsuggestions行が存在しない)。要素ごと非表示のままにする
+		// (空枠を残さない)。
+		hintEl.textContent = "";
+		hintEl.hidden = true;
+		return;
+	}
+	hintEl.textContent = formatSuggestionText(payload, topN);
+	hintEl.hidden = false;
+}
+
+// より新しい呼び出し(種族名が続けて変更された等)に古いレスポンスが追い越して上書きしない
+// ようにするトークン(rebuildAbilityOptionsのabilityRequestTokenと同じパターン)。
+let popularBuildSuggestionsToken = 0;
+
+export async function loadPopularBuildSuggestions(speciesName: string): Promise<void> {
+	const name = speciesName.trim();
+	const token = ++popularBuildSuggestionsToken;
+	if (!name) {
+		for (const { elementId } of SUGGESTION_HINT_CONFIG) {
+			renderSuggestionHint(elementId, undefined, 0);
+		}
+		return;
+	}
+	try {
+		const responses = await Promise.all(
+			SUGGESTION_HINT_CONFIG.map(({ kind }) =>
+				fetch(`/api/suggestions?kind=${kind}&subject_key=${encodeURIComponent(name)}&limit=1`)
+					.then((res) => (res.ok ? (res.json() as Promise<SuggestionApiResponse>) : null))
+					.catch(() => null),
+			),
+		);
+		if (token !== popularBuildSuggestionsToken) return; // より新しい呼び出しに追い越された
+		SUGGESTION_HINT_CONFIG.forEach(({ elementId, topN }, i) => {
+			renderSuggestionHint(elementId, responses[i]?.data?.[0]?.payload, topN);
+		});
+	} catch {
+		// fetch失敗時は静かに無視する(エラー表示は不要な軽量機能のため、ヒント要素はhiddenのまま)。
+	}
+}
+
 const form = document.getElementById("edit-form") as HTMLFormElement | null;
 if (form) {
 	// UI刷新: 種族値の常時表示(実数値と同じ行に並べる)。
@@ -686,8 +763,13 @@ if (form) {
 	speciesInput.addEventListener("change", () => {
 		void rebuildAbilityOptions(speciesInput.value.trim());
 		void applyLeftMegaStoneAutofill(speciesInput.value.trim());
+		// 匿名集計サジェスト機能・第5段階: 種族確定時に人気の性格/アイテム/テラス/技を取り直す。
+		void loadPopularBuildSuggestions(speciesInput.value.trim());
 	});
 	void rebuildAbilityOptions(speciesInput.value.trim());
+	// 匿名集計サジェスト機能・第5段階: ページ初期化時(SSRで埋め込まれた現在の種族名)にも
+	// 1回呼ぶ。
+	void loadPopularBuildSuggestions(speciesInput.value.trim());
 
 	// UI改善ラウンド25(25-L1/25-L2): テラスタイプ画像バッジ(#tera-image-badge)は25-L1で
 	// 廃止した。テラスタイプの視覚表現はテラスタイプ選択欄そのものに統合する。
