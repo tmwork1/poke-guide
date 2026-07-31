@@ -1149,7 +1149,7 @@ const user = Astro.locals.user;
 			// 再生成されたため、21-B2(および23-G2)を撤回してteraTypeIconUrlへ戻す。typeIconUrlは
 			// このファイル内で他に使っていないためimportから外す(sprite-urls.tsの関数自体は
 			// 共通ファイルのため消さない)。
-		import { loadItemSpriteMap, itemImageUrl, teraTypeIconUrl } from "../../lib/sprite-urls";
+		import { loadItemSpriteMap, itemIconUrl, teraTypeIconUrl } from "../../lib/sprite-urls";
 		// ラウンド21 21-B3: 技チップの背景色付け用。値そのものは type-colors.ts(エージェントPが
 		// box/[id].astro からの切り出しとして新規作成)からimportし、コピー定義は作らない。
 		import { TYPE_COLORS, DEFAULT_TYPE_COLOR } from "../../lib/type-colors";
@@ -1314,7 +1314,7 @@ const user = Astro.locals.user;
 				imgEl.onload = () => {
 					badgeEl.hidden = false;
 				};
-				imgEl.src = itemImageUrl(spritePath);
+				imgEl.src = itemIconUrl(spritePath);
 			}
 
 			// ラウンド20 B1: 持ち物バッジの右に並べるテラスタイプ画像。teraTypeIconUrlは

@@ -73,6 +73,24 @@ export function itemImageUrl(spritePath: string): string {
   return `${SPRITES_BASE}/items/${spritePath}.png`;
 }
 
+// itemImageUrl()が返すPokeAPIのアイテム画像は、アイテムごとに絵柄がキャンバスに占める
+// 面積比がバラバラ(実測でメガストーン0.22〜こだわりハチマキ等0.54、かつアイテムに
+// よってキャンバス自体が30x30/160x160の2種類混在)なため、画面上で同じCSSサイズ
+// (object-fit: contain)に並べると見た目の大きさが揃わない問題があった
+// (2026-08-01 ユーザー報告)。
+// scripts/item-icons/generate_item_icons.py が、絵柄の不透明ピクセルの外接矩形を検出し、
+// それが出力キャンバスに対して常に同じ比率を占めるよう拡大縮小・中央配置し直した画像を
+// public/item-icons/ 配下にビルド時ではなく事前生成し、リポジトリにコミットしている
+// (type-icons/typeIconUrl()と同じ「生成済み画像を事前コミットする」方式)。
+// 以下はその生成済み画像のURL(ルート相対パス)を返す。
+
+// sprite相対パス(例 "choice-band" / "gen9/booster-energy")から、見た目の大きさを
+// 正規化したアイテムアイコン画像のURLを返す。画像本体は public/item-icons/{spritePath}.png
+// (生成: scripts/item-icons/generate_item_icons.py)。
+export function itemIconUrl(spritePath: string): string {
+  return `/item-icons/${spritePath}.png`;
+}
+
 // 和名タイプ名から通常タイプバッジ画像URLを返す。未知の型名なら null。
 export function typeImageUrl(typeNameJa: string): string | null {
   const typeId = TYPE_NAME_TO_ID[typeNameJa];

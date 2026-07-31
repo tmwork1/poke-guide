@@ -41,7 +41,7 @@
 import { el, readEv, readMoveNames } from "../owned-pokemon-form";
 import type { PokemonSpec } from "../pyodide-engine";
 import { loadImageIdMap, loadBaseStatsMap, loadMegaStoneMap, spriteUrl } from "../pokemon-master-data";
-import { loadItemSpriteMap, itemImageUrl, teraTypeIconUrl } from "../sprite-urls";
+import { loadItemSpriteMap, itemIconUrl, teraTypeIconUrl } from "../sprite-urls";
 import { TYPE_COLORS, DEFAULT_TYPE_COLOR } from "../type-colors";
 import { type StatKey, STAT_KEYS, NATURE_STAT_MODIFIERS, calcHpStat, calcOtherStat } from "../stats";
 import type { OpponentClientResultInput } from "../opponent-notes-validation";
@@ -223,7 +223,7 @@ export async function applyItemImage(imgEl: HTMLImageElement, name: string): Pro
 		if (badgeEl) badgeEl.hidden = true;
 	};
 	const spritePath = name ? (await itemSpriteMapPromise).get(name) : undefined;
-	const url = spritePath ? itemImageUrl(spritePath) : null;
+	const url = spritePath ? itemIconUrl(spritePath) : null;
 	if (!url) {
 		hideBadge();
 		return;
