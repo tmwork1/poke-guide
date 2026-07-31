@@ -13,6 +13,10 @@
 方針: 公式ランキング由来の列は絶対に上書きしない。記事由来の列だけを載せる。
 LLMの出力はそのまま信じず、名称をマスタデータ(public/master-data/autocomplete)と照合し、
 努力値はチャンピオンズの制約(各項目0〜32・合計66)で検証してから採用する。
+
+各メンバーには公式ランキングの表記(species_name / form_name)に加えて、アプリ内の正式な
+種族名 species_key を付ける。サジェスト集計(refresh_popular_builds)が owned_pokemon と
+同じキーで突き合わせるために必要。詳細は species_key_of() を参照。
 """
 import argparse, glob, json, os, re, sys, unicodedata
 from collections import Counter
@@ -40,6 +44,38 @@ NATURE_ALIASES = {
     '慎重': 'しんちょう', '生意気': 'なまいき', '臆病': 'おくびょう', 'せっかち': 'せっかち',
     '陽気': 'ようき', '無邪気': 'むじゃき', '真面目': 'まじめ', '照れ屋': 'てれや',
     '頑張り屋': 'がんばりや', '素直': 'すなお', '気まぐれ': 'きまぐれ',
+}
+
+# 公式ランキングのフォルム表記 → アプリ内の正式な種族名
+# (public/master-data/autocomplete/pokemon.json の name。owned_pokemon.species_name と同じ語彙)。
+# 「ヒスイのすがた」→「(ヒスイ)」のような機械的な変換規則は作らない ── 「ばけたすがた」のように
+# アプリ側にフォルムの区別が無いもの、「パルデアのすがた・ブレイズしゅ」→「(パルデア炎)」のように
+# 語が対応しないものがあり、規則にすると黙って間違った種族に寄せてしまう。
+# (図鑑番号, フォルム番号) で明示し、表に無いフォルムが出てきたらエラーで落とす。
+FORM_SPECIES_KEYS = {
+    (38, 1): 'キュウコン(アローラ)',
+    (59, 1): 'ウインディ(ヒスイ)',
+    (80, 2): 'ヤドラン(ガラル)',
+    (128, 2): 'ケンタロス(パルデア炎)',  # 「ブレイズしゅ」= Blaze Breed。かくとう/ほのおで一致
+    (199, 1): 'ヤドキング(ガラル)',
+    (479, 1): 'ヒートロトム',
+    (479, 2): 'ウォッシュロトム',
+    (479, 5): 'カットロトム',
+    (503, 1): 'ダイケンキ(ヒスイ)',
+    (571, 1): 'ゾロアーク(ヒスイ)',
+    (666, 18): 'ビビヨン',  # 模様違いはアプリ側に区別が無い
+    (670, 5): 'フラエッテ(えいえん)',
+    (681, 0): 'ギルガルド(シールド)',
+    (706, 1): 'ヌメルゴン(ヒスイ)',
+    (724, 1): 'ジュナイパー(ヒスイ)',
+    (778, 0): 'ミミッキュ',  # ばけた/ばれたの区別はアプリ側に無い
+    (855, 0): 'ポットデス',  # がんさく/しんさくの区別はアプリ側に無い
+    (877, 0): 'モルペコ(まんぷく)',
+    (902, 0): 'イダイトウ(オス)',
+    (902, 1): 'イダイトウ(メス)',
+    (925, 0): 'イッカネズミ',  # 家族の数の区別はアプリ側に無い
+    (964, 0): 'イルカマン(ナイーブ)',
+    (1013, 0): 'ヤバソチャ',  # ボンサク/ケイセキの区別はアプリ側に無い
 }
 
 
@@ -109,6 +145,61 @@ def load_species_knowledge(root):
         moves_by_dex.setdefault(num, set()).update(learnsets.get(name) or [])
         abils_by_dex.setdefault(num, set()).update(e.get('abilities') or [])
     return moves_by_dex, abils_by_dex
+
+
+def load_app_species(root):
+    """アプリ内の正式な種族名 → 図鑑番号 と、メガストーン名 → メガ後の種族名 を読む。
+
+    公式ランキングはメガシンカを「進化前の種族 + メガストーン」で表現する
+    (例: ギャラドス@ギャラドスナイト)が、アプリ側は owned_pokemon.species_name に
+    「メガギャラドス」を入れ、持ち物欄はメガストーンに固定する
+    (src/lib/box-id/shared-core.ts の resolveMegaStoneItem)。同じ個体を指す表現が
+    違うので、サジェストの集計キーとして使うにはアプリ側の表現に寄せる必要がある。
+
+    メガストーン→メガ後種族の逆引きは、1アイテムに複数のメガ後フォルムが対応する
+    「ニャオニクスナイト」(オス/メス)だけ曖昧になるので落とす
+    (extract_autocomplete.py の build_mega_stones が前向きの表を作っている理由と同じ)。
+    """
+    p = os.path.join(root, 'public/master-data/autocomplete')
+    dex_of_name = {e['name']: e['dexNo']
+                   for e in json.load(open(os.path.join(p, 'pokemon.json'), encoding='utf-8'))}
+    by_item = {}
+    for e in json.load(open(os.path.join(p, 'mega-stones.json'), encoding='utf-8')):
+        by_item.setdefault(e['item'], []).append(e['species'])
+    mega_by_stone = {item: names[0] for item, names in by_item.items() if len(names) == 1}
+    return dex_of_name, mega_by_stone
+
+
+def species_key_of(m, dex_of_name, mega_by_stone, stats):
+    """メンバー1体を、アプリ内の正式な種族名(サジェストの集計キー)に対応づける。
+
+    解決できない種族/フォルムは黙って捨てずに例外にする ── 新シーズンで未知のフォルムが
+    増えたときに、サジェストから静かに漏れるより落ちたほうがよい。
+    """
+    if m['form_name']:
+        key = FORM_SPECIES_KEYS.get((m['dex_no'], m['form_no']))
+        if key is None:
+            raise SystemExit(
+                f"未知のフォルム: dex={m['dex_no']} form={m['form_no']} "
+                f"{m['species_name']}({m['form_name']}) — FORM_SPECIES_KEYS に追加してください")
+        stats['species_key_from_form_table'] += 1
+    else:
+        key = m['species_name']
+        if dex_of_name.get(key) != m['dex_no']:
+            raise SystemExit(
+                f"種族名がマスタと一致しません: dex={m['dex_no']} {key} — "
+                f"public/master-data/autocomplete/pokemon.json を確認してください")
+        stats['species_key_from_species_name'] += 1
+
+    # メガストーンを持っているならメガ後の種族が実体。図鑑番号が一致するときだけ寄せる
+    # (ヒヤッキー@ゴルーグナイトのように、使えないメガストーンを持った個体が実在する)。
+    mega = mega_by_stone.get(m['item_name'])
+    if mega:
+        if dex_of_name.get(mega) == m['dex_no']:
+            stats['species_key_mega'] += 1
+            return mega
+        stats['unusable_mega_stone'] += 1
+    return key
 
 
 def assign_slots(payloads, members, moves_by_dex, abils_by_dex):
@@ -186,11 +277,14 @@ def clean_llm_member(m, moves_master, abil_master, aliases, rej):
     if m.get('ability') and not ability:
         rej['ability'][norm(m['ability'])] += 1
 
+    # チャンピオンズにテラスタルは無い(メガシンカ主体のルール)。公式ランキングの
+    # テラスアイコン1800枠もpokesolの構造化カードも例外なく空なので、LLMが「テラスタイプ」
+    # として返した値は記事の読み違いでしかない(実測でも全件が根拠の無い「ノーマル」だった)。
+    # 記録だけ残して採用しない。将来テラスタルのあるルールを取り込むときはここを戻す。
     tera = norm(m.get('tera_type'))
-    if tera not in TYPES:
-        if tera:
-            rej['tera'][tera] += 1
-        tera = None
+    if tera:
+        rej['tera'][tera] += 1
+    tera = None
 
     moves = []
     for mv in (m.get('moves') or []):
@@ -222,6 +316,7 @@ def main():
 
     moves_master, abil_master, aliases = load_master(root)
     moves_by_dex, abils_by_dex = load_species_knowledge(root)
+    dex_of_name, mega_by_stone = load_app_species(root)
     articles = {key_of(a['season'], a['rank']): a
                 for a in json.load(open(os.path.join(derived, 'articles-index.json'), encoding='utf-8'))}
     pokesol = json.load(open(os.path.join(cache, 'pokesol.json'), encoding='utf-8'))
@@ -256,18 +351,21 @@ def main():
                     stats['empty_member_slot_skipped'] += 1
                     continue
                 dex, form = p['id'].split('-')
-                members.append({
+                member = {
                     'slot': slot,
                     'dex_no': int(dex), 'form_no': int(form),
                     'species_name': p['pokemon'],
                     'form_name': p['form'] or None,
+                    'species_key': None,
                     'type1': p['type1'] or None, 'type2': p['type2'] or None,
                     'category': p['category'] or None,
                     'item_name': p['item'] or None,
                     'tera_type': None, 'nature': None, 'ability': None,
                     'move_names': None, 'evs': None,
                     'extraction_source': None, 'extraction_confidence': None,
-                })
+                }
+                member['species_key'] = species_key_of(member, dex_of_name, mega_by_stone, stats)
+                members.append(member)
 
             k = key_of(season, t['rank'])
             a = articles.get(k)

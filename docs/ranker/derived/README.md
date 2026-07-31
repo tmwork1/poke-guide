@@ -71,6 +71,34 @@ charset宣言を見るように直した(この4件は表形式で努力値ま�
 補足: このデータセットには**テラスタルが1件も存在しない**(HTMLのテラスアイコン1800枠すべてが空、
 pokesolのカードも `data-tera-type` を持たない)。チャンピオンズはメガシンカ主体のルールのため。
 `tera_type` 列は将来のシーズン用に残してあるが、現状は全てNULLになる。
+LLMが「テラスタイプ」として返してきた値は記事の読み違いでしかないので採用しない
+(実測でも6件すべてが根拠の無い「ノーマル」だった)。落とした値は
+`extraction-report.json` の `rejected_by_validation.tera` に残る。
+
+## species_key — アプリ側の語彙への対応づけ
+
+各メンバーには、公式ランキングの表記(`species_name` / `form_name`)とは別に
+**`species_key`**(アプリ内の正式な種族名 = `public/master-data/autocomplete/pokemon.json` の
+`name` = `owned_pokemon.species_name` と同じ語彙)を付けている。表記が2通りあるのは、
+
+- 公式ランキングはフォルムを別列で持つ(`species_name`='ロトム' + `form_name`='ウォッシュロトム')が、
+  アプリは名前に畳み込む('ウォッシュロトム')
+- 公式ランキングはメガシンカを**進化前+メガストーン**で表す(ギャラドス@ギャラドスナイト)が、
+  アプリは種族名そのものを'メガギャラドス'にして持ち物欄をメガストーンに固定する
+  (`src/lib/box-id/shared-core.ts` の `resolveMegaStoneItem`)
+
+ため。`species_name` のまま集計するとフォルム違いが1種族に潰れ、メガ個体のデータが
+ユーザーの編集画面に一生届かない。変換は `build_ranked_teams.py` の `species_key_of()` が行い、
+機械的な規則では導けないフォルム(「ばけたすがた」→アプリ側に区別無し、
+「パルデアのすがた・ブレイズしゅ」→'ケンタロス(パルデア炎)')は明示表 `FORM_SPECIES_KEYS` に置く。
+**表に無いフォルムが出てきたらエラーで止まる**(新シーズンでサジェストから静かに漏れるより落ちたほうがよい)。
+実測 6241体すべて解決、うち1895体がメガストーン所持でメガ後の種族名になる。
+ヒヤッキー@ゴルーグナイトのように**使えないメガストーンを持った個体が2件実在する**ため、
+図鑑番号が一致するときだけメガ後の名前に寄せている。
+
+この `species_key` を使って、上位入賞チームの個体は匿名集計サジェスト
+(`refresh_popular_builds()`、`migrations/011_ranked_teams_in_suggestions.sql`)の母集団にも入る。
+ウェイトはユーザー登録個体と同じ1個体1票。
 
 ## 再生成
 
@@ -99,6 +127,9 @@ python scripts/ranker/make_tasks.py $CACHE docs/ranker $CACHE/tasks 14
 python scripts/ranker/build_ranked_teams.py --cache $CACHE
 DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres npm run migrate
 DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres node scripts/db/seed-ranked-teams.mjs
+
+# 6. サジェストの再集計(母集団に上位チームが入るため、投入後に回す)
+DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres npm run refresh-suggestions
 ```
 
 手順4だけがLLMを挟む。1〜3と5は決定的なので、記事キャッシュさえあれば何度でも同じ結果になる。

@@ -55,11 +55,11 @@ async function main() {
       for (const m of t.members) {
         await client.query(
           `INSERT INTO ranked_team_members
-             (ranked_team_id, slot, dex_no, form_no, species_name, form_name,
+             (ranked_team_id, slot, dex_no, form_no, species_name, form_name, species_key,
               type1, type2, category, item_name, tera_type, nature, ability,
               move_names, evs, extraction_source, extraction_confidence)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)`,
-          [teamId, m.slot, m.dex_no, m.form_no, m.species_name, m.form_name,
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)`,
+          [teamId, m.slot, m.dex_no, m.form_no, m.species_name, m.form_name, m.species_key,
             m.type1, m.type2, m.category, m.item_name, m.tera_type, m.nature, m.ability,
             m.move_names, m.evs, m.extraction_source, m.extraction_confidence]
         );
@@ -75,7 +75,8 @@ async function main() {
         (SELECT count(*) FROM ranked_teams WHERE article_url IS NOT NULL) AS teams_with_article,
         (SELECT count(*) FROM ranked_team_members) AS members,
         (SELECT count(*) FROM ranked_team_members WHERE move_names IS NOT NULL) AS members_with_moves,
-        (SELECT count(*) FROM ranked_team_members WHERE evs IS NOT NULL) AS members_with_evs
+        (SELECT count(*) FROM ranked_team_members WHERE evs IS NOT NULL) AS members_with_evs,
+        (SELECT count(*) FROM ranked_team_members WHERE species_key IS NULL) AS members_without_species_key
     `);
     console.table(stats.rows);
   } catch (e) {

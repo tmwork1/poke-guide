@@ -1,5 +1,8 @@
 {
  "stats": {
+  "species_key_from_species_name": 5147,
+  "species_key_mega": 1895,
+  "species_key_from_form_table": 1094,
   "members_from_pokesol": 513,
   "teams_from_pokesol": 86,
   "teams": 1041,
@@ -10,7 +13,8 @@
   "teams_with_article_no_data": 45,
   "pokesol_duplicate_card_overwrote": 5,
   "empty_member_slot_skipped": 5,
-  "duplicate_team_skipped": 1
+  "duplicate_team_skipped": 1,
+  "unusable_mega_stone": 2
  },
  "members_total": 6241,
  "members_with_moves": 1380,
@@ -158,7 +162,12 @@
     1
    ]
   ],
-  "tera": [],
+  "tera": [
+   [
+    "ノーマル",
+    6
+   ]
+  ],
   "move": [
    [
     "不明",
