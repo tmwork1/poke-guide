@@ -2727,26 +2727,40 @@ if (opponentNotesSection) {
 		});
 		selectsRow.appendChild(itemInput);
 
-		// UI改善ラウンド23(23-G3): 左パネルと同じ扱いを相手ビルドにも適用する。相手の
-		// 種族は頻繁に打ち替えるため、rebuildRowAbilityOptionsと同じくnameInputの
-		// "change"(blur/確定)にのみ結線し、持ち物が既に入っている場合は上書きしない。
+		// UI改修依頼(共通)「メガシンカポケモンのアイテムをメガストーンで固定する」により、
+		// 「持ち物が既に入っていれば何もしない」自動設定から、メガシンカ種族が確定している間は
+		// 常にメガストーンへ強制し持ち物欄自体を編集不能にする方式へ変更した(ゲーム仕様上
+		// メガシンカ中はメガストーン以外を持てないため)。相手の種族は頻繁に打ち替えるため、
+		// rebuildRowAbilityOptionsと同じくnameInputの"change"(blur/確定)にのみ結線する。
+		const megaStoneLockedTitle = "メガシンカ中は持ち物をメガストーンに固定します";
 		let rowMegaStoneAutofillToken = 0;
 		async function applyRowMegaStoneAutofill(speciesName: string): Promise<void> {
 			const token = ++rowMegaStoneAutofillToken;
-			if (row.itemName.trim() !== "") return; // 持ち物が既に入っているので何もしない
 			const stoneName = await resolveMegaStoneItem(speciesName);
 			if (token !== rowMegaStoneAutofillToken) return; // より新しい呼び出しに追い越された
-			if (!stoneName) return;
-			if (row.itemName.trim() !== "") return; // 待機中にユーザーが入力した場合は上書きしない
+			if (!stoneName) {
+				itemInput.disabled = false;
+				itemInput.title = row.itemName;
+				return;
+			}
+			if (row.itemName.trim() === stoneName) {
+				itemInput.disabled = true;
+				itemInput.title = megaStoneLockedTitle;
+				return;
+			}
 			row.itemName = stoneName;
 			itemInput.value = stoneName;
-			itemInput.title = stoneName;
 			refreshItemImage();
 			onFieldInput();
 			flashAutofillHint(itemInput, () => {
-				itemInput.title = row.itemName;
+				itemInput.title = megaStoneLockedTitle;
 			});
+			itemInput.disabled = true;
 		}
+		// 初期描画時点(保存済みメモの復元)で既にrow.nameがメガシンカ種族なら、保存済みの
+		// 持ち物が誤っていても正しいメガストーンへ補正しロックする(rebuildRowAbilityOptionsと
+		// 同じ考え方)。
+		void applyRowMegaStoneAutofill(row.name);
 
 		// 🔴 UI改善ラウンド40ユーザー指示(40-D1)「テラスタイプ選択ボックスは、左パネルのもの
 		// (選択肢にアイコンが見えるカスタムドロップダウン)と共通化する」。以前の<select>+

@@ -1246,6 +1246,13 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		outline: 2px solid var(--color-primary);
 		outline-offset: 1px;
 	}
+	/* メガシンカ中は持ち物をメガストーンに固定するため操作不能にする(applyLeftMegaStoneAutofill
+	   参照)。button:disabled(global.css)のopacityはそのまま使い、cursorだけ上書きする
+	   (#edit-form .item-dropdown-buttonのcursor:pointerの方が詳細度が高く上書きされてしまうため)。 */
+	#edit-form .item-dropdown-button:disabled {
+		cursor: not-allowed;
+	}
+	#edit-form .item-dropdown-button:disabled:hover { border-color: var(--color-border); }
 	/* ラウンド23(23-G3)のメガストーン自動設定ハイライトは、従来は#item自体(hidden化前は
 	   可視の<input>)へ付けていたが、hidden化した今は入力欄自体を見せる場所が無いため、
 	   このボタン側に同じ視覚言語(既存の#edit-form #item.is-autofilledと同じトークン)で

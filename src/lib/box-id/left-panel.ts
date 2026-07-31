@@ -733,18 +733,31 @@ if (form) {
 	// 毎回作り直され、既存の正しい特性選択が失われてしまう事故を避けるため、種族名が
 	// 「確定した」タイミング(blur、またはdatalistからの選択によるchangeイベント)でのみ
 	// 再構築する。
-	// UI改善ラウンド23(23-G3): メガシンカ種族が確定したら持ち物を対応するメガストーンに
-	// 自動設定する。持ち物が既に入っている場合は上書きしない(ユーザーが既に入れた値を
-	// 尊重する)。rebuildAbilityOptionsと同じくinput(1文字ごと)ではなくchange
+	// UI改修依頼(共通)「メガシンカポケモンのアイテムをメガストーンで固定する」により、
+	// 「持ち物が既に入っていれば何もしない」自動設定から、メガシンカ種族が確定している間は
+	// 常にメガストーンへ強制し、持ち物選択ボタン自体を操作不能にする方式へ変更した
+	// (ゲーム仕様上メガシンカ中はメガストーン以外を持てないため)。ページ初期表示時
+	// (保存済みデータが誤ったアイテムを持っている場合を含む)にも働くよう、下のinit呼び出しにも
+	// 追加している。rebuildAbilityOptionsと同じくinput(1文字ごと)ではなくchange
 	// (blur/確定)にのみ結線する(理由も同じ: 入力途中の不完全な種族名で誤発火させない)。
+	const megaStoneLockedTitle = "メガシンカ中は持ち物をメガストーンに固定します";
+	function setItemLocked(locked: boolean): void {
+		itemDropdownButton.disabled = locked;
+		itemDropdownButton.title = locked ? megaStoneLockedTitle : "";
+	}
 	let megaStoneAutofillToken = 0;
 	async function applyLeftMegaStoneAutofill(speciesName: string): Promise<void> {
 		const token = ++megaStoneAutofillToken;
-		if (itemInput.value.trim() !== "") return; // 持ち物が既に入っているので何もしない
 		const stoneName = await resolveMegaStoneItem(speciesName);
 		if (token !== megaStoneAutofillToken) return; // より新しい呼び出しに追い越された
-		if (!stoneName) return;
-		if (itemInput.value.trim() !== "") return; // 待機中にユーザーが入力した場合は上書きしない
+		if (!stoneName) {
+			setItemLocked(false);
+			return;
+		}
+		if (itemInput.value.trim() === stoneName) {
+			setItemLocked(true);
+			return;
+		}
 		itemInput.value = stoneName;
 		updateItemImage();
 		updateItemTitle();
@@ -759,6 +772,7 @@ if (form) {
 		// #edit-form #item.is-autofilledと同じトークン、上記CSS参照)で一時的にハイライトする。
 		itemDropdownButton.classList.add("is-autofilled");
 		window.setTimeout(() => itemDropdownButton.classList.remove("is-autofilled"), 1400);
+		setItemLocked(true);
 	}
 	speciesInput.addEventListener("change", () => {
 		void rebuildAbilityOptions(speciesInput.value.trim());
@@ -767,6 +781,9 @@ if (form) {
 		void loadPopularBuildSuggestions(speciesInput.value.trim());
 	});
 	void rebuildAbilityOptions(speciesInput.value.trim());
+	// ページ初期表示時点(SSRで埋め込まれた現在の種族名)で既にメガシンカ種族の場合、
+	// 保存済みの持ち物が誤っていても正しいメガストーンへ補正しロックする。
+	void applyLeftMegaStoneAutofill(speciesInput.value.trim());
 	// 匿名集計サジェスト機能・第5段階: ページ初期化時(SSRで埋め込まれた現在の種族名)にも
 	// 1回呼ぶ。
 	void loadPopularBuildSuggestions(speciesInput.value.trim());
