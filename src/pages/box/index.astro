@@ -648,8 +648,13 @@ const user = Astro.locals.user;
 			/* round-49 B-1(統一感レビュアー指摘): 0.72rem(11.52px)は本文12px下限規約
 			   (20-G3以降)を割っており、.card-move-chipの10px(42-B2で実測根拠付きの
 			   明示的例外)と異なり根拠コメントが無かったため0.75rem(12px)へ是正する。
-			   36×36pxの三角トリム領域には余裕がありレイアウトへの影響は軽微。 */
-			font-size: 0.75rem;
+			   36×36pxの三角トリム領域には余裕がありレイアウトへの影響は軽微。
+			   2026-08-01(ユーザー指示: 「ボックス画面: お気に入りの星印を少し大きく」):
+			   0.75rem(12px)→1.05rem(16.8px、約1.4倍)に拡大する。他のfont-size指定と同じ
+			   rem・0.05刻みのパターン(0.75rem/0.8rem/0.85rem等)を踏襲した。
+			   36×36pxの三角トリム領域・padding(5px 0 0 5px)は変更しない。Playwrightで
+			   斜辺のclip-pathによる欠けが無いことを確認済み(報告参照)。 */
+			font-size: 1.05rem;
 		}
 		.box-grid .card-pokemon .pin-toggle:hover {
 			background: var(--color-surface);
