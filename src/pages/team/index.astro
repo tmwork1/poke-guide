@@ -290,10 +290,14 @@ const user = Astro.locals.user;
 		}
 
 		/* --- メンバーの公式絵ミニサムネイル列(設計レビューR-12): 6枠ぶんを常に描画し、
-		   空き枠は点線の空プレースホルダーとして見せる(「並べて見比べる」目的の要)。 --- */
+		   空き枠は点線の空プレースホルダーとして見せる(「並べて見比べる」目的の要)。 ---
+		   UI改修依頼(チームトップ画面)「配置を1x6→2x3に、アイコンを2倍に」対応:
+		   1行6列から3列2行へ変更する。カード幅は変えないため、1マスの幅(aspect-ratio:1/1の
+		   サムネイル自体のサイズ)は6列時のちょうど2倍になる(「アイコンを2倍に」を数値指定
+		   ではなくこの列数変更だけで自然に満たす)。 */
 		.team-grid .card-team .card-team-thumb-grid {
 			display: grid;
-			grid-template-columns: repeat(6, minmax(0, 1fr));
+			grid-template-columns: repeat(3, minmax(0, 1fr));
 			gap: 0.3rem;
 		}
 		.team-grid .card-team .card-team-thumb {
@@ -331,6 +335,35 @@ const user = Astro.locals.user;
 			font-weight: 700;
 			font-size: 0.75rem;
 			background: var(--color-primary-soft);
+		}
+		/* UI改修依頼(チームトップ画面)「アイテムアイコンも表示」。box/index.astroの
+		   .card-item-badge(スプライト右下重畳)と同じ考え方をミニサムネイル用に縮小して適用する。
+		   .card-team-thumbは既にposition:relativeを持つため、その右下隅に重ねる。 */
+		.team-grid .card-team .card-team-thumb-item-badge {
+			position: absolute;
+			right: 2px;
+			bottom: 2px;
+			width: var(--icon-size-sm);
+			height: var(--icon-size-sm);
+			border-radius: 50%;
+			background: var(--color-surface);
+			border: 1px solid var(--color-border);
+			box-shadow: var(--shadow-sm);
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			overflow: hidden;
+		}
+		/* button:disabledと同じ罠(pitfalls.md): [hidden]のdisplay:noneをこのルールのflexが
+		   詳細度で上書きしてしまうため、明示的に上書きする(box/index.astroの
+		   .card-item-badge[hidden]と同じ対策)。 */
+		.team-grid .card-team .card-team-thumb-item-badge[hidden] {
+			display: none;
+		}
+		.team-grid .card-team .card-team-thumb-item-badge img {
+			width: 100%;
+			height: 100%;
+			object-fit: contain;
 		}
 	</style>
 
@@ -406,13 +439,18 @@ const user = Astro.locals.user;
 		// box/index.astroのapplyCardSpriteと同じ「初期display:none→onloadで表示、
 		// 解決不能/読み込み失敗時は頭文字バッジへフォールバック」方式を採る。
 		import { loadImageIdMap, officialArtworkUrl } from "../../lib/pokemon-master-data";
+		import { loadItemSpriteMap, itemImageUrl } from "../../lib/sprite-urls";
 
 		// GET /api/teams が返す1メンバーの owned_pokemon。表示に必要な列だけを持つ
 		// (src/lib/team.ts の TeamMember/OwnedPokemonRecord のサブセット)。
+		// UI改修依頼(チームトップ画面)「アイテムアイコンも表示」対応でitem_nameを追加。
+		// APIのSELECT自体(TEAM_SELECT_WITH_MEMBERS、src/lib/team.ts)は元々item_nameを
+		// 含んでいたため、サーバー側の変更は不要。
 		interface TeamMemberPokemon {
 			id: string;
 			nickname: string | null;
 			species_name: string;
+			item_name: string | null;
 		}
 		interface TeamMemberEntry {
 			slot: number;
@@ -484,6 +522,26 @@ const user = Astro.locals.user;
 					fallbackEl.style.display = "none";
 				};
 				imgEl.src = officialArtworkUrl(imageId);
+			}
+
+			// UI改修依頼(チームトップ画面)「アイテムアイコンも表示」。box/index.astroの
+			// .card-item-badge(applyItemImage相当)と同じ「解決不能/読み込み失敗時はバッジごと
+			// 隠す」方式。アイテムの画像用マップは初回参照時に1回だけ取得しキャッシュする。
+			const itemSpriteMapPromise = loadItemSpriteMap();
+			async function applyThumbItemSprite(badgeEl: HTMLElement, imgEl: HTMLImageElement, name: string): Promise<void> {
+				const spritePath = name ? (await itemSpriteMapPromise).get(name) : undefined;
+				const url = spritePath ? itemImageUrl(spritePath) : null;
+				if (!url) {
+					badgeEl.hidden = true;
+					return;
+				}
+				imgEl.onerror = () => {
+					badgeEl.hidden = true;
+				};
+				imgEl.onload = () => {
+					badgeEl.hidden = false;
+				};
+				imgEl.src = url;
 			}
 
 			// チーム名の部分一致(box/index.astroのmatchesSearchと同じAND部分一致方式)。
@@ -593,6 +651,18 @@ const user = Astro.locals.user;
 						thumb.appendChild(fallback);
 
 						void applyThumbSprite(img, fallback, member.owned_pokemon.species_name ?? "");
+
+						// UI改修依頼(チームトップ画面)「アイテムアイコンも表示」。
+						const itemBadge = document.createElement("span");
+						itemBadge.className = "card-team-thumb-item-badge";
+						itemBadge.hidden = true;
+						const itemImg = document.createElement("img");
+						itemImg.alt = "";
+						const itemName = member.owned_pokemon.item_name ?? "";
+						itemImg.title = itemName;
+						itemBadge.appendChild(itemImg);
+						thumb.appendChild(itemBadge);
+						void applyThumbItemSprite(itemBadge, itemImg, itemName);
 					}
 					thumbGrid.appendChild(thumb);
 				}
