@@ -185,7 +185,7 @@ const isOptedOut = optOutRemainingText !== "";
 				id="collection-opt-out-label"
 				class="collection-opt-out-toggle"
 				for="collection-opt-out-toggle"
-				title={isOptedOut ? "30日間有効" : "育成データを匿名で提供しない (30日間有効)"}
+				title="30日間有効"
 			>
 				<span class="toggle-switch">
 					<input id="collection-opt-out-toggle" type="checkbox" class="toggle-switch-input" checked={isOptedOut} aria-label="非公開" />
@@ -197,7 +197,7 @@ const isOptedOut = optOutRemainingText !== "";
 				<span id="collection-opt-out-status" class="collection-opt-out-status" hidden></span>
 			</label>
 			<button id="delete-button" class="btn-danger" type="button">
-				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
 				削除
 			</button>
 		</Fragment>
@@ -498,29 +498,5 @@ const isOptedOut = optOutRemainingText !== "";
 	<datalist id="move-list"></datalist>
 	<datalist id="ability-list"></datalist>
 	<datalist id="item-list"></datalist>
-
-	<script>
-		// UI改修依頼(個体編集ヘッダー、2026-08-01)「非公開」トグルのホバーテキスト切り替え。
-		// OFF: 「育成データを匿名で提供しない (30日間有効)」/ ON: 「30日間有効」。初期値はSSR側
-		// (フロントマターのisOptedOut)で出し分け済みなので、ここではユーザーが実際に
-		// クリックして状態が変わった後の追随だけを行う(要素が無い=未ログイン/個体無し
-		// のときは何もしない)。
-		// PATCH送信・成功/失敗時の#collection-opt-out-status更新はsrc/lib/box-id/left-panel.ts
-		// 側の既存リスナーが担当しており(このスクリプトが上書きすることはない。同じ
-		// "change"イベントに複数のリスナーを付けても競合しない)、ここでは追加しない。
-		// ⚠️ 既知の限界: PATCH失敗時、left-panel.ts側がcheckedをJSで元に戻す処理は
-		// "change"イベントを発火しないため、このリスナーではそのrevertを検知できず
-		// titleが一瞬ずれる。エラー時は#collection-opt-out-status(赤字)が別途出るため
-		// 実害は小さいと判断し、対応は見送った。
-		const optOutToggle = document.getElementById("collection-opt-out-toggle");
-		const optOutLabel = document.getElementById("collection-opt-out-label");
-		if (optOutToggle && optOutLabel) {
-			optOutToggle.addEventListener("change", () => {
-				optOutLabel.title = (optOutToggle as HTMLInputElement).checked
-					? "30日間有効"
-					: "育成データを匿名で提供しない (30日間有効)";
-			});
-		}
-	</script>
 
 </AppLayout>
