@@ -54,6 +54,10 @@ import { TERA_TYPES } from "../tera-types";
 // shared-core.tsは"../sprite-urls"からteraTypeIconUrlをimportしているが再exportしていない
 // ため(shared-core.tsはこのラウンドの編集対象外)、ここで直接importする。
 import { teraTypeIconUrl } from "../sprite-urls";
+// UI改修依頼(ダメージ計算カード、2026-08-01)「レギュレーションに応じてテラスタル選択
+// ボックスの表示ON/OFFを切り替える」用。判定は必ずこの関数を使い、自前ロジックを書かない
+// (仕様: 未指定はtrue=表示・M-*はfalse=非表示・T-*はtrue=表示。src/lib/regulations.ts参照)。
+import { isTerastalRegulation } from "../regulations";
 import {
 	applySprite,
 	applyTeraImage,
@@ -333,6 +337,32 @@ if (opponentNotesSection) {
 	// #opponent-notes-sectionのdata-owned-pokemon-id属性(値は同じくpokemon.id、
 	// テンプレート参照)を読む形に書き換えた。値は変わらない。
 	const ownedPokemonId = opponentNotesSection.dataset.ownedPokemonId ?? "";
+
+	// UI改修依頼(ダメージ計算カード、2026-08-01)「レギュレーションに応じてテラスタル選択
+	// ボックスの表示ON/OFFを切り替える。左パネルの#regulationを変えたらダメージカード側も
+	// 追随する」。#regulation(左パネル、LeftPanel.astro/left-panel.ts。このラウンドの
+	// 編集対象外ファイル)はこのファイルからは値を読むだけに留め、既存のchangeリスナー
+	// (left-panel.ts側でsyncTeraFieldVisibility/syncRegulationPlaceholder等を呼んでいる)は
+	// 一切変更しない。ここでは同じ要素へ**別のリスナーを追加**するだけ(DOM標準のイベント
+	// 購読は同一要素に何個でも独立して登録できる)なので、left-panel.tsを編集せずに追随できる。
+	const regulationSelectEl = document.getElementById("regulation") as HTMLSelectElement | null;
+	function currentIndividualRegulation(): string | null {
+		if (!regulationSelectEl) return null;
+		const value = regulationSelectEl.value.trim();
+		return value === "" ? null : value;
+	}
+	// 行(相手)ごとに1個生成されるテラスタイプ選択ボックス(buildTeraDropdown()のwrap、
+	// 下方参照)への参照。DamageRowState自体にフィールドを追加せず(shared-core.tsは編集
+	// 対象外ファイルのため)、rowCollapseHandles等と同じくWeakMapで対応付ける。
+	const rowTeraFieldWraps = new WeakMap<DamageRowState, HTMLElement>();
+	function syncTeraFieldVisibility(): void {
+		const show = isTerastalRegulation(currentIndividualRegulation());
+		for (const row of rows) {
+			const wrap = rowTeraFieldWraps.get(row);
+			if (wrap) wrap.hidden = !show;
+		}
+	}
+	regulationSelectEl?.addEventListener("change", syncTeraFieldVisibility);
 
 	// 構造分割ラウンド(フェーズ1): shared-core.tsのscheduleRowSave/scheduleRowCalc/
 	// refreshRowConditionChips/renderDetailPanel/selectColumnは、このブロック内で
@@ -2457,6 +2487,12 @@ if (opponentNotesSection) {
 			const teraTypeText = row.teraType.trim();
 			collapsedTeraNameEl.textContent = teraTypeText;
 			collapsedTeraNameEl.title = teraTypeText;
+			// UI改修依頼(共通方針、2026-08-01)「テラスタイプが未設定の場合、"未設定"などと
+			// 表示せず要素ごと非表示にする」。アイコン(applyTeraImage)・名前テキストは既に
+			// 空/非表示になっているが、それだけだと空のicon+textラッパー(collapsedTeraInfoEl、
+			// gap込み)が場所だけ占有して残るため、ラッパーごと隠す(持ち物バッジ等、他の
+			// 未設定表現と同じ「要素ごと消す」流儀に揃える)。
+			collapsedTeraInfoEl.hidden = teraTypeText === "";
 		}
 		function refreshItemImage(): void {
 			void applyItemImage(itemImg, row.itemName.trim());
@@ -2793,6 +2829,11 @@ if (opponentNotesSection) {
 			onFieldInput();
 		});
 		selectsRow.appendChild(teraDropdown.wrap);
+		// UI改修依頼(2026-08-01)「レギュレーションに応じてテラスタル選択ボックスの表示
+		// ON/OFFを切り替える」。初期表示はこの生成時点の#regulation値で決め、以後は
+		// 上のsyncTeraFieldVisibility()(#regulationのchangeリスナー)が追随する。
+		rowTeraFieldWraps.set(row, teraDropdown.wrap);
+		teraDropdown.wrap.hidden = !isTerastalRegulation(currentIndividualRegulation());
 
 		// 努力値/実数値グリッド(DamageCard.pngの「努力値 ＨＡＢＣＤＳ」「実数値 ＨＡＢＣＤＳ」)。
 		// CSSが7列グリッド(行ラベル1列 + H/A/B/C/D/Sの6列)なので、DOMも行優先で

@@ -1672,6 +1672,12 @@ const { pokemonId } = Astro.props;
 		font-size: 0.85rem;
 		font-weight: 800;
 		flex: 0 0 auto;
+		/* UI改修依頼(2026-08-01)「技カードの確定数の表示位置を少し右に寄せる」。
+		   親(.damage-column-result)はcolumn-gap:0.5emで後続の.damage-result-detailとの間隔を
+		   持つが、先頭要素であるこの確定数自体は左端(padding:0の親の内側)にそのまま接して
+		   いた。他の技カード内要素の小さな間隔(0.35〜0.4rem系)に合わせ、左マージンだけを
+		   足して少し右に寄せる(detail側の位置・間隔・DOM順は変更しない)。 */
+		margin-left: 0.4rem;
 	}
 	#opponent-notes-section .damage-column-result .damage-result-detail {
 		/* 20-G3: 0.8em(親0.82remの80%=約10.5px)は入れ子emの事故。remの直接指定にした。
@@ -2400,11 +2406,15 @@ const { pokemonId } = Astro.props;
 	   反転ロジックはそのまま)。33×22px→27×18px(viewBoxの比率3:2=36:24を維持したまま
 	   about18%縮小)。名前・矢印・相手アイコンとのバランスを見ながらの縮小のため、
 	   41-R1で+20%した相手アイコン(38.4px)より一回り小さい値にとどめている。 */
+	/* UI改修依頼(個体編集画面右パネル、2026-08-01)「ヘッダーの>>>の色を、他のUIに合わせて
+	   暗くする(明るすぎて浮いている)」により --color-text → --color-text-muted。
+	   --color-text はダークテーマでほぼ白(#e7e9ee)になり、周囲のミュートな文字より
+	   矢印だけが手前に出て見えていた。 */
 	#damage-detail-panel-body .damage-detail-selection-arrow {
 		flex-shrink: 0;
 		width: 27px;
 		height: 18px;
-		color: var(--color-text);
+		color: var(--color-text-muted);
 	}
 	#damage-detail-panel-body .damage-detail-selection-arrow.is-reversed {
 		transform: scaleX(-1);
@@ -2555,12 +2565,23 @@ const { pokemonId } = Astro.props;
 		bottom: var(--space-2);
 		transform: none;
 	}
+	/* UI改修依頼(2026-08-01)「折りたたみボタンのアイコンを、ヘッダーの折りたたみボタン
+	   (#damage-collapse-toggle-button .damage-collapse-toggle-chevron、box/[id].astro
+	   <Fragment slot="topbar-actions">・このファイル下方の#damage-collapse-toggle-button
+	   .damage-collapse-toggle-chevronルール参照)のものと揃える」対応。
+	   実測(Playwright、getComputedStyle): 変更前はヘッダー側がcolor未指定(親.btn-ghost由来の
+	   var(--color-text-muted)、hoverでも不変)なのに対し、このカード個別ボタンのglyphだけ
+	   41-D3でvar(--color-text)(濃色)に明示上書きしていたため、通常時の色が異なっていた
+	   (rgb(91,100,114)対rgb(31,36,48))。ヘッダー側に合わせてcolorの明示指定を外し、
+	   .btn-ghost(このボタン自身が持つ既存クラス)由来のmuted色に統一する。
+	   font-size/font-weight/line-height/回転ロジック(»グリフ・±90deg)はヘッダー側と
+	   既に同値のため変更しない。translateY(-2px)による光学的な中心補正(43-D5、下記)は
+	   円形ボタン固有の実測済み補正でヘッダー側には無関係のため維持する。 */
 	#opponent-notes-section .damage-row-collapse-toggle-glyph {
 		display: inline-block;
 		font-size: 1.3rem;
 		font-weight: 600;
 		line-height: 1;
-		color: var(--color-text);
 		transition: transform 0.15s;
 	}
 	/* 実測(Playwright screenshot + sharpによるインクピクセルの外接矩形分析、28px円形ボタンを
@@ -2585,9 +2606,12 @@ const { pokemonId } = Astro.props;
 		border-color: var(--color-primary);
 		background: var(--color-primary-soft);
 	}
-	#opponent-notes-section .damage-row-collapse-toggle-button:hover:not(:disabled) .damage-row-collapse-toggle-glyph {
-		color: var(--color-primary);
-	}
+	/* UI改修依頼(2026-08-01)「アイコンをヘッダーと揃える」対応で撤去: ヘッダー側の
+	   .damage-collapse-toggle-chevronはhoverしても色が変わらない(親.btn-ghostのhoverは
+	   背景色だけを変える)。このカード個別ボタンのglyphだけがhover時にvar(--color-primary)へ
+	   変色しており、アイコンの意匠がヘッダーと不揃いだったため、この色変化ルールを削除して
+	   揃える(ボタン自身の背景ハイライト、上のborder-color/background切り替えは維持する。
+	   「アイコン」限定の要件のため、ボタン背景の方は対象外)。 */
 	#opponent-notes-section .damage-row-collapse-toggle-button:focus-visible {
 		outline: 2px solid var(--color-primary);
 		outline-offset: 2px;
@@ -2724,6 +2748,14 @@ const { pokemonId } = Astro.props;
 		align-items: center;
 		gap: 0.25rem;
 		flex: 0 0 auto;
+	}
+	/* UI改修依頼(共通方針、2026-08-01)「テラスタイプが未設定の場合、"未設定"などと表示せず
+	   要素ごと非表示にする」対応(<script>のrefreshTypeBadgeがhidden属性を付け外しする)。
+	   このクラス自身がdisplay:inline-flexを指定しているため、pitfalls.mdの「display指定
+	   クラスにはhidden属性の[hidden]{display:none}を併記する」に従い明示的に上書きする
+	   (何もしないとネイティブの[hidden]既定値より上のdisplay:inline-flexが優先されうる)。 */
+	#opponent-notes-section .damage-row-collapsed-tera-info[hidden] {
+		display: none;
 	}
 	/* テラスタイプの小アイコン。スプライト画像に重ねていた.damage-type-badge
 	   (top/right:-2px、20×20px、下方で折りたたみ時限定の表示をdisplay:noneに戻した)の
