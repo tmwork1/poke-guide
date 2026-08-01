@@ -39,6 +39,19 @@ const { regulation, regulations, ownedId, hasOwnedPanel } = Astro.props;
 		{hasOwnedPanel && (
 			<button type="button" id="speed-chart-back-to-current" class="btn-ghost toolbar-item">現在地へ戻る</button>
 		)}
+		{/* 要件5(2026-08-01第4弾): すばやさ上昇要因(ランク補正・道具・特性等による補正情報)の
+		    表示ON/OFFトグル。既存の「とりうるすばやさのみ」トグル(hasOwnedPanel限定)とは異なり、
+		    個体連携の有無に関係なく早見表全体に効くため常時表示する。デフォルトOFF(uncheckedの
+		    まま=checked属性を付けない)。 */}
+		<label class="toolbar-item speed-chart-reachable-toggle">
+			<span class="toggle-switch">
+				<input type="checkbox" id="speed-chart-boost-factors-toggle" class="toggle-switch-input" aria-label="すばやさ上昇要因を表示" />
+				<span class="toggle-switch-track" aria-hidden="true">
+					<span class="toggle-switch-thumb"></span>
+				</span>
+			</span>
+			<span>すばやさ上昇要因を表示</span>
+		</label>
 		{hasOwnedPanel && (
 			<label class="toolbar-item speed-chart-reachable-toggle">
 				<span class="toggle-switch">
@@ -191,6 +204,13 @@ const { regulation, regulations, ownedId, hasOwnedPanel } = Astro.props;
 		font-size: 1.05em;
 		font-weight: 700;
 		padding-top: 0.15em;
+		/* 要件1(2026-08-01第4弾): 実数値が列の左上に偏って見えていたため中央寄せにする。
+		   セル自体の幅(80px固定グリッド列)に対して数値だけが左寄りだと詰まって見えるため、
+		   text-alignでの中央寄せに加え、左右均等な余白を明示しておく(左マージンだけ0で
+		   右padding-topの縦方向だけ意識されていた既存指定を、横方向にも揃える意図)。 */
+		text-align: center;
+		padding-left: var(--space-2);
+		padding-right: var(--space-2);
 	}
 	.speed-chart-table .speed-chart-group-cell {
 		min-width: 0;
@@ -218,6 +238,17 @@ const { regulation, regulations, ownedId, hasOwnedPanel } = Astro.props;
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
+	}
+	/* 要件3(2026-08-01第4弾、区切り表現のみ): グループ区切りを文字列' / 'から縦棒(border-left)
+	   に変更する。amounts-row側にだけ挿入する(origins-rowは補正の原因が無いグループを飛ばして
+	   詰めるため、divider要素ではなくテキストの' / 'のままにしてある。上記コメント参照)。 */
+	.speed-chart-table .speed-chart-group-divider {
+		display: inline-block;
+		width: 1px;
+		height: 0.9em;
+		margin: 0 0.5em;
+		vertical-align: middle;
+		border-left: 1px solid var(--color-border);
 	}
 	/* 追加改修(2026-08-01第3弾)要件1: 補正の原因(特性名/わざ名/持ち物名)の段。
 	   amounts-rowより一段軽い扱い(色を薄く・太字にしない)にして「補正量が主・原因が補足」

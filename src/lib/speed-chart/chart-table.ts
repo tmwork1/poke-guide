@@ -104,6 +104,9 @@ export async function initSpeedChartPage(): Promise<void> {
   const backButton = document.getElementById('speed-chart-back-to-current');
   // 要件4: ?owned=があるときだけ存在するトグル(ChartTable.astro側もhasOwnedPanelで条件付け済み)。
   const reachableOnlyToggle = document.getElementById('speed-chart-reachable-only-toggle') as HTMLInputElement | null;
+  // 要件5(2026-08-01第4弾): すばやさ上昇要因(ランク補正・道具・特性等の補正情報)の表示ON/OFF。
+  // hasOwnedPanelに関係なく常に存在する(ChartTable.astro側も無条件レンダリング)。
+  const boostFactorsToggle = document.getElementById('speed-chart-boost-factors-toggle') as HTMLInputElement | null;
 
   if (!config || !statusEl || !tableEl || !bodyEl) {
     if (statusEl) statusEl.textContent = '設定の読み込みに失敗しました。';
@@ -138,6 +141,9 @@ export async function initSpeedChartPage(): Promise<void> {
   let lastKnownReachableValues: Set<number> | null = null;
   // 既定でON(とりうるすばやさのみ)。?owned=が無いときはトグル自体が無くこの値は使われない。
   let showReachableOnly = true;
+  // 要件5: 既定でOFF(すばやさ上昇要因は非表示)。boostFactorsToggleにchecked属性を
+  // 付けていない(ChartTable.astro側)ため、初期値はDOMのcheckedプロパティからも導ける。
+  let showBoostFactors = boostFactorsToggle?.checked ?? false;
   // 要件3の不具合修正(2026-08-01): 「行ごとの実際の合計幅」で足切りするための実測キャッシュ。
   // フォルム名 -> チップ1個の実測幅(px)。チップ幅は名前とアイコンだけで決まるため、
   // フォルム名をキーに1回だけ測ればよい(レギュレーションを跨いでも再利用する。
@@ -230,7 +236,15 @@ export async function initSpeedChartPage(): Promise<void> {
       const groupCell = document.createElement('div');
       groupCell.className = 'speed-chart-group-cell';
       groupCell.appendChild(
-        buildRowContent(row.entries, baseSpeedByName, imageIdByName, usageCounts, chipWidthByName, chipLayoutMetrics),
+        buildRowContent(
+          row.entries,
+          baseSpeedByName,
+          imageIdByName,
+          usageCounts,
+          chipWidthByName,
+          chipLayoutMetrics,
+          showBoostFactors,
+        ),
       );
       rowEl.appendChild(groupCell);
 
@@ -305,6 +319,16 @@ export async function initSpeedChartPage(): Promise<void> {
     showReachableOnly = reachableOnlyToggle.checked;
     renderVisibleRows();
     // トグル操作でも← 現在マーカーの位置は変わらないため、直前のハイライト値を再適用する。
+    if (ownedController) applyHighlight(ownedController.getCurrentValue());
+  });
+
+  // 要件5: すばやさ上昇要因トグル。表示される「行の集合」自体は変えず(showReachableOnlyとは
+  // 独立)、各行の中身(補正ありグループの表示/非表示)だけを切り替えるため、renderVisibleRows()
+  // ではなくrenderRows()を直接呼ぶだけで十分だが、reachableOnly側のフィルタも常に反映したい
+  // ため既存のrenderVisibleRows()をそのまま再利用する(挙動は変えない)。
+  boostFactorsToggle?.addEventListener('change', () => {
+    showBoostFactors = boostFactorsToggle.checked;
+    renderVisibleRows();
     if (ownedController) applyHighlight(ownedController.getCurrentValue());
   });
 
@@ -386,13 +410,25 @@ function buildDashCell(): HTMLElement {
 // 追加改修(2026-08-01第3弾)要件1: 「補正量とその原因は行をわける」。以前は
 // 「振り方+種族値+補正量+補正の原因」を1本のラベル文字列にまとめていた(例:
 // "最速 120族 2倍 かるわざ")が、これを3段に分ける:
-//   1段目 .speed-chart-amounts-row … 振り方バッジ(色分け)+ 種族値 + 補正量(S+1/2倍等)
+//   1段目 .speed-chart-amounts-row … 振り方バッジ(色分け)+ 種族値 + 補正量(x1.5/x2等。
+//     第4弾要件4でS+n表記を廃止し倍率表記に統一。formatModifierMagnitude参照)
 //   2段目 .speed-chart-origins-row … 補正の原因(特性名/わざ名/持ち物名)。補正なしの
 //     グループ(素の実数値)は原因を持たないため、そのグループ分は出力しない
 //     (行の高さはCSS側のmin-heightで確保するため、原因が1件も無い行でも段自体は消えない)。
 //   3段目 .speed-chart-chips-row … ポケモンのアイコン+名前チップ(要件・仕様は変更なし)。
 // 1段目と2段目の対応は、以前と同じく「同じグループ順に並べる」ことで表す(厳密な位置揃えは
 // しない。docs/plan/pages/speed-chart.md 追加改修(2026-08-01第2弾)要件3の仮定を踏襲)。
+//
+// 【第4弾要件3の対応範囲(2026-08-01)】 依頼は「進化系統(族)ごとのブロックに分け、族の
+// 大きい順に左から並べる」だったが、poke-commons・vendor/jpokeのいずれにも進化系統(何が何に
+// 進化するか)を表すデータソースが存在しない(pokemon-master-data.ts/detail/pokemon.jsonは
+// 種族値・特性・技のみ、species-dex.tsはdexNo逆引きのみ)。dexNoの連番はある程度進化系統と
+// 相関するが、枝分かれ進化(イーブイ系統等)や幼生体(ピチュー等)・メガシンカ(dexNo自体を
+// 持たない)では正しく機能せず、族の境界を誤検出する。新規データを作る(scripts/
+// build-master-data配下の追加等)はこのラウンドの担当ファイル範囲外かつ大掛かりなため見送り、
+// 「族の大きい順の並び替え」は保留とする。一方「区切りをスラッシュ(' / ')から縦棒に変える」
+// 部分は独立して対応可能なため実施する: 既存のグループ区切り(振り方+補正の組)ごとに
+// .speed-chart-group-divider(border-leftの縦棒)を挿入する形にした。
 function buildRowContent(
   entries: SpeedChartEntry[],
   baseSpeedByName: Map<string, number>,
@@ -400,6 +436,11 @@ function buildRowContent(
   usageCounts: SpeciesUsageCounts | undefined,
   chipWidthByName: Map<string, number>,
   chipLayoutMetrics: ChipLayoutMetrics | null,
+  // 要件5(第4弾): OFF(既定)のときは補正ありグループ(modifier !== null)を折りたたむ
+  // (amounts-row・origins-row・chips-rowから除外)。ただしその行の全グループが補正ありの
+  // 場合(素の実数値では到達しない行)にまで隠すと行が完全に空欄になるため、その場合だけ
+  // 安全側フォールバックとして全グループを表示する。
+  showBoostFactors: boolean,
 ): HTMLElement {
   const container = document.createElement('div');
   container.className = 'speed-chart-row-content';
@@ -434,11 +475,17 @@ function buildRowContent(
     formNames: sortFormNamesByUsage(group.formNames, usageCounts, baseSpeedByName),
   }));
 
+  // 要件5(第4弾): showBoostFactors=falseのときは補正あり(modifier !== null)グループを
+  // 折りたたむ。全グループが補正ありでフィルタの結果が空になる場合だけ、行を空欄にしない
+  // ための安全側フォールバックとして元のorderedGroupsをそのまま使う。
+  const filteredGroups = showBoostFactors ? orderedGroups : orderedGroups.filter((group) => group.modifier === null);
+  const visibleGroups = filteredGroups.length > 0 ? filteredGroups : orderedGroups;
+
   // 要件3の不具合修正: 行全体のチップの実際の合計幅を実測キャッシュから求めて足切りする
   // (グループの境界をまたいで使用率の最下位から落とす。グループ順・グループ内の並びは
   // 維持したまま除外するだけ)。計測がまだ済んでいない(異常系)場合は足切りをかけない
   // 安全側にフォールバックする。
-  const allFormNamesInOrder = orderedGroups.flatMap((group) => group.formNames);
+  const allFormNamesInOrder = visibleGroups.flatMap((group) => group.formNames);
   const { kept, droppedCount } = chipLayoutMetrics
     ? limitRowChipsByWidth(
         allFormNamesInOrder,
@@ -452,10 +499,18 @@ function buildRowContent(
     : { kept: allFormNamesInOrder, droppedCount: 0 };
   const keptSet = new Set(kept);
 
+  // 要件3(第4弾・区切り表現のみ): グループ間の区切りを文字列' / 'から縦棒(border-left)の
+  // 要素に置き換える(進化系統ブロック化そのものは上のコメントのとおりデータソース不在のため
+  // 保留。ここでは「今あるグループ(振り方+補正の組)」の境界を視覚的に区切るだけ)。
   const amountsRow = document.createElement('div');
   amountsRow.className = 'speed-chart-amounts-row';
-  orderedGroups.forEach((group, index) => {
-    if (index > 0) amountsRow.appendChild(document.createTextNode(' / '));
+  visibleGroups.forEach((group, index) => {
+    if (index > 0) {
+      const divider = document.createElement('span');
+      divider.className = 'speed-chart-group-divider';
+      divider.setAttribute('aria-hidden', 'true');
+      amountsRow.appendChild(divider);
+    }
     amountsRow.appendChild(buildSpreadBadge(group.spreadKind));
     let text = ` ${group.baseSpeed}族`;
     if (group.modifier) text += ` ${formatModifierMagnitude(group.modifier.modifier)}`;
@@ -465,7 +520,7 @@ function buildRowContent(
   // 補正を持つグループだけを対象にする(素の実数値のグループには「原因」が無い)。
   const originsRow = document.createElement('div');
   originsRow.className = 'speed-chart-origins-row';
-  const groupsWithOrigin = orderedGroups.filter((group) => group.modifier !== null);
+  const groupsWithOrigin = visibleGroups.filter((group) => group.modifier !== null);
   groupsWithOrigin.forEach((group, index) => {
     if (index > 0) originsRow.appendChild(document.createTextNode(' / '));
     const span = document.createElement('span');
@@ -475,7 +530,7 @@ function buildRowContent(
 
   const chipsRow = document.createElement('div');
   chipsRow.className = 'speed-chart-chips-row';
-  for (const group of orderedGroups) {
+  for (const group of visibleGroups) {
     for (const formName of group.formNames) {
       if (!keptSet.has(formName)) continue;
       chipsRow.appendChild(buildChip(formName, imageIdByName));
@@ -599,10 +654,16 @@ function ensureChipMetrics(
 // 追加改修(2026-08-01第3弾)要件1: 補正量(S+1/2倍等)と原因(特性名・わざ名・持ち物名)を
 // 別の段に分けるため、以前は1本の文字列(例: "2倍 かるわざ")にまとめていたのを2つの関数に
 // 分割する。以前は持ち物だけ名前のみ表示(倍率を省略)していたが、段を分けた今は
-// 「[最速] 120族 1.5倍」/「こだわりスカーフ」のように持ち物にも倍率を表示したほうが
+// 「[最速] 120族 x1.5」/「こだわりスカーフ」のように持ち物にも倍率を表示したほうが
 // amounts-row(1段目)が特性・わざの行と同じ書式で揃うため、持ち物の特例は廃止する。
+//
+// 第4弾要件4(2026-08-01): 「S+n」(ランク表記)と「1.5倍」(和風の倍率表記)が混在していたのを
+// 「xN」に統一する。ランク補正はfloor(値*(2+stages)/2)で適用される(speed-chart.tsの
+// applySpeedRank)ため、表示上の倍率も同じ式(2+stages)/2から求める(例: S+1→x1.5、S+2→x2、
+// S+6→x4)。
 function formatModifierMagnitude(modifier: SpeedModifierEntry): string {
-  return modifier.kind === 'rank' ? `S+${modifier.stages}` : `${formatRatio(modifier.numerator / modifier.denominator)}倍`;
+  const ratio = modifier.kind === 'rank' ? (2 + modifier.stages) / 2 : modifier.numerator / modifier.denominator;
+  return `x${formatRatio(ratio)}`;
 }
 
 function formatRatio(value: number): string {

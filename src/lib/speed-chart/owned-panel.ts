@@ -175,20 +175,28 @@ export function initOwnedPanel(ctx: OwnedPanelContext): OwnedPanelController {
       return;
     }
 
-    // 状態2: 到達可能([ここにする]+内訳)。
+    // 状態2: 到達可能([性格・努力値・アイテム]+内訳)。
     el.classList.add('is-reachable');
     const wrap = document.createElement('div');
     wrap.className = 'speed-chart-owned-option';
 
+    const itemLabel = selection.usesScarf ? (ctx.scarfItemName ?? '') : currentItem ?? '持ち物なし';
+
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'btn-primary speed-chart-apply-button';
-    button.textContent = 'ここにする';
+    // 要件2(2026-08-01第4弾): 汎用的な「ここにする」ではなく、このボタンを押すと個体の
+    // 性格・S努力値・アイテムが具体的に何になるかをボタン自体のテキストにする(下の
+    // breakdownと同じ情報源だが、ボタン単体を見ただけで結果が分かるようにする狙い)。
+    // アイテムは、この候補がすばやさ補正アイテム(こだわりスカーフ等)を使う場合だけ含める
+    // (無関係な現在の持ち物名まで出すと「持ち物も変わる」と誤読されるため)。
+    const buttonParts = [selection.nature, `S努力値${selection.evSpe}`];
+    if (selection.usesScarf && ctx.scarfItemName) buttonParts.push(ctx.scarfItemName);
+    button.textContent = buttonParts.join(' / ');
     button.addEventListener('click', () => {
       void handleApply(selection, button);
     });
 
-    const itemLabel = selection.usesScarf ? (ctx.scarfItemName ?? '') : currentItem ?? '持ち物なし';
     const breakdown = document.createElement('div');
     breakdown.className = 'speed-chart-owned-breakdown';
     breakdown.textContent = `${selection.nature} / S努力値${selection.evSpe} / ${itemLabel}`;
