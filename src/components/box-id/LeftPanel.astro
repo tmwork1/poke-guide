@@ -46,6 +46,11 @@ const STAT_LABELS: Array<{ key: string; label: string; short: string }> = [
 
 const MOVE_SLOTS = [1, 2, 3, 4];
 
+// R-11(すばやさ早見表 結線、docs/plan/pages/speed-chart.md 2026-08-01)対応。
+// S行の実数値セルの右外側に重ねるアイコンリンク用SVG(AppSidebar.astroのICONS.zapと同じ絵柄・
+// 書式を踏襲。lucide風、外部ライブラリは使わない規約)。
+const SPEED_CHART_ICON = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>`;
+
 function statAt(values: number[] | undefined, index: number, fallback: number): number {
 	return values && typeof values[index] === "number" ? values[index] : fallback;
 }
@@ -531,7 +536,29 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 							value={statAt(pokemon.evs, i, 0)}
 						/>
 					</div>
-					<span id={`stat-${key}`} class="stat-row-real stat-value tnum">(未計算)</span>
+					{key === "spe" ? (
+						/* R-11(すばやさ早見表 結線): .stat-row/.stat-table-headerの
+						   grid-template-columns(5列固定、H〜Sの6行が共有)は一切変更しない。
+						   S行の実数値セル(5列目)の内側に position:relative のラッパーを1つ足し、
+						   早見表へのアイコンリンクをセルの右外側へ position:absolute で重ねる方式に
+						   限定する(計画書R-11で確定済み。6列目の追加・グリッド変更は禁止)。
+						   valueEl(id=stat-spe)自体はleft-panel.tsのrecalcStats/renderStatsUnavailableが
+						   textContentを直接上書きするため、アイコンリンクはvalueElの子ではなく
+						   兄弟要素にする(子にするとtextContent書き換えのたびに消える)。 */
+						<span class="stat-row-real-wrap">
+							<span id={`stat-${key}`} class="stat-row-real stat-value tnum">(未計算)</span>
+							<a
+								class="stat-speed-chart-link"
+								href={`/speed-chart?owned=${pokemon.id}`}
+								aria-label="すばやさ早見表でこの実数値の並びを確認する"
+								title="すばやさ早見表を開く"
+							>
+								<span class="stat-speed-chart-icon" set:html={SPEED_CHART_ICON} />
+							</a>
+						</span>
+					) : (
+						<span id={`stat-${key}`} class="stat-row-real stat-value tnum">(未計算)</span>
+					)}
 				</div>
 			))}
 		</div>
@@ -895,6 +922,35 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	   (中央揃えは桁ズレが目立ちやすいため、tabular-numsの維持が特に重要)。 */
 	.stat-row-base { color: var(--color-text-muted); text-align: center; }
 	.stat-row-real { text-align: center; font-size: 1.05em; }
+	/* R-11(すばやさ早見表 結線、docs/plan/pages/speed-chart.md 2026-08-01): S行だけ、
+	   実数値セル(グリッド5列目)を1段ラップしてposition:relativeの基点にする。
+	   このラッパー自体が5列目のグリッドアイテムになる(グリッドの列数は変わらない)。
+	   text-align:centerはラッパー内の.stat-row-real(inline-block)を中央寄せし、
+	   従来の見た目(H〜Dの5行およびS行自身の数値表示)を変えない。 */
+	.stat-row-real-wrap { position: relative; text-align: center; }
+	.stat-speed-chart-link {
+		position: absolute;
+		left: 100%;
+		top: 50%;
+		transform: translateY(-50%);
+		margin-left: 0.3rem;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 1.15rem;
+		height: 1.15rem;
+		border-radius: var(--radius-sm);
+		color: var(--color-text-muted);
+		text-decoration: none;
+		transition: background 0.15s, color 0.15s;
+	}
+	.stat-speed-chart-link:hover,
+	.stat-speed-chart-link:focus-visible {
+		color: var(--color-primary);
+		background: var(--color-primary-soft);
+	}
+	.stat-speed-chart-icon { display: inline-flex; }
+	.stat-speed-chart-icon svg { display: block; width: 100%; height: 100%; }
 	/* ラウンド17指摘(B-5): ヌケニン限定の注記。既定は非表示(hidden属性)、通常種族では
 	   何も増えない(<script>のapplyBaseStats参照)。 */
 	.hp-fixed-note {
@@ -931,6 +987,11 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		   (判断根拠は報告参照)。 */
 		.stat-row-real { grid-column: 1 / -1; text-align: left; padding-left: 4.6em; font-weight: 700; }
 		.stat-row-label { gap: 0.2em; }
+		/* R-11(すばやさ早見表 結線): 460px以下ではS行の実数値も上のグリッド全幅表示に
+		   合わせる必要がある。ラッパー(.stat-row-real-wrap)がグリッドアイテム本体になった
+		   ため、上の.stat-row-realルール(non-grid-itemになった内側spanに適用される)とは
+		   別に、ラッパー側にも同じ配置を与える。 */
+		.stat-row-real-wrap { grid-column: 1 / -1; text-align: left; padding-left: 4.6em; }
 	}
 
 	/* ラウンド3 B-7: 「努力値合計」は要件により削除した。チャンピオンズルールは合計上限が

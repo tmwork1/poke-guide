@@ -2,7 +2,7 @@
 // 全ページ共通のサイドバー(UI刷新、2026-07-25)。docs/ui_proposal/Box.png 等のワイヤーフレームに準拠する。
 // アイコンは外部ライブラリを使わず、lucide風の線画をインラインSVGとして自前定義する。
 interface Props {
-	current?: "box" | "team" | "dev";
+	current?: "box" | "team" | "dev" | "speed-chart";
 	/**
 	 * 2026-07-27 ラウンド20 20-H2: ログイン情報をサイドバー最下段に表示するため、
 	 * AppLayout.astro が Astro.locals.user から読んだ値をそのまま受け取る。
@@ -19,6 +19,8 @@ const ICONS = {
 	users: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
 	"trending-up": `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>`,
 	code: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>`,
+	// すばやさ早見表(/speed-chart)用に追加。lucideの"zap"相当(既存4アイコンで代替できないため新規)。
+	zap: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>`,
 } as const;
 
 type IconKey = keyof typeof ICONS;
@@ -37,6 +39,7 @@ const SECTIONS: { heading: string; items: SidebarItem[] }[] = [
 		items: [
 			{ key: "box", label: "ボックス", href: "/box", icon: "home" },
 			{ key: "team", label: "チーム", href: "/team", icon: "users" },
+			{ key: "speed-chart", label: "すばやさ早見表", href: "/speed-chart", icon: "zap" },
 			{ key: "trend", label: "トレンド", icon: "trending-up", disabled: true },
 		],
 	},
