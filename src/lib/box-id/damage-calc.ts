@@ -81,6 +81,7 @@ import {
 	renderDetailPanel,
 	selectColumn,
 	applySelectionMarks,
+	clearSelectionAndMarks,
 	type DamageRowState,
 	type DamageColumnState,
 } from "./shared-core";
@@ -244,19 +245,23 @@ export const DAMAGE_AILMENTS = [
 	{ value: "ねむり", label: "ねむり" },
 	{ value: "こおり", label: "こおり" },
 ];
+// UI改善タスク(揮発状態のホバー説明追加): 各項目のtitleはvendor/jpoke実装
+// (src/jpoke/data/volatile.py・src/jpoke/handlers/volatile.py)を確認して書いた説明文。
+// 数値(割合・倍率)を変更する場合は必ずjpoke skill(.claude/skills/jpoke)経由で
+// 実装を確認し直すこと(ダメージ計算に影響する数値のため誤記厳禁)。
 export const DAMAGE_ATTACKER_VOLATILES = [
-	{ value: "じゅうでん", label: "じゅうでん" },
+	{ value: "じゅうでん", label: "じゅうでん", title: "次に出すでんきタイプの技の威力が2倍になる(技を1回使うと解除される)" },
 ];
 export const DAMAGE_DEFENDER_VOLATILES = [
-	{ value: "のろい", label: "のろい" },
-	{ value: "やどりぎのタネ", label: "やどりぎのタネ" },
-	{ value: "しおづけ", label: "しおづけ" },
-	{ value: "バインド", label: "バインド" },
-	{ value: "アクアリング", label: "アクアリング" },
-	{ value: "ねをはる", label: "ねをはる" },
-	{ value: "タールショット", label: "タールショット" },
-	{ value: "ちいさくなる", label: "ちいさくなる" },
-	{ value: "きょけんとつげき", label: "きょけんとつげき" },
+	{ value: "のろい", label: "のろい", title: "毎ターン最大HPの1/4のダメージを受ける" },
+	{ value: "やどりぎのタネ", label: "やどりぎのタネ", title: "毎ターン最大HPの1/8のダメージを受け、そのぶん相手のHPが回復する" },
+	{ value: "しおづけ", label: "しおづけ", title: "毎ターン最大HPの1/16(みず・はがねタイプは1/8)のダメージを受ける" },
+	{ value: "バインド", label: "バインド", title: "毎ターン最大HPの1/8のダメージを受ける" },
+	{ value: "アクアリング", label: "アクアリング", title: "毎ターン最大HPの1/16のHPが回復する" },
+	{ value: "ねをはる", label: "ねをはる", title: "毎ターン最大HPの1/16のHPが回復する" },
+	{ value: "タールショット", label: "タールショット", title: "ほのおタイプの技の弱点としての倍率が2倍になる" },
+	{ value: "ちいさくなる", label: "ちいさくなる", title: "ふみつけ等の一部の技が必ず命中し、威力が2倍になる" },
+	{ value: "きょけんとつげき", label: "きょけんとつげき", title: "相手から受ける技が必ず命中し、ダメージが2倍になる" },
 ];
 export function clampInt(n: number, min: number, max: number): number {
 	return Math.min(max, Math.max(min, Math.round(n)));
@@ -3180,6 +3185,20 @@ if (opponentNotesSection) {
 	const engineStatusTextEl = el<HTMLElement>("damage-calc-engine-status-text");
 	const engineReloadButton = el<HTMLButtonElement>("damage-calc-engine-reload-button");
 	engineReloadButton.addEventListener("click", () => window.location.reload());
+
+	// UI改善タスク「ダメージカードの外をクリックしたら選択(フォーカス)状態を解除する」。
+	// 2082行目付近の「リストの外側をクリックしたら閉じる」(テラスタルドロップダウン)と
+	// 同じ考え方: document全体のクリックを監視し、クリック位置(target)がどのカード
+	// (row.root)にも右パネルの詳細設定エリア(#damage-detail-panel。パネル内の操作は
+	// 選択解除の対象外にする)にも含まれない場合だけ選択解除する。rowsはこのブロック内で
+	// let宣言され後続で push/splice/再代入されるため、クロージャ経由で常に最新の一覧を見る。
+	const damageDetailPanelEl = el<HTMLElement>("damage-detail-panel");
+	document.addEventListener("click", (e) => {
+		const target = e.target as Node;
+		if (damageDetailPanelEl.contains(target)) return;
+		if (rows.some((row) => row.root?.contains(target))) return;
+		clearSelectionAndMarks();
+	});
 
 	// UI改善ラウンド36ユーザー指示(36-3)で「すべて折りたたむ・展開する」の2ボタン版を導入し、
 	// 🔴 UI改善ラウンド38ユーザー指示(38-H1)「ヘッダーに移動し単一ボタンで交互切り替え」により

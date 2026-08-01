@@ -252,7 +252,10 @@ export function buildSideSection(
 	// 異なる(DAMAGE_ATTACKER_VOLATILES/DAMAGE_DEFENDER_VOLATILES参照)ため、
 	// 選択肢配列は呼び出し側(renderColumnLevelDetailPanel)がどちらの側かに
 	// 応じて渡す。
-	volatilesOptions: { value: string; label: string }[],
+	// UI改善タスク(揮発状態のホバー説明追加): titleは呼び出し側(DAMAGE_ATTACKER_VOLATILES/
+	// DAMAGE_DEFENDER_VOLATILES、damage-calc.ts)が持つ効果説明文。buildToggleButton()の
+	// options.titleへそのまま渡してホバーツールチップとして表示する。
+	volatilesOptions: { value: string; label: string; title?: string }[],
 	volatilesValue: string[],
 	onVolatilesChange: (value: string[]) => void,
 	// 🔴 UI改善ラウンド29(29-R3)「攻撃側・防御側のチップ列が列幅の半分しか
@@ -497,6 +500,7 @@ export function buildSideSection(
 					scheduleRowSave(row);
 					refreshRowConditionChips(row);
 				},
+				{ title: opt.title },
 			);
 			optButton.dataset.volatileValue = opt.value;
 			secondaryChipRow.appendChild(optButton);
@@ -568,6 +572,7 @@ export function buildSideSection(
 					scheduleRowSave(row);
 					refreshRowConditionChips(row);
 				},
+				{ title: opt.title },
 			);
 			optButton.dataset.volatileValue = opt.value;
 			volatileGroup.appendChild(optButton);

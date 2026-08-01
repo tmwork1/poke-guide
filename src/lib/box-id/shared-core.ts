@@ -465,3 +465,14 @@ export function selectColumn(row: DamageRowState, column: DamageColumnState): vo
 	renderDetailPanel();
 	damageCalcBridge!.openDetailPanelOverlayIfNarrow();
 }
+
+// UI改善タスク(ダメージカード外クリックで選択解除)。カード外(ページの余白・左パネル等)を
+// クリックしたときに、選択中の技列があればその見た目のマーク(.is-selected)を消し、
+// 選択状態(selectedRow/selectedColumn)をクリアし、右パネルを空表示に戻す。呼び出し元
+// (damage-calc.ts側のdocument全体のクリック監視)は「クリック位置がどのrow.rootにも
+// #damage-detail-panelにも含まれない」ことだけを判定し、実際の解除処理はここへ委譲する。
+export function clearSelectionAndMarks(): void {
+	if (selectedRow) clearSelectionMarks(selectedRow);
+	clearSelection();
+	renderDetailPanel();
+}
