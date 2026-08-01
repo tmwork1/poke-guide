@@ -14,6 +14,7 @@ jpoke の `src/` を直接 sys.path に追加して読み込む(jpoke はラン�
     <autocomplete_output_dir>/moves.json     (名前・タイプ・分類のみ)
     <autocomplete_output_dir>/abilities.json (名前のみ)
     <autocomplete_output_dir>/items.json     (名前・sprite画像相対パス(spritePath, 解決不可ならnull))
+    <autocomplete_output_dir>/regulations.json (レギュレーション名のみ。jpoke.types.Regulation が唯一の情報源)
     <detail_output_dir>/pokemon.json         (検索結果の詳細表示用: 種族値・特性・技・進化前など)
     <detail_output_dir>/moves.json           (検索結果の詳細表示用: 威力・命中率・PPなど)
 
@@ -374,6 +375,23 @@ def build_items(items: dict, jpoke_src_dir: Path) -> list[dict]:
     return result
 
 
+def build_regulations() -> list[dict]:
+    """レギュレーション一覧(個体・チームの regulation 列の値域)を jpoke から取り出す。
+
+    唯一の情報源は `jpoke.types.Regulation`(Literal)。data/regulation/{pokemon,item}.csv の
+    ヘッダ列も同じ集合だが、CSVヘッダを読むと「実装済み(implemented)」列のような
+    レギュレーション以外の列を除外するルールを二重に持つことになるため、型定義側を採る。
+
+    並び順は Literal の定義順(= 新しいレギュレーションが後ろに足される想定)をそのまま保つ。
+    UI(選択ボックス)の並びもこの順になる。
+    """
+    from typing import get_args  # noqa: PLC0415  (jpoke 読み込み後に呼ばれるためここで import)
+
+    from jpoke.types import Regulation  # noqa: E402
+
+    return [{"name": name} for name in get_args(Regulation)]
+
+
 def main() -> None:
     if len(sys.argv) != 4:
         print(
@@ -408,6 +426,7 @@ def main() -> None:
         "abilities.json": build_abilities(ABILITIES),
         "items.json": build_items(ITEMS, jpoke_src_dir),
         "mega-stones.json": build_mega_stones(raw_pokedex, ITEMS),
+        "regulations.json": build_regulations(),
     }
     detail_datasets = {
         "pokemon.json": build_pokemon_detail(POKEDEX),

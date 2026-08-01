@@ -178,6 +178,8 @@ describe('validateOwnedPokemonRequestBody(body, { mode: "replace" })', () => {
     ability_name: 'かたいツメ',
     item_name: 'こだわりハチマキ',
     tera_type: null,
+    // migrations/013_regulation.sql で追加した置換対象フィールド。
+    regulation: null,
     evs: [0, 32, 0, 0, 0, 16],
     ivs: [31, 31, 31, 31, 31, 31],
     move_names: ['フレアドライブ', 'がんせきふうじ'],

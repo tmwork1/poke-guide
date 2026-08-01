@@ -28,6 +28,7 @@ import {
 	type MoveCategory,
 } from "../pokemon-master-data";
 import { typeIconUrl, teraTypeIconUrl } from "../sprite-urls";
+import { isTerastalRegulation } from "../regulations";
 import { TYPE_COLORS, DEFAULT_TYPE_COLOR } from "../type-colors";
 import { type StatKey, STAT_KEYS, NATURE_STAT_MODIFIERS } from "../stats";
 import {
@@ -268,10 +269,20 @@ function setupDatalistRefocus(input: HTMLInputElement, datalist: HTMLDataListEle
 // で、人気順に並び替える元データが無い。無理に新しいkindを作らず、rebuildAbilityOptions
 // 自体には手を入れない。
 //
-// 既知の制約(d7552ad「サジェストがレギュレーションを混ぜている件」): suggestions側の
-// 集計はレギュレーション(M-1〜M-3)を分離せず1つの母集団にしている。プロダクトオーナー
-// 判断で当面このままのため、このファイルではAPIから返るpayload.optionsをそのまま信頼して
-// 使う(UI側での分離は行わない)。
+// 🔴 d7552ad「サジェストがレギュレーションを混ぜている件」の解消(UI改修依頼 2026-08-01
+// 「サジェストもレギュレーションにフォーカスして精度を高めたい」/「レギュレーションを
+// 指定した場合は、サジェストをそのレギュレーション限定の情報に絞る」)。
+// migrations/013_regulation.sql の refresh_popular_builds() が、同じ集計を2つのスコープで
+// 書き出すようになった:
+//   subject_key = '種族名'        … 全レギュレーション横断(従来と同じ。レギュレーション未指定時に使う)
+//   subject_key = '種族名|M-A'    … そのレギュレーション限定
+// このファイルは編集中の個体の #regulation の値に応じて subject_key を切り替えるだけでよく、
+// GET /api/suggestions 自体は無変更。
+//
+// レギュレーション指定時にフォールバックはしない: '種族名|M-A' の行が無い(= そのレギュレーションでの
+// 開示者がk-匿名性の閾値に届いていない)場合、横断集計の値で埋め合わせると「そのレギュレーションの
+// 人気」と誤読される。依頼の主旨が精度なので、データが無いときは候補リストを元の並び・
+// 元のテキストのまま何も変えない(データ不足時に上書きしない、という既存の方針と同じ挙動になる)。
 type SuggestionOption = { value: string; count: number; ratio: number };
 type SuggestionPayload = { sample_size: number; options: SuggestionOption[] };
 type SuggestionRow = { payload?: SuggestionPayload };
@@ -281,10 +292,21 @@ function suggestionRatioText(ratio: number): string {
 	return `${Math.round(ratio * 100)}%`;
 }
 
-async function fetchSuggestionPayload(kind: string, speciesName: string): Promise<SuggestionPayload | undefined> {
+// レギュレーション未指定(null/空)なら横断集計、指定されていればそのレギュレーション限定の
+// subject_key('種族名|M-A')を引く。区切り文字 '|' は種族名に現れない(migrations/013参照)。
+function suggestionSubjectKey(speciesName: string, regulation: string | null): string {
+	return regulation ? `${speciesName}|${regulation}` : speciesName;
+}
+
+async function fetchSuggestionPayload(
+	kind: string,
+	speciesName: string,
+	regulation: string | null,
+): Promise<SuggestionPayload | undefined> {
 	if (!speciesName) return undefined;
+	const subjectKey = suggestionSubjectKey(speciesName, regulation);
 	try {
-		const res = await fetch(`/api/suggestions?kind=${kind}&subject_key=${encodeURIComponent(speciesName)}&limit=1`);
+		const res = await fetch(`/api/suggestions?kind=${kind}&subject_key=${encodeURIComponent(subjectKey)}&limit=1`);
 		if (!res.ok) return undefined;
 		const json = (await res.json()) as SuggestionApiResponse;
 		return json.data?.[0]?.payload;
@@ -392,7 +414,9 @@ let popularBuildSuggestionsToken = 0;
 // setupMovePickerWindow()が自分自身をここへ登録する(ウィンドウ未生成/未オープン時はno-op)。
 let onMoveSuggestionUpdated: (() => void) | null = null;
 
-export async function loadPopularBuildSuggestions(speciesName: string): Promise<void> {
+// regulation: 編集中の個体のレギュレーション(#regulation の値。未指定は null)。
+// 種族が変わったときだけでなくレギュレーションが変わったときにも呼び直す必要がある。
+export async function loadPopularBuildSuggestions(speciesName: string, regulation: string | null): Promise<void> {
 	const name = speciesName.trim();
 	const token = ++popularBuildSuggestionsToken;
 	if (!name) {
@@ -404,10 +428,10 @@ export async function loadPopularBuildSuggestions(speciesName: string): Promise<
 		return;
 	}
 	const [nature, item, tera, move] = await Promise.all([
-		fetchSuggestionPayload("popular_nature", name),
-		fetchSuggestionPayload("popular_item", name),
-		fetchSuggestionPayload("popular_tera", name),
-		fetchSuggestionPayload("popular_move", name),
+		fetchSuggestionPayload("popular_nature", name, regulation),
+		fetchSuggestionPayload("popular_item", name, regulation),
+		fetchSuggestionPayload("popular_tera", name, regulation),
+		fetchSuggestionPayload("popular_move", name, regulation),
 	]);
 	if (token !== popularBuildSuggestionsToken) return; // より新しい呼び出しに追い越された
 	lastNatureSuggestion = nature;
@@ -873,11 +897,51 @@ if (form) {
 		window.setTimeout(() => itemDropdownButton.classList.remove("is-autofilled"), 1400);
 		setItemLocked(true);
 	}
+	// 🔴 UI改修依頼(個体編集左パネル・レギュレーション対応、2026-08-01)。
+	// #regulation(2段目左の選択ボックス)は次の3つを駆動する:
+	//   ① テラスタル選択ボックス(2段目右、#tera-field)の表示/非表示
+	//   ② 未選択時の placeholder 表現(data-empty="true" → 破線・薄字。LeftPanel.astroのCSS)
+	//   ③ 人気度サジェストの母集団の切り替え(subject_key に '|レギュレーション' を足す)
+	// 保存(scheduleSave)は下の changeInputIds に "regulation" を足すことで行う。
+	const regulationSelect = el<HTMLSelectElement>("regulation");
+	const teraField = document.getElementById("tera-field");
+
+	function currentRegulation(): string | null {
+		const value = regulationSelect.value.trim();
+		return value === "" ? null : value;
+	}
+
+	// ①: レギュレーションが M-* のときはテラス欄を隠す(未指定・T-* のときは表示)。
+	// 隠すだけで #tera の値には触れない ── 別のレギュレーションに戻したときに
+	// 保存済みのテラスタイプがそのまま復帰するようにするため(値の破棄はしない、
+	// というユーザー確認 2026-08-01 の判断)。SSR側の初期状態は LeftPanel.astro の
+	// showTeraField が同じ関数(isTerastalRegulation)で決めている。
+	function syncTeraFieldVisibility(): void {
+		if (!teraField) return;
+		teraField.hidden = !isTerastalRegulation(currentRegulation());
+	}
+
+	// ②: <select> には :placeholder-shown が無いため、空のときだけ data-empty を付ける。
+	function syncRegulationPlaceholder(): void {
+		if (currentRegulation() === null) regulationSelect.dataset.empty = "true";
+		else delete regulationSelect.dataset.empty;
+	}
+
+	regulationSelect.addEventListener("change", () => {
+		syncTeraFieldVisibility();
+		syncRegulationPlaceholder();
+		// ③: レギュレーションが変わると人気度の母集団そのものが変わるため取り直す。
+		void loadPopularBuildSuggestions(speciesInput.value.trim(), currentRegulation());
+	});
+	// ページ初期表示時にも1回そろえる(SSRと同じ結果になるはずだが、二重管理にしない)。
+	syncTeraFieldVisibility();
+	syncRegulationPlaceholder();
+
 	speciesInput.addEventListener("change", () => {
 		void rebuildAbilityOptions(speciesInput.value.trim());
 		void applyLeftMegaStoneAutofill(speciesInput.value.trim());
 		// 匿名集計サジェスト機能・第5段階: 種族確定時に人気の性格/アイテム/テラス/技を取り直す。
-		void loadPopularBuildSuggestions(speciesInput.value.trim());
+		void loadPopularBuildSuggestions(speciesInput.value.trim(), currentRegulation());
 	});
 	void rebuildAbilityOptions(speciesInput.value.trim());
 	// ページ初期表示時点(SSRで埋め込まれた現在の種族名)で既にメガシンカ種族の場合、
@@ -885,7 +949,7 @@ if (form) {
 	void applyLeftMegaStoneAutofill(speciesInput.value.trim());
 	// 匿名集計サジェスト機能・第5段階: ページ初期化時(SSRで埋め込まれた現在の種族名)にも
 	// 1回呼ぶ。
-	void loadPopularBuildSuggestions(speciesInput.value.trim());
+	void loadPopularBuildSuggestions(speciesInput.value.trim(), currentRegulation());
 
 	// UI改善ラウンド25(25-L1/25-L2): テラスタイプ画像バッジ(#tera-image-badge)は25-L1で
 	// 廃止した。テラスタイプの視覚表現はテラスタイプ選択欄そのものに統合する。
@@ -1064,7 +1128,11 @@ if (form) {
 			nature: currentLeftNature(),
 			ability_name: el<HTMLSelectElement>("ability").value.trim(),
 			item_name: el<HTMLInputElement>("item").value.trim(),
+			// テラス欄が非表示(M-*)でも #tera の値はそのまま保存する。非表示は「このルールでは
+			// 使わない」という表示上の判断であって、保存済みの値を捨てる指示ではない
+			// (ユーザー確認 2026-08-01。別のレギュレーションに戻せば元の値が見える)。
 			tera_type: el<HTMLSelectElement>("tera").value,
+			regulation: el<HTMLSelectElement>("regulation").value,
 			evs: STAT_KEYS.map((k) => readEv(k)),
 			ivs: STAT_KEYS.map(() => 31),
 			move_names: readMoveNames(),
@@ -1189,7 +1257,7 @@ if (form) {
 		if (!target) continue;
 		target.addEventListener("input", scheduleSave);
 	}
-	const changeInputIds = ["tera", "ability"];
+	const changeInputIds = ["tera", "ability", "regulation"];
 	for (const id of changeInputIds) {
 		const target = document.getElementById(id);
 		if (!target) continue;

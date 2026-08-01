@@ -17,6 +17,10 @@
 export const prerender = false;
 
 import AppLayout from '../../layouts/AppLayout.astro';
+// 🔴 UI改修依頼(チームトップ画面、2026-08-01)「レギュレーションによるフィルタを追加」。
+// 候補は jpoke 由来の一覧(src/lib/regulations.ts)。画面側でレギュレーション名を
+// ハードコードしない(ボックス画面 box/index.astro と同じ方針)。
+import { REGULATIONS } from '../../lib/regulations';
 
 const user = Astro.locals.user;
 ---
@@ -83,6 +87,7 @@ const user = Astro.locals.user;
 			.toolbar-item { width: 100%; margin-left: 0; }
 			.toolbar-search { flex-basis: auto; }
 			.toolbar-search input,
+			.toolbar-regulation select,
 			.toolbar-sort select { width: 100%; min-width: 0; }
 		}
 
@@ -482,6 +487,18 @@ const user = Astro.locals.user;
 							</button>
 						</div>
 
+						{/* 🔴 UI改修依頼(チームトップ画面、2026-08-01)「レギュレーションによるフィルタを
+						    追加」。box/index.astroの#regulation-filterと同じ値・同じ番兵(__none__)を使う
+						    (2画面で絞り込みの語彙を揃える)。取得済みの一覧をクライアント側で絞る点も同じ。 */}
+						<div class="toolbar-item toolbar-regulation">
+							<label class="field-label" for="regulation-filter">レギュレーション</label>
+							<select id="regulation-filter" class="field-control">
+								<option value="">すべて</option>
+								{REGULATIONS.map((r) => <option value={r}>{r}</option>)}
+								<option value="__none__">未設定</option>
+							</select>
+						</div>
+
 						<div class="toolbar-item toolbar-sort">
 							<label class="field-label" for="sort-select">並べ替え</label>
 							<select id="sort-select" class="field-control">
@@ -553,6 +570,8 @@ const user = Astro.locals.user;
 			id: string;
 			name: string | null;
 			memo: string | null;
+			// レギュレーション(migrations/013_regulation.sql)。未指定は null。
+			regulation: string | null;
 			is_pinned: boolean;
 			created_at: string;
 			updated_at: string;
@@ -575,6 +594,8 @@ const user = Astro.locals.user;
 			const sortSelect = el<HTMLSelectElement>("sort-select");
 			const searchInput = el<HTMLInputElement>("search-input");
 			const favoriteFilterToggle = el<HTMLButtonElement>("favorite-filter-toggle");
+			// 🔴 UI改修依頼(チームトップ画面、2026-08-01)「レギュレーションによるフィルタを追加」。
+			const regulationFilter = el<HTMLSelectElement>("regulation-filter");
 			const addButton = el<HTMLButtonElement>("add-team-button");
 			const ADD_BUTTON_DEFAULT_HTML = addButton.innerHTML;
 
@@ -657,6 +678,16 @@ const user = Astro.locals.user;
 			// matchesFavoriteと同じ(絞り込み軸は「お気に入りのみ」の1つだけ)。
 			function matchesFavorite(t: Team): boolean {
 				return !favoriteOnly || t.is_pinned;
+			}
+
+			// 🔴 UI改修依頼(チームトップ画面、2026-08-01)「レギュレーションによるフィルタを追加」。
+			// ""=すべて / "__none__"=未設定のチームだけ / それ以外=そのレギュレーションのチームだけ
+			// (box/index.astro の matchesRegulation と同じ規則)。
+			function matchesRegulation(t: Team): boolean {
+				const selected = regulationFilter.value;
+				if (selected === "") return true;
+				if (selected === "__none__") return !t.regulation;
+				return t.regulation === selected;
 			}
 
 			// 設計レビューR-14: 名前順ソートでは無題チーム(name=null/空)を末尾にする。
@@ -819,7 +850,7 @@ const user = Astro.locals.user;
 
 			function renderList(): void {
 				const filtered = allTeams.filter(
-					(t) => matchesSearch(t, searchInput.value.trim()) && matchesFavorite(t),
+					(t) => matchesSearch(t, searchInput.value.trim()) && matchesFavorite(t) && matchesRegulation(t),
 				);
 				const sorted = sortTeams(filtered);
 				listRoot.innerHTML = "";
@@ -926,6 +957,7 @@ const user = Astro.locals.user;
 
 			sortSelect.addEventListener("change", renderList);
 			searchInput.addEventListener("input", renderList);
+			regulationFilter.addEventListener("change", renderList);
 			favoriteFilterToggle.addEventListener("click", () => {
 				favoriteOnly = !favoriteOnly;
 				favoriteFilterToggle.dataset.active = String(favoriteOnly);

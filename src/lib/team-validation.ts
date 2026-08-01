@@ -22,6 +22,10 @@ export interface TeamMemberInput {
 export interface TeamRequestBody {
   name: string | null;
   memo: string | null;
+  // レギュレーション(migrations/013_regulation.sql)。値は jpoke 由来の 'M-A' 等、未指定は null。
+  // owned-pokemon-validation.ts の regulation と同じく「任意の文字列 or null」としてしか
+  // 検証しない(マスタデータとの照合は純粋関数のこの層では行わない、というこのファイル既存の方針)。
+  regulation: string | null;
   members: TeamMemberInput[];
 }
 
@@ -37,7 +41,7 @@ export interface ValidateTeamRequestBodyOptions {
   mode?: 'replace';
 }
 
-const REPLACE_REQUIRED_FIELDS: Array<keyof TeamRequestBody> = ['name', 'memo', 'members'];
+const REPLACE_REQUIRED_FIELDS: Array<keyof TeamRequestBody> = ['name', 'memo', 'regulation', 'members'];
 
 const MIN_SLOT = 1;
 const MAX_SLOT = 6;
@@ -74,13 +78,16 @@ export function validateTeamRequestBody(
     }
   }
 
-  const { name, memo, members } = body as Record<string, unknown>;
+  const { name, memo, regulation, members } = body as Record<string, unknown>;
 
   if (name !== undefined && name !== null && typeof name !== 'string') {
     return { ok: false, error: 'name must be a string' };
   }
   if (memo !== undefined && memo !== null && typeof memo !== 'string') {
     return { ok: false, error: 'memo must be a string' };
+  }
+  if (regulation !== undefined && regulation !== null && typeof regulation !== 'string') {
+    return { ok: false, error: 'regulation must be a string' };
   }
 
   const normalizedMembers: TeamMemberInput[] = [];
@@ -124,6 +131,7 @@ export function validateTeamRequestBody(
     value: {
       name: typeof name === 'string' ? normalizeOptionalString(name) : null,
       memo: typeof memo === 'string' ? normalizeOptionalString(memo) : null,
+      regulation: typeof regulation === 'string' ? normalizeOptionalString(regulation) : null,
       members: normalizedMembers,
     },
   };

@@ -16,6 +16,11 @@ export interface OwnedPokemonRequestBody {
   ability_name: string | null;
   item_name: string | null;
   tera_type: string | null;
+  // レギュレーション(migrations/013_regulation.sql)。値は jpoke 由来の 'M-A' 等、未指定は null。
+  // nature/item_name/tera_type と同じく「任意の文字列 or null」としてしか検証しない
+  // (マスタデータとの照合はこの純粋関数の層では行わない、というこのファイル既存の流儀。
+  // 実際に送られる値の由来は src/lib/regulations.ts の REGULATIONS から描画した選択ボックスのみ)。
+  regulation: string | null;
   // Champions形式 [HP, 攻撃, 防御, 特攻, 特防, 素早さ]、各0〜32。省略時は全0(builds.evsと同形式)。
   evs: number[];
   // 同順、各0〜31。省略時は全31。
@@ -54,6 +59,7 @@ const REPLACE_REQUIRED_FIELDS: Array<keyof OwnedPokemonRequestBody> = [
   'ability_name',
   'item_name',
   'tera_type',
+  'regulation',
   'evs',
   'ivs',
   'move_names',
@@ -98,6 +104,7 @@ export function validateOwnedPokemonRequestBody(
     ability_name,
     item_name,
     tera_type,
+    regulation,
     evs,
     ivs,
     move_names,
@@ -134,6 +141,9 @@ export function validateOwnedPokemonRequestBody(
   if (tera_type !== undefined && tera_type !== null && typeof tera_type !== 'string') {
     return { ok: false, error: 'tera_type must be a string' };
   }
+  if (regulation !== undefined && regulation !== null && typeof regulation !== 'string') {
+    return { ok: false, error: 'regulation must be a string' };
+  }
   if (evs !== undefined && !isStatArray(evs, 32)) {
     return { ok: false, error: 'evs must be an array of 6 integers between 0 and 32' };
   }
@@ -163,6 +173,7 @@ export function validateOwnedPokemonRequestBody(
       ability_name: typeof ability_name === 'string' ? normalizeOptionalString(ability_name) : null,
       item_name: typeof item_name === 'string' ? normalizeOptionalString(item_name) : null,
       tera_type: typeof tera_type === 'string' ? normalizeOptionalString(tera_type) : null,
+      regulation: typeof regulation === 'string' ? normalizeOptionalString(regulation) : null,
       evs: (evs as number[] | undefined) ?? DEFAULT_EVS,
       ivs: (ivs as number[] | undefined) ?? DEFAULT_IVS,
       move_names: (move_names as string[] | undefined) ?? [],

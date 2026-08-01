@@ -10,11 +10,20 @@
 import type { OwnedPokemonRecord } from '../../lib/owned-pokemon';
 import { TERA_TYPES } from '../../lib/tera-types';
 import { NATURE_STAT_MODIFIERS } from '../../lib/stats';
+import { REGULATIONS, REGULATION_PLACEHOLDER, isTerastalRegulation } from '../../lib/regulations';
 
 interface Props {
 	pokemon: OwnedPokemonRecord;
 }
 const { pokemon } = Astro.props;
+
+// 🔴 UI改修依頼(個体編集左パネル・レギュレーション対応、2026-08-01)
+// 「レギュレーション "T-<n>" のときだけ、2段目の右側にテラスタル選択ボックスを表示」+
+// ユーザー確認(同日)「レギュレーション未指定のときは従来どおり表示、M-* のときだけ非表示」。
+// SSR時点の初期表示をここで決め、以後の切り替えは #regulation の change ハンドラ
+// (src/lib/box-id/left-panel.ts の syncTeraFieldVisibility)が担う。
+// 非表示にしても tera_type の保存値には触れない(M-* を選んで戻せば元の値が復帰する)。
+const showTeraField = isTerastalRegulation(pokemon.regulation);
 
 // ラウンド48ユーザー追加指示(A-7)「性格の欄から性格を直接変更できるようにする」用の
 // <datalist>候補。NATURE_STAT_MODIFIERSのキー(25種類、まじめ等の補正なし5種を含む)を
@@ -147,6 +156,19 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 			    アイコン領域(.top-block-icon)の下段に移動した(横並び2カラム→縦積み2段。
 			    空いた全幅を活かすため2列グリッドに詰める。#species-name/#nickname/#ability/
 			    #nature-readout-valueのid・値・保存経路は一切変えていない)。 */}
+			{/* 🔴 UI改修依頼(個体編集左パネル・レギュレーション対応、2026-08-01)により、この
+			    入力欄グリッド(.top-block-fields)を2列×3段に組み替えた:
+			      1段目 種族 / ニックネーム
+			      2段目 レギュレーション / テラスタル(レギュレーションが T-<n> のときだけ表示)
+			      3段目 特性 / 持ち物
+			    ・「性格ボックスを廃止。性格はステータス表の1列目のヘッダーとする(種族値、の左側)」
+			      により、ここにあった性格欄(#nature-readout-value)は下の.stat-table-header内へ
+			      移設した(id・datalist・保存経路・left-panel.ts側のハンドラは一切変えていない。
+			      DOM上の位置だけが変わった)。
+			    ・「特性とアイテムを3段目に並べて配置」により、持ち物+テラスの独立行だった
+			      .field-grid-single(28-L4)を解体し、持ち物はこのグリッドの3段目右へ、
+			      テラスは2段目右へ移した(#item/#tera とドロップダウン一式のマークアップ・idは
+			      そのまま。DOM上の位置だけが変わった)。 */}
 			<div class="top-block-fields">
 				<div class="field">
 					<input
@@ -166,6 +188,58 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 					<input id="nickname" class="field-control" type="text" autocomplete="off" placeholder="ニックネーム" aria-label="ニックネーム" value={pokemon.nickname ?? ""} />
 				</div>
 				<div class="field">
+					{/* 🔴 UI改修依頼(2026-08-01)「2段目の左側(種族名の下)にレギュレーションの選択
+					    ボックスを追加。なし、を指定するためにplaceholder "レギュレーション" のままを
+					    許容する」。候補は src/lib/regulations.ts の REGULATIONS(jpokeの
+					    jpoke.types.Regulation から build:master-data で生成)。アプリ側で
+					    レギュレーション名をハードコードしない。
+					    「なし」は value="" の先頭optionが担い、保存時は null に正規化される
+					    (owned-pokemon-validation.ts の normalizeOptionalString)。未選択のときだけ
+					    data-empty="true" が付き、他の未入力欄(placeholder表示)と同じ破線・
+					    薄い文字色になる(下のCSS / left-panel.ts の syncRegulationPlaceholder)。 */}
+					<select id="regulation" class="field-control" aria-label="レギュレーション" data-empty={pokemon.regulation ? undefined : "true"}>
+						<option value="">{REGULATION_PLACEHOLDER}</option>
+						{REGULATIONS.map((r) => <option value={r} selected={pokemon.regulation === r}>{r}</option>)}
+					</select>
+				</div>
+				<div class="field field-tera" id="tera-field" hidden={!showTeraField}>
+					{/* UI改善ラウンド28ユーザー指示(28-L4)により、旧.top-block-icon-info内にあった
+					    テラスタル選択ボックス一式をここへ移設した(マークアップはラウンド25(25-L2)当時と
+					    ほぼ同じ、.top-block-tera-wrap(帯専用の固定幅170pxオーバーライド)は不要になった
+					    ため外した)。ボタンの中身は28-G1で専用アイコン(正方形)に変わったことに伴い、
+					    アイコン+テラスタイプ名のテキストを並べる形にする(<script>のupdateTeraDropdownButton
+					    参照。未設定時は従来どおり「テラスなし」のplaceholder)。 */}
+					<div class="field-with-image tera-dropdown-wrap">
+						<select id="tera" aria-label="テラスタイプ" title="テラスタイプ" hidden>
+							<option value="">テラスタルなし</option>
+							{TERA_TYPES.map((t) => <option value={t} selected={pokemon.tera_type === t}>{t}</option>)}
+						</select>
+						<button
+							type="button"
+							id="tera-dropdown-button"
+							class="tera-dropdown-button"
+							aria-haspopup="listbox"
+							aria-expanded="false"
+						>
+							<img id="tera-dropdown-image" class="tera-dropdown-image" alt="" style="display:none;" />
+							<span id="tera-dropdown-placeholder" class="tera-dropdown-placeholder">テラスタルなし</span>
+						</button>
+						<ul
+							id="tera-dropdown-list"
+							class="tera-dropdown-list"
+							role="listbox"
+							aria-label="テラスタイプを選択"
+							hidden
+						>
+						</ul>
+					</div>
+					{/* 🔴 UI改修依頼(個体編集左パネル、2026-08-01)により、ここにあった常時表示の
+					    ヒント段落(#tera-suggestion-hint)は撤去した。人気のテラスタイプは
+					    #tera-dropdown-list(上記.tera-dropdown-wrap内)の並び順・候補テキストへの
+					    "(NN%)"併記に反映する形に変更した(<script>のapplyTeraSuggestionOrdering、
+					    left-panel.ts参照)。 */}
+				</div>
+				<div class="field field-ability">
 					{/* ラウンド21ユーザー指示(21-L5)「特性はそのポケモンに属する特性だけを候補と
 					    する選択ボックスにする」により<input list=...>から<select>へ置き換える。
 					    <script>のrebuildAbilityOptions()が種族確定後にloadAbilitiesMap()から
@@ -177,154 +251,71 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 					</select>
 				</div>
 				<div class="field">
-					{/* ラウンド23ユーザー指示(23-L2)「性格は、特性の下に入力ボックスを配置する。
-					    ただし入力不可にしておき自動決定の仕組みを続投。」ラウンド21(21-L4)は
-					    「<input readonly>にしない、操作できる部品に見えると疑問を生む」と
-					    明記していた。
-					    🔴 ラウンド48ユーザー追加指示(2026-07-31、A-7)「性格の欄から性格を
-					    直接変更できるようにする。ステータスも連動して変更する。」により、
-					    23-L2の「入力不可(readonly)」判断をここで撤回し、readonly/tabindex
-					    を外して直接編集可能にする(21-L4「readonlyにしない」の判断が結果的に
-					    再び有効になった形)。▲/▼ボタンによる上昇/下降切り替え方式は残したまま、
-					    この入力欄からも直接性格名を入力できるようにする(両方から同じ状態=
-					    leftNatureUp/leftNatureDownを操作する)。
-					    候補は#nature-list<datalist>(25種類、NATURE_STAT_MODIFIERSのキー)。
-					    <script>のchangeハンドラ(left-panel.ts)が、入力値がNATURE_STAT_MODIFIERS
-					    に実在する性格名ならleftNatureUp/leftNatureDownを上書きしてrefreshNatureButtons/
-					    recalcStats/scheduleSaveを呼ぶ。実在しない文字列が入力された場合は
-					    currentLeftNature()の値に戻す(不正値を保存しない)。
-					    保存ペイロード(buildPayload)は引き続きcurrentLeftNature()から性格名を
-					    取る(二重管理を避ける設計自体は維持)。 */}
-					<input
-						id="nature-readout-value"
-						class="field-control"
-						type="text"
-						list="nature-list"
-						autocomplete="off"
-						aria-label="性格(直接入力するか、各ステータス見出し横の上昇/下降ボタンで変更できます)"
-						placeholder="性格"
-					/>
-					<datalist id="nature-list">
-						{NATURE_NAMES.map((name) => <option value={name} />)}
-					</datalist>
+					{/* UI改善ラウンド41ユーザー指示(41-L1)「アイテム選択ボックスもテラスタルと同様に、
+					    選択肢をアイコン+テキストで表示」。テラスドロップダウン(#tera-dropdown-*、下記
+					    tera-dropdown-wrap参照)一式を参照実装にする。保存経路(buildPayloadが参照する
+					    #itemの値)は変えない: #item自体(<input type="text">)を実体として残し、
+					    テラスの#tera(隠しselect)と同じくhidden化する(#item-list<datalist>自体は
+					    右パネル等が引き続き使う可能性があるため削除しない)。
+					    テラス(19種)と違いアイテムは候補が数百件規模(#item-listの候補元、
+					    <script>のgetItemOptionNames参照)のため、テラスと同じ全件表示ではなく
+					    開いたときに絞り込み入力(#item-dropdown-search)付きの一覧を作る
+					    (既存の「アイテム名を打って絞り込む」操作性を維持するため)。
+					    アイコン解決はshared-core.tsの共有関数applyItemImage()をコピーせず
+					    そのまま再利用する(<script>のupdateItemDropdownButton/
+					    buildItemDropdownOptions参照)。 */}
+					<div class="field-with-image item-dropdown-wrap">
+						<input id="item" type="text" list="item-list" autocomplete="off" aria-label="持ち物" value={pokemon.item_name ?? ""} title={pokemon.item_name ?? ""} hidden />
+						<button
+							type="button"
+							id="item-dropdown-button"
+							class="item-dropdown-button"
+							aria-haspopup="listbox"
+							aria-expanded="false"
+						>
+							<img id="item-dropdown-image" class="item-dropdown-image" alt="" style="display:none;" />
+							<span id="item-dropdown-placeholder" class="item-dropdown-placeholder">持ち物なし</span>
+						</button>
+						<div id="item-dropdown-panel" class="item-dropdown-panel" hidden>
+							<input
+								type="text"
+								id="item-dropdown-search"
+								class="item-dropdown-search"
+								placeholder="アイテム名で絞り込み"
+								aria-label="持ち物候補を絞り込み"
+								autocomplete="off"
+							/>
+							<ul
+								id="item-dropdown-list"
+								class="item-dropdown-list"
+								role="listbox"
+								aria-label="持ち物を選択"
+							>
+							</ul>
+						</div>
+					</div>
+					{/* 🔴 UI改修依頼(個体編集左パネル、2026-08-01)により、ここにあった常時表示の
+					    ヒント段落(#item-suggestion-hint)は撤去した。人気の持ち物は
+					    #item-dropdown-list(上記.item-dropdown-wrap内)の並び順・候補テキストへの
+					    "(NN%)"併記に反映する形に変更した(<script>のapplyItemSuggestionOrdering、
+					    left-panel.ts参照)。ヒント削除に伴い、縦積み用の場繰り扱いクラス
+					    (field-with-suggestion)も不要になったため、この.fieldは通常の.field
+					    (global.cssの行方向レイアウト)に戻した。 */}
 				</div>
 			</div>
 			{/* 🔴 UI改修依頼(個体編集左パネル、2026-08-01)「サジェストはリストボックスの候補に
 			    反映し、パネルに常時表示しない」により、ここにあった常時表示のヒント段落
 			    (#nature-suggestion-hint)は撤去した。人気の性格は#nature-list<datalist>
-			    (下の.top-block-fields内、#nature-readout-value)の並び順・label属性(作用率)
-			    に反映する形に変更した(<script>のapplyNatureSuggestionOrdering、
-			    left-panel.ts参照)。 */}
+			    (レギュレーション対応の改修で下の.stat-table-header内へ移設した
+			    #nature-readout-value が参照する)の並び順・label属性(作用率)に反映する形に
+			    変更した(<script>のapplyNatureSuggestionOrdering、left-panel.ts参照)。 */}
 		</div>
 
-		{/* ラウンド5ユーザー指示: ラベル要素は撤去しplaceholder + aria-labelに統一する。
-		    ラウンド11(11-2): アイテム画像は種族アイコンへ移設済みで、ここには入力欄のみを残す。
-		    🔴 UI改善ラウンド28ユーザー指示(28-L4)「テラスタル選択ボックスはアイテム入力欄の
-		    右側に配置」により、ラウンド26(26-L2)「テラスタイプ画像(カスタムドロップダウン)を
-		    アイコン領域内に移設する」を撤回する(ラウンド25で入力行にあった状態に戻す形になる。
-		    帯の中央配置(28-L1)の邪魔になっていたことと、ユーザーが入力欄として扱いたい意図の
-		    両方が理由)。#tera(<select>)+#tera-dropdown-*一式(ウィジェットのロジック=開閉・選択・
-		    保存は<script>のbuildTeraDropdown参照、一切変えていない)を、この行(持ち物入力欄)の
-		    右側へ移動する。IDは変えていない、DOM上の位置だけが変わった。この行は持ち物+テラスの
-		    2列になるため、.field-grid-single(クラス名はそのまま維持)を2列グリッドに戻す
-		    (下のCSS参照。列幅は.top-block-fields/.move-fields-gridと同じ.field-gridの基本定義
-		    repeat(2, minmax(0, 1fr))に揃う)。 */}
-		<div class="field-grid field-grid-single">
-			<div class="field">
-				{/* UI改善ラウンド41ユーザー指示(41-L1)「アイテム選択ボックスもテラスタルと同様に、
-				    選択肢をアイコン+テキストで表示」。テラスドロップダウン(#tera-dropdown-*、下記
-				    tera-dropdown-wrap参照)一式を参照実装にする。保存経路(buildPayloadが参照する
-				    #itemの値)は変えない: #item自体(<input type="text">)を実体として残し、
-				    テラスの#tera(隠しselect)と同じくhidden化する(#item-list<datalist>自体は
-				    右パネル等が引き続き使う可能性があるため削除しない)。
-				    テラス(19種)と違いアイテムは候補が数百件規模(#item-listの候補元、
-				    <script>のgetItemOptionNames参照)のため、テラスと同じ全件表示ではなく
-				    開いたときに絞り込み入力(#item-dropdown-search)付きの一覧を作る
-				    (既存の「アイテム名を打って絞り込む」操作性を維持するため)。
-				    アイコン解決はshared-core.tsの共有関数applyItemImage()をコピーせず
-				    そのまま再利用する(<script>のupdateItemDropdownButton/
-				    buildItemDropdownOptions参照)。 */}
-				<div class="field-with-image item-dropdown-wrap">
-					<input id="item" type="text" list="item-list" autocomplete="off" aria-label="持ち物" value={pokemon.item_name ?? ""} title={pokemon.item_name ?? ""} hidden />
-					<button
-						type="button"
-						id="item-dropdown-button"
-						class="item-dropdown-button"
-						aria-haspopup="listbox"
-						aria-expanded="false"
-					>
-						<img id="item-dropdown-image" class="item-dropdown-image" alt="" style="display:none;" />
-						<span id="item-dropdown-placeholder" class="item-dropdown-placeholder">持ち物なし</span>
-					</button>
-					<div id="item-dropdown-panel" class="item-dropdown-panel" hidden>
-						<input
-							type="text"
-							id="item-dropdown-search"
-							class="item-dropdown-search"
-							placeholder="アイテム名で絞り込み"
-							aria-label="持ち物候補を絞り込み"
-							autocomplete="off"
-						/>
-						<ul
-							id="item-dropdown-list"
-							class="item-dropdown-list"
-							role="listbox"
-							aria-label="持ち物を選択"
-						>
-						</ul>
-					</div>
-				</div>
-				{/* 🔴 UI改修依頼(個体編集左パネル、2026-08-01)により、ここにあった常時表示の
-				    ヒント段落(#item-suggestion-hint)は撤去した。人気の持ち物は
-				    #item-dropdown-list(上記.item-dropdown-wrap内)の並び順・候補テキストへの
-				    "(NN%)"併記に反映する形に変更した(<script>のapplyItemSuggestionOrdering、
-				    left-panel.ts参照)。ヒント削除に伴い、縦積み用の場繰り扱いクラス
-				    (field-with-suggestion)も不要になったため、この.fieldは通常の.field
-				    (global.cssの行方向レイアウト)に戻した。 */}
-			</div>
-			<div class="field">
-				{/* UI改善ラウンド28ユーザー指示(28-L4)により、旧.top-block-icon-info内にあった
-				    テラスタル選択ボックス一式をここへ移設した(マークアップはラウンド25(25-L2)当時と
-				    ほぼ同じ、.top-block-tera-wrap(帯専用の固定幅170pxオーバーライド)は不要になった
-				    ため外した)。ボタンの中身は28-G1で専用アイコン(正方形)に変わったことに伴い、
-				    アイコン+テラスタイプ名のテキストを並べる形にする(<script>のupdateTeraDropdownButton
-				    参照。未設定時は従来どおり「テラスなし」のplaceholder)。 */}
-				<div class="field-with-image tera-dropdown-wrap">
-					<select id="tera" aria-label="テラスタイプ" title="テラスタイプ" hidden>
-						<option value="">テラスタルなし</option>
-						{TERA_TYPES.map((t) => <option value={t} selected={pokemon.tera_type === t}>{t}</option>)}
-					</select>
-					<button
-						type="button"
-						id="tera-dropdown-button"
-						class="tera-dropdown-button"
-						aria-haspopup="listbox"
-						aria-expanded="false"
-					>
-						<img id="tera-dropdown-image" class="tera-dropdown-image" alt="" style="display:none;" />
-						<span id="tera-dropdown-placeholder" class="tera-dropdown-placeholder">テラスタルなし</span>
-					</button>
-					<ul
-						id="tera-dropdown-list"
-						class="tera-dropdown-list"
-						role="listbox"
-						aria-label="テラスタイプを選択"
-						hidden
-					>
-					</ul>
-				</div>
-				{/* 🔴 UI改修依頼(個体編集左パネル、2026-08-01)により、ここにあった常時表示の
-				    ヒント段落(#tera-suggestion-hint)は撤去した。人気のテラスタイプは
-				    #tera-dropdown-list(上記.tera-dropdown-wrap内)の並び順・候補テキストへの
-				    "(NN%)"併記に反映する形に変更した(<script>のapplyTeraSuggestionOrdering、
-				    left-panel.ts参照)。 */}
-			</div>
-		</div>
+		{/* 🔴 UI改修依頼(個体編集左パネル・レギュレーション対応、2026-08-01)により、ここにあった
+		    持ち物+テラスタルの独立行(.field-grid.field-grid-single、28-L4で作った行)は解体した。
+		    持ち物は上の.top-block-fieldsの3段目右(特性の隣)へ、テラスタルは2段目右へ移設している
+		    (マークアップ・idはそのまま移動しただけ)。 */}
 
-		{/* ラウンド23ユーザー指示(23-L2)により、性格の読み取り専用表示は特性の直下
-		    (.top-block-fields内の#nature-readout-value<input readonly>)へ移設した。
-		    ここにあった<p class="nature-readout">は撤去済み(値の更新先はJSで
-		    id="nature-readout-value"のまま維持しているため<script>は変更不要)。 */}
 
 		{/* UI改善ラウンド26ユーザー指示(26-L3)「アイテム段と技段の間にも横棒を配置」。
 		    既存の区切り線トークン(border-top: 1px solid var(--color-border)、
@@ -395,7 +386,50 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 
 		<div class="stat-table">
 			<div class="stat-table-header">
-				<span></span>
+				{/* 🔴 UI改修依頼(個体編集左パネル、2026-08-01)「性格ボックスを廃止。性格は
+				    ステータス表の1列目のヘッダーとする(種族値、の左側)」。上の.top-block-fields内に
+				    あった性格欄をここ(ヘッダー1列目、それまで空の<span>だったセル)へ移設した。
+				    id="nature-readout-value"・#nature-list<datalist>・left-panel.tsのchangeハンドラ
+				    (NATURE_STAT_MODIFIERSとの完全一致で検証し、不一致なら現在値に戻す)・
+				    refreshNatureButtons()の書き戻し先・applyNatureSuggestionOrdering()が並べ替える
+				    対象は一切変えていない。DOM上の位置だけが変わった。
+				    ▲/▼ボタン(各能力値行の左端)との併用も従来どおり(両方が同じ
+				    leftNatureUp/leftNatureDownを操作する)。
+				    列幅5rem(下の.stat-table-header/.stat-rowのgrid-template-columns 1列目)に
+				    「うっかりや」等の5文字が収まるよう、この入力欄だけ文字と余白を詰める
+				    (下の.stat-table-header-nature参照)。 */}
+				<span class="stat-table-header-nature">
+					{/* ラウンド23ユーザー指示(23-L2)「性格は、特性の下に入力ボックスを配置する。
+					    ただし入力不可にしておき自動決定の仕組みを続投。」ラウンド21(21-L4)は
+					    「<input readonly>にしない、操作できる部品に見えると疑問を生む」と
+					    明記していた。
+					    🔴 ラウンド48ユーザー追加指示(2026-07-31、A-7)「性格の欄から性格を
+					    直接変更できるようにする。ステータスも連動して変更する。」により、
+					    23-L2の「入力不可(readonly)」判断をここで撤回し、readonly/tabindex
+					    を外して直接編集可能にする(21-L4「readonlyにしない」の判断が結果的に
+					    再び有効になった形)。▲/▼ボタンによる上昇/下降切り替え方式は残したまま、
+					    この入力欄からも直接性格名を入力できるようにする(両方から同じ状態=
+					    leftNatureUp/leftNatureDownを操作する)。
+					    候補は#nature-list<datalist>(25種類、NATURE_STAT_MODIFIERSのキー)。
+					    <script>のchangeハンドラ(left-panel.ts)が、入力値がNATURE_STAT_MODIFIERS
+					    に実在する性格名ならleftNatureUp/leftNatureDownを上書きしてrefreshNatureButtons/
+					    recalcStats/scheduleSaveを呼ぶ。実在しない文字列が入力された場合は
+					    currentLeftNature()の値に戻す(不正値を保存しない)。
+					    保存ペイロード(buildPayload)は引き続きcurrentLeftNature()から性格名を
+					    取る(二重管理を避ける設計自体は維持)。 */}
+					<input
+						id="nature-readout-value"
+						class="field-control"
+						type="text"
+						list="nature-list"
+						autocomplete="off"
+						aria-label="性格(直接入力するか、各ステータス見出し横の上昇/下降ボタンで変更できます)"
+						placeholder="性格"
+					/>
+					<datalist id="nature-list">
+						{NATURE_NAMES.map((name) => <option value={name} />)}
+					</datalist>
+				</span>
 				<span>種族値</span>
 				{/* ラウンド3 B-10: スライダーと数値入力を別グリッド列に分けたため(scoped
 				    <style>の.stat-row参照)、この見出しはgrid-column:span 2で両方の
@@ -584,8 +618,8 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	   (どちらか一方だけ変更しないこと)。 */
 	.stat-table-header {
 		display: grid;
-		grid-template-columns: 5rem 2.6rem minmax(0, 1fr) 3.2rem 3.4rem;
-		gap: 0.6rem;
+		grid-template-columns: 6.4rem 2.4rem minmax(0, 1fr) 3.2rem 3.2rem;
+		gap: 0.5rem;
 		/* UI統一感レビュー(32-U-B1): 同じ行内の.ev-remaining(「残りN」)が持つ
 		   共通トークンvar(--font-size-xs)(12px)に対し、ここだけ直値0.78rem(12.48px)
 		   だった。共通トークンを持つ側を基準に寄せる(太さ600/700の差は階層差として維持)。 */
@@ -627,6 +661,44 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	.stat-table-header-ev-remaining {
 		text-align: center;
 	}
+	/* 🔴 UI改修依頼(個体編集左パネル、2026-08-01)「性格ボックスを廃止。性格はステータス表の
+	   1列目のヘッダーとする(種族値、の左側)」。それまで空だったヘッダー1列目のセルに
+	   性格入力欄(#nature-readout-value、上の.top-block-fieldsから移設)を入れる。
+	   列幅は5rem(=80px、.stat-table-header/.stat-rowのgrid-template-columns 1列目)で
+	   変えていない ── 列幅を広げるとその分だけ操作対象であるスライダー列(3列目)が痩せる
+	   (ラウンド12指摘A-3の経緯)ため、代わりにこの入力欄側の文字と余白を詰めて
+	   最長の性格名(「うっかりや」等5文字)が収まるようにする。
+	   ヘッダー自身のfont-size(var(--font-size-xs)=12px)をそのまま継承すると
+	   20-G3の文字下限12pxちょうどで読みにくいので、この入力欄だけ0.82remに上げる。 */
+	.stat-table-header-nature {
+		display: flex;
+		align-items: center;
+		min-width: 0;
+	}
+	.stat-table-header-nature > input {
+		width: 100%;
+		min-width: 0;
+		margin: 0;
+		/* 高さ: global.cssの input { min-height: 2.35rem } は見出し行には高すぎるため、
+		   この1箇所だけ詰める(見出し行が能力値6行ぶんの高さを圧迫しないようにする)。 */
+		min-height: 0;
+		/* 実測(1920x1080、Playwrightで scrollWidth を測定、2026-08-01):
+		   「いじっぱり」(最長クラスの性格名、5文字)の描画幅は font-size 13.12px に対して
+		   83.5px = 1.27em/文字だった(等幅1emではなく、フォールバックフォントのCJK字形が
+		   広い)。padding(0.3em×2=7.9px)+border(2px)を足すと必要幅は約93px になり、
+		   従来の1列目5rem(80px)には文字サイズを12px下限(20-G3)まで下げても収まらない
+		   (12pxでも約85px必要)。そのため上の grid-template-columns で1列目を
+		   5rem→6.4rem(102px)に広げた。差分の吸収先は 種族値 2.6→2.4rem・
+		   実数値 3.4→3.2rem・gap 0.6→0.5rem で、スライダー列(3列目)の実損は約10pxに
+		   留めている(ラウンド12指摘A-3「スライダー列を痩せさせない」を尊重)。
+		   文字サイズはヘッダー既定(--font-size-xs=12px)よりわずかに大きい0.82remに
+		   保ち、値であることを読み取りやすくする。 */
+		font-size: 0.82rem;
+		font-weight: 400;
+		padding: 0.3em;
+		text-align: center;
+		text-overflow: ellipsis;
+	}
 	/* ラウンド24ユーザー指示(24-L4)対応: 「残りN」(.stat-table-header-ev-remaining)だけを
 	   中央揃え化の対象から除外する。「努力値」(.stat-table-header-ev-label)は他の見出しと
 	   同じ挙動でよいため、あえて:not()の対象に加えない(=下のルールで自動的に中央揃えになる)。
@@ -651,9 +723,9 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		display: grid;
 		/* ラウンド12指摘(A-3): .stat-table-header と必ず同じ値にすること(上のヘッダ側の
 		   コメント参照。ラウンド8 A-4のem解釈ずれ事故の再発防止)。 */
-		grid-template-columns: 5rem 2.6rem minmax(0, 1fr) 3.2rem 3.4rem;
+		grid-template-columns: 6.4rem 2.4rem minmax(0, 1fr) 3.2rem 3.2rem;
 		align-items: center;
-		gap: 0.6rem;
+		gap: 0.5rem;
 	}
 	/* display:contents でこのラッパー自身をレイアウトツリーから消し、中のスライダー/数値入力を
 	   .stat-row の直接の子(=グリッドアイテム)にする。こうしないと両方が3列目(1fr)に
@@ -956,6 +1028,30 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	   margin:0の徹底に置き換わっただけで引き続き解消されたままになる。 */
 	#edit-form .top-block-fields .field { margin: 0; }
 
+	/* 🔴 UI改修依頼(個体編集左パネル・レギュレーション対応、2026-08-01)
+	   テラス欄(2段目右)はレギュレーションによって出たり消えたりする。消えたときに
+	   grid の自動配置が繰り上がって「特性が2段目右へ、持ち物が3段目左へ」とずれてしまうのを
+	   防ぐため、3段目の先頭(特性)だけ列を固定する。grid-column:1 を指定した項目は
+	   1列目にしか置かれないので、2段目1列目(レギュレーション)が埋まっている以上
+	   必ず3段目1列目に落ちる。テラス欄が表示されている通常時の配置も変わらない。
+	   狭幅時(下の @media で grid-template-columns:1fr になる)は 1列しか無いため無害。 */
+	#edit-form .top-block-fields > .field-ability { grid-column: 1; }
+
+	/* [hidden] は display:flex を持つ .field(global.css)に詳細度で負けるため明示する
+	   (pitfalls.md「[hidden]が効かない」)。テラス欄の表示切り替えは
+	   left-panel.ts の syncTeraFieldVisibility が hidden 属性で行う。 */
+	#edit-form .top-block-fields > .field[hidden] { display: none; }
+
+	/* レギュレーション選択ボックスの「未選択」表現。他の未入力欄
+	   (#edit-form input:placeholder-shown:not(:focus) の破線+透明背景)と揃える。
+	   <select> には :placeholder-shown が無いので、値が空のときだけ JS/SSR が付ける
+	   data-empty="true" を使う(left-panel.ts の syncRegulationPlaceholder)。 */
+	#edit-form #regulation[data-empty="true"]:not(:focus) {
+		border-style: dashed;
+		background: transparent;
+		color: var(--color-text-muted);
+	}
+
 	/* ラウンド5ユーザー指示: 第4弾でラベル(.field-label)を復活させたが「ラベルをやめ
 	   placeholderにする」という撤回指示により、ここでは .field は単なる幅100%の
 	   コンテナとして使う(ラベルが無いのでflexの単一子として自然に振る舞う)。 */
@@ -1029,9 +1125,11 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	   自身のmargin-bottom(基底#edit-form .field-gridの0.5rem)を0にし、直後の
 	   .field-grid.move-fields-gridとの間隔を後者のmargin-topだけで一元管理する
 	   (#edit-formがflexコンテナのためマージン相殺が起きない、上のコメント参照)。 */
-	#edit-form .field-grid.field-grid-single {
-		margin-bottom: 0;
-	}
+	/* 🔴 レギュレーション対応の改修(2026-08-01)で .field-grid-single(持ち物/テラス行)自体を
+	   解体したため、この打ち消しルールは対象を失った。技グリッド(.move-fields-grid)の
+	   直前は .top-block(margin-bottom を持たない)になり、間隔は引き続き
+	   .move-fields-grid の margin-top(1.5rem)だけで決まるので、31-L7 の
+	   「gap(b)(c)を同値にする」意図はそのまま保たれる。ルールは削除した。 */
 	/* ラウンド21ユーザー指示(21-L6)で導入した.field-span-all(テラスタイプ欄が19タイプの
 	   アイコンを並べるため2列目の狭い幅に収まらず、grid-column: 1 / -1で自分の行を占有する
 	   ためのクラス)は、ラウンド23(23-L3)でテラスタイプを<select>に戻したことで不要になった
@@ -1039,8 +1137,15 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	   定義も削除した。 */
 	/* 2列に詰めたぶん1つあたりの幅が狭いので、この左パネル内だけ文字と余白を少し詰めて
 	   「ブーストエナジー」「こだいかっせい」クラスの長さが枠内に収まるようにする。 */
+	/* 🔴 レギュレーション対応の改修(2026-08-01)で持ち物・テラスの一式(.field-with-image)が
+	   .field-grid.field-grid-single から .top-block-fields へ移ったため、以下の
+	   「.field-grid配下の.field-with-image」向けルール3組は .top-block-fields 配下にも
+	   同じように効かせる必要がある(セレクタに片方しか書かないと、持ち物/テラスだけ
+	   幅100%が効かず内容幅に収縮する・フォントが他の入力欄と揃わない、という形で崩れる)。 */
 	#edit-form .field-grid .field-with-image > input,
-	#edit-form .field-grid .field-with-image > select {
+	#edit-form .field-grid .field-with-image > select,
+	#edit-form .top-block-fields .field-with-image > input,
+	#edit-form .top-block-fields .field-with-image > select {
 		min-width: 0;
 		width: 100%;
 		margin: 0;
@@ -1053,7 +1158,8 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	/* ドロップダウン統一(ラウンド4): 上のpadding(shorthand)がpadding-rightも
 	   0.6emに戻してしまうため、矢印ぶんの余白をselectだけ広げ直す(このルールが
 	   後ろにあるので勝つ)。 */
-	#edit-form .field-grid .field-with-image > select {
+	#edit-form .field-grid .field-with-image > select,
+	#edit-form .top-block-fields .field-with-image > select {
 		padding-right: 1.8em;
 	}
 	/* 入力欄の右に画像(持ち物・テラス)や補助リンク(技の詳細)を並べる行。
@@ -1069,7 +1175,8 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	   (164px)の右端が列幅195pxに対してバラバラだった。.field-gridの直下(.field経由)にある
 	   ものだけ、列幅いっぱいに伸びるようflex/width/min-widthを明示する(左パネルの外で
 	   .field-with-imageが別の使われ方をしていないか確認した上でセレクタをこの階層に絞る)。 */
-	#edit-form .field-grid > .field > .field-with-image { flex: 1 1 auto; width: 100%; min-width: 0; }
+	#edit-form .field-grid > .field > .field-with-image,
+	#edit-form .top-block-fields > .field > .field-with-image { flex: 1 1 auto; width: 100%; min-width: 0; }
 
 	/* UI改善ラウンド23(23-G3): メガシンカ種族選択時に持ち物をメガストーンへ自動設定した
 	   ことを示す一時的なハイライト(JSがis-autofilledクラスを付け、約1.4秒後に自動で外す。

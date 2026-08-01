@@ -36,6 +36,8 @@ export interface OwnedPokemonRecord {
   ability_name: string | null;
   item_name: string | null;
   tera_type: string | null;
+  // レギュレーション(migrations/013_regulation.sql)。'M-A' 等、未指定は null。
+  regulation: string | null;
   evs: number[];
   ivs: number[];
   move_names: string[];
@@ -85,7 +87,7 @@ export interface ListOwnedPokemonOptions {
 export type OwnedPokemonResult<T> = { ok: true; data: T } | { ok: false; error: string };
 
 const OWNED_POKEMON_COLUMNS =
-  'id, user_id, nickname, species_name, level, nature, ability_name, item_name, tera_type, evs, ivs, move_names, memo, tags, is_pinned, source_build_slug, share_slug, is_public, created_at, updated_at, last_used_at, collection_opt_out_until';
+  'id, user_id, nickname, species_name, level, nature, ability_name, item_name, tera_type, regulation, evs, ivs, move_names, memo, tags, is_pinned, source_build_slug, share_slug, is_public, created_at, updated_at, last_used_at, collection_opt_out_until';
 
 // 公開共有用に安全な列だけを取得する(memo・tags・user_id・is_pinned 等は含めない)。
 const PUBLIC_OWNED_POKEMON_COLUMNS =
@@ -203,6 +205,7 @@ export async function createOwnedPokemon(
       ability_name: input.ability_name,
       item_name: input.item_name,
       tera_type: input.tera_type,
+      regulation: input.regulation,
       evs: input.evs,
       ivs: input.ivs,
       move_names: input.move_names,
@@ -237,6 +240,7 @@ export async function updateOwnedPokemon(
       ability_name: input.ability_name,
       item_name: input.item_name,
       tera_type: input.tera_type,
+      regulation: input.regulation,
       evs: input.evs,
       ivs: input.ivs,
       move_names: input.move_names,

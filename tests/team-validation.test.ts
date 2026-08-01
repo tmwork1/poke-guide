@@ -277,6 +277,8 @@ describe('validateTeamRequestBody', () => {
     const FULL_REPLACE_BODY = {
       name: null,
       memo: null,
+      // migrations/013_regulation.sql で追加した置換対象フィールド。
+      regulation: null,
       members: [] as Array<{ slot: number; owned_pokemon_id: string }>,
     };
 

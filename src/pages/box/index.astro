@@ -39,6 +39,10 @@
 export const prerender = false;
 
 import AppLayout from '../../layouts/AppLayout.astro';
+// 🔴 UI改修依頼(ボックス画面、2026-08-01)「レギュレーションによるフィルタを追加」。
+// 候補は jpoke 由来の一覧(src/lib/regulations.ts)。画面側でレギュレーション名を
+// ハードコードしない。
+import { REGULATIONS } from '../../lib/regulations';
 
 const user = Astro.locals.user;
 ---
@@ -158,6 +162,13 @@ const user = Astro.locals.user;
 		.toolbar-sort select {
 			padding-left: 2.1em;
 		}
+		/* 🔴 UI改修依頼(ボックス画面、2026-08-01): レギュレーション絞り込みの<select>。
+		   並べ替えと違いアイコンは付けない(上下矢印のような一目で意味の分かる図が
+		   レギュレーションには無いため、「すべてのレギュレーション」というラベル自体で
+		   役割を示す)。最長のラベルが折り返さない幅を確保する。 */
+		.toolbar-regulation select {
+			min-width: 12rem;
+		}
 
 		@media (max-width: 640px) {
 			.panel-toolbar { flex-direction: column; align-items: stretch; }
@@ -169,6 +180,7 @@ const user = Astro.locals.user;
 			   flex-basisをリセットして内容ぶんの高さに戻す。 */
 			.toolbar-search { flex-basis: auto; }
 			.toolbar-search input,
+			.toolbar-regulation select,
 			.toolbar-sort select { width: 100%; min-width: 0; }
 		}
 
@@ -1073,6 +1085,22 @@ const user = Astro.locals.user;
 							</button>
 						</div>
 
+						{/* 🔴 UI改修依頼(ボックス画面、2026-08-01)「レギュレーションによるフィルタを追加」。
+						    お気に入りトグルと並べ替えの間に置く(左から 検索 → お気に入り →
+						    レギュレーション → 並べ替え)。既存の絞り込み(検索・お気に入り)と同じく
+						    サーバーには問い合わせず、取得済みの一覧をクライアント側で絞る
+						    (このページ冒頭のコメント「並び替え・タグフィルタ・文字列検索はいずれも
+						    初回取得後にクライアント側で完結させる」方針に揃える)。
+						    「レギュレーション未設定の個体」も明示的に絞れるようにする(値は
+						    空文字と区別するため __none__ という番兵を使う)。 */}
+						<div class="toolbar-item toolbar-regulation">
+							<select id="regulation-filter" class="field-control" aria-label="レギュレーションで絞り込み">
+								<option value="">すべてのレギュレーション</option>
+								{REGULATIONS.map((r) => <option value={r}>{r}</option>)}
+								<option value="__none__">レギュレーション未設定</option>
+							</select>
+						</div>
+
 						<div class="toolbar-item toolbar-sort">
 							<div class="sort-select-wrap">
 								<svg class="sort-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -1176,6 +1204,8 @@ const user = Astro.locals.user;
 			ability_name: string | null;
 			item_name: string | null;
 			tera_type: string | null;
+			// レギュレーション(migrations/013_regulation.sql)。未指定は null。
+			regulation: string | null;
 			evs: number[];
 			ivs: number[];
 			move_names: string[];
@@ -1215,6 +1245,8 @@ const user = Astro.locals.user;
 			// tagFilterList、複数タグ選択)を廃止し、「お気に入りのみ表示」の単一トグルに
 			// 置き換えた。
 			const favoriteFilterToggle = el<HTMLButtonElement>("favorite-filter-toggle");
+			// 🔴 UI改修依頼(ボックス画面、2026-08-01)「レギュレーションによるフィルタを追加」。
+			const regulationFilter = el<HTMLSelectElement>("regulation-filter");
 			const addButton = el<HTMLButtonElement>("add-pokemon-button");
 			// textContentではなくinnerHTMLで保存する。addButtonは「＋」の大きいアイコンと
 			// ラベルの2要素構成(見た目の要件2)なので、ローディング表示から復元する際に
@@ -1420,6 +1452,15 @@ const user = Astro.locals.user;
 			// お気に入り=is_pinnedと同義(pinButtonの★/☆と同じデータ)。
 			function matchesFavorite(p: OwnedPokemon): boolean {
 				return !favoriteOnly || p.is_pinned;
+			}
+
+			// 🔴 UI改修依頼(ボックス画面、2026-08-01)「レギュレーションによるフィルタを追加」。
+			// ""=すべて / "__none__"=未設定の個体だけ / それ以外=そのレギュレーションの個体だけ。
+			function matchesRegulation(p: OwnedPokemon): boolean {
+				const selected = regulationFilter.value;
+				if (selected === "") return true;
+				if (selected === "__none__") return !p.regulation;
+				return p.regulation === selected;
 			}
 
 			function sortPokemon(list: OwnedPokemon[]): OwnedPokemon[] {
@@ -1647,7 +1688,9 @@ const user = Astro.locals.user;
 			}
 
 			function renderList(): void {
-				const filtered = allPokemon.filter((p) => matchesFavorite(p) && matchesSearch(p, searchInput.value.trim()));
+				const filtered = allPokemon.filter(
+					(p) => matchesFavorite(p) && matchesRegulation(p) && matchesSearch(p, searchInput.value.trim()),
+				);
 				const sorted = sortPokemon(filtered);
 				listRoot.innerHTML = "";
 				// UI刷新(要件10)→ラウンド2(B-9): 「本当に0件」と「絞り込みで0件」を区別する。
@@ -1737,6 +1780,7 @@ const user = Astro.locals.user;
 							ability_name: "",
 							item_name: "",
 							tera_type: "",
+							regulation: "",
 							evs: [0, 0, 0, 0, 0, 0],
 							ivs: [31, 31, 31, 31, 31, 31],
 							move_names: [],
@@ -1779,6 +1823,7 @@ const user = Astro.locals.user;
 
 			sortSelect.addEventListener("change", renderList);
 			searchInput.addEventListener("input", renderList);
+			regulationFilter.addEventListener("change", renderList);
 			favoriteFilterToggle.addEventListener("click", () => {
 				favoriteOnly = !favoriteOnly;
 				favoriteFilterToggle.dataset.active = String(favoriteOnly);

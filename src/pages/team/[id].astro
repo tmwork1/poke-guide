@@ -11,6 +11,10 @@ export const prerender = false;
 import AppLayout from '../../layouts/AppLayout.astro';
 import { getSupabaseAdminClient } from '../../lib/supabase';
 import { getTeam, type Team } from '../../lib/team';
+// 🔴 UI改修依頼(チーム編集画面、2026-08-01)「個体編集と同様にレギュレーション指定機能を追加」。
+// 候補は jpoke 由来の一覧(src/lib/regulations.ts)。画面側でレギュレーション名を
+// ハードコードしない(box/[id].astro の左パネルと同じ方針)。
+import { REGULATIONS, REGULATION_PLACEHOLDER } from '../../lib/regulations';
 
 const user = Astro.locals.user;
 const id = Astro.params.id;
@@ -63,7 +67,16 @@ const teamMemberCount = team ? team.members.length : 0;
 // Astroの属性値は自動でHTMLエスケープされるので、ニックネーム等に " や < が
 // 含まれていても壊れない(pokemon.tsの data-tags={JSON.stringify(...)} と同じ手法)。
 const initialTeamJson = team
-	? JSON.stringify({ id: team.id, name: team.name, memo: team.memo, members: team.members })
+	? JSON.stringify({
+			id: team.id,
+			name: team.name,
+			memo: team.memo,
+			// 🔴 UI改修依頼(チーム編集画面、2026-08-01)。<select id="team-regulation">の初期値は
+			// SSRのselected属性で足りるが、InitialTeam型の他の項目と揃えて渡しておく
+			// (クライアント側から「保存済みの値」を参照したくなったときにSSR側の変更を要らなくする)。
+			regulation: team.regulation,
+			members: team.members,
+		})
 	: '';
 ---
 <AppLayout title={pageTitle} current="team" backHref="/team" bodyClass={bodyClass}>
@@ -271,6 +284,35 @@ const initialTeamJson = team
 		/* UI改修依頼(チーム編集左パネル)「ソート機能を追加する」。box/index.astroの
 		   .sort-select-wrap/.sort-icon/.toolbar-sort selectと同じ値(アイコン左重畳+
 		   select側padding-left)をこのページのスコープへ複製する(新しい値は作っていない)。 */
+		/* 🔴 UI改修依頼(チーム編集画面、2026-08-01)+ ユーザー確認「絞り込みトグルを付ける」。
+		   ボックス画面/チームトップの .favorite-filter-toggle(box/index.astro:122)と同じ
+		   視覚言語(押下状態=primaryの塗り、非押下=枠線のみ)をこのページのスコープへ複製する
+		   (team/index.astro が同じことをしているのと同じ理由: Astroのscoped styleは
+		   コンポーネントをまたいで効かない)。幅は選択バーの帯いっぱいに広げ、
+		   検索欄・並べ替えと縦に積んだときに端が揃うようにする。 */
+		.team-select-regulation-filter {
+			margin-top: var(--space-2);
+		}
+		.team-select-regulation-filter[hidden] {
+			display: none;
+		}
+		.regulation-filter-toggle {
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			width: 100%;
+			font-size: var(--font-size-sm);
+		}
+		.regulation-filter-toggle[data-active="true"] {
+			background: var(--color-primary);
+			border-color: var(--color-primary);
+			color: var(--color-primary-contrast);
+		}
+		.regulation-filter-toggle[data-active="true"]:hover:not(:disabled) {
+			background: var(--color-surface);
+			color: var(--color-primary);
+		}
+
 		.team-select-sort {
 			margin-top: var(--space-2);
 		}
@@ -347,8 +389,20 @@ const initialTeamJson = team
 		.team-edit-main {
 			min-width: 0;
 		}
+		/* 🔴 UI改修依頼(チーム編集画面、2026-08-01): チーム名の隣にレギュレーション選択を
+		   並べる。チーム名は可変幅(1fr)、レギュレーションは中身(M-A等の短い値)に合った
+		   固定幅で足りるため、2列グリッドにする。狭幅では縦積みに戻す(下の@media)。 */
 		.team-meta-fields {
+			display: grid;
+			grid-template-columns: minmax(0, 1fr) 12rem;
+			gap: var(--space-3);
+			align-items: end;
 			margin-bottom: var(--space-6);
+		}
+		.team-meta-fields > .field { margin: 0; }
+		.team-regulation-field select { width: 100%; }
+		@media (max-width: 720px) {
+			.team-meta-fields { grid-template-columns: 1fr; }
 		}
 		.team-name-input {
 			width: 100%;
@@ -446,6 +500,27 @@ const initialTeamJson = team
 							    (表示名=displayNameのニックネーム優先、ja collateで自然順)・種族名順。
 							    「タイプ順」は選択バーの個体データにタイプ情報が無く新規取得が必要になる
 							    ため採用しない(依頼文の「例えば」は例示であり必須ではないと判断)。 */}
+							{/* 🔴 UI改修依頼(チーム編集画面、2026-08-01)+ ユーザー確認(同日、
+							    「絞り込みトグルを付ける」)。チームにレギュレーションが指定されている
+							    ときだけ現れるトグルで、既定ON=そのレギュレーションで使える個体だけを
+							    選択バーに出す。OFFにすると従来どおり全個体が出る。
+							    「使える個体」= 個体のレギュレーションがチームと一致するもの + 個体側が
+							    未指定のもの(未指定は「まだ決めていない」であって「使えない」ではないため、
+							    隠すと既存の個体が軒並み消えて選べなくなる)。
+							    チーム側が未指定のときは絞る基準が無いのでトグル自体を隠す
+							    (下のsyncRegulationFilterToggle参照)。 */}
+							<div class="team-select-regulation-filter" id="regulation-filter-wrap" hidden>
+								<button
+									type="button"
+									id="regulation-filter-toggle"
+									class="regulation-filter-toggle"
+									data-active="true"
+									aria-pressed="true"
+								>
+									<span id="regulation-filter-toggle-label">レギュレーション一致のみ</span>
+								</button>
+							</div>
+
 							<div class="team-select-sort">
 								<div class="sort-select-wrap">
 									<svg class="sort-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -502,6 +577,17 @@ const initialTeamJson = team
 										autocomplete="off"
 										value={team.name ?? ''}
 									/>
+								</div>
+								{/* 🔴 UI改修依頼(チーム編集画面、2026-08-01)「個体編集と同様にレギュレーション
+								    指定機能を追加」。個体編集側(LeftPanel.astroの#regulation)と同じく
+								    「なし」を先頭のvalue=""のoptionが担い、保存時はnullに正規化される
+								    (team-validation.tsのnormalizeOptionalString)。チーム名の隣に置く。 */}
+								<div class="field field-stack team-regulation-field">
+									<label for="team-regulation" class="field-label">レギュレーション</label>
+									<select id="team-regulation" class="field-control">
+										<option value="">{REGULATION_PLACEHOLDER}</option>
+										{REGULATIONS.map((r) => <option value={r} selected={team.regulation === r}>{r}</option>)}
+									</select>
 								</div>
 							</div>
 
@@ -1078,6 +1164,10 @@ const initialTeamJson = team
 			ability_name: string | null;
 			item_name: string | null;
 			tera_type: string | null;
+			// 🔴 UI改修依頼(チーム編集画面、2026-08-01): 選択バーのレギュレーション絞り込みに使う。
+			// SSR(lib/team.tsのTEAM_MEMBER_SELECT)・GET /api/owned-pokemon(OWNED_POKEMON_COLUMNS)の
+			// 両方に regulation を追加済みなので、この型に足すだけで両経路から読める。
+			regulation: string | null;
 			move_names: string[];
 			// UI改修依頼(チーム編集左パネル)「ステータスも表示」対応で追加。box/index.astroと同じ
 			// 実数値計算(src/lib/stats.ts)に使う。level/nature/evs/ivsもSSR・GET /api/owned-pokemon
@@ -1108,6 +1198,7 @@ const initialTeamJson = team
 			id: string;
 			name: string | null;
 			memo: string | null;
+			regulation: string | null;
 			members: TeamMemberData[];
 		}
 
@@ -1124,6 +1215,10 @@ const initialTeamJson = team
 
 			const nameInput = el<HTMLInputElement>("team-name");
 			const memoInput = el<HTMLInputElement>("team-memo");
+			// 🔴 UI改修依頼(チーム編集画面、2026-08-01)「個体編集と同様にレギュレーション指定機能」。
+			const regulationSelect = el<HTMLSelectElement>("team-regulation");
+			const regulationFilterWrap = el<HTMLElement>("regulation-filter-wrap");
+			const regulationFilterToggle = el<HTMLButtonElement>("regulation-filter-toggle");
 			const slotsRoot = el<HTMLElement>("team-slots");
 
 			const searchInput = el<HTMLInputElement>("pokemon-search-input");
@@ -1723,6 +1818,34 @@ const initialTeamJson = team
 			// UI改修依頼(チーム編集左パネル)「チームに含まれる個体を(左パネルの一覧から)
 			// 非表示にする」。以前は「編成済み」(already-in-team、選択ルールの3禁止理由とは別扱い)
 			// としてグレーアウト表示していたが、この依頼により一覧そのものから除外する。
+			// 🔴 UI改修依頼(チーム編集画面、2026-08-01)+ ユーザー確認「絞り込みトグルを付ける」。
+			// チームにレギュレーションが指定されていて、かつトグルがONのときだけ、
+			// 「そのレギュレーションで使える個体」(= 一致 or 個体側が未指定)に絞る。
+			let regulationFilterOn = true;
+
+			function currentTeamRegulation(): string | null {
+				const value = regulationSelect.value.trim();
+				return value === "" ? null : value;
+			}
+
+			function matchesTeamRegulation(p: OwnedPokemonRecord): boolean {
+				const teamRegulation = currentTeamRegulation();
+				if (teamRegulation === null || !regulationFilterOn) return true;
+				return !p.regulation || p.regulation === teamRegulation;
+			}
+
+			// チーム側が未指定のときは絞る基準が無いのでトグル自体を出さない
+			// (出しても押した瞬間に何も変わらず、機能していないように見えるため)。
+			// ラベルには現在のレギュレーション名を入れて、何で絞っているかを一目で分かるようにする。
+			function syncRegulationFilterToggle(): void {
+				const teamRegulation = currentTeamRegulation();
+				regulationFilterWrap.hidden = teamRegulation === null;
+				const label = document.getElementById("regulation-filter-toggle-label");
+				if (label) label.textContent = teamRegulation ? `${teamRegulation} の個体のみ` : "レギュレーション一致のみ";
+				regulationFilterToggle.dataset.active = String(regulationFilterOn);
+				regulationFilterToggle.setAttribute("aria-pressed", String(regulationFilterOn));
+			}
+
 			function isCurrentMember(id: string): boolean {
 				for (const p of membersBySlot.values()) {
 					if (p.id === id) return true;
@@ -1882,7 +2005,9 @@ const initialTeamJson = team
 				// (除外により、既存の選択ルール由来の"already-in-team"理由は表示上到達しなくなる。
 				// selectionBlockReason自体・BLOCK_REASON_LABELSは他の禁止理由(6体編成済み/種族重複/
 				// 持ち物重複)で引き続き使うため残す)。
-				const filtered = sortPokemon(allPokemon.filter((p) => !isCurrentMember(p.id) && matchesSearch(p, term)));
+				const filtered = sortPokemon(
+					allPokemon.filter((p) => !isCurrentMember(p.id) && matchesTeamRegulation(p) && matchesSearch(p, term)),
+				);
 				selectListRoot.innerHTML = "";
 				if (filtered.length === 0) {
 					selectNoMatchState.hidden = false;
@@ -1895,7 +2020,12 @@ const initialTeamJson = team
 			}
 
 			// --- 自動保存(box/[id].astroと同じデバウンス方式。保存ボタンは作らない) ---
-			function buildPayload(): { name: string | null; memo: string | null; members: { slot: number; owned_pokemon_id: string }[] } {
+			function buildPayload(): {
+				name: string | null;
+				memo: string | null;
+				regulation: string | null;
+				members: { slot: number; owned_pokemon_id: string }[];
+			} {
 				const members = Array.from(membersBySlot.entries())
 					.sort((a, b) => a[0] - b[0])
 					.map(([slot, p]) => ({ slot, owned_pokemon_id: p.id }));
@@ -1904,6 +2034,9 @@ const initialTeamJson = team
 				return {
 					name: name === "" ? null : name,
 					memo: memo === "" ? null : memo,
+					// PUT /api/teams/:id は全項目上書きの契約(team-validation.tsの
+					// REPLACE_REQUIRED_FIELDS)なので、未指定でもキー自体は必ず送る。
+					regulation: currentTeamRegulation(),
 					members,
 				};
 			}
@@ -2006,6 +2139,21 @@ const initialTeamJson = team
 			memoInput.addEventListener("input", scheduleSave);
 			searchInput.addEventListener("input", renderSelectList);
 			sortSelect.addEventListener("change", renderSelectList);
+
+			// 🔴 UI改修依頼(チーム編集画面、2026-08-01)。レギュレーションを変えると
+			// 「選択バーに出す個体」も変わるため、保存と同時に一覧を描き直す。
+			regulationSelect.addEventListener("change", () => {
+				syncRegulationFilterToggle();
+				renderSelectList();
+				scheduleSave();
+			});
+			regulationFilterToggle.addEventListener("click", () => {
+				regulationFilterOn = !regulationFilterOn;
+				syncRegulationFilterToggle();
+				renderSelectList();
+			});
+			// 初期表示(SSRで選択済みのレギュレーション)にもトグルの状態を合わせる。
+			syncRegulationFilterToggle();
 
 			// UI改修依頼(チーム編集ヘッダー)「匿名でデータ提供するトグル」。個体編集画面
 			// (src/lib/box-id/left-panel.ts)と同じPATCH経路を、現在のチームメンバー全員に対して
