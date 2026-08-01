@@ -44,9 +44,21 @@ interface Props {
 	 * ログイン中ユーザー向けのアカウント表示は引き続きサイドバー側のみで、トップバーには戻さない。
 	 */
 	chrome?: "app" | "public";
+	/**
+	 * UI改修依頼(2026-08-02): ボックス/チームトップ/すばやさ早見表の3画面は、共通の
+	 * <header class="app-topbar"> を描画せず、各ページ自身のセカンドトップバー(検索/絞り込み
+	 * バー等)をトップバーとして扱う。true のときはこのレイアウトの<header>を描画しない。
+	 * ページ側で満たすべき責務:
+	 *   - モバイル(900px未満)のサイドバー開閉導線が失われるため、自前のバーに
+	 *     id="app-sidebar-toggle" の同一マークアップのハンバーガーボタンを複製すること
+	 *     (このファイル末尾のscriptがdocument.getElementByIdでDOM上の位置を問わず拾う)。
+	 *   - .app-shell に "no-topbar" クラスを自動付与する(下記)。global.css側で
+	 *     --topbar-height を0に上書きし、.app-main の min-height 計算のズレを防いでいる。
+	 */
+	hideTopbar?: boolean;
 }
 
-const { title, description, current, bodyClass, backHref, backLabel, chrome = "app" } = Astro.props;
+const { title, description, current, bodyClass, backHref, backLabel, chrome = "app", hideTopbar = false } = Astro.props;
 const isPublicChrome = chrome === "public";
 
 const pageTitle = title === "Poke-Commons" ? title : `${title} | Poke-Commons`;
@@ -68,7 +80,8 @@ const user = Astro.locals.user;
 		<slot name="head" />
 	</head>
 	<body class={bodyClass}>
-		<div class={`app-shell${isPublicChrome ? " is-public" : ""}`}>
+		<div class={`app-shell${isPublicChrome ? " is-public" : ""}${hideTopbar ? " no-topbar" : ""}`}>
+			{!hideTopbar && (
 			<header class="app-topbar">
 				<!-- モバイル(900px未満)専用の1段目: ハンバーガー + サイト名 (+ chrome="public" 限定でCTA)。
 				     デスクトップでは非表示(サイドバーに常時ブランドリンクがあるため不要)。
@@ -153,6 +166,7 @@ const user = Astro.locals.user;
 					</div>
 				</div>
 			</header>
+			)}
 
 			{!isPublicChrome && <AppSidebar current={current} user={user} />}
 

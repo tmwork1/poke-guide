@@ -1084,6 +1084,16 @@ dialog#opponent-note-form-container::backdrop {
 	min-height: 100vh;
 }
 
+/* UI改修依頼(2026-08-02): AppLayoutのhideTopbarで<header class="app-topbar">を描画しない
+   ページ(ボックス/チームトップ/すばやさ早見表)向け。トップバー分の高さの予約が不要になるため
+   --topbar-heightを0に上書きし、.app-mainのmin-height計算(100vh - --topbar-height)が
+   実際には存在しないトップバー分の余白を残してしまうズレを防ぐ。.app-shell.is-publicと同じ、
+   クラスセレクタでカスタムプロパティを上書きする方式(この要素・配下では:rootの値より
+   常に優先される)。 */
+.app-shell.no-topbar {
+	--topbar-height: 0px;
+}
+
 /* トップバー(2026-07-26 新設: デスクトップでもサイドバー右隣から画面右端まで伸びる帯として
    常設表示する。デスクトップは.app-topbar-row-mainのみの1段、モバイル(900px未満)は
    ハンバーガー行(.app-topbar-row-brand)+本体行(.app-topbar-row-main)の2段。
