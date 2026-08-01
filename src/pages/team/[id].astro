@@ -14,7 +14,11 @@ import { getTeam, type Team } from '../../lib/team';
 // 🔴 UI改修依頼(チーム編集画面、2026-08-01)「個体編集と同様にレギュレーション指定機能を追加」。
 // 候補は jpoke 由来の一覧(src/lib/regulations.ts)。画面側でレギュレーション名を
 // ハードコードしない(box/[id].astro の左パネルと同じ方針)。
-import { REGULATIONS, REGULATION_PLACEHOLDER } from '../../lib/regulations';
+// 2026-08-01追記(同日ユーザー指示「選択肢を新しい順に並べる」、box/index.astro・LeftPanel.astro
+// と同じ対応): REGULATIONS(定義順=古い順)ではなくCoordinatorがsrc/lib/regulations.tsに
+// 追加したREGULATIONS_NEWEST_FIRST(新しい順の配列)を使う。regulations.ts自体はこのファイルの
+// 担当外のため編集しない。
+import { REGULATIONS_NEWEST_FIRST, REGULATION_PLACEHOLDER } from '../../lib/regulations';
 
 const user = Astro.locals.user;
 const id = Astro.params.id;
@@ -61,6 +65,15 @@ const bodyClass = team ? 'team-edit-page' : undefined;
 // で仮置きし、クライアント側でGET /api/owned-pokemon(既存の左パネル用フェッチ)の結果から
 // 実際の状態に補正する(<script>のrefreshCollectionOptOutToggle参照)。メンバーが0人のときは
 // 対象が無いため無効化する。
+//
+// 🔴 UI改修依頼(チーム編集ヘッダー、2026-08-01)「公開設定のトグルを個体編集画面と同じ方針に
+// 変更する」。ラベルを「非公開」にし、既定OFF、ホバーテキストをOFF時「育成データを匿名で
+// 提供する」/ON時「30日間有効」にする。これはUI表示(ラベル・title・checkedの向き)だけの反転
+// であり、DBの意味(collection_opt_out_until)・保存されるペイロード(PATCH { collection_opt_out }）
+// は一切変えない。旧: checked=true が「提供中」(collection_opt_out=false)を表した。
+// 新: checked=true が「非公開」(collection_opt_out=true)を表す。checkedの真偽値を丸ごと反転
+// させるだけで、保存結果自体は完全に同じになる(<script>のrefreshCollectionOptOutToggle/
+// 変更ハンドラ参照)。
 const teamMemberCount = team ? team.members.length : 0;
 
 // 初期メンバー(0〜6要素、SSR取得済み)をクライアント<script>へそのまま引き渡す。
@@ -80,6 +93,11 @@ const initialTeamJson = team
 	: '';
 ---
 <AppLayout title={pageTitle} current="team" backHref="/team" bodyClass={bodyClass}>
+	{/* UI改修依頼(チーム編集ヘッダー、2026-08-01)「保存済みを非表示にする」。box/[id].astroの
+	    23-H1相当の対応と同じ考え方: #autosave-status/#autosave-status-textのid・DOM自体は
+	    <script>のel()参照(見つからないとthrowしてJS初期化が止まる)のため残し、
+	    テキストだけを下の<style>で常時非表示にする(保存失敗時=data-state="error"のときだけ
+	    見せる。box/[id].astro側の実装が無い場合はteam側限定の判断として同じ方式を採用)。 */}
 	{team && (
 		<Fragment slot="topbar-status">
 			<p id="autosave-status" class="status-text" data-state="saved">
@@ -94,9 +112,12 @@ const initialTeamJson = team
 	    .collection-opt-out-toggle一式(label > .toggle-switch + ラベルテキスト + ステータス欄)を
 	    そのまま踏襲する(上のフロントマターのコメント参照。マークアップ・aria-label・title文言は
 	    個体編集画面と同じ語彙で揃え、対象が「この個体」ではなく「チームの個体全員」である点だけ
-	    titleとaria-labelの文言に反映する)。初期checkedはSSRでは正確な状態が分からないため
-	    「提供中」を仮置きし、<script>のrefreshCollectionOptOutToggleが実際の値に補正する。
-	    メンバー0人のときはtitleに理由を明示した上でdisabledにする(対象が無いため)。 */}
+	    titleとaria-labelの文言に反映する)。
+	    🔴 2026-08-01追記: 「非公開」トグルへ改称に伴い、初期checkedは付けない(既定OFF=非公開で
+	    はない=提供中、フロントマターのコメント参照)。titleもOFF/ONで文言が変わる仕様のため、
+	    ここに書くのはJS初期化前に一瞬だけ見える初期値(<script>のsyncCollectionOptOutTitleが
+	    ページ読み込み直後に実際の状態へ即座に補正する)。メンバー0人のときはtitleに理由を明示した
+	    上でdisabledにする(対象が無いため、この場合のtitleはJSでも変更しない)。 */}
 	{team && (
 		<Fragment slot="topbar-actions">
 			<label
@@ -104,22 +125,21 @@ const initialTeamJson = team
 				for="team-collection-opt-out-toggle"
 				title={teamMemberCount === 0
 					? 'チームに個体を入れると、匿名集計への提供可否を切り替えられます'
-					: 'オフにするとこのチームに入っている個体を匿名集計への提供から一時的に停止します(30日後に自動的にオンへ戻ります)'}
+					: '育成データを匿名で提供する'}
 			>
 				<span class="toggle-switch">
 					<input
 						id="team-collection-opt-out-toggle"
 						type="checkbox"
 						class="toggle-switch-input"
-						checked
 						disabled={teamMemberCount === 0}
-						aria-label="匿名でデータ提供する"
+						aria-label="非公開"
 					/>
 					<span class="toggle-switch-track" aria-hidden="true">
 						<span class="toggle-switch-thumb"></span>
 					</span>
 				</span>
-				<span class="collection-opt-out-toggle-label">匿名でデータ提供する</span>
+				<span class="collection-opt-out-toggle-label">非公開</span>
 				<span id="team-collection-opt-out-status" class="collection-opt-out-status" hidden></span>
 			</label>
 			<button id="delete-team-button" class="btn-danger" type="button">
@@ -140,6 +160,18 @@ const initialTeamJson = team
 		}
 		#autosave-status {
 			margin: 0;
+		}
+		/* UI改修依頼(チーム編集ヘッダー、2026-08-01)「保存済みを非表示にする」。box/[id].astro
+		   ラウンド11(11-1)と同じ方針: #autosave-status-text自体はDOM/idごと残し(<script>の
+		   el("autosave-status-text")がthrowするのを避けるため)、テキストだけを常時非表示にする。
+		   保存失敗(data-state="error")のときだけ、唯一のリカバリ手段である#retry-buttonに
+		   気づけるよう理由テキストを見せる(box/[id].astroと同じ判断)。 */
+		#autosave-status-text {
+			display: none;
+		}
+		#autosave-status[data-state="error"] #autosave-status-text {
+			display: inline;
+			color: var(--color-danger);
 		}
 		/* pitfalls.md「[hidden]は詳細度で負ける」: global.cssの.status-textが
 		   display: inline-flexを持つため、UA既定の[hidden]{display:none}に勝ってしまい
@@ -167,6 +199,11 @@ const initialTeamJson = team
 			white-space: nowrap;
 			border: 0;
 			cursor: pointer;
+			/* UI改修依頼(チーム編集ヘッダー、2026-08-01)「トグルスイッチの裏に残っているネイティブの
+			   チェックボックスが見えていたら隠す」。上のclip visually-hiddenパターンで既に見えなく
+			   なっているはずだが、appearance:noneも念のため明示しブラウザ既定の描画を確実に消す。 */
+			appearance: none;
+			-webkit-appearance: none;
 		}
 		.toggle-switch-track {
 			position: absolute;
@@ -224,7 +261,11 @@ const initialTeamJson = team
 		@media (min-width: 1200px) {
 			.team-edit-layout {
 				display: grid;
-				grid-template-columns: minmax(300px, 380px) 1fr;
+				/* UI改修依頼(チーム編集左パネル、2026-08-01)「パネルの幅を20%狭くする」。
+				   1920px幅で実測した変更前の.team-select-bar幅は380px(minmaxのmax=380pxで頭打ち)。
+				   380px×0.8=304pxへ縮小し、下限(min)も同じ比率で300px→240pxへ縮める
+				   (min/maxの比率を変えないため)。実測結果は報告参照。 */
+				grid-template-columns: minmax(240px, 304px) 1fr;
 				align-items: stretch;
 			}
 		}
@@ -235,7 +276,7 @@ const initialTeamJson = team
 		   押し込むと中央カラムの6枠カードが再び潰れるため(上のコメントの実測バグと同じ罠)。 */
 		@media (min-width: 1600px) {
 			.team-edit-layout {
-				grid-template-columns: minmax(300px, 380px) 1fr minmax(280px, 340px);
+				grid-template-columns: minmax(240px, 304px) 1fr minmax(280px, 340px);
 			}
 		}
 
@@ -388,6 +429,13 @@ const initialTeamJson = team
 		/* --- 中央カラム: チーム名・メモ + 6枠(R-11: .panel-contentで1080pxに収める) --- */
 		.team-edit-main {
 			min-width: 0;
+			/* UI改修依頼(チーム編集中央パネル、2026-08-01)「左右のパネルとの間に余白を入れる」。
+			   変更前は左パネル(.team-select-bar、右のborder-right)・右パネル(.team-preview-panel)
+			   のどちらとも実測0pxで密着していた(.team-edit-mainにも.panel-contentにも横paddingが
+			   無かったため)。.panelの既定横padding(var(--space-5)=20px)と同じ値をこの中央カラム自体に
+			   も持たせ、左右どちらの隣接パネルとも視覚的な余白ができるようにする(.panel-contentの
+			   max-width:1080pxはそのまま、余白ぶんだけ実効幅が狭まるがレイアウトは崩れない)。 */
+			padding: 0 var(--space-5);
 		}
 		/* 🔴 UI改修依頼(チーム編集画面、2026-08-01): チーム名の隣にレギュレーション選択を
 		   並べる。チーム名は可変幅(1fr)、レギュレーションは中身(M-A等の短い値)に合った
@@ -401,6 +449,17 @@ const initialTeamJson = team
 		}
 		.team-meta-fields > .field { margin: 0; }
 		.team-regulation-field select { width: 100%; }
+		/* UI改修依頼(チーム編集中央パネル、2026-08-01)「"レギュレーション"ラベルを削除する。
+		   他のUIと同様にplaceholderの色を薄くする」。LeftPanel.astroの
+		   #edit-form #regulation[data-empty="true"]:not(:focus) と同じ値(破線・透明背景・
+		   薄い文字色)を踏襲する(新しい値は作らない)。<select>には:placeholder-shownが無いため、
+		   値が空のときだけJS/SSRが付けるdata-empty="true"を使う(<script>の
+		   syncRegulationPlaceholder参照)。 */
+		#team-regulation[data-empty="true"]:not(:focus) {
+			border-style: dashed;
+			background: transparent;
+			color: var(--color-text-muted);
+		}
 		@media (max-width: 720px) {
 			.team-meta-fields { grid-template-columns: 1fr; }
 		}
@@ -488,7 +547,13 @@ const initialTeamJson = team
 									id="pokemon-search-input"
 									type="search"
 									class="field-control"
-									placeholder="ニックネーム・種族名で検索"
+									{/* UI改修依頼(チーム編集左パネル、2026-08-01)「パネルの幅を20%狭くする」に伴う
+									   実測修正: 380px時代のplaceholder全文(「ニックネーム・種族名で検索」)は304pxへの
+									   縮小後、実機で末尾の1文字が枠内に収まりきらず見切れることを実測で確認した
+									   (虫眼鏡アイコンが既に「検索」の意味を担うため、placeholderだけ短縮して
+									   「で検索」を省く。aria-labelはスクリーンリーダー向けに情報量を落とさず
+									   全文のまま維持する)。 */}
+									placeholder="ニックネーム・種族名"
 									aria-label="ニックネーム・種族名で検索"
 									autocomplete="off"
 								/>
@@ -581,12 +646,17 @@ const initialTeamJson = team
 								{/* 🔴 UI改修依頼(チーム編集画面、2026-08-01)「個体編集と同様にレギュレーション
 								    指定機能を追加」。個体編集側(LeftPanel.astroの#regulation)と同じく
 								    「なし」を先頭のvalue=""のoptionが担い、保存時はnullに正規化される
-								    (team-validation.tsのnormalizeOptionalString)。チーム名の隣に置く。 */}
-								<div class="field field-stack team-regulation-field">
-									<label for="team-regulation" class="field-label">レギュレーション</label>
-									<select id="team-regulation" class="field-control">
+								    (team-validation.tsのnormalizeOptionalString)。チーム名の隣に置く。
+								    2026-08-01追記「"レギュレーション"というラベルを削除する。他のUIと同様に
+								    placeholderの色を薄くする」: 可視ラベル(<label>)は撤去し、LeftPanel.astroの
+								    #regulationと同じくplaceholder + aria-labelの方式に揃える(アクセシビリティ
+								    上のaccessible nameはaria-labelが担う)。未選択時はLeftPanel.astroの
+								    #regulation[data-empty="true"]と同じCSS(破線・薄い文字色)を適用するため
+								    data-emptyを付ける(<script>のsyncRegulationPlaceholder参照)。 */}
+								<div class="field team-regulation-field">
+									<select id="team-regulation" class="field-control" aria-label="レギュレーション" data-empty={team.regulation ? undefined : 'true'}>
 										<option value="">{REGULATION_PLACEHOLDER}</option>
-										{REGULATIONS.map((r) => <option value={r} selected={team.regulation === r}>{r}</option>)}
+										{REGULATIONS_NEWEST_FIRST.map((r) => <option value={r} selected={team.regulation === r}>{r}</option>)}
 									</select>
 								</div>
 							</div>
@@ -614,7 +684,13 @@ const initialTeamJson = team
 					    中身はJS(renderPreviewPanel)が生成する。box/[id].astroのRightPanelと同じく
 					    幅の無い環境(1600px未満)では非表示にする(下の.team-preview-panel参照)。 --- */}
 					<aside class="panel team-preview-panel" id="team-preview-panel">
-						<p class="team-preview-empty" id="team-preview-empty">左の一覧からポケモンをクリックすると、ここに詳細が表示されます。</p>
+						{/* UI改修依頼(右パネル、2026-08-01)「"左の一覧からポケモンをクリックすると、
+						    ここに詳細が表示されます。"を削除する」。文言だけを消すと空の<p>が1行ぶんの
+						    余白を残すため、要素自体を最初からhiddenにする(pitfalls.md「要素を消す指示
+						    でもDOMは残す」に従い、#team-preview-emptyのid自体は<script>のel()参照
+						    (previewEmptyEl)が必要とするため残す。renderPreviewPanelがこの要素を
+						    hidden=trueにする処理は元々あり、二度と表示されない前提でも壊れない)。 */}
+						<p class="team-preview-empty" id="team-preview-empty" hidden></p>
 						<div class="team-preview-content" id="team-preview-content" hidden></div>
 					</aside>
 				</div>
@@ -719,7 +795,9 @@ const initialTeamJson = team
 			gap: 0.15rem;
 		}
 		.team-select-bar .select-row-name {
-			font-size: 0.88rem;
+			/* UI改修依頼(チーム編集左パネル、2026-08-01)「種族名以外の文字をもう少し大きくする」
+			   により0.88rem(14.08px)から引き上げる。 */
+			font-size: 0.95rem;
 			font-weight: 700;
 			white-space: nowrap;
 			overflow: hidden;
@@ -739,7 +817,9 @@ const initialTeamJson = team
 			flex-wrap: wrap;
 			align-items: center;
 			gap: 0.5rem;
-			font-size: 0.72rem;
+			/* UI改修依頼(チーム編集左パネル、2026-08-01)「種族名以外の文字をもう少し大きくする」
+			   により0.72rem(11.52px)から引き上げる。 */
+			font-size: 0.8rem;
 			color: var(--color-text-muted);
 		}
 		.team-select-bar .select-row-meta-item {
@@ -760,7 +840,9 @@ const initialTeamJson = team
 			gap: 0.3rem;
 		}
 		.team-select-bar .select-row-stat-chip {
-			font-size: 0.68rem;
+			/* UI改修依頼(チーム編集左パネル、2026-08-01)「種族名以外の文字をもう少し大きくする」
+			   により0.68rem(10.88px)から引き上げる。 */
+			font-size: 0.75rem;
 			font-weight: 700;
 			color: var(--color-text-muted);
 			background: var(--color-surface-alt);
@@ -776,8 +858,10 @@ const initialTeamJson = team
 		   自動保存失敗の表示(#autosave-status)と共有するトークンなので、正常状態からは
 		   外す。新色は作らない。 */
 		.team-select-bar .select-row-reason {
-			/* A-3(b): 0.74rem(11.84px)は12px下限を割っていた。0.75rem(12px)に是正。 */
-			font-size: 0.75rem;
+			/* A-3(b): 0.74rem(11.84px)は12px下限を割っていた。0.75rem(12px)に是正。
+			   UI改修依頼(チーム編集左パネル、2026-08-01)「種族名以外の文字をもう少し大きくする」
+			   によりさらに0.8rem(12.8px)へ引き上げる。 */
+			font-size: 0.8rem;
 			font-weight: 700;
 		}
 		.team-select-bar .select-row-reason[data-reason="already-in-team"] {
@@ -905,8 +989,13 @@ const initialTeamJson = team
 		}
 		.team-slots .slot-art {
 			flex: 0 0 auto;
-			width: 88px;
-			height: 88px;
+			/* 🔴 UI改修依頼(チーム編集中央パネル、2026-08-01)「カードを再レイアウトする」。
+			   box/index.astroのカードは公式絵に幅の過半(min(56%, 113px))を割り当てて一覧性より
+			   絵の存在感を優先している。このカード(1辺約290〜310px、box一覧の210〜240pxより
+			   大きい)でも同じ考え方で88px→104pxへ拡大し、名前・メタ情報より絵が主役に見える
+			   比率へ寄せる(3列グリッドの最小幅でも余裕がある範囲、実測は報告参照)。 */
+			width: 104px;
+			height: 104px;
 			display: flex;
 			align-items: center;
 			justify-content: center;
@@ -970,15 +1059,24 @@ const initialTeamJson = team
 			display: inline-flex;
 			align-items: center;
 			gap: 0.35rem;
+			/* 🔴 UI改修依頼(チーム編集中央パネル、2026-08-01)「カードを再レイアウトする」。
+			   box/index.astroの.card-item-badge・.card-ability-nameや下の.slot-move-chipと
+			   同じ「情報チップ」の視覚言語(背景+角丸)をability/item/teraにも適用し、単なる
+			   並びのテキストではなく個別の要素として見分けやすくする(新しい配色トークンは
+			   作らずvar(--color-surface-alt)を流用、move-chipと違い枠線は付けない)。 */
+			padding: 0.15rem 0.5rem;
+			background: var(--color-surface-alt);
+			border-radius: var(--radius-md);
 		}
 		.team-slots .slot-meta-icon {
 			width: 20px;
 			height: 20px;
 			object-fit: contain;
 		}
-		/* A-6: テラスタイプ・特性が未設定のとき(ゲーム上「値が無い」状態が存在しない項目)を
-		   明示するための強調。新色は作らず既存の--color-danger-strongを流用する。
-		   持ち物(合法な空)には使わない。 */
+		/* A-6: 特性が未設定のとき(ゲーム上「値が無い」状態が存在しない項目)を明示するための強調。
+		   新色は作らず既存の--color-danger-strongを流用する。持ち物(合法な空)には使わない。
+		   2026-08-01: テラスタイプは未設定時に行ごと非表示にする方針へ変更したため、この強調の
+		   対象からは外れた(buildFilledSlotContent参照。クラス自体は特性向けに引き続き使う)。 */
 		.team-slots .slot-meta-unset {
 			color: var(--color-danger-strong);
 			font-weight: 700;
@@ -1041,6 +1139,26 @@ const initialTeamJson = team
 		}
 		.team-slots .slot-actions .slot-remove-btn:hover {
 			background: var(--color-surface-alt);
+		}
+		/* 🔴 UI改修依頼(チーム編集中央パネル、2026-08-01)「個体編集ボタンをアイコンのみの
+		   表記にする」。上の.slot-remove-btnと同じ円形28pxアイコンボタン規格を採用し、
+		   危険操作ではないため色だけ中立(--color-text-muted、ホバーで--color-primary)にする。 */
+		.team-slots .slot-actions .slot-edit-link {
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			width: 28px;
+			height: 28px;
+			padding: 0;
+			border-radius: 999px;
+			border: 1px solid var(--color-border);
+			background: var(--color-surface);
+			color: var(--color-text-muted);
+			box-shadow: var(--shadow-sm);
+		}
+		.team-slots .slot-actions .slot-edit-link:hover {
+			background: var(--color-surface-alt);
+			color: var(--color-primary);
 		}
 
 		/* ------------------------------------------------------------------ */
@@ -1520,13 +1638,16 @@ const initialTeamJson = team
 			// を持たない)しか無いため、その場合は「全員提供中」を既定値として扱う(DBの既定値
 			// =NULL=提供中と一致するため、fetch完了までの一瞬だけ生じる楽観値。fetch完了後に
 			// このcronがもう一度呼ばれ正確な値に補正される→fetchハンドラ参照)。
-			// checkedは「メンバー全員が提供中」のときだけtrueにする(1人でも拒否中ならOFF表示。
-			// 1個体単位のトグルを束ねるUIとしては最も誤解が少ない集約方法だと判断した)。
+			// 🔴 UI改修依頼(チーム編集ヘッダー、2026-08-01)「非公開」トグルへの改称に伴い、
+			// checkedの向きを反転する: 「メンバー全員が提供中」のときだけfalse(=非公開ではない)、
+			// 1人でも拒否中(非公開)ならtrueにする(旧: 全員提供中のときtrue)。DBを読む式
+			// (isProviding)自体は変えていない、checkedへの反映だけを反転させている。
 			function refreshCollectionOptOutToggle(): void {
 				const ids = currentMemberIds();
 				if (ids.length === 0) {
-					collectionOptOutToggle.checked = true;
+					collectionOptOutToggle.checked = false;
 					collectionOptOutToggle.disabled = true;
+					syncCollectionOptOutTitle();
 					return;
 				}
 				collectionOptOutToggle.disabled = false;
@@ -1534,7 +1655,17 @@ const initialTeamJson = team
 					const fresh = allPokemon.find((x) => x.id === p.id);
 					return isProviding(fresh ?? p);
 				});
-				collectionOptOutToggle.checked = allProviding;
+				collectionOptOutToggle.checked = !allProviding;
+				syncCollectionOptOutTitle();
+			}
+
+			// UI改修依頼(チーム編集ヘッダー、2026-08-01)「ホバーテキストはOFF時:育成データを匿名で
+			// 提供する / ON時:30日間有効」。メンバー0人時(disabled)のtitleはSSR側の固定文言のまま
+			// 変えない(<AppLayout>のtopbar-actionsスロット、上のフロントマター参照)。
+			const collectionOptOutLabel = document.querySelector<HTMLLabelElement>(".collection-opt-out-toggle");
+			function syncCollectionOptOutTitle(): void {
+				if (!collectionOptOutLabel || collectionOptOutToggle.disabled) return;
+				collectionOptOutLabel.title = collectionOptOutToggle.checked ? "30日間有効" : "育成データを匿名で提供する";
 			}
 
 			// --- 6枠の描画(基準3: 常に6枠) ---
@@ -1649,30 +1780,28 @@ const initialTeamJson = team
 				abilityItem.appendChild(abilityLabel);
 				metaRow.appendChild(abilityItem);
 
-				// A-6: テラスタイプ未設定はjpoke側で第1タイプへ静かにフォールバックする
-				// (vendor/jpoke/src/jpoke/model/pokemon.py:89)ため、行を消すと「まだ表示
-				// されていないだけ」に見え、対戦に出せない未完成状態であることが伝わらない。
-				// 常に行を出し、値が無ければdisplayNameと同じ「未設定」を明示する。
-				// A-7: 「テラス」は口語短縮なので公式用語「テラスタイプ」に統一する。
+				// 🔴 UI改修依頼(共通、2026-08-01)「テラスタイプが未設定の場合、"未設定"などと
+				// 表示せず要素ごと非表示にする」。旧A-6の判断(常に行を出し「テラスタイプ未設定」を
+				// 明示する)をこの指示により撤回する。持ち物(下記)と同じく、値が無いときはteraItem
+				// 自体をmetaRowへappendしない(pitfalls.mdの「DOMは残す」方針は要素の削除を指示された
+				// このケースには当たらない ── そもそも生成しないだけで、既存のDOM/IDを壊してはいない)。
+				// A-7: 「テラス」は口語短縮なので公式用語「テラスタイプ」に統一する(この方針自体は維持)。
 				const teraType = p.tera_type?.trim() ?? "";
-				const teraItem = document.createElement("span");
-				teraItem.className = "slot-meta-item";
-				const teraImg = document.createElement("img");
-				teraImg.className = "slot-meta-icon";
-				teraImg.alt = "";
-				teraImg.style.display = "none";
-				const teraLabel = document.createElement("span");
 				if (teraType) {
+					const teraItem = document.createElement("span");
+					teraItem.className = "slot-meta-item";
+					const teraImg = document.createElement("img");
+					teraImg.className = "slot-meta-icon";
+					teraImg.alt = "";
+					teraImg.style.display = "none";
 					applyTeraIcon(teraImg, teraType);
+					const teraLabel = document.createElement("span");
 					// UI改修依頼(チーム編集中央パネル)「ボックス画面と表記をそろえる」対応:
 					// box/index.astroのアイコン+値のみの表記に揃え「テラスタイプ: 」の接頭辞を外す。
 					teraLabel.textContent = teraType;
-				} else {
-					teraLabel.textContent = "テラスタイプ未設定";
-					teraLabel.classList.add("slot-meta-unset");
+					teraItem.append(teraImg, teraLabel);
+					metaRow.appendChild(teraItem);
 				}
-				teraItem.append(teraImg, teraLabel);
-				metaRow.appendChild(teraItem);
 
 				// 持ち物なし(null/空文字)は合法な対戦状態(G-3も対象外にしている)なので、
 				// テラスタイプ・特性とは違い、これまでどおり行自体を出さない。
@@ -1690,7 +1819,8 @@ const initialTeamJson = team
 					itemEl.append(itemImg, itemLabel);
 					metaRow.appendChild(itemEl);
 				}
-				// 特性・テラスタイプを常に出すようにしたため、metaRowは常に非空になる。
+				// 特性は常に出すため(unset時も"特性未設定"を表示)、metaRowは常に非空になる
+				// (2026-08-01: テラスタイプは未設定時に行ごと非表示にするため、この非空保証には含めない)。
 				infoEl.appendChild(metaRow);
 
 				// A-6: 技0件も行ごと消さず「未設定」を明示する(技0件・テラス未設定の
@@ -1716,10 +1846,20 @@ const initialTeamJson = team
 
 				const actionsEl = document.createElement("div");
 				actionsEl.className = "slot-actions";
+				// 🔴 UI改修依頼(チーム編集中央パネル、2026-08-01)「個体編集ボタンをアイコンのみの
+				// 表記にする」。文字リンク(「個体を編集」)を、隣の削除ボタン(.slot-remove-btn、
+				// box/index.astroの.icon-button規格=28px円形+1px枠線+var(--color-surface))と同じ
+				// 円形アイコンボタンに揃える(CSSは下の.team-slots .slot-actions .slot-edit-link参照)。
+				// アイコンはlucide風の鉛筆(編集)、他のインラインSVGと同じ書式(stroke=currentColor、
+				// stroke-width=2)。視覚的な意味の手掛かりが無くなる分、title(ホバー)とaria-labelで
+				// テキストの情報を維持する。
 				const editLink = document.createElement("a");
-				editLink.className = "btn-ghost";
+				editLink.className = "btn-ghost slot-edit-link";
 				editLink.href = `/box/${encodeURIComponent(p.id)}`;
-				editLink.textContent = "個体を編集";
+				editLink.title = "個体を編集";
+				editLink.setAttribute("aria-label", `${name}を編集`);
+				editLink.innerHTML =
+					'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>';
 				// カード自体にclick(プレビュー)/dblclick(削除)を付けたため(renderSlots参照)、
 				// このリンクへのクリックがバブリングして意図せずプレビュー描画を誘発しないよう止める
 				// (遷移自体には影響しない)。
@@ -1844,6 +1984,15 @@ const initialTeamJson = team
 				if (label) label.textContent = teamRegulation ? `${teamRegulation} の個体のみ` : "レギュレーション一致のみ";
 				regulationFilterToggle.dataset.active = String(regulationFilterOn);
 				regulationFilterToggle.setAttribute("aria-pressed", String(regulationFilterOn));
+			}
+
+			// UI改修依頼(チーム編集中央パネル、2026-08-01)「"レギュレーション"ラベルを削除する。
+			// 他のUIと同様にplaceholderの色を薄くする」。LeftPanel.astro(個体編集)の
+			// syncRegulationPlaceholderと同じ考え方: <select>には:placeholder-shownが無いため、
+			// 値が空のときだけdata-empty="true"を付け外しする(CSSは上のscoped<style>参照)。
+			function syncRegulationPlaceholder(): void {
+				if (currentTeamRegulation() === null) regulationSelect.dataset.empty = "true";
+				else delete regulationSelect.dataset.empty;
 			}
 
 			function isCurrentMember(id: string): boolean {
@@ -2144,6 +2293,7 @@ const initialTeamJson = team
 			// 「選択バーに出す個体」も変わるため、保存と同時に一覧を描き直す。
 			regulationSelect.addEventListener("change", () => {
 				syncRegulationFilterToggle();
+				syncRegulationPlaceholder();
 				renderSelectList();
 				scheduleSave();
 			});
@@ -2154,14 +2304,23 @@ const initialTeamJson = team
 			});
 			// 初期表示(SSRで選択済みのレギュレーション)にもトグルの状態を合わせる。
 			syncRegulationFilterToggle();
+			syncRegulationPlaceholder();
 
 			// UI改修依頼(チーム編集ヘッダー)「匿名でデータ提供するトグル」。個体編集画面
 			// (src/lib/box-id/left-panel.ts)と同じPATCH経路を、現在のチームメンバー全員に対して
 			// 一括で呼ぶ(既存の1個体用APIをそのまま流用。新しいAPI・DB列は追加していない)。
 			// 失敗時はcheckedを元に戻しエラーメッセージを表示する(個体編集画面と同じ温度感)。
+			// 🔴 2026-08-01「非公開」トグルへの改称により、checkedの意味が反転している
+			// (checked=true が「非公開」=collection_opt_out=true)。保存するペイロード自体
+			// (collection_opt_out の真偽値)は変えていない ── nextProviding は反転後のcheckedから
+			// 「提供中かどうか」を計算し直しているだけで、PATCHボディの式(!nextProviding)は
+			// 変更前と同一。
 			collectionOptOutToggle.addEventListener("change", () => {
 				void (async () => {
-					const nextProviding = collectionOptOutToggle.checked;
+					// checked_after(クリック直後の値)は「非公開かどうか」を表す。
+					// nextProviding は「提供中かどうか」(旧来の意味のまま)に変換する。
+					const nextProviding = !collectionOptOutToggle.checked;
+					syncCollectionOptOutTitle();
 					const ids = currentMemberIds();
 					collectionOptOutToggle.disabled = true;
 					try {
@@ -2180,12 +2339,15 @@ const initialTeamJson = team
 						delete collectionOptOutStatusEl.dataset.state;
 					} catch (err) {
 						console.error(err);
-						collectionOptOutToggle.checked = !nextProviding;
+						// クリック前の状態(checked)= nextProviding(「非公開」= !提供中 = nextProviding)。
+						collectionOptOutToggle.checked = nextProviding;
+						syncCollectionOptOutTitle();
 						collectionOptOutStatusEl.textContent = "更新に失敗しました";
 						collectionOptOutStatusEl.hidden = false;
 						collectionOptOutStatusEl.dataset.state = "error";
 					} finally {
 						collectionOptOutToggle.disabled = currentMemberIds().length === 0;
+						syncCollectionOptOutTitle();
 					}
 				})();
 			});
