@@ -246,6 +246,17 @@ const initialTeamJson = team
 		.collection-opt-out-status[hidden] { display: none; }
 		.collection-opt-out-status[data-state="error"] { color: var(--color-danger); }
 		#delete-team-button { font-size: var(--font-size-sm); white-space: nowrap; }
+		/* 🔴 UI改修依頼(チーム編集ヘッダー、2026-08-02)「非公開・削除ボタンの余白サイズを
+		   個体編集画面と同じにする」。box/[id].astro が2026-08-01の依頼(「データ提供スイッチと
+		   削除ボタンの間の余白を広げる」)で #delete-button に足した margin-left が、
+		   こちらのページには入っていなかった。実測(1920px幅)で判明した唯一の差分:
+		     個体編集: 非公開トグル 1715.2〜1799.5 / 削除 1823.5〜1904(間隔24px)
+		     チーム編集: 非公開トグル 1731.2〜1815.5 / 削除 1823.5〜1904(間隔8px)
+		   削除ボタン自体の座標・寸法・配色・角丸は元から完全一致していたが、この16pxの差の
+		   ぶんだけ非公開トグルが右へ寄っていた。box/[id].astro と同じ対処
+		   (.app-topbar-actions の gap は全画面共通のため AppLayout は編集せず、
+		   このページscopedで削除ボタンにだけ margin-left を足す)をそのまま踏襲する。 */
+		#delete-team-button { margin-left: var(--space-4); }
 
 		/* --- 全体レイアウト: 左=ポケモン選択バー(帯)/ 中央=チーム名・メモ・6枠(可読幅1080px) ---
 		   docs/plan/00-foundation.md「レイアウト原則」どおり、選択バーは画面端から
