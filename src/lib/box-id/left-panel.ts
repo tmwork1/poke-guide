@@ -248,81 +248,176 @@ function setupDatalistRefocus(input: HTMLInputElement, datalist: HTMLDataListEle
 	});
 }
 
-// 匿名集計サジェスト機能・第5段階(UI: 性格/アイテム/テラス/技のサジェスト表示)。
-// 編集中の個体と同じ種族(species_name)について、他ユーザーが登録した個体を匿名集計した
-// 「よく使われる性格/アイテム/テラス/技」を、対応する入力欄の近くに控えめなヒントとして
-// 表示する読み取り専用の機能。バックエンド(GET /api/suggestions、変更不要)は該当種族の
-// サンプル数がk-匿名性の閾値(既定5件)未満だと該当kindの行自体が存在しない(data: []) ——
-// この場合はヒント要素をhiddenのままにする(このプロジェクトでは過去に「常時表示される
-// 空枠」がユーザー指摘で撤去された経緯があるため、空データ時に枠だけ見える状態を
-// 絶対に作らない)。個体データの自動保存(saveNow/scheduleSave)や収集拒否トグルの
-// PATCH処理とは完全に独立した読み取り専用のGETのみで完結する。
+// 匿名集計サジェスト機能。編集中の個体と同じ種族(species_name)について、他ユーザーが
+// 登録した個体を匿名集計した「よく使われる性格/アイテム/テラス/技」を、対応する選択候補
+// (datalist/カスタムドロップダウン/技選択ウィンドウ)の並び順・表示テキストに反映する。
+// バックエンド(GET /api/suggestions、変更不要)は該当種族のサンプル数がk-匿名性の閾値
+// (既定5件)未満だと該当kindの行自体が存在しない(data: [])——この場合は各候補リストを
+// 元の並び順・元のテキストのまま変更しない(過去の「常時表示される空枠」を作らない方針を、
+// 候補リストへの「上書きをしない」という形で引き継ぐ)。
+//
+// 🔴 UI改修依頼(個体編集左パネル、2026-08-01)「サジェストはリストボックスの候補に反映し、
+// パネルに常時表示しない。人気順に並び替えたり作用率を併記したりする。」により、常時表示の
+// ヒント段落(#nature-suggestion-hint等、旧実装。LeftPanel.astroから削除済み)を廃止し、
+// 各候補リストそのものを書き換える方式に置き換えた。
+//
+// 対象は性格・持ち物・テラス・技の4箇所(既存のsuggestions kindがpopular_nature/
+// popular_item/popular_tera/popular_moveの4種類のみのため、migrations/009参照)。
+// 特性(#ability<select>)は対応するsuggestions kindが存在しない——特性はそもそも
+// 「その種族が持ちうる特性」しか候補に出ない設計(rebuildAbilityOptions参照、通常1〜3件)
+// で、人気順に並び替える元データが無い。無理に新しいkindを作らず、rebuildAbilityOptions
+// 自体には手を入れない。
+//
+// 既知の制約(d7552ad「サジェストがレギュレーションを混ぜている件」): suggestions側の
+// 集計はレギュレーション(M-1〜M-3)を分離せず1つの母集団にしている。プロダクトオーナー
+// 判断で当面このままのため、このファイルではAPIから返るpayload.optionsをそのまま信頼して
+// 使う(UI側での分離は行わない)。
 type SuggestionOption = { value: string; count: number; ratio: number };
 type SuggestionPayload = { sample_size: number; options: SuggestionOption[] };
 type SuggestionRow = { payload?: SuggestionPayload };
 type SuggestionApiResponse = { data?: SuggestionRow[] };
 
-// kind ↔ 表示先ヒント要素のid、上位何件を表示するか(性格/アイテム/テラスは1〜3件、
-// 技は5件表示するという要件どおり)の対応表。
-const SUGGESTION_HINT_CONFIG: ReadonlyArray<{ kind: string; elementId: string; topN: number }> = [
-	{ kind: "popular_nature", elementId: "nature-suggestion-hint", topN: 3 },
-	{ kind: "popular_item", elementId: "item-suggestion-hint", topN: 3 },
-	{ kind: "popular_tera", elementId: "tera-suggestion-hint", topN: 3 },
-	{ kind: "popular_move", elementId: "move-suggestion-hint", topN: 5 },
-];
-
-// 表示イメージ: 「人気: ようき(47%)・ひかえめ(20%)」(ratioは0〜1の小数なので100倍して
-// 四捨五入した整数%にする)。クリックで値を反映する機能は今回のスコープ外のため、
-// 単なるテキスト表示に留める。
-function formatSuggestionText(payload: SuggestionPayload, topN: number): string {
-	const parts = payload.options
-		.slice(0, topN)
-		.map((o) => `${o.value}(${Math.round(o.ratio * 100)}%)`);
-	return `人気: ${parts.join("・")}`;
+function suggestionRatioText(ratio: number): string {
+	return `${Math.round(ratio * 100)}%`;
 }
 
-function renderSuggestionHint(elementId: string, payload: SuggestionPayload | undefined, topN: number): void {
-	const hintEl = document.getElementById(elementId);
-	if (!hintEl) return;
-	if (!payload || payload.options.length === 0) {
-		// データ無し(サンプル数不足でsuggestions行が存在しない)。要素ごと非表示のままにする
-		// (空枠を残さない)。
-		hintEl.textContent = "";
-		hintEl.hidden = true;
-		return;
+async function fetchSuggestionPayload(kind: string, speciesName: string): Promise<SuggestionPayload | undefined> {
+	if (!speciesName) return undefined;
+	try {
+		const res = await fetch(`/api/suggestions?kind=${kind}&subject_key=${encodeURIComponent(speciesName)}&limit=1`);
+		if (!res.ok) return undefined;
+		const json = (await res.json()) as SuggestionApiResponse;
+		return json.data?.[0]?.payload;
+	} catch {
+		return undefined; // fetch失敗時は静かに無視する(候補は元の並び・表示のまま)
 	}
-	hintEl.textContent = formatSuggestionText(payload, topN);
-	hintEl.hidden = false;
+}
+
+// 種族が変わるたびに最新のペイロードで上書きするキャッシュ。#item-dropdown-list等は
+// 初回オープン時に遅延構築される(buildItemDropdownOptions参照)ため、構築がサジェスト取得
+// より後になるケースに備えて保持し、構築側(openItemDropdown)からも読みに来られるようにする。
+let lastNatureSuggestion: SuggestionPayload | undefined;
+let lastItemSuggestion: SuggestionPayload | undefined;
+let lastTeraSuggestion: SuggestionPayload | undefined;
+let lastMoveSuggestion: SuggestionPayload | undefined;
+
+// value(候補のキー)→ratioのMapを使い、(a) 人気の高いものを先頭に、(b) データが無いものは
+// 元の並び順のまま残す、という候補リスト共通の並び替えを行う。Array.prototype.sortは
+// ECMAScript仕様上stable(同順位は入力順を維持)なので、「データ無し同士の相対順序を
+// 変えない」がこのcompareだけで自然に成り立つ。
+function suggestionCompare(ratioMap: Map<string, number>, valueA: string, valueB: string): number {
+	const ra = ratioMap.get(valueA);
+	const rb = ratioMap.get(valueB);
+	if (ra != null && rb != null) return rb - ra;
+	if (ra != null) return -1;
+	if (rb != null) return 1;
+	return 0;
+}
+
+// --- 性格: #nature-list<datalist>(25件、静的にSSR描画済み)を並び替え、labelに作用率を
+//     持たせる。datalistのoption.valueを書き換えると入力欄への反映値そのものが変わって
+//     しまう(#nature-readout-valueのchangeハンドラがNATURE_STAT_MODIFIERSとの完全一致で
+//     検証しているため、"ようき(47%)"のような値は不正値として弾かれてしまう)ため、
+//     表示専用のlabel属性(HTMLOptionElement.label)だけを使う。対応ブラウザ(Chromium/
+//     Firefox)はvalueとlabelを併記した候補を出す。 ---
+function applyNatureSuggestionOrdering(): void {
+	const datalist = document.getElementById("nature-list") as HTMLDataListElement | null;
+	if (!datalist) return;
+	const ratioMap = new Map((lastNatureSuggestion?.options ?? []).map((o) => [o.value, o.ratio] as const));
+	const options = Array.from(datalist.options);
+	options.sort((a, b) => suggestionCompare(ratioMap, a.value, b.value));
+	for (const opt of options) {
+		const ratio = ratioMap.get(opt.value);
+		opt.label = ratio != null ? suggestionRatioText(ratio) : "";
+		datalist.appendChild(opt); // 既存ノードの再appendChildは「末尾へ移動」になる
+	}
+}
+
+// --- 持ち物: #item-dropdown-list(カスタムドロップダウン、初回オープン時に遅延構築)。
+//     「持ち物なし」(value="")は常に先頭固定のまま、残りを人気順→元の順で並べ替え、
+//     .item-dropdown-option-textに"(NN%)"を追記する。 ---
+function applyItemSuggestionOrdering(): void {
+	const listEl = document.getElementById("item-dropdown-list") as HTMLUListElement | null;
+	if (!listEl) return;
+	const lis = Array.from(listEl.querySelectorAll<HTMLLIElement>(".item-dropdown-option"));
+	if (lis.length === 0) return; // 未構築(次回buildItemDropdownOptions/openItemDropdownで改めて適用される)
+	const ratioMap = new Map((lastItemSuggestion?.options ?? []).map((o) => [o.value, o.ratio] as const));
+	const noneLi = lis.find((li) => li.dataset.value === "");
+	const rest = lis.filter((li) => li.dataset.value !== "");
+	rest.sort((a, b) => suggestionCompare(ratioMap, a.dataset.value ?? "", b.dataset.value ?? ""));
+	for (const li of rest) {
+		const value = li.dataset.value ?? "";
+		const ratio = ratioMap.get(value);
+		const textEl = li.querySelector<HTMLElement>(".item-dropdown-option-text");
+		if (textEl) textEl.textContent = ratio != null ? `${value}(${suggestionRatioText(ratio)})` : value;
+	}
+	const emptyLi = listEl.querySelector<HTMLLIElement>(".item-dropdown-empty");
+	if (noneLi) listEl.appendChild(noneLi);
+	for (const li of rest) listEl.appendChild(li);
+	if (emptyLi) listEl.appendChild(emptyLi); // 「該当する持ち物がありません」は常に末尾
+}
+
+// --- テラスタイプ: #tera-dropdown-list(19件、初期化時に構築済み)。「テラスタルなし」
+//     (value="")は常に先頭固定。 ---
+function applyTeraSuggestionOrdering(): void {
+	const listEl = document.getElementById("tera-dropdown-list") as HTMLUListElement | null;
+	if (!listEl) return;
+	const lis = Array.from(listEl.querySelectorAll<HTMLLIElement>(".tera-dropdown-option"));
+	if (lis.length === 0) return;
+	const ratioMap = new Map((lastTeraSuggestion?.options ?? []).map((o) => [o.value, o.ratio] as const));
+	const noneLi = lis.find((li) => li.dataset.value === "");
+	const rest = lis.filter((li) => li.dataset.value !== "");
+	rest.sort((a, b) => suggestionCompare(ratioMap, a.dataset.value ?? "", b.dataset.value ?? ""));
+	for (const li of rest) {
+		const value = li.dataset.value ?? "";
+		const ratio = ratioMap.get(value);
+		const textEl = li.querySelector<HTMLElement>(".tera-dropdown-option-text");
+		if (textEl) textEl.textContent = ratio != null ? `${value}(${suggestionRatioText(ratio)})` : value;
+	}
+	if (noneLi) listEl.appendChild(noneLi);
+	for (const li of rest) listEl.appendChild(li);
+}
+
+// --- 技: setupMovePickerWindow()内のテーブル(このファイル下部、別スコープ)が参照する。
+//     同関数はモジュールスコープのlastMoveSuggestionを直接読みに行く。 ---
+function getMovePopularityRatio(moveName: string): number | undefined {
+	return lastMoveSuggestion?.options.find((o) => o.value === moveName)?.ratio;
 }
 
 // より新しい呼び出し(種族名が続けて変更された等)に古いレスポンスが追い越して上書きしない
 // ようにするトークン(rebuildAbilityOptionsのabilityRequestTokenと同じパターン)。
 let popularBuildSuggestionsToken = 0;
 
+// 技のサジェストが更新されたとき、技選択ウィンドウが開いていれば再描画するためのフック。
+// setupMovePickerWindow()が自分自身をここへ登録する(ウィンドウ未生成/未オープン時はno-op)。
+let onMoveSuggestionUpdated: (() => void) | null = null;
+
 export async function loadPopularBuildSuggestions(speciesName: string): Promise<void> {
 	const name = speciesName.trim();
 	const token = ++popularBuildSuggestionsToken;
 	if (!name) {
-		for (const { elementId } of SUGGESTION_HINT_CONFIG) {
-			renderSuggestionHint(elementId, undefined, 0);
-		}
+		lastNatureSuggestion = lastItemSuggestion = lastTeraSuggestion = lastMoveSuggestion = undefined;
+		applyNatureSuggestionOrdering();
+		applyItemSuggestionOrdering();
+		applyTeraSuggestionOrdering();
+		onMoveSuggestionUpdated?.();
 		return;
 	}
-	try {
-		const responses = await Promise.all(
-			SUGGESTION_HINT_CONFIG.map(({ kind }) =>
-				fetch(`/api/suggestions?kind=${kind}&subject_key=${encodeURIComponent(name)}&limit=1`)
-					.then((res) => (res.ok ? (res.json() as Promise<SuggestionApiResponse>) : null))
-					.catch(() => null),
-			),
-		);
-		if (token !== popularBuildSuggestionsToken) return; // より新しい呼び出しに追い越された
-		SUGGESTION_HINT_CONFIG.forEach(({ elementId, topN }, i) => {
-			renderSuggestionHint(elementId, responses[i]?.data?.[0]?.payload, topN);
-		});
-	} catch {
-		// fetch失敗時は静かに無視する(エラー表示は不要な軽量機能のため、ヒント要素はhiddenのまま)。
-	}
+	const [nature, item, tera, move] = await Promise.all([
+		fetchSuggestionPayload("popular_nature", name),
+		fetchSuggestionPayload("popular_item", name),
+		fetchSuggestionPayload("popular_tera", name),
+		fetchSuggestionPayload("popular_move", name),
+	]);
+	if (token !== popularBuildSuggestionsToken) return; // より新しい呼び出しに追い越された
+	lastNatureSuggestion = nature;
+	lastItemSuggestion = item;
+	lastTeraSuggestion = tera;
+	lastMoveSuggestion = move;
+	applyNatureSuggestionOrdering();
+	applyItemSuggestionOrdering();
+	applyTeraSuggestionOrdering();
+	onMoveSuggestionUpdated?.();
 }
 
 const form = document.getElementById("edit-form") as HTMLFormElement | null;
@@ -629,6 +724,10 @@ if (form) {
 	}
 	async function openItemDropdown(): Promise<void> {
 		await buildItemDropdownOptions();
+		// 匿名集計サジェスト機能: 初回オープン時(遅延構築の直後)は、種族確定後に既に取得済みの
+		// サジェストがあれば人気順・作用率併記をここで初めて反映する(構築より先にサジェストが
+		// 届いていた場合、applyItemSuggestionOrdering自体は「未構築ならno-op」で戻っていたため)。
+		applyItemSuggestionOrdering();
 		itemDropdownSearch.value = "";
 		for (const opt of itemDropdownOptionEls) {
 			opt.li.classList.toggle("is-active", opt.value === itemInput.value);
@@ -840,6 +939,10 @@ if (form) {
 		teraDropdownList.appendChild(li);
 		teraDropdownOptionEls.push({ value, li });
 	}
+	// 匿名集計サジェスト機能: このリストは(アイテムと違い)ページ初期化時に即座に構築される
+	// ため、初期表示のSSR種族名について既に取得済みのサジェストがあれば直後に反映する
+	// (以後の種族変更はloadPopularBuildSuggestions→applyTeraSuggestionOrderingが担う)。
+	applyTeraSuggestionOrdering();
 
 	function closeTeraDropdown(): void {
 		teraDropdownList.hidden = true;
@@ -1347,7 +1450,14 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 		.filter((input): input is HTMLInputElement => input !== null);
 	if (moveInputEls.length === 0) return; // #move-1〜#move-4が無いページでは何もしない(安全側)
 
-	type SortKey = "name" | "type" | "category" | "power" | "accuracy" | "pp";
+	// 🔴 UI改修依頼(個体編集左パネル、2026-08-01)「サジェストはリストボックスの候補に反映し、
+	// 人気順に並び替えたり作用率を併記したりする」により、"popularity"(人気、種族ごとの
+	// popular_move サジェストのratio)を並び替え可能な列として追加する。既存の6キーと同じ
+	// makeSortButton/comparatorの仕組みに合流させることで、「初期表示は人気順、ユーザーが
+	// 別の列ヘッダをクリックしたらそちらが優先される」を新しい分岐追加なしに実現する
+	// (sortKeyは開いた後もモジュール外へリセットされない永続状態のため、一度でも
+	// ヘッダをクリックすればそれ以降は常にユーザーの選択が優先される)。
+	type SortKey = "popularity" | "name" | "type" | "category" | "power" | "accuracy" | "pp";
 	type SortDir = "asc" | "desc";
 
 	const CATEGORY_LABELS: Record<MoveCategory, string> = { physical: "物理", special: "特殊", status: "変化" };
@@ -1357,8 +1467,11 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 
 	let activeSlot: number | null = null;
 	let learnsetOnly = true; // 37-2: 既定ON
-	let sortKey: SortKey = "name";
-	let sortDir: SortDir = "asc";
+	// 初期表示は人気順(sortDir="desc"=ratio降順)。ユーザーがどれかの列ヘッダを1回でも
+	// クリックした時点でこの初期値は上書きされ、以後はユーザーの選択がそのまま残り続ける
+	// (このウィンドウはページ内で使い回されるシングルトンで、開閉のたびにリセットしない)。
+	let sortKey: SortKey = "popularity";
+	let sortDir: SortDir = "desc";
 	const filters = { name: "", type: "", category: "", pp: "" };
 
 	let allMoves: MoveDetail[] = [];
@@ -1508,6 +1621,10 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 	});
 
 	headerRow.appendChild(makeHeaderCell("技名", "name", nameFilterInput));
+	// 匿名集計サジェスト機能: 「人気」列(種族ごとのpopular_moveサジェスト、作用率%を表示)。
+	// 既存の並び替え可能な列と同じ仕組み(makeSortButton/makeHeaderCell)に合流させる
+	// (絞り込みフィルタは無いのでfilterElはnull、威力/命中/PPと同じ扱い)。
+	headerRow.appendChild(makeHeaderCell("人気", "popularity", null));
 	headerRow.appendChild(makeHeaderCell("タイプ", "type", typeFilterSelect));
 	headerRow.appendChild(makeHeaderCell("分類", "category", categoryFilterSelect));
 	headerRow.appendChild(makeHeaderCell("威力", "power", null));
@@ -1571,6 +1688,23 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 	function comparator(a: MoveDetail, b: MoveDetail): number {
 		let result = 0;
 		switch (sortKey) {
+			case "popularity": {
+				// getMovePopularityRatio(left-panel.ts上部、モジュールスコープ)は種族確定時に
+				// loadPopularBuildSuggestionsが更新するlastMoveSuggestionを直接読む。データが
+				// 無い技はpower/accuracyと同じ慣習(?? -1)で扱う——asc(小さい順)なら先頭、
+				// desc(大きい順、既定)なら末尾に集まる。
+				const ra = getMovePopularityRatio(a.name);
+				const rb = getMovePopularityRatio(b.name);
+				if (ra == null && rb == null) {
+					// 両方データ無し: 名前のあいうえお順で安定させる。sortDirの符号反転
+					// (下のreturn文)を打ち消して、desc(既定)でも常にあ→ん順を保つ。
+					const alpha = a.name.localeCompare(b.name, "ja");
+					result = sortDir === "desc" ? -alpha : alpha;
+				} else {
+					result = (ra ?? -1) - (rb ?? -1);
+				}
+				break;
+			}
 			case "name":
 				result = a.name.localeCompare(b.name, "ja");
 				break;
@@ -1668,6 +1802,14 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 			nameTd.className = "move-picker-cell-name";
 			nameTd.textContent = m.name;
 			tr.appendChild(nameTd);
+
+			// 匿名集計サジェスト機能: 「人気」列。データが無い技は他の数値列(威力/命中)と
+			// 同じ慣習で"-"を表示する。
+			const popularityTd = document.createElement("td");
+			popularityTd.className = "move-picker-cell-num";
+			const popularityRatio = getMovePopularityRatio(m.name);
+			popularityTd.textContent = popularityRatio != null ? suggestionRatioText(popularityRatio) : "-";
+			tr.appendChild(popularityTd);
 
 			const typeTd = document.createElement("td");
 			typeTd.className = "move-picker-cell-type";
@@ -1910,6 +2052,14 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 		input.addEventListener("focus", () => openPicker(slot, input));
 		input.addEventListener("mousedown", () => openPicker(slot, input));
 	}
+
+	// 匿名集計サジェスト機能: 種族変更に伴いloadPopularBuildSuggestionsがlastMoveSuggestionを
+	// 更新したとき、このウィンドウが開いていれば「人気」列・並び順を最新化する
+	// (refreshPool自体は別経路(speciesInputのinputイベント)で覚え技プールの絞り込みを
+	// 追随させているが、サジェスト取得は独立した非同期fetchのため別途フックが要る)。
+	onMoveSuggestionUpdated = () => {
+		if (!windowEl.hidden) renderRows();
+	};
 
 	updateSortButtonIndicators();
 }

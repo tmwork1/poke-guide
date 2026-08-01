@@ -209,15 +209,12 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 					</datalist>
 				</div>
 			</div>
-			{/* 匿名集計サジェスト機能・第5段階(UI: 性格のサジェスト表示)。他ユーザーが登録した
-			    同じ種族の個体を匿名集計した「よく使われる性格」を表示する読み取り専用のヒント。
-			    このページには性格の<select>は無く(能力値ラベルのクリックで上昇/下降を選ぶ
-			    独自UI、currentLeftNature()参照)、代わりに.top-block-fieldsの最後の行にある
-			    性格の直接入力欄(#nature-readout-value)の直下、.top-block(縦積みflex)の
-			    最後の子として1行追加する。データが無ければ<script>のloadPopularBuildSuggestions
-			    (left-panel.ts)がhidden属性を外さないため、要素ごと非表示のまま
-			    (「常時表示される空枠」を作らない、過去のユーザー指摘どおり)。 */}
-			<p id="nature-suggestion-hint" class="suggestion-hint" hidden></p>
+			{/* 🔴 UI改修依頼(個体編集左パネル、2026-08-01)「サジェストはリストボックスの候補に
+			    反映し、パネルに常時表示しない」により、ここにあった常時表示のヒント段落
+			    (#nature-suggestion-hint)は撤去した。人気の性格は#nature-list<datalist>
+			    (下の.top-block-fields内、#nature-readout-value)の並び順・label属性(作用率)
+			    に反映する形に変更した(<script>のapplyNatureSuggestionOrdering、
+			    left-panel.ts参照)。 */}
 		</div>
 
 		{/* ラウンド5ユーザー指示: ラベル要素は撤去しplaceholder + aria-labelに統一する。
@@ -233,7 +230,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		    (下のCSS参照。列幅は.top-block-fields/.move-fields-gridと同じ.field-gridの基本定義
 		    repeat(2, minmax(0, 1fr))に揃う)。 */}
 		<div class="field-grid field-grid-single">
-			<div class="field field-with-suggestion">
+			<div class="field">
 				{/* UI改善ラウンド41ユーザー指示(41-L1)「アイテム選択ボックスもテラスタルと同様に、
 				    選択肢をアイコン+テキストで表示」。テラスドロップダウン(#tera-dropdown-*、下記
 				    tera-dropdown-wrap参照)一式を参照実装にする。保存経路(buildPayloadが参照する
@@ -277,16 +274,15 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 						</ul>
 					</div>
 				</div>
-				{/* 匿名集計サジェスト機能・第5段階(UI: アイテムのサジェスト表示)。#item-dropdown-button
-				    (上記)の近くに表示する読み取り専用のヒント。この.field自体はglobal.cssの
-				    共通.field(display:flex; align-items:center;行方向)のままだと2つ目の子が
-				    横に並んでしまうため、field-with-suggestion修飾クラス(下のCSS参照、
-				    display:flex; flex-direction:columnに切り替える)を付けて縦積みにする。
-				    子が1つ(.item-dropdown-wrap)だけの間は見た目に影響しない。データが無ければ
-				    hidden属性のまま(要素ごと非表示、空枠を作らない)。 */}
-				<p id="item-suggestion-hint" class="suggestion-hint" hidden></p>
+				{/* 🔴 UI改修依頼(個体編集左パネル、2026-08-01)により、ここにあった常時表示の
+				    ヒント段落(#item-suggestion-hint)は撤去した。人気の持ち物は
+				    #item-dropdown-list(上記.item-dropdown-wrap内)の並び順・候補テキストへの
+				    "(NN%)"併記に反映する形に変更した(<script>のapplyItemSuggestionOrdering、
+				    left-panel.ts参照)。ヒント削除に伴い、縦積み用の場繰り扱いクラス
+				    (field-with-suggestion)も不要になったため、この.fieldは通常の.field
+				    (global.cssの行方向レイアウト)に戻した。 */}
 			</div>
-			<div class="field field-with-suggestion">
+			<div class="field">
 				{/* UI改善ラウンド28ユーザー指示(28-L4)により、旧.top-block-icon-info内にあった
 				    テラスタル選択ボックス一式をここへ移設した(マークアップはラウンド25(25-L2)当時と
 				    ほぼ同じ、.top-block-tera-wrap(帯専用の固定幅170pxオーバーライド)は不要になった
@@ -317,9 +313,11 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 					>
 					</ul>
 				</div>
-				{/* 匿名集計サジェスト機能・第5段階(UI: テラスタルのサジェスト表示)。#tera-dropdown-button
-				    (上記)の近くに表示する読み取り専用のヒント。データが無ければhidden属性のまま。 */}
-				<p id="tera-suggestion-hint" class="suggestion-hint" hidden></p>
+				{/* 🔴 UI改修依頼(個体編集左パネル、2026-08-01)により、ここにあった常時表示の
+				    ヒント段落(#tera-suggestion-hint)は撤去した。人気のテラスタイプは
+				    #tera-dropdown-list(上記.tera-dropdown-wrap内)の並び順・候補テキストへの
+				    "(NN%)"併記に反映する形に変更した(<script>のapplyTeraSuggestionOrdering、
+				    left-panel.ts参照)。 */}
 			</div>
 		</div>
 
@@ -390,14 +388,10 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 				</div>
 			))}
 		</div>
-		{/* 匿名集計サジェスト機能・第5段階(UI: 技のサジェスト表示)。技1〜4(MOVE_SLOTS)は
-		    個別のヒントを4つ出すのではなく、技欄全体(.move-fields-grid)の直下に
-		    上位5件をまとめて1つのテキストで表示する(要件どおり)。#edit-form自体が
-		    display:flex; flex-direction:columnなので、この段落は独立した1行として
-		    move-fields-gridとstat-tableの間に追加で差し込まれるだけで、両者自身の
-		    margin(31-L7/32-L4で実測調整済み)は一切変更しない。データが無ければ
-		    hidden属性のまま(要素ごと非表示、空枠を作らない)。 */}
-		<p id="move-suggestion-hint" class="suggestion-hint" hidden></p>
+		{/* 🔴 UI改修依頼(個体編集左パネル、2026-08-01)により、ここにあった常時表示のヒント段落
+		    (#move-suggestion-hint)は撤去した。人気の技は技選択ウィンドウ(setupMovePickerWindow、
+		    <script>のleft-panel.ts参照)の「人気」列(並び替え可能、初期表示は人気順)に反映する
+		    形に変更した。 */}
 
 		<div class="stat-table">
 			<div class="stat-table-header">
@@ -839,33 +833,11 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		color: var(--color-text-muted);
 	}
 
-	/* 匿名集計サジェスト機能・第5段階(UI: 性格/アイテム/テラス/技のサジェスト表示)。
-	   #nature-suggestion-hint/#item-suggestion-hint/#tera-suggestion-hint/#move-suggestion-hint
-	   はいずれも読み取り専用の1行テキスト(<script>のloadPopularBuildSuggestions、
-	   left-panel.ts参照)。既存の.hp-fixed-note(ヌケニン注記)と同じ「小さいフォント+muted色」の
-	   視覚言語に揃える(新しいトークンは作らない)。データが無いときはhidden属性のまま
-	   (display:noneでレイアウトから完全に外れる。過去に「常時表示される空枠」がユーザー指摘で
-	   撤去された経緯があるため、空データ時に枠だけ見える状態を絶対に作らない)。 */
-	.suggestion-hint {
-		margin: 0.25rem 0 0;
-		font-size: var(--font-size-xs);
-		line-height: var(--line-height-snug);
-		color: var(--color-text-muted);
-	}
-	.suggestion-hint[hidden] { display: none; }
-	/* #item-suggestion-hint/#tera-suggestion-hintの親.field(.field-grid-single直下)は
-	   global.cssの共通.field(display:flex; align-items:center;、行方向の1行レイアウト)を
-	   そのまま使っており、ヒント要素をその2つ目の子として追加すると横に並んでしまう
-	   (ボタンの右側に食い込む)。この修飾クラスだけ縦積みに切り替える。子が1つ
-	   (.item-dropdown-wrap/.tera-dropdown-wrap)しか無い間(=ヒント非表示時)は
-	   flex-directionを変えても見た目に一切影響しない(単一のflexアイテムの配置は
-	   row/column どちらでも同じ)。 */
-	.field-with-suggestion {
-		display: flex;
-		flex-direction: column;
-		align-items: stretch;
-		gap: 0.15rem;
-	}
+	/* 🔴 UI改修依頼(個体編集左パネル、2026-08-01)「サジェストはリストボックスの候補に反映し、
+	   パネルに常時表示しない」により、常時表示のヒント段落一式(#nature-suggestion-hint等)と
+	   それ専用だった.suggestion-hint/.field-with-suggestionは撤去した(いずれもこのファイル内
+	   の他の要素からは参照されていないことをgrep確認済み)。作用率の表示先は各候補リスト
+	   (#nature-list/#item-dropdown-list/#tera-dropdown-list/技選択ウィンドウ)側に移った。 */
 	@media (max-width: 460px) {
 		.stat-table-header { display: none; }
 		/* ラウンド12指摘(A-3)追随: 1列目はもともと「とくこう」等の全角ラベル+▲▼ボタンの
