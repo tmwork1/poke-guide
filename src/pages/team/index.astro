@@ -226,6 +226,12 @@ const user = Astro.locals.user;
 			align-items: center;
 			gap: var(--space-2);
 		}
+		/* UI改修依頼(チームトップ画面、2026-08-01)「チームメモをカードに常時表示せず、ホバー時に
+		   表示するようにする」。以前はメモ本文を1行省略で常時表示していたが、box/index.astroや
+		   このファイル自身が随所で使っている「title属性によるネイティブホバーツールチップ」の
+		   確立済み規格(nameEl.title/img.titleと同じ手法)に揃え、メモがあるときだけ小さな
+		   アイコン(📝)を表示してtitleに全文を持たせる方式に変える(JS側、下のrenderCard参照)。
+		   min-heightはメモ有無に関わらずメタ行の高さを揃えるため(round-30 A-9(b))そのまま維持する。 */
 		.team-grid .card-team .card-team-memo {
 			flex: 1 1 auto;
 			min-width: 0;
@@ -238,8 +244,13 @@ const user = Astro.locals.user;
 			overflow: hidden;
 			text-overflow: ellipsis;
 		}
+		/* UI改修依頼(チームトップ画面、2026-08-01)「『n/6』のような登録数表示を削除する」。
+		   要素を消す指示でもDOMは残してCSSで見せない方針(.claude/skills/ui/references/pitfalls.md
+		   「壊してはいけないもの」節、box/index.astroの.card-stat-gridと同じ扱い)に従い、
+		   JS側の生成(renderCard)自体は変更せずdisplay:noneでのみ隠す。 */
 		.team-grid .card-team .card-team-count-badge {
 			flex-shrink: 0;
+			display: none;
 		}
 
 		/* --- 削除ボタン: box/index.astroの.icon-button.delete-buttonと同じ規格
@@ -311,14 +322,21 @@ const user = Astro.locals.user;
 			align-items: center;
 			justify-content: center;
 		}
-		/* round-30 A-4: 空きサムネの罫線がダークで約1.18:1しか無くほぼ知覚できなかった。
-		   このプレースホルダーに限り --color-border(弱くてよい罫線)から --color-text-muted
-		   (ライト#5b6472/ダーク#9aa1b0、既にAA適合済みの補助色)へ転用し、線幅も.add-card-tile
-		   と同じ2pxに揃える。他の「弱くてよい罫線」(カード外枠・ツールバー罫線など)は
-		   --color-border のまま変更しない。 */
-		.team-grid .card-team .card-team-thumb.is-empty {
-			border: 2px dashed var(--color-text-muted);
-			background: transparent;
+		/* UI改修依頼(チームトップ画面、2026-08-01)「未設定のポケモンの枠を、設定済みの枠と
+		   同じ見た目にする」。round-30 A-4で導入した空き枠専用の破線罫線(is-empty、旧
+		   `border: 2px dashed var(--color-text-muted); background: transparent;`)は撤回し、
+		   .card-team-thumbの基底スタイル(実線罫線var(--color-border)+背景var(--color-surface))を
+		   設定済み/未設定の両方でそのまま使う(このルール自体を削除)。.is-emptyクラスの付与
+		   (下のscript参照)自体は変更しない(枠内の中央番号表示の分岐に使う)。
+		   代わりに、未設定枠だけ中央にその枠が何番目(N)かを薄い色の数字で表示する
+		   (.card-team-thumb-slot-number、下記。設定済み枠は公式絵で埋まるため数字は出さない)。 */
+		.team-grid .card-team .card-team-thumb-slot-number {
+			font-size: 1.5rem;
+			font-weight: 700;
+			line-height: 1;
+			color: var(--color-text-muted);
+			opacity: 0.5;
+			user-select: none;
 		}
 		.team-grid .card-team .card-team-thumb-img {
 			width: 100%;
@@ -338,14 +356,16 @@ const user = Astro.locals.user;
 		}
 		/* UI改修依頼(チームトップ画面)「アイテムアイコンも表示」。box/index.astroの
 		   .card-item-badge(スプライト右下重畳)と同じ考え方をミニサムネイル用に縮小して適用する。
-		   .card-team-thumbは既にposition:relativeを持つため、その右下隅に重ねる。 */
+		   .card-team-thumbは既にposition:relativeを持つため、その右下隅に重ねる。
+		   UI改修依頼(チームトップ画面、2026-08-01)「アイテムアイコンの丸枠を削除する」:
+		   border-radius: 50%(丸枠)を撤去する。背景・枠線・影は、公式絵に重なっても
+		   アイコンが視認できるようにするための土台として残す(丸みだけを除去)。 */
 		.team-grid .card-team .card-team-thumb-item-badge {
 			position: absolute;
 			right: 2px;
 			bottom: 2px;
 			width: var(--icon-size-sm);
 			height: var(--icon-size-sm);
-			border-radius: 50%;
 			background: var(--color-surface);
 			border: 1px solid var(--color-border);
 			box-shadow: var(--shadow-sm);
@@ -609,15 +629,24 @@ const user = Astro.locals.user;
 
 				card.appendChild(header);
 
-				// --- メタ行(round-30 A-9(b)/(c)): メモ(1行省略。空でも高さを保つ)+ 体数バッジ ---
+				// --- メタ行(round-30 A-9(b)/(c)): メモ + 体数バッジ ---
+				// UI改修依頼(チームトップ画面、2026-08-01)「チームメモをカードに常時表示せず、
+				// ホバー時に表示するようにする」。本文を直接テキスト表示していたのをやめ、
+				// メモがあるときだけ小さなアイコン(📝)を出し、全文はtitle属性(ネイティブの
+				// ホバーツールチップ、box/index.astroのname.title等と同じ確立済み規格)に持たせる。
+				// メモが無いときはアイコンも出さない(空でも高さは.card-team-memoのmin-heightで保つ、
+				// round-30 A-9(b)の意図を維持)。
 				const metaRow = document.createElement("div");
 				metaRow.className = "card-team-meta-row";
 
 				const memoEl = document.createElement("p");
 				memoEl.className = "card-team-memo";
 				const memoText = (t.memo ?? "").trim();
-				memoEl.textContent = memoText;
-				if (memoText) memoEl.title = memoText;
+				if (memoText) {
+					memoEl.textContent = "📝";
+					memoEl.title = memoText;
+					memoEl.setAttribute("aria-label", `メモ: ${memoText}`);
+				}
 				metaRow.appendChild(memoEl);
 
 				const memberCountBadge = document.createElement("span");
@@ -663,6 +692,13 @@ const user = Astro.locals.user;
 						itemBadge.appendChild(itemImg);
 						thumb.appendChild(itemBadge);
 						void applyThumbItemSprite(itemBadge, itemImg, itemName);
+					} else {
+						// UI改修依頼(チームトップ画面、2026-08-01)「未設定枠には中央に薄い色で
+						// その枠がチーム内で何番目か(N)の数字を表示する」。
+						const slotNumber = document.createElement("span");
+						slotNumber.className = "card-team-thumb-slot-number";
+						slotNumber.textContent = String(slot);
+						thumb.appendChild(slotNumber);
 					}
 					thumbGrid.appendChild(thumb);
 				}
