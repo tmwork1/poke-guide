@@ -835,13 +835,17 @@ const { pokemonId } = Astro.props;
 	   影響しない。
 	   🔴 ラウンド49 B-2: 34-D1のコメントは「左パネルの.item-image-badgeと同じ最終サイズ」
 	   と明記していたが、その後ラウンド39(39-L1)で左パネル側が31pxへ再縮小され追随して
-	   いなかった(2pxドリフト、統一感レビュアーの指摘)。33px→31pxに揃える。 */
+	   いなかった(2pxドリフト、統一感レビュアーの指摘)。33px→31pxに揃える。
+	   🔴 UI改善ラウンド52ユーザー指示「アイテム画像を-10%縮小」により、31px→28px
+	   (31×0.9=27.9を四捨五入)に縮小する。position:absoluteでの配置(bottom:-4px;
+	   right:-4px)と.damage-sprite-box基準の重ね配置は維持するため、縮小してもカード
+	   全体の高さ・他要素のレイアウトには影響しない。 */
 	#opponent-notes-section .damage-item-badge {
 		position: absolute;
 		bottom: -4px;
 		right: -4px;
-		width: 31px;
-		height: 31px;
+		width: 28px;
+		height: 28px;
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -2260,9 +2264,22 @@ const { pokemonId } = Astro.props;
 	   (267/80≈3.3倍、固定1の基準3倍を超過。ラウンド12 A-1の検索欄1192px問題と同型)。
 	   幅を内容に見合うサイズへ固定し、伸縮をやめる。空いた余白はこの行(セレクトのみ)の
 	   右側に残るだけで、他の行(ランク・テラスタル)のレイアウトには影響しない。 */
+	/* 🔴 UI改善ラウンド52ユーザー指示「状態異常selectの幅を4文字分程度に狭める」により、
+	   6.5em→5.3emに縮小する。最長の選択肢は上記コメントのとおり「もうどく」(4文字、
+	   実測でこのフォントは全角1文字=1em)。
+	   このselectはglobal.cssの共通selectルール(padding-right:1.7emで矢印用の余白を
+	   常時確保する設計)を、直下のpaddingショートハンド指定(padding: 0.3em 0.3em)で
+	   上書きしている(既存挙動、今回変更していない)。ネイティブ<select>の矢印は
+	   hover/focus時のみbackground-imageとして現れ、background-position: right 0.6em
+	   center・幅10pxで描画されるが、この位置はpadding-boxの右端基準でありpadding-right
+	   の値そのものには連動しないため、paddingを非対称にしても矢印は動かない
+	   (実測で確認済み。asymmetricなpaddingで幅を切り詰める案は効果が無かった)。
+	   実際に効くのは幅(width)のみで、4em〜4.8emでは「もうどく」選択中に矢印が最終文字
+	   「く」と重なった。5.3emで矢印と文字の間に隙間が残ることを実測(--select-arrowを
+	   強制表示してのクロップ比較)で確認し、この値にした。6.5em→5.3emで約18%の縮小。 */
 	#damage-detail-panel-body .damage-detail-ailment-select {
 		flex: 0 0 auto;
-		width: 6.5em;
+		width: 5.3em;
 		min-height: 0;
 		/* UI改善ラウンド29(29-R3): チップ行(.damage-detail-chip-row)でテラスタルボタン
 		   (.damage-detail-icon-btn)と横並びになるため、上下paddingをボタン側の高さに
