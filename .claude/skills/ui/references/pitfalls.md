@@ -128,6 +128,11 @@ npm run shot -- --page box --size 1280x900                         # ブレー�
 - **足りない撮り方が出てきたら `scripts/shot.mjs` にオプションを足す。** `.tmp-*.mjs` を書き捨てると次のラウンドでまた同じものを書くことになる。
 - 実測(`getBoundingClientRect()`)や機能確認のように「触る」必要がある検証は、従来どおり**プロジェクトルートに `.tmp-<接頭辞>-*.mjs`** を置く(スクラッチパッド配下だと `import { chromium } from '@playwright/test'` がモジュール解決に失敗する)。`playwright` ではなく **`@playwright/test`** からimportする。使い終わったら消す。**他のエージェントの一時ファイル(`.tmp-final.*` など)は消さない。**
 
+### WSL環境でPlaywright(`npm run shot`含む)を初めて動かすには追加インストールが要る
+dev serverがWSL側(Ubuntu)で動いている環境(→ ユーザーの2026-07-31指示でdev server管理はClaudeの担当)で、そのWSL上から初めて `npm run shot` 等Playwrightを使うコマンドを実行すると、以下の2段階でつまずく(2026-08-01、並列で動いていた複数エージェントが独立に同じ問題へ到達した)。
+1. **chromium本体が未インストール**: `npx playwright install chromium` で解決。
+2. **共有ライブラリ不足**: chromium本体を入れても `libnspr4` / `libnss3` / `libnssutil3` / `libnssdbm3` / `libasound2t64` 等が無くChromiumが起動しない。この環境では `sudo apt-get install` が非対話認証で使えない制約があるため、**root不要**の `apt-get download <パッケージ名>`(.debを取得するだけ)→ `dpkg -x <パッケージ名>.deb <展開先ディレクトリ>`(インストールせず中身だけ展開)→ 展開先の `lib/x86_64-linux-gnu` 等を `LD_LIBRARY_PATH` に足して起動、で回避できる。**恒久対応(`sudo apt-get install`等)はまだ行っていない**ので、このWSL環境が作り直されるとこの手順が再度必要になる可能性がある。
+
 ### `astro dev` はデーモンで、ポートは4321とは限らない
 Astro 7 の `astro dev` はバックグラウンドのデーモンとして起動し、**4321が埋まっていると4322…とずれた port を掴む**。前のセッションのサーバーが残っていると2つ同時に動く。
 - 実際に起きた: 4321(前セッションの残骸)と4322(今回起動した分)が両方200を返し、片方を撮っていた。
