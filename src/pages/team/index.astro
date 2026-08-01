@@ -293,6 +293,15 @@ const user = Astro.locals.user;
 			flex-shrink: 0;
 			display: none;
 		}
+		/* UI改修依頼(チームトップ画面、2026-08-01)「カードごとにレギュレーションをタグ表示する」。
+		   新しい色トークンは作らず、このファイルで既に確立済みの.badge(global.css、
+		   card-team-count-badgeと同じ土台)をそのまま流用する。regulationがnullのチームは
+		   要素自体を生成しない(JS側renderCard参照。team/[id].astroのテラスタイプ未設定と同じ
+		   判断: 合法な「未設定」状態のため行/要素を出さない)。 */
+		.team-grid .card-team .card-team-regulation-badge {
+			flex-shrink: 0;
+			white-space: nowrap;
+		}
 
 		/* --- 削除ボタン: box/index.astroの.icon-button.delete-buttonと同じ規格
 		   (28px丸ボタン・--color-danger-strong・hover時のみ可視)。カード遷移(<a>)と衝突しない
@@ -458,9 +467,10 @@ const user = Astro.locals.user;
 			   切り替える(トークン経由をやめる)。 */
 			width: 24px;
 			height: 24px;
-			background: var(--color-surface);
-			border: 1px solid var(--color-border);
-			box-shadow: var(--shadow-sm);
+			/* UI改修依頼(チームトップ画面、2026-08-01)「アイテム画像は枠をつけず透過で貼り付ける」:
+			   background(var(--color-surface))とborderを撤去する。画像自体がtransparent PNG
+			   前提のため土台の四角い箱を無くし、公式絵の上に直接重なるようにする。box-shadowは
+			   その土台に対する影のため、背景・枠と合わせて外す(残すと角だけの影が浮いて見える)。 */
 			display: flex;
 			align-items: center;
 			justify-content: center;
@@ -817,6 +827,16 @@ const user = Astro.locals.user;
 					memoEl.setAttribute("aria-label", `メモ: ${memoText}`);
 				}
 				metaRow.appendChild(memoEl);
+
+				// UI改修依頼(チームトップ画面、2026-08-01)「カードごとにレギュレーションをタグ表示する」。
+				// nullは合法な未設定状態のため、要素自体を生成しない(itemName/teraTypeと同じ判断)。
+				const regulation = t.regulation?.trim() ?? "";
+				if (regulation) {
+					const regulationBadge = document.createElement("span");
+					regulationBadge.className = "badge card-team-regulation-badge";
+					regulationBadge.textContent = regulation;
+					metaRow.appendChild(regulationBadge);
+				}
 
 				const memberCountBadge = document.createElement("span");
 				memberCountBadge.className = "badge tnum card-team-count-badge";
