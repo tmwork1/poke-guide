@@ -10,13 +10,19 @@ jpoke の `src/` を直接 sys.path に追加して読み込む(jpoke はラン�
     python extract_autocomplete.py <jpoke_src_dir> <autocomplete_output_dir> <detail_output_dir>
 
 出力:
-    <autocomplete_output_dir>/pokemon.json   (名前・図鑑番号・画像ID・フォルム・タイプのみ)
+    <autocomplete_output_dir>/pokemon.json   (名前・図鑑番号・画像ID・フォルム・タイプ・
+                                               regulations(所属レギュレーション名の配列)のみ)
     <autocomplete_output_dir>/moves.json     (名前・タイプ・分類のみ)
     <autocomplete_output_dir>/abilities.json (名前のみ)
-    <autocomplete_output_dir>/items.json     (名前・sprite画像相対パス(spritePath, 解決不可ならnull))
+    <autocomplete_output_dir>/items.json     (名前・sprite画像相対パス(spritePath, 解決不可ならnull)・
+                                               regulations(所属レギュレーション名の配列)のみ)
     <autocomplete_output_dir>/regulations.json (レギュレーション名のみ。jpoke.types.Regulation が唯一の情報源)
     <detail_output_dir>/pokemon.json         (検索結果の詳細表示用: 種族値・特性・技・進化前など)
     <detail_output_dir>/moves.json           (検索結果の詳細表示用: 威力・命中率・PPなど)
+    <detail_output_dir>/speed-modifiers.json (すばやさ早見表(/speed-chart)用: 持ち物・特性・技による
+                                               すばやさ上昇補正の一覧。jpokeのハンドラ関数を
+                                               inspect.getsource() して機械走査する。詳細は
+                                               build_speed_modifiers() のdocstring参照)
 
 特性(abilities.json)・持ち物(items.json)は jpoke に日本語の説明文データが無い
 (AbilityData/ItemData は技術的なフラグ情報しか持たない)ため、詳細データの生成は見送る
@@ -25,7 +31,9 @@ jpoke の `src/` を直接 sys.path に追加して読み込む(jpoke はラン�
 """
 from __future__ import annotations
 
+import inspect
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -151,6 +159,11 @@ def build_pokemon(pokedex: dict, raw_pokedex: dict, pokemon_image_id_map: dict[s
                 "imageId": image_id,
                 "forme": raw.get("forme") or None,
                 "types": list(data.types),
+                # /speed-chart(すばやさ早見表)のレギュレーション別母集団の絞り込みに使う。
+                # data.regulations は Python の set のため、json.dump に渡す前に必ず
+                # sorted() でリスト化する(set のまま渡すと json.dump が TypeError で落ちる。
+                # P2 R-14)。
+                "regulations": sorted(data.regulations),
             }
         )
 
@@ -351,18 +364,29 @@ def build_items(items: dict, jpoke_src_dir: Path) -> list[dict]:
     加えて、PokeAPI sprites リポジトリの画像パス解決に使う spritePath を付与する
     (src/lib/sprite-urls.ts の loadItemSpriteMap が読む)。解決できなかったアイテムは
     エラーにせず spritePath: null とし、件数と代表例をビルドログに出力する。
+
+    regulations は /speed-chart(すばやさ早見表)のレギュレーション別絞り込みに使う
+    (data.regulations は regulation/item.csv 由来の set。sorted() でリスト化する。P2 R-14)。
+    item.csv に収録されていない、または収録されていても implemented 列が "1" でない
+    アイテム(2026-08-01時点で270件中124件。うち123件は行自体が無く、1件
+    「フラエッテナイト」は行はあるが implemented=0 のため
+    vendor/jpoke/src/jpoke/data/item.py の _load_item_regulations() が空扱いにする)は
+    regulations が空配列になる。**これは「未対応・未追跡」であって「非公開」ではない**
+    (item.csv はダメージ計算に関わる一部アイテムのみを対象にしたレギュレーション対応表であり、
+    「そのレギュレーションで使用禁止」という意味のデータではない)。将来 regulations: [] を
+    「使用不可」と早合点して流用しないこと。
     """
     sprite_paths = _load_item_sprite_paths(jpoke_src_dir)
 
     result = []
     unresolved: list[str] = []
-    for name in items:
+    for name, data in items.items():
         if not _is_real_name(name):
             continue
         sprite_path = sprite_paths.get(name)
         if sprite_path is None:
             unresolved.append(name)
-        result.append({"name": name, "spritePath": sprite_path})
+        result.append({"name": name, "spritePath": sprite_path, "regulations": sorted(data.regulations)})
 
     if unresolved:
         sample = ", ".join(unresolved[:5])
@@ -371,6 +395,198 @@ def build_items(items: dict, jpoke_src_dir: Path) -> list[dict]:
             f" (例: {sample})",
             file=sys.stderr,
         )
+
+    return result
+
+
+# ============================================================================
+# speed-modifiers.json: /speed-chart(すばやさ早見表)用のすばやさ上昇補正の機械抽出。
+# P2設計レビュー R-2 で確定した「決定版のパターン」をそのまま実装する(手作業リストではなく、
+# jpoke のハンドラ関数を inspect.getsource() してソース文字列を正規表現で走査する)。
+# 技名・特性名はこのファイルにハードコードしない(下の走査結果がすべて)。
+# ============================================================================
+
+# ランク上昇の抽出パターン(2種類、両方を試す)。
+#   1. dictリテラルに含まれる "spe": 正の数 (例: battle.modify_stats(mon, {"spe": +1}))。
+#      呼び出し関数名(modify_stats/modify_attacker_stats等)に依存しない。
+#   2. stat="spe", amount=+n のキーワード引数(例: _boost_on_quarter_hp(..., stat="spe", amount=+1))。
+# どちらか一方だけだと必ず片方向を取りこぼす(P2 R-2 実測):
+#   - dictリテラル方式のみ → でんきエンジン(_apply_type_absorb(..., stats={"spe": 1}) 経由)は
+#     拾えるが、stat=/amount= 方式の からぶりほけん・カムラのみ・ビビリだま を取りこぼす。
+#   - 実際にはその逆方向の懸念(かそく・くだけるよろいの位置引数 {"spe": +1})も
+#     dictリテラル方式でカバーできることをP4で実測確認済み(位置引数もキーワード引数も
+#     同じdictリテラル構文で書かれているため)。念のため両パターンを実装し、
+#     どちらの経路でも1件も取りこぼさないことをテストで担保する(U-1関連要件)。
+_RANK_DICT_RE = re.compile(r'\{[^{}]*?"spe"\s*:\s*\+?(\d+)[^{}]*?\}')
+_RANK_KWARG_RE = re.compile(r'stat\s*=\s*"spe"\s*,\s*amount\s*=\s*\+?(\d+)')
+
+# 倍率の抽出パターン(ON_CALC_SPEED ハンドラのソースのみに適用)。
+#   1. apply_fixed_modifier(value, N) … N/4096 倍(4096は固定小数点の基準値)。
+#   2. value *= N … 整数倍(N倍、分母1)。
+_MULT_FIXED_RE = re.compile(r'apply_fixed_modifier\(\s*value\s*,\s*(\d+)\s*\)')
+_MULT_STAR_RE = re.compile(r'value\s*\*=\s*(\d+)')
+
+# 除外判定(ソース文字列にこれらの部分文字列を含むハンドラは対象から外す):
+#   - "chance=" / "確率": 確率発動の追加効果(あやしいかぜ/ぎんいろのかぜ/げんしのちから の
+#     10%上昇など)。これらは常時発動する補正ではないため早見表には出さない。
+#   - "modify_defender_stats" / "lower_defender": 相手(受け手)のステータスを下げる効果。
+#     自分自身のすばやさ上昇ではないため対象外。
+_EXCLUDE_SUBSTRINGS = ("chance=", "確率", "modify_defender_stats", "lower_defender")
+
+# R-3: こだいかっせい/クォークチャージの1.5倍は「実数値(ランク補正込み)が最大の能力
+# 1つだけ」に乗る特殊な補正で、対象になるかどうかは種族ではなく個体の努力値・性格配分で
+# 決まる(vendor/jpoke/src/jpoke/handlers/ability_paradox.py の _select_paradox_boost_stat)。
+# 「その特性を持てるフォルムにだけ付ける」という他の補正と同じ種族単位の判定基準が
+# そもそも成立しないため、機械走査の結果から名指しで除外する(2特性ともON_CALC_SPEEDハンドラ
+# ability_paradox.modify_speed を共有しており、機械走査だけでは通常の1.5倍特性(はやあし等)と
+# 区別がつかない)。P4実測: M-A/M-Bにはこの2特性を持つ種族が存在せず、今日時点では
+# この除外により表示が変わることはない(将来のレギュレーション追加に備えた予防措置)。
+_EXCLUDED_ABILITIES: frozenset[str] = frozenset({"こだいかっせい", "クォークチャージ"})
+
+# 生成失敗の下限(P2 R-14/確定した設計)。jpokeの実装変更でハンドラのソースパターンが
+# 変わり、抽出結果がサイレントに空/激減するのを検知するための閾値。
+_MIN_MULTIPLIER_ABILITY_COUNT = 6
+_MIN_RANK_MOVE_COUNT = 15
+
+
+def _iter_all_handler_funcs(data):
+    """AbilityData/ItemData/MoveData の handlers dict から、登録イベント種別を問わず
+    全ハンドラ関数を列挙する。dict の値は Handler 単体または list[Handler] の両方があり得る
+    (jpoke.data.models の型注釈 `dict[Event | DomainEvent, Handler | list[Handler]]` 参照)。
+    """
+    for _event, handler_or_list in data.handlers.items():
+        handlers = handler_or_list if isinstance(handler_or_list, list) else [handler_or_list]
+        for handler in handlers:
+            yield handler.func
+
+
+def _extract_rank_boost(data) -> int | None:
+    """全ハンドラ(イベント種別問わず)のソースから素早さのランク上昇(段階数)を抽出する。
+
+    同じ対象に複数のハンドラが該当する場合(例: いかりのこうら=ダメージ被弾時、
+    びびり=タイプ被弾時/いかく反応時の2ハンドラ)、いずれも同じ段階数になることを
+    P4で実測確認済みのため、最初に見つかった正の値を採用する。
+    """
+    for func in _iter_all_handler_funcs(data):
+        try:
+            source = inspect.getsource(func)
+        except (OSError, TypeError):
+            continue
+        if any(s in source for s in _EXCLUDE_SUBSTRINGS):
+            continue
+        match = _RANK_DICT_RE.search(source) or _RANK_KWARG_RE.search(source)
+        if match:
+            stages = int(match.group(1))
+            if stages > 0:
+                return stages
+    return None
+
+
+def _extract_speed_multiplier(data) -> tuple[int, int] | None:
+    """ON_CALC_SPEED ハンドラのソースから素早さの倍率(numerator/denominator)を抽出する。
+
+    apply_fixed_modifier(value, N) の一致を優先し、無ければ value *= N (denominator=1)を
+    採る。理由: はやあし特性はまひ状態時の内部補正として value *= 3 も持つ
+    (まひによる1/2ペナルティを打ち消すための特殊な帳尻合わせで、実際の倍率ではない)が、
+    同じ関数内に apply_fixed_modifier(value, 6144) (=1.5倍、通常時の実際の倍率)も存在する。
+    apply_fixed_modifier を優先することで、はやあしの結果が誤って「3倍」にならず正しく
+    「1.5倍」になることをP4で実測確認済み。
+
+    N < 4096 の apply_fixed_modifier(下降補正。くろいてっきゅう=2048、スロースタート=2048)は
+    出力しない(上昇要素のみを扱う早見表の対象外)。
+
+    分母の 4096 はここでハードコードしてよい: FIXED_POINT_BASE は
+    vendor/jpoke/src/jpoke/utils/constants.py:17 で定義された別ファイルの定数であり、
+    呼び出し側のソース文字列(apply_fixed_modifier(value, 6144) 等)には数値リテラルの
+    N しか現れない。inspect.getsource() はこの呼び出し元関数のソースしか返さないため、
+    定数定義側の値(4096)をソース文字列から動的に取得することはできない。
+    """
+    from jpoke.enums import DomainEvent  # noqa: PLC0415  (jpoke 読み込み後に呼ばれるためここで import)
+
+    handler_or_list = data.handlers.get(DomainEvent.ON_CALC_SPEED)
+    if handler_or_list is None:
+        return None
+    handlers = handler_or_list if isinstance(handler_or_list, list) else [handler_or_list]
+    for handler in handlers:
+        try:
+            source = inspect.getsource(handler.func)
+        except (OSError, TypeError):
+            continue
+        if any(s in source for s in _EXCLUDE_SUBSTRINGS):
+            continue
+        fixed_matches = [int(n) for n in _MULT_FIXED_RE.findall(source) if int(n) >= 4096]
+        if fixed_matches:
+            return (fixed_matches[0], 4096)
+        star_matches = [int(n) for n in _MULT_STAR_RE.findall(source) if int(n) > 1]
+        if star_matches:
+            return (star_matches[0], 1)
+    return None
+
+
+def _build_modifier_section(data_dict: dict, *, include_multiplier: bool, excluded_names: frozenset[str] = frozenset()) -> dict:
+    """ITEMS/ABILITIES/MOVES いずれかの辞書1つぶんの補正一覧を作る。
+
+    各名前について、まずランク上昇を探し(見つかればそれを採用)、見つからず
+    include_multiplier が真のときだけ倍率を探す(moves.pyには継続倍率を持つ技が
+    存在しないため MOVES では include_multiplier=False で呼ぶ)。
+    """
+    result: dict = {}
+    for name, data in data_dict.items():
+        if not _is_real_name(name) or name in excluded_names:
+            continue
+        stages = _extract_rank_boost(data)
+        if stages is not None:
+            result[name] = {"kind": "rank", "stages": stages}
+            continue
+        if include_multiplier:
+            multiplier = _extract_speed_multiplier(data)
+            if multiplier is not None:
+                numerator, denominator = multiplier
+                result[name] = {"kind": "multiplier", "numerator": numerator, "denominator": denominator}
+    return result
+
+
+def build_speed_modifiers(items: dict, abilities: dict, moves: dict) -> dict:
+    """jpoke の ITEMS/ABILITIES/MOVES 全件をハンドラのソースコードから機械走査し、
+    /speed-chart(すばやさ早見表)が使う「すばやさ上昇補正」の全件一覧を作る
+    (P2設計レビュー R-2 の決定版パターン。P1の手作業ピックアップリストは破棄した)。
+
+    ここでの「全件」は jpoke が持つ補正のすべてであり、レギュレーションでの絞り込みや
+    採用率による絞り込みは行わない(P3追補 U-1: 抽出(自動)と採否(手動)を分離する設計。
+    採否は src/config/speed-chart.json が持ち、src/lib/speed-chart.ts がマージする)。
+
+    ITEMS/ABILITIES は ON_CALC_SPEED ハンドラから倍率を、全イベントのハンドラから
+    ランク上昇を拾う。MOVES は継続的な倍率補正を持たないためランク上昇のみを拾う。
+
+    こだいかっせい/クォークチャージは名指しで除外する(R-3、_EXCLUDED_ABILITIES 参照)。
+
+    抽出結果が空、または倍率特性6件・ランク上昇技15件の下限を割ったら生成を失敗させる
+    (jpokeの実装変更でハンドラのソースパターンが変わり、サイレントに空/激減の表が
+    出力されるのを防ぐ)。
+    """
+    result = {
+        "items": _build_modifier_section(items, include_multiplier=True),
+        "abilities": _build_modifier_section(abilities, include_multiplier=True, excluded_names=_EXCLUDED_ABILITIES),
+        "moves": _build_modifier_section(moves, include_multiplier=False),
+    }
+
+    multiplier_ability_count = sum(1 for v in result["abilities"].values() if v["kind"] == "multiplier")
+    rank_move_count = len(result["moves"])
+    total_count = sum(len(v) for v in result.values())
+
+    if (
+        total_count == 0
+        or multiplier_ability_count < _MIN_MULTIPLIER_ABILITY_COUNT
+        or rank_move_count < _MIN_RANK_MOVE_COUNT
+    ):
+        print(
+            "エラー: detail/speed-modifiers.json の抽出結果が下限を割りました"
+            f"(倍率特性={multiplier_ability_count}件[下限{_MIN_MULTIPLIER_ABILITY_COUNT}] / "
+            f"ランク上昇技={rank_move_count}件[下限{_MIN_RANK_MOVE_COUNT}] / 総数={total_count}件)。"
+            " jpokeの実装変更でハンドラのソースパターンが変わった可能性があります。",
+            file=sys.stderr,
+        )
+        raise SystemExit(1)
 
     return result
 
@@ -431,6 +647,9 @@ def main() -> None:
     detail_datasets = {
         "pokemon.json": build_pokemon_detail(POKEDEX),
         "moves.json": build_moves_detail(MOVES),
+        # /speed-chart(すばやさ早見表)用。トップレベルは {"items": {...}, "abilities": {...},
+        # "moves": {...}} の3キー固定のdict(他のdetailデータセットと違いリストではない)。
+        "speed-modifiers.json": build_speed_modifiers(ITEMS, ABILITIES, MOVES),
     }
 
     for output_dir, datasets in (
@@ -441,7 +660,13 @@ def main() -> None:
             path = output_dir / filename
             with path.open("w", encoding="utf-8") as f:
                 json.dump(records, f, ensure_ascii=False, separators=(",", ":"))
-            print(f"wrote {path} ({len(records)} records)")
+            if isinstance(records, dict) and set(records) == {"items", "abilities", "moves"}:
+                # speed-modifiers.json: セクションごとの件数を出す(トップレベルのキー数=3を
+                # 「3 records」と出しても意味がないため)。
+                counts = ", ".join(f"{key}={len(value)}" for key, value in records.items())
+                print(f"wrote {path} ({counts})")
+            else:
+                print(f"wrote {path} ({len(records)} records)")
 
 
 if __name__ == "__main__":

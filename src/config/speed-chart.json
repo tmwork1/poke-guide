@@ -1,0 +1,27 @@
+{
+  "_readme": [
+    "すばやさ早見表(/speed-chart)が使う『採否』設定。手で編集する唯一のファイル。",
+    "public/master-data/detail/speed-modifiers.json は npm run build:master-data が jpoke から",
+    "機械生成する『全件』(抽出)であり、このファイルはその全件に対する『採否』(手動)を持つ。",
+    "disabled に載っていないものは全てON(既定でON)。無効化したいものだけを列挙する。",
+    "disabled に書いた名前は speed-modifiers.json に実在しなければならない",
+    "(tests/speed-chart.test.ts がテストで検知する。打ち間違い・jpoke側の改名対策)。",
+    "adoptionRate: こだわりスカーフ等の持ち物・技を、種族ごとの実際の採用率(suggestionsテーブル)で",
+    "絞り込むかどうかの設定。abilities は対象外(採用率データが特性を集計していないため)。",
+    "  enabled: 採用率フィルタを使うかどうか(falseなら全フォルムにその補正行を出す)",
+    "  threshold: この採用率(ratio)以上のときだけ補正行を出す(0.10 = 10%)",
+    "  minSampleSize: サンプル数がこれ未満の種族は『データなし』として出さない(k-匿名性)",
+    "  appliesTo: 採用率フィルタの対象種別"
+  ],
+  "adoptionRate": {
+    "enabled": true,
+    "threshold": 0.1,
+    "minSampleSize": 5,
+    "appliesTo": ["items", "moves"]
+  },
+  "disabled": {
+    "abilities": [],
+    "moves": [],
+    "items": []
+  }
+}
