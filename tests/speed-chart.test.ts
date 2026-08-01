@@ -341,6 +341,22 @@ describe('isAdoptedByRate(U-2: 採用率フィルタ)', () => {
     const itemsOnlyConfig: AdoptionRateConfig = { ...config, appliesTo: ['items'] };
     assert.equal(isAdoptedByRate('moves', 'りゅうのまい', 'データなし種族', itemsOnlyConfig, data), true);
   });
+
+  // 2026-08-01: くさわけ・こうそくいどうの手動除外(disabled.moves)を廃止し、技も
+  // 採用率フィルタ(appliesTo に 'moves')で制御する方針に変更した。moves カテゴリでも
+  // items と同じ境界値判定(閾値・k-匿名性)が効くことを直接確認する。
+  const moveData: AdoptionRateData = {
+    メガメガニウム: { moves: { sampleSize: 25, options: { くさわけ: 0.2 } } },
+    ライチュウ: { moves: { sampleSize: 20, options: { くさわけ: 0.05 } } },
+  };
+
+  it('moves: 採用率がthreshold以上なら採用する', () => {
+    assert.equal(isAdoptedByRate('moves', 'くさわけ', 'メガメガニウム', config, moveData), true);
+  });
+
+  it('moves: 採用率がthreshold未満なら採用しない', () => {
+    assert.equal(isAdoptedByRate('moves', 'くさわけ', 'ライチュウ', config, moveData), false);
+  });
 });
 
 // ------------------------------------------------------------------------------------------
@@ -390,6 +406,46 @@ describe('buildSpeedChartRows: R-4 メガ種族にこだわりスカーフを付
       .flatMap((row) => row.entries)
       .filter((entry) => entry.modifier?.category === 'items' && megaNames.has(entry.formName));
     assert.equal(megaItemEntries.length, 0);
+  });
+});
+
+// ------------------------------------------------------------------------------------------
+// 2026-08-01: くさわけ・こうそくいどうの手動除外を廃止し、技も採用率フィルタで
+// 制御する方針に変更したことの回帰テスト(要件4: 採用率フィルタが技にも効くことの検証)。
+// ------------------------------------------------------------------------------------------
+describe('buildSpeedChartRows: 採用率フィルタが技(moves)にも効く(手動除外disabledの代替)', () => {
+  const population: SpeedChartForm[] = [
+    { name: 'メガメガニウム', baseSpeed: 100, abilities: [], learnset: ['くさわけ'], isMega: true },
+    { name: 'ライチュウ', baseSpeed: 100, abilities: [], learnset: ['くさわけ'], isMega: false },
+  ];
+  const effectiveModifiers: EffectiveSpeedModifier[] = [
+    { category: 'moves', name: 'くさわけ', modifier: { kind: 'rank', stages: 2 } },
+  ];
+  // appliesTo に 'moves' を含めた実運用の設定(src/config/speed-chart.jsonの現行値と同じ形)。
+  const adoptionConfig: AdoptionRateConfig = { enabled: true, threshold: 0.1, minSampleSize: 5, appliesTo: ['items', 'moves'] };
+  const adoptionData: AdoptionRateData = {
+    // メガメガニウムは実際に採用率20%(閾値10%以上) → 行に出る。
+    メガメガニウム: { moves: { sampleSize: 25, options: { くさわけ: 0.2 } } },
+    // ライチュウは採用率5%(閾値未満) → 行から除外される。
+    ライチュウ: { moves: { sampleSize: 20, options: { くさわけ: 0.05 } } },
+  };
+
+  it('採用率が閾値以上の種族(メガメガニウム)にはくさわけの補正行が出る', () => {
+    const rows = buildSpeedChartRows(population, effectiveModifiers, adoptionConfig, adoptionData);
+    const entries = rows.flatMap((row) => row.entries).filter((e) => e.formName === 'メガメガニウム' && e.modifier?.name === 'くさわけ');
+    assert.equal(entries.length, 3, '振り方3種それぞれにくさわけ行があるべき');
+  });
+
+  it('採用率が閾値未満の種族(ライチュウ)にはくさわけの補正行が出ない', () => {
+    const rows = buildSpeedChartRows(population, effectiveModifiers, adoptionConfig, adoptionData);
+    const entries = rows.flatMap((row) => row.entries).filter((e) => e.formName === 'ライチュウ' && e.modifier?.name === 'くさわけ');
+    assert.equal(entries.length, 0);
+  });
+
+  it('実データ: src/config/speed-chart.json は disabled.moves を空にし、appliesTo にmovesを含む(手動除外から採用率フィルタへの移行)', () => {
+    assert.deepEqual(realSpeedChartConfig.disabled.moves, []);
+    assert.ok(realSpeedChartConfig.adoptionRate.appliesTo.includes('moves'));
+    assert.ok(realSpeedChartConfig.adoptionRate.appliesTo.includes('items'));
   });
 });
 
