@@ -110,6 +110,25 @@ Coordinatorが実測して発覚し、2回目でバリデーション層を直�
 
 ---
 
+## マイグレーション・DB接続
+
+### `.env` の `DATABASE_URL` と `.dev.vars` の `SUPABASE_URL` は別のDBを指している
+`npm run migrate`(`scripts/db/run-migrations.mjs`)は `.env` の `DATABASE_URL`(リモートのSupabaseクラウドDB、`db.<ref>.supabase.co:5432`)に対して直接 `pg` 接続する。一方、`npm run dev`(astro dev)が実際にAPI経由で読み書きするのは `.dev.vars` の `SUPABASE_URL`(**`http://127.0.0.1:54321`、ローカルSupabase**)。この2つは別のPostgresインスタンスであり、**片方だけにマイグレーションを適用しても、もう片方は古いスキーマのまま**になる(2026-08-01実測: リモートにだけ新カラムを追加した状態でdev serverを叩くと `column ... does not exist` の500が返った)。
+- **開発中の動作確認をしたいなら、ローカル(`postgresql://postgres:postgres@127.0.0.1:54322/postgres`、ポートは54321(API)ではなく**54322**(Postgres本体))にもマイグレーションを適用する**: `DATABASE_URL='postgresql://postgres:postgres@127.0.0.1:54322/postgres' npm run migrate`
+- リモート(`.env`)側も本番相当のため、新しいマイグレーションを作ったら**両方に**適用する。
+
+### 生DDL(`pg`直接接続)でスキーマを変えたら、PostgRESTのスキーマキャッシュも更新されないことがある
+`npm run migrate` は素の `pg` クライアントで `ALTER TABLE` 等を実行するだけで、PostgREST(supabase-jsが実際に叩くREST層)へのスキーマ再読み込み通知を送らない。列を追加した直後にAPIを叩くと、実テーブルには列が存在するのに **PostgRESTのキャッシュ側では「column does not exist」** になることがある。
+- 対策: マイグレーション適用後、同じDB接続で `NOTIFY pgrst, 'reload schema';` を1回発行する(`pg` の `Client#query` で実行できる)。それでも直らなければdev serverを再起動する(再接続時にスキーマを引き直すことがある)。
+
+### WSL2からはSupabaseの直接DBホスト名(`db.<ref>.supabase.co`)にIPv6到達性が無いことがある
+このホストはIPv4のAレコードを持たずIPv6のみで解決される。WSL2の仮想ネットワークはIPv6のデフォルトルートを持たないことがあり、`node`/`pg` から接続すると `ENETUNREACH`(NODE_OPTIONSの`--dns-result-order=ipv4first`でも直らない、そもそもIPv4アドレスが無いため)になる。**ネイティブWindows側(PowerShellから直接 `node`)にはIPv6の実路がある**ことが多いので、マイグレーション等のDB直接接続スクリプトは、詰まったらWSL経由をやめてWindows側のnode(`node_modules` はWindows側からも同じパスで見えるため動く)から実行する。
+
+### `astro dev` が起動中に、同じディレクトリで `npx astro build` を並行実行すると dev serverが壊れる
+両者は `node_modules/.vite` を共有しており、buildの依存最適化がdev serverの使っているキャッシュファイルを消してしまうことがある(実際に `The file does not exist at ".../deps_ssr/astro_app_entrypoint_dev.js"` エラーでdev serverが応答しなくなった)。**buildの検証をしたいときは、buildが終わるのを待ってから実行するか、dev serverを一旦止める。** 壊れた場合は `node_modules/.vite` と `.astro` を削除してdev serverを再起動すれば直る。
+
+---
+
 ## Playwright
 
 ### 撮影は `npm run shot`。撮影スクリプトを書き起こさない
