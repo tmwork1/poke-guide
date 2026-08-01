@@ -38,6 +38,27 @@ function displayTeamName(t: Team): string {
 
 const pageTitle = team ? displayTeamName(team) : 'チーム編集';
 
+// UI改修依頼(チーム編集ヘッダー)「チーム名表示を削除する」。box/[id].astroの23-H1と同じ手法:
+// AppLayoutは編集禁止なので、<title>タグ(ブラウザタブ)にはpageTitleを残しつつ、可視の見出し
+// (.app-topbar-title)だけをbodyClass経由のグローバルCSS(下の<style is:global>の
+// `body.team-edit-page .app-topbar-title`参照)で非表示にする。loadError/team未検出時は
+// pageTitleが固定文言なので隠さない(teamが存在するときだけbodyClassを付与)。
+const bodyClass = team ? 'team-edit-page' : undefined;
+
+// UI改修依頼(チーム編集ヘッダー)「匿名でデータ提供するトグルを追加する」。個体編集画面
+// (box/[id].astro)のトグルはowned_pokemon.collection_opt_out_untilを個体単位で持つが、
+// teamsテーブルにはチーム単位の対応する列が無い(migrations/007_teams.sqlに列なし)。
+// このタスクは1ファイル(このファイル)のみの変更に限定されており、マイグレーション追加や
+// lib/team.ts・APIルートの変更は範囲外のため、新しい列は作らない。代わりに「このチームに
+// 入っている個体全員」に対して、既存のPATCH /api/owned-pokemon/:id { collection_opt_out }
+// (個体編集画面と全く同じエンドポイント、box/[id].astro参照)を一括で呼ぶ「チーム一括トグル」
+// として実装する(下の<script>参照)。SSR時点ではlib/team.tsのSELECTがcollection_opt_out_until
+// を含まないため正確な初期状態が分からず、ここでは「未収集拒否(提供中)」を既定値としてSSR
+// で仮置きし、クライアント側でGET /api/owned-pokemon(既存の左パネル用フェッチ)の結果から
+// 実際の状態に補正する(<script>のrefreshCollectionOptOutToggle参照)。メンバーが0人のときは
+// 対象が無いため無効化する。
+const teamMemberCount = team ? team.members.length : 0;
+
 // 初期メンバー(0〜6要素、SSR取得済み)をクライアント<script>へそのまま引き渡す。
 // Astroの属性値は自動でHTMLエスケープされるので、ニックネーム等に " や < が
 // 含まれていても壊れない(pokemon.tsの data-tags={JSON.stringify(...)} と同じ手法)。
@@ -45,7 +66,7 @@ const initialTeamJson = team
 	? JSON.stringify({ id: team.id, name: team.name, memo: team.memo, members: team.members })
 	: '';
 ---
-<AppLayout title={pageTitle} current="team" backHref="/team">
+<AppLayout title={pageTitle} current="team" backHref="/team" bodyClass={bodyClass}>
 	{team && (
 		<Fragment slot="topbar-status">
 			<p id="autosave-status" class="status-text" data-state="saved">
@@ -55,9 +76,39 @@ const initialTeamJson = team
 		</Fragment>
 	)}
 	{/* UI改修依頼(チーム編集ヘッダー)「右端に削除ボタン追加」。box/[id].astroの
-	    #delete-buttonと同じマークアップ・確認ダイアログ・アイコンにする。 */}
+	    #delete-buttonと同じマークアップ・確認ダイアログ・アイコンにする。
+	    UI改修依頼(チーム編集ヘッダー)「匿名でデータ提供するトグルを追加する」。box/[id].astroの
+	    .collection-opt-out-toggle一式(label > .toggle-switch + ラベルテキスト + ステータス欄)を
+	    そのまま踏襲する(上のフロントマターのコメント参照。マークアップ・aria-label・title文言は
+	    個体編集画面と同じ語彙で揃え、対象が「この個体」ではなく「チームの個体全員」である点だけ
+	    titleとaria-labelの文言に反映する)。初期checkedはSSRでは正確な状態が分からないため
+	    「提供中」を仮置きし、<script>のrefreshCollectionOptOutToggleが実際の値に補正する。
+	    メンバー0人のときはtitleに理由を明示した上でdisabledにする(対象が無いため)。 */}
 	{team && (
 		<Fragment slot="topbar-actions">
+			<label
+				class="collection-opt-out-toggle"
+				for="team-collection-opt-out-toggle"
+				title={teamMemberCount === 0
+					? 'チームに個体を入れると、匿名集計への提供可否を切り替えられます'
+					: 'オフにするとこのチームに入っている個体を匿名集計への提供から一時的に停止します(30日後に自動的にオンへ戻ります)'}
+			>
+				<span class="toggle-switch">
+					<input
+						id="team-collection-opt-out-toggle"
+						type="checkbox"
+						class="toggle-switch-input"
+						checked
+						disabled={teamMemberCount === 0}
+						aria-label="匿名でデータ提供する"
+					/>
+					<span class="toggle-switch-track" aria-hidden="true">
+						<span class="toggle-switch-thumb"></span>
+					</span>
+				</span>
+				<span class="collection-opt-out-toggle-label">匿名でデータ提供する</span>
+				<span id="team-collection-opt-out-status" class="collection-opt-out-status" hidden></span>
+			</label>
 			<button id="delete-team-button" class="btn-danger" type="button">
 				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
 				削除
@@ -84,6 +135,67 @@ const initialTeamJson = team
 		#select-error-message[hidden] {
 			display: none;
 		}
+
+		/* UI改修依頼(チーム編集ヘッダー)「匿名でデータ提供するトグルを追加する」。トグル本体の
+		   見た目(.toggle-switch一式)はbox/[id].astro側がsrc/components/box-id/LeftPanel.astroの
+		   <style is:global>で定義しているが、このコンポーネントはteam/[id].astroでは読み込まれない
+		   ため(Astroのscoped/is:globalスタイルは実際にそのコンポーネントを描画したページにしか
+		   バンドルされない)、同じ値をこのページのscoped<style>に複製する(新しい値は作っていない、
+		   box/[id].astroのトグルと画素まで同一)。 */
+		.toggle-switch { position: relative; display: inline-flex; align-items: center; width: 38px; height: 20px; flex-shrink: 0; }
+		.toggle-switch-input {
+			position: absolute;
+			width: 1px;
+			height: 1px;
+			margin: -1px;
+			padding: 0;
+			overflow: hidden;
+			clip: rect(0 0 0 0);
+			white-space: nowrap;
+			border: 0;
+			cursor: pointer;
+		}
+		.toggle-switch-track {
+			position: absolute;
+			inset: 0;
+			border-radius: 999px;
+			background: var(--color-border);
+			border: 1px solid var(--color-border);
+			transition: background-color 0.15s ease, border-color 0.15s ease;
+			pointer-events: none;
+		}
+		.toggle-switch-thumb {
+			position: absolute;
+			top: 2px;
+			left: 2px;
+			width: 16px;
+			height: 16px;
+			border-radius: 50%;
+			background: #ffffff;
+			box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+			transition: transform 0.15s ease;
+		}
+		.toggle-switch-input:checked + .toggle-switch-track { background: var(--color-primary); border-color: var(--color-primary); }
+		.toggle-switch-input:checked + .toggle-switch-track .toggle-switch-thumb { transform: translateX(18px); }
+		.toggle-switch-input:focus-visible + .toggle-switch-track { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+		.toggle-switch-input:disabled + .toggle-switch-track { opacity: 0.5; }
+		.collection-opt-out-toggle {
+			display: inline-flex;
+			align-items: center;
+			gap: 0.4em;
+			font-size: var(--font-size-sm);
+			color: var(--color-text-muted);
+			white-space: nowrap;
+			cursor: pointer;
+		}
+		.collection-opt-out-toggle:has(.toggle-switch-input:disabled) {
+			cursor: not-allowed;
+			opacity: 0.7;
+		}
+		.collection-opt-out-status { color: var(--color-text-muted); }
+		.collection-opt-out-status[hidden] { display: none; }
+		.collection-opt-out-status[data-state="error"] { color: var(--color-danger); }
+		#delete-team-button { font-size: var(--font-size-sm); white-space: nowrap; }
 
 		/* --- 全体レイアウト: 左=ポケモン選択バー(帯)/ 中央=チーム名・メモ・6枠(可読幅1080px) ---
 		   docs/plan/00-foundation.md「レイアウト原則」どおり、選択バーは画面端から
@@ -153,6 +265,27 @@ const initialTeamJson = team
 			pointer-events: none;
 		}
 		#pokemon-search-input {
+			width: 100%;
+			padding-left: 2.1em;
+		}
+		/* UI改修依頼(チーム編集左パネル)「ソート機能を追加する」。box/index.astroの
+		   .sort-select-wrap/.sort-icon/.toolbar-sort selectと同じ値(アイコン左重畳+
+		   select側padding-left)をこのページのスコープへ複製する(新しい値は作っていない)。 */
+		.team-select-sort {
+			margin-top: var(--space-2);
+		}
+		.team-select-sort .sort-select-wrap {
+			position: relative;
+			display: flex;
+			align-items: center;
+		}
+		.team-select-sort .sort-select-wrap .sort-icon {
+			position: absolute;
+			left: 0.7em;
+			color: var(--color-text-muted);
+			pointer-events: none;
+		}
+		.team-select-sort select {
 			width: 100%;
 			padding-left: 2.1em;
 		}
@@ -306,6 +439,28 @@ const initialTeamJson = team
 									autocomplete="off"
 								/>
 							</div>
+							{/* UI改修依頼(チーム編集左パネル)「ソート機能を追加する」。box/index.astroの
+							    並べ替え(.sort-select-wrap、34-B2でラベル<label>を廃しアイコン重畳に統一
+							    済み)と同じマークアップ・アイコンを踏襲する。選べる基準はOwnedPokemonRecord
+							    が既に持つ値の中から自然なもの: 登録順(created_at、既定)・名前順
+							    (表示名=displayNameのニックネーム優先、ja collateで自然順)・種族名順。
+							    「タイプ順」は選択バーの個体データにタイプ情報が無く新規取得が必要になる
+							    ため採用しない(依頼文の「例えば」は例示であり必須ではないと判断)。 */}
+							<div class="team-select-sort">
+								<div class="sort-select-wrap">
+									<svg class="sort-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+										<path d="M7 4v16" />
+										<path d="M4 7l3-3 3 3" />
+										<path d="M17 20V4" />
+										<path d="M14 17l3 3 3-3" />
+									</svg>
+									<select id="pokemon-sort-select" class="field-control" aria-label="並べ替え">
+										<option value="created_at">登録順</option>
+										<option value="name">名前順</option>
+										<option value="species_name">種族名順</option>
+									</select>
+								</div>
+							</div>
 						</div>
 						<div class="team-select-list-wrap">
 							<p id="select-loading-message" class="status-text" data-state="loading">読み込み中...</p>
@@ -332,15 +487,22 @@ const initialTeamJson = team
 					<div class="team-edit-main">
 						<div class="panel-content">
 							<div class="team-meta-fields">
-								<input
-									id="team-name"
-									class="field-control team-name-input"
-									type="text"
-									placeholder="チーム名"
-									aria-label="チーム名"
-									autocomplete="off"
-									value={team.name ?? ''}
-								/>
+								{/* UI改修依頼(チーム編集中央パネル)「"チーム名"というラベルを追加する」。
+								    既存のラベル付きフィールド規格(src/styles/global.cssの.field/.field-stack/
+								    .field-label、他ページでは box/[id].astro 等が使用)をそのまま使う。
+								    可視ラベルが増えたため、同じ意味を二重に持たせないようinputのaria-labelは
+								    外す(<label for>がアクセシブルネームを提供する)。 */}
+								<div class="field field-stack">
+									<label for="team-name" class="field-label">チーム名</label>
+									<input
+										id="team-name"
+										class="field-control team-name-input"
+										type="text"
+										placeholder="チーム名"
+										autocomplete="off"
+										value={team.name ?? ''}
+									/>
+								</div>
 							</div>
 
 							{/* 6枠(基準3)。空き枠も枠として常に描く。中身はJS(renderSlots)が生成するため、
@@ -378,6 +540,14 @@ const initialTeamJson = team
 	    JSで生成した要素に効かない」に従い is:global で定義する。.team-select-bar / .team-slots
 	    配下に限定したセレクタにしてグローバルへ漏れないようにする。 --- */}
 	<style is:global>
+		/* UI改修依頼(チーム編集ヘッダー)「チーム名表示を削除する」。box/[id].astroの23-H1と
+		   同じ手法(AppLayoutは編集禁止のため、bodyClass="team-edit-page"を起点にしたグローバル
+		   セレクタで.app-topbar-title(AppLayout側の要素、このページのscoped<style>では選択
+		   できない)だけを隠す。<title>タグ(ブラウザタブ)はpageTitleのまま残る)。 */
+		body.team-edit-page .app-topbar-title {
+			display: none;
+		}
+
 		/* ------------------------------------------------------------------ */
 		/* 選択バーの1行(.pokemon-select-row)                                  */
 		/* UI改修依頼(チーム編集左パネル)「特性/アイテム/ステータスも表示」「ダブルクリックと
@@ -531,16 +701,6 @@ const initialTeamJson = team
 		.team-select-bar .select-row-reason:not([data-reason="already-in-team"]) {
 			color: var(--color-danger-strong);
 		}
-		/* UI改修依頼(チーム編集左パネル)「編集リンクを追加」。行の右側に縦長のボタンとして
-		   独立させる(.select-row-main<button>とは兄弟要素なので入れ子の制約を受けない)。 */
-		.team-select-bar .select-row-edit-link {
-			flex: 0 0 auto;
-			display: flex;
-			align-items: center;
-			font-size: var(--font-size-sm);
-			white-space: nowrap;
-		}
-
 		/* ------------------------------------------------------------------ */
 		/* 6枠カード(.card-team-slot)。中身はfilled/emptyのいずれか(R-8)。       */
 		/* UI改修依頼(チーム編集中央パネル)「2x3配置に変更」「ポケモンの情報の見せ方を
@@ -563,6 +723,17 @@ const initialTeamJson = team
 		.team-slots .card-team-slot.is-drop-target {
 			border-color: var(--color-primary);
 			background: color-mix(in srgb, var(--color-surface) 90%, var(--color-primary) 10%);
+		}
+		/* UI改修依頼(チーム編集中央パネル)「シングルクリックで右パネルにプレビュー」
+		   「ダブルクリックで削除」。埋まっている枠(<script>のrenderSlotsがdata-filled="true"の
+		   ときだけclick/dblclickを付与)だけをクリック可能にする(空き枠は何も起きないため
+		   カーソルを変えない)。 */
+		.team-slots .card-team-slot[data-filled="true"] {
+			cursor: pointer;
+		}
+		.team-slots .card-team-slot[data-filled="true"]:hover {
+			border-color: var(--color-primary);
+			background: color-mix(in srgb, var(--color-surface) 95%, var(--color-primary) 5%);
 		}
 		/* 空き枠プレースホルダー(要件6)。A-1: 実際に個体が入るのは常に選択ルール(受け入れ
 		   基準4で確定済み、変更不可)が返す最小番号の空き枠だけなので、「＋ この枠に入れる」
@@ -764,9 +935,26 @@ const initialTeamJson = team
 		}
 		/* B-2: 「枠から外す」は自動保存つきで即座に確定する破壊操作なので、隣の「個体を編集」
 		   (遷移・安全)と文字色だけ分ける(確認ダイアログは操作頻度から見て過剰と判断し追加
-		   しない → round-30.md「Coordinatorの判断」)。新色は作らず既存トークンを流用する。 */
+		   しない → round-30.md「Coordinatorの判断」)。新色は作らず既存トークンを流用する。
+		   UI改修依頼(チーム編集中央パネル)「ゴミ箱ボタンで削除」により、文字ボタンから
+		   アイコンのみの円形ボタンへ変更した。サイズ・枠線・背景はbox/index.astroの
+		   .icon-button規格(28px円形+1px枠線+var(--color-surface))と同じ値を採用する
+		   (global.cssの汎用button paddingを打ち消してアイコンを中央寄せする)。 */
 		.team-slots .slot-actions .slot-remove-btn {
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			width: 28px;
+			height: 28px;
+			padding: 0;
+			border-radius: 999px;
+			border: 1px solid var(--color-border);
+			background: var(--color-surface);
 			color: var(--color-danger-strong);
+			box-shadow: var(--shadow-sm);
+		}
+		.team-slots .slot-actions .slot-remove-btn:hover {
+			background: var(--color-surface-alt);
 		}
 
 		/* ------------------------------------------------------------------ */
@@ -898,6 +1086,17 @@ const initialTeamJson = team
 			nature: string | null;
 			evs: number[];
 			ivs: number[];
+			// UI改修依頼(チーム編集左パネル)「ソート機能を追加する」の「登録順」用。SSR
+			// (lib/team.tsのTEAM_MEMBER_SELECT)・GET /api/owned-pokemon(OWNED_POKEMON_COLUMNS)の
+			// 両方に既にcreated_atを含んでいるため、この型に足すだけで読める(新規フェッチ不要)。
+			created_at: string;
+			// UI改修依頼(チーム編集ヘッダー)「匿名でデータ提供するトグル」用。GET
+			// /api/owned-pokemonのレスポンスには含まれるが、SSR(lib/team.tsのTEAM_MEMBER_SELECT)
+			// には含まれていない(このファイル単体の変更ではlib/team.tsを直せないため)。そのため
+			// SSR直後のmembersBySlot初期値ではundefinedになりうる値としてoptionalにし、GET
+			// /api/owned-pokemon完了後にallPokemonの同IDレコードで補う
+			// (refreshCollectionOptOutToggle参照)。
+			collection_opt_out_until?: string | null;
 		}
 
 		interface TeamMemberData {
@@ -928,6 +1127,7 @@ const initialTeamJson = team
 			const slotsRoot = el<HTMLElement>("team-slots");
 
 			const searchInput = el<HTMLInputElement>("pokemon-search-input");
+			const sortSelect = el<HTMLSelectElement>("pokemon-sort-select");
 			const selectListRoot = el<HTMLElement>("pokemon-select-list");
 			const selectLoadingMessage = el<HTMLElement>("select-loading-message");
 			const selectErrorMessage = el<HTMLElement>("select-error-message");
@@ -938,6 +1138,8 @@ const initialTeamJson = team
 			const statusTextEl = el<HTMLElement>("autosave-status-text");
 			const retryButton = el<HTMLButtonElement>("retry-button");
 			const deleteTeamButton = el<HTMLButtonElement>("delete-team-button");
+			const collectionOptOutToggle = el<HTMLInputElement>("team-collection-opt-out-toggle");
+			const collectionOptOutStatusEl = el<HTMLElement>("team-collection-opt-out-status");
 
 			const previewEmptyEl = el<HTMLElement>("team-preview-empty");
 			const previewContentEl = el<HTMLElement>("team-preview-content");
@@ -1200,6 +1402,44 @@ const initialTeamJson = team
 				renderSlots();
 				renderSelectList();
 				scheduleSave();
+				refreshCollectionOptOutToggle();
+			}
+
+			// UI改修依頼(チーム編集ヘッダー)「匿名でデータ提供するトグル」。現在のチームメンバー
+			// (owned_pokemon)のIDだけを返す(重複はteam-validationの選択ルールで既に防がれている
+			// ため考慮不要)。
+			function currentMemberIds(): string[] {
+				return Array.from(membersBySlot.values()).map((p) => p.id);
+			}
+
+			// collection_opt_out_until(null/過去=提供中、未来=拒否中)から「提供中かどうか」を
+			// 判定する。box/[id].astroのformatOptOutRemaining(フロントマター側)と同じ判定式。
+			function isProviding(p: OwnedPokemonRecord): boolean {
+				if (!p.collection_opt_out_until) return true;
+				return new Date(p.collection_opt_out_until).getTime() <= Date.now();
+			}
+
+			// トグルの表示(checked/disabled)を現在のチームメンバーの実際の状態から再計算する。
+			// メンバーが1人もいなければ対象が無いためdisabled。allPokemon(GET /api/owned-pokemon、
+			// 下部の初期化処理で取得)が届く前はSSR由来のmembersBySlotの値(collection_opt_out_until
+			// を持たない)しか無いため、その場合は「全員提供中」を既定値として扱う(DBの既定値
+			// =NULL=提供中と一致するため、fetch完了までの一瞬だけ生じる楽観値。fetch完了後に
+			// このcronがもう一度呼ばれ正確な値に補正される→fetchハンドラ参照)。
+			// checkedは「メンバー全員が提供中」のときだけtrueにする(1人でも拒否中ならOFF表示。
+			// 1個体単位のトグルを束ねるUIとしては最も誤解が少ない集約方法だと判断した)。
+			function refreshCollectionOptOutToggle(): void {
+				const ids = currentMemberIds();
+				if (ids.length === 0) {
+					collectionOptOutToggle.checked = true;
+					collectionOptOutToggle.disabled = true;
+					return;
+				}
+				collectionOptOutToggle.disabled = false;
+				const allProviding = Array.from(membersBySlot.values()).every((p) => {
+					const fresh = allPokemon.find((x) => x.id === p.id);
+					return isProviding(fresh ?? p);
+				});
+				collectionOptOutToggle.checked = allProviding;
 			}
 
 			// --- 6枠の描画(基準3: 常に6枠) ---
@@ -1240,6 +1480,18 @@ const initialTeamJson = team
 				label.textContent = "選択すると若い番号から埋まります";
 				placeholder.append(number, label);
 				return placeholder;
+			}
+
+			// UI改修依頼(チーム編集中央パネル)「ダブルクリックまたはゴミ箱ボタンで、その個体を
+			// チームから削除できるようにする」。旧・removeButtonのクリックハンドラをここへ切り出し、
+			// カード自体のdblclickハンドラ(renderSlots参照)と共有する(挙動は変えていない:
+			// membersBySlotから外す→再描画→自動保存)。
+			function removeMemberFromSlot(slot: number): void {
+				membersBySlot.delete(slot);
+				renderSlots();
+				renderSelectList();
+				scheduleSave();
+				refreshCollectionOptOutToggle();
 			}
 
 			function buildFilledSlotContent(slot: number, p: OwnedPokemonRecord): HTMLElement {
@@ -1373,19 +1625,30 @@ const initialTeamJson = team
 				editLink.className = "btn-ghost";
 				editLink.href = `/box/${encodeURIComponent(p.id)}`;
 				editLink.textContent = "個体を編集";
+				// カード自体にclick(プレビュー)/dblclick(削除)を付けたため(renderSlots参照)、
+				// このリンクへのクリックがバブリングして意図せずプレビュー描画を誘発しないよう止める
+				// (遷移自体には影響しない)。
+				editLink.addEventListener("click", (event) => {
+					event.stopPropagation();
+				});
+				// UI改修依頼(チーム編集中央パネル)「ダブルクリックまたはゴミ箱ボタンで、その個体を
+				// チームから削除できるようにする」。旧「枠から外す」の文字ボタンをゴミ箱アイコンの
+				// アイコンボタンに変更する(box/[id].astroの個体削除ボタンと同じ発想のインラインSVG。
+				// 見た目のサイズ・円形・枠線はbox/index.astroの.icon-button規格(28px円形+枠線)を
+				// 踏襲する。CSS側は.team-slots .slot-remove-btn参照)。危険操作であることは常時
+				// --color-danger-strongの文字色で示す(B-2の判断を踏襲し確認ダイアログは追加しない。
+				// チームからの除外は個体そのものの削除ではなく、いつでも選択バーから再度追加できる
+				// 低リスクな操作のため)。
 				const removeButton = document.createElement("button");
 				removeButton.type = "button";
-				// B-2: 「個体を編集」(遷移・安全)と同一書式で隣接していたため、破壊操作である
-				// ことが文字色だけでも分かるよう.slot-remove-btnを足す(CSSで--color-danger-strong
-				// を適用。確認ダイアログは操作頻度から見て過剰と判断し追加しない)。
 				removeButton.className = "btn-ghost slot-remove-btn";
-				removeButton.textContent = "枠から外す";
+				removeButton.innerHTML =
+					'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>';
+				removeButton.title = "チームから外す";
 				removeButton.setAttribute("aria-label", `${name}を${slot}番目の枠から外す`);
-				removeButton.addEventListener("click", () => {
-					membersBySlot.delete(slot);
-					renderSlots();
-					renderSelectList();
-					scheduleSave();
+				removeButton.addEventListener("click", (event) => {
+					event.stopPropagation();
+					removeMemberFromSlot(slot);
 				});
 				actionsEl.append(editLink, removeButton);
 
@@ -1405,6 +1668,18 @@ const initialTeamJson = team
 					if (p) {
 						card.dataset.filled = "true";
 						card.appendChild(buildFilledSlotContent(slot, p));
+						// UI改修依頼(チーム編集中央パネル)
+						// 「7. ダブルクリックまたはゴミ箱ボタンで、その個体をチームから削除できる」
+						// 「8. シングルクリックで、右パネルにその個体の詳細を表示する」。
+						// 左パネルの選択行(mainButton)と全く同じ操作割り当て(1回クリック=プレビュー、
+						// ダブルクリック=変更操作)をカード全体に適用する。ゴミ箱ボタン自身のクリックは
+						// stopPropagation済みなので、ここでの2重発火(プレビュー→即削除)は起きない。
+						card.addEventListener("click", () => {
+							void renderPreviewPanel(p);
+						});
+						card.addEventListener("dblclick", () => {
+							removeMemberFromSlot(slot);
+						});
 					} else {
 						card.dataset.filled = "false";
 						card.appendChild(buildEmptySlotContent(slot, slot === nextEmptySlot));
@@ -1445,15 +1720,45 @@ const initialTeamJson = team
 					.every((token) => haystack.includes(token));
 			}
 
-			// UI改修依頼(チーム編集左パネル)により、行全体を1個の<button>にする旧構造から
-			// 「プレビュー用のbutton」+「編集リンク(<a>)」を横に並べた<div>構造へ変更した
-			// (<button>の中に<a>や別の<button>を入れることはHTML的に無効なため、編集リンクを
-			// 追加するにはbuttonで丸ごと囲む方式をやめる必要があった)。
+			// UI改修依頼(チーム編集左パネル)「チームに含まれる個体を(左パネルの一覧から)
+			// 非表示にする」。以前は「編成済み」(already-in-team、選択ルールの3禁止理由とは別扱い)
+			// としてグレーアウト表示していたが、この依頼により一覧そのものから除外する。
+			function isCurrentMember(id: string): boolean {
+				for (const p of membersBySlot.values()) {
+					if (p.id === id) return true;
+				}
+				return false;
+			}
+
+			// UI改修依頼(チーム編集左パネル)「ソート機能を追加する」。box/index.astroのsortPokemon
+			// と同じ考え方(選択中の並べ替え基準で毎回ソートし直す)。基準は3つ:
+			//   - 登録順(既定): created_at昇順(古い=先に登録した個体を先頭に。box/index.astroの
+			//     「最終更新順」は降順=新しい順だったが、「登録順」は文字通り登録した順序を素直に
+			//     表す方が自然だと判断し昇順にした)
+			//   - 名前順: displayName(ニックネーム優先、無ければ種族名)のja collate
+			//   - 種族名順: species_nameのja collate
+			function sortPokemon(list: OwnedPokemonRecord[]): OwnedPokemonRecord[] {
+				const sort = sortSelect.value;
+				return [...list].sort((a, b) => {
+					if (sort === "name") {
+						return displayName(a).localeCompare(displayName(b), "ja");
+					}
+					if (sort === "species_name") {
+						return a.species_name.localeCompare(b.species_name, "ja");
+					}
+					return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+				});
+			}
+
+			// UI改修依頼(チーム編集左パネル)「個体編集ボタンを削除する」により、旧・編集リンク
+			// (<a>「編集」、/box/{id}への遷移)は撤去した。以前はrow全体を1個の<button>にできず、
+			// 「プレビュー用のbutton」+「編集リンク」を横に並べた<div>構造にしていたが、編集リンクが
+			// 無くなった今もこの<div>ラップ構造自体は変えていない(ドラッグ&ドロップのdraggable属性を
+			// row側に持たせる都合上、rowとmainButtonを分けておく設計は引き続き必要なため)。
 			// 操作の割り当て:
 			//   - 1回クリック(mainButton) : 右パネルにプレビュー表示(チーム編成は変更しない)
 			//   - ダブルクリック(mainButton): 空き枠のうち最小番号に追加(旧・単クリックの動作を踏襲)
 			//   - ドラッグ&ドロップ(row全体): ドラッグ先の枠(空き/埋まり問わず)に設定
-			//   - 「個体を編集」(editLink): /box/{id}へ遷移
 			function buildSelectRow(p: OwnedPokemonRecord): HTMLElement {
 				const row = document.createElement("div");
 				row.className = "pokemon-select-row";
@@ -1550,13 +1855,6 @@ const initialTeamJson = team
 				mainButton.append(artEl, bodyEl);
 				row.appendChild(mainButton);
 
-				const editLink = document.createElement("a");
-				editLink.className = "btn-ghost select-row-edit-link";
-				editLink.href = `/box/${encodeURIComponent(p.id)}`;
-				editLink.textContent = "編集";
-				editLink.setAttribute("aria-label", `${name}を編集`);
-				row.appendChild(editLink);
-
 				row.addEventListener("dragstart", () => {
 					draggedPokemonId = p.id;
 					row.classList.add("is-dragging");
@@ -1579,7 +1877,12 @@ const initialTeamJson = team
 				selectEmptyState.hidden = true;
 
 				const term = searchInput.value.trim();
-				const filtered = allPokemon.filter((p) => matchesSearch(p, term));
+				// UI改修依頼(チーム編集左パネル)「チームに含まれる個体を一覧から非表示にする」
+				// 「ソート機能を追加する」。isCurrentMemberで除外してからsortPokemonで並べ替える
+				// (除外により、既存の選択ルール由来の"already-in-team"理由は表示上到達しなくなる。
+				// selectionBlockReason自体・BLOCK_REASON_LABELSは他の禁止理由(6体編成済み/種族重複/
+				// 持ち物重複)で引き続き使うため残す)。
+				const filtered = sortPokemon(allPokemon.filter((p) => !isCurrentMember(p.id) && matchesSearch(p, term)));
 				selectListRoot.innerHTML = "";
 				if (filtered.length === 0) {
 					selectNoMatchState.hidden = false;
@@ -1702,18 +2005,64 @@ const initialTeamJson = team
 			});
 			memoInput.addEventListener("input", scheduleSave);
 			searchInput.addEventListener("input", renderSelectList);
+			sortSelect.addEventListener("change", renderSelectList);
+
+			// UI改修依頼(チーム編集ヘッダー)「匿名でデータ提供するトグル」。個体編集画面
+			// (src/lib/box-id/left-panel.ts)と同じPATCH経路を、現在のチームメンバー全員に対して
+			// 一括で呼ぶ(既存の1個体用APIをそのまま流用。新しいAPI・DB列は追加していない)。
+			// 失敗時はcheckedを元に戻しエラーメッセージを表示する(個体編集画面と同じ温度感)。
+			collectionOptOutToggle.addEventListener("change", () => {
+				void (async () => {
+					const nextProviding = collectionOptOutToggle.checked;
+					const ids = currentMemberIds();
+					collectionOptOutToggle.disabled = true;
+					try {
+						const results = await Promise.all(
+							ids.map((id) =>
+								fetch(`/api/owned-pokemon/${encodeURIComponent(id)}`, {
+									method: "PATCH",
+									credentials: "same-origin",
+									headers: { "Content-Type": "application/json" },
+									body: JSON.stringify({ collection_opt_out: !nextProviding }),
+								}),
+							),
+						);
+						if (results.some((res) => !res.ok)) throw new Error("更新に失敗しました");
+						collectionOptOutStatusEl.hidden = true;
+						delete collectionOptOutStatusEl.dataset.state;
+					} catch (err) {
+						console.error(err);
+						collectionOptOutToggle.checked = !nextProviding;
+						collectionOptOutStatusEl.textContent = "更新に失敗しました";
+						collectionOptOutStatusEl.hidden = false;
+						collectionOptOutStatusEl.dataset.state = "error";
+					} finally {
+						collectionOptOutToggle.disabled = currentMemberIds().length === 0;
+					}
+				})();
+			});
 
 			// --- 初期化 ---
 			// SSR取得済みのメンバーは fetch を待たずに即描画する(6枠が空でも一瞬も待たせない)。
 			renderSlots();
+			refreshCollectionOptOutToggle();
 
 			fetch("/api/owned-pokemon", { credentials: "same-origin" })
 				.then(async (res) => {
 					if (!res.ok) throw new Error(`個体一覧の取得に失敗しました (status=${res.status})`);
 					const body = (await res.json()) as { data: OwnedPokemonRecord[] };
 					allPokemon = body.data;
+					// SSR由来のmembersBySlotの値はcollection_opt_out_until等、GET専用の列を
+					// 持たないため、fetch完了後にallPokemonの同IDレコードへ差し替えて以後の計算
+					// (匿名トグルの状態など)を正確にする(表示中の6枠の見た目は変わらない列のみ
+					// なので再描画は不要)。
+					for (const [slot, p] of membersBySlot.entries()) {
+						const fresh = allPokemon.find((x) => x.id === p.id);
+						if (fresh) membersBySlot.set(slot, fresh);
+					}
 					selectLoadingMessage.hidden = true;
 					renderSelectList();
+					refreshCollectionOptOutToggle();
 				})
 				.catch((err) => {
 					console.error(err);
