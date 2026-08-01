@@ -125,13 +125,10 @@ const isOptedOut = optOutRemainingText !== "";
 	)}
 	{pokemon && (
 		<Fragment slot="topbar-actions">
-			{/* UI改修依頼(個体編集ヘッダー、2026-08-01)「すばやさ調整ボタンを追加」。
-			    押すとすばやさ早見表(/speed-chart)へ、この個体のidをownedクエリで渡して
-			    遷移する(左パネルのstat-speed-chart-link、R-11で結線済みの/speed-chart?owned=
-			    と同じURL形式)。左パネル側にある同機能のボタンの削除は別エージェントの担当
-			    (src/components/box-id/LeftPanel.astro)であり、このヘッダー追加とは独立。
-			    意匠は同じトップバーの damage-collapse-toggle-button と揃え、.btn-ghost にする。 */}
-			<a class="btn-ghost" href={`/speed-chart?owned=${pokemon.id}`}>すばやさ調整</a>
+			{/* UI改修依頼(個体編集左パネル、2026-08-01)「ヘッダーの"すばやさ調整"ボタンは、
+			    S実数値の右隣の調整ボタンに置き換える」により、このヘッダーボタンは撤去する。
+			    同機能のボタンは src/components/box-id/LeftPanel.astro のS行側へ移設する
+			    (別エージェント担当)。 */}
 			{/* UI改善ラウンド41ユーザー指示(41-H1)「すべて折りたたむボタンは、X位置はそのままで、
 			    個体編集画面のヘッダ(戻るボタンがある領域)に移す」により、ラウンド40(40-H1)
 			    「ダメージカード領域の上に置く」を撤回し、38-H1と同じくヘッダーへ再移動する。
@@ -188,7 +185,7 @@ const isOptedOut = optOutRemainingText !== "";
 				id="collection-opt-out-label"
 				class="collection-opt-out-toggle"
 				for="collection-opt-out-toggle"
-				title={isOptedOut ? "30日間有効" : "育成データを匿名で提供する"}
+				title={isOptedOut ? "30日間有効" : "育成データを匿名で提供しない (30日間有効)"}
 			>
 				<span class="toggle-switch">
 					<input id="collection-opt-out-toggle" type="checkbox" class="toggle-switch-input" checked={isOptedOut} aria-label="非公開" />
@@ -504,7 +501,7 @@ const isOptedOut = optOutRemainingText !== "";
 
 	<script>
 		// UI改修依頼(個体編集ヘッダー、2026-08-01)「非公開」トグルのホバーテキスト切り替え。
-		// OFF: 「育成データを匿名で提供する」/ ON: 「30日間有効」。初期値はSSR側
+		// OFF: 「育成データを匿名で提供しない (30日間有効)」/ ON: 「30日間有効」。初期値はSSR側
 		// (フロントマターのisOptedOut)で出し分け済みなので、ここではユーザーが実際に
 		// クリックして状態が変わった後の追随だけを行う(要素が無い=未ログイン/個体無し
 		// のときは何もしない)。
@@ -521,7 +518,7 @@ const isOptedOut = optOutRemainingText !== "";
 			optOutToggle.addEventListener("change", () => {
 				optOutLabel.title = (optOutToggle as HTMLInputElement).checked
 					? "30日間有効"
-					: "育成データを匿名で提供する";
+					: "育成データを匿名で提供しない (30日間有効)";
 			});
 		}
 	</script>
