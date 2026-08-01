@@ -452,7 +452,19 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 				<span class="stat-table-header-ev-remaining">
 					<span id="ev-remaining" class="ev-remaining tnum"></span>
 				</span>
-				<span class="stat-table-header-real">実数値</span>
+				{/* 🔴 UI改修依頼(個体編集左パネル、2026-08-02)「実数値列見出しと値の左右位置ズレ」対応。
+				    従来はこの見出しがプレーンテキスト1個(列幅いっぱいでtext-align:center)だったのに
+				    対し、下の.stat-row-real-wrap(値+「調整」ボタン/プレースホルダーのflexグループ)は
+				    グループ全体を中央寄せしていたため、値の実際の中心位置がボタン幅の半分ぶん
+				    見出しの中心からズレていた(実測で確認)。見出し側にも同じ構造(テキスト+
+				    同一クラスの非表示プレースホルダー)を持たせ、同じ幅・同じgapのグループとして
+				    中央寄せすることで、「実数値」の位置と各行の値の位置が一致するようにする
+				    (.stat-speed-chart-link/.stat-speed-chart-placeholderは新規クラスではなく
+				    既存クラスの再利用。可視テキストは変えていない)。 */}
+				<span class="stat-table-header-real">
+					<span class="stat-table-header-real-label">実数値</span>
+					<span class="stat-speed-chart-link stat-speed-chart-placeholder" aria-hidden="true">調整</span>
+				</span>
 			</div>
 			{STAT_LABELS.map(({ key, label: statLabel, short: statShort }, i) => (
 				<div class="stat-row">
@@ -656,7 +668,14 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		   スライダー列(3列目、1fr)からわずかに融通する(スライダー列は399px中123.8pxと
 		   十分広く、数px程度の縮小は視認できない)。2列目(種族値)・4列目(努力値数値入力)は
 		   数値入力欄の操作性に直結するため変更しない。 */
-		grid-template-columns: 5rem 2.4rem minmax(0, 1fr) 3.2rem 5.4rem;
+		/* 🔴 UI改修依頼(個体編集左パネル、2026-08-02)「調整ボタンを大きくする」対応。
+		   ボタン(.stat-speed-chart-link)のpadding/font-sizeを広げた分、5列目の必要幅が
+		   実測約71.8px→約92pxに増える。1列目(ラベル)は▲24px+ラベル1文字+▼24px+
+		   gap0.3em×2の実測約71.6pxに対し5rem(80px)ではまだ約8.4pxの余白が残っていたため、
+		   4.4rem(70.4px)まで詰めて浮いた9.6pxを5列目へ回す。5列目は5.4rem(86.4px)→
+		   6.2rem(99.2px)に広げる(残りの差分はスライダー列(3列目、1fr)がわずかに縮む形で
+		   自動吸収される。実測でスライダーの操作性・横スクロール有無を確認済み)。 */
+		grid-template-columns: 4.4rem 2.4rem minmax(0, 1fr) 3.2rem 6.2rem;
 		gap: 0.4rem;
 		/* UI統一感レビュー(32-U-B1): 同じ行内の.ev-remaining(「残りN」)が持つ
 		   共通トークンvar(--font-size-xs)(12px)に対し、ここだけ直値0.78rem(12.48px)
@@ -698,6 +717,24 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	   一致する(実測して確認、報告参照)。 */
 	.stat-table-header-ev-remaining {
 		text-align: center;
+	}
+	/* 🔴 UI改修依頼(個体編集左パネル、2026-08-02)「実数値列見出しと値の左右位置ズレ」対応。
+	   マークアップ側(上のstat-table-header-real参照)で見出しを「実数値」テキスト+
+	   非表示プレースホルダー(.stat-speed-chart-link相当)の2要素構成に変えたのに合わせ、
+	   下の.stat-row-real-wrapと全く同じレイアウト(flex/center/gap)をこの見出しにも適用する。
+	   これにより両者とも「テキスト+ボタン幅ぶんの余白」を同じ比率で中央寄せするグループになり、
+	   テキストの実際の中心位置が一致する(単純にtext-align:centerのままだと、見出しは
+	   テキスト単体の中心、行側はテキスト+ボタンの中心になり一致しなかった)。 */
+	.stat-table-header-real {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.3rem;
+		min-width: 0;
+	}
+	.stat-table-header-real-label {
+		overflow: hidden;
+		text-overflow: ellipsis;
 	}
 	/* 🔴 UI改修依頼(個体編集左パネル、2026-08-01)「性格ボックスを廃止。性格はステータス表の
 	   1列目のヘッダーとする(種族値、の左側)」。それまで空だったヘッダー1列目のセルに
@@ -751,8 +788,10 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		/* ラウンド12指摘(A-3): .stat-table-header と必ず同じ値にすること(上のヘッダ側の
 		   コメント参照。ラウンド8 A-4のem解釈ずれ事故の再発防止)。
 		   🔴 UI改修依頼(個体編集左パネル、2026-08-01)によりgrid-template-columns/gapを
-		   変更(理由は上の.stat-table-headerコメント参照。値は必ず同一に保つ)。 */
-		grid-template-columns: 5rem 2.4rem minmax(0, 1fr) 3.2rem 5.4rem;
+		   変更(理由は上の.stat-table-headerコメント参照。値は必ず同一に保つ)。
+		   🔴 UI改修依頼(個体編集左パネル、2026-08-02)により再度変更(理由は上の
+		   .stat-table-headerコメント参照。値は必ず同一に保つ)。 */
+		grid-template-columns: 4.4rem 2.4rem minmax(0, 1fr) 3.2rem 6.2rem;
 		align-items: center;
 		gap: 0.4rem;
 	}
@@ -765,9 +804,19 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	.stat-row input[type="number"] { font-size: 0.94rem; padding: 0.3em 0.5em; width: 100%; text-align: center; }
 	.stat-row input[type="range"] { width: 100%; }
 	/* ラウンド23ユーザー指示(23-L5): ラベル列も中央揃えにする(justify-content:center追加)。
-	   このspanは▲ボタン+短縮ラベル+▼ボタンの3要素をflexで横並びにしており、列幅5remに
-	   対して内容幅が余るぶん左に寄っていた。 */
-	.stat-row-label { font-weight: 700; white-space: nowrap; display: flex; align-items: center; justify-content: center; gap: 0.3em; }
+	   このspanは▲ボタン+短縮ラベル+▼ボタンの3要素をflexで横並びにしており、列幅(1列目)に
+	   対して内容幅が余るぶん左に寄っていた。
+	   🔴 UI改修依頼(個体編集左パネル、2026-08-02)「ステータスラベルの垂直位置ズレ」対応。
+	   body(global.css)のline-height:1.6がこのspan内の文字(H/A/B/C/D/S)に継承されており、
+	   文字の行ボックス(1rem×1.6=25.6px)がbaseline以下に確保する余白(descender用の空間、
+	   このフォントでは英大文字が使わない)ぶん、文字のインク自体は行ボックスの幾何中心より
+	   上寄りに見える。一方、▲▼ボタン(.stat-nature-btn、24×24pxのgrid、border-trickで
+	   三角形を描画)は左右2つを合わせると視覚上ボックス中心に揃う形状のため、同じ
+	   align-items:centerでも文字だけが上にズレて見えていた(実測、--scale 6のクロップで確認)。
+	   line-height: 1 に上書きして行ボックスの余分な下側余白を削り、文字の見た目の中心を
+	   ▲▼ボタンの中心に近づける(HP行のプレースホルダー構成を含め、このspan配下の
+	   テキストノード全体に継承される)。 */
+	.stat-row-label { font-weight: 700; white-space: nowrap; display: flex; align-items: center; justify-content: center; gap: 0.3em; line-height: 1; }
 	/* ラウンド21ユーザー指示(21-L7)「A,B,...のラベル色も赤・青に変わるようにする」。
 	   相手ビルドカード側(20-D3)の--stat-up/--stat-down(box/[id].astroの.edit-shellで定義、
 	   DOM継承でこのコンポーネントの要素からも参照できる。ライト4.86-4.94:1・ダーク7.2-7.6:1)を
@@ -932,12 +981,19 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	   ボタン幅[実測約38px]を実測して算出、詳細は.stat-table-headerのコメント参照)。 */
 	.stat-row-real-wrap { display: flex; align-items: center; justify-content: center; gap: 0.3rem; min-width: 0; }
 	.stat-row-real { text-align: center; font-size: 1.05em; }
+	/* 🔴 UI改修依頼(個体編集左パネル、2026-08-02)「調整ボタンを大きくする」対応。
+	   padding(0.15em 0.5em、実測ライト時8.96×2.24px)・font-size(0.7rem)とも直値だったため、
+	   global.cssの共通スペーシング/フォントサイズトークンに置き換えつつ拡大する:
+	   padding → var(--space-1) var(--space-2)(4px/8px、.btn-ghost系が使う定石の刻み)、
+	   font-size → var(--font-size-xs)(0.75rem=12px、20-G3の文字下限12pxも満たす)。
+	   横幅が増える分は5列目(.stat-table-header/.stat-rowのgrid-template-columns、
+	   5.4rem→6.2rem)側で確保済み(新しい値ではなく既存トークンの組み合わせのみを使用)。 */
 	.stat-speed-chart-link {
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		padding: 0.15em 0.5em;
-		font-size: 0.7rem;
+		padding: var(--space-1) var(--space-2);
+		font-size: var(--font-size-xs);
 		font-weight: 600;
 		line-height: 1.4;
 		border-radius: var(--radius-sm);
