@@ -1162,8 +1162,12 @@ if (form) {
 			}
 		}
 		// ラウンド21ユーザー指示(21-L4)「技の上に性格も表示する」。
-		const natureReadoutEl = document.getElementById("nature-readout-value") as HTMLInputElement | null;
-		if (natureReadoutEl) natureReadoutEl.value = currentLeftNature();
+		// 🔴 UI改修依頼(個体編集左パネル、2026-08-01)「性格をREAD限定にする」により、
+		// #nature-readout-valueはLeftPanel.astro側で<input>から読み取り専用の<span>へ
+		// 変更した。書き戻し先を.value代入からtextContent代入へ追随する(id・呼び出し順は
+		// 変えていない)。
+		const natureReadoutEl = document.getElementById("nature-readout-value");
+		if (natureReadoutEl) natureReadoutEl.textContent = currentLeftNature();
 	}
 
 	// ラウンド5ユーザー指示: 「実数値」ラベルの左あたりに 66-(努力値合計) を表示する
@@ -1304,28 +1308,12 @@ if (form) {
 		});
 	}
 
-	// 🔴 ラウンド48ユーザー追加指示(A-7)「性格の欄から性格を直接変更できるようにする。
-	// ステータスも連動して変更する。」により、#nature-readout-value(readonly解除済み、
-	// LeftPanel.astro参照)から直接性格名を打ち込んで変更できるようにする。▲/▼方式は
-	// そのまま残し、両方から同じ状態(leftNatureUp/leftNatureDown)を操作する。
-	// 呼び出す関数列は上のupButton/downButtonクリックハンドラと完全に同じ並びにする
-	// (refreshNatureButtons→recalcStats→scheduleSave)。
-	const natureReadoutInput = document.getElementById("nature-readout-value") as HTMLInputElement | null;
-	natureReadoutInput?.addEventListener("change", () => {
-		const entered = natureReadoutInput.value.trim();
-		const modifier = NATURE_STAT_MODIFIERS[entered];
-		if (!modifier) {
-			// datalistに無い文字列が手入力された場合は不正値として保存せず、現在の
-			// 実際の性格名に表示を戻す(データ事故防止: 未定義の性格名を保存しない)。
-			natureReadoutInput.value = currentLeftNature();
-			return;
-		}
-		leftNatureUp = modifier.up;
-		leftNatureDown = modifier.down;
-		refreshNatureButtons();
-		void recalcStats();
-		scheduleSave();
-	});
+	// 🔴 ラウンド48ユーザー追加指示(A-7)「性格の欄から性格を直接変更できるようにする」で
+	// #nature-readout-valueのchangeハンドラ(直接入力→NATURE_STAT_MODIFIERSと完全一致検証)を
+	// 追加していたが、🔴 UI改修依頼(個体編集左パネル、2026-08-01)「性格をREAD限定にする」に
+	// よりA-7の判断を撤回した。要素自体がLeftPanel.astro側で読み取り専用の<span>になり
+	// changeイベントを発火しないため、このハンドラごと削除する。性格の変更手段は
+	// ▲/▼ボタン(上のnature-up-{key}/nature-down-{key}クリックハンドラ)のみに戻る。
 
 	// UI刷新: 努力値の各スライダーを数値入力とペアリングする。
 	for (const k of STAT_KEYS) {

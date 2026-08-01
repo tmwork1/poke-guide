@@ -9,8 +9,7 @@
 // 副作用importする(共有コア関数は src/lib/box-id/shared-core.ts 経由で left-panel.ts が使う)。
 import type { OwnedPokemonRecord } from '../../lib/owned-pokemon';
 import { TERA_TYPES } from '../../lib/tera-types';
-import { NATURE_STAT_MODIFIERS } from '../../lib/stats';
-import { REGULATIONS, REGULATION_PLACEHOLDER, isTerastalRegulation } from '../../lib/regulations';
+import { REGULATIONS_NEWEST_FIRST, REGULATION_PLACEHOLDER, isTerastalRegulation } from '../../lib/regulations';
 
 interface Props {
 	pokemon: OwnedPokemonRecord;
@@ -25,10 +24,11 @@ const { pokemon } = Astro.props;
 // 非表示にしても tera_type の保存値には触れない(M-* を選んで戻せば元の値が復帰する)。
 const showTeraField = isTerastalRegulation(pokemon.regulation);
 
-// ラウンド48ユーザー追加指示(A-7)「性格の欄から性格を直接変更できるようにする」用の
-// <datalist>候補。NATURE_STAT_MODIFIERSのキー(25種類、まじめ等の補正なし5種を含む)を
-// そのまま使う(値の実体は二重管理せずstats.ts側を正とする)。
-const NATURE_NAMES = Object.keys(NATURE_STAT_MODIFIERS);
+// 🔴 UI改修依頼(個体編集左パネル、2026-08-01)「性格をREAD限定(編集不可)にする」により、
+// ラウンド48(A-7)で追加した直接入力用の<datalist>候補(NATURE_NAMES)は不要になった
+// (datalistは編集可能なinputでなければ意味を持たないため、入力欄の撤回とセットで削除する)。
+// ▲/▼ボタンによる上昇/下降切り替えは従来どおり残る(NATURE_STAT_MODIFIERS自体は
+// left-panel.ts側の照合ロジックが引き続き使うため、ここでのimportだけを削除する)。
 
 // ラウンド12指摘(A-3): 能力値ラベルは全角表記(「素早さ」等)だとラベル列(最大幅)が
 // スライダー列(最狭・操作対象)を圧迫していたため、表示上はH/A/B/C/D/Sの1文字表記に
@@ -46,10 +46,9 @@ const STAT_LABELS: Array<{ key: string; label: string; short: string }> = [
 
 const MOVE_SLOTS = [1, 2, 3, 4];
 
-// R-11(すばやさ早見表 結線、docs/plan/pages/speed-chart.md 2026-08-01)対応。
-// S行の実数値セルの右外側に重ねるアイコンリンク用SVG(AppSidebar.astroのICONS.zapと同じ絵柄・
-// 書式を踏襲。lucide風、外部ライブラリは使わない規約)。
-const SPEED_CHART_ICON = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>`;
+// 🔴 UI改修依頼(個体編集左パネル、2026-08-01)により、R-11(すばやさ早見表 結線)で追加した
+// S行限定のアイコンリンク用SVG定数(SPEED_CHART_ICON)は不要になった(同じ機能のボタンは
+// ヘッダー側へ移設。下のstat-table内の分岐も撤回済み)。
 
 function statAt(values: number[] | undefined, index: number, fallback: number): number {
 	return values && typeof values[index] === "number" ? values[index] : fallback;
@@ -204,7 +203,12 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 					    薄い文字色になる(下のCSS / left-panel.ts の syncRegulationPlaceholder)。 */}
 					<select id="regulation" class="field-control" aria-label="レギュレーション" data-empty={pokemon.regulation ? undefined : "true"}>
 						<option value="">{REGULATION_PLACEHOLDER}</option>
-						{REGULATIONS.map((r) => <option value={r} selected={pokemon.regulation === r}>{r}</option>)}
+						{/* 🔴 UI改修依頼(個体編集左パネル、2026-08-01)「レギュレーションの選択肢を
+						    新しい順に並べる」により、REGULATIONS(古い順)ではなくregulations.ts側で
+						    既に用意されている REGULATIONS_NEWEST_FIRST([...REGULATIONS].reverse()、
+						    regulations.ts自体は編集対象外)を使う。selected判定・value・保存経路は
+						    一切変えていない(並び順だけの変更)。 */}
+						{REGULATIONS_NEWEST_FIRST.map((r) => <option value={r} selected={pokemon.regulation === r}>{r}</option>)}
 					</select>
 				</div>
 				<div class="field field-tera" id="tera-field" hidden={!showTeraField}>
@@ -310,10 +314,10 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 			</div>
 			{/* 🔴 UI改修依頼(個体編集左パネル、2026-08-01)「サジェストはリストボックスの候補に
 			    反映し、パネルに常時表示しない」により、ここにあった常時表示のヒント段落
-			    (#nature-suggestion-hint)は撤去した。人気の性格は#nature-list<datalist>
-			    (レギュレーション対応の改修で下の.stat-table-header内へ移設した
-			    #nature-readout-value が参照する)の並び順・label属性(作用率)に反映する形に
-			    変更した(<script>のapplyNatureSuggestionOrdering、left-panel.ts参照)。 */}
+			    (#nature-suggestion-hint)は撤去した。当時は人気の性格を#nature-list<datalist>
+			    の並び順・label属性(作用率)に反映していたが、同日の別要件「性格をREAD限定にする」で
+			    #nature-readout-valueを<input>から読み取り専用の<span>へ変更したのに伴い、
+			    #nature-list<datalist>自体(編集可能なinputが無いと機能しない)を削除した。 */}
 		</div>
 
 		{/* 🔴 UI改修依頼(個体編集左パネル・レギュレーション対応、2026-08-01)により、ここにあった
@@ -394,46 +398,37 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 				{/* 🔴 UI改修依頼(個体編集左パネル、2026-08-01)「性格ボックスを廃止。性格は
 				    ステータス表の1列目のヘッダーとする(種族値、の左側)」。上の.top-block-fields内に
 				    あった性格欄をここ(ヘッダー1列目、それまで空の<span>だったセル)へ移設した。
-				    id="nature-readout-value"・#nature-list<datalist>・left-panel.tsのchangeハンドラ
-				    (NATURE_STAT_MODIFIERSとの完全一致で検証し、不一致なら現在値に戻す)・
-				    refreshNatureButtons()の書き戻し先・applyNatureSuggestionOrdering()が並べ替える
-				    対象は一切変えていない。DOM上の位置だけが変わった。
+				    id="nature-readout-value"・left-panel.tsのrefreshNatureButtons()書き戻し先は
+				    一切変えていない。DOM上の位置だけが変わった。
 				    ▲/▼ボタン(各能力値行の左端)との併用も従来どおり(両方が同じ
-				    leftNatureUp/leftNatureDownを操作する)。
-				    列幅5rem(下の.stat-table-header/.stat-rowのgrid-template-columns 1列目)に
-				    「うっかりや」等の5文字が収まるよう、この入力欄だけ文字と余白を詰める
-				    (下の.stat-table-header-nature参照)。 */}
+				    leftNatureUp/leftNatureDownを操作する)。 */}
 				<span class="stat-table-header-nature">
 					{/* ラウンド23ユーザー指示(23-L2)「性格は、特性の下に入力ボックスを配置する。
 					    ただし入力不可にしておき自動決定の仕組みを続投。」ラウンド21(21-L4)は
 					    「<input readonly>にしない、操作できる部品に見えると疑問を生む」と
-					    明記していた。
-					    🔴 ラウンド48ユーザー追加指示(2026-07-31、A-7)「性格の欄から性格を
-					    直接変更できるようにする。ステータスも連動して変更する。」により、
-					    23-L2の「入力不可(readonly)」判断をここで撤回し、readonly/tabindex
-					    を外して直接編集可能にする(21-L4「readonlyにしない」の判断が結果的に
-					    再び有効になった形)。▲/▼ボタンによる上昇/下降切り替え方式は残したまま、
-					    この入力欄からも直接性格名を入力できるようにする(両方から同じ状態=
-					    leftNatureUp/leftNatureDownを操作する)。
-					    候補は#nature-list<datalist>(25種類、NATURE_STAT_MODIFIERSのキー)。
-					    <script>のchangeハンドラ(left-panel.ts)が、入力値がNATURE_STAT_MODIFIERS
-					    に実在する性格名ならleftNatureUp/leftNatureDownを上書きしてrefreshNatureButtons/
-					    recalcStats/scheduleSaveを呼ぶ。実在しない文字列が入力された場合は
-					    currentLeftNature()の値に戻す(不正値を保存しない)。
-					    保存ペイロード(buildPayload)は引き続きcurrentLeftNature()から性格名を
-					    取る(二重管理を避ける設計自体は維持)。 */}
-					<input
+					    明記していた。ラウンド48ユーザー追加指示(A-7)で一度直接編集可能な
+					    <input>に変えたが、🔴 UI改修依頼(個体編集左パネル、2026-08-01)
+					    「性格をREAD限定(編集不可)にして、"種族値"と同じフォントで表示する」
+					    により、A-7の判断をここで撤回する。
+					    ・要素自体を<input>から読み取り専用の<span>へ変更する(id・DOM上の位置は
+					    変えない。left-panel.ts側もrefreshNatureButtons()の書き戻し先を
+					    .value代入からtextContent代入へ追随済み。#nature-list<datalist>と
+					    それに依存していたapplyNatureSuggestionOrdering呼び出し対象・
+					    直接入力のchangeハンドラは、編集可能なinputが無いと成立しないため
+					    セットで削除した)。
+					    ・見た目は入力欄然とした枠(.field-control相当のborder/padding/背景)を
+					    外し、隣の"種族値"見出し(<span>種族値</span>、装飾用クラスを持たず
+					    .stat-table-headerの既定値(font-size:xs/font-weight:600/
+					    color:text-muted)をそのまま継承しているだけ)と完全に同じフォントに
+					    揃える。そのため専用のCSS上書き(旧.stat-table-header-nature > input)を
+					    削除し、このspanには何のfont関連プロパティも指定しない
+					    (=種族値ヘッダーと同じ継承経路になる)。
+					    ・▲/▼ボタン(各能力値行の左端)による上昇/下降切り替えは残す(唯一の
+					    性格変更手段。leftNatureUp/leftNatureDownを操作する経路は変えていない)。 */}
+					<span
 						id="nature-readout-value"
-						class="field-control"
-						type="text"
-						list="nature-list"
-						autocomplete="off"
-						aria-label="性格(直接入力するか、各ステータス見出し横の上昇/下降ボタンで変更できます)"
-						placeholder="性格"
-					/>
-					<datalist id="nature-list">
-						{NATURE_NAMES.map((name) => <option value={name} />)}
-					</datalist>
+						aria-label="性格(各ステータス見出し横の上昇/下降ボタンで変更できます)"
+					>{pokemon.nature ?? ""}</span>
 				</span>
 				<span>種族値</span>
 				{/* ラウンド3 B-10: スライダーと数値入力を別グリッド列に分けたため(scoped
@@ -536,29 +531,13 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 							value={statAt(pokemon.evs, i, 0)}
 						/>
 					</div>
-					{key === "spe" ? (
-						/* R-11(すばやさ早見表 結線): .stat-row/.stat-table-headerの
-						   grid-template-columns(5列固定、H〜Sの6行が共有)は一切変更しない。
-						   S行の実数値セル(5列目)の内側に position:relative のラッパーを1つ足し、
-						   早見表へのアイコンリンクをセルの右外側へ position:absolute で重ねる方式に
-						   限定する(計画書R-11で確定済み。6列目の追加・グリッド変更は禁止)。
-						   valueEl(id=stat-spe)自体はleft-panel.tsのrecalcStats/renderStatsUnavailableが
-						   textContentを直接上書きするため、アイコンリンクはvalueElの子ではなく
-						   兄弟要素にする(子にするとtextContent書き換えのたびに消える)。 */
-						<span class="stat-row-real-wrap">
-							<span id={`stat-${key}`} class="stat-row-real stat-value tnum">(未計算)</span>
-							<a
-								class="stat-speed-chart-link"
-								href={`/speed-chart?owned=${pokemon.id}`}
-								aria-label="すばやさ早見表でこの実数値の並びを確認する"
-								title="すばやさ早見表を開く"
-							>
-								<span class="stat-speed-chart-icon" set:html={SPEED_CHART_ICON} />
-							</a>
-						</span>
-					) : (
-						<span id={`stat-${key}`} class="stat-row-real stat-value tnum">(未計算)</span>
-					)}
+					{/* 🔴 UI改修依頼(個体編集左パネル、2026-08-01)「すばやさ早見表へのリンク(S行の
+					    実数値セルの右にあるアイコンリンク)を削除する」により、R-11で追加した
+					    S行限定の分岐(.stat-row-real-wrap + .stat-speed-chart-link)を撤回し、
+					    H〜D行と同じ単一の<span>に戻す(同じ機能のボタンはヘッダー側へ移設済み、
+					    別エージェント担当)。valueEl(id=stat-${key})自体・left-panel.tsの
+					    recalcStats/renderStatsUnavailableのtextContent書き換え対象は変わらない。 */}
+					<span id={`stat-${key}`} class="stat-row-real stat-value tnum">(未計算)</span>
 				</div>
 			))}
 		</div>
@@ -690,41 +669,30 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	}
 	/* 🔴 UI改修依頼(個体編集左パネル、2026-08-01)「性格ボックスを廃止。性格はステータス表の
 	   1列目のヘッダーとする(種族値、の左側)」。それまで空だったヘッダー1列目のセルに
-	   性格入力欄(#nature-readout-value、上の.top-block-fieldsから移設)を入れる。
-	   列幅は5rem(=80px、.stat-table-header/.stat-rowのgrid-template-columns 1列目)で
-	   変えていない ── 列幅を広げるとその分だけ操作対象であるスライダー列(3列目)が痩せる
-	   (ラウンド12指摘A-3の経緯)ため、代わりにこの入力欄側の文字と余白を詰めて
-	   最長の性格名(「うっかりや」等5文字)が収まるようにする。
-	   ヘッダー自身のfont-size(var(--font-size-xs)=12px)をそのまま継承すると
-	   20-G3の文字下限12pxちょうどで読みにくいので、この入力欄だけ0.82remに上げる。 */
+	   性格表示(#nature-readout-value、上の.top-block-fieldsから移設)を入れる。
+	   列幅は.stat-table-header/.stat-rowのgrid-template-columns 1列目(6.4rem、後述の
+	   入力欄時代に広げた値のまま)で、今回は変更しない(列幅を変えるとスライダー列(3列目)の
+	   幅に影響するため、必要以上に広げない/狭めない)。
+	   🔴 UI改修依頼(個体編集左パネル、2026-08-01)「性格をREAD限定にして"種族値"と同じ
+	   フォントで表示する」により、以前ここにあった<input class="field-control">向けの
+	   専用フォント上書き(0.82rem・font-weight 400・padding・border等、入力欄然とした
+	   見た目を作るためのもの)をすべて削除した。要素自体が<span>になったため、
+	   .stat-table-header-nature配下には何のfont関連プロパティも指定しない ──
+	   これにより隣の"種族値"見出し(<span>種族値</span>、同じく個別指定を持たず
+	   .stat-table-headerの既定値(font-size: var(--font-size-xs)/font-weight: 600/
+	   color: var(--color-text-muted))をそのまま継承しているだけ)と、指定経路まで
+	   完全に同一になる(実測: 2要素のgetComputedStyle().fontSize/fontWeight/colorが
+	   一致することを確認済み、報告参照)。 */
 	.stat-table-header-nature {
 		display: flex;
 		align-items: center;
+		justify-content: center;
 		min-width: 0;
 	}
-	.stat-table-header-nature > input {
-		width: 100%;
-		min-width: 0;
-		margin: 0;
-		/* 高さ: global.cssの input { min-height: 2.35rem } は見出し行には高すぎるため、
-		   この1箇所だけ詰める(見出し行が能力値6行ぶんの高さを圧迫しないようにする)。 */
-		min-height: 0;
-		/* 実測(1920x1080、Playwrightで scrollWidth を測定、2026-08-01):
-		   「いじっぱり」(最長クラスの性格名、5文字)の描画幅は font-size 13.12px に対して
-		   83.5px = 1.27em/文字だった(等幅1emではなく、フォールバックフォントのCJK字形が
-		   広い)。padding(0.3em×2=7.9px)+border(2px)を足すと必要幅は約93px になり、
-		   従来の1列目5rem(80px)には文字サイズを12px下限(20-G3)まで下げても収まらない
-		   (12pxでも約85px必要)。そのため上の grid-template-columns で1列目を
-		   5rem→6.4rem(102px)に広げた。差分の吸収先は 種族値 2.6→2.4rem・
-		   実数値 3.4→3.2rem・gap 0.6→0.5rem で、スライダー列(3列目)の実損は約10pxに
-		   留めている(ラウンド12指摘A-3「スライダー列を痩せさせない」を尊重)。
-		   文字サイズはヘッダー既定(--font-size-xs=12px)よりわずかに大きい0.82remに
-		   保ち、値であることを読み取りやすくする。 */
-		font-size: 0.82rem;
-		font-weight: 400;
-		padding: 0.3em;
-		text-align: center;
+	.stat-table-header-nature > span {
+		overflow: hidden;
 		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 	/* ラウンド24ユーザー指示(24-L4)対応: 「残りN」(.stat-table-header-ev-remaining)だけを
 	   中央揃え化の対象から除外する。「努力値」(.stat-table-header-ev-label)は他の見出しと
@@ -922,35 +890,11 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	   (中央揃えは桁ズレが目立ちやすいため、tabular-numsの維持が特に重要)。 */
 	.stat-row-base { color: var(--color-text-muted); text-align: center; }
 	.stat-row-real { text-align: center; font-size: 1.05em; }
-	/* R-11(すばやさ早見表 結線、docs/plan/pages/speed-chart.md 2026-08-01): S行だけ、
-	   実数値セル(グリッド5列目)を1段ラップしてposition:relativeの基点にする。
-	   このラッパー自体が5列目のグリッドアイテムになる(グリッドの列数は変わらない)。
-	   text-align:centerはラッパー内の.stat-row-real(inline-block)を中央寄せし、
-	   従来の見た目(H〜Dの5行およびS行自身の数値表示)を変えない。 */
-	.stat-row-real-wrap { position: relative; text-align: center; }
-	.stat-speed-chart-link {
-		position: absolute;
-		left: 100%;
-		top: 50%;
-		transform: translateY(-50%);
-		margin-left: 0.3rem;
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		width: 1.15rem;
-		height: 1.15rem;
-		border-radius: var(--radius-sm);
-		color: var(--color-text-muted);
-		text-decoration: none;
-		transition: background 0.15s, color 0.15s;
-	}
-	.stat-speed-chart-link:hover,
-	.stat-speed-chart-link:focus-visible {
-		color: var(--color-primary);
-		background: var(--color-primary-soft);
-	}
-	.stat-speed-chart-icon { display: inline-flex; }
-	.stat-speed-chart-icon svg { display: block; width: 100%; height: 100%; }
+	/* 🔴 UI改修依頼(個体編集左パネル、2026-08-01)「すばやさ早見表へのリンクを削除する」により、
+	   R-11で追加したS行限定のラッパー(.stat-row-real-wrap)とアイコンリンク
+	   (.stat-speed-chart-link/.stat-speed-chart-icon、下の460px以下メディアクエリ内の
+	   対応ルールも含む)を撤去した。S行のマークアップは.stat-row-realの単一<span>に戻った
+	   ため、この定義もろとも削除する(同じ機能のボタンはヘッダー側に別途追加される)。 */
 	/* ラウンド17指摘(B-5): ヌケニン限定の注記。既定は非表示(hidden属性)、通常種族では
 	   何も増えない(<script>のapplyBaseStats参照)。 */
 	.hp-fixed-note {
@@ -965,7 +909,8 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	   パネルに常時表示しない」により、常時表示のヒント段落一式(#nature-suggestion-hint等)と
 	   それ専用だった.suggestion-hint/.field-with-suggestionは撤去した(いずれもこのファイル内
 	   の他の要素からは参照されていないことをgrep確認済み)。作用率の表示先は各候補リスト
-	   (#nature-list/#item-dropdown-list/#tera-dropdown-list/技選択ウィンドウ)側に移った。 */
+	   (当時は#nature-list/#item-dropdown-list/#tera-dropdown-list/技選択ウィンドウ側。
+	   #nature-listは同日の別要件「性格をREAD限定にする」で後述のとおり削除済み)に移った。 */
 	@media (max-width: 460px) {
 		.stat-table-header { display: none; }
 		/* ラウンド12指摘(A-3)追随: 1列目はもともと「とくこう」等の全角ラベル+▲▼ボタンの
@@ -987,11 +932,9 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		   (判断根拠は報告参照)。 */
 		.stat-row-real { grid-column: 1 / -1; text-align: left; padding-left: 4.6em; font-weight: 700; }
 		.stat-row-label { gap: 0.2em; }
-		/* R-11(すばやさ早見表 結線): 460px以下ではS行の実数値も上のグリッド全幅表示に
-		   合わせる必要がある。ラッパー(.stat-row-real-wrap)がグリッドアイテム本体になった
-		   ため、上の.stat-row-realルール(non-grid-itemになった内側spanに適用される)とは
-		   別に、ラッパー側にも同じ配置を与える。 */
-		.stat-row-real-wrap { grid-column: 1 / -1; text-align: left; padding-left: 4.6em; }
+		/* 🔴 UI改修依頼(個体編集左パネル、2026-08-01)により、S行限定だった.stat-row-real-wrap
+		   自体を撤去したため、この460px以下向けの対応ルールも削除する(S行は他のH〜D行と
+		   同じ.stat-row-realだけで、上の行がそのまま適用される)。 */
 	}
 
 	/* ラウンド3 B-7: 「努力値合計」は要件により削除した。チャンピオンズルールは合計上限が
@@ -1528,7 +1471,11 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	   (#nature-readout-value[readonly]セレクタ)。
 	   🔴 ラウンド48ユーザー追加指示(A-7)によりreadonly属性自体を外して直接編集可能にした
 	   ため、上記の[readonly]セレクタは要素にマッチしなくなり無意味化した。編集可能な通常の
-	   input(.field-control基底のcursor: text)に戻すため、このルールごと削除する。 */
+	   input(.field-control基底のcursor: text)に戻すため、このルールごと削除する。
+	   🔴 UI改修依頼(個体編集左パネル、2026-08-01)によりA-7の判断自体を撤回し、
+	   <input>から読み取り専用の<span>へ戻した(上の.stat-table-header-nature参照)。
+	   <span>はそもそもcursor/pointer-events等の入力欄向けCSSを一切必要としないため、
+	   この節に追加のCSSは無い。 */
 
 	/* ラウンド4ユーザー指示: 「技1〜4」個別ラベルの代わりに置く1個のグループ見出しだったが、
 	   ラウンド20ユーザー指示(20-L1)でplaceholder方式に統一したため.field-group-label自体を
@@ -1897,10 +1844,14 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		   🔴 UI改善ラウンド39ユーザー指示(39-L1)「アイテムアイコンを現在値の95%に縮小」により、
 		   33px→31px(33×0.95=31.35を四捨五入)へ縮小する。他要素との重なり判定は
 		   縮小方向のみでコーナー列(180px)にはさらに余裕ができるため再実測は不要
-		   (拡大時の36-L1〜35-L1の実測結果がそのまま安全側の上限として成立する)。 */
+		   (拡大時の36-L1〜35-L1の実測結果がそのまま安全側の上限として成立する)。
+		   🔴 UI改修依頼(個体編集左パネル、2026-08-01)「アイテムアイコンを10%小さくする」により、
+		   実測(Playwright、getBoundingClientRect)で変更前サイズが31×31pxであることを確認した上で
+		   31px→28px(31×0.9=27.9を四捨五入)へ縮小する。縮小方向のみでコーナー列(180px)との
+		   重なり判定は再実測不要(上記39-L1と同じ理由)。 */
 		.item-image-badge {
-			width: 31px;
-			height: 31px;
+			width: 28px;
+			height: 28px;
 			display: flex;
 			align-items: center;
 			justify-content: center;
@@ -2028,7 +1979,26 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	   CSSだけで描く(<script>のsetupMovePickerWindow参照。checked状態・changeイベント・
 	   aria-labelは一切変えない)。 */
 	.toggle-switch { position: relative; display: inline-flex; align-items: center; width: 38px; height: 20px; flex-shrink: 0; }
-	.toggle-switch-input {
+	/* 🔴 UI改修依頼(個体編集左パネル、2026-08-01)「トグルスイッチの裏に残っているチェック
+	   ボックスを削除する」対応。実機調査(Playwright、getComputedStyle)で判明した原因:
+	   src/styles/global.cssの`input[type="checkbox"]`が持つ既定スタイル(実寸1.05em角の
+	   枠付きボックス、position:relative)は、素のクラスセレクタ`.toggle-switch-input`
+	   (詳細度0,1,0)より高い詳細度(要素+属性=0,1,1)を持つため、この visually-hidden 定石
+	   (position:absolute + 1pxサイズ + clip)がpositionから順に上書きされて無効化されていた
+	   (positionがrelativeに戻るとclip: rectはそもそも絶対/固定配置要素にしか効かない仕様の
+	   ため機能せず、実寸1.05em(≒17px)のネイティブ風チェックボックスがトラックの左に
+	   そのまま表示されていた)。読み込み順(global.cssとこのis:globalブロックのどちらが
+	   先に注入されるか)に依存せず確実に上書きするため、セレクタに`input[type="checkbox"]`を
+	   足して詳細度を0,2,1に引き上げる(global.cssの`input[type="checkbox"]`単体0,1,1に対し
+	   常に勝つ)。当たり判定(クリック・キーボード操作・スクリーンリーダー)は維持したまま
+	   視覚的にだけ隠す方針(opacity:0+サイズ0ではなく、position:absolute+1px+clipの定石)は
+	   変えていない。この部品は個体編集ヘッダー(box/[id].astro)とこのファイル自身の
+	   技選択ウィンドウ(move-picker)の両方で使われるが、team/[id].astro側は同じCSSを
+	   scoped<style>として複製しているため(Astroのscoped styleは自動でdata-astro-cid-*が
+	   付き詳細度0,2,0になり、この事故は元々起きていなかった)、このis:global側だけの
+	   修正で足りる。 */
+	.toggle-switch-input,
+	input[type="checkbox"].toggle-switch-input {
 		position: absolute;
 		width: 1px;
 		height: 1px;
