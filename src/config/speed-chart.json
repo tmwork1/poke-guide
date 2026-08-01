@@ -11,13 +11,19 @@
     "  enabled: 採用率フィルタを使うかどうか(falseなら全フォルムにその補正行を出す)",
     "  threshold: この採用率(ratio)以上のときだけ補正行を出す(0.10 = 10%)",
     "  minSampleSize: サンプル数がこれ未満の種族は『データなし』として出さない(k-匿名性)",
-    "  appliesTo: 採用率フィルタの対象種別"
+    "  appliesTo: 採用率フィルタの対象種別。既定は items のみ。",
+    "    moves を入れると技のランク上昇行まで採用率で絞るが、suggestions の popular_move は",
+    "    種族ごと上位5技しか保存しない(migrations/009 の top_n)うえ、技まで判明している",
+    "    母集団が構築記事のある300チームに限られるため、実測(2026-08-01, M-B)で",
+    "    閾値を通るのは 5組(ガブリアス/スケイルショット、メガギャラドス/りゅうのまい 等)だけになり、",
+    "    ユーザーが要件で指定した『ランク上昇技を載せる』というスコープがほぼ失われる。",
+    "    そのため既定では技に採用率フィルタをかけない。popular_move の母集団が充実したら再検討する。"
   ],
   "adoptionRate": {
     "enabled": true,
     "threshold": 0.1,
     "minSampleSize": 5,
-    "appliesTo": ["items", "moves"]
+    "appliesTo": ["items"]
   },
   "disabled": {
     "abilities": [],

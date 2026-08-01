@@ -1,0 +1,170 @@
+---
+// すばやさ早見表(/speed-chart)本体のテンプレート(確定した設計のファイル分割表:
+// 「表全体のテンプレート(3列とも含む)」)。実データの取得・行の描画は一切ここでは行わず、
+// src/lib/speed-chart/chart-table.ts(<script>からimportして呼び出すだけ)に委譲する。
+// SSR側(index.astro)はレギュレーション一覧・初期レギュレーション・?owned=の有無だけを
+// このコンポーネントへ渡す。マスターデータ本体・採用率データ・埋め込みレコードは
+// index.astro が <script type="application/json"> で直接埋め込む(このコンポーネントの
+// 外側)ため、ここではdata-*属性だけを介してchart-table.tsへ橋渡しする。
+import OwnedPanel from './OwnedPanel.astro';
+
+interface Props {
+	regulation: string;
+	regulations: readonly string[];
+	ownedId: string | null;
+	hasOwnedPanel: boolean;
+}
+const { regulation, regulations, ownedId, hasOwnedPanel } = Astro.props;
+---
+<section
+	class="speed-chart-table"
+	data-regulation={regulation}
+	data-owned-id={ownedId ?? ''}
+	data-has-owned-panel={String(hasOwnedPanel)}
+>
+	<div class="panel panel-top panel-toolbar speed-chart-toolbar">
+		<div class="toolbar-item toolbar-regulation">
+			<label class="field-label" for="speed-chart-regulation-select">レギュレーション</label>
+			<select id="speed-chart-regulation-select" aria-label="レギュレーション">
+				{regulations.map((reg) => (
+					<option value={reg} selected={reg === regulation}>{reg}</option>
+				))}
+			</select>
+		</div>
+		<div class="toolbar-item toolbar-jump">
+			<label class="field-label" for="speed-chart-jump-input">実数値へジャンプ</label>
+			<input type="number" id="speed-chart-jump-input" placeholder="実数値" aria-label="実数値へジャンプ" />
+			<button type="button" id="speed-chart-jump-button" class="btn-ghost">ジャンプ</button>
+		</div>
+		{hasOwnedPanel && (
+			<button type="button" id="speed-chart-back-to-current" class="btn-ghost toolbar-item">現在地へ戻る</button>
+		)}
+	</div>
+
+	<OwnedPanel hasOwnedPanel={hasOwnedPanel} />
+
+	<div class="panel-content speed-chart-content">
+		<div class="speed-chart-columns-header" aria-hidden="true">
+			<span>実数値</span>
+			<span>ポケモン</span>
+			<span>この個体</span>
+		</div>
+		<p id="speed-chart-status" class="speed-chart-status">読み込み中...</p>
+		<div id="speed-chart-rows" class="speed-chart-rows" hidden>
+			<div id="speed-chart-rows-body"></div>
+		</div>
+	</div>
+</section>
+
+<script>
+	import { initSpeedChartPage } from '../../lib/speed-chart/chart-table';
+	void initSpeedChartPage();
+</script>
+
+<style>
+	/* ツールバー(静的マークアップ)。/box一覧の.panel-toolbarと同じ横一列の流儀に揃える。 */
+	.speed-chart-toolbar {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: var(--space-3) var(--space-6);
+		padding: var(--space-3) var(--space-5);
+	}
+	.toolbar-item {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+	}
+	.toolbar-regulation select {
+		min-width: 8rem;
+	}
+	.toolbar-jump input {
+		width: 7rem;
+	}
+	@media (max-width: 640px) {
+		.speed-chart-toolbar {
+			flex-direction: column;
+			align-items: stretch;
+		}
+		.toolbar-item {
+			width: 100%;
+		}
+	}
+
+	/* 見出し行(実数値/ポケモン/この個体)。R-13の列幅目安(80/780/220)にJS生成行と揃える。 */
+	.speed-chart-columns-header {
+		display: grid;
+		grid-template-columns: 80px minmax(0, 1fr) 220px;
+		gap: var(--space-4);
+		padding: 0 0 var(--space-2);
+		border-bottom: 2px solid var(--color-border);
+		margin-bottom: var(--space-2);
+		font-size: var(--font-size-sm);
+		font-weight: 700;
+		color: var(--color-text-muted);
+	}
+	.speed-chart-status {
+		color: var(--color-text-muted);
+		margin: var(--space-4) 0;
+	}
+</style>
+
+<style is:global>
+	/* --- 行・グループ・チップ(src/lib/speed-chart/chart-table.ts が動的生成する要素) ---
+	   pitfalls.md「Astroのscoped styleはJSで生成した要素に効かない」への対応。
+	   領域ルートクラス .speed-chart-table で必ず絞る(確定仕様)。 */
+	.speed-chart-table .speed-chart-row {
+		display: grid;
+		grid-template-columns: 80px minmax(0, 1fr) 220px;
+		gap: var(--space-4);
+		padding: var(--space-3) 0;
+		border-bottom: 1px solid var(--color-border);
+		align-items: start;
+	}
+	.speed-chart-table .speed-chart-row.is-current-row {
+		background: var(--color-success-soft);
+	}
+	/* 実数値: 同じページ内に「ポケモン群」「この個体」という他の主コンテンツが並ぶ比較用の表
+	   なので、00-foundation.mdの「脇役の数値グリッド」区分(16.8px=1.05em/700)を採用する
+	   (/box/[id]の.stat-row-realと同じ階層)。 */
+	.speed-chart-table .speed-chart-value-cell {
+		font-size: 1.05em;
+		font-weight: 700;
+		padding-top: 0.15em;
+	}
+	.speed-chart-table .speed-chart-group-cell {
+		min-width: 0;
+	}
+	.speed-chart-table .speed-chart-groups {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-2);
+	}
+	.speed-chart-table .speed-chart-group-heading {
+		font-size: var(--font-size-xs);
+		font-weight: 700;
+		color: var(--color-text-muted);
+		margin-bottom: 0.2rem;
+	}
+	.speed-chart-table .speed-chart-chips {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.4rem;
+	}
+	.speed-chart-table .speed-chart-chip {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.25rem;
+		font-size: var(--font-size-xs);
+		background: var(--color-surface-alt);
+		border-radius: 999px;
+		padding: 0.1rem 0.5rem 0.1rem 0.1rem;
+	}
+	.speed-chart-table .speed-chart-chip-icon {
+		width: 22px;
+		height: 22px;
+	}
+	.speed-chart-table .speed-chart-owned-cell {
+		min-width: 0;
+	}
+</style>

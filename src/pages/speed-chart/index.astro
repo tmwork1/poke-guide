@@ -1,0 +1,118 @@
+---
+// すばやさ早見表(/speed-chart)。オーケストレーター。
+// 仕様の出典: docs/plan/pages/speed-chart.md(P1〜P3、設計レビューR-1〜R-15、P3追補U-1/U-2)。
+//
+// SSRで行うのは (1) ?reg=/?owned= の解決 (2) ログインユーザーの個体取得
+// (3) U-2の採用率データを1クエリで取得 の3つだけ。早見表本体の母集団・行の組み立ては
+// すべてブラウザ側(ChartTable.astro → src/lib/speed-chart/chart-table.ts)で行う
+// (public/master-data/ 配下は各フォルムの regulations を自身で持つため、レギュレーション
+// 切替時に追加のSSR/APIアクセスなしで再計算できる。R-12の「変更時にURLをhistory.replaceState
+// で書き換える」がページ遷移を伴わないことを前提にした設計)。
+export const prerender = false;
+
+import AppLayout from '../../layouts/AppLayout.astro';
+import ChartTable from '../../components/speed-chart/ChartTable.astro';
+import { REGULATIONS } from '../../lib/regulations';
+import { getSupabaseAdminClient, getSupabasePublicClient } from '../../lib/supabase';
+import { getOwnedPokemon, type OwnedPokemonRecord } from '../../lib/owned-pokemon';
+import { parseOwnedQueryParam, resolveSpeedChartRegulation } from '../../lib/speed-chart-validation';
+import type { AdoptionRateBucket, AdoptionRateData } from '../../lib/speed-chart';
+// src/config/speed-chart.json はこのページが唯一importする「採否設定」(U-1)。手で編集する
+// 唯一のファイルであり、src/lib/speed-chart.ts 側は編集禁止(基盤担当が確定済み)。
+import speedChartConfig from '../../config/speed-chart.json';
+
+const user = Astro.locals.user;
+
+// ?owned= の形式検証(UUIDかどうかだけ。所有者チェックはこの後のgetOwnedPokemonが行う)。
+const ownedId = parseOwnedQueryParam(Astro.url.searchParams.get('owned'));
+
+let ownedRecord: OwnedPokemonRecord | null = null;
+if (ownedId && user) {
+	const adminClient = await getSupabaseAdminClient();
+	const result = await getOwnedPokemon(user.id, ownedId, adminClient);
+	// 未ログイン/他人の個体/存在しないIDのいずれも「右カラムを出さない」だけで、表自体は
+	// 表示する(強制リダイレクトしない。/box/[id] と同じ方針)。result.ok=falseの場合も
+	// 同様にownedRecord=nullのまま進める(500にはしない)。
+	if (result.ok) ownedRecord = result.data;
+}
+
+const hasOwnedPanel = ownedRecord !== null;
+// backHrefは「?owned=があるとき」(要件のとおり、形式が正しいIDが指定されていれば出す。
+// 所有権の有無には依存しない)。
+const backHref = ownedId ? `/box/${ownedId}` : undefined;
+
+// レギュレーション決定順序(P1確定仕様): ?reg= → 連携個体のregulation → REGULATIONSの末尾(最新)。
+// REGULATIONSは常に非空(vendor/jpokeが最低1つのレギュレーションを持つ)前提のため、
+// フォールバックのみ非nullを明示しておく(「レギュレーション未指定は許さない」)。
+const resolvedRegulation =
+	resolveSpeedChartRegulation(Astro.url.searchParams.get('reg'), ownedRecord?.regulation, REGULATIONS) ??
+	REGULATIONS[REGULATIONS.length - 1] ??
+	'';
+
+// U-2: 採用率データを1クエリで取得する(種族ごとにfetchしない)。suggestionsテーブルの
+// レギュレーション別の行(subject_key = "種族名|レギュレーション"、migrations/013由来)だけを
+// 対象にする。全レギュレーション分をまとめて取得しておくことで、ブラウザ側のレギュレーション
+// 切替(chart-table.ts)が追加のfetchなしで再計算できる。
+interface SuggestionRow {
+	kind: string;
+	subject_key: string;
+	payload: { sample_size?: number; options?: Array<{ value: string; ratio: number }> } | null;
+}
+
+const adoptionByRegulation: Record<string, AdoptionRateData> = {};
+try {
+	const publicClient = await getSupabasePublicClient();
+	const { data, error } = await publicClient
+		.from('suggestions')
+		.select('kind, subject_key, payload')
+		.in('kind', ['popular_item', 'popular_move'])
+		.like('subject_key', '%|%');
+
+	if (error) {
+		// eslint-disable-next-line no-console
+		console.error('[speed-chart] failed to load adoption rate data', error);
+	} else if (data) {
+		for (const row of data as SuggestionRow[]) {
+			const sep = row.subject_key.lastIndexOf('|');
+			if (sep === -1) continue;
+			const species = row.subject_key.slice(0, sep);
+			const reg = row.subject_key.slice(sep + 1);
+			const category = row.kind === 'popular_item' ? 'items' : row.kind === 'popular_move' ? 'moves' : null;
+			if (!category || !row.payload || !Array.isArray(row.payload.options)) continue;
+
+			const bucket: AdoptionRateBucket = {
+				sampleSize: row.payload.sample_size ?? 0,
+				options: Object.fromEntries(row.payload.options.map((o) => [o.value, o.ratio])),
+			};
+			const byReg = (adoptionByRegulation[reg] ??= {});
+			const bySpecies = (byReg[species] ??= {});
+			bySpecies[category] = bucket;
+		}
+	}
+} catch (err) {
+	// eslint-disable-next-line no-console
+	console.error('[speed-chart] failed to load adoption rate data', err);
+}
+---
+<AppLayout
+	title="すばやさ早見表"
+	description="レギュレーション別のすばやさ実数値早見表"
+	current="speed-chart"
+	backHref={backHref}
+>
+	<ChartTable
+		regulation={resolvedRegulation}
+		regulations={REGULATIONS}
+		ownedId={ownedId}
+		hasOwnedPanel={hasOwnedPanel}
+	/>
+
+	{/* R-1: 取得したOwnedPokemonRecord全体を<script type="application/json">で埋め込む
+	    (ivs/evs/move_names/tagsが配列のためdata-*属性化に向かない)。owned-panel.tsは
+	    このレコード全体をspreadしてからnature/evs/item_nameの3項目だけ上書きしてPUTする。 */}
+	<script type="application/json" id="speed-chart-config" set:html={JSON.stringify(speedChartConfig)} />
+	<script type="application/json" id="speed-chart-adoption-data" set:html={JSON.stringify(adoptionByRegulation)} />
+	{hasOwnedPanel && (
+		<script type="application/json" id="speed-chart-owned-record" set:html={JSON.stringify(ownedRecord)} />
+	)}
+</AppLayout>
