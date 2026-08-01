@@ -36,6 +36,7 @@ import {
   type SpeedModifierEntry,
   type SpeedModifierMultiplier,
   type SpeedModifiersData,
+  type SpeedSpreadKind,
 } from '../speed-chart';
 import { spriteUrl } from '../pokemon-master-data';
 import {
@@ -382,12 +383,16 @@ function buildDashCell(): HTMLElement {
   return wrap;
 }
 
-// 追加改修(2026-08-01第2弾)要件3: 「すばやさ数値ごとに1段(文字とアイコンは別段のまま)に
-// まとめる」。以前は「振り方+補正」のグループごとに見出し+アイコン行を積んでいた
-// (グループ数が多い行で最大10段超・高さ100〜400px超のばらつき)。ラベル群を1段目
-// (.speed-chart-labels-row)、チップ群を2段目(.speed-chart-chips-row)にまとめ、
-// 両者の対応は「同じグループ順に並べる」ことで表す(R-13の「振り方+種族値ラベル+補正ラベルの
-// グループに分ける」という構造自体は維持し、レイアウトだけを2段に変える)。
+// 追加改修(2026-08-01第3弾)要件1: 「補正量とその原因は行をわける」。以前は
+// 「振り方+種族値+補正量+補正の原因」を1本のラベル文字列にまとめていた(例:
+// "最速 120族 2倍 かるわざ")が、これを3段に分ける:
+//   1段目 .speed-chart-amounts-row … 振り方バッジ(色分け)+ 種族値 + 補正量(S+1/2倍等)
+//   2段目 .speed-chart-origins-row … 補正の原因(特性名/わざ名/持ち物名)。補正なしの
+//     グループ(素の実数値)は原因を持たないため、そのグループ分は出力しない
+//     (行の高さはCSS側のmin-heightで確保するため、原因が1件も無い行でも段自体は消えない)。
+//   3段目 .speed-chart-chips-row … ポケモンのアイコン+名前チップ(要件・仕様は変更なし)。
+// 1段目と2段目の対応は、以前と同じく「同じグループ順に並べる」ことで表す(厳密な位置揃えは
+// しない。docs/plan/pages/speed-chart.md 追加改修(2026-08-01第2弾)要件3の仮定を踏襲)。
 function buildRowContent(
   entries: SpeedChartEntry[],
   baseSpeedByName: Map<string, number>,
@@ -399,20 +404,33 @@ function buildRowContent(
   const container = document.createElement('div');
   container.className = 'speed-chart-row-content';
 
-  const groups = new Map<string, { label: string; formNames: string[] }>();
+  interface RowGroup {
+    spreadKind: SpeedSpreadKind;
+    baseSpeed: number;
+    modifier: EffectiveSpeedModifier | null;
+    formNames: string[];
+  }
+
+  const groups = new Map<string, RowGroup>();
   for (const entry of entries) {
     const key = `${entry.spread}|${entry.modifier ? `${entry.modifier.category}:${entry.modifier.name}` : 'none'}`;
     let group = groups.get(key);
     if (!group) {
-      group = { label: buildGroupLabel(entry, baseSpeedByName), formNames: [] };
+      // baseSpeedは(既存の挙動どおり)このグループを最初に作ったentryの種族値を代表値として使う。
+      group = {
+        spreadKind: entry.spread,
+        baseSpeed: baseSpeedByName.get(entry.formName) ?? 0,
+        modifier: entry.modifier,
+        formNames: [],
+      };
       groups.set(key, group);
     }
     group.formNames.push(entry.formName);
   }
 
-  // 要件1: グループ内を使用率降順(→すばやさ種族値降順→種族名昇順)に並べる。
+  // 要件1(2026-08-01第2弾): グループ内を使用率降順(→すばやさ種族値降順→種族名昇順)に並べる。
   const orderedGroups = Array.from(groups.values(), (group) => ({
-    label: group.label,
+    ...group,
     formNames: sortFormNamesByUsage(group.formNames, usageCounts, baseSpeedByName),
   }));
 
@@ -434,14 +452,25 @@ function buildRowContent(
     : { kept: allFormNamesInOrder, droppedCount: 0 };
   const keptSet = new Set(kept);
 
-  const labelsRow = document.createElement('div');
-  labelsRow.className = 'speed-chart-labels-row';
+  const amountsRow = document.createElement('div');
+  amountsRow.className = 'speed-chart-amounts-row';
   orderedGroups.forEach((group, index) => {
-    if (index > 0) labelsRow.appendChild(document.createTextNode(' / '));
+    if (index > 0) amountsRow.appendChild(document.createTextNode(' / '));
+    amountsRow.appendChild(buildSpreadBadge(group.spreadKind));
+    let text = ` ${group.baseSpeed}族`;
+    if (group.modifier) text += ` ${formatModifierMagnitude(group.modifier.modifier)}`;
+    amountsRow.appendChild(document.createTextNode(text));
+  });
+
+  // 補正を持つグループだけを対象にする(素の実数値のグループには「原因」が無い)。
+  const originsRow = document.createElement('div');
+  originsRow.className = 'speed-chart-origins-row';
+  const groupsWithOrigin = orderedGroups.filter((group) => group.modifier !== null);
+  groupsWithOrigin.forEach((group, index) => {
+    if (index > 0) originsRow.appendChild(document.createTextNode(' / '));
     const span = document.createElement('span');
-    span.className = 'speed-chart-label-group';
-    span.textContent = group.label;
-    labelsRow.appendChild(span);
+    span.textContent = group.modifier!.name;
+    originsRow.appendChild(span);
   });
 
   const chipsRow = document.createElement('div');
@@ -461,16 +490,19 @@ function buildRowContent(
     chipsRow.appendChild(overflow);
   }
 
-  container.append(labelsRow, chipsRow);
+  container.append(amountsRow, originsRow, chipsRow);
   return container;
 }
 
-function buildGroupLabel(entry: SpeedChartEntry, baseSpeedByName: Map<string, number>): string {
-  const baseSpeed = baseSpeedByName.get(entry.formName) ?? '?';
-  const spreadLabel = SPEED_SPREADS[entry.spread].label;
-  let label = `${spreadLabel} ${baseSpeed}族`;
-  if (entry.modifier) label += ` ${formatModifierLabel(entry.modifier)}`;
-  return label;
+// 要件2: 振り方(最速/準速/無振り)を色分けするバッジ。既存の配色トークン(primary/success/risky)
+// の範囲で3種を作る(新色は作らない)。dangerは他画面でエラー表現に使われているため避け、
+// riskyを「無振り(=すばやさに何も投資していない)」に割り当てる。
+function buildSpreadBadge(spreadKind: SpeedSpreadKind): HTMLElement {
+  const badge = document.createElement('span');
+  badge.className = 'speed-chart-spread-badge';
+  badge.dataset.spread = spreadKind;
+  badge.textContent = SPEED_SPREADS[spreadKind].label;
+  return badge;
 }
 
 /** グループセル幅・チップ間gap・「+N件」バッジ幅(行によらず一定。固定グリッド列幅のため)。 */
@@ -564,15 +596,13 @@ function ensureChipMetrics(
   return metrics;
 }
 
-// 参考サイトの語彙(120族 2倍 / 110族 S+2 / 123族 こだわりスカーフ)に合わせる。
-// 持ち物は名前だけ、特性・技は倍率/ランク量+名前を表示する(P1確定仕様の表と同じ書式)。
-function formatModifierLabel(modifier: EffectiveSpeedModifier): string {
-  if (modifier.category === 'items') return modifier.name;
-  const magnitude =
-    modifier.modifier.kind === 'rank'
-      ? `S+${modifier.modifier.stages}`
-      : `${formatRatio(modifier.modifier.numerator / modifier.modifier.denominator)}倍`;
-  return `${magnitude} ${modifier.name}`;
+// 追加改修(2026-08-01第3弾)要件1: 補正量(S+1/2倍等)と原因(特性名・わざ名・持ち物名)を
+// 別の段に分けるため、以前は1本の文字列(例: "2倍 かるわざ")にまとめていたのを2つの関数に
+// 分割する。以前は持ち物だけ名前のみ表示(倍率を省略)していたが、段を分けた今は
+// 「[最速] 120族 1.5倍」/「こだわりスカーフ」のように持ち物にも倍率を表示したほうが
+// amounts-row(1段目)が特性・わざの行と同じ書式で揃うため、持ち物の特例は廃止する。
+function formatModifierMagnitude(modifier: SpeedModifierEntry): string {
+  return modifier.kind === 'rank' ? `S+${modifier.stages}` : `${formatRatio(modifier.numerator / modifier.denominator)}倍`;
 }
 
 function formatRatio(value: number): string {

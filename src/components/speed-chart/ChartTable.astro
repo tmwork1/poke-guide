@@ -195,30 +195,76 @@ const { regulation, regulations, ownedId, hasOwnedPanel } = Astro.props;
 	.speed-chart-table .speed-chart-group-cell {
 		min-width: 0;
 	}
-	/* 追加改修(2026-08-01第2弾)要件3: 1つの実数値行を必ず2段(文字1段+アイコン1段)にする。
-	   以前は「振り方+補正」のグループごとに見出し+アイコン行を積んでいた(最大10段超・
-	   高さ100〜400px超のばらつき)。ラベル群を1段目、チップ群を2段目にまとめ、両者の対応は
-	   「同じグループ順に並べる」ことで表す(この画面固有の解釈。speed-chart.md参照)。 */
+	/* 追加改修(2026-08-01第2弾)要件3: 1つの実数値行を複数段にする。以前は「振り方+補正」の
+	   グループごとに見出し+アイコン行を積んでいた(最大10段超・高さ100〜400px超のばらつき)。
+	   第3弾(要件1)で「補正量」と「その原因」をさらに別段に分けたため、現在は3段構成
+	   (振り方+種族値+補正量 / 補正の原因 / ポケモンチップ)。全行が同じ3段構成を持つため、
+	   段の中身の有無に関わらず高さは揃う(原因が無い行はorigins-rowが空だが、
+	   min-heightで箱だけ確保する。下記参照)。 */
 	.speed-chart-table .speed-chart-row-content {
 		display: flex;
 		flex-direction: column;
 		gap: 0.3rem;
 	}
-	/* 要件3の不具合修正(2026-08-01): ラベル段も必ず1行に収める。以前はwrapしており
-	   4行がラベル段だけで2行以上に折り返していた。ラベルは落とすと意味が分からなくなるため
-	   足切り(+N件)ではなく、白紙のまま隠すのではなく「…」で省略されたことが分かる形にする
-	   (text-overflow: ellipsisは黙って隠すのではなく視覚的な省略の印を残す)。 */
-	.speed-chart-table .speed-chart-labels-row {
+	/* 要件3の不具合修正(2026-08-01第2弾): 各段は必ず1行に収める(折り返さない)。
+	   落とすと意味が分からなくなるため足切り(+N件)ではなく、白紙のまま隠すのではなく
+	   「…」で省略されたことが分かる形にする(text-overflow: ellipsisは黙って隠すのでは
+	   なく視覚的な省略の印を残す)。 */
+	.speed-chart-table .speed-chart-amounts-row {
 		font-size: var(--font-size-xs);
-		color: var(--color-text-muted);
+		font-weight: 700;
+		color: var(--color-text);
 		line-height: 1.4;
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
 	}
-	.speed-chart-table .speed-chart-label-group {
+	/* 追加改修(2026-08-01第3弾)要件1: 補正の原因(特性名/わざ名/持ち物名)の段。
+	   amounts-rowより一段軽い扱い(色を薄く・太字にしない)にして「補正量が主・原因が補足」
+	   という情報の主従を示す。素の実数値だけの行はこの段の中身が空になるが、
+	   全行の高さを均一に保つため(pitfalls.md「未設定スロットは箱を確保しDOMは出さない」)
+	   min-heightで行の高さぶんを常に確保する(空でも高さゼロに潰れない)。 */
+	.speed-chart-table .speed-chart-origins-row {
+		font-size: var(--font-size-xs);
+		font-weight: 500;
+		color: var(--color-text-muted);
+		line-height: 1.4;
+		min-height: calc(var(--font-size-xs) * 1.4);
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+	/* 要件2: 振り方(最速/準速/無振り)バッジ。既存の配色トークン(primary/success/risky)の
+	   範囲で3種を色分けする(severity-bar・.badgeと同じ「soft背景+strong文字」の組み合わせ。
+	   -strongはライトのAAコントラスト確保用トークンで、ダークでは各基本色にエイリアスされる
+	   ため両テーマとも既存の仕組みに乗るだけで新色は作らない)。dangerは他画面のエラー表現用に
+	   予約されているため使わず、riskyを「無振り(すばやさに何も投資していない)」に割り当てる。 */
+	.speed-chart-table .speed-chart-spread-badge {
+		display: inline-flex;
+		align-items: center;
+		padding: 0.05em 0.55em;
+		border-radius: 999px;
+		font-size: inherit;
 		font-weight: 700;
-		color: var(--color-text);
+		vertical-align: middle;
+	}
+	/* 実測(Playwright+相対輝度計算): primary-soft背景に対してprimary-strongの文字色は
+	   ライトで4.17:1しかなく、この段のfont-size(12px相当)は太字でもWCAG AA大文字テキストの
+	   閾値(18.7px相当)に届かないため4.5:1が必要。既存色の明度違いをページscopedで持つのは
+	   可(pitfalls.md「配色」節)なので、global.cssは変えずcolor-mixで10%黒を混ぜて
+	   4.97:1に是正する(ダークは-strongがprimaryにエイリアスされ元々6.56:1あるため、
+	   同じ式を掛けても5.3:1を保ち両テーマとも安全)。 */
+	.speed-chart-table .speed-chart-spread-badge[data-spread='max'] {
+		background: var(--color-primary-soft);
+		color: color-mix(in srgb, var(--color-primary-strong) 90%, black 10%);
+	}
+	.speed-chart-table .speed-chart-spread-badge[data-spread='sub'] {
+		background: var(--color-success-soft);
+		color: var(--color-success-strong);
+	}
+	.speed-chart-table .speed-chart-spread-badge[data-spread='none'] {
+		background: var(--color-risky-soft);
+		color: var(--color-risky-strong);
 	}
 	.speed-chart-table .speed-chart-chips-row {
 		display: flex;
