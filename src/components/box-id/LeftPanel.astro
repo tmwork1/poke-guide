@@ -675,7 +675,27 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		   4.4rem(70.4px)まで詰めて浮いた9.6pxを5列目へ回す。5列目は5.4rem(86.4px)→
 		   6.2rem(99.2px)に広げる(残りの差分はスライダー列(3列目、1fr)がわずかに縮む形で
 		   自動吸収される。実測でスライダーの操作性・横スクロール有無を確認済み)。 */
-		grid-template-columns: 4.4rem 2.4rem minmax(0, 1fr) 3.2rem 6.2rem;
+		/* 🔴 UI改修依頼(個体編集左パネル、2026-08-02 第2弾)「調整ボタンをさらに大きくする。
+		   左右のスペースに余裕がないので、テーブル全体のバランスを再調整する」対応。
+		   実測(Playwright、getBoundingClientRect、1920px幅・.stat-table実測399px)に基づく再配分:
+		   ・5列目(6.2rem=99.2px)の実内容は「実数値3桁28.98px + gap 0.3rem=4.8px + ボタン42px」
+		     =75.78pxしかなく、約23.4pxが未使用のまま余っていた。つまりボタンを大きくする余地は
+		     5列目の中に既にあり、他列を削らなくても実測53.2pxまで広げられる(余白は約11px残る)。
+		   ・そのうえで「左右のスペースに余裕がない」への対応として、内容に対して余っていた
+		     1列目・2列目を実測ベースで詰め、浮いた分はすべて操作対象であるスライダー列
+		     (3列目、1fr)へ回す:
+		       1列目 4.4rem(70.4px)→4.1rem(65.6px)。実内容は▲24px+gap+ラベル最大約12.5px+
+		       gap+▼24px。下の.stat-row-labelのgapを0.3em(4.8px)→0.1em(1.6px)へ詰めたため
+		       実内容は約63.7pxとなり、65.6pxでも約1.9pxの余白が残る(▲▼は24×24pxのまま=
+		       WCAG 2.5.8の下限を維持)。
+		       2列目 2.4rem のまま据え置く。値(種族値3桁=29px)基準では2.2rem(35.2px)でも
+		       足りるが、⚠️ 列幅を縛っているのは値ではなく**見出しの「種族値」**(3文字×
+		       var(--font-size-xs)=12px → 実測36px)で、2.2remにすると見出しが「種族/値」の
+		       2行に折り返してヘッダーが1行ぶん高くなる(実測で発覚し差し戻した)。
+		   ・4列目(努力値の数値入力)は操作性に直結するため変更しない。5列目も6.2remのまま
+		     据え置く(大きくしたボタンの左右に余白を残すため)。1列目から浮いた4.8pxが
+		     3列目へ移り、スライダーは実測114.3px→119.1pxに広がる。 */
+		grid-template-columns: 4.1rem 2.4rem minmax(0, 1fr) 3.2rem 6.2rem;
 		gap: 0.4rem;
 		/* UI統一感レビュー(32-U-B1): 同じ行内の.ev-remaining(「残りN」)が持つ
 		   共通トークンvar(--font-size-xs)(12px)に対し、ここだけ直値0.78rem(12.48px)
@@ -790,8 +810,10 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		   🔴 UI改修依頼(個体編集左パネル、2026-08-01)によりgrid-template-columns/gapを
 		   変更(理由は上の.stat-table-headerコメント参照。値は必ず同一に保つ)。
 		   🔴 UI改修依頼(個体編集左パネル、2026-08-02)により再度変更(理由は上の
+		   .stat-table-headerコメント参照。値は必ず同一に保つ)。
+		   🔴 UI改修依頼(個体編集左パネル、2026-08-02 第2弾)により再度変更(理由は上の
 		   .stat-table-headerコメント参照。値は必ず同一に保つ)。 */
-		grid-template-columns: 4.4rem 2.4rem minmax(0, 1fr) 3.2rem 6.2rem;
+		grid-template-columns: 4.1rem 2.4rem minmax(0, 1fr) 3.2rem 6.2rem;
 		align-items: center;
 		gap: 0.4rem;
 	}
@@ -816,7 +838,19 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	   line-height: 1 に上書きして行ボックスの余分な下側余白を削り、文字の見た目の中心を
 	   ▲▼ボタンの中心に近づける(HP行のプレースホルダー構成を含め、このspan配下の
 	   テキストノード全体に継承される)。 */
-	.stat-row-label { font-weight: 700; white-space: nowrap; display: flex; align-items: center; justify-content: center; gap: 0.3em; line-height: 1; }
+	/* 🔴 UI改修依頼(個体編集左パネル、2026-08-02 第2弾)「ステータスラベルと性格補正の三角形の
+	   上下位置がずれている。横のスペースも少し減らす」対応。
+	   (1) 上下位置: 原因は上のline-height側ではなく▲▼ボタン(.stat-nature-btn)の内部レイアウト
+	       だった。詳細と対処は.stat-nature-btnのコメントを参照(このspan側は変更していない。
+	       実測でラベル文字のインク中心631.36pxはボタンの箱の中心631.11pxと0.25pxしか違わず、
+	       ずれていたのは三角形の方(実測627.48px=3.63px上)だった)。
+	   (2) 横のスペース: gap 0.3em(4.8px)→0.1em(1.6px)。▲▼ボタンは24×24pxの当たり判定の中に
+	       14px幅の三角形を中央配置しているため、gapを0.1emにしても三角形とラベル文字の間には
+	       実測で約6.6pxの余白が残る(gap 0.3em時は約9.8px)。当たり判定24×24px(WCAG 2.5.8)は
+	       維持したまま見た目の間隔だけを詰める。詰めた分は1列目の列幅
+	       (grid-template-columns 4.4rem→4.1rem、上の.stat-table-headerコメント参照)に反映し、
+	       スライダー列へ回している。 */
+	.stat-row-label { font-weight: 700; white-space: nowrap; display: flex; align-items: center; justify-content: center; gap: 0.1em; line-height: 1; }
 	/* ラウンド21ユーザー指示(21-L7)「A,B,...のラベル色も赤・青に変わるようにする」。
 	   相手ビルドカード側(20-D3)の--stat-up/--stat-down(box/[id].astroの.edit-shellで定義、
 	   DOM継承でこのコンポーネントの要素からも参照できる。ライト4.86-4.94:1・ダーク7.2-7.6:1)を
@@ -876,9 +910,30 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	   修正後は押下状態でも`.move-picker-window`側の要素が取得されることを確認した(報告参照)。
 	   `reposition()`(left-panel.ts)の座標回避ロジックはこの修正後も残す(41-L2要件どおり、
 	   重なりそのものを避ける挙動自体は無害なUXのため)。 */
+	/* 🔴 UI改修依頼(個体編集左パネル、2026-08-02 第2弾)「ステータスラベルと性格補正の三角形の
+	   上下位置がずれている」対応。align-content: center を追加する。
+	   実機でのピクセル実測(Playwright、deviceScaleFactor 8でスクリーンショットを撮り、
+	   canvasに読み込んで列ごとのインク上下端を走査)で判明した根本原因:
+	     ボタンの箱      : y 619.11〜643.11(24px、中心631.11)
+	     三角形のインク  : y 622.98〜631.98(9px、中心627.48) ← 箱の中心より3.63px上
+	     ラベル文字のインク: y 625.73〜636.98(cap高11.25px、中心631.36) ← 箱の中心とほぼ一致
+	   つまりズレていたのは文字側ではなく三角形側だった。このボタンのマークアップは
+	   <button>▲</button> で、font-size:0で見えなくしている「▲」のテキストノードが残っている。
+	   display:inline-grid のもとでは、このテキストノードが**匿名グリッドアイテム**として
+	   自動配置される。::before/::afterは grid-area: 1 / 1 に明示配置済みなので1行1列は埋まって
+	   おり、匿名アイテムは行2へ送られる=暗黙の行が2本できる。align-content の既定値
+	   normal(=stretch)は余った15px(24−9)を2本の行へ均等に配る(行1=16.5px、行2=7.5px)ため、
+	   align-items:center による三角形の中央寄せは「行1=16.5pxの中央」で行われ、結果として
+	   箱の中心より (24−16.5)/2 = 3.75px 上にずれていた(実測3.63pxと一致)。
+	   align-content: center にすると行トラック群(合計9px)自体が箱の中央に置かれるため、
+	   三角形の中心が箱の中心=ラベル文字のインク中心に揃う。
+	   マークアップ(▲/▼のテキスト、aria-pressed/aria-label/title、id)は一切変更していない
+	   (<script>側が参照しているため)。押下時に::beforeが一回り大きい三角形になっても、
+	   行1の高さがその分だけ伸びて中央寄せされるだけなので同心のまま崩れない。 */
 	.stat-nature-btn {
 		display: inline-grid;
 		place-items: center;
+		align-content: center;
 		width: 24px;
 		height: 24px;
 		padding: 0;
@@ -987,13 +1042,22 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	   padding → var(--space-1) var(--space-2)(4px/8px、.btn-ghost系が使う定石の刻み)、
 	   font-size → var(--font-size-xs)(0.75rem=12px、20-G3の文字下限12pxも満たす)。
 	   横幅が増える分は5列目(.stat-table-header/.stat-rowのgrid-template-columns、
-	   5.4rem→6.2rem)側で確保済み(新しい値ではなく既存トークンの組み合わせのみを使用)。 */
+	   5.4rem→6.2rem)側で確保済み(新しい値ではなく既存トークンの組み合わせのみを使用)。
+	   🔴 UI改修依頼(個体編集左パネル、2026-08-02 第2弾)「調整ボタンをさらに大きくする」対応。
+	   引き続き直値は使わずglobal.cssのトークンだけを1段階ずつ上げる:
+	     font-size  : var(--font-size-xs)(0.75rem=12px)→ var(--font-size-sm)(0.85rem=13.6px)
+	     padding    : var(--space-1) var(--space-2)(4px/8px)→ var(--space-1) var(--space-3)(4px/12px)
+	   実測(1920px幅): 42×26.8px → 53.2×29.0px。高さを努力値の数値入力(実測約29px)と同じに
+	   揃えることで行の高さが増えず(=ステータス表全体が縦に伸びず)、横だけが約1.27倍になる。
+	   5列目の必要幅は「実数値3桁28.98px + gap 0.3rem=4.8px + 53.2px」=約87pxで、
+	   6.2rem(99.2px)の中に約11pxの余白を残して収まる(列幅は変更していない。
+	   上の.stat-table-headerコメントの再配分の根拠を参照)。 */
 	.stat-speed-chart-link {
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		padding: var(--space-1) var(--space-2);
-		font-size: var(--font-size-xs);
+		padding: var(--space-1) var(--space-3);
+		font-size: var(--font-size-sm);
 		font-weight: 600;
 		line-height: 1.4;
 		border-radius: var(--radius-sm);
