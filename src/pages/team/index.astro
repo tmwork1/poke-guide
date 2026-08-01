@@ -213,6 +213,14 @@ const user = Astro.locals.user;
 			gap: var(--space-3);
 			text-decoration: none;
 			color: inherit;
+			/* UI改修依頼(チームトップ画面、2026-08-01)「ボックス画面と同じお気に入りデザインを
+			   使う」対応。box/index.astroの.pin-toggle(カード左上角の直角三角形トリム)は
+			   .card-pokemon側のoverflow:hiddenに支えられている(clip-pathで作った三角形が
+			   カードの角丸からはみ出す部分を切り落とす)。このカードにも同じoverflow:hiddenを
+			   足し、下の.card-team-pinで同じ意匠を再現できるようにする(box/index.astroは
+			   別エージェントが編集中の担当外ファイルのため、値をこちらへ複製する。
+			   .favorite-filter-toggleと同じ複製方針)。 */
+			overflow: hidden;
 		}
 		.team-grid .card-team:focus-visible {
 			outline: 2px solid var(--color-primary);
@@ -226,10 +234,19 @@ const user = Astro.locals.user;
 		   カード右端からボタン左端までの距離は 36px。カード自体の padding-right(.card の
 		   --space-3 = 12px)を差し引いた不足分 24px(=1.5rem)が、ヘッダに追加で必要な
 		   padding-rightの最小値。round-30以前は体数バッジぶんも見込んで2rem(32px)を
-		   確保していたが、バッジを外した今は1.5remまで詰められる。 --- */
+		   確保していたが、バッジを外した今は1.5remまで詰められる。
+		   UI改修依頼(チームトップ画面、2026-08-01)「お気に入りボタンとチーム名が被らないように
+		   する」対応: お気に入りボタンをbox/index.astroと同じ左上角の36×36px三角形トリムに
+		   変更した(下の.card-team-pin参照)ため、右側と同じ考え方で左側にも余白を追加する。
+		   三角形はcard左上の(0,0)起点でy=0付近ではほぼ全幅(36px)を占めるため、ヘッダ行
+		   (チーム名、カード最上部)がその真下に来ると被る。右側と同じ計算(36px - カードの
+		   padding-left 12px = 24px = 1.5rem)がちょうど接する境界値(実測でgap=0px、隙間ゼロで
+		   重なりはしないが余裕が無い)だったため、1.75rem(28px)にして4pxの余白を確保する
+		   (Playwrightのgetboundingclientrectで実測、隙間4pxを確認。報告参照)。 */
 		.team-grid .card-team .card-team-header {
 			display: flex;
 			align-items: center;
+			padding-left: 1.75rem;
 			padding-right: 1.5rem;
 		}
 		.team-grid .card-team .card-team-name {
@@ -324,38 +341,45 @@ const user = Astro.locals.user;
 			.team-grid .card-team .card-team-delete { transition: none; }
 		}
 
-		/* --- お気に入り(ピン留め)ボタン: box/index.astroの.pin-toggleと同じ「常時可視」方針
-		   (★は状態表示なので誤操作防止のhover限定表示にしない、.card-team-deleteとの違い)。
-		   見た目はこのページの.card-team-delete(28px丸ボタン)と同じ規格を左上に配置し対角にする。
-		   ピン留め中の配色はbox/index.astroの.pin-toggle[data-pinned="true"]と同じ
-		   --color-risky/--color-primary-contrastを使う(新しい値は作らない)。 --- */
+		/* --- お気に入り(ピン留め)ボタン。
+		   UI改修依頼(チームトップ画面、2026-08-01)「ボックス画面(/box)と同じお気に入り
+		   デザインを使う」により、box/index.astroの.pin-toggle(2026-08-01時点の実装)と
+		   同じ値へ作り替える: 28px丸ボタンをやめ、カード左上角に密着する36×36pxの
+		   直角三角形トリム(clip-path)にする。三角形の意匠自体を常時見せる方針のため、
+		   お気に入り状態(★)・非お気に入り状態(☆)のどちらも常時可視のまま
+		   (.card-team-deleteのようなhover限定表示にはしない、box/index.astroと同じ判断)。
+		   box/index.astroは別エージェントが編集中の担当外ファイルのため直接参照はせず、
+		   値をこのページのscoped styleへ複製する(.favorite-filter-toggleと同じ複製方針)。
+		   アイコン文字(★/☆)は三角形の重心付近(左上から辺の1/3)に来るようpaddingで寄せる。
+		   ピン留め中の配色は従来どおり--color-risky/--color-primary-contrastを使う
+		   (新しい値は作っていない)。 --- */
 		.team-grid .card-team .card-team-pin {
 			position: absolute;
-			top: var(--space-2);
-			left: var(--space-2);
+			top: 0;
+			left: 0;
 			z-index: 2;
 			display: inline-flex;
-			align-items: center;
-			justify-content: center;
-			width: 28px;
-			height: 28px;
-			padding: 0;
-			border-radius: 999px;
-			border: 1px solid var(--color-border);
-			background: var(--color-surface);
+			align-items: flex-start;
+			justify-content: flex-start;
+			width: 36px;
+			height: 36px;
+			padding: 5px 0 0 5px;
+			border: none;
+			border-radius: 0;
+			box-shadow: none;
+			clip-path: polygon(0 0, 100% 0, 0 100%);
+			background: var(--color-surface-alt);
 			color: var(--color-text-muted);
 			font-weight: 400;
-			font-size: 0.85rem;
+			font-size: 1.05rem;
 			line-height: 1;
-			box-shadow: var(--shadow-sm);
 		}
 		.team-grid .card-team .card-team-pin:hover {
-			background: var(--color-surface-alt);
+			background: var(--color-surface);
 			color: var(--color-text);
 		}
 		.team-grid .card-team .card-team-pin[data-pinned="true"] {
 			background: var(--color-risky);
-			border-color: var(--color-risky);
 			color: var(--color-primary-contrast);
 		}
 		.team-grid .card-team .card-team-pin[data-pinned="true"]:hover {
@@ -427,8 +451,13 @@ const user = Astro.locals.user;
 			position: absolute;
 			right: 2px;
 			bottom: 2px;
-			width: var(--icon-size-sm);
-			height: var(--icon-size-sm);
+			/* UI改修依頼(チームトップ画面、2026-08-01)「アイテム画像を20%大きくする」。
+			   実測(Playwright、getBoundingClientRect): 変更前は var(--icon-size-sm) の
+			   実値どおり20×20px。20px×1.2=24pxへ拡大する。共有トークン(--icon-size-sm、
+			   global.css)自体は他画面にも影響するため変更せず、このセレクタだけ固定px値へ
+			   切り替える(トークン経由をやめる)。 */
+			width: 24px;
+			height: 24px;
 			background: var(--color-surface);
 			border: 1px solid var(--color-border);
 			box-shadow: var(--shadow-sm);

@@ -707,6 +707,17 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 		arrow.setAttribute("aria-hidden", "true");
 		arrow.setAttribute("viewBox", "0 0 36 24");
 		arrow.setAttribute("focusable", "false");
+		// UI改修依頼(個体編集画面右パネル、2026-08-01)「ヘッダーの>>>の色を、他のUIに合わせて
+		// 暗くする(現在明るすぎて浮いている)。既存のミュートテキスト用トークンに合わせる」。
+		// 色を決めるcolor:var(--color-text)の宣言は#damage-detail-panel-body
+		// .damage-detail-selection-arrow(DamageCalcSection.astro側のis:globalブロック)にあるが、
+		// このラウンドの担当ファイル一覧にDamageCalcSection.astroは含まれていない(担当外、
+		// 別エージェントが並行編集中)。インラインstyleは外部スタイルシートより優先されるため、
+		// このJS生成要素(right-panel.ts)側でcolorをvar(--color-text-muted)に上書きすることで、
+		// 担当外ファイルに触れずに完結させる(pitfalls.md「Astroのscoped styleはJSで生成した
+		// 要素に効かない」と同種の理由で、is:global側の定義に頼るとファイル間の読み込み順に
+		// 依存し脆くなるため、確実に勝つインラインstyleを選んだ)。
+		arrow.style.color = "var(--color-text-muted)";
 		if (!isSelfAttacking) arrow.classList.add("is-reversed");
 		const arrowPath = document.createElementNS(arrowNs, "path");
 		arrowPath.setAttribute("d", "M2 6L8 12L2 18M14 6L20 12L14 18M26 6L32 12L26 18");
