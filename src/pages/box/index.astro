@@ -42,7 +42,10 @@ import AppLayout from '../../layouts/AppLayout.astro';
 // 🔴 UI改修依頼(ボックス画面、2026-08-01)「レギュレーションによるフィルタを追加」。
 // 候補は jpoke 由来の一覧(src/lib/regulations.ts)。画面側でレギュレーション名を
 // ハードコードしない。
-import { REGULATIONS } from '../../lib/regulations';
+// 2026-08-01追記(同日ユーザー指示「選択肢を新しい順に並べる」): REGULATIONS(定義順)ではなく
+// Coordinatorがsrc/lib/regulations.tsに追加したREGULATIONS_NEWEST_FIRST(新しい順の配列)を使う。
+// regulations.ts自体はこのファイルの担当外のため編集しない。
+import { REGULATIONS_NEWEST_FIRST } from '../../lib/regulations';
 
 const user = Astro.locals.user;
 ---
@@ -526,8 +529,11 @@ const user = Astro.locals.user;
 			   対する相対値(%)で置けば.card-artがどの幅に縮んでも底辺が自動的に一致する。
 			   top: calc(100% - <バッジ列自身の高さ>) にすることで、バッジ列の底辺が常にart
 			   (=スプライト)の底辺と一致する(固定pxの再calibrationが不要になる)。
-			   バッジ列自身の高さ = itemBadge(36px) + gap(0.1rem) + teraBadge(24px)。 */
-			top: calc(100% - 36px - 0.1rem - 24px);
+			   バッジ列自身の高さ = itemBadge(36px) + gap(0.1rem) + teraBadge(24px)。
+			   2026-08-01(ユーザー指示: 「アイテムアイコンを20%小さくする」): itemBadgeが
+			   36px→28.8pxに変わったため、バッジ列自身の高さ = itemBadge(28.8px) + gap(0.1rem) +
+			   teraBadge(24px)にcalc式を合わせて底辺の一致を維持する。 */
+			top: calc(100% - 28.8px - 0.1rem - 24px);
 			margin-left: 0.15rem;
 			display: flex;
 			flex-direction: column;
@@ -641,14 +647,26 @@ const user = Astro.locals.user;
 			   アイコン文字(★/☆)は直角三角形の重心付近(左上から辺の1/3の位置)に来るよう
 			   paddingで寄せる。hoverでの表示/非表示ロジック(下の@media (hover:hover)ブロック、
 			   data-pinned="false"のとき非表示)はこのラウンドでは変更しない(見た目の形だけを
-			   変える指示のため)。 */
+			   変える指示のため)。
+			   2026-08-01(ユーザー指示: 「お気に入りのスターが見切れている。ハイライト領域を
+			   拡大する」): Playwrightで★/☆グリフ自体をRange.getBoundingClientRect()で実測した
+			   ところ、旧36×36px・padding 5px時点でグリフのbbox(幅16.8px・高さ22px、ローカル
+			   位置(5, 2)〜(21.8, 24)。paddingは5pxだがフォントメトリクスの都合で実際の描画開始は
+			   padding-topよりやや上に来る)の右下角(21.8+24=45.8)が斜辺(x+y=36)を9.8px超えており、
+			   星の右下の足が常に切れていた(round-49時点の「欠けなし」報告時からfont-sizeが
+			   0.75rem→1.05remに拡大された際に再発したとみられる)。トリム三角(ハイライト領域)を
+			   52×52pxへ拡大しpaddingを7pxに増やして重心寄りへ再配置した結果、実測でグリフbbox
+			   右下角(7+16.8=23.8, 7-3+22=26 → 合計49.8)が斜辺52を下回り(クリアランス約2.2px)、
+			   欠けが解消したことを確認した(Playwrightで.pin-toggleを単独クロップし、★/☆とも
+			   斜辺で切れていないことを目視確認済み。報告参照)。星のfont-size自体(1.05rem)は
+			   変更しない。 */
 			position: absolute;
 			top: 0;
 			left: 0;
 			z-index: 2;
-			width: 36px;
-			height: 36px;
-			padding: 5px 0 0 5px;
+			width: 52px;
+			height: 52px;
+			padding: 7px 0 0 7px;
 			border: none;
 			border-radius: 0;
 			box-shadow: none;
@@ -664,8 +682,9 @@ const user = Astro.locals.user;
 			   2026-08-01(ユーザー指示: 「ボックス画面: お気に入りの星印を少し大きく」):
 			   0.75rem(12px)→1.05rem(16.8px、約1.4倍)に拡大する。他のfont-size指定と同じ
 			   rem・0.05刻みのパターン(0.75rem/0.8rem/0.85rem等)を踏襲した。
-			   36×36pxの三角トリム領域・padding(5px 0 0 5px)は変更しない。Playwrightで
-			   斜辺のclip-pathによる欠けが無いことを確認済み(報告参照)。 */
+			   36×36pxの三角トリム領域・padding(5px 0 0 5px)は変更しない、と当時は報告されていたが、
+			   2026-08-01の別のユーザー指示(上記position/width/heightのコメント参照)で欠けが
+			   実際にあったことが判明し、トリム領域を52×52px・padding 7pxへ拡大済み。 */
 			font-size: 1.05rem;
 		}
 		.box-grid .card-pokemon .pin-toggle:hover {
@@ -774,9 +793,14 @@ const user = Astro.locals.user;
 			   .card-bodyと重ならないことを確認済み、報告参照)。
 			   35-B1(ユーザー指示第17弾、round-35.md): 「アイテムアイコンを-10%する」。
 			   40px×0.9=36pxへ縮小。.card-badge-rowをrow(横並び)に変えたことと合わせて、
-			   top:60px起点でも.card-body・.card-actionsと重ならないことを実測済み(報告参照)。 */
-			width: 36px;
-			height: 36px;
+			   top:60px起点でも.card-body・.card-actionsと重ならないことを実測済み(報告参照)。
+			   2026-08-01(ユーザー指示: 「アイテムアイコンを20%小さくする」): Playwrightで実測した
+			   現状値36px×0.8=28.8pxへ縮小する(デスクトップ側のみ。480px以下の狭幅は既にテラス
+			   バッジと同じ16pxへ個別最適化済みでこの指示の対象外)。バッジ列自身の高さが変わる
+			   ため、下の.card-badge-rowのtop(バッジ列底辺をスプライト底辺に揃えるcalc式、
+			   41-B1参照)も28.8pxに合わせて修正する。 */
+			width: 28.8px;
+			height: 28.8px;
 		}
 		.box-grid .card-pokemon .card-item-badge img {
 			width: 100%;
@@ -1096,7 +1120,7 @@ const user = Astro.locals.user;
 						<div class="toolbar-item toolbar-regulation">
 							<select id="regulation-filter" class="field-control" aria-label="レギュレーションで絞り込み">
 								<option value="">すべてのレギュレーション</option>
-								{REGULATIONS.map((r) => <option value={r}>{r}</option>)}
+								{REGULATIONS_NEWEST_FIRST.map((r) => <option value={r}>{r}</option>)}
 								<option value="__none__">レギュレーション未設定</option>
 							</select>
 						</div>

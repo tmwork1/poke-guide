@@ -14,6 +14,16 @@ import regulationsMasterData from '../../public/master-data/autocomplete/regulat
 
 export const REGULATIONS: readonly string[] = (regulationsMasterData as Array<{ name: string }>).map((r) => r.name);
 
+// 選択ボックスに並べる順(新しいレギュレーションが上)。
+// UI改修依頼(2026-08-01)「レギュレーションの選択肢は新しい順に並べる」対応。
+//
+// ⚠ REGULATIONS 自体は並べ替えない。jpoke の Literal 定義順(= 古い順)であることに依存している
+// 箇所があるため ── 具体的には src/lib/speed-chart-validation.ts の
+// resolveSpeedChartRegulation() が「REGULATIONS の末尾 = 最新」として既定値を決めている。
+// 表示順だけを変えたいので、逆順の別配列を新設して選択ボックス側だけがこちらを使う。
+// (REGULATIONS を破壊的に reverse() すると元配列まで変わるので、コピーしてから反転する)
+export const REGULATIONS_NEWEST_FIRST: readonly string[] = [...REGULATIONS].reverse();
+
 // 選択ボックスの placeholder。「レギュレーションなし(未指定)」を選ぶための空 option の
 // ラベルであり、値は空文字("")=DB上は NULL。UI改修依頼(2026-08-01)の
 // 「なし、を指定するために placeholder "レギュレーション" のままを許容する」に対応する。
