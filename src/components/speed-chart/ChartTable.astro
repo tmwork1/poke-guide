@@ -191,8 +191,14 @@ const { regulation, regulations, ownedId, hasOwnedPanel } = Astro.props;
 		grid-template-columns: 80px minmax(0, 1fr) 220px;
 		gap: var(--space-4);
 		padding: var(--space-3) 0;
-		border-bottom: 1px solid var(--color-border);
 		align-items: start;
+	}
+	/* 2026-08-01追補: 「同じ実数値のなかで族ごとに行を分ける」。同じ実数値グループ内の
+	   族ブロック同士(2行目以降)は境界線を出さず、グループの最後の行にだけ通常の境界線を
+	   付けることで「ここまでが同じ実数値」と分かるようにする(chart-table.tsのrenderRows
+	   参照。isLastBlockの行にだけこのクラスが付く)。 */
+	.speed-chart-table .speed-chart-row.speed-chart-row-value-end {
+		border-bottom: 1px solid var(--color-border);
 	}
 	.speed-chart-table .speed-chart-row.is-current-row {
 		background: var(--color-success-soft);
@@ -239,18 +245,12 @@ const { regulation, regulations, ownedId, hasOwnedPanel } = Astro.props;
 		overflow: hidden;
 		text-overflow: ellipsis;
 	}
-	/* 要件1(第4弾要件3・訂正版、2026-08-01): 「族」(baseSpeed)のブロックとブロックの間だけに
-	   縦棒(border-left)を挿入する(ブロック内の複数グループの間は' / 'のテキスト区切りに
-	   とどめる。chart-table.tsのbuildRowContent参照)。amounts-row側にだけ挿入する
-	   (origins-rowは補正の原因が無いグループを飛ばして詰めるため、divider要素ではなく
-	   テキストの' / 'のままにしてある)。 */
-	.speed-chart-table .speed-chart-group-divider {
-		display: inline-block;
-		width: 1px;
-		height: 0.9em;
-		margin: 0 0.5em;
-		vertical-align: middle;
-		border-left: 1px solid var(--color-border);
+	/* 2026-08-01追補: 「族」(baseSpeed)ごとに独立した行になったため、行内で複数の族を
+	   区切る縦棒(.speed-chart-group-divider)は不要になった(行の境界そのものが区切りに
+	   なる)。代わりに1行に1つだけ出す族ラベル(chart-table.tsのbuildBlockContent参照)。 */
+	.speed-chart-table .speed-chart-base-speed-label {
+		color: var(--color-text-muted);
+		font-weight: 700;
 	}
 	/* 追加改修(2026-08-01第3弾)要件1: 補正の原因(特性名/わざ名/持ち物名)の段。
 	   amounts-rowより一段軽い扱い(色を薄く・太字にしない)にして「補正量が主・原因が補足」
@@ -299,40 +299,15 @@ const { regulation, regulations, ownedId, hasOwnedPanel } = Astro.props;
 		background: var(--color-risky-soft);
 		color: var(--color-risky-strong);
 	}
-	/* 要件1/2(第4弾要件3・訂正版、2026-08-01): chipsRowは「族(baseSpeed)ごとのブロック」を
-	   横並びにするコンテナに変わった(chart-table.tsのbuildRowContent参照)。flex-wrapで
-	   ブロック自体が複数行にまたぐのは許容しつつ、各ブロックはflex:1で行の幅を均等に
-	   分け合う(ブロック数が1つだけの行では、そのブロックが行幅いっぱいまで広がり、
-	   従来の1ブロック構成と見た目上ほぼ変わらない)。 */
+	/* 2026-08-01追補: 1行=1族(baseSpeed)になったため、chipsRowはそのブロックのポケモン
+	   チップをそのまま横並びにするだけでよい(以前のブロック分割・2行クランプは不要。
+	   chart-table.tsのbuildBlockContentがlimitRowChipsByWidthで行の幅に収まる件数だけ
+	   残し、収まらない分は「+N件」バッジで示す)。 */
 	.speed-chart-table .speed-chart-chips-row {
-		display: flex;
-		flex-wrap: wrap;
-		align-items: flex-start;
-		gap: 0.6rem var(--space-4);
-	}
-	.speed-chart-table .speed-chart-block {
-		display: flex;
-		flex: 1 1 0;
-		min-width: 8rem;
-		align-items: flex-start;
-		gap: 0.4rem;
-	}
-	/* 要件2: ブロック内のポケモンチップは2行までの折り返しを許容する(無理に1行へ収めようと
-	   横幅を圧迫したり、大量に「+N件」で削ったりせずに済むようにするため)。チップの実際の
-	   高さ(アイコン22px+上下padding 0.1rem×2 ≈ 25.2px)に余裕を持たせた26pxを1行の高さと
-	   みなし、2行分+行間gap(0.4rem≈6.4px)からmax-heightを概算する(ピクセル単位の厳密な
-	   計測は不要、という依頼文の指示に基づくゆるい近似)。2行分でも収まりきらない場合は
-	   chart-table.ts側でlimitRowChipsByWidthにより事前に足切りされ、「+N件」バッジ
-	   (.speed-chart-chip-overflow)で示される。 */
-	.speed-chart-table .speed-chart-block-chips {
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
 		gap: 0.4rem;
-		max-height: calc(26px * 2 + 0.4rem);
-		overflow: hidden;
-		flex: 1 1 auto;
-		min-width: 0;
 	}
 	.speed-chart-table .speed-chart-chip-overflow {
 		display: inline-flex;

@@ -127,7 +127,10 @@ export async function initSpeedChartPage(): Promise<void> {
   const scarfEntry = findScarfItemEntry(masterData.speedModifiers.items);
   const imageIdByName = new Map(masterData.pokemonAutocomplete.map((p) => [p.name, p.imageId]));
 
-  const rowElements = new Map<number, HTMLElement>();
+  // 2026-08-01追補: 「同じ実数値のなかで族ごとに行を分ける」ため、1実数値に対して族ブロックの
+  // 数だけ物理行(.speed-chart-row)が存在しうる。ハイライト・スクロールは実数値単位で
+  // 行いたいので、値ごとに複数要素を保持する(renderRows参照)。
+  const rowElements = new Map<number, HTMLElement[]>();
   const formsByName = new Map<string, SpeedChartForm>();
   let ownedController: OwnedPanelController | null = null;
   let currentRegulation = initialRegulation;
@@ -224,41 +227,51 @@ export async function initSpeedChartPage(): Promise<void> {
     for (const [name, form] of formsByName) baseSpeedByName.set(name, form.baseSpeed);
 
     for (const row of rows) {
-      const rowEl = document.createElement('div');
-      rowEl.className = 'speed-chart-row';
-      rowEl.dataset.value = String(row.value);
+      // 族(baseSpeed)ごとのブロックに分け、ブロックごとに独立した物理行を作る
+      // (2026-08-01追補: 「同じ実数値のなかで族ごとに行を分ける」)。
+      const blocks = groupEntriesIntoBlocks(row.entries, baseSpeedByName, usageCounts, showBoostFactors);
+      const elementsForValue: HTMLElement[] = [];
 
-      const valueCell = document.createElement('div');
-      valueCell.className = 'speed-chart-value-cell tnum';
-      valueCell.textContent = String(row.value);
-      rowEl.appendChild(valueCell);
+      blocks.forEach((block, blockIndex) => {
+        const isLastBlock = blockIndex === blocks.length - 1;
+        const rowEl = document.createElement('div');
+        rowEl.className = 'speed-chart-row';
+        // 同じ実数値グループ内の行同士は境界線を軽くし(is-value-group-end無し)、
+        // グループの最後の行にだけ通常の境界線を付ける(値ごとの区切りを分かりやすくする)。
+        if (isLastBlock) rowEl.classList.add('speed-chart-row-value-end');
+        rowEl.dataset.value = String(row.value);
 
-      const groupCell = document.createElement('div');
-      groupCell.className = 'speed-chart-group-cell';
-      groupCell.appendChild(
-        buildRowContent(
-          row.entries,
-          baseSpeedByName,
-          imageIdByName,
-          usageCounts,
-          chipWidthByName,
-          chipLayoutMetrics,
-          showBoostFactors,
-        ),
-      );
-      rowEl.appendChild(groupCell);
+        const valueCell = document.createElement('div');
+        valueCell.className = 'speed-chart-value-cell tnum';
+        // 実数値はグループの先頭行だけに出す(2行目以降は同じ実数値であることが行の並びで
+        // 分かるため空欄のままにし、値の重複表示を避ける)。
+        if (blockIndex === 0) valueCell.textContent = String(row.value);
+        rowEl.appendChild(valueCell);
 
-      const ownedCell = document.createElement('div');
-      ownedCell.className = 'speed-chart-owned-cell';
-      if (ownedController) {
-        ownedCell.appendChild(ownedController.renderCell(row.value));
-      } else {
-        ownedCell.appendChild(buildDashCell());
-      }
-      rowEl.appendChild(ownedCell);
+        const groupCell = document.createElement('div');
+        groupCell.className = 'speed-chart-group-cell';
+        groupCell.appendChild(
+          buildBlockContent(block, imageIdByName, usageCounts, baseSpeedByName, chipWidthByName, chipLayoutMetrics),
+        );
+        rowEl.appendChild(groupCell);
 
-      fragment.appendChild(rowEl);
-      rowElements.set(row.value, rowEl);
+        const ownedCell = document.createElement('div');
+        ownedCell.className = 'speed-chart-owned-cell';
+        // 「この個体」列も実数値ごとに1つの内容なので、グループの先頭行だけに出す。
+        if (blockIndex === 0) {
+          if (ownedController) {
+            ownedCell.appendChild(ownedController.renderCell(row.value));
+          } else {
+            ownedCell.appendChild(buildDashCell());
+          }
+        }
+        rowEl.appendChild(ownedCell);
+
+        fragment.appendChild(rowEl);
+        elementsForValue.push(rowEl);
+      });
+
+      rowElements.set(row.value, elementsForValue);
     }
 
     bodyEl!.appendChild(fragment);
@@ -276,10 +289,11 @@ export async function initSpeedChartPage(): Promise<void> {
 
   function applyHighlight(value: number): void {
     if (currentHighlightValue !== null) {
-      rowElements.get(currentHighlightValue)?.classList.remove('is-current-row');
+      rowElements.get(currentHighlightValue)?.forEach((el) => el.classList.remove('is-current-row'));
     }
     currentHighlightValue = value;
-    rowElements.get(value)?.classList.add('is-current-row');
+    // 同じ実数値の族ブロックが複数行に分かれていても、その値の全行をまとめてハイライトする。
+    rowElements.get(value)?.forEach((el) => el.classList.add('is-current-row'));
   }
 
   function scrollToValue(value: number): void {
@@ -288,14 +302,15 @@ export async function initSpeedChartPage(): Promise<void> {
   }
 
   function findNearestRowElement(targetValue: number): HTMLElement | null {
-    if (rowElements.has(targetValue)) return rowElements.get(targetValue) ?? null;
+    // スクロール先は「その値の先頭行」で十分(先頭行=グループの一番上)。
+    if (rowElements.has(targetValue)) return rowElements.get(targetValue)?.[0] ?? null;
     // R-8: 「その値以上で最も近い行」まで昇順に探す。
     const values = Array.from(rowElements.keys()).sort((a, b) => a - b);
     for (const v of values) {
-      if (v >= targetValue) return rowElements.get(v) ?? null;
+      if (v >= targetValue) return rowElements.get(v)?.[0] ?? null;
     }
     // targetValueが全行より大きい場合は最大値(実数値降順の先頭行)へ。
-    return values.length > 0 ? rowElements.get(values[values.length - 1]) ?? null : null;
+    return values.length > 0 ? (rowElements.get(values[values.length - 1])?.[0] ?? null) : null;
   }
 
   document.addEventListener(OWNED_CURRENT_VALUE_EVENT, (event) => {
@@ -410,7 +425,7 @@ function buildDashCell(): HTMLElement {
 // 追加改修(2026-08-01第3弾)要件1: 「補正量とその原因は行をわける」。以前は
 // 「振り方+種族値+補正量+補正の原因」を1本のラベル文字列にまとめていた(例:
 // "最速 120族 2倍 かるわざ")が、これを3段に分ける:
-//   1段目 .speed-chart-amounts-row … 振り方バッジ(色分け)+ 種族値 + 補正量(x1.5/x2等。
+//   1段目 .speed-chart-amounts-row … 振り方バッジ(色分け)+ 補正量(x1.5/x2等。
 //     第4弾要件4でS+n表記を廃止し倍率表記に統一。formatModifierMagnitude参照)
 //   2段目 .speed-chart-origins-row … 補正の原因(特性名/わざ名/持ち物名)。補正なしの
 //     グループ(素の実数値)は原因を持たないため、そのグループ分は出力しない
@@ -419,56 +434,41 @@ function buildDashCell(): HTMLElement {
 // 1段目と2段目の対応は、以前と同じく「同じグループ順に並べる」ことで表す(厳密な位置揃えは
 // しない。docs/plan/pages/speed-chart.md 追加改修(2026-08-01第2弾)要件3の仮定を踏襲)。
 //
-// 【第4弾要件3の対応範囲(2026-08-01・訂正版)】 「族」はポケモンの進化系統ではなく
-// 「すばやさ種族値」のこと(例: 100族 = すばやさ種族値100)。前回はこれを進化系統と誤解し、
-// 進化系統データが存在しないという理由で並び替えを保留にしていたが、必要なデータは
-// RowGroup.baseSpeed として既に揃っている(`${group.baseSpeed}族` の表示テキストが
-// 既存コード上にもある)ため、以下のとおり正しく実装する。
-//
-//   1. 既存のグループ(spread+modifierの組み合わせがキー)を、まずbaseSpeedごとに
-//      RowBlock へまとめる(同じbaseSpeedならspread/modifierが違っても同じブロック)。
-//   2. ブロックはbaseSpeed降順(大きい順)に左から並べる。
-//   3. .speed-chart-group-divider(縦棒)はブロックとブロックの間だけに挿入する。
-//      ブロック内の複数グループの間は、既存のorigins-rowと同じ軽いテキスト区切り(' / ')に
-//      とどめる(縦棒は使わない)。
-//   4. chipsRowはブロックごとの .speed-chart-block ラッパーに分割し(flexで横並び、
-//      各ブロックが行の幅を均等に分け合う)、ブロック内のチップは最大2行まで折り返しを許容する
-//      (CSS側でmax-height+overflow:hiddenによりクランプ。ChartTable.astroの
-//      .speed-chart-block-chips参照)。既存のlimitRowChipsByWidth(テスト済み・シグネチャ
-//      不変)は「1行分の横幅」で足切り件数を計算する関数のため、2行分の容量を近似するために
-//      「行全体の幅をブロック数で均等分割 × 2倍」をcontainerWidthとして渡す(ゆるい近似で良い、
-//      という依頼文の指示に基づく簡便な方法。CSS側もflex:1でブロックを均等分割しているため、
-//      JS側の見積もりと実際のレイアウト幅がおおむね一致する)。2行分でも収まりきらない場合は
-//      「+N件」バッジ(no silent caps)をブロックごとに出す。
-function buildRowContent(
+// 【2026-08-01追補】 「族」(baseSpeed。すばやさ種族値)は以前は同じ実数値行の中で
+// ブロック分けして横並び表示していたが、これを「族ごとに独立した物理行」へ変更した
+// (ユーザー指示: 「同じ実数値のなかで、族ごとに行を分ける(単一行構成を廃止)」)。
+// そのため以下の2関数に分割する:
+//   - groupEntriesIntoBlocks: 1実数値ぶんのentriesを「族(baseSpeed)ごとのRowBlock」に
+//     まとめる(以前buildRowContent内で行っていたグルーピング・使用率順並び替え・
+//     showBoostFactorsフィルタをそのまま踏襲。呼び出し側=renderRowsがブロックごとに
+//     物理行を作る)。
+//   - buildBlockContent: 1つのRowBlock(=1つの物理行)の中身(3段)を作る。同じ行の中に
+//     複数のbaseSpeedが混在することは無くなったため、ブロック間の縦棒区切り
+//     (.speed-chart-group-divider)や.speed-chart-blockラッパー・チップ2行クランプは
+//     不要になった(行そのものが区切りになるため)。チップの足切りは行全体の幅
+//     (chipLayoutMetrics.containerWidth)をそのまま使う(ブロック分割前の設計に戻る)。
+interface RowGroup {
+  spreadKind: SpeedSpreadKind;
+  baseSpeed: number;
+  modifier: EffectiveSpeedModifier | null;
+  formNames: string[];
+}
+
+/** 「族」(baseSpeed)ごとのブロック。1ブロック=1物理行(renderRows参照)。 */
+interface RowBlock {
+  baseSpeed: number;
+  groups: RowGroup[];
+}
+
+function groupEntriesIntoBlocks(
   entries: SpeedChartEntry[],
   baseSpeedByName: Map<string, number>,
-  imageIdByName: Map<string, number>,
   usageCounts: SpeciesUsageCounts | undefined,
-  chipWidthByName: Map<string, number>,
-  chipLayoutMetrics: ChipLayoutMetrics | null,
-  // 要件5(第4弾): OFF(既定)のときは補正ありグループ(modifier !== null)を折りたたむ
-  // (amounts-row・origins-row・chips-rowから除外)。ただしその行の全グループが補正ありの
-  // 場合(素の実数値では到達しない行)にまで隠すと行が完全に空欄になるため、その場合だけ
-  // 安全側フォールバックとして全グループを表示する。
+  // 要件5(第4弾): OFF(既定)のときは補正ありグループ(modifier !== null)を折りたたむ。
+  // ただしその行の全グループが補正ありの場合(素の実数値では到達しない行)にまで隠すと
+  // 行が完全に空欄になるため、その場合だけ安全側フォールバックとして全グループを表示する。
   showBoostFactors: boolean,
-): HTMLElement {
-  const container = document.createElement('div');
-  container.className = 'speed-chart-row-content';
-
-  interface RowGroup {
-    spreadKind: SpeedSpreadKind;
-    baseSpeed: number;
-    modifier: EffectiveSpeedModifier | null;
-    formNames: string[];
-  }
-
-  // 「族」(baseSpeed)ごとのブロック。上のコメント参照。
-  interface RowBlock {
-    baseSpeed: number;
-    groups: RowGroup[];
-  }
-
+): RowBlock[] {
   const groups = new Map<string, RowGroup>();
   for (const entry of entries) {
     const key = `${entry.spread}|${entry.modifier ? `${entry.modifier.category}:${entry.modifier.name}` : 'none'}`;
@@ -498,7 +498,7 @@ function buildRowContent(
   const filteredGroups = showBoostFactors ? orderedGroups : orderedGroups.filter((group) => group.modifier === null);
   const visibleGroups = filteredGroups.length > 0 ? filteredGroups : orderedGroups;
 
-  // 要件1: visibleGroupsをbaseSpeedごとのブロックにまとめ、baseSpeed降順に並べる
+  // visibleGroupsをbaseSpeedごとのブロックにまとめ、baseSpeed降順に並べる
   // (ブロック内のグループ順は元のvisibleGroupsの出現順を維持する)。
   const blocksByBaseSpeed = new Map<number, RowGroup[]>();
   for (const group of visibleGroups) {
@@ -506,37 +506,43 @@ function buildRowContent(
     if (bucket) bucket.push(group);
     else blocksByBaseSpeed.set(group.baseSpeed, [group]);
   }
-  const orderedBlocks: RowBlock[] = Array.from(blocksByBaseSpeed.entries())
+  return Array.from(blocksByBaseSpeed.entries())
     .map(([baseSpeed, groupsInBlock]) => ({ baseSpeed, groups: groupsInBlock }))
     .sort((a, b) => b.baseSpeed - a.baseSpeed);
-  // amounts-row/origins-rowは「ブロック順に並べ替えた後のグループ順」を共通の並びとして使う。
-  const blockOrderedGroups = orderedBlocks.flatMap((block) => block.groups);
+}
 
-  // 要件1: ブロックの区切りだけに縦棒(.speed-chart-group-divider)を挿入する。
-  // ブロック内の複数グループ(振り方/補正違い)の間は、origins-rowと同じ軽いテキスト区切り
-  // (' / ')にとどめる(縦棒は使わない)。
+function buildBlockContent(
+  block: RowBlock,
+  imageIdByName: Map<string, number>,
+  usageCounts: SpeciesUsageCounts | undefined,
+  baseSpeedByName: Map<string, number>,
+  chipWidthByName: Map<string, number>,
+  chipLayoutMetrics: ChipLayoutMetrics | null,
+): HTMLElement {
+  const container = document.createElement('div');
+  container.className = 'speed-chart-row-content';
+
+  // 1段目: 族(baseSpeed)ラベルを1つだけ出し、そのあとにグループ(振り方+補正の組)を
+  // ' / '区切りで並べる(1行=1baseSpeedになったため、グループごとに「◯◯族」を
+  // 繰り返す必要が無くなった)。
   const amountsRow = document.createElement('div');
   amountsRow.className = 'speed-chart-amounts-row';
-  orderedBlocks.forEach((block, blockIndex) => {
-    if (blockIndex > 0) {
-      const divider = document.createElement('span');
-      divider.className = 'speed-chart-group-divider';
-      divider.setAttribute('aria-hidden', 'true');
-      amountsRow.appendChild(divider);
+  const baseSpeedLabel = document.createElement('span');
+  baseSpeedLabel.className = 'speed-chart-base-speed-label';
+  baseSpeedLabel.textContent = `${block.baseSpeed}族`;
+  amountsRow.appendChild(baseSpeedLabel);
+  block.groups.forEach((group) => {
+    amountsRow.appendChild(document.createTextNode(' '));
+    amountsRow.appendChild(buildSpreadBadge(group.spreadKind));
+    if (group.modifier) {
+      amountsRow.appendChild(document.createTextNode(` ${formatModifierMagnitude(group.modifier.modifier)}`));
     }
-    block.groups.forEach((group, groupIndex) => {
-      if (groupIndex > 0) amountsRow.appendChild(document.createTextNode(' / '));
-      amountsRow.appendChild(buildSpreadBadge(group.spreadKind));
-      let text = ` ${group.baseSpeed}族`;
-      if (group.modifier) text += ` ${formatModifierMagnitude(group.modifier.modifier)}`;
-      amountsRow.appendChild(document.createTextNode(text));
-    });
   });
 
-  // 補正を持つグループだけを対象にする(素の実数値のグループには「原因」が無い)。
+  // 2段目: 補正を持つグループだけを対象にする(素の実数値のグループには「原因」が無い)。
   const originsRow = document.createElement('div');
   originsRow.className = 'speed-chart-origins-row';
-  const groupsWithOrigin = blockOrderedGroups.filter((group) => group.modifier !== null);
+  const groupsWithOrigin = block.groups.filter((group) => group.modifier !== null);
   groupsWithOrigin.forEach((group, index) => {
     if (index > 0) originsRow.appendChild(document.createTextNode(' / '));
     const span = document.createElement('span');
@@ -544,49 +550,35 @@ function buildRowContent(
     originsRow.appendChild(span);
   });
 
-  // 要件2: chipsRowをブロックごとの.speed-chart-blockラッパーに分割する(CSS側はflex:1で
-  // 行の幅を均等に分け合い、各ブロックの中は2行までの折り返しを許容する。ChartTable.astroの
-  // .speed-chart-block-chips参照)。limitRowChipsByWidthは「1行分の横幅」で足切り件数を
-  // 計算する関数(シグネチャ不変)なので、2行分の容量を「行全体の幅をブロック数で均等分割
-  // ×2倍」で近似する(CSS側もflex:1で均等分割しているため、JS側の見積もりと実際の
-  // レイアウト幅がおおむね一致する。ゆるい近似で良いという依頼文の指示に基づく)。
+  // 3段目: このブロック(=このbaseSpeed)のポケモン全員のチップ。行全体の幅
+  // (chipLayoutMetrics.containerWidth)をそのまま使って足切りする(ブロックが横並びだった
+  // 頃の「幅を分け合う」計算は不要になった)。
   const chipsRow = document.createElement('div');
   chipsRow.className = 'speed-chart-chips-row';
-  const blockCount = Math.max(1, orderedBlocks.length);
-  for (const block of orderedBlocks) {
-    const blockFormNames = block.groups.flatMap((group) => group.formNames);
-    const blockContainerWidth = chipLayoutMetrics ? (chipLayoutMetrics.containerWidth / blockCount) * 2 : 0;
-    const { kept, droppedCount } = chipLayoutMetrics
-      ? limitRowChipsByWidth(
-          blockFormNames,
-          usageCounts,
-          baseSpeedByName,
-          chipWidthByName,
-          chipLayoutMetrics.gapWidth,
-          blockContainerWidth,
-          chipLayoutMetrics.overflowBadgeWidth,
-        )
-      : { kept: blockFormNames, droppedCount: 0 };
-    const keptSet = new Set(kept);
-
-    const blockEl = document.createElement('div');
-    blockEl.className = 'speed-chart-block';
-    const blockChips = document.createElement('div');
-    blockChips.className = 'speed-chart-block-chips';
-    for (const formName of blockFormNames) {
-      if (!keptSet.has(formName)) continue;
-      blockChips.appendChild(buildChip(formName, imageIdByName));
-    }
-    blockEl.appendChild(blockChips);
-    // 足切りが起きたブロックには必ず可視で件数を示す(黙って切ると「そのポケモンは居ない」と
-    // 誤読されるため。stack.mdの「no silent caps」と同趣旨)。
-    if (droppedCount > 0) {
-      const overflow = document.createElement('span');
-      overflow.className = 'speed-chart-chip-overflow';
-      overflow.textContent = `+${droppedCount}件`;
-      blockEl.appendChild(overflow);
-    }
-    chipsRow.appendChild(blockEl);
+  const formNames = block.groups.flatMap((group) => group.formNames);
+  const { kept, droppedCount } = chipLayoutMetrics
+    ? limitRowChipsByWidth(
+        formNames,
+        usageCounts,
+        baseSpeedByName,
+        chipWidthByName,
+        chipLayoutMetrics.gapWidth,
+        chipLayoutMetrics.containerWidth,
+        chipLayoutMetrics.overflowBadgeWidth,
+      )
+    : { kept: formNames, droppedCount: 0 };
+  const keptSet = new Set(kept);
+  for (const formName of formNames) {
+    if (!keptSet.has(formName)) continue;
+    chipsRow.appendChild(buildChip(formName, imageIdByName));
+  }
+  // 足切りが起きた行には必ず可視で件数を示す(黙って切ると「そのポケモンは居ない」と
+  // 誤読されるため。stack.mdの「no silent caps」と同趣旨)。
+  if (droppedCount > 0) {
+    const overflow = document.createElement('span');
+    overflow.className = 'speed-chart-chip-overflow';
+    overflow.textContent = `+${droppedCount}件`;
+    chipsRow.appendChild(overflow);
   }
 
   container.append(amountsRow, originsRow, chipsRow);
