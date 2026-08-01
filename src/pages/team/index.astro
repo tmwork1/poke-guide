@@ -24,19 +24,54 @@ import { REGULATIONS } from '../../lib/regulations';
 
 const user = Astro.locals.user;
 ---
-<AppLayout title="チーム" description="登録したチーム編成の一覧・検索・並べ替え" current="team">
-	<Fragment slot="topbar-status">
-		<span class="badge tnum" id="team-count-badge" hidden>0チーム</span>
-	</Fragment>
+<AppLayout title="チーム" description="登録したチーム編成の一覧・検索・並べ替え" current="team" hideTopbar={true}>
+	{/*
+	  UI改修依頼(チームトップ画面、2026-08-02)「トップバー削除・セカンドトップバー化」:
+	  box/index.astroの同名改修(2026-08-02、box/index.astro冒頭コメント参照)を踏襲する。
+	  hideTopbar={true}によりAppLayoutの<header class="app-topbar">を描画しなくなったため、
+	  旧topbar-statusスロット(件数バッジ)はこのページ自身のツールバー(.panel-toolbar、
+	  #team-toolbar)内へ直接配置する(下記マークアップ、id="team-count-badge"・
+	  class="badge tnum"は変更しない、<script>がgetElementByIdで参照するため)。
+	  モバイル(900px未満)のサイドバー開閉ハンバーガーもbox/index.astroと同じマークアップ
+	  (id="app-sidebar-toggle"、AppLayout.astro末尾の<script>がDOM上の位置を問わず
+	  getElementByIdで拾って開閉処理を配線する)を#team-toolbarの先頭に複製する。
+	*/}
 	<style>
 		/* --- ツールバー(検索+並べ替え。box/index.astroの.panel-toolbarをそのまま流用。
 		   「絞り込み」はこのページには置かない(docs/plan/pages/team.md参照)。 --- */
+		/* UI改修依頼(チームトップ画面、2026-08-02)「トップバー削除・セカンドトップバー化」:
+		   box/index.astroの.panel-toolbar(2026-08-02改修)と同じ値をそのまま複製する
+		   (このツールバーがAppLayoutの共通<header class="app-topbar">の代わりを務める)。
+		   sticky/z-index/background/border-bottomはglobal.cssの.app-topbarと同じ値
+		   (新しい値は作らない)。 */
 		.panel-toolbar {
 			display: flex;
 			flex-wrap: wrap;
 			align-items: center;
 			gap: var(--space-3) var(--space-6);
 			padding: var(--space-3) var(--space-5);
+			position: sticky;
+			top: 0;
+			z-index: 20;
+			background: var(--color-surface);
+			border-bottom: 1px solid var(--color-border);
+		}
+		/* モバイル(900px未満)専用のサイドバー開閉ボタン。box/index.astroの
+		   .box-toolbar-menu-buttonと全く同じマークアップ・値を複製する
+		   (hideTopbar={true}によりAppLayout側のボタンが描画されなくなるため)。 */
+		.team-toolbar-menu-button {
+			padding: var(--space-2);
+			flex-shrink: 0;
+		}
+		@media (min-width: 900px) {
+			.team-toolbar-menu-button {
+				display: none;
+			}
+		}
+		/* 件数バッジ(旧topbar-statusスロット)をツールバー右端に寄せる(box/index.astroの
+		   .toolbar-countと同じ)。 */
+		.toolbar-count {
+			margin-left: auto;
 		}
 		.toolbar-item {
 			display: flex;
@@ -80,6 +115,26 @@ const user = Astro.locals.user;
 		.favorite-filter-toggle[data-active="true"]:hover:not(:disabled) {
 			background: var(--color-surface);
 			color: var(--color-primary);
+		}
+
+		/* UI改修依頼(チームトップ画面、2026-08-02)「セカンドトップバーのデザインをボックス画面に
+		   あわせる」: 「並べ替え」の<label>を削除し、box/index.astroの.sort-select-wrap/.sort-icon
+		   と同じ手法(検索欄の.search-input-wrap/.search-iconと同じ、position:absoluteのアイコン+
+		   select側padding-left)でソートアイコンをselectの左側に重ねる。 */
+		.sort-select-wrap {
+			position: relative;
+			display: flex;
+			align-items: center;
+			flex: 1;
+		}
+		.sort-select-wrap .sort-icon {
+			position: absolute;
+			left: 0.7em;
+			color: var(--color-text-muted);
+			pointer-events: none;
+		}
+		.toolbar-sort select {
+			padding-left: 2.1em;
 		}
 
 		@media (max-width: 640px) {
@@ -238,15 +293,19 @@ const user = Astro.locals.user;
 		   UI改修依頼(チームトップ画面、2026-08-01)「お気に入りボタンとチーム名が被らないように
 		   する」対応: お気に入りボタンをbox/index.astroと同じ左上角の36×36px三角形トリムに
 		   変更した(下の.card-team-pin参照)ため、右側と同じ考え方で左側にも余白を追加する。
-		   三角形はcard左上の(0,0)起点でy=0付近ではほぼ全幅(36px)を占めるため、ヘッダ行
-		   (チーム名、カード最上部)がその真下に来ると被る。右側と同じ計算(36px - カードの
-		   padding-left 12px = 24px = 1.5rem)がちょうど接する境界値(実測でgap=0px、隙間ゼロで
-		   重なりはしないが余裕が無い)だったため、1.75rem(28px)にして4pxの余白を確保する
-		   (Playwrightのgetboundingclientrectで実測、隙間4pxを確認。報告参照)。 */
+		   三角形はcard左上の(0,0)起点でy=0付近ではほぼ全幅を占めるため、ヘッダ行
+		   (チーム名、カード最上部)がその真下に来ると被る。旧36px三角形時代は右側と同じ計算
+		   (36px - カードのpadding-left 12px = 24px = 1.5rem)がちょうど接する境界値だったため
+		   1.75rem(28px)にして4pxの余白を確保していた。
+		   UI改修依頼(チームトップ画面、2026-08-02)「お気に入りの星印が見切れている問題を
+		   ボックス画面を参考に修正する」でお気に入り三角形を52×52pxへ拡大した(上の
+		   .card-team-pin参照)ため、同じ考え方で計算し直す: 52px - padding-left 12px = 40px
+		   (2.5rem)が新しい境界値。旧と同じ4pxの余白を足した2.75rem(44px)に広げ、
+		   スクリーンショットで重なりが無いことを確認する。 */
 		.team-grid .card-team .card-team-header {
 			display: flex;
 			align-items: center;
-			padding-left: 1.75rem;
+			padding-left: 2.75rem;
 			padding-right: 1.5rem;
 		}
 		.team-grid .card-team .card-team-name {
@@ -362,6 +421,11 @@ const user = Astro.locals.user;
 		   アイコン文字(★/☆)は三角形の重心付近(左上から辺の1/3)に来るようpaddingで寄せる。
 		   ピン留め中の配色は従来どおり--color-risky/--color-primary-contrastを使う
 		   (新しい値は作っていない)。 --- */
+		/* UI改修依頼(チームトップ画面、2026-08-02)「お気に入りの星印が見切れている問題を
+		   ボックス画面を参考に修正する」: box/index.astroの.pin-toggleは2026-08-01の実測
+		   (Playwright、Range.getBoundingClientRect())で36×36px・padding 5pxでは星のグリフが
+		   斜辺からはみ出すことが判明し、52×52px・padding 7pxへ拡大済み。このカードの三角形は
+		   box側の複製(上のコメント参照)なので、同じ実測済みの値へ揃える。 */
 		.team-grid .card-team .card-team-pin {
 			position: absolute;
 			top: 0;
@@ -370,9 +434,9 @@ const user = Astro.locals.user;
 			display: inline-flex;
 			align-items: flex-start;
 			justify-content: flex-start;
-			width: 36px;
-			height: 36px;
-			padding: 5px 0 0 5px;
+			width: 52px;
+			height: 52px;
+			padding: 7px 0 0 7px;
 			border: none;
 			border-radius: 0;
 			box-shadow: none;
@@ -494,8 +558,21 @@ const user = Astro.locals.user;
 			user ? (
 				<Fragment>
 					<div class="panel panel-top panel-toolbar" id="team-toolbar">
+						{/* UI改修依頼(チームトップ画面、2026-08-02)「トップバー削除・セカンドトップバー化」。
+						    AppLayout.astroが元々<header class="app-topbar">に持っていたハンバーガー
+						    ボタンと全く同じマークアップ(box/index.astroの複製)。id="app-sidebar-toggle"は
+						    変更しない(AppLayout.astro末尾の<script>がDOM上の位置を問わずgetElementByIdで
+						    拾って開閉処理を配線する)。デスクトップでは.team-toolbar-menu-button側のCSSで
+						    非表示にする。 */}
+						<button type="button" class="team-toolbar-menu-button btn-ghost" id="app-sidebar-toggle" aria-controls="app-sidebar" aria-expanded="false" aria-label="メニューを開く">
+							<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+								<line x1="4" y1="7" x2="20" y2="7" /><line x1="4" y1="12" x2="20" y2="12" /><line x1="4" y1="17" x2="20" y2="17" />
+							</svg>
+						</button>
 						<div class="toolbar-item toolbar-search">
-							<label class="field-label" for="search-input">検索</label>
+							{/* UI改修依頼(チームトップ画面、2026-08-02)「セカンドトップバーのデザインを
+							    ボックス画面にあわせる」: 可視の「検索」<label>を削除し、box/index.astroと
+							    同じくaria-labelで維持する。 */}
 							<div class="search-input-wrap">
 								<svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 									<circle cx="11" cy="11" r="7" />
@@ -506,6 +583,7 @@ const user = Astro.locals.user;
 									type="search"
 									class="field-control"
 									placeholder="チーム名"
+									aria-label="検索"
 									autocomplete="off"
 								/>
 							</div>
@@ -530,20 +608,40 @@ const user = Astro.locals.user;
 						    追加」。box/index.astroの#regulation-filterと同じ値・同じ番兵(__none__)を使う
 						    (2画面で絞り込みの語彙を揃える)。取得済みの一覧をクライアント側で絞る点も同じ。 */}
 						<div class="toolbar-item toolbar-regulation">
-							<label class="field-label" for="regulation-filter">レギュレーション</label>
-							<select id="regulation-filter" class="field-control">
-								<option value="">すべて</option>
+							{/* UI改修依頼(チームトップ画面、2026-08-02)「セカンドトップバーのデザインを
+							    ボックス画面にあわせる」: 可視の「レギュレーション」<label>を削除し、
+							    box/index.astroの#regulation-filterと同じくaria-labelを付与する。
+							    先頭オプションの表記もbox側に揃える。 */}
+							<select id="regulation-filter" class="field-control" aria-label="レギュレーションで絞り込み">
+								<option value="">すべてのレギュレーション</option>
 								{REGULATIONS.map((r) => <option value={r}>{r}</option>)}
 								<option value="__none__">未設定</option>
 							</select>
 						</div>
 
 						<div class="toolbar-item toolbar-sort">
-							<label class="field-label" for="sort-select">並べ替え</label>
-							<select id="sort-select" class="field-control">
-								<option value="updated_at">最終更新順</option>
-								<option value="name">名前順</option>
-							</select>
+							{/* UI改修依頼(チームトップ画面、2026-08-02)「セカンドトップバーのデザインを
+							    ボックス画面にあわせる」: 可視の「並べ替え」<label>を削除し、
+							    box/index.astroの.sort-select-wrap/.sort-iconと同じSVGアイコン重畳
+							    パターンに揃える。 */}
+							<div class="sort-select-wrap">
+								<svg class="sort-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+									<path d="M7 4v16" />
+									<path d="M4 7l3-3 3 3" />
+									<path d="M17 20V4" />
+									<path d="M14 17l3 3 3-3" />
+								</svg>
+								<select id="sort-select" class="field-control" aria-label="並べ替え">
+									<option value="updated_at">最終更新順</option>
+									<option value="name">名前順</option>
+								</select>
+							</div>
+						</div>
+
+						{/* 旧topbar-statusスロットの件数バッジ。id/classは変更しない(<script>が
+						    getElementByIdで参照する)。box/index.astroの.toolbar-countと同じ配置。 */}
+						<div class="toolbar-item toolbar-count">
+							<span class="badge tnum" id="team-count-badge" hidden>0チーム</span>
 						</div>
 					</div>
 
