@@ -3188,15 +3188,26 @@ if (opponentNotesSection) {
 
 	// UI改善タスク「ダメージカードの外をクリックしたら選択(フォーカス)状態を解除する」。
 	// 2082行目付近の「リストの外側をクリックしたら閉じる」(テラスタルドロップダウン)と
-	// 同じ考え方: document全体のクリックを監視し、クリック位置(target)がどのカード
-	// (row.root)にも右パネルの詳細設定エリア(#damage-detail-panel。パネル内の操作は
-	// 選択解除の対象外にする)にも含まれない場合だけ選択解除する。rowsはこのブロック内で
-	// let宣言され後続で push/splice/再代入されるため、クロージャ経由で常に最新の一覧を見る。
+	// 同じ考え方: document全体のクリックを監視し、クリック位置(target)が選択の対象で
+	// ある技カード(.damage-column)にも右パネルの詳細設定エリア(#damage-detail-panel。
+	// パネル内の操作は選択解除の対象外にする)にも含まれない場合だけ選択解除する。
+	// 🔴 UI改修依頼(個体編集ダメージカード、2026-08-02)「技カードの外をクリックしたときに、
+	// 技カードへのフォーカスが外れるようにする」により、判定の基準を「ダメージカード全体
+	// (row.root)の外側」から「技カード(.damage-column)の外側」へ狭めた。これにより
+	// 相手ビルドの箱・カードのフッター・技カード下の余白など「カード内だが技カードの外」を
+	// クリックしたときも選択が外れる(以前はカード内なら何をクリックしても選択が残っていた)。
+	// row.root を辿らなくなったため rows への依存も無くなった(行の追加・削除で判定が
+	// 古くなる余地が無くなり、閉包経由で最新のrowsを見る必要も無い)。
+	// closest() のためにElementへ絞る(テキストノードをクリックした場合、event.targetは
+	// Chromiumでは要素になるが、仕様上Nodeなのでガードしておく)。技カードごと削除された
+	// 直後(× ボタン)は target が切り離された部分木に居るが、その部分木にも .damage-column
+	// の祖先が残るため closest() は非nullを返し、ここでは何もしない(選択マークの整合は
+	// renderColumns / rebuildRowsList 側が持つ。従来の row.root.contains() と同じ挙動)。
 	const damageDetailPanelEl = el<HTMLElement>("damage-detail-panel");
 	document.addEventListener("click", (e) => {
 		const target = e.target as Node;
 		if (damageDetailPanelEl.contains(target)) return;
-		if (rows.some((row) => row.root?.contains(target))) return;
+		if (target instanceof Element && target.closest(".damage-column")) return;
 		clearSelectionAndMarks();
 	});
 
