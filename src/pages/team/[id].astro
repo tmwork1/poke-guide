@@ -2163,7 +2163,7 @@ const initialTeamJson = team
 				return wrap as unknown as HTMLElement;
 			}
 
-			// UI改修依頼(チーム編集中央パネル)「ダブルクリックまたはゴミ箱ボタンで、その個体を
+			// UI改修依頼(チーム編集中央パネル)「ダブルクリックまたは削除ボタンで、その個体を
 			// チームから削除できるようにする」。旧・removeButtonのクリックハンドラをここへ切り出し、
 			// カード自体のdblclickハンドラ(renderSlots参照)と共有する(挙動は変えていない:
 			// membersBySlotから外す→再描画→自動保存)。
@@ -2353,8 +2353,8 @@ const initialTeamJson = team
 				});
 				nameRow.appendChild(editLink);
 
-				// UI改修依頼(チーム編集中央パネル)「ダブルクリックまたはゴミ箱ボタンで、その個体を
-				// チームから削除できるようにする」。ゴミ箱アイコンのアイコンボタン
+				// UI改修依頼(チーム編集中央パネル)「ダブルクリックまたは削除ボタンで、その個体を
+				// チームから削除できるようにする」。×アイコンのアイコンボタン
 				// (box/index.astroの.icon-button規格=28px円形+枠線)。危険操作であることは常時
 				// --color-danger-strongの文字色で示す(B-2の判断を踏襲し確認ダイアログは追加しない。
 				// チームからの除外は個体そのものの削除ではなく、いつでも選択バーから再度追加できる
@@ -2362,8 +2362,10 @@ const initialTeamJson = team
 				const removeButton = document.createElement("button");
 				removeButton.type = "button";
 				removeButton.className = "btn-ghost slot-remove-btn";
+				// UI改修依頼(2026-08-02): 削除アイコンをゴミ箱の絵文字/SVGから×のSVGへ統一する
+				// (全画面共通方針。box/index.astroの.icon-button.delete-buttonと同一のSVG文字列)。
 				removeButton.innerHTML =
-					'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>';
+					'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
 				removeButton.title = "チームから外す";
 				removeButton.setAttribute("aria-label", `${name}を${slot}番目の枠から外す`);
 				removeButton.addEventListener("click", (event) => {
@@ -2386,10 +2388,10 @@ const initialTeamJson = team
 						card.dataset.filled = "true";
 						card.appendChild(buildFilledSlotContent(slot, p));
 						// UI改修依頼(チーム編集中央パネル)
-						// 「7. ダブルクリックまたはゴミ箱ボタンで、その個体をチームから削除できる」
+						// 「7. ダブルクリックまたは削除ボタンで、その個体をチームから削除できる」
 						// 「8. シングルクリックで、右パネルにその個体の詳細を表示する」。
 						// 左パネルの選択行(mainButton)と全く同じ操作割り当て(1回クリック=プレビュー、
-						// ダブルクリック=変更操作)をカード全体に適用する。ゴミ箱ボタン自身のクリックは
+						// ダブルクリック=変更操作)をカード全体に適用する。削除ボタン自身のクリックは
 						// stopPropagation済みなので、ここでの2重発火(プレビュー→即削除)は起きない。
 						card.addEventListener("click", () => {
 							void renderPreviewPanel(p);

@@ -364,7 +364,10 @@ const user = Astro.locals.user;
 
 		/* --- 削除ボタン: box/index.astroの.icon-button.delete-buttonと同じ規格
 		   (28px丸ボタン・--color-danger-strong・hover時のみ可視)。カード遷移(<a>)と衝突しない
-		   よう、クリック時はpreventDefault+stopPropagationする(JS側)。 --- */
+		   よう、クリック時はpreventDefault+stopPropagationする(JS側)。
+		   UI改修依頼(2026-08-02): アイコンをゴミ箱の絵文字から×のSVGへ統一したため、
+		   絵文字前提だったfont-size/font-weightは不要になり削除した(SVGの14×14pxは
+		   インラインSVG自体の width/height 属性で決まる)。 --- */
 		.team-grid .card-team .card-team-delete {
 			position: absolute;
 			top: var(--space-2);
@@ -380,8 +383,6 @@ const user = Astro.locals.user;
 			border: 1px solid var(--color-border);
 			background: var(--color-surface);
 			color: var(--color-danger-strong);
-			font-weight: 400;
-			font-size: 0.85rem;
 			line-height: 1;
 			box-shadow: var(--shadow-sm);
 		}
@@ -883,7 +884,9 @@ const user = Astro.locals.user;
 				const deleteButton = document.createElement("button");
 				deleteButton.type = "button";
 				deleteButton.className = "card-team-delete";
-				deleteButton.textContent = "🗑";
+				// UI改修依頼(2026-08-02): 削除アイコンをゴミ箱の絵文字から×のSVGへ統一する
+				// (全画面共通方針。box/index.astroの.icon-button.delete-buttonと同一のSVG文字列)。
+				deleteButton.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
 				deleteButton.title = "削除";
 				deleteButton.setAttribute("aria-label", "削除");
 				deleteButton.addEventListener("click", (event) => {
