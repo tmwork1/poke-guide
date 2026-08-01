@@ -239,9 +239,11 @@ const { regulation, regulations, ownedId, hasOwnedPanel } = Astro.props;
 		overflow: hidden;
 		text-overflow: ellipsis;
 	}
-	/* 要件3(2026-08-01第4弾、区切り表現のみ): グループ区切りを文字列' / 'から縦棒(border-left)
-	   に変更する。amounts-row側にだけ挿入する(origins-rowは補正の原因が無いグループを飛ばして
-	   詰めるため、divider要素ではなくテキストの' / 'のままにしてある。上記コメント参照)。 */
+	/* 要件1(第4弾要件3・訂正版、2026-08-01): 「族」(baseSpeed)のブロックとブロックの間だけに
+	   縦棒(border-left)を挿入する(ブロック内の複数グループの間は' / 'のテキスト区切りに
+	   とどめる。chart-table.tsのbuildRowContent参照)。amounts-row側にだけ挿入する
+	   (origins-rowは補正の原因が無いグループを飛ばして詰めるため、divider要素ではなく
+	   テキストの' / 'のままにしてある)。 */
 	.speed-chart-table .speed-chart-group-divider {
 		display: inline-block;
 		width: 1px;
@@ -297,11 +299,40 @@ const { regulation, regulations, ownedId, hasOwnedPanel } = Astro.props;
 		background: var(--color-risky-soft);
 		color: var(--color-risky-strong);
 	}
+	/* 要件1/2(第4弾要件3・訂正版、2026-08-01): chipsRowは「族(baseSpeed)ごとのブロック」を
+	   横並びにするコンテナに変わった(chart-table.tsのbuildRowContent参照)。flex-wrapで
+	   ブロック自体が複数行にまたぐのは許容しつつ、各ブロックはflex:1で行の幅を均等に
+	   分け合う(ブロック数が1つだけの行では、そのブロックが行幅いっぱいまで広がり、
+	   従来の1ブロック構成と見た目上ほぼ変わらない)。 */
 	.speed-chart-table .speed-chart-chips-row {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: flex-start;
+		gap: 0.6rem var(--space-4);
+	}
+	.speed-chart-table .speed-chart-block {
+		display: flex;
+		flex: 1 1 0;
+		min-width: 8rem;
+		align-items: flex-start;
+		gap: 0.4rem;
+	}
+	/* 要件2: ブロック内のポケモンチップは2行までの折り返しを許容する(無理に1行へ収めようと
+	   横幅を圧迫したり、大量に「+N件」で削ったりせずに済むようにするため)。チップの実際の
+	   高さ(アイコン22px+上下padding 0.1rem×2 ≈ 25.2px)に余裕を持たせた26pxを1行の高さと
+	   みなし、2行分+行間gap(0.4rem≈6.4px)からmax-heightを概算する(ピクセル単位の厳密な
+	   計測は不要、という依頼文の指示に基づくゆるい近似)。2行分でも収まりきらない場合は
+	   chart-table.ts側でlimitRowChipsByWidthにより事前に足切りされ、「+N件」バッジ
+	   (.speed-chart-chip-overflow)で示される。 */
+	.speed-chart-table .speed-chart-block-chips {
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
 		gap: 0.4rem;
+		max-height: calc(26px * 2 + 0.4rem);
+		overflow: hidden;
+		flex: 1 1 auto;
+		min-width: 0;
 	}
 	.speed-chart-table .speed-chart-chip-overflow {
 		display: inline-flex;

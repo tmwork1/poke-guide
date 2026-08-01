@@ -419,16 +419,27 @@ function buildDashCell(): HTMLElement {
 // 1段目と2段目の対応は、以前と同じく「同じグループ順に並べる」ことで表す(厳密な位置揃えは
 // しない。docs/plan/pages/speed-chart.md 追加改修(2026-08-01第2弾)要件3の仮定を踏襲)。
 //
-// 【第4弾要件3の対応範囲(2026-08-01)】 依頼は「進化系統(族)ごとのブロックに分け、族の
-// 大きい順に左から並べる」だったが、poke-commons・vendor/jpokeのいずれにも進化系統(何が何に
-// 進化するか)を表すデータソースが存在しない(pokemon-master-data.ts/detail/pokemon.jsonは
-// 種族値・特性・技のみ、species-dex.tsはdexNo逆引きのみ)。dexNoの連番はある程度進化系統と
-// 相関するが、枝分かれ進化(イーブイ系統等)や幼生体(ピチュー等)・メガシンカ(dexNo自体を
-// 持たない)では正しく機能せず、族の境界を誤検出する。新規データを作る(scripts/
-// build-master-data配下の追加等)はこのラウンドの担当ファイル範囲外かつ大掛かりなため見送り、
-// 「族の大きい順の並び替え」は保留とする。一方「区切りをスラッシュ(' / ')から縦棒に変える」
-// 部分は独立して対応可能なため実施する: 既存のグループ区切り(振り方+補正の組)ごとに
-// .speed-chart-group-divider(border-leftの縦棒)を挿入する形にした。
+// 【第4弾要件3の対応範囲(2026-08-01・訂正版)】 「族」はポケモンの進化系統ではなく
+// 「すばやさ種族値」のこと(例: 100族 = すばやさ種族値100)。前回はこれを進化系統と誤解し、
+// 進化系統データが存在しないという理由で並び替えを保留にしていたが、必要なデータは
+// RowGroup.baseSpeed として既に揃っている(`${group.baseSpeed}族` の表示テキストが
+// 既存コード上にもある)ため、以下のとおり正しく実装する。
+//
+//   1. 既存のグループ(spread+modifierの組み合わせがキー)を、まずbaseSpeedごとに
+//      RowBlock へまとめる(同じbaseSpeedならspread/modifierが違っても同じブロック)。
+//   2. ブロックはbaseSpeed降順(大きい順)に左から並べる。
+//   3. .speed-chart-group-divider(縦棒)はブロックとブロックの間だけに挿入する。
+//      ブロック内の複数グループの間は、既存のorigins-rowと同じ軽いテキスト区切り(' / ')に
+//      とどめる(縦棒は使わない)。
+//   4. chipsRowはブロックごとの .speed-chart-block ラッパーに分割し(flexで横並び、
+//      各ブロックが行の幅を均等に分け合う)、ブロック内のチップは最大2行まで折り返しを許容する
+//      (CSS側でmax-height+overflow:hiddenによりクランプ。ChartTable.astroの
+//      .speed-chart-block-chips参照)。既存のlimitRowChipsByWidth(テスト済み・シグネチャ
+//      不変)は「1行分の横幅」で足切り件数を計算する関数のため、2行分の容量を近似するために
+//      「行全体の幅をブロック数で均等分割 × 2倍」をcontainerWidthとして渡す(ゆるい近似で良い、
+//      という依頼文の指示に基づく簡便な方法。CSS側もflex:1でブロックを均等分割しているため、
+//      JS側の見積もりと実際のレイアウト幅がおおむね一致する)。2行分でも収まりきらない場合は
+//      「+N件」バッジ(no silent caps)をブロックごとに出す。
 function buildRowContent(
   entries: SpeedChartEntry[],
   baseSpeedByName: Map<string, number>,
@@ -450,6 +461,12 @@ function buildRowContent(
     baseSpeed: number;
     modifier: EffectiveSpeedModifier | null;
     formNames: string[];
+  }
+
+  // 「族」(baseSpeed)ごとのブロック。上のコメント参照。
+  interface RowBlock {
+    baseSpeed: number;
+    groups: RowGroup[];
   }
 
   const groups = new Map<string, RowGroup>();
@@ -481,46 +498,45 @@ function buildRowContent(
   const filteredGroups = showBoostFactors ? orderedGroups : orderedGroups.filter((group) => group.modifier === null);
   const visibleGroups = filteredGroups.length > 0 ? filteredGroups : orderedGroups;
 
-  // 要件3の不具合修正: 行全体のチップの実際の合計幅を実測キャッシュから求めて足切りする
-  // (グループの境界をまたいで使用率の最下位から落とす。グループ順・グループ内の並びは
-  // 維持したまま除外するだけ)。計測がまだ済んでいない(異常系)場合は足切りをかけない
-  // 安全側にフォールバックする。
-  const allFormNamesInOrder = visibleGroups.flatMap((group) => group.formNames);
-  const { kept, droppedCount } = chipLayoutMetrics
-    ? limitRowChipsByWidth(
-        allFormNamesInOrder,
-        usageCounts,
-        baseSpeedByName,
-        chipWidthByName,
-        chipLayoutMetrics.gapWidth,
-        chipLayoutMetrics.containerWidth,
-        chipLayoutMetrics.overflowBadgeWidth,
-      )
-    : { kept: allFormNamesInOrder, droppedCount: 0 };
-  const keptSet = new Set(kept);
+  // 要件1: visibleGroupsをbaseSpeedごとのブロックにまとめ、baseSpeed降順に並べる
+  // (ブロック内のグループ順は元のvisibleGroupsの出現順を維持する)。
+  const blocksByBaseSpeed = new Map<number, RowGroup[]>();
+  for (const group of visibleGroups) {
+    const bucket = blocksByBaseSpeed.get(group.baseSpeed);
+    if (bucket) bucket.push(group);
+    else blocksByBaseSpeed.set(group.baseSpeed, [group]);
+  }
+  const orderedBlocks: RowBlock[] = Array.from(blocksByBaseSpeed.entries())
+    .map(([baseSpeed, groupsInBlock]) => ({ baseSpeed, groups: groupsInBlock }))
+    .sort((a, b) => b.baseSpeed - a.baseSpeed);
+  // amounts-row/origins-rowは「ブロック順に並べ替えた後のグループ順」を共通の並びとして使う。
+  const blockOrderedGroups = orderedBlocks.flatMap((block) => block.groups);
 
-  // 要件3(第4弾・区切り表現のみ): グループ間の区切りを文字列' / 'から縦棒(border-left)の
-  // 要素に置き換える(進化系統ブロック化そのものは上のコメントのとおりデータソース不在のため
-  // 保留。ここでは「今あるグループ(振り方+補正の組)」の境界を視覚的に区切るだけ)。
+  // 要件1: ブロックの区切りだけに縦棒(.speed-chart-group-divider)を挿入する。
+  // ブロック内の複数グループ(振り方/補正違い)の間は、origins-rowと同じ軽いテキスト区切り
+  // (' / ')にとどめる(縦棒は使わない)。
   const amountsRow = document.createElement('div');
   amountsRow.className = 'speed-chart-amounts-row';
-  visibleGroups.forEach((group, index) => {
-    if (index > 0) {
+  orderedBlocks.forEach((block, blockIndex) => {
+    if (blockIndex > 0) {
       const divider = document.createElement('span');
       divider.className = 'speed-chart-group-divider';
       divider.setAttribute('aria-hidden', 'true');
       amountsRow.appendChild(divider);
     }
-    amountsRow.appendChild(buildSpreadBadge(group.spreadKind));
-    let text = ` ${group.baseSpeed}族`;
-    if (group.modifier) text += ` ${formatModifierMagnitude(group.modifier.modifier)}`;
-    amountsRow.appendChild(document.createTextNode(text));
+    block.groups.forEach((group, groupIndex) => {
+      if (groupIndex > 0) amountsRow.appendChild(document.createTextNode(' / '));
+      amountsRow.appendChild(buildSpreadBadge(group.spreadKind));
+      let text = ` ${group.baseSpeed}族`;
+      if (group.modifier) text += ` ${formatModifierMagnitude(group.modifier.modifier)}`;
+      amountsRow.appendChild(document.createTextNode(text));
+    });
   });
 
   // 補正を持つグループだけを対象にする(素の実数値のグループには「原因」が無い)。
   const originsRow = document.createElement('div');
   originsRow.className = 'speed-chart-origins-row';
-  const groupsWithOrigin = visibleGroups.filter((group) => group.modifier !== null);
+  const groupsWithOrigin = blockOrderedGroups.filter((group) => group.modifier !== null);
   groupsWithOrigin.forEach((group, index) => {
     if (index > 0) originsRow.appendChild(document.createTextNode(' / '));
     const span = document.createElement('span');
@@ -528,21 +544,49 @@ function buildRowContent(
     originsRow.appendChild(span);
   });
 
+  // 要件2: chipsRowをブロックごとの.speed-chart-blockラッパーに分割する(CSS側はflex:1で
+  // 行の幅を均等に分け合い、各ブロックの中は2行までの折り返しを許容する。ChartTable.astroの
+  // .speed-chart-block-chips参照)。limitRowChipsByWidthは「1行分の横幅」で足切り件数を
+  // 計算する関数(シグネチャ不変)なので、2行分の容量を「行全体の幅をブロック数で均等分割
+  // ×2倍」で近似する(CSS側もflex:1で均等分割しているため、JS側の見積もりと実際の
+  // レイアウト幅がおおむね一致する。ゆるい近似で良いという依頼文の指示に基づく)。
   const chipsRow = document.createElement('div');
   chipsRow.className = 'speed-chart-chips-row';
-  for (const group of visibleGroups) {
-    for (const formName of group.formNames) {
+  const blockCount = Math.max(1, orderedBlocks.length);
+  for (const block of orderedBlocks) {
+    const blockFormNames = block.groups.flatMap((group) => group.formNames);
+    const blockContainerWidth = chipLayoutMetrics ? (chipLayoutMetrics.containerWidth / blockCount) * 2 : 0;
+    const { kept, droppedCount } = chipLayoutMetrics
+      ? limitRowChipsByWidth(
+          blockFormNames,
+          usageCounts,
+          baseSpeedByName,
+          chipWidthByName,
+          chipLayoutMetrics.gapWidth,
+          blockContainerWidth,
+          chipLayoutMetrics.overflowBadgeWidth,
+        )
+      : { kept: blockFormNames, droppedCount: 0 };
+    const keptSet = new Set(kept);
+
+    const blockEl = document.createElement('div');
+    blockEl.className = 'speed-chart-block';
+    const blockChips = document.createElement('div');
+    blockChips.className = 'speed-chart-block-chips';
+    for (const formName of blockFormNames) {
       if (!keptSet.has(formName)) continue;
-      chipsRow.appendChild(buildChip(formName, imageIdByName));
+      blockChips.appendChild(buildChip(formName, imageIdByName));
     }
-  }
-  // 足切りが起きた行には必ず可視で件数を示す(黙って切ると「そのポケモンは居ない」と
-  // 誤読されるため。stack.mdの「no silent caps」と同趣旨)。
-  if (droppedCount > 0) {
-    const overflow = document.createElement('span');
-    overflow.className = 'speed-chart-chip-overflow';
-    overflow.textContent = `+${droppedCount}件`;
-    chipsRow.appendChild(overflow);
+    blockEl.appendChild(blockChips);
+    // 足切りが起きたブロックには必ず可視で件数を示す(黙って切ると「そのポケモンは居ない」と
+    // 誤読されるため。stack.mdの「no silent caps」と同趣旨)。
+    if (droppedCount > 0) {
+      const overflow = document.createElement('span');
+      overflow.className = 'speed-chart-chip-overflow';
+      overflow.textContent = `+${droppedCount}件`;
+      blockEl.appendChild(overflow);
+    }
+    chipsRow.appendChild(blockEl);
   }
 
   container.append(amountsRow, originsRow, chipsRow);
