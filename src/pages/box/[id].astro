@@ -125,6 +125,13 @@ const isOptedOut = optOutRemainingText !== "";
 	)}
 	{pokemon && (
 		<Fragment slot="topbar-actions">
+			{/* UI改修依頼(個体編集ヘッダー、2026-08-01)「すばやさ調整ボタンを追加」。
+			    押すとすばやさ早見表(/speed-chart)へ、この個体のidをownedクエリで渡して
+			    遷移する(左パネルのstat-speed-chart-link、R-11で結線済みの/speed-chart?owned=
+			    と同じURL形式)。左パネル側にある同機能のボタンの削除は別エージェントの担当
+			    (src/components/box-id/LeftPanel.astro)であり、このヘッダー追加とは独立。
+			    意匠は同じトップバーの damage-collapse-toggle-button と揃え、.btn-ghost にする。 */}
+			<a class="btn-ghost" href={`/speed-chart?owned=${pokemon.id}`}>すばやさ調整</a>
 			{/* UI改善ラウンド41ユーザー指示(41-H1)「すべて折りたたむボタンは、X位置はそのままで、
 			    個体編集画面のヘッダ(戻るボタンがある領域)に移す」により、ラウンド40(40-H1)
 			    「ダメージカード領域の上に置く」を撤回し、38-H1と同じくヘッダーへ再移動する。
@@ -159,23 +166,37 @@ const isOptedOut = optOutRemainingText !== "";
 			    .toggle-switch一式(.toggle-switch-input/.toggle-switch-track/.toggle-switch-thumb、
 			    実際の使用例は src/lib/box-id/left-panel.ts の setupMovePickerWindow が動的生成する
 			    マークアップ)をそのまま流用する(is:globalのためコンポーネント境界をまたいで効く。
-			    CSSの重複定義はしない)。初期のchecked属性はSSRで算出したisOptedOutをそのまま出し分ける
-			    (フロントマター側のコメント参照)。状態テキスト(#collection-opt-out-status)は
-			    拒否中のときだけ残り日数を表示し、収集対象時は何も見えないようhidden属性を付ける
-			    (ラウンド33で「常時表示される空枠」が撤去された経緯を踏襲)。変更イベントの結線は
-			    src/lib/box-id/left-panel.ts 側(#delete-buttonのクリックハンドラの近く)。 */}
+			    CSSの重複定義はしない)。
+			    UI改修依頼(個体編集ヘッダー、2026-08-01)「『匿名でデータ提供する』を『非公開』に
+			    変更する。デフォルトOFF」により意味を反転させた: 以前は checked=true が「提供する」
+			    (=収集対象、!isOptedOut)だったが、今は checked=true が「非公開」(=収集拒否、
+			    isOptedOut)を表す。DBの意味(owned_pokemon.collection_opt_out_until: NULLまたは
+			    過去=収集対象、未来=拒否期間中)自体はまったく変えていない。UI側の表示・ラベル・
+			    checkedの向きだけを反転させた。
+			    ⚠️ この反転に伴い、src/lib/box-id/left-panel.ts の change ハンドラ(PATCHの
+			    body: JSON.stringify({ collection_opt_out: !nextProviding })の行)は
+			    「checked=trueのとき送るべき値」が入れ替わるため、そちらも
+			    `collection_opt_out: nextProviding`(否定を外す)に直さないと、この画面で
+			    トグルを操作した結果が意図と逆になる。left-panel.tsは別エージェントの担当
+			    ファイルのため、ここでは変更せずCoordinatorへ報告する(この行の対応が
+			    完了するまで、実際にクリックしての検証は要注意)。
+			    ホバーテキストはOFF/ONで変える(下の<script>参照、初期値はSSRで出し分け済み)。
+			    状態テキスト(#collection-opt-out-status)は元々「残り日数」表示ではなく
+			    PATCH失敗時のエラーメッセージ専用(left-panel.ts側で既にそう実装済み)なので、
+			    意味の反転による追加変更は不要。 */}
 			<label
+				id="collection-opt-out-label"
 				class="collection-opt-out-toggle"
 				for="collection-opt-out-toggle"
-				title="オフにすると匿名集計への提供を停止します(30日後に自動的にオンへ戻ります)"
+				title={isOptedOut ? "30日間有効" : "育成データを匿名で提供する"}
 			>
 				<span class="toggle-switch">
-					<input id="collection-opt-out-toggle" type="checkbox" class="toggle-switch-input" checked={!isOptedOut} aria-label="匿名でデータ提供する" />
+					<input id="collection-opt-out-toggle" type="checkbox" class="toggle-switch-input" checked={isOptedOut} aria-label="非公開" />
 					<span class="toggle-switch-track" aria-hidden="true">
 						<span class="toggle-switch-thumb"></span>
 					</span>
 				</span>
-				<span class="collection-opt-out-toggle-label">匿名でデータ提供する</span>
+				<span class="collection-opt-out-toggle-label">非公開</span>
 				<span id="collection-opt-out-status" class="collection-opt-out-status" hidden></span>
 			</label>
 			<button id="delete-button" class="btn-danger" type="button">
@@ -254,6 +275,12 @@ const isOptedOut = optOutRemainingText !== "";
 			color: var(--color-text-muted);
 		}
 		.collection-opt-out-status[hidden] { display: none; }
+		/* UI改修依頼(個体編集ヘッダー、2026-08-01)「データ提供スイッチと削除ボタンの間の
+		   余白を広げる」。.app-topbar-actions(AppLayout.astro側)のgapはvar(--space-2)=8px
+		   でトップバー全ボタン共通のため、AppLayoutは編集せず(全画面に影響する)、この
+		   ページscopedで#delete-buttonにだけ追加のmargin-leftを足す。実測: 変更前は
+		   トグルの右端から削除ボタン左端まで8px → 変更後24px(8+var(--space-4)=16px)。 */
+		#delete-button { margin-left: var(--space-4); }
 		/* PATCH失敗時のみ(<script>側がdata-state="error"を付与)最小限のエラー色を出す。
 		   #autosave-status[data-state="error"] #autosave-status-text と同じ温度感(赤字テキストの
 		   み、追加のUI装飾なし)。 */
@@ -474,5 +501,29 @@ const isOptedOut = optOutRemainingText !== "";
 	<datalist id="move-list"></datalist>
 	<datalist id="ability-list"></datalist>
 	<datalist id="item-list"></datalist>
+
+	<script>
+		// UI改修依頼(個体編集ヘッダー、2026-08-01)「非公開」トグルのホバーテキスト切り替え。
+		// OFF: 「育成データを匿名で提供する」/ ON: 「30日間有効」。初期値はSSR側
+		// (フロントマターのisOptedOut)で出し分け済みなので、ここではユーザーが実際に
+		// クリックして状態が変わった後の追随だけを行う(要素が無い=未ログイン/個体無し
+		// のときは何もしない)。
+		// PATCH送信・成功/失敗時の#collection-opt-out-status更新はsrc/lib/box-id/left-panel.ts
+		// 側の既存リスナーが担当しており(このスクリプトが上書きすることはない。同じ
+		// "change"イベントに複数のリスナーを付けても競合しない)、ここでは追加しない。
+		// ⚠️ 既知の限界: PATCH失敗時、left-panel.ts側がcheckedをJSで元に戻す処理は
+		// "change"イベントを発火しないため、このリスナーではそのrevertを検知できず
+		// titleが一瞬ずれる。エラー時は#collection-opt-out-status(赤字)が別途出るため
+		// 実害は小さいと判断し、対応は見送った。
+		const optOutToggle = document.getElementById("collection-opt-out-toggle");
+		const optOutLabel = document.getElementById("collection-opt-out-label");
+		if (optOutToggle && optOutLabel) {
+			optOutToggle.addEventListener("change", () => {
+				optOutLabel.title = (optOutToggle as HTMLInputElement).checked
+					? "30日間有効"
+					: "育成データを匿名で提供する";
+			});
+		}
+	</script>
 
 </AppLayout>

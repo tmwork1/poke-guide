@@ -1351,6 +1351,14 @@ if (form) {
 	// UI改修依頼(個体編集ヘッダー)により、チェックの意味を「拒否」(true=拒否)から
 	// 「匿名でデータ提供する」(true=提供)へ反転させた。UIのcheckedはずっと「提供する」側の
 	// 意味のまま保ち、サーバーへ送るcollection_opt_out(true=拒否)はその論理否定を送る。
+	//
+	// 🔴 UI改修依頼(2026-08-01)でラベルを「非公開」に変え、**もう一度**意味を反転させた。
+	// checked の意味は「提供する」から「非公開(=収集拒否)」へ戻り、既定はOFF(=提供する)。
+	// そのため送信値は論理否定ではなく checked そのものになる。
+	// ⚠ この行の否定を外し忘れると、UIの表示は新しい意味なのに送信値だけ旧ロジックのまま
+	// になり、「非公開ON」で collection_opt_out:false(=収集対象のまま)が送られる。
+	// 実際にヘッダー担当が実機で踏んで報告した(表示は正しいのにDBが逆になる)。
+	// DBの意味(collection_opt_out_until: NULL/過去=収集対象、未来=拒否期間中)は不変。
 	// あわせて「あとN日」のカウントダウン表示(旧renderOptOutStatus)は撤去し、30日で自動的に
 	// 解除される旨はラベルのtitle属性(box/[id].astro側の静的な説明文)でホバー説明に一本化した。
 	// このステータス要素はPATCH失敗時のエラーメッセージ表示にのみ引き続き使う。
@@ -1360,14 +1368,14 @@ if (form) {
 	if (collectionOptOutToggle) {
 		collectionOptOutToggle.addEventListener("change", () => {
 			void (async () => {
-				const nextProviding = collectionOptOutToggle.checked;
+				const nextOptOut = collectionOptOutToggle.checked; // 「非公開」ON = 収集拒否
 				collectionOptOutToggle.disabled = true;
 				try {
 					const res = await fetch(`/api/owned-pokemon/${encodeURIComponent(ownedPokemonId)}`, {
 						method: "PATCH",
 						credentials: "same-origin",
 						headers: { "Content-Type": "application/json" },
-						body: JSON.stringify({ collection_opt_out: !nextProviding }),
+						body: JSON.stringify({ collection_opt_out: nextOptOut }),
 					});
 					if (!res.ok) throw new Error(`更新に失敗しました (status=${res.status})`);
 					if (collectionOptOutStatusEl) {
@@ -1378,7 +1386,7 @@ if (form) {
 					console.error(err);
 					// 失敗時: チェック状態を元に戻し、#autosave-status[data-state="error"]と同じ
 					// 温度感(最小限の赤字テキストのみ)でエラーを示す。
-					collectionOptOutToggle.checked = !nextProviding;
+					collectionOptOutToggle.checked = !nextOptOut;
 					if (collectionOptOutStatusEl) {
 						collectionOptOutStatusEl.textContent = "更新に失敗しました";
 						collectionOptOutStatusEl.hidden = false;
