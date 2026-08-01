@@ -9,7 +9,7 @@ import { badRequest, isSameOrigin, isValidUuid, jsonResponse, methodNotAllowed, 
 import { getSessionUser } from '../../../lib/user-session';
 import { getSupabaseAdminClient } from '../../../lib/supabase';
 import { validateTeamRequestBody, validateTeamComposition, type TeamCompositionMember, type TeamCompositionViolation } from '../../../lib/team-validation';
-import { deleteTeam, getTeam, replaceTeam } from '../../../lib/team';
+import { deleteTeam, getTeam, replaceTeam, updateTeamPinStatus } from '../../../lib/team';
 import { getOwnedPokemon } from '../../../lib/owned-pokemon';
 import { resolveDexNo } from '../../../lib/species-dex';
 import { teamsRateLimiter } from '../../../lib/rate-limit';
@@ -129,5 +129,49 @@ export async function DELETE({ request, cookies, params }: APIContext): Promise<
   return jsonResponse({ data: { id } }, 200);
 }
 
-export const POST = () => methodNotAllowed(['GET', 'PUT', 'DELETE']);
-export const PATCH = POST;
+// PATCH /api/teams/:id: is_pinnedのみを更新する軽量経路(owned-pokemon.tsのPATCH
+// /api/owned-pokemon/:idと同じ設計。src/pages/api/owned-pokemon/[id].ts参照)。
+// UI改修依頼(チームトップ画面)「ボックス画面と同様にお気に入り機能を追加する」。
+export async function PATCH({ request, cookies, params }: APIContext): Promise<Response> {
+  const user = await getSessionUser(request, cookies);
+  if (!user) return jsonResponse({ error: 'Unauthorized' }, 401);
+
+  if (!isSameOrigin(request)) {
+    return jsonResponse({ error: 'Forbidden' }, 403);
+  }
+
+  const rateLimit = teamsRateLimiter.check(user.id);
+  if (!rateLimit.allowed) {
+    return jsonResponse({ error: 'Too many requests' }, 429);
+  }
+
+  const id = params.id;
+  if (!isValidUuid(id)) return notFound();
+
+  const body = await readRequiredJsonBody<unknown>(request);
+  if (body.response) return body.response;
+
+  // このエンドポイントは { is_pinned: boolean } のみを受け付ける(それ以外のフィールドは
+  // 全項目上書き契約のPUTの役割のため、ここでは受け付けない)。
+  const payload = body.data;
+  const isPlainObject = typeof payload === 'object' && payload !== null && !Array.isArray(payload);
+  const keys = isPlainObject ? Object.keys(payload as object) : [];
+
+  if (!isPlainObject || keys.length !== 1 || keys[0] !== 'is_pinned') {
+    return badRequest('Request body must be exactly { is_pinned: boolean }');
+  }
+
+  const isPinned = (payload as { is_pinned?: unknown }).is_pinned;
+  if (typeof isPinned !== 'boolean') {
+    return badRequest('Request body must be exactly { is_pinned: boolean }');
+  }
+
+  const supabase = await getSupabaseAdminClient();
+  const result = await updateTeamPinStatus(user.id, id, isPinned, supabase);
+  if (!result.ok) return jsonResponse({ error: result.error }, 500);
+  if (!result.data) return notFound();
+
+  return jsonResponse({ team: result.data }, 200);
+}
+
+export const POST = () => methodNotAllowed(['GET', 'PUT', 'PATCH', 'DELETE']);

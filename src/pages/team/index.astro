@@ -9,8 +9,9 @@
 // - 検索・並べ替えは box と同じくクライアント側で完結させる(初回取得後、追加のAPI呼び出しを
 //   発生させない設計を踏襲。GET /api/teams が受け付ける ?sort=/?search= はサーバー側の便宜のため
 //   用意されているが、このページは box と同じ「1回取得してクライアントでフィルタ」方式に揃える)。
-// - 「絞り込み」はツールバーに置かない(docs/plan/pages/team.md 参照。チームに絞る軸が無いため
-//   設計で明示的に外した)。
+// - 「絞り込み」は当初ツールバーに置かない設計だった(docs/plan/pages/team.md 参照。チームに
+//   絞る軸が無いため)が、UI改修依頼(2026-08-01)「ボックス画面と同様にお気に入り機能(フィルタも)
+//   を追加する」により、box/index.astroと同じ「お気に入りのみ表示」の単一トグルのみ追加した。
 // - 一覧カードは体数バッジ(N/6)+メンバーの公式絵ミニサムネイル列を持つ(設計レビューR-12: これが
 //   無いと「複数の構成案を並べて見比べる」というページの存在理由が果たせない)。
 export const prerender = false;
@@ -57,6 +58,24 @@ const user = Astro.locals.user;
 			width: 100%;
 			min-width: 12em;
 			padding-left: 2.1em;
+		}
+
+		/* UI改修依頼(チームトップ画面)「お気に入り機能(フィルタも)を追加する」。
+		   box/index.astroの.favorite-filter-toggleと同じ値をこのページのスコープへ複製する
+		   (新しい値は作っていない。Astroのscoped styleはページをまたいで共有されないため)。 */
+		.favorite-filter-toggle {
+			display: inline-flex;
+			align-items: center;
+			gap: 0.35em;
+		}
+		.favorite-filter-toggle[data-active="true"] {
+			background: var(--color-primary);
+			border-color: var(--color-primary);
+			color: var(--color-primary-contrast);
+		}
+		.favorite-filter-toggle[data-active="true"]:hover:not(:disabled) {
+			background: var(--color-surface);
+			color: var(--color-primary);
 		}
 
 		@media (max-width: 640px) {
@@ -300,6 +319,45 @@ const user = Astro.locals.user;
 			.team-grid .card-team .card-team-delete { transition: none; }
 		}
 
+		/* --- お気に入り(ピン留め)ボタン: box/index.astroの.pin-toggleと同じ「常時可視」方針
+		   (★は状態表示なので誤操作防止のhover限定表示にしない、.card-team-deleteとの違い)。
+		   見た目はこのページの.card-team-delete(28px丸ボタン)と同じ規格を左上に配置し対角にする。
+		   ピン留め中の配色はbox/index.astroの.pin-toggle[data-pinned="true"]と同じ
+		   --color-risky/--color-primary-contrastを使う(新しい値は作らない)。 --- */
+		.team-grid .card-team .card-team-pin {
+			position: absolute;
+			top: var(--space-2);
+			left: var(--space-2);
+			z-index: 2;
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			width: 28px;
+			height: 28px;
+			padding: 0;
+			border-radius: 999px;
+			border: 1px solid var(--color-border);
+			background: var(--color-surface);
+			color: var(--color-text-muted);
+			font-weight: 400;
+			font-size: 0.85rem;
+			line-height: 1;
+			box-shadow: var(--shadow-sm);
+		}
+		.team-grid .card-team .card-team-pin:hover {
+			background: var(--color-surface-alt);
+			color: var(--color-text);
+		}
+		.team-grid .card-team .card-team-pin[data-pinned="true"] {
+			background: var(--color-risky);
+			border-color: var(--color-risky);
+			color: var(--color-primary-contrast);
+		}
+		.team-grid .card-team .card-team-pin[data-pinned="true"]:hover {
+			background: var(--color-risky);
+			color: var(--color-primary-contrast);
+		}
+
 		/* --- メンバーの公式絵ミニサムネイル列(設計レビューR-12): 6枠ぶんを常に描画し、
 		   空き枠は点線の空プレースホルダーとして見せる(「並べて見比べる」目的の要)。 ---
 		   UI改修依頼(チームトップ画面)「配置を1x6→2x3に、アイコンを2倍に」対応:
@@ -409,6 +467,21 @@ const user = Astro.locals.user;
 							</div>
 						</div>
 
+						{/* UI改修依頼(チームトップ画面)「ボックス画面と同様にお気に入り機能(フィルタも)を
+						    追加する」。box/index.astroの.toolbar-favorite/#favorite-filter-toggleと
+						    同じマークアップ・クラス名(下のCSS参照、値も同一)を踏襲する。 */}
+						<div class="toolbar-item toolbar-favorite">
+							<button
+								type="button"
+								id="favorite-filter-toggle"
+								class="favorite-filter-toggle"
+								data-active="false"
+								aria-pressed="false"
+							>
+								<span aria-hidden="true">★</span> お気に入り
+							</button>
+						</div>
+
 						<div class="toolbar-item toolbar-sort">
 							<label class="field-label" for="sort-select">並べ替え</label>
 							<select id="sort-select" class="field-control">
@@ -439,7 +512,7 @@ const user = Astro.locals.user;
 						<div id="no-match-message" class="empty-state" hidden>
 							<p class="empty-state-icon" aria-hidden="true">🔍</p>
 							<p class="empty-state-title">条件に一致するチームがいません</p>
-							<p class="empty-state-hint">検索語を変更してください。</p>
+							<p class="empty-state-hint">検索語や「お気に入りのみ表示」の条件を変更してください。</p>
 						</div>
 					</div>
 				</Fragment>
@@ -480,6 +553,7 @@ const user = Astro.locals.user;
 			id: string;
 			name: string | null;
 			memo: string | null;
+			is_pinned: boolean;
 			created_at: string;
 			updated_at: string;
 			members: TeamMemberEntry[];
@@ -500,10 +574,14 @@ const user = Astro.locals.user;
 			const countBadge = el<HTMLElement>("team-count-badge");
 			const sortSelect = el<HTMLSelectElement>("sort-select");
 			const searchInput = el<HTMLInputElement>("search-input");
+			const favoriteFilterToggle = el<HTMLButtonElement>("favorite-filter-toggle");
 			const addButton = el<HTMLButtonElement>("add-team-button");
 			const ADD_BUTTON_DEFAULT_HTML = addButton.innerHTML;
 
 			let allTeams: Team[] = [];
+			// UI改修依頼(チームトップ画面)「お気に入り機能(フィルタ)を追加する」。
+			// box/index.astroのfavoriteOnlyと同じ単一boolean(絞り込み軸は「お気に入りのみ」だけ)。
+			let favoriteOnly = false;
 
 			// 種族名→imageId(画像用PokeAPI ID)のマップ。一覧の初回描画(loadList→renderList)は
 			// この解決を待たずに進め、解決済みになった時点で各サムネイルから個別にthenする
@@ -575,6 +653,12 @@ const user = Astro.locals.user;
 					.every((tok) => haystack.includes(tok));
 			}
 
+			// UI改修依頼(チームトップ画面)「お気に入り機能を追加する」。box/index.astroの
+			// matchesFavoriteと同じ(絞り込み軸は「お気に入りのみ」の1つだけ)。
+			function matchesFavorite(t: Team): boolean {
+				return !favoriteOnly || t.is_pinned;
+			}
+
 			// 設計レビューR-14: 名前順ソートでは無題チーム(name=null/空)を末尾にする。
 			function sortTeams(list: Team[]): Team[] {
 				const sort = sortSelect.value;
@@ -590,6 +674,14 @@ const user = Astro.locals.user;
 				} else {
 					sorted.sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
 				}
+				// UI改修依頼(チームトップ画面)「お気に入り機能を追加する」。box/index.astroの
+				// 40-B1/41-B2と同じ理由(round-40.md/round-41.md): 「最終更新順」表示中はピン優先の
+				// 再ソートを外す。お気に入りトグル(toggleTeamPin)はupdated_atに触れない専用PATCH
+				// 経路(updateTeamPinStatus)を使うため、この分岐が無くても更新順の相対位置は動かない
+				// が、box/index.astroとの一貫性のため同じ挙動(更新順表示ではピンを一切優先しない)にする。
+				if (sort !== "updated_at") {
+					sorted.sort((a, b) => Number(b.is_pinned) - Number(a.is_pinned));
+				}
 				return sorted;
 			}
 
@@ -602,6 +694,23 @@ const user = Astro.locals.user;
 				card.href = `/team/${encodeURIComponent(t.id)}`;
 				const name = displayName(t);
 				card.setAttribute("aria-label", `${name} を編集`);
+
+				// UI改修依頼(チームトップ画面)「お気に入り機能を追加する」。box/index.astroの
+				// pinButton(左上・常時可視)と同じ発想。削除ボタン(右上)と対角配置にする。
+				const pinButton = document.createElement("button");
+				pinButton.type = "button";
+				pinButton.className = "card-team-pin";
+				pinButton.dataset.pinned = String(t.is_pinned);
+				pinButton.textContent = t.is_pinned ? "★" : "☆";
+				const pinLabel = t.is_pinned ? "お気に入りを解除する" : "お気に入りにする";
+				pinButton.title = pinLabel;
+				pinButton.setAttribute("aria-label", pinLabel);
+				pinButton.addEventListener("click", (event) => {
+					event.preventDefault();
+					event.stopPropagation();
+					void toggleTeamPin(t);
+				});
+				card.appendChild(pinButton);
 
 				const deleteButton = document.createElement("button");
 				deleteButton.type = "button";
@@ -709,7 +818,9 @@ const user = Astro.locals.user;
 			}
 
 			function renderList(): void {
-				const filtered = allTeams.filter((t) => matchesSearch(t, searchInput.value.trim()));
+				const filtered = allTeams.filter(
+					(t) => matchesSearch(t, searchInput.value.trim()) && matchesFavorite(t),
+				);
 				const sorted = sortTeams(filtered);
 				listRoot.innerHTML = "";
 				// 「本当に0件」(空状態)と「絞り込みで0件」(検索結果なし)を区別する
@@ -728,6 +839,28 @@ const user = Astro.locals.user;
 				const total = allTeams.length;
 				countBadge.textContent = visibleCount === total ? `${total}チーム` : `${visibleCount} / ${total}チーム`;
 				countBadge.hidden = false;
+			}
+
+			// UI改修依頼(チームトップ画面)「お気に入り機能を追加する」。box/index.astroのtogglePinと
+			// 同じ設計: is_pinnedだけを更新する専用PATCH経路(updateTeamPinStatus、src/lib/team.ts)を
+			// 使い、updated_atには触れない。
+			async function toggleTeamPin(t: Team): Promise<void> {
+				try {
+					const res = await fetch(`/api/teams/${encodeURIComponent(t.id)}`, {
+						method: "PATCH",
+						credentials: "same-origin",
+						headers: { "Content-Type": "application/json" },
+						body: JSON.stringify({ is_pinned: !t.is_pinned }),
+					});
+					if (!res.ok) throw new Error(`お気に入りの更新に失敗しました (status=${res.status})`);
+					const body = (await res.json()) as { team: Team };
+					const idx = allTeams.findIndex((x) => x.id === t.id);
+					if (idx !== -1) allTeams[idx] = body.team;
+					renderList();
+				} catch (err) {
+					console.error(err);
+					window.alert("お気に入りの更新に失敗しました。時間をおいて再度お試しください。");
+				}
 			}
 
 			async function deleteTeamCard(t: Team): Promise<void> {
@@ -793,6 +926,12 @@ const user = Astro.locals.user;
 
 			sortSelect.addEventListener("change", renderList);
 			searchInput.addEventListener("input", renderList);
+			favoriteFilterToggle.addEventListener("click", () => {
+				favoriteOnly = !favoriteOnly;
+				favoriteFilterToggle.dataset.active = String(favoriteOnly);
+				favoriteFilterToggle.setAttribute("aria-pressed", String(favoriteOnly));
+				renderList();
+			});
 			addButton.addEventListener("click", () => void createEmptyTeam());
 
 			void loadList();

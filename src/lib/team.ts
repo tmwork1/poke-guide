@@ -32,6 +32,7 @@ export interface TeamRecord {
   user_id: string;
   name: string | null;
   memo: string | null;
+  is_pinned: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -70,7 +71,7 @@ export interface ReplaceTeamInput {
   members: TeamMemberInput[];
 }
 
-const TEAM_COLUMNS = 'id, user_id, name, memo, created_at, updated_at';
+const TEAM_COLUMNS = 'id, user_id, name, memo, is_pinned, created_at, updated_at';
 
 // nickname/species_name/level/nature/ability_name/item_name/tera_type/evs/ivs/move_names は
 // 6枠カードの表示(公式絵・ニックネーム・テラスタイプ・持ち物・技4つ)に必要な列。
@@ -119,6 +120,10 @@ export async function listTeams(
     query = query.ilike('name', `%${term}%`);
   }
 
+  // UI改修依頼(チームトップ画面)「お気に入り機能を追加」。owned-pokemon.tsのlistOwnedPokemonと
+  // 同じ方針: ピン留めは常に上部固定したうえで、そのうえで並び替えキーを適用する
+  // (実際の一覧画面はクライアント側で再ソートするため、この並びはAPIの契約としての一貫性のため)。
+  query = query.order('is_pinned', { ascending: false });
   switch (options.sort) {
     case 'name':
       // 無題チーム(name=null)は末尾(設計レビュー R-14。listOwnedPokemonのnicknameソートと同じ方針)。
@@ -170,6 +175,39 @@ export async function createTeam(userId: string, supabase: SupabaseClient): Prom
     return { ok: false, error: 'Failed to create team' };
   }
   return { ok: true, data: { ...(data as TeamRecord), members: [] } };
+}
+
+// PATCH /api/teams/:id: is_pinnedだけを更新する軽量経路(owned-pokemon.tsのupdatePinStatusと
+// 同じ設計)。PUT(全項目上書き契約)とは別の追加経路であり、PUTの契約は変更しない。updated_atには
+// 一切触れないため、「最終更新順」表示中にこれをトグルしても対象チーム自身の表示順位置が動かない
+// ことを保証する(owned_pokemon側でround-40.md 40-B1→round-41.md 41-B2が撤回した経緯と同じ理由で、
+// 最初からupdated_atに触れない設計にする)。
+// owned_pokemonのupdatePinStatusと異なりTeamはmembers(team_membersとのjoin)を持つため、
+// UPDATEの.select(TEAM_COLUMNS)だけではmembersを含まないTeamRecordしか返らず、クライアント側の
+// Team型(members必須)と不整合になる(実際にPlaywrightで「更新後、renderCardがt.members.lengthで
+// クラッシュする」実機バグとして確認した)。そのためUPDATE後にgetTeam()で取り直し、
+// 常にmembersを含む完全なTeamを返す(replaceTeamの最終ステップと同じ方針)。
+// 対象が存在しない、または他人の所有物の場合は data: null を返す(0件更新。存在漏洩防止)。
+export async function updateTeamPinStatus(
+  userId: string,
+  id: string,
+  isPinned: boolean,
+  supabase: SupabaseClient,
+): Promise<TeamResult<Team | null>> {
+  const { data, error } = await supabase
+    .from('teams')
+    .update({ is_pinned: isPinned })
+    .eq('id', id)
+    .eq('user_id', userId) // これが無いと他人のチームを更新できてしまう
+    .select('id')
+    .maybeSingle();
+
+  if (error) {
+    logError('updateTeamPinStatus failed', error);
+    return { ok: false, error: 'Failed to update pin status' };
+  }
+  if (!data) return { ok: true, data: null };
+  return getTeam(userId, id, supabase);
 }
 
 // 対象が存在しない、または他人の所有物の場合は false を返す(0件削除。存在漏洩防止)。
