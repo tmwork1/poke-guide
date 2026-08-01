@@ -33,6 +33,15 @@ export interface OwnedCurrentValueEventDetail {
   value: number;
 }
 
+// 追加改修(2026-08-01第2弾)要件4・R-12更新: 「個体が到達可能な実数値の集合」はこのモジュールが
+// 所有し、CustomEventでchart-table.tsへ一方向に通知する(panel→table)。chart-table.tsはこれを
+// 受けて行の表示/非表示を切り替えるだけで、combos自体(このモジュールの内部状態)には触れない。
+export const OWNED_REACHABLE_VALUES_EVENT = 'speed-chart:owned-reachable-values-changed';
+
+export interface OwnedReachableValuesEventDetail {
+  values: number[];
+}
+
 export interface OwnedPanelContext {
   /** index.astro が <script type="application/json"> で埋め込んだレコード全体(R-1)。 */
   ownedRecord: OwnedPokemonRecord;
@@ -71,11 +80,12 @@ const NATURE_EFFECT_MODIFIER: Record<'up' | 'neutral' | 'down', number> = {
 };
 
 export function initOwnedPanel(ctx: OwnedPanelContext): OwnedPanelController {
-  // 個体の「現在値」(性格・S努力値・持ち物)。適用成功時にだけ更新する(R-10: 失敗時は
-  // これらを一切変更しない=← 現在マーカーは動かない)。
-  let currentNature: string | null = ctx.ownedRecord.nature;
-  let currentEvs: number[] = [...ctx.ownedRecord.evs];
-  let currentItem: string | null = ctx.ownedRecord.item_name;
+  // 個体の「現在値」(性格・S努力値・持ち物)。要件2により適用成功後は/box/<id>へ遷移する
+  // ため、これらは初期化後に書き換わらない(以前はR-10「留まって再描画」のためletで更新して
+  // いたが、遷移する設計になったため定数化した)。
+  const currentNature: string | null = ctx.ownedRecord.nature;
+  const currentEvs: number[] = [...ctx.ownedRecord.evs];
+  const currentItem: string | null = ctx.ownedRecord.item_name;
 
   // 到達可能な組み合わせ自体は現在値に依存しない(性格・持ち物の「現在値と同じか」は
   // selectMinimalCostSpeedOption 側のタイブレークでのみ使う)ため、regulation変更を除き
@@ -86,8 +96,7 @@ export function initOwnedPanel(ctx: OwnedPanelContext): OwnedPanelController {
     scarfModifier: ctx.scarfModifier,
   });
 
-  const cellsByValue = new Map<number, HTMLElement>();
-  let currentValue = computeCurrentValue();
+  const currentValue = computeCurrentValue();
 
   function usesScarfNow(): boolean {
     return !!ctx.scarfModifier && !!ctx.scarfItemName && currentItem === ctx.scarfItemName;
@@ -132,10 +141,12 @@ export function initOwnedPanel(ctx: OwnedPanelContext): OwnedPanelController {
     );
   }
 
-  function repaintAllCells(): void {
-    for (const [value, el] of cellsByValue) {
-      paintCell(value, el);
-    }
+  function dispatchReachableValuesChanged(): void {
+    document.dispatchEvent(
+      new CustomEvent<OwnedReachableValuesEventDetail>(OWNED_REACHABLE_VALUES_EVENT, {
+        detail: { values: combos.map((combo) => combo.value) },
+      }),
+    );
   }
 
   function paintCell(rowValue: number, el: HTMLElement): void {
@@ -240,15 +251,10 @@ export function initOwnedPanel(ctx: OwnedPanelContext): OwnedPanelController {
       return;
     }
 
-    // 成功: 内部状態(panelが所有)を更新し、現在値・サマリ・全セルを再描画する。
-    // 成功後もページに留まり続けて別の行を適用できる(R-10)。
-    currentNature = validated.value.nature;
-    currentEvs = appliedEvs;
-    currentItem = validated.value.itemName;
-    currentValue = computeCurrentValue();
-    updateSummary();
-    repaintAllCells();
-    dispatchCurrentValueChanged();
+    // 要件2(2026-08-01第2弾): 適用成功後は個体編集画面(/box/<id>)へ戻る。
+    // R-10で決めた「成功後もページに留まり続けて別の行を適用できる」はユーザー指示により撤回。
+    // 内部状態の更新・再描画は不要(このままページ遷移する)。
+    window.location.href = `/box/${ctx.ownedRecord.id}`;
   }
 
   updateSummary();
@@ -257,13 +263,14 @@ export function initOwnedPanel(ctx: OwnedPanelContext): OwnedPanelController {
   // 空のため)、以後の状態変化(適用成功時)を検知するリスナーを初期化前に登録しても
   // 一貫した経路になるようここでも発火させておく。
   dispatchCurrentValueChanged();
+  // 要件4: 到達可能な実数値の集合をchart-table.tsへ通知する(初期表示のデフォルトフィルタに使う)。
+  dispatchReachableValuesChanged();
 
   return {
     getCurrentValue: () => currentValue,
     renderCell(rowValue: number): HTMLElement {
       const el = document.createElement('div');
       el.className = 'speed-chart-owned';
-      cellsByValue.set(rowValue, el);
       paintCell(rowValue, el);
       return el;
     },

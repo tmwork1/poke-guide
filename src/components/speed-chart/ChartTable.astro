@@ -39,6 +39,17 @@ const { regulation, regulations, ownedId, hasOwnedPanel } = Astro.props;
 		{hasOwnedPanel && (
 			<button type="button" id="speed-chart-back-to-current" class="btn-ghost toolbar-item">現在地へ戻る</button>
 		)}
+		{hasOwnedPanel && (
+			<label class="toolbar-item speed-chart-reachable-toggle">
+				<span class="toggle-switch">
+					<input type="checkbox" id="speed-chart-reachable-only-toggle" class="toggle-switch-input" checked aria-label="とりうるすばやさのみ" />
+					<span class="toggle-switch-track" aria-hidden="true">
+						<span class="toggle-switch-thumb"></span>
+					</span>
+				</span>
+				<span>とりうるすばやさのみ</span>
+			</label>
+		)}
 	</div>
 
 	<OwnedPanel hasOwnedPanel={hasOwnedPanel} />
@@ -91,6 +102,55 @@ const { regulation, regulations, ownedId, hasOwnedPanel } = Astro.props;
 		}
 	}
 
+	/* 要件4のトグルスイッチ。既存の.toggle-switch一式(src/components/box-id/LeftPanel.astro の
+	   <style is:global>)をそのまま流用する設計だが、LeftPanel.astro・global.cssはこのページの
+	   編集許可ファイルに含まれず、かつAstroのscoped styleはコンポーネントをまたいで共有されない
+	   ため、同じクラス名・同じ値でこのファイル内に複製する(新しいトグル部品を作るのではなく、
+	   既存の意匠をそのまま再現する)。checked状態・changeイベント・aria-labelの扱いは
+	   left-panel.tsのsetupMovePickerWindowと同じ(見た目のみの複製)。 */
+	.speed-chart-reachable-toggle {
+		cursor: pointer;
+		font-size: var(--font-size-xs);
+		color: var(--color-text-muted);
+		white-space: nowrap;
+	}
+	.toggle-switch { position: relative; display: inline-flex; align-items: center; width: 38px; height: 20px; flex-shrink: 0; }
+	.toggle-switch-input {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		margin: -1px;
+		padding: 0;
+		overflow: hidden;
+		clip: rect(0 0 0 0);
+		white-space: nowrap;
+		border: 0;
+		cursor: pointer;
+	}
+	.toggle-switch-track {
+		position: absolute;
+		inset: 0;
+		border-radius: 999px;
+		background: var(--color-border);
+		border: 1px solid var(--color-border);
+		transition: background-color 0.15s ease, border-color 0.15s ease;
+		pointer-events: none;
+	}
+	.toggle-switch-thumb {
+		position: absolute;
+		top: 2px;
+		left: 2px;
+		width: 16px;
+		height: 16px;
+		border-radius: 50%;
+		background: #ffffff;
+		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+		transition: transform 0.15s ease;
+	}
+	.toggle-switch-input:checked + .toggle-switch-track { background: var(--color-primary); border-color: var(--color-primary); }
+	.toggle-switch-input:checked + .toggle-switch-track .toggle-switch-thumb { transform: translateX(18px); }
+	.toggle-switch-input:focus-visible + .toggle-switch-track { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+
 	/* 見出し行(実数値/ポケモン/この個体)。R-13の列幅目安(80/780/220)にJS生成行と揃える。 */
 	.speed-chart-columns-header {
 		display: grid;
@@ -135,21 +195,49 @@ const { regulation, regulations, ownedId, hasOwnedPanel } = Astro.props;
 	.speed-chart-table .speed-chart-group-cell {
 		min-width: 0;
 	}
-	.speed-chart-table .speed-chart-groups {
+	/* 追加改修(2026-08-01第2弾)要件3: 1つの実数値行を必ず2段(文字1段+アイコン1段)にする。
+	   以前は「振り方+補正」のグループごとに見出し+アイコン行を積んでいた(最大10段超・
+	   高さ100〜400px超のばらつき)。ラベル群を1段目、チップ群を2段目にまとめ、両者の対応は
+	   「同じグループ順に並べる」ことで表す(この画面固有の解釈。speed-chart.md参照)。 */
+	.speed-chart-table .speed-chart-row-content {
 		display: flex;
 		flex-direction: column;
-		gap: var(--space-2);
+		gap: 0.3rem;
 	}
-	.speed-chart-table .speed-chart-group-heading {
+	/* 要件3の不具合修正(2026-08-01): ラベル段も必ず1行に収める。以前はwrapしており
+	   4行がラベル段だけで2行以上に折り返していた。ラベルは落とすと意味が分からなくなるため
+	   足切り(+N件)ではなく、白紙のまま隠すのではなく「…」で省略されたことが分かる形にする
+	   (text-overflow: ellipsisは黙って隠すのではなく視覚的な省略の印を残す)。 */
+	.speed-chart-table .speed-chart-labels-row {
 		font-size: var(--font-size-xs);
-		font-weight: 700;
 		color: var(--color-text-muted);
-		margin-bottom: 0.2rem;
+		line-height: 1.4;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
 	}
-	.speed-chart-table .speed-chart-chips {
+	.speed-chart-table .speed-chart-label-group {
+		font-weight: 700;
+		color: var(--color-text);
+	}
+	.speed-chart-table .speed-chart-chips-row {
 		display: flex;
 		flex-wrap: wrap;
+		align-items: center;
 		gap: 0.4rem;
+	}
+	.speed-chart-table .speed-chart-chip-overflow {
+		display: inline-flex;
+		align-items: center;
+		font-size: var(--font-size-xs);
+		color: var(--color-text-muted);
+		white-space: nowrap;
+		padding: 0.1rem 0.4rem;
+		/* .speed-chart-chipはアイコン(22px)込みの高さを持つため、アイコンを持たないこの
+		   バッジは同じpaddingでも本文の行の高さぶん低くなる。同じflex行に並んだときの
+		   垂直中央位置(align-items: center)がチップとズレて「別の行」と誤認されない
+		   ように、.speed-chart-chip-iconと同じ22pxをline-heightとして与えて高さを揃える。 */
+		line-height: 22px;
 	}
 	.speed-chart-table .speed-chart-chip {
 		display: inline-flex;

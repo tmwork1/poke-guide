@@ -524,3 +524,132 @@ export function buildAppliedEvs(currentEvs: number[], evSpe: number): number[] {
   next[5] = evSpe;
   return next;
 }
+
+// ============================================================================
+// 追加改修(2026-08-01 ユーザー指示・第2弾)
+// 要件1: ポケモンを使用率順に並べる / 要件3: 使用率で足切り / 要件4: 到達可能値でのフィルタ
+// 出典: docs/plan/pages/speed-chart.md「追加改修(2026-08-01 ユーザー指示・第2弾)」。
+// ============================================================================
+
+/**
+ * 種族(フォルム)名 -> レギュレーション別の延べ使用数(ranked_team_membersでの出現数)。
+ * suggestions(持ち物・技の種族"内"採用率)とは別の指標。使用実績が無いフォルムはキー自体が
+ * 存在しない(=使用率0として扱う。要件1)。呼び出し側(index.astro)がSSRで集計して渡す。
+ */
+export type SpeciesUsageCounts = Record<string, number>;
+
+/**
+ * 要件1/3で共有する比較関数: 使用率(延べ数)降順 → すばやさ種族値降順 → 種族名昇順。
+ * 使用率0のフォルムが名前順で固まるのを避けるため種族値を第2キーにする(要件1確定仕様)。
+ */
+function compareByUsageThenBaseSpeedThenName(
+  a: string,
+  b: string,
+  usageCounts: SpeciesUsageCounts | undefined,
+  baseSpeedByName: Map<string, number>,
+): number {
+  const usageA = usageCounts?.[a] ?? 0;
+  const usageB = usageCounts?.[b] ?? 0;
+  if (usageA !== usageB) return usageB - usageA;
+  const baseSpeedA = baseSpeedByName.get(a) ?? 0;
+  const baseSpeedB = baseSpeedByName.get(b) ?? 0;
+  if (baseSpeedA !== baseSpeedB) return baseSpeedB - baseSpeedA;
+  return a.localeCompare(b, 'ja');
+}
+
+/**
+ * 要件1: 「ポケモンは使用率順に並べる」。1グループ内のフォルム名配列を、使用率降順→
+ * すばやさ種族値降順→種族名昇順で並び替える(行そのものの並び=実数値の降順は変えない。
+ * 適用範囲はあくまで行内のチップの並びだけ)。
+ */
+export function sortFormNamesByUsage(
+  formNames: string[],
+  usageCounts: SpeciesUsageCounts | undefined,
+  baseSpeedByName: Map<string, number>,
+): string[] {
+  return [...formNames].sort((a, b) => compareByUsageThenBaseSpeedThenName(a, b, usageCounts, baseSpeedByName));
+}
+
+export interface RowChipLimitResult {
+  /** 残すフォルム名(orderedFormNamesの元の順序=グループ順+グループ内使用率順を維持)。 */
+  kept: string[];
+  /** 落とした件数(0 = 足切りなし)。 */
+  droppedCount: number;
+}
+
+/**
+ * 要件3の不具合修正(2026-08-01): 「入りきらない場合は使用率で足切りする」を、固定件数
+ * ではなく行ごとの実際のチップ合計幅で判定する。
+ *
+ * 【直した不具合】 以前は measureChipCapacity がサンプル1個(母集団の最初の1件)のチップ幅から
+ * 「全行共通の固定件数」を算出していた。チップ幅はポケモン名の長さで大きく変わる
+ * (例:「プテラ」 vs 「ニャオニクス(オス)」)ため、名前の長いフォルムを含む行では
+ * 固定件数のままだと実際の合計幅がコンテナ幅を超えて折り返していた(94行が2〜5行に折り返し、
+ * 一方で+N件の表示はわずか6行だった=足切りがほとんど発動していなかった)。
+ *
+ * 【アルゴリズム】 chipWidthByName・gapWidth・containerWidth・overflowBadgeWidth は
+ * すべて呼び出し側(chart-table.ts)が事前に(描画とは別フェーズで)実測してキャッシュした値を
+ * 渡す(この関数自身はDOM測定を一切行わない純粋関数)。
+ *   1. 全フォルムを使用率降順(→種族値降順→名前昇順)でランク付けする。
+ *   2. 全件の合計幅(gap込み・バッジ抜き)がcontainerWidthに収まるならそのまま全件残す。
+ *   3. 収まらない場合は「バッジは必ず出る」ことが確定するので、バッジとその左gapの分を
+ *      containerWidthから引いた予算(budget)に対し、使用率上位から順に1件ずつ
+ *      (自身の幅+区切りgap)を加算していき、budgetを超えた時点で打ち切る
+ *      (合計幅は並べる順序によらず一定なので、「使用率上位から入るだけ入れる」で
+ *      「入りきる最大件数」が求まる)。
+ * 1件も収まらない極端なケースでも安全側として最低1件は残す。
+ */
+export function limitRowChipsByWidth(
+  orderedFormNames: string[],
+  usageCounts: SpeciesUsageCounts | undefined,
+  baseSpeedByName: Map<string, number>,
+  chipWidthByName: ReadonlyMap<string, number>,
+  gapWidth: number,
+  containerWidth: number,
+  overflowBadgeWidth: number,
+): RowChipLimitResult {
+  if (orderedFormNames.length === 0) return { kept: [], droppedCount: 0 };
+
+  const ranked = [...orderedFormNames].sort((a, b) =>
+    compareByUsageThenBaseSpeedThenName(a, b, usageCounts, baseSpeedByName),
+  );
+  const widthOf = (name: string): number => chipWidthByName.get(name) ?? 0;
+
+  const totalWidthAll = ranked.reduce(
+    (sum, name, index) => sum + widthOf(name) + (index === 0 ? 0 : gapWidth),
+    0,
+  );
+  if (totalWidthAll <= containerWidth) {
+    return { kept: [...orderedFormNames], droppedCount: 0 };
+  }
+
+  // ここに来た時点で「+N件」バッジは必ず表示される。バッジ自身の幅+区切りgapを
+  // 先に予算から引いておく(バッジを足したせいで溢れることを防ぐ。要件3注意書き)。
+  const budget = containerWidth - gapWidth - overflowBadgeWidth;
+  let widthSoFar = 0;
+  let keepCount = 0;
+  for (let i = 0; i < ranked.length; i++) {
+    const additionalGap = i === 0 ? 0 : gapWidth;
+    const widthWithThis = widthSoFar + additionalGap + widthOf(ranked[i]);
+    if (widthWithThis > budget) break;
+    widthSoFar = widthWithThis;
+    keepCount = i + 1;
+  }
+  keepCount = Math.max(1, keepCount);
+
+  const keepSet = new Set(ranked.slice(0, keepCount));
+  const kept = orderedFormNames.filter((name) => keepSet.has(name));
+  return { kept, droppedCount: orderedFormNames.length - kept.length };
+}
+
+/**
+ * 要件4: 「個体編集画面から遷移した場合、とりうるすばやさ以外をデフォルトで非表示にする」。
+ * reachableValues は enumerateReachableSpeedValues(...).map(c => c.value) から作った
+ * Set を渡す(個体の現在値も combos の直積に必ず含まれるため、← 現在の行も自動的に残る)。
+ */
+export function filterRowsByReachableValues(
+  rows: SpeedChartRow[],
+  reachableValues: ReadonlySet<number>,
+): SpeedChartRow[] {
+  return rows.filter((row) => reachableValues.has(row.value));
+}

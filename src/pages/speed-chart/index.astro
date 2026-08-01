@@ -93,6 +93,91 @@ try {
 	// eslint-disable-next-line no-console
 	console.error('[speed-chart] failed to load adoption rate data', err);
 }
+
+// ============================================================================
+// 追加改修(2026-08-01 ユーザー指示・第2弾) 要件1: 種族(フォルム)ごとの使用率
+// ============================================================================
+// ranked_team_members から「レギュレーション別の延べ使用数」を集計する。suggestions
+// (持ち物・技の種族"内"採用率、上のadoptionByRegulation)とは別の指標であり、既存データには
+// 無いため新規に集計する。season → regulation の対応は season_regulations(migrations/013)が
+// 唯一の正なので、アプリ側に対応表を複製せずこのテーブルを都度引く。
+//
+// 【計画からの既知の乖離: 実測で判明した技術的制約】
+// 当初の設計は「SSRの1クエリ(GROUP BYはDB側)、suggestions取得と合わせて2クエリまで」
+// だったが、実装時に次の2点をローカルSupabaseに対して実測し、達成できないことを確認した。
+//   1. PostgRESTの集約関数(count()等)は既定で無効("Use of aggregate functions is not
+//      allowed")。GROUP BYをDB側だけで完結させるにはRPC/ビューの追加(=マイグレーション)が
+//      要るが、今回の変更はmigrations/を編集禁止のため選べない。
+//   2. supabase/config.tomlのmax_rows=1000により、ranked_team_members全件(実測6,241件)は
+//      1クエリで取得できない(Rangeで0-9999を指定しても実際には0-999/1000件で打ち切られる
+//      ことを実測確認済み)。max_rows自体もこのページの編集許可ファイルに含まれないため
+//      変更できない。
+// 結果として season_regulations(1クエリ) + ranked_team_membersのページング(実測7回)の
+// 計8クエリになる。1回あたり最大1000行・species_keyと季節名の2列だけを読む軽量なクエリで
+// あり、種族ごとに311回fetchするN+1構成ではない点は当初の懸念(Workers CPU制約)を大きく
+// 下回るはずだが、「2クエリまで」という数値目標そのものは未達であることをここに明記する。
+// 将来 season_regulations とranked_team_membersを結んだ集計RPC/ビューを追加できるように
+// なったら、このブロックを1クエリに置き換えること。
+interface SeasonRegulationRow {
+	season: string;
+	regulation: string;
+}
+interface RankedTeamMemberUsageRow {
+	species_key: string | null;
+	ranked_teams: { season: string } | { season: string }[] | null;
+}
+
+const speciesUsageByRegulation: Record<string, Record<string, number>> = {};
+try {
+	const publicClient = await getSupabasePublicClient();
+
+	const { data: seasonRows, error: seasonError } = await publicClient
+		.from('season_regulations')
+		.select('season, regulation');
+	if (seasonError) throw seasonError;
+	const regulationBySeason = new Map(((seasonRows ?? []) as SeasonRegulationRow[]).map((r) => [r.season, r.regulation]));
+
+	const PAGE_SIZE = 1000;
+	const allMemberRows: RankedTeamMemberUsageRow[] = [];
+	const first = await publicClient
+		.from('ranked_team_members')
+		.select('species_key, ranked_teams(season)', { count: 'exact' })
+		.range(0, PAGE_SIZE - 1);
+	if (first.error) throw first.error;
+	allMemberRows.push(...((first.data ?? []) as RankedTeamMemberUsageRow[]));
+	const total = first.count ?? allMemberRows.length;
+
+	if (total > PAGE_SIZE) {
+		const pageStarts: number[] = [];
+		for (let from = PAGE_SIZE; from < total; from += PAGE_SIZE) pageStarts.push(from);
+		const pages = await Promise.all(
+			pageStarts.map((from) =>
+				publicClient
+					.from('ranked_team_members')
+					.select('species_key, ranked_teams(season)')
+					.range(from, from + PAGE_SIZE - 1),
+			),
+		);
+		for (const page of pages) {
+			if (page.error) throw page.error;
+			allMemberRows.push(...((page.data ?? []) as RankedTeamMemberUsageRow[]));
+		}
+	}
+
+	for (const row of allMemberRows) {
+		if (!row.species_key) continue;
+		const seasonEntry = Array.isArray(row.ranked_teams) ? row.ranked_teams[0] : row.ranked_teams;
+		const season = seasonEntry?.season;
+		if (!season) continue;
+		const regulation = regulationBySeason.get(season);
+		if (!regulation) continue;
+		const bucket = (speciesUsageByRegulation[regulation] ??= {});
+		bucket[row.species_key] = (bucket[row.species_key] ?? 0) + 1;
+	}
+} catch (err) {
+	// eslint-disable-next-line no-console
+	console.error('[speed-chart] failed to load species usage data', err);
+}
 ---
 <AppLayout
 	title="すばやさ早見表"
@@ -112,6 +197,7 @@ try {
 	    このレコード全体をspreadしてからnature/evs/item_nameの3項目だけ上書きしてPUTする。 */}
 	<script type="application/json" id="speed-chart-config" set:html={JSON.stringify(speedChartConfig)} />
 	<script type="application/json" id="speed-chart-adoption-data" set:html={JSON.stringify(adoptionByRegulation)} />
+	<script type="application/json" id="speed-chart-usage-data" set:html={JSON.stringify(speciesUsageByRegulation)} />
 	{hasOwnedPanel && (
 		<script type="application/json" id="speed-chart-owned-record" set:html={JSON.stringify(ownedRecord)} />
 	)}

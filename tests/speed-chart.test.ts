@@ -19,19 +19,23 @@ import {
   buildSpeedChartPopulation,
   buildSpeedChartRows,
   enumerateReachableSpeedValues,
+  filterRowsByReachableValues,
   findUnknownDisabledModifierNames,
   getEffectiveSpeedModifiers,
   getNatureSpeedEffect,
   isAdoptedByRate,
   isAdoptionRateFilterActive,
+  limitRowChipsByWidth,
   pickNatureNameForSpeedEffect,
   selectMinimalCostSpeedOption,
+  sortFormNamesByUsage,
   SPEED_SPREADS,
   type AdoptionRateConfig,
   type AdoptionRateData,
   type EffectiveSpeedModifier,
   type SpeedChartConfig,
   type SpeedChartForm,
+  type SpeedChartRow,
   type SpeedModifiersData,
   type SpeedModifierMultiplier,
   type SpeedModifierRank,
@@ -576,5 +580,155 @@ describe('buildAppliedEvs', () => {
     const next = buildAppliedEvs(current, 32);
     assert.deepEqual(next, [4, 252, 0, 0, 0, 32]);
     assert.deepEqual(current, [4, 252, 0, 0, 0, 252], '元の配列を変更してはいけない');
+  });
+});
+
+// ------------------------------------------------------------------------------------------
+// 追加改修(2026-08-01 ユーザー指示・第2弾)要件1: sortFormNamesByUsage
+// ------------------------------------------------------------------------------------------
+describe('sortFormNamesByUsage(要件1: 使用率降順→すばやさ種族値降順→種族名昇順)', () => {
+  const baseSpeedByName = new Map<string, number>([
+    ['ガブリアス', 102],
+    ['ブリジュラス', 98],
+    ['ミミッキュ', 96],
+    ['カバルドン', 55],
+    ['アシレーヌ', 62],
+  ]);
+
+  it('使用率(延べ数)の降順に並ぶ', () => {
+    const usage = { ガブリアス: 114, ブリジュラス: 92, ミミッキュ: 83 };
+    const sorted = sortFormNamesByUsage(['ミミッキュ', 'ガブリアス', 'ブリジュラス'], usage, baseSpeedByName);
+    assert.deepEqual(sorted, ['ガブリアス', 'ブリジュラス', 'ミミッキュ']);
+  });
+
+  it('使用率が同じ(または両方未使用)ときはすばやさ種族値の降順になる', () => {
+    // カバルドン・アシレーヌはusageデータに含まれない(=0扱い)。種族値はアシレーヌ(62)>カバルドン(55)。
+    const usage = { ガブリアス: 100 };
+    const sorted = sortFormNamesByUsage(['カバルドン', 'アシレーヌ'], usage, baseSpeedByName);
+    assert.deepEqual(sorted, ['アシレーヌ', 'カバルドン']);
+  });
+
+  it('使用率・すばやさ種族値の両方が同じときは種族名の昇順になる', () => {
+    const speedByName = new Map<string, number>([
+      ['ピカチュウ', 90],
+      ['カイリュー', 90],
+    ]);
+    const sorted = sortFormNamesByUsage(['カイリュー', 'ピカチュウ'], undefined, speedByName);
+    assert.deepEqual(sorted, ['カイリュー', 'ピカチュウ'], '「カ」<「ピ」の辞書順');
+  });
+
+  it('usageCountsがundefinedのときは全て使用率0として扱われ、すばやさ種族値降順になる', () => {
+    const sorted = sortFormNamesByUsage(['カバルドン', 'ガブリアス', 'ミミッキュ'], undefined, baseSpeedByName);
+    assert.deepEqual(sorted, ['ガブリアス', 'ミミッキュ', 'カバルドン']);
+  });
+
+  it('元の配列を変更しない', () => {
+    const original = ['カバルドン', 'ガブリアス'];
+    sortFormNamesByUsage(original, { ガブリアス: 10 }, baseSpeedByName);
+    assert.deepEqual(original, ['カバルドン', 'ガブリアス']);
+  });
+});
+
+// ------------------------------------------------------------------------------------------
+// 要件3の不具合修正(2026-08-01): limitRowChipsByWidth
+// 「サンプル1個の幅から算出した全行共通の固定件数」で足切りしていたのが不具合の原因
+// (名前の長いフォルムを含む行で実際の合計幅がコンテナ幅を超えて折り返していた)。
+// 「行ごとの実際の合計幅」で足切りする新しい実装のテスト。
+// ------------------------------------------------------------------------------------------
+describe('limitRowChipsByWidth(要件3不具合修正: 実際の合計幅で足切り)', () => {
+  const baseSpeedByName = new Map<string, number>([
+    ['A', 100],
+    ['B', 100],
+    ['C', 100],
+    ['D', 100],
+    ['E', 100],
+  ]);
+  const usage = { A: 50, B: 40, C: 30, D: 20, E: 10 };
+  const uniformWidths = new Map<string, number>([
+    ['A', 10],
+    ['B', 10],
+    ['C', 10],
+    ['D', 10],
+    ['E', 10],
+  ]);
+
+  it('全件の合計幅(gap込み)がcontainerWidthに収まるならそのまま返し、droppedCountは0', () => {
+    // A+B+gap1本 = 10+10+2 = 22 = containerWidth ぴったり収まる。
+    const result = limitRowChipsByWidth(['A', 'B'], usage, baseSpeedByName, uniformWidths, 2, 22, 5);
+    assert.deepEqual(result.kept, ['A', 'B']);
+    assert.equal(result.droppedCount, 0);
+  });
+
+  it('収まらない場合は使用率の最下位から落とし、+N件バッジの幅も予算に含める', () => {
+    // 5件(各幅10、gap2)の合計は58。containerWidth=41、badge幅5+区切りgap2を引いた
+    // 予算34に対し、使用率上位から入るだけ入れると A,B,C(=10+2+10+2+10=34)まで収まり、
+    // Dを足すと34+2+10=46で溢れる。
+    const result = limitRowChipsByWidth(['A', 'B', 'C', 'D', 'E'], usage, baseSpeedByName, uniformWidths, 2, 41, 5);
+    assert.deepEqual(result.kept, ['A', 'B', 'C'], '使用率上位3件(A,B,C)が残るべき');
+    assert.equal(result.droppedCount, 2);
+  });
+
+  it('落とされた後も残ったものの相対順序(グループ順)は維持される', () => {
+    // 入力順はグループ順(使用率順とは無関係)。使用率上位のB,C,Dが残り、
+    // 元の並び順(B,C,D)を保ったまま使用率下位のA,Eだけ除外される。
+    const usageReordered = { A: 5, B: 40, C: 30, D: 20, E: 1 };
+    const result = limitRowChipsByWidth(['B', 'A', 'C', 'E', 'D'], usageReordered, baseSpeedByName, uniformWidths, 2, 41, 5);
+    assert.deepEqual(result.kept, ['B', 'C', 'D'], '元の並び順(B,C,D)を保ったまま使用率下位のA,Eだけ除外');
+    assert.equal(result.droppedCount, 2);
+  });
+
+  it('名前が長く実測幅が大きいフォルムが上位にあると、残せる件数がその分減る(不具合の再現と修正の確認)', () => {
+    // Aだけ幅30(名前の長いフォルムを模す)、他は10。containerWidth=41なので予算は34。
+    // Aだけで30を消費するため、Bを足すと30+2+10=42で溢れ、Aの1件しか残せない
+    // (固定件数方式ならサンプルの幅次第でB,C等も残ってしまい、実際には折り返していた)。
+    const widths = new Map(uniformWidths);
+    widths.set('A', 30);
+    const result = limitRowChipsByWidth(['A', 'B', 'C', 'D', 'E'], usage, baseSpeedByName, widths, 2, 41, 5);
+    assert.deepEqual(result.kept, ['A'], '幅の大きいAだけで予算を使い切るため1件しか残せない');
+    assert.equal(result.droppedCount, 4);
+  });
+
+  it('1件も収まらない極端な場合でも安全側として最低1件は残す', () => {
+    const result = limitRowChipsByWidth(['A', 'B'], usage, baseSpeedByName, uniformWidths, 2, 3, 5);
+    assert.deepEqual(result.kept, ['A'], '使用率トップのAだけは残す(安全側フォールバック)');
+    assert.equal(result.droppedCount, 1);
+  });
+
+  it('空配列を渡すとdroppedCount 0の空配列を返す', () => {
+    const result = limitRowChipsByWidth([], usage, baseSpeedByName, uniformWidths, 2, 41, 5);
+    assert.deepEqual(result.kept, []);
+    assert.equal(result.droppedCount, 0);
+  });
+});
+
+// ------------------------------------------------------------------------------------------
+// 追加改修(2026-08-01 ユーザー指示・第2弾)要件4: filterRowsByReachableValues
+// ------------------------------------------------------------------------------------------
+describe('filterRowsByReachableValues(要件4: 到達可能な実数値の行だけを残す)', () => {
+  const rows: SpeedChartRow[] = [
+    { value: 150, entries: [] },
+    { value: 140, entries: [] },
+    { value: 130, entries: [] },
+  ];
+
+  it('reachableValuesに含まれる行だけが残る', () => {
+    const filtered = filterRowsByReachableValues(rows, new Set([150, 130]));
+    assert.deepEqual(
+      filtered.map((r) => r.value),
+      [150, 130],
+    );
+  });
+
+  it('reachableValuesが空なら全行が除外される', () => {
+    const filtered = filterRowsByReachableValues(rows, new Set());
+    assert.equal(filtered.length, 0);
+  });
+
+  it('rowsの並び順(実数値の降順)は変えない', () => {
+    const filtered = filterRowsByReachableValues(rows, new Set([150, 140, 130]));
+    assert.deepEqual(
+      filtered.map((r) => r.value),
+      [150, 140, 130],
+    );
   });
 });
