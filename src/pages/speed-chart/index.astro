@@ -184,12 +184,14 @@ try {
 	description="レギュレーション別のすばやさ実数値早見表"
 	current="speed-chart"
 	backHref={backHref}
+	hideTopbar={true}
 >
 	<ChartTable
 		regulation={resolvedRegulation}
 		regulations={REGULATIONS}
 		ownedId={ownedId}
 		hasOwnedPanel={hasOwnedPanel}
+		backHref={backHref}
 	/>
 
 	{/* R-1: 取得したOwnedPokemonRecord全体を<script type="application/json">で埋め込む

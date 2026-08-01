@@ -464,9 +464,10 @@ function groupEntriesIntoBlocks(
   entries: SpeedChartEntry[],
   baseSpeedByName: Map<string, number>,
   usageCounts: SpeciesUsageCounts | undefined,
-  // 要件5(第4弾): OFF(既定)のときは補正ありグループ(modifier !== null)を折りたたむ。
-  // ただしその行の全グループが補正ありの場合(素の実数値では到達しない行)にまで隠すと
-  // 行が完全に空欄になるため、その場合だけ安全側フォールバックとして全グループを表示する。
+  // 要件5(第4弾、2026-08-02修正): OFF(既定)のときは補正ありグループ(modifier !== null)を
+  // 折りたたむ。その行の全グループが補正ありの場合(素の実数値では到達しない行)は、
+  // このブロック自体が空(=空配列)になり、呼び出し側で行そのものが描画されなくなる
+  // (フォールバックしない。理由は下のコメント参照)。
   showBoostFactors: boolean,
 ): RowBlock[] {
   const groups = new Map<string, RowGroup>();
@@ -492,16 +493,21 @@ function groupEntriesIntoBlocks(
     formNames: sortFormNamesByUsage(group.formNames, usageCounts, baseSpeedByName),
   }));
 
-  // 要件5(第4弾): showBoostFactors=falseのときは補正あり(modifier !== null)グループを
-  // 折りたたむ。全グループが補正ありでフィルタの結果が空になる場合だけ、行を空欄にしない
-  // ための安全側フォールバックとして元のorderedGroupsをそのまま使う。
+  // 要件5(2026-08-02実機確認で修正): showBoostFactors=falseのときは補正あり
+  // (modifier !== null)グループを折りたたむ。以前はここで「フィルタの結果が空になる場合は
+  // 元のorderedGroupsへフォールバックする」安全策を取っていたが、この安全策自体が
+  // 「補正なしのグループが1つも無い実数値行(=素の実数値では絶対に到達しない値)」では
+  // トグルをOFFにしても常にON相当の全件表示に戻ってしまい、「トグルが効いていない」という
+  // ユーザー報告の直接の原因になっていた。素の実数値では到達しない行をOFF時に隠さず見せる
+  // ことは「上昇要因の表示/非表示」ではなく「存在しないはずの値を見せる」ことになり、
+  // むしろ誤解を招くため、フォールバックはやめてfilteredGroupsをそのまま使う(空なら
+  // このブロックからは何も描画されない=呼び出し側で行自体が現れなくなる)。
   const filteredGroups = showBoostFactors ? orderedGroups : orderedGroups.filter((group) => group.modifier === null);
-  const visibleGroups = filteredGroups.length > 0 ? filteredGroups : orderedGroups;
 
-  // visibleGroupsをbaseSpeedごとのブロックにまとめ、baseSpeed降順に並べる
-  // (ブロック内のグループ順は元のvisibleGroupsの出現順を維持する)。
+  // filteredGroupsをbaseSpeedごとのブロックにまとめ、baseSpeed降順に並べる
+  // (ブロック内のグループ順は元のfilteredGroupsの出現順を維持する)。
   const blocksByBaseSpeed = new Map<number, RowGroup[]>();
-  for (const group of visibleGroups) {
+  for (const group of filteredGroups) {
     const bucket = blocksByBaseSpeed.get(group.baseSpeed);
     if (bucket) bucket.push(group);
     else blocksByBaseSpeed.set(group.baseSpeed, [group]);
@@ -511,6 +517,20 @@ function groupEntriesIntoBlocks(
     .sort((a, b) => b.baseSpeed - a.baseSpeed);
 }
 
+// UI改修(2026-08-02) 要件5b: 「要因は/で連結表示せず、各ポケモンの下に中央寄せで配置する」
+// 指示、および「実数値356では、110族 最速 x2 最速 x2のように1行目の情報が重複して表示されて
+// いる」という実例への対応。以前は1ブロック(=1族)につき「全グループのバッジ+倍率を' '区切りで
+// 横並び」「全グループの原因を' / '区切りで連結」「全グループのチップをまとめて1行」という
+// 3段構成で、グループ(振り方+補正の組)単位の対応関係が見た目から失われていた
+// (同じ x2 倍率でも原因(グループ)が別なら別々に表示すべきなのに、連結表示のせいで
+// 「x2 x2」のように重複して見えた)。
+// これを、グループごとに独立した「枠のないカード」(.speed-chart-group)にする: バッジ+倍率
+// (.speed-chart-group-meta)→原因(あれば。.speed-chart-group-origin)→そのグループの
+// ポケモンチップ(.speed-chart-chips-row、既存クラスを流用)を縦に積み、中央寄せにする。
+// 族ラベル(◯◯族)は仕様どおりブロック全体で1つだけ(.speed-chart-base-speed-label、
+// 既存クラスのまま先頭に残す)。
+// 参考: docs/ui_proposal/すばやさライン早見表 シーズンM-2(シングルバトル)｜バトルデータベース
+// チャンピオンズ.html の speed-table__header 周辺(各ポケモンをカード状に見せる構造)。
 function buildBlockContent(
   block: RowBlock,
   imageIdByName: Map<string, number>,
@@ -522,66 +542,72 @@ function buildBlockContent(
   const container = document.createElement('div');
   container.className = 'speed-chart-row-content';
 
-  // 1段目: 族(baseSpeed)ラベルを1つだけ出し、そのあとにグループ(振り方+補正の組)を
-  // ' / '区切りで並べる(1行=1baseSpeedになったため、グループごとに「◯◯族」を
-  // 繰り返す必要が無くなった)。
-  const amountsRow = document.createElement('div');
-  amountsRow.className = 'speed-chart-amounts-row';
+  // 族(baseSpeed)ラベルを1つだけ出す(ブロック全体で1つ、現状維持)。
   const baseSpeedLabel = document.createElement('span');
   baseSpeedLabel.className = 'speed-chart-base-speed-label';
   baseSpeedLabel.textContent = `${block.baseSpeed}族`;
-  amountsRow.appendChild(baseSpeedLabel);
+  container.appendChild(baseSpeedLabel);
+
+  // グループ(振り方+補正の組)ごとに独立したカードを縦に積む。
+  const groupsWrap = document.createElement('div');
+  groupsWrap.className = 'speed-chart-groups';
+
   block.groups.forEach((group) => {
-    amountsRow.appendChild(document.createTextNode(' '));
-    amountsRow.appendChild(buildSpreadBadge(group.spreadKind));
+    const groupEl = document.createElement('div');
+    groupEl.className = 'speed-chart-group';
+
+    // バッジ+倍率(このグループのポケモンチップの直上に中央寄せ)。
+    const metaRow = document.createElement('div');
+    metaRow.className = 'speed-chart-group-meta';
+    metaRow.appendChild(buildSpreadBadge(group.spreadKind));
     if (group.modifier) {
-      amountsRow.appendChild(document.createTextNode(` ${formatModifierMagnitude(group.modifier.modifier)}`));
+      metaRow.appendChild(document.createTextNode(` ${formatModifierMagnitude(group.modifier.modifier)}`));
     }
+    groupEl.appendChild(metaRow);
+
+    // 原因(特性名/わざ名/持ち物名)。補正なしグループ(素の実数値)には原因が無いため出さない。
+    if (group.modifier) {
+      const originEl = document.createElement('div');
+      originEl.className = 'speed-chart-group-origin';
+      originEl.textContent = group.modifier.name;
+      groupEl.appendChild(originEl);
+    }
+
+    // このグループのポケモンチップ。グループごとに独立した行になったため、行全体の幅
+    // (chipLayoutMetrics.containerWidth)をそのグループ単独で使える(以前のように他グループと
+    // 幅を分け合う必要はない。groupsWrapがflex-direction: columnで縦に積むため)。
+    const chipsRow = document.createElement('div');
+    chipsRow.className = 'speed-chart-chips-row';
+    const { kept, droppedCount } = chipLayoutMetrics
+      ? limitRowChipsByWidth(
+          group.formNames,
+          usageCounts,
+          baseSpeedByName,
+          chipWidthByName,
+          chipLayoutMetrics.gapWidth,
+          chipLayoutMetrics.containerWidth,
+          chipLayoutMetrics.overflowBadgeWidth,
+        )
+      : { kept: group.formNames, droppedCount: 0 };
+    const keptSet = new Set(kept);
+    for (const formName of group.formNames) {
+      if (!keptSet.has(formName)) continue;
+      chipsRow.appendChild(buildChip(formName, imageIdByName));
+    }
+    // 足切りが起きたグループには必ず可視で件数を示す(黙って切ると「そのポケモンは居ない」と
+    // 誤読されるため。stack.mdの「no silent caps」と同趣旨)。
+    if (droppedCount > 0) {
+      const overflow = document.createElement('span');
+      overflow.className = 'speed-chart-chip-overflow';
+      overflow.textContent = `+${droppedCount}件`;
+      chipsRow.appendChild(overflow);
+    }
+    groupEl.appendChild(chipsRow);
+
+    groupsWrap.appendChild(groupEl);
   });
 
-  // 2段目: 補正を持つグループだけを対象にする(素の実数値のグループには「原因」が無い)。
-  const originsRow = document.createElement('div');
-  originsRow.className = 'speed-chart-origins-row';
-  const groupsWithOrigin = block.groups.filter((group) => group.modifier !== null);
-  groupsWithOrigin.forEach((group, index) => {
-    if (index > 0) originsRow.appendChild(document.createTextNode(' / '));
-    const span = document.createElement('span');
-    span.textContent = group.modifier!.name;
-    originsRow.appendChild(span);
-  });
-
-  // 3段目: このブロック(=このbaseSpeed)のポケモン全員のチップ。行全体の幅
-  // (chipLayoutMetrics.containerWidth)をそのまま使って足切りする(ブロックが横並びだった
-  // 頃の「幅を分け合う」計算は不要になった)。
-  const chipsRow = document.createElement('div');
-  chipsRow.className = 'speed-chart-chips-row';
-  const formNames = block.groups.flatMap((group) => group.formNames);
-  const { kept, droppedCount } = chipLayoutMetrics
-    ? limitRowChipsByWidth(
-        formNames,
-        usageCounts,
-        baseSpeedByName,
-        chipWidthByName,
-        chipLayoutMetrics.gapWidth,
-        chipLayoutMetrics.containerWidth,
-        chipLayoutMetrics.overflowBadgeWidth,
-      )
-    : { kept: formNames, droppedCount: 0 };
-  const keptSet = new Set(kept);
-  for (const formName of formNames) {
-    if (!keptSet.has(formName)) continue;
-    chipsRow.appendChild(buildChip(formName, imageIdByName));
-  }
-  // 足切りが起きた行には必ず可視で件数を示す(黙って切ると「そのポケモンは居ない」と
-  // 誤読されるため。stack.mdの「no silent caps」と同趣旨)。
-  if (droppedCount > 0) {
-    const overflow = document.createElement('span');
-    overflow.className = 'speed-chart-chip-overflow';
-    overflow.textContent = `+${droppedCount}件`;
-    chipsRow.appendChild(overflow);
-  }
-
-  container.append(amountsRow, originsRow, chipsRow);
+  container.appendChild(groupsWrap);
   return container;
 }
 

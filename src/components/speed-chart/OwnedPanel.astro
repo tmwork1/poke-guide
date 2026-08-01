@@ -16,9 +16,6 @@ interface Props {
 const { hasOwnedPanel } = Astro.props;
 ---
 <div class="speed-chart-owned-panel-static">
-	<p class="speed-chart-legend">
-		最速=S上昇性格+努力値32 / 準速=無補正+努力値32 / 無振り=無補正+努力値0 / N族=すばやさ種族値N / xN=ランク・特性・持ち物等による補正後の倍率
-	</p>
 	{hasOwnedPanel && (
 		<div class="speed-chart-owned-summary" id="speed-chart-owned-summary">
 			<span class="speed-chart-owned-summary-label">この個体:</span>
@@ -44,10 +41,6 @@ const { hasOwnedPanel } = Astro.props;
 		background: var(--color-surface-alt);
 		border-bottom: 1px solid var(--color-border);
 		font-size: var(--font-size-sm);
-	}
-	.speed-chart-legend {
-		margin: 0;
-		color: var(--color-text-muted);
 	}
 	.speed-chart-owned-summary {
 		display: flex;

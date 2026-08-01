@@ -13,8 +13,12 @@ interface Props {
 	regulations: readonly string[];
 	ownedId: string | null;
 	hasOwnedPanel: boolean;
+	/** UI改修(2026-08-02): AppLayoutのhideTopbarにより共通トップバーの「戻る」リンクが
+	    出せなくなったため、このツールバー内に同等のリンクを描画する。undefinedのときは
+	    非表示(index.astro側の?owned=有無に連動、backHrefのロジックはindex.astro参照)。 */
+	backHref?: string;
 }
-const { regulation, regulations, ownedId, hasOwnedPanel } = Astro.props;
+const { regulation, regulations, ownedId, hasOwnedPanel, backHref } = Astro.props;
 ---
 <section
 	class="speed-chart-table"
@@ -23,6 +27,31 @@ const { regulation, regulations, ownedId, hasOwnedPanel } = Astro.props;
 	data-has-owned-panel={String(hasOwnedPanel)}
 >
 	<div class="panel panel-top panel-toolbar speed-chart-toolbar">
+		{/* UI改修(2026-08-02): hideTopbarによりAppLayoutの<header class="app-topbar">が
+		    描画されなくなったため、モバイル(900px未満)のサイドバー開閉導線をこのツールバーに
+		    複製する。id="app-sidebar-toggle"はAppLayout.astro末尾のscriptがgetElementByIdで
+		    DOM上の位置を問わず拾うため変更しない(マークアップはAppLayout.astroの
+		    .app-topbar-menu-buttonと完全に同一)。 */}
+		<button
+			type="button"
+			class="speed-chart-toolbar-menu-button btn-ghost"
+			id="app-sidebar-toggle"
+			aria-controls="app-sidebar"
+			aria-expanded="false"
+			aria-label="メニューを開く"
+		>
+			<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+				<line x1="4" y1="7" x2="20" y2="7" />
+				<line x1="4" y1="12" x2="20" y2="12" />
+				<line x1="4" y1="17" x2="20" y2="17" />
+			</svg>
+		</button>
+		{backHref && (
+			<a class="speed-chart-back-link btn-ghost" href={backHref}>
+				<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6" /></svg>
+				戻る
+			</a>
+		)}
 		<div class="toolbar-item toolbar-regulation">
 			<label class="field-label" for="speed-chart-regulation-select">レギュレーション</label>
 			<select id="speed-chart-regulation-select" aria-label="レギュレーション">
@@ -71,7 +100,7 @@ const { regulation, regulations, ownedId, hasOwnedPanel } = Astro.props;
 		<div class="speed-chart-columns-header" aria-hidden="true">
 			<span>実数値</span>
 			<span>ポケモン</span>
-			<span>この個体</span>
+			<span>調整</span>
 		</div>
 		<p id="speed-chart-status" class="speed-chart-status">読み込み中...</p>
 		<div id="speed-chart-rows" class="speed-chart-rows" hidden>
@@ -86,13 +115,23 @@ const { regulation, regulations, ownedId, hasOwnedPanel } = Astro.props;
 </script>
 
 <style>
-	/* ツールバー(静的マークアップ)。/box一覧の.panel-toolbarと同じ横一列の流儀に揃える。 */
+	/* ツールバー(静的マークアップ)。/box一覧の.panel-toolbarと同じ横一列の流儀に揃える。
+	   UI改修(2026-08-02) 要件1: hideTopbarによりAppLayoutの<header class="app-topbar">が
+	   描画されなくなったため、このツールバーがトップバーの代わりを兼ねる。global.cssの
+	   .app-topbarと同じsticky/background/border-bottom/z-indexをここに複製する
+	   (global.cssは編集許可ファイルに含まれないため複製、AppLayout.astroの
+	   コメントと同じ理由)。 */
 	.speed-chart-toolbar {
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
 		gap: var(--space-3) var(--space-6);
 		padding: var(--space-3) var(--space-5);
+		position: sticky;
+		top: 0;
+		z-index: 20;
+		background: var(--color-surface);
+		border-bottom: 1px solid var(--color-border);
 	}
 	.toolbar-item {
 		display: flex;
@@ -113,6 +152,34 @@ const { regulation, regulations, ownedId, hasOwnedPanel } = Astro.props;
 		.toolbar-item {
 			width: 100%;
 		}
+	}
+
+	/* 要件1: モバイル専用ハンバーガー(AppLayout.astroの.app-topbar-menu-buttonと同じ値を複製)。
+	   デスクトップ(900px以上)ではサイドバーが常設のため非表示にする。 */
+	.speed-chart-toolbar-menu-button {
+		padding: var(--space-2);
+		flex-shrink: 0;
+	}
+	@media (min-width: 900px) {
+		.speed-chart-toolbar-menu-button {
+			display: none;
+		}
+	}
+
+	/* 要件1: 「戻る」リンク(AppLayout.astroの.app-topbar-backと同じ値を複製)。 */
+	.speed-chart-back-link {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.3em;
+		font-size: var(--font-size-md);
+		font-weight: 500;
+		text-decoration: none;
+		color: var(--color-text-muted);
+		white-space: nowrap;
+		flex-shrink: 0;
+	}
+	.speed-chart-back-link:hover {
+		color: var(--color-primary);
 	}
 
 	/* 要件4のトグルスイッチ。既存の.toggle-switch一式(src/components/box-id/LeftPanel.astro の
@@ -164,7 +231,7 @@ const { regulation, regulations, ownedId, hasOwnedPanel } = Astro.props;
 	.toggle-switch-input:checked + .toggle-switch-track .toggle-switch-thumb { transform: translateX(18px); }
 	.toggle-switch-input:focus-visible + .toggle-switch-track { outline: 2px solid var(--color-primary); outline-offset: 2px; }
 
-	/* 見出し行(実数値/ポケモン/この個体)。R-13の列幅目安(80/780/220)にJS生成行と揃える。 */
+	/* 見出し行(実数値/ポケモン/調整)。R-13の列幅目安(80/780/220)にJS生成行と揃える。 */
 	.speed-chart-columns-header {
 		display: grid;
 		grid-template-columns: 80px minmax(0, 1fr) 220px;
@@ -176,9 +243,20 @@ const { regulation, regulations, ownedId, hasOwnedPanel } = Astro.props;
 		font-weight: 700;
 		color: var(--color-text-muted);
 	}
+	/* 要件3: 「実数値」列見出しを、対応するデータセル(.speed-chart-value-cell、
+	   text-align: center)と揃える。 */
+	.speed-chart-columns-header span:first-child {
+		text-align: center;
+	}
 	.speed-chart-status {
 		color: var(--color-text-muted);
 		margin: var(--space-4) 0;
+	}
+	/* 要件2: サイドバーと表の間に余白を設ける(/box/[id]の.box-content { padding: 0 var(--space-5); }
+	   と同種)。ツールバー(.speed-chart-toolbar)は要件1で全幅スティッキーにするため対象外、
+	   その下のコンテンツ領域だけに適用する。 */
+	.speed-chart-content {
+		padding: 0 var(--space-5);
 	}
 </style>
 
@@ -221,29 +299,16 @@ const { regulation, regulations, ownedId, hasOwnedPanel } = Astro.props;
 	.speed-chart-table .speed-chart-group-cell {
 		min-width: 0;
 	}
-	/* 追加改修(2026-08-01第2弾)要件3: 1つの実数値行を複数段にする。以前は「振り方+補正」の
-	   グループごとに見出し+アイコン行を積んでいた(最大10段超・高さ100〜400px超のばらつき)。
-	   第3弾(要件1)で「補正量」と「その原因」をさらに別段に分けたため、現在は3段構成
-	   (振り方+種族値+補正量 / 補正の原因 / ポケモンチップ)。全行が同じ3段構成を持つため、
-	   段の中身の有無に関わらず高さは揃う(原因が無い行はorigins-rowが空だが、
-	   min-heightで箱だけ確保する。下記参照)。 */
+	/* UI改修(2026-08-02) 要件5b: 1つの実数値行(1族=1ブロック)は「族ラベル」+
+	   「グループ(振り方+補正の組)ごとのカード群」で構成する。以前はブロック内の全グループの
+	   バッジ/倍率を1段にまとめて' '区切りで横並び、原因を別の1段に' / '区切りで連結していたが、
+	   これだとグループ単位の対応関係(どの倍率がどの原因のものか)が見た目から失われ、
+	   「同じ倍率が重複して見える」不具合の原因になっていた(chart-table.tsのbuildBlockContent
+	   参照)。 */
 	.speed-chart-table .speed-chart-row-content {
 		display: flex;
 		flex-direction: column;
-		gap: 0.3rem;
-	}
-	/* 要件3の不具合修正(2026-08-01第2弾): 各段は必ず1行に収める(折り返さない)。
-	   落とすと意味が分からなくなるため足切り(+N件)ではなく、白紙のまま隠すのではなく
-	   「…」で省略されたことが分かる形にする(text-overflow: ellipsisは黙って隠すのでは
-	   なく視覚的な省略の印を残す)。 */
-	.speed-chart-table .speed-chart-amounts-row {
-		font-size: var(--font-size-xs);
-		font-weight: 700;
-		color: var(--color-text);
-		line-height: 1.4;
-		white-space: nowrap;
-		overflow: hidden;
-		text-overflow: ellipsis;
+		gap: 0.5rem;
 	}
 	/* 2026-08-01追補: 「族」(baseSpeed)ごとに独立した行になったため、行内で複数の族を
 	   区切る縦棒(.speed-chart-group-divider)は不要になった(行の境界そのものが区切りに
@@ -252,20 +317,39 @@ const { regulation, regulations, ownedId, hasOwnedPanel } = Astro.props;
 		color: var(--color-text-muted);
 		font-weight: 700;
 	}
-	/* 追加改修(2026-08-01第3弾)要件1: 補正の原因(特性名/わざ名/持ち物名)の段。
-	   amounts-rowより一段軽い扱い(色を薄く・太字にしない)にして「補正量が主・原因が補足」
-	   という情報の主従を示す。素の実数値だけの行はこの段の中身が空になるが、
-	   全行の高さを均一に保つため(pitfalls.md「未設定スロットは箱を確保しDOMは出さない」)
-	   min-heightで行の高さぶんを常に確保する(空でも高さゼロに潰れない)。 */
-	.speed-chart-table .speed-chart-origins-row {
+	/* グループ(振り方+補正の組)を縦に積むコンテナ。1ブロックに複数グループがあるとき
+	   (例: 同じ族のなかで最速個体と準速個体が混在)、グループごとに独立した「枠のないカード」
+	   として区切って見せる。 */
+	.speed-chart-table .speed-chart-groups {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+	}
+	/* 1グループ=1カード。バッジ+倍率→原因(あれば)→そのグループのポケモンチップの順に、
+	   すべて中央寄せで縦に積む(枠線は付けない=「枠のないカード」)。 */
+	.speed-chart-table .speed-chart-group {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 0.2rem;
+	}
+	.speed-chart-table .speed-chart-group-meta {
+		display: flex;
+		align-items: center;
+		gap: 0.35em;
+		font-size: var(--font-size-xs);
+		font-weight: 700;
+		color: var(--color-text);
+		line-height: 1.4;
+	}
+	/* 原因(特性名/わざ名/持ち物名)。metaより一段軽い扱い(色を薄く・太字にしない)にして
+	   「補正量が主・原因が補足」という情報の主従を示す。補正なしグループ(素の実数値)には
+	   原因が無いため、その場合はこの要素自体を出力しない(chart-table.ts参照)。 */
+	.speed-chart-table .speed-chart-group-origin {
 		font-size: var(--font-size-xs);
 		font-weight: 500;
 		color: var(--color-text-muted);
 		line-height: 1.4;
-		min-height: calc(var(--font-size-xs) * 1.4);
-		white-space: nowrap;
-		overflow: hidden;
-		text-overflow: ellipsis;
 	}
 	/* 要件2: 振り方(最速/準速/無振り)バッジ。既存の配色トークン(primary/success/risky)の
 	   範囲で3種を色分けする(severity-bar・.badgeと同じ「soft背景+strong文字」の組み合わせ。
