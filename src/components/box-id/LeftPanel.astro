@@ -1090,7 +1090,22 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	   ソース順で後にあるこちらのfont-sizeが勝っていた(1.15em→実質1.05em)。font-weightは
 	   ここでは指定していないため.stat-value側の値(700→今回400に変更)がそのまま効く。
 	   font-sizeも他要素と同じ1emに揃える。 */
-	.stat-row-real { text-align: center; font-size: 1em; }
+	/* 🔴 UI改修依頼(個体編集左パネル、2026-08-02)「実数値の数字が行の垂直中心より下に
+	   ズレている」対応。実測(Playwright、getBoundingClientRect、個体
+	   c8680844-dd43-42a4-bdf1-f3de11fe3267、メガリザードンX、H〜D/S全6行で共通)で
+	   判明した原因: .stat-row-real は.stat-value(上記648行目)も同時に持ち、
+	   .stat-value側の margin-top: 0.15em(16px基準で2.4px)が効いていた。この値は
+	   .stat-value が単独の(隣にボタンが無い)文脈で使われていた頃の名残で、ここでは
+	   親の.stat-row-real-wrap(flex, align-items:center)が.stat-speed-chart-link/
+	   placeholder(28px)と並べて中央揃えする構造になっている。margin-topが上側だけに
+	   付くとwrap内での中央揃えの基準がその分下にズレ、結果としてrow中心より1.19px
+	   下に表示されていた(全行で.stat-row centerYとの差分が一致して1.19px)。
+	   margin-top: 0 で打ち消すと、wrap内のalign-items:centerが.stat-row-real
+	   自体の高さ(25.6px、line-height継承)を基準に中央揃えするようになり、
+	   .stat-speed-chart-link(28px、既にrow中心と一致)と同じ中心に揃う
+	   (実測: 修正後は全6行でrow centerYとの差が0.01px以下に縮小、報告参照)。
+	   font-sizeは元々ここで1emに揃えていた指定をそのまま維持する。 */
+	.stat-row-real { text-align: center; font-size: 1em; margin-top: 0; }
 	/* 🔴 UI改修依頼(個体編集左パネル、2026-08-02)「調整ボタンを大きくする」対応。
 	   padding(0.15em 0.5em、実測ライト時8.96×2.24px)・font-size(0.7rem)とも直値だったため、
 	   global.cssの共通スペーシング/フォントサイズトークンに置き換えつつ拡大する:
