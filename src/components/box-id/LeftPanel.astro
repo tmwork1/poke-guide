@@ -50,6 +50,17 @@ const MOVE_SLOTS = [1, 2, 3, 4];
 // S行限定のアイコンリンク用SVG定数(SPEED_CHART_ICON)は不要になった(同じ機能のボタンは
 // ヘッダー側へ移設。下のstat-table内の分岐も撤回済み)。
 
+// 🔴 UI改修依頼(個体編集左パネル、2026-08-02)「H・B・D行の実数値の右に"調整"ボタンを追加する」
+// 対応。id・aria-labelは別エージェント(左パネルの計算ロジック側)が配線するため厳守。
+// 初期状態はdisabled(配線は別エージェントの担当、ここでは骨組みのみ追加する)。
+// A(atk)・C(spa)行には調整ボタンを置かない(下の分岐でこのマップに無いkeyは
+// プレースホルダーへ落ちる)。
+const STAT_ADJUST_BUTTONS: Record<string, { id: string; label: string }> = {
+	hp: { id: "stat-adjust-hp", label: "総合耐久指数(H×B×D÷(B+D))が最大になる努力値配分にする" },
+	def: { id: "stat-adjust-def", label: "物理耐久指数(H×B)が最大になる努力値配分にする" },
+	spd: { id: "stat-adjust-spd", label: "特殊耐久指数(H×D)が最大になる努力値配分にする" },
+};
+
 function statAt(values: number[] | undefined, index: number, fallback: number): number {
 	return values && typeof values[index] === "number" ? values[index] : fallback;
 }
@@ -452,24 +463,23 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 				<span class="stat-table-header-ev-remaining">
 					<span id="ev-remaining" class="ev-remaining tnum"></span>
 				</span>
-				{/* 🔴 UI改修依頼(個体編集左パネル、2026-08-02)「実数値列見出しと値の左右位置ズレ」対応。
-				    従来はこの見出しがプレーンテキスト1個(列幅いっぱいでtext-align:center)だったのに
-				    対し、下の.stat-row-real-wrap(値+「調整」ボタン/プレースホルダーのflexグループ)は
-				    グループ全体を中央寄せしていたため、値の実際の中心位置がボタン幅の半分ぶん
-				    見出しの中心からズレていた(実測で確認)。見出し側にも同じ構造(テキスト+
-				    同一クラスの非表示プレースホルダー)を持たせ、同じ幅・同じgapのグループとして
-				    中央寄せすることで、「実数値」の位置と各行の値の位置が一致するようにする
-				    (.stat-speed-chart-link/.stat-speed-chart-placeholderは新規クラスではなく
-				    既存クラスの再利用。可視テキストは変えていない)。 */}
-				<span class="stat-table-header-real">
-					<span class="stat-table-header-real-label">実数値</span>
-					{/* 🔴 UI改修依頼(個体編集画面、2026-08-02)「S行の"調整"ボタンをアイコンにする」に
-					    伴い、このヘッダー側プレースホルダーもS行(下の.stat-row-real-wrap参照)と
-					    同一のSVGマークアップに揃える。可視テキストが無くなっただけで、幅を一致させて
-					    「実数値」の中心位置をS行の値の中心位置に揃える目的(上のコメント参照)は
-					    変わらないため、アイコンの内容自体は完全に同じものを使う。 */}
-					<span class="stat-speed-chart-link stat-speed-chart-placeholder" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="21" y1="4" x2="14" y2="4"/><line x1="10" y1="4" x2="3" y2="4"/><line x1="21" y1="12" x2="12" y2="12"/><line x1="8" y1="12" x2="3" y2="12"/><line x1="21" y1="20" x2="16" y2="20"/><line x1="12" y1="20" x2="3" y2="20"/><line x1="14" y1="2" x2="14" y2="6"/><line x1="8" y1="10" x2="8" y2="14"/><line x1="16" y1="18" x2="16" y2="22"/></svg></span>
-				</span>
+				{/* 🔴 UI改修依頼(個体編集左パネル、2026-08-02)「H・B・D行にも"調整"ボタンを追加し、
+				    実数値まわりの詰まったレイアウトを整理する」対応。
+				    従来は5列グリッドの5列目に「実数値の数字+gap+ボタン(またはプレースホルダー)」を
+				    同居させており、その同居を成立させるため見出し側にも同じ構造(テキスト+同一クラスの
+				    非表示プレースホルダーSVG)を複製し、幅・gapを揃えることで見出しと値の中心位置を
+				    一致させていた(直前の改修コメント参照)。
+				    今回、ボタン専用の6列目を新設して5列目を「実数値の数字だけ」に単純化したため
+				    (下の.stat-table-header/.stat-rowのgrid-template-columns参照)、この見出しも
+				    5列目のセルにテキスト1個だけを置けばよくなり、5列目セルの幾何中心は見出し・
+				    全行の値のいずれでも一致する(セルを分け合う相手が居なくなったため、幅を
+				    揃えるための複製プレースホルダーという仕組みごと不要になった)。
+				    実測(下の報告参照): ヘッダー「実数値」の中心xと各行.stat-row-real中心xの差は
+				    いずれも0.5px未満。 */}
+				<span class="stat-table-header-real-label">実数値</span>
+				{/* 6列目(ボタン専用列)。見出し側はボタンを持たないため空セル。grid-column:span等で
+				    5列目と合体させると中心が再びズレるため、独立した空セルのまま置く。 */}
+				<span aria-hidden="true"></span>
 			</div>
 			{STAT_LABELS.map(({ key, label: statLabel, short: statShort }, i) => (
 				<div class="stat-row">
@@ -548,46 +558,46 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 							value={statAt(pokemon.evs, i, 0)}
 						/>
 					</div>
-					{/* 🔴 UI改修依頼(個体編集左パネル、2026-08-01)「すばやさ調整ボタンをヘッダーから
-					    削除し、ステータス表のS行・実数値の右に移設する」対応。ヘッダー側の
-					    「すばやさ調整」ボタン(`<a class="btn-ghost" href={`/speed-chart?owned=${pokemon.id}`}>`)は
-					    box/[id].astro側で既に削除済み(Coordinator実施)。同じ遷移先(URL形式は
-					    完全に同一)をS行(key === "spe")の実数値の右にボタンとして復活させる。
-					    H〜D行にはボタンを置かないが、実数値の中心位置が行ごとにずれないよう
-					    全行を同じ.stat-row-real-wrap(flex)で包み、ボタンが無い行には同じ
-					    .stat-speed-chart-linkクラス・同じテキスト("調整")でvisibility:hiddenの
-					    <span>を置く(幅だけ確保するダミー、クリック・フォーカスは受け付けない)。
+					{/* 🔴 UI改修依頼(個体編集左パネル、2026-08-02)「H・B・D行にも"調整"ボタンを追加し、
+					    ステータス表全体のレイアウトを整理する」対応。
+					    従来はH〜D行にボタンを置かず、S行だけ<a>(すばやさ早見表への遷移)を置き、
+					    幅を揃えるためだけの不可視プレースホルダーで残り5行を埋めていた。今回は
+					    H・B・D行にも実際のボタン(初期状態disabled、配線は別エージェントの担当)を
+					    追加するため、そのプレースホルダー方式は維持しつつ対象がA・C行の2行だけに
+					    減る。
+					    このwrap要素(.stat-row-real-wrap)自体は撤去しない: 460px以下のモバイル
+					    レイアウト(下の@media (max-width: 460px)の.stat-row-real-wrap参照、
+					    grid-column:1/-1のflexとしてラベル行の下に字下げ表示する構造)がこの要素と
+					    クラスに依存しているため。デスクトップ幅ではdisplay:contentsにして
+					    このラッパー自身をレイアウトツリーから消し、中の値とボタンを.stat-row
+					    直接の子(=5列目・6列目のグリッドアイテム)にする(867行目付近の
+					    .stat-row .stat-input-controls { display: contents; } と同じ既存の流儀を
+					    踏襲。新しいパラダイムではない)。
 					    valueEl(id=stat-${key})自体・left-panel.tsのrecalcStats/
-					    renderStatsUnavailableのtextContent書き換え対象は変わらない
-					    (ラッパーの子として残すだけ)。 */}
+					    renderStatsUnavailableのtextContent書き換え対象は変わらない。 */}
 					<span class="stat-row-real-wrap">
 						<span id={`stat-${key}`} class="stat-row-real stat-value tnum">(未計算)</span>
-						{/* 🔴 UI改修依頼(個体編集画面、2026-08-02)「S行の"調整"ボタンのテキストを、
-						    調整つまみ(スライダー/tune)アイコンにする」対応。見た目はアイコンのみに
-						    するが、アクセシビリティのためaria-label/titleはそのまま残す(元々
-						    「すばやさ早見表で調整」という遷移先まで含めた説明的な文言だったため、
-						    要件例の「調整」より情報量が多い。テキストが消える=アクセシブルネームの
-						    唯一の情報源がaria-labelになるため、あえて簡略化せず維持する)。
-						    アイコンは外部アイコンライブラリを使わず、このリポジトリ既存のインライン
-						    SVGの流儀(width/height属性+viewBox 0 0 24 24+stroke=currentColor+
-						    stroke-width 2+round系linecap/linejoin、#delete-button等と同じ書式)に
-						    合わせる。中身はLucideの"sliders-horizontal"相当(スライダー3本、
-						    「調整」の意味が視覚的に伝わる)。アイコン自体はaria-hidden="true"
-						    (装飾用、アクセシブルネームは親のaria-labelが担う)。
-						    プレースホルダー側(下記else節)もまったく同じSVGマークアップにする
-						    ことで、実ボタンとプレースホルダーの内容幅を一致させ、H〜D行を含めた
-						    全行で実数値の中心位置が揃う設計(このwrap自体の既存コメント参照)を
-						    崩さない。当たり判定は.stat-speed-chart-linkのCSS変更(下記)で
-						    28×28pxの正方形ボタンにし、実測で確認する。 */}
+						{/* 🔴 UI改修依頼(個体編集画面、2026-08-02)ボタンの中身はS行の既存アイコン
+						    (Lucideの"sliders-horizontal"相当、<line>9本)をそのままコピーする。
+						    aria-hidden="true"(装飾用、アクセシブルネームは親のaria-labelが担う)。 */}
 						{key === "spe" ? (
 							<a
-								class="stat-speed-chart-link"
+								class="stat-speed-chart-link stat-adjust-button"
 								href={`/speed-chart?owned=${pokemon.id}`}
 								aria-label="すばやさ早見表で調整"
 								title="すばやさ早見表で調整"
 							><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="21" y1="4" x2="14" y2="4"/><line x1="10" y1="4" x2="3" y2="4"/><line x1="21" y1="12" x2="12" y2="12"/><line x1="8" y1="12" x2="3" y2="12"/><line x1="21" y1="20" x2="16" y2="20"/><line x1="12" y1="20" x2="3" y2="20"/><line x1="14" y1="2" x2="14" y2="6"/><line x1="8" y1="10" x2="8" y2="14"/><line x1="16" y1="18" x2="16" y2="22"/></svg></a>
+						) : STAT_ADJUST_BUTTONS[key] ? (
+							<button
+								type="button"
+								id={STAT_ADJUST_BUTTONS[key].id}
+								class="stat-adjust-button"
+								disabled
+								aria-label={STAT_ADJUST_BUTTONS[key].label}
+								title={STAT_ADJUST_BUTTONS[key].label}
+							><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="21" y1="4" x2="14" y2="4"/><line x1="10" y1="4" x2="3" y2="4"/><line x1="21" y1="12" x2="12" y2="12"/><line x1="8" y1="12" x2="3" y2="12"/><line x1="21" y1="20" x2="16" y2="20"/><line x1="12" y1="20" x2="3" y2="20"/><line x1="14" y1="2" x2="14" y2="6"/><line x1="8" y1="10" x2="8" y2="14"/><line x1="16" y1="18" x2="16" y2="22"/></svg></button>
 						) : (
-							<span class="stat-speed-chart-link stat-speed-chart-placeholder" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="21" y1="4" x2="14" y2="4"/><line x1="10" y1="4" x2="3" y2="4"/><line x1="21" y1="12" x2="12" y2="12"/><line x1="8" y1="12" x2="3" y2="12"/><line x1="21" y1="20" x2="16" y2="20"/><line x1="12" y1="20" x2="3" y2="20"/><line x1="14" y1="2" x2="14" y2="6"/><line x1="8" y1="10" x2="8" y2="14"/><line x1="16" y1="18" x2="16" y2="22"/></svg></span>
+							<span class="stat-speed-chart-placeholder" aria-hidden="true"></span>
 						)}
 					</span>
 				</div>
@@ -740,7 +750,24 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		   ・4列目(努力値の数値入力)は操作性に直結するため変更しない。5列目も6.2remのまま
 		     据え置く(大きくしたボタンの左右に余白を残すため)。1列目から浮いた4.8pxが
 		     3列目へ移り、スライダーは実測114.3px→119.1pxに広がる。 */
-		grid-template-columns: 4.1rem 2.4rem minmax(0, 1fr) 3.2rem 6.2rem;
+		/* 🔴 UI改修依頼(個体編集左パネル、2026-08-02)「H・B・D行にも"調整"ボタンを追加する。
+		   実数値＋ボタンが詰まっているのでレイアウトを整理する」対応(設計アドバイザー案)。
+		   5列だったグリッドを6列にする。旧5列目(6.2rem)には「実数値の数字+gap+ボタン」が
+		   同居していたが、これをボタン専用の6列目に分離する:
+		     5列目 2.8rem(44.8px) … 実数値の数字だけ。見出し「実数値」(3文字)が折り返さない
+		       下限で、3桁の数値(実測29px前後)も余裕で収まる。
+		     6列目 var(--icon-size-md)(28px) … ボタン専用列。box/index.astro等の.icon-button・
+		       DamageCalcSection.astroの.damage-row-icon-buttonと同じ既存トークンをそのまま
+		       列幅に使うため、新規トークンは作らない。
+		   値とボタンが同じセルを分け合わなくなったことで、ヘッダー「実数値」見出し・各行の値の
+		   中心位置は5列目セルの構造上そのまま一致するようになり、幅合わせ専用の不可視
+		   プレースホルダー(旧.stat-table-header-real/.stat-speed-chart-placeholderのSVGコピー)が
+		   不要になった(マークアップ側コメント・実測は報告参照)。
+		   浮いた分はすべてスライダー列(3列目、1fr)へ回る。実測: スライダー列は約119px→約139pxに
+		   広がる(0〜32の33段階で1段3.6px→4.2px、操作性が改善する)。他の列(1・2・4列目)は
+		   変更しない。⚠️ .stat-table-headerと.stat-rowのgrid-template-columnsは必ず同じ値に
+		   保つこと(下の.stat-row側コメント参照)。 */
+		grid-template-columns: 4.1rem 2.4rem minmax(0, 1fr) 3.2rem 2.8rem var(--icon-size-md);
 		gap: 0.4rem;
 		/* UI統一感レビュー(32-U-B1): 同じ行内の.ev-remaining(「残りN」)が持つ
 		   共通トークンvar(--font-size-xs)(12px)に対し、ここだけ直値0.78rem(12.48px)
@@ -783,20 +810,14 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	.stat-table-header-ev-remaining {
 		text-align: center;
 	}
-	/* 🔴 UI改修依頼(個体編集左パネル、2026-08-02)「実数値列見出しと値の左右位置ズレ」対応。
-	   マークアップ側(上のstat-table-header-real参照)で見出しを「実数値」テキスト+
-	   非表示プレースホルダー(.stat-speed-chart-link相当)の2要素構成に変えたのに合わせ、
-	   下の.stat-row-real-wrapと全く同じレイアウト(flex/center/gap)をこの見出しにも適用する。
-	   これにより両者とも「テキスト+ボタン幅ぶんの余白」を同じ比率で中央寄せするグループになり、
-	   テキストの実際の中心位置が一致する(単純にtext-align:centerのままだと、見出しは
-	   テキスト単体の中心、行側はテキスト+ボタンの中心になり一致しなかった)。 */
-	.stat-table-header-real {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		gap: 0.3rem;
-		min-width: 0;
-	}
+	/* 🔴 UI改修依頼(個体編集左パネル、2026-08-02)「H・B・D行にも"調整"ボタンを追加する。
+	   実数値＋ボタンが詰まっているのでレイアウトを整理する」対応。
+	   旧実装は「実数値」見出しを.stat-table-header-real(flex)でテキスト+非表示プレース
+	   ホルダーの2要素グループにし、下の.stat-row-real-wrap(値+ボタン)と同じ幅・gapで
+	   中央寄せすることで中心位置を無理やり合わせていた。ボタン専用の6列目を新設した今は
+	   この見出しが5列目セルにテキスト1個だけを置けばよくなり(セルを分け合う相手が
+	   居なくなった)、flexラッパー自体が不要になったため撤去する。overflow/ellipsisだけを
+	   引き継ぐ。 */
 	.stat-table-header-real-label {
 		overflow: hidden;
 		text-overflow: ellipsis;
@@ -858,7 +879,9 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		   .stat-table-headerコメント参照。値は必ず同一に保つ)。
 		   🔴 UI改修依頼(個体編集左パネル、2026-08-02 第2弾)により再度変更(理由は上の
 		   .stat-table-headerコメント参照。値は必ず同一に保つ)。 */
-		grid-template-columns: 4.1rem 2.4rem minmax(0, 1fr) 3.2rem 6.2rem;
+		/* 🔴 UI改修依頼(個体編集左パネル、2026-08-02)ボタン専用の6列目を新設(理由は上の
+		   .stat-table-headerコメント参照。値は必ず同一に保つ)。 */
+		grid-template-columns: 4.1rem 2.4rem minmax(0, 1fr) 3.2rem 2.8rem var(--icon-size-md);
 		align-items: center;
 		gap: 0.4rem;
 	}
@@ -1077,14 +1100,19 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	   ⚠️ どちらも.tnum(tabular-nums)を維持しており、桁が変わっても列内でガタつかない
 	   (中央揃えは桁ズレが目立ちやすいため、tabular-numsの維持が特に重要)。 */
 	.stat-row-base { color: var(--color-text-muted); text-align: center; }
-	/* 🔴 UI改修依頼(個体編集左パネル、2026-08-01)「すばやさ調整」ボタンをS行の実数値の右に
-	   追加する。実数値セル(5列目)は.stat-row-real-wrap(flex, justify-content:center)に
-	   置き換え、値(.stat-row-real)とボタン/プレースホルダー(.stat-speed-chart-link)を
-	   横並びで中央寄せする。H〜D行はプレースホルダー(同クラス・同テキストでvisibility:hidden)が
-	   幅を埋めるため、値の中心位置はS行を含む全行で揃う。5列目の幅は上の
-	   grid-template-columnsで確保済み(値の最大幅[3桁tabular-nums実測29px]+gap+
-	   ボタン幅[実測約38px]を実測して算出、詳細は.stat-table-headerのコメント参照)。 */
-	.stat-row-real-wrap { display: flex; align-items: center; justify-content: center; gap: 0.3rem; min-width: 0; }
+	/* 🔴 UI改修依頼(個体編集左パネル、2026-08-02)「H・B・D行にも"調整"ボタンを追加する。
+	   実数値＋ボタンが詰まっているのでレイアウトを整理する」対応。
+	   このラッパー要素自体・クラス名は撤去しない: 460px以下のモバイルレイアウト(下の
+	   @media (max-width: 460px)の.stat-row-real-wrap参照、grid-column:1/-1のflexとして
+	   ラベル列の下に字下げ表示する構造)がこの要素とクラスに依存しているため。
+	   デスクトップ幅では display: contents にしてこのラッパー自身をレイアウトツリーから消し、
+	   中の値(.stat-row-real)とボタン(.stat-adjust-button)を.stat-row直接の子(=5列目・
+	   6列目のグリッドアイテム)にする。これは867行目付近の
+	   .stat-row .stat-input-controls { display: contents; }(460px以下でdisplay:flexに
+	   戻す構成)と同じ既存の流儀の反復であり、新しいパラダイムではない。
+	   flex系のプロパティ(align-items/justify-content/gap)はdisplay:contents時は無視される
+	   が、460px以下の@media側で再びdisplay:flexに戻すため定義自体は残す。 */
+	.stat-row-real-wrap { display: contents; align-items: center; justify-content: center; gap: 0.3rem; min-width: 0; }
 	/* 🔴 UI改修依頼(個体編集画面、2026-08-02)「実数値のフォントを他の要素とそろえる」対応。
 	   このクラスは.stat-value(上記)と同じ要素に同時に付き、詳細度が同じ(0,1,0)のため
 	   ソース順で後にあるこちらのfont-sizeが勝っていた(1.15em→実質1.05em)。font-weightは
@@ -1133,7 +1161,15 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	   5列目の列幅(grid-template-columns 6.2rem)は変更しない(ボタンが縮んだ分は
 	   .stat-row-real-wrap内でjustify-content:centerのまま余白として均等に残るだけで、
 	   値の中心位置がズレることはない)。 */
-	.stat-speed-chart-link {
+	/* 🔴 UI改修依頼(個体編集左パネル、2026-08-02)「H・B・D行にも"調整"ボタンを追加し、4つが
+	   同じ見た目になるようにする」対応。新規に増えるH/B/D行のボタン(<button>、クラスは
+	   stat-adjust-buttonのみ)にも、既存のS行の<a class="stat-speed-chart-link">が持つ枠線・
+	   色・ホバーのルールをそのまま効かせるため、セレクタに.stat-adjust-buttonを追加する
+	   (新しい色・サイズトークンは作らない。S行の<a>は.stat-speed-chart-link stat-adjust-button
+	   の両方のクラスを持つが、stat-speed-chart-linkクラス自体は既存のJS/E2E参照を考慮し
+	   削除しない)。 */
+	.stat-speed-chart-link,
+	.stat-adjust-button {
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
@@ -1153,13 +1189,17 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	   配色方針を踏襲する(新色は作らない)。primaryトークンでのホバー強調は既存の
 	   .stat-speed-chart-link系(旧R-11実装)と同じ考え方。 */
 	.stat-speed-chart-link:hover,
-	.stat-speed-chart-link:focus-visible {
+	.stat-speed-chart-link:focus-visible,
+	.stat-adjust-button:hover:not(:disabled),
+	.stat-adjust-button:focus-visible {
 		color: var(--color-primary);
 		border-color: var(--color-primary);
 		background: var(--color-primary-soft);
 	}
-	/* H〜D行はボタンを置かない。同じクラス・同じテキスト("調整")でvisibility:hiddenにし、
-	   幅だけ確保してS行と実数値の中心位置を揃える(クリック・フォーカスも受け付けない)。 */
+	/* 🔴 UI改修依頼(個体編集左パネル、2026-08-02)A(atk)・C(spa)行には調整ボタンを置かない。
+	   6列目の列幅はgrid-template-columns側で固定済み(var(--icon-size-md))のため、以前のように
+	   同じ内容(SVGコピー)で幅を揃える必要はなく、visibility:hiddenの空<span>を置くだけでよい
+	   (クリック・フォーカスも受け付けない)。 */
 	.stat-speed-chart-placeholder { visibility: hidden; pointer-events: none; }
 	/* ラウンド17指摘(B-5): ヌケニン限定の注記。既定は非表示(hidden属性)、通常種族では
 	   何も増えない(<script>のapplyBaseStats参照)。 */
@@ -1201,8 +1241,13 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		   変わった。デスクトップ側のjustify-content:centerのままだと字下げ表示の意図
 		   (ラベル列の真下から続けて表示)が崩れるため、この460px以下ではラッパー側に
 		   grid-column/padding-leftを移し、内側をflex-startへ変更する
-		   (.stat-row-real自体はもうグリッドアイテムではないため、grid-column指定は不要)。 */
-		.stat-row-real-wrap { grid-column: 1 / -1; justify-content: flex-start; padding-left: 4.6em; }
+		   (.stat-row-real自体はもうグリッドアイテムではないため、grid-column指定は不要)。
+		   🔴 UI改修依頼(個体編集左パネル、2026-08-02)デスクトップ側の基底ルールを
+		   display: contents に変更した(6列グリッドの理由は.stat-table-headerコメント参照)ため、
+		   この460px以下では明示的に display: flex へ戻す(868行目付近の
+		   .stat-row .stat-input-controls と同じ、"display:contentsをこの幅だけ元に戻す"という
+		   既存の流儀を踏襲)。 */
+		.stat-row-real-wrap { display: flex; grid-column: 1 / -1; justify-content: flex-start; padding-left: 4.6em; }
 		.stat-row-real { text-align: left; font-weight: 700; }
 		.stat-row-label { gap: 0.2em; }
 	}
