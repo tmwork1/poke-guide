@@ -1,0 +1,40 @@
+-- migrations/017_archetype_role_unknown.sql
+-- role に 'unknown'(判定不能)を追加し、型の識別に role を**必須でなくする**。
+--
+-- ■ なぜ必要か(2026-08-02 の実測に基づく)
+-- 015 の型は 種族名・特性名・持ち物名・role の4つで決まる。このうち role だけは努力値から
+-- 計算する(src/lib/archetype.ts)ため、努力値が分からない個体は型そのものが確定できず、
+-- classifyArchetype() が null を返していた。ところが構築データ(ranked_team_members)の
+-- 努力値は構築記事のある個体にしか無い(010 のコメント参照)。その結果:
+--
+--   ・特性・持ち物が判明している 3664体のうち 546体(14.9%)を、努力値が無いというだけで
+--     捨てていた。うち 522体は技まで判明している。
+--   ・型レベルの共起(サジェスト段2)が成立するチーム = 2体以上分類済みのチームは
+--     1041チーム中 556チーム。role を必須にしなければ 683チーム(+23%)になる。
+--
+-- 一方で role が実際に型を割っているのは (種族+特性+持ち物) 510組のうち 79組だけで、
+-- 残り 431組(84.5%)では role は単一 ── つまり「観測できた大量のデータを捨てる」代償に
+-- 見合っていなかった。そこで役割を捨てるのではなく、**分からないことを分からないと
+-- 記録できるようにする**。
+--
+-- ■ なぜ role を NULL 許容にしないか
+-- archetypes_identity_key は UNIQUE (species_name, ability_name, item_name, role) で、
+-- Postgres の UNIQUE は NULL どうしを別物として扱う(NULLS DISTINCT が既定)。role を
+-- NULL にすると同じ型が何行でも作れてしまい、find-or-create(src/lib/archetypes.ts)の
+-- 重複防止が壊れる。'unknown' という実体のある値にすれば制約はそのまま効く。
+--
+-- ■ 'unknown' は「第4の役割」ではない
+-- あくまで既知の role の**部分観測**である。したがって:
+--   ・型の近さ(src/lib/team-suggest.ts の roleDistance)では、既知の role との距離を
+--     「別の役割」(0.9)より近い 0.5 に置く。
+--   ・段2で薦める型を選ぶとき(chooseArchetypeForSpecies)、'unknown' の観測は同じ
+--     (種族+特性+持ち物) を持つ既知 role の型へ按分して畳み込む。'unknown' がそのまま
+--     推薦結果として表に出るのは、その組に既知 role の型が1つも無い場合だけ。
+--   ・ユーザー自身の育成データ(owned_pokemon)は努力値が必ずあるため 'unknown' にならない。
+--     'unknown' が生まれるのは構築データ側だけである。
+--
+-- 適用後に scripts/db/backfill-ranked-archetypes.mjs の再実行が必要
+-- (既に archetype_id が NULL の行が新しく分類されるようになるため)。
+ALTER TABLE archetypes DROP CONSTRAINT IF EXISTS archetypes_role_check;
+ALTER TABLE archetypes ADD CONSTRAINT archetypes_role_check
+  CHECK (role IN ('physical_attacker', 'special_attacker', 'bulky', 'unknown'));

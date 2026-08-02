@@ -132,6 +132,15 @@ describe('archetypeSimilarity: 型どうしの近さ', () => {
     const other = key('ドリュウズ', 'かたやぶり', 'いのちのたま', 'bulky');
     assert.equal(archetypeSimilarity(base, other), archetypeSimilarity(other, base));
   });
+
+  it('role: unknown は「別の役割」より近く、一致より遠い(migrations/017)', () => {
+    const unknown = archetypeSimilarity(base, { ...base, role: 'unknown' });
+    const kind = archetypeSimilarity(base, { ...base, role: 'bulky' });
+    assert.ok(unknown > kind, `unknown=${unknown} should be closer than a different role=${kind}`);
+    assert.ok(unknown < 1, `unknown=${unknown} must not be treated as an exact match`);
+    // unknown どうしは「同じ観測状態」なので一致扱い(a === b の分岐)。
+    assert.equal(archetypeSimilarity({ ...base, role: 'unknown' }, { ...base, role: 'unknown' }), 1);
+  });
 });
 
 describe('weightSeedArchetypes: 自チームの型に近い構築データ上の型へ重みを配る', () => {
@@ -330,5 +339,69 @@ describe('chooseArchetypeForSpecies', () => {
     const chosen = chooseArchetypeForSpecies([stat({ archetypeId: 'zero' })], new Set());
     assert.equal(chosen?.archetypeId, 'zero');
     assert.ok(Number.isFinite(chosen?.share ?? NaN));
+  });
+
+  // --- role: 'unknown' の畳み込み(migrations/017) ---
+
+  it('role: unknown はそれ自体が推薦されず、同じ構成の既知roleへ畳み込まれる', () => {
+    const chosen = chooseArchetypeForSpecies(
+      [
+        stat({ archetypeId: 'known', itemName: 'たべのこし', role: 'bulky', teamsTotal: 10, teamsCoSpecies: 5, weightedCoArchetype: 5 }),
+        // 同じ (種族, 特性, 持ち物) で努力値だけ未観測の20チーム分。
+        stat({ archetypeId: 'unknown', itemName: 'たべのこし', role: 'unknown', teamsTotal: 20, teamsCoSpecies: 10, weightedCoArchetype: 10 }),
+      ],
+      new Set(),
+    );
+    assert.equal(chosen?.archetypeId, 'known');
+    assert.equal(chosen?.role, 'bulky');
+    // 兄弟が1つしか無いので unknown の観測は全量そこへ寄る。
+    assert.equal(chosen?.teamsTotal, 30);
+    assert.equal(chosen?.teamsCoSpecies, 15);
+  });
+
+  it('既知roleの兄弟が複数あるとき、unknown の観測は teamsTotal 比で按分される', () => {
+    const stats = [
+      stat({ archetypeId: 'phys', itemName: 'いのちのたま', role: 'physical_attacker', teamsTotal: 30 }),
+      stat({ archetypeId: 'spec', itemName: 'いのちのたま', role: 'special_attacker', teamsTotal: 10 }),
+      stat({ archetypeId: 'unknown', itemName: 'いのちのたま', role: 'unknown', teamsTotal: 40 }),
+    ];
+    // 単独で呼ぶと分母が自分だけになるため、畳み込み後の teamsTotal は
+    // 「全件を渡したときの選択結果」から確認する(30 + 40*30/40 = 60)。
+    const chosen = chooseArchetypeForSpecies(stats, new Set());
+    assert.equal(chosen?.archetypeId, 'phys');
+    assert.equal(chosen?.teamsTotal, 60);
+  });
+
+  it('unknown が既知roleを逆転させることはない(証拠を割らずに寄せるだけ)', () => {
+    // 畳み込みが無ければ unknown:25 が known:20 を上回って推薦されてしまう。
+    const chosen = chooseArchetypeForSpecies(
+      [
+        stat({ archetypeId: 'known', itemName: 'たべのこし', role: 'bulky', teamsTotal: 20, teamsCoSpecies: 20, weightedCoArchetype: 20 }),
+        stat({ archetypeId: 'unknown', itemName: 'たべのこし', role: 'unknown', teamsTotal: 25, teamsCoSpecies: 25, weightedCoArchetype: 25 }),
+        stat({ archetypeId: 'other', itemName: 'のろいのおふだ', role: 'bulky', teamsTotal: 22, teamsCoSpecies: 22, weightedCoArchetype: 22 }),
+      ],
+      new Set(),
+    );
+    assert.equal(chosen?.archetypeId, 'known');
+    assert.equal(chosen?.teamsTotal, 45);
+  });
+
+  it('畳み込む先が無い unknown はそのまま残る(役割不明でも構成は提示できる)', () => {
+    const chosen = chooseArchetypeForSpecies(
+      [stat({ archetypeId: 'only-unknown', itemName: 'ラムのみ', role: 'unknown', teamsTotal: 12, teamsCoSpecies: 12, weightedCoArchetype: 12 })],
+      new Set(),
+    );
+    assert.equal(chosen?.archetypeId, 'only-unknown');
+    assert.equal(chosen?.role, 'unknown');
+  });
+
+  it('畳み込みは呼び出し元の配列を書き換えない', () => {
+    const stats = [
+      stat({ archetypeId: 'known', itemName: 'たべのこし', role: 'bulky', teamsTotal: 10 }),
+      stat({ archetypeId: 'unknown', itemName: 'たべのこし', role: 'unknown', teamsTotal: 20 }),
+    ];
+    chooseArchetypeForSpecies(stats, new Set());
+    assert.equal(stats[0].teamsTotal, 10, '入力の型統計が破壊的に更新されてはならない');
+    assert.equal(stats[1].teamsTotal, 20);
   });
 });

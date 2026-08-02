@@ -67,14 +67,59 @@ describe('classifyArchetype: 分類不能な入力', () => {
     );
   });
 
-  it('evs/ivsが6要素でないなら null', () => {
-    assert.equal(
+});
+
+describe('classifyArchetype: 努力値が未観測なら role: unknown(migrations/017)', () => {
+  // 役割は努力値からしか計算できないが、種族・特性・持ち物までは確定している。
+  // ここで null を返していたため構築データの14.9%(実測546体)を捨てていた。
+  it('evsが6要素でないなら role: unknown', () => {
+    assert.deepEqual(
       classifyArchetype({
         speciesName: 'カイリキー',
         abilityName: 'こんじょう',
         itemName: 'いのちのたま',
         nature: null,
         evs: [0, 32],
+        ivs: ALL_31_IVS,
+        moveNames: [],
+      }),
+      {
+        speciesName: 'カイリキー',
+        abilityName: 'こんじょう',
+        itemName: 'いのちのたま',
+        role: 'unknown',
+      },
+    );
+  });
+
+  it('evsがnullでも role: unknown(構築記事に努力値の記載が無い個体)', () => {
+    assert.deepEqual(
+      classifyArchetype({
+        speciesName: 'ガブリアス',
+        abilityName: 'さめはだ',
+        itemName: 'こだわりスカーフ',
+        nature: 'ようき',
+        evs: null,
+        ivs: ALL_31_IVS,
+        moveNames: ['じしん', 'ドラゴンクロー'],
+      }),
+      {
+        speciesName: 'ガブリアス',
+        abilityName: 'さめはだ',
+        itemName: 'こだわりスカーフ',
+        role: 'unknown',
+      },
+    );
+  });
+
+  it('努力値が無くても種族がマスターデータに無ければ null のまま(語彙外の種族名を作らせない)', () => {
+    assert.equal(
+      classifyArchetype({
+        speciesName: '存在しないポケモン',
+        abilityName: 'こんじょう',
+        itemName: 'いのちのたま',
+        nature: null,
+        evs: null,
         ivs: ALL_31_IVS,
         moveNames: [],
       }),

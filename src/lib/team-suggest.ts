@@ -99,10 +99,18 @@ export const ARCHETYPE_DISTANCE_WEIGHTS = {
   roleAxis: 0.45,
   /** アタッカー ↔ bulky(チームでの役割が別) */
   roleKind: 0.9,
+  /**
+   * 既知の role ↔ 'unknown'(努力値が未観測で判定できなかった、migrations/017)。
+   * 'unknown' は「別の役割」ではなく既知 role の部分観測なので roleKind(0.9)より近くし、
+   * かといって同一視もできないので0にはしない。同じ役割かもしれないし違うかもしれない、
+   * という中間の位置づけを一つの定数で表す。
+   */
+  roleUnknown: 0.5,
 } as const;
 
 function roleDistance(a: ArchetypeRole, b: ArchetypeRole): number {
   if (a === b) return 0;
+  if (a === 'unknown' || b === 'unknown') return ARCHETYPE_DISTANCE_WEIGHTS.roleUnknown;
   const isAttacker = (r: ArchetypeRole) => r === 'physical_attacker' || r === 'special_attacker';
   if (isAttacker(a) && isAttacker(b)) return ARCHETYPE_DISTANCE_WEIGHTS.roleAxis;
   return ARCHETYPE_DISTANCE_WEIGHTS.roleKind;
@@ -298,6 +306,60 @@ export interface ArchetypeChoice extends ArchetypeStat {
 }
 
 /**
+ * role: 'unknown' の観測を、同じ (種族, 特性, 持ち物) を持つ既知 role の型へ按分して畳み込む。
+ *
+ * 'unknown' は第4の役割ではなく既知 role の部分観測(migrations/017)なので、独立した候補として
+ * 残すと2つの害がある: ①同じ型の証拠が2つの行に割れて share が薄まる、②役割を提示できない型が
+ * 推薦結果として表に出る。按分の比率は既知 role 側の teams_total ── 「努力値が分からなかった
+ * この個体は、努力値が分かっている同じ構成の個体と同じ割合で各roleだったはず」という素朴な推定。
+ *
+ * 既知 role の兄弟が1つも無い (種族, 特性, 持ち物) は畳み込む先が無いため 'unknown' のまま残す。
+ * この場合だけ役割不明の型が推薦されうるが、種族・特性・持ち物は確定しているので
+ * 「役割は分からないがこの構成が使われている」という提示自体は成立する。
+ */
+function foldUnknownRoleStats(stats: readonly ArchetypeStat[]): ArchetypeStat[] {
+  if (!stats.some((s) => s.role === 'unknown')) return [...stats];
+
+  const buildKey = (s: ArchetypeStat) => `${s.speciesKey} ${s.abilityName} ${s.itemName}`;
+  const knownByBuild = new Map<string, ArchetypeStat[]>();
+  for (const s of stats) {
+    if (s.role === 'unknown') continue;
+    const key = buildKey(s);
+    const list = knownByBuild.get(key);
+    if (list) list.push(s);
+    else knownByBuild.set(key, [s]);
+  }
+
+  // 按分先の型は元の値を壊さずコピーしてから加算する(呼び出し元の配列は純粋に読むだけ)。
+  const folded = new Map<string, ArchetypeStat>();
+  for (const s of stats) {
+    if (s.role !== 'unknown') folded.set(s.archetypeId, { ...s });
+  }
+
+  const result: ArchetypeStat[] = [];
+  for (const s of stats) {
+    if (s.role !== 'unknown') continue;
+    const siblings = knownByBuild.get(buildKey(s));
+    if (!siblings || siblings.length === 0) {
+      result.push({ ...s });
+      continue;
+    }
+    const denominator = siblings.reduce((acc, k) => acc + k.teamsTotal, 0);
+    for (const sibling of siblings) {
+      const target = folded.get(sibling.archetypeId);
+      if (!target) continue;
+      // teams_total が全て0(理論上は起きないが防御)の場合は均等割り。
+      const share = denominator > 0 ? sibling.teamsTotal / denominator : 1 / siblings.length;
+      target.teamsTotal += s.teamsTotal * share;
+      target.teamsCoSpecies += s.teamsCoSpecies * share;
+      target.weightedCoArchetype += s.weightedCoArchetype * share;
+    }
+  }
+
+  return [...folded.values(), ...result];
+}
+
+/**
  * 候補種族ごとに、薦める型を1つ選ぶ。
  *
  * 3つの観測を、それぞれのサンプル数に応じた信頼度で入れ子に混ぜる:
@@ -315,10 +377,13 @@ export interface ArchetypeChoice extends ArchetypeStat {
  * (「持ち物を変えれば使える」という情報自体は捨てないほうが親切なため)。
  */
 export function chooseArchetypeForSpecies(
-  stats: readonly ArchetypeStat[],
+  inputStats: readonly ArchetypeStat[],
   usedItemNames: ReadonlySet<string>,
 ): ArchetypeChoice | null {
-  if (stats.length === 0) return null;
+  if (inputStats.length === 0) return null;
+
+  // 役割が未観測の観測(role: 'unknown')を既知 role へ寄せてから確率を計算する。
+  const stats = foldUnknownRoleStats(inputStats);
 
   const sum = (pick: (s: ArchetypeStat) => number) => stats.reduce((acc, s) => acc + pick(s), 0);
   const totalAll = sum((s) => s.teamsTotal);

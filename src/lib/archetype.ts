@@ -37,7 +37,13 @@ const MOVE_CATEGORY_BY_NAME: ReadonlyMap<string, MoveCategory> = new Map(
 // 「個体単位の実データ」を扱う本モジュール専用の定数として分離)。
 const ARCHETYPE_LEVEL = 50;
 
-export type ArchetypeRole = 'physical_attacker' | 'special_attacker' | 'bulky';
+/**
+ * 'unknown' は「第4の役割」ではなく、努力値が未観測で role を計算できなかったことを表す
+ * **部分観測**の印(migrations/017_archetype_role_unknown.sql)。役割が分からないことを
+ * 理由に個体ごと捨てると、構築データの 14.9%(実測546体)を失うために導入した。
+ * ユーザー自身の育成データは努力値が必ずあるため 'unknown' にはならない。
+ */
+export type ArchetypeRole = 'physical_attacker' | 'special_attacker' | 'bulky' | 'unknown';
 
 export interface ArchetypeKey {
   speciesName: string;
@@ -63,9 +69,13 @@ export const ATTACKER_THRESHOLD_MULTIPLIER = 1.15;
 
 /**
  * 種族名・特性名・持ち物名・性格・evs/ivs・move_namesから型(archetype識別キー)を判定する。
- * 分類不能(種族名/特性名/持ち物名のいずれかが空/null、種族がマスターデータに無い、
- * evs/ivsが6要素でない等)の場合は null を返す。呼び出し側はこの場合 archetype_id を
- * null のまま保存すること(この関数自体は例外を投げない)。
+ * 分類不能(種族名/特性名/持ち物名のいずれかが空/null、種族がマスターデータに無い)の場合は
+ * null を返す。呼び出し側はこの場合 archetype_id を null のまま保存すること
+ * (この関数自体は例外を投げない)。
+ *
+ * evs/ivs が6要素でない場合は null ではなく role: 'unknown' の型を返す。役割は努力値からしか
+ * 計算できないが、種族・特性・持ち物までは確定しており、そこまでの情報を捨てないための分岐
+ * (経緯と実測値は migrations/017_archetype_role_unknown.sql)。
  */
 export function classifyArchetype(input: ArchetypeClassificationInput): ArchetypeKey | null {
   const speciesName = input.speciesName?.trim();
@@ -73,12 +83,16 @@ export function classifyArchetype(input: ArchetypeClassificationInput): Archetyp
   const itemName = input.itemName?.trim();
   if (!speciesName || !abilityName || !itemName) return null;
 
+  // 種族がマスターデータに無い場合だけは型を作らない。role の計算に種族値が要るからではなく
+  // (role: 'unknown' なら要らない)、archetypes に語彙外の種族名を作らせないための門番。
   const baseStats = BASE_STATS_BY_SPECIES.get(speciesName);
   if (!baseStats || baseStats.length !== 6) return null;
 
   const evs = input.evs ?? [];
   const ivs = input.ivs ?? [];
-  if (evs.length !== 6 || ivs.length !== 6) return null; // 通常はvalidation層で保証済みの防御的分岐
+  if (evs.length !== 6 || ivs.length !== 6) {
+    return { speciesName, abilityName, itemName, role: 'unknown' };
+  }
 
   const modifier = (input.nature && NATURE_STAT_MODIFIERS[input.nature]) || { up: null, down: null };
   const realStats: Record<StatKey, number> = { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };

@@ -259,9 +259,13 @@ export async function GET({ request, cookies, url }: APIContext): Promise<Respon
       // その場合は種族だけを薦め、型の欄は null で返す(UIが「型は不明」を出し分ける)。
       abilityName: choice?.abilityName ?? null,
       itemName: choice?.itemName ?? null,
-      role: choice?.role ?? null,
+      // 'unknown'(努力値が未観測で役割を判定できなかった、migrations/017)は役割の一種では
+      // ないので、型が無いときと同じ null を返す。UIは null のとき役割チップを出さない。
+      role: choice && choice.role !== 'unknown' ? choice.role : null,
       archetypeShare: choice?.share ?? null,
-      archetypeTeams: choice?.teamsTotal ?? null,
+      // role: 'unknown' の観測を既知roleへ按分した結果、小数になりうるため丸める
+      // (src/lib/team-suggest.ts の foldUnknownRoleStats)。
+      archetypeTeams: choice ? Math.round(choice.teamsTotal) : null,
       usageTeams: candidate.candidateTeams,
       totalTeams: candidate.totalTeams,
       itemConflict: choice?.itemConflict ?? false,
