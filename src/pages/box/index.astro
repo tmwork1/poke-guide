@@ -114,10 +114,11 @@ const user = Astro.locals.user;
 				display: none;
 			}
 		}
-		/* 件数バッジ(旧topbar-statusスロット)をツールバー右端に寄せる。 */
-		.toolbar-count {
-			margin-left: auto;
-		}
+		/* UI改修依頼(ボックス画面、2026-08-02)「件数バッジ(#pokemon-count-badge)を
+		   現在の右端から検索ボックスの左へ移動する」。旧来はmargin-left: autoでツールバー
+		   右端に押し出していたが、マークアップ側で件数バッジをハンバーガーボタンの直後・
+		   検索ボックスの直前へ移動した(下記マークアップ参照)ため、右寄せの上書きは不要になり
+		   削除した。位置合わせは他の.toolbar-itemと同じflexの既定(左詰め)に任せる。 */
 		.toolbar-item {
 			display: flex;
 			align-items: center;
@@ -725,6 +726,10 @@ const user = Astro.locals.user;
 			gap: 0.3rem;
 			width: 100%;
 		}
+		/* UI改修依頼(ボックス画面、2026-08-02)「カードのニックネーム/種族名(.card-name)を
+		   中央揃えにする」。旧来は.card-name-row内でテラスバッジぶんの幅をellipsisの起点を
+		   左に揃えるためtext-align: leftにしていたが、指示により中央揃えへ変更する
+		   (.card-name自体はflex: 1 1 autoで確保した領域内での中央揃えになる)。 */
 		.box-grid .card-pokemon .card-name {
 			margin: 0;
 			flex: 1 1 auto;
@@ -732,7 +737,7 @@ const user = Astro.locals.user;
 			font-size: 0.82em;
 			font-weight: 700;
 			line-height: 1.2;
-			text-align: left;
+			text-align: center;
 			white-space: nowrap;
 			overflow: hidden;
 			text-overflow: ellipsis;
@@ -930,31 +935,43 @@ const user = Astro.locals.user;
 		   86.8pxに収まり始め、10px(=0.625rem)では80pxとなり6.8pxの余裕を持って収まる。
 		   rem値のきりの良さと安全マージンを優先し0.625rem(10px)を採用した(実機の
 		   getBoundingClientRect()でoverflow無しを確認済み、詳細は報告参照)。 */
+		/* UI改修依頼(ボックス画面、2026-08-02)「技チップ(.card-move-chip)のタイプ別背景色を
+		   廃止し、代わりに技名の前にタイプアイコンを置く。各技の領域内では左揃えに配置する」。
+		   ラウンド21 21-B3〜35-B3で敷いていたcolor-mixのタイプ背景(JS側applyMoveChipTypeColors、
+		   下記参照)を廃止し、チップをflexの行(アイコン+テキスト)に組み替える。背景・枠線は
+		   一切足さない(指示どおりプレーンなテキスト+アイコン)。text-align: centerだった
+		   旧配置も、要件どおり左揃え(flexの既定)に変える。padding-leftを外したことで
+		   チップの内容がセル左端から始まるようになる。font-size(0.625rem、42-B2の実測根拠)・
+		   line-height・padding上下(.card-moves-gridのmin-height計算に使われている)は
+		   変更しない。 */
 		.box-grid .card-pokemon .card-move-chip {
+			display: flex;
+			align-items: center;
+			gap: 0.25rem;
+			min-width: 0;
 			font-size: 0.625rem;
 			line-height: 1.2;
 			font-weight: 600;
-			text-align: center;
 			color: var(--color-text-muted);
+			padding: 0.08rem 0;
+		}
+		/* タイプアイコン(typeIconUrl、src/lib/sprite-urls.ts)。技名の文字の行高
+		   (line-height 1.2 * 0.625rem = 12px)に対してアイコンが大きすぎるとベースラインより
+		   下にはみ出して見えるため、行高よりわずかに小さい10pxにし、align-items: centerで
+		   テキストの行内中央に揃える(拡大クロップで目視確認済み、報告参照)。技名からタイプが
+		   引けない場合はJS側(applyMoveChipTypeIcons)がimg要素にhidden属性を付けたまま
+		   にするため、アイコン無しでテキストだけが左端に詰まる。 */
+		.box-grid .card-pokemon .card-move-chip-icon {
+			flex: none;
+			width: 10px;
+			height: 10px;
+			object-fit: contain;
+		}
+		.box-grid .card-pokemon .card-move-chip-text {
+			min-width: 0;
 			white-space: nowrap;
 			overflow: hidden;
 			text-overflow: ellipsis;
-			/* ラウンド21 21-B3: 技の背景にタイプ背景色を置く(ユーザー指示)。背景そのものは
-			   JS側(applyMoveChipTypeColors)がcolor-mixで敷く(タイプが引けないときは背景なし)。
-			   ここではチップらしく見せるための余白と角丸だけを用意する。
-			   コントラスト実測(21-B3時点): color-mix(in srgb, <タイプ色> 10%, transparent)を
-			   --color-surface-alt(カード背景)の上に敷いた場合、--color-text-mutedとの比は
-			   19タイプ中最悪でもライト4.88:1(かくとう)・ダーク4.67:1(でんき)で、WCAG AA(4.5:1)を
-			   ライト・ダーク両方で全タイプが満たす(15〜20%では一部タイプがダークで4.5:1を割ることを
-			   計算で確認したため10%を採用)。
-			   35-B3(ユーザー指示第17弾、round-35.md): 「技の背景色を少し濃くする」。19タイプ全てを
-			   ライト・ダーク両方で再計算した結果、12%時点で「でんき」(ダーク4.43:1)・「こおり」
-			   (ダーク4.44:1)がAAを割ることを確認した(タイプ別の限界値: でんき11.42%・
-			   こおり11.49%が最小)。11%までなら全19タイプがライト・ダーク両方でAAを満たす
-			   (実測: ライト最悪4.81:1(かくとう)・ダーク最悪4.55:1(でんき))ため、10%→11%に
-			   引き上げる(下のJS側 applyMoveChipTypeColors 参照)。詳細は報告参照。 */
-			padding: 0.08rem 0.35rem;
-			border-radius: 4px;
 		}
 
 		/* ラウンド21(Coordinator指摘の390px/360px 1列落ち修正): 狭幅(max-width: 480px)で
@@ -1008,6 +1025,14 @@ const user = Astro.locals.user;
 								<line x1="4" y1="7" x2="20" y2="7" /><line x1="4" y1="12" x2="20" y2="12" /><line x1="4" y1="17" x2="20" y2="17" />
 							</svg>
 						</button>
+						{/* UI改修依頼(ボックス画面、2026-08-02)「件数バッジ(#pokemon-count-badge)を
+						    現在の右端から検索ボックスの左へ移動する」。旧topbar-statusスロットの
+						    件数バッジ(旧位置は並べ替えの右、ツールバー末尾)をここ(ハンバーガー
+						    ボタンの直後・検索ボックスの直前)へ移動した。id/classは変更しない
+						    (<script>がgetElementByIdで参照する)。 */}
+						<div class="toolbar-item toolbar-count">
+							<span class="badge tnum" id="pokemon-count-badge" hidden>0体</span>
+						</div>
 						<div class="toolbar-item toolbar-search">
 							{/* ラウンド42 42-B1(ユーザー指示)により可視の「検索」ラベルを削除。
 							    このプロジェクトで確立済みの「ラベル要素を廃止しplaceholder+aria-labelに
@@ -1076,11 +1101,6 @@ const user = Astro.locals.user;
 							</div>
 						</div>
 
-						{/* 旧topbar-statusスロットの件数バッジ。id/classは変更しない(<script>が
-						    getElementByIdで参照する)。 */}
-						<div class="toolbar-item toolbar-count">
-							<span class="badge tnum" id="pokemon-count-badge" hidden>0体</span>
-						</div>
 					</div>
 
 					<div class="box-content">
@@ -1147,10 +1167,11 @@ const user = Astro.locals.user;
 			// 再生成されたため、21-B2(および23-G2)を撤回してteraTypeIconUrlへ戻す。typeIconUrlは
 			// このファイル内で他に使っていないためimportから外す(sprite-urls.tsの関数自体は
 			// 共通ファイルのため消さない)。
-		import { loadItemSpriteMap, itemIconUrl, teraTypeIconUrl } from "../../lib/sprite-urls";
-		// ラウンド21 21-B3: 技チップの背景色付け用。値そのものは type-colors.ts(エージェントPが
-		// box/[id].astro からの切り出しとして新規作成)からimportし、コピー定義は作らない。
-		import { TYPE_COLORS, DEFAULT_TYPE_COLOR } from "../../lib/type-colors";
+		// UI改修依頼(ボックス画面、2026-08-02): 技チップのタイプ別背景色(type-colors.tsの
+		// TYPE_COLORS/DEFAULT_TYPE_COLOR)を廃止し、技名の前にタイプアイコンを置く方式へ変更した。
+		// アイコンURLはsprite-urls.tsのtypeIconUrl(技→タイプの解決自体はloadMoveTypeMapのまま
+		// 変更しない)。type-colors.tsのimportはこの用途以外に無いため削除した。
+		import { loadItemSpriteMap, itemIconUrl, teraTypeIconUrl, typeIconUrl } from "../../lib/sprite-urls";
 		// ラウンド18: 実数値計算の共通化。box/[id].astro・share/[slug].astro・pokemon/[name].astro
 		// と4箇所にコピーされていた chmpToLegacyEffort/calcHpStat/calcOtherStat/
 		// NATURE_STAT_MODIFIERS を src/lib/stats.ts に統合した(このファイルが原本だった)。
@@ -1348,24 +1369,34 @@ const user = Astro.locals.user;
 				imgEl.src = url;
 			}
 
-			// ラウンド21 21-B3: 技チップの背景にタイプカラーを敷く。技名→タイプの解決は非同期
-			// (loadMoveTypeMap)だが、対象のspan要素は呼び出し前に既に静的な順序でDOMへ
-			// 配置済みなので、色を後から埋めても挿入順には影響しない
+			// UI改修依頼(ボックス画面、2026-08-02)「技チップのタイプ別背景色を廃止し、代わりに
+			// 技名の前にタイプアイコンを置く」。旧applyMoveChipTypeColors(color-mixで背景を敷く
+			// 関数、ラウンド21 21-B3〜35-B3)を置き換える。技名→タイプの解決は非同期
+			// (loadMoveTypeMap)だが、対象のimg要素は呼び出し前に既に静的な順序でDOMへ
+			// 配置済み(hidden属性つき)なので、アイコンを後から差し込んでも挿入順には影響しない
 			// (pitfalls.md「非同期の描画関数をvoidで投げっぱなしにしない」の事故は複数要素間の
-			// 挿入順が競合する場合の話で、この関数は既存の要素に背景色を1回書き込むだけなので
-			// 該当しない)。技名からタイプが引けない(未入力・データに無い技)場合は背景を付けない。
-			// コントラストは実測済み(color-mix 10%、--color-text-mutedとの比が最悪でも
-			// ライト4.88:1・ダーク4.66:1でWCAG AA 4.5:1を19タイプ全てで満たす。詳細は報告参照)。
-			async function applyMoveChipTypeColors(
-				entries: { el: HTMLElement; moveName: string }[],
+			// 挿入順が競合する場合の話で、この関数は既存の要素にsrcを1回書き込むだけなので
+			// 該当しない)。技名からタイプが引けない(未入力・データに無い技)場合はhiddenのまま
+			// (=アイコン無しでテキストだけ)にする。他のアイコン系関数(applyItemBadge/
+			// applyTeraBadge)と同じonload/onerrorパターンで、画像読み込み失敗時もhiddenのまま
+			// にして壊れた画像アイコンを見せない。
+			async function applyMoveChipTypeIcons(
+				entries: { iconEl: HTMLImageElement; moveName: string }[],
 			): Promise<void> {
 				if (entries.length === 0) return;
 				const typeMap = await moveTypeMapPromise;
-				for (const { el, moveName } of entries) {
+				for (const { iconEl, moveName } of entries) {
 					const type = typeMap.get(moveName);
 					if (!type) continue;
-					const color = TYPE_COLORS[type] ?? DEFAULT_TYPE_COLOR;
-					el.style.background = `color-mix(in srgb, ${color} 11%, transparent)`;
+					const url = typeIconUrl(type);
+					if (!url) continue;
+					iconEl.onerror = () => {
+						iconEl.hidden = true;
+					};
+					iconEl.onload = () => {
+						iconEl.hidden = false;
+					};
+					iconEl.src = url;
 				}
 			}
 
@@ -1623,18 +1654,29 @@ const user = Astro.locals.user;
 				const moves = p.move_names.filter((moveName) => moveName && moveName.trim() !== "");
 				const movesGrid = document.createElement("div");
 				movesGrid.className = "card-moves-grid";
-				// ラウンド21 21-B3: 技チップにタイプ背景色を敷く。チップ自体は他の要素と同様に
-				// ここで同期的に静的な順序でappendし、色付けだけを後から非同期で行う
-				// (applyMoveChipTypeColorsのコメント参照)。
-				const moveChipEntries: { el: HTMLElement; moveName: string }[] = [];
+				// UI改修依頼(ボックス画面、2026-08-02): 技チップは「タイプ背景色」ではなく
+				// 「技名の前のタイプアイコン」に変更する。チップ自体は他の要素と同様にここで
+				// 同期的に静的な順序でappendし、アイコンの差し込みだけを後から非同期で行う
+				// (applyMoveChipTypeIconsのコメント参照)。アイコン(img、初期hidden)+
+				// テキスト(span.card-move-chip-text)の2要素をチップ内に並べ、CSS側
+				// (is:globalの.card-move-chip、display:flex)で左揃えに並べる。
+				const moveChipEntries: { iconEl: HTMLImageElement; moveName: string }[] = [];
 				for (const moveName of moves) {
 					const moveEl = document.createElement("span");
 					moveEl.className = "card-move-chip";
-					moveEl.textContent = moveName;
+					const moveIconEl = document.createElement("img");
+					moveIconEl.className = "card-move-chip-icon";
+					moveIconEl.alt = "";
+					moveIconEl.hidden = true;
+					moveEl.appendChild(moveIconEl);
+					const moveTextEl = document.createElement("span");
+					moveTextEl.className = "card-move-chip-text";
+					moveTextEl.textContent = moveName;
+					moveEl.appendChild(moveTextEl);
 					movesGrid.appendChild(moveEl);
-					moveChipEntries.push({ el: moveEl, moveName });
+					moveChipEntries.push({ iconEl: moveIconEl, moveName });
 				}
-				void applyMoveChipTypeColors(moveChipEntries);
+				void applyMoveChipTypeIcons(moveChipEntries);
 				body.appendChild(movesGrid);
 
 				// 実数値6値: 列見出し(H/A/B/C/D/S)行→実数値行の2段×6列グリッド。
