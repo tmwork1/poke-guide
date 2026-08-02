@@ -19,11 +19,18 @@ const ICONS = {
 	// 上ドーム片(下端中央に半円の切り欠き)と下ボウル片(上端中央に半円の切り欠き)を
 	// 隙間を空けて上下に配置し、間の帯と2つの切り欠きが向き合ってできる中央の丸い穴は
 	// あえて塗らない透明部分のままにする(SVGに背景矩形が無いのでページ背景が自然に透ける)。
-	home: `<svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10.75 A9 9 0 0 1 21 10.75 L14.8 10.75 A2.8 2.8 0 0 0 9.2 10.75 L3 10.75 Z" fill="currentColor"/><path d="M21 13.25 A9 9 0 0 1 3 13.25 L9.2 13.25 A2.8 2.8 0 0 0 14.8 13.25 L21 13.25 Z" fill="currentColor"/></svg>`,
-	// チーム(/team)用: 同じ2パーツ構成のボールを2つ、左右にずらして重ねて配置。
-	// 背後のボール(右上寄り)を先に描画し、前面のボール(左下寄り)を後で描画することで自然な重なりにする。
-	// 前面ボール中央の透明な穴から背面ボールが覗いて見えるのは許容(奥行きが出る)。
-	users: `<svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 7.15 A6 6 0 0 1 20 7.15 L15.9 7.15 A1.9 1.9 0 0 0 12.1 7.15 L8 7.15 Z" fill="currentColor"/><path d="M20 8.85 A6 6 0 0 1 8 8.85 L12.1 8.85 A1.9 1.9 0 0 0 15.9 8.85 L20 8.85 Z" fill="currentColor"/><path d="M3.5 13.1 A6.5 6.5 0 0 1 16.5 13.1 L12 13.1 A2 2 0 0 0 8 13.1 L3.5 13.1 Z" fill="currentColor"/><path d="M16.5 14.9 A6.5 6.5 0 0 1 3.5 14.9 L8 14.9 A2 2 0 0 0 12 14.9 L16.5 14.9 Z" fill="currentColor"/></svg>`,
+	// 2026-08-02: 外周が正確な真円に見えるよう、上下パーツで同じ1つの円(中心(12,12)・半径9)を
+	// 共有し、その円を上下2本の水平な弦(y=10.75とy=13.25)で切る形に直した(以前は上下パーツが
+	// 別々の円になっており、左右端でわずかに真円からズレていた)。中央の切り欠き穴(半径2.8)も
+	// 同じ弦の高さで半弦長を計算し直し、より正確な円に近づけている。
+	home: `<svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.087 10.75 A9 9 0 0 1 20.913 10.75 L14.505 10.75 A2.8 2.8 0 0 0 9.495 10.75 L3.087 10.75 Z" fill="currentColor"/><path d="M20.913 13.25 A9 9 0 0 1 3.087 13.25 L9.495 13.25 A2.8 2.8 0 0 0 14.505 13.25 L20.913 13.25 Z" fill="currentColor"/></svg>`,
+	// チーム(/team)用: 同じ2パーツ構成(共有1円+2本の弦)のボールを2つ、左右にずらして重ねて配置。
+	// 背後のボール(右上寄り、中心(15,7.5)・半径7)を先に描画し、前面のボール(左下寄り、
+	// 中心(9,14.5)・半径7.5)を後で描画することで自然な重なりにする。中心間距離(約9.22)は
+	// どちらの半径よりも大きく保ち、前面ボールの中央穴が背面ボールにほぼ飲み込まれて
+	// 顔のように見えてしまう崩れ(2026-08-02の検証で発生・修正済み)を避けている。
+	// 背後のボールは .app-sidebar-icon-ball-back で暗く(filter: brightness)して前面と区別する。
+	users: `<svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path class="app-sidebar-icon-ball-back" d="M8.068 6.53 A7 7 0 0 1 21.932 6.53 L16.952 6.53 A2.18 2.18 0 0 0 13.048 6.53 L8.068 6.53 Z" fill="currentColor"/><path class="app-sidebar-icon-ball-back" d="M21.932 8.47 A7 7 0 0 1 8.068 8.47 L13.048 8.47 A2.18 2.18 0 0 0 16.952 8.47 L21.932 8.47 Z" fill="currentColor"/><path d="M1.572 13.46 A7.5 7.5 0 0 1 16.428 13.46 L11.085 13.46 A2.33 2.33 0 0 0 6.915 13.46 L1.572 13.46 Z" fill="currentColor"/><path d="M16.428 15.54 A7.5 7.5 0 0 1 1.572 15.54 L6.915 15.54 A2.33 2.33 0 0 0 11.085 15.54 L16.428 15.54 Z" fill="currentColor"/></svg>`,
 	"trending-up": `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>`,
 	// 開発者向け(/e2e-test-harness)用: レンチの塗りつぶしシルエット(Material Iconsの"build"相当のパス)。
 	// 元のpathはviewBox 24x24のほぼ端から端(bbox約22x22)を占め、他の線画4アイコン(概ね20x20に
@@ -206,6 +213,18 @@ const SECTIONS: { heading: string; items: SidebarItem[] }[] = [
 	.app-sidebar-icon {
 		display: inline-flex;
 		flex-shrink: 0;
+	}
+
+	/* 2026-08-02: チームアイコン(users)の背後ボールを前面ボールより暗くして区別する。
+	   opacityではなくfilter: brightness()を使う理由: opacityは背景色と混ざるため、
+	   ライトテーマの白背景と混ざると逆に「薄い色」に見えてしまい「暗くする」という
+	   意図に反する。brightnessならcurrentColorがライト/ダーク/アクティブ状態の
+	   どの色でも一貫して暗くなる。
+	   :global() が必要な理由: ICONS の中身は set:html で注入する生HTML文字列なので、
+	   Astroのテンプレートコンパイラを通らずscoped属性(data-astro-cid-*)が付与されない。
+	   素のクラスセレクタのままだとscoped属性付き前提のセレクタになり一致しない。 */
+	:global(.app-sidebar-icon-ball-back) {
+		filter: brightness(0.6);
 	}
 
 	.app-sidebar-label {
