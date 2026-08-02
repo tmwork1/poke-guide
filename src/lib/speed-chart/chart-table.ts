@@ -4,8 +4,9 @@
 //   - マスターデータの取得(public/master-data/ 配下をブラウザから fetch する。既存の
 //     pokemon-master-data.ts 等と同じ「クライアント側で1回fetchする」流儀に揃える)
 //   - レギュレーション切替(R-12: 「現在のレギュレーション」はこのモジュールが所有する)
-//   - 行の描画(R-13: 1行=「実数値/ポケモン群/この個体」の横一列。「この個体」セルの中身は
-//     owned-panel.ts に描画を委譲する。このファイル自身はセルの中身を知らない)
+//   - 行の描画(R-13: 表と右カラムを分けず横一列にする。UI改修(2026-08-02第2弾)で列構成は
+//     「実数値/族・配分・倍率/ポケモン・補正要因/(調整。?owned=連携時のみ)」の3〜4列になった。
+//     「調整」列の中身はowned-panel.tsに描画を委譲する。このファイル自身はセルの中身を知らない)
 //   - 実数値ジャンプ・現在地スクロール(R-6/R-8)
 //
 // 共有状態の向き(R-12): 「個体の現在のS実数値」は owned-panel.ts が所有する。このファイルは
@@ -104,9 +105,6 @@ export async function initSpeedChartPage(): Promise<void> {
   const backButton = document.getElementById('speed-chart-back-to-current');
   // 要件4: ?owned=があるときだけ存在するトグル(ChartTable.astro側もhasOwnedPanelで条件付け済み)。
   const reachableOnlyToggle = document.getElementById('speed-chart-reachable-only-toggle') as HTMLInputElement | null;
-  // 要件5(2026-08-01第4弾): すばやさ上昇要因(ランク補正・道具・特性等の補正情報)の表示ON/OFF。
-  // hasOwnedPanelに関係なく常に存在する(ChartTable.astro側も無条件レンダリング)。
-  const boostFactorsToggle = document.getElementById('speed-chart-boost-factors-toggle') as HTMLInputElement | null;
 
   if (!config || !statusEl || !tableEl || !bodyEl) {
     if (statusEl) statusEl.textContent = '設定の読み込みに失敗しました。';
@@ -127,9 +125,9 @@ export async function initSpeedChartPage(): Promise<void> {
   const scarfEntry = findScarfItemEntry(masterData.speedModifiers.items);
   const imageIdByName = new Map(masterData.pokemonAutocomplete.map((p) => [p.name, p.imageId]));
 
-  // 2026-08-01追補: 「同じ実数値のなかで族ごとに行を分ける」ため、1実数値に対して族ブロックの
-  // 数だけ物理行(.speed-chart-row)が存在しうる。ハイライト・スクロールは実数値単位で
-  // 行いたいので、値ごとに複数要素を保持する(renderRows参照)。
+  // 1実数値に対して、その値を作るグループ(振り方+補正の組)の数だけ物理行(.speed-chart-row)が
+  // 存在しうる。ハイライト・スクロールは実数値単位で行いたいので、値ごとに複数要素を保持する
+  // (renderRows参照)。
   const rowElements = new Map<number, HTMLElement[]>();
   const formsByName = new Map<string, SpeedChartForm>();
   let ownedController: OwnedPanelController | null = null;
@@ -144,15 +142,12 @@ export async function initSpeedChartPage(): Promise<void> {
   let lastKnownReachableValues: Set<number> | null = null;
   // 既定でON(とりうるすばやさのみ)。?owned=が無いときはトグル自体が無くこの値は使われない。
   let showReachableOnly = true;
-  // 要件5: 既定でOFF(すばやさ上昇要因は非表示)。boostFactorsToggleにchecked属性を
-  // 付けていない(ChartTable.astro側)ため、初期値はDOMのcheckedプロパティからも導ける。
-  let showBoostFactors = boostFactorsToggle?.checked ?? false;
   // 要件3の不具合修正(2026-08-01): 「行ごとの実際の合計幅」で足切りするための実測キャッシュ。
   // フォルム名 -> チップ1個の実測幅(px)。チップ幅は名前とアイコンだけで決まるため、
   // フォルム名をキーに1回だけ測ればよい(レギュレーションを跨いでも再利用する。
   // ensureChipMetrics参照)。
   const chipWidthByName = new Map<string, number>();
-  // グループセル幅・チップ間gap・「+N件」バッジ幅は行によらず一定(固定グリッド列幅のため)
+  // 3列目セル幅・チップ間gap・「+N件」バッジ幅は行によらず一定(固定グリッド列幅のため)
   // なので初回のみ実測してキャッシュする。
   let chipLayoutMetrics: ChipLayoutMetrics | null = null;
 
@@ -221,51 +216,61 @@ export async function initSpeedChartPage(): Promise<void> {
 
     // 要件3の不具合修正: このレギュレーションの母集団のうち未計測のフォルムだけを一括計測する
     // (計測フェーズと描画フェーズを分離。レイアウトスラッシング回避)。
-    chipLayoutMetrics = ensureChipMetrics(bodyEl!, tableEl!, formsByName.keys(), imageIdByName, chipWidthByName, chipLayoutMetrics);
+    chipLayoutMetrics = ensureChipMetrics(
+      bodyEl!,
+      tableEl!,
+      formsByName.keys(),
+      imageIdByName,
+      chipWidthByName,
+      chipLayoutMetrics,
+      hasOwnedPanel,
+    );
     const usageCounts = usageByRegulation[currentRegulation];
     const baseSpeedByName = new Map<string, number>();
     for (const [name, form] of formsByName) baseSpeedByName.set(name, form.baseSpeed);
 
     for (const row of rows) {
-      // 族(baseSpeed)ごとのブロックに分け、ブロックごとに独立した物理行を作る
-      // (2026-08-01追補: 「同じ実数値のなかで族ごとに行を分ける」)。
-      const blocks = groupEntriesIntoBlocks(row.entries, baseSpeedByName, usageCounts, showBoostFactors);
+      // 実数値1件ぶんのentriesを「振り方+補正」のグループへ分け、族(baseSpeed)降順の
+      // フラットな配列として、グループごとに独立した物理行を作る(要件2)。
+      const groups = groupEntriesIntoRowGroups(row.entries, baseSpeedByName, usageCounts);
       const elementsForValue: HTMLElement[] = [];
 
-      blocks.forEach((block, blockIndex) => {
-        const isLastBlock = blockIndex === blocks.length - 1;
+      groups.forEach((group, groupIndex) => {
+        const isLastGroup = groupIndex === groups.length - 1;
         const rowEl = document.createElement('div');
         rowEl.className = 'speed-chart-row';
-        // 同じ実数値グループ内の行同士は境界線を軽くし(is-value-group-end無し)、
-        // グループの最後の行にだけ通常の境界線を付ける(値ごとの区切りを分かりやすくする)。
-        if (isLastBlock) rowEl.classList.add('speed-chart-row-value-end');
+        // 同じ実数値内の行同士は境界線を軽くし(is-value-group-end無し)、
+        // 実数値の最後の行にだけ通常の境界線を付ける(値ごとの区切りを分かりやすくする)。
+        if (isLastGroup) rowEl.classList.add('speed-chart-row-value-end');
         rowEl.dataset.value = String(row.value);
 
         const valueCell = document.createElement('div');
         valueCell.className = 'speed-chart-value-cell tnum';
-        // 実数値はグループの先頭行だけに出す(2行目以降は同じ実数値であることが行の並びで
+        // 実数値はその値の先頭行だけに出す(2行目以降は同じ実数値であることが行の並びで
         // 分かるため空欄のままにし、値の重複表示を避ける)。
-        if (blockIndex === 0) valueCell.textContent = String(row.value);
+        if (groupIndex === 0) valueCell.textContent = String(row.value);
         rowEl.appendChild(valueCell);
 
-        const groupCell = document.createElement('div');
-        groupCell.className = 'speed-chart-group-cell';
-        groupCell.appendChild(
-          buildBlockContent(block, imageIdByName, usageCounts, baseSpeedByName, chipWidthByName, chipLayoutMetrics),
+        rowEl.appendChild(buildMetaCell(group));
+        rowEl.appendChild(
+          buildChipsCell(group, imageIdByName, usageCounts, baseSpeedByName, chipWidthByName, chipLayoutMetrics),
         );
-        rowEl.appendChild(groupCell);
 
-        const ownedCell = document.createElement('div');
-        ownedCell.className = 'speed-chart-owned-cell';
-        // 「この個体」列も実数値ごとに1つの内容なので、グループの先頭行だけに出す。
-        if (blockIndex === 0) {
-          if (ownedController) {
-            ownedCell.appendChild(ownedController.renderCell(row.value));
-          } else {
-            ownedCell.appendChild(buildDashCell());
+        // 要件: 4列目(調整)は?owned=連携時だけ存在する(ChartTable.astro側もdata-has-owned-panel
+        // で列数を切り替えている)。列数がズレないよう、無いときはセル自体を作らない。
+        if (hasOwnedPanel) {
+          const ownedCell = document.createElement('div');
+          ownedCell.className = 'speed-chart-owned-cell';
+          // 「この個体」列も実数値ごとに1つの内容なので、その値の先頭行だけに出す。
+          if (groupIndex === 0) {
+            if (ownedController) {
+              ownedCell.appendChild(ownedController.renderCell(row.value));
+            } else {
+              ownedCell.appendChild(buildDashCell());
+            }
           }
+          rowEl.appendChild(ownedCell);
         }
-        rowEl.appendChild(ownedCell);
 
         fragment.appendChild(rowEl);
         elementsForValue.push(rowEl);
@@ -292,7 +297,7 @@ export async function initSpeedChartPage(): Promise<void> {
       rowElements.get(currentHighlightValue)?.forEach((el) => el.classList.remove('is-current-row'));
     }
     currentHighlightValue = value;
-    // 同じ実数値の族ブロックが複数行に分かれていても、その値の全行をまとめてハイライトする。
+    // 同じ実数値のグループが複数行に分かれていても、その値の全行をまとめてハイライトする。
     rowElements.get(value)?.forEach((el) => el.classList.add('is-current-row'));
   }
 
@@ -334,16 +339,6 @@ export async function initSpeedChartPage(): Promise<void> {
     showReachableOnly = reachableOnlyToggle.checked;
     renderVisibleRows();
     // トグル操作でも← 現在マーカーの位置は変わらないため、直前のハイライト値を再適用する。
-    if (ownedController) applyHighlight(ownedController.getCurrentValue());
-  });
-
-  // 要件5: すばやさ上昇要因トグル。表示される「行の集合」自体は変えず(showReachableOnlyとは
-  // 独立)、各行の中身(補正ありグループの表示/非表示)だけを切り替えるため、renderVisibleRows()
-  // ではなくrenderRows()を直接呼ぶだけで十分だが、reachableOnly側のフィルタも常に反映したい
-  // ため既存のrenderVisibleRows()をそのまま再利用する(挙動は変えない)。
-  boostFactorsToggle?.addEventListener('change', () => {
-    showBoostFactors = boostFactorsToggle.checked;
-    renderVisibleRows();
     if (ownedController) applyHighlight(ownedController.getCurrentValue());
   });
 
@@ -422,31 +417,17 @@ function buildDashCell(): HTMLElement {
   return wrap;
 }
 
-// 追加改修(2026-08-01第3弾)要件1: 「補正量とその原因は行をわける」。以前は
-// 「振り方+種族値+補正量+補正の原因」を1本のラベル文字列にまとめていた(例:
-// "最速 120族 2倍 かるわざ")が、これを3段に分ける:
-//   1段目 .speed-chart-amounts-row … 振り方バッジ(色分け)+ 補正量(x1.5/x2等。
-//     第4弾要件4でS+n表記を廃止し倍率表記に統一。formatModifierMagnitude参照)
-//   2段目 .speed-chart-origins-row … 補正の原因(特性名/わざ名/持ち物名)。補正なしの
-//     グループ(素の実数値)は原因を持たないため、そのグループ分は出力しない
-//     (行の高さはCSS側のmin-heightで確保するため、原因が1件も無い行でも段自体は消えない)。
-//   3段目 .speed-chart-chips-row … ポケモンのアイコン+名前チップ(要件・仕様は変更なし)。
-// 1段目と2段目の対応は、以前と同じく「同じグループ順に並べる」ことで表す(厳密な位置揃えは
-// しない。docs/plan/pages/speed-chart.md 追加改修(2026-08-01第2弾)要件3の仮定を踏襲)。
-//
-// 【2026-08-01追補】 「族」(baseSpeed。すばやさ種族値)は以前は同じ実数値行の中で
-// ブロック分けして横並び表示していたが、これを「族ごとに独立した物理行」へ変更した
-// (ユーザー指示: 「同じ実数値のなかで、族ごとに行を分ける(単一行構成を廃止)」)。
-// そのため以下の2関数に分割する:
-//   - groupEntriesIntoBlocks: 1実数値ぶんのentriesを「族(baseSpeed)ごとのRowBlock」に
-//     まとめる(以前buildRowContent内で行っていたグルーピング・使用率順並び替え・
-//     showBoostFactorsフィルタをそのまま踏襲。呼び出し側=renderRowsがブロックごとに
-//     物理行を作る)。
-//   - buildBlockContent: 1つのRowBlock(=1つの物理行)の中身(3段)を作る。同じ行の中に
-//     複数のbaseSpeedが混在することは無くなったため、ブロック間の縦棒区切り
-//     (.speed-chart-group-divider)や.speed-chart-blockラッパー・チップ2行クランプは
-//     不要になった(行そのものが区切りになるため)。チップの足切りは行全体の幅
-//     (chipLayoutMetrics.containerWidth)をそのまま使う(ブロック分割前の設計に戻る)。
+// UI改修(2026-08-02第2弾)要件2/3: 「1物理行 = 1族」だった構成をやめ、「1物理行 = 1グループ
+// (振り方+補正の組)」にする(以前は族ごとにブロックへまとめ、ブロック内の複数グループを
+// 2列目のセル内に縦積みしていた)。列も「実数値 / 族・配分・倍率 / ポケモン・補正要因」の
+// 3列に分かれたため、族ラベルは行ごとに繰り返し出す(2列目、group.baseSpeed)。
+// 要件1: 表示ON/OFFトグルは廃止したため、補正ありグループを隠すフィルタは無い
+// (groupEntriesIntoRowGroupsは常に全グループを返す)。
+//   - groupEntriesIntoRowGroups: 1実数値ぶんのentriesを「振り方+補正」でグルーピングし
+//     (既存のグルーピング・使用率順並び替えロジックをそのまま流用)、族(baseSpeed)降順の
+//     フラットな配列で返す(同じ族内は出現順を維持。Array#sortの安定性に依存する。
+//     ES2019以降で仕様上保証されている)。
+//   - buildMetaCell/buildChipsCell: 1つのRowGroup(=1つの物理行)の2列目・3列目を作る。
 interface RowGroup {
   spreadKind: SpeedSpreadKind;
   baseSpeed: number;
@@ -454,22 +435,11 @@ interface RowGroup {
   formNames: string[];
 }
 
-/** 「族」(baseSpeed)ごとのブロック。1ブロック=1物理行(renderRows参照)。 */
-interface RowBlock {
-  baseSpeed: number;
-  groups: RowGroup[];
-}
-
-function groupEntriesIntoBlocks(
+function groupEntriesIntoRowGroups(
   entries: SpeedChartEntry[],
   baseSpeedByName: Map<string, number>,
   usageCounts: SpeciesUsageCounts | undefined,
-  // 要件5(第4弾、2026-08-02修正): OFF(既定)のときは補正ありグループ(modifier !== null)を
-  // 折りたたむ。その行の全グループが補正ありの場合(素の実数値では到達しない行)は、
-  // このブロック自体が空(=空配列)になり、呼び出し側で行そのものが描画されなくなる
-  // (フォールバックしない。理由は下のコメント参照)。
-  showBoostFactors: boolean,
-): RowBlock[] {
+): RowGroup[] {
   const groups = new Map<string, RowGroup>();
   for (const entry of entries) {
     const key = `${entry.spread}|${entry.modifier ? `${entry.modifier.category}:${entry.modifier.name}` : 'none'}`;
@@ -493,122 +463,84 @@ function groupEntriesIntoBlocks(
     formNames: sortFormNamesByUsage(group.formNames, usageCounts, baseSpeedByName),
   }));
 
-  // 要件5(2026-08-02実機確認で修正): showBoostFactors=falseのときは補正あり
-  // (modifier !== null)グループを折りたたむ。以前はここで「フィルタの結果が空になる場合は
-  // 元のorderedGroupsへフォールバックする」安全策を取っていたが、この安全策自体が
-  // 「補正なしのグループが1つも無い実数値行(=素の実数値では絶対に到達しない値)」では
-  // トグルをOFFにしても常にON相当の全件表示に戻ってしまい、「トグルが効いていない」という
-  // ユーザー報告の直接の原因になっていた。素の実数値では到達しない行をOFF時に隠さず見せる
-  // ことは「上昇要因の表示/非表示」ではなく「存在しないはずの値を見せる」ことになり、
-  // むしろ誤解を招くため、フォールバックはやめてfilteredGroupsをそのまま使う(空なら
-  // このブロックからは何も描画されない=呼び出し側で行自体が現れなくなる)。
-  const filteredGroups = showBoostFactors ? orderedGroups : orderedGroups.filter((group) => group.modifier === null);
-
-  // filteredGroupsをbaseSpeedごとのブロックにまとめ、baseSpeed降順に並べる
-  // (ブロック内のグループ順は元のfilteredGroupsの出現順を維持する)。
-  const blocksByBaseSpeed = new Map<number, RowGroup[]>();
-  for (const group of filteredGroups) {
-    const bucket = blocksByBaseSpeed.get(group.baseSpeed);
-    if (bucket) bucket.push(group);
-    else blocksByBaseSpeed.set(group.baseSpeed, [group]);
-  }
-  return Array.from(blocksByBaseSpeed.entries())
-    .map(([baseSpeed, groupsInBlock]) => ({ baseSpeed, groups: groupsInBlock }))
-    .sort((a, b) => b.baseSpeed - a.baseSpeed);
+  // 族(baseSpeed)降順に並べる。同じ族内は元の出現順(entriesの出現順=Mapの挿入順)を
+  // 維持したいので、安定ソートに依存する(Array#sortはES2019以降で安定性が仕様上保証されている)。
+  return orderedGroups.sort((a, b) => b.baseSpeed - a.baseSpeed);
 }
 
-// UI改修(2026-08-02) 要件5b: 「要因は/で連結表示せず、各ポケモンの下に中央寄せで配置する」
-// 指示、および「実数値356では、110族 最速 x2 最速 x2のように1行目の情報が重複して表示されて
-// いる」という実例への対応。以前は1ブロック(=1族)につき「全グループのバッジ+倍率を' '区切りで
-// 横並び」「全グループの原因を' / '区切りで連結」「全グループのチップをまとめて1行」という
-// 3段構成で、グループ(振り方+補正の組)単位の対応関係が見た目から失われていた
-// (同じ x2 倍率でも原因(グループ)が別なら別々に表示すべきなのに、連結表示のせいで
-// 「x2 x2」のように重複して見えた)。
-// これを、グループごとに独立した「枠のないカード」(.speed-chart-group)にする: バッジ+倍率
-// (.speed-chart-group-meta)→原因(あれば。.speed-chart-group-origin)→そのグループの
-// ポケモンチップ(.speed-chart-chips-row、既存クラスを流用)を縦に積み、中央寄せにする。
-// 族ラベル(◯◯族)は仕様どおりブロック全体で1つだけ(.speed-chart-base-speed-label、
-// 既存クラスのまま先頭に残す)。
-// 参考: docs/ui_proposal/すばやさライン早見表 シーズンM-2(シングルバトル)｜バトルデータベース
-// チャンピオンズ.html の speed-table__header 周辺(各ポケモンをカード状に見せる構造)。
-function buildBlockContent(
-  block: RowBlock,
+/** 2列目(族・配分バッジ・倍率)を作る。 */
+function buildMetaCell(group: RowGroup): HTMLElement {
+  const cell = document.createElement('div');
+  cell.className = 'speed-chart-meta-cell';
+
+  const baseSpeedLabel = document.createElement('span');
+  baseSpeedLabel.className = 'speed-chart-base-speed-label';
+  baseSpeedLabel.textContent = `${group.baseSpeed}族`;
+  cell.appendChild(baseSpeedLabel);
+
+  cell.appendChild(buildSpreadBadge(group.spreadKind));
+
+  if (group.modifier) {
+    const magnitude = document.createElement('span');
+    magnitude.textContent = formatModifierMagnitude(group.modifier.modifier);
+    cell.appendChild(magnitude);
+  }
+
+  return cell;
+}
+
+/** 3列目(1段目: ポケモンチップ、2段目: 補正要因)を作る。要件3で以前と上下が逆になった。 */
+function buildChipsCell(
+  group: RowGroup,
   imageIdByName: Map<string, number>,
   usageCounts: SpeciesUsageCounts | undefined,
   baseSpeedByName: Map<string, number>,
   chipWidthByName: Map<string, number>,
   chipLayoutMetrics: ChipLayoutMetrics | null,
 ): HTMLElement {
-  const container = document.createElement('div');
-  container.className = 'speed-chart-row-content';
+  const cell = document.createElement('div');
+  cell.className = 'speed-chart-chips-cell';
 
-  // 族(baseSpeed)ラベルを1つだけ出す(ブロック全体で1つ、現状維持)。
-  const baseSpeedLabel = document.createElement('span');
-  baseSpeedLabel.className = 'speed-chart-base-speed-label';
-  baseSpeedLabel.textContent = `${block.baseSpeed}族`;
-  container.appendChild(baseSpeedLabel);
+  // 1段目: ポケモンチップ。グループごとに独立した行になったため、行全体の幅
+  // (chipLayoutMetrics.containerWidth)をそのグループ単独で使える。
+  const chipsRow = document.createElement('div');
+  chipsRow.className = 'speed-chart-chips-row';
+  const { kept, droppedCount } = chipLayoutMetrics
+    ? limitRowChipsByWidth(
+        group.formNames,
+        usageCounts,
+        baseSpeedByName,
+        chipWidthByName,
+        chipLayoutMetrics.gapWidth,
+        chipLayoutMetrics.containerWidth,
+        chipLayoutMetrics.overflowBadgeWidth,
+      )
+    : { kept: group.formNames, droppedCount: 0 };
+  const keptSet = new Set(kept);
+  for (const formName of group.formNames) {
+    if (!keptSet.has(formName)) continue;
+    chipsRow.appendChild(buildChip(formName, imageIdByName));
+  }
+  // 足切りが起きたグループには必ず可視で件数を示す(黙って切ると「そのポケモンは居ない」と
+  // 誤読されるため。stack.mdの「no silent caps」と同趣旨)。
+  if (droppedCount > 0) {
+    const overflow = document.createElement('span');
+    overflow.className = 'speed-chart-chip-overflow';
+    overflow.textContent = `+${droppedCount}件`;
+    chipsRow.appendChild(overflow);
+  }
+  cell.appendChild(chipsRow);
 
-  // グループ(振り方+補正の組)ごとに独立したカードを縦に積む。
-  const groupsWrap = document.createElement('div');
-  groupsWrap.className = 'speed-chart-groups';
+  // 2段目: 補正要因(特性名/わざ名/持ち物名)。補正なしグループ(素の実数値)には要因が
+  // 無いため、その場合はこの要素自体を出力しない。
+  if (group.modifier) {
+    const originEl = document.createElement('div');
+    originEl.className = 'speed-chart-group-origin';
+    originEl.textContent = group.modifier.name;
+    cell.appendChild(originEl);
+  }
 
-  block.groups.forEach((group) => {
-    const groupEl = document.createElement('div');
-    groupEl.className = 'speed-chart-group';
-
-    // バッジ+倍率(このグループのポケモンチップの直上に中央寄せ)。
-    const metaRow = document.createElement('div');
-    metaRow.className = 'speed-chart-group-meta';
-    metaRow.appendChild(buildSpreadBadge(group.spreadKind));
-    if (group.modifier) {
-      metaRow.appendChild(document.createTextNode(` ${formatModifierMagnitude(group.modifier.modifier)}`));
-    }
-    groupEl.appendChild(metaRow);
-
-    // 原因(特性名/わざ名/持ち物名)。補正なしグループ(素の実数値)には原因が無いため出さない。
-    if (group.modifier) {
-      const originEl = document.createElement('div');
-      originEl.className = 'speed-chart-group-origin';
-      originEl.textContent = group.modifier.name;
-      groupEl.appendChild(originEl);
-    }
-
-    // このグループのポケモンチップ。グループごとに独立した行になったため、行全体の幅
-    // (chipLayoutMetrics.containerWidth)をそのグループ単独で使える(以前のように他グループと
-    // 幅を分け合う必要はない。groupsWrapがflex-direction: columnで縦に積むため)。
-    const chipsRow = document.createElement('div');
-    chipsRow.className = 'speed-chart-chips-row';
-    const { kept, droppedCount } = chipLayoutMetrics
-      ? limitRowChipsByWidth(
-          group.formNames,
-          usageCounts,
-          baseSpeedByName,
-          chipWidthByName,
-          chipLayoutMetrics.gapWidth,
-          chipLayoutMetrics.containerWidth,
-          chipLayoutMetrics.overflowBadgeWidth,
-        )
-      : { kept: group.formNames, droppedCount: 0 };
-    const keptSet = new Set(kept);
-    for (const formName of group.formNames) {
-      if (!keptSet.has(formName)) continue;
-      chipsRow.appendChild(buildChip(formName, imageIdByName));
-    }
-    // 足切りが起きたグループには必ず可視で件数を示す(黙って切ると「そのポケモンは居ない」と
-    // 誤読されるため。stack.mdの「no silent caps」と同趣旨)。
-    if (droppedCount > 0) {
-      const overflow = document.createElement('span');
-      overflow.className = 'speed-chart-chip-overflow';
-      overflow.textContent = `+${droppedCount}件`;
-      chipsRow.appendChild(overflow);
-    }
-    groupEl.appendChild(chipsRow);
-
-    groupsWrap.appendChild(groupEl);
-  });
-
-  container.appendChild(groupsWrap);
-  return container;
+  return cell;
 }
 
 // 要件2: 振り方(最速/準速/無振り)を色分けするバッジ。既存の配色トークン(primary/success/risky)
@@ -622,7 +554,7 @@ function buildSpreadBadge(spreadKind: SpeedSpreadKind): HTMLElement {
   return badge;
 }
 
-/** グループセル幅・チップ間gap・「+N件」バッジ幅(行によらず一定。固定グリッド列幅のため)。 */
+/** 3列目セル幅・チップ間gap・「+N件」バッジ幅(行によらず一定。固定グリッド列幅のため)。 */
 interface ChipLayoutMetrics {
   containerWidth: number;
   gapWidth: number;
@@ -648,6 +580,10 @@ function ensureChipMetrics(
   imageIdByName: Map<string, number>,
   chipWidthByName: Map<string, number>,
   existing: ChipLayoutMetrics | null,
+  // UI改修(2026-08-02第2弾): 4列目(調整)は?owned=連携時だけ存在する。プローブ行の列数が
+  // 実際の行の列数とズレるとグリッドの列幅計算がズレる(3列目=minmax(0,1fr)の可変列の
+  // 実測幅が変わってしまう)ため、実際の行と同じ条件で4列目の有無を揃える。
+  hasOwnedPanel: boolean,
 ): ChipLayoutMetrics | null {
   const missing = [...formNames].filter((name) => !chipWidthByName.has(name));
   if (missing.length === 0 && existing !== null) return existing;
@@ -657,7 +593,7 @@ function ensureChipMetrics(
 
   // ⚠ position:absoluteにすると、この時点でのcontainingBlock(このページに他の
   // position指定祖先が無ければ初期containing block)に対するshrink-to-fit幅で
-  // グリッドの列幅が決まってしまい、.speed-chart-group-cell(minmax(0,1fr)の可変列)の
+  // グリッドの列幅が決まってしまい、.speed-chart-chips-cell(minmax(0,1fr)の可変列)の
   // 実測幅が実際の行(bodyEl幅いっぱいに広がる通常フローの行)とズレる(実測して確認済み:
   // absoluteだと0、通常フローだと実際の行と同じ748px)。そのためabsoluteにはせず、
   // 通常フロー内に挿入する(bodyElは呼び出し時点で空 = replaceChildren直後なので、
@@ -669,14 +605,19 @@ function ensureChipMetrics(
 
   const valueCell = document.createElement('div');
   valueCell.className = 'speed-chart-value-cell';
-  const groupCell = document.createElement('div');
-  groupCell.className = 'speed-chart-group-cell';
+  const metaCell = document.createElement('div');
+  metaCell.className = 'speed-chart-meta-cell';
+  const chipsCell = document.createElement('div');
+  chipsCell.className = 'speed-chart-chips-cell';
   const chipsRow = document.createElement('div');
   chipsRow.className = 'speed-chart-chips-row';
-  groupCell.appendChild(chipsRow);
-  const ownedCell = document.createElement('div');
-  ownedCell.className = 'speed-chart-owned-cell';
-  probeRow.append(valueCell, groupCell, ownedCell);
+  chipsCell.appendChild(chipsRow);
+  probeRow.append(valueCell, metaCell, chipsCell);
+  if (hasOwnedPanel) {
+    const ownedCell = document.createElement('div');
+    ownedCell.className = 'speed-chart-owned-cell';
+    probeRow.appendChild(ownedCell);
+  }
   bodyEl.appendChild(probeRow);
 
   // 書き込みフェーズ: 未計測分のチップを一括で作る(ここではgetBoundingClientRectを呼ばない)。
@@ -701,7 +642,7 @@ function ensureChipMetrics(
   }
   let metrics = existing;
   if (metrics === null) {
-    const containerWidth = groupCell.getBoundingClientRect().width;
+    const containerWidth = chipsCell.getBoundingClientRect().width;
     const gap = Number.parseFloat(getComputedStyle(chipsRow).columnGap || getComputedStyle(chipsRow).gap || '0') || 0;
     const overflowBadgeWidth = overflowProbe!.getBoundingClientRect().width;
     metrics = { containerWidth, gapWidth: gap, overflowBadgeWidth };

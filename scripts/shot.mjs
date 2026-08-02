@@ -203,7 +203,14 @@ async function detectBaseUrl() {
 }
 
 function slugForPath(pagePath) {
-	const slug = pagePath.replace(/^\/+|\/+$/g, "").replace(/\//g, "-");
+	const slug = pagePath
+		.replace(/^\/+|\/+$/g, "")
+		.replace(/\//g, "-")
+		// クエリ付きの画面(例: `speed-chart?owned=<uuid>`)もそのまま --page に渡せるように、
+		// Windowsのファイル名に使えない文字(? & = : * " < > |)をハイフンへ潰す。
+		// 潰さないと出力先の open が ENOENT で落ちる(2026-08-02 実際に踏んだ)。
+		.replace(/[?&=:*"<>|]+/g, "-")
+		.replace(/-+$/g, "");
 	return slug === "" ? "home" : slug;
 }
 

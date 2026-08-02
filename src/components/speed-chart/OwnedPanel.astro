@@ -20,8 +20,10 @@ const { hasOwnedPanel } = Astro.props;
 		<div class="speed-chart-owned-summary" id="speed-chart-owned-summary">
 			<span class="speed-chart-owned-summary-label">この個体:</span>
 			<span id="speed-chart-owned-summary-species" class="speed-chart-owned-summary-species"></span>
-			<span id="speed-chart-owned-summary-nature" class="badge badge-muted"></span>
-			<span id="speed-chart-owned-summary-item" class="badge badge-muted"></span>
+			<span class="speed-chart-owned-summary-badges">
+				<span id="speed-chart-owned-summary-nature" class="badge badge-muted"></span>
+				<span id="speed-chart-owned-summary-item" class="badge badge-muted"></span>
+			</span>
 			<span id="speed-chart-owned-summary-value" class="tnum speed-chart-owned-summary-value"></span>
 		</div>
 	)}
@@ -32,30 +34,60 @@ const { hasOwnedPanel } = Astro.props;
 
 <style>
 	/* 静的マークアップ(scoped styleで足りる。JS生成されるのは行内の「この個体」セルのみで、
-	   これらの要素とは別)。 */
+	   これらの要素とは別)。
+	   UI改修(2026-08-02第2弾): 旧トップバー(画面幅いっぱいの帯)から幅260pxの
+	   サイドバー(ChartTable.astroの.speed-chart-side、gap: var(--space-4)で
+	   縦に項目を積む)最下段のカードへ移植。帯前提だった左右padding・border-bottomは
+	   やめ、サイドバー内の1ブロックとして自己完結する角丸カード(.cardと同じ
+	   --radius-md、背景はそのまま.speed-chart-side自体の背景(--color-surface)に対して
+	   区別が付く--color-surface-altを踏襲)にする。 */
 	.speed-chart-owned-panel-static {
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-2);
-		padding: var(--space-3) var(--space-5);
+		padding: var(--space-3);
 		background: var(--color-surface-alt);
-		border-bottom: 1px solid var(--color-border);
+		border-radius: var(--radius-md);
 		font-size: var(--font-size-sm);
 	}
+	/* hasOwnedPanel=falseのときは子要素が一切描画されず空になる。空の背景ボックスだけが
+	   サイドバーに残らないよう、空のときはこの要素自体を消す。 */
+	.speed-chart-owned-panel-static:empty {
+		display: none;
+	}
+	/* 幅260pxでは「この個体:」ラベル・種族名・性格/持ち物バッジ・S実数値を横一列
+	   (旧flex-wrap)に並べると1文字ずつ折り返されて潰れる(pitfalls.md「潰れて
+	   読めなくなる破綻」)。各要素を縦積みにする(長い種族名・持ち物名は行内で
+	   2行に折り返すのは許容)。 */
 	.speed-chart-owned-summary {
 		display: flex;
-		flex-wrap: wrap;
-		align-items: center;
-		gap: var(--space-2);
+		flex-direction: column;
+		align-items: flex-start;
+		gap: var(--space-1);
 	}
 	.speed-chart-owned-summary-label {
+		font-size: var(--font-size-xs);
 		font-weight: 700;
+		color: var(--color-text-muted);
 	}
 	.speed-chart-owned-summary-species {
 		font-weight: 700;
 	}
+	/* 性格・持ち物バッジは.badgeの左paddingぶん、単独で縦積みにすると
+	   ラベル・種族名・実数値(いずれもpaddingなしの素のテキスト)と左端がズレて
+	   見える(実測でインデントが揃わない不具合)。2つのバッジを1つの行にまとめて
+	   横並びにすることで、この行自体は他の行と同じくpaddingなしで左端0から始まり、
+	   「バッジが並ぶ1行」であることが視覚的にも明確になる。260px幅では折り返さず
+	   収まる想定だが、念のためflex-wrapは許容しておく(1文字ずつの折り返しにはならない)。 */
+	.speed-chart-owned-summary-badges {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: var(--space-1);
+	}
 	.speed-chart-owned-summary-value {
 		font-weight: 700;
+		font-size: var(--font-size-md);
 		color: var(--color-primary-strong);
 	}
 	/* .severity-bar[data-severity]は基底(global.css)がdisplay指定を持たないブロック要素なので、
