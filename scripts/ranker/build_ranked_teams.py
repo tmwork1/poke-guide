@@ -81,7 +81,12 @@ FORM_SPECIES_KEYS = {
 
 
 def norm(s):
-    """全角英数字・記号ゆらぎを潰す(「１０まんボルト」→「10まんボルト」)。"""
+    """全角英数字・記号ゆらぎを潰す(「１０まんボルト」→「10まんボルト」)。
+
+    公式ランキングJSON(メガストーン名の「Ｘ/Ｙ」等)・pokesol.app由来データの両方に
+    全角英数字が混入する。jpoke(vendor/jpoke)の語彙は英数字を必ず半角で持つため、
+    技/持ち物/性格/フォルム名など出力に載せる文字列はすべてこれを通してから格納する。
+    """
     if not isinstance(s, str):
         return None
     return unicodedata.normalize('NFKC', s).strip()
@@ -351,12 +356,12 @@ def main():
                 member = {
                     'slot': slot,
                     'dex_no': int(dex), 'form_no': int(form),
-                    'species_name': p['pokemon'],
-                    'form_name': p['form'] or None,
+                    'species_name': norm(p['pokemon']),
+                    'form_name': norm(p['form']) or None,
                     'species_key': None,
-                    'type1': p['type1'] or None, 'type2': p['type2'] or None,
-                    'category': p['category'] or None,
-                    'item_name': p['item'] or None,
+                    'type1': norm(p['type1']) or None, 'type2': norm(p['type2']) or None,
+                    'category': norm(p['category']) or None,
+                    'item_name': norm(p['item']) or None,
                     'tera_type': None, 'nature': None, 'ability': None,
                     'move_names': None, 'evs': None,
                     'extraction_source': None, 'extraction_confidence': None,
@@ -383,9 +388,10 @@ def main():
                         # 同じ種族のカードが2枚ある(型違いの併記)。後勝ちで上書きする。
                         stats['pokesol_duplicate_card_overwrote'] += 1
                     tgt.update({
-                        'nature': c['nature'], 'ability': c['ability'],
-                        'tera_type': c['tera_type'],
-                        'move_names': c['move_names'] or None, 'evs': c['evs'],
+                        'nature': norm(c['nature']), 'ability': norm(c['ability']),
+                        'tera_type': norm(c['tera_type']),
+                        'move_names': [norm(mv) for mv in c['move_names']] or None,
+                        'evs': c['evs'],
                         'extraction_source': 'pokesol', 'extraction_confidence': 'high',
                     })
                     stats['members_from_pokesol'] += 1
