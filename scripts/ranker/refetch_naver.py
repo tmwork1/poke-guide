@@ -3,11 +3,10 @@
 """
 import json, os, re, sys, time
 import requests
+from common import key_of, HEADERS
 
-UA = ('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
-      '(KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36')
 idx_path, cache = sys.argv[1], sys.argv[2]
-idx = {f"{a['season'].replace('-', '')}_{a['rank']:05d}": a
+idx = {key_of(a['season'], a['rank']): a
        for a in json.load(open(idx_path, encoding='utf-8'))}
 
 n = 0
@@ -16,7 +15,7 @@ for key, a in idx.items():
     if not m:
         continue
     url = f'https://blog.naver.com/PostView.naver?blogId={m.group(1)}&logNo={m.group(2)}'
-    r = requests.get(url, headers={'User-Agent': UA}, timeout=30)
+    r = requests.get(url, headers=HEADERS, timeout=30)
     if r.status_code == 200 and len(r.content) > 1000:
         open(os.path.join(cache, key + '.html'), 'wb').write(r.content)
         n += 1

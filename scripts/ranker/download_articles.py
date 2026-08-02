@@ -6,10 +6,7 @@ pokesol.app は React Router の `.data`(turbo-stream) を取ると、記事本�
 """
 import json, os, sys, time, urllib.parse
 import requests
-
-UA = ('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
-      '(KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36')
-HEADERS = {'User-Agent': UA, 'Accept-Language': 'ja,en;q=0.8'}
+from common import key_of, HEADERS
 
 idx_path, cache_dir = sys.argv[1], sys.argv[2]
 os.makedirs(cache_dir, exist_ok=True)
@@ -17,7 +14,7 @@ articles = json.load(open(idx_path, encoding='utf-8'))
 
 results = []
 for n, a in enumerate(articles, 1):
-    key = f"{a['season'].replace('-', '')}_{a['rank']:05d}"
+    key = key_of(a['season'], a['rank'])
     host = urllib.parse.urlparse(a['url']).netloc
     is_pokesol = host == 'pokesol.app'
     url = a['url'] + '.data' if is_pokesol else a['url']
