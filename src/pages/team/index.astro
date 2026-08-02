@@ -68,10 +68,14 @@ const user = Astro.locals.user;
 				display: none;
 			}
 		}
-		/* 件数バッジ(旧topbar-statusスロット)をツールバー右端に寄せる(box/index.astroの
-		   .toolbar-countと同じ)。 */
+		/* UI改修依頼(チームトップ画面、2026-08-02)「ヘッダーの件数バッジを検索ボックスの左に置く」:
+		   旧topbar-statusスロットの件数バッジをツールバー右端(margin-left: auto)から検索ボックスの
+		   直前へ移動した(box/index.astroの同時改修と結果的に同じ配置になる)。ツールバー先頭寄りに
+		   置くだけで良く、右端に押し出すための margin-left: auto はもう不要なため削除した
+		   (pitfalls.md「flex: 1 1 0は余白を全部飲む」と同種の事故を避ける: auto marginを残したまま
+		   検索ボックスの前に移すと、今度は検索ボックス側が右端まで押し出されてしまう)。 */
 		.toolbar-count {
-			margin-left: auto;
+			flex-shrink: 0;
 		}
 		.toolbar-item {
 			display: flex;
@@ -570,6 +574,16 @@ const user = Astro.locals.user;
 								<line x1="4" y1="7" x2="20" y2="7" /><line x1="4" y1="12" x2="20" y2="12" /><line x1="4" y1="17" x2="20" y2="17" />
 							</svg>
 						</button>
+
+						{/* UI改修依頼(チームトップ画面、2026-08-02)「ヘッダーの件数バッジを検索ボックスの
+						    左に置く」: 旧topbar-statusスロットの件数バッジ。id/classは変更しない
+						    (<script>がgetElementByIdで参照する)。以前はツールバー末尾(margin-left: auto で
+						    右端寄せ)に置いていたが、検索ボックスの直前へ移動した(box/index.astroの
+						    同時改修と結果的に同じ配置になる)。 */}
+						<div class="toolbar-item toolbar-count">
+							<span class="badge tnum" id="team-count-badge" hidden>0チーム</span>
+						</div>
+
 						<div class="toolbar-item toolbar-search">
 							{/* UI改修依頼(チームトップ画面、2026-08-02)「セカンドトップバーのデザインを
 							    ボックス画面にあわせる」: 可視の「検索」<label>を削除し、box/index.astroと
@@ -637,12 +651,6 @@ const user = Astro.locals.user;
 									<option value="name">名前順</option>
 								</select>
 							</div>
-						</div>
-
-						{/* 旧topbar-statusスロットの件数バッジ。id/classは変更しない(<script>が
-						    getElementByIdで参照する)。box/index.astroの.toolbar-countと同じ配置。 */}
-						<div class="toolbar-item toolbar-count">
-							<span class="badge tnum" id="team-count-badge" hidden>0チーム</span>
 						</div>
 					</div>
 
