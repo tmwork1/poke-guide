@@ -188,6 +188,7 @@ try {
 	description="レギュレーション別のすばやさ実数値早見表"
 	current="speed-chart"
 	backHref={backHref}
+	bodyClass="speed-chart-page"
 >
 	<Fragment slot="topbar-actions">
 		<select id="speed-chart-regulation-select" aria-label="レギュレーション">
@@ -225,5 +226,29 @@ try {
 
 	#speed-chart-jump-input {
 		width: 11rem;
+	}
+</style>
+
+<style is:global>
+	/* UI改修依頼(すばやさ早見表トップバー)「タイトル表示を消す」「入力ボックスを左寄せにする」。
+	   .app-topbar-title / .app-topbar-row-main はいずれも AppLayout.astro 側の要素で、
+	   AppLayout.astro は編集禁止(このページの担当範囲外)のためこのページの scoped <style>
+	   からは選択できない。team/[id].astro の23-H1(bodyClass="team-edit-page"でタイトルを
+	   隠す手法)と同じ方針で、AppLayoutにbodyClass="speed-chart-page"を渡し(上のフロント
+	   マター)、body クラスで確実にスコープしたグローバルセレクタで打ち消す。
+	   - .app-topbar-title は非表示にするだけ(<title>タグ/ブラウザタブの表示は pageTitle と
+	     独立のため影響しない)。
+	   - .app-topbar-row-main は global.css の .app-topbar-row が持つ
+	     `justify-content: space-between`(詳細度 0,1,0)により右端寄せになっている。
+	     `body.speed-chart-page .app-topbar-row-main`(詳細度 0,2,1)はこれより高いため、
+	     global.cssへの変更なし・注入順序に依存せず確実に上書きできる
+	     (pitfalls.md「global.cssの指定がAstroのscoped styleに詳細度で負ける」の逆で、
+	     ここはページ側が勝つ側なので同じ罠を踏まない)。 */
+	body.speed-chart-page .app-topbar-title {
+		display: none;
+	}
+
+	body.speed-chart-page .app-topbar-row-main {
+		justify-content: flex-start;
 	}
 </style>

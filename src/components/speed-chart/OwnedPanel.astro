@@ -19,13 +19,36 @@
 // 分割した(バッジ4つを1行に詰め込むと260px幅で窮屈になるため)。
 interface Props {
   hasOwnedPanel: boolean;
+  /**
+   * UI改修(2026-08-02第4弾)要件1: アイコン右の編集ボタン(/box/<id>への遷移)用。
+   * ChartTable.astro が data-owned-id を持つ ownedId をそのまま渡す(?owned=なしのときは
+   * null で、その場合ボタン自体を出さない)。
+   */
+  ownedId: string | null;
 }
-const { hasOwnedPanel } = Astro.props;
+const { hasOwnedPanel, ownedId } = Astro.props;
 ---
 <div class="speed-chart-owned-panel-static">
 	{hasOwnedPanel && (
 		<div class="speed-chart-owned-summary" id="speed-chart-owned-summary">
-			<img id="speed-chart-owned-summary-sprite" class="sprite-icon speed-chart-owned-summary-sprite" alt="" hidden />
+			{/* UI改修(2026-08-02第4弾)要件1: アイコン(1段目)の右に個体編集(/box/<id>)への
+			    編集ボタンを並べる。img自体のid/classは変えない(owned-panel.tsがid経由で
+			    src/hiddenを出し分けるため)。ラッパーはこの段専用(2段目以降には影響しない)。 */}
+			<div class="speed-chart-owned-summary-header">
+				<img id="speed-chart-owned-summary-sprite" class="sprite-icon speed-chart-owned-summary-sprite" alt="" hidden />
+				{ownedId && (
+					<a class="btn-ghost speed-chart-owned-edit-button" href={`/box/${ownedId}`} aria-label="個体を編集">
+						{/* pitfalls.md「配色」節: 新しい色は作らずfill="none" stroke="currentColor"で
+						    ボタンの文字色を継承させる。パスはteam/[id].astroの編集リンク
+						    (slot-edit-link)と同じ鉛筆アイコンを再利用し、アイコンの意匠を統一する。 */}
+						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+							<path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+							<path d="m15 5 4 4" />
+						</svg>
+						編集
+					</a>
+				)}
+			</div>
 			<span id="speed-chart-owned-summary-species" class="speed-chart-owned-summary-species"></span>
 			<span class="speed-chart-owned-summary-badges">
 				<span id="speed-chart-owned-summary-ability" class="badge badge-muted"></span>
@@ -99,12 +122,29 @@ const { hasOwnedPanel } = Astro.props;
 	.speed-chart-owned-summary[hidden] {
 		display: none;
 	}
+	/* UI改修(2026-08-02第4弾)要件1: アイコンと編集ボタンを横並びにするラッパー(1段目)。
+	   カード全体が左揃えのため、ラッパー自体も左寄せのまま子要素だけ横に並べる。 */
+	.speed-chart-owned-summary-header {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+	}
 	/* アイコン段(1段目)。48〜56pxの正方形。カード全体が左揃え
 	   (align-items: flex-start)のため画像も左寄せに揃える。src/hiddenの出し分けは
 	   owned-panel.tsが行う(spriteImageIdが無い個体はhiddenのまま=何も表示しない)。 */
 	.speed-chart-owned-summary-sprite {
 		width: 52px;
 		height: 52px;
+	}
+	/* 編集ボタン。global.cssの a.btn-ghost(枠なし・透明背景・ホバーでsurface-alt)をそのまま
+	   使い、新しい配色は作らない。260px幅のカード内でも詰まらないよう、既存のbutton基底より
+	   ひとまわり小さいpaddingにページ限定で調整する(a.btn-ghost自体はglobal.css編集禁止のため
+	   触らない)。 */
+	.speed-chart-owned-edit-button {
+		padding: 0.2em 0.6em;
+		font-size: var(--font-size-xs);
+		font-weight: 600;
+		flex-shrink: 0;
 	}
 	.speed-chart-owned-summary-species {
 		font-weight: 700;
@@ -182,6 +222,10 @@ const { hasOwnedPanel } = Astro.props;
 		gap: var(--space-1);
 		font-size: var(--font-size-xs);
 		padding: 0.2em 0.8em;
+		/* UI改修(2026-08-02第4弾)要件4: 太字をやめる。global.css の
+		   button.btn-primary { font-weight: 700 } は(0,1,1)、こちらは.speed-chart-owned
+		   (領域ルート)経由の(0,2,0)で詳細度が上回るため確実に上書きできる。 */
+		font-weight: 500;
 	}
 	.speed-chart-owned .speed-chart-apply-icon {
 		flex-shrink: 0;

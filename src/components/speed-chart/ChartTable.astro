@@ -52,16 +52,24 @@ const { regulation, ownedId, hasOwnedPanel } = Astro.props;
 		    (pitfalls.md「左右2カラムの新規ページは最初から1200pxに揃える」)。 */}
 		{hasOwnedPanel && (
 			<aside class="speed-chart-side panel panel-right">
-				<OwnedPanel hasOwnedPanel={hasOwnedPanel} />
-				<button type="button" id="speed-chart-back-to-current" class="btn-ghost speed-chart-side-button">現在地へ戻る</button>
+				<OwnedPanel hasOwnedPanel={hasOwnedPanel} ownedId={ownedId} />
+				{/* UI改修(2026-08-02第4弾)要件2: btn-ghost(枠線・背景なし)だとテキストリンクに
+				    見えて押せることが伝わりにくいため外す。idとテキストは変えない。クラスを
+				    外すとglobal.cssの素の button 基底(枠線+surface背景、global.css 822行目〜)が
+				    そのまま効き、他の「ボタンらしい」ボタンと同じ見た目になる。 */}
+				<button type="button" id="speed-chart-back-to-current" class="speed-chart-side-button">現在地へ戻る</button>
 				<label class="speed-chart-reachable-toggle">
 					<span class="toggle-switch">
-						<input type="checkbox" id="speed-chart-reachable-only-toggle" class="toggle-switch-input" checked aria-label="とりうるすばやさのみ" />
+						{/* UI改修(2026-08-02第4弾)要件3: 「とりうるすばやさのみ」(絞り込み)から
+						    「すべて表示」(展開)へ意味を反転させる。idは変えない(chart-table.tsが
+						    参照)。checkedを外し既定OFF=絞り込み表示のまま、ONで全件表示にする
+						    (checked/uncheckedの解釈反転はchart-table.ts側の担当)。 */}
+						<input type="checkbox" id="speed-chart-reachable-only-toggle" class="toggle-switch-input" aria-label="すべて表示" />
 						<span class="toggle-switch-track" aria-hidden="true">
 							<span class="toggle-switch-thumb"></span>
 						</span>
 					</span>
-					<span>とりうるすばやさのみ</span>
+					<span>すべて表示</span>
 				</label>
 			</aside>
 		)}
@@ -157,7 +165,10 @@ const { regulation, ownedId, hasOwnedPanel } = Astro.props;
 		align-items: center;
 		gap: var(--space-2);
 		cursor: pointer;
-		font-size: var(--font-size-xs);
+		/* UI改修(2026-08-02第4弾)要件3: ラベルの文字サイズを一段上げる(--font-size-xs →
+		   --font-size-sm)。「すべて表示」に文言変更した際、他の右パネル要素と比べて
+		   小さすぎて目立たなかったため。 */
+		font-size: var(--font-size-sm);
 		color: var(--color-text-muted);
 	}
 	.toggle-switch { position: relative; display: inline-flex; align-items: center; width: 38px; height: 20px; flex-shrink: 0; }

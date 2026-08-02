@@ -79,6 +79,24 @@ interface MasterData {
 
 const ROOT_SELECTOR = '.speed-chart-table';
 
+// UI改修(2026-08-02)要件1: 「表示しない条件」を静的ファイル(speed-chart.json)で管理できる
+// ようにする。src/lib/speed-chart.ts は編集禁止(担当外)のため、SpeedChartConfig 本体には
+// hiddenEntries が無い。このファイル限定で使うローカル型として拡張する(readEmbeddedJson は
+// ジェネリックなJSONパースなので、embedされたJSONに hiddenEntries キーが増えても
+// index.astro側の埋め込みを変える必要はなく、ここで型を足すだけで届く)。
+/** hiddenEntries.rules の1件。「指定された項目がすべて一致するエントリを消す」の意味。 */
+interface HiddenEntryRule {
+  /** 省略時は振り方を問わない。src/lib/speed-chart.ts の SPEED_SPREADS のキー。 */
+  spread?: SpeedSpreadKind;
+  /** true=上昇要因あり / false=補正なし(素の実数値)。省略時は問わない。 */
+  hasModifier?: boolean;
+  /** 表示には使わない。なぜ消すかのメモ。 */
+  reason?: string;
+}
+type SpeedChartPageConfig = SpeedChartConfig & {
+  hiddenEntries?: { rules?: HiddenEntryRule[] };
+};
+
 export async function initSpeedChartPage(): Promise<void> {
   const root = document.querySelector<HTMLElement>(ROOT_SELECTOR);
   if (!root) return;
@@ -87,7 +105,7 @@ export async function initSpeedChartPage(): Promise<void> {
   const ownedId = root.dataset.ownedId || null;
   const hasOwnedPanel = root.dataset.hasOwnedPanel === 'true';
 
-  const config = readEmbeddedJson<SpeedChartConfig>('speed-chart-config');
+  const config = readEmbeddedJson<SpeedChartPageConfig>('speed-chart-config');
   const adoptionByRegulation = readEmbeddedJson<Record<string, AdoptionRateData>>('speed-chart-adoption-data') ?? {};
   // 追加改修(2026-08-01第2弾)要件1: レギュレーション別の種族使用率(ranked_team_members由来。
   // index.astroが1レギュレーションずつではなく全レギュレーション分まとめて埋め込むため、
@@ -146,8 +164,13 @@ export async function initSpeedChartPage(): Promise<void> {
   // R-12更新: 「個体が到達可能な実数値の集合」はowned-panel.tsが所有する。ここではCustomEvent
   // 経由で受け取った値をキャッシュするだけ(クロージャ共有はしない)。
   let lastKnownReachableValues: Set<number> | null = null;
-  // 既定でON(とりうるすばやさのみ)。?owned=が無いときはトグル自体が無くこの値は使われない。
-  let showReachableOnly = true;
+  // UI改修(2026-08-02)要件2: トグルの意味を反転(マークアップ側のラベルが「すべて表示」に
+  // 変わり、checked外し=既定に変更済み)。checked(ON)=すべての実数値を表示(絞り込みなし)、
+  // unchecked(OFF、既定)=個体がとりうる実数値だけ表示。showReachableOnly という変数名・
+  // renderVisibleRows() の絞り込みロジック自体は据え置き(「trueなら絞り込む」の意味は
+  // 変わらない)なので、初期値はDOMのchecked状態を反転させて導出する。
+  // ?owned=が無いときはトグル自体が無くこの値は使われない。
+  let showReachableOnly = !(reachableOnlyToggle?.checked ?? false);
   // 要件3の不具合修正(2026-08-01): 「行ごとの実際の合計幅」で足切りするための実測キャッシュ。
   // フォルム名 -> チップ1個の実測幅(px)。チップ幅は名前とアイコンだけで決まるため、
   // フォルム名をキーに1回だけ測ればよい(レギュレーションを跨いでも再利用する。
@@ -174,7 +197,12 @@ export async function initSpeedChartPage(): Promise<void> {
     for (const form of population) formsByName.set(form.name, form);
 
     const adoptionData = adoptionByRegulation[regulation];
-    currentRows = buildSpeedChartRows(population, effectiveModifiers, config!.adoptionRate, adoptionData);
+    // 要件1: buildSpeedChartRows(src/lib/speed-chart.ts、編集禁止)の結果に対し、
+    // speed-chart.json の hiddenEntries.rules に一致するエントリをここで後段フィルタする。
+    currentRows = filterRowsByHiddenEntries(
+      buildSpeedChartRows(population, effectiveModifiers, config!.adoptionRate, adoptionData),
+      config!.hiddenEntries?.rules ?? [],
+    );
 
     ownedController = null;
     if (hasOwnedPanel && ownedRecord) {
@@ -367,7 +395,8 @@ export async function initSpeedChartPage(): Promise<void> {
   });
 
   reachableOnlyToggle?.addEventListener('change', () => {
-    showReachableOnly = reachableOnlyToggle.checked;
+    // 要件2: 反転後の意味(checked=すべて表示)なので、絞り込みフラグには否定を入れる。
+    showReachableOnly = !reachableOnlyToggle.checked;
     renderVisibleRows();
     // トグル操作でも← 現在マーカーの位置は変わらないため、直前のハイライト値を再適用する。
     if (ownedController) applyHighlight(ownedController.getCurrentValue());
@@ -414,6 +443,30 @@ function applyOwnedPanelAvailability(available: boolean): void {
   if (summaryEl) summaryEl.hidden = !available;
   const unavailableEl = document.getElementById('speed-chart-owned-unavailable');
   if (unavailableEl) unavailableEl.hidden = available;
+}
+
+// UI改修(2026-08-02)要件1: speed-chart.json の hiddenEntries.rules に一致するエントリを
+// 早見表から取り除く。条件を静的ファイル側に持たせたいという指示のため、判定ロジック自体は
+// ここに置き、ルールの中身(何を消すか)は設定ファイルから読む(ハードコードしない)。
+// buildSpeedChartRows の結果配列・各行の entries 配列を直接書き換えず、新しい配列を作って
+// 返す(元の配列を破壊しない)。フィルタ後に entries が空になった行(=その実数値を作る
+// 組み合わせが1つも残らない)は行ごと落とす。
+function filterRowsByHiddenEntries(rows: SpeedChartRow[], rules: HiddenEntryRule[]): SpeedChartRow[] {
+  if (rules.length === 0) return rows;
+  const result: SpeedChartRow[] = [];
+  for (const row of rows) {
+    const entries = row.entries.filter((entry) => !rules.some((rule) => matchesHiddenEntryRule(entry, rule)));
+    if (entries.length === 0) continue;
+    result.push({ value: row.value, entries });
+  }
+  return result;
+}
+
+/** ルールの各項目(spread/hasModifier)は「省略時は問わない」。全項目が一致すれば真。 */
+function matchesHiddenEntryRule(entry: SpeedChartEntry, rule: HiddenEntryRule): boolean {
+  if (rule.spread !== undefined && entry.spread !== rule.spread) return false;
+  if (rule.hasModifier !== undefined && (entry.modifier !== null) !== rule.hasModifier) return false;
+  return true;
 }
 
 function readEmbeddedJson<T>(elementId: string): T | null {

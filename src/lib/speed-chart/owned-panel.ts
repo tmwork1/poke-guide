@@ -4,11 +4,15 @@
 // 1行ぶん組み立てるたびに呼び出す「セルのレンダラ」。このファイルの責務(ファイル分割表どおり):
 //   - その個体で実現可能なすばやさ実数値の列挙(素の性格3種×S努力値0〜32×持ち物2種の直積。
 //     ランク上昇は含めない。P1確定仕様)
-//   - 「この個体」セルの3状態描画(R-7: ← 現在[クリック不可] / [性格 努力値N]ボタン / −。
-//     ボタン下の内訳テキストはUI改修2026-08-02第3弾要件3で廃止した)
+//   - 「この個体」セルの3状態描画(R-7: 現在[クリック不可] / [性格 努力値N]ボタン / −。
+//     ボタン下の内訳テキストはUI改修2026-08-02第3弾要件3で廃止した。「現在」マーカーの矢印は
+//     UI改修2026-08-02第4弾要件1で廃止した)
 //   - クリック時の PUT /api/owned-pokemon/:id(R-1: 全項目上書き契約を厳守。埋め込まれた
 //     レコード全体をspreadしてから nature/evs/item_name の3項目だけ上書きする)
-//   - 保存失敗時の表示(R-10: エラー文言・← 現在マーカーを動かさない・候補を再クリック可能に戻す)
+//   - 保存失敗時の表示(R-10: エラー文言・現在マーカーを動かさない・候補を再クリック可能に戻す)
+//   - 調整ボタンが提案する性格の、現在の性格に対する「近さ」の調整(UI改修2026-08-02第4弾
+//     要件3。selectMinimalCostSpeedOption()が返す性格をこのファイル側で置き換える。詳細は
+//     pickReplacementNature()のコメント参照)
 //
 // 共有状態の所有(R-12): 「個体の現在のS実数値」はこのモジュールが所有する。chart-table.ts へは
 // document 上の CustomEvent(OWNED_CURRENT_VALUE_EVENT)で一方向に通知するだけで、chart-table.ts
@@ -24,7 +28,7 @@ import {
   type SpeedModifierMultiplier,
   type SpeedTargetSelection,
 } from '../speed-chart';
-import { calcOtherStat } from '../stats';
+import { calcOtherStat, NATURE_STAT_MODIFIERS } from '../stats';
 import { validateSpeedChartApplyPayload } from '../speed-chart-validation';
 import type { OwnedPokemonRecord } from '../owned-pokemon';
 import { spriteUrl } from '../pokemon-master-data';
@@ -129,6 +133,51 @@ function createJumpIcon(): SVGElement {
   return svg;
 }
 
+// 要件3(2026-08-02第4弾): selectMinimalCostSpeedOption() が性格を変える必要があると
+// 判断したとき、代表として選ぶ性格(pickNatureNameForSpeedEffect、NATURE_STAT_MODIFIERSの
+// 定義順で機械的に選ぶ = up→おくびょう/down→ゆうかん/neutral→まじめ固定)は、現在の性格との
+// 「近さ」を考慮しない。例えばいじっぱり(上昇=攻撃/下降=特攻、攻撃型)の個体にすばやさ下降の
+// 選択肢を提示すると「ゆうかん」ではなく機械的に「おくびょう」(下降=攻撃)が出てしまい、
+// 攻撃型なのに攻撃が下がる提案になる。
+//
+// すばやさへの効果(up/neutral/down)が同じ性格同士は実数値が完全に同一(NATURE_EFFECT_MODIFIER
+// は effect だけで決まり性格名には依存しない)なので、selection.nature を「同じeffectの中で
+// 別の性格名に差し替える」のは evSpe・usesScarf(=努力値・持ち物の選択結果)に一切影響しない
+// 安全な操作。src/lib/speed-chart.ts は編集禁止のため、この差し替えはこちら側で行う。
+//
+// 優先順位: ①現在の性格とdownが一致 → ②現在の性格とupが一致 → ③NATURE_STAT_MODIFIERSの
+// 定義順(Array.prototype.sortの安定性により決定的)。
+// 例: いじっぱり(up=atk/down=spa)の個体ですばやさ上昇(up)を選ぶ場合、
+//     downがspaで一致する「ようき」(up=spe/down=spa)が①で選ばれる。
+//     すばやさ下降(down)を選ぶ場合、downがspaで一致する候補は存在しない(down=speの性格しか
+//     対象にならないため)ので②upがatkで一致する「ゆうかん」(up=atk/down=spe)が選ばれる。
+//     ようき(up=spe/down=spa)の個体ですばやさ無補正(neutral)を選ぶ場合、neutralの候補は
+//     「すばやさに影響しない性格すべて」(無補正5種に限らない)なので、downがspaで一致する
+//     「いじっぱり」(up=atk/down=spa)が①で選ばれる(無補正5種の「まじめ」ではない)。
+//     現在の性格自体が無補正5種(down=null)なら、候補中でdown=nullが一致するのも無補正5種
+//     だけなので、従来どおり「まじめ」等が①で選ばれる。
+function pickReplacementNature(effect: 'up' | 'neutral' | 'down', currentNature: string, fallback: string): string {
+  const currentModifier = NATURE_STAT_MODIFIERS[currentNature];
+  const candidates = Object.entries(NATURE_STAT_MODIFIERS).filter(([, modifier]) => {
+    if (effect === 'up') return modifier.up === 'spe';
+    if (effect === 'down') return modifier.down === 'spe';
+    // neutral: すばやさ(spe)が上昇にも下降にも関わらない性格すべて(無補正5種に限らない。
+    // 例: いじっぱり up=atk/down=spa もすばやさに対しては無補正)。
+    return modifier.up !== 'spe' && modifier.down !== 'spe';
+  });
+  if (candidates.length === 0) return fallback; // 型上は到達しない安全側フォールバック。
+
+  const sorted = [...candidates].sort(([, a], [, b]) => {
+    const aDownMatch = currentModifier && a.down === currentModifier.down ? 0 : 1;
+    const bDownMatch = currentModifier && b.down === currentModifier.down ? 0 : 1;
+    if (aDownMatch !== bDownMatch) return aDownMatch - bDownMatch;
+    const aUpMatch = currentModifier && a.up === currentModifier.up ? 0 : 1;
+    const bUpMatch = currentModifier && b.up === currentModifier.up ? 0 : 1;
+    return aUpMatch - bUpMatch;
+  });
+  return sorted[0][0];
+}
+
 export function initOwnedPanel(ctx: OwnedPanelContext): OwnedPanelController {
   // 個体の「現在値」(性格・S努力値・持ち物)。要件2により適用成功後は/box/<id>へ遷移する
   // ため、これらは初期化後に書き換わらない(以前はR-10「留まって再描画」のためletで更新して
@@ -188,7 +237,9 @@ export function initOwnedPanel(ctx: OwnedPanelContext): OwnedPanelController {
     const natureEl = document.getElementById(SUMMARY_NATURE_ID);
     if (natureEl) natureEl.textContent = currentNature ?? '性格未設定';
     const evsEl = document.getElementById(SUMMARY_EVS_ID);
-    if (evsEl) evsEl.textContent = `努力値${currentEvs[5] ?? 0}`;
+    // UI改修2026-08-02第4弾要件2: 「努力値n」のnの前に半角スペースを入れる(調整ボタンの
+    // 表記と揃える。可読性のため)。
+    if (evsEl) evsEl.textContent = `努力値 ${currentEvs[5] ?? 0}`;
     // 5段目: S実数値。
     const valueEl = document.getElementById(SUMMARY_VALUE_ID);
     if (valueEl) valueEl.textContent = `S実数値 ${currentValue}`;
@@ -226,20 +277,22 @@ export function initOwnedPanel(ctx: OwnedPanelContext): OwnedPanelController {
     el.replaceChildren();
     el.classList.remove('is-current', 'is-reachable', 'is-unreachable');
 
-    // 状態1: 現在値そのもの(R-7: ← 現在、クリック不可)。
+    // 状態1: 現在値そのもの(R-7: 現在、クリック不可)。UI改修2026-08-02第4弾要件1: 「← 現在」の
+    // 矢印は他の行の調整ボタン(先頭にページジャンプアイコンが付く)と並んだときに紛らわしいため
+    // 廃止し、テキストを「現在」のみにした。
     if (rowValue === currentValue) {
       el.classList.add('is-current');
       const marker = document.createElement('span');
       marker.className = 'speed-chart-owned-current badge';
-      marker.textContent = '← 現在';
+      marker.textContent = '現在';
       el.appendChild(marker);
       return;
     }
 
-    const selection = selectMinimalCostSpeedOption(combos, rowValue, currentNature, usesScarfNow());
+    const rawSelection = selectMinimalCostSpeedOption(combos, rowValue, currentNature, usesScarfNow());
 
     // 状態3: 到達不可(R-7: −、muted)。
-    if (!selection) {
+    if (!rawSelection) {
       el.classList.add('is-unreachable');
       const dash = document.createElement('span');
       dash.className = 'speed-chart-owned-dash';
@@ -247,6 +300,17 @@ export function initOwnedPanel(ctx: OwnedPanelContext): OwnedPanelController {
       el.appendChild(dash);
       return;
     }
+
+    // 要件3(2026-08-02第4弾): selectMinimalCostSpeedOption()が性格を変える提案をした場合、
+    // 代表性格を「現在の性格に近いもの(下降補正が同じもの優先)」へ差し替える
+    // (pickReplacementNatureのコメント参照)。「性格を変えない」選択(rawSelection.natureが
+    // 既に現在の性格そのもの)や現在の性格が未設定(null)のときはpickReplacementNature側で
+    // 何もせずrawSelectionをそのまま返す。表示用(このあとのbuttonParts)と保存用
+    // (handleApplyへ渡すペイロード)が食い違わないよう、差し替えはここ1箇所だけで行う。
+    const selection: SpeedTargetSelection =
+      currentNature && rawSelection.nature !== currentNature
+        ? { ...rawSelection, nature: pickReplacementNature(getNatureSpeedEffect(rawSelection.nature), currentNature, rawSelection.nature) }
+        : rawSelection;
 
     // 状態2: 到達可能([アイコン]性格 努力値N[ アイテム]のボタン。内訳テキストは廃止済み)。
     el.classList.add('is-reachable');
@@ -263,9 +327,10 @@ export function initOwnedPanel(ctx: OwnedPanelContext): OwnedPanelController {
     // (こだわりスカーフ等)を使う場合だけ末尾に続ける(無関係な現在の持ち物名まで出すと
     // 「持ち物も変わる」と誤読されるため)。「S努力値」の「S」は右パネル自体が
     // すばやさ調整専用になった(要件1)ため冗長と判断し「努力値」に短縮、区切りの
-    // スラッシュも廃止してスペース区切りにした(例: 「いじっぱり 努力値6」
-    // 「おくびょう 努力値32 こだわりスカーフ」)。
-    const buttonParts = [selection.nature, `努力値${selection.evSpe}`];
+    // スラッシュも廃止してスペース区切りにした(例: 「ようき 努力値 6」
+    // 「ゆうかん 努力値 32 こだわりスカーフ」)。UI改修2026-08-02第4弾要件2で
+    // 「努力値」と数値の間にも半角スペースを追加した(右パネルの努力値バッジの表記と揃える)。
+    const buttonParts = [selection.nature, `努力値 ${selection.evSpe}`];
     if (selection.usesScarf && ctx.scarfItemName) buttonParts.push(ctx.scarfItemName);
     // ボタンを押すと保存後に/box/<id>へ遷移する(下のhandleApply参照)ため、先頭に
     // ページジャンプを表すインラインSVGアイコンを付ける(要件2)。
