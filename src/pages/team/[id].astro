@@ -245,7 +245,12 @@ const initialTeamJson = team
 		.collection-opt-out-status { color: var(--color-text-muted); }
 		.collection-opt-out-status[hidden] { display: none; }
 		.collection-opt-out-status[data-state="error"] { color: var(--color-danger); }
-		#delete-team-button { font-size: var(--font-size-sm); white-space: nowrap; }
+		/* UI改修依頼(チーム編集画面、2026-08-02)「右上の削除ボタンを太字にしない」。
+		   global.cssのbutton.btn-dangerがfont-weight:700(太字)を持つ(box/[id].astroの
+		   #delete-buttonでも同じ改修を別エージェントが実施済み、そちらのファイルは編集しない)。
+		   #delete-team-button(ID)はglobal.cssのクラスセレクタより詳細度で確実に勝つため、
+		   ここでfont-weightを既定の太さ(400)に戻す。 */
+		#delete-team-button { font-size: var(--font-size-sm); white-space: nowrap; font-weight: 400; }
 		/* 🔴 UI改修依頼(チーム編集ヘッダー、2026-08-02)「非公開・削除ボタンの余白サイズを
 		   個体編集画面と同じにする」。box/[id].astro が2026-08-01の依頼(「データ提供スイッチと
 		   削除ボタンの間の余白を広げる」)で #delete-button に足した margin-left が、
@@ -518,10 +523,16 @@ const initialTeamJson = team
 			min-width: 0;
 		}
 
-		/* UI改修依頼(チーム編集中央パネル)「2x3配置に変更」。1列縦積みから3列2行のグリッドへ。 */
+		/* UI改修依頼(チーム編集中央パネル)「2x3配置に変更」。1列縦積みから3列2行のグリッドへ。
+		   UI改修依頼(チーム編集中央パネル、2026-08-02)「カードサイズを正方形のまま小さくする」。
+		   3列(1fr)のグリッド自体は維持しつつ、各カード側で `width: min(100%, 230px)` +
+		   `aspect-ratio: 1/1` に固定する(下の.card-team-slot参照)。justify-items: center で
+		   各カードを列内で中央寄せにし、実測(1920px)で1枚あたり約320px幅だったものを
+		   約230px四方まで縮めた余白を列内に均等配分する(片側だけに空白が寄るのを防ぐ)。 */
 		.team-slots {
 			display: grid;
 			grid-template-columns: repeat(3, minmax(0, 1fr));
+			justify-items: center;
 			gap: var(--space-3);
 			margin-bottom: var(--space-4);
 		}
@@ -712,11 +723,13 @@ const initialTeamJson = team
 							    3列2行のグリッドへ変更する(CSSは下の.team-slots参照)。 */}
 							<div id="team-slots" class="team-slots"></div>
 
+							{/* UI改修依頼(チーム編集中央パネル、2026-08-02)「メモ欄のplaceholderを
+							    "メモ"だけにする」。aria-label="メモ"は元々同じ文言のため変更不要。 */}
 							<input
 								id="team-memo"
 								class="field-control team-memo-input"
 								type="text"
-								placeholder="メモ(この構成は誰向けか、など)"
+								placeholder="メモ"
 								aria-label="メモ"
 								autocomplete="off"
 								value={team.memo ?? ''}
@@ -953,14 +966,35 @@ const initialTeamJson = team
 		   (3列グリッドの1マスは幅が半分弱に狭まるため、横並びのままだと窮屈になる)。
 		   position:relativeは番号ウォーターマーク(下記.slot-watermark-number)・
 		   編集/削除ボタンの絶対配置の基準になる。 --- */
+		/* UI改修依頼(チーム編集中央パネル、2026-08-02)「カードサイズを正方形のまま小さくする」
+		   「カードサイズを固定し、設定済み/未設定によらず変動しないようにする」。
+		   変更前は幅318.66px・高さは埋まった枠291.95px/空き枠108px(min-heightの下駄)と、
+		   正方形でも固定サイズでもなかった(実測、報告参照)。width指定 + aspect-ratio: 1/1
+		   で正方形を強制し、overflow: hiddenを付けることで(box/index.astroの.card-pokemonと
+		   同じ手法)flexアイテムの自動最小サイズ(min-height:auto)を打ち消し、中身の量に関わらず
+		   常に同じ正方形サイズになるようにする(min-height:108pxの下駄は不要になったため撤去)。
+		   幅230pxは、幅を縮めつつ中身(絵・名前・特性/持ち物・実数値6列・技2x2)が1文字ずつの
+		   折り返しを起こさない範囲として実測しながら調整した値(下のslot-art等のサイズ縮小と
+		   セットで成立する。padding も base .card の var(--space-3) から var(--space-1) へ縮める)。
+		   実測修正: 1200〜1599px(右パネル非表示の2カラムレイアウト)では選択バー(最大304px)の
+		   ぶん中央カラムが狭まり、カード幅がwidth:min(100%,230px)の"100%"側で230pxより
+		   小さくなる(実測: 1280pxで約218.7px、1600px境界で約212px)。overflow:hiddenは
+		   カードを常に正方形に保つが、中身がその高さに収まらないと技の2段目が半分だけ見切れる
+		   実害が出た(実測、報告参照)。そのため下記のslot-art縮小・line-height明示的な
+		   引き締め(bodyの既定line-height:1.6を1.25(var(--line-height-tight))へ)で中身の
+		   自然な高さ(scrollHeight)自体を230px四方より十分小さく抑え、230px未満に縮む
+		   1200〜1600px帯でも技2段目が見切れないようにした。 */
 		.team-slots .card-team-slot {
 			position: relative;
 			display: flex;
 			flex-direction: column;
 			align-items: center;
 			text-align: center;
-			gap: 0.3rem;
-			min-height: 108px;
+			gap: 0.2rem;
+			width: min(100%, 230px);
+			aspect-ratio: 1 / 1;
+			padding: var(--space-1);
+			overflow: hidden;
 		}
 		/* ドラッグ&ドロップの受け入れ先であることを示すハイライト(左パネルのpokemon-select-row
 		   または埋まっている枠自身をドラッグ中にこのカードの上に重なると付く。
@@ -1067,9 +1101,13 @@ const initialTeamJson = team
 			   box/index.astroのカードは公式絵に幅の過半(min(56%, 113px))を割り当てて一覧性より
 			   絵の存在感を優先している。このカード(1辺約290〜310px、box一覧の210〜240pxより
 			   大きい)でも同じ考え方で88px→104pxへ拡大し、名前・メタ情報より絵が主役に見える
-			   比率へ寄せる(3列グリッドの最小幅でも余裕がある範囲、実測は報告参照)。 */
-			width: 104px;
-			height: 104px;
+			   比率へ寄せる(3列グリッドの最小幅でも余裕がある範囲、実測は報告参照)。
+			   UI改修依頼(チーム編集中央パネル、2026-08-02)「カードサイズを正方形のまま
+			   小さくする」に伴い、230px四方のカードに名前・特性/持ち物・実数値6列・技2x2まで
+			   収める必要があるため104px→72pxへ縮小、さらに1200〜1600px帯の実測(技2段目が
+				   見切れていた、上の.card-team-slotコメント参照)を受けて64pxまで追加で縮める。 */
+			width: 64px;
+			height: 64px;
 			display: flex;
 			align-items: center;
 			justify-content: center;
@@ -1098,55 +1136,51 @@ const initialTeamJson = team
 			display: flex;
 			flex-direction: column;
 			align-items: center;
-			gap: 0.3rem;
+			/* UI改修依頼(チーム編集中央パネル、2026-08-02)「カードサイズを正方形のまま
+			   小さくする」に伴い縦方向のゆとりを詰める(0.3rem→0.2rem)。 */
+			gap: 0.2rem;
 		}
-		/* UI改修依頼(チーム編集中央パネル、2026-08-02)「個体編集ボタンを名前段の右端に配置」。
-		   3列グリッド(左スペーサー28px/中央可変/右28px)にして、中央のNN+テラスタイプが
-		   編集ボタンの有無に関わらず常にカード中央で釣り合うようにする(スペーサー列と
-		   ボタン列を同じ28px=既存の.slot-edit-link/.slot-remove-btnの円形ボタン規格に揃える、
-		   新しい値は作らない)。 */
+		/* UI改修依頼(チーム編集中央パネル、2026-08-02)「ニックネーム/種族名を中央表示にし、
+		   その右隣にテラスタルアイコンと編集ボタンを置く」。旧来は3列グリッド(左スペーサー/
+		   中央=NN+テラス/右=編集ボタン)で編集ボタンをカード右端に固定していたが、この依頼により
+		   NN・テラスアイコン・編集ボタンを1つの横並び(flex)にまとめ、その全体をカード幅の中で
+		   中央寄せする(=NNの右隣にテラスアイコン、さらにその右に編集ボタンが並ぶ)。
+		   テラスアイコンは後述のとおりテキストラベルを持たないアイコンのみのバッジにする。 */
 		.team-slots .slot-name-row {
-			display: grid;
-			grid-template-columns: 28px 1fr 28px;
-			align-items: center;
-			column-gap: 0.4rem;
-		}
-		.team-slots .slot-name-center {
-			grid-column: 2;
-			min-width: 0;
 			display: flex;
 			align-items: center;
 			justify-content: center;
-			gap: 0.5em;
 			flex-wrap: wrap;
+			gap: 0.3rem;
+			min-width: 0;
+			width: 100%;
 		}
 		.team-slots .slot-nickname {
+			min-width: 0;
 			font-size: 1rem;
 			font-weight: 700;
 			overflow: hidden;
 			text-overflow: ellipsis;
 			white-space: nowrap;
 		}
-		/* UI改修依頼(チーム編集中央パネル、2026-08-02)「NNのみ表示し、テラスタイプをこの段へ
-		   移動する」。旧.slot-species(種族名併記、R-8)はここでは使わなくなったため撤去した。
-		   移動してきたテラスタイプは元のmetaRow内と同じ.slot-meta-item/.slot-meta-iconの
-		   チップ見た目のまま、置き場所だけ変える(新しい値は作らない)。 */
+		/* UI改修依頼(チーム編集中央パネル、2026-08-02)「テラスタルはアイコンのみ(タイプ名の
+		   テキストは表示しない)」。テキストラベルの<span>を生成しなくなった(buildFilledSlotContent
+		   参照)ため、このチップはアイコン1個だけを収める小さな丸バッジになる。テラスタイプ名は
+		   title/aria-labelに残しアクセシビリティ上の情報量は落とさない。
+		   .slot-meta-item はこの名前段のテラスバッジ専用(ability/item行は.slot-meta-cellを使う)
+		   なので、ここでの縮小がability/item側の見た目に影響することはない。 */
 		.team-slots .slot-meta-item {
 			display: inline-flex;
 			align-items: center;
-			gap: 0.35rem;
-			/* 🔴 UI改修依頼(チーム編集中央パネル、2026-08-01)「カードを再レイアウトする」。
-			   box/index.astroの.card-item-badge・.card-ability-nameや下の.slot-move-chipと
-			   同じ「情報チップ」の視覚言語(背景+角丸)をability/item/teraにも適用し、単なる
-			   並びのテキストではなく個別の要素として見分けやすくする(新しい配色トークンは
-			   作らずvar(--color-surface-alt)を流用、move-chipと違い枠線は付けない)。 */
-			padding: 0.15rem 0.5rem;
+			justify-content: center;
+			flex: 0 0 auto;
+			padding: 0.2rem;
 			background: var(--color-surface-alt);
 			border-radius: var(--radius-md);
 		}
 		.team-slots .slot-meta-icon {
-			width: 20px;
-			height: 20px;
+			width: 16px;
+			height: 16px;
 			object-fit: contain;
 		}
 		/* UI改修依頼(チーム編集中央パネル、2026-08-02)「特性とアイテムを同じ段に配置する
@@ -1160,6 +1194,11 @@ const initialTeamJson = team
 			column-gap: var(--space-2);
 			font-size: 0.82rem;
 			color: var(--color-text-muted);
+			/* UI改修依頼(チーム編集中央パネル、2026-08-02)実測修正: bodyの既定
+			   line-height:1.6を打ち消さずに継承しており、1行しか無いチップ状の表示には
+			   不要な行間だった。var(--line-height-tight)(1.25)で引き締め、1200〜1600px帯で
+			   技の2段目が見切れていた問題(上の.card-team-slotコメント参照)の解消に充てる。 */
+			line-height: var(--line-height-tight);
 		}
 		.team-slots .slot-meta-cell {
 			display: flex;
@@ -1167,6 +1206,17 @@ const initialTeamJson = team
 			justify-content: center;
 			gap: 0.3rem;
 			min-width: 0;
+		}
+		/* UI改修依頼(チーム編集中央パネル、2026-08-02)「カードサイズを正方形のまま
+		   小さくする」実測修正: 特性/持ち物ラベルに1行ellipsis制御が無く、幅が縮んだことで
+		   長い文字列が単語の途中で2行に折り返っていた(buildFilledSlotContentのコメント参照)。
+		   .slot-nicknameと同じ制御をability/itemラベルにも適用する。 */
+		.team-slots .slot-meta-text {
+			min-width: 0;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			white-space: nowrap;
+			line-height: var(--line-height-tight);
 		}
 		/* A-6: 特性が未設定のとき(ゲーム上「値が無い」状態が存在しない項目)を明示するための強調。
 		   新色は作らず既存の--color-danger-strongを流用する。持ち物(合法な空)には使わない。
@@ -1188,11 +1238,15 @@ const initialTeamJson = team
 		.team-slots .slot-stats-line {
 			display: contents;
 		}
+		/* UI改修依頼(チーム編集中央パネル、2026-08-02)実測修正: line-heightをvar(--line-height-tight)
+		   (1.25、bodyの既定1.6から)に引き締め、1200〜1600px帯で技の2段目が見切れていた問題
+		   (上の.card-team-slotコメント参照)の解消に充てる。 */
 		.team-slots .slot-stat-key {
 			font-size: 0.7rem;
 			font-weight: 700;
 			color: var(--color-text-muted);
 			text-align: center;
+			line-height: var(--line-height-tight);
 		}
 		.team-slots .slot-stat-key[data-mod="up"] { color: var(--color-danger-strong); }
 		.team-slots .slot-stat-key[data-mod="down"] { color: var(--color-primary); }
@@ -1200,6 +1254,7 @@ const initialTeamJson = team
 			font-size: 0.78rem;
 			font-weight: 700;
 			text-align: center;
+			line-height: var(--line-height-tight);
 		}
 		/* 🔴 UI改修依頼(チーム編集中央パネル、2026-08-01)「9. 技は2x2配置にする」。
 		   旧来のflex-wrapは技数によって並びが不揃いになるため、box/index.astroの
@@ -1208,7 +1263,9 @@ const initialTeamJson = team
 			display: grid;
 			grid-template-columns: repeat(2, minmax(0, 1fr));
 			align-items: start;
-			gap: 0.2rem 0.3rem;
+			/* UI改修依頼(チーム編集中央パネル、2026-08-02)「カードサイズを正方形のまま
+			   小さくする」に伴い縦横のゆとりを詰める(0.2rem 0.3rem→0.15rem 0.25rem)。 */
+			gap: 0.15rem 0.25rem;
 			width: 100%;
 		}
 		.team-slots .slot-move-chip {
@@ -1218,11 +1275,14 @@ const initialTeamJson = team
 			background: var(--color-surface);
 			border: 1px solid var(--color-border);
 			border-radius: 4px;
-			padding: 0.1rem 0.45rem;
+			padding: 0.08rem 0.35rem;
 			white-space: nowrap;
 			overflow: hidden;
 			text-overflow: ellipsis;
 			text-align: center;
+			/* UI改修依頼(チーム編集中央パネル、2026-08-02)実測修正: line-heightを
+			   var(--line-height-tight)に引き締める(上のslot-stat-keyコメントと同じ理由)。 */
+			line-height: var(--line-height-tight);
 		}
 		/* A-6: 技0件の明示。同じく--color-danger-strongを流用する。 */
 		.team-slots .slot-move-chip-unset {
@@ -1232,7 +1292,17 @@ const initialTeamJson = team
 		}
 		/* 削除ボタンはカード(.card-team-slot、position:relative)自身の右上端に絶対配置する
 		   (box/index.astroの.card-pokemon .card-actions=28px円形アイコンボタン規格を踏襲、
-		   新しい値は作らない)。 */
+		   新しい値は作らない)。
+		   UI改修依頼(チーム編集中央パネル、2026-08-02)「カードの削除ボタンをボックス画面
+		   (/box)のカードと同じデザインにする。ただし常時表示する」。box/index.astroの
+		   .card-pokemon .delete-button(src/pages/box/index.astro、読むだけで編集はしない)の
+		   配色・font-weightに合わせる: background/borderは.icon-button共通のまま、
+		   font-weight: 400(box側は「global.cssの.delete-buttonは太字パディングでアイコン
+		   専用ボタンには大きすぎる」という理由で明示的に上書きしている)。ホバーは
+		   background: var(--color-danger-soft) + border-color: var(--color-danger-strong)
+		   に揃える(旧来はvar(--color-surface-alt)だけで危険操作の色が付いていなかった)。
+		   box側はhover/focus-within限定表示(誤操作防止)だが、この画面は元から常時表示
+		   だったため表示条件はそのまま維持する(依頼の「常時表示」を満たす)。 */
 		.team-slots .slot-remove-btn {
 			position: absolute;
 			top: var(--space-2);
@@ -1248,18 +1318,20 @@ const initialTeamJson = team
 			border: 1px solid var(--color-border);
 			background: var(--color-surface);
 			color: var(--color-danger-strong);
+			font-weight: 400;
 			box-shadow: var(--shadow-sm);
 		}
 		.team-slots .slot-remove-btn:hover {
-			background: var(--color-surface-alt);
+			background: var(--color-danger-soft);
+			color: var(--color-danger-strong);
+			border-color: var(--color-danger-strong);
 		}
-		/* UI改修依頼(チーム編集中央パネル、2026-08-02)「編集ボタンを名前段の右端に配置する」。
-		   旧来は.slot-art(ポケモンアイコン)の右上に絶対配置していたが、.slot-name-row
-		   (上の3列グリッド、右端列28px)の右端セルへ移設する。ボタン自体の見た目
-		   (28px円形+枠線)は変えない。 */
+		/* UI改修依頼(チーム編集中央パネル、2026-08-02)「編集ボタンを名前段の右端に配置する」→
+		   さらに同日の追加依頼「テラスタルアイコンと編集ボタンを並べて配置する」により、
+		   3列グリッドの右端セル固定ではなく.slot-name-row(flex、上で中央寄せに変更済み)の
+		   末尾アイテムとして並ぶ。サイズ・配色(28px円形+枠線)は変えない。 */
 		.team-slots .slot-edit-link {
-			grid-column: 3;
-			justify-self: center;
+			flex: 0 0 auto;
 			z-index: 2;
 			display: inline-flex;
 			align-items: center;
@@ -1289,10 +1361,13 @@ const initialTeamJson = team
 		/* 配色トークンを使い、新しい色・新しいフォントサイズは増やさない。       */
 		/* DOMはJS(buildDamageCard)が生成するためこの<style is:global>に置く。   */
 		/* ------------------------------------------------------------------ */
+		/* UI改修依頼(右パネル、2026-08-02)「計算結果の縦余白を削って圧縮する」。
+		   見出し・状態文・カード一覧の間の縦gapをvar(--space-3)(12px)からvar(--space-2)
+		   (8px)へ詰める(以下、このパネル配下の縦方向の余白を同じ考え方でまとめて詰める)。 */
 		.team-preview-panel .team-preview-content {
 			display: flex;
 			flex-direction: column;
-			gap: var(--space-3);
+			gap: var(--space-2);
 			min-width: 0;
 		}
 		.team-preview-panel .team-damage-owner {
@@ -1314,14 +1389,18 @@ const initialTeamJson = team
 			padding: 0;
 			display: flex;
 			flex-direction: column;
-			gap: var(--space-3);
+			/* UI改修依頼(右パネル、2026-08-02)「計算結果の縦余白を削って圧縮する」。
+			   カード同士の間隔をvar(--space-3)(12px)からvar(--space-2)(8px)へ詰める。 */
+			gap: var(--space-2);
 			min-width: 0;
 		}
 		.team-preview-panel .team-damage-card {
 			border: 1px solid var(--color-border);
 			border-radius: var(--radius-md);
 			background: var(--color-surface);
-			padding: var(--space-3);
+			/* UI改修依頼(右パネル、2026-08-02)「計算結果の縦余白を削って圧縮する」。
+			   カード内のpaddingをvar(--space-3)(12px)からvar(--space-2)(8px)へ詰める。 */
+			padding: var(--space-2);
 			min-width: 0;
 		}
 
@@ -1473,8 +1552,11 @@ const initialTeamJson = team
 		}
 
 		/* --- 下段: 技名 / 詳細設定 / 累計計算結果 --- */
+		/* UI改修依頼(右パネル、2026-08-02)「計算結果の縦余白を削って圧縮する」により、
+		   このブロック配下の上部marginをまとめて詰める(var(--space-2)=8px→var(--space-1)=4px、
+		   font-size・line-heightなど可読性に関わる値は変えない)。 */
 		.team-preview-panel .team-damage-move-line {
-			margin: var(--space-2) 0 0;
+			margin: var(--space-1) 0 0;
 			font-size: 0.8rem;
 			font-weight: 700;
 			overflow: hidden;
@@ -1486,24 +1568,26 @@ const initialTeamJson = team
 		   切れて何の条件か読めなくなる(実測: メガカメックスの行が切れた)。この画面では
 		   詳細設定を出す場所が他に無いため折り返して全部見せる。 */
 		.team-preview-panel .team-damage-detail-line {
-			margin: 0.1rem 0 0;
+			margin: 0.08rem 0 0;
 			font-size: 0.72rem;
-			line-height: 1.45;
+			line-height: 1.4;
 			color: var(--color-text-muted);
 			overflow-wrap: anywhere;
 		}
 		/* .severity-bar(global.css)の既定marginは上下 var(--space-3) だが、
-		   カード内では技名行との間隔を詰める。色・角丸・左罫線は共通定義のまま。 */
+		   カード内では技名行との間隔を詰める。色・角丸・左罫線は共通定義のまま。
+		   UI改修依頼(右パネル、2026-08-02)「計算結果の縦余白を削って圧縮する」により
+		   margin-top・上下paddingをさらに詰める(4px2.4rem/0.3rem→0.2rem)。 */
 		.team-preview-panel .team-damage-result {
 			display: flex;
 			flex-wrap: wrap;
 			align-items: baseline;
 			gap: 0.1rem 0.4rem;
-			margin: var(--space-2) 0 0;
+			margin: var(--space-1) 0 0;
 			/* 左だけ広めにする。確定数(確N)は font-weight 800 の漢字で、左の罫線
 			   (border-left 4px)にほぼ接して見えるため(実測: 文字の開始位置が padding の
 			   端ちょうど)。 */
-			padding: 0.3rem var(--space-2) 0.3rem var(--space-3);
+			padding: 0.2rem var(--space-2) 0.2rem var(--space-3);
 			font-size: 0.78rem;
 		}
 		.team-preview-panel .team-damage-result-verdict {
@@ -1519,8 +1603,9 @@ const initialTeamJson = team
 			font-weight: 500;
 			white-space: normal;
 		}
+		/* UI改修依頼(右パネル、2026-08-02)「計算結果の縦余白を削って圧縮する」。 */
 		.team-preview-panel .team-damage-memo {
-			margin: 0.25rem 0 0;
+			margin: 0.15rem 0 0;
 			font-size: 0.72rem;
 			color: var(--color-text-muted);
 			overflow: hidden;
@@ -2055,6 +2140,23 @@ const initialTeamJson = team
 				previewContentEl.appendChild(listEl);
 			}
 
+			// UI改修依頼(チーム編集中央パネル、2026-08-02)「カード外をクリックしてもダメージ計算
+			// 表示が残り続けるバグを直す」。原因調査: 「カード外クリックでハイライトを解除する」
+			// document click リスナー(下部のdocument.addEventListener("click", ...)参照)は
+			// .card-team-slot から is-selected クラスを外すだけで、右パネルの中身
+			// (previewContentEl、renderPreviewPanelがinnerHTMLで書き込む)には一切触れていな
+			// かった。そのためカードの選択ハイライトは消えても、直前に選んだ個体のダメージ計算が
+			// 右パネルに描画されたまま残っていた。previewRequestIdを進めて
+			// renderPreviewPanel側の非同期処理(await後のrequestId !== previewRequestIdチェック、
+			// 上のrenderPreviewPanel参照)も無効化しつつ、previewContentElを空にして隠す
+			// (previewEmptyElは元々常時hidden・無テキストの設計(上のマークアップのコメント参照)
+			// のため、ここで表示に戻す必要はない)。
+			function closePreviewPanel(): void {
+				previewRequestId += 1;
+				previewContentEl.hidden = true;
+				previewContentEl.innerHTML = "";
+			}
+
 			// UI改修依頼(チーム編集左パネル)「ダブルクリックとドラッグアンドドロップでチームに
 			// 設定できるように」。クリック単体での追加(旧仕様)はプレビュー表示に譲り、実際の
 			// 追加操作はダブルクリック/ドラッグ&ドロップに一本化する。targetSlotを指定した場合は
@@ -2212,40 +2314,42 @@ const initialTeamJson = team
 				const infoEl = document.createElement("div");
 				infoEl.className = "slot-info";
 
-				// UI改修依頼(チーム編集中央パネル、2026-08-02)「NNのみ表示し、テラスタイプを
-				// この名前の段(NNの右側)へ移動する」「個体編集ボタンをこの段の右端に配置する」。
-				// nameRowは3列グリッド(左スペーサー/中央=NN+テラス/右=編集ボタン、CSS参照)。
+				// UI改修依頼(チーム編集中央パネル、2026-08-02)「ニックネーム/種族名を中央表示に
+				// し、その右隣にテラスタルアイコンと編集ボタンを置く。テラスタルはアイコンのみ」。
+				// nameRowは横並びflex(CSS参照)で、NN→テラスアイコン→編集ボタンの順に並べ、
+				// 全体をカード幅の中で中央寄せする(旧来の3列グリッド+nameCenterラッパーは廃止)。
 				// 種族名(R-8のspeciesEl)は表示しなくなったため、この画面では生成しない。
 				const nameRow = document.createElement("div");
 				nameRow.className = "slot-name-row";
 				const name = displayName(p);
 
-				const nameCenter = document.createElement("span");
-				nameCenter.className = "slot-name-center";
 				const nicknameEl = document.createElement("span");
 				nicknameEl.className = "slot-nickname";
 				nicknameEl.textContent = name;
-				nameCenter.appendChild(nicknameEl);
+				nameRow.appendChild(nicknameEl);
 
 				// 🔴 UI改修依頼(共通、2026-08-01)「テラスタイプが未設定の場合、"未設定"などと
 				// 表示せず要素ごと非表示にする」。値が無いときはteraItem自体を生成しない
 				// (pitfalls.mdの「DOMは残す」方針は要素の削除を指示されたケースには当たらない)。
 				// A-7: 「テラス」は口語短縮なので公式用語「テラスタイプ」に統一する(この方針自体は維持)。
+				// UI改修依頼(チーム編集中央パネル、2026-08-02)「テラスタルはアイコンのみ表示し、
+				// "ほのお"等のタイプ名テキストは表示しない」。テキストの<span>(旧teraLabel)は
+				// 生成せず、アイコンだけのバッジにする。テラスタイプ名はtitle/aria-labelに
+				// 残し、スクリーンリーダー・ホバー双方でアクセス可能にする。
 				const teraType = p.tera_type?.trim() ?? "";
 				if (teraType) {
 					const teraItem = document.createElement("span");
 					teraItem.className = "slot-meta-item";
+					teraItem.title = `テラスタイプ: ${teraType}`;
+					teraItem.setAttribute("aria-label", `テラスタイプ: ${teraType}`);
 					const teraImg = document.createElement("img");
 					teraImg.className = "slot-meta-icon";
 					teraImg.alt = "";
 					teraImg.style.display = "none";
 					applyTeraIcon(teraImg, teraType);
-					const teraLabel = document.createElement("span");
-					teraLabel.textContent = teraType;
-					teraItem.append(teraImg, teraLabel);
-					nameCenter.appendChild(teraItem);
+					teraItem.appendChild(teraImg);
+					nameRow.appendChild(teraItem);
 				}
-				nameRow.appendChild(nameCenter);
 				infoEl.appendChild(nameRow);
 
 				// UI改修依頼(チーム編集中央パネル、2026-08-02)「ボックス画面と同様に、特性と
@@ -2262,6 +2366,13 @@ const initialTeamJson = team
 				abilityCell.className = "slot-meta-cell";
 				const abilityName = p.ability_name?.trim() ?? "";
 				const abilityLabel = document.createElement("span");
+				// UI改修依頼(チーム編集中央パネル、2026-08-02)「カードサイズを正方形のまま
+				// 小さくする」に伴う実測修正: 幅が230pxに縮んだ結果、特性/持ち物のラベルに
+				// overflow制御が無かったため長い文字列が単語の途中で2行に折り返ってしまう
+				// (実測: メガリザードンXの持ち物名が「リザードナイ」「トX」のように割れた)。
+				// nicknameEl(.slot-nickname)と同じ1行ellipsis制御をslot-meta-textとして
+				// 共通化し、ability/itemの両ラベルに適用する(下のitemLabel参照)。
+				abilityLabel.className = "slot-meta-text";
 				// UI改修依頼(チーム編集中央パネル)「ボックス画面と表記をそろえる」対応:
 				// box/index.astroの.card-ability-nameはラベル無しの特性名だけを出すため、
 				// ここも「特性: 」の接頭辞を外し値だけにする(未設定の強調自体は残す)。
@@ -2289,6 +2400,9 @@ const initialTeamJson = team
 					itemImg.style.display = "none";
 					void applyItemIcon(itemImg, itemName);
 					const itemLabel = document.createElement("span");
+					// UI改修依頼(チーム編集中央パネル、2026-08-02): 上のabilityLabelと同じ理由で
+					// slot-meta-textを適用し、長い持ち物名が単語の途中で折り返るのを防ぐ。
+					itemLabel.className = "slot-meta-text";
 					itemLabel.textContent = itemName;
 					itemCell.append(itemImg, itemLabel);
 				}
@@ -2345,9 +2459,9 @@ const initialTeamJson = team
 				infoEl.appendChild(movesEl);
 
 				// UI改修依頼(チーム編集中央パネル、2026-08-02)「編集ボタンを名前段の右端に配置
-				// する」。旧来は.slot-art(ポケモンアイコン)の右上に絶対配置していたが、
-				// nameRow(3列グリッド、CSS参照)の右端セルへ移す。削除ボタンは変更なし
-				// (カード(wrap経由でcard-team-slot直下)の右上端へ絶対配置のまま、CSS側は
+				// する」→ 同日の追加依頼「テラスタルアイコンと編集ボタンを並べて配置する」により、
+				// nameRow(横並びflex、CSS参照)の末尾にテラスアイコンと並べて置く。削除ボタンは
+				// 変更なし(カード(wrap経由でcard-team-slot直下)の右上端へ絶対配置のまま、CSS側は
 				// .team-slots .slot-remove-btn参照)。
 				const editLink = document.createElement("a");
 				editLink.className = "btn-ghost slot-edit-link";
@@ -2475,6 +2589,10 @@ const initialTeamJson = team
 			// (document全体のクリックを監視し、対象カード群にも右パネルにも含まれなければ
 			// 解除する)と同じ考え方。右パネル(#team-preview-panel)はプレビュー内の操作を
 			// 選択解除の対象外にするため、containsチェックの対象に含める。
+			// 🔴 UI改修依頼(チーム編集中央パネル、2026-08-02)「カード外をクリックしてもダメージ
+			// 計算表示が残り続けるバグを直す」。従来はis-selectedクラスを外すだけで右パネルの
+			// 中身(previewContentEl)には触れていなかった(上のclosePreviewPanelのコメント参照)。
+			// 選択解除と同時にclosePreviewPanel()を呼び、右パネルを閉じる。
 			document.addEventListener("click", (event) => {
 				const target = event.target as Node;
 				if (previewPanelEl.contains(target)) return;
@@ -2482,6 +2600,7 @@ const initialTeamJson = team
 				for (const card of slotsRoot.querySelectorAll(".card-team-slot")) {
 					card.classList.remove("is-selected");
 				}
+				closePreviewPanel();
 			});
 
 			// --- 選択バーの描画(R-7・R-10) ---
