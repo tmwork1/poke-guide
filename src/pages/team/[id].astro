@@ -561,6 +561,7 @@ const initialTeamJson = team
 			color: var(--color-text-muted);
 			font-size: var(--font-size-sm);
 		}
+
 	</style>
 
 	<div class="page">
@@ -770,6 +771,12 @@ const initialTeamJson = team
 						    hidden=trueにする処理は元々あり、二度と表示されない前提でも壊れない)。 */}
 						<p class="team-preview-empty" id="team-preview-empty" hidden></p>
 						<div class="team-preview-content" id="team-preview-content" hidden></div>
+						{/* チームポケモンのサジェスト(ユーザー要望、2026-08-02)。右パネルの
+						    ニュートラル状態(どの個体も選択していないとき)に出す枠。
+						    個体を選ぶと上の#team-preview-contentに差し替わり、選択解除で戻る
+						    (renderPreviewPanel / closePreviewPanel が両方をトグルする)。
+						    中身はJS(renderSuggestions)が生成する。 */}
+						<div class="team-suggest" id="team-suggest"></div>
 					</aside>
 				</div>
 			)
@@ -1695,6 +1702,146 @@ const initialTeamJson = team
 			text-overflow: ellipsis;
 			white-space: nowrap;
 		}
+
+		/* --- チームポケモンのサジェスト(ユーザー要望、2026-08-02)。右パネルのニュートラル
+		   状態に出す「おすすめのポケモンと型」ランキング。JS(renderSuggestions)が生成する
+		   要素なので、このファイルの scoped <style> ではなくここ(is:global)に置く。
+		   幅は右パネルの実効幅(実測 約300px)しかないため、ダメージカード(.team-damage-card)と
+		   同じく1カラムの縦積みで組み、はみ出す文言は省略記号で畳む。 --- */
+		.team-suggest {
+			padding: var(--space-3);
+		}
+		.team-suggest-heading {
+			font-size: var(--font-size-sm);
+			font-weight: 600;
+			margin: 0 0 var(--space-1);
+		}
+		.team-suggest-note {
+			font-size: var(--font-size-xs);
+			color: var(--color-text-muted);
+			margin: 0 0 var(--space-3);
+			line-height: 1.4;
+		}
+		.team-suggest-status {
+			font-size: var(--font-size-sm);
+			color: var(--color-text-muted);
+			margin: 0;
+		}
+		.team-suggest-list {
+			list-style: none;
+			margin: 0;
+			padding: 0;
+			display: flex;
+			flex-direction: column;
+			gap: var(--space-2);
+		}
+		.team-suggest-card {
+			display: grid;
+			/* 順位 / 画像 / 本文 の3列。本文列は minmax(0, 1fr) にしないと
+			   長い技名・持ち物名がグリッドを押し広げて横スクロールを起こす。 */
+			grid-template-columns: auto 44px minmax(0, 1fr);
+			align-items: center;
+			gap: var(--space-2);
+			padding: var(--space-2);
+			border: 1px solid var(--color-border);
+			border-radius: var(--radius-sm);
+			background: var(--color-surface);
+		}
+		.team-suggest-rank {
+			font-size: var(--font-size-xs);
+			font-weight: 700;
+			color: var(--color-text-muted);
+			min-width: 1.2em;
+			text-align: right;
+		}
+		.team-suggest-sprite {
+			width: 44px;
+			height: 44px;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+		}
+		.team-suggest-sprite-img {
+			max-width: 100%;
+			max-height: 100%;
+		}
+		.team-suggest-sprite-fallback {
+			display: none;
+			width: 32px;
+			height: 32px;
+			border-radius: 50%;
+			background: var(--color-surface-alt);
+			color: var(--color-text-muted);
+			font-size: var(--font-size-xs);
+			align-items: center;
+			justify-content: center;
+		}
+		.team-suggest-body {
+			min-width: 0;
+		}
+		.team-suggest-name {
+			font-size: var(--font-size-sm);
+			font-weight: 600;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+		}
+		/* 右パネルの本文列は実測で約165pxしかなく、特性+持ち物+役割を1行に収めると
+		   ほぼ必ず省略記号で切れる。省略すると「どの型か」という提案の中身そのものが
+		   読めなくなるため、折り返して2行以上になることを許す(カードの高さは伸びる)。 */
+		.team-suggest-build {
+			font-size: var(--font-size-xs);
+			color: var(--color-text-muted);
+			display: flex;
+			align-items: center;
+			flex-wrap: wrap;
+			gap: 0.15em 0.25em;
+			line-height: 1.35;
+		}
+		.team-suggest-item-icon {
+			width: 14px;
+			height: 14px;
+			flex: none;
+		}
+		.team-suggest-role {
+			flex: none;
+			padding: 0 0.35em;
+			border-radius: var(--radius-sm);
+			background: var(--color-surface-alt);
+		}
+		/* 根拠(「◯◯採用チームのN%が併用」)も同じ理由で折り返す。ここで切れると
+		   割合の数字が消え、提案の説得力そのものが失われるため。 */
+		.team-suggest-reason {
+			font-size: var(--font-size-xs);
+			color: var(--color-text-muted);
+			line-height: 1.35;
+			margin-top: 0.1em;
+		}
+		/* 持ち物がチーム内で重複する型(そのままでは編成できない)への注意書き。
+		   候補自体は消さない ── 「持ち物を変えれば使える」という情報は残す価値があるため。 */
+		.team-suggest-conflict {
+			font-size: var(--font-size-xs);
+			color: var(--color-risky-strong);
+		}
+		.team-suggest-action {
+			grid-column: 1 / -1;
+			justify-self: stretch;
+			font-size: var(--font-size-xs);
+			padding: var(--space-1) var(--space-2);
+			border: 1px solid var(--color-border);
+			border-radius: var(--radius-sm);
+			background: var(--color-surface-alt);
+			color: var(--color-text);
+			cursor: pointer;
+		}
+		.team-suggest-action:hover:not(:disabled) {
+			border-color: var(--color-primary);
+			color: var(--color-primary-strong);
+		}
+		.team-suggest-action:disabled {
+			cursor: default;
+			opacity: 0.6;
+		}
 	</style>
 
 	<script>
@@ -1819,6 +1966,8 @@ const initialTeamJson = team
 
 			const previewEmptyEl = el<HTMLElement>("team-preview-empty");
 			const previewContentEl = el<HTMLElement>("team-preview-content");
+			// チームポケモンのサジェスト(ユーザー要望、2026-08-02)の描画先。
+			const suggestEl = el<HTMLElement>("team-suggest");
 			// UI改修依頼(チーム編集中央パネル、2026-08-02)カード外クリックでの選択解除判定に使う
 			// (右パネル内のクリックは選択解除の対象外にする)。
 			const previewPanelEl = el<HTMLElement>("team-preview-panel");
@@ -2222,6 +2371,10 @@ const initialTeamJson = team
 				previewEmptyEl.hidden = true;
 				previewContentEl.hidden = false;
 				previewContentEl.innerHTML = "";
+				// 個体を選んでいる間はニュートラル状態ではないのでサジェストを隠す
+				// (closePreviewPanel が戻す)。中身は消さない ── 選択解除のたびに
+				// 再fetchせず、そのまま出し直せるようにするため。
+				suggestEl.hidden = true;
 
 				const headingEl = document.createElement("p");
 				headingEl.className = "team-damage-owner";
@@ -2269,6 +2422,299 @@ const initialTeamJson = team
 				previewRequestId += 1;
 				previewContentEl.hidden = true;
 				previewContentEl.innerHTML = "";
+				// ニュートラル状態に戻ったのでサジェストを出し直す(下の renderSuggestions 参照)。
+				suggestEl.hidden = false;
+			}
+
+			// =================================================================================
+			// チームポケモンのサジェスト(ユーザー要望、2026-08-02)
+			// 「現在のチームメンバーを参照して、残りの枠に入れるとよいポケモンを提案する」。
+			// 集計は GET /api/team-suggestions(スコアリングは src/lib/team-suggest.ts、
+			// 共起の集計は migrations/016 のSQL関数)。ここは表示と操作だけを担う。
+			// =================================================================================
+
+			interface TeamSuggestion {
+				speciesName: string;
+				dexNo: number | null;
+				abilityName: string | null;
+				itemName: string | null;
+				role: "physical_attacker" | "special_attacker" | "bulky" | null;
+				archetypeShare: number | null;
+				archetypeTeams: number | null;
+				usageTeams: number;
+				totalTeams: number;
+				itemConflict: boolean;
+				reason: {
+					seedSpeciesName: string;
+					coTeams: number;
+					seedTeams: number;
+					ratio: number;
+					lift: number;
+				} | null;
+			}
+
+			const ROLE_LABELS: Record<string, string> = {
+				physical_attacker: "物理",
+				special_attacker: "特殊",
+				bulky: "耐久",
+			};
+
+			// 「今どの編成に対する結果か」。メンバーを続けて操作したときに、古いリクエストの
+			// 応答が後から届いて上書きするのを防ぐ(renderPreviewPanel の previewRequestId と同じ方式)。
+			let suggestRequestId = 0;
+			// 直近で問い合わせた編成。同じ編成での再描画では fetch を撃たない
+			// (枠の入れ替えなど、メンバー集合が変わらない操作でも scheduleSuggestions は呼ばれるため)。
+			let lastSuggestKey: string | null = null;
+			let suggestTimer: number | undefined;
+
+			function setSuggestStatus(message: string): void {
+				suggestEl.innerHTML = "";
+				const p = document.createElement("p");
+				p.className = "team-suggest-status";
+				p.textContent = message;
+				suggestEl.appendChild(p);
+			}
+
+			// 提案された型に一致する手持ち個体を探す。種族が一致し、かつチームに入れられる
+			// (selectionBlockReason が null)個体だけが対象。特性・持ち物まで一致するものを
+			// 優先し、無ければ種族だけ一致する個体を返す ── 「型は違うが同じポケモンなら持っている」
+			// 場合に、作り直しではなく手持ちを入れる導線を出せるようにするため。
+			function findOwnedMatch(suggestion: TeamSuggestion): OwnedPokemonRecord | null {
+				const candidates = currentCandidates();
+				const usable = allPokemon.filter(
+					(p) => p.species_name === suggestion.speciesName && selectionBlockReason(candidateOf(p), candidates) === null,
+				);
+				if (usable.length === 0) return null;
+				const exact = usable.find(
+					(p) =>
+						(p.ability_name ?? "") === (suggestion.abilityName ?? "") &&
+						(p.item_name ?? "") === (suggestion.itemName ?? ""),
+				);
+				return exact ?? usable[0];
+			}
+
+			// 「この型で個体を作る」: box/index.astro の createEmptyPokemon と同じ POST 経路で、
+			// 空の個体ではなく提案された型(種族・特性・持ち物)を埋めた個体を作り、そのまま
+			// 編集画面へ送る。努力値・技・性格は提案の識別キーに含まれない(型は
+			// 種族・特性・持ち物・role の4つで決まる、migrations/015)ため空のままにする。
+			async function createPokemonFromSuggestion(suggestion: TeamSuggestion, button: HTMLButtonElement): Promise<void> {
+				button.disabled = true;
+				const originalLabel = button.textContent;
+				button.textContent = "登録中...";
+				try {
+					const res = await fetch("/api/owned-pokemon", {
+						method: "POST",
+						credentials: "same-origin",
+						headers: { "Content-Type": "application/json" },
+						body: JSON.stringify({
+							nickname: "",
+							species_name: suggestion.speciesName,
+							level: null,
+							nature: "",
+							ability_name: suggestion.abilityName ?? "",
+							item_name: suggestion.itemName ?? "",
+							tera_type: "",
+							regulation: regulationSelect.value || "",
+							evs: [0, 0, 0, 0, 0, 0],
+							ivs: [31, 31, 31, 31, 31, 31],
+							move_names: [],
+							memo: "",
+							tags: [],
+							is_pinned: false,
+						}),
+					});
+					const body = (await res.json().catch(() => ({}))) as { data?: { id: string }; error?: string };
+					if (!res.ok || !body.data) throw new Error(body.error ?? `登録に失敗しました (status=${res.status})`);
+					window.location.href = `/box/${encodeURIComponent(body.data.id)}`;
+				} catch (err) {
+					console.error(err);
+					button.disabled = false;
+					button.textContent = originalLabel;
+					window.alert("個体の登録に失敗しました。時間をおいて再度お試しください。");
+				}
+			}
+
+			function buildSuggestionCard(suggestion: TeamSuggestion, rank: number): HTMLElement {
+				const card = document.createElement("li");
+				card.className = "team-suggest-card";
+
+				const rankEl = document.createElement("span");
+				rankEl.className = "team-suggest-rank";
+				rankEl.textContent = String(rank);
+				card.appendChild(rankEl);
+
+				const spriteEl = document.createElement("span");
+				spriteEl.className = "team-suggest-sprite";
+				const spriteImg = document.createElement("img");
+				spriteImg.className = "team-suggest-sprite-img";
+				spriteImg.alt = "";
+				const spriteFallback = document.createElement("span");
+				spriteFallback.className = "team-suggest-sprite-fallback";
+				spriteEl.append(spriteImg, spriteFallback);
+				void applySprite(spriteImg, spriteFallback, suggestion.speciesName);
+				card.appendChild(spriteEl);
+
+				const body = document.createElement("div");
+				body.className = "team-suggest-body";
+
+				const nameEl = document.createElement("div");
+				nameEl.className = "team-suggest-name";
+				nameEl.textContent = suggestion.speciesName;
+				nameEl.title = suggestion.speciesName;
+				body.appendChild(nameEl);
+
+				// 型(特性・持ち物・役割)。構築記事に特性/努力値が無い種族では型が判明しない
+				// (API が null を返す)ので、その場合は採用率だけを出す。
+				const buildEl = document.createElement("div");
+				buildEl.className = "team-suggest-build";
+				if (suggestion.abilityName || suggestion.itemName) {
+					if (suggestion.abilityName) {
+						const abilityEl = document.createElement("span");
+						abilityEl.textContent = suggestion.abilityName;
+						buildEl.appendChild(abilityEl);
+					}
+					if (suggestion.itemName) {
+						const itemIcon = document.createElement("img");
+						itemIcon.className = "team-suggest-item-icon";
+						itemIcon.alt = "";
+						void applyItemIcon(itemIcon, suggestion.itemName);
+						const itemEl = document.createElement("span");
+						itemEl.textContent = suggestion.itemName;
+						buildEl.append(itemIcon, itemEl);
+					}
+					if (suggestion.role) {
+						const roleEl = document.createElement("span");
+						roleEl.className = "team-suggest-role";
+						roleEl.textContent = ROLE_LABELS[suggestion.role] ?? suggestion.role;
+						buildEl.appendChild(roleEl);
+					}
+					buildEl.title = [suggestion.abilityName, suggestion.itemName, suggestion.role ? ROLE_LABELS[suggestion.role] : null]
+						.filter(Boolean)
+						.join(" / ");
+				} else {
+					buildEl.textContent = "型のデータなし";
+				}
+				body.appendChild(buildEl);
+
+				// 根拠。共起ベースなら「◯◯採用チームの N%」、チームが空なら採用率。
+				const reasonEl = document.createElement("div");
+				reasonEl.className = "team-suggest-reason";
+				if (suggestion.reason) {
+					const percent = Math.round(suggestion.reason.ratio * 100);
+					reasonEl.textContent = `${suggestion.reason.seedSpeciesName}採用チームの${percent}%が併用`;
+					reasonEl.title = `共起 ${suggestion.reason.coTeams}/${suggestion.reason.seedTeams}チーム・lift ${suggestion.reason.lift.toFixed(2)}`;
+				} else {
+					const percent = Math.round((suggestion.usageTeams / Math.max(suggestion.totalTeams, 1)) * 100);
+					reasonEl.textContent = `上位チームの${percent}%が採用`;
+					reasonEl.title = `${suggestion.usageTeams}/${suggestion.totalTeams}チーム`;
+				}
+				body.appendChild(reasonEl);
+
+				if (suggestion.itemConflict && suggestion.itemName) {
+					const conflictEl = document.createElement("div");
+					conflictEl.className = "team-suggest-conflict";
+					conflictEl.textContent = `${suggestion.itemName}が重複`;
+					body.appendChild(conflictEl);
+				}
+
+				card.appendChild(body);
+
+				// 操作: 手持ちにあれば枠へ入れる、無ければその型で新規登録する。
+				const owned = findOwnedMatch(suggestion);
+				const action = document.createElement("button");
+				action.type = "button";
+				action.className = "team-suggest-action";
+				if (owned) {
+					const label = owned.nickname?.trim() || owned.species_name;
+					action.textContent = `手持ちの${label}を入れる`;
+					action.title = action.textContent;
+					action.disabled = firstEmptySlot() == null;
+					action.addEventListener("click", () => {
+						assignToSlot(owned);
+					});
+				} else {
+					action.textContent = "この型で個体を作る";
+					action.addEventListener("click", () => {
+						void createPokemonFromSuggestion(suggestion, action);
+					});
+				}
+				card.appendChild(action);
+
+				return card;
+			}
+
+			// 直近の応答。個体一覧(allPokemon)が後から届いたときに「手持ちにあるか」の
+			// 判定をやり直して再描画するために保持する(APIは叩き直さない)。
+			let lastSuggestResponse: { suggestions: TeamSuggestion[]; basis: string } | null = null;
+
+			function renderSuggestions(suggestions: TeamSuggestion[], basis: string): void {
+				lastSuggestResponse = { suggestions, basis };
+				suggestEl.innerHTML = "";
+
+				const heading = document.createElement("p");
+				heading.className = "team-suggest-heading";
+				heading.textContent = "おすすめのポケモン";
+				suggestEl.appendChild(heading);
+
+				const note = document.createElement("p");
+				note.className = "team-suggest-note";
+				// basis はAPI(src/pages/api/team-suggestions.ts)が返す集計の根拠。
+				// usage_fallback は「編成中のポケモンが上位入賞チームのデータに1体も
+				// 登場せず、共起を計算できなかった」ケースで、共起順のつもりで読まれると
+				// 誤解を招くため専用の文言にする。
+				note.textContent =
+					basis === "usage"
+						? "上位入賞チームでの採用率順です。1体入れると、相性の良いポケモンに切り替わります。"
+						: basis === "usage_fallback"
+							? "編成中のポケモンは上位入賞チームのデータに無いため、環境全体の採用率順で表示しています。"
+							: "上位入賞チームで、今の編成とよく一緒に使われている型の順です。";
+				suggestEl.appendChild(note);
+
+				if (suggestions.length === 0) {
+					const empty = document.createElement("p");
+					empty.className = "team-suggest-status";
+					empty.textContent = "この編成に対する提案は見つかりませんでした。";
+					suggestEl.appendChild(empty);
+					return;
+				}
+
+				const list = document.createElement("ul");
+				list.className = "team-suggest-list";
+				suggestions.forEach((s, index) => list.appendChild(buildSuggestionCard(s, index + 1)));
+				suggestEl.appendChild(list);
+			}
+
+			async function loadSuggestions(): Promise<void> {
+				const memberIds = currentMemberIds();
+				const key = memberIds.slice().sort().join(",");
+				if (key === lastSuggestKey) return;
+				lastSuggestKey = key;
+
+				const requestId = (suggestRequestId += 1);
+				setSuggestStatus("おすすめを計算中…");
+				try {
+					const query = memberIds.length > 0 ? `?member_ids=${encodeURIComponent(memberIds.join(","))}` : "";
+					const res = await fetch(`/api/team-suggestions${query}`, { credentials: "same-origin" });
+					if (!res.ok) throw new Error(`サジェストの取得に失敗しました (status=${res.status})`);
+					const body = (await res.json()) as { data: TeamSuggestion[]; meta?: { basis?: string } };
+					if (requestId !== suggestRequestId) return; // 編成が変わった。この結果は捨てる
+					renderSuggestions(body.data ?? [], body.meta?.basis ?? "cooccurrence");
+				} catch (err) {
+					console.error(err);
+					if (requestId !== suggestRequestId) return;
+					// 次に編成が変わったときに再試行できるよう、失敗した編成は記憶しない。
+					lastSuggestKey = null;
+					setSuggestStatus("おすすめを取得できませんでした。");
+				}
+			}
+
+			// 編成の変更に追随する。自動保存(scheduleSave)と同じ700msのデバウンスにして、
+			// 6枠を続けて操作したときに毎回APIを叩かないようにする。
+			function scheduleSuggestions(): void {
+				window.clearTimeout(suggestTimer);
+				suggestTimer = window.setTimeout(() => {
+					void loadSuggestions();
+				}, 700);
 			}
 
 			// UI改修依頼(チーム編集左パネル)「ダブルクリックとドラッグアンドドロップでチームに
@@ -2288,6 +2734,8 @@ const initialTeamJson = team
 				renderSelectList();
 				scheduleSave();
 				refreshCollectionOptOutToggle();
+				// 編成が変わったのでサジェストを取り直す(2026-08-02)。
+				scheduleSuggestions();
 			}
 
 			// 🔴 UI改修依頼(チーム編集中央パネル、2026-08-01)「10. チームメンバーどうしを
@@ -2400,6 +2848,8 @@ const initialTeamJson = team
 				renderSelectList();
 				scheduleSave();
 				refreshCollectionOptOutToggle();
+				// 編成が変わったのでサジェストを取り直す(2026-08-02)。
+				scheduleSuggestions();
 			}
 
 			function buildFilledSlotContent(slot: number, p: OwnedPokemonRecord): HTMLElement {
@@ -3198,6 +3648,11 @@ const initialTeamJson = team
 			// SSR取得済みのメンバーは fetch を待たずに即描画する(6枠が空でも一瞬も待たせない)。
 			renderSlots();
 			refreshCollectionOptOutToggle();
+			// サジェスト(2026-08-02)。SSR時点のメンバーだけで先に問い合わせられるので、
+			// 個体一覧のfetch完了は待たない。ただし「手持ちにあるか」の判定(findOwnedMatch)は
+			// allPokemon に依存するため、一覧が届いた時点でボタンの出し分けを描き直す
+			// (下の fetch("/api/owned-pokemon") の then を参照)。
+			void loadSuggestions();
 
 			fetch("/api/owned-pokemon", { credentials: "same-origin" })
 				.then(async (res) => {
@@ -3215,6 +3670,12 @@ const initialTeamJson = team
 					selectLoadingMessage.hidden = true;
 					renderSelectList();
 					refreshCollectionOptOutToggle();
+					// サジェストの操作ボタンは「手持ちに一致する個体があるか」で文言が変わる
+					// (findOwnedMatch)。その判定材料である allPokemon が今届いたので、
+					// 既に描画済みの結果があれば同じデータのまま描き直す(再fetchはしない)。
+					if (lastSuggestResponse) {
+						renderSuggestions(lastSuggestResponse.suggestions, lastSuggestResponse.basis);
+					}
 				})
 				.catch((err) => {
 					console.error(err);

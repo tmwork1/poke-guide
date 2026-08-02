@@ -203,6 +203,31 @@ export async function listOwnedPokemon(
   return { ok: true, data: (data ?? []) as OwnedPokemonRecord[] };
 }
 
+// 指定したidの個体をまとめて取得する(チームサジェスト src/pages/api/team-suggestions.ts 用)。
+// listOwnedPokemon で全件を引いてJS側で絞るのではなく専用クエリにしているのは、
+// Cloudflare Workers Free の CPU 10ms 制約下で不要な行のデシリアライズを避けるため。
+// 他の関数と同じく user_id での絞り込みを必ず併用し、他人の個体は静かに結果から落ちる
+// (見つからないIDと他人のIDを区別せず、単に返らないだけ ── getOwnedPokemon と同じ方針)。
+export async function listOwnedPokemonByIds(
+  userId: string,
+  ids: readonly string[],
+  supabase: SupabaseClient,
+): Promise<OwnedPokemonResult<OwnedPokemonRecord[]>> {
+  if (ids.length === 0) return { ok: true, data: [] };
+
+  const { data, error } = await supabase
+    .from('owned_pokemon')
+    .select(OWNED_POKEMON_COLUMNS)
+    .eq('user_id', userId)
+    .in('id', ids as string[]);
+
+  if (error) {
+    logError('listOwnedPokemonByIds failed', error);
+    return { ok: false, error: 'Failed to list owned pokemon' };
+  }
+  return { ok: true, data: (data ?? []) as OwnedPokemonRecord[] };
+}
+
 // 見つからない場合と他人の所有物である場合を区別せず null を返す(存在漏洩防止)。
 export async function getOwnedPokemon(
   userId: string,
