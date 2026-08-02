@@ -45,6 +45,37 @@ import {
 	baseStatsMapPromise,
 	registerLeftPanelBridge,
 } from "./shared-core";
+// UI改修依頼(個体編集画面、2026-08-02)「耐久調整」ボタン(H・B・D行、#stat-adjust-hp/def/spd)の
+// 配線。計算(純JS、Pyodide不要)はdurability-index.ts、一覧表示はright-panel.tsの
+// renderCandidateList()(耐久調整ポップアップと共用の汎用レンダラ)に委譲し、このファイルは
+// 「現在の種族値・努力値・性格を渡して呼ぶ」「bestを左パネルへ即時反映する」「クリックされた
+// 候補を左パネルへ反映する」の橋渡しだけを担う。
+import {
+	maximizeDurabilityIndex,
+	type DurabilityIndexKind,
+	type DurabilityIndexCandidate,
+	type MaximizeResult,
+} from "./durability-index";
+// ⚠️ 実装時に踏んだ罠: renderCandidateList/openDetailPanelOverlayIfNarrowを他の関数と同じ
+// 静的importにすると、box/[id].astroでLeftPanel.astroがDamageCalcSection.astroより先に
+// レンダリングされる(=このファイルのscriptが先に評価される)ため、right-panel.ts⇄damage-calc.ts
+// の相互import(既存、両ファイルとも編集対象外)へ「right-panel.ts側から先に入る」経路が
+// 新たに生まれてしまう。既存の相互importは「damage-calc.ts側から先に入る」順序でのみ安全
+// (right-panel.tsコメント「モジュール top-level で即時評価されない値のみを跨いでいる」参照)
+// になるよう設計されていたため、順序が変わると right-panel.ts の `let detailPanelEl` 等が
+// 自身の宣言文へ到達する前に initRightPanel() から代入されてしまい、
+// "Cannot access 'detailPanelEl' before initialization" で例外になる
+// (実機のPlaywright検証で再現・特定した)。型だけの参照(CandidateListItem)は実行時に
+// 消えるため static import のままでよいが、実行時に呼ぶ関数(renderCandidateList/
+// openDetailPanelOverlayIfNarrow)はボタンクリック時(=ページの全scriptが評価を終え、
+// damage-calc.ts側から通常どおりright-panel.tsが初期化された後)に初めてdynamic import
+// することで、モジュールグラフへ入る経路を変えないようにする(loadRightPanel、下記)。
+import type { CandidateListItem } from "./right-panel";
+let rightPanelModulePromise: Promise<typeof import("./right-panel")> | null = null;
+function loadRightPanel(): Promise<typeof import("./right-panel")> {
+	if (!rightPanelModulePromise) rightPanelModulePromise = import("./right-panel");
+	return rightPanelModulePromise;
+}
 
 // UI品質改善(2026-07-26 第4弾 11-4): #move-listのlearnset優先並び替え(rebuildMoveListForSpecies、
 // 下で定義)は #move-list に既に候補が入っている前提で動く。loadAutocomplete()は元は<script>末尾で
@@ -446,6 +477,20 @@ export async function loadPopularBuildSuggestions(speciesName: string, regulatio
 
 const form = document.getElementById("edit-form") as HTMLFormElement | null;
 if (form) {
+	// UI改修依頼(個体編集画面、2026-08-02)「耐久調整」ボタン(H・B・D行)。静的マークアップ
+	// (LeftPanel.astro)では常にdisabledで描画されており、種族値が引けて実数値が計算できる
+	// 状態(=種族名が入力済み)になったときだけ有効化する。applyBaseStats()が種族値の
+	// 有無(base)を既に判定しているため、その結果をそのまま流用する(同じ「種族値の有無」の
+	// 判定基準に揃える、というコーディネーターの指示どおり)。
+	const statAdjustHpButton = el<HTMLButtonElement>("stat-adjust-hp");
+	const statAdjustDefButton = el<HTMLButtonElement>("stat-adjust-def");
+	const statAdjustSpdButton = el<HTMLButtonElement>("stat-adjust-spd");
+	function updateStatAdjustButtonsEnabled(hasBaseStats: boolean): void {
+		statAdjustHpButton.disabled = !hasBaseStats;
+		statAdjustDefButton.disabled = !hasBaseStats;
+		statAdjustSpdButton.disabled = !hasBaseStats;
+	}
+
 	// UI刷新: 種族値の常時表示(実数値と同じ行に並べる)。
 	async function applyBaseStats(name: string): Promise<void> {
 		const base = name ? (await baseStatsMapPromise).get(name) : undefined;
@@ -459,6 +504,7 @@ if (form) {
 		// 注記の表示/非表示をここで切り替える。
 		const hpFixedNoteEl = document.getElementById("hp-fixed-note");
 		if (hpFixedNoteEl) hpFixedNoteEl.hidden = !(base && base[0] === 1);
+		updateStatAdjustButtonsEnabled(!!base);
 	}
 
 	// UI品質改善(2026-07-26 第4弾 11-4): 技候補(#move-list)を種族の覚え技(learnset)
@@ -1402,6 +1448,145 @@ if (form) {
 	// 個体の公開共有トグル(PUT /api/owned-pokemon/:id/share)のUIは要件により廃止した。
 	// APIと公開ページ(/share/[slug])自体は残っているので、UIを再び付けたくなった場合は
 	// git履歴のこの位置にあった renderShareStatus / is-public チェックボックスの実装を参照すること。
+
+	// ============================================================
+	// UI改修依頼(個体編集画面、2026-08-02)「耐久調整」ボタン(H・B・D行)の配線
+	// ============================================================
+	// マークアップ(LeftPanel.astro)・計算(durability-index.ts)・一覧表示(right-panel.tsの
+	// renderCandidateList、耐久調整ポップアップと共用)はいずれも実装済み。ここでは
+	// (1)ボタン押下→現在の種族値・努力値・性格からbestを求めて即座に左パネルへ反映、
+	// (2)上位候補を右パネルへ一覧表示、(3)一覧クリックでその配分に更新、の3つを配線する。
+	//
+	// ⚠️ 努力値の書き換えは.valueへの代入だけではinput/changeどちらのイベントも発火せず、
+	// 再計算(recalcStats)も自動保存(scheduleSave、textInputIds経由)も走らない
+	// (このファイル上部、textInputIds/statAffectingIdsの設定箇所参照)。同じファイル内の
+	// bulk-adjust.ts(耐久調整ポップアップ、編集禁止ファイル)のapplyEvToLeftPanelと
+	// 完全に同じ手順(値を代入したうえでinput/changeの両方をbubbles:trueで発火)を踏む。
+	// 性格はここでは変更しない(耐久指数の最大化はH/B/Dの努力値配分のみが対象で、
+	// 性格は現在の値のまま使う。durability-index.ts参照)。
+	function applyDurabilityEvToLeftPanel(key: "hp" | "def" | "spd", value: number): void {
+		const input = document.getElementById(`ev-${key}`) as HTMLInputElement | null;
+		if (!input) return;
+		input.value = String(value);
+		input.dispatchEvent(new Event("input", { bubbles: true }));
+		input.dispatchEvent(new Event("change", { bubbles: true }));
+	}
+	function applyDurabilityCandidateToLeftPanel(candidate: DurabilityIndexCandidate): void {
+		applyDurabilityEvToLeftPanel("hp", candidate.evs.hp);
+		applyDurabilityEvToLeftPanel("def", candidate.evs.def);
+		applyDurabilityEvToLeftPanel("spd", candidate.evs.spd);
+	}
+
+	// 指数の値の表示桁: total(総合耐久指数)はH*B*D/(B+D)で割り切れないことが多いため
+	// 小数2桁に丸める。physical/special(H*B・H*D)は実数値同士の掛け算で必ず整数になる。
+	function formatDurabilityIndexValue(kind: DurabilityIndexKind, value: number): string {
+		return kind === "total" ? value.toFixed(2) : String(Math.round(value));
+	}
+
+	// 右パネルの一覧を組み立てて描画する。候補クリック直後に自分自身を再度呼び直すことで、
+	// isApplied(適用中マーク)を最新の左パネルの値に合わせて更新する
+	// (bulk-adjust.ts/right-panel.tsのrenderBulkAdjustResultsと同じ「redrawクロージャ」の
+	// 考え方)。性格は変えない機能のため、isAppliedの判定はH/B/Dの努力値一致だけでよい。
+	async function showDurabilityCandidates(kind: DurabilityIndexKind, heading: string, contextText: string, result: MaximizeResult): Promise<void> {
+		const { renderCandidateList } = await loadRightPanel();
+		const redraw = (): void => {
+			const currentHp = readEv("hp");
+			const currentDef = readEv("def");
+			const currentSpd = readEv("spd");
+			const items: CandidateListItem[] = result.candidates.map((candidate) => {
+				const flags: CandidateListItem["flags"] = [];
+				if (candidate.isCurrent) {
+					// 色だけで意味を伝えない(WCAG 1.4.1): 記号+テキストを併記する。
+					// bestを即座に適用する仕様のため、この項目がアンドゥ手段を兼ねる。
+					flags.push({ icon: "↺", text: "変更前の配分", kind: "info" });
+				}
+				return {
+					segments: [
+						{
+							label: "努力値",
+							value: `H${candidate.evs.hp} B${candidate.evs.def} D${candidate.evs.spd}`,
+						},
+						{
+							label: "実数値",
+							value: `H${candidate.realStats.hp} B${candidate.realStats.def} D${candidate.realStats.spd}`,
+						},
+						{ label: "指数", value: formatDurabilityIndexValue(kind, candidate.index), emphasis: true },
+					],
+					flags,
+					isApplied:
+						candidate.evs.hp === currentHp && candidate.evs.def === currentDef && candidate.evs.spd === currentSpd,
+					onSelect: () => {
+						applyDurabilityCandidateToLeftPanel(candidate);
+						// ⚠️ 実装時に踏んだ罠: ここで同期的にredraw()(renderCandidateList経由で
+						// detailPanelBodyEl.innerHTMLを丸ごと差し替える)を呼ぶと、いま発火中のclick
+						// イベントのバブリング中に、クリックされたbutton要素自身がDOMから切り離される。
+						// damage-calc.ts側(編集禁止ファイル)の「#damage-detail-panelの外側クリックで
+						// 選択解除する」document click リスナーは同じclickイベントの伝播の中で後から
+						// (documentまでバブリングした時点で)発火し、target.contains判定を行うが、
+						// この時点でtargetは既に切り離し済みのため「パネルの外側をクリックした」と
+						// 誤判定し、clearSelectionAndMarks()→renderDetailPanelEmpty()経由で
+						// 今まさに再描画した一覧を消してしまう(実機のPlaywright検証で再現・特定)。
+						// ⚠️ queueMicrotaskでは直らない: ブラウザは同一イベントの複数リスナーの間でも
+						// マイクロタスクを消化するため(1リスナーの実行終了ごとにマイクロタスク
+						// チェックポイントが入る)、queueMicrotask(redraw)は次のリスナー(=外側クリックの
+						// documentリスナー)より先に実行されてしまい、上記の問題を再現したまま直らない
+						// (実機検証で確認済み)。click イベントの伝播(1タスク)が完全に終わってから
+						// 再描画する必要があるため、setTimeoutで次のタスクへ回す。
+						setTimeout(redraw, 0);
+					},
+				};
+			});
+			renderCandidateList({
+				heading,
+				context: contextText,
+				note: "耐久指数の大きい順",
+				items,
+				emptyMessage: "候補がありません。",
+			});
+		};
+		redraw();
+	}
+
+	async function runDurabilityAdjust(kind: DurabilityIndexKind, heading: string, button: HTMLButtonElement): Promise<void> {
+		const name = speciesInput.value.trim();
+		if (!name) return; // ボタンは種族名が空のときdisabledのはずだが、念のための防御
+		const base = (await baseStatsMapPromise).get(name);
+		if (!base) return;
+		const contextText = button.title;
+		const currentEvs = STAT_KEYS.map((k) => readEv(k));
+		const nature = currentLeftNature();
+		const result = maximizeDurabilityIndex({ kind, baseStats: base, currentEvs, nature });
+		const { renderCandidateList, openDetailPanelOverlayIfNarrow } = await loadRightPanel();
+
+		if (result.remaining <= 0) {
+			// 配れる努力値が残っていない: 何も変更せず、右パネルに理由を表示する
+			// (ボタンを押しても無反応にはしない、というコーディネーターの指示への対応)。
+			renderCandidateList({
+				heading,
+				context: contextText,
+				note: "努力値の合計がすでに上限(66)に達しているため、配る余地がありません。",
+				items: [],
+				emptyMessage: "配れる努力値が残っていません。",
+			});
+			openDetailPanelOverlayIfNarrow();
+			return;
+		}
+
+		// 最良解を即座に適用してから一覧を表示する(bestは常にcandidatesの先頭にも含まれる)。
+		applyDurabilityCandidateToLeftPanel(result.best);
+		await showDurabilityCandidates(kind, heading, contextText, result);
+		openDetailPanelOverlayIfNarrow();
+	}
+
+	statAdjustHpButton.addEventListener("click", () => {
+		void runDurabilityAdjust("total", "総合耐久指数", statAdjustHpButton);
+	});
+	statAdjustDefButton.addEventListener("click", () => {
+		void runDurabilityAdjust("physical", "物理耐久指数", statAdjustDefButton);
+	});
+	statAdjustSpdButton.addEventListener("click", () => {
+		void runDurabilityAdjust("special", "特殊耐久指数", statAdjustSpdButton);
+	});
 
 	// ============================================================
 	// UI改善ラウンド37(37-1〜37-3): 技選択の専用ウィンドウ
