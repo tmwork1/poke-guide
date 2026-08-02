@@ -25,6 +25,17 @@
 // npm run ranker:seed で新しいシーズンを投入したあとは、本スクリプトを再実行して
 // 新規個体の archetype_id を埋める必要がある(seed 側は archetype_id を触らない)。
 //
+// ■ 古いデータで走らせたあとの後始末(archetypes に孤児が残る)
+//   findOrCreateArchetype() は「無ければ作る」だけで、参照されなくなった archetypes 行を
+//   消す仕組みは無い。そのため **修正前の ranked_team_members に対して本スクリプトを
+//   走らせると、その時の値で作られた型の行が誰からも参照されないまま永久に残る**。
+//   2026-08-02、item_name の全角を半角に直す前(「リザードナイトＹ」等)にバックフィルが
+//   走っており、半角化+再seed後に流し直しても全角時代の9行が残っていた。
+//   ranked-teams.json を作り直して再seedしたときは、本スクリプトの再実行だけでなく
+//   archetype_id を持つ4テーブル(ranked_team_members / ranked_team_archetypes /
+//   owned_pokemon / archetype_modal_ability)からの参照が0の archetypes 行が
+//   増えていないかを点検し、あれば削除すること。
+//
 // 重要: 本番Supabaseへの実書き込みは、必ず --dry-run で件数を確認しユーザーの明示的な承認を
 // 得てから実行すること(このファイル自体は実行しない)。
 import { createClient } from '@supabase/supabase-js';
