@@ -1,0 +1,208 @@
+---
+// UI改修依頼(個体編集画面、2026-08-02)「耐久調整」機能。
+//
+// トップバーの #bulk-adjust-button(box/[id].astro側の静的マークアップ、実装済み)を押すと
+// 開く「耐久調整ポップアップ」の器(マークアップ+スタイル)。中身(圧縮表示された防御方向の
+// ダメージ計算カードの複製・N/M入力欄・進捗表示)はすべて src/lib/box-id/bulk-adjust.ts が
+// document.createElement()で動的生成する。
+//
+// このリポジトリには過去に<dialog>要素をやめた経緯があるため(RightPanel.astro:21、
+// left-panel.ts:45、DamageCalcSection.astro:1817のコメント参照)、<dialog>は使わず、
+// 「背景オーバーレイ(#bulk-adjust-backdrop) + position:fixedパネル(#bulk-adjust-dialog) +
+// hidden属性トグル + Escキー/オーバーレイクリックで閉じる」という自前実装パターン
+// (AppLayout.astroのサイドバードロワー・RightPanel.astroの#damage-detail-panelと同じ流儀)を
+// 踏襲する。
+//
+// ⚠️ 重要な設計上の注意(bulk-adjust.ts側の実装者・将来の変更者向け):
+// 圧縮表示カード(buildCollapsedPreview()の複製)の見た目を決めるCSS
+// (「#opponent-notes-section .card-damage[data-collapsed="true"] ...」等、
+// DamageCalcSection.astroの<style is:global>)は、すべて祖先に id="opponent-notes-section" を
+// 持つ要素があることを前提にしたセレクタになっている。このダイアログの静的マークアップは
+// box/[id].astro側でどこに配置しても構わない(position:fixedのため見た目上の位置には
+// 影響しない)が、複製カードに圧縮表示のCSSを実際に効かせるには、bulk-adjust.ts側で
+// このダイアログのルート要素を実行時に #opponent-notes-section の子として
+// appendChild()し直す必要がある(bulk-adjust.ts起動時に1回だけ行う。詳細は
+// bulk-adjust.tsのコメント参照)。#opponent-notes-section自身の子要素の入れ替えは
+// #damage-rows-list(その中の1要素)に閉じているため、直下に新しい兄弟要素を1つ
+// 追加するだけならdamage-calc.ts側の既存処理と衝突しない。
+---
+<div id="bulk-adjust-backdrop" class="bulk-adjust-backdrop" hidden></div>
+<div
+	id="bulk-adjust-dialog"
+	class="bulk-adjust-dialog"
+	role="dialog"
+	aria-modal="true"
+	aria-labelledby="bulk-adjust-dialog-title"
+	tabindex="-1"
+	hidden
+>
+	<div class="bulk-adjust-dialog-header">
+		<h2 id="bulk-adjust-dialog-title" class="bulk-adjust-dialog-title">耐久調整</h2>
+		<button type="button" id="bulk-adjust-dialog-close" class="btn-ghost bulk-adjust-dialog-close" aria-label="耐久調整ポップアップを閉じる">×</button>
+	</div>
+	<div id="bulk-adjust-dialog-body" class="bulk-adjust-dialog-body">
+		{/* 中身(圧縮表示カード+N/M入力欄の組、または空状態メッセージ)はbulk-adjust.tsが
+		    document.createElement()で動的生成してここへ差し込む。 */}
+		<div id="bulk-adjust-dialog-body-inner" class="bulk-adjust-dialog-body-inner"></div>
+	</div>
+	<div id="bulk-adjust-dialog-footer" class="bulk-adjust-dialog-footer" hidden>
+		<button type="button" id="bulk-adjust-cancel-button" class="btn-ghost">中断</button>
+		<span id="bulk-adjust-progress-text" class="bulk-adjust-progress-text tnum" role="status" aria-live="polite"></span>
+	</div>
+</div>
+
+<script>
+	// スクリプト本体は src/lib/box-id/bulk-adjust.ts に切り出してあり、ここから副作用import
+	// する(LeftPanel.astro + left-panel.ts、DamageCalcSection.astro + damage-calc.tsと
+	// 同じ構成)。モジュール読み込み時に自身で#bulk-adjust-button等を取得し初期化する。
+	import "../../lib/box-id/bulk-adjust";
+</script>
+
+<style is:global>
+	/* JSが動的生成する中身を含むため、このダイアログ関連のスタイルはすべてis:globalにする
+	   (Astroのscoped styleはJSで生成した要素に効かない。このリポジトリで実際に踏まれた罠。
+	   pitfalls.md参照)。クラス名はすべて bulk-adjust- 接頭辞で他画面と衝突しないようにする。 */
+
+	/* 背景オーバーレイ・ダイアログ本体とも、既存の#damage-detail-panel/backdropより手前
+	   (z-index:60/55)に出す必要があるため70/71を使う(このページで確認できる最大値は60)。
+	   モーダルなので、RightPanel.astroのスライドイン(transform)ではなく画面中央に固定する。
+	   ⚠️ 実装時に踏んだ罠: inset:0にすると、ダイアログを開いている間ずっと画面全体
+	   (トップバーの上まで)を覆ってしまい、このダイアログを開閉する当のトリガーボタン
+	   (#bulk-adjust-button、トップバー内。ダイアログを開いている間は「ステータスを計算」に
+	   ラベルが変わり計算実行ボタンを兼ねる)がクリックできなくなる(Playwrightの実機検証で
+	   「backdropがポインタイベントを奪っている」ことを確認した)。トップバー
+	   (--topbar-height、global.css)ぶんだけ上を空け、topより下だけを覆う。 */
+	.bulk-adjust-backdrop {
+		position: fixed;
+		top: var(--topbar-height);
+		left: 0;
+		right: 0;
+		bottom: 0;
+		z-index: 70;
+		background: rgba(0, 0, 0, 0.35);
+	}
+	/* ⚠️ [hidden]は詳細度で負ける既知の罠(このリポジトリで4件実例あり)。
+	   display:flexを持つクラスには必ず対応する[hidden]規則を併記すること。 */
+	.bulk-adjust-backdrop[hidden] { display: none; }
+
+	.bulk-adjust-dialog {
+		position: fixed;
+		top: 50%;
+		left: 50%;
+		transform: translate(-50%, -50%);
+		z-index: 71;
+		width: min(720px, 94vw);
+		max-height: min(82vh, 900px);
+		display: flex;
+		flex-direction: column;
+		background: var(--color-surface);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-lg);
+		box-shadow: var(--shadow-lg);
+	}
+	.bulk-adjust-dialog[hidden] { display: none; }
+
+	.bulk-adjust-dialog-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: var(--space-3);
+		padding: var(--space-4) var(--space-5);
+		border-bottom: 1px solid var(--color-border);
+		flex-shrink: 0;
+	}
+	.bulk-adjust-dialog-title { margin: 0; font-size: 1rem; font-weight: 700; }
+	.bulk-adjust-dialog-close { font-size: 1.1rem; padding: 0.2em 0.55em; flex-shrink: 0; }
+
+	.bulk-adjust-dialog-body {
+		flex: 1 1 auto;
+		min-height: 0;
+		overflow-y: auto;
+		padding: var(--space-4) var(--space-5);
+	}
+	.bulk-adjust-dialog-body-inner {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-4);
+	}
+
+	.bulk-adjust-dialog-footer {
+		display: flex;
+		align-items: center;
+		gap: var(--space-3);
+		padding: var(--space-3) var(--space-5);
+		border-top: 1px solid var(--color-border);
+		flex-shrink: 0;
+	}
+	.bulk-adjust-dialog-footer[hidden] { display: none; }
+	.bulk-adjust-progress-text { color: var(--color-text-muted); font-size: var(--font-size-sm); }
+
+	.bulk-adjust-empty-message { margin: 0; color: var(--color-text-muted); }
+
+	/* カード1枚(圧縮表示の複製)+N/M入力欄の組。 */
+	.bulk-adjust-row {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-2);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-md);
+		padding: var(--space-3);
+		background: var(--color-surface-alt);
+	}
+	/* 複製カード(.card-damage)は本来カード一覧の中で使う前提の幅・余白を持つため、
+	   ダイアログの中でも横幅いっぱいに広がるようにする(親側の追加のmax-width指定は
+	   不要。カード自体のCSSがwidth:100%相当で伸びる)。 */
+	.bulk-adjust-row-preview { width: 100%; min-width: 0; }
+	.bulk-adjust-row-preview .card-damage { width: 100%; }
+
+	.bulk-adjust-row-inputs {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: var(--space-2) var(--space-3);
+		font-size: var(--font-size-sm);
+	}
+	.bulk-adjust-row-inputs label {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.3em;
+		font-size: inherit;
+		white-space: nowrap;
+	}
+	/* ⚠️ 実装時に踏んだ罠: type="number"はネイティブの増減スピナーぶんの横幅を内側に
+	   確保する。width: 4.2emだと既定値100(M入力欄)の3桁目がスピナーの下に隠れて
+	   見えなくなる(値自体は"100"のままでDOM上は正しいが、視覚的に"10"に見えて
+	   誤読を招く。Playwrightのinputvalue()と実際の見た目を突き合わせて発覚)。
+	   3桁+スピナーが確実に収まる幅へ広げる。 */
+	.bulk-adjust-n-input {
+		width: 3.6em;
+		text-align: right;
+	}
+	.bulk-adjust-m-input {
+		width: 4.6em;
+		text-align: right;
+	}
+
+	/* 480px未満(狭幅端末)では入力欄のwhite-space:nowrapのせいで折り返し先が無く
+	   1文字ずつ縦に潰れる事故(このリポジトリで実例あり)を避けるため、行自体を
+	   折り返し可能にする(上のflex-wrap:wrapは既に効くが、labelの内部は
+	   white-space:nowrapのままにして「◯発を」がラベル内で分断されないようにする)。
+	   ⚠️ @media は基本定義より後ろに書くこと(このリポジトリで2件実例のある罠)。 */
+	@media (max-width: 480px) {
+		.bulk-adjust-dialog { width: 96vw; }
+	}
+
+	/* ⚠️ 実装時に踏んだ罠(狭幅・Playwright実機検証で発覚、z-indexでの対策は不発だった):
+	   1739px以下では#bulk-adjust-button(box/[id].astro側)がposition:staticの通常
+	   フローに戻り、トップバーの操作ボタン列(.app-topbar-actions)の一員になる。この列は
+	   ボタン数が多く、390px等の極端な狭幅ではflex-wrapで折り返して2行以上になることがあり、
+	   実際の折り返し後の高さが--topbar-height(global.cssの固定実測値)を超えるケースがある。
+	   当初このボタンにz-index(backdropの70より大きい値)を与えて前面に出そうとしたが、
+	   祖先の.app-topbar自身がposition:sticky+z-index:20(global.css)で独自のスタッキング
+	   コンテキストを作っているため、子であるこのボタンのz-indexは.app-topbarの外の要素
+	   (このdialogのbackdrop、z-index:70)とは比較されず無効だった(実機のelementFromPointで
+	   確認: z-index:72を与えてもbackdropが依然として最前面だった)。そのため、backdrop側の
+	   top位置をCSSの固定値ではなく、実際のトップバー高さをJSで測って動的に設定する方式に
+	   変更した(src/lib/box-id/bulk-adjust.tsのopenDialog()参照)。ここではbackdropの
+	   基本の位置(top:var(--topbar-height))だけを残し、実測値による上書きはJS側に委ねる。 */
+</style>

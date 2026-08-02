@@ -40,6 +40,11 @@ import {
 	DAMAGE_DEFENDER_VOLATILES,
 	clampInt,
 } from "./damage-calc";
+// UI改修依頼(個体編集画面、2026-08-02)「耐久調整」機能。結果一覧の描画にだけ使う型
+// (bulk-adjust.ts側が呼ぶsolveDurability()の戻り値・候補の型)。src/lib/box-id/bulk-adjust.ts
+// から直接この関数を呼ぶのではなく、右パネル側の描画をこのファイルに閉じ込める
+// (renderBulkAdjustResults、下方参照)ためにここでimportする。
+import type { SolveResult, DurabilityCandidate } from "./bulk-adjust-solver";
 
 // --- 詳細設定サイドバー(ラウンド5ユーザー指示・要件9) ---
 // ⚙クリックで<dialog>を開く方式をやめ、カードを選択すると右サイドバー
@@ -97,11 +102,111 @@ export function closeDetailPanelOverlay(): void {
 // にも同じ文言が存在するが、RightPanel.astroはこのラウンドの編集対象ファイル一覧に
 // 含まれていない(担当外ファイル)ため、このファイル(JS生成側)だけを直す。
 // 静的マークアップ側の削除は別途担当者が行う必要がある(報告に明記)。
+// UI改修依頼(個体編集画面、2026-08-02)「耐久調整」機能。結果一覧(renderBulkAdjustResults、
+// 下方参照)は選択中の技列(selectedRow/selectedColumn、shared-core.ts)とは独立した
+// 「別のビュー」として右パネルに表示する。selectedRow/selectedColumnが両方nullのとき
+// (未選択・行削除時のclearSelectionAndMarks等)は必ずrenderDetailPanelEmpty()が呼ばれる
+// (shared-core.tsのrenderDetailPanel参照、このファイルは編集対象外)ため、「技列を何も
+// 選択していない間は結果一覧を出し続け、技列を選択した瞬間だけ通常の詳細設定に戻る」という
+// 要件を満たすには、renderDetailPanelEmpty()自身に「結果一覧を表示中かどうか」を持たせて
+// 分岐させるしかない(renderDetailPanelを直接書き換えることはできないため)。
+// 技列を選択したとき(renderColumnLevelDetailPanel、下方)はこの状態を明示的にクリアする
+// ため、一度でも技カードを選択すればこの「居座り」は解消される。
+let bulkAdjustResultsState: {
+	result: SolveResult;
+	onSelectCandidate: (candidate: DurabilityCandidate) => void;
+} | null = null;
+
 export function renderDetailPanelEmpty(): void {
+	if (bulkAdjustResultsState) {
+		renderBulkAdjustResultsBody();
+		return;
+	}
 	detailPanelBodyEl.innerHTML = "";
 	const inner = document.createElement("div");
 	inner.className = "damage-detail-panel-body-inner";
 	detailPanelBodyEl.appendChild(inner);
+}
+
+// 耐久調整ポップアップの計算結果(bulk-adjust.tsのsolveDurability()の戻り値)を右パネルに
+// 表示する。候補(性格・努力値H/B/D・合計努力値・実数値)を一覧化し、クリックされたら
+// onSelectCandidateを呼ぶ(実際の左パネルへの反映はbulk-adjust.ts側が行う。このファイルは
+// 表示だけを担当する)。
+export function renderBulkAdjustResults(
+	result: SolveResult,
+	onSelectCandidate: (candidate: DurabilityCandidate) => void,
+): void {
+	bulkAdjustResultsState = { result, onSelectCandidate };
+	renderBulkAdjustResultsBody();
+}
+
+function renderBulkAdjustResultsBody(): void {
+	if (!bulkAdjustResultsState) return;
+	const { result, onSelectCandidate } = bulkAdjustResultsState;
+	detailPanelBodyEl.innerHTML = "";
+	const inner = document.createElement("div");
+	inner.className = "damage-detail-panel-body-inner bulk-adjust-results";
+	detailPanelBodyEl.appendChild(inner);
+
+	const heading = document.createElement("p");
+	heading.className = "bulk-adjust-results-heading";
+	heading.textContent = "耐久調整の結果";
+	inner.appendChild(heading);
+
+	if (result.truncated) {
+		const note = document.createElement("p");
+		note.className = "bulk-adjust-results-truncated-note";
+		note.textContent = `候補が多いため ${result.candidates.length} 件で打ち切りました。`;
+		inner.appendChild(note);
+	}
+
+	if (result.infeasible || result.candidates.length === 0) {
+		const msg = document.createElement("p");
+		msg.className = "bulk-adjust-results-empty-message";
+		msg.textContent = "条件を満たす組み合わせがありません。";
+		inner.appendChild(msg);
+		return;
+	}
+
+	// 要件: 合計努力値の少ない順(solveDurability()側がsearchedEvTotal昇順で返す契約なので、
+	// このファイルでの並び替えは不要)。
+	const list = document.createElement("ul");
+	list.className = "bulk-adjust-results-list";
+	for (const candidate of result.candidates) {
+		const item = document.createElement("li");
+		const button = document.createElement("button");
+		button.type = "button";
+		button.className = "bulk-adjust-result-item";
+		if (candidate.exceedsChampionsCap) button.classList.add("is-over-cap");
+
+		const natureEl = document.createElement("span");
+		natureEl.className = "bulk-adjust-result-nature";
+		natureEl.textContent = candidate.nature;
+		button.appendChild(natureEl);
+
+		const evsEl = document.createElement("span");
+		evsEl.className = "bulk-adjust-result-evs tnum";
+		evsEl.textContent = `努力値 H${candidate.evs.hp} B${candidate.evs.def} D${candidate.evs.spd}(合計${candidate.totalEv})`;
+		button.appendChild(evsEl);
+
+		const statsEl = document.createElement("span");
+		statsEl.className = "bulk-adjust-result-stats tnum";
+		statsEl.textContent = `実数値 H${candidate.realStats.hp} B${candidate.realStats.def} D${candidate.realStats.spd}`;
+		button.appendChild(statsEl);
+
+		if (candidate.exceedsChampionsCap) {
+			// 色だけで意味を伝えない(WCAG 1.4.1): 記号+テキストを併記する。
+			const warnEl = document.createElement("span");
+			warnEl.className = "bulk-adjust-result-cap-warning";
+			warnEl.textContent = "⚠ 努力値上限(66)を超過";
+			button.appendChild(warnEl);
+		}
+
+		button.addEventListener("click", () => onSelectCandidate(candidate));
+		item.appendChild(button);
+		list.appendChild(item);
+	}
+	inner.appendChild(list);
 }
 
 // ラウンド5ユーザー指示(要件10): 天候・フィールドはセレクトをやめてアイコン選択式にする。
@@ -588,6 +693,11 @@ export function buildSideSection(
 // 状態異常・テラスタル発動と合わせて全項目をこのcolumn(技カード)1枚だけに
 // 書き込む(行内の他の技列には一切波及させない)。
 export function renderColumnLevelDetailPanel(row: DamageRowState, column: DamageColumnState): void {
+	// UI改修依頼(個体編集画面、2026-08-02)「耐久調整」機能。技列を選択した以上、右パネルは
+	// 通常の詳細設定に戻る(要件)。renderDetailPanelEmpty()がbulkAdjustResultsStateを
+	// 見て結果一覧を出し続ける「居座り」仕様(上記コメント参照)を、技列選択のタイミングで
+	// 確実に解除する。以後、選択解除しても(clearSelectionAndMarks等)真の空状態に戻る。
+	bulkAdjustResultsState = null;
 	detailPanelBodyEl.innerHTML = "";
 	const idx = row.attacks.indexOf(column);
 	if (idx === -1) {

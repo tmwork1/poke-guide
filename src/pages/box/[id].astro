@@ -16,6 +16,7 @@ import AppLayout from '../../layouts/AppLayout.astro';
 import LeftPanel from '../../components/box-id/LeftPanel.astro';
 import DamageCalcSection from '../../components/box-id/DamageCalcSection.astro';
 import RightPanel from '../../components/box-id/RightPanel.astro';
+import BulkAdjustDialog from '../../components/box-id/BulkAdjustDialog.astro';
 import { getSupabaseAdminClient } from '../../lib/supabase';
 import { getOwnedPokemon, type OwnedPokemonRecord } from '../../lib/owned-pokemon';
 
@@ -571,6 +572,12 @@ const isOptedOut = optOutRemainingText !== "";
 			    このコンポーネント自身が描画する)。 */}
 			<RightPanel />
 			</div>
+
+			{/* UI改修依頼(個体編集画面、2026-08-02)「耐久調整」機能のポップアップ本体。
+			    トップバーの#bulk-adjust-button(上のFragment slot="topbar-actions"参照)から
+			    開く。マークアップ・スタイルはBulkAdjustDialog.astro、ロジックは
+			    src/lib/box-id/bulk-adjust.tsに実装済み(このページ側はimportと配置のみ)。 */}
+			<BulkAdjustDialog />
 			</>
 		)
 	}

@@ -199,3 +199,65 @@
 		.damage-detail-panel-header { display: none; }
 	}
 </style>
+
+<style is:global>
+	/* UI改修依頼(個体編集画面、2026-08-02)「耐久調整」機能。結果一覧
+	   (src/lib/box-id/right-panel.ts の renderBulkAdjustResults が生成)は
+	   document.createElement()による動的生成のため、Astroのscoped<style>は効かない
+	   (pitfalls.md「JSで生成した要素に効かない」)。#damage-detail-panel-body接頭辞の
+	   グローバルセレクタとして、既存の詳細設定UI(このファイル上部の
+	   #damage-detail-panel-body .damage-detail-*、DamageCalcSection.astro側)と同じ流儀で
+	   定義する。新しい色・角丸トークンは作らず、既存のCSS変数のみを使う。 */
+	#damage-detail-panel-body .bulk-adjust-results-heading {
+		margin: 0 0 var(--space-3);
+		font-weight: 700;
+	}
+	#damage-detail-panel-body .bulk-adjust-results-empty-message {
+		margin: 0;
+		color: var(--color-text-muted);
+	}
+	#damage-detail-panel-body .bulk-adjust-results-truncated-note {
+		margin: 0 0 var(--space-3);
+		padding: var(--space-2) var(--space-3);
+		border-radius: var(--radius-sm);
+		background: var(--color-risky-soft);
+		color: var(--color-risky-strong);
+		font-size: var(--font-size-sm);
+	}
+	#damage-detail-panel-body .bulk-adjust-results-list {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-2);
+	}
+	#damage-detail-panel-body .bulk-adjust-result-item {
+		width: 100%;
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 0.2em;
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-md);
+		padding: var(--space-2) var(--space-3);
+		background: var(--color-surface-alt);
+		text-align: left;
+		cursor: pointer;
+		font-size: var(--font-size-sm);
+	}
+	#damage-detail-panel-body .bulk-adjust-result-item:hover,
+	#damage-detail-panel-body .bulk-adjust-result-item:focus-visible {
+		border-color: var(--color-primary);
+	}
+	#damage-detail-panel-body .bulk-adjust-result-item.is-over-cap {
+		border-color: var(--color-risky);
+	}
+	#damage-detail-panel-body .bulk-adjust-result-nature {
+		font-weight: 700;
+	}
+	#damage-detail-panel-body .bulk-adjust-result-cap-warning {
+		color: var(--color-risky-strong);
+		font-weight: 700;
+	}
+</style>
