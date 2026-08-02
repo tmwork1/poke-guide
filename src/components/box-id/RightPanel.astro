@@ -201,22 +201,34 @@
 </style>
 
 <style is:global>
-	/* UI改修依頼(個体編集画面、2026-08-02)「耐久調整」機能。結果一覧
-	   (src/lib/box-id/right-panel.ts の renderBulkAdjustResults が生成)は
+	/* UI改修依頼(個体編集画面、2026-08-02、候補一覧の共通化)。右パネルの3用途
+	   (A:技カード選択時の詳細設定/B:耐久調整の候補一覧/C:耐久指数の候補一覧、次ラウンド)の
+	   うちB・Cは「候補ボタンの縦リスト、クリックで左パネルに適用」という同一の
+	   インタラクションのため、src/lib/box-id/right-panel.ts の renderCandidateList()
+	   1つで両方を描画する(以前はbulk-adjust-results-*というB専用クラス名だったが、
+	   C追加にあたり candidate-list-* という機能非依存の名前に統一した。Cが固有の
+	   「指数」表示を必要とする場合も、このクラス構成のitem/segmentへ渡すデータを
+	   変えるだけで済み、CSSの2系統目を複製する必要はない)。
 	   document.createElement()による動的生成のため、Astroのscoped<style>は効かない
 	   (pitfalls.md「JSで生成した要素に効かない」)。#damage-detail-panel-body接頭辞の
 	   グローバルセレクタとして、既存の詳細設定UI(このファイル上部の
 	   #damage-detail-panel-body .damage-detail-*、DamageCalcSection.astro側)と同じ流儀で
 	   定義する。新しい色・角丸トークンは作らず、既存のCSS変数のみを使う。 */
-	#damage-detail-panel-body .bulk-adjust-results-heading {
-		margin: 0 0 var(--space-3);
+	#damage-detail-panel-body .candidate-list-heading {
+		margin: 0 0 var(--space-1);
 		font-weight: 700;
 	}
-	#damage-detail-panel-body .bulk-adjust-results-empty-message {
+	#damage-detail-panel-body .candidate-list-context,
+	#damage-detail-panel-body .candidate-list-note {
+		margin: 0 0 var(--space-3);
+		color: var(--color-text-muted);
+		font-size: var(--font-size-xs);
+	}
+	#damage-detail-panel-body .candidate-list-empty-message {
 		margin: 0;
 		color: var(--color-text-muted);
 	}
-	#damage-detail-panel-body .bulk-adjust-results-truncated-note {
+	#damage-detail-panel-body .candidate-list-truncated-note {
 		margin: 0 0 var(--space-3);
 		padding: var(--space-2) var(--space-3);
 		border-radius: var(--radius-sm);
@@ -224,7 +236,7 @@
 		color: var(--color-risky-strong);
 		font-size: var(--font-size-sm);
 	}
-	#damage-detail-panel-body .bulk-adjust-results-list {
+	#damage-detail-panel-body .candidate-list {
 		list-style: none;
 		margin: 0;
 		padding: 0;
@@ -232,7 +244,7 @@
 		flex-direction: column;
 		gap: var(--space-2);
 	}
-	#damage-detail-panel-body .bulk-adjust-result-item {
+	#damage-detail-panel-body .candidate-list-item {
 		width: 100%;
 		display: flex;
 		flex-direction: column;
@@ -246,18 +258,48 @@
 		cursor: pointer;
 		font-size: var(--font-size-sm);
 	}
-	#damage-detail-panel-body .bulk-adjust-result-item:hover,
-	#damage-detail-panel-body .bulk-adjust-result-item:focus-visible {
+	#damage-detail-panel-body .candidate-list-item:hover,
+	#damage-detail-panel-body .candidate-list-item:focus-visible {
 		border-color: var(--color-primary);
 	}
-	#damage-detail-panel-body .bulk-adjust-result-item.is-over-cap {
+	/* いま左パネルに適用されている候補の強調(依頼: isApplied)。枠色+背景の変更に加え、
+	   下の.candidate-list-item-applied-badge(✓ 適用中というテキスト)を必ず併記する
+	   (WCAG 1.4.1、色だけで意味を伝えない)。 */
+	#damage-detail-panel-body .candidate-list-item.is-applied {
+		border-color: var(--color-primary);
+		border-width: 2px;
+		padding: calc(var(--space-2) - 1px) calc(var(--space-3) - 1px);
+		background: var(--color-primary-soft);
+	}
+	#damage-detail-panel-body .candidate-list-item-applied-badge {
+		color: var(--color-primary-strong);
+		font-weight: 700;
+		font-size: var(--font-size-xs);
+	}
+	#damage-detail-panel-body .candidate-list-item-segment {
+		display: flex;
+		align-items: baseline;
+		gap: 0.4em;
+	}
+	#damage-detail-panel-body .candidate-list-item-segment-label {
+		color: var(--color-text-muted);
+		font-size: var(--font-size-xs);
+		flex-shrink: 0;
+	}
+	#damage-detail-panel-body .candidate-list-item-segment.is-emphasis .candidate-list-item-segment-value {
+		font-weight: 700;
+	}
+	#damage-detail-panel-body .candidate-list-item.has-warn-flag {
 		border-color: var(--color-risky);
 	}
-	#damage-detail-panel-body .bulk-adjust-result-nature {
+	#damage-detail-panel-body .candidate-list-item-flag {
 		font-weight: 700;
 	}
-	#damage-detail-panel-body .bulk-adjust-result-cap-warning {
+	#damage-detail-panel-body .candidate-list-item-flag.is-warn {
 		color: var(--color-risky-strong);
-		font-weight: 700;
+	}
+	#damage-detail-panel-body .candidate-list-item-flag.is-info {
+		color: var(--color-text-muted);
+		font-weight: 400;
 	}
 </style>

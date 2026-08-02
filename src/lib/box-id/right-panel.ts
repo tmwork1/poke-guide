@@ -19,7 +19,7 @@
 // このファイルは damage-calc.ts の #opponent-notes-section ガード内から
 // `initRightPanel()` を1回呼ばれることで初期化される(#damage-detail-panel 等は
 // #opponent-notes-section と常に同時にSSR描画されるため、ガードの共有は安全)。
-import { el } from "../owned-pokemon-form";
+import { el, readEv } from "../owned-pokemon-form";
 import { officialArtworkUrl } from "../pokemon-master-data";
 import {
 	applySprite,
@@ -29,6 +29,7 @@ import {
 	getSelectedRow,
 	clearSelection,
 	renderDetailPanel,
+	natureNameFromBoosts,
 	type DamageRowState,
 	type DamageColumnState,
 } from "./shared-core";
@@ -40,6 +41,13 @@ import {
 	DAMAGE_DEFENDER_VOLATILES,
 	clampInt,
 } from "./damage-calc";
+// UI改修依頼(個体編集画面、2026-08-02、候補一覧の共通化)。耐久調整(renderBulkAdjustResults)・
+// 耐久指数(次ラウンド、別エージェント実装予定)の両方で「いまどの候補が適用中か」
+// (isApplied)を判定するため、左パネルの性格ボタン(#nature-up-{key}/#nature-down-{key})の
+// 押下状態から性格名を逆算する共通ロジックが要る。bulk-adjust.tsにも同種のロジック
+// (currentPressedNatureKey)があるが、あちらは編集禁止ファイルのため関数を共有できず、
+// 同じ考え方(natureNameFromBoosts、shared-core.ts)をこちらでも使う形で独立して持つ。
+import { STAT_KEYS, type StatKey } from "../stats";
 // UI改修依頼(個体編集画面、2026-08-02)「耐久調整」機能。結果一覧の描画にだけ使う型
 // (bulk-adjust.ts側が呼ぶsolveDurability()の戻り値・候補の型)。src/lib/box-id/bulk-adjust.ts
 // から直接この関数を呼ぶのではなく、右パネル側の描画をこのファイルに閉じ込める
@@ -102,24 +110,150 @@ export function closeDetailPanelOverlay(): void {
 // にも同じ文言が存在するが、RightPanel.astroはこのラウンドの編集対象ファイル一覧に
 // 含まれていない(担当外ファイル)ため、このファイル(JS生成側)だけを直す。
 // 静的マークアップ側の削除は別途担当者が行う必要がある(報告に明記)。
-// UI改修依頼(個体編集画面、2026-08-02)「耐久調整」機能。結果一覧(renderBulkAdjustResults、
-// 下方参照)は選択中の技列(selectedRow/selectedColumn、shared-core.ts)とは独立した
-// 「別のビュー」として右パネルに表示する。selectedRow/selectedColumnが両方nullのとき
-// (未選択・行削除時のclearSelectionAndMarks等)は必ずrenderDetailPanelEmpty()が呼ばれる
-// (shared-core.tsのrenderDetailPanel参照、このファイルは編集対象外)ため、「技列を何も
-// 選択していない間は結果一覧を出し続け、技列を選択した瞬間だけ通常の詳細設定に戻る」という
-// 要件を満たすには、renderDetailPanelEmpty()自身に「結果一覧を表示中かどうか」を持たせて
-// 分岐させるしかない(renderDetailPanelを直接書き換えることはできないため)。
-// 技列を選択したとき(renderColumnLevelDetailPanel、下方)はこの状態を明示的にクリアする
-// ため、一度でも技カードを選択すればこの「居座り」は解消される。
-let bulkAdjustResultsState: {
-	result: SolveResult;
-	onSelectCandidate: (candidate: DurabilityCandidate) => void;
-} | null = null;
+// UI改修依頼(個体編集画面、2026-08-02、設計アドバイザーの推奨に沿った右パネル整理)。
+// 右パネルは (A)技カード選択時の詳細設定 (B)耐久調整の候補一覧
+// (renderBulkAdjustResults、下方) (C)耐久指数の候補一覧(次ラウンド、別エージェント
+// 実装予定)の3用途で取り合いになる。(B)(C)は「候補ボタンの縦リスト、クリックで
+// 左パネルに適用」という同一のインタラクションで、違うのはデータと見出しだけのため、
+// 機能ごとに分岐させず汎用レンダラ(renderCandidateList)1つにパラメータで渡す形にする。
+export interface CandidateListItem {
+	/** 1行に表示するセグメント(例: 性格名 / 努力値 / 実数値 / 指数)。 */
+	segments: { label: string; value: string; emphasis?: boolean }[];
+	/** ⚠マーク等の注記(例: 努力値上限66の超過、変更前の配分)。 */
+	flags?: { icon: string; text: string; kind?: "warn" | "info" }[];
+	/** 現在適用されている候補か(強調表示する)。 */
+	isApplied?: boolean;
+	/** クリックしたときの適用処理。 */
+	onSelect: () => void;
+}
+export interface CandidateListView {
+	heading: string;
+	/** 並び順の意味を明示する補足(例:「合計努力値の少ない順」「耐久指数の大きい順」)。 */
+	note?: string;
+	/** 計算の前提(対象カード名・技・条件など)。一覧が陳腐化しても読み取れるように。 */
+	context?: string;
+	items: CandidateListItem[];
+	/** 打ち切った件数など。黙って切り捨てないための表示。 */
+	truncatedNote?: string;
+	/** 候補が0件のときの文言。 */
+	emptyMessage?: string;
+}
+
+// (B)(C)共通の候補一覧レンダラ。detailPanelBodyElへ直接描画するだけの「dumb」な関数で、
+// 「選択中(A) > 最後の候補一覧 > 空」というフォールバック優先順位の管理
+// (下のlastCandidateListRedraw)はこの関数の外側(renderBulkAdjustResults等の呼び出し元)が
+// 担う。isApplied等の状態は呼び出しのたびに呼び出し元が計算し直して渡す前提
+// (このファイル自身は「何が適用中か」の判定方法を知らない。renderBulkAdjustResultsの
+// currentAppliedNatureAndEvs参照)。
+export function renderCandidateList(view: CandidateListView): void {
+	detailPanelBodyEl.innerHTML = "";
+	const inner = document.createElement("div");
+	inner.className = "damage-detail-panel-body-inner candidate-list-view";
+	detailPanelBodyEl.appendChild(inner);
+
+	const heading = document.createElement("p");
+	heading.className = "candidate-list-heading";
+	heading.textContent = view.heading;
+	inner.appendChild(heading);
+
+	if (view.context) {
+		const contextEl = document.createElement("p");
+		contextEl.className = "candidate-list-context";
+		contextEl.textContent = view.context;
+		inner.appendChild(contextEl);
+	}
+	if (view.note) {
+		const noteEl = document.createElement("p");
+		noteEl.className = "candidate-list-note";
+		noteEl.textContent = view.note;
+		inner.appendChild(noteEl);
+	}
+	if (view.truncatedNote) {
+		const truncatedEl = document.createElement("p");
+		truncatedEl.className = "candidate-list-truncated-note";
+		truncatedEl.textContent = view.truncatedNote;
+		inner.appendChild(truncatedEl);
+	}
+
+	if (view.items.length === 0) {
+		const emptyEl = document.createElement("p");
+		emptyEl.className = "candidate-list-empty-message";
+		emptyEl.textContent = view.emptyMessage ?? "該当する候補がありません。";
+		inner.appendChild(emptyEl);
+		return;
+	}
+
+	const list = document.createElement("ul");
+	list.className = "candidate-list";
+	for (const item of view.items) {
+		const li = document.createElement("li");
+		const button = document.createElement("button");
+		button.type = "button";
+		button.className = "candidate-list-item";
+		if (item.isApplied) button.classList.add("is-applied");
+		// warn種別のflagを持つ候補(例: 努力値上限超過)は枠色でも軽く目立たせる
+		// (テキスト自体はflagsのループでbutton内に必ず出すため、色は補助的な位置づけ。
+		// WCAG 1.4.1: 色だけに依存しない情報はflagsのテキストが担う)。
+		if (item.flags?.some((flag) => flag.kind === "warn")) button.classList.add("has-warn-flag");
+
+		if (item.isApplied) {
+			// 色だけで意味を伝えない(WCAG 1.4.1): 強調枠だけでなく記号+テキストを併記する。
+			const appliedBadge = document.createElement("span");
+			appliedBadge.className = "candidate-list-item-applied-badge";
+			appliedBadge.textContent = "✓ 適用中";
+			button.appendChild(appliedBadge);
+		}
+
+		for (const segment of item.segments) {
+			const segEl = document.createElement("span");
+			segEl.className = "candidate-list-item-segment tnum";
+			if (segment.emphasis) segEl.classList.add("is-emphasis");
+			const labelEl = document.createElement("span");
+			labelEl.className = "candidate-list-item-segment-label";
+			labelEl.textContent = segment.label;
+			const valueEl = document.createElement("span");
+			valueEl.className = "candidate-list-item-segment-value";
+			valueEl.textContent = segment.value;
+			segEl.append(labelEl, valueEl);
+			button.appendChild(segEl);
+		}
+
+		for (const flag of item.flags ?? []) {
+			const flagEl = document.createElement("span");
+			flagEl.className = "candidate-list-item-flag";
+			if (flag.kind) flagEl.classList.add(`is-${flag.kind}`);
+			flagEl.textContent = `${flag.icon} ${flag.text}`;
+			button.appendChild(flagEl);
+		}
+
+		button.addEventListener("click", item.onSelect);
+		li.appendChild(button);
+		list.appendChild(li);
+	}
+	inner.appendChild(list);
+}
+
+// 「選択中(A) > 最後の候補一覧(B・Cで共用、後から計算した方が勝つ) > 空」という
+// フォールバック優先順位(コーディネーターへの報告事項: 従来はrenderColumnLevelDetailPanel
+// (技カード選択時)がこの状態をnullにして破棄していたため、候補一覧を出した後に技カードを
+// 1回クリックしただけで一覧が失われ二度と戻せなくなる不具合があった)。selectedRow/
+// selectedColumnが両方nullのとき(未選択・行削除時のclearSelectionAndMarks等)は必ず
+// renderDetailPanelEmpty()が呼ばれる(shared-core.tsのrenderDetailPanel参照、このファイルは
+// 編集対象外)ため、「技列を何も選択していない間は最後の候補一覧を出し続け、技列を選択した
+// 瞬間だけ(A)に切り替わる」という要件を満たすには、renderDetailPanelEmpty()自身に「候補一覧を
+// 表示中かどうか」を持たせて分岐させるしかない(renderDetailPanelを直接書き換えることは
+// できないため)。
+// 🔴 保持スロットは1つだけにする(B/C個別に持つと「どちらに戻るか」問題が発生するため、
+// 依頼どおり単純な上書き=後勝ちにする)。値は「候補一覧を再描画するための関数」そのもの
+// (静的なCandidateListViewの代わりにクロージャ)にすることで、候補クリックで左パネルの
+// 値が変わった後にこの一覧へ戻ってきても、isApplied(いま適用中の候補はどれか)を
+// 再計算してから表示できるようにする(静的なViewを保存すると、保存した時点のisAppliedの
+// まま固まってしまう)。
+let lastCandidateListRedraw: (() => void) | null = null;
 
 export function renderDetailPanelEmpty(): void {
-	if (bulkAdjustResultsState) {
-		renderBulkAdjustResultsBody();
+	if (lastCandidateListRedraw) {
+		lastCandidateListRedraw();
 		return;
 	}
 	detailPanelBodyEl.innerHTML = "";
@@ -128,85 +262,103 @@ export function renderDetailPanelEmpty(): void {
 	detailPanelBodyEl.appendChild(inner);
 }
 
+// 現在左パネルに入っている性格・H/B/D努力値を読み直す(候補一覧のisApplied判定用)。
+// bulk-adjust.ts側にも同種のロジック(currentPressedNatureKey、性格ボタンのaria-pressedから
+// 性格名を逆算する)があるが、あちらは編集禁止ファイルのため関数を共有できず、同じ考え方
+// (natureNameFromBoosts、shared-core.ts)をここでも独立して使う(性格ボタンのid規約
+// #nature-up-{key}/#nature-down-{key} はラウンド24以降変更されていない共通の前提)。
+function currentAppliedNatureKey(direction: "up" | "down"): StatKey | null {
+	for (const key of STAT_KEYS) {
+		if (key === "hp") continue;
+		const btn = document.getElementById(`nature-${direction}-${key}`);
+		if (btn?.getAttribute("aria-pressed") === "true") return key;
+	}
+	return null;
+}
+function currentAppliedNatureAndEvs(): { nature: string; hp: number; def: number; spd: number } {
+	return {
+		nature: natureNameFromBoosts(currentAppliedNatureKey("up"), currentAppliedNatureKey("down")),
+		hp: readEv("hp"),
+		def: readEv("def"),
+		spd: readEv("spd"),
+	};
+}
+
 // 耐久調整ポップアップの計算結果(bulk-adjust.tsのsolveDurability()の戻り値)を右パネルに
 // 表示する。候補(性格・努力値H/B/D・合計努力値・実数値)を一覧化し、クリックされたら
 // onSelectCandidateを呼ぶ(実際の左パネルへの反映はbulk-adjust.ts側が行う。このファイルは
 // 表示だけを担当する)。
+// ⚠️ bulk-adjust.tsからの呼び出しシグネチャ(引数の型・個数)は変更していない
+// (bulk-adjust.tsは編集禁止ファイルのため、変えると向こう側の呼び出しが壊れる)。内部実装だけ
+// renderCandidateList()を呼ぶ薄いラッパーに置き換えた(共通ビュー化、上記コメント参照)。
 export function renderBulkAdjustResults(
 	result: SolveResult,
 	onSelectCandidate: (candidate: DurabilityCandidate) => void,
 ): void {
-	bulkAdjustResultsState = { result, onSelectCandidate };
-	renderBulkAdjustResultsBody();
+	// 候補クリック直後に再描画してisApplied(適用中マーク)を更新できるよう、redraw自身を
+	// クロージャの中で自己参照する(lastCandidateListRedrawに登録する値と、
+	// クリックハンドラから呼ぶ値が同じ関数になる)。
+	const redraw = (): void => {
+		lastCandidateListRedraw = redraw;
+		renderCandidateList(buildBulkAdjustCandidateListView(result, onSelectCandidate, redraw));
+	};
+	redraw();
 }
 
-function renderBulkAdjustResultsBody(): void {
-	if (!bulkAdjustResultsState) return;
-	const { result, onSelectCandidate } = bulkAdjustResultsState;
-	detailPanelBodyEl.innerHTML = "";
-	const inner = document.createElement("div");
-	inner.className = "damage-detail-panel-body-inner bulk-adjust-results";
-	detailPanelBodyEl.appendChild(inner);
-
-	const heading = document.createElement("p");
-	heading.className = "bulk-adjust-results-heading";
-	heading.textContent = "耐久調整の結果";
-	inner.appendChild(heading);
-
-	if (result.truncated) {
-		const note = document.createElement("p");
-		note.className = "bulk-adjust-results-truncated-note";
-		note.textContent = `候補が多いため ${result.candidates.length} 件で打ち切りました。`;
-		inner.appendChild(note);
-	}
-
-	if (result.infeasible || result.candidates.length === 0) {
-		const msg = document.createElement("p");
-		msg.className = "bulk-adjust-results-empty-message";
-		msg.textContent = "条件を満たす組み合わせがありません。";
-		inner.appendChild(msg);
-		return;
-	}
-
+function buildBulkAdjustCandidateListView(
+	result: SolveResult,
+	onSelectCandidate: (candidate: DurabilityCandidate) => void,
+	redraw: () => void,
+): CandidateListView {
+	const infeasible = result.infeasible || result.candidates.length === 0;
+	const applied = currentAppliedNatureAndEvs();
 	// 要件: 合計努力値の少ない順(solveDurability()側がsearchedEvTotal昇順で返す契約なので、
-	// このファイルでの並び替えは不要)。
-	const list = document.createElement("ul");
-	list.className = "bulk-adjust-results-list";
-	for (const candidate of result.candidates) {
-		const item = document.createElement("li");
-		const button = document.createElement("button");
-		button.type = "button";
-		button.className = "bulk-adjust-result-item";
-		if (candidate.exceedsChampionsCap) button.classList.add("is-over-cap");
-
-		const natureEl = document.createElement("span");
-		natureEl.className = "bulk-adjust-result-nature";
-		natureEl.textContent = candidate.nature;
-		button.appendChild(natureEl);
-
-		const evsEl = document.createElement("span");
-		evsEl.className = "bulk-adjust-result-evs tnum";
-		evsEl.textContent = `努力値 H${candidate.evs.hp} B${candidate.evs.def} D${candidate.evs.spd}(合計${candidate.totalEv})`;
-		button.appendChild(evsEl);
-
-		const statsEl = document.createElement("span");
-		statsEl.className = "bulk-adjust-result-stats tnum";
-		statsEl.textContent = `実数値 H${candidate.realStats.hp} B${candidate.realStats.def} D${candidate.realStats.spd}`;
-		button.appendChild(statsEl);
-
-		if (candidate.exceedsChampionsCap) {
-			// 色だけで意味を伝えない(WCAG 1.4.1): 記号+テキストを併記する。
-			const warnEl = document.createElement("span");
-			warnEl.className = "bulk-adjust-result-cap-warning";
-			warnEl.textContent = "⚠ 努力値上限(66)を超過";
-			button.appendChild(warnEl);
-		}
-
-		button.addEventListener("click", () => onSelectCandidate(candidate));
-		item.appendChild(button);
-		list.appendChild(item);
-	}
-	inner.appendChild(list);
+	// このファイルでの並び替えは不要。noteでその意味を可視化する)。
+	const items: CandidateListItem[] = infeasible
+		? []
+		: result.candidates.map((candidate) => {
+			const flags: CandidateListItem["flags"] = [];
+			if (candidate.exceedsChampionsCap) {
+				// 色だけで意味を伝えない(WCAG 1.4.1): 記号+テキストを併記する。
+				flags.push({ icon: "⚠", text: "努力値上限(66)を超過", kind: "warn" });
+			}
+			return {
+				segments: [
+					{ label: "性格", value: candidate.nature, emphasis: true },
+					{
+						label: "努力値",
+						value: `H${candidate.evs.hp} B${candidate.evs.def} D${candidate.evs.spd}(合計${candidate.totalEv})`,
+					},
+					{
+						label: "実数値",
+						value: `H${candidate.realStats.hp} B${candidate.realStats.def} D${candidate.realStats.spd}`,
+					},
+				],
+				flags,
+				isApplied:
+					candidate.nature === applied.nature &&
+					candidate.evs.hp === applied.hp &&
+					candidate.evs.def === applied.def &&
+					candidate.evs.spd === applied.spd,
+				onSelect: () => {
+					onSelectCandidate(candidate);
+					// クリック直後、左パネルの値は同期的に書き換わる(applyEvToLeftPanel/
+					// applyNatureToLeftPanelがinput.valueへの代入→dispatchEventを同期実行する、
+					// bulk-adjust.ts参照)ため、ここで再描画すればisApplied(適用中マーク)が
+					// 直ちに正しい候補へ移る。
+					redraw();
+				},
+			};
+		});
+	return {
+		heading: "耐久調整の結果",
+		note: "合計努力値の少ない順",
+		items,
+		truncatedNote: result.truncated
+			? `候補が多いため ${result.candidates.length} 件で打ち切りました。`
+			: undefined,
+		emptyMessage: "条件を満たす組み合わせがありません。",
+	};
 }
 
 // ラウンド5ユーザー指示(要件10): 天候・フィールドはセレクトをやめてアイコン選択式にする。
@@ -693,11 +845,14 @@ export function buildSideSection(
 // 状態異常・テラスタル発動と合わせて全項目をこのcolumn(技カード)1枚だけに
 // 書き込む(行内の他の技列には一切波及させない)。
 export function renderColumnLevelDetailPanel(row: DamageRowState, column: DamageColumnState): void {
-	// UI改修依頼(個体編集画面、2026-08-02)「耐久調整」機能。技列を選択した以上、右パネルは
-	// 通常の詳細設定に戻る(要件)。renderDetailPanelEmpty()がbulkAdjustResultsStateを
-	// 見て結果一覧を出し続ける「居座り」仕様(上記コメント参照)を、技列選択のタイミングで
-	// 確実に解除する。以後、選択解除しても(clearSelectionAndMarks等)真の空状態に戻る。
-	bulkAdjustResultsState = null;
+	// UI改修依頼(個体編集画面、2026-08-02、フォールバック優先順位の見直し)。以前はここで
+	// lastCandidateListRedraw(旧bulkAdjustResultsState)をnullにして候補一覧を破棄していたが、
+	// それだと候補一覧を出した後に技カードを1回クリックしただけで一覧が失われ、二度と
+	// 戻せなくなる不具合があった(コーディネーターへの報告事項)。「選択中(A) > 最後の
+	// 候補一覧 > 空」というフォールバック優先順位(lastCandidateListRedrawの定義・
+	// renderDetailPanelEmpty参照)にするため、ここでは候補一覧の状態を破棄しない。表示を
+	// この(A)詳細設定に切り替えるだけで、選択解除(renderDetailPanelEmptyが再度呼ばれた
+	// とき)には保持していた候補一覧に自動的に戻る。
 	detailPanelBodyEl.innerHTML = "";
 	const idx = row.attacks.indexOf(column);
 	if (idx === -1) {
