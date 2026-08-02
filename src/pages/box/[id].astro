@@ -252,6 +252,11 @@ const isOptedOut = optOutRemainingText !== "";
 		   縦に折り返り(実測46×169px)、w900でも3行に折れていた。1行に固定する
 		   (トップバー側の折り返し対策はglobal.css/AppLayout.astro担当の別エージェントの範囲)。 */
 		#delete-button { white-space: nowrap; }
+		/* 🔴 UI改修依頼(個体編集画面、2026-08-02)「右上の削除ボタンを太字にしない」対応。
+		   基底(global.css の button.btn-danger)が font-weight: 700 を持つため、ページscopedの
+		   IDセレクタ(#delete-button、詳細度1,0,0)で上書きする。global.css自体は編集しない
+		   (.btn-danger は/team/[id].astro等でも使う共有クラスのため他画面に波及させない)。 */
+		#delete-button { font-weight: 400; }
 		/* 匿名集計サジェスト機能・第4段階(UI: 収集拒否トグル)。.toggle-switch本体のCSSは
 		   src/components/box-id/LeftPanel.astro の is:global <style> 側に既にあるためここでは
 		   重複定義しない。ここはラベル・状態テキストのレイアウトだけを追加する。

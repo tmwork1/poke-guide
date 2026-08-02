@@ -463,7 +463,12 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 				    既存クラスの再利用。可視テキストは変えていない)。 */}
 				<span class="stat-table-header-real">
 					<span class="stat-table-header-real-label">実数値</span>
-					<span class="stat-speed-chart-link stat-speed-chart-placeholder" aria-hidden="true">調整</span>
+					{/* 🔴 UI改修依頼(個体編集画面、2026-08-02)「S行の"調整"ボタンをアイコンにする」に
+					    伴い、このヘッダー側プレースホルダーもS行(下の.stat-row-real-wrap参照)と
+					    同一のSVGマークアップに揃える。可視テキストが無くなっただけで、幅を一致させて
+					    「実数値」の中心位置をS行の値の中心位置に揃える目的(上のコメント参照)は
+					    変わらないため、アイコンの内容自体は完全に同じものを使う。 */}
+					<span class="stat-speed-chart-link stat-speed-chart-placeholder" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="21" y1="4" x2="14" y2="4"/><line x1="10" y1="4" x2="3" y2="4"/><line x1="21" y1="12" x2="12" y2="12"/><line x1="8" y1="12" x2="3" y2="12"/><line x1="21" y1="20" x2="16" y2="20"/><line x1="12" y1="20" x2="3" y2="20"/><line x1="14" y1="2" x2="14" y2="6"/><line x1="8" y1="10" x2="8" y2="14"/><line x1="16" y1="18" x2="16" y2="22"/></svg></span>
 				</span>
 			</div>
 			{STAT_LABELS.map(({ key, label: statLabel, short: statShort }, i) => (
@@ -557,15 +562,32 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 					    (ラッパーの子として残すだけ)。 */}
 					<span class="stat-row-real-wrap">
 						<span id={`stat-${key}`} class="stat-row-real stat-value tnum">(未計算)</span>
+						{/* 🔴 UI改修依頼(個体編集画面、2026-08-02)「S行の"調整"ボタンのテキストを、
+						    調整つまみ(スライダー/tune)アイコンにする」対応。見た目はアイコンのみに
+						    するが、アクセシビリティのためaria-label/titleはそのまま残す(元々
+						    「すばやさ早見表で調整」という遷移先まで含めた説明的な文言だったため、
+						    要件例の「調整」より情報量が多い。テキストが消える=アクセシブルネームの
+						    唯一の情報源がaria-labelになるため、あえて簡略化せず維持する)。
+						    アイコンは外部アイコンライブラリを使わず、このリポジトリ既存のインライン
+						    SVGの流儀(width/height属性+viewBox 0 0 24 24+stroke=currentColor+
+						    stroke-width 2+round系linecap/linejoin、#delete-button等と同じ書式)に
+						    合わせる。中身はLucideの"sliders-horizontal"相当(スライダー3本、
+						    「調整」の意味が視覚的に伝わる)。アイコン自体はaria-hidden="true"
+						    (装飾用、アクセシブルネームは親のaria-labelが担う)。
+						    プレースホルダー側(下記else節)もまったく同じSVGマークアップにする
+						    ことで、実ボタンとプレースホルダーの内容幅を一致させ、H〜D行を含めた
+						    全行で実数値の中心位置が揃う設計(このwrap自体の既存コメント参照)を
+						    崩さない。当たり判定は.stat-speed-chart-linkのCSS変更(下記)で
+						    28×28pxの正方形ボタンにし、実測で確認する。 */}
 						{key === "spe" ? (
 							<a
 								class="stat-speed-chart-link"
 								href={`/speed-chart?owned=${pokemon.id}`}
 								aria-label="すばやさ早見表で調整"
 								title="すばやさ早見表で調整"
-							>調整</a>
+							><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="21" y1="4" x2="14" y2="4"/><line x1="10" y1="4" x2="3" y2="4"/><line x1="21" y1="12" x2="12" y2="12"/><line x1="8" y1="12" x2="3" y2="12"/><line x1="21" y1="20" x2="16" y2="20"/><line x1="12" y1="20" x2="3" y2="20"/><line x1="14" y1="2" x2="14" y2="6"/><line x1="8" y1="10" x2="8" y2="14"/><line x1="16" y1="18" x2="16" y2="22"/></svg></a>
 						) : (
-							<span class="stat-speed-chart-link stat-speed-chart-placeholder" aria-hidden="true">調整</span>
+							<span class="stat-speed-chart-link stat-speed-chart-placeholder" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="21" y1="4" x2="14" y2="4"/><line x1="10" y1="4" x2="3" y2="4"/><line x1="21" y1="12" x2="12" y2="12"/><line x1="8" y1="12" x2="3" y2="12"/><line x1="21" y1="20" x2="16" y2="20"/><line x1="12" y1="20" x2="3" y2="20"/><line x1="14" y1="2" x2="14" y2="6"/><line x1="8" y1="10" x2="8" y2="14"/><line x1="16" y1="18" x2="16" y2="22"/></svg></span>
 						)}
 					</span>
 				</div>
@@ -615,7 +637,15 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		border-style: solid;
 		background: var(--color-surface);
 	}
-	.stat-value { display: inline-block; margin-top: 0.15em; font-size: 1.15em; font-weight: 700; color: var(--color-text); }
+	/* 🔴 UI改修依頼(個体編集画面、2026-08-02)「実数値のフォントを他の要素とそろえ、主張を
+	   弱める」対応。font-size 1.15em(.stat-row-real側の1.05emに後勝ちで実質上書きされていたが、
+	   font-weightはここでしか指定していない)とfont-weight 700が、種族値(.stat-row-base、
+	   通常の太さ・var(--color-text-muted))や特性/持ち物などの入力欄(font:inherit、通常の太さ)に
+	   比べて強調されすぎていた。font-sizeは他要素と同じ1em、font-weightも通常(400)に下げる。
+	   colorはvar(--color-text)のまま変更しない(pitfalls.md「白くする/濃くする指示を固定色で
+	   実装すると破綻する」を踏まえ、既存のテーマ追従トークンを維持する。data-mod="up"/"down"時の
+	   var(--stat-up)/var(--stat-down)への切り替えも変更していない)。 */
+	.stat-value { display: inline-block; margin-top: 0.15em; font-size: 1em; font-weight: 400; color: var(--color-text); }
 	.stat-value[data-mod="up"] { color: var(--stat-up); }
 	.stat-value[data-mod="down"] { color: var(--stat-down); }
 
@@ -654,6 +684,21 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	   (どちらか一方だけ変更しないこと)。 */
 	.stat-table-header {
 		display: grid;
+		/* 🔴 UI改修依頼(個体編集画面、2026-08-02)「ステータス表のヘッダー行の上下位置を全列で
+		   そろえる」対応。原因はalign-items未指定(grid既定のstretch)で、各セルの中身の組み方が
+		   列ごとに違っていたこと: 1列目(性格)・5列目(実数値)は内部が
+		   display:flex; align-items:centerのラッパーで、ストレッチされたセル内でもflexが
+		   自前でコンテンツを中央に寄せていたのに対し、2〜4列目(種族値/努力値/残りN)は
+		   プレーンな<span>(テキストのみ)で、ブロックとして引き伸ばされたセルの中でも
+		   コンテンツは天面に張り付いたまま(ブロックボックスは自動で垂直中央寄せしない)だった。
+		   実測(Playwright、getBoundingClientRect)で「残りN」(#ev-remaining)のテキストが
+		   他列より上に出ていたのはこれが原因。データ行側(.stat-row、下記参照)は既に
+		   align-items:centerを持っており、ヘッダー行だけこの指定が抜けていた
+		   (2つのgrid-template-columnsは値を必ず揃える運用だったが、align-itemsは対象外だった)。
+		   ヘッダー行にも同じalign-items:centerを足し、全列のセルをrowの高さに対して
+		   中央寄せにする(セル内部がflexかプレーンテキストかに関わらず、セル自体の外枠が
+		   コンテンツぶんの高さに縮んで中央へ来るため、列ごとの実装差による上下ズレが解消する)。 */
+		align-items: center;
 		/* 🔴 UI改修依頼(個体編集左パネル、2026-08-01)「S行の実数値の右に"調整"ボタンを追加する」
 		   対応。5列固定グリッド自体(列を増やさない)は維持したまま、1列目(ラベル)と5列目
 		   (実数値)の配分だけ組み替える。
@@ -850,7 +895,12 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	       維持したまま見た目の間隔だけを詰める。詰めた分は1列目の列幅
 	       (grid-template-columns 4.4rem→4.1rem、上の.stat-table-headerコメント参照)に反映し、
 	       スライダー列へ回している。 */
-	.stat-row-label { font-weight: 700; white-space: nowrap; display: flex; align-items: center; justify-content: center; gap: 0.1em; line-height: 1; }
+	/* 🔴 UI改修依頼(個体編集画面、2026-08-02)「H/A/B/C/D/Sラベルのフォントを他の要素と
+	   そろえる」対応。font-weight: 700(太字)が、隣接する種族値(.stat-row-base、通常の太さ)や
+	   ヘッダーの見出し等に比べて強調されすぎていた。通常の太さ(400)に下げて主張を弱める
+	   (colorは.stat-row-label-short[data-mod]のvar(--stat-up)/var(--stat-down)による
+	   性格補正の色分けをそのまま使うため変更しない)。 */
+	.stat-row-label { font-weight: 400; white-space: nowrap; display: flex; align-items: center; justify-content: center; gap: 0.1em; line-height: 1; }
 	/* ラウンド21ユーザー指示(21-L7)「A,B,...のラベル色も赤・青に変わるようにする」。
 	   相手ビルドカード側(20-D3)の--stat-up/--stat-down(box/[id].astroの.edit-shellで定義、
 	   DOM継承でこのコンポーネントの要素からも参照できる。ライト4.86-4.94:1・ダーク7.2-7.6:1)を
@@ -1035,7 +1085,12 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	   grid-template-columnsで確保済み(値の最大幅[3桁tabular-nums実測29px]+gap+
 	   ボタン幅[実測約38px]を実測して算出、詳細は.stat-table-headerのコメント参照)。 */
 	.stat-row-real-wrap { display: flex; align-items: center; justify-content: center; gap: 0.3rem; min-width: 0; }
-	.stat-row-real { text-align: center; font-size: 1.05em; }
+	/* 🔴 UI改修依頼(個体編集画面、2026-08-02)「実数値のフォントを他の要素とそろえる」対応。
+	   このクラスは.stat-value(上記)と同じ要素に同時に付き、詳細度が同じ(0,1,0)のため
+	   ソース順で後にあるこちらのfont-sizeが勝っていた(1.15em→実質1.05em)。font-weightは
+	   ここでは指定していないため.stat-value側の値(700→今回400に変更)がそのまま効く。
+	   font-sizeも他要素と同じ1emに揃える。 */
+	.stat-row-real { text-align: center; font-size: 1em; }
 	/* 🔴 UI改修依頼(個体編集左パネル、2026-08-02)「調整ボタンを大きくする」対応。
 	   padding(0.15em 0.5em、実測ライト時8.96×2.24px)・font-size(0.7rem)とも直値だったため、
 	   global.cssの共通スペーシング/フォントサイズトークンに置き換えつつ拡大する:
@@ -1052,20 +1107,29 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	   5列目の必要幅は「実数値3桁28.98px + gap 0.3rem=4.8px + 53.2px」=約87pxで、
 	   6.2rem(99.2px)の中に約11pxの余白を残して収まる(列幅は変更していない。
 	   上の.stat-table-headerコメントの再配分の根拠を参照)。 */
+	/* 🔴 UI改修依頼(個体編集画面、2026-08-02)「S行の"調整"ボタンのテキストをアイコンにする」
+	   対応。文字("調整"2文字+padding)を前提に幅を計算していた上の一連のコメント(font-size/
+	   paddingの拡大履歴)は撤回する: アイコンのみの正方形ボタンに変えるため、テキスト用の
+	   font-size/font-weight/line-height/white-spaceは不要になり、代わりにこのリポジトリの
+	   アイコンのみの小型ボタン規格(28px角、box/index.astroの.icon-button・
+	   DamageCalcSection.astroの.damage-row-icon-buttonと同じ--icon-size-md)に合わせる。
+	   width/height 28pxはWCAG 2.5.8のタッチターゲット下限24×24pxを上回るため、
+	   テキスト時代(実測53.2×29.0px)より小さくなっても当たり判定は十分(実測して確認)。
+	   5列目の列幅(grid-template-columns 6.2rem)は変更しない(ボタンが縮んだ分は
+	   .stat-row-real-wrap内でjustify-content:centerのまま余白として均等に残るだけで、
+	   値の中心位置がズレることはない)。 */
 	.stat-speed-chart-link {
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		padding: var(--space-1) var(--space-3);
-		font-size: var(--font-size-sm);
-		font-weight: 600;
-		line-height: 1.4;
+		width: var(--icon-size-md);
+		height: var(--icon-size-md);
+		padding: 0;
 		border-radius: var(--radius-sm);
 		border: 1px solid var(--color-border);
 		color: var(--color-text-muted);
 		background: transparent;
 		text-decoration: none;
-		white-space: nowrap;
 		flex-shrink: 0;
 		transition: background 0.15s, color 0.15s, border-color 0.15s;
 	}
