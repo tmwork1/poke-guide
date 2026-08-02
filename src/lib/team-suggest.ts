@@ -20,9 +20,10 @@
 //    ずれ)を使い、サンプル数が少ないペアの跳ねを縮小推定(shrinkage)で抑える。
 //
 // ② 近さ similarity(A, A') — 「AとA'はどれくらい同じ型か」= 疎さを埋めるための平滑化
-//    型レベルの共起は極端に疎い(実測: 観測ペア4762のうち77%が1回きり、510型のうち248型は
-//    1チームにしか出現しない)。ユーザーの型が構築データに1件も無いことも普通に起きる。
-//    そこで「その型そのもの」ではなく「近い型」の観測を重み付きで寄せ集める。
+//    型レベルの共起は疎く、ユーザーの型が構築データに1件も無いことも普通に起きる。そこで
+//    「その型そのもの」ではなく「近い型」の観測を重み付きで寄せ集める。
+//    (疎さは 017 で努力値未観測を、018 で特性未観測を型として拾えるようにしたことで
+//     大きく改善したが、平滑化そのものは変わらず必要。)
 //
 // この2つを組み合わせると、型レベルの推定を種族レベルへ滑らかにバックオフさせられる。
 // 種族レベルの共起は密で信頼でき(観測ペア3615、うち1760が2回以上)、型レベルは細かいが
@@ -84,16 +85,16 @@ export function shrunkLogLift(stat: {
 /**
  * 型の近さを決める重み。距離が大きいほど「別の型」で、similarity = exp(-距離)。
  *
- * 特性を最も重くしているのは、特性が変わると型の役割そのものが変わることが多いため
- * (すなかきドリュウズと かたやぶりドリュウズ は別物)。持ち物はそれより軽く、
- * role は「物理/特殊の軸違い」と「アタッカー/耐久の違い」で段差をつける ──
- * 前者は同じ攻撃役の中での違いだが、後者はチームでの仕事が別だからである。
+ * role は「物理/特殊の軸違い」と「アタッカー/耐久の違い」で段差をつける ── 前者は同じ攻撃役の
+ * 中での違いだが、後者はチームでの仕事が別だからである。持ち物の違いはその中間に置く。
  *
- * 目安: 持ち物だけ違う exp(-0.7)=0.50 / 特性だけ違う exp(-1.0)=0.37 /
- *       物理特殊の軸だけ違う exp(-0.45)=0.64 / 全部違う exp(-2.6)=0.07
+ * 特性は migrations/018 で識別キーから外れたため、ここにも項が無い(構築データでの観測率が
+ * 58.7%しかなく、キーに入れると型レイヤが半分のデータでしか成立しなかった)。
+ *
+ * 目安: 持ち物だけ違う exp(-0.7)=0.50 / 物理特殊の軸だけ違う exp(-0.45)=0.64 /
+ *       持ち物もアタッカー/耐久も違う exp(-1.6)=0.20
  */
 export const ARCHETYPE_DISTANCE_WEIGHTS = {
-  ability: 1.0,
   item: 0.7,
   /** physical_attacker ↔ special_attacker(同じアタッカーの中での軸違い) */
   roleAxis: 0.45,
@@ -124,7 +125,6 @@ function roleDistance(a: ArchetypeRole, b: ArchetypeRole): number {
 export function archetypeSimilarity(a: ArchetypeKey, b: ArchetypeKey): number {
   if (a.speciesName !== b.speciesName) return 0;
   let distance = 0;
-  if (a.abilityName !== b.abilityName) distance += ARCHETYPE_DISTANCE_WEIGHTS.ability;
   if (a.itemName !== b.itemName) distance += ARCHETYPE_DISTANCE_WEIGHTS.item;
   distance += roleDistance(a.role, b.role);
   return Math.exp(-distance);
@@ -132,7 +132,11 @@ export function archetypeSimilarity(a: ArchetypeKey, b: ArchetypeKey): number {
 
 /**
  * これ未満の近さの型は「別物」として重み付けの対象から外す。
- * 全部違う型(0.074)を切り捨てず、種族が同じというだけの弱い情報として残す閾値。
+ * 「種族が同じというだけ」の弱い情報も捨てない、という意思表示の閾値。
+ *
+ * 現行の重みでは最も遠い組(持ち物もアタッカー/耐久も違う)でも 0.20 でこの閾値に届かず、
+ * 実際には一度も発火しない ── 018 で特性の項(1.0)が消えて距離の上限が下がったため。
+ * 重みを見直したときに「同種族なのに切り捨てる」挙動へ静かに変わらないよう関門として残す。
  */
 export const MIN_ARCHETYPE_SIMILARITY = 0.05;
 
@@ -287,7 +291,11 @@ export const ARCHETYPE_BACKOFF_K = 8;
 export interface ArchetypeStat {
   archetypeId: string;
   speciesKey: string;
-  abilityName: string;
+  /**
+   * 型の識別子ではなく、その型に分類された個体の中での最頻特性(migrations/018 の
+   * archetype_modal_ability)。特性が1件も判明していない型では null になる。
+   */
+  abilityName: string | null;
   itemName: string;
   role: ArchetypeRole;
   /** この型が出現したチーム数(文脈を無視した素の人気) */
@@ -306,21 +314,25 @@ export interface ArchetypeChoice extends ArchetypeStat {
 }
 
 /**
- * role: 'unknown' の観測を、同じ (種族, 特性, 持ち物) を持つ既知 role の型へ按分して畳み込む。
+ * role: 'unknown' の観測を、同じ (種族, 持ち物) を持つ既知 role の型へ按分して畳み込む。
  *
  * 'unknown' は第4の役割ではなく既知 role の部分観測(migrations/017)なので、独立した候補として
  * 残すと2つの害がある: ①同じ型の証拠が2つの行に割れて share が薄まる、②役割を提示できない型が
  * 推薦結果として表に出る。按分の比率は既知 role 側の teams_total ── 「努力値が分からなかった
  * この個体は、努力値が分かっている同じ構成の個体と同じ割合で各roleだったはず」という素朴な推定。
  *
- * 既知 role の兄弟が1つも無い (種族, 特性, 持ち物) は畳み込む先が無いため 'unknown' のまま残す。
- * この場合だけ役割不明の型が推薦されうるが、種族・特性・持ち物は確定しているので
+ * 既知 role の兄弟が1つも無い (種族, 持ち物) は畳み込む先が無いため 'unknown' のまま残す。
+ * この場合だけ役割不明の型が推薦されうるが、種族・持ち物は確定しているので
  * 「役割は分からないがこの構成が使われている」という提示自体は成立する。
+ *
+ * 兄弟の判定に特性を使わないのは、018 で特性が識別キーから外れ abilityName が型ごとの最頻値
+ * (推定値)になったため ── 推定値の一致で「同じ構成か」を決めてはならない。
  */
 function foldUnknownRoleStats(stats: readonly ArchetypeStat[]): ArchetypeStat[] {
   if (!stats.some((s) => s.role === 'unknown')) return [...stats];
 
-  const buildKey = (s: ArchetypeStat) => `${s.speciesKey} ${s.abilityName} ${s.itemName}`;
+  // 区切りに US(0x1F)を使うのは、種族名や持ち物名に現れない文字で連結の曖昧さを消すため。
+  const buildKey = (s: ArchetypeStat) => s.speciesKey + String.fromCharCode(31) + s.itemName;
   const knownByBuild = new Map<string, ArchetypeStat[]>();
   for (const s of stats) {
     if (s.role === 'unknown') continue;

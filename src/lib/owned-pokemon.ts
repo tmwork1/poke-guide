@@ -117,7 +117,7 @@ function logError(context: string, error: unknown): void {
 }
 
 // 型(アーキタイプ)分類(src/lib/archetype.ts)+ archetypesへのfind-or-create
-// (src/lib/archetypes.ts)をまとめて行い、archetype_idを算出する。分類不能(種族/特性/持ち物
+// (src/lib/archetypes.ts)をまとめて行い、archetype_idを算出する。分類不能(種族/持ち物
 // 未入力・未対応種族等)の場合はnullを返す。findOrCreateArchetypeがDB都合で失敗した場合も
 // non-fatalとしてnullにフォールバックする(型分類の都合でowned_pokemon本体の保存自体を
 // 失敗させないため)。
@@ -127,7 +127,6 @@ async function resolveArchetypeId(
 ): Promise<string | null> {
   const key = classifyArchetype({
     speciesName: input.species_name,
-    abilityName: input.ability_name,
     itemName: input.item_name,
     nature: input.nature,
     evs: input.evs,

@@ -25,13 +25,12 @@ function logError(context: string, error: unknown): void {
 function matchKey(query: any, key: ArchetypeKey) {
   return query
     .eq('species_name', key.speciesName)
-    .eq('ability_name', key.abilityName)
     .eq('item_name', key.itemName)
     .eq('role', key.role);
 }
 
 /**
- * key(種族名・特性名・持ち物名・role)に一致する archetypes 行の id を返す。無ければ作成する。
+ * key(種族名・持ち物名・role)に一致する archetypes 行の id を返す。無ければ作成する。
  * 同時実行での競合(2リクエストが同時に同じkeyをINSERTしようとする)は
  * archetypes_identity_key のunique制約に任せ、23505発生時のみ1回だけ再SELECTして拾う
  * (owned-pokemon.ts の setOwnedPokemonSharing の share_slug 再試行と同じ方針)。
@@ -55,7 +54,6 @@ export async function findOrCreateArchetype(
     .from('archetypes')
     .insert({
       species_name: key.speciesName,
-      ability_name: key.abilityName,
       item_name: key.itemName,
       role: key.role,
     })

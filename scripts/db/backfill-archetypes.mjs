@@ -60,7 +60,6 @@ async function main() {
       totalRows += 1;
       const key = classifyArchetype({
         speciesName: row.species_name,
-        abilityName: row.ability_name,
         itemName: row.item_name,
         nature: row.nature,
         evs: row.evs,

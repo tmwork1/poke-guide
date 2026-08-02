@@ -14,7 +14,6 @@ describe('classifyArchetype: 分類不能な入力', () => {
     assert.equal(
       classifyArchetype({
         speciesName: '',
-        abilityName: 'こんじょう',
         itemName: 'いのちのたま',
         nature: null,
         evs: NO_EVS,
@@ -25,23 +24,10 @@ describe('classifyArchetype: 分類不能な入力', () => {
     );
   });
 
-  it('特性名/持ち物名が空/nullなら null', () => {
+  it('持ち物名が空/nullなら null', () => {
     assert.equal(
       classifyArchetype({
         speciesName: 'カイリキー',
-        abilityName: null,
-        itemName: 'いのちのたま',
-        nature: null,
-        evs: NO_EVS,
-        ivs: ALL_31_IVS,
-        moveNames: [],
-      }),
-      null,
-    );
-    assert.equal(
-      classifyArchetype({
-        speciesName: 'カイリキー',
-        abilityName: 'こんじょう',
         itemName: null,
         nature: null,
         evs: NO_EVS,
@@ -50,13 +36,39 @@ describe('classifyArchetype: 分類不能な入力', () => {
       }),
       null,
     );
+    assert.equal(
+      classifyArchetype({
+        speciesName: 'カイリキー',
+        itemName: '   ',
+        nature: null,
+        evs: NO_EVS,
+        ivs: ALL_31_IVS,
+        moveNames: [],
+      }),
+      null,
+    );
+  });
+
+  // 特性は migrations/018 で識別キーから外れた。構築データでの観測率が58.7%しかなく、
+  // キーに入れると型レイヤが半分のデータでしか成立しなかったため。
+  it('特性が未入力でも分類できる(特性は識別キーに含まれない)', () => {
+    assert.deepEqual(
+      classifyArchetype({
+        speciesName: 'カイリキー',
+        itemName: 'こだわりハチマキ',
+        nature: 'いじっぱり',
+        evs: [0, 32, 0, 0, 0, 0],
+        ivs: ALL_31_IVS,
+        moveNames: [],
+      }),
+      { speciesName: 'カイリキー', itemName: 'こだわりハチマキ', role: 'physical_attacker' },
+    );
   });
 
   it('マスターデータに存在しない種族名なら null', () => {
     assert.equal(
       classifyArchetype({
         speciesName: '存在しないポケモン',
-        abilityName: 'こんじょう',
         itemName: 'いのちのたま',
         nature: null,
         evs: NO_EVS,
@@ -70,13 +82,12 @@ describe('classifyArchetype: 分類不能な入力', () => {
 });
 
 describe('classifyArchetype: 努力値が未観測なら role: unknown(migrations/017)', () => {
-  // 役割は努力値からしか計算できないが、種族・特性・持ち物までは確定している。
+  // 役割は努力値からしか計算できないが、種族・持ち物までは確定している。
   // ここで null を返していたため構築データの14.9%(実測546体)を捨てていた。
   it('evsが6要素でないなら role: unknown', () => {
     assert.deepEqual(
       classifyArchetype({
         speciesName: 'カイリキー',
-        abilityName: 'こんじょう',
         itemName: 'いのちのたま',
         nature: null,
         evs: [0, 32],
@@ -85,7 +96,6 @@ describe('classifyArchetype: 努力値が未観測なら role: unknown(migration
       }),
       {
         speciesName: 'カイリキー',
-        abilityName: 'こんじょう',
         itemName: 'いのちのたま',
         role: 'unknown',
       },
@@ -96,7 +106,6 @@ describe('classifyArchetype: 努力値が未観測なら role: unknown(migration
     assert.deepEqual(
       classifyArchetype({
         speciesName: 'ガブリアス',
-        abilityName: 'さめはだ',
         itemName: 'こだわりスカーフ',
         nature: 'ようき',
         evs: null,
@@ -105,7 +114,6 @@ describe('classifyArchetype: 努力値が未観測なら role: unknown(migration
       }),
       {
         speciesName: 'ガブリアス',
-        abilityName: 'さめはだ',
         itemName: 'こだわりスカーフ',
         role: 'unknown',
       },
@@ -116,7 +124,6 @@ describe('classifyArchetype: 努力値が未観測なら role: unknown(migration
     assert.equal(
       classifyArchetype({
         speciesName: '存在しないポケモン',
-        abilityName: 'こんじょう',
         itemName: 'いのちのたま',
         nature: null,
         evs: null,
@@ -134,7 +141,6 @@ describe('classifyArchetype: 実データによる3分類', () => {
     // bulkAvg(hp,def,spd)=123.33、閾値141.83に対しatk200が上回る
     const result = classifyArchetype({
       speciesName: 'カイリキー',
-      abilityName: 'こんじょう',
       itemName: 'こだわりハチマキ',
       nature: 'いじっぱり',
       evs: [0, 32, 0, 0, 0, 0],
@@ -143,7 +149,6 @@ describe('classifyArchetype: 実データによる3分類', () => {
     });
     assert.deepEqual(result, {
       speciesName: 'カイリキー',
-      abilityName: 'こんじょう',
       itemName: 'こだわりハチマキ',
       role: 'physical_attacker',
     });
@@ -154,7 +159,6 @@ describe('classifyArchetype: 実データによる3分類', () => {
     // bulkAvg=103.33、閾値118.83に対しspa205が上回る
     const result = classifyArchetype({
       speciesName: 'フーディン',
-      abilityName: 'シンクロ',
       itemName: 'いのちのたま',
       nature: 'ひかえめ',
       evs: [0, 0, 0, 32, 0, 0],
@@ -163,7 +167,6 @@ describe('classifyArchetype: 実データによる3分類', () => {
     });
     assert.deepEqual(result, {
       speciesName: 'フーディン',
-      abilityName: 'シンクロ',
       itemName: 'いのちのたま',
       role: 'special_attacker',
     });
@@ -174,7 +177,6 @@ describe('classifyArchetype: 実データによる3分類', () => {
     // bulkAvg=193、閾値221.95に対しatk/spaいずれも下回る
     const result = classifyArchetype({
       speciesName: 'ハピナス',
-      abilityName: 'しぜんかいふく',
       itemName: 'しんかのきせき',
       nature: 'まじめ',
       evs: [32, 0, 16, 0, 16, 0],
@@ -183,7 +185,6 @@ describe('classifyArchetype: 実データによる3分類', () => {
     });
     assert.deepEqual(result, {
       speciesName: 'ハピナス',
-      abilityName: 'しぜんかいふく',
       itemName: 'しんかのきせき',
       role: 'bulky',
     });
@@ -197,7 +198,6 @@ describe('classifyArchetype: 物理/特殊軸の判定(技構成 vs 実数値)',
   // 明確に切り分けて検証できる。
   const baseInput = {
     speciesName: 'ハブネーク',
-    abilityName: 'ふゆう',
     itemName: 'たべのこし',
     nature: 'まじめ',
     evs: [0, 32, 0, 32, 0, 0],

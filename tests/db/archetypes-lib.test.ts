@@ -33,7 +33,6 @@ const TEST_PREFIX = 'archetypes-lib-test:';
 function makeKey(overrides: Partial<ArchetypeKey> = {}): ArchetypeKey {
   return {
     speciesName: `${TEST_PREFIX}種族A`,
-    abilityName: 'テスト特性',
     itemName: 'テストアイテム',
     role: 'physical_attacker',
     ...overrides,
@@ -78,28 +77,28 @@ describe('src/lib/archetypes.ts の findOrCreateArchetype', {
     assert.equal(first.data, second.data);
 
     const { rows } = await admin.query(
-      'SELECT count(*) FROM archetypes WHERE species_name = $1 AND ability_name = $2 AND item_name = $3 AND role = $4',
-      [key.speciesName, key.abilityName, key.itemName, key.role],
+      'SELECT count(*) FROM archetypes WHERE species_name = $1 AND item_name = $2 AND role = $3',
+      [key.speciesName, key.itemName, key.role],
     );
     assert.equal(Number(rows[0].count), 1);
   });
 
-  it('role/ability_name/item_nameのいずれかが異なれば別行になる', async () => {
+  it('role/item_nameのいずれかが異なれば別行になる', async () => {
     const speciesName = `${TEST_PREFIX}種族C`;
     const base = await findOrCreateArchetype(makeKey({ speciesName }), supabase);
     const differentRole = await findOrCreateArchetype(
       makeKey({ speciesName, role: 'bulky' }),
       supabase,
     );
-    const differentAbility = await findOrCreateArchetype(
-      makeKey({ speciesName, abilityName: '別の特性' }),
+    const differentItem = await findOrCreateArchetype(
+      makeKey({ speciesName, itemName: '別のアイテム' }),
       supabase,
     );
-    assert.equal(base.ok && differentRole.ok && differentAbility.ok, true);
-    if (!base.ok || !differentRole.ok || !differentAbility.ok) return;
+    assert.equal(base.ok && differentRole.ok && differentItem.ok, true);
+    if (!base.ok || !differentRole.ok || !differentItem.ok) return;
     assert.notEqual(base.data, differentRole.data);
-    assert.notEqual(base.data, differentAbility.data);
-    assert.notEqual(differentRole.data, differentAbility.data);
+    assert.notEqual(base.data, differentItem.data);
+    assert.notEqual(differentRole.data, differentItem.data);
   });
 
   it('同一キーへの同時呼び出しでも同一idに収束する(unique制約違反の再試行カバレッジ)', async () => {
@@ -117,8 +116,8 @@ describe('src/lib/archetypes.ts の findOrCreateArchetype', {
     assert.equal(new Set(ids).size, 1);
 
     const { rows } = await admin.query(
-      'SELECT count(*) FROM archetypes WHERE species_name = $1 AND ability_name = $2 AND item_name = $3 AND role = $4',
-      [key.speciesName, key.abilityName, key.itemName, key.role],
+      'SELECT count(*) FROM archetypes WHERE species_name = $1 AND item_name = $2 AND role = $3',
+      [key.speciesName, key.itemName, key.role],
     );
     assert.equal(Number(rows[0].count), 1);
   });

@@ -23,13 +23,8 @@ import type { ArchetypeKey } from '../src/lib/archetype.ts';
 
 const TOTAL_TEAMS = 1041;
 
-function key(
-  speciesName: string,
-  abilityName: string,
-  itemName: string,
-  role: ArchetypeKey['role'],
-): ArchetypeKey {
-  return { speciesName, abilityName, itemName, role };
+function key(speciesName: string, itemName: string, role: ArchetypeKey['role']): ArchetypeKey {
+  return { speciesName, itemName, role };
 }
 
 // ---------------------------------------------------------------------------
@@ -98,22 +93,24 @@ describe('shrunkLogLift: 人気だけのペアと本当に相性の良いペア�
 // ---------------------------------------------------------------------------
 
 describe('archetypeSimilarity: 型どうしの近さ', () => {
-  const base = key('ドリュウズ', 'すなかき', 'やわらかいすな', 'physical_attacker');
+  const base = key('ドリュウズ', 'やわらかいすな', 'physical_attacker');
 
   it('完全一致は1', () => {
     assert.equal(archetypeSimilarity(base, { ...base }), 1);
   });
 
   it('種族が違えば0(別のポケモンどうしは「近い型」ではない)', () => {
-    assert.equal(archetypeSimilarity(base, key('ガブリアス', 'すなかき', 'やわらかいすな', 'physical_attacker')), 0);
+    assert.equal(archetypeSimilarity(base, key('ガブリアス', 'やわらかいすな', 'physical_attacker')), 0);
   });
 
-  it('持ち物だけの違いより特性の違いのほうが遠い', () => {
+  it('持ち物だけの違いは exp(-item)', () => {
     const itemOnly = archetypeSimilarity(base, { ...base, itemName: 'いのちのたま' });
-    const abilityOnly = archetypeSimilarity(base, { ...base, abilityName: 'かたやぶり' });
-    assert.ok(itemOnly > abilityOnly, `item=${itemOnly} should be closer than ability=${abilityOnly}`);
     assert.ok(Math.abs(itemOnly - Math.exp(-ARCHETYPE_DISTANCE_WEIGHTS.item)) < 1e-12);
-    assert.ok(Math.abs(abilityOnly - Math.exp(-ARCHETYPE_DISTANCE_WEIGHTS.ability)) < 1e-12);
+  });
+
+  // migrations/018 で特性は識別キーから外れた。特性が違っても「同じ型」になる。
+  it('特性は距離に影響しない(識別キーに含まれないため型として区別できない)', () => {
+    assert.equal('ability' in ARCHETYPE_DISTANCE_WEIGHTS, false, '特性の重みは残っていてはならない');
   });
 
   it('物理↔特殊の違いより アタッカー↔耐久 の違いのほうが遠い', () => {
@@ -123,13 +120,14 @@ describe('archetypeSimilarity: 型どうしの近さ', () => {
   });
 
   it('全項目が違っても0にはならず、閾値以上の弱い情報として残る', () => {
-    const far = archetypeSimilarity(base, key('ドリュウズ', 'かたやぶり', 'いのちのたま', 'bulky'));
-    assert.ok(far > 0 && far < 0.1, `got ${far}`);
+    const far = archetypeSimilarity(base, key('ドリュウズ', 'いのちのたま', 'bulky'));
+    // 018 で特性の項(1.0)が消え、最も遠い組でも exp(-(0.7+0.9))=0.20 までしか離れない。
+    assert.ok(far > 0 && far < 0.25, `got ${far}`);
     assert.ok(far >= MIN_ARCHETYPE_SIMILARITY, `far=${far} should survive the ${MIN_ARCHETYPE_SIMILARITY} cutoff`);
   });
 
   it('対称である', () => {
-    const other = key('ドリュウズ', 'かたやぶり', 'いのちのたま', 'bulky');
+    const other = key('ドリュウズ', 'いのちのたま', 'bulky');
     assert.equal(archetypeSimilarity(base, other), archetypeSimilarity(other, base));
   });
 
@@ -145,27 +143,27 @@ describe('archetypeSimilarity: 型どうしの近さ', () => {
 
 describe('weightSeedArchetypes: 自チームの型に近い構築データ上の型へ重みを配る', () => {
   const rankedArchetypes: RankedArchetype[] = [
-    { id: 'a1', ...key('ドリュウズ', 'すなかき', 'やわらかいすな', 'physical_attacker') },
-    { id: 'a2', ...key('ドリュウズ', 'すなかき', 'いのちのたま', 'physical_attacker') },
-    { id: 'a3', ...key('ドリュウズ', 'かたやぶり', 'こだわりスカーフ', 'physical_attacker') },
-    { id: 'b1', ...key('カバルドン', 'すなおこし', 'たべのこし', 'bulky') },
+    { id: 'a1', ...key('ドリュウズ', 'やわらかいすな', 'physical_attacker') },
+    { id: 'a2', ...key('ドリュウズ', 'いのちのたま', 'physical_attacker') },
+    { id: 'a3', ...key('ドリュウズ', 'こだわりスカーフ', 'bulky') },
+    { id: 'b1', ...key('カバルドン', 'たべのこし', 'bulky') },
   ];
 
   it('完全一致に1、近い型にはそれより小さい重みが付く', () => {
     const result = weightSeedArchetypes(
-      [key('ドリュウズ', 'すなかき', 'やわらかいすな', 'physical_attacker')],
+      [key('ドリュウズ', 'やわらかいすな', 'physical_attacker')],
       ['ドリュウズ'],
       rankedArchetypes,
     );
     const byId = new Map(result.map((r) => [r.id, r.weight]));
     assert.equal(byId.get('a1'), 1);
     assert.ok((byId.get('a2') ?? 0) < 1 && (byId.get('a2') ?? 0) > 0);
-    assert.ok((byId.get('a3') ?? 0) < (byId.get('a2') ?? 0), '特性まで違う型はより軽い');
+    assert.ok((byId.get('a3') ?? 0) < (byId.get('a2') ?? 0), '持ち物に加えて役割まで違う型はより軽い');
     assert.equal(byId.has('b1'), false, '別種族の型には重みを付けない');
   });
 
   it('型が判定できないメンバーは、その種族の全型を重み1にする(種族レベルへの退化)', () => {
-    // 特性や持ち物が未入力で classifyArchetype が null を返したケース。
+    // 持ち物が未入力で classifyArchetype が null を返したケース。
     const result = weightSeedArchetypes([null], ['ドリュウズ'], rankedArchetypes);
     const byId = new Map(result.map((r) => [r.id, r.weight]));
     assert.deepEqual([...byId.entries()].sort(), [['a1', 1], ['a2', 1], ['a3', 1]]);
@@ -173,7 +171,7 @@ describe('weightSeedArchetypes: 自チームの型に近い構築データ上の
 
   it('型が分かるメンバーと分からないメンバーが混在しても両方に重みが付く', () => {
     const result = weightSeedArchetypes(
-      [key('ドリュウズ', 'すなかき', 'やわらかいすな', 'physical_attacker'), null],
+      [key('ドリュウズ', 'やわらかいすな', 'physical_attacker'), null],
       ['ドリュウズ', 'カバルドン'],
       rankedArchetypes,
     );
@@ -252,7 +250,7 @@ describe('rankSpeciesByUsage: チームが空のときのフォールバック',
 function stat(partial: Partial<ArchetypeStat> & { archetypeId: string }): ArchetypeStat {
   return {
     speciesKey: 'ギルガルド(シールド)',
-    abilityName: 'バトルスイッチ',
+    abilityName: 'バトルスイッチ', // 最頻特性(識別キーではない、migrations/018)
     itemName: 'たべのこし',
     role: 'bulky',
     teamsTotal: 0,
@@ -263,7 +261,7 @@ function stat(partial: Partial<ArchetypeStat> & { archetypeId: string }): Archet
 }
 
 describe('chooseArchetypeForSpecies', () => {
-  it('型が1件も無ければ null(構築記事に特性・努力値が無い種族)', () => {
+  it('型が1件も無ければ null(構築データに持ち物が無い種族)', () => {
     assert.equal(chooseArchetypeForSpecies([], new Set()), null);
   });
 
@@ -347,7 +345,7 @@ describe('chooseArchetypeForSpecies', () => {
     const chosen = chooseArchetypeForSpecies(
       [
         stat({ archetypeId: 'known', itemName: 'たべのこし', role: 'bulky', teamsTotal: 10, teamsCoSpecies: 5, weightedCoArchetype: 5 }),
-        // 同じ (種族, 特性, 持ち物) で努力値だけ未観測の20チーム分。
+        // 同じ (種族, 持ち物) で努力値だけ未観測の20チーム分。
         stat({ archetypeId: 'unknown', itemName: 'たべのこし', role: 'unknown', teamsTotal: 20, teamsCoSpecies: 10, weightedCoArchetype: 10 }),
       ],
       new Set(),

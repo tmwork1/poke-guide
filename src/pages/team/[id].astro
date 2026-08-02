@@ -1809,6 +1809,12 @@ const initialTeamJson = team
 			border-radius: var(--radius-sm);
 			background: var(--color-surface-alt);
 		}
+		/* 特性だけは型の識別子ではなく最頻値からの推定(migrations/018)。持ち物・役割と同じ
+		   見た目だと確定情報に見えるため、点線の下線で「推定」であることを示す。 */
+		.team-suggest-ability {
+			text-decoration: underline dotted var(--color-border);
+			text-underline-offset: 0.2em;
+		}
 		/* 根拠(「◯◯採用チームのN%が併用」)も同じ理由で折り返す。ここで切れると
 		   割合の数字が消え、提案の説得力そのものが失われるため。 */
 		.team-suggest-reason {
@@ -2563,14 +2569,18 @@ const initialTeamJson = team
 				nameEl.title = suggestion.speciesName;
 				body.appendChild(nameEl);
 
-				// 型(特性・持ち物・役割)。構築記事に特性/努力値が無い種族では型が判明しない
-				// (API が null を返す)ので、その場合は採用率だけを出す。
+				// 型(持ち物・役割)と、その型で最も多い特性。持ち物が構築データに無い種族では
+				// 型が判明しない(API が null を返す)ので、その場合は採用率だけを出す。
 				const buildEl = document.createElement("div");
 				buildEl.className = "team-suggest-build";
 				if (suggestion.abilityName || suggestion.itemName) {
 					if (suggestion.abilityName) {
+						// 特性は型の識別子ではなく最頻値(migrations/018)。「この型なら普通はこの特性」
+						// という推定なので、確定情報である持ち物・役割と区別できるよう印を付ける。
 						const abilityEl = document.createElement("span");
+						abilityEl.className = "team-suggest-ability";
 						abilityEl.textContent = suggestion.abilityName;
+						abilityEl.title = "この型で最も多い特性";
 						buildEl.appendChild(abilityEl);
 					}
 					if (suggestion.itemName) {
@@ -2588,7 +2598,11 @@ const initialTeamJson = team
 						roleEl.textContent = ROLE_LABELS[suggestion.role] ?? suggestion.role;
 						buildEl.appendChild(roleEl);
 					}
-					buildEl.title = [suggestion.abilityName, suggestion.itemName, suggestion.role ? ROLE_LABELS[suggestion.role] : null]
+					buildEl.title = [
+						suggestion.abilityName ? `${suggestion.abilityName}(この型で最も多い特性)` : null,
+						suggestion.itemName,
+						suggestion.role ? ROLE_LABELS[suggestion.role] : null,
+					]
 						.filter(Boolean)
 						.join(" / ");
 				} else {

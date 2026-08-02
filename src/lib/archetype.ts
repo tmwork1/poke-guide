@@ -1,8 +1,13 @@
 // 育成データ(owned_pokemon)を「型(アーキタイプ)」に分類する純粋関数。
-// 型の識別キーは 種族名・特性名・持ち物名・role(物理アタッカー/特殊アタッカー/耐久) のみ
-// (migrations/015_archetypes.sql の archetypes テーブルと一致させる)。性格・わざ・テラスタルは
-// 個体差が大きいため識別キーに含めないが、わざは「物理/特殊どちらで攻めているか」の判定
-// シグナルとしてのみ使う(ユーザー要望、2026-08-02)。
+// 型の識別キーは 種族名・持ち物名・role(物理アタッカー/特殊アタッカー/耐久/判定不能) のみ
+// (migrations/015_archetypes.sql + 017 + 018 の archetypes テーブルと一致させる)。
+// 性格・わざ・テラスタルは個体差が大きいため識別キーに含めないが、わざは「物理/特殊どちらで
+// 攻めているか」の判定シグナルとしてのみ使う(ユーザー要望、2026-08-02)。
+//
+// 特性は当初キーに含めていたが 018 で外した。構築データ上の観測率が持ち物 99.5% に対し
+// 特性は 58.7%(構築記事のある個体にしか無い)で、キーに入れると型レイヤが半分のデータでしか
+// 成立しないため。特性は識別子ではなく型ごとの最頻値(migrations/018 の
+// archetype_modal_ability ビュー)として推定・表示する。理由と実測値は 018 のコメント。
 //
 // src/lib/species-dex.ts と同じ「ビルド時JSON import」方式を踏襲する(Cloudflare Workers上の
 // SSR/APIルートでも動く実績あり。src/lib/pokemon-master-data.ts の fetch() ベースのローダーは
@@ -47,14 +52,12 @@ export type ArchetypeRole = 'physical_attacker' | 'special_attacker' | 'bulky' |
 
 export interface ArchetypeKey {
   speciesName: string;
-  abilityName: string;
   itemName: string;
   role: ArchetypeRole;
 }
 
 export interface ArchetypeClassificationInput {
   speciesName: string | null | undefined;
-  abilityName: string | null | undefined;
   itemName: string | null | undefined;
   nature: string | null | undefined;
   evs: number[] | null | undefined;
@@ -68,20 +71,19 @@ export interface ArchetypeClassificationInput {
 export const ATTACKER_THRESHOLD_MULTIPLIER = 1.15;
 
 /**
- * 種族名・特性名・持ち物名・性格・evs/ivs・move_namesから型(archetype識別キー)を判定する。
- * 分類不能(種族名/特性名/持ち物名のいずれかが空/null、種族がマスターデータに無い)の場合は
+ * 種族名・持ち物名・性格・evs/ivs・move_namesから型(archetype識別キー)を判定する。
+ * 分類不能(種族名/持ち物名のいずれかが空/null、種族がマスターデータに無い)の場合は
  * null を返す。呼び出し側はこの場合 archetype_id を null のまま保存すること
  * (この関数自体は例外を投げない)。
  *
  * evs/ivs が6要素でない場合は null ではなく role: 'unknown' の型を返す。役割は努力値からしか
- * 計算できないが、種族・特性・持ち物までは確定しており、そこまでの情報を捨てないための分岐
+ * 計算できないが、種族・持ち物までは確定しており、そこまでの情報を捨てないための分岐
  * (経緯と実測値は migrations/017_archetype_role_unknown.sql)。
  */
 export function classifyArchetype(input: ArchetypeClassificationInput): ArchetypeKey | null {
   const speciesName = input.speciesName?.trim();
-  const abilityName = input.abilityName?.trim();
   const itemName = input.itemName?.trim();
-  if (!speciesName || !abilityName || !itemName) return null;
+  if (!speciesName || !itemName) return null;
 
   // 種族がマスターデータに無い場合だけは型を作らない。role の計算に種族値が要るからではなく
   // (role: 'unknown' なら要らない)、archetypes に語彙外の種族名を作らせないための門番。
@@ -91,7 +93,7 @@ export function classifyArchetype(input: ArchetypeClassificationInput): Archetyp
   const evs = input.evs ?? [];
   const ivs = input.ivs ?? [];
   if (evs.length !== 6 || ivs.length !== 6) {
-    return { speciesName, abilityName, itemName, role: 'unknown' };
+    return { speciesName, itemName, role: 'unknown' };
   }
 
   const modifier = (input.nature && NATURE_STAT_MODIFIERS[input.nature]) || { up: null, down: null };
@@ -115,7 +117,7 @@ export function classifyArchetype(input: ArchetypeClassificationInput): Archetyp
         : 'special_attacker'
       : 'bulky';
 
-  return { speciesName, abilityName, itemName, role };
+  return { speciesName, itemName, role };
 }
 
 // 物理/特殊の軸判定: move_namesの技分類(detail/moves.json)の本数差で決め、同数

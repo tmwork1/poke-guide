@@ -45,6 +45,11 @@ const MAX_LIMIT = 20;
 interface SuggestionItem {
   speciesName: string;
   dexNo: number | null;
+  /**
+   * 型の識別子ではなく推定値 ── その型で最も多く採用されている特性(migrations/018)。
+   * 構築データ上の観測率が持ち物99.5%に対し特性58.7%しかないため識別キーから外した。
+   * 実測では持ち物が分かっていれば最頻特性が87.7%当たる。
+   */
   abilityName: string | null;
   itemName: string | null;
   role: ArchetypeRole | null;
@@ -108,7 +113,6 @@ export async function GET({ request, cookies, url }: APIContext): Promise<Respon
   const seedKeys: (ArchetypeKey | null)[] = members.data.map((m) =>
     classifyArchetype({
       speciesName: m.species_name,
-      abilityName: m.ability_name,
       itemName: m.item_name,
       nature: m.nature,
       evs: m.evs,
@@ -201,7 +205,7 @@ export async function GET({ request, cookies, url }: APIContext): Promise<Respon
   if (seedSpecies.length > 0) {
     const { data, error } = await supabase
       .from('archetypes')
-      .select('id, species_name, ability_name, item_name, role')
+      .select('id, species_name, item_name, role')
       .in('species_name', seedSpecies);
     if (error) {
       // eslint-disable-next-line no-console
@@ -211,7 +215,6 @@ export async function GET({ request, cookies, url }: APIContext): Promise<Respon
     const rankedArchetypes: RankedArchetype[] = ((data ?? []) as Record<string, string>[]).map((r) => ({
       id: r.id,
       speciesName: r.species_name,
-      abilityName: r.ability_name,
       itemName: r.item_name,
       role: r.role as ArchetypeRole,
     }));
@@ -233,11 +236,13 @@ export async function GET({ request, cookies, url }: APIContext): Promise<Respon
   }
 
   const statsBySpecies = new Map<string, ArchetypeStat[]>();
-  for (const row of (archData ?? []) as Record<string, string | number>[]) {
+  for (const row of (archData ?? []) as Record<string, string | number | null>[]) {
     const stat: ArchetypeStat = {
       archetypeId: row.archetype_id as string,
       speciesKey: row.species_key as string,
-      abilityName: row.ability_name as string,
+      // 特性は識別キーではなく、その型に分類された個体の最頻値(migrations/018 の
+      // archetype_modal_ability)。特性が1件も判明していない型では null で届く。
+      abilityName: (row.ability_name as string | null) ?? null,
       itemName: row.item_name as string,
       role: row.role as ArchetypeRole,
       teamsTotal: Number(row.teams_total),
