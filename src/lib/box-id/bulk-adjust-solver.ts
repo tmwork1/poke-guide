@@ -58,8 +58,8 @@
 // 全部返すと膨大になるため含めない。この方針により「searchedEvTotal昇順の一覧」が
 // 意味を持つ(候補を上から採用すれば必ず努力値効率の良い順になる)。
 
-import { calcLethalSequence } from "../pyodide-engine";
-import type { CalcLethalSequenceResult, PokemonSpec, SequenceAttack } from "../pyodide-engine";
+import { calcLethalSequence, isEngineFatal, resetEngine } from "../pyodide-engine";
+import type { CalcDamagesOptions, CalcLethalSequenceResult, PokemonSpec, SequenceAttack } from "../pyodide-engine";
 import { NATURE_STAT_MODIFIERS, calcHpStat, calcOtherStat } from "../stats";
 
 /** カード1枚ぶんの耐久要件 */
@@ -132,6 +132,21 @@ function abortError(): DOMException {
 
 function checkAborted(signal?: AbortSignal): void {
 	if (signal?.aborted) throw abortError();
+}
+
+/**
+ * 探索中にPyodideエンジンが致命的エラー(WebAssembly.RuntimeError /
+ * "memory access out of bounds")で停止し、resetEngine() による1回のリトライでも
+ * 復帰できなかったことを表すエラー型(2026-08-02 要件2対応)。solveDurability() は
+ * この場合、探索を中断してこのエラーをそのままthrowする(AbortErrorと同じ経路)。
+ * 呼び出し元(src/lib/box-id/bulk-adjust.ts)はDOMException("AbortError")と同様、
+ * これを個別にcatchしてユーザーに分かるメッセージを出し、再実行できる状態に戻す必要がある。
+ */
+export class EngineFatalError extends Error {
+	constructor(message: string) {
+		super(message);
+		this.name = "EngineFatalError";
+	}
 }
 
 /** attacks を先頭から繰り返して長さnの配列にする(累計に対してNを指定する、というユーザー指示の解釈)。 */
@@ -234,7 +249,14 @@ export async function solveDurability(
 
 	let engineCallCount = 0;
 	let lastProgressAt = 0;
+	// エンジン致命的エラーからの復帰通知(要件2)で使う、直近のdone/total。
+	// reportProgress()はスロットルで実際にonProgressを呼ばないことがあるため、
+	// 値そのものは呼ばれたかどうかに関わらず毎回更新しておく。
+	let lastProgressDone = 0;
+	let lastProgressTotal = 1;
 	function reportProgress(done: number, total: number, phase: string): void {
+		lastProgressDone = done;
+		lastProgressTotal = total;
 		if (!onProgress) return;
 		const now = Date.now();
 		// 数十msに1回程度、または完了時のみ通知する(呼びすぎ防止)。
@@ -242,6 +264,68 @@ export async function solveDurability(
 			lastProgressAt = now;
 			onProgress({ done, total, phase });
 		}
+	}
+
+	// --- 要件3: キャンセル・進捗表示の実効性 ---
+	// Pyodide呼び出し(calcLethalSequence)自体がメインスレッドを占有する同期処理のため、
+	// await一回だけ(マイクロタスクの消化)ではブラウザの入力・再描画イベントは処理されない
+	// (前段のUI実装者からの報告: 探索が重いとキャンセルボタンのクリックが30秒以上効かない
+	// ことがある)。数回に1回 setTimeout(0) でマクロタスクへ明示的に降りることで、その間に
+	// クリックされたキャンセルボタン(signal.abort())やブラウザの再描画が実際に反映される
+	// ようにする。実測(検証項目4): キャンセルから中断までの秒数を参照。
+	const YIELD_EVERY_N_CALLS = 2;
+	let callsSinceYield = 0;
+	async function yieldToEventLoopIfDue(): Promise<void> {
+		callsSinceYield++;
+		if (callsSinceYield >= YIELD_EVERY_N_CALLS) {
+			callsSinceYield = 0;
+			await new Promise<void>((resolve) => setTimeout(resolve, 0));
+		}
+		checkAborted(signal);
+	}
+
+	// --- 要件2: 致命的エラーからの復帰 ---
+	// calcLethalSequence()の呼び出しをこの関数1箇所に集約し、致命的エラー
+	// (isEngineFatal()がtrueになる = WebAssembly.RuntimeError / "memory access out of
+	// bounds")を検知したら resetEngine()(実測約2.4秒)で1回だけ再初期化してこの呼び出しを
+	// リトライする。リトライも失敗したら探索全体を中断する(EngineFatalErrorをthrow。
+	// 呼び出し元 src/lib/box-id/bulk-adjust.ts が個別にcatchしてユーザーに知らせる)。
+	// engineCallCountは実際にPyodideへディスパッチした回数(リトライ分を含む)を数える。
+	async function callLethalSequenceResilient(
+		attackerSpec: PokemonSpec,
+		defenderSpec: PokemonSpec,
+		attacksN: SequenceAttack[],
+		callOptions: CalcDamagesOptions,
+	): Promise<CalcLethalSequenceResult> {
+		checkAborted(signal);
+		let result: CalcLethalSequenceResult;
+		try {
+			engineCallCount++;
+			result = await calcLethalSequence(attackerSpec, defenderSpec, attacksN, callOptions);
+		} catch (err) {
+			if (!isEngineFatal()) throw err;
+			// onProgressへスロットルを無視して即座に通知する(resetEngineは約2.4秒かかるため、
+			// UIが無反応に見えないようにする。bulk-adjust.tsの汎用progress表示
+			// `${info.phase}(${info.done}/${info.total})` にそのまま乗る)。
+			onProgress?.({
+				done: lastProgressDone,
+				total: lastProgressTotal,
+				phase: "エンジンが致命的エラーで停止したため再起動しています(数秒かかります)",
+			});
+			await resetEngine();
+			checkAborted(signal);
+			try {
+				engineCallCount++;
+				result = await calcLethalSequence(attackerSpec, defenderSpec, attacksN, callOptions);
+			} catch {
+				// リトライは1回まで(要件2)。再度失敗したら探索を中断する。
+				throw new EngineFatalError(
+					"計算エンジンが致命的エラーで停止したため、耐久調整の探索を中断しました。もう一度お試しください。",
+				);
+			}
+		}
+		await yieldToEventLoopIfDue();
+		return result;
 	}
 
 	// (rowId, 性格クラスキー, HP実数値, B実数値, D実数値) -> 耐えるか(合否)。
@@ -270,8 +354,17 @@ export async function solveDurability(
 		const evs = [evH, fixedEvs.atk, evB, fixedEvs.spa, evD, fixedEvs.spe];
 		const defenderSpec = buildDefenderSpec(nature, evs);
 		const attacksN = expandAttacksToN(req.attacks, req.n);
-		engineCallCount++;
-		const result = await calcLethalSequence(req.attackerSpec, defenderSpec, attacksN, { seed: req.seed });
+		// sequentialOnly: true (要件1本体): この探索経路はlethalしか読まないため、
+		// isolated側(perAttackDamages/perAttackLethal)の計算を丸ごとスキップしてもらう。
+		// lethal/cumulativeDamageの値・打ち切り仕様はsequentialOnlyの有無で完全に一致する
+		// ことが実測済み(pyodide-engine.ts CalcDamagesOptions.sequentialOnlyのコメント参照)。
+		// 1呼び出しあたりのBattle構築+calc_lethal呼び出しが2回→1回に減り、これがクラッシュ
+		// 対策の本体になる(検証: n=16,m=100などは改修前クラッシュしていたが完走するように
+		// なった。検証項目2参照)。
+		const result = await callLethalSequenceResilient(req.attackerSpec, defenderSpec, attacksN, {
+			seed: req.seed,
+			sequentialOnly: true,
+		});
 		const lethal = lethalProbabilityAtN(result, req.n);
 		const surviveProbability = 1 - lethal;
 		const pass = surviveProbability >= req.m / 100 - 1e-9;
@@ -306,8 +399,20 @@ export async function solveDurability(
 			checkAborted(signal);
 			const evs = [0, fixedEvs.atk, evB, fixedEvs.spa, evD, fixedEvs.spe];
 			const spec = buildDefenderSpec(nature, evs);
-			engineCallCount++;
-			return calcLethalSequence(req.attackerSpec, spec, attacksN, { seed: req.seed });
+			// ⚠️ ここは意図的に sequentialOnly を付けない(既定 false のまま)。
+			// 理由(要件1「どちらか選ぶ」の判断・実測含めコメント必須という指示への回答):
+			// sameOutcome() は cumulativeDamage と perAttackDamages の両方を比較しているが、
+			// sequentialOnly:true にすると perAttackDamages が常に空配列になり「常に同じ」と
+			// 誤判定され、B/D依存判定(dependsOnB/dependsOnD)が必ず false に壊れてしまう。
+			// 「sameOutcome を cumulativeDamage だけの比較に変える」案も検討したが、
+			// cumulativeDamage は「確率100%に達するまでの累計」であり、Bを上げて生存ターン数が
+			// 伸びると「1発あたりのダメージ減少」と「合成対象ターン数の増加」が丸め誤差の範囲で
+			// 相殺し、本当はBに依存しているのに差が出ない偽陰性が理論上あり得る(具体例までは
+			// 特定できていないため、安全側に倒した=実測はしていない)。probeDependencyの呼び出し
+			// 回数はrequirement 1件あたり高々3回(baseline/bMax/dMax)でクラッシュリスクが小さい
+			// ため、正しさを優先してここだけ従来通り(perAttackDamagesも計算する重い方)のまま
+			// にする。B/D依存判定が改修前と一致することは検証項目1で実測確認する。
+			return callLethalSequenceResilient(req.attackerSpec, spec, attacksN, { seed: req.seed });
 		}
 		const baseline = await call(0, 0);
 		const bMax = await call(MAX_EV, 0);

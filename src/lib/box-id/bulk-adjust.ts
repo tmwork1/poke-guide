@@ -28,6 +28,7 @@ import type { PokemonSpec } from "../pyodide-engine";
 import { STAT_KEYS, NATURE_STAT_MODIFIERS, type StatKey } from "../stats";
 import {
 	solveDurability,
+	EngineFatalError,
 	type DurabilityRequirement,
 	type DurabilityCandidate,
 	type SolveResult,
@@ -287,6 +288,13 @@ async function runCompute(): Promise<void> {
 	} catch (err) {
 		if (err instanceof DOMException && err.name === "AbortError") {
 			// ユーザーによる中断。ダイアログは開いたままにする(条件を直してやり直せるように)。
+		} else if (err instanceof EngineFatalError) {
+			// 計算エンジンが致命的エラー(WebAssembly.RuntimeError等)で停止し、
+			// resetEngine()での1回のリトライも失敗した状態(bulk-adjust-solver.ts参照)。
+			// AbortErrorと同様ダイアログは開いたままにする(finallyでボタン・入力欄が
+			// 再度有効になるため、条件はそのままで再実行できる)。
+			console.error(err);
+			window.alert(err.message);
 		} else {
 			console.error(err);
 			window.alert("耐久調整の計算に失敗しました。時間をおいて再度お試しください。");
