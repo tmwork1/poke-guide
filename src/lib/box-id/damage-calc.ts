@@ -72,6 +72,8 @@ import {
 	recalcStats,
 	baseStatsMapPromise,
 	registerDamageCalcBridge,
+	registerBulkAdjustBridge,
+	type BulkAdjustRowSnapshot,
 	getSelectedRow,
 	getSelectedColumn,
 	clearSelection,
@@ -1313,6 +1315,65 @@ if (opponentNotesSection) {
 		return `{${keys.map((k) => `${JSON.stringify(k)}:${canonicalStringify(record[k])}`).join(",")}}`;
 	}
 
+	// 🔴 UI改修依頼(個体編集画面、2026-08-02)「耐久調整」機能の土台。recalcRow() が
+	// calcLethalSequence()/calcStats() を呼ぶ直前に組み立てている値(攻守切り替え・
+	// テラスタルのクランプ・乱数シード)を、耐久調整ブリッジ(下のregisterBulkAdjustBridge
+	// 呼び出し・getDefenseRows)からも同じ手順で取得できるよう、recalcRow内にあった
+	// 該当箇所(攻守切り替え〜options組み立て)をこの1関数へ切り出した。
+	// ⚠️ カードの確N表示(recalcRow)と耐久調整の計算対象(getDefenseRows)が別々のロジックで
+	// 値を組み立てると、両者が食い違う(画面は確1なのに耐久調整では耐える、といった不整合)
+	// おそれがあるため、必ずこの1関数だけから両方が導出されるようにする。ロジック自体は
+	// 元のrecalcRow内の対応箇所から1文字も変えずに移設しただけの純粋なリファクタリング
+	// (呼び出し側のrecalcRowは同じ引数・同じ順序でこの関数の戻り値を使うだけ)。
+	function buildSequenceInputs(
+		row: DamageRowState,
+		attacks: OpponentAttackInput[],
+	): {
+		selfIsAttacker: boolean;
+		attackerSpec: PokemonSpec;
+		defenderSpec: PokemonSpec;
+		safeAttacks: SequenceAttack[];
+		options: CalcDamagesOptions;
+	} {
+		// 攻守切り替え: どちらのspecを攻撃側としてエンジンに渡すかだけを入れ替える。
+		// ランク補正・状態異常・テラスタル発動は技カードごとの値(attacks[i]の
+		// attacker*/defender*)としてエンジンに渡すため、specには載せない。
+		// attacker* は「攻撃側という役割」に対する値であり、ここで攻撃側として渡した
+		// specに適用される = directionによって適用先が自動的に入れ替わる。
+		// 相手が攻撃側になる場合、相手のspecにはmoveNamesを積まないが、エンジン側の
+		// _resolve_move()が技リストに無い技名からMoveを新規生成するため計算できる
+		// (pyodide-engine.tsの_resolve_move参照)。
+		const selfIsAttacker = row.direction !== "defense";
+		const selfSpec = buildAttackerSpec();
+		const opponentSpec: PokemonSpec = buildDefenderStatsSpec(row);
+		const attackerSpec = selfIsAttacker ? selfSpec : opponentSpec;
+		const defenderSpec = selfIsAttacker ? opponentSpec : selfSpec;
+		// ラウンド17指摘(A-1・実バグ)の核心対応: jpokeはteraType未指定でも
+		// テラスタル発動すると自身の第1タイプへ黙ってフォールバックし、無警告で
+		// 2.0倍のタイプ一致補正がかかる(`.claude/skills/jpoke/references/ruleset.md`
+		// §4・`damage-calc.md` 3補参照)。サイドバーのチェックボックスはテラスタイプが
+		// 空のとき既にdisabledにしているが(buildSideSection参照)、それだけでは
+		// 「サイドバーを一度も開いていない既存データにattacker/defenderTerastallized:
+		// trueが残っている」ケースを救えない。計算に使う直前でも、対応する側の
+		// specにteraTypeが無ければterastallizedを強制的にfalseへ落とし、
+		// 保存データの状態に関わらず無警告2倍が絶対に起きないようにする
+		// (このクランプは「保存データの補正」ではなく「テラスタル発動は有効な
+		// テラスタイプがあって初めて意味を持つ」という仕様の一貫した適用)。
+		const attackerTeraAvailable = !!attackerSpec.teraType;
+		const defenderTeraAvailable = !!defenderSpec.teraType;
+		const safeAttacks: SequenceAttack[] = (attacks as SequenceAttack[]).map((a) => ({
+			...a,
+			attackerTerastallized: (a.attackerTerastallized ?? false) && attackerTeraAvailable,
+			defenderTerastallized: (a.defenderTerastallized ?? false) && defenderTeraAvailable,
+		}));
+		// 場の状態・急所も技カードごとの値なので、カード共通のoptionsには
+		// 乱数シード(UIからは廃止済みだが既存メモの値は尊重する)だけを渡す。
+		const options: CalcDamagesOptions = {
+			seed: parseSeed(row.seedRaw),
+		};
+		return { selfIsAttacker, attackerSpec, defenderSpec, safeAttacks, options };
+	}
+
 	// 実数値グリッド + ダメージ計算(攻撃列の加算ダメージ・累計致死率)をまとめて再計算する。
 	// エンジン未初期化・相手名未入力の場合は計算せず、保存済みのclientResult(あれば)を
 	// そのまま表示し続ける。
@@ -1345,42 +1406,10 @@ if (opponentNotesSection) {
 		// 必ず数値が変わる(=保存される)ため、自動保存の仕組み自体は変えていない。
 		const previousClientResult = row.clientResult;
 		try {
-			// 攻守切り替え: どちらのspecを攻撃側としてエンジンに渡すかだけを入れ替える。
-			// ランク補正・状態異常・テラスタル発動は技カードごとの値(attacks[i]の
-			// attacker*/defender*)としてエンジンに渡すため、specには載せない。
-			// attacker* は「攻撃側という役割」に対する値であり、ここで攻撃側として渡した
-			// specに適用される = directionによって適用先が自動的に入れ替わる。
-			// 相手が攻撃側になる場合、相手のspecにはmoveNamesを積まないが、エンジン側の
-			// _resolve_move()が技リストに無い技名からMoveを新規生成するため計算できる
-			// (pyodide-engine.tsの_resolve_move参照)。
-			const selfIsAttacker = row.direction !== "defense";
-			const selfSpec = buildAttackerSpec();
-			const opponentSpec: PokemonSpec = buildDefenderStatsSpec(row);
-			const attackerSpec = selfIsAttacker ? selfSpec : opponentSpec;
-			const defenderSpec = selfIsAttacker ? opponentSpec : selfSpec;
-			// ラウンド17指摘(A-1・実バグ)の核心対応: jpokeはteraType未指定でも
-			// テラスタル発動すると自身の第1タイプへ黙ってフォールバックし、無警告で
-			// 2.0倍のタイプ一致補正がかかる(`.claude/skills/jpoke/references/ruleset.md`
-			// §4・`damage-calc.md` 3補参照)。サイドバーのチェックボックスはテラスタイプが
-			// 空のとき既にdisabledにしているが(buildSideSection参照)、それだけでは
-			// 「サイドバーを一度も開いていない既存データにattacker/defenderTerastallized:
-			// trueが残っている」ケースを救えない。計算に使う直前でも、対応する側の
-			// specにteraTypeが無ければterastallizedを強制的にfalseへ落とし、
-			// 保存データの状態に関わらず無警告2倍が絶対に起きないようにする
-			// (このクランプは「保存データの補正」ではなく「テラスタル発動は有効な
-			// テラスタイプがあって初めて意味を持つ」という仕様の一貫した適用)。
-			const attackerTeraAvailable = !!attackerSpec.teraType;
-			const defenderTeraAvailable = !!defenderSpec.teraType;
-			const safeAttacks: SequenceAttack[] = (attacks as SequenceAttack[]).map((a) => ({
-				...a,
-				attackerTerastallized: (a.attackerTerastallized ?? false) && attackerTeraAvailable,
-				defenderTerastallized: (a.defenderTerastallized ?? false) && defenderTeraAvailable,
-			}));
-			// 場の状態・急所も技カードごとの値なので、カード共通のoptionsには
-			// 乱数シード(UIからは廃止済みだが既存メモの値は尊重する)だけを渡す。
-			const options: CalcDamagesOptions = {
-				seed: parseSeed(row.seedRaw),
-			};
+			// 攻守切り替え・テラスタルのクランプ・乱数シードの組み立ては
+			// buildSequenceInputs()(上で定義)に切り出した(耐久調整ブリッジと共通化するため。
+			// 詳細は同関数のコメント参照)。
+			const { attackerSpec, defenderSpec, safeAttacks, options } = buildSequenceInputs(row, attacks);
 			const [seqResult, statsResult] = await Promise.all([
 				calcLethalSequence(attackerSpec, defenderSpec, safeAttacks, options),
 				calcStats(defenderSpec),
@@ -2008,7 +2037,17 @@ if (opponentNotesSection) {
 	// 追加せず、row参照をキーにしたWeakSet/WeakMapで折りたたみ状態と行ごとの
 	// setCollapsed()を保持する(WeakなのでrowがGCされれば自動的に参照も外れる)。
 	const collapsedRowSet = new WeakSet<DamageRowState>();
-	const rowCollapseHandles = new WeakMap<DamageRowState, { setCollapsed: (collapsed: boolean) => void }>();
+	// 🔴 UI改修依頼(個体編集画面、2026-08-02)「耐久調整」機能の土台。refreshCollapsedViewsは
+	// 耐久調整ポップアップに貼る圧縮表示の複製(buildCollapsedPreview、下方参照)を作る前に、
+	// 元のカードの折りたたみ状態(dataset.collapsed)を一切変えずに、折りたたみ用DOM
+	// (.damage-row-collapsed-summary/.damage-row-collapsed-techniques・実数値表)の中身だけを
+	// 最新化するために追加した。setCollapsed()が呼んでいるrefreshCollapsedSummary()/
+	// refreshCollapsedStats()/refreshCollapsedTechniques()の3つをこの1関数にまとめて、
+	// setCollapsedと同じくrenderRowのクロージャ内で定義してWeakMapへ登録する。
+	const rowCollapseHandles = new WeakMap<
+		DamageRowState,
+		{ setCollapsed: (collapsed: boolean) => void; refreshCollapsedViews: () => void }
+	>();
 	function setAllRowsCollapsed(collapsed: boolean): void {
 		for (const row of rows) {
 			rowCollapseHandles.get(row)?.setCollapsed(collapsed);
@@ -2644,11 +2683,21 @@ if (opponentNotesSection) {
 			// ヘッダーボタンのラベルを最新の「全部畳まれているか」判定で更新する。
 			updateCollapseToggleButtonLabel();
 		}
+		// 🔴 UI改修依頼(個体編集画面、2026-08-02)「耐久調整」機能の土台。setCollapsed()から
+		// dataset.collapsed/width操作を除いた「表示中身の最新化」だけを行う版。耐久調整
+		// ポップアップ用の複製(buildCollapsedPreview)を作る直前に、このカード(元のDOM)の
+		// 折りたたみ状態を変えずに.damage-row-collapsed-summary等の中身だけ最新化するために使う。
+		function refreshCollapsedViews(): void {
+			refreshCollapsedSummary();
+			refreshCollapsedStats();
+			refreshCollapsedTechniques();
+		}
 		collapseToggleButton.addEventListener("click", () => setCollapsed(!collapsedRowSet.has(row)));
 		// 36-3「すべて折りたたむ・展開する」ツールバーが行ごとのsetCollapsed()を呼べるように、
 		// row参照をキーにしたWeakMapへ登録する(DamageRowState自体にコールバック用フィールドを
 		// 増やさないための実装手段。上のimport元のshared-core.tsは編集対象外ファイルのため)。
-		rowCollapseHandles.set(row, { setCollapsed });
+		// 耐久調整ブリッジ(refreshCollapsedViews)もここで一緒に登録する。
+		rowCollapseHandles.set(row, { setCollapsed, refreshCollapsedViews });
 		// 🔴 UI改善ラウンド42ユーザー指示(42-D4/42-D5)対応: 初回のsetCollapsed(false)呼び出しは
 		// renderRow末尾(techniquesRow/collapsedTechniques・totalBlock等すべてのconst構築が
 		// 完了した後、下方のrefreshSprite()等の初期描画呼び出しの並びに移設した。旧実装は
@@ -3214,6 +3263,95 @@ if (opponentNotesSection) {
 
 	// --- 行一覧の状態・取得・追加 ---
 	let rows: DamageRowState[] = [];
+
+	// 🔴 UI改修依頼(個体編集画面、2026-08-02)「耐久調整」機能の土台。row.idはPOST前の
+	// 新規行だとnull(619行目付近のid: null参照)のため、耐久調整ブリッジが行を一意に
+	// 指すためのidはrow.id(あれば)を優先しつつ、無ければローカル専用の合成idを割り当てて
+	// WeakMapへキャッシュする(一度決めたidは、以後row.idが変わっても差し替えない=
+	// getDefenseRows→buildCollapsedPreviewの往復の間でidがぶれないようにするため)。
+	const bulkAdjustRowIds = new WeakMap<DamageRowState, string>();
+	let bulkAdjustRowIdSeq = 0;
+	function bulkAdjustRowId(row: DamageRowState): string {
+		let id = bulkAdjustRowIds.get(row);
+		if (!id) {
+			id = row.id ?? `local-${++bulkAdjustRowIdSeq}`;
+			bulkAdjustRowIds.set(row, id);
+		}
+		return id;
+	}
+	function findRowByBulkAdjustId(rowId: string): DamageRowState | undefined {
+		return rows.find((row) => bulkAdjustRowId(row) === rowId);
+	}
+
+	// direction === "defense" のカードだけを耐久調整用のスナップショットにする。
+	// 名前が空、または有効な技(moveNameが非空)が0件の行は計算できないため除外する。
+	// attackerSpec/attacks(=safeAttacks)/optionsの組み立てはrecalcRow()と全く同じ
+	// buildSequenceInputs()から導出する(カードの確N表示と耐久調整の計算を食い違わせない
+	// ための今回の最重要要件。上のbuildSequenceInputsのコメント参照)。
+	function getDefenseRows(): BulkAdjustRowSnapshot[] {
+		const result: BulkAdjustRowSnapshot[] = [];
+		for (const row of rows) {
+			if (row.direction !== "defense") continue;
+			if (row.name.trim() === "") continue;
+			// recalcRowが計算直前に行っているのと同じ順序(壁on/off・攻守ランクの配列反映
+			// →有効な技の抽出)を再現する(1324〜1330行目付近のrecalcRow参照)。
+			for (const a of row.attacks) resolveColumnDerivedFields(a);
+			const attacks = validAttacksOf(row);
+			if (attacks.length === 0) continue;
+			const { attackerSpec, safeAttacks } = buildSequenceInputs(row, attacks);
+			// 表示用の技名一覧。refreshCollapsedTechniques()の1段目(collapsedMoveListEl)と
+			// 同じ「hitCount>1のときだけ(N発)を付記する」表記に揃える(3095行目付近参照)。
+			const moveLabels = attacks.map((a) => ((a.hitCount ?? 1) > 1 ? `${a.moveName}(${a.hitCount}発)` : a.moveName));
+			result.push({
+				id: bulkAdjustRowId(row),
+				name: row.name.trim(),
+				attackerSpec,
+				attacks: safeAttacks,
+				moveLabels,
+				seed: parseSeed(row.seedRaw),
+			});
+		}
+		return result;
+	}
+
+	// 指定した行のカードDOM(article.card.card-damage、row.root)を、折りたたみ表示状態で
+	// 複製して返す。ポップアップに貼るための表示専用の複製で、元のカードの展開/折りたたみ
+	// 状態には一切影響しない。
+	function buildCollapsedPreview(rowId: string): HTMLElement | null {
+		const row = findRowByBulkAdjustId(rowId);
+		if (!row || !row.root) return null;
+		// 複製の前に、この行の折りたたみ用DOM(.damage-row-collapsed-summary/
+		// .damage-row-collapsed-techniques・実数値表)を最新値で埋める。カードが展開状態の
+		// ままだとこれらの中身が空/古いままなので、複製前に必ず呼ぶ(refreshCollapsedViews、
+		// 上のrowCollapseHandles参照)。呼んでいるのは表示用DOMの更新だけで、root.dataset.
+		// collapsed・root.style.widthには触れない(元のカードの見た目は変えない)。
+		rowCollapseHandles.get(row)?.refreshCollapsedViews();
+		const clone = row.root.cloneNode(true) as HTMLElement;
+		// ページ内でidが重複すると document.getElementById が壊れるため、複製から
+		// すべてのid属性を再帰的に削除する(クローンのroot自身がidを持つ想定は無いが、
+		// 念のため両方処理する)。
+		clone.removeAttribute("id");
+		clone.querySelectorAll<HTMLElement>("[id]").forEach((idEl) => idEl.removeAttribute("id"));
+		// 表示専用の複製なので、フォーム要素(name属性の有無を問わず)はすべて操作不可にする
+		// (誤操作・自動保存の暴発を防ぐ)。tabindex="-1"でフォーカスが入らないようにもする。
+		clone.querySelectorAll<HTMLElement>("input, select, textarea, button").forEach((formEl) => {
+			(formEl as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement | HTMLButtonElement).disabled = true;
+			formEl.tabIndex = -1;
+		});
+		// setCollapsed()は折りたたみ時にroot.style.widthを実測値で固定するが(2611行目付近)、
+		// その固定幅を複製に持ち込むとポップアップ側のレイアウトを壊すため、複製の
+		// style.widthは常に空にする(ポップアップ側の幅はCSSに委ねる)。
+		clone.style.width = "";
+		// 複製側にだけ折りたたみ状態を強制する(元のカードのdataset.collapsedは変更しない)。
+		clone.dataset.collapsed = "true";
+		return clone;
+	}
+
+	registerBulkAdjustBridge({
+		getDefenseRows: () => getDefenseRows(),
+		buildCollapsedPreview: (rowId) => buildCollapsedPreview(rowId),
+	});
+
 	const damageRowsListEl = el<HTMLElement>("damage-rows-list");
 	const engineStatusEl = el<HTMLElement>("damage-calc-engine-status");
 	const engineStatusTextEl = el<HTMLElement>("damage-calc-engine-status-text");

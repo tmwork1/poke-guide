@@ -39,7 +39,7 @@
 // 詳細はコーディネーターへの報告を参照)。
 
 import { el, readEv, readMoveNames } from "../owned-pokemon-form";
-import type { PokemonSpec } from "../pyodide-engine";
+import type { PokemonSpec, SequenceAttack } from "../pyodide-engine";
 import { loadImageIdMap, loadBaseStatsMap, loadMegaStoneMap, spriteUrl } from "../pokemon-master-data";
 import { loadItemSpriteMap, itemIconUrl, teraTypeIconUrl } from "../sprite-urls";
 import { TYPE_COLORS, DEFAULT_TYPE_COLOR } from "../type-colors";
@@ -373,6 +373,54 @@ export interface DamageCalcBridge {
 let damageCalcBridge: DamageCalcBridge | null = null;
 export function registerDamageCalcBridge(bridge: DamageCalcBridge): void {
 	damageCalcBridge = bridge;
+}
+
+// 🔴 UI改修依頼(個体編集画面、2026-08-02)「耐久調整」機能の土台。
+// 耐久調整ポップアップ(後続実装、src/lib/box-id/bulk-adjust.ts 等が新規に担当)は
+// 「防御(相手→自分)方向のダメージ計算カード」だけを圧縮表示し、その計算条件を使って
+// 性格+努力値の組み合わせを探索する。上のDamageCalcBridgeと全く同じ登録(register)
+// パターンで、damage-calc.ts側(#opponent-notes-sectionブロック内)からrow一覧・
+// カードDOMへのアクセスを提供するブリッジを追加する。
+//
+// ⚠️ getDefenseRowsが組み立てるattackerSpec/attacks/optionsは、recalcRow()が
+// calcLethalSequence()を呼ぶ直前に組み立てているものと**寸分違わず同一の内部ヘルパー
+// (damage-calc.ts側のbuildSequenceInputs)から導出される**。カードの確N表示(recalcRow)と
+// 耐久調整の計算(このブリッジ)が別々のロジックから値を組み立てると、両者の結果が
+// 食い違う(=表示は確1なのに耐久調整では耐えない、といった不整合)リスクがあるため、
+// 「単一の実装から両方が導出される」ことを最重要要件として damage-calc.ts 側で
+// リファクタリングしている(詳細はdamage-calc.tsのbuildSequenceInputsのコメント参照)。
+export interface BulkAdjustRowSnapshot {
+	/** 行の識別子(既存の row を一意に指せるもの)。 */
+	id: string;
+	/** 相手(攻撃側)の種族名。表示にも使う。 */
+	name: string;
+	/** 相手(攻撃側)の PokemonSpec。recalcRow が組み立てているものと同一(buildSequenceInputs経由)。 */
+	attackerSpec: PokemonSpec;
+	/** 技列。recalcRow の safeAttacks と同一(テラスタルのクランプ適用済み)。 */
+	attacks: SequenceAttack[];
+	/** 表示用の技名一覧(attacks と同じ順・同じ件数)。 */
+	moveLabels: string[];
+	/** recalcRow が options に渡しているシード(parseSeed(row.seedRaw) の結果)。 */
+	seed?: number;
+}
+
+export interface BulkAdjustBridge {
+	/** direction === "defense" のカードだけを、上記スナップショットにして返す(表示順を維持)。 */
+	getDefenseRows: () => BulkAdjustRowSnapshot[];
+	/**
+	 * 指定した行のカードDOMを「圧縮表示(折りたたみ)状態」で複製して返す。
+	 * ポップアップ内に貼るための表示専用の複製。存在しない id なら null。
+	 */
+	buildCollapsedPreview: (rowId: string) => HTMLElement | null;
+}
+// getBulkAdjustBridge()は既存のleftPanelBridge!/damageCalcBridge!のような非nullアサーションを
+// 使わない(後続実装がボタンの有効/無効判定に使うため、未登録の可能性を型で表現する)。
+let bulkAdjustBridge: BulkAdjustBridge | null = null;
+export function registerBulkAdjustBridge(bridge: BulkAdjustBridge): void {
+	bulkAdjustBridge = bridge;
+}
+export function getBulkAdjustBridge(): BulkAdjustBridge | null {
+	return bulkAdjustBridge;
 }
 
 const CALC_DEBOUNCE_MS = 600;
