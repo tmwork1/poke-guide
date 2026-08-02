@@ -151,6 +151,25 @@ export interface CalcDamagesOptions {
    * 致死率計算」を独立に扱えるjpoke側の設計に沿っている)。
    */
   hitCount?: number;
+  /**
+   * `calcLethalSequence()` 専用(2026-08-02追加)。true の場合、攻撃ごとの
+   * isolated側計算(`perAttackDamages`/`perAttackLethal` の元になる、その技を
+   * 単体で見た場合の計算)を丸ごとスキップする。省略時は false(既定値は
+   * 必ず false にすること。既存の呼び出し元 `src/lib/box-id/damage-calc.ts` の
+   * `recalcRow` は `perAttackDamages`/`perAttackLethal` を実際に表示に使っており、
+   * 既定を変えるとダメージ計算カードの表示が壊れる)。
+   *
+   * 耐久調整のソルバー(`src/lib/box-id/bulk-adjust-solver.ts`)は `lethal` しか
+   * 読んでおらず、isolated側は計算されてから捨てられていた。1攻撃あたりの
+   * Battle構築(`jpoke`側で `calc_lethal()` 呼び出しごとに発生するdeepcopy)+
+   * calc_lethal呼び出しが2回→1回に減るため、WASMヒープを圧迫する参照循環グラフの
+   * 生成数が半減し、"memory access out of bounds" クラッシュへの耐性が上がる
+   * (詳細はBOOTSTRAP_PYTHON冒頭のgc.collect()コメント参照)。
+   * true のとき `perAttackDamages`/`perAttackLethal` は各攻撃ぶん空配列になる
+   * (`lethal`/`cumulativeDamage` の計算・打ち切り仕様は一切変更しない)。
+   * `calcDamages()` はこのオプションを参照しない(常に従来通り計算する)。
+   */
+  sequentialOnly?: boolean;
 }
 
 /** 攻撃をN回撃った時点での致死率(HPが0になる確率、0.0〜1.0)。 */
@@ -317,6 +336,7 @@ type CalcLethalSequenceJsonFn = (
   seed: number | null,
   critical: boolean,
   fieldSpec: PyProxy,
+  sequentialOnly: boolean,
 ) => string;
 
 // --- モジュールスコープの状態(シングルトン) ---
@@ -402,12 +422,30 @@ function loadScriptOnce(src: string): Promise<void> {
  * 同じ理由で `${'$'}{...}` の形も書かないこと(意図しない式展開になる)。
  */
 const BOOTSTRAP_PYTHON = `
+import gc
 import json
 from jpoke import Battle, Player, Pokemon, Move
 from jpoke.core import EventContext
 from jpoke.enums import Event
 from jpoke.utils.constants import STATS, STAT_RANK_MIN, STAT_RANK_MAX
 from jpoke.utils.lethal_dist import State, add_dist
+
+
+# 2026-08-02: WASM(Pyodide)ヒープが "memory access out of bounds" で致命的に
+# クラッシュする問題への対処。原因は vendor/jpoke/src/jpoke/core/lethal.py の
+# calc_lethal() が呼び出しごとに Battle 全体を deepcopy すること。Battle は
+# 約12個のマネージャ(EventManager/VolatileManager/...)が全て self.battle = battle
+# を持ち合う巨大な参照循環グラフのため、refcountでは絶対に回収されず循環GCが
+# 回るまでゴミとして残る。かつ Emscripten の WASM ヒープは成長するだけで縮まない
+# ため、ゴミが溜まるほどヒープが際限なく拡張され、いずれ確保に失敗してクラッシュする。
+# JS側から呼ばれる各エントリ関数(calc_damages_json/calc_stats_json/
+# calc_lethal_sequence_json)は、戻り値を作り終えた直後・return する前に
+# gc.collect() を挟んで循環ゴミを都度回収する(try/finallyで確実に通す。
+# 実測: 攻撃16件の致死率計算を連続で呼ぶ検証で、gcなしは19回目前後で
+# クラッシュしていたのがgcありだと大幅に改善する。ただしヒープ拡張自体は
+# 元から縮まらない性質のため、これだけでは100%の対策にはならない
+# 点に注意。呼び出し側(box/[id].astro)には resetEngine()/isEngineFatal() を
+# 別途用意し、それでもクラッシュした場合はエンジンを丸ごと作り直せるようにしている)。
 
 
 def _clamp_boost(value):
@@ -575,42 +613,52 @@ def calc_damages_json(
     attacker_spec, defender_spec, move_name, seed, critical, field_spec,
     max_lethal_attack_count, hit_count,
 ):
-    player1 = Player("Attacker")
-    attacker = _build_pokemon(attacker_spec, move_name)
-    player1.team.append(attacker)
+    try:
+        player1 = Player("Attacker")
+        attacker = _build_pokemon(attacker_spec, move_name)
+        player1.team.append(attacker)
 
-    player2 = Player("Defender")
-    defender = _build_pokemon(defender_spec, None)
-    player2.team.append(defender)
+        player2 = Player("Defender")
+        defender = _build_pokemon(defender_spec, None)
+        player2.team.append(defender)
 
-    battle = Battle(player1, player2, seed=seed)
-    battle.start()
-    _apply_field(battle, player2, field_spec)
+        battle = Battle(player1, player2, seed=seed)
+        battle.start()
+        _apply_field(battle, player2, field_spec)
 
-    active_attacker, active_defender = battle.actives
-    _apply_battle_only_state(battle, active_attacker, attacker_spec)
-    _apply_battle_only_state(battle, active_defender, defender_spec)
+        active_attacker, active_defender = battle.actives
+        _apply_battle_only_state(battle, active_attacker, attacker_spec)
+        _apply_battle_only_state(battle, active_defender, defender_spec)
 
-    move = _resolve_move(active_attacker, move_name)
-    damages = battle.calc_damages(active_attacker, active_defender, move, critical=critical)
+        move = _resolve_move(active_attacker, move_name)
+        damages = battle.calc_damages(active_attacker, active_defender, move, critical=critical)
 
-    n_hits = _clamp_hit_count(hit_count)
-    move_arg = move if n_hits <= 1 else (move, n_hits)
-    lethal_results = battle.calc_lethal(
-        active_attacker, move_arg, critical=critical, max_attack=max_lethal_attack_count
-    )
-    lethal = _group_lethal_by_attack_count(lethal_results)
+        n_hits = _clamp_hit_count(hit_count)
+        move_arg = move if n_hits <= 1 else (move, n_hits)
+        lethal_results = battle.calc_lethal(
+            active_attacker, move_arg, critical=critical, max_attack=max_lethal_attack_count
+        )
+        lethal = _group_lethal_by_attack_count(lethal_results)
 
-    return json.dumps({"damages": damages, "lethal": lethal})
+        return json.dumps({"damages": damages, "lethal": lethal})
+    finally:
+        # battle/battle.calc_lethal()内部のdeepcopyが作る参照循環グラフを、
+        # 戻り値を作り終えた直後に都度回収する(ファイル冒頭のgc.collect()コメント参照)。
+        gc.collect()
 
 
 def calc_stats_json(spec):
-    # fallback_move_name=None: 育成ビルダーでは技を1つも選んでいない状態でも実数値計算が
-    # 必要なため、_build_pokemon() 側の「moveNamesが空ならfallback_move_nameを使い、
-    # それも無ければ["はねる"]で補う」フォールバックにそのまま委ねる
-    # (spec.moveNamesが空リストでもエラーにならない)。
-    pokemon = _build_pokemon(spec, None)
-    return json.dumps({"stats": pokemon.stats})
+    try:
+        # fallback_move_name=None: 育成ビルダーでは技を1つも選んでいない状態でも実数値計算が
+        # 必要なため、_build_pokemon() 側の「moveNamesが空ならfallback_move_nameを使い、
+        # それも無ければ["はねる"]で補う」フォールバックにそのまま委ねる
+        # (spec.moveNamesが空リストでもエラーにならない)。
+        pokemon = _build_pokemon(spec, None)
+        return json.dumps({"stats": pokemon.stats})
+    finally:
+        # calc_stats_jsonはBattleを生成しないため参照循環は作らないが、
+        # 3エントリ関数の挙動を揃えるため同様にgc.collect()を呼んでおく。
+        gc.collect()
 
 
 def _clamp_hp_dist_min0(hp_dist):
@@ -677,9 +725,19 @@ def _build_per_attack_spec(base_spec, boosts_key, ailment_key, tera_key, volatil
     return spec
 
 
-def calc_lethal_sequence_json(attacker_spec, defender_spec, attacks, seed, critical, field_spec):
+def calc_lethal_sequence_json(attacker_spec, defender_spec, attacks, seed, critical, field_spec, sequential_only=False):
     """攻撃列(attacks: [{"moveName": str, "hitCount": int, ...per-attack条件}, ...])を
     先頭から順に当てていったときの、各段階での累計致死率・技ごとの参考値を計算する。
+
+    'sequential_only'(2026-08-02追加。既定False): Trueの場合、'isolated'側の計算
+    (perAttackDamages/perAttackLethalの元になる、攻撃ごとの単体計算)を丸ごと
+    スキップする。耐久調整のソルバー('src/lib/box-id/bulk-adjust-solver.ts')は
+    'lethal'(sequential側)しか読んでおらず、isolated側は計算されてから
+    捨てられていた。1攻撃あたりのBattle構築+calc_lethal呼び出しが2回→1回になり、
+    WASMヒープを圧迫する参照循環グラフ(deepcopyされたBattle)の生成数がほぼ半減する
+    (ファイル冒頭のgc.collect()コメント参照)。Trueのとき'perAttackDamages'/
+    'perAttackLethal'は各攻撃ぶん空配列'[]'になる('lethal'/'cumulativeDamage'の
+    計算・打ち切り仕様は一切変更しない)。
 
     per-attack条件(優先順位: per-attack指定 > カード共通 > 未設定。'_resolve_attack_override'
     参照): 急所('critical')・攻守双方のランク補正/状態異常/テラスタル発動/揮発性状態
@@ -787,162 +845,179 @@ def calc_lethal_sequence_json(attacker_spec, defender_spec, attacks, seed, criti
     合成結果になる)。
     """
 
-    def compute_attack_result(attack, resume_from, need_sequential):
-        # 攻撃1件につき、専用のBattleを新規構築する(このBattleは使い捨てで、
-        # 次の攻撃には引き継がない。引き継ぐのはBattleそのものではなく、下で
-        # calc_lethalに渡すresume_from=LethalHitResultだけ)。
-        move_name = attack["moveName"]
-        n_hits = _clamp_hit_count(attack.get("hitCount"))
-        critical_for_attack = _resolve_attack_override(critical, attack.get("critical"))
-
-        attacker_spec_for_attack = _build_per_attack_spec(
-            attacker_spec, "attackerBoosts", "attackerAilment", "attackerTerastallized",
-            "attackerVolatiles", attack
-        )
-        defender_spec_for_attack = _build_per_attack_spec(
-            defender_spec, "defenderBoosts", "defenderAilment", "defenderTerastallized",
-            "defenderVolatiles", attack
-        )
-        # field_spec(カード共通)にattack側のper-attack上書きをマージする。
-        # weather/terrain/defenderSideFieldsのいずれも、このBattle専用の
-        # attack_field_specとして_apply_field()にそのまま渡すだけで独立して効く
-        # (1つのBattleを使い回さないため、他の攻撃のfield_specに影響しない)。
-        attack_field_spec = dict(field_spec)
-        attack_field_spec["weather"] = _resolve_attack_override(field_spec.get("weather"), attack.get("weather"))
-        attack_field_spec["terrain"] = _resolve_attack_override(field_spec.get("terrain"), attack.get("terrain"))
-        attack_field_spec["defenderSideFields"] = _resolve_attack_override(
-            field_spec.get("defenderSideFields"), attack.get("defenderSideFields")
-        )
-
-        p1 = Player("Attacker")
-        att = _build_pokemon(attacker_spec_for_attack, None)
-        p1.team.append(att)
-        p2 = Player("Defender")
-        dfd = _build_pokemon(defender_spec_for_attack, None)
-        p2.team.append(dfd)
-
-        attack_battle = Battle(p1, p2, seed=seed)
-        attack_battle.start()
-        _apply_field(attack_battle, p2, attack_field_spec)
-
-        active_att, active_dfd = attack_battle.actives
-        _apply_battle_only_state(attack_battle, active_att, attacker_spec_for_attack)
-        _apply_battle_only_state(attack_battle, active_dfd, defender_spec_for_attack)
-
-        move = _resolve_move(active_att, move_name)
-        move_arg = move if n_hits <= 1 else (move, n_hits)
-
-        def fold_damage_dist(hit_results):
-            # 'LethalHitResult.damage_dist'は「そのヒット1発分」の打点分布であり
-            # 累積ではないため('_lethal_loop'参照)、n_hits全ヒット分を
-            # add_distで畳み込んで「この攻撃1回ぶん」の打点分布を組み立てる
-            # (重要(5)参照)。
-            folded = 0
-            for hr in hit_results:
-                folded = add_dist(folded, hr.damage_dist)
-            return folded
-
-        # max_attack=1: この1回の呼び出しでこの技(のn_hitsぶんの全ヒット)だけを
-        # 適用させ、ターン終了時処理まで終えた結果を得る(重要(2)参照)。
-        # 'isolated': 「この技カード単体を見た場合」用。常にフルHPから計算する
-        # (resume_from未指定)。
-        isolated_hits = attack_battle.calc_lethal(
-            active_att, move_arg, critical=critical_for_attack, max_attack=1
-        )
-        if not isolated_hits:
-            # 理論上到達しない(上記docstring「重要(2)」参照。calc_lethalは
-            # 1回の呼び出しで必ず1件以上返す)が、万一の安全策としてNoneを返し、
-            # 呼び出し側で「この攻撃は計算不能だった」ことが分かる形にする。
-            return None
-
-        result = {
-            "isolated_result": isolated_hits[-1],
-            "isolated_damage_dist": fold_damage_dist(isolated_hits),
-            "sequential_result": None,
-            "sequential_damage_dist": None,
-        }
-
-        if need_sequential:
-            # 'sequential': 技列全体の累計(lethal/cumulativeDamage)用。前の攻撃
-            # 終了時点のLethalHitResult(resume_from)からHP状態を引き継いで計算する
-            # (重要(3)参照。マルチスケイル等のHP依存効果を修正する本体)。
-            sequential_hits = attack_battle.calc_lethal(
-                active_att, move_arg, critical=critical_for_attack, max_attack=1,
-                resume_from=resume_from,
+    try:
+        def compute_attack_result(attack, resume_from, need_sequential):
+            # 攻撃1件につき、専用のBattleを新規構築する(このBattleは使い捨てで、
+            # 次の攻撃には引き継がない。引き継ぐのはBattleそのものではなく、下で
+            # calc_lethalに渡すresume_from=LethalHitResultだけ)。
+            move_name = attack["moveName"]
+            n_hits = _clamp_hit_count(attack.get("hitCount"))
+            critical_for_attack = _resolve_attack_override(critical, attack.get("critical"))
+    
+            attacker_spec_for_attack = _build_per_attack_spec(
+                attacker_spec, "attackerBoosts", "attackerAilment", "attackerTerastallized",
+                "attackerVolatiles", attack
             )
-            if sequential_hits:
-                result["sequential_result"] = sequential_hits[-1]
-                result["sequential_damage_dist"] = fold_damage_dist(sequential_hits)
-
-        return result
-
-    per_attack_damages = []
-    per_attack_lethal = []
-    lethal = []
-    cumulative_damage_dist = None
-    # resume_stateは技列全体の累計計算(sequential側)専用の引き継ぎ状態。
-    # sequence_resolvedがTrueになった(=途中で致死率100%に到達した)後は、以降の
-    # 攻撃で'sequential'計算自体を行わない(結果を使わないため計算を省略する)。
-    resume_state = None
-    sequence_resolved = False
-
-    for attack in attacks:
-        computed = compute_attack_result(attack, resume_state, not sequence_resolved)
-
-        if computed is None:
-            per_attack_damages.append([])
-            per_attack_lethal.append([])
-            continue
-
-        isolated_result = computed["isolated_result"]
-        # 全ヒット分を畳み込んだ打点分布のキーを昇順に並べる。
-        per_attack_damages.append(_dist_values_sorted(computed["isolated_damage_dist"]))
-
-        repeat_acc = isolated_result
-        this_attack_lethal = [{"attackCount": 1, "probability": repeat_acc.lethal_probability}]
-        for k in range(2, 11):
-            if this_attack_lethal[-1]["probability"] >= 1.0:
-                break
-            repeat_acc = repeat_acc + isolated_result
-            # 一度致死した枝が後続の合成で「生き返る」ことがないようクランプする
-            # (重要(4)参照。'__add__'経由の自己合成にのみ必要)。
-            repeat_acc.hp_dist = _clamp_hp_dist_min0(repeat_acc.hp_dist)
-            this_attack_lethal.append({"attackCount": k, "probability": repeat_acc.lethal_probability})
-        per_attack_lethal.append(this_attack_lethal)
-
-        if sequence_resolved:
-            continue
-        sequential_result = computed["sequential_result"]
-        if sequential_result is None:
-            # 安全策発動時(理論上到達しない)は累計への合成を諦め、この攻撃だけを
-            # 読み飛ばして次の攻撃から累計を継続する('lethal'の該当attackCountは
-            # 欠番になるが、attacksより短い配列になり得ることは元々の仕様の範囲内)。
-            continue
-
-        lethal.append({"attackCount": len(lethal) + 1, "probability": sequential_result.lethal_probability})
-        cumulative_damage_dist = (
-            computed["sequential_damage_dist"] if cumulative_damage_dist is None
-            else add_dist(cumulative_damage_dist, computed["sequential_damage_dist"])
-        )
-        resume_state = sequential_result
-        if sequential_result.lethal_probability >= 1.0:
-            # 既に確率100%で致死が確定したため、以降の攻撃はsequential計算・
-            # lethal/cumulativeDamageへの合成の両方を打ち切る(perAttackDamages/
-            # perAttackLethalは引き続き全攻撃ぶん計算を続ける)。
-            sequence_resolved = True
-
-    if cumulative_damage_dist is not None:
-        cumulative_values = _dist_values_sorted(cumulative_damage_dist)
-        cumulative_damage = {"min": cumulative_values[0], "max": cumulative_values[-1]}
-    else:
-        cumulative_damage = {"min": 0, "max": 0}
-
-    return json.dumps({
-        "lethal": lethal,
-        "perAttackDamages": per_attack_damages,
-        "perAttackLethal": per_attack_lethal,
-        "cumulativeDamage": cumulative_damage,
-    })
+            defender_spec_for_attack = _build_per_attack_spec(
+                defender_spec, "defenderBoosts", "defenderAilment", "defenderTerastallized",
+                "defenderVolatiles", attack
+            )
+            # field_spec(カード共通)にattack側のper-attack上書きをマージする。
+            # weather/terrain/defenderSideFieldsのいずれも、このBattle専用の
+            # attack_field_specとして_apply_field()にそのまま渡すだけで独立して効く
+            # (1つのBattleを使い回さないため、他の攻撃のfield_specに影響しない)。
+            attack_field_spec = dict(field_spec)
+            attack_field_spec["weather"] = _resolve_attack_override(field_spec.get("weather"), attack.get("weather"))
+            attack_field_spec["terrain"] = _resolve_attack_override(field_spec.get("terrain"), attack.get("terrain"))
+            attack_field_spec["defenderSideFields"] = _resolve_attack_override(
+                field_spec.get("defenderSideFields"), attack.get("defenderSideFields")
+            )
+    
+            p1 = Player("Attacker")
+            att = _build_pokemon(attacker_spec_for_attack, None)
+            p1.team.append(att)
+            p2 = Player("Defender")
+            dfd = _build_pokemon(defender_spec_for_attack, None)
+            p2.team.append(dfd)
+    
+            attack_battle = Battle(p1, p2, seed=seed)
+            attack_battle.start()
+            _apply_field(attack_battle, p2, attack_field_spec)
+    
+            active_att, active_dfd = attack_battle.actives
+            _apply_battle_only_state(attack_battle, active_att, attacker_spec_for_attack)
+            _apply_battle_only_state(attack_battle, active_dfd, defender_spec_for_attack)
+    
+            move = _resolve_move(active_att, move_name)
+            move_arg = move if n_hits <= 1 else (move, n_hits)
+    
+            def fold_damage_dist(hit_results):
+                # 'LethalHitResult.damage_dist'は「そのヒット1発分」の打点分布であり
+                # 累積ではないため('_lethal_loop'参照)、n_hits全ヒット分を
+                # add_distで畳み込んで「この攻撃1回ぶん」の打点分布を組み立てる
+                # (重要(5)参照)。
+                folded = 0
+                for hr in hit_results:
+                    folded = add_dist(folded, hr.damage_dist)
+                return folded
+    
+            # max_attack=1: この1回の呼び出しでこの技(のn_hitsぶんの全ヒット)だけを
+            # 適用させ、ターン終了時処理まで終えた結果を得る(重要(2)参照)。
+            # 'isolated': 「この技カード単体を見た場合」用。常にフルHPから計算する
+            # (resume_from未指定)。
+            #
+            # sequential_only=True のときはこのBattle上でのcalc_lethal呼び出しを
+            # 1回(sequential側のみ)に減らすため、isolated側の計算自体を丸ごと
+            # スキップする(perAttackDamages/perAttackLethalは呼び出し元で空配列に
+            # なる。docstringの'sequential_only'説明参照)。
+            if sequential_only:
+                isolated_hits = None
+            else:
+                isolated_hits = attack_battle.calc_lethal(
+                    active_att, move_arg, critical=critical_for_attack, max_attack=1
+                )
+                if not isolated_hits:
+                    # 理論上到達しない(上記docstring「重要(2)」参照。calc_lethalは
+                    # 1回の呼び出しで必ず1件以上返す)が、万一の安全策としてNoneを返し、
+                    # 呼び出し側で「この攻撃は計算不能だった」ことが分かる形にする。
+                    return None
+    
+            result = {
+                "isolated_result": isolated_hits[-1] if isolated_hits else None,
+                "isolated_damage_dist": fold_damage_dist(isolated_hits) if isolated_hits else None,
+                "sequential_result": None,
+                "sequential_damage_dist": None,
+            }
+    
+            if need_sequential:
+                # 'sequential': 技列全体の累計(lethal/cumulativeDamage)用。前の攻撃
+                # 終了時点のLethalHitResult(resume_from)からHP状態を引き継いで計算する
+                # (重要(3)参照。マルチスケイル等のHP依存効果を修正する本体)。
+                sequential_hits = attack_battle.calc_lethal(
+                    active_att, move_arg, critical=critical_for_attack, max_attack=1,
+                    resume_from=resume_from,
+                )
+                if sequential_hits:
+                    result["sequential_result"] = sequential_hits[-1]
+                    result["sequential_damage_dist"] = fold_damage_dist(sequential_hits)
+    
+            return result
+    
+        per_attack_damages = []
+        per_attack_lethal = []
+        lethal = []
+        cumulative_damage_dist = None
+        # resume_stateは技列全体の累計計算(sequential側)専用の引き継ぎ状態。
+        # sequence_resolvedがTrueになった(=途中で致死率100%に到達した)後は、以降の
+        # 攻撃で'sequential'計算自体を行わない(結果を使わないため計算を省略する)。
+        resume_state = None
+        sequence_resolved = False
+    
+        for attack in attacks:
+            computed = compute_attack_result(attack, resume_state, not sequence_resolved)
+    
+            if computed is None:
+                per_attack_damages.append([])
+                per_attack_lethal.append([])
+                continue
+    
+            isolated_result = computed["isolated_result"]
+            if isolated_result is None:
+                # sequential_only=Trueでisolated側を計算していない場合(またはisolated側の
+                # 安全策がNoneを返した場合)は、契約通りこの攻撃分は空配列にする。
+                per_attack_damages.append([])
+                per_attack_lethal.append([])
+            else:
+                # 全ヒット分を畳み込んだ打点分布のキーを昇順に並べる。
+                per_attack_damages.append(_dist_values_sorted(computed["isolated_damage_dist"]))
+    
+                repeat_acc = isolated_result
+                this_attack_lethal = [{"attackCount": 1, "probability": repeat_acc.lethal_probability}]
+                for k in range(2, 11):
+                    if this_attack_lethal[-1]["probability"] >= 1.0:
+                        break
+                    repeat_acc = repeat_acc + isolated_result
+                    # 一度致死した枝が後続の合成で「生き返る」ことがないようクランプする
+                    # (重要(4)参照。'__add__'経由の自己合成にのみ必要)。
+                    repeat_acc.hp_dist = _clamp_hp_dist_min0(repeat_acc.hp_dist)
+                    this_attack_lethal.append({"attackCount": k, "probability": repeat_acc.lethal_probability})
+                per_attack_lethal.append(this_attack_lethal)
+    
+            if sequence_resolved:
+                continue
+            sequential_result = computed["sequential_result"]
+            if sequential_result is None:
+                # 安全策発動時(理論上到達しない)は累計への合成を諦め、この攻撃だけを
+                # 読み飛ばして次の攻撃から累計を継続する('lethal'の該当attackCountは
+                # 欠番になるが、attacksより短い配列になり得ることは元々の仕様の範囲内)。
+                continue
+    
+            lethal.append({"attackCount": len(lethal) + 1, "probability": sequential_result.lethal_probability})
+            cumulative_damage_dist = (
+                computed["sequential_damage_dist"] if cumulative_damage_dist is None
+                else add_dist(cumulative_damage_dist, computed["sequential_damage_dist"])
+            )
+            resume_state = sequential_result
+            if sequential_result.lethal_probability >= 1.0:
+                # 既に確率100%で致死が確定したため、以降の攻撃はsequential計算・
+                # lethal/cumulativeDamageへの合成の両方を打ち切る(perAttackDamages/
+                # perAttackLethalは引き続き全攻撃ぶん計算を続ける)。
+                sequence_resolved = True
+    
+        if cumulative_damage_dist is not None:
+            cumulative_values = _dist_values_sorted(cumulative_damage_dist)
+            cumulative_damage = {"min": cumulative_values[0], "max": cumulative_values[-1]}
+        else:
+            cumulative_damage = {"min": 0, "max": 0}
+    
+        return json.dumps({
+            "lethal": lethal,
+            "perAttackDamages": per_attack_damages,
+            "perAttackLethal": per_attack_lethal,
+            "cumulativeDamage": cumulative_damage,
+        })
+    finally:
+        gc.collect()
 `;
 
 /**
@@ -999,11 +1074,7 @@ export function initEngine(onProgress?: ProgressListener): Promise<PyodideInterf
       return pyodide;
     } catch (err) {
       // 失敗時はシングルトンをリセットし、次回 initEngine() 呼び出しで再試行できるようにする。
-      initPromise = null;
-      pyodideSingleton = null;
-      calcDamagesJsonFn = null;
-      calcStatsJsonFn = null;
-      calcLethalSequenceJsonFn = null;
+      resetSingletonState();
       const message = err instanceof Error ? err.message : String(err);
       notify("error", `エラー: ${message}`);
       throw err;
@@ -1013,9 +1084,111 @@ export function initEngine(onProgress?: ProgressListener): Promise<PyodideInterf
   return initPromise;
 }
 
+/**
+ * シングルトン状態(Pyodideインスタンス・関数参照・初期化Promise)を丸ごとクリアする。
+ * 初期化失敗時(元々 `initEngine()` の catch にあった後始末)と、致命的WASMエラー後の
+ * `resetEngine()` の両方から呼ばれる共通の後始末処理として切り出した。
+ *
+ * `pyodideSingleton` への参照を切るだけで良い(明示的なdispose APIはPyodideには無い)。
+ * 参照が切れれば、Battle等が作る参照循環グラフごとJS側のGCで回収され、WASM Memory
+ * (成長するだけで縮まないヒープ)も含めて解放される。
+ */
+function resetSingletonState(): void {
+  initPromise = null;
+  pyodideSingleton = null;
+  calcDamagesJsonFn = null;
+  calcStatsJsonFn = null;
+  calcLethalSequenceJsonFn = null;
+}
+
 /** 初期化済み(ready状態)かどうか。 */
 export function isEngineReady(): boolean {
   return currentStatus === "ready" && pyodideSingleton !== null && calcDamagesJsonFn !== null;
+}
+
+// --- 致命的WASMエラー検知(2026-08-02追加) ---
+//
+// 背景: `calc_lethal()` (vendor/jpoke/src/jpoke/core/lethal.py) は呼び出しごとに
+// Battle全体をdeepcopyし、Battleは約12個のマネージャが循環参照し合う巨大な
+// グラフのため、循環GC(BOOTSTRAP_PYTHON側のgc.collect()呼び出し)が間に合わないと
+// Emscripten WASMヒープが際限なく拡張され、最終的に「memory access out of bounds」
+// (`WebAssembly.RuntimeError`)で致命的にクラッシュする。一度発生するとPyodide
+// インスタンスは復旧不能(ヒープが壊れた状態のまま)なので、以後の呼び出しを
+// 素通しすると分かりにくい形で失敗し続ける。ここでは「致命的エラーを検知した
+// フラグを立てて即座に分かりやすいエラーを返す」「`resetEngine()` で明示的に
+// 作り直せるようにする」の2つで対処する。
+//
+// 通常のPython例外(KeyError等)は`WebAssembly.RuntimeError`ではなく、実測でも
+// 正常にJS側へ伝播することを確認済みなので、誤って致命フラグを立てないよう
+// メッセージ文字列の完全一致ではなく、既知の2パターンの部分一致でのみ判定する。
+let engineFatal = false;
+
+function isFatalWasmError(err: unknown): boolean {
+  if (typeof WebAssembly !== "undefined" && err instanceof WebAssembly.RuntimeError) {
+    return true;
+  }
+  const message = err instanceof Error ? err.message : String(err);
+  return (
+    message.includes("memory access out of bounds") ||
+    message.includes("Pyodide has suffered a fatal error")
+  );
+}
+
+/**
+ * WASMヒープが致命的エラーで壊れ、以後のPyodide呼び出しが信頼できなくなっているか。
+ * `calcDamages`/`calcStats`/`calcLethalSequence` は、このフラグが立った状態で
+ * 呼ばれると(Pyodideを実際には呼ばず)即座にエラーを投げる。`resetEngine()` で
+ * クリアできる。
+ */
+export function isEngineFatal(): boolean {
+  return engineFatal;
+}
+
+/**
+ * 致命的WASMエラー("memory access out of bounds"等)でエンジンが停止した後、
+ * Pyodideインスタンスを丸ごと作り直す。
+ *
+ * `initEngine()` の失敗時後始末と同じ `resetSingletonState()` を再利用し、
+ * 致命フラグもクリアしてから `initEngine()` を呼び直す(旧インスタンスへの参照は
+ * `resetSingletonState()` で切れているため、壊れたWASM Memoryごと通常のJS GCで
+ * 回収される)。進捗リスナーには、`initEngine()` 自体のloading通知に先立って
+ * 「再起動中」であることが伝わるよう、専用メッセージで一度notifyする
+ * (UI側は `EngineProgress.message` を見て「エンジンを再起動しています」等を
+ * 表示できる)。
+ */
+export async function resetEngine(): Promise<void> {
+  resetSingletonState();
+  engineFatal = false;
+  notify("loading", "エンジンを再起動しています...");
+  await initEngine();
+}
+
+const ENGINE_FATAL_MESSAGE =
+  "Pyodideエンジンが致命的エラー(WebAssembly.RuntimeError / memory access out of bounds)で停止しました。resetEngine() を呼んで再初期化してください。";
+
+/**
+ * `calcDamages`/`calcStats`/`calcLethalSequence` 共通: Python側のJSON文字列を
+ * 返す同期呼び出し(`fn`)を実行し、結果をパースして返す。
+ *
+ * `WebAssembly.RuntimeError`(またはそれに相当するメッセージ)を捕まえたときだけ
+ * `engineFatal` を立てて分かりやすいエラーに置き換える。それ以外の例外
+ * (Python側の`KeyError`等、通常のPythonExceptionとしてJSに伝播するもの)は
+ * そのまま素通しする(実測で通常のPython例外は正常にJSへ返ることを確認済みなので、
+ * ここで誤って握りつぶさない)。
+ */
+function callEngineJsonFn<T>(fn: () => string): T {
+  let resultJson: string;
+  try {
+    resultJson = fn();
+  } catch (err) {
+    if (isFatalWasmError(err)) {
+      engineFatal = true;
+      notify("error", ENGINE_FATAL_MESSAGE);
+      throw new Error(ENGINE_FATAL_MESSAGE);
+    }
+    throw err;
+  }
+  return JSON.parse(resultJson) as T;
 }
 
 /**
@@ -1031,11 +1204,15 @@ export async function calcDamages(
   moveName: string,
   options: CalcDamagesOptions = {},
 ): Promise<CalcDamagesResult> {
+  if (engineFatal) {
+    throw new Error(ENGINE_FATAL_MESSAGE);
+  }
   if (!pyodideSingleton || !calcDamagesJsonFn) {
     throw new Error("エンジンが初期化されていません。先に initEngine() を呼んでください。");
   }
 
   const pyodide = pyodideSingleton;
+  const fn = calcDamagesJsonFn;
   const seed = options.seed ?? null;
   const critical = options.critical ?? false;
   const maxLethalAttackCount = options.maxLethalAttackCount ?? 6;
@@ -1047,17 +1224,9 @@ export async function calcDamages(
   // (None分岐をBOOTSTRAP_PYTHON側に増やさないための単純化)。
   const fieldPy = pyodide.toPy(options.field ?? {});
   try {
-    const resultJson = calcDamagesJsonFn(
-      attackerPy,
-      defenderPy,
-      moveName,
-      seed,
-      critical,
-      fieldPy,
-      maxLethalAttackCount,
-      hitCount,
+    return callEngineJsonFn<CalcDamagesResult>(() =>
+      fn(attackerPy, defenderPy, moveName, seed, critical, fieldPy, maxLethalAttackCount, hitCount),
     );
-    return JSON.parse(resultJson) as CalcDamagesResult;
   } finally {
     // toPy() が生成したPythonオブジェクトはJS側で明示的に破棄する
     // (Pyodideのメモリ管理規約。破棄しないとPython側の参照が残りリークする)。
@@ -1091,15 +1260,18 @@ export type Stats = Record<"hp" | "atk" | "def" | "spa" | "spd" | "spe", number>
  * `stats` の計算式には影響しない)。
  */
 export async function calcStats(spec: PokemonSpec): Promise<{ stats: Stats }> {
+  if (engineFatal) {
+    throw new Error(ENGINE_FATAL_MESSAGE);
+  }
   if (!pyodideSingleton || !calcStatsJsonFn) {
     throw new Error("エンジンが初期化されていません。先に initEngine() を呼んでください。");
   }
 
   const pyodide = pyodideSingleton;
+  const fn = calcStatsJsonFn;
   const specPy = pyodide.toPy(spec);
   try {
-    const resultJson = calcStatsJsonFn(specPy);
-    return JSON.parse(resultJson) as { stats: Stats };
+    return callEngineJsonFn<{ stats: Stats }>(() => fn(specPy));
   } finally {
     specPy.destroy();
   }
@@ -1137,13 +1309,22 @@ export async function calcLethalSequence(
   attacks: SequenceAttack[],
   options: CalcDamagesOptions = {},
 ): Promise<CalcLethalSequenceResult> {
+  if (engineFatal) {
+    throw new Error(ENGINE_FATAL_MESSAGE);
+  }
   if (!pyodideSingleton || !calcLethalSequenceJsonFn) {
     throw new Error("エンジンが初期化されていません。先に initEngine() を呼んでください。");
   }
 
   const pyodide = pyodideSingleton;
+  const fn = calcLethalSequenceJsonFn;
   const seed = options.seed ?? null;
   const critical = options.critical ?? false;
+  // 既定 false: isolated側(perAttackDamages/perAttackLethal)を通常通り計算する。
+  // 既存呼び出し元(src/lib/box-id/damage-calc.ts の recalcRow)はこの2つを実際に
+  // 表示へ使っているため、ここで既定を変えると表示が壊れる(CalcDamagesOptions.
+  // sequentialOnly のコメント参照)。
+  const sequentialOnly = options.sequentialOnly ?? false;
 
   const attackerPy = pyodide.toPy(attackerSpec);
   const defenderPy = pyodide.toPy(defenderSpec);
@@ -1152,15 +1333,9 @@ export async function calcLethalSequence(
   // (calcDamages() と同様の単純化)。
   const fieldPy = pyodide.toPy(options.field ?? {});
   try {
-    const resultJson = calcLethalSequenceJsonFn(
-      attackerPy,
-      defenderPy,
-      attacksPy,
-      seed,
-      critical,
-      fieldPy,
+    return callEngineJsonFn<CalcLethalSequenceResult>(() =>
+      fn(attackerPy, defenderPy, attacksPy, seed, critical, fieldPy, sequentialOnly),
     );
-    return JSON.parse(resultJson) as CalcLethalSequenceResult;
   } finally {
     attackerPy.destroy();
     defenderPy.destroy();
