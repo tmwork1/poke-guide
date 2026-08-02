@@ -77,9 +77,9 @@
 	   問題が無く、変えると配色トークンが増える制約に抵触する)。 */
 	--color-primary-strong: #1a7ea1;
 
-	--radius-sm: 6px;
-	--radius-md: 10px;
-	--radius-lg: 12px;
+	--radius-sm: 8px;
+	--radius-md: 12px;
+	--radius-lg: 16px;
 
 	/* --- 余白スケール(2026-07-26 UI品質改善: タスクA) ---
 	   全ページの padding/margin/gap はこの8段階から選ぶ。根拠のない 1.4rem / 0.65rem 等の
