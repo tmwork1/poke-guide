@@ -4,7 +4,8 @@
 // 1行ぶん組み立てるたびに呼び出す「セルのレンダラ」。このファイルの責務(ファイル分割表どおり):
 //   - その個体で実現可能なすばやさ実数値の列挙(素の性格3種×S努力値0〜32×持ち物2種の直積。
 //     ランク上昇は含めない。P1確定仕様)
-//   - 「この個体」セルの3状態描画(R-7: ← 現在[クリック不可] / [ここにする]+内訳 / −)
+//   - 「この個体」セルの3状態描画(R-7: ← 現在[クリック不可] / [性格 努力値N]ボタン / −。
+//     ボタン下の内訳テキストはUI改修2026-08-02第3弾要件3で廃止した)
 //   - クリック時の PUT /api/owned-pokemon/:id(R-1: 全項目上書き契約を厳守。埋め込まれた
 //     レコード全体をspreadしてから nature/evs/item_name の3項目だけ上書きする)
 //   - 保存失敗時の表示(R-10: エラー文言・← 現在マーカーを動かさない・候補を再クリック可能に戻す)
@@ -26,6 +27,7 @@ import {
 import { calcOtherStat } from '../stats';
 import { validateSpeedChartApplyPayload } from '../speed-chart-validation';
 import type { OwnedPokemonRecord } from '../owned-pokemon';
+import { spriteUrl } from '../pokemon-master-data';
 
 export const OWNED_CURRENT_VALUE_EVENT = 'speed-chart:owned-current-changed';
 
@@ -58,6 +60,13 @@ export interface OwnedPanelContext {
    * null のときは null。
    */
   scarfItemName: string | null;
+  /**
+   * 個体サマリのアイコン(1段目)用のスプライトID(PokeAPIの画像ID)。
+   * chart-table.ts が imageIdByName.get(ownedRecord.species_name) ?? null を渡す。
+   * フォルム名がマスターデータに見つからない等でnullのときは、アイコン段は
+   * hiddenのまま(何も表示しない。UI改修2026-08-02第3弾要件1)。
+   */
+  spriteImageId: number | null;
 }
 
 export interface OwnedPanelController {
@@ -67,9 +76,12 @@ export interface OwnedPanelController {
   renderCell(rowValue: number): HTMLElement;
 }
 
+const SUMMARY_SPRITE_ID = 'speed-chart-owned-summary-sprite';
 const SUMMARY_SPECIES_ID = 'speed-chart-owned-summary-species';
+const SUMMARY_ABILITY_ID = 'speed-chart-owned-summary-ability';
 const SUMMARY_NATURE_ID = 'speed-chart-owned-summary-nature';
 const SUMMARY_ITEM_ID = 'speed-chart-owned-summary-item';
+const SUMMARY_EVS_ID = 'speed-chart-owned-summary-evs';
 const SUMMARY_VALUE_ID = 'speed-chart-owned-summary-value';
 const ERROR_BANNER_ID = 'speed-chart-owned-error';
 
@@ -78,6 +90,44 @@ const NATURE_EFFECT_MODIFIER: Record<'up' | 'neutral' | 'down', number> = {
   neutral: 1.0,
   down: 0.9,
 };
+
+// 要件2(2026-08-02第3弾): 「調整」ボタンはクリックすると保存して/box/<id>へページ遷移する
+// ため、そのことを示す「四角から右上に矢印が出る」外部リンク/ページジャンプの一般的な
+// アイコン(feather iconsのexternal-linkと同形)をボタン先頭に付ける。このファイルは
+// JSからDOMを生成する設計(冒頭コメント参照)のため、SVGもcreateElementNSで組み立てる
+// (box-id/right-panel.tsの矢印アイコン生成と同じパターン)。色はstroke="currentColor"で
+// ボタンのテキスト色を継承させ、新色は追加しない。
+function createJumpIcon(): SVGElement {
+  const ns = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(ns, 'svg');
+  svg.setAttribute('class', 'speed-chart-apply-icon');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('width', '14');
+  svg.setAttribute('height', '14');
+  svg.setAttribute('fill', 'none');
+  svg.setAttribute('stroke', 'currentColor');
+  svg.setAttribute('stroke-width', '2');
+  svg.setAttribute('stroke-linecap', 'round');
+  svg.setAttribute('stroke-linejoin', 'round');
+  svg.setAttribute('aria-hidden', 'true');
+  svg.setAttribute('focusable', 'false');
+
+  // 四角(左下に開いた箱)。
+  const box = document.createElementNS(ns, 'path');
+  box.setAttribute('d', 'M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6');
+  svg.appendChild(box);
+
+  // 右上へ突き抜ける矢印(矢じりの折れ線+対角線)。
+  const arrowHead = document.createElementNS(ns, 'path');
+  arrowHead.setAttribute('d', 'M15 3h6v6');
+  svg.appendChild(arrowHead);
+
+  const arrowShaft = document.createElementNS(ns, 'path');
+  arrowShaft.setAttribute('d', 'M10 14 21 3');
+  svg.appendChild(arrowShaft);
+
+  return svg;
+}
 
 export function initOwnedPanel(ctx: OwnedPanelContext): OwnedPanelController {
   // 個体の「現在値」(性格・S努力値・持ち物)。要件2により適用成功後は/box/<id>へ遷移する
@@ -110,13 +160,36 @@ export function initOwnedPanel(ctx: OwnedPanelContext): OwnedPanelController {
       : base;
   }
 
+  // UI改修(2026-08-02第3弾)要件1: 個体サマリを5段構成(アイコン/ニックネーム/特性・
+  // アイテム/性格・努力値/S実数値)にする。特性・努力値の2段はここで新規に追加した
+  // (以前は性格・持ち物バッジの1段のみだった)。
   function updateSummary(): void {
+    // 1段目: アイコン。spriteImageIdが無い個体(マスターデータに未登録のフォルム等)は
+    // hiddenのままにする(pitfalls.md: 画像が無いときは要素ごと隠す)。
+    const spriteEl = document.getElementById(SUMMARY_SPRITE_ID) as HTMLImageElement | null;
+    if (spriteEl) {
+      if (ctx.spriteImageId != null) {
+        spriteEl.src = spriteUrl(ctx.spriteImageId);
+        spriteEl.hidden = false;
+      } else {
+        spriteEl.hidden = true;
+      }
+    }
+    // 2段目: ニックネーム(無ければ種族名)。
     const speciesEl = document.getElementById(SUMMARY_SPECIES_ID);
     if (speciesEl) speciesEl.textContent = ctx.ownedRecord.nickname || ctx.ownedRecord.species_name;
-    const natureEl = document.getElementById(SUMMARY_NATURE_ID);
-    if (natureEl) natureEl.textContent = currentNature ?? '性格未設定';
+    // 3段目: 特性・アイテム。
+    const abilityEl = document.getElementById(SUMMARY_ABILITY_ID);
+    if (abilityEl) abilityEl.textContent = ctx.ownedRecord.ability_name ?? '特性未設定';
     const itemEl = document.getElementById(SUMMARY_ITEM_ID);
     if (itemEl) itemEl.textContent = currentItem ?? '持ち物なし';
+    // 4段目: 性格・努力値。このページの主題がすばやさのため、努力値はS努力値
+    // (currentEvs[5])を表示する(チャンピオンズルールの0〜32スケールは仕様)。
+    const natureEl = document.getElementById(SUMMARY_NATURE_ID);
+    if (natureEl) natureEl.textContent = currentNature ?? '性格未設定';
+    const evsEl = document.getElementById(SUMMARY_EVS_ID);
+    if (evsEl) evsEl.textContent = `努力値${currentEvs[5] ?? 0}`;
+    // 5段目: S実数値。
     const valueEl = document.getElementById(SUMMARY_VALUE_ID);
     if (valueEl) valueEl.textContent = `S実数値 ${currentValue}`;
   }
@@ -175,33 +248,33 @@ export function initOwnedPanel(ctx: OwnedPanelContext): OwnedPanelController {
       return;
     }
 
-    // 状態2: 到達可能([性格・努力値・アイテム]+内訳)。
+    // 状態2: 到達可能([アイコン]性格 努力値N[ アイテム]のボタン。内訳テキストは廃止済み)。
     el.classList.add('is-reachable');
     const wrap = document.createElement('div');
     wrap.className = 'speed-chart-owned-option';
 
-    const itemLabel = selection.usesScarf ? (ctx.scarfItemName ?? '') : currentItem ?? '持ち物なし';
-
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'btn-primary speed-chart-apply-button';
-    // 要件2(2026-08-01第4弾): 汎用的な「ここにする」ではなく、このボタンを押すと個体の
-    // 性格・S努力値・アイテムが具体的に何になるかをボタン自体のテキストにする(下の
-    // breakdownと同じ情報源だが、ボタン単体を見ただけで結果が分かるようにする狙い)。
-    // アイテムは、この候補がすばやさ補正アイテム(こだわりスカーフ等)を使う場合だけ含める
-    // (無関係な現在の持ち物名まで出すと「持ち物も変わる」と誤読されるため)。
-    const buttonParts = [selection.nature, `S努力値${selection.evSpe}`];
+    // 要件2(2026-08-01第4弾、2026-08-02第3弾で改訂): 汎用的な「ここにする」ではなく、
+    // このボタンを押すと個体の性格・S努力値・アイテムが具体的に何になるかをボタン自体の
+    // テキストにする(下にあった内訳テキストは廃止したため、ボタン単体を見ただけで
+    // 結果が分かる必要がある)。アイテムは、この候補がすばやさ補正アイテム
+    // (こだわりスカーフ等)を使う場合だけ末尾に続ける(無関係な現在の持ち物名まで出すと
+    // 「持ち物も変わる」と誤読されるため)。「S努力値」の「S」は右パネル自体が
+    // すばやさ調整専用になった(要件1)ため冗長と判断し「努力値」に短縮、区切りの
+    // スラッシュも廃止してスペース区切りにした(例: 「いじっぱり 努力値6」
+    // 「おくびょう 努力値32 こだわりスカーフ」)。
+    const buttonParts = [selection.nature, `努力値${selection.evSpe}`];
     if (selection.usesScarf && ctx.scarfItemName) buttonParts.push(ctx.scarfItemName);
-    button.textContent = buttonParts.join(' / ');
+    // ボタンを押すと保存後に/box/<id>へ遷移する(下のhandleApply参照)ため、先頭に
+    // ページジャンプを表すインラインSVGアイコンを付ける(要件2)。
+    button.append(createJumpIcon(), document.createTextNode(buttonParts.join(' ')));
     button.addEventListener('click', () => {
       void handleApply(selection, button);
     });
 
-    const breakdown = document.createElement('div');
-    breakdown.className = 'speed-chart-owned-breakdown';
-    breakdown.textContent = `${selection.nature} / S努力値${selection.evSpe} / ${itemLabel}`;
-
-    wrap.append(button, breakdown);
+    wrap.append(button);
 
     // 要件10: 努力値合計が66を超える組み合わせは警告表示のみ(適用はブロックしない。
     // チャンピオンズルールの合計上限66は入力制限を持たない仕様)。

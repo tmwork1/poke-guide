@@ -7,28 +7,30 @@
 // index.astro が <script type="application/json"> で直接埋め込む(このコンポーネントの
 // 外側)ため、ここではdata-*属性だけを介してchart-table.tsへ橋渡しする。
 //
-// UI改修(2026-08-02 第2弾。ユーザー指示):
-//   1. すばやさ上昇要因は常に表示する(表示ON/OFFトグルを廃止)。
-//   2. 表を「実数値 / 族・配分・倍率 / ポケモン・補正要因」の3列構成にする
-//      (?owned= 連携時のみ「調整」を4列目として残す。連携時の行ごとの反映ボタンは
-//      早見表の主要導線のため、3列構成は連携なし時の姿と位置づける)。
-//   3. 3列目は「ポケモンを1段目・補正要因を2段目」(以前と上下逆)。
-//   4. 3列目のポケモン群は左寄せ。
-//   5. トップバー(このファイルが持っていた .speed-chart-toolbar)を廃止し、その中身を
-//      表の右に常設する固定サイドバー(.speed-chart-side)へ移植する。
+// UI改修(2026-08-02 第3弾。ユーザー指示):
+//   1. 常設UI(レギュレーション選択・実数値ジャンプ)は共通トップバー(index.astro側が
+//      hideTopbarをやめてAppLayoutの<header class="app-topbar">を復活させる)へ移した。
+//      このコンポーネントはもう持たない(id="speed-chart-regulation-select"/
+//      "speed-chart-jump-input" はAppLayout側のトップバーに存在する)。
+//   2. 右パネル(.speed-chart-side)は個体調整専用のUIだけにする: OwnedPanel(個体情報)→
+//      「現在地へ戻る」→「とりうるすばやさのみ」トグル。ハンバーガー・戻るリンクは
+//      共通トップバー復活により不要(id重複を避けるためこのファイルからは削除)。
+//   3. hasOwnedPanelがfalseのときは右パネル自体をレンダリングしない(空の帯を防ぐ)。
+//      その場合レイアウトは1カラムになる(data-has-owned-panel属性で分岐、:has()は使わない)。
+//   4. トップバーが復活しsticky(position: sticky; top: 0)で常に画面上端に残るため、
+//      右パネルのsticky位置は--topbar-height(global.cssが:rootと@mediaで公開)ぶん
+//      下げる。表のヘッダー行(.speed-chart-columns-header)は自明な列名のため廃止。
+//   5. 2列目(族・配分・倍率)は太字をやめ、文字サイズを1段上げる。
+//   6. 3列目の補正要因は、グループ単位ではなくポケモンのチップごとに中央揃えで表示する
+//      (chart-table.ts側が.speed-chart-chip-unitでチップと要因を1組にまとめて出す)。
 import OwnedPanel from './OwnedPanel.astro';
 
 interface Props {
 	regulation: string;
-	regulations: readonly string[];
 	ownedId: string | null;
 	hasOwnedPanel: boolean;
-	/** UI改修(2026-08-02): AppLayoutのhideTopbarにより共通トップバーの「戻る」リンクが
-	    出せなくなったため、右パネル内に同等のリンクを描画する。undefinedのときは
-	    非表示(index.astro側の?owned=有無に連動、backHrefのロジックはindex.astro参照)。 */
-	backHref?: string;
 }
-const { regulation, regulations, ownedId, hasOwnedPanel, backHref } = Astro.props;
+const { regulation, ownedId, hasOwnedPanel } = Astro.props;
 ---
 <section
 	class="speed-chart-table"
@@ -37,62 +39,21 @@ const { regulation, regulations, ownedId, hasOwnedPanel, backHref } = Astro.prop
 	data-has-owned-panel={String(hasOwnedPanel)}
 >
 	<div class="speed-chart-layout">
-		{/* 要件5: 旧トップバー(.speed-chart-toolbar)の中身を移植した右パネル。
+		{/* 右パネルは「個体調整専用のUI」だけ(要件): OwnedPanel(個体情報)→
+		    「現在地へ戻る」→「とりうるすばやさのみ」トグル。常設UI(レギュレーション・
+		    実数値ジャンプ)は共通トップバー(index.astro/AppLayout)に移ったのでここには置かない。
+		    hasOwnedPanelがfalseのとき(?owned=なし)は個体調整の対象が無いため、右パネル自体を
+		    レンダリングしない(空の帯が残るのを防ぐ。1200px以上のグリッド定義も
+		    data-has-owned-panel='true'の場合だけ効くようスコープしてある。下のstyle参照)。
 		    1200px以上で表の右に常設(sticky)、それ未満では表の上に積む(DOM順が
 		    パネル→表なので、狭幅ではメディアクエリ無しでそのまま上に来る)。
 		    2カラム化の閾値を900pxではなく1200pxにしているのは、サイドバー256px+
 		    右パネル分を引いた残りにこの表(4列)を入れると900px前後では列が潰れるため
 		    (pitfalls.md「左右2カラムの新規ページは最初から1200pxに揃える」)。 */}
-		<aside class="speed-chart-side panel panel-right">
-			<div class="speed-chart-side-header">
-				{/* hideTopbarによりAppLayoutの<header class="app-topbar">が描画されないため、
-				    モバイル(900px未満)のサイドバー開閉導線をここに複製する。
-				    id="app-sidebar-toggle"はAppLayout.astro末尾のscriptがgetElementByIdで
-				    DOM上の位置を問わず拾うため変更しない(マークアップはAppLayout.astroの
-				    .app-topbar-menu-buttonと完全に同一)。 */}
-				<button
-					type="button"
-					class="speed-chart-side-menu-button btn-ghost"
-					id="app-sidebar-toggle"
-					aria-controls="app-sidebar"
-					aria-expanded="false"
-					aria-label="メニューを開く"
-				>
-					<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-						<line x1="4" y1="7" x2="20" y2="7" />
-						<line x1="4" y1="12" x2="20" y2="12" />
-						<line x1="4" y1="17" x2="20" y2="17" />
-					</svg>
-				</button>
-				{backHref && (
-					<a class="speed-chart-back-link btn-ghost" href={backHref}>
-						<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6" /></svg>
-						戻る
-					</a>
-				)}
-			</div>
-
-			<div class="speed-chart-side-field">
-				<label class="field-label" for="speed-chart-regulation-select">レギュレーション</label>
-				<select id="speed-chart-regulation-select" aria-label="レギュレーション">
-					{regulations.map((reg) => (
-						<option value={reg} selected={reg === regulation}>{reg}</option>
-					))}
-				</select>
-			</div>
-
-			<div class="speed-chart-side-field">
-				<label class="field-label" for="speed-chart-jump-input">実数値へジャンプ</label>
-				<div class="speed-chart-jump-row">
-					<input type="number" id="speed-chart-jump-input" placeholder="実数値" aria-label="実数値へジャンプ" />
-					<button type="button" id="speed-chart-jump-button" class="btn-ghost">ジャンプ</button>
-				</div>
-			</div>
-
-			{hasOwnedPanel && (
+		{hasOwnedPanel && (
+			<aside class="speed-chart-side panel panel-right">
+				<OwnedPanel hasOwnedPanel={hasOwnedPanel} />
 				<button type="button" id="speed-chart-back-to-current" class="btn-ghost speed-chart-side-button">現在地へ戻る</button>
-			)}
-			{hasOwnedPanel && (
 				<label class="speed-chart-reachable-toggle">
 					<span class="toggle-switch">
 						<input type="checkbox" id="speed-chart-reachable-only-toggle" class="toggle-switch-input" checked aria-label="とりうるすばやさのみ" />
@@ -102,18 +63,13 @@ const { regulation, regulations, ownedId, hasOwnedPanel, backHref } = Astro.prop
 					</span>
 					<span>とりうるすばやさのみ</span>
 				</label>
-			)}
-
-			<OwnedPanel hasOwnedPanel={hasOwnedPanel} />
-		</aside>
+			</aside>
+		)}
 
 		<div class="panel-content speed-chart-content">
-			<div class="speed-chart-columns-header" aria-hidden="true">
-				<span>実数値</span>
-				<span>族・配分・倍率</span>
-				<span>ポケモン・補正要因</span>
-				{hasOwnedPanel && <span>調整</span>}
-			</div>
+			{/* 要件C: 列見出し(実数値/族・配分・倍率/…)は自明なので廃止。表の1行目が
+			    直接来るため、詰まりすぎないよう.speed-chart-content側に上余白を持たせる
+			    (下のstyleブロック参照)。 */}
 			<p id="speed-chart-status" class="speed-chart-status">読み込み中...</p>
 			<div id="speed-chart-rows" class="speed-chart-rows" hidden>
 				<div id="speed-chart-rows-body"></div>
@@ -128,42 +84,50 @@ const { regulation, regulations, ownedId, hasOwnedPanel, backHref } = Astro.prop
 </script>
 
 <style>
-	/* 要件5: 表(左)と右パネルの2カラム。DOM順は「右パネル → 表」なので、グリッドを
+	/* 要件A/B: 表(左)と右パネルの2カラム。DOM順は「右パネル → 表」なので、グリッドを
 	   適用しない狭幅では右パネルが表の上に積まれる(追加のメディアクエリ不要)。
-	   1200px以上でだけグリッドにし、列を明示配置して見た目の左右を入れ替える。 */
+	   1200px以上でだけグリッドにし、列を明示配置して見た目の左右を入れ替える。
+	   右パネル自体がhasOwnedPanel=falseのとき描画されなくなった(テンプレート側で分岐)ため、
+	   グリッド定義は data-has-owned-panel='true' のときだけ効くようスコープする。falseのときは
+	   .speed-chart-layoutが素のdisplay: blockのままになり、表だけの1カラムになる
+	   (:has()は使わず、既存のdata-has-owned-panel属性で分岐する)。 */
 	.speed-chart-layout {
 		display: block;
 	}
 	@media (min-width: 1200px) {
-		.speed-chart-layout {
+		.speed-chart-table[data-has-owned-panel='true'] .speed-chart-layout {
 			display: grid;
 			grid-template-columns: minmax(0, 1fr) 260px;
 			align-items: start;
 		}
-		.speed-chart-content {
+		.speed-chart-table[data-has-owned-panel='true'] .speed-chart-content {
 			grid-column: 1;
 			grid-row: 1;
 		}
-		.speed-chart-side {
+		.speed-chart-table[data-has-owned-panel='true'] .speed-chart-side {
 			grid-column: 2;
 			grid-row: 1;
 			position: sticky;
-			top: 0;
-			max-height: 100vh;
+			/* 要件B: 共通トップバー復活により画面上端はposition: sticky; top: 0のトップバーが
+			   占有する(高さ--topbar-height、global.cssが:rootと@mediaでデスクトップ/モバイル
+			   それぞれの値を公開)。0固定だとトップバーの下に潜り込むため、stickyの吸着位置・
+			   高さの上限/下限をすべて--topbar-height分ずらす(値をベタ書きしない)。 */
+			top: var(--topbar-height);
+			max-height: calc(100vh - var(--topbar-height));
 			overflow-y: auto;
 			/* 見た目修正3: 中身が短いと.panel-right の帯(背景・左罫線)がページ途中で
 			   終わり、その下がページ背景のままになっていた。min-heightを足して画面端まで
-			   帯を伸ばす。max-heightと同値(100vh)にしてあるので、中身がこれを超える場合は
+			   帯を伸ばす。max-heightと同値にしてあるので、中身がこれを超える場合は
 			   従来通りmax-height側が効いてパネル内スクロール(overflow-y: auto)になり、
 			   sticky+スクロールの挙動は変わらない(min/max-heightは競合しない別プロパティで
 			   どちらを先に書いても結果は同じだが、意図が伝わるようmax-heightの直後に置く)。
 			   1200px未満では表の上に積まれるだけなので、このmin-heightはこのメディアクエリの
-			   内側にだけ入れる(狭幅で100vhの空白帯にならないように)。 */
-			min-height: 100vh;
+			   内側にだけ入れる(狭幅で画面高さぶんの空白帯にならないように)。 */
+			min-height: calc(100vh - var(--topbar-height));
 		}
 	}
 
-	/* 右パネル本体。旧ツールバーの各項目を縦に積む。 */
+	/* 右パネル本体。個体調整専用のUI(OwnedPanel/現在地へ戻る/とりうるすばやさのみ)を縦に積む。 */
 	.speed-chart-side {
 		display: flex;
 		flex-direction: column;
@@ -177,68 +141,8 @@ const { regulation, regulations, ownedId, hasOwnedPanel, backHref } = Astro.prop
 			border-bottom: 1px solid var(--color-border);
 		}
 	}
-	.speed-chart-side-header {
-		display: flex;
-		align-items: center;
-		gap: var(--space-3);
-	}
-	.speed-chart-side-header:empty {
-		display: none;
-	}
-	.speed-chart-side-field {
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-2);
-	}
-	.speed-chart-side-field select {
-		width: 100%;
-	}
-	.speed-chart-jump-row {
-		display: flex;
-		align-items: center;
-		gap: var(--space-2);
-	}
-	.speed-chart-jump-row input {
-		min-width: 0;
-		flex: 1 1 auto;
-	}
-	/* 見た目修正2: 260px幅の右パネルではボタンの内容(「ジャンプ」)が縮められ
-	   「ジャ/ンプ」と2行に折り返していた。ボタン側は縮めず1行に固定し、
-	   代わりに入力欄側(上のflex: 1 1 auto)だけを縮ませる。 */
-	.speed-chart-jump-row button {
-		white-space: nowrap;
-		flex-shrink: 0;
-	}
 	.speed-chart-side-button {
 		align-self: flex-start;
-	}
-
-	/* モバイル専用ハンバーガー(AppLayout.astroの.app-topbar-menu-buttonと同じ値を複製)。
-	   デスクトップ(900px以上)ではサイドバーが常設のため非表示にする。 */
-	.speed-chart-side-menu-button {
-		padding: var(--space-2);
-		flex-shrink: 0;
-	}
-	@media (min-width: 900px) {
-		.speed-chart-side-menu-button {
-			display: none;
-		}
-	}
-
-	/* 「戻る」リンク(AppLayout.astroの.app-topbar-backと同じ値を複製)。 */
-	.speed-chart-back-link {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.3em;
-		font-size: var(--font-size-md);
-		font-weight: 500;
-		text-decoration: none;
-		color: var(--color-text-muted);
-		white-space: nowrap;
-		flex-shrink: 0;
-	}
-	.speed-chart-back-link:hover {
-		color: var(--color-primary);
 	}
 
 	/* トグルスイッチ。既存の.toggle-switch一式(src/components/box-id/LeftPanel.astro の
@@ -293,9 +197,9 @@ const { regulation, regulations, ownedId, hasOwnedPanel, backHref } = Astro.prop
 	.toggle-switch-input:checked + .toggle-switch-track .toggle-switch-thumb { transform: translateX(18px); }
 	.toggle-switch-input:focus-visible + .toggle-switch-track { outline: 2px solid var(--color-primary); outline-offset: 2px; }
 
-	/* 要件2: 列構成は「実数値 / 族・配分・倍率 / ポケモン・補正要因」の3列。
-	   ?owned= 連携時のみ「調整」を4列目として足す。見出し行とJS生成行(下の is:global 側)が
-	   必ず同じ列幅になるよう、テンプレートをカスタムプロパティで1箇所に持つ
+	/* 列構成は「実数値 / 族・配分・倍率 / ポケモン・補正要因」の3列。
+	   ?owned= 連携時のみ「調整」を4列目として足す。JS生成行(下の is:global 側)が
+	   この列幅を参照するよう、テンプレートをカスタムプロパティで1箇所に持つ
 	   (:rootではなく領域ルートに置くので他ページへは漏れない)。 */
 	.speed-chart-table {
 		--speed-chart-columns: 80px 168px minmax(0, 1fr);
@@ -303,42 +207,16 @@ const { regulation, regulations, ownedId, hasOwnedPanel, backHref } = Astro.prop
 	.speed-chart-table[data-has-owned-panel='true'] {
 		--speed-chart-columns: 80px 168px minmax(0, 1fr) 200px;
 	}
-	.speed-chart-columns-header {
-		display: grid;
-		grid-template-columns: var(--speed-chart-columns);
-		gap: var(--space-4);
-		padding: var(--space-3) 0 var(--space-2);
-		border-bottom: 2px solid var(--color-border);
-		margin-bottom: var(--space-2);
-		font-size: var(--font-size-sm);
-		font-weight: 700;
-		color: var(--color-text-muted);
-		position: sticky;
-		top: 0;
-		z-index: 1;
-		background: var(--color-surface);
-	}
-	/* 「実数値」列見出しを、対応するデータセル(.speed-chart-value-cell、text-align: center)と揃える。 */
-	.speed-chart-columns-header span:first-child {
-		text-align: center;
-	}
-	/* 狭幅破綻対応: 767px以下では下の.speed-chart-rowを「実数値列+縦積み列」の2列に
-	   組み替える(理由は下のis:globalブロックのコメント参照)。見出し行はもう列と対応しない
-	   ため非表示にする。@media はセレクタの詳細度を上げない(=同じセレクタなら後勝ち)ため、
-	   上書き対象の基本定義(display: grid, ...)より後ろに置いて確実に勝たせる。 */
-	@media (max-width: 767px) {
-		.speed-chart-columns-header {
-			display: none;
-		}
-	}
 	.speed-chart-status {
 		color: var(--color-text-muted);
 		margin: var(--space-4) 0;
 	}
 	/* サイドバーと表の間に余白を設ける(/box/[id]の.box-content { padding: 0 var(--space-5); }
-	   と同種)。 */
+	   と同種)。要件C: 列見出し(.speed-chart-columns-header)を廃止し表の1行目が直接来る
+	   ようになったため、上端が詰まりすぎないよう上方向にも余白を確保する
+	   (旧見出し行が持っていたpadding-top: var(--space-3)相当)。 */
 	.speed-chart-content {
-		padding: 0 var(--space-5);
+		padding: var(--space-4) var(--space-5) 0;
 	}
 	/* 見た目修正1: このラッパーは共有クラス.panel-content(global.css)を持ち、
 	   本文の可読幅を1080pxに制限する前提が付いている。しかしこの表は「横に広いほど良い」
@@ -385,7 +263,9 @@ const { regulation, regulations, ownedId, hasOwnedPanel, backHref } = Astro.prop
 	}
 	/* 2列目: 族(すばやさ種族値)・配分バッジ(最速/準速/無振り)・倍率(x1.5等)を1行に。
 	   3列目の1段目(ポケモンチップ)と視覚的な高さが揃うよう、チップのpadding分だけ
-	   上に余白を持たせる。 */
+	   上に余白を持たせる。
+	   要件D: 太字はやめ(バッジ.speed-chart-spread-badgeだけは既存の太字意匠を維持、下で個別に
+	   font-weight: 700を指定)、文字サイズを1段上げる(--font-size-xs → --font-size-sm)。 */
 	.speed-chart-table .speed-chart-meta-cell {
 		display: flex;
 		flex-wrap: wrap;
@@ -393,16 +273,16 @@ const { regulation, regulations, ownedId, hasOwnedPanel, backHref } = Astro.prop
 		gap: 0.35em;
 		min-width: 0;
 		padding-top: 0.25em;
-		font-size: var(--font-size-xs);
-		font-weight: 700;
+		font-size: var(--font-size-sm);
+		font-weight: 500;
 		color: var(--color-text);
 		line-height: 1.4;
 	}
 	.speed-chart-table .speed-chart-base-speed-label {
 		color: var(--color-text-muted);
-		font-weight: 700;
+		font-weight: 500;
 	}
-	/* 3列目: 要件3「ポケモンを1段目、その補正要因を2段目」・要件4「左寄せ」。 */
+	/* 3列目: ポケモンを1段目、その補正要因を2段目・左寄せ(チップの並び自体は左寄せのまま)。 */
 	.speed-chart-table .speed-chart-chips-cell {
 		display: flex;
 		flex-direction: column;
@@ -410,14 +290,25 @@ const { regulation, regulations, ownedId, hasOwnedPanel, backHref } = Astro.prop
 		gap: 0.2rem;
 		min-width: 0;
 	}
+	/* 要件E: 補正要因は「グループに1つ」ではなく「チップ(=ポケモン)ごとに1つ」表示する
+	   (chart-table.tsが.speed-chart-chip-unitでチップと要因を1組にまとめて出す。
+	   旧.speed-chart-group-originはグループ単位1個描画だったため廃止)。
+	   1組の中で要因をチップの下・中央揃えにする。 */
+	.speed-chart-table .speed-chart-chip-unit {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 0.15rem;
+	}
 	/* 補正要因(特性名/わざ名/持ち物名)。ポケモンより一段軽い扱い(色を薄く・太字にしない)に
 	   して「ポケモンが主・要因が補足」という情報の主従を示す。補正なしグループ(素の実数値)には
 	   要因が無いため、その場合はこの要素自体を出力しない(chart-table.ts参照)。 */
-	.speed-chart-table .speed-chart-group-origin {
+	.speed-chart-table .speed-chart-chip-origin {
 		font-size: var(--font-size-xs);
 		font-weight: 500;
 		color: var(--color-text-muted);
 		line-height: 1.4;
+		text-align: center;
 	}
 	/* 振り方(最速/準速/無振り)バッジ。既存の配色トークン(primary/success/risky)の
 	   範囲で3種を色分けする(severity-bar・.badgeと同じ「soft背景+strong文字」の組み合わせ。
@@ -452,11 +343,14 @@ const { regulation, regulations, ownedId, hasOwnedPanel, backHref } = Astro.prop
 		color: var(--color-risky-strong);
 	}
 	/* ポケモンチップの並び(3列目の1段目)。chart-table.tsのbuildRowContentが
-	   limitRowChipsByWidthで行の幅に収まる件数だけ残し、収まらない分は「+N件」バッジで示す。 */
+	   limitRowChipsByWidthで行の幅に収まる件数だけ残し、収まらない分は「+N件」バッジで示す。
+	   要件E: 各チップは.speed-chart-chip-unit(チップ+補正要因を縦積み)単位になり、要因の
+	   有無でユニットの高さが揃わないため、align-itemsをcenterからflex-startに変える
+	   (中央だと要因付き/なしのチップの上端がバラつく)。 */
 	.speed-chart-table .speed-chart-chips-row {
 		display: flex;
 		flex-wrap: wrap;
-		align-items: center;
+		align-items: flex-start;
 		justify-content: flex-start;
 		gap: 0.4rem;
 		width: 100%;
@@ -469,9 +363,10 @@ const { regulation, regulations, ownedId, hasOwnedPanel, backHref } = Astro.prop
 		white-space: nowrap;
 		padding: 0.1rem 0.4rem;
 		/* .speed-chart-chipはアイコン(22px)込みの高さを持つため、アイコンを持たないこの
-		   バッジは同じpaddingでも本文の行の高さぶん低くなる。同じflex行に並んだときの
-		   垂直中央位置(align-items: center)がチップとズレて「別の行」と誤認されない
-		   ように、.speed-chart-chip-iconと同じ22pxをline-heightとして与えて高さを揃える。 */
+		   バッジは同じpaddingでも本文の行の高さぶん低くなる。align-itemsがflex-startになった
+		   (上のコメント参照)ことで.speed-chart-chip-unit(縦積み)と並んだときは
+		   自然と上端が揃うため、line-heightでの高さ合わせは.speed-chart-chip単体との
+		   比較用として残す(このバッジ自身の見た目は変えない)。 */
 		line-height: 22px;
 	}
 	.speed-chart-table .speed-chart-chip {
@@ -500,7 +395,8 @@ const { regulation, regulations, ownedId, hasOwnedPanel, backHref } = Astro.prop
 	   セルは常に「実数値 → meta → chips →(調整時のみ)owned」の順でDOMに並ぶ(chart-table.ts
 	   側の仕様、このファイルでは変更不可)ため、meta/chips/ownedへ明示的にgrid-column: 2を
 	   与えるだけでよい(grid-auto-flowの既定は1列目側から詰めるため、指定しないと1列目に
-	   はみ出す)。見出し行は上のscoped styleブロックで同じ閾値でdisplay: noneにしている。 */
+	   はみ出す)。列見出し行(.speed-chart-columns-header)は要件Cにより廃止したため、
+	   ここで別途非表示にする必要はない。 */
 	@media (max-width: 767px) {
 		.speed-chart-table .speed-chart-row {
 			grid-template-columns: 60px minmax(0, 1fr);

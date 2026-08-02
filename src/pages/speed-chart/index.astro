@@ -8,6 +8,10 @@
 // (public/master-data/ 配下は各フォルムの regulations を自身で持つため、レギュレーション
 // 切替時に追加のSSR/APIアクセスなしで再計算できる。R-12の「変更時にURLをhistory.replaceState
 // で書き換える」がページ遷移を伴わないことを前提にした設計)。
+//
+// 2026-08-02 UI改修: hideTopbar運用をやめ共通トップバーへ戻した。レギュレーション選択・
+// 実数値ジャンプは全ユーザー向けの常設UIのためトップバー(topbar-actions)に置き、右パネルは
+// ?owned=がある場合の個体調整専用UIだけを残す。
 export const prerender = false;
 
 import AppLayout from '../../layouts/AppLayout.astro';
@@ -184,14 +188,19 @@ try {
 	description="レギュレーション別のすばやさ実数値早見表"
 	current="speed-chart"
 	backHref={backHref}
-	hideTopbar={true}
 >
+	<Fragment slot="topbar-actions">
+		<select id="speed-chart-regulation-select" aria-label="レギュレーション">
+			{REGULATIONS.map((reg) => (
+				<option value={reg} selected={reg === resolvedRegulation}>{reg}</option>
+			))}
+		</select>
+		<input type="number" id="speed-chart-jump-input" placeholder="すばやさ実数値" aria-label="すばやさ実数値" />
+	</Fragment>
 	<ChartTable
 		regulation={resolvedRegulation}
-		regulations={REGULATIONS}
 		ownedId={ownedId}
 		hasOwnedPanel={hasOwnedPanel}
-		backHref={backHref}
 	/>
 
 	{/* R-1: 取得したOwnedPokemonRecord全体を<script type="application/json">で埋め込む
@@ -204,3 +213,17 @@ try {
 		<script type="application/json" id="speed-chart-owned-record" set:html={JSON.stringify(ownedRecord)} />
 	)}
 </AppLayout>
+
+<style>
+	/* トップバーは横幅が限られるため、レギュレーション選択・実数値ジャンプ入力は
+	   中身(3桁の実数値・レギュレーション名)に対して過大にならない幅に絞る。
+	   .app-topbar-actions 側で既に display:flex; gap; flex-wrap が効くため、
+	   ここでは各要素の幅だけを調整すれば横並び・900px未満での折り返しの両方に対応できる。 */
+	#speed-chart-regulation-select {
+		min-width: 8rem;
+	}
+
+	#speed-chart-jump-input {
+		width: 11rem;
+	}
+</style>

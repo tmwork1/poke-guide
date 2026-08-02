@@ -6,10 +6,17 @@
 // document.createElement() で生成する)。このコンポーネントが担うのは行の外にある
 // 常設のUI(R-9凡例、個体サマリ、R-10保存失敗バナー)だけ。
 //
-// 個体サマリの中身(種族名・性格・持ち物・S実数値)は、SSR時点ではまだ種族値
-// (public/master-data/detail/pokemon.json、ブラウザ側でfetchする設計)が無く計算できないため、
-// 空のプレースホルダとして描画し、owned-panel.ts の初期化完了時にテキストを差し込む
-// (id経由。テーブル本体が「読み込み中...」→行描画に切り替わるのと同じ非同期パターン)。
+// 個体サマリの中身は、SSR時点ではまだ種族値・スプライトID
+// (public/master-data/detail・autocomplete/pokemon.json、ブラウザ側でfetchする設計)が無く
+// 計算できないため、空のプレースホルダとして描画し、owned-panel.ts の初期化完了時にテキスト・
+// 画像srcを差し込む(id経由。テーブル本体が「読み込み中...」→行描画に切り替わるのと同じ
+// 非同期パターン)。
+//
+// UI改修(2026-08-02第3弾)要件1: 右パネルを「個体調整専用」にする一環で、個体サマリを
+// 上から5段構成に組み替えた: ①アイコン ②ニックネーム ③特性・アイテム ④性格・努力値
+// ⑤S実数値。旧「この個体:」ラベル+種族名+性格/持ち物バッジ+S実数値の4段構成から、
+// アイコン段を追加し性格/持ち物バッジ段を「特性・アイテム」「性格・努力値」の2段に
+// 分割した(バッジ4つを1行に詰め込むと260px幅で窮屈になるため)。
 interface Props {
   hasOwnedPanel: boolean;
 }
@@ -18,14 +25,35 @@ const { hasOwnedPanel } = Astro.props;
 <div class="speed-chart-owned-panel-static">
 	{hasOwnedPanel && (
 		<div class="speed-chart-owned-summary" id="speed-chart-owned-summary">
-			<span class="speed-chart-owned-summary-label">この個体:</span>
+			<img id="speed-chart-owned-summary-sprite" class="sprite-icon speed-chart-owned-summary-sprite" alt="" hidden />
 			<span id="speed-chart-owned-summary-species" class="speed-chart-owned-summary-species"></span>
 			<span class="speed-chart-owned-summary-badges">
-				<span id="speed-chart-owned-summary-nature" class="badge badge-muted"></span>
+				<span id="speed-chart-owned-summary-ability" class="badge badge-muted"></span>
 				<span id="speed-chart-owned-summary-item" class="badge badge-muted"></span>
+			</span>
+			<span class="speed-chart-owned-summary-badges">
+				<span id="speed-chart-owned-summary-nature" class="badge badge-muted"></span>
+				<span id="speed-chart-owned-summary-evs" class="badge badge-muted"></span>
 			</span>
 			<span id="speed-chart-owned-summary-value" class="tnum speed-chart-owned-summary-value"></span>
 		</div>
+	)}
+	{/*
+		不具合修正(2026-08-02): ?owned=個体の種族が選択中レギュレーションの母集団に
+		存在しない(例: フィクスチャのハバタクカミのようにregulationsが空配列)と、
+		chart-table.tsのrender()内でformsByName.get()がundefinedになりownedControllerが
+		nullのままになる。その結果owned-panel.tsのupdateSummary()が一度も呼ばれず、
+		#speed-chart-owned-summaryは中身の無い灰色の箱として残ってしまう
+		(pitfalls.md「空状態・0件・未入力を必ず見る」= 「データ破損に見える空箱」)。
+		既定hiddenの注記をここに用意しておき、chart-table.ts側でownedControllerの
+		有無に応じてこの要素とサマリ本体のhiddenを出し分ける(render()はレギュレーション
+		切替のたびに呼ばれるため、切替で母集団に入った/出た場合も追随する)。
+		レギュレーション名はハードコードしない(切替のたびに対象が変わるため)。
+	*/}
+	{hasOwnedPanel && (
+		<p class="speed-chart-owned-unavailable" id="speed-chart-owned-unavailable" hidden>
+			この個体(種族)は選択中のレギュレーションでは使えないため、調整候補を出せません。
+		</p>
 	)}
 	{hasOwnedPanel && (
 		<p class="severity-bar" data-severity="lethal" id="speed-chart-owned-error" hidden></p>
@@ -55,30 +83,39 @@ const { hasOwnedPanel } = Astro.props;
 	.speed-chart-owned-panel-static:empty {
 		display: none;
 	}
-	/* 幅260pxでは「この個体:」ラベル・種族名・性格/持ち物バッジ・S実数値を横一列
+	/* 幅260pxではニックネーム・特性/アイテム・性格/努力値・S実数値を横一列
 	   (旧flex-wrap)に並べると1文字ずつ折り返されて潰れる(pitfalls.md「潰れて
-	   読めなくなる破綻」)。各要素を縦積みにする(長い種族名・持ち物名は行内で
-	   2行に折り返すのは許容)。 */
+	   読めなくなる破綻」)。各段を縦積みにする(長い名前は行内で2行に折り返すのは
+	   許容)。 */
 	.speed-chart-owned-summary {
 		display: flex;
 		flex-direction: column;
 		align-items: flex-start;
 		gap: var(--space-1);
 	}
-	.speed-chart-owned-summary-label {
-		font-size: var(--font-size-xs);
-		font-weight: 700;
-		color: var(--color-text-muted);
+	/* 不具合修正(2026-08-02): 母集団に居ない個体のときchart-table.tsがhidden属性を立てる
+	   (「データ破損に見える空箱」を防ぐため)。displayをflexで明示しているクラスなので、
+	   pitfalls.mdの罠どおり[hidden]の詳細度勝ち負けが起きる。明示的に上書きする。 */
+	.speed-chart-owned-summary[hidden] {
+		display: none;
+	}
+	/* アイコン段(1段目)。48〜56pxの正方形。カード全体が左揃え
+	   (align-items: flex-start)のため画像も左寄せに揃える。src/hiddenの出し分けは
+	   owned-panel.tsが行う(spriteImageIdが無い個体はhiddenのまま=何も表示しない)。 */
+	.speed-chart-owned-summary-sprite {
+		width: 52px;
+		height: 52px;
 	}
 	.speed-chart-owned-summary-species {
 		font-weight: 700;
 	}
-	/* 性格・持ち物バッジは.badgeの左paddingぶん、単独で縦積みにすると
-	   ラベル・種族名・実数値(いずれもpaddingなしの素のテキスト)と左端がズレて
-	   見える(実測でインデントが揃わない不具合)。2つのバッジを1つの行にまとめて
-	   横並びにすることで、この行自体は他の行と同じくpaddingなしで左端0から始まり、
-	   「バッジが並ぶ1行」であることが視覚的にも明確になる。260px幅では折り返さず
-	   収まる想定だが、念のためflex-wrapは許容しておく(1文字ずつの折り返しにはならない)。 */
+	/* 特性/アイテム(3段目)・性格/努力値(4段目)の2項目バッジは、.badgeの左paddingぶん
+	   単独で縦積みにするとニックネーム・実数値(いずれもpaddingなしの素のテキスト)と
+	   左端がズレて見える(実測でインデントが揃わない不具合)。2つのバッジを1つの行に
+	   まとめて横並びにすることで、この行自体は他の行と同じくpaddingなしで左端0から
+	   始まり、「バッジが並ぶ1行」であることが視覚的にも明確になる。260px幅では
+	   折り返さず収まる想定だが、念のためflex-wrapは許容しておく(1文字ずつの折り返しには
+	   ならない)。 */
 	.speed-chart-owned-summary-badges {
 		display: flex;
 		flex-wrap: wrap;
@@ -94,6 +131,16 @@ const { hasOwnedPanel } = Astro.props;
 	   [hidden]の詳細度勝ち負けは発生しない(pitfalls.mdの罠は「displayを明示したクラス」限定)。
 	   念のため明示しておく。 */
 	.severity-bar[hidden] {
+		display: none;
+	}
+	/* 不具合修正(2026-08-02): 個体サマリの代わりに出す控えめな注記。displayを明示していない
+	   (素の<p>のブロック表示のまま)ためUAの[hidden]{display:none}で足りるが、
+	   このファイルの他要素と同じく念のため明示しておく。 */
+	.speed-chart-owned-unavailable {
+		color: var(--color-text-muted);
+		font-size: var(--font-size-sm);
+	}
+	.speed-chart-owned-unavailable[hidden] {
 		display: none;
 	}
 </style>
@@ -125,14 +172,19 @@ const { hasOwnedPanel } = Astro.props;
 		gap: 0.15rem;
 		width: 100%;
 	}
+	/* UI改修(2026-08-02第3弾)要件2・3: ボタンテキストを「[アイコン] いじっぱり 努力値6」
+	   の形にする(下の内訳テキストは廃止し、ボタン単体で結果とページ遷移することの
+	   両方が分かるようにする)。アイコン(owned-panel.tsがSVGをDOM生成して先頭に挿入)と
+	   テキストを横並びにするため、ボタン自体をinline-flexにしてgapで間隔を作る。 */
 	.speed-chart-owned .speed-chart-apply-button {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--space-1);
 		font-size: var(--font-size-xs);
 		padding: 0.2em 0.8em;
 	}
-	.speed-chart-owned .speed-chart-owned-breakdown {
-		font-size: var(--font-size-xs);
-		color: var(--color-text-muted);
-		line-height: 1.3;
+	.speed-chart-owned .speed-chart-apply-icon {
+		flex-shrink: 0;
 	}
 	.speed-chart-owned .speed-chart-ev-warning {
 		font-size: var(--font-size-xs);
