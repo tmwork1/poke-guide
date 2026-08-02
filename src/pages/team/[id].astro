@@ -266,33 +266,59 @@ const initialTeamJson = team
 		/* --- 全体レイアウト: 左=ポケモン選択バー(帯)/ 中央=チーム名・メモ・6枠(可読幅1080px) ---
 		   docs/plan/00-foundation.md「レイアウト原則」どおり、選択バーは画面端から
 		   画面端まで伸びる帯(.panel.panel-left)。中央は.panel-contentで1080pxに絞る(R-11)。
-		   受け入れ検証で実測バグ修正: 閾値をもともと900pxにしていたが、900px幅ではサイドバー(256px)+
-		   選択バー(約380px)を引くと中央カラムが約264pxしか残らず、そこへ横長の6枠カードを
-		   入れていたため、ポケモン名・技名が1文字ずつ縦に折り返されて読めなくなっていた(実測で発覚)。
-		   これはbox/[id].astroの.edit-layoutが900px→1200pxに引き上げた過去の罠
-		   (docs/plan/00-foundation.md 245行目)と同一原因なので、同じ閾値に揃える。 */
+		   受け入れ検証で実測バグ修正(2026-07-29): 閾値をもともと900pxにしていたが、900px幅では
+		   サイドバー(256px)+選択バー(約380px)を引くと中央カラムが約264pxしか残らず、
+		   そこへ横長の6枠カードを入れていたため、ポケモン名・技名が1文字ずつ縦に折り返されて
+		   読めなくなっていた(実測で発覚)。これはbox/[id].astroの.edit-layoutが900px→1200pxに
+		   引き上げた過去の罠(docs/plan/00-foundation.md 245行目)と同一原因なので、
+		   当時は同じ閾値(1200px)に揃えていた。
+		   🔴 UI改修依頼(チーム編集画面、2026-08-02)「チームパネルの幅はポケモンカードが
+		   ちょうど収まるサイズに狭める」「残りの領域をすべて右パネルにあてがう」。中央カラム
+		   (チーム6枠)を`1fr`(可変)から754pxの固定幅に、右カラム(プレビュー)を固定
+		   `minmax(280px, 340px)`から下限だけ残した可変幅`minmax(240px, 1fr)`に変更した
+		   (値の根拠は下の各ルールのコメント参照)。中央カラムが固定幅になったことで、
+		   2カラム化に必要な最小横幅が変わったため、閾値も再計算して引き上げた
+		   (根拠は直後の@media 2件のコメント参照。npm run shotで実測して決定、報告参照)。 */
 		.team-edit-layout {
 			display: block;
 		}
-		@media (min-width: 1200px) {
+		@media (min-width: 1300px) {
 			.team-edit-layout {
 				display: grid;
 				/* UI改修依頼(チーム編集左パネル、2026-08-01)「パネルの幅を20%狭くする」。
 				   1920px幅で実測した変更前の.team-select-bar幅は380px(minmaxのmax=380pxで頭打ち)。
 				   380px×0.8=304pxへ縮小し、下限(min)も同じ比率で300px→240pxへ縮める
-				   (min/maxの比率を変えないため)。実測結果は報告参照。 */
-				grid-template-columns: minmax(240px, 304px) 1fr;
+				   (min/maxの比率を変えないため)。実測結果は報告参照。
+				   🔴 UI改修依頼(チーム編集画面、2026-08-02)「チームパネルの幅はポケモンカードが
+				   ちょうど収まるサイズに狭める」。中央カラムを754pxの固定幅にする。
+				   754px = カード230px×3枚 + gap(var(--space-3)=12px)×2 + 左右padding
+				   (var(--space-5)=20px)×2 = 690+24+40 = 754px(.team-edit-mainのpadding分。
+				   実測(getBoundingClientRect)で3枚のカードが左右に余白なく収まることを確認した、
+				   報告参照)。
+				   閾値を1200px→1300pxへ引き上げた根拠: 中央カラムが固定幅754pxになったため、
+				   2カラム化に必要な最小横幅はサイドバー(256px)+選択バー最小(240px)+
+				   チーム(754px)=1250px。実測(npm run shot、複数幅で目視確認)で1250px前後は
+				   余裕がほぼ無かったため、安全マージンを見て1300pxを採用した(報告参照)。 */
+				grid-template-columns: minmax(240px, 304px) 754px;
 				align-items: stretch;
 			}
 		}
 		/* UI改修依頼(チーム編集左パネル)「右パネルを追加」対応。box/[id].astroの
-		   .edit-layout(1600px以上で3カラム化、RightPanel.astro参照)と同じ閾値・考え方で
-		   3カラム目(.team-preview-panel)を追加する。1200〜1599pxでは右パネルは
+		   .edit-layout(3カラム化、RightPanel.astro参照)と同じ考え方で3カラム目
+		   (.team-preview-panel)を追加する。2カラム時(下の閾値未満)では右パネルは
 		   非表示にする(下の.team-preview-panel参照)、幅が無いところに無理に3カラム目を
-		   押し込むと中央カラムの6枠カードが再び潰れるため(上のコメントの実測バグと同じ罠)。 */
-		@media (min-width: 1600px) {
+		   押し込むと中央カラムの6枠カードが再び潰れるため(上のコメントの実測バグと同じ罠)。
+		   🔴 UI改修依頼(チーム編集画面、2026-08-02)「残りの領域をすべて右パネルにあてがう」。
+		   右カラムを固定`minmax(280px, 340px)`から下限だけ残した`minmax(240px, 1fr)`へ変更
+		   (下限240pxはbox/[id].astroの右パネル`minmax(300px, 360px)`と同様、潰れ防止の
+		   下限を残すパターンを踏襲。上限を`1fr`にして残り幅を丸ごと割り当てる)。
+		   閾値を1600px→1650pxへ引き上げた根拠: 3カラム時に必要な最小横幅は2カラム時の
+		   1250px(256+240+754)に右パネルの下限240pxを足した1490px。実測(npm run shot、
+		   報告参照)で1490px前後は右パネルが窮屈だったため、安全マージンを見て1650pxを
+		   採用した。 */
+		@media (min-width: 1650px) {
 			.team-edit-layout {
-				grid-template-columns: minmax(240px, 304px) 1fr minmax(280px, 340px);
+				grid-template-columns: minmax(240px, 304px) 754px minmax(240px, 1fr);
 			}
 		}
 
@@ -303,13 +329,14 @@ const initialTeamJson = team
 		}
 		/* box/[id].astroの.panel-leftと同じ考え方: トップバー直下から画面下端まで帯を伸ばす。
 		   帯自体の高さはビューポート基準(calc(100vh - var(--topbar-height)))で決め、
-		   個体数が少なくても背景色が画面下端まで届くようにする。1200px未満(縦積み)では
+		   個体数が少なくても背景色が画面下端まで届くようにする。2カラム化未満(縦積み)では
 		   sticky/固定高さにせず、通常のブロックとして中央カラムの上に積む(box/[id].astroの
-		   .edit-layout-leftがmin-width:1200pxのメディアクエリでだけheight:100%を付けているのと
+		   .edit-layout-leftが2カラム化のメディアクエリでだけheight:100%を付けているのと
 		   同じ考え方。縦積み時に選択バーが画面いっぱいの高さを占有すると、6枠に到達するまで
 		   1画面ぶん余計にスクロールする羽目になる)。閾値は.team-edit-layoutの2カラム化と
-		   必ず揃えること。 */
-		@media (min-width: 1200px) {
+		   必ず揃えること(2026-08-02に1200px→1300pxへ変更、根拠は上の.team-edit-layout
+		   コメント参照)。 */
+		@media (min-width: 1300px) {
 			.team-select-bar {
 				position: sticky;
 				top: var(--topbar-height);
@@ -426,9 +453,10 @@ const initialTeamJson = team
 			display: flex;
 			flex-direction: column;
 		}
-		/* 1200px未満(選択バーが帯ではなく縦積みの通常ブロックになる)では高さを固定せず、
+		/* 1300px未満(選択バーが帯ではなく縦積みの通常ブロックになる、2026-08-02に1200px→
+		   1300pxへ閾値変更、上の.team-edit-layoutコメント参照)では高さを固定せず、
 		   代わりに際限なく伸びないよう上限を設ける(ボックスの個体数が多いユーザー向け)。 */
-		@media (max-width: 1199px) {
+		@media (max-width: 1299px) {
 			.team-select-list-wrap {
 				max-height: 60vh;
 			}
@@ -464,7 +492,13 @@ const initialTeamJson = team
 			font-size: var(--font-size-sm);
 		}
 
-		/* --- 中央カラム: チーム名・メモ + 6枠(R-11: .panel-contentで1080pxに収める) --- */
+		/* --- 中央カラム: チーム名・メモ + 6枠(R-11: .panel-contentで1080pxに収める) ---
+		   🔴 UI改修依頼(チーム編集画面、2026-08-02)「チームパネルの幅はポケモンカードが
+		   ちょうど収まるサイズに狭める」。このカラム自体には幅を指定せず(.team-edit-layoutの
+		   grid-template-columns側で754pxの固定トラックとして定義、上の.team-edit-layout
+		   コメント参照)、グリッドトラック幅をそのまま受け取る。1300px未満(縦積み)では
+		   幅指定が効かないブロック要素に戻り、100%幅で伸びる(固定幅は2カラム以上でのみ
+		   意味を持つ)。 --- */
 		.team-edit-main {
 			min-width: 0;
 			/* UI改修依頼(チーム編集中央パネル、2026-08-01)「左右のパネルとの間に余白を入れる」。
@@ -472,7 +506,10 @@ const initialTeamJson = team
 			   のどちらとも実測0pxで密着していた(.team-edit-mainにも.panel-contentにも横paddingが
 			   無かったため)。.panelの既定横padding(var(--space-5)=20px)と同じ値をこの中央カラム自体に
 			   も持たせ、左右どちらの隣接パネルとも視覚的な余白ができるようにする(.panel-contentの
-			   max-width:1080pxはそのまま、余白ぶんだけ実効幅が狭まるがレイアウトは崩れない)。 */
+			   max-width:1080pxはそのまま、余白ぶんだけ実効幅が狭まるがレイアウトは崩れない)。
+			   🔴 2026-08-02: この左右padding(var(--space-5)=20px×2=40px)は、上の
+			   .team-edit-layoutコメントに書いた754px固定幅の計算に含まれている
+			   (754 = 230×3(カード) + 12×2(gap) + 20×2(このpadding))。 */
 			padding: 0 var(--space-5);
 		}
 		/* UI改修依頼(チーム編集中央パネル、2026-08-02)「チーム名段の上に余白を追加する」。
@@ -544,11 +581,16 @@ const initialTeamJson = team
 		}
 
 		/* --- 右: プレビューパネル(UI改修依頼、チーム編集左パネル)。box/[id].astroの
-		   RightPanel.astroと同じく1600px未満では表示しない(グリッド自体も2カラムのため)。 --- */
+		   RightPanel.astroと同じ考え方で、3カラム化の閾値未満では表示しない(グリッド自体も
+		   2カラムのため)。🔴 2026-08-02のUI改修依頼「残りの領域をすべて右パネルにあてがう」で
+		   閾値を1600px→1650pxへ変更(根拠は上の.team-edit-layoutコメント参照、
+		   .team-edit-layoutの3カラム化のメディアクエリと必ず揃えること)。幅自体は
+		   .team-edit-layoutのgrid-template-columns側(`minmax(240px, 1fr)`)で決まるため、
+		   このルールでは幅を指定しない。 --- */
 		.team-preview-panel {
 			display: none;
 		}
-		@media (min-width: 1600px) {
+		@media (min-width: 1650px) {
 			.team-preview-panel {
 				display: block;
 				position: sticky;
@@ -761,7 +803,8 @@ const initialTeamJson = team
 					{/* --- 右: 選択バーで1回クリックしたポケモンの詳細プレビュー(UI改修依頼
 					    「右パネルを追加し、1回クリックでポケモンの詳細を見れるようにする」)。
 					    中身はJS(renderPreviewPanel)が生成する。box/[id].astroのRightPanelと同じく
-					    幅の無い環境(1600px未満)では非表示にする(下の.team-preview-panel参照)。 --- */}
+					    幅の無い環境(1650px未満、2026-08-02に閾値変更)では非表示にする
+					    (下の.team-preview-panel参照)。 --- */}
 					<aside class="panel team-preview-panel" id="team-preview-panel">
 						{/* UI改修依頼(右パネル、2026-08-01)「"左の一覧からポケモンをクリックすると、
 						    ここに詳細が表示されます。"を削除する」。文言だけを消すと空の<p>が1行ぶんの
@@ -2165,7 +2208,7 @@ const initialTeamJson = team
 			// スナップショットを即座に表示するのと同じ経路)。右パネルを見るためだけに数MBの
 			// wheel を落とさせないため。
 			//
-			// 右パネルは1600px未満では非表示。チーム編成そのものには影響しない(membersBySlotを
+			// 右パネルは1650px未満では非表示(2026-08-02に閾値変更)。チーム編成そのものには影響しない(membersBySlotを
 			// 一切変更しない、見るだけの機能)。
 			const notesCache = new Map<string, OpponentNoteLike[] | "error">();
 
