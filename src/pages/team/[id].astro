@@ -142,6 +142,15 @@ const initialTeamJson = team
 				<span class="collection-opt-out-toggle-label">非公開</span>
 				<span id="team-collection-opt-out-status" class="collection-opt-out-status" hidden></span>
 			</label>
+			{/* 相性チェック(ユーザー要望、2026-08-02)。使用率上位20体との攻守の相性を右パネルに
+			    出す。押している間だけ右パネルが相性チェックモードになるトグルなので、押しっぱなしの
+			    状態を aria-pressed で表す(<script>の setMatchupMode 参照)。
+			    右パネル(.team-preview-panel)は1650px未満では display:none のため、このボタンも
+			    同じ閾値未満では隠す(押しても何も起きないボタンを見せない。下の<style>参照)。 */}
+			<button id="matchup-check-button" class="btn-ghost" type="button" aria-pressed="false" title="使用率上位20体との相性を右パネルに表示する">
+				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><line x1="12" y1="1" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="23"/><line x1="1" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="23" y2="12"/></svg>
+				相性チェック
+			</button>
 			<button id="delete-team-button" class="btn-danger" type="button">
 				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
 				削除
@@ -262,6 +271,93 @@ const initialTeamJson = team
 		   (.app-topbar-actions の gap は全画面共通のため AppLayout は編集せず、
 		   このページscopedで削除ボタンにだけ margin-left を足す)をそのまま踏襲する。 */
 		#delete-team-button { margin-left: var(--space-4); }
+
+		/* --- 相性チェック(ユーザー要望、2026-08-02) --- */
+		/* トップバーのトグルボタン。既定は他のトップバー操作と同じ .btn-ghost の見た目で、
+		   ONのときだけ塗りつぶす。配色は新設せず、このページの攻守セグメント(下記
+		   .team-matchup-direction-option[data-role="defense"])と同じ
+		   --color-primary-strong + --color-primary-contrast の組み合わせを使う
+		   (DamageCalcSection.astro のコメントにあるとおり、この組はライト4.62:1/
+		   ダーク8.87:1でWCAG AAを満たすことが実測済み)。 */
+		#matchup-check-button { font-size: var(--font-size-sm); white-space: nowrap; }
+		#matchup-check-button[aria-pressed="true"] {
+			background: var(--color-primary-strong);
+			border-color: var(--color-primary-strong);
+			color: var(--color-primary-contrast);
+		}
+		/* 右パネルが出ない幅ではボタン自体を隠す(閾値は .team-preview-panel と必ず揃えること)。 */
+		#matchup-check-button { display: none; }
+		@media (min-width: 1650px) {
+			#matchup-check-button { display: inline-flex; }
+		}
+
+		.team-matchup {
+			padding: var(--space-3);
+		}
+		.team-matchup-heading {
+			font-size: var(--font-size-sm);
+			font-weight: 600;
+			margin: 0 0 var(--space-2);
+		}
+		/* 攻撃・防御の切り替え。個体編集画面のダメージ計算カードの攻守セグメント
+		   (src/components/box-id/DamageCalcSection.astro の
+		   .damage-row-direction-toggle / .damage-row-direction-option)と同じ意匠。
+		   あちらは #opponent-notes-section 配下に限定したセレクタで、このページには
+		   バンドルされない(Astroのscoped/is:globalスタイルは実際にそのコンポーネントを
+		   描画したページにしか入らない)ため、上の .toggle-switch 一式と同じ理由で
+		   同じ値をここへ複製する(新しい値は作っていない)。 */
+		.team-matchup-direction-toggle {
+			display: flex;
+			width: 100%;
+			border: 1px solid var(--color-border);
+			border-radius: var(--radius-md);
+			overflow: hidden;
+		}
+		.team-matchup-direction-option {
+			flex: 1 1 0;
+			min-width: 0;
+			border: none;
+			background: var(--color-surface);
+			color: var(--color-text-muted);
+			font-size: 0.8rem;
+			font-weight: 600;
+			padding: 0.25em 0.4em;
+			line-height: 1.2;
+			cursor: pointer;
+			transition: background 0.15s, color 0.15s;
+		}
+		.team-matchup-direction-option + .team-matchup-direction-option {
+			border-left: 1px solid var(--color-border);
+		}
+		.team-matchup-direction-option:hover:not([aria-checked="true"]) {
+			color: var(--color-primary);
+			background: var(--color-primary-soft);
+		}
+		.team-matchup-direction-option:focus-visible {
+			outline: 2px solid var(--color-primary);
+			outline-offset: -2px;
+		}
+		.team-matchup-direction-option[data-role="attack"][aria-checked="true"] {
+			background: var(--color-danger-strong);
+			color: var(--color-primary-contrast);
+		}
+		.team-matchup-direction-option[data-role="defense"][aria-checked="true"] {
+			background: var(--color-primary-strong);
+			color: var(--color-primary-contrast);
+		}
+		.team-matchup-note {
+			font-size: var(--font-size-xs);
+			color: var(--color-text-muted);
+			margin: var(--space-2) 0 0;
+			line-height: 1.4;
+		}
+		.team-matchup-status {
+			font-size: var(--font-size-xs);
+			color: var(--color-text-muted);
+			margin: var(--space-2) 0 0;
+			line-height: 1.4;
+		}
+		.team-matchup-status[hidden] { display: none; }
 
 		/* --- 全体レイアウト: 左=ポケモン選択バー(帯)/ 中央=チーム名・メモ・6枠(可読幅1080px) ---
 		   docs/plan/00-foundation.md「レイアウト原則」どおり、選択バーは画面端から
@@ -820,6 +916,37 @@ const initialTeamJson = team
 						    (renderPreviewPanel / closePreviewPanel が両方をトグルする)。
 						    中身はJS(renderSuggestions)が生成する。 */}
 						<div class="team-suggest" id="team-suggest"></div>
+						{/* 相性チェック(ユーザー要望、2026-08-02)。トップバーの「相性チェック」を押している
+						    間だけ表示し、上の #team-suggest / #team-preview-content を隠して右パネルを
+						    丸ごと占有する(<script>の setMatchupMode 参照)。
+						    最上部の攻守セグメントだけは静的マークアップで置き(このファイルのscoped
+						    <style>が効く)、相手ポケモンのカード一覧はJSが生成するため、そのスタイルは
+						    下の<style is:global>側に置く(pitfalls.md「Astroのscoped styleはJSで生成した
+						    要素に効かない」)。 */}
+						<div class="team-matchup" id="team-matchup" hidden>
+							<p class="team-matchup-heading">使用率上位20体との相性</p>
+							<div class="team-matchup-direction-toggle" role="radiogroup" aria-label="相性チェックの方向">
+								<button
+									id="matchup-direction-attack"
+									class="team-matchup-direction-option"
+									type="button"
+									role="radio"
+									data-role="attack"
+									aria-checked="true"
+								>攻撃</button>
+								<button
+									id="matchup-direction-defense"
+									class="team-matchup-direction-option"
+									type="button"
+									role="radio"
+									data-role="defense"
+									aria-checked="false"
+								>防御</button>
+							</div>
+							<p class="team-matchup-note" id="team-matchup-note"></p>
+							<p class="team-matchup-status" id="team-matchup-status" hidden></p>
+							<ul class="team-matchup-list" id="team-matchup-list"></ul>
+						</div>
 					</aside>
 				</div>
 			)
@@ -1891,6 +2018,61 @@ const initialTeamJson = team
 			cursor: default;
 			opacity: 0.6;
 		}
+
+		/* --- 相性チェックの相手カード一覧(ユーザー要望、2026-08-02)。JS(renderMatchupList)が
+		   生成する要素なので、このファイルの scoped <style> ではなくここ(is:global)に置く。
+		   カードの中身はユーザー指示どおりアイコンのみ。数値(平均ダメージ割合)は
+		   title 属性にだけ入れ、一覧の見た目は「濃さ」だけで読ませる。 --- */
+		.team-matchup-list {
+			list-style: none;
+			margin: var(--space-3) 0 0;
+			padding: 0;
+			display: grid;
+			/* 右パネルの実効幅(1920px幅で実測 約566px)に対して1行4〜6枚。auto-fill にして
+			   幅が変わっても枚数だけが増減するようにする(カード自体の大きさは固定)。 */
+			grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+			gap: var(--space-2);
+		}
+		.team-matchup-card {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			aspect-ratio: 1 / 1;
+			border: 1px solid var(--color-border);
+			border-radius: var(--radius-sm);
+			background: var(--color-surface);
+			/* 濃さ(opacity)はJSがインラインスタイルで入れる。計算前・計算不能のカードは
+			   1のまま(= 濃い)にせず、下の [data-state] で別の見せ方にする。 */
+			transition: opacity 0.2s ease;
+		}
+		/* 計算前(相手一覧だけ先に描いた状態)。まだ有利・不利の情報を持たないので、
+		   「薄い=有利」と誤読されないよう opacity ではなく彩度を落として保留を示す。 */
+		.team-matchup-card[data-state="pending"] {
+			filter: grayscale(1);
+			opacity: 0.55;
+		}
+		/* 採用技のデータが無い等で計算できなかった相手。0(=有利)として塗ると嘘になるため、
+		   破線の枠で「値が無い」ことを示す(色だけに頼らない。WCAG 1.4.1)。 */
+		.team-matchup-card[data-state="unknown"] {
+			border-style: dashed;
+			filter: grayscale(1);
+			opacity: 0.4;
+		}
+		.team-matchup-sprite-img {
+			max-width: 100%;
+			max-height: 100%;
+		}
+		.team-matchup-sprite-fallback {
+			display: none;
+			width: 32px;
+			height: 32px;
+			border-radius: 50%;
+			background: var(--color-surface-alt);
+			color: var(--color-text-muted);
+			font-size: var(--font-size-xs);
+			align-items: center;
+			justify-content: center;
+		}
 	</style>
 
 	<script>
@@ -1898,7 +2080,10 @@ const initialTeamJson = team
 		// 自動保存のデバウンス方式は box/[id].astro と同じ(700ms・保存ボタンは作らない・
 		// topbar-statusスロットで状態表示)。初期表示データ(SSR取得済みのチーム)は
 		// #team-edit-layout の data-initial-team から読む(fetch往復を待たずに6枠を描ける)。
-		import { loadImageIdMap, officialArtworkUrl, loadBaseStatsMap, loadMoveDetailMap } from "../../lib/pokemon-master-data";
+		// 相性チェック(2026-08-02)で連続技のヒット数が必要なため loadMultiHitMoveMap を追加import
+		// する(Battle.calc_damages() は連続技でも1ヒットぶんしか返さないため。
+		// src/lib/pyodide-engine.ts の calcMaxDamageMatrix のコメント参照)。
+		import { loadImageIdMap, officialArtworkUrl, loadBaseStatsMap, loadMoveDetailMap, loadMultiHitMoveMap } from "../../lib/pokemon-master-data";
 		// UI改修依頼(チーム編集左パネル、2026-08-02)「候補カードをボックス画面と共通化する」で
 		// 技チップにタイプアイコンを追加するため、typeIconUrlを追加importする(box/index.astroの
 		// applyMoveChipTypeIconsと同じ用途)。
@@ -1927,6 +2112,30 @@ const initialTeamJson = team
 			type MoveCategory,
 			type OpponentNoteLike,
 		} from "../../lib/damage-summary";
+		// 相性チェック(ユーザー要望、2026-08-02)。ブラウザ内 Pyodide + jpoke でダメージを計算する
+		// (このページで Pyodide を使うのはこの機能だけなので、初期化はボタンを押したときの遅延初期化。
+		// box/[id].astro の「表示直後にプリフェッチ」はあちらのページ限定の例外)。
+		import {
+			calcMaxDamageMatrix,
+			initEngine,
+			isEngineFatal,
+			registerOfflineCache,
+			resetEngine,
+			type PokemonSpec,
+		} from "../../lib/pyodide-engine";
+		// 判定・数式そのものは純粋関数として切り出してある(tests/team-matchup.test.ts で検証)。
+		import {
+			MATCHUP_TOP_N,
+			OPPONENT_EVS,
+			OPPONENT_NATURE,
+			averageRatio,
+			damageRatio,
+			pickOpponentAttackMoves,
+			pickTeamAttackMoves,
+			scoreToOpacities,
+			type MatchupDirection,
+			type PopularMoveOption,
+		} from "../../lib/team-matchup";
 
 		interface OwnedPokemonRecord {
 			id: string;
@@ -2033,6 +2242,11 @@ const initialTeamJson = team
 			// (draggedPokemonId)とは別に、埋まっている枠自身をドラッグしたときの移動元slot番号を
 			// 保持する専用変数(renderSlots参照)。
 			let draggedMemberSlot: number | null = null;
+
+			// 相性チェック(ユーザー要望、2026-08-02)が右パネルを占有しているか。
+			// renderPreviewPanel / closePreviewPanel より手前で宣言しているのは、
+			// それらが「相性チェック中は右パネルに触らない」ガードでこの変数を読むため。
+			let matchupActive = false;
 
 			const imageIdMapPromise = loadImageIdMap();
 			const itemSpriteMapPromise = loadItemSpriteMap();
@@ -2416,6 +2630,10 @@ const initialTeamJson = team
 			let previewRequestId = 0;
 
 			async function renderPreviewPanel(p: OwnedPokemonRecord): Promise<void> {
+				// 相性チェック中は右パネルを相性チェックが占有している(setMatchupMode参照)。
+				// 枠のクリック自体(選択ハイライト)は従来どおり効かせつつ、右パネルの差し替えだけ
+				// 行わない ── ここで描いてしまうと相性チェックの一覧が黙って消える。
+				if (matchupActive) return;
 				const requestId = (previewRequestId += 1);
 				previewEmptyEl.hidden = true;
 				previewContentEl.hidden = false;
@@ -2468,6 +2686,9 @@ const initialTeamJson = team
 			// (previewEmptyElは元々常時hidden・無テキストの設計(上のマークアップのコメント参照)
 			// のため、ここで表示に戻す必要はない)。
 			function closePreviewPanel(): void {
+				// 相性チェック中は suggestEl を出し直してはいけない(右パネルは相性チェックが
+				// 占有している)。renderPreviewPanel 側と同じガード。
+				if (matchupActive) return;
 				previewRequestId += 1;
 				previewContentEl.hidden = true;
 				previewContentEl.innerHTML = "";
@@ -2774,6 +2995,383 @@ const initialTeamJson = team
 				}, 700);
 			}
 
+			// =================================================================================
+			// 相性チェック(ユーザー要望、2026-08-02)
+			// 「使用率上位20体のポケモンとの攻守の相性を可視化する」。
+			//
+			// 相手の一覧と採用技は GET /api/matchup-targets、数式は src/lib/team-matchup.ts、
+			// ダメージ計算はブラウザ内 Pyodide + jpoke(calcMaxDamageMatrix)。ここは
+			// 「取得 → 計算の駆動 → 描画」の繋ぎだけを担う。
+			//
+			// 相手の条件(ユーザー指示): 性格補正なし・努力値H32振り・Lv50・IV31。特性と持ち物は
+			// 指示に無いため付けない(jpoke は空文字を渡すと特性なし・持ち物なしの個体になる)。
+			// これは「環境の平均的な個体」ではなく「同じ土俵で並べるための基準個体」であり、
+			// 20体を互いに比較するための基準として一貫していることを優先している。
+			//
+			// 計算量: 相手20体 × チーム6体 = 120組。組ごとに jpoke の Battle を1つ作るが、
+			// 致死率(calc_lethal、Battle全体のdeepcopyを伴う)は使わず calc_damages だけを
+			// 呼ぶため、WASMヒープを圧迫しない(pyodide-engine.ts の calc_max_damage_matrix_json
+			// のdocstring参照)。相手1体ぶんずつ Python を呼び、その間に進捗を描く。
+			// =================================================================================
+
+			interface MatchupTarget {
+				speciesName: string;
+				dexNo: number | null;
+				usageTeams: number;
+				totalTeams: number;
+				moves: PopularMoveOption[];
+			}
+
+			const matchupEl = el<HTMLElement>("team-matchup");
+			const matchupNoteEl = el<HTMLElement>("team-matchup-note");
+			const matchupStatusEl = el<HTMLElement>("team-matchup-status");
+			const matchupListEl = el<HTMLElement>("team-matchup-list");
+			const matchupAttackButton = el<HTMLButtonElement>("matchup-direction-attack");
+			const matchupDefenseButton = el<HTMLButtonElement>("matchup-direction-defense");
+			const matchupCheckButton = el<HTMLButtonElement>("matchup-check-button");
+
+			let matchupDirection: MatchupDirection = "attack";
+			// 上位20体の一覧は編成にも向きにも依存しないので、ページ内で1回だけ取得して使い回す。
+			let matchupTargetsPromise: Promise<MatchupTarget[]> | null = null;
+			// 「今どの条件に対する計算か」。編成や向きを続けて操作したときに、古い計算の結果が
+			// 後から届いて上書きするのを防ぐ(renderPreviewPanel の previewRequestId と同じ方式)。
+			let matchupRequestId = 0;
+			let matchupTimer: number | undefined;
+			// 計算済みスコア。キー = 向き + 編成(メンバーIDの並び)。攻撃/防御を往復しても
+			// 120組の計算をやり直さないためのもの。個体そのものの育成内容を別画面で変えた場合は
+			// ページ遷移(=このキャッシュの破棄)を伴うため、IDだけをキーにして問題ない。
+			const matchupScoreCache = new Map<string, (number | null)[]>();
+
+			function setMatchupStatus(message: string | null): void {
+				if (message === null) {
+					matchupStatusEl.hidden = true;
+					matchupStatusEl.textContent = "";
+					return;
+				}
+				matchupStatusEl.textContent = message;
+				matchupStatusEl.hidden = false;
+			}
+
+			// 相性チェックの対象になるチームメンバー(種族名が入っているものだけ)。
+			// 枠順に並べるが、平均を採るだけなので順序自体は結果に影響しない。
+			function matchupTeamMembers(): OwnedPokemonRecord[] {
+				const members: OwnedPokemonRecord[] = [];
+				for (let slot = 1; slot <= 6; slot += 1) {
+					const p = membersBySlot.get(slot);
+					if (p && p.species_name && p.species_name.trim() !== "") members.push(p);
+				}
+				return members;
+			}
+
+			async function loadMatchupTargets(): Promise<MatchupTarget[]> {
+				if (!matchupTargetsPromise) {
+					matchupTargetsPromise = fetch(`/api/matchup-targets?limit=${MATCHUP_TOP_N}`, { credentials: "same-origin" })
+						.then(async (res) => {
+							if (!res.ok) throw new Error(`相性チェックの対象取得に失敗しました (status=${res.status})`);
+							const body = (await res.json()) as { data: MatchupTarget[] };
+							return body.data ?? [];
+						})
+						.catch((err) => {
+							// 失敗した Promise を握り続けると二度と再試行できなくなる(loadSuggestions が
+							// lastSuggestKey を戻すのと同じ考え方)。
+							matchupTargetsPromise = null;
+							throw err;
+						});
+				}
+				return matchupTargetsPromise;
+			}
+
+			/** 自チームの1体を jpoke に渡す仕様に変換する。moveNames は用途(攻撃側/防御側)で変える。 */
+			function matchupTeamSpec(p: OwnedPokemonRecord, moveNames: string[]): PokemonSpec {
+				return {
+					name: p.species_name,
+					level: p.level ?? 50,
+					nature: p.nature ?? "まじめ",
+					abilityName: p.ability_name ?? "",
+					itemName: p.item_name ?? "",
+					moveNames,
+					// テラスタイプは terastallized を立てない限りダメージ計算に影響しない
+					// (チャンピオンズルールにテラスタルは無い)。情報としてだけ渡す。
+					teraType: p.tera_type ?? null,
+					evs: p.evs,
+					ivs: p.ivs,
+				};
+			}
+
+			/** 相手ポケモンの基準個体(ユーザー指示: 性格補正なし・H32振り)。 */
+			function matchupOpponentSpec(target: MatchupTarget, moveNames: string[]): PokemonSpec {
+				return {
+					name: target.speciesName,
+					level: 50,
+					nature: OPPONENT_NATURE,
+					moveNames,
+					evs: [...OPPONENT_EVS],
+					// チャンピオンズルールの個体値は31固定(.claude/skills/jpoke/references/ruleset.md)。
+					ivs: [31, 31, 31, 31, 31, 31],
+				};
+			}
+
+			function matchupUsagePercent(target: MatchupTarget): number {
+				return Math.round((target.usageTeams / Math.max(target.totalTeams, 1)) * 100);
+			}
+
+			/**
+			 * 相手カードの一覧を描く。scores が null のときは「まだ計算していない」状態
+			 * (相手の顔ぶれだけ先に見せる)。
+			 */
+			function renderMatchupList(targets: MatchupTarget[], scores: (number | null)[] | null): void {
+				matchupListEl.innerHTML = "";
+				const scored = scores
+					? scoreToOpacities(
+							targets.map((t, i) => ({ item: t, score: scores[i] ?? null })),
+							matchupDirection,
+						)
+					: targets.map((t) => ({ item: t, score: null as number | null, opacity: null as number | null }));
+
+				for (const entry of scored) {
+					const target = entry.item;
+					const card = document.createElement("li");
+					card.className = "team-matchup-card";
+
+					// ユーザー指示「カード(アイコンのみ)」。数値は title(ツールチップ)にだけ入れる。
+					const img = document.createElement("img");
+					img.className = "team-matchup-sprite-img";
+					img.alt = "";
+					const fallback = document.createElement("span");
+					fallback.className = "team-matchup-sprite-fallback";
+					card.append(img, fallback);
+					void applySprite(img, fallback, target.speciesName);
+
+					const usage = `${target.speciesName}(上位チームの${matchupUsagePercent(target)}%が採用)`;
+					if (scores === null) {
+						card.dataset.state = "pending";
+						card.title = usage;
+					} else if (entry.score === null || entry.opacity === null) {
+						card.dataset.state = "unknown";
+						card.title = `${usage} / 採用技のデータが無いため計算していません`;
+					} else {
+						card.style.opacity = String(entry.opacity);
+						const percent = Math.round(entry.score * 100);
+						card.title =
+							matchupDirection === "attack"
+								? `${usage} / チーム平均で最大${percent}%のダメージを与えられる(薄いほど有利)`
+								: `${usage} / チーム平均で最大${percent}%のダメージを受ける(濃いほど不利)`;
+					}
+					matchupListEl.appendChild(card);
+				}
+			}
+
+			/**
+			 * 相手1体に対するチーム全員の「最大ダメージ割合の平均」。
+			 * 計算できなかった場合(相手の種族名が jpoke に無い・採用技のデータが無い)は null。
+			 */
+			async function computeMatchupScore(
+				target: MatchupTarget,
+				teamAttackSpecs: PokemonSpec[],
+				teamDefenseSpecs: PokemonSpec[],
+				isAttackMove: (moveName: string) => boolean,
+				moveHitCounts: Record<string, number>,
+			): Promise<number | null> {
+				if (matchupDirection === "attack") {
+					// 攻撃: チーム全員 → 相手1体。各メンバーの最大打点を相手のHPで割る。
+					const result = await calcMaxDamageMatrix(teamAttackSpecs, [matchupOpponentSpec(target, [])], {
+						moveHitCounts,
+					});
+					const hp = result.defenderMaxHp[0];
+					if (hp == null) return null;
+					// 個々のセルが null(その組だけ計算に失敗)のときは0として平均に含める
+					// ── 「そのメンバーはこの相手に何も通せない」と同じ扱いにするのが安全側。
+					return averageRatio(teamAttackSpecs.map((_, i) => damageRatio(result.maxDamage[i]?.[0] ?? 0, hp)));
+				}
+
+				// 防御: 相手1体 → チーム全員。相手の技は攻撃技だけを採用率上位4つ(ユーザー指示)。
+				const opponentMoves = pickOpponentAttackMoves(target.moves, isAttackMove);
+				// 採用技が集計されていない種族(母数が k-匿名性の閾値未満)は、技0本で計算すると
+				// 「一切ダメージを受けない最も安全な相手」に見えてしまう。計算せず「データなし」にする。
+				if (opponentMoves.length === 0) return null;
+				const result = await calcMaxDamageMatrix([matchupOpponentSpec(target, opponentMoves)], teamDefenseSpecs, {
+					moveHitCounts,
+				});
+				return averageRatio(
+					teamDefenseSpecs.map((_, i) => {
+						const hp = result.defenderMaxHp[i];
+						if (hp == null) return 0;
+						return damageRatio(result.maxDamage[0]?.[i] ?? 0, hp);
+					}),
+				);
+			}
+
+			async function runMatchup(): Promise<void> {
+				const requestId = (matchupRequestId += 1);
+
+				matchupNoteEl.textContent =
+					matchupDirection === "attack"
+						? "チーム全員の最大打点(相手HPに対する割合)の平均です。薄いほど有利、濃く残った相手が苦手です。"
+						: "チーム全員が受ける最大ダメージ(自分のHPに対する割合)の平均です。濃いほど不利です。";
+
+				setMatchupStatus("上位ポケモンを読み込み中…");
+				let targets: MatchupTarget[];
+				try {
+					targets = await loadMatchupTargets();
+				} catch (err) {
+					console.error(err);
+					if (requestId !== matchupRequestId) return;
+					matchupListEl.innerHTML = "";
+					setMatchupStatus("上位ポケモンの一覧を取得できませんでした。");
+					return;
+				}
+				if (requestId !== matchupRequestId) return;
+
+				if (targets.length === 0) {
+					matchupListEl.innerHTML = "";
+					setMatchupStatus("集計データがまだありません。");
+					return;
+				}
+
+				const members = matchupTeamMembers();
+				if (members.length === 0) {
+					renderMatchupList(targets, null);
+					setMatchupStatus("チームにポケモンを入れると相性を計算します。");
+					return;
+				}
+
+				const cacheKey = `${matchupDirection}|${members.map((p) => p.id).sort().join(",")}`;
+				const cached = matchupScoreCache.get(cacheKey);
+				if (cached) {
+					renderMatchupList(targets, cached);
+					setMatchupStatus(null);
+					return;
+				}
+
+				// 計算前でも顔ぶれは先に出す(Pyodideの初回ロードは十数秒かかることがあるため、
+				// 空のパネルのまま待たせない)。
+				renderMatchupList(targets, null);
+
+				setMatchupStatus("計算エンジンを準備中…");
+				// Pyodide本体・jpoke wheelのオフラインキャッシュ(2回目以降の再ダウンロード回避)。
+				// box/[id].astro と同じService Workerで、登録は何度呼んでも冪等。
+				registerOfflineCache();
+				try {
+					await initEngine((progress) => {
+						if (requestId === matchupRequestId && progress.status === "loading") setMatchupStatus(progress.message);
+					});
+				} catch (err) {
+					console.error(err);
+					if (requestId !== matchupRequestId) return;
+					setMatchupStatus("計算エンジンの初期化に失敗しました。時間をおいて再度お試しください。");
+					return;
+				}
+				if (requestId !== matchupRequestId) return;
+
+				const [moveDetails, multiHitMoves] = await Promise.all([loadMoveDetailMap(), loadMultiHitMoveMap()]);
+				if (requestId !== matchupRequestId) return;
+
+				// マスターデータに無い技は判定材料が無いので攻撃技として扱わない(計算にも使えない)。
+				const isAttackMove = (moveName: string): boolean => {
+					const detail = moveDetails.get(moveName);
+					return !!detail && detail.category !== "status";
+				};
+				const moveHitCounts: Record<string, number> = {};
+				for (const [moveName, hits] of multiHitMoves) moveHitCounts[moveName] = hits[1];
+
+				// 相手ごとに作り直す必要が無いものは先に一度だけ組み立てる。
+				const teamAttackSpecs = members.map((p) =>
+					matchupTeamSpec(p, pickTeamAttackMoves(p.move_names ?? [], isAttackMove)),
+				);
+				// 防御側は技を使わない(jpoke側は技が空なら「はねる」で補う)。
+				const teamDefenseSpecs = members.map((p) => matchupTeamSpec(p, []));
+
+				const scores: (number | null)[] = new Array(targets.length).fill(null);
+				let engineRestarted = false;
+				for (let i = 0; i < targets.length; i += 1) {
+					setMatchupStatus(`相性を計算中… (${i + 1}/${targets.length})`);
+					// Pyodideの呼び出しは同期でメインスレッドを止めるため、直前に一度制御を返して
+					// 上の進捗テキストを実際に描かせる(await が無いと最後の1回しか描かれない)。
+					await new Promise((resolve) => window.setTimeout(resolve, 0));
+					if (requestId !== matchupRequestId) return;
+					try {
+						scores[i] = await computeMatchupScore(
+							targets[i],
+							teamAttackSpecs,
+							teamDefenseSpecs,
+							isAttackMove,
+							moveHitCounts,
+						);
+					} catch (err) {
+						console.error(err);
+						if (requestId !== matchupRequestId) return;
+						// WASMヒープが壊れた場合(isEngineFatal)は、1回だけエンジンを作り直して
+						// 同じ相手からやり直す(src/lib/box-id/bulk-adjust-solver.ts と同じ方針)。
+						if (isEngineFatal() && !engineRestarted) {
+							engineRestarted = true;
+							setMatchupStatus("計算エンジンを再起動しています…");
+							try {
+								await resetEngine();
+								if (requestId !== matchupRequestId) return;
+								i -= 1;
+								continue;
+							} catch (resetErr) {
+								console.error(resetErr);
+								setMatchupStatus("計算エンジンが停止しました。ページを再読み込みしてください。");
+								return;
+							}
+						}
+						scores[i] = null;
+					}
+				}
+				if (requestId !== matchupRequestId) return;
+
+				matchupScoreCache.set(cacheKey, scores);
+				renderMatchupList(targets, scores);
+				const unknownCount = scores.filter((s) => s === null).length;
+				setMatchupStatus(
+					unknownCount > 0 ? `${unknownCount}体は採用技のデータが無いため計算していません(破線の枠)。` : null,
+				);
+			}
+
+			// 編成が変わったら計算し直す。サジェスト(scheduleSuggestions)と同じ700msのデバウンス。
+			function scheduleMatchup(): void {
+				if (!matchupActive) return;
+				window.clearTimeout(matchupTimer);
+				matchupTimer = window.setTimeout(() => {
+					void runMatchup();
+				}, 700);
+			}
+
+			function setMatchupDirection(direction: MatchupDirection): void {
+				if (matchupDirection === direction) return;
+				matchupDirection = direction;
+				matchupAttackButton.setAttribute("aria-checked", direction === "attack" ? "true" : "false");
+				matchupDefenseButton.setAttribute("aria-checked", direction === "defense" ? "true" : "false");
+				void runMatchup();
+			}
+
+			// 相性チェックは右パネルを丸ごと占有する(個体プレビュー・サジェストを隠す)。
+			// もう一度押すと元のニュートラル状態(サジェスト表示)へ戻る。
+			function setMatchupMode(active: boolean): void {
+				matchupActive = active;
+				matchupCheckButton.setAttribute("aria-pressed", active ? "true" : "false");
+				matchupEl.hidden = !active;
+				if (active) {
+					// 進行中のプレビューfetchが後から書き戻すのも止める(closePreviewPanelと同じ手法。
+					// ただしあちらは相性チェック中は早期returnするので、ここで直接行う)。
+					previewRequestId += 1;
+					previewContentEl.hidden = true;
+					previewContentEl.innerHTML = "";
+					suggestEl.hidden = true;
+					void runMatchup();
+				} else {
+					// 進行中の計算結果は捨てる(戻ってきたときに古い編成の濃淡を描かない)。
+					matchupRequestId += 1;
+					window.clearTimeout(matchupTimer);
+					suggestEl.hidden = false;
+				}
+			}
+
+			matchupCheckButton.addEventListener("click", () => setMatchupMode(!matchupActive));
+			matchupAttackButton.addEventListener("click", () => setMatchupDirection("attack"));
+			matchupDefenseButton.addEventListener("click", () => setMatchupDirection("defense"));
+
 			// UI改修依頼(チーム編集左パネル)「ダブルクリックとドラッグアンドドロップでチームに
 			// 設定できるように」。クリック単体での追加(旧仕様)はプレビュー表示に譲り、実際の
 			// 追加操作はダブルクリック/ドラッグ&ドロップに一本化する。targetSlotを指定した場合は
@@ -2793,6 +3391,8 @@ const initialTeamJson = team
 				refreshCollectionOptOutToggle();
 				// 編成が変わったのでサジェストを取り直す(2026-08-02)。
 				scheduleSuggestions();
+				// 相性チェックを開いている場合は、その計算もやり直す(2026-08-02)。
+				scheduleMatchup();
 			}
 
 			// 🔴 UI改修依頼(チーム編集中央パネル、2026-08-01)「10. チームメンバーどうしを
@@ -2907,6 +3507,8 @@ const initialTeamJson = team
 				refreshCollectionOptOutToggle();
 				// 編成が変わったのでサジェストを取り直す(2026-08-02)。
 				scheduleSuggestions();
+				// 相性チェックを開いている場合は、その計算もやり直す(2026-08-02)。
+				scheduleMatchup();
 			}
 
 			function buildFilledSlotContent(slot: number, p: OwnedPokemonRecord): HTMLElement {

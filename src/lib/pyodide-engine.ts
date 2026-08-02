@@ -339,11 +339,21 @@ type CalcLethalSequenceJsonFn = (
   sequentialOnly: boolean,
 ) => string;
 
+type CalcMaxDamageMatrixJsonFn = (
+  attackerSpecs: PyProxy,
+  defenderSpecs: PyProxy,
+  moveHitCounts: PyProxy,
+  fieldSpec: PyProxy,
+  critical: boolean,
+  seed: number | null,
+) => string;
+
 // --- モジュールスコープの状態(シングルトン) ---
 let pyodideSingleton: PyodideInterface | null = null;
 let calcDamagesJsonFn: CalcDamagesJsonFn | null = null;
 let calcStatsJsonFn: CalcStatsJsonFn | null = null;
 let calcLethalSequenceJsonFn: CalcLethalSequenceJsonFn | null = null;
+let calcMaxDamageMatrixJsonFn: CalcMaxDamageMatrixJsonFn | null = null;
 let initPromise: Promise<PyodideInterface> | null = null;
 let currentStatus: EngineStatus = "idle";
 let currentMessage = "未初期化";
@@ -1018,6 +1028,90 @@ def calc_lethal_sequence_json(attacker_spec, defender_spec, attacks, seed, criti
         })
     finally:
         gc.collect()
+
+
+def calc_max_damage_matrix_json(attacker_specs, defender_specs, move_hit_counts, field_spec, critical, seed):
+    """攻撃側 × 防御側の総当たりで「攻撃側の技のうち最大の1発ダメージ」を求める。
+
+    チーム編集画面の相性チェック(ユーザー要望 2026-08-02)専用。20体 × 6体 = 120組に対して
+    JS から calc_damages_json() を個別に呼ぶと、'pyodide.toPy()' とJSON往復が組の数だけ発生する。
+    総当たりをPython側の1回の呼び出しに畳むことで、往復を組数ぶんまとめて削れる。
+
+    'calc_lethal()' を一切呼ばないのがこの関数の要点である。WASMヒープを圧迫していたのは
+    呼び出しごとにBattle全体をdeepcopyする calc_lethal() であり(ファイル冒頭の
+    gc.collect() のコメント参照)、'Battle.calc_damages()' はdeepcopyを伴わない。
+    相性チェックが必要とするのは最大ダメージ1点だけで致死率は要らないため、
+    致死率計算を丸ごと外して総当たりを現実的な時間とヒープ消費で回せるようにしている。
+
+    move_hit_counts は「技名 → 1回の使用で当たる回数」のdict(未登録の技は1回)。
+    'calc_damages()' が返すのは連続技であっても1ヒットぶんのダメージなので、
+    トリプルアクセル等をここで掛け合わせないと実際の半分以下に見積もってしまう。
+
+    戻り値:
+      maxDamage[i][j]   attacker_specs[i] が defender_specs[j] に与えうる最大ダメージ。
+                        攻撃技を1本も持たない場合は0、計算に失敗した組は None。
+      defenderMaxHp[j]  defender_specs[j] の最大HP(割合の分母。JS側で計算し直さずに済ませる)。
+    """
+    try:
+        defender_max_hp = []
+        for defender_spec in defender_specs:
+            try:
+                defender_max_hp.append(_build_pokemon(defender_spec, None).max_hp)
+            except Exception:
+                # 種族名がjpokeのPOKEDEXに無い等。その防御側の列は丸ごと計算できないが、
+                # 他の組は成立するので、ここで例外を上げて全体を落とさない。
+                defender_max_hp.append(None)
+
+        max_damage = []
+        for attacker_spec in attacker_specs:
+            move_names = [name for name in (attacker_spec.get("moveNames") or []) if name]
+            row = []
+            for j, defender_spec in enumerate(defender_specs):
+                if not move_names or defender_max_hp[j] is None:
+                    row.append(0 if defender_max_hp[j] is not None else None)
+                    continue
+                try:
+                    player1 = Player("Attacker")
+                    attacker = _build_pokemon(attacker_spec, None)
+                    player1.team.append(attacker)
+
+                    player2 = Player("Defender")
+                    defender = _build_pokemon(defender_spec, None)
+                    player2.team.append(defender)
+
+                    battle = Battle(player1, player2, seed=seed)
+                    battle.start()
+                    _apply_field(battle, player2, field_spec)
+
+                    active_attacker, active_defender = battle.actives
+                    _apply_battle_only_state(battle, active_attacker, attacker_spec)
+                    _apply_battle_only_state(battle, active_defender, defender_spec)
+
+                    best = 0
+                    for name in move_names:
+                        move = _resolve_move(active_attacker, name)
+                        damages = battle.calc_damages(active_attacker, active_defender, move, critical=critical)
+                        if not damages:
+                            continue
+                        # 'damages' は乱数16段階を昇順に並べたもので、末尾が最大
+                        # (.claude/skills/jpoke/references/damage-calc.md「damages[15]が最大」)。
+                        hits = move_hit_counts.get(name, 1) if move_hit_counts else 1
+                        value = max(damages) * hits
+                        if value > best:
+                            best = value
+                    row.append(best)
+                except Exception:
+                    # 技名がjpokeに無い等、その1組だけが壊れるケース。相性チェックは
+                    # 20体ぶんの一覧なので、1組の失敗で全体を落とさず None を置いて続ける。
+                    row.append(None)
+            max_damage.append(row)
+
+        return json.dumps({"maxDamage": max_damage, "defenderMaxHp": defender_max_hp})
+    finally:
+        # calc_lethal() を呼ばないためdeepcopyされたBattleは生まれないが、Battle自体が
+        # マネージャ同士の参照循環グラフを持つ(ファイル冒頭のコメント参照)。総当たりで
+        # 組数ぶんのBattleを作るので、他のエントリ関数と同じく最後に一度回収する。
+        gc.collect()
 `;
 
 /**
@@ -1068,6 +1162,9 @@ export function initEngine(onProgress?: ProgressListener): Promise<PyodideInterf
       calcLethalSequenceJsonFn = pyodide.globals.get(
         "calc_lethal_sequence_json",
       ) as CalcLethalSequenceJsonFn;
+      calcMaxDamageMatrixJsonFn = pyodide.globals.get(
+        "calc_max_damage_matrix_json",
+      ) as CalcMaxDamageMatrixJsonFn;
 
       pyodideSingleton = pyodide;
       notify("ready", "初期化完了");
@@ -1099,6 +1196,7 @@ function resetSingletonState(): void {
   calcDamagesJsonFn = null;
   calcStatsJsonFn = null;
   calcLethalSequenceJsonFn = null;
+  calcMaxDamageMatrixJsonFn = null;
 }
 
 /** 初期化済み(ready状態)かどうか。 */
@@ -1340,6 +1438,82 @@ export async function calcLethalSequence(
     attackerPy.destroy();
     defenderPy.destroy();
     attacksPy.destroy();
+    fieldPy.destroy();
+  }
+}
+
+/** `calcMaxDamageMatrix()` の戻り値。 */
+export interface MaxDamageMatrixResult {
+  /**
+   * `maxDamage[i][j]` = `attackerSpecs[i]` が `defenderSpecs[j]` に与えうる最大ダメージ
+   * (攻撃側の `moveNames` の中で最大の1発。連続技はヒット数を掛けた値)。
+   * 攻撃技を1本も持たない場合は 0、その組の計算に失敗した場合は null。
+   */
+  maxDamage: (number | null)[][];
+  /** `defenderSpecs[j]` の最大HP。種族名が解決できなかった防御側は null。 */
+  defenderMaxHp: (number | null)[];
+}
+
+export interface CalcMaxDamageMatrixOptions {
+  /**
+   * 技名 → 1回の使用で当たるヒット数(連続技のみ指定すればよい。未指定は1)。
+   * `Battle.calc_damages()` は連続技でも1ヒットぶんしか返さないため、
+   * 呼び出し側が `loadMultiHitMoveMap()`(src/lib/pokemon-master-data.ts)から作って渡す。
+   */
+  moveHitCounts?: Record<string, number>;
+  /** 天候・地形・壁。省略時は素の場。 */
+  field?: FieldSpec;
+  /** 急所固定で計算するか(省略時 false)。 */
+  critical?: boolean;
+  /** 乱数シード。`calc_damages()` は乱数16段階を全列挙するため結果には影響しないが、引数として渡せるようにしておく。 */
+  seed?: number;
+}
+
+/**
+ * 攻撃側 × 防御側の総当たりで、各組の「最大ダメージ1発」を一度に計算する。
+ *
+ * チーム編集画面の相性チェック(ユーザー要望 2026-08-02)のための一括APIで、
+ * `calcDamages()` を組の数だけ呼ぶ代わりに Python 側で総当たりを回す
+ * (往復とヒープ消費の削減。詳細は BOOTSTRAP_PYTHON の `calc_max_damage_matrix_json`
+ * のdocstring参照)。致死率は計算しないため `calc_lethal()` を経由しない。
+ *
+ * `initEngine()` が完了(ready)している必要がある。1回の呼び出しで作られる Battle は
+ * 攻撃側 × 防御側の数だけになるので、進捗表示を出したい場合は呼び出し側で
+ * 防御側(または攻撃側)を分割して複数回呼ぶこと。
+ */
+export async function calcMaxDamageMatrix(
+  attackerSpecs: PokemonSpec[],
+  defenderSpecs: PokemonSpec[],
+  options: CalcMaxDamageMatrixOptions = {},
+): Promise<MaxDamageMatrixResult> {
+  if (engineFatal) {
+    throw new Error(ENGINE_FATAL_MESSAGE);
+  }
+  if (!pyodideSingleton || !calcMaxDamageMatrixJsonFn) {
+    throw new Error("エンジンが初期化されていません。先に initEngine() を呼んでください。");
+  }
+  if (attackerSpecs.length === 0 || defenderSpecs.length === 0) {
+    return { maxDamage: attackerSpecs.map(() => []), defenderMaxHp: defenderSpecs.map(() => null) };
+  }
+
+  const pyodide = pyodideSingleton;
+  const fn = calcMaxDamageMatrixJsonFn;
+  const seed = options.seed ?? null;
+  const critical = options.critical ?? false;
+
+  const attackersPy = pyodide.toPy(attackerSpecs);
+  const defendersPy = pyodide.toPy(defenderSpecs);
+  const hitCountsPy = pyodide.toPy(options.moveHitCounts ?? {});
+  const fieldPy = pyodide.toPy(options.field ?? {});
+  try {
+    return callEngineJsonFn<MaxDamageMatrixResult>(() =>
+      fn(attackersPy, defendersPy, hitCountsPy, fieldPy, critical, seed),
+    );
+  } finally {
+    // toPy() が生成したPythonオブジェクトはJS側で明示的に破棄する(Pyodideのメモリ管理規約)。
+    attackersPy.destroy();
+    defendersPy.destroy();
+    hitCountsPy.destroy();
     fieldPy.destroy();
   }
 }
