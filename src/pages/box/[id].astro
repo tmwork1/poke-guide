@@ -129,6 +129,22 @@ const isOptedOut = optOutRemainingText !== "";
 			    S実数値の右隣の調整ボタンに置き換える」により、このヘッダーボタンは撤去する。
 			    同機能のボタンは src/components/box-id/LeftPanel.astro のS行側へ移設する
 			    (別エージェント担当)。 */}
+			{/* 🔴 UI改修依頼(個体編集画面、2026-08-02)「トップバーの"すべて折りたたむ"ボタンの
+			    左に"耐久調整"ボタンを追加」対応。段階的実装の第1段階であり、今回はマークアップと
+			    見た目だけを作る(クリック時に耐久調整ポップアップを開く処理は、次段階で
+			    src/lib/box-id/側に実装するため、このファイルには<script>を一切追加しない)。
+			    アイコンは新規に描き起こさず、src/components/box-id/LeftPanel.astro のS行
+			    「調整」ボタン(Lucideのsliders-horizontal相当、<line>9本のインラインSVG)を
+			    そのままコピーして使う。同じ「実数値を調整するポップアップを開く」系の機能である
+			    ことを視覚的に揃えるための転用で、SVG自体はaria-hiddenで装飾扱いにする
+			    (アクセシブルネームはボタンの可視テキスト「耐久調整」が担う)。
+			    初期状態はdisabled: #damage-collapse-toggle-button(下記)と同じく、ダメージ計算
+			    エンジンの初期化が終わるまで押せないようにする想定だが、この段階ではクリック
+			    ハンドラ自体を実装しないため有効化ロジックは次段階で追加する。それまでは
+			    静的マークアップにdisabledを書くだけにとどめる。 */}
+			<button id="bulk-adjust-button" class="btn-ghost" type="button" disabled>
+				<span class="bulk-adjust-button-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="21" y1="4" x2="14" y2="4"/><line x1="10" y1="4" x2="3" y2="4"/><line x1="21" y1="12" x2="12" y2="12"/><line x1="8" y1="12" x2="3" y2="12"/><line x1="21" y1="20" x2="16" y2="20"/><line x1="12" y1="20" x2="3" y2="20"/><line x1="14" y1="2" x2="14" y2="6"/><line x1="8" y1="10" x2="8" y2="14"/><line x1="16" y1="18" x2="16" y2="22"/></svg></span><span class="bulk-adjust-button-label">耐久調整</span>
+			</button>
 			{/* UI改善ラウンド41ユーザー指示(41-H1)「すべて折りたたむボタンは、X位置はそのままで、
 			    個体編集画面のヘッダ(戻るボタンがある領域)に移す」により、ラウンド40(40-H1)
 			    「ダメージカード領域の上に置く」を撤回し、38-H1と同じくヘッダーへ再移動する。
@@ -205,6 +221,67 @@ const isOptedOut = optOutRemainingText !== "";
 	<style>
 		/* 基本のトークン・カード・ボタン・フォーム部品は src/styles/global.css に集約済み。
 		   ここにはこのページ固有のレイアウト・状態表現だけを残す。 */
+		/* 🔴 UI改修依頼(個体編集画面、2026-08-02)「トップバーのすべて折りたたむボタンの左に
+		   耐久調整ボタンを追加」対応。#delete-button と同じ理由(祖先のbutton{font:inherit}
+		   により、独自font-sizeを持たない.app-topbar-actions内で祖先の1remを継承してしまい
+		   縦に肥大化する。250行目付近のコメント参照)でfont-sizeを明示する。新しいサイズ
+		   トークンは作らず、他のトップバー内ボタン(#delete-button等)と同じ
+		   var(--font-size-sm)を使う。
+		   アイコン(span.bulk-adjust-button-icon)とラベル(span.bulk-adjust-button-label)を
+		   横並びにするレイアウト自体は、button基底ルール(global.css、display:inline-flex;
+		   align-items:center; gap:0.4em)がそのまま2つのspan子要素に効くため追加のflex宣言は
+		   不要。ただしアイコンspanの中身がインラインSVG(既定でbaseline基準の余白が乗り、
+		   隣のラベルテキストと縦位置がわずかにズレる)なので、span自体をinline-flexにして
+		   中央寄せし、#damage-collapse-toggle-button(DamageCalcSection.astro側)のchevron+label
+		   構成と同じく縦位置を揃える。
+		   🔴 追加対応(Coordinator実測指摘): 当初はDOM順を「耐久調整→すべて折りたたむ」に
+		   しただけで済ませていたが、#damage-collapse-toggle-buttonが41-H1の対応で
+		   position:fixed(DamageCalcSection.astro参照、1920px専用の絶対座標をベタ書き)に
+		   より通常フローから外れているため、DOM順だけでは画面上「左」にならないと実測で
+		   判明した(#bulk-adjust-buttonは通常フローに残っていたため、実際には
+		   #damage-collapse-toggle-buttonの右に表示されていた)。既存のこのボタンと同じ
+		   position:fixedのベタ書き方式に合わせ、#damage-collapse-toggle-buttonの左端
+		   (1376.78px)からvar(--space-2)(=.app-topbar-actionsのflex gapと同じトークン)
+		   分だけ左に、ボタン自身の幅に依存しない形で(transform: translate(-100%, ...)で
+		   右端を基準点に合わせる)アンカーする。ラベル文言が変わって幅が伸縮しても間隔が
+		   保たれる。
+		   Y位置(行中央揃え)は#damage-collapse-toggle-button側と同じ実測結果・同じ補正
+		   (DamageCalcSection.astroの#damage-collapse-toggle-buttonルール直上のコメント
+		   参照: --topbar-height(65px、global.cssの概算定数)と.app-topbar実測高さ
+		   (63.03px)の差から、真の行中央はtop: calc(var(--topbar-height)/2)より約1px上に
+		   ある)を適用し、両ボタンのcenterYを.app-topbar-actionsの実測centerYに揃える。 */
+		#bulk-adjust-button {
+			position: fixed;
+			left: calc(1376.78px - var(--space-2));
+			top: calc(var(--topbar-height) / 2 - 1px);
+			transform: translate(-100%, -50%);
+			z-index: 21;
+			font-size: var(--font-size-sm);
+			white-space: nowrap;
+		}
+		#bulk-adjust-button .bulk-adjust-button-icon { display: inline-flex; align-items: center; }
+		/* 🔴 UI改修依頼(個体編集画面、2026-08-02)追加対応(Coordinator実測指摘): 上のposition:
+		   fixed; left: calc(1376.78px - var(--space-2))は#damage-collapse-toggle-buttonと同じく
+		   1920px専用のベタ書き座標。画面が狭くなると.app-topbar-actions(右寄せ)の左端が
+		   追いついて#delete-button等と矩形が重なる(実測: 1440px・1280pxで重なりを確認)。
+		   閾値の根拠はDamageCalcSection.astroの#damage-collapse-toggle-button側の同名メディア
+		   クエリのコメント参照(1920pxでの.app-topbar-actions左端1715.2pxと#damage-collapse-
+		   toggle-button右端1533.2pxの実測から、画面幅>1738.0pxで重ならないと算出。1739px以下で
+		   両ボタンとも通常flowへ戻す)。このボタンもposition:staticへ戻し、親.app-topbar-actions
+		   (display:flex; align-items:center; gap:var(--space-2)、AppLayout.astro側)の通常の
+		   横並びに合流させる(DOM順は耐久調整→すべて折りたたむ→非公開→削除のまま)。
+		   ⚠️ #damage-collapse-toggle-button側と同じ理由で、このメディアクエリは
+		   #bulk-adjust-buttonの基本定義(上のposition:fixedのルール)より後ろに置くこと
+		   (同詳細度では後勝ち。前に置くと効かない事故が過去2回起きている)。 */
+		@media (max-width: 1739px) {
+			#bulk-adjust-button {
+				position: static;
+				left: auto;
+				top: auto;
+				transform: none;
+				z-index: auto;
+			}
+		}
 		#retry-button { display: none; margin-left: 0.4em; }
 		#retry-button.visible { display: inline-flex; }
 		/* 共通トップバー移行(2026-07-26・実測バグ修正): #autosave-statusは<p>要素で、

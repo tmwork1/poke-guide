@@ -3055,11 +3055,25 @@ const { pokemonId } = Astro.props;
 	   初期包含ブロック=ビューポートのまま)ため、left/topはビューポート基準でよい。
 	   z-indexは.app-topbar(20、global.css)より高くし、ヘッダー内で確実に前面に来るようにする。
 	   フォントサイズ・disabled時の見た目以外はglobal.cssの.btn-ghostに委ねる
-	   (このページ固有の上書きを最小限にする)。 */
+	   (このページ固有の上書きを最小限にする)。
+	   🔴 UI改修依頼(個体編集画面、2026-08-02)追加対応「耐久調整ボタン(box/[id].astro側、
+	   #bulk-adjust-button)のY位置をこのボタンおよび.app-topbar-actionsの行中央に揃える」で
+	   Coordinatorが実測した結果、top: calc(var(--topbar-height) / 2)(=32.5px、
+	   --topbar-height: 65pxはglobal.css :root定義)ではこのボタンのcenterYが32.50pxになる一方、
+	   .app-topbar-actions(通常フロー、真の行中央)のcenterYは31.52pxで、約1px(0.98px)下に
+	   ずれていた。原因はPlaywright実測(getBoundingClientRect)で判明: --topbar-height: 65pxは
+	   .app-main等の高さ計算(100vh引き算)用に登録された概算定数で、.app-topbar自体の実際の
+	   レンダリング高さは63.03px(このページのタイトル文字サイズ等コンテンツ依存)しかなく、
+	   定数と実測値の間に1.97pxのズレがある。position:fixedのtopはこの概算定数からしか
+	   計算できないため、真の行中央に合わせるには実測差分の半分(約1px)を差し引く補正が要る。
+	   --topbar-height自体はglobal.css側の全画面共通トークンで、この2px弱のズレを完全に無くす
+	   には実測ぴったりの値へ再定義する必要があるが、他ページ・他要素の計算に影響する共有変数の
+	   ため、このページ固有の対応ではglobal.cssを触らず(担当外)、位置決めの本ルール側で
+	   -1pxの実測補正を加えるにとどめる。 */
 	#damage-collapse-toggle-button {
 		position: fixed;
 		left: 1376.78px;
-		top: calc(var(--topbar-height) / 2);
+		top: calc(var(--topbar-height) / 2 - 1px);
 		transform: translateY(-50%);
 		z-index: 21;
 		font-size: 0.86rem;
@@ -3072,6 +3086,30 @@ const { pokemonId } = Astro.props;
 		display: flex;
 		align-items: center;
 		gap: 0.32em;
+	}
+	/* 🔴 UI改修依頼(個体編集画面、2026-08-02)追加対応(Coordinator実測指摘): 上のposition:fixed;
+	   left: 1376.78pxは1920px専用のベタ書き座標であり、画面が狭くなると.app-topbar-actions
+	   (右寄せ、右端は常に画面右端付近)の左端がこの固定座標に追いついて重なる。実測(Playwright):
+	   1920pxでは.app-topbar-actionsの左端=1715.2px(画面幅からの差=204.8px)。このボタンの右端は
+	   1533.2px固定なので、重ならない条件は 1533.2 < 画面幅 - 204.8、すなわち画面幅 > 1738.0px。
+	   実際に1440px・1280pxで#delete-buttonと矩形が重なり、かつ#app-topbar-actionsが
+	   flex-wrapで折り返す際にこのボタンの内容(chevron+label)が縦一列に潰れて高さ172px超に
+	   膨れる実測結果が出た(fixedのまま横幅が足りない場所に置かれ続けるため)。1739px以下では
+	   このボタンをposition:staticへ戻し、親の.app-topbar-actions(display:flex; align-items:
+	   center; gap:var(--space-2)、AppLayout.astro参照)の通常のflowに任せる(=耐久調整ボタン・
+	   非公開トグル・削除ボタンと同じ並びに合流する。DOM順は box/[id].astro 側で
+	   耐久調整→すべて折りたたむ→非公開→削除のため、通常flow復帰時もこの順で並ぶ)。
+	   ⚠️ このメディアクエリは上の基本定義(position:fixedのルール)より後ろに置くこと
+	   (詳細度が同じ場合、後に書いたルールが勝つ。このリポジトリで実際に2回、@media を
+	   基本定義より前に置いて効かない事故が起きている)。 */
+	@media (max-width: 1739px) {
+		#damage-collapse-toggle-button {
+			position: static;
+			left: auto;
+			top: auto;
+			transform: none;
+			z-index: auto;
+		}
 	}
 	/* 個別カードの折りたたみボタン(.damage-row-collapse-toggle-button、既存)と同じ「»」グリフ・
 	   回転ロジックを流用する(43-H1「既存の折りたたみシェブロンと統一した記号」「個別カードの
