@@ -251,7 +251,12 @@ const { regulation, ownedId, hasOwnedPanel } = Astro.props;
 		display: grid;
 		grid-template-columns: var(--speed-chart-columns);
 		gap: var(--space-4);
-		padding: var(--space-3) 0;
+		/* UI改修(2026-08-02第5弾)要件3: 1つの実数値の中に族(baseSpeed)ごとの行が縦に並ぶ
+		   構成で、var(--space-3)は段間が間延びして見えたため1段詰める(var(--space-2))。
+		   実数値のまとまり自体は.speed-chart-row-value-endの罫線(下記)で区切られており、
+		   段間パディングを詰めても罫線がある限りグルーピングは読み取れる(1920px・390px
+		   双方でスクリーンショット確認済み)。 */
+		padding: var(--space-2) 0;
 		align-items: start;
 	}
 	.speed-chart-table .speed-chart-row.speed-chart-row-value-end {
@@ -321,11 +326,13 @@ const { regulation, ownedId, hasOwnedPanel } = Astro.props;
 		line-height: 1.4;
 		text-align: center;
 	}
-	/* 振り方(最速/準速/無振り)バッジ。既存の配色トークン(primary/success/risky)の
-	   範囲で3種を色分けする(severity-bar・.badgeと同じ「soft背景+strong文字」の組み合わせ。
-	   -strongはライトのAAコントラスト確保用トークンで、ダークでは各基本色にエイリアスされる
-	   ため両テーマとも既存の仕組みに乗るだけで新色は作らない)。dangerは他画面のエラー表現用に
-	   予約されているため使わず、riskyを「無振り(すばやさに何も投資していない)」に割り当てる。 */
+	/* 振り方(最速/準速/無振り)バッジ。
+	   UI改修(2026-08-02第5弾)要件1: 「最速/準速/無振り」は本来3値の質的分類ではなく
+	   「すばやさへの投資量」という1本の連続量(多→少)なので、primary(青)/success(緑)/
+	   risky(黄)という無関係な色相をバラバラに割り当てていた旧配色をやめ、「最速=青→
+	   準速=青とグレーの中間→無振り=グレー」の単色グラデーションに統一する(色の濃淡だけで
+	   投資量の大小を表す)。新しい色・生hexは作らず、既存トークン(primary-soft/-strong・
+	   surface-alt・text-muted)とcolor-mixの組み合わせだけで3段を作る。 */
 	.speed-chart-table .speed-chart-spread-badge {
 		display: inline-flex;
 		align-items: center;
@@ -335,23 +342,55 @@ const { regulation, ownedId, hasOwnedPanel } = Astro.props;
 		font-weight: 700;
 		vertical-align: middle;
 	}
-	/* 実測(Playwright+相対輝度計算): primary-soft背景に対してprimary-strongの文字色は
+	/* max(最速): 既存のprimary系のまま(要件1「最速=既存のprimary系のまま」)。
+	   実測(Playwright+getComputedStyleを実ページから取得し相対輝度式でコントラスト計算。
+	   color-mixの結果はcomputed styleが`color(srgb r g b / a)`形式で返ることがあるため
+	   注意して読む。alpha付き背景(ダークの--color-primary-softはrgba)は実際の祖先要素の
+	   背景色に合成してから輝度計算する): primary-soft背景に対してprimary-strongの文字色は
 	   ライトで4.17:1しかなく、この段のfont-size(12px相当)は太字でもWCAG AA大文字テキストの
-	   閾値(18.7px相当)に届かないため4.5:1が必要。既存色の明度違いをページscopedで持つのは
-	   可(pitfalls.md「配色」節)なので、global.cssは変えずcolor-mixで10%黒を混ぜて
-	   4.97:1に是正する(ダークは-strongがprimaryにエイリアスされ元々6.56:1あるため、
-	   同じ式を掛けても5.3:1を保ち両テーマとも安全)。 */
+	   閾値(18.7px相当)に届かないため4.5:1が必要。global.cssは変えずcolor-mixで10%黒を
+	   混ぜてライト4.95:1に是正する。この同じ1本のCSSルールがダークにも適用され、
+	   ダークは実測5.32:1(--color-primary-softがrgba(…, 0.16)のためページ背景
+	   var(--color-bg)と合成された色で計算)。両テーマとも4.5:1を満たす。 */
 	.speed-chart-table .speed-chart-spread-badge[data-spread='max'] {
 		background: var(--color-primary-soft);
 		color: color-mix(in srgb, var(--color-primary-strong) 90%, black 10%);
 	}
+	/* sub(準速): 「青とグレーの中間」を、背景はprimary-soft(青)とsurface-alt(グレー)を
+	   55:45で、文字はprimary-strong(青)とtext-muted(グレー)を60:40でcolor-mixし、
+	   maxよりも彩度・明度差を落とした中間段として作る(生hexは使わず両トークンの混色のみ)。
+	   実測(Playwright、実ページの/speed-chartをgetComputedStyleで直接測定。alpha合成込み):
+	   ライト4.82:1、ダーク6.24:1。どちらも4.5:1を満たす。 */
 	.speed-chart-table .speed-chart-spread-badge[data-spread='sub'] {
-		background: var(--color-success-soft);
-		color: var(--color-success-strong);
+		background: color-mix(in srgb, var(--color-primary-soft) 55%, var(--color-surface-alt) 45%);
+		color: color-mix(in srgb, var(--color-primary-strong) 60%, var(--color-text-muted) 40%);
 	}
+	/* none(無振り): グラデーションの終端として彩度ゼロのグレーにする。surface-alt/text-muted
+	   はこのファイル内の.speed-chart-chip-origin等でも使っている既存の「控えめな文字」の
+	   定番ペアで新規の混色は不要。実測(Playwright、実ページ測定): ライト5.68:1、
+	   ダーク5.90:1。 */
 	.speed-chart-table .speed-chart-spread-badge[data-spread='none'] {
-		background: var(--color-risky-soft);
-		color: var(--color-risky-strong);
+		background: var(--color-surface-alt);
+		color: var(--color-text-muted);
+	}
+	/* 2列目の補正量(×1.5等、chart-table.ts側が.speed-chart-magnitude-badgeを付与)。
+	   要件2: 配分バッジと並んだときに主従が分かるよう、配分バッジ(塗りのpill+太字)より
+	   控えめな「枠線付きの薄いチップ」にする。背景・文字は上のnone(無振り)バッジと同じ
+	   surface-alt/text-mutedペア(実測(Playwright、実ページ測定): ライト5.68:1・
+	   ダーク5.90:1、いずれも既存トークン同士の組み合わせで新規混色なし)を使い、
+	   境界線var(--color-border)を足して配分バッジ(境界線なしの塗りpill)と形で
+	   区別できるようにする。 */
+	.speed-chart-table .speed-chart-magnitude-badge {
+		display: inline-flex;
+		align-items: center;
+		padding: 0.05em 0.55em;
+		border-radius: 999px;
+		font-size: inherit;
+		font-weight: 500;
+		vertical-align: middle;
+		background: var(--color-surface-alt);
+		color: var(--color-text-muted);
+		border: 1px solid var(--color-border);
 	}
 	/* ポケモンチップの並び(3列目の1段目)。chart-table.tsのbuildRowContentが
 	   limitRowChipsByWidthで行の幅に収まる件数だけ残し、収まらない分は「+N件」バッジで示す。

@@ -95,13 +95,16 @@ const NATURE_EFFECT_MODIFIER: Record<'up' | 'neutral' | 'down', number> = {
   down: 0.9,
 };
 
-// 要件2(2026-08-02第3弾): 「調整」ボタンはクリックすると保存して/box/<id>へページ遷移する
-// ため、そのことを示す「四角から右上に矢印が出る」外部リンク/ページジャンプの一般的な
-// アイコン(feather iconsのexternal-linkと同形)をボタン先頭に付ける。このファイルは
+// 要件2(2026-08-02第3弾、2026-08-02第5弾でアイコン差し替え): 「調整」ボタンはクリックすると
+// 保存して/box/<id>へページ遷移する(この挙動自体は変更なし)。以前は「四角から右上に矢印が
+// 出る」ページジャンプ/外部リンクの一般的なアイコンを先頭に付けていたが、ユーザー指示により
+// 編集アイコン(鉛筆)へ差し替えた。右パネルの「編集」ボタン(OwnedPanel.astro)が既に同じ
+// 鉛筆のpathを使っているため、意匠を統一する狙いで同じpathをそのまま流用する。このファイルは
 // JSからDOMを生成する設計(冒頭コメント参照)のため、SVGもcreateElementNSで組み立てる
 // (box-id/right-panel.tsの矢印アイコン生成と同じパターン)。色はstroke="currentColor"で
-// ボタンのテキスト色を継承させ、新色は追加しない。
-function createJumpIcon(): SVGElement {
+// ボタンのテキスト色を継承させ、新色は追加しない。`speed-chart-apply-icon`クラスは
+// OwnedPanel.astro側のCSSが参照しているため据え置く。
+function createEditIcon(): SVGElement {
   const ns = 'http://www.w3.org/2000/svg';
   const svg = document.createElementNS(ns, 'svg');
   svg.setAttribute('class', 'speed-chart-apply-icon');
@@ -116,19 +119,15 @@ function createJumpIcon(): SVGElement {
   svg.setAttribute('aria-hidden', 'true');
   svg.setAttribute('focusable', 'false');
 
-  // 四角(左下に開いた箱)。
-  const box = document.createElementNS(ns, 'path');
-  box.setAttribute('d', 'M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6');
-  svg.appendChild(box);
+  // 鉛筆本体(OwnedPanel.astroの編集ボタンと同じpath)。
+  const body = document.createElementNS(ns, 'path');
+  body.setAttribute('d', 'M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z');
+  svg.appendChild(body);
 
-  // 右上へ突き抜ける矢印(矢じりの折れ線+対角線)。
-  const arrowHead = document.createElementNS(ns, 'path');
-  arrowHead.setAttribute('d', 'M15 3h6v6');
-  svg.appendChild(arrowHead);
-
-  const arrowShaft = document.createElementNS(ns, 'path');
-  arrowShaft.setAttribute('d', 'M10 14 21 3');
-  svg.appendChild(arrowShaft);
+  // 鉛筆の先端の斜め線。
+  const tip = document.createElementNS(ns, 'path');
+  tip.setAttribute('d', 'm15 5 4 4');
+  svg.appendChild(tip);
 
   return svg;
 }
@@ -332,9 +331,10 @@ export function initOwnedPanel(ctx: OwnedPanelContext): OwnedPanelController {
     // 「努力値」と数値の間にも半角スペースを追加した(右パネルの努力値バッジの表記と揃える)。
     const buttonParts = [selection.nature, `努力値 ${selection.evSpe}`];
     if (selection.usesScarf && ctx.scarfItemName) buttonParts.push(ctx.scarfItemName);
-    // ボタンを押すと保存後に/box/<id>へ遷移する(下のhandleApply参照)ため、先頭に
-    // ページジャンプを表すインラインSVGアイコンを付ける(要件2)。
-    button.append(createJumpIcon(), document.createTextNode(buttonParts.join(' ')));
+    // ボタンを押すと保存後に/box/<id>へ遷移する(下のhandleApply参照)。押下結果を
+    // その場で編集することを表す編集アイコン(鉛筆)を先頭に付ける(要件2、
+    // 2026-08-02第5弾でページジャンプアイコンから差し替え。右パネルの編集ボタンと意匠を統一)。
+    button.append(createEditIcon(), document.createTextNode(buttonParts.join(' ')));
     button.addEventListener('click', () => {
       void handleApply(selection, button);
     });

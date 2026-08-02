@@ -93,8 +93,13 @@ interface HiddenEntryRule {
   /** 表示には使わない。なぜ消すかのメモ。 */
   reason?: string;
 }
+// UI改修(2026-08-02第4弾)要件2: hiddenEntries(「組み合わせ」を消す設定)と並ぶ形で、
+// 「フォルム(ポケモン)そのもの」を表から出さない設定を追加する。両者は消す対象の意味が
+// 違う(hiddenEntriesは振り方×補正の有無という条件、hiddenPokemonはフォルム名そのもの)ため、
+// 設定のキー・型を分けたまま保持する(1つのルール体系に統合しない)。
 type SpeedChartPageConfig = SpeedChartConfig & {
   hiddenEntries?: { rules?: HiddenEntryRule[] };
+  hiddenPokemon?: { names?: string[] };
 };
 
 export async function initSpeedChartPage(): Promise<void> {
@@ -199,9 +204,15 @@ export async function initSpeedChartPage(): Promise<void> {
     const adoptionData = adoptionByRegulation[regulation];
     // 要件1: buildSpeedChartRows(src/lib/speed-chart.ts、編集禁止)の結果に対し、
     // speed-chart.json の hiddenEntries.rules に一致するエントリをここで後段フィルタする。
-    currentRows = filterRowsByHiddenEntries(
-      buildSpeedChartRows(population, effectiveModifiers, config!.adoptionRate, adoptionData),
-      config!.hiddenEntries?.rules ?? [],
+    // UI改修(2026-08-02第4弾)要件2: 続けて hiddenPokemon.names に載っているフォルムの
+    // エントリも落とす(メタモン等)。2つのフィルタを別関数のまま順に適用する
+    // (「組み合わせ条件」と「ポケモン名」で意味が違うため、判定ロジックも分けておく)。
+    currentRows = filterRowsByHiddenPokemon(
+      filterRowsByHiddenEntries(
+        buildSpeedChartRows(population, effectiveModifiers, config!.adoptionRate, adoptionData),
+        config!.hiddenEntries?.rules ?? [],
+      ),
+      config!.hiddenPokemon?.names ?? [],
     );
 
     ownedController = null;
@@ -469,6 +480,23 @@ function matchesHiddenEntryRule(entry: SpeedChartEntry, rule: HiddenEntryRule): 
   return true;
 }
 
+// UI改修(2026-08-02第4弾)要件2: speed-chart.json の hiddenPokemon.names に載っている
+// フォルムを早見表から取り除く(メタモン等、フォルムそのものを出したくない場合)。
+// filterRowsByHiddenEntries と同じ流儀(元配列を破壊せず新しい配列を作る。entriesが空に
+// なった行は行ごと落とす)に揃える。名前は完全一致のみ(部分一致・正規化はしない。
+// public/master-data/autocomplete/pokemon.json のフォルム名と完全一致する前提)。
+function filterRowsByHiddenPokemon(rows: SpeedChartRow[], hiddenNames: string[]): SpeedChartRow[] {
+  if (hiddenNames.length === 0) return rows;
+  const hiddenNameSet = new Set(hiddenNames);
+  const result: SpeedChartRow[] = [];
+  for (const row of rows) {
+    const entries = row.entries.filter((entry) => !hiddenNameSet.has(entry.formName));
+    if (entries.length === 0) continue;
+    result.push({ value: row.value, entries });
+  }
+  return result;
+}
+
 function readEmbeddedJson<T>(elementId: string): T | null {
   const el = document.getElementById(elementId);
   if (!el || !el.textContent) return null;
@@ -600,6 +628,10 @@ function buildMetaCell(group: RowGroup): HTMLElement {
 
   if (group.magnitudeLabel) {
     const magnitude = document.createElement('span');
+    // UI改修(2026-08-02第4弾)要件1: 補正量をバッジ(カード)として見せるためのクラス。
+    // 見た目のCSSはChartTable.astro側で `.speed-chart-table .speed-chart-magnitude-badge`
+    // として定義される(このファイルはクラス名を付けるだけで見た目を持たない)。
+    magnitude.className = 'speed-chart-magnitude-badge';
     magnitude.textContent = group.magnitudeLabel;
     cell.appendChild(magnitude);
   }
@@ -842,7 +874,11 @@ function ensureChipMetrics(
 // S+6→x4)。
 function formatModifierMagnitude(modifier: SpeedModifierEntry): string {
   const ratio = modifier.kind === 'rank' ? (2 + modifier.stages) / 2 : modifier.numerator / modifier.denominator;
-  return `x${formatRatio(ratio)}`;
+  // UI改修(2026-08-02第4弾)要件1: 表記を「x1.5」から数学記号「×」(U+00D7。全角「x」ではない)に
+  // 変更する。この文字列は groupEntriesIntoRowGroups のグルーピングキー(magnitudeLabel)にも
+  // そのまま使われるが、接頭辞を変えただけで同値性の判定基準(文字列全体の一致)は変わらない
+  // ため、同じ倍率同士は引き続き1行にまとまる。
+  return `×${formatRatio(ratio)}`;
 }
 
 function formatRatio(value: number): string {
