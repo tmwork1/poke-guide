@@ -298,4 +298,52 @@ describe('src/lib/owned-pokemon.ts のuserId分離(userIdフィルタが唯一�
     if (!missing.ok) return;
     assert.equal(missing.data, null);
   });
+
+  it('種族・特性・持ち物が揃っていればcreateOwnedPokemonでarchetype_idが非nullになる', async () => {
+    const created = await createOwnedPokemon(
+      userA,
+      makeInput({ ability_name: 'せいでんき', item_name: 'こだわりハチマキ', evs: [0, 32, 0, 0, 0, 0] }),
+      supabase,
+    );
+    assert.equal(created.ok, true);
+    if (!created.ok) return;
+    assert.notEqual(created.data.archetype_id, null);
+  });
+
+  it('特性を空にしたupdateOwnedPokemon(置換PUT)でarchetype_idがnullに戻る', async () => {
+    const created = await createOwnedPokemon(
+      userA,
+      makeInput({ ability_name: 'せいでんき', item_name: 'こだわりハチマキ' }),
+      supabase,
+    );
+    assert.equal(created.ok, true);
+    if (!created.ok) return;
+    assert.notEqual(created.data.archetype_id, null);
+
+    const updated = await updateOwnedPokemon(
+      userA,
+      created.data.id,
+      makeInput({ ability_name: '', item_name: 'こだわりハチマキ' }),
+      supabase,
+    );
+    assert.equal(updated.ok, true);
+    if (!updated.ok) return;
+    assert.equal(updated.data?.archetype_id, null);
+  });
+
+  it('マスターデータに存在しない種族名でもcreateOwnedPokemon自体は成功しarchetype_id:nullになる(non-fatalフォールバック)', async () => {
+    const created = await createOwnedPokemon(
+      userA,
+      makeInput({
+        species_name: '存在しないポケモン',
+        ability_name: 'テスト特性',
+        item_name: 'テストアイテム',
+      }),
+      supabase,
+    );
+    assert.equal(created.ok, true);
+    if (!created.ok) return;
+    assert.equal(created.data.species_name, '存在しないポケモン');
+    assert.equal(created.data.archetype_id, null);
+  });
 });

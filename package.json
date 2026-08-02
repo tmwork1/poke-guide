@@ -24,7 +24,8 @@
 		"migrate": "node ./scripts/db/run-migrations.mjs",
 		"seed-dev-user": "node ./scripts/db/seed-dev-user.mjs",
 		"seed-dummy-owned-pokemon": "node ./scripts/db/seed-dummy-owned-pokemon.mjs",
-		"refresh-suggestions": "node ./scripts/db/refresh-suggestions.mjs"
+		"refresh-suggestions": "node ./scripts/db/refresh-suggestions.mjs",
+		"backfill-archetypes": "node ./scripts/db/backfill-archetypes.mjs"
 	},
 	"dependencies": {
 		"@astrojs/cloudflare": "^14.1.1",

@@ -25,6 +25,8 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { OwnedPokemonRequestBody } from './owned-pokemon-validation';
+import { classifyArchetype } from './archetype.ts';
+import { findOrCreateArchetype } from './archetypes.ts';
 
 export interface OwnedPokemonRecord {
   id: string;
@@ -53,6 +55,10 @@ export interface OwnedPokemonRecord {
   // 匿名集計サジェスト機能の収集拒否(migrations/008)。NULL=収集対象。値が未来なら拒否期間中、
   // 過去日付でも収集対象として扱う(都度判定、詳細はmigrations/008のコメント参照)。
   collection_opt_out_until: string | null;
+  // 型(アーキタイプ)分類(migrations/015_archetypes.sql)。種族/特性/持ち物のいずれかが
+  // 未入力、または種族がマスターデータに無い等で分類不能な場合はnull。クライアントから
+  // 直接送らせず、createOwnedPokemon/updateOwnedPokemonが毎回サーバー側で再計算する。
+  archetype_id: string | null;
 }
 
 // 公開共有(share.ts / owned-pokemon/[id]/share.ts)経由で第三者に見せてよい列のみを持つ型。
@@ -87,7 +93,7 @@ export interface ListOwnedPokemonOptions {
 export type OwnedPokemonResult<T> = { ok: true; data: T } | { ok: false; error: string };
 
 const OWNED_POKEMON_COLUMNS =
-  'id, user_id, nickname, species_name, level, nature, ability_name, item_name, tera_type, regulation, evs, ivs, move_names, memo, tags, is_pinned, source_build_slug, share_slug, is_public, created_at, updated_at, last_used_at, collection_opt_out_until';
+  'id, user_id, nickname, species_name, level, nature, ability_name, item_name, tera_type, regulation, evs, ivs, move_names, memo, tags, is_pinned, source_build_slug, share_slug, is_public, created_at, updated_at, last_used_at, collection_opt_out_until, archetype_id';
 
 // 公開共有用に安全な列だけを取得する(memo・tags・user_id・is_pinned 等は含めない)。
 const PUBLIC_OWNED_POKEMON_COLUMNS =
@@ -108,6 +114,34 @@ function generateShareSlug(): string {
 function logError(context: string, error: unknown): void {
   // eslint-disable-next-line no-console
   console.error(`[owned-pokemon] ${context}:`, error);
+}
+
+// 型(アーキタイプ)分類(src/lib/archetype.ts)+ archetypesへのfind-or-create
+// (src/lib/archetypes.ts)をまとめて行い、archetype_idを算出する。分類不能(種族/特性/持ち物
+// 未入力・未対応種族等)の場合はnullを返す。findOrCreateArchetypeがDB都合で失敗した場合も
+// non-fatalとしてnullにフォールバックする(型分類の都合でowned_pokemon本体の保存自体を
+// 失敗させないため)。
+async function resolveArchetypeId(
+  input: OwnedPokemonRequestBody,
+  supabase: SupabaseClient,
+): Promise<string | null> {
+  const key = classifyArchetype({
+    speciesName: input.species_name,
+    abilityName: input.ability_name,
+    itemName: input.item_name,
+    nature: input.nature,
+    evs: input.evs,
+    ivs: input.ivs,
+    moveNames: input.move_names,
+  });
+  if (!key) return null;
+
+  const result = await findOrCreateArchetype(key, supabase);
+  if (!result.ok) {
+    logError('resolveArchetypeId: archetype lookup/creation failed, proceeding with archetype_id=null', result.error);
+    return null;
+  }
+  return result.data;
 }
 
 export async function listOwnedPokemon(
@@ -194,6 +228,8 @@ export async function createOwnedPokemon(
   input: OwnedPokemonRequestBody,
   supabase: SupabaseClient,
 ): Promise<OwnedPokemonResult<OwnedPokemonRecord>> {
+  const archetypeId = await resolveArchetypeId(input, supabase);
+
   const { data, error } = await supabase
     .from('owned_pokemon')
     .insert({
@@ -212,6 +248,7 @@ export async function createOwnedPokemon(
       memo: input.memo,
       tags: input.tags,
       is_pinned: input.is_pinned,
+      archetype_id: archetypeId,
     })
     .select(OWNED_POKEMON_COLUMNS)
     .single();
@@ -230,6 +267,10 @@ export async function updateOwnedPokemon(
   input: OwnedPokemonRequestBody,
   supabase: SupabaseClient,
 ): Promise<OwnedPokemonResult<OwnedPokemonRecord | null>> {
+  // PUTは「全項目を毎回送る」置換契約(このファイル冒頭のコメント参照)のため、
+  // 差分判定はせず毎回無条件で再計算する。
+  const archetypeId = await resolveArchetypeId(input, supabase);
+
   const { data, error } = await supabase
     .from('owned_pokemon')
     .update({
@@ -247,6 +288,7 @@ export async function updateOwnedPokemon(
       memo: input.memo,
       tags: input.tags,
       is_pinned: input.is_pinned,
+      archetype_id: archetypeId,
       updated_at: new Date().toISOString(),
     })
     .eq('id', id)
