@@ -126,9 +126,17 @@ export async function initSpeedChartPage(): Promise<void> {
   // レギュレーション選択・実数値入力は共通トップバー(AppLayout)へ移った(idは維持)。
   // ボタン要素自体が無くなったため、Enterキーでのジャンプだけを維持する。
   const jumpInput = document.getElementById('speed-chart-jump-input') as HTMLInputElement | null;
-  const backButton = document.getElementById('speed-chart-back-to-current');
+  // UI改修依頼(すばやさ早見表、2026-08-02)「現在地へ戻るボタンを削除し、すばやさxxx表示自体を
+  // ボタン化して同じ動作を担わせる」: 旧#speed-chart-back-to-current(ChartTable.astro側、
+  // 現在はhidden属性で非表示)のクリックハンドラを、OwnedPanel.astroの「すばやさ xxx」表示
+  // (#speed-chart-owned-summary-value、owned-panel.tsがbutton化しaria-label/titleを設定)へ
+  // 差し替える。ハンドラの中身(scrollToValue呼び出し)自体は変更しない。
+  const backButton = document.getElementById('speed-chart-owned-summary-value');
   // 要件4: ?owned=があるときだけ存在するトグル(ChartTable.astro側もhasOwnedPanelで条件付け済み)。
   const reachableOnlyToggle = document.getElementById('speed-chart-reachable-only-toggle') as HTMLInputElement | null;
+  // UI改修依頼(すばやさ早見表、2026-08-02)「実数値ソートの昇降を入れ替えるトグルを追加する」:
+  // トップバー(index.astro)側の select。値は 'desc'(既定、旧来の固定挙動)/ 'asc'。
+  const orderSelect = document.getElementById('speed-chart-order-select') as HTMLSelectElement | null;
 
   if (!config || !statusEl || !tableEl || !bodyEl) {
     if (statusEl) statusEl.textContent = '設定の読み込みに失敗しました。';
@@ -176,6 +184,10 @@ export async function initSpeedChartPage(): Promise<void> {
   // 変わらない)なので、初期値はDOMのchecked状態を反転させて導出する。
   // ?owned=が無いときはトグル自体が無くこの値は使われない。
   let showReachableOnly = !(reachableOnlyToggle?.checked ?? false);
+  // UI改修依頼(すばやさ早見表、2026-08-02)「実数値ソートの昇降を入れ替えるトグルを追加する」:
+  // buildSpeedChartRows(src/lib/speed-chart.ts、編集禁止)は常に実数値の降順で返すため、
+  // 昇順はこのファイル側でrows配列を反転させて対応する(renderVisibleRows参照)。
+  let sortOrder: 'asc' | 'desc' = orderSelect?.value === 'asc' ? 'asc' : 'desc';
   // 要件3の不具合修正(2026-08-01): 「行ごとの実際の合計幅」で足切りするための実測キャッシュ。
   // フォルム名 -> チップ1個の実測幅(px)。チップ幅は名前とアイコンだけで決まるため、
   // フォルム名をキーに1回だけ測ればよい(レギュレーションを跨いでも再利用する。
@@ -266,7 +278,10 @@ export async function initSpeedChartPage(): Promise<void> {
       hasOwnedPanel && showReachableOnly && lastKnownReachableValues
         ? filterRowsByReachableValues(currentRows, lastKnownReachableValues)
         : currentRows;
-    renderRows(rows);
+    // UI改修依頼(すばやさ早見表、2026-08-02)要件2: currentRows/filterRowsByReachableValuesは
+    // いずれも実数値降順を維持するため、昇順表示のときはここで配列を反転するだけでよい
+    // (元配列は書き換えない。groups内の族降順など行内の並びは昇降どちらでも変えない)。
+    renderRows(sortOrder === 'asc' ? [...rows].reverse() : rows);
   }
 
   function renderRows(rows: SpeedChartRow[]): void {
@@ -412,6 +427,45 @@ export async function initSpeedChartPage(): Promise<void> {
     // トグル操作でも← 現在マーカーの位置は変わらないため、直前のハイライト値を再適用する。
     if (ownedController) applyHighlight(ownedController.getCurrentValue());
   });
+
+  // UI改修依頼(すばやさ早見表、2026-08-02)要件2: 並び順トグル。切替でrows配列が丸ごと
+  // 反転するため、何もしないとスクロール位置(pxオフセット)はそのままなのに中身が
+  // 全く別の実数値に変わり、体感上「現在地を見失う」破綻になる。切替前に画面内の
+  // 基準行(currentHighlightValueがあればそれを優先、無ければビューポート中央に一番近い行)を
+  // 覚えておき、再描画後に同じ実数値へ(アニメーション無しで)スクロールし直すことで
+  // 現在地・スクロール位置の連続性を保つ。ハイライト自体はrenderRows内で
+  // currentHighlightValueを見て再適用されるため、ここで別途何もする必要はない。
+  orderSelect?.addEventListener('change', () => {
+    if (!orderSelect) return;
+    const nextOrder: 'asc' | 'desc' = orderSelect.value === 'asc' ? 'asc' : 'desc';
+    if (nextOrder === sortOrder) return;
+    const anchorValue = findAnchorRowValue();
+    sortOrder = nextOrder;
+    renderVisibleRows();
+    if (anchorValue !== null) {
+      findNearestRowElement(anchorValue)?.scrollIntoView({ block: 'center', behavior: 'auto' });
+    }
+  });
+
+  // UI改修依頼(すばやさ早見表、2026-08-02)要件2: 並び順トグルの直前に「今どの実数値を
+  // 見ているか」を求める。現在地ハイライトがあればそれを最優先(個体調整の基準行が
+  // 動いて見えると混乱するため)、無ければ画面内で最も上端(ビューポート先頭)に近い行の
+  // 実数値をビューポート内の目印として使う。
+  function findAnchorRowValue(): number | null {
+    if (currentHighlightValue !== null) return currentHighlightValue;
+    let closestValue: number | null = null;
+    let closestDistance = Infinity;
+    for (const [value, elements] of rowElements) {
+      const el = elements[0];
+      if (!el) continue;
+      const distance = Math.abs(el.getBoundingClientRect().top);
+      if (distance < closestDistance) {
+        closestDistance = distance;
+        closestValue = value;
+      }
+    }
+    return closestValue;
+  }
 
   regSelect?.addEventListener('change', () => {
     const next = regSelect.value;

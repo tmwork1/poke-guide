@@ -13,8 +13,12 @@
 //      このコンポーネントはもう持たない(id="speed-chart-regulation-select"/
 //      "speed-chart-jump-input" はAppLayout側のトップバーに存在する)。
 //   2. 右パネル(.speed-chart-side)は個体調整専用のUIだけにする: OwnedPanel(個体情報)→
-//      「現在地へ戻る」→「とりうるすばやさのみ」トグル。ハンバーガー・戻るリンクは
+//      「とりうるすばやさのみ」トグル。ハンバーガー・戻るリンクは
 //      共通トップバー復活により不要(id重複を避けるためこのファイルからは削除)。
+//      UI改修依頼(2026-08-02)「現在地へ戻るボタンを削除し、すばやさxxx表示自体をボタン化する」:
+//      旧#speed-chart-back-to-currentボタンはOwnedPanel.astroの「すばやさ xxx」表示
+//      (#speed-chart-owned-summary-value)がボタン化されて同じ役割を引き継いだため、
+//      このファイル内の記述からは外した(要素自体はDOM保持のままCSSで非表示。下記参照)。
 //   3. hasOwnedPanelがfalseのときは右パネル自体をレンダリングしない(空の帯を防ぐ)。
 //      その場合レイアウトは1カラムになる(data-has-owned-panel属性で分岐、:has()は使わない)。
 //   4. トップバーが復活しsticky(position: sticky; top: 0)で常に画面上端に残るため、
@@ -53,11 +57,14 @@ const { regulation, ownedId, hasOwnedPanel } = Astro.props;
 		{hasOwnedPanel && (
 			<aside class="speed-chart-side panel panel-right">
 				<OwnedPanel hasOwnedPanel={hasOwnedPanel} ownedId={ownedId} />
-				{/* UI改修(2026-08-02第4弾)要件2: btn-ghost(枠線・背景なし)だとテキストリンクに
-				    見えて押せることが伝わりにくいため外す。idとテキストは変えない。クラスを
-				    外すとglobal.cssの素の button 基底(枠線+surface背景、global.css 822行目〜)が
-				    そのまま効き、他の「ボタンらしい」ボタンと同じ見た目になる。 */}
-				<button type="button" id="speed-chart-back-to-current" class="speed-chart-side-button">現在地へ戻る</button>
+				{/* UI改修依頼(すばやさ早見表、2026-08-02)「現在地へ戻るボタンを削除し、
+				    すばやさxxx表示自体をボタン化して同じ動作を担わせる」: このボタンの機能は
+				    OwnedPanel.astroの「すばやさ xxx」表示(#speed-chart-owned-summary-value)へ
+				    移した。src/lib/speed-chart/chart-table.tsから引き続きid参照されている
+				    (pitfalls.md「要素を消す指示はDOMを残しCSSで見せない方針にする」)ため、
+				    要素自体は削除せずhidden属性で非表示にする(クリックハンドラの登録先も
+				    chart-table.ts側でこの新しいボタンへ切り替え済み)。 */}
+				<button type="button" id="speed-chart-back-to-current" class="speed-chart-side-button" hidden>現在地へ戻る</button>
 				<label class="speed-chart-reachable-toggle">
 					<span class="toggle-switch">
 						{/* UI改修(2026-08-02第4弾)要件3: 「とりうるすばやさのみ」(絞り込み)から
@@ -151,6 +158,12 @@ const { regulation, ownedId, hasOwnedPanel } = Astro.props;
 	}
 	.speed-chart-side-button {
 		align-self: flex-start;
+	}
+	/* UI改修依頼(すばやさ早見表、2026-08-02): 上のhidden属性を確実に効かせる。このクラス自体は
+	   displayを明示していないため[hidden]のUA既定(display:none)で足りるはずだが、
+	   pitfalls.md「[hidden]は詳細度で負ける」の教訓により念のため明示しておく。 */
+	.speed-chart-side-button[hidden] {
+		display: none;
 	}
 
 	/* トグルスイッチ。既存の.toggle-switch一式(src/components/box-id/LeftPanel.astro の
@@ -341,6 +354,13 @@ const { regulation, ownedId, hasOwnedPanel } = Astro.props;
 		font-size: inherit;
 		font-weight: 700;
 		vertical-align: middle;
+		/* UI改修依頼(すばやさ早見表、2026-08-02)「補正倍率バッジのサイズを配分バッジにそろえる」:
+		   .speed-chart-magnitude-badge(下)はvar(--color-border)の1px枠を持つため、枠なしの
+		   このバッジと高さが2px(実測20.375px vs 22.375px)ズレていた。padding/font-sizeは
+		   既に同値(0.05em 0.55em / inherit、いずれもJSが同じ親.speed-chart-meta-cellの
+		   font-sizeを継承するため実測でも一致済み)なので、見た目を変えない透明枠で
+		   高さだけを合わせる(色は追加しない)。 */
+		border: 1px solid transparent;
 	}
 	/* max(最速): 既存のprimary系のまま(要件1「最速=既存のprimary系のまま」)。
 	   実測(Playwright+getComputedStyleを実ページから取得し相対輝度式でコントラスト計算。

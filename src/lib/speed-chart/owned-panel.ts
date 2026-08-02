@@ -239,9 +239,21 @@ export function initOwnedPanel(ctx: OwnedPanelContext): OwnedPanelController {
     // UI改修2026-08-02第4弾要件2: 「努力値n」のnの前に半角スペースを入れる(調整ボタンの
     // 表記と揃える。可読性のため)。
     if (evsEl) evsEl.textContent = `努力値 ${currentEvs[5] ?? 0}`;
-    // 5段目: S実数値。
+    // 5段目: すばやさ実数値。
+    // UI改修依頼(すばやさ早見表、2026-08-02)「S実数値 xxx を すばやさ xxx に変える」
+    // 「現在地へ戻るボタンを削除し、この表示自体をボタン化して同じ動作を担わせる」:
+    // 表示文言を変更し、<button>化(OwnedPanel.astro側)に伴いaria-labelも動的に設定する。
+    // WCAG 2.5.3 Label in Name対応のため、可視テキスト(「すばやさ xxx」)をそのまま含めた
+    // 文言にする(アクセシブルネームが可視ラベルの文言を包含しないと、音声操作利用者が
+    // 可視ラベルどおりに発話しても一致しない)。クリック時の実際のスクロール処理は
+    // src/lib/speed-chart/chart-table.ts側でこのidにイベントリスナーを登録して行う
+    // (旧#speed-chart-back-to-currentと同じ動作。「個体の現在値」自体はこのモジュールが
+    // 所有するR-12の方針どおり、ここでは表示だけを更新しスクロールは行わない)。
     const valueEl = document.getElementById(SUMMARY_VALUE_ID);
-    if (valueEl) valueEl.textContent = `S実数値 ${currentValue}`;
+    if (valueEl) {
+      valueEl.textContent = `すばやさ ${currentValue}`;
+      valueEl.setAttribute('aria-label', `すばやさ ${currentValue}(現在地へ戻る)`);
+    }
   }
 
   function showError(message: string): void {

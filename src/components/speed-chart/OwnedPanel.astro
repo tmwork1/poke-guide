@@ -58,7 +58,19 @@ const { hasOwnedPanel, ownedId } = Astro.props;
 				<span id="speed-chart-owned-summary-nature" class="badge badge-muted"></span>
 				<span id="speed-chart-owned-summary-evs" class="badge badge-muted"></span>
 			</span>
-			<span id="speed-chart-owned-summary-value" class="tnum speed-chart-owned-summary-value"></span>
+			{/* UI改修依頼(すばやさ早見表、2026-08-02)
+			    「S実数値 xxx を すばやさ xxx に変える」「現在地へ戻るボタンを削除し、この表示自体を
+			    ボタン化して同じ動作(現在地へスクロール)を担わせる」: 表示文言はowned-panel.tsの
+			    updateSummary()側で変更する(このファイルはid/クラスの器のみ)。<span>から<button>に
+			    変え、クリックで現在地へスクロールするハンドラをsrc/lib/speed-chart/chart-table.ts側で
+			    このidに対して登録する(旧#speed-chart-back-to-currentと同じ動作)。
+			    title="現在地へ戻る"は静的(状態に依らず同じ文言)なのでここで固定、
+			    aria-labelは実数値込みの文言をowned-panel.tsが動的に設定する(WCAG 2.5.3
+			    Label in Name対応。可視テキスト「すばやさ xxx」を含めた文言にし、アクセシブルネームが
+			    可視ラベルを包含するようにする)。ボタンであることが見た目でも分かるよう、
+			    既存の「ボーダー同色の塗り→ホバーで白地に反転」方式(global.css button.btn-primary、
+			    新色は作らない)のクラスを付与する。 */}
+			<button type="button" id="speed-chart-owned-summary-value" class="tnum btn-primary speed-chart-owned-summary-value" title="現在地へ戻る"></button>
 		</div>
 	)}
 	{/*
@@ -174,10 +186,14 @@ const { hasOwnedPanel, ownedId } = Astro.props;
 		align-items: center;
 		gap: var(--space-1);
 	}
+	/* UI改修依頼(すばやさ早見表、2026-08-02)「すばやさxxx表示自体をボタン化する」:
+	   <button class="btn-primary">化(global.css)により背景・枠線・文字色・太字・paddingは
+	   既にbtn-primaryが提供する(「ボーダー同色の塗り→ホバーで白地に反転」方式。新色は
+	   作らない)。ここではこの値を主役として見せるためのfont-sizeだけをページ固有に足す
+	   (旧<span>時代のfont-weight:700/color:var(--color-primary-strong)はbtn-primaryの
+	   指定と重複・矛盾するため削除し、btn-primary側に委ねる)。 */
 	.speed-chart-owned-summary-value {
-		font-weight: 700;
 		font-size: var(--font-size-md);
-		color: var(--color-primary-strong);
 	}
 	/* .severity-bar[data-severity]は基底(global.css)がdisplay指定を持たないブロック要素なので、
 	   [hidden]の詳細度勝ち負けは発生しない(pitfalls.mdの罠は「displayを明示したクラス」限定)。
