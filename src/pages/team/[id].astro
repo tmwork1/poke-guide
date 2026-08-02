@@ -341,12 +341,6 @@ const initialTeamJson = team
 		/* UI改修依頼(チーム編集左パネル)「ソート機能を追加する」。box/index.astroの
 		   .sort-select-wrap/.sort-icon/.toolbar-sort selectと同じ値(アイコン左重畳+
 		   select側padding-left)をこのページのスコープへ複製する(新しい値は作っていない)。 */
-		/* 🔴 UI改修依頼(チーム編集画面、2026-08-01)+ ユーザー確認「絞り込みトグルを付ける」。
-		   ボックス画面/チームトップの .favorite-filter-toggle(box/index.astro:122)と同じ
-		   視覚言語(押下状態=primaryの塗り、非押下=枠線のみ)をこのページのスコープへ複製する
-		   (team/index.astro が同じことをしているのと同じ理由: Astroのscoped styleは
-		   コンポーネントをまたいで効かない)。幅は選択バーの帯いっぱいに広げ、
-		   検索欄・並べ替えと縦に積んだときに端が揃うようにする。 */
 		/* 🔴 UI改修依頼(チーム編集左パネル、2026-08-01)「レギュレーションフィルタとソートを
 		   横並びに配置する」。検索欄(#pokemon-search-input)は対象外で、この2つだけを
 		   共通の行コンテナ(.team-select-filters-row、マークアップ側で新設)にまとめて
@@ -362,26 +356,38 @@ const initialTeamJson = team
 		.team-select-regulation-filter {
 			flex: 1 1 0;
 			min-width: 0;
+			/* UI改修依頼(チーム編集左パネル、2026-08-02)「レギュレーションフィルタをトグル
+			   スイッチに変更する」。旧来は塗りつぶしボタンが自身でwidth:100%; height:100%を
+			   持ち隣のソートセレクトと縦の高さを揃えていたが、トグルスイッチ(ラベル+スイッチ、
+			   コンテンツサイズ)はそれを持たないため、この行(align-items:stretchで高さが
+			   ソートセレクト基準に伸びる)側でdisplay:flex; align-items:centerにして
+			   トグルを縦中央に揃える。 */
+			display: flex;
+			align-items: center;
 		}
 		.team-select-regulation-filter[hidden] {
 			display: none;
 		}
+		/* UI改修依頼(チーム編集左パネル、2026-08-02)「レギュレーションフィルタをトグル
+		   スイッチに変更する」。ヘッダーの.collection-opt-out-toggle(「非公開」トグル、上の
+		   フロントマター直後の<style>参照)と全く同じ視覚言語(inline-flex + gap + 本文小さめの
+		   文字色)にする。トグル本体(.toggle-switch一式)は同じscoped<style>内で既に定義済みの
+		   ものをそのまま使う(このページ内の別セクションなので複製不要)。 */
 		.regulation-filter-toggle {
 			display: inline-flex;
 			align-items: center;
-			justify-content: center;
-			width: 100%;
-			height: 100%;
+			gap: 0.4em;
 			font-size: var(--font-size-sm);
+			color: var(--color-text-muted);
+			white-space: nowrap;
+			cursor: pointer;
+			min-width: 0;
 		}
-		.regulation-filter-toggle[data-active="true"] {
-			background: var(--color-primary);
-			border-color: var(--color-primary);
-			color: var(--color-primary-contrast);
-		}
-		.regulation-filter-toggle[data-active="true"]:hover:not(:disabled) {
-			background: var(--color-surface);
-			color: var(--color-primary);
+		.regulation-filter-toggle span:last-child {
+			overflow: hidden;
+			text-overflow: ellipsis;
+			white-space: nowrap;
+			min-width: 0;
 		}
 
 		.team-select-sort {
@@ -627,16 +633,30 @@ const initialTeamJson = team
 							    この2つだけを共通の行コンテナに入れてflexで横並びにする
 							    (CSSは上のscoped<style>の.team-select-filters-row参照)。 */}
 							<div class="team-select-filters-row">
+								{/* UI改修依頼(チーム編集左パネル、2026-08-02)「レギュレーションフィルタを
+								    トグルスイッチに変更する」。ヘッダーの「非公開」トグル(上のフロントマター/
+								    <style>の.toggle-switch一式、#team-collection-opt-out-toggle参照)と
+								    全く同じ意匠を踏襲する(新しいスイッチは作らない)。同じ.astroコンポーネント内の
+								    静的マークアップなので、scoped<style>で定義済みの.toggle-switch系クラスを
+								    そのまま流用できる(複製不要)。旧来の塗りつぶしボタン(data-active/
+								    aria-pressed)はチェックボックスのchecked状態に置き換える(下の<script>の
+								    syncRegulationFilterToggle参照。非公開トグルと違いAPI保存は伴わない、
+								    クライアント側のみのフィルタ状態)。 */}
 								<div class="team-select-regulation-filter" id="regulation-filter-wrap" hidden>
-									<button
-										type="button"
-										id="regulation-filter-toggle"
-										class="regulation-filter-toggle"
-										data-active="true"
-										aria-pressed="true"
-									>
+									<label class="regulation-filter-toggle" for="regulation-filter-toggle">
+										<span class="toggle-switch">
+											<input
+												id="regulation-filter-toggle"
+												type="checkbox"
+												class="toggle-switch-input"
+												checked
+											/>
+											<span class="toggle-switch-track" aria-hidden="true">
+												<span class="toggle-switch-thumb"></span>
+											</span>
+										</span>
 										<span id="regulation-filter-toggle-label">レギュレーション一致のみ</span>
-									</button>
+									</label>
 								</div>
 
 								<div class="team-select-sort">
@@ -787,17 +807,29 @@ const initialTeamJson = team
 		.team-select-bar .pokemon-select-row.is-dragging {
 			opacity: 0.5;
 		}
+		/* UI改修依頼(チーム編集左パネル、2026-08-02)「候補カードをボックス画面(/box)の
+		   カードと共通化する」。box/index.astroの.card-pokemon(スプライト→カード名(中央揃え)
+		   →テラスタイプ→特性/持ち物→技2列)と同じ縦積みレイアウトへ組み替える。box側の
+		   CSSは/boxでしか読み込まれない(<style is:global>がbox/index.astro内に閉じているため)
+		   ため、値をこのページへ複製する(box/index.astro・global.cssは編集禁止)。
+		   お気に入り(.pin-toggle)・削除ボタンはこのパネルの用途(チームに追加する候補を選ぶ
+		   ピッカー)には不要なため持ち込まない。左パネルの帯は最大304px(.team-edit-layoutの
+		   grid-template-columns参照、実測でも内側パディングを引くと264px程度)しかなく、
+		   box一覧のカード(約210〜240pxの正方形グリッド)と違い縦一列に並ぶリストのため、
+		   aspect-ratio: 1/1は使わずカードの高さは中身に応じた自然な高さのままにする
+		   (詳細な数値は実測して報告に記載)。 */
 		.team-select-bar .select-row-main {
 			flex: 1 1 auto;
 			min-width: 0;
 			display: flex;
+			flex-direction: column;
 			align-items: center;
-			gap: var(--space-2);
+			gap: 0.3rem;
 			padding: var(--space-2);
 			border: 1px solid var(--color-border);
 			border-radius: var(--radius-md);
 			background: var(--color-surface);
-			text-align: left;
+			text-align: center;
 			cursor: pointer;
 		}
 		.team-select-bar .select-row-main:hover:not(:disabled) {
@@ -818,15 +850,17 @@ const initialTeamJson = team
 			cursor: not-allowed;
 			opacity: 0.55;
 		}
+		/* スプライト(box/index.astroの.card-artと同じ「絵を主役にする」考え方)。box一覧の
+		   min(56%, 113px)は正方形グリッドの1マス基準の式で、このカード(単列リスト、幅約264px)
+		   にそのまま当てはめると1行が縦に伸びすぎるため、実測しながら88pxに固定した
+		   (狭幅240px時でも名前・技名が1文字ずつ折り返らないことを確認、報告参照)。 */
 		.team-select-bar .select-row-art {
 			flex: 0 0 auto;
-			/* UI改修依頼(チーム編集左パネル、2026-08-02)「アイコンを2倍にする」。36px→72px。 */
-			width: 72px;
-			height: 72px;
+			width: 88px;
+			height: 88px;
 			display: flex;
 			align-items: center;
 			justify-content: center;
-			position: relative;
 		}
 		.team-select-bar .select-row-sprite-img {
 			width: 100%;
@@ -843,77 +877,138 @@ const initialTeamJson = team
 			background: var(--color-primary-soft);
 			color: var(--color-primary);
 			font-weight: 700;
-			font-size: 0.9rem;
+			font-size: 1.2rem;
 		}
 		.team-select-bar .select-row-body {
-			flex: 1 1 auto;
-			min-width: 0;
-			width: 0;
 			display: flex;
 			flex-direction: column;
-			gap: 0.15rem;
+			align-items: center;
+			gap: 0.2rem;
+			width: 100%;
+			min-width: 0;
+		}
+		/* カード名+テラスタイプ(box/index.astroの.card-name-row)。名前は中央揃えの1行
+		   ellipsisで、テラスバッジぶんの幅はflexで自動的に譲る。 */
+		.team-select-bar .select-row-name-row {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			gap: 0.3rem;
+			width: 100%;
+			min-width: 0;
 		}
 		.team-select-bar .select-row-name {
+			min-width: 0;
 			/* UI改修依頼(チーム編集左パネル、2026-08-01)「種族名以外の文字をもう少し大きくする」
-			   により0.88rem(14.08px)から引き上げる。 */
+			   により0.88rem(14.08px)から引き上げていた値(0.95rem)を維持する。 */
 			font-size: 0.95rem;
 			font-weight: 700;
 			white-space: nowrap;
 			overflow: hidden;
 			text-overflow: ellipsis;
 		}
-		.team-select-bar .select-row-species {
-			/* A-3(b): 0.74rem(11.84px)は12px下限を割っていた。0.75rem(12px)に是正。 */
+		.team-select-bar .select-row-tera-badge {
+			flex: none;
+			width: 18px;
+			height: 18px;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+		}
+		.team-select-bar .select-row-tera-badge img {
+			width: 100%;
+			height: 100%;
+			object-fit: contain;
+			filter: drop-shadow(0 0 1px var(--color-surface));
+		}
+		/* 特性+持ち物(box/index.astroの.card-item-row=grid 2列/.card-item-row-cell=flex
+		   中央寄せと同じ作り。持ち物なしの個体でもセル自体は常に出し、中身(アイコン+名前)
+		   だけ値がある場合に足す。値が無い方のセルが空でも2列グリッドは崩れない)。 */
+		.team-select-bar .select-row-item-row {
+			display: grid;
+			grid-template-columns: 1fr 1fr;
+			align-items: center;
+			width: 100%;
+			column-gap: var(--space-2);
+		}
+		.team-select-bar .select-row-item-row-cell {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			gap: 0.2rem;
+			min-width: 0;
+		}
+		.team-select-bar .select-row-ability-name {
 			font-size: 0.75rem;
+			line-height: 1.2;
+			font-weight: 600;
 			color: var(--color-text-muted);
+			max-width: 100%;
 			white-space: nowrap;
 			overflow: hidden;
 			text-overflow: ellipsis;
 		}
-		/* UI改修依頼(チーム編集左パネル)「特性/アイテムも表示」。 */
-		.team-select-bar .select-row-meta-row {
-			display: flex;
-			flex-wrap: wrap;
-			align-items: center;
-			gap: 0.5rem;
-			/* UI改修依頼(チーム編集左パネル、2026-08-01)「種族名以外の文字をもう少し大きくする」
-			   により0.72rem(11.52px)から引き上げる。 */
-			font-size: 0.8rem;
-			color: var(--color-text-muted);
-		}
-		.team-select-bar .select-row-meta-item {
-			display: inline-flex;
-			align-items: center;
-			gap: 0.25rem;
-		}
-		.team-select-bar .select-row-meta-icon {
+		.team-select-bar .select-row-item-badge {
+			flex: none;
 			width: 16px;
 			height: 16px;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+		}
+		.team-select-bar .select-row-item-badge img {
+			width: 100%;
+			height: 100%;
 			object-fit: contain;
 		}
-		/* 🔴 UI改修依頼(チーム編集左パネル、2026-08-01)「ステータスではなく技を表示する」。
-		   旧来のH/A/B/C/D/S実数値チップ(select-row-stat-row/chip)は撤去し、技(4つまで)の
-		   チップに置き換える。視覚言語は6枠カード側の技チップ(.team-slots .slot-moves/
-		   .slot-move-chip、下記)をそのまま流用する(新しい値は作らない)。実数値自体は
-		   選んだ個体を1回クリックすれば右パネルのプレビューで見られるため、選択バーの
-		   1行としては技の方が「選べるかどうか」の判断に直結する情報として優先する。 */
-		.team-select-bar .select-row-moves {
-			display: flex;
-			flex-wrap: wrap;
-			gap: 0.3rem;
-		}
-		.team-select-bar .select-row-move-chip {
-			font-size: 0.78rem;
+		.team-select-bar .select-row-item-name {
+			font-size: 0.75rem;
+			line-height: 1.2;
 			font-weight: 600;
 			color: var(--color-text-muted);
-			background: var(--color-surface);
-			border: 1px solid var(--color-border);
-			border-radius: 4px;
-			padding: 0.1rem 0.45rem;
+			max-width: 100%;
+			min-width: 0;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
 		}
+		/* 技(box/index.astroの.card-moves-grid/.card-move-chipと同じ2列グリッド。本日/box側で
+		   確立した最新仕様: 技名の前にタイプアイコン、背景色は付けない、セル内では左揃え。 */
+		.team-select-bar .select-row-moves {
+			display: grid;
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+			align-items: start;
+			gap: 0.1rem 0.3rem;
+			width: 100%;
+			margin-top: 0.1rem;
+		}
+		.team-select-bar .select-row-move-chip {
+			display: flex;
+			align-items: center;
+			gap: 0.25rem;
+			min-width: 0;
+			font-size: 0.7rem;
+			line-height: 1.2;
+			font-weight: 600;
+			color: var(--color-text-muted);
+			text-align: left;
+		}
+		.team-select-bar .select-row-move-chip-icon {
+			flex: none;
+			width: 10px;
+			height: 10px;
+			object-fit: contain;
+		}
+		.team-select-bar .select-row-move-chip-text {
+			min-width: 0;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+		}
+		/* A-6: 技0件も行ごと消さず「未設定」を明示する。新しいチップは無背景・無枠のため、
+		   旧来のborder-color強調は落とし、文字色だけで危険色を伝える。 */
 		.team-select-bar .select-row-move-chip-unset {
 			color: var(--color-danger-strong);
-			border-color: var(--color-danger-strong);
 			font-weight: 700;
 		}
 		/* A-3(a): 「編成済み」(already-in-team、正常)と禁止3種(6体編成済み/種族が重複/
@@ -928,6 +1023,7 @@ const initialTeamJson = team
 			   によりさらに0.8rem(12.8px)へ引き上げる。 */
 			font-size: 0.8rem;
 			font-weight: 700;
+			width: 100%;
 		}
 		.team-select-bar .select-row-reason[data-reason="already-in-team"] {
 			color: var(--color-text-muted);
@@ -936,27 +1032,14 @@ const initialTeamJson = team
 		.team-select-bar .select-row-reason:not([data-reason="already-in-team"]) {
 			color: var(--color-danger-strong);
 		}
-		/* UI改修依頼(チーム編集左パネル、2026-08-02)「行の右端にドラッグ&ドロップ用の
-		   視覚グリップを追加する」。この行は既にrow.draggable=trueでドラッグ操作に対応済み
-		   (buildSelectRow参照)なので、見た目のグリップを追加するだけでよい。
-		   src/components/box-id/LeftPanel.astroの.move-drag-handle(技の並び替え用グリップ)と
-		   全く同じCSS手法(ドット格子の背景画像)をコンポーネントをまたいで複製する
-		   (新しい値は作らない)。 */
+		/* 🔴 UI改修依頼(チーム編集左パネル、2026-08-02)「行の右端にあるドラッグ用グリップ
+		   (6点のドット格子)を廃止する」。要素を「消す」指示はDOMを残しCSSで見せない方針にする
+		   (pitfalls.md)。要素自体(buildSelectRowのdragHandle)・row.appendChildは残したまま、
+		   display: noneで見た目だけ消す。ドラッグ&ドロップ自体(row.draggable=true、
+		   rowのdragstart/dragend)はこのグリップ要素と無関係(rowが直接draggable/イベントを
+		   持つ)なので、動作は維持される。 */
 		.team-select-bar .select-row-drag-handle {
-			flex: 0 0 auto;
-			align-self: center;
-			width: 12px;
-			height: 20px;
-			cursor: grab;
-			background-image: radial-gradient(circle, var(--color-text-muted) 1.1px, transparent 1.3px);
-			background-size: 6px 6px;
-			opacity: 0.55;
-		}
-		.team-select-bar .pokemon-select-row:hover .select-row-drag-handle {
-			opacity: 1;
-		}
-		.team-select-bar .pokemon-select-row.is-dragging .select-row-drag-handle {
-			cursor: grabbing;
+			display: none;
 		}
 		/* ------------------------------------------------------------------ */
 		/* 6枠カード(.card-team-slot)。中身はfilled/emptyのいずれか(R-8)。       */
@@ -1620,7 +1703,10 @@ const initialTeamJson = team
 		// topbar-statusスロットで状態表示)。初期表示データ(SSR取得済みのチーム)は
 		// #team-edit-layout の data-initial-team から読む(fetch往復を待たずに6枠を描ける)。
 		import { loadImageIdMap, officialArtworkUrl, loadBaseStatsMap, loadMoveDetailMap } from "../../lib/pokemon-master-data";
-		import { loadItemSpriteMap, itemIconUrl, teraTypeIconUrl } from "../../lib/sprite-urls";
+		// UI改修依頼(チーム編集左パネル、2026-08-02)「候補カードをボックス画面と共通化する」で
+		// 技チップにタイプアイコンを追加するため、typeIconUrlを追加importする(box/index.astroの
+		// applyMoveChipTypeIconsと同じ用途)。
+		import { loadItemSpriteMap, itemIconUrl, teraTypeIconUrl, typeIconUrl } from "../../lib/sprite-urls";
 		import { resolveDexNo } from "../../lib/species-dex";
 		import { selectionBlockReason, type SelectionCandidate, type SelectionBlockReason } from "../../lib/team-validation";
 		import { STAT_KEYS, NATURE_STAT_MODIFIERS, calcHpStat, calcOtherStat } from "../../lib/stats";
@@ -1710,7 +1796,10 @@ const initialTeamJson = team
 			// 🔴 UI改修依頼(チーム編集画面、2026-08-01)「個体編集と同様にレギュレーション指定機能」。
 			const regulationSelect = el<HTMLSelectElement>("team-regulation");
 			const regulationFilterWrap = el<HTMLElement>("regulation-filter-wrap");
-			const regulationFilterToggle = el<HTMLButtonElement>("regulation-filter-toggle");
+			// UI改修依頼(チーム編集左パネル、2026-08-02)「トグルスイッチに変更する」に伴い
+			// <button>から<input type="checkbox">へマークアップを変えたため、要素の型も
+			// HTMLButtonElementからHTMLInputElementへ変える。
+			const regulationFilterToggle = el<HTMLInputElement>("regulation-filter-toggle");
 			const slotsRoot = el<HTMLElement>("team-slots");
 
 			const searchInput = el<HTMLInputElement>("pokemon-search-input");
@@ -1878,6 +1967,31 @@ const initialTeamJson = team
 					imgEl.style.display = "";
 				};
 				imgEl.src = url;
+			}
+
+			// UI改修依頼(チーム編集左パネル、2026-08-02)「候補カードをボックス画面(/box)と
+			// 共通化する」。技チップの前に置くタイプアイコン(box/index.astroの
+			// applyMoveChipTypeIconsと同じ考え方)。技→タイプの解決はloadMoveDetailMapを使う
+			// (このファイルは右パネルの技分類判定(moveCategoryOf)で既にloadMoveDetailMap()を
+			// 呼んでおり、内部でキャッシュされる=fetchが増えるわけではない)。
+			async function applySelectMoveChipTypeIcons(
+				entries: { iconEl: HTMLImageElement; moveName: string }[],
+			): Promise<void> {
+				if (entries.length === 0) return;
+				const detailMap = await loadMoveDetailMap();
+				for (const { iconEl, moveName } of entries) {
+					const type = detailMap.get(moveName)?.type;
+					if (!type) continue;
+					const url = typeIconUrl(type);
+					if (!url) continue;
+					iconEl.onerror = () => {
+						iconEl.hidden = true;
+					};
+					iconEl.onload = () => {
+						iconEl.hidden = false;
+					};
+					iconEl.src = url;
+				}
 			}
 
 			// 🔴 UI改修依頼(チーム編集画面 右パネル、2026-08-01)「現在の表示は中央のカードと内容が
@@ -2640,9 +2754,14 @@ const initialTeamJson = team
 				const teamRegulation = currentTeamRegulation();
 				regulationFilterWrap.hidden = teamRegulation === null;
 				const label = document.getElementById("regulation-filter-toggle-label");
-				if (label) label.textContent = teamRegulation ? `${teamRegulation}のみ` : "レギュレーション一致のみ";
-				regulationFilterToggle.dataset.active = String(regulationFilterOn);
-				regulationFilterToggle.setAttribute("aria-pressed", String(regulationFilterOn));
+				// UI改修依頼(チーム編集左パネル、2026-08-02)「"M-B"の後に半角スペースを入れる」。
+				// レギュレーション名は動的なので、組み立てているここに半角スペースを足す
+				// (`${teamRegulation}のみ` → `${teamRegulation} のみ`)。
+				if (label) label.textContent = teamRegulation ? `${teamRegulation} のみ` : "レギュレーション一致のみ";
+				// UI改修依頼(チーム編集左パネル、2026-08-02)「トグルスイッチに変更する」に伴い、
+				// data-active/aria-pressed(旧<button>の押下状態表現)からcheckbox本来のchecked
+				// プロパティへ置き換える(ネイティブに状態を持つため追加のaria属性は不要)。
+				regulationFilterToggle.checked = regulationFilterOn;
 			}
 
 			// UI改修依頼(チーム編集中央パネル、2026-08-01)「"レギュレーション"ラベルを削除する。
@@ -2699,6 +2818,14 @@ const initialTeamJson = team
 				mainButton.type = "button";
 				mainButton.className = "select-row-main";
 
+				// UI改修依頼(チーム編集左パネル、2026-08-02)「候補カードをボックス画面(/box)の
+				// カードと共通化する」。box/index.astroの.card-pokemon(スプライト→カード名
+				// (中央揃え)→テラスタイプ→特性/持ち物→技2列)と同じ縦積み構成に組み替える。
+				// box側のCSS(<style is:global>)は/boxでしか読み込まれないため、値はこのページの
+				// is:globalスタイルへ複製する(box/index.astro・global.cssは編集しない)。
+				// お気に入り(.pin-toggle)・削除ボタンはこのパネルの用途(チームに追加する候補を
+				// 選ぶピッカー)には不要なため持ち込まない。ダブルクリック/D&Dでの追加・編集リンクの
+				// 既存動作(下のmainButton/rowのイベントリスナー)は変更しない。
 				const artEl = document.createElement("span");
 				artEl.className = "select-row-art";
 				const spriteImg = document.createElement("img");
@@ -2713,59 +2840,93 @@ const initialTeamJson = team
 				const bodyEl = document.createElement("span");
 				bodyEl.className = "select-row-body";
 				const name = displayName(p);
+
+				// カード名(中央揃え)+テラスタイプ。box/index.astroの.card-name-rowと同じく
+				// 同じ行にテラスバッジを並べる。未設定のときは要素自体を作らない(中央パネルの
+				// buildFilledSlotContentと同じ判断: 値が存在しない状態なのでDOM自体を省く)。
+				const nameRow = document.createElement("span");
+				nameRow.className = "select-row-name-row";
 				const nameEl = document.createElement("span");
 				nameEl.className = "select-row-name";
 				nameEl.textContent = name;
-				bodyEl.appendChild(nameEl);
-				if (p.species_name && p.species_name.trim() !== "" && p.species_name !== name) {
-					const speciesEl = document.createElement("span");
-					speciesEl.className = "select-row-species";
-					speciesEl.textContent = p.species_name;
-					bodyEl.appendChild(speciesEl);
+				nameRow.appendChild(nameEl);
+				const teraType = p.tera_type?.trim() ?? "";
+				if (teraType) {
+					const teraBadge = document.createElement("span");
+					teraBadge.className = "select-row-tera-badge";
+					teraBadge.title = `テラスタイプ: ${teraType}`;
+					teraBadge.setAttribute("aria-label", `テラスタイプ: ${teraType}`);
+					const teraImg = document.createElement("img");
+					teraImg.alt = "";
+					applyTeraIcon(teraImg, teraType);
+					teraBadge.appendChild(teraImg);
+					nameRow.appendChild(teraBadge);
 				}
+				bodyEl.appendChild(nameRow);
 
-				// UI改修依頼(チーム編集左パネル)「特性/アイテム/ステータスも表示」。
-				const metaRow = document.createElement("span");
-				metaRow.className = "select-row-meta-row";
-				const abilityEl = document.createElement("span");
-				abilityEl.className = "select-row-meta-item";
-				abilityEl.textContent = p.ability_name?.trim() || "特性未設定";
-				metaRow.appendChild(abilityEl);
+				// 特性+持ち物(box/index.astroの.card-item-row/.card-item-row-cellと同じ2列)。
+				const itemRow = document.createElement("span");
+				itemRow.className = "select-row-item-row";
+				const abilityCell = document.createElement("span");
+				abilityCell.className = "select-row-item-row-cell";
+				const abilityNameEl = document.createElement("span");
+				abilityNameEl.className = "select-row-ability-name";
+				abilityNameEl.textContent = p.ability_name?.trim() || "特性未設定";
+				abilityCell.appendChild(abilityNameEl);
+				itemRow.appendChild(abilityCell);
+
+				const itemCell = document.createElement("span");
+				itemCell.className = "select-row-item-row-cell";
 				const itemName = p.item_name?.trim() ?? "";
 				if (itemName) {
-					const itemEl = document.createElement("span");
-					itemEl.className = "select-row-meta-item";
+					const itemBadge = document.createElement("span");
+					itemBadge.className = "select-row-item-badge";
 					const itemImg = document.createElement("img");
-					itemImg.className = "select-row-meta-icon";
 					itemImg.alt = "";
-					itemImg.style.display = "none";
 					void applyItemIcon(itemImg, itemName);
+					itemBadge.appendChild(itemImg);
+					itemCell.appendChild(itemBadge);
 					const itemLabel = document.createElement("span");
+					itemLabel.className = "select-row-item-name";
 					itemLabel.textContent = itemName;
-					itemEl.append(itemImg, itemLabel);
-					metaRow.appendChild(itemEl);
+					itemCell.appendChild(itemLabel);
 				}
-				bodyEl.appendChild(metaRow);
+				itemRow.appendChild(itemCell);
+				bodyEl.appendChild(itemRow);
 
-				// 🔴 UI改修依頼(チーム編集左パネル、2026-08-01)「ステータスではなく技を表示する」。
-				// H/A/B/C/D/S実数値チップ(旧statRow、computeStats経由)は撤去し、技(4つまで)を
-				// .team-slots .slot-moves/.slot-move-chipと同じ視覚言語のチップで表示する
-				// (CSSは上のis:global<style>の.select-row-moves/.select-row-move-chip参照)。
-				// 技0件のときは.slot-move-chip-unsetと同じ強調パターン(A-6)を踏襲する。
+				// 技(最大4つ)。box/index.astroの.card-moves-grid/.card-move-chipと同じ2列
+				// グリッド+タイプアイコン付きチップ(本日/box側で確立した最新仕様: 背景色なし・
+				// 技名の前にタイプアイコン・セル内左揃え。上のapplySelectMoveChipTypeIcons参照)。
+				// 技0件のときは.select-row-move-chip-unsetで「未設定」を明示する(旧来からの表示、
+				// A-6と同じ理由でDOMごと消さない)。
 				const movesRow = document.createElement("span");
 				movesRow.className = "select-row-moves";
 				const rowMoves = p.move_names.filter((m) => m && m.trim() !== "");
 				if (rowMoves.length > 0) {
+					const chipEntries: { iconEl: HTMLImageElement; moveName: string }[] = [];
 					for (const move of rowMoves) {
 						const chip = document.createElement("span");
 						chip.className = "select-row-move-chip";
-						chip.textContent = move;
+						const iconEl = document.createElement("img");
+						iconEl.className = "select-row-move-chip-icon";
+						iconEl.alt = "";
+						iconEl.hidden = true;
+						chip.appendChild(iconEl);
+						const textEl = document.createElement("span");
+						textEl.className = "select-row-move-chip-text";
+						textEl.textContent = move;
+						chip.appendChild(textEl);
 						movesRow.appendChild(chip);
+						chipEntries.push({ iconEl, moveName: move });
 					}
+					void applySelectMoveChipTypeIcons(chipEntries);
 				} else {
 					const chip = document.createElement("span");
 					chip.className = "select-row-move-chip select-row-move-chip-unset";
-					chip.textContent = "未設定";
+					const textEl = document.createElement("span");
+					textEl.className = "select-row-move-chip-text";
+					textEl.textContent = "未設定";
+					chip.appendChild(textEl);
 					movesRow.appendChild(chip);
 				}
 				bodyEl.appendChild(movesRow);
@@ -2794,8 +2955,12 @@ const initialTeamJson = team
 				mainButton.append(artEl, bodyEl);
 				row.appendChild(mainButton);
 
-				// UI改修依頼(チーム編集左パネル、2026-08-02)行右端の視覚グリップ。この行自体は
-				// 既にdraggable(上のrow.draggable=true)なので、掴めることを伝える見た目だけ追加する。
+				// 🔴 UI改修依頼(チーム編集左パネル、2026-08-02)「行の右端にあるドラッグ用グリップを
+				// 廃止する」。要素を「消す」指示はDOMを残しCSSで見せない方針にする(pitfalls.md)ため、
+				// 要素自体・row.appendChildは残し、CSS側(.select-row-drag-handle、下のis:global
+				// スタイル参照)でdisplay:noneにする。ドラッグ&ドロップ自体(row.draggable=true、
+				// 下のdragstart/dragend)はこの要素と無関係(rowが直接draggable/イベントを持つ)
+				// なので、見た目を消しても動作は維持される。
 				const dragHandle = document.createElement("span");
 				dragHandle.className = "select-row-drag-handle";
 				dragHandle.setAttribute("aria-hidden", "true");
@@ -2971,8 +3136,11 @@ const initialTeamJson = team
 				renderSelectList();
 				scheduleSave();
 			});
-			regulationFilterToggle.addEventListener("click", () => {
-				regulationFilterOn = !regulationFilterOn;
+			// UI改修依頼(チーム編集左パネル、2026-08-02)「トグルスイッチに変更する」に伴い、
+			// <button>のclickから<input type="checkbox">のchangeへ差し替える(ヘッダーの
+			// 「非公開」トグル=#team-collection-opt-out-toggleと同じイベント)。
+			regulationFilterToggle.addEventListener("change", () => {
+				regulationFilterOn = regulationFilterToggle.checked;
 				syncRegulationFilterToggle();
 				renderSelectList();
 			});
