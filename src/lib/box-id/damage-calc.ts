@@ -360,11 +360,20 @@ if (opponentNotesSection) {
 	// 下方参照)への参照。DamageRowState自体にフィールドを追加せず(shared-core.tsは編集
 	// 対象外ファイルのため)、rowCollapseHandles等と同じくWeakMapで対応付ける。
 	const rowTeraFieldWraps = new WeakMap<DamageRowState, HTMLElement>();
+	// UI改修依頼(ダメージ計算カード、2026-08-02)「圧縮表示中も、展開表示と同様にレギュレーションに
+	// 応じてテラスタルの表示・非表示を自動判断する」。圧縮表示側のテラス関連表示
+	// (相手のテラスタイプ名/アイコン、技列の「攻撃側テラス」「防御側テラス」チップ)は
+	// renderRow()内のrefreshTypeBadge()/refreshCollapsedTechniques()がそれぞれ持っており、
+	// どちらもrow.teraType等が変わった時にしか呼ばれない(=regulation変更単独では再実行されない)。
+	// rowTeraFieldWraps同様、行ごとに「圧縮表示のテラス関連表示を最新化する関数」をWeakMapへ
+	// 登録しておき、syncTeraFieldVisibility()から展開側の表示切り替えとまとめて呼び直す。
+	const rowCollapsedTeraRefreshers = new WeakMap<DamageRowState, () => void>();
 	function syncTeraFieldVisibility(): void {
 		const show = isTerastalRegulation(currentIndividualRegulation());
 		for (const row of rows) {
 			const wrap = rowTeraFieldWraps.get(row);
 			if (wrap) wrap.hidden = !show;
+			rowCollapsedTeraRefreshers.get(row)?.();
 		}
 	}
 	regulationSelectEl?.addEventListener("change", syncTeraFieldVisibility);
@@ -1951,7 +1960,12 @@ if (opponentNotesSection) {
 	// 状態異常側を省略する方針は、攻撃側/防御側の状態異常が同一列に同時発生しうる
 	// (attackerAilment/defenderAilmentが独立フィールド)ため、省略すると区別できなくなる
 	// 実装者判断で採らなかった)。
-	function collectConditionChipsForCollapsed(a: DamageColumnState): string[] {
+	// UI改修依頼(ダメージ計算カード、2026-08-02)「圧縮表示もレギュレーションに応じてテラス
+	// タルの表示・非表示を自動判断する」。showTera(=isTerastalRegulation()の結果)がfalseの
+	// ときは「攻撃側テラス」「防御側テラス」チップを列挙しない。a.attackerTerastallized/
+	// defenderTerastallizedの値そのもの(=計算結果に使う実データ)は一切変更しない、表示の
+	// 出し分けのみ。
+	function collectConditionChipsForCollapsed(a: DamageColumnState, showTera: boolean): string[] {
 		const chips: string[] = [];
 		if (a.weather) chips.push(a.weather);
 		if (a.terrain) chips.push(a.terrain);
@@ -1959,8 +1973,8 @@ if (opponentNotesSection) {
 		if (a.critical) chips.push("急所");
 		if (a.attackerAilment) chips.push(`攻撃側${a.attackerAilment}`);
 		if (a.defenderAilment) chips.push(`防御側${a.defenderAilment}`);
-		if (a.attackerTerastallized) chips.push("攻撃側テラス");
-		if (a.defenderTerastallized) chips.push("防御側テラス");
+		if (showTera && a.attackerTerastallized) chips.push("攻撃側テラス");
+		if (showTera && a.defenderTerastallized) chips.push("防御側テラス");
 		const moveCategory = getMoveCategory(a.moveName);
 		const atkRankLabel = moveCategory === "special" ? "特攻" : "攻撃";
 		const defRankLabel = moveCategory === "special" ? "特防" : "防御";
@@ -2497,7 +2511,13 @@ if (opponentNotesSection) {
 			// 空/非表示になっているが、それだけだと空のicon+textラッパー(collapsedTeraInfoEl、
 			// gap込み)が場所だけ占有して残るため、ラッパーごと隠す(持ち物バッジ等、他の
 			// 未設定表現と同じ「要素ごと消す」流儀に揃える)。
-			collapsedTeraInfoEl.hidden = teraTypeText === "";
+			// UI改修依頼(ダメージ計算カード、2026-08-02)「圧縮表示もレギュレーションに応じて
+			// テラスタルの表示・非表示を自動判断する」。展開側のrowTeraFieldWraps(相手の
+			// テラスタイプ選択欄、syncTeraFieldVisibility()参照)と同じisTerastalRegulation()
+			// 判定を、圧縮表示の相手テラスタイプ表示(このcollapsedTeraInfoEl)にもかける。
+			// row.teraType自体は変更しない(表示の出し分けのみ)。
+			collapsedTeraInfoEl.hidden =
+				teraTypeText === "" || !isTerastalRegulation(currentIndividualRegulation());
 		}
 		function refreshItemImage(): void {
 			void applyItemImage(itemImg, row.itemName.trim());
@@ -2839,6 +2859,15 @@ if (opponentNotesSection) {
 		// 上のsyncTeraFieldVisibility()(#regulationのchangeリスナー)が追随する。
 		rowTeraFieldWraps.set(row, teraDropdown.wrap);
 		teraDropdown.wrap.hidden = !isTerastalRegulation(currentIndividualRegulation());
+		// UI改修依頼(ダメージ計算カード、2026-08-02)「圧縮表示もレギュレーションに応じて
+		// テラスタルの表示・非表示を自動判断する」。refreshTypeBadge()/refreshCollapsedTechniques()
+		// はどちらも関数宣言(ホイストされる)なので、本体の定義位置(前者は上方、後者は下方)より
+		// このregisterのほうが先でも参照できる(上のrowTeraFieldWraps.set()と同じホイスト依存の
+		// 既存パターン)。実際に呼ばれるのはsyncTeraFieldVisibility()実行時(regulation変更後)。
+		rowCollapsedTeraRefreshers.set(row, () => {
+			refreshTypeBadge();
+			refreshCollapsedTechniques();
+		});
 
 		// 努力値/実数値グリッド(DamageCard.pngの「努力値 ＨＡＢＣＤＳ」「実数値 ＨＡＢＣＤＳ」)。
 		// CSSが7列グリッド(行ラベル1列 + H/A/B/C/D/Sの6列)なので、DOMも行優先で
@@ -3088,12 +3117,17 @@ if (opponentNotesSection) {
 			// (.damage-column-order-labelと同じ1始まりの番号)を先頭に付けて区別する
 			// (単一技列、または条件が1列にしか付いていない場合は番号を付けない=
 			// 冗長な"1: "を出さない)。
+			// UI改修依頼(ダメージ計算カード、2026-08-02)「圧縮表示もレギュレーションに応じて
+			// テラスタルの表示・非表示を自動判断する」。展開側のrowTeraFieldWraps判定
+			// (isTerastalRegulation(currentIndividualRegulation()))と同じ値を、圧縮表示の
+			// 「攻撃側テラス」「防御側テラス」チップの出し分けにも使う。
+			const showTera = isTerastalRegulation(currentIndividualRegulation());
 			const chipGroups: { index: number; chips: string[] }[] = [];
 			row.attacks.forEach((a, i) => {
 				if (a.moveName.trim() === "") return;
 				// B-1: 展開表示のcollectConditionChips()ではなく、側prefixを統一した
 				// collectConditionChipsForCollapsed()(上方参照)を使う。
-				const chips = collectConditionChipsForCollapsed(a);
+				const chips = collectConditionChipsForCollapsed(a, showTera);
 				if (chips.length > 0) chipGroups.push({ index: i + 1, chips });
 			});
 			if (chipGroups.length === 0) {
