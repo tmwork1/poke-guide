@@ -4,15 +4,23 @@
 記事本文の表記はメガ名だったり韓国語だったり略称だったりするので、
 agentには新しく名前を起こさせず**この6体のどれかに割り当てさせる**。後段のマージが安定する。
 """
-import json, os, sys, glob, math
+import argparse, json, os, sys, glob, math
+from common import key_of
 
 MAX_CHARS = 24000   # 極端に長い記事は末尾を落とす(個体紹介は前〜中盤に来るのが通例)
-N_BATCHES = int(sys.argv[4]) if len(sys.argv) > 4 else 14
 
-sp, teams_dir, outdir = sys.argv[1], sys.argv[2], sys.argv[3]
+ap = argparse.ArgumentParser()
+ap.add_argument('cache_dir')
+ap.add_argument('teams_dir')
+ap.add_argument('outdir')
+ap.add_argument('--n-batches', type=int, default=None)
+ap.add_argument('--target-per-batch', type=int, default=20)
+args = ap.parse_args()
+
+sp, teams_dir, outdir = args.cache_dir, args.teams_dir, args.outdir
 os.makedirs(outdir, exist_ok=True)
 
-idx = {f"{a['season'].replace('-', '')}_{a['rank']:05d}": a
+idx = {key_of(a['season'], a['rank']): a
        for a in json.load(open(os.path.join(teams_dir, 'derived/articles-index.json'), encoding='utf-8'))}
 
 teams = {}
@@ -65,6 +73,8 @@ for path in sorted(glob.glob(os.path.join(sp, 'text', '*.txt'))):
 
 # 文字数の大きい順に、いちばん軽いバッチへ詰める(LPT法)。1バッチが極端に重くならないように。
 tasks.sort(key=lambda r: -r['chars'])
+N_BATCHES = (args.n_batches if args.n_batches is not None
+             else max(1, math.ceil(len(tasks) / args.target_per_batch)))
 batches = [[] for _ in range(N_BATCHES)]
 loads = [0] * N_BATCHES
 for t in tasks:

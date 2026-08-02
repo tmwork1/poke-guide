@@ -25,7 +25,17 @@
 		"seed-dev-user": "node ./scripts/db/seed-dev-user.mjs",
 		"seed-dummy-owned-pokemon": "node ./scripts/db/seed-dummy-owned-pokemon.mjs",
 		"refresh-suggestions": "node ./scripts/db/refresh-suggestions.mjs",
-		"backfill-archetypes": "node ./scripts/db/backfill-archetypes.mjs"
+		"backfill-archetypes": "node ./scripts/db/backfill-archetypes.mjs",
+		"ranker:fetch-teams": "python scripts/ranker/fetch_team_json.py",
+		"ranker:fetch-articles": "python scripts/ranker/fetch_search_pages.py",
+		"ranker:index": "python scripts/ranker/extract_articles.py",
+		"ranker:download": "python scripts/ranker/download_articles.py",
+		"ranker:refetch-naver": "python scripts/ranker/refetch_naver.py",
+		"ranker:pokesol": "python scripts/ranker/build_pokesol.py",
+		"ranker:text": "python scripts/ranker/html2text.py",
+		"ranker:tasks": "python scripts/ranker/make_tasks.py",
+		"ranker:build": "python scripts/ranker/build_ranked_teams.py",
+		"ranker:seed": "node scripts/db/seed-ranked-teams.mjs"
 	},
 	"dependencies": {
 		"@astrojs/cloudflare": "^14.1.1",

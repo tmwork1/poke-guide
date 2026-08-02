@@ -20,6 +20,7 @@ LLMの出力はそのまま信じず、名称をマスタデータ(public/master
 """
 import argparse, glob, json, os, re, sys, unicodedata
 from collections import Counter
+from common import key_of
 
 NATURES = {
     'さみしがり', 'いじっぱり', 'やんちゃ', 'ゆうかん', 'ずぶとい', 'わんぱく', 'のうてんき',
@@ -77,10 +78,6 @@ FORM_SPECIES_KEYS = {
     (964, 0): 'イルカマン(ナイーブ)',
     (1013, 0): 'ヤバソチャ',  # ボンサク/ケイセキの区別はアプリ側に無い
 }
-
-
-def key_of(season, rank):
-    return f"{season.replace('-', '')}_{rank:05d}"
 
 
 def norm(s):

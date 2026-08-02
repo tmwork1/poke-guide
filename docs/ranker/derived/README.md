@@ -103,7 +103,11 @@ LLMが「テラスタイプ」として返してきた値は記事の読み違�
 ## 再生成
 
 ```bash
-CACHE=/tmp/ranker-cache          # 記事HTMLのキャッシュ置き場(リポジトリ外)
+CACHE=C:\Users\tmtmp\ranker-cache   # 記事HTMLのキャッシュ置き場(リポジトリ外)
+
+# 0. 公式ランキングJSONと記事検索HTMLを取得する(以前は手動でcurl/ブラウザ保存していた)
+npm run ranker:fetch-teams -- --seasons 1,2,3 --rule single
+npm run ranker:fetch-articles -- --seasons 1,2,3 --rule single
 
 # 1. HTMLから記事索引を作る
 python scripts/ranker/extract_articles.py docs/ranker/derived/articles-index.json
@@ -115,7 +119,7 @@ python scripts/ranker/refetch_naver.py docs/ranker/derived/articles-index.json $
 # 3. pokesol.app を機械抽出 / 残りをテキスト化してLLM用タスクに割る
 python scripts/ranker/build_pokesol.py $CACHE $CACHE/pokesol.json
 python scripts/ranker/html2text.py $CACHE $CACHE/text
-python scripts/ranker/make_tasks.py $CACHE docs/ranker $CACHE/tasks 14
+python scripts/ranker/make_tasks.py $CACHE docs/ranker $CACHE/tasks --target-per-batch 20
 
 # 4. $CACHE/tasks/*.md を Haiku subagent に配って $CACHE/llm/<KEY>.json を書かせる
 #    (仕様は scripts/ranker/EXTRACTION_SPEC.md。バッチ割りは $CACHE/tasks/_batches.json)
@@ -132,5 +136,5 @@ DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres node script
 DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres npm run refresh-suggestions
 ```
 
-手順4だけがLLMを挟む。1〜3と5は決定的なので、記事キャッシュさえあれば何度でも同じ結果になる。
+手順4だけがLLMを挟む。0〜3と5は決定的なので、記事キャッシュさえあれば何度でも同じ結果になる。
 `ranked-teams.json` をそのままコミットしてあるのは、**手順4を再実行しなくてもDBを再現できるようにするため**。
