@@ -50,16 +50,17 @@ const MOVE_SLOTS = [1, 2, 3, 4];
 // S行限定のアイコンリンク用SVG定数(SPEED_CHART_ICON)は不要になった(同じ機能のボタンは
 // ヘッダー側へ移設。下のstat-table内の分岐も撤回済み)。
 
-// 🔴 UI改修依頼(個体編集左パネル、2026-08-02)「H・B・D行の実数値の右に"調整"ボタンを追加する」
-// 対応。id・aria-labelは別エージェント(左パネルの計算ロジック側)が配線するため厳守。
-// 初期状態はdisabled(配線は別エージェントの担当、ここでは骨組みのみ追加する)。
-// A(atk)・C(spa)行には調整ボタンを置かない(下の分岐でこのマップに無いkeyは
-// プレースホルダーへ落ちる)。
-const STAT_ADJUST_BUTTONS: Record<string, { id: string; label: string }> = {
-	hp: { id: "stat-adjust-hp", label: "総合耐久指数(H×B×D÷(B+D))が最大になる努力値配分にする" },
-	def: { id: "stat-adjust-def", label: "物理耐久指数(H×B)が最大になる努力値配分にする" },
-	spd: { id: "stat-adjust-spd", label: "特殊耐久指数(H×D)が最大になる努力値配分にする" },
-};
+// 🔴 UI改修依頼(個体編集左パネル、2026-08-03)「H・B・D行の個別"調整"ボタンとS行のリンクを
+// 撤去し、ステータス表の下に統合ボタン行を新設する」対応により、2026-08-02に導入した
+// STAT_ADJUST_BUTTONS定数(H/B/D行それぞれのボタンid・aria-label文字列を保持していた)は
+// 不要になった。3つのボタンの意味は失われたわけではなく、新設した#durability-index-button
+// (このファイル内、.stat-adjust-actions参照)が「総合/物理/特殊の耐久指数をそれぞれ最大化する」
+// という同じ機能を1つのボタンにまとめて引き継ぐ。当時の個別ラベル文言(参考として残す):
+//   hp(旧stat-adjust-hp) : 総合耐久指数(H×B×D÷(B+D))が最大になる努力値配分にする
+//   def(旧stat-adjust-def): 物理耐久指数(H×B)が最大になる努力値配分にする
+//   spd(旧stat-adjust-spd): 特殊耐久指数(H×D)が最大になる努力値配分にする
+// S行のすばやさ早見表リンク(旧stat-speed-chart-link)も同じ統合ボタン行へ「すばやさ調整」として
+// 移設した(機能・遷移先/speed-chart?owned=<id>は変更していない)。
 
 function statAt(values: number[] | undefined, index: number, fallback: number): number {
 	return values && typeof values[index] === "number" ? values[index] : fallback;
@@ -463,23 +464,13 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 				<span class="stat-table-header-ev-remaining">
 					<span id="ev-remaining" class="ev-remaining tnum"></span>
 				</span>
-				{/* 🔴 UI改修依頼(個体編集左パネル、2026-08-02)「H・B・D行にも"調整"ボタンを追加し、
-				    実数値まわりの詰まったレイアウトを整理する」対応。
-				    従来は5列グリッドの5列目に「実数値の数字+gap+ボタン(またはプレースホルダー)」を
-				    同居させており、その同居を成立させるため見出し側にも同じ構造(テキスト+同一クラスの
-				    非表示プレースホルダーSVG)を複製し、幅・gapを揃えることで見出しと値の中心位置を
-				    一致させていた(直前の改修コメント参照)。
-				    今回、ボタン専用の6列目を新設して5列目を「実数値の数字だけ」に単純化したため
-				    (下の.stat-table-header/.stat-rowのgrid-template-columns参照)、この見出しも
-				    5列目のセルにテキスト1個だけを置けばよくなり、5列目セルの幾何中心は見出し・
-				    全行の値のいずれでも一致する(セルを分け合う相手が居なくなったため、幅を
-				    揃えるための複製プレースホルダーという仕組みごと不要になった)。
-				    実測(下の報告参照): ヘッダー「実数値」の中心xと各行.stat-row-real中心xの差は
-				    いずれも0.5px未満。 */}
 				<span class="stat-table-header-real-label">実数値</span>
-				{/* 6列目(ボタン専用列)。見出し側はボタンを持たないため空セル。grid-column:span等で
-				    5列目と合体させると中心が再びズレるため、独立した空セルのまま置く。 */}
-				<span aria-hidden="true"></span>
+				{/* 🔴 UI改修依頼(個体編集左パネル、2026-08-03)「H・B・D行の個別"調整"ボタンと
+				    S行のリンクを撤去する」により、2026-08-02に新設したボタン専用の6列目(値と
+				    ボタンを分離するための空セルを含む)は不要になった。6列だったグリッドを
+				    5列に戻す(下の.stat-table-header/.stat-rowのgrid-template-columns参照。
+				    2つは必ず同じ値に保つこと)。この見出し側の空セル(旧<span aria-hidden="true">)も
+				    5列目のテキスト1個で完結するため削除した。 */}
 			</div>
 			{STAT_LABELS.map(({ key, label: statLabel, short: statShort }, i) => (
 				<div class="stat-row">
@@ -558,47 +549,24 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 							value={statAt(pokemon.evs, i, 0)}
 						/>
 					</div>
-					{/* 🔴 UI改修依頼(個体編集左パネル、2026-08-02)「H・B・D行にも"調整"ボタンを追加し、
-					    ステータス表全体のレイアウトを整理する」対応。
-					    従来はH〜D行にボタンを置かず、S行だけ<a>(すばやさ早見表への遷移)を置き、
-					    幅を揃えるためだけの不可視プレースホルダーで残り5行を埋めていた。今回は
-					    H・B・D行にも実際のボタン(初期状態disabled、配線は別エージェントの担当)を
-					    追加するため、そのプレースホルダー方式は維持しつつ対象がA・C行の2行だけに
-					    減る。
-					    このwrap要素(.stat-row-real-wrap)自体は撤去しない: 460px以下のモバイル
-					    レイアウト(下の@media (max-width: 460px)の.stat-row-real-wrap参照、
+					{/* 🔴 UI改修依頼(個体編集左パネル、2026-08-03)「H・B・D行の個別"調整"ボタンと
+					    S行のリンクを撤去し、ステータス表の下に統合ボタン行を新設する」対応。
+					    2026-08-02に導入した「H・B・D行はボタン、S行はすばやさ早見表リンク、
+					    A・C行はプレースホルダー」という行ごとの3分岐(<a>/<button>/プレースホルダー)を
+					    すべて撤去し、全6行(H/A/B/C/D/S)ともボタン・リンクを一切表示しない
+					    (統合先は下の.stat-table直後の.stat-adjust-actions参照)。
+					    このwrap要素(.stat-row-real-wrap)自体・クラス名は撤去しない: 460px以下の
+					    モバイルレイアウト(下の@media (max-width: 460px)の.stat-row-real-wrap参照、
 					    grid-column:1/-1のflexとしてラベル行の下に字下げ表示する構造)がこの要素と
 					    クラスに依存しているため。デスクトップ幅ではdisplay:contentsにして
-					    このラッパー自身をレイアウトツリーから消し、中の値とボタンを.stat-row
-					    直接の子(=5列目・6列目のグリッドアイテム)にする(867行目付近の
+					    このラッパー自身をレイアウトツリーから消し、中の値を.stat-row直接の子
+					    (=5列目のグリッドアイテム)にする(867行目付近の
 					    .stat-row .stat-input-controls { display: contents; } と同じ既存の流儀を
 					    踏襲。新しいパラダイムではない)。
 					    valueEl(id=stat-${key})自体・left-panel.tsのrecalcStats/
 					    renderStatsUnavailableのtextContent書き換え対象は変わらない。 */}
 					<span class="stat-row-real-wrap">
 						<span id={`stat-${key}`} class="stat-row-real stat-value tnum">(未計算)</span>
-						{/* 🔴 UI改修依頼(個体編集画面、2026-08-02)ボタンの中身はS行の既存アイコン
-						    (Lucideの"sliders-horizontal"相当、<line>9本)をそのままコピーする。
-						    aria-hidden="true"(装飾用、アクセシブルネームは親のaria-labelが担う)。 */}
-						{key === "spe" ? (
-							<a
-								class="stat-speed-chart-link stat-adjust-button"
-								href={`/speed-chart?owned=${pokemon.id}`}
-								aria-label="すばやさ早見表で調整"
-								title="すばやさ早見表で調整"
-							><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="21" y1="4" x2="14" y2="4"/><line x1="10" y1="4" x2="3" y2="4"/><line x1="21" y1="12" x2="12" y2="12"/><line x1="8" y1="12" x2="3" y2="12"/><line x1="21" y1="20" x2="16" y2="20"/><line x1="12" y1="20" x2="3" y2="20"/><line x1="14" y1="2" x2="14" y2="6"/><line x1="8" y1="10" x2="8" y2="14"/><line x1="16" y1="18" x2="16" y2="22"/></svg></a>
-						) : STAT_ADJUST_BUTTONS[key] ? (
-							<button
-								type="button"
-								id={STAT_ADJUST_BUTTONS[key].id}
-								class="stat-adjust-button"
-								disabled
-								aria-label={STAT_ADJUST_BUTTONS[key].label}
-								title={STAT_ADJUST_BUTTONS[key].label}
-							><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="21" y1="4" x2="14" y2="4"/><line x1="10" y1="4" x2="3" y2="4"/><line x1="21" y1="12" x2="12" y2="12"/><line x1="8" y1="12" x2="3" y2="12"/><line x1="21" y1="20" x2="16" y2="20"/><line x1="12" y1="20" x2="3" y2="20"/><line x1="14" y1="2" x2="14" y2="6"/><line x1="8" y1="10" x2="8" y2="14"/><line x1="16" y1="18" x2="16" y2="22"/></svg></button>
-						) : (
-							<span class="stat-speed-chart-placeholder" aria-hidden="true"></span>
-						)}
 					</span>
 				</div>
 			))}
@@ -613,11 +581,58 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		<p id="hp-fixed-note" class="hp-fixed-note" hidden>
 			H(種族値1で固定): このポケモンはHPの種族値が1のため、努力値を振っても実数値は常に1のままです。
 		</p>
+		{/* 🔴 UI改修依頼(個体編集左パネル、2026-08-03)「ステータス表の下に新しいボタン行を追加する」
+		    対応。ラウンド3 B-8(下の注記参照)で「準備中」として一度撤去した「耐久調整」がここで
+		    実装として戻ってくるほか、H/B/D行の個別"調整"ボタン・S行のすばやさ早見表リンク
+		    (いずれも撤去。上のSTAT_LABELS.map内・STAT_ADJUST_BUTTONS定数のコメント参照)を
+		    1つの統合ボタン行にまとめる:
+		      1. 耐久指数最大化(#durability-index-button、新規): 総合/物理/特殊の耐久指数を
+		         それぞれ最大化する努力値の候補を表示する。配線は別エージェント(left-panel.ts側)の
+		         担当のため、ここでは骨組み(disabled)だけを置く。
+		      2. 耐久調整(#bulk-adjust-button): box/[id].astroのトップバーにあった既存ボタンを
+		         ここへ移設したもの。⚠️ id="bulk-adjust-button"・子spanのclass=
+		         "bulk-adjust-button-icon"/"bulk-adjust-button-label"は既存スクリプト
+		         (src/lib/box-id/bulk-adjust.ts、このファイルの編集対象外)がそのまま参照するため
+		         1文字も変えていない。配線・機能はbulk-adjust.ts側にあるため、DOM上の位置を
+		         移しただけで動作する。
+		      3. すばやさ調整: 旧S行の<a href={`/speed-chart?owned=${pokemon.id}`}>をラベルだけ
+		         変えてここへ移設(遷移先・機能は変更していない)。
+		    3つとも見た目を揃えるため.stat-adjust-action-button(+.btn-ghost)で統一し、アイコンは
+		    旧S行ボタンと同じsliders-horizontal(Lucide相当)のSVGをそのまま複製して使う
+		    (新しい色・サイズトークンは作らない)。 */}
+		<div class="stat-adjust-actions">
+			<button
+				type="button"
+				id="durability-index-button"
+				class="btn-ghost stat-adjust-action-button"
+				disabled
+				aria-label="現在の努力値をもとに、総合/物理/特殊の耐久指数をそれぞれ最大化する努力値の候補を表示する"
+				title="現在の努力値をもとに、総合/物理/特殊の耐久指数をそれぞれ最大化する努力値の候補を表示する"
+			>
+				<span class="stat-adjust-action-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="21" y1="4" x2="14" y2="4"/><line x1="10" y1="4" x2="3" y2="4"/><line x1="21" y1="12" x2="12" y2="12"/><line x1="8" y1="12" x2="3" y2="12"/><line x1="21" y1="20" x2="16" y2="20"/><line x1="12" y1="20" x2="3" y2="20"/><line x1="14" y1="2" x2="14" y2="6"/><line x1="8" y1="10" x2="8" y2="14"/><line x1="16" y1="18" x2="16" y2="22"/></svg></span>
+				<span class="stat-adjust-action-label">耐久指数最大化</span>
+			</button>
+			<button type="button" id="bulk-adjust-button" class="btn-ghost stat-adjust-action-button" disabled>
+				<span class="bulk-adjust-button-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="21" y1="4" x2="14" y2="4"/><line x1="10" y1="4" x2="3" y2="4"/><line x1="21" y1="12" x2="12" y2="12"/><line x1="8" y1="12" x2="3" y2="12"/><line x1="21" y1="20" x2="16" y2="20"/><line x1="12" y1="20" x2="3" y2="20"/><line x1="14" y1="2" x2="14" y2="6"/><line x1="8" y1="10" x2="8" y2="14"/><line x1="16" y1="18" x2="16" y2="22"/></svg></span><span class="bulk-adjust-button-label">耐久調整</span>
+			</button>
+			<a
+				class="btn-ghost stat-adjust-action-button"
+				href={`/speed-chart?owned=${pokemon.id}`}
+				aria-label="すばやさ早見表で調整"
+				title="すばやさ早見表で調整"
+			>
+				<span class="stat-adjust-action-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="21" y1="4" x2="14" y2="4"/><line x1="10" y1="4" x2="3" y2="4"/><line x1="21" y1="12" x2="12" y2="12"/><line x1="8" y1="12" x2="3" y2="12"/><line x1="21" y1="20" x2="16" y2="20"/><line x1="12" y1="20" x2="3" y2="20"/><line x1="14" y1="2" x2="14" y2="6"/><line x1="8" y1="10" x2="8" y2="14"/><line x1="16" y1="18" x2="16" y2="22"/></svg></span>
+				<span class="stat-adjust-action-label">すばやさ調整</span>
+			</a>
+		</div>
 		{/* ラウンド3 B-7: 「努力値合計」は要件により削除した。チャンピオンズルールは合計上限が
 		    無く、この数値は何の判断にも使えない(「510の残り」を連想させる誤った示唆に
 		    なる)ため撤去した。 */}
 
-		{/* ラウンド3 B-8: 「攻撃調整」「耐久調整」(準備中)は要件により撤去した。 */}
+		{/* ラウンド3 B-8: 「攻撃調整」「耐久調整」(準備中)は要件により撤去した。
+		    🔴 UI改修依頼(個体編集左パネル、2026-08-03)により「耐久調整」は上の.stat-adjust-actions
+		    (#bulk-adjust-button)として実装が戻ってきた。「攻撃調整」は引き続き未実装のまま
+		    (今回の対応範囲外)。 */}
 
 		{/* 「その他の設定(レベル・タグ・ピン留め・共有)」は要件により廃止した。
 		    ただし PUT /api/owned-pokemon/:id は全項目上書きの契約なので、送らないと
@@ -767,7 +782,15 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		   広がる(0〜32の33段階で1段3.6px→4.2px、操作性が改善する)。他の列(1・2・4列目)は
 		   変更しない。⚠️ .stat-table-headerと.stat-rowのgrid-template-columnsは必ず同じ値に
 		   保つこと(下の.stat-row側コメント参照)。 */
-		grid-template-columns: 4.1rem 2.4rem minmax(0, 1fr) 3.2rem 2.8rem var(--icon-size-md);
+		/* 🔴 UI改修依頼(個体編集左パネル、2026-08-03)「H・B・D行の個別"調整"ボタンとS行のリンクを
+		   撤去する」対応により、上記2026-08-02で新設した6列目(ボタン専用列、var(--icon-size-md))は
+		   不要になった。全6行(H/A/B/C/D/S)からボタン・リンクが消え、5列目(実数値の数字だけ)の
+		   隣に何も並ばなくなったため、5列グリッドに戻す(値は6列目導入前と同じ5列目2.8rem・
+		   1〜4列目も据え置き)。6列目ぶんの幅(28px)+gap 1個分(0.4rem)は、他の固定列を削らずとも
+		   グリッドの仕組み上そのまま3列目(スライダー、minmax(0, 1fr))へ吸収される(fr列は
+		   固定列の合計を引いた残り全部を占めるため、固定列を1つ減らせば自動的にfr列が広がる。
+		   実測: スライダー列は約139px→約173px)。 */
+		grid-template-columns: 4.1rem 2.4rem minmax(0, 1fr) 3.2rem 2.8rem;
 		gap: 0.4rem;
 		/* UI統一感レビュー(32-U-B1): 同じ行内の.ev-remaining(「残りN」)が持つ
 		   共通トークンvar(--font-size-xs)(12px)に対し、ここだけ直値0.78rem(12.48px)
@@ -879,9 +902,11 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		   .stat-table-headerコメント参照。値は必ず同一に保つ)。
 		   🔴 UI改修依頼(個体編集左パネル、2026-08-02 第2弾)により再度変更(理由は上の
 		   .stat-table-headerコメント参照。値は必ず同一に保つ)。 */
-		/* 🔴 UI改修依頼(個体編集左パネル、2026-08-02)ボタン専用の6列目を新設(理由は上の
-		   .stat-table-headerコメント参照。値は必ず同一に保つ)。 */
-		grid-template-columns: 4.1rem 2.4rem minmax(0, 1fr) 3.2rem 2.8rem var(--icon-size-md);
+		/* 🔴 UI改修依頼(個体編集左パネル、2026-08-02)ボタン専用の6列目を新設していたが、
+		   🔴 UI改修依頼(個体編集左パネル、2026-08-03)「H・B・D行の個別"調整"ボタンとS行の
+		   リンクを撤去する」対応により5列に戻す(理由は上の.stat-table-headerコメント参照。
+		   値は必ず同一に保つ)。 */
+		grid-template-columns: 4.1rem 2.4rem minmax(0, 1fr) 3.2rem 2.8rem;
 		align-items: center;
 		gap: 0.4rem;
 	}
@@ -1028,8 +1053,13 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		width: 0;
 		height: 0;
 	}
-	.stat-nature-up::after { border-left: 7px solid transparent; border-right: 7px solid transparent; border-bottom: 9px solid var(--color-text-muted); }
-	.stat-nature-down::after { border-left: 7px solid transparent; border-right: 7px solid transparent; border-top: 9px solid var(--color-text-muted); }
+	/* 🔴 UI改修依頼(個体編集左パネル、2026-08-03)「性格補正▲▼三角形の比率を修正」対応。
+	   旧寸法(半幅7px×高さ9px=幅14px:高さ9px≒1.56:1)は一般的な矢印/三角形の見た目に対して
+	   横長すぎた。半幅を6px・高さを10pxにし、幅12px:高さ10px=1.2:1という、標準的な矢印
+	   アイコン(多くのUIキットが概ね1.1〜1.3:1のレンジ)に近い比率へ調整する。
+	   当たり判定である.stat-nature-btn自体(24×24px、WCAG 2.5.8の下限)は変更しない。 */
+	.stat-nature-up::after { border-left: 6px solid transparent; border-right: 6px solid transparent; border-bottom: 10px solid var(--color-text-muted); }
+	.stat-nature-down::after { border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 10px solid var(--color-text-muted); }
 	.stat-nature-btn:hover::after { border-bottom-color: var(--color-primary); border-top-color: var(--color-primary); }
 	.stat-row:hover .stat-nature-btn::after { border-bottom-color: var(--color-primary); border-top-color: var(--color-primary); }
 	.stat-nature-btn:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 1px; }
@@ -1080,16 +1110,20 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	   ライト約4.46:1・ダーク約5.54:1(上昇側のライト約4.24:1・ダーク約5.45:1とほぼ同等)。
 	   --color-primary-softは32-U-B1等で既に使われている既存トークン(新色ではない)で、
 	   「primary系のsoft(薄色)」という上昇側--color-danger-softと対になる自然な選択でもある。 */
+	/* 🔴 UI改修依頼(個体編集左パネル、2026-08-03)三角形本体(::after)の比率調整に伴い、縁取り
+	   (::before、旧・半幅8px×高さ10px)も同じ「半幅+1px・高さ+1px」という元々の成長量を保った
+	   まま、新しい本体寸法(半幅6px×高さ10px)を基準に縮小する: 半幅7px×高さ11px
+	   (幅14px:高さ11px≒1.27:1、本体の1.2:1に近い比率のまま輪郭ぶんだけ一回り大きい)。 */
 	.stat-nature-up[aria-pressed="true"]::before {
-		border-left: 8px solid transparent;
-		border-right: 8px solid transparent;
-		border-bottom: 10px solid var(--color-danger-soft);
+		border-left: 7px solid transparent;
+		border-right: 7px solid transparent;
+		border-bottom: 11px solid var(--color-danger-soft);
 	}
 	.stat-nature-up[aria-pressed="true"]::after { border-bottom-color: var(--stat-up); }
 	.stat-nature-down[aria-pressed="true"]::before {
-		border-left: 8px solid transparent;
-		border-right: 8px solid transparent;
-		border-top: 10px solid var(--color-primary-soft);
+		border-left: 7px solid transparent;
+		border-right: 7px solid transparent;
+		border-top: 11px solid var(--color-primary-soft);
 	}
 	.stat-nature-down[aria-pressed="true"]::after { border-top-color: var(--stat-down); }
 	/* HPは性格補正の対象外(クリック不可)。位置を揃えるためのプレースホルダーで、
@@ -1134,73 +1168,14 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	   (実測: 修正後は全6行でrow centerYとの差が0.01px以下に縮小、報告参照)。
 	   font-sizeは元々ここで1emに揃えていた指定をそのまま維持する。 */
 	.stat-row-real { text-align: center; font-size: 1em; margin-top: 0; }
-	/* 🔴 UI改修依頼(個体編集左パネル、2026-08-02)「調整ボタンを大きくする」対応。
-	   padding(0.15em 0.5em、実測ライト時8.96×2.24px)・font-size(0.7rem)とも直値だったため、
-	   global.cssの共通スペーシング/フォントサイズトークンに置き換えつつ拡大する:
-	   padding → var(--space-1) var(--space-2)(4px/8px、.btn-ghost系が使う定石の刻み)、
-	   font-size → var(--font-size-xs)(0.75rem=12px、20-G3の文字下限12pxも満たす)。
-	   横幅が増える分は5列目(.stat-table-header/.stat-rowのgrid-template-columns、
-	   5.4rem→6.2rem)側で確保済み(新しい値ではなく既存トークンの組み合わせのみを使用)。
-	   🔴 UI改修依頼(個体編集左パネル、2026-08-02 第2弾)「調整ボタンをさらに大きくする」対応。
-	   引き続き直値は使わずglobal.cssのトークンだけを1段階ずつ上げる:
-	     font-size  : var(--font-size-xs)(0.75rem=12px)→ var(--font-size-sm)(0.85rem=13.6px)
-	     padding    : var(--space-1) var(--space-2)(4px/8px)→ var(--space-1) var(--space-3)(4px/12px)
-	   実測(1920px幅): 42×26.8px → 53.2×29.0px。高さを努力値の数値入力(実測約29px)と同じに
-	   揃えることで行の高さが増えず(=ステータス表全体が縦に伸びず)、横だけが約1.27倍になる。
-	   5列目の必要幅は「実数値3桁28.98px + gap 0.3rem=4.8px + 53.2px」=約87pxで、
-	   6.2rem(99.2px)の中に約11pxの余白を残して収まる(列幅は変更していない。
-	   上の.stat-table-headerコメントの再配分の根拠を参照)。 */
-	/* 🔴 UI改修依頼(個体編集画面、2026-08-02)「S行の"調整"ボタンのテキストをアイコンにする」
-	   対応。文字("調整"2文字+padding)を前提に幅を計算していた上の一連のコメント(font-size/
-	   paddingの拡大履歴)は撤回する: アイコンのみの正方形ボタンに変えるため、テキスト用の
-	   font-size/font-weight/line-height/white-spaceは不要になり、代わりにこのリポジトリの
-	   アイコンのみの小型ボタン規格(28px角、box/index.astroの.icon-button・
-	   DamageCalcSection.astroの.damage-row-icon-buttonと同じ--icon-size-md)に合わせる。
-	   width/height 28pxはWCAG 2.5.8のタッチターゲット下限24×24pxを上回るため、
-	   テキスト時代(実測53.2×29.0px)より小さくなっても当たり判定は十分(実測して確認)。
-	   5列目の列幅(grid-template-columns 6.2rem)は変更しない(ボタンが縮んだ分は
-	   .stat-row-real-wrap内でjustify-content:centerのまま余白として均等に残るだけで、
-	   値の中心位置がズレることはない)。 */
-	/* 🔴 UI改修依頼(個体編集左パネル、2026-08-02)「H・B・D行にも"調整"ボタンを追加し、4つが
-	   同じ見た目になるようにする」対応。新規に増えるH/B/D行のボタン(<button>、クラスは
-	   stat-adjust-buttonのみ)にも、既存のS行の<a class="stat-speed-chart-link">が持つ枠線・
-	   色・ホバーのルールをそのまま効かせるため、セレクタに.stat-adjust-buttonを追加する
-	   (新しい色・サイズトークンは作らない。S行の<a>は.stat-speed-chart-link stat-adjust-button
-	   の両方のクラスを持つが、stat-speed-chart-linkクラス自体は既存のJS/E2E参照を考慮し
-	   削除しない)。 */
-	.stat-speed-chart-link,
-	.stat-adjust-button {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		width: var(--icon-size-md);
-		height: var(--icon-size-md);
-		padding: 0;
-		border-radius: var(--radius-sm);
-		border: 1px solid var(--color-border);
-		color: var(--color-text-muted);
-		background: transparent;
-		text-decoration: none;
-		flex-shrink: 0;
-		transition: background 0.15s, color 0.15s, border-color 0.15s;
-	}
-	/* 既存の「ボーダー同色の塗り→ホバーで白地に反転」の.btn-primary系とは異なり、この
-	   小型ボタンは.btn-ghost(global.css、透明背景+ホバーでsurface-alt)と同じ低強調の
-	   配色方針を踏襲する(新色は作らない)。primaryトークンでのホバー強調は既存の
-	   .stat-speed-chart-link系(旧R-11実装)と同じ考え方。 */
-	.stat-speed-chart-link:hover,
-	.stat-speed-chart-link:focus-visible,
-	.stat-adjust-button:hover:not(:disabled),
-	.stat-adjust-button:focus-visible {
-		color: var(--color-primary);
-		border-color: var(--color-primary);
-		background: var(--color-primary-soft);
-	}
-	/* 🔴 UI改修依頼(個体編集左パネル、2026-08-02)A(atk)・C(spa)行には調整ボタンを置かない。
-	   6列目の列幅はgrid-template-columns側で固定済み(var(--icon-size-md))のため、以前のように
-	   同じ内容(SVGコピー)で幅を揃える必要はなく、visibility:hiddenの空<span>を置くだけでよい
-	   (クリック・フォーカスも受け付けない)。 */
-	.stat-speed-chart-placeholder { visibility: hidden; pointer-events: none; }
+	/* 🔴 UI改修依頼(個体編集左パネル、2026-08-03)「H・B・D行の個別"調整"ボタンとS行のリンクを
+	   撤去する」対応により、2026-08-02の一連の改修(調整ボタンの拡大・アイコン化・H/B/D行への
+	   追加)で育ってきた.stat-speed-chart-link/.stat-adjust-button/.stat-speed-chart-placeholderの
+	   3クラスとそのCSS(サイズ・ホバー配色・プレースホルダー)は、対応するマークアップ(<a>/
+	   <button>/プレースホルダー<span>、上のSTAT_LABELS.map内)がすべて撤去されたため丸ごと削除する。
+	   同じ機能(耐久指数最大化・耐久調整・すばやさ調整)はステータス表の下の統合ボタン行
+	   (.stat-adjust-actions、下記参照)へ移設し、そちらは新しいクラス(.stat-adjust-action-button
+	   等)と既存の.btn-ghost(global.css)を組み合わせる方式にした。 */
 	/* ラウンド17指摘(B-5): ヌケニン限定の注記。既定は非表示(hidden属性)、通常種族では
 	   何も増えない(<script>のapplyBaseStats参照)。 */
 	.hp-fixed-note {
@@ -1209,6 +1184,44 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		   --font-size-xs(0.75rem=12px)に上げる。 */
 		font-size: var(--font-size-xs);
 		color: var(--color-text-muted);
+	}
+
+	/* 🔴 UI改修依頼(個体編集左パネル、2026-08-03)「ステータス表の下に新しいボタン行を追加する」
+	   対応。耐久指数最大化・耐久調整・すばやさ調整の3つを横並びにする行。間隔は他のセクション間隔
+	   (直上の.hp-fixed-note、margin-top 0.3rem)を踏まえてやや広め(0.6rem)にし、独立した
+	   操作行であることを示す。ボタン同士のgapは.app-topbar-actions等でも使っているvar(--space-2)
+	   (8px)に揃える(新しいトークンは作らない)。 */
+	.stat-adjust-actions {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: stretch;
+		gap: var(--space-2);
+		margin: 0.6rem 0 0;
+	}
+	/* ボタン本体は.btn-ghost(global.css、透明背景+ホバーでsurface-alt)をそのまま使う。パネル幅に
+	   対して「耐久指数最大化」(7文字)を含む3ボタンが横並びで収まるよう、.btn-ghostの既定
+	   (padding: var(--space-2) 1.1em、font-size: 継承=1rem)より一段階詰めた既存トークンの組み
+	   合わせに絞る(新しい値ではなく、旧.stat-adjust-button等でも使っていたvar(--font-size-sm)/
+	   var(--space-1)/var(--space-2)を再利用)。flex: 1 1 auto + flex-wrap: wrapで、3つ全体が
+	   収まらない狭幅では自然に折り返す(テキストが見切れることを避ける)。 */
+	.stat-adjust-action-button {
+		flex: 1 1 auto;
+		justify-content: center;
+		gap: 0.35em;
+		font-size: var(--font-size-sm);
+		padding: var(--space-1) var(--space-2);
+		white-space: nowrap;
+	}
+	/* box/[id].astroのトップバーにあった#bulk-adjust-buttonが持っていた「アイコンspan+ラベルspanを
+	   inline-flexで縦位置中央揃えにする」パターン(インラインSVGは既定でbaseline基準の余白が乗り、
+	   隣のラベルテキストと縦位置がズレるための対策)を、新設の.stat-adjust-action-iconにも同じ
+	   考え方で適用する。.bulk-adjust-button-icon(既存クラス、bulk-adjust.ts参照)はここへ移設した
+	   ことで見た目の親(.stat-adjust-action-button)が変わるため、同じ整列ルールをここでも定義する
+	   (box/[id].astro側の定義はそちらのファイルのスコープにしか効かないため引き継がれない)。 */
+	.stat-adjust-action-icon,
+	.bulk-adjust-button-icon {
+		display: inline-flex;
+		align-items: center;
 	}
 
 	/* 🔴 UI改修依頼(個体編集左パネル、2026-08-01)「サジェストはリストボックスの候補に反映し、

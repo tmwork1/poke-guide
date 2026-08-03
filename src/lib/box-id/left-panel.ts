@@ -45,16 +45,18 @@ import {
 	baseStatsMapPromise,
 	registerLeftPanelBridge,
 } from "./shared-core";
-// UI改修依頼(個体編集画面、2026-08-02)「耐久調整」ボタン(H・B・D行、#stat-adjust-hp/def/spd)の
-// 配線。計算(純JS、Pyodide不要)はdurability-index.ts、一覧表示はright-panel.tsの
-// renderCandidateList()(耐久調整ポップアップと共用の汎用レンダラ)に委譲し、このファイルは
-// 「現在の種族値・努力値・性格を渡して呼ぶ」「bestを左パネルへ即時反映する」「クリックされた
-// 候補を左パネルへ反映する」の橋渡しだけを担う。
+// UI改修依頼(個体編集画面、2026-08-02→2026-08-03統合)「耐久指数最大化」ボタン
+// (ステータス表の下、#durability-index-button)の配線。計算(純JS、Pyodide不要)は
+// durability-index.ts、一覧表示はright-panel.tsのrenderCandidateList()(耐久調整
+// ポップアップと共用の汎用レンダラ)に委譲し、このファイルは「現在の種族値・努力値・性格を
+// 渡して総合/物理/特殊の3指数を計算する」「3件を右パネルへ一覧表示する」「クリックされた
+// 候補を左パネルへ反映する」の橋渡しだけを担う。旧・H/B/D個別3ボタン
+// (#stat-adjust-hp/def/spd)時代はボタン押下で即座にbestを左パネルへ適用していたが、
+// 単一ボタン化に伴い、押下時は表示のみ・適用は一覧クリック時のみに変更した。
 import {
 	maximizeDurabilityIndex,
 	type DurabilityIndexKind,
 	type DurabilityIndexCandidate,
-	type MaximizeResult,
 } from "./durability-index";
 // ⚠️ 実装時に踏んだ罠: renderCandidateList/openDetailPanelOverlayIfNarrowを他の関数と同じ
 // 静的importにすると、box/[id].astroでLeftPanel.astroがDamageCalcSection.astroより先に
@@ -477,18 +479,14 @@ export async function loadPopularBuildSuggestions(speciesName: string, regulatio
 
 const form = document.getElementById("edit-form") as HTMLFormElement | null;
 if (form) {
-	// UI改修依頼(個体編集画面、2026-08-02)「耐久調整」ボタン(H・B・D行)。静的マークアップ
-	// (LeftPanel.astro)では常にdisabledで描画されており、種族値が引けて実数値が計算できる
-	// 状態(=種族名が入力済み)になったときだけ有効化する。applyBaseStats()が種族値の
-	// 有無(base)を既に判定しているため、その結果をそのまま流用する(同じ「種族値の有無」の
-	// 判定基準に揃える、というコーディネーターの指示どおり)。
-	const statAdjustHpButton = el<HTMLButtonElement>("stat-adjust-hp");
-	const statAdjustDefButton = el<HTMLButtonElement>("stat-adjust-def");
-	const statAdjustSpdButton = el<HTMLButtonElement>("stat-adjust-spd");
-	function updateStatAdjustButtonsEnabled(hasBaseStats: boolean): void {
-		statAdjustHpButton.disabled = !hasBaseStats;
-		statAdjustDefButton.disabled = !hasBaseStats;
-		statAdjustSpdButton.disabled = !hasBaseStats;
+	// UI改修依頼(個体編集画面、2026-08-03)「耐久指数最大化」ボタン(ステータス表の下、
+	// #durability-index-button)。静的マークアップ(LeftPanel.astro)では常にdisabledで
+	// 描画されており、種族値が引けて実数値が計算できる状態(=種族名が入力済み)になった
+	// ときだけ有効化する。applyBaseStats()が種族値の有無(base)を既に判定しているため、
+	// その結果をそのまま流用する(旧・個別3ボタン時代と同じ「種族値の有無」の判定基準)。
+	const durabilityIndexButton = el<HTMLButtonElement>("durability-index-button");
+	function updateDurabilityIndexButtonEnabled(hasBaseStats: boolean): void {
+		durabilityIndexButton.disabled = !hasBaseStats;
 	}
 
 	// UI刷新: 種族値の常時表示(実数値と同じ行に並べる)。
@@ -504,7 +502,7 @@ if (form) {
 		// 注記の表示/非表示をここで切り替える。
 		const hpFixedNoteEl = document.getElementById("hp-fixed-note");
 		if (hpFixedNoteEl) hpFixedNoteEl.hidden = !(base && base[0] === 1);
-		updateStatAdjustButtonsEnabled(!!base);
+		updateDurabilityIndexButtonEnabled(!!base);
 	}
 
 	// UI品質改善(2026-07-26 第4弾 11-4): 技候補(#move-list)を種族の覚え技(learnset)
@@ -1450,12 +1448,13 @@ if (form) {
 	// git履歴のこの位置にあった renderShareStatus / is-public チェックボックスの実装を参照すること。
 
 	// ============================================================
-	// UI改修依頼(個体編集画面、2026-08-02)「耐久調整」ボタン(H・B・D行)の配線
+	// UI改修依頼(個体編集画面、2026-08-03)「耐久指数最大化」ボタンの配線
 	// ============================================================
 	// マークアップ(LeftPanel.astro)・計算(durability-index.ts)・一覧表示(right-panel.tsの
 	// renderCandidateList、耐久調整ポップアップと共用)はいずれも実装済み。ここでは
-	// (1)ボタン押下→現在の種族値・努力値・性格からbestを求めて即座に左パネルへ反映、
-	// (2)上位候補を右パネルへ一覧表示、(3)一覧クリックでその配分に更新、の3つを配線する。
+	// (1)ボタン押下→現在の種族値・努力値・性格から総合/物理/特殊3指数それぞれのbestを求めて
+	// 右パネルへ一覧表示(この時点では左パネルは変更しない)、(2)一覧クリックでその配分を
+	// 左パネルへ適用、の2つを配線する。
 	//
 	// ⚠️ 努力値の書き換えは.valueへの代入だけではinput/changeどちらのイベントも発火せず、
 	// 再計算(recalcStats)も自動保存(scheduleSave、textInputIds経由)も走らない
@@ -1483,109 +1482,77 @@ if (form) {
 		return kind === "total" ? value.toFixed(2) : String(Math.round(value));
 	}
 
-	// 右パネルの一覧を組み立てて描画する。候補クリック直後に自分自身を再度呼び直すことで、
-	// isApplied(適用中マーク)を最新の左パネルの値に合わせて更新する
-	// (bulk-adjust.ts/right-panel.tsのrenderBulkAdjustResultsと同じ「redrawクロージャ」の
-	// 考え方)。性格は変えない機能のため、isAppliedの判定はH/B/Dの努力値一致だけでよい。
-	async function showDurabilityCandidates(kind: DurabilityIndexKind, heading: string, contextText: string, result: MaximizeResult): Promise<void> {
-		const { renderCandidateList } = await loadRightPanel();
+	// UI改修依頼(個体編集画面、2026-08-03)旧「耐久調整」3ボタン(H/B/D個別)を単一の
+	// 「耐久指数最大化」ボタンへ統合。押下時に総合/物理/特殊の3指数をまとめて計算し、
+	// 右パネルへ3件同時表示する(切り替えボタンは無し)。旧実装と異なり、ボタン押下だけでは
+	// 左パネルを更新しない(3件を表示するだけ)。一覧内の候補をクリックしたときだけ、その
+	// 候補のH/B/D配分を左パネルへ適用する。
+	const DURABILITY_INDEX_KINDS: { kind: DurabilityIndexKind; heading: string }[] = [
+		{ kind: "total", heading: "総合耐久指数(H×B×D÷(B+D))" },
+		{ kind: "physical", heading: "物理耐久指数(H×B)" },
+		{ kind: "special", heading: "特殊耐久指数(H×D)" },
+	];
+
+	async function runDurabilityIndexMaximize(): Promise<void> {
+		const name = speciesInput.value.trim();
+		if (!name) return; // ボタンは種族名が空のときdisabledのはずだが、念のための防御
+		const base = (await baseStatsMapPromise).get(name);
+		if (!base) return;
+		const { renderCandidateList, openDetailPanelOverlayIfNarrow } = await loadRightPanel();
+		const nature = currentLeftNature();
+
 		const redraw = (): void => {
 			const currentHp = readEv("hp");
 			const currentDef = readEv("def");
 			const currentSpd = readEv("spd");
-			const items: CandidateListItem[] = result.candidates.map((candidate) => {
+			const currentEvs = STAT_KEYS.map((k) => readEv(k));
+			const items: CandidateListItem[] = DURABILITY_INDEX_KINDS.map(({ kind, heading }) => {
+				const result = maximizeDurabilityIndex({ kind, baseStats: base, currentEvs, nature });
+				const best = result.best;
 				const flags: CandidateListItem["flags"] = [];
-				if (candidate.isCurrent) {
-					// 色だけで意味を伝えない(WCAG 1.4.1): 記号+テキストを併記する。
-					// bestを即座に適用する仕様のため、この項目がアンドゥ手段を兼ねる。
-					flags.push({ icon: "↺", text: "変更前の配分", kind: "info" });
+				if (result.remaining <= 0) {
+					// 努力値の合計が既に上限(66)に達していて配る余地が無い: bestは変更前の配分が
+					// そのまま返る仕様(durability-index.ts参照)。黙って何も変わらないボタンに
+					// 見えないよう、注記を出す。
+					flags.push({ icon: "⚠", text: "努力値の合計が上限(66)に達しているため配る余地がありません", kind: "warn" });
 				}
 				return {
 					segments: [
-						{
-							label: "努力値",
-							value: `H${candidate.evs.hp} B${candidate.evs.def} D${candidate.evs.spd}`,
-						},
-						{
-							label: "実数値",
-							value: `H${candidate.realStats.hp} B${candidate.realStats.def} D${candidate.realStats.spd}`,
-						},
-						{ label: "指数", value: formatDurabilityIndexValue(kind, candidate.index), emphasis: true },
+						{ label: "指数", value: heading, emphasis: true },
+						{ label: "努力値", value: `H${best.evs.hp} B${best.evs.def} D${best.evs.spd}` },
+						{ label: "実数値", value: `H${best.realStats.hp} B${best.realStats.def} D${best.realStats.spd}` },
+						{ label: "指数値", value: formatDurabilityIndexValue(kind, best.index) },
 					],
 					flags,
-					isApplied:
-						candidate.evs.hp === currentHp && candidate.evs.def === currentDef && candidate.evs.spd === currentSpd,
+					isApplied: best.evs.hp === currentHp && best.evs.def === currentDef && best.evs.spd === currentSpd,
 					onSelect: () => {
-						applyDurabilityCandidateToLeftPanel(candidate);
-						// ⚠️ 実装時に踏んだ罠: ここで同期的にredraw()(renderCandidateList経由で
-						// detailPanelBodyEl.innerHTMLを丸ごと差し替える)を呼ぶと、いま発火中のclick
-						// イベントのバブリング中に、クリックされたbutton要素自身がDOMから切り離される。
-						// damage-calc.ts側(編集禁止ファイル)の「#damage-detail-panelの外側クリックで
-						// 選択解除する」document click リスナーは同じclickイベントの伝播の中で後から
-						// (documentまでバブリングした時点で)発火し、target.contains判定を行うが、
-						// この時点でtargetは既に切り離し済みのため「パネルの外側をクリックした」と
-						// 誤判定し、clearSelectionAndMarks()→renderDetailPanelEmpty()経由で
-						// 今まさに再描画した一覧を消してしまう(実機のPlaywright検証で再現・特定)。
-						// ⚠️ queueMicrotaskでは直らない: ブラウザは同一イベントの複数リスナーの間でも
-						// マイクロタスクを消化するため(1リスナーの実行終了ごとにマイクロタスク
-						// チェックポイントが入る)、queueMicrotask(redraw)は次のリスナー(=外側クリックの
-						// documentリスナー)より先に実行されてしまい、上記の問題を再現したまま直らない
-						// (実機検証で確認済み)。click イベントの伝播(1タスク)が完全に終わってから
-						// 再描画する必要があるため、setTimeoutで次のタスクへ回す。
+						applyDurabilityCandidateToLeftPanel(best);
+						// ⚠️ 旧runDurabilityAdjust/showDurabilityCandidatesが踏んだのと同じ罠:
+						// クリックイベントのバブリング中に同期的にredraw()すると、damage-calc.ts側
+						// (編集禁止ファイル)の「#damage-detail-panelの外側クリックで選択解除する」
+						// document click リスナーが、クリックされたbutton要素が既にDOMから切り離された
+						// 後のtarget.contains判定で「パネルの外側をクリックした」と誤判定し、
+						// 今まさに再描画した一覧を消してしまう(実機のPlaywright検証で再現・特定済み、
+						// queueMicrotaskでも直らない)。click イベントの伝播(1タスク)が完全に終わって
+						// から再描画する必要があるため、setTimeoutで次のタスクへ回す。
 						setTimeout(redraw, 0);
 					},
 				};
 			});
 			renderCandidateList({
-				heading,
-				context: contextText,
-				note: "耐久指数の大きい順",
+				heading: "耐久指数最大化",
+				context: `現在の努力値: H${currentHp} B${currentDef} D${currentSpd}`,
+				note: "総合/物理/特殊それぞれの耐久指数を最大化する努力値配分",
 				items,
 				emptyMessage: "候補がありません。",
 			});
 		};
 		redraw();
-	}
-
-	async function runDurabilityAdjust(kind: DurabilityIndexKind, heading: string, button: HTMLButtonElement): Promise<void> {
-		const name = speciesInput.value.trim();
-		if (!name) return; // ボタンは種族名が空のときdisabledのはずだが、念のための防御
-		const base = (await baseStatsMapPromise).get(name);
-		if (!base) return;
-		const contextText = button.title;
-		const currentEvs = STAT_KEYS.map((k) => readEv(k));
-		const nature = currentLeftNature();
-		const result = maximizeDurabilityIndex({ kind, baseStats: base, currentEvs, nature });
-		const { renderCandidateList, openDetailPanelOverlayIfNarrow } = await loadRightPanel();
-
-		if (result.remaining <= 0) {
-			// 配れる努力値が残っていない: 何も変更せず、右パネルに理由を表示する
-			// (ボタンを押しても無反応にはしない、というコーディネーターの指示への対応)。
-			renderCandidateList({
-				heading,
-				context: contextText,
-				note: "努力値の合計がすでに上限(66)に達しているため、配る余地がありません。",
-				items: [],
-				emptyMessage: "配れる努力値が残っていません。",
-			});
-			openDetailPanelOverlayIfNarrow();
-			return;
-		}
-
-		// 最良解を即座に適用してから一覧を表示する(bestは常にcandidatesの先頭にも含まれる)。
-		applyDurabilityCandidateToLeftPanel(result.best);
-		await showDurabilityCandidates(kind, heading, contextText, result);
 		openDetailPanelOverlayIfNarrow();
 	}
 
-	statAdjustHpButton.addEventListener("click", () => {
-		void runDurabilityAdjust("total", "総合耐久指数", statAdjustHpButton);
-	});
-	statAdjustDefButton.addEventListener("click", () => {
-		void runDurabilityAdjust("physical", "物理耐久指数", statAdjustDefButton);
-	});
-	statAdjustSpdButton.addEventListener("click", () => {
-		void runDurabilityAdjust("special", "特殊耐久指数", statAdjustSpdButton);
+	durabilityIndexButton.addEventListener("click", () => {
+		void runDurabilityIndexMaximize();
 	});
 
 	// ============================================================
