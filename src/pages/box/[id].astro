@@ -258,6 +258,25 @@ const isOptedOut = optOutRemainingText !== "";
 		   IDセレクタ(#delete-button、詳細度1,0,0)で上書きする。global.css自体は編集しない
 		   (.btn-danger は/team/[id].astro等でも使う共有クラスのため他画面に波及させない)。 */
 		#delete-button { font-weight: 400; }
+		/* UI改修依頼(個体編集画面、2026-08-04)「削除ボタンの平常時/ホバーの配色を入れ替える」。
+		   基底(global.css の button.btn-danger、887-902行目)は 平常時=塗り
+		   (background:var(--color-danger-strong), color:var(--color-primary-contrast))、
+		   hover時=白地反転(background:var(--color-surface), color:var(--color-danger-strong))。
+		   このページの#delete-buttonだけ逆にする(#delete-buttonはIDセレクタで
+		   button.btn-danger(要素+クラス)より詳細度が高いため、global.css自体は変更せずに
+		   上書きできる。他画面(/team/[id]等)が使う.btn-danger の既定配色はそのまま維持する)。
+		   border(2px solid var(--color-danger-strong))は基底のまま変えない。
+		   ⚠️ すぐ下(298行目付近)のラウンド23実バグの教訓どおり、backgroundとcolorは
+		   平常時・hover時の両方で必ずセットで書く(片方だけ上書きすると文字色=背景色になって
+		   見えなくなる事故を再発するため)。 */
+		#delete-button {
+			background: var(--color-surface);
+			color: var(--color-danger-strong);
+		}
+		#delete-button:hover:not(:disabled) {
+			background: var(--color-danger-strong);
+			color: var(--color-primary-contrast);
+		}
 		/* 匿名集計サジェスト機能・第4段階(UI: 収集拒否トグル)。.toggle-switch本体のCSSは
 		   src/components/box-id/LeftPanel.astro の is:global <style> 側に既にあるためここでは
 		   重複定義しない。ここはラベル・状態テキストのレイアウトだけを追加する。
@@ -283,7 +302,12 @@ const isOptedOut = optOutRemainingText !== "";
 		   でトップバー全ボタン共通のため、AppLayoutは編集せず(全画面に影響する)、この
 		   ページscopedで#delete-buttonにだけ追加のmargin-leftを足す。実測: 変更前は
 		   トグルの右端から削除ボタン左端まで8px → 変更後24px(8+var(--space-4)=16px)。 */
-		#delete-button { margin-left: var(--space-4); }
+		/* UI改修依頼(個体編集画面、2026-08-04)「非公開と削除ボタンの間を少しあける」。
+		   上記21-H1適用後の24px(8+var(--space-4)=16px)でもまだ狭いとの指摘のため、
+		   既存トークンの中で1段広いvar(--space-5)(1.25rem=20px)に変更する。
+		   トグル右端から削除ボタン左端まで28px(8+20)になる(新規の値は作らず、
+		   既存スペーシングトークンの範囲内で選定)。 */
+		#delete-button { margin-left: var(--space-5); }
 		/* PATCH失敗時のみ(<script>側がdata-state="error"を付与)最小限のエラー色を出す。
 		   #autosave-status[data-state="error"] #autosave-status-text と同じ温度感(赤字テキストの
 		   み、追加のUI装飾なし)。 */
