@@ -553,6 +553,7 @@ const initialTeamJson = team
 			gap: var(--space-1);
 			padding: var(--space-2) var(--space-3) 0;
 		}
+		.team-suggest-toggles[hidden] { display: none; }
 		.team-suggest-toggle {
 			display: inline-flex;
 			align-items: center;
@@ -1815,6 +1816,14 @@ const initialTeamJson = team
 			gap: var(--space-2);
 			min-width: 0;
 		}
+		/* 右パネルにカード2枚ぶんの幅を確保できるワイド画面だけ2列にする。
+		   基本定義より後ろに置き、同詳細度のdisplay指定に上書きされないようにする。 */
+		@media (min-width: 1900px) {
+			.team-preview-panel .team-damage-list {
+				display: grid;
+				grid-template-columns: repeat(2, minmax(0, 1fr));
+			}
+		}
 		.team-preview-panel .team-damage-card {
 			border: 1px solid var(--color-border);
 			border-radius: var(--radius-md);
@@ -1835,8 +1844,8 @@ const initialTeamJson = team
 		.team-preview-panel .team-damage-sprite {
 			position: relative;
 			flex: 0 0 auto;
-			width: 56px;
-			height: 56px;
+			width: 62px;
+			height: 62px;
 			display: flex;
 			align-items: center;
 			justify-content: center;
@@ -1906,10 +1915,6 @@ const initialTeamJson = team
 			font-size: 0.76rem;
 			color: var(--color-text-muted);
 		}
-		/* UI改修依頼(右パネル、2026-08-02)「ポケモン画像そばの持ち物アイコンを廃止し、
-		   特性の右側に持ち物アイコン+名前を表示する」。旧.team-damage-item-badge
-		   (スプライト右下に重ねるバッジ)は撤去し、この行(特性の隣)へ移す。
-		   特性・持ち物とも幅に応じて個別に省略できるようflex-growはさせない(0 1 auto)。 */
 		.team-preview-panel .team-damage-ability {
 			flex: 0 1 auto;
 			min-width: 0;
@@ -1918,24 +1923,22 @@ const initialTeamJson = team
 			white-space: nowrap;
 		}
 		.team-preview-panel .team-damage-item-info {
-			flex: 0 1 auto;
-			min-width: 0;
+			position: absolute;
+			bottom: -3px;
+			right: -3px;
+			width: 26px;
+			height: 26px;
 			display: inline-flex;
 			align-items: center;
-			gap: 0.2rem;
-			overflow: hidden;
+			justify-content: center;
 		}
 		.team-preview-panel .team-damage-item-icon {
-			flex: 0 0 auto;
-			width: 16px;
-			height: 16px;
+			width: 100%;
+			height: 100%;
 			object-fit: contain;
 		}
 		.team-preview-panel .team-damage-item-name {
-			min-width: 0;
-			overflow: hidden;
-			text-overflow: ellipsis;
-			white-space: nowrap;
+			display: none;
 		}
 		.team-preview-panel .team-damage-tera-info {
 			flex: 0 0 auto;
@@ -2731,8 +2734,8 @@ const initialTeamJson = team
 				abilityEl.textContent = summary.abilityName;
 				abilityEl.title = summary.abilityName;
 				subRow.appendChild(abilityEl);
-				// UI改修依頼(右パネル、2026-08-02)「ポケモン画像そばの持ち物アイコンを廃止し、
-				// 特性の右側に持ち物アイコン+名前を表示する」。applyItemIconは既存のものを再利用する。
+				// 個体編集画面と同じく、持ち物は名前の横幅を使わずスプライト右下へ重ねる。
+				// クラスと名前DOMは既存契約を保つため残し、名前はCSSで視覚的に隠す。
 				if (summary.itemName) {
 					const itemInfo = document.createElement("span");
 					itemInfo.className = "team-damage-item-info";
@@ -2746,7 +2749,7 @@ const initialTeamJson = team
 					itemNameEl.textContent = summary.itemName;
 					itemInfo.append(itemImg, itemNameEl);
 					itemInfo.title = summary.itemName;
-					subRow.appendChild(itemInfo);
+					spriteBox.appendChild(itemInfo);
 				}
 				// 共通指示(2026-08-01)「テラスタイプがない場合は"未設定"などと表示せず非表示にする」。
 				// 🔴 UI改修依頼(右パネル、2026-08-01)「11. テラスタルしていない条件の計算では
@@ -2868,7 +2871,20 @@ const initialTeamJson = team
 				// (#team-panel-header-title)へ表示する。以前はここ(previewContentEl内)に
 				// .team-damage-owner の<p>を都度生成していたが、帯の導入により表示先だけを
 				// 差し替えた(このページ内で.team-damage-ownerクラス自体は削除していない)。
-				setPanelHeaderTitle(`${displayName(p)} のダメージ計算`);
+				setPanelHeaderTitle("ダメージ計算");
+				const titleSprite = document.createElement("span");
+				titleSprite.className = "team-damage-title-sprite";
+				titleSprite.style.cssText = "display:inline-flex;width:var(--icon-size-sm);height:var(--icon-size-sm);margin-right:var(--space-2);vertical-align:middle";
+				const titleSpriteImg = document.createElement("img");
+				titleSpriteImg.alt = "";
+				titleSpriteImg.style.cssText = "display:none;width:100%;height:100%;object-fit:contain";
+				const titleSpriteFallback = document.createElement("span");
+				titleSpriteFallback.style.cssText = "display:none;width:100%;height:100%";
+				titleSprite.append(titleSpriteImg, titleSpriteFallback);
+				const titleText = document.createTextNode("ダメージ計算");
+				panelHeaderTitleEl.replaceChildren(titleSprite, titleText);
+				panelHeaderTitleEl.title = `${displayName(p)} のダメージ計算`;
+				void applySprite(titleSpriteImg, titleSpriteFallback, p.species_name);
 
 				const statusEl = document.createElement("p");
 				statusEl.className = "team-damage-status";
