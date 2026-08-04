@@ -137,8 +137,12 @@ interface RankedTeamMemberUsageRow {
 	species_key: string | null;
 	ranked_teams: { season: string } | { season: string }[] | null;
 }
+interface RankedTeamRow {
+	season: string;
+}
 
 const speciesUsageByRegulation: Record<string, Record<string, number>> = {};
+const teamCountByRegulation: Record<string, number> = {};
 try {
 	const publicClient = await getSupabasePublicClient();
 
@@ -184,6 +188,40 @@ try {
 		if (!regulation) continue;
 		const bucket = (speciesUsageByRegulation[regulation] ??= {});
 		bucket[row.species_key] = (bucket[row.species_key] ?? 0) + 1;
+	}
+
+	// 種族使用数の分母となる総チーム数を、同じ season → regulation 対応で集計する。
+	// max_rows=1000を超える場合にも欠落しないよう、ranked_team_membersと同じくページングする。
+	const allTeamRows: RankedTeamRow[] = [];
+	const firstTeams = await publicClient
+		.from('ranked_teams')
+		.select('season', { count: 'exact' })
+		.range(0, PAGE_SIZE - 1);
+	if (firstTeams.error) throw firstTeams.error;
+	allTeamRows.push(...((firstTeams.data ?? []) as RankedTeamRow[]));
+	const totalTeams = firstTeams.count ?? allTeamRows.length;
+
+	if (totalTeams > PAGE_SIZE) {
+		const pageStarts: number[] = [];
+		for (let from = PAGE_SIZE; from < totalTeams; from += PAGE_SIZE) pageStarts.push(from);
+		const pages = await Promise.all(
+			pageStarts.map((from) =>
+				publicClient
+					.from('ranked_teams')
+					.select('season')
+					.range(from, from + PAGE_SIZE - 1),
+			),
+		);
+		for (const page of pages) {
+			if (page.error) throw page.error;
+			allTeamRows.push(...((page.data ?? []) as RankedTeamRow[]));
+		}
+	}
+
+	for (const row of allTeamRows) {
+		const regulation = regulationBySeason.get(row.season);
+		if (!regulation) continue;
+		teamCountByRegulation[regulation] = (teamCountByRegulation[regulation] ?? 0) + 1;
 	}
 } catch (err) {
 	// eslint-disable-next-line no-console
@@ -236,6 +274,7 @@ try {
 	<script type="application/json" id="speed-chart-config" set:html={JSON.stringify(speedChartConfig)} />
 	<script type="application/json" id="speed-chart-adoption-data" set:html={JSON.stringify(adoptionByRegulation)} />
 	<script type="application/json" id="speed-chart-usage-data" set:html={JSON.stringify(speciesUsageByRegulation)} />
+	<script type="application/json" id="speed-chart-team-count-data" set:html={JSON.stringify(teamCountByRegulation)} />
 	{hasOwnedPanel && (
 		<script type="application/json" id="speed-chart-owned-record" set:html={JSON.stringify(ownedRecord)} />
 	)}

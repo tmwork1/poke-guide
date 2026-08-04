@@ -160,6 +160,11 @@ interface HiddenEntryRule {
 // 違う(hiddenEntriesは振り方×補正の有無という条件、hiddenPokemonはフォルム名そのもの)ため、
 // 設定のキー・型を分けたまま保持する(1つのルール体系に統合しない)。
 type SpeedChartPageConfig = SpeedChartConfig & {
+  speciesAdoptionRate?: {
+    enabled: boolean;
+    threshold: number;
+    minSampleSize: number;
+  };
   hiddenEntries?: { rules?: HiddenEntryRule[] };
   hiddenPokemon?: { names?: string[] };
 };
@@ -178,6 +183,8 @@ export async function initSpeedChartPage(): Promise<void> {
   // index.astroが1レギュレーションずつではなく全レギュレーション分まとめて埋め込むため、
   // レギュレーション切替時に追加のfetchなしで再計算できる(adoptionByRegulationと同じ設計)。
   const usageByRegulation = readEmbeddedJson<Record<string, SpeciesUsageCounts>>('speed-chart-usage-data') ?? {};
+  const teamCountByRegulation =
+    readEmbeddedJson<Record<string, number>>('speed-chart-team-count-data') ?? {};
   const ownedRecord = hasOwnedPanel ? readEmbeddedJson<OwnedPokemonRecord>('speed-chart-owned-record') : null;
 
   const statusEl = document.getElementById('speed-chart-status');
@@ -266,7 +273,7 @@ export async function initSpeedChartPage(): Promise<void> {
 
   function render(regulation: string): void {
     currentRegulation = regulation;
-    const population =
+    let population =
       regulation === ALL_REGULATIONS_VALUE
         ? Array.from(
             knownRegulations.reduce((formsByName, knownRegulation) => {
@@ -289,6 +296,20 @@ export async function initSpeedChartPage(): Promise<void> {
             masterData.megaStones,
             masterData.itemAutocomplete,
           );
+    const speciesUsage =
+      regulation === ALL_REGULATIONS_VALUE
+        ? mergeSpeciesUsageCounts(usageByRegulation, knownRegulations)
+        : usageByRegulation[regulation] ?? {};
+    const teamCount =
+      regulation === ALL_REGULATIONS_VALUE
+        ? knownRegulations.reduce((total, knownRegulation) => total + (teamCountByRegulation[knownRegulation] ?? 0), 0)
+        : teamCountByRegulation[regulation] ?? 0;
+    const speciesAdoptionRate = config!.speciesAdoptionRate;
+    if (speciesAdoptionRate?.enabled && teamCount >= speciesAdoptionRate.minSampleSize) {
+      population = population.filter(
+        (form) => (speciesUsage[form.name] ?? 0) / teamCount >= speciesAdoptionRate.threshold,
+      );
+    }
     formsByName.clear();
     for (const form of population) formsByName.set(form.name, form);
 

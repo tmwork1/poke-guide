@@ -18,13 +18,23 @@
     "    保存しない(旧 top_n の既定値)ため、実際には採用率10%以上ある技まで切り捨てられており、",
     "    採用率フィルタを技にかけると本来残るべき技まで消えてしまっていた。",
     "    migrations/014 で popular_move だけ上位20件(move_top_n)まで保存するようにしたことで",
-    "    この切り捨てが解消し、技にも採用率フィルタをかけられるようになった。"
+    "    この切り捨てが解消し、技にも採用率フィルタをかけられるようになった。",
+    "speciesAdoptionRate: レギュレーション内の総チーム数に対する各フォルムのチーム採用率で、",
+    "  早見表に表示する母集団を足切りする独立設定。adoptionRate(持ち物・技)とは別に調整する。",
+    "  threshold: このチーム採用率以上のフォルムを表示する(0.005 = 0.5%)。",
+    "  minSampleSize: 総チーム数がこれ未満のレギュレーションでは足切りしない(k-匿名性)。",
+    "  enabled: falseならチーム採用率による母集団の足切りを行わない。"
   ],
   "adoptionRate": {
     "enabled": true,
     "threshold": 0.1,
     "minSampleSize": 5,
     "appliesTo": ["items", "moves"]
+  },
+  "speciesAdoptionRate": {
+    "enabled": true,
+    "threshold": 0.005,
+    "minSampleSize": 50
   },
   "_disabled_readme": [
     "disabled は『使用率では表現できない例外』のための最後の手段。通常はまず adoptionRate",
