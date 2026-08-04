@@ -205,6 +205,9 @@ export async function initSpeedChartPage(): Promise<void> {
   // 要件4: ?owned=があるときだけ存在するトグル(ChartTable.astro側もhasOwnedPanelで条件付け済み)。
   const reachableOnlyToggle = document.getElementById('speed-chart-reachable-only-toggle') as HTMLInputElement | null;
   const orderButton = document.getElementById('speed-chart-order-select') as HTMLButtonElement | null;
+  const minimapEl = document.getElementById('speed-chart-minimap');
+  const minimapTrack = minimapEl?.querySelector<HTMLElement>('.speed-chart-minimap-track') ?? null;
+  const minimapViewport = minimapEl?.querySelector<HTMLElement>('.speed-chart-minimap-viewport') ?? null;
 
   if (!config || !statusEl || !tableEl || !bodyEl) {
     if (statusEl) statusEl.textContent = '設定の読み込みに失敗しました。';
@@ -268,6 +271,80 @@ export async function initSpeedChartPage(): Promise<void> {
   // 3列目セル幅・チップ間gap・「+N件」バッジ幅は行によらず一定(固定グリッド列幅のため)
   // なので初回のみ実測してキャッシュする。
   let chipLayoutMetrics: ChipLayoutMetrics | null = null;
+  let minimapFrame: number | null = null;
+
+  function getDocumentHeight(): number {
+    return Math.max(document.documentElement.scrollHeight, document.body.scrollHeight);
+  }
+
+  function updateMinimapViewport(): void {
+    minimapFrame = null;
+    if (!minimapTrack || !minimapViewport || minimapTrack.clientHeight <= 0) return;
+    const documentHeight = getDocumentHeight();
+    const viewportHeight = window.innerHeight;
+    minimapViewport.style.top = `${(window.scrollY / documentHeight) * 100}%`;
+    minimapViewport.style.height = `${Math.min(1, viewportHeight / documentHeight) * 100}%`;
+  }
+
+  function scheduleMinimapViewportUpdate(): void {
+    if (minimapFrame !== null) return;
+    minimapFrame = window.requestAnimationFrame(updateMinimapViewport);
+  }
+
+  function rebuildMinimapMarkers(): void {
+    if (!minimapTrack || !minimapViewport) return;
+    minimapTrack.querySelectorAll('.speed-chart-minimap-marker').forEach((marker) => marker.remove());
+    const documentHeight = getDocumentHeight();
+    const fragment = document.createDocumentFragment();
+    bodyEl!.querySelectorAll<HTMLElement>('.speed-chart-row-value-end').forEach((row) => {
+      const marker = document.createElement('span');
+      marker.className = 'speed-chart-minimap-marker';
+      const boundaryY = row.getBoundingClientRect().bottom + window.scrollY;
+      marker.style.top = `${Math.min(1, boundaryY / documentHeight) * 100}%`;
+      fragment.appendChild(marker);
+    });
+    minimapTrack.insertBefore(fragment, minimapViewport);
+    scheduleMinimapViewportUpdate();
+  }
+
+  function scrollFromMinimapTrackY(clientY: number): void {
+    if (!minimapTrack) return;
+    const rect = minimapTrack.getBoundingClientRect();
+    if (rect.height <= 0) return;
+    const ratio = Math.max(0, Math.min(1, (clientY - rect.top) / rect.height));
+    const maxScroll = Math.max(0, getDocumentHeight() - window.innerHeight);
+    window.scrollTo({ top: ratio * maxScroll, behavior: 'auto' });
+  }
+
+  minimapTrack?.addEventListener('click', (event) => scrollFromMinimapTrackY(event.clientY));
+  minimapViewport?.addEventListener('click', (event) => event.stopPropagation());
+  minimapViewport?.addEventListener('mousedown', (downEvent) => {
+    downEvent.preventDefault();
+    downEvent.stopPropagation();
+    if (!minimapTrack || !minimapViewport || !minimapEl) return;
+    const startY = downEvent.clientY;
+    const startTop = minimapViewport.offsetTop;
+    minimapEl.classList.add('is-dragging');
+
+    function onMove(moveEvent: MouseEvent): void {
+      const maxTrackTop = Math.max(0, minimapTrack!.clientHeight - minimapViewport!.offsetHeight);
+      const nextTop = Math.max(0, Math.min(maxTrackTop, startTop + moveEvent.clientY - startY));
+      const ratio = maxTrackTop > 0 ? nextTop / maxTrackTop : 0;
+      const maxScroll = Math.max(0, getDocumentHeight() - window.innerHeight);
+      window.scrollTo({ top: ratio * maxScroll, behavior: 'auto' });
+    }
+
+    function onUp(): void {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      minimapEl!.classList.remove('is-dragging');
+    }
+
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  });
+  window.addEventListener('scroll', scheduleMinimapViewportUpdate, { passive: true });
+  window.addEventListener('resize', rebuildMinimapMarkers);
 
   function render(regulation: string): void {
     currentRegulation = regulation;
@@ -486,6 +563,7 @@ export async function initSpeedChartPage(): Promise<void> {
     bodyEl!.appendChild(fragment);
     statusEl!.hidden = true;
     tableEl!.hidden = false;
+    rebuildMinimapMarkers();
 
     if (currentHighlightValue !== null) {
       // renderRowsの直後は新しいDOMに対してハイライトを付け直す必要がある

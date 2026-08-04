@@ -81,6 +81,12 @@ const { regulation, ownedId, hasOwnedPanel } = Astro.props;
 			</aside>
 		)}
 
+		<div id="speed-chart-minimap" class="speed-chart-minimap" aria-hidden="true">
+			<div class="speed-chart-minimap-track">
+				<div class="speed-chart-minimap-viewport"></div>
+			</div>
+		</div>
+
 		<div class="panel-content speed-chart-content">
 			{/* 要件C: 列見出し(実数値/族・配分・倍率/…)は自明なので廃止。表の1行目が
 			    直接来るため、詰まりすぎないよう.speed-chart-content側に上余白を持たせる
@@ -109,18 +115,37 @@ const { regulation, ownedId, hasOwnedPanel } = Astro.props;
 	.speed-chart-layout {
 		display: block;
 	}
+	.speed-chart-minimap {
+		display: none;
+		box-sizing: border-box;
+	}
 	@media (min-width: 1200px) {
-		.speed-chart-table[data-has-owned-panel='true'] .speed-chart-layout {
+		.speed-chart-layout {
 			display: grid;
-			grid-template-columns: minmax(0, 1fr) 260px;
+			grid-template-columns: 18px minmax(0, 1fr);
 			align-items: start;
 		}
-		.speed-chart-table[data-has-owned-panel='true'] .speed-chart-content {
+		.speed-chart-table[data-has-owned-panel='true'] .speed-chart-layout {
+			grid-template-columns: 18px minmax(0, 1fr) 260px;
+		}
+		.speed-chart-minimap {
+			display: block;
 			grid-column: 1;
 			grid-row: 1;
+			position: sticky;
+			top: var(--topbar-height);
+			height: calc(100vh - var(--topbar-height));
+			padding: var(--space-2) 2px;
+		}
+		.speed-chart-content {
+			grid-column: 2;
+			grid-row: 1;
+		}
+		.speed-chart-table[data-has-owned-panel='true'] .speed-chart-content {
+			grid-column: 2;
 		}
 		.speed-chart-table[data-has-owned-panel='true'] .speed-chart-side {
-			grid-column: 2;
+			grid-column: 3;
 			grid-row: 1;
 			position: sticky;
 			/* 要件B: 共通トップバー復活により画面上端はposition: sticky; top: 0のトップバーが
@@ -140,6 +165,24 @@ const { regulation, ownedId, hasOwnedPanel } = Astro.props;
 			   内側にだけ入れる(狭幅で画面高さぶんの空白帯にならないように)。 */
 			min-height: calc(100vh - var(--topbar-height));
 		}
+	}
+	.speed-chart-minimap-track {
+		position: relative;
+		height: 100%;
+		overflow: hidden;
+		border: 1px solid var(--color-border);
+		background: var(--color-surface-alt);
+		cursor: pointer;
+	}
+	.speed-chart-minimap-viewport {
+		position: absolute;
+		z-index: 2;
+		left: 0;
+		width: 100%;
+		box-sizing: border-box;
+		border: 1px solid var(--color-primary);
+		background: var(--color-primary-soft);
+		cursor: grab;
 	}
 
 	/* 右パネル本体。個体調整専用のUI(OwnedPanel/現在地へ戻る/とりうるすばやさのみ)を縦に積む。 */
@@ -253,6 +296,23 @@ const { regulation, ownedId, hasOwnedPanel } = Astro.props;
 </style>
 
 <style is:global>
+	/* chart-table.ts が再描画ごとに生成する、実数値グループ境界の密度マーカー。 */
+	.speed-chart-table .speed-chart-minimap-marker {
+		position: absolute;
+		z-index: 1;
+		left: 1px;
+		right: 1px;
+		height: 1px;
+		background: var(--color-text-muted);
+		opacity: 0.35;
+		pointer-events: none;
+	}
+	.speed-chart-table .speed-chart-minimap.is-dragging,
+	.speed-chart-table .speed-chart-minimap.is-dragging .speed-chart-minimap-viewport {
+		cursor: grabbing;
+		user-select: none;
+	}
+
 	/* --- 行・グループ・チップ(src/lib/speed-chart/chart-table.ts が動的生成する要素) ---
 	   pitfalls.md「Astroのscoped styleはJSで生成した要素に効かない」への対応。
 	   領域ルートクラス .speed-chart-table で必ず絞る(確定仕様)。
