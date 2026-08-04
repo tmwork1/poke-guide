@@ -295,7 +295,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 							aria-expanded="false"
 						>
 							<img id="item-dropdown-image" class="item-dropdown-image" alt="" style="display:none;" />
-							<span id="item-dropdown-placeholder" class="item-dropdown-placeholder">持ち物なし</span>
+							<span id="item-dropdown-placeholder" class="item-dropdown-placeholder">アイテムなし</span>
 						</button>
 						<div id="item-dropdown-panel" class="item-dropdown-panel" hidden>
 							<input
@@ -566,7 +566,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 					    valueEl(id=stat-${key})自体・left-panel.tsのrecalcStats/
 					    renderStatsUnavailableのtextContent書き換え対象は変わらない。 */}
 					<span class="stat-row-real-wrap">
-						<span id={`stat-${key}`} class="stat-row-real stat-value tnum">(未計算)</span>
+						<span id={`stat-${key}`} class="stat-row-real stat-value tnum">-</span>
 					</span>
 				</div>
 			))}
@@ -610,7 +610,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 				title="現在の努力値をもとに、総合/物理/特殊の耐久指数をそれぞれ最大化する努力値の候補を表示する"
 			>
 				<span class="stat-adjust-action-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="21" y1="4" x2="14" y2="4"/><line x1="10" y1="4" x2="3" y2="4"/><line x1="21" y1="12" x2="12" y2="12"/><line x1="8" y1="12" x2="3" y2="12"/><line x1="21" y1="20" x2="16" y2="20"/><line x1="12" y1="20" x2="3" y2="20"/><line x1="14" y1="2" x2="14" y2="6"/><line x1="8" y1="10" x2="8" y2="14"/><line x1="16" y1="18" x2="16" y2="22"/></svg></span>
-				<span class="stat-adjust-action-label">耐久指数最大化</span>
+				<span class="stat-adjust-action-label">耐久最大化</span>
 			</button>
 			<button type="button" id="bulk-adjust-button" class="btn-ghost stat-adjust-action-button" disabled>
 				<span class="bulk-adjust-button-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="21" y1="4" x2="14" y2="4"/><line x1="10" y1="4" x2="3" y2="4"/><line x1="21" y1="12" x2="12" y2="12"/><line x1="8" y1="12" x2="3" y2="12"/><line x1="21" y1="20" x2="16" y2="20"/><line x1="12" y1="20" x2="3" y2="20"/><line x1="14" y1="2" x2="14" y2="6"/><line x1="8" y1="10" x2="8" y2="14"/><line x1="16" y1="18" x2="16" y2="22"/></svg></span><span class="bulk-adjust-button-label">耐久調整</span>
@@ -918,6 +918,29 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	/* ラウンド23ユーザー指示(23-L5): 努力値の数値入力も中央揃えにする。 */
 	.stat-row input[type="number"] { font-size: 0.94rem; padding: 0.3em 0.5em; width: 100%; text-align: center; }
 	.stat-row input[type="range"] { width: 100%; }
+	/* 🔴 UI改修依頼(個体編集左パネル、2026-08-04)「努力値バー選択時の枠ハイライトの廃止」。
+	   努力値バー(EVスライダー、この.stat-row内のinput[type="range"])に限定して、フォーカス時の
+	   枠を打ち消す。global.css自体は編集しない(他画面のrange inputに影響するため)。
+	   打ち消す対象は2箇所ある:
+	   1. global.css:532-538 の input:focus 共通ルール(outline: 2px solid var(--color-primary))。
+	      input[type="range"]は他のテキスト系input(474-478行目)と違いborder/backgroundを
+	      持たないため見た目上は「バーの周りを囲う矩形の枠」として現れる。
+	   2. global.css:714-722 の input[type="range"]:focus-visible::-webkit-slider-thumb /
+	      ::-moz-range-thumb(outline: 2px solid var(--color-primary))。つまみの周りに出る
+	      円形のアウトライン。
+	   このscoped styleはAstroのスコープ属性により(0,2,0)以上の詳細度を持ち、global.css側の
+	   同種ルール(pitfalls.md「global.cssの指定がscoped styleに詳細度で負ける」と同じ理屈)に
+	   確実に勝つ。数値入力(input[type="number"])側のフォーカス表示は変更しない
+	   (テキスト入力としてフォーカスの視覚化が必要なため対象外)。 */
+	.stat-row input[type="range"]:focus {
+		outline: none;
+	}
+	.stat-row input[type="range"]:focus-visible::-webkit-slider-thumb {
+		outline: none;
+	}
+	.stat-row input[type="range"]:focus-visible::-moz-range-thumb {
+		outline: none;
+	}
 	/* ラウンド23ユーザー指示(23-L5): ラベル列も中央揃えにする(justify-content:center追加)。
 	   このspanは▲ボタン+短縮ラベル+▼ボタンの3要素をflexで横並びにしており、列幅(1列目)に
 	   対して内容幅が余るぶん左に寄っていた。
@@ -1211,6 +1234,30 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		font-size: var(--font-size-sm);
 		padding: var(--space-1) var(--space-2);
 		white-space: nowrap;
+	}
+	/* 🔴 UI改修依頼(個体編集左パネル、2026-08-04)「ボタンらしくない」というユーザー指摘への
+	   対応。.btn-ghost(global.css 904-914行目)は透明背景+ホバーでうっすら背景が付くだけで、
+	   クリック可能に見えにくい。global.css自体には「枠線付き・背景色あり」の専用クラス
+	   (.btn-secondary/.btn-outline等)は存在しない(grep確認済み)ため、実質的なセカンダリボタンの
+	   見た目は無修飾の<button>要素の既定style(global.css 822-845行目、border: 1px solid
+	   var(--color-border) + background: var(--color-surface)、hoverでvar(--color-surface-alt)、
+	   /box・/team一覧の#favorite-filter-toggle非活性状態と同じ既定)である。
+	   マークアップの.btn-ghostクラス自体は<a>要素(すばやさ調整)がbutton相当の
+	   display/padding/border-radius等の基礎style(global.css 822-825行目のa.btn-ghost)を
+	   受け取るために構造上必要なため残し、ここで.btn-ghost側の「透明化」上書き
+	   (background: transparent; border-color: transparent; color: var(--color-text-muted))
+	   だけを打ち消して、既存の無修飾button既定と同じ見た目(枠線+背景+ホバー)に戻す。
+	   新しい色・トークンは作らず、既存のvar(--color-surface)/var(--color-border)/
+	   var(--color-surface-alt)/var(--color-text)を再利用するのみ。 */
+	.stat-adjust-action-button {
+		background: var(--color-surface);
+		border-color: var(--color-border);
+		color: var(--color-text);
+	}
+	.stat-adjust-action-button:hover:not(:disabled) {
+		background: var(--color-surface-alt);
+		border-color: var(--color-border);
+		color: var(--color-text);
 	}
 	/* box/[id].astroのトップバーにあった#bulk-adjust-buttonが持っていた「アイコンspan+ラベルspanを
 	   inline-flexで縦位置中央揃えにする」パターン(インラインSVGは既定でbaseline基準の余白が乗り、

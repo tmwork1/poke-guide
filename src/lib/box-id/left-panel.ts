@@ -663,7 +663,7 @@ if (form) {
 	const itemNameDisplayEl = el<HTMLElement>("item-name-display");
 	function updateItemNameDisplay(): void {
 		const name = itemInput.value.trim();
-		itemNameDisplayEl.textContent = name || "持ち物なし";
+		itemNameDisplayEl.textContent = name || "アイテムなし";
 		itemNameDisplayEl.title = name;
 		itemNameDisplayEl.classList.toggle("is-empty", name === "");
 	}
@@ -741,10 +741,10 @@ if (form) {
 			li.setAttribute("role", "option");
 			li.tabIndex = -1;
 			li.dataset.value = "";
-			li.setAttribute("aria-label", "持ち物なし");
+			li.setAttribute("aria-label", "アイテムなし");
 			const textEl = document.createElement("span");
 			textEl.className = "item-dropdown-option-text";
-			textEl.textContent = "持ち物なし";
+			textEl.textContent = "アイテムなし";
 			li.appendChild(textEl);
 			li.addEventListener("click", () => selectItem(""));
 			fragment.appendChild(li);
@@ -837,7 +837,7 @@ if (form) {
 		itemDropdownPlaceholder.classList.toggle("is-item-value-text", !isUnselected);
 		if (isUnselected) {
 			itemDropdownImage.style.display = "none";
-			itemDropdownPlaceholder.textContent = "持ち物なし";
+			itemDropdownPlaceholder.textContent = "アイテムなし";
 			return;
 		}
 		itemDropdownPlaceholder.textContent = value;
@@ -1233,7 +1233,7 @@ if (form) {
 		for (const key of STAT_KEYS) {
 			const valueEl = document.getElementById(`stat-${key}`);
 			if (!valueEl) continue;
-			valueEl.textContent = "(未計算)";
+			valueEl.textContent = "-";
 			delete valueEl.dataset.mod;
 		}
 	}
@@ -1540,7 +1540,7 @@ if (form) {
 				};
 			});
 			renderCandidateList({
-				heading: "耐久指数最大化",
+				heading: "耐久最大化",
 				context: `現在の努力値: H${currentHp} B${currentDef} D${currentSpd}`,
 				note: "総合/物理/特殊それぞれの耐久指数を最大化する努力値配分",
 				items,
