@@ -39,6 +39,45 @@ if (user && id) {
 	}
 }
 
+// UI改修依頼(ダメージ計算カード、2026-08-04)項目5「防御時の技候補を相手の技の使用率順に
+// 表示する」。suggestionsテーブル(kind='popular_move')の全種族分を1クエリでまとめて取得し、
+// DamageCalcSection.astroへ埋め込みJSONとして渡す(speed-chart/index.astroの採用率データ
+// 取得と同じ考え方を踏襲するが、既存の関数・型は再利用せずbox-id向けに新規記述する)。
+// subject_keyは「種族名」(全レギュレーション横断、regulationKey="all")または
+// 「種族名|レギュレーション」(区切り文字"|")の形。クエリが失敗しても500にせず空オブジェクトに
+// フォールバックする(speed-chart/index.astroのtry/catchパターンを参考)。pokemonが取得できた
+// 場合(=このページを実際に表示する場合)に限り実行する。
+type MoveAdoptionBySpecies = Record<string, Record<string, Record<string, number>>>;
+let moveAdoptionBySpecies: MoveAdoptionBySpecies = {};
+if (pokemon) {
+	try {
+		const adoptionClient = await getSupabaseAdminClient();
+		const { data, error } = await adoptionClient
+			.from('suggestions')
+			.select('subject_key, payload')
+			.eq('kind', 'popular_move');
+		if (error) {
+			// eslint-disable-next-line no-console
+			console.error('[box/[id]] failed to load move adoption data', error);
+		} else if (data) {
+			for (const row of data as Array<{
+				subject_key: string;
+				payload: { options?: Array<{ value: string; ratio: number }> } | null;
+			}>) {
+				if (!row.payload || !Array.isArray(row.payload.options)) continue;
+				const sep = row.subject_key.indexOf('|');
+				const species = sep === -1 ? row.subject_key : row.subject_key.slice(0, sep);
+				const regulationKey = sep === -1 ? 'all' : row.subject_key.slice(sep + 1);
+				const bySpecies = (moveAdoptionBySpecies[species] ??= {});
+				bySpecies[regulationKey] = Object.fromEntries(row.payload.options.map((o) => [o.value, o.ratio]));
+			}
+		}
+	} catch (err) {
+		// eslint-disable-next-line no-console
+		console.error('[box/[id]] failed to load move adoption data', err);
+	}
+}
+
 // UI刷新(第4弾): 性格の選択UI(<select>)は要件により廃止した。性格はステータス補正にしか
 // 影響しないため、能力値ラベルのクリックで上昇/下降(HP以外)を選び、性格名は<script>側で
 // 逆算するだけにする(保存データには従来どおり性格名を入れる)。そのため NATURES(性格名の
@@ -509,7 +548,7 @@ const isOptedOut = optOutRemainingText !== "";
 			{/* ダメージ計算カード(#opponent-notes-section)のテンプレート・is:globalスタイル・
 			    スクリプトは構造分割ラウンド(フェーズ2)により src/components/box-id/DamageCalcSection.astro +
 			    src/lib/box-id/damage-calc.ts へ切り出した(見た目・ロジックは一切変更していない)。 */}
-			<DamageCalcSection pokemonId={pokemon.id} />
+			<DamageCalcSection pokemonId={pokemon.id} moveAdoptionBySpecies={moveAdoptionBySpecies} />
 			</div>
 
 			{/* 右サイド(詳細設定サイドバー、#damage-detail-panel + #damage-detail-backdrop)の

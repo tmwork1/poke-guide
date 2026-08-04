@@ -336,6 +336,26 @@ function isOpponentBuildUnset(row: DamageRowState): boolean {
 	);
 }
 
+// UI改修依頼(ダメージ計算カード、2026-08-04)項目5「防御時の技候補を相手の技の使用率順に
+// 表示する」。box/[id].astro(SSR)がDamageCalcSection.astro経由で埋め込んだJSON
+// (<script type="application/json" id="damage-calc-move-adoption-data">)を読むヘルパー。
+// src/lib/speed-chart/chart-table.tsのreadEmbeddedJson(小さな汎用ヘルパー)と同じロジックを
+// コピーする(importできないファイルのため自前実装。著作権上の問題は無い)。
+function readEmbeddedJson<T>(elementId: string): T | null {
+	const el = document.getElementById(elementId);
+	if (!el || !el.textContent) return null;
+	try {
+		return JSON.parse(el.textContent) as T;
+	} catch {
+		return null;
+	}
+}
+// モジュール冒頭付近で1回だけ読み込みキャッシュする(埋め込みJSONはページ読み込み時に
+// 確定しており、実行中に変わらない)。形は { [種族名]: { [レギュレーションキー
+// (全レギュレーション横断は"all")]: { [技名]: ratio } } }。
+const moveAdoptionBySpecies =
+	readEmbeddedJson<Record<string, Record<string, Record<string, number>>>>("damage-calc-move-adoption-data") ?? {};
+
 const opponentNotesSection = document.getElementById("opponent-notes-section");
 if (opponentNotesSection) {
 	// ラウンド18ユーザー指示の実装当時、この値は左パネルの `const form` の
@@ -699,7 +719,11 @@ if (opponentNotesSection) {
 	// 戻り値のneedsResaveは、上のsanitizeColumnChoices()が1つでも値を書き換えたことを表す
 	// (=保存済みデータに廃止済みの選択肢が残っていた)。呼び出し側(fetchAndRenderRows)は
 	// これがtrueの行だけscheduleRowSave()して正規化後の値をサーバへ書き戻す。
-	function noteToRowState(note: OpponentNoteRecord): { row: DamageRowState; needsResave: boolean } {
+	// UI改修依頼(ダメージ計算カード、2026-08-04)「カード並び順の永続化」。opponent_notesには
+	// 並び順カラムが無いため、field(jsonb)にorder?: number(分数キー方式)を持たせている
+	// (src/lib/opponent-notes-validation.tsのOpponentFieldInput参照)。戻り値にorderを足し、
+	// 呼び出し元(fetchAndRenderRows)がrowSortOrderへ登録する形にする。
+	function noteToRowState(note: OpponentNoteRecord): { row: DamageRowState; needsResave: boolean; order?: number } {
 		const row = createEmptyRow();
 		let needsResave = false;
 		row.id = note.id;
@@ -788,7 +812,8 @@ if (opponentNotesSection) {
 
 		row.memo = note.memo ?? "";
 		row.clientResult = (note.client_result as unknown as OpponentClientResultInput | null) ?? null;
-		return { row, needsResave };
+		const order = typeof field.order === "number" && Number.isFinite(field.order) ? field.order : undefined;
+		return { row, needsResave, order };
 	}
 
 
@@ -1517,6 +1542,11 @@ if (opponentNotesSection) {
 			};
 			const seed = parseSeed(row.seedRaw);
 			if (seed !== undefined) field.seed = seed;
+			// カード並び順(rowSortOrder、上方参照)。ドラッグ&ドロップで並び替えた行・
+			// 新規追加した行だけがWeakMapに値を持つ(既存データのまま一度も並び替えていない
+			// 行はundefinedのまま=サーバーに送らない、既存データ互換)。
+			const sortOrder = rowSortOrder.get(row);
+			if (sortOrder !== undefined) field.order = sortOrder;
 
 			// move_name(トップレベル列)には必ずattacks[0].moveNameを入れる
 			// (空だと匿名化された二次記録がスキップされる既存仕様のため)。
@@ -1636,6 +1666,48 @@ if (opponentNotesSection) {
 		}
 	}
 
+	// UI改修依頼(ダメージ計算カード、2026-08-04)項目5「防御時の技候補を相手の技の使用率順に
+	// 表示する」。上のSELF_FIRST_MOVE_DATALIST_ID(攻撃側=自分の技1〜4を最上位にする)と
+	// 対になる、防御側(row.direction === "defense"、相手が攻撃してくる技を入力する列)専用の
+	// datalist。#move-list(覚え技優先の並び)のoptionsをベースに、モジュール冒頭で読み込んだ
+	// moveAdoptionBySpecies(box/[id].astroがSSRで埋め込んだsuggestions由来の使用率)で
+	// 安定ソートし直す。
+	const OPPONENT_POPULARITY_MOVE_DATALIST_ID = "move-list-opponent-popularity";
+	function ensureOpponentPopularityMoveDatalist(): HTMLDataListElement {
+		let list = document.getElementById(OPPONENT_POPULARITY_MOVE_DATALIST_ID) as HTMLDataListElement | null;
+		if (!list) {
+			list = document.createElement("datalist");
+			list.id = OPPONENT_POPULARITY_MOVE_DATALIST_ID;
+			document.body.appendChild(list);
+		}
+		return list;
+	}
+	// 呼ばれるたびに現在の#move-listの中身・現在のレギュレーション(#regulation、
+	// currentIndividualRegulation()参照)から最新の候補順を作り直す(技名inputに
+	// フォーカスするたび=編集を始める直前に呼べば十分新しい)。
+	function refreshOpponentPopularityMoveDatalist(speciesName: string): void {
+		const list = ensureOpponentPopularityMoveDatalist();
+		const baseList = document.getElementById("move-list") as HTMLDataListElement | null;
+		const baseOptions = baseList ? Array.from(baseList.options).map((o) => o.value) : [];
+		// 個体の#regulationセレクトの現在値が指定されていればそのレギュレーションキー、
+		// 未指定(プレースホルダー)なら全レギュレーション横断の"all"キーを使う。
+		const regulationKey = currentIndividualRegulation() ?? "all";
+		const ratioMap = moveAdoptionBySpecies[speciesName]?.[regulationKey];
+		let ordered = baseOptions;
+		if (ratioMap && Object.keys(ratioMap).length > 0) {
+			// Array.prototype.sortは安定ソートなので、データの無い技(ratio未定義=-1扱い)・
+			// 同ratioの技は元の順序(覚え技優先)のまま保たれる。マップが存在しない/空なら
+			// baseOptionsをそのまま使う(フォールバック)。
+			ordered = [...baseOptions].sort((a, b) => (ratioMap[b] ?? -1) - (ratioMap[a] ?? -1));
+		}
+		list.innerHTML = "";
+		for (const name of ordered) {
+			const option = document.createElement("option");
+			option.value = name;
+			list.appendChild(option);
+		}
+	}
+
 	// --- 列(攻撃)のDOM構築 ---
 	function renderColumns(row: DamageRowState): void {
 		if (!row.columnsEl) return;
@@ -1675,7 +1747,15 @@ if (opponentNotesSection) {
 			// 専用datalistを使う(上のensureSelfFirstMoveDatalist/refreshSelfFirstMoveDatalist参照)。
 			// 相手が攻撃側(受け計算)のときは種族全体の候補(#move-list)のまま変えない。
 			if (attackerIsOpponent) {
-				moveInput.setAttribute("list", "move-list");
+				// UI改修依頼(ダメージ計算カード、2026-08-04)項目5: 防御側(相手が攻撃側)の
+				// 技候補は、種族全体の候補(#move-list)をそのまま使うのではなく、相手の
+				// 使用率順に並べ直した専用datalistを使う(上のensureOpponentPopularityMoveDatalist/
+				// refreshOpponentPopularityMoveDatalist参照。攻撃側=SELF_FIRST_MOVE_DATALIST_ID
+				// と同じ構造)。
+				ensureOpponentPopularityMoveDatalist();
+				moveInput.setAttribute("list", OPPONENT_POPULARITY_MOVE_DATALIST_ID);
+				moveInput.addEventListener("focus", () => refreshOpponentPopularityMoveDatalist(row.name));
+				refreshOpponentPopularityMoveDatalist(row.name);
 			} else {
 				ensureSelfFirstMoveDatalist();
 				moveInput.setAttribute("list", SELF_FIRST_MOVE_DATALIST_ID);
@@ -2239,6 +2319,21 @@ if (opponentNotesSection) {
 		const actionsRow = document.createElement("div");
 		actionsRow.className = "damage-row-actions";
 		buildLeft.appendChild(actionsRow);
+
+		// UI改修依頼(ダメージ計算カード、2026-08-04)「カードをドラッグ&ドロップで並び替え」。
+		// カード全体の削除ボタン(.damage-row-delete-button)・折りたたみボタン
+		// (.damage-row-collapse-toggle-button)はどちらもposition:absoluteでカード右側
+		// (右上/右下)に既に置かれているため、左上と衝突しない。ここ(actionsRow、1段目)の
+		// 通常のflexアイテムとしてハンドルを追加し、隣の.damage-row-direction-toggleは
+		// width:100%からflex:1 1 0へ変更して残り幅を占有させる(CSS側、DamageCalcSection.astro
+		// 参照)。装飾要素なのでaria-hidden="true"(見た目はLeftPanel.astroの.move-drag-handle、
+		// ドット格子グリップと同じパターンをコピー)。
+		const dragHandle = document.createElement("span");
+		dragHandle.className = "damage-row-drag-handle";
+		dragHandle.setAttribute("aria-hidden", "true");
+		dragHandle.title = "ドラッグでカードの順番を並び替え";
+		actionsRow.appendChild(dragHandle);
+		setupCardDragHandle(row, dragHandle, root);
 
 		// ラウンド20ユーザー指示(20-D2、旧・単一トグルボタンを撤回): 「攻撃」「防御」の
 		// 2値セグメントコントロールにする(role="radiogroup"+role="radio"。
@@ -3264,6 +3359,15 @@ if (opponentNotesSection) {
 	// --- 行一覧の状態・取得・追加 ---
 	let rows: DamageRowState[] = [];
 
+	// UI改修依頼(ダメージ計算カード、2026-08-04)「カードをドラッグ&ドロップで並び替え」。
+	// opponent_notesテーブルには並び順カラムが無いため、field(jsonb)のorder?: number
+	// (分数キー方式。src/lib/opponent-notes-validation.tsのOpponentFieldInput参照)で
+	// 並び順を管理する。DamageRowState型自体は編集対象外(shared-core.ts)のため、
+	// rowTeraFieldWraps等と同じくWeakMapで行ごとに対応付ける。値が無い行(=既存データの
+	// 大半)はサーバー返却順(created_at DESC)をそのままフォールバックとして使う
+	// (fetchAndRenderRows/reorderRow参照)。
+	const rowSortOrder = new WeakMap<DamageRowState, number>();
+
 	// 🔴 UI改修依頼(個体編集画面、2026-08-02)「耐久調整」機能の土台。row.idはPOST前の
 	// 新規行だとnull(619行目付近のid: null参照)のため、耐久調整ブリッジが行を一意に
 	// 指すためのidはrow.id(あれば)を優先しつつ、無ければローカル専用の合成idを割り当てて
@@ -3437,10 +3541,19 @@ if (opponentNotesSection) {
 
 	// カード追加処理を1箇所にまとめる(通常の追加タイルと、0件時の空状態内CTAの両方から呼ぶ。
 	// ラウンド3 B-5参照)。
+	// UI改修依頼(ダメージ計算カード、2026-08-04)「新規カードは先頭に追加する」により、
+	// rows.push()からrows.unshift()に変更する。並び順(rowSortOrder)も「現在rowsの中の
+	// 最小order値 − 1000」を割り当てて先頭扱いにする(既存行が誰もorderを持たない
+	// = 通常のケースでは基準を0とみなす)。
 	function addNewRowAndFocus(): void {
 		const row = createEmptyRow();
 		renderRow(row);
-		rows.push(row);
+		const existingOrders = rows
+			.map((r) => rowSortOrder.get(r))
+			.filter((v): v is number => v !== undefined);
+		const minOrder = existingOrders.length > 0 ? Math.min(...existingOrders) : 0;
+		rowSortOrder.set(row, minOrder - 1000);
+		rows.unshift(row);
 		rebuildRowsList();
 		row.root?.querySelector<HTMLInputElement>('input[aria-label="相手ポケモン名"]')?.focus();
 	}
@@ -3490,10 +3603,88 @@ if (opponentNotesSection) {
 			damageRowsListEl.appendChild(buildEmptyState());
 			return;
 		}
+		// UI改修依頼(ダメージ計算カード、2026-08-04)「追加ボタンを最上部に固定配置する」
+		// により、以前は行ループの後ろに追加していたbuildAddRowTile()をループの前に移す
+		// (rows.length===0のときは上のbuildEmptyState()分岐で処理済みなのでここには来ない)。
+		damageRowsListEl.appendChild(buildAddRowTile());
 		for (const row of rows) {
 			if (row.root) damageRowsListEl.appendChild(row.root);
 		}
-		damageRowsListEl.appendChild(buildAddRowTile());
+	}
+
+	// UI改修依頼(ダメージ計算カード、2026-08-04)「カードをドラッグ&ドロップで並び替え」。
+	// movedRowをrows配列から抜き、targetRowの(抜いた後の)位置の直前へ挿入する
+	// (ドラッグ元がドラッグ先の上下どちらにあっても「ドロップ先のカードの直前に来る」という
+	// 一貫した挙動になる)。新しいorder値は挿入位置の前後にある行のorder値の中間、
+	// 端の移動(前後どちらかが無い)は片方の値±1000にする。rowSortOrderに値を持たない行は
+	// 「現在のrows配列上の位置 × 1000」を仮のorder値として扱う(既存データ互換のフォールバック、
+	// fetchAndRenderRowsのソートと同じ考え方)。
+	function orderOfRowAt(row: DamageRowState, index: number): number {
+		const stored = rowSortOrder.get(row);
+		return stored !== undefined ? stored : index * 1000;
+	}
+	function reorderRow(movedRow: DamageRowState, targetRow: DamageRowState): void {
+		const fromIdx = rows.indexOf(movedRow);
+		if (fromIdx === -1 || movedRow === targetRow) return;
+		rows.splice(fromIdx, 1);
+		const targetIdx = rows.indexOf(targetRow);
+		const insertIdx = targetIdx === -1 ? rows.length : targetIdx;
+		rows.splice(insertIdx, 0, movedRow);
+
+		const prevRow = rows[insertIdx - 1];
+		const nextRow = rows[insertIdx + 1];
+		let newOrder: number;
+		if (prevRow && nextRow) {
+			newOrder = (orderOfRowAt(prevRow, insertIdx - 1) + orderOfRowAt(nextRow, insertIdx + 1)) / 2;
+		} else if (prevRow) {
+			newOrder = orderOfRowAt(prevRow, insertIdx - 1) + 1000;
+		} else if (nextRow) {
+			newOrder = orderOfRowAt(nextRow, insertIdx + 1) - 1000;
+		} else {
+			newOrder = 0;
+		}
+		rowSortOrder.set(movedRow, newOrder);
+		rebuildRowsList();
+		// 移動した行だけ保存する(他の行はorder値を書き換えていないため保存不要)。
+		scheduleRowSave(movedRow);
+	}
+
+	// カード左上のドラッグハンドル(.damage-row-drag-handle、renderRowで生成)へmousedownで
+	// 結線する。left-panel.tsのsetupMoveReorderDrag(技1〜4の並び替え)と同じ手法
+	// (HTML5 Drag and Drop APIではなくmousedown/mousemove/mouseupの手実装。理由は
+	// left-panel.ts側のコメント参照: Playwrightでの自動テストのしやすさ)。あちらは固定4枠の
+	// 値スワップだったが、こちらはカードの追加・削除で数が変わるため、hover判定を
+	// document.elementFromPoint()で都度.card-damageを探す形にし、確定時はreorderRow()で
+	// rows配列そのものを並べ替える。
+	function setupCardDragHandle(row: DamageRowState, handle: HTMLElement, root: HTMLElement): void {
+		handle.addEventListener("mousedown", (downEvent) => {
+			downEvent.preventDefault();
+			let hoverRow: DamageRowState | null = null;
+			root.classList.add("is-dragging");
+
+			function clearDragOverMarks(): void {
+				for (const r of rows) r.root?.classList.remove("is-drag-over");
+			}
+			function onMove(moveEvent: MouseEvent): void {
+				const target = document.elementFromPoint(moveEvent.clientX, moveEvent.clientY);
+				const hoveredCard = (target as HTMLElement | null)?.closest<HTMLElement>(".card-damage") ?? null;
+				clearDragOverMarks();
+				hoverRow = null;
+				if (hoveredCard && hoveredCard !== root) {
+					hoveredCard.classList.add("is-drag-over");
+					hoverRow = rows.find((r) => r.root === hoveredCard) ?? null;
+				}
+			}
+			function onUp(): void {
+				document.removeEventListener("mousemove", onMove);
+				document.removeEventListener("mouseup", onUp);
+				root.classList.remove("is-dragging");
+				clearDragOverMarks();
+				if (hoverRow) reorderRow(row, hoverRow);
+			}
+			document.addEventListener("mousemove", onMove);
+			document.addEventListener("mouseup", onUp);
+		});
 	}
 
 	async function fetchAndRenderRows(): Promise<void> {
@@ -3513,10 +3704,20 @@ if (opponentNotesSection) {
 			// scheduleRowSave()が使えないため、renderRowループの後にまとめて行う)。
 			const rowsNeedingResave: DamageRowState[] = [];
 			rows = body.data.map((note) => {
-				const { row, needsResave } = noteToRowState(note);
+				const { row, needsResave, order } = noteToRowState(note);
 				if (needsResave) rowsNeedingResave.push(row);
+				if (order !== undefined) rowSortOrder.set(row, order);
 				return row;
 			});
+			// UI改修依頼(ダメージ計算カード、2026-08-04)「カードの並び順を永続化する」。
+			// order値を持つ行はorder昇順、持たない行(既存データはほぼ全部これに該当)は
+			// サーバー返却順(created_at DESC)の元インデックスを仮のorder値として扱う
+			// (Array.prototype.sortは安定ソートなので、order値を持つ行が1つも無ければ
+			// 実質的に元の並びのまま=現状維持のフォールバックになる)。
+			rows = rows
+				.map((row, index) => ({ row, sortKey: rowSortOrder.has(row) ? (rowSortOrder.get(row) as number) : index }))
+				.sort((a, b) => a.sortKey - b.sortKey)
+				.map((entry) => entry.row);
 			for (const row of rows) renderRow(row);
 			for (const row of rowsNeedingResave) scheduleRowSave(row);
 			rebuildRowsList();

@@ -93,6 +93,14 @@ export interface OpponentFieldInput {
   // つまり「attacker は常に所持ポケモン」ではない点に注意すること(将来この意味を誤解しないため、
   // ここに明記する)。省略時は既存データ互換のため 'attack' 相当として扱う。
   direction?: 'attack' | 'defense';
+  // ##### カードの並び順(ダメージ計算カード、2026-08-04追加) #####
+  // opponent_notes テーブルには並び順を保持するカラムが存在しない(created_at DESCで
+  // 一覧取得している)ため、この field(jsonb)に分数キー方式(fractional indexing)で
+  // 並び順を持たせる。値が小さいほど先頭に近い。小数を許容する(挿入のたびに前後の値の
+  // 中間を取るため)ので Number.isInteger は使わず Number.isFinite で検証する。未指定の
+  // 既存データは並び順情報を持たないため、クライアント側でサーバー返却順(created_at DESC)を
+  // フォールバックとして使う。
+  order?: number;
 }
 
 // client_result jsonb の形状(UI側のダメージ計算結果スナップショット。サーバは形だけ検証し
@@ -183,6 +191,7 @@ const OPPONENT_FIELD_KEYS = new Set([
   'defenderTerastallized',
   'attacks',
   'direction',
+  'order',
 ]);
 
 function isNonEmptyString(value: unknown): value is string {
@@ -319,6 +328,7 @@ function validateOpponentField(value: unknown): { ok: true; value: OpponentField
     defenderTerastallized,
     attacks,
     direction,
+    order,
   } = value;
 
   if (weather !== undefined && typeof weather !== 'string') {
@@ -364,6 +374,10 @@ function validateOpponentField(value: unknown): { ok: true; value: OpponentField
   if (direction !== undefined && !VALID_DIRECTIONS.has(direction as string)) {
     return { ok: false, error: 'field.direction must be "attack" or "defense"' };
   }
+  // order は分数キー方式のため小数を許容する(Number.isIntegerではなくNumber.isFiniteで検証)。
+  if (order !== undefined && (typeof order !== 'number' || !Number.isFinite(order))) {
+    return { ok: false, error: 'field.order must be a finite number' };
+  }
 
   const result: OpponentFieldInput = {};
   if (weather !== undefined) result.weather = weather;
@@ -400,6 +414,7 @@ function validateOpponentField(value: unknown): { ok: true; value: OpponentField
     });
   }
   if (direction !== undefined) result.direction = direction as 'attack' | 'defense';
+  if (order !== undefined) result.order = order;
   return { ok: true, value: result };
 }
 

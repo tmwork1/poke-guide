@@ -16,8 +16,15 @@
 // 呼び出しても、is:globalはページ全体に効くため問題なく届く)。
 interface Props {
 	pokemonId: string;
+	// UI改修依頼(ダメージ計算カード、2026-08-04)項目5「防御時の技候補を相手の技の使用率順に
+	// 表示する」。box/[id].astroがSSRで1クエリ取得したsuggestions(kind='popular_move')を
+	// { [種族名]: { [レギュレーションキー(全レギュレーション横断は"all")]: { [技名]: ratio } } }
+	// の形で受け取り、下の<script type="application/json">として埋め込む。
+	// src/lib/box-id/damage-calc.tsがdocument.getElementById経由で読み込む
+	// (speed-chart/index.astroの採用率データ埋め込みと同じ考え方)。
+	moveAdoptionBySpecies: Record<string, Record<string, Record<string, number>>>;
 }
-const { pokemonId } = Astro.props;
+const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 ---
 {/* battle-assistant同様、ダメージ計算カードは「ダメージ計算」パネル(=.cardの枠+見出し)の
     中に入れず、ページ直下にカードを直接並べる(要件)。そのため<section>には.cardを付けず、
@@ -46,6 +53,12 @@ const { pokemonId } = Astro.props;
 		<p>読み込み中...</p>
 	</div>
 </section>
+{/* UI改修依頼(ダメージ計算カード、2026-08-04)項目5: SSRで取得した技の使用率データを
+    埋め込む(speed-chart/index.astroの#speed-chart-adoption-dataと同じ考え方)。
+    src/lib/box-id/damage-calc.tsのreadEmbeddedJson相当のヘルパー(自前実装、
+    src/lib/speed-chart/chart-table.tsのreadEmbeddedJsonをコピーしたもの)が
+    document.getElementById("damage-calc-move-adoption-data")で読む。 */}
+<script type="application/json" id="damage-calc-move-adoption-data" set:html={JSON.stringify(moveAdoptionBySpecies)} />
 
 <style is:global>
 	/* ダメージ計算カード(UI刷新): AstroのScoped<style>はJSがdocument.createElement()で生成した
@@ -377,7 +390,10 @@ const { pokemonId } = Astro.props;
 		width: auto;
 		flex: 1 1 0;
 		min-width: 0;
-		font-size: 0.92rem;
+		/* UI改修依頼(ダメージ計算カード、2026-08-04)項目3「相手ビルドの種族名入力欄の
+		   フォントサイズを統一」: 特性・持ち物・テラス欄(.damage-row-build-grid select/input、
+		   下方0.86rem)と揃える(0.92rem→0.86rem)。padding/line-heightは変更しない。 */
+		font-size: 0.86rem;
 		/* ラウンド44 A-4(ユーザー指示第28弾): 種族名入力欄だけfont-weight 700で浮いており、
 		   同じ箱のA-1で400に揃えた特性・持ち物・テラスから1項目だけ太さが違っていた。
 		   ユーザー指示「ダメージカードの種族名も他とそろえる」により400に統一する。 */
@@ -411,6 +427,32 @@ const { pokemonId } = Astro.props;
 		gap: 0.3rem;
 	}
 
+	/* UI改修依頼(ダメージ計算カード、2026-08-04)「カードをドラッグ&ドロップで並び替え」。
+	   ハンドルはactionsRow(攻守切り替えボタンの行)の左隣に通常のflexアイテムとして追加する
+	   (カード全体の削除ボタン.damage-row-delete-button・折りたたみボタン
+	   .damage-row-collapse-toggle-buttonはどちらもposition:absoluteでカード右側に既に
+	   あるため、左上にposition:absoluteで重ねると1段目の攻守切り替えボタンと衝突する。
+	   flexの通常配置にすれば衝突しない)。見た目はLeftPanel.astroの.move-drag-handle
+	   (ドット格子グリップ)と同じパターンをコピーする。装飾要素なのでaria-hidden="true"
+	   (マークアップ側、damage-calc.ts参照)。 */
+	#opponent-notes-section .damage-row-drag-handle {
+		flex-shrink: 0;
+		width: 12px;
+		height: 20px;
+		cursor: grab;
+		background-image: radial-gradient(circle, var(--color-text-muted) 1.1px, transparent 1.3px);
+		background-size: 6px 6px;
+		opacity: 0.55;
+	}
+	#opponent-notes-section .damage-row-drag-handle:hover { opacity: 1; }
+	#opponent-notes-section .card-damage.is-dragging { opacity: 0.5; }
+	#opponent-notes-section .card-damage.is-dragging .damage-row-drag-handle { cursor: grabbing; }
+	#opponent-notes-section .card-damage.is-drag-over {
+		outline: 2px dashed var(--color-primary);
+		outline-offset: 2px;
+		border-radius: var(--radius-md);
+	}
+
 	/* ラウンド20ユーザー指示(20-D2、旧・単一トグルボタンを撤回): 「攻撃」「防御」の
 	   2値セグメントコントロールにする。1個のボタンで「今どちらか」を読んで理解するのでは
 	   なく、両方の選択肢が常に見えていて片方が選ばれている形にする方が直感的、というのが
@@ -429,10 +471,16 @@ const { pokemonId } = Astro.props;
 	   配色=.damage-row-direction-option[data-role=...][aria-checked="true"]は維持)。
 	   実測75px→種族名等の入力欄と同じ202px相当(width:100%、buildLeftの全幅)にする。
 	   スプライトの拡大は28-D1で「箱の高さをbuildLeftの高さに追随させる」形に変わった
-	   ため、このボタンの幅短縮でスプライトの横幅を捻出する必要はもう無い。 */
+	   ため、このボタンの幅短縮でスプライトの横幅を捻出する必要はもう無い。
+	   🔴 UI改修依頼(ダメージ計算カード、2026-08-04)「カードをドラッグ&ドロップで並び替え」
+	   により、actionsRowにドラッグハンドル(.damage-row-drag-handle、flex-shrink:0の
+	   固定幅)が加わったため、width:100%(親幅そのもの)からflex:1 1 0(残り幅を占有)へ
+	   変更する。ハンドルが無い状態(このルール単体)ではactionsRowの唯一の子のままなので
+	   見た目は変わらない(flex:1 1 0の1要素だけの行は引き続き親の全幅を占める)。 */
 	#opponent-notes-section .damage-row-direction-toggle {
 		display: flex;
-		width: 100%;
+		flex: 1 1 0;
+		min-width: 0;
 		border: 1px solid var(--color-border);
 		border-radius: var(--radius-md);
 		overflow: hidden;
