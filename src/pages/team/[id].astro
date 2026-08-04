@@ -866,6 +866,7 @@ const initialTeamJson = team
 										</svg>
 										<select id="pokemon-sort-select" class="field-control" aria-label="並べ替え">
 											<option value="created_at">登録順</option>
+											<option value="suggestion">おすすめ順</option>
 											<option value="name">名前順</option>
 											<option value="species_name">種族名順</option>
 										</select>
@@ -1085,15 +1086,15 @@ const initialTeamJson = team
 		.team-select-bar .select-row-main {
 			flex: 1 1 auto;
 			min-width: 0;
-			display: flex;
-			flex-direction: column;
-			align-items: center;
-			gap: 0.3rem;
+			display: grid;
+			grid-template-columns: 88px minmax(0, 1fr);
+			align-items: start;
+			gap: var(--space-2);
 			padding: var(--space-2);
 			border: 1px solid var(--color-border);
 			border-radius: var(--radius-md);
 			background: var(--color-surface);
-			text-align: center;
+			text-align: left;
 			cursor: pointer;
 		}
 		.team-select-bar .select-row-main:hover:not(:disabled) {
@@ -1121,14 +1122,15 @@ const initialTeamJson = team
 		.team-select-bar .select-row-art {
 			flex: 0 0 auto;
 			width: 88px;
-			height: 88px;
 			display: flex;
+			flex-direction: column;
 			align-items: center;
 			justify-content: center;
+			gap: var(--space-1);
 		}
 		.team-select-bar .select-row-sprite-img {
 			width: 100%;
-			height: 100%;
+			height: 88px;
 			object-fit: contain;
 		}
 		.team-select-bar .select-row-sprite-fallback {
@@ -1136,7 +1138,7 @@ const initialTeamJson = team
 			align-items: center;
 			justify-content: center;
 			width: 100%;
-			height: 100%;
+			height: 88px;
 			border-radius: 50%;
 			background: var(--color-primary-soft);
 			color: var(--color-primary);
@@ -1146,8 +1148,8 @@ const initialTeamJson = team
 		.team-select-bar .select-row-body {
 			display: flex;
 			flex-direction: column;
-			align-items: center;
-			gap: 0.2rem;
+			align-items: stretch;
+			gap: var(--space-1);
 			width: 100%;
 			min-width: 0;
 		}
@@ -1190,10 +1192,10 @@ const initialTeamJson = team
 		   だけ値がある場合に足す。値が無い方のセルが空でも2列グリッドは崩れない)。 */
 		.team-select-bar .select-row-item-row {
 			display: grid;
-			grid-template-columns: 1fr 1fr;
+			grid-template-columns: minmax(0, 1fr);
 			align-items: center;
 			width: 100%;
-			column-gap: var(--space-2);
+			gap: var(--space-1);
 		}
 		.team-select-bar .select-row-item-row-cell {
 			display: flex;
@@ -1240,11 +1242,10 @@ const initialTeamJson = team
 		   確立した最新仕様: 技名の前にタイプアイコン、背景色は付けない、セル内では左揃え。 */
 		.team-select-bar .select-row-moves {
 			display: grid;
-			grid-template-columns: repeat(2, minmax(0, 1fr));
+			grid-template-columns: minmax(0, 1fr);
 			align-items: start;
-			gap: 0.1rem 0.3rem;
+			gap: var(--space-1);
 			width: 100%;
-			margin-top: 0.1rem;
 		}
 		.team-select-bar .select-row-move-chip {
 			display: flex;
@@ -3028,9 +3029,17 @@ const initialTeamJson = team
 			// 直近の応答。個体一覧(allPokemon)が後から届いたときに「手持ちにあるか」の
 			// 判定をやり直して再描画するために保持する(APIは叩き直さない)。
 			let lastSuggestResponse: { suggestions: TeamSuggestion[]; basis: string } | null = null;
+			let suggestionSpeciesRanks = new Map<string, number>();
 
 			function renderSuggestions(suggestions: TeamSuggestion[], basis: string): void {
 				lastSuggestResponse = { suggestions, basis };
+				suggestionSpeciesRanks = new Map<string, number>();
+				suggestions.forEach((suggestion, index) => {
+					if (!suggestionSpeciesRanks.has(suggestion.speciesName)) {
+						suggestionSpeciesRanks.set(suggestion.speciesName, index);
+					}
+				});
+				renderSelectList();
 				suggestEl.innerHTML = "";
 
 				// UI改修依頼(右パネル、2026-08-04)見出しは右パネル共通のタイトル帯へ表示する。
@@ -4005,15 +4014,21 @@ const initialTeamJson = team
 			}
 
 			// UI改修依頼(チーム編集左パネル)「ソート機能を追加する」。box/index.astroのsortPokemon
-			// と同じ考え方(選択中の並べ替え基準で毎回ソートし直す)。基準は3つ:
+			// と同じ考え方(選択中の並べ替え基準で毎回ソートし直す)。基準は4つ:
 			//   - 登録順(既定): created_at昇順(古い=先に登録した個体を先頭に。box/index.astroの
 			//     「最終更新順」は降順=新しい順だったが、「登録順」は文字通り登録した順序を素直に
 			//     表す方が自然だと判断し昇順にした)
+			//   - おすすめ順: 直近のサジェスト応答の配列順を種族ごとの順位として使う。未取得時は登録順
 			//   - 名前順: displayName(ニックネーム優先、無ければ種族名)のja collate
 			//   - 種族名順: species_nameのja collate
 			function sortPokemon(list: OwnedPokemonRecord[]): OwnedPokemonRecord[] {
 				const sort = sortSelect.value;
 				return [...list].sort((a, b) => {
+					if (sort === "suggestion" && suggestionSpeciesRanks.size > 0) {
+						const aRank = suggestionSpeciesRanks.get(a.species_name) ?? Number.POSITIVE_INFINITY;
+						const bRank = suggestionSpeciesRanks.get(b.species_name) ?? Number.POSITIVE_INFINITY;
+						if (aRank !== bRank) return aRank - bRank;
+					}
 					if (sort === "name") {
 						return displayName(a).localeCompare(displayName(b), "ja");
 					}
@@ -4065,9 +4080,7 @@ const initialTeamJson = team
 				bodyEl.className = "select-row-body";
 				const name = displayName(p);
 
-				// カード名(中央揃え)+テラスタイプ。box/index.astroの.card-name-rowと同じく
-				// 同じ行にテラスバッジを並べる。未設定のときは要素自体を作らない(中央パネルの
-				// buildFilledSlotContentと同じ判断: 値が存在しない状態なのでDOM自体を省く)。
+				// スプライトの直下にニックネーム(無ければ種族名)とテラスタイプを並べる。
 				const nameRow = document.createElement("span");
 				nameRow.className = "select-row-name-row";
 				const nameEl = document.createElement("span");
@@ -4086,9 +4099,9 @@ const initialTeamJson = team
 					teraBadge.appendChild(teraImg);
 					nameRow.appendChild(teraBadge);
 				}
-				bodyEl.appendChild(nameRow);
+				artEl.appendChild(nameRow);
 
-				// 特性+持ち物(box/index.astroの.card-item-row/.card-item-row-cellと同じ2列)。
+				// 右列は特性、持ち物、技の順に1列で並べる。
 				const itemRow = document.createElement("span");
 				itemRow.className = "select-row-item-row";
 				const abilityCell = document.createElement("span");
@@ -4118,8 +4131,7 @@ const initialTeamJson = team
 				itemRow.appendChild(itemCell);
 				bodyEl.appendChild(itemRow);
 
-				// 技(最大4つ)。box/index.astroの.card-moves-grid/.card-move-chipと同じ2列
-				// グリッド+タイプアイコン付きチップ(本日/box側で確立した最新仕様: 背景色なし・
+				// 技(最大4つ)。タイプアイコン付きチップを右列に1列で並べる(背景色なし・
 				// 技名の前にタイプアイコン・セル内左揃え。上のapplySelectMoveChipTypeIcons参照)。
 				// 技0件のときは.select-row-move-chip-unsetで「未設定」を明示する(旧来からの表示、
 				// A-6と同じ理由でDOMごと消さない)。
