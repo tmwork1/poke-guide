@@ -1493,61 +1493,33 @@ if (form) {
 		{ kind: "special", heading: "特殊耐久指数(H×D)" },
 	];
 
+	// UI改修依頼(個体編集画面、2026-08-04)「耐久調整/耐久最大化 カードデザイン統一」により、
+	// 表示をright-panel.tsの新API renderDurabilityIndexResults()(統一カード、依頼4〜6)へ
+	// 差し替えた(コーディネーター許可、この関数の呼び出し部分のみ変更)。旧実装は候補クリック
+	// のたびにmaximizeDurabilityIndex()を再計算していた(適用後は現在のH/B/Dが変わり、
+	// 残り予算・bestが変わり得るため)。renderDurabilityIndexResults()はこの「今の状態で
+	// 計算し直す」処理そのものをbuildGroups/getCurrentEvsという関数として受け取り、内部の
+	// 再描画(候補クリック後を含む)のたびに呼び直す設計にしたため、計算ロジック
+	// (maximizeDurabilityIndex呼び出し・DURABILITY_INDEX_KINDS・baseStats/natureの扱い)は
+	// このファイル側にそのまま残る。
 	async function runDurabilityIndexMaximize(): Promise<void> {
 		const name = speciesInput.value.trim();
 		if (!name) return; // ボタンは種族名が空のときdisabledのはずだが、念のための防御
 		const base = (await baseStatsMapPromise).get(name);
 		if (!base) return;
-		const { renderCandidateList, openDetailPanelOverlayIfNarrow } = await loadRightPanel();
+		const { renderDurabilityIndexResults, openDetailPanelOverlayIfNarrow } = await loadRightPanel();
 		const nature = currentLeftNature();
 
-		const redraw = (): void => {
-			const currentHp = readEv("hp");
-			const currentDef = readEv("def");
-			const currentSpd = readEv("spd");
-			const currentEvs = STAT_KEYS.map((k) => readEv(k));
-			const items: CandidateListItem[] = DURABILITY_INDEX_KINDS.map(({ kind, heading }) => {
-				const result = maximizeDurabilityIndex({ kind, baseStats: base, currentEvs, nature });
-				const best = result.best;
-				const flags: CandidateListItem["flags"] = [];
-				if (result.remaining <= 0) {
-					// 努力値の合計が既に上限(66)に達していて配る余地が無い: bestは変更前の配分が
-					// そのまま返る仕様(durability-index.ts参照)。黙って何も変わらないボタンに
-					// 見えないよう、注記を出す。
-					flags.push({ icon: "⚠", text: "努力値の合計が上限(66)に達しているため配る余地がありません", kind: "warn" });
-				}
-				return {
-					segments: [
-						{ label: "指数", value: heading, emphasis: true },
-						{ label: "努力値", value: `H${best.evs.hp} B${best.evs.def} D${best.evs.spd}` },
-						{ label: "実数値", value: `H${best.realStats.hp} B${best.realStats.def} D${best.realStats.spd}` },
-						{ label: "指数値", value: formatDurabilityIndexValue(kind, best.index) },
-					],
-					flags,
-					isApplied: best.evs.hp === currentHp && best.evs.def === currentDef && best.evs.spd === currentSpd,
-					onSelect: () => {
-						applyDurabilityCandidateToLeftPanel(best);
-						// ⚠️ 旧runDurabilityAdjust/showDurabilityCandidatesが踏んだのと同じ罠:
-						// クリックイベントのバブリング中に同期的にredraw()すると、damage-calc.ts側
-						// (編集禁止ファイル)の「#damage-detail-panelの外側クリックで選択解除する」
-						// document click リスナーが、クリックされたbutton要素が既にDOMから切り離された
-						// 後のtarget.contains判定で「パネルの外側をクリックした」と誤判定し、
-						// 今まさに再描画した一覧を消してしまう(実機のPlaywright検証で再現・特定済み、
-						// queueMicrotaskでも直らない)。click イベントの伝播(1タスク)が完全に終わって
-						// から再描画する必要があるため、setTimeoutで次のタスクへ回す。
-						setTimeout(redraw, 0);
-					},
-				};
-			});
-			renderCandidateList({
-				heading: "耐久最大化",
-				context: `現在の努力値: H${currentHp} B${currentDef} D${currentSpd}`,
-				note: "総合/物理/特殊それぞれの耐久指数を最大化する努力値配分",
-				items,
-				emptyMessage: "候補がありません。",
-			});
-		};
-		redraw();
+		renderDurabilityIndexResults(
+			() =>
+				DURABILITY_INDEX_KINDS.map(({ kind, heading }) => ({
+					kind,
+					heading,
+					result: maximizeDurabilityIndex({ kind, baseStats: base, currentEvs: STAT_KEYS.map((k) => readEv(k)), nature }),
+				})),
+			() => ({ hp: readEv("hp"), def: readEv("def"), spd: readEv("spd") }),
+			(candidate) => applyDurabilityCandidateToLeftPanel(candidate),
+		);
 		openDetailPanelOverlayIfNarrow();
 	}
 

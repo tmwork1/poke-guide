@@ -642,17 +642,17 @@ function buildBulkAdjustStatCardView(
 }
 
 // UI改修依頼(個体編集画面、2026-08-04)「耐久指数最大化」の結果も同じ統一カードで表示する
-// 準備(依頼B、durability-index.ts側のmaximizeDurabilityIndex()の戻り値をそのまま渡せる)。
-// ⚠️ 現時点の呼び出し元(左パネルの「耐久指数最大化」ボタン、left-panel.tsの
-// runDurabilityIndexMaximize、2026-08-03実装)はこの関数を呼ばず、旧来どおり
-// renderCandidateList()を直接呼んでいる(旧来の性格・努力値・実数値を別行で見せる形式のまま)。
-// left-panel.tsは今回の担当ファイル一覧(BulkAdjustDialog.astro/bulk-adjust.ts/
-// RightPanel.astro/right-panel.ts/durability-index.tsの5つ)に含まれていないため、
-// このファイルからそちらの呼び出し箇所を書き換えることはできない。この関数は
-// 「耐久指数最大化」の結果(kind別のMaximizeResult)を受け取れば依頼4〜6の統一カード表示が
-// そのまま行える状態まで用意したもので、left-panel.ts側でrunDurabilityIndexMaximize()の
-// renderCandidateList呼び出しをこちらへ差し替える追随修正が必要(コーディネーターへの
-// 報告事項)。
+// (依頼B)。left-panel.tsのrunDurabilityIndexMaximize()から呼ばれる(2026-08-04、
+// コーディネーター許可により当該関数の呼び出し部分のみ差し替え済み)。
+// ⚠️ 旧実装(left-panel.ts側が自前でCandidateListItem配列を組み立ててrenderCandidateList()に
+// 渡していた版)は、候補クリックのたびに maximizeDurabilityIndex() を**再計算**していた
+// (適用後は現在のH/B/D努力値が変わり、残り予算・bestが変わり得るため、isAppliedの再判定
+// だけでは不十分)。groups/currentEvsを静的な値として1回だけ受け取る設計だと、クリック後の
+// 内部redraw(下記)が古いスナップショットのまま再描画してしまい、この再計算が失われる。
+// そのため呼び出し元(left-panel.ts)から「今の状態で計算し直す関数」自体を受け取り、
+// クリック後のredrawのたびに呼び直す(buildGroups/getCurrentEvs)。実際の
+// maximizeDurabilityIndex()呼び出し・種族値/性格の取り扱いはleft-panel.ts側の責務のまま
+// (このファイルはdurability-index.tsの計算に依存しない「dumb」な描画専任を維持)。
 export interface DurabilityIndexResultGroup {
 	kind: DurabilityIndexKind;
 	/** 指数名の見出し(依頼6、例: "総合耐久指数(H×B×D÷(B+D))")。 */
@@ -716,15 +716,17 @@ function buildDurabilityIndexStatCardView(
 }
 
 /** 耐久指数最大化(durability-index.tsのmaximizeDurabilityIndex())の結果を右パネルへ
-    統一カードで表示する(依頼4〜6)。呼び出し元の必要な追随修正は上のコメント参照。 */
+    統一カードで表示する(依頼4〜6)。buildGroups/getCurrentEvsはredrawのたびに(候補クリック
+    後の再描画を含め)呼び直されるため、呼び出し元は「今の状態」を計算し直す関数を渡す
+    (呼び出し元=left-panel.tsのrunDurabilityIndexMaximize参照)。 */
 export function renderDurabilityIndexResults(
-	groups: DurabilityIndexResultGroup[],
-	currentEvs: { hp: number; def: number; spd: number },
+	buildGroups: () => DurabilityIndexResultGroup[],
+	getCurrentEvs: () => { hp: number; def: number; spd: number },
 	onSelectCandidate: (candidate: DurabilityIndexCandidate, kind: DurabilityIndexKind) => void,
 ): void {
 	const redraw = (): void => {
 		lastCandidateListRedraw = redraw;
-		renderStatCardList(buildDurabilityIndexStatCardView(groups, currentEvs, onSelectCandidate, redraw));
+		renderStatCardList(buildDurabilityIndexStatCardView(buildGroups(), getCurrentEvs(), onSelectCandidate, redraw));
 	};
 	redraw();
 }
