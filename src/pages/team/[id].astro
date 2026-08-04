@@ -142,15 +142,13 @@ const initialTeamJson = team
 				<span class="collection-opt-out-toggle-label">非公開</span>
 				<span id="team-collection-opt-out-status" class="collection-opt-out-status" hidden></span>
 			</label>
-			{/* 相性チェック(ユーザー要望、2026-08-02)。使用率上位20体との攻守の相性を右パネルに
-			    出す。押している間だけ右パネルが相性チェックモードになるトグルなので、押しっぱなしの
-			    状態を aria-pressed で表す(<script>の setMatchupMode 参照)。
-			    右パネル(.team-preview-panel)は1650px未満では display:none のため、このボタンも
-			    同じ閾値未満では隠す(押しても何も起きないボタンを見せない。下の<style>参照)。 */}
-			<button id="matchup-check-button" class="btn-ghost" type="button" aria-pressed="false" title="使用率上位20体との相性を右パネルに表示する">
-				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><line x1="12" y1="1" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="23"/><line x1="1" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="23" y2="12"/></svg>
-				相性チェック
-			</button>
+			{/* 🔴 UI改修依頼(チーム編集ヘッダー、2026-08-04)「相性チェックボタンは、左端がチーム名
+			    ボックスと同じになるあたりに移動」。旧来はここ(topbar-actions、非公開トグル・削除
+			    ボタンと横並び)にあったが、共通トップバーは画面全体で1行のバーであり、中央パネルの
+			    チーム名ボックス(.team-meta-fields配下)とはレイアウト文脈が別で、x座標を揃える
+			    余地が無かった。ボタン本体は中央パネル側(.team-matchup-check-row、下の
+			    .panel-content内でチーム名ボックスと同じ左端に自然に揃う。詳細はそちらのコメント
+			    参照)へ移動した。非公開トグル・削除ボタンはこのスロットの構造を変えずそのまま残す。 */}
 			<button id="delete-team-button" class="btn-danger" type="button">
 				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
 				削除
@@ -269,26 +267,56 @@ const initialTeamJson = team
 		   削除ボタン自体の座標・寸法・配色・角丸は元から完全一致していたが、この16pxの差の
 		   ぶんだけ非公開トグルが右へ寄っていた。box/[id].astro と同じ対処
 		   (.app-topbar-actions の gap は全画面共通のため AppLayout は編集せず、
-		   このページscopedで削除ボタンにだけ margin-left を足す)をそのまま踏襲する。 */
-		#delete-team-button { margin-left: var(--space-4); }
+		   このページscopedで削除ボタンにだけ margin-left を足す)をそのまま踏襲する。
+		   🔴 UI改修依頼(チーム編集ヘッダー、2026-08-04)「非公開ボタンと削除ボタンの間隔を
+		   広げる」。box/[id].astro 側(#delete-button)が同日の依頼で var(--space-4) から
+		   var(--space-5) へ広げているのを確認済みのため、同じトークンにこちらも揃える。 */
+		#delete-team-button { margin-left: var(--space-5); }
+		/* 🔴 UI改修依頼(チーム編集ヘッダー、2026-08-04)「削除ボタンの平常時/ホバーの配色を
+		   入れ替える」。box/[id].astro の #delete-button(2026-08-04に同じ依頼で対応済み、
+		   このファイル上部のコメント参照)と同じ入れ替えをこちらにも適用する。基底
+		   (global.css の button.btn-danger)は 平常時=塗り(background:var(--color-danger-strong),
+		   color:var(--color-primary-contrast))、hover時=白地反転
+		   (background:var(--color-surface), color:var(--color-danger-strong))。
+		   #delete-team-buttonはIDセレクタで button.btn-danger より詳細度が高いため、
+		   global.css自体は変更せずに上書きできる(他画面の.btn-danger既定配色は維持される)。
+		   border(2px solid var(--color-danger-strong))は基底のまま変えない。
+		   background/colorは平常時・hover時の両方で必ずセットで書く(片方だけ上書きすると
+		   文字色=背景色になって見えなくなる事故がbox/[id].astro側で実際に起きたため)。 */
+		#delete-team-button {
+			background: var(--color-surface);
+			color: var(--color-danger-strong);
+		}
+		#delete-team-button:hover:not(:disabled) {
+			background: var(--color-danger-strong);
+			color: var(--color-primary-contrast);
+		}
 
 		/* --- 相性チェック(ユーザー要望、2026-08-02) --- */
-		/* トップバーのトグルボタン。既定は他のトップバー操作と同じ .btn-ghost の見た目で、
-		   ONのときだけ塗りつぶす。配色は新設せず、このページの攻守セグメント(下記
-		   .team-matchup-direction-option[data-role="defense"])と同じ
-		   --color-primary-strong + --color-primary-contrast の組み合わせを使う
+		/* 見た目は他のトップバー操作と同じ .btn-ghost で、ONのときだけ塗りつぶす。配色は新設せず、
+		   このページの攻守セグメント(下記 .team-matchup-direction-option[data-role="defense"])と
+		   同じ --color-primary-strong + --color-primary-contrast の組み合わせを使う
 		   (DamageCalcSection.astro のコメントにあるとおり、この組はライト4.62:1/
-		   ダーク8.87:1でWCAG AAを満たすことが実測済み)。 */
+		   ダーク8.87:1でWCAG AAを満たすことが実測済み)。
+		   🔴 UI改修依頼(チーム編集ヘッダー、2026-08-04)「相性チェックボタンをチーム名ボックスの
+		   左端に揃える」でトップバー(topbar-actions)から中央パネル側(.team-matchup-check-row、
+		   下の.team-meta-fieldsコメント参照)へ移動したため、幅による表示/非表示の切り替えは
+		   ボタン自身ではなく新しい行コンテナ側(.team-matchup-check-row)に持たせる
+		   (空の行が margin だけ残さないようにするため)。ボタン自体の配色・フォントサイズは
+		   変更しない。 */
 		#matchup-check-button { font-size: var(--font-size-sm); white-space: nowrap; }
 		#matchup-check-button[aria-pressed="true"] {
 			background: var(--color-primary-strong);
 			border-color: var(--color-primary-strong);
 			color: var(--color-primary-contrast);
 		}
-		/* 右パネルが出ない幅ではボタン自体を隠す(閾値は .team-preview-panel と必ず揃えること)。 */
-		#matchup-check-button { display: none; }
+		/* 右パネルが出ない幅では行自体を隠す(閾値は .team-preview-panel と必ず揃えること)。 */
+		.team-matchup-check-row {
+			display: none;
+			margin-bottom: var(--space-3);
+		}
 		@media (min-width: 1650px) {
-			#matchup-check-button { display: inline-flex; }
+			.team-matchup-check-row { display: block; }
 		}
 
 		.team-matchup {
@@ -700,6 +728,36 @@ const initialTeamJson = team
 			font-size: var(--font-size-sm);
 		}
 
+		/* 🔴 UI改修依頼(チーム編集画面 右パネル、2026-08-04)「右パネル共通のタイトル帯」。
+		   既存の他画面に流用できる「帯状の背景色付きセクション見出し」クラスは見当たらなかった
+		   (global.cssの.panel-topは区切り線のみで背景色を持たない)ため、既存トークンだけを
+		   使って新規に作る(新しい色は増やさない: 背景は--color-surface-alt、区切り線は
+		   --panel-topと同じ--color-border)。
+		   .team-preview-panelは.panelの既定padding(var(--space-6) var(--space-5))を継承する
+		   ため、この帯だけを画面(パネル)端まで伸ばす帯にするには同じ値の負マージンで打ち消し、
+		   内側に同じ値のpaddingを付け直す(帯の外は.panelの背景、帯の内側の文字位置だけは
+		   paddingが無い場合と揃う)。 */
+		.team-panel-header-band {
+			margin: calc(var(--space-6) * -1) calc(var(--space-5) * -1) var(--space-3) calc(var(--space-5) * -1);
+			padding: var(--space-3) var(--space-5);
+			background: var(--color-surface-alt);
+			border-bottom: 1px solid var(--color-border);
+		}
+		.team-panel-header-band[hidden] { display: none; }
+		/* UI改修依頼の3状態(個体プレビュー/サジェスト/相性チェック)を1つの見出しに統一する。
+		   本文側の.team-damage-owner / .team-suggest-heading / .team-matchup-heading
+		   (このファイル内の既存クラス、削除していない)は、この帯へ見出しを移した結果いずれも
+		   このページでは使用しなくなったが、クラス名・CSSルール自体は変更・削除しない
+		   (改修依頼の「クラス名の改名・削除はしないこと」に従う)。 */
+		.team-panel-header-title {
+			margin: 0;
+			font-size: var(--font-size-sm);
+			font-weight: 700;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			white-space: nowrap;
+		}
+
 	</style>
 
 	<div class="page">
@@ -839,6 +897,21 @@ const initialTeamJson = team
 					    ヒント文言を削除しメモ欄を6枠の下へ移動した。 --- */}
 					<div class="team-edit-main">
 						<div class="panel-content">
+							{/* 🔴 UI改修依頼(チーム編集ヘッダー、2026-08-04)「相性チェックボタンは、左端がチーム名
+							    ボックスと同じになるあたりに移動」。旧来はAppLayoutの共通トップバー
+							    (topbar-actions、上のフロントマター直後<Fragment slot="topbar-actions">参照)に
+							    あったが、トップバーは画面全体で1行のバーで、この中央パネル(チーム名ボックスの
+							    グリッドトラック)とはレイアウト文脈が別だった。ボタンをこの.panel-content配下
+							    (チーム名ボックスと同じ.team-edit-main/.panel-contentの内側)へ移すことで、
+							    左右paddingが無い.panel-content基準では両者の左端が自然に揃う(マージンの
+							    数値計算に依存しない、グリッド配置での位置揃え)。ボタン本体のid・aria-pressed・
+							    クリックハンドラ(<script>のsetMatchupMode参照)は変更しない。 */}
+							<div class="team-matchup-check-row">
+								<button id="matchup-check-button" class="btn-ghost" type="button" aria-pressed="false" title="使用率上位20体との相性を右パネルに表示する">
+									<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><line x1="12" y1="1" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="23"/><line x1="1" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="23" y2="12"/></svg>
+									相性チェック
+								</button>
+							</div>
 							<div class="team-meta-fields">
 								{/* 🔴 UI改修依頼(チーム編集中央パネル、2026-08-01)「"チーム名"ラベルを削除して
 								    placeholderにする」。旧来はラベル付きフィールド規格(.field/.field-stack/
@@ -902,6 +975,18 @@ const initialTeamJson = team
 					    幅の無い環境(1650px未満、2026-08-02に閾値変更)では非表示にする
 					    (下の.team-preview-panel参照)。 --- */}
 					<aside class="panel team-preview-panel" id="team-preview-panel">
+						{/* 🔴 UI改修依頼(チーム編集画面 右パネル、2026-08-04)「右パネル共通のタイトル帯を
+						    追加する」。個体プレビュー/サジェスト/相性チェックの3状態はそれぞれ独立した
+						    見出し(team-damage-owner / team-suggest-heading / team-matchup-heading、
+						    このファイル内で複数箇所に既存)を持つだけで、背景色付きの帯・共通ヘッダーが
+						    無かった。3状態の切り替えロジック自体(#team-preview-content/#team-suggest/
+						    #team-matchupのhidden切り替え)は変えず、見出しテキストの表示先だけをこの
+						    共通の帯へ差し替える(<script>のsetPanelHeaderTitle参照)。初期状態はhidden
+						    (中身が無い空の帯を出さないため。各状態が最初に見出しをセットするタイミングで
+						    表示に切り替わる)。 */}
+						<div class="team-panel-header-band" id="team-panel-header-band" hidden>
+							<p class="team-panel-header-title" id="team-panel-header-title"></p>
+						</div>
 						{/* UI改修依頼(右パネル、2026-08-01)「"左の一覧からポケモンをクリックすると、
 						    ここに詳細が表示されます。"を削除する」。文言だけを消すと空の<p>が1行ぶんの
 						    余白を残すため、要素自体を最初からhiddenにする(pitfalls.md「要素を消す指示
@@ -924,7 +1009,9 @@ const initialTeamJson = team
 						    下の<style is:global>側に置く(pitfalls.md「Astroのscoped styleはJSで生成した
 						    要素に効かない」)。 */}
 						<div class="team-matchup" id="team-matchup" hidden>
-							<p class="team-matchup-heading">使用率上位20体との相性</p>
+							{/* UI改修依頼(右パネル、2026-08-04)見出し「使用率上位20体との相性」は右パネル
+							    共通のタイトル帯(#team-panel-header-title、上の.team-preview-panel直下)へ
+							    移動した。テキスト自体は<script>のsetMatchupMode(active=true時)がセットする。 */}
 							<div class="team-matchup-direction-toggle" role="radiogroup" aria-label="相性チェックの方向">
 								<button
 									id="matchup-direction-attack"
@@ -2230,6 +2317,19 @@ const initialTeamJson = team
 			// (右パネル内のクリックは選択解除の対象外にする)。
 			const previewPanelEl = el<HTMLElement>("team-preview-panel");
 
+			// 🔴 UI改修依頼(チーム編集画面 右パネル、2026-08-04)右パネル共通のタイトル帯。
+			// 個体プレビュー(renderPreviewPanel)/サジェスト(renderSuggestions)/相性チェック
+			// (setMatchupMode)の3状態それぞれが持っていた見出しの表示先をここへ統一する
+			// (3状態の切り替えロジック自体、すなわち#team-preview-content/#team-suggest/
+			// #team-matchupのhidden切り替えは変えない)。
+			const panelHeaderBandEl = el<HTMLElement>("team-panel-header-band");
+			const panelHeaderTitleEl = el<HTMLElement>("team-panel-header-title");
+			function setPanelHeaderTitle(text: string): void {
+				panelHeaderTitleEl.textContent = text;
+				panelHeaderTitleEl.title = text;
+				panelHeaderBandEl.hidden = false;
+			}
+
 			// UI改修依頼(チーム編集左パネル)「ドラッグアンドドロップでチームに設定できるように
 			// する」。dataTransferはドラッグ元(別ウィンドウ等)の互換性のため一応セットするが、
 			// 同一ページ内のドラッグしか想定していないため、実際の受け渡しはこのモジュール内の
@@ -2643,11 +2743,11 @@ const initialTeamJson = team
 				// 再fetchせず、そのまま出し直せるようにするため。
 				suggestEl.hidden = true;
 
-				const headingEl = document.createElement("p");
-				headingEl.className = "team-damage-owner";
-				headingEl.textContent = `${displayName(p)} のダメージ計算`;
-				headingEl.title = headingEl.textContent;
-				previewContentEl.appendChild(headingEl);
+				// UI改修依頼(右パネル、2026-08-04)見出しは右パネル共通のタイトル帯
+				// (#team-panel-header-title)へ表示する。以前はここ(previewContentEl内)に
+				// .team-damage-owner の<p>を都度生成していたが、帯の導入により表示先だけを
+				// 差し替えた(このページ内で.team-damage-ownerクラス自体は削除していない)。
+				setPanelHeaderTitle(`${displayName(p)} のダメージ計算`);
 
 				const statusEl = document.createElement("p");
 				statusEl.className = "team-damage-status";
@@ -2694,6 +2794,10 @@ const initialTeamJson = team
 				previewContentEl.innerHTML = "";
 				// ニュートラル状態に戻ったのでサジェストを出し直す(下の renderSuggestions 参照)。
 				suggestEl.hidden = false;
+				// UI改修依頼(右パネル、2026-08-04)個体プレビューの見出しで上書きされたままの
+				// 共通タイトル帯を、ニュートラル状態(サジェスト)の見出しに戻す。テキストは
+				// renderSuggestions が使っているものと同じ固定文言。
+				setPanelHeaderTitle("おすすめのポケモン");
 			}
 
 			// =================================================================================
@@ -2929,10 +3033,15 @@ const initialTeamJson = team
 				lastSuggestResponse = { suggestions, basis };
 				suggestEl.innerHTML = "";
 
-				const heading = document.createElement("p");
-				heading.className = "team-suggest-heading";
-				heading.textContent = "おすすめのポケモン";
-				suggestEl.appendChild(heading);
+				// UI改修依頼(右パネル、2026-08-04)見出しは右パネル共通のタイトル帯へ表示する。
+				// scheduleSuggestions/loadSuggestionsは編成が変わるたびに走るため、個体プレビュー中
+				// (previewContentElが表示中)や相性チェック中(matchupActive)でも背後で呼ばれうる
+				// (suggestElはその間hiddenのまま、renderSuggestions自体は元からそうだった)。
+				// この場合、いま実際に表示中の状態の見出しを上書きしてはいけないので、サジェストが
+				// 見えている状態のときだけ帯を更新する。
+				if (!matchupActive && previewContentEl.hidden) {
+					setPanelHeaderTitle("おすすめのポケモン");
+				}
 
 				const note = document.createElement("p");
 				note.className = "team-suggest-note";
@@ -3359,12 +3468,18 @@ const initialTeamJson = team
 					previewContentEl.hidden = true;
 					previewContentEl.innerHTML = "";
 					suggestEl.hidden = true;
+					// UI改修依頼(右パネル、2026-08-04)見出しは右パネル共通のタイトル帯へ表示する
+					// (以前は#team-matchup内に静的な.team-matchup-heading<p>を置いていた)。
+					setPanelHeaderTitle("使用率上位20体との相性");
 					void runMatchup();
 				} else {
 					// 進行中の計算結果は捨てる(戻ってきたときに古い編成の濃淡を描かない)。
 					matchupRequestId += 1;
 					window.clearTimeout(matchupTimer);
 					suggestEl.hidden = false;
+					// もう一度押すと元のニュートラル状態(サジェスト表示)へ戻るため、帯の見出しも
+					// closePreviewPanelと同じ文言に戻す。
+					setPanelHeaderTitle("おすすめのポケモン");
 				}
 			}
 
