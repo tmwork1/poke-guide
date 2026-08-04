@@ -162,7 +162,11 @@ const user = Astro.locals.user;
 		}
 		.team-grid {
 			display: grid;
-			grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+			/* UI改修依頼(チームトップ画面、2026-08-04)「カードサイズ・ポケモンアイコンを少し
+			   大きくする」: 最小幅を220pxから、global.cssの.card-gridが既に使っている
+			   確立済みの値240pxへ揃える(新しい値は作らない)。カード幅が広がった分だけ
+			   .card-team-thumb-grid(3列)の1マスも比例して大きくなる。 */
+			grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
 			gap: var(--space-4);
 			align-items: stretch;
 			margin-top: var(--space-6);
@@ -286,49 +290,55 @@ const user = Astro.locals.user;
 			outline-offset: 2px;
 		}
 
-		/* --- ヘッダ行: チーム名(空/未設定なら「無題のチーム」)のみ(round-30 A-9(c)で
-		   体数バッジをここから外しサムネ行直上へ移した)。削除ボタンをカード右上に絶対配置で
-		   重ねるため、ヘッダにその分の余白を確保する。
-		   実装者の判断: 削除ボタンは right: var(--space-2)(8px) + width 28px なので、
-		   カード右端からボタン左端までの距離は 36px。カード自体の padding-right(.card の
-		   --space-3 = 12px)を差し引いた不足分 24px(=1.5rem)が、ヘッダに追加で必要な
-		   padding-rightの最小値。round-30以前は体数バッジぶんも見込んで2rem(32px)を
-		   確保していたが、バッジを外した今は1.5remまで詰められる。
-		   UI改修依頼(チームトップ画面、2026-08-01)「お気に入りボタンとチーム名が被らないように
-		   する」対応: お気に入りボタンをbox/index.astroと同じ左上角の36×36px三角形トリムに
-		   変更した(下の.card-team-pin参照)ため、右側と同じ考え方で左側にも余白を追加する。
-		   三角形はcard左上の(0,0)起点でy=0付近ではほぼ全幅を占めるため、ヘッダ行
-		   (チーム名、カード最上部)がその真下に来ると被る。旧36px三角形時代は右側と同じ計算
-		   (36px - カードのpadding-left 12px = 24px = 1.5rem)がちょうど接する境界値だったため
-		   1.75rem(28px)にして4pxの余白を確保していた。
-		   UI改修依頼(チームトップ画面、2026-08-02)「お気に入りの星印が見切れている問題を
-		   ボックス画面を参考に修正する」でお気に入り三角形を52×52pxへ拡大した(上の
-		   .card-team-pin参照)ため、同じ考え方で計算し直す: 52px - padding-left 12px = 40px
-		   (2.5rem)が新しい境界値。旧と同じ4pxの余白を足した2.75rem(44px)に広げ、
-		   スクリーンショットで重なりが無いことを確認する。 */
+		/* --- ヘッダ行(2〜3行目): チーム名(空/未設定なら「無題のチーム」)のみ。
+		   UI改修依頼(チームトップ画面、2026-08-04)「レギュレーションタグとチームタイトルの
+		   行を入れ替える」で、従来1行目だったこの行を2〜3行目へ移した(JS側renderCard、
+		   下のcard.appendChild呼び出し順を参照)。
+		   旧仕様ではこの行が1行目で、お気に入り三角形(52×52px、下の.card-team-pin参照)・
+		   削除ボタン(右上28px)の水平クリアランス(padding-left 2.75rem / padding-right 1.5rem、
+		   算出根拠は下の.card-team-meta-rowのコメントへ移設)をここに持たせていたが、
+		   1行目を.card-team-meta-rowに譲った今はここでは不要になった:
+		   カードpadding(--space-3 = 12px)+ metaRowの高さ(memo/regulationバッジぶん、
+		   概ね20px前後)+ 行間gap(--space-3 = 12px)を足した2行目の開始y座標(約44〜48px)
+		   では、三角形の残り幅がカード自体のpadding(12px)の中に収まりコンテンツ領域まで
+		   届かない(この三角形は52px地点で幅0になる直角三角形のため)。よって
+		   padding-left/padding-rightはこのヘッダ行からは外した。 */
 		.team-grid .card-team .card-team-header {
 			display: flex;
-			align-items: center;
-			padding-left: 2.75rem;
-			padding-right: 1.5rem;
+			align-items: flex-start;
 		}
 		.team-grid .card-team .card-team-name {
 			margin: 0;
 			font-size: var(--font-size-lg);
 			font-weight: 700;
 			line-height: 1.3;
-			white-space: nowrap;
+			white-space: normal;
+			display: -webkit-box;
+			-webkit-line-clamp: 3;
+			-webkit-box-orient: vertical;
 			overflow: hidden;
 			text-overflow: ellipsis;
 		}
 
-		/* --- メタ行(round-30 A-9(b)/(c)): メモ(1行省略)+ 体数バッジN/6。サムネ行の直上に置く。
-		   メモは空/未設定のチームでも同じ高さの<p>を必ず描画し(JS側)、min-heightで行の高さを
-		   固定することで、メモの有無でカード全体の高さが変わらないようにする(round-30 A-9(b))。 --- */
+		/* --- メタ行(1行目): レギュレーションタグ + メモアイコン(round-30 A-9(b)/(c)で
+		   導入したメモ+体数バッジの行。中身のJS生成順自体は変えていない)。
+		   UI改修依頼(チームトップ画面、2026-08-04)「レギュレーションタグとチームタイトルの
+		   行を入れ替える」でこの行を1行目に移した(JS側renderCard、card.appendChild(metaRow)を
+		   card.appendChild(header)より先に呼ぶよう順序を変更)。結果としてメモアイコンも
+		   この行(レギュレーションタグと同じ行)に来る。
+		   お気に入り三角形・削除ボタンの水平クリアランス(padding-left 2.75rem /
+		   padding-right 1.5rem。算出根拠は旧.card-team-headerのコメント参照。カード自体の
+		   padding(12px)を差し引いた不足分を埋める値で、削除ボタン側は 36px - 12px = 24px
+		   = 1.5rem、お気に入り三角形側は 52px - 12px = 40px(2.5rem)に4pxの余白を足した
+		   2.75rem)は、1行目になったこの行に移設した。メモは空/未設定のチームでも同じ高さの
+		   <p>を必ず描画し(JS側)、min-heightで行の高さを固定することで、メモの有無で
+		   カード全体の高さが変わらないようにする(round-30 A-9(b))。 --- */
 		.team-grid .card-team .card-team-meta-row {
 			display: flex;
 			align-items: center;
 			gap: var(--space-2);
+			padding-left: 2.75rem;
+			padding-right: 1.5rem;
 		}
 		/* UI改修依頼(チームトップ画面、2026-08-01)「チームメモをカードに常時表示せず、ホバー時に
 		   表示するようにする」。以前はメモ本文を1行省略で常時表示していたが、box/index.astroや
@@ -904,20 +914,12 @@ const user = Astro.locals.user;
 				});
 				card.appendChild(deleteButton);
 
-				// --- ヘッダ行: チーム名 + 体数バッジN/6 ---
-				const header = document.createElement("div");
-				header.className = "card-team-header";
-
-				const nameEl = document.createElement("p");
-				nameEl.className = "card-team-name";
-				nameEl.textContent = name;
-				// round-30 A-9(a): 省略された全文をホバーで読めるようにする。
-				nameEl.title = name;
-				header.appendChild(nameEl);
-
-				card.appendChild(header);
-
-				// --- メタ行(round-30 A-9(b)/(c)): メモ + 体数バッジ ---
+				// --- メタ行(1行目): レギュレーションタグ + メモアイコン ---
+				// UI改修依頼(チームトップ画面、2026-08-04)「レギュレーションタグとチームタイトルの
+				// 行を入れ替える」でこの行を1行目に移した(旧: round-30 A-9(b)/(c)で導入した
+				// メモ+体数バッジの行。中身の生成ロジック自体は変えていない)。以前のcard.appendChild呼び
+				// 出し順は header→metaRowだったが、metaRow→headerに変え、1行目をレギュレーションタグ
+				// (+メモアイコン)、2〜3行目をチーム名にする。
 				// UI改修依頼(チームトップ画面、2026-08-01)「チームメモをカードに常時表示せず、
 				// ホバー時に表示するようにする」。本文を直接テキスト表示していたのをやめ、
 				// メモがあるときだけ小さなアイコン(📝)を出し、全文はtitle属性(ネイティブの
@@ -953,6 +955,21 @@ const user = Astro.locals.user;
 				metaRow.appendChild(memberCountBadge);
 
 				card.appendChild(metaRow);
+
+				// --- ヘッダ行(2〜3行目): チーム名 ---
+				// UI改修依頼(チームトップ画面、2026-08-04)「チーム名が長い場合に2,3行へ折り返す」
+				// 対応(CSS側、.card-team-name参照)に合わせ、この行を1行目から2〜3行目へ移した。
+				const header = document.createElement("div");
+				header.className = "card-team-header";
+
+				const nameEl = document.createElement("p");
+				nameEl.className = "card-team-name";
+				nameEl.textContent = name;
+				// round-30 A-9(a): 省略された全文をホバーで読めるようにする。
+				nameEl.title = name;
+				header.appendChild(nameEl);
+
+				card.appendChild(header);
 
 				// --- メンバーの公式絵ミニサムネイル列(6枠常時描画。空き枠はプレースホルダー) ---
 				const thumbGrid = document.createElement("div");
