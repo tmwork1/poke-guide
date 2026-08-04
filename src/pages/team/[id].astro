@@ -541,6 +541,29 @@ const initialTeamJson = team
 			min-width: 0;
 		}
 
+		/* UI改修依頼(右パネル サジェスト、2026-08-04)「メガシンカを含める」「育成済みのみ
+		   表示」の2トグル。視覚言語は上の.regulation-filter-toggleと同一だが、そちらは
+		   レギュレーション絞り込み専用の意味を持つクラス名のため、意味の異なるこちらの
+		   トグルには専用クラス名を用意し、同じ値をそのまま複製する(新しい値は作っていない)。
+		   #team-suggestはJS(renderSuggestions)がinnerHTMLで丸ごと書き換えるため、
+		   トグル自体はその外(兄弟要素)の静的マークアップに置く。 */
+		.team-suggest-toggles {
+			display: flex;
+			flex-direction: column;
+			gap: var(--space-1);
+			padding: var(--space-2) var(--space-3) 0;
+		}
+		.team-suggest-toggle {
+			display: inline-flex;
+			align-items: center;
+			gap: 0.4em;
+			font-size: var(--font-size-sm);
+			color: var(--color-text-muted);
+			white-space: nowrap;
+			cursor: pointer;
+			min-width: 0;
+		}
+
 		.team-select-sort {
 			flex: 1 1 0;
 			min-width: 0;
@@ -692,10 +715,14 @@ const initialTeamJson = team
 
 		/* UI改修依頼(チーム編集中央パネル)「2x3配置に変更」。1列縦積みから3列2行のグリッドへ。
 		   UI改修依頼(チーム編集中央パネル、2026-08-02)「カードサイズを正方形のまま小さくする」。
-		   3列(1fr)のグリッド自体は維持しつつ、各カード側で `width: min(100%, 230px)` +
-		   `aspect-ratio: 1/1` に固定する(下の.card-team-slot参照)。justify-items: center で
-		   各カードを列内で中央寄せにし、実測(1920px)で1枚あたり約320px幅だったものを
-		   約230px四方まで縮めた余白を列内に均等配分する(片側だけに空白が寄るのを防ぐ)。 */
+		   3列(1fr)のグリッド自体は維持しつつ、各カード側で `width: min(100%, 230px)` に固定する
+		   (下の.card-team-slot参照)。justify-items: center で各カードを列内で中央寄せにし、
+		   実測(1920px)で1枚あたり約320px幅だったものを約230px四方まで縮めた余白を列内に
+		   均等配分する(片側だけに空白が寄るのを防ぐ)。
+		   🔴 UI改修依頼(チーム編集中央パネル、2026-08-04): カード高さの`aspect-ratio: 1/1`固定は
+		   技リストの見切れ事故により撤去した(下の.card-team-slotコメント参照)。align-itemsを
+		   明示していないため、CSS Gridの既定(stretch)により同じ行の3枚は自動的に同じ高さへ
+		   揃う(1〜3枚目・4〜6枚目それぞれの行内で不揃いにならない)。 */
 		.team-slots {
 			display: grid;
 			grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1001,6 +1028,42 @@ const initialTeamJson = team
 						    個体を選ぶと上の#team-preview-contentに差し替わり、選択解除で戻る
 						    (renderPreviewPanel / closePreviewPanel が両方をトグルする)。
 						    中身はJS(renderSuggestions)が生成する。 */}
+						{/* UI改修依頼(右パネル サジェスト、2026-08-04)「メガシンカを含める」「育成済みのみ
+						    表示」の2トグルを追加する。左パネルの.regulation-filter-toggleと同じ.toggle-switch
+						    一式(このページのscoped<style>で既に定義済み)を流用し、新しいスイッチの見た目は
+						    作らない。#team-suggestはJS(renderSuggestions)がinnerHTMLで丸ごと書き換えるため、
+						    トグル自体はその中に置かず兄弟要素にし、表示/非表示は#team-suggestと同じタイミング
+						    (renderPreviewPanel/closePreviewPanel/setMatchupMode参照)で切り替える
+						    (<script>のsuggestTogglesEl参照)。 */}
+						<div class="team-suggest-toggles" id="team-suggest-toggles">
+							<label class="team-suggest-toggle" for="team-suggest-mega-toggle">
+								<span class="toggle-switch">
+									<input
+										id="team-suggest-mega-toggle"
+										type="checkbox"
+										class="toggle-switch-input"
+										checked
+									/>
+									<span class="toggle-switch-track" aria-hidden="true">
+										<span class="toggle-switch-thumb"></span>
+									</span>
+								</span>
+								<span>メガシンカを含める</span>
+							</label>
+							<label class="team-suggest-toggle" for="team-suggest-owned-toggle">
+								<span class="toggle-switch">
+									<input
+										id="team-suggest-owned-toggle"
+										type="checkbox"
+										class="toggle-switch-input"
+									/>
+									<span class="toggle-switch-track" aria-hidden="true">
+										<span class="toggle-switch-thumb"></span>
+									</span>
+								</span>
+								<span>育成済みのみ表示</span>
+							</label>
+						</div>
 						<div class="team-suggest" id="team-suggest"></div>
 						{/* 相性チェック(ユーザー要望、2026-08-02)。トップバーの「相性チェック」を押している
 						    間だけ表示し、上の #team-suggest / #team-preview-content を隠して右パネルを
@@ -1315,23 +1378,23 @@ const initialTeamJson = team
 		   position:relativeは番号ウォーターマーク(下記.slot-watermark-number)・
 		   編集/削除ボタンの絶対配置の基準になる。 --- */
 		/* UI改修依頼(チーム編集中央パネル、2026-08-02)「カードサイズを正方形のまま小さくする」
-		   「カードサイズを固定し、設定済み/未設定によらず変動しないようにする」。
-		   変更前は幅318.66px・高さは埋まった枠291.95px/空き枠108px(min-heightの下駄)と、
-		   正方形でも固定サイズでもなかった(実測、報告参照)。width指定 + aspect-ratio: 1/1
-		   で正方形を強制し、overflow: hiddenを付けることで(box/index.astroの.card-pokemonと
-		   同じ手法)flexアイテムの自動最小サイズ(min-height:auto)を打ち消し、中身の量に関わらず
-		   常に同じ正方形サイズになるようにする(min-height:108pxの下駄は不要になったため撤去)。
+		   「カードサイズを固定し、設定済み/未設定によらず変動しないようにする」経緯で、
+		   width指定 + aspect-ratio: 1/1 で正方形を強制し、overflow: hiddenでflexアイテムの
+		   自動最小サイズ(min-height:auto)を打ち消していた。
+		   🔴 UI改修依頼(チーム編集中央パネル、2026-08-04)「アイコン拡大(64px→84px)+
+		   特性/アイテムの2行分割+技のアイコン付き表示」により中身の必要縦幅が増えたのに
+		   正方形の高さは変わらないままだったため、技リストの3・4個目がoverflow: hiddenで
+		   物理的に見切れる実害が出た(スクリーンショットで確認、報告参照)。
+		   aspect-ratio: 1/1 と overflow: hidden をどちらも撤去し、高さを中身に応じて自然に
+		   伸ばす方針に変更する。overflow: hiddenは画像等のはみ出し防止用ではなく
+		   (.slot-artは自身の固定width/heightとobject-fit: containで完結しており、親のoverflow
+		   に依存していない)、上記の正方形強制の副産物として付いていただけだったので、
+		   撤去しても他要素のはみ出しを防ぐ手段は別途不要と判断した。
 		   幅230pxは、幅を縮めつつ中身(絵・名前・特性/持ち物・実数値6列・技2x2)が1文字ずつの
-		   折り返しを起こさない範囲として実測しながら調整した値(下のslot-art等のサイズ縮小と
-		   セットで成立する。padding も base .card の var(--space-3) から var(--space-1) へ縮める)。
-		   実測修正: 1200〜1599px(右パネル非表示の2カラムレイアウト)では選択バー(最大304px)の
-		   ぶん中央カラムが狭まり、カード幅がwidth:min(100%,230px)の"100%"側で230pxより
-		   小さくなる(実測: 1280pxで約218.7px、1600px境界で約212px)。overflow:hiddenは
-		   カードを常に正方形に保つが、中身がその高さに収まらないと技の2段目が半分だけ見切れる
-		   実害が出た(実測、報告参照)。そのため下記のslot-art縮小・line-height明示的な
-		   引き締め(bodyの既定line-height:1.6を1.25(var(--line-height-tight))へ)で中身の
-		   自然な高さ(scrollHeight)自体を230px四方より十分小さく抑え、230px未満に縮む
-		   1200〜1600px帯でも技2段目が見切れないようにした。 */
+		   折り返しを起こさない範囲として実測しながら調整した値なので、width側は維持する
+		   (下のslot-art等のサイズ・line-height明示的な引き締めもそのまま踏襲する)。
+		   高さはCSS Gridの既定の行内ストレッチ(.team-slots側にalign-itemsの上書きが無いため、
+		   同じグリッド行の3枚は自動的に同じ高さになる)に委ね、1〜3枚目・4〜6枚目の不揃いを防ぐ。 */
 		.team-slots .card-team-slot {
 			position: relative;
 			display: flex;
@@ -1340,9 +1403,7 @@ const initialTeamJson = team
 			text-align: center;
 			gap: 0.2rem;
 			width: min(100%, 230px);
-			aspect-ratio: 1 / 1;
 			padding: var(--space-1);
-			overflow: hidden;
 		}
 		/* ドラッグ&ドロップの受け入れ先であることを示すハイライト(左パネルのpokemon-select-row
 		   または埋まっている枠自身をドラッグ中にこのカードの上に重なると付く。
@@ -1453,9 +1514,10 @@ const initialTeamJson = team
 			   UI改修依頼(チーム編集中央パネル、2026-08-02)「カードサイズを正方形のまま
 			   小さくする」に伴い、230px四方のカードに名前・特性/持ち物・実数値6列・技2x2まで
 			   収める必要があるため104px→72pxへ縮小、さらに1200〜1600px帯の実測(技2段目が
-				   見切れていた、上の.card-team-slotコメント参照)を受けて64pxまで追加で縮める。 */
-			width: 64px;
-			height: 64px;
+			   見切れていた、上の.card-team-slotコメント参照)を受けて64pxまで追加で縮めていたが、
+			   今回は既存スペーシングトークンの組み合わせで84pxへ拡大する。 */
+			width: calc(var(--space-7) * 2 + var(--space-5));
+			height: calc(var(--space-7) * 2 + var(--space-5));
 			display: flex;
 			align-items: center;
 			justify-content: center;
@@ -1531,15 +1593,13 @@ const initialTeamJson = team
 			height: 16px;
 			object-fit: contain;
 		}
-		/* UI改修依頼(チーム編集中央パネル、2026-08-02)「特性とアイテムを同じ段に配置する
-		   (ボックス画面と同様)」。box/index.astroの.card-item-row(grid 2列)/
-		   .card-item-row-cell(flex中央寄せ)と同じ作りに揃える(値そのものは変えない)。 */
+		/* 特性とアイテムを別行にし、各行の内容は中央にそろえる。 */
 		.team-slots .slot-meta-row {
-			display: grid;
-			grid-template-columns: 1fr 1fr;
+			display: flex;
+			flex-direction: column;
 			align-items: center;
 			width: 100%;
-			column-gap: var(--space-2);
+			gap: var(--space-1);
 			font-size: 0.82rem;
 			color: var(--color-text-muted);
 			/* UI改修依頼(チーム編集中央パネル、2026-08-02)実測修正: bodyの既定
@@ -1554,6 +1614,7 @@ const initialTeamJson = team
 			justify-content: center;
 			gap: 0.3rem;
 			min-width: 0;
+			width: 100%;
 		}
 		/* UI改修依頼(チーム編集中央パネル、2026-08-02)「カードサイズを正方形のまま
 		   小さくする」実測修正: 特性/持ち物ラベルに1行ellipsis制御が無く、幅が縮んだことで
@@ -1580,7 +1641,9 @@ const initialTeamJson = team
 		   slot-stat-chipの1行チップ表記は撤去)。 */
 		.team-slots .slot-stats {
 			display: grid;
-			grid-template-columns: repeat(6, minmax(0, 1fr));
+			grid-template-columns: repeat(6, auto);
+			justify-content: center;
+			column-gap: var(--space-2);
 			width: 100%;
 		}
 		.team-slots .slot-stats-line {
@@ -1617,20 +1680,30 @@ const initialTeamJson = team
 			width: 100%;
 		}
 		.team-slots .slot-move-chip {
-			font-size: 0.78rem;
+			display: flex;
+			align-items: center;
+			gap: 0.25rem;
+			min-width: 0;
+			font-size: 0.7rem;
 			font-weight: 600;
 			color: var(--color-text-muted);
-			background: var(--color-surface);
-			border: 1px solid var(--color-border);
-			border-radius: 4px;
-			padding: 0.08rem 0.35rem;
+			padding: 0.08rem 0;
+			text-align: left;
+			/* UI改修依頼(チーム編集中央パネル、2026-08-02)実測修正: line-heightを
+			   var(--line-height-tight)に引き締める(上のslot-stat-keyコメントと同じ理由)。 */
+			line-height: 1.2;
+		}
+		.team-slots .slot-move-chip-icon {
+			flex: none;
+			width: var(--space-3);
+			height: var(--space-3);
+			object-fit: contain;
+		}
+		.team-slots .slot-move-chip-text {
+			min-width: 0;
 			white-space: nowrap;
 			overflow: hidden;
 			text-overflow: ellipsis;
-			text-align: center;
-			/* UI改修依頼(チーム編集中央パネル、2026-08-02)実測修正: line-heightを
-			   var(--line-height-tight)に引き締める(上のslot-stat-keyコメントと同じ理由)。 */
-			line-height: var(--line-height-tight);
 		}
 		/* A-6: 技0件の明示。同じく--color-danger-strongを流用する。 */
 		.team-slots .slot-move-chip-unset {
@@ -1974,12 +2047,6 @@ const initialTeamJson = team
 			font-weight: 600;
 			margin: 0 0 var(--space-1);
 		}
-		.team-suggest-note {
-			font-size: var(--font-size-xs);
-			color: var(--color-text-muted);
-			margin: 0 0 var(--space-3);
-			line-height: 1.4;
-		}
 		.team-suggest-status {
 			font-size: var(--font-size-sm);
 			color: var(--color-text-muted);
@@ -1993,17 +2060,29 @@ const initialTeamJson = team
 			flex-direction: column;
 			gap: var(--space-2);
 		}
+		/* UI改修依頼(右パネル サジェスト、2026-08-04)「rank / 種族名+アイテム+相性の良い
+		   ポケモン の3段構成 / 育成する・チームに追加ボタン」の3列グリッドへ変更。
+		   以前は rank(auto) / sprite(44px) / body(1fr) の3列 + 下にボタン全幅だったが、
+		   ボタンを3列目に収める縦長ボタンへ変え、スプライトはbody列内の名前の左隣へ移した。 */
 		.team-suggest-card {
 			display: grid;
-			/* 順位 / 画像 / 本文 の3列。本文列は minmax(0, 1fr) にしないと
+			/* 順位 / 本文(種族名+アイテム+相性) / ボタン の3列。本文列は minmax(0, 1fr) にしないと
 			   長い技名・持ち物名がグリッドを押し広げて横スクロールを起こす。 */
-			grid-template-columns: auto 44px minmax(0, 1fr);
+			grid-template-columns: auto minmax(0, 1fr) auto;
 			align-items: center;
 			gap: var(--space-2);
 			padding: var(--space-2);
 			border: 1px solid var(--color-border);
 			border-radius: var(--radius-sm);
 			background: var(--color-surface);
+		}
+		/* 育成済み(findOwnedMatchが非null)の色分け(ユーザー要望、2026-08-04)。中央パネルの
+		   .card-team-slot.is-selected(このファイル内の確立済み配色パターン、上の.team-slots
+		   .card-team-slot.is-selected参照)と同じcolor-mixの比率・トークンをそのまま踏襲する
+		   (新しい色は作らない)。 */
+		.team-suggest-card.is-owned {
+			border-color: var(--color-primary);
+			background: color-mix(in srgb, var(--color-surface) 90%, var(--color-primary) 10%);
 		}
 		.team-suggest-rank {
 			font-size: var(--font-size-xs);
@@ -2012,9 +2091,12 @@ const initialTeamJson = team
 			min-width: 1.2em;
 			text-align: right;
 		}
+		/* スプライトは1.1倍(44px→48px、ユーザー要望2026-08-04)。種族名の左隣に置くため
+		   本文列内の.team-suggest-name-rowに移した(以前はカード全体の専用列だった)。 */
 		.team-suggest-sprite {
-			width: 44px;
-			height: 44px;
+			width: 48px;
+			height: 48px;
+			flex: none;
 			display: flex;
 			align-items: center;
 			justify-content: center;
@@ -2025,8 +2107,8 @@ const initialTeamJson = team
 		}
 		.team-suggest-sprite-fallback {
 			display: none;
-			width: 32px;
-			height: 32px;
+			width: 35px;
+			height: 35px;
 			border-radius: 50%;
 			background: var(--color-surface-alt);
 			color: var(--color-text-muted);
@@ -2037,16 +2119,24 @@ const initialTeamJson = team
 		.team-suggest-body {
 			min-width: 0;
 		}
+		.team-suggest-name-row {
+			display: flex;
+			align-items: center;
+			gap: var(--space-2);
+			min-width: 0;
+		}
 		.team-suggest-name {
 			font-size: var(--font-size-sm);
 			font-weight: 600;
 			white-space: nowrap;
 			overflow: hidden;
 			text-overflow: ellipsis;
+			min-width: 0;
 		}
 		/* 右パネルの本文列は実測で約165pxしかなく、特性+持ち物+役割を1行に収めると
 		   ほぼ必ず省略記号で切れる。省略すると「どの型か」という提案の中身そのものが
-		   読めなくなるため、折り返して2行以上になることを許す(カードの高さは伸びる)。 */
+		   読めなくなるため、折り返して2行以上になることを許す(カードの高さは伸びる)。
+		   UI改修依頼(2026-08-04)アイテムを最優先で読めるよう先頭に置く。 */
 		.team-suggest-build {
 			font-size: var(--font-size-xs);
 			color: var(--color-text-muted);
@@ -2055,11 +2145,18 @@ const initialTeamJson = team
 			flex-wrap: wrap;
 			gap: 0.15em 0.25em;
 			line-height: 1.35;
+			margin-top: 0.15em;
 		}
 		.team-suggest-item-icon {
 			width: 14px;
 			height: 14px;
 			flex: none;
+		}
+		/* アイテム名は特性・役割より読ませたい情報(ユーザー要望2026-08-04)なので通常テキストより
+		   濃くする。 */
+		.team-suggest-item-name {
+			font-weight: 600;
+			color: var(--color-text);
 		}
 		.team-suggest-role {
 			flex: none;
@@ -2073,13 +2170,17 @@ const initialTeamJson = team
 			text-decoration: underline dotted var(--color-border);
 			text-underline-offset: 0.2em;
 		}
-		/* 根拠(「◯◯採用チームのN%が併用」)も同じ理由で折り返す。ここで切れると
-		   割合の数字が消え、提案の説得力そのものが失われるため。 */
+		/* 根拠(相性の良いポケモン名、または「上位チームのN%が採用」)。ここで切れると
+		   提案の説得力そのものが失われるため折り返す。 */
 		.team-suggest-reason {
 			font-size: var(--font-size-xs);
 			color: var(--color-text-muted);
 			line-height: 1.35;
 			margin-top: 0.1em;
+		}
+		.team-suggest-reason-name {
+			font-weight: 600;
+			color: var(--color-text);
 		}
 		/* 持ち物がチーム内で重複する型(そのままでは編成できない)への注意書き。
 		   候補自体は消さない ── 「持ち物を変えれば使える」という情報は残す価値があるため。 */
@@ -2087,11 +2188,23 @@ const initialTeamJson = team
 			font-size: var(--font-size-xs);
 			color: var(--color-risky-strong);
 		}
+		/* UI改修依頼(右パネル サジェスト、2026-08-04)「3列目のセルに収まる縦長のボタン」へ変更。
+		   以前は grid-column:1/-1 で下に全幅表示していた。文字が縦書きにならないよう
+		   white-space:normalで折り返し、幅は4.5em程度に抑える。 */
 		.team-suggest-action {
-			grid-column: 1 / -1;
+			align-self: stretch;
 			justify-self: stretch;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			width: 5.2em;
+			max-width: 5.2em;
 			font-size: var(--font-size-xs);
-			padding: var(--space-1) var(--space-2);
+			line-height: 1.25;
+			padding: var(--space-1);
+			white-space: normal;
+			overflow-wrap: break-word;
+			text-align: center;
 			border: 1px solid var(--color-border);
 			border-radius: var(--radius-sm);
 			background: var(--color-surface-alt);
@@ -2314,6 +2427,12 @@ const initialTeamJson = team
 			const previewContentEl = el<HTMLElement>("team-preview-content");
 			// チームポケモンのサジェスト(ユーザー要望、2026-08-02)の描画先。
 			const suggestEl = el<HTMLElement>("team-suggest");
+			// サジェストの表示条件トグル(ユーザー要望、2026-08-04)。#team-suggestの中身は
+			// renderSuggestionsがinnerHTMLで丸ごと書き換えるため、トグル自体は兄弟要素にしてある
+			// (上の静的マークアップ参照)。表示/非表示はsuggestElと同じタイミングで切り替える。
+			const suggestTogglesEl = el<HTMLElement>("team-suggest-toggles");
+			const includeMegaToggle = el<HTMLInputElement>("team-suggest-mega-toggle");
+			const ownedOnlyToggle = el<HTMLInputElement>("team-suggest-owned-toggle");
 			// UI改修依頼(チーム編集中央パネル、2026-08-02)カード外クリックでの選択解除判定に使う
 			// (右パネル内のクリックは選択解除の対象外にする)。
 			const previewPanelEl = el<HTMLElement>("team-preview-panel");
@@ -2743,6 +2862,7 @@ const initialTeamJson = team
 				// (closePreviewPanel が戻す)。中身は消さない ── 選択解除のたびに
 				// 再fetchせず、そのまま出し直せるようにするため。
 				suggestEl.hidden = true;
+				suggestTogglesEl.hidden = true;
 
 				// UI改修依頼(右パネル、2026-08-04)見出しは右パネル共通のタイトル帯
 				// (#team-panel-header-title)へ表示する。以前はここ(previewContentEl内)に
@@ -2795,10 +2915,11 @@ const initialTeamJson = team
 				previewContentEl.innerHTML = "";
 				// ニュートラル状態に戻ったのでサジェストを出し直す(下の renderSuggestions 参照)。
 				suggestEl.hidden = false;
+				suggestTogglesEl.hidden = false;
 				// UI改修依頼(右パネル、2026-08-04)個体プレビューの見出しで上書きされたままの
 				// 共通タイトル帯を、ニュートラル状態(サジェスト)の見出しに戻す。テキストは
 				// renderSuggestions が使っているものと同じ固定文言。
-				setPanelHeaderTitle("おすすめのポケモン");
+				setPanelHeaderTitle("おすすめポケモン");
 			}
 
 			// =================================================================================
@@ -2850,6 +2971,30 @@ const initialTeamJson = team
 				suggestEl.appendChild(p);
 			}
 
+			// メガシンカ種族の判定用マスターデータ(ユーザー要望、2026-08-04。「メガシンカを含める」
+			// トグル)。mega-stones.json は「種族名→メガストーン名」の対応表(src/lib/speed-chart/
+			// chart-table.ts の loadMasterData と同じ要領でfetchする)。文字列の「メガ」接頭辞判定は
+			// 誤判定・取り漏れの余地があるため使わず、このマスターデータのspeciesに載っているかどうか
+			// だけで判定する。
+			interface MegaStoneMasterEntry {
+				species: string;
+				item: string;
+			}
+			let megaSpeciesSetPromise: Promise<Set<string>> | null = null;
+			function loadMegaSpeciesSet(): Promise<Set<string>> {
+				if (!megaSpeciesSetPromise) {
+					megaSpeciesSetPromise = fetch("/master-data/autocomplete/mega-stones.json")
+						.then((res) => res.json() as Promise<MegaStoneMasterEntry[]>)
+						.then((list) => new Set(list.map((entry) => entry.species)))
+						.catch((err) => {
+							console.warn("メガシンカ種族一覧の読み込みに失敗しました", err);
+							megaSpeciesSetPromise = null;
+							return new Set<string>();
+						});
+				}
+				return megaSpeciesSetPromise;
+			}
+
 			// 提案された型に一致する手持ち個体を探す。種族が一致し、かつチームに入れられる
 			// (selectionBlockReason が null)個体だけが対象。特性・持ち物まで一致するものを
 			// 優先し、無ければ種族だけ一致する個体を返す ── 「型は違うが同じポケモンなら持っている」
@@ -2866,6 +3011,21 @@ const initialTeamJson = team
 						(p.item_name ?? "") === (suggestion.itemName ?? ""),
 				);
 				return exact ?? usable[0];
+			}
+
+			// 表示条件トグル(ユーザー要望、2026-08-04)。「メガシンカを含める」OFF時はメガシンカ種族を
+			// 除外し、「育成済みのみ表示」ON時は手持ちに一致する型(findOwnedMatchが非null)だけに絞る。
+			// APIを叩き直さず、直近の応答に対してクライアント側でフィルタする。
+			async function filterSuggestions(suggestions: TeamSuggestion[]): Promise<TeamSuggestion[]> {
+				let result = suggestions;
+				if (!includeMegaToggle.checked) {
+					const megaSpecies = await loadMegaSpeciesSet();
+					result = result.filter((s) => !megaSpecies.has(s.speciesName));
+				}
+				if (ownedOnlyToggle.checked) {
+					result = result.filter((s) => findOwnedMatch(s) !== null);
+				}
+				return result;
 			}
 
 			// 「この型で個体を作る」: box/index.astro の createEmptyPokemon と同じ POST 経路で、
@@ -2909,15 +3069,26 @@ const initialTeamJson = team
 				}
 			}
 
+			// UI改修依頼(右パネル サジェスト、2026-08-04)カードを「rank / 本文(種族名+アイテム+
+			// 相性の良いポケモン の3段) / ボタン」の3列構成に変更。スプライトは本文列の名前の
+			// 左隣へ移した(以前はカード全体の専用列だった)。
 			function buildSuggestionCard(suggestion: TeamSuggestion, rank: number): HTMLElement {
+				const owned = findOwnedMatch(suggestion);
+
 				const card = document.createElement("li");
-				card.className = "team-suggest-card";
+				card.className = owned ? "team-suggest-card is-owned" : "team-suggest-card";
 
 				const rankEl = document.createElement("span");
 				rankEl.className = "team-suggest-rank";
 				rankEl.textContent = String(rank);
 				card.appendChild(rankEl);
 
+				const body = document.createElement("div");
+				body.className = "team-suggest-body";
+
+				// 1段目: スプライト(1.1倍、44px→48px) + 種族名。
+				const nameRow = document.createElement("div");
+				nameRow.className = "team-suggest-name-row";
 				const spriteEl = document.createElement("span");
 				spriteEl.className = "team-suggest-sprite";
 				const spriteImg = document.createElement("img");
@@ -2927,22 +3098,29 @@ const initialTeamJson = team
 				spriteFallback.className = "team-suggest-sprite-fallback";
 				spriteEl.append(spriteImg, spriteFallback);
 				void applySprite(spriteImg, spriteFallback, suggestion.speciesName);
-				card.appendChild(spriteEl);
-
-				const body = document.createElement("div");
-				body.className = "team-suggest-body";
-
-				const nameEl = document.createElement("div");
+				const nameEl = document.createElement("span");
 				nameEl.className = "team-suggest-name";
 				nameEl.textContent = suggestion.speciesName;
 				nameEl.title = suggestion.speciesName;
-				body.appendChild(nameEl);
+				nameRow.append(spriteEl, nameEl);
+				body.appendChild(nameRow);
 
-				// 型(持ち物・役割)と、その型で最も多い特性。持ち物が構築データに無い種族では
-				// 型が判明しない(API が null を返す)ので、その場合は採用率だけを出す。
+				// 2段目: アイテムを最優先(アイコン+名前)。特性・役割は残すがアイテムより後に置く。
+				// 持ち物が構築データに無い種族では型が判明しない(API が null を返す)ので、
+				// その場合は採用率だけを出す。
 				const buildEl = document.createElement("div");
 				buildEl.className = "team-suggest-build";
 				if (suggestion.abilityName || suggestion.itemName) {
+					if (suggestion.itemName) {
+						const itemIcon = document.createElement("img");
+						itemIcon.className = "team-suggest-item-icon";
+						itemIcon.alt = "";
+						void applyItemIcon(itemIcon, suggestion.itemName);
+						const itemEl = document.createElement("span");
+						itemEl.className = "team-suggest-item-name";
+						itemEl.textContent = suggestion.itemName;
+						buildEl.append(itemIcon, itemEl);
+					}
 					if (suggestion.abilityName) {
 						// 特性は型の識別子ではなく最頻値(migrations/018)。「この型なら普通はこの特性」
 						// という推定なので、確定情報である持ち物・役割と区別できるよう印を付ける。
@@ -2952,15 +3130,6 @@ const initialTeamJson = team
 						abilityEl.title = "この型で最も多い特性";
 						buildEl.appendChild(abilityEl);
 					}
-					if (suggestion.itemName) {
-						const itemIcon = document.createElement("img");
-						itemIcon.className = "team-suggest-item-icon";
-						itemIcon.alt = "";
-						void applyItemIcon(itemIcon, suggestion.itemName);
-						const itemEl = document.createElement("span");
-						itemEl.textContent = suggestion.itemName;
-						buildEl.append(itemIcon, itemEl);
-					}
 					if (suggestion.role) {
 						const roleEl = document.createElement("span");
 						roleEl.className = "team-suggest-role";
@@ -2968,8 +3137,8 @@ const initialTeamJson = team
 						buildEl.appendChild(roleEl);
 					}
 					buildEl.title = [
-						suggestion.abilityName ? `${suggestion.abilityName}(この型で最も多い特性)` : null,
 						suggestion.itemName,
+						suggestion.abilityName ? `${suggestion.abilityName}(この型で最も多い特性)` : null,
 						suggestion.role ? ROLE_LABELS[suggestion.role] : null,
 					]
 						.filter(Boolean)
@@ -2979,12 +3148,17 @@ const initialTeamJson = team
 				}
 				body.appendChild(buildEl);
 
-				// 根拠。共起ベースなら「◯◯採用チームの N%」、チームが空なら採用率。
+				// 3段目: 根拠。共起ベースなら「相性の良いポケモン」の名前を主体に表示し(reasonの
+				// seedSpeciesName)、割合は名前に併記する形で残す。チームが空(reasonがnull)なら
+				// 従来どおり採用率を出す。
 				const reasonEl = document.createElement("div");
 				reasonEl.className = "team-suggest-reason";
 				if (suggestion.reason) {
 					const percent = Math.round(suggestion.reason.ratio * 100);
-					reasonEl.textContent = `${suggestion.reason.seedSpeciesName}採用チームの${percent}%が併用`;
+					const reasonNameEl = document.createElement("span");
+					reasonNameEl.className = "team-suggest-reason-name";
+					reasonNameEl.textContent = suggestion.reason.seedSpeciesName;
+					reasonEl.append("相性: ", reasonNameEl, `(併用${percent}%)`);
 					reasonEl.title = `共起 ${suggestion.reason.coTeams}/${suggestion.reason.seedTeams}チーム・lift ${suggestion.reason.lift.toFixed(2)}`;
 				} else {
 					const percent = Math.round((suggestion.usageTeams / Math.max(suggestion.totalTeams, 1)) * 100);
@@ -3002,21 +3176,23 @@ const initialTeamJson = team
 
 				card.appendChild(body);
 
-				// 操作: 手持ちにあれば枠へ入れる、無ければその型で新規登録する。
-				const owned = findOwnedMatch(suggestion);
+				// 操作: 手持ちにあれば枠へ入れる、無ければその型で新規登録する。ラベルは
+				// 「育成する」/「チームに追加」に統一する(ユーザー要望、2026-08-04。以前は
+				// 「手持ちの◯◯を入れる」だったが、個体名はtitleに残して文言だけ揃える)。
 				const action = document.createElement("button");
 				action.type = "button";
 				action.className = "team-suggest-action";
 				if (owned) {
 					const label = owned.nickname?.trim() || owned.species_name;
-					action.textContent = `手持ちの${label}を入れる`;
-					action.title = action.textContent;
+					action.textContent = "チームに追加";
+					action.title = `手持ちの${label}を入れる`;
 					action.disabled = firstEmptySlot() == null;
 					action.addEventListener("click", () => {
 						assignToSlot(owned);
 					});
 				} else {
-					action.textContent = "この型で個体を作る";
+					action.textContent = "育成する";
+					action.title = "この型で個体を作る";
 					action.addEventListener("click", () => {
 						void createPokemonFromSuggestion(suggestion, action);
 					});
@@ -3030,8 +3206,12 @@ const initialTeamJson = team
 			// 判定をやり直して再描画するために保持する(APIは叩き直さない)。
 			let lastSuggestResponse: { suggestions: TeamSuggestion[]; basis: string } | null = null;
 			let suggestionSpeciesRanks = new Map<string, number>();
+			// 「今どの描画が最新か」。トグル操作(filterSuggestionsのawait)の途中で別の描画要求が
+			// 割り込んだとき、古い方がDOMを上書きしないようにする(previewRequestIdと同じ方式)。
+			let suggestRenderId = 0;
 
-			function renderSuggestions(suggestions: TeamSuggestion[], basis: string): void {
+			async function renderSuggestions(suggestions: TeamSuggestion[], basis: string): Promise<void> {
+				const renderId = (suggestRenderId += 1);
 				lastSuggestResponse = { suggestions, basis };
 				suggestionSpeciesRanks = new Map<string, number>();
 				suggestions.forEach((suggestion, index) => {
@@ -3049,34 +3229,26 @@ const initialTeamJson = team
 				// この場合、いま実際に表示中の状態の見出しを上書きしてはいけないので、サジェストが
 				// 見えている状態のときだけ帯を更新する。
 				if (!matchupActive && previewContentEl.hidden) {
-					setPanelHeaderTitle("おすすめのポケモン");
+					setPanelHeaderTitle("おすすめポケモン");
 				}
 
-				const note = document.createElement("p");
-				note.className = "team-suggest-note";
-				// basis はAPI(src/pages/api/team-suggestions.ts)が返す集計の根拠。
-				// usage_fallback は「編成中のポケモンが上位入賞チームのデータに1体も
-				// 登場せず、共起を計算できなかった」ケースで、共起順のつもりで読まれると
-				// 誤解を招くため専用の文言にする。
-				note.textContent =
-					basis === "usage"
-						? "上位入賞チームでの採用率順です。1体入れると、相性の良いポケモンに切り替わります。"
-						: basis === "usage_fallback"
-							? "編成中のポケモンは上位入賞チームのデータに無いため、環境全体の採用率順で表示しています。"
-							: "上位入賞チームで、今の編成とよく一緒に使われている型の順です。";
-				suggestEl.appendChild(note);
+				const filtered = await filterSuggestions(suggestions);
+				if (renderId !== suggestRenderId) return; // 途中でトグル操作等により新しい描画要求が来た
 
-				if (suggestions.length === 0) {
+				if (filtered.length === 0) {
 					const empty = document.createElement("p");
 					empty.className = "team-suggest-status";
-					empty.textContent = "この編成に対する提案は見つかりませんでした。";
+					empty.textContent =
+						suggestions.length === 0
+							? "この編成に対する提案は見つかりませんでした。"
+							: "表示条件に一致する提案が見つかりませんでした。トグルの設定を変更してください。";
 					suggestEl.appendChild(empty);
 					return;
 				}
 
 				const list = document.createElement("ul");
 				list.className = "team-suggest-list";
-				suggestions.forEach((s, index) => list.appendChild(buildSuggestionCard(s, index + 1)));
+				filtered.forEach((s, index) => list.appendChild(buildSuggestionCard(s, index + 1)));
 				suggestEl.appendChild(list);
 			}
 
@@ -3094,7 +3266,7 @@ const initialTeamJson = team
 					if (!res.ok) throw new Error(`サジェストの取得に失敗しました (status=${res.status})`);
 					const body = (await res.json()) as { data: TeamSuggestion[]; meta?: { basis?: string } };
 					if (requestId !== suggestRequestId) return; // 編成が変わった。この結果は捨てる
-					renderSuggestions(body.data ?? [], body.meta?.basis ?? "cooccurrence");
+					void renderSuggestions(body.data ?? [], body.meta?.basis ?? "cooccurrence");
 				} catch (err) {
 					console.error(err);
 					if (requestId !== suggestRequestId) return;
@@ -3477,6 +3649,7 @@ const initialTeamJson = team
 					previewContentEl.hidden = true;
 					previewContentEl.innerHTML = "";
 					suggestEl.hidden = true;
+					suggestTogglesEl.hidden = true;
 					// UI改修依頼(右パネル、2026-08-04)見出しは右パネル共通のタイトル帯へ表示する
 					// (以前は#team-matchup内に静的な.team-matchup-heading<p>を置いていた)。
 					setPanelHeaderTitle("使用率上位20体との相性");
@@ -3486,9 +3659,10 @@ const initialTeamJson = team
 					matchupRequestId += 1;
 					window.clearTimeout(matchupTimer);
 					suggestEl.hidden = false;
+					suggestTogglesEl.hidden = false;
 					// もう一度押すと元のニュートラル状態(サジェスト表示)へ戻るため、帯の見出しも
 					// closePreviewPanelと同じ文言に戻す。
-					setPanelHeaderTitle("おすすめのポケモン");
+					setPanelHeaderTitle("おすすめポケモン");
 				}
 			}
 
@@ -3660,6 +3834,7 @@ const initialTeamJson = team
 
 				const infoEl = document.createElement("div");
 				infoEl.className = "slot-info";
+				let teraItem: HTMLSpanElement | null = null;
 
 				// UI改修依頼(チーム編集中央パネル、2026-08-02)「ニックネーム/種族名を中央表示に
 				// し、その右隣にテラスタルアイコンと編集ボタンを置く。テラスタルはアイコンのみ」。
@@ -3685,7 +3860,7 @@ const initialTeamJson = team
 				// 残し、スクリーンリーダー・ホバー双方でアクセス可能にする。
 				const teraType = p.tera_type?.trim() ?? "";
 				if (teraType) {
-					const teraItem = document.createElement("span");
+					teraItem = document.createElement("span");
 					teraItem.className = "slot-meta-item";
 					teraItem.title = `テラスタイプ: ${teraType}`;
 					teraItem.setAttribute("aria-label", `テラスタイプ: ${teraType}`);
@@ -3695,7 +3870,6 @@ const initialTeamJson = team
 					teraImg.style.display = "none";
 					applyTeraIcon(teraImg, teraType);
 					teraItem.appendChild(teraImg);
-					nameRow.appendChild(teraItem);
 				}
 				infoEl.appendChild(nameRow);
 
@@ -3731,6 +3905,7 @@ const initialTeamJson = team
 					abilityLabel.classList.add("slot-meta-unset");
 				}
 				abilityCell.appendChild(abilityLabel);
+				if (teraItem) abilityCell.appendChild(teraItem);
 				metaRow.appendChild(abilityCell);
 
 				// 持ち物なし(null/空文字)は合法な対戦状態(G-3も対象外にしている)ため、
@@ -3791,12 +3966,22 @@ const initialTeamJson = team
 				const movesEl = document.createElement("div");
 				movesEl.className = "slot-moves";
 				if (moves.length > 0) {
+					const moveChipEntries: { iconEl: HTMLImageElement; moveName: string }[] = [];
 					for (const move of moves) {
 						const chip = document.createElement("span");
 						chip.className = "slot-move-chip";
-						chip.textContent = move;
+						const iconEl = document.createElement("img");
+						iconEl.className = "slot-move-chip-icon";
+						iconEl.alt = "";
+						iconEl.hidden = true;
+						const textEl = document.createElement("span");
+						textEl.className = "slot-move-chip-text";
+						textEl.textContent = move;
+						chip.append(iconEl, textEl);
 						movesEl.appendChild(chip);
+						moveChipEntries.push({ iconEl, moveName: move });
 					}
+					void applySelectMoveChipTypeIcons(moveChipEntries);
 				} else {
 					const chip = document.createElement("span");
 					chip.className = "slot-move-chip slot-move-chip-unset";
@@ -4384,6 +4569,21 @@ const initialTeamJson = team
 			syncRegulationFilterToggle();
 			syncRegulationPlaceholder();
 
+			// サジェストの表示条件トグル(ユーザー要望、2026-08-04)。APIは叩き直さず、
+			// 直近の応答(lastSuggestResponse)があれば同じデータのままフィルタし直す
+			// (filterSuggestionsがトグルの.checkedを見るため、まだ結果が無ければ何もしなくても
+			// 次にrenderSuggestionsが呼ばれたときに反映される)。
+			includeMegaToggle.addEventListener("change", () => {
+				if (lastSuggestResponse) {
+					void renderSuggestions(lastSuggestResponse.suggestions, lastSuggestResponse.basis);
+				}
+			});
+			ownedOnlyToggle.addEventListener("change", () => {
+				if (lastSuggestResponse) {
+					void renderSuggestions(lastSuggestResponse.suggestions, lastSuggestResponse.basis);
+				}
+			});
+
 			// UI改修依頼(チーム編集ヘッダー)「匿名でデータ提供するトグル」。個体編集画面
 			// (src/lib/box-id/left-panel.ts)と同じPATCH経路を、現在のチームメンバー全員に対して
 			// 一括で呼ぶ(既存の1個体用APIをそのまま流用。新しいAPI・DB列は追加していない)。
@@ -4460,7 +4660,7 @@ const initialTeamJson = team
 					// (findOwnedMatch)。その判定材料である allPokemon が今届いたので、
 					// 既に描画済みの結果があれば同じデータのまま描き直す(再fetchはしない)。
 					if (lastSuggestResponse) {
-						renderSuggestions(lastSuggestResponse.suggestions, lastSuggestResponse.basis);
+						void renderSuggestions(lastSuggestResponse.suggestions, lastSuggestResponse.basis);
 					}
 				})
 				.catch((err) => {
