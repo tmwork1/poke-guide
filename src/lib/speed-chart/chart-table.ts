@@ -370,6 +370,18 @@ export async function initSpeedChartPage(): Promise<void> {
     rowElements.clear();
     bodyEl!.replaceChildren();
     const fragment = document.createDocumentFragment();
+    const baseSpeedByName = new Map<string, number>();
+    for (const [name, form] of formsByName) baseSpeedByName.set(name, form.baseSpeed);
+
+    // 同一フォルムの要因名を連結したラベルも、描画前の幅計測対象に含める。
+    const rowGroupOriginNames = new Set(modifierNames);
+    for (const row of rows) {
+      for (const group of groupEntriesIntoRowGroups(row.entries, baseSpeedByName, undefined)) {
+        for (const entry of group.entries) {
+          if (entry.originName) rowGroupOriginNames.add(entry.originName);
+        }
+      }
+    }
 
     // 要件3の不具合修正: このレギュレーションの母集団のうち未計測のフォルムだけを一括計測する
     // (計測フェーズと描画フェーズを分離。レイアウトスラッシング回避)。
@@ -377,7 +389,7 @@ export async function initSpeedChartPage(): Promise<void> {
       bodyEl!,
       tableEl!,
       formsByName.keys(),
-      modifierNames,
+      rowGroupOriginNames,
       imageIdByName,
       chipWidthByName,
       chipOriginWidthByName,
@@ -388,8 +400,6 @@ export async function initSpeedChartPage(): Promise<void> {
       currentRegulation === ALL_REGULATIONS_VALUE
         ? mergeSpeciesUsageCounts(usageByRegulation, knownRegulations)
         : usageByRegulation[currentRegulation];
-    const baseSpeedByName = new Map<string, number>();
-    for (const [name, form] of formsByName) baseSpeedByName.set(name, form.baseSpeed);
 
     for (const row of rows) {
       // 実数値1件ぶんのentriesを「振り方+補正」のグループへ分け、族(baseSpeed)降順の
@@ -728,15 +738,22 @@ function groupEntriesIntoRowGroups(
       group = { spreadKind: entry.spread, baseSpeed, magnitudeLabel, entries: [] };
       groups.set(key, group);
     }
-    group.entries.push({ formName: entry.formName, originName: entry.modifier?.name ?? null });
+    const originName = entry.modifier?.name ?? null;
+    const existingEntry = group.entries.find((groupEntry) => groupEntry.formName === entry.formName);
+    if (!existingEntry) {
+      group.entries.push({ formName: entry.formName, originName });
+    } else if (
+      existingEntry.originName &&
+      originName &&
+      !existingEntry.originName.split('/').includes(originName)
+    ) {
+      existingEntry.originName = `${existingEntry.originName}/${originName}`;
+    }
   }
 
   // 要件1(2026-08-01第2弾)+第3弾要件6: グループ内を使用率降順(→すばやさ種族値降順→
-  // 種族名昇順)に並べる。第3弾で同じフォルムが複数の異なる要因(originName)で同じグループに
-  // 現れうるようになった(例: 同じポケモンが2つの異なる持ち物でどちらも同じ倍率になる)ため、
-  // 「フォルム名の配列」をそのまま並び替える既存の使い方はできない。ユニークなフォルム名の
-  // 順位表を先に作り、その順位でentries(フォルム,要因)の組を安定ソートする(同じフォルム名の
-  // entries同士は元の出現順を維持する)。
+  // 種族名昇順)に並べる。同じフォルムの異なる要因は上で1エントリに統合済みだが、順位表は
+  // 引き続きユニークなフォルム名から作り、その順位でentriesを安定ソートする。
   const orderedGroups = Array.from(groups.values(), (group) => {
     const uniqueFormNames = Array.from(new Set(group.entries.map((e) => e.formName)));
     const rankByName = new Map(
