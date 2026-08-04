@@ -204,9 +204,7 @@ export async function initSpeedChartPage(): Promise<void> {
   const backButton = document.getElementById('speed-chart-owned-summary-value');
   // 要件4: ?owned=があるときだけ存在するトグル(ChartTable.astro側もhasOwnedPanelで条件付け済み)。
   const reachableOnlyToggle = document.getElementById('speed-chart-reachable-only-toggle') as HTMLInputElement | null;
-  // UI改修依頼(すばやさ早見表、2026-08-02)「実数値ソートの昇降を入れ替えるトグルを追加する」:
-  // トップバー(index.astro)側の select。値は 'desc'(既定、旧来の固定挙動)/ 'asc'。
-  const orderSelect = document.getElementById('speed-chart-order-select') as HTMLSelectElement | null;
+  const orderButton = document.getElementById('speed-chart-order-select') as HTMLButtonElement | null;
 
   if (!config || !statusEl || !tableEl || !bodyEl) {
     if (statusEl) statusEl.textContent = '設定の読み込みに失敗しました。';
@@ -257,7 +255,7 @@ export async function initSpeedChartPage(): Promise<void> {
   // UI改修依頼(すばやさ早見表、2026-08-02)「実数値ソートの昇降を入れ替えるトグルを追加する」:
   // buildSpeedChartRows(src/lib/speed-chart.ts、編集禁止)は常に実数値の降順で返すため、
   // 昇順はこのファイル側でrows配列を反転させて対応する(renderVisibleRows参照)。
-  let sortOrder: 'asc' | 'desc' = orderSelect?.value === 'asc' ? 'asc' : 'desc';
+  let sortOrder: 'asc' | 'desc' = orderButton?.dataset.order === 'asc' ? 'asc' : 'desc';
   // 要件3の不具合修正(2026-08-01): 「行ごとの実際の合計幅」で足切りするための実測キャッシュ。
   // フォルム名 -> チップ1個の実測幅(px)。チップ幅は名前とアイコンだけで決まるため、
   // フォルム名をキーに1回だけ測ればよい(レギュレーションを跨いでも再利用する。
@@ -371,6 +369,11 @@ export async function initSpeedChartPage(): Promise<void> {
         hasScrolledInitially = true;
         scrollToValue(value);
       }
+    } else if (!hasScrolledInitially) {
+      // 調整対象が無い通常表示（または対象が現レギュレーションに存在しない初期表示）は、
+      // 長い表の中央付近である実数値200を初回だけ表示する。
+      hasScrolledInitially = true;
+      scrollToValue(200);
     }
   }
 
@@ -551,17 +554,26 @@ export async function initSpeedChartPage(): Promise<void> {
   // 覚えておき、再描画後に同じ実数値へ(アニメーション無しで)スクロールし直すことで
   // 現在地・スクロール位置の連続性を保つ。ハイライト自体はrenderRows内で
   // currentHighlightValueを見て再適用されるため、ここで別途何もする必要はない。
-  orderSelect?.addEventListener('change', () => {
-    if (!orderSelect) return;
-    const nextOrder: 'asc' | 'desc' = orderSelect.value === 'asc' ? 'asc' : 'desc';
-    if (nextOrder === sortOrder) return;
+  orderButton?.addEventListener('click', () => {
+    const nextOrder: 'asc' | 'desc' = sortOrder === 'desc' ? 'asc' : 'desc';
     const anchorValue = findAnchorRowValue();
     sortOrder = nextOrder;
+    updateOrderButton();
     renderVisibleRows();
     if (anchorValue !== null) {
       findNearestRowElement(anchorValue)?.scrollIntoView({ block: 'center', behavior: 'auto' });
     }
   });
+
+  function updateOrderButton(): void {
+    if (!orderButton) return;
+    const label = sortOrder === 'asc' ? '昇順' : '降順';
+    orderButton.dataset.order = sortOrder;
+    orderButton.setAttribute('aria-label', `実数値の並び順: ${label}`);
+    orderButton.setAttribute('aria-pressed', String(sortOrder === 'asc'));
+    const labelEl = orderButton.querySelector<HTMLElement>('.speed-chart-order-label');
+    if (labelEl) labelEl.textContent = label;
+  }
 
   // UI改修依頼(すばやさ早見表、2026-08-02)要件2: 並び順トグルの直前に「今どの実数値を
   // 見ているか」を求める。現在地ハイライトがあればそれを最優先(個体調整の基準行が

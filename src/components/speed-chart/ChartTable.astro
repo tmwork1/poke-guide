@@ -270,6 +270,10 @@ const { regulation, ownedId, hasOwnedPanel } = Astro.props;
 		   段間パディングを詰めても罫線がある限りグルーピングは読み取れる(1920px・390px
 		   双方でスクリーンショット確認済み)。 */
 		padding: var(--space-2) 0;
+		align-items: center;
+	}
+	/* 補正要因が2段目にある行だけは、数値・メタ情報をチップの上端に揃える。 */
+	.speed-chart-table .speed-chart-row:has(.speed-chart-chip-origin) {
 		align-items: start;
 	}
 	.speed-chart-table .speed-chart-row.speed-chart-row-value-end {
@@ -285,7 +289,7 @@ const { regulation, ownedId, hasOwnedPanel } = Astro.props;
 	.speed-chart-table .speed-chart-value-cell {
 		font-size: 1.05em;
 		font-weight: 700;
-		padding-top: 0.15em;
+		padding-top: 0;
 		text-align: center;
 		padding-left: var(--space-2);
 		padding-right: var(--space-2);
@@ -301,7 +305,7 @@ const { regulation, ownedId, hasOwnedPanel } = Astro.props;
 		align-items: center;
 		gap: 0.35em;
 		min-width: 0;
-		padding-top: 0.25em;
+		padding-top: 0;
 		font-size: var(--font-size-sm);
 		font-weight: 500;
 		color: var(--color-text);
@@ -310,6 +314,7 @@ const { regulation, ownedId, hasOwnedPanel } = Astro.props;
 	.speed-chart-table .speed-chart-base-speed-label {
 		color: var(--color-text-muted);
 		font-weight: 500;
+		font-size: var(--font-size-md);
 	}
 	/* 3列目: ポケモンを1段目、その補正要因を2段目・左寄せ(チップの並び自体は左寄せのまま)。 */
 	.speed-chart-table .speed-chart-chips-cell {
@@ -405,7 +410,7 @@ const { regulation, ownedId, hasOwnedPanel } = Astro.props;
 		align-items: center;
 		padding: 0.05em 0.55em;
 		border-radius: 999px;
-		font-size: inherit;
+		font-size: 0.9em;
 		font-weight: 500;
 		vertical-align: middle;
 		background: var(--color-surface-alt);

@@ -243,23 +243,17 @@ try {
 			))}
 		</select>
 		<input type="number" id="speed-chart-jump-input" placeholder="すばやさ実数値" aria-label="すばやさ実数値" />
-		{/* UI改修依頼(すばやさ早見表、2026-08-02)「実数値ソートの昇降を入れ替えるトグルを追加する」:
-		    見た目は/boxのトップバー並べ替えUI(↑↓アイコン+select、src/pages/box/index.astro
-		    .sort-select-wrap/.sort-icon)の流儀に合わせる(box自体は編集禁止のため同じ意匠を
-		    このページ内で再現する)。boxの並べ替えは「並べ替え基準」の選択だったが、この表は
-		    基準(実数値)が固定で昇順/降順のみが可変のため、選択肢は2つ(降順/昇順)にする。
-		    既定は変更前と同じ挙動(降順)を維持する。 */}
+		{/* 実数値の並び順は、現在の状態を示す単一ボタンで切り替える。 */}
 		<div class="speed-chart-order-select-wrap">
-			<svg class="speed-chart-order-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-				<path d="M7 4v16" />
-				<path d="M4 7l3-3 3 3" />
-				<path d="M17 20V4" />
-				<path d="M14 17l3 3 3-3" />
-			</svg>
-			<select id="speed-chart-order-select" aria-label="実数値の並び順">
-				<option value="desc" selected>降順</option>
-				<option value="asc">昇順</option>
-			</select>
+			<button id="speed-chart-order-select" type="button" data-order="desc" aria-label="実数値の並び順: 降順" aria-pressed="false">
+				<svg class="speed-chart-order-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+					<path d="M7 4v16" />
+					<path d="M4 7l3-3 3 3" />
+					<path d="M17 20V4" />
+					<path d="M14 17l3 3 3-3" />
+				</svg>
+				<span class="speed-chart-order-label">降順</span>
+			</button>
 		</div>
 	</Fragment>
 	<ChartTable
@@ -293,24 +287,19 @@ try {
 		width: 11rem;
 	}
 
-	/* UI改修依頼(すばやさ早見表、2026-08-02)「並べ替えトグルの見た目を/boxに合わせる」:
-	   /box(src/pages/box/index.astro).sort-select-wrap/.sort-icon/.toolbar-sort selectと
-	   同じ手法(position:absoluteのアイコンをselect左端に重ね、select側にpadding-leftで
-	   アイコン分のスペースを空ける)をこのページ内で再現する(boxのCSSは編集禁止のため複製)。 */
 	.speed-chart-order-select-wrap {
-		position: relative;
 		display: flex;
 		align-items: center;
 	}
-	.speed-chart-order-select-wrap .speed-chart-order-icon {
-		position: absolute;
-		left: 0.7em;
+	.speed-chart-order-icon {
 		color: var(--color-text-muted);
-		pointer-events: none;
+		transition: transform 0.2s ease;
 	}
 	#speed-chart-order-select {
-		padding-left: 2.1em;
 		min-width: 6.5rem;
+	}
+	#speed-chart-order-select[data-order='asc'] .speed-chart-order-icon {
+		transform: rotate(180deg);
 	}
 </style>
 
