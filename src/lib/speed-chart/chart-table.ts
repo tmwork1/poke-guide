@@ -78,6 +78,68 @@ interface MasterData {
 }
 
 const ROOT_SELECTOR = '.speed-chart-table';
+const ALL_REGULATIONS_VALUE = 'all';
+const ADOPTION_CATEGORIES = ['items', 'moves'] as const;
+
+function getKnownRegulations(regSelect: HTMLSelectElement | null): string[] {
+  if (!regSelect) return [];
+  return Array.from(regSelect.options, (option) => option.value).filter((value) => value !== ALL_REGULATIONS_VALUE);
+}
+
+function mergeAdoptionRateData(
+  adoptionByRegulation: Record<string, AdoptionRateData>,
+  regulations: string[],
+): AdoptionRateData {
+  const merged: AdoptionRateData = {};
+  const speciesNames = new Set<string>();
+  for (const regulation of regulations) {
+    for (const speciesName of Object.keys(adoptionByRegulation[regulation] ?? {})) {
+      speciesNames.add(speciesName);
+    }
+  }
+
+  for (const speciesName of speciesNames) {
+    const mergedCategories: AdoptionRateData[string] = {};
+    for (const category of ADOPTION_CATEGORIES) {
+      let hasBucket = false;
+      let sampleSize = 0;
+      const weightedRatios = new Map<string, number>();
+      for (const regulation of regulations) {
+        const bucket = adoptionByRegulation[regulation]?.[speciesName]?.[category];
+        if (!bucket) continue;
+        hasBucket = true;
+        sampleSize += bucket.sampleSize;
+        for (const [option, ratio] of Object.entries(bucket.options)) {
+          weightedRatios.set(option, (weightedRatios.get(option) ?? 0) + ratio * bucket.sampleSize);
+        }
+      }
+      if (!hasBucket) continue;
+
+      const options: Record<string, number> = {};
+      if (sampleSize > 0) {
+        for (const [option, weightedRatio] of weightedRatios) {
+          options[option] = weightedRatio / sampleSize;
+        }
+      }
+      mergedCategories[category] = { sampleSize, options };
+    }
+    if (Object.keys(mergedCategories).length > 0) merged[speciesName] = mergedCategories;
+  }
+  return merged;
+}
+
+function mergeSpeciesUsageCounts(
+  usageByRegulation: Record<string, SpeciesUsageCounts>,
+  regulations: string[],
+): SpeciesUsageCounts {
+  const merged: SpeciesUsageCounts = {};
+  for (const regulation of regulations) {
+    for (const [speciesName, count] of Object.entries(usageByRegulation[regulation] ?? {})) {
+      merged[speciesName] = (merged[speciesName] ?? 0) + count;
+    }
+  }
+  return merged;
+}
 
 // UI改修(2026-08-02)要件1: 「表示しない条件」を静的ファイル(speed-chart.json)で管理できる
 // ようにする。src/lib/speed-chart.ts は編集禁止(担当外)のため、SpeedChartConfig 本体には
@@ -122,6 +184,7 @@ export async function initSpeedChartPage(): Promise<void> {
   const tableEl = document.getElementById('speed-chart-rows');
   const bodyEl = document.getElementById('speed-chart-rows-body');
   const regSelect = document.getElementById('speed-chart-regulation-select') as HTMLSelectElement | null;
+  const knownRegulations = getKnownRegulations(regSelect);
   // UI改修(2026-08-02第3弾)要件1: 「ジャンプ」ボタン(speed-chart-jump-button)は廃止され、
   // レギュレーション選択・実数値入力は共通トップバー(AppLayout)へ移った(idは維持)。
   // ボタン要素自体が無くなったため、Enterキーでのジャンプだけを維持する。
@@ -203,17 +266,36 @@ export async function initSpeedChartPage(): Promise<void> {
 
   function render(regulation: string): void {
     currentRegulation = regulation;
-    const population = buildSpeedChartPopulation(
-      regulation,
-      masterData.pokemonAutocomplete,
-      masterData.pokemonDetail,
-      masterData.megaStones,
-      masterData.itemAutocomplete,
-    );
+    const population =
+      regulation === ALL_REGULATIONS_VALUE
+        ? Array.from(
+            knownRegulations.reduce((formsByName, knownRegulation) => {
+              for (const form of buildSpeedChartPopulation(
+                knownRegulation,
+                masterData.pokemonAutocomplete,
+                masterData.pokemonDetail,
+                masterData.megaStones,
+                masterData.itemAutocomplete,
+              )) {
+                if (!formsByName.has(form.name)) formsByName.set(form.name, form);
+              }
+              return formsByName;
+            }, new Map<string, SpeedChartForm>()).values(),
+          )
+        : buildSpeedChartPopulation(
+            regulation,
+            masterData.pokemonAutocomplete,
+            masterData.pokemonDetail,
+            masterData.megaStones,
+            masterData.itemAutocomplete,
+          );
     formsByName.clear();
     for (const form of population) formsByName.set(form.name, form);
 
-    const adoptionData = adoptionByRegulation[regulation];
+    const adoptionData =
+      regulation === ALL_REGULATIONS_VALUE
+        ? mergeAdoptionRateData(adoptionByRegulation, knownRegulations)
+        : adoptionByRegulation[regulation];
     // 要件1: buildSpeedChartRows(src/lib/speed-chart.ts、編集禁止)の結果に対し、
     // speed-chart.json の hiddenEntries.rules に一致するエントリをここで後段フィルタする。
     // UI改修(2026-08-02第4弾)要件2: 続けて hiddenPokemon.names に載っているフォルムの
@@ -302,7 +384,10 @@ export async function initSpeedChartPage(): Promise<void> {
       chipLayoutMetrics,
       hasOwnedPanel,
     );
-    const usageCounts = usageByRegulation[currentRegulation];
+    const usageCounts =
+      currentRegulation === ALL_REGULATIONS_VALUE
+        ? mergeSpeciesUsageCounts(usageByRegulation, knownRegulations)
+        : usageByRegulation[currentRegulation];
     const baseSpeedByName = new Map<string, number>();
     for (const [name, form] of formsByName) baseSpeedByName.set(name, form.baseSpeed);
 

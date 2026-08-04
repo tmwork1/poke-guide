@@ -52,10 +52,13 @@ const backHref = ownedId ? `/box/${ownedId}` : undefined;
 // レギュレーション決定順序(P1確定仕様): ?reg= → 連携個体のregulation → REGULATIONSの末尾(最新)。
 // REGULATIONSは常に非空(vendor/jpokeが最低1つのレギュレーションを持つ)前提のため、
 // フォールバックのみ非nullを明示しておく(「レギュレーション未指定は許さない」)。
+const requestedRegulation = Astro.url.searchParams.get('reg');
 const resolvedRegulation =
-	resolveSpeedChartRegulation(Astro.url.searchParams.get('reg'), ownedRecord?.regulation, REGULATIONS) ??
-	REGULATIONS[REGULATIONS.length - 1] ??
-	'';
+	requestedRegulation === 'all'
+		? 'all'
+		: (resolveSpeedChartRegulation(requestedRegulation, ownedRecord?.regulation, REGULATIONS) ??
+			REGULATIONS[REGULATIONS.length - 1] ??
+			'');
 
 // U-2: 採用率データを1クエリで取得する(種族ごとにfetchしない)。suggestionsテーブルの
 // レギュレーション別の行(subject_key = "種族名|レギュレーション"、migrations/013由来)だけを
@@ -196,6 +199,7 @@ try {
 >
 	<Fragment slot="topbar-actions">
 		<select id="speed-chart-regulation-select" aria-label="レギュレーション">
+			<option value="all" selected={resolvedRegulation === 'all'}>指定なし</option>
 			{REGULATIONS_NEWEST_FIRST.map((reg) => (
 				<option value={reg} selected={reg === resolvedRegulation}>{reg}</option>
 			))}
