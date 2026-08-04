@@ -164,11 +164,17 @@ const user = Astro.locals.user;
 		   「お気に入りのみ表示」の単一トグルボタンに置き換える。このボタンは静的マークアップ
 		   (JS生成ではない)なので、他のツールバー部品と同じくこのscoped styleで定義する。
 		   非活性=global.cssのbutton既定(枠線のみ)、活性=primaryで塗り、hoverで反転する
-		   (global.cssのbtn-primaryのhover反転と同じ配色トークンの使い方)。 */
+		   (global.cssのbtn-primaryのhover反転と同じ配色トークンの使い方)。
+		   UI改修依頼(2026-08-04)「他のヘッダーボタンと同じ細字にする」: global.cssの基底
+		   `button { font-weight: 600 }` をこの素のbuttonもそのまま継承しており、周辺の
+		   #search-input/#sort-select/#regulation-filter(いずれも.field-control、フォント
+		   ウェイト未指定=ブラウザ既定400)と並ぶと太く見えていた。この素のbuttonだけ明示的に
+		   400へ上書きする(data-active時もbackground/色だけ変わり太さは変えない=常に400)。 */
 		.favorite-filter-toggle {
 			display: inline-flex;
 			align-items: center;
 			gap: 0.35em;
+			font-weight: 400;
 		}
 		.favorite-filter-toggle[data-active="true"] {
 			background: var(--color-primary);
@@ -482,7 +488,11 @@ const user = Astro.locals.user;
 			display: flex;
 			align-items: center;
 			justify-content: center;
-			width: min(56%, 113px);
+			/* UI改修依頼(2026-08-04、要件2): .card-item-row(特性+アイテム)を1行2列→2段組に
+			   変更したことで.card-bodyの内容高さが増え、1fr行(この.card-art)の取り分が
+			   縮んだ。overflow:hiddenで公式絵の上下が切られないよう、ラウンド12以前の値
+			   min(48%,104px)(当時の実測97px)へ戻す(ラウンド12のコメント参照)。 */
+			width: min(48%, 104px);
 			aspect-ratio: 1 / 1;
 			flex: 0 1 auto;
 		}
@@ -508,13 +518,17 @@ const user = Astro.locals.user;
 		   全て不要になったため削除し、flexの行内配置だけの単純なサイズ指定に作り直す。
 		   過去の拡大・縮小の経緯(ラウンド32-B5で20px確立→34-B4で30px→35-B1で24px)を踏まえ、
 		   名前の文字サイズ(0.82em)と釣り合う20pxを採用する。 --- */
+		/* UI改修依頼(2026-08-04、要件3): 名前行(.card-name-row)の右端から、特性+アイテム行
+		   (.card-item-row)側の特性の右へ配置し直す(DOM側の変更、下のscript参照)。名前
+		   (0.82em)と釣り合わせた20pxは移設先の文脈(0.75remの特性名)には大きすぎるため、
+		   同じ0.75remのテキストと並ぶ.card-item-badge(アイテムアイコン)と同じ16pxに揃える。 */
 		.box-grid .card-pokemon .card-tera-badge {
 			display: flex;
 			align-items: center;
 			justify-content: center;
 			flex: none;
-			width: 20px;
-			height: 20px;
+			width: 16px;
+			height: 16px;
 		}
 		.box-grid .card-pokemon .card-tera-badge img {
 			width: 100%;
@@ -717,9 +731,9 @@ const user = Astro.locals.user;
 			width: 100%;
 			text-align: center;
 		}
-		/* UI改修依頼(2026-08-02): 名前とテラスバッジを同じ行に収め、テラスバッジは行の右端に
-		   寄せる(旧.card-badge-row、公式絵の右の縦バッジ列から移設)。名前は引き続き1行で
-		   省略(ellipsis)し、テラスバッジぶんの幅はflexで自動的に譲る。 */
+		/* UI改修依頼(2026-08-02): 名前を1行で省略(ellipsis)表示する行。
+		   UI改修依頼(2026-08-04、要件3): テラスバッジはこの行から.card-item-row側の特性の
+		   右へ移設した(下の.card-item-row-ability/scriptのnameRow生成部分を参照)。 */
 		.box-grid .card-pokemon .card-name-row {
 			display: flex;
 			align-items: center;
@@ -773,16 +787,24 @@ const user = Astro.locals.user;
 		/* --- 特性+アイテム(優先順位4位。名前行と技グリッドの間のテキスト行)。
 		   ラウンド43 43-B1でアイテム名テキストを一旦削除し特性名だけの1列にしていたが、
 		   UI改修依頼(2026-08-02、要件3): アイテムアイコンを公式絵の右(旧.card-badge-row)から
-		   この行へ戻すのに合わせ、2列(左=特性名、右=アイテムアイコン+アイテム名)に作り直す。
-		   左右それぞれの半分の中央に配置する(.card-item-row = grid 2列、
-		   .card-item-row-cell = flexで各セルの中央に寄せる)。 --- */
+		   この行へ戻すのに合わせ、2列(左=特性名、右=アイテムアイコン+アイテム名)に作り直した。
+		   UI改修依頼(2026-08-04、要件2): 1行2列(左右半分)だと長い特性名・アイテム名が
+		   ellipsisで見切れやすいため、2段(特性行→アイテム行)の縦積みに組み替える。
+		   .card-item-row = flex縦積み(各行=.card-item-row-cellがカード幅いっぱいに広がる)、
+		   .card-item-row-cell = 各行内でflex中央寄せ(旧来と同じ役割のまま)。クラス名は
+		   変更しない。
+		   要件3: 特性行(.card-item-row-ability)にはテラスバッジも入る(下の.card-tera-badge
+		   移設・.card-ability-nameのflex:1参照)。行あたりの高さはテキスト単体(line-height
+		   1.2*0.75rem=14.4px)よりアイコン(特性行=テラス16px/アイテム行=アイテム16px)の方が
+		   大きいため、min-heightはアイコン基準の16px×2行+行間0.1remで確保する
+		   (アイテム・テラス未設定の個体でもアイコン有り無しで高さが揺れないようにする)。 --- */
 		.box-grid .card-pokemon .card-item-row {
-			display: grid;
-			grid-template-columns: 1fr 1fr;
-			align-items: center;
+			display: flex;
+			flex-direction: column;
 			width: 100%;
 			margin-top: 0.1rem;
-			min-height: calc(1.2 * 0.75rem);
+			gap: 0.1rem;
+			min-height: calc(2 * 16px + 0.1rem);
 		}
 		.box-grid .card-pokemon .card-item-row-cell {
 			display: flex;
@@ -794,8 +816,14 @@ const user = Astro.locals.user;
 		/* 特性名: 名前(card-name)・技チップ(card-move-chip)と同様に1行で省略する
 		   (折り返さない)。20-G3の12px下限ちょうど(0.75rem)にし、名前ほど主張しない
 		   「補助情報」の階層に置く。左セル(.card-item-row-ability)の中でellipsisさせるため
-		   min-width:0は親セル側(.card-item-row-cell)で確保済み。 */
+		   min-width:0は親セル側(.card-item-row-cell)で確保済み。
+		   UI改修依頼(2026-08-04、要件2/3): 行が2段組(.card-item-row)になり、この行はカード幅
+		   いっぱいを使える(旧来は右半分)。テラスバッジが右に同居するため、名前行
+		   (.card-name-row)の名前+テラスバッジと同じ組み方(テキストをflex:1で伸ばし、
+		   バッジをflex:noneで右端固定)にする(下のプロパティのflex/min-width追加参照)。 */
 		.box-grid .card-pokemon .card-ability-name {
+			flex: 1 1 auto;
+			min-width: 0;
 			font-size: 0.75rem;
 			line-height: 1.2;
 			font-weight: 600;
@@ -806,8 +834,10 @@ const user = Astro.locals.user;
 			overflow: hidden;
 			text-overflow: ellipsis;
 		}
-		/* アイテム名: 特性名と同じ0.75rem・1行省略。カード幅(約210px)の右半分(約1fr)に
-		   アイコン16px+gap0.2remと同居するため、ellipsisで確実に収める。 */
+		/* アイテム名: 特性名と同じ0.75rem・1行省略。
+		   UI改修依頼(2026-08-04、要件2): 行が2段組になり、この行(アイテム行)もカード幅
+		   いっぱいを使える(旧来は右半分)。アイコン16px+gap0.2remと同居するため、
+		   ellipsisで確実に収める。 */
 		.box-grid .card-pokemon .card-item-name {
 			font-size: 0.75rem;
 			line-height: 1.2;
@@ -916,7 +946,11 @@ const user = Astro.locals.user;
 			   0.75remベースに更新する(border-top/padding-topはもうこの要素に無いため式から除去)。
 			   ラウンド21 21-B3: 技チップに上下0.08remのpaddingを追加したため(下の.card-move-chip
 			   参照)、1行あたり+0.16rem(2*0.08rem)ぶん計算式に加算する。 */
-			min-height: calc(2 * (1.2 * 0.75rem + 0.16rem) + 0.05rem);
+			/* UI改修依頼(2026-08-04、要件4): 技チップの文字サイズを0.75rem→0.7remへ引き上げた
+			   ため(下の.card-move-chip参照)、この予約高さの計算式も0.7rem基準に合わせる
+			   (0.75remのまま残すと実際のチップ高さより予約が小さくなり、技4件と技0件でカードの
+			   高さが揃わなくなる)。 */
+			min-height: calc(2 * (1.2 * 0.7rem + 0.16rem) + 0.05rem);
 		}
 		/* ラウンド20 G3: 0.64em(≈10.2px)は違反だったため、emの入れ子を避けてrem基準の
 		   0.75rem(=12px)へ引き上げる。
@@ -941,15 +975,20 @@ const user = Astro.locals.user;
 		   下記参照)を廃止し、チップをflexの行(アイコン+テキスト)に組み替える。背景・枠線は
 		   一切足さない(指示どおりプレーンなテキスト+アイコン)。text-align: centerだった
 		   旧配置も、要件どおり左揃え(flexの既定)に変える。padding-leftを外したことで
-		   チップの内容がセル左端から始まるようになる。font-size(0.625rem、42-B2の実測根拠)・
-		   line-height・padding上下(.card-moves-gridのmin-height計算に使われている)は
-		   変更しない。 */
+		   チップの内容がセル左端から始まるようになる。font-size(42-B2で実測根拠付きに
+		   0.625remへ縮小)・line-height・padding上下は当時変更しない方針だったが、
+		   UI改修依頼(2026-08-04、要件4)「技のアイコン・文字サイズを少し大きくする」により
+		   0.625rem→0.7rem・アイコン10px→12pxへ引き上げる(下のプロパティ参照)。
+		   0.7remでも42-B2が問題視した最長技名(8文字、実測96px@12px)は12px相当の幅に収まらない
+		   可能性があるが、ellipsisで省略されるだけでレイアウト崩れにはならない(名前・アイテム名
+		   と同じ1行ellipsisの扱い)。.card-moves-gridのmin-height計算式もこの変更に合わせて
+		   0.7rem基準へ更新した(下記参照)。 */
 		.box-grid .card-pokemon .card-move-chip {
 			display: flex;
 			align-items: center;
 			gap: 0.25rem;
 			min-width: 0;
-			font-size: 0.625rem;
+			font-size: 0.7rem;
 			line-height: 1.2;
 			font-weight: 600;
 			color: var(--color-text-muted);
@@ -958,13 +997,15 @@ const user = Astro.locals.user;
 		/* タイプアイコン(typeIconUrl、src/lib/sprite-urls.ts)。技名の文字の行高
 		   (line-height 1.2 * 0.625rem = 12px)に対してアイコンが大きすぎるとベースラインより
 		   下にはみ出して見えるため、行高よりわずかに小さい10pxにし、align-items: centerで
-		   テキストの行内中央に揃える(拡大クロップで目視確認済み、報告参照)。技名からタイプが
-		   引けない場合はJS側(applyMoveChipTypeIcons)がimg要素にhidden属性を付けたまま
-		   にするため、アイコン無しでテキストだけが左端に詰まる。 */
+		   テキストの行内中央に揃える(拡大クロップで目視確認済み、報告参照)。
+		   UI改修依頼(2026-08-04、要件4): 技名の文字サイズを0.7rem(行高1.2*0.7rem=13.44px)へ
+		   引き上げたのに合わせ、アイコンも10px→12pxへ引き上げる(行高よりわずかに小さい
+		   比率を維持)。技名からタイプが引けない場合はJS側(applyMoveChipTypeIcons)がimg要素に
+		   hidden属性を付けたままにするため、アイコン無しでテキストだけが左端に詰まる。 */
 		.box-grid .card-pokemon .card-move-chip-icon {
 			flex: none;
-			width: 10px;
-			height: 10px;
+			width: 12px;
+			height: 12px;
 			object-fit: contain;
 		}
 		.box-grid .card-pokemon .card-move-chip-text {
@@ -1001,13 +1042,16 @@ const user = Astro.locals.user;
 				grid-template-columns: minmax(0, 1fr);
 				/* 技4件ぶん(1列4行)の高さを常に確保する(min-height計算式は上の基本定義と
 				   同じ1行あたりの高さを4倍にしたもの)。 */
-				min-height: calc(4 * (1.2 * 0.75rem + 0.16rem) + 3 * 0.05rem);
+				/* UI改修依頼(2026-08-04、要件4): 技名の文字サイズ引き上げ(0.75rem→0.7rem)に
+				   合わせてこちらも0.7rem基準に更新する。 */
+			min-height: calc(4 * (1.2 * 0.7rem + 0.16rem) + 3 * 0.05rem);
 			}
 			/* UI改修依頼(2026-08-02): .card-item-badge/.card-tera-badge/.card-badge-rowの
 			   この幅専用の縮小・位置補正(旧.card-badge-row、公式絵の右の縦バッジ列だった頃の
 			   実測に基づく値)は、要件2でアイテムバッジを.card-item-row側へ、テラスバッジを
 			   .card-name-row側へそれぞれ移したことで対象を失ったため削除した。新しい配置先の
-			   基本サイズ(アイテム16px・テラス20px)はこの幅でもそのまま使う。 */
+			   基本サイズ(アイテム16px・テラス20px、テラスは2026-08-04要件3で.card-item-row側
+				   (特性の右)へ再移設し16pxへ縮小)はこの幅でもそのまま使う。 */
 	</style>
 
 	<div class="page box-shell">
@@ -1583,8 +1627,10 @@ const user = Astro.locals.user;
 				body.className = "card-body";
 				body.setAttribute("aria-hidden", "true");
 
-				// UI改修依頼(2026-08-02): 名前とテラスバッジを同じ行に収め、テラスバッジは行の
-				// 右端に寄せる。名前は引き続き1行省略(ellipsis)のまま。
+				// UI改修依頼(2026-08-02): 名前を1行省略(ellipsis)のまま表示する行。
+				// UI改修依頼(2026-08-04、要件3): テラスバッジ(teraBadge)はこの行から
+				// 下の.card-item-row(abilityCell)側へ移した(生成・appendTeraBadge呼び出しは
+				// そちら参照)。
 				const nameRow = document.createElement("div");
 				nameRow.className = "card-name-row";
 
@@ -1593,24 +1639,21 @@ const user = Astro.locals.user;
 				nameEl.textContent = name;
 				nameRow.appendChild(nameEl);
 
-				const teraBadge = document.createElement("span");
-				teraBadge.className = "card-tera-badge";
-				teraBadge.hidden = true;
-				const teraImg = document.createElement("img");
-				teraImg.alt = "";
-				teraBadge.appendChild(teraImg);
-				nameRow.appendChild(teraBadge);
-				applyTeraBadge(teraImg, teraBadge, p.tera_type ?? "");
-
 				body.appendChild(nameRow);
 
 				// --- 優先順位4位: 特性+アイテム(ラウンド27 27-B1で新設した行をラウンド32 32-B3で
 				//     [特性名]-[持ち物名]の2列左右振り分けに作り直し、ラウンド43 43-B1で
 				//     アイテム名テキストを一旦削除していたが、UI改修依頼(2026-08-02)で
 				//     アイテムアイコンを公式絵の右(旧.card-badge-row)からこの行へ戻し、名前も
-				//     添えることになったため、再び2列(左=特性名、右=アイテムアイコン+アイテム名)に
-				//     作り直す。左右それぞれの半分の中央に配置する(CSS側 .card-item-row = grid
-				//     2列、.card-item-row-cell = flex中央寄せ)。 ---
+				//     添えることになったため、再び2ブロック(特性行/アイテム行)に作り直した。
+				//     UI改修依頼(2026-08-04、要件2): 1行2列(左右半分)だと長い特性名・アイテム名が
+				//     ellipsisで見切れやすいため、2段(特性行→アイテム行)に組み替える(CSS側
+				//     .card-item-row = flex縦積み、.card-item-row-cell = 各行内でflex中央寄せ、
+				//     クラス名はいずれも変更しない)。
+				//     UI改修依頼(2026-08-04、要件3): テラスバッジ(旧.card-name-row末尾)を
+				//     特性行(abilityCell)の右へ移し、特性名はflex:1で省略・テラスバッジは
+				//     flex:noneで右端固定にする(名前行が名前+テラスバッジでやっていたのと
+				//     同じ組み方をここに転用)。 ---
 				const itemRow = document.createElement("div");
 				itemRow.className = "card-item-row";
 
@@ -1620,6 +1663,16 @@ const user = Astro.locals.user;
 				abilityNameEl.className = "card-ability-name";
 				abilityNameEl.textContent = p.ability_name?.trim() ?? "";
 				abilityCell.appendChild(abilityNameEl);
+
+				const teraBadge = document.createElement("span");
+				teraBadge.className = "card-tera-badge";
+				teraBadge.hidden = true;
+				const teraImg = document.createElement("img");
+				teraImg.alt = "";
+				teraBadge.appendChild(teraImg);
+				abilityCell.appendChild(teraBadge);
+				applyTeraBadge(teraImg, teraBadge, p.tera_type ?? "");
+
 				itemRow.appendChild(abilityCell);
 
 				const itemCell = document.createElement("div");
