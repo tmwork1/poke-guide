@@ -373,12 +373,6 @@ const initialTeamJson = team
 			background: var(--color-primary-strong);
 			color: var(--color-primary-contrast);
 		}
-		.team-matchup-note {
-			font-size: var(--font-size-xs);
-			color: var(--color-text-muted);
-			margin: var(--space-2) 0 0;
-			line-height: 1.4;
-		}
 		.team-matchup-status {
 			font-size: var(--font-size-xs);
 			color: var(--color-text-muted);
@@ -1095,7 +1089,6 @@ const initialTeamJson = team
 									aria-checked="false"
 								>防御</button>
 							</div>
-							<p class="team-matchup-note" id="team-matchup-note"></p>
 							<p class="team-matchup-status" id="team-matchup-status" hidden></p>
 							<ul class="team-matchup-list" id="team-matchup-list"></ul>
 						</div>
@@ -1435,6 +1428,11 @@ const initialTeamJson = team
 		.team-slots .card-team-slot.is-selected {
 			border-color: var(--color-primary);
 			background: color-mix(in srgb, var(--color-surface) 90%, var(--color-primary) 10%);
+		}
+		/* 相性チェックで不利と判定されたメンバー。選択状態とは独立させ、縁ではなく
+		   カード全体の背景だけを既存のリスク色で示す。 */
+		.team-slots .card-team-slot.is-disadvantaged {
+			background: color-mix(in srgb, var(--color-surface) 90%, var(--color-risky-strong) 10%);
 		}
 		.team-slots .card-team-slot.is-dragging {
 			opacity: 0.5;
@@ -2234,7 +2232,7 @@ const initialTeamJson = team
 			display: grid;
 			/* 右パネルの実効幅(1920px幅で実測 約566px)に対して1行4〜6枚。auto-fill にして
 			   幅が変わっても枚数だけが増減するようにする(カード自体の大きさは固定)。 */
-			grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+			grid-template-columns: repeat(auto-fill, minmax(77px, 1fr));
 			gap: var(--space-2);
 		}
 		.team-matchup-card {
@@ -2247,7 +2245,13 @@ const initialTeamJson = team
 			background: var(--color-surface);
 			/* 濃さ(opacity)はJSがインラインスタイルで入れる。計算前・計算不能のカードは
 			   1のまま(= 濃い)にせず、下の [data-state] で別の見せ方にする。 */
-			transition: opacity 0.2s ease;
+			transition: opacity 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+		}
+		/* scoreToOpacities が算出する不利度の中間点(0.5)以上を、濃淡に加えて
+		   リスク色の縁と背景でも示す。ダークモードでも既存トークンが切り替わる。 */
+		.team-matchup-card.is-disadvantageous {
+			border-color: var(--color-risky-strong);
+			background: color-mix(in srgb, var(--color-surface) 90%, var(--color-risky-strong) 10%);
 		}
 		/* 計算前(相手一覧だけ先に描いた状態)。まだ有利・不利の情報を持たないので、
 		   「薄い=有利」と誤読されないよう opacity ではなく彩度を落として保留を示す。 */
@@ -2287,7 +2291,7 @@ const initialTeamJson = team
 		// 相性チェック(2026-08-02)で連続技のヒット数が必要なため loadMultiHitMoveMap を追加import
 		// する(Battle.calc_damages() は連続技でも1ヒットぶんしか返さないため。
 		// src/lib/pyodide-engine.ts の calcMaxDamageMatrix のコメント参照)。
-		import { loadImageIdMap, officialArtworkUrl, loadBaseStatsMap, loadMoveDetailMap, loadMultiHitMoveMap } from "../../lib/pokemon-master-data";
+		import { loadImageIdMap, officialArtworkUrl, loadBaseStatsMap, loadMoveDetailMap, loadMultiHitMoveMap, loadTypesMap } from "../../lib/pokemon-master-data";
 		// UI改修依頼(チーム編集左パネル、2026-08-02)「候補カードをボックス画面と共通化する」で
 		// 技チップにタイプアイコンを追加するため、typeIconUrlを追加importする(box/index.astroの
 		// applyMoveChipTypeIconsと同じ用途)。
@@ -3329,7 +3333,6 @@ const initialTeamJson = team
 			}
 
 			const matchupEl = el<HTMLElement>("team-matchup");
-			const matchupNoteEl = el<HTMLElement>("team-matchup-note");
 			const matchupStatusEl = el<HTMLElement>("team-matchup-status");
 			const matchupListEl = el<HTMLElement>("team-matchup-list");
 			const matchupAttackButton = el<HTMLButtonElement>("matchup-direction-attack");
@@ -3347,6 +3350,12 @@ const initialTeamJson = team
 			// 120組の計算をやり直さないためのもの。個体そのものの育成内容を別画面で変えた場合は
 			// ページ遷移(=このキャッシュの破棄)を伴うため、IDだけをキーにして問題ない。
 			const matchupScoreCache = new Map<string, (number | null)[]>();
+			interface MatchupMemberRatioCacheEntry {
+				memberIds: string[];
+				ratios: (number[] | null)[];
+			}
+			const matchupMemberRatioCache = new Map<string, MatchupMemberRatioCacheEntry>();
+			let selectedMatchupTargetIndex: number | null = null;
 
 			function setMatchupStatus(message: string | null): void {
 				if (message === null) {
@@ -3425,8 +3434,22 @@ const initialTeamJson = team
 			 * 相手カードの一覧を描く。scores が null のときは「まだ計算していない」状態
 			 * (相手の顔ぶれだけ先に見せる)。
 			 */
-			function renderMatchupList(targets: MatchupTarget[], scores: (number | null)[] | null): void {
+			function clearMatchupMemberHighlights(): void {
+				selectedMatchupTargetIndex = null;
+				for (const card of slotsRoot.querySelectorAll(".card-team-slot")) {
+					card.classList.remove("is-disadvantaged");
+				}
+			}
+
+			function renderMatchupList(
+				targets: MatchupTarget[],
+				scores: (number | null)[] | null,
+				memberRatios: MatchupMemberRatioCacheEntry | null,
+				typesMap: Map<string, string[]>,
+				isAttackMove: (moveName: string) => boolean,
+			): void {
 				matchupListEl.innerHTML = "";
+				clearMatchupMemberHighlights();
 				const scored = scores
 					? scoreToOpacities(
 							targets.map((t, i) => ({ item: t, score: scores[i] ?? null })),
@@ -3434,7 +3457,7 @@ const initialTeamJson = team
 						)
 					: targets.map((t) => ({ item: t, score: null as number | null, opacity: null as number | null }));
 
-				for (const entry of scored) {
+				for (const [targetIndex, entry] of scored.entries()) {
 					const target = entry.item;
 					const card = document.createElement("li");
 					card.className = "team-matchup-card";
@@ -3449,19 +3472,45 @@ const initialTeamJson = team
 					void applySprite(img, fallback, target.speciesName);
 
 					const usage = `${target.speciesName}(上位チームの${matchupUsagePercent(target)}%が採用)`;
+					const detail = matchupDirection === "attack"
+						? (typesMap.get(target.speciesName) ?? []).join("/")
+						: pickOpponentAttackMoves(target.moves, isAttackMove).join("/");
+					const heading = detail ? `${usage}\n${detail}` : usage;
 					if (scores === null) {
 						card.dataset.state = "pending";
-						card.title = usage;
+						card.title = heading;
 					} else if (entry.score === null || entry.opacity === null) {
 						card.dataset.state = "unknown";
-						card.title = `${usage} / 採用技のデータが無いため計算していません`;
+						card.title = `${heading}\n採用技のデータが無いため計算していません`;
 					} else {
 						card.style.opacity = String(entry.opacity);
+						if (entry.opacity >= 0.5) card.classList.add("is-disadvantageous");
 						const percent = Math.round(entry.score * 100);
 						card.title =
 							matchupDirection === "attack"
-								? `${usage} / チーム平均で最大${percent}%のダメージを与えられる(薄いほど有利)`
-								: `${usage} / チーム平均で最大${percent}%のダメージを受ける(濃いほど不利)`;
+								? `${heading}\nチーム平均で最大${percent}%のダメージを与えられる(薄いほど有利)`
+								: `${heading}\nチーム平均で最大${percent}%のダメージを受ける(濃いほど不利)`;
+						card.addEventListener("click", () => {
+							if (!memberRatios) return;
+							const ratios = memberRatios.ratios[targetIndex];
+							if (!ratios) return;
+							if (selectedMatchupTargetIndex === targetIndex) {
+								clearMatchupMemberHighlights();
+								return;
+							}
+							clearMatchupMemberHighlights();
+							selectedMatchupTargetIndex = targetIndex;
+							// 個別割合50%を境界にする。防御は被ダメージ50%以上、攻撃は与ダメージ50%未満を不利と判定。
+							const disadvantagedIds = new Set(
+								memberRatios.memberIds.filter((_, i) =>
+									matchupDirection === "defense" ? ratios[i] >= 0.5 : ratios[i] < 0.5,
+								),
+							);
+							for (const [slot, member] of membersBySlot) {
+								if (!disadvantagedIds.has(member.id)) continue;
+								slotsRoot.querySelector<HTMLElement>(`.card-team-slot[data-slot="${slot}"]`)?.classList.add("is-disadvantaged");
+							}
+						});
 					}
 					matchupListEl.appendChild(card);
 				}
@@ -3477,7 +3526,7 @@ const initialTeamJson = team
 				teamDefenseSpecs: PokemonSpec[],
 				isAttackMove: (moveName: string) => boolean,
 				moveHitCounts: Record<string, number>,
-			): Promise<number | null> {
+			): Promise<{ score: number; memberRatios: number[] } | null> {
 				if (matchupDirection === "attack") {
 					// 攻撃: チーム全員 → 相手1体。各メンバーの最大打点を相手のHPで割る。
 					const result = await calcMaxDamageMatrix(teamAttackSpecs, [matchupOpponentSpec(target, [])], {
@@ -3487,7 +3536,8 @@ const initialTeamJson = team
 					if (hp == null) return null;
 					// 個々のセルが null(その組だけ計算に失敗)のときは0として平均に含める
 					// ── 「そのメンバーはこの相手に何も通せない」と同じ扱いにするのが安全側。
-					return averageRatio(teamAttackSpecs.map((_, i) => damageRatio(result.maxDamage[i]?.[0] ?? 0, hp)));
+					const memberRatios = teamAttackSpecs.map((_, i) => damageRatio(result.maxDamage[i]?.[0] ?? 0, hp));
+					return { score: averageRatio(memberRatios), memberRatios };
 				}
 
 				// 防御: 相手1体 → チーム全員。相手の技は攻撃技だけを採用率上位4つ(ユーザー指示)。
@@ -3498,22 +3548,17 @@ const initialTeamJson = team
 				const result = await calcMaxDamageMatrix([matchupOpponentSpec(target, opponentMoves)], teamDefenseSpecs, {
 					moveHitCounts,
 				});
-				return averageRatio(
-					teamDefenseSpecs.map((_, i) => {
-						const hp = result.defenderMaxHp[i];
-						if (hp == null) return 0;
-						return damageRatio(result.maxDamage[0]?.[i] ?? 0, hp);
-					}),
-				);
+				const memberRatios = teamDefenseSpecs.map((_, i) => {
+					const hp = result.defenderMaxHp[i];
+					if (hp == null) return 0;
+					return damageRatio(result.maxDamage[0]?.[i] ?? 0, hp);
+				});
+				return { score: averageRatio(memberRatios), memberRatios };
 			}
 
 			async function runMatchup(): Promise<void> {
 				const requestId = (matchupRequestId += 1);
-
-				matchupNoteEl.textContent =
-					matchupDirection === "attack"
-						? "チーム全員の最大打点(相手HPに対する割合)の平均です。薄いほど有利、濃く残った相手が苦手です。"
-						: "チーム全員が受ける最大ダメージ(自分のHPに対する割合)の平均です。濃いほど不利です。";
+				clearMatchupMemberHighlights();
 
 				setMatchupStatus("上位ポケモンを読み込み中…");
 				let targets: MatchupTarget[];
@@ -3533,25 +3578,33 @@ const initialTeamJson = team
 					setMatchupStatus("集計データがまだありません。");
 					return;
 				}
+				const [typesMap, moveDetails] = await Promise.all([loadTypesMap(), loadMoveDetailMap()]);
+				if (requestId !== matchupRequestId) return;
+				// マスターデータに無い技は判定材料が無いので攻撃技として扱わない(計算にも使えない)。
+				const isAttackMove = (moveName: string): boolean => {
+					const detail = moveDetails.get(moveName);
+					return !!detail && detail.category !== "status";
+				};
 
 				const members = matchupTeamMembers();
 				if (members.length === 0) {
-					renderMatchupList(targets, null);
+					renderMatchupList(targets, null, null, typesMap, isAttackMove);
 					setMatchupStatus("チームにポケモンを入れると相性を計算します。");
 					return;
 				}
 
 				const cacheKey = `${matchupDirection}|${members.map((p) => p.id).sort().join(",")}`;
 				const cached = matchupScoreCache.get(cacheKey);
-				if (cached) {
-					renderMatchupList(targets, cached);
+				const cachedMemberRatios = matchupMemberRatioCache.get(cacheKey);
+				if (cached && cachedMemberRatios) {
+					renderMatchupList(targets, cached, cachedMemberRatios, typesMap, isAttackMove);
 					setMatchupStatus(null);
 					return;
 				}
 
 				// 計算前でも顔ぶれは先に出す(Pyodideの初回ロードは十数秒かかることがあるため、
 				// 空のパネルのまま待たせない)。
-				renderMatchupList(targets, null);
+				renderMatchupList(targets, null, null, typesMap, isAttackMove);
 
 				setMatchupStatus("計算エンジンを準備中…");
 				// Pyodide本体・jpoke wheelのオフラインキャッシュ(2回目以降の再ダウンロード回避)。
@@ -3569,14 +3622,8 @@ const initialTeamJson = team
 				}
 				if (requestId !== matchupRequestId) return;
 
-				const [moveDetails, multiHitMoves] = await Promise.all([loadMoveDetailMap(), loadMultiHitMoveMap()]);
+				const multiHitMoves = await loadMultiHitMoveMap();
 				if (requestId !== matchupRequestId) return;
-
-				// マスターデータに無い技は判定材料が無いので攻撃技として扱わない(計算にも使えない)。
-				const isAttackMove = (moveName: string): boolean => {
-					const detail = moveDetails.get(moveName);
-					return !!detail && detail.category !== "status";
-				};
 				const moveHitCounts: Record<string, number> = {};
 				for (const [moveName, hits] of multiHitMoves) moveHitCounts[moveName] = hits[1];
 
@@ -3588,6 +3635,7 @@ const initialTeamJson = team
 				const teamDefenseSpecs = members.map((p) => matchupTeamSpec(p, []));
 
 				const scores: (number | null)[] = new Array(targets.length).fill(null);
+				const memberRatios: (number[] | null)[] = new Array(targets.length).fill(null);
 				let engineRestarted = false;
 				for (let i = 0; i < targets.length; i += 1) {
 					setMatchupStatus(`相性を計算中… (${i + 1}/${targets.length})`);
@@ -3596,13 +3644,15 @@ const initialTeamJson = team
 					await new Promise((resolve) => window.setTimeout(resolve, 0));
 					if (requestId !== matchupRequestId) return;
 					try {
-						scores[i] = await computeMatchupScore(
+						const result = await computeMatchupScore(
 							targets[i],
 							teamAttackSpecs,
 							teamDefenseSpecs,
 							isAttackMove,
 							moveHitCounts,
 						);
+						scores[i] = result?.score ?? null;
+						memberRatios[i] = result?.memberRatios ?? null;
 					} catch (err) {
 						console.error(err);
 						if (requestId !== matchupRequestId) return;
@@ -3628,7 +3678,9 @@ const initialTeamJson = team
 				if (requestId !== matchupRequestId) return;
 
 				matchupScoreCache.set(cacheKey, scores);
-				renderMatchupList(targets, scores);
+				const memberRatioEntry = { memberIds: members.map((p) => p.id), ratios: memberRatios };
+				matchupMemberRatioCache.set(cacheKey, memberRatioEntry);
+				renderMatchupList(targets, scores, memberRatioEntry, typesMap, isAttackMove);
 				const unknownCount = scores.filter((s) => s === null).length;
 				setMatchupStatus(
 					unknownCount > 0 ? `${unknownCount}体は採用技のデータが無いため計算していません(破線の枠)。` : null,
@@ -3674,6 +3726,7 @@ const initialTeamJson = team
 					// 進行中の計算結果は捨てる(戻ってきたときに古い編成の濃淡を描かない)。
 					matchupRequestId += 1;
 					window.clearTimeout(matchupTimer);
+					clearMatchupMemberHighlights();
 					suggestEl.hidden = false;
 					suggestTogglesEl.hidden = false;
 					// もう一度押すと元のニュートラル状態(サジェスト表示)へ戻るため、帯の見出しも
