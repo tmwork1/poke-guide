@@ -40,6 +40,8 @@ const bulkAdjustButtonLabelEl = bulkAdjustButton.querySelector<HTMLElement>(".bu
 const backdropEl = el<HTMLElement>("bulk-adjust-backdrop");
 const dialogEl = el<HTMLElement>("bulk-adjust-dialog");
 const dialogCloseButton = el<HTMLButtonElement>("bulk-adjust-dialog-close");
+// UI改修依頼(個体編集画面、2026-08-04)「ウィンドウ上部に計算する ボタンを配置」。
+const dialogComputeButton = el<HTMLButtonElement>("bulk-adjust-dialog-compute-button");
 const dialogBodyInnerEl = el<HTMLElement>("bulk-adjust-dialog-body-inner");
 const dialogFooterEl = el<HTMLElement>("bulk-adjust-dialog-footer");
 const cancelButton = el<HTMLButtonElement>("bulk-adjust-cancel-button");
@@ -67,6 +69,14 @@ let isComputing = false;
 let currentRows: BulkAdjustRowSnapshot[] = [];
 const rowInputEls = new Map<string, { nInput: HTMLInputElement; mInput: HTMLInputElement }>();
 let activeAbortController: AbortController | null = null;
+
+// UI改修依頼(個体編集画面、2026-08-04)「確定数の初期値をカードごとの現在の確定数にする」。
+// openDialog()はダイアログを開くたびにdialogBodyInnerEl.innerHTML=""で中身を作り直すため、
+// N入力欄(nInput)自体はダイアログを閉じるたびに失われる。モジュールスコープのMapで
+// rowId(カードのdata-row-id、getDefenseRows()が返すBulkAdjustRowSnapshot.id)ごとに
+// 最後に使ったN値を保持し、次にダイアログを開いたとき・同じ行が再度作られたときに
+// 初期値として復元する。Mについては依頼の対象外(既定100のまま)。
+const lastNByRowId = new Map<string, number>();
 
 function setButtonLabel(text: string): void {
 	if (bulkAdjustButtonLabelEl) bulkAdjustButtonLabelEl.textContent = text;
@@ -128,8 +138,16 @@ function buildRowEl(bridge: NonNullable<ReturnType<typeof getBulkAdjustBridge>>,
 	nInput.min = "1";
 	nInput.step = "1";
 	nInput.inputMode = "numeric";
-	nInput.value = "1";
+	// UI改修依頼(個体編集画面、2026-08-04)「確定数の初期値をカードごとの現在の確定数に
+	// する」。このカード(row.id)で最後に使った値(前回計算時、または前回入力していた値)が
+	// あればそれを初期値にし、無ければ従来どおり1にする。
+	nInput.value = String(lastNByRowId.get(row.id) ?? 1);
 	nInput.setAttribute("aria-label", `${row.name}の攻撃を何発耐えるか(発)`);
+	// 「前回計算した(または現在選択されている)確定数N」を復元する要件のため、計算実行時
+	// だけでなく入力のたびにMapへ書き戻す(計算せずに閉じた場合でも次回開いたとき復元される)。
+	nInput.addEventListener("input", () => {
+		lastNByRowId.set(row.id, clampN(nInput.value));
+	});
 	const nLabelTextAfter = document.createElement("span");
 	nLabelTextAfter.textContent = "発";
 	nLabel.append(nLabelTextBefore, nInput, nLabelTextAfter);
@@ -211,6 +229,14 @@ bulkAdjustButton.addEventListener("click", () => {
 	}
 });
 dialogCloseButton.addEventListener("click", closeDialog);
+// UI改修依頼(個体編集画面、2026-08-04)「ウィンドウ上部に計算する ボタンを配置」。
+// 外部トリガー(#bulk-adjust-button、ダイアログを開いている間は「ステータスを計算」実行
+// ボタンを兼ねる)と完全に同じ共通関数runCompute()を呼ぶだけで、実行ロジックは二重に
+// 持たない(closeDialog()→renderBulkAdjustResults()のフローもrunCompute()内に閉じている)。
+dialogComputeButton.addEventListener("click", () => {
+	if (isComputing) return;
+	void runCompute();
+});
 backdropEl.addEventListener("click", closeDialog);
 document.addEventListener("keydown", (e) => {
 	if (e.key === "Escape" && isDialogOpen) closeDialog();
@@ -224,6 +250,7 @@ function setComputingState(computing: boolean): void {
 	isComputing = computing;
 	dialogFooterEl.hidden = !computing;
 	bulkAdjustButton.disabled = computing;
+	dialogComputeButton.disabled = computing;
 	dialogCloseButton.disabled = false; // 中断経路として閉じるボタンは常に押せるようにする
 	for (const { nInput, mInput } of rowInputEls.values()) {
 		nInput.disabled = computing;
@@ -246,6 +273,8 @@ async function runCompute(): Promise<void> {
 			inputs.nInput.value = String(n);
 			inputs.mInput.value = String(m);
 		}
+		// 依頼1: 「前回計算した」確定数Nとして、実際に使った(clamp後の)値を保持する。
+		lastNByRowId.set(row.id, n);
 		return {
 			rowId: row.id,
 			attackerSpec: row.attackerSpec,

@@ -302,4 +302,56 @@
 		color: var(--color-text-muted);
 		font-weight: 400;
 	}
+
+	/* UI改修依頼(個体編集画面、2026-08-04)「耐久調整/耐久最大化 カードデザイン統一」。
+	   両モードとも「<ラベル>実数値(努力値)」形式(例: H180(27) B131(0) D105(0))をH/B/Dで
+	   1行に収めた統一カードにする(依頼4・8)。外枠は既存の.candidate-list-item
+	   (ボーダー・背景・is-applied等)をそのまま流用し(新色は作らない)、中身だけを
+	   このカード専用の構造(right-panel.tsのbuildStatCardEl参照)に足す。 */
+	#damage-detail-panel-body .candidate-list-item-statline {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0 var(--space-3);
+		font-weight: 700;
+	}
+	#damage-detail-panel-body .candidate-list-item-stat {
+		white-space: nowrap;
+	}
+	/* 依頼5・9: 「現在のステータス」カードはクリック不可の<div>(button化しない)。
+	   候補カードと視覚的に区別するため、hoverしても枠色を変えない
+	   (button版の :hover/:focus-visible { border-color: var(--color-primary) } を打ち消す)。 */
+	#damage-detail-panel-body .candidate-list-item.is-current {
+		cursor: default;
+	}
+	#damage-detail-panel-body .candidate-list-item.is-current:hover,
+	#damage-detail-panel-body .candidate-list-item.is-current:focus-visible {
+		border-color: var(--color-border);
+	}
+	#damage-detail-panel-body .candidate-list-item-current-badge,
+	#damage-detail-panel-body .candidate-list-item-badge {
+		color: var(--color-text-muted);
+		font-size: var(--font-size-xs);
+		font-weight: 600;
+	}
+	/* 依頼6: 指数名の見出し(サブタイトルフォント)。色・太さ・サイズは既存の.field-labelを
+	   そのまま流用し(right-panel.ts側でclass="field-label candidate-list-group-title"を
+	   付与)、このページ固有の間隔・ホバーヘルプ(title属性、依頼6の計算式)だけをここに足す。 */
+	#damage-detail-panel-body .candidate-list-group-title {
+		margin: var(--space-3) 0 0;
+		cursor: help;
+	}
+	#damage-detail-panel-body .candidate-list-group-title:first-child {
+		margin-top: 0;
+	}
+	/* 依頼7: 「残り努力値以下のみ表示」トグル。トグル自体の見た目
+	   (.toggle-switch/.toggle-switch-track/.toggle-switch-thumb)はLeftPanel.astroの
+	   is:global側で定義済みの規格をそのまま使う(新規CSSはこの行の配置のみ)。 */
+	#damage-detail-panel-body .candidate-list-filter-row {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+		margin: 0 0 var(--space-3);
+		cursor: pointer;
+		font-size: var(--font-size-sm);
+	}
 </style>

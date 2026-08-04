@@ -53,6 +53,11 @@ import { STAT_KEYS, type StatKey } from "../stats";
 // から直接この関数を呼ぶのではなく、右パネル側の描画をこのファイルに閉じ込める
 // (renderBulkAdjustResults、下方参照)ためにここでimportする。
 import type { SolveResult, DurabilityCandidate } from "./bulk-adjust-solver";
+// UI改修依頼(個体編集画面、2026-08-04)「耐久調整/耐久最大化 カードデザイン統一」。
+// 耐久指数最大化(durability-index.ts)の結果を右パネルのカードとして描画するための型だけを
+// importする(計算自体はdurability-index.ts側の担当のまま変えない。呼び出し元は現在
+// left-panel.ts、下方のrenderDurabilityIndexResultsのコメント参照)。
+import type { DurabilityIndexCandidate, DurabilityIndexKind, MaximizeResult } from "./durability-index";
 
 // --- 詳細設定サイドバー(ラウンド5ユーザー指示・要件9) ---
 // ⚙クリックで<dialog>を開く方式をやめ、カードを選択すると右サイドバー
@@ -233,6 +238,255 @@ export function renderCandidateList(view: CandidateListView): void {
 	inner.appendChild(list);
 }
 
+// UI改修依頼(個体編集画面、2026-08-04)「耐久調整/耐久最大化 カードデザイン統一」。
+// (B)耐久調整・(C)耐久最大化のどちらも「H<実数値>(<努力値>) B... D...」を1行に収めた
+// 統一カードで候補を表示する(依頼4・8)。指数(耐久指数などの内部スコア)はカード本文には
+// 出さず、カードのtitle属性(ホバーツールチップ)で整数表示する(依頼4)。見出し(指数名)は
+// 既存の.field-labelを流用したサブタイトルフォントで、見出し→カードを繰り返す構成にできる
+// (依頼6、groups)。耐久調整のように見出しを持たないフラットな一覧(依頼7・9、flatCards)にも
+// 対応する。現在のステータス(努力値変更前の実測値)は一覧の先頭に同じカードデザインで
+// 固定表示できる(依頼5・9、currentCard。クリック不可のため<div>で作る)。
+// ⚠️ 既存の renderCandidateList/CandidateListItem(性格・努力値・実数値を別行で見せる
+// 従来形式)は削除・変更しない。left-panel.ts(耐久指数最大化ボタンの配線、
+// runDurabilityIndexMaximize)がまだこの旧APIを直接呼んでおり、このファイルの担当範囲外
+// (5ファイル指定の対象外)のため、旧呼び出しを壊さないよう並行して新規に追加する。
+export interface StatCardRow {
+	/** 例 "H" / "B" / "D" */
+	label: string;
+	/** 実数値 */
+	real: number;
+	/** 努力値(0〜32スケール、そのステータスの最終値。現在値+追加分) */
+	ev: number;
+}
+export interface StatCardSpec {
+	/** 通常はH/B/Dの3件。1行に収めて表示する(依頼4)。 */
+	rows: StatCardRow[];
+	/** カードのtitle属性(ホバーツールチップ)に出す内部スコアの説明(依頼4「整数表示」)。
+	    指数を持たない候補(耐久調整モードの候補など)は省略する。 */
+	scoreTooltip?: string;
+	/** カード内の小さなバッジ(例: 耐久調整モードの性格名)。省略可。 */
+	badge?: string;
+	isApplied?: boolean;
+	/** 「現在のステータス」カード(先頭固定・クリック不可)かどうか(依頼5・9)。 */
+	isCurrent?: boolean;
+	flags?: { icon: string; text: string; kind?: "warn" | "info" }[];
+	/** 現在のステータスカードはクリック不可のため省略する。 */
+	onSelect?: () => void;
+}
+export interface StatCardGroup {
+	/** 指数名等の見出し(依頼6、サブタイトルフォント)。 */
+	title: string;
+	/** 見出しホバー時に出す計算式などのヘルプ(依頼6)。 */
+	titleHelp?: string;
+	card: StatCardSpec;
+}
+export interface StatCardListView {
+	heading: string;
+	note?: string;
+	context?: string;
+	/** 「残り努力値以下のみ表示」等のトグル。一覧の最上部に表示する(依頼7)。 */
+	filterToggle?: { label: string; checked: boolean; onChange: (checked: boolean) => void };
+	/** 現在のステータスカード(先頭に固定表示、依頼5・9)。 */
+	currentCard?: StatCardSpec;
+	/** 見出し→カードの繰り返し(耐久最大化モード用、依頼6)。flatCardsと排他。 */
+	groups?: StatCardGroup[];
+	/** 見出し無しのフラットなカード列(耐久調整モード用、依頼7・8)。groupsと排他。 */
+	flatCards?: StatCardSpec[];
+	truncatedNote?: string;
+	emptyMessage?: string;
+}
+
+/** 現在左パネルに表示されている実数値(H/B/D)を、表示中のテキストからそのまま読む。
+    calcHpStat/calcOtherStatで再計算すると性格補正等の取り違えで表示とズレる事故が
+    起こり得るため、常に「今画面に出ている値」を正とする(#stat-{key}、left-panel.tsの
+    renderStatsUnavailable/recalcStats参照。未計算時は"(未計算)"が入るためnullを返す)。 */
+function readCurrentRealStat(key: "hp" | "def" | "spd"): number | null {
+	const statEl = document.getElementById(`stat-${key}`);
+	if (!statEl) return null;
+	const n = Number(statEl.textContent);
+	return Number.isFinite(n) ? n : null;
+}
+
+/** 「現在のステータス」カード(依頼5・9)。実数値が未計算(種族名未入力など)のときは
+    作らない(呼び出し元はcurrentCardをundefinedのまま渡せばよい)。 */
+function buildCurrentStatusStatCard(): StatCardSpec | undefined {
+	const hp = readCurrentRealStat("hp");
+	const def = readCurrentRealStat("def");
+	const spd = readCurrentRealStat("spd");
+	if (hp === null || def === null || spd === null) return undefined;
+	return {
+		rows: [
+			{ label: "H", real: hp, ev: readEv("hp") },
+			{ label: "B", real: def, ev: readEv("def") },
+			{ label: "D", real: spd, ev: readEv("spd") },
+		],
+		isCurrent: true,
+	};
+}
+
+function buildStatCardEl(spec: StatCardSpec): HTMLElement {
+	// クリック不可の「現在のステータス」カード等はボタンにしない(依頼5・9の
+	// isCurrent/onSelect省略時)。それ以外は既存のcandidate-list-itemと同じくbuttonにする。
+	const card = document.createElement(spec.onSelect ? "button" : "div");
+	if (spec.onSelect) (card as HTMLButtonElement).type = "button";
+	card.className = "candidate-list-item stat-card";
+	if (spec.isCurrent) card.classList.add("is-current");
+	if (spec.isApplied) card.classList.add("is-applied");
+	if (spec.flags?.some((flag) => flag.kind === "warn")) card.classList.add("has-warn-flag");
+	// 依頼4: 指数値はカード本文に出さずtitle属性のツールチップにする。
+	if (spec.scoreTooltip) card.title = spec.scoreTooltip;
+
+	if (spec.isApplied) {
+		const appliedBadge = document.createElement("span");
+		appliedBadge.className = "candidate-list-item-applied-badge";
+		appliedBadge.textContent = "✓ 適用中";
+		card.appendChild(appliedBadge);
+	}
+	if (spec.isCurrent) {
+		const currentBadge = document.createElement("span");
+		currentBadge.className = "candidate-list-item-current-badge";
+		currentBadge.textContent = "現在のステータス";
+		card.appendChild(currentBadge);
+	} else if (spec.badge) {
+		const badgeEl = document.createElement("span");
+		badgeEl.className = "candidate-list-item-badge";
+		badgeEl.textContent = spec.badge;
+		card.appendChild(badgeEl);
+	}
+
+	// 依頼4: <ラベル>実数値(努力値) をH/B/D 1行に収める。
+	const statLine = document.createElement("span");
+	statLine.className = "candidate-list-item-statline tnum";
+	for (const row of spec.rows) {
+		const statEl = document.createElement("span");
+		statEl.className = "candidate-list-item-stat";
+		statEl.textContent = `${row.label}${row.real}(${row.ev})`;
+		statLine.appendChild(statEl);
+	}
+	card.appendChild(statLine);
+
+	for (const flag of spec.flags ?? []) {
+		const flagEl = document.createElement("span");
+		flagEl.className = "candidate-list-item-flag";
+		if (flag.kind) flagEl.classList.add(`is-${flag.kind}`);
+		flagEl.textContent = `${flag.icon} ${flag.text}`;
+		card.appendChild(flagEl);
+	}
+
+	if (spec.onSelect) card.addEventListener("click", spec.onSelect);
+	return card;
+}
+
+/** 依頼7: 「残り努力値以下のみ表示」等のトグルスイッチ。既存の.toggle-switch規格
+    (LeftPanel.astroのis:global側で定義済み、box/[id].astro等で使用中の角丸トラック+
+    丸いつまみ)をそのまま流用する(新色・新規格は作らない)。 */
+function buildFilterToggleEl(toggle: NonNullable<StatCardListView["filterToggle"]>): HTMLElement {
+	const row = document.createElement("label");
+	row.className = "candidate-list-filter-row";
+	const switchWrap = document.createElement("span");
+	switchWrap.className = "toggle-switch";
+	const input = document.createElement("input");
+	input.type = "checkbox";
+	input.className = "toggle-switch-input";
+	input.checked = toggle.checked;
+	input.setAttribute("aria-label", toggle.label);
+	const track = document.createElement("span");
+	track.className = "toggle-switch-track";
+	track.setAttribute("aria-hidden", "true");
+	const thumb = document.createElement("span");
+	thumb.className = "toggle-switch-thumb";
+	track.appendChild(thumb);
+	switchWrap.append(input, track);
+	const labelText = document.createElement("span");
+	labelText.className = "candidate-list-filter-row-label";
+	labelText.textContent = toggle.label;
+	row.append(switchWrap, labelText);
+	input.addEventListener("change", () => toggle.onChange(input.checked));
+	return row;
+}
+
+/** (B)(C)共通の「耐久カード一覧」レンダラ(依頼4〜9)。renderCandidateList()と同様、
+    detailPanelBodyElへ直接描画するだけの「dumb」な関数。フィルタトグルの状態管理・
+    「何が適用中か」の再計算は呼び出し元(redrawクロージャ)が担う。 */
+export function renderStatCardList(view: StatCardListView): void {
+	detailPanelBodyEl.innerHTML = "";
+	const inner = document.createElement("div");
+	inner.className = "damage-detail-panel-body-inner candidate-list-view";
+	detailPanelBodyEl.appendChild(inner);
+
+	// 依頼7: トグルは一覧の最上部に配置する。
+	if (view.filterToggle) {
+		inner.appendChild(buildFilterToggleEl(view.filterToggle));
+	}
+
+	const heading = document.createElement("p");
+	heading.className = "candidate-list-heading";
+	heading.textContent = view.heading;
+	inner.appendChild(heading);
+
+	if (view.context) {
+		const contextEl = document.createElement("p");
+		contextEl.className = "candidate-list-context";
+		contextEl.textContent = view.context;
+		inner.appendChild(contextEl);
+	}
+	if (view.note) {
+		const noteEl = document.createElement("p");
+		noteEl.className = "candidate-list-note";
+		noteEl.textContent = view.note;
+		inner.appendChild(noteEl);
+	}
+	if (view.truncatedNote) {
+		const truncatedEl = document.createElement("p");
+		truncatedEl.className = "candidate-list-truncated-note";
+		truncatedEl.textContent = view.truncatedNote;
+		inner.appendChild(truncatedEl);
+	}
+
+	const hasCurrentCard = !!view.currentCard;
+	const hasGroups = (view.groups?.length ?? 0) > 0;
+	const hasFlat = (view.flatCards?.length ?? 0) > 0;
+
+	if (!hasCurrentCard && !hasGroups && !hasFlat) {
+		const emptyEl = document.createElement("p");
+		emptyEl.className = "candidate-list-empty-message";
+		emptyEl.textContent = view.emptyMessage ?? "該当する候補がありません。";
+		inner.appendChild(emptyEl);
+		return;
+	}
+
+	const listEl = document.createElement("div");
+	listEl.className = "candidate-list";
+	inner.appendChild(listEl);
+
+	// 依頼5・9: 現在のステータスカードを一覧の先頭に固定表示する。
+	if (view.currentCard) {
+		listEl.appendChild(buildStatCardEl(view.currentCard));
+	}
+
+	if (hasGroups) {
+		// 依頼6: 見出し(指数名)→カードの繰り返し。
+		for (const group of view.groups!) {
+			const titleEl = document.createElement("p");
+			titleEl.className = "field-label candidate-list-group-title";
+			titleEl.textContent = group.title;
+			if (group.titleHelp) titleEl.title = group.titleHelp;
+			listEl.appendChild(titleEl);
+			listEl.appendChild(buildStatCardEl(group.card));
+		}
+	} else if (hasFlat) {
+		for (const card of view.flatCards!) {
+			listEl.appendChild(buildStatCardEl(card));
+		}
+	} else {
+		// currentCardだけがあり候補が0件(例: 耐久調整が条件を満たさない/フィルタで全滅)。
+		const emptyEl = document.createElement("p");
+		emptyEl.className = "candidate-list-empty-message";
+		emptyEl.textContent = view.emptyMessage ?? "該当する候補がありません。";
+		listEl.appendChild(emptyEl);
+	}
+}
+
 // 「選択中(A) > 最後の候補一覧(B・Cで共用、後から計算した方が勝つ) > 空」という
 // フォールバック優先順位(コーディネーターへの報告事項: 従来はrenderColumnLevelDetailPanel
 // (技カード選択時)がこの状態をnullにして破棄していたため、候補一覧を出した後に技カードを
@@ -285,80 +539,194 @@ function currentAppliedNatureAndEvs(): { nature: string; hp: number; def: number
 }
 
 // 耐久調整ポップアップの計算結果(bulk-adjust.tsのsolveDurability()の戻り値)を右パネルに
-// 表示する。候補(性格・努力値H/B/D・合計努力値・実数値)を一覧化し、クリックされたら
-// onSelectCandidateを呼ぶ(実際の左パネルへの反映はbulk-adjust.ts側が行う。このファイルは
-// 表示だけを担当する)。
+// 表示する。候補(性格・努力値H/B/D・実数値)を一覧化し、クリックされたらonSelectCandidateを
+// 呼ぶ(実際の左パネルへの反映はbulk-adjust.ts側が行う。このファイルは表示だけを担当する)。
 // ⚠️ bulk-adjust.tsからの呼び出しシグネチャ(引数の型・個数)は変更していない
-// (bulk-adjust.tsは編集禁止ファイルのため、変えると向こう側の呼び出しが壊れる)。内部実装だけ
-// renderCandidateList()を呼ぶ薄いラッパーに置き換えた(共通ビュー化、上記コメント参照)。
+// (bulk-adjust.tsは編集禁止ファイルのため、変えると向こう側の呼び出しが壊れる)。
+// UI改修依頼(個体編集画面、2026-08-04)「耐久調整/耐久最大化 カードデザイン統一」により、
+// 内部実装をrenderCandidateList()からrenderStatCardList()(依頼4〜9の統一カード)へ
+// 置き換えた。「残り努力値以下のみ表示」トグル(依頼7、デフォルトOFF)の状態は
+// このクロージャの外側変数filterRemainingOnlyで保持し、フィルタ変更時は再計算せず
+// 表示だけを絞り込む(再描画のみ)。
 export function renderBulkAdjustResults(
 	result: SolveResult,
 	onSelectCandidate: (candidate: DurabilityCandidate) => void,
 ): void {
-	// 候補クリック直後に再描画してisApplied(適用中マーク)を更新できるよう、redraw自身を
-	// クロージャの中で自己参照する(lastCandidateListRedrawに登録する値と、
-	// クリックハンドラから呼ぶ値が同じ関数になる)。
+	let filterRemainingOnly = false; // 依頼7: デフォルトOFF
+	// 候補クリック直後・トグル変更直後に再描画してisApplied(適用中マーク)や絞り込みを
+	// 更新できるよう、redraw自身をクロージャの中で自己参照する(lastCandidateListRedrawに
+	// 登録する値と、クリック/トグルハンドラから呼ぶ値が同じ関数になる)。
 	const redraw = (): void => {
 		lastCandidateListRedraw = redraw;
-		renderCandidateList(buildBulkAdjustCandidateListView(result, onSelectCandidate, redraw));
+		renderStatCardList(
+			buildBulkAdjustStatCardView(result, onSelectCandidate, redraw, filterRemainingOnly, (checked) => {
+				filterRemainingOnly = checked;
+				redraw();
+			}),
+		);
 	};
 	redraw();
 }
 
-function buildBulkAdjustCandidateListView(
+function buildBulkAdjustStatCardView(
 	result: SolveResult,
 	onSelectCandidate: (candidate: DurabilityCandidate) => void,
 	redraw: () => void,
-): CandidateListView {
+	filterRemainingOnly: boolean,
+	onFilterChange: (checked: boolean) => void,
+): StatCardListView {
 	const infeasible = result.infeasible || result.candidates.length === 0;
 	const applied = currentAppliedNatureAndEvs();
+	// 依頼7: 「追加努力値合計(searchedEvTotal=探索したH+B+D)が残り努力値以下」は、
+	// candidate.exceedsChampionsCap(totalEv=searchedEvTotal+固定A/C/S が66超か)の否定と
+	// 数学的に同値(66-固定A/C/S = 残り努力値)。既存の判定を再利用し、同じ条件の
+	// 実装を二重に持たない。
+	const allCandidates = infeasible ? [] : result.candidates;
+	const visibleCandidates = filterRemainingOnly
+		? allCandidates.filter((c) => !c.exceedsChampionsCap)
+		: allCandidates;
+	const hiddenCount = allCandidates.length - visibleCandidates.length;
+
 	// 要件: 合計努力値の少ない順(solveDurability()側がsearchedEvTotal昇順で返す契約なので、
 	// このファイルでの並び替えは不要。noteでその意味を可視化する)。
-	const items: CandidateListItem[] = infeasible
-		? []
-		: result.candidates.map((candidate) => {
-			const flags: CandidateListItem["flags"] = [];
-			if (candidate.exceedsChampionsCap) {
-				// 色だけで意味を伝えない(WCAG 1.4.1): 記号+テキストを併記する。
-				flags.push({ icon: "⚠", text: "努力値上限(66)を超過", kind: "warn" });
-			}
-			return {
-				segments: [
-					{ label: "性格", value: candidate.nature, emphasis: true },
-					{
-						label: "努力値",
-						value: `H${candidate.evs.hp} B${candidate.evs.def} D${candidate.evs.spd}(合計${candidate.totalEv})`,
-					},
-					{
-						label: "実数値",
-						value: `H${candidate.realStats.hp} B${candidate.realStats.def} D${candidate.realStats.spd}`,
-					},
-				],
-				flags,
-				isApplied:
-					candidate.nature === applied.nature &&
-					candidate.evs.hp === applied.hp &&
-					candidate.evs.def === applied.def &&
-					candidate.evs.spd === applied.spd,
-				onSelect: () => {
-					onSelectCandidate(candidate);
-					// クリック直後、左パネルの値は同期的に書き換わる(applyEvToLeftPanel/
-					// applyNatureToLeftPanelがinput.valueへの代入→dispatchEventを同期実行する、
-					// bulk-adjust.ts参照)ため、ここで再描画すればisApplied(適用中マーク)が
-					// 直ちに正しい候補へ移る。
-					redraw();
-				},
-			};
-		});
+	const flatCards: StatCardSpec[] = visibleCandidates.map((candidate) => {
+		const flags: StatCardSpec["flags"] = [];
+		if (candidate.exceedsChampionsCap) {
+			// 色だけで意味を伝えない(WCAG 1.4.1): 記号+テキストを併記する。
+			flags.push({ icon: "⚠", text: "努力値上限(66)を超過", kind: "warn" });
+		}
+		return {
+			rows: [
+				{ label: "H", real: candidate.realStats.hp, ev: candidate.evs.hp },
+				{ label: "B", real: candidate.realStats.def, ev: candidate.evs.def },
+				{ label: "D", real: candidate.realStats.spd, ev: candidate.evs.spd },
+			],
+			badge: candidate.nature,
+			flags,
+			isApplied:
+				candidate.nature === applied.nature &&
+				candidate.evs.hp === applied.hp &&
+				candidate.evs.def === applied.def &&
+				candidate.evs.spd === applied.spd,
+			onSelect: () => {
+				onSelectCandidate(candidate);
+				// クリック直後、左パネルの値は同期的に書き換わる(applyEvToLeftPanel/
+				// applyNatureToLeftPanelがinput.valueへの代入→dispatchEventを同期実行する、
+				// bulk-adjust.ts参照)ため、ここで再描画すればisApplied(適用中マーク)が
+				// 直ちに正しい候補へ移る。
+				redraw();
+			},
+		};
+	});
+
 	return {
 		heading: "耐久調整の結果",
 		note: "合計努力値の少ない順",
-		items,
+		filterToggle: {
+			label: "残り努力値以下のみ表示",
+			checked: filterRemainingOnly,
+			onChange: onFilterChange,
+		},
+		// 依頼9: 現在のステータスも同じカードデザインで一覧の先頭に配置する。
+		currentCard: buildCurrentStatusStatCard(),
+		flatCards,
 		truncatedNote: result.truncated
 			? `候補が多いため ${result.candidates.length} 件で打ち切りました。`
-			: undefined,
-		emptyMessage: "条件を満たす組み合わせがありません。",
+			: filterRemainingOnly && hiddenCount > 0
+				? `努力値上限(66)超過のため ${hiddenCount} 件を隠しています。`
+				: undefined,
+		emptyMessage: infeasible
+			? "条件を満たす組み合わせがありません。"
+			: "残り努力値以下の候補がありません。",
 	};
+}
+
+// UI改修依頼(個体編集画面、2026-08-04)「耐久指数最大化」の結果も同じ統一カードで表示する
+// 準備(依頼B、durability-index.ts側のmaximizeDurabilityIndex()の戻り値をそのまま渡せる)。
+// ⚠️ 現時点の呼び出し元(左パネルの「耐久指数最大化」ボタン、left-panel.tsの
+// runDurabilityIndexMaximize、2026-08-03実装)はこの関数を呼ばず、旧来どおり
+// renderCandidateList()を直接呼んでいる(旧来の性格・努力値・実数値を別行で見せる形式のまま)。
+// left-panel.tsは今回の担当ファイル一覧(BulkAdjustDialog.astro/bulk-adjust.ts/
+// RightPanel.astro/right-panel.ts/durability-index.tsの5つ)に含まれていないため、
+// このファイルからそちらの呼び出し箇所を書き換えることはできない。この関数は
+// 「耐久指数最大化」の結果(kind別のMaximizeResult)を受け取れば依頼4〜6の統一カード表示が
+// そのまま行える状態まで用意したもので、left-panel.ts側でrunDurabilityIndexMaximize()の
+// renderCandidateList呼び出しをこちらへ差し替える追随修正が必要(コーディネーターへの
+// 報告事項)。
+export interface DurabilityIndexResultGroup {
+	kind: DurabilityIndexKind;
+	/** 指数名の見出し(依頼6、例: "総合耐久指数(H×B×D÷(B+D))")。 */
+	heading: string;
+	/** 見出しホバー時に出す計算式のヘルプ(依頼6)。 */
+	headingHelp?: string;
+	result: MaximizeResult;
+}
+
+function buildDurabilityIndexStatCardView(
+	groups: DurabilityIndexResultGroup[],
+	currentEvs: { hp: number; def: number; spd: number },
+	onSelectCandidate: (candidate: DurabilityIndexCandidate, kind: DurabilityIndexKind) => void,
+	redraw: () => void,
+): StatCardListView {
+	return {
+		heading: "耐久指数最大化",
+		context: `現在の努力値: H${currentEvs.hp} B${currentEvs.def} D${currentEvs.spd}`,
+		note: "総合/物理/特殊それぞれの耐久指数を最大化する努力値配分",
+		// 依頼5: 現在のステータスも同じカードデザインで一覧の先頭に配置する。
+		currentCard: buildCurrentStatusStatCard(),
+		// 依頼6: 指数名(見出し)→カードの繰り返し。
+		groups: groups.map(({ kind, heading, headingHelp, result }) => {
+			const best = result.best;
+			const isApplied =
+				best.evs.hp === currentEvs.hp && best.evs.def === currentEvs.def && best.evs.spd === currentEvs.spd;
+			const flags: StatCardSpec["flags"] = [];
+			if (result.remaining <= 0) {
+				flags.push({
+					icon: "⚠",
+					text: "努力値の合計が上限(66)に達しているため配る余地がありません",
+					kind: "warn",
+				});
+			}
+			const card: StatCardSpec = {
+				rows: [
+					{ label: "H", real: best.realStats.hp, ev: best.evs.hp },
+					{ label: "B", real: best.realStats.def, ev: best.evs.def },
+					{ label: "D", real: best.realStats.spd, ev: best.evs.spd },
+				],
+				// 依頼4: 指数値はカード本文に出さずtitle属性で整数表示する。
+				scoreTooltip: `指数値: ${Math.round(best.index)}`,
+				isApplied,
+				flags,
+				onSelect: () => {
+					onSelectCandidate(best, kind);
+					// ⚠️ left-panel.tsのrunDurabilityIndexMaximize(旧実装)が踏んだのと同じ罠:
+					// クリックイベントのバブリング中に同期的にredraw()すると、damage-calc.ts側
+					// (編集禁止ファイル)の「#damage-detail-panelの外側クリックで選択解除する」
+					// document click リスナーが、クリックされたbutton要素が既にDOMから切り離
+					// された後のtarget.contains判定で「パネルの外側をクリックした」と誤判定し、
+					// 今まさに再描画した一覧を消してしまう。clickイベントの伝播(1タスク)が
+					// 完全に終わってから再描画する必要があるため、setTimeoutで次のタスクへ回す。
+					setTimeout(redraw, 0);
+				},
+			};
+			return { title: heading, titleHelp: headingHelp, card };
+		}),
+		emptyMessage: "候補がありません。",
+	};
+}
+
+/** 耐久指数最大化(durability-index.tsのmaximizeDurabilityIndex())の結果を右パネルへ
+    統一カードで表示する(依頼4〜6)。呼び出し元の必要な追随修正は上のコメント参照。 */
+export function renderDurabilityIndexResults(
+	groups: DurabilityIndexResultGroup[],
+	currentEvs: { hp: number; def: number; spd: number },
+	onSelectCandidate: (candidate: DurabilityIndexCandidate, kind: DurabilityIndexKind) => void,
+): void {
+	const redraw = (): void => {
+		lastCandidateListRedraw = redraw;
+		renderStatCardList(buildDurabilityIndexStatCardView(groups, currentEvs, onSelectCandidate, redraw));
+	};
+	redraw();
 }
 
 // ラウンド5ユーザー指示(要件10): 天候・フィールドはセレクトをやめてアイコン選択式にする。

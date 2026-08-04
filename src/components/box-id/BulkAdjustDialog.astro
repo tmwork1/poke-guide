@@ -40,6 +40,15 @@
 		<h2 id="bulk-adjust-dialog-title" class="bulk-adjust-dialog-title">耐久調整</h2>
 		<button type="button" id="bulk-adjust-dialog-close" class="btn-ghost bulk-adjust-dialog-close" aria-label="耐久調整ポップアップを閉じる">×</button>
 	</div>
+	{/* UI改修依頼(個体編集画面、2026-08-04)「ウィンドウ上部に計算する ボタンを配置」。
+	    ダイアログ外のトリガーボタン(#bulk-adjust-button、box/[id].astro側)は、ダイアログを
+	    開いている間だけ「ステータスを計算」ラベルに変わり実行ボタンを兼ねているが、
+	    トップバーの操作ボタン列に埋まっていて見つけにくい。ダイアログ内から直接計算できる
+	    ボタンをヘッダー直下に新設する。クリック時の処理(bulk-adjust.ts)は外部トリガーと
+	    完全に同じ共通関数runCompute()を呼ぶだけで、実行ロジックを二重に持たない。 */}
+	<div class="bulk-adjust-dialog-toolbar">
+		<button type="button" id="bulk-adjust-dialog-compute-button" class="btn-primary bulk-adjust-dialog-compute-button">計算する</button>
+	</div>
 	<div id="bulk-adjust-dialog-body" class="bulk-adjust-dialog-body">
 		{/* 中身(圧縮表示カード+N/M入力欄の組、または空状態メッセージ)はbulk-adjust.tsが
 		    document.createElement()で動的生成してここへ差し込む。 */}
@@ -113,6 +122,15 @@
 	}
 	.bulk-adjust-dialog-title { margin: 0; font-size: 1rem; font-weight: 700; }
 	.bulk-adjust-dialog-close { font-size: 1.1rem; padding: 0.2em 0.55em; flex-shrink: 0; }
+
+	/* UI改修依頼(個体編集画面、2026-08-04)「ウィンドウ上部に計算する ボタンを配置」。
+	   ヘッダー直下・本文スクロール領域の外に固定する専用の帯(ヘッダーと同様flex-shrink:0)。 */
+	.bulk-adjust-dialog-toolbar {
+		display: flex;
+		justify-content: flex-end;
+		padding: var(--space-3) var(--space-5) 0;
+		flex-shrink: 0;
+	}
 
 	.bulk-adjust-dialog-body {
 		flex: 1 1 auto;
