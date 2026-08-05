@@ -16,12 +16,13 @@
 //   1. 相手ポケモンを1体選ぶ。性格補正なし、努力値はH32振り。
 //   2. チームポケモンを1体選び、覚えているすべての攻撃技で与ダメージを計算し、
 //      最大ダメージのHP割合(0〜1)を記録する。
-//   3. チーム全員で2を行い、最大ダメージ割合の平均値を得る。大きいほど有利 = 薄く表示。
-//   4. 1〜3をすべての相手ポケモンに対して行う。
+//   3. チーム全員で2を行い、最大ダメージ割合の平均値を得る。
+//   4. 3を反転し、防御と同じ「大きいほど不利」のスコアに揃えて濃く表示する。
+//   5. 1〜4をすべての相手ポケモンに対して行う。
 // 防御:
 //   1. 相手ポケモンを1体選ぶ。性格補正なし、努力値はH32振り。技構成は攻撃技のみを
 //      採用率の上から順に最大4つ。
-//   2〜4は攻撃と同じ向きを逆にしたもの。大きいほど不利 = 濃く表示。
+//   2〜4は相手からチームへの最大ダメージ割合を使う。大きいほど不利 = 濃く表示。
 
 /** 相手ポケモンの努力値(Champions形式 0〜32)。仕様どおりHのみ32、他は0。 */
 export const OPPONENT_EVS: readonly number[] = [32, 0, 0, 0, 0, 0];
@@ -137,10 +138,18 @@ export function averageRatio(ratios: readonly number[]): number | null {
 }
 
 /**
+ * UI改修依頼(2026-08-05)「攻撃側もスコアが高いほど不利にする」対応。
+ * 生の攻撃スコアだけを反転し、防御側と同じ「大きいほど不利」の向きへ揃える。
+ */
+export function matchupDisadvantageScore(rawScore: number, direction: MatchupDirection): number {
+	return direction === 'attack' ? 1 - rawScore : rawScore;
+}
+
+/**
  * 平均割合(score)を、アイコンの不透明度(MATCHUP_MIN_OPACITY〜1)へ写す。
  *
- * - attack:  score が大きい = 有利 → 薄い(不利な相手ほど濃く残り、目に留まる)
- * - defense: score が大きい = 不利 → 濃い
+ * UI改修依頼(2026-08-05)により攻守とも score が大きい = 不利へ統一したため、
+ * 大きい(不利な)相手ほど濃く残して目に留まるようにする。
  *
  * min/max は同時に表示している相手全員の score の最小・最大。正規化の理由は
  * MATCHUP_SCORE_MIN_RANGE のコメント参照。
@@ -149,11 +158,12 @@ export function matchupOpacity(
 	score: number,
 	min: number,
 	max: number,
-	direction: MatchupDirection,
+	_direction: MatchupDirection,
 ): number {
 	const range = Math.max(max - min, MATCHUP_SCORE_MIN_RANGE);
 	const normalized = range > 0 ? Math.min(1, Math.max(0, (score - min) / range)) : 0;
-	const disadvantage = direction === 'attack' ? 1 - normalized : normalized;
+	// UI改修依頼(2026-08-05)「攻守とも高いほど不利」対応。_directionは呼び出し契約を保つため受け取るが、同じ向きなので分岐しない。
+	const disadvantage = normalized;
 	return MATCHUP_MIN_OPACITY + (1 - MATCHUP_MIN_OPACITY) * disadvantage;
 }
 

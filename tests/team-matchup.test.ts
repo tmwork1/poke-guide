@@ -13,6 +13,7 @@ import {
   averageRatio,
   damageRatio,
   matchupOpacity,
+  matchupDisadvantageScore,
   pickOpponentAttackMoves,
   pickTeamAttackMoves,
   scoreToOpacities,
@@ -140,14 +141,14 @@ describe('averageRatio', () => {
 });
 
 describe('matchupOpacity', () => {
-  it('攻撃は「大きいほど有利=薄い」', () => {
+  it('攻撃は「大きいほど不利=濃い」', () => {
     const low = matchupOpacity(0.2, 0.2, 0.8, 'attack');
     const high = matchupOpacity(0.8, 0.2, 0.8, 'attack');
-    assert.equal(low, 1);
-    assert.equal(high, MATCHUP_MIN_OPACITY);
+    assert.equal(low, MATCHUP_MIN_OPACITY);
+    assert.equal(high, 1);
   });
 
-  it('防御は「大きいほど不利=濃い」', () => {
+  it('防御も「大きいほど不利=濃い」', () => {
     const low = matchupOpacity(0.2, 0.2, 0.8, 'defense');
     const high = matchupOpacity(0.8, 0.2, 0.8, 'defense');
     assert.equal(low, MATCHUP_MIN_OPACITY);
@@ -175,8 +176,15 @@ describe('matchupOpacity', () => {
   });
 
   it('全員同じ値なら濃淡は付かない', () => {
-    assert.equal(matchupOpacity(0.5, 0.5, 0.5, 'attack'), 1);
+    assert.equal(matchupOpacity(0.5, 0.5, 0.5, 'attack'), MATCHUP_MIN_OPACITY);
     assert.equal(matchupOpacity(0.5, 0.5, 0.5, 'defense'), MATCHUP_MIN_OPACITY);
+  });
+});
+
+describe('matchupDisadvantageScore', () => {
+  it('攻撃側だけ向きを反転し、防御側と同じ「高い=不利」へ揃える', () => {
+    assert.equal(matchupDisadvantageScore(0.2, 'attack'), 0.8);
+    assert.equal(matchupDisadvantageScore(0.2, 'defense'), 0.2);
   });
 });
 

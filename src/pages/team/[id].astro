@@ -257,6 +257,12 @@ const initialTeamJson = team
 			cursor: not-allowed;
 			opacity: 0.7;
 		}
+		/* UI改修依頼(2026-08-05)「相性チェック・非公開を戻るボタンと同じhover色にする」対応。
+		   非公開はlabel内のinputがdisabledになる構造なので、:has()で無効時を除外する。 */
+		#matchup-check-button:hover:not(:disabled),
+		.collection-opt-out-toggle:hover:not(:has(.toggle-switch-input:disabled)) {
+			color: var(--color-primary);
+		}
 		.collection-opt-out-status { color: var(--color-text-muted); }
 		.collection-opt-out-status[hidden] { display: none; }
 		.collection-opt-out-status[data-state="error"] { color: var(--color-danger); }
@@ -438,7 +444,9 @@ const initialTeamJson = team
 		   採用した。 */
 		@media (min-width: 1650px) {
 			.team-edit-layout {
-				grid-template-columns: minmax(240px, 304px) 754px minmax(240px, 1fr);
+				/* UI改修依頼(2026-08-05)「右パネルを20%縮小し、中央へ多めに配分」対応。
+				   1920px表示時の右列を約606pxから約485pxへ縮め、左+31px・中央+90pxへ配分する。 */
+				grid-template-columns: minmax(240px, 335px) 844px minmax(192px, 1fr);
 			}
 		}
 
@@ -894,10 +902,11 @@ const initialTeamJson = team
 											<path d="M14 17l3 3 3-3" />
 										</svg>
 										<select id="pokemon-sort-select" class="field-control" aria-label="並べ替え">
-											<option value="created_at">登録順</option>
-											<option value="suggestion">おすすめ順</option>
-											<option value="name">名前順</option>
-											<option value="species_name">種族名順</option>
+						<!-- UI改修依頼(2026-08-05)「ソートラベルから『順』を削除」対応。valueは維持する。 -->
+						<option value="created_at">登録</option>
+						<option value="suggestion">おすすめ</option>
+						<option value="name">名前</option>
+						<option value="species_name">種族名</option>
 										</select>
 									</div>
 								</div>
@@ -1137,9 +1146,11 @@ const initialTeamJson = team
 			min-width: 0;
 			display: grid;
 			grid-template-columns: 88px minmax(0, 1fr);
-			align-items: start;
-			gap: var(--space-2);
-			padding: var(--space-2);
+			/* UI改修依頼(2026-08-05)「ポケモン領域と技4つのY中心を揃えてカードを圧縮」対応。 */
+			align-items: center;
+			column-gap: var(--space-2);
+			row-gap: 0;
+			padding: var(--space-1);
 			border: 1px solid var(--color-border);
 			border-radius: var(--radius-md);
 			background: var(--color-surface);
@@ -1277,8 +1288,9 @@ const initialTeamJson = team
 		}
 		.team-select-bar .select-row-item-badge {
 			flex: none;
-			width: 16px;
-			height: 16px;
+			/* UI改修依頼(2026-08-05)「持ち物アイコンを20%拡大」対応。 */
+			width: calc(var(--space-4) * 1.2);
+			height: calc(var(--space-4) * 1.2);
 			display: flex;
 			align-items: center;
 			justify-content: center;
@@ -1331,11 +1343,9 @@ const initialTeamJson = team
 			overflow: hidden;
 			text-overflow: ellipsis;
 		}
-		/* A-6: 技0件も行ごと消さず「未設定」を明示する。新しいチップは無背景・無枠のため、
-		   旧来のborder-color強調は落とし、文字色だけで危険色を伝える。 */
+		/* UI改修依頼(2026-08-05)「技未設定は空欄にし高さを維持」対応。 */
 		.team-select-bar .select-row-move-chip-unset {
-			color: var(--color-danger-strong);
-			font-weight: 700;
+			min-height: 1.2em;
 		}
 		/* A-3(a): 「編成済み」(already-in-team、正常)と禁止3種(6体編成済み/種族が重複/
 		   持ち物が重複)が同じ危険色・同じ書式だったため、4/6のように複数体が既に編成済み
@@ -1401,8 +1411,10 @@ const initialTeamJson = team
 			text-align: center;
 			gap: 0.2rem;
 			width: min(100%, 230px);
-			height: 100%;
-			min-height: calc(var(--space-7) * 8 + var(--space-3));
+			/* UI改修依頼(2026-08-05)「縦余白を削ったうえでカードを正方形にする」対応。 */
+			aspect-ratio: 1 / 1;
+			height: auto;
+			min-height: 0;
 			padding: var(--space-1);
 		}
 		/* ドラッグ&ドロップの受け入れ先であることを示すハイライト(左パネルのpokemon-select-row
@@ -1466,6 +1478,8 @@ const initialTeamJson = team
 			border: 0;
 			padding: 0;
 			color: var(--color-text-muted);
+			/* UI改修依頼(2026-08-05)「空き枠の案内色をさらに薄くし、指定位置で改行」対応。 */
+			opacity: 0.55;
 			/* UI改修依頼(チーム編集中央パネル、2026-08-02)「他のplaceholderと同程度の薄さにする」。
 			   font-weight:600(太字)は他画面の検索欄placeholder等より主張が強すぎたため、通常の
 			   太さに戻す(色は既存のvar(--color-text-muted)のまま、両テーマ対応を崩さない)。 */
@@ -1473,6 +1487,7 @@ const initialTeamJson = team
 			font-size: var(--font-size-md);
 			cursor: default;
 			text-align: center;
+			white-space: pre-line;
 		}
 
 		/* 🔴 UI改修依頼(チーム編集中央パネル、2026-08-01)「6. 番号(1~6)の丸枠を削除し、
@@ -1488,9 +1503,9 @@ const initialTeamJson = team
 		   両状態とも同じ意味=「何番目の枠か」を表すため、色分けではなく濃淡で十分)。 */
 		.team-slots .slot-watermark-number {
 			position: absolute;
-			top: 0.15rem;
-			/* 左余白を上余白と同値にして、左上の番号位置を揃える。 */
-			left: 0.15rem;
+			/* UI改修依頼(2026-08-05)「番号の左余白を上余白と同値にして拡大」対応。 */
+			top: var(--space-2);
+			left: var(--space-2);
 			z-index: 0;
 			font-size: 2.75rem;
 			font-weight: 800;
@@ -1824,12 +1839,6 @@ const initialTeamJson = team
 		}
 		/* 右パネルにカード2枚ぶんの幅を確保できるワイド画面だけ2列にする。
 		   基本定義より後ろに置き、同詳細度のdisplay指定に上書きされないようにする。 */
-		@media (min-width: 1900px) {
-			.team-preview-panel .team-damage-list {
-				display: grid;
-				grid-template-columns: repeat(2, minmax(0, 1fr));
-			}
-		}
 		.team-preview-panel .team-damage-card {
 			border: 1px solid var(--color-border);
 			border-radius: var(--radius-md);
@@ -1837,6 +1846,9 @@ const initialTeamJson = team
 			/* 個体編集画面の計算結果カードと密度を揃え、一覧時の縦方向の占有を抑える。 */
 			padding: 0.2rem 0.6rem;
 			min-width: 0;
+			/* UI改修依頼(2026-08-05)「計算結果をカード下端へ寄せる」対応。 */
+			display: flex;
+			flex-direction: column;
 		}
 
 		/* --- 上段: アイコン + 種族名/攻守/特性/実数値 --- */
@@ -1849,8 +1861,9 @@ const initialTeamJson = team
 		.team-preview-panel .team-damage-sprite {
 			position: relative;
 			flex: 0 0 auto;
-			width: 62px;
-			height: 62px;
+			/* UI改修依頼(2026-08-05)「タイトル行のポケモンアイコンを少し拡大」対応。 */
+			width: 68px;
+			height: 68px;
 			display: flex;
 			align-items: center;
 			justify-content: center;
@@ -2014,7 +2027,9 @@ const initialTeamJson = team
 			flex-wrap: wrap;
 			align-items: baseline;
 			gap: 0.1rem 0.4rem;
-			margin: var(--space-1) 0 0;
+			/* UI改修依頼(2026-08-05)「計算結果を下寄せ」対応。本文後の余白を吸収し最終段に置く。 */
+			margin: auto 0 0;
+			order: 1;
 			/* 左だけ広めにする。確定数(確N)は font-weight 800 の漢字で、左の罫線
 			   (border-left 4px)にほぼ接して見えるため(実測: 文字の開始位置が padding の
 			   端ちょうど)。 */
@@ -2171,11 +2186,11 @@ const initialTeamJson = team
 			height: 14px;
 			flex: none;
 		}
-		/* アイテム名は特性・役割より読ませたい情報(ユーザー要望2026-08-04)なので通常テキストより
-		   濃くする。 */
+		/* UI改修依頼(2026-08-05)「持ち物名を中央カードと同じ表示にする」対応。 */
 		.team-suggest-item-name {
 			font-weight: 600;
-			color: var(--color-text);
+			font-size: var(--font-size-xs);
+			color: var(--color-text-muted);
 		}
 		.team-suggest-role {
 			flex: none;
@@ -2198,8 +2213,9 @@ const initialTeamJson = team
 			margin-top: 0.1em;
 		}
 		.team-suggest-reason-name {
-			font-weight: 600;
-			color: var(--color-text);
+			/* UI改修依頼(2026-08-05)「相性のよいポケモン名を前後と同じ書式にする」対応。 */
+			font-weight: inherit;
+			color: inherit;
 		}
 		/* 持ち物がチーム内で重複する型(そのままでは編成できない)への注意書き。
 		   候補自体は消さない ── 「持ち物を変えれば使える」という情報は残す価値があるため。 */
@@ -2265,9 +2281,10 @@ const initialTeamJson = team
 			background: var(--color-surface);
 			transition: border-color 0.2s ease, background 0.2s ease;
 		}
-		/* 相性の強調は濃淡や枠に頼らず、既存のリスク色を混ぜた背景だけで示す。 */
+		/* UI改修依頼(2026-08-05)「相性カード背景を濃くする」対応。
+		   既存トークンだけを混ぜ、ダークモードでも本文色とのコントラストを保つ。 */
 		.team-matchup-card.is-disadvantageous {
-			background: color-mix(in srgb, var(--color-surface) 90%, var(--color-risky-strong) 10%);
+			background: color-mix(in srgb, var(--color-surface) 72%, var(--color-risky) 28%);
 		}
 		.team-matchup-card[data-state="pending"],
 		.team-matchup-card[data-state="unknown"] {
@@ -2281,7 +2298,8 @@ const initialTeamJson = team
 			position: absolute;
 			top: var(--space-1);
 			left: var(--space-1);
-			font-size: var(--font-size-xs);
+			/* UI改修依頼(2026-08-05)「スコアを一段縮小して左上へ配置」対応。 */
+			font-size: calc(var(--font-size-xs) * 0.85);
 			font-weight: 700;
 			font-variant-numeric: tabular-nums;
 			color: var(--color-text-muted);
@@ -2359,6 +2377,7 @@ const initialTeamJson = team
 			OPPONENT_NATURE,
 			averageRatio,
 			damageRatio,
+			matchupDisadvantageScore,
 			pickOpponentAttackMoves,
 			pickTeamAttackMoves,
 			scoreToOpacities,
@@ -3531,7 +3550,10 @@ const initialTeamJson = team
 					// 個々のセルが null(その組だけ計算に失敗)のときは0として平均に含める
 					// ── 「そのメンバーはこの相手に何も通せない」と同じ扱いにするのが安全側。
 					const memberRatios = teamAttackSpecs.map((_, i) => damageRatio(result.maxDamage[i]?.[0] ?? 0, hp));
-					return { score: averageRatio(memberRatios), memberRatios };
+					const rawScore = averageRatio(memberRatios);
+					// UI改修依頼(2026-08-05)「攻撃スコアを反転し、高いほど不利に統一」対応。
+					if (rawScore === null) return null;
+					return { score: matchupDisadvantageScore(rawScore, "attack"), memberRatios };
 				}
 
 				// 防御: 相手1体 → チーム全員。相手の技は攻撃技だけを採用率上位4つ(ユーザー指示)。
@@ -3849,8 +3871,8 @@ const initialTeamJson = team
 				placeholder.className = "slot-empty-cta";
 				placeholder.setAttribute("aria-label", `${slot}番目の枠は空きです。左の一覧からドラッグ&ドロップすると追加できます`);
 				const label = document.createElement("span");
-				// ドラッグだけでなく左一覧の既存ダブルクリック操作も案内し、淡色はCSSトークンを使う。
-				label.textContent = "ドラッグまたはダブルクリック";
+				// UI改修依頼(2026-08-05)「空き枠案内を指定の2行表記にする」対応。
+				label.textContent = "ドラッグまたは\nダブルクリックで追加";
 				placeholder.appendChild(label);
 
 				wrap.append(watermark, placeholder);
@@ -4366,8 +4388,8 @@ const initialTeamJson = team
 
 				// 技(最大4つ)。タイプアイコン付きチップを右列に1列で並べる(背景色なし・
 				// 技名の前にタイプアイコン・セル内左揃え。上のapplySelectMoveChipTypeIcons参照)。
-				// 技0件のときは.select-row-move-chip-unsetで「未設定」を明示する(旧来からの表示、
-				// A-6と同じ理由でDOMごと消さない)。
+				// UI改修依頼(2026-08-05)「技未設定は文字を出さず空欄にする」対応。
+				// 空チップのDOMは残し、CSSのmin-heightで通常の1行分を維持する。
 				const movesRow = document.createElement("span");
 				movesRow.className = "select-row-moves";
 				const rowMoves = p.move_names.filter((m) => m && m.trim() !== "");
@@ -4394,7 +4416,8 @@ const initialTeamJson = team
 					chip.className = "select-row-move-chip select-row-move-chip-unset";
 					const textEl = document.createElement("span");
 					textEl.className = "select-row-move-chip-text";
-					textEl.textContent = "未設定";
+					textEl.textContent = "";
+					textEl.setAttribute("aria-hidden", "true");
 					chip.appendChild(textEl);
 					movesRow.appendChild(chip);
 				}
