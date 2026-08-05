@@ -59,6 +59,10 @@ import type { SolveResult, DurabilityCandidate } from "./bulk-adjust-solver";
 // importする(計算自体はdurability-index.ts側の担当のまま変えない。呼び出し元は現在
 // left-panel.ts、下方のrenderDurabilityIndexResultsのコメント参照)。
 import type { DurabilityIndexCandidate, DurabilityIndexKind, MaximizeResult } from "./durability-index";
+// ダメージ計算のサジェスト(ユーザー要望、2026-08-05)。右パネルのニュートラル状態(下の
+// renderDetailPanelEmpty)にだけ差し込む。取得・描画の実体は damage-suggest.ts にあり、
+// このファイルは「いつ出すか」の判断(既存の優先順位への割り込み)だけを持つ。
+import { renderDamageSuggestPanel } from "./damage-suggest";
 
 // --- 詳細設定サイドバー(ラウンド5ユーザー指示・要件9) ---
 // ⚙クリックで<dialog>を開く方式をやめ、カードを選択すると右サイドバー
@@ -582,6 +586,11 @@ export function renderDetailPanelEmpty(): void {
 		lastCandidateListRedraw();
 		return;
 	}
+	// ダメージ計算のサジェスト(ユーザー要望、2026-08-05)。依頼「ニュートラル状態で、右パネルに
+	// サジェストを表示する」に対応し、上記の優先順位の一番下(本当に何も出さない状態)にだけ挟む。
+	// 出す候補が1件も無いとき(取得前・取得失敗・全部すでにカードにある)は false が返り、
+	// 従来どおりの空状態へ落ちる(src/lib/box-id/damage-suggest.ts のコメント参照)。
+	if (renderDamageSuggestPanel(detailPanelBodyEl, setDetailPanelTitle)) return;
 	setDetailPanelTitle("");
 	detailPanelBodyEl.innerHTML = "";
 	const inner = document.createElement("div");

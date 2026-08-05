@@ -97,6 +97,11 @@ import {
 	notifyDetailMoveChanged,
 	notifyDetailAbilityChanged,
 } from "./right-panel";
+// ダメージ計算のサジェスト(ユーザー要望、2026-08-05)。描画は右パネル側(damage-suggest.ts)に
+// あり、このファイルは「いま画面にどんな計算があるか」と「1件を新しいカードにする」の
+// 2つだけをブリッジとして提供する(shared-core.tsのregisterDamageCalcBridgeと同じ登録パターン)。
+import { initDamageSuggest, registerDamageSuggestBridge, type DamageCalcSuggestion } from "./damage-suggest";
+import { damageCalcSuggestionKey } from "../damage-calc-suggest";
 
 // もともとはラウンド4ユーザー指示「技の詳細はリンクではなくホバー表示にする」用に
 // 導入したローダー(public/master-data/detail/moves.json、src/pages/moves/[name].astroが
@@ -3566,6 +3571,60 @@ if (opponentNotesSection) {
 		row.root?.querySelector<HTMLInputElement>('input[aria-label="相手ポケモン名"]')?.focus();
 	}
 
+	// ダメージ計算のサジェスト(ユーザー要望、2026-08-05)。候補1件を新しいカードにする。
+	// 追加位置・order値の付け方・rebuildRowsListの呼び方はaddNewRowAndFocus()と同じにする
+	// (「新規カードは先頭に追加する」というUI改修依頼 2026-08-04 の挙動を2箇所で食い違わせない)。
+	// 相手のビルド(性格・特性・持ち物・テラス・努力値)は集計側が項目ごとの最頻値として
+	// 返してくるものをそのまま入れる(migrations/020)。値が無い項目は空のままにし、
+	// 保存済みの個体データと同じく「未入力」として扱う。
+	function addSuggestedRow(suggestion: DamageCalcSuggestion): void {
+		const row = createEmptyRow();
+		row.direction = suggestion.direction;
+		row.name = suggestion.opponentName;
+		const build = suggestion.opponentBuild;
+		// 性格名から↑↓を正引きして復元する(noteToRowStateと同じ手順・同じ正規化)。
+		const mod = NATURE_STAT_MODIFIERS[build.nature ?? ""] ?? { up: null, down: null };
+		row.natureUp = mod.up;
+		row.natureDown = mod.down;
+		row.nature = natureNameFromBoosts(mod.up, mod.down);
+		row.abilityName = build.abilityName ?? "";
+		row.itemName = build.itemName ?? "";
+		row.teraType = build.teraType ?? "";
+		row.evs = STAT_KEYS.map((_, i) => build.evs?.[i] ?? 0);
+		row.attacks[0].moveName = suggestion.moveName;
+
+		renderRow(row);
+		const existingOrders = rows
+			.map((r) => rowSortOrder.get(r))
+			.filter((v): v is number => v !== undefined);
+		const minOrder = existingOrders.length > 0 ? Math.min(...existingOrders) : 0;
+		rowSortOrder.set(row, minOrder - 1000);
+		rows.unshift(row);
+		rebuildRowsList();
+		// 相手名が入っている=保存できる状態なので、通常の編集と同じ経路で保存と再計算を予約する。
+		scheduleRowSave(row);
+		scheduleRowCalc(row);
+		refreshRowConditionChips(row);
+	}
+
+	registerDamageSuggestBridge({
+		// 向き・相手・技の3つ組(=020の集計単位)で「もう画面にある計算」を表す。
+		// 1枚のカードが複数の技列を持つため、行ではなく技ごとに1キー作る。
+		listExistingKeys: () =>
+			rows.flatMap((row) =>
+				row.attacks
+					.filter((attack) => attack.moveName.trim() !== "")
+					.map((attack) =>
+						damageCalcSuggestionKey({
+							direction: row.direction,
+							opponentName: row.name,
+							moveName: attack.moveName,
+						}),
+					),
+			),
+		addSuggestion: (suggestion) => addSuggestedRow(suggestion),
+	});
+
 	function buildAddRowTile(): HTMLButtonElement {
 		const tile = document.createElement("button");
 		tile.type = "button";
@@ -3724,6 +3783,12 @@ if (opponentNotesSection) {
 	}
 
 	void fetchAndRenderRows();
+
+	// ダメージ計算のサジェスト(ユーザー要望、2026-08-05)の初期取得。上のブリッジ登録より後
+	// (= listExistingKeys/addSuggestion が使える状態)であればよく、fetchAndRenderRows()の
+	// 完了は待たない ── 取得が先に終わってもサジェストは「まだ画面に無い計算」を1件も
+	// 除外しないだけで、カードが揃った時点で次の再描画から正しく除外される。
+	initDamageSuggest();
 
 	// --- エンジン初期化状態の表示・準備完了時の全行再計算 ---
 	// ラウンド3 B-12: 失敗時、以前はpyodide-engine.ts由来の生のメッセージ(CDNの

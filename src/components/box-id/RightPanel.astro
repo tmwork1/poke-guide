@@ -358,4 +358,170 @@
 		cursor: pointer;
 		font-size: var(--font-size-sm);
 	}
+
+	/* --- ダメージ計算のサジェスト(ユーザー要望、2026-08-05)。右パネルのニュートラル状態に
+	   「そのポケモンの型でよく行われているダメージ計算」を並べる。依頼「カードデザインは
+	   チーム編集画面の右パネルを流用できる」に従い、src/pages/team/[id].astro の
+	   .team-suggest-* 一式(順位 / 本文 / 操作 の3列グリッド、48pxスプライト、
+	   xsサイズのmuted補足行)をそのまま写している。値・トークンは新設せず、あちらで
+	   使われているものだけを使う。クラス名を .damage-suggest-* に分けているのは、
+	   team/[id].astro側のCSSがそのページのis:globalに閉じており共有できないため
+	   (共通化するならglobal.cssへの昇格が要るが、それは今回の依頼の範囲を超える)。
+	   document.createElement()による動的生成のためscoped<style>は効かない
+	   (pitfalls.md「JSで生成した要素に効かない」)。 --- */
+	#damage-detail-panel-body .damage-suggest-list {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-2);
+	}
+	/* カード全体が1つのボタン(操作が「追加」の1種類しかないため。team側は
+	   「育成する/チームに追加」の2択があるので右端に別ボタンを置いている)。 */
+	#damage-detail-panel-body .damage-suggest-card-button {
+		width: 100%;
+		display: grid;
+		/* 順位 / 本文 / 追加ラベル の3列。本文列は minmax(0, 1fr) にしないと長い技名・
+		   持ち物名がグリッドを押し広げて横スクロールを起こす(team-suggest-cardと同じ)。 */
+		grid-template-columns: auto minmax(0, 1fr) auto;
+		align-items: center;
+		gap: var(--space-2);
+		padding: var(--space-2);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-sm);
+		background: var(--color-surface);
+		text-align: left;
+		cursor: pointer;
+		color: inherit;
+		font: inherit;
+	}
+	#damage-detail-panel-body .damage-suggest-card-button:hover,
+	#damage-detail-panel-body .damage-suggest-card-button:focus-visible {
+		border-color: var(--color-primary);
+	}
+	#damage-detail-panel-body .damage-suggest-rank {
+		font-size: calc(var(--font-size-xs) * 1.5);
+		font-weight: 700;
+		color: var(--color-text-muted);
+		min-width: 1.2em;
+		text-align: right;
+	}
+	#damage-detail-panel-body .damage-suggest-body {
+		min-width: 0;
+		display: block;
+	}
+	/* 攻守チップ・スプライト・相手の種族名・相手の持ち物を1段目に置く。持ち物まで入ると
+	   右パネルの本文列(実測200px前後)には収まらないため、折り返しを許す(team側の
+	   .team-suggest-buildと同じ判断: 切ると提案の中身そのものが読めなくなる)。 */
+	#damage-detail-panel-body .damage-suggest-name-row {
+		display: flex;
+		align-items: center;
+		flex-wrap: wrap;
+		gap: 0.15em var(--space-2);
+		min-width: 0;
+	}
+	/* 攻守は中央パネルの攻守トグル(.damage-row-direction-option)と同じ語彙・同じ意味の
+	   チップ。配色もそちらに揃え、攻撃=危険色系/防御=primary系の既存トークンだけを使う。 */
+	#damage-detail-panel-body .damage-suggest-direction {
+		flex: none;
+		padding: 0 0.35em;
+		border-radius: var(--radius-sm);
+		font-size: var(--font-size-xs);
+		font-weight: 600;
+	}
+	#damage-detail-panel-body .damage-suggest-direction[data-direction="attack"] {
+		background: var(--color-danger-soft);
+		color: var(--color-danger-strong);
+	}
+	#damage-detail-panel-body .damage-suggest-direction[data-direction="defense"] {
+		background: var(--color-primary-soft);
+		color: var(--color-primary);
+	}
+	#damage-detail-panel-body .damage-suggest-sprite {
+		width: 48px;
+		height: 48px;
+		flex: none;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+	#damage-detail-panel-body .damage-suggest-sprite-img {
+		max-width: 100%;
+		max-height: 100%;
+	}
+	#damage-detail-panel-body .damage-suggest-sprite-fallback {
+		display: none;
+		width: 35px;
+		height: 35px;
+		border-radius: 50%;
+		background: var(--color-surface-alt);
+		color: var(--color-text-muted);
+		font-size: var(--font-size-xs);
+		align-items: center;
+		justify-content: center;
+	}
+	#damage-detail-panel-body .damage-suggest-name {
+		font-size: var(--font-size-sm);
+		font-weight: 600;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		min-width: 0;
+	}
+	/* 技名(+その計算で想定されている相手の持ち物)。右パネルの本文列は実測で200px前後
+	   しかないため、折り返して2行になることを許す(切ると提案の中身が読めなくなる)。 */
+	#damage-detail-panel-body .damage-suggest-move-row {
+		display: flex;
+		align-items: center;
+		flex-wrap: wrap;
+		gap: 0.15em 0.25em;
+		line-height: 1.35;
+		margin-top: 0.15em;
+	}
+	#damage-detail-panel-body .damage-suggest-move {
+		font-size: var(--font-size-sm);
+		font-weight: 600;
+		min-width: 0;
+	}
+	/* アイコンと名前は不可分の1塊にする(バラで並べると折り返しで分断される)。 */
+	#damage-detail-panel-body .damage-suggest-item {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.25em;
+		min-width: 0;
+	}
+	#damage-detail-panel-body .damage-suggest-item-icon {
+		width: 14px;
+		height: 14px;
+		flex: none;
+	}
+	#damage-detail-panel-body .damage-suggest-item-name {
+		font-weight: 600;
+		font-size: var(--font-size-xs);
+		color: var(--color-text-muted);
+	}
+	#damage-detail-panel-body .damage-suggest-reason {
+		display: block;
+		font-size: var(--font-size-xs);
+		color: var(--color-text-muted);
+		line-height: 1.35;
+		margin-top: 0.1em;
+	}
+	/* 3列目。実体はカード全体のボタンなので、これ自体は押せる見た目のラベルにとどめる
+	   (team-suggest-actionと同じ寸法・同じトークン)。 */
+	#damage-detail-panel-body .damage-suggest-action {
+		align-self: stretch;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 3.4em;
+		font-size: var(--font-size-xs);
+		line-height: 1.25;
+		padding: var(--space-1);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-sm);
+		background: var(--color-surface-alt);
+		color: var(--color-text);
+	}
 </style>
