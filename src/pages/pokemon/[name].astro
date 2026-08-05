@@ -273,13 +273,13 @@ const realStatsMaxEv = realStatRow(32);
 		}
 		.stat-grid-col-label {
 			text-align: center;
-			font-size: 0.8em;
+			font-size: var(--font-size-xs);
 			font-weight: 700;
 			color: var(--color-text-muted);
 		}
 		.stat-grid-value {
 			text-align: center;
-			font-size: 1.05em;
+			font-size: var(--font-size-lg);
 			font-weight: 700;
 		}
 		/* B-1: 実数(無振)/実数(全振)行の直後の注記。汎用クラス.card-hintは
@@ -450,7 +450,7 @@ const realStatsMaxEv = realStatRow(32);
 		   区分表示が無いので、変化技だけはここで区分名を出す)。 */
 		.move-cell-power-status {
 			font-weight: 600;
-			font-size: 0.78em;
+			font-size: var(--font-size-xs);
 		}
 	</style>
 	<div class="page">
@@ -554,7 +554,7 @@ const realStatsMaxEv = realStatRow(32);
 						{realStatsMaxEv.map((v) => <span class="stat-grid-value tnum">{v}</span>)}
 					</div>
 				</div>
-				<p class="stat-grid-hint">実数値は性格補正なし(&times;1.0)・個体値31・Lv50固定(チャンピオンズルール)で計算。無振=努力値0、全振=努力値32。実際に性格を選ぶと&plusmn;10%前後で変動する。</p>
+				<p class="stat-grid-hint">性格補正なし・Lv50で計算。無振=0、全振=32。</p>
 			</div>
 		</section>
 
@@ -599,7 +599,7 @@ const realStatsMaxEv = realStatRow(32);
 						{/* B-1: ★(タイプ一致)の可視凡例。role="img" aria-label="タイプ一致"はスクリーン
 						    リーダー限定で、目視ユーザーは★の意味を推測するしかなかった。STAB技が先頭に
 						    固められる設計のため初画面はほぼ全セルに★が付き「おすすめ」等と誤読されうる。 */}
-						<p class="moves-legend-hint"><span class="move-cell-stab" aria-hidden="true">★</span> = タイプ一致(自分と同じタイプの技。ダメージ計算で威力1.5倍になる)</p>
+						<p class="moves-legend-hint"><span class="move-cell-stab" aria-hidden="true">★</span> タイプ一致</p>
 						<ul class="moves-grid" id="moves-grid">
 							{sortedLearnsetMoves.map((m) => {
 								const iconUrl = m.type ? typeIconUrl(m.type) : null;

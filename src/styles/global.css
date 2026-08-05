@@ -373,11 +373,9 @@ a {
 	pointer-events: none;
 }
 
-/* 検索・並べ替えアイコンを入力欄の左に重ねるための領域。両一覧で同じ既存値。 */
-.search-input-wrap input,
-.sort-select-wrap select {
-	padding-left: 2.1em;
-}
+/* 検索・並べ替えアイコンを入力欄の左に重ねるための領域確保は、下の「入力欄」節
+   (input/select の padding ショートハンド)より後ろに置く必要があるため、そちらの
+   直後に定義している(このファイル内 `.search-input-wrap input` を参照)。 */
 
 /* タグ絞り込みを置き換えたお気に入りトグル。通常は枠・背景を透明にし、
    選択時も太さを変えず星だけを既存の警告色にする。 */
@@ -639,6 +637,18 @@ select:hover,
 select:focus,
 select:focus-visible {
 	background-image: var(--select-arrow);
+}
+
+/* 一覧ツールバーの検索欄・並べ替えselectは、左端に重ねたアイコン(.search-icon /
+   .sort-icon、上の「一覧ページ共通ツールバー」節)のぶんだけ内側を空ける。
+   ⚠️ この2行は必ず上の `input[type="text"] { padding: … }` より**後ろ**に置くこと。
+   `.search-input-wrap input`(0,1,1)と `input[type="text"]`(0,1,1)は詳細度が同じで、
+   先に書くと後勝ちで padding ショートハンドに padding-left を潰され、アイコンが
+   プレースホルダに重なる(2026-08-05にツールバーをglobal.cssへ集約した際に実際に
+   /team で発生。/box はページ側のscoped指定が詳細度で勝っていたため無症状だった)。 */
+.search-input-wrap input,
+.sort-select-wrap select {
+	padding-left: 2.1em;
 }
 
 textarea {

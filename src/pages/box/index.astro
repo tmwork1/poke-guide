@@ -114,10 +114,11 @@ const user = Astro.locals.user;
 		.toolbar-search {
 			flex: 0 1 26rem;
 		}
+		/* padding-left(左端のアイコン領域)は global.css の
+		   `.search-input-wrap input` が持つ。ここではページ固有の幅だけを指定する。 */
 		.toolbar-search input {
 			width: 100%;
 			min-width: 12em;
-			padding-left: 2.1em;
 		}
 		/* ラウンド27 27-B3(ユーザー指示): タグ絞り込みUI(複数タグ選択+すべて一致)を
 		   「お気に入りのみ表示」の単一トグルボタンに置き換える。このボタンは静的マークアップ
@@ -486,7 +487,7 @@ const user = Astro.locals.user;
 			right: var(--space-2);
 			display: flex;
 			flex-direction: column;
-			gap: 0.25rem;
+			gap: var(--space-1);
 			z-index: 2;
 		}
 		.box-grid .card-pokemon .icon-button {
@@ -558,7 +559,7 @@ const user = Astro.locals.user;
 			   36×36pxの三角トリム領域・padding(5px 0 0 5px)は変更しない、と当時は報告されていたが、
 			   2026-08-01の別のユーザー指示(上記position/width/heightのコメント参照)で欠けが
 			   実際にあったことが判明し、トリム領域を52×52px・padding 7pxへ拡大済み。 */
-			font-size: 1.05rem;
+			font-size: var(--font-size-lg);
 		}
 		.box-grid .card-pokemon .pin-toggle:hover {
 			background: var(--color-surface);
@@ -630,7 +631,7 @@ const user = Astro.locals.user;
 			display: flex;
 			flex-direction: column;
 			align-items: center;
-			gap: 0.2rem;
+			gap: var(--space-1);
 			width: 100%;
 			text-align: center;
 		}
@@ -640,7 +641,7 @@ const user = Astro.locals.user;
 		.box-grid .card-pokemon .card-name-row {
 			display: flex;
 			align-items: center;
-			gap: 0.3rem;
+			gap: var(--space-1);
 			width: 100%;
 		}
 		/* UI改修依頼(ボックス画面、2026-08-02)「カードのニックネーム/種族名(.card-name)を
@@ -651,9 +652,9 @@ const user = Astro.locals.user;
 			margin: 0;
 			flex: 1 1 auto;
 			min-width: 0;
-			font-size: 0.82em;
+			font-size: var(--font-size-xs);
 			font-weight: 700;
-			line-height: 1.2;
+			line-height: var(--line-height-tight);
 			text-align: center;
 			white-space: nowrap;
 			overflow: hidden;
@@ -713,7 +714,7 @@ const user = Astro.locals.user;
 			display: flex;
 			align-items: center;
 			justify-content: center;
-			gap: 0.2rem;
+			gap: var(--space-1);
 			min-width: 0;
 		}
 		.box-grid .card-pokemon .card-item-row-ability {
@@ -730,8 +731,8 @@ const user = Astro.locals.user;
 		.box-grid .card-pokemon .card-ability-name {
 			flex: 0 1 auto;
 			min-width: 0;
-			font-size: 0.75rem;
-			line-height: 1.2;
+			font-size: var(--font-size-xs);
+			line-height: var(--line-height-tight);
 			font-weight: 600;
 			color: var(--color-text-muted);
 			max-width: 100%;
@@ -745,8 +746,8 @@ const user = Astro.locals.user;
 		   いっぱいを使える(旧来は右半分)。アイコン16px+gap0.2remと同居するため、
 		   ellipsisで確実に収める。 */
 		.box-grid .card-pokemon .card-item-name {
-			font-size: 0.75rem;
-			line-height: 1.2;
+			font-size: var(--font-size-xs);
+			line-height: var(--line-height-tight);
 			font-weight: 600;
 			color: var(--color-text-muted);
 			max-width: 100%;
@@ -782,7 +783,7 @@ const user = Astro.locals.user;
 		/* ラウンド20 G3(12px下限): 0.64em(≈10.2px)は違反だったため、emの入れ子事故を避ける
 		   ためrem基準に変え0.75rem(=12px、--font-size-xsと同値)へ引き上げる。 */
 		.box-grid .card-pokemon .card-stat-col-label {
-			font-size: 0.75rem;
+			font-size: var(--font-size-xs);
 			line-height: 1.1;
 			font-weight: 700;
 			text-align: center;
@@ -792,8 +793,8 @@ const user = Astro.locals.user;
 		   箇所)を0.8rem(=12.8px)へ引き上げる。カード拡大(210→240px、20-B3)で生まれた余白で
 		   吸収する。列見出し(0.75rem)よりわずかに大きくして本体値の主役感を残す。 */
 		.box-grid .card-pokemon .card-stat-real-value {
-			font-size: 0.8rem;
-			line-height: 1.2;
+			font-size: var(--font-size-xs);
+			line-height: var(--line-height-tight);
 			font-weight: 700;
 			text-align: center;
 			color: var(--color-text);
@@ -839,7 +840,7 @@ const user = Astro.locals.user;
 			   チップの高さ16.92px(1行分)・.card-moves-grid自体の高さは34.72pxのまま(全カードの
 			   高さ揃えは維持、cloneNode複製で技0/1/2/4件混在させ257.34375pxで一致を確認済み)。 */
 			align-items: start;
-			gap: 0.05rem 0.3rem;
+			gap: 0.05rem var(--space-1);
 			width: 100%;
 			margin-top: 0.15rem;
 			/* ラウンド8 A-8: 技0件のカードでもこの要素を常時appendする(JS側変更)ため、
@@ -892,10 +893,10 @@ const user = Astro.locals.user;
 		.box-grid .card-pokemon .card-move-chip {
 			display: flex;
 			align-items: center;
-			gap: 0.25rem;
+			gap: var(--space-1);
 			min-width: 0;
-			font-size: 0.7rem;
-			line-height: 1.2;
+			font-size: var(--font-size-xs);
+			line-height: var(--line-height-tight);
 			font-weight: 600;
 			color: var(--color-text-muted);
 			padding: 0.08rem 0;
@@ -1054,37 +1055,37 @@ const user = Astro.locals.user;
 					</div>
 
 					<div class="box-content">
-						<p id="loading-message">読み込み中...</p>
+						<p id="loading-message">読み込み中…</p>
 						<p id="error-message" hidden></p>
 
 						<div class="box-grid">
 							<button type="button" class="add-card-tile" id="add-pokemon-button">
 								<span class="add-card-tile-icon" aria-hidden="true">＋</span>
 								<span class="add-card-tile-label">個体を追加</span>
-								<span class="add-card-tile-hint">新しい個体を登録します</span>
+								<span class="add-card-tile-hint" hidden></span>
 							</button>
 							<div id="owned-pokemon-list"></div>
 						</div>
 
 						<div id="empty-message" class="empty-state" hidden>
 							<p class="empty-state-icon" aria-hidden="true">📦</p>
-							<p class="empty-state-title">ボックスに登録された個体がありません</p>
-							<p class="empty-state-hint">「＋ 個体を追加」タイルから最初の1体を登録しましょう。</p>
+							<p class="empty-state-title">個体が登録されていません</p>
+							<p class="empty-state-hint" hidden></p>
 						</div>
 
 						{/* UI品質改善ラウンド2(B-9): 検索/絞り込みの結果が0件のときの案内。登録自体は
 						    あるので空状態(#empty-message)とはメッセージを変え、見た目だけ揃える。 */}
 						<div id="no-match-message" class="empty-state" hidden>
 							<p class="empty-state-icon" aria-hidden="true">🔍</p>
-							<p class="empty-state-title">条件に一致する個体がいません</p>
-							<p class="empty-state-hint">検索語や「お気に入りのみ表示」の条件を変更してください。</p>
+							<p class="empty-state-title">条件に一致する個体がありません</p>
+							<p class="empty-state-hint">条件を変更してください。</p>
 						</div>
 					</div>
 				</Fragment>
 			) : (
 				<section class="panel">
 					<div class="panel-content">
-						<p>個体管理機能を利用するにはログインが必要です。</p>
+						<p>個体を管理するにはログインが必要です。</p>
 						<a class="btn-primary" href="/api/auth/login">Googleでログイン</a>
 					</div>
 				</section>
@@ -1452,7 +1453,7 @@ const user = Astro.locals.user;
 				card.className = "card card-pokemon" + (p.is_pinned ? " is-pinned" : "");
 				card.href = `/box/${encodeURIComponent(p.id)}`;
 				const name = displayName(p);
-				card.setAttribute("aria-label", `${name} を編集`);
+				card.setAttribute("aria-label", `${name}を編集`);
 				// title(ホバーツールチップ)は下のapplyActualStats().then(...)で実数値が
 				// 解決してから設定する(32-B4)。
 
@@ -1710,7 +1711,7 @@ const user = Astro.locals.user;
 					renderList();
 				} catch (err) {
 					console.error(err);
-					window.alert("ピン留めの更新に失敗しました。時間をおいて再度お試しください。");
+					window.alert("ピン留めを更新できませんでした。時間をおいて再度お試しください。");
 				}
 			}
 
@@ -1726,7 +1727,7 @@ const user = Astro.locals.user;
 					renderList();
 				} catch (err) {
 					console.error(err);
-					window.alert("削除に失敗しました。時間をおいて再度お試しください。");
+					window.alert("個体を削除できませんでした。時間をおいて再度お試しください。");
 				}
 			}
 
@@ -1745,7 +1746,7 @@ const user = Astro.locals.user;
 			// (成功時はページ遷移するため復元不要)。
 			async function createEmptyPokemon(): Promise<void> {
 				addButton.disabled = true;
-				addButton.textContent = "登録中...";
+				addButton.textContent = "登録中…";
 				errorMessage.hidden = true;
 				try {
 					const res = await fetch("/api/owned-pokemon", {
@@ -1777,7 +1778,7 @@ const user = Astro.locals.user;
 				} catch (err) {
 					console.error(err);
 					errorMessage.hidden = false;
-					errorMessage.textContent = "個体の登録に失敗しました。時間をおいて再度お試しください。";
+					errorMessage.textContent = "個体を登録できませんでした。時間をおいて再度お試しください。";
 					addButton.disabled = false;
 					addButton.innerHTML = ADD_BUTTON_DEFAULT_HTML;
 				}
@@ -1797,7 +1798,7 @@ const user = Astro.locals.user;
 					console.error(err);
 					loadingMessage.hidden = true;
 					errorMessage.hidden = false;
-					errorMessage.textContent = "一覧の取得に失敗しました。時間をおいて再度お試しください。";
+					errorMessage.textContent = "個体一覧を読み込めませんでした。時間をおいて再度お試しください。";
 				}
 			}
 

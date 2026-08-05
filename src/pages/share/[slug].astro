@@ -247,7 +247,7 @@ const description = pokemon
 						    見出しではなく7列グリッドの直後に置くため、他画面の.card-hintの意味を変えずに
 						    ここだけ打ち消す(グローバル側は編集しない)。詳細度はscoped属性2つぶん
 						    (0,3,0)でグローバルの0,1,0に確実に勝つ。 */}
-						<p class="share-stat-hint card-hint">個体値は全て31(チャンピオンズルール)</p>
+						<p class="share-stat-hint card-hint" hidden></p>
 					</div>
 				</section>
 			</>
@@ -323,7 +323,7 @@ const description = pokemon
 	.share-stat-grid {
 		display: grid;
 		grid-template-columns: 4.5rem repeat(6, minmax(0, 1fr));
-		gap: 0.3rem 0.4rem;
+		gap: var(--space-1) 0.4rem;
 		align-items: center;
 	}
 	/* グローバルの.card-hintが持つ margin-top: calc(var(--space-2) * -1) を打ち消す

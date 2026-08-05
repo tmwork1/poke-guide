@@ -635,7 +635,7 @@ const learnerCount = learnerNames.length;
 										</li>
 									))}
 								</ul>
-								<p class="move-note">技が命中した場合、平均<span class="tnum"> {hitsView.averageLabel} </span>回ヒットします。</p>
+								<p class="move-note">平均<span class="tnum"> {hitsView.averageLabel} </span>回</p>
 							</div>
 						) : (
 							<>
@@ -654,9 +654,9 @@ const learnerCount = learnerNames.length;
 					<div>
 						<h3 class="move-section-title">タイプ相性</h3>
 						{isStatusMove ? (
-							<p class="move-note">変化技なのでタイプ相性でダメージは変わりません。</p>
+							<p class="move-note">変化技</p>
 						) : typeEffectivenessGroups.length === 0 ? (
-							<p class="move-note">相手のタイプに関わらず、常に等倍(×1)のダメージになります。</p>
+							<p class="move-note">常に等倍(×1)</p>
 						) : (
 							<div>
 								{typeEffectivenessGroups.map((group) => (
@@ -699,7 +699,7 @@ const learnerCount = learnerNames.length;
 								</div>
 								{expectedValuePerMove && (
 									<div class="move-expected-value-row">
-										<span class="move-expected-value-label">技1回あたり(平均ヒット回数を考慮)</span>
+										<span class="move-expected-value-label">1回あたり</span>
 										<span class="move-expected-value-number tnum">{expectedValuePerMove.display}</span>
 										<span class="move-expected-value-formula">{expectedValuePerMove.formula}</span>
 									</div>

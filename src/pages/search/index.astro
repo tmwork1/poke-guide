@@ -22,10 +22,10 @@ import AppLayout from '../../layouts/AppLayout.astro';
 	<div class="page">
 		<section class="panel">
 			<div class="panel-content">
-				<h2>キーワード検索</h2>
+				<h2>検索</h2>
 				<div class="row">
-					<label for="query">キーワード</label>
-					<input id="query" type="text" autocomplete="off" placeholder="ポケモン名・技名・特性名・持ち物名の一部" />
+					<label for="query" hidden>キーワード</label>
+					<input id="query" type="text" autocomplete="off" aria-label="キーワード" placeholder="ポケモン名・技名・特性名・持ち物名の一部" />
 				</div>
 				<div class="row">
 					<span>カテゴリ</span>
@@ -35,7 +35,7 @@ import AppLayout from '../../layouts/AppLayout.astro';
 					<label class="radio-label"><input type="radio" name="category" value="ability" /> 特性</label>
 					<label class="radio-label"><input type="radio" name="category" value="item" /> 持ち物</label>
 				</div>
-				<p id="search-status" class="status-text" data-state="idle">キーワードを入力してください</p>
+				<p id="search-status" class="status-text" data-state="idle"></p>
 			</div>
 		</section>
 
@@ -62,7 +62,7 @@ import AppLayout from '../../layouts/AppLayout.astro';
 		</section>
 
 		<style>
-			h3 { font-size: 1rem; margin-bottom: 0.3rem; }
+			h3 { font-size: var(--font-size-base); margin-bottom: var(--space-1); }
 			/* global.css の `label { min-width: 6.5em }` 撤廃(UI品質改善タスクA)に伴い、
 			   キーワード欄のラベル幅をこのページ側で維持する(.radio-labelは対象外)。 */
 			.row > label:not(.radio-label) {
@@ -71,8 +71,8 @@ import AppLayout from '../../layouts/AppLayout.astro';
 				font-weight: 600;
 				color: var(--color-text-muted);
 			}
-			.radio-label { min-width: auto; font-weight: normal; margin-right: 1rem; }
-			.result-block { margin: 0.8rem 0; }
+			.radio-label { min-width: auto; font-weight: normal; margin-right: var(--space-4); }
+			.result-block { margin: var(--space-3) 0; }
 			.result-block ul { padding-left: 1.2em; }
 			/* B-2: 結果リストの実コンテンツ幅は最長「リザードン(キョダイ)」でも171pxしかないのに
 			   .panel-content は1080px確保しているため、4件表示時にパネル右側84%が空白になる。
@@ -256,7 +256,7 @@ import AppLayout from '../../layouts/AppLayout.astro';
 			async function runSearch(): Promise<void> {
 				const query = queryInput.value.trim();
 				if (!query) {
-					statusEl.textContent = "キーワードを入力してください";
+					statusEl.textContent = "";
 					renderResults(null);
 					updateUrlState("", "");
 					saveSearchState("", "");
@@ -264,7 +264,7 @@ import AppLayout from '../../layouts/AppLayout.astro';
 				}
 				const category = getSelectedCategory();
 				const token = ++searchToken;
-				statusEl.textContent = "検索中...";
+				statusEl.textContent = "検索中…";
 				try {
 					const res = await fetch("/api/search", {
 						method: "POST",
@@ -274,12 +274,13 @@ import AppLayout from '../../layouts/AppLayout.astro';
 					});
 					if (token !== searchToken) return;
 					if (!res.ok) {
-						statusEl.textContent = `検索に失敗しました (status=${res.status})`;
+						console.error(`検索できませんでした (status=${res.status})`);
+						statusEl.textContent = "検索できませんでした。";
 						renderResults(null);
 						return;
 					}
 					const body = (await res.json()) as { data: SearchResponseData };
-					statusEl.textContent = body.data.hitCount === 0 ? "該当なし" : `${body.data.hitCount}件ヒットしました`;
+					statusEl.textContent = body.data.hitCount === 0 ? "条件に一致する結果がありません" : `${body.data.hitCount}件`;
 					renderResults(body.data);
 					// searchToken のチェック(token !== searchToken の早期returnの内側)を通過した、
 					// すなわち最新の応答であることを確認した後に replaceState を呼ぶ。
@@ -289,7 +290,7 @@ import AppLayout from '../../layouts/AppLayout.astro';
 				} catch (err) {
 					if (token !== searchToken) return;
 					console.error(err);
-					statusEl.textContent = "検索に失敗しました";
+					statusEl.textContent = "検索できませんでした。";
 					renderResults(null);
 				}
 			}

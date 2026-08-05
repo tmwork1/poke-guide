@@ -91,7 +91,7 @@ const { regulation, ownedId, hasOwnedPanel } = Astro.props;
 			{/* 要件C: 列見出し(実数値/族・配分・倍率/…)は自明なので廃止。表の1行目が
 			    直接来るため、詰まりすぎないよう.speed-chart-content側に上余白を持たせる
 			    (下のstyleブロック参照)。 */}
-			<p id="speed-chart-status" class="speed-chart-status">読み込み中...</p>
+			<p id="speed-chart-status" class="speed-chart-status">読み込み中…</p>
 			<div id="speed-chart-rows" class="speed-chart-rows" hidden>
 				<div id="speed-chart-rows-body"></div>
 			</div>
@@ -314,7 +314,7 @@ const { regulation, ownedId, hasOwnedPanel } = Astro.props;
 	   (/box/[id]の.stat-row-realと同じ階層)。列幅(80px)に対して数値だけが左寄りだと
 	   詰まって見えるため中央寄せにする。 */
 	.speed-chart-table .speed-chart-value-cell {
-		font-size: 1.05em;
+		font-size: var(--font-size-lg);
 		font-weight: 700;
 		padding-top: 0;
 		text-align: center;
@@ -336,7 +336,7 @@ const { regulation, ownedId, hasOwnedPanel } = Astro.props;
 		font-size: var(--font-size-sm);
 		font-weight: 500;
 		color: var(--color-text);
-		line-height: 1.4;
+		line-height: var(--line-height-snug);
 	}
 	.speed-chart-table .speed-chart-base-speed-label {
 		color: var(--color-text-muted);
@@ -348,7 +348,7 @@ const { regulation, ownedId, hasOwnedPanel } = Astro.props;
 		display: flex;
 		flex-direction: column;
 		align-items: flex-start;
-		gap: 0.2rem;
+		gap: var(--space-1);
 		min-width: 0;
 	}
 	/* 要件E: 補正要因は「グループに1つ」ではなく「チップ(=ポケモン)ごとに1つ」表示する
@@ -368,7 +368,7 @@ const { regulation, ownedId, hasOwnedPanel } = Astro.props;
 		font-size: var(--font-size-xs);
 		font-weight: 500;
 		color: var(--color-text-muted);
-		line-height: 1.4;
+		line-height: var(--line-height-snug);
 		text-align: center;
 	}
 	/* 振り方(最速/準速/無振り/最遅)バッジ。
@@ -480,7 +480,7 @@ const { regulation, ownedId, hasOwnedPanel } = Astro.props;
 	.speed-chart-table .speed-chart-chip {
 		display: inline-flex;
 		align-items: center;
-		gap: 0.25rem;
+		gap: var(--space-1);
 		font-size: var(--font-size-xs);
 		background: var(--color-surface-alt);
 		border-radius: 999px;
