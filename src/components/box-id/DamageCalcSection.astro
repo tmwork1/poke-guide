@@ -2029,29 +2029,16 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 	#damage-detail-panel-body .damage-detail-side {
 		min-width: 0;
 	}
-	/* 🔴 UI改善ラウンド28ユーザー指示(28-R4)「攻撃側・防御側もそれぞれ横線でセクションを
-	   区切る」。攻撃側の上は.damage-detail-sidesのborder-top(上のルール)が既に区切りに
-	   なっているため、ここでは2番目の.damage-detail-side(=防御側)の上にだけ追加する
-	   (隣接セレクタで、攻撃側自身には当たらない)。28-R2の急所下の線(下記)と合わせて
-	   すべてborder-topに統一し、二重線(border-bottom+隣接要素border-topの重なり)を
-	   作らない。 */
+	/* 2番目の.damage-detail-sideだけを選ぶ隣接セレクタは維持するが、本文の区切りを
+	   見出しと余白だけで表す方針になったため、以前ここにあったborder-topは撤去する。 */
 	#damage-detail-panel-body .damage-detail-side + .damage-detail-side {
-		/* 🔴 UI改善ラウンド32ユーザー指示(32-R3)「横棒は色付けしない」により、29-R2で青
-		   (--color-primary-strong)に色付けしていた区切り線を無彩色の--color-borderへ戻す。
-		   見出しの文字色・形状マーカーは維持(上のルールと同じ注記)。 */
-		border-top: 1px solid var(--color-border);
+		/* 見出しと余白だけで攻撃側・防御側の階層を判別でき、本文幅いっぱいの罫線を残さないため、
+		   従来のborder-topは置かず既存のpaddingだけを区切りとして維持する。 */
 		padding-top: 0.7rem;
 	}
-	/* 🔴 UI改善ラウンド34ユーザー指示(34-R2)「防御側と天候の間にも横棒を挿入」。
-	   contentWrap内のDOM順は 選択見出し → .damage-detail-sides(攻撃側+防御側) →
-	   weatherRow(.damage-detail-field-row) → terrainRow(.damage-detail-field-row)
-	   (right-panel.ts参照)。隣接セレクタ+により.damage-detail-sidesの直後に来る
-	   最初の.damage-detail-field-row(=weatherRow、天候)にだけ当たり、その次の
-	   terrainRow(フィールド)には当たらない(隣接セレクタは直前の兄弟1個のみ判定)。
-	   32-R3「横棒は色付けしない」を踏襲し無彩色var(--color-border)のみを使う。
-	   間隔は.damage-detail-side + .damage-detail-sideと同じpadding-top:0.7remに揃える。 */
+	/* sides直後の天候行だけを選ぶ隣接セレクタは維持し、防御側との間隔を既存値で確保する。
+	   本文を横断する罫線を残さない方針のため、以前ここにあったborder-topは撤去する。 */
 	#damage-detail-panel-body .damage-detail-sides + .damage-detail-field-row {
-		border-top: 1px solid var(--color-border);
 		padding-top: 0.7rem;
 		margin-top: 0.35rem;
 	}
