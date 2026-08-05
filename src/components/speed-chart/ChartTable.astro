@@ -122,11 +122,12 @@ const { regulation, ownedId, hasOwnedPanel } = Astro.props;
 	@media (min-width: 1200px) {
 		.speed-chart-layout {
 			display: grid;
-			grid-template-columns: 18px minmax(0, 1fr);
+			/* 俯瞰位置を読み取りやすくするため、従来18pxのミニマップ幅を3倍にする。 */
+			grid-template-columns: 54px minmax(0, 1fr);
 			align-items: start;
 		}
 		.speed-chart-table[data-has-owned-panel='true'] .speed-chart-layout {
-			grid-template-columns: 18px minmax(0, 1fr) 260px;
+			grid-template-columns: 54px minmax(0, 1fr) 260px;
 		}
 		.speed-chart-minimap {
 			display: block;
@@ -135,11 +136,14 @@ const { regulation, ownedId, hasOwnedPanel } = Astro.props;
 			position: sticky;
 			top: var(--topbar-height);
 			height: calc(100vh - var(--topbar-height));
-			padding: var(--space-2) 2px;
+			/* 横パディングを除き、トラック右端を表の左端へ隣接させる。 */
+			padding: var(--space-2) 0;
 		}
 		.speed-chart-content {
 			grid-column: 2;
 			grid-row: 1;
+			/* 通常の本文余白は維持しつつ、ミニマップとの間だけ空けない。 */
+			padding-left: 0;
 		}
 		.speed-chart-table[data-has-owned-panel='true'] .speed-chart-content {
 			grid-column: 2;
@@ -336,6 +340,10 @@ const { regulation, ownedId, hasOwnedPanel } = Astro.props;
 	.speed-chart-table .speed-chart-row:has(.speed-chart-chip-origin) {
 		align-items: start;
 	}
+	/* 補正要因があっても実数値グループが1段だけなら、1・2列目を行の垂直中央へ戻す。 */
+	.speed-chart-table .speed-chart-row.speed-chart-row-single-group {
+		align-items: center;
+	}
 	.speed-chart-table .speed-chart-row.speed-chart-row-value-end {
 		border-bottom: 1px solid var(--color-border);
 	}
@@ -404,7 +412,7 @@ const { regulation, ownedId, hasOwnedPanel } = Astro.props;
 		line-height: 1.4;
 		text-align: center;
 	}
-	/* 振り方(最速/準速/無振り)バッジ。
+	/* 振り方(最速/準速/無振り/最遅)バッジ。
 	   UI改修(2026-08-02第5弾)要件1: 「最速/準速/無振り」は本来3値の質的分類ではなく
 	   「すばやさへの投資量」という1本の連続量(多→少)なので、primary(青)/success(緑)/
 	   risky(黄)という無関係な色相をバラバラに割り当てていた旧配色をやめ、「最速=青→
@@ -457,6 +465,12 @@ const { regulation, ownedId, hasOwnedPanel } = Astro.props;
 	.speed-chart-table .speed-chart-spread-badge[data-spread='none'] {
 		background: var(--color-surface-alt);
 		color: var(--color-text-muted);
+	}
+	/* min(最遅): 無振りよりさらに控えめな段階。既存トークンだけで連続感を保つ。 */
+	.speed-chart-table .speed-chart-spread-badge[data-spread='min'] {
+		background: var(--color-surface-alt);
+		color: var(--color-text-muted);
+		border-color: var(--color-border);
 	}
 	/* 2列目の補正量(×1.5等、chart-table.ts側が.speed-chart-magnitude-badgeを付与)。
 	   要件2: 配分バッジと並んだときに主従が分かるよう、配分バッジ(塗りのpill+太字)より

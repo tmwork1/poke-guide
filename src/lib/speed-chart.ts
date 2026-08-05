@@ -214,7 +214,7 @@ export function buildSpeedChartPopulation(
 // 実数値の算出・補正の適用
 // ============================================================================
 
-export type SpeedSpreadKind = 'max' | 'sub' | 'none';
+export type SpeedSpreadKind = 'max' | 'sub' | 'none' | 'min';
 
 export interface SpeedSpreadDef {
   label: string;
@@ -222,11 +222,12 @@ export interface SpeedSpreadDef {
   natureModifier: number;
 }
 
-/** 振り方(3種)の定義。P1確定仕様のラベル・努力値・性格補正。 */
+/** 振り方(4種)の定義。実数値が高い側から自然に読める順で定義する。 */
 export const SPEED_SPREADS: Record<SpeedSpreadKind, SpeedSpreadDef> = {
   max: { label: '最速', evSpe: 32, natureModifier: 1.1 },
   sub: { label: '準速', evSpe: 32, natureModifier: 1.0 },
   none: { label: '無振り', evSpe: 0, natureModifier: 1.0 },
+  min: { label: '最遅', evSpe: 0, natureModifier: 0.9 },
 };
 
 /** 倍率補正の適用: floor(値 * numerator / denominator)。 */
@@ -343,7 +344,7 @@ function isModifierApplicableToForm(
 }
 
 /**
- * 早見表の行を組み立てる。population の各フォルム × 振り方(3種) × (補正なし + 適用可能な
+ * 早見表の行を組み立てる。population の各フォルム × 振り方(4種) × (補正なし + 適用可能な
  * 各補正)で実数値を算出し、同じ実数値のエントリを1行にまとめて実数値の降順に並べる。
  *
  * adoptionConfig/adoptionData を渡さない場合は「採用率フィルタなし」として扱いたい呼び出し側は
@@ -357,7 +358,8 @@ export function buildSpeedChartRows(
   adoptionData?: AdoptionRateData,
 ): SpeedChartRow[] {
   const entries: SpeedChartEntry[] = [];
-  const spreadKinds: SpeedSpreadKind[] = ['max', 'sub', 'none'];
+  // 表示・生成順も「最速→準速→無振り→最遅」に固定し、同値集約時の順序を安定させる。
+  const spreadKinds: SpeedSpreadKind[] = ['max', 'sub', 'none', 'min'];
 
   for (const form of population) {
     for (const spreadKind of spreadKinds) {

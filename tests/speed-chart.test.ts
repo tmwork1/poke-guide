@@ -149,6 +149,14 @@ describe('buildSpeedChartPopulation / calcOtherStatとの実数値の突き合�
       assert.equal(actual, expected, `${form.name} の無振り実数値が不一致`);
     }
   });
+
+  it('最遅はEV0・下降補正0.9で算出される', () => {
+    const form = population.find((candidate) => candidate.name === 'ピカチュウ');
+    assert.ok(form);
+    const expected = calcOtherStat(50, form.baseSpeed, 31, 0, 0.9);
+    const actual = calcOtherStat(50, form.baseSpeed, 31, SPEED_SPREADS.min.evSpe, SPEED_SPREADS.min.natureModifier);
+    assert.equal(actual, expected);
+  });
 });
 
 // ------------------------------------------------------------------------------------------
@@ -389,7 +397,7 @@ describe('buildSpeedChartRows: R-4 メガ種族にこだわりスカーフを付
     const normalScarfEntries = rows
       .flatMap((row) => row.entries)
       .filter((entry) => entry.formName === '通常テスト' && entry.modifier?.name === 'こだわりスカーフ');
-    assert.equal(normalScarfEntries.length, 3, '振り方3種それぞれにスカーフ行があるべき');
+    assert.equal(normalScarfEntries.length, 4, '振り方4種それぞれにスカーフ行があるべき');
   });
 
   it('実データ: M-Bのメガ種族はどれもこだわりスカーフの行を持たない', () => {
@@ -437,7 +445,7 @@ describe('buildSpeedChartRows: 採用率フィルタが技(moves)にも効く(�
   it('採用率が閾値以上の種族(メガメガニウム)にはくさわけの補正行が出る', () => {
     const rows = buildSpeedChartRows(population, effectiveModifiers, adoptionConfig, adoptionData);
     const entries = rows.flatMap((row) => row.entries).filter((e) => e.formName === 'メガメガニウム' && e.modifier?.name === 'くさわけ');
-    assert.equal(entries.length, 3, '振り方3種それぞれにくさわけ行があるべき');
+    assert.equal(entries.length, 4, '振り方4種それぞれにくさわけ行があるべき');
   });
 
   it('採用率が閾値未満の種族(ライチュウ)にはくさわけの補正行が出ない', () => {
@@ -465,8 +473,8 @@ describe('buildSpeedChartRows: 行の組み立て', () => {
 
   it('同じ実数値になる複数フォルムは1行にまとまる', () => {
     const rows = buildSpeedChartRows(population, [], adoptionConfig);
-    // 同じ種族値・同じ振り方なら同じ実数値になるはずなので、行数は振り方の種類数(3)のまま。
-    assert.equal(rows.length, 3);
+    // 同じ種族値・同じ振り方なら同じ実数値になるはずなので、行数は振り方の種類数(4)のまま。
+    assert.equal(rows.length, 4);
     for (const row of rows) {
       assert.equal(row.entries.length, 2, '同値の2フォルムが同じ行にまとまっているべき');
     }

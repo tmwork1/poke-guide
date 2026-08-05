@@ -229,15 +229,17 @@ try {
 }
 ---
 <AppLayout
-	title="相性バランスチェッカー"
+	title="すばやさチャート"
 	description="レギュレーション別のすばやさ実数値早見表"
 	current="speed-chart"
 	backHref={backHref}
 	bodyClass="speed-chart-page"
 >
 	<Fragment slot="topbar-actions">
-		<select id="speed-chart-regulation-select" aria-label="レギュレーション">
-			<option value="all" selected={resolvedRegulation === 'all'}>指定なし</option>
+		{/* 可視ラベルとselectをfor/idで結び、トップバー上でも選択対象を明確にする。 */}
+		<label class="speed-chart-regulation-label" for="speed-chart-regulation-select">レギュレーション</label>
+		<select id="speed-chart-regulation-select">
+			<option value="all" selected={resolvedRegulation === 'all'}>すべて</option>
 			{REGULATIONS_NEWEST_FIRST.map((reg) => (
 				<option value={reg} selected={reg === resolvedRegulation}>{reg}</option>
 			))}
@@ -281,6 +283,11 @@ try {
 	   ここでは各要素の幅だけを調整すれば横並び・900px未満での折り返しの両方に対応できる。 */
 	#speed-chart-regulation-select {
 		min-width: 8rem;
+	}
+	.speed-chart-regulation-label {
+		font-size: var(--font-size-sm);
+		color: var(--color-text-muted);
+		white-space: nowrap;
 	}
 
 	#speed-chart-jump-input {

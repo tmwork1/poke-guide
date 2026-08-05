@@ -512,6 +512,8 @@ export async function initSpeedChartPage(): Promise<void> {
         const isLastGroup = groupIndex === groups.length - 1;
         const rowEl = document.createElement('div');
         rowEl.className = 'speed-chart-row';
+        // 1段だけの実数値グループは、補正要因があっても先頭2列を垂直中央に置く。
+        if (groups.length === 1) rowEl.classList.add('speed-chart-row-single-group');
         // 同じ実数値内の行同士は境界線を軽くし(is-value-group-end無し)、
         // 実数値の最後の行にだけ通常の境界線を付ける(値ごとの区切りを分かりやすくする)。
         if (isLastGroup) rowEl.classList.add('speed-chart-row-value-end');
@@ -999,9 +1001,8 @@ function buildChipUnit(entry: RowGroupEntry, imageIdByName: Map<string, number>)
   return unit;
 }
 
-// 要件2: 振り方(最速/準速/無振り)を色分けするバッジ。既存の配色トークン(primary/success/risky)
-// の範囲で3種を作る(新色は作らない)。dangerは他画面でエラー表現に使われているため避け、
-// riskyを「無振り(=すばやさに何も投資していない)」に割り当てる。
+// 振り方(最速/準速/無振り/最遅)を既存トークンの濃淡で示すバッジ。
+// 最遅も新色を増やさず、無振りとの差は既存のborderトークンで示す。
 function buildSpreadBadge(spreadKind: SpeedSpreadKind): HTMLElement {
   const badge = document.createElement('span');
   badge.className = 'speed-chart-spread-badge';
