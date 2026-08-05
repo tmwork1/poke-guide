@@ -167,8 +167,9 @@ export function collectNoteConditionChips(attack: NormalizedNoteAttack, category
 	if (attack.critical) chips.push('急所');
 	if (attack.attackerAilment) chips.push(`攻撃側${attack.attackerAilment}`);
 	if (attack.defenderAilment) chips.push(`防御側${attack.defenderAilment}`);
-	if (attack.attackerTerastallized) chips.push('攻撃側テラス');
-	if (attack.defenderTerastallized) chips.push('防御側テラス');
+	// UI改修依頼(2026-08-05)「詳細表示のテラス表記をテラスタルへ統一」対応。
+	if (attack.attackerTerastallized) chips.push('攻撃側テラスタル');
+	if (attack.defenderTerastallized) chips.push('防御側テラスタル');
 	const atkLabel = category === 'special' ? '特攻' : '攻撃';
 	const defLabel = category === 'special' ? '特防' : '防御';
 	if (attack.attackerRank !== 0) chips.push(`攻撃側${atkLabel}${attack.attackerRank > 0 ? '+' : ''}${attack.attackerRank}`);

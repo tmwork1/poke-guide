@@ -388,7 +388,7 @@ if (opponentNotesSection) {
 	const rowTeraFieldWraps = new WeakMap<DamageRowState, HTMLElement>();
 	// UI改修依頼(ダメージ計算カード、2026-08-02)「圧縮表示中も、展開表示と同様にレギュレーションに
 	// 応じてテラスタルの表示・非表示を自動判断する」。圧縮表示側のテラス関連表示
-	// (相手のテラスタイプ名/アイコン、技列の「攻撃側テラス」「防御側テラス」チップ)は
+	// (相手のテラスタイプ名/アイコン、技列の「攻撃側テラスタル」「防御側テラスタル」チップ)は
 	// renderRow()内のrefreshTypeBadge()/refreshCollapsedTechniques()がそれぞれ持っており、
 	// どちらもrow.teraType等が変わった時にしか呼ばれない(=regulation変更単独では再実行されない)。
 	// rowTeraFieldWraps同様、行ごとに「圧縮表示のテラス関連表示を最新化する関数」をWeakMapへ
@@ -2050,8 +2050,9 @@ if (opponentNotesSection) {
 		if (a.critical) chips.push("急所");
 		if (a.attackerAilment) chips.push(`攻撃側${a.attackerAilment}`);
 		if (a.defenderAilment) chips.push(`防御側${a.defenderAilment}`);
-		if (a.attackerTerastallized) chips.push("攻撃側テラス");
-		if (a.defenderTerastallized) chips.push("防御側テラス");
+		// UI改修依頼(2026-08-05)「詳細表示のテラス表記をテラスタルへ統一」対応。
+		if (a.attackerTerastallized) chips.push("攻撃側テラスタル");
+		if (a.defenderTerastallized) chips.push("防御側テラスタル");
 		// 🔴 UI改善ラウンド29(29-D1)「条件チップ『攻撃+6』が技の分類を区別しない固定文言」:
 		// resolveColumnDerivedFields()(上記)は技の物理/特殊分類でatk/spaのどちらに
 		// ランクを載せるか自動振り分け済み(計算自体は正しい)。表記だけが「攻撃」固定で、
@@ -2079,7 +2080,7 @@ if (opponentNotesSection) {
 	// 実装者判断で採らなかった)。
 	// UI改修依頼(ダメージ計算カード、2026-08-02)「圧縮表示もレギュレーションに応じてテラス
 	// タルの表示・非表示を自動判断する」。showTera(=isTerastalRegulation()の結果)がfalseの
-	// ときは「攻撃側テラス」「防御側テラス」チップを列挙しない。a.attackerTerastallized/
+	// ときは「攻撃側テラスタル」「防御側テラスタル」チップを列挙しない。a.attackerTerastallized/
 	// defenderTerastallizedの値そのもの(=計算結果に使う実データ)は一切変更しない、表示の
 	// 出し分けのみ。
 	function collectConditionChipsForCollapsed(a: DamageColumnState, showTera: boolean): string[] {
@@ -2090,8 +2091,9 @@ if (opponentNotesSection) {
 		if (a.critical) chips.push("急所");
 		if (a.attackerAilment) chips.push(`攻撃側${a.attackerAilment}`);
 		if (a.defenderAilment) chips.push(`防御側${a.defenderAilment}`);
-		if (showTera && a.attackerTerastallized) chips.push("攻撃側テラス");
-		if (showTera && a.defenderTerastallized) chips.push("防御側テラス");
+		// UI改修依頼(2026-08-05)「詳細表示のテラス表記をテラスタルへ統一」対応。
+		if (showTera && a.attackerTerastallized) chips.push("攻撃側テラスタル");
+		if (showTera && a.defenderTerastallized) chips.push("防御側テラスタル");
 		const moveCategory = getMoveCategory(a.moveName);
 		const atkRankLabel = moveCategory === "special" ? "特攻" : "攻撃";
 		const defRankLabel = moveCategory === "special" ? "特防" : "防御";
@@ -3254,7 +3256,7 @@ if (opponentNotesSection) {
 			}
 			// 2段目: 詳細設定。既存のcollectConditionChips()(技列側の条件チップ、
 			// .damage-row-condition-chipsと同じ判定ロジック)を技列ごとに呼び、右パネル・
-			// 技列チップと同じ語彙(攻撃側どく/防御側テラス/急所/かべ等)で列挙する。
+			// 技列チップと同じ語彙(攻撃側どく/防御側テラスタル/急所/かべ等)で列挙する。
 			// 技列が複数あり、かつ条件が付いている列が複数あるときだけ列番号
 			// (.damage-column-order-labelと同じ1始まりの番号)を先頭に付けて区別する
 			// (単一技列、または条件が1列にしか付いていない場合は番号を付けない=
@@ -3262,7 +3264,7 @@ if (opponentNotesSection) {
 			// UI改修依頼(ダメージ計算カード、2026-08-02)「圧縮表示もレギュレーションに応じて
 			// テラスタルの表示・非表示を自動判断する」。展開側のrowTeraFieldWraps判定
 			// (isTerastalRegulation(currentIndividualRegulation()))と同じ値を、圧縮表示の
-			// 「攻撃側テラス」「防御側テラス」チップの出し分けにも使う。
+			// 「攻撃側テラスタル」「防御側テラスタル」チップの出し分けにも使う。
 			const showTera = isTerastalRegulation(currentIndividualRegulation());
 			const chipGroups: { index: number; chips: string[] }[] = [];
 			row.attacks.forEach((a, i) => {
