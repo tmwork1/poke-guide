@@ -76,7 +76,8 @@ try {
 	const { data, error } = await publicClient
 		.from('suggestions')
 		.select('kind, subject_key, payload')
-		.in('kind', ['popular_item', 'popular_move'])
+		// UI改修依頼(2026-08-05)「最遅をS下降性格の採用率で判定」対応。
+		.in('kind', ['popular_item', 'popular_move', 'popular_nature'])
 		.like('subject_key', '%|%');
 
 	if (error) {
@@ -88,7 +89,7 @@ try {
 			if (sep === -1) continue;
 			const species = row.subject_key.slice(0, sep);
 			const reg = row.subject_key.slice(sep + 1);
-			const category = row.kind === 'popular_item' ? 'items' : row.kind === 'popular_move' ? 'moves' : null;
+			const category = row.kind === 'popular_item' ? 'items' : row.kind === 'popular_move' ? 'moves' : row.kind === 'popular_nature' ? 'natures' : null;
 			if (!category || !row.payload || !Array.isArray(row.payload.options)) continue;
 
 			const bucket: AdoptionRateBucket = {
@@ -229,7 +230,8 @@ try {
 }
 ---
 <AppLayout
-	title="すばやさチャート"
+	{/* UI改修依頼(2026-08-05)「メニュー項目とページタイトルを『すばやさ』に変更」対応。 */}
+	title="すばやさ"
 	description="レギュレーション別のすばやさ実数値早見表"
 	current="speed-chart"
 	backHref={backHref}
@@ -303,7 +305,10 @@ try {
 		transition: transform 0.2s ease;
 	}
 	#speed-chart-order-select {
-		min-width: 6.5rem;
+		/* UI改修依頼(2026-08-05)「ボタン幅を内容に合わせる」対応。両ラベルは同じ2文字なので切替でも幅は変わらない。 */
+		width: max-content;
+		min-width: 0;
+		flex: none;
 	}
 	#speed-chart-order-select[data-order='asc'] .speed-chart-order-icon {
 		transform: rotate(180deg);

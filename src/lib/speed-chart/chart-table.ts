@@ -79,7 +79,8 @@ interface MasterData {
 
 const ROOT_SELECTOR = '.speed-chart-table';
 const ALL_REGULATIONS_VALUE = 'all';
-const ADOPTION_CATEGORIES = ['items', 'moves'] as const;
+// UI改修依頼(2026-08-05)「最遅の採用率判定」対応。全規制表示でも性格率を加重平均する。
+const ADOPTION_CATEGORIES = ['items', 'moves', 'natures'] as const;
 
 function getKnownRegulations(regSelect: HTMLSelectElement | null): string[] {
   if (!regSelect) return [];
@@ -399,7 +400,7 @@ export async function initSpeedChartPage(): Promise<void> {
     // (「組み合わせ条件」と「ポケモン名」で意味が違うため、判定ロジックも分けておく)。
     currentRows = filterRowsByHiddenPokemon(
       filterRowsByHiddenEntries(
-        buildSpeedChartRows(population, effectiveModifiers, config!.adoptionRate, adoptionData),
+        buildSpeedChartRows(population, effectiveModifiers, config!.adoptionRate, adoptionData, config!.minSpreadAdoptionRate),
         config!.hiddenEntries?.rules ?? [],
       ),
       config!.hiddenPokemon?.names ?? [],

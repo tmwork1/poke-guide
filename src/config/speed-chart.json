@@ -24,6 +24,9 @@
     "  threshold: このチーム採用率以上のフォルムを表示する(0.005 = 0.5%)。",
     "  minSampleSize: 総チーム数がこれ未満のレギュレーションでは足切りしない(k-匿名性)。",
     "  enabled: falseならチーム採用率による母集団の足切りを行わない。"
+    ,"minSpreadAdoptionRate: 最遅を、popular_natureでS下降性格の合計採用率がある種族だけに出す設定。",
+    "  enabled: falseなら採用実績を問わず最遅を出す。threshold: 合計採用率の下限(0.1 = 10%)。",
+    "  minSampleSize: 性格のサンプル数がこれ未満なら最遅を出さない(k-匿名性)。努力値は集計に無いため判定しない。"
   ],
   "adoptionRate": {
     "enabled": true,
@@ -35,6 +38,11 @@
     "enabled": true,
     "threshold": 0.005,
     "minSampleSize": 50
+  },
+  "minSpreadAdoptionRate": {
+    "enabled": true,
+    "threshold": 0.1,
+    "minSampleSize": 5
   },
   "_disabled_readme": [
     "disabled は『使用率では表現できない例外』のための最後の手段。通常はまず adoptionRate",
@@ -62,7 +70,7 @@
       "とは違い、hiddenEntries は要因自体は有効なまま『特定の組み合わせだけ』を消す",
       "(例: 『無振り』は残すが『無振り+その要因』の組だけ消す)。",
       "rules は『指定された項目がすべて一致するエントリを消す』意味の配列。空なら何も消さない。",
-      "  spread: 'max'(最速) / 'sub'(準速) / 'none'(無振り)。省略時は振り方を問わない。",
+      "  spread: 'max'(最速) / 'sub'(準速) / 'none'(無振り) / 'min'(最遅)。省略時は振り方を問わない。",
       "  hasModifier: true=上昇要因あり / false=補正なしの素の実数値。省略時は問わない。",
       "  reason: 表示に影響しないメモ(なぜ消しているかを残すため)。"
     ],
@@ -71,6 +79,11 @@
         "spread": "none",
         "hasModifier": true,
         "reason": "無振りのまますばやさ上昇要因だけを積む型は実戦で想定しにくいため"
+      },
+      {
+        "spread": "min",
+        "hasModifier": true,
+        "reason": "最遅にすばやさ上昇要因を積む組み合わせは実戦で想定しにくいため"
       }
     ]
   },

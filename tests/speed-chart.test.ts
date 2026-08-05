@@ -25,6 +25,7 @@ import {
   getNatureSpeedEffect,
   isAdoptedByRate,
   isAdoptionRateFilterActive,
+  isMinSpreadAdopted,
   limitRowChipsByWidth,
   pickNatureNameForSpeedEffect,
   selectMinimalCostSpeedOption,
@@ -368,6 +369,59 @@ describe('isAdoptedByRate(U-2: 採用率フィルタ)', () => {
 
   it('moves: 採用率がthreshold未満なら採用しない', () => {
     assert.equal(isAdoptedByRate('moves', 'くさわけ', 'ライチュウ', config, moveData), false);
+  });
+});
+
+// UI改修依頼(2026-08-05)「最遅をS下降性格の採用実績がある種族だけに表示」対応。
+describe('isMinSpreadAdopted / buildSpeedChartRows: 最遅の採用率フィルタ', () => {
+  const config = { enabled: true, threshold: 0.1, minSampleSize: 5 };
+  const population: SpeedChartForm[] = [
+    { name: '採用あり', baseSpeed: 100, abilities: [], learnset: [], isMega: false },
+    { name: '採用なし', baseSpeed: 100, abilities: [], learnset: [], isMega: false },
+  ];
+  const data: AdoptionRateData = {
+    採用あり: { natures: { sampleSize: 10, options: { ゆうかん: 0.06, のんき: 0.04 } } },
+    採用なし: { natures: { sampleSize: 10, options: { ゆうかん: 0.09 } } },
+  };
+  const adoptionConfig: AdoptionRateConfig = { enabled: false, threshold: 0.1, minSampleSize: 5, appliesTo: [] };
+
+  it('複数のS下降性格の採用率を合計し、thresholdちょうどなら採用する', () => {
+    assert.equal(isMinSpreadAdopted('採用あり', config, data), true);
+    assert.equal(isMinSpreadAdopted('採用なし', config, data), false);
+  });
+
+  it('サンプル不足・データなしは最遅を出さない(k-匿名性)', () => {
+    const sparse: AdoptionRateData = { 採用あり: { natures: { sampleSize: 4, options: { ゆうかん: 1 } } } };
+    assert.equal(isMinSpreadAdopted('採用あり', config, sparse), false);
+    assert.equal(isMinSpreadAdopted('データなし', config, data), false);
+  });
+
+  it('行組み立てでは採用ありの種族だけに最遅を生成する', () => {
+    const rows = buildSpeedChartRows(population, [], adoptionConfig, data, config);
+    const minNames = rows.flatMap((row) => row.entries).filter((entry) => entry.spread === 'min').map((entry) => entry.formName);
+    assert.deepEqual(minNames, ['採用あり']);
+  });
+});
+
+// UI改修依頼(2026-08-05)「同値の上昇要因をカテゴリ優先順で1つに絞る」対応。
+describe('buildSpeedChartRows: 同じ行・フォルム・振り方の上昇要因を重複表示しない', () => {
+  it('abilities > items > moves、同カテゴリでは入力順の先頭を残す', () => {
+    const population: SpeedChartForm[] = [
+      { name: 'テスト', baseSpeed: 100, abilities: ['特性先頭', '特性後続'], learnset: ['技'], isMega: false },
+    ];
+    const modifiers: EffectiveSpeedModifier[] = [
+      { category: 'moves', name: '技', modifier: { kind: 'rank', stages: 1 } },
+      { category: 'abilities', name: '特性先頭', modifier: { kind: 'rank', stages: 1 } },
+      { category: 'items', name: '持ち物', modifier: { kind: 'rank', stages: 1 } },
+      { category: 'abilities', name: '特性後続', modifier: { kind: 'rank', stages: 1 } },
+    ];
+    const adoptionConfig: AdoptionRateConfig = { enabled: false, threshold: 0.1, minSampleSize: 5, appliesTo: [] };
+    const rows = buildSpeedChartRows(population, modifiers, adoptionConfig);
+    for (const spread of Object.keys(SPEED_SPREADS)) {
+      const entries = rows.flatMap((row) => row.entries).filter((entry) => entry.spread === spread && entry.modifier);
+      assert.equal(entries.length, 1);
+      assert.equal(entries[0]?.modifier?.name, '特性先頭');
+    }
   });
 });
 

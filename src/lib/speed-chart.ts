@@ -86,9 +86,16 @@ export interface AdoptionRateConfig {
   appliesTo: SpeedModifierCategory[];
 }
 
+export interface MinSpreadAdoptionRateConfig {
+  enabled: boolean;
+  threshold: number;
+  minSampleSize: number;
+}
+
 /** src/config/speed-chart.json の形(`_readme` は無視してよい説明用キー)。 */
 export interface SpeedChartConfig {
   adoptionRate: AdoptionRateConfig;
+  minSpreadAdoptionRate?: MinSpreadAdoptionRateConfig;
   disabled: {
     abilities: string[];
     moves: string[];
@@ -262,7 +269,27 @@ export interface AdoptionRateBucket {
  * suggestions テーブル(kind='popular_item'|'popular_move', subject_key='<種族名>|<レギュレーション>')
  * の payload をこの形に畳んだもの(畳む処理自体はSSR側=index.astroの責務。U-2参照)。
  */
-export type AdoptionRateData = Record<string, Partial<Record<'items' | 'moves', AdoptionRateBucket>>>;
+export type AdoptionRateData = Record<string, Partial<Record<'items' | 'moves' | 'natures', AdoptionRateBucket>>>;
+
+/**
+ * 「最遅」を表示できるだけのS下降性格の採用実績があるかを判定する。
+ * UI改修依頼(2026-08-05)「最遅を育成DBの採用実績がある種族だけに表示」対応。
+ * 性格名はハードコードせず、既存の性格定義からS下降のものを機械的に抽出する。
+ * suggestions の popular_nature には努力値が無いため、S=0は判定に含めず下降性格の合計率で近似する。
+ */
+export function isMinSpreadAdopted(
+  speciesName: string,
+  config: MinSpreadAdoptionRateConfig,
+  data: AdoptionRateData | undefined,
+): boolean {
+  if (!config.enabled) return true;
+  const bucket = data?.[speciesName]?.natures;
+  if (!bucket || bucket.sampleSize < config.minSampleSize) return false;
+  const downNatureRate = Object.entries(NATURE_STAT_MODIFIERS)
+    .filter(([, modifier]) => modifier.down === 'spe')
+    .reduce((sum, [natureName]) => sum + (bucket.options[natureName] ?? 0), 0);
+  return downNatureRate >= config.threshold;
+}
 
 /** そのカテゴリに採用率フィルタが効くかどうか(enabled かつ appliesTo に含まれる)。 */
 export function isAdoptionRateFilterActive(
@@ -356,6 +383,7 @@ export function buildSpeedChartRows(
   effectiveModifiers: EffectiveSpeedModifier[],
   adoptionConfig: AdoptionRateConfig,
   adoptionData?: AdoptionRateData,
+  minSpreadConfig?: MinSpreadAdoptionRateConfig,
 ): SpeedChartRow[] {
   const entries: SpeedChartEntry[] = [];
   // 表示・生成順も「最速→準速→無振り→最遅」に固定し、同値集約時の順序を安定させる。
@@ -363,6 +391,7 @@ export function buildSpeedChartRows(
 
   for (const form of population) {
     for (const spreadKind of spreadKinds) {
+      if (spreadKind === 'min' && minSpreadConfig && !isMinSpreadAdopted(form.name, minSpreadConfig, adoptionData)) continue;
       const spread = SPEED_SPREADS[spreadKind];
       const baseValue = calcOtherStat(50, form.baseSpeed, 31, spread.evSpe, spread.natureModifier);
       entries.push({ formName: form.name, isMega: form.isMega, spread: spreadKind, modifier: null, value: baseValue });
@@ -383,6 +412,32 @@ export function buildSpeedChartRows(
     } else {
       rowsByValue.set(entry.value, [entry]);
     }
+  }
+
+  // UI改修依頼(2026-08-05)「同じ行・フォルム・振り方の上昇要因は1つ」対応。
+  // 描画時ではなく純関数の行組み立てで潰すと、全表示経路で同じ結果になり境界を単体テストできる。
+  // 補正なしは別枠で残し、補正あり同士だけ abilities > items > moves の優先順で安定選択する。
+  const modifierPriority: Record<SpeedModifierCategory, number> = { abilities: 0, items: 1, moves: 2 };
+  for (const rowEntries of rowsByValue.values()) {
+    const selectedByFormAndSpread = new Map<string, SpeedChartEntry>();
+    const uniqueEntries: SpeedChartEntry[] = [];
+    for (const entry of rowEntries) {
+      if (!entry.modifier) {
+        uniqueEntries.push(entry);
+        continue;
+      }
+      const key = `${entry.formName}\u0000${entry.spread}`;
+      const selected = selectedByFormAndSpread.get(key);
+      if (!selected) {
+        selectedByFormAndSpread.set(key, entry);
+        continue;
+      }
+      if (modifierPriority[entry.modifier.category] < modifierPriority[selected.modifier!.category]) {
+        selectedByFormAndSpread.set(key, entry);
+      }
+    }
+    uniqueEntries.push(...selectedByFormAndSpread.values());
+    rowEntries.splice(0, rowEntries.length, ...uniqueEntries);
   }
 
   return Array.from(rowsByValue.entries())
