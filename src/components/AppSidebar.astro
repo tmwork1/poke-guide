@@ -24,28 +24,32 @@ const ICONS = {
 	// 別々の円になっており、左右端でわずかに真円からズレていた)。中央の切り欠き穴も同じ弦の高さで
 	// 半弦長を計算し直し、より正確な円に近づけている。
 	// 同日追記: 中央の穴を2.8→3.4→3.8まで拡大(ユーザーの追加指示で再拡大、比率r2/R=0.4222)。
+	// 2026-08-05: 中央穴をr=4.2へ拡大。弦は中心から±1.25なので、半弦長は
+	// sqrt(4.2^2 - 1.25^2)=4.0097（左右端x=12±4.0097）として左右対称にした。
 	// さらにアイコン全体を一回り大きく見せるため、
 	// <g transform="translate(-1.667 -1.667) scale(1.1389)"> で全体を1.1389倍
 	// (実効半径9→10.25相当)に拡大した。svg自体のwidth/height="20"・viewBoxは変更しておらず、
 	// viewBox内の描画サイズ(余白)だけを詰めている。
-	home: `<svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><g transform="translate(-1.667 -1.667) scale(1.1389)"><path d="M3.087 10.75 A9 9 0 0 1 20.913 10.75 L15.589 10.75 A3.8 3.8 0 0 0 8.411 10.75 L3.087 10.75 Z" fill="currentColor"/><path d="M20.913 13.25 A9 9 0 0 1 3.087 13.25 L8.411 13.25 A3.8 3.8 0 0 0 15.589 13.25 L20.913 13.25 Z" fill="currentColor"/></g></svg>`,
+	home: `<svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><g transform="translate(-1.667 -1.667) scale(1.1389)"><path d="M3.087 10.75 A9 9 0 0 1 20.913 10.75 L16.010 10.75 A4.2 4.2 0 0 0 7.990 10.75 L3.087 10.75 Z" fill="currentColor"/><path d="M20.913 13.25 A9 9 0 0 1 3.087 13.25 L7.990 13.25 A4.2 4.2 0 0 0 16.010 13.25 L20.913 13.25 Z" fill="currentColor"/></g></svg>`,
 	// チーム(/team)用: 同じ2パーツ構成(共有1円+2本の弦)のボールを2つ、左右にずらして重ねて配置。
-	// 背後のボール(右上寄り、中心(15,7.5)・半径7)を先に描画し、前面のボール(左下寄り、
-	// 中心(9,14.5)・半径7.5)を後で描画することで自然な重なりにする。中心間距離(約9.22)は
+	// 背後のボール(右上寄り、中心(15,7.56)・半径7.56)を先に描画し、前面のボール(左下寄り、
+	// 中心(9,14.5)・半径8.1)を後で描画することで自然な重なりにする。中心間距離(約9.17)は
 	// どちらの半径よりも大きく保ち、前面ボールの中央穴が背面ボールにほぼ飲み込まれて
 	// 顔のように見えてしまう崩れ(2026-08-02の検証で発生・修正済み)を避けている。
 	// 背後のボールは .app-sidebar-icon-ball-back で暗く(filter: brightness)して前面と区別する。
-	// 同日追記: 各ボールの中央穴をhomeと同じ比率(r2/R≈0.4222)まで拡大(背後2.18→2.96、
-	// 前面2.33→3.17)。ボール自体の半径・配置(=アイコン全体のサイズ)は変更していない。
-	users: `<svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path class="app-sidebar-icon-ball-back" d="M8.068 6.53 A7 7 0 0 1 21.932 6.53 L17.797 6.53 A2.96 2.96 0 0 0 12.203 6.53 L8.068 6.53 Z" fill="currentColor"/><path class="app-sidebar-icon-ball-back" d="M21.932 8.47 A7 7 0 0 1 8.068 8.47 L12.203 8.47 A2.96 2.96 0 0 0 17.797 8.47 L21.932 8.47 Z" fill="currentColor"/><path d="M1.572 13.46 A7.5 7.5 0 0 1 16.428 13.46 L11.995 13.46 A3.17 3.17 0 0 0 6.005 13.46 L1.572 13.46 Z" fill="currentColor"/><path d="M16.428 15.54 A7.5 7.5 0 0 1 1.572 15.54 L6.005 15.54 A3.17 3.17 0 0 0 11.995 15.54 L16.428 15.54 Z" fill="currentColor"/></svg>`,
-	"trending-up": `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>`,
+	// 2026-08-02: 各ボールの中央穴をhomeと同じ比率(r2/R≈0.4222)まで拡大(背後2.18→2.96、
+	// 前面2.33→3.17)。
+	// 2026-08-05: 両ボールを1.08倍（背面R=7.56、前面R=8.10）に拡大し、穴もr/R=0.4222を維持。
+	// 各弦の半弦長sqrt(R^2-dy^2)／sqrt(r^2-dy^2)から交点を算出した。中心間距離9.174は最大R=8.10より大きい。
+	users: `<svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path class="app-sidebar-icon-ball-back" d="M7.513 6.512 A7.56 7.56 0 0 1 22.487 6.512 L18.015 6.512 A3.192 3.192 0 0 0 11.985 6.512 L7.513 6.512 Z" fill="currentColor"/><path class="app-sidebar-icon-ball-back" d="M22.487 8.608 A7.56 7.56 0 0 1 7.513 8.608 L11.985 8.608 A3.192 3.192 0 0 0 18.015 8.608 L22.487 8.608 Z" fill="currentColor"/><path d="M0.978 13.377 A8.1 8.1 0 0 1 17.022 13.377 L12.230 13.377 A3.420 3.420 0 0 0 5.770 13.377 L0.978 13.377 Z" fill="currentColor"/><path d="M17.022 15.623 A8.1 8.1 0 0 1 0.978 15.623 L5.770 15.623 A3.420 3.420 0 0 0 12.230 15.623 L17.022 15.623 Z" fill="currentColor"/></svg>`,
+	"trending-up": `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.05" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>`,
 	// 開発者向け(/e2e-test-harness)用: レンチの塗りつぶしシルエット(Material Iconsの"build"相当のパス)。
 	// 元のpathはviewBox 24x24のほぼ端から端(bbox約22x22)を占め、他の線画4アイコン(概ね20x20に
 	// 収まる余白設計)より一回り大きく見えていたため、2026-08-02に transform で0.9077倍に縮小し
 	// 中央寄せした(縮小後のbboxはx:2.0-22.0, y:2.06-21.94 ≒ 20x20相当)。
 	code: `<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><path d="M22.7 19l-9.1-9.1c.9-2.3.4-5-1.5-6.9-2-2-5-2.4-7.4-1.3L9 6 6 9 1.6 4.7C.4 7.1.9 10.1 2.9 12.1c1.9 1.9 4.6 2.4 6.9 1.5l9.1 9.1c.4.4 1 .4 1.4 0l2.3-2.3c.5-.4.5-1.1.1-1.4z" transform="translate(1.133 1.062) scale(0.9077)"/></svg>`,
-	// すばやさ早見表(/speed-chart)用: スピードメーター(lucideの"gauge"アイコンのパスをそのまま使用)。
-	zap: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg>`,
+	// すばやさチャート(/speed-chart)用: スピードメーター(lucideの"gauge"アイコンのパスをそのまま使用)。
+	zap: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.05" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg>`,
 } as const;
 
 type IconKey = keyof typeof ICONS;
@@ -64,7 +68,7 @@ const SECTIONS: { heading: string; items: SidebarItem[] }[] = [
 		items: [
 			{ key: "box", label: "ボックス", href: "/box", icon: "home" },
 			{ key: "team", label: "チーム", href: "/team", icon: "users" },
-			{ key: "speed-chart", label: "すばやさ早見表", href: "/speed-chart", icon: "zap" },
+			{ key: "speed-chart", label: "すばやさチャート", href: "/speed-chart", icon: "zap" },
 			{ key: "trend", label: "トレンド", icon: "trending-up", disabled: true },
 		],
 	},

@@ -306,12 +306,15 @@ const user = Astro.locals.user;
 		.team-grid .card-team .card-team-header {
 			display: flex;
 			align-items: flex-start;
+			justify-content: center;
 		}
 		.team-grid .card-team .card-team-name {
+			width: 100%;
 			margin: 0;
 			font-size: var(--font-size-lg);
 			font-weight: 700;
 			line-height: 1.3;
+			text-align: center;
 			white-space: normal;
 			display: -webkit-box;
 			-webkit-line-clamp: 3;
@@ -338,12 +341,12 @@ const user = Astro.locals.user;
 			align-items: center;
 			gap: var(--space-2);
 			padding-left: 2.75rem;
-			padding-right: 1.5rem;
+			padding-right: calc(1.5rem + var(--space-2));
 		}
 		/* UI改修依頼(チームトップ画面、2026-08-01)「チームメモをカードに常時表示せず、ホバー時に
 		   表示するようにする」。以前はメモ本文を1行省略で常時表示していたが、box/index.astroや
 		   このファイル自身が随所で使っている「title属性によるネイティブホバーツールチップ」の
-		   確立済み規格(nameEl.title/img.titleと同じ手法)に揃え、メモがあるときだけ小さな
+		   確立済み規格(nameEl.titleと同じ手法)に揃え、メモがあるときだけ小さな
 		   アイコン(📝)を表示してtitleに全文を持たせる方式に変える(JS側、下のrenderCard参照)。
 		   min-heightはメモ有無に関わらずメタ行の高さを揃えるため(round-30 A-9(b))そのまま維持する。 */
 		.team-grid .card-team .card-team-memo {
@@ -630,17 +633,13 @@ const user = Astro.locals.user;
 						</div>
 
 						{/* 🔴 UI改修依頼(チームトップ画面、2026-08-01)「レギュレーションによるフィルタを
-						    追加」。box/index.astroの#regulation-filterと同じ値・同じ番兵(__none__)を使う
+						    追加」。選択肢は既知のレギュレーションと「すべて」を使う
 						    (2画面で絞り込みの語彙を揃える)。取得済みの一覧をクライアント側で絞る点も同じ。 */}
 						<div class="toolbar-item toolbar-regulation">
-							{/* UI改修依頼(チームトップ画面、2026-08-02)「セカンドトップバーのデザインを
-							    ボックス画面にあわせる」: 可視の「レギュレーション」<label>を削除し、
-							    box/index.astroの#regulation-filterと同じくaria-labelを付与する。
-							    先頭オプションの表記もbox側に揃える。 */}
-							<select id="regulation-filter" class="field-control" aria-label="レギュレーションで絞り込み">
-								<option value="">すべてのレギュレーション</option>
+							<label for="regulation-filter">レギュレーション</label>
+							<select id="regulation-filter" class="field-control">
+								<option value="">すべて</option>
 								{REGULATIONS.map((r) => <option value={r}>{r}</option>)}
-								<option value="__none__">未設定</option>
 							</select>
 						</div>
 
@@ -771,14 +770,6 @@ const user = Astro.locals.user;
 				return "無題のチーム";
 			}
 
-			// round-30 B-3: ミニサムネのtitle用。ニックネーム→種族名→「未設定」
-			// (docs/plan/pages/team.md R-15と同じフォールバック順)。
-			function memberDisplayName(p: TeamMemberPokemon): string {
-				if (p.nickname && p.nickname.trim() !== "") return p.nickname;
-				if (p.species_name && p.species_name.trim() !== "") return p.species_name;
-				return "未設定";
-			}
-
 			async function applyThumbSprite(imgEl: HTMLImageElement, fallbackEl: HTMLElement, name: string): Promise<void> {
 				const imageId = name ? (await imageIdMapPromise).get(name) : undefined;
 				if (imageId == null) {
@@ -837,12 +828,10 @@ const user = Astro.locals.user;
 			}
 
 			// 🔴 UI改修依頼(チームトップ画面、2026-08-01)「レギュレーションによるフィルタを追加」。
-			// ""=すべて / "__none__"=未設定のチームだけ / それ以外=そのレギュレーションのチームだけ
-			// (box/index.astro の matchesRegulation と同じ規則)。
+			// 既知のレギュレーション以外は「すべて」と同じ扱いにする。
 			function matchesRegulation(t: Team): boolean {
 				const selected = regulationFilter.value;
-				if (selected === "") return true;
-				if (selected === "__none__") return !t.regulation;
+				if (!REGULATIONS.includes(selected as (typeof REGULATIONS)[number])) return true;
 				return t.regulation === selected;
 			}
 
@@ -985,8 +974,6 @@ const user = Astro.locals.user;
 						const img = document.createElement("img");
 						img.className = "card-team-thumb-img";
 						img.alt = "";
-						// round-30 B-3: 似た配色の種族を見分けられるようホバーで表示名を出す(レイアウト不変)。
-						img.title = memberDisplayName(member.owned_pokemon);
 						img.style.display = "none";
 						thumb.appendChild(img);
 

@@ -211,9 +211,8 @@ const user = Astro.locals.user;
 			padding-left: 2.1em;
 		}
 		/* 🔴 UI改修依頼(ボックス画面、2026-08-01): レギュレーション絞り込みの<select>。
-		   並べ替えと違いアイコンは付けない(上下矢印のような一目で意味の分かる図が
-		   レギュレーションには無いため、「すべてのレギュレーション」というラベル自体で
-		   役割を示す)。最長のラベルが折り返さない幅を確保する。 */
+		   並べ替えと違いアイコンは付けず、可視の.field-labelで役割を示す。
+		   最長のラベルが折り返さない幅を確保する。 */
 		.toolbar-regulation select {
 			min-width: 12rem;
 		}
@@ -813,16 +812,18 @@ const user = Astro.locals.user;
 			gap: 0.2rem;
 			min-width: 0;
 		}
+		.box-grid .card-pokemon .card-item-row-ability {
+			gap: var(--space-1);
+		}
 		/* 特性名: 名前(card-name)・技チップ(card-move-chip)と同様に1行で省略する
 		   (折り返さない)。20-G3の12px下限ちょうど(0.75rem)にし、名前ほど主張しない
 		   「補助情報」の階層に置く。左セル(.card-item-row-ability)の中でellipsisさせるため
 		   min-width:0は親セル側(.card-item-row-cell)で確保済み。
 		   UI改修依頼(2026-08-04、要件2/3): 行が2段組(.card-item-row)になり、この行はカード幅
-		   いっぱいを使える(旧来は右半分)。テラスバッジが右に同居するため、名前行
-		   (.card-name-row)の名前+テラスバッジと同じ組み方(テキストをflex:1で伸ばし、
-		   バッジをflex:noneで右端固定)にする(下のプロパティのflex/min-width追加参照)。 */
+		   いっぱいを使える(旧来は右半分)。テラスバッジは特性テキストの直後に置き、
+		   テキストが長い場合だけflexで縮めて省略する。 */
 		.box-grid .card-pokemon .card-ability-name {
-			flex: 1 1 auto;
+			flex: 0 1 auto;
 			min-width: 0;
 			font-size: 0.75rem;
 			line-height: 1.2;
@@ -1075,7 +1076,7 @@ const user = Astro.locals.user;
 						    ボタンの直後・検索ボックスの直前)へ移動した。id/classは変更しない
 						    (<script>がgetElementByIdで参照する)。 */}
 						<div class="toolbar-item toolbar-count">
-							<span class="badge tnum" id="pokemon-count-badge" hidden>0体</span>
+							<span class="badge tnum" id="pokemon-count-badge" hidden>0</span>
 						</div>
 						<div class="toolbar-item toolbar-search">
 							{/* ラウンド42 42-B1(ユーザー指示)により可視の「検索」ラベルを削除。
@@ -1119,13 +1120,13 @@ const user = Astro.locals.user;
 						    サーバーには問い合わせず、取得済みの一覧をクライアント側で絞る
 						    (このページ冒頭のコメント「並び替え・タグフィルタ・文字列検索はいずれも
 						    初回取得後にクライアント側で完結させる」方針に揃える)。
-						    「レギュレーション未設定の個体」も明示的に絞れるようにする(値は
-						    空文字と区別するため __none__ という番兵を使う)。 */}
+						    可視ラベルをselectと関連付け、選択肢は具体的なレギュレーションと
+						    「すべて」に絞る。 */}
 						<div class="toolbar-item toolbar-regulation">
-							<select id="regulation-filter" class="field-control" aria-label="レギュレーションで絞り込み">
-								<option value="">すべてのレギュレーション</option>
+							<label class="field-label" for="regulation-filter">レギュレーション</label>
+							<select id="regulation-filter" class="field-control">
+								<option value="">すべて</option>
 								{REGULATIONS_NEWEST_FIRST.map((r) => <option value={r}>{r}</option>)}
-								<option value="__none__">レギュレーション未設定</option>
 							</select>
 						</div>
 
@@ -1138,9 +1139,9 @@ const user = Astro.locals.user;
 									<path d="M14 17l3 3 3-3" />
 								</svg>
 								<select id="sort-select" class="field-control" aria-label="並べ替え">
-									<option value="updated_at">最終更新順</option>
-									<option value="last_used_at">最終使用順</option>
-									<option value="nickname">ニックネーム順</option>
+									<option value="updated_at">最終更新</option>
+									<option value="last_used_at">最終使用</option>
+									<option value="nickname">ニックネーム</option>
 								</select>
 							</div>
 						</div>
@@ -1495,11 +1496,12 @@ const user = Astro.locals.user;
 			}
 
 			// 🔴 UI改修依頼(ボックス画面、2026-08-01)「レギュレーションによるフィルタを追加」。
-			// ""=すべて / "__none__"=未設定の個体だけ / それ以外=そのレギュレーションの個体だけ。
+			// ""=すべて / 選択肢にある値=そのレギュレーションの個体だけ。
+			// 廃止済みの値や未知の値は、URLクエリ等から渡されても「すべて」として扱う。
 			function matchesRegulation(p: OwnedPokemon): boolean {
 				const selected = regulationFilter.value;
-				if (selected === "") return true;
-				if (selected === "__none__") return !p.regulation;
+				const isKnownSelection = Array.from(regulationFilter.options).some((option) => option.value === selected);
+				if (selected === "" || !isKnownSelection) return true;
 				return p.regulation === selected;
 			}
 
@@ -1824,11 +1826,11 @@ const user = Astro.locals.user;
 				}
 			}
 
-			// B-9: 絞り込み/検索の結果件数を総数に追随させる(例: 検索中は「2 / 4体」)。
+			// B-9: 絞り込み/検索の結果件数を総数に追随させる(例: 検索中は「2 / 4」)。
 			// renderList()が呼ばれるたびに毎回渡されるので、この関数自体は単に整形するだけでよい。
 			function updateCountBadge(visibleCount: number): void {
 				const total = allPokemon.length;
-				countBadge.textContent = visibleCount === total ? `${total}体` : `${visibleCount} / ${total}体`;
+				countBadge.textContent = visibleCount === total ? `${total}` : `${visibleCount} / ${total}`;
 				countBadge.hidden = false;
 			}
 
