@@ -443,8 +443,8 @@ const user = Astro.locals.user;
 		   ラウンド4: カードを1辺およそ200pxの正方形にする(aspect-ratio: 1/1)。中身は
 		   「公式絵→名前→実数値6値」だけの縦中央寄せに絞り、情報量を減らす代わりに
 		   1画面に並ぶ枚数(一覧性)を最優先にする。
-		   --card-stat-down(旧A-4を継続): 実数値の下降(青)をカード内だけの変数にして、ダークで
-		   コントラスト不足(約2.7:1)だった #1d6fd1 固定値をダーク側だけ明るく上書きする。
+		   --color-stat-down(旧A-4を継続): 実数値の下降(青)は共通トークンを使い、ダークで
+		   コントラスト不足(約2.7:1)だった #1d6fd1 をダーク側だけ明るく上書きする。
 		   padding: 新しい基底.cardはvar(--space-3)(0.75rem)だが、この正方形カードは
 		   overflow:hiddenの中に公式絵48%・実数値6列グリッド・技2×2グリッドをピクセル単位で
 		   詰めている(ラウンド4/5のコメント参照)。基底のpaddingのままだと一辺あたり4px×2=8pxぶん
@@ -458,7 +458,6 @@ const user = Astro.locals.user;
 		   card-moves-gridを常時appendしてmin-heightで高さを揃えれば(下記参照)、auto行の高さが
 		   全カードで一致し、名前行・実数値行のyが揃う。 */
 		.box-grid .card-pokemon {
-			--card-stat-down: #1d6fd1;
 			padding: var(--space-2);
 			position: relative;
 			display: grid;
@@ -470,9 +469,6 @@ const user = Astro.locals.user;
 			overflow: hidden;
 			text-decoration: none;
 			color: inherit;
-		}
-		@media (prefers-color-scheme: dark) {
-			.box-grid .card-pokemon { --card-stat-down: #6fb6f7; }
 		}
 		.box-grid .card-pokemon:focus-visible {
 			outline: 2px solid var(--color-primary);
@@ -910,10 +906,10 @@ const user = Astro.locals.user;
 		   #f8f9fc)に対し実測2.67:1でWCAG AA(4.5:1)未達だった。delete-button/#error-messageと
 		   同じ--color-danger-strong(#b23a26)に差し替える(実測5.66:1)。ダークは元々6.71:1で
 		   問題なく、--color-danger-strongはダーク側でvar(--color-danger)にエイリアスされている
-		   ため変化しない。下降側(--card-stat-down、青)は元々ライト4.70:1・ダーク7.07:1でAA
+		   ため変化しない。下降側(--color-stat-down、青)は元々ライト4.70:1・ダーク7.07:1でAA
 		   達成済みのため変更しない(実測で確認済み)。 */
 		.box-grid .card-pokemon .card-stat-real-value[data-mod="up"] { color: var(--color-danger-strong); }
-		.box-grid .card-pokemon .card-stat-real-value[data-mod="down"] { color: var(--card-stat-down); }
+		.box-grid .card-pokemon .card-stat-real-value[data-mod="down"] { color: var(--color-stat-down); }
 		/* ▲▼マーカーは以前 親の0.74em(em)に対する0.7em(em)指定で、入れ子emにより実測8.3pxまで
 		   潰れていた(pitfalls.md「emの入れ子」)。ラウンド20 G3でfont-sizeの上書き自体を止め、
 		   親(.card-stat-real-value、0.8rem=12.8px)をそのまま継承させることで12px以上を確保する。 */

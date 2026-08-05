@@ -2598,7 +2598,7 @@ if (opponentNotesSection) {
 				// (付与位置=ラベル文字への直接付記はそのまま変更しない、例: 上昇ならA▲、
 				// 下降ならC▼)。展開時の.damage-ev-nature-indicator(describeNatureCycleState、
 				// 上方参照)と同じグリフを使う。値側には記号を付けない。色は新色を作らず、
-				// 既存の--stat-up/--stat-down(.damage-row-collapsed-stat-key[data-mod]、
+				// 既存の--color-stat-up/--color-stat-down(.damage-row-collapsed-stat-key[data-mod]、
 				// DamageCalcSection.astro)をそのままラベル側に付け替えて流用する。
 				const suffix = mod === "up" ? "▲" : mod === "down" ? "▼" : "";
 				keyTarget.textContent = STAT_KANJI[key] + suffix;
@@ -3038,7 +3038,7 @@ if (opponentNotesSection) {
 		// 上下2個の専用ボタン(nature-up-{key}/nature-down-{key}と同じ設計、縦3段
 		// ▲/文字/▼)をやめ、見出しの文字自体を1個のボタンにして「無補正→上昇→下降→
 		// 無補正」を巡回させる(高さが3段から1段になり、カード高さの削減にも寄与する)。
-		// 色だけで状態を伝えないよう(WCAG 1.4.1)、文字色(--stat-up/--stat-down。新色は
+		// 色だけで状態を伝えないよう(WCAG 1.4.1)、文字色(--color-stat-up/--color-stat-down。新色は
 		// 作らない)に加えて文字の直後に小さく▲/▼を添える(.damage-ev-nature-indicator、
 		// aria-hiddenで装飾扱い。実際の状態説明はボタンのaria-label/titleが担う)。
 		const natureColLabelEls: Partial<Record<string, HTMLElement>> = {};

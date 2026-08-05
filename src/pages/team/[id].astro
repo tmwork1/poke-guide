@@ -195,53 +195,7 @@ const initialTeamJson = team
 		}
 
 		/* UI改修依頼(チーム編集ヘッダー)「匿名でデータ提供するトグルを追加する」。トグル本体の
-		   見た目(.toggle-switch一式)はbox/[id].astro側がsrc/components/box-id/LeftPanel.astroの
-		   <style is:global>で定義しているが、このコンポーネントはteam/[id].astroでは読み込まれない
-		   ため(Astroのscoped/is:globalスタイルは実際にそのコンポーネントを描画したページにしか
-		   バンドルされない)、同じ値をこのページのscoped<style>に複製する(新しい値は作っていない、
-		   box/[id].astroのトグルと画素まで同一)。 */
-		.toggle-switch { position: relative; display: inline-flex; align-items: center; width: 38px; height: 20px; flex-shrink: 0; }
-		.toggle-switch-input {
-			position: absolute;
-			width: 1px;
-			height: 1px;
-			margin: -1px;
-			padding: 0;
-			overflow: hidden;
-			clip: rect(0 0 0 0);
-			white-space: nowrap;
-			border: 0;
-			cursor: pointer;
-			/* UI改修依頼(チーム編集ヘッダー、2026-08-01)「トグルスイッチの裏に残っているネイティブの
-			   チェックボックスが見えていたら隠す」。上のclip visually-hiddenパターンで既に見えなく
-			   なっているはずだが、appearance:noneも念のため明示しブラウザ既定の描画を確実に消す。 */
-			appearance: none;
-			-webkit-appearance: none;
-		}
-		.toggle-switch-track {
-			position: absolute;
-			inset: 0;
-			border-radius: 999px;
-			background: var(--color-border);
-			border: 1px solid var(--color-border);
-			transition: background-color 0.15s ease, border-color 0.15s ease;
-			pointer-events: none;
-		}
-		.toggle-switch-thumb {
-			position: absolute;
-			top: 2px;
-			left: 2px;
-			width: 16px;
-			height: 16px;
-			border-radius: 50%;
-			background: #ffffff;
-			box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
-			transition: transform 0.15s ease;
-		}
-		.toggle-switch-input:checked + .toggle-switch-track { background: var(--color-primary); border-color: var(--color-primary); }
-		.toggle-switch-input:checked + .toggle-switch-track .toggle-switch-thumb { transform: translateX(18px); }
-		.toggle-switch-input:focus-visible + .toggle-switch-track { outline: 2px solid var(--color-primary); outline-offset: 2px; }
-		.toggle-switch-input:disabled + .toggle-switch-track { opacity: 0.5; }
+		   見た目(.toggle-switch一式)は複数ページで使うためglobal.cssの共通定義を参照する。 */
 		.collection-opt-out-toggle {
 			display: inline-flex;
 			align-items: center;

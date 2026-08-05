@@ -77,6 +77,19 @@
 	   問題が無く、変えると配色トークンが増える制約に抵触する)。 */
 	--color-primary-strong: #1a7ea1;
 
+	/* 能力ランク変化は既存の配色どおり上昇を赤、下降を青で示す。
+	   2026-08-05: box/[id].astro の .edit-shell と share/[slug].astro の .page に
+	   同値がコピーされていたのをここへ集約した。**ライト/ダークで両方とも値が変わる**点に注意
+	   (集約時に上昇側のダーク値を落としかけた)。ライトは #c9432c / #1d6fd1 のままだと
+	   ダーク背景でコントラストを割るため、ダークでは上昇を --color-danger(#ff8b78)、
+	   下降を #6fb6f7 に差し替える(下の @media (prefers-color-scheme: dark) 参照)。
+	   なお /box 一覧のカードだけは上昇側に --color-danger-strong を使っており、これは
+	   カード背景(--color-surface-alt)でのAA確保のための意図的な例外なのでここには寄せない。 */
+	--color-stat-up: #c9432c;
+	--color-stat-down: #1d6fd1;
+	/* モーダル/ドロワーの暗幕は既存の標準値0.45へ寄せ、画面間の濃さを統一する。 */
+	--color-overlay: rgba(0, 0, 0, 0.45);
+
 	--radius-sm: 8px;
 	--radius-md: 12px;
 	--radius-lg: 16px;
@@ -167,6 +180,11 @@
 		/* ダークの --color-primary(#4dc3ea) は白文字ではなく暗背景に対して既に8.08:1あるため、
 		   -strongはライト用の別色にせず本体トークンへエイリアスする(-danger等と同じ扱い)。 */
 		--color-primary-strong: var(--color-primary);
+		/* 能力ランク変化の色は上昇・下降とも暗背景用に差し替える。ライトの #c9432c(上昇)は
+		   ダーク背景では沈んで読めないため、集約前の box/[id].astro / share/[slug].astro が
+		   していたのと同じく --color-danger にエイリアスする。 */
+		--color-stat-up: var(--color-danger);
+		--color-stat-down: #6fb6f7;
 
 		/* ダークでは黒背景に対して光の影がほぼ見えないため、暗い背景でも輪郭が読める
 		   濃いめの黒影に差し替える(色トークン自体は変えない)。 */
@@ -913,6 +931,51 @@ a.btn-ghost:hover {
 	background: var(--color-surface-alt);
 }
 
+/* --- トグルスイッチ ---
+   input[type="checkbox"] の共通ルールはクラス単独より詳細度が高いため、要素+属性を併記して
+   visually-hidden指定が上書きされ、ネイティブのチェックボックスが露出する事故を防ぐ。 */
+.toggle-switch { position: relative; display: inline-flex; align-items: center; width: 38px; height: 20px; flex-shrink: 0; }
+.toggle-switch-input,
+input[type="checkbox"].toggle-switch-input {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	margin: -1px;
+	padding: 0;
+	overflow: hidden;
+	clip: rect(0 0 0 0);
+	white-space: nowrap;
+	border: 0;
+	cursor: pointer;
+	appearance: none;
+	-webkit-appearance: none;
+}
+.toggle-switch-track {
+	position: absolute;
+	inset: 0;
+	border-radius: 999px;
+	background: var(--color-border);
+	border: 1px solid var(--color-border);
+	transition: background-color 0.15s ease, border-color 0.15s ease;
+	pointer-events: none;
+}
+.toggle-switch-thumb {
+	position: absolute;
+	top: 2px;
+	left: 2px;
+	width: 16px;
+	height: 16px;
+	border-radius: 50%;
+	/* ダーク時に暗い塊へ見えるのを防ぎ、状態はトラック色で示すため、つまみは常に白固定にする。 */
+	background: #ffffff;
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+	transition: transform 0.15s ease;
+}
+.toggle-switch-input:checked + .toggle-switch-track { background: var(--color-primary); border-color: var(--color-primary); }
+.toggle-switch-input:checked + .toggle-switch-track .toggle-switch-thumb { transform: translateX(18px); }
+.toggle-switch-input:focus-visible + .toggle-switch-track { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+.toggle-switch-input:disabled + .toggle-switch-track { opacity: 0.5; }
+
 /* --- バッジ・チップ --- */
 .badge {
 	display: inline-flex;
@@ -1063,7 +1126,7 @@ dialog#opponent-note-form-container {
 	color: var(--color-text);
 }
 dialog#opponent-note-form-container::backdrop {
-	background: rgba(0, 0, 0, 0.45);
+	background: var(--color-overlay);
 }
 
 /* --- 共通レイアウト(AppLayout.astro / AppSidebar.astro、UI刷新 2026-07-25) ---
@@ -1164,7 +1227,7 @@ dialog#opponent-note-form-container::backdrop {
 .app-sidebar-overlay {
 	position: fixed;
 	inset: 0;
-	background: rgba(0, 0, 0, 0.45);
+	background: var(--color-overlay);
 	z-index: 25;
 	opacity: 0;
 	pointer-events: none;

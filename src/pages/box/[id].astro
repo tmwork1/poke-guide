@@ -450,26 +450,13 @@ const isOptedOut = optOutRemainingText !== "";
 		   (旧battle-assistant-svの表現を踏襲。上昇=赤系、下降=青系、補正なしは既定色のまま)。
 		   ラウンド3 A-7: #1d6fd1のハードコード(このページに3箇所)はダークで下降色3.30:1と
 		   WCAG AA未達だった一方、--color-danger直参照の上昇色もライトで2.81:1が未達という
-		   「両モードで片方ずつ落ちる鏡像」だったため、ページscopedの--stat-up/--stat-downに
-		   切り出し、モードごとに独立した値を持たせる(/box/index.astroのA-4と同値に統一)。
+		   「両モードで片方ずつ落ちる鏡像」だったため、現在はglobal.cssの
+		   --color-stat-up/--color-stat-downに集約し、モードごとに値を持たせる(/box/index.astroのA-4と同値に統一)。
 		   is:global側(#opponent-notes-sectionの.damage-stat-value)からもこのカスタム
 		   プロパティを参照するが、Astroのスコープ属性はセレクタにのみ影響し、カスタム
 		   プロパティの値はDOM継承で下層のグローバル要素にも届くため問題なく効く。
-		   UI品質改善(帯構成への刷新): 変数保持用のセレクタだった.page-wideは、帯構成では
-		   max-width上書きの意味を失って撤廃したため、変数だけを残すこの用途には
-		   .edit-shell という専用クラスに切り出す(マークアップ側のdiv.pageにも
-		   class="edit-shell"を追加済み。グローバル側の.page.page-wideは他ページ
-		   (box/index.astro等)がまだ参照しているため空ルールのまま残る)。 */
-		.edit-shell {
-			--stat-up: #c9432c;
-			--stat-down: #1d6fd1;
-		}
-		@media (prefers-color-scheme: dark) {
-			.edit-shell {
-				--stat-up: var(--color-danger);
-				--stat-down: #6fb6f7;
-			}
-		}
+		   UI品質改善(帯構成への刷新)時には.edit-shellへ切り出していたが、複数画面で同じ値を
+		   使うためglobal.cssへ移した。マークアップのclass="edit-shell"は他の用途もあるため維持する。 */
 		/* ラウンド21ユーザー指示(21-G1)の残作業: ここにあった --select-arrow(light/dark)は
 		   src/styles/global.cssの:root/ダークメディアクエリへ昇格済み(エージェントP実装)。
 		   下の #edit-form select / #opponent-notes-section select(is:global側)の重複定義も

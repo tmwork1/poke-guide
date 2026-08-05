@@ -356,22 +356,11 @@ const description = pokemon
 		font-size: 1.1em;
 		font-weight: 700;
 	}
-	/* box/[id].astroの--stat-up/--stat-downと同じ配色(上昇=赤系/下降=青系)。
-	   このページ専用のスコープ変数として.pageに持たせる(他ページの値と混線しない)。 */
-	.page {
-		--share-stat-up: #c9432c;
-		--share-stat-down: #1d6fd1;
-	}
-	@media (prefers-color-scheme: dark) {
-		.page {
-			--share-stat-up: var(--color-danger);
-			--share-stat-down: #6fb6f7;
-		}
-	}
+	/* box/[id].astroと同じ共通トークン(上昇=赤系/下降=青系)を参照する。 */
 	.share-stat-cell-real[data-mod='up'] {
-		color: var(--share-stat-up);
+		color: var(--color-stat-up);
 	}
 	.share-stat-cell-real[data-mod='down'] {
-		color: var(--share-stat-down);
+		color: var(--color-stat-down);
 	}
 </style>

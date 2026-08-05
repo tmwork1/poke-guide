@@ -1002,7 +1002,7 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 		outline: 2px solid var(--color-primary);
 		outline-offset: 1px;
 	}
-	/* 色だけで状態を伝えない(WCAG 1.4.1)。上昇/下降は文字色(--stat-up/--stat-down、
+	/* 色だけで状態を伝えない(WCAG 1.4.1)。上昇/下降は文字色(--color-stat-up/--color-stat-down、
 	   新色は作らない)に加えて、文字の直後に小さく▲/▼を添える(装飾専用。実際の
 	   状態説明はボタンのaria-label/titleが担う。<script>のdescribeNatureCycleState参照)。
 	   無補正のときは空文字列にする(何も足さない)。 */
@@ -1011,8 +1011,8 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 		   (emで縮めると12px下限を割るため、縮小しない)。 */
 		line-height: 1;
 	}
-	#opponent-notes-section .damage-ev-col-label[data-mod="up"] { color: var(--stat-up); }
-	#opponent-notes-section .damage-ev-col-label[data-mod="down"] { color: var(--stat-down); }
+	#opponent-notes-section .damage-ev-col-label[data-mod="up"] { color: var(--color-stat-up); }
+	#opponent-notes-section .damage-ev-col-label[data-mod="down"] { color: var(--color-stat-down); }
 	/* グリッドのセル幅に完全に従わせる(width:100%とmin-width:0の両方が必要。
 	   min-width:0を省くと、global.cssのinput既定幅がグリッドの最小コンテンツ幅として
 	   効いてしまい、6列が箱の横幅を超えてはみ出す)。 */
@@ -1039,8 +1039,8 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 		text-align: center;
 		color: var(--color-text);
 	}
-	#opponent-notes-section .damage-stat-value[data-mod="up"] { color: var(--stat-up); }
-	#opponent-notes-section .damage-stat-value[data-mod="down"] { color: var(--stat-down); }
+	#opponent-notes-section .damage-stat-value[data-mod="up"] { color: var(--color-stat-up); }
+	#opponent-notes-section .damage-stat-value[data-mod="down"] { color: var(--color-stat-down); }
 	/* 条件チップ(A-6): 既定以外の詳細設定(天候・急所・壁など)が設定されているのに
 	   カード上に何の表示も無いと「素のカードと数値だけ違う」ように見えてバグに見える。
 	   ラウンド6ユーザー指示(要件8): 以前は相手ビルドの箱(努力値グリッド直下)に1個だけ
@@ -2871,7 +2871,7 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 	   既定により自動的に1段目/2段目へ割り振られる)。性格補正の上昇/下降は、ラウンド45で
 	   追加した値側の▲/▼記号ではなく、ラベル文字への+/-付記(例: A+/C-)に変更された
 	   (<script>のrefreshCollapsedStats参照)。色は新色を作らず、既存の
-	   --stat-up/--stat-downをラベル側([data-mod])へ付け替えて流用する。フォントサイズは
+	   --color-stat-up/--color-stat-downをラベル側([data-mod])へ付け替えて流用する。フォントサイズは
 	   6列表になったことで1行flex時代ほど窮屈にならないため、ラウンド45時点の0.88remの
 	   まま実装し、実機確認で収まることを確認した(下方の実施結果参照)。 */
 	/* 🔴 UI改善ラウンド47ユーザー指示(第31弾、追加指示A-6): ラベル行と実数値行の間の
@@ -2929,8 +2929,8 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 	/* 🔴 UI改善ラウンド47(A-1): 性格補正の色付けが値側からラベル側に移った
 	   (<script>のrefreshCollapsedStats参照)。努力値グリッドの実数値
 	   (.damage-stat-value[data-mod])と同じ色トークンをそのまま流用する(新色を作らない)。 */
-	#opponent-notes-section .damage-row-collapsed-stat-key[data-mod="up"] { color: var(--stat-up); }
-	#opponent-notes-section .damage-row-collapsed-stat-key[data-mod="down"] { color: var(--stat-down); }
+	#opponent-notes-section .damage-row-collapsed-stat-key[data-mod="up"] { color: var(--color-stat-up); }
+	#opponent-notes-section .damage-row-collapsed-stat-key[data-mod="down"] { color: var(--color-stat-down); }
 	/* 🔴 UI改善ラウンド45 統一感レビュアー指摘(A-1): 展開表示の実数値(.damage-stat-value)は
 	   font-weight:700だが、この圧縮表示側には太さの指定が無くブラウザ既定(400)のままだった。
 	   同じ「実数値」という役割なので揃える。 */

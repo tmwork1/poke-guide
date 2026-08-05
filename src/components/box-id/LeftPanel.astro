@@ -483,7 +483,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 					    → ▲(上昇)/▼(下降)を独立した当たり判定のボタンに分離する。
 					    ▲は他の能力の▲だけを解除し(▼は一切変更しない)、▼も同様(<script>の
 					    leftNatureUp/leftNatureDown、nature-up-{key}/nature-down-{key}の
-					    クリックハンドラ参照)。押下中の状態は塗り色(--stat-up/--stat-down)+
+					    クリックハンドラ参照)。押下中の状態は塗り色(--color-stat-up/--color-stat-down)+
 					    aria-pressedで明示する。HPは性格補正の対象外なのでボタン自体を置かず、
 					    位置だけ揃えるプレースホルダーを入れる。 */}
 					{key === "hp" ? (
@@ -503,9 +503,9 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 								title={`${statLabel}を上昇に設定`}
 							>▲</button>
 							{/* ラウンド21ユーザー指示(21-L7)「A,B,...のラベル色も赤・青に変わるようにする」。
-							    上昇なら--stat-up(赤系)・下降なら--stat-down(青系)。相手ビルドカード側
-							    (20-D3)の--stat-up/--stat-downと同じ変数(.edit-shellで定義、DOM継承で
-							    共有)を再利用して揃える。<script>のrefreshNatureButtons()がdata-mod属性を
+							    上昇なら--color-stat-up(赤系)・下降なら--color-stat-down(青系)。相手ビルドカード側
+							    (20-D3)の--color-stat-up/--color-stat-downと同じglobal.cssの変数を
+							    再利用して揃える。<script>のrefreshNatureButtons()がdata-mod属性を
 							    書き戻す(色だけで意味を伝えないためaria-pressedの▲▼ボタン自体も維持)。 */}
 							<span id={`nature-label-${key}`} class="stat-row-label-short">{statShort}</span>
 							<button
@@ -656,9 +656,8 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 </form>
 <style>
 	/* UI刷新: 実数値の常時表示。性格補正は文字色で表現する(旧battle-assistant-svの表現を
-	   踏襲。上昇=赤系、下降=青系、補正なしは既定色のまま)。--stat-up/--stat-downの実体は
-	   box/[id].astro側の.edit-shellで定義している(DOM継承で下層のこのコンポーネントの
-	   要素にも届く。CSSカスタムプロパティはAstroのスコープ属性の影響を受けない)。 */
+	   踏襲。上昇=赤系、下降=青系、補正なしは既定色のまま)。--color-stat-up/--color-stat-downは
+	   global.cssで定義し、CSSカスタムプロパティはAstroのスコープ属性に影響されず参照できる。 */
 	#edit-form input:placeholder-shown:not(:focus) {
 		border-style: dashed;
 		background: transparent;
@@ -679,11 +678,11 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	   比べて強調されすぎていた。font-sizeは他要素と同じ1em、font-weightも通常(400)に下げる。
 	   colorはvar(--color-text)のまま変更しない(pitfalls.md「白くする/濃くする指示を固定色で
 	   実装すると破綻する」を踏まえ、既存のテーマ追従トークンを維持する。data-mod="up"/"down"時の
-	   var(--stat-up)/var(--stat-down)への切り替えも変更していない)。 */
+	   var(--color-stat-up)/var(--color-stat-down)への切り替えも変更していない)。 */
 	/* 薄い文字色でも判別しやすくするため、既存ウェイトの次段階へ上げる。 */
 	.stat-value { display: inline-block; margin-top: 0.15em; font-size: 1em; font-weight: 500; color: var(--color-text); }
-	.stat-value[data-mod="up"] { color: var(--stat-up); }
-	.stat-value[data-mod="down"] { color: var(--stat-down); }
+	.stat-value[data-mod="up"] { color: var(--color-stat-up); }
+	.stat-value[data-mod="down"] { color: var(--color-stat-down); }
 
 	/* UI刷新: 能力値を「種族値・努力スライドバー・実数値」の1行に統合(Pokemon.png参照)。
 	   ラウンド3 B-10: ヘッダ行の「努力値(0〜32)」がスライダーの上にしかかかっておらず、
@@ -988,17 +987,17 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	/* 🔴 UI改修依頼(個体編集画面、2026-08-02)「H/A/B/C/D/Sラベルのフォントを他の要素と
 	   そろえる」対応。font-weight: 700(太字)が、隣接する種族値(.stat-row-base、通常の太さ)や
 	   ヘッダーの見出し等に比べて強調されすぎていた。通常の太さ(400)に下げて主張を弱める
-	   (colorは.stat-row-label-short[data-mod]のvar(--stat-up)/var(--stat-down)による
+	   (colorは.stat-row-label-short[data-mod]のvar(--color-stat-up)/var(--color-stat-down)による
 	   性格補正の色分けをそのまま使うため変更しない)。 */
 	/* 色トークンは維持し、ラベルだけ既存ウェイトの次段階へ上げて読みやすくする。 */
 	.stat-row-label { font-weight: 500; white-space: nowrap; display: flex; align-items: center; justify-content: center; gap: 0.1em; line-height: 1; }
 	/* ラウンド21ユーザー指示(21-L7)「A,B,...のラベル色も赤・青に変わるようにする」。
-	   相手ビルドカード側(20-D3)の--stat-up/--stat-down(box/[id].astroの.edit-shellで定義、
-	   DOM継承でこのコンポーネントの要素からも参照できる。ライト4.86-4.94:1・ダーク7.2-7.6:1)を
+	   相手ビルドカード側(20-D3)と同じ--color-stat-up/--color-stat-down
+	   (global.cssで定義。ライト4.86-4.94:1・ダーク7.2-7.6:1)を
 	   そのまま再利用して揃える(新色は作らない)。色だけで意味を伝えない(WCAG 1.4.1)ため、
 	   ▲▼ボタン自体の形状が方向を示す既存の手掛かりと併用する。 */
-	.stat-row-label-short[data-mod="up"] { color: var(--stat-up); }
-	.stat-row-label-short[data-mod="down"] { color: var(--stat-down); }
+	.stat-row-label-short[data-mod="up"] { color: var(--color-stat-up); }
+	.stat-row-label-short[data-mod="down"] { color: var(--color-stat-down); }
 	/* ラウンド5ユーザー指示: ステータスラベルのクリックによる上昇/下降切り替えを作り直す。
 	   以前は1個のボタンで「無補正→上昇→下降→無補正」を巡回させていたが、
 	   (a)押せる見た目が無い(b)ある能力を↑にすると別の能力の↓が黙って消える
@@ -1106,7 +1105,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	.stat-nature-btn:hover::after { border-bottom-color: var(--color-primary); border-top-color: var(--color-primary); }
 	.stat-row:hover .stat-nature-btn::after { border-bottom-color: var(--color-primary); border-top-color: var(--color-primary); }
 	.stat-nature-btn:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 1px; }
-	/* 塗り色(--stat-up/--stat-down、新色は作らない)で押下状態を示す。aria-pressedも
+	/* 塗り色(--color-stat-up/--color-stat-down、新色は作らない)で押下状態を示す。aria-pressedも
 	   セットで書き戻しており(<script>のrefreshNatureButtons参照)、色だけに頼らず
 	   スクリーンリーダーにも状態が伝わる(WCAG 1.4.1、pitfalls.md参照)。
 	   🔴 UI改善ラウンド31ユーザー指示(31-L8)「性格補正の三角形のハイライトが見づらいので、
@@ -1117,8 +1116,8 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	   --color-text(ライト/ダーク両方で背景・塗り色との対比が付く中立色)を使う。 */
 	/* 🔴 UI改善ラウンド32ユーザー指示(32-L6)「三角形の縁取りの色は、塗りつぶし色と同系色で
 	   強調するデザインにする」により、31-L8の黒縁(--color-text)を撤回し、塗り色と同系統の
-	   より濃い/深い既存トークンに変える。上昇=danger系の塗り(--stat-up)に対し
-	   --color-danger-strong、下降=primary系の塗り(--stat-down)に対し--color-primary-strong
+	   より濃い/深い既存トークンに変える。上昇=danger系の塗り(--color-stat-up)に対し
+	   --color-danger-strong、下降=primary系の塗り(--color-stat-down)に対し--color-primary-strong
 	   (いずれもglobal.cssで既に用意済みの「濃色派生」トークン。29-R2の区切り線でも同じ
 	   トークンを使っていた実績がある)。新色は作らない。「非選択と一目で区別できる」
 	   (31-L8の要件)は縁取り+塗り色の両方(非選択はfilter:noneかつmuted一色)で引き続き
@@ -1126,9 +1125,9 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	   目視確認する(報告参照)。
 	   🔴 UI改善ラウンド34ユーザー指示(34-L3)「性格補正の上三角(▲)の強調表示が効いていない」
 	   により、上昇側の縁取り色を再修正する。実測(相対輝度からのコントラスト比算出): ライトの
-	   塗り--stat-up(#c9432c、L=0.166)と縁取り--color-danger-strong(#b23a26、L=0.126)は
+	   塗り--color-stat-up(#c9432c、L=0.166)と縁取り--color-danger-strong(#b23a26、L=0.126)は
 	   コントラスト比 約1.23:1 しか無く、ほぼ同じ濃さの隣接色同士でほぼ視認できない
-	   (下降側は塗り--stat-down(#1d6fd1)と縁取り--color-primary-strong(#1a7ea1)で
+	   (下降側は塗り--color-stat-down(#1d6fd1)と縁取り--color-primary-strong(#1a7ea1)で
 	   輝度差が大きく、たまたま識別しやすかった。32-L6の「同系色で強調」という設計意図自体は
 	   維持しつつ、上昇側だけ濃さがほぼ同じという偶然の不具合を直す)。
 	   新色は作らず、同じdanger系統の既存トークンの中から塗りとの輝度差が大きい
@@ -1141,7 +1140,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	   🔴 UI改善ラウンド41ユーザー指示(41-L3)「性格上昇補正の上三角の強調表示も、下降補正と
 	   同様に縁取りする」により、下降側の縁取り色を再調整する。技法自体(縁取り)は既にラウンド
 	   34-L3の時点で上昇・下降の両方にあったが、実測(相対輝度からのコントラスト比算出、
-	   WCAG式)したところ下降側の「塗り--stat-down(#1d6fd1)と縁取り--color-primary-strong
+	   WCAG式)したところ下降側の「塗り--color-stat-down(#1d6fd1)と縁取り--color-primary-strong
 	   (#1a7ea1)」は約1.07:1(ライト)・約1.06:1(ダーク)しか無く、この記録が過去に想定していた
 	   「輝度差が大きくたまたま識別しやすかった」は誤りで、実際には上昇側の34-L3修正前
 	   (約1.23:1)と同程度かそれ以下の、ほぼ視認できない組み合わせだったと判明した
@@ -1162,13 +1161,13 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		border-right: 7px solid transparent;
 		border-bottom: 11px solid var(--color-danger-soft);
 	}
-	.stat-nature-up[aria-pressed="true"]::after { border-bottom-color: var(--stat-up); }
+	.stat-nature-up[aria-pressed="true"]::after { border-bottom-color: var(--color-stat-up); }
 	.stat-nature-down[aria-pressed="true"]::before {
 		border-left: 7px solid transparent;
 		border-right: 7px solid transparent;
 		border-top: 11px solid var(--color-primary-soft);
 	}
-	.stat-nature-down[aria-pressed="true"]::after { border-top-color: var(--stat-down); }
+	.stat-nature-down[aria-pressed="true"]::after { border-top-color: var(--color-stat-down); }
 	/* HPは性格補正の対象外(クリック不可)。位置を揃えるためのプレースホルダーで、
 	   ::beforeを持たない(=何も描画されない)ため「押せない」ことを見た目でも伝える。 */
 	.stat-nature-placeholder { cursor: default; }
@@ -2390,7 +2389,6 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	   スクリーンリーダー・キーボードフォーカスを保つため)で隠し、隣接する.toggle-switch-trackを
 	   CSSだけで描く(<script>のsetupMovePickerWindow参照。checked状態・changeイベント・
 	   aria-labelは一切変えない)。 */
-	.toggle-switch { position: relative; display: inline-flex; align-items: center; width: 38px; height: 20px; flex-shrink: 0; }
 	/* 12pxのラベルに対してスイッチが主張しすぎないよう、技選択内だけ26×14pxへ縮める。 */
 	.move-picker-toggle .toggle-switch { width: 26px; height: 14px; }
 	/* 🔴 UI改修依頼(個体編集左パネル、2026-08-01)「トグルスイッチの裏に残っているチェック
@@ -2406,58 +2404,12 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	   足して詳細度を0,2,1に引き上げる(global.cssの`input[type="checkbox"]`単体0,1,1に対し
 	   常に勝つ)。当たり判定(クリック・キーボード操作・スクリーンリーダー)は維持したまま
 	   視覚的にだけ隠す方針(opacity:0+サイズ0ではなく、position:absolute+1px+clipの定石)は
-	   変えていない。この部品は個体編集ヘッダー(box/[id].astro)とこのファイル自身の
-	   技選択ウィンドウ(move-picker)の両方で使われるが、team/[id].astro側は同じCSSを
-	   scoped<style>として複製しているため(Astroのscoped styleは自動でdata-astro-cid-*が
-	   付き詳細度0,2,0になり、この事故は元々起きていなかった)、このis:global側だけの
-	   修正で足りる。 */
-	.toggle-switch-input,
-	input[type="checkbox"].toggle-switch-input {
-		position: absolute;
-		width: 1px;
-		height: 1px;
-		margin: -1px;
-		padding: 0;
-		overflow: hidden;
-		clip: rect(0 0 0 0);
-		white-space: nowrap;
-		border: 0;
-		cursor: pointer;
-	}
-	.toggle-switch-track {
-		position: absolute;
-		inset: 0;
-		border-radius: 999px;
-		background: var(--color-border);
-		/* UI改修依頼(個体編集ヘッダー)「トグルスイッチの見た目が悪い」対応: offの状態が
-		   トラック背景色(--color-border)だけだと周辺との境目が曖昧だったため、薄い枠線を足して
-		   輪郭をはっきりさせる。 */
-		border: 1px solid var(--color-border);
-		transition: background-color 0.15s ease, border-color 0.15s ease;
-		pointer-events: none;
-	}
-	.toggle-switch-thumb {
-		position: absolute;
-		top: 2px;
-		left: 2px;
-		width: 16px;
-		height: 16px;
-		border-radius: 50%;
-		/* つまみは常に白固定(トークン化しない)。以前は--color-surfaceを使っていたが、
-		   ダークモードでは--color-surfaceがトラックとほぼ同じ暗さになり、box-shadowの縁だけが
-		   浮いた黒い塊に見えてしまっていた(「見た目が悪い」の実体)。iOS/Material同様、
-		   状態はトラックの色で示しつまみは常に白のニュートラルにする定番構成にする。 */
-		background: #ffffff;
-		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
-		transition: transform 0.15s ease;
-	}
+	   変えていない。この部品は個体編集ヘッダー(box/[id].astro)、技選択ウィンドウ(move-picker)、
+	   team/[id].astro等で使われるため、現在はglobal.cssで同じ定義を共有する。 */
 	/* 左右2pxの内側余白を保つため、14px高トラック内のつまみは10pxにする。 */
 	.move-picker-toggle .toggle-switch-thumb { width: 10px; height: 10px; }
-	.toggle-switch-input:checked + .toggle-switch-track { background: var(--color-primary); border-color: var(--color-primary); }
-	.toggle-switch-input:checked + .toggle-switch-track .toggle-switch-thumb { transform: translateX(18px); }
 	/* 26px幅から左右余白と10pxつまみを引いた12pxだけ動かし、ON時も右端に収める。 */
 	.move-picker-toggle .toggle-switch-input:checked + .toggle-switch-track .toggle-switch-thumb { transform: translateX(12px); }
-	.toggle-switch-input:focus-visible + .toggle-switch-track { outline: 2px solid var(--color-primary); outline-offset: 2px; }
 
 	/* UI改善ラウンド41ユーザー指示(41-L1)。アイテムドロップダウンの<li>/<img>/<span>は
 	   <script>のbuildItemDropdownOptionsがdocument.createElement()で動的生成するため、
