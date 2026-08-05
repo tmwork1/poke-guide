@@ -1,6 +1,12 @@
 // GET /api/team-suggestions: チーム編集画面のポケモンサジェスト(ユーザー要望、2026-08-02)。
-// 編集中のチームメンバー(owned_pokemon の id)を受け取り、上位入賞チーム(ranked_teams)の
-// 中でそれらとよく一緒にいるポケモンの型をランキングして返す。
+// 編集中のチームメンバー(owned_pokemon の id)を受け取り、合算プールのチーム
+// (上位入賞チーム ranked_teams + アプリで組まれたチーム teams、migrations/021)の中で
+// それらとよく一緒にいるポケモンの型をランキングして返す。
+//
+// 2026-08-05 のユーザー指示「サジェストの集計元は、本アプリに登録されているデータと過去の
+// ランキングデータを重みづけなしで合算したプールにする」により、016 のランキング専用の
+// 母集団から合算プールへ移行した。関数の引数・戻り値は 021 で互換のまま差し替えてあるので、
+// このファイルの変更は rankByUsage() の呼び先だけに収まっている。
 //
 // ■ なぜチームIDではなくメンバーIDの配列を受け取るのか
 // チーム編集画面は自動保存(700msデバウンス)で、ユーザーが枠を触ってから保存が完了するまでの
@@ -104,7 +110,9 @@ export async function GET({ request, cookies, url }: APIContext): Promise<Respon
   }
 
   // 個体の読み出しだけは所有者本人に限る必要があるため admin クライアント + user_id 絞り込み。
-  // 集計側(ranked_* / archetypes)は公開参照データなので anon クライアントで読む(最小権限)。
+  // 集計側は anon クライアントで読む(最小権限)。021 で母集団に非公開テーブル
+  // (owned_pokemon / teams)が入ったが、集計関数が SECURITY DEFINER になっていて
+  // 返すのは件数と比率だけなので、呼び出し側の権限を上げる必要は無い。
   const admin = await getSupabaseAdminClient();
   const members = await listOwnedPokemonByIds(user.id, parsed.ids, admin);
   if (!members.ok) return jsonResponse({ error: members.error }, 500);
@@ -138,18 +146,23 @@ export async function GET({ request, cookies, url }: APIContext): Promise<Respon
   let basis: 'cooccurrence' | 'usage' | 'usage_fallback' = 'cooccurrence';
   let ranked: SpeciesScore[] = [];
 
+  // フォールバックの採用率は combined_species_usage()(migrations/021)の横断スコープ。
+  // 共起(team_partner_species_stats)がチーム単位なのに対しこちらは個体単位で、
+  // アプリに登録されただけでチームに入っていない個体もここには入る ── 共起は「誰と一緒に
+  // 使われたか」の情報を持つ行しか数えられないが、採用率は1個体1票で数えられるため。
+  // 2つの母集団はどちらも「アプリのデータ + ランキングのデータ、重みづけなし」で一貫している。
   async function rankByUsage(): Promise<SpeciesScore[] | null> {
-    const { data, error } = await supabase.rpc('ranked_species_usage');
+    const { data, error } = await supabase.rpc('combined_species_usage', { p_regulation: '' });
     if (error) {
       // eslint-disable-next-line no-console
-      console.error('[team-suggestions] ranked_species_usage failed:', error);
+      console.error('[team-suggestions] combined_species_usage failed:', error);
       return null;
     }
     return rankSpeciesByUsage(
-      ((data ?? []) as { species_key: string; teams: number; total_teams: number }[]).map((r) => ({
+      ((data ?? []) as { species_key: string; pokemon: number; team_equivalents: number }[]).map((r) => ({
         speciesKey: r.species_key,
-        teams: r.teams,
-        totalTeams: r.total_teams,
+        teams: r.pokemon,
+        totalTeams: r.team_equivalents,
       })),
     );
   }
@@ -173,7 +186,7 @@ export async function GET({ request, cookies, url }: APIContext): Promise<Respon
   }
 
   // 共起が1件も取れなかった場合は採用率順へ退く。チームが空のときだけでなく、
-  // 自チームの種族が構築データ(チャンピオンズ M-1〜M-3)に1体も登場しないときにも起きる
+  // 自チームの種族が合算プールのどのチームにも1体も登場しないときにも起きる
   // ── 実測でも「フシギバナ(キョダイ)+メガリザードンX」のように、環境に居ない種族だけで
   // 組んだチームでは共起の起点が存在しない。ここで何も返さないと、そういうチームでは
   // 右パネルが永久に空になってしまうため、環境全体の採用率という弱い情報へ落とす。

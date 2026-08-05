@@ -129,10 +129,20 @@ function mergeAdoptionRateData(
   return merged;
 }
 
+// 種族使用率の横断スコープ(migrations/021 の combined_species_usage が返す regulation = '')。
+// index.astro はこのキーで横断集計を埋め込む。
+const CROSS_REGULATION_KEY = '';
+
+// レギュレーション選択が「すべて」のときの使用数。横断スコープが埋め込まれていればそれを使う。
+// レギュレーション別の単純合計では、レギュレーションが未設定の登録個体とシーズン対応が
+// 未登録のランキングチーム(どちらも 013/014 の規則で横断スコープにしか入らない)が
+// 落ちてしまうため。集計が取れなかったときだけ従来どおり合計へ退く。
 function mergeSpeciesUsageCounts(
   usageByRegulation: Record<string, SpeciesUsageCounts>,
   regulations: string[],
 ): SpeciesUsageCounts {
+  const crossScope = usageByRegulation[CROSS_REGULATION_KEY];
+  if (crossScope && Object.keys(crossScope).length > 0) return crossScope;
   const merged: SpeciesUsageCounts = {};
   for (const regulation of regulations) {
     for (const [speciesName, count] of Object.entries(usageByRegulation[regulation] ?? {})) {
@@ -140,6 +150,16 @@ function mergeSpeciesUsageCounts(
     }
   }
   return merged;
+}
+
+// 上と対になる分母(チーム相当数)。横断スコープが無いときだけ合計へ退く。
+function resolveTotalTeamCount(
+  teamCountByRegulation: Record<string, number>,
+  regulations: string[],
+): number {
+  const crossScope = teamCountByRegulation[CROSS_REGULATION_KEY];
+  if (crossScope) return crossScope;
+  return regulations.reduce((total, regulation) => total + (teamCountByRegulation[regulation] ?? 0), 0);
 }
 
 // UI改修(2026-08-02)要件1: 「表示しない条件」を静的ファイル(speed-chart.json)で管理できる
@@ -180,9 +200,12 @@ export async function initSpeedChartPage(): Promise<void> {
 
   const config = readEmbeddedJson<SpeedChartPageConfig>('speed-chart-config');
   const adoptionByRegulation = readEmbeddedJson<Record<string, AdoptionRateData>>('speed-chart-adoption-data') ?? {};
-  // 追加改修(2026-08-01第2弾)要件1: レギュレーション別の種族使用率(ranked_team_members由来。
-  // index.astroが1レギュレーションずつではなく全レギュレーション分まとめて埋め込むため、
-  // レギュレーション切替時に追加のfetchなしで再計算できる(adoptionByRegulationと同じ設計)。
+  // 追加改修(2026-08-01第2弾)要件1: レギュレーション別の種族使用率。集計元は 2026-08-05 の
+  // ユーザー指示により ranked_team_members だけから「アプリ登録個体 + ランキング個体」の
+  // 合算プール(migrations/021 の combined_species_usage)へ移行した。
+  // index.astroが1レギュレーションずつではなく全レギュレーション分(横断スコープ '' を含む)
+  // まとめて埋め込むため、レギュレーション切替時に追加のfetchなしで再計算できる
+  // (adoptionByRegulationと同じ設計)。
   const usageByRegulation = readEmbeddedJson<Record<string, SpeciesUsageCounts>>('speed-chart-usage-data') ?? {};
   const teamCountByRegulation =
     readEmbeddedJson<Record<string, number>>('speed-chart-team-count-data') ?? {};
@@ -378,7 +401,7 @@ export async function initSpeedChartPage(): Promise<void> {
         : usageByRegulation[regulation] ?? {};
     const teamCount =
       regulation === ALL_REGULATIONS_VALUE
-        ? knownRegulations.reduce((total, knownRegulation) => total + (teamCountByRegulation[knownRegulation] ?? 0), 0)
+        ? resolveTotalTeamCount(teamCountByRegulation, knownRegulations)
         : teamCountByRegulation[regulation] ?? 0;
     const speciesAdoptionRate = config!.speciesAdoptionRate;
     if (speciesAdoptionRate?.enabled && teamCount >= speciesAdoptionRate.minSampleSize) {

@@ -2,8 +2,13 @@
 // 相手にする「使用率上位N体」と、その採用技を返す。
 //
 // ■ 何を返すか
-// 上位入賞チーム(ranked_teams、010/011)での採用チーム数が多い順に N 体。各体について、
-// 集計済みの採用技(suggestions.kind='popular_move'、009/014)を採用率つきでそのまま渡す。
+// 合算プール(アプリに登録された個体 + 上位入賞チームの個体、migrations/021)での採用数が
+// 多い順に N 体。各体について、集計済みの採用技(suggestions.kind='popular_move'、009/014)を
+// 採用率つきでそのまま渡す。
+// 2026-08-05 のユーザー指示「サジェストの集計元は、本アプリに登録されているデータと過去の
+// ランキングデータを重みづけなしで合算したプールにする」により、ランキングだけを見ていた
+// ranked_species_usage() から combined_species_usage() へ移行した。採用技(popular_move)は
+// 元から合算済み(011)なので、この2つの母集団が食い違っていた状態が解消される。
 // 「攻撃技だけを上位4つ」に絞る判断はクライアント側(src/lib/team-matchup.ts の
 // pickOpponentAttackMoves)が行う ── 技が攻撃技かどうかの判定に必要な
 // public/master-data/detail/moves.json(103KB)はクライアントが既に読み込んでおり
@@ -15,11 +20,9 @@
 // ポリシー経由)で読む(最小権限の原則)。
 //
 // ■ レギュレーションでは絞らない
-// ranked_species_usage()(016)はシーズン横断の採用数しか返さず、レギュレーション別の
-// 採用率は集計されていない(suggestions 側には '種族|M-A' のスコープがあるが、
-// 「上位N体は誰か」を決める側には無い)。ユーザー指示にもレギュレーション別の要求は無いため、
-// ここでは横断の採用率で上位N体を決める(将来レギュレーション別にするなら 016 に
-// 引数つきの関数を足す必要がある)。
+// combined_species_usage() はレギュレーション別のスコープも返せる(021)が、ユーザー指示に
+// レギュレーション別の要求は無いため、ここでは横断スコープ(p_regulation = '')で上位N体を
+// 決める。レギュレーション別にしたくなったら引数を差し替えるだけでよい。
 import type { APIContext } from 'astro';
 import { badRequest, jsonResponse, methodNotAllowed } from './_shared';
 import { getSupabasePublicClient } from '../../lib/supabase';
@@ -35,9 +38,9 @@ const MAX_LIMIT = 50;
 interface MatchupTarget {
 	speciesName: string;
 	dexNo: number | null;
-	/** その種族を採用していた上位入賞チーム数 */
+	/** その種族の採用数(合算プール内の個体数。ランキング側では採用チーム数と一致する) */
 	usageTeams: number;
-	/** 母集団(上位入賞チームの総数) */
+	/** 母集団のチーム相当数(ランキングの実チーム数 + アプリ個体数 ÷ 6。migrations/021) */
 	totalTeams: number;
 	/**
 	 * 採用技と採用率(降順)。集計の母数が min_sample_size(既定5)に満たない種族では
@@ -47,10 +50,12 @@ interface MatchupTarget {
 	moves: PopularMoveOption[];
 }
 
-interface RankedSpeciesUsageRow {
+interface CombinedSpeciesUsageRow {
+	regulation: string;
 	species_key: string;
-	teams: number;
-	total_teams: number;
+	pokemon: number;
+	total_pokemon: number;
+	team_equivalents: number;
 }
 
 interface PopularMovePayload {
@@ -69,18 +74,20 @@ export async function GET({ url }: APIContext): Promise<Response> {
 
 	const supabase = await getSupabasePublicClient();
 
-	const { data: usageData, error: usageError } = await supabase.rpc('ranked_species_usage');
+	const { data: usageData, error: usageError } = await supabase.rpc('combined_species_usage', {
+		p_regulation: '',
+	});
 	if (usageError) {
 		// eslint-disable-next-line no-console
-		console.error('[matchup-targets] ranked_species_usage failed:', usageError);
+		console.error('[matchup-targets] combined_species_usage failed:', usageError);
 		return jsonResponse({ error: 'Failed to load matchup targets' }, 500);
 	}
 
-	const usage = ((usageData ?? []) as RankedSpeciesUsageRow[])
+	const usage = ((usageData ?? []) as CombinedSpeciesUsageRow[])
 		.slice()
 		// 採用数の降順。同数のときは種族名で決めて、リクエストごとに順位が入れ替わらないようにする
-		// (ranked_species_usage() は GROUP BY だけで ORDER BY を持たないため、順序は保証されない)。
-		.sort((a, b) => b.teams - a.teams || a.species_key.localeCompare(b.species_key, 'ja'))
+		// (combined_species_usage() は GROUP BY だけで ORDER BY を持たないため、順序は保証されない)。
+		.sort((a, b) => b.pokemon - a.pokemon || a.species_key.localeCompare(b.species_key, 'ja'))
 		.slice(0, limit);
 
 	if (usage.length === 0) {
@@ -108,12 +115,12 @@ export async function GET({ url }: APIContext): Promise<Response> {
 	const data: MatchupTarget[] = usage.map((u) => ({
 		speciesName: u.species_key,
 		dexNo: resolveDexNo(u.species_key),
-		usageTeams: u.teams,
-		totalTeams: u.total_teams,
+		usageTeams: u.pokemon,
+		totalTeams: u.team_equivalents,
 		moves: movesBySpecies.get(u.species_key) ?? [],
 	}));
 
-	return jsonResponse({ data, meta: { totalTeams: usage[0]?.total_teams ?? 0 } }, 200);
+	return jsonResponse({ data, meta: { totalTeams: usage[0]?.team_equivalents ?? 0 } }, 200);
 }
 
 export const POST = () => methodNotAllowed(['GET']);

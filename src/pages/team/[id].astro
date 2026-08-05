@@ -3207,8 +3207,11 @@ const initialTeamJson = team
 					reasonEl.title = `共起 ${suggestion.reason.coTeams}/${suggestion.reason.seedTeams}チーム・lift ${suggestion.reason.lift.toFixed(2)}`;
 				} else {
 					const percent = Math.round((suggestion.usageTeams / Math.max(suggestion.totalTeams, 1)) * 100);
-					reasonEl.textContent = `上位チームの${percent}%が採用`;
-					reasonEl.title = `${suggestion.usageTeams}/${suggestion.totalTeams}チーム`;
+					// 集計元は上位入賞チームとアプリの登録データの合算プール(migrations/021)なので
+					// 「上位チームの」とは書けない。分子は個体数、分母はチーム相当数
+					// (ランキングの実チーム数 + アプリ登録個体数÷6)。
+					reasonEl.textContent = `環境の${percent}%が採用`;
+					reasonEl.title = `${suggestion.usageTeams}体 / ${suggestion.totalTeams}チーム相当`;
 				}
 				body.appendChild(reasonEl);
 
