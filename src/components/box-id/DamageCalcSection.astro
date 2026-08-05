@@ -427,26 +427,11 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 		gap: 0.3rem;
 	}
 
-	/* UI改修依頼(ダメージ計算カード、2026-08-04)「カードをドラッグ&ドロップで並び替え」。
-	   ハンドルはactionsRow(攻守切り替えボタンの行)の左隣に通常のflexアイテムとして追加する
-	   (カード全体の削除ボタン.damage-row-delete-button・折りたたみボタン
-	   .damage-row-collapse-toggle-buttonはどちらもposition:absoluteでカード右側に既に
-	   あるため、左上にposition:absoluteで重ねると1段目の攻守切り替えボタンと衝突する。
-	   flexの通常配置にすれば衝突しない)。見た目はLeftPanel.astroの.move-drag-handle
-	   (ドット格子グリップ)と同じパターンをコピーする。装飾要素なのでaria-hidden="true"
-	   (マークアップ側、damage-calc.ts参照)。 */
-	#opponent-notes-section .damage-row-drag-handle {
-		flex-shrink: 0;
-		width: 12px;
-		height: 20px;
-		cursor: grab;
-		background-image: radial-gradient(circle, var(--color-text-muted) 1.1px, transparent 1.3px);
-		background-size: 6px 6px;
-		opacity: 0.55;
-	}
-	#opponent-notes-section .damage-row-drag-handle:hover { opacity: 1; }
+	/* 並べ替えは圧縮カード全体をつかむ方式に統一するため、専用ハンドルは置かない。
+	   展開中は通常の入力操作を優先し、圧縮時だけドラッグ可能だとカーソルでも示す。 */
+	#opponent-notes-section .card-damage[data-collapsed="true"] { cursor: grab; }
 	#opponent-notes-section .card-damage.is-dragging { opacity: 0.5; }
-	#opponent-notes-section .card-damage.is-dragging .damage-row-drag-handle { cursor: grabbing; }
+	#opponent-notes-section .card-damage.is-dragging { cursor: grabbing; }
 	#opponent-notes-section .card-damage.is-drag-over {
 		outline: 2px dashed var(--color-primary);
 		outline-offset: 2px;
@@ -472,11 +457,8 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 	   実測75px→種族名等の入力欄と同じ202px相当(width:100%、buildLeftの全幅)にする。
 	   スプライトの拡大は28-D1で「箱の高さをbuildLeftの高さに追随させる」形に変わった
 	   ため、このボタンの幅短縮でスプライトの横幅を捻出する必要はもう無い。
-	   🔴 UI改修依頼(ダメージ計算カード、2026-08-04)「カードをドラッグ&ドロップで並び替え」
-	   により、actionsRowにドラッグハンドル(.damage-row-drag-handle、flex-shrink:0の
-	   固定幅)が加わったため、width:100%(親幅そのもの)からflex:1 1 0(残り幅を占有)へ
-	   変更する。ハンドルが無い状態(このルール単体)ではactionsRowの唯一の子のままなので
-	   見た目は変わらない(flex:1 1 0の1要素だけの行は引き続き親の全幅を占める)。 */
+	   専用ドラッグハンドル廃止後も唯一の子として親の全幅を占めるため、既存のflex指定は
+	   そのまま維持する。 */
 	#opponent-notes-section .damage-row-direction-toggle {
 		display: flex;
 		flex: 1 1 0;
@@ -1415,7 +1397,8 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 		   .card-damageを基準にするのと同じ考え方)。 */
 		position: relative;
 		width: 100%;
-		border: 1px solid var(--color-border);
+		/* 非選択時は背景差を主役にし、選択中のprimary枠とのコントラストを保つ。 */
+		border: 1px solid color-mix(in srgb, var(--color-border) 45%, transparent);
 		border-radius: var(--radius-md);
 		/* UI品質改善(要件5・実測調整): 技列3枚(3枚ぶんの枠線・padding・gapが積み重なる)が
 		   相手ビルドの箱1枚と高さを揃えられるよう、padding/gapを控えめに詰める
@@ -2559,9 +2542,12 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 	   document.createElement()で生成される要素なので、scoped<style>側に書いても
 	   data-astro-cid-*が付かず一切効かない(pitfalls.mdの既知の罠と同じ)。 */
 	@media (prefers-color-scheme: dark) {
-		#opponent-notes-section .damage-row-build,
-		#opponent-notes-section .damage-column {
+		#opponent-notes-section .damage-row-build {
 			border-color: #5a6377;
+		}
+		/* 技カードだけは今回の弱い枠をダーク側でも維持し、選択リングを主役にする。 */
+		#opponent-notes-section .damage-column {
+			border-color: color-mix(in srgb, var(--color-border) 45%, transparent);
 		}
 	}
 
@@ -2995,6 +2981,10 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 	#opponent-notes-section .card-damage[data-collapsed="true"] .damage-row-techniques-row {
 		align-self: flex-start;
 		padding-top: 0.5rem;
+	}
+	/* 圧縮時は追加スロットが非表示で余白を吸わないため、累計結果を明示的に下端へ寄せる。 */
+	#opponent-notes-section .card-damage[data-collapsed="true"] .damage-row-total {
+		margin-top: auto;
 	}
 	/* 🔴 UI改善ラウンド42ユーザー指示(42-D4)「圧縮後も左右のビルド/ダメージの幅の配分を
 	   維持する」により、旧・折りたたみ限定の上書き(flex: 0 0 auto; width: auto;、

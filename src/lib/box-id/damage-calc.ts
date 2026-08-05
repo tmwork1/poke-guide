@@ -2320,21 +2320,6 @@ if (opponentNotesSection) {
 		actionsRow.className = "damage-row-actions";
 		buildLeft.appendChild(actionsRow);
 
-		// UI改修依頼(ダメージ計算カード、2026-08-04)「カードをドラッグ&ドロップで並び替え」。
-		// カード全体の削除ボタン(.damage-row-delete-button)・折りたたみボタン
-		// (.damage-row-collapse-toggle-button)はどちらもposition:absoluteでカード右側
-		// (右上/右下)に既に置かれているため、左上と衝突しない。ここ(actionsRow、1段目)の
-		// 通常のflexアイテムとしてハンドルを追加し、隣の.damage-row-direction-toggleは
-		// width:100%からflex:1 1 0へ変更して残り幅を占有させる(CSS側、DamageCalcSection.astro
-		// 参照)。装飾要素なのでaria-hidden="true"(見た目はLeftPanel.astroの.move-drag-handle、
-		// ドット格子グリップと同じパターンをコピー)。
-		const dragHandle = document.createElement("span");
-		dragHandle.className = "damage-row-drag-handle";
-		dragHandle.setAttribute("aria-hidden", "true");
-		dragHandle.title = "ドラッグでカードの順番を並び替え";
-		actionsRow.appendChild(dragHandle);
-		setupCardDragHandle(row, dragHandle, root);
-
 		// ラウンド20ユーザー指示(20-D2、旧・単一トグルボタンを撤回): 「攻撃」「防御」の
 		// 2値セグメントコントロールにする(role="radiogroup"+role="radio"。
 		// refreshDirectionUi参照)。
@@ -3331,6 +3316,8 @@ if (opponentNotesSection) {
 		// ここ(techniquesRow/collapsedTechniques・totalBlock等すべての構築完了後)へ
 		// 移した(上のsetCollapsed定義の直後にあったコメント参照。TDZ回避のため)。
 		setCollapsed(false);
+		// 専用ハンドルを廃止し、圧縮時だけカード面全体からswapを開始できるようにする。
+		setupCollapsedCardDrag(row, root);
 
 		// ラウンド5ユーザー指示(要件9)・ラウンド6ユーザー指示(要件1・2)・
 		// ラウンド7ユーザー指示(方針転換): ⚙ボタンは廃止したままだが、「相手ビルドの
@@ -3612,52 +3599,33 @@ if (opponentNotesSection) {
 		}
 	}
 
-	// UI改修依頼(ダメージ計算カード、2026-08-04)「カードをドラッグ&ドロップで並び替え」。
-	// movedRowをrows配列から抜き、targetRowの(抜いた後の)位置の直前へ挿入する
-	// (ドラッグ元がドラッグ先の上下どちらにあっても「ドロップ先のカードの直前に来る」という
-	// 一貫した挙動になる)。新しいorder値は挿入位置の前後にある行のorder値の中間、
-	// 端の移動(前後どちらかが無い)は片方の値±1000にする。rowSortOrderに値を持たない行は
-	// 「現在のrows配列上の位置 × 1000」を仮のorder値として扱う(既存データ互換のフォールバック、
-	// fetchAndRenderRowsのソートと同じ考え方)。
+	// ドロップ元とドロップ先の位置・order値を交換する。insertではなくswapにすることで、
+	// カードのどこへ落としても結果が一意になり、入れ替わった2行だけを保存すればよい。
 	function orderOfRowAt(row: DamageRowState, index: number): number {
 		const stored = rowSortOrder.get(row);
 		return stored !== undefined ? stored : index * 1000;
 	}
-	function reorderRow(movedRow: DamageRowState, targetRow: DamageRowState): void {
+	function swapRows(movedRow: DamageRowState, targetRow: DamageRowState): void {
 		const fromIdx = rows.indexOf(movedRow);
-		if (fromIdx === -1 || movedRow === targetRow) return;
-		rows.splice(fromIdx, 1);
 		const targetIdx = rows.indexOf(targetRow);
-		const insertIdx = targetIdx === -1 ? rows.length : targetIdx;
-		rows.splice(insertIdx, 0, movedRow);
-
-		const prevRow = rows[insertIdx - 1];
-		const nextRow = rows[insertIdx + 1];
-		let newOrder: number;
-		if (prevRow && nextRow) {
-			newOrder = (orderOfRowAt(prevRow, insertIdx - 1) + orderOfRowAt(nextRow, insertIdx + 1)) / 2;
-		} else if (prevRow) {
-			newOrder = orderOfRowAt(prevRow, insertIdx - 1) + 1000;
-		} else if (nextRow) {
-			newOrder = orderOfRowAt(nextRow, insertIdx + 1) - 1000;
-		} else {
-			newOrder = 0;
-		}
-		rowSortOrder.set(movedRow, newOrder);
+		if (fromIdx === -1 || targetIdx === -1 || movedRow === targetRow) return;
+		const movedOrder = orderOfRowAt(movedRow, fromIdx);
+		const targetOrder = orderOfRowAt(targetRow, targetIdx);
+		[rows[fromIdx], rows[targetIdx]] = [rows[targetIdx], rows[fromIdx]];
+		rowSortOrder.set(movedRow, targetOrder);
+		rowSortOrder.set(targetRow, movedOrder);
 		rebuildRowsList();
-		// 移動した行だけ保存する(他の行はorder値を書き換えていないため保存不要)。
 		scheduleRowSave(movedRow);
+		scheduleRowSave(targetRow);
 	}
 
-	// カード左上のドラッグハンドル(.damage-row-drag-handle、renderRowで生成)へmousedownで
-	// 結線する。left-panel.tsのsetupMoveReorderDrag(技1〜4の並び替え)と同じ手法
-	// (HTML5 Drag and Drop APIではなくmousedown/mousemove/mouseupの手実装。理由は
-	// left-panel.ts側のコメント参照: Playwrightでの自動テストのしやすさ)。あちらは固定4枠の
-	// 値スワップだったが、こちらはカードの追加・削除で数が変わるため、hover判定を
-	// document.elementFromPoint()で都度.card-damageを探す形にし、確定時はreorderRow()で
-	// rows配列そのものを並べ替える。
-	function setupCardDragHandle(row: DamageRowState, handle: HTMLElement, root: HTMLElement): void {
-		handle.addEventListener("mousedown", (downEvent) => {
+	// 圧縮カードの任意位置から開始する。入力要素やボタンは将来圧縮表示へ追加されても
+	// 通常操作を優先し、展開カードおよび展開カードへのドロップは並べ替え対象にしない。
+	function setupCollapsedCardDrag(row: DamageRowState, root: HTMLElement): void {
+		root.addEventListener("mousedown", (downEvent) => {
+			if (root.dataset.collapsed !== "true") return;
+			const target = downEvent.target as HTMLElement | null;
+			if (target?.closest("input, select, textarea, button, a, label")) return;
 			downEvent.preventDefault();
 			let hoverRow: DamageRowState | null = null;
 			root.classList.add("is-dragging");
@@ -3670,7 +3638,7 @@ if (opponentNotesSection) {
 				const hoveredCard = (target as HTMLElement | null)?.closest<HTMLElement>(".card-damage") ?? null;
 				clearDragOverMarks();
 				hoverRow = null;
-				if (hoveredCard && hoveredCard !== root) {
+				if (hoveredCard && hoveredCard !== root && hoveredCard.dataset.collapsed === "true") {
 					hoveredCard.classList.add("is-drag-over");
 					hoverRow = rows.find((r) => r.root === hoveredCard) ?? null;
 				}
@@ -3680,7 +3648,7 @@ if (opponentNotesSection) {
 				document.removeEventListener("mouseup", onUp);
 				root.classList.remove("is-dragging");
 				clearDragOverMarks();
-				if (hoverRow) reorderRow(row, hoverRow);
+				if (hoverRow) swapRows(row, hoverRow);
 			}
 			document.addEventListener("mousemove", onMove);
 			document.addEventListener("mouseup", onUp);
@@ -3721,21 +3689,9 @@ if (opponentNotesSection) {
 			for (const row of rows) renderRow(row);
 			for (const row of rowsNeedingResave) scheduleRowSave(row);
 			rebuildRowsList();
-			// ラウンド8指摘(B-1): 未選択時はサイドバー360×950pxが3行の説明文だけになり、
-			// 左カラムの空白(440×315px)と合わせて47万px²が無駄になっていた。
-			// 先頭カードの1発目の技列を自動選択する。selectColumn()は選択マーク付与+
-			// サイドバー描画のみを行い、保存(scheduleRowSave)・再計算(scheduleRowCalc)は
-			// 一切呼ばないため、ページ読み込み時にPUT/POSTが発火することはない
-			// (Playwrightのネットワーク実測でも確認済み)。
-			// ラウンド8の回帰修正: 1600px未満ではサイドバーは常設ではなく
-			// バックドロップ付きのオーバーレイになる(.damage-detail-panel.is-open)。
-			// 幅を問わず自動選択すると、読み込み直後に詳細設定が画面全体を覆い、
-			// 閉じるまで本体を操作できなくなる(1599/1440/1280/900/390pxで実測)。
-			// 3カラムが常設される幅でだけ自動選択する。
-			const sidebarIsPersistent = window.matchMedia("(min-width: 1600px)").matches;
-			if (sidebarIsPersistent && rows.length > 0 && rows[0].attacks.length > 0) {
-				selectColumn(rows[0], rows[0].attacks[0]);
-			}
+			// 初期表示では画面幅にかかわらず技列を自動選択せず、詳細パネルも空状態に戻す。
+			clearSelection();
+			renderDetailPanel();
 		} catch (err) {
 			console.error(err);
 			damageRowsListEl.innerHTML = "";
