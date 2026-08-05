@@ -547,7 +547,8 @@ const initialTeamJson = team
 		   トグル自体はその外(兄弟要素)の静的マークアップに置く。 */
 		.team-suggest-toggles {
 			display: flex;
-			flex-direction: column;
+			/* 同種の表示条件は1つの行として扱い、狭い場合だけ折り返す。 */
+			flex-flow: row wrap;
 			gap: var(--space-1);
 			padding: var(--space-2) var(--space-3) 0;
 		}
@@ -1437,7 +1438,8 @@ const initialTeamJson = team
 		/* 相性チェックで不利と判定されたメンバー。選択状態とは独立させ、縁ではなく
 		   カード全体の背景だけを既存のリスク色で示す。 */
 		.team-slots .card-team-slot.is-disadvantaged {
-			background: color-mix(in srgb, var(--color-surface) 90%, var(--color-risky-strong) 10%);
+			/* 相手をクリックして初めて出る対応関係なので、既存リスク色の混合量を増やして明確にする。 */
+			background: color-mix(in srgb, var(--color-surface) 80%, var(--color-risky-strong) 20%);
 		}
 		.team-slots .card-team-slot.is-dragging {
 			opacity: 0.5;
@@ -1832,9 +1834,8 @@ const initialTeamJson = team
 			border: 1px solid var(--color-border);
 			border-radius: var(--radius-md);
 			background: var(--color-surface);
-			/* UI改修依頼(右パネル、2026-08-02)「計算結果の縦余白を削って圧縮する」。
-			   カード内のpaddingをvar(--space-3)(12px)からvar(--space-2)(8px)へ詰める。 */
-			padding: var(--space-2);
+			/* 個体編集画面の計算結果カードと密度を揃え、一覧時の縦方向の占有を抑える。 */
+			padding: 0.2rem 0.6rem;
 			min-width: 0;
 		}
 
@@ -2092,7 +2093,8 @@ const initialTeamJson = team
 			background: color-mix(in srgb, var(--color-surface) 90%, var(--color-primary) 10%);
 		}
 		.team-suggest-rank {
-			font-size: var(--font-size-xs);
+			/* 順位を一覧の視覚的な起点にするため、従来値の1.5倍にする。 */
+			font-size: calc(var(--font-size-xs) * 1.5);
 			font-weight: 700;
 			color: var(--color-text-muted);
 			min-width: 1.2em;
@@ -2131,6 +2133,13 @@ const initialTeamJson = team
 			align-items: center;
 			gap: var(--space-2);
 			min-width: 0;
+		}
+		/* 持ち物は種族名の直後に置き、名前とのまとまりを保ったまま省略可能にする。 */
+		.team-suggest-name-row .team-suggest-item-name {
+			min-width: 0;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			white-space: nowrap;
 		}
 		.team-suggest-name {
 			font-size: var(--font-size-sm);
@@ -2242,35 +2251,37 @@ const initialTeamJson = team
 			gap: var(--space-2);
 		}
 		.team-matchup-card {
+			position: relative;
 			display: flex;
 			align-items: center;
 			justify-content: center;
 			aspect-ratio: 1 / 1;
-			border: 1px solid var(--color-border);
+			/* 通常時は枠を見せず、透明枠でクリック選択時のレイアウト変化だけ防ぐ。 */
+			border: 2px solid transparent;
 			border-radius: var(--radius-sm);
 			background: var(--color-surface);
-			/* 濃さ(opacity)はJSがインラインスタイルで入れる。計算前・計算不能のカードは
-			   1のまま(= 濃い)にせず、下の [data-state] で別の見せ方にする。 */
-			transition: opacity 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+			transition: border-color 0.2s ease, background 0.2s ease;
 		}
-		/* scoreToOpacities が算出する不利度の中間点(0.5)以上を、濃淡に加えて
-		   リスク色の縁と背景でも示す。ダークモードでも既存トークンが切り替わる。 */
+		/* 相性の強調は濃淡や枠に頼らず、既存のリスク色を混ぜた背景だけで示す。 */
 		.team-matchup-card.is-disadvantageous {
-			border-color: var(--color-risky-strong);
 			background: color-mix(in srgb, var(--color-surface) 90%, var(--color-risky-strong) 10%);
 		}
-		/* 計算前(相手一覧だけ先に描いた状態)。まだ有利・不利の情報を持たないので、
-		   「薄い=有利」と誤読されないよう opacity ではなく彩度を落として保留を示す。 */
-		.team-matchup-card[data-state="pending"] {
-			filter: grayscale(1);
-			opacity: 0.55;
-		}
-		/* 採用技のデータが無い等で計算できなかった相手。0(=有利)として塗ると嘘になるため、
-		   破線の枠で「値が無い」ことを示す(色だけに頼らない。WCAG 1.4.1)。 */
+		.team-matchup-card[data-state="pending"],
 		.team-matchup-card[data-state="unknown"] {
-			border-style: dashed;
-			filter: grayscale(1);
-			opacity: 0.4;
+			background: var(--color-surface-alt);
+		}
+		/* 枠はクリックした相手を示す選択状態にだけ使う。 */
+		.team-matchup-card.is-selected {
+			border-color: var(--color-primary-strong);
+		}
+		.team-matchup-score {
+			position: absolute;
+			top: var(--space-1);
+			left: var(--space-1);
+			font-size: var(--font-size-xs);
+			font-weight: 700;
+			font-variant-numeric: tabular-nums;
+			color: var(--color-text-muted);
 		}
 		.team-matchup-sprite-img {
 			max-width: 100%;
@@ -3129,50 +3140,20 @@ const initialTeamJson = team
 				nameEl.textContent = suggestion.speciesName;
 				nameEl.title = suggestion.speciesName;
 				nameRow.append(spriteEl, nameEl);
+				if (suggestion.itemName) {
+					// 持ち物を種族名の直後に置き、提案の主要情報を一目で読めるようにする。
+					const itemIcon = document.createElement("img");
+					itemIcon.className = "team-suggest-item-icon";
+					itemIcon.alt = "";
+					void applyItemIcon(itemIcon, suggestion.itemName);
+					const itemEl = document.createElement("span");
+					itemEl.className = "team-suggest-item-name";
+					itemEl.textContent = suggestion.itemName;
+					nameRow.append(itemIcon, itemEl);
+				}
 				body.appendChild(nameRow);
 
-				// 2段目: アイテムを最優先(アイコン+名前)。特性・役割は残すがアイテムより後に置く。
-				// 持ち物が構築データに無い種族では型が判明しない(API が null を返す)ので、
-				// その場合は採用率だけを出す。
-				const buildEl = document.createElement("div");
-				buildEl.className = "team-suggest-build";
-				if (suggestion.abilityName || suggestion.itemName) {
-					if (suggestion.itemName) {
-						const itemIcon = document.createElement("img");
-						itemIcon.className = "team-suggest-item-icon";
-						itemIcon.alt = "";
-						void applyItemIcon(itemIcon, suggestion.itemName);
-						const itemEl = document.createElement("span");
-						itemEl.className = "team-suggest-item-name";
-						itemEl.textContent = suggestion.itemName;
-						buildEl.append(itemIcon, itemEl);
-					}
-					if (suggestion.abilityName) {
-						// 特性は型の識別子ではなく最頻値(migrations/018)。「この型なら普通はこの特性」
-						// という推定なので、確定情報である持ち物・役割と区別できるよう印を付ける。
-						const abilityEl = document.createElement("span");
-						abilityEl.className = "team-suggest-ability";
-						abilityEl.textContent = suggestion.abilityName;
-						abilityEl.title = "この型で最も多い特性";
-						buildEl.appendChild(abilityEl);
-					}
-					if (suggestion.role) {
-						const roleEl = document.createElement("span");
-						roleEl.className = "team-suggest-role";
-						roleEl.textContent = ROLE_LABELS[suggestion.role] ?? suggestion.role;
-						buildEl.appendChild(roleEl);
-					}
-					buildEl.title = [
-						suggestion.itemName,
-						suggestion.abilityName ? `${suggestion.abilityName}(この型で最も多い特性)` : null,
-						suggestion.role ? ROLE_LABELS[suggestion.role] : null,
-					]
-						.filter(Boolean)
-						.join(" / ");
-				} else {
-					buildEl.textContent = "型のデータなし";
-				}
-				body.appendChild(buildEl);
+				// 特性と役割はカード上にDOMを生成しない。作成処理で使う元データは維持する。
 
 				// 3段目: 根拠。共起ベースなら「相性の良いポケモン」の名前を主体に表示し(reasonの
 				// seedSpeciesName)、割合は名前に併記する形で残す。チームが空(reasonがnull)なら
@@ -3184,7 +3165,8 @@ const initialTeamJson = team
 					const reasonNameEl = document.createElement("span");
 					reasonNameEl.className = "team-suggest-reason-name";
 					reasonNameEl.textContent = suggestion.reason.seedSpeciesName;
-					reasonEl.append("相性: ", reasonNameEl, `(併用${percent}%)`);
+					// 指標の意味を先に示し、名前と割合の間にも半角スペースを置く。
+					reasonEl.append("相性の良いポケモン ", reasonNameEl, ` (${percent}%)`);
 					reasonEl.title = `共起 ${suggestion.reason.coTeams}/${suggestion.reason.seedTeams}チーム・lift ${suggestion.reason.lift.toFixed(2)}`;
 				} else {
 					const percent = Math.round((suggestion.usageTeams / Math.max(suggestion.totalTeams, 1)) * 100);
@@ -3442,6 +3424,9 @@ const initialTeamJson = team
 			 */
 			function clearMatchupMemberHighlights(): void {
 				selectedMatchupTargetIndex = null;
+				for (const card of matchupListEl.querySelectorAll(".team-matchup-card")) {
+					card.classList.remove("is-selected");
+				}
 				for (const card of slotsRoot.querySelectorAll(".card-team-slot")) {
 					card.classList.remove("is-disadvantaged");
 				}
@@ -3477,25 +3462,23 @@ const initialTeamJson = team
 					card.append(img, fallback);
 					void applySprite(img, fallback, target.speciesName);
 
-					const usage = `${target.speciesName}(上位チームの${matchupUsagePercent(target)}%が採用)`;
-					const detail = matchupDirection === "attack"
-						? (typesMap.get(target.speciesName) ?? []).join("/")
-						: pickOpponentAttackMoves(target.moves, isAttackMove).join("/");
-					const heading = detail ? `${usage}\n${detail}` : usage;
+					// ツールチップは識別に必要な種族名とタイプだけに限定する。
+					const typeNames = (typesMap.get(target.speciesName) ?? []).join("/");
+					const heading = typeNames ? `${target.speciesName}\n${typeNames}` : target.speciesName;
 					if (scores === null) {
 						card.dataset.state = "pending";
 						card.title = heading;
 					} else if (entry.score === null || entry.opacity === null) {
 						card.dataset.state = "unknown";
-						card.title = `${heading}\n採用技のデータが無いため計算していません`;
+						card.title = heading;
 					} else {
-						card.style.opacity = String(entry.opacity);
 						if (entry.opacity >= 0.5) card.classList.add("is-disadvantageous");
-						const percent = Math.round(entry.score * 100);
-						card.title =
-							matchupDirection === "attack"
-								? `${heading}\nチーム平均で最大${percent}%のダメージを与えられる(薄いほど有利)`
-								: `${heading}\nチーム平均で最大${percent}%のダメージを受ける(濃いほど不利)`;
+						card.title = heading;
+						// 内部で保持している相性スコアを、比較しやすい固定2桁で左上に表示する。
+						const scoreEl = document.createElement("span");
+						scoreEl.className = "team-matchup-score";
+						scoreEl.textContent = entry.score.toFixed(2);
+						card.appendChild(scoreEl);
 						card.addEventListener("click", () => {
 							if (!memberRatios) return;
 							const ratios = memberRatios.ratios[targetIndex];
@@ -3506,6 +3489,7 @@ const initialTeamJson = team
 							}
 							clearMatchupMemberHighlights();
 							selectedMatchupTargetIndex = targetIndex;
+							card.classList.add("is-selected");
 							// 個別割合50%を境界にする。防御は被ダメージ50%以上、攻撃は与ダメージ50%未満を不利と判定。
 							const disadvantagedIds = new Set(
 								memberRatios.memberIds.filter((_, i) =>
@@ -3726,7 +3710,7 @@ const initialTeamJson = team
 					suggestTogglesEl.hidden = true;
 					// UI改修依頼(右パネル、2026-08-04)見出しは右パネル共通のタイトル帯へ表示する
 					// (以前は#team-matchup内に静的な.team-matchup-heading<p>を置いていた)。
-					setPanelHeaderTitle("使用率上位20体との相性");
+					setPanelHeaderTitle("相性チェック");
 					void runMatchup();
 				} else {
 					// 進行中の計算結果は捨てる(戻ってきたときに古い編成の濃淡を描かない)。
