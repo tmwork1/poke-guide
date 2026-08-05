@@ -106,7 +106,7 @@
 		align-items: center;
 		/* 今回の要件: 左にタイトル、右に閉じるボタンを置く共通帯にする。 */
 		justify-content: space-between;
-		gap: 0.5rem;
+		gap: var(--space-2);
 		/* ラウンド12指摘(A-5): 3カラム1行目の縦位置が左y=97/中央y=89/右y=79とバラバラ
 		   だった。右側(このパネル見出し)はpadding-topが0.9remで最も浅く、中央カラム
 		   (ダメージ計算カード、y=89)に合わせて1.5remへ広げる。1600px未満のオーバーレイ表示
@@ -118,7 +118,7 @@
 		flex-shrink: 0;
 	}
 	.damage-detail-panel-title { min-width: 0; flex: 1 1 auto; font-weight: 700; }
-	.damage-detail-panel-close { font-size: 1.1rem; padding: 0.2em 0.55em; }
+	.damage-detail-panel-close { font-size: var(--font-size-lg); padding: 0.2em 0.55em; }
 	/* UI改善ラウンド29(29-R1)「右パネルの余剰空白」: 密な状態(カード4枚)でも中身が
 	   .damage-detail-sides下端で終わり、パネル下端まで331pxが完全な空白になっていた。
 	   逆に空状態は950px近い空白になる。#damage-detail-panel-body自体をflex column化し、
@@ -135,7 +135,7 @@
 		display: flex;
 		flex-direction: column;
 		overflow-y: auto;
-		padding: 0.9rem 1rem 1.4rem;
+		padding: 0.9rem var(--space-4) 1.4rem;
 	}
 	/* UI改善ラウンド29(29-R1)により.damage-detail-panel-emptyはis:global側
 	   (#damage-detail-panel-body .damage-detail-panel-empty)へ移した。理由: このpは
@@ -204,9 +204,9 @@
 	}
 	.damage-detail-panel .damage-detail-selection-move-type-icon[hidden] { display: none; }
 	/* UI改修依頼(2026-08-05)「天候・フィールドのサブタイトルを攻撃側・防御側と同じサイズにする」対応。
-	   0.78remは両側の見出しと同じ値。行クラスも含めて詳細度を上げ、読み込み順に依存せず適用する。 */
+	   var(--font-size-xs)は両側の見出しと同じ値。行クラスも含めて詳細度を上げ、読み込み順に依存せず適用する。 */
 	#damage-detail-panel-body .damage-detail-field-row .damage-detail-field-row-label {
-		font-size: 0.78rem;
+		font-size: var(--font-size-xs);
 		font-weight: 600;
 		color: var(--color-text);
 	}
@@ -476,7 +476,7 @@
 		align-items: center;
 		flex-wrap: wrap;
 		gap: 0.15em 0.25em;
-		line-height: 1.35;
+		line-height: var(--line-height-snug);
 		margin-top: 0.15em;
 	}
 	#damage-detail-panel-body .damage-suggest-move {
@@ -505,7 +505,7 @@
 		display: block;
 		font-size: var(--font-size-xs);
 		color: var(--color-text-muted);
-		line-height: 1.35;
+		line-height: var(--line-height-snug);
 		margin-top: 0.1em;
 	}
 	/* 3列目。実体はカード全体のボタンなので、これ自体は押せる見た目のラベルにとどめる
@@ -517,7 +517,7 @@
 		justify-content: center;
 		width: 3.4em;
 		font-size: var(--font-size-xs);
-		line-height: 1.25;
+		line-height: var(--line-height-tight);
 		padding: var(--space-1);
 		border: 1px solid var(--color-border);
 		border-radius: var(--radius-sm);

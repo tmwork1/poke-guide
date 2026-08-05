@@ -34,11 +34,11 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 <section id="opponent-notes-section" class="damage-calc-area" data-owned-pokemon-id={pokemonId}>
 	{/* ラウンド3 B-12: 読み込みに失敗した場合、以前はpyodide-engine.ts由来の生の
 	    メッセージ(CDN URLを含みうる)をそのまま表示していた。テキストをspanに分離し、
-	    エラー時だけ<script>側で内部URLを含まない文言に差し替えたうえで再読み込み
+	    エラー時だけ<script>側で内部URLを含まない文言に差し替えたうえで再試行
 	    ボタンを出す(テキストをtextContentで丸ごと差し替えるとボタンごと消えるため分離した)。 */}
 	<p id="damage-calc-engine-status" class="status-text damage-calc-engine-status" data-state="idle">
-		<span id="damage-calc-engine-status-text">計算エンジンを準備しています(自動で開始します)...</span>
-		<button id="damage-calc-engine-reload-button" type="button" class="btn-ghost" hidden>再読み込み</button>
+		<span id="damage-calc-engine-status-text">準備中…</span>
+		<button id="damage-calc-engine-reload-button" type="button" class="btn-ghost" hidden>再試行</button>
 	</p>
 	{/* UI改善ラウンド36ユーザー指示(36-3)で新設した「すべて折りたたむ・展開する」の専用行
 	    (damage-rows-toolbar、2ボタン版)は、UI改善ラウンド38ユーザー指示(38-H1)
@@ -50,7 +50,7 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 	    (ボタンのロジックはel("damage-collapse-toggle-button")のgetElementById経由でDOM上の
 	    位置に依存しないため、置き場所を変えてもidさえ変えなければそのまま動く)。 */}
 	<div id="damage-rows-list" class="damage-rows-list">
-		<p>読み込み中...</p>
+		<p>読み込み中…</p>
 	</div>
 </section>
 {/* UI改修依頼(ダメージ計算カード、2026-08-04)項目5: SSRで取得した技の使用率データを
@@ -123,13 +123,13 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 	#opponent-notes-section .damage-rows-list {
 		display: flex;
 		flex-direction: column;
-		gap: 0.75rem;
+		gap: var(--space-3);
 	}
 	/* エンジン初期化状況の1行。パネルの見出しを廃したので、この行だけが浮いて見えないよう
 	   控えめな文字サイズにし、準備完了後は表示自体を隠す(JS側でhidden属性を付ける)。 */
 	#opponent-notes-section .damage-calc-engine-status {
 		margin: 0 0 0.4rem;
-		font-size: 0.8rem;
+		font-size: var(--font-size-xs);
 	}
 	#opponent-notes-section .damage-calc-engine-status[hidden] {
 		display: none;
@@ -152,8 +152,8 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 	   という要件自体は、行を縦積みにするこのレイアウトで引き続き満たしている。 */
 	#opponent-notes-section .card-damage {
 		/* ラウンド24ユーザー指示(24-D1)「カード全体の縦サイズを縮小」対応: 上下paddingを詰める
-		   (0.3rem→0.22rem)。 */
-		padding: 0.2rem 0.6rem;
+		   (0.3rem→0.22rem)。現行値は近似する--space-1(0.25rem)。 */
+		padding: var(--space-1) 0.6rem;
 		margin: 0;
 		max-width: 100%;
 		/* ラウンド21ユーザー指示(21-D3): 削除ボタン(.damage-row-delete-button)をカード右上に
@@ -241,8 +241,8 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 		flex-wrap: wrap;
 		align-items: stretch;
 		gap: 0.6rem;
-		/* 24-D1: 0.3rem→0.2remに詰める(カード全体の縦サイズ縮小)。 */
-		padding-bottom: 0.2rem;
+		/* 24-D1: 0.3rem→0.2remに詰めた後、近似する--space-1(0.25rem)へ統一。 */
+		padding-bottom: var(--space-1);
 	}
 
 	/* 左: 相手ビルドの箱(DamageCard.pngの左側のボックス)。ラウンド6ユーザー指示で
@@ -392,14 +392,14 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 		min-width: 0;
 		/* UI改修依頼(ダメージ計算カード、2026-08-04)項目3「相手ビルドの種族名入力欄の
 		   フォントサイズを統一」: 特性・持ち物・テラス欄(.damage-row-build-grid select/input、
-		   下方0.86rem)と揃える(0.92rem→0.86rem)。padding/line-heightは変更しない。 */
-		font-size: 0.86rem;
+		   下方の--font-size-sm)と揃える(旧0.92rem→0.86rem、現行0.85rem)。paddingは変更しない。 */
+		font-size: var(--font-size-sm);
 		/* ラウンド44 A-4(ユーザー指示第28弾): 種族名入力欄だけfont-weight 700で浮いており、
 		   同じ箱のA-1で400に揃えた特性・持ち物・テラスから1項目だけ太さが違っていた。
 		   ユーザー指示「ダメージカードの種族名も他とそろえる」により400に統一する。 */
 		font-weight: 400;
 		padding: 0.32em 0.45em;
-		line-height: 1.2;
+		line-height: var(--line-height-tight);
 	}
 
 	/* 相手ビルドの箱の1行目: 攻守切り替えボタン(⚙詳細ボタンはラウンド6で廃止し、箱自体の
@@ -424,7 +424,7 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		gap: 0.3rem;
+		gap: var(--space-1);
 	}
 
 	/* 並べ替えは圧縮カード全体をつかむ方式に統一するため、専用ハンドルは置かない。
@@ -473,10 +473,10 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 		border: none;
 		background: var(--color-surface);
 		color: var(--color-text-muted);
-		font-size: 0.8rem;
+		font-size: var(--font-size-xs);
 		font-weight: 600;
 		padding: 0.25em 0.4em;
-		line-height: 1.2;
+		line-height: var(--line-height-tight);
 		cursor: pointer;
 		transition: background 0.15s, color 0.15s;
 	}
@@ -535,7 +535,7 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 	   1080pxに収まる制約は実測のうえ維持。before/afterの実測値は報告参照)。 */
 	#opponent-notes-section .damage-row-build-grid select,
 	#opponent-notes-section .damage-row-build-grid input[type="text"] {
-		font-size: 0.86rem;
+		font-size: var(--font-size-sm);
 		padding: 0.22em 0.38em;
 		line-height: 1.15;
 		/* ラウンド3 A-1: 相手ビルド箱の性格/特性/持ち物/テラスの4行がglobal.cssの
@@ -602,7 +602,7 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 	   特性・持ち物(400)と不揃いに見える」との4レビュアー一致指摘を受け、43-D4で対象外と
 	   した上記のfont-weight判断を撤回し、400に統一する(下のルールで明示指定)。 */
 	#opponent-notes-section .tera-dropdown-button {
-		font-size: 0.86rem;
+		font-size: var(--font-size-sm);
 		padding: 0.22em 0.38em;
 		line-height: 1.15;
 		min-height: 0;
@@ -636,7 +636,7 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 		right: 0;
 		z-index: 5;
 		margin: 0;
-		padding: 0.3rem;
+		padding: var(--space-1);
 		list-style: none;
 		max-height: 16rem;
 		overflow-y: auto;
@@ -835,7 +835,7 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 	#edit-form .tera-dropdown-option-image,
 	#opponent-notes-section .tera-dropdown-option-image { width: var(--icon-size-sm); height: var(--icon-size-sm); object-fit: contain; flex-shrink: 0; }
 	#edit-form .tera-dropdown-option-text,
-	#opponent-notes-section .tera-dropdown-option-text { font-size: 0.9rem; color: var(--color-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+	#opponent-notes-section .tera-dropdown-option-text { font-size: var(--font-size-md); color: var(--color-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 	/* UI改善ラウンド41ユーザー指示(41-D1)「ダメージカードのテラス選択をタイプ名の文字だけに
 	   簡素化する」。40-D1で左パネルと共通化したカスタムドロップダウン(アイコン+テキスト)の
 	   うち、ダメージカード(#opponent-notes-section)側だけアイコンを外しテキストのみにする
@@ -927,10 +927,10 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 	#opponent-notes-section .damage-ev-row-label {
 		/* 20-G3: 0.66rem(10.6px)→0.76rem(12.16px、12px下限を満たす)。
 		   ラウンド26ユーザー指示(26-D4)「相手ビルドの種族名以外の文字が小さい」により
-		   0.76rem→0.86rem(13.76px、+1.6px)へさらに一段上げる。 */
-		font-size: 0.86rem;
+		   0.76rem→0.86remへ上げ、現行は近似する--font-size-sm(0.85rem)。 */
+		font-size: var(--font-size-sm);
 		font-weight: 700;
-		line-height: 1.2;
+		line-height: var(--line-height-tight);
 		color: var(--color-text-muted);
 		white-space: nowrap;
 	}
@@ -952,9 +952,9 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 		   (font-weight 600 はラウンド47の値のまま維持。性格補正時の
 		   [data-mod="up"/"down"] による色上書きはこの後方に定義されているため
 		   引き続き優先される)。 */
-		font-size: 0.86rem;
+		font-size: var(--font-size-sm);
 		font-weight: 600;
-		line-height: 1.2;
+		line-height: var(--line-height-tight);
 		text-align: center;
 		color: var(--color-text-muted);
 	}
@@ -1022,9 +1022,9 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 		padding: 0.08em 0.1em;
 		/* ラウンド26ユーザー指示(26-D4)により0.78rem→0.88rem(14.08px、+1.6px)へ一段上げたが、
 		   同時に上げた行ラベル/列見出し/実数値(いずれも0.86rem)と0.02rem(0.32px)の差が
-		   残っていた(UI統一感レビュー32-U-B2)。他の3要素に揃えて0.86remへ統一する。 */
-		font-size: 0.86rem;
-		line-height: 1.2;
+		   残っていた(UI統一感レビュー32-U-B2)。他の3要素と--font-size-sm(0.85rem)へ統一する。 */
+		font-size: var(--font-size-sm);
+		line-height: var(--line-height-tight);
 		text-align: center;
 		/* ラウンド3 A-1: 努力値グリッドの数値入力もglobal.cssのmin-height:2.35remを
 		   打ち消す(努力値/実数値グリッドの無駄18.6pxのうち大半を占める)。 */
@@ -1032,9 +1032,9 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 	}
 	#opponent-notes-section .damage-stat-value {
 		display: block;
-		/* ラウンド26ユーザー指示(26-D4)により0.76rem→0.86rem(13.76px、+1.6px)へ一段上げる。 */
-		font-size: 0.86rem;
-		line-height: 1.2;
+		/* ラウンド26ユーザー指示(26-D4)で一段上げ、現行は--font-size-sm(0.85rem)。 */
+		font-size: var(--font-size-sm);
+		line-height: var(--line-height-tight);
 		font-weight: 700;
 		text-align: center;
 		color: var(--color-text);
@@ -1051,13 +1051,13 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 	#opponent-notes-section .damage-row-condition-chips {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 0.25rem;
+		gap: var(--space-1);
 		margin-top: 0.1rem;
 	}
 	#opponent-notes-section .damage-row-condition-chips[hidden] { display: none; }
 	#opponent-notes-section .damage-condition-chip {
-		/* 20-G3: 0.66rem(10.6px)→0.76rem(12.16px)。 */
-		font-size: 0.76rem;
+		/* 20-G3: 0.66rem(10.6px)から下限の--font-size-xs(12px)へ引き上げる。 */
+		font-size: var(--font-size-xs);
 		padding: 0.1em 0.5em;
 	}
 
@@ -1096,7 +1096,7 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 	   最小限に留める)。 */
 	#opponent-notes-section .damage-row-total {
 		margin-top: 0;
-		padding-top: 0.25rem;
+		padding-top: var(--space-1);
 	}
 	/* ラウンド3 A-2(c): チップ本文が「累計351〜414…」のようにラベルの内容を完全に
 	   繰り返して書いているため冗長(高さの無駄15.1px)。要素は残し(JSは参照していないが
@@ -1104,9 +1104,9 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 	#opponent-notes-section .damage-row-total-label {
 		display: none;
 		/* 20-G3: display:noneで非表示のため実害は無いが、念のため12px下限に揃える。 */
-		font-size: 0.76rem;
+		font-size: var(--font-size-xs);
 		font-weight: 700;
-		line-height: 1.2;
+		line-height: var(--line-height-tight);
 		color: var(--color-text-muted);
 		margin-bottom: 0.15rem;
 	}
@@ -1127,17 +1127,17 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 		   技カード列と累計結果の右端を揃える。 */
 		max-width: calc(100% - 40px);
 		/* ラウンド23ユーザー指示(23-D5)「ダメージ・致死率の文字を少し大きく」:
-		   0.85rem(13.6px)→0.92rem(14.72px、+1.12px)。カード3枚が1080pxに収まる制約
+		   0.85remから--font-size-md(0.95rem)へ引き上げる。カード3枚が1080pxに収まる制約
 		   (00-foundation.md)を実測したうえでの引き上げ幅(実測は報告参照)。 */
-		font-size: 0.92rem;
-		line-height: 1.2;
+		font-size: var(--font-size-md);
+		line-height: var(--line-height-tight);
 		/* ラウンド24ユーザー指示(24-D1)「カード全体の縦サイズを縮小」対応: totalBlockが
 		   techniquesRow内の1行として追加された高さ増分を相殺するため、上下paddingを詰める
 		   (0.3rem→0.22rem。文字サイズ・横paddingは23-D5の判断のまま変えない)。 */
 		padding: 0.18rem 0.45rem;
 	}
 	#opponent-notes-section .damage-row-total-result .damage-result-verdict {
-		font-size: 1.05em;
+		font-size: var(--font-size-lg);
 		font-weight: 800;
 	}
 	/* UI改善ラウンド45(ユーザー指示第29弾、B-3): 技列が2つ以上あるとき、この合計行
@@ -1160,7 +1160,7 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 	#opponent-notes-section .card-damage[data-collapsed="true"] .damage-row-total-result[data-multi-move="true"] .damage-result-verdict::after {
 		content: "(技の合計)";
 		margin-left: 0.3em;
-		font-size: 0.76rem;
+		font-size: var(--font-size-xs);
 		font-weight: 500;
 		opacity: 0.75;
 	}
@@ -1168,7 +1168,7 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 		/* 20-G3: 0.82em(親0.85remの82%=約11.15px)は入れ子emの事故(pitfalls.md参照)。
 		   remの直接指定にした。23-D5で0.76rem(12.16px)→0.85rem(13.6px、+1.44px)に
 		   もう一段大きくする(12px下限は引き続き維持)。 */
-		font-size: 0.85rem;
+		font-size: var(--font-size-sm);
 		font-weight: 500;
 		opacity: 0.85;
 		text-align: right;
@@ -1202,7 +1202,7 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 		width: 28px;
 		height: 28px;
 		padding: 0;
-		font-size: 0.95rem;
+		font-size: var(--font-size-md);
 		line-height: 1;
 		border-radius: 50%;
 		box-shadow: var(--shadow-sm);
@@ -1313,16 +1313,16 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 		min-width: 140px;
 		display: flex;
 		flex-direction: column;
-		/* 24-D1: 0.3rem→0.22remに詰める(このgapがtotalBlockの直前にも入るようになったため、
+		/* 24-D1: 0.3remから--space-1(0.25rem)へ詰める(このgapがtotalBlockの直前にも入るようになったため、
 		   カード全体の縦サイズ縮小に寄与させる)。 */
-		gap: 0.22rem;
+		gap: var(--space-1);
 	}
 	#opponent-notes-section .damage-row-columns-wrap {
 		display: flex;
 		flex-direction: column;
-		/* 24-D1: 0.3rem→0.22rem(このラッパーは子が1つ(damage-row-columns)なので実質無効だが、
+		/* 24-D1: 0.3remから--space-1(0.25rem)へ変更(このラッパーは子が1つ(damage-row-columns)なので実質無効だが、
 		   下の.damage-row-columnsと値を揃えておく)。 */
-		gap: 0.22rem;
+		gap: var(--space-1);
 		min-width: 0;
 		/* 🔴 UI改善ラウンド32ユーザー指示(32-D3)「技カードの幅を少し減らし」。
 		   .damage-row-total-resultと同じ40px(削除ボタン28px+クリアランス)を減らし、
@@ -1337,8 +1337,8 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 	#opponent-notes-section .damage-row-columns {
 		display: flex;
 		flex-direction: column;
-		/* 24-D1: 技列同士の間隔を0.3rem→0.22remに詰める(カード全体の縦サイズ縮小)。 */
-		gap: 0.22rem;
+		/* 24-D1: 技列同士の間隔を0.3remから--space-1(0.25rem)に詰める。 */
+		gap: var(--space-1);
 		min-width: 0;
 	}
 	/* 「加算条件追加ボタン」(要件: 技列の下に置く)。技列の縦積みの最後に続くので、
@@ -1405,7 +1405,7 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 		   (実測: 詰める前は技列3枚+追加ボタンで箱よりおよそ85px高くなっていた)。
 		   ラウンド24ユーザー指示(24-D1)「カード全体の縦サイズを縮小」対応で上下を
 		   さらに0.3rem→0.24remに詰める。 */
-		padding: 0.16rem 0.5rem;
+		padding: 0.16rem var(--space-2);
 		/* 🔴 ラウンド25ユーザー指示(25-D2)「ダメージカードのN発目表記は、ダメージカード
 		   全体を左右分割し(左は狭い)、左側に数字を書く」により、縦積み(orderLabelが
 		   技名行等と同列に並ぶ)から常時左右分割へ変える。これは24-D2(「N発目」→「N」への
@@ -1420,7 +1420,7 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 		display: flex;
 		flex-direction: row;
 		align-items: stretch;
-		gap: 0.5rem;
+		gap: var(--space-2);
 		/* UI品質改善(デザイン原則整合): .damage-row-buildと同じ理由でsurface-altから
 		   surfaceに変更(外側の.card-damageがsurface-altになったため)。 */
 		background: var(--color-surface);
@@ -1447,9 +1447,9 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 	#opponent-notes-section .damage-column input[type="number"] {
 		width: 100%;
 		min-width: 0;
-		font-size: 0.88rem;
+		font-size: var(--font-size-sm);
 		padding: 0.28em 0.35em;
-		line-height: 1.2;
+		line-height: var(--line-height-tight);
 		/* ラウンド3 A-1: 技列側の技名/ヒット数入力も同様にmin-heightを打ち消す。 */
 		min-height: 0;
 	}
@@ -1470,7 +1470,7 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		font-size: 0.8rem;
+		font-size: var(--font-size-xs);
 		font-weight: 700;
 		color: var(--color-text-muted);
 		line-height: 1;
@@ -1494,7 +1494,7 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 	#opponent-notes-section .damage-column-overkill-note {
 		margin: 0;
 		/* 20-G3: 0.66rem(10.6px)→0.76rem(12.16px)。 */
-		font-size: 0.76rem;
+		font-size: var(--font-size-xs);
 		color: var(--color-text-muted);
 	}
 	#opponent-notes-section .damage-column-overkill-note[hidden] {
@@ -1509,7 +1509,7 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 	#opponent-notes-section .damage-column-conditions {
 		display: flex;
 		flex-direction: column;
-		gap: 0.2rem;
+		gap: var(--space-1);
 	}
 	/* 技名input + 削除ボタン(×)(⚙はラウンド6で廃止。技列自体のクリックが
 	   この技の設定を開くトリガーになった)。
@@ -1525,7 +1525,7 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 	#opponent-notes-section .damage-column-move-row {
 		display: flex;
 		align-items: center;
-		gap: 0.25rem;
+		gap: var(--space-1);
 		flex-wrap: wrap;
 	}
 	/* 🔴 UI改善ラウンド31(31-D2)実装時に発覚し、ラウンド32(32-D3、削除ボタンをカード右下へ
@@ -1582,7 +1582,7 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 	#opponent-notes-section .damage-column-hitcount-row {
 		display: flex;
 		align-items: center;
-		gap: 0.3rem;
+		gap: var(--space-1);
 	}
 	/* 連続技でないときはヒット数入力を出さない(要件)。display:flexを指定している要素は
 	   ブラウザ既定の [hidden] { display: none } に勝ってしまうため、明示的に打ち消す。 */
@@ -1599,7 +1599,7 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 		flex: 0 0 auto;
 	}
 	#opponent-notes-section .damage-column-hitcount-unit {
-		font-size: 0.76rem;
+		font-size: var(--font-size-xs);
 		color: var(--color-text-muted);
 	}
 	/* 技列の最下段: 区切り線 + 「技ごとのダメ・致死率」。相手ビルドの箱の
@@ -1632,11 +1632,10 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 		column-gap: 0.5em;
 		row-gap: 0;
 		margin: 0;
-		/* ラウンド23ユーザー指示(23-D5): 0.82rem(13.12px)→0.89rem(14.24px、+1.12px)。
-		   .damage-row-total-resultと同じ増分にして技列側/相手ビルド側の結果表示の
-		   見た目のサイズ差(元々わずかにあった13.6px対13.12pxの差)を保ったまま底上げする。 */
-		font-size: 0.89rem;
-		line-height: 1.3;
+		/* ラウンド23ユーザー指示(23-D5)で0.82remから拡大し、現行は近似する
+		   --font-size-sm(0.85rem)へ統一する。 */
+		font-size: var(--font-size-sm);
+		line-height: var(--line-height-tight);
 		/* 🔴 UI改善ラウンド35ユーザー指示(35-D1)「個別の技カードの結果表示を囲うフレームを
 		   削除」により、.severity-bar(global.css)由来のpadding/border-radiusを打ち消す。
 		   marginは本ラウンド開始時点で既に0(枠ではなく行間の余白側の対応は完了済み)のため
@@ -1704,7 +1703,7 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 	   (.damage-row-total-result .damage-result-verdict、上方参照)はこのラウンドの対象外
 	   のため変更しない。 */
 	#opponent-notes-section .damage-column-result .damage-result-verdict {
-		font-size: 0.85rem;
+		font-size: var(--font-size-sm);
 		font-weight: 800;
 		flex: 0 0 auto;
 		/* UI改修依頼(2026-08-01)「技カードの確定数の表示位置を少し右に寄せる」。
@@ -1717,7 +1716,7 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 	#opponent-notes-section .damage-column-result .damage-result-detail {
 		/* 20-G3: 0.8em(親0.82remの80%=約10.5px)は入れ子emの事故。remの直接指定にした。
 		   23-D5で0.76rem(12.16px)→0.85rem(13.6px、+1.44px)にもう一段大きくする。 */
-		font-size: 0.85rem;
+		font-size: var(--font-size-sm);
 		font-weight: 500;
 		opacity: 0.85;
 		min-width: 0;
@@ -1788,10 +1787,10 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 		align-items: center;
 		justify-content: center;
 		gap: 0.35em;
-		padding: 0.4rem 0.5rem;
+		padding: 0.4rem var(--space-2);
 		line-height: var(--line-height-snug);
 		min-height: 3.1rem;
-		font-size: 0.82rem;
+		font-size: var(--font-size-sm);
 		font-weight: 600;
 		border: 1px dashed var(--color-border);
 		background: var(--color-surface-alt);
@@ -1815,8 +1814,8 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 		align-items: center;
 		justify-content: flex-end;
 		gap: 0.4rem;
-		margin-top: 0.2rem;
-		padding-top: 0.2rem;
+		margin-top: var(--space-1);
+		padding-top: var(--space-1);
 		border-top: 1px solid var(--color-border);
 		flex-wrap: wrap;
 	}
@@ -1832,13 +1831,13 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 	   marginぶんだけ行の高さが押し上げられてしまう(実測で発覚)。 */
 	#opponent-notes-section .damage-row-save-status {
 		flex: 0 0 auto;
-		font-size: 0.78rem;
+		font-size: var(--font-size-xs);
 		margin: 0;
-		line-height: 1.2;
+		line-height: var(--line-height-tight);
 	}
 	#opponent-notes-section .damage-row-retry-button {
 		display: none;
-		font-size: 0.76rem;
+		font-size: var(--font-size-xs);
 		padding: 0.2em 0.5em;
 	}
 	#opponent-notes-section .damage-row-retry-button.visible {
@@ -1876,8 +1875,8 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 	   静的マークアップ・JS生成のどちらにも確実に効くこちらへ統合した。 */
 	#damage-detail-panel-body .damage-detail-panel-empty {
 		color: var(--color-text-muted);
-		font-size: 0.85rem;
-		line-height: 1.6;
+		font-size: var(--font-size-sm);
+		line-height: var(--line-height-normal);
 	}
 	/* ラウンド23ユーザー指示(23-R1)により見出し(旧.damage-detail-row-heading、
 	   <h3>「{相手名}: 技N(技名)だけの設定」)のDOMを削除したため、対応するこのCSSルールも
@@ -1901,10 +1900,10 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 	   .damage-detail-side-heading-row .damage-detail-section-heading参照、margin:0で
 	   打ち消し済み)からも参照され続けるため残す。 */
 	#damage-detail-panel-body .damage-detail-section-heading {
-		font-size: 0.85rem;
+		font-size: var(--font-size-sm);
 		font-weight: 700;
 		color: var(--color-text);
-		margin: 1rem 0 0.4rem;
+		margin: var(--space-4) 0 0.4rem;
 		padding-top: 0.6rem;
 		border-top: 1px solid var(--color-border);
 	}
@@ -1926,7 +1925,7 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 		display: flex;
 		flex-direction: column;
 		align-items: flex-start;
-		gap: 0.3rem;
+		gap: var(--space-1);
 		margin: 0 0 0.4rem;
 	}
 	#damage-detail-panel-body .damage-detail-side-heading-row .damage-detail-section-heading {
@@ -1942,7 +1941,7 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 		   (.damage-detail-side)のみで天候・フィールド側は対象外のため、28-R3で揃えた
 		   .damage-detail-field-row-label側(0.75remのまま据え置き)とはこの1点で意図的に
 		   差が生まれる。 */
-		font-size: 0.78rem;
+		font-size: var(--font-size-xs);
 		font-weight: 600;
 		color: var(--color-text-muted);
 		/* UI改善ラウンド29(29-R1)「密な状態の331pxは中央寄せだけでは埋まらないので、
@@ -2023,8 +2022,8 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 		   (29-R2/32-R3で維持していた無彩色の区切り線の1本を撤回。見出し側が代替する)。
 		   margin-top/padding-topは線が消えた分の余白として過大にならないよう実測のうえ、
 		   0.75rem/0.5remへ少し詰める(元は1rem/0.6rem)。 */
-		margin-top: 0.75rem;
-		padding-top: 0.5rem;
+		margin-top: var(--space-3);
+		padding-top: var(--space-2);
 	}
 	#damage-detail-panel-body .damage-detail-side {
 		min-width: 0;
@@ -2069,7 +2068,7 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 		display: grid;
 		grid-template-columns: repeat(4, minmax(0, 1fr));
 		gap: 0.35rem;
-		margin-bottom: 0.5rem;
+		margin-bottom: var(--space-2);
 	}
 	/* ラウンド11ユーザー指示(要件11-9): 強天候3種を削除した結果、天候(なし+4)・
 	   フィールド(なし+4)がどちらも5択になったため、「場の設定」内では5列グリッドにして
@@ -2086,10 +2085,10 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		gap: 0.2rem;
+		gap: var(--space-1);
 		padding: 0.35em 0.15em;
 		/* 20-G3(下限12px): 0.66rem(10.6px)は違反していたため0.75rem(12px)に引き上げる。 */
-		font-size: 0.75rem;
+		font-size: var(--font-size-xs);
 		color: var(--color-text-muted);
 		background: var(--color-surface-alt);
 		border: 1px solid var(--color-border);
@@ -2110,9 +2109,9 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 		   大きくする」。.is-text-only(テラスタル/急所/かべ/揮発状態、いずれも攻撃側・防御側
 		   セクション内のトグルボタン)だけに font-size を明示し、基底の.damage-detail-icon-btn
 		   (天候・フィールドの選択ボタンと共用、こちらは対象外のため0.75remのまま据え置き)から
-		   0.75rem→0.78rem(+0.03rem)に引き上げる。is-text-onlyは.damage-detail-side配下
+		   一度0.78remに引き上げ、現行は下限トークン--font-size-xs(0.75rem)に統一する。is-text-onlyは.damage-detail-side配下
 		   専用のモディファイアなので、この上書きは天候・フィールド側には一切影響しない。 */
-		font-size: 0.78rem;
+		font-size: var(--font-size-xs);
 	}
 	#damage-detail-panel-body .damage-detail-icon-btn:hover {
 		border-color: var(--color-primary);
@@ -2145,12 +2144,12 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 	#damage-detail-panel-body .damage-detail-field-row {
 		display: flex;
 		flex-direction: column;
-		gap: 0.2rem;
+		gap: var(--space-1);
 		margin-bottom: 0.45rem;
 	}
 	#damage-detail-panel-body .damage-detail-field-row-label {
 		/* 20-G3(下限12px): 0.72rem(11.5px)→0.75rem(12px)。 */
-		font-size: 0.75rem;
+		font-size: var(--font-size-xs);
 		font-weight: 600;
 		color: var(--color-text-muted);
 	}
@@ -2162,7 +2161,7 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 		display: flex;
 		align-items: center;
 		gap: 0.6rem;
-		margin-bottom: 0.3rem;
+		margin-bottom: var(--space-1);
 	}
 	/* ラウンド28ユーザー指示(28-R7)「相手の壁→リフレクター・ひかりのかべに変更」で文言が
 	   長くなった際、折り返し・はみ出しを避けてボタンを行の全幅にしていた。
@@ -2179,7 +2178,7 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 		display: none;
 		margin: 0.15rem 0 0;
 		/* 20-G3(下限12px): 0.72rem(11.5px)→0.75rem(12px)。 */
-		font-size: 0.75rem;
+		font-size: var(--font-size-xs);
 		color: var(--color-text-muted);
 	}
 	/* ラウンド20ユーザー指示(20-R1): 「入力部品(UI)とラベルの区別」。チェックボックス+
@@ -2199,7 +2198,7 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 	#damage-detail-panel-body .damage-detail-tera-note {
 		display: none;
 		/* 20-G3(下限12px): 0.68rem(10.9px)→0.75rem(12px)。 */
-		font-size: 0.75rem;
+		font-size: var(--font-size-xs);
 		color: var(--color-text-muted);
 	}
 	/* ラウンド5ユーザー指示(要件12): 能力ランクは攻撃側・防御側それぞれ1つの入力にする
@@ -2215,10 +2214,10 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 		flex: 0 0 auto;
 		/* 20-G3(下限12px): 0.72rem(11.5px)→0.75rem(12px)。
 		   🔴 UI改善ラウンド35ユーザー指示(35-R1): 攻撃側・防御側限定でさらに0.03rem引き上げ、
-		   0.78rem(12.48px、12px下限は超過)にする。「ランク」ラベル文字自体はこの要素の
+		   現行は--font-size-xs(12px)にする。「ランク」ラベル文字自体はこの要素の
 		   直下にある無クラスの<span>(rankLabel、buildSideSection参照)のためここの値が
 		   そのまま効く。 */
-		font-size: 0.78rem;
+		font-size: var(--font-size-xs);
 		color: var(--color-text-muted);
 	}
 	/* pitfalls.md: input/select { min-height: 2.35rem }(global.css)が密な行では
@@ -2234,11 +2233,11 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 		   font-size(0.75rem)・縦padding(0.3em)を基準にrank inputとselectの両方を
 		   揃える(下のailment-selectも同じ値に変更、round-32.md「統一感レビューの指摘」
 		   32-U-A2)。
-		   🔴 UI改善ラウンド35ユーザー指示(35-R1): 攻撃側限定でさらに0.75rem→0.78remへ引き上げる
-		   (下のailment-selectも同じ値に揃え、32-U-A2が確立した「rank input=ailment select」の
-		   統一自体は崩さない)。 */
+		   🔴 UI改善ラウンド35ユーザー指示(35-R1)では0.78remへ引き上げたが、現行は
+		   --font-size-xs(0.75rem)に統一する(下のailment-selectも同値にし、32-U-A2が確立した
+		   「rank input=ailment select」の統一自体は崩さない)。 */
 		padding: 0.3em 0.3em;
-		font-size: 0.78rem;
+		font-size: var(--font-size-xs);
 		text-align: center;
 		background: var(--color-surface-alt);
 	}
@@ -2275,7 +2274,7 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 		   ここだけ0.5remで割れていた。多数派(2対1)の0.35remに寄せる(32-R4で急所+じゅうでんを
 		   同じ行に収める都合上、詰まる方向の変更は好都合)。 */
 		gap: 0.35rem;
-		margin-bottom: 0.3rem;
+		margin-bottom: var(--space-1);
 	}
 	/* ラウンド17指摘(A-3): flex:1 1 autoが行内の余白を全部飲み、選択肢の最長「もうどく」
 	   (4文字、必要幅は矢印込み80px程度)に対しセレクト本体が約267pxまで伸びていた
@@ -2307,11 +2306,11 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 		   (0.75rem)・縦padding(0.3em)にrank inputとこのselectの両方を揃える
 		   (global.cssのbutton基底修正でボタン側の実測高さが変わったため、揃える先は
 		   px直値ではなくボタン側と同じfont-size/padding値に統一する方式にした)。
-		   🔴 UI改善ラウンド35ユーザー指示(35-R1): 攻撃側・防御側限定で0.75rem→0.78remへ
-		   引き上げる(rank input・is-text-onlyボタンと同じ0.78remに揃え、32-U-A2の統一を
+		   🔴 UI改善ラウンド35ユーザー指示(35-R1)では0.78remへ引き上げたが、現行は
+		   下限の--font-size-xsに揃える(rank input・is-text-onlyボタンと同値にし、32-U-A2の統一を
 		   崩さない)。 */
 		padding: 0.3em 0.3em;
-		font-size: 0.78rem;
+		font-size: var(--font-size-xs);
 		/* ラウンド20ユーザー指示(20-R1): rank-field inputと同じ理由でbackgroundを
 		   --color-surface-altにする。 */
 		background: var(--color-surface-alt);
@@ -2346,7 +2345,7 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 	#damage-detail-panel-body .damage-detail-volatile-row {
 		display: flex;
 		flex-direction: column;
-		gap: 0.3rem;
+		gap: var(--space-1);
 		margin-bottom: 0.4rem;
 	}
 	/* 🔴 UI改善ラウンド28ユーザー指示(28-R9)「その他の状態、の表記を削除」により
@@ -2355,7 +2354,7 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 	   (<script>のbuildSideSection参照)。 */
 	#damage-detail-panel-body .damage-detail-volatile-row-label {
 		display: none;
-		font-size: 0.75rem;
+		font-size: var(--font-size-xs);
 		font-weight: 600;
 		color: var(--color-text-muted);
 	}
@@ -2372,7 +2371,7 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 	   docs/ui_proposal/個体編集_右サイド.pngの箇条書き3グループに対応)。区切りは
 	   新色を作らずグループ間の余白だけで表現する。 */
 	#damage-detail-panel-body .damage-detail-group {
-		margin-bottom: 0.5rem;
+		margin-bottom: var(--space-2);
 	}
 	#damage-detail-panel-body .damage-detail-group:last-child {
 		margin-bottom: 0;
@@ -2426,7 +2425,7 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 		flex-shrink: 0;
 		align-items: center;
 		justify-content: center;
-		font-size: 0.85rem;
+		font-size: var(--font-size-sm);
 		background: var(--color-surface-alt);
 		border: 1px solid var(--color-border);
 	}
@@ -2458,7 +2457,7 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 	}
 	.damage-detail-panel .damage-detail-selection-move {
 		min-width: 0;
-		font-size: 0.85rem;
+		font-size: var(--font-size-sm);
 		font-weight: 700;
 		color: var(--color-text);
 		overflow: hidden;
@@ -2486,7 +2485,7 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 	#opponent-notes-section .add-card-tile {
 		min-height: 0;
 		padding: 0.6em 1em;
-		font-size: 0.9rem;
+		font-size: var(--font-size-md);
 	}
 
 	/* ラウンド3 B-5: 以前は点線パネル2枚(説明文+追加タイル)が重なり、主CTAが下の小さい
@@ -2498,7 +2497,7 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 		flex-direction: column;
 		align-items: center;
 		text-align: center;
-		gap: 0.5rem;
+		gap: var(--space-2);
 		max-width: 720px;
 		padding: 2.2rem 1.5rem;
 		border: 1px dashed var(--color-border);
@@ -2513,7 +2512,7 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 	   見出し(.damage-empty-state-title、damage-calc.tsのbuildEmptyState参照)の
 	   生成・appendもやめたため、対応するこのCSSルールも死んだセレクタになり削除した。 */
 	#opponent-notes-section .damage-empty-state-cta {
-		font-size: 0.95rem;
+		font-size: var(--font-size-md);
 	}
 
 	/* ラウンド6ユーザー指示: モバイル対応はこのラウンドのスコープ外(デスクトップ1920px基準)。
@@ -2677,7 +2676,7 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 		flex: 1 1 auto;
 		flex-direction: column;
 		justify-content: center;
-		gap: 0.2rem;
+		gap: var(--space-1);
 		min-width: 0;
 	}
 	/* UI改善ラウンド46ユーザー指示(第30弾、B-2): max-width:14em(206.08px)はラウンド45で
@@ -2698,7 +2697,7 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 		min-width: 0;
 	}
 	#opponent-notes-section .damage-row-collapsed-name {
-		font-size: 0.92rem;
+		font-size: var(--font-size-md);
 		font-weight: 700;
 		color: var(--color-text);
 		white-space: nowrap;
@@ -2710,12 +2709,12 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 	}
 	#opponent-notes-section .damage-row-collapsed-direction {
 		display: inline-flex;
-		font-size: 0.76rem;
+		font-size: var(--font-size-xs);
 		font-weight: 600;
 		padding: 0.1em 0.55em;
 		border-radius: var(--radius-sm);
 		color: var(--color-primary-contrast);
-		line-height: 1.3;
+		line-height: var(--line-height-tight);
 		/* UI改善ラウンド47(A-7): 1段目の中でバッジも省略しない要素にする。
 		   親が縦積み(flex-direction:column)だった頃のalign-self:flex-startは
 		   横並び行では不要になったため削除し、親.damage-row-collapsed-meta-rowの
@@ -2748,7 +2747,7 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 	   コントラスト約1.05:1で実質視認不能と判明(4レビュアー全員が最優先指摘)。
 	   var(--color-text-muted)に戻す(font-weightは変更しない)。 */
 	#opponent-notes-section .damage-row-collapsed-ability {
-		font-size: 0.76rem;
+		font-size: var(--font-size-xs);
 		font-weight: 400;
 		color: var(--color-text-muted);
 		white-space: nowrap;
@@ -2786,7 +2785,7 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 	#opponent-notes-section .damage-row-collapsed-tera-info {
 		display: inline-flex;
 		align-items: center;
-		gap: 0.25rem;
+		gap: var(--space-1);
 		flex: 0 0 auto;
 	}
 	/* UI改修依頼(共通方針、2026-08-01)「テラスタイプが未設定の場合、"未設定"などと表示せず
@@ -2840,7 +2839,7 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 	   🔴 ラウンド49 A-1: 上記の白固定はライトテーマで実質視認不能と判明。
 	   var(--color-text-muted)に戻す。 */
 	#opponent-notes-section .damage-row-collapsed-tera-name {
-		font-size: 0.76rem;
+		font-size: var(--font-size-xs);
 		color: var(--color-text-muted);
 		white-space: nowrap;
 		flex: 0 0 auto;
@@ -2921,7 +2920,7 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 		display: block;
 		text-align: center;
 		font-weight: 600;
-		font-size: 0.88rem;
+		font-size: var(--font-size-sm);
 		/* UI改善ラウンド47(A-6): 行間の余白を詰めるためline-heightを明示指定する。 */
 		line-height: 1.15;
 		color: var(--color-text-muted);
@@ -2938,7 +2937,7 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 		display: block;
 		text-align: center;
 		font-weight: 700;
-		font-size: 0.88rem;
+		font-size: var(--font-size-sm);
 		/* UI改善ラウンド47(A-6): 行間の余白を詰めるためline-heightを明示指定する。 */
 		line-height: 1.15;
 		color: var(--color-text);
@@ -2969,7 +2968,7 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 	   宙に浮いて見える問題を解消した。新しい罫線・新色は追加していない。 */
 	#opponent-notes-section .card-damage[data-collapsed="true"] .damage-row-techniques-row {
 		align-self: stretch;
-		padding-top: 0.5rem;
+		padding-top: var(--space-2);
 	}
 	/* 圧縮時は追加スロットが非表示で余白を吸わないため、累計結果を明示的に下端へ寄せる。 */
 	#opponent-notes-section .card-damage[data-collapsed="true"] .damage-row-total {
@@ -3034,7 +3033,7 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 	   (旧.damage-row-collapsed-movesと同じ考え方)。 */
 	#opponent-notes-section .damage-row-collapsed-move-list {
 		margin: 0;
-		font-size: 0.85rem;
+		font-size: var(--font-size-sm);
 		font-weight: 700;
 		color: var(--color-text);
 		white-space: nowrap;
@@ -3051,7 +3050,7 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 	   作らない。1行に収まらない場合はellipsis+titleでフルテキストを保持する。 */
 	#opponent-notes-section .damage-row-collapsed-detail-line {
 		margin: 0;
-		font-size: 0.76rem;
+		font-size: var(--font-size-xs);
 		color: var(--color-text-muted);
 		white-space: nowrap;
 		overflow: hidden;
@@ -3103,7 +3102,7 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 		top: calc(var(--topbar-height) / 2 - 1px);
 		transform: translateY(-50%);
 		z-index: 21;
-		font-size: 0.86rem;
+		font-size: var(--font-size-sm);
 		/* UI改善ラウンド43ユーザー指示(43-H1)「すべて折りたたむ・すべて展開ボタンにも>>記号を
 		   追加(左端)」。chevron(左端)+label(既存の文言)の2要素構成にしたため
 		   (box/[id].astroの<Fragment slot="topbar-actions">参照、damage-calc.tsの
