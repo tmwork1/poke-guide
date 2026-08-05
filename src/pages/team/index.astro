@@ -103,22 +103,30 @@ const user = Astro.locals.user;
 			padding-left: 2.1em;
 		}
 
-		/* UI改修依頼(チームトップ画面)「お気に入り機能(フィルタも)を追加する」。
-		   box/index.astroの.favorite-filter-toggleと同じ値をこのページのスコープへ複製する
-		   (新しい値は作っていない。Astroのscoped styleはページをまたいで共有されないため)。 */
+		/* UI改修依頼(2026-08-05)「お気に入りボタンは枠と背景を透明にし、選択時は星だけを黄色にする」対応。
+		   box/index.astroの.favorite-filter-toggleと同じ値をこのページのスコープへ意図的に複製する
+		   (Astroのscoped styleはページをまたいで共有されず、box側は担当外のため)。 */
 		.favorite-filter-toggle {
 			display: inline-flex;
 			align-items: center;
 			gap: 0.35em;
+			font-weight: 400;
+			background: transparent;
+			border-color: transparent;
+			color: var(--color-text-muted);
+		}
+		.favorite-filter-toggle:hover:not(:disabled) {
+			background: transparent;
+			border-color: transparent;
+			color: var(--color-text);
 		}
 		.favorite-filter-toggle[data-active="true"] {
-			background: var(--color-primary);
-			border-color: var(--color-primary);
-			color: var(--color-primary-contrast);
+			background: transparent;
+			border-color: transparent;
+			color: var(--color-text);
 		}
-		.favorite-filter-toggle[data-active="true"]:hover:not(:disabled) {
-			background: var(--color-surface);
-			color: var(--color-primary);
+		.favorite-filter-toggle[data-active="true"] .favorite-filter-star {
+			color: var(--color-risky);
 		}
 
 		/* UI改修依頼(チームトップ画面、2026-08-02)「セカンドトップバーのデザインをボックス画面に
@@ -628,7 +636,7 @@ const user = Astro.locals.user;
 								data-active="false"
 								aria-pressed="false"
 							>
-								<span aria-hidden="true">★</span> お気に入り
+								<span class="favorite-filter-star" aria-hidden="true">★</span> お気に入り
 							</button>
 						</div>
 
@@ -966,7 +974,6 @@ const user = Astro.locals.user;
 				// --- メンバーの公式絵ミニサムネイル列(6枠常時描画。空き枠はプレースホルダー) ---
 				const thumbGrid = document.createElement("div");
 				thumbGrid.className = "card-team-thumb-grid";
-				thumbGrid.setAttribute("aria-hidden", "true");
 
 				const membersBySlot = new Map(t.members.map((m) => [m.slot, m]));
 				for (let slot = 1; slot <= 6; slot++) {
@@ -974,6 +981,12 @@ const user = Astro.locals.user;
 					const thumb = document.createElement("div");
 					thumb.className = "card-team-thumb" + (member ? "" : " is-empty");
 					if (member) {
+						// UI改修依頼(2026-08-05)「ポケモンアイコンのホバー時にNN、未設定時は種族名を表示する」対応。
+						const pokemonName = member.owned_pokemon.nickname?.trim()
+							|| member.owned_pokemon.species_name?.trim()
+							|| "ポケモン";
+						thumb.title = pokemonName;
+						thumb.setAttribute("aria-label", pokemonName);
 						const img = document.createElement("img");
 						img.className = "card-team-thumb-img";
 						img.alt = "";
@@ -1000,6 +1013,7 @@ const user = Astro.locals.user;
 					} else {
 						// UI改修依頼(チームトップ画面、2026-08-01)「未設定枠には中央に薄い色で
 						// その枠がチーム内で何番目か(N)の数字を表示する」。
+						thumb.setAttribute("aria-hidden", "true");
 						const slotNumber = document.createElement("span");
 						slotNumber.className = "card-team-thumb-slot-number";
 						slotNumber.textContent = String(slot);
