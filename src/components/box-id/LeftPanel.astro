@@ -522,15 +522,24 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 					{/* 努力値の入力欄には可視ラベルが無い(左端の .stat-row-label は入力と紐づいていない)ため、
 					    スライダー・数値入力の両方に aria-label で「どの能力の努力値か」を持たせる。 */}
 					<div class="stat-input-controls">
-						<input
-							type="range"
-							id={`ev-${key}-range`}
-							min="0"
-							max="32"
-							step="1"
-							aria-label={`${statLabel}の努力値(スライダー)`}
-							value={statAt(pokemon.evs, i, 0)}
-						/>
+						{/* 端点ボタンもrangeのinputイベントへ合流させ、再計算・残量更新・自動保存を共通化する。 */}
+						<div class="stat-ev-range-controls">
+							<button type="button" class="btn-ghost stat-ev-endpoint-button" data-ev-target={`ev-${key}-range`} data-ev-endpoint="min" aria-label={`${statShort}の努力値を0にする`}>
+								<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg>
+							</button>
+							<input
+								type="range"
+								id={`ev-${key}-range`}
+								min="0"
+								max="32"
+								step="1"
+								aria-label={`${statLabel}の努力値(スライダー)`}
+								value={statAt(pokemon.evs, i, 0)}
+							/>
+							<button type="button" class="btn-ghost stat-ev-endpoint-button" data-ev-target={`ev-${key}-range`} data-ev-endpoint="max" aria-label={`${statShort}の努力値を最大にする`}>
+								<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6" /></svg>
+							</button>
+						</div>
 						{/* UI改善ラウンド40ユーザー指示(40-T2)「スピンボックスは上下限で打ち切らず
 						    循環するUIにする」対応。min/max属性を残したままだと、ブラウザ既定の
 						    増減スピナー矢印・ArrowUp/ArrowDownキー・ホイール操作のいずれも上下限で
@@ -609,11 +618,11 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 				aria-label="現在の努力値をもとに、総合/物理/特殊の耐久指数をそれぞれ最大化する努力値の候補を表示する"
 				title="現在の努力値をもとに、総合/物理/特殊の耐久指数をそれぞれ最大化する努力値の候補を表示する"
 			>
-				<span class="stat-adjust-action-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="21" y1="4" x2="14" y2="4"/><line x1="10" y1="4" x2="3" y2="4"/><line x1="21" y1="12" x2="12" y2="12"/><line x1="8" y1="12" x2="3" y2="12"/><line x1="21" y1="20" x2="16" y2="20"/><line x1="12" y1="20" x2="3" y2="20"/><line x1="14" y1="2" x2="14" y2="6"/><line x1="8" y1="10" x2="8" y2="14"/><line x1="16" y1="18" x2="16" y2="22"/></svg></span>
+				<span class="stat-adjust-action-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-8 9-4.5-1.5-8-4-8-9V5l8-3 8 3z"/><path d="m9 12 2 2 4-4"/></svg></span>
 				<span class="stat-adjust-action-label">耐久最大化</span>
 			</button>
 			<button type="button" id="bulk-adjust-button" class="btn-ghost stat-adjust-action-button" disabled>
-				<span class="bulk-adjust-button-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="21" y1="4" x2="14" y2="4"/><line x1="10" y1="4" x2="3" y2="4"/><line x1="21" y1="12" x2="12" y2="12"/><line x1="8" y1="12" x2="3" y2="12"/><line x1="21" y1="20" x2="16" y2="20"/><line x1="12" y1="20" x2="3" y2="20"/><line x1="14" y1="2" x2="14" y2="6"/><line x1="8" y1="10" x2="8" y2="14"/><line x1="16" y1="18" x2="16" y2="22"/></svg></span><span class="bulk-adjust-button-label">耐久調整</span>
+				<span class="bulk-adjust-button-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 14a8 8 0 1 1 16 0"/><path d="M12 14l3-3"/><path d="M4 14h16"/></svg></span><span class="bulk-adjust-button-label">耐久調整</span>
 			</button>
 			<a
 				class="btn-ghost stat-adjust-action-button"
@@ -621,7 +630,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 				aria-label="すばやさ早見表で調整"
 				title="すばやさ早見表で調整"
 			>
-				<span class="stat-adjust-action-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="21" y1="4" x2="14" y2="4"/><line x1="10" y1="4" x2="3" y2="4"/><line x1="21" y1="12" x2="12" y2="12"/><line x1="8" y1="12" x2="3" y2="12"/><line x1="21" y1="20" x2="16" y2="20"/><line x1="12" y1="20" x2="3" y2="20"/><line x1="14" y1="2" x2="14" y2="6"/><line x1="8" y1="10" x2="8" y2="14"/><line x1="16" y1="18" x2="16" y2="22"/></svg></span>
+				<span class="stat-adjust-action-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/><path d="M8 3 6 5"/><path d="m16 3 2 2"/></svg></span>
 				<span class="stat-adjust-action-label">すばやさ調整</span>
 			</a>
 		</div>
@@ -670,7 +679,8 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	   colorはvar(--color-text)のまま変更しない(pitfalls.md「白くする/濃くする指示を固定色で
 	   実装すると破綻する」を踏まえ、既存のテーマ追従トークンを維持する。data-mod="up"/"down"時の
 	   var(--stat-up)/var(--stat-down)への切り替えも変更していない)。 */
-	.stat-value { display: inline-block; margin-top: 0.15em; font-size: 1em; font-weight: 400; color: var(--color-text); }
+	/* 薄い文字色でも判別しやすくするため、既存ウェイトの次段階へ上げる。 */
+	.stat-value { display: inline-block; margin-top: 0.15em; font-size: 1em; font-weight: 500; color: var(--color-text); }
 	.stat-value[data-mod="up"] { color: var(--stat-up); }
 	.stat-value[data-mod="down"] { color: var(--stat-down); }
 
@@ -914,6 +924,11 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	   .stat-row の直接の子(=グリッドアイテム)にする。こうしないと両方が3列目(1fr)に
 	   まとまってしまい、5列グリッドに分割した意味が無くなる。 */
 	.stat-row .stat-input-controls { display: contents; }
+	/* 端点ボタンの24px操作領域を確保しつつ、rangeへ残り幅を渡して狭まりすぎるのを防ぐ。 */
+	.stat-ev-range-controls { display: flex; align-items: center; gap: var(--space-1); min-width: 0; }
+	.stat-ev-range-controls input[type="range"] { flex: 1 1 5rem; min-width: 5rem; }
+	.stat-ev-endpoint-button { flex: 0 0 24px; width: 24px; height: 24px; min-height: 24px; padding: 0; border-color: transparent; }
+	.stat-ev-endpoint-button svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 	/* 努力値の数値入力も左パネル用の詰めた寸法に揃える(6行あるので効き方が大きい)。 */
 	/* ラウンド23ユーザー指示(23-L5): 努力値の数値入力も中央揃えにする。 */
 	.stat-row input[type="number"] { font-size: 0.94rem; padding: 0.3em 0.5em; width: 100%; text-align: center; }
@@ -971,7 +986,8 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	   ヘッダーの見出し等に比べて強調されすぎていた。通常の太さ(400)に下げて主張を弱める
 	   (colorは.stat-row-label-short[data-mod]のvar(--stat-up)/var(--stat-down)による
 	   性格補正の色分けをそのまま使うため変更しない)。 */
-	.stat-row-label { font-weight: 400; white-space: nowrap; display: flex; align-items: center; justify-content: center; gap: 0.1em; line-height: 1; }
+	/* 色トークンは維持し、ラベルだけ既存ウェイトの次段階へ上げて読みやすくする。 */
+	.stat-row-label { font-weight: 500; white-space: nowrap; display: flex; align-items: center; justify-content: center; gap: 0.1em; line-height: 1; }
 	/* ラウンド21ユーザー指示(21-L7)「A,B,...のラベル色も赤・青に変わるようにする」。
 	   相手ビルドカード側(20-D3)の--stat-up/--stat-down(box/[id].astroの.edit-shellで定義、
 	   DOM継承でこのコンポーネントの要素からも参照できる。ライト4.86-4.94:1・ダーク7.2-7.6:1)を
@@ -1234,6 +1250,8 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		font-size: var(--font-size-sm);
 		padding: var(--space-1) var(--space-2);
 		white-space: nowrap;
+		/* 共通buttonの強めのウェイトを一段細くし、補助操作としての階層に合わせる。 */
+		font-weight: 500;
 	}
 	/* 🔴 UI改修依頼(個体編集左パネル、2026-08-04)「ボタンらしくない」というユーザー指摘への
 	   対応。.btn-ghost(global.css 904-914行目)は透明背景+ホバーでうっすら背景が付くだけで、
@@ -1289,6 +1307,8 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		/* 460px以下では努力値のスライダー+数値入力を再びひとまとめの1セルに戻す
 		   (デスクトップの5列グリッドは幅が無いと成立しないため)。 */
 		.stat-row .stat-input-controls { display: flex; }
+		.stat-row .stat-ev-range-controls { flex: 1 1 auto; min-width: 0; }
+		.stat-row .stat-ev-range-controls input[type="range"] { min-width: 0; }
 		.stat-row .stat-input-controls input[type="range"] { flex: 1 1 auto; width: auto; min-width: 0; }
 		.stat-row .stat-input-controls input[type="number"] { flex: 0 0 3.4em; width: 3.4em; }
 		/* ラウンド23ユーザー指示(23-L5)の中央揃え化は、この460px以下の1行レイアウト
@@ -1356,10 +1376,11 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		background: transparent;
 		flex-shrink: 0;
 	}
-	.species-sprite-img { width: 158px; height: 158px; object-fit: contain; }
+	/* 現在値158pxの90%=142.2pxを整数化。箱は維持して周辺レイアウトを動かさない。 */
+	.species-sprite-img { width: 142px; height: 142px; object-fit: contain; }
 	/* フォールバック(画像取得失敗時の代替表示)も本体画像と同じ1.1倍率で拡大し、
 	   本体と入れ替わっても箱内のサイズ感が変わらないようにする。 */
-	.species-sprite-fallback-lg { width: 158px; height: 158px; font-size: 3.52rem; }
+	.species-sprite-fallback-lg { width: 142px; height: 142px; font-size: 3.2rem; }
 
 	/* UI刷新: Pokemon.png レイアウト。上部ブロック(種族/ニックネーム/特性 + アイコン)。
 	   ラウンド4ユーザー指示により性格は表示しなくなった(能力値ラベルのクリックへ移行)。
@@ -2225,8 +2246,9 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		   31px→28px(31×0.9=27.9を四捨五入)へ縮小する。縮小方向のみでコーナー列(180px)との
 		   重なり判定は再実測不要(上記39-L1と同じ理由)。 */
 		.item-image-badge {
-			width: 28px;
-			height: 28px;
+			/* 現在値28pxの90%=25.2pxを整数化し、コーナー列内の余裕を増やす。 */
+			width: 25px;
+			height: 25px;
 			display: flex;
 			align-items: center;
 			justify-content: center;
@@ -2497,7 +2519,9 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		width: 100%;
 		min-width: 0;
 		font-size: var(--font-size-xs);
-		padding: 0.2em 0.3em;
+		/* 約25pxだった高さを既存のspace-6(24px)へ一段縮小する。 */
+		height: var(--space-6);
+		padding: 0 var(--space-1);
 		box-sizing: border-box;
 	}
 	.move-picker-sort-btn {
@@ -2515,7 +2539,8 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	}
 	.move-picker-sort-btn:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 1px; }
 	.move-picker-sort-btn::after {
-		content: "⇅";
+		/* 「人気」を含む全ソート列で同じ昇順/降順マーカーを使う。 */
+		content: "↑↓";
 		color: var(--color-text-muted);
 		font-size: 0.85em;
 	}

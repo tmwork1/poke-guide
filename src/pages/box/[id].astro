@@ -279,24 +279,15 @@ const isOptedOut = optOutRemainingText !== "";
 			display: inline;
 			color: var(--color-danger);
 		}
-		/* 共通トップバー移行(2026-07-26・実測バグ修正): #delete-buttonはbutton基底ルール
-		   (global.css)のfont:inheritにより、周囲(.app-topbar-actions)が独自のfont-sizeを
-		   持たないぶん既定の1rem(16px)まで祖先から継承してしまい、右側のログアウトボタン
-		   (AppLayout側の.app-topbar-accountがfont-size:var(--font-size-sm)を明示している)より
-		   縦に大きくなっていた(実測45px、ログアウト側は39px)。この差がトップバーの実高さを
-		   --topbar-heightよりさらに約6px押し上げていた。ログアウトボタンと同じ
-		   var(--font-size-sm)を明示し、他のトップバー内ボタンと縦サイズを揃える
-		   (paddingはem単位なのでfont-sizeに追随して自動的に縮む)。 */
-		#delete-button { font-size: var(--font-size-sm); }
+		/* 共通トップバーの戻るリンク(.app-topbar-back)と文字組みを揃える。
+		   font-familyとletter-spacingは、戻るリンクと同様にbodyからの継承値を使う。 */
+		#delete-button { font-size: var(--font-size-md); }
 		/* ラウンド8指摘(A-5(2)): 幅390pxで折り返し先が無くwhite-space:normalのまま1文字ずつ
 		   縦に折り返り(実測46×169px)、w900でも3行に折れていた。1行に固定する
 		   (トップバー側の折り返し対策はglobal.css/AppLayout.astro担当の別エージェントの範囲)。 */
 		#delete-button { white-space: nowrap; }
-		/* 🔴 UI改修依頼(個体編集画面、2026-08-02)「右上の削除ボタンを太字にしない」対応。
-		   基底(global.css の button.btn-danger)が font-weight: 700 を持つため、ページscopedの
-		   IDセレクタ(#delete-button、詳細度1,0,0)で上書きする。global.css自体は編集しない
-		   (.btn-danger は/team/[id].astro等でも使う共有クラスのため他画面に波及させない)。 */
-		#delete-button { font-weight: 400; }
+		/* 基底(global.css の button.btn-danger)の太字を、戻るリンクと同じ500に上書きする。 */
+		#delete-button { font-weight: 500; }
 		/* UI改修依頼(個体編集画面、2026-08-04)「削除ボタンの平常時/ホバーの配色を入れ替える」。
 		   基底(global.css の button.btn-danger、887-902行目)は 平常時=塗り
 		   (background:var(--color-danger-strong), color:var(--color-primary-contrast))、
@@ -319,15 +310,16 @@ const isOptedOut = optOutRemainingText !== "";
 		/* 匿名集計サジェスト機能・第4段階(UI: 収集拒否トグル)。.toggle-switch本体のCSSは
 		   src/components/box-id/LeftPanel.astro の is:global <style> 側に既にあるためここでは
 		   重複定義しない。ここはラベル・状態テキストのレイアウトだけを追加する。
-		   #delete-button と同じ実測バグパターン(祖先のfont: inheritによりトップバー内で
-		   フォントサイズだけ肥大化する)を避けるため、ここでもvar(--font-size-sm)を明示する。
+		   戻るリンク(.app-topbar-back)と同じfont-size/font-weightを明示する。
+		   font-familyとletter-spacingは、戻るリンクと同様にbodyからの継承値を使う。
 		   トーンは#damage-collapse-toggle-button(.btn-ghost)に揃え、既定でmuted、常時色付きの
 		   目立つ表示にはしない。 */
 		.collection-opt-out-toggle {
 			display: inline-flex;
 			align-items: center;
 			gap: 0.4em;
-			font-size: var(--font-size-sm);
+			font-size: var(--font-size-md);
+			font-weight: 500;
 			color: var(--color-text-muted);
 			white-space: nowrap;
 			cursor: pointer;

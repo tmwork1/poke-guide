@@ -312,10 +312,8 @@ function setupDatalistRefocus(input: HTMLInputElement, datalist: HTMLDataListEle
 // このファイルは編集中の個体の #regulation の値に応じて subject_key を切り替えるだけでよく、
 // GET /api/suggestions 自体は無変更。
 //
-// レギュレーション指定時にフォールバックはしない: '種族名|M-A' の行が無い(= そのレギュレーションでの
-// 開示者がk-匿名性の閾値に届いていない)場合、横断集計の値で埋め合わせると「そのレギュレーションの
-// 人気」と誤読される。依頼の主旨が精度なので、データが無いときは候補リストを元の並び・
-// 元のテキストのまま何も変えない(データ不足時に上書きしない、という既存の方針と同じ挙動になる)。
+// ユーザー指示により、規制別集計が取得不能または空のときは種族名だけの横断集計へフォールバックする。
+// データが少ない規制でも候補を空にせず、popular_nature/item/tera/moveを同じ取得方針に統一する。
 type SuggestionOption = { value: string; count: number; ratio: number };
 type SuggestionPayload = { sample_size: number; options: SuggestionOption[] };
 type SuggestionRow = { payload?: SuggestionPayload };
@@ -337,15 +335,20 @@ async function fetchSuggestionPayload(
 	regulation: string | null,
 ): Promise<SuggestionPayload | undefined> {
 	if (!speciesName) return undefined;
-	const subjectKey = suggestionSubjectKey(speciesName, regulation);
-	try {
-		const res = await fetch(`/api/suggestions?kind=${kind}&subject_key=${encodeURIComponent(subjectKey)}&limit=1`);
-		if (!res.ok) return undefined;
-		const json = (await res.json()) as SuggestionApiResponse;
-		return json.data?.[0]?.payload;
-	} catch {
-		return undefined; // fetch失敗時は静かに無視する(候補は元の並び・表示のまま)
+	async function fetchBySubjectKey(subjectKey: string): Promise<SuggestionPayload | undefined> {
+		try {
+			const res = await fetch(`/api/suggestions?kind=${kind}&subject_key=${encodeURIComponent(subjectKey)}&limit=1`);
+			if (!res.ok) return undefined;
+			const json = (await res.json()) as SuggestionApiResponse;
+			return json.data?.[0]?.payload;
+		} catch {
+			return undefined;
+		}
 	}
+	const scoped = await fetchBySubjectKey(suggestionSubjectKey(speciesName, regulation));
+	if (!regulation || (scoped?.options.length ?? 0) > 0) return scoped;
+	// 規制別が空の場合だけAPI契約を変えず、subject_keyを種族名にして横断集計を再取得する。
+	return fetchBySubjectKey(speciesName);
 }
 
 // 種族が変わるたびに最新のペイロードで上書きするキャッシュ。#item-dropdown-list等は
@@ -1366,6 +1369,15 @@ if (form) {
 			void recalcStats();
 		});
 	}
+	// 端点ボタンは値を直接保存せず、既存rangeのinputハンドラへ流して全ての副作用を揃える。
+	for (const button of document.querySelectorAll<HTMLButtonElement>(".stat-ev-endpoint-button")) {
+		button.addEventListener("click", () => {
+			const rangeInput = document.getElementById(button.dataset.evTarget ?? "") as HTMLInputElement | null;
+			if (!rangeInput) return;
+			rangeInput.value = button.dataset.evEndpoint === "max" ? rangeInput.max : rangeInput.min;
+			rangeInput.dispatchEvent(new Event("input", { bubbles: true }));
+		});
+	}
 
 	deleteButton.addEventListener("click", () => {
 		void (async () => {
@@ -1660,7 +1672,7 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 	// (このウィンドウはページ内で使い回されるシングルトンで、開閉のたびにリセットしない)。
 	let sortKey: SortKey = "popularity";
 	let sortDir: SortDir = "desc";
-	const filters = { name: "", type: "", category: "", pp: "" };
+	const filters = { name: "", type: "", category: "" };
 
 	let allMoves: MoveDetail[] = [];
 	let allMovesReady = false;
@@ -1799,15 +1811,6 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 		renderRows();
 	});
 
-	const ppFilterInput = document.createElement("input");
-	ppFilterInput.type = "text";
-	ppFilterInput.placeholder = "PP(完全一致)";
-	ppFilterInput.setAttribute("aria-label", "PPで絞り込み");
-	ppFilterInput.addEventListener("input", () => {
-		filters.pp = ppFilterInput.value.trim();
-		renderRows();
-	});
-
 	headerRow.appendChild(makeHeaderCell("技名", "name", nameFilterInput));
 	// 匿名集計サジェスト機能: 「人気」列(種族ごとのpopular_moveサジェスト、作用率%を表示)。
 	// 既存の並び替え可能な列と同じ仕組み(makeSortButton/makeHeaderCell)に合流させる
@@ -1817,7 +1820,8 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 	headerRow.appendChild(makeHeaderCell("分類", "category", categoryFilterSelect));
 	headerRow.appendChild(makeHeaderCell("威力", "power", null));
 	headerRow.appendChild(makeHeaderCell("命中", "accuracy", null));
-	headerRow.appendChild(makeHeaderCell("PP", "pp", ppFilterInput));
+	// PPは比較・並び替え用の列として残し、フィルタUIだけを削除する。
+	headerRow.appendChild(makeHeaderCell("PP", "pp", null));
 
 	thead.appendChild(headerRow);
 	table.appendChild(thead);
@@ -1948,10 +1952,6 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 		if (filters.name && !m.name.includes(filters.name)) return false;
 		if (filters.type && m.type !== filters.type) return false;
 		if (filters.category && m.category !== filters.category) return false;
-		if (filters.pp) {
-			const n = Number(filters.pp);
-			if (Number.isFinite(n) && m.pp !== n) return false;
-		}
 		return true;
 	}
 
