@@ -42,6 +42,7 @@ const dialogEl = el<HTMLElement>("bulk-adjust-dialog");
 const dialogCloseButton = el<HTMLButtonElement>("bulk-adjust-dialog-close");
 // UI改修依頼(個体編集画面、2026-08-04)「ウィンドウ上部に計算する ボタンを配置」。
 const dialogComputeButton = el<HTMLButtonElement>("bulk-adjust-dialog-compute-button");
+const dialogStatusEl = el<HTMLElement>("bulk-adjust-dialog-status");
 const dialogBodyInnerEl = el<HTMLElement>("bulk-adjust-dialog-body-inner");
 const dialogFooterEl = el<HTMLElement>("bulk-adjust-dialog-footer");
 const cancelButton = el<HTMLButtonElement>("bulk-adjust-cancel-button");
@@ -70,13 +71,18 @@ let currentRows: BulkAdjustRowSnapshot[] = [];
 const rowInputEls = new Map<string, { nInput: HTMLInputElement; mInput: HTMLInputElement }>();
 let activeAbortController: AbortController | null = null;
 
-// UI改修依頼(個体編集画面、2026-08-04)「確定数の初期値をカードごとの現在の確定数にする」。
-// openDialog()はダイアログを開くたびにdialogBodyInnerEl.innerHTML=""で中身を作り直すため、
-// N入力欄(nInput)自体はダイアログを閉じるたびに失われる。モジュールスコープのMapで
-// rowId(カードのdata-row-id、getDefenseRows()が返すBulkAdjustRowSnapshot.id)ごとに
-// 最後に使ったN値を保持し、次にダイアログを開いたとき・同じ行が再度作られたときに
-// 初期値として復元する。Mについては依頼の対象外(既定100のまま)。
-const lastNByRowId = new Map<string, number>();
+// UI改修依頼(2026-08-05): 画面側の確定数表示が最大10発までを扱うため、入力・探索も同じ範囲にそろえる。
+const MAX_ATTACK_COUNT = 10;
+
+// 現在のカードに表示済みの累計確定数(「確N」)を初期値に使う。計算前・10発以上・
+// エラー表示など数値を取り出せない場合だけ、従来値1へフォールバックする。
+function currentConfirmedCount(preview: HTMLElement | null): number | null {
+	const text = preview?.querySelector<HTMLElement>(".damage-row-total-result .damage-result-verdict")?.textContent?.trim();
+	const match = text?.match(/^確(\d+)$/);
+	if (!match) return null;
+	const n = Number(match[1]);
+	return Number.isInteger(n) && n >= 1 && n <= MAX_ATTACK_COUNT ? n : null;
+}
 
 function setButtonLabel(text: string): void {
 	if (bulkAdjustButtonLabelEl) bulkAdjustButtonLabelEl.textContent = text;
@@ -105,7 +111,7 @@ window.setInterval(updateBulkAdjustButtonReadyState, 600);
 function clampN(raw: string): number {
 	const n = Math.round(Number(raw));
 	if (!Number.isFinite(n) || n < 1) return 1;
-	return n;
+	return Math.min(n, MAX_ATTACK_COUNT);
 }
 function clampM(raw: string): number {
 	const n = Number(raw);
@@ -131,25 +137,19 @@ function buildRowEl(bridge: NonNullable<ReturnType<typeof getBulkAdjustBridge>>,
 
 	const nLabel = document.createElement("label");
 	const nLabelTextBefore = document.createElement("span");
-	nLabelTextBefore.textContent = `${row.name}の攻撃を`;
+	nLabelTextBefore.textContent = `${row.name}の攻撃`;
 	const nInput = document.createElement("input");
 	nInput.type = "number";
 	nInput.className = "bulk-adjust-n-input tnum";
 	nInput.min = "1";
+	nInput.max = String(MAX_ATTACK_COUNT);
 	nInput.step = "1";
 	nInput.inputMode = "numeric";
-	// UI改修依頼(個体編集画面、2026-08-04)「確定数の初期値をカードごとの現在の確定数に
-	// する」。このカード(row.id)で最後に使った値(前回計算時、または前回入力していた値)が
-	// あればそれを初期値にし、無ければ従来どおり1にする。
-	nInput.value = String(lastNByRowId.get(row.id) ?? 1);
+	// UI改修依頼(2026-08-05): 開く時点の努力値配分に対する確定数を優先し、努力値変更後に古い入力値を持ち越さない。
+	nInput.value = String(currentConfirmedCount(preview) ?? 1);
 	nInput.setAttribute("aria-label", `${row.name}の攻撃を何発耐えるか(発)`);
-	// 「前回計算した(または現在選択されている)確定数N」を復元する要件のため、計算実行時
-	// だけでなく入力のたびにMapへ書き戻す(計算せずに閉じた場合でも次回開いたとき復元される)。
-	nInput.addEventListener("input", () => {
-		lastNByRowId.set(row.id, clampN(nInput.value));
-	});
 	const nLabelTextAfter = document.createElement("span");
-	nLabelTextAfter.textContent = "発";
+	nLabelTextAfter.textContent = "発を";
 	nLabel.append(nLabelTextBefore, nInput, nLabelTextAfter);
 
 	const mLabel = document.createElement("label");
@@ -180,6 +180,7 @@ function openDialog(): void {
 	currentRows = bridge.getDefenseRows();
 	rowInputEls.clear();
 	dialogBodyInnerEl.innerHTML = "";
+	dialogStatusEl.textContent = "";
 	if (currentRows.length === 0) {
 		// 要件: 0件のときはポップアップを開かない(ボタンはdisabledのはずだが、行の削除等の
 		// タイミングで開いてしまった場合の防御的フォールバック)。
@@ -263,7 +264,12 @@ function setComputingState(computing: boolean): void {
 
 async function runCompute(): Promise<void> {
 	const bridge = getBulkAdjustBridge();
-	if (!bridge || currentRows.length === 0) return;
+	if (!bridge || currentRows.length === 0) {
+		// 共通ステータス領域は入力不足にも使い、モーダルを閉じずに修正を促す。
+		dialogStatusEl.textContent = "計算対象の攻撃がありません";
+		return;
+	}
+	dialogStatusEl.textContent = "";
 
 	const requirements: DurabilityRequirement[] = currentRows.map((row) => {
 		const inputs = rowInputEls.get(row.id);
@@ -273,8 +279,6 @@ async function runCompute(): Promise<void> {
 			inputs.nInput.value = String(n);
 			inputs.mInput.value = String(m);
 		}
-		// 依頼1: 「前回計算した」確定数Nとして、実際に使った(clamp後の)値を保持する。
-		lastNByRowId.set(row.id, n);
 		return {
 			rowId: row.id,
 			attackerSpec: row.attackerSpec,
@@ -287,12 +291,20 @@ async function runCompute(): Promise<void> {
 
 	const speciesName = el<HTMLInputElement>("species-name").value.trim();
 	if (speciesName === "") {
-		window.alert("種族名が未入力のため耐久調整を計算できません。");
+		dialogStatusEl.textContent = "種族名が未入力です";
 		return;
 	}
-	const baseStats = (await baseStatsMapPromise).get(speciesName);
+	let baseStats: number[] | undefined;
+	try {
+		baseStats = (await baseStatsMapPromise).get(speciesName);
+	} catch (err) {
+		// マスターデータPromiseの失敗も未処理rejectionにせず、他の失敗と同じ共通領域で知らせる。
+		console.error(err);
+		dialogStatusEl.textContent = "種族値データを取得できませんでした";
+		return;
+	}
 	if (!baseStats) {
-		window.alert("種族値データを取得できなかったため耐久調整を計算できません。");
+		dialogStatusEl.textContent = "種族値データを取得できませんでした";
 		return;
 	}
 	const fixedEvs = { atk: readEv("atk"), spa: readEv("spa"), spe: readEv("spe") };
@@ -311,22 +323,29 @@ async function runCompute(): Promise<void> {
 			},
 			signal: controller.signal,
 		});
+		if (result.infeasible) {
+			// 解なしは計算エラーではない。入力値を保持したまま条件を緩めて再計算できるようにする。
+			dialogStatusEl.textContent = "条件を満たす配分がありません";
+			return;
+		}
+		dialogStatusEl.textContent = "";
 		closeDialog();
 		renderBulkAdjustResults(result, (candidate) => applyCandidateToLeftPanel(candidate));
 		openDetailPanelOverlayIfNarrow();
 	} catch (err) {
 		if (err instanceof DOMException && err.name === "AbortError") {
 			// ユーザーによる中断。ダイアログは開いたままにする(条件を直してやり直せるように)。
+			dialogStatusEl.textContent = "計算を中断しました";
 		} else if (err instanceof EngineFatalError) {
 			// 計算エンジンが致命的エラー(WebAssembly.RuntimeError等)で停止し、
 			// resetEngine()での1回のリトライも失敗した状態(bulk-adjust-solver.ts参照)。
 			// AbortErrorと同様ダイアログは開いたままにする(finallyでボタン・入力欄が
 			// 再度有効になるため、条件はそのままで再実行できる)。
 			console.error(err);
-			window.alert(err.message);
+			dialogStatusEl.textContent = err.message;
 		} else {
 			console.error(err);
-			window.alert("耐久調整の計算に失敗しました。時間をおいて再度お試しください。");
+			dialogStatusEl.textContent = "計算に失敗しました。時間をおいて再度お試しください";
 		}
 	} finally {
 		activeAbortController = null;

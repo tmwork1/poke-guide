@@ -151,6 +151,9 @@ export class EngineFatalError extends Error {
 
 /** attacks を先頭から繰り返して長さnの配列にする(累計に対してNを指定する、というユーザー指示の解釈)。 */
 function expandAttacksToN(attacks: SequenceAttack[], n: number): SequenceAttack[] {
+	// UI側の検証をすり抜けても、空配列や巨大配列をPyodideへ渡して計算失敗にしないため、ソルバー境界でも契約を検証する。
+	if (attacks.length === 0) throw new RangeError("攻撃が1件も指定されていません。");
+	if (!Number.isInteger(n) || n < 1 || n > 10) throw new RangeError("攻撃回数は1〜10で指定してください。");
 	const result: SequenceAttack[] = [];
 	for (let i = 0; i < n; i++) {
 		result.push(attacks[i % attacks.length]);
