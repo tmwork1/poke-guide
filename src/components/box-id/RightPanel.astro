@@ -114,7 +114,7 @@
 		   (別のpadding上書きが無いことを確認済み)。 */
 		padding: var(--space-3) var(--space-4);
 		background: var(--color-surface-alt);
-		border-bottom: 1px solid var(--color-border);
+		/* UI改修依頼(2026-08-05)「タイトル直下の区切り線を削除」対応。 */
 		flex-shrink: 0;
 	}
 	.damage-detail-panel-title { min-width: 0; flex: 1 1 auto; font-weight: 700; }
@@ -189,6 +189,28 @@
 </style>
 
 <style is:global>
+	/* UI改修依頼(2026-08-05)「ダメージ計算モードのタイトル・小見出し調整」対応。
+	   動的生成要素に限定し、耐久最大化・耐久調整の本文レイアウトには影響させない。 */
+	.damage-detail-panel .damage-detail-selection-heading {
+		gap: var(--space-3);
+	}
+	.damage-detail-panel .damage-detail-selection-move-type-icon {
+		--move-type-icon-size: calc(var(--icon-size-sm) * 1.1);
+		width: var(--move-type-icon-size);
+		height: var(--move-type-icon-size);
+		border-radius: 50%;
+		object-fit: contain;
+		flex-shrink: 0;
+	}
+	.damage-detail-panel .damage-detail-selection-move-type-icon[hidden] { display: none; }
+	/* UI改修依頼(2026-08-05)「天候・フィールドのサブタイトルを攻撃側・防御側と同じサイズにする」対応。
+	   0.78remは両側の見出しと同じ値。行クラスも含めて詳細度を上げ、読み込み順に依存せず適用する。 */
+	#damage-detail-panel-body .damage-detail-field-row .damage-detail-field-row-label {
+		font-size: 0.78rem;
+		font-weight: 600;
+		color: var(--color-text);
+	}
+
 	/* UI改修依頼(個体編集画面、2026-08-02、候補一覧の共通化)。右パネルの3用途
 	   (A:技カード選択時の詳細設定/B:耐久調整の候補一覧/C:耐久指数の候補一覧、次ラウンド)の
 	   うちB・Cは「候補ボタンの縦リスト、クリックで左パネルに適用」という同一の
@@ -250,19 +272,13 @@
 	#damage-detail-panel-body .candidate-list-item:focus-visible {
 		border-color: var(--color-primary);
 	}
-	/* いま左パネルに適用されている候補の強調(依頼: isApplied)。枠色+背景の変更に加え、
-	   下の.candidate-list-item-applied-badge(✓ 適用中というテキスト)を必ず併記する
-	   (WCAG 1.4.1、色だけで意味を伝えない)。 */
+	/* UI改修依頼(2026-08-05)「適用中はカードのハイライトだけで示す」対応。
+	   支援技術向けの状態は動的要素のaria-currentで示す。 */
 	#damage-detail-panel-body .candidate-list-item.is-applied {
 		border-color: var(--color-primary);
 		border-width: 2px;
 		padding: calc(var(--space-2) - 1px) calc(var(--space-3) - 1px);
 		background: var(--color-primary-soft);
-	}
-	#damage-detail-panel-body .candidate-list-item-applied-badge {
-		color: var(--color-primary-strong);
-		font-weight: 700;
-		font-size: var(--font-size-xs);
 	}
 	#damage-detail-panel-body .candidate-list-item-segment {
 		display: flex;
@@ -300,7 +316,8 @@
 		display: flex;
 		flex-wrap: wrap;
 		gap: 0 var(--space-3);
-		font-weight: 700;
+		/* UI改修依頼(2026-08-05)「耐久カードのステータスを一段細くする」対応。 */
+		font-weight: 600;
 	}
 	#damage-detail-panel-body .candidate-list-item-stat {
 		white-space: nowrap;

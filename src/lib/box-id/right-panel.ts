@@ -21,6 +21,7 @@
 // #opponent-notes-section と常に同時にSSR描画されるため、ガードの共有は安全)。
 import { el, readEv } from "../owned-pokemon-form";
 import { officialArtworkUrl } from "../pokemon-master-data";
+import { typeIconUrl } from "../sprite-urls";
 import {
 	applySprite,
 	scheduleRowCalc,
@@ -83,11 +84,24 @@ let detailPanelTitleEl: HTMLElement;
 let detailPanelCloseButton: HTMLButtonElement;
 let detailBackdropEl: HTMLElement;
 
-type AutoInputLocks = { critical?: boolean; weather?: boolean; terrain?: boolean };
-const autoInputLocks = new WeakMap<DamageColumnState, AutoInputLocks>();
-const moveCritRatiosPromise: Promise<Map<string, number>> = fetch("/master-data/detail/moves.json")
+type AutoInputState = {
+	critical?: boolean;
+	weather?: boolean;
+	terrain?: boolean;
+	automaticWeather?: string;
+	automaticTerrain?: string;
+};
+const autoInputLocks = new WeakMap<DamageColumnState, AutoInputState>();
+type MoveAutoInputDetail = { critRatio: number; type: string | null };
+const moveAutoInputDetailsPromise: Promise<Map<string, MoveAutoInputDetail>> = fetch("/master-data/detail/moves.json")
 	.then((response) => response.json())
-	.then((moves: Array<{ name: string; critRatio?: number }>) => new Map(moves.map((move) => [move.name, move.critRatio ?? 0])));
+	.then((moves: Array<{ name: string; critRatio?: number; type?: string | null }>) =>
+		new Map(moves.map((move) => [move.name, { critRatio: move.critRatio ?? 0, type: move.type ?? null }])),
+	)
+	.catch((error) => {
+		console.warn("技の急所・タイプ情報の読み込みに失敗しました", error);
+		return new Map<string, MoveAutoInputDetail>();
+	});
 const abilityFieldMap: Record<string, { key: "weather" | "terrain"; value: string }> = {
 	あめふらし: { key: "weather", value: "あめ" },
 	ひでり: { key: "weather", value: "はれ" },
@@ -101,8 +115,16 @@ const abilityFieldMap: Record<string, { key: "weather" | "terrain"; value: strin
 
 function applyAutomaticField(row: DamageRowState, column: DamageColumnState, abilityName: string): void {
 	const field = abilityFieldMap[abilityName];
-	if (!field || autoInputLocks.get(column)?.[field.key]) return;
+	if (!field) return;
+	const state = autoInputLocks.get(column) ?? {};
+	const automaticKey = field.key === "weather" ? "automaticWeather" : "automaticTerrain";
+	// UI改修依頼(2026-08-05)「特性による天候・フィールドの自動入力」対応。
+	// 保存済みなどの既存値は空でない限り上書きせず、この処理が直前に自動設定した値だけは
+	// 後から確定した側の特性で更新する。ユーザーが操作した後は上の手動ロックを優先する。
+	if (state[field.key] || (column[field.key] !== "" && column[field.key] !== state[automaticKey])) return;
 	column[field.key] = field.value;
+	state[automaticKey] = field.value;
+	autoInputLocks.set(column, state);
 	scheduleRowCalc(row);
 	scheduleRowSave(row);
 	refreshRowConditionChips(row);
@@ -110,7 +132,7 @@ function applyAutomaticField(row: DamageRowState, column: DamageColumnState, abi
 
 /** 技・相手特性の入力イベントからだけ呼び、自動入力が初期復元時に勝手に走らないようにする。 */
 export async function notifyDetailMoveChanged(row: DamageRowState, column: DamageColumnState): Promise<void> {
-	const ratio = (await moveCritRatiosPromise).get(column.moveName.trim()) ?? 0;
+	const ratio = (await moveAutoInputDetailsPromise).get(column.moveName.trim())?.critRatio ?? 0;
 	// jpokeの急所ランク3は確率1。技名リストではなくマスターのcritRatioを正とする。
 	if (ratio >= 3 && !autoInputLocks.get(column)?.critical) {
 		column.critical = true;
@@ -381,16 +403,13 @@ function buildStatCardEl(spec: StatCardSpec): HTMLElement {
 	card.className = "candidate-list-item stat-card";
 	if (spec.isCurrent) card.classList.add("is-current");
 	if (spec.isApplied) card.classList.add("is-applied");
+	// UI改修依頼(2026-08-05)「適用中はハイライトだけで示す」対応。
+	// 視覚上の文言は足さず、選択可能なカードの現在状態を支援技術へ伝える。
+	if (spec.onSelect) card.setAttribute("aria-current", spec.isApplied ? "true" : "false");
 	if (spec.flags?.some((flag) => flag.kind === "warn")) card.classList.add("has-warn-flag");
 	// 依頼4: 指数値はカード本文に出さずtitle属性のツールチップにする。
 	if (spec.scoreTooltip) card.title = spec.scoreTooltip;
 
-	if (spec.isApplied) {
-		const appliedBadge = document.createElement("span");
-		appliedBadge.className = "candidate-list-item-applied-badge";
-		appliedBadge.textContent = "✓ 適用中";
-		card.appendChild(appliedBadge);
-	}
 	if (spec.isCurrent && spec.showCurrentBadge !== false) {
 		const currentBadge = document.createElement("span");
 		currentBadge.className = "candidate-list-item-current-badge";
@@ -607,13 +626,29 @@ export function renderBulkAdjustResults(
 	onSelectCandidate: (candidate: DurabilityCandidate) => void,
 ): void {
 	let filterRemainingOnly = false; // 依頼7: デフォルトOFF
+	// UI改修依頼(2026-08-05)「元のステータスを候補と同じ経路で選択」対応。
+	// 一覧を開いた時点の値を候補型として保持し、適用後もこの配分へ戻せるようにする。
+	const originalApplied = currentAppliedNatureAndEvs();
+	const originalCandidate: DurabilityCandidate = {
+		nature: originalApplied.nature,
+		evs: { hp: originalApplied.hp, def: originalApplied.def, spd: originalApplied.spd },
+		searchedEvTotal: originalApplied.hp + originalApplied.def + originalApplied.spd,
+		totalEv: STAT_KEYS.reduce((sum, key) => sum + readEv(key), 0),
+		realStats: {
+			hp: readCurrentRealStat("hp") ?? 0,
+			def: readCurrentRealStat("def") ?? 0,
+			spd: readCurrentRealStat("spd") ?? 0,
+		},
+		exceedsChampionsCap: STAT_KEYS.reduce((sum, key) => sum + readEv(key), 0) > 66,
+	};
+	const originalAbility = el<HTMLSelectElement>("ability").value.trim();
 	// 候補クリック直後・トグル変更直後に再描画してisApplied(適用中マーク)や絞り込みを
 	// 更新できるよう、redraw自身をクロージャの中で自己参照する(lastCandidateListRedrawに
 	// 登録する値と、クリック/トグルハンドラから呼ぶ値が同じ関数になる)。
 	const redraw = (): void => {
 		lastCandidateListRedraw = redraw;
 		renderStatCardList(
-			buildBulkAdjustStatCardView(result, onSelectCandidate, redraw, filterRemainingOnly, (checked) => {
+			buildBulkAdjustStatCardView(result, originalCandidate, originalAbility, onSelectCandidate, redraw, filterRemainingOnly, (checked) => {
 				filterRemainingOnly = checked;
 				redraw();
 			}),
@@ -624,6 +659,8 @@ export function renderBulkAdjustResults(
 
 function buildBulkAdjustStatCardView(
 	result: SolveResult,
+	originalCandidate: DurabilityCandidate,
+	originalAbility: string,
 	onSelectCandidate: (candidate: DurabilityCandidate) => void,
 	redraw: () => void,
 	filterRemainingOnly: boolean,
@@ -636,13 +673,16 @@ function buildBulkAdjustStatCardView(
 	// 数学的に同値(66-固定A/C/S = 残り努力値)。既存の判定を再利用し、同じ条件の
 	// 実装を二重に持たない。
 	const allCandidates = infeasible ? [] : result.candidates;
-	const visibleCandidates = filterRemainingOnly
+	const filteredCandidates = filterRemainingOnly
 		? allCandidates.filter((c) => !c.exceedsChampionsCap)
 		: allCandidates;
-	const hiddenCount = allCandidates.length - visibleCandidates.length;
+	const hiddenCount = allCandidates.length - filteredCandidates.length;
+	// UI改修依頼(2026-08-05)「元のステータス + 上位10件だけ表示」対応。
+	// ソルバーの昇順契約を保ったまま表示側で上限を設ける。
+	const visibleCandidates = filteredCandidates.slice(0, 10);
 
 	// 要件: 合計努力値の少ない順(solveDurability()側がsearchedEvTotal昇順で返す契約なので、
-	// このファイルでの並び替えは不要。noteでその意味を可視化する)。
+	// このファイルでの並び替えは不要。
 	const flatCards: StatCardSpec[] = visibleCandidates.map((candidate) => {
 		const flags: StatCardSpec["flags"] = [];
 		if (candidate.exceedsChampionsCap) {
@@ -674,19 +714,35 @@ function buildBulkAdjustStatCardView(
 	});
 
 	return {
-		heading: "耐久調整の結果",
-		note: "合計努力値の少ない順",
+		heading: "耐久調整",
 		filterToggle: {
 			label: "残り努力値以下のみ表示",
 			checked: filterRemainingOnly,
 			onChange: onFilterChange,
 		},
-		// 依頼9: 現在のステータスも同じカードデザインで一覧の先頭に配置する。
-		currentCard: buildCurrentStatusStatCard(),
+		// UI改修依頼(2026-08-05)「元カードの見出し外出し・特性表示・選択対応」。
+		currentCard: {
+			rows: [
+				{ label: "H", real: originalCandidate.realStats.hp, ev: originalCandidate.evs.hp },
+				{ label: "B", real: originalCandidate.realStats.def, ev: originalCandidate.evs.def },
+				{ label: "D", real: originalCandidate.realStats.spd, ev: originalCandidate.evs.spd },
+			],
+			badge: originalAbility || "特性なし",
+			isCurrent: true,
+			showCurrentBadge: false,
+			isApplied:
+				originalCandidate.nature === applied.nature &&
+				originalCandidate.evs.hp === applied.hp &&
+				originalCandidate.evs.def === applied.def &&
+				originalCandidate.evs.spd === applied.spd,
+			onSelect: () => {
+				onSelectCandidate(originalCandidate);
+				redraw();
+			},
+		},
+		currentCardHeading: "元のステータス",
 		flatCards,
-		truncatedNote: result.truncated
-			? `候補が多いため ${result.candidates.length} 件で打ち切りました。`
-			: filterRemainingOnly && hiddenCount > 0
+		truncatedNote: filterRemainingOnly && hiddenCount > 0
 				? `努力値上限(66)超過のため ${hiddenCount} 件を隠しています。`
 				: undefined,
 		emptyMessage: infeasible
@@ -723,7 +779,7 @@ function buildDurabilityIndexStatCardView(
 	redraw: () => void,
 ): StatCardListView {
 	return {
-		heading: "耐久指数を最大化する",
+		heading: "耐久指数の最大化",
 		// 依頼5: 現在のステータスも同じカードデザインで一覧の先頭に配置する。
 		currentCard: buildCurrentStatusStatCard(),
 		// 依頼6: 指数名(見出し)→カードの繰り返し。
@@ -1451,6 +1507,20 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 		const moveText = document.createElement("span");
 		moveText.className = "damage-detail-selection-move";
 		moveText.textContent = moveName || "(技未設定)";
+		const moveTypeIcon = document.createElement("img");
+		moveTypeIcon.className = "damage-detail-selection-move-type-icon";
+		moveTypeIcon.alt = "";
+		moveTypeIcon.hidden = true;
+		// UI改修依頼(2026-08-05)「タイトル行に技タイプアイコンを表示」対応。
+		// 左パネルと同じtypeIconUrl()を使い、タイプ不明・画像読込失敗時は表示しない。
+		void moveAutoInputDetailsPromise.then((details) => {
+			const type = details.get(moveName)?.type;
+			const url = type ? typeIconUrl(type) : null;
+			if (!url) return;
+			moveTypeIcon.src = url;
+			moveTypeIcon.hidden = false;
+		});
+		moveTypeIcon.addEventListener("error", () => { moveTypeIcon.hidden = true; });
 
 		// 画像だけでは伝わらない情報(誰が攻撃/防御か、技名)をaria-label/titleで
 		// テキストとしても残す(WCAG 1.4.1、スクリーンリーダー利用者への退行を作らない)。
@@ -1459,7 +1529,7 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 		const fullText = `${attackerLabel} → ${defenderLabel} — ${moveName || "(技未設定)"}`;
 		heading.title = fullText;
 		heading.setAttribute("aria-label", fullText);
-		heading.append(selfIcon, selfIconFallback, arrow, opponentIcon, opponentIconFallback, moveText);
+		heading.append(selfIcon, selfIconFallback, arrow, opponentIcon, opponentIconFallback, moveTypeIcon, moveText);
 		return heading;
 	}
 	// 今回の要件: 選択中の技表示は本文ではなく共通ヘッダーバンドへ移す。
