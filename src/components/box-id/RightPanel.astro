@@ -33,14 +33,10 @@
 <div class="edit-layout-detail">
 	<aside id="damage-detail-panel" class="damage-detail-panel panel-right" aria-label="ダメージ計算の詳細設定">
 		<div class="damage-detail-panel-header">
-			{/* ラウンド23ユーザー指示(23-R1)「『詳細設定』と選択中カードのタイトルを削除」により
-			    <h2 class="damage-detail-panel-title">詳細設定</h2>を削除した(対応するCSSも
-			    .damage-detail-panel-titleごと削除済み)。どの技列を編集中かは技列側の選択強調
-			    (.damage-column.is-selected、primary実線+box-shadow)で判別できることを実機で
-			    確認した(閉じるボタンだけが残るため、ヘッダーのjustify-contentを
-			    space-between→flex-endに変更し右寄せに揃えた。下記damage-detail-panel-header
-			    のCSS参照)。閉じるボタン自体は残す(消すと1600px未満のオーバーレイを閉じられ
-			    なくなるため)。 */}
+			{/* 今回のUI改修: 3モード共通のタイトル帯として使い、動的な内容はright-panel.tsが差し替える。 */}
+			<div id="damage-detail-panel-title" class="damage-detail-panel-title" aria-live="polite"></div>
+			{/* 今回の要件で選択中の技表示と各結果タイトルを共通帯へ戻した。
+			    閉じるボタンは1600px未満のオーバーレイを閉じるため引き続き残す。 */}
 			{/* 1600px未満ではオーバーレイ化するため閉じるボタンを表示する
 			    (1600px以上の3カラム表示では常時可視のパネルなのでCSSで隠す)。 */}
 			<button type="button" id="damage-detail-panel-close" class="btn-ghost damage-detail-panel-close" aria-label="詳細設定を閉じる">×</button>
@@ -108,21 +104,20 @@
 	.damage-detail-panel-header {
 		display: flex;
 		align-items: center;
-		/* ラウンド23ユーザー指示(23-R1): 「詳細設定」の見出し(.damage-detail-panel-title)を
-		   削除したため、閉じるボタン1つだけが残る。space-betweenのままだと単独の子要素は
-		   flex-start(左)に寄ってしまい、閉じるボタンとして不自然な位置になるため
-		   flex-endに変え右寄せにする。 */
-		justify-content: flex-end;
+		/* 今回の要件: 左にタイトル、右に閉じるボタンを置く共通帯にする。 */
+		justify-content: space-between;
 		gap: 0.5rem;
 		/* ラウンド12指摘(A-5): 3カラム1行目の縦位置が左y=97/中央y=89/右y=79とバラバラ
 		   だった。右側(このパネル見出し)はpadding-topが0.9remで最も浅く、中央カラム
 		   (ダメージ計算カード、y=89)に合わせて1.5remへ広げる。1600px未満のオーバーレイ表示
 		   (このパネルがposition:fixedになる@media側)でも同じ値がそのまま効く
 		   (別のpadding上書きが無いことを確認済み)。 */
-		padding: 1.5rem 1rem 0.7rem;
+		padding: var(--space-3) var(--space-4);
+		background: var(--color-surface-alt);
 		border-bottom: 1px solid var(--color-border);
 		flex-shrink: 0;
 	}
+	.damage-detail-panel-title { min-width: 0; flex: 1 1 auto; font-weight: 700; }
 	.damage-detail-panel-close { font-size: 1.1rem; padding: 0.2em 0.55em; }
 	/* UI改善ラウンド29(29-R1)「右パネルの余剰空白」: 密な状態(カード4枚)でも中身が
 	   .damage-detail-sides下端で終わり、パネル下端まで331pxが完全な空白になっていた。
@@ -189,14 +184,7 @@
 		/* 1600px以上では常時表示のパネルなので閉じるボタン・背景オーバーレイは不要。 */
 		.damage-detail-panel-close { display: none; }
 		.damage-detail-backdrop { display: none !important; }
-		/* 🔴 UI改善ラウンド28ユーザー指示(28-R1)「天候の上の空白領域を削除」:
-		   .damage-detail-panel-headerは閉じるボタン(#damage-detail-panel-close)だけを
-		   持つ帯だが、この幅(常時表示パネル)ではそのボタン自体が上のルールで
-		   display:noneになり実質空の36px帯として残っていた。ヘッダーごと消す
-		   (中の#damage-detail-panel-closeのDOM・IDは削除しない。1600px未満の
-		   オーバーレイ表示では、このmediaブロックの外なので従来どおりヘッダーごと
-		   表示され閉じるボタンが機能する)。 */
-		.damage-detail-panel-header { display: none; }
+		/* 今回のUI改修: 閉じるボタンが隠れるデスクトップでも、3モード共通のタイトル帯は残す。 */
 	}
 </style>
 
@@ -317,14 +305,13 @@
 	#damage-detail-panel-body .candidate-list-item-stat {
 		white-space: nowrap;
 	}
-	/* 依頼5・9: 「現在のステータス」カードはクリック不可の<div>(button化しない)。
-	   候補カードと視覚的に区別するため、hoverしても枠色を変えない
-	   (button版の :hover/:focus-visible { border-color: var(--color-primary) } を打ち消す)。 */
-	#damage-detail-panel-body .candidate-list-item.is-current {
+	/* 今回の要件: 耐久最大化の元カードはbutton化する。クリック処理の無い他モードの
+	   divカードだけは従来どおり非操作表示にする。 */
+	#damage-detail-panel-body div.candidate-list-item.is-current {
 		cursor: default;
 	}
-	#damage-detail-panel-body .candidate-list-item.is-current:hover,
-	#damage-detail-panel-body .candidate-list-item.is-current:focus-visible {
+	#damage-detail-panel-body div.candidate-list-item.is-current:hover,
+	#damage-detail-panel-body div.candidate-list-item.is-current:focus-visible {
 		border-color: var(--color-border);
 	}
 	#damage-detail-panel-body .candidate-list-item-current-badge,

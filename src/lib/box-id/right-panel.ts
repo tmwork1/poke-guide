@@ -79,8 +79,49 @@ import type { DurabilityIndexCandidate, DurabilityIndexKind, MaximizeResult } fr
 // 値・取得内容は一切変えていない。
 let detailPanelEl: HTMLElement;
 let detailPanelBodyEl: HTMLElement;
+let detailPanelTitleEl: HTMLElement;
 let detailPanelCloseButton: HTMLButtonElement;
 let detailBackdropEl: HTMLElement;
+
+type AutoInputLocks = { critical?: boolean; weather?: boolean; terrain?: boolean };
+const autoInputLocks = new WeakMap<DamageColumnState, AutoInputLocks>();
+const moveCritRatiosPromise: Promise<Map<string, number>> = fetch("/master-data/detail/moves.json")
+	.then((response) => response.json())
+	.then((moves: Array<{ name: string; critRatio?: number }>) => new Map(moves.map((move) => [move.name, move.critRatio ?? 0])));
+const abilityFieldMap: Record<string, { key: "weather" | "terrain"; value: string }> = {
+	あめふらし: { key: "weather", value: "あめ" },
+	ひでり: { key: "weather", value: "はれ" },
+	すなおこし: { key: "weather", value: "すなあらし" },
+	ゆきふらし: { key: "weather", value: "ゆき" },
+	エレキメイカー: { key: "terrain", value: "エレキフィールド" },
+	グラスメイカー: { key: "terrain", value: "グラスフィールド" },
+	サイコメイカー: { key: "terrain", value: "サイコフィールド" },
+	ミストメイカー: { key: "terrain", value: "ミストフィールド" },
+};
+
+function applyAutomaticField(row: DamageRowState, column: DamageColumnState, abilityName: string): void {
+	const field = abilityFieldMap[abilityName];
+	if (!field || autoInputLocks.get(column)?.[field.key]) return;
+	column[field.key] = field.value;
+	scheduleRowCalc(row);
+	scheduleRowSave(row);
+	refreshRowConditionChips(row);
+}
+
+/** 技・相手特性の入力イベントからだけ呼び、自動入力が初期復元時に勝手に走らないようにする。 */
+export async function notifyDetailMoveChanged(row: DamageRowState, column: DamageColumnState): Promise<void> {
+	const ratio = (await moveCritRatiosPromise).get(column.moveName.trim()) ?? 0;
+	// jpokeの急所ランク3は確率1。技名リストではなくマスターのcritRatioを正とする。
+	if (ratio >= 3 && !autoInputLocks.get(column)?.critical) {
+		column.critical = true;
+		scheduleRowCalc(row);
+		scheduleRowSave(row);
+		refreshRowConditionChips(row);
+	}
+}
+export function notifyDetailAbilityChanged(row: DamageRowState, abilityName: string): void {
+	for (const column of row.attacks) applyAutomaticField(row, column, abilityName);
+}
 
 export function isWideSidebarLayout(): boolean {
 	return window.matchMedia("(min-width: 1600px)").matches;
@@ -95,6 +136,11 @@ export function openDetailPanelOverlayIfNarrow(): void {
 export function closeDetailPanelOverlay(): void {
 	detailPanelEl.classList.remove("is-open");
 	detailBackdropEl.hidden = true;
+}
+
+/** 3モードで共用する帯を更新する。本文側に見出しを重複させないため描画入口で必ず呼ぶ。 */
+function setDetailPanelTitle(title: string | Node): void {
+	detailPanelTitleEl.replaceChildren(title);
 }
 
 // 空状態(要件9: 未選択時の見せ方)。ページ表示直後・行削除直後もこれを表示する。
@@ -244,8 +290,8 @@ export function renderCandidateList(view: CandidateListView): void {
 // 出さず、カードのtitle属性(ホバーツールチップ)で整数表示する(依頼4)。見出し(指数名)は
 // 既存の.field-labelを流用したサブタイトルフォントで、見出し→カードを繰り返す構成にできる
 // (依頼6、groups)。耐久調整のように見出しを持たないフラットな一覧(依頼7・9、flatCards)にも
-// 対応する。現在のステータス(努力値変更前の実測値)は一覧の先頭に同じカードデザインで
-// 固定表示できる(依頼5・9、currentCard。クリック不可のため<div>で作る)。
+// 対応する。基準ステータスは一覧の先頭に同じカードデザインで固定表示でき、onSelectを
+// 渡したモードでは候補と同じbuttonとして元配分の復元にも使える。
 // ⚠️ 既存の renderCandidateList/CandidateListItem(性格・努力値・実数値を別行で見せる
 // 従来形式)は削除・変更しない。left-panel.ts(耐久指数最大化ボタンの配線、
 // runDurabilityIndexMaximize)がまだこの旧APIを直接呼んでおり、このファイルの担当範囲外
@@ -267,10 +313,12 @@ export interface StatCardSpec {
 	/** カード内の小さなバッジ(例: 耐久調整モードの性格名)。省略可。 */
 	badge?: string;
 	isApplied?: boolean;
-	/** 「現在のステータス」カード(先頭固定・クリック不可)かどうか(依頼5・9)。 */
+	/** 基準ステータスカードかどうか。操作可否はonSelectの有無で決める。 */
 	isCurrent?: boolean;
+	/** カード外に見出しを置く場合だけfalseにする。 */
+	showCurrentBadge?: boolean;
 	flags?: { icon: string; text: string; kind?: "warn" | "info" }[];
-	/** 現在のステータスカードはクリック不可のため省略する。 */
+	/** 省略時は表示専用div、指定時は候補と同じbuttonになる。 */
 	onSelect?: () => void;
 }
 export interface StatCardGroup {
@@ -288,6 +336,8 @@ export interface StatCardListView {
 	filterToggle?: { label: string; checked: boolean; onChange: (checked: boolean) => void };
 	/** 現在のステータスカード(先頭に固定表示、依頼5・9)。 */
 	currentCard?: StatCardSpec;
+	/** currentCardの直前に置く見出し。耐久最大化の「元のステータス」専用。 */
+	currentCardHeading?: string;
 	/** 見出し→カードの繰り返し(耐久最大化モード用、依頼6)。flatCardsと排他。 */
 	groups?: StatCardGroup[];
 	/** 見出し無しのフラットなカード列(耐久調整モード用、依頼7・8)。groupsと排他。 */
@@ -325,8 +375,7 @@ function buildCurrentStatusStatCard(): StatCardSpec | undefined {
 }
 
 function buildStatCardEl(spec: StatCardSpec): HTMLElement {
-	// クリック不可の「現在のステータス」カード等はボタンにしない(依頼5・9の
-	// isCurrent/onSelect省略時)。それ以外は既存のcandidate-list-itemと同じくbuttonにする。
+	// onSelectがある基準カードは候補と同じbuttonにし、無い表示専用カードだけdivにする。
 	const card = document.createElement(spec.onSelect ? "button" : "div");
 	if (spec.onSelect) (card as HTMLButtonElement).type = "button";
 	card.className = "candidate-list-item stat-card";
@@ -342,7 +391,7 @@ function buildStatCardEl(spec: StatCardSpec): HTMLElement {
 		appliedBadge.textContent = "✓ 適用中";
 		card.appendChild(appliedBadge);
 	}
-	if (spec.isCurrent) {
+	if (spec.isCurrent && spec.showCurrentBadge !== false) {
 		const currentBadge = document.createElement("span");
 		currentBadge.className = "candidate-list-item-current-badge";
 		currentBadge.textContent = "現在のステータス";
@@ -409,6 +458,7 @@ function buildFilterToggleEl(toggle: NonNullable<StatCardListView["filterToggle"
     detailPanelBodyElへ直接描画するだけの「dumb」な関数。フィルタトグルの状態管理・
     「何が適用中か」の再計算は呼び出し元(redrawクロージャ)が担う。 */
 export function renderStatCardList(view: StatCardListView): void {
+	setDetailPanelTitle(view.heading);
 	detailPanelBodyEl.innerHTML = "";
 	const inner = document.createElement("div");
 	inner.className = "damage-detail-panel-body-inner candidate-list-view";
@@ -418,11 +468,6 @@ export function renderStatCardList(view: StatCardListView): void {
 	if (view.filterToggle) {
 		inner.appendChild(buildFilterToggleEl(view.filterToggle));
 	}
-
-	const heading = document.createElement("p");
-	heading.className = "candidate-list-heading";
-	heading.textContent = view.heading;
-	inner.appendChild(heading);
 
 	if (view.context) {
 		const contextEl = document.createElement("p");
@@ -461,6 +506,13 @@ export function renderStatCardList(view: StatCardListView): void {
 
 	// 依頼5・9: 現在のステータスカードを一覧の先頭に固定表示する。
 	if (view.currentCard) {
+		if (view.currentCardHeading) {
+			// 今回の要件: 耐久最大化ではラベルをカード内でなくカード直前に示す。
+			const currentHeading = document.createElement("p");
+			currentHeading.className = "field-label candidate-list-group-title";
+			currentHeading.textContent = view.currentCardHeading;
+			listEl.appendChild(currentHeading);
+		}
 		listEl.appendChild(buildStatCardEl(view.currentCard));
 	}
 
@@ -469,7 +521,8 @@ export function renderStatCardList(view: StatCardListView): void {
 		for (const group of view.groups!) {
 			const titleEl = document.createElement("p");
 			titleEl.className = "field-label candidate-list-group-title";
-			titleEl.textContent = group.title;
+			// 今回の要件: 指数名と式の間を空け、式を囲む外側の丸括弧だけを除く。
+			titleEl.textContent = group.title.replace(/^(.+?)\((.*)\)$/, "$1 $2");
 			if (group.titleHelp) titleEl.title = group.titleHelp;
 			listEl.appendChild(titleEl);
 			listEl.appendChild(buildStatCardEl(group.card));
@@ -510,6 +563,7 @@ export function renderDetailPanelEmpty(): void {
 		lastCandidateListRedraw();
 		return;
 	}
+	setDetailPanelTitle("");
 	detailPanelBodyEl.innerHTML = "";
 	const inner = document.createElement("div");
 	inner.className = "damage-detail-panel-body-inner";
@@ -669,9 +723,7 @@ function buildDurabilityIndexStatCardView(
 	redraw: () => void,
 ): StatCardListView {
 	return {
-		heading: "耐久指数最大化",
-		context: `現在の努力値: H${currentEvs.hp} B${currentEvs.def} D${currentEvs.spd}`,
-		note: "総合/物理/特殊それぞれの耐久指数を最大化する努力値配分",
+		heading: "耐久指数を最大化する",
 		// 依頼5: 現在のステータスも同じカードデザインで一覧の先頭に配置する。
 		currentCard: buildCurrentStatusStatCard(),
 		// 依頼6: 指数名(見出し)→カードの繰り返し。
@@ -724,9 +776,34 @@ export function renderDurabilityIndexResults(
 	getCurrentEvs: () => { hp: number; def: number; spd: number },
 	onSelectCandidate: (candidate: DurabilityIndexCandidate, kind: DurabilityIndexKind) => void,
 ): void {
+	// 今回の要件: 一覧を開いた時点の配分・実数値を保持し、候補適用後も「元」に戻せるようにする。
+	const originalEvs = getCurrentEvs();
+	const originalStats = {
+		hp: readCurrentRealStat("hp") ?? 0,
+		def: readCurrentRealStat("def") ?? 0,
+		spd: readCurrentRealStat("spd") ?? 0,
+	};
 	const redraw = (): void => {
 		lastCandidateListRedraw = redraw;
-		renderStatCardList(buildDurabilityIndexStatCardView(buildGroups(), getCurrentEvs(), onSelectCandidate, redraw));
+		const current = getCurrentEvs();
+		const view = buildDurabilityIndexStatCardView(buildGroups(), current, onSelectCandidate, redraw);
+		view.currentCard = {
+			rows: [
+				{ label: "H", real: originalStats.hp, ev: originalEvs.hp },
+				{ label: "B", real: originalStats.def, ev: originalEvs.def },
+				{ label: "D", real: originalStats.spd, ev: originalEvs.spd },
+			],
+			isCurrent: true,
+			showCurrentBadge: false,
+			isApplied: originalEvs.hp === current.hp && originalEvs.def === current.def && originalEvs.spd === current.spd,
+			onSelect: () => {
+				// 警告は出さず、候補カードと同じ適用経路で元配分へ戻す。
+				onSelectCandidate({ evs: originalEvs, realStats: originalStats, index: 0, addedEvTotal: 0, isCurrent: true }, "total");
+				setTimeout(redraw, 0);
+			},
+		};
+		view.currentCardHeading = "元のステータス";
+		renderStatCardList(view);
 	};
 	redraw();
 }
@@ -987,8 +1064,8 @@ export function buildSideSection(
 	// 廃止し、rankAilmentGroup直下のこのchipRow1つに統合する。
 	const chipRow = document.createElement("div");
 	chipRow.className = "damage-detail-chip-row";
-	rankAilmentGroup.appendChild(chipRow);
-	chipRow.appendChild(rankField);
+	// 今回の要件: ランクを独立した1段目、状態異常・テラスタルを次の段に分ける。
+	rankAilmentGroup.append(rankField, chipRow);
 
 	// 状態異常の<select>(「11-8の修正」ユーザー指示で、ラウンド11の
 	// アイコントグル化からリスト選択方式に戻した。選択肢が何個あっても表示は
@@ -1284,6 +1361,7 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 			"急所",
 			column.critical,
 			(pressed) => {
+				autoInputLocks.set(column, { ...autoInputLocks.get(column), critical: true });
 				applyToColumnField(() => { column.critical = pressed; });
 			},
 			{ title: "急所固定で計算する(攻撃側だけの設定です)" },
@@ -1384,7 +1462,8 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 		heading.append(selfIcon, selfIconFallback, arrow, opponentIcon, opponentIconFallback, moveText);
 		return heading;
 	}
-	contentWrap.appendChild(buildSelectionHeadingRow());
+	// 今回の要件: 選択中の技表示は本文ではなく共通ヘッダーバンドへ移す。
+	setDetailPanelTitle(buildSelectionHeadingRow());
 
 	// 🔴 ラウンド23ユーザー指示(23-R3)「攻撃側と防御側の設定は、パネルを左右2分割して
 	// 並べて配置」で導入した2列gridは、ラウンド27ユーザー指示(27-R1)により撤回した
@@ -1551,7 +1630,10 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 	const weatherGroup = buildIconToggleGroup(
 		DAMAGE_WEATHERS,
 		column.weather,
-		(value) => { applyToColumnField(() => { column.weather = value; }); },
+		(value) => {
+			autoInputLocks.set(column, { ...autoInputLocks.get(column), weather: true });
+			applyToColumnField(() => { column.weather = value; });
+		},
 		"天候",
 	);
 	weatherGroup.classList.add("is-row4");
@@ -1567,7 +1649,10 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 	const terrainGroup = buildIconToggleGroup(
 		DAMAGE_TERRAINS,
 		column.terrain,
-		(value) => { applyToColumnField(() => { column.terrain = value; }); },
+		(value) => {
+			autoInputLocks.set(column, { ...autoInputLocks.get(column), terrain: true });
+			applyToColumnField(() => { column.terrain = value; });
+		},
 		"フィールド",
 	);
 	terrainGroup.classList.add("is-row4");
@@ -1600,6 +1685,7 @@ export function deselectRowIfCurrent(row: DamageRowState): void {
 export function initRightPanel(): void {
 	detailPanelEl = el<HTMLElement>("damage-detail-panel");
 	detailPanelBodyEl = el<HTMLElement>("damage-detail-panel-body");
+	detailPanelTitleEl = el<HTMLElement>("damage-detail-panel-title");
 	detailPanelCloseButton = el<HTMLButtonElement>("damage-detail-panel-close");
 	detailBackdropEl = el<HTMLElement>("damage-detail-backdrop");
 	detailPanelCloseButton.addEventListener("click", closeDetailPanelOverlay);

@@ -93,6 +93,8 @@ import {
 	renderColumnLevelDetailPanel,
 	openDetailPanelOverlayIfNarrow,
 	initRightPanel,
+	notifyDetailMoveChanged,
+	notifyDetailAbilityChanged,
 } from "./right-panel";
 
 // もともとはラウンド4ユーザー指示「技の詳細はリンクではなくホバー表示にする」用に
@@ -228,7 +230,8 @@ function cycleColumnNature(row: DamageRowState, key: StatKey): void {
 // 上のファイル冒頭コメント参照)。
 export const DAMAGE_WEATHERS = [
 	{ value: "はれ", label: "はれ", icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4.5"/><line x1="12" y1="1.5" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22.5"/><line x1="4" y1="4" x2="5.8" y2="5.8"/><line x1="18.2" y1="18.2" x2="20" y2="20"/><line x1="1.5" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22.5" y2="12"/><line x1="4" y1="20" x2="5.8" y2="18.2"/><line x1="18.2" y1="5.8" x2="20" y2="4"/></svg>` },
-	{ value: "あめ", label: "あめ", icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 15.5a4 4 0 0 0 0-8 5.5 5.5 0 0 0-10.6 1.7A3.5 3.5 0 0 0 7 15.5z"/><line x1="9" y1="18" x2="9" y2="21"/><line x1="13" y1="18" x2="13" y2="21"/></svg>` },
+	// 今回のUI改修: 「あめ」は雲ではなく傘で即座に識別できるよう、同じ18px・線幅のSVGに揃える。
+	{ value: "あめ", label: "あめ", icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 0 1 18 0Z"/><path d="M12 12v6.5a2.5 2.5 0 0 0 5 0"/><path d="M12 3V1.5"/></svg>` },
 	{ value: "すなあらし", label: "すなあらし", icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 5c4 1.6 9 1.6 13 .3s4.5-1 4 .5"/><path d="M6 9.5c3 1.2 6.5 1.2 9.5 0s3.5-.9 3.7.2"/><path d="M8.5 14c2 1 4.2 1 6 0s2.6-.8 2.7.2"/><path d="M10.5 18.3c1.2.6 2.4.6 3.4 0"/><path d="M12 21.5v.8"/></svg>` },
 	{ value: "ゆき", label: "ゆき", icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="2" x2="12" y2="22"/><line x1="4" y1="7" x2="20" y2="17"/><line x1="4" y1="17" x2="20" y2="7"/></svg>` },
 ];
@@ -1771,6 +1774,8 @@ if (opponentNotesSection) {
 			moveInput.value = attack.moveName;
 			moveInput.addEventListener("input", () => {
 				row.attacks[index].moveName = moveInput.value;
+				// 今回の要件: 技が変わった瞬間だけ、critRatioに基づく確定急所の自動入力を試す。
+				void notifyDetailMoveChanged(row, row.attacks[index]);
 				// ラウンド21ユーザー指示(21-D6): 「マルチヒット技のデフォルトヒット回数はMax」。
 				// ここ(技名inputへのユーザーの生入力)は「新規にこの技へ切り替えた」瞬間そのものなので
 				// preferMax:trueを渡す。保存済みメモの復元(renderColumns初期描画、下の
@@ -2906,6 +2911,8 @@ if (opponentNotesSection) {
 		}
 		abilitySelect.addEventListener("change", () => {
 			row.abilityName = abilitySelect.value;
+			// 今回の要件: 相手特性変更時だけ、各技列の天候・フィールド自動入力を試す。
+			notifyDetailAbilityChanged(row, row.abilityName);
 			abilitySelect.title = abilitySelect.value;
 			// UI改善ラウンド46ユーザー指示(第30弾、A-1): 特性<select>のchangeイベントで
 			// row.abilityNameが変わるたびに折りたたみ左ブロックの特性行も追随させる。
@@ -3345,6 +3352,12 @@ if (opponentNotesSection) {
 
 	// --- 行一覧の状態・取得・追加 ---
 	let rows: DamageRowState[] = [];
+	// 今回の要件: 自分の特性変更時は全カードの全技列を対象にする。rowsを所有するこの層で
+	// 配線し、右パネル側には特性名と対象行だけを渡して状態管理の二重化を避ける。
+	el<HTMLSelectElement>("ability").addEventListener("change", (event) => {
+		const abilityName = (event.currentTarget as HTMLSelectElement).value;
+		for (const row of rows) notifyDetailAbilityChanged(row, abilityName);
+	});
 
 	// UI改修依頼(ダメージ計算カード、2026-08-04)「カードをドラッグ&ドロップで並び替え」。
 	// opponent_notesテーブルには並び順カラムが無いため、field(jsonb)のorder?: number
