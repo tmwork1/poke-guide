@@ -324,6 +324,20 @@ const isOptedOut = optOutRemainingText !== "";
 			white-space: nowrap;
 			cursor: pointer;
 		}
+		/* UI改修依頼(2026-08-05)「折りたたむ/展開ボタンを戻るボタンと同じ文字組みにし、
+		   折りたたむ/展開・非公開ボタンのhover時は背景を変えず文字色だけprimaryにする」対応。
+		   font-familyとletter-spacingは明示せず、戻るボタンと同様にbodyから継承する。 */
+		button#damage-collapse-toggle-button {
+			font-size: var(--font-size-md);
+			font-weight: 500;
+		}
+		button#damage-collapse-toggle-button:hover:not(:disabled) {
+			background: transparent;
+			color: var(--color-primary);
+		}
+		.collection-opt-out-toggle:hover:not(:has(.toggle-switch-input:disabled)) {
+			color: var(--color-primary);
+		}
 		.collection-opt-out-status {
 			color: var(--color-text-muted);
 		}

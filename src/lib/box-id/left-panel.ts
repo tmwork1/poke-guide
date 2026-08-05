@@ -1824,12 +1824,14 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 	const thead = document.createElement("thead");
 	const headerRow = document.createElement("tr");
 
-	function makeSortButton(label: string, key: SortKey): HTMLButtonElement {
+	function makeSortButton(label: string, key: SortKey, iconOnly = false): HTMLButtonElement {
 		const btn = document.createElement("button");
 		btn.type = "button";
 		btn.className = "move-picker-sort-btn";
 		btn.dataset.sortKey = key;
-		btn.textContent = label;
+		// UI改修依頼(2026-08-05)「タイプ・分類列はラベルを出さず、矢印だけでソートする」対応。
+		btn.textContent = iconOnly ? "" : label;
+		if (iconOnly) btn.setAttribute("aria-label", `${label}で並び替え`);
 		btn.addEventListener("click", () => {
 			if (sortKey === key) {
 				sortDir = sortDir === "asc" ? "desc" : "asc";
@@ -1847,14 +1849,19 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 		const th = document.createElement("th");
 		const top = document.createElement("div");
 		top.className = "move-picker-th";
-		top.appendChild(makeSortButton(label, key));
-		th.appendChild(top);
+		const iconOnlySort = key === "type" || key === "category";
+		const sortButton = makeSortButton(label, key, iconOnlySort);
 		if (filterEl) {
 			const filterWrap = document.createElement("div");
 			filterWrap.className = "move-picker-th-filter";
 			filterWrap.appendChild(filterEl);
-			th.appendChild(filterWrap);
+			// UI改修依頼(2026-08-05)「技名はソート→入力、タイプ・分類は入力→ソートの一段構成」対応。
+			if (iconOnlySort) top.append(filterWrap, sortButton);
+			else top.append(sortButton, filterWrap);
+		} else {
+			top.appendChild(sortButton);
 		}
+		th.appendChild(top);
 		return th;
 	}
 
