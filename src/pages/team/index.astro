@@ -636,7 +636,7 @@ const user = Astro.locals.user;
 						    追加」。選択肢は既知のレギュレーションと「すべて」を使う
 						    (2画面で絞り込みの語彙を揃える)。取得済みの一覧をクライアント側で絞る点も同じ。 */}
 						<div class="toolbar-item toolbar-regulation">
-							<label for="regulation-filter">レギュレーション</label>
+							<label class="field-label" for="regulation-filter">レギュレーション</label>
 							<select id="regulation-filter" class="field-control">
 								<option value="">すべて</option>
 								{REGULATIONS.map((r) => <option value={r}>{r}</option>)}
@@ -828,10 +828,12 @@ const user = Astro.locals.user;
 			}
 
 			// 🔴 UI改修依頼(チームトップ画面、2026-08-01)「レギュレーションによるフィルタを追加」。
-			// 既知のレギュレーション以外は「すべて」と同じ扱いにする。
+			// ""や廃止済み・未知の値は「すべて」と同じ扱いにする。クライアント側では
+			// フロントマターの定数を参照できないため、実際のselect選択肢を既知値の基準にする。
 			function matchesRegulation(t: Team): boolean {
 				const selected = regulationFilter.value;
-				if (!REGULATIONS.includes(selected as (typeof REGULATIONS)[number])) return true;
+				const isKnownSelection = Array.from(regulationFilter.options).some((option) => option.value === selected);
+				if (selected === "" || !isKnownSelection) return true;
 				return t.regulation === selected;
 			}
 
