@@ -44,30 +44,9 @@ const user = Astro.locals.user;
 		   (このツールバーがAppLayoutの共通<header class="app-topbar">の代わりを務める)。
 		   sticky/z-index/background/border-bottomはglobal.cssの.app-topbarと同じ値
 		   (新しい値は作らない)。 */
-		.panel-toolbar {
-			display: flex;
-			flex-wrap: wrap;
-			align-items: center;
-			gap: var(--space-3) var(--space-6);
-			padding: var(--space-3) var(--space-5);
-			position: sticky;
-			top: 0;
-			z-index: 20;
-			background: var(--color-surface);
-			border-bottom: 1px solid var(--color-border);
-		}
-		/* モバイル(900px未満)専用のサイドバー開閉ボタン。box/index.astroの
-		   .box-toolbar-menu-buttonと全く同じマークアップ・値を複製する
+		/* モバイル(900px未満)専用のサイドバー開閉ボタン。box/index.astroと同じ
+		   .toolbar-menu-buttonをglobal.cssで共有する
 		   (hideTopbar={true}によりAppLayout側のボタンが描画されなくなるため)。 */
-		.team-toolbar-menu-button {
-			padding: var(--space-2);
-			flex-shrink: 0;
-		}
-		@media (min-width: 900px) {
-			.team-toolbar-menu-button {
-				display: none;
-			}
-		}
 		/* UI改修依頼(チームトップ画面、2026-08-02)「ヘッダーの件数バッジを検索ボックスの左に置く」:
 		   旧topbar-statusスロットの件数バッジをツールバー右端(margin-left: auto)から検索ボックスの
 		   直前へ移動した(box/index.astroの同時改修と結果的に同じ配置になる)。ツールバー先頭寄りに
@@ -77,81 +56,24 @@ const user = Astro.locals.user;
 		.toolbar-count {
 			flex-shrink: 0;
 		}
-		.toolbar-item {
-			display: flex;
-			align-items: center;
-			gap: var(--space-2);
-		}
 		.toolbar-search {
 			flex: 0 1 26rem;
-		}
-		.search-input-wrap {
-			position: relative;
-			display: flex;
-			align-items: center;
-			flex: 1;
-		}
-		.search-input-wrap .search-icon {
-			position: absolute;
-			left: 0.7em;
-			color: var(--color-text-muted);
-			pointer-events: none;
 		}
 		.toolbar-search input {
 			width: 100%;
 			min-width: 12em;
-			padding-left: 2.1em;
 		}
 
 		/* UI改修依頼(2026-08-05)「お気に入りボタンは枠と背景を透明にし、選択時は星だけを黄色にする」対応。
-		   box/index.astroの.favorite-filter-toggleと同じ値をこのページのスコープへ意図的に複製する
-		   (Astroのscoped styleはページをまたいで共有されず、box側は担当外のため)。 */
-		.favorite-filter-toggle {
-			display: inline-flex;
-			align-items: center;
-			gap: 0.35em;
-			font-weight: 400;
-			background: transparent;
-			border-color: transparent;
-			color: var(--color-text-muted);
-		}
-		.favorite-filter-toggle:hover:not(:disabled) {
-			background: transparent;
-			border-color: transparent;
-			color: var(--color-text);
-		}
-		.favorite-filter-toggle[data-active="true"] {
-			background: transparent;
-			border-color: transparent;
-			color: var(--color-text);
-		}
-		.favorite-filter-toggle[data-active="true"] .favorite-filter-star {
-			color: var(--color-risky);
-		}
+		   当初はAstroのscoped styleがページをまたがないためbox/index.astroと同じ値を複製したが、
+		   一覧間で共有するためglobal.cssの.favorite-filter-toggleへ集約した。 */
 
 		/* UI改修依頼(チームトップ画面、2026-08-02)「セカンドトップバーのデザインをボックス画面に
 		   あわせる」: 「並べ替え」の<label>を削除し、box/index.astroの.sort-select-wrap/.sort-icon
 		   と同じ手法(検索欄の.search-input-wrap/.search-iconと同じ、position:absoluteのアイコン+
 		   select側padding-left)でソートアイコンをselectの左側に重ねる。 */
-		.sort-select-wrap {
-			position: relative;
-			display: flex;
-			align-items: center;
-			flex: 1;
-		}
-		.sort-select-wrap .sort-icon {
-			position: absolute;
-			left: 0.7em;
-			color: var(--color-text-muted);
-			pointer-events: none;
-		}
-		.toolbar-sort select {
-			padding-left: 2.1em;
-		}
 
 		@media (max-width: 640px) {
-			.panel-toolbar { flex-direction: column; align-items: stretch; }
-			.toolbar-item { width: 100%; margin-left: 0; }
 			.toolbar-search { flex-basis: auto; }
 			.toolbar-search input,
 			.toolbar-regulation select,
@@ -233,28 +155,6 @@ const user = Astro.locals.user;
 		}
 		#error-message { color: var(--color-danger-strong); }
 
-		.empty-state {
-			margin-top: var(--space-6);
-			padding: var(--space-7) var(--space-5);
-			border: 1px dashed var(--color-border);
-			border-radius: var(--radius-lg);
-			text-align: center;
-			color: var(--color-text-muted);
-		}
-		.empty-state-icon {
-			font-size: 2.4rem;
-			margin: 0 0 var(--space-2);
-		}
-		.empty-state-title {
-			margin: 0 0 var(--space-1);
-			font-size: var(--font-size-lg);
-			font-weight: 700;
-			color: var(--color-text);
-		}
-		.empty-state-hint {
-			margin: 0;
-			font-size: var(--font-size-sm);
-		}
 		#no-match-message.empty-state {
 			margin-top: var(--space-4);
 		}
@@ -588,9 +488,9 @@ const user = Astro.locals.user;
 						    AppLayout.astroが元々<header class="app-topbar">に持っていたハンバーガー
 						    ボタンと全く同じマークアップ(box/index.astroの複製)。id="app-sidebar-toggle"は
 						    変更しない(AppLayout.astro末尾の<script>がDOM上の位置を問わずgetElementByIdで
-						    拾って開閉処理を配線する)。デスクトップでは.team-toolbar-menu-button側のCSSで
+						    拾って開閉処理を配線する)。デスクトップでは.toolbar-menu-button側のCSSで
 						    非表示にする。 */}
-						<button type="button" class="team-toolbar-menu-button btn-ghost" id="app-sidebar-toggle" aria-controls="app-sidebar" aria-expanded="false" aria-label="メニューを開く">
+						<button type="button" class="toolbar-menu-button btn-ghost" id="app-sidebar-toggle" aria-controls="app-sidebar" aria-expanded="false" aria-label="メニューを開く">
 							<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 								<line x1="4" y1="7" x2="20" y2="7" /><line x1="4" y1="12" x2="20" y2="12" /><line x1="4" y1="17" x2="20" y2="17" />
 							</svg>

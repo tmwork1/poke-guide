@@ -434,20 +434,12 @@ const initialTeamJson = team
 			padding-bottom: 0;
 			margin-bottom: var(--space-3);
 		}
-		.search-input-wrap {
-			position: relative;
-			display: flex;
-			align-items: center;
-		}
-		.search-input-wrap .search-icon {
-			position: absolute;
-			left: 0.7em;
-			color: var(--color-text-muted);
-			pointer-events: none;
+		.team-select-search .search-input-wrap {
+			/* global.cssの一覧用flex伸長をこの縦積み検索欄へ持ち込まず、従来の初期値を維持する。 */
+			flex: initial;
 		}
 		#pokemon-search-input {
 			width: 100%;
-			padding-left: 2.1em;
 		}
 		/* UI改修依頼(チーム編集左パネル)「ソート機能を追加する」。box/index.astroの
 		   .sort-select-wrap/.sort-icon/.toolbar-sort selectと同じ値(アイコン左重畳+
@@ -531,20 +523,12 @@ const initialTeamJson = team
 			min-width: 0;
 		}
 		.team-select-sort .sort-select-wrap {
-			position: relative;
-			display: flex;
-			align-items: center;
 			height: 100%;
-		}
-		.team-select-sort .sort-select-wrap .sort-icon {
-			position: absolute;
-			left: 0.7em;
-			color: var(--color-text-muted);
-			pointer-events: none;
+			/* global.cssの一覧用flex伸長を持ち込まず、従来の初期値を維持する。 */
+			flex: initial;
 		}
 		.team-select-sort select {
 			width: 100%;
-			padding-left: 2.1em;
 		}
 
 		.team-select-list-wrap {
@@ -578,28 +562,6 @@ const initialTeamJson = team
 		}
 
 		/* 選択バー内の空状態(0件/検索一致0件)。box/index.astroの.empty-stateと同じ語彙・見た目。 */
-		.empty-state {
-			margin-top: var(--space-4);
-			padding: var(--space-5) var(--space-3);
-			border: 1px dashed var(--color-border);
-			border-radius: var(--radius-lg);
-			text-align: center;
-			color: var(--color-text-muted);
-		}
-		.empty-state-icon {
-			font-size: 2rem;
-			margin: 0 0 var(--space-2);
-		}
-		.empty-state-title {
-			margin: 0 0 var(--space-1);
-			font-size: var(--font-size-md);
-			font-weight: 700;
-			color: var(--color-text);
-		}
-		.empty-state-hint {
-			margin: 0 0 var(--space-3);
-			font-size: var(--font-size-sm);
-		}
 
 		/* --- 中央カラム: チーム名・メモ + 6枠(R-11: .panel-contentで1080pxに収める) ---
 		   🔴 UI改修依頼(チーム編集画面、2026-08-02)「チームパネルの幅はポケモンカードが
@@ -871,13 +833,13 @@ const initialTeamJson = team
 							<p id="select-error-message" class="status-text" data-state="error" hidden>個体一覧の取得に失敗しました。時間をおいて再度お試しください。</p>
 							<div id="pokemon-select-list"></div>
 							{/* R-9: ボックス0件のときの空状態。/boxの.empty-stateと同じ語彙 + /boxへのリンク。 */}
-							<div id="select-empty-state" class="empty-state" hidden>
+							<div id="select-empty-state" class="empty-state is-compact" hidden>
 								<p class="empty-state-icon" aria-hidden="true">📦</p>
 								<p class="empty-state-title">ボックスに個体がありません</p>
 								<p class="empty-state-hint">先にボックスで個体を登録してください。</p>
 								<a class="btn-primary" href="/box">ボックスへ</a>
 							</div>
-							<div id="select-no-match-state" class="empty-state" hidden>
+							<div id="select-no-match-state" class="empty-state is-compact" hidden>
 								<p class="empty-state-icon" aria-hidden="true">🔍</p>
 								<p class="empty-state-title">条件に一致する個体がいません</p>
 								<p class="empty-state-hint">検索語を変更してください。</p>

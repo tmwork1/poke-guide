@@ -88,49 +88,20 @@ const user = Astro.locals.user;
 		   .panel-top(border-bottom: 1px solid var(--color-border))が既に同じ値を与えているため
 		   重複だが、「このツールバーがトップバーの役割を持つ」ことをこのファイル単体で読み取れる
 		   ようにするため明示しておく(削除しても見た目は変わらない)。 */
-		.panel-toolbar {
-			display: flex;
-			flex-wrap: wrap;
-			align-items: center;
-			gap: var(--space-3) var(--space-6);
-			padding: var(--space-3) var(--space-5);
-			position: sticky;
-			top: 0;
-			z-index: 20;
-			background: var(--color-surface);
-			border-bottom: 1px solid var(--color-border);
-		}
 		/* モバイル(900px未満)専用のサイドバー開閉ボタン。AppLayout.astroの
 		   .app-topbar-menu-button(id="app-sidebar-toggle")と全く同じマークアップをここに複製する
 		   (hideTopbar={true}によりAppLayout側のボタンが描画されなくなるため)。デスクトップは
 		   AppSidebarが常設されるため不要 = 900px以上で非表示にする(AppLayout.astro側の
 		   .app-topbar-menu-buttonと同じブレークポイント)。 */
-		.box-toolbar-menu-button {
-			padding: var(--space-2);
-			flex-shrink: 0;
-		}
-		@media (min-width: 900px) {
-			.box-toolbar-menu-button {
-				display: none;
-			}
-		}
 		/* UI改修依頼(ボックス画面、2026-08-02)「件数バッジ(#pokemon-count-badge)を
 		   現在の右端から検索ボックスの左へ移動する」。旧来はmargin-left: autoでツールバー
 		   右端に押し出していたが、マークアップ側で件数バッジをハンバーガーボタンの直後・
 		   検索ボックスの直前へ移動した(下記マークアップ参照)ため、右寄せの上書きは不要になり
 		   削除した。位置合わせは他の.toolbar-itemと同じflexの既定(左詰め)に任せる。 */
-		.toolbar-item {
-			display: flex;
-			align-items: center;
-			gap: var(--space-2);
-		}
 		/* .toolbar-item の display:flex は UA の [hidden]{display:none} に勝ってしまうため、
 		   ツールバー項目をhidden属性で隠したい場合に備えて明示的に打ち消しておく
 		   (ラウンド27 27-B3でタグ絞り込み欄自体は廃止したが、pitfalls.mdの既知の罠として
 		   この上書き自体は汎用的に維持する)。 */
-		.toolbar-item[hidden] {
-			display: none;
-		}
 
 		/* 検索欄: 入力の左側に虫眼鏡アイコン(SVG、AppLayoutのハンバーガーと同じ線画トーン)を重ねる。
 		   UI品質改善ラウンド2(B-2): ツールバーの右半分が空くのを解消するため、検索欄を
@@ -142,18 +113,6 @@ const user = Astro.locals.user;
 		   (ワイヤーフレームが左詰め構造であることを優先)。 */
 		.toolbar-search {
 			flex: 0 1 26rem;
-		}
-		.search-input-wrap {
-			position: relative;
-			display: flex;
-			align-items: center;
-			flex: 1;
-		}
-		.search-input-wrap .search-icon {
-			position: absolute;
-			left: 0.7em;
-			color: var(--color-text-muted);
-			pointer-events: none;
 		}
 		.toolbar-search input {
 			width: 100%;
@@ -170,30 +129,6 @@ const user = Astro.locals.user;
 		   #search-input/#sort-select/#regulation-filter(いずれも.field-control、フォント
 		   ウェイト未指定=ブラウザ既定400)と並ぶと太く見えていた。この素のbuttonだけ明示的に
 		   400へ上書きする(data-active時もbackground/色だけ変わり太さは変えない=常に400)。 */
-		.favorite-filter-toggle {
-			display: inline-flex;
-			align-items: center;
-			gap: 0.35em;
-			font-weight: 400;
-			/* UI改修依頼(2026-08-05)「枠線と背景を消し、状態は★の色だけで示す」対応。
-			   border自体は残して既存のツールバー部品との高さ・位置を維持する。 */
-			background: transparent;
-			border-color: transparent;
-			color: var(--color-text-muted);
-		}
-		.favorite-filter-toggle:hover:not(:disabled) {
-			background: transparent;
-			border-color: transparent;
-			color: var(--color-text);
-		}
-		.favorite-filter-toggle[data-active="true"] {
-			background: transparent;
-			border-color: transparent;
-			color: var(--color-text);
-		}
-		.favorite-filter-toggle[data-active="true"] .favorite-filter-star {
-			color: var(--color-risky);
-		}
 
 		/* UI品質改善ラウンド12 A-1: 旧 `.toolbar-sort { margin-left: auto }`(検索(左)—絞り込み(中)—
 		   並べ替え(右)の3分割、ラウンド2 B-2)は撤回。検索欄の幅を26remに絞ったことで、
@@ -204,21 +139,6 @@ const user = Astro.locals.user;
 		   (position:absoluteのアイコン+input側padding-leftをselect側に適用)を踏襲する。
 		   ラベル削除によるアクセシビリティ低下を防ぐため、<select>にaria-label="並べ替え"を付与する
 		   (マークアップ側、下記参照)。 */
-		.sort-select-wrap {
-			position: relative;
-			display: flex;
-			align-items: center;
-			flex: 1;
-		}
-		.sort-select-wrap .sort-icon {
-			position: absolute;
-			left: 0.7em;
-			color: var(--color-text-muted);
-			pointer-events: none;
-		}
-		.toolbar-sort select {
-			padding-left: 2.1em;
-		}
 		/* UI改修依頼(2026-08-05)「レギュレーションと並べ替えを最長選択肢に合う幅にする」対応。
 		   共通.field-controlのflex伸長を止め、select本来の選択肢基準の幅を使うことで、
 		   選択変更時にも幅が変わらないようにする。 */
@@ -230,8 +150,6 @@ const user = Astro.locals.user;
 		}
 
 		@media (max-width: 640px) {
-			.panel-toolbar { flex-direction: column; align-items: stretch; }
-			.toolbar-item { width: 100%; margin-left: 0; }
 			/* ラウンド12 A-1で `.toolbar-search { flex: 0 1 26rem }` に変更した後も、この
 			   flex-basis(26rem)は横並び(flex-direction: row)前提の値で、縦積みに切り替わる
 			   このブレークポイントでは主軸(縦方向)の基準値として
@@ -393,28 +311,6 @@ const user = Astro.locals.user;
 		/* 空状態(登録0件): 追加タイルの下に「何ができる画面か」を伝えるカードを添える。
 		   以前は表示条件の論理式が誤っており(allPokemon.length===0のときにhiddenへ倒れる式に
 		   なっていた)、本当に0件のときに何も表示されない状態だった。JS側の条件も併せて直した。 */
-		.empty-state {
-			margin-top: var(--space-6);
-			padding: var(--space-7) var(--space-5);
-			border: 1px dashed var(--color-border);
-			border-radius: var(--radius-lg);
-			text-align: center;
-			color: var(--color-text-muted);
-		}
-		.empty-state-icon {
-			font-size: 2.4rem;
-			margin: 0 0 var(--space-2);
-		}
-		.empty-state-title {
-			margin: 0 0 var(--space-1);
-			font-size: var(--font-size-lg);
-			font-weight: 700;
-			color: var(--color-text);
-		}
-		.empty-state-hint {
-			margin: 0;
-			font-size: var(--font-size-sm);
-		}
 		/* UI品質改善ラウンド2(B-9): 絞り込み/検索の結果が0件のときの案内(こちらは「登録自体は
 		   ある」ケース)。以前はグリッド内に(display:contentsを介して)1行テキストとして
 		   差し込んでいたため、縮んだ追加タイルの右横に宙に浮いて見えた。グリッドの外に置き、
@@ -1072,9 +968,9 @@ const user = Astro.locals.user;
 						{/* UI改修依頼(2026-08-02): AppLayout.astroが元々<header class="app-topbar">に
 						    持っていたハンバーガーボタンと全く同じマークアップ。id="app-sidebar-toggle"は
 						    変更しない(AppLayout.astro末尾の<script>がDOM上の位置を問わずgetElementByIdで
-						    拾って開閉処理を配線する)。デスクトップでは.box-toolbar-menu-button側のCSSで
+						    拾って開閉処理を配線する)。デスクトップでは.toolbar-menu-button側のCSSで
 						    非表示にする。 */}
-						<button type="button" class="box-toolbar-menu-button btn-ghost" id="app-sidebar-toggle" aria-controls="app-sidebar" aria-expanded="false" aria-label="メニューを開く">
+						<button type="button" class="toolbar-menu-button btn-ghost" id="app-sidebar-toggle" aria-controls="app-sidebar" aria-expanded="false" aria-label="メニューを開く">
 							<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 								<line x1="4" y1="7" x2="20" y2="7" /><line x1="4" y1="12" x2="20" y2="12" /><line x1="4" y1="17" x2="20" y2="17" />
 							</svg>

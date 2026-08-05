@@ -324,6 +324,106 @@ a {
 	margin-top: 0;
 }
 
+/* --- 一覧ページ共通ツールバー(/box・/team) ---
+   hideTopbar時に共通トップバーの代わりを務めるため、sticky・重なり順・背景・罫線は
+   .app-topbarと同じ既存値を使う。[hidden]はdisplay:flexに負ける既知の罠なので必ず打ち消す。 */
+.panel-toolbar {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--space-3) var(--space-6);
+	padding: var(--space-3) var(--space-5);
+	position: sticky;
+	top: 0;
+	z-index: 20;
+	background: var(--color-surface);
+	border-bottom: 1px solid var(--color-border);
+}
+
+.toolbar-item {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+}
+
+.toolbar-item[hidden] {
+	display: none;
+}
+
+/* hideTopbarでAppLayout側のボタンが描画されないため一覧ツールバー内に置く。
+   900px以上ではサイドバーが常設されるので非表示にする。 */
+.toolbar-menu-button {
+	padding: var(--space-2);
+	flex-shrink: 0;
+}
+
+.search-input-wrap,
+.sort-select-wrap {
+	position: relative;
+	display: flex;
+	align-items: center;
+	flex: 1;
+}
+
+.search-input-wrap .search-icon,
+.sort-select-wrap .sort-icon {
+	position: absolute;
+	left: 0.7em;
+	color: var(--color-text-muted);
+	pointer-events: none;
+}
+
+/* 検索・並べ替えアイコンを入力欄の左に重ねるための領域。両一覧で同じ既存値。 */
+.search-input-wrap input,
+.sort-select-wrap select {
+	padding-left: 2.1em;
+}
+
+/* タグ絞り込みを置き換えたお気に入りトグル。通常は枠・背景を透明にし、
+   選択時も太さを変えず星だけを既存の警告色にする。 */
+.favorite-filter-toggle {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.35em;
+	font-weight: 400;
+	background: transparent;
+	border-color: transparent;
+	color: var(--color-text-muted);
+}
+
+.favorite-filter-toggle:hover:not(:disabled) {
+	background: transparent;
+	border-color: transparent;
+	color: var(--color-text);
+}
+
+.favorite-filter-toggle[data-active="true"] {
+	background: transparent;
+	border-color: transparent;
+	color: var(--color-text);
+}
+
+.favorite-filter-toggle[data-active="true"] .favorite-filter-star {
+	color: var(--color-risky);
+}
+
+@media (min-width: 900px) {
+	.toolbar-menu-button {
+		display: none;
+	}
+}
+
+@media (max-width: 640px) {
+	.panel-toolbar {
+		flex-direction: column;
+		align-items: stretch;
+	}
+	.toolbar-item {
+		width: 100%;
+		margin-left: 0;
+	}
+}
+
 .panel h2 {
 	font-size: var(--font-size-lg);
 	line-height: var(--line-height-snug);
@@ -816,6 +916,53 @@ input[type="range"]:focus-visible::-moz-range-thumb {
 	color: var(--color-primary);
 }
 
+/* --- 空状態 ---
+   /boxの登録0件・検索一致0件を基準にした共通表示。以前の表示条件修正後も、
+   アイコン・タイトル・補足で「本当に0件」と絞り込み0件を伝える見た目を維持する。 */
+.empty-state {
+	margin-top: var(--space-6);
+	padding: var(--space-7) var(--space-5);
+	border: 1px dashed var(--color-border);
+	border-radius: var(--radius-lg);
+	text-align: center;
+	color: var(--color-text-muted);
+}
+
+.empty-state-icon {
+	font-size: 2.4rem;
+	margin: 0 0 var(--space-2);
+}
+
+.empty-state-title {
+	margin: 0 0 var(--space-1);
+	font-size: var(--font-size-lg);
+	font-weight: 700;
+	color: var(--color-text);
+}
+
+.empty-state-hint {
+	margin: 0;
+	font-size: var(--font-size-sm);
+}
+
+/* チーム編集の選択バー内は限られた幅に収めるため、従来の小型値を変種として維持する。 */
+.empty-state.is-compact {
+	margin-top: var(--space-4);
+	padding: var(--space-5) var(--space-3);
+}
+
+.empty-state.is-compact .empty-state-icon {
+	font-size: 2rem;
+}
+
+.empty-state.is-compact .empty-state-title {
+	font-size: var(--font-size-md);
+}
+
+.empty-state.is-compact .empty-state-hint {
+	margin-bottom: var(--space-3);
+}
+
 .move-inputs {
 	display: flex;
 	flex-wrap: wrap;
@@ -856,6 +1003,16 @@ a.btn-ghost {
 	cursor: pointer;
 	text-decoration: none;
 	transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+
+/* ページ側で27件重複していた同じリングを基底に置く。カード用の内側リング等は、
+   scoped styleの詳細度が勝つため従来どおりその指定が効く。 */
+button:focus-visible,
+a.btn-primary:focus-visible,
+a.btn-danger:focus-visible,
+a.btn-ghost:focus-visible {
+	outline: 2px solid var(--color-primary);
+	outline-offset: 2px;
 }
 
 button:hover:not(:disabled) {
