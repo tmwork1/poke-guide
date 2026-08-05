@@ -31,6 +31,7 @@ import { typeIconUrl, teraTypeIconUrl } from "../sprite-urls";
 import { isTerastalRegulation } from "../regulations";
 import { TYPE_COLORS, DEFAULT_TYPE_COLOR } from "../type-colors";
 import { type StatKey, STAT_KEYS, NATURE_STAT_MODIFIERS } from "../stats";
+import { classifyArchetype, type ArchetypeKey } from "../archetype";
 import {
 	applySprite,
 	applyTeraImage,
@@ -86,7 +87,8 @@ function loadRightPanel(): Promise<typeof import("./right-panel")> {
 // loadAutocomplete()はdatalistへ<option>を追記するだけで内部にキャッシュを持たない
 // (二重に呼ぶと候補が重複する)ため、呼び出し箇所はこの1箇所だけに保ち、Promiseを
 // 変数で保持してrebuildMoveListForSpecies側から待ち合わせに使う。
-const autocompleteReadyPromise = loadAutocomplete();
+// 純粋なsubject_key組み立てをNodeテストからimportできるよう、DOMの無い環境では副作用を起動しない。
+const autocompleteReadyPromise = typeof document === "undefined" ? Promise.resolve() : loadAutocomplete();
 
 const typesMapPromise = loadTypesMap();
 const moveTypeMapPromise = loadMoveTypeMap();
@@ -329,6 +331,24 @@ function suggestionSubjectKey(speciesName: string, regulation: string | null): s
 	return regulation ? `${speciesName}|${regulation}` : speciesName;
 }
 
+// 型キーはarchetype_idではなく、クライアントで分類した3要素をDBと同じ順序で連結する。
+// 規制指定時は型規制別→型横断→種族規制別→種族横断、未指定時は横断2段だけを返す。
+export function popularMoveSubjectKeys(
+	speciesName: string,
+	regulation: string | null,
+	archetype: ArchetypeKey | null,
+): { kind: string; subjectKey: string }[] {
+	const keys: { kind: string; subjectKey: string }[] = [];
+	if (archetype) {
+		const base = `${archetype.speciesName}|${archetype.itemName}|${archetype.role}`;
+		if (regulation) keys.push({ kind: "popular_move_archetype", subjectKey: `${base}|${regulation}` });
+		keys.push({ kind: "popular_move_archetype", subjectKey: base });
+	}
+	if (regulation) keys.push({ kind: "popular_move", subjectKey: `${speciesName}|${regulation}` });
+	keys.push({ kind: "popular_move", subjectKey: speciesName });
+	return keys;
+}
+
 async function fetchSuggestionPayload(
 	kind: string,
 	speciesName: string,
@@ -349,6 +369,27 @@ async function fetchSuggestionPayload(
 	if (!regulation || (scoped?.options.length ?? 0) > 0) return scoped;
 	// 規制別が空の場合だけAPI契約を変えず、subject_keyを種族名にして横断集計を再取得する。
 	return fetchBySubjectKey(speciesName);
+}
+
+async function fetchPopularMovePayload(
+	speciesName: string,
+	regulation: string | null,
+	archetype: ArchetypeKey | null,
+): Promise<SuggestionPayload | undefined> {
+	if (!speciesName) return undefined;
+	// 先に見つかった「optionsが非空」の集計だけを採用する。404/空payloadは次段へ進む。
+	for (const candidate of popularMoveSubjectKeys(speciesName, regulation, archetype)) {
+		try {
+			const res = await fetch(`/api/suggestions?kind=${candidate.kind}&subject_key=${encodeURIComponent(candidate.subjectKey)}&limit=1`);
+			if (!res.ok) continue;
+			const json = (await res.json()) as SuggestionApiResponse;
+			const payload = json.data?.[0]?.payload;
+			if ((payload?.options.length ?? 0) > 0) return payload;
+		} catch {
+			// 一段の通信失敗でも従来の種族集計までフォールバックできるよう継続する。
+		}
+	}
+	return undefined;
 }
 
 // 種族が変わるたびに最新のペイロードで上書きするキャッシュ。#item-dropdown-list等は
@@ -452,7 +493,11 @@ let onMoveSuggestionUpdated: (() => void) | null = null;
 
 // regulation: 編集中の個体のレギュレーション(#regulation の値。未指定は null)。
 // 種族が変わったときだけでなくレギュレーションが変わったときにも呼び直す必要がある。
-export async function loadPopularBuildSuggestions(speciesName: string, regulation: string | null): Promise<void> {
+export async function loadPopularBuildSuggestions(
+	speciesName: string,
+	regulation: string | null,
+	archetype: ArchetypeKey | null = null,
+): Promise<void> {
 	const name = speciesName.trim();
 	const token = ++popularBuildSuggestionsToken;
 	if (!name) {
@@ -467,7 +512,7 @@ export async function loadPopularBuildSuggestions(speciesName: string, regulatio
 		fetchSuggestionPayload("popular_nature", name, regulation),
 		fetchSuggestionPayload("popular_item", name, regulation),
 		fetchSuggestionPayload("popular_tera", name, regulation),
-		fetchSuggestionPayload("popular_move", name, regulation),
+		fetchPopularMovePayload(name, regulation, archetype),
 	]);
 	if (token !== popularBuildSuggestionsToken) return; // より新しい呼び出しに追い越された
 	lastNatureSuggestion = nature;
@@ -480,7 +525,7 @@ export async function loadPopularBuildSuggestions(speciesName: string, regulatio
 	onMoveSuggestionUpdated?.();
 }
 
-const form = document.getElementById("edit-form") as HTMLFormElement | null;
+const form = typeof document === "undefined" ? null : document.getElementById("edit-form") as HTMLFormElement | null;
 if (form) {
 	// UI改修依頼(個体編集画面、2026-08-03)「耐久指数最大化」ボタン(ステータス表の下、
 	// #durability-index-button)。静的マークアップ(LeftPanel.astro)では常にdisabledで
@@ -935,6 +980,8 @@ if (form) {
 		updateItemDropdownButton();
 		scheduleSave();
 		void recalcStats();
+		// 自動補完も持ち物変更なので、現在の型に対応する技人気を更新する。
+		schedulePopularBuildSuggestionsReload();
 		flashAutofillHint(itemInput, () => updateItemTitle());
 		// UI改善ラウンド41ユーザー指示(41-L1)で#item自体をhidden化したため、
 		// flashAutofillHint()がitemInputに付ける視覚的なハイライト(border-color+box-shadow)は
@@ -958,6 +1005,28 @@ if (form) {
 		return value === "" ? null : value;
 	}
 
+	function currentArchetype(): ArchetypeKey | null {
+		// IV=31・Lv50は本アプリの育成ルール。現在の編集値を分類器へそのまま渡す。
+		return classifyArchetype({
+			speciesName: speciesInput.value.trim(),
+			itemName: itemInput.value.trim(),
+			nature: currentLeftNature(),
+			evs: STAT_KEYS.map((key) => readEv(key)),
+			ivs: STAT_KEYS.map(() => 31),
+			moveNames: readMoveNames(),
+		});
+	}
+
+	function reloadPopularBuildSuggestions(): void {
+		void loadPopularBuildSuggestions(speciesInput.value.trim(), currentRegulation(), currentArchetype());
+	}
+	let suggestionReloadTimer: ReturnType<typeof setTimeout> | undefined;
+	function schedulePopularBuildSuggestionsReload(): void {
+		// スライダーや文字入力の連続操作ごとにAPIを叩かず、確定に近い最新値だけで型を再判定する。
+		if (suggestionReloadTimer) clearTimeout(suggestionReloadTimer);
+		suggestionReloadTimer = setTimeout(reloadPopularBuildSuggestions, 200);
+	}
+
 	// ①: レギュレーションが M-* のときはテラス欄を隠す(未指定・T-* のときは表示)。
 	// 隠すだけで #tera の値には触れない ── 別のレギュレーションに戻したときに
 	// 保存済みのテラスタイプがそのまま復帰するようにするため(値の破棄はしない、
@@ -978,7 +1047,7 @@ if (form) {
 		syncTeraFieldVisibility();
 		syncRegulationPlaceholder();
 		// ③: レギュレーションが変わると人気度の母集団そのものが変わるため取り直す。
-		void loadPopularBuildSuggestions(speciesInput.value.trim(), currentRegulation());
+		reloadPopularBuildSuggestions();
 	});
 	// ページ初期表示時にも1回そろえる(SSRと同じ結果になるはずだが、二重管理にしない)。
 	syncTeraFieldVisibility();
@@ -988,7 +1057,7 @@ if (form) {
 		void rebuildAbilityOptions(speciesInput.value.trim());
 		void applyLeftMegaStoneAutofill(speciesInput.value.trim());
 		// 匿名集計サジェスト機能・第5段階: 種族確定時に人気の性格/アイテム/テラス/技を取り直す。
-		void loadPopularBuildSuggestions(speciesInput.value.trim(), currentRegulation());
+		reloadPopularBuildSuggestions();
 	});
 	void rebuildAbilityOptions(speciesInput.value.trim());
 	// ページ初期表示時点(SSRで埋め込まれた現在の種族名)で既にメガシンカ種族の場合、
@@ -996,7 +1065,7 @@ if (form) {
 	void applyLeftMegaStoneAutofill(speciesInput.value.trim());
 	// 匿名集計サジェスト機能・第5段階: ページ初期化時(SSRで埋め込まれた現在の種族名)にも
 	// 1回呼ぶ。
-	void loadPopularBuildSuggestions(speciesInput.value.trim(), currentRegulation());
+	reloadPopularBuildSuggestions();
 
 	// UI改善ラウンド25(25-L1/25-L2): テラスタイプ画像バッジ(#tera-image-badge)は25-L1で
 	// 廃止した。テラスタイプの視覚表現はテラスタイプ選択欄そのものに統合する。
@@ -1308,6 +1377,10 @@ if (form) {
 		if (!target) continue;
 		target.addEventListener("input", scheduleSave);
 	}
+	// 型判定に使う持ち物・努力値・技が変わったら、技人気だけを新しい型で取り直す。
+	for (const id of ["item", ...STAT_KEYS.map((k) => `ev-${k}`), "move-1", "move-2", "move-3", "move-4"]) {
+		document.getElementById(id)?.addEventListener("input", schedulePopularBuildSuggestionsReload);
+	}
 	const changeInputIds = ["tera", "ability", "regulation"];
 	for (const id of changeInputIds) {
 		const target = document.getElementById(id);
@@ -1346,12 +1419,14 @@ if (form) {
 			refreshNatureButtons();
 			void recalcStats();
 			scheduleSave();
+			schedulePopularBuildSuggestionsReload();
 		});
 		downButton?.addEventListener("click", () => {
 			leftNatureDown = toggleNatureDown(leftNatureDown, key);
 			refreshNatureButtons();
 			void recalcStats();
 			scheduleSave();
+			schedulePopularBuildSuggestionsReload();
 		});
 	}
 
@@ -1367,6 +1442,7 @@ if (form) {
 		pairEvSlider(`ev-${k}`, `ev-${k}-range`, () => {
 			scheduleSave();
 			void recalcStats();
+			schedulePopularBuildSuggestionsReload();
 		});
 	}
 	// 端点ボタンは値を直接保存せず、既存rangeのinputハンドラへ流して全ての副作用を揃える。
