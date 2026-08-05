@@ -175,15 +175,24 @@ const user = Astro.locals.user;
 			align-items: center;
 			gap: 0.35em;
 			font-weight: 400;
+			/* UI改修依頼(2026-08-05)「枠線と背景を消し、状態は★の色だけで示す」対応。
+			   border自体は残して既存のツールバー部品との高さ・位置を維持する。 */
+			background: transparent;
+			border-color: transparent;
+			color: var(--color-text-muted);
+		}
+		.favorite-filter-toggle:hover:not(:disabled) {
+			background: transparent;
+			border-color: transparent;
+			color: var(--color-text);
 		}
 		.favorite-filter-toggle[data-active="true"] {
-			background: var(--color-primary);
-			border-color: var(--color-primary);
-			color: var(--color-primary-contrast);
+			background: transparent;
+			border-color: transparent;
+			color: var(--color-text);
 		}
-		.favorite-filter-toggle[data-active="true"]:hover:not(:disabled) {
-			background: var(--color-surface);
-			color: var(--color-primary);
+		.favorite-filter-toggle[data-active="true"] .favorite-filter-star {
+			color: var(--color-risky);
 		}
 
 		/* UI品質改善ラウンド12 A-1: 旧 `.toolbar-sort { margin-left: auto }`(検索(左)—絞り込み(中)—
@@ -210,11 +219,14 @@ const user = Astro.locals.user;
 		.toolbar-sort select {
 			padding-left: 2.1em;
 		}
-		/* 🔴 UI改修依頼(ボックス画面、2026-08-01): レギュレーション絞り込みの<select>。
-		   並べ替えと違いアイコンは付けず、可視の.field-labelで役割を示す。
-		   最長のラベルが折り返さない幅を確保する。 */
-		.toolbar-regulation select {
-			min-width: 12rem;
+		/* UI改修依頼(2026-08-05)「レギュレーションと並べ替えを最長選択肢に合う幅にする」対応。
+		   共通.field-controlのflex伸長を止め、select本来の選択肢基準の幅を使うことで、
+		   選択変更時にも幅が変わらないようにする。 */
+		.toolbar-regulation select,
+		.toolbar-sort select {
+			width: auto;
+			min-width: 0;
+			flex: none;
 		}
 
 		@media (max-width: 640px) {
@@ -813,7 +825,8 @@ const user = Astro.locals.user;
 			min-width: 0;
 		}
 		.box-grid .card-pokemon .card-item-row-ability {
-			gap: var(--space-1);
+			/* UI改修依頼(2026-08-05)「特性名とテラスタイプ画像の間隔を1段階広げる」対応。 */
+			gap: var(--space-2);
 		}
 		/* 特性名: 名前(card-name)・技チップ(card-move-chip)と同様に1行で省略する
 		   (折り返さない)。20-G3の12px下限ちょうど(0.75rem)にし、名前ほど主張しない
@@ -1110,7 +1123,7 @@ const user = Astro.locals.user;
 								data-active="false"
 								aria-pressed="false"
 							>
-								<span aria-hidden="true">★</span> お気に入り
+								<span class="favorite-filter-star" aria-hidden="true">★</span> お気に入り
 							</button>
 						</div>
 
