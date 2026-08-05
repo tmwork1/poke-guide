@@ -120,6 +120,12 @@ const initialTeamJson = team
 	    上でdisabledにする(対象が無いため、この場合のtitleはJSでも変更しない)。 */}
 	{team && (
 		<Fragment slot="topbar-actions">
+			{/* UI改修依頼(2026-08-05): 機能・id・イベント配線を維持したまま共通トップバーへ戻す。
+			    画面上の水平位置はCSSで従来の中央パネル左端に合わせる。 */}
+			<button id="matchup-check-button" class="btn-ghost" type="button" aria-pressed="false" title="使用率上位20体との相性を右パネルに表示する">
+				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><line x1="12" y1="1" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="23"/><line x1="1" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="23" y2="12"/></svg>
+				相性チェック
+			</button>
 			<label
 				class="collection-opt-out-toggle"
 				for="team-collection-opt-out-toggle"
@@ -240,7 +246,9 @@ const initialTeamJson = team
 			display: inline-flex;
 			align-items: center;
 			gap: 0.4em;
-			font-size: var(--font-size-sm);
+			/* 戻るボタン(.app-topbar-back)と同じ文字規格に揃える。 */
+			font-size: var(--font-size-md);
+			font-weight: 500;
 			color: var(--color-text-muted);
 			white-space: nowrap;
 			cursor: pointer;
@@ -252,12 +260,9 @@ const initialTeamJson = team
 		.collection-opt-out-status { color: var(--color-text-muted); }
 		.collection-opt-out-status[hidden] { display: none; }
 		.collection-opt-out-status[data-state="error"] { color: var(--color-danger); }
-		/* UI改修依頼(チーム編集画面、2026-08-02)「右上の削除ボタンを太字にしない」。
-		   global.cssのbutton.btn-dangerがfont-weight:700(太字)を持つ(box/[id].astroの
-		   #delete-buttonでも同じ改修を別エージェントが実施済み、そちらのファイルは編集しない)。
-		   #delete-team-button(ID)はglobal.cssのクラスセレクタより詳細度で確実に勝つため、
-		   ここでfont-weightを既定の太さ(400)に戻す。 */
-		#delete-team-button { font-size: var(--font-size-sm); white-space: nowrap; font-weight: 400; }
+		/* 2026-08-05: global.cssのbutton.btn-dangerが持つ太字指定を上書きし、
+		   戻るボタン(.app-topbar-back)と同じ文字サイズ・太さへ揃える。 */
+		#delete-team-button { font-size: var(--font-size-md); white-space: nowrap; font-weight: 500; }
 		/* 🔴 UI改修依頼(チーム編集ヘッダー、2026-08-02)「非公開・削除ボタンの余白サイズを
 		   個体編集画面と同じにする」。box/[id].astro が2026-08-01の依頼(「データ提供スイッチと
 		   削除ボタンの間の余白を広げる」)で #delete-button に足した margin-left が、
@@ -298,25 +303,22 @@ const initialTeamJson = team
 		   同じ --color-primary-strong + --color-primary-contrast の組み合わせを使う
 		   (DamageCalcSection.astro のコメントにあるとおり、この組はライト4.62:1/
 		   ダーク8.87:1でWCAG AAを満たすことが実測済み)。
-		   🔴 UI改修依頼(チーム編集ヘッダー、2026-08-04)「相性チェックボタンをチーム名ボックスの
-		   左端に揃える」でトップバー(topbar-actions)から中央パネル側(.team-matchup-check-row、
-		   下の.team-meta-fieldsコメント参照)へ移動したため、幅による表示/非表示の切り替えは
-		   ボタン自身ではなく新しい行コンテナ側(.team-matchup-check-row)に持たせる
-		   (空の行が margin だけ残さないようにするため)。ボタン自体の配色・フォントサイズは
-		   変更しない。 */
-		#matchup-check-button { font-size: var(--font-size-sm); white-space: nowrap; }
+		   2026-08-05: 共通トップバーへ移しても従来の水平位置を保つため、表示幅ではボタンを
+		   トップバー基準で中央パネル左端へ絶対配置する。配色・フォントサイズは変更しない。 */
+		#matchup-check-button { font-size: var(--font-size-sm); white-space: nowrap; display: none; }
 		#matchup-check-button[aria-pressed="true"] {
 			background: var(--color-primary-strong);
 			border-color: var(--color-primary-strong);
 			color: var(--color-primary-contrast);
 		}
 		/* 右パネルが出ない幅では行自体を隠す(閾値は .team-preview-panel と必ず揃えること)。 */
-		.team-matchup-check-row {
-			display: none;
-			margin-bottom: var(--space-3);
-		}
 		@media (min-width: 1650px) {
-			.team-matchup-check-row { display: block; }
+			/* トップバーはサイドバー右端が原点。従来位置=左パネル304px+中央padding。 */
+			#matchup-check-button {
+				display: inline-flex;
+				position: absolute;
+				left: calc(304px + var(--space-5));
+			}
 		}
 
 		.team-matchup {
@@ -444,6 +446,8 @@ const initialTeamJson = team
 			display: flex;
 			flex-direction: column;
 			min-width: 0;
+			/* 共通.panelの上paddingを既存トークンで2段階詰め、検索欄を上へ寄せる。 */
+			padding-top: var(--space-4);
 		}
 		/* box/[id].astroの.panel-leftと同じ考え方: トップバー直下から画面下端まで帯を伸ばす。
 		   帯自体の高さはビューポート基準(calc(100vh - var(--topbar-height)))で決め、
@@ -464,9 +468,9 @@ const initialTeamJson = team
 
 		.team-select-search {
 			flex: 0 0 auto;
-			padding-bottom: var(--space-3);
+			/* ソート行下のdividerを除き、一覧との間隔だけを残す。 */
+			padding-bottom: 0;
 			margin-bottom: var(--space-3);
-			border-bottom: 1px solid var(--color-border);
 		}
 		.search-input-wrap {
 			position: relative;
@@ -723,6 +727,8 @@ const initialTeamJson = team
 			grid-template-columns: repeat(3, minmax(0, 1fr));
 			justify-items: center;
 			gap: var(--space-3);
+			/* 空枠を含む全トラックを同じ高さにし、設定状態による位置・寸法差をなくす。 */
+			grid-auto-rows: 1fr;
 			margin-bottom: var(--space-4);
 		}
 
@@ -920,21 +926,6 @@ const initialTeamJson = team
 					    ヒント文言を削除しメモ欄を6枠の下へ移動した。 --- */}
 					<div class="team-edit-main">
 						<div class="panel-content">
-							{/* 🔴 UI改修依頼(チーム編集ヘッダー、2026-08-04)「相性チェックボタンは、左端がチーム名
-							    ボックスと同じになるあたりに移動」。旧来はAppLayoutの共通トップバー
-							    (topbar-actions、上のフロントマター直後<Fragment slot="topbar-actions">参照)に
-							    あったが、トップバーは画面全体で1行のバーで、この中央パネル(チーム名ボックスの
-							    グリッドトラック)とはレイアウト文脈が別だった。ボタンをこの.panel-content配下
-							    (チーム名ボックスと同じ.team-edit-main/.panel-contentの内側)へ移すことで、
-							    左右paddingが無い.panel-content基準では両者の左端が自然に揃う(マージンの
-							    数値計算に依存しない、グリッド配置での位置揃え)。ボタン本体のid・aria-pressed・
-							    クリックハンドラ(<script>のsetMatchupMode参照)は変更しない。 */}
-							<div class="team-matchup-check-row">
-								<button id="matchup-check-button" class="btn-ghost" type="button" aria-pressed="false" title="使用率上位20体との相性を右パネルに表示する">
-									<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><line x1="12" y1="1" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="23"/><line x1="1" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="23" y2="12"/></svg>
-									相性チェック
-								</button>
-							</div>
 							<div class="team-meta-fields">
 								{/* 🔴 UI改修依頼(チーム編集中央パネル、2026-08-01)「"チーム名"ラベルを削除して
 								    placeholderにする」。旧来はラベル付きフィールド規格(.field/.field-stack/
@@ -1177,6 +1168,7 @@ const initialTeamJson = team
 		   にそのまま当てはめると1行が縦に伸びすぎるため、実測しながら88pxに固定した
 		   (狭幅240px時でも名前・技名が1文字ずつ折り返らないことを確認、報告参照)。 */
 		.team-select-bar .select-row-art {
+			position: relative;
 			flex: 0 0 auto;
 			width: 88px;
 			display: flex;
@@ -1219,12 +1211,14 @@ const initialTeamJson = team
 			gap: 0.3rem;
 			width: 100%;
 			min-width: 0;
+			grid-column: 1 / -1;
 		}
 		.team-select-bar .select-row-name {
 			min-width: 0;
 			/* UI改修依頼(チーム編集左パネル、2026-08-01)「種族名以外の文字をもう少し大きくする」
 			   により0.88rem(14.08px)から引き上げていた値(0.95rem)を維持する。 */
-			font-size: 0.95rem;
+			/* 2行目のNNは中央配置を保ち、既存の小サイズトークンへ縮める。 */
+			font-size: var(--font-size-sm);
 			font-weight: 700;
 			white-space: nowrap;
 			overflow: hidden;
@@ -1243,6 +1237,15 @@ const initialTeamJson = team
 			height: 100%;
 			object-fit: contain;
 			filter: drop-shadow(0 0 1px var(--color-surface));
+		}
+		/* 持ち物を画像右下へ重ね、テラスタルをその右隣に並べる。 */
+		.team-select-bar .select-row-art-badges {
+			position: absolute;
+			right: 0;
+			bottom: 0;
+			display: flex;
+			align-items: center;
+			gap: var(--space-1);
 		}
 		/* 特性+持ち物(box/index.astroの.card-item-row=grid 2列/.card-item-row-cell=flex
 		   中央寄せと同じ作り。持ち物なしの個体でもセル自体は常に出し、中身(アイコン+名前)
@@ -1397,6 +1400,8 @@ const initialTeamJson = team
 			text-align: center;
 			gap: 0.2rem;
 			width: min(100%, 230px);
+			height: 100%;
+			min-height: calc(var(--space-7) * 8 + var(--space-3));
 			padding: var(--space-1);
 		}
 		/* ドラッグ&ドロップの受け入れ先であることを示すハイライト(左パネルのpokemon-select-row
@@ -1482,7 +1487,8 @@ const initialTeamJson = team
 		.team-slots .slot-watermark-number {
 			position: absolute;
 			top: 0.15rem;
-			left: 0.35rem;
+			/* 左余白を上余白と同値にして、左上の番号位置を揃える。 */
+			left: 0.15rem;
 			z-index: 0;
 			font-size: 2.75rem;
 			font-weight: 800;
@@ -3855,7 +3861,8 @@ const initialTeamJson = team
 				placeholder.className = "slot-empty-cta";
 				placeholder.setAttribute("aria-label", `${slot}番目の枠は空きです。左の一覧からドラッグ&ドロップすると追加できます`);
 				const label = document.createElement("span");
-				label.textContent = "ドラッグして追加";
+				// ドラッグだけでなく左一覧の既存ダブルクリック操作も案内し、淡色はCSSトークンを使う。
+				label.textContent = "ドラッグまたはダブルクリック";
 				placeholder.appendChild(label);
 
 				wrap.append(watermark, placeholder);
@@ -4334,13 +4341,27 @@ const initialTeamJson = team
 				bodyEl.className = "select-row-body";
 				const name = displayName(p);
 
-				// スプライトの直下にニックネーム(無ければ種族名)とテラスタイプを並べる。
+				// 2026-08-05: 1行目に画像・アイコン・技等、2行目にNNだけを置く。
 				const nameRow = document.createElement("span");
 				nameRow.className = "select-row-name-row";
 				const nameEl = document.createElement("span");
 				nameEl.className = "select-row-name";
 				nameEl.textContent = name;
 				nameRow.appendChild(nameEl);
+				const artBadges = document.createElement("span");
+				artBadges.className = "select-row-art-badges";
+				const itemName = p.item_name?.trim() ?? "";
+				if (itemName) {
+					// ダメージ計算カードと同様、持ち物名は出さず画像右下へアイコンを重ねる。
+					const itemBadge = document.createElement("span");
+					itemBadge.className = "select-row-item-badge";
+					itemBadge.title = `持ち物: ${itemName}`;
+					const itemImg = document.createElement("img");
+					itemImg.alt = "";
+					void applyItemIcon(itemImg, itemName);
+					itemBadge.appendChild(itemImg);
+					artBadges.appendChild(itemBadge);
+				}
 				const teraType = p.tera_type?.trim() ?? "";
 				if (teraType) {
 					const teraBadge = document.createElement("span");
@@ -4351,39 +4372,9 @@ const initialTeamJson = team
 					teraImg.alt = "";
 					applyTeraIcon(teraImg, teraType);
 					teraBadge.appendChild(teraImg);
-					nameRow.appendChild(teraBadge);
+					artBadges.appendChild(teraBadge);
 				}
-				artEl.appendChild(nameRow);
-
-				// 右列は特性、持ち物、技の順に1列で並べる。
-				const itemRow = document.createElement("span");
-				itemRow.className = "select-row-item-row";
-				const abilityCell = document.createElement("span");
-				abilityCell.className = "select-row-item-row-cell";
-				const abilityNameEl = document.createElement("span");
-				abilityNameEl.className = "select-row-ability-name";
-				abilityNameEl.textContent = p.ability_name?.trim() || "特性未設定";
-				abilityCell.appendChild(abilityNameEl);
-				itemRow.appendChild(abilityCell);
-
-				const itemCell = document.createElement("span");
-				itemCell.className = "select-row-item-row-cell";
-				const itemName = p.item_name?.trim() ?? "";
-				if (itemName) {
-					const itemBadge = document.createElement("span");
-					itemBadge.className = "select-row-item-badge";
-					const itemImg = document.createElement("img");
-					itemImg.alt = "";
-					void applyItemIcon(itemImg, itemName);
-					itemBadge.appendChild(itemImg);
-					itemCell.appendChild(itemBadge);
-					const itemLabel = document.createElement("span");
-					itemLabel.className = "select-row-item-name";
-					itemLabel.textContent = itemName;
-					itemCell.appendChild(itemLabel);
-				}
-				itemRow.appendChild(itemCell);
-				bodyEl.appendChild(itemRow);
+				if (artBadges.childElementCount > 0) artEl.appendChild(artBadges);
 
 				// 技(最大4つ)。タイプアイコン付きチップを右列に1列で並べる(背景色なし・
 				// 技名の前にタイプアイコン・セル内左揃え。上のapplySelectMoveChipTypeIcons参照)。
@@ -4442,7 +4433,8 @@ const initialTeamJson = team
 					void renderPreviewPanel(p);
 				});
 
-				mainButton.append(artEl, bodyEl);
+				// NNを必ず独立した2行目に置き、1行目の情報量に左右されず中央へ揃える。
+				mainButton.append(artEl, bodyEl, nameRow);
 				row.appendChild(mainButton);
 
 				// 🔴 UI改修依頼(チーム編集左パネル、2026-08-02)「行の右端にあるドラッグ用グリップを
