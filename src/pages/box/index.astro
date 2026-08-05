@@ -157,9 +157,14 @@ const user = Astro.locals.user;
 			   解釈され、検索欄の高さが320pxまで伸びてしまう(実測で判明した回帰)。ここで
 			   flex-basisをリセットして内容ぶんの高さに戻す。 */
 			.toolbar-search { flex-basis: auto; }
+			/* 上の「最長選択肢に合う幅」用の `flex: none` をここで打ち消す(2026-08-05 実測)。
+			   縦積みでは各 .toolbar-item の中で「ラベル + select」が1行に並ぶため、selectが
+			   縮めないままだとラベル幅ぶん右へはみ出し、390px幅で画面に横スクロールが出ていた
+			   (「レギュレーション」ラベルを持つ絞り込み欄で発生)。縦積みのときだけ
+			   「ラベルを除いた残り幅を埋める」挙動に戻す。 */
 			.toolbar-search input,
 			.toolbar-regulation select,
-			.toolbar-sort select { width: 100%; min-width: 0; }
+			.toolbar-sort select { width: 100%; min-width: 0; flex: 1 1 0; }
 		}
 
 		/* --- カードグリッド(Box.png: 先頭セルが追加タイル、以降がポケモンごとのカード) ---

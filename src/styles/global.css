@@ -420,6 +420,13 @@ a {
 		width: 100%;
 		margin-left: 0;
 	}
+	/* 縦積み時、align-items:stretch がハンバーガーボタンも横幅いっぱいに広げ、
+	   button既定の justify-content:center でアイコンが画面中央に来てしまっていた
+	   (件数バッジ・検索欄は左端から始まるので浮いて見える)。ボタンだけ内容幅に戻し、
+	   AppLayout のトップバー(.app-topbar-menu-button)と同じ左端揃えにする。 */
+	.toolbar-menu-button {
+		align-self: flex-start;
+	}
 }
 
 .panel h2 {
