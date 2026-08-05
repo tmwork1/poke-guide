@@ -623,7 +623,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 				<span class="stat-adjust-action-label">耐久最大化</span>
 			</button>
 			<button type="button" id="bulk-adjust-button" class="btn-ghost stat-adjust-action-button" disabled>
-				<span class="bulk-adjust-button-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 14a8 8 0 1 1 16 0"/><path d="M12 14l3-3"/><path d="M4 14h16"/></svg></span><span class="bulk-adjust-button-label">耐久調整</span>
+				<span class="bulk-adjust-button-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.34 19a10 10 0 1 1 17.32 0"/><path d="m12 12 4-3"/></svg></span><span class="bulk-adjust-button-label">耐久調整</span>
 			</button>
 			<a
 				class="btn-ghost stat-adjust-action-button"
@@ -1292,11 +1292,11 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		display: inline-flex;
 		align-items: center;
 	}
-	/* UI改修依頼(2026-08-05)「耐久調整アイコンを文字高に揃えて中央配置」対応。 */
-	.bulk-adjust-button-icon,
+	/* 実図形に詰めた横長viewBoxでは隣の正方形アイコンより間延びして見えるため、
+	   図形自体が正方形の枠を縦にも使うゲージにし、3つの操作アイコンの大きさを揃える。 */
 	.bulk-adjust-button-icon svg {
-		width: 1em;
-		height: 1em;
+		width: 16px;
+		height: 16px;
 		vertical-align: middle;
 	}
 
@@ -1387,7 +1387,10 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		background: transparent;
 		flex-shrink: 0;
 	}
-	/* 現在値158pxの90%=142.2pxを整数化。箱は維持して周辺レイアウトを動かさない。 */
+	/* 画像の描画寸法を保ったまま上下の空白だけを約30%減らす必要があるため、箱の横幅は
+	   176pxのまま、高さだけを142px+上下12px=166pxへ詰める。 */
+	#species-icon-box { height: 166px; }
+	/* 現在値158pxの90%=142.2pxを整数化。 */
 	.species-sprite-img { width: 142px; height: 142px; object-fit: contain; }
 	/* フォールバック(画像取得失敗時の代替表示)も本体画像と同じ1.1倍率で拡大し、
 	   本体と入れ替わっても箱内のサイズ感が変わらないようにする。 */
@@ -2388,8 +2391,8 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	   CSSだけで描く(<script>のsetupMovePickerWindow参照。checked状態・changeイベント・
 	   aria-labelは一切変えない)。 */
 	.toggle-switch { position: relative; display: inline-flex; align-items: center; width: 38px; height: 20px; flex-shrink: 0; }
-	/* UI改修依頼(2026-08-05)「技選択ヘッダーのトグルを一回り縮小」対応。 */
-	.move-picker-toggle .toggle-switch { width: 32px; height: 18px; }
+	/* 12pxのラベルに対してスイッチが主張しすぎないよう、技選択内だけ26×14pxへ縮める。 */
+	.move-picker-toggle .toggle-switch { width: 26px; height: 14px; }
 	/* 🔴 UI改修依頼(個体編集左パネル、2026-08-01)「トグルスイッチの裏に残っているチェック
 	   ボックスを削除する」対応。実機調査(Playwright、getComputedStyle)で判明した原因:
 	   src/styles/global.cssの`input[type="checkbox"]`が持つ既定スタイル(実寸1.05em角の
@@ -2448,10 +2451,12 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
 		transition: transform 0.15s ease;
 	}
-	.move-picker-toggle .toggle-switch-thumb { width: 14px; height: 14px; }
+	/* 左右2pxの内側余白を保つため、14px高トラック内のつまみは10pxにする。 */
+	.move-picker-toggle .toggle-switch-thumb { width: 10px; height: 10px; }
 	.toggle-switch-input:checked + .toggle-switch-track { background: var(--color-primary); border-color: var(--color-primary); }
 	.toggle-switch-input:checked + .toggle-switch-track .toggle-switch-thumb { transform: translateX(18px); }
-	.move-picker-toggle .toggle-switch-input:checked + .toggle-switch-track .toggle-switch-thumb { transform: translateX(14px); }
+	/* 26px幅から左右余白と10pxつまみを引いた12pxだけ動かし、ON時も右端に収める。 */
+	.move-picker-toggle .toggle-switch-input:checked + .toggle-switch-track .toggle-switch-thumb { transform: translateX(12px); }
 	.toggle-switch-input:focus-visible + .toggle-switch-track { outline: 2px solid var(--color-primary); outline-offset: 2px; }
 
 	/* UI改善ラウンド41ユーザー指示(41-L1)。アイテムドロップダウンの<li>/<img>/<span>は
@@ -2527,7 +2532,8 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		top: 0;
 		background: var(--color-surface);
 		border-bottom: 1px solid var(--color-border);
-		padding: 0.35rem 0.4rem;
+		/* タイトル下線直後の空白はこのセル上余白だけが作っていたため、上側のみ0にする。 */
+		padding: 0 0.4rem 0.35rem;
 		text-align: left;
 		vertical-align: top;
 		z-index: 1;
@@ -2543,11 +2549,11 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		font-size: var(--font-size-xs);
 		font-weight: 400;
 		field-sizing: content;
-		/* 約25pxだった高さを既存のspace-6(24px)へ一段縮小する。 */
-		height: var(--space-6);
-		/* 共通フォーム部品のmin-height: 2.35remを上書きし、指定した高さを有効にする。 */
-		min-height: var(--space-6);
-		padding: 0 var(--space-1);
+		/* 見出しの16.8px line-heightを越えないよう、既存トークン同士の差で16px高にする。 */
+		height: calc(var(--icon-size-sm) - var(--space-1));
+		/* 共通フォーム部品のmin-heightを上書きし、内容幅を余分な内側余白で広げない。 */
+		min-height: calc(var(--icon-size-sm) - var(--space-1));
+		padding: 0;
 		box-sizing: border-box;
 	}
 	.move-picker-sort-btn {
