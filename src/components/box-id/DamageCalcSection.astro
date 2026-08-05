@@ -2405,15 +2405,17 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 	   #damage-detail-panel-body .damage-detail-panel-body-inner(is:globalブロック)側で
 	   margin-block:autoを撤回し上端固定にする(round-31.md「この指示で撤回される過去の
 	   判断」表に明記)。 */
-	#damage-detail-panel-body .damage-detail-selection-heading {
+	/* 🔴 UI改修依頼(2026-08-05)修正漏れ対応: 見出し行を本文から共通タイトル帯へ移設したため、
+	   本文限定セレクタでは一致しなくなっていた。パネルルート配下に広げ、ヘッダー帯・本文の
+	   どちらに置かれても確立済みの見出しスタイルが適用されるようにする。 */
+	/* 31-R1「下側に区切りを入れて以下の設定群と領域を分ける」対応でここにborder-bottomを持たせていたが、
+	   見出しをタイトル帯へ移設した後は.damage-detail-panel-header自身のborder-bottomが同じ役割を果たすため撤去した。 */
+	.damage-detail-panel .damage-detail-selection-heading {
 		display: flex;
 		align-items: center;
 		gap: 0.4rem;
-		margin: 0 0 0.7rem;
-		padding-bottom: 0.7rem;
-		/* 「下側に区切り(border-bottomかパネル化)を入れて以下の設定群と領域を分ける」対応。
-		   他の区切り線と同じトークン(1px solid var(--color-border))で揃える。 */
-		border-bottom: 1px solid var(--color-border);
+		min-width: 0;
+		margin: 0;
 	}
 	/* アイコンサイズは新規規格を作らず、.damage-row-icon-button等で確立済みの28px規格を使う
 	   (round-31.md「アイコンサイズは/box /box/[id]の既存規格(20pxまたは28px)から選び、
@@ -2423,13 +2425,13 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 	   round-31.mdの「アイコンサイズは/box /box/[id]の既存規格(20pxまたは28px)から選ぶ」は
 	   このR1自体がユーザー明示指示による例外(round-32.md「維持すべき点」に明記)。 */
 	/* UI改善ラウンド41ユーザー指示(41-R1)「ヘッダーのポケモン画像を+20%」により、32-R1で確立した32pxの120%=38.4pxへ拡大する(フォールバック用の-icon-fallbackも同じサイズに揃える)。 */
-	#damage-detail-panel-body .damage-detail-selection-icon {
+	.damage-detail-panel .damage-detail-selection-icon {
 		width: 38.4px;
 		height: 38.4px;
 		object-fit: contain;
 		flex-shrink: 0;
 	}
-	#damage-detail-panel-body .damage-detail-selection-icon-fallback {
+	.damage-detail-panel .damage-detail-selection-icon-fallback {
 		display: none;
 		width: 38.4px;
 		height: 38.4px;
@@ -2458,16 +2460,16 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 	   暗くする(明るすぎて浮いている)」により --color-text → --color-text-muted。
 	   --color-text はダークテーマでほぼ白(#e7e9ee)になり、周囲のミュートな文字より
 	   矢印だけが手前に出て見えていた。 */
-	#damage-detail-panel-body .damage-detail-selection-arrow {
+	.damage-detail-panel .damage-detail-selection-arrow {
 		flex-shrink: 0;
 		width: 27px;
 		height: 18px;
 		color: var(--color-text-muted);
 	}
-	#damage-detail-panel-body .damage-detail-selection-arrow.is-reversed {
+	.damage-detail-panel .damage-detail-selection-arrow.is-reversed {
 		transform: scaleX(-1);
 	}
-	#damage-detail-panel-body .damage-detail-selection-move {
+	.damage-detail-panel .damage-detail-selection-move {
 		min-width: 0;
 		font-size: 0.85rem;
 		font-weight: 700;
@@ -2979,7 +2981,7 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 	   c8680844-...)で4枚とも改善を確認: 空白が上下に分散せず下側にまとまり、右ブロックが
 	   宙に浮いて見える問題を解消した。新しい罫線・新色は追加していない。 */
 	#opponent-notes-section .card-damage[data-collapsed="true"] .damage-row-techniques-row {
-		align-self: flex-start;
+		align-self: stretch;
 		padding-top: 0.5rem;
 	}
 	/* 圧縮時は追加スロットが非表示で余白を吸わないため、累計結果を明示的に下端へ寄せる。 */

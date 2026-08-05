@@ -2524,6 +2524,8 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		font-size: var(--font-size-xs);
 		/* 約25pxだった高さを既存のspace-6(24px)へ一段縮小する。 */
 		height: var(--space-6);
+		/* 共通フォーム部品のmin-height: 2.35remを上書きし、指定した高さを有効にする。 */
+		min-height: var(--space-6);
 		padding: 0 var(--space-1);
 		box-sizing: border-box;
 	}
@@ -2548,11 +2550,12 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		font-size: 0.85em;
 	}
 	.move-picker-sort-btn.is-active::after {
-		content: "▲";
+		/* ステータス表の性格補正で使う▲▼との混同を避け、矢印の字形に統一する。 */
+		content: "↑";
 		color: var(--color-primary);
 	}
 	.move-picker-sort-btn.is-active[data-sort-dir="desc"]::after {
-		content: "▼";
+		content: "↓";
 	}
 	.move-picker-table tbody td {
 		padding: 0.3rem 0.4rem;

@@ -2006,7 +2006,9 @@ const initialTeamJson = team
 		/* .severity-bar(global.css)の既定marginは上下 var(--space-3) だが、
 		   カード内では技名行との間隔を詰める。色・角丸・左罫線は共通定義のまま。
 		   UI改修依頼(右パネル、2026-08-02)「計算結果の縦余白を削って圧縮する」により
-		   margin-top・上下paddingをさらに詰める(4px2.4rem/0.3rem→0.2rem)。 */
+		   margin-top・上下paddingをさらに詰める(4px2.4rem/0.3rem→0.2rem)。
+		   UI改修依頼(2026-08-05)修正漏れ対応: チップ内部の上下寸法を個体編集の累計結果に
+		   揃えるため、上下paddingを0.18remにし、継承で広がっていた行高を1.2に固定する。 */
 		.team-preview-panel .team-damage-result {
 			display: flex;
 			flex-wrap: wrap;
@@ -2016,8 +2018,9 @@ const initialTeamJson = team
 			/* 左だけ広めにする。確定数(確N)は font-weight 800 の漢字で、左の罫線
 			   (border-left 4px)にほぼ接して見えるため(実測: 文字の開始位置が padding の
 			   端ちょうど)。 */
-			padding: 0.2rem var(--space-2) 0.2rem var(--space-3);
+			padding: 0.18rem var(--space-2) 0.18rem var(--space-3);
 			font-size: 0.78rem;
+			line-height: 1.2;
 		}
 		.team-preview-panel .team-damage-result-verdict {
 			font-size: 0.95rem;
