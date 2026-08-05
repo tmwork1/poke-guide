@@ -705,6 +705,7 @@ const user = Astro.locals.user;
 		// 解決不能/読み込み失敗時は頭文字バッジへフォールバック」方式を採る。
 		import { loadImageIdMap, officialArtworkUrl } from "../../lib/pokemon-master-data";
 		import { loadItemSpriteMap, itemIconUrl } from "../../lib/sprite-urls";
+		import { kanaIncludes } from "../../lib/kana";
 
 		// GET /api/teams が返す1メンバーの owned_pokemon。表示に必要な列だけを持つ
 		// (src/lib/team.ts の TeamMember/OwnedPokemonRecord のサブセット)。
@@ -813,12 +814,12 @@ const user = Astro.locals.user;
 			// チーム名の部分一致(box/index.astroのmatchesSearchと同じAND部分一致方式)。
 			function matchesSearch(t: Team, term: string): boolean {
 				if (!term) return true;
-				const haystack = (t.name ?? "").toLowerCase();
+				const haystack = t.name ?? "";
 				return term
-					.toLowerCase()
 					.split(/\s+/)
 					.filter((tok) => tok.length > 0)
-					.every((tok) => haystack.includes(tok));
+					// 複数語ANDの仕様はそのまま、各語だけかな表記を揃えて比較する。
+					.every((tok) => kanaIncludes(haystack, tok));
 			}
 
 			// UI改修依頼(チームトップ画面)「お気に入り機能を追加する」。box/index.astroの

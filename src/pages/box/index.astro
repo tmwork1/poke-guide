@@ -1225,6 +1225,7 @@ const user = Astro.locals.user;
 			calcHpStat,
 			calcOtherStat,
 		} from "../../lib/stats";
+		import { kanaIncludes } from "../../lib/kana";
 
 		interface OwnedPokemon {
 			id: string;
@@ -1478,15 +1479,13 @@ const user = Astro.locals.user;
 					p.item_name ?? "",
 					p.tera_type ?? "",
 					...p.move_names,
-				]
-					.join(" ")
-					.toLowerCase();
+				].join(" ");
 				// AND部分一致(空白区切りの複数語すべてを含む場合のみ一致、育成データ管理計画.md §6.1)
 				return term
-					.toLowerCase()
 					.split(/\s+/)
 					.filter((t) => t.length > 0)
-					.every((token) => haystack.includes(token));
+					// AND条件は維持し、各語の比較だけかな表記に依存しないようにする。
+					.every((token) => kanaIncludes(haystack, token));
 			}
 
 			// ラウンド27 27-B3(ユーザー指示): 「しぼりこみ条件はお気に入りだけにする」。

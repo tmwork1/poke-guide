@@ -45,6 +45,7 @@ import { loadItemSpriteMap, itemIconUrl, teraTypeIconUrl } from "../sprite-urls"
 import { TYPE_COLORS, DEFAULT_TYPE_COLOR } from "../type-colors";
 import { type StatKey, STAT_KEYS, NATURE_STAT_MODIFIERS, calcHpStat, calcOtherStat } from "../stats";
 import type { OpponentClientResultInput } from "../opponent-notes-validation";
+import { kanaIncludes } from "../kana";
 
 // --- ダメージ計算の行/列の状態(元は #opponent-notes-section ブロック内で定義されていた
 //     DamageColumnState/DamageRowState インターフェース。共有コア関数の引数・戻り値の型として
@@ -101,6 +102,25 @@ export interface DamageRowState {
 	calcTimer: ReturnType<typeof setTimeout> | null;
 	saving: boolean;
 	pendingSave: boolean;
+}
+
+// ネイティブdatalistの絞り込み条件は差し替えられないため、末尾入力時だけ候補側の表記へ寄せる。
+export function attachKanaTypeAhead(input: HTMLInputElement, datalist: HTMLDataListElement): void {
+	let composing = false;
+	function evaluate(): void {
+		const value = input.value;
+		if (!value || input.selectionStart !== value.length) return;
+		const options = Array.from(datalist.options, (option) => option.value);
+		if (options.some((candidate) => candidate.includes(value))) return;
+		const candidate = options.find((option) => kanaIncludes(option, value));
+		if (!candidate) return;
+		input.value = candidate.slice(0, value.length);
+		input.setSelectionRange(input.value.length, input.value.length);
+	}
+	input.addEventListener("compositionstart", () => { composing = true; });
+	input.addEventListener("compositionend", () => { composing = false; evaluate(); });
+	// captureで既存の保存・再計算より先に値を整え、イベントの再発火による二重実行を避ける。
+	input.addEventListener("input", () => { if (!composing) evaluate(); }, { capture: true });
 }
 
 // --- 汎用ユーティリティ層(元は <script> 冒頭・if (form) より外側で定義)。

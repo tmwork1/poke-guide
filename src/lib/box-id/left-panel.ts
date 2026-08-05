@@ -31,8 +31,10 @@ import { typeIconUrl, teraTypeIconUrl } from "../sprite-urls";
 import { isTerastalRegulation } from "../regulations";
 import { TYPE_COLORS, DEFAULT_TYPE_COLOR } from "../type-colors";
 import { type StatKey, STAT_KEYS, NATURE_STAT_MODIFIERS } from "../stats";
+import { kanaIncludes } from "../kana";
 import { classifyArchetype, type ArchetypeKey } from "../archetype";
 import {
+	attachKanaTypeAhead,
 	applySprite,
 	applyTeraImage,
 	applyItemImage,
@@ -330,7 +332,6 @@ function suggestionRatioText(ratio: number): string {
 function suggestionSubjectKey(speciesName: string, regulation: string | null): string {
 	return regulation ? `${speciesName}|${regulation}` : speciesName;
 }
-
 // 型キーはarchetype_idではなく、クライアントで分類した3要素をDBと同じ順序で連結する。
 // 規制指定時は型規制別→型横断→種族規制別→種族横断、未指定時は横断2段だけを返す。
 export function popularMoveSubjectKeys(
@@ -687,6 +688,7 @@ if (form) {
 	// UI改善ラウンド34ユーザー指示(34-C1): 再クリック時に他の種族候補が隠れてしまう
 	// ネイティブdatalistフィルタを回避する(上のsetupDatalistRefocus参照)。
 	setupDatalistRefocus(speciesInput, el<HTMLDataListElement>("pokemon-list"));
+	attachKanaTypeAhead(speciesInput, el<HTMLDataListElement>("pokemon-list"));
 	// ラウンド3 B-12: 実数値は純JS計算になったので、エンジンの初期化を待たず
 	// ページ表示直後に計算する(以前はcombinedDamageEngineProgress経由でエンジン
 	// 準備完了後にしか呼ばれておらず、それまで「(未計算)」のままだった)。
@@ -726,6 +728,7 @@ if (form) {
 	// hidden化する(下記41-L1参照)ため、これ以降ユーザーが直接クリックすることは無くなるが、
 	// 挙動自体は無害なので変更しない。
 	setupDatalistRefocus(itemInput, el<HTMLDataListElement>("item-list"));
+	attachKanaTypeAhead(itemInput, el<HTMLDataListElement>("item-list"));
 
 	// UI改善ラウンド41ユーザー指示(41-L1)「アイテム選択ボックスもテラスタルと同様に、
 	// 選択肢をアイコン+テキストで表示」。テラス側(下のteraSelect一式、buildTeraDropdown相当)を
@@ -823,10 +826,11 @@ if (form) {
 	}
 
 	function filterItemDropdown(): void {
-		const query = itemDropdownSearch.value.trim().toLowerCase();
+		const query = itemDropdownSearch.value.trim();
 		let anyVisible = false;
 		for (const opt of itemDropdownOptionEls) {
-			const match = query === "" || opt.value.toLowerCase().includes(query);
+			// 表示値は変えず、比較だけかな・文字幅・英字大小を正規化する。
+			const match = query === "" || kanaIncludes(opt.value, query);
 			opt.li.hidden = !match;
 			if (match) anyVisible = true;
 		}
@@ -1213,6 +1217,7 @@ if (form) {
 		// 4つの技inputで共有しているが、安定ソートのためlearnset優先の並び
 		// (rebuildMoveListForSpecies参照)は壊さない。
 		setupDatalistRefocus(input, moveListEl);
+		attachKanaTypeAhead(input, moveListEl);
 	}
 
 	// レベル・タグ・ピン留めの入力UIは廃止したが、PUT /api/owned-pokemon/:id は
@@ -2025,7 +2030,8 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 	}
 
 	function passesFilters(m: MoveDetail): boolean {
-		if (filters.name && !m.name.includes(filters.name)) return false;
+		// 技名中のひらがな/カタカナ混在を保ったまま表記違いを吸収する。
+		if (filters.name && !kanaIncludes(m.name, filters.name)) return false;
 		if (filters.type && m.type !== filters.type) return false;
 		if (filters.category && m.category !== filters.category) return false;
 		return true;

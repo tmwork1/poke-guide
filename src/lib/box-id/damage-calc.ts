@@ -59,6 +59,7 @@ import { teraTypeIconUrl } from "../sprite-urls";
 // (仕様: 未指定はtrue=表示・M-*はfalse=非表示・T-*はtrue=表示。src/lib/regulations.ts参照)。
 import { isTerastalRegulation } from "../regulations";
 import {
+	attachKanaTypeAhead,
 	applySprite,
 	applyTeraImage,
 	applyItemImage,
@@ -1759,11 +1760,13 @@ if (opponentNotesSection) {
 				moveInput.setAttribute("list", OPPONENT_POPULARITY_MOVE_DATALIST_ID);
 				moveInput.addEventListener("focus", () => refreshOpponentPopularityMoveDatalist(row.name));
 				refreshOpponentPopularityMoveDatalist(row.name);
+				attachKanaTypeAhead(moveInput, ensureOpponentPopularityMoveDatalist());
 			} else {
 				ensureSelfFirstMoveDatalist();
 				moveInput.setAttribute("list", SELF_FIRST_MOVE_DATALIST_ID);
 				moveInput.addEventListener("focus", () => refreshSelfFirstMoveDatalist());
 				refreshSelfFirstMoveDatalist();
+				attachKanaTypeAhead(moveInput, ensureSelfFirstMoveDatalist());
 			}
 			moveInput.placeholder = attackerIsOpponent ? "相手の技" : "技";
 			moveInput.setAttribute(
@@ -2605,6 +2608,8 @@ if (opponentNotesSection) {
 		nameInput.setAttribute("aria-label", "相手ポケモン名");
 		nameInput.autocomplete = "off";
 		nameInput.value = row.name;
+		// 相手側の動的入力にも左パネルと同じIME安全なdatalist補助を適用する。
+		attachKanaTypeAhead(nameInput, el<HTMLDataListElement>("pokemon-list"));
 		nameRow.appendChild(nameInput);
 
 		function refreshSprite(): void {
@@ -2933,6 +2938,7 @@ if (opponentNotesSection) {
 		itemInput.autocomplete = "off";
 		itemInput.value = row.itemName;
 		itemInput.title = row.itemName;
+		attachKanaTypeAhead(itemInput, el<HTMLDataListElement>("item-list"));
 		itemInput.addEventListener("input", () => {
 			row.itemName = itemInput.value.trim();
 			itemInput.title = row.itemName;
