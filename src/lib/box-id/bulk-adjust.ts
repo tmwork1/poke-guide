@@ -23,7 +23,13 @@ import {
 	baseStatsMapPromise,
 	type BulkAdjustRowSnapshot,
 } from "./shared-core";
-import { isEngineReady, initEngine } from "../pyodide-engine";
+import {
+	isEngineReady,
+	initEngine,
+	calcLethalSequence,
+	isEngineFatal,
+	resetEngine,
+} from "../pyodide-engine";
 import type { PokemonSpec } from "../pyodide-engine";
 import { STAT_KEYS, NATURE_STAT_MODIFIERS, type StatKey } from "../stats";
 import {
@@ -315,6 +321,7 @@ async function runCompute(): Promise<void> {
 	progressTextEl.textContent = "計算を準備しています...";
 	try {
 		const result: SolveResult = await solveDurability(requirements, {
+			engine: { calcLethalSequence, isEngineFatal, resetEngine },
 			baseStats,
 			fixedEvs,
 			buildDefenderSpec: (nature: string, evs: number[]): PokemonSpec => buildAttackerSpec({ nature, evs }),

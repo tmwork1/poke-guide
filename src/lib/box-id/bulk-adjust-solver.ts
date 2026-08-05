@@ -5,6 +5,15 @@
 // bulk-adjust.ts で実装する。ここは「防御ダメージ計算カード群を、N発をM%以上の確率で
 // 耐えられる性格+努力値(H/B/D)の組み合わせに変換する」計算だけを担当する。
 //
+// ⚠️ Pyodideエンジン(src/lib/pyodide-engine.ts)は import せず、SolveOptions.engine
+// として呼び出し元(src/lib/box-id/bulk-adjust.ts)から注入する。pyodide-engine.ts は
+// wheel-manifest.json を静的importするブラウザ専用モジュールで、素のNode(tests/を
+// 動かす `node --test`)からは読み込めないため。この注入により探索アルゴリズム本体を
+// 偽エンジンで単体テストできる(tests/bulk-adjust-solver.test.ts)。同じ理由で
+// ../stats は拡張子つき("../stats.ts")でimportしている(Nodeの素のESM解決は
+// 拡張子省略を許さない。tsconfigは allowImportingTsExtensions: true・Viteは
+// 明示拡張子をそのまま解決するため、ビルド側には影響しない)。
+//
 // 【なぜ全探索が成立しないか】
 // 性格25種 × 努力値H/B/D(Champions形式0〜32、各33通り) = 25 × 33^3 ≒ 89万通り。
 // calcLethalSequence() 1回の実測所要時間は約20ms(Coordinator計測、3発の技列・
@@ -36,31 +45,56 @@
 // 判定する(壁・特性・テラスタル等で実効の物理/特殊が変わるため、実測の方が確実)。
 // 各カードについてB(またはD)を最小/最大にした2通りをcalcLethalSequence()で計算し、
 // perAttackDamages/cumulativeDamageが変わるかを見る(probeDependency参照)。
-// 全カードが「Bのみ」「Dのみ」に分類できれば、minB(H)とminD(H)は独立に二方向ポインタ
-// (性質5)で求まる。1枚のカードの中に物理技と特殊技が混在する等、両方に依存するカードが
-// 1つでもあれば、そのクラスの探索全体をHP×Bの2次元走査にフォールバックする
-// (solveClassFallback参照。コストが跳ね上がるため onProgress・signal中断に対応する)。
+// 全カードが「Bのみ」「Dのみ」に分類できれば、minB(H)とminD(H)は独立に求まる。
+// 1枚のカードの中に物理技と特殊技が混在する等、両方に依存するカードが1つでもあれば、
+// そのクラスの探索全体をHP×Bの2次元走査にフォールバックする(コストが跳ね上がるため
+// onProgress・signal中断に対応する)。
 //
-// 【性質4: 実数値キャッシュ】判定結果は (rowId, HP実数値, B実数値, D実数値) をキーに
-// メモ化する。努力値が異なっても実数値が同じなら同じ結果になるため、性格クラスを
-// またいでも再利用できる。ただし(B倍率,D倍率)が異なれば同じ努力値でも実数値の
-// 進み方(努力値→実数値の対応)が変わるため、後述のとおりB/Dの二方向ポインタ探索
-// 自体は「(B倍率,D倍率)クラス」ではなく「distinctなB倍率/D倍率」単位(通常時は3+3=6回)
-// で行い、7クラスへは事後に配列参照だけで合成する(エンジン呼び出しを7回→6回相当に
-// 抑える。パラドックス例外時はこの共有ができないため25性格それぞれで独立に行う)。
+// 【性質4: 支配(Pareto dominance)による枝刈り】(2026-08-05 高速化)
+// 性質1の単調性は「1軸ずつ」ではなく多次元同時に効く。すなわち
+//   ・ある(H実数値, B実数値, D実数値)が「耐えられない」なら、3つとも**それ以下**の点は
+//     全て耐えられない
+//   ・ある点が「耐えられる」なら、3つとも**それ以上**の点は全て耐えられる
+// が常に成り立つ。判定済みの点を「極大な不合格点の反鎖」「極小な合格点の反鎖」として
+// 持っておけば(MonotoneMemo)、新しい点はまずこの支配関係で照合するだけでエンジンを
+// 呼ばずに合否が決まることが多い。HP努力値を1段上げた直後の再判定・性格クラスをまたいだ
+// 再判定はほぼ全てここで無料になる。
 //
-// 【性質5: 二方向ポインタ】HP努力値を昇順に走査しながら、必要な最小B(またはD)努力値を
-// 単調に下げていく(下げるだけで上げ直さない)ことで、1回の探索全体がO(HP数+B数)で
-// 済む(HPごとに毎回二分探索し直さない)。twoPointerMinByH参照。
+// ⚠️ よくある誤解: 「耐久指数(H×B・H×D・H*B*D/(B+D))が要求を下回る点を切る」枝刈りは
+// **正しくない**。耐久指数が同じでも配分が違えば合否は変わり得る(例: 特殊技だけの
+// カードに対し、H×Bが大きくてもDが低ければ落ちる)ため、指数は合否の全順序になっていない。
+// 使ってよいのは上の**支配関係(半順序)**の方で、こちらは指数による枝刈りより厳密に
+// 強い(指数で切れる点は全て支配でも切れる、かつ支配は誤って切らない)。
+//
+// 【性質5: 判定は「実数値」だけで決まる。かつ依存しない軸はキーから落とせる】
+// 判定結果は努力値ではなく実数値で決まるため、性格クラスをまたいでも実数値が同じなら
+// 再利用できる。さらに性質3のprobeDependencyでB(またはD)に依存しないと判明した
+// カードは、その軸をメモのキーから丸ごと落とせる(値が何であっても結果が変わらないと
+// 実測済みのため)。結果としてB専用カードのメモは(H実数値, B実数値)の2次元になり、
+// B倍率0.9/1.0/1.1の3グループが同じメモを共有する。
+//
+// 【性質6: 3つのB倍率を「実数値グリッド」に統合して1回で探索する】(2026-08-05 高速化)
+// 改修前は B倍率ごと(0.9/1.0/1.1)に独立の探索を3回、D倍率も3回、計6回走らせていた。
+// 性質5より合否はB実数値だけで決まるので、3倍率で到達可能なB実数値を全てマージして
+// 昇順に並べた1本のグリッド上で「HP実数値ごとに合格する最小のB実数値(閾値)」を1回
+// 求めれば足りる。各性格クラスの最小B努力値は、その閾値以上になる最小の努力値を
+// calcOtherStat()で引くだけ(エンジン呼び出し0回)で求まる。同じことをD側にも行う。
+// → エンジン呼び出しが6探索ぶん → 2探索ぶんに減る。
+//
+// 【性質7: 探索方向はギャロップ+二分探索】(2026-08-05 高速化)
+// 閾値はHP努力値について単調非増加なので、1段前のHPで求めた閾値がそのまま上界になる。
+// そこで上界から下方向へ 1,2,4,8… と指数的に飛んで不合格点を挟み込み(ギャロップ)、
+// 挟んだ区間だけを二分探索する(minPassingIndex)。閾値が動かないHP段では1回、Δだけ
+// 下がる段では O(log Δ) 回で済む。改修前の「1段ずつ下ろす二方向ポインタ」は初回HP段で
+// グリッド長ぶん(最大90回)の呼び出しを要していたが、ギャロップで log に落ちる。
 //
 // 【候補の展開方針】各(性格, H努力値)につき、条件を満たす最小の(B, D)の1点だけを
 // 返す(合計努力値が最小の代表点)。それより大きいB/Dの組み合わせも条件を満たすが、
 // 全部返すと膨大になるため含めない。この方針により「searchedEvTotal昇順の一覧」が
 // 意味を持つ(候補を上から採用すれば必ず努力値効率の良い順になる)。
 
-import { calcLethalSequence, isEngineFatal, resetEngine } from "../pyodide-engine";
 import type { CalcDamagesOptions, CalcLethalSequenceResult, PokemonSpec, SequenceAttack } from "../pyodide-engine";
-import { NATURE_STAT_MODIFIERS, calcHpStat, calcOtherStat } from "../stats";
+import { NATURE_STAT_MODIFIERS, calcHpStat, calcOtherStat } from "../stats.ts";
 
 /** カード1枚ぶんの耐久要件 */
 export interface DurabilityRequirement {
@@ -76,7 +110,25 @@ export interface DurabilityRequirement {
 	m: number;
 }
 
+/**
+ * ソルバーが使うダメージ計算エンジン。src/lib/pyodide-engine.ts の
+ * `{ calcLethalSequence, isEngineFatal, resetEngine }` をそのまま渡せる形にしてある
+ * (ファイル冒頭の「⚠️ Pyodideエンジンは import せず注入する」参照)。
+ */
+export interface SolverEngine {
+	calcLethalSequence(
+		attackerSpec: PokemonSpec,
+		defenderSpec: PokemonSpec,
+		attacks: SequenceAttack[],
+		options?: CalcDamagesOptions,
+	): Promise<CalcLethalSequenceResult>;
+	isEngineFatal(): boolean;
+	resetEngine(): Promise<void>;
+}
+
 export interface SolveOptions {
+	/** ダメージ計算エンジン(呼び出し元が pyodide-engine の関数群を渡す) */
+	engine: SolverEngine;
 	/** 自分の種族値 [H,A,B,C,D,S] */
 	baseStats: number[];
 	/** 固定する努力値(現在値)。探索対象外 */
@@ -217,6 +269,26 @@ function buildNatureClasses(paradoxException: boolean): NatureClassGroup[] {
 }
 
 /**
+ * 実数値グリッドの探索に使う性格を選ぶ(性質6)。
+ * 目的の軸(def/spd)が目的の倍率になる性格のうち、**素早さに上昇/下降を持たないもの**を
+ * 優先する。性質2は「防御側のA/C/Sは耐久判定に影響しない」という前提だが、統合グリッドは
+ * 1回の探索の中で異なる性格を混ぜて叩くため、前提が崩れたときの影響をできるだけ小さく
+ * したい。素早さは(ジャイロボール等)相手の技の威力に効き得る唯一の非防御実数値なので、
+ * そこだけは全グリッド点で揃える。該当が無ければ倍率さえ合っていれば何でもよい。
+ */
+function pickGridNature(stat: "def" | "spd", mult: number): string {
+	const names = Object.keys(NATURE_STAT_MODIFIERS);
+	const matches = names.filter((n) => {
+		const m = natureMultipliers(n);
+		return (stat === "def" ? m.bMult : m.dMult) === mult;
+	});
+	return matches.find((n) => {
+		const mod = NATURE_STAT_MODIFIERS[n];
+		return mod.up !== "spe" && mod.down !== "spe";
+	}) ?? matches[0];
+}
+
+/**
  * 自分側のspecが「こだいかっせい」「クォークチャージ」を特性として持つか、
  * 「ブーストエナジー」を持ち物として持つかを判定する。性格・努力値は結果に影響しない
  * フィールド(abilityName/itemName)だけを見るため、ダミー値で1回specを組み立てて確認する。
@@ -244,11 +316,128 @@ function sameOutcome(a: CalcLethalSequenceResult, b: CalcLethalSequenceResult): 
 	return true;
 }
 
+/** 各座標について a <= b か(支配判定。性質4)。 */
+function dominatedBy(a: number[], b: number[]): boolean {
+	for (let i = 0; i < a.length; i++) {
+		if (a[i] > b[i]) return false;
+	}
+	return true;
+}
+
+/**
+ * 単調述語「この実数値の組で耐えられるか」のメモ(性質4)。
+ * 座標は実数値の配列で、次元数はカードごとに異なる(性質5。B専用カードなら
+ * [H実数値, B実数値]、B/D両方に依存するカードなら [H実数値, B実数値, D実数値])。
+ *
+ * fails には「不合格と分かっている点」のうち極大なものだけ、passes には「合格と
+ * 分かっている点」のうち極小なものだけを反鎖(antichain)として持つ。反鎖にしておくと
+ * 走査対象が最小限になり、かつ完全一致のキャッシュを別に持つ必要がなくなる
+ * (自分自身は自分自身に支配されるため、同じ点の再照会は必ずここで当たる)。
+ */
+class MonotoneMemo {
+	private readonly fails: number[][] = [];
+	private readonly passes: number[][] = [];
+
+	/** 支配関係から合否が確定するなら true/false、分からなければ undefined。 */
+	lookup(point: number[]): boolean | undefined {
+		for (const f of this.fails) {
+			if (dominatedBy(point, f)) return false;
+		}
+		for (const p of this.passes) {
+			if (dominatedBy(p, point)) return true;
+		}
+		return undefined;
+	}
+
+	record(point: number[], pass: boolean): void {
+		const list = pass ? this.passes : this.fails;
+		for (let i = list.length - 1; i >= 0; i--) {
+			// 合格点は「より小さい合格点」に、不合格点は「より大きい不合格点」に吸収される。
+			const redundant = pass ? dominatedBy(point, list[i]) : dominatedBy(list[i], point);
+			if (redundant) list.splice(i, 1);
+		}
+		list.push(point.slice());
+	}
+}
+
+/**
+ * 単調述語 P(i)(iが大きいほど合格しやすい)について、P(ub) が true と分かっているとき、
+ * P(i) が true になる最小の i(0 <= i <= ub)を求める(性質7)。
+ *
+ * ub から下へ 1,2,4,8… と指数的に飛んで最初の不合格点を見つけ(ギャロップ)、挟み込んだ
+ * 区間だけを二分探索する。答えが ub のまま動かないときは1回、Δだけ下がるときは
+ * O(log Δ) 回の P 呼び出しで済む。
+ */
+async function minPassingIndex(ub: number, P: (i: number) => Promise<boolean>): Promise<number> {
+	if (ub <= 0) return 0;
+	let hiPass = ub; // P(hiPass) === true が既知
+	let loFail = -1; // P(loFail) === false が既知(-1 は「まだ不合格点を見つけていない」)
+	let step = 1;
+	while (hiPass > 0) {
+		const probe = Math.max(0, hiPass - step);
+		// eslint-disable-next-line no-await-in-loop
+		if (await P(probe)) {
+			hiPass = probe;
+			if (probe === 0) return 0;
+			step *= 2;
+		} else {
+			loFail = probe;
+			break;
+		}
+	}
+	if (loFail < 0) return hiPass;
+	let lo = loFail + 1;
+	let hi = hiPass;
+	while (lo < hi) {
+		const mid = (lo + hi) >> 1;
+		// eslint-disable-next-line no-await-in-loop
+		if (await P(mid)) hi = mid;
+		else lo = mid + 1;
+	}
+	return lo;
+}
+
+/** 統合実数値グリッドの1点(性質6)。value を実現する代表の(性格, 努力値)を持つ。 */
+interface GridPoint {
+	value: number;
+	nature: string;
+	ev: number;
+}
+
+/** 指定した倍率群で到達可能な実数値をマージし、昇順の重複なしグリッドにする(性質6)。 */
+function buildRealStatGrid(stat: "def" | "spd", base: number, mults: number[]): GridPoint[] {
+	const byValue = new Map<number, GridPoint>();
+	for (const mult of mults) {
+		const nature = pickGridNature(stat, mult);
+		for (let ev = 0; ev <= MAX_EV; ev++) {
+			const value = calcOtherStat(LEVEL, base, IV, ev, mult);
+			if (!byValue.has(value)) byValue.set(value, { value, nature, ev });
+		}
+	}
+	return [...byValue.values()].sort((a, b) => a.value - b.value);
+}
+
+/** 実数値の閾値を満たす最小の努力値(0〜32)。届かなければ null。 */
+function minEvForThreshold(base: number, mult: number, threshold: number): number | null {
+	for (let ev = 0; ev <= MAX_EV; ev++) {
+		if (calcOtherStat(LEVEL, base, IV, ev, mult) >= threshold) return ev;
+	}
+	return null;
+}
+
 export async function solveDurability(
 	requirements: DurabilityRequirement[],
 	options: SolveOptions,
 ): Promise<SolveResult> {
-	const { baseStats, fixedEvs, buildDefenderSpec, onProgress, signal, maxCandidates = DEFAULT_MAX_CANDIDATES } = options;
+	const {
+		engine,
+		baseStats,
+		fixedEvs,
+		buildDefenderSpec,
+		onProgress,
+		signal,
+		maxCandidates = DEFAULT_MAX_CANDIDATES,
+	} = options;
 
 	let engineCallCount = 0;
 	let lastProgressAt = 0;
@@ -304,9 +493,9 @@ export async function solveDurability(
 		let result: CalcLethalSequenceResult;
 		try {
 			engineCallCount++;
-			result = await calcLethalSequence(attackerSpec, defenderSpec, attacksN, callOptions);
+			result = await engine.calcLethalSequence(attackerSpec, defenderSpec, attacksN, callOptions);
 		} catch (err) {
-			if (!isEngineFatal()) throw err;
+			if (!engine.isEngineFatal()) throw err;
 			// onProgressへスロットルを無視して即座に通知する(resetEngineは約2.4秒かかるため、
 			// UIが無反応に見えないようにする。bulk-adjust.tsの汎用progress表示
 			// `${info.phase}(${info.done}/${info.total})` にそのまま乗る)。
@@ -315,11 +504,11 @@ export async function solveDurability(
 				total: lastProgressTotal,
 				phase: "エンジンが致命的エラーで停止したため再起動しています(数秒かかります)",
 			});
-			await resetEngine();
+			await engine.resetEngine();
 			checkAborted(signal);
 			try {
 				engineCallCount++;
-				result = await calcLethalSequence(attackerSpec, defenderSpec, attacksN, callOptions);
+				result = await engine.calcLethalSequence(attackerSpec, defenderSpec, attacksN, callOptions);
 			} catch {
 				// リトライは1回まで(要件2)。再度失敗したら探索を中断する。
 				throw new EngineFatalError(
@@ -329,66 +518,6 @@ export async function solveDurability(
 		}
 		await yieldToEventLoopIfDue();
 		return result;
-	}
-
-	// (rowId, 性格クラスキー, HP実数値, B実数値, D実数値) -> 耐えるか(合否)。
-	// 性質4のとおり、性格クラスキーは非パラドックス時は(B倍率,D倍率)を表す文字列、
-	// パラドックス例外時は性格名そのもの(A/C/Sの実数値差で結果が変わり得るため
-	// 実数値だけでは同一視できない)。
-	const passCache = new Map<string, boolean>();
-
-	async function requirementPasses(
-		req: DurabilityRequirement,
-		nature: string,
-		natureCacheKey: string,
-		evH: number,
-		evB: number,
-		evD: number,
-	): Promise<boolean> {
-		const mods = natureMultipliers(nature);
-		const hp = calcHpStat(LEVEL, baseStats[0], IV, evH);
-		const def = calcOtherStat(LEVEL, baseStats[2], IV, evB, mods.bMult);
-		const spd = calcOtherStat(LEVEL, baseStats[4], IV, evD, mods.dMult);
-		const cacheKey = `${req.rowId}|${natureCacheKey}|${hp}|${def}|${spd}`;
-		const cached = passCache.get(cacheKey);
-		if (cached !== undefined) return cached;
-
-		checkAborted(signal);
-		const evs = [evH, fixedEvs.atk, evB, fixedEvs.spa, evD, fixedEvs.spe];
-		const defenderSpec = buildDefenderSpec(nature, evs);
-		const attacksN = expandAttacksToN(req.attacks, req.n);
-		// sequentialOnly: true (要件1本体): この探索経路はlethalしか読まないため、
-		// isolated側(perAttackDamages/perAttackLethal)の計算を丸ごとスキップしてもらう。
-		// lethal/cumulativeDamageの値・打ち切り仕様はsequentialOnlyの有無で完全に一致する
-		// ことが実測済み(pyodide-engine.ts CalcDamagesOptions.sequentialOnlyのコメント参照)。
-		// 1呼び出しあたりのBattle構築+calc_lethal呼び出しが2回→1回に減り、これがクラッシュ
-		// 対策の本体になる(検証: n=16,m=100などは改修前クラッシュしていたが完走するように
-		// なった。検証項目2参照)。
-		const result = await callLethalSequenceResilient(req.attackerSpec, defenderSpec, attacksN, {
-			seed: req.seed,
-			sequentialOnly: true,
-		});
-		const lethal = lethalProbabilityAtN(result, req.n);
-		const surviveProbability = 1 - lethal;
-		const pass = surviveProbability >= req.m / 100 - 1e-9;
-		passCache.set(cacheKey, pass);
-		return pass;
-	}
-
-	async function allPass(
-		reqs: DurabilityRequirement[],
-		nature: string,
-		natureCacheKey: string,
-		evH: number,
-		evB: number,
-		evD: number,
-	): Promise<boolean> {
-		for (const req of reqs) {
-			checkAborted(signal);
-			const ok = await requirementPasses(req, nature, natureCacheKey, evH, evB, evD);
-			if (!ok) return false;
-		}
-		return true;
 	}
 
 	// --- 性質3: カードごとにB/D依存の有無を実測する(nature="まじめ"固定、HP努力値0固定で
@@ -446,6 +575,91 @@ export async function solveDurability(
 		reportProgress(0, 1, "こだいかっせい/クォークチャージ/ブーストエナジーを検出: 25性格を個別評価中(低速)");
 	}
 
+	// --- 判定のメモ(性質4・性質5)---
+	// カード(rowId)ごとに1つ。パラドックス例外時だけは、同じ実数値でもA/C/Sの違いで
+	// 結果が変わり得るため性格名までキーに含める(=性格ごとに別メモになる)。
+	const memos = new Map<string, MonotoneMemo>();
+	function memoFor(req: DurabilityRequirement, nature: string): MonotoneMemo {
+		const key = paradoxException ? `${req.rowId}|${nature}` : req.rowId;
+		let memo = memos.get(key);
+		if (!memo) {
+			memo = new MonotoneMemo();
+			memos.set(key, memo);
+		}
+		return memo;
+	}
+
+	async function requirementPasses(
+		req: DurabilityRequirement,
+		nature: string,
+		evH: number,
+		evB: number,
+		evD: number,
+	): Promise<boolean> {
+		const mods = natureMultipliers(nature);
+		const hp = calcHpStat(LEVEL, baseStats[0], IV, evH);
+		const def = calcOtherStat(LEVEL, baseStats[2], IV, evB, mods.bMult);
+		const spd = calcOtherStat(LEVEL, baseStats[4], IV, evD, mods.dMult);
+		// 性質5: このカードが依存しないと実測済みの軸はメモのキーから落とす。
+		// 落とした軸は値が何であっても結果が変わらないため、支配判定の次元も減らせる
+		// (= B専用カードならD側の値が違ってもキャッシュが当たる)。
+		const point: number[] = [hp];
+		if (dependsOnBMap.get(req.rowId)) point.push(def);
+		if (dependsOnDMap.get(req.rowId)) point.push(spd);
+
+		const memo = memoFor(req, nature);
+		const known = memo.lookup(point);
+		if (known !== undefined) return known;
+
+		checkAborted(signal);
+		const evs = [evH, fixedEvs.atk, evB, fixedEvs.spa, evD, fixedEvs.spe];
+		const defenderSpec = buildDefenderSpec(nature, evs);
+		const attacksN = expandAttacksToN(req.attacks, req.n);
+		// sequentialOnly: true (要件1本体): この探索経路はlethalしか読まないため、
+		// isolated側(perAttackDamages/perAttackLethal)の計算を丸ごとスキップしてもらう。
+		// lethal/cumulativeDamageの値・打ち切り仕様はsequentialOnlyの有無で完全に一致する
+		// ことが実測済み(pyodide-engine.ts CalcDamagesOptions.sequentialOnlyのコメント参照)。
+		// 1呼び出しあたりのBattle構築+calc_lethal呼び出しが2回→1回に減り、これがクラッシュ
+		// 対策の本体になる(検証: n=16,m=100などは改修前クラッシュしていたが完走するように
+		// なった。検証項目2参照)。
+		const result = await callLethalSequenceResilient(req.attackerSpec, defenderSpec, attacksN, {
+			seed: req.seed,
+			sequentialOnly: true,
+		});
+		const lethal = lethalProbabilityAtN(result, req.n);
+		const surviveProbability = 1 - lethal;
+		const pass = surviveProbability >= req.m / 100 - 1e-9;
+		memo.record(point, pass);
+		return pass;
+	}
+
+	// カードが複数あるとき、落ちやすいカードから評価するとANDの短絡が早く効いて
+	// エンジン呼び出しが減る。どれが厳しいかは事前に分からないため、実際に不合格に
+	// なった回数を数えて多い順に並べ替える(適応的な順序付け。結果は順序に依存しない)。
+	const failCounts = new Map<string, number>();
+
+	async function allPass(
+		reqs: DurabilityRequirement[],
+		nature: string,
+		evH: number,
+		evB: number,
+		evD: number,
+	): Promise<boolean> {
+		const ordered =
+			reqs.length > 1
+				? [...reqs].sort((a, b) => (failCounts.get(b.rowId) ?? 0) - (failCounts.get(a.rowId) ?? 0))
+				: reqs;
+		for (const req of ordered) {
+			checkAborted(signal);
+			const ok = await requirementPasses(req, nature, evH, evB, evD);
+			if (!ok) {
+				failCounts.set(req.rowId, (failCounts.get(req.rowId) ?? 0) + 1);
+				return false;
+			}
+		}
+		return true;
+	}
+
 	function makeCandidate(nature: string, evH: number, evB: number, evD: number): DurabilityCandidate {
 		const mods = natureMultipliers(nature);
 		const hp = calcHpStat(LEVEL, baseStats[0], IV, evH);
@@ -467,118 +681,133 @@ export async function solveDurability(
 
 	if (!isMixedOverall) {
 		// --- 高速経路: 全カードが「Bのみ」「Dのみ」「どちらにも依存しない」のいずれかに
-		// 分類できる。minB(H)とminD(H)を独立に、二方向ポインタで求める。---
+		// 分類できる。minB(H)とminD(H)を独立に求める。---
 		const bOnlyReqs = requirements.filter((r) => dependsOnBMap.get(r.rowId) && !dependsOnDMap.get(r.rowId));
 		const dOnlyReqs = requirements.filter((r) => !dependsOnBMap.get(r.rowId) && dependsOnDMap.get(r.rowId));
 		const neitherReqs = requirements.filter((r) => !dependsOnBMap.get(r.rowId) && !dependsOnDMap.get(r.rowId));
 
 		// neitherReqs(B/Dどちらにも依存しないカード)はHPだけで合否が決まるので、
-		// 性格に依存しない単一の二分探索で「合格する最小HP努力値」を1回だけ求める。
+		// 性格に依存しない単一の探索で「合格する最小HP努力値」を1回だけ求める。
 		async function computeNeitherFeasible(): Promise<boolean[]> {
 			const result: boolean[] = new Array(MAX_EV + 1).fill(true);
 			if (neitherReqs.length === 0) return result;
-			const passAt = (evH: number) => allPass(neitherReqs, "まじめ", "neither", evH, 0, 0);
+			const passAt = (evH: number) => allPass(neitherReqs, "まじめ", evH, 0, 0);
 			if (!(await passAt(MAX_EV))) {
 				result.fill(false);
 				return result;
 			}
-			let lo = 0;
-			let hi = MAX_EV;
-			while (lo < hi) {
-				const mid = Math.floor((lo + hi) / 2);
-				// eslint-disable-next-line no-await-in-loop
-				if (await passAt(mid)) hi = mid;
-				else lo = mid + 1;
-			}
+			const lo = await minPassingIndex(MAX_EV, passAt);
 			for (let h = 0; h <= MAX_EV; h++) result[h] = h >= lo;
 			return result;
 		}
 
-		// 二方向ポインタ本体(性質5)。dimensionValue(h, val)は「HP努力値h・対象努力値val」
-		// (もう片方の探索対象外の努力値は0固定。対象外なので値は結果に影響しない)で
-		// 全requirementが合格するかを返す。valポインタはH昇順ループの中で単調に
-		// 下げるだけで、上げ直さないため、この関数全体でO(33+33)回のallPass呼び出しに収まる。
-		async function twoPointerMinByH(
+		/**
+		 * 性質6+7の本体。HP努力値ごとに「合格する最小のB(またはD)実数値」を統合グリッド上で
+		 * 求める。閾値はHPについて単調非増加なので、1段前の答えをそのまま上界に使い、
+		 * そこからギャロップ+二分探索(minPassingIndex)で下ろす。届かないHP段は null。
+		 */
+		async function solveAxisThresholds(
 			reqs: DurabilityRequirement[],
-			nature: string,
-			natureCacheKey: string,
-			dimension: "B" | "D",
+			grid: GridPoint[],
 			phaseLabel: string,
 			progressBase: number,
 			progressTotal: number,
 		): Promise<(number | null)[]> {
-			const result: (number | null)[] = new Array(MAX_EV + 1).fill(null);
-			if (reqs.length === 0) return result.fill(0);
-			const passAt = (evH: number, val: number) =>
-				dimension === "B"
-					? allPass(reqs, nature, natureCacheKey, evH, val, 0)
-					: allPass(reqs, nature, natureCacheKey, evH, 0, val);
-			let ptr = MAX_EV;
+			const thresholds: (number | null)[] = new Array(MAX_EV + 1).fill(null);
+			if (reqs.length === 0) return thresholds.fill(0);
+			const passAt = (evH: number, gridIndex: number) =>
+				allPass(reqs, grid[gridIndex].nature, evH, grid[gridIndex].ev, grid[gridIndex].ev);
+			let upper = grid.length - 1;
 			for (let evH = 0; evH <= MAX_EV; evH++) {
 				checkAborted(signal);
-				while (ptr > 0 && (await passAt(evH, ptr - 1))) ptr--;
-				result[evH] = (await passAt(evH, ptr)) ? ptr : null;
+				// upper は「1段前のHPで合格した最小点」。HPが増えた今も単調性より必ず合格するので、
+				// 2段目以降のこの判定はメモの支配関係だけで即答され、エンジンを呼ばない。
+				if (await passAt(evH, upper)) {
+					const idx = await minPassingIndex(upper, (i) => passAt(evH, i));
+					upper = idx;
+					thresholds[evH] = grid[idx].value;
+				}
 				reportProgress(progressBase + evH + 1, progressTotal, phaseLabel);
 			}
-			return result;
+			return thresholds;
 		}
 
 		const neitherFeasible = await computeNeitherFeasible();
 
-		// distinctなB倍率/D倍率ごとに1回だけ探索する(性質4)。非パラドックス時は最大3+3、
-		// パラドックス例外時は性格を共有できないため最大25+25になる(遅くなる旨は
-		// 上のonProgressで既に伝えている)。
-		const bGroupKeyOf = (representative: string) => (paradoxException ? representative : String(natureMultipliers(representative).bMult));
-		const dGroupKeyOf = (representative: string) => (paradoxException ? representative : String(natureMultipliers(representative).dMult));
-
-		const bGroups = new Map<string, string>(); // groupKey -> representative nature
-		const dGroups = new Map<string, string>();
-		for (const cls of natureClasses) {
-			const bKey = bGroupKeyOf(cls.representative);
-			if (!bGroups.has(bKey)) bGroups.set(bKey, cls.representative);
-			const dKey = dGroupKeyOf(cls.representative);
-			if (!dGroups.has(dKey)) dGroups.set(dKey, cls.representative);
+		// 探索グループ: 非パラドックス時は「全性格ぶんをまとめた統合グリッド1本」(性質6)。
+		// パラドックス例外時は性格ごとに結果が変わり得るため統合できず、性格ごとに
+		// その性格の倍率だけのグリッドを1本ずつ持つ(改修前と同じ25本ぶんの探索)。
+		interface AxisSearchGroup {
+			key: string;
+			grid: GridPoint[];
+		}
+		function buildSearchGroups(stat: "def" | "spd", base: number): { groups: AxisSearchGroup[]; keyOf: (nature: string) => string } {
+			if (!paradoxException) {
+				return {
+					groups: [{ key: "*", grid: buildRealStatGrid(stat, base, [0.9, 1.0, 1.1]) }],
+					keyOf: () => "*",
+				};
+			}
+			const groups = natureClasses.map((cls) => {
+				const mult = stat === "def" ? cls.bMult : cls.dMult;
+				// パラドックス時はグリッド点の性格もそのクラスの性格に固定する
+				// (A/C/Sの違いが結果に効くため、他の性格で代用できない)。
+				const grid: GridPoint[] = [];
+				for (let ev = 0; ev <= MAX_EV; ev++) {
+					const value = calcOtherStat(LEVEL, base, IV, ev, mult);
+					if (grid.length === 0 || grid[grid.length - 1].value !== value) {
+						grid.push({ value, nature: cls.representative, ev });
+					}
+				}
+				return { key: cls.representative, grid };
+			});
+			return { groups, keyOf: (nature: string) => nature };
 		}
 
-		const minBByGroup = new Map<string, (number | null)[]>();
-		let bGroupIndex = 0;
-		for (const [key, representative] of bGroups) {
-			const arr = await twoPointerMinByH(
-				bOnlyReqs,
-				representative,
-				key,
-				"B",
-				"最小B努力値を探索中",
-				bGroupIndex * (MAX_EV + 1),
-				bGroups.size * (MAX_EV + 1),
+		const bSearch = buildSearchGroups("def", baseStats[2]);
+		const dSearch = buildSearchGroups("spd", baseStats[4]);
+
+		const bThresholds = new Map<string, (number | null)[]>();
+		for (let i = 0; i < bSearch.groups.length; i++) {
+			const group = bSearch.groups[i];
+			bThresholds.set(
+				group.key,
+				await solveAxisThresholds(
+					bOnlyReqs,
+					group.grid,
+					"最小B努力値を探索中",
+					i * (MAX_EV + 1),
+					bSearch.groups.length * (MAX_EV + 1),
+				),
 			);
-			minBByGroup.set(key, arr);
-			bGroupIndex++;
 		}
 
-		const minDByGroup = new Map<string, (number | null)[]>();
-		let dGroupIndex = 0;
-		for (const [key, representative] of dGroups) {
-			const arr = await twoPointerMinByH(
-				dOnlyReqs,
-				representative,
-				key,
-				"D",
-				"最小D努力値を探索中",
-				dGroupIndex * (MAX_EV + 1),
-				dGroups.size * (MAX_EV + 1),
+		const dThresholds = new Map<string, (number | null)[]>();
+		for (let i = 0; i < dSearch.groups.length; i++) {
+			const group = dSearch.groups[i];
+			dThresholds.set(
+				group.key,
+				await solveAxisThresholds(
+					dOnlyReqs,
+					group.grid,
+					"最小D努力値を探索中",
+					i * (MAX_EV + 1),
+					dSearch.groups.length * (MAX_EV + 1),
+				),
 			);
-			minDByGroup.set(key, arr);
-			dGroupIndex++;
 		}
 
+		// 閾値(実数値)→ 各性格クラスの最小努力値への変換はエンジンを呼ばない純粋計算。
 		for (const cls of natureClasses) {
-			const minBArr = minBByGroup.get(bGroupKeyOf(cls.representative))!;
-			const minDArr = minDByGroup.get(dGroupKeyOf(cls.representative))!;
+			const bArr = bThresholds.get(bSearch.keyOf(cls.representative))!;
+			const dArr = dThresholds.get(dSearch.keyOf(cls.representative))!;
 			for (let evH = 0; evH <= MAX_EV; evH++) {
 				if (!neitherFeasible[evH]) continue;
-				const evB = minBArr[evH];
-				const evD = minDArr[evH];
+				const bThreshold = bArr[evH];
+				const dThreshold = dArr[evH];
+				if (bThreshold == null || dThreshold == null) continue;
+				const evB = minEvForThreshold(baseStats[2], cls.bMult, bThreshold);
+				const evD = minEvForThreshold(baseStats[4], cls.dMult, dThreshold);
 				if (evB == null || evD == null) continue;
 				for (const nature of cls.natures) {
 					candidates.push(makeCandidate(nature, evH, evB, evD));
@@ -587,38 +816,40 @@ export async function solveDurability(
 		}
 	} else {
 		// --- フォールバック経路: 物理技・特殊技が混在するなど、B・D両方に依存するカードが
-		// 1枚でもある場合。性質3のとおり、独立探索が使えないためHP×Bの2次元走査に切り替える。
-		// クラスごとに: HP努力値を昇順に回し、各HPで B努力値を昇順に動かしながら
-		// (Dポインタは単調に下げつつ)最小のB努力値・その時点のDを探し、最初に合格した
-		// (B,D)を採用する(candidatesの展開方針=最小努力値の代表点、というコメント冒頭の
-		// 方針に沿う)。全カードをまとめて評価するためgroup共有はできず、クラスの数だけ
-		// 走査するので大幅にコストが増える(onProgress/signalで進捗通知・中断に対応する)。
+		// 1枚でもある場合。性質3のとおり独立探索が使えないためHP×Bの2次元走査に切り替える。
+		// 出力の定義は改修前と同じ「最小のB努力値、そのBでの最小のD努力値」。
+		//
+		// 高速化(2026-08-05): 「解が存在する最小のB努力値」はHP努力値について非増加、
+		// 「そのBでの最小D努力値」も(同じBについて)HPに対して非増加なので、1段前のHPの
+		// 答えを上界として引き継ぎ、そこからギャロップ+二分探索(性質7)で下ろす。
+		// 引き継いだ上界の再判定はメモの支配関係(性質4)で無料になるため、改修前の
+		// 「HP段ごとにB=0から走査し直す」約15,000回の呼び出しが数百回まで落ちる。
+		// なお非パラドックス時はメモが実数値キーで性格クラス間でも共有されるため、
+		// 2クラス目以降はさらに当たりやすい。
 		const totalWork = natureClasses.length * (MAX_EV + 1);
 		let doneWork = 0;
 		for (const cls of natureClasses) {
 			checkAborted(signal);
+			const nature = cls.representative;
+			// 「B努力値 evB で(D努力値をいくらでも積めるなら)解があるか」= allPass(evH, evB, MAX_EV)。
+			let evBUpper = MAX_EV;
+			// evB ごとの「最小D努力値」の上界。HPが増えると下がる一方なので使い回せる。
+			const evDUpperByEvB: number[] = new Array(MAX_EV + 1).fill(MAX_EV);
 			for (let evH = 0; evH <= MAX_EV; evH++) {
 				checkAborted(signal);
-				let evD = MAX_EV;
-				let found: { evB: number; evD: number } | null = null;
-				for (let evB = 0; evB <= MAX_EV; evB++) {
-					checkAborted(signal);
-					while (evD > 0 && (await allPass(requirements, cls.representative, cls.representative, evH, evB, evD - 1))) {
-						evD--;
-					}
-					// eslint-disable-next-line no-await-in-loop
-					if (await allPass(requirements, cls.representative, cls.representative, evH, evB, evD)) {
-						found = { evB, evD };
-						break;
-					}
-				}
-				if (found) {
-					for (const nature of cls.natures) {
-						candidates.push(makeCandidate(nature, evH, found.evB, found.evD));
+				if (await allPass(requirements, nature, evH, evBUpper, MAX_EV)) {
+					const evB = await minPassingIndex(evBUpper, (i) => allPass(requirements, nature, evH, i, MAX_EV));
+					evBUpper = evB;
+					const evD = await minPassingIndex(evDUpperByEvB[evB], (i) =>
+						allPass(requirements, nature, evH, evB, i),
+					);
+					evDUpperByEvB[evB] = evD;
+					for (const n of cls.natures) {
+						candidates.push(makeCandidate(n, evH, evB, evD));
 					}
 				}
 				doneWork++;
-				reportProgress(doneWork, totalWork, "B/D混在カードのため2次元探索中(低速)");
+				reportProgress(doneWork, totalWork, "B/D混在カードのため2次元探索中");
 			}
 		}
 	}
