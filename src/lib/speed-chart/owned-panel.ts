@@ -240,6 +240,8 @@ export function initOwnedPanel(ctx: OwnedPanelContext): OwnedPanelController {
         // UI改修(2026-08-06): 既存のアイテムマスターと正規化済み画像URLを再利用する。
         const text = document.createElement('span');
         text.textContent = currentItem;
+        // UI不具合修正(2026-08-06): 一行省略時にも名称全体を確認できるようにする。
+        itemEl.title = currentItem;
         itemEl.appendChild(text);
         void loadItemSpriteMap().then((map) => {
           const spritePath = map.get(currentItem);
@@ -251,6 +253,7 @@ export function initOwnedPanel(ctx: OwnedPanelContext): OwnedPanelController {
           itemEl.prepend(image);
         });
       } else {
+        itemEl.removeAttribute('title');
         itemEl.textContent = 'アイテムなし';
       }
     }
@@ -413,7 +416,13 @@ export function initOwnedPanel(ctx: OwnedPanelContext): OwnedPanelController {
     // ボタンを押すと保存後に/box/<id>へ遷移する(下のhandleApply参照)。押下結果を
     // その場で編集することを表す編集アイコン(鉛筆)を先頭に付ける(要件2、
     // 2026-08-02第5弾でページジャンプアイコンから差し替え。右パネルの編集ボタンと意匠を統一)。
-    button.append(createRefreshIcon(), document.createTextNode(buttonParts.join(' / ')));
+    const buttonLabel = buttonParts.join(' / ');
+    // UI不具合修正(2026-08-06): flex直下のテキストノードをspanで包み、省略記号を確実に表示する。
+    const label = document.createElement('span');
+    label.className = 'speed-chart-apply-label';
+    label.textContent = buttonLabel;
+    button.title = buttonLabel;
+    button.append(createRefreshIcon(), label);
     button.addEventListener('click', () => {
       void handleApply(selection, button);
     });

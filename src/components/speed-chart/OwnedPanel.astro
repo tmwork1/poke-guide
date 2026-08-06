@@ -251,8 +251,11 @@ const { hasOwnedPanel, ownedId } = Astro.props;
 		display: inline-flex;
 		align-items: center;
 		gap: var(--space-1);
+		min-width: 0;
+		max-width: 100%;
+		overflow: hidden;
+		white-space: nowrap;
 	}
-	.speed-chart-owned-summary-item img { width: var(--space-5); height: var(--space-5); object-fit: contain; }
 	/* .severity-bar[data-severity]は基底(global.css)がdisplay指定を持たないブロック要素なので、
 	   [hidden]の詳細度勝ち負けは発生しない(pitfalls.mdの罠は「displayを明示したクラス」限定)。
 	   念のため明示しておく。 */
@@ -272,6 +275,20 @@ const { hasOwnedPanel, ownedId } = Astro.props;
 </style>
 
 <style is:global>
+	/* UI不具合修正(2026-08-06): アイテム画像と名称はowned-panel.tsが後から生成するため、
+	   scoped styleではなくglobal側でサイズ固定と一行省略を適用する。 */
+	#speed-chart-owned-summary-item img {
+		width: var(--space-5);
+		height: var(--space-5);
+		object-fit: contain;
+		flex: 0 0 auto;
+	}
+	#speed-chart-owned-summary-item > span {
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
 	/* --- 「この個体」セルの中身(src/lib/speed-chart/owned-panel.ts が動的生成する要素) ---
 	   pitfalls.md「Astroのscoped styleはJSで生成した要素に効かない」への対応。
 	   領域ルートクラス .speed-chart-owned で必ず絞り、ファイルの読み込み順に依存させない
@@ -306,6 +323,7 @@ const { hasOwnedPanel, ownedId } = Astro.props;
 		display: inline-flex;
 		align-items: center;
 		gap: var(--space-1);
+		min-width: 0;
 		font-size: var(--font-size-xs);
 		padding: 0.2em 0.8em;
 		/* UI改修(2026-08-02第4弾)要件4: 太字をやめる。global.css の
@@ -314,12 +332,17 @@ const { hasOwnedPanel, ownedId } = Astro.props;
 		font-weight: 500;
 		/* UI改修(2026-08-06): 長いアイテム名でもパネル幅を越えず一段に収める。 */
 		max-width: 100%;
-		white-space: nowrap;
-		overflow: hidden;
-		text-overflow: ellipsis;
 	}
 	.speed-chart-owned .speed-chart-apply-icon {
-		flex-shrink: 0;
+		flex: 0 0 auto;
+	}
+	/* UI不具合修正(2026-08-06): flex直下のテキストでは省略記号が出ないため、
+	   owned-panel.tsが生成するラベルspan側で一行省略する。 */
+	.speed-chart-owned .speed-chart-apply-label {
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 	.speed-chart-owned .speed-chart-ev-warning {
 		font-size: var(--font-size-xs);
