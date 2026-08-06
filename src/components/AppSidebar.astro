@@ -71,6 +71,12 @@ const SECTIONS: { heading: string; items: SidebarItem[] }[] = [
 			{ key: "team", label: "チーム", href: "/team", icon: "users" },
 			// UI改修依頼(2026-08-05)「左メニューの名称を『すばやさ』に変更」対応。
 			{ key: "speed-chart", label: "すばやさ", href: "/speed-chart", icon: "zap" },
+		],
+	},
+	{
+		heading: "データ",
+		items: [
+			// UI改修依頼(2026-08-06)「『トレンド』『上位構築』をデータグループにまとめる」対応。
 			{ key: "trend", label: "トレンド", icon: "trending-up", disabled: true },
 			{ key: "ranked-teams", label: "上位構築", href: "/ranked-teams", icon: "trophy" },
 		],

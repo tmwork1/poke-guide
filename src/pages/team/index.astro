@@ -401,8 +401,6 @@ const user = Astro.locals.user;
 			position: relative;
 			aspect-ratio: 1 / 1;
 			border-radius: var(--radius-sm);
-			background: var(--color-surface);
-			border: 1px solid var(--color-border);
 			overflow: hidden;
 			display: flex;
 			align-items: center;
@@ -415,13 +413,15 @@ const user = Astro.locals.user;
 		   設定済み/未設定の両方でそのまま使う(このルール自体を削除)。.is-emptyクラスの付与
 		   (下のscript参照)自体は変更しない(枠内の中央番号表示の分岐に使う)。
 		   代わりに、未設定枠だけ中央にその枠が何番目(N)かを薄い色の数字で表示する
-		   (.card-team-thumb-slot-number、下記。設定済み枠は公式絵で埋まるため数字は出さない)。 */
+		   (.card-team-thumb-slot-number、下記。設定済み枠は公式絵で埋まるため数字は出さない)。
+		   UI改修依頼(2026-08-06)でアイコンの枠と背景を廃止し、空き枠番号は枠なしでも
+		   6枠の位置が分かるよう不透明度を上げる。 */
 		.team-grid .card-team .card-team-thumb-slot-number {
 			font-size: 1.5rem;
 			font-weight: 700;
 			line-height: 1;
 			color: var(--color-text-muted);
-			opacity: 0.5;
+			opacity: 0.75;
 			user-select: none;
 		}
 		.team-grid .card-team .card-team-thumb-img {
@@ -566,7 +566,8 @@ const user = Astro.locals.user;
 								<select id="sort-select" class="field-control" aria-label="並べ替え">
 									{/* 「〜順」は付けない: /box の並べ替え(最終更新/最終使用/ニックネーム)に表記を揃える。 */}
 									<option value="updated_at">最終更新</option>
-									<option value="name">名前</option>
+									{/* UI改修依頼(2026-08-06)で並べ替え対象が明確になるよう「チーム名」に統一する。 */}
+									<option value="name">チーム名</option>
 								</select>
 							</div>
 						</div>
@@ -788,7 +789,11 @@ const user = Astro.locals.user;
 				pinButton.type = "button";
 				pinButton.className = "card-team-pin";
 				pinButton.dataset.pinned = String(t.is_pinned);
-				pinButton.textContent = t.is_pinned ? "★" : "☆";
+				// UI改修依頼(2026-08-06)でお気に入りの星表示を共通クラスへ集約する。
+				const pinStar = document.createElement("span");
+				pinStar.className = "favorite-star-glyph";
+				pinStar.setAttribute("aria-hidden", "true");
+				pinButton.appendChild(pinStar);
 				const pinLabel = t.is_pinned ? "お気に入りを解除する" : "お気に入りにする";
 				pinButton.title = pinLabel;
 				pinButton.setAttribute("aria-label", pinLabel);
