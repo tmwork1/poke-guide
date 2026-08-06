@@ -35,7 +35,8 @@ const defaultSeason = resolveDefaultSeason(seasons);
           <svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
           </svg>
-          <input id="ranked-team-search" type="search" class="field-control" placeholder="ポケモン名(スペース区切りでAND)" aria-label="ポケモン名で検索" autocomplete="off" />
+          <!-- 複数の区切り文字を受け付けるため、入力方法を限定せず用途だけを簡潔に示す。 -->
+          <input id="ranked-team-search" type="search" class="field-control" placeholder="ポケモン名(複数可)" aria-label="ポケモン名で検索" autocomplete="off" />
         </div>
       </div>
 
@@ -74,7 +75,7 @@ const defaultSeason = resolveDefaultSeason(seasons);
   <style>
     .toolbar-count { flex-shrink: 0; }
     #ranked-team-count[hidden] { display: none; }
-    /* 2つの検索欄ではポケモン名側を広くし、用途の長いプレースホルダーを読み取りやすくする。 */
+    /* 2つの検索欄ではポケモン名側を広くし、複数指定でも入力内容を確認しやすくする。 */
     .toolbar-search { flex: 3 1 25rem; }
     .toolbar-build-search { flex: 2 1 18rem; }
     .toolbar-search input, .toolbar-build-search input { width: 100%; min-width: 12em; }
@@ -103,8 +104,8 @@ const defaultSeason = resolveDefaultSeason(seasons);
     .ranked-team-list .ranked-team-article-link { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
     .ranked-team-list .ranked-team-host { flex-shrink: 0; max-width: 14rem; overflow: hidden; text-overflow: ellipsis; }
     .ranked-team-list .ranked-team-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(18rem, 0.34fr); }
-    /* 特性と技4件を収めながら密度を保つため、広い画面では3列にして各枠を横長にする。 */
-    .ranked-team-list .ranked-team-members { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-2); padding: var(--space-4); align-items: stretch; }
+    /* 広幅では6体を1行に収め、同一行の最大内容高へ伸ばして欠損のある枠とも高さを揃える。 */
+    .ranked-team-list .ranked-team-members { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: var(--space-2); padding: var(--space-4); align-items: stretch; }
     .ranked-team-list .ranked-team-thumb { position: relative; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: var(--space-1); padding: var(--space-2); border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface); }
     /* 情報行を持たない空き枠は、番号だけを従来どおり中央に置く。 */
     .ranked-team-list .ranked-team-thumb.is-empty { justify-content: center; border-style: dashed; color: var(--color-text-muted); }
@@ -116,7 +117,8 @@ const defaultSeason = resolveDefaultSeason(seasons);
     .ranked-team-list .ranked-team-ability { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--color-text-muted); font-size: var(--font-size-xs); }
     .ranked-team-list .ranked-team-moves { width: 100%; display: flex; flex-direction: column; gap: var(--space-1); }
     .ranked-team-list .ranked-team-move { min-width: 0; display: flex; align-items: center; gap: var(--space-1); }
-    .ranked-team-list .ranked-team-move-type { flex: 0 0 auto; width: 28px; height: auto; object-fit: contain; }
+    /* 技名と同じ12px基準に揃え、アイコンだけが行内で目立たない大きさにする。 */
+    .ranked-team-list .ranked-team-move-type { flex: 0 0 auto; width: var(--font-size-xs); height: var(--font-size-xs); object-fit: contain; }
     .ranked-team-list .ranked-team-move-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--color-text); font-size: var(--font-size-xs); }
     .ranked-team-list .ranked-team-details { margin: 0; padding: var(--space-4); border-left: 1px solid var(--color-border); display: flex; flex-direction: column; justify-content: center; gap: var(--space-3); }
     .ranked-team-list .ranked-team-detail-row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
@@ -130,6 +132,10 @@ const defaultSeason = resolveDefaultSeason(seasons);
     @media (max-width: 1280px) {
       .ranked-team-list .ranked-team-body { grid-template-columns: minmax(0, 1fr); }
       .ranked-team-list .ranked-team-details { border-left: 0; border-top: 1px solid var(--color-border); }
+    }
+    /* 6列では技名の表示幅を確保しにくい帯だけ3列に落とし、横スクロールを防ぐ。 */
+    @media (max-width: 900px) {
+      .ranked-team-list .ranked-team-members { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     }
     @media (max-width: 700px) {
       .ranked-team-list { padding: var(--space-4) var(--space-3); }
