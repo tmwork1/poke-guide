@@ -317,7 +317,7 @@
 		flex-wrap: wrap;
 		gap: 0 var(--space-3);
 		/* 候補の選択状態は背景と枠だけで示し、数値を見出しと競合させないため一段細くする。 */
-		font-weight: 500;
+		font-weight: 400;
 	}
 	#damage-detail-panel-body .candidate-list-item-stat {
 		white-space: nowrap;
@@ -347,6 +347,17 @@
 	#damage-detail-panel-body .candidate-list-group-title:first-child {
 		margin-top: 0;
 	}
+	/* 耐久調整の結果見出しとフィルタを同段に置き、狭幅では自然に折り返す。 */
+	#damage-detail-panel-body .candidate-list-result-heading-row {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		justify-content: space-between;
+		gap: var(--space-2);
+		margin-top: var(--space-3);
+	}
+	#damage-detail-panel-body .candidate-list-result-heading-row .candidate-list-group-title,
+	#damage-detail-panel-body .candidate-list-result-heading-row .candidate-list-filter-row { margin: 0; }
 	/* 依頼7: 「残り努力値以下のみ表示」トグル。トグル自体の見た目
 	   (.toggle-switch/.toggle-switch-track/.toggle-switch-thumb)はLeftPanel.astroの
 	   is:global側で定義済みの規格をそのまま使う(新規CSSはこの行の配置のみ)。 */

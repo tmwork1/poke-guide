@@ -1533,7 +1533,8 @@ if (opponentNotesSection) {
 			return;
 		}
 		row.saving = true;
-		setRowSaveStatus(row, "saving", "保存中...");
+		// 進行中表示は画面全体の表記規約に合わせて三点リーダーを使う。
+		setRowSaveStatus(row, "saving", "保存中…");
 		row.retryButtonEl?.classList.remove("visible");
 		try {
 			// 保存前にも壁on/off・攻守ランクから配列を算出し直す(recalcRowと同じ理由)。
@@ -1722,6 +1723,16 @@ if (opponentNotesSection) {
 			option.value = name;
 			list.appendChild(option);
 		}
+	}
+
+	// 新規カード・新規列と、空欄のまま攻守を切り替えた列だけ候補先頭を初期値にする。
+	// 復元処理では呼ばないため、保存済みの空欄を勝手に書き換えない。
+	function fillFirstMoveCandidate(row: DamageRowState, column: DamageColumnState): void {
+		if (column.moveName.trim() !== "") return;
+		const list = row.direction === "defense"
+			? (refreshOpponentPopularityMoveDatalist(row.name), ensureOpponentPopularityMoveDatalist())
+			: (refreshSelfFirstMoveDatalist(), ensureSelfFirstMoveDatalist());
+		column.moveName = list.options[0]?.value ?? "";
 	}
 
 	// --- 列(攻撃)のDOM構築 ---
@@ -2000,7 +2011,9 @@ if (opponentNotesSection) {
 			if (row.attacks.length >= MAX_COLUMNS_TO_ADD) return;
 			// 38-D7: 直前のカラム(row.attacks末尾)があれば、その詳細設定を引き継ぐ。
 			const previousColumn = row.attacks[row.attacks.length - 1];
-			row.attacks.push(createEmptyColumn(previousColumn ? inheritedColumnDetailDefaults(previousColumn) : undefined));
+			const column = createEmptyColumn(previousColumn ? inheritedColumnDetailDefaults(previousColumn) : undefined);
+			fillFirstMoveCandidate(row, column);
+			row.attacks.push(column);
 			renderColumns(row);
 			scheduleRowCalc(row);
 			scheduleRowSave(row);
@@ -2075,11 +2088,10 @@ if (opponentNotesSection) {
 		// 特殊技でも実際に乗っているのは特攻(C)ランクなのに「攻撃」と表示され誤解を招く。
 		// getMoveCategory(a.moveName)で物理/特殊を判定し、物理なら「攻撃/防御」、特殊なら
 		// 「特攻/特防」と出し分ける(右パネルの単一「ランク」入力欄自体は変えない)。
-		const moveCategory = getMoveCategory(a.moveName);
-		const atkRankLabel = moveCategory === "special" ? "特攻" : "攻撃";
-		const defRankLabel = moveCategory === "special" ? "特防" : "防御";
-		if (a.attackerRank !== 0) attacker.push(`${atkRankLabel}${a.attackerRank > 0 ? "+" : ""}${a.attackerRank}`);
-		if (a.defenderRank !== 0) defender.push(`${defRankLabel}${a.defenderRank > 0 ? "+" : ""}${a.defenderRank}`);
+		// 今回の表記統一では、グループ見出しで側を判別できることを優先してこの出し分けを廃止する。
+		// 攻撃側・防御側はグループ見出しで判別できるため、能力名ではなく共通の「ランク」で示す。
+		if (a.attackerRank !== 0) attacker.push(`ランク${a.attackerRank > 0 ? "+" : ""}${a.attackerRank}`);
+		if (a.defenderRank !== 0) defender.push(`ランク${a.defenderRank > 0 ? "+" : ""}${a.defenderRank}`);
 		return [
 			{ label: "攻撃側", chips: attacker },
 			{ label: "防御側", chips: defender },
@@ -2096,13 +2108,7 @@ if (opponentNotesSection) {
 		// refreshCollapsedTechniques()側でレギュレーションに応じて出し分ける。
 		const groups = collectConditionGroups(attack, true);
 		container.hidden = groups.length === 0;
-		groups.forEach((group, groupIndex) => {
-			if (groupIndex > 0) {
-				const separator = document.createElement("span");
-				separator.className = "damage-condition-group-separator";
-				separator.textContent = "/";
-				container.appendChild(separator);
-			}
+		groups.forEach((group) => {
 			if (group.label) {
 				const groupLabel = document.createElement("span");
 				groupLabel.className = "damage-condition-group-label";
@@ -2826,6 +2832,8 @@ if (opponentNotesSection) {
 		function setDirection(next: "attack" | "defense"): void {
 			if (row.direction === next) return;
 			row.direction = next;
+			// ユーザー入力済みの技は保ち、空欄だけ切替後の候補で補う。
+			for (const column of row.attacks) fillFirstMoveCandidate(row, column);
 			refreshDirectionUi();
 			refreshCollapsedSummary();
 			// 技列のplaceholder/aria-label(「技」⇄「相手の技」)も向きで変わるため作り直す。
@@ -2939,8 +2947,8 @@ if (opponentNotesSection) {
 		const itemInput = document.createElement("input");
 		itemInput.type = "text";
 		itemInput.setAttribute("list", "item-list");
-		itemInput.placeholder = "持ち物";
-		itemInput.setAttribute("aria-label", "相手の持ち物");
+		itemInput.placeholder = "アイテム";
+		itemInput.setAttribute("aria-label", "相手のアイテム");
 		itemInput.autocomplete = "off";
 		itemInput.value = row.itemName;
 		itemInput.title = row.itemName;
@@ -2958,7 +2966,7 @@ if (opponentNotesSection) {
 		// 常にメガストーンへ強制し持ち物欄自体を編集不能にする方式へ変更した(ゲーム仕様上
 		// メガシンカ中はメガストーン以外を持てないため)。相手の種族は頻繁に打ち替えるため、
 		// rebuildRowAbilityOptionsと同じくnameInputの"change"(blur/確定)にのみ結線する。
-		const megaStoneLockedTitle = "メガシンカ中は持ち物をメガストーンに固定します";
+		const megaStoneLockedTitle = "メガシンカ中はアイテムをメガストーンに固定します";
 		let rowMegaStoneAutofillToken = 0;
 		async function applyRowMegaStoneAutofill(speciesName: string): Promise<void> {
 			const token = ++rowMegaStoneAutofillToken;
@@ -3275,7 +3283,8 @@ if (opponentNotesSection) {
 			row.attacks.forEach((a, i) => {
 				if (a.moveName.trim() === "") return;
 				const groups = collectConditionGroups(a, showTera);
-				const text = groups.map((group) => [group.label, ...group.chips].filter(Boolean).join(" ")).join(" / ");
+				// グループ間は記号を挟まず、全角空白だけで区切る。
+				const text = groups.map((group) => [group.label, ...group.chips].filter(Boolean).join(" ")).join("　");
 				if (text) chipGroups.push({ index: i + 1, text });
 			});
 			if (chipGroups.length === 0) {
@@ -3572,6 +3581,8 @@ if (opponentNotesSection) {
 	// = 通常のケースでは基準を0とみなす)。
 	function addNewRowAndFocus(): void {
 		const row = createEmptyRow();
+		// 通常の新規カードだけ初期技を補う。サジェスト・既存メモの復元経路には適用しない。
+		fillFirstMoveCandidate(row, row.attacks[0]);
 		renderRow(row);
 		const existingOrders = rows
 			.map((r) => rowSortOrder.get(r))
@@ -3724,7 +3735,7 @@ if (opponentNotesSection) {
 	async function fetchAndRenderRows(): Promise<void> {
 		damageRowsListEl.innerHTML = "";
 		const loadingP = document.createElement("p");
-		loadingP.textContent = "読み込み中...";
+		loadingP.textContent = "読み込み中…";
 		damageRowsListEl.appendChild(loadingP);
 		try {
 			const res = await fetch(`/api/opponent-notes?owned_pokemon_id=${encodeURIComponent(ownedPokemonId)}`, {
@@ -3791,7 +3802,7 @@ if (opponentNotesSection) {
 			engineStatusTextEl.textContent = "計算エンジンの準備ができました。";
 			engineReloadButton.hidden = true;
 		} else if (progress.status === "idle") {
-			engineStatusTextEl.textContent = "計算エンジンを準備しています(自動で開始します)...";
+			engineStatusTextEl.textContent = "計算エンジンを準備しています(自動で開始します)…";
 			engineReloadButton.hidden = true;
 		} else if (progress.status === "error") {
 			engineStatusTextEl.textContent = "ダメージ計算エンジンの読み込みに失敗しました。";

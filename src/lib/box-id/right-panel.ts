@@ -370,6 +370,8 @@ export interface StatCardListView {
 	groups?: StatCardGroup[];
 	/** 見出し無しのフラットなカード列(耐久調整モード用、依頼7・8)。groupsと排他。 */
 	flatCards?: StatCardSpec[];
+	/** 耐久調整モードで、結果カード群の直前にだけ表示する見出し。 */
+	flatCardsHeading?: string;
 	truncatedNote?: string;
 	emptyMessage?: string;
 }
@@ -488,11 +490,7 @@ export function renderStatCardList(view: StatCardListView): void {
 	const inner = document.createElement("div");
 	inner.className = "damage-detail-panel-body-inner candidate-list-view";
 	detailPanelBodyEl.appendChild(inner);
-
-	// 依頼7: トグルは一覧の最上部に配置する。
-	if (view.filterToggle) {
-		inner.appendChild(buildFilterToggleEl(view.filterToggle));
-	}
+	// 依頼7ではトグルを一覧最上部に配置していたが、今回の要件で耐久調整の「調整結果」見出し行へ移す。
 
 	if (view.context) {
 		const contextEl = document.createElement("p");
@@ -539,6 +537,17 @@ export function renderStatCardList(view: StatCardListView): void {
 			listEl.appendChild(currentHeading);
 		}
 		listEl.appendChild(buildStatCardEl(view.currentCard));
+	}
+	if (view.flatCardsHeading) {
+		// 耐久調整だけ、結果見出しとフィルタを同じ段の左右へ配置する。
+		const headingRow = document.createElement("div");
+		headingRow.className = "candidate-list-result-heading-row";
+		const resultHeading = document.createElement("p");
+		resultHeading.className = "field-label candidate-list-group-title";
+		resultHeading.textContent = view.flatCardsHeading;
+		headingRow.appendChild(resultHeading);
+		if (view.filterToggle) headingRow.appendChild(buildFilterToggleEl(view.filterToggle));
+		listEl.appendChild(headingRow);
 	}
 
 	if (hasGroups) {
@@ -751,6 +760,7 @@ function buildBulkAdjustStatCardView(
 		},
 		currentCardHeading: "元のステータス",
 		flatCards,
+		flatCardsHeading: "調整結果",
 		truncatedNote: filterRemainingOnly && hiddenCount > 0
 				? `努力値上限(66)超過のため ${hiddenCount} 件を隠しています。`
 				: undefined,
@@ -796,14 +806,7 @@ function buildDurabilityIndexStatCardView(
 			const best = result.best;
 			const isApplied =
 				best.evs.hp === currentEvs.hp && best.evs.def === currentEvs.def && best.evs.spd === currentEvs.spd;
-			const flags: StatCardSpec["flags"] = [];
-			if (result.remaining <= 0) {
-				flags.push({
-					icon: "⚠",
-					text: "努力値の合計が上限(66)に達しているため配る余地がありません",
-					kind: "warn",
-				});
-			}
+			// 努力値上限到達は候補そのものが示すため、警告表示は付けない。
 			const card: StatCardSpec = {
 				rows: [
 					{ label: "H", real: best.realStats.hp, ev: best.evs.hp },
@@ -813,7 +816,6 @@ function buildDurabilityIndexStatCardView(
 				// 依頼4: 指数値はカード本文に出さずtitle属性で整数表示する。
 				scoreTooltip: `指数値: ${Math.round(best.index)}`,
 				isApplied,
-				flags,
 				onSelect: () => {
 					onSelectCandidate(best, kind);
 					// ⚠️ left-panel.tsのrunDurabilityIndexMaximize(旧実装)が踏んだのと同じ罠:

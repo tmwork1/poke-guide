@@ -74,7 +74,7 @@ if (opponentNotesSectionEl) {
 let isDialogOpen = false;
 let isComputing = false;
 let currentRows: BulkAdjustRowSnapshot[] = [];
-const rowInputEls = new Map<string, { nInput: HTMLInputElement; mInput: HTMLInputElement }>();
+const rowInputEls = new Map<string, { nInput: HTMLInputElement; mInput: HTMLInputElement; includeInput: HTMLInputElement }>();
 let activeAbortController: AbortController | null = null;
 
 // UI改修依頼(2026-08-05): 画面側の確定数表示が最大10発までを扱うため、入力・探索も同じ範囲にそろえる。
@@ -172,10 +172,28 @@ function buildRowEl(bridge: NonNullable<ReturnType<typeof getBulkAdjustBridge>>,
 	mLabelTextAfter.textContent = "%以上の確率で耐える";
 	mLabel.append(mInput, mLabelTextAfter);
 
-	inputsRow.append(nLabel, mLabel);
+	// 計算対象の切替はダイアログを開いている間だけDOMで保持し、保存データには含めない。
+	const includeLabel = document.createElement("label");
+	includeLabel.className = "bulk-adjust-include-label";
+	const includeInput = document.createElement("input");
+	includeInput.type = "checkbox";
+	includeInput.checked = true;
+	includeInput.setAttribute("aria-label", `${row.name}の攻撃を調整に含める`);
+	const includeText = document.createElement("span");
+	includeText.textContent = "調整に含める";
+	includeLabel.append(includeInput, includeText);
+	const refreshIncludedState = (): void => {
+		const included = includeInput.checked;
+		wrap.classList.toggle("is-excluded", !included);
+		nInput.disabled = !included || isComputing;
+		mInput.disabled = !included || isComputing;
+	};
+	includeInput.addEventListener("change", refreshIncludedState);
+
+	inputsRow.append(nLabel, mLabel, includeLabel);
 	wrap.appendChild(inputsRow);
 
-	rowInputEls.set(row.id, { nInput, mInput });
+	rowInputEls.set(row.id, { nInput, mInput, includeInput });
 	return wrap;
 }
 
@@ -259,9 +277,10 @@ function setComputingState(computing: boolean): void {
 	bulkAdjustButton.disabled = computing;
 	dialogComputeButton.disabled = computing;
 	dialogCloseButton.disabled = false; // 中断経路として閉じるボタンは常に押せるようにする
-	for (const { nInput, mInput } of rowInputEls.values()) {
-		nInput.disabled = computing;
-		mInput.disabled = computing;
+	for (const { nInput, mInput, includeInput } of rowInputEls.values()) {
+		nInput.disabled = computing || !includeInput.checked;
+		mInput.disabled = computing || !includeInput.checked;
+		includeInput.disabled = computing;
 	}
 	if (!computing) {
 		progressTextEl.textContent = "";
@@ -277,7 +296,13 @@ async function runCompute(): Promise<void> {
 	}
 	dialogStatusEl.textContent = "";
 
-	const requirements: DurabilityRequirement[] = currentRows.map((row) => {
+	// OFFの行はソルバへ渡す前に除外し、ソルバ側の契約を変えない。
+	const includedRows = currentRows.filter((row) => rowInputEls.get(row.id)?.includeInput.checked ?? true);
+	if (includedRows.length === 0) {
+		dialogStatusEl.textContent = "計算対象の攻撃がありません";
+		return;
+	}
+	const requirements: DurabilityRequirement[] = includedRows.map((row) => {
 		const inputs = rowInputEls.get(row.id);
 		const n = inputs ? clampN(inputs.nInput.value) : 1;
 		const m = inputs ? clampM(inputs.mInput.value) : 100;
@@ -318,7 +343,8 @@ async function runCompute(): Promise<void> {
 	const controller = new AbortController();
 	activeAbortController = controller;
 	setComputingState(true);
-	progressTextEl.textContent = "計算を準備しています...";
+	// 進行中表示は画面全体の表記規約に合わせて三点リーダーを使う。
+	progressTextEl.textContent = "計算を準備しています…";
 	try {
 		const result: SolveResult = await solveDurability(requirements, {
 			engine: { calcLethalSequence, isEngineFatal, resetEngine },
