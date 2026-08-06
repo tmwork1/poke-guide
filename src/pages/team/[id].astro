@@ -449,7 +449,9 @@ const initialTeamJson = team
 			min-width: 0;
 		}
 		/* 検索を伸縮、並べ替えを内容幅にして同じ行へ収める。 */
-		.team-select-search-row { display: flex; gap: var(--space-2); align-items: stretch; }
+		/* 実測ではplaceholder表示に159.6px必要だが検索欄は159.22pxだったため、gapを4pxに縮めて163.2pxを確保する。
+		   両要素は.field-controlの枠線を持つため、狭い幅でも4pxの間隔で視覚的に分離できる。 */
+		.team-select-search-row { display: flex; gap: var(--space-1); align-items: stretch; }
 		#pokemon-search-input {
 			width: 100%;
 		}
