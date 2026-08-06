@@ -35,12 +35,22 @@ const defaultSeason = resolveDefaultSeason(seasons);
           <svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
           </svg>
-          <input id="ranked-team-search" type="search" class="field-control" placeholder="ポケモン名" aria-label="検索" autocomplete="off" />
+          <input id="ranked-team-search" type="search" class="field-control" placeholder="ポケモン名(スペース区切りでAND)" aria-label="ポケモン名で検索" autocomplete="off" />
+        </div>
+      </div>
+
+      <div class="toolbar-item toolbar-build-search">
+        <div class="search-input-wrap">
+          <svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input id="ranked-team-build-search" type="search" class="field-control" placeholder="特性・アイテム・技" aria-label="特性・アイテムまたは技で検索" autocomplete="off" />
         </div>
       </div>
 
       <div class="toolbar-item toolbar-season">
-        <select id="ranked-team-season" class="field-control" aria-label="シーズン" disabled={seasons.length === 0}>
+        <label for="ranked-team-season">シーズン</label>
+        <select id="ranked-team-season" class="field-control" disabled={seasons.length === 0}>
           {seasons.map((entry) => <option value={entry.season} selected={entry.season === defaultSeason}>{entry.season}</option>)}
         </select>
       </div>
@@ -64,13 +74,16 @@ const defaultSeason = resolveDefaultSeason(seasons);
   <style>
     .toolbar-count { flex-shrink: 0; }
     #ranked-team-count[hidden] { display: none; }
-    .toolbar-search { flex: 0 1 26rem; }
-    .toolbar-search input { width: 100%; min-width: 12em; }
+    /* 2つの検索欄ではポケモン名側を広くし、用途の長いプレースホルダーを読み取りやすくする。 */
+    .toolbar-search { flex: 3 1 25rem; }
+    .toolbar-build-search { flex: 2 1 18rem; }
+    .toolbar-search input, .toolbar-build-search input { width: 100%; min-width: 12em; }
     .toolbar-season { flex: 0 0 auto; }
+    .toolbar-season label { font-size: var(--font-size-sm); color: var(--color-text-muted); white-space: nowrap; }
     .ranked-teams-shell { max-width: none; }
     @media (max-width: 640px) {
-      .toolbar-search { flex-basis: auto; }
-      .toolbar-search input, .toolbar-season select { width: 100%; min-width: 0; }
+      .toolbar-search, .toolbar-build-search { flex-basis: auto; }
+      .toolbar-search input, .toolbar-build-search input, .toolbar-season select { width: 100%; min-width: 0; }
     }
   </style>
 
@@ -86,19 +99,25 @@ const defaultSeason = resolveDefaultSeason(seasons);
     .ranked-team-list .card-ranked-team:hover { transform: none; box-shadow: var(--shadow-sm); }
     .ranked-team-list .ranked-team-header { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2); padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--color-border); }
     .ranked-team-list .ranked-team-trainer { font-weight: 700; }
-    .ranked-team-list .ranked-team-rating { color: var(--color-text-muted); font-size: var(--font-size-sm); }
     .ranked-team-list .ranked-team-article-group { display: flex; align-items: center; gap: var(--space-2); min-width: 0; flex: 1 1 18rem; }
     .ranked-team-list .ranked-team-article-link { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
     .ranked-team-list .ranked-team-host { flex-shrink: 0; max-width: 14rem; overflow: hidden; text-overflow: ellipsis; }
     .ranked-team-list .ranked-team-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(18rem, 0.34fr); }
-    .ranked-team-list .ranked-team-members { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: var(--space-2); padding: var(--space-4); align-items: stretch; }
-    .ranked-team-list .ranked-team-thumb { position: relative; min-width: 0; min-height: 7.25rem; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-1); border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface); }
-    .ranked-team-list .ranked-team-thumb.is-empty { border-style: dashed; color: var(--color-text-muted); }
-    .ranked-team-list .ranked-team-pokemon-image { width: 72px; height: 72px; max-width: 100%; object-fit: contain; image-rendering: pixelated; }
+    /* 特性と技4件を収めながら密度を保つため、広い画面では3列にして各枠を横長にする。 */
+    .ranked-team-list .ranked-team-members { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-2); padding: var(--space-4); align-items: stretch; }
+    .ranked-team-list .ranked-team-thumb { position: relative; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: var(--space-1); padding: var(--space-2); border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface); }
+    /* 情報行を持たない空き枠は、番号だけを従来どおり中央に置く。 */
+    .ranked-team-list .ranked-team-thumb.is-empty { justify-content: center; border-style: dashed; color: var(--color-text-muted); }
+    .ranked-team-list .ranked-team-pokemon-image { width: 72px; height: 72px; max-width: 100%; object-fit: contain; }
     .ranked-team-list .ranked-team-image-fallback { display: flex; align-items: center; justify-content: center; width: 56px; height: 56px; border-radius: 50%; background: var(--color-primary-soft); color: var(--color-primary); font-weight: 700; }
     .ranked-team-list .ranked-team-species-name { max-width: 100%; padding: 0 var(--space-1); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--font-size-xs); }
-    .ranked-team-list .ranked-team-item-badge { position: absolute; top: var(--space-1); right: var(--space-1); display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border: 1px solid var(--color-border); border-radius: 50%; background: var(--color-surface); }
+    .ranked-team-list .ranked-team-item-badge { position: absolute; top: var(--space-1); right: var(--space-1); display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; }
     .ranked-team-list .ranked-team-item-badge img { width: 100%; height: 100%; object-fit: contain; }
+    .ranked-team-list .ranked-team-ability { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--color-text-muted); font-size: var(--font-size-xs); }
+    .ranked-team-list .ranked-team-moves { width: 100%; display: flex; flex-direction: column; gap: var(--space-1); }
+    .ranked-team-list .ranked-team-move { min-width: 0; display: flex; align-items: center; gap: var(--space-1); }
+    .ranked-team-list .ranked-team-move-type { flex: 0 0 auto; width: 28px; height: auto; object-fit: contain; }
+    .ranked-team-list .ranked-team-move-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--color-text); font-size: var(--font-size-xs); }
     .ranked-team-list .ranked-team-details { margin: 0; padding: var(--space-4); border-left: 1px solid var(--color-border); display: flex; flex-direction: column; justify-content: center; gap: var(--space-3); }
     .ranked-team-list .ranked-team-detail-row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
     .ranked-team-list .ranked-team-detail-row dt { font-weight: 700; }
@@ -121,8 +140,8 @@ const defaultSeason = resolveDefaultSeason(seasons);
 
   <script>
     import type { RankedTeam } from '../../lib/ranked-teams';
-    import { matchesSpeciesSearch, RANKED_TEAMS_PAGE_SIZE } from '../../lib/ranked-teams-validation';
-    import { loadImageIdMap } from '../../lib/pokemon-master-data';
+    import { matchesBuildSearch, matchesSpeciesSearch, RANKED_TEAMS_PAGE_SIZE } from '../../lib/ranked-teams-validation';
+    import { loadImageIdMap, loadMoveTypeMap } from '../../lib/pokemon-master-data';
     import { loadItemSpriteMap } from '../../lib/sprite-urls';
     import { renderRankedTeamCard } from '../../lib/ranked-teams/card';
 
@@ -137,21 +156,25 @@ const defaultSeason = resolveDefaultSeason(seasons);
       const count = document.querySelector<HTMLElement>('#ranked-team-count')!;
       const loadMore = document.querySelector<HTMLButtonElement>('#ranked-team-load-more')!;
       const search = document.querySelector<HTMLInputElement>('#ranked-team-search')!;
+      const buildSearch = document.querySelector<HTMLInputElement>('#ranked-team-build-search')!;
       const seasonSelect = document.querySelector<HTMLSelectElement>('#ranked-team-season')!;
       const cache = new Map<string, RankedTeam[]>();
-      const [imageIdMap, itemSpriteMap] = await Promise.all([loadImageIdMap(), loadItemSpriteMap()]);
+      const [imageIdMap, itemSpriteMap, moveTypeMap] = await Promise.all([loadImageIdMap(), loadItemSpriteMap(), loadMoveTypeMap()]);
       let visibleCount = RANKED_TEAMS_PAGE_SIZE;
       let currentTeams: RankedTeam[] = [];
       let debounceTimer: ReturnType<typeof setTimeout> | undefined;
 
       function filteredTeams(): RankedTeam[] {
-        return currentTeams.filter((team) => matchesSpeciesSearch(team.members, search.value));
+        return currentTeams.filter((team) =>
+          matchesSpeciesSearch(team.members, search.value)
+          && matchesBuildSearch(team.members, buildSearch.value),
+        );
       }
 
       function render(): void {
         const filtered = filteredTeams();
         const visible = filtered.slice(0, visibleCount);
-        cards.replaceChildren(...visible.map((team) => renderRankedTeamCard(team, imageIdMap, itemSpriteMap)));
+        cards.replaceChildren(...visible.map((team) => renderRankedTeamCard(team, imageIdMap, itemSpriteMap, moveTypeMap)));
         count.textContent = `${filtered.length}件`;
         count.hidden = false;
         empty.hidden = filtered.length !== 0;
@@ -185,6 +208,14 @@ const defaultSeason = resolveDefaultSeason(seasons);
       }
 
       search.addEventListener('input', () => {
+        if (debounceTimer !== undefined) clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+          visibleCount = RANKED_TEAMS_PAGE_SIZE;
+          render();
+        }, 150);
+      });
+      // 2つの検索欄で同じ待ち時間とページ先頭へのリセット挙動を共有する。
+      buildSearch.addEventListener('input', () => {
         if (debounceTimer !== undefined) clearTimeout(debounceTimer);
         debounceTimer = setTimeout(() => {
           visibleCount = RANKED_TEAMS_PAGE_SIZE;

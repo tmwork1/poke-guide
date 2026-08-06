@@ -1,6 +1,6 @@
 import type { RankedTeam } from '../ranked-teams';
-import { spriteUrl } from '../pokemon-master-data';
-import { itemIconUrl } from '../sprite-urls';
+import { officialArtworkUrl } from '../pokemon-master-data';
+import { itemIconUrl, typeIconUrl } from '../sprite-urls';
 
 function element<K extends keyof HTMLElementTagNameMap>(
   tag: K,
@@ -17,15 +17,17 @@ export function renderRankedTeamCard(
   team: RankedTeam,
   imageIdMap: Map<string, number>,
   itemSpriteMap: Map<string, string>,
+  moveTypeMap: Map<string, string>,
 ): HTMLElement {
   const card = element('article', 'card card-ranked-team');
 
   const header = element('header', 'ranked-team-header');
   header.append(element('span', 'badge tnum', `${team.rank}位`));
-  if (team.trainerName) header.append(element('span', 'ranked-team-trainer', team.trainerName));
   if (team.rating !== null) {
-    header.append(element('span', 'ranked-team-rating tnum', `レート ${Math.round(team.rating)}`));
+    // 順位と同じ指標群として隣接させつつ、控えめなバッジで役割を区別する。
+    header.append(element('span', 'badge badge-muted ranked-team-rating tnum', `レート ${Math.round(team.rating)}`));
   }
+  if (team.trainerName) header.append(element('span', 'ranked-team-trainer', team.trainerName));
   if (team.articleUrl) {
     const linkGroup = element('span', 'ranked-team-article-group');
     const label = team.articleTitle ?? team.articleHost ?? '構築記事';
@@ -62,7 +64,7 @@ export function renderRankedTeamCard(
     const imageId = imageIdMap.get(displayName) ?? imageIdMap.get(member.speciesName);
     if (imageId !== undefined) {
       const image = element('img', 'ranked-team-pokemon-image');
-      image.src = spriteUrl(imageId);
+      image.src = officialArtworkUrl(imageId);
       image.alt = displayName;
       image.loading = 'lazy';
       image.decoding = 'async';
@@ -72,6 +74,32 @@ export function renderRankedTeamCard(
     }
 
     thumb.append(element('span', 'ranked-team-species-name', displayName));
+    if (member.ability) {
+      const ability = element('span', 'ranked-team-ability', member.ability);
+      ability.title = member.ability;
+      thumb.append(ability);
+    }
+    if (member.moveNames.length > 0) {
+      const moveList = element('div', 'ranked-team-moves');
+      // 実機の技枠に合わせ、入力データが過剰でもカードには先頭4件だけを表示する。
+      for (const moveName of member.moveNames.slice(0, 4)) {
+        const move = element('span', 'ranked-team-move');
+        const moveType = moveTypeMap.get(moveName);
+        const iconUrl = moveType ? typeIconUrl(moveType) : null;
+        if (iconUrl) {
+          const icon = element('img', 'ranked-team-move-type');
+          icon.src = iconUrl;
+          icon.alt = moveType ?? '';
+          icon.loading = 'lazy';
+          move.append(icon);
+        }
+        const name = element('span', 'ranked-team-move-name', moveName);
+        name.title = moveName;
+        move.append(name);
+        moveList.append(move);
+      }
+      thumb.append(moveList);
+    }
     if (member.itemName) {
       const spritePath = itemSpriteMap.get(member.itemName);
       if (spritePath) {

@@ -6,6 +6,10 @@ export interface RankedTeamMember {
   speciesName: string;
   formName: string | null;
   itemName: string | null;
+  ability: string | null;
+  moveNames: string[];
+  type1: string | null;
+  type2: string | null;
 }
 
 export interface RankedTeam {
@@ -31,6 +35,10 @@ interface RawMember {
   species_name: string;
   form_name: string | null;
   item_name: string | null;
+  ability: string | null;
+  move_names: string[] | null;
+  type1: string | null;
+  type2: string | null;
 }
 
 interface RawTeam {
@@ -47,7 +55,7 @@ interface RawTeam {
 
 const TEAM_SELECT = `
   id, rank, rating, rule, trainer_name, article_url, article_title, article_host,
-  ranked_team_members (slot, species_key, species_name, form_name, item_name)
+  ranked_team_members (slot, species_key, species_name, form_name, item_name, ability, move_names, type1, type2)
 `;
 
 export async function listRankedSeasons(supabase: SupabaseClient): Promise<RankedSeason[]> {
@@ -99,6 +107,11 @@ export async function listRankedTeamsBySeason(
           speciesName: member.species_name,
           formName: member.form_name,
           itemName: member.item_name,
+          ability: member.ability,
+          // 記事に技の記載がない NULL は、描画側で反復可能な空配列へ正規化する。
+          moveNames: member.move_names ?? [],
+          type1: member.type1,
+          type2: member.type2,
         }))
         .sort((a, b) => a.slot - b.slot),
     };

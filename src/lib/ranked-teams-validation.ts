@@ -20,11 +20,32 @@ export function matchesSpeciesSearch(
   members: ReadonlyArray<{ speciesKey: string | null; speciesName: string }>,
   term: string,
 ): boolean {
-  const words = term.trim().split(/\s+/).filter(Boolean);
+  // 複数の入力方法を許容しつつ、各語がチーム内のいずれかに一致する AND 条件は維持する。
+  const words = term.trim().split(/[\s、,，・\/／]+/).filter(Boolean);
   if (words.length === 0) return true;
   return words.every((word) =>
     members.some((member) =>
       kanaIncludes(member.speciesKey ?? '', word) || kanaIncludes(member.speciesName, word),
+    ),
+  );
+}
+
+export function matchesBuildSearch(
+  members: ReadonlyArray<{
+    ability: string | null;
+    itemName: string | null;
+    moveNames: readonly string[];
+  }>,
+  term: string,
+): boolean {
+  // 特性・アイテム・技を横断し、区切った各語は別メンバーに一致してもよい。
+  const words = term.trim().split(/[\s、,，・\/／]+/).filter(Boolean);
+  if (words.length === 0) return true;
+  return words.every((word) =>
+    members.some((member) =>
+      kanaIncludes(member.ability ?? '', word)
+      || kanaIncludes(member.itemName ?? '', word)
+      || member.moveNames.some((moveName) => kanaIncludes(moveName, word)),
     ),
   );
 }
