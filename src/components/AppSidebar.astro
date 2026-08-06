@@ -2,7 +2,7 @@
 // 全ページ共通のサイドバー(UI刷新、2026-07-25)。docs/ui_proposal/Box.png 等のワイヤーフレームに準拠する。
 // アイコンは外部ライブラリを使わず、lucide風の線画をインラインSVGとして自前定義する。
 interface Props {
-	current?: "box" | "team" | "dev" | "speed-chart";
+	current?: "box" | "team" | "dev" | "speed-chart" | "ranked-teams";
 	/**
 	 * 2026-07-27 ラウンド20 20-H2: ログイン情報をサイドバー最下段に表示するため、
 	 * AppLayout.astro が Astro.locals.user から読んだ値をそのまま受け取る。
@@ -43,6 +43,7 @@ const ICONS = {
 	// 各弦の半弦長sqrt(R^2-dy^2)／sqrt(r^2-dy^2)から交点を算出した。中心間距離9.174は最大R=8.10より大きい。
 	users: `<svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path class="app-sidebar-icon-ball-back" d="M7.513 6.512 A7.56 7.56 0 0 1 22.487 6.512 L18.015 6.512 A3.192 3.192 0 0 0 11.985 6.512 L7.513 6.512 Z" fill="currentColor"/><path class="app-sidebar-icon-ball-back" d="M22.487 8.608 A7.56 7.56 0 0 1 7.513 8.608 L11.985 8.608 A3.192 3.192 0 0 0 18.015 8.608 L22.487 8.608 Z" fill="currentColor"/><path d="M0.978 13.377 A8.1 8.1 0 0 1 17.022 13.377 L12.230 13.377 A3.420 3.420 0 0 0 5.770 13.377 L0.978 13.377 Z" fill="currentColor"/><path d="M17.022 15.623 A8.1 8.1 0 0 1 0.978 15.623 L5.770 15.623 A3.420 3.420 0 0 0 12.230 15.623 L17.022 15.623 Z" fill="currentColor"/></svg>`,
 	"trending-up": `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.05" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>`,
+	trophy: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.05" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v5a5 5 0 0 1-10 0V4Z"/><path d="M7 6H4v2a4 4 0 0 0 4 4"/><path d="M17 6h3v2a4 4 0 0 1-4 4"/></svg>`,
 	// 開発者向け(/e2e-test-harness)用: レンチの塗りつぶしシルエット(Material Iconsの"build"相当のパス)。
 	// 元のpathはviewBox 24x24のほぼ端から端(bbox約22x22)を占め、他の線画4アイコン(概ね20x20に
 	// 収まる余白設計)より一回り大きく見えていたため、2026-08-02に transform で0.9077倍に縮小し
@@ -71,6 +72,7 @@ const SECTIONS: { heading: string; items: SidebarItem[] }[] = [
 			// UI改修依頼(2026-08-05)「左メニューの名称を『すばやさ』に変更」対応。
 			{ key: "speed-chart", label: "すばやさ", href: "/speed-chart", icon: "zap" },
 			{ key: "trend", label: "トレンド", icon: "trending-up", disabled: true },
+			{ key: "ranked-teams", label: "上位構築", href: "/ranked-teams", icon: "trophy" },
 		],
 	},
 	{

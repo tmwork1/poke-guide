@@ -11,9 +11,9 @@
 | P1 | 仕様を固める | ✅ 完了(2026-08-06) |
 | P2 | 設計レビュー(sonnet1体) | ✅ 完了(2026-08-06) |
 | P3 | 計画書に記録する | ✅ 完了(2026-08-06) |
-| P4 | 実装(codex/sonnetへ委譲) | ⬜ 未着手 |
-| P5 | 受け入れ検証(Coordinator自身) | ⬜ 未着手 |
-| P6 | 引き渡し・commit | ⬜ 未着手 |
+| P4 | 実装(Codex CLIへ委譲) | ✅ 完了(2026-08-06) |
+| P5 | 受け入れ検証(Coordinator自身) | ✅ 完了(2026-08-06。29件中28件pass、#6のみコード確認) |
+| P6 | 引き渡し・commit | ✅ 完了(2026-08-06) |
 
 ---
 
@@ -313,6 +313,64 @@ export function renderRankedTeamCard(team: RankedTeam, imageIdMap: Map<string, n
 - CSS: JS生成要素にはAstroのscoped styleが効かないため `<style is:global>` を使い、**すべてのセレクタを `.ranked-team-list` 配下に限定**する(`ui/references/pitfalls.md`)。ツールバーなど静的マークアップ側は通常の scoped `<style>` でよい。
 - `[hidden]` を使う要素で `display: flex`/`inline-flex` を当てる場合は `…[hidden] { display: none; }` を明示(既知の詳細度の罠)。
 
-## 実施結果
+## 実施結果(2026-08-06)
 
-(P6で追記する)
+実装は **Codex CLI(`codex exec`)** に委譲し、Coordinator が全件を自分で実測検証した。**マイグレーションは予定どおり0件。**
+
+### 受け入れ基準の判定
+
+| # | 基準 | 結果 | 確認方法・実測値 |
+|---|---|---|---|
+| 1 | `npm run build` 成功 | ✅ | `[build] Complete!`(修正反映後に再実行) |
+| 2 | `npm test` 全件pass・件数増 | ✅ | **543件 → 555件**、fail 0。新規 `tests/ranked-teams-validation.test.ts` 単体で 12件pass |
+| 3 | `migrations/` に追加なし | ✅ | `git status --short migrations/` が空 |
+| 4 | ナビ「トレンド」の直下に「上位構築」 | ✅ | DOM実測: `trend@index3`(disabled=true、準備中バッジ維持)/ `ranked-teams@index4`(href=`/ranked-teams`) |
+| 5 | アクティブ表示 | ✅ | `.app-sidebar-link[data-active="true"]` のラベル = 「上位構築」 |
+| 6 | 未ログインで一覧が描画される | ⚠️ **コード確認のみ** | **dev環境では実測不可**: `src/lib/user-session.ts:60` が `import.meta.env.DEV` のとき常に `DEV_SESSION_USER`(dev@localhost)を返すため、Cookie無しのブラウザコンテキストでもログイン済みになる。代わりにコードで確認 — `src/pages/ranked-teams/index.astro` と `src/pages/api/ranked-teams.ts` はいずれも `Astro.locals.user` / `getSessionUser` の参照が **0件**(grep実測)で、ログイン分岐自体が存在しない |
+| 7 | 既定シーズン = M-3 | ✅ | `#ranked-team-season` の `value` = `M-3` |
+| 8 | 選択肢が新しい順3件・「すべて」なし | ✅ | `["M-3","M-2","M-1"]` |
+| 9 | 初期50件 | ✅ | `.card-ranked-team` = **50枚** |
+| 10 | 「もっと見る」1回で100件 | ✅ | **100枚** |
+| 11 | 全件でボタンが消える | ✅ | 5回押下で **291枚**、`#ranked-team-load-more`.hidden = true |
+| 12 | 先頭カードのヘッダー | ✅ | `1位` / `SV` / `レート 2616` / href=`https://ka-cr.hatenablog.com/…` / `target="_blank"` / `rel="noopener noreferrer"` |
+| 13 | 常に6枠 | ✅ | 全カードの `.ranked-team-thumb` 数の集合 = `{6}` |
+| 13b | メンバー1体のチームでも6枠 | ✅ | 実データの欠損チーム(**M-1 106位・なつもん**、メンバー1体)で `thumbs=6, empties=5` |
+| 14 | 詳細プレースホルダー3行 | ✅ | dt = `["選出パターン","立ち回り","構築の改善点"]`、dd = `["準備中"]`(全行同一) |
+| 15 | 種族名検索 | ✅ | 「ゲンガー」→ 31件、表示31枚すべてにゲンガー系を含む |
+| 16 | かな差の吸収 | ✅ | 「げんがー」→ **31件**(カタカナ時と一致) |
+| 17 | 複数語AND | ✅ | 「ゲンガー ハラバリー」→ 2件、両方を含むことをDOMで確認 |
+| 18 | 検索語変更で50件にリセット | ✅ | 291枚表示状態から検索クリア → **50枚** |
+| 19 | 0件の空状態 | ✅ | カード0枚 + 「条件に一致する構築がありません」表示 |
+| 20 | シーズン切替 | ✅ | M-1 → 先頭 `1位`、件数バッジ `527件` |
+| 21 | `?season=M-3` が291件 | ✅ | `teams.length = 291`、`rating` が `number` 型(2615.671) |
+| 22 | 不正/未指定シーズンが400 | ✅ | `season=zzz` → 400、`season` 未指定 → 400 |
+| 23 | POST が405 | ✅ | 同一Originの POST → **405**。Origin無しの POST は Astro 組み込みの CSRF Origin検査が先に働き **403**(いずれも拒否。仕様どおり) |
+| 24 | 詳細列を返さない | ✅ | レスポンスに `nature` / `ability` / `move_names` / `evs` / `tera_type` は**0件**。member のキーは `slot, speciesKey, speciesName, formName, itemName` のみ |
+| 25 | 1920px ライト/ダークで横スクロールなし | ✅ | `scrollWidth 1920 = clientWidth 1920`。両テーマのスクリーンショットをCoordinatorが目視。カードは `--color-surface-alt` 系のテーマ色(ワイヤーフレームの水色は不使用)。スプライト画像 **300/300** 読み込み成功 |
+| 26 | 1280pxで右カラムが下に回り込む | ✅ | 実測: `members bottom=289` / `details top=289`(縦積み成立)、`scrollWidth 1280 = clientWidth 1280` |
+| 27 | 既存ページに回帰なし | ✅ | `/box` `/team` `/speed-chart` を1920ライト/ダークで撮影・目視。コンソールエラー0件 |
+| 28 | `global.css` 未変更 | ✅ | `git status --short src/styles/global.css` が空 |
+| 29 | DBが元のまま | ✅ | `ranked_teams` = **1041**、`ranked_team_members` = **6241**(着手前と同値) |
+
+**判定: 29件中28件をpass、1件(#6)は dev環境の制約でコード確認のみ。**
+
+### 検証で見つけて直した欠陥(Coordinator が修正)
+
+- **D-1 エラー文字色のコントラスト不足**: `#ranked-team-error` が `--color-danger` を文字色に使っていた。`global.css` のコメントが明記するとおり、ライトモードで `--color-danger` をそのまま文字色にするとコントラストが足りない(`/team` の `#error-message` は `--color-danger-strong` を使っている)。→ `--color-danger-strong` に変更。
+- **D-2 記事タイトルとホストの二重表示**: `article_title` が NULL のときリンク文字列が `article_host` にフォールバックするため、直後のホストバッジと同じ文字列が2回並んでいた(M-3 6位「www.youtube.com ↗ www.youtube.com」で実発生)。→ ラベルとホストが同一ならホストバッジを出さないようにし、再撮影で解消を確認。
+
+### 実装中に見つかったバグ(このページとは別の実バグ)
+
+なし。
+
+### スコープ外に落としたもの(将来やるなら何から)
+
+1. **構築詳細の実データ表示**(選出パターン・立ち回り・構築の改善点)。ユーザーが将来取得予定。`.ranked-team-details` の3行の `dd` に値を差し込むだけで済む形にしてある。
+2. **既にDBにある性格・特性・技・努力値の表示**(充足率: 技4753/6241・性格3800・特性3666・努力値3382)。API の `TEAM_SELECT` に列を足し、`RankedTeamMember` を拡張すれば出せる。**1が入るまでは右カラムが空なので、先にこちらを入れる選択もある。**
+3. `?season=` の URL 反映(`/speed-chart` の `?reg=` と同じ `history.replaceState` 方式)。構築のシェアに効く。
+4. チーム詳細ページ `/ranked-teams/[id]`。
+5. `rule` による絞り込み(データが `シングル` 以外を持ったら)。
+
+### 引き渡し
+
+受け入れ基準を満たしたので `new-page` の担当は終了。**見た目の磨き込みが要るなら `ui` skill に引き渡せる。**
