@@ -1803,7 +1803,8 @@ const initialTeamJson = team
 			border-radius: var(--radius-md);
 			background: var(--color-surface);
 			/* 個体編集画面の計算結果カードと密度を揃え、一覧時の縦方向の占有を抑える。 */
-			padding: var(--space-1) 0.6rem;
+			/* 横方向も既存トークンへ寄せ、カード高は増やさない。 */
+			padding: var(--space-1) var(--space-2);
 			min-width: 0;
 			/* UI改修依頼(2026-08-05)「計算結果をカード下端へ寄せる」対応。 */
 			display: flex;
@@ -1831,6 +1832,8 @@ const initialTeamJson = team
 			width: 100%;
 			height: 100%;
 			object-fit: contain;
+			/* ドット絵の輪郭を補間でぼかさず表示する。 */
+			image-rendering: pixelated;
 		}
 		.team-preview-panel .team-damage-sprite-fallback {
 			display: none;
@@ -1849,12 +1852,13 @@ const initialTeamJson = team
 			min-width: 0;
 			display: flex;
 			flex-direction: column;
-			gap: 0.15rem;
+			/* 細かな生値を共通の最小余白へそろえる。 */
+			gap: var(--space-1);
 		}
 		.team-preview-panel .team-damage-meta-row {
 			display: flex;
 			align-items: center;
-			gap: 0.35rem;
+			gap: var(--space-1);
 			min-width: 0;
 		}
 		/* 攻撃=赤/防御=青。DamageCalcSection.astroの
@@ -1887,13 +1891,13 @@ const initialTeamJson = team
 		.team-preview-panel .team-damage-sub-row {
 			display: flex;
 			align-items: center;
-			gap: 0.35rem;
+			gap: var(--space-1);
 			min-width: 0;
 			font-size: var(--font-size-xs);
 			color: var(--color-text-muted);
 		}
 		.team-preview-panel .team-damage-ability {
-			flex: 0 1 auto;
+			flex: 1 1 auto;
 			min-width: 0;
 			overflow: hidden;
 			text-overflow: ellipsis;
@@ -1932,8 +1936,11 @@ const initialTeamJson = team
 		   (.damage-row-collapsed-stats、47-A-1)と同じ2段6列の作り。 */
 		.team-preview-panel .team-damage-stats {
 			display: grid;
-			grid-template-columns: repeat(6, minmax(0, 1fr));
-			margin-top: 0.15rem;
+			/* 短い実数値を6等分せず、中央スロットと同じ間隔で左へ詰める。 */
+			grid-template-columns: repeat(6, max-content);
+			column-gap: var(--space-2);
+			justify-content: start;
+			margin-top: var(--space-1);
 		}
 		.team-preview-panel .team-damage-stats-line {
 			display: contents;
@@ -1969,7 +1976,7 @@ const initialTeamJson = team
 		   切れて何の条件か読めなくなる(実測: メガカメックスの行が切れた)。この画面では
 		   詳細設定を出す場所が他に無いため折り返して全部見せる。 */
 		.team-preview-panel .team-damage-detail-line {
-			margin: 0.08rem 0 0;
+			margin: 0;
 			font-size: var(--font-size-xs);
 			line-height: var(--line-height-snug);
 			color: var(--color-text-muted);
@@ -1980,19 +1987,19 @@ const initialTeamJson = team
 		   UI改修依頼(右パネル、2026-08-02)「計算結果の縦余白を削って圧縮する」により
 		   margin-top・上下paddingをさらに詰める(4px2.4rem/0.3rem→0.2rem)。
 		   UI改修依頼(2026-08-05)修正漏れ対応: チップ内部の上下寸法を個体編集の累計結果に
-		   揃えるため、上下paddingを0.18remにし、継承で広がっていた行高を1.2に固定する。 */
+		   揃え、継承で広がっていた行高を固定する。 */
 		.team-preview-panel .team-damage-result {
 			display: flex;
 			flex-wrap: wrap;
 			align-items: baseline;
-			gap: 0.1rem 0.4rem;
+			gap: 0 var(--space-2);
 			/* UI改修依頼(2026-08-05)「計算結果を下寄せ」対応。本文後の余白を吸収し最終段に置く。 */
 			margin: auto 0 0;
 			order: 1;
 			/* 左だけ広めにする。確定数(確N)は font-weight 800 の漢字で、左の罫線
 			   (border-left 4px)にほぼ接して見えるため(実測: 文字の開始位置が padding の
 			   端ちょうど)。 */
-			padding: 0.18rem var(--space-2) 0.18rem var(--space-3);
+			padding: var(--space-1) var(--space-2) var(--space-1) var(--space-3);
 			font-size: var(--font-size-xs);
 			line-height: var(--line-height-tight);
 		}
@@ -2011,7 +2018,7 @@ const initialTeamJson = team
 		}
 		/* UI改修依頼(右パネル、2026-08-02)「計算結果の縦余白を削って圧縮する」。 */
 		.team-preview-panel .team-damage-memo {
-			margin: 0.15rem 0 0;
+			margin: 0;
 			font-size: var(--font-size-xs);
 			color: var(--color-text-muted);
 			overflow: hidden;
@@ -2046,26 +2053,19 @@ const initialTeamJson = team
 			gap: var(--space-2);
 		}
 		/* 順位 / 2行にまたがるスプライト / 本文 / 操作の4列。スプライトを本文外へ置くことで、
-		   種族名と持ち物の左端をそろえ、カード高の増加も抑える。 */
+		   種族名とアイテムの左端をそろえ、カード高の増加も抑える。 */
 		.team-suggest-card {
 			display: grid;
 			/* 順位 / スプライト / 本文 / ボタン。本文列は minmax(0, 1fr) にしないと
 			   長い技名・持ち物名がグリッドを押し広げて横スクロールを起こす。 */
 			grid-template-columns: auto auto minmax(0, 1fr) auto;
 			align-items: center;
-			gap: var(--space-2);
+			/* 本文の1行幅を確保しつつ、順位・画像・操作の位置関係は維持する。 */
+			gap: var(--space-1);
 			padding: var(--space-2);
 			border: 1px solid var(--color-border);
 			border-radius: var(--radius-sm);
 			background: var(--color-surface);
-		}
-		/* 育成済み(findOwnedMatchが非null)の色分け(ユーザー要望、2026-08-04)。中央パネルの
-		   .card-team-slot.is-selected(このファイル内の確立済み配色パターン、上の.team-slots
-		   .card-team-slot.is-selected参照)と同じcolor-mixの比率・トークンをそのまま踏襲する
-		   (新しい色は作らない)。 */
-		.team-suggest-card.is-owned {
-			border-color: var(--color-primary);
-			background: color-mix(in srgb, var(--color-surface) 90%, var(--color-primary) 10%);
 		}
 		.team-suggest-rank {
 			/* 順位を一覧の視覚的な起点にするため、従来値の1.5倍にする。 */
@@ -2077,8 +2077,9 @@ const initialTeamJson = team
 		}
 		/* スプライトは1.1倍(44px→48px、ユーザー要望2026-08-04)。本文の2行にまたがる専用列。 */
 		.team-suggest-sprite {
-			width: 48px;
-			height: 48px;
+			/* ドット絵に合わせて幅を詰め、種族名とアイテム名の表示領域を確保する。 */
+			width: var(--icon-size-lg);
+			height: var(--icon-size-lg);
 			flex: none;
 			display: flex;
 			align-items: center;
@@ -2087,6 +2088,8 @@ const initialTeamJson = team
 		.team-suggest-sprite-img {
 			max-width: 100%;
 			max-height: 100%;
+			/* おすすめ画像はドット絵のピクセルを保つ。 */
+			image-rendering: pixelated;
 		}
 		.team-suggest-sprite-fallback {
 			display: none;
@@ -2125,8 +2128,8 @@ const initialTeamJson = team
 			color: var(--color-text-muted);
 			display: flex;
 			align-items: center;
-			flex-wrap: wrap;
-			gap: 0.15em 0.25em;
+			flex-wrap: nowrap;
+			gap: var(--space-1);
 			line-height: var(--line-height-snug);
 			margin-top: 0.15em;
 			min-width: 0;
@@ -2154,6 +2157,10 @@ const initialTeamJson = team
 			margin-right: var(--space-2);
 			vertical-align: middle;
 		}
+		.team-damage-title-sprite img {
+			/* ヘッダーもカードと同じドット絵表示にそろえる。 */
+			image-rendering: pixelated;
+		}
 		.team-suggest-role {
 			flex: none;
 			padding: 0 0.35em;
@@ -2166,7 +2173,7 @@ const initialTeamJson = team
 			text-decoration: underline dotted var(--color-border);
 			text-underline-offset: 0.2em;
 		}
-		/* 根拠(相性の良いポケモン名、または「上位チームのN%が採用」)。ここで切れると
+		/* 根拠(共起した種族名、または「上位チームのN%が採用」)。ここで切れると
 		   提案の説得力そのものが失われるため折り返す。 */
 		.team-suggest-reason {
 			font-size: var(--font-size-xs);
@@ -2194,8 +2201,10 @@ const initialTeamJson = team
 			display: flex;
 			align-items: center;
 			justify-content: center;
-			width: 5.2em;
-			max-width: 5.2em;
+			gap: var(--space-1);
+			/* 鉛筆とラベルを横並びのまま収める。 */
+			width: 6.4em;
+			max-width: 6.4em;
 			font-size: var(--font-size-xs);
 			line-height: var(--line-height-tight);
 			padding: var(--space-1);
@@ -2248,6 +2257,10 @@ const initialTeamJson = team
 		.team-matchup-card.is-disadvantageous {
 			background: color-mix(in srgb, var(--color-surface) calc(100% - var(--matchup-mix, 28%)), var(--color-risky) var(--matchup-mix, 28%));
 		}
+		.team-matchup-card.is-disadvantageous .team-matchup-score {
+			/* 濃い側でもライト・ダーク双方の本文色でスコアを判読できるようにする。 */
+			color: var(--color-text);
+		}
 		.team-matchup-card[data-state="pending"],
 		.team-matchup-card[data-state="unknown"] {
 			background: var(--color-surface-alt);
@@ -2258,8 +2271,9 @@ const initialTeamJson = team
 		}
 		.team-matchup-score {
 			position: absolute;
-			top: 0;
-			left: 0;
+			/* カードの内側余白に影響されず、枠の左上角へ固定する。 */
+			top: calc(-1 * var(--space-1));
+			left: calc(-1 * var(--space-1));
 			/* UI改修依頼(2026-08-05)「スコアを一段縮小して左上へ配置」対応。 */
 			font-size: calc(var(--font-size-xs) * 0.85);
 			font-weight: 700;
@@ -2719,7 +2733,8 @@ const initialTeamJson = team
 				const spriteFallback = document.createElement("span");
 				spriteFallback.className = "team-damage-sprite-fallback";
 				spriteBox.append(spriteImg, spriteFallback);
-				void applySprite(spriteImg, spriteFallback, summary.opponentName);
+				// 右パネルのダメージ対象は公式画像ではなくドット絵で統一する。
+				void applySprite(spriteImg, spriteFallback, summary.opponentName, spriteUrl);
 				buildRow.appendChild(spriteBox);
 
 				const buildText = document.createElement("div");
@@ -2735,15 +2750,15 @@ const initialTeamJson = team
 				nameEl.className = "team-damage-name";
 				nameEl.textContent = summary.opponentName;
 				nameEl.title = summary.opponentName;
-				metaRow.append(directionEl, nameEl);
-
-				const subRow = document.createElement("div");
-				subRow.className = "team-damage-sub-row";
 				const abilityEl = document.createElement("span");
 				abilityEl.className = "team-damage-ability";
 				abilityEl.textContent = summary.abilityName;
 				abilityEl.title = summary.abilityName;
-				subRow.appendChild(abilityEl);
+				// 特性は種族名と同じ段に置き、長い場合だけ末尾を省略する。
+				metaRow.append(directionEl, nameEl, abilityEl);
+
+				const subRow = document.createElement("div");
+				subRow.className = "team-damage-sub-row";
 				// 個体編集画面と同じく、持ち物は名前の横幅を使わずスプライト右下へ重ねる。
 				// クラスと名前DOMは既存契約を保つため残し、名前はCSSで視覚的に隠す。
 				if (summary.itemName) {
@@ -2778,7 +2793,9 @@ const initialTeamJson = team
 					teraInfo.append(teraImg, teraName);
 					subRow.appendChild(teraInfo);
 				}
-				buildText.append(metaRow, subRow);
+				buildText.appendChild(metaRow);
+				// 特性を移した後にテラスタル表示が無ければ空の2段目を作らない。
+				if (subRow.childElementCount > 0) buildText.appendChild(subRow);
 
 				const cells = computeBuildStatCells(
 					note.opponent_build as never,
@@ -2894,7 +2911,8 @@ const initialTeamJson = team
 				const titleText = document.createTextNode("ダメージ計算");
 				panelHeaderTitleEl.replaceChildren(titleSprite, titleText);
 				panelHeaderTitleEl.title = `${displayName(p)} のダメージ計算`;
-				void applySprite(titleSpriteImg, titleSpriteFallback, p.species_name);
+				// ダメージ計算の見出しもカードと同じドット絵を使う。
+				void applySprite(titleSpriteImg, titleSpriteFallback, p.species_name, spriteUrl);
 
 				const statusEl = document.createElement("p");
 				statusEl.className = "team-damage-status";
@@ -3057,7 +3075,8 @@ const initialTeamJson = team
 			// 種族・特性・持ち物・role の4つで決まる、migrations/015)ため空のままにする。
 			async function createPokemonFromSuggestion(suggestion: TeamSuggestion, button: HTMLButtonElement): Promise<void> {
 				button.disabled = true;
-				const originalLabel = button.textContent;
+				// 登録失敗時に鉛筆アイコンを含む元の表示を復元する。
+				const originalContent = Array.from(button.childNodes, (node) => node.cloneNode(true));
 				button.textContent = "登録中…";
 				try {
 					const res = await fetch("/api/owned-pokemon", {
@@ -3087,7 +3106,7 @@ const initialTeamJson = team
 				} catch (err) {
 					console.error(err);
 					button.disabled = false;
-					button.textContent = originalLabel;
+					button.replaceChildren(...originalContent);
 					window.alert("個体の登録に失敗しました。時間をおいて再度お試しください。");
 				}
 			}
@@ -3098,7 +3117,8 @@ const initialTeamJson = team
 				const owned = findOwnedMatch(suggestion);
 
 				const card = document.createElement("li");
-				card.className = owned ? "team-suggest-card is-owned" : "team-suggest-card";
+				// 所有判定は操作の分岐だけに使い、育成済みを示す表示状態は付けない。
+				card.className = "team-suggest-card";
 
 				const rankEl = document.createElement("span");
 				rankEl.className = "team-suggest-rank";
@@ -3119,7 +3139,8 @@ const initialTeamJson = team
 				const spriteFallback = document.createElement("span");
 				spriteFallback.className = "team-suggest-sprite-fallback";
 				spriteEl.append(spriteImg, spriteFallback);
-				void applySprite(spriteImg, spriteFallback, suggestion.speciesName);
+				// おすすめポケモンは公式画像ではなくドット絵で表示する。
+				void applySprite(spriteImg, spriteFallback, suggestion.speciesName, spriteUrl);
 				const nameEl = document.createElement("span");
 				nameEl.className = "team-suggest-name";
 				nameEl.textContent = suggestion.speciesName;
@@ -3190,7 +3211,23 @@ const initialTeamJson = team
 						assignToSlot(owned);
 					});
 				} else {
-					action.textContent = "育成する";
+					// 新規育成の操作だけ、既存UIと同じ鉛筆アイコンをラベル左へ添える。
+					const editIcon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+					editIcon.setAttribute("width", "14");
+					editIcon.setAttribute("height", "14");
+					editIcon.setAttribute("viewBox", "0 0 24 24");
+					editIcon.setAttribute("fill", "none");
+					editIcon.setAttribute("stroke", "currentColor");
+					editIcon.setAttribute("stroke-width", "2");
+					editIcon.setAttribute("stroke-linecap", "round");
+					editIcon.setAttribute("stroke-linejoin", "round");
+					editIcon.setAttribute("aria-hidden", "true");
+					const editBody = document.createElementNS("http://www.w3.org/2000/svg", "path");
+					editBody.setAttribute("d", "M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z");
+					const editTip = document.createElementNS("http://www.w3.org/2000/svg", "path");
+					editTip.setAttribute("d", "m15 5 4 4");
+					editIcon.append(editBody, editTip);
+					action.append(editIcon, "育成する");
 					action.title = "この型で個体を作る";
 					action.addEventListener("click", () => {
 						void createPokemonFromSuggestion(suggestion, action);
@@ -3465,8 +3502,8 @@ const initialTeamJson = team
 					} else {
 						if (entry.opacity >= 0.5) {
 							card.classList.add("is-disadvantageous");
-							// 閾値0.5は従来の28%、最大1.0は可読性を保つ44%へ線形補間する。
-							const mix = 28 + (entry.opacity - 0.5) * 32;
+							// 下限28%を保ち、最大1.0では70%まで広げて不利度の差を明確にする。
+							const mix = 28 + (entry.opacity - 0.5) * 84;
 							card.style.setProperty("--matchup-mix", `${mix}%`);
 						}
 						card.title = heading;
