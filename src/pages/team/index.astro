@@ -946,10 +946,9 @@ const user = Astro.locals.user;
 			}
 
 			function updateCountBadge(visibleCount: number): void {
-				const total = allTeams.length;
 				// 単位「チーム」は付けない: /box の件数バッジ(#pokemon-count-badge)が素の数値で、
-				// 一覧ツールバー内という文脈から何の件数かは自明なため表記を揃える。
-				countBadge.textContent = visibleCount === total ? `${total}` : `${visibleCount} / ${total}`;
+				// 絞り込み中も現在の表示件数だけを示すため、/box と表記を揃える。
+				countBadge.textContent = String(visibleCount);
 				countBadge.hidden = false;
 			}
 

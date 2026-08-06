@@ -140,16 +140,6 @@ const user = Astro.locals.user;
 		   (position:absoluteのアイコン+input側padding-leftをselect側に適用)を踏襲する。
 		   ラベル削除によるアクセシビリティ低下を防ぐため、<select>にaria-label="並べ替え"を付与する
 		   (マークアップ側、下記参照)。 */
-		/* UI改修依頼(2026-08-05)「レギュレーションと並べ替えを最長選択肢に合う幅にする」対応。
-		   共通.field-controlのflex伸長を止め、select本来の選択肢基準の幅を使うことで、
-		   選択変更時にも幅が変わらないようにする。 */
-		.toolbar-regulation select,
-		.toolbar-sort select {
-			width: auto;
-			min-width: 0;
-			flex: none;
-		}
-
 		@media (max-width: 640px) {
 			/* ラウンド12 A-1で `.toolbar-search { flex: 0 1 26rem }` に変更した後も、この
 			   flex-basis(26rem)は横並び(flex-direction: row)前提の値で、縦積みに切り替わる
@@ -211,7 +201,9 @@ const user = Astro.locals.user;
 		   意図的に戻した値であり、このラウンドの対象外(デスクトップ側のみ縮める)。 */
 		.box-grid {
 			display: grid;
-			grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+			/* UI改修依頼(2026-08-06): 8文字技名96px + アイコン12px + gap 4px = 112px、
+			   2列と列gap 4pxで内側228px、左右padding 16pxで244px以上必要なため250pxへ拡大する。 */
+			grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
 			gap: var(--space-4);
 			align-items: stretch;
 			margin-top: var(--space-6);
@@ -401,7 +393,8 @@ const user = Astro.locals.user;
 			   変更したことで.card-bodyの内容高さが増え、1fr行(この.card-art)の取り分が
 			   縮んだ。overflow:hiddenで公式絵の上下が切られないよう、ラウンド12以前の値
 			   min(48%,104px)(当時の実測97px)へ戻す(ラウンド12のコメント参照)。 */
-			width: min(48%, 104px);
+			/* カード最小幅を210pxから250pxへ約1.19倍にしたため、上限も同率相当へ拡大する。 */
+			width: min(48%, 124px);
 			aspect-ratio: 1 / 1;
 			flex: 0 1 auto;
 		}
@@ -723,8 +716,8 @@ const user = Astro.locals.user;
 			min-width: 0;
 		}
 		.box-grid .card-pokemon .card-item-row-ability {
-			/* UI改修依頼(2026-08-05)「特性名とテラスタイプ画像の間隔を1段階広げる」対応。 */
-			gap: var(--space-2);
+			/* 2026-08-05にspace-2へ広げ、2026-08-06の追加依頼でさらに2倍へ広げる。 */
+			gap: var(--space-4);
 		}
 		/* 特性名: 名前(card-name)・技チップ(card-move-chip)と同様に1行で省略する
 		   (折り返さない)。20-G3の12px下限ちょうど(0.75rem)にし、名前ほど主張しない
@@ -858,11 +851,10 @@ const user = Astro.locals.user;
 			   0.75remベースに更新する(border-top/padding-topはもうこの要素に無いため式から除去)。
 			   ラウンド21 21-B3: 技チップに上下0.08remのpaddingを追加したため(下の.card-move-chip
 			   参照)、1行あたり+0.16rem(2*0.08rem)ぶん計算式に加算する。 */
-			/* UI改修依頼(2026-08-04、要件4): 技チップの文字サイズを0.75rem→0.7remへ引き上げた
-			   ため(下の.card-move-chip参照)、この予約高さの計算式も0.7rem基準に合わせる
-			   (0.75remのまま残すと実際のチップ高さより予約が小さくなり、技4件と技0件でカードの
-			   高さが揃わなくなる)。 */
-			min-height: calc(2 * (1.2 * 0.7rem + 0.16rem) + 0.05rem);
+			/* UI改修依頼(2026-08-04、要件4)で技チップの文字サイズを変更した後、計算式だけが
+			   0.7remのまま残っていた。2026-08-06に実指定のvar(--font-size-xs)基準へ揃え、
+			   技4件と技0件で予約高さがずれないようにする。 */
+			min-height: calc(2 * (1.2 * var(--font-size-xs) + 0.16rem) + 0.05rem);
 		}
 		/* ラウンド20 G3: 0.64em(≈10.2px)は違反だったため、emの入れ子を避けてrem基準の
 		   0.75rem(=12px)へ引き上げる。
@@ -954,9 +946,8 @@ const user = Astro.locals.user;
 				grid-template-columns: minmax(0, 1fr);
 				/* 技4件ぶん(1列4行)の高さを常に確保する(min-height計算式は上の基本定義と
 				   同じ1行あたりの高さを4倍にしたもの)。 */
-				/* UI改修依頼(2026-08-04、要件4): 技名の文字サイズ引き上げ(0.75rem→0.7rem)に
-				   合わせてこちらも0.7rem基準に更新する。 */
-			min-height: calc(4 * (1.2 * 0.7rem + 0.16rem) + 3 * 0.05rem);
+				/* 狭幅の4行予約も、基本定義と同じvar(--font-size-xs)基準に揃える。 */
+			min-height: calc(4 * (1.2 * var(--font-size-xs) + 0.16rem) + 3 * 0.05rem);
 			}
 			/* UI改修依頼(2026-08-02): .card-item-badge/.card-tera-badge/.card-badge-rowの
 			   この幅専用の縮小・位置補正(旧.card-badge-row、公式絵の右の縦バッジ列だった頃の
@@ -1736,11 +1727,10 @@ const user = Astro.locals.user;
 				}
 			}
 
-			// B-9: 絞り込み/検索の結果件数を総数に追随させる(例: 検索中は「2 / 4」)。
-			// renderList()が呼ばれるたびに毎回渡されるので、この関数自体は単に整形するだけでよい。
+			// 絞り込み/検索の状態にかかわらず、件数バッジには現在の表示件数だけを示す。
+			// renderList()が呼ばれるたびに毎回渡されるので、その値をそのまま文字列化する。
 			function updateCountBadge(visibleCount: number): void {
-				const total = allPokemon.length;
-				countBadge.textContent = visibleCount === total ? `${total}` : `${visibleCount} / ${total}`;
+				countBadge.textContent = String(visibleCount);
 				countBadge.hidden = false;
 			}
 

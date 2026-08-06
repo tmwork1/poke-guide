@@ -658,6 +658,17 @@ select:focus-visible {
 	padding-left: 2.1em;
 }
 
+/* 一覧ツールバー/トップバーのフィルタ・並べ替えselectは、最長の選択肢を基準にした
+   内容幅を維持する。選択変更時にも幅が変わらないよう field-sizing: content は使わない。
+   .field-control のflex伸長とselectのアイコン用paddingを確定した後に上書きする必要があるため、
+   入力欄節の上記ルールより後ろに置く。 */
+.toolbar-item select.field-control,
+.sort-select-wrap select {
+	width: auto;
+	min-width: 0;
+	flex: none;
+}
+
 textarea {
 	width: 100%;
 	min-height: 4em;
