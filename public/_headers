@@ -20,6 +20,9 @@
 /pokemon-sprites/*
   Cache-Control: public, max-age=2592000
 
+/pokemon-artwork/*
+  Cache-Control: public, max-age=2592000
+
 /item-icons/*
   Cache-Control: public, max-age=2592000
 

@@ -18,8 +18,6 @@ import {
   loadMegaStoneMap,
 } from '../src/lib/pokemon-master-data.ts';
 
-const SPRITES_BASE = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites';
-
 describe('spriteUrl', () => {
   // 2026-08-06: ドット絵は public/pokemon-sprites/ に事前ダウンロードした画像を同一オリジンから
   // 配信する方式に変更した(生成: scripts/pokemon-sprites/generate_pokemon_sprites.py)。
@@ -42,15 +40,20 @@ describe('spriteUrl', () => {
 });
 
 describe('officialArtworkUrl', () => {
-  it('imageIdから公式絵URLを組み立てる(通常種)', () => {
-    assert.equal(officialArtworkUrl(1), `${SPRITES_BASE}/pokemon/other/official-artwork/1.png`);
+  // 2026-08-06: 公式絵もローカル配信に切り替えた。ただしドット絵と違い原画をそのまま置くと
+  // 178.6MBになるため、320pxに縮小してWebPで保存している(約22.6MB)。
+  // 生成: scripts/pokemon-artwork/generate_pokemon_artwork.py。
+  it('imageIdからローカルの公式絵URLを組み立てる(通常種)', () => {
+    assert.equal(officialArtworkUrl(1), '/pokemon-artwork/1.webp');
   });
 
   it('10000番台のimageId(メガシンカ等の特殊フォルム専用ID)も同じ規則でURLを組み立てる', () => {
-    assert.equal(
-      officialArtworkUrl(10034),
-      `${SPRITES_BASE}/pokemon/other/official-artwork/10034.png`,
-    );
+    assert.equal(officialArtworkUrl(10034), '/pokemon-artwork/10034.webp');
+  });
+
+  it('ドット絵とは拡張子が異なる(.webp / .png の取り違え防止)', () => {
+    assert.ok(officialArtworkUrl(25).endsWith('.webp'));
+    assert.ok(spriteUrl(25).endsWith('.png'));
   });
 });
 
@@ -81,22 +84,28 @@ describe('public/master-data/autocomplete/pokemon.json のimageId(回帰テス�
     return entry as NonNullable<typeof entry>;
   }
 
-  it('全imageIdに対応するドット絵が public/pokemon-sprites/ に存在する', () => {
-    // 2026-08-06のローカル化で生じた運用上の依存関係を守るための回帰テスト。
-    // public/master-data/ は .gitignore 対象で `npm run build:master-data` が生成するため、
-    // マスタデータを再生成してフォルムが増えると、ドット絵だけ取り残される。
-    // spriteUrl() の参照先が同一オリジンになった今、取り残しは404=画像割れに直結する
-    // (applySprite はonerrorで頭文字バッジに退避するが、ranked-teams/card.ts などは退避しない)。
-    // 落ちたら `npm run generate:pokemon-sprites` を実行する。
-    const spritesDir = path.join(__dirname, '..', 'public', 'pokemon-sprites');
-    const imageIds = [...new Set(pokemonList.map((p) => p.imageId))];
-    const missing = imageIds.filter((id) => !existsSync(path.join(spritesDir, `${id}.png`)));
-    assert.deepEqual(
-      missing,
-      [],
-      `ドット絵が未取得のimageIdがあります。\`npm run generate:pokemon-sprites\` を実行してください: ${missing.join(', ')}`,
-    );
-  });
+  // 2026-08-06のローカル化で生じた運用上の依存関係を守るための回帰テスト。
+  // public/master-data/ は .gitignore 対象で `npm run build:master-data` が生成するため、
+  // マスタデータを再生成してフォルムが増えると、画像だけ取り残される。
+  // 参照先が同一オリジンになった今、取り残しは404=画像割れに直結する
+  // (applySprite はonerrorで頭文字バッジに退避するが、ranked-teams/card.ts などは退避しない)。
+  for (const target of [
+    { dir: 'pokemon-sprites', ext: 'png', label: 'ドット絵', cmd: 'npm run generate:pokemon-sprites' },
+    { dir: 'pokemon-artwork', ext: 'webp', label: '公式絵', cmd: 'npm run generate:pokemon-artwork' },
+  ]) {
+    it(`全imageIdに対応する${target.label}が public/${target.dir}/ に存在する`, () => {
+      const dir = path.join(__dirname, '..', 'public', target.dir);
+      const imageIds = [...new Set(pokemonList.map((p) => p.imageId))];
+      const missing = imageIds.filter(
+        (id) => !existsSync(path.join(dir, `${id}.${target.ext}`)),
+      );
+      assert.deepEqual(
+        missing,
+        [],
+        `${target.label}が未取得のimageIdがあります。\`${target.cmd}\` を実行してください: ${missing.join(', ')}`,
+      );
+    });
+  }
 
   it('メガリザードンXはベース種族(リザードン)とは異なる専用imageIdを持ち、dexNoは書き換わらない', () => {
     const megaX = findByName('メガリザードンX');

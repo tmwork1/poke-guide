@@ -58,10 +58,14 @@ export function spriteUrl(imageId: number): string {
 }
 
 // Pokemon.png ワイヤーフレームの「ポケモンアイコン(公式絵)」用。
-// ⚠️ 公式絵はドット絵と違いローカル化していない。実測118〜203KB/枚 × 1284件 ≒ 180MB で、
-// gitにもCloudflare Workers assetsにも載らないため、意図的に外部参照のままにしている。
+// ドット絵と同じく public/pokemon-artwork/ から同一オリジンで配信するが、こちらは原画をそのまま
+// 置いていない。原画は475x475/平均145.8KBで1284件=178.6MBになり、gitにもデプロイにも載らない。
+// 一方アプリの実表示は /box 115px・/team 72px・/pokemon/[name] 160px(2026-08-06 実測)と
+// 原画よりはるかに小さいため、Retina(2倍)を見込んだ320pxに縮小しWebP(q82)で保存している
+// (生成: scripts/pokemon-artwork/generate_pokemon_artwork.py。約1/8の22.6MB)。
+// ⚠️ 拡張子が .webp であってドット絵の .png ではない。
 export function officialArtworkUrl(imageId: number): string {
-  return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${imageId}.png`;
+  return `/pokemon-artwork/${imageId}.webp`;
 }
 
 interface PokemonDetailEntry {

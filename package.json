@@ -16,6 +16,7 @@
 		"build:master-data": "node scripts/build-master-data/build.mjs",
 		"generate:type-icons": "python scripts/type-icons/generate_type_icons.py",
 		"generate:pokemon-sprites": "python scripts/pokemon-sprites/generate_pokemon_sprites.py",
+		"generate:pokemon-artwork": "python scripts/pokemon-artwork/generate_pokemon_artwork.py",
 		"build": "npm run build:master-data && astro build",
 		"preview": "npm run build && astro preview",
 		"astro": "astro",
