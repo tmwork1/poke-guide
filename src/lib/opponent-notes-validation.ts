@@ -38,6 +38,7 @@ export interface OpponentAttackInput {
   moveName: string;
   hitCount?: number;
   critical?: boolean;
+  stealthRock?: boolean;
   attackerBoosts?: number[];
   attackerAilment?: string;
   attackerTerastallized?: boolean;
@@ -225,6 +226,7 @@ function isAttacksArray(value: unknown): value is OpponentAttackInput[] {
       if (v.hitCount < MIN_HIT_COUNT || v.hitCount > MAX_HIT_COUNT) return false;
     }
     if (v.critical !== undefined && typeof v.critical !== 'boolean') return false;
+    if (v.stealthRock !== undefined && typeof v.stealthRock !== 'boolean') return false;
     if (v.attackerBoosts !== undefined && !isBoostArray(v.attackerBoosts)) return false;
     if (v.attackerAilment !== undefined && typeof v.attackerAilment !== 'string') return false;
     if (v.attackerTerastallized !== undefined && typeof v.attackerTerastallized !== 'boolean') return false;
@@ -399,6 +401,7 @@ function validateOpponentField(value: unknown): { ok: true; value: OpponentField
       const normalized: OpponentAttackInput = { moveName: attack.moveName.trim() };
       if (attack.hitCount !== undefined) normalized.hitCount = attack.hitCount;
       if (attack.critical !== undefined) normalized.critical = attack.critical;
+      if (attack.stealthRock !== undefined) normalized.stealthRock = attack.stealthRock;
       if (attack.attackerBoosts !== undefined) normalized.attackerBoosts = attack.attackerBoosts;
       if (attack.attackerAilment !== undefined) normalized.attackerAilment = attack.attackerAilment;
       if (attack.attackerTerastallized !== undefined) normalized.attackerTerastallized = attack.attackerTerastallized;

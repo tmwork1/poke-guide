@@ -258,13 +258,14 @@ test('collectNoteConditionChips: 物理技/分類不明はランクを攻撃/防
 	assert.deepEqual(collectNoteConditionChips(attacks[0], null).slice(3), ['攻撃側攻撃+6', '防御側防御+6']);
 });
 
-test('collectNoteConditionChips: 壁・急所・テラス・下降ランクも漏れなく出す', () => {
+test('collectNoteConditionChips: 壁・ステルスロック・急所・テラス・下降ランクも漏れなく出す', () => {
 	const attacks = normalizeNoteAttacks(
 		{
 			attacks: [
 				{
 					moveName: 'じしん',
 					critical: true,
+					stealthRock: true,
 					defenderSideFields: ['リフレクター'],
 					attackerAilment: 'やけど',
 					attackerTerastallized: true,
@@ -277,6 +278,7 @@ test('collectNoteConditionChips: 壁・急所・テラス・下降ランクも�
 	);
 	assert.deepEqual(collectNoteConditionChips(attacks[0], 'physical'), [
 		'壁',
+		'ステルスロック',
 		'急所',
 		'攻撃側やけど',
 		'攻撃側テラスタル',

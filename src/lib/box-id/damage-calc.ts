@@ -85,6 +85,7 @@ import {
 	selectColumn,
 	applySelectionMarks,
 	clearSelectionAndMarks,
+	wrapToRange,
 	type DamageRowState,
 	type DamageColumnState,
 } from "./shared-core";
@@ -560,6 +561,7 @@ if (opponentNotesSection) {
 			weather: "",
 			terrain: "",
 			wallEnabled: false,
+			stealthRock: false,
 			defenderSideFields: [],
 			attackerRank: 0,
 			defenderRank: 0,
@@ -588,6 +590,7 @@ if (opponentNotesSection) {
 			weather: previous.weather,
 			terrain: previous.terrain,
 			wallEnabled: previous.wallEnabled,
+			stealthRock: previous.stealthRock,
 			defenderSideFields: [...previous.defenderSideFields],
 			attackerRank: previous.attackerRank,
 			defenderRank: previous.defenderRank,
@@ -793,6 +796,7 @@ if (opponentNotesSection) {
 			if (attack.critical !== undefined) column.critical = attack.critical;
 			if (attack.weather !== undefined) column.weather = attack.weather;
 			if (attack.terrain !== undefined) column.terrain = attack.terrain;
+			if (attack.stealthRock !== undefined) column.stealthRock = attack.stealthRock;
 			if (attack.defenderSideFields !== undefined) column.defenderSideFields = attack.defenderSideFields;
 			if (attack.attackerBoosts !== undefined) column.attackerBoosts = attack.attackerBoosts;
 			if (attack.attackerAilment !== undefined) column.attackerAilment = attack.attackerAilment;
@@ -849,6 +853,7 @@ if (opponentNotesSection) {
 				critical: a.critical,
 				weather: a.weather,
 				terrain: a.terrain,
+				stealthRock: a.stealthRock,
 				defenderSideFields: a.defenderSideFields,
 				attackerBoosts: a.attackerBoosts,
 				attackerAilment: a.attackerAilment,
@@ -1105,7 +1110,7 @@ if (opponentNotesSection) {
 			el.appendChild(detailSpan);
 		}
 	}
-	// 「(計算前)」「(技名を入力)」のような単一メッセージ用(2分割にしない)。
+	// 「(計算前)」「技名を入力」のような単一メッセージ用(2分割にしない)。
 	function setResultPlain(el: HTMLElement, text: string): void {
 		el.innerHTML = "";
 		el.textContent = text;
@@ -1134,7 +1139,7 @@ if (opponentNotesSection) {
 			};
 			const hasMove = attack.moveName.trim() !== "";
 			if (!hasMove) {
-				setResultPlain(target, "(技名を入力)");
+				setResultPlain(target, "技名を入力");
 				target.dataset.severity = "none";
 				applyOverkill(false);
 				return;
@@ -1201,7 +1206,7 @@ if (opponentNotesSection) {
 		// 前(このtarget取得直後)に設定する。
 		target.dataset.multiMove = validAttacks.length >= 2 ? "true" : "false";
 		if (validAttacks.length === 0) {
-			setResultPlain(target, "(技名を入力)");
+			setResultPlain(target, "");
 			target.dataset.severity = "none";
 			return;
 		}
@@ -1449,7 +1454,9 @@ if (opponentNotesSection) {
 				calcStats(defenderSpec),
 			]);
 			row.clientResult = {
-				defenderHp: statsResult.stats.hp,
+				// 累計致死率は先頭の有効技列から始まるため、カード単位の表示分母も
+				// その列のステルスロック適用後HPに揃える。OFFなら最大HPと同値。
+				defenderHp: seqResult.defenderHp || statsResult.stats.hp,
 				perAttackDamages: seqResult.perAttackDamages,
 				lethal: seqResult.lethal,
 				perAttackLethal: seqResult.perAttackLethal,
@@ -2047,17 +2054,21 @@ if (opponentNotesSection) {
 	// 既定でない値がすべて漏れなくここに出ること。ラウンド7で全項目が技ごとの
 	// 独立設定になったため、この関数はもともと1つのDamageColumnStateだけを見る
 	// 実装のまま(カード全体/技ごとを区別する必要自体が無くなった=単純化)。
-	function collectConditionChips(a: DamageColumnState): string[] {
-		const chips: string[] = [];
-		if (a.weather) chips.push(a.weather);
-		if (a.terrain) chips.push(a.terrain);
-		if (a.wallEnabled) chips.push("壁");
-		if (a.critical) chips.push("急所");
-		if (a.attackerAilment) chips.push(`攻撃側${a.attackerAilment}`);
-		if (a.defenderAilment) chips.push(`防御側${a.defenderAilment}`);
-		// UI改修依頼(2026-08-05)「詳細表示のテラス表記をテラスタルへ統一」対応。
-		if (a.attackerTerastallized) chips.push("攻撃側テラスタル");
-		if (a.defenderTerastallized) chips.push("防御側テラスタル");
+	type ConditionGroup = { label: "攻撃側" | "防御側" | null; chips: string[] };
+
+	function collectConditionGroups(a: DamageColumnState, showTera: boolean): ConditionGroup[] {
+		const attacker: string[] = [];
+		const defender: string[] = [];
+		const field: string[] = [];
+		if (a.critical) attacker.push("急所");
+		if (a.attackerAilment) attacker.push(a.attackerAilment);
+		if (showTera && a.attackerTerastallized) attacker.push("テラスタル");
+		if (a.wallEnabled) defender.push("壁");
+		if (a.stealthRock) defender.push("ステルスロック");
+		if (a.defenderAilment) defender.push(a.defenderAilment);
+		if (showTera && a.defenderTerastallized) defender.push("テラスタル");
+		if (a.weather) field.push(a.weather);
+		if (a.terrain) field.push(a.terrain);
 		// 🔴 UI改善ラウンド29(29-D1)「条件チップ『攻撃+6』が技の分類を区別しない固定文言」:
 		// resolveColumnDerivedFields()(上記)は技の物理/特殊分類でatk/spaのどちらに
 		// ランクを載せるか自動振り分け済み(計算自体は正しい)。表記だけが「攻撃」固定で、
@@ -2067,58 +2078,44 @@ if (opponentNotesSection) {
 		const moveCategory = getMoveCategory(a.moveName);
 		const atkRankLabel = moveCategory === "special" ? "特攻" : "攻撃";
 		const defRankLabel = moveCategory === "special" ? "特防" : "防御";
-		if (a.attackerRank !== 0) chips.push(`${atkRankLabel}${a.attackerRank > 0 ? "+" : ""}${a.attackerRank}`);
-		if (a.defenderRank !== 0) chips.push(`${defRankLabel}${a.defenderRank > 0 ? "+" : ""}${a.defenderRank}`);
-		return chips;
-	}
-
-	// UI改善ラウンド45(ユーザー指示第29弾、B-1): 圧縮表示の詳細設定行
-	// (collapsedDetailLineEl、refreshCollapsedTechniques参照)専用のチップ生成。
-	// collectConditionChips()(上、展開表示の技列チップ.damage-condition-chipと共有)は
-	// 状態異常には「攻撃側」「防御側」の側prefixを付けるが、ランクチップ(攻撃+6等)には
-	// 付けておらず、同じ行内で表記が混在している(round-45.md B-1、プレイヤー視点
-	// レビュアー指摘)。展開表示側(collectConditionChips/renderConditionChipsInto)は
-	// 変更禁止(展開の見た目を一切変えない制約)のため、圧縮表示専用にランクチップにも
-	// 側prefixを付けた別関数を新設して表記を揃える(全チップに側prefixを付ける方針。
-	// 状態異常側を省略する方針は、攻撃側/防御側の状態異常が同一列に同時発生しうる
-	// (attackerAilment/defenderAilmentが独立フィールド)ため、省略すると区別できなくなる
-	// 実装者判断で採らなかった)。
-	// UI改修依頼(ダメージ計算カード、2026-08-02)「圧縮表示もレギュレーションに応じてテラス
-	// タルの表示・非表示を自動判断する」。showTera(=isTerastalRegulation()の結果)がfalseの
-	// ときは「攻撃側テラスタル」「防御側テラスタル」チップを列挙しない。a.attackerTerastallized/
-	// defenderTerastallizedの値そのもの(=計算結果に使う実データ)は一切変更しない、表示の
-	// 出し分けのみ。
-	function collectConditionChipsForCollapsed(a: DamageColumnState, showTera: boolean): string[] {
-		const chips: string[] = [];
-		if (a.weather) chips.push(a.weather);
-		if (a.terrain) chips.push(a.terrain);
-		if (a.wallEnabled) chips.push("壁");
-		if (a.critical) chips.push("急所");
-		if (a.attackerAilment) chips.push(`攻撃側${a.attackerAilment}`);
-		if (a.defenderAilment) chips.push(`防御側${a.defenderAilment}`);
-		// UI改修依頼(2026-08-05)「詳細表示のテラス表記をテラスタルへ統一」対応。
-		if (showTera && a.attackerTerastallized) chips.push("攻撃側テラスタル");
-		if (showTera && a.defenderTerastallized) chips.push("防御側テラスタル");
-		const moveCategory = getMoveCategory(a.moveName);
-		const atkRankLabel = moveCategory === "special" ? "特攻" : "攻撃";
-		const defRankLabel = moveCategory === "special" ? "特防" : "防御";
-		if (a.attackerRank !== 0) chips.push(`攻撃側${atkRankLabel}${a.attackerRank > 0 ? "+" : ""}${a.attackerRank}`);
-		if (a.defenderRank !== 0) chips.push(`防御側${defRankLabel}${a.defenderRank > 0 ? "+" : ""}${a.defenderRank}`);
-		return chips;
+		if (a.attackerRank !== 0) attacker.push(`${atkRankLabel}${a.attackerRank > 0 ? "+" : ""}${a.attackerRank}`);
+		if (a.defenderRank !== 0) defender.push(`${defRankLabel}${a.defenderRank > 0 ? "+" : ""}${a.defenderRank}`);
+		return [
+			{ label: "攻撃側", chips: attacker },
+			{ label: "防御側", chips: defender },
+			{ label: null, chips: field },
+		].filter((group) => group.chips.length > 0);
 	}
 
 	// 1枚の技列チップ器(.damage-row-condition-chips)の中身を、その技カードの
 	// 現在値で作り直す。
 	function renderConditionChipsInto(container: HTMLElement, attack: DamageColumnState): void {
 		container.innerHTML = "";
-		const chips = collectConditionChips(attack);
-		container.hidden = chips.length === 0;
-		for (const label of chips) {
-			const span = document.createElement("span");
-			span.className = "badge badge-muted damage-condition-chip";
-			span.textContent = label;
-			container.appendChild(span);
-		}
+		// 展開表示は、非テラスレギュレーションでも計算に残っているテラスタル設定を
+		// ユーザーが把握できるよう常に表示する。折りたたみ表示だけはユーザー指示どおり
+		// refreshCollapsedTechniques()側でレギュレーションに応じて出し分ける。
+		const groups = collectConditionGroups(attack, true);
+		container.hidden = groups.length === 0;
+		groups.forEach((group, groupIndex) => {
+			if (groupIndex > 0) {
+				const separator = document.createElement("span");
+				separator.className = "damage-condition-group-separator";
+				separator.textContent = "/";
+				container.appendChild(separator);
+			}
+			if (group.label) {
+				const groupLabel = document.createElement("span");
+				groupLabel.className = "damage-condition-group-label";
+				groupLabel.textContent = group.label;
+				container.appendChild(groupLabel);
+			}
+			for (const label of group.chips) {
+				const span = document.createElement("span");
+				span.className = "badge badge-muted damage-condition-chip";
+				span.textContent = label;
+				container.appendChild(span);
+			}
+		});
 	}
 
 	// refreshRowConditionChipsは構造分割ラウンド(フェーズ1)でshared-core.tsへ移設した
@@ -2391,7 +2388,6 @@ if (opponentNotesSection) {
 		spriteImg.style.display = "none";
 		const spriteFallback = document.createElement("span");
 		spriteFallback.className = "sprite-fallback";
-		spriteFallback.style.cssText = "width:104px;height:104px;font-size:2.1rem;";
 		const typeBadge = document.createElement("span");
 		typeBadge.className = "damage-type-badge";
 		const typeBadgeImg = document.createElement("img");
@@ -2684,7 +2680,10 @@ if (opponentNotesSection) {
 		// 非空なら何もしない)の判定に、プリセットで設定した値がそのまま使われる
 		// (=プリセットの特性/持ち物が、既存の自動候補選定で上書きされない)。
 		nameInput.addEventListener("change", () => {
-			void rebuildRowAbilityOptions(nameInput.value.trim());
+			void rebuildRowAbilityOptions(nameInput.value.trim()).then(() => {
+				// ユーザーの種族確定に伴うJS側の特性フォールバックも自動入力対象。
+				notifyDetailAbilityChanged(row, row.abilityName);
+			});
 			void applyRowMegaStoneAutofill(nameInput.value.trim());
 			applyOpponentBuildPreset(nameInput.value.trim());
 		});
@@ -3084,14 +3083,14 @@ if (opponentNotesSection) {
 			const input = document.createElement("input");
 			input.type = "number";
 			input.className = "tnum";
-			input.min = "0";
-			input.max = "32";
 			input.step = "1";
 			input.value = String(row.evs[i] ?? 0);
 			input.setAttribute("aria-label", `相手の${STAT_KANJI[key]}努力値(0〜32)`);
 			input.addEventListener("input", () => {
 				const n = Number(input.value);
-				row.evs[i] = Number.isFinite(n) ? clampInt(n, 0, 32) : 0;
+				const wrapped = Number.isFinite(n) ? wrapToRange(Math.round(n), 0, 32) : 0;
+				input.value = String(wrapped);
+				row.evs[i] = wrapped;
 				onFieldInput();
 			});
 			evGrid.appendChild(input);
@@ -3137,6 +3136,7 @@ if (opponentNotesSection) {
 			}
 			abilitySelect.value = row.abilityName;
 			abilitySelect.title = row.abilityName;
+			notifyDetailAbilityChanged(row, row.abilityName);
 
 			itemInput.value = row.itemName;
 			itemInput.title = row.itemName;
@@ -3271,13 +3271,12 @@ if (opponentNotesSection) {
 			// (isTerastalRegulation(currentIndividualRegulation()))と同じ値を、圧縮表示の
 			// 「攻撃側テラスタル」「防御側テラスタル」チップの出し分けにも使う。
 			const showTera = isTerastalRegulation(currentIndividualRegulation());
-			const chipGroups: { index: number; chips: string[] }[] = [];
+			const chipGroups: { index: number; text: string }[] = [];
 			row.attacks.forEach((a, i) => {
 				if (a.moveName.trim() === "") return;
-				// B-1: 展開表示のcollectConditionChips()ではなく、側prefixを統一した
-				// collectConditionChipsForCollapsed()(上方参照)を使う。
-				const chips = collectConditionChipsForCollapsed(a, showTera);
-				if (chips.length > 0) chipGroups.push({ index: i + 1, chips });
+				const groups = collectConditionGroups(a, showTera);
+				const text = groups.map((group) => [group.label, ...group.chips].filter(Boolean).join(" ")).join(" / ");
+				if (text) chipGroups.push({ index: i + 1, text });
 			});
 			if (chipGroups.length === 0) {
 				collapsedDetailLineEl.hidden = true;
@@ -3286,7 +3285,7 @@ if (opponentNotesSection) {
 			} else {
 				const showIndex = namedAttacks.length > 1 && chipGroups.length > 0;
 				const detailText = chipGroups
-					.map((g) => (showIndex ? `${g.index}: ${g.chips.join("・")}` : g.chips.join("・")))
+					.map((g) => (showIndex ? `${g.index}: ${g.text}` : g.text))
 					.join(" ｜ ");
 				collapsedDetailLineEl.hidden = false;
 				collapsedDetailLineEl.textContent = detailText;
@@ -3370,6 +3369,19 @@ if (opponentNotesSection) {
 	el<HTMLSelectElement>("ability").addEventListener("change", (event) => {
 		const abilityName = (event.currentTarget as HTMLSelectElement).value;
 		for (const row of rows) notifyDetailAbilityChanged(row, abilityName);
+	});
+	// 左パネルの種族確定で #ability の候補・値がJSから再構築される経路。
+	// 初期復元では監視を開始せず、ユーザーの species change 後の最初の再構築だけを見るため、
+	// 保存済みカードを開いただけで自動入力が走ることはない。
+	const selfSpeciesInput = document.getElementById("species-name") as HTMLInputElement | null;
+	const selfAbilitySelect = document.getElementById("ability") as HTMLSelectElement | null;
+	selfSpeciesInput?.addEventListener("change", () => {
+		if (!selfAbilitySelect) return;
+		const observer = new MutationObserver(() => {
+			observer.disconnect();
+			for (const row of rows) notifyDetailAbilityChanged(row, selfAbilitySelect.value);
+		});
+		observer.observe(selfAbilitySelect, { childList: true });
 	});
 
 	// UI改修依頼(ダメージ計算カード、2026-08-04)「カードをドラッグ&ドロップで並び替え」。
@@ -3636,28 +3648,6 @@ if (opponentNotesSection) {
 		return tile;
 	}
 
-	// ラウンド3 B-5: 以前は点線パネル2枚(説明文+追加タイル)が縦に重なり、主CTAが
-	// 下の小さいほうに埋もれていた。1枚に統合し、実体のあるprimaryボタンを中央に置く
-	// (説明文も2文目を削り1文に短縮。<script>のrebuildRowsList参照。
-	// rows.length===0のときだけ表示し、この場合buildAddRowTile()は別途appendしない)。
-	function buildEmptyState(): HTMLElement {
-		const wrap = document.createElement("div");
-		wrap.className = "damage-empty-state";
-		// UI改善ラウンド42ユーザー指示(42-D1)「"相手ポケモンを登録すると、被弾/与ダメージの
-		// 乱数・確定数を自動で計算します。"削除」により、ヒント文(旧hint要素、
-		// .damage-empty-state-hint)の生成・appendを既に削除済み。
-		// UI改善ラウンド43ユーザー指示(43-D1)「"まだダメージ計算がありません"削除」により、
-		// 見出し(旧title要素、.damage-empty-state-title)の生成・appendも削除する。
-		// これで空状態はCTAボタン(cta)だけになる。
-		const cta = document.createElement("button");
-		cta.type = "button";
-		cta.className = "btn-primary damage-empty-state-cta";
-		cta.textContent = "+ ダメージ計算を追加";
-		cta.addEventListener("click", addNewRowAndFocus);
-		wrap.append(cta);
-		return wrap;
-	}
-
 	function rebuildRowsList(): void {
 		// UI改善ラウンド36ユーザー指示(36-3)「相手が0件のときはツールバー自体が意味を
 		// 持たない」→ 🔴 38-H1でヘッダーの単一ボタンに統合した後も同じ考え方を踏襲し、
@@ -3666,13 +3656,9 @@ if (opponentNotesSection) {
 		// 呼び直す。
 		updateCollapseToggleButtonLabel();
 		damageRowsListEl.innerHTML = "";
-		if (rows.length === 0) {
-			damageRowsListEl.appendChild(buildEmptyState());
-			return;
-		}
 		// UI改修依頼(ダメージ計算カード、2026-08-04)「追加ボタンを最上部に固定配置する」
 		// により、以前は行ループの後ろに追加していたbuildAddRowTile()をループの前に移す
-		// (rows.length===0のときは上のbuildEmptyState()分岐で処理済みなのでここには来ない)。
+		// 0件のときも同じ追加タイルだけを表示する。
 		damageRowsListEl.appendChild(buildAddRowTile());
 		for (const row of rows) {
 			if (row.root) damageRowsListEl.appendChild(row.root);

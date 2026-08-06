@@ -87,6 +87,7 @@ export interface NormalizedNoteAttack {
 	terrain: string;
 	/** 壁(リフレクター/ひかりのかべ/オーロラベール)がどれか1つでも立っているか。 */
 	wallEnabled: boolean;
+	stealthRock: boolean;
 	attackerAilment: string;
 	defenderAilment: string;
 	attackerTerastallized: boolean;
@@ -95,6 +96,12 @@ export interface NormalizedNoteAttack {
 	attackerRank: number;
 	/** 防御側のランク補正。物理ならB、特殊ならDのうち最初に非ゼロの値。 */
 	defenderRank: number;
+}
+
+/** jpoke Battle.modify_hp(r=...) と同じ丸めで、ステルスロックの削り量を返す。 */
+export function calcStealthRockDamage(maxHp: number, rockTypeModifier: number): number {
+	if (!Number.isFinite(maxHp) || maxHp <= 0 || !Number.isFinite(rockTypeModifier) || rockTypeModifier < 0) return 0;
+	return Math.max(1, Math.trunc((maxHp * rockTypeModifier) / 8));
 }
 
 function rankFrom(boosts: number[] | undefined, primary: StatKey, secondary: StatKey): number {
@@ -126,6 +133,7 @@ export function normalizeNoteAttacks(
 			weather: attack.weather ?? f.weather ?? '',
 			terrain: attack.terrain ?? f.terrain ?? '',
 			wallEnabled: Array.isArray(sideFields) && sideFields.length > 0,
+			stealthRock: attack.stealthRock ?? false,
 			attackerAilment: attack.attackerAilment ?? f.attackerAilment ?? '',
 			defenderAilment: attack.defenderAilment ?? f.defenderAilment ?? '',
 			attackerTerastallized: attack.attackerTerastallized ?? f.attackerTerastallized ?? false,
@@ -164,6 +172,7 @@ export function collectNoteConditionChips(attack: NormalizedNoteAttack, category
 	if (attack.weather) chips.push(attack.weather);
 	if (attack.terrain) chips.push(attack.terrain);
 	if (attack.wallEnabled) chips.push('壁');
+	if (attack.stealthRock) chips.push('ステルスロック');
 	if (attack.critical) chips.push('急所');
 	if (attack.attackerAilment) chips.push(`攻撃側${attack.attackerAilment}`);
 	if (attack.defenderAilment) chips.push(`防御側${attack.defenderAilment}`);

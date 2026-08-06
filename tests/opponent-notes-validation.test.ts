@@ -271,6 +271,23 @@ describe('validateOpponentNoteRequestBody', () => {
     }
   });
 
+  it('attacksのstealthRockを検証し、正規化後も保持する', () => {
+    const valid = validateOpponentNoteRequestBody({
+      owned_pokemon_id: VALID_UUID,
+      opponent_build: { name: 'カイリュー' },
+      field: { attacks: [{ moveName: 'じしん', stealthRock: true }] },
+    }, { requireOwnedPokemonId: true });
+    assert.equal(valid.ok, true);
+    if (valid.ok) assert.equal(valid.value.field.attacks?.[0].stealthRock, true);
+
+    const invalid = validateOpponentNoteRequestBody({
+      owned_pokemon_id: VALID_UUID,
+      opponent_build: { name: 'カイリュー' },
+      field: { attacks: [{ moveName: 'じしん', stealthRock: 'true' }] },
+    }, { requireOwnedPokemonId: true });
+    assert.equal(invalid.ok, false);
+  });
+
   it('field.attackerBoostsの長さが6でない場合は拒否する', () => {
     const result = validateOpponentNoteRequestBody(
       {

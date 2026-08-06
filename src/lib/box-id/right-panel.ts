@@ -111,6 +111,8 @@ const abilityFieldMap: Record<string, { key: "weather" | "terrain"; value: strin
 	ひでり: { key: "weather", value: "はれ" },
 	すなおこし: { key: "weather", value: "すなあらし" },
 	ゆきふらし: { key: "weather", value: "ゆき" },
+	ハドロンエンジン: { key: "terrain", value: "エレキフィールド" },
+	ひひいろのこどう: { key: "weather", value: "はれ" },
 	エレキメイカー: { key: "terrain", value: "エレキフィールド" },
 	グラスメイカー: { key: "terrain", value: "グラスフィールド" },
 	サイコメイカー: { key: "terrain", value: "サイコフィールド" },
@@ -650,14 +652,13 @@ export function renderBulkAdjustResults(
 		},
 		exceedsChampionsCap: STAT_KEYS.reduce((sum, key) => sum + readEv(key), 0) > 66,
 	};
-	const originalAbility = el<HTMLSelectElement>("ability").value.trim();
 	// 候補クリック直後・トグル変更直後に再描画してisApplied(適用中マーク)や絞り込みを
 	// 更新できるよう、redraw自身をクロージャの中で自己参照する(lastCandidateListRedrawに
 	// 登録する値と、クリック/トグルハンドラから呼ぶ値が同じ関数になる)。
 	const redraw = (): void => {
 		lastCandidateListRedraw = redraw;
 		renderStatCardList(
-			buildBulkAdjustStatCardView(result, originalCandidate, originalAbility, onSelectCandidate, redraw, filterRemainingOnly, (checked) => {
+			buildBulkAdjustStatCardView(result, originalCandidate, onSelectCandidate, redraw, filterRemainingOnly, (checked) => {
 				filterRemainingOnly = checked;
 				redraw();
 			}),
@@ -669,7 +670,6 @@ export function renderBulkAdjustResults(
 function buildBulkAdjustStatCardView(
 	result: SolveResult,
 	originalCandidate: DurabilityCandidate,
-	originalAbility: string,
 	onSelectCandidate: (candidate: DurabilityCandidate) => void,
 	redraw: () => void,
 	filterRemainingOnly: boolean,
@@ -736,7 +736,7 @@ function buildBulkAdjustStatCardView(
 				{ label: "B", real: originalCandidate.realStats.def, ev: originalCandidate.evs.def },
 				{ label: "D", real: originalCandidate.realStats.spd, ev: originalCandidate.evs.spd },
 			],
-			badge: originalAbility || "特性なし",
+			badge: originalCandidate.nature,
 			isCurrent: true,
 			showCurrentBadge: false,
 			isApplied:
@@ -1078,11 +1078,28 @@ export function buildSideSection(
 	rankInput.className = "damage-detail-rank-input";
 	rankInput.value = String(rank);
 	rankInput.setAttribute("aria-label", `${ariaSideLabel}の能力ランク`);
+	const decrementButton = document.createElement("button");
+	decrementButton.type = "button";
+	decrementButton.className = "damage-detail-icon-btn is-text-only damage-detail-rank-stepper";
+	decrementButton.textContent = "－";
+	decrementButton.setAttribute("aria-label", `${ariaSideLabel}の能力ランクを1下げる`);
+	const incrementButton = document.createElement("button");
+	incrementButton.type = "button";
+	incrementButton.className = "damage-detail-icon-btn is-text-only damage-detail-rank-stepper";
+	incrementButton.textContent = "＋";
+	incrementButton.setAttribute("aria-label", `${ariaSideLabel}の能力ランクを1上げる`);
 	const updateEmphasis = () => {
 		const n = Number(rankInput.value);
 		rankInput.classList.toggle("is-nonzero", Number.isFinite(n) && n !== 0);
 	};
+	const updateStepperState = () => {
+		const n = Number(rankInput.value);
+		const current = Number.isFinite(n) ? clampInt(n, -6, 6) : 0;
+		decrementButton.disabled = current <= -6;
+		incrementButton.disabled = current >= 6;
+	};
 	updateEmphasis();
+	updateStepperState();
 	// 矢印クリック・キーボード編集どちらもcommitへ集約する。空欄・"-"単体(入力途中)は
 	// まだ矯正しない(毎キー入力で値を書き戻すとユーザーが"-6"を打てなくなるため)。
 	const commitRank = (fallbackToZeroIfEmpty: boolean): void => {
@@ -1093,6 +1110,7 @@ export function buildSideSection(
 		if (rankInput.value !== String(clamped)) rankInput.value = String(clamped);
 		onRankChange(clamped);
 		updateEmphasis();
+		updateStepperState();
 		scheduleRowCalc(row);
 		scheduleRowSave(row);
 		refreshRowConditionChips(row);
@@ -1100,6 +1118,14 @@ export function buildSideSection(
 	rankInput.addEventListener("input", () => commitRank(false));
 	rankInput.addEventListener("change", () => commitRank(true));
 	rankInput.addEventListener("blur", () => commitRank(true));
+	const stepRank = (delta: -1 | 1): void => {
+		const n = Number(rankInput.value);
+		const current = Number.isFinite(n) ? n : 0;
+		rankInput.value = String(clampInt(current + delta, -6, 6));
+		commitRank(true);
+	};
+	decrementButton.addEventListener("click", () => stepRank(-1));
+	incrementButton.addEventListener("click", () => stepRank(1));
 	// フォーカス中にホイールを回すと値が変わる事故を防ぐ(passiveだと
 	// preventDefaultが効かないため { passive: false } で明示登録する)。
 	rankInput.addEventListener(
@@ -1109,7 +1135,7 @@ export function buildSideSection(
 		},
 		{ passive: false },
 	);
-	rankField.append(rankLabel, rankInput);
+	rankField.append(rankLabel, rankInput, incrementButton, decrementButton);
 	// ラウンド28ユーザー指示(28-R5)「ランク入力欄はタイトルの次の行に移動」により、
 	// このrankFieldはheadingRow(見出しの次の行)に置いていた。
 	// 🔴 UI改善ラウンド31ユーザー指示(31-R3)「ランク・状態異常・テラスタルは横並びに
@@ -1684,6 +1710,13 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 	const defenderVolatileGroup = defenderSide.querySelector(".damage-detail-volatile-group");
 	if (defenderVolatileGroup) {
 		defenderVolatileGroup.insertBefore(wallButton, defenderVolatileGroup.firstChild);
+		const stealthRockButton = buildToggleButton(
+			"ステルスロック",
+			column.stealthRock,
+			(pressed) => applyToColumnField(() => { column.stealthRock = pressed; }),
+			{ title: "ステルスロックを1回踏んだ状態で計算する" },
+		);
+		wallButton.insertAdjacentElement("afterend", stealthRockButton);
 	} else {
 		// DAMAGE_DEFENDER_VOLATILESは常に9件を持つため通常はここに来ないが、
 		// 将来の変更に備えてフォールバックを用意する(かべチップ自体は必ず

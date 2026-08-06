@@ -78,6 +78,8 @@
 
 ## 5. 持ち物・特性・天候・フィールド補正が効く場所
 
+- **ステルスロック**: `handlers.field.ステルスロック_damage()` は防御側を `EventContext.source` に取り、`battle.query.is_hazard_immune()` が偽なら、いわ相性を各実効タイプへ掛けた倍率の最大HP/8を `battle.modify_hp(r=...)` で減らす。割合HP変更は `int(max_hp * r)`(0方向切り捨て)かつ負値は最低-1となる。交代時イベント全体を発火せず、このハンドラだけを直接呼べる(出典: `vendor/jpoke/src/jpoke/handlers/field.py:342-359`, `vendor/jpoke/src/jpoke/core/battle.py:1087-1123`, `vendor/jpoke/src/jpoke/core/query.py:196-202`)。
+
 ダメージ計算は4096を基準値(1.0倍)とする固定小数点のイベント発火で拡張される。補正が入るタイミングは決まったイベント名で固定されており、持ち物・特性・天候・フィールド・技の効果はすべて同じイベントに登録して割り込む(出典イベント一覧: `vendor/jpoke/src/jpoke/enums/event.py:405-441`、発火箇所: `vendor/jpoke/src/jpoke/core/damage.py`各所):
 
 | イベント | 発火箇所 | 実例 |

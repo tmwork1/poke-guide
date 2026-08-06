@@ -209,6 +209,8 @@ export interface SequenceAttack {
   hitCount?: number;
   /** この攻撃だけ急所固定で計算するか。省略時は options.critical にフォールバックする */
   critical?: boolean;
+  /** 防御側がステルスロックを1回踏んだ初期HPで計算するか */
+  stealthRock?: boolean;
   /**
    * この攻撃時点での攻撃側ランク補正。省略時は attackerSpec.boosts にフォールバックする。
    * 形式は PokemonSpec.boosts と同じ([HP(無視), 攻撃, 防御, 特攻, 特防, 素早さ])。
@@ -240,6 +242,8 @@ export interface SequenceAttack {
 }
 
 export interface CalcLethalSequenceResult {
+	/** 最初の有効な攻撃列について、ステルスロック適用後の防御側初期HP。 */
+	defenderHp: number;
   /**
    * 攻撃列を先頭から1つずつ加えていったときの、各段階での累計致死率。
    * `lethal[i].attackCount` は `i + 1`(攻撃列の先頭から i+1 個目の攻撃=
@@ -437,6 +441,7 @@ import json
 from jpoke import Battle, Player, Pokemon, Move
 from jpoke.core import EventContext
 from jpoke.enums import Event
+from jpoke.handlers.field import ステルスロック_damage
 from jpoke.utils.constants import STATS, STAT_RANK_MIN, STAT_RANK_MAX
 from jpoke.utils.lethal_dist import State, add_dist
 
@@ -557,6 +562,12 @@ def _apply_battle_only_state(battle, mon, spec):
     # やり直す意味がない)。
     for volatile_name in (spec.get("volatiles") or []):
         battle.set_volatile(mon, volatile_name)
+
+
+def _apply_stealth_rock(battle, defender, enabled):
+    """交代イベント全体を発火せず、jpoke本体の設置技ハンドラだけを適用する。"""
+    if enabled:
+        ステルスロック_damage(battle, EventContext(source=defender), None)
 
 
 def _resolve_move(pokemon, move_name):
@@ -897,6 +908,8 @@ def calc_lethal_sequence_json(attacker_spec, defender_spec, attacks, seed, criti
             active_att, active_dfd = attack_battle.actives
             _apply_battle_only_state(attack_battle, active_att, attacker_spec_for_attack)
             _apply_battle_only_state(attack_battle, active_dfd, defender_spec_for_attack)
+            _apply_stealth_rock(attack_battle, active_dfd, attack.get("stealthRock", False))
+            initial_defender_hp = active_dfd.hp
     
             move = _resolve_move(active_att, move_name)
             move_arg = move if n_hits <= 1 else (move, n_hits)
@@ -937,6 +950,7 @@ def calc_lethal_sequence_json(attacker_spec, defender_spec, attacks, seed, criti
                 "isolated_damage_dist": fold_damage_dist(isolated_hits) if isolated_hits else None,
                 "sequential_result": None,
                 "sequential_damage_dist": None,
+                "initial_defender_hp": initial_defender_hp,
             }
     
             if need_sequential:
@@ -957,6 +971,7 @@ def calc_lethal_sequence_json(attacker_spec, defender_spec, attacks, seed, criti
         per_attack_lethal = []
         lethal = []
         cumulative_damage_dist = None
+        first_defender_hp = None
         # resume_stateは技列全体の累計計算(sequential側)専用の引き継ぎ状態。
         # sequence_resolvedがTrueになった(=途中で致死率100%に到達した)後は、以降の
         # 攻撃で'sequential'計算自体を行わない(結果を使わないため計算を省略する)。
@@ -970,6 +985,8 @@ def calc_lethal_sequence_json(attacker_spec, defender_spec, attacks, seed, criti
                 per_attack_damages.append([])
                 per_attack_lethal.append([])
                 continue
+            if first_defender_hp is None:
+                first_defender_hp = computed["initial_defender_hp"]
     
             isolated_result = computed["isolated_result"]
             if isolated_result is None:
@@ -1021,6 +1038,7 @@ def calc_lethal_sequence_json(attacker_spec, defender_spec, attacks, seed, criti
             cumulative_damage = {"min": 0, "max": 0}
     
         return json.dumps({
+            "defenderHp": first_defender_hp or 0,
             "lethal": lethal,
             "perAttackDamages": per_attack_damages,
             "perAttackLethal": per_attack_lethal,

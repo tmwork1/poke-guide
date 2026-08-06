@@ -70,6 +70,7 @@ export interface DamageColumnState {
 	weather: string;
 	terrain: string;
 	wallEnabled: boolean;
+	stealthRock: boolean;
 	defenderSideFields: string[];
 	attackerRank: number;
 	defenderRank: number;

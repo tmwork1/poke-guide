@@ -714,6 +714,8 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 	}
 	#opponent-notes-section .damage-sprite-box .sprite-fallback {
 		font-size: 2.1rem;
+		background: transparent;
+		border-radius: 0;
 	}
 	/* UI改善ラウンド43ユーザー指示(43-D2)「相手ポケモン画像が右寄りに見える。中央になるよう
 	   左へ移動」。実測(Playwright、getBoundingClientRect): img.sprite-icon自体は
@@ -1059,6 +1061,11 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 		/* 20-G3: 0.66rem(10.6px)から下限の--font-size-xs(12px)へ引き上げる。 */
 		font-size: var(--font-size-xs);
 		padding: 0.1em 0.5em;
+	}
+	#opponent-notes-section .damage-condition-group-label,
+	#opponent-notes-section .damage-condition-group-separator {
+		font-size: var(--font-size-xs);
+		color: var(--color-text-muted);
 	}
 
 	/* 「加算後のダメ・致死率」(全ての技列を順に当てた合計)。
@@ -2240,6 +2247,22 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 		font-size: var(--font-size-xs);
 		text-align: center;
 		background: var(--color-surface-alt);
+		appearance: textfield;
+	}
+	#damage-detail-panel-body .damage-detail-rank-field input[type="number"]::-webkit-inner-spin-button,
+	#damage-detail-panel-body .damage-detail-rank-field input[type="number"]::-webkit-outer-spin-button {
+		margin: 0;
+		appearance: none;
+	}
+	#damage-detail-panel-body .damage-detail-rank-stepper {
+		min-width: 24px;
+		min-height: 24px;
+		justify-content: center;
+		padding: 0.2em;
+	}
+	#damage-detail-panel-body .damage-detail-rank-stepper:disabled {
+		cursor: default;
+		opacity: 0.5;
 	}
 	#damage-detail-panel-body .damage-detail-rank-field input.is-nonzero {
 		/* 🔴 ラウンド49 A-2: var(--color-primary)はライトで実測コントラスト約2.50:1
@@ -2485,33 +2508,6 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 	#opponent-notes-section .add-card-tile {
 		min-height: 0;
 		padding: 0.6em 1em;
-		font-size: var(--font-size-md);
-	}
-
-	/* ラウンド3 B-5: 以前は点線パネル2枚(説明文+追加タイル)が重なり、主CTAが下の小さい
-	   ほうに埋もれていた上、説明文3行の最終行が「できます。」1語だけで間延びしていた。
-	   1枚に統合し、実体のあるprimaryボタン(.damage-empty-state-cta)を中央に置く。
-	   max-width:720pxにして1900px幅いっぱいの空パネルにしない(左寄せ)。 */
-	#opponent-notes-section .damage-empty-state {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		text-align: center;
-		gap: var(--space-2);
-		max-width: 720px;
-		padding: 2.2rem 1.5rem;
-		border: 1px dashed var(--color-border);
-		border-radius: var(--radius-lg);
-		background: var(--color-surface-alt);
-		margin-bottom: 0.6rem;
-	}
-	/* UI改善ラウンド42ユーザー指示(42-D1)「ヒント文削除」により、対応するJS側の
-	   hint要素(.damage-empty-state-hint、damage-calc.tsのbuildEmptyState参照)自体の
-	   生成をやめたため、このCSSルールは死んだセレクタになり削除した。
-	   UI改善ラウンド43ユーザー指示(43-D1)「"まだダメージ計算がありません"削除」により、
-	   見出し(.damage-empty-state-title、damage-calc.tsのbuildEmptyState参照)の
-	   生成・appendもやめたため、対応するこのCSSルールも死んだセレクタになり削除した。 */
-	#opponent-notes-section .damage-empty-state-cta {
 		font-size: var(--font-size-md);
 	}
 
