@@ -47,6 +47,7 @@ import {
 	recalcStats,
 	baseStatsMapPromise,
 	registerLeftPanelBridge,
+	wrapToRange,
 } from "./shared-core";
 // UI改修依頼(個体編集画面、2026-08-02→2026-08-03統合)「耐久指数最大化」ボタン
 // (ステータス表の下、#durability-index-button)の配線。計算(純JS、Pyodide不要)は
@@ -149,15 +150,6 @@ function updateSliderProgress(rangeInput: HTMLInputElement): void {
 	const value = Number(rangeInput.value) || 0;
 	const percent = Math.min(100, Math.max(0, (value / 32) * 100));
 	rangeInput.style.setProperty("--slider-progress", `${percent}%`);
-}
-// UI改善ラウンド40ユーザー指示(40-T2)「スピンボックスは上下限で打ち切らず循環するUIにする」。
-// [min, max]の範囲外の値を、範囲の反対側から続くように循環(モジュロ演算)させる。
-// 例: min=0,max=32のとき 33→0、-1→32、50→17(50 mod 33)。育成ルールの範囲自体
-// (min/max引数)は呼び出し側がそのまま渡すだけで、この関数は「範囲を超えたときの
-// 挙動」だけを変える(上下限の値自体は変更しない)。
-function wrapToRange(value: number, min: number, max: number): number {
-	const size = max - min + 1;
-	return (((value - min) % size) + size) % size + min;
 }
 function pairEvSlider(numberId: string, rangeId: string, onSync: () => void): void {
 	const numberInput = el<HTMLInputElement>(numberId);
@@ -526,16 +518,18 @@ export async function loadPopularBuildSuggestions(
 	onMoveSuggestionUpdated?.();
 }
 
+let hasBaseStatsForDurabilityIndex = false;
 const form = typeof document === "undefined" ? null : document.getElementById("edit-form") as HTMLFormElement | null;
 if (form) {
 	// UI改修依頼(個体編集画面、2026-08-03)「耐久指数最大化」ボタン(ステータス表の下、
 	// #durability-index-button)。静的マークアップ(LeftPanel.astro)では常にdisabledで
-	// 描画されており、種族値が引けて実数値が計算できる状態(=種族名が入力済み)になった
-	// ときだけ有効化する。applyBaseStats()が種族値の有無(base)を既に判定しているため、
-	// その結果をそのまま流用する(旧・個別3ボタン時代と同じ「種族値の有無」の判定基準)。
+	// 描画されており、種族値が引けて実数値が計算でき、かつ努力値が残っているときだけ
+	// 有効化する。種族値の有無はapplyBaseStats()の判定結果をモジュールスコープへ保持し、
+	// 努力値変更のたびにupdateEvRemaining()から両条件をまとめて再判定する。
 	const durabilityIndexButton = el<HTMLButtonElement>("durability-index-button");
-	function updateDurabilityIndexButtonEnabled(hasBaseStats: boolean): void {
-		durabilityIndexButton.disabled = !hasBaseStats;
+	function updateDurabilityIndexButtonEnabled(): void {
+		const remaining = 66 - STAT_KEYS.reduce((sum, k) => sum + readEv(k), 0);
+		durabilityIndexButton.disabled = !hasBaseStatsForDurabilityIndex || remaining <= 0;
 	}
 
 	// UI刷新: 種族値の常時表示(実数値と同じ行に並べる)。
@@ -551,7 +545,8 @@ if (form) {
 		// 注記の表示/非表示をここで切り替える。
 		const hpFixedNoteEl = document.getElementById("hp-fixed-note");
 		if (hpFixedNoteEl) hpFixedNoteEl.hidden = !(base && base[0] === 1);
-		updateDurabilityIndexButtonEnabled(!!base);
+		hasBaseStatsForDurabilityIndex = !!base;
+		updateDurabilityIndexButtonEnabled();
 	}
 
 	// UI品質改善(2026-07-26 第4弾 11-4): 技候補(#move-list)を種族の覚え技(learnset)
@@ -1295,9 +1290,10 @@ if (form) {
 	// (チャンピオンズルールの努力値合計上限66に対する残りポイント)。
 	function updateEvRemaining(): void {
 		const remainEl = document.getElementById("ev-remaining");
-		if (!remainEl) return;
 		const total = STAT_KEYS.reduce((sum, k) => sum + readEv(k), 0);
 		const remaining = 66 - total;
+		updateDurabilityIndexButtonEnabled();
+		if (!remainEl) return;
 		remainEl.textContent = `残り${remaining}`;
 		if (remaining < 0) remainEl.dataset.state = "over";
 		else if (remaining === 0) remainEl.dataset.state = "zero";
@@ -1598,6 +1594,7 @@ if (form) {
 	async function runDurabilityIndexMaximize(): Promise<void> {
 		const name = speciesInput.value.trim();
 		if (!name) return; // ボタンは種族名が空のときdisabledのはずだが、念のための防御
+		if (66 - STAT_KEYS.reduce((sum, k) => sum + readEv(k), 0) <= 0) return;
 		const base = (await baseStatsMapPromise).get(name);
 		if (!base) return;
 		const { renderDurabilityIndexResults, openDetailPanelOverlayIfNarrow } = await loadRightPanel();
@@ -1920,9 +1917,11 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 
 	const emptyMessageEl = document.createElement("p");
 	emptyMessageEl.className = "move-picker-empty";
-	emptyMessageEl.textContent = "該当する技がありません。";
+	emptyMessageEl.textContent = "条件に一致する技がありません";
 	emptyMessageEl.hidden = true;
-	windowEl.appendChild(emptyMessageEl);
+	// 空表示をtable直後の同じスクロール領域へ置けば、theadを常時残したままフィルタ行の
+	// 直下にメッセージを出せる。入力DOMを作り直さないため、0件になってもフォーカスを保てる。
+	tableWrap.appendChild(emptyMessageEl);
 
 	// 37-1: LeftPanel.astro側の<style is:global>直前コメントで詳述した実測結果により、
 	// z-index:-1ではなくauto(position:fixedのみ)を使う。このウィンドウをbodyの
@@ -2139,7 +2138,6 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 		tbody.appendChild(fragment);
 		const isEmpty = rows.length === 0;
 		emptyMessageEl.hidden = !isEmpty;
-		tableWrap.hidden = isEmpty;
 	}
 
 	// 🔴 UI改善ラウンド38(round-37.mdの「実装中に見つかったバグ」節への対応)。

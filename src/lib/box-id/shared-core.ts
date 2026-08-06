@@ -47,6 +47,17 @@ import { type StatKey, STAT_KEYS, NATURE_STAT_MODIFIERS, calcHpStat, calcOtherSt
 import type { OpponentClientResultInput } from "../opponent-notes-validation";
 import { kanaIncludes } from "../kana";
 
+// UI改善ラウンド40ユーザー指示(40-T2)「スピンボックスは上下限で打ち切らず循環するUIにする」。
+// [min, max]の範囲外の値を、範囲の反対側から続くように循環(モジュロ演算)させる。
+// 例: min=0,max=32のとき 33→0、-1→32、50→17(50 mod 33)。育成ルールの範囲自体
+// (min/max引数)は呼び出し側がそのまま渡すだけで、この関数は「範囲を超えたときの
+// 挙動」だけを変える(上下限の値自体は変更しない)。
+// ダメージ計算カード側の努力値スピンボックスからも使うため共有化した(2026-08-06)。
+export function wrapToRange(value: number, min: number, max: number): number {
+	const size = max - min + 1;
+	return (((value - min) % size) + size) % size + min;
+}
+
 // --- ダメージ計算の行/列の状態(元は #opponent-notes-section ブロック内で定義されていた
 //     DamageColumnState/DamageRowState インターフェース。共有コア関数の引数・戻り値の型として
 //     必要なため、このファイルへ移し左サイド/box側の双方から type import する)。
