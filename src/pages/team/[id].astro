@@ -285,8 +285,8 @@ const initialTeamJson = team
 			#matchup-check-button {
 				display: inline-flex;
 				position: absolute;
-				/* 左カラム + カラム間隔 + 中央.panelの左paddingでチーム名入力の左端へ揃える。 */
-				left: calc(var(--team-left-col) + var(--space-4) + var(--space-5));
+				/* 左カラム幅 + 中央.panelの左paddingで、実測611pxのチーム名入力左端へ揃える。 */
+				left: calc(var(--team-left-col) + var(--space-5));
 			}
 		}
 
@@ -448,7 +448,7 @@ const initialTeamJson = team
 			flex: 1 1 auto;
 			min-width: 0;
 		}
-		/* 検索を伸縮、並べ替えを固定幅にして同じ行へ収める。 */
+		/* 検索を伸縮、並べ替えを内容幅にして同じ行へ収める。 */
 		.team-select-search-row { display: flex; gap: var(--space-2); align-items: stretch; }
 		#pokemon-search-input {
 			width: 100%;
@@ -531,8 +531,7 @@ const initialTeamJson = team
 		}
 
 		.team-select-sort {
-			flex: none;
-			width: calc(var(--space-7) * 3);
+			flex: 0 0 auto;
 		}
 		.team-select-sort .sort-select-wrap {
 			height: 100%;
@@ -540,7 +539,9 @@ const initialTeamJson = team
 			flex: initial;
 		}
 		.team-select-sort select {
-			width: 100%;
+			/* autoの内在幅に最長option・左右padding・矢印領域を含め、ラベルを切らない。 */
+			width: auto;
+			min-width: 0;
 		}
 
 		.team-select-list-wrap {
@@ -2241,13 +2242,15 @@ const initialTeamJson = team
 			gap: var(--space-2);
 		}
 		.team-matchup-card {
+			/* スコア位置でも共有し、透明ボーダーの幅と打ち消し量を常に一致させる。 */
+			--matchup-card-border: 2px;
 			position: relative;
 			display: flex;
 			align-items: center;
 			justify-content: center;
 			aspect-ratio: 1 / 1;
 			/* 通常時は枠を見せず、透明枠でクリック選択時のレイアウト変化だけ防ぐ。 */
-			border: 2px solid transparent;
+			border: var(--matchup-card-border) solid transparent;
 			border-radius: var(--radius-sm);
 			background: var(--color-surface);
 			transition: border-color 0.2s ease, background 0.2s ease;
@@ -2271,9 +2274,9 @@ const initialTeamJson = team
 		}
 		.team-matchup-score {
 			position: absolute;
-			/* カードの内側余白に影響されず、枠の左上角へ固定する。 */
-			top: calc(-1 * var(--space-1));
-			left: calc(-1 * var(--space-1));
+			/* 絶対配置の基準となるボーダー内側から枠幅だけ戻し、ボーダーボックス左上へ揃える。 */
+			top: calc(-1 * var(--matchup-card-border));
+			left: calc(-1 * var(--matchup-card-border));
 			/* UI改修依頼(2026-08-05)「スコアを一段縮小して左上へ配置」対応。 */
 			font-size: calc(var(--font-size-xs) * 0.85);
 			font-weight: 700;
