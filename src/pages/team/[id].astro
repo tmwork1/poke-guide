@@ -273,13 +273,20 @@ const initialTeamJson = team
 			border-color: var(--color-primary-strong);
 			color: var(--color-primary-contrast);
 		}
+		/* ON時は共通hoverの文字色を上書きし、背景だけで押下フィードバックを示す。 */
+		#matchup-check-button[aria-pressed="true"]:hover:not(:disabled) {
+			background: color-mix(in srgb, var(--color-primary-strong) 90%, var(--color-surface) 10%);
+			border-color: var(--color-primary);
+			color: var(--color-primary-contrast);
+		}
 		/* 右パネルが出ない幅では行自体を隠す(閾値は .team-preview-panel と必ず揃えること)。 */
 		@media (min-width: 1650px) {
 			/* トップバーはサイドバー右端が原点。チーム名左端=共有する左列幅+中央padding。 */
 			#matchup-check-button {
 				display: inline-flex;
 				position: absolute;
-				left: calc(var(--team-left-col) + var(--space-5));
+				/* 左カラム + カラム間隔 + 中央.panelの左paddingでチーム名入力の左端へ揃える。 */
+				left: calc(var(--team-left-col) + var(--space-4) + var(--space-5));
 			}
 		}
 
@@ -438,8 +445,11 @@ const initialTeamJson = team
 		}
 		.team-select-search .search-input-wrap {
 			/* global.cssの一覧用flex伸長をこの縦積み検索欄へ持ち込まず、従来の初期値を維持する。 */
-			flex: initial;
+			flex: 1 1 auto;
+			min-width: 0;
 		}
+		/* 検索を伸縮、並べ替えを固定幅にして同じ行へ収める。 */
+		.team-select-search-row { display: flex; gap: var(--space-2); align-items: stretch; }
 		#pokemon-search-input {
 			width: 100%;
 		}
@@ -521,8 +531,8 @@ const initialTeamJson = team
 		}
 
 		.team-select-sort {
-			flex: 1 1 0;
-			min-width: 0;
+			flex: none;
+			width: calc(var(--space-7) * 3);
 		}
 		.team-select-sort .sort-select-wrap {
 			height: 100%;
@@ -537,6 +547,8 @@ const initialTeamJson = team
 			flex: 1 1 auto;
 			min-height: 0;
 			overflow-y: auto;
+			/* カード右端とスクロールバーが接触しないよう最小限の余白を確保する。 */
+			padding-right: var(--space-2);
 			/* B-1は実装後にCoordinatorが差し戻した(round-30.md「Coordinatorの実測検証で
 			   差し戻した変更」節)。29-R1と同型の margin-block: auto による上下中央寄せを
 			   一度入れたが、実機では検索欄の直下に約310pxの空白が空き、リストが宙に浮いて
@@ -744,6 +756,8 @@ const initialTeamJson = team
 					    #pokemon-select-list の中身のスタイルは下の<style is:global>側に置く。 --- */}
 					<section class="panel panel-left team-select-bar">
 						<div class="team-select-search">
+							{/* 検索と並べ替えを同列に置き、限られた左パネル幅を有効に使う。 */}
+							<div class="team-select-search-row">
 							<div class="search-input-wrap">
 								<svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 									<circle cx="11" cy="11" r="7" />
@@ -759,10 +773,24 @@ const initialTeamJson = team
 									   (虫眼鏡アイコンが既に「検索」の意味を担うため、placeholderだけ短縮して
 									   「で検索」を省く。aria-labelはスクリーンリーダー向けに情報量を落とさず
 									   全文のまま維持する)。 */}
-									placeholder="ニックネーム・種族名"
-									aria-label="ニックネーム・種族名で検索"
+									placeholder="ポケモンを検索"
+									aria-label="ポケモンを検索"
 									autocomplete="off"
 								/>
+							</div>
+							<div class="team-select-sort">
+								<div class="sort-select-wrap">
+									<svg class="sort-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4v16" /><path d="M4 7l3-3 3 3" /><path d="M17 20V4" /><path d="M14 17l3 3 3-3" /></svg>
+									<select id="pokemon-sort-select" class="field-control" aria-label="並べ替え">
+										<!-- UI改修依頼(2026-08-06): 候補を更新日時・利用日時・おすすめ・図鑑IDの4基準へ更新する。 -->
+										{/* 一覧APIが持つ利用日時と図鑑番号を基準に、用途が明確な4候補へ統一する。 */}
+										<option value="updated_at">最終更新</option>
+										<option value="last_used_at">よく使う</option>
+										<option value="suggestion">おすすめ</option>
+										<option value="dex_no">図鑑ID</option>
+									</select>
+								</div>
+							</div>
 							</div>
 							{/* UI改修依頼(チーム編集左パネル)「ソート機能を追加する」。box/index.astroの
 							    並べ替え(.sort-select-wrap、34-B2でラベル<label>を廃しアイコン重畳に統一
@@ -785,6 +813,11 @@ const initialTeamJson = team
 							    この2つだけを共通の行コンテナに入れてflexで横並びにする
 							    (CSSは上のscoped<style>の.team-select-filters-row参照)。 */}
 							<div class="team-select-filters-row">
+								{/* 既存トグルと同じ構成で、編成済みの種族・アイテム重複を既定で除外する。 */}
+								<label class="regulation-filter-toggle" for="team-select-dedupe-toggle">
+									<span class="toggle-switch"><input id="team-select-dedupe-toggle" type="checkbox" class="toggle-switch-input" checked /><span class="toggle-switch-track" aria-hidden="true"><span class="toggle-switch-thumb"></span></span></span>
+									<span>重複を除外</span>
+								</label>
 								{/* UI改修依頼(チーム編集左パネル、2026-08-02)「レギュレーションフィルタを
 								    トグルスイッチに変更する」。ヘッダーの「非公開」トグル(上のフロントマター/
 								    <style>の.toggle-switch一式、#team-collection-opt-out-toggle参照)と
@@ -809,24 +842,6 @@ const initialTeamJson = team
 										</span>
 										<span id="regulation-filter-toggle-label">レギュレーション一致のみ</span>
 									</label>
-								</div>
-
-								<div class="team-select-sort">
-									<div class="sort-select-wrap">
-										<svg class="sort-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-											<path d="M7 4v16" />
-											<path d="M4 7l3-3 3 3" />
-											<path d="M17 20V4" />
-											<path d="M14 17l3 3 3-3" />
-										</svg>
-										<select id="pokemon-sort-select" class="field-control" aria-label="並べ替え">
-						<!-- UI改修依頼(2026-08-05)「ソートラベルから『順』を削除」対応。valueは維持する。 -->
-						<option value="created_at">登録</option>
-						<option value="suggestion">おすすめ</option>
-						<option value="name">名前</option>
-						<option value="species_name">種族名</option>
-										</select>
-									</div>
 								</div>
 							</div>
 						</div>
@@ -1049,11 +1064,11 @@ const initialTeamJson = team
 			flex: 1 1 auto;
 			min-width: 0;
 			display: grid;
-			grid-template-columns: 88px minmax(0, 1fr);
+			grid-template-columns: calc(var(--space-7) + var(--space-6)) var(--space-6) minmax(0, 1fr);
 			/* UI改修依頼(2026-08-05)「ポケモン領域と技4つのY中心を揃えてカードを圧縮」対応。 */
 			align-items: center;
-			column-gap: var(--space-2);
-			row-gap: 0;
+			column-gap: var(--space-1);
+			row-gap: var(--space-1);
 			padding: var(--space-1);
 			border: 1px solid var(--color-border);
 			border-radius: var(--radius-md);
@@ -1086,7 +1101,7 @@ const initialTeamJson = team
 		.team-select-bar .select-row-art {
 			position: relative;
 			flex: 0 0 auto;
-			width: 88px;
+			width: calc(var(--space-7) + var(--space-6));
 			display: flex;
 			flex-direction: column;
 			align-items: center;
@@ -1095,15 +1110,16 @@ const initialTeamJson = team
 		}
 		.team-select-bar .select-row-sprite-img {
 			width: 100%;
-			height: 88px;
+			height: calc(var(--space-7) + var(--space-6));
 			object-fit: contain;
+			image-rendering: pixelated;
 		}
 		.team-select-bar .select-row-sprite-fallback {
 			display: none;
 			align-items: center;
 			justify-content: center;
 			width: 100%;
-			height: 88px;
+			height: calc(var(--space-7) + var(--space-6));
 			border-radius: 50%;
 			background: var(--color-primary-soft);
 			color: var(--color-primary);
@@ -1168,7 +1184,7 @@ const initialTeamJson = team
 		   だけ値がある場合に足す。値が無い方のセルが空でも2列グリッドは崩れない)。 */
 		.team-select-bar .select-row-item-row {
 			display: grid;
-			grid-template-columns: minmax(0, 1fr);
+			grid-template-columns: repeat(2, minmax(0, 1fr));
 			align-items: center;
 			width: 100%;
 			gap: var(--space-1);
@@ -1522,6 +1538,16 @@ const initialTeamJson = team
 			justify-content: center;
 			flex: 0 0 auto;
 		}
+		/* 2段構成: 上段を絵・縦アイコン・名前、下段を技2×2として圧縮する。 */
+		.team-select-bar .select-row-body { grid-column: 1 / -1; }
+		.team-select-bar .select-row-name-row { grid-column: 3; justify-content: flex-start; }
+		.team-select-bar .select-row-art-badges {
+			position: static;
+			grid-column: 2;
+			grid-row: 1;
+			flex-direction: column;
+			justify-content: center;
+		}
 		.team-slots .slot-meta-icon {
 			width: calc(var(--space-4) * 1.1);
 			height: calc(var(--space-4) * 1.1);
@@ -1529,8 +1555,8 @@ const initialTeamJson = team
 		}
 		/* 特性とアイテムを別行にし、各行の内容は中央にそろえる。 */
 		.team-slots .slot-meta-row {
-			display: flex;
-			flex-direction: column;
+			display: grid;
+			grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
 			align-items: center;
 			width: 100%;
 			gap: var(--space-1);
@@ -1549,6 +1575,18 @@ const initialTeamJson = team
 			gap: var(--space-1);
 			min-width: 0;
 			width: 100%;
+		}
+		/* 性格と努力値はカード幅を使う1行表示とし、ボックス一覧と情報順を揃える。 */
+		.team-slots .slot-training {
+			width: 100%;
+			min-height: var(--space-4);
+			font-size: var(--font-size-xs);
+			line-height: var(--line-height-tight);
+			color: var(--color-text-muted);
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			text-align: center;
 		}
 		/* UI改修依頼(チーム編集中央パネル、2026-08-02)「カードサイズを正方形のまま
 		   小さくする」実測修正: 特性/持ち物ラベルに1行ellipsis制御が無く、幅が縮んだことで
@@ -1647,16 +1685,15 @@ const initialTeamJson = team
 		/* 削除ボタンはカード(.card-team-slot、position:relative)自身の右上端に絶対配置する
 		   (box/index.astroの.card-pokemon .card-actions=28px円形アイコンボタン規格を踏襲、
 		   新しい値は作らない)。
-		   UI改修依頼(チーム編集中央パネル、2026-08-02)「カードの削除ボタンをボックス画面
-		   (/box)のカードと同じデザインにする。ただし常時表示する」。box/index.astroの
+		   UI改修依頼(チーム編集中央パネル、2026-08-06)「カードの削除ボタンをボックス画面
+		   (/box)と同じくホバー時に表示する」。box/index.astroの
 		   .card-pokemon .delete-button(src/pages/box/index.astro、読むだけで編集はしない)の
 		   配色・font-weightに合わせる: background/borderは.icon-button共通のまま、
 		   font-weight: 400(box側は「global.cssの.delete-buttonは太字パディングでアイコン
 		   専用ボタンには大きすぎる」という理由で明示的に上書きしている)。ホバーは
 		   background: var(--color-danger-soft) + border-color: var(--color-danger-strong)
 		   に揃える(旧来はvar(--color-surface-alt)だけで危険操作の色が付いていなかった)。
-		   box側はhover/focus-within限定表示(誤操作防止)だが、この画面は元から常時表示
-		   だったため表示条件はそのまま維持する(依頼の「常時表示」を満たす)。 */
+		   hover/focus-within限定表示とタッチ時の常時表示も同じ方針で適用する。 */
 		.team-slots .slot-remove-btn {
 			position: absolute;
 			top: var(--space-2);
@@ -1674,6 +1711,17 @@ const initialTeamJson = team
 			color: var(--color-danger-strong);
 			font-weight: 400;
 			box-shadow: var(--shadow-sm);
+			opacity: 0;
+			pointer-events: none;
+		}
+		/* マウスでは誤操作を避け、キーボード操作とタッチ操作では到達可能に保つ。 */
+		.team-slots .card-team-slot:hover .slot-remove-btn,
+		.team-slots .card-team-slot:focus-within .slot-remove-btn {
+			opacity: 1;
+			pointer-events: auto;
+		}
+		@media (hover: none) {
+			.team-slots .slot-remove-btn { opacity: 1; pointer-events: auto; }
 		}
 		.team-slots .slot-remove-btn:hover {
 			background: var(--color-danger-soft);
@@ -2244,7 +2292,7 @@ const initialTeamJson = team
 		// 相性チェック(2026-08-02)で連続技のヒット数が必要なため loadMultiHitMoveMap を追加import
 		// する(Battle.calc_damages() は連続技でも1ヒットぶんしか返さないため。
 		// src/lib/pyodide-engine.ts の calcMaxDamageMatrix のコメント参照)。
-		import { loadImageIdMap, officialArtworkUrl, loadBaseStatsMap, loadMoveDetailMap, loadMultiHitMoveMap, loadTypesMap } from "../../lib/pokemon-master-data";
+		import { loadImageIdMap, officialArtworkUrl, spriteUrl, loadBaseStatsMap, loadMoveDetailMap, loadMultiHitMoveMap, loadTypesMap } from "../../lib/pokemon-master-data";
 		// UI改修依頼(チーム編集左パネル、2026-08-02)「候補カードをボックス画面と共通化する」で
 		// 技チップにタイプアイコンを追加するため、typeIconUrlを追加importする(box/index.astroの
 		// applyMoveChipTypeIconsと同じ用途)。
@@ -2326,6 +2374,9 @@ const initialTeamJson = team
 			// (lib/team.tsのTEAM_MEMBER_SELECT)・GET /api/owned-pokemon(OWNED_POKEMON_COLUMNS)の
 			// 両方に既にcreated_atを含んでいるため、この型に足すだけで読める(新規フェッチ不要)。
 			created_at: string;
+			// 一覧APIに既存の日時を、左パネルの利用目的別ソートに使う。
+			updated_at: string;
+			last_used_at: string | null;
 			// UI改修依頼(チーム編集ヘッダー)「匿名でデータ提供するトグル」用。GET
 			// /api/owned-pokemonのレスポンスには含まれるが、SSR(lib/team.tsのTEAM_MEMBER_SELECT)
 			// には含まれていない(このファイル単体の変更ではlib/team.tsを直せないため)。そのため
@@ -2368,6 +2419,7 @@ const initialTeamJson = team
 			// <button>から<input type="checkbox">へマークアップを変えたため、要素の型も
 			// HTMLButtonElementからHTMLInputElementへ変える。
 			const regulationFilterToggle = el<HTMLInputElement>("regulation-filter-toggle");
+			const dedupeToggle = el<HTMLInputElement>("team-select-dedupe-toggle");
 			const slotsRoot = el<HTMLElement>("team-slots");
 
 			const searchInput = el<HTMLInputElement>("pokemon-search-input");
@@ -2503,7 +2555,7 @@ const initialTeamJson = team
 				"already-in-team": "編成済み",
 				"team-full": "6体編成済み",
 				"duplicate-species": "種族が重複",
-				"duplicate-item": "持ち物が重複",
+				"duplicate-item": "アイテムが重複",
 			};
 
 			// 公式絵。取得できない場合は頭文字の丸バッジにフォールバックする
@@ -3912,7 +3964,6 @@ const initialTeamJson = team
 					abilityLabel.classList.add("slot-meta-unset");
 				}
 				abilityCell.appendChild(abilityLabel);
-				if (teraItem) abilityCell.appendChild(teraItem);
 				metaRow.appendChild(abilityCell);
 
 				// 持ち物なし(null/空文字)は合法な対戦状態(G-3も対象外にしている)ため、
@@ -3936,35 +3987,24 @@ const initialTeamJson = team
 					itemCell.append(itemImg, itemLabel);
 				}
 				metaRow.appendChild(itemCell);
+				// ボックスカードと同じく、特性・アイテム・テラスを横1段の独立セルにする。
+				const teraCell = document.createElement("div");
+				teraCell.className = "slot-meta-cell slot-tera-cell";
+				if (teraItem) teraCell.appendChild(teraItem);
+				metaRow.appendChild(teraCell);
 				infoEl.appendChild(metaRow);
 
 				// UI改修依頼(チーム編集中央パネル、2026-08-02)「実数値をラベル行+数値行の2段に
 				// 分ける」。右パネルのbuildDamageCard内.team-damage-stats/
 				// .team-damage-stats-lineと同じ考え方(ラベル行+実数値行の6列表)を適用する
 				// (computeStatsは選択バー側で既に使っている実数値計算をそのまま再利用)。
-				const statsEl = document.createElement("div");
-				statsEl.className = "slot-stats";
-				void computeStats(p).then((stats) => {
-					if (!stats) return;
-					statsEl.innerHTML = "";
-					const labelLine = document.createElement("div");
-					labelLine.className = "slot-stats-line";
-					const valueLine = document.createElement("div");
-					valueLine.className = "slot-stats-line";
-					for (const s of stats) {
-						const labelEl = document.createElement("span");
-						labelEl.className = "slot-stat-key";
-						labelEl.textContent = s.mod === "up" ? `${s.label}▲` : s.mod === "down" ? `${s.label}▼` : s.label;
-						if (s.mod) labelEl.dataset.mod = s.mod;
-						labelLine.appendChild(labelEl);
-						const valueEl = document.createElement("span");
-						valueEl.className = "slot-stat-value tnum";
-						valueEl.textContent = String(s.value);
-						valueLine.appendChild(valueEl);
-					}
-					statsEl.append(labelLine, valueLine);
-				});
-				infoEl.appendChild(statsEl);
+				// 実数値表の重複を避け、性格と0以外の努力値をHABCDS順の1段へ置き換える。
+				const trainingEl = document.createElement("div");
+				trainingEl.className = "slot-training";
+				const evLabels = ["H", "A", "B", "C", "D", "S"];
+				const evParts = p.evs.map((value, index) => value > 0 ? `${evLabels[index]}${value}` : "").filter(Boolean);
+				trainingEl.textContent = [p.nature?.trim() ?? "", ...evParts].filter(Boolean).join(" ");
+				infoEl.appendChild(trainingEl);
 
 				// A-6: 技0件も行ごと消さず「未設定」を明示する(技0件・テラス未設定の
 				// ディンルーが「情報が少ないだけのカード」に見え、対戦に出せない未完成状態だと
@@ -4145,7 +4185,8 @@ const initialTeamJson = team
 			// --- 選択バーの描画(R-7・R-10) ---
 			function matchesSearch(p: OwnedPokemonRecord, term: string): boolean {
 				if (!term) return true;
-				const haystack = [p.nickname ?? "", p.species_name].join(" ");
+				// ボックス一覧と同じ対象を空白連結し、複数語ANDのかな部分一致で探す。
+				const haystack = [p.nickname ?? "", p.species_name, p.ability_name ?? "", p.item_name ?? "", p.tera_type ?? "", ...p.move_names].join(" ");
 				return term
 					.split(/\s+/)
 					.filter((t) => t.length > 0)
@@ -4170,6 +4211,17 @@ const initialTeamJson = team
 				const teamRegulation = currentTeamRegulation();
 				if (teamRegulation === null || !regulationFilterOn) return true;
 				return !p.regulation || p.regulation === teamRegulation;
+			}
+
+			// 空のアイテムは重複扱いせず、編成済みの種族または実値のあるアイテムだけを除外する。
+			function matchesDedupe(p: OwnedPokemonRecord): boolean {
+				if (!dedupeToggle.checked) return true;
+				const itemName = p.item_name?.trim() ?? "";
+				for (const member of membersBySlot.values()) {
+					if (member.species_name === p.species_name) return false;
+					if (itemName && member.item_name?.trim() === itemName) return false;
+				}
+				return true;
 			}
 
 			// チーム側が未指定のときは絞る基準が無いのでトグル自体を出さない
@@ -4221,13 +4273,18 @@ const initialTeamJson = team
 						const bRank = suggestionSpeciesRanks.get(b.species_name) ?? Number.POSITIVE_INFINITY;
 						if (aRank !== bRank) return aRank - bRank;
 					}
-					if (sort === "name") {
-						return displayName(a).localeCompare(displayName(b), "ja");
+					if (sort === "dex_no") {
+						const aDex = resolveDexNo(a.species_name) ?? Number.POSITIVE_INFINITY;
+						const bDex = resolveDexNo(b.species_name) ?? Number.POSITIVE_INFINITY;
+						if (aDex !== bDex) return aDex - bDex;
 					}
-					if (sort === "species_name") {
-						return a.species_name.localeCompare(b.species_name, "ja");
-					}
-					return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+					const field = sort === "last_used_at" ? "last_used_at" : "updated_at";
+					if (!a[field] && !b[field]) return 0;
+					if (!a[field]) return 1;
+					if (!b[field]) return -1;
+					const aTime = new Date(a[field] as string).getTime();
+					const bTime = new Date(b[field] as string).getTime();
+					return bTime - aTime;
 				});
 			}
 
@@ -4266,7 +4323,8 @@ const initialTeamJson = team
 				const spriteFallback = document.createElement("span");
 				spriteFallback.className = "select-row-sprite-fallback";
 				artEl.append(spriteImg, spriteFallback);
-				void applySprite(spriteImg, spriteFallback, p.species_name);
+				// 左候補だけは情報密度を優先し、URL生成をドット絵へ差し替える。
+				void applySprite(spriteImg, spriteFallback, p.species_name, spriteUrl);
 
 				const bodyEl = document.createElement("span");
 				bodyEl.className = "select-row-body";
@@ -4286,7 +4344,7 @@ const initialTeamJson = team
 					// ダメージ計算カードと同様、持ち物名は出さず画像右下へアイコンを重ねる。
 					const itemBadge = document.createElement("span");
 					itemBadge.className = "select-row-item-badge";
-					itemBadge.title = `持ち物: ${itemName}`;
+					itemBadge.title = `アイテム: ${itemName}`;
 					const itemImg = document.createElement("img");
 					itemImg.alt = "";
 					void applyItemIcon(itemImg, itemName);
@@ -4305,7 +4363,7 @@ const initialTeamJson = team
 					teraBadge.appendChild(teraImg);
 					artBadges.appendChild(teraBadge);
 				}
-				if (artBadges.childElementCount > 0) artEl.appendChild(artBadges);
+				// アイコン列はアートの右へ独立配置し、画像との重なりを避ける。
 
 				// 技(最大4つ)。タイプアイコン付きチップを右列に1列で並べる(背景色なし・
 				// 技名の前にタイプアイコン・セル内左揃え。上のapplySelectMoveChipTypeIcons参照)。
@@ -4366,7 +4424,7 @@ const initialTeamJson = team
 				});
 
 				// NNを必ず独立した2行目に置き、1行目の情報量に左右されず中央へ揃える。
-				mainButton.append(artEl, bodyEl, nameRow);
+				mainButton.append(artEl, artBadges, nameRow, bodyEl);
 				row.appendChild(mainButton);
 
 				// 🔴 UI改修依頼(チーム編集左パネル、2026-08-02)「行の右端にあるドラッグ用グリップを
@@ -4408,7 +4466,7 @@ const initialTeamJson = team
 				// selectionBlockReason自体・BLOCK_REASON_LABELSは他の禁止理由(6体編成済み/種族重複/
 				// 持ち物重複)で引き続き使うため残す)。
 				const filtered = sortPokemon(
-					allPokemon.filter((p) => !isCurrentMember(p.id) && matchesTeamRegulation(p) && matchesSearch(p, term)),
+					allPokemon.filter((p) => !isCurrentMember(p.id) && matchesTeamRegulation(p) && matchesDedupe(p) && matchesSearch(p, term)),
 				);
 				selectListRoot.innerHTML = "";
 				if (filtered.length === 0) {
@@ -4541,6 +4599,8 @@ const initialTeamJson = team
 			memoInput.addEventListener("input", scheduleSave);
 			searchInput.addEventListener("input", renderSelectList);
 			sortSelect.addEventListener("change", renderSelectList);
+			// 編成変更時は既存の追加・削除経路が再描画するため、トグル操作だけを追加する。
+			dedupeToggle.addEventListener("change", renderSelectList);
 
 			// 🔴 UI改修依頼(チーム編集画面、2026-08-01)。レギュレーションを変えると
 			// 「選択バーに出す個体」も変わるため、保存と同時に一覧を描き直す。
