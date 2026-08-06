@@ -17,7 +17,7 @@ import LeftPanel from '../../components/box-id/LeftPanel.astro';
 import DamageCalcSection from '../../components/box-id/DamageCalcSection.astro';
 import RightPanel from '../../components/box-id/RightPanel.astro';
 import BulkAdjustDialog from '../../components/box-id/BulkAdjustDialog.astro';
-import { getSupabaseAdminClient } from '../../lib/supabase';
+import { getSupabaseAdminClient, getSupabasePublicClient } from '../../lib/supabase';
 import { getOwnedPokemon, type OwnedPokemonRecord } from '../../lib/owned-pokemon';
 
 const user = Astro.locals.user;
@@ -75,6 +75,49 @@ if (pokemon) {
 	} catch (err) {
 		// eslint-disable-next-line no-console
 		console.error('[box/[id]] failed to load move adoption data', err);
+	}
+}
+
+interface CombinedSpeciesUsageRow {
+	regulation: string;
+	species_key: string;
+	pokemon: number;
+}
+
+const speciesUsageByRegulation: Record<string, Record<string, number>> = {};
+if (pokemon) {
+	try {
+		const usageClient = await getSupabasePublicClient();
+		const PAGE_SIZE = 1000;
+		const usageRows: CombinedSpeciesUsageRow[] = [];
+		const first = await usageClient
+			.rpc('combined_species_usage', {}, { count: 'exact' })
+			.range(0, PAGE_SIZE - 1);
+		if (first.error) throw first.error;
+		usageRows.push(...((first.data ?? []) as CombinedSpeciesUsageRow[]));
+		const total = first.count ?? usageRows.length;
+
+		if (total > PAGE_SIZE) {
+			const pageStarts: number[] = [];
+			for (let from = PAGE_SIZE; from < total; from += PAGE_SIZE) pageStarts.push(from);
+			const pages = await Promise.all(
+				pageStarts.map((from) =>
+					usageClient.rpc('combined_species_usage', {}).range(from, from + PAGE_SIZE - 1),
+				),
+			);
+			for (const page of pages) {
+				if (page.error) throw page.error;
+				usageRows.push(...((page.data ?? []) as CombinedSpeciesUsageRow[]));
+			}
+		}
+
+		for (const row of usageRows) {
+			const bucket = (speciesUsageByRegulation[row.regulation] ??= {});
+			bucket[row.species_key] = row.pokemon;
+		}
+	} catch (err) {
+		// eslint-disable-next-line no-console
+		console.error('[box/[id]] failed to load species usage data', err);
 	}
 }
 
@@ -566,5 +609,6 @@ const isOptedOut = optOutRemainingText !== "";
 	<datalist id="move-list"></datalist>
 	<datalist id="ability-list"></datalist>
 	<datalist id="item-list"></datalist>
+	<script type="application/json" id="box-species-usage-data" set:html={JSON.stringify(speciesUsageByRegulation)} />
 
 </AppLayout>

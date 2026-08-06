@@ -34,11 +34,70 @@ export function readMoveNames(): string[] {
 // 個体編集画面から「その他の設定(レベル・タグ・ピン留め・共有)」を廃止して呼び出し元が
 // 無くなったため削除した。タグ自体はDBに残り、ボックス一覧の絞り込みは引き続き機能する。
 
+export type SpeciesUsageByRegulation = Record<string, Record<string, number>>;
+
+let pokemonNamesInPhysicalOrder: string[] | null = null;
+
+export function sortPokemonNamesByUsage(
+  names: readonly string[],
+  usage: Readonly<Record<string, number>>,
+): string[] {
+  return names
+    .map((name, index) => ({ name, index }))
+    .sort((a, b) => (usage[b.name] ?? 0) - (usage[a.name] ?? 0) || a.index - b.index)
+    .map(({ name }) => name);
+}
+
+function readSpeciesUsageData(): SpeciesUsageByRegulation | null {
+  const embedded = document.getElementById('box-species-usage-data');
+  if (!embedded) return null;
+  try {
+    return JSON.parse(embedded.textContent ?? '{}') as SpeciesUsageByRegulation;
+  } catch (err) {
+    console.warn('種族使用率データの読み込みに失敗しました', err);
+    return {};
+  }
+}
+
+function replaceDatalistOptions(datalist: HTMLDataListElement, names: readonly string[]): void {
+  const fragment = document.createDocumentFragment();
+  for (const name of names) {
+    const option = document.createElement('option');
+    option.value = name;
+    fragment.appendChild(option);
+  }
+  datalist.replaceChildren(fragment);
+}
+
+export function reorderPokemonDatalistByUsage(regulation?: string): void {
+  if (!pokemonNamesInPhysicalOrder) return;
+  const usageByRegulation = readSpeciesUsageData();
+  // This module is shared by pages without the box-specific SSR payload.
+  if (usageByRegulation === null) return;
+  const regulationKey = regulation ?? (document.getElementById('regulation') as HTMLSelectElement | null)?.value ?? '';
+  const usage = usageByRegulation[regulationKey.trim()] ?? {};
+  replaceDatalistOptions(
+    el<HTMLDataListElement>('pokemon-list'),
+    sortPokemonNamesByUsage(pokemonNamesInPhysicalOrder, usage),
+  );
+}
+
 async function fillDatalist(res: Response, datalistId: string): Promise<void> {
   const list = (await res.json()) as Array<{ name: string }>;
   const datalist = el<HTMLDataListElement>(datalistId);
+  const names = list.map(({ name }) => name);
+  if (datalistId === 'pokemon-list') {
+    pokemonNamesInPhysicalOrder = names;
+    const regulation = (document.getElementById('regulation') as HTMLSelectElement | null)?.value ?? '';
+    const usageByRegulation = readSpeciesUsageData();
+    replaceDatalistOptions(
+      datalist,
+      usageByRegulation === null ? names : sortPokemonNamesByUsage(names, usageByRegulation[regulation.trim()] ?? {}),
+    );
+    return;
+  }
   const fragment = document.createDocumentFragment();
-  for (const { name } of list) {
+  for (const name of names) {
     const option = document.createElement('option');
     option.value = name;
     fragment.appendChild(option);

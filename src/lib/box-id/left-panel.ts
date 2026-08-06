@@ -14,6 +14,7 @@
 import {
 	el,
 	loadAutocomplete,
+	reorderPokemonDatalistByUsage,
 	readEv,
 	readMoveNames,
 } from "../owned-pokemon-form";
@@ -1045,6 +1046,7 @@ if (form) {
 	regulationSelect.addEventListener("change", () => {
 		syncTeraFieldVisibility();
 		syncRegulationPlaceholder();
+		reorderPokemonDatalistByUsage(regulationSelect.value);
 		// ③: レギュレーションが変わると人気度の母集団そのものが変わるため取り直す。
 		reloadPopularBuildSuggestions();
 	});
