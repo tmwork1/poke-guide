@@ -389,10 +389,28 @@ a {
 	color: var(--color-text-muted);
 }
 
+/* お気に入りトグルの星グリフ。data-pinned が付いたボタンの子に置いて使う。
+   OFF(☆)のときホバー/フォーカスすると「押すと塗りつぶされる」ことを先に見せるため★を表示する。
+   ページ側(box/index.astro・team/index.astro)は JS で textContent に☆/★を入れるのをやめ、
+   このクラスを持つ空の span を置く。 */
+.favorite-star-glyph::before {
+	content: "☆";
+}
+
+[data-pinned="true"] .favorite-star-glyph::before,
+[data-pinned="false"]:hover .favorite-star-glyph::before,
+[data-pinned="false"]:focus-visible .favorite-star-glyph::before {
+	content: "★";
+}
+
 .favorite-filter-toggle:hover:not(:disabled) {
 	background: transparent;
 	border-color: transparent;
 	color: var(--color-text);
+}
+
+.favorite-filter-toggle:hover:not(:disabled) .favorite-filter-star {
+	color: var(--color-risky);
 }
 
 .favorite-filter-toggle[data-active="true"] {
