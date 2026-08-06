@@ -1,0 +1,27 @@
+# Cloudflare Workers Static Assets のヘッダ設定。
+# Astroのcloudflareアダプタがクライアント資産を dist/client/ に出力し、生成する
+# dist/server/wrangler.json で assets.directory を "../client" に書き換えるため、
+# このファイルは dist/client/_headers として配信対象になる(ルート直下の wrangler.jsonc の
+# "directory": "./dist" ではない)。ビルド時にアダプタ自身の /_astro/* ルールとマージされる。
+# 実測(2026-08-06, wrangler 4.113.0 の `wrangler dev`): 「Parsed 4 valid header rules.」と
+# /pokemon-sprites/10038.png への `Cache-Control: public, max-age=2592000` を確認済み。
+#
+# 事前生成してコミットしている画像(生成スクリプトは scripts/ 配下)に長期キャッシュを付ける。
+# もともとドット絵は raw.githubusercontent.com を直接参照しており、上流の Cache-Control が
+# max-age=300(5分)しかなかった。/ranked-teams は初期表示で300枚並ぶため、5分後の再訪で
+# 300本の条件付きリクエストが発生していた(2026-08-06 実測)。
+# 詳細は docs/plan/pokemon-sprites-localization.md。
+#
+# max-age は30日。immutable や1年にしないのは、ファイル名にコンテンツハッシュが入っておらず、
+# 上流の画像が差し替わって再生成してもURLが変わらないため。30日あればリピート訪問の大半で
+# リクエストが0本になり、5分との比較では利得をほぼ取り切れる。
+# (Astro が出力する /_astro/ 配下のハッシュ付きアセットはビルド側で扱われるのでここでは触らない)
+
+/pokemon-sprites/*
+  Cache-Control: public, max-age=2592000
+
+/item-icons/*
+  Cache-Control: public, max-age=2592000
+
+/type-icons/*
+  Cache-Control: public, max-age=2592000

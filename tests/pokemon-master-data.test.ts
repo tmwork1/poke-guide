@@ -7,7 +7,7 @@
 // scripts/build-master-data/extract_autocomplete.py の実装をそのまま転記したものではない。
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -21,12 +21,23 @@ import {
 const SPRITES_BASE = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites';
 
 describe('spriteUrl', () => {
-  it('imageIdからスプライト画像URLを組み立てる(通常種)', () => {
-    assert.equal(spriteUrl(1), `${SPRITES_BASE}/pokemon/1.png`);
+  // 2026-08-06: ドット絵は public/pokemon-sprites/ に事前ダウンロードした画像を同一オリジンから
+  // 配信する方式に変更した(生成: scripts/pokemon-sprites/generate_pokemon_sprites.py)。
+  // 上流の Cache-Control が max-age=300(5分)しかなく、300枚並ぶ /ranked-teams で再訪のたびに
+  // 大量の条件付きリクエストが出ていたのが理由。詳細は docs/plan/pokemon-sprites-localization.md。
+  it('imageIdからローカルのドット絵URLを組み立てる(通常種)', () => {
+    assert.equal(spriteUrl(1), '/pokemon-sprites/1.png');
   });
 
   it('10000番台のimageId(メガシンカ等の特殊フォルム専用ID)も同じ規則でURLを組み立てる', () => {
-    assert.equal(spriteUrl(10034), `${SPRITES_BASE}/pokemon/10034.png`);
+    assert.equal(spriteUrl(10034), '/pokemon-sprites/10034.png');
+  });
+
+  it('外部ホストを参照しない(ローカル化の回帰テスト)', () => {
+    assert.ok(
+      spriteUrl(25).startsWith('/'),
+      'ドット絵は同一オリジンのルート相対パスで配信する',
+    );
   });
 });
 
@@ -69,6 +80,23 @@ describe('public/master-data/autocomplete/pokemon.json のimageId(回帰テス�
     assert.ok(entry, `${name} が pokemon.json に見つかりません`);
     return entry as NonNullable<typeof entry>;
   }
+
+  it('全imageIdに対応するドット絵が public/pokemon-sprites/ に存在する', () => {
+    // 2026-08-06のローカル化で生じた運用上の依存関係を守るための回帰テスト。
+    // public/master-data/ は .gitignore 対象で `npm run build:master-data` が生成するため、
+    // マスタデータを再生成してフォルムが増えると、ドット絵だけ取り残される。
+    // spriteUrl() の参照先が同一オリジンになった今、取り残しは404=画像割れに直結する
+    // (applySprite はonerrorで頭文字バッジに退避するが、ranked-teams/card.ts などは退避しない)。
+    // 落ちたら `npm run generate:pokemon-sprites` を実行する。
+    const spritesDir = path.join(__dirname, '..', 'public', 'pokemon-sprites');
+    const imageIds = [...new Set(pokemonList.map((p) => p.imageId))];
+    const missing = imageIds.filter((id) => !existsSync(path.join(spritesDir, `${id}.png`)));
+    assert.deepEqual(
+      missing,
+      [],
+      `ドット絵が未取得のimageIdがあります。\`npm run generate:pokemon-sprites\` を実行してください: ${missing.join(', ')}`,
+    );
+  });
 
   it('メガリザードンXはベース種族(リザードン)とは異なる専用imageIdを持ち、dexNoは書き換わらない', () => {
     const megaX = findByName('メガリザードンX');

@@ -44,11 +44,22 @@ export async function loadTypesMap(): Promise<Map<string, string[]>> {
   return new Map([...master].map(([name, entry]) => [name, entry.types]));
 }
 
+// ドット絵は public/pokemon-sprites/{imageId}.png に事前ダウンロードした画像を同一オリジンから
+// 配信する(生成: scripts/pokemon-sprites/generate_pokemon_sprites.py。item-icons/type-icons と
+// 同じ「生成済み画像を事前コミットする」方式)。
+// 2026-08-06 まではPokeAPIのraw.githubusercontent.comを実行時に直接参照していたが、実測で
+// (1) 上流の Cache-Control が max-age=300(5分)しかなく、300枚並ぶ /ranked-teams では5分後の
+// 再訪で300本の条件付きリクエストが発生する、(2) 画像が1KB前後なのでコストは転送量ではなく
+// 別オリジンへのDNS+TCP+TLS確立(初回266ms)、(3) ブラウザのHTTPキャッシュはトップレベル
+// サイト単位で分割されており「他サイトのCDNキャッシュを使い回せる」利点は現在成立しない、
+// と判明したためローカル化した。詳細は docs/plan/pokemon-sprites-localization.md。
 export function spriteUrl(imageId: number): string {
-  return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${imageId}.png`;
+  return `/pokemon-sprites/${imageId}.png`;
 }
 
 // Pokemon.png ワイヤーフレームの「ポケモンアイコン(公式絵)」用。
+// ⚠️ 公式絵はドット絵と違いローカル化していない。実測118〜203KB/枚 × 1284件 ≒ 180MB で、
+// gitにもCloudflare Workers assetsにも載らないため、意図的に外部参照のままにしている。
 export function officialArtworkUrl(imageId: number): string {
   return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${imageId}.png`;
 }

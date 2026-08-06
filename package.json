@@ -15,6 +15,7 @@
 		"test:e2e:update-fixtures": "python tests/e2e/fixtures/generate_expected.py",
 		"build:master-data": "node scripts/build-master-data/build.mjs",
 		"generate:type-icons": "python scripts/type-icons/generate_type_icons.py",
+		"generate:pokemon-sprites": "python scripts/pokemon-sprites/generate_pokemon_sprites.py",
 		"build": "npm run build:master-data && astro build",
 		"preview": "npm run build && astro preview",
 		"astro": "astro",
