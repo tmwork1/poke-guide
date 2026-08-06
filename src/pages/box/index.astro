@@ -559,6 +559,11 @@ const user = Astro.locals.user;
 			   実際にあったことが判明し、トリム領域を52×52px・padding 7pxへ拡大済み。 */
 			font-size: var(--font-size-lg);
 		}
+		/* 共通のお気に入りグリフを子要素化しても、従来の星位置と行高を維持する。 */
+		.box-grid .card-pokemon .pin-toggle .favorite-star-glyph {
+			display: inline-block;
+			line-height: 1;
+		}
 		.box-grid .card-pokemon .pin-toggle:hover {
 			background: var(--color-surface);
 			color: var(--color-text);
@@ -633,6 +638,9 @@ const user = Astro.locals.user;
 			width: 100%;
 			text-align: center;
 		}
+		/* カード内の端の余白はカード本体のpaddingに任せ、要素間隔だけをgapで管理する。 */
+		.box-grid .card-pokemon .card-body > :first-child { margin-top: 0; }
+		.box-grid .card-pokemon .card-body > :last-child { margin-bottom: 0; }
 		/* UI改修依頼(2026-08-02): 名前を1行で省略(ellipsis)表示する行。
 		   UI改修依頼(2026-08-04、要件3): テラスバッジはこの行から.card-item-row側の特性の
 		   右へ移設した(下の.card-item-row-ability/scriptのnameRow生成部分を参照)。 */
@@ -702,11 +710,12 @@ const user = Astro.locals.user;
 		   (アイテム・テラス未設定の個体でもアイコン有り無しで高さが揺れないようにする)。 --- */
 		.box-grid .card-pokemon .card-item-row {
 			display: flex;
-			flex-direction: column;
+			flex-direction: row;
+			align-items: center;
 			width: 100%;
-			margin-top: 0.1rem;
-			gap: 0.1rem;
-			min-height: calc(2 * 16px + 0.1rem);
+			margin-top: 0;
+			gap: var(--space-1);
+			min-height: 16px;
 		}
 		.box-grid .card-pokemon .card-item-row-cell {
 			display: flex;
@@ -717,7 +726,11 @@ const user = Astro.locals.user;
 		}
 		.box-grid .card-pokemon .card-item-row-ability {
 			/* 2026-08-05にspace-2へ広げ、2026-08-06の追加依頼でさらに2倍へ広げる。 */
-			gap: var(--space-4);
+			/* 特性とアイテムを同じ行で省略できるよう、両セルに均等な縮小余地を持たせる。 */
+			flex: 1 1 0;
+		}
+		.box-grid .card-pokemon .card-item-row-item {
+			flex: 1 1 0;
 		}
 		/* 特性名: 名前(card-name)・技チップ(card-move-chip)と同様に1行で省略する
 		   (折り返さない)。20-G3の12px下限ちょうど(0.75rem)にし、名前ほど主張しない
@@ -727,7 +740,7 @@ const user = Astro.locals.user;
 		   いっぱいを使える(旧来は右半分)。テラスバッジは特性テキストの直後に置き、
 		   テキストが長い場合だけflexで縮めて省略する。 */
 		.box-grid .card-pokemon .card-ability-name {
-			flex: 0 1 auto;
+			flex: 1 1 auto;
 			min-width: 0;
 			font-size: var(--font-size-xs);
 			line-height: var(--line-height-tight);
@@ -744,12 +757,25 @@ const user = Astro.locals.user;
 		   いっぱいを使える(旧来は右半分)。アイコン16px+gap0.2remと同居するため、
 		   ellipsisで確実に収める。 */
 		.box-grid .card-pokemon .card-item-name {
+			flex: 1 1 auto;
 			font-size: var(--font-size-xs);
 			line-height: var(--line-height-tight);
 			font-weight: 600;
 			color: var(--color-text-muted);
 			max-width: 100%;
 			min-width: 0;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+		}
+		/* 性格と努力値は補助情報として一段にまとめ、未設定時はDOMごと省いて高さを詰める。 */
+		.box-grid .card-pokemon .card-training-row {
+			width: 100%;
+			margin: 0;
+			font-size: var(--font-size-xs);
+			line-height: var(--line-height-tight);
+			font-weight: normal;
+			color: var(--color-text-muted);
 			white-space: nowrap;
 			overflow: hidden;
 			text-overflow: ellipsis;
@@ -840,7 +866,7 @@ const user = Astro.locals.user;
 			align-items: start;
 			gap: 0.05rem var(--space-1);
 			width: 100%;
-			margin-top: 0.15rem;
+			margin-top: 0;
 			/* ラウンド8 A-8: 技0件のカードでもこの要素を常時appendする(JS側変更)ため、
 			   実際の行数(0/1/2行)に関わらず常に2行ぶんの高さを確保して隣接カードとy座標を揃える。
 			   ラウンド20 B2で順序が末尾→中段に変わったため、この高さ確保は「最下段の余白」ではなく
@@ -993,7 +1019,7 @@ const user = Astro.locals.user;
 									id="search-input"
 									type="search"
 									class="field-control"
-									placeholder="ニックネーム・種族・持ち物・特性・技など"
+									placeholder="ニックネーム・種族・アイテム・特性・技など"
 									aria-label="検索"
 									autocomplete="off"
 								/>
@@ -1042,7 +1068,9 @@ const user = Astro.locals.user;
 								</svg>
 								<select id="sort-select" class="field-control" aria-label="並べ替え">
 									<option value="updated_at">最終更新</option>
-									<option value="last_used_at">最終使用</option>
+									<option value="team_joined">チーム加入</option>
+									<option value="last_used_at">よく使う</option>
+									<option value="dex_no">図鑑番号</option>
 									<option value="nickname">ニックネーム</option>
 								</select>
 							</div>
@@ -1128,6 +1156,7 @@ const user = Astro.locals.user;
 			calcOtherStat,
 		} from "../../lib/stats";
 		import { kanaIncludes } from "../../lib/kana";
+		import { resolveDexNo } from "../../lib/species-dex";
 
 		interface OwnedPokemon {
 			id: string;
@@ -1188,6 +1217,9 @@ const user = Astro.locals.user;
 			const ADD_BUTTON_DEFAULT_HTML = addButton.innerHTML;
 
 			let allPokemon: OwnedPokemon[] = [];
+			// チーム情報は「チーム加入」を初めて選んだ時だけ取得し、以後の並べ替えで再利用する。
+			let teamMemberIds: Set<string> | null = null;
+			let teamMembersLoadStarted = false;
 			// ラウンド27 27-B3: 旧activeTags(複数タグの絞り込み状態)を単一boolean(お気に入りの
 			// みを表示するか)に置き換える。
 			let favoriteOnly = false;
@@ -1417,6 +1449,18 @@ const user = Astro.locals.user;
 					if (sort === "nickname") {
 						return displayName(a).localeCompare(displayName(b), "ja");
 					}
+					if (sort === "dex_no") {
+						const ad = resolveDexNo(a.species_name);
+						const bd = resolveDexNo(b.species_name);
+						if (ad === null && bd !== null) return 1;
+						if (ad !== null && bd === null) return -1;
+						if (ad !== bd) return (ad ?? 0) - (bd ?? 0);
+						return displayName(a).localeCompare(displayName(b), "ja");
+					}
+					if (sort === "team_joined" && teamMemberIds) {
+						const joinedDiff = Number(teamMemberIds.has(b.id)) - Number(teamMemberIds.has(a.id));
+						if (joinedDiff !== 0) return joinedDiff;
+					}
 					return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
 				});
 				// ピン留めは常に上部固定(育成データ管理計画.md §6.1)。
@@ -1464,7 +1508,11 @@ const user = Astro.locals.user;
 				pinButton.type = "button";
 				pinButton.className = "icon-button pin-toggle";
 				pinButton.dataset.pinned = String(p.is_pinned);
-				pinButton.textContent = p.is_pinned ? "★" : "☆";
+				// 星の描画はglobal.cssの共通ルールへ委譲し、状態属性だけを表示の根拠にする。
+				const pinStar = document.createElement("span");
+				pinStar.className = "favorite-star-glyph";
+				pinStar.setAttribute("aria-hidden", "true");
+				pinButton.appendChild(pinStar);
 				const pinLabel = p.is_pinned ? "ピン留めを解除する" : "ピン留めする";
 				pinButton.title = pinLabel;
 				pinButton.setAttribute("aria-label", pinLabel);
@@ -1573,7 +1621,6 @@ const user = Astro.locals.user;
 				const teraImg = document.createElement("img");
 				teraImg.alt = "";
 				teraBadge.appendChild(teraImg);
-				abilityCell.appendChild(teraBadge);
 				applyTeraBadge(teraImg, teraBadge, p.tera_type ?? "");
 
 				itemRow.appendChild(abilityCell);
@@ -1593,8 +1640,23 @@ const user = Astro.locals.user;
 				itemNameEl.textContent = p.item_name?.trim() ?? "";
 				itemCell.appendChild(itemNameEl);
 				itemRow.appendChild(itemCell);
+				// テラスアイコンは特性・アイテムの省略領域から外し、一段の右端に固定する。
+				itemRow.appendChild(teraBadge);
 
 				body.appendChild(itemRow);
+
+				const effortText = STAT_LABELS.flatMap((label, index) => {
+					const value = p.evs[index] ?? 0;
+					return value === 0 ? [] : [`${label}${value}`];
+				}).join(" ");
+				const trainingText = [p.nature?.trim() ?? "", effortText].filter(Boolean).join(" ");
+				if (trainingText) {
+					// 0の努力値は省き、性格と有効な努力値だけを密度の高い一段で示す。
+					const trainingRow = document.createElement("p");
+					trainingRow.className = "card-training-row tnum";
+					trainingRow.textContent = trainingText;
+					body.appendChild(trainingRow);
+				}
 
 				// --- 優先順位5位: 技(最大4つ、ラウンド5で復元)。
 				//     2×2グリッドにして高さを抑える。未設定スロットは要素自体を作らない
@@ -1797,7 +1859,31 @@ const user = Astro.locals.user;
 				}
 			}
 
-			sortSelect.addEventListener("change", renderList);
+			async function loadTeamMemberIds(): Promise<void> {
+				if (teamMembersLoadStarted) return;
+				teamMembersLoadStarted = true;
+				try {
+					const res = await fetch("/api/teams", { credentials: "same-origin" });
+					if (!res.ok) throw new Error(`チーム一覧の取得に失敗しました (status=${res.status})`);
+					const body = (await res.json()) as {
+						teams: Array<{ members: Array<{ owned_pokemon: { id: string } }> }>;
+					};
+					teamMemberIds = new Set(body.teams.flatMap((team) => team.members.map((member) => member.owned_pokemon.id)));
+				} catch (err) {
+					// 画面にはエラーを出さず、teamMemberIds=nullのまま最終更新順へフォールバックする。
+					console.error("チーム編成情報を読み込めませんでした", err);
+				} finally {
+					renderList();
+				}
+			}
+
+			sortSelect.addEventListener("change", () => {
+				if (sortSelect.value === "team_joined" && !teamMembersLoadStarted) {
+					void loadTeamMemberIds();
+					return;
+				}
+				renderList();
+			});
 			searchInput.addEventListener("input", renderList);
 			regulationFilter.addEventListener("change", renderList);
 			favoriteFilterToggle.addEventListener("click", () => {
