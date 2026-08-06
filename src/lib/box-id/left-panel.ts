@@ -758,7 +758,8 @@ if (form) {
 	const itemDropdownOptionEls: { value: string; li: HTMLLIElement }[] = [];
 	const itemDropdownEmptyEl = document.createElement("li");
 	itemDropdownEmptyEl.className = "item-dropdown-empty";
-	itemDropdownEmptyEl.textContent = "該当する持ち物がありません";
+	// 検索0件の共通表記に合わせ、対象名も画面内の「アイテム」に統一する。
+	itemDropdownEmptyEl.textContent = "条件に一致するアイテムがありません";
 	itemDropdownEmptyEl.setAttribute("aria-disabled", "true");
 	itemDropdownEmptyEl.hidden = true;
 
@@ -881,7 +882,8 @@ if (form) {
 		const value = itemInput.value.trim();
 		const isUnselected = value === "";
 		itemDropdownButton.classList.toggle("is-item-unselected", isUnselected);
-		itemDropdownButton.setAttribute("aria-label", value ? `持ち物: ${value}` : "持ち物: 未選択");
+		// 読み上げ時も表示上の名称と同じ「アイテム」を使う。
+		itemDropdownButton.setAttribute("aria-label", value ? `アイテム: ${value}` : "アイテム: 未選択");
 		itemDropdownPlaceholder.classList.toggle("is-item-value-text", !isUnselected);
 		if (isUnselected) {
 			itemDropdownImage.style.display = "none";
@@ -955,7 +957,8 @@ if (form) {
 	// (保存済みデータが誤ったアイテムを持っている場合を含む)にも働くよう、下のinit呼び出しにも
 	// 追加している。rebuildAbilityOptionsと同じくinput(1文字ごと)ではなくchange
 	// (blur/確定)にのみ結線する(理由も同じ: 入力途中の不完全な種族名で誤発火させない)。
-	const megaStoneLockedTitle = "メガシンカ中は持ち物をメガストーンに固定します";
+	// 操作不能の理由を示すtitleも画面内の「アイテム」表記に揃える。
+	const megaStoneLockedTitle = "メガシンカ中はアイテムをメガストーンに固定します";
 	function setItemLocked(locked: boolean): void {
 		itemDropdownButton.disabled = locked;
 		itemDropdownButton.title = locked ? megaStoneLockedTitle : "";
