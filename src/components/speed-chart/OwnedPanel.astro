@@ -81,13 +81,12 @@ const { hasOwnedPanel, ownedId } = Astro.props;
 		#speed-chart-owned-summaryは中身の無い灰色の箱として残ってしまう
 		(pitfalls.md「空状態・0件・未入力を必ず見る」= 「データ破損に見える空箱」)。
 		既定hiddenの注記をここに用意しておき、chart-table.ts側でownedControllerの
-		有無に応じてこの要素とサマリ本体のhiddenを出し分ける(render()はレギュレーション
-		切替のたびに呼ばれるため、切替で母集団に入った/出た場合も追随する)。
-		レギュレーション名はハードコードしない(切替のたびに対象が変わるため)。
+		有無に応じてこの要素とサマリ本体のhiddenを出し分ける。
+		種族の情報を読み込めずcontrollerを初期化できない場合だけ表示する。
 	*/}
 	{hasOwnedPanel && (
 		<p class="speed-chart-owned-unavailable" id="speed-chart-owned-unavailable" hidden>
-			この個体(種族)は選択中のレギュレーションでは使えないため、調整候補を出せません。
+			このポケモンの調整候補を読み込めませんでした。
 		</p>
 	)}
 	{hasOwnedPanel && (

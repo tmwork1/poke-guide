@@ -251,6 +251,7 @@ export async function initSpeedChartPage(): Promise<void> {
   const effectiveModifiers = getEffectiveSpeedModifiers(masterData.speedModifiers, config);
   const scarfEntry = findScarfItemEntry(masterData.speedModifiers.items);
   const imageIdByName = new Map(masterData.pokemonAutocomplete.map((p) => [p.name, p.imageId]));
+  const pokemonDetailByName = new Map(masterData.pokemonDetail.map((p) => [p.name, p]));
   // UI改修(2026-08-02第3弾)要件6: 補正要因(特性名/わざ名/持ち物名)はレギュレーションを跨いで
   // 固定の集合(effectiveModifiersはレギュレーション非依存)なので、チップ幅と同様に
   // ensureChipMetricsの計測対象名としてここで1回だけ求めておく(formsByNameは母集団が
@@ -431,12 +432,26 @@ export async function initSpeedChartPage(): Promise<void> {
 
     ownedController = null;
     if (hasOwnedPanel && ownedRecord) {
-      const ownedForm = formsByName.get(ownedRecord.species_name);
+      const ownedName = ownedRecord.species_name;
+      const ownedDetail = pokemonDetailByName.get(ownedName);
+      // 「この個体」の調整は、早見表へ表示するレギュレーション所属や使用率とは無関係に行う。
+      // formsByName は speciesAdoptionRate の足切り後の母集団なので、そこに無い場合だけ全件の
+      // 詳細マスターから補う。これにより早見表の行には出ない種族でも調整パネルは出るが、この
+      // 非対称は意図的であり、buildSpeedChartRows に渡す早見表自体の母集団は今回変更しない。
+      const ownedForm =
+        formsByName.get(ownedName) ??
+        (ownedDetail
+          ? {
+              name: ownedName,
+              baseSpeed: ownedDetail.baseStats[5],
+              abilities: ownedDetail.abilities,
+              learnset: ownedDetail.learnset,
+              isMega: masterData.megaStones.some((mega) => mega.species === ownedName),
+            }
+          : null);
       if (ownedForm) {
-        const scarfUsable =
-          !ownedForm.isMega &&
-          !!scarfEntry &&
-          masterData.itemAutocomplete.some((item) => item.name === scarfEntry.name && item.regulations.includes(regulation));
+        // 調整候補はレギュレーション非依存。ただしメガシンカ個体がスカーフを持てない制約は残す。
+        const scarfUsable = !ownedForm.isMega && !!scarfEntry;
         ownedController = initOwnedPanel({
           ownedRecord,
           baseSpeed: ownedForm.baseSpeed,
@@ -445,12 +460,11 @@ export async function initSpeedChartPage(): Promise<void> {
           // UI改修(2026-08-02第3弾)要件5: 右パネルの個体情報にアイコンを出すため、
           // このファイルが既に持っているimageIdByNameから引いて渡す(owned-panel.ts側は
           // マスターデータそのものを持たない)。
-          spriteImageId: imageIdByName.get(ownedRecord.species_name) ?? null,
+          spriteImageId: imageIdByName.get(ownedName) ?? null,
         });
       }
     }
-    // 不具合修正(2026-08-02): ownedRecord.species_nameが選択中レギュレーションの母集団に
-    // 居ない(=formsByNameに無い)と、上でownedControllerがnullのままになる。この場合
+    // pokemonDetailにも種族が無いと、上でownedControllerがnullのままになる。この場合
     // owned-panel.ts側のupdateSummary()が一度も呼ばれず#speed-chart-owned-summaryが
     // 空箱のまま残ってしまう(「データ破損に見える空箱」を防ぐpitfalls.mdの方針)ため、
     // controllerの有無に応じてサマリ本体/注記のhiddenを出し分ける。render()はレギュレーション
