@@ -1330,7 +1330,8 @@ if (form) {
 		const payload = buildPayload();
 		saving = true;
 		statusEl.dataset.state = "saving";
-		statusTextEl.textContent = "保存中...";
+		// 進行中表示は画面内で表記を揃えるため全角の三点リーダーを使う。
+		statusTextEl.textContent = "保存中…";
 		retryButton.classList.remove("visible");
 
 		try {
@@ -1362,7 +1363,8 @@ if (form) {
 
 	function scheduleSave(): void {
 		statusEl.dataset.state = "saving";
-		statusTextEl.textContent = "編集中...";
+		// 進行中表示は画面内で表記を揃えるため全角の三点リーダーを使う。
+		statusTextEl.textContent = "編集中…";
 		retryButton.classList.remove("visible");
 		if (debounceTimer) clearTimeout(debounceTimer);
 		debounceTimer = setTimeout(() => {

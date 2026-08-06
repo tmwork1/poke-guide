@@ -1157,7 +1157,8 @@ export function initEngine(onProgress?: ProgressListener): Promise<PyodideInterf
 
   initPromise = (async (): Promise<PyodideInterface> => {
     try {
-      notify("loading", "Pyodideランタイムをロード中...");
+      // 進行中表示は画面内で表記を揃えるため全角の三点リーダーを使う。
+      notify("loading", "Pyodideランタイムをロード中…");
       await loadScriptOnce(PYODIDE_SCRIPT_URL);
       if (!window.loadPyodide) {
         throw new Error(
@@ -1166,14 +1167,14 @@ export function initEngine(onProgress?: ProgressListener): Promise<PyodideInterf
       }
       const pyodide = await window.loadPyodide({ indexURL: PYODIDE_CDN_BASE });
 
-      notify("loading", "micropipをロード中...");
+      notify("loading", "micropipをロード中…");
       await pyodide.loadPackage("micropip");
 
-      notify("loading", "jpoke (wheel) をインストール中...");
+      notify("loading", "jpoke (wheel) をインストール中…");
       const micropip = pyodide.pyimport("micropip");
       await micropip.install(JPOKE_WHEEL_URL);
 
-      notify("loading", "jpokeの計算ヘルパーを準備中...");
+      notify("loading", "jpokeの計算ヘルパーを準備中…");
       await pyodide.runPythonAsync(BOOTSTRAP_PYTHON);
       calcDamagesJsonFn = pyodide.globals.get("calc_damages_json") as CalcDamagesJsonFn;
       calcStatsJsonFn = pyodide.globals.get("calc_stats_json") as CalcStatsJsonFn;
@@ -1275,7 +1276,8 @@ export function isEngineFatal(): boolean {
 export async function resetEngine(): Promise<void> {
   resetSingletonState();
   engineFatal = false;
-  notify("loading", "エンジンを再起動しています...");
+  // 進行中表示は画面内で表記を揃えるため全角の三点リーダーを使う。
+  notify("loading", "エンジンを再起動しています…");
   await initEngine();
 }
 

@@ -469,7 +469,8 @@ export function scheduleRowSave(row: DamageRowState): void {
 	damageCalcBridge!.setRowSaveStatus(
 		row,
 		"saving",
-		row.name.trim() ? "編集中..." : "未保存(相手ポケモン名を入力すると保存されます)",
+		// 進行中表示は画面内で表記を揃えるため全角の三点リーダーを使う。
+		row.name.trim() ? "編集中…" : "未保存(相手ポケモン名を入力すると保存されます)",
 	);
 	row.retryButtonEl?.classList.remove("visible");
 	if (row.saveTimer) clearTimeout(row.saveTimer);
