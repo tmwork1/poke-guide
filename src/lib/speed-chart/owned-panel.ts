@@ -32,11 +32,14 @@ import { calcOtherStat, NATURE_STAT_MODIFIERS } from '../stats';
 import { validateSpeedChartApplyPayload } from '../speed-chart-validation';
 import type { OwnedPokemonRecord } from '../owned-pokemon';
 import { spriteUrl } from '../pokemon-master-data';
+import { itemIconUrl, loadItemSpriteMap } from '../sprite-urls';
 
 export const OWNED_CURRENT_VALUE_EVENT = 'speed-chart:owned-current-changed';
 
 export interface OwnedCurrentValueEventDetail {
   value: number;
+  /** ランク操作による変更時だけ表を再描画して移動する。 */
+  navigate?: boolean;
 }
 
 // 追加改修(2026-08-01第2弾)要件4・R-12更新: 「個体が到達可能な実数値の集合」はこのモジュールが
@@ -104,7 +107,7 @@ const NATURE_EFFECT_MODIFIER: Record<'up' | 'neutral' | 'down', number> = {
 // (box-id/right-panel.tsの矢印アイコン生成と同じパターン)。色はstroke="currentColor"で
 // ボタンのテキスト色を継承させ、新色は追加しない。`speed-chart-apply-icon`クラスは
 // OwnedPanel.astro側のCSSが参照しているため据え置く。
-function createEditIcon(): SVGElement {
+function createRefreshIcon(): SVGElement {
   const ns = 'http://www.w3.org/2000/svg';
   const svg = document.createElementNS(ns, 'svg');
   svg.setAttribute('class', 'speed-chart-apply-icon');
@@ -119,14 +122,13 @@ function createEditIcon(): SVGElement {
   svg.setAttribute('aria-hidden', 'true');
   svg.setAttribute('focusable', 'false');
 
-  // 鉛筆本体(OwnedPanel.astroの編集ボタンと同じpath)。
+  // UI改修(2026-08-06): 保存値の更新を表すlucide refresh-cw相当の円形矢印。
   const body = document.createElementNS(ns, 'path');
-  body.setAttribute('d', 'M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z');
+  body.setAttribute('d', 'M21 12a9 9 0 1 1-2.64-6.36');
   svg.appendChild(body);
 
-  // 鉛筆の先端の斜め線。
   const tip = document.createElementNS(ns, 'path');
-  tip.setAttribute('d', 'm15 5 4 4');
+  tip.setAttribute('d', 'M21 3v6h-6');
   svg.appendChild(tip);
 
   return svg;
@@ -194,7 +196,9 @@ export function initOwnedPanel(ctx: OwnedPanelContext): OwnedPanelController {
     scarfModifier: ctx.scarfModifier,
   });
 
-  const currentValue = computeCurrentValue();
+  const unrankedCurrentValue = computeCurrentValue();
+  let currentValue = unrankedCurrentValue;
+  const renderedCells = new Map<number, HTMLElement>();
 
   function usesScarfNow(): boolean {
     return !!ctx.scarfModifier && !!ctx.scarfItemName && currentItem === ctx.scarfItemName;
@@ -230,7 +234,26 @@ export function initOwnedPanel(ctx: OwnedPanelContext): OwnedPanelController {
     const abilityEl = document.getElementById(SUMMARY_ABILITY_ID);
     if (abilityEl) abilityEl.textContent = ctx.ownedRecord.ability_name ?? '特性未設定';
     const itemEl = document.getElementById(SUMMARY_ITEM_ID);
-    if (itemEl) itemEl.textContent = currentItem ?? '持ち物なし';
+    if (itemEl) {
+      itemEl.replaceChildren();
+      if (currentItem) {
+        // UI改修(2026-08-06): 既存のアイテムマスターと正規化済み画像URLを再利用する。
+        const text = document.createElement('span');
+        text.textContent = currentItem;
+        itemEl.appendChild(text);
+        void loadItemSpriteMap().then((map) => {
+          const spritePath = map.get(currentItem);
+          if (!spritePath || !itemEl.isConnected || itemEl.querySelector('img')) return;
+          const image = document.createElement('img');
+          image.alt = '';
+          image.src = itemIconUrl(spritePath);
+          image.addEventListener('error', () => image.remove(), { once: true });
+          itemEl.prepend(image);
+        });
+      } else {
+        itemEl.textContent = 'アイテムなし';
+      }
+    }
     // 4段目: 性格・努力値。このページの主題がすばやさのため、努力値はS努力値
     // (currentEvs[5])を表示する(チャンピオンズルールの0〜32スケールは仕様)。
     const natureEl = document.getElementById(SUMMARY_NATURE_ID);
@@ -252,9 +275,52 @@ export function initOwnedPanel(ctx: OwnedPanelContext): OwnedPanelController {
     const valueEl = document.getElementById(SUMMARY_VALUE_ID);
     if (valueEl) {
       valueEl.textContent = `すばやさ ${currentValue}`;
-      valueEl.setAttribute('aria-label', `すばやさ ${currentValue}(現在地へ戻る)`);
     }
   }
+
+  // UI改修(2026-08-06): /box/[id]と同じ入力確定・端点無効・ホイール抑止で表示専用ランクを扱う。
+  const rankInput = document.getElementById('speed-chart-rank-input') as HTMLInputElement | null;
+  const rankIncrement = document.getElementById('speed-chart-rank-increment') as HTMLButtonElement | null;
+  const rankDecrement = document.getElementById('speed-chart-rank-decrement') as HTMLButtonElement | null;
+  const clampRank = (value: number): number => Math.max(-6, Math.min(6, Math.trunc(value)));
+  const updateRankControls = (rank: number): void => {
+    rankInput?.classList.toggle('is-nonzero', rank !== 0);
+    if (rankIncrement) rankIncrement.disabled = rank >= 6;
+    if (rankDecrement) rankDecrement.disabled = rank <= -6;
+  };
+  const commitRank = (fallbackToZeroIfEmpty: boolean): void => {
+    if (!rankInput) return;
+    const raw = rankInput.value.trim();
+    if (!fallbackToZeroIfEmpty && (raw === '' || raw === '-')) return;
+    const parsed = raw === '' || raw === '-' || !Number.isFinite(Number(raw)) ? 0 : Number(raw);
+    const rank = clampRank(parsed);
+    rankInput.value = String(rank);
+    const numerator = rank > 0 ? 2 + rank : 2;
+    const denominator = rank < 0 ? 2 - rank : 2;
+    currentValue = Math.floor((unrankedCurrentValue * numerator) / denominator);
+    updateRankControls(rank);
+    updateSummary();
+    for (const [value, cell] of renderedCells) paintCell(value, cell);
+    dispatchReachableValuesChanged();
+    dispatchCurrentValueChanged(true);
+  };
+  rankInput?.addEventListener('input', () => commitRank(false));
+  rankInput?.addEventListener('change', () => commitRank(true));
+  rankInput?.addEventListener('blur', () => commitRank(true));
+  rankInput?.addEventListener('wheel', (event) => {
+    if (document.activeElement === rankInput) event.preventDefault();
+  }, { passive: false });
+  rankIncrement?.addEventListener('click', () => {
+    if (!rankInput) return;
+    rankInput.value = String(clampRank((Number(rankInput.value) || 0) + 1));
+    commitRank(true);
+  });
+  rankDecrement?.addEventListener('click', () => {
+    if (!rankInput) return;
+    rankInput.value = String(clampRank((Number(rankInput.value) || 0) - 1));
+    commitRank(true);
+  });
+  updateRankControls(0);
 
   function showError(message: string): void {
     const el = document.getElementById(ERROR_BANNER_ID);
@@ -270,16 +336,17 @@ export function initOwnedPanel(ctx: OwnedPanelContext): OwnedPanelController {
     el.textContent = '';
   }
 
-  function dispatchCurrentValueChanged(): void {
+  function dispatchCurrentValueChanged(navigate = false): void {
     document.dispatchEvent(
-      new CustomEvent<OwnedCurrentValueEventDetail>(OWNED_CURRENT_VALUE_EVENT, { detail: { value: currentValue } }),
+      new CustomEvent<OwnedCurrentValueEventDetail>(OWNED_CURRENT_VALUE_EVENT, { detail: { value: currentValue, navigate } }),
     );
   }
 
   function dispatchReachableValuesChanged(): void {
     document.dispatchEvent(
       new CustomEvent<OwnedReachableValuesEventDetail>(OWNED_REACHABLE_VALUES_EVENT, {
-        detail: { values: combos.map((combo) => combo.value) },
+        // UI改修(2026-08-06): 絞り込み中もランク補正後の現在行を必ず残す。
+        detail: { values: [...combos.map((combo) => combo.value), currentValue] },
       }),
     );
   }
@@ -346,7 +413,7 @@ export function initOwnedPanel(ctx: OwnedPanelContext): OwnedPanelController {
     // ボタンを押すと保存後に/box/<id>へ遷移する(下のhandleApply参照)。押下結果を
     // その場で編集することを表す編集アイコン(鉛筆)を先頭に付ける(要件2、
     // 2026-08-02第5弾でページジャンプアイコンから差し替え。右パネルの編集ボタンと意匠を統一)。
-    button.append(createEditIcon(), document.createTextNode(buttonParts.join(' ')));
+    button.append(createRefreshIcon(), document.createTextNode(buttonParts.join(' / ')));
     button.addEventListener('click', () => {
       void handleApply(selection, button);
     });
@@ -374,7 +441,8 @@ export function initOwnedPanel(ctx: OwnedPanelContext): OwnedPanelController {
     const itemName = selection.usesScarf ? ctx.scarfItemName : currentItem;
     const validated = validateSpeedChartApplyPayload({ nature: selection.nature, evSpe: selection.evSpe, itemName });
     if (!validated.ok) {
-      showError(`適用できませんでした: ${validated.error}`);
+      // UI改修(2026-08-06): 内部の検証理由は画面へ露出せず、操作単位のエラーに統一する。
+      showError('ステータスを更新できませんでした');
       button.disabled = false;
       return;
     }
@@ -396,15 +464,15 @@ export function initOwnedPanel(ctx: OwnedPanelContext): OwnedPanelController {
         body: JSON.stringify(payload),
       });
       if (!res.ok) {
-        const body = (await res.json().catch(() => null)) as { error?: string } | null;
+        await res.json().catch(() => null);
         // R-10: 保存失敗時は ← 現在 マーカーを動かさず(=状態を更新しない)、
         // クリックした候補を再クリックできる状態に戻す(button.disabled = false)。
-        showError(`保存に失敗しました(${res.status}): ${body?.error ?? '不明なエラー'}`);
+        showError('ステータスを更新できませんでした');
         button.disabled = false;
         return;
       }
-    } catch (err) {
-      showError(`保存に失敗しました: ${err instanceof Error ? err.message : String(err)}`);
+    } catch {
+      showError('ステータスを更新できませんでした');
       button.disabled = false;
       return;
     }
@@ -428,6 +496,7 @@ export function initOwnedPanel(ctx: OwnedPanelContext): OwnedPanelController {
     getCurrentValue: () => currentValue,
     renderCell(rowValue: number): HTMLElement {
       const el = document.createElement('div');
+      renderedCells.set(rowValue, el);
       el.className = 'speed-chart-owned';
       paintCell(rowValue, el);
       return el;

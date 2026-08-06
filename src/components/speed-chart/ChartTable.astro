@@ -64,20 +64,11 @@ const { regulation, ownedId, hasOwnedPanel } = Astro.props;
 				    (pitfalls.md「要素を消す指示はDOMを残しCSSで見せない方針にする」)ため、
 				    要素自体は削除せずhidden属性で非表示にする(クリックハンドラの登録先も
 				    chart-table.ts側でこの新しいボタンへ切り替え済み)。 */}
-				<button type="button" id="speed-chart-back-to-current" class="speed-chart-side-button" hidden>現在地へ戻る</button>
-				<label class="speed-chart-reachable-toggle">
-					<span class="toggle-switch">
-						{/* UI改修(2026-08-02第4弾)要件3: 「とりうるすばやさのみ」(絞り込み)から
-						    「すべて表示」(展開)へ意味を反転させる。idは変えない(chart-table.tsが
-						    参照)。checkedを外し既定OFF=絞り込み表示のまま、ONで全件表示にする
-						    (checked/uncheckedの解釈反転はchart-table.ts側の担当)。 */}
-						<input type="checkbox" id="speed-chart-reachable-only-toggle" class="toggle-switch-input" aria-label="すべて表示" />
-						<span class="toggle-switch-track" aria-hidden="true">
-							<span class="toggle-switch-thumb"></span>
-						</span>
-					</span>
-					<span>すべて表示</span>
-				</label>
+				{/* UI改修(2026-08-06): 全件表示トグルと移動操作はトップバー／サマリへ移設した。 */}
+				{/* UI改修(2026-08-02第4弾)要件3: 「とりうるすばやさのみ」(絞り込み)から
+				    「すべて表示」(展開)へ意味を反転させる。idは変えない(chart-table.tsが
+				    参照)。checkedを外し既定OFF=絞り込み表示のまま、ONで全件表示にする
+				    (checked/uncheckedの解釈反転はchart-table.ts側の担当)。 */}
 			</aside>
 		)}
 
@@ -203,30 +194,12 @@ const { regulation, ownedId, hasOwnedPanel } = Astro.props;
 			border-bottom: 1px solid var(--color-border);
 		}
 	}
-	.speed-chart-side-button {
-		align-self: flex-start;
-	}
-	/* UI改修依頼(すばやさ早見表、2026-08-02): 上のhidden属性を確実に効かせる。このクラス自体は
-	   displayを明示していないため[hidden]のUA既定(display:none)で足りるはずだが、
-	   pitfalls.md「[hidden]は詳細度で負ける」の教訓により念のため明示しておく。 */
-	.speed-chart-side-button[hidden] {
-		display: none;
-	}
-
+	/* UI改修(2026-08-06): 右パネル末尾の操作を移設したため専用CSSも削除した。 */
+	/* UI改修依頼(すばやさ早見表、2026-08-02): hidden属性を確実に効かせるため、旧
+	   .speed-chart-side-button[hidden]ではdisplay:noneを明示していた。 */
 	/* トグルスイッチ本体は複数ページで使うためglobal.cssの共通定義を参照する。
 	   UI改修(2026-08-02第2弾)要件1: 「すばやさ上昇要因を表示」トグルは廃止し常に表示する
-	   ようにしたため、ここに残るのは「とりうるすばやさのみ」(?owned=連携時のみ)だけ。 */
-	.speed-chart-reachable-toggle {
-		display: flex;
-		align-items: center;
-		gap: var(--space-2);
-		cursor: pointer;
-		/* UI改修(2026-08-02第4弾)要件3: ラベルの文字サイズを一段上げる(--font-size-xs →
-		   --font-size-sm)。「すべて表示」に文言変更した際、他の右パネル要素と比べて
-		   小さすぎて目立たなかったため。 */
-		font-size: var(--font-size-sm);
-		color: var(--color-text-muted);
-	}
+	   ようにしたため、移設前に残っていたのは「とりうるすばやさのみ」だけだった。 */
 	/* 列構成は「実数値 / 族・配分・倍率 / ポケモン・補正要因」の3列。
 	   ?owned= 連携時のみ「調整」を4列目として足す。JS生成行(下の is:global 側)が
 	   この列幅を参照するよう、テンプレートをカスタムプロパティで1箇所に持つ

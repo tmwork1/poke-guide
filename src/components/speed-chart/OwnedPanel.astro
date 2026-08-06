@@ -52,7 +52,7 @@ const { hasOwnedPanel, ownedId } = Astro.props;
 			<span id="speed-chart-owned-summary-species" class="speed-chart-owned-summary-species"></span>
 			<span class="speed-chart-owned-summary-badges">
 				<span id="speed-chart-owned-summary-ability" class="badge badge-muted"></span>
-				<span id="speed-chart-owned-summary-item" class="badge badge-muted"></span>
+				<span id="speed-chart-owned-summary-item" class="badge badge-muted speed-chart-owned-summary-item"></span>
 			</span>
 			<span class="speed-chart-owned-summary-badges">
 				<span id="speed-chart-owned-summary-nature" class="badge badge-muted"></span>
@@ -70,7 +70,18 @@ const { hasOwnedPanel, ownedId } = Astro.props;
 			    可視ラベルを包含するようにする)。ボタンであることが見た目でも分かるよう、
 			    既存の「ボーダー同色の塗り→ホバーで白地に反転」方式(global.css button.btn-primary、
 			    新色は作らない)のクラスを付与する。 */}
-			<button type="button" id="speed-chart-owned-summary-value" class="tnum btn-primary speed-chart-owned-summary-value" title="現在地へ戻る"></button>
+			{/* UI改修(2026-08-06): 値は通常テキスト、スクロール操作は控えめな専用ボタンに分ける。 */}
+			<div class="speed-chart-owned-summary-value-row">
+				<span id="speed-chart-owned-summary-value" class="tnum speed-chart-owned-summary-value"></span>
+				<button type="button" id="speed-chart-owned-jump-button" class="btn-ghost speed-chart-owned-jump-button" title="現在地へ戻る">移動</button>
+			</div>
+			{/* UI改修(2026-08-06): 保存対象に含めない表示専用のすばやさランク入力。 */}
+			<div class="speed-chart-rank-field">
+				<label for="speed-chart-rank-input">ランク</label>
+				<input id="speed-chart-rank-input" type="number" min="-6" max="6" step="1" inputmode="numeric" value="0" />
+				<button type="button" id="speed-chart-rank-increment" class="btn-ghost speed-chart-rank-stepper" aria-label="すばやさランクを1上げる">＋</button>
+				<button type="button" id="speed-chart-rank-decrement" class="btn-ghost speed-chart-rank-stepper" aria-label="すばやさランクを1下げる">－</button>
+			</div>
 		</div>
 	)}
 	{/*
@@ -194,6 +205,54 @@ const { hasOwnedPanel, ownedId } = Astro.props;
 	.speed-chart-owned-summary-value {
 		font-size: var(--font-size-md);
 	}
+	.speed-chart-owned-summary-value-row {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+	}
+	.speed-chart-owned-jump-button {
+		padding: 0.2em 0.5em;
+		font-size: var(--font-size-xs);
+		font-weight: 500;
+		color: var(--color-text-muted);
+	}
+	/* UI改修(2026-08-06): /box/[id]のランク入力と同じ密度・強調・端点状態を再現する。 */
+	.speed-chart-rank-field {
+		display: flex;
+		align-items: center;
+		gap: var(--space-1);
+		font-size: var(--font-size-xs);
+		color: var(--color-text-muted);
+	}
+	.speed-chart-rank-field input[type='number'] {
+		width: 3.4em;
+		min-height: 0;
+		padding: 0.3em;
+		font-size: var(--font-size-xs);
+		text-align: center;
+		background: var(--color-surface-alt);
+		appearance: textfield;
+	}
+	.speed-chart-rank-field input[type='number']::-webkit-inner-spin-button,
+	.speed-chart-rank-field input[type='number']::-webkit-outer-spin-button { appearance: none; }
+	.speed-chart-rank-field input.is-nonzero {
+		font-weight: 700;
+		color: var(--color-primary-strong);
+		border-color: var(--color-primary-strong);
+	}
+	.speed-chart-rank-stepper {
+		min-width: var(--space-6);
+		min-height: var(--space-6);
+		justify-content: center;
+		padding: 0.2em;
+	}
+	.speed-chart-rank-stepper:disabled { cursor: default; opacity: 0.5; }
+	.speed-chart-owned-summary-item {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--space-1);
+	}
+	.speed-chart-owned-summary-item img { width: var(--space-5); height: var(--space-5); object-fit: contain; }
 	/* .severity-bar[data-severity]は基底(global.css)がdisplay指定を持たないブロック要素なので、
 	   [hidden]の詳細度勝ち負けは発生しない(pitfalls.mdの罠は「displayを明示したクラス」限定)。
 	   念のため明示しておく。 */
@@ -253,6 +312,11 @@ const { hasOwnedPanel, ownedId } = Astro.props;
 		   button.btn-primary { font-weight: 700 } は(0,1,1)、こちらは.speed-chart-owned
 		   (領域ルート)経由の(0,2,0)で詳細度が上回るため確実に上書きできる。 */
 		font-weight: 500;
+		/* UI改修(2026-08-06): 長いアイテム名でもパネル幅を越えず一段に収める。 */
+		max-width: 100%;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
 	}
 	.speed-chart-owned .speed-chart-apply-icon {
 		flex-shrink: 0;

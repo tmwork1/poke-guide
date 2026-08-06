@@ -191,26 +191,37 @@ try {
 >
 	<Fragment slot="topbar-actions">
 		{/* 可視ラベルとselectをfor/idで結び、トップバー上でも選択対象を明確にする。 */}
-		<label class="speed-chart-regulation-label" for="speed-chart-regulation-select">レギュレーション</label>
-		<select id="speed-chart-regulation-select">
-			<option value="all" selected={resolvedRegulation === 'all'}>すべて</option>
-			{REGULATIONS_NEWEST_FIRST.map((reg) => (
-				<option value={reg} selected={reg === resolvedRegulation}>{reg}</option>
-			))}
-		</select>
+		{/* UI改修(2026-08-06): 関連するラベルと選択欄だけを既存のまとまりで詰める。 */}
+		<div class="toolbar-item">
+			<label class="speed-chart-regulation-label" for="speed-chart-regulation-select">レギュレーション</label>
+			<select id="speed-chart-regulation-select">
+				<option value="all" selected={resolvedRegulation === 'all'}>すべて</option>
+				{REGULATIONS_NEWEST_FIRST.map((reg) => (
+					<option value={reg} selected={reg === resolvedRegulation}>{reg}</option>
+				))}
+			</select>
+		</div>
 		<input type="number" id="speed-chart-jump-input" placeholder="実数値" aria-label="実数値" />
 		{/* 実数値の並び順は、現在の状態を示す単一ボタンで切り替える。 */}
 		<div class="speed-chart-order-select-wrap">
-			<button id="speed-chart-order-select" type="button" data-order="desc" aria-label="実数値の並び順: 降順" aria-pressed="false">
+			<button id="speed-chart-order-select" type="button" data-order="desc" aria-label="実数値の並び順: 速い順" aria-pressed="false">
 				<svg class="speed-chart-order-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 					<path d="M7 4v16" />
 					<path d="M4 7l3-3 3 3" />
 					<path d="M17 20V4" />
 					<path d="M14 17l3 3 3-3" />
 				</svg>
-				<span class="speed-chart-order-label">降順</span>
+				<span class="speed-chart-order-label">速い順</span>
 			</button>
 		</div>
+		{/* UI改修(2026-08-06): 表示範囲は表全体の操作なのでトップバーへ移す。 */}
+		{hasOwnedPanel && <label class="speed-chart-reachable-toggle">
+			<span class="toggle-switch">
+				<input type="checkbox" id="speed-chart-reachable-only-toggle" class="toggle-switch-input" aria-label="すべて表示" />
+				<span class="toggle-switch-track" aria-hidden="true"><span class="toggle-switch-thumb"></span></span>
+			</span>
+			<span>すべて表示</span>
+		</label>}
 	</Fragment>
 	<ChartTable
 		regulation={resolvedRegulation}
@@ -259,10 +270,18 @@ try {
 		transition: transform 0.2s ease;
 	}
 	#speed-chart-order-select {
-		/* UI改修依頼(2026-08-05)「ボタン幅を内容に合わせる」対応。両ラベルは同じ2文字なので切替でも幅は変わらない。 */
+		/* UI改修依頼(2026-08-06): 両ラベルは同じ3文字なので切替でも幅は変わらない。 */
 		width: max-content;
 		min-width: 0;
 		flex: none;
+	}
+	/* UI改修(2026-08-06): トップバーでも既存トグルの密度と操作領域を維持する。 */
+	.speed-chart-reachable-toggle {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--space-2);
+		font-size: var(--font-size-sm);
+		white-space: nowrap;
 	}
 	#speed-chart-order-select[data-order='asc'] .speed-chart-order-icon {
 		transform: rotate(180deg);

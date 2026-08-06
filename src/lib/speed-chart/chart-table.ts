@@ -225,7 +225,8 @@ export async function initSpeedChartPage(): Promise<void> {
   // 現在はhidden属性で非表示)のクリックハンドラを、OwnedPanel.astroの「すばやさ xxx」表示
   // (#speed-chart-owned-summary-value、owned-panel.tsがbutton化しaria-label/titleを設定)へ
   // 差し替える。ハンドラの中身(scrollToValue呼び出し)自体は変更しない。
-  const backButton = document.getElementById('speed-chart-owned-summary-value');
+  // UI改修(2026-08-06): 実数値表示と操作を分離したため専用の移動ボタンを参照する。
+  const backButton = document.getElementById('speed-chart-owned-jump-button');
   // 要件4: ?owned=があるときだけ存在するトグル(ChartTable.astro側もhasOwnedPanelで条件付け済み)。
   const reachableOnlyToggle = document.getElementById('speed-chart-reachable-only-toggle') as HTMLInputElement | null;
   const orderButton = document.getElementById('speed-chart-order-select') as HTMLButtonElement | null;
@@ -644,7 +645,10 @@ export async function initSpeedChartPage(): Promise<void> {
     const detail = (event as CustomEvent<OwnedCurrentValueEventDetail>).detail;
     lastKnownOwnedValue = detail.value;
     // R-12: 「行のハイライトを描き直すだけ」。セル内部の3状態描画自体はowned-panel.tsが行う。
+    if (detail.navigate) renderVisibleRows();
     applyHighlight(detail.value);
+    // UI改修(2026-08-06): ランク変更時だけ補正済み現在地へ自動で移動する。
+    if (detail.navigate) scrollToValue(detail.value);
   });
 
   // 追加改修(2026-08-01第2弾)要件4・R-12更新: 「個体が到達可能な実数値の集合」は
@@ -685,7 +689,7 @@ export async function initSpeedChartPage(): Promise<void> {
 
   function updateOrderButton(): void {
     if (!orderButton) return;
-    const label = sortOrder === 'asc' ? '昇順' : '降順';
+    const label = sortOrder === 'asc' ? '遅い順' : '速い順';
     orderButton.dataset.order = sortOrder;
     orderButton.setAttribute('aria-label', `実数値の並び順: ${label}`);
     orderButton.setAttribute('aria-pressed', String(sortOrder === 'asc'));
