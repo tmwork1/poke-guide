@@ -17,6 +17,7 @@
 //   slot="head"           … <head> 内への追加(既存)。
 import '../styles/global.css';
 import AppSidebar from '../components/AppSidebar.astro';
+import AppBottomNav from '../components/AppBottomNav.astro';
 
 interface Props {
 	title: string;
@@ -48,11 +49,7 @@ interface Props {
 	 * UI改修依頼(2026-08-02): ボックス/チームトップ/すばやさ早見表の3画面は、共通の
 	 * <header class="app-topbar"> を描画せず、各ページ自身のセカンドトップバー(検索/絞り込み
 	 * バー等)をトップバーとして扱う。true のときはこのレイアウトの<header>を描画しない。
-	 * ページ側で満たすべき責務:
-	 *   - モバイル(900px未満)のサイドバー開閉導線が失われるため、自前のバーに
-	 *     id="app-sidebar-toggle" の同一マークアップのハンバーガーボタンを複製すること
-	 *     (このファイル末尾のscriptがdocument.getElementByIdでDOM上の位置を問わず拾う)。
-	 *   - .app-shell に "no-topbar" クラスを自動付与する(下記)。global.css側で
+	 * .app-shell に "no-topbar" クラスを自動付与する(下記)。global.css側で
 	 *     --topbar-height を0に上書きし、.app-main の min-height 計算のズレを防いでいる。
 	 */
 	hideTopbar?: boolean;
@@ -93,28 +90,6 @@ const user = Astro.locals.user;
 				     道連れに削除されていた(未ログインの第三者向け唯一の導線)。ここに復元する。 -->
 				<div class="app-topbar-row app-topbar-row-brand">
 					<div class="app-topbar-row-left">
-						{
-							/* ラウンド13追補: chrome="public" では .app-sidebar 自体を描画しないため、
-							   このボタンは押しても何も起きない死んだ操作になる(スクリーンリーダーからも
-							   到達できてしまう)。CSSで隠すだけでは不十分なので、他の「消す」指示とは異なり
-							   ここは条件付きレンダリングでDOM自体を出さない。 */
-							!isPublicChrome && (
-								<button
-									type="button"
-									class="app-topbar-menu-button btn-ghost"
-									id="app-sidebar-toggle"
-									aria-controls="app-sidebar"
-									aria-expanded="false"
-									aria-label="メニューを開く"
-								>
-									<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-										<line x1="4" y1="7" x2="20" y2="7" />
-										<line x1="4" y1="12" x2="20" y2="12" />
-										<line x1="4" y1="17" x2="20" y2="17" />
-									</svg>
-								</button>
-							)
-						}
 						<span class="app-topbar-brand">Poke-Commons</span>
 					</div>
 					{
@@ -169,6 +144,8 @@ const user = Astro.locals.user;
 			)}
 
 			{!isPublicChrome && <AppSidebar current={current} user={user} />}
+
+			{!isPublicChrome && <AppBottomNav current={current} />}
 
 			{!isPublicChrome && <div class="app-sidebar-overlay" id="app-sidebar-overlay"></div>}
 
@@ -226,11 +203,6 @@ const user = Astro.locals.user;
 	   (左右の帯が参照する --topbar-height を :root で公開する必要があるため)。
 	   ここではトップバー内部の見た目(余白・タイポグラフィ)のみを扱う
 	   (AppSidebar.astro と同じ役割分担)。 */
-	.app-topbar-menu-button {
-		padding: var(--space-2);
-		flex-shrink: 0;
-	}
-
 	.app-topbar-row-left {
 		display: flex;
 		align-items: center;

@@ -1,0 +1,99 @@
+---
+interface Props {
+	current?: "box" | "team" | "dev" | "speed-chart" | "ranked-teams";
+}
+
+const { current } = Astro.props;
+---
+
+<nav class="app-bottom-nav" aria-label="メインナビゲーション">
+	<div class="app-bottom-nav-list">
+		<button type="button" class="app-bottom-nav-item" id="app-sidebar-toggle" aria-controls="app-sidebar" aria-expanded="false" aria-label="メニューを開く">
+			<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="7" x2="20" y2="7" /><line x1="4" y1="12" x2="20" y2="12" /><line x1="4" y1="17" x2="20" y2="17" /></svg>
+			<span>メニュー</span>
+		</button>
+		<span class="app-bottom-nav-item is-disabled" aria-disabled="true">
+			<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.05" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+			<span>トレンド</span>
+		</span>
+		<a class="app-bottom-nav-item" href="/box" data-active={current === "box" ? "true" : undefined} aria-current={current === "box" ? "page" : undefined}>
+			<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.05" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 7.5 12 3 3 7.5v9L12 21l9-4.5v-9Z"/><path d="M3.5 7.3 12 12l8.5-4.7"/><path d="M12 12v9"/></svg>
+			<span>ボックス</span>
+		</a>
+		<a class="app-bottom-nav-item" href="/team" data-active={current === "team" ? "true" : undefined} aria-current={current === "team" ? "page" : undefined}>
+			<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="8" cy="7" r="1.8"/><circle cx="16" cy="7" r="1.8"/><circle cx="8" cy="12" r="1.8"/><circle cx="16" cy="12" r="1.8"/><circle cx="8" cy="17" r="1.8"/><circle cx="16" cy="17" r="1.8"/></svg>
+			<span>チーム</span>
+		</a>
+		<span class="app-bottom-nav-item is-disabled" aria-disabled="true">
+			<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.05" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="2.5" width="16" height="19" rx="2"/><line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="12" x2="8" y2="12"/><line x1="12" y1="12" x2="12" y2="12"/><line x1="16" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="8" y2="16"/><line x1="12" y1="16" x2="12" y2="16"/><line x1="16" y1="16" x2="16" y2="16"/></svg>
+			<span>ダメージ計算</span>
+		</span>
+		<a class="app-bottom-nav-item" href="/speed-chart" data-active={current === "speed-chart" ? "true" : undefined} aria-current={current === "speed-chart" ? "page" : undefined}>
+			<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.05" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg>
+			<span>すばやさ</span>
+		</a>
+		<a class="app-bottom-nav-item" href="/ranked-teams" data-active={current === "ranked-teams" ? "true" : undefined} aria-current={current === "ranked-teams" ? "page" : undefined}>
+			<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.05" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v5a5 5 0 0 1-10 0V4Z"/><path d="M7 6H4v2a4 4 0 0 0 4 4"/><path d="M17 6h3v2a4 4 0 0 1-4 4"/></svg>
+			<span>上位構築</span>
+		</a>
+	</div>
+</nav>
+
+<style>
+	.app-bottom-nav {
+		position: fixed;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		z-index: 20;
+		background: var(--color-surface);
+		border-top: 1px solid var(--color-border);
+		padding-bottom: env(safe-area-inset-bottom);
+	}
+
+	.app-bottom-nav-list {
+		display: flex;
+		height: var(--bottom-nav-height);
+		overflow-x: auto;
+		scrollbar-width: none;
+	}
+
+	.app-bottom-nav-list::-webkit-scrollbar {
+		display: none;
+	}
+
+	.app-bottom-nav-item {
+		flex: 0 0 64px;
+		min-width: 64px;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: var(--space-1);
+		padding: var(--space-1);
+		border: 0;
+		background: transparent;
+		color: var(--color-text-muted);
+		font: inherit;
+		font-size: var(--font-size-xs);
+		line-height: 1;
+		text-decoration: none;
+		white-space: nowrap;
+	}
+
+	.app-bottom-nav-item[data-active="true"] {
+		color: var(--color-primary);
+	}
+
+	.app-bottom-nav-item.is-disabled {
+		color: var(--color-text-muted);
+		opacity: 0.6;
+		cursor: not-allowed;
+	}
+
+	@media (min-width: 900px) {
+		.app-bottom-nav {
+			display: none;
+		}
+	}
+</style>

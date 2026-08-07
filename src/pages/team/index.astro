@@ -32,9 +32,6 @@ const user = Astro.locals.user;
 	  旧topbar-statusスロット(件数バッジ)はこのページ自身のツールバー(.panel-toolbar、
 	  #team-toolbar)内へ直接配置する(下記マークアップ、id="team-count-badge"・
 	  class="badge tnum"は変更しない、<script>がgetElementByIdで参照するため)。
-	  モバイル(900px未満)のサイドバー開閉ハンバーガーもbox/index.astroと同じマークアップ
-	  (id="app-sidebar-toggle"、AppLayout.astro末尾の<script>がDOM上の位置を問わず
-	  getElementByIdで拾って開閉処理を配線する)を#team-toolbarの先頭に複製する。
 	*/}
 	<style>
 		/* --- ツールバー(検索+並べ替え。box/index.astroの.panel-toolbarをそのまま流用。
@@ -44,9 +41,6 @@ const user = Astro.locals.user;
 		   (このツールバーがAppLayoutの共通<header class="app-topbar">の代わりを務める)。
 		   sticky/z-index/background/border-bottomはglobal.cssの.app-topbarと同じ値
 		   (新しい値は作らない)。 */
-		/* モバイル(900px未満)専用のサイドバー開閉ボタン。box/index.astroと同じ
-		   .toolbar-menu-buttonをglobal.cssで共有する
-		   (hideTopbar={true}によりAppLayout側のボタンが描画されなくなるため)。 */
 		/* UI改修依頼(チームトップ画面、2026-08-02)「ヘッダーの件数バッジを検索ボックスの左に置く」:
 		   旧topbar-statusスロットの件数バッジをツールバー右端(margin-left: auto)から検索ボックスの
 		   直前へ移動した(box/index.astroの同時改修と結果的に同じ配置になる)。ツールバー先頭寄りに
@@ -484,18 +478,6 @@ const user = Astro.locals.user;
 			user ? (
 				<Fragment>
 					<div class="panel panel-top panel-toolbar" id="team-toolbar">
-						{/* UI改修依頼(チームトップ画面、2026-08-02)「トップバー削除・セカンドトップバー化」。
-						    AppLayout.astroが元々<header class="app-topbar">に持っていたハンバーガー
-						    ボタンと全く同じマークアップ(box/index.astroの複製)。id="app-sidebar-toggle"は
-						    変更しない(AppLayout.astro末尾の<script>がDOM上の位置を問わずgetElementByIdで
-						    拾って開閉処理を配線する)。デスクトップでは.toolbar-menu-button側のCSSで
-						    非表示にする。 */}
-						<button type="button" class="toolbar-menu-button btn-ghost" id="app-sidebar-toggle" aria-controls="app-sidebar" aria-expanded="false" aria-label="メニューを開く">
-							<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-								<line x1="4" y1="7" x2="20" y2="7" /><line x1="4" y1="12" x2="20" y2="12" /><line x1="4" y1="17" x2="20" y2="17" />
-							</svg>
-						</button>
-
 						{/* UI改修依頼(チームトップ画面、2026-08-02)「ヘッダーの件数バッジを検索ボックスの
 						    左に置く」: 旧topbar-statusスロットの件数バッジ。id/classは変更しない
 						    (<script>がgetElementByIdで参照する)。以前はツールバー末尾(margin-left: auto で

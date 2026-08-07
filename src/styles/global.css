@@ -1449,6 +1449,7 @@ dialog#opponent-note-form-container::backdrop {
    サイドバー内部の見た目(余白・タイポグラフィ等)は AppSidebar.astro 側のscoped styleに置く。 */
 :root {
 	--sidebar-width: 256px;
+	--bottom-nav-height: 60px;
 	/* 2026-07-26 トップバー新設: 個体編集ページ等の左右の帯(panel-left/panel-right)が
 	   `height: calc(100vh - var(--topbar-height))` を組むための実測値。トップバーの
 	   padding/構成を変えた場合は、必ずブラウザで実測して以下2箇所(既定値=モバイル2段、
@@ -1562,6 +1563,10 @@ dialog#opponent-note-form-container::backdrop {
 	min-height: calc(100vh - var(--topbar-height));
 }
 
+.app-shell:not(.is-public) .app-main {
+	padding-bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom));
+}
+
 @media (min-width: 900px) {
 	:root {
 		/* デスクトップは.app-topbar-row-mainのみの1段になるため、モバイルより低い。 */
@@ -1602,6 +1607,10 @@ dialog#opponent-note-form-container::backdrop {
 
 	.app-main {
 		margin-left: var(--sidebar-width);
+	}
+
+	.app-shell:not(.is-public) .app-main {
+		padding-bottom: 0;
 	}
 
 	/* ラウンド13 A-1: 公開共有ページ(chrome="public")はサイドバーを描画しないため、
