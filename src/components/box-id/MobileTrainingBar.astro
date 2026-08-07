@@ -39,7 +39,6 @@ const displayNickname = pokemon.nickname?.trim() || pokemon.species_name;
 		<div class="mobile-preview-left">
 			<div class="mobile-preview-details">
 				<div id="mp-ability">{pokemon.ability_name || "-"}</div>
-				<div class="mobile-preview-item mobile-preview-icon-text"><img id="mp-item-image" alt="" style="display:none;" /><span id="mp-item">{pokemon.item_name || "アイテムなし"}</span></div>
 			</div>
 			<ol class="mobile-preview-moves" aria-label="技">
 				{[0, 1, 2, 3].map((index) => <li><span class="move-type-icon" id={`mp-move-type-${index + 1}`} hidden><img alt="" /></span><span id={`mp-move-${index + 1}`}>{moves[index] || "-"}</span></li>)}
@@ -55,6 +54,7 @@ const displayNickname = pokemon.nickname?.trim() || pokemon.species_name;
 			</div>
 		</div>
 		<div class="mobile-preview-right">
+			<div class="mobile-preview-item mobile-preview-icon-text"><img id="mp-item-image" alt="" style="display:none;" /><span id="mp-item">{pokemon.item_name || "アイテムなし"}</span></div>
 			<table class="mobile-preview-stats" aria-label="実数値と努力値">
 				<tbody>{[['hp','H'],['atk','A'],['def','B'],['spa','C'],['spd','D'],['spe','S']].map(([key, label]) => <tr><th>{label}</th><td id={`mp-stat-${key}`}>-</td><td id={`mp-ev-${key}`}>-</td></tr>)}</tbody>
 			</table>
@@ -75,13 +75,14 @@ const displayNickname = pokemon.nickname?.trim() || pokemon.species_name;
 	.mobile-training-bar-item.is-disabled { color: var(--color-text-muted); opacity: 0.6; cursor: not-allowed; }
 	.mobile-training-preview { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: var(--space-2); padding: var(--space-3); background: var(--color-surface-alt); border-bottom: 1px solid var(--color-border); font-size: var(--font-size-xs); }
 	.mobile-preview-left, .mobile-preview-right { min-width: 0; }
+	.mobile-preview-left { padding-top: var(--space-1); }
 	.mobile-preview-details { display: block; }
-	.mobile-preview-details > div { margin-bottom: var(--space-1); }
+	.mobile-preview-details > div { margin-bottom: var(--space-3); }
 	.mobile-preview-details > div, .mobile-preview-icon-text span, .mobile-preview-moves li > span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 	.mobile-preview-icon-text { display: flex; align-items: center; gap: var(--space-1); min-width: 0; }
 	.mobile-preview-icon-text img { width: var(--icon-size-sm); height: var(--icon-size-sm); object-fit: contain; flex-shrink: 0; }
-	.mobile-preview-moves { margin: var(--space-1) 0 0; padding: 0; list-style: none; }
-	.mobile-preview-moves li { display: flex; align-items: center; gap: var(--space-1); min-width: 0; }
+	.mobile-preview-moves { display: flex; flex-direction: column; gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
+	.mobile-preview-moves li { display: flex; align-items: center; gap: var(--space-1); min-width: 0; padding: var(--space-1) 0; }
 	.mobile-preview-moves .move-type-icon { flex-shrink: 0; }
 	.mobile-preview-moves .move-type-icon img { width: var(--icon-size-sm); height: var(--icon-size-sm); object-fit: contain; }
 	.mobile-preview-moves .move-type-icon[hidden] { display: none; }
