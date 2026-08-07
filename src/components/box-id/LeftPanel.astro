@@ -1913,9 +1913,6 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	#edit-form .memo-input { width: 100%; min-width: 0; min-height: 8em; max-height: 16em; margin: 1.75rem 0 var(--space-2); resize: vertical; }
 	@media (max-width: 520px) {
 		#edit-form .field-grid { grid-template-columns: 1fr; }
-		/* UI改善ラウンド26(26-L2): 種族/ニックネーム/特性/性格の2列グリッドも、狭幅では
-		   .field-gridと同じ閾値で1列に戻す(2列だと1列あたりの幅が窮屈になるため)。 */
-		.top-block-fields { grid-template-columns: 1fr; }
 	}
 
 	/* デスクトップでは左パネルのカードを縦フレックスにして画面の高さいっぱいまで伸ばし、
@@ -2273,6 +2270,23 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 			flex-shrink: 0;
 		}
 		.item-image-badge[hidden] { display: none; }
+
+	.mobile-move-toggle { display: none; }
+	@media (max-width: 899px) {
+		.top-block-icon { display: none; }
+		.top-block-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+		.mobile-move-toggle {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			width: 100%;
+			margin-top: var(--space-6);
+			font-size: var(--font-size-md);
+		}
+		.mobile-move-toggle-icon { color: var(--color-text-muted); }
+		.mobile-move-toggle[aria-expanded="true"] .mobile-move-toggle-icon { transform: rotate(90deg); }
+		#edit-form .move-fields-grid.is-mobile-collapsed { display: none; }
+	}
 </style>
 {/* UI改善ラウンド37(37-1〜37-3)「左パネルの技選択の専用ウィンドウ」。
     #move-1〜#move-4のいずれかにフォーカス/クリックすると、box-id/left-panel.tsの
@@ -2562,22 +2576,6 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		text-align: center;
 		color: var(--color-text-muted);
 		font-size: var(--font-size-sm);
-	}
-
-	.mobile-move-toggle { display: none; }
-	@media (max-width: 899px) {
-		.top-block-icon { display: none; }
-		.mobile-move-toggle {
-			display: flex;
-			align-items: center;
-			justify-content: space-between;
-			width: 100%;
-			margin-top: var(--space-6);
-			font-size: var(--font-size-md);
-		}
-		.mobile-move-toggle-icon { color: var(--color-text-muted); }
-		.mobile-move-toggle[aria-expanded="true"] .mobile-move-toggle-icon { transform: rotate(90deg); }
-		#edit-form #mobile-move-fields.move-fields-grid.is-mobile-collapsed { display: none; }
 	}
 </style>
 <script>
