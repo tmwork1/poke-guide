@@ -140,6 +140,12 @@ const user = Astro.locals.user;
 		   (position:absoluteのアイコン+input側padding-leftをselect側に適用)を踏襲する。
 		   ラベル削除によるアクセシビリティ低下を防ぐため、<select>にaria-label="並べ替え"を付与する
 		   (マークアップ側、下記参照)。 */
+		#sort-select-wrap .sort-icon {
+			transform-origin: center;
+		}
+		#sort-select-wrap[data-order="desc"] .sort-icon {
+			transform: rotate(180deg);
+		}
 		@media (max-width: 640px) {
 			/* ラウンド12 A-1で `.toolbar-search { flex: 0 1 26rem }` に変更した後も、この
 			   flex-basis(26rem)は横並び(flex-direction: row)前提の値で、縦積みに切り替わる
@@ -429,8 +435,8 @@ const user = Astro.locals.user;
 			align-items: center;
 			justify-content: center;
 			flex: none;
-			width: 16px;
-			height: 16px;
+			width: var(--icon-size-sm);
+			height: var(--icon-size-sm);
 		}
 		.box-grid .card-pokemon .card-tera-badge img {
 			width: 100%;
@@ -710,12 +716,11 @@ const user = Astro.locals.user;
 		   (アイテム・テラス未設定の個体でもアイコン有り無しで高さが揺れないようにする)。 --- */
 		.box-grid .card-pokemon .card-item-row {
 			display: flex;
-			flex-direction: row;
+			flex-direction: column;
 			align-items: center;
 			width: 100%;
 			margin-top: 0;
 			gap: var(--space-1);
-			min-height: 16px;
 		}
 		.box-grid .card-pokemon .card-item-row-cell {
 			display: flex;
@@ -723,14 +728,13 @@ const user = Astro.locals.user;
 			justify-content: center;
 			gap: var(--space-1);
 			min-width: 0;
+			min-height: var(--icon-size-sm);
 		}
 		.box-grid .card-pokemon .card-item-row-ability {
-			/* 2026-08-05にspace-2へ広げ、2026-08-06の追加依頼でさらに2倍へ広げる。 */
-			/* 特性とアイテムを同じ行で省略できるよう、両セルに均等な縮小余地を持たせる。 */
-			flex: 1 1 0;
+			width: 100%;
 		}
 		.box-grid .card-pokemon .card-item-row-item {
-			flex: 1 1 0;
+			width: 100%;
 		}
 		/* 特性名: 名前(card-name)・技チップ(card-move-chip)と同様に1行で省略する
 		   (折り返さない)。20-G3の12px下限ちょうど(0.75rem)にし、名前ほど主張しない
@@ -757,7 +761,7 @@ const user = Astro.locals.user;
 		   いっぱいを使える(旧来は右半分)。アイコン16px+gap0.2remと同居するため、
 		   ellipsisで確実に収める。 */
 		.box-grid .card-pokemon .card-item-name {
-			flex: 1 1 auto;
+			flex: 0 1 auto;
 			font-size: var(--font-size-xs);
 			line-height: var(--line-height-tight);
 			font-weight: 600;
@@ -770,13 +774,21 @@ const user = Astro.locals.user;
 		}
 		/* 性格と努力値は補助情報として一段にまとめ、未設定時はDOMごと省いて高さを詰める。 */
 		.box-grid .card-pokemon .card-training-row {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			gap: var(--space-1);
 			width: 100%;
 			margin: 0;
 			font-size: var(--font-size-xs);
-			line-height: var(--line-height-tight);
+			line-height: var(--icon-size-sm);
 			font-weight: normal;
 			color: var(--color-text-muted);
 			white-space: nowrap;
+			overflow: hidden;
+		}
+		.box-grid .card-pokemon .card-training-text {
+			min-width: 0;
 			overflow: hidden;
 			text-overflow: ellipsis;
 		}
@@ -866,6 +878,7 @@ const user = Astro.locals.user;
 			align-items: start;
 			gap: 0.05rem var(--space-1);
 			width: 100%;
+			padding-inline: var(--space-1);
 			margin-top: 0;
 			/* ラウンド8 A-8: 技0件のカードでもこの要素を常時appendする(JS側変更)ため、
 			   実際の行数(0/1/2行)に関わらず常に2行ぶんの高さを確保して隣接カードとy座標を揃える。
@@ -1059,21 +1072,24 @@ const user = Astro.locals.user;
 						</div>
 
 						<div class="toolbar-item toolbar-sort">
-							<div class="sort-select-wrap">
+							<div class="sort-select-wrap" id="sort-select-wrap" data-order="desc">
 								<svg class="sort-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-									<path d="M7 4v16" />
-									<path d="M4 7l3-3 3 3" />
-									<path d="M17 20V4" />
-									<path d="M14 17l3 3 3-3" />
+									<path d="M12 20V4" />
+									<path d="M6 10l6-6 6 6" />
 								</svg>
 								<select id="sort-select" class="field-control" aria-label="並べ替え">
 									<option value="updated_at">最終更新</option>
-									<option value="team_joined">チーム加入</option>
 									<option value="last_used_at">よく使う</option>
 									<option value="dex_no">図鑑番号</option>
 									<option value="nickname">ニックネーム</option>
 								</select>
 							</div>
+							<button type="button" class="sort-dir-toggle" id="sort-dir-toggle" data-order="desc" aria-label="並べ替えの向き: 降順">
+								<svg class="sort-dir-toggle-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+									<path d="M12 20V4" /><path d="M6 10l6-6 6 6" />
+								</svg>
+								<span class="sort-dir-toggle-label">Z→A</span>
+							</button>
 						</div>
 
 					</div>
@@ -1203,6 +1219,10 @@ const user = Astro.locals.user;
 			const noMatchMessage = el<HTMLElement>("no-match-message");
 			const countBadge = el<HTMLElement>("pokemon-count-badge");
 			const sortSelect = el<HTMLSelectElement>("sort-select");
+			const sortSelectWrap = el<HTMLElement>("sort-select-wrap");
+			const sortDirToggle = el<HTMLButtonElement>("sort-dir-toggle");
+			const sortDirToggleLabel = sortDirToggle.querySelector<HTMLElement>(".sort-dir-toggle-label");
+			if (!sortDirToggleLabel) throw new Error("要素が見つかりません: .sort-dir-toggle-label");
 			const searchInput = el<HTMLInputElement>("search-input");
 			// ラウンド27 27-B3(ユーザー指示)によりタグ絞り込みUI(tagFilterToolbar/
 			// tagFilterList、複数タグ選択)を廃止し、「お気に入りのみ表示」の単一トグルに
@@ -1217,9 +1237,7 @@ const user = Astro.locals.user;
 			const ADD_BUTTON_DEFAULT_HTML = addButton.innerHTML;
 
 			let allPokemon: OwnedPokemon[] = [];
-			// チーム情報は「チーム加入」を初めて選んだ時だけ取得し、以後の並べ替えで再利用する。
-			let teamMemberIds: Set<string> | null = null;
-			let teamMembersLoadStarted = false;
+			let sortOrder: "asc" | "desc" = "desc";
 			// ラウンド27 27-B3: 旧activeTags(複数タグの絞り込み状態)を単一boolean(お気に入りの
 			// みを表示するか)に置き換える。
 			let favoriteOnly = false;
@@ -1440,11 +1458,9 @@ const user = Astro.locals.user;
 
 			function sortPokemon(list: OwnedPokemon[]): OwnedPokemon[] {
 				const sort = sortSelect.value;
-				const sorted = [...list].sort((a, b) => {
+				const compareAscending = (a: OwnedPokemon, b: OwnedPokemon): number => {
 					if (sort === "last_used_at") {
-						const av = a.last_used_at ? new Date(a.last_used_at).getTime() : -Infinity;
-						const bv = b.last_used_at ? new Date(b.last_used_at).getTime() : -Infinity;
-						return bv - av;
+						return new Date(a.last_used_at ?? 0).getTime() - new Date(b.last_used_at ?? 0).getTime();
 					}
 					if (sort === "nickname") {
 						return displayName(a).localeCompare(displayName(b), "ja");
@@ -1457,30 +1473,23 @@ const user = Astro.locals.user;
 						if (ad !== bd) return (ad ?? 0) - (bd ?? 0);
 						return displayName(a).localeCompare(displayName(b), "ja");
 					}
-					if (sort === "team_joined" && teamMemberIds) {
-						const joinedDiff = Number(teamMemberIds.has(b.id)) - Number(teamMemberIds.has(a.id));
-						if (joinedDiff !== 0) return joinedDiff;
+					return new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime();
+				};
+				// お気に入りはカードのマークだけで示し、選択した並べ替え軸には介入させない。
+				return [...list].sort((a, b) => {
+					if (sort === "last_used_at") {
+						if (a.last_used_at === null && b.last_used_at !== null) return 1;
+						if (a.last_used_at !== null && b.last_used_at === null) return -1;
 					}
-					return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+					if (sort === "dex_no") {
+						const ad = resolveDexNo(a.species_name);
+						const bd = resolveDexNo(b.species_name);
+						if (ad === null && bd !== null) return 1;
+						if (ad !== null && bd === null) return -1;
+					}
+					const result = compareAscending(a, b);
+					return sortOrder === "desc" ? -result : result;
 				});
-				// ピン留めは常に上部固定(育成データ管理計画.md §6.1)。
-				// 40-B1(ユーザー指示第22弾、round-40.md): 「更新順」(sort==="updated_at")選択時は
-				// このピン優先の再ソートを外す。当時のお気に入りトグルAPI(togglePin)はPUTが
-				// 全項目上書き契約のため、サーバ側(updateOwnedPokemon)がupdated_atを必ず現在時刻へ
-				// 更新しており、この無条件ピン優先ソートと相まって「更新順」表示中にお気に入りを
-				// 押すと他個体の見た目上の並び位置までずれて見えた。ピン優先を外すことで
-				// 「更新順」表示は純粋にupdated_at降順のみになる。
-				// 41-B2(ユーザー指示第23弾、round-41.md): 40-B1は「トグルした個体自身が新しい
-				// updated_atで動くことは要件で明示的に許容」としていたが、この許容判断を撤回した。
-				// togglePin()を(全項目上書きPUTではなく)is_pinnedだけを更新しupdated_atに
-				// 触れない専用PATCH経路(updatePinStatus)へ切り替えたことで、「更新順」表示中の
-				// トグルはupdated_atを一切変えず、トグルした個体自身を含めどの個体の相対順も
-				// 動かなくなった(比較関数がa/bのupdated_atだけに依存するため、数学的にも保証される)。
-				// 「最終使用順」「ニックネーム順」では従来どおりピン優先を維持する。
-				if (sort !== "updated_at") {
-					sorted.sort((a, b) => Number(b.is_pinned) - Number(a.is_pinned));
-				}
-				return sorted;
 			}
 
 			// UI刷新: カード全体を<a>にして丸ごとクリック可能にする(要件3、遷移先は/box/{id})。
@@ -1615,14 +1624,6 @@ const user = Astro.locals.user;
 				abilityNameEl.textContent = p.ability_name?.trim() ?? "";
 				abilityCell.appendChild(abilityNameEl);
 
-				const teraBadge = document.createElement("span");
-				teraBadge.className = "card-tera-badge";
-				teraBadge.hidden = true;
-				const teraImg = document.createElement("img");
-				teraImg.alt = "";
-				teraBadge.appendChild(teraImg);
-				applyTeraBadge(teraImg, teraBadge, p.tera_type ?? "");
-
 				itemRow.appendChild(abilityCell);
 
 				const itemCell = document.createElement("div");
@@ -1640,9 +1641,6 @@ const user = Astro.locals.user;
 				itemNameEl.textContent = p.item_name?.trim() ?? "";
 				itemCell.appendChild(itemNameEl);
 				itemRow.appendChild(itemCell);
-				// テラスアイコンは特性・アイテムの省略領域から外し、一段の右端に固定する。
-				itemRow.appendChild(teraBadge);
-
 				body.appendChild(itemRow);
 
 				const effortText = STAT_LABELS.flatMap((label, index) => {
@@ -1650,11 +1648,25 @@ const user = Astro.locals.user;
 					return value === 0 ? [] : [`${label}${value}`];
 				}).join(" ");
 				const trainingText = [p.nature?.trim() ?? "", effortText].filter(Boolean).join(" ");
-				if (trainingText) {
+				const teraType = p.tera_type?.trim() ?? "";
+				if (trainingText || teraType) {
 					// 0の努力値は省き、性格と有効な努力値だけを密度の高い一段で示す。
 					const trainingRow = document.createElement("p");
 					trainingRow.className = "card-training-row tnum";
-					trainingRow.textContent = trainingText;
+					if (teraType) {
+						const teraBadge = document.createElement("span");
+						teraBadge.className = "card-tera-badge";
+						teraBadge.hidden = true;
+						const teraImg = document.createElement("img");
+						teraImg.alt = "";
+						teraBadge.appendChild(teraImg);
+						applyTeraBadge(teraImg, teraBadge, teraType);
+						trainingRow.appendChild(teraBadge);
+					}
+					const trainingTextEl = document.createElement("span");
+					trainingTextEl.className = "card-training-text";
+					trainingTextEl.textContent = trainingText;
+					trainingRow.appendChild(trainingTextEl);
 					body.appendChild(trainingRow);
 				}
 
@@ -1859,29 +1871,27 @@ const user = Astro.locals.user;
 				}
 			}
 
-			async function loadTeamMemberIds(): Promise<void> {
-				if (teamMembersLoadStarted) return;
-				teamMembersLoadStarted = true;
-				try {
-					const res = await fetch("/api/teams", { credentials: "same-origin" });
-					if (!res.ok) throw new Error(`チーム一覧の取得に失敗しました (status=${res.status})`);
-					const body = (await res.json()) as {
-						teams: Array<{ members: Array<{ owned_pokemon: { id: string } }> }>;
-					};
-					teamMemberIds = new Set(body.teams.flatMap((team) => team.members.map((member) => member.owned_pokemon.id)));
-				} catch (err) {
-					// 画面にはエラーを出さず、teamMemberIds=nullのまま最終更新順へフォールバックする。
-					console.error("チーム編成情報を読み込めませんでした", err);
-				} finally {
-					renderList();
-				}
-			}
-
 			sortSelect.addEventListener("change", () => {
-				if (sortSelect.value === "team_joined" && !teamMembersLoadStarted) {
-					void loadTeamMemberIds();
-					return;
-				}
+				const defaultOrders: Record<string, "asc" | "desc"> = {
+					updated_at: "desc",
+					last_used_at: "desc",
+					dex_no: "asc",
+					nickname: "asc",
+				};
+				sortOrder = defaultOrders[sortSelect.value] ?? "asc";
+				updateSortOrderUi();
+				renderList();
+			});
+			function updateSortOrderUi(): void {
+				sortSelectWrap.dataset.order = sortOrder;
+				sortDirToggle.dataset.order = sortOrder;
+				const isAscending = sortOrder === "asc";
+				sortDirToggle.setAttribute("aria-label", `並べ替えの向き: ${isAscending ? "昇順" : "降順"}`);
+				sortDirToggleLabel.textContent = isAscending ? "A→Z" : "Z→A";
+			}
+			sortDirToggle.addEventListener("click", () => {
+				sortOrder = sortOrder === "asc" ? "desc" : "asc";
+				updateSortOrderUi();
 				renderList();
 			});
 			searchInput.addEventListener("input", renderList);
