@@ -39,8 +39,9 @@ const displayNickname = pokemon.nickname?.trim() || pokemon.species_name;
 		<div class="mobile-preview-left">
 			<div class="mobile-preview-details">
 				<div id="mp-ability">{pokemon.ability_name || "-"}</div>
+				<div class="mobile-preview-item mobile-preview-icon-text"><img id="mp-item-image" alt="" style="display:none;" /><span id="mp-item">{pokemon.item_name || "アイテムなし"}</span></div>
 				<div class="mobile-preview-icon-text">
-					<img id="mp-tera-image" alt="" />
+					<img id="mp-tera-image" alt="" style="display:none;" />
 					<span id="mp-tera">{pokemon.tera_type || "テラスなし"}</span>
 				</div>
 			</div>
@@ -59,7 +60,6 @@ const displayNickname = pokemon.nickname?.trim() || pokemon.species_name;
 			</div>
 		</div>
 		<div class="mobile-preview-right">
-			<div class="mobile-preview-item mobile-preview-icon-text"><img id="mp-item-image" alt="" /><span id="mp-item">{pokemon.item_name || "アイテムなし"}</span></div>
 			<table class="mobile-preview-stats" aria-label="実数値と努力値">
 				<tbody>{[['hp','H'],['atk','A'],['def','B'],['spa','C'],['spd','D'],['spe','S']].map(([key, label]) => <tr><th>{label}</th><td id={`mp-stat-${key}`}>-</td><td id={`mp-ev-${key}`}>-</td></tr>)}</tbody>
 			</table>
@@ -84,7 +84,7 @@ const displayNickname = pokemon.nickname?.trim() || pokemon.species_name;
 	.mobile-preview-details > div { margin-bottom: var(--space-1); }
 	.mobile-preview-details > div, .mobile-preview-icon-text span, .mobile-preview-moves li > span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 	.mobile-preview-icon-text { display: flex; align-items: center; gap: var(--space-1); min-width: 0; }
-	.mobile-preview-icon-text img { display: none; width: var(--icon-size-sm); height: var(--icon-size-sm); object-fit: contain; flex-shrink: 0; }
+	.mobile-preview-icon-text img { width: var(--icon-size-sm); height: var(--icon-size-sm); object-fit: contain; flex-shrink: 0; }
 	.mobile-preview-moves { margin: var(--space-1) 0 0; padding: 0; list-style: none; }
 	.mobile-preview-moves li { display: flex; align-items: center; gap: var(--space-1); min-width: 0; }
 	.mobile-preview-moves .move-type-icon { flex-shrink: 0; }
