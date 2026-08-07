@@ -1297,6 +1297,8 @@ if (opponentNotesSection) {
 	// ラウンド3 B-12: 左パネルのrecalcStats()と同様、エンジン非依存の純JS計算に切り替える
 	// (calcHpStat/calcOtherStatはモジュールスコープで定義済み)。ダメージ計算(recalcRow内の
 	// この先の処理)は引き続きisEngineReady()待ちのまま。
+	// rowCollapseHandlesは下方のconstだが、実際の呼び出しはその初期化後なのでTDZには触れない。
+	// 更新漏れを避けるため展開状態でも中身だけ同期する(折りたたみ状態や幅は変更しない)。
 	async function recalcRowStatsOnly(row: DamageRowState): Promise<void> {
 		const name = row.name.trim();
 		const base = name ? (await baseStatsMapPromise).get(name) : undefined;
@@ -1307,6 +1309,7 @@ if (opponentNotesSection) {
 				target.textContent = "-";
 				delete target.dataset.mod;
 			}
+			rowCollapseHandles.get(row)?.refreshCollapsedViews();
 			return;
 		}
 		const level = 50;
@@ -1339,6 +1342,7 @@ if (opponentNotesSection) {
 			// (statValueEls)は正規化された値のままで正しい(実際の計算に使う値と
 			// 一致させる必要があるため)。
 		});
+		rowCollapseHandles.get(row)?.refreshCollapsedViews();
 	}
 
 	// ラウンド22指摘(22-F)の対応で使う、キー順に依存しない構造比較用の正規化文字列化。
@@ -2135,6 +2139,10 @@ if (opponentNotesSection) {
 	// 追加せず、row参照をキーにしたWeakSet/WeakMapで折りたたみ状態と行ごとの
 	// setCollapsed()を保持する(WeakなのでrowがGCされれば自動的に参照も外れる)。
 	const collapsedRowSet = new WeakSet<DamageRowState>();
+	// モバイルは1カラムでカード幅を親に追従させるため、展開時のpx幅固定を使わない。
+	function isNarrowLayout(): boolean {
+		return window.matchMedia("(max-width: 899px)").matches;
+	}
 	// 🔴 UI改修依頼(個体編集画面、2026-08-02)「耐久調整」機能の土台。refreshCollapsedViewsは
 	// 耐久調整ポップアップに貼る圧縮表示の複製(buildCollapsedPreview、下方参照)を作る前に、
 	// 元のカードの折りたたみ状態(dataset.collapsed)を一切変えずに、折りたたみ用DOM
@@ -2749,7 +2757,9 @@ if (opponentNotesSection) {
 			// 書き換える前)今のうちに実測幅を固定し、折りたたみ後もその幅を維持する。
 			// getBoundingClientRect()はレイアウトを強制するため、必ずdataset.collapsedの
 			// 変更より前に呼ぶこと(後に呼ぶと既に折りたたみ後の縮んだ幅を読んでしまう)。
-			if (collapsed && root.dataset.collapsed !== "true") {
+			if (isNarrowLayout()) {
+				root.style.width = "";
+			} else if (collapsed && root.dataset.collapsed !== "true") {
 				const expandedWidth = root.getBoundingClientRect().width;
 				if (expandedWidth > 0) root.style.width = `${expandedWidth}px`;
 			}
@@ -3654,7 +3664,15 @@ if (opponentNotesSection) {
 		tile.className = "add-card-tile";
 		// DamageCard.pngの「ダメージ計算追加ボタン」(カードの外・下側)にあたる。
 		// 1枚のカード = 相手1体分のダメージ計算なので、追加すると新しい相手の行が増える。
-		tile.textContent = "+ ダメージ計算を追加";
+		tile.setAttribute("aria-label", "ダメージ計算を追加");
+		const icon = document.createElement("span");
+		icon.className = "add-card-tile-icon";
+		icon.setAttribute("aria-hidden", "true");
+		icon.textContent = "＋";
+		const label = document.createElement("span");
+		label.className = "add-card-tile-label";
+		label.textContent = "ダメージ計算を追加";
+		tile.append(icon, label);
 		tile.addEventListener("click", addNewRowAndFocus);
 		return tile;
 	}
@@ -3766,6 +3784,9 @@ if (opponentNotesSection) {
 			for (const row of rows) renderRow(row);
 			for (const row of rowsNeedingResave) scheduleRowSave(row);
 			rebuildRowsList();
+			// 保存済み行を初めて描画した直後だけ、モバイル既定を圧縮表示にする。
+			// 以後の追加・削除やユーザーの展開操作では再適用しない。
+			if (isNarrowLayout()) setAllRowsCollapsed(true);
 			// 初期表示では画面幅にかかわらず技列を自動選択せず、詳細パネルも空状態に戻す。
 			clearSelection();
 			renderDetailPanel();

@@ -9,8 +9,8 @@ const { pokemon } = Astro.props;
 const moves = pokemon.move_names ?? [];
 const displayNickname = pokemon.nickname?.trim() || pokemon.species_name;
 ---
-<div class="mobile-training-ui">
-	<nav class="mobile-training-bar" aria-label="個体編集メニュー">
+<div class="mobile-training-ui" id="mobile-training-ui" data-mobile-tab="training">
+	<nav class="mobile-training-bar" id="mobile-training-bar" aria-label="個体編集メニュー">
 		<div class="mobile-training-bar-list">
 			<span class="mobile-training-bar-item is-disabled" aria-disabled="true">
 				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.05" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v9h9"/><path d="M20.5 15.5A9 9 0 1 1 8.5 3.7"/><path d="M15 3.5A9 9 0 0 1 20.5 9H15V3.5Z"/></svg>
@@ -20,14 +20,14 @@ const displayNickname = pokemon.nickname?.trim() || pokemon.species_name;
 				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.05" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg>
 				<span>すばやさ</span>
 			</span>
-			<span class="mobile-training-bar-item" data-active="true" aria-current="page">
+			<button type="button" class="mobile-training-bar-item" data-mobile-tab="training" data-active="true" aria-current="page">
 				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.05" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h6m6 0h6"/><circle cx="12" cy="12" r="3"/></svg>
 				<span>育成</span>
-			</span>
-			<span class="mobile-training-bar-item is-disabled" aria-disabled="true">
+			</button>
+			<button type="button" class="mobile-training-bar-item" data-mobile-tab="damage">
 				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.05" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="2.5" width="16" height="19" rx="2"/><line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="12" x2="8" y2="12"/><line x1="12" y1="12" x2="12" y2="12"/><line x1="16" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="8" y2="16"/><line x1="12" y1="16" x2="12" y2="16"/><line x1="16" y1="16" x2="16" y2="16"/></svg>
 				<span>ダメージ計算</span>
-			</span>
+			</button>
 			<span class="mobile-training-bar-item is-disabled" aria-disabled="true">
 				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.05" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="m7 8 1.5 1.5L11 7"/><path d="M13 8h4"/><path d="m7 14 1.5 1.5L11 13"/><path d="M13 14h4"/></svg>
 				<span>相性チェック</span>
@@ -60,6 +60,9 @@ const displayNickname = pokemon.nickname?.trim() || pokemon.species_name;
 			</table>
 		</div>
 	</section>
+	<div class="mobile-damage-toolbar" id="mobile-damage-toolbar">
+		<div class="mobile-damage-toolbar-actions" id="mobile-damage-toolbar-actions"></div>
+	</div>
 </div>
 
 <style>
@@ -67,7 +70,7 @@ const displayNickname = pokemon.nickname?.trim() || pokemon.species_name;
 	.mobile-training-bar { position: sticky; top: var(--topbar-height); z-index: 20; background: var(--color-surface); border-bottom: 1px solid var(--color-border); }
 	.mobile-training-bar-list { display: flex; overflow-x: auto; scrollbar-width: none; }
 	.mobile-training-bar-list::-webkit-scrollbar { display: none; }
-	.mobile-training-bar-item { flex: 1 0 calc(var(--space-8) + var(--space-6)); min-width: calc(var(--space-8) + var(--space-6)); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-1); padding: var(--space-2) var(--space-1); color: var(--color-text-muted); font-size: var(--font-size-xs); line-height: 1; white-space: nowrap; }
+	.mobile-training-bar-item { flex: 1 0 calc(var(--space-8) + var(--space-6)); min-width: calc(var(--space-8) + var(--space-6)); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-1); padding: var(--space-2) var(--space-1); color: var(--color-text-muted); font: inherit; font-size: var(--font-size-xs); line-height: 1; white-space: nowrap; background: transparent; border: 0; cursor: pointer; }
 	.mobile-training-bar-item[data-active="true"] { color: var(--color-primary); }
 	.mobile-training-bar-item.is-disabled { color: var(--color-text-muted); opacity: 0.6; cursor: not-allowed; }
 	.mobile-training-preview { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: var(--space-3); padding: var(--space-3); background: var(--color-surface-alt); border-bottom: 1px solid var(--color-border); font-size: var(--font-size-xs); }
@@ -91,5 +94,13 @@ const displayNickname = pokemon.nickname?.trim() || pokemon.species_name;
 	.mobile-preview-stats thead th { color: var(--color-text-muted); white-space: nowrap; }
 	.mobile-preview-stats td[data-mod="up"] { color: var(--color-stat-up); }
 	.mobile-preview-stats td[data-mod="down"] { color: var(--color-stat-down); }
-	@media (min-width: 900px) { .mobile-training-bar, .mobile-training-preview { display: none; } }
+	.mobile-damage-toolbar { display: none; }
+	@media (max-width: 899px) {
+		#mobile-training-ui[data-mobile-tab="damage"] .mobile-training-preview { display: none; }
+		#mobile-training-ui[data-mobile-tab="damage"] .mobile-damage-toolbar { display: flex; justify-content: flex-end; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-3); background: var(--color-surface); border-bottom: 1px solid var(--color-border); }
+	}
+	@media (min-width: 900px) { .mobile-training-bar, .mobile-training-preview, .mobile-damage-toolbar { display: none; } }
 </style>
+<script>
+	import "../../lib/box-id/mobile-edit-tabs";
+</script>

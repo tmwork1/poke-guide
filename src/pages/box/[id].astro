@@ -466,7 +466,13 @@ const isOptedOut = optOutRemainingText !== "";
 			padding: var(--space-6) var(--space-5);
 		}
 		@media (max-width: 899px) {
-			.edit-layout-right { display: none; }
+			/* モバイルのセカンドバー状態に合わせ、育成フォームとダメージ計算を同じ場所で切り替える。 */
+			.edit-shell:not([data-mobile-tab="damage"]) .edit-layout-right { display: none; }
+			.edit-shell[data-mobile-tab="damage"] .edit-layout-left { display: none; }
+			/* 帯の左右paddingはモバイルでは詰め、カードを画面幅いっぱいに使う。 */
+			.edit-shell[data-mobile-tab="damage"] .edit-layout-right {
+				padding: var(--space-3) var(--space-3) 0;
+			}
 		}
 		@media (min-width: 1200px) {
 			.edit-layout {
@@ -551,7 +557,7 @@ const isOptedOut = optOutRemainingText !== "";
 		/* .top-block-icon 以下、.tuning-button までの左サイド専用scoped styleは構造分割ラウンド
 		   (フェーズ1)で src/components/box-id/LeftPanel.astro へ移設した(見た目は一切変更していない)。 */
 	</style>
-	<div class="page edit-shell">
+	<div class="page edit-shell" id="edit-shell" data-mobile-tab="training">
 	{
 		!user ? (
 			<section class="panel">

@@ -3135,6 +3135,44 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 	@media (prefers-reduced-motion: reduce) {
 		#damage-collapse-toggle-button .damage-collapse-toggle-chevron { transition: none; }
 	}
+	/* モバイルでは一覧ページと同じ追加操作をFABにし、カード下端との重なりを避ける。 */
+	@media (max-width: 899px) {
+		#opponent-notes-section .damage-rows-list {
+			padding-bottom: calc(56px + var(--bottom-nav-height) + var(--space-4));
+		}
+		#opponent-notes-section .card-damage { max-width: 100%; }
+		#opponent-notes-section .add-card-tile {
+			position: fixed;
+			right: var(--space-5);
+			bottom: calc(var(--bottom-nav-height) + var(--space-4) + env(safe-area-inset-bottom));
+			z-index: 15;
+			width: 56px;
+			height: 56px;
+			min-height: 56px;
+			aspect-ratio: 1 / 1;
+			padding: 0;
+			border-radius: 50%;
+			border-color: var(--color-primary);
+			background: var(--color-primary);
+			color: var(--color-primary-contrast);
+			box-shadow: var(--shadow-md);
+		}
+		#opponent-notes-section .add-card-tile:hover {
+			background: var(--color-primary-hover);
+			border-color: var(--color-primary-hover);
+		}
+		#opponent-notes-section .add-card-tile .add-card-tile-icon {
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			width: auto;
+			height: auto;
+			border: 0;
+			font-size: var(--font-size-2xl);
+			color: var(--color-primary-contrast);
+		}
+		#opponent-notes-section .add-card-tile-label { display: none; }
+	}
 </style>
 <script>
 	import "../../lib/box-id/damage-calc";
