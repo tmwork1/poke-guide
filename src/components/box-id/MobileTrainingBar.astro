@@ -81,8 +81,9 @@ const displayNickname = pokemon.nickname?.trim() || pokemon.species_name;
 	.mobile-preview-details > div, .mobile-preview-icon-text span, .mobile-preview-moves li > span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 	.mobile-preview-icon-text { display: flex; align-items: center; gap: var(--space-1); min-width: 0; }
 	.mobile-preview-icon-text img { width: var(--icon-size-sm); height: var(--icon-size-sm); object-fit: contain; flex-shrink: 0; }
-	.mobile-preview-moves { display: flex; flex-direction: column; gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
-	.mobile-preview-moves li { display: flex; align-items: center; gap: var(--space-1); min-width: 0; padding: var(--space-1) 0; }
+	.mobile-preview-moves { display: flex; flex-direction: column; gap: var(--space-1); margin: 0; padding: 0; list-style: none; }
+	.mobile-preview-moves li { display: flex; align-items: center; gap: var(--space-1); min-width: 0; padding: var(--space-1) 0 0; }
+	.mobile-preview-moves li:last-child { padding-bottom: var(--space-1); }
 	.mobile-preview-moves .move-type-icon { flex-shrink: 0; }
 	.mobile-preview-moves .move-type-icon img { width: var(--icon-size-sm); height: var(--icon-size-sm); object-fit: contain; }
 	.mobile-preview-moves .move-type-icon[hidden] { display: none; }
@@ -95,7 +96,8 @@ const displayNickname = pokemon.nickname?.trim() || pokemon.species_name;
 	.mobile-preview-item { margin-bottom: var(--space-1); }
 	#mp-item { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 	.mobile-preview-stats { border-collapse: collapse; font-size: var(--font-size-xs); line-height: 1; }
-	.mobile-preview-stats th, .mobile-preview-stats td { padding: var(--space-1); border: 0; background: transparent; text-align: right; font-weight: 400; color: var(--color-text); }
+	.mobile-preview-stats th, .mobile-preview-stats td { padding: var(--space-1) var(--space-1) 0; border: 0; background: transparent; text-align: right; font-weight: 400; color: var(--color-text); }
+	.mobile-preview-stats tr:last-child th, .mobile-preview-stats tr:last-child td { padding-bottom: var(--space-1); }
 	.mobile-preview-stats th:first-child { text-align: left; color: var(--color-text-muted); }
 	.mobile-preview-stats td[data-mod="up"] { color: var(--color-stat-up); }
 	.mobile-preview-stats td[data-mod="down"] { color: var(--color-stat-down); }
