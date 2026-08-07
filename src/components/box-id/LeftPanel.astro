@@ -371,7 +371,10 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		    全機能利用できるため、代替経路が失われるわけではない)。
 		    並び替えの実装はleft-panel.tsのsetupMoveReorderDrag()参照(値をスワップする方式、
 		    詳細は同関数のコメント)。 */}
-		<div class="field-grid move-fields-grid">
+		<button type="button" class="mobile-move-toggle btn-ghost" aria-controls="mobile-move-fields" aria-expanded="false">
+			<span>わざ編集</span><span class="mobile-move-toggle-icon" aria-hidden="true">›</span>
+		</button>
+		<div id="mobile-move-fields" class="field-grid move-fields-grid is-mobile-collapsed">
 			{MOVE_SLOTS.map((slot, i) => (
 				<div class="field">
 					<div class="field-with-image move-input-group" data-move-slot={slot}>
@@ -2560,7 +2563,31 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		color: var(--color-text-muted);
 		font-size: var(--font-size-sm);
 	}
+
+	.mobile-move-toggle { display: none; }
+	@media (max-width: 899px) {
+		.top-block-icon { display: none; }
+		.mobile-move-toggle {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			width: 100%;
+			margin-top: var(--space-6);
+			font-size: var(--font-size-md);
+		}
+		.mobile-move-toggle-icon { color: var(--color-text-muted); }
+		.mobile-move-toggle[aria-expanded="true"] .mobile-move-toggle-icon { transform: rotate(90deg); }
+		#edit-form #mobile-move-fields.move-fields-grid.is-mobile-collapsed { display: none; }
+	}
 </style>
 <script>
 	import "../../lib/box-id/left-panel";
+
+	const moveToggle = document.querySelector<HTMLButtonElement>(".mobile-move-toggle");
+	const moveFields = document.getElementById("mobile-move-fields");
+	moveToggle?.addEventListener("click", () => {
+		const expanded = moveToggle.getAttribute("aria-expanded") === "true";
+		moveToggle.setAttribute("aria-expanded", String(!expanded));
+		moveFields?.classList.toggle("is-mobile-collapsed", expanded);
+	});
 </script>

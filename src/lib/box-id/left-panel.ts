@@ -522,6 +522,44 @@ export async function loadPopularBuildSuggestions(
 let hasBaseStatsForDurabilityIndex = false;
 const form = typeof document === "undefined" ? null : document.getElementById("edit-form") as HTMLFormElement | null;
 if (form) {
+	function syncMobilePreview(): void {
+		const setText = (targetId: string, value: string): void => {
+			const target = document.getElementById(targetId);
+			if (target) target.textContent = value || "-";
+		};
+		const inputValue = (id: string): string =>
+			(document.getElementById(id) as HTMLInputElement | HTMLSelectElement | null)?.value.trim() ?? "";
+
+		const sourceSprite = document.getElementById("species-sprite") as HTMLImageElement | null;
+		const previewSprite = document.getElementById("mp-species-sprite") as HTMLImageElement | null;
+		const sourceFallback = document.getElementById("species-sprite-fallback");
+		const previewFallback = document.getElementById("mp-species-sprite-fallback");
+		if (sourceSprite && previewSprite && previewFallback) {
+			const sourceVisible = sourceSprite.style.display !== "none" && sourceSprite.src !== "";
+			previewSprite.src = sourceSprite.src;
+			previewSprite.alt = sourceSprite.alt;
+			previewSprite.style.display = sourceVisible ? "" : "none";
+			previewFallback.style.display = sourceVisible ? "none" : "";
+			previewFallback.textContent = sourceFallback?.textContent?.trim() || inputValue("species-name").slice(0, 1) || "-";
+		}
+
+		setText("mp-nickname", inputValue("nickname") || inputValue("species-name"));
+		const ability = document.getElementById("ability") as HTMLSelectElement | null;
+		setText("mp-ability", ability?.selectedOptions[0]?.textContent?.trim() || ability?.value.trim() || "-");
+		setText("mp-tera", document.getElementById("tera-dropdown-placeholder")?.textContent?.trim() || inputValue("tera") || "テラスなし");
+		setText("mp-item", inputValue("item") || document.getElementById("item-dropdown-placeholder")?.textContent?.trim() || "アイテムなし");
+		for (let slot = 1; slot <= 4; slot++) setText(`mp-move-${slot}`, inputValue(`move-${slot}`));
+		for (const key of STAT_KEYS) {
+			const sourceStat = document.getElementById(`stat-${key}`);
+			const previewStat = document.getElementById(`mp-stat-${key}`);
+			if (previewStat) {
+				previewStat.textContent = sourceStat?.textContent?.trim() || "-";
+				if (sourceStat?.dataset.mod) previewStat.dataset.mod = sourceStat.dataset.mod;
+				else delete previewStat.dataset.mod;
+			}
+			setText(`mp-ev-${key}`, inputValue(`ev-${key}`));
+		}
+	}
 	// UI改修依頼(個体編集画面、2026-08-03)「耐久指数最大化」ボタン(ステータス表の下、
 	// #durability-index-button)。静的マークアップ(LeftPanel.astro)では常にdisabledで
 	// 描画されており、種族値が引けて実数値が計算でき、かつ努力値が残っているときだけ
@@ -1362,6 +1400,7 @@ if (form) {
 	}
 
 	function scheduleSave(): void {
+		syncMobilePreview();
 		statusEl.dataset.state = "saving";
 		// 進行中表示は画面内で表記を揃えるため全角の三点リーダーを使う。
 		statusTextEl.textContent = "編集中…";
@@ -1641,6 +1680,21 @@ if (form) {
 	// UI改善ラウンド38(38-L1): 技1〜4のドラッグ&ドロップ並び替え
 	// ============================================================
 	setupMoveReorderDrag();
+
+	// 実数値計算と画像読み込みは非同期なので、入力イベントでの即時同期に加えて
+	// 表示元のDOM更新も監視し、計算・画像反映の完了後にプレビューへ転記する。
+	const mobilePreviewSources = [
+		document.getElementById("species-sprite"),
+		document.getElementById("species-sprite-fallback"),
+		...STAT_KEYS.map((key) => document.getElementById(`stat-${key}`)),
+	].filter((node): node is HTMLElement => node instanceof HTMLElement);
+	if (document.getElementById("mp-nickname")) {
+		const mobilePreviewObserver = new MutationObserver(syncMobilePreview);
+		for (const source of mobilePreviewSources) {
+			mobilePreviewObserver.observe(source, { attributes: true, childList: true, characterData: true, subtree: true });
+		}
+	}
+	syncMobilePreview();
 }
 
 // UI改善ラウンド38ユーザー指示(38-L1)「技の順番をドラッグアンドドロップで入れ替えられる

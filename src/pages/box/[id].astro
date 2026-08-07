@@ -17,6 +17,7 @@ import LeftPanel from '../../components/box-id/LeftPanel.astro';
 import DamageCalcSection from '../../components/box-id/DamageCalcSection.astro';
 import RightPanel from '../../components/box-id/RightPanel.astro';
 import BulkAdjustDialog from '../../components/box-id/BulkAdjustDialog.astro';
+import MobileTrainingBar from '../../components/box-id/MobileTrainingBar.astro';
 import { getSupabaseAdminClient, getSupabasePublicClient } from '../../lib/supabase';
 import { getOwnedPokemon, type OwnedPokemonRecord } from '../../lib/owned-pokemon';
 
@@ -464,6 +465,9 @@ const isOptedOut = optOutRemainingText !== "";
 		.edit-layout-right {
 			padding: var(--space-6) var(--space-5);
 		}
+		@media (max-width: 899px) {
+			.edit-layout-right { display: none; }
+		}
 		@media (min-width: 1200px) {
 			.edit-layout {
 				display: grid;
@@ -570,6 +574,7 @@ const isOptedOut = optOutRemainingText !== "";
 			</section>
 		) : (
 			<>
+			<MobileTrainingBar pokemon={pokemon} />
 			<div class="edit-layout">
 			<div class="edit-layout-left">
 			{/* 左サイド(ポケモン編集パネル、.panel-left)のテンプレート・scoped style・スクリプトは

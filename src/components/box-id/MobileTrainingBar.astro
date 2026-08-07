@@ -1,0 +1,95 @@
+---
+import type { OwnedPokemonRecord } from '../../lib/owned-pokemon';
+
+interface Props {
+	pokemon: OwnedPokemonRecord;
+}
+
+const { pokemon } = Astro.props;
+const moves = pokemon.move_names ?? [];
+const displayNickname = pokemon.nickname?.trim() || pokemon.species_name;
+---
+<div class="mobile-training-ui">
+	<nav class="mobile-training-bar" aria-label="個体編集メニュー">
+		<div class="mobile-training-bar-list">
+			<span class="mobile-training-bar-item is-disabled" aria-disabled="true">
+				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.05" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v9h9"/><path d="M20.5 15.5A9 9 0 1 1 8.5 3.7"/><path d="M15 3.5A9 9 0 0 1 20.5 9H15V3.5Z"/></svg>
+				<span>データ</span>
+			</span>
+			<span class="mobile-training-bar-item is-disabled" aria-disabled="true">
+				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.05" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg>
+				<span>すばやさ</span>
+			</span>
+			<span class="mobile-training-bar-item" data-active="true" aria-current="page">
+				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.05" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h6m6 0h6"/><circle cx="12" cy="12" r="3"/></svg>
+				<span>育成</span>
+			</span>
+			<span class="mobile-training-bar-item is-disabled" aria-disabled="true">
+				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.05" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="2.5" width="16" height="19" rx="2"/><line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="12" x2="8" y2="12"/><line x1="12" y1="12" x2="12" y2="12"/><line x1="16" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="8" y2="16"/><line x1="12" y1="16" x2="12" y2="16"/><line x1="16" y1="16" x2="16" y2="16"/></svg>
+				<span>ダメージ計算</span>
+			</span>
+			<span class="mobile-training-bar-item is-disabled" aria-disabled="true">
+				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.05" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="m7 8 1.5 1.5L11 7"/><path d="M13 8h4"/><path d="m7 14 1.5 1.5L11 13"/><path d="M13 14h4"/></svg>
+				<span>相性チェック</span>
+			</span>
+		</div>
+	</nav>
+
+	<section class="mobile-training-preview" aria-label="育成プレビュー">
+		<div class="mobile-preview-left">
+			<dl class="mobile-preview-details">
+				<div><dt>特性</dt><dd id="mp-ability">{pokemon.ability_name || "-"}</dd></div>
+				<div><dt>テラスタル</dt><dd id="mp-tera">{pokemon.tera_type || "テラスなし"}</dd></div>
+			</dl>
+			<ol class="mobile-preview-moves" aria-label="技">
+				{[0, 1, 2, 3].map((index) => <li id={`mp-move-${index + 1}`}>{moves[index] || "-"}</li>)}
+			</ol>
+		</div>
+		<div class="mobile-preview-identity">
+			<div class="mobile-preview-sprite-wrap">
+				<img id="mp-species-sprite" width="72" height="72" alt={pokemon.species_name} style="display:none;" />
+				<span id="mp-species-sprite-fallback">{pokemon.species_name.slice(0, 1)}</span>
+			</div>
+			<span id="mp-nickname">{displayNickname}</span>
+		</div>
+		<div class="mobile-preview-right">
+			<div class="mobile-preview-item"><span>アイテム</span><span id="mp-item">{pokemon.item_name || "アイテムなし"}</span></div>
+			<table class="mobile-preview-stats" aria-label="実数値と努力値">
+				<thead><tr><th>能力</th><th>実数値</th><th>努力値</th></tr></thead>
+				<tbody>{[['hp','H'],['atk','A'],['def','B'],['spa','C'],['spd','D'],['spe','S']].map(([key, label]) => <tr><th>{label}</th><td id={`mp-stat-${key}`}>-</td><td id={`mp-ev-${key}`}>-</td></tr>)}</tbody>
+			</table>
+		</div>
+	</section>
+</div>
+
+<style>
+	.mobile-training-ui { display: contents; }
+	.mobile-training-bar { position: sticky; top: var(--topbar-height); z-index: 20; background: var(--color-surface); border-bottom: 1px solid var(--color-border); }
+	.mobile-training-bar-list { display: flex; overflow-x: auto; scrollbar-width: none; }
+	.mobile-training-bar-list::-webkit-scrollbar { display: none; }
+	.mobile-training-bar-item { flex: 1 0 calc(var(--space-8) + var(--space-6)); min-width: calc(var(--space-8) + var(--space-6)); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-1); padding: var(--space-2) var(--space-1); color: var(--color-text-muted); font-size: var(--font-size-xs); line-height: 1; white-space: nowrap; }
+	.mobile-training-bar-item[data-active="true"] { color: var(--color-primary); }
+	.mobile-training-bar-item.is-disabled { color: var(--color-text-muted); opacity: 0.6; cursor: not-allowed; }
+	.mobile-training-preview { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: var(--space-3); padding: var(--space-3); background: var(--color-surface-alt); border-bottom: 1px solid var(--color-border); font-size: var(--font-size-xs); }
+	.mobile-preview-left, .mobile-preview-right { min-width: 0; }
+	.mobile-preview-details { display: block; }
+	.mobile-preview-details > div { margin-bottom: var(--space-1); }
+	.mobile-preview-details dt, .mobile-preview-item > span:first-child { color: var(--color-text-muted); font-weight: 600; }
+	.mobile-preview-details dd { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+	.mobile-preview-moves { margin: var(--space-2) 0 0; padding: 0; list-style: none; }
+	.mobile-preview-moves li { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+	.mobile-preview-identity { display: flex; flex-direction: column; align-items: center; gap: var(--space-1); min-width: 0; text-align: center; }
+	.mobile-preview-sprite-wrap { width: calc(var(--space-8) + var(--space-6)); height: calc(var(--space-8) + var(--space-6)); display: flex; align-items: center; justify-content: center; overflow: hidden; border: 1px solid var(--color-border); border-radius: 50%; background: var(--color-surface); }
+	#mp-species-sprite { width: 100%; height: 100%; object-fit: contain; }
+	#mp-species-sprite-fallback { color: var(--color-text-muted); }
+	#mp-nickname { max-width: calc(var(--space-8) + var(--space-7) + var(--space-2)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+	.mobile-preview-item { display: flex; flex-direction: column; margin-bottom: var(--space-2); }
+	#mp-item { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+	.mobile-preview-stats { font-size: var(--font-size-xs); }
+	.mobile-preview-stats th, .mobile-preview-stats td { padding: 0 var(--space-1); border: 0; background: transparent; text-align: right; font-weight: 400; color: var(--color-text); }
+	.mobile-preview-stats th:first-child { text-align: left; color: var(--color-text-muted); }
+	.mobile-preview-stats thead th { color: var(--color-text-muted); white-space: nowrap; }
+	.mobile-preview-stats td[data-mod="up"] { color: var(--color-stat-up); }
+	.mobile-preview-stats td[data-mod="down"] { color: var(--color-stat-down); }
+	@media (min-width: 900px) { .mobile-training-bar, .mobile-training-preview { display: none; } }
+</style>
