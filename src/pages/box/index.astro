@@ -292,6 +292,42 @@ const user = Astro.locals.user;
 		.box-grid .add-card-tile-hint {
 			display: none;
 		}
+		@media (max-width: 899px) {
+			.box-content {
+				padding-bottom: calc(56px + var(--space-4));
+			}
+			.box-grid .add-card-tile {
+				position: fixed;
+				right: var(--space-5);
+				bottom: calc(var(--bottom-nav-height) + var(--space-4) + env(safe-area-inset-bottom));
+				z-index: 15;
+				width: 56px;
+				height: 56px;
+				min-height: 56px;
+				aspect-ratio: 1 / 1;
+				padding: 0;
+				border-radius: 50%;
+				border-color: var(--color-primary);
+				background: var(--color-primary);
+				color: var(--color-primary-contrast);
+				box-shadow: var(--shadow-md);
+			}
+			.box-grid .add-card-tile:hover {
+				background: var(--color-primary-hover);
+				border-color: var(--color-primary-hover);
+			}
+			.box-grid .add-card-tile .add-card-tile-icon {
+				width: auto;
+				height: auto;
+				border: 0;
+				font-size: var(--font-size-2xl);
+				color: var(--color-primary-contrast);
+			}
+			.box-grid .add-card-tile-label,
+			.box-grid .add-card-tile-hint {
+				display: none;
+			}
+		}
 		@media (prefers-reduced-motion: reduce) {
 			.box-grid .add-card-tile,
 			.box-grid .add-card-tile .add-card-tile-icon {
@@ -1001,16 +1037,6 @@ const user = Astro.locals.user;
 			user ? (
 				<Fragment>
 					<div class="panel panel-top panel-toolbar" id="box-toolbar">
-						{/* UI改修依頼(2026-08-02): AppLayout.astroが元々<header class="app-topbar">に
-						    持っていたハンバーガーボタンと全く同じマークアップ。id="app-sidebar-toggle"は
-						    変更しない(AppLayout.astro末尾の<script>がDOM上の位置を問わずgetElementByIdで
-						    拾って開閉処理を配線する)。デスクトップでは.toolbar-menu-button側のCSSで
-						    非表示にする。 */}
-						<button type="button" class="toolbar-menu-button btn-ghost" id="app-sidebar-toggle" aria-controls="app-sidebar" aria-expanded="false" aria-label="メニューを開く">
-							<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-								<line x1="4" y1="7" x2="20" y2="7" /><line x1="4" y1="12" x2="20" y2="12" /><line x1="4" y1="17" x2="20" y2="17" />
-							</svg>
-						</button>
 						{/* UI改修依頼(ボックス画面、2026-08-02)「件数バッジ(#pokemon-count-badge)を
 						    現在の右端から検索ボックスの左へ移動する」。旧topbar-statusスロットの
 						    件数バッジ(旧位置は並べ替えの右、ツールバー末尾)をここ(ハンバーガー
@@ -1099,7 +1125,7 @@ const user = Astro.locals.user;
 						<p id="error-message" hidden></p>
 
 						<div class="box-grid">
-							<button type="button" class="add-card-tile" id="add-pokemon-button">
+							<button type="button" class="add-card-tile" id="add-pokemon-button" aria-label="個体を追加">
 								<span class="add-card-tile-icon" aria-hidden="true">＋</span>
 								<span class="add-card-tile-label">個体を追加</span>
 								<span class="add-card-tile-hint" hidden></span>

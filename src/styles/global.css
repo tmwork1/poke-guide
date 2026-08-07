@@ -350,13 +350,6 @@ a {
 	display: none;
 }
 
-/* hideTopbarでAppLayout側のボタンが描画されないため一覧ツールバー内に置く。
-   900px以上ではサイドバーが常設されるので非表示にする。 */
-.toolbar-menu-button {
-	padding: var(--space-2);
-	flex-shrink: 0;
-}
-
 .search-input-wrap,
 .sort-select-wrap {
 	position: relative;
@@ -423,12 +416,6 @@ a {
 	color: var(--color-risky);
 }
 
-@media (min-width: 900px) {
-	.toolbar-menu-button {
-		display: none;
-	}
-}
-
 @media (max-width: 640px) {
 	.panel-toolbar {
 		flex-direction: column;
@@ -437,13 +424,6 @@ a {
 	.toolbar-item {
 		width: 100%;
 		margin-left: 0;
-	}
-	/* 縦積み時、align-items:stretch がハンバーガーボタンも横幅いっぱいに広げ、
-	   button既定の justify-content:center でアイコンが画面中央に来てしまっていた
-	   (件数バッジ・検索欄は左端から始まるので浮いて見える)。ボタンだけ内容幅に戻し、
-	   AppLayout のトップバー(.app-topbar-menu-button)と同じ左端揃えにする。 */
-	.toolbar-menu-button {
-		align-self: flex-start;
 	}
 }
 
