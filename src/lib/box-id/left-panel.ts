@@ -544,11 +544,8 @@ if (form) {
 		}
 
 		setText("mp-nickname", inputValue("nickname") || inputValue("species-name"));
-		const previewSpeciesTypeBadge = document.getElementById("mp-species-type-badge");
-		if (previewSpeciesTypeBadge) applyTypeBadge(previewSpeciesTypeBadge, inputValue("species-name"));
 		const ability = document.getElementById("ability") as HTMLSelectElement | null;
 		setText("mp-ability", ability?.selectedOptions[0]?.textContent?.trim() || ability?.value.trim() || "-");
-		setText("mp-tera", document.getElementById("tera-dropdown-placeholder")?.textContent?.trim() || inputValue("tera") || "テラスなし");
 		setText("mp-item", inputValue("item") || document.getElementById("item-dropdown-placeholder")?.textContent?.trim() || "アイテムなし");
 		const mirrorImage = (sourceId: string, targetId: string): void => {
 			const source = document.getElementById(sourceId) as HTMLImageElement | null;
@@ -560,7 +557,6 @@ if (form) {
 			target.title = source.title;
 			target.style.display = visible ? "" : "none";
 		};
-		mirrorImage("tera-dropdown-image", "mp-tera-image");
 		mirrorImage("item-dropdown-image", "mp-item-image");
 		for (let slot = 1; slot <= 4; slot++) {
 			setText(`mp-move-${slot}`, inputValue(`move-${slot}`));
@@ -1715,7 +1711,6 @@ if (form) {
 	const mobilePreviewSources = [
 		document.getElementById("species-sprite"),
 		document.getElementById("species-sprite-fallback"),
-		document.getElementById("tera-dropdown-image"),
 		document.getElementById("item-dropdown-image"),
 		...Array.from(document.querySelectorAll<HTMLElement>(".move-input-group .move-type-icon")),
 		...STAT_KEYS.map((key) => document.getElementById(`stat-${key}`)),

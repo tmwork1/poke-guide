@@ -40,10 +40,6 @@ const displayNickname = pokemon.nickname?.trim() || pokemon.species_name;
 			<div class="mobile-preview-details">
 				<div id="mp-ability">{pokemon.ability_name || "-"}</div>
 				<div class="mobile-preview-item mobile-preview-icon-text"><img id="mp-item-image" alt="" style="display:none;" /><span id="mp-item">{pokemon.item_name || "アイテムなし"}</span></div>
-				<div class="mobile-preview-icon-text">
-					<img id="mp-tera-image" alt="" style="display:none;" />
-					<span id="mp-tera">{pokemon.tera_type || "テラスなし"}</span>
-				</div>
 			</div>
 			<ol class="mobile-preview-moves" aria-label="技">
 				{[0, 1, 2, 3].map((index) => <li><span class="move-type-icon" id={`mp-move-type-${index + 1}`} hidden><img alt="" /></span><span id={`mp-move-${index + 1}`}>{moves[index] || "-"}</span></li>)}
@@ -55,7 +51,6 @@ const displayNickname = pokemon.nickname?.trim() || pokemon.species_name;
 				<span id="mp-species-sprite-fallback">{pokemon.species_name.slice(0, 1)}</span>
 			</div>
 			<div class="mobile-preview-species">
-				<span id="mp-species-type-badge" class="type-badge type-badge-multi type-badge-inline"></span>
 				<span id="mp-nickname">{displayNickname}</span>
 			</div>
 		</div>
