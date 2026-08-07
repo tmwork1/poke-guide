@@ -384,3 +384,8 @@ primary `#27acd9` / success `#409f89` / danger `#f8705b` / risky `#c9820f`、お
 ### Git BashからのcurlでPUT/POSTの日本語ボディを直接送ると文字化けする(Windows)
 - **実例(ラウンド40、2026-07-30)**: フィクスチャの`is_pinned`基準値ズレを復元しようとしたエージェントが、Git Bash経由で`curl -X PUT ... -d '{"species_name":"メガリザードンX",...}'`のように日本語を含むJSONを直接引数で渡したところ、Windows上のGit Bashの引数エンコーディングの都合で`species_name`等の日本語フィールドがDBに文字化けした状態で保存されてしまった。
 - **対策**: このプロジェクトのWindows環境で日本語を含むJSONボディをPUT/POSTする場合、**curlの`-d`に日本語を直接埋め込まない。** 一度`GET`でレコード全体を取得し、Node.jsスクリプト側(`fetch`または`fs.writeFileSync`で一時ファイルに書き出してから`curl --data-binary @file`)でJSONを組み立てて送る(UTF-8が正しく扱われる)。curlで直接送るのは英数字のみのフィールド(`is_pinned`の真偽値等)に限定するか、それも一時ファイル経由にするのが安全。
+
+### WSL側のdev server起動が `SQLITE_IOERR (SHMOPEN)` で毎回落ちる: Windows側に別のdev serverが残っている
+- **実例(2026-08-07)**: モバイルナビ実装の検証でWSL側`npx astro dev`を再起動しようとしたところ、`workerd/util/sqlite.c++`の`Fatal uncaught kj::Exception`(`disk I/O error: SQLITE_IOERR (extended: SQLITE_IOERR_SHMOPEN)`)で毎回起動直後にクラッシュした。`.wrangler/state/v3`配下の`*.sqlite-shm`等を消そうとしても`Device or resource busy`/`Permission denied`で削除できず、WSL側の`pgrep -af workerd`では何もヒットしなかった。
+- **原因**: Windows側で別途 `npm run dev`(Windowsネイティブの`node.exe`+`node_modules/@cloudflare/workerd-windows-64/bin/workerd.exe`)が起動したまま残っており、これが`.wrangler/state/v3`のsqlite(cache/kv/images)を掴んでいた。WSL側のプロセス一覧には映らないため、WSL側だけをいくら確認しても原因が分からない。
+- **対策**: PowerShellで`Get-CimInstance Win32_Process -Filter "Name='node.exe' or Name='workerd.exe'" | Select ProcessId,CommandLine`のように**Windows側のプロセスも確認する**(WSLの`ps`/`pgrep`はWSL内のプロセスしか見えない)。該当のnode.exe/workerd.exeを`Stop-Process -Force`で止めてから、ロックされていた`.wrangler/state/v3/{cache,kv,images}`配下(gitignore対象、再生成される)を削除し、WSL側で`npx astro dev`を起動し直す。以後は「WSL側のdev serverはClaude自身が管理する」運用を徹底し、Windows側で`npm run dev`を直接叩かない。
