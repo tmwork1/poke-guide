@@ -136,9 +136,16 @@
 	/* button.btn-primary(詳細度0,1,1)に勝つため要素セレクタを付け、削除ボタンと同じ太さを維持する。 */
 	button.bulk-adjust-dialog-compute-button {
 		font-weight: 500;
+		background: var(--color-surface);
+		color: var(--color-primary);
+		border: 2px solid var(--color-primary);
 		/* 操作の主目的だと分かる幅を確保するため、トークンにない必要最小限の幅だけ生値にする。 */
 		min-width: 12rem;
 		max-width: 100%;
+	}
+	button.bulk-adjust-dialog-compute-button:hover:not(:disabled) {
+		background: var(--color-primary);
+		color: var(--color-primary-contrast);
 	}
 
 	.bulk-adjust-dialog-body {

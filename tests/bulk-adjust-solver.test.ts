@@ -17,7 +17,7 @@ import type {
 } from '../src/lib/pyodide-engine.ts';
 
 const BASE = [80, 80, 80, 80, 80, 80];
-const NATURES = Object.keys(NATURE_STAT_MODIFIERS);
+const CURRENT_NATURE = 'まじめ';
 type Kind = 'physical' | 'special' | 'fixed';
 type ModelAttack = SequenceAttack & { kind: Kind; power: number; spread?: number };
 
@@ -79,6 +79,7 @@ function options(engine: SolverEngine, extra: Partial<SolveOptions> = {}): Solve
     engine,
     baseStats: BASE,
     fixedEvs: { atk: 0, spa: 0, spe: 0 },
+    currentNature: CURRENT_NATURE,
     buildDefenderSpec: (nature, evs) => ({ name: 'fake-defender', nature, evs }),
     maxCandidates: 2000,
     ...extra,
@@ -92,13 +93,13 @@ function passes(req: DurabilityRequirement, nature: string, hp: number, def: num
   return 1 - probability >= req.m / 100 - 1e-9;
 }
 
-function reference(requirements: DurabilityRequirement[]) {
+function reference(requirements: DurabilityRequirement[], currentNature = CURRENT_NATURE) {
   const mixed = requirements.some((r) => {
     const kinds = new Set((r.attacks as ModelAttack[]).map((a) => a.kind));
     return kinds.has('physical') && kinds.has('special');
   });
   const result: { nature: string; evs: { hp: number; def: number; spd: number } }[] = [];
-  for (const nature of NATURES) {
+  for (const nature of [currentNature]) {
     for (let hp = 0; hp <= 32; hp++) {
       if (mixed) {
         let found = false;
@@ -145,6 +146,14 @@ async function agrees(name: string, requirements: DurabilityRequirement[], limit
 }
 
 describe('solveDurability: 総当たりとの一致', () => {
+  it('現在の性格以外の候補を返さない', async () => {
+    const currentNature = 'ずぶとい';
+    const reqs = [requirement('p', [attack('physical', 17000)])];
+    const result = await solveDurability(reqs, options(new FakeEngine(), { currentNature }));
+    assert.ok(result.candidates.length > 0);
+    assert.ok(result.candidates.every((candidate) => candidate.nature === currentNature));
+    assert.deepEqual(canonical(compact(result.candidates)), canonical(reference(reqs, currentNature)));
+  });
   it('物理カードだけ(B依存)', async () => { await agrees('physical', [requirement('p', [attack('physical', 17000)])], 300, 'def'); });
   it('特殊カードだけ(D依存)', async () => { await agrees('special', [requirement('s', [attack('special', 17000)])], 300, 'spd'); });
   it('物理+特殊の独立な高速経路は全探索より十分少ない', async () => {
@@ -167,7 +176,7 @@ describe('solveDurability: 総当たりとの一致', () => {
     await agrees('mixed-b-descends', [requirement('mix2', [attack('physical', 13000), attack('special', 6000)])], 2000, 'def');
   });
   it('B/Dに依存しない固定ダメージカードを含む', async () => {
-    await agrees('fixed', [requirement('fixed', [attack('fixed', 160)]), requirement('p', [attack('physical', 15000)])], 300, 'def');
+    await agrees('fixed', [requirement('fixed', [attack('fixed', 160)]), requirement('p', [attack('physical', 17000)])], 300, 'def');
   });
   it('解が存在しない場合はinfeasible', async () => {
     const reqs = [requirement('impossible', [attack('fixed', 999)])];

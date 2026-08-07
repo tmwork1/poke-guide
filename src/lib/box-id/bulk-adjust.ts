@@ -21,6 +21,7 @@ import {
 	getBulkAdjustBridge,
 	buildAttackerSpec,
 	baseStatsMapPromise,
+	natureNameFromBoosts,
 	type BulkAdjustRowSnapshot,
 } from "./shared-core";
 import {
@@ -76,6 +77,22 @@ let isComputing = false;
 let currentRows: BulkAdjustRowSnapshot[] = [];
 const rowInputEls = new Map<string, { nInput: HTMLInputElement; mInput: HTMLInputElement; includeInput: HTMLInputElement }>();
 let activeAbortController: AbortController | null = null;
+
+function includedRowCount(): number {
+	let count = 0;
+	for (const { includeInput } of rowInputEls.values()) {
+		if (includeInput.checked) count++;
+	}
+	return count;
+}
+
+function updateComputeButtonDisabled(): void {
+	const hasIncludedRows = includedRowCount() > 0;
+	dialogComputeButton.disabled = isComputing || !hasIncludedRows;
+	dialogComputeButton.title = hasIncludedRows ? "" : "計算対象の攻撃がありません";
+	if (!isComputing && !hasIncludedRows) dialogStatusEl.textContent = "計算対象の攻撃がありません";
+	else if (!isComputing && dialogStatusEl.textContent === "計算対象の攻撃がありません") dialogStatusEl.textContent = "";
+}
 
 // UI改修依頼(2026-08-05): 画面側の確定数表示が最大10発までを扱うため、入力・探索も同じ範囲にそろえる。
 const MAX_ATTACK_COUNT = 10;
@@ -187,6 +204,7 @@ function buildRowEl(bridge: NonNullable<ReturnType<typeof getBulkAdjustBridge>>,
 		wrap.classList.toggle("is-excluded", !included);
 		nInput.disabled = !included || isComputing;
 		mInput.disabled = !included || isComputing;
+		updateComputeButtonDisabled();
 	};
 	includeInput.addEventListener("change", refreshIncludedState);
 
@@ -213,6 +231,7 @@ function openDialog(): void {
 	for (const row of currentRows) {
 		dialogBodyInnerEl.appendChild(buildRowEl(bridge, row));
 	}
+	updateComputeButtonDisabled();
 	// ⚠️ 実装時に踏んだ罠: 背景オーバーレイ(#bulk-adjust-backdrop)のtopはCSSで
 	// var(--topbar-height)固定にしていたが、狭幅(390px等)ではトップバーの操作ボタン列
 	// (.app-topbar-actions)が折り返して2行以上になることがあり、実際のトップバー高さが
@@ -275,7 +294,7 @@ function setComputingState(computing: boolean): void {
 	isComputing = computing;
 	dialogFooterEl.hidden = !computing;
 	bulkAdjustButton.disabled = computing;
-	dialogComputeButton.disabled = computing;
+	updateComputeButtonDisabled();
 	dialogCloseButton.disabled = false; // 中断経路として閉じるボタンは常に押せるようにする
 	for (const { nInput, mInput, includeInput } of rowInputEls.values()) {
 		nInput.disabled = computing || !includeInput.checked;
@@ -339,6 +358,7 @@ async function runCompute(): Promise<void> {
 		return;
 	}
 	const fixedEvs = { atk: readEv("atk"), spa: readEv("spa"), spe: readEv("spe") };
+	const currentNature = natureNameFromBoosts(currentPressedNatureKey("up"), currentPressedNatureKey("down"));
 
 	const controller = new AbortController();
 	activeAbortController = controller;
@@ -350,6 +370,7 @@ async function runCompute(): Promise<void> {
 			engine: { calcLethalSequence, isEngineFatal, resetEngine },
 			baseStats,
 			fixedEvs,
+			currentNature,
 			buildDefenderSpec: (nature: string, evs: number[]): PokemonSpec => buildAttackerSpec({ nature, evs }),
 			onProgress: (info) => {
 				progressTextEl.textContent = `${info.phase}(${info.done}/${info.total})`;

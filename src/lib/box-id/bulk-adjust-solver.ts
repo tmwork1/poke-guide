@@ -25,20 +25,9 @@
 // 多いほど耐えやすい)。そのため「条件を満たす最小の努力値」の境界だけを二分探索/
 // 二方向ポインタで求めればよく、境界より上は全て合格になる。
 //
-// 【性質2: 性格は(B倍率,D倍率)の組でしか耐久判定に効かない】
-// 25性格のうちB/D以外の上昇/下降(攻撃・特攻・素早さ)は、防御側であるこのポケモン
-// 自身の「耐える確率」には影響しない(このポケモンは技を撃たないため)。B/D倍率は
-// 0.9/1.0/1.1の3通りしかなく、上昇と下降が同じ実数値に同時に掛かることは無いため
-// (B/D)倍率の組み合わせは (1,1)(1.1,1)(1,1.1)(0.9,1)(1,0.9)(1.1,0.9)(0.9,1.1) の
-// 7通りに畳み込める(natureMultipliers()参照)。判定は7クラスぶんだけ行い、結果を
-// 各クラスに属する性格名へ展開する。
-//
-// 【例外: パラドックス系】自分側が「こだいかっせい」「クォークチャージ」持ち、または
-// 「ブーストエナジー」持ちの場合、実際に発動する能力上昇は「6実数値のうち最大のもの」
-// で決まる。攻撃/特攻/素早さの実数値は性格の上昇/下降で変わり得る(努力値は固定でも
-// 性格ごとに実数値は変わる)ため、同じ(B倍率,D倍率)クラスでも性格によって発動対象が
-// 変わり結果が変わり得る。この場合は7クラスへ畳み込まず25性格を個別に評価する
-// (detectParadoxAbility参照。遅くなるため onProgress の phase でその旨を伝える)。
+// 【性質2: 性格は現在値に固定】
+// 耐久調整では性格を変更候補にせず、呼び出し側から渡された現在の性格1種類について
+// H/B/D努力値だけを探索する。候補のnatureは型互換と適用処理のため現在値を保持する。
 //
 // 【性質3: B/Dの分離】多くのカードは物理のみ/特殊のみの技で構成され、耐久判定は
 // B・Dの片方にしか依存しない。依存の有無は技名から物理/特殊を引く表を使わず、実測で
@@ -133,6 +122,8 @@ export interface SolveOptions {
 	baseStats: number[];
 	/** 固定する努力値(現在値)。探索対象外 */
 	fixedEvs: { atk: number; spa: number; spe: number };
+	/** 左パネルで現在選択されている性格。この1種類だけを探索する。 */
+	currentNature: string;
 	/** 性格名と努力値配列[H,A,B,C,D,S]から自分側のPokemonSpecを作る(UI側が buildAttackerSpec をラップして渡す) */
 	buildDefenderSpec: (nature: string, evs: number[]) => PokemonSpec;
 	/** 進捗通知。engine呼び出しのたびに呼ぶ必要はなく、適度に間引いてよい */
@@ -171,12 +162,6 @@ const DEFAULT_MAX_CANDIDATES = 300;
 const LEVEL = 50;
 const IV = 31;
 const MAX_EV = 32;
-
-// パラドックス系の例外(コメント冒頭「例外」参照)。この2特性/この道具を自分側が
-// 持つ場合、A/C/Sの実数値差(=性格差)でも発動対象が変わり結果が変わり得るため、
-// 25性格を個別に評価する。
-const PARADOX_ABILITIES = new Set(["こだいかっせい", "クォークチャージ"]);
-const PARADOX_ITEM = "ブーストエナジー";
 
 function abortError(): DOMException {
 	return new DOMException("Aborted", "AbortError");
@@ -230,74 +215,6 @@ function natureMultipliers(nature: string): { bMult: number; dMult: number } {
 	const bMult = mod.up === "def" ? 1.1 : mod.down === "def" ? 0.9 : 1.0;
 	const dMult = mod.up === "spd" ? 1.1 : mod.down === "spd" ? 0.9 : 1.0;
 	return { bMult, dMult };
-}
-
-interface NatureClassGroup {
-	/** このクラスに属する性格名一覧(候補展開用) */
-	natures: string[];
-	/** エンジン呼び出しに使う代表性格 */
-	representative: string;
-	bMult: number;
-	dMult: number;
-}
-
-/**
- * 25性格を(B倍率,D倍率)でグルーピングする。パラドックス例外時は1性格=1クラスにする
- * (性質2の例外。コメント冒頭参照)。非例外時は必ず7クラスになる(up/downがdefと
- * spdへ同時に掛かることは無いため、9通り中7通りしか実現しない)。
- */
-function buildNatureClasses(paradoxException: boolean): NatureClassGroup[] {
-	const allNatures = Object.keys(NATURE_STAT_MODIFIERS);
-	if (paradoxException) {
-		return allNatures.map((n) => {
-			const { bMult, dMult } = natureMultipliers(n);
-			return { natures: [n], representative: n, bMult, dMult };
-		});
-	}
-	const map = new Map<string, NatureClassGroup>();
-	for (const n of allNatures) {
-		const { bMult, dMult } = natureMultipliers(n);
-		const key = `${bMult}:${dMult}`;
-		let group = map.get(key);
-		if (!group) {
-			group = { natures: [], representative: n, bMult, dMult };
-			map.set(key, group);
-		}
-		group.natures.push(n);
-	}
-	return [...map.values()];
-}
-
-/**
- * 実数値グリッドの探索に使う性格を選ぶ(性質6)。
- * 目的の軸(def/spd)が目的の倍率になる性格のうち、**素早さに上昇/下降を持たないもの**を
- * 優先する。性質2は「防御側のA/C/Sは耐久判定に影響しない」という前提だが、統合グリッドは
- * 1回の探索の中で異なる性格を混ぜて叩くため、前提が崩れたときの影響をできるだけ小さく
- * したい。素早さは(ジャイロボール等)相手の技の威力に効き得る唯一の非防御実数値なので、
- * そこだけは全グリッド点で揃える。該当が無ければ倍率さえ合っていれば何でもよい。
- */
-function pickGridNature(stat: "def" | "spd", mult: number): string {
-	const names = Object.keys(NATURE_STAT_MODIFIERS);
-	const matches = names.filter((n) => {
-		const m = natureMultipliers(n);
-		return (stat === "def" ? m.bMult : m.dMult) === mult;
-	});
-	return matches.find((n) => {
-		const mod = NATURE_STAT_MODIFIERS[n];
-		return mod.up !== "spe" && mod.down !== "spe";
-	}) ?? matches[0];
-}
-
-/**
- * 自分側のspecが「こだいかっせい」「クォークチャージ」を特性として持つか、
- * 「ブーストエナジー」を持ち物として持つかを判定する。性格・努力値は結果に影響しない
- * フィールド(abilityName/itemName)だけを見るため、ダミー値で1回specを組み立てて確認する。
- */
-function detectParadoxException(buildDefenderSpec: SolveOptions["buildDefenderSpec"]): boolean {
-	const spec = buildDefenderSpec("まじめ", [0, 0, 0, 0, 0, 0]);
-	if (spec.abilityName && PARADOX_ABILITIES.has(spec.abilityName)) return true;
-	if (spec.itemName === PARADOX_ITEM) return true;
-	return false;
 }
 
 function sameOutcome(a: CalcLethalSequenceResult, b: CalcLethalSequenceResult): boolean {
@@ -404,19 +321,6 @@ interface GridPoint {
 	ev: number;
 }
 
-/** 指定した倍率群で到達可能な実数値をマージし、昇順の重複なしグリッドにする(性質6)。 */
-function buildRealStatGrid(stat: "def" | "spd", base: number, mults: number[]): GridPoint[] {
-	const byValue = new Map<number, GridPoint>();
-	for (const mult of mults) {
-		const nature = pickGridNature(stat, mult);
-		for (let ev = 0; ev <= MAX_EV; ev++) {
-			const value = calcOtherStat(LEVEL, base, IV, ev, mult);
-			if (!byValue.has(value)) byValue.set(value, { value, nature, ev });
-		}
-	}
-	return [...byValue.values()].sort((a, b) => a.value - b.value);
-}
-
 /** 実数値の閾値を満たす最小の努力値(0〜32)。届かなければ null。 */
 function minEvForThreshold(base: number, mult: number, threshold: number): number | null {
 	for (let ev = 0; ev <= MAX_EV; ev++) {
@@ -433,6 +337,7 @@ export async function solveDurability(
 		engine,
 		baseStats,
 		fixedEvs,
+		currentNature,
 		buildDefenderSpec,
 		onProgress,
 		signal,
@@ -520,13 +425,13 @@ export async function solveDurability(
 		return result;
 	}
 
-	// --- 性質3: カードごとにB/D依存の有無を実測する(nature="まじめ"固定、HP努力値0固定で
+	// --- 性質3: カードごとにB/D依存の有無を実測する(現在の性格、HP努力値0固定で
 	// evB/evDを最小/最大にした2〜3通りをcalcLethalSequenceし、perAttackDamages/
 	// cumulativeDamageが変わるかを見る)。性格クラス・探索アルゴリズムには依存しないため、
 	// 探索全体で1度だけ行う。---
 	async function probeDependency(req: DurabilityRequirement): Promise<{ dependsOnB: boolean; dependsOnD: boolean }> {
 		const attacksN = expandAttacksToN(req.attacks, req.n);
-		const nature = "まじめ";
+		const nature = currentNature;
 		async function call(evB: number, evD: number): Promise<CalcLethalSequenceResult> {
 			checkAborted(signal);
 			const evs = [0, fixedEvs.atk, evB, fixedEvs.spa, evD, fixedEvs.spe];
@@ -569,18 +474,14 @@ export async function solveDurability(
 	const mixedReqs = requirements.filter((r) => dependsOnBMap.get(r.rowId) && dependsOnDMap.get(r.rowId));
 	const isMixedOverall = mixedReqs.length > 0;
 
-	const paradoxException = detectParadoxException(buildDefenderSpec);
-	const natureClasses = buildNatureClasses(paradoxException);
-	if (paradoxException) {
-		reportProgress(0, 1, "こだいかっせい/クォークチャージ/ブーストエナジーを検出: 25性格を個別評価中(低速)");
-	}
+	const { bMult, dMult } = natureMultipliers(currentNature);
+	const natureClasses = [{ natures: [currentNature], representative: currentNature, bMult, dMult }];
 
 	// --- 判定のメモ(性質4・性質5)---
-	// カード(rowId)ごとに1つ。パラドックス例外時だけは、同じ実数値でもA/C/Sの違いで
-	// 結果が変わり得るため性格名までキーに含める(=性格ごとに別メモになる)。
+	// 現在の性格1種類だけを扱うため、カード(rowId)ごとに1つ持つ。
 	const memos = new Map<string, MonotoneMemo>();
-	function memoFor(req: DurabilityRequirement, nature: string): MonotoneMemo {
-		const key = paradoxException ? `${req.rowId}|${nature}` : req.rowId;
+	function memoFor(req: DurabilityRequirement): MonotoneMemo {
+		const key = req.rowId;
 		let memo = memos.get(key);
 		if (!memo) {
 			memo = new MonotoneMemo();
@@ -607,7 +508,7 @@ export async function solveDurability(
 		if (dependsOnBMap.get(req.rowId)) point.push(def);
 		if (dependsOnDMap.get(req.rowId)) point.push(spd);
 
-		const memo = memoFor(req, nature);
+		const memo = memoFor(req);
 		const known = memo.lookup(point);
 		if (known !== undefined) return known;
 
@@ -691,7 +592,7 @@ export async function solveDurability(
 		async function computeNeitherFeasible(): Promise<boolean[]> {
 			const result: boolean[] = new Array(MAX_EV + 1).fill(true);
 			if (neitherReqs.length === 0) return result;
-			const passAt = (evH: number) => allPass(neitherReqs, "まじめ", evH, 0, 0);
+			const passAt = (evH: number) => allPass(neitherReqs, currentNature, evH, 0, 0);
 			if (!(await passAt(MAX_EV))) {
 				result.fill(false);
 				return result;
@@ -734,34 +635,19 @@ export async function solveDurability(
 
 		const neitherFeasible = await computeNeitherFeasible();
 
-		// 探索グループ: 非パラドックス時は「全性格ぶんをまとめた統合グリッド1本」(性質6)。
-		// パラドックス例外時は性格ごとに結果が変わり得るため統合できず、性格ごとに
-		// その性格の倍率だけのグリッドを1本ずつ持つ(改修前と同じ25本ぶんの探索)。
+		// 探索グループは現在の性格の倍率だけを持つ1本に固定する。
 		interface AxisSearchGroup {
 			key: string;
 			grid: GridPoint[];
 		}
 		function buildSearchGroups(stat: "def" | "spd", base: number): { groups: AxisSearchGroup[]; keyOf: (nature: string) => string } {
-			if (!paradoxException) {
-				return {
-					groups: [{ key: "*", grid: buildRealStatGrid(stat, base, [0.9, 1.0, 1.1]) }],
-					keyOf: () => "*",
-				};
+			const mult = stat === "def" ? bMult : dMult;
+			const grid: GridPoint[] = [];
+			for (let ev = 0; ev <= MAX_EV; ev++) {
+				const value = calcOtherStat(LEVEL, base, IV, ev, mult);
+				if (grid.length === 0 || grid[grid.length - 1].value !== value) grid.push({ value, nature: currentNature, ev });
 			}
-			const groups = natureClasses.map((cls) => {
-				const mult = stat === "def" ? cls.bMult : cls.dMult;
-				// パラドックス時はグリッド点の性格もそのクラスの性格に固定する
-				// (A/C/Sの違いが結果に効くため、他の性格で代用できない)。
-				const grid: GridPoint[] = [];
-				for (let ev = 0; ev <= MAX_EV; ev++) {
-					const value = calcOtherStat(LEVEL, base, IV, ev, mult);
-					if (grid.length === 0 || grid[grid.length - 1].value !== value) {
-						grid.push({ value, nature: cls.representative, ev });
-					}
-				}
-				return { key: cls.representative, grid };
-			});
-			return { groups, keyOf: (nature: string) => nature };
+			return { groups: [{ key: currentNature, grid }], keyOf: () => currentNature };
 		}
 
 		const bSearch = buildSearchGroups("def", baseStats[2]);
@@ -824,8 +710,7 @@ export async function solveDurability(
 		// 答えを上界として引き継ぎ、そこからギャロップ+二分探索(性質7)で下ろす。
 		// 引き継いだ上界の再判定はメモの支配関係(性質4)で無料になるため、改修前の
 		// 「HP段ごとにB=0から走査し直す」約15,000回の呼び出しが数百回まで落ちる。
-		// なお非パラドックス時はメモが実数値キーで性格クラス間でも共有されるため、
-		// 2クラス目以降はさらに当たりやすい。
+		// 現在の性格1種類だけなので、性格をまたぐ追加探索は発生しない。
 		const totalWork = natureClasses.length * (MAX_EV + 1);
 		let doneWork = 0;
 		for (const cls of natureClasses) {

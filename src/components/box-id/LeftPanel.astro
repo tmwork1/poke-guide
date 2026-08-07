@@ -607,8 +607,8 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		         移しただけで動作する。
 		      3. すばやさ調整: 旧S行の<a href={`/speed-chart?owned=${pokemon.id}`}>をラベルだけ
 		         変えてここへ移設(遷移先・機能は変更していない)。
-		    3つとも見た目を揃えるため.stat-adjust-action-button(+.btn-ghost)で統一し、アイコンは
-		    旧S行ボタンと同じsliders-horizontal(Lucide相当)のSVGをそのまま複製して使う
+		    3つとも見た目を揃えるため.stat-adjust-action-button(+.btn-ghost)で統一する。耐久調整は
+		    sliders-horizontal(Lucide相当)、すばやさ調整は速度計のSVGを使う
 		    (新しい色・サイズトークンは作らない)。 */}
 		<div class="stat-adjust-actions">
 			<button
@@ -623,7 +623,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 				<span class="stat-adjust-action-label">耐久最大化</span>
 			</button>
 			<button type="button" id="bulk-adjust-button" class="btn-ghost stat-adjust-action-button" disabled>
-				<span class="bulk-adjust-button-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.34 19a10 10 0 1 1 17.32 0"/><path d="m12 12 4-3"/></svg></span><span class="bulk-adjust-button-label">耐久調整</span>
+				<span class="bulk-adjust-button-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 4h-7"/><path d="M10 4H3"/><path d="M21 12h-9"/><path d="M8 12H3"/><path d="M21 20h-5"/><path d="M12 20H3"/><circle cx="12" cy="4" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="14" cy="20" r="2"/></svg></span><span class="bulk-adjust-button-label">耐久調整</span>
 			</button>
 			<a
 				class="btn-ghost stat-adjust-action-button"
@@ -631,7 +631,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 				aria-label="すばやさ早見表を開く"
 				title="すばやさ早見表を開く"
 			>
-				<span class="stat-adjust-action-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/><path d="M8 3 6 5"/><path d="m16 3 2 2"/></svg></span>
+				<span class="stat-adjust-action-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.34 19a10 10 0 1 1 17.32 0"/><path d="m12 12 4-3"/></svg></span>
 				<span class="stat-adjust-action-label">すばやさ調整</span>
 			</a>
 		</div>
