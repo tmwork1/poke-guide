@@ -98,6 +98,9 @@ const displayNickname = pokemon.nickname?.trim() || pokemon.species_name;
 	@media (max-width: 899px) {
 		#mobile-training-ui[data-mobile-tab="damage"] .mobile-training-preview { display: none; }
 		#mobile-training-ui[data-mobile-tab="damage"] .mobile-damage-toolbar { display: flex; justify-content: flex-end; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-3); background: var(--color-surface); border-bottom: 1px solid var(--color-border); }
+		/* 共通トップバー撤去(2026-08-07)により「すべて折りたたむ」もここへ降りてきて2個以上並ぶ。
+		   この箱自体がblockのままだとボタンが1個ずつ改行されるため、横並びのflexにする。 */
+		.mobile-damage-toolbar-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: var(--space-2); }
 	}
 	@media (min-width: 900px) { .mobile-training-bar, .mobile-training-preview, .mobile-damage-toolbar { display: none; } }
 </style>

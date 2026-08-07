@@ -473,6 +473,22 @@ const isOptedOut = optOutRemainingText !== "";
 			.edit-shell[data-mobile-tab="damage"] .edit-layout-right {
 				padding: var(--space-3) var(--space-3) 0;
 			}
+			/* 共通トップバーから降りてきた 保存状態 / 非公開 / 削除 の受け皿(上のマークアップと
+			   src/lib/box-id/mobile-edit-tabs.ts 参照)。育成タブ本文の末尾に、メモの下の
+			   独立した一列として置く。 */
+			.mobile-edit-actions {
+				display: flex;
+				flex-wrap: wrap;
+				align-items: center;
+				justify-content: flex-end;
+				gap: var(--space-3);
+				padding: var(--space-4) var(--space-5) var(--space-5);
+			}
+		}
+		/* 900px以上ではトップバーが本来の置き場所なので、この受け皿は空のまま畳んでおく
+		   (空でもgap/paddingぶんの余白が出てしまうため display:none にする)。 */
+		@media (min-width: 900px) {
+			.mobile-edit-actions { display: none; }
 		}
 		@media (min-width: 1200px) {
 			.edit-layout {
@@ -588,6 +604,13 @@ const isOptedOut = optOutRemainingText !== "";
 			    src/lib/box-id/left-panel.ts へ切り出した(見た目・ロジックは一切変更していない)。
 			    SSRで取得済みのpokemon(この分岐では非null)だけをpropsで渡す。 */}
 			<LeftPanel pokemon={pokemon} />
+			{/* UI改修依頼(モバイル、2026-08-07)「提案図のとおり、モバイルではセカンドバー以外の
+			    ヘッダーを一切置かない」対応。900px未満では共通トップバー(.app-topbar)を隠すため、
+			    そこに載っていた保存状態・非公開トグル・削除ボタンの移設先を育成タブ本文の最下部に
+			    用意する(ユーザー指示: 育成タブの下部へ移す)。実際に要素を差し込むのは
+			    src/lib/box-id/mobile-edit-tabs.ts(DOMごと移動させるのでイベントは張り直さない)。
+			    900px以上ではこの箱は空のまま display:none にする。 */}
+			<div class="mobile-edit-actions" id="mobile-edit-actions"></div>
 			</div>
 
 			<div class="edit-layout-right">
@@ -621,5 +644,25 @@ const isOptedOut = optOutRemainingText !== "";
 	<datalist id="ability-list"></datalist>
 	<datalist id="item-list"></datalist>
 	<script type="application/json" id="box-species-usage-data" set:html={JSON.stringify(speciesUsageByRegulation)} />
+
+	{/* UI改修依頼(モバイル、2026-08-07)「docs/ui_proposal/mobile/ の提案図のように、モバイル画面では
+	    指定されたセカンドバー以外のヘッダーを一切置かない」対応。提案図
+	    (ui_mobile_box_個体編集_*.png)はどれも画面上端がセカンドバーで、共通ヘッダー(アプリロゴ)も
+	    「← 戻る」も描かれていない。.app-topbar は AppLayout.astro 側の要素で、AppLayout自体は
+	    編集禁止(全ページに影響する)のため、既存の bodyClass="box-edit-page"(23-H1で導入)を使って
+	    このページだけを対象に is:global で隠す。AppLayoutのhideTopbar propは幅に関係なく描画自体を
+	    やめてしまうため、デスクトップのトップバーを残す今回の要件には使えない。
+	    ⚠️ トップバーに載っていた操作系(保存状態・耐久調整・すべて折りたたむ・非公開・削除)は
+	    このCSSで一緒に消える。消えたままだとモバイルから削除も非公開切り替えもできなくなるため、
+	    src/lib/box-id/mobile-edit-tabs.ts がDOMごとタブ本文側へ移設している(戻り先も保持済み)。 */}
+	<style is:global>
+		@media (max-width: 899px) {
+			body.box-edit-page .app-topbar { display: none; }
+			/* --topbar-height はトップバーの実測高さ(global.cssの:root)で、モバイルのセカンドバー
+			   (.mobile-training-bar の position:sticky; top)や .edit-shell の高さ計算がこれを見る。
+			   トップバーを消した以上0にしないと、セカンドバーが画面上端から一段浮いてしまう。 */
+			body.box-edit-page { --topbar-height: 0px; }
+		}
+	</style>
 
 </AppLayout>
