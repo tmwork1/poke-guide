@@ -20,7 +20,7 @@
 // `initRightPanel()` を1回呼ばれることで初期化される(#damage-detail-panel 等は
 // #opponent-notes-section と常に同時にSSR描画されるため、ガードの共有は安全)。
 import { el, readEv } from "../owned-pokemon-form";
-import { officialArtworkUrl } from "../pokemon-master-data";
+import { spriteUrl } from "../pokemon-master-data";
 import { typeIconUrl } from "../sprite-urls";
 import {
 	applySprite,
@@ -223,7 +223,7 @@ export interface CandidateListView {
 // (下のlastCandidateListRedraw)はこの関数の外側(renderBulkAdjustResults等の呼び出し元)が
 // 担う。isApplied等の状態は呼び出しのたびに呼び出し元が計算し直して渡す前提
 // (このファイル自身は「何が適用中か」の判定方法を知らない。renderBulkAdjustResultsの
-// currentAppliedNatureAndEvs参照)。
+// currentAppliedEvs参照)。
 export function renderCandidateList(view: CandidateListView): void {
 	detailPanelBodyEl.innerHTML = "";
 	const inner = document.createElement("div");
@@ -436,7 +436,11 @@ function buildStatCardEl(spec: StatCardSpec): HTMLElement {
 	for (const row of spec.rows) {
 		const statEl = document.createElement("span");
 		statEl.className = "candidate-list-item-stat";
-		statEl.textContent = `${row.label}${row.real}(${row.ev})`;
+		statEl.textContent = `${row.label}${row.real}`;
+		const evEl = document.createElement("span");
+		evEl.className = "candidate-list-item-stat-ev";
+		evEl.textContent = ` ${row.ev}`;
+		statEl.appendChild(evEl);
 		statLine.appendChild(statEl);
 	}
 	card.appendChild(statLine);
@@ -555,8 +559,8 @@ export function renderStatCardList(view: StatCardListView): void {
 		for (const group of view.groups!) {
 			const titleEl = document.createElement("p");
 			titleEl.className = "field-label candidate-list-group-title";
-			// 今回の要件: 指数名と式の間を空け、式を囲む外側の丸括弧だけを除く。
-			titleEl.textContent = group.title.replace(/^(.+?)\((.*)\)$/, "$1 $2");
+			// 見出しには指数名だけを表示し、計算式はtitle属性へ分離する。
+			titleEl.textContent = group.title;
 			if (group.titleHelp) titleEl.title = group.titleHelp;
 			listEl.appendChild(titleEl);
 			listEl.appendChild(buildStatCardEl(group.card));
@@ -609,7 +613,7 @@ export function renderDetailPanelEmpty(): void {
 	detailPanelBodyEl.appendChild(inner);
 }
 
-// 現在左パネルに入っている性格・H/B/D努力値を読み直す(候補一覧のisApplied判定用)。
+// 元の配分へ戻す候補の型互換を保つため、現在左パネルの性格を読み取る。
 // bulk-adjust.ts側にも同種のロジック(currentPressedNatureKey、性格ボタンのaria-pressedから
 // 性格名を逆算する)があるが、あちらは編集禁止ファイルのため関数を共有できず、同じ考え方
 // (natureNameFromBoosts、shared-core.ts)をここでも独立して使う(性格ボタンのid規約
@@ -622,9 +626,13 @@ function currentAppliedNatureKey(direction: "up" | "down"): StatKey | null {
 	}
 	return null;
 }
-function currentAppliedNatureAndEvs(): { nature: string; hp: number; def: number; spd: number } {
+function currentAppliedNature(): string {
+	return natureNameFromBoosts(currentAppliedNatureKey("up"), currentAppliedNatureKey("down"));
+}
+
+// 適用中判定は、候補ごとに性格が変わらない現在のソルバー契約に合わせH/B/D努力値だけで行う。
+function currentAppliedEvs(): { hp: number; def: number; spd: number } {
 	return {
-		nature: natureNameFromBoosts(currentAppliedNatureKey("up"), currentAppliedNatureKey("down")),
 		hp: readEv("hp"),
 		def: readEv("def"),
 		spd: readEv("spd"),
@@ -648,9 +656,10 @@ export function renderBulkAdjustResults(
 	let filterRemainingOnly = false; // 依頼7: デフォルトOFF
 	// UI改修依頼(2026-08-05)「元のステータスを候補と同じ経路で選択」対応。
 	// 一覧を開いた時点の値を候補型として保持し、適用後もこの配分へ戻せるようにする。
-	const originalApplied = currentAppliedNatureAndEvs();
+	const originalApplied = currentAppliedEvs();
 	const originalCandidate: DurabilityCandidate = {
-		nature: originalApplied.nature,
+		// natureは表示・適用中判定には使わないが、ソルバー戻り値との型互換と元配分の復元に必要。
+		nature: currentAppliedNature(),
 		evs: { hp: originalApplied.hp, def: originalApplied.def, spd: originalApplied.spd },
 		searchedEvTotal: originalApplied.hp + originalApplied.def + originalApplied.spd,
 		totalEv: STAT_KEYS.reduce((sum, key) => sum + readEv(key), 0),
@@ -685,7 +694,7 @@ function buildBulkAdjustStatCardView(
 	onFilterChange: (checked: boolean) => void,
 ): StatCardListView {
 	const infeasible = result.infeasible || result.candidates.length === 0;
-	const applied = currentAppliedNatureAndEvs();
+	const applied = currentAppliedEvs();
 	// 依頼7: 「追加努力値合計(searchedEvTotal=探索したH+B+D)が残り努力値以下」は、
 	// candidate.exceedsChampionsCap(totalEv=searchedEvTotal+固定A/C/S が66超か)の否定と
 	// 数学的に同値(66-固定A/C/S = 残り努力値)。既存の判定を再利用し、同じ条件の
@@ -713,10 +722,8 @@ function buildBulkAdjustStatCardView(
 				{ label: "B", real: candidate.realStats.def, ev: candidate.evs.def },
 				{ label: "D", real: candidate.realStats.spd, ev: candidate.evs.spd },
 			],
-			badge: candidate.nature,
 			flags,
 			isApplied:
-				candidate.nature === applied.nature &&
 				candidate.evs.hp === applied.hp &&
 				candidate.evs.def === applied.def &&
 				candidate.evs.spd === applied.spd,
@@ -734,7 +741,7 @@ function buildBulkAdjustStatCardView(
 	return {
 		heading: "耐久調整",
 		filterToggle: {
-			label: "残り努力値以下のみ表示",
+			label: "残り努力値以下のみ",
 			checked: filterRemainingOnly,
 			onChange: onFilterChange,
 		},
@@ -745,11 +752,9 @@ function buildBulkAdjustStatCardView(
 				{ label: "B", real: originalCandidate.realStats.def, ev: originalCandidate.evs.def },
 				{ label: "D", real: originalCandidate.realStats.spd, ev: originalCandidate.evs.spd },
 			],
-			badge: originalCandidate.nature,
 			isCurrent: true,
 			showCurrentBadge: false,
 			isApplied:
-				originalCandidate.nature === applied.nature &&
 				originalCandidate.evs.hp === applied.hp &&
 				originalCandidate.evs.def === applied.def &&
 				originalCandidate.evs.spd === applied.spd,
@@ -784,7 +789,7 @@ function buildBulkAdjustStatCardView(
 // (このファイルはdurability-index.tsの計算に依存しない「dumb」な描画専任を維持)。
 export interface DurabilityIndexResultGroup {
 	kind: DurabilityIndexKind;
-	/** 指数名の見出し(依頼6、例: "総合耐久指数(H×B×D÷(B+D))")。 */
+	/** 計算式を含まない指数名の見出し(例: "総合耐久指数")。 */
 	heading: string;
 	/** 見出しホバー時に出す計算式のヘルプ(依頼6)。 */
 	headingHelp?: string;
@@ -1068,7 +1073,7 @@ export function buildSideSection(
 	headingRow.appendChild(heading2);
 
 	const rankField = document.createElement("div");
-	rankField.className = "damage-detail-rank-field";
+	rankField.className = "rank-field damage-detail-rank-field";
 	const rankLabel = document.createElement("span");
 	rankLabel.textContent = "ランク";
 	const rankInput = document.createElement("input");
@@ -1082,12 +1087,12 @@ export function buildSideSection(
 	rankInput.setAttribute("aria-label", `${ariaSideLabel}の能力ランク`);
 	const decrementButton = document.createElement("button");
 	decrementButton.type = "button";
-	decrementButton.className = "damage-detail-icon-btn is-text-only damage-detail-rank-stepper";
+	decrementButton.className = "rank-stepper damage-detail-rank-stepper";
 	decrementButton.textContent = "－";
 	decrementButton.setAttribute("aria-label", `${ariaSideLabel}の能力ランクを1下げる`);
 	const incrementButton = document.createElement("button");
 	incrementButton.type = "button";
-	incrementButton.className = "damage-detail-icon-btn is-text-only damage-detail-rank-stepper";
+	incrementButton.className = "rank-stepper damage-detail-rank-stepper";
 	incrementButton.textContent = "＋";
 	incrementButton.setAttribute("aria-label", `${ariaSideLabel}の能力ランクを1上げる`);
 	const updateEmphasis = () => {
@@ -1137,7 +1142,10 @@ export function buildSideSection(
 		},
 		{ passive: false },
 	);
-	rankField.append(rankLabel, rankInput, incrementButton, decrementButton);
+	const stepperGroup = document.createElement("span");
+	stepperGroup.className = "rank-stepper-group";
+	stepperGroup.append(incrementButton, decrementButton);
+	rankField.append(rankLabel, rankInput, stepperGroup);
 	// ラウンド28ユーザー指示(28-R5)「ランク入力欄はタイトルの次の行に移動」により、
 	// このrankFieldはheadingRow(見出しの次の行)に置いていた。
 	// 🔴 UI改善ラウンド31ユーザー指示(31-R3)「ランク・状態異常・テラスタルは横並びに
@@ -1497,7 +1505,7 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 		selfIcon.style.display = "none";
 		const selfIconFallback = document.createElement("span");
 		selfIconFallback.className = "damage-detail-selection-icon-fallback";
-		void applySprite(selfIcon, selfIconFallback, el<HTMLInputElement>("species-name").value.trim(), officialArtworkUrl);
+		void applySprite(selfIcon, selfIconFallback, el<HTMLInputElement>("species-name").value.trim(), spriteUrl);
 
 		// 🔴 UI改善ラウンド32ユーザー指示(32-R1)「矢印を太くて見やすいデザインに変更」
 		// により、テキストの矢印文字からインラインSVGのシェブロンへ作り替える。
@@ -1539,7 +1547,7 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 		opponentIcon.style.display = "none";
 		const opponentIconFallback = document.createElement("span");
 		opponentIconFallback.className = "damage-detail-selection-icon-fallback";
-		void applySprite(opponentIcon, opponentIconFallback, row.name.trim(), officialArtworkUrl);
+		void applySprite(opponentIcon, opponentIconFallback, row.name.trim(), spriteUrl);
 
 		const moveText = document.createElement("span");
 		moveText.className = "damage-detail-selection-move";

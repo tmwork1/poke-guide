@@ -2214,9 +2214,6 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 	   (旧.damage-detail-rank-rowは廃止。見出しごとラップするのは
 	   .damage-detail-side-heading-row側の役目になった)。 */
 	#damage-detail-panel-body .damage-detail-rank-field {
-		display: flex;
-		align-items: center;
-		gap: 0.35rem;
 		flex: 0 0 auto;
 		/* ランク段だけ次セクションと密着していたため、既存の1段分の間隔を補う。 */
 		margin-bottom: var(--space-2);
@@ -2225,8 +2222,6 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 		   現行は--font-size-xs(12px)にする。「ランク」ラベル文字自体はこの要素の
 		   直下にある無クラスの<span>(rankLabel、buildSideSection参照)のためここの値が
 		   そのまま効く。 */
-		font-size: var(--font-size-xs);
-		color: var(--color-text-muted);
 	}
 	/* pitfalls.md: input/select { min-height: 2.35rem }(global.css)が密な行では
 	   1行あたり13pxの空気になる。この数値スピンボックスも同様に効くため明示的に詰める。
@@ -2254,22 +2249,6 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 	#damage-detail-panel-body .damage-detail-rank-field input[type="number"]::-webkit-outer-spin-button {
 		margin: 0;
 		appearance: none;
-	}
-	#damage-detail-panel-body .damage-detail-rank-stepper {
-		min-width: 24px;
-		min-height: 24px;
-		justify-content: center;
-		padding: 0.2em;
-		border: none;
-		border-radius: 50%;
-		background: transparent;
-	}
-	/* 操作可能なときだけ控えめな円形背景を出し、disabledの無反応表現を保つ。 */
-	#damage-detail-panel-body .damage-detail-rank-stepper:not(:disabled):hover { background: var(--color-surface-alt); }
-	#damage-detail-panel-body .damage-detail-rank-stepper:not(:disabled):active { background: var(--color-border); }
-	#damage-detail-panel-body .damage-detail-rank-stepper:disabled {
-		cursor: default;
-		opacity: 0.5;
 	}
 	#damage-detail-panel-body .damage-detail-rank-field input.is-nonzero {
 		/* 🔴 ラウンド49 A-2: var(--color-primary)はライトで実測コントラスト約2.50:1
@@ -2424,8 +2403,7 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 	/* 🔴 UI改修依頼(2026-08-05)修正漏れ対応: 見出し行を本文から共通タイトル帯へ移設したため、
 	   本文限定セレクタでは一致しなくなっていた。パネルルート配下に広げ、ヘッダー帯・本文の
 	   どちらに置かれても確立済みの見出しスタイルが適用されるようにする。 */
-	/* 31-R1「下側に区切りを入れて以下の設定群と領域を分ける」対応でここにborder-bottomを持たせていたが、
-	   見出しをタイトル帯へ移設した後は.damage-detail-panel-header自身のborder-bottomが同じ役割を果たすため撤去した。 */
+	/* 今回の指示で区切り線は3モード共通の.damage-detail-panel-headerに復活させた。 */
 	.damage-detail-panel .damage-detail-selection-heading {
 		display: flex;
 		align-items: center;
@@ -2433,24 +2411,17 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 		min-width: 0;
 		margin: 0;
 	}
-	/* アイコンサイズは新規規格を作らず、.damage-row-icon-button等で確立済みの28px規格を使う
-	   (round-31.md「アイコンサイズは/box /box/[id]の既存規格(20pxまたは28px)から選び、
-	   新しい規格を作らないこと」)。official artworkは正方形透過画像なのでobject-fit:containで
-	   収める。 */
-	/* 🔴 UI改善ラウンド32ユーザー指示(32-R1)「ヘッダの画像を少し大きく」により28px→32pxへ。
-	   round-31.mdの「アイコンサイズは/box /box/[id]の既存規格(20pxまたは28px)から選ぶ」は
-	   このR1自体がユーザー明示指示による例外(round-32.md「維持すべき点」に明記)。 */
-	/* UI改善ラウンド41ユーザー指示(41-R1)「ヘッダーのポケモン画像を+20%」により、32-R1で確立した32pxの120%=38.4pxへ拡大する(フォールバック用の-icon-fallbackも同じサイズに揃える)。 */
+	/* 縮小したタイトル帯に合わせ、ドット絵とフォールバックを既存の28px規格へ揃える。 */
 	.damage-detail-panel .damage-detail-selection-icon {
-		width: 38.4px;
-		height: 38.4px;
+		width: var(--icon-size-md);
+		height: var(--icon-size-md);
 		object-fit: contain;
 		flex-shrink: 0;
 	}
 	.damage-detail-panel .damage-detail-selection-icon-fallback {
 		display: none;
-		width: 38.4px;
-		height: 38.4px;
+		width: var(--icon-size-md);
+		height: var(--icon-size-md);
 		border-radius: 50%;
 		flex-shrink: 0;
 		align-items: center;

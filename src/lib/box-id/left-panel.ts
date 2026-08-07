@@ -1583,10 +1583,10 @@ if (form) {
 	// 右パネルへ3件同時表示する(切り替えボタンは無し)。旧実装と異なり、ボタン押下だけでは
 	// 左パネルを更新しない(3件を表示するだけ)。一覧内の候補をクリックしたときだけ、その
 	// 候補のH/B/D配分を左パネルへ適用する。
-	const DURABILITY_INDEX_KINDS: { kind: DurabilityIndexKind; heading: string }[] = [
-		{ kind: "total", heading: "総合耐久指数(H×B×D÷(B+D))" },
-		{ kind: "physical", heading: "物理耐久指数(H×B)" },
-		{ kind: "special", heading: "特殊耐久指数(H×D)" },
+	const DURABILITY_INDEX_KINDS: { kind: DurabilityIndexKind; heading: string; headingHelp: string }[] = [
+		{ kind: "total", heading: "総合耐久指数", headingHelp: "H×B×D÷(B+D)" },
+		{ kind: "physical", heading: "物理耐久指数", headingHelp: "H×B" },
+		{ kind: "special", heading: "特殊耐久指数", headingHelp: "H×D" },
 	];
 
 	// UI改修依頼(個体編集画面、2026-08-04)「耐久調整/耐久最大化 カードデザイン統一」により、
@@ -1609,9 +1609,10 @@ if (form) {
 
 		renderDurabilityIndexResults(
 			() =>
-				DURABILITY_INDEX_KINDS.map(({ kind, heading }) => ({
+				DURABILITY_INDEX_KINDS.map(({ kind, heading, headingHelp }) => ({
 					kind,
 					heading,
+					headingHelp,
 					result: maximizeDurabilityIndex({ kind, baseStats: base, currentEvs: STAT_KEYS.map((k) => readEv(k)), nature }),
 				})),
 			() => ({ hp: readEv("hp"), def: readEv("def"), spd: readEv("spd") }),

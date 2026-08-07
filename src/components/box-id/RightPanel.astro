@@ -107,14 +107,11 @@
 		/* 今回の要件: 左にタイトル、右に閉じるボタンを置く共通帯にする。 */
 		justify-content: space-between;
 		gap: var(--space-2);
-		/* ラウンド12指摘(A-5): 3カラム1行目の縦位置が左y=97/中央y=89/右y=79とバラバラ
-		   だった。右側(このパネル見出し)はpadding-topが0.9remで最も浅く、中央カラム
-		   (ダメージ計算カード、y=89)に合わせて1.5remへ広げる。1600px未満のオーバーレイ表示
-		   (このパネルがposition:fixedになる@media側)でも同じ値がそのまま効く
-		   (別のpadding上書きが無いことを確認済み)。 */
-		padding: var(--space-3) var(--space-4);
+		/* 3モード共通で密度を上げるため、横paddingは保ち縦paddingだけ一段縮める。 */
+		padding: var(--space-2) var(--space-4);
 		background: var(--color-surface-alt);
-		/* UI改修依頼(2026-08-05)「タイトル直下の区切り線を削除」対応。 */
+		/* 今回の指示で3モード共通のタイトル直下の区切り線を復活させる。 */
+		border-bottom: 1px solid var(--color-border);
 		flex-shrink: 0;
 	}
 	.damage-detail-panel-title { min-width: 0; flex: 1 1 auto; font-weight: 700; }
@@ -321,6 +318,10 @@
 	}
 	#damage-detail-panel-body .candidate-list-item-stat {
 		white-space: nowrap;
+	}
+	#damage-detail-panel-body .candidate-list-item-stat-ev {
+		color: var(--color-text-muted);
+		font-weight: 600;
 	}
 	/* 今回の要件: 耐久最大化の元カードはbutton化する。クリック処理の無い他モードの
 	   divカードだけは従来どおり非操作表示にする。 */
