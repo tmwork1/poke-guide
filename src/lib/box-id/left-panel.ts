@@ -544,11 +544,39 @@ if (form) {
 		}
 
 		setText("mp-nickname", inputValue("nickname") || inputValue("species-name"));
+		const previewSpeciesTypeBadge = document.getElementById("mp-species-type-badge");
+		if (previewSpeciesTypeBadge) applyTypeBadge(previewSpeciesTypeBadge, inputValue("species-name"));
 		const ability = document.getElementById("ability") as HTMLSelectElement | null;
 		setText("mp-ability", ability?.selectedOptions[0]?.textContent?.trim() || ability?.value.trim() || "-");
 		setText("mp-tera", document.getElementById("tera-dropdown-placeholder")?.textContent?.trim() || inputValue("tera") || "テラスなし");
 		setText("mp-item", inputValue("item") || document.getElementById("item-dropdown-placeholder")?.textContent?.trim() || "アイテムなし");
-		for (let slot = 1; slot <= 4; slot++) setText(`mp-move-${slot}`, inputValue(`move-${slot}`));
+		const mirrorImage = (sourceId: string, targetId: string): void => {
+			const source = document.getElementById(sourceId) as HTMLImageElement | null;
+			const target = document.getElementById(targetId) as HTMLImageElement | null;
+			if (!source || !target) return;
+			const visible = source.style.display !== "none" && !source.hidden && source.src !== "";
+			target.src = source.src;
+			target.alt = source.alt;
+			target.title = source.title;
+			target.style.display = visible ? "" : "none";
+		};
+		mirrorImage("tera-dropdown-image", "mp-tera-image");
+		mirrorImage("item-dropdown-image", "mp-item-image");
+		for (let slot = 1; slot <= 4; slot++) {
+			setText(`mp-move-${slot}`, inputValue(`move-${slot}`));
+			const input = document.getElementById(`move-${slot}`) as HTMLInputElement | null;
+			const sourceIcon = input?.closest<HTMLElement>(".move-input-group")?.querySelector<HTMLElement>(".move-type-icon");
+			const sourceImage = sourceIcon?.querySelector<HTMLImageElement>("img");
+			const previewIcon = document.getElementById(`mp-move-type-${slot}`);
+			const previewImage = previewIcon?.querySelector<HTMLImageElement>("img");
+			const visible = Boolean(input?.value.trim() && sourceIcon && !sourceIcon.hidden && sourceImage?.src);
+			if (previewIcon) previewIcon.hidden = !visible;
+			if (sourceImage && previewImage) {
+				previewImage.src = sourceImage.src;
+				previewImage.alt = sourceImage.alt;
+				previewImage.title = sourceImage.title;
+			}
+		}
 		for (const key of STAT_KEYS) {
 			const sourceStat = document.getElementById(`stat-${key}`);
 			const previewStat = document.getElementById(`mp-stat-${key}`);
@@ -557,7 +585,8 @@ if (form) {
 				if (sourceStat?.dataset.mod) previewStat.dataset.mod = sourceStat.dataset.mod;
 				else delete previewStat.dataset.mod;
 			}
-			setText(`mp-ev-${key}`, inputValue(`ev-${key}`));
+			const ev = inputValue(`ev-${key}`);
+			setText(`mp-ev-${key}`, ev && Number(ev) !== 0 ? `+${ev}` : "-");
 		}
 	}
 	// UI改修依頼(個体編集画面、2026-08-03)「耐久指数最大化」ボタン(ステータス表の下、
@@ -1686,6 +1715,9 @@ if (form) {
 	const mobilePreviewSources = [
 		document.getElementById("species-sprite"),
 		document.getElementById("species-sprite-fallback"),
+		document.getElementById("tera-dropdown-image"),
+		document.getElementById("item-dropdown-image"),
+		...Array.from(document.querySelectorAll<HTMLElement>(".move-input-group .move-type-icon")),
 		...STAT_KEYS.map((key) => document.getElementById(`stat-${key}`)),
 	].filter((node): node is HTMLElement => node instanceof HTMLElement);
 	if (document.getElementById("mp-nickname")) {
