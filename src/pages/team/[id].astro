@@ -454,6 +454,10 @@ const initialTeamJson = team
 		.team-select-search-row { display: flex; gap: var(--space-1); align-items: stretch; }
 		#pokemon-search-input {
 			width: 100%;
+			/* 1920px DOM実測でplaceholderの安全余裕が5.2125pxしかなかったため、
+			   2.1em(33.6px)から29pxへ詰める。アイコン右端は0.7em + 15px =
+			   26.2pxで、入力文字の開始位置まで2.8pxを確保できる。 */
+			padding-left: 29px;
 		}
 		/* UI改修依頼(チーム編集左パネル)「ソート機能を追加する」。box/index.astroの
 		   .sort-select-wrap/.sort-icon/.toolbar-sort selectと同じ値(アイコン左重畳+
@@ -466,10 +470,20 @@ const initialTeamJson = team
 		   自然に残り幅いっぱいへ広がる。 */
 		.team-select-filters-row {
 			display: flex;
+			flex-wrap: nowrap;
 			align-items: stretch;
-			gap: var(--space-2);
+			gap: var(--space-1);
 			margin-top: var(--space-2);
 		}
+		.team-select-filters-row > .regulation-filter-toggle {
+			/* 294pxの行に2トグルと件数を同居させるため、既存の最小文字トークンを使う。 */
+			font-size: var(--font-size-xs);
+		}
+		.team-select-count {
+			margin-left: auto;
+			align-self: center;
+		}
+		.team-select-count[hidden] { display: none; }
 		.team-select-regulation-filter {
 			flex: 1 1 0;
 			min-width: 0;
@@ -541,9 +555,11 @@ const initialTeamJson = team
 			flex: initial;
 		}
 		.team-select-sort select {
-			/* autoの内在幅に最長option・左右padding・矢印領域を含め、ラベルを切らない。 */
+			/* 最長ラベル64pxを保ったまま検索欄へ幅を戻す。アイコン右端は26.2pxなので、
+			   29pxの左paddingでも文字との間に2.8px残り、重ならない。 */
 			width: auto;
 			min-width: 0;
+			padding-left: 29px;
 		}
 
 		.team-select-list-wrap {
@@ -816,6 +832,10 @@ const initialTeamJson = team
 							    この2つだけを共通の行コンテナに入れてflexで横並びにする
 							    (CSSは上のscoped<style>の.team-select-filters-row参照)。 */}
 							<div class="team-select-filters-row">
+								<label class="regulation-filter-toggle" for="favorite-filter-toggle">
+									<span class="toggle-switch"><input id="favorite-filter-toggle" type="checkbox" class="toggle-switch-input" /><span class="toggle-switch-track" aria-hidden="true"><span class="toggle-switch-thumb"></span></span></span>
+									<span>お気に入りのみ表示</span>
+								</label>
 								{/* 既存トグルと同じ構成で、編成済みの種族・アイテム重複を既定で除外する。 */}
 								<label class="regulation-filter-toggle" for="team-select-dedupe-toggle">
 									<span class="toggle-switch"><input id="team-select-dedupe-toggle" type="checkbox" class="toggle-switch-input" checked /><span class="toggle-switch-track" aria-hidden="true"><span class="toggle-switch-thumb"></span></span></span>
@@ -846,6 +866,7 @@ const initialTeamJson = team
 										<span id="regulation-filter-toggle-label">レギュレーション一致のみ</span>
 									</label>
 								</div>
+								<span class="badge tnum team-select-count" id="pokemon-count-badge" hidden>0</span>
 							</div>
 						</div>
 						<div class="team-select-list-wrap">
@@ -1067,7 +1088,7 @@ const initialTeamJson = team
 			flex: 1 1 auto;
 			min-width: 0;
 			display: grid;
-			grid-template-columns: calc(var(--space-7) + var(--space-6)) var(--space-6) minmax(0, 1fr);
+			grid-template-columns: calc(var(--space-7) + var(--space-6)) minmax(0, 1fr);
 			/* UI改修依頼(2026-08-05)「ポケモン領域と技4つのY中心を揃えてカードを圧縮」対応。 */
 			align-items: center;
 			column-gap: var(--space-1);
@@ -1115,7 +1136,6 @@ const initialTeamJson = team
 			width: 100%;
 			height: calc(var(--space-7) + var(--space-6));
 			object-fit: contain;
-			image-rendering: pixelated;
 		}
 		.team-select-bar .select-row-sprite-fallback {
 			display: none;
@@ -1173,14 +1193,13 @@ const initialTeamJson = team
 			object-fit: contain;
 			filter: drop-shadow(0 0 1px var(--color-surface));
 		}
-		/* 持ち物を画像右下へ重ね、テラスタルをその右隣に並べる。 */
+		/* アイテムとテラスタルを本文内の同じ段に並べる。 */
 		.team-select-bar .select-row-art-badges {
-			position: absolute;
-			right: 0;
-			bottom: 0;
 			display: flex;
 			align-items: center;
+			justify-content: center;
 			gap: var(--space-1);
+			width: 100%;
 		}
 		/* 特性+持ち物(box/index.astroの.card-item-row=grid 2列/.card-item-row-cell=flex
 		   中央寄せと同じ作り。持ち物なしの個体でもセル自体は常に出し、中身(アイコン+名前)
@@ -1238,7 +1257,7 @@ const initialTeamJson = team
 		   確立した最新仕様: 技名の前にタイプアイコン、背景色は付けない、セル内では左揃え。 */
 		.team-select-bar .select-row-moves {
 			display: grid;
-			grid-template-columns: minmax(0, 1fr);
+			grid-template-columns: repeat(2, minmax(0, 1fr));
 			align-items: start;
 			gap: var(--space-1);
 			width: 100%;
@@ -1344,13 +1363,6 @@ const initialTeamJson = team
 			   行高への追従も明示し、内容量が少ない同じ行のカードだけ短くなるのを防ぐ。 */
 			min-height: auto;
 			padding: var(--space-2);
-		}
-		@media (min-width: 1300px) and (max-width: 1649px) {
-			.team-slots .card-team-slot {
-				/* この2カラム区間では中央列が230pxまで狭まるため、正方形より内容高を優先し、
-				   同じGrid行のカードを確定した行高まで伸ばせるようにする。 */
-				aspect-ratio: auto;
-			}
 		}
 		/* ドラッグ&ドロップの受け入れ先であることを示すハイライト(左パネルのpokemon-select-row
 		   または埋まっている枠自身をドラッグ中にこのカードの上に重なると付く。
@@ -1541,14 +1553,14 @@ const initialTeamJson = team
 			justify-content: center;
 			flex: 0 0 auto;
 		}
-		/* 2段構成: 上段を絵・縦アイコン・名前、下段を技2×2として圧縮する。 */
-		.team-select-bar .select-row-body { grid-column: 1 / -1; }
-		.team-select-bar .select-row-name-row { grid-column: 3; justify-content: flex-start; }
+		/* 中間幅でも本文を画像の右に置き、各情報段の横幅を確保する。 */
+		.team-select-bar .select-row-body { grid-column: auto; }
+		.team-select-bar .select-row-name-row { grid-column: auto; justify-content: center; }
 		.team-select-bar .select-row-art-badges {
 			position: static;
-			grid-column: 2;
-			grid-row: 1;
-			flex-direction: column;
+			grid-column: auto;
+			grid-row: auto;
+			flex-direction: row;
 			justify-content: center;
 		}
 		.team-slots .slot-meta-icon {
@@ -1558,8 +1570,8 @@ const initialTeamJson = team
 		}
 		/* 特性とアイテムを別行にし、各行の内容は中央にそろえる。 */
 		.team-slots .slot-meta-row {
-			display: grid;
-			grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+			display: flex;
+			flex-direction: column;
 			align-items: center;
 			width: 100%;
 			gap: var(--space-1);
@@ -1581,6 +1593,10 @@ const initialTeamJson = team
 		}
 		/* 性格と努力値はカード幅を使う1行表示とし、ボックス一覧と情報順を揃える。 */
 		.team-slots .slot-training {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			gap: var(--space-1);
 			width: 100%;
 			min-height: var(--space-4);
 			font-size: var(--font-size-xs);
@@ -1835,8 +1851,6 @@ const initialTeamJson = team
 			width: 100%;
 			height: 100%;
 			object-fit: contain;
-			/* ドット絵の輪郭を補間でぼかさず表示する。 */
-			image-rendering: pixelated;
 		}
 		.team-preview-panel .team-damage-sprite-fallback {
 			display: none;
@@ -1902,6 +1916,8 @@ const initialTeamJson = team
 		.team-preview-panel .team-damage-ability {
 			flex: 1 1 auto;
 			min-width: 0;
+			font-size: var(--font-size-xs);
+			color: var(--color-text-muted);
 			overflow: hidden;
 			text-overflow: ellipsis;
 			white-space: nowrap;
@@ -2091,8 +2107,6 @@ const initialTeamJson = team
 		.team-suggest-sprite-img {
 			max-width: 100%;
 			max-height: 100%;
-			/* おすすめ画像はドット絵のピクセルを保つ。 */
-			image-rendering: pixelated;
 		}
 		.team-suggest-sprite-fallback {
 			display: none;
@@ -2161,8 +2175,7 @@ const initialTeamJson = team
 			vertical-align: middle;
 		}
 		.team-damage-title-sprite img {
-			/* ヘッダーもカードと同じドット絵表示にそろえる。 */
-			image-rendering: pixelated;
+			object-fit: contain;
 		}
 		.team-suggest-role {
 			flex: none;
@@ -2214,15 +2227,23 @@ const initialTeamJson = team
 			white-space: normal;
 			overflow-wrap: break-word;
 			text-align: center;
-			border: 1px solid var(--color-border);
+			border: 0;
 			border-radius: var(--radius-sm);
-			background: var(--color-surface-alt);
+			background: var(--color-primary-soft);
 			color: var(--color-text);
 			cursor: pointer;
 		}
 		.team-suggest-action:hover:not(:disabled) {
-			border-color: var(--color-primary);
+			background: var(--color-border);
 			color: var(--color-primary-strong);
+		}
+		.team-suggest-action:focus-visible {
+			outline: thin solid var(--color-primary);
+			outline-offset: var(--space-1);
+		}
+		.team-suggest-action:active:not(:disabled) {
+			background: var(--color-primary);
+			color: var(--color-primary-contrast);
 		}
 		.team-suggest-action:disabled {
 			cursor: default;
@@ -2277,8 +2298,8 @@ const initialTeamJson = team
 		.team-matchup-score {
 			position: absolute;
 			/* 絶対配置の基準となるボーダー内側から枠幅だけ戻し、ボーダーボックス左上へ揃える。 */
-			top: calc(-1 * var(--matchup-card-border));
-			left: calc(-1 * var(--matchup-card-border));
+			top: var(--space-1);
+			left: var(--space-1);
 			/* UI改修依頼(2026-08-05)「スコアを一段縮小して左上へ配置」対応。 */
 			font-size: calc(var(--font-size-xs) * 0.85);
 			font-weight: 700;
@@ -2396,6 +2417,7 @@ const initialTeamJson = team
 			// 一覧APIに既存の日時を、左パネルの利用目的別ソートに使う。
 			updated_at: string;
 			last_used_at: string | null;
+			is_pinned: boolean;
 			// UI改修依頼(チーム編集ヘッダー)「匿名でデータ提供するトグル」用。GET
 			// /api/owned-pokemonのレスポンスには含まれるが、SSR(lib/team.tsのTEAM_MEMBER_SELECT)
 			// には含まれていない(このファイル単体の変更ではlib/team.tsを直せないため)。そのため
@@ -2439,6 +2461,7 @@ const initialTeamJson = team
 			// HTMLButtonElementからHTMLInputElementへ変える。
 			const regulationFilterToggle = el<HTMLInputElement>("regulation-filter-toggle");
 			const dedupeToggle = el<HTMLInputElement>("team-select-dedupe-toggle");
+			const favoriteFilterToggle = el<HTMLInputElement>("favorite-filter-toggle");
 			const slotsRoot = el<HTMLElement>("team-slots");
 
 			const searchInput = el<HTMLInputElement>("pokemon-search-input");
@@ -2448,6 +2471,7 @@ const initialTeamJson = team
 			const selectErrorMessage = el<HTMLElement>("select-error-message");
 			const selectEmptyState = el<HTMLElement>("select-empty-state");
 			const selectNoMatchState = el<HTMLElement>("select-no-match-state");
+			const pokemonCountBadge = el<HTMLElement>("pokemon-count-badge");
 
 			const statusEl = el<HTMLElement>("autosave-status");
 			const statusTextEl = el<HTMLElement>("autosave-status-text");
@@ -2580,7 +2604,12 @@ const initialTeamJson = team
 			// 公式絵。取得できない場合は頭文字の丸バッジにフォールバックする
 			// (box/index.astroのapplyCardSpriteと同じ方式。loading="lazy"は付けない
 			// ---display:noneの<img>は遅延読み込みの対象外としてonloadが発火しない)。
-			async function applySprite(imgEl: HTMLImageElement, fallbackEl: HTMLElement, name: string): Promise<void> {
+			async function applySprite(
+				imgEl: HTMLImageElement,
+				fallbackEl: HTMLElement,
+				name: string,
+				urlForImage: (imageId: number) => string = officialArtworkUrl,
+			): Promise<void> {
 				const imageId = name ? (await imageIdMapPromise).get(name) : undefined;
 				if (imageId == null) {
 					imgEl.style.display = "none";
@@ -2597,7 +2626,7 @@ const initialTeamJson = team
 					imgEl.style.display = "";
 					fallbackEl.style.display = "none";
 				};
-				imgEl.src = officialArtworkUrl(imageId);
+				imgEl.src = urlForImage(imageId);
 			}
 
 			// 持ち物アイコン(アイコン+名前、R-8)。アイコンが解決できない/読み込み失敗のときも
@@ -3962,7 +3991,7 @@ const initialTeamJson = team
 				const teraType = p.tera_type?.trim() ?? "";
 				if (teraType) {
 					teraItem = document.createElement("span");
-					teraItem.className = "slot-meta-item";
+					teraItem.className = "slot-meta-item slot-tera-cell";
 					teraItem.title = `テラスタイプ: ${teraType}`;
 					teraItem.setAttribute("aria-label", `テラスタイプ: ${teraType}`);
 					const teraImg = document.createElement("img");
@@ -4029,11 +4058,6 @@ const initialTeamJson = team
 					itemCell.append(itemImg, itemLabel);
 				}
 				metaRow.appendChild(itemCell);
-				// ボックスカードと同じく、特性・アイテム・テラスを横1段の独立セルにする。
-				const teraCell = document.createElement("div");
-				teraCell.className = "slot-meta-cell slot-tera-cell";
-				if (teraItem) teraCell.appendChild(teraItem);
-				metaRow.appendChild(teraCell);
 				infoEl.appendChild(metaRow);
 
 				// UI改修依頼(チーム編集中央パネル、2026-08-02)「実数値をラベル行+数値行の2段に
@@ -4045,7 +4069,11 @@ const initialTeamJson = team
 				trainingEl.className = "slot-training";
 				const evLabels = ["H", "A", "B", "C", "D", "S"];
 				const evParts = p.evs.map((value, index) => value > 0 ? `${evLabels[index]}${value}` : "").filter(Boolean);
-				trainingEl.textContent = [p.nature?.trim() ?? "", ...evParts].filter(Boolean).join(" ");
+				const trainingText = document.createElement("span");
+				trainingText.className = "slot-meta-text";
+				trainingText.textContent = [p.nature?.trim() ?? "", ...evParts].filter(Boolean).join(" ");
+				if (teraItem) trainingEl.appendChild(teraItem);
+				trainingEl.appendChild(trainingText);
 				infoEl.appendChild(trainingEl);
 
 				// A-6: 技0件も行ごと消さず「未設定」を明示する(技0件・テラス未設定の
@@ -4266,6 +4294,10 @@ const initialTeamJson = team
 				return true;
 			}
 
+			function matchesFavorite(p: OwnedPokemonRecord): boolean {
+				return !favoriteFilterToggle.checked || p.is_pinned;
+			}
+
 			// チーム側が未指定のときは絞る基準が無いのでトグル自体を出さない
 			// (出しても押した瞬間に何も変わらず、機能していないように見えるため)。
 			// ラベルには現在のレギュレーション名を入れて、何で絞っているかを一目で分かるようにする。
@@ -4442,6 +4474,7 @@ const initialTeamJson = team
 					chip.appendChild(textEl);
 					movesRow.appendChild(chip);
 				}
+				bodyEl.prepend(nameRow, artBadges);
 				bodyEl.appendChild(movesRow);
 
 				const reason = selectionBlockReason(candidateOf(p), currentCandidates());
@@ -4466,7 +4499,7 @@ const initialTeamJson = team
 				});
 
 				// NNを必ず独立した2行目に置き、1行目の情報量に左右されず中央へ揃える。
-				mainButton.append(artEl, artBadges, nameRow, bodyEl);
+				mainButton.append(artEl, bodyEl);
 				row.appendChild(mainButton);
 
 				// 🔴 UI改修依頼(チーム編集左パネル、2026-08-02)「行の右端にあるドラッグ用グリップを
@@ -4495,6 +4528,8 @@ const initialTeamJson = team
 			function renderSelectList(): void {
 				if (allPokemon.length === 0) {
 					selectListRoot.innerHTML = "";
+					pokemonCountBadge.textContent = "0";
+					pokemonCountBadge.hidden = false;
 					selectEmptyState.hidden = false;
 					selectNoMatchState.hidden = true;
 					return;
@@ -4508,8 +4543,10 @@ const initialTeamJson = team
 				// selectionBlockReason自体・BLOCK_REASON_LABELSは他の禁止理由(6体編成済み/種族重複/
 				// 持ち物重複)で引き続き使うため残す)。
 				const filtered = sortPokemon(
-					allPokemon.filter((p) => !isCurrentMember(p.id) && matchesTeamRegulation(p) && matchesDedupe(p) && matchesSearch(p, term)),
+					allPokemon.filter((p) => !isCurrentMember(p.id) && matchesFavorite(p) && matchesTeamRegulation(p) && matchesDedupe(p) && matchesSearch(p, term)),
 				);
+				pokemonCountBadge.textContent = String(filtered.length);
+				pokemonCountBadge.hidden = false;
 				selectListRoot.innerHTML = "";
 				if (filtered.length === 0) {
 					selectNoMatchState.hidden = false;
@@ -4643,6 +4680,7 @@ const initialTeamJson = team
 			sortSelect.addEventListener("change", renderSelectList);
 			// 編成変更時は既存の追加・削除経路が再描画するため、トグル操作だけを追加する。
 			dedupeToggle.addEventListener("change", renderSelectList);
+			favoriteFilterToggle.addEventListener("change", renderSelectList);
 
 			// 🔴 UI改修依頼(チーム編集画面、2026-08-01)。レギュレーションを変えると
 			// 「選択バーに出す個体」も変わるため、保存と同時に一覧を描き直す。
