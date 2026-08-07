@@ -31,7 +31,23 @@ export function renderRankedTeamCard(
   if (team.articleUrl) {
     const linkGroup = element('span', 'ranked-team-article-group');
     const label = team.articleTitle ?? team.articleHost ?? '構築記事';
-    const link = element('a', 'ranked-team-article-link', `${label} ↗`);
+    const link = element('a', 'ranked-team-article-link');
+    link.append(element('span', 'ranked-team-article-label', label));
+    const externalIcon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    externalIcon.setAttribute('class', 'ranked-team-article-icon');
+    externalIcon.setAttribute('viewBox', '0 0 24 24');
+    externalIcon.setAttribute('fill', 'none');
+    externalIcon.setAttribute('stroke', 'currentColor');
+    externalIcon.setAttribute('stroke-width', '2');
+    externalIcon.setAttribute('stroke-linecap', 'round');
+    externalIcon.setAttribute('stroke-linejoin', 'round');
+    externalIcon.setAttribute('aria-hidden', 'true');
+    const externalBox = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    externalBox.setAttribute('d', 'M15 5H6a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-9');
+    const externalArrow = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    externalArrow.setAttribute('d', 'M13 3h8v8M10 14 21 3');
+    externalIcon.append(externalBox, externalArrow);
+    link.append(externalIcon);
     link.href = team.articleUrl;
     link.target = '_blank';
     link.rel = 'noopener noreferrer';
@@ -62,16 +78,31 @@ export function renderRankedTeamCard(
     const displayName = member.speciesKey ?? member.speciesName;
     thumb.title = displayName;
     const imageId = imageIdMap.get(displayName) ?? imageIdMap.get(member.speciesName);
+    const imageWrap = element('span', 'ranked-team-image-wrap');
     if (imageId !== undefined) {
       const image = element('img', 'ranked-team-pokemon-image');
       image.src = officialArtworkUrl(imageId);
       image.alt = displayName;
       image.loading = 'lazy';
       image.decoding = 'async';
-      thumb.append(image);
+      imageWrap.append(image);
     } else {
-      thumb.append(element('span', 'ranked-team-image-fallback', displayName.charAt(0) || '?'));
+      imageWrap.append(element('span', 'ranked-team-image-fallback', displayName.charAt(0) || '?'));
     }
+    if (member.itemName) {
+      const spritePath = itemSpriteMap.get(member.itemName);
+      if (spritePath) {
+        const badge = element('span', 'ranked-team-item-badge');
+        badge.title = member.itemName;
+        const itemImage = element('img');
+        itemImage.src = itemIconUrl(spritePath);
+        itemImage.alt = member.itemName;
+        itemImage.loading = 'lazy';
+        badge.append(itemImage);
+        imageWrap.append(badge);
+      }
+    }
+    thumb.append(imageWrap);
 
     thumb.append(element('span', 'ranked-team-species-name', displayName));
     if (member.ability) {
@@ -100,25 +131,12 @@ export function renderRankedTeamCard(
       }
       thumb.append(moveList);
     }
-    if (member.itemName) {
-      const spritePath = itemSpriteMap.get(member.itemName);
-      if (spritePath) {
-        const badge = element('span', 'ranked-team-item-badge');
-        badge.title = member.itemName;
-        const itemImage = element('img');
-        itemImage.src = itemIconUrl(spritePath);
-        itemImage.alt = member.itemName;
-        itemImage.loading = 'lazy';
-        badge.append(itemImage);
-        thumb.append(badge);
-      }
-    }
     memberGrid.append(thumb);
   }
   body.append(memberGrid);
 
   const details = element('dl', 'ranked-team-details');
-  for (const heading of ['選出パターン', '立ち回り', '構築の改善点']) {
+  for (const heading of ['選出パターン', '立ち回り']) {
     const row = element('div', 'ranked-team-detail-row');
     row.append(element('dt', undefined, heading));
     const value = element('dd');
