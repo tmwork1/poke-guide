@@ -29,6 +29,7 @@ import {
   limitRowChipsByWidth,
   pickNatureNameForSpeedEffect,
   selectMinimalCostSpeedOption,
+  selectMinimalCostSpeedOptions,
   sortFormNamesByUsage,
   SPEED_SPREADS,
   type AdoptionRateConfig,
@@ -603,6 +604,41 @@ describe('enumerateReachableSpeedValues / selectMinimalCostSpeedOption', () => {
     const combos = enumerateReachableSpeedValues({ baseSpeed: 100, currentNature: 'まじめ', scarfModifier: null });
     const selection = selectMinimalCostSpeedOption(combos, 999999, 'まじめ', false);
     assert.equal(selection, null);
+  });
+
+  it('特性の倍率補正を到達可能値へ適用する', () => {
+    const combos = enumerateReachableSpeedValues({
+      baseSpeed: 100,
+      currentNature: 'まじめ',
+      scarfModifier: null,
+      abilityModifier: { kind: 'multiplier', numerator: 2, denominator: 1 },
+    });
+    const neutralEv0 = combos.find((combo) => combo.natureEffect === 'neutral' && combo.evSpe === 0)!;
+    assert.equal(neutralEv0.value, calcOtherStat(50, 100, 31, 0, 1.0) * 2);
+  });
+
+  it('rank特性は手動ランクと合算して一度だけ適用する', () => {
+    const combos = enumerateReachableSpeedValues({
+      baseSpeed: 100,
+      currentNature: 'まじめ',
+      scarfModifier: null,
+      abilityModifier: { kind: 'rank', stages: 1 },
+      rankStages: 1,
+    });
+    const neutralEv0 = combos.find((combo) => combo.natureEffect === 'neutral' && combo.evSpe === 0)!;
+    assert.equal(neutralEv0.value, calcOtherStat(50, 100, 31, 0, 1.0) * 2);
+  });
+
+  it('複数選択は最小努力値と同コストの候補だけを安定順で返す', () => {
+    const selections = selectMinimalCostSpeedOptions([
+      { value: 100, evSpe: 4, natureEffect: 'down', usesScarf: false },
+      { value: 100, evSpe: 4, natureEffect: 'neutral', usesScarf: false },
+      { value: 100, evSpe: 8, natureEffect: 'up', usesScarf: false },
+    ], 100, 'まじめ', false);
+    assert.deepEqual(selections, [
+      { evSpe: 4, nature: 'まじめ', usesScarf: false },
+      { evSpe: 4, nature: pickNatureNameForSpeedEffect('down'), usesScarf: false },
+    ]);
   });
 });
 

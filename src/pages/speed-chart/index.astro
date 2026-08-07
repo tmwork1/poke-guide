@@ -204,14 +204,12 @@ try {
 		<input type="number" id="speed-chart-jump-input" placeholder="実数値" aria-label="実数値" />
 		{/* 実数値の並び順は、現在の状態を示す単一ボタンで切り替える。 */}
 		<div class="speed-chart-order-select-wrap">
-			<button id="speed-chart-order-select" type="button" data-order="desc" aria-label="実数値の並び順: 速い順" aria-pressed="false">
-				<svg class="speed-chart-order-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-					<path d="M7 4v16" />
-					<path d="M4 7l3-3 3 3" />
-					<path d="M17 20V4" />
-					<path d="M14 17l3 3 3-3" />
+			<button id="speed-chart-order-select" class="sort-dir-toggle" type="button" data-order="desc" aria-label="実数値の並び順: 速い順" aria-pressed="false">
+				<svg class="sort-dir-toggle-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+					<path d="M12 20V4" />
+					<path d="M6 10l6-6 6 6" />
 				</svg>
-				<span class="speed-chart-order-label">速い順</span>
+				<span class="sort-dir-toggle-label">速い順</span>
 			</button>
 		</div>
 		{/* UI改修(2026-08-06): 表示範囲は表全体の操作なのでトップバーへ移す。 */}
@@ -242,6 +240,9 @@ try {
 </AppLayout>
 
 <style>
+	:global(.app-topbar-actions):has(.speed-chart-regulation-label) {
+		gap: var(--space-5);
+	}
 	/* トップバーは横幅が限られるため、レギュレーション選択・実数値ジャンプ入力は
 	   中身(3桁の実数値・レギュレーション名)に対して過大にならない幅に絞る。
 	   .app-topbar-actions 側で既に display:flex; gap; flex-wrap が効くため、
@@ -265,16 +266,6 @@ try {
 		display: flex;
 		align-items: center;
 	}
-	.speed-chart-order-icon {
-		color: var(--color-text-muted);
-		transition: transform 0.2s ease;
-	}
-	#speed-chart-order-select {
-		/* UI改修依頼(2026-08-06): 両ラベルは同じ3文字なので切替でも幅は変わらない。 */
-		width: max-content;
-		min-width: 0;
-		flex: none;
-	}
 	/* UI改修(2026-08-06): トップバーでも既存トグルの密度と操作領域を維持する。 */
 	.speed-chart-reachable-toggle {
 		display: inline-flex;
@@ -282,9 +273,6 @@ try {
 		gap: var(--space-2);
 		font-size: var(--font-size-sm);
 		white-space: nowrap;
-	}
-	#speed-chart-order-select[data-order='asc'] .speed-chart-order-icon {
-		transform: rotate(180deg);
 	}
 </style>
 

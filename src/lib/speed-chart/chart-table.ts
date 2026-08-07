@@ -458,6 +458,9 @@ export async function initSpeedChartPage(): Promise<void> {
           baseSpeed: ownedForm.baseSpeed,
           scarfModifier: scarfUsable ? scarfEntry!.modifier : null,
           scarfItemName: scarfUsable ? scarfEntry!.name : null,
+          abilityModifier: ownedRecord.ability_name
+            ? masterData.speedModifiers.abilities[ownedRecord.ability_name] ?? null
+            : null,
           // UI改修(2026-08-02第3弾)要件5: 右パネルの個体情報にアイコンを出すため、
           // このファイルが既に持っているimageIdByNameから引いて渡す(owned-panel.ts側は
           // マスターデータそのものを持たない)。
@@ -693,7 +696,7 @@ export async function initSpeedChartPage(): Promise<void> {
     orderButton.dataset.order = sortOrder;
     orderButton.setAttribute('aria-label', `実数値の並び順: ${label}`);
     orderButton.setAttribute('aria-pressed', String(sortOrder === 'asc'));
-    const labelEl = orderButton.querySelector<HTMLElement>('.speed-chart-order-label');
+    const labelEl = orderButton.querySelector<HTMLElement>('.sort-dir-toggle-label');
     if (labelEl) labelEl.textContent = label;
   }
 

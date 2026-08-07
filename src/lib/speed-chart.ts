@@ -242,9 +242,12 @@ export function applySpeedMultiplier(value: number, numerator: number, denominat
   return Math.floor((value * numerator) / denominator);
 }
 
-/** ランク補正の適用: floor(値 * (2 + stages) / 2)。 */
+/** ランク補正の適用。段階を-6〜6へ収め、正負それぞれの分数を使う。 */
 export function applySpeedRank(value: number, stages: number): number {
-  return Math.floor((value * (2 + stages)) / 2);
+  const rank = Math.max(-6, Math.min(6, Math.trunc(stages)));
+  const numerator = rank > 0 ? 2 + rank : 2;
+  const denominator = rank < 0 ? 2 - rank : 2;
+  return Math.floor((value * numerator) / denominator);
 }
 
 /** kind に応じて倍率/ランクいずれかの補正を適用する薄いディスパッチャ。 */
@@ -502,6 +505,10 @@ export interface OwnedSpeedContext {
    * ハードコードせず、数値(倍率)だけを受け取る)。
    */
   scarfModifier: SpeedModifierMultiplier | null;
+  /** 有効化された特性補正。未考慮または対象外なら null。 */
+  abilityModifier?: SpeedModifierEntry | null;
+  /** 表示中の手動ランク。特性のrank補正とはここで合算する。 */
+  rankStages?: number;
 }
 
 export interface ReachableSpeedCombo {
@@ -523,10 +530,15 @@ export function enumerateReachableSpeedValues(ctx: OwnedSpeedContext): Reachable
   for (const effect of effects) {
     for (let evSpe = OWNED_EV_SPE_MIN; evSpe <= OWNED_EV_SPE_MAX; evSpe++) {
       const baseValue = calcOtherStat(50, ctx.baseSpeed, 31, evSpe, NATURE_SPEED_EFFECT_MODIFIER[effect]);
+      const abilityRank = ctx.abilityModifier?.kind === 'rank' ? ctx.abilityModifier.stages : 0;
+      const rankedValue = applySpeedRank(baseValue, (ctx.rankStages ?? 0) + abilityRank);
+      const abilityValue = ctx.abilityModifier?.kind === 'multiplier'
+        ? applySpeedMultiplier(rankedValue, ctx.abilityModifier.numerator, ctx.abilityModifier.denominator)
+        : rankedValue;
       for (const usesScarf of itemOptions) {
         const value = usesScarf && ctx.scarfModifier
-          ? applySpeedMultiplier(baseValue, ctx.scarfModifier.numerator, ctx.scarfModifier.denominator)
-          : baseValue;
+          ? applySpeedMultiplier(abilityValue, ctx.scarfModifier.numerator, ctx.scarfModifier.denominator)
+          : abilityValue;
         combos.push({ value, evSpe, natureEffect: effect, usesScarf });
       }
     }
@@ -569,6 +581,37 @@ export function selectMinimalCostSpeedOption(
   const best = sorted[0];
   const nature = best.natureEffect === currentEffect && currentNature ? currentNature : pickNatureNameForSpeedEffect(best.natureEffect);
   return { evSpe: best.evSpe, nature, usesScarf: best.usesScarf };
+}
+
+/** 目標値を最小努力値で作れる、性格補正×アイテム状態の候補をすべて返す。 */
+export function selectMinimalCostSpeedOptions(
+  combos: ReachableSpeedCombo[],
+  targetValue: number,
+  currentNature: string | null,
+  currentUsesScarf: boolean,
+): SpeedTargetSelection[] {
+  const currentEffect = getNatureSpeedEffect(currentNature);
+  const matches = combos.filter((combo) => combo.value === targetValue);
+  if (matches.length === 0) return [];
+  const minimumEv = Math.min(...matches.map((combo) => combo.evSpe));
+  return matches
+    .filter((combo) => combo.evSpe === minimumEv)
+    .map((combo) => ({
+      evSpe: combo.evSpe,
+      nature: combo.natureEffect === currentEffect && currentNature
+        ? currentNature
+        : pickNatureNameForSpeedEffect(combo.natureEffect),
+      usesScarf: combo.usesScarf,
+    }))
+    .sort((a, b) => {
+      const aNatureSame = a.nature === currentNature ? 0 : 1;
+      const bNatureSame = b.nature === currentNature ? 0 : 1;
+      if (aNatureSame !== bNatureSame) return aNatureSame - bNatureSame;
+      const aItemSame = a.usesScarf === currentUsesScarf ? 0 : 1;
+      const bItemSame = b.usesScarf === currentUsesScarf ? 0 : 1;
+      if (aItemSame !== bItemSame) return aItemSame - bItemSame;
+      return a.nature.localeCompare(b.nature, 'ja');
+    });
 }
 
 /**

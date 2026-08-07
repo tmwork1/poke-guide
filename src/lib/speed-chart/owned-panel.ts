@@ -21,10 +21,12 @@
 // クロージャ共有はしない)。
 import {
   applySpeedMultiplier,
+  applySpeedRank,
   buildAppliedEvs,
   enumerateReachableSpeedValues,
   getNatureSpeedEffect,
-  selectMinimalCostSpeedOption,
+  selectMinimalCostSpeedOptions,
+  type SpeedModifierEntry,
   type SpeedModifierMultiplier,
   type SpeedTargetSelection,
 } from '../speed-chart';
@@ -67,6 +69,8 @@ export interface OwnedPanelContext {
    * null のときは null。
    */
   scarfItemName: string | null;
+  /** この個体の特性に対応する補正。マスター未登録なら null。 */
+  abilityModifier: SpeedModifierEntry | null;
   /**
    * 個体サマリのアイコン(1段目)用のスプライトID(PokeAPIの画像ID)。
    * chart-table.ts が imageIdByName.get(ownedRecord.species_name) ?? null を渡す。
@@ -190,26 +194,43 @@ export function initOwnedPanel(ctx: OwnedPanelContext): OwnedPanelController {
   // 到達可能な組み合わせ自体は現在値に依存しない(性格・持ち物の「現在値と同じか」は
   // selectMinimalCostSpeedOption 側のタイブレークでのみ使う)ため、regulation変更を除き
   // 再列挙は不要。
-  const combos = enumerateReachableSpeedValues({
-    baseSpeed: ctx.baseSpeed,
-    currentNature,
-    scarfModifier: ctx.scarfModifier,
-  });
-
-  const unrankedCurrentValue = computeCurrentValue();
-  let currentValue = unrankedCurrentValue;
+  let rankStages = 0;
+  let considerAbility = false;
+  let considerItem = true;
+  let combos = buildCombos();
+  let currentValue = computeCurrentValue();
   const renderedCells = new Map<number, HTMLElement>();
 
   function usesScarfNow(): boolean {
-    return !!ctx.scarfModifier && !!ctx.scarfItemName && currentItem === ctx.scarfItemName;
+    return considerItem && !!ctx.scarfModifier && !!ctx.scarfItemName && currentItem === ctx.scarfItemName;
+  }
+
+  function activeAbilityModifier(): SpeedModifierEntry | null {
+    return considerAbility ? ctx.abilityModifier : null;
+  }
+
+  function buildCombos(): ReturnType<typeof enumerateReachableSpeedValues> {
+    return enumerateReachableSpeedValues({
+      baseSpeed: ctx.baseSpeed,
+      currentNature,
+      scarfModifier: considerItem ? ctx.scarfModifier : null,
+      abilityModifier: activeAbilityModifier(),
+      rankStages,
+    });
   }
 
   function computeCurrentValue(): number {
     const effect = getNatureSpeedEffect(currentNature);
     const base = calcOtherStat(50, ctx.baseSpeed, 31, currentEvs[5] ?? 0, NATURE_EFFECT_MODIFIER[effect]);
+    const ability = activeAbilityModifier();
+    const abilityRank = ability?.kind === 'rank' ? ability.stages : 0;
+    const ranked = applySpeedRank(base, rankStages + abilityRank);
+    const abilityAdjusted = ability?.kind === 'multiplier'
+      ? applySpeedMultiplier(ranked, ability.numerator, ability.denominator)
+      : ranked;
     return usesScarfNow() && ctx.scarfModifier
-      ? applySpeedMultiplier(base, ctx.scarfModifier.numerator, ctx.scarfModifier.denominator)
-      : base;
+      ? applySpeedMultiplier(abilityAdjusted, ctx.scarfModifier.numerator, ctx.scarfModifier.denominator)
+      : abilityAdjusted;
   }
 
   // UI改修(2026-08-02第3弾)要件1: 個体サマリを5段構成(アイコン/ニックネーム/特性・
@@ -285,6 +306,12 @@ export function initOwnedPanel(ctx: OwnedPanelContext): OwnedPanelController {
   const rankInput = document.getElementById('speed-chart-rank-input') as HTMLInputElement | null;
   const rankIncrement = document.getElementById('speed-chart-rank-increment') as HTMLButtonElement | null;
   const rankDecrement = document.getElementById('speed-chart-rank-decrement') as HTMLButtonElement | null;
+  const abilityToggle = document.getElementById('speed-chart-ability-toggle') as HTMLInputElement | null;
+  const itemToggle = document.getElementById('speed-chart-item-toggle') as HTMLInputElement | null;
+  if (abilityToggle) {
+    abilityToggle.disabled = !ctx.abilityModifier;
+    abilityToggle.title = ctx.abilityModifier ? '' : 'この特性にすばやさ補正はありません';
+  }
   const clampRank = (value: number): number => Math.max(-6, Math.min(6, Math.trunc(value)));
   const updateRankControls = (rank: number): void => {
     rankInput?.classList.toggle('is-nonzero', rank !== 0);
@@ -296,12 +323,14 @@ export function initOwnedPanel(ctx: OwnedPanelContext): OwnedPanelController {
     const raw = rankInput.value.trim();
     if (!fallbackToZeroIfEmpty && (raw === '' || raw === '-')) return;
     const parsed = raw === '' || raw === '-' || !Number.isFinite(Number(raw)) ? 0 : Number(raw);
-    const rank = clampRank(parsed);
-    rankInput.value = String(rank);
-    const numerator = rank > 0 ? 2 + rank : 2;
-    const denominator = rank < 0 ? 2 - rank : 2;
-    currentValue = Math.floor((unrankedCurrentValue * numerator) / denominator);
-    updateRankControls(rank);
+    rankStages = clampRank(parsed);
+    rankInput.value = String(rankStages);
+    updateRankControls(rankStages);
+    recalculate();
+  };
+  const recalculate = (): void => {
+    combos = buildCombos();
+    currentValue = computeCurrentValue();
     updateSummary();
     for (const [value, cell] of renderedCells) paintCell(value, cell);
     dispatchReachableValuesChanged();
@@ -322,6 +351,14 @@ export function initOwnedPanel(ctx: OwnedPanelContext): OwnedPanelController {
     if (!rankInput) return;
     rankInput.value = String(clampRank((Number(rankInput.value) || 0) - 1));
     commitRank(true);
+  });
+  abilityToggle?.addEventListener('change', () => {
+    considerAbility = abilityToggle.checked && !!ctx.abilityModifier;
+    recalculate();
+  });
+  itemToggle?.addEventListener('change', () => {
+    considerItem = itemToggle.checked;
+    recalculate();
   });
   updateRankControls(0);
 
@@ -370,10 +407,10 @@ export function initOwnedPanel(ctx: OwnedPanelContext): OwnedPanelController {
       return;
     }
 
-    const rawSelection = selectMinimalCostSpeedOption(combos, rowValue, currentNature, usesScarfNow());
+    const rawSelections = selectMinimalCostSpeedOptions(combos, rowValue, currentNature, usesScarfNow());
 
     // 状態3: 到達不可(R-7: −、muted)。
-    if (!rawSelection) {
+    if (rawSelections.length === 0) {
       el.classList.add('is-unreachable');
       const dash = document.createElement('span');
       dash.className = 'speed-chart-owned-dash';
@@ -388,19 +425,21 @@ export function initOwnedPanel(ctx: OwnedPanelContext): OwnedPanelController {
     // 既に現在の性格そのもの)や現在の性格が未設定(null)のときはpickReplacementNature側で
     // 何もせずrawSelectionをそのまま返す。表示用(このあとのbuttonParts)と保存用
     // (handleApplyへ渡すペイロード)が食い違わないよう、差し替えはここ1箇所だけで行う。
-    const selection: SpeedTargetSelection =
+    const selections: SpeedTargetSelection[] = rawSelections.map((rawSelection) =>
       currentNature && rawSelection.nature !== currentNature
         ? { ...rawSelection, nature: pickReplacementNature(getNatureSpeedEffect(rawSelection.nature), currentNature, rawSelection.nature) }
-        : rawSelection;
+        : rawSelection,
+    );
 
     // 状態2: 到達可能([アイコン]性格 努力値N[ アイテム]のボタン。内訳テキストは廃止済み)。
     el.classList.add('is-reachable');
     const wrap = document.createElement('div');
     wrap.className = 'speed-chart-owned-option';
 
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'btn-primary speed-chart-apply-button';
+    for (const selection of selections) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'btn-primary speed-chart-apply-button';
     // 要件2(2026-08-01第4弾、2026-08-02第3弾で改訂): 汎用的な「ここにする」ではなく、
     // このボタンを押すと個体の性格・S努力値・アイテムが具体的に何になるかをボタン自体の
     // テキストにする(下にあった内訳テキストは廃止したため、ボタン単体を見ただけで
@@ -411,33 +450,23 @@ export function initOwnedPanel(ctx: OwnedPanelContext): OwnedPanelController {
     // スラッシュも廃止してスペース区切りにした(例: 「ようき 努力値 6」
     // 「ゆうかん 努力値 32 こだわりスカーフ」)。UI改修2026-08-02第4弾要件2で
     // 「努力値」と数値の間にも半角スペースを追加した(右パネルの努力値バッジの表記と揃える)。
-    const buttonParts = [selection.nature, `努力値 ${selection.evSpe}`];
-    if (selection.usesScarf && ctx.scarfItemName) buttonParts.push(ctx.scarfItemName);
+      const buttonParts = [selection.nature, `努力値 ${selection.evSpe}`];
     // ボタンを押すと保存後に/box/<id>へ遷移する(下のhandleApply参照)。押下結果を
     // その場で編集することを表す編集アイコン(鉛筆)を先頭に付ける(要件2、
     // 2026-08-02第5弾でページジャンプアイコンから差し替え。右パネルの編集ボタンと意匠を統一)。
-    const buttonLabel = buttonParts.join(' / ');
+      const buttonLabel = buttonParts.join(' / ');
     // UI不具合修正(2026-08-06): flex直下のテキストノードをspanで包み、省略記号を確実に表示する。
-    const label = document.createElement('span');
-    label.className = 'speed-chart-apply-label';
-    label.textContent = buttonLabel;
-    button.title = buttonLabel;
-    button.append(createRefreshIcon(), label);
-    button.addEventListener('click', () => {
-      void handleApply(selection, button);
-    });
-
-    wrap.append(button);
-
-    // 要件10: 努力値合計が66を超える組み合わせは警告表示のみ(適用はブロックしない。
-    // チャンピオンズルールの合計上限66は入力制限を持たない仕様)。
-    const appliedEvs = buildAppliedEvs(currentEvs, selection.evSpe);
-    const total = appliedEvs.reduce((sum, v) => sum + v, 0);
-    if (total > 66) {
-      const warning = document.createElement('div');
-      warning.className = 'speed-chart-ev-warning';
-      warning.textContent = `努力値合計${total}(66超。適用は可能です)`;
-      wrap.appendChild(warning);
+      const label = document.createElement('span');
+      label.className = 'speed-chart-apply-label';
+      label.textContent = buttonLabel;
+      button.title = selection.usesScarf && ctx.scarfItemName
+        ? `${buttonLabel} / ${ctx.scarfItemName}を使用`
+        : `${buttonLabel} / すばやさ補正アイテムなし`;
+      button.append(createRefreshIcon(), label);
+      button.addEventListener('click', () => {
+        void handleApply(selection, button);
+      });
+      wrap.append(button);
     }
 
     el.appendChild(wrap);

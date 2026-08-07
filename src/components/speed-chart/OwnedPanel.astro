@@ -31,6 +31,7 @@ const { hasOwnedPanel, ownedId } = Astro.props;
 <div class="speed-chart-owned-panel-static">
 	{hasOwnedPanel && (
 		<div class="speed-chart-owned-summary" id="speed-chart-owned-summary">
+			<div class="speed-chart-owned-profile">
 			{/* UI改修(2026-08-02第4弾)要件1: アイコン(1段目)の右に個体編集(/box/<id>)への
 			    編集ボタンを並べる。img自体のid/classは変えない(owned-panel.tsがid経由で
 			    src/hiddenを出し分けるため)。ラッパーはこの段専用(2段目以降には影響しない)。 */}
@@ -54,6 +55,7 @@ const { hasOwnedPanel, ownedId } = Astro.props;
 				<span id="speed-chart-owned-summary-ability" class="badge badge-muted"></span>
 				<span id="speed-chart-owned-summary-item" class="badge badge-muted speed-chart-owned-summary-item"></span>
 			</span>
+			</div>
 			<span class="speed-chart-owned-summary-badges">
 				<span id="speed-chart-owned-summary-nature" class="badge badge-muted"></span>
 				<span id="speed-chart-owned-summary-evs" class="badge badge-muted"></span>
@@ -76,11 +78,29 @@ const { hasOwnedPanel, ownedId } = Astro.props;
 				<button type="button" id="speed-chart-owned-jump-button" class="btn-ghost speed-chart-owned-jump-button" title="現在地へ戻る">移動</button>
 			</div>
 			{/* UI改修(2026-08-06): 保存対象に含めない表示専用のすばやさランク入力。 */}
-			<div class="speed-chart-rank-field">
+			<div class="speed-chart-rank-field rank-field">
 				<label for="speed-chart-rank-input">ランク</label>
 				<input id="speed-chart-rank-input" type="number" min="-6" max="6" step="1" inputmode="numeric" value="0" />
-				<button type="button" id="speed-chart-rank-increment" class="btn-ghost speed-chart-rank-stepper" aria-label="すばやさランクを1上げる">＋</button>
-				<button type="button" id="speed-chart-rank-decrement" class="btn-ghost speed-chart-rank-stepper" aria-label="すばやさランクを1下げる">－</button>
+				<span class="rank-stepper-group">
+					<button type="button" id="speed-chart-rank-increment" class="speed-chart-rank-stepper rank-stepper" aria-label="すばやさランクを1上げる">＋</button>
+					<button type="button" id="speed-chart-rank-decrement" class="speed-chart-rank-stepper rank-stepper" aria-label="すばやさランクを1下げる">－</button>
+				</span>
+			</div>
+			<div class="speed-chart-owned-modifier-toggles">
+				<label class="speed-chart-owned-modifier-toggle">
+					<span class="toggle-switch">
+						<input type="checkbox" id="speed-chart-ability-toggle" class="toggle-switch-input" aria-label="特性を考慮" />
+						<span class="toggle-switch-track" aria-hidden="true"><span class="toggle-switch-thumb"></span></span>
+					</span>
+					<span>特性を考慮</span>
+				</label>
+				<label class="speed-chart-owned-modifier-toggle">
+					<span class="toggle-switch">
+						<input type="checkbox" id="speed-chart-item-toggle" class="toggle-switch-input" aria-label="アイテムを考慮" checked />
+						<span class="toggle-switch-track" aria-hidden="true"><span class="toggle-switch-thumb"></span></span>
+					</span>
+					<span>アイテムを考慮</span>
+				</label>
 			</div>
 		</div>
 	)}
@@ -137,6 +157,16 @@ const { hasOwnedPanel, ownedId } = Astro.props;
 		flex-direction: column;
 		align-items: flex-start;
 		gap: var(--space-1);
+	}
+	.speed-chart-owned-profile {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: var(--space-1);
+		width: 100%;
+		padding: var(--space-2);
+		background: var(--color-surface);
+		border-radius: var(--radius-sm);
 	}
 	/* 不具合修正(2026-08-02): 母集団に居ない個体のときchart-table.tsがhidden属性を立てる
 	   (「データ破損に見える空箱」を防ぐため)。displayをflexで明示しているクラスなので、
@@ -215,14 +245,11 @@ const { hasOwnedPanel, ownedId } = Astro.props;
 		font-size: var(--font-size-xs);
 		font-weight: 500;
 		color: var(--color-text-muted);
+		border: 1px solid var(--color-border);
 	}
 	/* UI改修(2026-08-06): /box/[id]のランク入力と同じ密度・強調・端点状態を再現する。 */
 	.speed-chart-rank-field {
-		display: flex;
-		align-items: center;
-		gap: var(--space-1);
-		font-size: var(--font-size-xs);
-		color: var(--color-text-muted);
+		align-self: flex-start;
 	}
 	.speed-chart-rank-field input[type='number'] {
 		width: 3.4em;
@@ -240,13 +267,19 @@ const { hasOwnedPanel, ownedId } = Astro.props;
 		color: var(--color-primary-strong);
 		border-color: var(--color-primary-strong);
 	}
-	.speed-chart-rank-stepper {
-		min-width: var(--space-6);
-		min-height: var(--space-6);
-		justify-content: center;
-		padding: 0.2em;
+	.speed-chart-owned-modifier-toggles {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--space-1) var(--space-3);
 	}
-	.speed-chart-rank-stepper:disabled { cursor: default; opacity: 0.5; }
+	.speed-chart-owned-modifier-toggle {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--space-2);
+		font-size: var(--font-size-xs);
+		color: var(--color-text-muted);
+		white-space: nowrap;
+	}
 	.speed-chart-owned-summary-item {
 		display: inline-flex;
 		align-items: center;
@@ -310,9 +343,10 @@ const { hasOwnedPanel, ownedId } = Astro.props;
 	}
 	.speed-chart-owned .speed-chart-owned-option {
 		display: flex;
-		flex-direction: column;
+		flex-direction: row;
+		flex-wrap: wrap;
 		align-items: flex-start;
-		gap: 0.15rem;
+		gap: var(--space-1);
 		width: 100%;
 	}
 	/* UI改修(2026-08-02第3弾)要件2・3: ボタンテキストを「[アイコン] いじっぱり 努力値6」
@@ -332,6 +366,13 @@ const { hasOwnedPanel, ownedId } = Astro.props;
 		font-weight: 500;
 		/* UI改修(2026-08-06): 長いアイテム名でもパネル幅を越えず一段に収める。 */
 		max-width: 100%;
+		background: var(--color-surface);
+		color: var(--color-primary);
+		border: 2px solid var(--color-primary);
+	}
+	.speed-chart-owned .speed-chart-apply-button:hover:not(:disabled) {
+		background: var(--color-primary);
+		color: var(--color-primary-contrast);
 	}
 	.speed-chart-owned .speed-chart-apply-icon {
 		flex: 0 0 auto;
@@ -343,10 +384,5 @@ const { hasOwnedPanel, ownedId } = Astro.props;
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
-	}
-	.speed-chart-owned .speed-chart-ev-warning {
-		font-size: var(--font-size-xs);
-		font-weight: 600;
-		color: var(--color-risky-strong);
 	}
 </style>
