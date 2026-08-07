@@ -185,6 +185,25 @@
 	}
 	@media (max-width: 899px) {
 		.edit-layout-detail, .damage-detail-backdrop { display: none; }
+		.damage-detail-panel.is-mobile-inline {
+			position: static;
+			inset: auto;
+			width: auto;
+			max-width: 100%;
+			height: auto;
+			max-height: none;
+			transform: none;
+			box-shadow: none;
+			z-index: auto;
+			border: 1px solid var(--color-border);
+			border-radius: var(--radius-md);
+		}
+		.damage-detail-panel.is-mobile-inline .damage-detail-panel-body {
+			overflow-y: visible;
+			padding: var(--space-3);
+		}
+		/* サジェスト一覧はカード列に常設される(閉じる対象の選択が無い)ので閉じるボタンを出さない。 */
+		.damage-detail-panel.is-mobile-suggest .damage-detail-panel-close { display: none; }
 	}
 </style>
 

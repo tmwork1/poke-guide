@@ -29,6 +29,7 @@ import {
 	refreshRowConditionChips,
 	getSelectedRow,
 	clearSelection,
+	clearSelectionAndMarks,
 	renderDetailPanel,
 	natureNameFromBoosts,
 	type DamageRowState,
@@ -1810,7 +1811,13 @@ export function initRightPanel(): void {
 	detailPanelTitleEl = el<HTMLElement>("damage-detail-panel-title");
 	detailPanelCloseButton = el<HTMLButtonElement>("damage-detail-panel-close");
 	detailBackdropEl = el<HTMLElement>("damage-detail-backdrop");
-	detailPanelCloseButton.addEventListener("click", closeDetailPanelOverlay);
+	detailPanelCloseButton.addEventListener("click", () => {
+		if (window.matchMedia("(max-width: 899px)").matches) {
+			clearSelectionAndMarks();
+			return;
+		}
+		closeDetailPanelOverlay();
+	});
 	detailBackdropEl.addEventListener("click", closeDetailPanelOverlay);
 	// 初期状態は何も選択されていない(空状態を表示)。
 	renderDetailPanelEmpty();

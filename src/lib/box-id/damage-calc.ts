@@ -422,9 +422,21 @@ if (opponentNotesSection) {
 		saveRow: (row) => saveRow(row),
 		setRowSaveStatus: (row, state, text) => setRowSaveStatus(row, state, text),
 		renderConditionChipsInto: (container, attack) => renderConditionChipsInto(container, attack),
-		renderDetailPanelEmpty: () => renderDetailPanelEmpty(),
-		renderColumnLevelDetailPanel: (row, column) => renderColumnLevelDetailPanel(row, column),
-		openDetailPanelOverlayIfNarrow: () => openDetailPanelOverlayIfNarrow(),
+		renderDetailPanelEmpty: () => {
+			renderDetailPanelEmpty();
+			refreshMobileDetailPlacement();
+		},
+		renderColumnLevelDetailPanel: (row, column) => {
+			renderColumnLevelDetailPanel(row, column);
+			refreshMobileDetailPlacement();
+		},
+		openDetailPanelOverlayIfNarrow: () => {
+			if (isNarrowLayout()) {
+				refreshMobileDetailPlacement();
+				return;
+			}
+			openDetailPanelOverlayIfNarrow();
+		},
 	});
 	// 構造分割ラウンド(フェーズ2): 右サイド(詳細設定サイドバー)専用のDOM参照・
 	// イベント登録・初期空状態描画は right-panel.ts へ移設した。元は同じクロージャ内で
@@ -3371,6 +3383,15 @@ if (opponentNotesSection) {
 		root.addEventListener("click", (event) => {
 			const target = event.target as HTMLElement | null;
 			if (target?.closest("input, select, textarea, button, a, label")) return;
+			if (isNarrowLayout() && root.dataset.collapsed === "true") {
+				if (getSelectedRow() === row) {
+					clearSelectionAndMarks();
+					return;
+				}
+				const firstColumn = row.attacks[0];
+				if (firstColumn) selectColumn(row, firstColumn);
+				return;
+			}
 			const columnEl = target?.closest<HTMLElement>(".damage-column");
 			if (!columnEl) return;
 			const idx = Number(columnEl.dataset.columnIndex);
@@ -3524,10 +3545,40 @@ if (opponentNotesSection) {
 	// の祖先が残るため closest() は非nullを返し、ここでは何もしない(選択マークの整合は
 	// renderColumns / rebuildRowsList 側が持つ。従来の row.root.contains() と同じ挙動)。
 	const damageDetailPanelEl = el<HTMLElement>("damage-detail-panel");
+	const damageDetailPanelOriginalParentEl = damageDetailPanelEl.parentElement;
+	function refreshMobileDetailPlacement(): void {
+		if (!isNarrowLayout()) {
+			damageDetailPanelEl.classList.remove("is-mobile-inline", "is-mobile-suggest");
+			if (damageDetailPanelOriginalParentEl) damageDetailPanelOriginalParentEl.appendChild(damageDetailPanelEl);
+			return;
+		}
+
+		damageDetailPanelEl.classList.remove("is-open");
+		const selectedRow = getSelectedRow();
+		const selectedColumn = getSelectedColumn();
+		if (selectedRow && selectedColumn && selectedRow.root?.parentElement === damageRowsListEl) {
+			selectedRow.root.after(damageDetailPanelEl);
+			damageDetailPanelEl.classList.add("is-mobile-inline");
+			damageDetailPanelEl.classList.remove("is-mobile-suggest");
+			return;
+		}
+		if (damageDetailPanelEl.querySelector("#damage-detail-panel-body .damage-suggest")) {
+			damageRowsListEl.appendChild(damageDetailPanelEl);
+			// 未選択のサジェスト一覧はカード列の一部として常設される(閉じる対象の選択が無い)。
+			// 閉じるボタンは押しても何も起きない死んだボタンになるのでCSSで隠す。
+			damageDetailPanelEl.classList.add("is-mobile-inline", "is-mobile-suggest");
+			return;
+		}
+
+		damageDetailPanelEl.classList.remove("is-mobile-inline", "is-mobile-suggest");
+		if (damageDetailPanelOriginalParentEl) damageDetailPanelOriginalParentEl.appendChild(damageDetailPanelEl);
+	}
+	window.matchMedia("(max-width: 899px)").addEventListener("change", refreshMobileDetailPlacement);
 	document.addEventListener("click", (e) => {
 		const target = e.target as Node;
 		if (damageDetailPanelEl.contains(target)) return;
 		if (target instanceof Element && target.closest(".damage-column")) return;
+		if (isNarrowLayout() && target instanceof Element && target.closest(".card-damage")) return;
 		clearSelectionAndMarks();
 	});
 
@@ -3692,6 +3743,7 @@ if (opponentNotesSection) {
 		for (const row of rows) {
 			if (row.root) damageRowsListEl.appendChild(row.root);
 		}
+		refreshMobileDetailPlacement();
 	}
 
 	// ドロップ元とドロップ先の位置・order値を交換する。insertではなくswapにすることで、

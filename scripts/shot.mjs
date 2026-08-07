@@ -38,6 +38,7 @@
  *   --clone-count <n>   --clone の目標件数。既定 40
  *   --click <selector>  Pyodide待ち完了後にクリックする(複数指定可、指定順)。
  *                       トグル系のUI状態(例: 折りたたみ表示)を撮るためのオプトイン。
+ *                       全クリック後、hover/focusと短いCSSトランジションが抜けてから撮影する。
  *                       ⚠️ このスクリプトは既定では一切「触らない」(冒頭コメント参照)。
  *                       クリックしても安全(自動保存を誘発しない、DBを汚さない)と
  *                       確認済みの要素だけに使うこと。text=から始めると
@@ -329,6 +330,13 @@ async function shootOne(context, opts, pagePath, theme, viewport) {
 			? page.getByText(selector.slice("text=".length), { exact: true })
 			: page.locator(selector);
 		await locator.first().click({ timeout: 30_000 });
+	}
+	if (opts.click.length > 0) {
+		await page.mouse.move(0, 0);
+		await page.evaluate(() => {
+			if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+		});
+		await page.waitForTimeout(250);
 	}
 
 	let cloned = null;
