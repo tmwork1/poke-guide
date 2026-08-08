@@ -526,11 +526,24 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 					    スライダー・数値入力の両方に aria-label で「どの能力の努力値か」を持たせる。 */}
 					<div class="stat-input-controls">
 						{/* 端点ボタンもrangeのinputイベントへ合流させ、再計算・残量更新・自動保存を共通化する。 */}
+						{/* 🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08)「種族値と努力値の間に0/-/+/32の
+						    4ボタンを配置する」対応。899px以下ではスライダー(input[type="range"])を非表示にし、
+						    代わりに新設の.stat-ev-step-button(-/+)をスライダーの左右に挟んで表示する
+						    (下記scoped<style>の@media (max-width: 899px)参照)。DOM順を
+						    「0ボタン→-ボタン→(非表示化される)スライダー→+ボタン→32ボタン」の順にしておくことで、
+						    flexの並び順がそのまま見た目の「0 / - / + / 32」になる(新たなorder指定は不要)。
+						    デスクトップ(900px以上)はこのブロックの対象外のため、
+						    スライダー操作・既存の0/32ボタンの見た目は一切変更しない。
+						    -/+のクリックハンドラは既存の0/32ボタンと同じ配線方針(left-panel.tsの
+						    .stat-ev-endpoint-buttonクリックハンドラ参照)を踏襲し、rangeInput.valueを
+						    書き換えてからinputイベントを発火させることで、pairEvSlider側の同期・
+						    自動保存・実数値再計算にそのまま乗せる(left-panel.ts側の配線を参照)。 */}
 						<div class="stat-ev-range-controls">
 							<button type="button" class="btn-ghost stat-ev-endpoint-button" data-ev-target={`ev-${key}-range`} data-ev-endpoint="min" aria-label={`${statShort}の努力値を0にする`}>
 								{/* 性格補正の▲▼と区別しやすいよう、枠内に小さな横向きの塗り三角を置く。 */}
 								<svg viewBox="0 0 24 24" aria-hidden="true"><polygon points="9,12 15,8 15,16" fill="currentColor" stroke="none" /></svg>
 							</button>
+							<button type="button" class="btn-ghost stat-ev-step-button" data-ev-target={`ev-${key}-range`} data-ev-step="-1" aria-label={`${statShort}の努力値を1減らす`}>−</button>
 							<input
 								type="range"
 								id={`ev-${key}-range`}
@@ -540,6 +553,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 								aria-label={`${statLabel}の努力値(スライダー)`}
 								value={statAt(pokemon.evs, i, 0)}
 							/>
+							<button type="button" class="btn-ghost stat-ev-step-button" data-ev-target={`ev-${key}-range`} data-ev-step="1" aria-label={`${statShort}の努力値を1増やす`}>+</button>
 							<button type="button" class="btn-ghost stat-ev-endpoint-button" data-ev-target={`ev-${key}-range`} data-ev-endpoint="max" aria-label={`${statShort}の努力値を最大にする`}>
 								<svg viewBox="0 0 24 24" aria-hidden="true"><polygon points="15,12 9,8 9,16" fill="currentColor" stroke="none" /></svg>
 							</button>
@@ -936,6 +950,36 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	.stat-ev-endpoint-button { color: var(--color-text-muted); }
 	/* UI改修依頼(2026-08-05)「努力値min/maxの三角アイコンを一回り拡大」対応。外形は維持する。 */
 	.stat-ev-endpoint-button svg { width: 28.5px; height: 28.5px; fill: currentColor; stroke: none; }
+	/* 🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08)「種族値と努力値の間に0/-/+/32の
+	   4ボタンを配置する」対応。-/+ボタン(.stat-ev-step-button)を新設する。デスクトップでは
+	   非表示にし、下の@media (max-width: 899px)で表示へ切り替える(899px以下のモバイル限定の
+	   変更で、900px以上のデスクトップ表示には一切影響しない)。サイズは.stat-nature-btn
+	   (24×24px、このファイル内の性格▲▼ボタン)と同じWCAG 2.5.8下限に合わせる。 */
+	.stat-ev-step-button {
+		display: none;
+		flex: 0 0 24px;
+		width: 24px;
+		height: 24px;
+		min-height: 24px;
+		padding: 0;
+		font-size: var(--font-size-sm);
+		font-weight: 700;
+		line-height: 1;
+	}
+	/* 899px以下(モバイル)ではスライダー(input[type="range"])を非表示にし、代わりに
+	   .stat-ev-step-button(-/+)を表示する。マークアップ側のDOM順(0ボタン→-→スライダー→+→32ボタン、
+	   LeftPanel.astro本体側コメント参照)により、非表示にしたぶん自動的に「0 / - / + / 32」の
+	   並びになる。既存の0/32端点ボタン(.stat-ev-endpoint-button、デスクトップは36px)は
+	   360〜460px程度の極小幅で数値入力欄と合わせて1行に収まりきらないため、この幅だけ
+	   -/+ボタンと同じ24pxへ縮める(実測、Playwright: 36pxのまま4ボタン+数値入力を
+	   並べると390px幅で横方向にあふれることを確認したため)。900px以上のデスクトップは
+	   このブロックの対象外のため、スライダー自体の表示・0/32ボタンの36pxサイズは一切変更しない。 */
+	@media (max-width: 899px) {
+		.stat-row .stat-ev-range-controls input[type="range"] { display: none; }
+		.stat-row .stat-ev-step-button { display: inline-flex; }
+		.stat-row .stat-ev-endpoint-button { flex: 0 0 24px; width: 24px; height: 24px; min-height: 24px; }
+		.stat-row .stat-ev-endpoint-button svg { width: 16px; height: 16px; }
+	}
 	/* 努力値の数値入力も左パネル用の詰めた寸法に揃える(6行あるので効き方が大きい)。 */
 	/* ラウンド23ユーザー指示(23-L5): 努力値の数値入力も中央揃えにする。 */
 	.stat-row input[type="number"] { font-size: var(--font-size-md); padding: 0.3em 0.5em; width: 100%; text-align: center; }
@@ -1302,6 +1346,12 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		height: 16px;
 		vertical-align: middle;
 	}
+	/* 🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08)「耐久最大化・耐久調整・すばやさ調整の
+	   3ボタンをモバイルで非表示にする」対応。マークアップ(<div class="stat-adjust-actions">、
+	   LeftPanel.astro本体側)自体・デスクトップでの表示は変更せず、899px以下だけdisplay:noneにする。 */
+	@media (max-width: 899px) {
+		.stat-adjust-actions { display: none; }
+	}
 
 	/* 🔴 UI改修依頼(個体編集左パネル、2026-08-01)「サジェストはリストボックスの候補に反映し、
 	   パネルに常時表示しない」により、常時表示のヒント段落一式(#nature-suggestion-hint等)と
@@ -1317,14 +1367,24 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		   ⚠️ ラウンド21ユーザー指示(21-L7)で▲▼ボタンを24×24pxへ拡大したため、
 		   3.6em(57.6px)では収まらなくなる(24px×2+gap+1文字 ≒ 68px)。4.6emに広げ、
 		   浮いた分はスライダー(3列目、1fr)から差し引く。 */
-		.stat-row { grid-template-columns: 4.6em 2.2em 3.4em minmax(0, 1fr); row-gap: var(--space-1); }
-		/* 460px以下では努力値のスライダー+数値入力を再びひとまとめの1セルに戻す
+		/* 🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08)「種族値と努力値の間に0/-/+/32の
+		   4ボタンを配置する」対応でgrid-template-columnsの3列目・4列目の役割を入れ替える。
+		   従来は3列目(努力値入力欄)を固定幅3.4em、4列目(実数値)をminmax(0, 1fr)で余った横幅を
+		   吸収する役割にしていたが、0/-/+/32の4ボタン+数値入力欄を1行に収めるには3列目により
+		   広いゲージ幅が要る。実数値は最大3桁の数字1つを表示するだけで済むため、3remの固定幅に
+		   変えても崩れない(デスクトップの実数値列2.8remより余裕を持たせた)。 */
+		.stat-row { grid-template-columns: 4.6em 2.2em minmax(0, 1fr) 3rem; row-gap: var(--space-1); }
+		/* 460px以下では努力値のボタン行(0/-/+/32)+数値入力を1つのflex行にまとめる
 		   (デスクトップの5列グリッドは幅が無いと成立しないため)。 */
-		.stat-row .stat-input-controls { display: flex; min-width: 0; }
-		.stat-row .stat-ev-range-controls { display: none; }
-		.stat-row .stat-ev-range-controls input[type="range"] { min-width: 0; }
-		.stat-row .stat-input-controls input[type="range"] { flex: 1 1 auto; width: auto; min-width: 0; }
-		.stat-row .stat-input-controls input[type="number"] { flex: 0 0 3.4em; width: 3.4em; }
+		.stat-row .stat-input-controls { display: flex; align-items: center; gap: var(--space-1); min-width: 0; }
+		/* 🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08)により、この460px以下の極小幅でも
+		   0/-/+/32ボタンを表示する方針に変えたため、.stat-ev-range-controls自体を丸ごと
+		   非表示にしていた旧ルール(スライダー+旧0/32ボタンをまとめて隠し、素の数値入力欄だけを
+		   残す設計)は撤回する。スライダー(input[type="range"])自体は上の
+		   @media (max-width: 899px)側で既に非表示化されているため、ここで個別に対応する必要はない
+		   (899px以下ブロックの中に460px以下のブロックが包含される関係にあり、ここではスライダー
+		   非表示は前提として扱ってよい)。 */
+		.stat-row .stat-input-controls input[type="number"] { flex: 0 0 3.2em; width: 3.2em; }
 		/* ラウンド23ユーザー指示(23-L5)の中央揃え化は、この460px以下の1行レイアウト
 		   (実数値がラベル列の下にpadding-leftで字下げして続く行内表示、デスクトップの
 		   5列グリッドとは別構造)には適用しない。ここで中央揃えにすると値がラベルの
@@ -2282,6 +2342,24 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 			width: 100%;
 			margin-top: var(--space-6);
 			font-size: var(--font-size-md);
+		}
+		/* 🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08)「わざ編集ボタンを横幅いっぱいの
+		   見た目にする」対応。899px以下では既にwidth:100%が指定済みだが、.btn-ghost(透明背景)
+		   のため押せるボタンに見えにくいという指摘への対応。global.css自体には「枠線付き・
+		   背景色あり」の専用クラスが存在しない(上の.stat-adjust-action-button、1277行目付近の
+		   コメント参照)ため、同じ考え方で無修飾の<button>要素の既定style(border: 1px solid
+		   var(--color-border) + background: var(--color-surface)、hoverでvar(--color-surface-alt))を
+		   流用し、.btn-ghost側の透明化上書き(background: transparent; border-color: transparent;
+		   color: var(--color-text-muted))だけを打ち消す。新しい色・トークンは作らない。 */
+		.mobile-move-toggle {
+			background: var(--color-surface);
+			border-color: var(--color-border);
+			color: var(--color-text);
+		}
+		.mobile-move-toggle:hover:not(:disabled) {
+			background: var(--color-surface-alt);
+			border-color: var(--color-border);
+			color: var(--color-text);
 		}
 		.mobile-move-toggle-icon { color: var(--color-text-muted); }
 		.mobile-move-toggle[aria-expanded="true"] .mobile-move-toggle-icon { transform: rotate(90deg); }

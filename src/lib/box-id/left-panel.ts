@@ -1526,6 +1526,29 @@ if (form) {
 			rangeInput.dispatchEvent(new Event("input", { bubbles: true }));
 		});
 	}
+	// 🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08)「種族値と努力値の間に0/-/+/32の
+	// 4ボタンを配置する」対応。899px以下のモバイルではスライダーの代わりに0/-/+/32の4ボタンを
+	// 表示する(見た目の切り替えはLeftPanel.astro側のscoped<style>、@media (max-width: 899px)参照)。
+	// -/+ボタンも上の.stat-ev-endpoint-button(0/32ボタン)と同じ方針で、rangeInputのvalueを
+	// 書き換えてからinputイベントを発火させ、pairEvSlider側の同期・自動保存・実数値再計算に
+	// そのまま乗せる。rangeInput自体はmin="0"/max="32"属性を持つ(数値入力欄と異なり、
+	// 上のUI改善ラウンド40(40-T2)コメントにあるラップ対応は数値入力欄側だけの話でrange側には
+	// 関係ない)ため、value代入時にブラウザが自動的に0〜32へクランプする。念のためJS側でも
+	// 明示的にクランプし、育成ルール(努力値0〜32)を超えないことを保証する。
+	for (const button of document.querySelectorAll<HTMLButtonElement>(".stat-ev-step-button")) {
+		button.addEventListener("click", () => {
+			const rangeInput = document.getElementById(button.dataset.evTarget ?? "") as HTMLInputElement | null;
+			if (!rangeInput) return;
+			const step = Number(button.dataset.evStep);
+			if (!Number.isFinite(step)) return;
+			const min = Number(rangeInput.min) || 0;
+			const max = Number(rangeInput.max) || 32;
+			const current = Number(rangeInput.value) || 0;
+			const next = Math.min(max, Math.max(min, current + step));
+			rangeInput.value = String(next);
+			rangeInput.dispatchEvent(new Event("input", { bubbles: true }));
+		});
+	}
 
 	deleteButton.addEventListener("click", () => {
 		void (async () => {
