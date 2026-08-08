@@ -2468,6 +2468,18 @@ if (opponentNotesSection) {
 		itemImg.alt = "";
 		itemImg.style.display = "none";
 		itemBadge.appendChild(itemImg);
+		// 🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08)「ダメージカードの相手ビルドサイズを
+		// 大幅削減」。提案図(box_個体編集_vs_相手ビルド.png)では、持ち物がまだ決まっていなくても
+		// ドット絵の右下にオレンジ色の丸い「?」バッジが常に見えていて、そこをタップして
+		// 持ち物を選ぶ導線になっている。持ち物アイコンが出せないとき(=applyItemImageが
+		// バッジごとhiddenにする状態。未設定・アイコン画像が引けない種類の両方を含む)に
+		// 代わりに見せるプレースホルダを1個だけ入れておく(表示切り替えはモバイルのCSSのみ。
+		// デスクトップの「持ち物なしならバッジごと出さない」既存仕様は変更しない)。
+		const itemBadgePlaceholder = document.createElement("span");
+		itemBadgePlaceholder.className = "damage-item-badge-placeholder";
+		itemBadgePlaceholder.setAttribute("aria-hidden", "true");
+		itemBadgePlaceholder.textContent = "?";
+		itemBadge.appendChild(itemBadgePlaceholder);
 		spriteBox.append(spriteImg, spriteFallback, typeBadge, itemBadge);
 		// ラウンド8指摘(A-1): 以前は名前行(nameRow)の中に置いていたが、名前行が
 		// スプライトの高さぶん1行占有してしまう原因だったため、名前行の外へ出していた。
@@ -2669,6 +2681,54 @@ if (opponentNotesSection) {
 		// 相手側の動的入力にも左パネルと同じIME安全なdatalist補助を適用する。
 		attachKanaTypeAhead(nameInput, el<HTMLDataListElement>("pokemon-list"));
 		nameRow.appendChild(nameInput);
+
+		// 🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08)「ダメージカードの相手ビルドサイズを
+		// 大幅削減」(docs/ui_proposal/mobile/box_個体編集_vs_相手ビルド.png)。提案図の相手ビルドは
+		// 「ドット絵 + [攻撃][特性][テラスタル]の1行 + H〜Sの3段表」だけで、種族名の入力欄が
+		// 描かれていない。ユーザー確認済みの確定仕様は「ドット絵をタップすると種族名入力欄が
+		// その場に現れてフォーカスされる」。
+		// 実装方針: 入力欄はDOMから消さず(自動保存契約 row.name / 既存のdatalist補助・
+		// change時のプリセット適用をそのまま使うため)、モバイルのCSSで既定 display:none にし、
+		// この buildEl.dataset.mobileEdit の値で出し分ける。
+		// role/tabindexはデスクトップでも付くが、デスクトップでは入力欄が常時見えているため
+		// 「クリックすると種族名欄にフォーカスが移るだけ」の無害な導線になる(モバイル判定で
+		// 属性を付け外しする仕組みを行ごとに持つより、こちらのほうが単純で壊れにくい)。
+		spriteBox.setAttribute("role", "button");
+		spriteBox.tabIndex = 0;
+		spriteBox.setAttribute("aria-label", "相手の種族名を編集");
+		// ⚠️ 「入力欄からフォーカスが外れたら畳む」方式は採らない(実装途中で実測して撤回した):
+		// 畳むのはmousedown(=次のタップの入り口)で起きるため、開いていた行のぶんだけ
+		// 画面が上にずれ、mousedownとmouseupで別の要素が当たって「1回目のタップが無反応に
+		// なる」事故になる(努力値テキストで再現)。同じトリガをもう一度押して閉じる
+		// トグル方式なら、レイアウトが動くのは常にユーザーが意図した操作の瞬間だけになる。
+		function toggleMobileEdit(target: "name" | "item"): void {
+			if (buildEl.dataset.mobileEdit === target) {
+				delete buildEl.dataset.mobileEdit;
+				return;
+			}
+			// もう片方が開いていても、値を先に差し替えてからfocus()する
+			// (focus()が誘発するblurより先にCSSの出し分けを確定させる)。
+			buildEl.dataset.mobileEdit = target;
+		}
+		function beginMobileNameEdit(): void {
+			toggleMobileEdit("name");
+			if (buildEl.dataset.mobileEdit !== "name") return;
+			nameInput.focus();
+			nameInput.select();
+		}
+		spriteBox.addEventListener("click", beginMobileNameEdit);
+		spriteBox.addEventListener("keydown", (event) => {
+			if (event.key !== "Enter" && event.key !== " ") return;
+			event.preventDefault(); // Spaceでのページスクロールを止める
+			beginMobileNameEdit();
+		});
+		// Enterで確定したら畳む(タップ操作では同じドット絵をもう一度押して畳む)。
+		nameInput.addEventListener("keydown", (event) => {
+			if (event.key !== "Enter") return;
+			if (buildEl.dataset.mobileEdit !== "name") return;
+			nameInput.blur();
+			delete buildEl.dataset.mobileEdit;
+		});
 
 		function refreshSprite(): void {
 			void applySprite(spriteImg, spriteFallback, row.name.trim(), officialArtworkUrl);
@@ -2894,8 +2954,22 @@ if (opponentNotesSection) {
 			renderColumns(row);
 			onFieldInput();
 		}
-		attackOption.addEventListener("click", () => setDirection("attack"));
-		defenseOption.addEventListener("click", () => setDirection("defense"));
+		// 🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08)「ダメージカードの相手ビルドサイズを
+		// 大幅削減」。提案図(box_個体編集_vs_相手ビルド.png)の1行目は[攻撃][特性][テラスタル]の
+		// 3ボタンで、攻守は2値セグメントではなく1個のボタン+注記「クリックして攻防入れ替え」に
+		// なっている。モバイルでは非選択側をCSSで隠す(下記CSS
+		// .damage-row-direction-option[aria-checked="false"])ため、見えているボタン=現在の向きで
+		// あり、それを押す操作は「切り替えたい」以外に意味がない。そこでモバイルのときだけ
+		// 押された側ではなく反対側へ倒す。デスクトップは2値セグメントのまま(押した側になる)。
+		function onDirectionOptionClick(clicked: "attack" | "defense"): void {
+			if (isNarrowLayout()) {
+				setDirection(row.direction === "defense" ? "attack" : "defense");
+				return;
+			}
+			setDirection(clicked);
+		}
+		attackOption.addEventListener("click", () => onDirectionOptionClick("attack"));
+		defenseOption.addEventListener("click", () => onDirectionOptionClick("defense"));
 
 		const selectsRow = document.createElement("div");
 		selectsRow.className = "damage-row-build-grid";
@@ -3012,6 +3086,42 @@ if (opponentNotesSection) {
 		});
 		selectsRow.appendChild(itemInput);
 
+		// 🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08): 提案図の注記「アイテムアイコン。
+		// クリックしてアイテム選択」。ドット絵の右下に重ねた持ち物バッジをタップすると、
+		// モバイルで畳んである持ち物入力欄がその場に現れてフォーカスされる(種族名側の
+		// beginMobileNameEditと同じ仕組み。上方のspriteBoxのコメント参照)。
+		// ⚠️ itemBadgeはspriteBoxの子なので、stopPropagation()しないと種族名編集の
+		// クリックハンドラまで走ってしまう(後勝ちで種族名欄が開く事故になる)。
+		// ⚠️ メガシンカ種族では持ち物がメガストーンに固定されitemInputがdisabledになる
+		// (applyRowMegaStoneAutofill)。そのときは編集モードにせず、バッジ側も
+		// aria-disabledで操作できないことを伝える。
+		itemBadge.setAttribute("role", "button");
+		itemBadge.tabIndex = 0;
+		itemBadge.setAttribute("aria-label", "相手の持ち物を選択");
+		function beginMobileItemEdit(): void {
+			if (itemInput.disabled) return;
+			toggleMobileEdit("item");
+			if (buildEl.dataset.mobileEdit !== "item") return;
+			itemInput.focus();
+			itemInput.select();
+		}
+		itemBadge.addEventListener("click", (event) => {
+			event.stopPropagation();
+			beginMobileItemEdit();
+		});
+		itemBadge.addEventListener("keydown", (event) => {
+			if (event.key !== "Enter" && event.key !== " ") return;
+			event.preventDefault();
+			event.stopPropagation();
+			beginMobileItemEdit();
+		});
+		itemInput.addEventListener("keydown", (event) => {
+			if (event.key !== "Enter") return;
+			if (buildEl.dataset.mobileEdit !== "item") return;
+			itemInput.blur();
+			delete buildEl.dataset.mobileEdit;
+		});
+
 		// UI改修依頼(共通)「メガシンカポケモンのアイテムをメガストーンで固定する」により、
 		// 「持ち物が既に入っていれば何もしない」自動設定から、メガシンカ種族が確定している間は
 		// 常にメガストーンへ強制し持ち物欄自体を編集不能にする方式へ変更した(ゲーム仕様上
@@ -3019,6 +3129,18 @@ if (opponentNotesSection) {
 		// rebuildRowAbilityOptionsと同じくnameInputの"change"(blur/確定)にのみ結線する。
 		const megaStoneLockedTitle = "メガシンカ中はアイテムをメガストーンに固定します";
 		let rowMegaStoneAutofillToken = 0;
+		// 🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08): 持ち物欄がロックされている間は、
+		// その欄を開くための入口(ドット絵右下の持ち物バッジ)も操作できないことを伝える。
+		// disabledの付け外しと必ず同じタイミングで呼ぶ。
+		function syncItemBadgeDisabled(): void {
+			if (itemInput.disabled) {
+				itemBadge.setAttribute("aria-disabled", "true");
+				itemBadge.title = megaStoneLockedTitle;
+			} else {
+				itemBadge.removeAttribute("aria-disabled");
+				itemBadge.removeAttribute("title");
+			}
+		}
 		async function applyRowMegaStoneAutofill(speciesName: string): Promise<void> {
 			const token = ++rowMegaStoneAutofillToken;
 			const stoneName = await resolveMegaStoneItem(speciesName);
@@ -3026,11 +3148,13 @@ if (opponentNotesSection) {
 			if (!stoneName) {
 				itemInput.disabled = false;
 				itemInput.title = row.itemName;
+				syncItemBadgeDisabled();
 				return;
 			}
 			if (row.itemName.trim() === stoneName) {
 				itemInput.disabled = true;
 				itemInput.title = megaStoneLockedTitle;
+				syncItemBadgeDisabled();
 				return;
 			}
 			row.itemName = stoneName;
@@ -3041,6 +3165,7 @@ if (opponentNotesSection) {
 				itemInput.title = megaStoneLockedTitle;
 			});
 			itemInput.disabled = true;
+			syncItemBadgeDisabled();
 		}
 		// 初期描画時点(保存済みメモの復元)で既にrow.nameがメガシンカ種族なら、保存済みの
 		// 持ち物が誤っていても正しいメガストーンへ補正しロックする(rebuildRowAbilityOptionsと
@@ -3100,7 +3225,15 @@ if (opponentNotesSection) {
 		// 作らない)に加えて文字の直後に小さく▲/▼を添える(.damage-ev-nature-indicator、
 		// aria-hiddenで装飾扱い。実際の状態説明はボタンのaria-label/titleが担う)。
 		const natureColLabelEls: Partial<Record<string, HTMLElement>> = {};
-		evGrid.appendChild(document.createElement("span"));
+		// 見出し行の1列目(行ラベル列)の空セル。🔴 UI改修依頼(個体編集画面・モバイル、
+		// 2026-08-08)「ダメージカードの相手ビルドサイズを大幅削減」
+		// (docs/ui_proposal/mobile/box_個体編集_vs_相手ビルド.png)では行ラベル列そのものが
+		// 無い6列表になるため、CSS側でこの空セルも消す必要がある。nth-child依存の脆い
+		// セレクタを書かずに済むよう、クラス名を与えておく(デスクトップでは何のスタイルも
+		// 当たらない=見た目は従来どおり空のspan)。
+		const evCornerEl = document.createElement("span");
+		evCornerEl.className = "damage-ev-corner";
+		evGrid.appendChild(evCornerEl);
 		for (const key of STAT_KEYS) {
 			if (key === "hp") {
 				const label = document.createElement("span");
@@ -3138,23 +3271,72 @@ if (opponentNotesSection) {
 		// 値を書き戻せるよう、STAT_KEYS順で参照を保持しておく(row自体には型を
 		// 追加しない。renderRowのローカルクロージャで完結させる)。
 		const evInputEls: HTMLInputElement[] = [];
+		// 🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08)「ダメージカードの相手ビルドサイズを
+		// 大幅削減」(docs/ui_proposal/mobile/box_個体編集_vs_相手ビルド.png)。提案図の努力値行は
+		// 「+32 / - / +4」というテキスト表示で、数値入力欄(スピナー付きinput[type=number]、
+		// 実測1行あたり約24px)は描かれていない。ユーザー確認済みの確定仕様は
+		// 「テキスト表示にし、タップしたらその1項目だけ入力欄に切り替えて編集できる」。
+		// そのため input を <span class="damage-ev-cell"> で包み、同じグリッドセルの中に
+		// 表示用ボタン(.damage-ev-value-text)を同居させる。
+		// ⚠️ デスクトップ(900px以上)の見た目は一切変えない: .damage-ev-cell は display:block・
+		// .damage-ev-value-text は display:none を既定にし、既存の
+		// `#opponent-notes-section .damage-ev-grid input[type="number"]`(子孫セレクタなので
+		// ラップ後もそのまま効く)がこれまでどおり幅100%でセルを埋める。
+		const evTextRefreshers: Array<() => void> = [];
 		STAT_KEYS.forEach((key, i) => {
+			const cell = document.createElement("span");
+			cell.className = "damage-ev-cell";
+
 			const input = document.createElement("input");
 			input.type = "number";
 			input.className = "tnum";
 			input.step = "1";
 			input.value = String(row.evs[i] ?? 0);
 			input.setAttribute("aria-label", `相手の${STAT_KANJI[key]}努力値(0〜32)`);
+
+			// 表示専用の読み取り(0は提案図どおり「-」、1以上は「+32」形式)。
+			const valueText = document.createElement("button");
+			valueText.type = "button";
+			valueText.className = "damage-ev-value-text tnum";
+			function refreshEvText(): void {
+				const ev = row.evs[i] ?? 0;
+				valueText.textContent = ev > 0 ? `+${ev}` : "-";
+				valueText.setAttribute(
+					"aria-label",
+					`相手の${STAT_KANJI[key]}努力値 ${ev}。タップして編集`,
+				);
+			}
+			refreshEvText();
+			evTextRefreshers.push(refreshEvText);
+
 			input.addEventListener("input", () => {
 				const n = Number(input.value);
 				const wrapped = Number.isFinite(n) ? wrapToRange(Math.round(n), 0, 32) : 0;
 				input.value = String(wrapped);
 				row.evs[i] = wrapped;
+				refreshEvText();
 				onFieldInput();
 			});
-			evGrid.appendChild(input);
+			// タップ(クリック)でこのセルだけ入力欄に切り替える。切り替えはCSSの
+			// [data-editing="true"] だけで表現し、実体のinputは常にDOMに存在させたままにする
+			// (既存の自動保存契約 row.evs / evInputEls への書き戻しに一切影響させないため)。
+			valueText.addEventListener("click", () => {
+				cell.dataset.editing = "true";
+				input.focus();
+				input.select();
+			});
+			input.addEventListener("blur", () => {
+				delete cell.dataset.editing;
+			});
+
+			cell.append(input, valueText);
+			evGrid.appendChild(cell);
 			evInputEls.push(input);
 		});
+		/** 努力値を外部(プリセット適用など)から書き換えたときに表示テキストを追随させる。 */
+		function refreshAllEvTexts(): void {
+			for (const refresh of evTextRefreshers) refresh();
+		}
 
 		// UI改善ラウンド48(A-4)ユーザー指示(第32弾)「相手ビルドの情報を種族ごとにローカルに
 		// 記録しておき、次に同じ種族をビルドする際にデフォルト値として設定する」の適用側。
@@ -3208,6 +3390,10 @@ if (opponentNotesSection) {
 				const evInput = evInputEls[i];
 				if (evInput) evInput.value = String(row.evs[i] ?? 0);
 			});
+			// 🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08): モバイルでは努力値が
+			// テキスト表示(.damage-ev-value-text)になるため、入力欄への書き戻しと同時に
+			// 表示テキストも最新化しないとプリセット適用が画面に反映されない。
+			refreshAllEvTexts();
 
 			refreshCollapsedSummary();
 			onFieldInput();

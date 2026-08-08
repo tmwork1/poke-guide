@@ -1032,6 +1032,23 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 		   打ち消す(努力値/実数値グリッドの無駄18.6pxのうち大半を占める)。 */
 		min-height: 0;
 	}
+	/* 🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08)「ダメージカードの相手ビルドサイズを
+	   大幅削減」(docs/ui_proposal/mobile/box_個体編集_vs_相手ビルド.png)で新設した
+	   努力値セル。モバイルでは同じセルの中で「テキスト表示(.damage-ev-value-text)」と
+	   「数値入力欄」を出し分けるためのラッパーで、デスクトップでは入力欄1個だけが入った
+	   透明な箱として振る舞う(=見た目は従来と完全に同じ)。
+	   上の`.damage-ev-grid input[type="number"]`は子孫セレクタなので、このラップを挟んでも
+	   これまでどおり適用される(width:100%が効くよう、このラッパー自身はグリッドセル幅に
+	   従うblock+min-width:0にする)。 */
+	#opponent-notes-section .damage-ev-cell {
+		display: block;
+		min-width: 0;
+	}
+	/* 表示用テキスト(「+32」「-」)はモバイル専用。デスクトップでは存在しないものとして扱う。 */
+	#opponent-notes-section .damage-ev-value-text { display: none; }
+	/* 持ち物バッジの「?」プレースホルダも同様にモバイル専用(デスクトップは持ち物が
+	   無ければバッジごと出さない既存仕様のまま)。 */
+	#opponent-notes-section .damage-item-badge-placeholder { display: none; }
 	#opponent-notes-section .damage-stat-value {
 		display: block;
 		/* ラウンド26ユーザー指示(26-D4)で一段上げ、現行は--font-size-sm(0.85rem)。 */
@@ -3294,17 +3311,17 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 		#opponent-notes-section .damage-row-total {
 			grid-column: 1 / -1;
 		}
-		/* 相手ビルドの箱1行目(攻守切り替えセグメント、.damage-row-actions)だけの対応:
-		   カード右上固定の削除ボタン(.damage-row-delete-button、position:absolute、
-		   top/right:var(--space-2)+28px)はデスクトップでは左カラム(相手ビルドの箱)から
-		   遠く無関係だったが、箱を全幅化したことで1行目の右端が削除ボタンの真下に来る
-		   (実測: 削除ボタンはカード上端から8px〜36pxの範囲、1行目もほぼ同じ範囲に来るため
-		   重なる。2行目以降(名前欄以下)は1行目より下にあり削除ボタンの高さから外れるため
-		   対象外)。技列側で確立済みの40pxクリアランス(削除ボタン28px+右余白、
-		   .damage-row-columns-wrap/.damage-row-total-result等と同じ値)をこの行にも適用する。 */
-		#opponent-notes-section .damage-row-actions {
-			padding-right: 40px;
-		}
+		/* 相手ビルドの箱1行目の対応: カード右上固定の削除ボタン
+		   (.damage-row-delete-button、position:absolute、top/right:var(--space-2)+28px)は
+		   デスクトップでは左カラム(相手ビルドの箱)から遠く無関係だったが、箱を全幅化した
+		   ことで1行目の右端が削除ボタンの真下に来る(実測: 削除ボタンはカード上端から
+		   8px〜36pxの範囲、1行目もほぼ同じ範囲に来るため重なる)。
+		   🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08)で1行目が攻守セグメント単独
+		   (.damage-row-actions)ではなく[攻撃][特性][テラスタル]の3ボタン行になったため、
+		   クリアランスの適用先を行そのもの(.damage-row-actions)から、3ボタン行を内包する
+		   右カラム(.damage-row-build-left)へ移した(下記「相手ビルドの箱の再構成」参照)。
+		   .damage-ev-grid は .damage-row-build-left の外にあるので、この余白の影響を受けず
+		   6列を目一杯使える(意図どおり)。 */
 
 		/* UI改修依頼(個体編集画面・モバイル、2026-08-08)「技カードのデザインをカードらしくする」。
 		   .damage-columnは既にborder/background/border-radiusを持つが、box-shadowが無く
@@ -3421,6 +3438,230 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 		   ほぼ効いていない)。デスクトップでは従来どおり。 */
 		#opponent-notes-section .damage-row-collapse-toggle-button {
 			display: none;
+		}
+
+		/* ============================================================================
+		   🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08)「VSタブのダメージカードの
+		   相手ビルドサイズを大幅削減」。提案図: docs/ui_proposal/mobile/box_個体編集_vs_相手ビルド.png
+
+		     ┌──────────────────────────────────────┐
+		     │ ┌────────┐  [ 攻撃 ][ 特性 ][ テラスタル ] │
+		     │ │ ドット絵 │    H    A    B▲   C    D    S  │
+		     │ │      (?) │   +32   -   +32   -   +4    -  │
+		     │ └────────┘   100   90   80   90   70   60  │
+		     └──────────────────────────────────────┘
+
+		   実測(改修前、390px幅・フィクスチャc8680844-...): 相手ビルドの箱は
+		   「攻守セグメント / 種族名 / 特性 / 持ち物 / テラス / 努力値入力 / 実数値」の
+		   7段で約190px。提案図には種族名・持ち物の入力行と努力値の数値入力欄が無く、
+		   ドット絵の右に3ボタン+3段表が乗るだけの構成になっている。
+
+		   ユーザー確認済みの確定仕様(2026-08-08):
+		     - 種族名: 入力欄は畳み、ドット絵タップで出す(damage-calc.ts beginMobileNameEdit)
+		     - 持ち物: 入力欄は畳み、ドット絵右下のバッジタップで出す(beginMobileItemEdit)
+		     - 努力値: 「+32 / -」のテキスト表示。タップでその1項目だけ入力欄に切り替える
+		     - 攻守: 選択中の1個だけ見せ、タップで反対側へ(onDirectionOptionClick)
+		     - 特性・テラスタル: 既存の<select>/カスタムドロップダウンをそのまま3ボタン行に並べる
+
+		   ⚠️ 構造を変えるルール(display:contents・grid化)は必ず
+		   `.card-damage:not([data-collapsed="true"])` で限定する。耐久調整ポップアップが
+		   buildCollapsedPreview()で作る表示専用の複製は data-collapsed="true" を持ったまま
+		   #opponent-notes-section 配下に置かれるため(bulk-adjust.ts冒頭のコメント参照)、
+		   限定しないとポップアップ内の圧縮表示まで作り替えてしまう。
+		   ============================================================================ */
+
+		/* 箱そのものを「左=ドット絵(2段ぶち抜き) / 右上=3ボタン行 / 右下=H〜Sの3段表」の
+		   2列グリッドにする。従来はbuildMain(flex)の下にevGridが全幅で続く縦積みだったため、
+		   ドット絵の右側にできる空白(実測: 80pxのアイコン横に3段表ぶんの余地)が
+		   まるごと死んでいた。buildMainをdisplay:contentsにして孫を直接この2列へ流し込む
+		   (DOM構造・クラス名は変えない)。 */
+		#opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-row-build {
+			display: grid;
+			grid-template-columns: auto minmax(0, 1fr);
+			column-gap: 0.4rem;
+			row-gap: 0.15rem;
+			align-items: start;
+			padding: 0.25rem 0.4rem;
+		}
+		#opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-row-build-main {
+			display: contents;
+		}
+		/* ドット絵は左列で2段ぶち抜き(実測80×80、右側3段表の合計高さとほぼ同じ)。
+		   種族名編集の入口(role="button")なのでタップできることを示す。
+		   ⚠️ align-selfはcenterではなくstartにすること。centerだと、種族名・持ち物の入力欄が
+		   開いて右カラムが縦に伸びるたびにドット絵ごと下へずれる。その結果、
+		   「種族名を開いたまま持ち物バッジをタップする」操作で、mousedown(=種族名欄が閉じる)と
+		   clickの間にバッジ自体が動いてしまい、タップが外れる(実測で再現)。
+		   startなら1段目の天面に固定されるので、どちらの入力欄を開閉してもバッジは動かない。 */
+		#opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-sprite-box {
+			grid-column: 1;
+			grid-row: 1 / span 2;
+			align-self: start;
+			cursor: pointer;
+		}
+		/* 右上: [攻撃][特性][テラスタル]の3ボタン行。縦積み(基底のflex-direction:column)を
+		   横並び+折り返しに変え、畳んである種族名・持ち物の入力欄は折り返した次の行に
+		   全幅で出す(order:4/5、下記)。
+		   padding-rightはカード右上の削除ボタン(×)を避けるクリアランス(上方の
+		   .damage-row-actionsについてのコメント参照)。 */
+		#opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-row-build-left {
+			grid-column: 2;
+			grid-row: 1;
+			flex-direction: row;
+			flex-wrap: wrap;
+			align-items: center;
+			gap: var(--space-1);
+			padding-right: 36px;
+		}
+		#opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-row-build-fields,
+		#opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-row-build-grid {
+			display: contents;
+		}
+		/* 攻守ボタンは「攻撃」「防御」の2文字ぶんしか要らないので内容量どおりの幅にし、
+		   余りは特性・テラスタルの2つで山分けする(この2つは値が長く、実測で
+		   特性「マルチスケイル」・テラス「フェアリー」が省略されやすい)。
+		   ⚠️ 3つとも flex:1 1 0 にしても等幅にはならない: box-sizing:border-box(global.css)
+		   では flex-basis:0 が padding+border 未満に潰れないため、左右paddingを持つ
+		   <select>(0.38em+1.3em≒23px)だけが常にその分太くなる(実測 58.9px vs 83.8px)。
+		   等幅にこだわらず、余白の配分で解決する。 */
+		#opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-row-actions {
+			order: 1;
+			flex: 0 0 auto;
+			min-width: 0;
+		}
+		#opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-row-build-grid select {
+			order: 2;
+			flex: 1 1 0;
+			min-width: 0;
+		}
+		#opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-row-tera-field {
+			order: 3;
+			flex: 1 1 0;
+			width: auto;
+			min-width: 0;
+		}
+		/* デスクトップ規格のままだと3つとも実測23px強で、このページで守っている
+		   「タップ対象28px以上」を割る(デスクトップはマウス前提なので基底は変えない)。
+		   モバイルだけ28pxまで伸ばす。攻守セグメントは枠(.damage-row-direction-toggle)の
+		   中のボタンを伸ばさないと枠だけ高くなって中身が上に寄るため、両方に効かせる。 */
+		#opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-row-direction-toggle,
+		#opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-row-direction-option,
+		#opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-row-build-grid select,
+		#opponent-notes-section .card-damage:not([data-collapsed="true"]) .tera-dropdown-button {
+			min-height: 28px;
+		}
+		/* 種族名(.pokemon-name-row)と持ち物(.damage-row-build-grid内のtext input)は既定で畳む。
+		   damage-calc.tsがドット絵/持ち物バッジのタップで .damage-row-build[data-mobile-edit] を
+		   立てるので、そのときだけ3ボタン行の下に全幅(flex:1 0 100%)で現れる。
+		   要素自体はDOMに残すので、自動保存契約(row.name/row.itemName)・datalist補助・
+		   種族確定時のプリセット適用はデスクトップと同じ経路のまま動く。 */
+		#opponent-notes-section .card-damage:not([data-collapsed="true"]) .pokemon-name-row {
+			order: 4;
+			flex: 1 0 100%;
+			display: none;
+		}
+		#opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-row-build-grid input[type="text"] {
+			order: 5;
+			flex: 1 0 100%;
+			display: none;
+		}
+		#opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-row-build[data-mobile-edit="name"] .pokemon-name-row {
+			display: flex;
+		}
+		#opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-row-build[data-mobile-edit="item"] .damage-row-build-grid input[type="text"] {
+			display: block;
+		}
+
+		/* 攻守は提案図どおり1ボタンにする。非選択側を隠すだけで、DOM・aria(radiogroup/radio+
+		   aria-checked)・保存形式は一切変えない。見えているボタンを押したときの意味
+		   (=反対側へ倒す)はdamage-calc.tsのonDirectionOptionClickがモバイル判定で担当する。 */
+		#opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-row-direction-option[aria-checked="false"] {
+			display: none;
+		}
+
+		/* 右下: H/A/B/C/D/Sの3段表。行ラベル列(「努力値」「実数値」の1列目)を畳んで
+		   提案図と同じ6列にする。見出し行の1列目の空セルにはdamage-calc.ts側で
+		   .damage-ev-cornerを付けてあるので、nth-child依存にせず消せる。 */
+		#opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-ev-grid {
+			grid-column: 2;
+			grid-row: 2;
+			margin-top: 0;
+			grid-template-columns: repeat(6, minmax(0, 1fr));
+			gap: 0.05rem 0.15rem;
+		}
+		#opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-ev-corner,
+		#opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-ev-row-label {
+			display: none;
+		}
+		/* 努力値セルは既定でテキスト表示(.damage-ev-value-text)、タップされたセルだけ
+		   [data-editing="true"]が付いて数値入力欄に入れ替わる。入れ替えで行の高さが
+		   跳ねないよう、セル自体にmin-height(1.9rem=30.4px、タップ対象28px以上の要件も
+		   これで満たす)を持たせて中身を中央に置く。 */
+		#opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-ev-cell {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			min-height: 1.9rem;
+		}
+		#opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-ev-cell input[type="number"] {
+			display: none;
+		}
+		#opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-ev-value-text {
+			display: block;
+			width: 100%;
+			background: none;
+			border: none;
+			padding: 0;
+			font-family: inherit;
+			/* 12px下限規約(20-G3以降)を守る。他の3段(列見出し・実数値・行ラベル)と同じ値。 */
+			font-size: var(--font-size-sm);
+			line-height: var(--line-height-tight);
+			text-align: center;
+			color: var(--color-text-muted);
+			cursor: pointer;
+		}
+		#opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-ev-value-text:focus-visible {
+			outline: 2px solid var(--color-primary);
+			outline-offset: 1px;
+		}
+		#opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-ev-cell[data-editing="true"] input[type="number"] {
+			display: block;
+		}
+		#opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-ev-cell[data-editing="true"] .damage-ev-value-text {
+			display: none;
+		}
+
+		/* 持ち物バッジ: 提案図では持ち物が未設定でもドット絵の右下にオレンジ丸の「?」が
+		   常に見えていて、そこから持ち物を選ぶ。デスクトップの「持ち物アイコンを出せない
+		   ときはバッジごと隠す」既存仕様(applyItemImage → badge.hidden = true)は変えず、
+		   モバイルだけ[hidden]を表示に引き戻し、中身を「?」プレースホルダに差し替える。
+		   色は新規トークンを作らず既存の--color-risky-strong(ライト#8a5806・
+		   ダークは--color-riskyへのエイリアス#e0a940)を使う。文字は--color-primary-contrast
+		   (ライト#fff・ダーク#14161d)で、コントラストはライト6.0:1・ダーク8.6:1(計算値、
+		   いずれもWCAG AA 4.5:1適合)。 */
+		#opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-item-badge {
+			cursor: pointer;
+		}
+		#opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-item-badge[hidden] {
+			display: flex;
+		}
+		#opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-item-badge[hidden] .damage-item-badge-placeholder {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			width: 100%;
+			height: 100%;
+			border-radius: 50%;
+			background: var(--color-risky-strong);
+			color: var(--color-primary-contrast);
+			font-size: var(--font-size-sm);
+			font-weight: 700;
+			line-height: 1;
+		}
+		/* メガシンカ種族は持ち物がメガストーンに固定され入力できない(applyRowMegaStoneAutofill)。
+		   そのときはバッジ側も押せないことを示す(damage-calc.tsがaria-disabledを付ける)。 */
+		#opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-item-badge[aria-disabled="true"] {
+			cursor: default;
 		}
 	}
 </style>
