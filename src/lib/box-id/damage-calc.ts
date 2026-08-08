@@ -1751,6 +1751,25 @@ if (opponentNotesSection) {
 		column.moveName = list.options[0]?.value ?? "";
 	}
 
+	// UI改修依頼(個体編集画面・モバイル、2026-08-08)「デフォルトの表示状態でカードを
+	// 追加するボタンを表示する」対応。技列(加算条件)を1つ追加する処理は、元々
+	// renderColumns内の「＋ 技を追加」ボタン(addButton)のクリックハンドラだけに書かれていたが、
+	// 折りたたみ時の「＋」ボタン(renderRow内のcollapsedTechniques、下方参照)からも同じ処理を
+	// 呼ぶ必要があるため、共通関数に切り出す(重複コード防止)。呼び出し側(addButton自身、
+	// 折りたたみ時ボタン)は事前にMAX_COLUMNS_TO_ADD到達チェック(disabled/hidden)を
+	// 行っているが、念のためここでも二重にガードする。
+	function addAttackColumn(row: DamageRowState): void {
+		if (row.attacks.length >= MAX_COLUMNS_TO_ADD) return;
+		// 38-D7: 直前のカラム(row.attacks末尾)があれば、その詳細設定を引き継ぐ。
+		const previousColumn = row.attacks[row.attacks.length - 1];
+		const column = createEmptyColumn(previousColumn ? inheritedColumnDetailDefaults(previousColumn) : undefined);
+		fillFirstMoveCandidate(row, column);
+		row.attacks.push(column);
+		renderColumns(row);
+		scheduleRowCalc(row);
+		scheduleRowSave(row);
+	}
+
 	// --- 列(攻撃)のDOM構築 ---
 	function renderColumns(row: DamageRowState): void {
 		if (!row.columnsEl) return;
@@ -2023,17 +2042,10 @@ if (opponentNotesSection) {
 			addButton.textContent = "＋ 技を追加";
 			addButton.title = "加算する技を追加する(上から順に当てた加算ダメージ計算になります)";
 		}
-		addButton.addEventListener("click", () => {
-			if (row.attacks.length >= MAX_COLUMNS_TO_ADD) return;
-			// 38-D7: 直前のカラム(row.attacks末尾)があれば、その詳細設定を引き継ぐ。
-			const previousColumn = row.attacks[row.attacks.length - 1];
-			const column = createEmptyColumn(previousColumn ? inheritedColumnDetailDefaults(previousColumn) : undefined);
-			fillFirstMoveCandidate(row, column);
-			row.attacks.push(column);
-			renderColumns(row);
-			scheduleRowCalc(row);
-			scheduleRowSave(row);
-		});
+		// UI改修依頼(個体編集画面・モバイル、2026-08-08): 実際に技を1つ追加する処理は
+		// addAttackColumn(row)(fillFirstMoveCandidateの直後で定義)へ切り出し済み。
+		// 折りたたみ時の「＋」ボタン(renderRow内のcollapsedTechniques)と共通化するため。
+		addButton.addEventListener("click", () => addAttackColumn(row));
 		(row.addColumnSlotEl ?? row.columnsEl).appendChild(addButton);
 
 		renderColumnDisplays(row);
@@ -3260,11 +3272,38 @@ if (opponentNotesSection) {
 		// 変更しない。壊してはいけないクラス名、pitfalls.md参照)。
 		const collapsedTechniques = document.createElement("div");
 		collapsedTechniques.className = "damage-row-collapsed-techniques";
+		// UI改修依頼(個体編集画面・モバイル、2026-08-08)「デフォルトの表示状態でカードを
+		// 追加するボタンを表示する」対応の下ごしらえ。899px以下では保存済みカードが
+		// 初期状態で折りたたまれる(isNarrowLayout()限定のsetAllRowsCollapsed(true)、下方参照)ため、
+		// 展開しないと辿り着けなかった「＋ 技を追加」への導線を折りたたみ状態のまま提供する。
+		// 技名・条件テキストの2段(collapsedMoveListEl/collapsedDetailLineEl)をテキスト用の
+		// ラッパー(collapsedTechniquesText)にまとめ、その右に追加ボタンを横並びに置けるようにする
+		// (DOM構造上の変更はここだけ。CSS側はDamageCalcSection.astro
+		// .damage-row-collapsed-techniques-text/.damage-row-collapsed-add-column-button参照。
+		// 899px以下限定でrow方向に切り替え、デスクトップは従来どおりテキスト2段のみの見た目)。
+		const collapsedTechniquesText = document.createElement("div");
+		collapsedTechniquesText.className = "damage-row-collapsed-techniques-text";
 		const collapsedMoveListEl = document.createElement("p");
 		collapsedMoveListEl.className = "damage-row-collapsed-move-list";
 		const collapsedDetailLineEl = document.createElement("p");
 		collapsedDetailLineEl.className = "damage-row-collapsed-detail-line";
-		collapsedTechniques.append(collapsedMoveListEl, collapsedDetailLineEl);
+		collapsedTechniquesText.append(collapsedMoveListEl, collapsedDetailLineEl);
+		// 折りたたみ時の「＋」ボタン。展開時の「＋ 技を追加」(addButton、renderColumns内)と
+		// 同じ共通関数addAttackColumn(row)を呼び、続けてsetCollapsed(false)でカードを展開する
+		// (追加した技をユーザーがすぐ編集できるようにするため)。見た目は新しい規格を作らず、
+		// 既存のアイコンボタン共通規格(.damage-row-icon-button、28px円形・shadow-sm。
+		// .damage-row-collapse-toggle-button等と同一)をそのまま流用する。
+		const collapsedAddColumnButton = document.createElement("button");
+		collapsedAddColumnButton.type = "button";
+		collapsedAddColumnButton.className = "btn-ghost damage-row-icon-button damage-row-collapsed-add-column-button";
+		collapsedAddColumnButton.textContent = "＋";
+		collapsedAddColumnButton.setAttribute("aria-label", "技を追加する");
+		collapsedAddColumnButton.addEventListener("click", () => {
+			if (row.attacks.length >= MAX_COLUMNS_TO_ADD) return;
+			addAttackColumn(row);
+			setCollapsed(false);
+		});
+		collapsedTechniques.append(collapsedTechniquesText, collapsedAddColumnButton);
 		techniquesRow.appendChild(collapsedTechniques);
 		// 折りたたみ中は技列の入力欄(.damage-row-columns-wrap)が隠れて編集不可になる
 		// (36-1の既存方針)ため、row.attacksはsetCollapsed()呼び出し時点で確定した値に
@@ -3322,6 +3361,13 @@ if (opponentNotesSection) {
 				collapsedDetailLineEl.textContent = detailText;
 				collapsedDetailLineEl.title = detailText;
 			}
+			// 折りたたみ時の「＋」ボタン。展開時のaddButton(renderColumns内)と同じ
+			// MAX_COLUMNS_TO_ADD上限に達したら隠す(既存のdata-max="true"と同じ考え方)。
+			const isAtMax = row.attacks.length >= MAX_COLUMNS_TO_ADD;
+			collapsedAddColumnButton.hidden = isAtMax;
+			collapsedAddColumnButton.title = isAtMax
+				? `技列は最大${MAX_COLUMNS_TO_ADD}つまでです`
+				: "加算する技を追加する(上から順に当てた加算ダメージ計算になります)";
 		}
 
 		// 24-D1(訂正後): totalBlockはbuildElでもrootでもなく、techniquesRow

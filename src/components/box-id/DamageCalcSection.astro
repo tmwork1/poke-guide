@@ -3033,6 +3033,26 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 	#opponent-notes-section .damage-row-collapsed-detail-line[hidden] {
 		display: none;
 	}
+	/* UI改修依頼(個体編集画面・モバイル、2026-08-08)「デフォルトの表示状態でカードを追加する
+	   ボタンを表示する」対応の下ごしらえ。damage-calc.ts側でcollapsedTechniques配下に
+	   テキスト列(collapsedMoveListEl/collapsedDetailLineEl)をまとめる新設ラッパー
+	   (collapsedTechniquesText)を追加した(折りたたみ時の「＋」ボタンと横並びにするため)。
+	   ラッパー自体はflex-column化のみ、中の2つの<p>はどちらもmargin:0のため、素の
+	   display:blockの縦積みと視覚的に同一(このルール自体はメディアクエリの外=
+	   デスクトップにも適用されるが、見た目に変化は無い)。
+	   追加ボタン自体をrow方向で横に並べる処理・899px以下限定で表示する処理は下方の
+	   @media (max-width: 899px)内に置く(デスクトップでは従来どおりテキスト2段のみ)。 */
+	#opponent-notes-section .damage-row-collapsed-techniques-text {
+		display: flex;
+		flex-direction: column;
+		gap: 0.1rem;
+		min-width: 0;
+	}
+	/* 折りたたみ時の「＋」ボタン。899px以下限定の機能のため、デスクトップでは常に非表示にする
+	   (表示・横並び配置は下方の@media (max-width: 899px)内で行う)。 */
+	#opponent-notes-section .damage-row-collapsed-add-column-button {
+		display: none;
+	}
 
 	/* UI改善ラウンド38ユーザー指示(38-H1)「すべて折りたたむ・展開するボタンをヘッダーに
 	   移動。単一ボタンで交互に切り替える」でボタンをsrc/pages/box/[id].astro の
@@ -3293,6 +3313,104 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 		   .damage-row-columns-wrap/.damage-row-total-result等と同じ値)をこの行にも適用する。 */
 		#opponent-notes-section .damage-row-actions {
 			padding-right: 40px;
+		}
+
+		/* UI改修依頼(個体編集画面・モバイル、2026-08-08)「技カードのデザインをカードらしくする」。
+		   .damage-columnは既にborder/background/border-radiusを持つが、box-shadowが無く
+		   平面的だった。共通カード規格(global.css .card、box-shadow: --shadow-sm→hover/
+		   focus-within時--shadow-md)と同じ考え方の陰影を追加する。新しい影の値は作らず
+		   既存トークンをそのまま使う。899px以下限定(デスクトップの.damage-columnは
+		   変更しない)。 */
+		#opponent-notes-section .damage-column {
+			box-shadow: var(--shadow-sm);
+		}
+		#opponent-notes-section .damage-column:hover,
+		#opponent-notes-section .damage-column:focus-within {
+			box-shadow: var(--shadow-md);
+		}
+		/* 選択中(.is-selected)は基底ルール(デスクトップ含む、上方参照)で選択リング
+		   (box-shadow: 0 0 0 1px var(--color-primary))だけになりshadow-smが消えるため、
+		   ここでリングと立体感の影を合成し直す(基底ルール自体は変更しない)。 */
+		#opponent-notes-section .damage-column.is-selected {
+			box-shadow: 0 0 0 1px var(--color-primary), var(--shadow-sm);
+		}
+		#opponent-notes-section .damage-column.is-selected:hover,
+		#opponent-notes-section .damage-column.is-selected:focus-within {
+			box-shadow: 0 0 0 1px var(--color-primary), var(--shadow-md);
+		}
+		/* タップ操作が中心のモバイルでは:hoverが効かない端末があるため、:activeで一瞬の
+		   フィードバック(影+背景の軽い着色)を与える。新色は作らず.card:hover(global.css)と
+		   同じcolor-mixの配合(90%/10%)をそのまま流用する(ベースは.damage-columnの背景
+		   トークンvar(--color-surface))。既存の.damage-columnがtransition: border-color 0.15s,
+		   box-shadow 0.15s; を既に持つため、追加のtransition宣言は不要。 */
+		#opponent-notes-section .damage-column:active {
+			box-shadow: var(--shadow-md);
+			background: color-mix(in srgb, var(--color-surface) 90%, var(--color-primary) 10%);
+		}
+
+		/* UI改修依頼(個体編集画面・モバイル、2026-08-08)「技カードをクリックしたら、その
+		   カード自身が詳細設定に展開されたように見えるようにする」。クリックで詳細パネルを
+		   開く機能自体は既存(renderRow内のroot.addEventListener→selectColumn)。899px以下では
+		   refreshMobileDetailPlacement()(damage-calc.ts)が選択中カードの直後に
+		   #damage-detail-panel(is-mobile-inline付与)をDOM移動してインライン表示するが、
+		   RightPanel.astro側の.is-mobile-inlineは枠線・角丸のみで背景・box-shadowが無く、
+		   ページの中に裸のブロックとして浮いて見えていた(Coordinator実機確認)。
+		   RightPanel.astro/damage-calc.tsは今回の担当範囲外のため、このファイル側からの
+		   CSS追加のみで対応する。#opponent-notes-sectionは、このパネルが
+		   selectedRow.root.after(damageDetailPanelEl)で選択中カードの直後(#damage-rows-list内、
+		   つまり#opponent-notes-section配下)へ移動されたときだけ祖先になるため、IDセレクタで
+		   RightPanel.astro側のscoped style(Astroのdata-astro-cid属性付与により実質2クラス+
+		   1属性相当の詳細度を持つ)を安全に上書きできる(idの詳細度はクラス/属性の数に
+		   関わらず常に勝るため、!importantや余分なセレクタの積み増しをせずに済む)。 */
+		#opponent-notes-section .damage-detail-panel.is-mobile-inline {
+			background: var(--color-surface);
+			box-shadow: var(--shadow-sm);
+		}
+		/* 選択中の技カード(.damage-column.is-selected、上方参照)に続く場合だけ、枠色を
+		   カードの選択色(var(--color-primary)、.damage-column.is-selectedと同じ値)に揃え、
+		   上端の角丸を無くし、カードとの間隔を詰めて「カード自身が展開された」ように見せる。
+		   常設サジェスト一覧(is-mobile-suggest、選択中カードが無い状態でリスト末尾に
+		   常設表示される。damage-calc.tsのrefreshMobileDetailPlacement参照)はこの対象外にする
+		   (どの技カードにも属さないため、選択色や地続き演出を適用すると誤解を招く)。 */
+		#opponent-notes-section .damage-detail-panel.is-mobile-inline:not(.is-mobile-suggest) {
+			border-color: var(--color-primary);
+			border-top-left-radius: 0;
+			border-top-right-radius: 0;
+			/* .damage-rows-listのgap(var(--space-3)=12px)を8px分だけ詰め、選択中カードとの
+			   間隔を4pxまで縮める(完全に密着させると、それぞれが持つbox-shadowが視覚的に
+			   衝突し合う懸念があるため、わずかな隙間は残す判断)。 */
+			margin-top: calc(-1 * var(--space-2));
+		}
+
+		/* UI改修依頼(個体編集画面・モバイル、2026-08-08)「デフォルトの表示状態でカードを
+		   追加するボタンを表示する」対応。899px以下では保存済みカードが初期状態で
+		   折りたたまれる(damage-calc.tsのsetAllRowsCollapsed(true)、isNarrowLayout()限定)ため、
+		   展開しないと辿り着けなかった「＋ 技を追加」への導線を、折りたたみ時の技列側
+		   (.damage-row-collapsed-techniques)にも用意する。テキスト列
+		   (.damage-row-collapsed-techniques-text、上方の非メディアクエリ節で新設)と
+		   追加ボタンを横並びにする。 */
+		#opponent-notes-section .card-damage[data-collapsed="true"] .damage-row-collapsed-techniques {
+			flex-direction: row;
+			align-items: center;
+			gap: var(--space-1);
+		}
+		#opponent-notes-section .damage-row-collapsed-techniques-text {
+			flex: 1 1 auto;
+		}
+		/* アイコンボタンは既存の.damage-row-icon-button規格(28px円形・shadow-sm、
+		   .damage-row-collapse-toggle-button等と同一)をそのまま流用し、新しい色・形状の
+		   規格は作らない。WCAG 2.5.8のタップ領域目安(最低24×24px)も28pxで満たす。 */
+		#opponent-notes-section .damage-row-collapsed-add-column-button {
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+		}
+		/* 技列が上限(MAX_COLUMNS_TO_ADD=3)に達すると、damage-calc.tsのrefreshCollapsedTechniques()が
+		   hidden属性を付ける(展開時の.damage-add-column-slot[data-max="true"]と同じ考え方)。
+		   display:inline-flexを指定しているためブラウザ既定の[hidden]{display:none}に勝って
+		   しまう(他の[hidden]系ルールと同じ既知の注意点)。明示的に打ち消す。 */
+		#opponent-notes-section .damage-row-collapsed-add-column-button[hidden] {
+			display: none;
 		}
 	}
 </style>
