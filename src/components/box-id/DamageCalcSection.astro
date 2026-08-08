@@ -3033,25 +3033,18 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 	#opponent-notes-section .damage-row-collapsed-detail-line[hidden] {
 		display: none;
 	}
-	/* UI改修依頼(個体編集画面・モバイル、2026-08-08)「デフォルトの表示状態でカードを追加する
-	   ボタンを表示する」対応の下ごしらえ。damage-calc.ts側でcollapsedTechniques配下に
-	   テキスト列(collapsedMoveListEl/collapsedDetailLineEl)をまとめる新設ラッパー
-	   (collapsedTechniquesText)を追加した(折りたたみ時の「＋」ボタンと横並びにするため)。
+	/* 折りたたみ表示のテキスト列(collapsedMoveListEl/collapsedDetailLineEl)をまとめる
+	   ラッパー(damage-calc.tsのcollapsedTechniquesText)。元は折りたたみ時の「＋」ボタンと
+	   横並びにするために新設したが、🔴 UI改修依頼(2026-08-08)「ダメージカードの圧縮表示を
+	   廃止」でモバイルの圧縮状態が無くなり、その「＋」ボタンは削除した(関連CSSも撤去)。
 	   ラッパー自体はflex-column化のみ、中の2つの<p>はどちらもmargin:0のため、素の
-	   display:blockの縦積みと視覚的に同一(このルール自体はメディアクエリの外=
-	   デスクトップにも適用されるが、見た目に変化は無い)。
-	   追加ボタン自体をrow方向で横に並べる処理・899px以下限定で表示する処理は下方の
-	   @media (max-width: 899px)内に置く(デスクトップでは従来どおりテキスト2段のみ)。 */
+	   display:blockの縦積みと視覚的に同一(デスクトップの折りたたみ表示・耐久調整ポップアップの
+	   複製で引き続き使う)。 */
 	#opponent-notes-section .damage-row-collapsed-techniques-text {
 		display: flex;
 		flex-direction: column;
 		gap: 0.1rem;
 		min-width: 0;
-	}
-	/* 折りたたみ時の「＋」ボタン。899px以下限定の機能のため、デスクトップでは常に非表示にする
-	   (表示・横並び配置は下方の@media (max-width: 899px)内で行う)。 */
-	#opponent-notes-section .damage-row-collapsed-add-column-button {
-		display: none;
 	}
 
 	/* UI改善ラウンド38ユーザー指示(38-H1)「すべて折りたたむ・展開するボタンをヘッダーに
@@ -3411,34 +3404,22 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 			transform: translateX(-50%);
 		}
 
-		/* UI改修依頼(個体編集画面・モバイル、2026-08-08)「デフォルトの表示状態でカードを
-		   追加するボタンを表示する」対応。899px以下では保存済みカードが初期状態で
-		   折りたたまれる(damage-calc.tsのsetAllRowsCollapsed(true)、isNarrowLayout()限定)ため、
-		   展開しないと辿り着けなかった「＋ 技を追加」への導線を、折りたたみ時の技列側
-		   (.damage-row-collapsed-techniques)にも用意する。テキスト列
-		   (.damage-row-collapsed-techniques-text、上方の非メディアクエリ節で新設)と
-		   追加ボタンを横並びにする。 */
-		#opponent-notes-section .card-damage[data-collapsed="true"] .damage-row-collapsed-techniques {
-			flex-direction: row;
-			align-items: center;
-			gap: var(--space-1);
-		}
-		#opponent-notes-section .damage-row-collapsed-techniques-text {
-			flex: 1 1 auto;
-		}
-		/* アイコンボタンは既存の.damage-row-icon-button規格(28px円形・shadow-sm、
-		   .damage-row-collapse-toggle-button等と同一)をそのまま流用し、新しい色・形状の
-		   規格は作らない。WCAG 2.5.8のタップ領域目安(最低24×24px)も28pxで満たす。 */
-		#opponent-notes-section .damage-row-collapsed-add-column-button {
-			display: inline-flex;
-			align-items: center;
-			justify-content: center;
-		}
-		/* 技列が上限(MAX_COLUMNS_TO_ADD=3)に達すると、damage-calc.tsのrefreshCollapsedTechniques()が
-		   hidden属性を付ける(展開時の.damage-add-column-slot[data-max="true"]と同じ考え方)。
-		   display:inline-flexを指定しているためブラウザ既定の[hidden]{display:none}に勝って
-		   しまう(他の[hidden]系ルールと同じ既知の注意点)。明示的に打ち消す。 */
-		#opponent-notes-section .damage-row-collapsed-add-column-button[hidden] {
+		/* 🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08)「ダメージカードの圧縮表示を廃止し、
+		   常に2枚の技カードが見えるようにする」。899px以下では
+		   damage-calc.ts側で初期圧縮(setAllRowsCollapsed(true))を撤去したうえで、
+		   カードごとの折りたたみ/展開ボタンもここで隠す(「すべて折りたたむ」
+		   #damage-collapse-toggle-button は上方の別ルールで既にモバイル非表示)。
+		   これで899px以下では data-collapsed="true" になる経路が無くなり、技カードは常に見える。
+		   デスクトップ(900px以上)の折りたたみ機能は従来どおり残す。
+		   ⚠️ 圧縮表示のDOM・CSS自体は削除しない: 耐久調整ポップアップが
+		   buildCollapsedPreview()で作る表示専用の複製が data-collapsed="true" を持ち、
+		   #opponent-notes-section 配下に置かれるため、モバイルでも圧縮表示のスタイルを
+		   使い続ける(bulk-adjust.ts 冒頭のコメント参照)。隠すのはこの操作ボタンだけで、
+		   複製側でも押せない飾りのボタンが消えるぶん都合が良い。
+		   ⚠️ 折りたたみカードのドラッグ並べ替え(setupCollapsedCardDrag、圧縮状態限定)は
+		   これによりモバイルでは使えなくなる(元々mousedown起点でタッチ操作には
+		   ほぼ効いていない)。デスクトップでは従来どおり。 */
+		#opponent-notes-section .damage-row-collapse-toggle-button {
 			display: none;
 		}
 	}

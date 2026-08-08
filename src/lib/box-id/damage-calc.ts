@@ -3289,15 +3289,13 @@ if (opponentNotesSection) {
 		// 変更しない。壊してはいけないクラス名、pitfalls.md参照)。
 		const collapsedTechniques = document.createElement("div");
 		collapsedTechniques.className = "damage-row-collapsed-techniques";
-		// UI改修依頼(個体編集画面・モバイル、2026-08-08)「デフォルトの表示状態でカードを
-		// 追加するボタンを表示する」対応の下ごしらえ。899px以下では保存済みカードが
-		// 初期状態で折りたたまれる(isNarrowLayout()限定のsetAllRowsCollapsed(true)、下方参照)ため、
-		// 展開しないと辿り着けなかった「＋ 技を追加」への導線を折りたたみ状態のまま提供する。
-		// 技名・条件テキストの2段(collapsedMoveListEl/collapsedDetailLineEl)をテキスト用の
-		// ラッパー(collapsedTechniquesText)にまとめ、その右に追加ボタンを横並びに置けるようにする
-		// (DOM構造上の変更はここだけ。CSS側はDamageCalcSection.astro
-		// .damage-row-collapsed-techniques-text/.damage-row-collapsed-add-column-button参照。
-		// 899px以下限定でrow方向に切り替え、デスクトップは従来どおりテキスト2段のみの見た目)。
+		// 技名・条件テキストの2段(collapsedMoveListEl/collapsedDetailLineEl)をまとめる
+		// ラッパー。元は「折りたたみ時にもその右へ『＋』ボタンを横並びに置く」ために
+		// 新設したが、🔴 UI改修依頼(2026-08-08)「ダメージカードの圧縮表示を廃止」により
+		// モバイルでは圧縮状態自体が発生しなくなったため、その「＋」ボタン
+		// (.damage-row-collapsed-add-column-button)は削除した。ラッパー自体は
+		// デスクトップの折りたたみ表示・耐久調整ポップアップの複製で使い続けるため残す
+		// (中の2つの<p>はどちらもmargin:0なので、素の縦積みと見た目は同じ)。
 		const collapsedTechniquesText = document.createElement("div");
 		collapsedTechniquesText.className = "damage-row-collapsed-techniques-text";
 		const collapsedMoveListEl = document.createElement("p");
@@ -3305,22 +3303,7 @@ if (opponentNotesSection) {
 		const collapsedDetailLineEl = document.createElement("p");
 		collapsedDetailLineEl.className = "damage-row-collapsed-detail-line";
 		collapsedTechniquesText.append(collapsedMoveListEl, collapsedDetailLineEl);
-		// 折りたたみ時の「＋」ボタン。展開時の「＋ 技を追加」(addButton、renderColumns内)と
-		// 同じ共通関数addAttackColumn(row)を呼び、続けてsetCollapsed(false)でカードを展開する
-		// (追加した技をユーザーがすぐ編集できるようにするため)。見た目は新しい規格を作らず、
-		// 既存のアイコンボタン共通規格(.damage-row-icon-button、28px円形・shadow-sm。
-		// .damage-row-collapse-toggle-button等と同一)をそのまま流用する。
-		const collapsedAddColumnButton = document.createElement("button");
-		collapsedAddColumnButton.type = "button";
-		collapsedAddColumnButton.className = "btn-ghost damage-row-icon-button damage-row-collapsed-add-column-button";
-		collapsedAddColumnButton.textContent = "＋";
-		collapsedAddColumnButton.setAttribute("aria-label", "技を追加する");
-		collapsedAddColumnButton.addEventListener("click", () => {
-			if (row.attacks.length >= currentMaxColumnsToAdd()) return;
-			addAttackColumn(row);
-			setCollapsed(false);
-		});
-		collapsedTechniques.append(collapsedTechniquesText, collapsedAddColumnButton);
+		collapsedTechniques.append(collapsedTechniquesText);
 		techniquesRow.appendChild(collapsedTechniques);
 		// 折りたたみ中は技列の入力欄(.damage-row-columns-wrap)が隠れて編集不可になる
 		// (36-1の既存方針)ため、row.attacksはsetCollapsed()呼び出し時点で確定した値に
@@ -3378,14 +3361,8 @@ if (opponentNotesSection) {
 				collapsedDetailLineEl.textContent = detailText;
 				collapsedDetailLineEl.title = detailText;
 			}
-			// 折りたたみ時の「＋」ボタン。展開時のaddButton(renderColumns内)と同じ
-			// MAX_COLUMNS_TO_ADD上限に達したら隠す(既存のdata-max="true"と同じ考え方)。
-			const maxColumns = currentMaxColumnsToAdd();
-			const isAtMax = row.attacks.length >= maxColumns;
-			collapsedAddColumnButton.hidden = isAtMax;
-			collapsedAddColumnButton.title = isAtMax
-				? `技列は最大${maxColumns}つまでです`
-				: "加算する技を追加する(上から順に当てた加算ダメージ計算になります)";
+			// 🔴 UI改修依頼(2026-08-08)「ダメージカードの圧縮表示を廃止」により、ここにあった
+			// 折りたたみ時の「＋」ボタンの上限判定(hidden/title の更新)はボタンごと削除した。
 		}
 
 		// 24-D1(訂正後): totalBlockはbuildElでもrootでもなく、techniquesRow
@@ -3447,15 +3424,10 @@ if (opponentNotesSection) {
 		root.addEventListener("click", (event) => {
 			const target = event.target as HTMLElement | null;
 			if (target?.closest("input, select, textarea, button, a, label")) return;
-			if (isNarrowLayout() && root.dataset.collapsed === "true") {
-				if (getSelectedRow() === row) {
-					clearSelectionAndMarks();
-					return;
-				}
-				const firstColumn = row.attacks[0];
-				if (firstColumn) selectColumn(row, firstColumn);
-				return;
-			}
+			// 🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08)「ダメージカードの圧縮表示を
+			// 廃止」により、ここにあった「モバイルの圧縮カードはカードのどこを押しても
+			// 1つ目の技を選択する」分岐を削除した(899px以下では圧縮状態自体が発生しなく
+			// なったため到達不能。技カードは常に見えているので直接タップできる)。
 			const columnEl = target?.closest<HTMLElement>(".damage-column");
 			if (!columnEl) return;
 			const idx = Number(columnEl.dataset.columnIndex);
@@ -3565,6 +3537,14 @@ if (opponentNotesSection) {
 		// 念のため両方処理する)。
 		clone.removeAttribute("id");
 		clone.querySelectorAll<HTMLElement>("[id]").forEach((idEl) => idEl.removeAttribute("id"));
+		// 🔴 実機で発覚した回帰(2026-08-08): モバイルの詳細設定パネル(#damage-detail-panel)は
+		// 「技カードをタップするとその場でインライン展開する」対応(refreshMobileDetailPlacement)
+		// により、選択中はこのカードの子孫(技列セクション内)へDOM移動している。以前は
+		// カードの外の兄弟だったため複製に入り込まなかったが、今は cloneNode(true) が
+		// パネルまで丸ごと複製してしまい、耐久調整ポップアップの圧縮プレビューに
+		// 詳細設定パネルが丸ごと写り込んでいた。複製側からは必ず取り除く
+		// (複製なので、実体である元のパネルには影響しない)。
+		clone.querySelectorAll<HTMLElement>(".damage-detail-panel").forEach((panelEl) => panelEl.remove());
 		// 表示専用の複製なので、フォーム要素(name属性の有無を問わず)はすべて操作不可にする
 		// (誤操作・自動保存の暴発を防ぐ)。tabindex="-1"でフォーカスが入らないようにもする。
 		clone.querySelectorAll<HTMLElement>("input, select, textarea, button").forEach((formEl) => {
@@ -3668,6 +3648,10 @@ if (opponentNotesSection) {
 	// 「＋ 技を追加」が残る)。renderColumns()は同じrow.attacksから列を作り直すだけなので
 	// 何度呼んでも状態は変わらない。
 	window.matchMedia("(max-width: 899px)").addEventListener("change", () => {
+		// 圧縮表示はモバイルでは廃止した(上のsetAllRowsCollapsed(true)撤去の注記参照)。
+		// デスクトップで畳んだカードを持ったまま899px以下へ縮めると、折りたたみボタンが
+		// CSSで消えるぶん畳んだまま開けなくなるため、狭くなった時点で全行を展開へ戻す。
+		if (isNarrowLayout()) setAllRowsCollapsed(false);
 		for (const row of rows) {
 			renderColumns(row);
 			rowCollapseHandles.get(row)?.refreshCollapsedViews();
@@ -3935,9 +3919,13 @@ if (opponentNotesSection) {
 			for (const row of rows) renderRow(row);
 			for (const row of rowsNeedingResave) scheduleRowSave(row);
 			rebuildRowsList();
-			// 保存済み行を初めて描画した直後だけ、モバイル既定を圧縮表示にする。
-			// 以後の追加・削除やユーザーの展開操作では再適用しない。
-			if (isNarrowLayout()) setAllRowsCollapsed(true);
+			// 🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08)「ダメージカードの圧縮表示を廃止し、
+			// 常に2枚の技カードが見えるようにする」。以前はここで「保存済み行を初めて描画した
+			// 直後だけモバイル既定を圧縮表示にする」(setAllRowsCollapsed(true))を行っていたが、
+			// 圧縮表示ではカードを開かないと技カードに辿り着けなかった。899px以下では常に
+			// 展開状態で表示する(個別カードの折りたたみボタンもCSSで非表示にした。
+			// DamageCalcSection.astroの.damage-row-collapse-toggle-button参照)。
+			// デスクトップ(900px以上)の折りたたみ機能は従来どおり残す。
 			// 初期表示では画面幅にかかわらず技列を自動選択せず、詳細パネルも空状態に戻す。
 			clearSelection();
 			renderDetailPanel();
