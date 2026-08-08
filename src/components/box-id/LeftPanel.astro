@@ -1317,11 +1317,11 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		   ⚠️ ラウンド21ユーザー指示(21-L7)で▲▼ボタンを24×24pxへ拡大したため、
 		   3.6em(57.6px)では収まらなくなる(24px×2+gap+1文字 ≒ 68px)。4.6emに広げ、
 		   浮いた分はスライダー(3列目、1fr)から差し引く。 */
-		.stat-row { grid-template-columns: 4.6em 2.2em 1fr; row-gap: var(--space-1); }
+		.stat-row { grid-template-columns: 4.6em 2.2em 3.4em minmax(0, 1fr); row-gap: var(--space-1); }
 		/* 460px以下では努力値のスライダー+数値入力を再びひとまとめの1セルに戻す
 		   (デスクトップの5列グリッドは幅が無いと成立しないため)。 */
-		.stat-row .stat-input-controls { display: flex; }
-		.stat-row .stat-ev-range-controls { flex: 1 1 auto; min-width: 0; }
+		.stat-row .stat-input-controls { display: flex; min-width: 0; }
+		.stat-row .stat-ev-range-controls { display: none; }
 		.stat-row .stat-ev-range-controls input[type="range"] { min-width: 0; }
 		.stat-row .stat-input-controls input[type="range"] { flex: 1 1 auto; width: auto; min-width: 0; }
 		.stat-row .stat-input-controls input[type="number"] { flex: 0 0 3.4em; width: 3.4em; }
@@ -1341,8 +1341,8 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		   この460px以下では明示的に display: flex へ戻す(868行目付近の
 		   .stat-row .stat-input-controls と同じ、"display:contentsをこの幅だけ元に戻す"という
 		   既存の流儀を踏襲)。 */
-		.stat-row-real-wrap { display: flex; grid-column: 1 / -1; justify-content: flex-start; padding-left: 4.6em; }
-		.stat-row-real { text-align: left; font-weight: 700; }
+		.stat-row-real-wrap { display: flex; grid-column: 4; justify-content: flex-end; min-width: 0; }
+		.stat-row-real { text-align: right; font-weight: 700; }
 		.stat-row-label { gap: 0.2em; }
 	}
 
