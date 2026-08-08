@@ -523,6 +523,13 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 		/* ラウンド3 A-2(e): 0.2rem→0.15remに詰める。 */
 		gap: 0.15rem;
 	}
+	/* 🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08 第2弾)で追加した特性ループボタン
+	   (damage-calc.tsのabilityCycleButton)はモバイル専用。デスクトップ(900px以上)は
+	   従来どおり<select>のままなので、既定では出さない
+	   (899px以下のブロックでdisplay:inline-flexへ切り替える)。 */
+	#opponent-notes-section .damage-row-ability-cycle {
+		display: none;
+	}
 	/* ラウンド5で「箱が全幅のときは3列に並べる」@containerクエリを追加していたが、
 	   ラウンド6で箱を固定300px幅の左カラムに戻したため480px以上になることがなく
 	   常に不発になる。実体のないルールを残すと紛らわしいため削除し、1列縦積み
@@ -1046,6 +1053,14 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 	}
 	/* 表示用テキスト(「+32」「-」)はモバイル専用。デスクトップでは存在しないものとして扱う。 */
 	#opponent-notes-section .damage-ev-value-text { display: none; }
+	/* 🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08 第2弾)「努力値をクリックしたら、
+	   左右に MIN - + MAX の4ボタンを表示する」で努力値セルに足した4ボタンも同様にモバイル
+	   専用。デスクトップは従来どおり数値入力欄1個だけのセルにする。 */
+	#opponent-notes-section .damage-ev-step-button { display: none; }
+	/* 4ボタン+数値入力欄をまとめる箱。既定は display:contents(箱を作らない)にして、
+	   デスクトップの「努力値セルの中に入力欄1個」という従来構造をそのまま保つ。
+	   モバイルの編集中だけ実体のあるflex行になる(下方の@media参照)。 */
+	#opponent-notes-section .damage-ev-editor { display: contents; }
 	/* 持ち物バッジの「?」プレースホルダも同様にモバイル専用(デスクトップは持ち物が
 	   無ければバッジごと出さない既存仕様のまま)。 */
 	#opponent-notes-section .damage-item-badge-placeholder { display: none; }
@@ -3529,10 +3544,37 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 			flex: 0 0 auto;
 			min-width: 0;
 		}
+		/* 🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08 第2弾)「特性はリストボックスでは
+			   なく、クリックすると [特性なし → 特性1 → … → 特性なし] をループするボタンにする。
+			   ボタンの見た目はただのテキストにして目立たなくする」。
+			   <select>はDOMに残したまま(値の保持・変更通知の集約先はそのまま。damage-calc.tsの
+			   abilityCycleButton参照)モバイルでのみ隠し、代わりに同じ座席(order:2)へ
+			   ループボタンを置く。枠・背景・太字を全て外した素のテキストにして、
+			   隣の[攻撃]セグメント・[テラスタル]ボタンより目立たない見た目にする。 */
 		#opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-row-build-grid select {
+			display: none;
+		}
+		#opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-row-ability-cycle {
+			display: inline-flex;
 			order: 2;
 			flex: 1 1 0;
 			min-width: 0;
+			padding: 0;
+			background: none;
+			border: 0;
+			border-radius: 0;
+			font-weight: 400;
+			font-size: var(--font-size-sm);
+			color: var(--color-text-muted);
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			/* 見た目は素のテキストでも押せることが分かるように、ポインタだけは残す。 */
+			cursor: pointer;
+		}
+		#opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-row-ability-cycle:hover:not(:disabled) {
+			background: none;
+			color: var(--color-text);
 		}
 		#opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-row-tera-field {
 			order: 3;
@@ -3546,7 +3588,7 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 		   中のボタンを伸ばさないと枠だけ高くなって中身が上に寄るため、両方に効かせる。 */
 		#opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-row-direction-toggle,
 		#opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-row-direction-option,
-		#opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-row-build-grid select,
+		#opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-row-ability-cycle,
 		#opponent-notes-section .card-damage:not([data-collapsed="true"]) .tera-dropdown-button {
 			min-height: 28px;
 		}
@@ -3582,12 +3624,22 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 		/* 右下: H/A/B/C/D/Sの3段表。行ラベル列(「努力値」「実数値」の1列目)を畳んで
 		   提案図と同じ6列にする。見出し行の1列目の空セルにはdamage-calc.ts側で
 		   .damage-ev-cornerを付けてあるので、nth-child依存にせず消せる。 */
+		/* 🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08 第2弾)「ステータス: 3行の配置を
+			   縦に詰める」。行間(row-gap)を0にし、努力値セルの高さも28px(タップ対象の下限)
+			   ちょうどまで詰め、見出し・実数値の行送りも1.0にする(下記)。
+			   position:relativeは、編集中の努力値セルを行の全幅へ絶対配置するための基準
+			   (下記 .damage-ev-cell[data-editing="true"] 参照)。 */
 		#opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-ev-grid {
+			position: relative;
 			grid-column: 2;
 			grid-row: 2;
 			margin-top: 0;
 			grid-template-columns: repeat(6, minmax(0, 1fr));
-			gap: 0.05rem 0.15rem;
+			gap: 0 0.15rem;
+		}
+		#opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-ev-col-label,
+		#opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-stat-value {
+			line-height: 1;
 		}
 		#opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-ev-corner,
 		#opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-ev-row-label {
@@ -3595,13 +3647,14 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 		}
 		/* 努力値セルは既定でテキスト表示(.damage-ev-value-text)、タップされたセルだけ
 		   [data-editing="true"]が付いて数値入力欄に入れ替わる。入れ替えで行の高さが
-		   跳ねないよう、セル自体にmin-height(1.9rem=30.4px、タップ対象28px以上の要件も
-		   これで満たす)を持たせて中身を中央に置く。 */
+		   跳ねないよう、セル自体にmin-heightを持たせて中身を中央に置く。
+		   🔴 UI改修依頼(2026-08-08 第2弾)「3行の配置を縦に詰める」により
+		   1.9rem(30.4px)→1.75rem(28px、タップ対象28px以上の要件ちょうど)へ詰めた。 */
 		#opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-ev-cell {
 			display: flex;
 			align-items: center;
 			justify-content: center;
-			min-height: 1.9rem;
+			min-height: 1.75rem;
 		}
 		#opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-ev-cell input[type="number"] {
 			display: none;
@@ -3624,10 +3677,66 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 			outline: 2px solid var(--color-primary);
 			outline-offset: 1px;
 		}
+		/* 🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08 第2弾)「努力値をクリックしたら、
+		   左右に MIN - + MAX の4ボタンを表示する」。
+		   セル1個は6列表の1/6(実測55px弱)しか無く4ボタン+入力欄は入らないため、編集中は
+		   セルの中の操作行(.damage-ev-editor)だけを努力値行の全幅へ絶対配置する。
+		   ⚠️ セル自体を絶対配置してはいけない(そのセルがグリッドの自動配置から抜け、
+		   後続の努力値セル・実数値セルが1列ずつ前へ詰まる。damage-calc.ts側のコメント参照)。
+		   基準(包含ブロック)は上で position:relative にした .damage-ev-grid。
+		   left/rightだけを行の両端へ伸ばし、topは静的位置(=元々居た行の中央)のまま使う。
+		   絶対配置なので通常フローの行の高さは変わらず、開閉で表が上下に跳ねない。
+		   背後の他5セルは面(--color-surface)で覆い隠す。 */
+		#opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-ev-cell[data-editing="true"] .damage-ev-editor {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			position: absolute;
+			left: 0;
+			right: 0;
+			z-index: 1;
+			gap: var(--space-1);
+			padding: 0 var(--space-1);
+			background: var(--color-surface);
+			border-radius: var(--radius-sm);
+		}
 		#opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-ev-cell[data-editing="true"] input[type="number"] {
 			display: block;
+			flex: 0 0 3.2rem;
+			width: 3.2rem;
+			text-align: center;
 		}
 		#opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-ev-cell[data-editing="true"] .damage-ev-value-text {
+			display: none;
+		}
+		/* 4ボタンは編集中のセルでだけ出す(基底は上方の display:none)。育成タブの
+		   0/-/+/32ボタン(LeftPanel.astro)と同じ「面と枠のある小さなボタン」の見た目に揃える。 */
+		#opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-ev-cell[data-editing="true"] .damage-ev-step-button {
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			flex: 0 0 auto;
+			min-width: 30px;
+			height: 26px;
+			min-height: 26px;
+			padding: 0 var(--space-1);
+			font-size: var(--font-size-xs);
+			font-weight: 700;
+			line-height: 1;
+			color: var(--color-text);
+			background: var(--color-surface);
+			border: 1px solid var(--color-border);
+			border-radius: var(--radius-sm);
+		}
+
+		/* 🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08 第2弾)「技カードの個別の計算結果は
+		   非表示にして累計表示に統合」。技カード1枚ずつに出ていた確N・ダメージ量
+		   (.damage-column-result)と、カード下端の累計結果(.damage-row-total、
+		   技が1枚のときは同じ値)が並んで出て二重に見えていた。モバイルでは累計側に一本化する。
+		   ⚠️ 要素自体は残す(damage-calc.tsのrow.columnResultElsが計算結果・失敗メッセージの
+		   書き込み先として参照しているため。失敗時の文言は同じ内容が累計側にも出る)。
+		   デスクトップ(900px以上)は技ごとの内訳が読める広さがあるので従来どおり表示する。 */
+		#opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-column-result {
 			display: none;
 		}
 

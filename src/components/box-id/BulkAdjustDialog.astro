@@ -173,8 +173,11 @@
 
 	.bulk-adjust-empty-message { margin: 0; color: var(--color-text-muted); }
 
-	/* カード1枚(圧縮表示の複製)+N/M入力欄の組。 */
+	/* カード1枚(圧縮表示の複製)+N/M入力欄の組。
+	   🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08 第2弾)「カードの右上に削除ボタン(×)を
+	   追加」により、その絶対配置の基準としてposition:relativeを持たせる。 */
 	.bulk-adjust-row {
+		position: relative;
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-2);
@@ -183,14 +186,43 @@
 		padding: var(--space-3);
 		background: var(--color-surface-alt);
 	}
+	/* 削除ボタン(×)。ダメージカード側の削除ボタン(.damage-row-delete-button)と同じ
+	   「カード右上・×・btn-ghost」の流儀に揃える。タップ対象28px以上を満たす大きさにする。
+	   ⚠️ 圧縮表示の複製カードが持つ×(.damage-row-delete-button)は、このダイアログ内では
+	   下方のルールでdisplay:noneにしてあるため、×が2つ並ぶことはない。 */
+	.bulk-adjust-row-remove {
+		position: absolute;
+		top: var(--space-2);
+		right: var(--space-2);
+		width: 28px;
+		height: 28px;
+		min-height: 28px;
+		padding: 0;
+		font-size: var(--font-size-lg);
+		line-height: 1;
+		color: var(--color-text-muted);
+	}
+	.bulk-adjust-row-remove:hover:not(:disabled) {
+		color: var(--color-danger-strong);
+	}
 	/* 複製カード(.card-damage)は本来カード一覧の中で使う前提の幅・余白を持つため、
 	   ダイアログの中でも横幅いっぱいに広がるようにする(親側の追加のmax-width指定は
 	   不要。カード自体のCSSがwidth:100%相当で伸びる)。 */
 	.bulk-adjust-row-preview { width: 100%; min-width: 0; }
 	.bulk-adjust-row-preview .card-damage { width: 100%; }
-	/* 除外中は内容だけを弱め、再度ONにするチェックボックスは通常の濃さと操作性を保つ。 */
-	.bulk-adjust-row.is-excluded .bulk-adjust-row-preview,
-	.bulk-adjust-row.is-excluded .bulk-adjust-row-inputs > label:not(.bulk-adjust-include-label) { opacity: 0.5; }
+	/* 「調整に含める」チェックボックス(.bulk-adjust-include-label)と、その除外状態を
+	   薄く見せる .is-excluded は 🔴 UI改修依頼(2026-08-08 第2弾)で廃止した
+	   (行ごと×で削除する方式に変更。bulk-adjust.tsのremoveButton参照)。 */
+	/* 圧縮表示の1段目に特性を出す(bulk-adjust.tsが複製カードのDOMを組み替える)。
+	   1段目は「バッジ+種族名」前提のnowrap指定なので、特性が長いときに省略できるよう
+	   このダイアログ内だけ縮小・省略を許可する。 */
+	#opponent-notes-section #bulk-adjust-dialog .damage-row-collapsed-meta-row .damage-row-collapsed-ability {
+		flex: 1 1 auto;
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
 
 	.bulk-adjust-row-inputs {
 		display: flex;
@@ -206,7 +238,6 @@
 		font-size: inherit;
 		white-space: nowrap;
 	}
-	.bulk-adjust-include-label { margin-left: auto; }
 	/* ⚠️ 実装時に踏んだ罠: type="number"はネイティブの増減スピナーぶんの横幅を内側に
 	   確保する。width: 4.2emだと既定値100(M入力欄)の3桁目がスピナーの下に隠れて
 	   見えなくなる(値自体は"100"のままでDOM上は正しいが、視覚的に"10"に見えて
@@ -228,6 +259,16 @@
 	   ⚠️ @media は基本定義より後ろに書くこと(このリポジトリで2件実例のある罠)。 */
 	@media (max-width: 480px) {
 		.bulk-adjust-dialog { width: 96vw; }
+		/* 🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08 第2弾)で行を×で全削除できるように
+		   なったぶん、ステータス文言(「計算対象の攻撃がありません」)が常時出るようになった。
+		   ヘッダーは [タイトル][ステータス][計算ボタン][×] の1行flexで、計算ボタンが
+		   min-width:12rem(192px)で縮まないため、390px幅ではステータス文言が入った瞬間に
+		   行があふれ、×が計算ボタンの下に潜り込んでクリックできなくなる
+		   (実測、Playwright: 「compute button intercepts pointer events」で×のクリックが失敗)。
+		   狭幅では折り返しを許可し、ステータスは独立した行へ落とす。 */
+		.bulk-adjust-dialog-header { flex-wrap: wrap; }
+		.bulk-adjust-dialog-status { order: 10; flex: 1 0 100%; margin-left: 0; }
+		button.bulk-adjust-dialog-compute-button { min-width: 8rem; }
 	}
 
 	/* UI改修依頼(個体編集画面、2026-08-02)「圧縮プレビューの不要な操作要素を隠す」。

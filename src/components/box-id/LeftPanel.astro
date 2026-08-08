@@ -542,6 +542,11 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 							<button type="button" class="btn-ghost stat-ev-endpoint-button" data-ev-target={`ev-${key}-range`} data-ev-endpoint="min" aria-label={`${statShort}の努力値を0にする`}>
 								{/* 性格補正の▲▼と区別しやすいよう、枠内に小さな横向きの塗り三角を置く。 */}
 								<svg viewBox="0 0 24 24" aria-hidden="true"><polygon points="9,12 15,8 15,16" fill="currentColor" stroke="none" /></svg>
+								{/* 🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08 第2弾)「努力値操作のボタンは
+								    "0" "-" "+" "32" の4つにする」。モバイルでは三角アイコンを隠し、この
+								    文字ラベルへ差し替える(デスクトップは従来どおり三角のまま。
+								    出し分けは下記scoped<style>の@media (max-width: 899px)参照)。 */}
+								<span class="stat-ev-endpoint-text" aria-hidden="true">0</span>
 							</button>
 							<button type="button" class="btn-ghost stat-ev-step-button" data-ev-target={`ev-${key}-range`} data-ev-step="-1" aria-label={`${statShort}の努力値を1減らす`}>−</button>
 							<input
@@ -556,6 +561,9 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 							<button type="button" class="btn-ghost stat-ev-step-button" data-ev-target={`ev-${key}-range`} data-ev-step="1" aria-label={`${statShort}の努力値を1増やす`}>+</button>
 							<button type="button" class="btn-ghost stat-ev-endpoint-button" data-ev-target={`ev-${key}-range`} data-ev-endpoint="max" aria-label={`${statShort}の努力値を最大にする`}>
 								<svg viewBox="0 0 24 24" aria-hidden="true"><polygon points="15,12 9,8 9,16" fill="currentColor" stroke="none" /></svg>
+								{/* チャンピオンズルールの努力値上限は32(CLAUDE.md/jpoke skill参照)。上のrangeの
+								    max属性と同じ値をそのまま文字ラベルにする。 */}
+								<span class="stat-ev-endpoint-text" aria-hidden="true">32</span>
 							</button>
 						</div>
 						{/* UI改善ラウンド40ユーザー指示(40-T2)「スピンボックスは上下限で打ち切らず
@@ -974,12 +982,59 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	   -/+ボタンと同じ24pxへ縮める(実測、Playwright: 36pxのまま4ボタン+数値入力を
 	   並べると390px幅で横方向にあふれることを確認したため)。900px以上のデスクトップは
 	   このブロックの対象外のため、スライダー自体の表示・0/32ボタンの36pxサイズは一切変更しない。 */
+	/* 🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08 第2弾)「努力値操作のボタンは
+	   "0" "-" "+" "32" の4つにして、努力値ボックスの左右に2個ずつ配置する。見た目もボタンらしくする」。
+	   従来(同日の第1弾)は4ボタンが全て数値入力欄の左側に固まっていた(実測、Playwright 390px)。
+	   【左右2個ずつに割る仕組み】数値入力欄(input[type="number"])は .stat-input-controls の
+	   直接の子、4ボタンはその中の .stat-ev-range-controls の子で、DOM上は別の入れ子にある。
+	   モバイルだけ .stat-ev-range-controls を display:contents にして入れ子を1段潰し、
+	   5要素(0/−/range/+/32)と数値入力欄を .stat-input-controls 直下の同一flex行に揃えたうえで、
+	   order で「0 → − → 数値 → + → 32」に並べ替える(DOM順は変えないのでデスクトップは無傷)。
+	   【グリッド列】デスクトップの.stat-rowは5列(…|3:努力値ゲージ|4:数値入力|5:実数値)で、
+	   .stat-input-controls は display:contents により子2つが3列目・4列目へ割れていた。
+	   flex化すると1個のグリッドアイテムになるため、3〜4列目にまたがる grid-column: 3 / 5 を与える
+	   (実数値ラッパーは自動配置で5列目に入り、.stat-table-headerとの列対応は崩れない)。
+	   ⚠️ 460px以下は.stat-rowが4列グリッド(実数値が4列目)に切り替わるため、
+	   下の@media (max-width: 460px)側で grid-column を3列目単独へ戻している。 */
 	@media (max-width: 899px) {
 		.stat-row .stat-ev-range-controls input[type="range"] { display: none; }
 		.stat-row .stat-ev-step-button { display: inline-flex; }
-		.stat-row .stat-ev-endpoint-button { flex: 0 0 24px; width: 24px; height: 24px; min-height: 24px; }
-		.stat-row .stat-ev-endpoint-button svg { width: 16px; height: 16px; }
+		.stat-row .stat-input-controls { display: flex; align-items: center; justify-content: center; gap: var(--space-1); min-width: 0; grid-column: 3 / 5; }
+		.stat-row .stat-ev-range-controls { display: contents; }
+		.stat-row .stat-ev-endpoint-button[data-ev-endpoint="min"] { order: 1; }
+		.stat-row .stat-ev-step-button[data-ev-step="-1"] { order: 2; }
+		/* 基底の .stat-row input[type="number"] は width:100% なので、flex行に置くと
+		   余った横幅を全部吸って左右のボタンが両端へ離れてしまう(実測、700px幅)。
+		   4ボタンと1つのまとまりに見えるよう固定幅にして、行ごと中央へ寄せる
+		   (.stat-input-controls の justify-content: center)。 */
+		.stat-row .stat-input-controls > input[type="number"] { order: 3; flex: 0 0 3.4rem; width: 3.4rem; }
+		.stat-row .stat-ev-step-button[data-ev-step="1"] { order: 4; }
+		.stat-row .stat-ev-endpoint-button[data-ev-endpoint="max"] { order: 5; }
+		/* 「見た目もボタンらしくする」: btn-ghost(透明・枠なし)のままだと素のテキストに見えるため、
+		   モバイルに限り通常のbutton基底と同じ面(--color-surface)と枠を戻す。文字色も
+		   --color-text-muted から通常の本文色へ上げて、押せる要素として読めるようにする。 */
+		.stat-row .stat-ev-endpoint-button,
+		.stat-row .stat-ev-step-button {
+			flex: 0 0 auto;
+			width: auto;
+			min-width: 30px;
+			height: 30px;
+			min-height: 30px;
+			padding: 0;
+			color: var(--color-text);
+			background: var(--color-surface);
+			border: 1px solid var(--color-border);
+			border-radius: var(--radius-sm);
+			font-size: var(--font-size-sm);
+			font-weight: 700;
+		}
+		/* 端点ボタンは三角アイコンをやめ、"0"/"32"の文字ラベルに差し替える(マークアップ側の
+		   .stat-ev-endpoint-text参照)。 */
+		.stat-row .stat-ev-endpoint-button svg { display: none; }
+		.stat-row .stat-ev-endpoint-text { display: inline; }
 	}
+	/* 文字ラベルはモバイル専用。デスクトップでは三角アイコンのままにする。 */
+	.stat-ev-endpoint-text { display: none; }
 	/* 努力値の数値入力も左パネル用の詰めた寸法に揃える(6行あるので効き方が大きい)。 */
 	/* ラウンド23ユーザー指示(23-L5): 努力値の数値入力も中央揃えにする。 */
 	.stat-row input[type="number"] { font-size: var(--font-size-md); padding: 0.3em 0.5em; width: 100%; text-align: center; }
@@ -1376,7 +1431,14 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		.stat-row { grid-template-columns: 4.6em 2.2em minmax(0, 1fr) 3rem; row-gap: var(--space-1); }
 		/* 460px以下では努力値のボタン行(0/-/+/32)+数値入力を1つのflex行にまとめる
 		   (デスクトップの5列グリッドは幅が無いと成立しないため)。 */
-		.stat-row .stat-input-controls { display: flex; align-items: center; gap: var(--space-1); min-width: 0; }
+		/* 🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08 第2弾)追随: この幅の.stat-rowは
+		   4列グリッド(4列目=実数値)なので、899px以下ブロックで与えた grid-column: 3 / 5 は
+		   実数値の席を奪ってしまう。3列目単独へ戻す。 */
+		.stat-row .stat-input-controls { display: flex; align-items: center; justify-content: center; gap: var(--space-1); min-width: 0; grid-column: 3; }
+		/* 390px級の実機幅では 0/−/数値/+/32 の5要素が1行に収まりきらないため、
+		   ボタンの最小幅だけ 30px → 26px(WCAG 2.5.8の24px下限は満たす)へ詰める。 */
+		.stat-row .stat-ev-endpoint-button,
+		.stat-row .stat-ev-step-button { min-width: 26px; }
 		/* 🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08)により、この460px以下の極小幅でも
 		   0/-/+/32ボタンを表示する方針に変えたため、.stat-ev-range-controls自体を丸ごと
 		   非表示にしていた旧ルール(スライダー+旧0/32ボタンをまとめて隠し、素の数値入力欄だけを

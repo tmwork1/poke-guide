@@ -25,7 +25,11 @@ const displayNickname = pokemon.nickname?.trim() || pokemon.species_name;
 				<span>育成</span>
 			</button>
 			<button type="button" class="mobile-training-bar-item" data-mobile-tab="damage">
-				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.05" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="2.5" width="16" height="19" rx="2"/><line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="12" x2="8" y2="12"/><line x1="12" y1="12" x2="12" y2="12"/><line x1="16" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="8" y2="16"/><line x1="12" y1="16" x2="12" y2="16"/><line x1="16" y1="16" x2="16" y2="16"/></svg>
+				<!-- UI改修依頼(モバイル、2026-08-08)「VSタブのアイコンを2本の剣が交差するデザインに
+			     変更」。従来は表(行と点)を表すアイコンで、ダメージ計算表を連想させる図柄だった。
+			     他のタブと同じ 24x24 / fill:none / stroke:currentColor の線画で、左下→右上と
+			     右下→左上に伸びる2本の剣(刃・鍔・柄)が中央で交差する形にする。 -->
+				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.05" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5"/><line x1="13" y1="19" x2="19" y2="13"/><line x1="16" y1="16" x2="20" y2="20"/><line x1="19" y1="21" x2="21" y2="19"/><polyline points="14.5 6.5 18 3 21 3 21 6 17.5 9.5"/><line x1="5" y1="14" x2="9" y2="18"/><line x1="7" y1="17" x2="4" y2="20"/><line x1="3" y1="19" x2="5" y2="21"/></svg>
 				<span>VS</span>
 			</button>
 			<span class="mobile-training-bar-item is-disabled" aria-disabled="true">
@@ -94,7 +98,15 @@ const displayNickname = pokemon.nickname?.trim() || pokemon.species_name;
 	   --topbar-height が 0px。box/[id].astroの<style is:global>参照)へ直接貼り付ける。
 	   z-indexは下端のバー/ナビゲーション(20)より低い値にして、重なったときにそれらが
 	   常に手前へ来るようにする。 */
-	.mobile-training-preview { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: var(--space-2); padding: var(--space-3); background: var(--color-surface-alt); border-bottom: 1px solid var(--color-border); font-size: var(--font-size-xs); position: sticky; top: var(--topbar-height); z-index: 15; }
+	/* UI改修依頼(モバイル、2026-08-08)「特性・わざ・アイテム・NNの文字サイズ +20%」。
+	   これら4種はいずれもこの箱のfont-size(--font-size-xs)をそのまま継承していたため、
+	   継承元をここで1.2倍にする(新トークンは作らず既存トークンからの派生calcにする)。
+	   実数値・努力値の表(.mobile-preview-stats)は指示に含まれないので、あちらで
+	   --font-size-xs を明示し直して従来サイズのまま据え置く。 */
+	.mobile-training-preview { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: var(--space-2); padding: var(--space-3); background: var(--color-surface-alt); border-bottom: 1px solid var(--color-border); font-size: calc(var(--font-size-xs) * 1.2); position: sticky; top: var(--topbar-height); z-index: 15; overflow: hidden; }
+	/* ドット絵を最背面へ回した(下の.mobile-preview-sprite-wrap参照)ぶん、3列の中身は
+	   必ずその手前に来るよう重ね順を明示する。 */
+	.mobile-preview-left, .mobile-preview-identity, .mobile-preview-right { position: relative; z-index: 1; }
 	.mobile-preview-left, .mobile-preview-right { min-width: 0; }
 	.mobile-preview-left { padding-top: var(--space-1); }
 	.mobile-preview-details { display: block; }
@@ -108,8 +120,18 @@ const displayNickname = pokemon.nickname?.trim() || pokemon.species_name;
 	.mobile-preview-moves .move-type-icon { flex-shrink: 0; }
 	.mobile-preview-moves .move-type-icon img { width: var(--icon-size-sm); height: var(--icon-size-sm); object-fit: contain; }
 	.mobile-preview-moves .move-type-icon[hidden] { display: none; }
-	.mobile-preview-identity { display: flex; flex-direction: column; align-items: center; gap: var(--space-1); min-width: 0; text-align: center; }
-	.mobile-preview-sprite-wrap { width: calc(var(--space-8) + var(--space-6)); height: calc(var(--space-8) + var(--space-6)); display: flex; align-items: center; justify-content: center; overflow: hidden; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface); }
+	/* ドット絵がフローから外れたため、残るニックネームは提案図
+	   (docs/ui_proposal/mobile/box_個体編集_育成.png)どおり中央列の下端に置く。 */
+	.mobile-preview-identity { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: var(--space-1); min-width: 0; text-align: center; }
+	/* UI改修依頼(モバイル、2026-08-08)「ポケモンアイコンは背景と枠を削除、サイズ+50%して
+	   中央に最背面で配置」。従来は中央列のフロー内に 72px(--space-8 + --space-6)の枠付き箱と
+	   して並べていた。枠・背景を外し、108px(=72pxの1.5倍。同じトークン合成の1.5倍で表す)に
+	   拡大したうえで、プレビュー領域(position:stickyなので位置指定済み=絶対配置の基準になる)の
+	   中央へ absolute で敷く。z-index:0 で3列の中身(z-index:1)より必ず後ろに回り、
+	   pointer-events:none でその上のテキスト/操作を邪魔しない。
+	   拡大したドット絵がプレビューの上下へはみ出さないよう、親側で overflow:hidden している
+	   (上の.mobile-training-preview)。 */
+	.mobile-preview-sprite-wrap { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: calc((var(--space-8) + var(--space-6)) * 1.5); height: calc((var(--space-8) + var(--space-6)) * 1.5); display: flex; align-items: center; justify-content: center; border: 0; background: transparent; z-index: 0; pointer-events: none; }
 	#mp-species-sprite { width: 100%; height: 100%; object-fit: contain; }
 	#mp-species-sprite-fallback { color: var(--color-text-muted); }
 	.mobile-preview-species { display: flex; align-items: center; justify-content: center; gap: var(--space-1); min-width: 0; }
@@ -123,8 +145,12 @@ const displayNickname = pokemon.nickname?.trim() || pokemon.species_name;
 	   各境界の余白を片側の var(--space-1) 1つ分に絞る(新しいトークン・生値は作らない)。 */
 	.mobile-preview-stats th, .mobile-preview-stats td { padding: var(--space-1) 0 0; border: 0; background: transparent; text-align: right; font-weight: 400; color: var(--color-text); }
 	.mobile-preview-stats tr:last-child th, .mobile-preview-stats tr:last-child td { padding-bottom: var(--space-1); }
-	.mobile-preview-stats th:first-child { text-align: left; color: var(--color-text-muted); padding-right: var(--space-1); }
-	.mobile-preview-stats td + td { padding-left: var(--space-1); }
+	/* UI改修依頼(モバイル、2026-08-08)「ラベル・実数値・努力値の間のスペースを詰める」。
+	   上の2026-08-08対応で各境界を片側 var(--space-1)(4px)1つ分に絞ってあったが、まだ広い
+	   という指摘。文字サイズはそのままに、境界の余白をさらに半分(2px)へ寄せる
+	   (生値は増やさず既存トークンからの派生calcで表す)。 */
+	.mobile-preview-stats th:first-child { text-align: left; color: var(--color-text-muted); padding-right: calc(var(--space-1) / 2); }
+	.mobile-preview-stats td + td { padding-left: calc(var(--space-1) / 2); }
 	.mobile-preview-stats td[data-mod="up"] { color: var(--color-stat-up); }
 	.mobile-preview-stats td[data-mod="down"] { color: var(--color-stat-down); }
 	.mobile-damage-toolbar { display: none; }

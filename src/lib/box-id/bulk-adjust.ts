@@ -75,15 +75,15 @@ if (opponentNotesSectionEl) {
 let isDialogOpen = false;
 let isComputing = false;
 let currentRows: BulkAdjustRowSnapshot[] = [];
-const rowInputEls = new Map<string, { nInput: HTMLInputElement; mInput: HTMLInputElement; includeInput: HTMLInputElement }>();
+// 🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08 第2弾)「"調整に含める"ボタンを廃止。
+// 代わりにカードの右上に削除ボタン(×)を追加し、カードごと削除する」により、
+// 行ごとのON/OFF(includeInput)は廃止した。ダイアログに残っている行=計算対象、という
+// 単純な対応にする(削除された行はこのMapからも消える)。
+const rowInputEls = new Map<string, { nInput: HTMLInputElement; mInput: HTMLInputElement }>();
 let activeAbortController: AbortController | null = null;
 
 function includedRowCount(): number {
-	let count = 0;
-	for (const { includeInput } of rowInputEls.values()) {
-		if (includeInput.checked) count++;
-	}
-	return count;
+	return rowInputEls.size;
 }
 
 function updateComputeButtonDisabled(): void {
@@ -152,15 +152,54 @@ function buildRowEl(bridge: NonNullable<ReturnType<typeof getBulkAdjustBridge>>,
 	const previewWrap = document.createElement("div");
 	previewWrap.className = "bulk-adjust-row-preview";
 	const preview = bridge.buildCollapsedPreview(row.id);
-	if (preview) previewWrap.appendChild(preview);
+	if (preview) {
+		// 🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08 第2弾)「種族名を非表示にして、
+		// 代わりに特性を1段目に配置する」。圧縮表示の1段目は[攻撃/防御バッジ][種族名]、
+		// 2段目は[特性][テラス情報]という構成(damage-calc.tsのcollapsedMetaRow/
+		// collapsedTeraRow参照)。このダイアログでは種族名はドット絵で分かる一方、
+		// 耐久調整の判断に効くのは特性(マルチスケイル等)なので入れ替える。
+		// ⚠️ previewはbuildCollapsedPreview()が返す表示専用の複製なので、ここで組み替えても
+		// VSタブの実カード(#damage-rows-list配下)には一切影響しない。
+		// ⚠️ CSSだけでは実現できない: 種族名と特性は別の親div(1段目/2段目)に入っており、
+		// order/display:contentsでは1段目へ移せないため、複製に対してDOMを組み替える。
+		preview.querySelector(".damage-row-collapsed-name")?.remove();
+		const metaRow = preview.querySelector(".damage-row-collapsed-meta-row");
+		const abilityEl = preview.querySelector(".damage-row-collapsed-ability");
+		if (metaRow && abilityEl) metaRow.appendChild(abilityEl);
+		previewWrap.appendChild(preview);
+	}
 	wrap.appendChild(previewWrap);
+
+	// 🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08 第2弾)「カードの右上に削除ボタン(×)を
+	// 追加し、カードごと削除する。ただし、削除されるのは調整ウィンドウ上のみで、VSタブには残る」。
+	// currentRows(=VSタブの実カードのスナップショット)には手を触れず、この行のDOMと
+	// rowInputElsの登録だけを消す。runCompute()は rowInputEls に残っている行だけを
+	// ソルバへ渡すので、消した行は今回の計算から外れる。次にダイアログを開き直すと
+	// getDefenseRows()から作り直されるため、また現れる(=VSタブ側は無傷)。
+	const removeButton = document.createElement("button");
+	removeButton.type = "button";
+	removeButton.className = "btn-ghost bulk-adjust-row-remove";
+	removeButton.textContent = "×";
+	removeButton.title = "この攻撃を耐久調整から外す";
+	removeButton.setAttribute("aria-label", `${row.name}の攻撃を耐久調整から外す(VSタブのカードは残ります)`);
+	removeButton.addEventListener("click", () => {
+		if (isComputing) return;
+		rowInputEls.delete(row.id);
+		wrap.remove();
+		updateComputeButtonDisabled();
+	});
+	wrap.appendChild(removeButton);
 
 	const inputsRow = document.createElement("div");
 	inputsRow.className = "bulk-adjust-row-inputs";
 
 	const nLabel = document.createElement("label");
 	const nLabelTextBefore = document.createElement("span");
-	nLabelTextBefore.textContent = `${row.name}の攻撃`;
+	// 🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08 第2弾)
+	// 「"xxxの攻撃N発をM%以上の確率で耐える" → "攻撃N発をM%以上で耐える" に短縮」。
+	// 誰の攻撃かは直上のカード(ドット絵+特性+実数値)で分かるので種族名は省く。
+	// aria-labelは読み上げだけが頼りなので、従来どおり種族名を含めたままにする。
+	nLabelTextBefore.textContent = "攻撃";
 	const nInput = document.createElement("input");
 	nInput.type = "number";
 	nInput.className = "bulk-adjust-n-input tnum";
@@ -186,32 +225,15 @@ function buildRowEl(bridge: NonNullable<ReturnType<typeof getBulkAdjustBridge>>,
 	mInput.value = "100";
 	mInput.setAttribute("aria-label", `${row.name}の攻撃に耐える確率の下限(%)`);
 	const mLabelTextAfter = document.createElement("span");
-	mLabelTextAfter.textContent = "%以上の確率で耐える";
+	mLabelTextAfter.textContent = "%以上で耐える";
 	mLabel.append(mInput, mLabelTextAfter);
 
-	// 計算対象の切替はダイアログを開いている間だけDOMで保持し、保存データには含めない。
-	const includeLabel = document.createElement("label");
-	includeLabel.className = "bulk-adjust-include-label";
-	const includeInput = document.createElement("input");
-	includeInput.type = "checkbox";
-	includeInput.checked = true;
-	includeInput.setAttribute("aria-label", `${row.name}の攻撃を調整に含める`);
-	const includeText = document.createElement("span");
-	includeText.textContent = "調整に含める";
-	includeLabel.append(includeInput, includeText);
-	const refreshIncludedState = (): void => {
-		const included = includeInput.checked;
-		wrap.classList.toggle("is-excluded", !included);
-		nInput.disabled = !included || isComputing;
-		mInput.disabled = !included || isComputing;
-		updateComputeButtonDisabled();
-	};
-	includeInput.addEventListener("change", refreshIncludedState);
-
-	inputsRow.append(nLabel, mLabel, includeLabel);
+	// 「調整に含める」チェックボックスは 2026-08-08 第2弾の指示で廃止した(代わりに上の
+	// 削除ボタン×で行ごと外す)。
+	inputsRow.append(nLabel, mLabel);
 	wrap.appendChild(inputsRow);
 
-	rowInputEls.set(row.id, { nInput, mInput, includeInput });
+	rowInputEls.set(row.id, { nInput, mInput });
 	return wrap;
 }
 
@@ -296,10 +318,15 @@ function setComputingState(computing: boolean): void {
 	bulkAdjustButton.disabled = computing;
 	updateComputeButtonDisabled();
 	dialogCloseButton.disabled = false; // 中断経路として閉じるボタンは常に押せるようにする
-	for (const { nInput, mInput, includeInput } of rowInputEls.values()) {
-		nInput.disabled = computing || !includeInput.checked;
-		mInput.disabled = computing || !includeInput.checked;
-		includeInput.disabled = computing;
+	// 行ごとのON/OFFは廃止したので(2026-08-08 第2弾、上のrowInputEls参照)、
+	// 計算中かどうかだけで入力欄の可否を決める。
+	for (const { nInput, mInput } of rowInputEls.values()) {
+		nInput.disabled = computing;
+		mInput.disabled = computing;
+	}
+	// 削除ボタン(×)も計算中は押させない(押しても no-op だが、押せるように見えるのを避ける)。
+	for (const button of dialogBodyInnerEl.querySelectorAll<HTMLButtonElement>(".bulk-adjust-row-remove")) {
+		button.disabled = computing;
 	}
 	if (!computing) {
 		progressTextEl.textContent = "";
@@ -315,8 +342,10 @@ async function runCompute(): Promise<void> {
 	}
 	dialogStatusEl.textContent = "";
 
-	// OFFの行はソルバへ渡す前に除外し、ソルバ側の契約を変えない。
-	const includedRows = currentRows.filter((row) => rowInputEls.get(row.id)?.includeInput.checked ?? true);
+	// ×で外した行はソルバへ渡す前に除外し、ソルバ側の契約を変えない
+	// (2026-08-08 第2弾でチェックボックスによるON/OFFから「行ごと削除」へ変わったので、
+	// 判定は「rowInputElsにまだ登録が残っているか」になった)。
+	const includedRows = currentRows.filter((row) => rowInputEls.has(row.id));
 	if (includedRows.length === 0) {
 		dialogStatusEl.textContent = "計算対象の攻撃がありません";
 		return;

@@ -47,6 +47,10 @@ import {
 	loadMultiHitMoveMap,
 	loadAbilitiesMap,
 	officialArtworkUrl,
+	// 🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08 第2弾)「相手ビルドのポケモンアイコンを
+	// ドット絵に変更」用。applySprite()のurlFn既定値と同じ関数だが、デスクトップは
+	// officialArtworkUrl のままにするため明示的に受け取って出し分ける(下のrefreshSprite参照)。
+	spriteUrl,
 } from "../pokemon-master-data";
 import { type StatKey, STAT_KEYS, NATURE_STAT_MODIFIERS, calcHpStat, calcOtherStat } from "../stats";
 import { TERA_TYPES } from "../tera-types";
@@ -221,13 +225,43 @@ const STATUS_AND_UNSUPPORTED_TOTAL_NOTE_ALL =
 // toggleNatureDown(左パネルと共有)にそのまま委譲する薄いラッパーにすることで、
 // 上のコメントにある旧cycleNatureBoosts()の事故(1個のボタンが上昇/下降を直接
 // 持ち替えて不完全な組み合わせになり、見かけ上リセットされた)を再現しない。
+// 🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08 第2弾)「相手ビルドの性格補正が
+// 機能していない(バグ)」の修正に使う退避テーブル。
+//
+// 【何が壊れていたか】(実測、Playwright 390px・カード1件)
+//   性格補正は上昇・下降の両方が揃って初めて有効になる(片方だけの状態は実在しない性格に
+//   なるため normalizedNatureBoosts が「まじめ」へ正規化する。shared-core.ts参照)。
+//   ところがこの3循環(無補正→上昇→下降→無補正)では、ある列を「無補正→上昇」に進める
+//   たびに natureUp が無条件でその列へ移る。つまり
+//     A を1回押す → A▲(natureUp=atk)
+//     C を1回押す → C▲(natureUp=spa。★ここで A の▲が消える)
+//     C をもう1回 → C▼(natureUp=null, natureDown=spa)
+//   となり、2つ目の列を▼にしようとすると必ず1つ目の▲を通り道で壊してしまう。
+//   結果として「上昇と下降が同時に立っている状態」をこのUIからは一度も作れず、
+//   実数値も確N表示も永遠に無補正のままだった(既存データに入っている A▲/C▼ の
+//   組み合わせは、別UI・旧実装で保存されたもの)。
+//
+// 【直し方】列Xが「無補正→上昇」へ進むときに、Xが押しのけた直前の上昇保持者を覚えておき、
+// 同じ列Xが「上昇→下降」へ進んだ瞬間に元の保持者へ戻す。上のシナリオは
+//   A▲ → (C 1回目) C▲ ※Aを退避 → (C 2回目) A▲ + C▼
+// となり、3循環の定義(1列だけを見れば 無補正→上昇→下降→無補正)は一切変えずに
+// 「上昇1つ・下降1つ」の正しい性格へ到達できるようになる。
+// 退避は「同じ列を続けて押している間」だけ有効な一時状態なので、行ごとに1件だけ持ち、
+// 使ったら捨てる(行の寿命に紐づけるためWeakMap)。
+const evictedNatureUpByCycle = new WeakMap<DamageRowState, { by: StatKey; previous: StatKey | null }>();
 function cycleColumnNature(row: DamageRowState, key: StatKey): void {
+	const evicted = evictedNatureUpByCycle.get(row);
+	evictedNatureUpByCycle.delete(row);
 	if (row.natureUp === key) {
-		row.natureUp = toggleNatureUp(row.natureUp, key);
+		// 上昇→下降。この列が押しのけた保持者が居るなら、その列の上昇を復元する
+		// (居なければ従来どおり上昇なしになる)。
+		row.natureUp = evicted?.by === key ? evicted.previous : toggleNatureUp(row.natureUp, key);
 		row.natureDown = toggleNatureDown(row.natureDown, key);
 	} else if (row.natureDown === key) {
 		row.natureDown = toggleNatureDown(row.natureDown, key);
 	} else {
+		// 無補正→上昇。押しのける相手が居るときだけ退避する。
+		if (row.natureUp !== null) evictedNatureUpByCycle.set(row, { by: key, previous: row.natureUp });
 		row.natureUp = toggleNatureUp(row.natureUp, key);
 	}
 	row.nature = natureNameFromBoosts(row.natureUp, row.natureDown);
@@ -1680,6 +1714,18 @@ if (opponentNotesSection) {
 	// 技候補まで巻き込むため、この専用の<datalist id="move-list-self-first">を新設し、
 	// 攻撃側のmoveInputだけlist属性をこちらに向ける(left-panel.ts/LeftPanel.astroは
 	// 一切編集しない。#move-1〜#move-4のvalueをDOM経由で読むだけ)。
+	// 🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08 第2弾)「技の候補から変化技を削除」。
+	// 変化技(category === "status")は仕様上ダメージを一切発生させず、選んでも
+	// 「変化技のため、ダメージは発生しません。」(STATUS_MOVE_NOTE)が出るだけなので、
+	// ダメージカードの技名候補(datalist)からは最初から外す。
+	// ⚠️ datalistは候補の提示にすぎないので、この除外で入力できなくなる技は無い
+	// (手入力すれば従来どおり技列に置ける。既存メモの変化技もそのまま表示・保存される)。
+	// ⚠️ moveDetailMapCacheが未解決の一瞬はisStatusMove()が常にfalseを返すため何も
+	// 除外されない。両datalistは技名inputのfocusごとに作り直すので、解決後の再フォーカスで
+	// 正しい候補に揃う(isStatusMoveの定義部コメントと同じ前提)。
+	function withoutStatusMoves(names: string[]): string[] {
+		return names.filter((name) => !isStatusMove(name));
+	}
 	const SELF_FIRST_MOVE_DATALIST_ID = "move-list-self-first";
 	function ensureSelfFirstMoveDatalist(): HTMLDataListElement {
 		let list = document.getElementById(SELF_FIRST_MOVE_DATALIST_ID) as HTMLDataListElement | null;
@@ -1701,7 +1747,7 @@ if (opponentNotesSection) {
 		const baseOptions = baseList ? Array.from(baseList.options).map((o) => o.value) : [];
 		const seen = new Set<string>();
 		const ordered: string[] = [];
-		for (const name of [...learnedMoves, ...baseOptions]) {
+		for (const name of withoutStatusMoves([...learnedMoves, ...baseOptions])) {
 			if (seen.has(name)) continue;
 			seen.add(name);
 			ordered.push(name);
@@ -1736,7 +1782,8 @@ if (opponentNotesSection) {
 	function refreshOpponentPopularityMoveDatalist(speciesName: string): void {
 		const list = ensureOpponentPopularityMoveDatalist();
 		const baseList = document.getElementById("move-list") as HTMLDataListElement | null;
-		const baseOptions = baseList ? Array.from(baseList.options).map((o) => o.value) : [];
+		// 変化技はダメージが出ないので候補から外す(上のwithoutStatusMoves参照)。
+		const baseOptions = withoutStatusMoves(baseList ? Array.from(baseList.options).map((o) => o.value) : []);
 		// 個体の#regulationセレクトの現在値が指定されていればそのレギュレーションキー、
 		// 未指定(プレースホルダー)なら全レギュレーション横断の"all"キーを使う。
 		const regulationKey = currentIndividualRegulation() ?? "all";
@@ -2195,6 +2242,13 @@ if (opponentNotesSection) {
 		DamageRowState,
 		{ setCollapsed: (collapsed: boolean) => void; refreshCollapsedViews: () => void }
 	>();
+	// 🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08 第2弾)「相手ビルドのポケモンアイコンを
+	// ドット絵に変更」。ドット絵(モバイル)と公式アートワーク(デスクトップ)の切り替えは
+	// 画像URLの差でしかないため、幅の境界をまたいだ瞬間に各行のrefreshSprite()を呼び直す
+	// 必要がある。rowCollapseHandlesと同じく、renderRowのクロージャ内の関数をWeakMapで
+	// 行に紐づけておき、下方のmatchMediaリスナーがrows(表示中の行)を回して呼ぶ
+	// (行ごとにリスナーを足すと、削除した行のクロージャがリスナー経由で残ってしまう)。
+	const rowSpriteRefreshers = new WeakMap<DamageRowState, () => void>();
 	function setAllRowsCollapsed(collapsed: boolean): void {
 		for (const row of rows) {
 			rowCollapseHandles.get(row)?.setCollapsed(collapsed);
@@ -2730,9 +2784,20 @@ if (opponentNotesSection) {
 			delete buildEl.dataset.mobileEdit;
 		});
 
+		// 🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08 第2弾)「相手ビルドのポケモンアイコンを
+		// ドット絵に変更」。デスクトップ(900px以上)は従来どおり公式アートワーク
+		// (officialArtworkUrl)のままで、899px以下だけPokeAPIのドット絵(spriteUrl。
+		// 左パネルの持ち物バッジ等と同じソース)に差し替える。
+		// 幅の境界をまたいだときは下方のmatchMediaリスナーが全行のこの関数を呼び直す。
 		function refreshSprite(): void {
-			void applySprite(spriteImg, spriteFallback, row.name.trim(), officialArtworkUrl);
+			void applySprite(
+				spriteImg,
+				spriteFallback,
+				row.name.trim(),
+				isNarrowLayout() ? spriteUrl : officialArtworkUrl,
+			);
 		}
+		rowSpriteRefreshers.set(row, refreshSprite);
 		function refreshTypeBadge(): void {
 			// 🔴 UI改善ラウンド31ユーザー指示(31-D4b)で追加していた選択欄左の専用アイコン
 			// (teraFieldIcon/teraFieldIconFallback)への同時更新は、🔴 UI改善ラウンド40
@@ -3026,6 +3091,8 @@ if (opponentNotesSection) {
 					refreshCollapsedSummary();
 					onFieldInput();
 				}
+				// モバイルの特性ループボタン(下方のabilityCycleButton)も同じ状態へ揃える。
+				refreshAbilityCycleButton();
 				return;
 			}
 			abilitySelect.disabled = false;
@@ -3052,6 +3119,8 @@ if (opponentNotesSection) {
 				refreshCollapsedSummary();
 				onFieldInput();
 			}
+			// 候補を作り直したあとの確定値をモバイルの特性ループボタンへ反映する。
+			refreshAbilityCycleButton();
 		}
 		abilitySelect.addEventListener("change", () => {
 			row.abilityName = abilitySelect.value;
@@ -3062,8 +3131,40 @@ if (opponentNotesSection) {
 			// row.abilityNameが変わるたびに折りたたみ左ブロックの特性行も追随させる。
 			refreshCollapsedSummary();
 			onFieldInput();
+			refreshAbilityCycleButton();
 		});
 		selectsRow.appendChild(abilitySelect);
+
+		// 🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08 第2弾)「特性はリストボックスでは
+		// なく、クリックすると [特性なし → 特性1 → 特性2 → … → 特性なし] をループするボタンに
+		// する。ボタンの見た目はただのテキストにして目立たなくする」。
+		// <select>自体は消さずモバイルでCSS非表示にし、この薄いラッパーボタンから
+		// abilitySelect.value を進めて change を発火させる(row.abilityNameの更新・
+		// notifyDetailAbilityChanged・折りたたみ表示の追随・自動保存は、すべて上の
+		// change ハンドラ1本に集約されたまま。デスクトップの<select>の見た目・挙動は無変更)。
+		// ループの並びは<select>のoption順そのもの。rebuildRowAbilityOptions()が先頭に
+		// value="" のプレースホルダを置くので、それがそのまま提案の「特性なし」になる。
+		const abilityCycleButton = document.createElement("button");
+		abilityCycleButton.type = "button";
+		abilityCycleButton.className = "damage-row-ability-cycle";
+		function refreshAbilityCycleButton(): void {
+			const label = abilitySelect.value || "特性なし";
+			abilityCycleButton.textContent = label;
+			abilityCycleButton.title = label;
+			// 候補が引けない種族(未入力・入力途中)では<select>もdisabledになる。
+			// 回せるものが無いのでボタン側も同じ状態にする。
+			abilityCycleButton.disabled = abilitySelect.disabled || abilitySelect.options.length <= 1;
+			abilityCycleButton.setAttribute("aria-label", `相手の特性: ${label}。タップして切り替え`);
+		}
+		abilityCycleButton.addEventListener("click", () => {
+			const count = abilitySelect.options.length;
+			if (count === 0) return;
+			// selectedIndexは未選択のとき-1になりうるが、その場合も次は0(先頭=特性なし)になる。
+			abilitySelect.selectedIndex = (abilitySelect.selectedIndex + 1) % count;
+			abilitySelect.dispatchEvent(new Event("change", { bubbles: true }));
+		});
+		selectsRow.appendChild(abilityCycleButton);
+		refreshAbilityCycleButton();
 		// 初期描画時点(保存済みメモの復元・新規行の生成いずれも)で、既にrow.nameが
 		// 入っていれば候補を組み立てておく(左パネルのvoid rebuildAbilityOptions(...)と
 		// 同じ考え方)。
@@ -3329,7 +3430,48 @@ if (opponentNotesSection) {
 				delete cell.dataset.editing;
 			});
 
-			cell.append(input, valueText);
+			// 🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08 第2弾)「努力値をクリックしたら、
+			// 左右に MIN - + MAX の4ボタンを表示する」。従来はタップでその1セルが数値入力欄に
+			// 変わるだけで、実機ではスピナーが小さすぎて値を動かせなかった。
+			// 育成タブの努力値操作(LeftPanel.astro、0/-/+/32の4ボタン)と同じ操作体系に揃える。
+			// セルは1/6列(実測55px弱)しか無いので、編集中だけCSSでセルを努力値行の全幅へ
+			// 絶対配置し(下記 .damage-ev-cell[data-editing="true"]、行の高さは変わらない)、
+			// [MIN][−] 入力欄 [+][MAX] の並びで見せる。
+			// 値の更新は必ず input の "input" イベント経由にする(row.evs への書き戻し・
+			// 表示テキスト更新・再計算・自動保存が上の1ハンドラに集約されているため)。
+			function stepEv(next: number): void {
+				input.value = String(clampInt(next, 0, 32));
+				input.dispatchEvent(new Event("input", { bubbles: true }));
+			}
+			function makeEvStepButton(label: string, ariaLabel: string, compute: () => number): HTMLButtonElement {
+				const button = document.createElement("button");
+				button.type = "button";
+				button.className = "damage-ev-step-button";
+				button.textContent = label;
+				button.setAttribute("aria-label", `相手の${STAT_KANJI[key]}努力値を${ariaLabel}`);
+				// ⚠️ 編集モードを閉じるのは input の blur(下記)なので、押した瞬間に
+				// フォーカスが外れると1回目のタップだけが無効になる。mousedownの既定動作
+				// (フォーカス移動)を止めて、入力欄にフォーカスを残したまま押せるようにする。
+				button.addEventListener("mousedown", (event) => event.preventDefault());
+				button.addEventListener("click", () => stepEv(compute()));
+				return button;
+			}
+			const evMinButton = makeEvStepButton("MIN", "0にする", () => 0);
+			const evDecButton = makeEvStepButton("−", "1減らす", () => (row.evs[i] ?? 0) - 1);
+			const evIncButton = makeEvStepButton("+", "1増やす", () => (row.evs[i] ?? 0) + 1);
+			const evMaxButton = makeEvStepButton("MAX", "最大(32)にする", () => 32);
+
+			// ⚠️ 操作行(4ボタン+入力欄)は必ずこの専用ラッパーに入れ、セル自身は
+			// グリッドのフローに残すこと。セル自体をposition:absoluteにすると、そのセルが
+			// グリッドの自動配置から抜けて後続セル(残り5個の努力値と実数値の6個)が
+			// 1列ずつ前へ詰め、実数値のHが努力値行へ吸い上げられる(実測で再現)。
+			// ラッパーは既定display:contents(=箱を作らない)なので、デスクトップの
+			// 「セルの中に入力欄1個」という構造は従来のまま変わらない。
+			const editor = document.createElement("span");
+			editor.className = "damage-ev-editor";
+			// DOM順がそのまま並び順になる(編集中はCSSでflex行)。左に MIN・−、右に +・MAX。
+			editor.append(evMinButton, evDecButton, input, evIncButton, evMaxButton);
+			cell.append(editor, valueText);
 			evGrid.appendChild(cell);
 			evInputEls.push(input);
 		});
@@ -3377,6 +3519,7 @@ if (opponentNotesSection) {
 			}
 			abilitySelect.value = row.abilityName;
 			abilitySelect.title = row.abilityName;
+			refreshAbilityCycleButton();
 			notifyDetailAbilityChanged(row, row.abilityName);
 
 			itemInput.value = row.itemName;
@@ -3841,6 +3984,8 @@ if (opponentNotesSection) {
 		for (const row of rows) {
 			renderColumns(row);
 			rowCollapseHandles.get(row)?.refreshCollapsedViews();
+			// モバイル=ドット絵 / デスクトップ=公式アートワークの出し分け(上のrowSpriteRefreshers参照)。
+			rowSpriteRefreshers.get(row)?.();
 		}
 	});
 	document.addEventListener("click", (e) => {
