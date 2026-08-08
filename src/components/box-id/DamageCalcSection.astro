@@ -3172,6 +3172,128 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 			color: var(--color-primary-contrast);
 		}
 		#opponent-notes-section .add-card-tile-label { display: none; }
+
+		/* モバイル個体編集(VSタブ)改修: 「すべて展開する」ボタン(#damage-collapse-toggle-button)は
+		   mobile-edit-tabs.tsのRELOCATION_SPECSにより#mobile-damage-toolbar-actions(ダメージタブ
+		   表示中のみ)へDOM移動される。1920px専用のposition:fixed座標(上の基本ルール参照)は
+		   ≤1739pxで既にposition:staticへ戻るため、移設先ではトップバー由来の複雑な位置指定は
+		   持ち込まれないが、モバイルではセカンドバー以外のヘッダー操作を極力減らす方針
+		   (mobile-edit-tabs.ts冒頭コメント参照)のため、この移設先限定でボタン自体を隠す
+		   (要素・移設ロジック・bulk-adjust-buttonの移設は変更しない。ID2つのセレクタで
+		   #damage-collapse-toggle-button単体の基本ルールより詳細度を上げ、確実に上書きする)。
+		   900px以上では要素が元のトップバー位置のままなのでこのセレクタは一致せず、
+		   従来どおり表示・機能する。 */
+		#mobile-damage-toolbar-actions #damage-collapse-toggle-button {
+			display: none;
+		}
+
+		/* モバイル個体編集(VSタブ)改修(2026-08-08): 対戦相手ごとのダメージカードを
+		   「1.相手ビルド→2.技カード列→3.累計結果」の縦3段に組み替える。
+		   デスクトップ(ラウンド6以降の設計、上の.damage-row-bodyコメント群参照)は
+		   相手ビルドの箱(左, 340px)と技列+累計結果(右, 縦積み)を横並び2カラムにし、
+		   幅が足りない時だけflex-wrapで折り返す設計だが、899px以下ではカード自体の幅が
+		   狭く、箱を固定/準固定幅で残すと技列側が窮屈になりやすい(ラウンド10で実測済みの
+		   「技列が19pxまで潰れる」構造的弱点、上の.damage-row-techniques-rowコメント参照)。
+		   そのため899px以下では常にflex-direction:columnへ切り替え、相手ビルドの箱を
+		   固定幅から解放してカード全幅にする。damage-row-build/damage-row-techniques-rowの
+		   flex: 0 1 340px / flex: 1 1 0 はrow方向(主軸=横)前提の値で、column方向では
+		   主軸が縦に変わるため同じ値をそのまま使うと高さに誤爆する(flex-basis 340pxが
+		   height 340pxとして解釈される等)。このブレークポイント専用にflex/width/min-widthを
+		   明示的に上書きし、高さは常にauto(内容依存)にする。 */
+		#opponent-notes-section .damage-row-body {
+			flex-direction: column;
+			flex-wrap: nowrap;
+		}
+		/* 1段目: 相手ビルドの箱。340px固定(デスクトップ用)を解除してカード全幅にする。 */
+		#opponent-notes-section .damage-row-build {
+			flex: 0 0 auto;
+			width: 100%;
+			max-width: 100%;
+		}
+		/* 2〜3段目をまとめるラッパー。row方向用のflex:1 1 0/min-width:140pxは
+		   column方向では不要(むしろmin-width:140pxがmin-heightとして誤爆しうる)なので
+		   打ち消す。
+		   🔴 Coordinator指摘(2026-08-08、当初の依頼文「横並びのまま」の誤読修正):
+		   技カード(.damage-column、最大3枚)はモバイルでも縦積みではなく横並びにし、
+		   「既存の技カードの右隣にカード追加ボタンを置く」。DOM構造上、追加ボタンの
+		   スロット(addColumnSlot)は技カードのラッパー(.damage-row-columns-wrap)の
+		   兄弟要素であり子ではない(damage-calc.tsのrenderColumns参照、DOM変更は
+		   このタスクの担当範囲外)ため、flexだけで「兄弟2要素を同じ行の左右に並べつつ、
+		   さらに後続の兄弟(折りたたみ用の.damage-row-collapsed-techniques・累計結果の
+		   .damage-row-total)は全幅で下に積む」という配置はできない(flexは常にDOM順に
+		   1本の主軸へ並べるため)。CSS Gridに切り替え、grid-template-columns: 1fr auto で
+		   1列目に技カードの横スクロール領域(.damage-row-columns-wrap)、2列目に追加ボタンを
+		   明示配置し、折りたたみ用ブロック・累計結果はgrid-column: 1 / -1で全幅に自動配置する
+		   (auto-placementは明示配置されたセルを避けて次の行へ回るため、DOM順は変更不要)。 */
+		#opponent-notes-section .damage-row-techniques-row {
+			display: grid;
+			grid-template-columns: 1fr auto;
+			column-gap: var(--space-1);
+			row-gap: var(--space-1);
+			align-items: start;
+			width: 100%;
+			min-width: 0;
+		}
+		/* 技カードの横スクロール領域(1列目)。デスクトップの40pxクリアランス
+		   (max-width: calc(100% - 40px)、カード右上固定の削除ボタンを避けるためのもの)は、
+		   技列セクション自体が相手ビルドの下(3段構成の2段目)まで下がったことで削除ボタンから
+		   遠くなり不要になったため、モバイルではmax-widthを解除する(2列目=追加ボタンの
+		   分の余白は既にgrid-template-columnsのauto列が確保する)。3枚が収まりきらない幅では
+		   overflow-x:autoで横スクロールする(実測: 375pxで技カード3枚は1枚あたりの
+		   最小幅150pxを下回るため発生、390px/430pxでは発生しない。報告参照)。 */
+		#opponent-notes-section .damage-row-columns-wrap {
+			grid-column: 1;
+			grid-row: 1;
+			max-width: none;
+			min-width: 0;
+			overflow-x: auto;
+			-webkit-overflow-scrolling: touch;
+		}
+		/* 技カード本体の縦積み(flex-direction:column)を横並び(row)に変える。 */
+		#opponent-notes-section .damage-row-columns {
+			flex-direction: row;
+			align-items: stretch;
+		}
+		/* 技カード1枚の幅。実測(375/390/430px、技3枚)により、150pxを下回ると技名input・
+		   ヒット数input・削除ボタンが窮屈になり始めることを確認したため150pxを下限にする
+		   (報告参照)。flex:1 1 150pxにより、1〜2枚のときは.damage-row-columns-wrapの
+		   余り幅いっぱいに広がり(150px固定ではない)、3枚で150px×3が収まらない幅だけ
+		   横スクロールする。 */
+		#opponent-notes-section .damage-column {
+			flex: 1 1 150px;
+			width: auto;
+			min-width: 150px;
+		}
+		/* 追加ボタンのスロット(2列目)。デスクトップの40pxクリアランス(同上の理由で不要)を
+		   解除し、grid列(auto、ボタン内容幅に自動フィット)にまかせる。技カードと高さを
+		   揃えるためalign-self:stretchにする(base側のflex:1 1 autoはgridでは無効になるため
+		   実質無害だが、align-items:centerだけ残ると2列目がgrid行の内容の高さぶんしか
+		   伸びず技カードと下端が揃わない)。 */
+		#opponent-notes-section .damage-add-column-slot {
+			grid-column: 2;
+			grid-row: 1;
+			max-width: none;
+			align-self: stretch;
+		}
+		/* 折りたたみ用の技列表示(.damage-row-collapsed-techniques、collapsed時のみ表示)と
+		   累計結果(.damage-row-total)は、1列目(技カード)・2列目(追加ボタン)を占有せず
+		   grid-column: 1 / -1 で全幅に配置する(auto-placementが1行目の空きセルを使い切った
+		   後、自動的に2行目・3行目へ回る)。 */
+		#opponent-notes-section .damage-row-collapsed-techniques,
+		#opponent-notes-section .damage-row-total {
+			grid-column: 1 / -1;
+		}
+		/* 相手ビルドの箱1行目(攻守切り替えセグメント、.damage-row-actions)だけの対応:
+		   カード右上固定の削除ボタン(.damage-row-delete-button、position:absolute、
+		   top/right:var(--space-2)+28px)はデスクトップでは左カラム(相手ビルドの箱)から
+		   遠く無関係だったが、箱を全幅化したことで1行目の右端が削除ボタンの真下に来る
+		   (実測: 削除ボタンはカード上端から8px〜36pxの範囲、1行目もほぼ同じ範囲に来るため
+		   重なる。2行目以降(名前欄以下)は1行目より下にあり削除ボタンの高さから外れるため
+		   対象外)。技列側で確立済みの40pxクリアランス(削除ボタン28px+右余白、
+		   .damage-row-columns-wrap/.damage-row-total-result等と同じ値)をこの行にも適用する。 */
+		#opponent-notes-section .damage-row-actions {
+			padding-right: 40px;
+		}
 	}
 </style>
 <script>
