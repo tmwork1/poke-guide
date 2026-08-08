@@ -26,7 +26,7 @@ const displayNickname = pokemon.nickname?.trim() || pokemon.species_name;
 			</button>
 			<button type="button" class="mobile-training-bar-item" data-mobile-tab="damage">
 				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.05" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="2.5" width="16" height="19" rx="2"/><line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="12" x2="8" y2="12"/><line x1="12" y1="12" x2="12" y2="12"/><line x1="16" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="8" y2="16"/><line x1="12" y1="16" x2="12" y2="16"/><line x1="16" y1="16" x2="16" y2="16"/></svg>
-				<span>ダメージ計算</span>
+				<span>VS</span>
 			</button>
 			<span class="mobile-training-bar-item is-disabled" aria-disabled="true">
 				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.05" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="m7 8 1.5 1.5L11 7"/><path d="M13 8h4"/><path d="m7 14 1.5 1.5L11 13"/><path d="M13 14h4"/></svg>
@@ -35,7 +35,7 @@ const displayNickname = pokemon.nickname?.trim() || pokemon.species_name;
 		</div>
 	</nav>
 
-	<section class="mobile-training-preview" aria-label="育成プレビュー">
+	<section class="mobile-training-preview" aria-label="育成プレビュー" data-species-name={pokemon.species_name}>
 		<div class="mobile-preview-left">
 			<div class="mobile-preview-details">
 				<div id="mp-ability">{pokemon.ability_name || "-"}</div>
@@ -73,7 +73,14 @@ const displayNickname = pokemon.nickname?.trim() || pokemon.species_name;
 	.mobile-training-bar-item { flex: 1 0 calc(var(--space-8) + var(--space-6)); min-width: calc(var(--space-8) + var(--space-6)); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-1); padding: var(--space-2) var(--space-1); color: var(--color-text-muted); font: inherit; font-size: var(--font-size-xs); line-height: 1; white-space: nowrap; background: transparent; border: 0; cursor: pointer; }
 	.mobile-training-bar-item[data-active="true"] { color: var(--color-primary); }
 	.mobile-training-bar-item.is-disabled { color: var(--color-text-muted); opacity: 0.6; cursor: not-allowed; }
-	.mobile-training-preview { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: var(--space-2); padding: var(--space-3); background: var(--color-surface-alt); border-bottom: 1px solid var(--color-border); font-size: var(--font-size-xs); }
+	/* UI改修依頼(モバイル、2026-08-08)「タブバーの下のプレビューもスクロールで隠れないよう
+	   固定表示にする」。.mobile-training-bar自体は既にposition:stickyで上部固定済みだが、
+	   その直下のこの要素は通常フローのままだったため、スクロールすると隠れていた。
+	   .mobile-training-barの直下に貼り付けるため、実測した高さ(devサーバー・Playwright
+	   getBoundingClientRectで実測、390px幅で53px。バー内のアイコン/ラベルの固定サイズで
+	   決まる高さなので画面幅やテキスト長では変わらない)を--topbar-heightに足す。
+	   z-indexは.mobile-training-bar(20)より低い値にして、バーが常に手前に来るようにする。 */
+	.mobile-training-preview { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: var(--space-2); padding: var(--space-3); background: var(--color-surface-alt); border-bottom: 1px solid var(--color-border); font-size: var(--font-size-xs); position: sticky; top: calc(var(--topbar-height) + 53px); z-index: 15; }
 	.mobile-preview-left, .mobile-preview-right { min-width: 0; }
 	.mobile-preview-left { padding-top: var(--space-1); }
 	.mobile-preview-details { display: block; }
@@ -88,7 +95,7 @@ const displayNickname = pokemon.nickname?.trim() || pokemon.species_name;
 	.mobile-preview-moves .move-type-icon img { width: var(--icon-size-sm); height: var(--icon-size-sm); object-fit: contain; }
 	.mobile-preview-moves .move-type-icon[hidden] { display: none; }
 	.mobile-preview-identity { display: flex; flex-direction: column; align-items: center; gap: var(--space-1); min-width: 0; text-align: center; }
-	.mobile-preview-sprite-wrap { width: calc(var(--space-8) + var(--space-6)); height: calc(var(--space-8) + var(--space-6)); display: flex; align-items: center; justify-content: center; overflow: hidden; border: 1px solid var(--color-border); border-radius: 50%; background: var(--color-surface); }
+	.mobile-preview-sprite-wrap { width: calc(var(--space-8) + var(--space-6)); height: calc(var(--space-8) + var(--space-6)); display: flex; align-items: center; justify-content: center; overflow: hidden; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface); }
 	#mp-species-sprite { width: 100%; height: 100%; object-fit: contain; }
 	#mp-species-sprite-fallback { color: var(--color-text-muted); }
 	.mobile-preview-species { display: flex; align-items: center; justify-content: center; gap: var(--space-1); min-width: 0; }
@@ -96,9 +103,14 @@ const displayNickname = pokemon.nickname?.trim() || pokemon.species_name;
 	.mobile-preview-item { margin-bottom: var(--space-1); }
 	#mp-item { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 	.mobile-preview-stats { border-collapse: collapse; font-size: var(--font-size-xs); line-height: 1; }
-	.mobile-preview-stats th, .mobile-preview-stats td { padding: var(--space-1) var(--space-1) 0; border: 0; background: transparent; text-align: right; font-weight: 400; color: var(--color-text); }
+	/* UI改修依頼(モバイル、2026-08-08)「列間の余白が間延びして見える」対応。
+	   従来は th/td 双方の左右に var(--space-1) を付けており、隣接セルの境界では
+	   両側分(space-1 + space-1)の余白が重なって間延びして見えていた。文字サイズは変えず、
+	   各境界の余白を片側の var(--space-1) 1つ分に絞る(新しいトークン・生値は作らない)。 */
+	.mobile-preview-stats th, .mobile-preview-stats td { padding: var(--space-1) 0 0; border: 0; background: transparent; text-align: right; font-weight: 400; color: var(--color-text); }
 	.mobile-preview-stats tr:last-child th, .mobile-preview-stats tr:last-child td { padding-bottom: var(--space-1); }
-	.mobile-preview-stats th:first-child { text-align: left; color: var(--color-text-muted); }
+	.mobile-preview-stats th:first-child { text-align: left; color: var(--color-text-muted); padding-right: var(--space-1); }
+	.mobile-preview-stats td + td { padding-left: var(--space-1); }
 	.mobile-preview-stats td[data-mod="up"] { color: var(--color-stat-up); }
 	.mobile-preview-stats td[data-mod="down"] { color: var(--color-stat-down); }
 	.mobile-damage-toolbar { display: none; }
@@ -113,4 +125,33 @@ const displayNickname = pokemon.nickname?.trim() || pokemon.species_name;
 </style>
 <script>
 	import "../../lib/box-id/mobile-edit-tabs";
+	import { loadTypesMap } from "../../lib/pokemon-master-data";
+	import { TYPE_COLORS, DEFAULT_TYPE_COLOR } from "../../lib/type-colors";
+
+	// UI改修依頼(モバイル、2026-08-08)「育成プレビューの背景にタイプ色を反映する」。
+	// pokemon.species_nameはサーバー側の値なので.mobile-training-preview の
+	// data-species-name経由でDOMへ渡し、こちら側でloadTypesMap()から非同期にタイプ配列を
+	// 引く(left-panel.tsのtypesMapPromiseと同じ使い方)。彩度が強すぎるとテキストの可読性
+	// (--color-text / --color-text-muted)と衝突するため、既存の--color-surface-altと
+	// color-mix()で混ぜて彩度を落とす(新しいCSSトークンは追加しない)。
+	const preview = document.querySelector<HTMLElement>(".mobile-training-preview");
+	const speciesName = preview?.dataset.speciesName;
+	if (preview && speciesName) {
+		loadTypesMap()
+			.then((typesMap) => {
+				const types = typesMap.get(speciesName);
+				if (!types || types.length === 0) return;
+				const toMixedColor = (typeName: string): string => {
+					const hex = TYPE_COLORS[typeName] ?? DEFAULT_TYPE_COLOR;
+					return `color-mix(in srgb, ${hex} 26%, var(--color-surface-alt))`;
+				};
+				preview.style.background =
+					types.length >= 2
+						? `linear-gradient(to right, ${toMixedColor(types[0])}, ${toMixedColor(types[1])})`
+						: toMixedColor(types[0]);
+			})
+			.catch((err) => {
+				console.warn("育成プレビューのタイプ色反映に失敗しました", err);
+			});
+	}
 </script>
