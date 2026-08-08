@@ -541,6 +541,21 @@ if (opponentNotesSection) {
 	// 消えたり保存が壊れたりすることはない。opponent-notes-validation.ts側の変更は
 	// 不要(このファイルは編集禁止でもある)。
 	const MAX_COLUMNS_TO_ADD = 3;
+	// 🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08)「モバイル版では技カードを2つまでに
+	// 限定し、あらかじめ左右にスペースを設けておく」。899px以下では技列セクションを
+	// 固定2列(grid-template-columns: 1fr 1fr、DamageCalcSection.astro参照)にして
+	// 技カードがカード幅の半分ずつを占めるため、3枚目は必ず2行目へ折り返してカードの
+	// 高さが跳ねる。追加操作の上限だけをモバイルで2に下げる。
+	// 上の3の説明と同じく、これは「追加」操作にのみ効く上限であり既存データは削らない
+	// (3件以上のattacksを持つ既存行はrenderColumnsが全件そのまま描画し、2列gridの
+	// 2行目以降へ折り返す)。
+	const MAX_COLUMNS_TO_ADD_NARROW = 2;
+	// isNarrowLayout()はこのブロック内の関数宣言(下方)なのでホイストされ、実際に
+	// 呼ばれるのは行の描画・ユーザー操作の時点=定義行より後になるため前方参照で問題ない
+	// (既存のregisterDamageCalcBridge等と同じ考え方)。
+	function currentMaxColumnsToAdd(): number {
+		return isNarrowLayout() ? MAX_COLUMNS_TO_ADD_NARROW : MAX_COLUMNS_TO_ADD;
+	}
 	// CALC_DEBOUNCE_MS/SAVE_DEBOUNCE_MSは構造分割ラウンド(フェーズ1)でshared-core.tsへ
 	// 移設した(scheduleRowCalc/scheduleRowSaveと同じ場所)。
 
@@ -1759,7 +1774,7 @@ if (opponentNotesSection) {
 	// 折りたたみ時ボタン)は事前にMAX_COLUMNS_TO_ADD到達チェック(disabled/hidden)を
 	// 行っているが、念のためここでも二重にガードする。
 	function addAttackColumn(row: DamageRowState): void {
-		if (row.attacks.length >= MAX_COLUMNS_TO_ADD) return;
+		if (row.attacks.length >= currentMaxColumnsToAdd()) return;
 		// 38-D7: 直前のカラム(row.attacks末尾)があれば、その詳細設定を引き継ぐ。
 		const previousColumn = row.attacks[row.attacks.length - 1];
 		const column = createEmptyColumn(previousColumn ? inheritedColumnDetailDefaults(previousColumn) : undefined);
@@ -2027,7 +2042,9 @@ if (opponentNotesSection) {
 		const addButton = document.createElement("button");
 		addButton.type = "button";
 		addButton.className = "damage-add-column-button";
-		const isAtMax = row.attacks.length >= MAX_COLUMNS_TO_ADD;
+		// 上限はレイアウト幅で変わる(モバイルは2、デスクトップは3。currentMaxColumnsToAdd参照)。
+		const maxColumns = currentMaxColumnsToAdd();
+		const isAtMax = row.attacks.length >= maxColumns;
 		// UI品質改善(ラウンド8 A-2): 上限到達時の説明文はコントラストが低く読めない
 		// うえ48pxを消費し続けていた。文言はホバー用title向けに残しつつ、スロット自体を
 		// data-max="true"でCSS側から隠す(DOMは残す。下のCSS
@@ -2035,8 +2052,8 @@ if (opponentNotesSection) {
 		if (row.addColumnSlotEl) row.addColumnSlotEl.dataset.max = String(isAtMax);
 		if (isAtMax) {
 			addButton.disabled = true;
-			addButton.textContent = `技列は最大${MAX_COLUMNS_TO_ADD}つまでです`;
-			addButton.title = `技列(加算条件)は最大${MAX_COLUMNS_TO_ADD}つまでしか追加できません`;
+			addButton.textContent = `技列は最大${maxColumns}つまでです`;
+			addButton.title = `技列(加算条件)は最大${maxColumns}つまでしか追加できません`;
 		} else {
 			// DamageCard.pngの「加算条件追加ボタン」にあたる。
 			addButton.textContent = "＋ 技を追加";
@@ -3299,7 +3316,7 @@ if (opponentNotesSection) {
 		collapsedAddColumnButton.textContent = "＋";
 		collapsedAddColumnButton.setAttribute("aria-label", "技を追加する");
 		collapsedAddColumnButton.addEventListener("click", () => {
-			if (row.attacks.length >= MAX_COLUMNS_TO_ADD) return;
+			if (row.attacks.length >= currentMaxColumnsToAdd()) return;
 			addAttackColumn(row);
 			setCollapsed(false);
 		});
@@ -3363,10 +3380,11 @@ if (opponentNotesSection) {
 			}
 			// 折りたたみ時の「＋」ボタン。展開時のaddButton(renderColumns内)と同じ
 			// MAX_COLUMNS_TO_ADD上限に達したら隠す(既存のdata-max="true"と同じ考え方)。
-			const isAtMax = row.attacks.length >= MAX_COLUMNS_TO_ADD;
+			const maxColumns = currentMaxColumnsToAdd();
+			const isAtMax = row.attacks.length >= maxColumns;
 			collapsedAddColumnButton.hidden = isAtMax;
 			collapsedAddColumnButton.title = isAtMax
-				? `技列は最大${MAX_COLUMNS_TO_ADD}つまでです`
+				? `技列は最大${maxColumns}つまでです`
 				: "加算する技を追加する(上から順に当てた加算ダメージ計算になります)";
 		}
 
@@ -3595,6 +3613,7 @@ if (opponentNotesSection) {
 	function refreshMobileDetailPlacement(): void {
 		if (!isNarrowLayout()) {
 			damageDetailPanelEl.classList.remove("is-mobile-inline", "is-mobile-suggest");
+			delete damageDetailPanelEl.dataset.mobileArrow;
 			if (damageDetailPanelOriginalParentEl) damageDetailPanelOriginalParentEl.appendChild(damageDetailPanelEl);
 			return;
 		}
@@ -3603,11 +3622,34 @@ if (opponentNotesSection) {
 		const selectedRow = getSelectedRow();
 		const selectedColumn = getSelectedColumn();
 		if (selectedRow && selectedColumn && selectedRow.root?.parentElement === damageRowsListEl) {
-			selectedRow.root.after(damageDetailPanelEl);
+			// 🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08)「技カードをクリックすると
+			// 詳細設定がインライン展開される」。提案図
+			// (docs/ui_proposal/mobile/box_個体編集_vs_詳細設定.png)では、展開された詳細設定は
+			// ダメージカードの内側・技カード列の直下・累計ダメージ(.damage-row-total)の上に
+			// 開く。従来はカード全体(root)の直後へ移していたため、累計ダメージがパネルより
+			// 上に残り「そのカード自身が展開された」ようには見えていなかった。
+			// 技列セクション(.damage-row-techniques-row)はaddColumnSlotの親であり、
+			// 累計結果ブロックはその直下の子(renderRow参照)。
+			const techniquesRow = selectedRow.addColumnSlotEl?.parentElement ?? null;
+			const totalBlock = techniquesRow?.querySelector<HTMLElement>(":scope > .damage-row-total") ?? null;
+			if (techniquesRow && totalBlock) {
+				techniquesRow.insertBefore(damageDetailPanelEl, totalBlock);
+			} else {
+				// 構造が想定と違う場合(将来のDOM変更など)は従来どおりカードの直後に置く。
+				selectedRow.root.after(damageDetailPanelEl);
+			}
 			damageDetailPanelEl.classList.add("is-mobile-inline");
 			damageDetailPanelEl.classList.remove("is-mobile-suggest");
+			// パネルは技列セクションの左右2枠にまたがる全幅の段になるため、どちらの技カードから
+			// 開いたのかは上辺の三角マーカーの位置でしか表せない(CSS側の
+			// [data-mobile-arrow="left"|"right"]::before、DamageCalcSection.astro参照)。
+			// 2列gridなので列位置は「技カードの並び順 % 2」で決まる(既存データが3枚以上を
+			// 持つ行では2行目以降へ折り返すが、左右の対応は同じ式で正しい)。
+			const columnIndex = selectedRow.attacks.indexOf(selectedColumn);
+			damageDetailPanelEl.dataset.mobileArrow = columnIndex >= 0 && columnIndex % 2 === 1 ? "right" : "left";
 			return;
 		}
+		delete damageDetailPanelEl.dataset.mobileArrow;
 		if (damageDetailPanelEl.querySelector("#damage-detail-panel-body .damage-suggest")) {
 			damageRowsListEl.appendChild(damageDetailPanelEl);
 			// 未選択のサジェスト一覧はカード列の一部として常設される(閉じる対象の選択が無い)。
@@ -3620,6 +3662,17 @@ if (opponentNotesSection) {
 		if (damageDetailPanelOriginalParentEl) damageDetailPanelOriginalParentEl.appendChild(damageDetailPanelEl);
 	}
 	window.matchMedia("(max-width: 899px)").addEventListener("change", refreshMobileDetailPlacement);
+	// 技列の追加上限がレイアウト幅で変わる(モバイル2 / デスクトップ3、currentMaxColumnsToAdd)ため、
+	// 境界をまたいだら「＋ 技を追加」ボタンの有効/無効と折りたたみ時「＋」ボタンの表示を
+	// 描き直す(そうしないとデスクトップ→モバイルへ縮めた直後、押しても何も起きない
+	// 「＋ 技を追加」が残る)。renderColumns()は同じrow.attacksから列を作り直すだけなので
+	// 何度呼んでも状態は変わらない。
+	window.matchMedia("(max-width: 899px)").addEventListener("change", () => {
+		for (const row of rows) {
+			renderColumns(row);
+			rowCollapseHandles.get(row)?.refreshCollapsedViews();
+		}
+	});
 	document.addEventListener("click", (e) => {
 		const target = e.target as Node;
 		if (damageDetailPanelEl.contains(target)) return;

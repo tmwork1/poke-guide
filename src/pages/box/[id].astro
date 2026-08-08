@@ -658,10 +658,25 @@ const isOptedOut = optOutRemainingText !== "";
 	<style is:global>
 		@media (max-width: 899px) {
 			body.box-edit-page .app-topbar { display: none; }
-			/* --topbar-height はトップバーの実測高さ(global.cssの:root)で、モバイルのセカンドバー
-			   (.mobile-training-bar の position:sticky; top)や .edit-shell の高さ計算がこれを見る。
-			   トップバーを消した以上0にしないと、セカンドバーが画面上端から一段浮いてしまう。 */
-			body.box-edit-page { --topbar-height: 0px; }
+			/* --topbar-height はトップバーの実測高さ(global.cssの:root)で、育成プレビュー
+			   (.mobile-training-preview の position:sticky; top)や .edit-shell の高さ計算が
+			   これを見る。トップバーを消した以上0にしないと、本文が画面上端から一段浮いてしまう。
+			   --mobile-second-bar-height は下端(ナビゲーションの直上)へ移したセカンドバー
+			   (.mobile-training-bar、MobileTrainingBar.astro参照)の実測高さ。
+			   バーは position:fixed でフローから外れるため、本文側がこの値ぶんの下余白を
+			   持たないと最後のカードがバーの裏に隠れる。値はdevサーバー+Playwrightの
+			   getBoundingClientRectで実測した53px(バー内のアイコン/ラベルの固定サイズで
+			   決まるため、画面幅やテキスト長では変わらない)。バーの構成を変えたら実測し直す。
+			   この変数はDamageCalcSection.astro側(VSタブの「＋」FAB位置・カード列の下余白)
+			   からも参照するため、コンポーネントのscoped styleではなくここ(body)に置く
+			   (カスタムプロパティはDOM継承で下層のglobal要素にも届く)。 */
+			body.box-edit-page { --topbar-height: 0px; --mobile-second-bar-height: 53px; }
+			/* global.css の `.app-shell:not(.is-public) .app-main` はナビゲーションぶんの
+			   下余白しか持たないため、その上に重なるセカンドバーぶんを足す
+			   (このページ限定。body.box-edit-page を足すことで元の定義より詳細度が高くなる)。 */
+			body.box-edit-page .app-shell:not(.is-public) .app-main {
+				padding-bottom: calc(var(--mobile-second-bar-height) + var(--bottom-nav-height) + env(safe-area-inset-bottom));
+			}
 		}
 	</style>
 

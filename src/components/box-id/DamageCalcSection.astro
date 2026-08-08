@@ -3157,14 +3157,22 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 	}
 	/* モバイルでは一覧ページと同じ追加操作をFABにし、カード下端との重なりを避ける。 */
 	@media (max-width: 899px) {
+		/* 「＋」FAB(下の.add-card-tile)に最後のカードが隠れないための下余白。
+		   ⚠️ セカンドバーを画面下端(ナビゲーションの直上)へ移した対応(2026-08-08、
+		   MobileTrainingBar.astro / box/[id].astro参照)により、固定バー2本ぶんの下余白は
+		   .app-main側(box/[id].astroの<style is:global>)がまとめて持つようになった。
+		   ここで再度var(--bottom-nav-height)を足すと二重取りになり、カード列の下に
+		   100px以上の死んだ空白が残るため、FABの高さ(56px)+余白ぶんだけに絞る。 */
 		#opponent-notes-section .damage-rows-list {
-			padding-bottom: calc(56px + var(--bottom-nav-height) + var(--space-4));
+			padding-bottom: calc(56px + var(--space-4));
 		}
 		#opponent-notes-section .card-damage { max-width: 100%; }
 		#opponent-notes-section .add-card-tile {
 			position: fixed;
 			right: var(--space-5);
-			bottom: calc(var(--bottom-nav-height) + var(--space-4) + env(safe-area-inset-bottom));
+			/* セカンドバーがナビゲーションの直上に来たぶんだけFABも持ち上げる
+			   (--mobile-second-bar-height は box/[id].astro の body.box-edit-page 定義)。 */
+			bottom: calc(var(--mobile-second-bar-height) + var(--bottom-nav-height) + var(--space-4) + env(safe-area-inset-bottom));
 			z-index: 15;
 			width: 56px;
 			height: 56px;
@@ -3233,72 +3241,62 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 		/* 2〜3段目をまとめるラッパー。row方向用のflex:1 1 0/min-width:140pxは
 		   column方向では不要(むしろmin-width:140pxがmin-heightとして誤爆しうる)なので
 		   打ち消す。
-		   🔴 Coordinator指摘(2026-08-08、当初の依頼文「横並びのまま」の誤読修正):
-		   技カード(.damage-column、最大3枚)はモバイルでも縦積みではなく横並びにし、
-		   「既存の技カードの右隣にカード追加ボタンを置く」。DOM構造上、追加ボタンの
-		   スロット(addColumnSlot)は技カードのラッパー(.damage-row-columns-wrap)の
-		   兄弟要素であり子ではない(damage-calc.tsのrenderColumns参照、DOM変更は
-		   このタスクの担当範囲外)ため、flexだけで「兄弟2要素を同じ行の左右に並べつつ、
-		   さらに後続の兄弟(折りたたみ用の.damage-row-collapsed-techniques・累計結果の
-		   .damage-row-total)は全幅で下に積む」という配置はできない(flexは常にDOM順に
-		   1本の主軸へ並べるため)。CSS Gridに切り替え、grid-template-columns: 1fr auto で
-		   1列目に技カードの横スクロール領域(.damage-row-columns-wrap)、2列目に追加ボタンを
-		   明示配置し、折りたたみ用ブロック・累計結果はgrid-column: 1 / -1で全幅に自動配置する
-		   (auto-placementは明示配置されたセルを避けて次の行へ回るため、DOM順は変更不要)。 */
+		   🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08)「モバイル版では技カードを2つまでに
+		   限定し、あらかじめ左右にスペースを設けておく」。提案図
+		   (docs/ui_proposal/mobile/box_個体編集_vs.png)では技カード1・技カード2が
+		   カード幅を半分ずつ分け合っている。以前の grid-template-columns: 1fr auto
+		   (1列目=技カードの横スクロール領域 / 2列目=追加ボタン)では、技カードの枚数で
+		   1枚あたりの幅が変わり、追加のたびに既存カードが縮んでレイアウトが揺れていた。
+		   固定2列(1fr 1fr)にして左右の枠を先に確保し、技カード・追加ボタン・
+		   (将来の折り返し)をauto-placementで順に流し込む。
+		   DOM構造上、技カード(.damage-column)は .damage-row-columns-wrap >
+		   .damage-row-columns の2階層下にあり、追加ボタンのスロット(.damage-add-column-slot)は
+		   wrapの兄弟なので、そのままでは同じgridに並べられない。ラッパー2つを
+		   display:contents にして技カード自身をこのgridの直接のアイテムに昇格させる
+		   (DOM・クラス名は変更しない)。並びはDOM順どおり
+		   [技カード1][技カード2] → [追加ボタン] → 折りたたみ表示 → 累計結果 になり、
+		   技カードが1枚のときは追加ボタンが右半分をそのまま埋める(=「あらかじめ左右に
+		   スペースを設けておく」)。2枚に達すると追加ボタンのスロットは
+		   data-max="true" で display:none になる(上方の基本ルール、renderColumns参照)ため、
+		   3行目に空の追加ボタン行が残ることはない。 */
 		#opponent-notes-section .damage-row-techniques-row {
 			display: grid;
-			grid-template-columns: 1fr auto;
+			grid-template-columns: 1fr 1fr;
 			column-gap: var(--space-1);
 			row-gap: var(--space-1);
-			align-items: start;
+			align-items: stretch;
 			width: 100%;
 			min-width: 0;
 		}
-		/* 技カードの横スクロール領域(1列目)。デスクトップの40pxクリアランス
-		   (max-width: calc(100% - 40px)、カード右上固定の削除ボタンを避けるためのもの)は、
-		   技列セクション自体が相手ビルドの下(3段構成の2段目)まで下がったことで削除ボタンから
-		   遠くなり不要になったため、モバイルではmax-widthを解除する(2列目=追加ボタンの
-		   分の余白は既にgrid-template-columnsのauto列が確保する)。3枚が収まりきらない幅では
-		   overflow-x:autoで横スクロールする(実測: 375pxで技カード3枚は1枚あたりの
-		   最小幅150pxを下回るため発生、390px/430pxでは発生しない。報告参照)。 */
-		#opponent-notes-section .damage-row-columns-wrap {
-			grid-column: 1;
-			grid-row: 1;
+		/* 技カードのラッパー2つ。デスクトップの縦積みflex・40pxクリアランス
+		   (max-width: calc(100% - 40px)、カード右上固定の削除ボタンを避けるためのもの。
+		   技列セクションが相手ビルドの下=3段構成の2段目まで下がったことで不要になった)は
+		   display:contents ごと無効化され、子の.damage-columnが上のgridへ直接並ぶ。
+		   ⚠️ 折りたたみ時は基本ルール側の
+		   `.card-damage[data-collapsed="true"] .damage-row-columns-wrap { display: none }`
+		   (詳細度が上、上方参照)が勝つため、畳んだカードで技カードが露出することはない。 */
+		#opponent-notes-section .damage-row-columns-wrap,
+		#opponent-notes-section .damage-row-columns {
+			display: contents;
+		}
+		/* 技カード1枚は左右どちらかの枠(1fr)をそのまま埋める。デスクトップ用の
+		   flex項目としての指定(基本ルール)はgridアイテムでは効かないので、
+		   幅は枠まかせ(min-width:0で中身によるはみ出しを防ぐ)にする。 */
+		#opponent-notes-section .damage-column {
+			width: auto;
+			min-width: 0;
+		}
+		/* 追加ボタンのスロット。技カードの直後の枠(1枚なら右半分)に自動配置される。
+		   デスクトップの40pxクリアランス(同上の理由で不要)を解除し、
+		   技カードと高さを揃えるためalign-self:stretchにする(base側のflex:1 1 autoは
+		   gridでは無効。align-items:centerだけ残るとボタンが枠の高さいっぱいに伸びない)。 */
+		#opponent-notes-section .damage-add-column-slot {
 			max-width: none;
 			min-width: 0;
-			overflow-x: auto;
-			-webkit-overflow-scrolling: touch;
-		}
-		/* 技カード本体の縦積み(flex-direction:column)を横並び(row)に変える。 */
-		#opponent-notes-section .damage-row-columns {
-			flex-direction: row;
-			align-items: stretch;
-		}
-		/* 技カード1枚の幅。実測(375/390/430px、技3枚)により、150pxを下回ると技名input・
-		   ヒット数input・削除ボタンが窮屈になり始めることを確認したため150pxを下限にする
-		   (報告参照)。flex:1 1 150pxにより、1〜2枚のときは.damage-row-columns-wrapの
-		   余り幅いっぱいに広がり(150px固定ではない)、3枚で150px×3が収まらない幅だけ
-		   横スクロールする。 */
-		#opponent-notes-section .damage-column {
-			flex: 1 1 150px;
-			width: auto;
-			min-width: 150px;
-		}
-		/* 追加ボタンのスロット(2列目)。デスクトップの40pxクリアランス(同上の理由で不要)を
-		   解除し、grid列(auto、ボタン内容幅に自動フィット)にまかせる。技カードと高さを
-		   揃えるためalign-self:stretchにする(base側のflex:1 1 autoはgridでは無効になるため
-		   実質無害だが、align-items:centerだけ残ると2列目がgrid行の内容の高さぶんしか
-		   伸びず技カードと下端が揃わない)。 */
-		#opponent-notes-section .damage-add-column-slot {
-			grid-column: 2;
-			grid-row: 1;
-			max-width: none;
 			align-self: stretch;
 		}
 		/* 折りたたみ用の技列表示(.damage-row-collapsed-techniques、collapsed時のみ表示)と
-		   累計結果(.damage-row-total)は、1列目(技カード)・2列目(追加ボタン)を占有せず
-		   grid-column: 1 / -1 で全幅に配置する(auto-placementが1行目の空きセルを使い切った
-		   後、自動的に2行目・3行目へ回る)。 */
+		   累計結果(.damage-row-total)は左右の枠にまたがる全幅の段にする。 */
 		#opponent-notes-section .damage-row-collapsed-techniques,
 		#opponent-notes-section .damage-row-total {
 			grid-column: 1 / -1;
@@ -3366,20 +3364,51 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 			background: var(--color-surface);
 			box-shadow: var(--shadow-sm);
 		}
-		/* 選択中の技カード(.damage-column.is-selected、上方参照)に続く場合だけ、枠色を
+		/* 🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08)「技カードをクリックすると詳細設定が
+		   インライン展開される」の続き。提案図
+		   (docs/ui_proposal/mobile/box_個体編集_vs_詳細設定.png)では、展開された詳細設定は
+		   ダメージカードの内側・技カード列の直下・累計ダメージの上に、選択中の技カードから
+		   矢印で繋がった形で描かれている。従来はカード全体(root)の直後へ移していたため
+		   累計ダメージがパネルより上に残っていた。damage-calc.tsの
+		   refreshMobileDetailPlacement()が技列セクション(.damage-row-techniques-row)の
+		   .damage-row-totalの直前へ差し込むよう変更したので、ここでは左右2枠にまたがる
+		   全幅の段として配置する。 */
+		#opponent-notes-section .damage-row-techniques-row > .damage-detail-panel.is-mobile-inline {
+			grid-column: 1 / -1;
+		}
+		/* 選択中の技カード(.damage-column.is-selected、上方参照)に対応する場合だけ、枠色を
 		   カードの選択色(var(--color-primary)、.damage-column.is-selectedと同じ値)に揃え、
-		   上端の角丸を無くし、カードとの間隔を詰めて「カード自身が展開された」ように見せる。
+		   「そのカード自身が展開された」ように見せる。
 		   常設サジェスト一覧(is-mobile-suggest、選択中カードが無い状態でリスト末尾に
 		   常設表示される。damage-calc.tsのrefreshMobileDetailPlacement参照)はこの対象外にする
 		   (どの技カードにも属さないため、選択色や地続き演出を適用すると誤解を招く)。 */
 		#opponent-notes-section .damage-detail-panel.is-mobile-inline:not(.is-mobile-suggest) {
+			position: relative;
 			border-color: var(--color-primary);
-			border-top-left-radius: 0;
-			border-top-right-radius: 0;
-			/* .damage-rows-listのgap(var(--space-3)=12px)を8px分だけ詰め、選択中カードとの
-			   間隔を4pxまで縮める(完全に密着させると、それぞれが持つbox-shadowが視覚的に
-			   衝突し合う懸念があるため、わずかな隙間は残す判断)。 */
-			margin-top: calc(-1 * var(--space-2));
+			/* 提案図の「技カード1 →(矢印)→ 詳細設定」にあたる三角マーカー。パネルは左右
+			   2枠にまたがるので、どちらの技カードから開いたのかは位置でしか表せない。
+			   damage-calc.tsが data-mobile-arrow="left"|"right" を付けるので、左枠の中央
+			   (25%)・右枠の中央(75%)に置く。枠線と同じ色の三角形をborderで描き
+			   (新しい図形アセットは追加しない)、パネル上辺に食い込ませる。 */
+			margin-top: var(--space-2);
+		}
+		#opponent-notes-section .damage-detail-panel.is-mobile-inline[data-mobile-arrow]::before {
+			content: "";
+			position: absolute;
+			top: calc(-1 * var(--space-2));
+			width: 0;
+			height: 0;
+			border-left: var(--space-2) solid transparent;
+			border-right: var(--space-2) solid transparent;
+			border-bottom: var(--space-2) solid var(--color-primary);
+		}
+		#opponent-notes-section .damage-detail-panel.is-mobile-inline[data-mobile-arrow="left"]::before {
+			left: 25%;
+			transform: translateX(-50%);
+		}
+		#opponent-notes-section .damage-detail-panel.is-mobile-inline[data-mobile-arrow="right"]::before {
+			left: 75%;
+			transform: translateX(-50%);
 		}
 
 		/* UI改修依頼(個体編集画面・モバイル、2026-08-08)「デフォルトの表示状態でカードを

@@ -67,20 +67,34 @@ const displayNickname = pokemon.nickname?.trim() || pokemon.species_name;
 
 <style>
 	.mobile-training-ui { display: contents; }
-	.mobile-training-bar { position: sticky; top: var(--topbar-height); z-index: 20; background: var(--color-surface); border-bottom: 1px solid var(--color-border); }
+	/* UI改修依頼(モバイル、2026-08-08)「セカンドバーをナビゲーションバーの直上に配置する
+	   (全タブ共通)」。提案図(docs/ui_proposal/mobile/box_個体編集_vs*.png、
+	   box_個体編集_セカンドバー.png)はどれもセカンドバー(オレンジ)が画面最下部の
+	   ナビゲーション(水色)の真上に描かれている。従来は画面上端へ position:sticky で
+	   貼り付けていた。
+	   AppBottomNav(.app-bottom-nav)は position:fixed; bottom:0 で、高さ
+	   var(--bottom-nav-height) + padding-bottom:env(safe-area-inset-bottom) を占める。
+	   その合計ぶんだけ持ち上げた位置にこのバーを固定する(sticky だと本文の
+	   スクロール量に依存して下端に貼り付かないため fixed にする)。
+	   区切り線も本文との境界側(上端)へ移す。z-index はナビゲーション(20)と同値で、
+	   互いに重ならない位置に並ぶため前後関係は問題にならない。
+	   本文がこのバーに隠れないための下余白は src/pages/box/[id].astro の
+	   <style is:global>(--mobile-second-bar-height)で確保する。 */
+	.mobile-training-bar { position: fixed; left: 0; right: 0; bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom)); z-index: 20; background: var(--color-surface); border-top: 1px solid var(--color-border); }
 	.mobile-training-bar-list { display: flex; overflow-x: auto; scrollbar-width: none; }
 	.mobile-training-bar-list::-webkit-scrollbar { display: none; }
 	.mobile-training-bar-item { flex: 1 0 calc(var(--space-8) + var(--space-6)); min-width: calc(var(--space-8) + var(--space-6)); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-1); padding: var(--space-2) var(--space-1); color: var(--color-text-muted); font: inherit; font-size: var(--font-size-xs); line-height: 1; white-space: nowrap; background: transparent; border: 0; cursor: pointer; }
 	.mobile-training-bar-item[data-active="true"] { color: var(--color-primary); }
 	.mobile-training-bar-item.is-disabled { color: var(--color-text-muted); opacity: 0.6; cursor: not-allowed; }
 	/* UI改修依頼(モバイル、2026-08-08)「タブバーの下のプレビューもスクロールで隠れないよう
-	   固定表示にする」。.mobile-training-bar自体は既にposition:stickyで上部固定済みだが、
-	   その直下のこの要素は通常フローのままだったため、スクロールすると隠れていた。
-	   .mobile-training-barの直下に貼り付けるため、実測した高さ(devサーバー・Playwright
-	   getBoundingClientRectで実測、390px幅で53px。バー内のアイコン/ラベルの固定サイズで
-	   決まる高さなので画面幅やテキスト長では変わらない)を--topbar-heightに足す。
-	   z-indexは.mobile-training-bar(20)より低い値にして、バーが常に手前に来るようにする。 */
-	.mobile-training-preview { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: var(--space-2); padding: var(--space-3); background: var(--color-surface-alt); border-bottom: 1px solid var(--color-border); font-size: var(--font-size-xs); position: sticky; top: calc(var(--topbar-height) + 53px); z-index: 15; }
+	   固定表示にする」。この要素は通常フローのままだったため、スクロールすると隠れていた。
+	   ⚠️ 同日の「セカンドバーをナビゲーションの直上へ」対応(上の.mobile-training-bar参照)で
+	   バーが画面下端へ移り、position:fixedでフローから外れたため、以前ここで足していた
+	   バーの実測高さ(53px)ぶんのオフセットは不要になった。画面上端(モバイルでは
+	   --topbar-height が 0px。box/[id].astroの<style is:global>参照)へ直接貼り付ける。
+	   z-indexは下端のバー/ナビゲーション(20)より低い値にして、重なったときにそれらが
+	   常に手前へ来るようにする。 */
+	.mobile-training-preview { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: var(--space-2); padding: var(--space-3); background: var(--color-surface-alt); border-bottom: 1px solid var(--color-border); font-size: var(--font-size-xs); position: sticky; top: var(--topbar-height); z-index: 15; }
 	.mobile-preview-left, .mobile-preview-right { min-width: 0; }
 	.mobile-preview-left { padding-top: var(--space-1); }
 	.mobile-preview-details { display: block; }
