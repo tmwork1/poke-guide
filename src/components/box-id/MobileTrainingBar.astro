@@ -71,39 +71,27 @@ const displayNickname = pokemon.nickname?.trim() || pokemon.species_name;
 
 <style>
 	.mobile-training-ui { display: contents; }
-	/* UI改修依頼(モバイル、2026-08-08)「セカンドバーをナビゲーションバーの直上に配置する
-	   (全タブ共通)」。提案図(docs/ui_proposal/mobile/box_個体編集_vs*.png、
-	   box_個体編集_セカンドバー.png)はどれもセカンドバー(オレンジ)が画面最下部の
-	   ナビゲーション(水色)の真上に描かれている。従来は画面上端へ position:sticky で
-	   貼り付けていた。
-	   AppBottomNav(.app-bottom-nav)は position:fixed; bottom:0 で、高さ
-	   var(--bottom-nav-height) + padding-bottom:env(safe-area-inset-bottom) を占める。
-	   その合計ぶんだけ持ち上げた位置にこのバーを固定する(sticky だと本文の
-	   スクロール量に依存して下端に貼り付かないため fixed にする)。
-	   区切り線も本文との境界側(上端)へ移す。z-index はナビゲーション(20)と同値で、
-	   互いに重ならない位置に並ぶため前後関係は問題にならない。
-	   本文がこのバーに隠れないための下余白は src/pages/box/[id].astro の
-	   <style is:global>(--mobile-second-bar-height)で確保する。 */
-	.mobile-training-bar { position: fixed; left: 0; right: 0; bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom)); z-index: 20; background: var(--color-surface); border-top: 1px solid var(--color-border); }
+	/* UI改修依頼(モバイル、2026-08-09)「セカンドバーを画面上部へ戻す」。
+	   2026-08-08にナビゲーションバー直上のfixedへ移した位置指定だけを差し戻し、
+	   通常フロー内のstickyとして画面上端(--topbar-height。モバイルでは0px)に貼り付ける。
+	   区切り線は直後に続く本文との境界になる下辺へ戻す。z-indexは20とし、直下に
+	   貼り付く育成プレビュー(z-index:15)よりセカンドバーが手前に来るようにする。 */
+	.mobile-training-bar { position: sticky; top: var(--topbar-height); z-index: 20; background: var(--color-surface); border-bottom: 1px solid var(--color-border); }
 	.mobile-training-bar-list { display: flex; overflow-x: auto; scrollbar-width: none; }
 	.mobile-training-bar-list::-webkit-scrollbar { display: none; }
 	.mobile-training-bar-item { flex: 1 0 calc(var(--space-8) + var(--space-6)); min-width: calc(var(--space-8) + var(--space-6)); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-1); padding: var(--space-2) var(--space-1); color: var(--color-text-muted); font: inherit; font-size: var(--font-size-xs); line-height: 1; white-space: nowrap; background: transparent; border: 0; cursor: pointer; }
 	.mobile-training-bar-item[data-active="true"] { color: var(--color-primary); }
 	.mobile-training-bar-item.is-disabled { color: var(--color-text-muted); opacity: 0.6; cursor: not-allowed; }
-	/* UI改修依頼(モバイル、2026-08-08)「タブバーの下のプレビューもスクロールで隠れないよう
-	   固定表示にする」。この要素は通常フローのままだったため、スクロールすると隠れていた。
-	   ⚠️ 同日の「セカンドバーをナビゲーションの直上へ」対応(上の.mobile-training-bar参照)で
-	   バーが画面下端へ移り、position:fixedでフローから外れたため、以前ここで足していた
-	   バーの実測高さ(53px)ぶんのオフセットは不要になった。画面上端(モバイルでは
-	   --topbar-height が 0px。box/[id].astroの<style is:global>参照)へ直接貼り付ける。
-	   z-indexは下端のバー/ナビゲーション(20)より低い値にして、重なったときにそれらが
-	   常に手前へ来るようにする。 */
+	/* UI改修依頼(モバイル、2026-08-09)「セカンドバーを画面上部へ戻す」。
+	   画面上端にstickyで貼り付くセカンドバーの直下へ続けて固定するため、topは
+	   --topbar-heightにバーの実測高さ(--mobile-second-bar-height、box/[id].astro参照)を足す。
+	   z-indexはバーの20より低い15のままとし、重なったときはバーが手前に来るようにする。 */
 	/* UI改修依頼(モバイル、2026-08-08)「特性・わざ・アイテム・NNの文字サイズ +20%」。
 	   これら4種はいずれもこの箱のfont-size(--font-size-xs)をそのまま継承していたため、
 	   継承元をここで1.2倍にする(新トークンは作らず既存トークンからの派生calcにする)。
 	   実数値・努力値の表(.mobile-preview-stats)は指示に含まれないので、あちらで
 	   --font-size-xs を明示し直して従来サイズのまま据え置く。 */
-	.mobile-training-preview { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: var(--space-2); padding: var(--space-3); background: var(--color-surface-alt); border-bottom: 1px solid var(--color-border); font-size: calc(var(--font-size-xs) * 1.2); position: sticky; top: var(--topbar-height); z-index: 15; overflow: hidden; }
+	.mobile-training-preview { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: var(--space-2); padding: var(--space-3); background: var(--color-surface-alt); border-bottom: 1px solid var(--color-border); font-size: calc(var(--font-size-xs) * 1.2); position: sticky; top: calc(var(--topbar-height) + var(--mobile-second-bar-height)); z-index: 15; overflow: hidden; }
 	/* ドット絵を最背面へ回した(下の.mobile-preview-sprite-wrap参照)ぶん、3列の中身は
 	   必ずその手前に来るよう重ね順を明示する。 */
 	.mobile-preview-left, .mobile-preview-identity, .mobile-preview-right { position: relative; z-index: 1; }

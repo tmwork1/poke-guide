@@ -3183,21 +3183,19 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 	/* モバイルでは一覧ページと同じ追加操作をFABにし、カード下端との重なりを避ける。 */
 	@media (max-width: 899px) {
 		/* 「＋」FAB(下の.add-card-tile)に最後のカードが隠れないための下余白。
-		   ⚠️ セカンドバーを画面下端(ナビゲーションの直上)へ移した対応(2026-08-08、
-		   MobileTrainingBar.astro / box/[id].astro参照)により、固定バー2本ぶんの下余白は
-		   .app-main側(box/[id].astroの<style is:global>)がまとめて持つようになった。
-		   ここで再度var(--bottom-nav-height)を足すと二重取りになり、カード列の下に
-		   100px以上の死んだ空白が残るため、FABの高さ(56px)+余白ぶんだけに絞る。 */
+		   UI改修依頼(モバイル、2026-08-09)でセカンドバーを画面上端のstickyへ戻し、
+		   .app-mainのページ限定下余白を撤去したため、FABの高さ(56px)に加えて固定された
+		   AppBottomNavの高さと余白を確保し、最後のカードが両者の裏へ隠れないようにする。 */
 		#opponent-notes-section .damage-rows-list {
-			padding-bottom: calc(56px + var(--space-4));
+			padding-bottom: calc(56px + var(--bottom-nav-height) + var(--space-4));
 		}
 		#opponent-notes-section .card-damage { max-width: 100%; }
 		#opponent-notes-section .add-card-tile {
 			position: fixed;
 			right: var(--space-5);
-			/* セカンドバーがナビゲーションの直上に来たぶんだけFABも持ち上げる
-			   (--mobile-second-bar-height は box/[id].astro の body.box-edit-page 定義)。 */
-			bottom: calc(var(--mobile-second-bar-height) + var(--bottom-nav-height) + var(--space-4) + env(safe-area-inset-bottom));
+			/* UI改修依頼(モバイル、2026-08-09)でセカンドバーが画面上端へ戻り、FABの下には
+			   AppBottomNavだけが残るため、ナビゲーションの高さと余白ぶんだけ持ち上げる。 */
+			bottom: calc(var(--bottom-nav-height) + var(--space-4) + env(safe-area-inset-bottom));
 			z-index: 15;
 			width: 56px;
 			height: 56px;
