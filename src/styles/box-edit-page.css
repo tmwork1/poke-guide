@@ -3,6 +3,19 @@
 .edit-layout-right {
   min-width: 0;
 }
+.edit-layout-left .stat-adjustment-section {
+  --stat-grid-template-columns:
+    minmax(3.75rem, 1fr)
+    minmax(2.75rem, 0.75fr)
+    minmax(7rem, 2.5fr)
+    minmax(3rem, 0.9fr)
+    minmax(3rem, 0.75fr);
+  --stat-column-gap: var(--space-1);
+  --stat-table-inline-start-padding: var(--space-1);
+  --stat-table-inline-end-padding: var(--space-2);
+  --stat-ev-mobile-button-inline-size: 2.75rem;
+  --stat-ev-mobile-button-block-size: 30px;
+}
 .edit-layout-right {
   padding: var(--space-6) var(--space-5);
 }

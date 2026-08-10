@@ -408,7 +408,8 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		    <script>のleft-panel.ts参照)の「人気」列(並び替え可能、初期表示は人気順)に反映する
 		    形に変更した。 */}
 
-		<div class="stat-table">
+		<div class="stat-adjustment-section">
+			<div class="stat-table">
 			<div class="stat-table-header">
 				{/* 🔴 UI改修依頼(個体編集左パネル、2026-08-01)「性格ボックスを廃止。性格は
 				    ステータス表の1列目のヘッダーとする(種族値、の左側)」。上の.top-block-fields内に
@@ -539,15 +540,6 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 						    書き換えてからinputイベントを発火させることで、pairEvSlider側の同期・
 						    自動保存・実数値再計算にそのまま乗せる(left-panel.ts側の配線を参照)。 */}
 						<div class="stat-ev-range-controls">
-							<button type="button" class="btn-ghost stat-ev-endpoint-button" data-ev-target={`ev-${key}-range`} data-ev-endpoint="min" aria-label={`${statShort}の努力値を0にする`}>
-								{/* 性格補正の▲▼と区別しやすいよう、枠内に小さな横向きの塗り三角を置く。 */}
-								<svg viewBox="0 0 24 24" aria-hidden="true"><polygon points="9,12 15,8 15,16" fill="currentColor" stroke="none" /></svg>
-								{/* 🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08 第2弾)「努力値操作のボタンは
-								    "0" "-" "+" "32" の4つにする」。モバイルでは三角アイコンを隠し、この
-								    文字ラベルへ差し替える(デスクトップは従来どおり三角のまま。
-								    出し分けは下記scoped<style>の@media (max-width: 899px)参照)。 */}
-								<span class="stat-ev-endpoint-text" aria-hidden="true">0</span>
-							</button>
 							<button type="button" class="btn-ghost stat-ev-step-button" data-ev-target={`ev-${key}-range`} data-ev-step="-1" aria-label={`${statShort}の努力値を1減らす`}>−</button>
 							<input
 								type="range"
@@ -559,11 +551,11 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 								value={statAt(pokemon.evs, i, 0)}
 							/>
 							<button type="button" class="btn-ghost stat-ev-step-button" data-ev-target={`ev-${key}-range`} data-ev-step="1" aria-label={`${statShort}の努力値を1増やす`}>+</button>
-							<button type="button" class="btn-ghost stat-ev-endpoint-button" data-ev-target={`ev-${key}-range`} data-ev-endpoint="max" aria-label={`${statShort}の努力値を最大にする`}>
+							<button type="button" class="btn-ghost stat-ev-endpoint-button" data-ev-target={`ev-${key}-range`} data-ev-endpoint="max" data-ev-toggle aria-label={`${statShort}の努力値を最大にする`}>
 								<svg viewBox="0 0 24 24" aria-hidden="true"><polygon points="15,12 9,8 9,16" fill="currentColor" stroke="none" /></svg>
 								{/* チャンピオンズルールの努力値上限は32(CLAUDE.md/jpoke skill参照)。上のrangeの
 								    max属性と同じ値をそのまま文字ラベルにする。 */}
-								<span class="stat-ev-endpoint-text" aria-hidden="true">32</span>
+								<span class="stat-ev-endpoint-text" aria-hidden="true">MAX</span>
 							</button>
 						</div>
 						{/* UI改善ラウンド40ユーザー指示(40-T2)「スピンボックスは上下限で打ち切らず
@@ -660,6 +652,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 				<span class="stat-adjust-action-label">すばやさ調整</span>
 			</a>
 		</div>
+		</div>
 		{/* ラウンド3 B-7: 「努力値合計」は要件により削除した。チャンピオンズルールは合計上限が
 		    無く、この数値は何の判断にも使えない(「510の残り」を連想させる誤った示唆に
 		    なる)ため撤去した。 */}
@@ -705,7 +698,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	   実装すると破綻する」を踏まえ、既存のテーマ追従トークンを維持する。data-mod="up"/"down"時の
 	   var(--color-stat-up)/var(--color-stat-down)への切り替えも変更していない)。 */
 	/* 薄い文字色でも判別しやすくするため、既存ウェイトの次段階へ上げる。 */
-	.stat-value { display: inline-block; margin-top: 0.15em; font-size: var(--font-size-base); font-weight: 500; color: var(--color-text); }
+	.stat-value { display: inline-block; margin-top: 0.15em; font-size: var(--font-size-base); font-weight: 400; color: var(--color-text); }
 	.stat-value[data-mod="up"] { color: var(--color-stat-up); }
 	.stat-value[data-mod="down"] { color: var(--color-stat-down); }
 
@@ -729,6 +722,11 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	   無いことを確認済み)。そのため「上書きを外す/合わせる」対応が必要な差分自体が
 	   存在しない(=既に統一済み)。今回は測定結果をここに残すだけに留め、CSSの変更は
 	   行わない(将来また同じ疑いで再調査されるのを防ぐため、判断根拠を明記する)。 */
+	.stat-adjustment-section {
+		/* 表の操作要素と下部アクションの端をそろえ、パネル端への張り付きを防ぐ。 */
+		padding-inline-start: var(--stat-table-inline-start-padding);
+		padding-inline-end: var(--stat-table-inline-end-padding);
+	}
 	.stat-table { display: flex; flex-direction: column; gap: var(--space-1); }
 	/* UI品質改善(ラウンド8 A-4): このヘッダはfont-size:0.78remの上でem指定の
 	   grid-template-columnsを使っていたが、.stat-row側はfont-size指定なし(=1rem)で
@@ -825,8 +823,8 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		   グリッドの仕組み上そのまま3列目(スライダー、minmax(0, 1fr))へ吸収される(fr列は
 		   固定列の合計を引いた残り全部を占めるため、固定列を1つ減らせば自動的にfr列が広がる。
 		   実測: スライダー列は約139px→約173px)。 */
-		grid-template-columns: 4.1rem 2.4rem minmax(0, 1fr) 3.2rem 2.8rem;
-		gap: 0.4rem;
+		grid-template-columns: var(--stat-grid-template-columns);
+		gap: var(--stat-column-gap);
 		/* UI統一感レビュー(32-U-B1): 同じ行内の.ev-remaining(「残りN」)が持つ
 		   共通トークンvar(--font-size-xs)(12px)に対し、ここだけ直値0.78rem(12.48px)
 		   だった。共通トークンを持つ側を基準に寄せる(太さ600/700の差は階層差として維持)。 */
@@ -921,7 +919,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		/* ラウンド20ユーザー指示(20-G3)文字の下限12px対応: 0.72rem(11.5px)→
 		   --font-size-xs(0.75rem=12px)に上げる。 */
 		font-size: var(--font-size-xs);
-		font-weight: 700;
+		font-weight: 400;
 		color: var(--color-text-muted);
 	}
 	.ev-remaining[data-state="zero"] { color: var(--color-success); }
@@ -941,9 +939,9 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		   🔴 UI改修依頼(個体編集左パネル、2026-08-03)「H・B・D行の個別"調整"ボタンとS行の
 		   リンクを撤去する」対応により5列に戻す(理由は上の.stat-table-headerコメント参照。
 		   値は必ず同一に保つ)。 */
-		grid-template-columns: 4.1rem 2.4rem minmax(0, 1fr) 3.2rem 2.8rem;
+		grid-template-columns: var(--stat-grid-template-columns);
 		align-items: center;
-		gap: 0.4rem;
+		gap: var(--stat-column-gap);
 	}
 	/* display:contents でこのラッパー自身をレイアウトツリーから消し、中のスライダー/数値入力を
 	   .stat-row の直接の子(=グリッドアイテム)にする。こうしないと両方が3列目(1fr)に
@@ -999,34 +997,46 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	@media (max-width: 899px) {
 		.stat-row .stat-ev-range-controls input[type="range"] { display: none; }
 		.stat-row .stat-ev-step-button { display: inline-flex; }
-		.stat-row .stat-input-controls { display: flex; align-items: center; justify-content: center; gap: var(--space-1); min-width: 0; grid-column: 3 / 5; }
+		.stat-row .stat-input-controls { display: flex; align-items: center; justify-content: flex-end; gap: var(--space-1); min-width: 0; grid-column: 3 / 5; }
 		.stat-row .stat-ev-range-controls { display: contents; }
-		.stat-row .stat-ev-endpoint-button[data-ev-endpoint="min"] { order: 1; }
 		.stat-row .stat-ev-step-button[data-ev-step="-1"] { order: 2; }
 		/* 基底の .stat-row input[type="number"] は width:100% なので、flex行に置くと
 		   余った横幅を全部吸って左右のボタンが両端へ離れてしまう(実測、700px幅)。
 		   4ボタンと1つのまとまりに見えるよう固定幅にして、行ごと中央へ寄せる
 		   (.stat-input-controls の justify-content: center)。 */
 		.stat-row .stat-input-controls > input[type="number"] { order: 3; flex: 0 0 3.4rem; width: 3.4rem; }
+		.stat-row .stat-input-controls > input[type="number"] {
+			height: 30px;
+			min-height: 30px;
+			padding: 0 var(--space-1);
+			line-height: 1;
+		}
 		.stat-row .stat-ev-step-button[data-ev-step="1"] { order: 4; }
-		.stat-row .stat-ev-endpoint-button[data-ev-endpoint="max"] { order: 5; }
+		.stat-row .stat-ev-endpoint-button[data-ev-toggle] { order: 5; }
 		/* 「見た目もボタンらしくする」: btn-ghost(透明・枠なし)のままだと素のテキストに見えるため、
 		   モバイルに限り通常のbutton基底と同じ面(--color-surface)と枠を戻す。文字色も
 		   --color-text-muted から通常の本文色へ上げて、押せる要素として読めるようにする。 */
 		.stat-row .stat-ev-endpoint-button,
 		.stat-row .stat-ev-step-button {
-			flex: 0 0 auto;
-			width: auto;
-			min-width: 30px;
-			height: 30px;
-			min-height: 30px;
+			box-sizing: border-box;
+			flex: 0 0 var(--stat-ev-mobile-button-inline-size);
+			width: var(--stat-ev-mobile-button-inline-size);
+			min-width: var(--stat-ev-mobile-button-inline-size);
+			height: var(--stat-ev-mobile-button-block-size);
+			min-height: var(--stat-ev-mobile-button-block-size);
 			padding: 0;
-			color: var(--color-text);
-			background: var(--color-surface);
+			color: var(--color-text-muted);
+			background: var(--color-surface-alt);
 			border: 1px solid var(--color-border);
-			border-radius: var(--radius-sm);
-			font-size: var(--font-size-sm);
-			font-weight: 700;
+			border-radius: var(--radius-zero);
+			font-size: var(--font-size-md);
+			font-weight: 400;
+		}
+		/* 増減ボタンは入力欄と同じ30pxの正方形にする。端点ボタンは区別のため既存幅を維持する。 */
+		.stat-row .stat-ev-step-button {
+			flex-basis: var(--stat-ev-mobile-button-block-size);
+			width: var(--stat-ev-mobile-button-block-size);
+			min-width: var(--stat-ev-mobile-button-block-size);
 		}
 		/* 端点ボタンは三角アイコンをやめ、"0"/"32"の文字ラベルに差し替える(マークアップ側の
 		   .stat-ev-endpoint-text参照)。 */
@@ -1035,6 +1045,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	}
 	/* 文字ラベルはモバイル専用。デスクトップでは三角アイコンのままにする。 */
 	.stat-ev-endpoint-text { display: none; }
+	.stat-ev-toggle-spacer { display: none; }
 	/* 努力値の数値入力も左パネル用の詰めた寸法に揃える(6行あるので効き方が大きい)。 */
 	/* ラウンド23ユーザー指示(23-L5): 努力値の数値入力も中央揃えにする。 */
 	.stat-row input[type="number"] { font-size: var(--font-size-md); padding: 0.3em 0.5em; width: 100%; text-align: center; }
@@ -1093,7 +1104,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	   (colorは.stat-row-label-short[data-mod]のvar(--color-stat-up)/var(--color-stat-down)による
 	   性格補正の色分けをそのまま使うため変更しない)。 */
 	/* 色トークンは維持し、ラベルだけ既存ウェイトの次段階へ上げて読みやすくする。 */
-	.stat-row-label { font-weight: 500; white-space: nowrap; display: flex; align-items: center; justify-content: center; gap: 0.1em; line-height: 1; }
+	.stat-row-label { font-weight: 400; white-space: nowrap; display: flex; align-items: center; justify-content: center; gap: 0.1em; line-height: 1; }
 	/* ラウンド21ユーザー指示(21-L7)「A,B,...のラベル色も赤・青に変わるようにする」。
 	   相手ビルドカード側(20-D3)と同じ--color-stat-up/--color-stat-down
 	   (global.cssで定義。ライト4.86-4.94:1・ダーク7.2-7.6:1)を
@@ -1312,7 +1323,12 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	   .stat-speed-chart-link(28px、既にrow中心と一致)と同じ中心に揃う
 	   (実測: 修正後は全6行でrow centerYとの差が0.01px以下に縮小、報告参照)。
 	   font-sizeは元々ここで揃えていたvar(--font-size-base)の指定をそのまま維持する。 */
-	.stat-row-real { text-align: center; font-size: var(--font-size-base); margin-top: 0; }
+	.stat-row-real {
+		padding-inline-end: var(--space-1);
+		text-align: right;
+		font-size: var(--font-size-base);
+		margin-top: 0;
+	}
 	/* 🔴 UI改修依頼(個体編集左パネル、2026-08-03)「H・B・D行の個別"調整"ボタンとS行のリンクを
 	   撤去する」対応により、2026-08-02の一連の改修(調整ボタンの拡大・アイコン化・H/B/D行への
 	   追加)で育ってきた.stat-speed-chart-link/.stat-adjust-button/.stat-speed-chart-placeholderの
@@ -1343,6 +1359,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		gap: var(--space-2);
 		margin: 0.6rem 0 0;
 	}
+	.stat-adjustment-section { font-size: var(--font-size-md); }
 	/* ボタン本体は.btn-ghost(global.css、透明背景+ホバーでsurface-alt)をそのまま使う。パネル幅に
 	   対して「耐久指数最大化」(7文字)を含む3ボタンが横並びで収まるよう、.btn-ghostの既定
 	   (padding: var(--space-2) 1.1em、font-size: 継承=1rem)より一段階詰めた既存トークンの組み
@@ -1353,11 +1370,11 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		flex: 1 1 auto;
 		justify-content: center;
 		gap: 0.35em;
-		font-size: var(--font-size-sm);
+		font-size: var(--font-size-md);
 		padding: var(--space-1) var(--space-2);
 		white-space: nowrap;
 		/* 共通buttonの強めのウェイトを一段細くし、補助操作としての階層に合わせる。 */
-		font-weight: 500;
+		font-weight: 400;
 	}
 	/* 🔴 UI改修依頼(個体編集左パネル、2026-08-04)「ボタンらしくない」というユーザー指摘への
 	   対応。.btn-ghost(global.css 904-914行目)は透明背景+ホバーでうっすら背景が付くだけで、
@@ -1428,17 +1445,18 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		   吸収する役割にしていたが、0/-/+/32の4ボタン+数値入力欄を1行に収めるには3列目により
 		   広いゲージ幅が要る。実数値は最大3桁の数字1つを表示するだけで済むため、3remの固定幅に
 		   変えても崩れない(デスクトップの実数値列2.8remより余裕を持たせた)。 */
-		.stat-row { grid-template-columns: 4.6em 2.2em minmax(0, 1fr) 3rem; row-gap: var(--space-1); }
+		.stat-row { grid-template-columns: 3.8rem 2.6rem minmax(0, 1fr) 3rem; row-gap: var(--space-1); }
 		/* 460px以下では努力値のボタン行(0/-/+/32)+数値入力を1つのflex行にまとめる
 		   (デスクトップの5列グリッドは幅が無いと成立しないため)。 */
 		/* 🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08 第2弾)追随: この幅の.stat-rowは
 		   4列グリッド(4列目=実数値)なので、899px以下ブロックで与えた grid-column: 3 / 5 は
 		   実数値の席を奪ってしまう。3列目単独へ戻す。 */
-		.stat-row .stat-input-controls { display: flex; align-items: center; justify-content: center; gap: var(--space-1); min-width: 0; grid-column: 3; }
+		.stat-row .stat-input-controls { display: flex; align-items: center; justify-content: flex-end; gap: var(--space-1); min-width: 0; grid-column: 3; }
 		/* 390px級の実機幅では 0/−/数値/+/32 の5要素が1行に収まりきらないため、
 		   ボタンの最小幅だけ 30px → 26px(WCAG 2.5.8の24px下限は満たす)へ詰める。 */
 		.stat-row .stat-ev-endpoint-button,
-		.stat-row .stat-ev-step-button { min-width: 26px; }
+		.stat-row .stat-ev-step-button { min-width: var(--stat-ev-mobile-button-inline-size); }
+		.stat-row .stat-ev-step-button { min-width: var(--stat-ev-mobile-button-block-size); }
 		/* 🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08)により、この460px以下の極小幅でも
 		   0/-/+/32ボタンを表示する方針に変えたため、.stat-ev-range-controls自体を丸ごと
 		   非表示にしていた旧ルール(スライダー+旧0/32ボタンをまとめて隠し、素の数値入力欄だけを
@@ -1464,8 +1482,9 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		   .stat-row .stat-input-controls と同じ、"display:contentsをこの幅だけ元に戻す"という
 		   既存の流儀を踏襲)。 */
 		.stat-row-real-wrap { display: flex; grid-column: 4; justify-content: flex-end; min-width: 0; }
-		.stat-row-real { text-align: right; font-weight: 700; }
-		.stat-row-label { gap: 0.2em; }
+		.stat-row-base,
+		.stat-row-real { padding-inline-end: 0; text-align: center; font-weight: 400; }
+		.stat-row-label { gap: 0; }
 	}
 
 	/* ラウンド3 B-7: 「努力値合計」は要件により削除した。チャンピオンズルールは合計上限が
@@ -2426,6 +2445,9 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		.mobile-move-toggle-icon { color: var(--color-text-muted); }
 		.mobile-move-toggle[aria-expanded="true"] .mobile-move-toggle-icon { transform: rotate(90deg); }
 		#edit-form .move-fields-grid.is-mobile-collapsed { display: none; }
+		#edit-form .move-fields-grid.is-mobile-collapsed + .stat-adjustment-section {
+			margin-top: var(--space-5);
+		}
 	}
 </style>
 {/* UI改善ラウンド37(37-1〜37-3)「左パネルの技選択の専用ウィンドウ」。

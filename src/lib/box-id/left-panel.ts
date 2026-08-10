@@ -1522,8 +1522,17 @@ if (form) {
 		button.addEventListener("click", () => {
 			const rangeInput = document.getElementById(button.dataset.evTarget ?? "") as HTMLInputElement | null;
 			if (!rangeInput) return;
-			rangeInput.value = button.dataset.evEndpoint === "max" ? rangeInput.max : rangeInput.min;
+			const endpoint = button.dataset.evEndpoint === "min" ? "min" : "max";
+			rangeInput.value = endpoint === "max" ? rangeInput.max : rangeInput.min;
 			rangeInput.dispatchEvent(new Event("input", { bubbles: true }));
+
+			if (!button.hasAttribute("data-ev-toggle")) return;
+			const nextEndpoint = endpoint === "max" ? "min" : "max";
+			button.dataset.evEndpoint = nextEndpoint;
+			button.setAttribute("aria-label", `努力値を${nextEndpoint === "max" ? "最大" : "最小"}にする`);
+			button.querySelector<HTMLElement>(".stat-ev-endpoint-text")!.textContent = nextEndpoint === "min" ? "min" : "MAX";
+			const polygon = button.querySelector("polygon");
+			polygon?.setAttribute("points", nextEndpoint === "max" ? "15,12 9,8 9,16" : "9,12 15,8 15,16");
 		});
 	}
 	// 🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08)「種族値と努力値の間に0/-/+/32の
