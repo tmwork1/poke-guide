@@ -544,7 +544,6 @@ if (form) {
 			previewFallback.textContent = sourceFallback?.textContent?.trim() || inputValue("species-name").slice(0, 1) || "-";
 		}
 
-		setText("pokemon-preview-nickname", inputValue("nickname") || inputValue("species-name"));
 		const ability = document.getElementById("ability") as HTMLSelectElement | null;
 		setText("pokemon-preview-ability", ability?.selectedOptions[0]?.textContent?.trim() || ability?.value.trim() || "-");
 		setText("pokemon-preview-item", inputValue("item") || document.getElementById("item-dropdown-placeholder")?.textContent?.trim() || "アイテムなし");
@@ -1739,7 +1738,7 @@ if (form) {
 		...Array.from(document.querySelectorAll<HTMLElement>(".move-input-group .move-type-icon")),
 		...STAT_KEYS.map((key) => document.getElementById(`stat-${key}`)),
 	].filter((node): node is HTMLElement => node instanceof HTMLElement);
-	if (document.getElementById("pokemon-preview-nickname")) {
+	if (document.querySelector(".pokemon-preview")) {
 		const mobilePreviewObserver = new MutationObserver(syncPokemonPreview);
 		for (const source of mobilePreviewSources) {
 			mobilePreviewObserver.observe(source, { attributes: true, childList: true, characterData: true, subtree: true });
