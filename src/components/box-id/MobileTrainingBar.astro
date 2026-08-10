@@ -38,9 +38,11 @@ const displayNickname = pokemon.nickname?.trim() || pokemon.species_name;
   </nav>
 
   <section class="pokemon-preview" aria-label="ポケモンプレビュー" data-species-name={pokemon.species_name}>
+    <div class="pokemon-preview-main">
     <div class="pokemon-preview-left">
       <div class="pokemon-preview-details">
         <div id="pokemon-preview-ability">{pokemon.ability_name || '-'}</div>
+        <span class="pokemon-preview-type-icons" id="pokemon-preview-type-icons" aria-label="タイプ"></span>
       </div>
       <ol class="pokemon-preview-moves" aria-label="技">
         {[0, 1, 2, 3].map((index) => (
@@ -55,9 +57,6 @@ const displayNickname = pokemon.nickname?.trim() || pokemon.species_name;
       <div class="pokemon-preview-sprite-wrap">
         <img id="pokemon-preview-species-sprite" width="72" height="72" alt={pokemon.species_name} style="display:none;" />
         <span id="pokemon-preview-species-sprite-fallback">{pokemon.species_name.slice(0, 1)}</span>
-      </div>
-      <div class="pokemon-preview-species">
-        <span id="pokemon-preview-nickname">{displayNickname}</span>
       </div>
     </div>
     <div class="pokemon-preview-right">
@@ -77,6 +76,10 @@ const displayNickname = pokemon.nickname?.trim() || pokemon.species_name;
         </tbody>
       </table>
     </div>
+    </div>
+    <div class="pokemon-preview-nickname-row">
+      <span id="pokemon-preview-nickname">{displayNickname}</span>
+    </div>
   </section>
 
   <div class="mobile-damage-toolbar" id="mobile-damage-toolbar">
@@ -87,12 +90,16 @@ const displayNickname = pokemon.nickname?.trim() || pokemon.species_name;
 <script>
   import '../../lib/box-id/mobile-edit-tabs';
   import { loadTypesMap } from '../../lib/pokemon-master-data';
+  import { typeIconUrl } from '../../lib/sprite-urls';
   import { DEFAULT_TYPE_COLOR, TYPE_COLORS } from '../../lib/type-colors';
 
   const pokemonPreview = document.querySelector<HTMLElement>('.pokemon-preview');
   const speciesName = pokemonPreview?.dataset.speciesName;
+  const pokemonPreviewMain = pokemonPreview?.querySelector<HTMLElement>('.pokemon-preview-main');
+  const pokemonPreviewNicknameRow = pokemonPreview?.querySelector<HTMLElement>('.pokemon-preview-nickname-row');
+  const pokemonPreviewTypeIcons = pokemonPreview?.querySelector<HTMLElement>('.pokemon-preview-type-icons');
 
-  if (pokemonPreview && speciesName) {
+  if (pokemonPreviewMain && speciesName) {
     loadTypesMap()
       .then((typesMap) => {
         const types = typesMap.get(speciesName);
@@ -103,10 +110,26 @@ const displayNickname = pokemon.nickname?.trim() || pokemon.species_name;
           return `color-mix(in srgb, ${hex} 26%, var(--color-surface-alt))`;
         };
 
-        pokemonPreview.style.background =
+        const mainBackground =
           types.length >= 2
             ? `linear-gradient(to right, ${toMixedColor(types[0])}, ${toMixedColor(types[1])})`
             : toMixedColor(types[0]);
+        pokemonPreviewMain.style.background = mainBackground;
+        if (pokemonPreviewNicknameRow) {
+          pokemonPreviewNicknameRow.style.background =
+            `linear-gradient(rgb(0 0 0 / 14%), rgb(0 0 0 / 14%)), ${mainBackground}`;
+        }
+        if (pokemonPreviewTypeIcons) {
+          pokemonPreviewTypeIcons.replaceChildren(
+            ...types.map((typeName) => {
+              const icon = document.createElement('img');
+              icon.src = typeIconUrl(typeName) ?? '';
+              icon.alt = typeName;
+              icon.title = typeName;
+              return icon;
+            }),
+          );
+        }
       })
       .catch((error) => {
         console.warn('ポケモンプレビューのタイプ色取得に失敗しました', error);
