@@ -1,186 +1,115 @@
 ---
 import type { OwnedPokemonRecord } from '../../lib/owned-pokemon';
-import '../../styles/box-training-preview.css';
+import '../../styles/box-pokemon-preview.css';
 
 interface Props {
-	pokemon: OwnedPokemonRecord;
+  pokemon: OwnedPokemonRecord;
 }
 
 const { pokemon } = Astro.props;
 const moves = pokemon.move_names ?? [];
 const displayNickname = pokemon.nickname?.trim() || pokemon.species_name;
 ---
-<div class="mobile-training-ui" id="mobile-training-ui" data-mobile-tab="training">
-	<nav class="training-screen-bar" id="mobile-training-bar" aria-label="個体編集メニュー">
-		<div class="training-screen-bar-list">
-			<span class="training-screen-bar-item is-disabled" aria-disabled="true">
-				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.05" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v9h9"/><path d="M20.5 15.5A9 9 0 1 1 8.5 3.7"/><path d="M15 3.5A9 9 0 0 1 20.5 9H15V3.5Z"/></svg>
-				<span>データ</span>
-			</span>
-			<span class="training-screen-bar-item is-disabled" aria-disabled="true">
-				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.05" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg>
-				<span>すばやさ</span>
-			</span>
-			<button type="button" class="training-screen-bar-item" data-mobile-tab="training" data-active="true" aria-current="page">
-				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.05" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h6m6 0h6"/><circle cx="12" cy="12" r="3"/></svg>
-				<span>育成</span>
-			</button>
-			<button type="button" class="training-screen-bar-item" data-mobile-tab="damage">
-				<!-- UI改修依頼(モバイル、2026-08-08)「VSタブのアイコンを2本の剣が交差するデザインに
-			     変更」。従来は表(行と点)を表すアイコンで、ダメージ計算表を連想させる図柄だった。
-			     他のタブと同じ 24x24 / fill:none / stroke:currentColor の線画で、左下→右上と
-			     右下→左上に伸びる2本の剣(刃・鍔・柄)が中央で交差する形にする。 -->
-				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.05" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5"/><line x1="13" y1="19" x2="19" y2="13"/><line x1="16" y1="16" x2="20" y2="20"/><line x1="19" y1="21" x2="21" y2="19"/><polyline points="14.5 6.5 18 3 21 3 21 6 17.5 9.5"/><line x1="5" y1="14" x2="9" y2="18"/><line x1="7" y1="17" x2="4" y2="20"/><line x1="3" y1="19" x2="5" y2="21"/></svg>
-				<span>VS</span>
-			</button>
-			<span class="training-screen-bar-item is-disabled" aria-disabled="true">
-				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.05" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="m7 8 1.5 1.5L11 7"/><path d="M13 8h4"/><path d="m7 14 1.5 1.5L11 13"/><path d="M13 14h4"/></svg>
-				<span>相性チェック</span>
-			</span>
-		</div>
-	</nav>
 
-	<section class="training-preview" aria-label="育成プレビュー" data-species-name={pokemon.species_name}>
-		<div class="training-preview-left">
-			<div class="training-preview-details">
-				<div id="training-preview-ability">{pokemon.ability_name || "-"}</div>
-			</div>
-			<ol class="training-preview-moves" aria-label="技">
-				{[0, 1, 2, 3].map((index) => <li><span class="move-type-icon" id={`training-preview-move-type-${index + 1}`} hidden><img alt="" /></span><span id={`training-preview-move-${index + 1}`}>{moves[index] || "-"}</span></li>)}
-			</ol>
-		</div>
-		<div class="training-preview-identity">
-			<div class="training-preview-sprite-wrap">
-				<img id="training-preview-species-sprite" width="72" height="72" alt={pokemon.species_name} style="display:none;" />
-				<span id="training-preview-species-sprite-fallback">{pokemon.species_name.slice(0, 1)}</span>
-			</div>
-			<div class="training-preview-species">
-				<span id="training-preview-nickname">{displayNickname}</span>
-			</div>
-		</div>
-		<div class="training-preview-right">
-			<div class="training-preview-item training-preview-icon-text"><img id="training-preview-item-image" alt="" style="display:none;" /><span id="training-preview-item">{pokemon.item_name || "アイテムなし"}</span></div>
-			<table class="training-preview-stats" aria-label="実数値と努力値">
-				<tbody>{[['hp','H'],['atk','A'],['def','B'],['spa','C'],['spd','D'],['spe','S']].map(([key, label]) => <tr><th>{label}</th><td id={`training-preview-stat-${key}`}>-</td><td id={`training-preview-ev-${key}`}>-</td></tr>)}</tbody>
-			</table>
-		</div>
-	</section>
-	<div class="mobile-damage-toolbar" id="mobile-damage-toolbar">
-		<div class="mobile-damage-toolbar-actions" id="mobile-damage-toolbar-actions"></div>
-	</div>
+<div class="mobile-training-ui" id="mobile-training-ui" data-mobile-tab="training">
+  <nav class="training-screen-bar" id="mobile-training-bar" aria-label="個体編集メニュー">
+    <div class="training-screen-bar-list">
+      <span class="training-screen-bar-item is-disabled" aria-disabled="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.05" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v9h9"/><path d="M20.5 15.5A9 9 0 1 1 8.5 3.7"/><path d="M15 3.5A9 9 0 0 1 20.5 9H15V3.5Z"/></svg>
+        <span>データ</span>
+      </span>
+      <span class="training-screen-bar-item is-disabled" aria-disabled="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.05" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg>
+        <span>すばやさ</span>
+      </span>
+      <button type="button" class="training-screen-bar-item" data-mobile-tab="training" data-active="true" aria-current="page">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.05" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h6m6 0h6"/><circle cx="12" cy="12" r="3"/></svg>
+        <span>育成</span>
+      </button>
+      <button type="button" class="training-screen-bar-item" data-mobile-tab="damage">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.05" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5"/><line x1="13" y1="19" x2="19" y2="13"/><line x1="16" y1="16" x2="20" y2="20"/><line x1="19" y1="21" x2="21" y2="19"/><polyline points="14.5 6.5 18 3 21 3 21 6 17.5 9.5"/><line x1="5" y1="14" x2="9" y2="18"/><line x1="7" y1="17" x2="4" y2="20"/><line x1="3" y1="19" x2="5" y2="21"/></svg>
+        <span>VS</span>
+      </button>
+      <span class="training-screen-bar-item is-disabled" aria-disabled="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.05" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="m7 8 1.5 1.5L11 7"/><path d="M13 8h4"/><path d="m7 14 1.5 1.5L11 13"/><path d="M13 14h4"/></svg>
+        <span>相性チェック</span>
+      </span>
+    </div>
+  </nav>
+
+  <section class="pokemon-preview" aria-label="ポケモンプレビュー" data-species-name={pokemon.species_name}>
+    <div class="pokemon-preview-left">
+      <div class="pokemon-preview-details">
+        <div id="pokemon-preview-ability">{pokemon.ability_name || '-'}</div>
+      </div>
+      <ol class="pokemon-preview-moves" aria-label="技">
+        {[0, 1, 2, 3].map((index) => (
+          <li>
+            <span class="move-type-icon" id={`pokemon-preview-move-type-${index + 1}`} hidden><img alt="" /></span>
+            <span id={`pokemon-preview-move-${index + 1}`}>{moves[index] || '-'}</span>
+          </li>
+        ))}
+      </ol>
+    </div>
+    <div class="pokemon-preview-identity">
+      <div class="pokemon-preview-sprite-wrap">
+        <img id="pokemon-preview-species-sprite" width="72" height="72" alt={pokemon.species_name} style="display:none;" />
+        <span id="pokemon-preview-species-sprite-fallback">{pokemon.species_name.slice(0, 1)}</span>
+      </div>
+      <div class="pokemon-preview-species">
+        <span id="pokemon-preview-nickname">{displayNickname}</span>
+      </div>
+    </div>
+    <div class="pokemon-preview-right">
+      <div class="pokemon-preview-item pokemon-preview-icon-text">
+        <img id="pokemon-preview-item-image" alt="" style="display:none;" />
+        <span id="pokemon-preview-item">{pokemon.item_name || 'アイテムなし'}</span>
+      </div>
+      <table class="pokemon-preview-stats" aria-label="実数値と努力値">
+        <tbody>
+          {[['hp', 'H'], ['atk', 'A'], ['def', 'B'], ['spa', 'C'], ['spd', 'D'], ['spe', 'S']].map(([key, label]) => (
+            <tr>
+              <th>{label}</th>
+              <td id={`pokemon-preview-stat-${key}`}>-</td>
+              <td id={`pokemon-preview-ev-${key}`}>-</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <div class="mobile-damage-toolbar" id="mobile-damage-toolbar">
+    <div class="mobile-damage-toolbar-actions" id="mobile-damage-toolbar-actions"></div>
+  </div>
 </div>
 
-<style>
-	.mobile-training-ui { display: contents; }
-	/* UI改修依頼(モバイル、2026-08-09)「セカンドバーを画面上部へ戻す」。
-	   2026-08-08にナビゲーションバー直上のfixedへ移した位置指定だけを差し戻し、
-	   通常フロー内のstickyとして画面上端(--topbar-height。モバイルでは0px)に貼り付ける。
-	   区切り線は直後に続く本文との境界になる下辺へ戻す。z-indexは20とし、直下に
-	   貼り付く育成プレビュー(z-index:15)よりセカンドバーが手前に来るようにする。 */
-	.mobile-training-bar { position: sticky; top: var(--topbar-height); z-index: 20; background: var(--color-surface); border-bottom: 1px solid var(--color-border); }
-	.mobile-training-bar-list { display: flex; overflow-x: auto; scrollbar-width: none; }
-	.mobile-training-bar-list::-webkit-scrollbar { display: none; }
-	.mobile-training-bar-item { flex: 1 0 calc(var(--space-8) + var(--space-6)); min-width: calc(var(--space-8) + var(--space-6)); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-1); padding: var(--space-2) var(--space-1); color: var(--color-text-muted); font: inherit; font-size: var(--font-size-xs); line-height: 1; white-space: nowrap; background: transparent; border: 0; cursor: pointer; }
-	.mobile-training-bar-item[data-active="true"] { color: var(--color-primary); }
-	.mobile-training-bar-item.is-disabled { color: var(--color-text-muted); opacity: 0.6; cursor: not-allowed; }
-	/* UI改修依頼(モバイル、2026-08-09)「セカンドバーを画面上部へ戻す」。
-	   画面上端にstickyで貼り付くセカンドバーの直下へ続けて固定するため、topは
-	   --topbar-heightにバーの実測高さ(--mobile-second-bar-height、box/[id].astro参照)を足す。
-	   z-indexはバーの20より低い15のままとし、重なったときはバーが手前に来るようにする。 */
-	/* UI改修依頼(モバイル、2026-08-08)「特性・わざ・アイテム・NNの文字サイズ +20%」。
-	   これら4種はいずれもこの箱のfont-size(--font-size-xs)をそのまま継承していたため、
-	   継承元をここで1.2倍にする(新トークンは作らず既存トークンからの派生calcにする)。
-	   実数値・努力値の表(.mobile-preview-stats)は指示に含まれないので、あちらで
-	   --font-size-xs を明示し直して従来サイズのまま据え置く。 */
-	.mobile-training-preview { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: var(--space-2); padding: var(--space-3); background: var(--color-surface-alt); border-bottom: 1px solid var(--color-border); font-size: calc(var(--font-size-xs) * 1.2); position: sticky; top: calc(var(--topbar-height) + var(--mobile-second-bar-height)); z-index: 15; overflow: hidden; }
-	/* ドット絵を最背面へ回した(下の.mobile-preview-sprite-wrap参照)ぶん、3列の中身は
-	   必ずその手前に来るよう重ね順を明示する。 */
-	.mobile-preview-left, .mobile-preview-identity, .mobile-preview-right { position: relative; z-index: 1; }
-	.mobile-preview-left, .mobile-preview-right { min-width: 0; }
-	.mobile-preview-left { padding-top: var(--space-1); }
-	.mobile-preview-details { display: block; }
-	.mobile-preview-details > div { margin-bottom: var(--space-3); }
-	.mobile-preview-details > div, .mobile-preview-icon-text span, .mobile-preview-moves li > span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-	.mobile-preview-icon-text { display: flex; align-items: center; gap: var(--space-1); min-width: 0; }
-	.mobile-preview-icon-text img { width: var(--icon-size-sm); height: var(--icon-size-sm); object-fit: contain; flex-shrink: 0; }
-	.mobile-preview-moves { display: flex; flex-direction: column; gap: var(--space-1); margin: 0; padding: 0; list-style: none; }
-	.mobile-preview-moves li { display: flex; align-items: center; gap: var(--space-1); min-width: 0; padding: var(--space-1) 0 0; }
-	.mobile-preview-moves li:last-child { padding-bottom: var(--space-1); }
-	.mobile-preview-moves .move-type-icon { flex-shrink: 0; }
-	.mobile-preview-moves .move-type-icon img { width: var(--icon-size-sm); height: var(--icon-size-sm); object-fit: contain; }
-	.mobile-preview-moves .move-type-icon[hidden] { display: none; }
-	/* ドット絵がフローから外れたため、残るニックネームは提案図
-	   (docs/ui_proposal/mobile/box_個体編集_育成.png)どおり中央列の下端に置く。 */
-	.mobile-preview-identity { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: var(--space-1); min-width: 0; text-align: center; }
-	/* UI改修依頼(モバイル、2026-08-08)「ポケモンアイコンは背景と枠を削除、サイズ+50%して
-	   中央に最背面で配置」。従来は中央列のフロー内に 72px(--space-8 + --space-6)の枠付き箱と
-	   して並べていた。枠・背景を外し、108px(=72pxの1.5倍。同じトークン合成の1.5倍で表す)に
-	   拡大したうえで、プレビュー領域(position:stickyなので位置指定済み=絶対配置の基準になる)の
-	   中央へ absolute で敷く。z-index:0 で3列の中身(z-index:1)より必ず後ろに回り、
-	   pointer-events:none でその上のテキスト/操作を邪魔しない。
-	   拡大したドット絵がプレビューの上下へはみ出さないよう、親側で overflow:hidden している
-	   (上の.mobile-training-preview)。 */
-	.mobile-preview-sprite-wrap { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: calc((var(--space-8) + var(--space-6)) * 1.5); height: calc((var(--space-8) + var(--space-6)) * 1.5); display: flex; align-items: center; justify-content: center; border: 0; background: transparent; z-index: 0; pointer-events: none; }
-	#mp-species-sprite { width: 100%; height: 100%; object-fit: contain; }
-	#mp-species-sprite-fallback { color: var(--color-text-muted); }
-	.mobile-preview-species { display: flex; align-items: center; justify-content: center; gap: var(--space-1); min-width: 0; }
-	#mp-nickname { max-width: calc(var(--space-8) + var(--space-7) + var(--space-2)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-	.mobile-preview-item { margin-bottom: var(--space-1); }
-	#mp-item { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-	.mobile-preview-stats { border-collapse: collapse; font-size: var(--font-size-xs); line-height: 1; }
-	/* UI改修依頼(モバイル、2026-08-08)「列間の余白が間延びして見える」対応。
-	   従来は th/td 双方の左右に var(--space-1) を付けており、隣接セルの境界では
-	   両側分(space-1 + space-1)の余白が重なって間延びして見えていた。文字サイズは変えず、
-	   各境界の余白を片側の var(--space-1) 1つ分に絞る(新しいトークン・生値は作らない)。 */
-	.mobile-preview-stats th, .mobile-preview-stats td { padding: var(--space-1) 0 0; border: 0; background: transparent; text-align: right; font-weight: 400; color: var(--color-text); }
-	.mobile-preview-stats tr:last-child th, .mobile-preview-stats tr:last-child td { padding-bottom: var(--space-1); }
-	/* UI改修依頼(モバイル、2026-08-08)「ラベル・実数値・努力値の間のスペースを詰める」。
-	   上の2026-08-08対応で各境界を片側 var(--space-1)(4px)1つ分に絞ってあったが、まだ広い
-	   という指摘。文字サイズはそのままに、境界の余白をさらに半分(2px)へ寄せる
-	   (生値は増やさず既存トークンからの派生calcで表す)。 */
-	.mobile-preview-stats th:first-child { text-align: left; color: var(--color-text-muted); padding-right: calc(var(--space-1) / 2); }
-	.mobile-preview-stats td + td { padding-left: calc(var(--space-1) / 2); }
-	.mobile-preview-stats td[data-mod="up"] { color: var(--color-stat-up); }
-	.mobile-preview-stats td[data-mod="down"] { color: var(--color-stat-down); }
-	.mobile-damage-toolbar { display: none; }
-	@media (max-width: 899px) {
-		#mobile-training-ui[data-mobile-tab="damage"] .mobile-training-preview { display: none; }
-		#mobile-training-ui[data-mobile-tab="damage"] .mobile-damage-toolbar { display: flex; justify-content: flex-end; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-3); background: var(--color-surface); border-bottom: 1px solid var(--color-border); }
-		/* 共通トップバー撤去(2026-08-07)により「すべて折りたたむ」もここへ降りてきて2個以上並ぶ。
-		   この箱自体がblockのままだとボタンが1個ずつ改行されるため、横並びのflexにする。 */
-		.mobile-damage-toolbar-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: var(--space-2); }
-	}
-	@media (min-width: 900px) { .mobile-training-bar, .mobile-training-preview, .mobile-damage-toolbar { display: none; } }
-</style>
 <script>
-	import "../../lib/box-id/mobile-edit-tabs";
-	import { loadTypesMap } from "../../lib/pokemon-master-data";
-	import { TYPE_COLORS, DEFAULT_TYPE_COLOR } from "../../lib/type-colors";
+  import '../../lib/box-id/mobile-edit-tabs';
+  import { loadTypesMap } from '../../lib/pokemon-master-data';
+  import { DEFAULT_TYPE_COLOR, TYPE_COLORS } from '../../lib/type-colors';
 
-	// UI改修依頼(モバイル、2026-08-08)「育成プレビューの背景にタイプ色を反映する」。
-	// pokemon.species_nameはサーバー側の値なので.mobile-training-preview の
-	// data-species-name経由でDOMへ渡し、こちら側でloadTypesMap()から非同期にタイプ配列を
-	// 引く(left-panel.tsのtypesMapPromiseと同じ使い方)。彩度が強すぎるとテキストの可読性
-	// (--color-text / --color-text-muted)と衝突するため、既存の--color-surface-altと
-	// color-mix()で混ぜて彩度を落とす(新しいCSSトークンは追加しない)。
-	const trainingPreview = document.querySelector<HTMLElement>(".training-preview");
-	const speciesName = trainingPreview?.dataset.speciesName;
-	if (trainingPreview && speciesName) {
-		loadTypesMap()
-			.then((typesMap) => {
-				const types = typesMap.get(speciesName);
-				if (!types || types.length === 0) return;
-				const toMixedColor = (typeName: string): string => {
-					const hex = TYPE_COLORS[typeName] ?? DEFAULT_TYPE_COLOR;
-					return `color-mix(in srgb, ${hex} 26%, var(--color-surface-alt))`;
-				};
-				trainingPreview.style.background =
-					types.length >= 2
-						? `linear-gradient(to right, ${toMixedColor(types[0])}, ${toMixedColor(types[1])})`
-						: toMixedColor(types[0]);
-			})
-			.catch((err) => {
-				console.warn("育成プレビューのタイプ色反映に失敗しました", err);
-			});
-	}
+  const pokemonPreview = document.querySelector<HTMLElement>('.pokemon-preview');
+  const speciesName = pokemonPreview?.dataset.speciesName;
+
+  if (pokemonPreview && speciesName) {
+    loadTypesMap()
+      .then((typesMap) => {
+        const types = typesMap.get(speciesName);
+        if (!types || types.length === 0) return;
+
+        const toMixedColor = (typeName: string): string => {
+          const hex = TYPE_COLORS[typeName] ?? DEFAULT_TYPE_COLOR;
+          return `color-mix(in srgb, ${hex} 26%, var(--color-surface-alt))`;
+        };
+
+        pokemonPreview.style.background =
+          types.length >= 2
+            ? `linear-gradient(to right, ${toMixedColor(types[0])}, ${toMixedColor(types[1])})`
+            : toMixedColor(types[0]);
+      })
+      .catch((error) => {
+        console.warn('ポケモンプレビューのタイプ色取得に失敗しました', error);
+      });
+  }
 </script>

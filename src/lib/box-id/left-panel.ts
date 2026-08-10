@@ -523,7 +523,7 @@ let hasBaseStatsForDurabilityIndex = false;
 const form = typeof document === "undefined" ? null : document.getElementById("edit-form") as HTMLFormElement | null;
 if (form) {
 	/** Keep the mobile training preview synchronized with the training form. */
-	function syncTrainingPreview(): void {
+	function syncPokemonPreview(): void {
 		const setText = (targetId: string, value: string): void => {
 			const target = document.getElementById(targetId);
 			if (target) target.textContent = value || "-";
@@ -532,9 +532,9 @@ if (form) {
 			(document.getElementById(id) as HTMLInputElement | HTMLSelectElement | null)?.value.trim() ?? "";
 
 		const sourceSprite = document.getElementById("species-sprite") as HTMLImageElement | null;
-		const previewSprite = document.getElementById("training-preview-species-sprite") as HTMLImageElement | null;
+		const previewSprite = document.getElementById("pokemon-preview-species-sprite") as HTMLImageElement | null;
 		const sourceFallback = document.getElementById("species-sprite-fallback");
-		const previewFallback = document.getElementById("training-preview-species-sprite-fallback");
+		const previewFallback = document.getElementById("pokemon-preview-species-sprite-fallback");
 		if (sourceSprite && previewSprite && previewFallback) {
 			const sourceVisible = sourceSprite.style.display !== "none" && sourceSprite.src !== "";
 			previewSprite.src = sourceSprite.src;
@@ -544,10 +544,10 @@ if (form) {
 			previewFallback.textContent = sourceFallback?.textContent?.trim() || inputValue("species-name").slice(0, 1) || "-";
 		}
 
-		setText("training-preview-nickname", inputValue("nickname") || inputValue("species-name"));
+		setText("pokemon-preview-nickname", inputValue("nickname") || inputValue("species-name"));
 		const ability = document.getElementById("ability") as HTMLSelectElement | null;
-		setText("training-preview-ability", ability?.selectedOptions[0]?.textContent?.trim() || ability?.value.trim() || "-");
-		setText("training-preview-item", inputValue("item") || document.getElementById("item-dropdown-placeholder")?.textContent?.trim() || "アイテムなし");
+		setText("pokemon-preview-ability", ability?.selectedOptions[0]?.textContent?.trim() || ability?.value.trim() || "-");
+		setText("pokemon-preview-item", inputValue("item") || document.getElementById("item-dropdown-placeholder")?.textContent?.trim() || "アイテムなし");
 		const mirrorImage = (sourceId: string, targetId: string): void => {
 			const source = document.getElementById(sourceId) as HTMLImageElement | null;
 			const target = document.getElementById(targetId) as HTMLImageElement | null;
@@ -558,13 +558,13 @@ if (form) {
 			target.title = source.title;
 			target.style.display = visible ? "" : "none";
 		};
-		mirrorImage("item-dropdown-image", "training-preview-item-image");
+		mirrorImage("item-dropdown-image", "pokemon-preview-item-image");
 		for (let slot = 1; slot <= 4; slot++) {
-			setText(`training-preview-move-${slot}`, inputValue(`move-${slot}`));
+			setText(`pokemon-preview-move-${slot}`, inputValue(`move-${slot}`));
 			const input = document.getElementById(`move-${slot}`) as HTMLInputElement | null;
 			const sourceIcon = input?.closest<HTMLElement>(".move-input-group")?.querySelector<HTMLElement>(".move-type-icon");
 			const sourceImage = sourceIcon?.querySelector<HTMLImageElement>("img");
-			const previewIcon = document.getElementById(`training-preview-move-type-${slot}`);
+			const previewIcon = document.getElementById(`pokemon-preview-move-type-${slot}`);
 			const previewImage = previewIcon?.querySelector<HTMLImageElement>("img");
 			const visible = Boolean(input?.value.trim() && sourceIcon && !sourceIcon.hidden && sourceImage?.src);
 			if (previewIcon) previewIcon.hidden = !visible;
@@ -576,14 +576,14 @@ if (form) {
 		}
 		for (const key of STAT_KEYS) {
 			const sourceStat = document.getElementById(`stat-${key}`);
-			const previewStat = document.getElementById(`training-preview-stat-${key}`);
+			const previewStat = document.getElementById(`pokemon-preview-stat-${key}`);
 			if (previewStat) {
 				previewStat.textContent = sourceStat?.textContent?.trim() || "-";
 				if (sourceStat?.dataset.mod) previewStat.dataset.mod = sourceStat.dataset.mod;
 				else delete previewStat.dataset.mod;
 			}
 			const ev = inputValue(`ev-${key}`);
-			setText(`training-preview-ev-${key}`, ev && Number(ev) !== 0 ? `+${ev}` : "-");
+			setText(`pokemon-preview-ev-${key}`, ev && Number(ev) !== 0 ? `+${ev}` : "-");
 		}
 	}
 	// UI改修依頼(個体編集画面、2026-08-03)「耐久指数最大化」ボタン(ステータス表の下、
@@ -1426,7 +1426,7 @@ if (form) {
 	}
 
 	function scheduleSave(): void {
-		syncTrainingPreview();
+		syncPokemonPreview();
 		statusEl.dataset.state = "saving";
 		// 進行中表示は画面内で表記を揃えるため全角の三点リーダーを使う。
 		statusTextEl.textContent = "編集中…";
@@ -1739,13 +1739,13 @@ if (form) {
 		...Array.from(document.querySelectorAll<HTMLElement>(".move-input-group .move-type-icon")),
 		...STAT_KEYS.map((key) => document.getElementById(`stat-${key}`)),
 	].filter((node): node is HTMLElement => node instanceof HTMLElement);
-	if (document.getElementById("training-preview-nickname")) {
-		const mobilePreviewObserver = new MutationObserver(syncTrainingPreview);
+	if (document.getElementById("pokemon-preview-nickname")) {
+		const mobilePreviewObserver = new MutationObserver(syncPokemonPreview);
 		for (const source of mobilePreviewSources) {
 			mobilePreviewObserver.observe(source, { attributes: true, childList: true, characterData: true, subtree: true });
 		}
 	}
-	syncTrainingPreview();
+	syncPokemonPreview();
 }
 
 // UI改善ラウンド38ユーザー指示(38-L1)「技の順番をドラッグアンドドロップで入れ替えられる

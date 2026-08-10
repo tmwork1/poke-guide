@@ -660,12 +660,12 @@ const isOptedOut = optOutRemainingText !== "";
 		@media (max-width: 899px) {
 			body.box-edit-page .app-topbar { display: none; }
 			/* UI改修依頼(モバイル、2026-08-09)「セカンドバーを画面上部へ戻す」。
-			   --topbar-height はトップバーの実測高さ(global.cssの:root)で、育成プレビュー
-			   (.mobile-training-preview の position:sticky; top)や .edit-shell の高さ計算が
+			   --topbar-height はトップバーの実測高さ(global.cssの:root)で、ポケモンプレビュー
+			   (.pokemon-preview の position:sticky; top)や .edit-shell の高さ計算が
 			   これを見る。トップバーを消した以上0にしないと、本文が画面上端から一段浮いてしまう。
 			   --mobile-second-bar-height は画面上端にstickyで貼り付くセカンドバー
-			   (.mobile-training-bar、MobileTrainingBar.astro参照)の実測高さ。
-			   育成プレビューをその直下にstickyで貼り付けるためのtopオフセットに使う。
+			   (.training-screen-bar、MobileTrainingBar.astro参照)の実測高さ。
+			   ポケモンプレビューをその直下にstickyで貼り付けるためのtopオフセットに使う。
 			   値はdevサーバー+Playwrightの
 			   getBoundingClientRectで実測した53px(バー内のアイコン/ラベルの固定サイズで
 			   決まるため、画面幅やテキスト長では変わらない)。バーの構成を変えたら実測し直す。
