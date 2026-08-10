@@ -1,0 +1,303 @@
+/* /box page layout styles. Card design tokens live in box-card.css. */
+@import './box-card.css';
+
+		/* --- ツールバー(検索・絞り込み・並べ替えを1つのバーにまとめる、要件6) ---
+		   デザインシステム新原則: 検索/絞り込み/並べ替えを収める「1画面1つの骨格領域」なので
+		   パネル役割(.panel、global.css)に委譲する。background/border/border-radiusは基底に
+		   任せ、ここではコンパクトなpadding上書きとフレックスレイアウトだけを残す
+		   (基底.panelの既定paddingはvar(--space-6)だが、ツールバーは横一列に検索/絞り込み/
+		   並べ替えを収めるため、より詰まったvar(--space-3) var(--space-5)を使う)。
+		   各項目は.field-labelでラベルの見た目を揃える(labelの幅強制は撤廃されたため、
+		   揃え自体はflexのgapで作る)。
+		   帯構成への移行(2026-07-26): マークアップ側で.panel-topを追加し、下に続くカード
+		   グリッド(こちらは.panelではないので.panel + .panelの継ぎ目罫線が働かない)との
+		   境界に下辺の罫線を出す。以前あったmargin-topは、基底.pageが左右paddingごと
+		   撤廃されたことで不要になった余白だったため削除した(帯どうしは隙間なく積む)。 */
+		/* UI改修依頼(2026-08-02): このツールバーがAppLayoutの共通<header class="app-topbar">の
+		   代わりを務める(hideTopbar={true})。sticky/z-index/background/border-bottomは
+		   global.cssの.app-topbarと同じ値を使う(新しい値を作らない)。z-index:20は
+		   .app-sidebar-overlay(25)/.app-sidebar(30)より低く、ドロワー開閉時に必ず
+		   トップバーの上に被さるようにする(.app-topbarと同じ配慮)。
+		   background/border-bottomは実際には基底.panel(background: var(--color-surface))・
+		   .panel-top(border-bottom: 1px solid var(--color-border))が既に同じ値を与えているため
+		   重複だが、「このツールバーがトップバーの役割を持つ」ことをこのファイル単体で読み取れる
+		   ようにするため明示しておく(削除しても見た目は変わらない)。 */
+		/* モバイル(900px未満)専用のサイドバー開閉ボタン。AppLayout.astroの
+		   .app-topbar-menu-button(id="app-sidebar-toggle")と全く同じマークアップをここに複製する
+		   (hideTopbar={true}によりAppLayout側のボタンが描画されなくなるため)。デスクトップは
+		   AppSidebarが常設されるため不要 = 900px以上で非表示にする(AppLayout.astro側の
+		   .app-topbar-menu-buttonと同じブレークポイント)。 */
+		/* UI改修依頼(ボックス画面、2026-08-02)「件数バッジ(#pokemon-count-badge)を
+		   現在の右端から検索ボックスの左へ移動する」。旧来はmargin-left: autoでツールバー
+		   右端に押し出していたが、マークアップ側で件数バッジをハンバーガーボタンの直後・
+		   検索ボックスの直前へ移動した(下記マークアップ参照)ため、右寄せの上書きは不要になり
+		   削除した。位置合わせは他の.toolbar-itemと同じflexの既定(左詰め)に任せる。 */
+		/* .toolbar-item の display:flex は UA の [hidden]{display:none} に勝ってしまうため、
+		   ツールバー項目をhidden属性で隠したい場合に備えて明示的に打ち消しておく
+		   (ラウンド27 27-B3でタグ絞り込み欄自体は廃止したが、pitfalls.mdの既知の罠として
+		   この上書き自体は汎用的に維持する)。 */
+
+		/* 検索欄: 入力の左側に虫眼鏡アイコン(SVG、AppLayoutのハンバーガーと同じ線画トーン)を重ねる。
+		   UI品質改善ラウンド2(B-2): ツールバーの右半分が空くのを解消するため、検索欄を
+		   flex-growさせてバーの余白を吸収させる。 */
+		/* UI品質改善ラウンド12 A-1: ラウンド2 B-2(検索欄をflex-growさせてバーの余白を
+		   吸収させる)を撤回する。placeholder実測約240px・実クエリ約160pxしか要らないのに
+		   検索欄がツールバー幅の72%(1192px)を占有していたため、機能に見合う上限
+		   (26rem=416px)を設けて検索/絞り込み/並べ替えを左詰めに揃える
+		   (ワイヤーフレームが左詰め構造であることを優先)。 */
+		.toolbar-search {
+			flex: 0 1 26rem;
+		}
+		/* padding-left(左端のアイコン領域)は global.css の
+		   `.search-input-wrap input` が持つ。ここではページ固有の幅だけを指定する。 */
+		.toolbar-search input {
+			width: 100%;
+			min-width: 12em;
+		}
+		/* ラウンド27 27-B3(ユーザー指示): タグ絞り込みUI(複数タグ選択+すべて一致)を
+		   「お気に入りのみ表示」の単一トグルボタンに置き換える。このボタンは静的マークアップ
+		   (JS生成ではない)なので、他のツールバー部品と同じくこのscoped styleで定義する。
+		   非活性=global.cssのbutton既定(枠線のみ)、活性=primaryで塗り、hoverで反転する
+		   (global.cssのbtn-primaryのhover反転と同じ配色トークンの使い方)。
+		   UI改修依頼(2026-08-04)「他のヘッダーボタンと同じ細字にする」: global.cssの基底
+		   `button { font-weight: 600 }` をこの素のbuttonもそのまま継承しており、周辺の
+		   #search-input/#sort-select/#regulation-filter(いずれも.field-control、フォント
+		   ウェイト未指定=ブラウザ既定400)と並ぶと太く見えていた。この素のbuttonだけ明示的に
+		   400へ上書きする(data-active時もbackground/色だけ変わり太さは変えない=常に400)。 */
+
+		/* UI品質改善ラウンド12 A-1: 旧 `.toolbar-sort { margin-left: auto }`(検索(左)—絞り込み(中)—
+		   並べ替え(右)の3分割、ラウンド2 B-2)は撤回。検索欄の幅を26remに絞ったことで、
+		   検索/絞り込み/並べ替えの3つはflexの既定(左詰め)のまま並ぶ。 */
+
+		/* 34-B2(ユーザー指示第16弾、round-34.md): 「並べ替え」の<label>を削除し、ソートアイコンを
+		   selectの左側に重ねる。検索欄(.search-input-wrap/.search-icon)と同じ手法
+		   (position:absoluteのアイコン+input側padding-leftをselect側に適用)を踏襲する。
+		   ラベル削除によるアクセシビリティ低下を防ぐため、<select>にaria-label="並べ替え"を付与する
+		   (マークアップ側、下記参照)。 */
+		#sort-select-wrap .sort-icon {
+			transform-origin: center;
+		}
+		#sort-select-wrap[data-order="desc"] .sort-icon {
+			transform: rotate(180deg);
+		}
+		@media (max-width: 640px) {
+			/* ラウンド12 A-1で `.toolbar-search { flex: 0 1 26rem }` に変更した後も、この
+			   flex-basis(26rem)は横並び(flex-direction: row)前提の値で、縦積みに切り替わる
+			   このブレークポイントでは主軸(縦方向)の基準値として
+			   解釈され、検索欄の高さが320pxまで伸びてしまう(実測で判明した回帰)。ここで
+			   flex-basisをリセットして内容ぶんの高さに戻す。 */
+			.toolbar-search { flex-basis: auto; }
+			/* 上の「最長選択肢に合う幅」用の `flex: none` をここで打ち消す(2026-08-05 実測)。
+			   縦積みでは各 .toolbar-item の中で「ラベル + select」が1行に並ぶため、selectが
+			   縮めないままだとラベル幅ぶん右へはみ出し、390px幅で画面に横スクロールが出ていた
+			   (「レギュレーション」ラベルを持つ絞り込み欄で発生)。縦積みのときだけ
+			   「ラベルを除いた残り幅を埋める」挙動に戻す。 */
+			.toolbar-search input,
+			.toolbar-regulation select,
+			.toolbar-sort select { width: 100%; min-width: 0; flex: 1 1 0; }
+		}
+
+		/* --- カードグリッド(Box.png: 先頭セルが追加タイル、以降がポケモンごとのカード) ---
+		   #owned-pokemon-list は display:contents にして、JSが innerHTML を差し替えても
+		   その子要素(ポケモンカード)がそのままこの .box-grid の直接の子として並ぶようにする。
+		   追加タイル(button.add-card-tile)は #owned-pokemon-list の外側の兄弟要素なので、
+		   一覧の再描画(innerHTMLの差し替え)では一切触れられず、常に先頭に残り続ける。
+		   帯構成への移行(2026-07-26): 旧来ここにあった `.page.page-wide.box-shell { max-width:
+		   1760px; }` は「囲み箱を画面中央に収める」旧方針の名残で、ワイヤーフレーム
+		   (docs/ui_proposal/ボックス.png)どおりカードグリッドを画面幅いっぱいに流すために削除した
+		   (.page/.page-wideはglobal.cssで既に無効化済みで、box-shell自体に他のプロパティは
+		   無かったため、ルールごと削除しセレクタの付け替え先は無い)。 */
+		/* ラウンド4: カードを1辺およそ200pxの正方形にする。実測ではデスクトップの
+		   サイドバー(256px、global.css --sidebar-width)を差し引いた実効グリッド幅は
+		   1920px viewportで1624px(1760pxの.box-shell自体はサイドバー込みで収まりきらない)。
+		   1624px・gap16pxの条件で8列・カード189px前後になるようminmaxを185pxに調整した
+		   (実測して逆算した値。190pxのままだと7列・218pxになってしまい8列に届かない)。
+		   ラウンド5: 持ち物・技を復元するため、正方形のまま210pxへわずかに拡大する
+		   (1624px幅では7列・実測カード幅約218pxになる。1/3面積・正方形の方針自体は維持)。 */
+		/* 帯構成への移行(2026-07-26): カードグリッド自体は.panel-contentを使わず画面幅いっぱいに
+		   流す(ワイヤーフレームどおり、1080pxで折り返す必要はない)。ただし画面端に直接
+		   貼り付くと窮屈なので、グリッドとその前後の状態メッセージ(読み込み中/エラー/空状態)を
+		   まとめて包むこの要素にだけ左右paddingを当てる。値はツールバー帯(.panel-toolbarの
+		   `padding: var(--space-3) var(--space-5)`)・基底.panelの横paddingと同じvar(--space-5)を
+		   使い、帯の左端とカードの左端が縦に揃うようにする。 */
+		.box-content {
+			padding: 0 var(--space-5);
+		}
+		/* ラウンド20 B3: 20-G3(文字サイズ12px下限)の受け皿としてカードを拡大する
+		   (210px→240px、ユーザー指示。1920pxで1行7枚→6枚になる)。
+		   ラウンド24 24-B2: 「カードサイズを少し縮小」(ユーザー指示)により240px→220pxへ縮める。
+		   ラウンド32 32-B1(ユーザー指示第15弾、round-32.md): 「ステータスをカードから削除し、
+		   カードを小型化する」。.card-stat-gridをdisplay:noneにしただけでは、正方形を
+		   grid-template-rows: 1fr auto + aspect-ratio: 1/1で維持している都合上(1fr行の公式絵が
+		   空いた高さを吸収するだけでカード自体は縮まない)、カードは縮小されない。よって
+		   ここのminmaxを220px→210pxへ引き下げて実際にカードの一辺を縮める(正方形は
+		   aspect-ratio: 1/1のまま維持、値自体は指示により変更可)。180pxまで縮めると、
+		   32-B2で.card-artの右に追加したバッジ列(アイテム18px+テラス25px+gap)の縦の
+		   置き場所が.card-actions(固定60px)と.card-body(名前など、カード幅に依存せずほぼ
+		   固定高)の間に収まりきらないことが実測で判明したため、両方を避けられる高さを
+		   確保できる210pxまで戻した(180pxのままだと重なる。実測は報告参照)。縮小後の
+		   実測値・1画面あたりの表示体数は報告参照。
+		   狭幅側(下の480pxメディアクエリの150px)はラウンド21で390px/360px幅の2列維持のため
+		   意図的に戻した値であり、このラウンドの対象外(デスクトップ側のみ縮める)。 */
+		.box-grid {
+			display: grid;
+			/* UI改修依頼(2026-08-06): 8文字技名96px + アイコン12px + gap 4px = 112px、
+			   2列と列gap 4pxで内側228px、左右padding 16pxで244px以上必要なため250pxへ拡大する。 */
+			grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+			gap: var(--space-4);
+			align-items: stretch;
+			margin-top: var(--space-6);
+		}
+		/* 390px前後の幅では拡大後の240px列が1列しか入らず正方形カードが縦に積み上がるだけになるため、
+		   狭幅では列の最小サイズ自体を縮めて2列を確保する(ユーザー要件: 390pxで2列程度)。
+		   ラウンド5: 170pxに拡大すると390px幅(実効コンテンツ幅約350px)で2列の条件
+		   (2×170+gap12=352px)をわずかに超えて1列に落ちてしまう回帰が実測で見つかったため、
+		   ラウンド4と同じ150pxを維持していた。
+		   ラウンド20 B3: 親グリッドを240pxへ拡大したのに合わせ、狭幅側も150px→170pxへ引き上げた
+		   (「実装後に実測して確認する」とTODOを残したまま検証されていなかった)。
+		   ラウンド21(Coordinator指摘): 実測したところ170pxは390px幅(実効コンテンツ幅350px)で
+		   2×170+12=352px>350pxとなり1列に落ちる回帰が実際に発生していた(360px幅ではさらに悪化)。
+		   170px→150pxに戻す(2×150+12=312pxで390px・360pxのどちらでも2列が成立することを
+		   実測確認済み。実測カード幅: 390px→169px、360px→154px)。 */
+		/* ラウンド21: 150pxまでカードが縮んだ状態で実測したところ、実数値6列グリッド
+		   (1列あたり約21〜24px)は3桁の実数値+性格補正の▲▼マーカー(scrollWidth実測34px)を
+		   収めきれず、技チップ(2列、1列あたり約66〜73px)も8文字の技名
+		   (例:マジカルシャイン、scrollWidth実測107px)を省略なしには収められないことが判明した。
+		   240px以上のカードを前提にした6列/2列レイアウトのまま列幅だけを縮めても
+		   「はみ出さない・省略しない」の両立は不可能なため、この幅だけレイアウトを組み替える
+		   (実数値6列→3列、技2列→1列)。この組み替え先(.card-pokemon/.card-stat-grid/
+		   .card-moves-grid)はJS生成要素なので、対応するメディアクエリは下の
+		   <style is:global> 側に置く(このscoped <style>に書いても効かない。
+		   pitfalls.md「Astroのscoped styleはJSで生成した要素に効かない」参照)。
+		   ここ(scoped側)では静的マークアップである.box-grid本体と.add-card-tileの
+		   ぶんだけを扱う。 */
+		@media (max-width: 480px) {
+			/* UI改修依頼(2026-08-09): モバイルのカードグリッドを画面の左右端まで広げる。
+			   基本指定の左右padding(var(--space-5))だけをこの幅で打ち消し、899px以下で必要な
+			   下部ナビ回避用padding-bottomは後段のメディアクエリから引き続き適用する。 */
+			.box-content {
+				padding-inline: 0;
+			}
+			.box-grid {
+				/* UI改修依頼(2026-08-09): auto-fill/minmaxによる2列可変を固定3列へ変更する。 */
+				grid-template-columns: repeat(3, minmax(0, 1fr));
+				/* UI改修依頼(2026-08-09): ユーザー指示によりカード間の余白をなくし、
+				   画面幅を3等分した全幅を各カードへ還元する。区切りはカード自身の背景・borderに委ねる。 */
+				gap: 0;
+			}
+			/* カード側をaspect-ratio: auto(縦長許容)に変えるのに合わせ、追加タイルも
+			   正方形をやめて高さを追随させる(is:global側の.card-pokemonの変更とセット)。 */
+			.box-grid .add-card-tile {
+				aspect-ratio: auto;
+			}
+		}
+		#owned-pokemon-list {
+			display: contents;
+		}
+		/* 追加タイル(要件2): ポケモンカードと同じ正方形(aspect-ratio: 1/1)にし、ポケモンカードと
+		   同様に列幅から高さが自動的に決まるようにする(固定pxのmin-heightは持たせない)。 */
+		.box-grid .add-card-tile {
+			flex-direction: column;
+			gap: var(--space-1);
+			font-size: var(--font-size-sm);
+			width: 100%;
+			aspect-ratio: 1 / 1;
+			padding: var(--space-2);
+			border-width: 1px;
+			transition: border-color 0.15s, color 0.15s, background 0.15s;
+		}
+		.box-grid .add-card-tile:hover {
+			background: var(--color-primary-soft);
+		}
+		/* UI品質改善ラウンド12 A-2: 見出し「個体を追加」の言い換えでしかなかった
+		   .add-card-tile-hint(「新しい個体を登録します」)をCSSで非表示にした(DOMは残す、
+		   このプロジェクトの原則)。空いた縦を使って＋アイコンを36px→44pxへ拡大する。 */
+		.box-grid .add-card-tile .add-card-tile-icon {
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			width: 44px;
+			height: 44px;
+			border-radius: 50%;
+			border: 1px solid var(--color-border);
+			font-size: 1.4rem;
+			font-weight: 300;
+			line-height: 1;
+			color: inherit;
+			transition: border-color 0.15s;
+		}
+		.box-grid .add-card-tile:hover .add-card-tile-icon {
+			border-color: var(--color-primary);
+		}
+		.box-grid .add-card-tile-label {
+			font-size: 0.9em;
+		}
+		.box-grid .add-card-tile-hint {
+			display: none;
+		}
+		@media (max-width: 899px) {
+			.box-content {
+				padding-bottom: calc(56px + var(--space-4));
+			}
+			.box-grid .add-card-tile {
+				position: fixed;
+				right: var(--space-5);
+				bottom: calc(var(--bottom-nav-height) + var(--space-4) + env(safe-area-inset-bottom));
+				z-index: 15;
+				width: 56px;
+				height: 56px;
+				min-height: 56px;
+				aspect-ratio: 1 / 1;
+				padding: 0;
+				border-radius: 50%;
+				border-color: var(--color-primary);
+				background: var(--color-primary);
+				color: var(--color-primary-contrast);
+				box-shadow: var(--shadow-md);
+			}
+			.box-grid .add-card-tile:hover {
+				background: var(--color-primary-hover);
+				border-color: var(--color-primary-hover);
+			}
+			.box-grid .add-card-tile .add-card-tile-icon {
+				width: auto;
+				height: auto;
+				border: 0;
+				font-size: var(--font-size-2xl);
+				color: var(--color-primary-contrast);
+			}
+			.box-grid .add-card-tile-label,
+			.box-grid .add-card-tile-hint {
+				display: none;
+			}
+		}
+		@media (prefers-reduced-motion: reduce) {
+			.box-grid .add-card-tile,
+			.box-grid .add-card-tile .add-card-tile-icon {
+				transition: none;
+			}
+		}
+
+		/* --- 状態メッセージ(読み込み中・エラー・空状態、要件10) --- */
+		#loading-message,
+		#error-message {
+			color: var(--color-text-muted);
+			margin-top: var(--space-6);
+		}
+		/* ラウンド22 22-A-3追加分: color: var(--color-danger)がこの要素の実背景(--color-bgを
+		   継承、#f3f4f8)に対し実測2.56:1でWCAG AA(4.5:1)未達だった(Playwrightでhiddenを外して
+		   getComputedStyleを実測)。delete-buttonと同じ--color-danger-strong(#b23a26)に
+		   差し替える(実測5.42:1)。ダークは元々7.93:1で問題なく、--color-danger-strongは
+		   ダーク側でvar(--color-danger)にエイリアスされているため変化しない。 */
+		#error-message { color: var(--color-danger-strong); }
+
+		/* 空状態(登録0件): 追加タイルの下に「何ができる画面か」を伝えるカードを添える。
+		   以前は表示条件の論理式が誤っており(allPokemon.length===0のときにhiddenへ倒れる式に
+		   なっていた)、本当に0件のときに何も表示されない状態だった。JS側の条件も併せて直した。 */
+		/* UI品質改善ラウンド2(B-9): 絞り込み/検索の結果が0件のときの案内(こちらは「登録自体は
+		   ある」ケース)。以前はグリッド内に(display:contentsを介して)1行テキストとして
+		   差し込んでいたため、縮んだ追加タイルの右横に宙に浮いて見えた。グリッドの外に置き、
+		   本当に0件のときの.empty-stateと同じ見た目(アイコン+タイトル+補足)に揃える。 */
+		#no-match-message.empty-state {
+			margin-top: var(--space-4);
+		}
