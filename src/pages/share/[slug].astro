@@ -21,8 +21,6 @@ import pokemonMasterRaw from '../../../public/master-data/autocomplete/pokemon.j
 // moves/[name].astro の getStaticPaths() は detail/moves.json (Object.values) をそのまま
 // パス生成に使っているため、同じソースから作ったSetで存在確認すれば、リンク切れ・404遷移を
 // 作らずに済む(存在しない技名は素のテキストのままにする)。
-import movesDetailRaw from '../../../public/master-data/detail/moves.json';
-import { toPokemonPathSegment } from '../../lib/pokemon-slug';
 import { officialArtworkUrl } from '../../lib/pokemon-master-data';
 import { typeIconUrl } from '../../lib/sprite-urls';
 // ラウンド18: 実数値計算の共通化。box/index.astro・box/[id].astro・pokemon/[name].astroと
@@ -67,13 +65,6 @@ const pokemonMasterMap = new Map<string, PokemonMasterEntry>(
 );
 
 // ラウンド15 A-4: /moves/[name] が実在する技名の集合(存在しない技名はリンク化せず素のテキストにする)。
-interface MoveDetailNameOnly {
-	name: string;
-}
-const moveNameSet = new Set<string>(
-	Object.values(movesDetailRaw as Record<string, MoveDetailNameOnly>).map((m) => m.name),
-);
-
 interface StatCell {
 	label: (typeof STAT_LABELS)[number];
 	ev: number;
@@ -138,8 +129,6 @@ const artworkUrl = masterEntry ? officialArtworkUrl(masterEntry.imageId) : null;
 // ラウンド15 A-4: 種族名の詳細ページ(/pokemon/[name])が実在するか。
 // baseStatsMap は /pokemon/[name].astro の getStaticPaths() と同じ detail/pokemon.json 由来なので、
 // ここに無い名前は静的パスも生成されておらず、リンクにすると必ず404になる。
-const speciesHasPage = pokemon ? baseStatsMap.has(pokemon.species_name) : false;
-
 // A-1: 未使用だった description props を実際に渡す(公開ページなのに meta description が
 // 無かった)。
 const description = pokemon
@@ -170,9 +159,7 @@ const description = pokemon
 							<dl>
 								<dt>ポケモン</dt>
 								<dd>
-									{speciesHasPage ? (
-										<a href={`/pokemon/${encodeURIComponent(toPokemonPathSegment(pokemon.species_name))}`}>{pokemon.species_name}</a>
-									) : pokemon.species_name}
+									{pokemon.species_name}
 								</dd>
 								<dt>性格</dt>
 								<dd>{pokemon.nature ?? '(未設定)'}</dd>
@@ -188,9 +175,7 @@ const description = pokemon
 										pokemon.move_names.map((moveName, i) => (
 											<>
 												{i > 0 && ' / '}
-												{moveNameSet.has(moveName) ? (
-													<a href={`/moves/${encodeURIComponent(moveName)}`}>{moveName}</a>
-												) : moveName}
+											{moveName}
 											</>
 										))
 									) : '(未設定)'}

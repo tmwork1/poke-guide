@@ -1,512 +1,341 @@
-/*
- * ボックスカードのカスタマイズ用パラメータ
- *
- * ボックスカード = /box の一覧で、登録済みポケモン 1 体を表すカード。
- * DOM の識別子は `.box-card`。`.card-pokemon` は既存コードとの互換用クラスであり、
- * 新規のスタイル・スクリプト・ドキュメントでは `.box-card` を使用する。
- *
- * 配色を含む見た目の調整は、原則としてこのファイルの変数を変更して行う。
- * 変数は `.box-grid` とその `.box-card` に限定しているため、他のカードには影響しない。
- */
 .box-grid {
-	/* カード一覧のカード間隔 */
-	--box-card-grid-gap: var(--space-1);
+  --box-card-grid-gap: var(--space-1);
+
+  --box-card-grid-column-size: min(
+    250px,
+    calc((100% - 2 * var(--box-card-grid-gap)) / 3)
+  );
 }
 
 .box-content {
-	--box-grid-edge-gap: var(--space-2);
+  --box-grid-edge-gap: var(--space-2);
 }
 
 .box-grid .box-card {
-	/* 外形・余白 */
-	--box-card-padding: var(--space-1);
-	--box-card-gap: var(--space-1);
-	--box-card-aspect-ratio: 1 / 1;
-	--box-card-focus-outline: 2px solid var(--color-primary);
-	--box-card-focus-outline-offset: 2px;
+  /* Card layout */
+  --box-card-padding: var(--space-2);
+  --box-card-gap: var(--space-1);
+  --box-card-aspect-ratio: 1 / 1;
+  --box-card-focus-outline: 2px solid var(--color-primary);
+  --box-card-focus-outline-offset: 2px;
 
-	/* ポケモン画像と持ち物バッジ */
-	--box-card-art-width: min(46%, 124px);
-	--box-card-art-opacity: 0.32;
-	/* 20px規格ではカード上のバッジとして不足するため、この要素だけ24pxを採用する。 */
-	--box-card-item-badge-size: 24px;
-	--box-card-item-badge-offset: -2px;
-	--box-card-item-badge-padding: 2px;
-	--box-card-item-badge-border: 1px solid var(--color-border);
-	--box-card-item-badge-background: var(--color-surface);
+  /* Artwork */
+  --box-card-artwork-width: 75%;
+  --box-card-artwork-opacity: 0.4;
+  --box-card-artwork-inset-inline-end: var(--box-card-gap);
+  --box-card-artwork-inset-block-end: var(--box-card-gap);
+  --box-card-artwork-aspect-ratio: 1 / 1;
 
-	/* テキスト・技リスト */
-	--box-card-name-font-size: var(--font-size-xs);
-	--box-card-name-font-weight: 700;
-	/* 4行を正方形カード内に収めるための局所的な高密度設定。 */
-	--box-card-move-gap: 0.05rem;
-	--box-card-move-font-size: var(--font-size-xs);
-	--box-card-move-font-weight: 600;
-	/* xs文字に合わせる技種別アイコンの局所例外。 */
-	--box-card-move-icon-size: 13px;
-	--box-card-move-icon-gap: 3px;
-	--box-card-move-row-padding: 0.04rem 0;
+  /* Item badge */
+  --box-card-item-badge-size: 20%;
+  --box-card-item-badge-offset: 3%;
+  --box-card-item-badge-inset-inline-end: var(--box-card-item-badge-offset);
+  --box-card-item-badge-inset-block-end: var(--box-card-item-badge-offset);
 
-	/* 操作ボタン（現在は画面上で非表示だが、機能を戻す場合もここで調整できる） */
-	--box-card-action-size: var(--icon-size-md);
-	--box-card-action-offset: var(--space-2);
-	--box-card-action-background: var(--color-surface);
-	--box-card-action-border: 1px solid var(--color-border);
-	--box-card-favorite-size: 52px;
-	--box-card-favorite-padding: 7px 0 0 7px;
-	--box-card-favorite-font-size: var(--font-size-lg);
+  /* Name */
+  --box-card-name-font-size: var(--font-size-xs);
+  --box-card-name-font-weight: 500;
+  --box-card-name-row-justify-content: flex-start;
+  --box-card-name-text-align: left;
+  --box-card-name-line-height: var(--line-height-tight);
 
-	/* モバイル（480px 以下） */
-	--box-card-mobile-padding: var(--space-1);
-	--box-card-mobile-art-width: 48%;
-	--box-card-mobile-item-badge-size: 20px;
+  /* Move list */
+  --box-card-move-gap: 0.05rem;
+  --box-card-move-font-size: var(--font-size-xs);
+  --box-card-move-font-weight: 300;
 
-	--box-card-art-aspect-ratio: 1 / 1;
-	--box-card-art-layer: 0;
-	--box-card-sprite-object-fit: contain;
-	--box-card-fallback-border-radius: 50%;
-	--box-card-fallback-background: var(--color-primary-soft);
-	--box-card-fallback-color: var(--color-primary);
-	--box-card-fallback-font-weight: 700;
-	--box-card-fallback-font-size: 1.4rem;
+  --box-card-move-icon-size: var(--font-size-xs);
+  --box-card-move-icon-gap: 3px;
+  --box-card-move-row-padding: 0.04rem 0;
+  --box-card-content-justify-content: flex-start;
+  --box-card-content-align-items: flex-end;
+  --box-card-move-line-height: var(--line-height-tight);
+  --box-card-move-color: var(--color-text);
+  --box-card-move-min-height: calc(
+    4 * (1.2 * var(--box-card-move-font-size) + 0.08rem) + 3 *
+      var(--box-card-move-gap)
+  );
 
-	--box-card-action-border-radius: 999px;
-	--box-card-action-color: var(--color-text-muted);
-	--box-card-action-font-size: var(--font-size-sm);
-	--box-card-action-line-height: 1;
-	--box-card-action-shadow: var(--shadow-sm);
-	--box-card-action-hover-background: var(--color-surface-alt);
-	--box-card-action-hover-color: var(--color-text);
-	--box-card-action-focus-outline: 2px solid var(--color-primary);
-	--box-card-action-focus-outline-offset: 2px;
+  /* Action buttons */
+  --box-card-action-size: var(--icon-size-md);
+  --box-card-action-offset: var(--space-2);
+  --box-card-action-inset-block-start: var(--box-card-action-offset);
+  --box-card-action-inset-inline-end: var(--box-card-action-offset);
+  --box-card-action-background: var(--color-surface);
+  --box-card-action-border: 1px solid var(--color-border);
+  --box-card-action-border-radius: 999px;
+  --box-card-action-color: var(--color-text-muted);
+  --box-card-action-font-size: var(--font-size-sm);
+  --box-card-action-line-height: 1;
+  --box-card-action-shadow: var(--shadow-sm);
+  --box-card-action-hover-background: var(--color-surface-alt);
+  --box-card-action-hover-color: var(--color-text);
+  --box-card-action-focus-outline: 2px solid var(--color-primary);
+  --box-card-action-focus-outline-offset: 2px;
 
-	--box-card-favorite-background: var(--color-surface-alt);
-	--box-card-favorite-color: var(--color-text-muted);
-	--box-card-favorite-hover-background: var(--color-surface);
-	--box-card-favorite-hover-color: var(--color-text);
-	--box-card-favorite-pinned-background: var(--color-risky);
-	--box-card-favorite-pinned-color: var(--color-primary-contrast);
+  /* Favorite button */
+  --box-card-favorite-size: 52px;
+  --box-card-favorite-padding: 7px 0 0 7px;
+  --box-card-favorite-font-size: var(--font-size-lg);
+  --box-card-favorite-background: var(--color-surface-alt);
+  --box-card-favorite-color: var(--color-text-muted);
+  --box-card-favorite-hover-background: var(--color-surface);
+  --box-card-favorite-hover-color: var(--color-text);
+  --box-card-favorite-pinned-background: var(--color-risky);
+  --box-card-favorite-pinned-color: var(--color-primary-contrast);
 
-	--box-card-delete-background: var(--color-surface);
-	--box-card-delete-border: 1px solid var(--color-border);
-	--box-card-delete-color: var(--color-danger-strong);
-	--box-card-delete-font-weight: 400;
-	--box-card-delete-hover-background: var(--color-danger-soft);
-	--box-card-delete-hover-border: var(--color-danger-strong);
-	--box-card-delete-transition-duration: 0.15s;
+  /* Delete button */
+  --box-card-delete-background: var(--color-surface);
+  --box-card-delete-border: 1px solid var(--color-border);
+  --box-card-delete-color: var(--color-danger-strong);
+  --box-card-delete-font-weight: 400;
+  --box-card-delete-hover-background: var(--color-danger-soft);
+  --box-card-delete-hover-border: var(--color-danger-strong);
+  --box-card-delete-transition-duration: 0.15s;
 
-	--box-card-name-line-height: var(--line-height-tight);
-	--box-card-name-text-align: center;
-	--box-card-item-badge-border-radius: 50%;
-	--box-card-item-badge-shadow: var(--shadow-sm);
-	--box-card-move-line-height: var(--line-height-tight);
-	--box-card-move-color: var(--color-text-muted);
-	--box-card-move-min-height: calc(4 * (1.2 * var(--box-card-move-font-size) + 0.08rem) + 3 * var(--box-card-move-gap));
-	--box-card-mobile-aspect-ratio: auto;
 }
 
-/* Card component styles */
-/* デザインシステム新原則(2026-07-26): 「カード」は基底の.card(global.css)に委譲し、
-		   ここでは.box-grid内のポケモンカード固有のレイアウト(正方形・約210px・内部要素の
-		   配置)だけを残す。background/border/border-radius/box-shadow・hoverの持ち上がりは
-		   すべて.cardに任せる(.card-interactiveは廃止、マークアップは"card box-card")。
-		   カード全体を<a>にして丸ごとクリック可能にする(要件3)。
-		   text-decoration/colorはリンクの既定装飾を打ち消して従来の見た目を保つ。
-		   ラウンド4: カードを1辺およそ200pxの正方形にする(aspect-ratio: 1/1)。中身は
-		   「公式絵→名前→実数値6値」だけの縦中央寄せに絞り、情報量を減らす代わりに
-		   1画面に並ぶ枚数(一覧性)を最優先にする。
-		   --color-stat-down(旧A-4を継続): 実数値の下降(青)は共通トークンを使い、ダークで
-		   コントラスト不足(約2.7:1)だった #1d6fd1 をダーク側だけ明るく上書きする。
-		   padding: 新しい基底.cardはvar(--space-3)(0.75rem)だが、この正方形カードは
-		   overflow:hiddenの中に公式絵48%・実数値6列グリッド・技2×2グリッドをピクセル単位で
-		   詰めている(ラウンド4/5のコメント参照)。基底のpaddingのままだと一辺あたり4px×2=8pxぶん
-		   内容領域が狭まりレイアウトが崩れる恐れがあるため、旧来のvar(--space-2)(0.5rem)へ
-		   明示的に上書きする(基底委譲からの意図的な例外)。 */
-		/* ラウンド8 A-8: 旧来はdisplay:flex + justify-content:centerで公式絵+card-bodyを
-		   縦中央寄せにしていたが、技0件のカード(card-moves-gridのDOM自体が無い)ではcard-body
-		   の内容高さが縮み、center寄せの結果カード内でcard-body(名前行含む)のy座標が行ごとに
-		   ばらつく実測不具合が出ていた(技4件281px/技2件289px/技0件300px)。
-		   display:gridの2行(1fr=公式絵/auto=card-body)に変え、card-bodyは常にauto行に固定する。
-		   card-moves-gridを常時appendしてmin-heightで高さを揃えれば(下記参照)、auto行の高さが
-		   全カードで一致し、名前行・実数値行のyが揃う。 */
-		.box-grid .box-card {
-			padding: var(--box-card-padding);
-			position: relative;
-			display: grid;
-			grid-template-rows: auto 1fr;
-			align-items: stretch;
-			gap: var(--box-card-gap);
-			aspect-ratio: var(--box-card-aspect-ratio);
-			overflow: hidden;
-			text-decoration: none;
-			color: inherit;
-		}
-		.box-grid .box-card:focus-visible {
-			outline: var(--box-card-focus-outline);
-			outline-offset: var(--box-card-focus-outline-offset);
-		}
-		/* ラウンド27 27-B4(ユーザー指示): ピン留め(お気に入り)時のカード全体のハイライト
-		   (border-color/backgroundを--color-risky系にする、旧A-1の判断)を廃止した。
-		   ★/☆マーク(.pin-toggle、下記.card-actions参照)がお気に入り状態の表示を担うため、
-		   カード自体の枠線・背景は選択状態(.is-selected、--color-primary)と無関係な
-		   通常状態のまま変えない。クラス名.is-pinned・JS側のis_pinned判定は変更しない
-		   (このラウンドは見た目=ハイライトの有無だけを変える)。 */
+/* Card structure */
 
-		/* --- 公式絵(要件5)。正方形カードの大半をここに割り当てる(優先順位1位)。
-		   ラウンド5: 持ち物・技のぶんだけ下半分の予算が増えたため58%→48%へ少し縮小した。
-		   ラウンド12 B-1: 1fr行(実測117px)に対しmin(48%,104px)=97pxしか使えておらず
-		   余った行高を使い切っていなかったため、min(56%,113px)へ拡大する(カード高さ218pxは
-		   据え置き)。この拡大により中央寄せの右端が.card-actions(横並び24px、旧来ぎりぎり
-		   重ならない調整だった)と実際に重なり、ディンルーの角がボタンに隠れることを
-		   Playwrightのスクリーンショットで確認した。.card-actions側をflex-direction:columnに
-		   変更して専有幅を狭めることで解消した(詳細は.card-actionsのコメント参照)。
-		   UI改修依頼(2026-08-02): アイテム/テラスのバッジ列(.card-badge-row、右に絶対配置)を
-		   撤去したため、position: relative(バッジ列の位置合わせ基準だった)は不要になり削除した。 --- */
-		.box-grid .box-card .card-art {
-			/* UI改修依頼(2026-08-09): 透明PNGの公式絵を固定幅flex列ではなく右下の背景レイヤーにし、
-			   技リストがカード内幅を全て使えるようにする。 */
-			position: absolute;
-			right: var(--box-card-gap);
-			bottom: var(--box-card-gap);
-			display: flex;
-			align-items: center;
-			justify-content: center;
-			/* UI改修依頼(2026-08-04、要件2): .card-item-row(特性+アイテム)を1行2列→2段組に
-			   変更したことで.card-bodyの内容高さが増え、1fr行(この.card-art)の取り分が
-			   縮んだ。overflow:hiddenで公式絵の上下が切られないよう、ラウンド12以前の値
-			   min(48%,104px)(当時の実測97px)へ戻す(ラウンド12のコメント参照)。 */
-			/* カード最小幅を210pxから250pxへ約1.19倍にしたため、上限も同率相当へ拡大する。 */
-			width: var(--box-card-art-width);
-			aspect-ratio: var(--box-card-aspect-ratio);
-			z-index: var(--box-card-art-layer);
-			pointer-events: none;
-		}
-		.box-grid .box-card .card-sprite-img {
-			/* UI改修依頼(2026-08-09): 元画像の透過を生かし、技文字の背後でも判読性を保つ薄さにする。 */
-			width: 100%; height: 100%; object-fit: var(--box-card-sprite-object-fit); opacity: var(--box-card-art-opacity);
-		}
-		.box-grid .box-card .card-sprite-fallback {
-			display: none;
-			align-items: center;
-			justify-content: center;
-			width: 100%;
-			height: 100%;
-			border-radius: 50%;
-			background: var(--color-primary-soft);
-			color: var(--color-primary);
-			font-weight: 700;
-			font-size: 1.4rem;
-		}
+.box-grid .box-card {
+  padding: var(--box-card-padding);
+  position: relative;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  align-items: stretch;
+  gap: var(--box-card-gap);
+  aspect-ratio: var(--box-card-aspect-ratio);
+  overflow: hidden;
+  text-decoration: none;
+  color: inherit;
+}
+.box-grid .box-card:focus-visible {
+  outline: var(--box-card-focus-outline);
+  outline-offset: var(--box-card-focus-outline-offset);
+}
 
-		/* ラウンド8 B-5で付けたダークモードの枠線色上書き(#5a6377)は、23-G1で
-		   .card-item-badge/.card-tera-badgeのborderそのものを撤去したため一度不要化したが、
-		   .card-stat-grid の区切り線(ラウンド12 B-3)には維持していた。ラウンド31 31-B2で
-		   その区切り線自体をborder-topごと削除した(上の.card-stat-grid参照)ため、この
-		   ダークモード上書きも対象を失い完全に不要になり削除した。 */
+/* Transparent artwork */
+.box-grid .box-card .card-artwork {
+  position: absolute;
+  inset-inline-end: var(--box-card-artwork-inset-inline-end);
+  inset-block-end: var(--box-card-artwork-inset-block-end);
+  width: var(--box-card-artwork-width);
+  aspect-ratio: var(--box-card-artwork-aspect-ratio);
+  z-index: 0;
+  pointer-events: none;
+}
+.box-grid .box-card .card-artwork img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  opacity: var(--box-card-artwork-opacity);
+}
 
-		/* --- ピン留め(お気に入り)/削除(要件7): ★は状態表示として常時可視、🗑は誤操作防止のため
-		   hover/focus-within時のみ可視にする(キーボード操作はTabで delete-button に
-		   フォーカスが入った瞬間 :focus-within が発火するので到達可能)。
-		   タッチ操作(hover非対応端末)では常時可視のままにして操作不能にならないようにする。
-		   39-B2/39-B3(ユーザー指示第21弾、round-39.md): お気に入り(左上・三角形トリム)と
-		   削除(右上・丸ボタン)を対角配置にする。ピン留めは三角形の意匠自体を常時見せる方針に
-		   変更したため☆状態も常時可視にした(下の.pin-toggle/@media (hover:hover)参照)。
-		   ラウンド4: 200px正方形に収めるためアイコンボタンを2rem→1.5remへ縮小する。
-		   ラウンド12(B-1とアイコンボタン規格統一の両立): B-1で.card-artをmin(56%,113px)へ
-		   拡大した結果、横並び(flex-direction: row)のcard-actions(top/right:8px固定)と
-		   実測で重なりが出た(ディンルーの角がボタンの下に隠れることをスクリーンショットで確認)。
-		   旧来の横並び24pxでもart右端が667.6px、actions左端が667.6px(重なり量ほぼ0px)と
-		   ぎりぎりの調整だったため、B-1の拡大幅ぶんだけ確実に重なってしまう。
-		   flex-direction: column(縦積み)に変更してactionsの専有幅を52px→28pxに縮め、
-		   actions左端を大きく右へ寄せることで重なりを解消した。これにより28px統一
-		   (アイコンボタンの規格統一)も同時に達成でき、24pxへの妥協は不要になった。
-		   実測(1920px): .card-art 右端x=675.5、.card-actions(縦積み・28px)左端x≈691.6と
-		   16px以上のクリアランスを確保(重なりなし)。 --- */
-		.box-grid .box-card .card-actions {
-			/* 39-B2/39-B3(ユーザー指示第21弾、round-39.md): 「お気に入りは左上角の三角形トリム、
-			   削除は右上」の対角配置にするため、ピン留めボタン(.pin-toggle)をこの.card-actions
-			   から分離しcard直下へ直接置いた(下の.pin-toggle個別スタイル参照)。.card-actions自体は
-			   削除ボタン1個だけの箱として残り、位置(top/right: var(--space-2))は変えない。 */
-			position: absolute;
-			top: var(--box-card-action-offset);
-			right: var(--box-card-action-offset);
-			display: flex;
-			flex-direction: column;
-			gap: var(--box-card-gap);
-			z-index: 2;
-		}
-		.box-grid .box-card .icon-button {
-			display: inline-flex;
-			align-items: center;
-			justify-content: center;
-			width: var(--box-card-action-size);
-			height: var(--box-card-action-size);
-			padding: 0;
-			border-radius: var(--box-card-action-border-radius);
-			border: var(--box-card-action-border);
-			background: var(--box-card-action-background);
-			color: var(--box-card-action-color);
-			font-size: var(--box-card-action-font-size);
-			line-height: var(--box-card-action-line-height);
-			box-shadow: var(--box-card-action-shadow);
-		}
-		.box-grid .box-card .icon-button:hover { background: var(--box-card-action-hover-background); color: var(--box-card-action-hover-color); }
-		.box-grid .box-card .icon-button:focus-visible {
-			outline: var(--box-card-action-focus-outline);
-			outline-offset: var(--box-card-action-focus-outline-offset);
-		}
-		.box-grid .box-card .pin-toggle {
-			/* 39-B2(ユーザー指示第21弾、round-39.md): 「カード左上の角を三角形にトリムした領域が
-			   お気に入り状態でハイライトされる」UIに変更する。.icon-button共通(円形28px・枠線・
-			   影)をここで上書きし、カード左上の角(top:0/left:0、カードはposition:relativeかつ
-			   overflow:hiddenなので角からはみ出す部分は自動的に切られる)にclip-pathで直角二等辺
-			   三角形を作る。クリック領域もclip-pathに追随するため、切り取られた外側(カード本体側)
-			   はカードの<a>へのクリックが素通りし、三角形の内側だけがボタンとして反応する
-			   (クリックでお気に入りをトグルする機能はJS側を変更していないため維持)。
-			   アイコン文字(★/☆)は直角三角形の重心付近(左上から辺の1/3の位置)に来るよう
-			   paddingで寄せる。hoverでの表示/非表示ロジック(下の@media (hover:hover)ブロック、
-			   data-pinned="false"のとき非表示)はこのラウンドでは変更しない(見た目の形だけを
-			   変える指示のため)。
-			   2026-08-01(ユーザー指示: 「お気に入りのスターが見切れている。ハイライト領域を
-			   拡大する」): Playwrightで★/☆グリフ自体をRange.getBoundingClientRect()で実測した
-			   ところ、旧36×36px・padding 5px時点でグリフのbbox(幅16.8px・高さ22px、ローカル
-			   位置(5, 2)〜(21.8, 24)。paddingは5pxだがフォントメトリクスの都合で実際の描画開始は
-			   padding-topよりやや上に来る)の右下角(21.8+24=45.8)が斜辺(x+y=36)を9.8px超えており、
-			   星の右下の足が常に切れていた(round-49時点の「欠けなし」報告時からfont-sizeが
-			   0.75rem→1.05remに拡大された際に再発したとみられる)。トリム三角(ハイライト領域)を
-			   52×52pxへ拡大しpaddingを7pxに増やして重心寄りへ再配置した結果、実測でグリフbbox
-			   右下角(7+16.8=23.8, 7-3+22=26 → 合計49.8)が斜辺52を下回り(クリアランス約2.2px)、
-			   欠けが解消したことを確認した(Playwrightで.pin-toggleを単独クロップし、★/☆とも
-			   斜辺で切れていないことを目視確認済み。報告参照)。星のfont-size自体(1.05rem)は
-			   変更しない。 */
-			position: absolute;
-			top: 0;
-			left: 0;
-			z-index: 2;
-			width: var(--box-card-favorite-size);
-			height: var(--box-card-favorite-size);
-			padding: var(--box-card-favorite-padding);
-			border: none;
-			border-radius: 0;
-			box-shadow: none;
-			clip-path: polygon(0 0, 100% 0, 0 100%);
-			background: var(--color-surface-alt);
-			color: var(--color-text-muted);
-			align-items: flex-start;
-			justify-content: flex-start;
-			/* round-49 B-1(統一感レビュアー指摘): 0.72rem(11.52px)は本文12px下限規約
-			   (20-G3以降)を割っており、.card-move-chipの10px(42-B2で実測根拠付きの
-			   明示的例外)と異なり根拠コメントが無かったため0.75rem(12px)へ是正する。
-			   36×36pxの三角トリム領域には余裕がありレイアウトへの影響は軽微。
-			   2026-08-01(ユーザー指示: 「ボックス画面: お気に入りの星印を少し大きく」):
-			   0.75rem(12px)→1.05rem(16.8px、約1.4倍)に拡大する。他のfont-size指定と同じ
-			   rem・0.05刻みのパターン(0.75rem/0.8rem/0.85rem等)を踏襲した。
-			   36×36pxの三角トリム領域・padding(5px 0 0 5px)は変更しない、と当時は報告されていたが、
-			   2026-08-01の別のユーザー指示(上記position/width/heightのコメント参照)で欠けが
-			   実際にあったことが判明し、トリム領域を52×52px・padding 7pxへ拡大済み。 */
-			font-size: var(--box-card-favorite-font-size);
-		}
-		/* 共通のお気に入りグリフを子要素化しても、従来の星位置と行高を維持する。 */
-		.box-grid .box-card .pin-toggle .favorite-star-glyph {
-			display: inline-block;
-			line-height: 1;
-		}
-		.box-grid .box-card .pin-toggle:hover {
-			background: var(--color-surface);
-			color: var(--color-text);
-		}
-		.box-grid .box-card .pin-toggle[data-pinned="true"] {
-			background: var(--color-risky);
-			color: var(--color-primary-contrast);
-		}
-		.box-grid .box-card .pin-toggle[data-pinned="true"]:hover {
-			background: var(--color-risky);
-			color: var(--color-primary-contrast);
-		}
-		/* global.cssの.delete-button(danger塗り・太字パディング)はアイコン専用の丸ボタンには
-		   大きすぎるため、このカード内に限定してサイズ・配色を上書きする。
-		   ラウンド22 22-A-3: color: var(--color-danger)(#f8705b)がライトモードで
-		   背景(--color-surface、白)に対し2.82:1しか無くWCAG AA(4.5:1)未達だった
-		   (実測はPlaywrightのgetComputedStyleで確認、docs/plan/ui_rounds/round-22.mdの
-		   実測値2.82:1と一致)。新色は作らずラウンド21で/box/[id]の削除ボタンに使った
-		   --color-danger-strong(#b23a26)に差し替える(白地5.96:1)。
-		   :hover時のborder-colorも同じ--color-danger(非テキストだがWCAG 1.4.11の3:1を
-		   --color-danger-soft背景に対し2.46:1で下回っていた)を使っていたため、text/borderとも
-		   --color-danger-strongに揃える(--color-danger-soft背景に対し5.20:1)。
-		   背景に使うbackground: var(--color-danger-soft)自体はテキストではないので変更不要。
-		   ダーク側は--color-danger-strongがglobal.css内で`var(--color-danger)`にエイリアスされて
-		   おり(既にAA達成: 単体7.22:1・hover合成背景5.43:1)、この変更でダークの見た目は
-		   一切変わらない(実測で確認済み)。 */
-		.box-grid .box-card .delete-button {
-			background: var(--color-surface);
-			border: 1px solid var(--color-border);
-			color: var(--color-danger-strong);
-			font-weight: 400;
-			padding: 0;
-		}
-		.box-grid .box-card .delete-button:hover {
-			background: var(--color-danger-soft);
-			color: var(--color-danger-strong);
-			border-color: var(--color-danger-strong);
-		}
-		/* 39-B2(ユーザー指示第21弾、round-39.md)により、.pin-toggle(お気に入り)は
-		   hover限定表示の対象から外した。三角形トリムは「常にそこにトリムされた領域がある」
-		   ことを見せるデザインのため、非お気に入り状態でも薄い三角形(background:
-		   var(--color-surface-alt))を常時表示し、お気に入り状態(risky色)との違いを
-		   hoverせずに視認できるようにする(旧来は☆状態を隠していたが、三角形デザインでは
-		   常時可視の方が「お気に入り状態とそうでない状態が視覚的に明確に区別できる」という
-		   要件に合致すると判断した)。削除ボタンは引き続き誤操作防止のためhover/focus-within
-		   限定で可視にする。 */
-		@media (hover: hover) and (pointer: fine) {
-			.box-grid .box-card .delete-button {
-				opacity: 0;
-				pointer-events: none;
-				transition: opacity var(--box-card-delete-transition-duration), background var(--box-card-delete-transition-duration), color var(--box-card-delete-transition-duration), border-color var(--box-card-delete-transition-duration);
-			}
-			.box-grid .box-card:hover .delete-button,
-			.box-grid .box-card:focus-within .delete-button {
-				opacity: 1;
-				pointer-events: auto;
-			}
-		}
-		@media (prefers-reduced-motion: reduce) {
-			.box-grid .box-card .delete-button,
-			.box-grid .box-card .pin-toggle { transition: none; }
-		}
+/* Action buttons */
+.box-grid .box-card .card-actions {
+  position: absolute;
+  inset-block-start: var(--box-card-action-inset-block-start);
+  inset-inline-end: var(--box-card-action-inset-inline-end);
+  display: flex;
+  flex-direction: column;
+  gap: var(--box-card-gap);
+  z-index: 2;
+}
+.box-grid .box-card .icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--box-card-action-size);
+  height: var(--box-card-action-size);
+  padding: 0;
+  border-radius: var(--box-card-action-border-radius);
+  border: var(--box-card-action-border);
+  background: var(--box-card-action-background);
+  color: var(--box-card-action-color);
+  font-size: var(--box-card-action-font-size);
+  line-height: var(--box-card-action-line-height);
+  box-shadow: var(--box-card-action-shadow);
+}
+.box-grid .box-card .icon-button:hover {
+  background: var(--box-card-action-hover-background);
+  color: var(--box-card-action-hover-color);
+}
+.box-grid .box-card .icon-button:focus-visible {
+  outline: var(--box-card-action-focus-outline);
+  outline-offset: var(--box-card-action-focus-outline-offset);
+}
 
-		/* UI改修依頼(2026-08-09): カードの可視情報を名前・技・ポケモン画像・持ち物画像に限定する。
-		   上段を名前、下段を左=技の縦リスト・右=画像の2列にし、検索/title用データは維持する。 */
-		.box-grid .box-card .card-body {
-			display: contents;
-		}
-		/* UI改修依頼(2026-08-09): ユーザー指示によりお気に入り・削除操作をカード上では非表示にする。
-		   DOM生成とクリックハンドラは既存原則どおり残す。 */
-		.box-grid .box-card .pin-toggle,
-		.box-grid .box-card .delete-button {
-			display: none;
-		}
-		.box-grid .box-card .card-content-row {
-			/* UI改修依頼(2026-08-09): 公式絵を絶対配置へ移したため、技欄を全幅で表示する。 */
-			display: block;
-			width: 100%;
-			min-width: 0;
-			position: relative;
-			z-index: 1;
-		}
-		.box-grid .box-card .card-name-row {
-			display: flex;
-			align-items: center;
-			width: 100%;
-		}
-		/* UI改修依頼(ボックス画面、2026-08-02)「カードのニックネーム/種族名(.card-name)を
-		   中央揃えにする」。旧来は.card-name-row内でテラスバッジぶんの幅をellipsisの起点を
-		   左に揃えるためtext-align: leftにしていたが、指示により中央揃えへ変更する
-		   (.card-name自体はflex: 1 1 autoで確保した領域内での中央揃えになる)。 */
-		.box-grid .box-card .card-name {
-			margin: 0;
-			flex: 1 1 auto;
-			min-width: 0;
-			font-size: var(--font-size-xs);
-			font-weight: 700;
-			line-height: var(--line-height-tight);
-			text-align: center;
-			white-space: nowrap;
-			overflow: hidden;
-			text-overflow: ellipsis;
-		}
+/* Favorite button */
+.box-grid .box-card .pin-toggle {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 2;
+  width: var(--box-card-favorite-size);
+  height: var(--box-card-favorite-size);
+  padding: var(--box-card-favorite-padding);
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  clip-path: polygon(0 0, 100% 0, 0 100%);
+  background: var(--box-card-favorite-background);
+  color: var(--box-card-favorite-color);
+  align-items: flex-start;
+  justify-content: flex-start;
 
-		/* UI改修依頼(2026-08-09): 持ち物は名前を表示せず、ポケモン画像の右下に重ねる丸バッジにする。 */
-		.box-grid .box-card .card-item-badge {
-			position: absolute;
-			right: var(--box-card-item-badge-offset);
-			bottom: var(--box-card-item-badge-offset);
-			display: flex;
-			align-items: center;
-			justify-content: center;
-			width: var(--box-card-item-badge-size);
-			height: var(--box-card-item-badge-size);
-			padding: var(--box-card-item-badge-padding);
-			border: 1px solid var(--color-border);
-			border-radius: 50%;
-			background: var(--color-surface);
-			box-shadow: var(--shadow-sm);
-			z-index: 1;
-		}
-		.box-grid .box-card .card-item-badge img {
-			width: 100%;
-			height: 100%;
-			object-fit: contain;
-		}
-		.box-grid .box-card .card-item-badge[hidden] {
-			display: none;
-		}
-		/* UI改修依頼(2026-08-09): 2×2技チップを、左揃えのプレーンな縦1列リストへ変更する。 */
-		.box-grid .box-card .card-moves-grid {
-			display: flex;
-			flex: 1 1 auto;
-			flex-direction: column;
-			align-items: stretch;
-			gap: var(--box-card-move-gap);
-			min-width: 0;
-			margin-top: 0;
-			min-height: var(--box-card-move-min-height);
-		}
-		.box-grid .box-card .card-move-chip {
-			/* UI改修依頼(2026-08-09): 技名の左に小さなタイプアイコンを並べる。 */
-			display: flex;
-			align-items: center;
-			gap: var(--box-card-move-icon-gap);
-			min-width: 0;
-			font-size: var(--font-size-xs);
-			line-height: var(--line-height-tight);
-			font-weight: 600;
-			color: var(--color-text-muted);
-			padding: 0.04rem 0;
-		}
-		.box-grid .box-card .card-move-type-icon {
-			/* UI改修依頼(2026-08-09): xs文字と釣り合う13pxに固定し、技名側へ残り幅を渡す。 */
-			flex: 0 0 13px;
-			width: 13px;
-			height: 13px;
-			object-fit: contain;
-		}
-		.box-grid .box-card .card-move-type-icon[hidden] { display: none; }
-		.box-grid .box-card .card-move-chip-text {
-			/* UI改修依頼(2026-08-09): 狭い3列カードでも技名を折り返さず、名前欄と同じく
-			   1行で末尾を省略する。spanのままではoverflowが効かないためblock化して幅を制約する。 */
-			display: block;
-			width: 100%;
-			min-width: 0;
-			white-space: nowrap;
-			overflow: hidden;
-			text-overflow: ellipsis;
-		}
+  font-size: var(--box-card-favorite-font-size);
+}
 
-		/* ラウンド21(Coordinator指摘の390px/360px 1列落ち修正): 狭幅(max-width: 480px)で
-		   カード幅が150px前後まで縮んだ状態では、240px以上を前提にした実数値6列・技2列の
-		   レイアウトのまま列幅だけ縮めても「はみ出さない・省略しない」を両立できないと実測で
-		   判明した(実数値: 21〜24px/列に3桁+▲▼マーカーのscrollWidth実測34pxが収まらない。
-		   技: 66〜73px/列に8文字の技名のscrollWidth実測107pxが収まらない)。
-		   この幅だけ実数値を6列→3列(2段組×2)、技を2列→1列に組み替えて1列あたりの実効幅を
-		   倍以上に広げる。この変更はJS生成要素(.box-card等)に対するものなので、
-		   同じis:globalブロック内、かつ上の基本定義より後ろに置く(@media は詳細度を
-		   上げないため、後続の無条件ルールに書くと先に書いた@media側が負けて何も起きない
-		   ---実際にこの罠を1回踏んで検証時に発覚した。pitfalls.mdの「@containerは詳細度を
-		   上げない」と同種の事故)。
-		   縦に伸びる分、正方形(aspect-ratio: 1/1)は維持できないため縦長に変える。グリッドの
-		   列幅はauto-fill(1fr)で全カード共通なので、aspect-ratioを外してauto高さにしても、
-		   技0件時の.card-moves-gridのmin-height予約(常に4行ぶん確保)により全カードの高さは
-		   揃う(実機でcloneNode複製し、技0/2/4件のカード混在で高さ差0pxを確認済み)。 */
-		@media (max-width: 480px) {
-			.box-grid .box-card {
-				/* UI改修依頼(2026-08-09): 固定3列化後の最小カード幅は375px画面で117px。
-				   基本padding 8pxでは内容幅101pxのため、この幅だけ4pxへ縮めて109pxを確保する。
-				   名前・特性・アイテム・技名は既存の1行ellipsisを維持し、文字サイズは変更しない。 */
-				padding: var(--space-1);
-				aspect-ratio: auto;
-				grid-template-rows: auto 1fr;
-			}
-			/* UI改修依頼(2026-08-09): モバイルでも背景レイヤーの画像を視認できる大きさに保つ。 */
-			.box-grid .box-card .card-art { width: var(--box-card-mobile-art-width); }
-			.box-grid .box-card .card-item-badge { width: var(--box-card-mobile-item-badge-size); height: var(--box-card-mobile-item-badge-size); }
-		}
+.box-grid .box-card .pin-toggle .favorite-star-glyph {
+  display: inline-block;
+  line-height: 1;
+}
+.box-grid .box-card .pin-toggle:hover {
+  background: var(--box-card-favorite-hover-background);
+  color: var(--box-card-favorite-hover-color);
+}
+.box-grid .box-card .pin-toggle[data-pinned="true"] {
+  background: var(--box-card-favorite-pinned-background);
+  color: var(--box-card-favorite-pinned-color);
+}
+.box-grid .box-card .pin-toggle[data-pinned="true"]:hover {
+  background: var(--box-card-favorite-pinned-background);
+  color: var(--box-card-favorite-pinned-color);
+}
+
+/* Delete button */
+.box-grid .box-card .delete-button {
+  background: var(--box-card-delete-background);
+  border: var(--box-card-delete-border);
+  color: var(--box-card-delete-color);
+  font-weight: var(--box-card-delete-font-weight);
+  padding: 0;
+}
+.box-grid .box-card .delete-button:hover {
+  background: var(--box-card-delete-hover-background);
+  color: var(--box-card-delete-color);
+  border-color: var(--box-card-delete-hover-border);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .box-grid .box-card .delete-button {
+    opacity: 0;
+    pointer-events: none;
+    transition:
+      opacity var(--box-card-delete-transition-duration),
+      background var(--box-card-delete-transition-duration),
+      color var(--box-card-delete-transition-duration),
+      border-color var(--box-card-delete-transition-duration);
+  }
+  .box-grid .box-card:hover .delete-button,
+  .box-grid .box-card:focus-within .delete-button {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .box-grid .box-card .delete-button,
+  .box-grid .box-card .pin-toggle {
+    transition: none;
+  }
+}
+
+/* Card content */
+.box-grid .box-card .card-body {
+  display: contents;
+}
+
+.box-grid .box-card .pin-toggle,
+.box-grid .box-card .delete-button {
+  display: none;
+}
+.box-grid .box-card .card-content-row {
+  display: flex;
+  align-items: var(--box-card-content-align-items);
+  justify-content: var(--box-card-content-justify-content);
+  width: 100%;
+  min-width: 0;
+  position: relative;
+  z-index: 1;
+}
+.box-grid .box-card .card-name-row {
+  display: flex;
+  align-items: center;
+  justify-content: var(--box-card-name-row-justify-content);
+  gap: var(--box-card-gap);
+  width: 100%;
+  position: relative;
+  z-index: 1;
+}
+
+.box-grid .box-card .card-name {
+  margin: 0;
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: var(--box-card-name-font-size);
+  font-weight: var(--box-card-name-font-weight);
+  line-height: var(--box-card-name-line-height);
+  text-align: var(--box-card-name-text-align);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.box-grid .box-card .card-item-badge {
+  position: absolute;
+  inset-inline-end: var(--box-card-item-badge-inset-inline-end);
+  inset-block-end: var(--box-card-item-badge-inset-block-end);
+  display: block;
+  width: var(--box-card-item-badge-size);
+  height: var(--box-card-item-badge-size);
+  z-index: 1;
+}
+.box-grid .box-card .card-item-badge img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.box-grid .box-card .card-item-badge[hidden] {
+  display: none;
+}
+
+/* Move list */
+.box-grid .box-card .card-moves-grid {
+  display: flex;
+  flex: 0 1 auto;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--box-card-move-gap);
+  min-width: 0;
+  margin-top: 0;
+  min-height: var(--box-card-move-min-height);
+}
+.box-grid .box-card .card-move-chip {
+  display: flex;
+  align-items: center;
+  gap: var(--box-card-move-icon-gap);
+  min-width: 0;
+  font-size: var(--box-card-move-font-size);
+  line-height: var(--box-card-move-line-height);
+  font-weight: var(--box-card-move-font-weight);
+  color: var(--box-card-move-color);
+  padding: var(--box-card-move-row-padding);
+}
+.box-grid .box-card .card-move-type-icon {
+  flex: 0 0 var(--box-card-move-icon-size);
+  width: var(--box-card-move-icon-size);
+  height: var(--box-card-move-icon-size);
+  object-fit: contain;
+}
+.box-grid .box-card .card-move-type-icon[hidden] {
+  display: none;
+}
+.box-grid .box-card .card-move-chip-text {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

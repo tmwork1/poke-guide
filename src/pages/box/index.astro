@@ -56,6 +56,7 @@ const user = Astro.locals.user;
 		{
 			user ? (
 				<Fragment>
+					<h1 class="box-page-title">ボックス</h1>
 					<div class="panel panel-top panel-toolbar" id="box-toolbar">
 						{/* UI改修依頼(ボックス画面、2026-08-02)「件数バッジ(#pokemon-count-badge)を
 						    現在の右端から検索ボックスの左へ移動する」。旧topbar-statusスロットの
@@ -348,23 +349,9 @@ const user = Astro.locals.user;
 			// UI刷新: カード内の公式絵。取得できない場合は頭文字の丸バッジにフォールバックする。
 			// 初期display:noneのままloading="lazy"を付けると、画面外扱いでfetch自体が行われず
 			// onloadが永久に発火しない(過去に踏んだ不具合、box/[id].astroのapplySprite参照)。
-			async function applyCardSprite(imgEl: HTMLImageElement, fallbackEl: HTMLElement, name: string): Promise<void> {
+			async function applyCardArtwork(imgEl: HTMLImageElement, name: string): Promise<void> {
 				const imageId = name ? (await imageIdMapPromise).get(name) : undefined;
-				if (imageId == null) {
-					imgEl.style.display = "none";
-					fallbackEl.style.display = "flex";
-					fallbackEl.textContent = name ? name.charAt(0) : "?";
-					return;
-				}
-				imgEl.onerror = () => {
-					imgEl.style.display = "none";
-					fallbackEl.style.display = "flex";
-					fallbackEl.textContent = name.charAt(0);
-				};
-				imgEl.onload = () => {
-					imgEl.style.display = "";
-					fallbackEl.style.display = "none";
-				};
+				if (imageId == null) return;
 				imgEl.src = officialArtworkUrl(imageId);
 			}
 
@@ -548,20 +535,13 @@ const user = Astro.locals.user;
 				card.appendChild(actions);
 
 				// --- 優先順位1位: 公式絵 ---
-				const art = document.createElement("div");
-				art.className = "card-art";
-
-				const spriteImg = document.createElement("img");
-				spriteImg.className = "card-sprite-img";
-				spriteImg.alt = "";
-				spriteImg.style.display = "none";
-				art.appendChild(spriteImg);
-
-				const spriteFallback = document.createElement("span");
-				spriteFallback.className = "card-sprite-fallback";
-				art.appendChild(spriteFallback);
-
-				void applyCardSprite(spriteImg, spriteFallback, p.species_name ?? "");
+				const artwork = document.createElement("div");
+				artwork.className = "card-artwork";
+				const artworkImg = document.createElement("img");
+				artworkImg.alt = "";
+				artwork.appendChild(artworkImg);
+				card.appendChild(artwork);
+				void applyCardArtwork(artworkImg, p.species_name ?? "");
 
 				// UI改修依頼(2026-08-09): 持ち物名は描画せず、画像だけを公式絵の右下に重ねる。
 				const itemBadge = document.createElement("span");
@@ -570,7 +550,7 @@ const user = Astro.locals.user;
 				const itemImg = document.createElement("img");
 				itemImg.alt = "";
 				itemBadge.appendChild(itemImg);
-				art.appendChild(itemBadge);
+				card.appendChild(itemBadge);
 				void applyItemBadge(itemImg, itemBadge, p.item_name ?? "");
 
 				// --- 優先順位2位・3位: 名前+実数値6値。
@@ -623,7 +603,6 @@ const user = Astro.locals.user;
 				const contentRow = document.createElement("div");
 				contentRow.className = "card-content-row";
 				contentRow.appendChild(movesGrid);
-				contentRow.appendChild(art);
 				body.appendChild(contentRow);
 
 				void calculateActualStats(p).then((stats) => applyCardTooltip(card, stats, p));

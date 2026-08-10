@@ -129,6 +129,3 @@ export async function loadAutocomplete(): Promise<void> {
 // 種族名から図鑑ページへのリンク(pokemonDetailHref)は、個体編集画面の「図鑑で見る」を
 // 廃止したことで呼び出し元が無くなったため削除した。ポケモン名→URLパスセグメントの変換が
 // 再び必要になった場合は src/lib/pokemon-slug.ts の toPokemonPathSegment を使うこと。
-export function moveDetailHref(name: string): string {
-  return `/moves/${encodeURIComponent(name)}`;
-}

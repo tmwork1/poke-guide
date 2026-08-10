@@ -1,1616 +1,1348 @@
-/* デザインシステム(2026-07-24 UI刷新)。トークン(色・角丸・影)+ 全ページ共通のコンポーネント
-   クラス(パネル・カード・ボタン・入力欄・バッジ等)をここに集約する。ページ側の<style>には
-   レイアウト固有のルール(グリッド構成など)だけを残す。
-   2026-07-26 デザイン原則整理: 「パネル」と「カード」は役割で区別する。
-     .panel = 1画面に1つの骨格領域(検索結果領域・種族値表・ツールバー・サイドバー等)。影なし。
-     .card  = 可算・追加削除できるコレクション要素(ポケモンカード・チームカード・
-              ダメージ計算カード等)。影ありでhover時に持ち上がる。 */
-
-/* --- ブレークポイント(採用値は 900 / 1200 / 1600px の3段のみ。新規の@mediaを追加する場合は
-   このいずれかに揃えること) ---
-   900px:  レイアウトの土台が切り替わる最初の段。AppSidebar がモバイル用ドロワー
-           (ハンバーガー開閉)からデスクトップの固定表示サイドバーに変わる
-           (このファイル末尾の .app-sidebar 関連@media参照)。
-   1200px: 横に並べる余白ができる段。box/[id].astro の編集レイアウトが
-           1カラムから2カラム構成に広がる(ローカルscoped styleで使用)。
-   1600px: 最も広い段。box/[id].astro のダメージ計算詳細パネルが、画面右からの
-           スライドオーバー(オーバーレイ)表示から常設の3カラム目(sticky)表示に
-           切り替わる(同じくローカルscoped styleで使用)。
-   ※ 640px(max-width)は上記3段とは別軸の「コンポーネント単位の縦積み切り替え」に
-   使われている値で、レイアウト土台の段ではない(詳細は各使用箇所のコメント参照)。 */
-
-/* 配色は旧battle-assistant-sv(css/manager.css・common.css)のボタン配色をそのまま踏襲する:
-   primary=#27acd9(new-button)、success=#409f89(maximize-BD)、danger=#f8705b(delete-button)、
-   neutral=#aaaaaa(maximize-B/D)。影は使わず、ボーダー同色の塗り+ホバーで白地に反転する
-   battle-assistant-sv方式のボタンにする。 */
 :root {
-	/* ラウンド14 B-7: color-scheme の宣言が1つも無く、ダークモードでもチェックボックス・
-	   ラジオボタン・selectのポップアップ・スクロールバーがOS既定の「ライト」前提で描画されて
-	   いた(未選択のラジオが白い塗りつぶし円のまま浮いて見える主因)。このアプリは
-	   `@media (prefers-color-scheme: dark)` でトークンを切り替える設計であり、実際にサポート
-	   しているのは常に両方(light dark)なので、それをブラウザに申告してネイティブ描画も
-	   追従させる。実測(ラウンド14): このプロジェクトのフォームコントロールは背景色を
-	   --color-surface 等で明示指定しているため見た目は変わらず、影響が出るのはチェックボックス/
-	   ラジオボタンの枠・塗り、select開いた際のポップアップ、input[type=number]のスピン
-	   ボタン、スクロールバーのみ。/box/[id] 詳細設定サイドバーのアイコントグル(天候/
-	   フィールド)は<button>実装でネイティブフォームコントロールではないため対象外。 */
-	color-scheme: light dark;
+  color-scheme: light dark;
 
-	--color-bg: #f3f4f8;
-	--color-surface: #ffffff;
-	--color-surface-alt: #f8f9fc;
-	--color-border: #e3e6ee;
-	--color-text: #1f2430;
-	/* 2026-07-26 ラウンド8 A-6: #6b7280 は --color-surface-alt(.card背景)上で4.26:1となりWCAG AA(4.5:1)を割っていた
-	   (技名チップ・実数値ラベル等の小さい文字で発生)。#5b6472 に暗くして白上5.98:1・surface-alt上5.68:1に是正。
-	   ダーク側(下の@media (prefers-color-scheme: dark)内)は既に5.89:1で問題ないため触っていない。 */
-	--color-text-muted: #5b6472;
+  --color-bg: #f3f4f8;
+  --color-surface: #ffffff;
+  --color-surface-alt: #f8f9fc;
+  --color-border: #e3e6ee;
+  --color-text: #1f2430;
 
-	--color-primary: #27acd9;
-	--color-primary-hover: #27acd9;
-	--color-primary-soft: #e6f6fb;
-	--color-primary-contrast: #ffffff;
+  --color-text-muted: #5b6472;
 
-	--color-success: #409f89;
-	--color-success-soft: #e6f4f1;
-	--color-danger: #f8705b;
-	--color-danger-soft: #fdece8;
-	--color-warning: #aaaaaa;
-	--color-warning-soft: #eeeeee;
-	--color-risky: #c9820f;
-	--color-risky-soft: #fbeed4;
+  --color-primary: #27acd9;
+  --color-primary-hover: #27acd9;
+  --color-primary-soft: #e6f6fb;
+  --color-primary-contrast: #ffffff;
 
-	/* ライトモードでは --color-danger/-risky/-success をそのまま文字色に使うと
-	   WCAG AA(4.5:1)を大きく割る(いずれも背景の-softに対して2.5〜2.9:1程度)。
-	   ボタンの塗り/枠線に使われている本体トークンは変えず、「濃色の背景上に
-	   読ませる文字」専用の派生トークンをここに用意する(.severity-barが参照する)。
-	   ダーク側は元々AAを満たしているため、ダークの@media内で本体トークンと
-	   同じ値に戻す。 */
-	--color-danger-strong: #b23a26;
-	--color-risky-strong: #8a5806;
-	--color-success-strong: #2b6b5c;
-	/* ラウンド13 A-8: 既定のリンク色(下の `a { color: var(--color-primary) }`)が
-	   #27acd9 on #ffffff = 2.63:1 でWCAG AA(4.5:1)を割っていた(ダークは8.08:1で問題なし)。
-	   --color-danger-strong 等と同じ設計で「リンク文字専用の濃色派生」を用意する。
-	   #1a7ea1 は白地に対し4.62:1。ボタン・枠線・アイコン・スライダーが参照する
-	   --color-primary 本体は一切変えない(それらは背景色として使われるため文字コントラストの
-	   問題が無く、変えると配色トークンが増える制約に抵触する)。 */
-	--color-primary-strong: #1a7ea1;
+  --color-success: #409f89;
+  --color-success-soft: #e6f4f1;
+  --color-danger: #f8705b;
+  --color-danger-soft: #fdece8;
+  --color-warning: #aaaaaa;
+  --color-warning-soft: #eeeeee;
+  --color-risky: #c9820f;
+  --color-risky-soft: #fbeed4;
 
-	/* 能力ランク変化は既存の配色どおり上昇を赤、下降を青で示す。
-	   2026-08-05: box/[id].astro の .edit-shell と share/[slug].astro の .page に
-	   同値がコピーされていたのをここへ集約した。**ライト/ダークで両方とも値が変わる**点に注意
-	   (集約時に上昇側のダーク値を落としかけた)。ライトは #c9432c / #1d6fd1 のままだと
-	   ダーク背景でコントラストを割るため、ダークでは上昇を --color-danger(#ff8b78)、
-	   下降を #6fb6f7 に差し替える(下の @media (prefers-color-scheme: dark) 参照)。
-	   なお /box 一覧のカードだけは上昇側に --color-danger-strong を使っており、これは
-	   カード背景(--color-surface-alt)でのAA確保のための意図的な例外なのでここには寄せない。 */
-	--color-stat-up: #c9432c;
-	--color-stat-down: #1d6fd1;
-	/* モーダル/ドロワーの暗幕は既存の標準値0.45へ寄せ、画面間の濃さを統一する。 */
-	--color-overlay: rgba(0, 0, 0, 0.45);
+  --color-danger-strong: #b23a26;
+  --color-risky-strong: #8a5806;
+  --color-success-strong: #2b6b5c;
 
-	--radius-sm: 8px;
-	--radius-md: 12px;
-	--radius-lg: 16px;
+  --color-primary-strong: #1a7ea1;
 
-	/* --- 余白スケール(2026-07-26 UI品質改善: タスクA) ---
-	   全ページの padding/margin/gap はこの8段階から選ぶ。根拠のない 1.4rem / 0.65rem 等の
-	   直値を新規に増やさないこと。既存の直値は意味が近いトークンへ順次寄せている。 */
-	--space-1: 0.25rem;
-	--space-2: 0.5rem;
-	--space-3: 0.75rem;
-	--space-4: 1rem;
-	--space-5: 1.25rem;
-	--space-6: 1.5rem;
-	--space-7: 2rem;
-	--space-8: 3rem;
+  --color-stat-up: #c9432c;
+  --color-stat-down: #1d6fd1;
 
-	/* --- タイポグラフィスケール --- */
-	--font-size-xs: 0.75rem;
-	--font-size-sm: 0.85rem;
-	--font-size-md: 0.95rem;
-	--font-size-base: 1rem;
-	--font-size-lg: 1.05rem;
-	--font-size-xl: 1.5rem;
-	--font-size-2xl: 1.9rem;
+  --color-overlay: rgba(0, 0, 0, 0.45);
 
-	/* --- アイコンサイズ規格(2026-07-27 ラウンド20 20-G1) ---
-	   アイテム・タイプ・テラスタル等の画像アイコンはこの3段階から選ぶ。根拠のない px 直値を
-	   新規に増やさないこと。トークン定義はここまでが担当範囲で、各ページへの適用は別ラウンド/
-	   別エージェントが行う(box/index.astro 等)。 */
-	--icon-size-sm: 20px;
-	--icon-size-md: 28px;
-	--icon-size-lg: 40px;
+  --radius-zero: 0px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
 
-	--line-height-tight: 1.25;
-	--line-height-snug: 1.4;
-	--line-height-normal: 1.6;
+  /* --- 余白スケール(2026-07-26 UI品質改善: タスクA) --- */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-7: 2rem;
+  --space-8: 3rem;
 
-	/* --- 影の階層(「持ち上がり」表現に使う。.panelは影なしのまま据え置き、
-	   .card(コレクション要素)がsm/mdを既定で使う。lgはカード等より一段上の
-	   浮き上がり(スライドオーバーパネル等)向け) --- */
-	--shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.07), 0 1px 1px rgba(15, 23, 42, 0.04);
-	--shadow-md: 0 10px 24px rgba(15, 23, 42, 0.12), 0 2px 6px rgba(15, 23, 42, 0.07);
-	/* box/[id].astro のスライドオーバー詳細パネルなど、カード・パネルより一段上の
-	   浮き上がりを表現する用途。sm/mdと同じ2層構成でスケールだけ拡大する。 */
-	--shadow-lg: 0 20px 48px rgba(15, 23, 42, 0.18), 0 6px 16px rgba(15, 23, 42, 0.1);
+  /* --- タイポグラフィスケール --- */
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.85rem;
+  --font-size-md: 0.95rem;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.05rem;
+  --font-size-xl: 1.5rem;
+  --font-size-2xl: 1.9rem;
 
-	/* ラウンド21 21-G1: 元々 box/[id].astro の .edit-shell にページscopedで定義されていた
-	   select用の矢印(SVGデータURI)を全ページ共通のトークンへ昇格させる。
-	   経緯: ラウンド4ユーザー指示「2種類のドロップダウンが混在している。ホバーしたときだけ
-	   下向き記号が表示されるほうに統一する」を受けて box/[id].astro だけがhover/focus限定の
-	   矢印方式(このトークン)に統一されていたが、box/index.astro・pokemon/[name].astro の
-	   selectはOSネイティブの▼が常時表示されたままで、ラウンド21で同じ指摘が再度来た
-	   (ラウンド4はbox/[id].astroの中だけ直して他ページを直し忘れていた)。ここに昇格させ、
-	   下記の select 共通ルールで appearance:none + hover/focus時のみ background-image を
-	   当てることで、全ページのselectが自動的にこの方式に揃う。値は box/[id].astro の
-	   .edit-shell --select-arrow から変更せずそのまま移した。 */
-	--select-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1.5 2L6 6.2L10.5 2' fill='none' stroke='%236b7280' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  /* --- アイコンサイズ規格(2026-07-27 ラウンド20 20-G1) --- */
+  --icon-size-sm: 20px;
+  --icon-size-md: 28px;
+  --icon-size-lg: 40px;
+
+  --line-height-tight: 1.25;
+  --line-height-snug: 1.4;
+  --line-height-normal: 1.6;
+
+  --shadow-sm:
+    0 1px 2px rgba(15, 23, 42, 0.07), 0 1px 1px rgba(15, 23, 42, 0.04);
+  --shadow-md:
+    0 10px 24px rgba(15, 23, 42, 0.12), 0 2px 6px rgba(15, 23, 42, 0.07);
+
+  --shadow-lg:
+    0 20px 48px rgba(15, 23, 42, 0.18), 0 6px 16px rgba(15, 23, 42, 0.1);
+
+  --select-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1.5 2L6 6.2L10.5 2' fill='none' stroke='%236b7280' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
 @media (prefers-color-scheme: dark) {
-	:root {
-		--color-bg: #14161d;
-		--color-surface: #1c1f28;
-		--color-surface-alt: #22252f;
-		--color-border: #2d313d;
-		--color-text: #e7e9ee;
-		--color-text-muted: #9aa1b0;
+  :root {
+    --color-bg: #14161d;
+    --color-surface: #1c1f28;
+    --color-surface-alt: #22252f;
+    --color-border: #2d313d;
+    --color-text: #e7e9ee;
+    --color-text-muted: #9aa1b0;
 
-		--color-primary: #4dc3ea;
-		--color-primary-hover: #4dc3ea;
-		--color-primary-soft: rgba(77, 195, 234, 0.16);
-		--color-primary-contrast: #14161d;
+    --color-primary: #4dc3ea;
+    --color-primary-hover: #4dc3ea;
+    --color-primary-soft: rgba(77, 195, 234, 0.16);
+    --color-primary-contrast: #14161d;
 
-		--color-success: #55b6a0;
-		--color-success-soft: rgba(85, 182, 160, 0.16);
-		--color-danger: #ff8b78;
-		--color-danger-soft: rgba(255, 139, 120, 0.16);
-		--color-warning: #9aa1b0;
-		--color-warning-soft: rgba(154, 161, 176, 0.16);
-		--color-risky: #e0a940;
-		--color-risky-soft: rgba(224, 169, 64, 0.16);
+    --color-success: #55b6a0;
+    --color-success-soft: rgba(85, 182, 160, 0.16);
+    --color-danger: #ff8b78;
+    --color-danger-soft: rgba(255, 139, 120, 0.16);
+    --color-warning: #9aa1b0;
+    --color-warning-soft: rgba(154, 161, 176, 0.16);
+    --color-risky: #e0a940;
+    --color-risky-soft: rgba(224, 169, 64, 0.16);
 
-		/* ダークは本体トークンが既にAAを満たしているため、ライト用に用意した
-		   -strong 派生トークンは本体トークンと同じ値に戻す。 */
-		--color-danger-strong: var(--color-danger);
-		--color-risky-strong: var(--color-risky);
-		--color-success-strong: var(--color-success);
-		/* ダークの --color-primary(#4dc3ea) は白文字ではなく暗背景に対して既に8.08:1あるため、
-		   -strongはライト用の別色にせず本体トークンへエイリアスする(-danger等と同じ扱い)。 */
-		--color-primary-strong: var(--color-primary);
-		/* 能力ランク変化の色は上昇・下降とも暗背景用に差し替える。ライトの #c9432c(上昇)は
-		   ダーク背景では沈んで読めないため、集約前の box/[id].astro / share/[slug].astro が
-		   していたのと同じく --color-danger にエイリアスする。 */
-		--color-stat-up: var(--color-danger);
-		--color-stat-down: #6fb6f7;
+    --color-danger-strong: var(--color-danger);
+    --color-risky-strong: var(--color-risky);
+    --color-success-strong: var(--color-success);
 
-		/* ダークでは黒背景に対して光の影がほぼ見えないため、暗い背景でも輪郭が読める
-		   濃いめの黒影に差し替える(色トークン自体は変えない)。 */
-		--shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
-		--shadow-md: 0 12px 28px rgba(0, 0, 0, 0.55), 0 2px 8px rgba(0, 0, 0, 0.4);
-		--shadow-lg: 0 24px 56px rgba(0, 0, 0, 0.65), 0 8px 20px rgba(0, 0, 0, 0.45);
+    --color-primary-strong: var(--color-primary);
 
-		/* ラウンド21 21-G1: box/[id].astro .edit-shell のダーク値をそのまま移した(値は不変)。 */
-		--select-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1.5 2L6 6.2L10.5 2' fill='none' stroke='%239aa1b0' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-	}
+    --color-stat-up: var(--color-danger);
+    --color-stat-down: #6fb6f7;
+
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 12px 28px rgba(0, 0, 0, 0.55), 0 2px 8px rgba(0, 0, 0, 0.4);
+    --shadow-lg:
+      0 24px 56px rgba(0, 0, 0, 0.65), 0 8px 20px rgba(0, 0, 0, 0.45);
+
+    --select-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1.5 2L6 6.2L10.5 2' fill='none' stroke='%239aa1b0' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  }
 }
 
 * {
-	box-sizing: border-box;
+  box-sizing: border-box;
 }
 
 html,
 body {
-	background: var(--color-bg);
-	color: var(--color-text);
+  background: var(--color-bg);
+  color: var(--color-text);
 }
 
 body {
-	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
-	margin: 0;
-	line-height: 1.6;
-	-webkit-font-smoothing: antialiased;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Kaku Gothic ProN",
+    "Noto Sans JP", sans-serif;
+  margin: 0;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* ラウンド13 A-8: リンクの既定色だけ --color-primary-strong に向ける
-   (ボタン・枠線・アイコン・スライダー等が参照する --color-primary 本体は触らない)。 */
 a {
-	color: var(--color-primary-strong);
+  color: var(--color-primary-strong);
 }
 
-/* --- ページ共通コンテナ ---
-   2026-07-26 「浮いた囲み箱」から「画面端まで伸びる帯」への刷新に伴い、.page による
-   中央寄せ(max-width + margin:0 auto)と左右paddingを廃止した。帯(.panel系、下記)が
-   画面端まで届くようにするための変更で、縦paddingも帯自身が持つようになったため外す。
-   .page は現状「ページ全体のルート」を示すだけの実質空クラスになっている
-   (マークアップ側の移行が済み次第、クラス自体の要否を再検討してよい)。 */
+/* --- ページ共通コンテナ --- */
 .page {
 }
 
 .page-title {
-	font-size: var(--font-size-xl);
-	line-height: var(--line-height-tight);
-	font-weight: 700;
-	margin: 0 0 var(--space-2);
-	letter-spacing: -0.01em;
+  font-size: var(--font-size-xl);
+  line-height: var(--line-height-tight);
+  font-weight: 700;
+  margin: 0 0 var(--space-2);
+  letter-spacing: -0.01em;
 }
 
 .page-subtitle {
-	color: var(--color-text-muted);
-	margin: 0 0 var(--space-6);
-	font-size: var(--font-size-md);
+  color: var(--color-text-muted);
+  margin: 0 0 var(--space-6);
+  font-size: var(--font-size-md);
 }
 
-/* ページヘッダ(タイトル + 右側のアカウント情報/アクションを横並びにする共通クラス)。
-   使い方: <div class="page-header"><h1 class="page-title">…</h1><div>…右側…</div></div>
-   ページ固有の追加装飾が要る場合は、このクラスと併用する形で独自クラスを足してよい
-   (box/index.astro の .box-page-header はこのクラスと同型の独自実装)。 */
 .page-header {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: baseline;
-	justify-content: space-between;
-	gap: var(--space-3);
-	margin-bottom: var(--space-5);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
 }
 
 .page-header .page-title {
-	margin: 0;
+  margin: 0;
 }
 
 @media (max-width: 640px) {
-	.page-header {
-		flex-direction: column;
-		align-items: flex-start;
-	}
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }
 
 .back-link {
-	display: inline-flex;
-	align-items: center;
-	gap: 0.3em;
-	font-size: var(--font-size-md);
-	font-weight: 500;
-	text-decoration: none;
-	color: var(--color-text-muted);
-	margin-bottom: var(--space-4);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em;
+  font-size: var(--font-size-md);
+  font-weight: 500;
+  text-decoration: none;
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-4);
 }
 
 .back-link:hover {
-	color: var(--color-primary);
+  color: var(--color-primary);
 }
 
-/* --- パネル(1画面に1つの骨格領域: 検索結果領域・種族値表・ツールバー・サイドバー等)。
-   2026-07-26 「浮いた囲み箱」から「画面端(または本文内で縦に積んだ帯どうしの継ぎ目)まで
-   伸びる帯」に作り直した。角丸・外側marginを持たず、影も使わない。
-   borderは既定でゼロにし、「どの画面端に接するか」を表す修飾子(.panel-left/-right/-top、
-   下記)だけに絞って付与する。中身の可読幅を制限したい場合は .panel-content(下記)を
-   帯の内側に置く(帯自体の背景・罫線は画面端まで伸ばしたまま、中身だけ幅を絞る)。 --- */
 .panel {
-	background: var(--color-surface);
-	border: 0;
-	padding: var(--space-6) var(--space-5);
+  background: var(--color-surface);
+  border: 0;
+  padding: var(--space-6) var(--space-5);
 }
 
-/* 画面の左端に固定される帯(例: 育成情報バー)。隣接する右側の内容と区切る右辺のみに罫線。 */
 .panel-left {
-	border-right: 1px solid var(--color-border);
+  border-right: 1px solid var(--color-border);
 }
 
-/* 画面の右端に固定される帯(例: 詳細設定サイドバー)。隣接する左側の内容と区切る左辺のみに罫線。 */
 .panel-right {
-	border-left: 1px solid var(--color-border);
+  border-left: 1px solid var(--color-border);
 }
 
-/* 画面の上端に固定される帯(例: トップバー・ツールバー)。下に続く内容と区切る下辺のみに罫線。 */
 .panel-top {
-	border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
 }
 
-/* 本文中で帯を縦に積む構成(/search, /pokemon/[name] 等で今後採用)向け: 隣接する2枚の帯の
-   継ぎ目に罫線を1本だけ引く。修飾子クラスの付け忘れを避けるため、使用箇所ごとにクラスを
-   足す方式ではなく汎用の隣接セレクタで賄う判断にした。.panel-left/-right/-top は画面端に
-   固定表示されるバー用でDOM上この隣接関係には現れない想定のため、このルールと衝突しない
-   (もし将来 .panel 同士を横並びに置く構成が出てきた場合は、このセレクタが意図しない上辺の
-   線を作らないか確認すること)。 */
 .panel + .panel {
-	border-top: 1px solid var(--color-border);
+  border-top: 1px solid var(--color-border);
 }
 
 .panel > h2,
 .panel > h3:first-child {
-	margin-top: 0;
+  margin-top: 0;
 }
 
-/* --- 一覧ページ共通ツールバー(/box・/team) ---
-   hideTopbar時に共通トップバーの代わりを務めるため、sticky・重なり順・背景・罫線は
-   .app-topbarと同じ既存値を使う。[hidden]はdisplay:flexに負ける既知の罠なので必ず打ち消す。 */
+/* --- 一覧ページ共通ツールバー(/box・/team) --- */
 .panel-toolbar {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	gap: var(--space-3) var(--space-6);
-	padding: var(--space-3) var(--space-5);
-	position: sticky;
-	top: 0;
-	z-index: 20;
-	background: var(--color-surface);
-	border-bottom: 1px solid var(--color-border);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3) var(--space-6);
+  padding: var(--space-3) var(--space-5);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .toolbar-item {
-	display: flex;
-	align-items: center;
-	gap: var(--space-2);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
 }
 
 .toolbar-item[hidden] {
-	display: none;
+  display: none;
 }
 
 .search-input-wrap,
 .sort-select-wrap {
-	position: relative;
-	display: flex;
-	align-items: center;
-	flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1;
 }
 
 .search-input-wrap .search-icon,
 .sort-select-wrap .sort-icon {
-	position: absolute;
-	left: 0.7em;
-	color: var(--color-text-muted);
-	pointer-events: none;
+  position: absolute;
+  left: 0.7em;
+  color: var(--color-text-muted);
+  pointer-events: none;
 }
 
-/* 検索・並べ替えアイコンを入力欄の左に重ねるための領域確保は、下の「入力欄」節
-   (input/select の padding ショートハンド)より後ろに置く必要があるため、そちらの
-   直後に定義している(このファイル内 `.search-input-wrap input` を参照)。 */
-
-/* タグ絞り込みを置き換えたお気に入りトグル。通常は枠・背景を透明にし、
-   選択時も太さを変えず星だけを既存の警告色にする。 */
 .favorite-filter-toggle {
-	display: inline-flex;
-	align-items: center;
-	gap: 0.35em;
-	font-weight: 400;
-	background: transparent;
-	border-color: transparent;
-	color: var(--color-text-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  font-weight: 400;
+  background: transparent;
+  border-color: transparent;
+  color: var(--color-text-muted);
 }
 
-/* お気に入りトグルの星グリフ。data-pinned が付いたボタンの子に置いて使う。
-   OFF(☆)のときホバー/フォーカスすると「押すと塗りつぶされる」ことを先に見せるため★を表示する。
-   ページ側(box/index.astro・team/index.astro)は JS で textContent に☆/★を入れるのをやめ、
-   このクラスを持つ空の span を置く。 */
 .favorite-star-glyph::before {
-	content: "☆";
+  content: "☆";
 }
 
 [data-pinned="true"] .favorite-star-glyph::before,
 [data-pinned="false"]:hover .favorite-star-glyph::before,
 [data-pinned="false"]:focus-visible .favorite-star-glyph::before {
-	content: "★";
+  content: "★";
 }
 
 .favorite-filter-toggle:hover:not(:disabled) {
-	background: transparent;
-	border-color: transparent;
-	color: var(--color-text);
+  background: transparent;
+  border-color: transparent;
+  color: var(--color-text);
 }
 
 .favorite-filter-toggle:hover:not(:disabled) .favorite-filter-star {
-	color: var(--color-risky);
+  color: var(--color-risky);
 }
 
 .favorite-filter-toggle[data-active="true"] {
-	background: transparent;
-	border-color: transparent;
-	color: var(--color-text);
+  background: transparent;
+  border-color: transparent;
+  color: var(--color-text);
 }
 
 .favorite-filter-toggle[data-active="true"] .favorite-filter-star {
-	color: var(--color-risky);
+  color: var(--color-risky);
 }
 
 @media (max-width: 640px) {
-	.panel-toolbar {
-		flex-direction: column;
-		align-items: stretch;
-	}
-	.toolbar-item {
-		width: 100%;
-		margin-left: 0;
-	}
+  .panel-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .toolbar-item {
+    width: 100%;
+    margin-left: 0;
+  }
 }
 
 .panel h2 {
-	font-size: var(--font-size-lg);
-	line-height: var(--line-height-snug);
-	font-weight: 700;
-	margin: 0 0 var(--space-4);
-	padding-bottom: var(--space-3);
-	border-bottom: 1px solid var(--color-border);
+  font-size: var(--font-size-lg);
+  line-height: var(--line-height-snug);
+  font-weight: 700;
+  margin: 0 0 var(--space-4);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--color-border);
 }
 
-/* 帯(.panel)の内側に置き、中身(本文・表・カードグリッド等)の可読幅を制限する。
-   帯自体の背景/罫線は画面端まで伸ばす一方、中身まで1920px幅いっぱいに広げると
-   /pokemon/[name] の技一覧や /share の本文で1行が極端に長くなり読めなくなるための
-   意図的な設計判断。中央寄せはしない(margin:0 auto を付けない): 設計図では内容が
-   左から流れているため。値は旧 .page の既定 max-width(1080px)を踏襲し、既存ページの
-   読みやすさの基準をそのまま維持する。 */
 .panel-content {
-	max-width: 1080px;
+  max-width: 1080px;
 }
 
 .card-hint {
-	color: var(--color-text-muted);
-	font-size: var(--font-size-sm);
-	margin-top: calc(var(--space-2) * -1);
-	margin-bottom: var(--space-4);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  margin-top: calc(var(--space-2) * -1);
+  margin-bottom: var(--space-4);
 }
 
 .card-grid {
-	display: grid;
-	grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-	gap: var(--space-4);
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--space-4);
 }
 
-/* --- カード(可算・追加削除できるコレクション要素: ポケモンカード・チームカード・
-   ダメージ計算カード等)。既定から影と微細なhover持ち上がりを持つ(旧.card-interactiveを統合)。
-   選択状態は既存コードの慣習(box/[id].astroの.damage-row.is-selected、
-   box/index.astroの.pokemon-card.is-pinnedがいずれも`.is-*`状態クラス)に合わせて
-   `.is-selected` を採用する。 --- */
 .card {
-	background: var(--color-surface-alt);
-	border: 1px solid var(--color-border);
-	border-radius: var(--radius-md);
-	padding: var(--space-3);
-	box-shadow: var(--shadow-sm);
-	transition: box-shadow 0.18s ease, border-color 0.18s ease, background-color 0.18s ease;
+  background: var(--color-surface-alt);
+  border: 0px solid var(--color-border);
+  border-radius: var(--radius-zero);
+  padding: var(--space-3);
+  box-shadow: var(--shadow-sm);
+  transition:
+    box-shadow 0.18s ease,
+    border-color 0.18s ease,
+    background-color 0.18s ease;
 }
 
-/* 2026-07-27 ラウンド20 20-G2: hover の translateY(-2px) は「鬱陶しい」というユーザー指摘で撤去し、
-   位置の動かない静止したハイライトに変えた(box-shadow sm→mdの変化は残す)。
-   background の変化を主にし、border-color は「選択中でない」ときだけ変える
-   (.is-selected の border-color: --color-primary を hover が上書き/衝突しないようにするため)。 */
 .card:hover,
 .card:focus-within {
-	box-shadow: var(--shadow-md);
-	background: color-mix(in srgb, var(--color-surface-alt) 90%, var(--color-primary) 10%);
+  box-shadow: var(--shadow-md);
+  background: color-mix(
+    in srgb,
+    var(--color-surface-alt) 90%,
+    var(--color-primary) 10%
+  );
 }
 
 .card:not(.is-selected):hover,
 .card:not(.is-selected):focus-within {
-	border-color: var(--color-primary);
+  border-color: var(--color-primary);
 }
 
-/* ラウンド22 22-A-2: border-color: var(--color-primary)(#27acd9)が --color-surface-alt
-   (#f8f9fc)に対しライトで2.50:1しか無く、WCAG 1.4.11(非テキストUI境界3:1)未達だった
-   (ダークは約6.5:1で問題なし)。「選択状態が見える」ことが目的で色相自体を変える意図は
-   無いため、新色は作らずライト用に既に用意されている --color-primary-strong(#1a7ea1、
-   ラウンド13でリンク文字用に追加、ラジオ選択のドット色にも流用済み)を使う。
-   --color-primary-strong はダークでは `var(--color-primary)` にエイリアスされているため、
-   ダークの見た目は変わらない。実測(手計算、WCAG相対輝度式): plain --color-surface-alt上で
-   4.39:1、/box/[id]の方向別8%着色背景(color-mix、--color-danger 8%/--color-primary 8%)
-   上でもそれぞれ4.07:1・4.09:1で3:1を満たす。 */
 .card.is-selected {
-	border-color: var(--color-primary-strong);
+  border-color: var(--color-primary-strong);
 }
 
-/* 実数値・ダメージ量など、桁が変化する数値表示に使う共通クラス。
-   等幅数字(tabular-nums)にして桁が揃うようにする。 */
 .tnum {
-	font-variant-numeric: tabular-nums;
-	font-feature-settings: "tnum" 1, "lnum" 1;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings:
+    "tnum" 1,
+    "lnum" 1;
 }
 
 /* --- フォーム --- */
 fieldset {
-	border: 1px solid var(--color-border);
-	border-radius: var(--radius-md);
-	padding: var(--space-3) var(--space-4);
-	margin: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  margin: 0;
 }
 
 legend {
-	font-size: var(--font-size-sm);
-	font-weight: 600;
-	color: var(--color-text-muted);
-	padding: 0 0.4em;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text-muted);
+  padding: 0 0.4em;
 }
 
-/* 素の <label> の見た目(色・サイズ)だけを揃える。
-   2026-07-25までは `min-width: 6.5em` で全ページのラベル幅を強制していたが、ラベルの
-   長さに関係なく余白が空いたり、逆に長いラベル(例:テラスタイプ)は素通りしたりして
-   整列に寄与していなかった上、ページ側レイアウトを歪めていたため撤廃した。
-   ラベルと入力欄を意図的に整列させたい場合は、下の .field / .field-label を使うこと。 */
 label {
-	display: inline-block;
-	font-size: var(--font-size-md);
-	color: var(--color-text);
+  display: inline-block;
+  font-size: var(--font-size-md);
+  color: var(--color-text);
 }
 
 .row {
-	margin: var(--space-3) 0;
-	display: flex;
-	align-items: center;
-	gap: var(--space-2);
-	flex-wrap: wrap;
+  margin: var(--space-3) 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
 }
 
-/* --- ラベル付きフィールド(2026-07-26 UI品質改善: タスクA新設) ---
-   素の label 要素に幅を強制する代わりに、明示的にこのクラスを付けて使う。
-   既定は横並び(ラベル/コントロール)。.field-stack で縦積みに切り替えられる
-   (例: テキストエリアの上にラベルを置きたい場合)。
-   複数の .field を並べてラベル幅を揃えたい場合は、親要素(fieldsetなど)に
-   `style="--field-label-width: 6em"` のように CSS変数を設定する(既定は auto)。
-   使い方:
-     <div class="field">
-       <span class="field-label">ニックネーム</span>
-       <input class="field-control" type="text" />
-     </div> */
+/* --- ラベル付きフィールド(2026-07-26 UI品質改善: タスクA新設) --- */
 .field {
-	display: flex;
-	align-items: center;
-	gap: var(--space-2);
-	margin: var(--space-2) 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: var(--space-2) 0;
 }
 
 .field.field-stack {
-	flex-direction: column;
-	align-items: stretch;
-	gap: var(--space-1);
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-1);
 }
 
 .field-label {
-	flex-shrink: 0;
-	min-width: var(--field-label-width, auto);
-	font-size: var(--font-size-sm);
-	font-weight: 600;
-	color: var(--color-text-muted);
+  flex-shrink: 0;
+  min-width: var(--field-label-width, auto);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text-muted);
 }
 
 .field-stack > .field-label {
-	color: var(--color-text);
+  color: var(--color-text);
 }
 
 .field-control {
-	flex: 1 1 auto;
-	min-width: 0;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .field-hint {
-	margin: calc(var(--space-1) * -1) 0 0;
-	font-size: var(--font-size-xs);
-	color: var(--color-text-muted);
+  margin: calc(var(--space-1) * -1) 0 0;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
 }
 
-/* --- 入力欄 ---
-   input/select は1行コントロールとして高さを揃える(min-height)。textareaは
-   複数行前提のため高さは揃えず、paddingのみ他のコントロールと統一する。 */
+/* --- 入力欄 --- */
 input[type="text"],
 input[type="number"],
 input[type="search"],
 select,
 textarea {
-	font: inherit;
-	color: var(--color-text);
-	background: var(--color-surface);
-	border: 1px solid var(--color-border);
-	border-radius: var(--radius-sm);
-	padding: var(--space-2) var(--space-3);
-	line-height: var(--line-height-snug);
-	transition: border-color 0.15s, box-shadow 0.15s;
+  font: inherit;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+  line-height: var(--line-height-snug);
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
 }
 
 input[type="text"],
 input[type="number"],
 input[type="search"],
 select {
-	min-height: 2.35rem;
+  min-height: 2.35rem;
 }
 
 input[type="text"] {
-	min-width: 12em;
+  min-width: 12em;
 }
 
-/* ラウンド21 21-G1: 全ページのselectをhover/focus限定の矢印方式に統一する。
-   従来は box/index.astro / pokemon/[name].astro の select がここまでの共通ルールしか
-   継承しておらずOSネイティブの▼が常時表示される一方、box/[id].astro だけが appearance:none +
-   hover/focus時のみ background-image という別方式だった(ラウンド4指摘の再発、詳細は
-   :root の --select-arrow のコメント参照)。ここに appearance:none とhover/focus時の
-   矢印表示を統合し、box/[id].astro 側の重複定義(#edit-form select / is:global側の
-   #opponent-notes-section select)と同じ内容にする(box/[id].astro側の削除は別担当)。
-   appearance:none にすると非hover時は矢印が消え、「選べる」手掛かりがborderのみになる
-   ことに注意(box/[id].astroで先行導入済みの挙動をそのまま全ページに広げるだけなので、
-   本ラウンドでは追加の判断はしない)。 */
 select {
-	appearance: none;
-	-webkit-appearance: none;
-	-moz-appearance: none;
-	background-repeat: no-repeat;
-	background-position: right 0.6em center;
-	background-size: 10px 7px;
-	padding-right: 1.7em;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-repeat: no-repeat;
+  background-position: right 0.6em center;
+  background-size: 10px 7px;
+  padding-right: 1.7em;
 }
 
 select:hover,
 select:focus,
 select:focus-visible {
-	background-image: var(--select-arrow);
+  background-image: var(--select-arrow);
 }
 
-/* 一覧ツールバーの検索欄・並べ替えselectは、左端に重ねたアイコン(.search-icon /
-   .sort-icon、上の「一覧ページ共通ツールバー」節)のぶんだけ内側を空ける。
-   ⚠️ この2行は必ず上の `input[type="text"] { padding: … }` より**後ろ**に置くこと。
-   `.search-input-wrap input`(0,1,1)と `input[type="text"]`(0,1,1)は詳細度が同じで、
-   先に書くと後勝ちで padding ショートハンドに padding-left を潰され、アイコンが
-   プレースホルダに重なる(2026-08-05にツールバーをglobal.cssへ集約した際に実際に
-   /team で発生。/box はページ側のscoped指定が詳細度で勝っていたため無症状だった)。 */
 .search-input-wrap input,
 .sort-select-wrap select {
-	padding-left: 2.1em;
+  padding-left: 2.1em;
 }
 
-/* 一覧ツールバー/トップバーのフィルタ・並べ替えselectは、最長の選択肢を基準にした
-   内容幅を維持する。選択変更時にも幅が変わらないよう field-sizing: content は使わない。
-   .field-control のflex伸長とselectのアイコン用paddingを確定した後に上書きする必要があるため、
-   入力欄節の上記ルールより後ろに置く。 */
 .toolbar-item select.field-control,
 .sort-select-wrap select {
-	width: auto;
-	min-width: 0;
-	flex: none;
+  width: auto;
+  min-width: 0;
+  flex: none;
 }
 
 textarea {
-	width: 100%;
-	min-height: 4em;
-	font-family: inherit;
+  width: 100%;
+  min-height: 4em;
+  font-family: inherit;
 }
 
 input:focus,
 select:focus,
 textarea:focus {
-	outline: 2px solid var(--color-primary);
-	outline-offset: 1px;
-	border-color: var(--color-primary);
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+  border-color: var(--color-primary);
 }
 
 input::placeholder {
-	color: var(--color-text-muted);
-	opacity: 0.8;
+  color: var(--color-text-muted);
+  opacity: 0.8;
 }
 
-/* --- チェックボックス・ラジオ(ラウンド15 A-6/B-10) ---
-   これまで accent-color が input[type=range] にしか指定されておらず、ラジオ/チェックボックスは
-   ブラウザ既定描画のままだった。ダーク(color-scheme: light dark、ラウンド14 B-7)では
-   未選択のラジオが塗りつぶし円 RGB(59,59,59) 対 パネル背景 RGB(28,31,40) で約1.47:1しかなく、
-   非テキスト要素の目安3:1を大きく下回っていた。選択色も既定の RGB(0,117,255) でサイトの
-   primary(シアン系)と色相が合っていなかった。
-   ラウンド15実装時にまず accent-color: var(--color-primary) だけを試したが、実測したところ
-   未選択の塗り色はRGB(59,59,59)のまま変化せず1.47:1のままだった(accent-colorは選択状態の
-   色にしか効かず、未選択の枠・塗りはブラウザ既定描画に委ねられたまま)。round-15.md A-6の
-   「3:1に届かなければ appearance:none + カスタムborderへ切り替える」という条件に従い、
-   ネイティブ描画をやめて自前で描く方式に切り替えた。
-   未選択の枠色には --color-text-muted を採用する(ライト #5b6472 は白背景に対し実測5.98:1、
-   ダーク #9aa1b0 はパネル背景 #1c1f28 に対し計算上6.34:1で、いずれも3:1を大きく上回る。
-   どちらも既に他要素のテキストで使われている検証済みの色なので新色は作らない)。
-   選択時は枠・中央のドット/チェックマークを --color-primary にし、サイトのprimaryと
-   色相を揃える。
-   B-10: ラジオ本体13pxはラベル文字14〜16pxに対して操作対象として小さすぎるため、
-   1.05em(≒約1文字分)に拡大する。 */
+/* --- チェックボックス・ラジオ(ラウンド15 A-6/B-10) --- */
 input[type="radio"],
 input[type="checkbox"] {
-	appearance: none;
-	-webkit-appearance: none;
-	-moz-appearance: none;
-	width: 1.05em;
-	height: 1.05em;
-	margin: 0;
-	flex-shrink: 0;
-	vertical-align: middle;
-	position: relative;
-	border: 2px solid var(--color-text-muted);
-	background: var(--color-surface);
-	cursor: pointer;
-	transition: border-color 0.15s, background-color 0.15s;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  width: 1.05em;
+  height: 1.05em;
+  margin: 0;
+  flex-shrink: 0;
+  vertical-align: middle;
+  position: relative;
+  border: 2px solid var(--color-text-muted);
+  background: var(--color-surface);
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    background-color 0.15s;
 }
 
 input[type="radio"] {
-	border-radius: 50%;
+  border-radius: 50%;
 }
 
 input[type="checkbox"] {
-	border-radius: 3px;
+  border-radius: 3px;
 }
 
 input[type="radio"]:checked,
 input[type="checkbox"]:checked {
-	border-color: var(--color-primary);
+  border-color: var(--color-primary);
 }
 
-/* ラジオ選択時: 外枠(primary)+中央の塗りドット(ラウンド17 A-4で --color-primary-strong に変更)
-   という、ネイティブ描画と同じ「リング+ドット」の見た目にする。
-   ラウンド17 A-4: ドットは --color-surface(=このinput自体の背景。checked時もradioは
-   backgroundを上書きしていないため surface のまま)の上に primary を乗せる構造で、
-   チェックマークと同じ組み合わせのためライトで約2.63:1しかなかった。ドットのみ
-   --color-primary-strong に差し替えて4.62:1に是正する(外枠のリングは --color-primary の
-   ままで変更しない。ダークは --color-primary-strong が --color-primary にエイリアスされる
-   ため見た目は変化しない)。 */
 input[type="radio"]:checked::after {
-	content: "";
-	position: absolute;
-	inset: 3px;
-	border-radius: 50%;
-	background: var(--color-primary-strong);
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border-radius: 50%;
+  background: var(--color-primary-strong);
 }
 
-/* チェックボックス選択時: 塗りつぶし+チェックマーク(surface色の折れ線)。
-   ラウンド17 A-4: 塗りが --color-primary のままだとライトでチェックマーク(白)との
-   コントラストが約2.63:1しかなく、非文字要素の目安3:1を割っていた(ダークは
-   --color-surface が #1c1f28 になるため約6.26:1で問題なし)。塗りを
-   --color-primary-strong(#1a7ea1、ラウンド13でリンク色のAA対応用に追加済みのトークン)
-   に差し替えると白マークとの比が4.62:1になる。border-color もここで同じ値に揃えて
-   おかないと、枠だけ --color-primary(明るいシアン)のまま残り縁取りだけ浮いて見える
-   ため合わせて上書きする(ダークは --color-primary-strong が --color-primary に
-   エイリアスされるので見た目は変化しない)。 */
 input[type="checkbox"]:checked {
-	background: var(--color-primary-strong);
-	border-color: var(--color-primary-strong);
+  background: var(--color-primary-strong);
+  border-color: var(--color-primary-strong);
 }
 
 input[type="checkbox"]:checked::after {
-	content: "";
-	position: absolute;
-	/* 1.05em角の本体中央を基準にする。折れ線を40deg回転した後の外接矩形は
-	   固定left/topでは文字サイズごとにずれるため、中心配置して視覚的な重心ぶんだけ
-	   上へ5%補正する。サイズ・線幅・色は従来値を維持する。 */
-	left: 50%;
-	top: 50%;
-	width: 0.28em;
-	height: 0.52em;
-	border: solid var(--color-surface);
-	border-width: 0 0.15em 0.15em 0;
-	transform: translate(-50%, -55%) rotate(40deg);
+  content: "";
+  position: absolute;
+
+  left: 50%;
+  top: 50%;
+  width: 0.28em;
+  height: 0.52em;
+  border: solid var(--color-surface);
+  border-width: 0 0.15em 0.15em 0;
+  transform: translate(-50%, -55%) rotate(40deg);
 }
 
 input[type="radio"]:disabled,
 input[type="checkbox"]:disabled {
-	cursor: not-allowed;
-	opacity: 0.5;
+  cursor: not-allowed;
+  opacity: 0.5;
 }
 
 input[type="radio"]:focus-visible,
 input[type="checkbox"]:focus-visible {
-	outline: 2px solid var(--color-primary);
-	outline-offset: 2px;
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
-/* --- レンジスライダー ---
-   既定の accent-color 頼りだと Chrome で黒い太トラックになるため、
-   トラック/つまみを明示指定して細く小さくする。つまみより左側(進捗)を着色したい
-   呼び出し側は、JSで `inputEl.style.setProperty('--slider-progress', `${percent}%`)`
-   を設定すること(Chrome/Edge/Safari向け。Firefoxは ::-moz-range-progress が
-   value に応じて自動で着色されるため設定不要)。未設定時は --slider-progress の
-   既定値(50%)で見た目上トラック全体が薄い色になる。 */
+/* --- レンジスライダー --- */
 input[type="range"] {
-	appearance: none;
-	-webkit-appearance: none;
-	-moz-appearance: none;
-	width: 100%;
-	height: 1.4em;
-	margin: 0;
-	background: transparent;
-	cursor: pointer;
-	--slider-progress: 50%;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  width: 100%;
+  height: 1.4em;
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+  --slider-progress: 50%;
 }
 
 input[type="range"]:disabled {
-	cursor: not-allowed;
-	opacity: 0.5;
+  cursor: not-allowed;
+  opacity: 0.5;
 }
 
 input[type="range"]::-webkit-slider-runnable-track {
-	height: 5px;
-	border-radius: 999px;
-	background: linear-gradient(
-		to right,
-		var(--color-primary) var(--slider-progress),
-		var(--color-border) var(--slider-progress)
-	);
+  height: 5px;
+  border-radius: 999px;
+  background: linear-gradient(
+    to right,
+    var(--color-primary) var(--slider-progress),
+    var(--color-border) var(--slider-progress)
+  );
 }
 
 input[type="range"]::-webkit-slider-thumb {
-	appearance: none;
-	-webkit-appearance: none;
-	width: 14px;
-	height: 14px;
-	margin-top: -4.5px;
-	border-radius: 50%;
-	background: var(--color-primary);
-	border: 2px solid var(--color-surface);
-	box-shadow: var(--shadow-sm);
+  appearance: none;
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  margin-top: -4.5px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  border: 2px solid var(--color-surface);
+  box-shadow: var(--shadow-sm);
 }
 
 input[type="range"]::-moz-range-track {
-	height: 5px;
-	border-radius: 999px;
-	background: var(--color-border);
+  height: 5px;
+  border-radius: 999px;
+  background: var(--color-border);
 }
 
 input[type="range"]::-moz-range-progress {
-	height: 5px;
-	border-radius: 999px;
-	background: var(--color-primary);
+  height: 5px;
+  border-radius: 999px;
+  background: var(--color-primary);
 }
 
 input[type="range"]::-moz-range-thumb {
-	width: 14px;
-	height: 14px;
-	border-radius: 50%;
-	background: var(--color-primary);
-	border: 2px solid var(--color-surface);
-	box-shadow: var(--shadow-sm);
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  border: 2px solid var(--color-surface);
+  box-shadow: var(--shadow-sm);
 }
 
 input[type="range"]:focus-visible::-webkit-slider-thumb {
-	outline: 2px solid var(--color-primary);
-	outline-offset: 2px;
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 input[type="range"]:focus-visible::-moz-range-thumb {
-	outline: 2px solid var(--color-primary);
-	outline-offset: 2px;
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 .stat-grid-label {
-	display: block;
-	font-size: var(--font-size-sm);
-	font-weight: 600;
-	color: var(--color-text-muted);
-	margin-bottom: var(--space-2);
+  display: block;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-2);
 }
 
 .stat-inputs {
-	display: flex;
-	flex-wrap: wrap;
-	gap: var(--space-3);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
 }
 
 .stat-input {
-	display: flex;
-	flex-direction: column;
-	align-items: flex-start;
-	gap: var(--space-1);
-	font-size: var(--font-size-xs);
-	font-weight: 600;
-	color: var(--color-text-muted);
-	min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-1);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--color-text-muted);
+  min-width: 0;
 }
 
 .stat-input input {
-	width: 4.4em;
+  width: 4.4em;
 }
 
 .stat-input-controls {
-	display: flex;
-	align-items: center;
-	gap: var(--space-1);
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
 }
-/* input[type=range] の見た目自体は上の共通ルール(-webkit-slider-系 / -moz-range-系)に
-   統一済み。ここでは能力値スライダー用の幅のみ指定する(accent-colorは非対応ブラウザ向けの
-   フォールバックとして残す)。 */
+
 .stat-input-controls input[type="range"] {
-	width: 5.5em;
-	accent-color: var(--color-primary);
+  width: 5.5em;
+  accent-color: var(--color-primary);
 }
 
 .sprite-icon {
-	border-radius: 50%;
-	background: var(--color-surface-alt);
-	object-fit: contain;
-	flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--color-surface-alt);
+  object-fit: contain;
+  flex-shrink: 0;
 }
 .sprite-fallback {
-	display: none;
-	align-items: center;
-	justify-content: center;
-	border-radius: 50%;
-	background: var(--color-primary-soft);
-	color: var(--color-primary);
-	font-weight: 700;
-	flex-shrink: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  font-weight: 700;
+  flex-shrink: 0;
 }
 
 .add-card-tile {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	min-height: 8rem;
-	border: 2px dashed var(--color-border);
-	border-radius: var(--radius-lg);
-	background: transparent;
-	color: var(--color-text-muted);
-	font-weight: 600;
-	cursor: pointer;
-	transition: border-color 0.15s, color 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 8rem;
+  border: 2px dashed var(--color-border);
+  border-radius: var(--radius-lg);
+  background: transparent;
+  color: var(--color-text-muted);
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    color 0.15s;
 }
 .add-card-tile:hover {
-	border-color: var(--color-primary);
-	color: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
 }
 
-/* --- 空状態 ---
-   /boxの登録0件・検索一致0件を基準にした共通表示。以前の表示条件修正後も、
-   アイコン・タイトル・補足で「本当に0件」と絞り込み0件を伝える見た目を維持する。 */
+/* --- 空状態 --- */
 .empty-state {
-	margin-top: var(--space-6);
-	padding: var(--space-7) var(--space-5);
-	border: 1px dashed var(--color-border);
-	border-radius: var(--radius-lg);
-	text-align: center;
-	color: var(--color-text-muted);
+  margin-top: var(--space-6);
+  padding: var(--space-7) var(--space-5);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-lg);
+  text-align: center;
+  color: var(--color-text-muted);
 }
 
 .empty-state-icon {
-	font-size: 2.4rem;
-	margin: 0 0 var(--space-2);
+  font-size: 2.4rem;
+  margin: 0 0 var(--space-2);
 }
 
 .empty-state-title {
-	margin: 0 0 var(--space-1);
-	font-size: var(--font-size-lg);
-	font-weight: 700;
-	color: var(--color-text);
+  margin: 0 0 var(--space-1);
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  color: var(--color-text);
 }
 
 .empty-state-hint {
-	margin: 0;
-	font-size: var(--font-size-sm);
+  margin: 0;
+  font-size: var(--font-size-sm);
 }
 
-/* チーム編集の選択バー内は限られた幅に収めるため、従来の小型値を変種として維持する。 */
 .empty-state.is-compact {
-	margin-top: var(--space-4);
-	padding: var(--space-5) var(--space-3);
+  margin-top: var(--space-4);
+  padding: var(--space-5) var(--space-3);
 }
 
 .empty-state.is-compact .empty-state-icon {
-	font-size: 2rem;
+  font-size: 2rem;
 }
 
 .empty-state.is-compact .empty-state-title {
-	font-size: var(--font-size-md);
+  font-size: var(--font-size-md);
 }
 
 .empty-state.is-compact .empty-state-hint {
-	margin-bottom: var(--space-3);
+  margin-bottom: var(--space-3);
 }
 
 .move-inputs {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 0.7rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
 }
 
-/* --- ボタン ---
-   旧battle-assistant-sv(manager.css #new-button/.tuning-button/#delete-button)の方式を踏襲:
-   影は使わず、ボーダーと同色の塗り+白文字。ホバーで背景と文字色を反転させ、太字にする。
-   この「反転ホバー」はa要素(ログインボタン等)にも .btn-primary 等のクラスを付ければ同じ
-   見た目になるよう button/a 両方をセレクタに含める。
-   ラウンド32 32-U-A1(統一感レビューの指摘、round-32.md): /box ツールバーで
-   #favorite-filter-toggle(素のbutton)だけが#search-input/#sort-select(.field-control、
-   line-height: var(--line-height-snug)を明示)より45.19px/y=64.88と高く・上端が浮いていた
-   (input/select 40.39px/y=67.27)。原因はbodyのline-height:1.6をbuttonだけが打ち消さずに
-   継承していたこと。ここでline-height: var(--line-height-snug)を追加したところ、
-   line-height差(25.6→22.4px)は埋まっても縦paddingの差(0.55em=8.8px vs var(--space-2)=8px)が
-   残り40.39pxに揃わなかったため、縦paddingも0.55emからvar(--space-2)へ変更した(横paddingの
-   1.1emは維持。アイコンのみの小型ボタン(.icon-button/.btn-ghost系のサイズ規格は各ページの
-   scoped styleで width/height/padding:0 を明示しており、詳細度でこの基底より優先されるため
-   影響を受けない)。 */
+/* --- ボタン --- */
 button,
 a.btn-primary,
 a.btn-danger,
 a.btn-ghost {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	gap: 0.4em;
-	font: inherit;
-	font-weight: 600;
-	color: var(--color-text);
-	background: var(--color-surface);
-	border: 1px solid var(--color-border);
-	border-radius: var(--radius-sm);
-	padding: var(--space-2) 1.1em;
-	line-height: var(--line-height-snug);
-	cursor: pointer;
-	text-decoration: none;
-	transition: background 0.2s, color 0.2s, border-color 0.2s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4em;
+  font: inherit;
+  font-weight: 600;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) 1.1em;
+  line-height: var(--line-height-snug);
+  cursor: pointer;
+  text-decoration: none;
+  transition:
+    background 0.2s,
+    color 0.2s,
+    border-color 0.2s;
 }
 
-/* ページ側で27件重複していた同じリングを基底に置く。カード用の内側リング等は、
-   scoped styleの詳細度が勝つため従来どおりその指定が効く。 */
 button:focus-visible,
 a.btn-primary:focus-visible,
 a.btn-danger:focus-visible,
 a.btn-ghost:focus-visible {
-	outline: 2px solid var(--color-primary);
-	outline-offset: 2px;
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 button:hover:not(:disabled) {
-	background: var(--color-surface-alt);
+  background: var(--color-surface-alt);
 }
 
 button:disabled {
-	cursor: not-allowed;
-	opacity: 0.55;
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 button.btn-primary,
 a.btn-primary {
-	background: var(--color-primary);
-	border: 2px solid var(--color-primary);
-	color: var(--color-primary-contrast);
-	padding: calc(var(--space-2) - 1px) calc(1.1em - 1px);
-	font-weight: 700;
+  background: var(--color-primary);
+  border: 2px solid var(--color-primary);
+  color: var(--color-primary-contrast);
+  padding: calc(var(--space-2) - 1px) calc(1.1em - 1px);
+  font-weight: 700;
 }
 
 button.btn-primary:hover:not(:disabled),
 a.btn-primary:hover {
-	background: var(--color-surface);
-	color: var(--color-primary);
+  background: var(--color-surface);
+  color: var(--color-primary);
 }
 
 button.btn-success {
-	background: var(--color-success);
-	border: 2px solid var(--color-success);
-	color: var(--color-primary-contrast);
-	padding: calc(var(--space-2) - 1px) calc(1.1em - 1px);
-	font-weight: 700;
+  background: var(--color-success);
+  border: 2px solid var(--color-success);
+  color: var(--color-primary-contrast);
+  padding: calc(var(--space-2) - 1px) calc(1.1em - 1px);
+  font-weight: 700;
 }
 
 button.btn-success:hover:not(:disabled) {
-	background: var(--color-surface);
-	color: var(--color-success);
+  background: var(--color-surface);
+  color: var(--color-success);
 }
 
-/* ラウンド22 22-A-1: background: var(--color-danger) + 白文字がライトで2.82:1しか無く
-   WCAG AA(4.5:1)未達だった(ダークは--color-dangerが#ff8b78で7.93:1あり問題なし)。
-   ラウンド21で/box/[id]の#delete-buttonにページscopedで適用した--color-danger-strong
-   (#b23a26、白地5.96:1)を基底のここに適用し、二重管理を解消する。--color-danger-strongは
-   ダークではglobal.css内で`var(--color-danger)`にエイリアスされているため、ダークの見た目は
-   一切変わらない。hover時の文字色もbackground:白地に対し同じ2.82:1の問題を抱えていたため
-   同じトークンに揃える(ラウンド21の#delete-button:hoverが先行して同じ対応をしていた)。 */
 button.btn-danger,
 a.btn-danger,
 .delete-button {
-	background: var(--color-danger-strong);
-	border: 2px solid var(--color-danger-strong);
-	color: var(--color-primary-contrast);
-	padding: calc(var(--space-2) - 1px) calc(1.1em - 1px);
-	font-weight: 700;
+  background: var(--color-danger-strong);
+  border: 2px solid var(--color-danger-strong);
+  color: var(--color-primary-contrast);
+  padding: calc(var(--space-2) - 1px) calc(1.1em - 1px);
+  font-weight: 700;
 }
 
 button.btn-danger:hover:not(:disabled),
 a.btn-danger:hover,
 .delete-button:hover:not(:disabled) {
-	background: var(--color-surface);
-	color: var(--color-danger-strong);
+  background: var(--color-surface);
+  color: var(--color-danger-strong);
 }
 
 button.btn-ghost,
 a.btn-ghost {
-	background: transparent;
-	border-color: transparent;
-	color: var(--color-text-muted);
+  background: transparent;
+  border-color: transparent;
+  color: var(--color-text-muted);
 }
 
 button.btn-ghost:hover:not(:disabled),
 a.btn-ghost:hover {
-	background: var(--color-surface-alt);
+  background: var(--color-surface-alt);
 }
 
-/* 一覧の並び順を切り替える共通ボタン(/box・/speed-chart)。button基底より前では
-   同詳細度のpadding等に後勝ちで戻されるため、ボタン節の全基底・変種より後ろに置く。 */
 .sort-dir-toggle {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	gap: var(--space-1);
-	flex: none;
-	font: inherit;
-	font-weight: 600;
-	line-height: var(--line-height-snug);
-	color: var(--color-text-muted);
-	background: var(--color-surface);
-	border: 1px solid var(--color-border);
-	border-radius: var(--radius-sm);
-	padding: var(--space-2) var(--space-3);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  flex: none;
+  font: inherit;
+  font-weight: 600;
+  line-height: var(--line-height-snug);
+  color: var(--color-text-muted);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
 }
 
 .sort-dir-toggle:hover:not(:disabled) {
-	background: var(--color-surface-alt);
-	color: var(--color-text);
+  background: var(--color-surface-alt);
+  color: var(--color-text);
 }
 
 .sort-dir-toggle:focus-visible {
-	outline: 2px solid var(--color-primary);
-	outline-offset: 2px;
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 .sort-dir-toggle[hidden] {
-	display: none;
+  display: none;
 }
 
 .sort-dir-toggle-icon {
-	flex: none;
+  flex: none;
 }
 
 .sort-dir-toggle[data-order="desc"] .sort-dir-toggle-icon {
-	transform: rotate(180deg);
+  transform: rotate(180deg);
 }
 
 .sort-dir-toggle-label {
-	white-space: nowrap;
+  white-space: nowrap;
 }
 
-/* 能力ランクの入力と±操作を共通化する(/box/[id]のダメージ計算・/speed-chart)。
-   button/.btn-ghostのpadding・border・hoverを確実に上書きするため、全ボタン変種の後ろに置く。 */
 .rank-field {
-	display: inline-flex;
-	align-items: center;
-	gap: var(--space-1);
-	font-size: var(--font-size-xs);
-	color: var(--color-text-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
 }
 
 .rank-field label {
-	font-size: inherit;
-	color: inherit;
+  font-size: inherit;
+  color: inherit;
 }
 
 .rank-stepper-group {
-	display: inline-flex;
-	align-items: center;
-	gap: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
 }
 
 .rank-stepper {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	width: var(--space-6);
-	height: var(--space-6);
-	min-width: var(--space-6);
-	min-height: var(--space-6);
-	flex: none;
-	padding: 0;
-	line-height: 1;
-	color: var(--color-text-muted);
-	background: transparent;
-	border: none;
-	border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-6);
+  height: var(--space-6);
+  min-width: var(--space-6);
+  min-height: var(--space-6);
+  flex: none;
+  padding: 0;
+  line-height: 1;
+  color: var(--color-text-muted);
+  background: transparent;
+  border: none;
+  border-radius: 50%;
 }
 
 .rank-stepper:hover:not(:disabled) {
-	background: var(--color-border);
-	color: var(--color-text);
+  background: var(--color-border);
+  color: var(--color-text);
 }
 
-/* hoverのborder色より一段強い押下フィードバックとして、両テーマで面との差が大きく、
-   既存の補助文字にも使うテーマ追従の--color-text-mutedを背景に採用する。 */
 .rank-stepper:active:not(:disabled) {
-	background: var(--color-text-muted);
-	color: var(--color-surface);
+  background: var(--color-text-muted);
+  color: var(--color-surface);
 }
 
 .rank-stepper:disabled {
-	cursor: default;
-	opacity: 0.5;
+  cursor: default;
+  opacity: 0.5;
 }
 
 .rank-stepper:focus-visible {
-	outline: 2px solid var(--color-primary);
-	outline-offset: 2px;
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 .rank-stepper[hidden] {
-	display: none;
+  display: none;
 }
 
-/* --- トグルスイッチ ---
-   input[type="checkbox"] の共通ルールはクラス単独より詳細度が高いため、要素+属性を併記して
-   visually-hidden指定が上書きされ、ネイティブのチェックボックスが露出する事故を防ぐ。 */
-.toggle-switch { position: relative; display: inline-flex; align-items: center; width: 38px; height: 20px; flex-shrink: 0; }
+/* --- トグルスイッチ --- */
+.toggle-switch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  width: 38px;
+  height: 20px;
+  flex-shrink: 0;
+}
 .toggle-switch-input,
 input[type="checkbox"].toggle-switch-input {
-	position: absolute;
-	width: 1px;
-	height: 1px;
-	margin: -1px;
-	padding: 0;
-	overflow: hidden;
-	clip: rect(0 0 0 0);
-	white-space: nowrap;
-	border: 0;
-	cursor: pointer;
-	appearance: none;
-	-webkit-appearance: none;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
 }
 .toggle-switch-track {
-	position: absolute;
-	inset: 0;
-	border-radius: 999px;
-	background: var(--color-border);
-	border: 1px solid var(--color-border);
-	transition: background-color 0.15s ease, border-color 0.15s ease;
-	pointer-events: none;
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: var(--color-border);
+  border: 1px solid var(--color-border);
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+  pointer-events: none;
 }
 .toggle-switch-thumb {
-	position: absolute;
-	top: 2px;
-	left: 2px;
-	width: 16px;
-	height: 16px;
-	border-radius: 50%;
-	/* ダーク時に暗い塊へ見えるのを防ぎ、状態はトラック色で示すため、つまみは常に白固定にする。 */
-	background: #ffffff;
-	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
-	transition: transform 0.15s ease;
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  transition: transform 0.15s ease;
 }
-.toggle-switch-input:checked + .toggle-switch-track { background: var(--color-primary); border-color: var(--color-primary); }
-.toggle-switch-input:checked + .toggle-switch-track .toggle-switch-thumb { transform: translateX(18px); }
-.toggle-switch-input:focus-visible + .toggle-switch-track { outline: 2px solid var(--color-primary); outline-offset: 2px; }
-.toggle-switch-input:disabled + .toggle-switch-track { opacity: 0.5; }
+.toggle-switch-input:checked + .toggle-switch-track {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+.toggle-switch-input:checked + .toggle-switch-track .toggle-switch-thumb {
+  transform: translateX(18px);
+}
+.toggle-switch-input:focus-visible + .toggle-switch-track {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+.toggle-switch-input:disabled + .toggle-switch-track {
+  opacity: 0.5;
+}
 
 /* --- バッジ・チップ --- */
 .badge {
-	display: inline-flex;
-	align-items: center;
-	padding: 0.2em 0.7em;
-	border-radius: 999px;
-	background: var(--color-primary-soft);
-	color: var(--color-primary);
-	/* 2026-07-27 ラウンド20 20-G3: 0.78em は親フォントサイズ次第で12px未満に沈む
-	   (実測: 親13.6pxのとき10.6px)。下限12pxを固定で満たす --font-size-xs に変更する。 */
-	font-size: var(--font-size-xs);
-	font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2em 0.7em;
+  border-radius: 999px;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+
+  font-size: var(--font-size-xs);
+  font-weight: 700;
 }
 
 .badge.badge-muted {
-	background: var(--color-surface-alt);
-	color: var(--color-text-muted);
+  background: var(--color-surface-alt);
+  color: var(--color-text-muted);
 }
 
 /* --- ステータステキスト(自動保存・エンジン読み込み等の状態表示で共通利用) --- */
 .status-text {
-	font-weight: 600;
-	font-size: var(--font-size-md);
-	display: inline-flex;
-	align-items: center;
-	gap: 0.4em;
+  font-weight: 600;
+  font-size: var(--font-size-md);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
 }
 
 .status-text[data-state="saving"],
 .status-text[data-state="loading"] {
-	color: var(--color-warning);
+  color: var(--color-warning);
 }
 
 .status-text[data-state="saved"],
 .status-text[data-state="ready"],
 .status-text[data-state="success"],
 .status-text[data-state="public"] {
-	color: var(--color-success);
+  color: var(--color-success);
 }
 
 .status-text[data-state="error"] {
-	color: var(--color-danger);
+  color: var(--color-danger);
 }
 
 .status-text[data-state="private"],
 .status-text[data-state="idle"] {
-	color: var(--color-text-muted);
-	font-weight: 500;
+  color: var(--color-text-muted);
+  font-weight: 500;
 }
 
 .severity-bar {
-	border-radius: var(--radius-sm);
-	padding: var(--space-2) var(--space-3);
-	margin: var(--space-3) 0;
-	font-weight: 700;
-	font-variant-numeric: tabular-nums;
-	border-left: 4px solid transparent;
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+  margin: var(--space-3) 0;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  border-left: 4px solid transparent;
 }
 .severity-bar[data-severity="lethal"] {
-	background: var(--color-danger-soft);
-	border-left-color: var(--color-danger);
-	color: var(--color-danger-strong);
+  background: var(--color-danger-soft);
+  border-left-color: var(--color-danger);
+  color: var(--color-danger-strong);
 }
 .severity-bar[data-severity="risky"] {
-	background: var(--color-risky-soft);
-	border-left-color: var(--color-risky);
-	color: var(--color-risky-strong);
+  background: var(--color-risky-soft);
+  border-left-color: var(--color-risky);
+  color: var(--color-risky-strong);
 }
 .severity-bar[data-severity="safe"] {
-	background: var(--color-success-soft);
-	border-left-color: var(--color-success);
-	color: var(--color-success-strong);
+  background: var(--color-success-soft);
+  border-left-color: var(--color-success);
+  color: var(--color-success-strong);
 }
 .severity-bar[data-severity="none"] {
-	background: var(--color-surface-alt);
-	border-left-color: var(--color-border);
-	color: var(--color-text-muted);
-	font-weight: 500;
+  background: var(--color-surface-alt);
+  border-left-color: var(--color-border);
+  color: var(--color-text-muted);
+  font-weight: 500;
 }
 
 .spinner {
-	display: inline-block;
-	width: 1em;
-	height: 1em;
-	border: 2px solid var(--color-border);
-	border-top-color: currentColor;
-	border-radius: 50%;
-	animation: spin 0.8s linear infinite;
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  border: 2px solid var(--color-border);
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
 }
 
 @keyframes spin {
-	to {
-		transform: rotate(360deg);
-	}
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* --- 表 --- */
 table {
-	border-collapse: collapse;
-	width: 100%;
+  border-collapse: collapse;
+  width: 100%;
 }
 
 th,
 td {
-	border: 1px solid var(--color-border);
-	padding: var(--space-2) var(--space-3);
-	text-align: right;
-	font-variant-numeric: tabular-nums;
+  border: 1px solid var(--color-border);
+  padding: var(--space-2) var(--space-3);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 
 th:first-child,
 td:first-child {
-	text-align: left;
+  text-align: left;
 }
 
 th {
-	background: var(--color-surface-alt);
-	font-weight: 700;
-	font-size: var(--font-size-sm);
-	color: var(--color-text-muted);
+  background: var(--color-surface-alt);
+  font-weight: 700;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
 }
 
 dl {
-	display: grid;
-	grid-template-columns: 8em 1fr;
-	gap: var(--space-2) var(--space-4);
-	margin: 0;
+  display: grid;
+  grid-template-columns: 8em 1fr;
+  gap: var(--space-2) var(--space-4);
+  margin: 0;
 }
 
 dt {
-	font-weight: 600;
-	color: var(--color-text-muted);
+  font-weight: 600;
+  color: var(--color-text-muted);
 }
 
 dd {
-	margin: 0;
+  margin: 0;
 }
 
 /* --- ダイアログ(対戦相手メモの追加/編集フォーム) --- */
 dialog#opponent-note-form-container {
-	border: 1px solid var(--color-border);
-	border-radius: var(--radius-lg);
-	padding: var(--space-6);
-	max-width: min(560px, 92vw);
-	max-height: 88vh;
-	overflow-y: auto;
-	background: var(--color-surface);
-	color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  max-width: min(560px, 92vw);
+  max-height: 88vh;
+  overflow-y: auto;
+  background: var(--color-surface);
+  color: var(--color-text);
 }
 dialog#opponent-note-form-container::backdrop {
-	background: var(--color-overlay);
+  background: var(--color-overlay);
 }
 
-/* --- 共通レイアウト(AppLayout.astro / AppSidebar.astro、UI刷新 2026-07-25) ---
-   デスクトップ(900px以上)はサイドバーを固定表示し、モバイルはハンバーガーで開閉する
-   ドロワーにする。ここでは位置・幅・開閉のtransformなど「土台」のみを定義し、
-   サイドバー内部の見た目(余白・タイポグラフィ等)は AppSidebar.astro 側のscoped styleに置く。 */
+/* --- 共通レイアウト(AppLayout.astro / AppSidebar.astro、UI刷新 2026-07-25) --- */
 :root {
-	--sidebar-width: 256px;
-	--bottom-nav-height: 60px;
-	/* 2026-07-26 トップバー新設: 個体編集ページ等の左右の帯(panel-left/panel-right)が
-	   `height: calc(100vh - var(--topbar-height))` を組むための実測値。トップバーの
-	   padding/構成を変えた場合は、必ずブラウザで実測して以下2箇所(既定値=モバイル2段、
-	   @media (min-width: 900px)内=デスクトップ1段)を合わせ直すこと。値がずれると
-	   左右の帯の高さが余ったり不足したりする。 */
-	--topbar-height: 129px;
+  --sidebar-width: 256px;
+  --bottom-nav-height: 60px;
+
+  --topbar-height: 129px;
 }
 
 .app-shell {
-	min-height: 100vh;
+  min-height: 100vh;
 }
 
-/* UI改修依頼(2026-08-02): AppLayoutのhideTopbarで<header class="app-topbar">を描画しない
-   ページ(ボックス/チームトップ/すばやさ早見表)向け。トップバー分の高さの予約が不要になるため
-   --topbar-heightを0に上書きし、.app-mainのmin-height計算(100vh - --topbar-height)が
-   実際には存在しないトップバー分の余白を残してしまうズレを防ぐ。.app-shell.is-publicと同じ、
-   クラスセレクタでカスタムプロパティを上書きする方式(この要素・配下では:rootの値より
-   常に優先される)。 */
 .app-shell.no-topbar {
-	--topbar-height: 0px;
+  --topbar-height: 0px;
 }
 
-/* トップバー(2026-07-26 新設: デスクトップでもサイドバー右隣から画面右端まで伸びる帯として
-   常設表示する。デスクトップは.app-topbar-row-mainのみの1段、モバイル(900px未満)は
-   ハンバーガー行(.app-topbar-row-brand)+本体行(.app-topbar-row-main)の2段。
-   sticky top:0で常に画面上端に残す。z-indexは既存の.app-sidebar-overlay(25)/
-   .app-sidebar(30)/box/[id].astroのdamage-detail-backdrop(55)・damage-detail-panel(60)
-   より低い20を維持し、ドロワー開閉やダメージ計算詳細パネルが常にトップバーの上に
-   被さるようにする(操作を妨げないため)。 */
 .app-topbar {
-	background: var(--color-surface);
-	border-bottom: 1px solid var(--color-border);
-	position: sticky;
-	top: 0;
-	z-index: 20;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  position: sticky;
+  top: 0;
+  z-index: 20;
 }
 
 .app-topbar-row {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: var(--space-3);
-	padding: var(--space-3) var(--space-4);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
 }
 
 .app-topbar-row + .app-topbar-row {
-	border-top: 1px solid var(--color-border);
+  border-top: 1px solid var(--color-border);
 }
 
 .app-topbar-left,
 .app-topbar-right {
-	display: flex;
-	align-items: center;
-	gap: var(--space-3);
-	min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
 }
 
-/* 2026-07-27 ラウンド20 20-H2: トップバー上のログイン情報(.app-topbar-account-desktop/-mobile、
-   旧ラウンド8 A-5でここに書くと scoped style に詳細度で負けると分かっていた箇所)は、
-   ログイン情報自体をサイドバー最下段(AppSidebar.astro の .app-sidebar-account)へ移設したため
-   AppLayout.astro からマークアップごと削除した。この節はもう存在しないため、
-   「scoped styleに詳細度で負ける」という罠自体は .claude/skills/ui/references/pitfalls.md に
-   記録を残し、ここの残骸コメントは削除した。 */
-
 .app-sidebar {
-	position: fixed;
-	top: 0;
-	left: 0;
-	bottom: 0;
-	width: var(--sidebar-width);
-	background: var(--color-surface);
-	border-right: 1px solid var(--color-border);
-	overflow-y: auto;
-	z-index: 30;
-	/* 2026-07-27 ラウンド20 20-H2: ログイン情報をサイドバー最下段に固定表示するため flex 化した
-	   (AppSidebar.astro 側の .app-sidebar-account に margin-top: auto を付けて下端に押し出す)。 */
-	display: flex;
-	flex-direction: column;
-	transform: translateX(-100%);
-	/* 閉じているドロワー内のリンクにTabフォーカスが入らないよう visibility も落とす。 */
-	visibility: hidden;
-	transition: transform 0.25s ease, visibility 0.25s ease;
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: var(--sidebar-width);
+  background: var(--color-surface);
+  border-right: 1px solid var(--color-border);
+  overflow-y: auto;
+  z-index: 30;
+
+  display: flex;
+  flex-direction: column;
+  transform: translateX(-100%);
+
+  visibility: hidden;
+  transition:
+    transform 0.25s ease,
+    visibility 0.25s ease;
 }
 
 .app-sidebar.is-open {
-	transform: translateX(0);
-	visibility: visible;
+  transform: translateX(0);
+  visibility: visible;
 }
 
 .app-sidebar-overlay {
-	position: fixed;
-	inset: 0;
-	background: var(--color-overlay);
-	z-index: 25;
-	opacity: 0;
-	pointer-events: none;
-	transition: opacity 0.2s ease;
+  position: fixed;
+  inset: 0;
+  background: var(--color-overlay);
+  z-index: 25;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
 }
 
 .app-sidebar-overlay.is-open {
-	opacity: 1;
-	pointer-events: auto;
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .app-main {
-	/* 2026-07-26 修正: .app-topbar は position:sticky でフロー内に高さを持つため、
-	   ここを 100vh のままにすると「トップバー高さ + 100vh」分の高さが要求され、
-	   コンテンツが画面に収まっていても縦スクロールバーが出てしまっていた。
-	   トップバー高さ(--topbar-height、デスクトップ/モバイルとも @media で追従)を
-	   差し引くことで、.app-shell 全体がちょうど 100vh に収まるようにする。 */
-	min-height: calc(100vh - var(--topbar-height));
+  min-height: calc(100vh - var(--topbar-height));
 }
 
 .app-shell:not(.is-public) .app-main {
-	padding-bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom));
+  padding-bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom));
 }
 
 @media (min-width: 900px) {
-	:root {
-		/* デスクトップは.app-topbar-row-mainのみの1段になるため、モバイルより低い。 */
-		--topbar-height: 65px;
-	}
+  :root {
+    --topbar-height: 65px;
+  }
 
-	.app-topbar {
-		margin-left: var(--sidebar-width);
-	}
+  .app-topbar {
+    margin-left: var(--sidebar-width);
+  }
 
-	/* ハンバーガー行(サイト名+モバイル用アカウント情報)はデスクトップでは不要
-	   (サイドバーが常設でブランドリンクを持ち、アカウント情報は本体行側に表示するため)。
-	   ラウンド15 A-3: この前提は chrome="app"(AppSidebarを描画する通常画面)専用。
-	   ラウンド13で chrome="public"(/share等、AppSidebarを描画しない公開ページ)を追加した結果、
-	   公開ページはブランドリンクを持つサイドバーが無いのに、このルールでサイト名表示行ごと
-	   デスクトップで消えてしまい、「これは何のサービスか」が本文からも読み取れない状態に
-	   なっていた(404画面も含む)。.is-public のときは対象から除外し、ブランド行を残す。
-	   AppLayout.astro の scoped <style> 側には書かないこと(ラウンド13 A-1 で確立した
-	   「global.cssの詳細度で打ち消す」設計を保つため。scoped側はglobal.cssより後に注入され、
-	   同詳細度でも後勝ちで負けるので、scoped側に書くと表示できなくなる)。 */
-	.app-shell:not(.is-public) .app-topbar-row-brand {
-		display: none;
-	}
+  .app-shell:not(.is-public) .app-topbar-row-brand {
+    display: none;
+  }
 
-	.app-topbar-row-main {
-		border-top: 0;
-	}
+  .app-topbar-row-main {
+    border-top: 0;
+  }
 
-	.app-sidebar-overlay {
-		display: none;
-	}
+  .app-sidebar-overlay {
+    display: none;
+  }
 
-	.app-sidebar {
-		transform: none;
-		visibility: visible;
-		transition: none;
-	}
+  .app-sidebar {
+    transform: none;
+    visibility: visible;
+    transition: none;
+  }
 
-	.app-main {
-		margin-left: var(--sidebar-width);
-	}
+  .app-main {
+    margin-left: var(--sidebar-width);
+  }
 
-	.app-shell:not(.is-public) .app-main {
-		padding-bottom: 0;
-	}
+  .app-shell:not(.is-public) .app-main {
+    padding-bottom: 0;
+  }
 
-	/* ラウンド13 A-1: 公開共有ページ(chrome="public")はサイドバーを描画しないため、
-	   トップバー・本文がサイドバー幅ぶん空けている必要が無い。詳細度 0,3,0 で
-	   直前の .app-topbar/.app-main(詳細度 0,1,0)に確実に勝たせる。
-	   AppLayout.astro の scoped <style> 側には margin-left を一切書き足さないこと
-	   (scoped styleはこのファイルより後に注入されるため、同詳細度なら後勝ちでここの
-	   指定を打ち消してしまう。ラウンド8で実際に横スクロール101pxの事故が起きた)。 */
-	.app-shell.is-public .app-topbar,
-	.app-shell.is-public .app-main {
-		margin-left: 0;
-	}
+  .app-shell.is-public .app-topbar,
+  .app-shell.is-public .app-main {
+    margin-left: 0;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-	.app-sidebar {
-		transition: none;
-	}
+  .app-sidebar {
+    transition: none;
+  }
 
-	.app-sidebar-overlay {
-		transition: none;
-	}
+  .app-sidebar-overlay {
+    transition: none;
+  }
 }

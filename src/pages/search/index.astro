@@ -113,7 +113,6 @@ import AppLayout from '../../layouts/AppLayout.astro';
 		</style>
 
 		<script>
-			import { toPokemonPathSegment } from "../../lib/pokemon-slug";
 
 			function el<T extends HTMLElement>(id: string): T {
 				const found = document.getElementById(id);
@@ -132,8 +131,8 @@ import AppLayout from '../../layouts/AppLayout.astro';
 			// linkBase が null のカテゴリ(特性・持ち物)は詳細ページを作らないため、
 			// 検索結果では名前のみを表示しリンクを張らない。
 			const CATEGORY_CONFIG: Array<{ key: SearchCategory; linkBase: string | null }> = [
-				{ key: "pokemon", linkBase: "/pokemon/" },
-				{ key: "move", linkBase: "/moves/" },
+				{ key: "pokemon", linkBase: null },
+				{ key: "move", linkBase: null },
 				{ key: "ability", linkBase: null },
 				{ key: "item", linkBase: null },
 			];
@@ -237,8 +236,7 @@ import AppLayout from '../../layouts/AppLayout.astro';
 							// ポケモン名の一部("ジガルデ(50%)"等)はURLパスセグメントとして
 							// そのまま使えないため、詳細ページ側と同じ変換をここでも通す
 							// (src/lib/pokemon-slug.ts 参照)。技名には該当する例外は無い。
-							const pathSegment = key === "pokemon" ? toPokemonPathSegment(item.name) : item.name;
-							a.href = linkBase + encodeURIComponent(pathSegment);
+							a.href = linkBase + encodeURIComponent(item.name);
 							a.textContent = item.name;
 							li.appendChild(a);
 						} else {

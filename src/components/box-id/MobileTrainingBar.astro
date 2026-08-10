@@ -1,5 +1,6 @@
 ---
 import type { OwnedPokemonRecord } from '../../lib/owned-pokemon';
+import '../../styles/box-training-preview.css';
 
 interface Props {
 	pokemon: OwnedPokemonRecord;
@@ -10,21 +11,21 @@ const moves = pokemon.move_names ?? [];
 const displayNickname = pokemon.nickname?.trim() || pokemon.species_name;
 ---
 <div class="mobile-training-ui" id="mobile-training-ui" data-mobile-tab="training">
-	<nav class="mobile-training-bar" id="mobile-training-bar" aria-label="個体編集メニュー">
-		<div class="mobile-training-bar-list">
-			<span class="mobile-training-bar-item is-disabled" aria-disabled="true">
+	<nav class="training-screen-bar" id="mobile-training-bar" aria-label="個体編集メニュー">
+		<div class="training-screen-bar-list">
+			<span class="training-screen-bar-item is-disabled" aria-disabled="true">
 				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.05" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v9h9"/><path d="M20.5 15.5A9 9 0 1 1 8.5 3.7"/><path d="M15 3.5A9 9 0 0 1 20.5 9H15V3.5Z"/></svg>
 				<span>データ</span>
 			</span>
-			<span class="mobile-training-bar-item is-disabled" aria-disabled="true">
+			<span class="training-screen-bar-item is-disabled" aria-disabled="true">
 				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.05" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg>
 				<span>すばやさ</span>
 			</span>
-			<button type="button" class="mobile-training-bar-item" data-mobile-tab="training" data-active="true" aria-current="page">
+			<button type="button" class="training-screen-bar-item" data-mobile-tab="training" data-active="true" aria-current="page">
 				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.05" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h6m6 0h6"/><circle cx="12" cy="12" r="3"/></svg>
 				<span>育成</span>
 			</button>
-			<button type="button" class="mobile-training-bar-item" data-mobile-tab="damage">
+			<button type="button" class="training-screen-bar-item" data-mobile-tab="damage">
 				<!-- UI改修依頼(モバイル、2026-08-08)「VSタブのアイコンを2本の剣が交差するデザインに
 			     変更」。従来は表(行と点)を表すアイコンで、ダメージ計算表を連想させる図柄だった。
 			     他のタブと同じ 24x24 / fill:none / stroke:currentColor の線画で、左下→右上と
@@ -32,35 +33,35 @@ const displayNickname = pokemon.nickname?.trim() || pokemon.species_name;
 				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.05" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5"/><line x1="13" y1="19" x2="19" y2="13"/><line x1="16" y1="16" x2="20" y2="20"/><line x1="19" y1="21" x2="21" y2="19"/><polyline points="14.5 6.5 18 3 21 3 21 6 17.5 9.5"/><line x1="5" y1="14" x2="9" y2="18"/><line x1="7" y1="17" x2="4" y2="20"/><line x1="3" y1="19" x2="5" y2="21"/></svg>
 				<span>VS</span>
 			</button>
-			<span class="mobile-training-bar-item is-disabled" aria-disabled="true">
+			<span class="training-screen-bar-item is-disabled" aria-disabled="true">
 				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.05" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="m7 8 1.5 1.5L11 7"/><path d="M13 8h4"/><path d="m7 14 1.5 1.5L11 13"/><path d="M13 14h4"/></svg>
 				<span>相性チェック</span>
 			</span>
 		</div>
 	</nav>
 
-	<section class="mobile-training-preview" aria-label="育成プレビュー" data-species-name={pokemon.species_name}>
-		<div class="mobile-preview-left">
-			<div class="mobile-preview-details">
-				<div id="mp-ability">{pokemon.ability_name || "-"}</div>
+	<section class="training-preview" aria-label="育成プレビュー" data-species-name={pokemon.species_name}>
+		<div class="training-preview-left">
+			<div class="training-preview-details">
+				<div id="training-preview-ability">{pokemon.ability_name || "-"}</div>
 			</div>
-			<ol class="mobile-preview-moves" aria-label="技">
-				{[0, 1, 2, 3].map((index) => <li><span class="move-type-icon" id={`mp-move-type-${index + 1}`} hidden><img alt="" /></span><span id={`mp-move-${index + 1}`}>{moves[index] || "-"}</span></li>)}
+			<ol class="training-preview-moves" aria-label="技">
+				{[0, 1, 2, 3].map((index) => <li><span class="move-type-icon" id={`training-preview-move-type-${index + 1}`} hidden><img alt="" /></span><span id={`training-preview-move-${index + 1}`}>{moves[index] || "-"}</span></li>)}
 			</ol>
 		</div>
-		<div class="mobile-preview-identity">
-			<div class="mobile-preview-sprite-wrap">
-				<img id="mp-species-sprite" width="72" height="72" alt={pokemon.species_name} style="display:none;" />
-				<span id="mp-species-sprite-fallback">{pokemon.species_name.slice(0, 1)}</span>
+		<div class="training-preview-identity">
+			<div class="training-preview-sprite-wrap">
+				<img id="training-preview-species-sprite" width="72" height="72" alt={pokemon.species_name} style="display:none;" />
+				<span id="training-preview-species-sprite-fallback">{pokemon.species_name.slice(0, 1)}</span>
 			</div>
-			<div class="mobile-preview-species">
-				<span id="mp-nickname">{displayNickname}</span>
+			<div class="training-preview-species">
+				<span id="training-preview-nickname">{displayNickname}</span>
 			</div>
 		</div>
-		<div class="mobile-preview-right">
-			<div class="mobile-preview-item mobile-preview-icon-text"><img id="mp-item-image" alt="" style="display:none;" /><span id="mp-item">{pokemon.item_name || "アイテムなし"}</span></div>
-			<table class="mobile-preview-stats" aria-label="実数値と努力値">
-				<tbody>{[['hp','H'],['atk','A'],['def','B'],['spa','C'],['spd','D'],['spe','S']].map(([key, label]) => <tr><th>{label}</th><td id={`mp-stat-${key}`}>-</td><td id={`mp-ev-${key}`}>-</td></tr>)}</tbody>
+		<div class="training-preview-right">
+			<div class="training-preview-item training-preview-icon-text"><img id="training-preview-item-image" alt="" style="display:none;" /><span id="training-preview-item">{pokemon.item_name || "アイテムなし"}</span></div>
+			<table class="training-preview-stats" aria-label="実数値と努力値">
+				<tbody>{[['hp','H'],['atk','A'],['def','B'],['spa','C'],['spd','D'],['spe','S']].map(([key, label]) => <tr><th>{label}</th><td id={`training-preview-stat-${key}`}>-</td><td id={`training-preview-ev-${key}`}>-</td></tr>)}</tbody>
 			</table>
 		</div>
 	</section>
@@ -162,9 +163,9 @@ const displayNickname = pokemon.nickname?.trim() || pokemon.species_name;
 	// 引く(left-panel.tsのtypesMapPromiseと同じ使い方)。彩度が強すぎるとテキストの可読性
 	// (--color-text / --color-text-muted)と衝突するため、既存の--color-surface-altと
 	// color-mix()で混ぜて彩度を落とす(新しいCSSトークンは追加しない)。
-	const preview = document.querySelector<HTMLElement>(".mobile-training-preview");
-	const speciesName = preview?.dataset.speciesName;
-	if (preview && speciesName) {
+	const trainingPreview = document.querySelector<HTMLElement>(".training-preview");
+	const speciesName = trainingPreview?.dataset.speciesName;
+	if (trainingPreview && speciesName) {
 		loadTypesMap()
 			.then((typesMap) => {
 				const types = typesMap.get(speciesName);
@@ -173,7 +174,7 @@ const displayNickname = pokemon.nickname?.trim() || pokemon.species_name;
 					const hex = TYPE_COLORS[typeName] ?? DEFAULT_TYPE_COLOR;
 					return `color-mix(in srgb, ${hex} 26%, var(--color-surface-alt))`;
 				};
-				preview.style.background =
+				trainingPreview.style.background =
 					types.length >= 2
 						? `linear-gradient(to right, ${toMixedColor(types[0])}, ${toMixedColor(types[1])})`
 						: toMixedColor(types[0]);
