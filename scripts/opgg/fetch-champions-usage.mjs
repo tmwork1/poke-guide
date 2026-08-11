@@ -8,6 +8,7 @@ const ORIGIN = 'https://op.gg';
 const LOCALE = 'ja';
 const BASE = `/${LOCALE}/pokemon-champions`;
 const OUTPUT = 'data/opgg-champions-usage';
+const POKEMON_NAME_MAP = new URL('../../config/opgg-champions-pokemon-map.json', import.meta.url);
 const TYPES = { single: 'sb', double: 'db' };
 const LABEL = {
   moves: '\u308f\u3056', items: '\u6301\u3061\u7269', abilities: '\u7279\u6027',
@@ -146,28 +147,44 @@ function pokemonFileName(pokemonName, slug, completed) {
     if (!usedFiles.has(candidate)) return candidate;
   }
 }
-function displayPokemonName(slug, pokemonName) {
-  // OP.GG's Japanese page labels Hisui forms with the base species name only.
-  // Keep their files and in-app names distinct just as other forms (e.g. Rotom) are.
-  return slug.endsWith('-hisui') ? `ヒスイ${pokemonName}` : pokemonName;
+async function loadPokemonNameMap() {
+  const data = JSON.parse(await readFile(POKEMON_NAME_MAP, 'utf8'));
+  if (data.schemaVersion !== 1 || !data.pokemon || typeof data.pokemon !== 'object' || Array.isArray(data.pokemon)) {
+    throw new Error(`Invalid OP.GG Pokemon name map: ${POKEMON_NAME_MAP.pathname}`);
+  }
+  const entries = Object.entries(data.pokemon);
+  if (entries.some(([slug, name]) => !slug || typeof name !== 'string' || !name)) {
+    throw new Error(`Invalid OP.GG Pokemon name-map entry: ${POKEMON_NAME_MAP.pathname}`);
+  }
+  return new Map(entries);
 }
-async function normalizeFileNames(directory, completed) {
+function jpokePokemonName(slug, opggPokemonName, nameMap) {
+  // Most Japanese names already match jpoke. Form names that differ are centrally managed in config/.
+  return nameMap.get(slug) ?? opggPokemonName;
+}
+async function normalizeFileNames(directory, completed, nameMap) {
   const normalized = new Map();
   const moves = [];
   for (const [slug, entry] of completed) {
-    const file = pokemonFileName(entry.name, slug, normalized);
-    normalized.set(slug, { ...entry, file });
+    const name = jpokePokemonName(slug, entry.name, nameMap);
+    const file = pokemonFileName(name, slug, normalized);
+    normalized.set(slug, { ...entry, name, file });
     if (entry.file !== file) moves.push({ slug, from: entry.file, to: file });
   }
   // Two phases make renames safe even if two legacy names need to swap.
   for (const move of moves) await rename(`${directory}/${move.from}`, `${directory}/.${move.slug}.rename-tmp`);
   for (const move of moves) await rename(`${directory}/.${move.slug}.rename-tmp`, `${directory}/${move.to}`);
+  for (const [slug, entry] of normalized) {
+    const contents = JSON.parse(await readFile(`${directory}/${entry.file}`, 'utf8'));
+    if (contents.name !== entry.name) await saveJson(`${directory}/${entry.file}`, { ...contents, name: entry.name });
+  }
   return normalized;
 }
 async function main() {
   const config = options(process.argv.slice(2));
   const destination = resolve(config.output);
   await mkdir(destination, { recursive: true });
+  const nameMap = await loadPokemonNameMap();
   const completed = await loadIndex(`${destination}/index.json`);
   if (config.cleanupOnly) {
     await cleanStaleOutput(destination, completed);
@@ -175,7 +192,7 @@ async function main() {
     return;
   }
   if (config.normalizeFiles) {
-    const normalized = await normalizeFileNames(destination, completed);
+    const normalized = await normalizeFileNames(destination, completed, nameMap);
     await saveJson(`${destination}/index.json`, {
       schemaVersion: 1,
       fetchedAt: new Date().toISOString(),
@@ -197,7 +214,7 @@ async function main() {
       const doubleHtml = await get(sourceUrl, 'double'); await sleep(config.delayMs);
       const pokemonName = name(singleHtml);
       if (!pokemonName) throw new Error('Pokemon name was not found in the page.');
-      const displayName = displayPokemonName(slug, pokemonName);
+      const displayName = jpokePokemonName(slug, pokemonName, nameMap);
       const file = pokemonFileName(displayName, slug, completed);
       const pokemon = { schemaVersion: 1, fetchedAt: new Date().toISOString(), name: displayName, formats: { single: parse(singleHtml), double: parse(doubleHtml) } };
       await saveJson(`${destination}/${file}`, pokemon);
