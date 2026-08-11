@@ -4213,7 +4213,8 @@ const initialTeamJson = team
 					// UI改修依頼(team/pokemonカード、2026-08-11)「実数値表示を縦積みではなく
 					// 横積みにしてカード最下部に配置する」。右パネルのteam-damage-stats/
 					// team-damage-stats-line(display:contentsで6列グリッドの行を作る手法)と
-					// 同じ考え方で、ラベル行・努力値行・実数値行の3段×6列にする。
+					// 同じ考え方で、ラベル行・実数値行・努力値行の3段×6列にする
+					// (努力値は実数値の下、2026-08-11追加依頼)。
 					const stats = document.createElement("div");
 					stats.className = "pokemon-preview-stats";
 					stats.setAttribute("aria-label", "実数値");
@@ -4223,7 +4224,7 @@ const initialTeamJson = team
 					statsEvLine.className = "pokemon-preview-stats-line";
 					const statsValueLine = document.createElement("div");
 					statsValueLine.className = "pokemon-preview-stats-line";
-					stats.append(statsLabelLine, statsEvLine, statsValueLine);
+					stats.append(statsLabelLine, statsValueLine, statsEvLine);
 					left.appendChild(stats);
 					main.append(left, identity);
 					card.appendChild(main);
