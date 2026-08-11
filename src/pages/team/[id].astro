@@ -1161,6 +1161,48 @@ const initialTeamJson = team
 			color: var(--color-text-muted);
 		}
 		.team-overview-thumb-grid .team-slot-number { font-size: var(--font-size-lg); }
+		.team-overview-thumb-grid .team-overview-preview-card {
+			--pokemon-preview-column-gap: var(--space-1);
+			--pokemon-preview-padding: calc(var(--space-5) / 3);
+			--pokemon-preview-content-gap: calc(var(--space-1) / 2);
+			--pokemon-preview-item-stats-gap: var(--pokemon-preview-content-gap);
+			--pokemon-preview-stats-column-gap: var(--space-1);
+			--pokemon-preview-stats-inline-end-gap: 0;
+			--pokemon-preview-sprite-size: calc((var(--space-8) + var(--space-6)) / 3);
+			--pokemon-preview-font-size: var(--font-size-xs);
+			--pokemon-preview-type-icon-size: 1.1em;
+			--pokemon-preview-move-type-icon-size: 1.1em;
+			--pokemon-preview-item-icon-size: 1.2em;
+			--pokemon-preview-move-row-gap: 1px;
+			display: block;
+			min-height: 0;
+			color: var(--color-text);
+			font-size: var(--pokemon-preview-font-size);
+			background: var(--color-surface-alt);
+			border: 1px solid var(--color-border);
+			border-radius: var(--radius-md);
+		}
+		.team-overview-preview-card .pokemon-preview-main { display: grid; grid-template-columns: minmax(0, 1fr) var(--pokemon-preview-sprite-size) minmax(0, 1.1fr); gap: var(--pokemon-preview-column-gap); min-height: 6.5rem; padding: var(--pokemon-preview-padding); background: var(--color-surface-alt); }
+		.team-overview-preview-card .pokemon-preview-left, .team-overview-preview-card .pokemon-preview-right { display: flex; flex-direction: column; min-width: 0; }
+		.team-overview-preview-card .pokemon-preview-details, .team-overview-preview-card .pokemon-preview-icon-text, .team-overview-preview-card .pokemon-preview-moves li { display: flex; align-items: center; gap: var(--pokemon-preview-content-gap); min-width: 0; line-height: 1; }
+		.team-overview-preview-card .pokemon-preview-details > div, .team-overview-preview-card .pokemon-preview-icon-text span, .team-overview-preview-card .pokemon-preview-moves li > span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+		.team-overview-preview-card .pokemon-preview-type-icons { display: flex; flex: none; gap: var(--space-1); }
+		.team-overview-preview-card .pokemon-preview-type-icons img, .team-overview-preview-card .pokemon-preview-moves .move-type-icon img { display: block; width: var(--pokemon-preview-type-icon-size); height: var(--pokemon-preview-type-icon-size); object-fit: contain; }
+		.team-overview-preview-card .pokemon-preview-moves { display: flex; flex-direction: column; gap: var(--pokemon-preview-move-row-gap); margin: auto 0 0; padding: 0; list-style: none; }
+		.team-overview-preview-card .pokemon-preview-moves .move-type-icon { flex-shrink: 0; }
+		.team-overview-preview-card .pokemon-preview-moves .move-type-icon img { width: var(--pokemon-preview-move-type-icon-size); height: var(--pokemon-preview-move-type-icon-size); }
+		.team-overview-preview-card .pokemon-preview-moves .move-type-icon[hidden] { display: none; }
+		.team-overview-preview-card .pokemon-preview-identity { position: relative; display: flex; align-items: center; justify-content: center; min-width: 0; }
+		.team-overview-preview-card .pokemon-preview-sprite-wrap { display: flex; align-items: center; justify-content: center; width: var(--pokemon-preview-sprite-size); height: var(--pokemon-preview-sprite-size); pointer-events: none; }
+		.team-overview-preview-card .pokemon-preview-sprite-wrap img { width: 100%; height: 100%; object-fit: contain; }
+		.team-overview-preview-card .pokemon-preview-sprite-wrap span { color: var(--color-text-muted); }
+		.team-overview-preview-card .pokemon-preview-item { justify-content: flex-end; }
+		.team-overview-preview-card .pokemon-preview-icon-text img { display: block; flex-shrink: 0; width: var(--pokemon-preview-item-icon-size); height: var(--pokemon-preview-item-icon-size); object-fit: contain; }
+		.team-overview-preview-card .pokemon-preview-stats { width: auto; margin: var(--pokemon-preview-item-stats-gap) 0 0 auto; border-collapse: collapse; border-spacing: 0; font-size: var(--font-size-xs); line-height: 1; }
+		.team-overview-preview-card .pokemon-preview-stats th, .team-overview-preview-card .pokemon-preview-stats td { padding: var(--pokemon-preview-content-gap) 0 0; color: var(--color-text); font-weight: 500; text-align: right; background: transparent; border: 0; }
+		.team-overview-preview-card .pokemon-preview-stats th:first-child { padding-right: var(--pokemon-preview-stats-column-gap); color: var(--color-text-muted); text-align: left; }
+		.team-overview-preview-card .pokemon-preview-stats td[data-mod="up"] { color: var(--color-stat-up); }
+		.team-overview-preview-card .pokemon-preview-stats td[data-mod="down"] { color: var(--color-stat-down); }
 		/* UI改修依頼(チーム編集ヘッダー)「チーム名表示を削除する」。box/[id].astroの23-H1と
 		   同じ手法(AppLayoutは編集禁止のため、bodyClass="team-edit-page"を起点にしたグローバル
 		   セレクタで.app-topbar-title(AppLayout側の要素、このページのscoped<style>では選択
@@ -2585,7 +2627,8 @@ const initialTeamJson = team
 			const overviewFields = el<HTMLElement>("team-overview-fields");
 			const overviewGrid = el<HTMLElement>("team-overview-grid");
 			const metaFields = document.querySelector<HTMLElement>(".team-meta-fields");
-			if (metaFields) overviewFields.append(metaFields, memoInput);
+			if (metaFields) overviewFields.append(metaFields);
+			overviewGrid.insertAdjacentElement("afterend", memoInput);
 			// 🔴 UI改修依頼(チーム編集画面、2026-08-01)「個体編集と同様にレギュレーション指定機能」。
 			const regulationSelect = el<HTMLSelectElement>("team-regulation");
 			const regulationFilterWrap = el<HTMLElement>("regulation-filter-wrap");
@@ -4301,34 +4344,101 @@ const initialTeamJson = team
 					}
 
 					const card = document.createElement("a");
-					card.className = "card box-card card-pokemon";
+					card.className = "card box-card card-pokemon pokemon-preview team-overview-preview-card";
 					card.href = `/box/${encodeURIComponent(p.id)}`;
 					card.setAttribute("aria-label", `${p.nickname?.trim() || p.species_name}を編集`);
-					const artwork = document.createElement("div");
-					artwork.className = "card-artwork";
+					const main = document.createElement("div");
+					main.className = "pokemon-preview-main";
+					const left = document.createElement("div");
+					left.className = "pokemon-preview-left";
+					const details = document.createElement("div");
+					details.className = "pokemon-preview-details";
+					const ability = document.createElement("div");
+					ability.textContent = p.ability_name?.trim() || "-";
+					const typeIcons = document.createElement("span");
+					typeIcons.className = "pokemon-preview-type-icons";
+					typeIcons.setAttribute("aria-label", "タイプ");
+					details.append(ability, typeIcons);
+					const moves = document.createElement("ol");
+					moves.className = "pokemon-preview-moves";
+					moves.setAttribute("aria-label", "技");
+					const moveIconEntries: { iconEl: HTMLImageElement; moveName: string }[] = [];
+					for (const moveName of p.move_names.slice(0, 4)) {
+						const move = document.createElement("li");
+						const typeIcon = document.createElement("span");
+						typeIcon.className = "move-type-icon";
+						typeIcon.hidden = true;
+						const typeIconImage = document.createElement("img");
+						typeIconImage.alt = "";
+						typeIcon.appendChild(typeIconImage);
+						const text = document.createElement("span");
+						text.textContent = moveName?.trim() || "-";
+						move.append(typeIcon, text);
+						moves.appendChild(move);
+						if (moveName?.trim()) moveIconEntries.push({ iconEl: typeIconImage, moveName });
+					}
+					while (moves.children.length < 4) {
+						const move = document.createElement("li");
+						move.textContent = "-";
+						moves.appendChild(move);
+					}
+					left.append(details, moves);
+					const identity = document.createElement("div");
+					identity.className = "pokemon-preview-identity";
+					const spriteWrap = document.createElement("div");
+					spriteWrap.className = "pokemon-preview-sprite-wrap";
 					const img = document.createElement("img");
 					img.alt = "";
 					const fallback = document.createElement("span");
-					fallback.className = "team-overview-fallback";
-					artwork.append(img, fallback);
+					fallback.textContent = p.species_name.slice(0, 1);
+					spriteWrap.append(img, fallback);
 					void applySprite(img, fallback, p.species_name);
-
-					const body = document.createElement("div");
-					body.className = "card-body";
-					const name = document.createElement("p");
-					name.className = "card-name";
-					name.textContent = p.nickname?.trim() || p.species_name;
-					const moves = document.createElement("div");
-					moves.className = "card-moves-grid";
-					for (const moveName of (p.move_names ?? []).filter((move) => move?.trim())) {
-						const move = document.createElement("span");
-						move.className = "card-move-chip";
-						move.textContent = moveName;
-						moves.appendChild(move);
-					}
-					body.append(name, moves);
-					card.append(artwork, body);
+					identity.appendChild(spriteWrap);
+					const right = document.createElement("div");
+					right.className = "pokemon-preview-right";
+					const item = document.createElement("div");
+					item.className = "pokemon-preview-item pokemon-preview-icon-text";
+					const itemImage = document.createElement("img");
+					itemImage.alt = "";
+					itemImage.style.display = "none";
+					const itemText = document.createElement("span");
+					const itemName = p.item_name?.trim() ?? "";
+					itemText.textContent = itemName || "アイテムなし";
+					item.append(itemImage, itemText);
+					if (itemName) void applyItemIcon(itemImage, itemName);
+					const stats = document.createElement("table");
+					stats.className = "pokemon-preview-stats";
+					stats.setAttribute("aria-label", "実数値");
+					const statsBody = document.createElement("tbody");
+					stats.appendChild(statsBody);
+					right.append(item, stats);
+					main.append(left, identity, right);
+					card.appendChild(main);
 					overviewGrid.appendChild(card);
+					void applySelectMoveChipTypeIcons(moveIconEntries);
+					void loadTypesMap().then((typesMap) => {
+						if (!card.isConnected) return;
+						for (const typeName of typesMap.get(p.species_name) ?? []) {
+							const typeIcon = document.createElement("img");
+							typeIcon.src = typeIconUrl(typeName) ?? "";
+							typeIcon.alt = typeName;
+							typeIcon.title = typeName;
+							typeIcons.appendChild(typeIcon);
+						}
+					});
+					void computeStats(p).then((computed) => {
+						if (!card.isConnected || !computed) return;
+						for (const stat of computed) {
+							const row = document.createElement("tr");
+							const label = document.createElement("th");
+							label.textContent = stat.label;
+							const value = document.createElement("td");
+							value.textContent = String(stat.value);
+							if (stat.mod) value.dataset.mod = stat.mod;
+							row.append(label, value);
+							statsBody.appendChild(row);
+						}
+					});
 				}
 			}
 
