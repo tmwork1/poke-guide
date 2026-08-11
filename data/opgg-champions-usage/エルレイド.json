@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "fetchedAt": "2026-08-11T01:59:36.116Z",
+  "fetchedAt": "2026-08-11T02:12:55.441Z",
   "name": "エルレイド",
   "formats": {
     "single": {
-      "updatedAt": "2026年8月11日 10:30",
+      "updatedAt": "2026年8月11日 11:00",
       "moves": [
         {
           "rank": 1,
@@ -38,7 +38,7 @@
         },
         {
           "rank": 7,
-          "usageRate": 6.5,
+          "usageRate": 6.4,
           "name": "シャドークロー"
         },
         {
@@ -60,7 +60,7 @@
       "items": [
         {
           "rank": 1,
-          "usageRate": 25.1,
+          "usageRate": 25,
           "name": "いのちのたま"
         },
         {
@@ -70,7 +70,7 @@
         },
         {
           "rank": 3,
-          "usageRate": 16.3,
+          "usageRate": 16.4,
           "name": "こだわりスカーフ"
         },
         {
@@ -85,7 +85,7 @@
         },
         {
           "rank": 6,
-          "usageRate": 7.2,
+          "usageRate": 7.1,
           "name": "ラムのみ"
         },
         {
@@ -100,7 +100,7 @@
         },
         {
           "rank": 9,
-          "usageRate": 0.9,
+          "usageRate": 1,
           "name": "オボンのみ"
         },
         {
@@ -122,7 +122,7 @@
         },
         {
           "rank": 3,
-          "usageRate": 1.9,
+          "usageRate": 1.8,
           "name": "ふくつのこころ"
         }
       ],
@@ -217,7 +217,7 @@
         },
         {
           "rank": 4,
-          "usageRate": 3.7,
+          "usageRate": 3.8,
           "values": {
             "hp": 0,
             "attack": 32,
@@ -229,7 +229,7 @@
         },
         {
           "rank": 5,
-          "usageRate": 3.3,
+          "usageRate": 3.2,
           "values": {
             "hp": 32,
             "attack": 32,
@@ -435,24 +435,24 @@
           "rank": 22,
           "usageRate": 0.4,
           "values": {
-            "hp": 32,
-            "attack": 5,
-            "defense": 0,
-            "specialAttack": 0,
-            "specialDefense": 3,
-            "speed": 26
-          }
-        },
-        {
-          "rank": 23,
-          "usageRate": 0.4,
-          "values": {
             "hp": 20,
             "attack": 32,
             "defense": 1,
             "specialAttack": 0,
             "specialDefense": 0,
             "speed": 13
+          }
+        },
+        {
+          "rank": 23,
+          "usageRate": 0.4,
+          "values": {
+            "hp": 32,
+            "attack": 5,
+            "defense": 0,
+            "specialAttack": 0,
+            "specialDefense": 3,
+            "speed": 26
           }
         },
         {
@@ -473,10 +473,10 @@
           "values": {
             "hp": 2,
             "attack": 32,
-            "defense": 21,
+            "defense": 1,
             "specialAttack": 0,
-            "specialDefense": 11,
-            "speed": 0
+            "specialDefense": 0,
+            "speed": 31
           }
         },
         {
@@ -497,10 +497,10 @@
           "values": {
             "hp": 2,
             "attack": 32,
-            "defense": 1,
+            "defense": 21,
             "specialAttack": 0,
-            "specialDefense": 0,
-            "speed": 31
+            "specialDefense": 11,
+            "speed": 0
           }
         },
         {
@@ -594,7 +594,7 @@
       ]
     },
     "double": {
-      "updatedAt": "2026年8月11日 10:30",
+      "updatedAt": "2026年8月11日 11:00",
       "moves": [
         {
           "rank": 1,
@@ -608,12 +608,12 @@
         },
         {
           "rank": 3,
-          "usageRate": 62.2,
+          "usageRate": 62.1,
           "name": "リーフブレード"
         },
         {
           "rank": 4,
-          "usageRate": 45.1,
+          "usageRate": 45.2,
           "name": "まもる"
         },
         {
@@ -712,7 +712,7 @@
         },
         {
           "rank": 3,
-          "usageRate": 2,
+          "usageRate": 1.9,
           "name": "ふくつのこころ"
         }
       ],
@@ -724,12 +724,12 @@
         },
         {
           "rank": 2,
-          "usageRate": 31.7,
+          "usageRate": 31.6,
           "name": "ゆうかん"
         },
         {
           "rank": 3,
-          "usageRate": 21.7,
+          "usageRate": 21.8,
           "name": "ようき"
         },
         {
@@ -1179,7 +1179,7 @@
         {
           "rank": 10,
           "usageRate": null,
-          "name": "ファイアロー"
+          "name": "ミロカロス"
         }
       ]
     }

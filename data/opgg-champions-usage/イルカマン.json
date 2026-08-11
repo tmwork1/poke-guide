@@ -1,24 +1,24 @@
 {
   "schemaVersion": 1,
-  "fetchedAt": "2026-08-11T02:00:20.474Z",
+  "fetchedAt": "2026-08-11T02:13:49.600Z",
   "name": "イルカマン",
   "formats": {
     "single": {
-      "updatedAt": "2026年8月11日 10:30",
+      "updatedAt": "2026年8月11日 11:00",
       "moves": [
         {
           "rank": 1,
-          "usageRate": 80.6,
+          "usageRate": 80.7,
           "name": "クイックターン"
         },
         {
           "rank": 2,
-          "usageRate": 77.1,
+          "usageRate": 77.2,
           "name": "ウェーブタックル"
         },
         {
           "rank": 3,
-          "usageRate": 70.6,
+          "usageRate": 70.7,
           "name": "ジェットパンチ"
         },
         {
@@ -33,12 +33,12 @@
         },
         {
           "rank": 6,
-          "usageRate": 19.6,
+          "usageRate": 19.5,
           "name": "ドレインパンチ"
         },
         {
           "rank": 7,
-          "usageRate": 13.6,
+          "usageRate": 13.5,
           "name": "ビルドアップ"
         },
         {
@@ -80,7 +80,7 @@
         },
         {
           "rank": 5,
-          "usageRate": 4.7,
+          "usageRate": 4.8,
           "name": "オボンのみ"
         },
         {
@@ -171,7 +171,7 @@
       "evs": [
         {
           "rank": 1,
-          "usageRate": 47.9,
+          "usageRate": 48,
           "values": {
             "hp": 2,
             "attack": 32,
@@ -183,7 +183,7 @@
         },
         {
           "rank": 2,
-          "usageRate": 7,
+          "usageRate": 6.9,
           "values": {
             "hp": 32,
             "attack": 32,
@@ -329,24 +329,24 @@
           "rank": 14,
           "usageRate": 0.4,
           "values": {
-            "hp": 1,
-            "attack": 32,
-            "defense": 0,
-            "specialAttack": 0,
-            "specialDefense": 0,
-            "speed": 32
-          }
-        },
-        {
-          "rank": 15,
-          "usageRate": 0.4,
-          "values": {
             "hp": 2,
             "attack": 32,
             "defense": 11,
             "specialAttack": 0,
             "specialDefense": 0,
             "speed": 21
+          }
+        },
+        {
+          "rank": 15,
+          "usageRate": 0.4,
+          "values": {
+            "hp": 1,
+            "attack": 32,
+            "defense": 0,
+            "specialAttack": 0,
+            "specialDefense": 0,
+            "speed": 32
           }
         },
         {
@@ -399,7 +399,7 @@
         },
         {
           "rank": 20,
-          "usageRate": 0.4,
+          "usageRate": 0.3,
           "values": {
             "hp": 18,
             "attack": 32,
@@ -425,24 +425,24 @@
           "rank": 22,
           "usageRate": 0.3,
           "values": {
-            "hp": 16,
-            "attack": 32,
-            "defense": 0,
-            "specialAttack": 0,
-            "specialDefense": 18,
-            "speed": 0
-          }
-        },
-        {
-          "rank": 23,
-          "usageRate": 0.3,
-          "values": {
             "hp": 17,
             "attack": 32,
             "defense": 0,
             "specialAttack": 0,
             "specialDefense": 0,
             "speed": 17
+          }
+        },
+        {
+          "rank": 23,
+          "usageRate": 0.3,
+          "values": {
+            "hp": 16,
+            "attack": 32,
+            "defense": 0,
+            "specialAttack": 0,
+            "specialDefense": 18,
+            "speed": 0
           }
         },
         {

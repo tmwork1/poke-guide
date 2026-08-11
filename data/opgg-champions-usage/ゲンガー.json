@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "fetchedAt": "2026-08-11T01:58:27.019Z",
+  "fetchedAt": "2026-08-11T02:11:19.884Z",
   "name": "ゲンガー",
   "formats": {
     "single": {
-      "updatedAt": "2026年8月11日 10:30",
+      "updatedAt": "2026年8月11日 11:00",
       "moves": [
         {
           "rank": 1,
@@ -23,7 +23,7 @@
         },
         {
           "rank": 4,
-          "usageRate": 54.7,
+          "usageRate": 54.8,
           "name": "みちづれ"
         },
         {
@@ -171,7 +171,7 @@
       "evs": [
         {
           "rank": 1,
-          "usageRate": 37.7,
+          "usageRate": 37.8,
           "values": {
             "hp": 2,
             "attack": 0,
@@ -195,7 +195,7 @@
         },
         {
           "rank": 3,
-          "usageRate": 6.1,
+          "usageRate": 6,
           "values": {
             "hp": 18,
             "attack": 0,
@@ -584,7 +584,7 @@
       ]
     },
     "double": {
-      "updatedAt": "2026年8月11日 10:30",
+      "updatedAt": "2026年8月11日 11:00",
       "moves": [
         {
           "rank": 1,
@@ -598,12 +598,12 @@
         },
         {
           "rank": 3,
-          "usageRate": 63.5,
+          "usageRate": 63.6,
           "name": "ヘドロばくだん"
         },
         {
           "rank": 4,
-          "usageRate": 63.1,
+          "usageRate": 63,
           "name": "ほろびのうた"
         },
         {
@@ -681,12 +681,12 @@
         {
           "rank": 9,
           "usageRate": 0.2,
-          "name": "たつじんのおび"
+          "name": "オボンのみ"
         },
         {
           "rank": 10,
           "usageRate": 0.2,
-          "name": "オボンのみ"
+          "name": "たつじんのおび"
         }
       ],
       "abilities": [
@@ -699,7 +699,7 @@
       "natures": [
         {
           "rank": 1,
-          "usageRate": 52.1,
+          "usageRate": 52,
           "name": "おくびょう"
         },
         {
@@ -709,7 +709,7 @@
         },
         {
           "rank": 3,
-          "usageRate": 2.6,
+          "usageRate": 2.5,
           "name": "ずぶとい"
         },
         {
@@ -775,7 +775,7 @@
         },
         {
           "rank": 3,
-          "usageRate": 7.9,
+          "usageRate": 8,
           "values": {
             "hp": 20,
             "attack": 0,
@@ -909,24 +909,24 @@
           "rank": 14,
           "usageRate": 0.7,
           "values": {
-            "hp": 15,
-            "attack": 0,
-            "defense": 1,
-            "specialAttack": 30,
-            "specialDefense": 0,
-            "speed": 20
-          }
-        },
-        {
-          "rank": 15,
-          "usageRate": 0.7,
-          "values": {
             "hp": 0,
             "attack": 0,
             "defense": 0,
             "specialAttack": 32,
             "specialDefense": 0,
             "speed": 32
+          }
+        },
+        {
+          "rank": 15,
+          "usageRate": 0.7,
+          "values": {
+            "hp": 15,
+            "attack": 0,
+            "defense": 1,
+            "specialAttack": 30,
+            "specialDefense": 0,
+            "speed": 20
           }
         },
         {
@@ -995,9 +995,9 @@
           "values": {
             "hp": 30,
             "attack": 0,
-            "defense": 0,
-            "specialAttack": 9,
-            "specialDefense": 21,
+            "defense": 27,
+            "specialAttack": 1,
+            "specialDefense": 2,
             "speed": 6
           }
         },
@@ -1007,9 +1007,9 @@
           "values": {
             "hp": 30,
             "attack": 0,
-            "defense": 27,
-            "specialAttack": 1,
-            "specialDefense": 2,
+            "defense": 0,
+            "specialAttack": 9,
+            "specialDefense": 21,
             "speed": 6
           }
         },
@@ -1101,12 +1101,12 @@
           "rank": 30,
           "usageRate": 0.4,
           "values": {
-            "hp": 30,
+            "hp": 18,
             "attack": 0,
-            "defense": 15,
-            "specialAttack": 0,
-            "specialDefense": 1,
-            "speed": 20
+            "defense": 0,
+            "specialAttack": 13,
+            "specialDefense": 3,
+            "speed": 32
           }
         }
       ],

@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "fetchedAt": "2026-08-11T01:58:25.961Z",
+  "fetchedAt": "2026-08-11T02:11:18.787Z",
   "name": "ゲッコウガ",
   "formats": {
     "single": {
-      "updatedAt": "2026年8月11日 10:30",
+      "updatedAt": "2026年8月11日 11:00",
       "moves": [
         {
           "rank": 1,
@@ -124,7 +124,7 @@
       "natures": [
         {
           "rank": 1,
-          "usageRate": 53.9,
+          "usageRate": 54,
           "name": "おくびょう"
         },
         {
@@ -589,21 +589,21 @@
       ]
     },
     "double": {
-      "updatedAt": "2026年8月11日 10:30",
+      "updatedAt": "2026年8月11日 11:00",
       "moves": [
         {
           "rank": 1,
-          "usageRate": 68.4,
+          "usageRate": 68.5,
           "name": "あくのはどう"
         },
         {
           "rank": 2,
-          "usageRate": 55.3,
+          "usageRate": 55.4,
           "name": "まもる"
         },
         {
           "rank": 3,
-          "usageRate": 53.9,
+          "usageRate": 53.8,
           "name": "れいとうビーム"
         },
         {
@@ -628,29 +628,29 @@
         },
         {
           "rank": 8,
-          "usageRate": 17.8,
+          "usageRate": 17.7,
           "name": "ヘドロウェーブ"
         },
         {
           "rank": 9,
-          "usageRate": 17.8,
+          "usageRate": 17.7,
           "name": "くさむすび"
         },
         {
           "rank": 10,
-          "usageRate": 13.8,
+          "usageRate": 13.9,
           "name": "ウェザーボール"
         }
       ],
       "items": [
         {
           "rank": 1,
-          "usageRate": 58.6,
+          "usageRate": 58.5,
           "name": "ゲッコウガナイト"
         },
         {
           "rank": 2,
-          "usageRate": 14,
+          "usageRate": 13.9,
           "name": "いのちのたま"
         },
         {
@@ -660,7 +660,7 @@
         },
         {
           "rank": 4,
-          "usageRate": 6,
+          "usageRate": 5.9,
           "name": "たつじんのおび"
         },
         {
@@ -724,12 +724,12 @@
         },
         {
           "rank": 4,
-          "usageRate": 5.8,
+          "usageRate": 5.7,
           "name": "せっかち"
         },
         {
           "rank": 5,
-          "usageRate": 3.1,
+          "usageRate": 3.2,
           "name": "むじゃき"
         },
         {
@@ -761,7 +761,7 @@
       "evs": [
         {
           "rank": 1,
-          "usageRate": 50.3,
+          "usageRate": 50.2,
           "values": {
             "hp": 2,
             "attack": 0,
@@ -785,7 +785,7 @@
         },
         {
           "rank": 3,
-          "usageRate": 3.8,
+          "usageRate": 3.9,
           "values": {
             "hp": 0,
             "attack": 0,
@@ -881,7 +881,7 @@
         },
         {
           "rank": 11,
-          "usageRate": 0.9,
+          "usageRate": 0.8,
           "values": {
             "hp": 6,
             "attack": 32,
@@ -1051,6 +1051,18 @@
           "rank": 25,
           "usageRate": 0.3,
           "values": {
+            "hp": 28,
+            "attack": 13,
+            "defense": 4,
+            "specialAttack": 0,
+            "specialDefense": 0,
+            "speed": 21
+          }
+        },
+        {
+          "rank": 26,
+          "usageRate": 0.3,
+          "values": {
             "hp": 0,
             "attack": 0,
             "defense": 0,
@@ -1060,7 +1072,7 @@
           }
         },
         {
-          "rank": 26,
+          "rank": 27,
           "usageRate": 0.3,
           "values": {
             "hp": 0,
@@ -1072,7 +1084,7 @@
           }
         },
         {
-          "rank": 27,
+          "rank": 28,
           "usageRate": 0.3,
           "values": {
             "hp": 0,
@@ -1081,18 +1093,6 @@
             "specialAttack": 30,
             "specialDefense": 0,
             "speed": 32
-          }
-        },
-        {
-          "rank": 28,
-          "usageRate": 0.3,
-          "values": {
-            "hp": 28,
-            "attack": 13,
-            "defense": 4,
-            "specialAttack": 0,
-            "specialDefense": 0,
-            "speed": 21
           }
         },
         {

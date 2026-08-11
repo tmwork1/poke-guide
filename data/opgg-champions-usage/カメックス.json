@@ -1,14 +1,14 @@
 {
   "schemaVersion": 1,
-  "fetchedAt": "2026-08-11T01:59:15.476Z",
+  "fetchedAt": "2026-08-11T02:12:28.590Z",
   "name": "カメックス",
   "formats": {
     "single": {
-      "updatedAt": "2026年8月11日 10:30",
+      "updatedAt": "2026年8月11日 11:00",
       "moves": [
         {
           "rank": 1,
-          "usageRate": 88.1,
+          "usageRate": 88,
           "name": "はどうだん"
         },
         {
@@ -28,7 +28,7 @@
         },
         {
           "rank": 5,
-          "usageRate": 29.8,
+          "usageRate": 29.9,
           "name": "れいとうビーム"
         },
         {
@@ -38,7 +38,7 @@
         },
         {
           "rank": 7,
-          "usageRate": 15.3,
+          "usageRate": 15.2,
           "name": "ミラーコート"
         },
         {
@@ -65,7 +65,7 @@
         },
         {
           "rank": 2,
-          "usageRate": 4.3,
+          "usageRate": 4.4,
           "name": "しろいハーブ"
         },
         {
@@ -124,7 +124,7 @@
       "natures": [
         {
           "rank": 1,
-          "usageRate": 84.1,
+          "usageRate": 84,
           "name": "ひかえめ"
         },
         {
@@ -200,7 +200,7 @@
         },
         {
           "rank": 3,
-          "usageRate": 7.8,
+          "usageRate": 7.9,
           "values": {
             "hp": 2,
             "attack": 0,
@@ -430,18 +430,6 @@
           "rank": 22,
           "usageRate": 0.6,
           "values": {
-            "hp": 21,
-            "attack": 0,
-            "defense": 0,
-            "specialAttack": 16,
-            "specialDefense": 0,
-            "speed": 29
-          }
-        },
-        {
-          "rank": 23,
-          "usageRate": 0.6,
-          "values": {
             "hp": 17,
             "attack": 0,
             "defense": 1,
@@ -451,8 +439,20 @@
           }
         },
         {
-          "rank": 24,
+          "rank": 23,
           "usageRate": 0.6,
+          "values": {
+            "hp": 21,
+            "attack": 0,
+            "defense": 0,
+            "specialAttack": 16,
+            "specialDefense": 0,
+            "speed": 29
+          }
+        },
+        {
+          "rank": 24,
+          "usageRate": 0.5,
           "values": {
             "hp": 1,
             "attack": 0,
@@ -589,16 +589,16 @@
       ]
     },
     "double": {
-      "updatedAt": "2026年8月11日 10:30",
+      "updatedAt": "2026年8月11日 11:00",
       "moves": [
         {
           "rank": 1,
-          "usageRate": 88.3,
+          "usageRate": 88.2,
           "name": "しおふき"
         },
         {
           "rank": 2,
-          "usageRate": 87.5,
+          "usageRate": 87.4,
           "name": "あくのはどう"
         },
         {
@@ -697,12 +697,12 @@
       "abilities": [
         {
           "rank": 1,
-          "usageRate": 69.3,
+          "usageRate": 69.2,
           "name": "あめうけざら"
         },
         {
           "rank": 2,
-          "usageRate": 30.7,
+          "usageRate": 30.8,
           "name": "げきりゅう"
         }
       ],
@@ -739,7 +739,7 @@
         },
         {
           "rank": 7,
-          "usageRate": 0.2,
+          "usageRate": 0.1,
           "name": "しんちょう"
         },
         {
@@ -895,24 +895,24 @@
           "rank": 12,
           "usageRate": 0.9,
           "values": {
-            "hp": 6,
-            "attack": 0,
-            "defense": 0,
-            "specialAttack": 32,
-            "specialDefense": 0,
-            "speed": 28
-          }
-        },
-        {
-          "rank": 13,
-          "usageRate": 0.9,
-          "values": {
             "hp": 0,
             "attack": 0,
             "defense": 0,
             "specialAttack": 32,
             "specialDefense": 2,
             "speed": 32
+          }
+        },
+        {
+          "rank": 13,
+          "usageRate": 0.9,
+          "values": {
+            "hp": 6,
+            "attack": 0,
+            "defense": 0,
+            "specialAttack": 32,
+            "specialDefense": 0,
+            "speed": 28
           }
         },
         {
@@ -943,24 +943,24 @@
           "rank": 16,
           "usageRate": 0.8,
           "values": {
-            "hp": 1,
-            "attack": 0,
-            "defense": 0,
-            "specialAttack": 32,
-            "specialDefense": 1,
-            "speed": 32
-          }
-        },
-        {
-          "rank": 17,
-          "usageRate": 0.8,
-          "values": {
             "hp": 16,
             "attack": 0,
             "defense": 0,
             "specialAttack": 32,
             "specialDefense": 0,
             "speed": 18
+          }
+        },
+        {
+          "rank": 17,
+          "usageRate": 0.8,
+          "values": {
+            "hp": 1,
+            "attack": 0,
+            "defense": 0,
+            "specialAttack": 32,
+            "specialDefense": 1,
+            "speed": 32
           }
         },
         {
@@ -1099,24 +1099,24 @@
           "rank": 29,
           "usageRate": 0.3,
           "values": {
-            "hp": 31,
-            "attack": 0,
-            "defense": 0,
-            "specialAttack": 32,
-            "specialDefense": 3,
-            "speed": 0
-          }
-        },
-        {
-          "rank": 30,
-          "usageRate": 0.3,
-          "values": {
             "hp": 24,
             "attack": 0,
             "defense": 0,
             "specialAttack": 32,
             "specialDefense": 0,
             "speed": 10
+          }
+        },
+        {
+          "rank": 30,
+          "usageRate": 0.3,
+          "values": {
+            "hp": 31,
+            "attack": 0,
+            "defense": 0,
+            "specialAttack": 32,
+            "specialDefense": 3,
+            "speed": 0
           }
         }
       ],

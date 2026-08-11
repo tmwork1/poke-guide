@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "fetchedAt": "2026-08-11T02:00:16.118Z",
+  "fetchedAt": "2026-08-11T02:13:37.800Z",
   "name": "エーフィ",
   "formats": {
     "single": {
@@ -598,7 +598,7 @@
         },
         {
           "rank": 2,
-          "usageRate": 61.6,
+          "usageRate": 61.8,
           "name": "パワージェム"
         },
         {
@@ -608,12 +608,12 @@
         },
         {
           "rank": 4,
-          "usageRate": 28.1,
+          "usageRate": 28.3,
           "name": "トリックルーム"
         },
         {
           "rank": 5,
-          "usageRate": 27.3,
+          "usageRate": 27.2,
           "name": "ワイドフォース"
         },
         {
@@ -623,12 +623,12 @@
         },
         {
           "rank": 7,
-          "usageRate": 19.5,
+          "usageRate": 19.4,
           "name": "シャドーボール"
         },
         {
           "rank": 8,
-          "usageRate": 19.1,
+          "usageRate": 19,
           "name": "サイコフィールド"
         },
         {
@@ -638,19 +638,19 @@
         },
         {
           "rank": 10,
-          "usageRate": 12.4,
+          "usageRate": 12.3,
           "name": "リフレクター"
         }
       ],
       "items": [
         {
           "rank": 1,
-          "usageRate": 42.4,
+          "usageRate": 42.5,
           "name": "きあいのタスキ"
         },
         {
           "rank": 2,
-          "usageRate": 12.8,
+          "usageRate": 12.9,
           "name": "こだわりスカーフ"
         },
         {
@@ -660,7 +660,7 @@
         },
         {
           "rank": 4,
-          "usageRate": 8.9,
+          "usageRate": 8.8,
           "name": "たつじんのおび"
         },
         {
@@ -680,7 +680,7 @@
         },
         {
           "rank": 8,
-          "usageRate": 3.4,
+          "usageRate": 3.5,
           "name": "オボンのみ"
         },
         {
@@ -709,12 +709,12 @@
       "natures": [
         {
           "rank": 1,
-          "usageRate": 59.9,
+          "usageRate": 59.6,
           "name": "おくびょう"
         },
         {
           "rank": 2,
-          "usageRate": 20.2,
+          "usageRate": 20.5,
           "name": "ひかえめ"
         },
         {
@@ -761,7 +761,7 @@
       "evs": [
         {
           "rank": 1,
-          "usageRate": 35.3,
+          "usageRate": 35.2,
           "values": {
             "hp": 2,
             "attack": 0,
@@ -773,7 +773,7 @@
         },
         {
           "rank": 2,
-          "usageRate": 10,
+          "usageRate": 9.9,
           "values": {
             "hp": 0,
             "attack": 0,
@@ -809,7 +809,7 @@
         },
         {
           "rank": 5,
-          "usageRate": 4.9,
+          "usageRate": 5,
           "values": {
             "hp": 32,
             "attack": 0,
@@ -833,7 +833,7 @@
         },
         {
           "rank": 7,
-          "usageRate": 3.1,
+          "usageRate": 3.2,
           "values": {
             "hp": 17,
             "attack": 0,
@@ -905,6 +905,18 @@
         },
         {
           "rank": 13,
+          "usageRate": 1.5,
+          "values": {
+            "hp": 1,
+            "attack": 0,
+            "defense": 1,
+            "specialAttack": 32,
+            "specialDefense": 0,
+            "speed": 32
+          }
+        },
+        {
+          "rank": 14,
           "usageRate": 1.4,
           "values": {
             "hp": 0,
@@ -913,18 +925,6 @@
             "specialAttack": 32,
             "specialDefense": 32,
             "speed": 0
-          }
-        },
-        {
-          "rank": 14,
-          "usageRate": 1.4,
-          "values": {
-            "hp": 1,
-            "attack": 0,
-            "defense": 1,
-            "specialAttack": 32,
-            "specialDefense": 0,
-            "speed": 32
           }
         },
         {
@@ -1065,6 +1065,18 @@
           "values": {
             "hp": 0,
             "attack": 0,
+            "defense": 0,
+            "specialAttack": 32,
+            "specialDefense": 0,
+            "speed": 32
+          }
+        },
+        {
+          "rank": 27,
+          "usageRate": 0.4,
+          "values": {
+            "hp": 0,
+            "attack": 0,
             "defense": 20,
             "specialAttack": 32,
             "specialDefense": 14,
@@ -1072,7 +1084,7 @@
           }
         },
         {
-          "rank": 27,
+          "rank": 28,
           "usageRate": 0.4,
           "values": {
             "hp": 21,
@@ -1084,19 +1096,19 @@
           }
         },
         {
-          "rank": 28,
+          "rank": 29,
           "usageRate": 0.4,
           "values": {
-            "hp": 0,
+            "hp": 32,
             "attack": 0,
-            "defense": 0,
+            "defense": 2,
             "specialAttack": 32,
             "specialDefense": 0,
-            "speed": 32
+            "speed": 0
           }
         },
         {
-          "rank": 29,
+          "rank": 30,
           "usageRate": 0.4,
           "values": {
             "hp": 4,
@@ -1105,18 +1117,6 @@
             "specialAttack": 30,
             "specialDefense": 0,
             "speed": 32
-          }
-        },
-        {
-          "rank": 30,
-          "usageRate": 0.4,
-          "values": {
-            "hp": 31,
-            "attack": 0,
-            "defense": 32,
-            "specialAttack": 0,
-            "specialDefense": 0,
-            "speed": 0
           }
         }
       ],
@@ -1154,17 +1154,17 @@
         {
           "rank": 7,
           "usageRate": null,
-          "name": "ミミロップ"
+          "name": "サンダース"
         },
         {
           "rank": 8,
           "usageRate": null,
-          "name": "フラエッテ"
+          "name": "ミミロップ"
         },
         {
           "rank": 9,
           "usageRate": null,
-          "name": "サンダース"
+          "name": "フラエッテ"
         },
         {
           "rank": 10,

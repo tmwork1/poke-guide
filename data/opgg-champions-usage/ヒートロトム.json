@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "fetchedAt": "2026-08-11T01:59:24.366Z",
+  "fetchedAt": "2026-08-11T02:12:42.771Z",
   "name": "ヒートロトム",
   "formats": {
     "single": {
-      "updatedAt": "2026年8月11日 10:30",
+      "updatedAt": "2026年8月11日 11:00",
       "moves": [
         {
           "rank": 1,
@@ -13,7 +13,7 @@
         },
         {
           "rank": 2,
-          "usageRate": 84.2,
+          "usageRate": 84.3,
           "name": "ボルトチェンジ"
         },
         {
@@ -38,7 +38,7 @@
         },
         {
           "rank": 7,
-          "usageRate": 11,
+          "usageRate": 10.9,
           "name": "わるだくみ"
         },
         {
@@ -70,7 +70,7 @@
         },
         {
           "rank": 3,
-          "usageRate": 21.1,
+          "usageRate": 21.2,
           "name": "オボンのみ"
         },
         {
@@ -129,7 +129,7 @@
         },
         {
           "rank": 3,
-          "usageRate": 17.9,
+          "usageRate": 18,
           "name": "ずぶとい"
         },
         {
@@ -150,12 +150,12 @@
         {
           "rank": 7,
           "usageRate": 0.3,
-          "name": "おっとり"
+          "name": "れいせい"
         },
         {
           "rank": 8,
           "usageRate": 0.3,
-          "name": "れいせい"
+          "name": "おっとり"
         },
         {
           "rank": 9,
@@ -207,7 +207,7 @@
         },
         {
           "rank": 4,
-          "usageRate": 2.8,
+          "usageRate": 2.9,
           "values": {
             "hp": 32,
             "attack": 0,
@@ -243,7 +243,7 @@
         },
         {
           "rank": 7,
-          "usageRate": 2.3,
+          "usageRate": 2.4,
           "values": {
             "hp": 0,
             "attack": 0,
@@ -549,12 +549,12 @@
         {
           "rank": 4,
           "usageRate": null,
-          "name": "カバルドン"
+          "name": "ミミッキュ"
         },
         {
           "rank": 5,
           "usageRate": null,
-          "name": "ミミッキュ"
+          "name": "カバルドン"
         },
         {
           "rank": 6,
@@ -584,7 +584,7 @@
       ]
     },
     "double": {
-      "updatedAt": "2026年8月11日 10:30",
+      "updatedAt": "2026年8月11日 11:00",
       "moves": [
         {
           "rank": 1,
@@ -593,17 +593,17 @@
         },
         {
           "rank": 2,
-          "usageRate": 66.1,
+          "usageRate": 66.2,
           "name": "ボルトチェンジ"
         },
         {
           "rank": 3,
-          "usageRate": 52.1,
+          "usageRate": 52,
           "name": "１０まんボルト"
         },
         {
           "rank": 4,
-          "usageRate": 50.4,
+          "usageRate": 50.5,
           "name": "ほうでん"
         },
         {
@@ -613,7 +613,7 @@
         },
         {
           "rank": 6,
-          "usageRate": 27.4,
+          "usageRate": 27.3,
           "name": "まもる"
         },
         {
@@ -633,7 +633,7 @@
         },
         {
           "rank": 10,
-          "usageRate": 3.6,
+          "usageRate": 3.5,
           "name": "かみなり"
         }
       ],
@@ -645,7 +645,7 @@
         },
         {
           "rank": 2,
-          "usageRate": 15.6,
+          "usageRate": 15.5,
           "name": "オボンのみ"
         },
         {
@@ -665,7 +665,7 @@
         },
         {
           "rank": 6,
-          "usageRate": 2.8,
+          "usageRate": 2.7,
           "name": "じしゃく"
         },
         {
@@ -699,12 +699,12 @@
       "natures": [
         {
           "rank": 1,
-          "usageRate": 53.3,
+          "usageRate": 53.4,
           "name": "おくびょう"
         },
         {
           "rank": 2,
-          "usageRate": 34.4,
+          "usageRate": 34.3,
           "name": "ひかえめ"
         },
         {
@@ -835,7 +835,7 @@
         },
         {
           "rank": 8,
-          "usageRate": 1.9,
+          "usageRate": 1.8,
           "values": {
             "hp": 0,
             "attack": 0,
@@ -883,7 +883,7 @@
         },
         {
           "rank": 12,
-          "usageRate": 1.1,
+          "usageRate": 1,
           "values": {
             "hp": 12,
             "attack": 0,
@@ -895,7 +895,7 @@
         },
         {
           "rank": 13,
-          "usageRate": 0.9,
+          "usageRate": 1,
           "values": {
             "hp": 0,
             "attack": 0,
@@ -1008,13 +1008,25 @@
             "hp": 32,
             "attack": 0,
             "defense": 0,
+            "specialAttack": 2,
+            "specialDefense": 0,
+            "speed": 32
+          }
+        },
+        {
+          "rank": 23,
+          "usageRate": 0.6,
+          "values": {
+            "hp": 32,
+            "attack": 0,
+            "defense": 0,
             "specialAttack": 24,
             "specialDefense": 0,
             "speed": 10
           }
         },
         {
-          "rank": 23,
+          "rank": 24,
           "usageRate": 0.6,
           "values": {
             "hp": 32,
@@ -1026,7 +1038,7 @@
           }
         },
         {
-          "rank": 24,
+          "rank": 25,
           "usageRate": 0.5,
           "values": {
             "hp": 0,
@@ -1038,7 +1050,7 @@
           }
         },
         {
-          "rank": 25,
+          "rank": 26,
           "usageRate": 0.5,
           "values": {
             "hp": 0,
@@ -1050,7 +1062,7 @@
           }
         },
         {
-          "rank": 26,
+          "rank": 27,
           "usageRate": 0.5,
           "values": {
             "hp": 10,
@@ -1062,7 +1074,7 @@
           }
         },
         {
-          "rank": 27,
+          "rank": 28,
           "usageRate": 0.5,
           "values": {
             "hp": 31,
@@ -1074,25 +1086,13 @@
           }
         },
         {
-          "rank": 28,
+          "rank": 29,
           "usageRate": 0.5,
           "values": {
             "hp": 7,
             "attack": 0,
             "defense": 0,
             "specialAttack": 27,
-            "specialDefense": 0,
-            "speed": 32
-          }
-        },
-        {
-          "rank": 29,
-          "usageRate": 0.5,
-          "values": {
-            "hp": 32,
-            "attack": 0,
-            "defense": 0,
-            "specialAttack": 2,
             "specialDefense": 0,
             "speed": 32
           }

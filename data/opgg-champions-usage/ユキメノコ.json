@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "fetchedAt": "2026-08-11T01:59:43.474Z",
+  "fetchedAt": "2026-08-11T02:13:05.255Z",
   "name": "ユキメノコ",
   "formats": {
     "single": {
-      "updatedAt": "2026年8月11日 10:30",
+      "updatedAt": "2026年8月11日 11:00",
       "moves": [
         {
           "rank": 1,
@@ -13,7 +13,7 @@
         },
         {
           "rank": 2,
-          "usageRate": 86.3,
+          "usageRate": 86.2,
           "name": "シャドーボール"
         },
         {
@@ -43,7 +43,7 @@
         },
         {
           "rank": 8,
-          "usageRate": 8.8,
+          "usageRate": 8.9,
           "name": "おにび"
         },
         {
@@ -236,7 +236,7 @@
         },
         {
           "rank": 6,
-          "usageRate": 2.8,
+          "usageRate": 2.7,
           "values": {
             "hp": 0,
             "attack": 0,
@@ -248,7 +248,7 @@
         },
         {
           "rank": 7,
-          "usageRate": 2.6,
+          "usageRate": 2.7,
           "values": {
             "hp": 0,
             "attack": 0,
@@ -589,7 +589,7 @@
       ]
     },
     "double": {
-      "updatedAt": "2026年8月11日 10:30",
+      "updatedAt": "2026年8月11日 11:00",
       "moves": [
         {
           "rank": 1,
@@ -598,7 +598,7 @@
         },
         {
           "rank": 2,
-          "usageRate": 94.1,
+          "usageRate": 94.2,
           "name": "まもる"
         },
         {
@@ -697,35 +697,35 @@
       "abilities": [
         {
           "rank": 1,
-          "usageRate": 79.2,
+          "usageRate": 79.3,
           "name": "のろわれボディ"
         },
         {
           "rank": 2,
-          "usageRate": 20.8,
+          "usageRate": 20.7,
           "name": "ゆきがくれ"
         }
       ],
       "natures": [
         {
           "rank": 1,
-          "usageRate": 49.5,
+          "usageRate": 49.4,
           "name": "おくびょう"
         },
         {
           "rank": 2,
-          "usageRate": 49.3,
+          "usageRate": 49.4,
           "name": "ひかえめ"
         },
         {
           "rank": 3,
           "usageRate": 0.2,
-          "name": "ずぶとい"
+          "name": "おだやか"
         },
         {
           "rank": 4,
           "usageRate": 0.2,
-          "name": "おだやか"
+          "name": "ずぶとい"
         },
         {
           "rank": 5,
@@ -773,7 +773,7 @@
         },
         {
           "rank": 2,
-          "usageRate": 21,
+          "usageRate": 21.2,
           "values": {
             "hp": 12,
             "attack": 0,
@@ -907,24 +907,24 @@
           "rank": 13,
           "usageRate": 0.8,
           "values": {
-            "hp": 26,
-            "attack": 0,
-            "defense": 2,
-            "specialAttack": 8,
-            "specialDefense": 0,
-            "speed": 30
-          }
-        },
-        {
-          "rank": 14,
-          "usageRate": 0.8,
-          "values": {
             "hp": 0,
             "attack": 0,
             "defense": 0,
             "specialAttack": 32,
             "specialDefense": 0,
             "speed": 32
+          }
+        },
+        {
+          "rank": 14,
+          "usageRate": 0.8,
+          "values": {
+            "hp": 26,
+            "attack": 0,
+            "defense": 2,
+            "specialAttack": 8,
+            "specialDefense": 0,
+            "speed": 30
           }
         },
         {
@@ -1039,24 +1039,24 @@
           "rank": 24,
           "usageRate": 0.3,
           "values": {
-            "hp": 8,
+            "hp": 32,
             "attack": 0,
-            "defense": 5,
-            "specialAttack": 29,
+            "defense": 0,
+            "specialAttack": 32,
             "specialDefense": 0,
-            "speed": 24
+            "speed": 2
           }
         },
         {
           "rank": 25,
           "usageRate": 0.3,
           "values": {
-            "hp": 32,
+            "hp": 8,
             "attack": 0,
-            "defense": 0,
-            "specialAttack": 32,
-            "specialDefense": 2,
-            "speed": 0
+            "defense": 5,
+            "specialAttack": 29,
+            "specialDefense": 0,
+            "speed": 24
           }
         },
         {
@@ -1067,8 +1067,8 @@
             "attack": 0,
             "defense": 0,
             "specialAttack": 32,
-            "specialDefense": 0,
-            "speed": 2
+            "specialDefense": 2,
+            "speed": 0
           }
         },
         {
@@ -1099,24 +1099,24 @@
           "rank": 29,
           "usageRate": 0.3,
           "values": {
-            "hp": 24,
-            "attack": 0,
-            "defense": 0,
-            "specialAttack": 8,
-            "specialDefense": 4,
-            "speed": 30
-          }
-        },
-        {
-          "rank": 30,
-          "usageRate": 0.3,
-          "values": {
             "hp": 10,
             "attack": 0,
             "defense": 0,
             "specialAttack": 32,
             "specialDefense": 0,
             "speed": 24
+          }
+        },
+        {
+          "rank": 30,
+          "usageRate": 0.3,
+          "values": {
+            "hp": 24,
+            "attack": 0,
+            "defense": 0,
+            "specialAttack": 8,
+            "specialDefense": 4,
+            "speed": 30
           }
         }
       ],

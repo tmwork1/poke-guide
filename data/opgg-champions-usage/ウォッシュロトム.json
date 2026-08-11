@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "fetchedAt": "2026-08-11T01:58:43.777Z",
+  "fetchedAt": "2026-08-11T02:11:46.940Z",
   "name": "ウォッシュロトム",
   "formats": {
     "single": {
-      "updatedAt": "2026年8月11日 10:30",
+      "updatedAt": "2026年8月11日 11:00",
       "moves": [
         {
           "rank": 1,
@@ -75,7 +75,7 @@
         },
         {
           "rank": 4,
-          "usageRate": 2.9,
+          "usageRate": 2.8,
           "name": "こうかくレンズ"
         },
         {
@@ -100,7 +100,7 @@
         },
         {
           "rank": 9,
-          "usageRate": 0.5,
+          "usageRate": 0.4,
           "name": "#276"
         },
         {
@@ -183,7 +183,7 @@
         },
         {
           "rank": 2,
-          "usageRate": 9.5,
+          "usageRate": 9.4,
           "values": {
             "hp": 32,
             "attack": 0,
@@ -584,7 +584,7 @@
       ]
     },
     "double": {
-      "updatedAt": "2026年8月11日 10:30",
+      "updatedAt": "2026年8月11日 11:00",
       "moves": [
         {
           "rank": 1,
@@ -593,12 +593,12 @@
         },
         {
           "rank": 2,
-          "usageRate": 68.2,
+          "usageRate": 68.1,
           "name": "１０まんボルト"
         },
         {
           "rank": 3,
-          "usageRate": 65.4,
+          "usageRate": 65.3,
           "name": "おにび"
         },
         {
@@ -613,7 +613,7 @@
         },
         {
           "rank": 6,
-          "usageRate": 19.9,
+          "usageRate": 20,
           "name": "エレキネット"
         },
         {
@@ -628,7 +628,7 @@
         },
         {
           "rank": 9,
-          "usageRate": 8.4,
+          "usageRate": 8.5,
           "name": "ひかりのかべ"
         },
         {
@@ -655,7 +655,7 @@
         },
         {
           "rank": 4,
-          "usageRate": 7.5,
+          "usageRate": 7.4,
           "name": "じしゃく"
         },
         {
@@ -709,7 +709,7 @@
         },
         {
           "rank": 3,
-          "usageRate": 17.9,
+          "usageRate": 18,
           "name": "ずぶとい"
         },
         {
@@ -751,7 +751,7 @@
       "evs": [
         {
           "rank": 1,
-          "usageRate": 12.4,
+          "usageRate": 12.5,
           "values": {
             "hp": 2,
             "attack": 0,
@@ -967,7 +967,7 @@
         },
         {
           "rank": 19,
-          "usageRate": 0.7,
+          "usageRate": 0.6,
           "values": {
             "hp": 0,
             "attack": 0,
@@ -1019,10 +1019,10 @@
           "values": {
             "hp": 32,
             "attack": 0,
-            "defense": 0,
-            "specialAttack": 28,
-            "specialDefense": 0,
-            "speed": 6
+            "defense": 2,
+            "specialAttack": 15,
+            "specialDefense": 5,
+            "speed": 12
           }
         },
         {
@@ -1031,10 +1031,10 @@
           "values": {
             "hp": 32,
             "attack": 0,
-            "defense": 2,
-            "specialAttack": 15,
-            "specialDefense": 5,
-            "speed": 12
+            "defense": 0,
+            "specialAttack": 28,
+            "specialDefense": 0,
+            "speed": 6
           }
         },
         {
@@ -1067,9 +1067,9 @@
           "values": {
             "hp": 32,
             "attack": 0,
-            "defense": 17,
+            "defense": 19,
             "specialAttack": 0,
-            "specialDefense": 17,
+            "specialDefense": 15,
             "speed": 0
           }
         },
@@ -1079,9 +1079,9 @@
           "values": {
             "hp": 32,
             "attack": 0,
-            "defense": 19,
+            "defense": 17,
             "specialAttack": 0,
-            "specialDefense": 15,
+            "specialDefense": 17,
             "speed": 0
           }
         },

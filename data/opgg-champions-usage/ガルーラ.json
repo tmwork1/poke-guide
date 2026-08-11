@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "fetchedAt": "2026-08-11T01:59:13.217Z",
+  "fetchedAt": "2026-08-11T02:12:27.544Z",
   "name": "ガルーラ",
   "formats": {
     "single": {
-      "updatedAt": "2026年8月11日 10:30",
+      "updatedAt": "2026年8月11日 11:00",
       "moves": [
         {
           "rank": 1,
@@ -129,7 +129,7 @@
       "natures": [
         {
           "rank": 1,
-          "usageRate": 93.2,
+          "usageRate": 93.3,
           "name": "いじっぱり"
         },
         {
@@ -361,7 +361,7 @@
         },
         {
           "rank": 16,
-          "usageRate": 0.8,
+          "usageRate": 0.9,
           "values": {
             "hp": 32,
             "attack": 32,
@@ -594,7 +594,7 @@
       ]
     },
     "double": {
-      "updatedAt": "2026年8月11日 10:30",
+      "updatedAt": "2026年8月11日 11:00",
       "moves": [
         {
           "rank": 1,
@@ -618,17 +618,17 @@
         },
         {
           "rank": 5,
-          "usageRate": 28.3,
+          "usageRate": 28.2,
           "name": "れいとうパンチ"
         },
         {
           "rank": 6,
-          "usageRate": 21.9,
+          "usageRate": 21.8,
           "name": "アームハンマー"
         },
         {
           "rank": 7,
-          "usageRate": 17.3,
+          "usageRate": 17.2,
           "name": "けたぐり"
         },
         {
@@ -696,7 +696,7 @@
         {
           "rank": 10,
           "usageRate": 0.2,
-          "name": "メトロノーム"
+          "name": "メンタルハーブ"
         }
       ],
       "abilities": [
@@ -867,7 +867,7 @@
         },
         {
           "rank": 9,
-          "usageRate": 1.2,
+          "usageRate": 1.1,
           "values": {
             "hp": 14,
             "attack": 32,
@@ -1049,6 +1049,18 @@
           "rank": 24,
           "usageRate": 0.3,
           "values": {
+            "hp": 0,
+            "attack": 32,
+            "defense": 2,
+            "specialAttack": 0,
+            "specialDefense": 32,
+            "speed": 0
+          }
+        },
+        {
+          "rank": 25,
+          "usageRate": 0.3,
+          "values": {
             "hp": 1,
             "attack": 32,
             "defense": 1,
@@ -1058,7 +1070,7 @@
           }
         },
         {
-          "rank": 25,
+          "rank": 26,
           "usageRate": 0.3,
           "values": {
             "hp": 31,
@@ -1066,18 +1078,6 @@
             "defense": 3,
             "specialAttack": 0,
             "specialDefense": 0,
-            "speed": 0
-          }
-        },
-        {
-          "rank": 26,
-          "usageRate": 0.3,
-          "values": {
-            "hp": 0,
-            "attack": 32,
-            "defense": 2,
-            "specialAttack": 0,
-            "specialDefense": 32,
             "speed": 0
           }
         },

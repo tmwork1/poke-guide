@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "fetchedAt": "2026-08-11T01:58:20.655Z",
+  "fetchedAt": "2026-08-11T02:11:13.492Z",
   "name": "ハッサム",
   "formats": {
     "single": {
-      "updatedAt": "2026年8月11日 10:30",
+      "updatedAt": "2026年8月11日 11:00",
       "moves": [
         {
           "rank": 1,
@@ -60,7 +60,7 @@
       "items": [
         {
           "rank": 1,
-          "usageRate": 60.3,
+          "usageRate": 60.4,
           "name": "ハッサムナイト"
         },
         {
@@ -70,7 +70,7 @@
         },
         {
           "rank": 3,
-          "usageRate": 11.5,
+          "usageRate": 11.4,
           "name": "いのちのたま"
         },
         {
@@ -181,7 +181,7 @@
       "evs": [
         {
           "rank": 1,
-          "usageRate": 18.1,
+          "usageRate": 18.2,
           "values": {
             "hp": 32,
             "attack": 2,
@@ -517,7 +517,7 @@
         },
         {
           "rank": 29,
-          "usageRate": 0.4,
+          "usageRate": 0.3,
           "values": {
             "hp": 0,
             "attack": 32,
@@ -529,7 +529,7 @@
         },
         {
           "rank": 30,
-          "usageRate": 0.4,
+          "usageRate": 0.3,
           "values": {
             "hp": 30,
             "attack": 4,
@@ -594,7 +594,7 @@
       ]
     },
     "double": {
-      "updatedAt": "2026年8月11日 10:30",
+      "updatedAt": "2026年8月11日 11:00",
       "moves": [
         {
           "rank": 1,
@@ -603,7 +603,7 @@
         },
         {
           "rank": 2,
-          "usageRate": 86,
+          "usageRate": 85.9,
           "name": "まもる"
         },
         {
@@ -660,7 +660,7 @@
         },
         {
           "rank": 3,
-          "usageRate": 8.8,
+          "usageRate": 8.9,
           "name": "メタルコート"
         },
         {
@@ -734,12 +734,12 @@
         },
         {
           "rank": 4,
-          "usageRate": 1.1,
+          "usageRate": 1,
           "name": "わんぱく"
         },
         {
           "rank": 5,
-          "usageRate": 0.7,
+          "usageRate": 0.8,
           "name": "しんちょう"
         },
         {
@@ -760,12 +760,12 @@
         {
           "rank": 9,
           "usageRate": null,
-          "name": "やんちゃ"
+          "name": "さみしがり"
         },
         {
           "rank": 10,
           "usageRate": null,
-          "name": "さみしがり"
+          "name": "やんちゃ"
         }
       ],
       "evs": [
@@ -783,7 +783,7 @@
         },
         {
           "rank": 2,
-          "usageRate": 16.4,
+          "usageRate": 16.3,
           "values": {
             "hp": 32,
             "attack": 32,
@@ -831,7 +831,7 @@
         },
         {
           "rank": 6,
-          "usageRate": 1.7,
+          "usageRate": 1.8,
           "values": {
             "hp": 2,
             "attack": 32,
@@ -867,7 +867,7 @@
         },
         {
           "rank": 9,
-          "usageRate": 0.9,
+          "usageRate": 0.8,
           "values": {
             "hp": 32,
             "attack": 32,
@@ -1121,12 +1121,12 @@
           "rank": 30,
           "usageRate": 0.3,
           "values": {
-            "hp": 32,
+            "hp": 24,
             "attack": 32,
-            "defense": 1,
+            "defense": 10,
             "specialAttack": 0,
             "specialDefense": 0,
-            "speed": 1
+            "speed": 0
           }
         }
       ],

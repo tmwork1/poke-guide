@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "fetchedAt": "2026-08-11T01:59:41.378Z",
+  "fetchedAt": "2026-08-11T02:13:03.151Z",
   "name": "バサギリ",
   "formats": {
     "single": {
-      "updatedAt": "2026年8月11日 10:30",
+      "updatedAt": "2026年8月11日 11:00",
       "moves": [
         {
           "rank": 1,
@@ -18,7 +18,7 @@
         },
         {
           "rank": 3,
-          "usageRate": 57.7,
+          "usageRate": 57.6,
           "name": "インファイト"
         },
         {
@@ -33,7 +33,7 @@
         },
         {
           "rank": 6,
-          "usageRate": 19.8,
+          "usageRate": 19.9,
           "name": "フェイント"
         },
         {
@@ -181,7 +181,7 @@
       "evs": [
         {
           "rank": 1,
-          "usageRate": 62,
+          "usageRate": 62.1,
           "values": {
             "hp": 2,
             "attack": 32,
@@ -448,18 +448,6 @@
           "usageRate": 0.2,
           "values": {
             "hp": 32,
-            "attack": 0,
-            "defense": 10,
-            "specialAttack": 0,
-            "specialDefense": 24,
-            "speed": 0
-          }
-        },
-        {
-          "rank": 24,
-          "usageRate": 0.2,
-          "values": {
-            "hp": 32,
             "attack": 2,
             "defense": 0,
             "specialAttack": 0,
@@ -468,19 +456,19 @@
           }
         },
         {
-          "rank": 25,
+          "rank": 24,
           "usageRate": 0.2,
           "values": {
-            "hp": 30,
-            "attack": 10,
-            "defense": 0,
+            "hp": 32,
+            "attack": 0,
+            "defense": 10,
             "specialAttack": 0,
-            "specialDefense": 0,
-            "speed": 26
+            "specialDefense": 24,
+            "speed": 0
           }
         },
         {
-          "rank": 26,
+          "rank": 25,
           "usageRate": 0.2,
           "values": {
             "hp": 0,
@@ -489,6 +477,18 @@
             "specialAttack": 0,
             "specialDefense": 0,
             "speed": 20
+          }
+        },
+        {
+          "rank": 26,
+          "usageRate": 0.2,
+          "values": {
+            "hp": 30,
+            "attack": 10,
+            "defense": 0,
+            "specialAttack": 0,
+            "specialDefense": 0,
+            "speed": 26
           }
         },
         {
@@ -549,12 +549,12 @@
         {
           "rank": 2,
           "usageRate": null,
-          "name": "ハッサム"
+          "name": "アシレーヌ"
         },
         {
           "rank": 3,
           "usageRate": null,
-          "name": "アシレーヌ"
+          "name": "ハッサム"
         },
         {
           "rank": 4,
@@ -594,7 +594,7 @@
       ]
     },
     "double": {
-      "updatedAt": "2026年8月11日 10:30",
+      "updatedAt": "2026年8月11日 11:00",
       "moves": [
         {
           "rank": 1,
@@ -608,7 +608,7 @@
         },
         {
           "rank": 3,
-          "usageRate": 51.9,
+          "usageRate": 51.8,
           "name": "まもる"
         },
         {
@@ -618,12 +618,12 @@
         },
         {
           "rank": 5,
-          "usageRate": 33.6,
+          "usageRate": 33.7,
           "name": "つじぎり"
         },
         {
           "rank": 6,
-          "usageRate": 23.8,
+          "usageRate": 23.9,
           "name": "おいかぜ"
         },
         {
@@ -633,12 +633,12 @@
         },
         {
           "rank": 8,
-          "usageRate": 11.8,
+          "usageRate": 11.9,
           "name": "つばめがえし"
         },
         {
           "rank": 9,
-          "usageRate": 9.6,
+          "usageRate": 9.7,
           "name": "いわなだれ"
         },
         {
@@ -719,7 +719,7 @@
       "natures": [
         {
           "rank": 1,
-          "usageRate": 57.1,
+          "usageRate": 57,
           "name": "いじっぱり"
         },
         {

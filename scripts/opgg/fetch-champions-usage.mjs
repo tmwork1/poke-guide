@@ -27,6 +27,7 @@ function options(argv) {
       process.exit(0);
     }
     if (flag === '--cleanup-only') { result.cleanupOnly = true; continue; }
+    if (flag === '--normalize-files') { result.normalizeFiles = true; continue; }
     const key = { '--output': 'output', '--limit': 'limit', '--delay-ms': 'delayMs' }[flag];
     const value = argv[++i];
     if (!key || !value) throw new Error(`Invalid option: ${flag}`);
@@ -145,6 +146,24 @@ function pokemonFileName(pokemonName, slug, completed) {
     if (!usedFiles.has(candidate)) return candidate;
   }
 }
+function displayPokemonName(slug, pokemonName) {
+  // OP.GG's Japanese page labels Hisui forms with the base species name only.
+  // Keep their files and in-app names distinct just as other forms (e.g. Rotom) are.
+  return slug.endsWith('-hisui') ? `ヒスイ${pokemonName}` : pokemonName;
+}
+async function normalizeFileNames(directory, completed) {
+  const normalized = new Map();
+  const moves = [];
+  for (const [slug, entry] of completed) {
+    const file = pokemonFileName(entry.name, slug, normalized);
+    normalized.set(slug, { ...entry, file });
+    if (entry.file !== file) moves.push({ slug, from: entry.file, to: file });
+  }
+  // Two phases make renames safe even if two legacy names need to swap.
+  for (const move of moves) await rename(`${directory}/${move.from}`, `${directory}/.${move.slug}.rename-tmp`);
+  for (const move of moves) await rename(`${directory}/.${move.slug}.rename-tmp`, `${directory}/${move.to}`);
+  return normalized;
+}
 async function main() {
   const config = options(process.argv.slice(2));
   const destination = resolve(config.output);
@@ -153,6 +172,17 @@ async function main() {
   if (config.cleanupOnly) {
     await cleanStaleOutput(destination, completed);
     console.log(`Removed stale generated JSON files from ${destination}`);
+    return;
+  }
+  if (config.normalizeFiles) {
+    const normalized = await normalizeFileNames(destination, completed);
+    await saveJson(`${destination}/index.json`, {
+      schemaVersion: 1,
+      fetchedAt: new Date().toISOString(),
+      pokemon: [...normalized].map(([slug, entry]) => ({ slug, ...entry })),
+    });
+    await cleanStaleOutput(destination, normalized);
+    console.log(`Normalized Pokemon file names in ${destination}`);
     return;
   }
   const tier = `${ORIGIN}${BASE}/tier`;
@@ -167,11 +197,12 @@ async function main() {
       const doubleHtml = await get(sourceUrl, 'double'); await sleep(config.delayMs);
       const pokemonName = name(singleHtml);
       if (!pokemonName) throw new Error('Pokemon name was not found in the page.');
-      const file = pokemonFileName(pokemonName, slug, completed);
-      const pokemon = { schemaVersion: 1, fetchedAt: new Date().toISOString(), name: pokemonName, formats: { single: parse(singleHtml), double: parse(doubleHtml) } };
+      const displayName = displayPokemonName(slug, pokemonName);
+      const file = pokemonFileName(displayName, slug, completed);
+      const pokemon = { schemaVersion: 1, fetchedAt: new Date().toISOString(), name: displayName, formats: { single: parse(singleHtml), double: parse(doubleHtml) } };
       await saveJson(`${destination}/${file}`, pokemon);
       const previous = completed.get(slug);
-      completed.set(slug, { name: pokemonName, file });
+      completed.set(slug, { name: displayName, file });
       if (previous?.file && previous.file !== file) {
         await unlink(`${destination}/${previous.file}`).catch((error) => {
           if (error.code !== 'ENOENT') throw error;

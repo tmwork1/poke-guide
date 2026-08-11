@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "fetchedAt": "2026-08-11T01:58:49.143Z",
+  "fetchedAt": "2026-08-11T02:11:52.484Z",
   "name": "ルカリオ",
   "formats": {
     "single": {
-      "updatedAt": "2026年8月11日 10:30",
+      "updatedAt": "2026年8月11日 11:00",
       "moves": [
         {
           "rank": 1,
@@ -70,7 +70,7 @@
         },
         {
           "rank": 3,
-          "usageRate": 0.5,
+          "usageRate": 0.4,
           "name": "こだわりスカーフ"
         },
         {
@@ -144,7 +144,7 @@
         },
         {
           "rank": 4,
-          "usageRate": 6.8,
+          "usageRate": 6.7,
           "name": "ひかえめ"
         },
         {
@@ -327,18 +327,6 @@
           "rank": 13,
           "usageRate": 0.5,
           "values": {
-            "hp": 2,
-            "attack": 27,
-            "defense": 9,
-            "specialAttack": 0,
-            "specialDefense": 0,
-            "speed": 28
-          }
-        },
-        {
-          "rank": 14,
-          "usageRate": 0.5,
-          "values": {
             "hp": 0,
             "attack": 0,
             "defense": 0,
@@ -348,8 +336,20 @@
           }
         },
         {
-          "rank": 15,
+          "rank": 14,
           "usageRate": 0.5,
+          "values": {
+            "hp": 2,
+            "attack": 27,
+            "defense": 9,
+            "specialAttack": 0,
+            "specialDefense": 0,
+            "speed": 28
+          }
+        },
+        {
+          "rank": 15,
+          "usageRate": 0.4,
           "values": {
             "hp": 1,
             "attack": 32,
@@ -507,24 +507,24 @@
           "rank": 28,
           "usageRate": 0.1,
           "values": {
-            "hp": 1,
-            "attack": 32,
-            "defense": 0,
-            "specialAttack": 0,
-            "specialDefense": 1,
-            "speed": 32
-          }
-        },
-        {
-          "rank": 29,
-          "usageRate": 0.1,
-          "values": {
             "hp": 4,
             "attack": 32,
             "defense": 0,
             "specialAttack": 0,
             "specialDefense": 0,
             "speed": 30
+          }
+        },
+        {
+          "rank": 29,
+          "usageRate": 0.1,
+          "values": {
+            "hp": 1,
+            "attack": 32,
+            "defense": 0,
+            "specialAttack": 0,
+            "specialDefense": 1,
+            "speed": 32
           }
         },
         {
@@ -594,11 +594,11 @@
       ]
     },
     "double": {
-      "updatedAt": "2026年8月11日 10:30",
+      "updatedAt": "2026年8月11日 11:00",
       "moves": [
         {
           "rank": 1,
-          "usageRate": 49.2,
+          "usageRate": 49.3,
           "name": "インファイト"
         },
         {
@@ -608,37 +608,37 @@
         },
         {
           "rank": 3,
-          "usageRate": 38.2,
+          "usageRate": 38.1,
           "name": "はどうだん"
         },
         {
           "rank": 4,
-          "usageRate": 34.2,
+          "usageRate": 34.3,
           "name": "バレットパンチ"
         },
         {
           "rank": 5,
-          "usageRate": 33.4,
+          "usageRate": 33.3,
           "name": "まもる"
         },
         {
           "rank": 6,
-          "usageRate": 30.9,
+          "usageRate": 31,
           "name": "みきり"
         },
         {
           "rank": 7,
-          "usageRate": 29.2,
+          "usageRate": 29.1,
           "name": "ラスターカノン"
         },
         {
           "rank": 8,
-          "usageRate": 19.4,
+          "usageRate": 19.3,
           "name": "しんくうは"
         },
         {
           "rank": 9,
-          "usageRate": 13.8,
+          "usageRate": 13.9,
           "name": "れいとうパンチ"
         },
         {
@@ -702,7 +702,7 @@
       "abilities": [
         {
           "rank": 1,
-          "usageRate": 84.3,
+          "usageRate": 84.4,
           "name": "せいしんりょく"
         },
         {
@@ -719,22 +719,22 @@
       "natures": [
         {
           "rank": 1,
-          "usageRate": 35.4,
+          "usageRate": 35.5,
           "name": "ようき"
         },
         {
           "rank": 2,
-          "usageRate": 17.1,
+          "usageRate": 17.3,
           "name": "いじっぱり"
         },
         {
           "rank": 3,
-          "usageRate": 15.4,
+          "usageRate": 15.3,
           "name": "おくびょう"
         },
         {
           "rank": 4,
-          "usageRate": 15,
+          "usageRate": 14.9,
           "name": "ひかえめ"
         },
         {
@@ -749,7 +749,7 @@
         },
         {
           "rank": 7,
-          "usageRate": 1.8,
+          "usageRate": 1.9,
           "name": "ゆうかん"
         },
         {
@@ -759,7 +759,7 @@
         },
         {
           "rank": 9,
-          "usageRate": 0.6,
+          "usageRate": 0.7,
           "name": "おっとり"
         },
         {
@@ -771,7 +771,7 @@
       "evs": [
         {
           "rank": 1,
-          "usageRate": 31.7,
+          "usageRate": 31.8,
           "values": {
             "hp": 2,
             "attack": 32,
@@ -783,7 +783,7 @@
         },
         {
           "rank": 2,
-          "usageRate": 19.2,
+          "usageRate": 19.1,
           "values": {
             "hp": 2,
             "attack": 0,
@@ -795,7 +795,7 @@
         },
         {
           "rank": 3,
-          "usageRate": 4.6,
+          "usageRate": 4.7,
           "values": {
             "hp": 0,
             "attack": 32,
@@ -831,7 +831,7 @@
         },
         {
           "rank": 6,
-          "usageRate": 3.5,
+          "usageRate": 3.4,
           "values": {
             "hp": 0,
             "attack": 0,
@@ -917,24 +917,24 @@
           "rank": 13,
           "usageRate": 0.9,
           "values": {
-            "hp": 32,
-            "attack": 32,
-            "defense": 0,
-            "specialAttack": 0,
-            "specialDefense": 2,
-            "speed": 0
-          }
-        },
-        {
-          "rank": 14,
-          "usageRate": 0.8,
-          "values": {
             "hp": 0,
             "attack": 0,
             "defense": 0,
             "specialAttack": 32,
             "specialDefense": 0,
             "speed": 32
+          }
+        },
+        {
+          "rank": 14,
+          "usageRate": 0.9,
+          "values": {
+            "hp": 32,
+            "attack": 32,
+            "defense": 0,
+            "specialAttack": 0,
+            "specialDefense": 2,
+            "speed": 0
           }
         },
         {
@@ -1011,7 +1011,7 @@
         },
         {
           "rank": 21,
-          "usageRate": 0.4,
+          "usageRate": 0.5,
           "values": {
             "hp": 1,
             "attack": 0,

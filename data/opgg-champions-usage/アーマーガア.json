@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "fetchedAt": "2026-08-11T01:58:21.794Z",
+  "fetchedAt": "2026-08-11T02:11:14.552Z",
   "name": "アーマーガア",
   "formats": {
     "single": {
-      "updatedAt": "2026年8月11日 10:30",
+      "updatedAt": "2026年8月11日 11:00",
       "moves": [
         {
           "rank": 1,
@@ -13,7 +13,7 @@
         },
         {
           "rank": 2,
-          "usageRate": 72,
+          "usageRate": 72.1,
           "name": "とんぼがえり"
         },
         {
@@ -23,17 +23,17 @@
         },
         {
           "rank": 4,
-          "usageRate": 52.6,
+          "usageRate": 52.5,
           "name": "てっぺき"
         },
         {
           "rank": 5,
-          "usageRate": 34.2,
+          "usageRate": 34.1,
           "name": "アイアンヘッド"
         },
         {
           "rank": 6,
-          "usageRate": 28.1,
+          "usageRate": 28.2,
           "name": "ブレイブバード"
         },
         {
@@ -65,7 +65,7 @@
         },
         {
           "rank": 2,
-          "usageRate": 43.8,
+          "usageRate": 43.7,
           "name": "オボンのみ"
         },
         {
@@ -112,12 +112,12 @@
       "abilities": [
         {
           "rank": 1,
-          "usageRate": 68.2,
+          "usageRate": 68.1,
           "name": "プレッシャー"
         },
         {
           "rank": 2,
-          "usageRate": 30.6,
+          "usageRate": 30.7,
           "name": "ミラーアーマー"
         },
         {
@@ -181,7 +181,7 @@
       "evs": [
         {
           "rank": 1,
-          "usageRate": 42.6,
+          "usageRate": 42.5,
           "values": {
             "hp": 32,
             "attack": 0,
@@ -193,7 +193,7 @@
         },
         {
           "rank": 2,
-          "usageRate": 9.7,
+          "usageRate": 9.6,
           "values": {
             "hp": 32,
             "attack": 1,
@@ -253,7 +253,7 @@
         },
         {
           "rank": 7,
-          "usageRate": 2.3,
+          "usageRate": 2.4,
           "values": {
             "hp": 32,
             "attack": 2,
@@ -517,7 +517,7 @@
         },
         {
           "rank": 29,
-          "usageRate": 0.3,
+          "usageRate": 0.2,
           "values": {
             "hp": 32,
             "attack": 0,
@@ -594,11 +594,11 @@
       ]
     },
     "double": {
-      "updatedAt": "2026年8月11日 10:30",
+      "updatedAt": "2026年8月11日 11:00",
       "moves": [
         {
           "rank": 1,
-          "usageRate": 87,
+          "usageRate": 86.9,
           "name": "ブレイブバード"
         },
         {
@@ -613,7 +613,7 @@
         },
         {
           "rank": 4,
-          "usageRate": 61.4,
+          "usageRate": 61.3,
           "name": "まもる"
         },
         {
@@ -633,7 +633,7 @@
         },
         {
           "rank": 8,
-          "usageRate": 13.8,
+          "usageRate": 13.9,
           "name": "てっぺき"
         },
         {
@@ -665,7 +665,7 @@
         },
         {
           "rank": 4,
-          "usageRate": 3.7,
+          "usageRate": 3.6,
           "name": "いのちのたま"
         },
         {
@@ -760,12 +760,12 @@
         {
           "rank": 9,
           "usageRate": 0.1,
-          "name": "ずぶとい"
+          "name": "さみしがり"
         },
         {
           "rank": 10,
           "usageRate": 0.1,
-          "name": "さみしがり"
+          "name": "ずぶとい"
         }
       ],
       "evs": [
@@ -915,7 +915,7 @@
         },
         {
           "rank": 13,
-          "usageRate": 0.7,
+          "usageRate": 0.8,
           "values": {
             "hp": 2,
             "attack": 32,
@@ -969,12 +969,24 @@
             "attack": 32,
             "defense": 0,
             "specialAttack": 0,
+            "specialDefense": 2,
+            "speed": 0
+          }
+        },
+        {
+          "rank": 18,
+          "usageRate": 0.5,
+          "values": {
+            "hp": 32,
+            "attack": 32,
+            "defense": 0,
+            "specialAttack": 0,
             "specialDefense": 0,
             "speed": 2
           }
         },
         {
-          "rank": 18,
+          "rank": 19,
           "usageRate": 0.5,
           "values": {
             "hp": 32,
@@ -986,24 +998,12 @@
           }
         },
         {
-          "rank": 19,
-          "usageRate": 0.5,
-          "values": {
-            "hp": 32,
-            "attack": 32,
-            "defense": 0,
-            "specialAttack": 0,
-            "specialDefense": 2,
-            "speed": 0
-          }
-        },
-        {
           "rank": 20,
           "usageRate": 0.5,
           "values": {
             "hp": 32,
             "attack": 1,
-            "defense": 5,
+            "defense": 4,
             "specialAttack": 0,
             "specialDefense": 28,
             "speed": 0
@@ -1015,7 +1015,7 @@
           "values": {
             "hp": 32,
             "attack": 1,
-            "defense": 4,
+            "defense": 5,
             "specialAttack": 0,
             "specialDefense": 28,
             "speed": 0
@@ -1086,10 +1086,10 @@
           "usageRate": 0.3,
           "values": {
             "hp": 32,
-            "attack": 15,
-            "defense": 0,
+            "attack": 0,
+            "defense": 5,
             "specialAttack": 0,
-            "specialDefense": 19,
+            "specialDefense": 29,
             "speed": 0
           }
         },
@@ -1098,10 +1098,10 @@
           "usageRate": 0.3,
           "values": {
             "hp": 32,
-            "attack": 0,
-            "defense": 5,
+            "attack": 15,
+            "defense": 0,
             "specialAttack": 0,
-            "specialDefense": 29,
+            "specialDefense": 19,
             "speed": 0
           }
         },

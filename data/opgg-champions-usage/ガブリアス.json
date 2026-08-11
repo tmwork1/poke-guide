@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "fetchedAt": "2026-08-11T01:58:06.788Z",
+  "fetchedAt": "2026-08-11T02:10:55.582Z",
   "name": "ガブリアス",
   "formats": {
     "single": {
-      "updatedAt": "2026年8月11日 10:30",
+      "updatedAt": "2026年8月11日 11:00",
       "moves": [
         {
           "rank": 1,
@@ -33,7 +33,7 @@
         },
         {
           "rank": 6,
-          "usageRate": 27.9,
+          "usageRate": 28,
           "name": "ドラゴンテール"
         },
         {
@@ -134,7 +134,7 @@
         },
         {
           "rank": 3,
-          "usageRate": 14.9,
+          "usageRate": 15,
           "name": "わんぱく"
         },
         {
@@ -188,7 +188,7 @@
         },
         {
           "rank": 2,
-          "usageRate": 10.6,
+          "usageRate": 10.5,
           "values": {
             "hp": 0,
             "attack": 32,
@@ -589,7 +589,7 @@
       ]
     },
     "double": {
-      "updatedAt": "2026年8月11日 10:30",
+      "updatedAt": "2026年8月11日 11:00",
       "moves": [
         {
           "rank": 1,
@@ -608,7 +608,7 @@
         },
         {
           "rank": 4,
-          "usageRate": 77,
+          "usageRate": 76.9,
           "name": "まもる"
         },
         {
@@ -618,7 +618,7 @@
         },
         {
           "rank": 6,
-          "usageRate": 13.1,
+          "usageRate": 13.2,
           "name": "どくづき"
         },
         {
@@ -645,7 +645,7 @@
       "items": [
         {
           "rank": 1,
-          "usageRate": 54.9,
+          "usageRate": 54.8,
           "name": "いのちのたま"
         },
         {
@@ -785,7 +785,7 @@
         },
         {
           "rank": 3,
-          "usageRate": 4.3,
+          "usageRate": 4.4,
           "values": {
             "hp": 13,
             "attack": 20,
@@ -1099,24 +1099,24 @@
           "rank": 29,
           "usageRate": 0.3,
           "values": {
-            "hp": 6,
-            "attack": 25,
-            "defense": 3,
-            "specialAttack": 0,
-            "specialDefense": 0,
-            "speed": 32
-          }
-        },
-        {
-          "rank": 30,
-          "usageRate": 0.3,
-          "values": {
             "hp": 32,
             "attack": 20,
             "defense": 9,
             "specialAttack": 0,
             "specialDefense": 4,
             "speed": 1
+          }
+        },
+        {
+          "rank": 30,
+          "usageRate": 0.3,
+          "values": {
+            "hp": 6,
+            "attack": 25,
+            "defense": 3,
+            "specialAttack": 0,
+            "specialDefense": 0,
+            "speed": 32
           }
         }
       ],

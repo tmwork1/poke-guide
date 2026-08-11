@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "fetchedAt": "2026-08-11T01:58:38.460Z",
+  "fetchedAt": "2026-08-11T02:11:36.199Z",
   "name": "ドドゲザン",
   "formats": {
     "single": {
-      "updatedAt": "2026年8月11日 10:30",
+      "updatedAt": "2026年8月11日 11:00",
       "moves": [
         {
           "rank": 1,
@@ -149,7 +149,7 @@
         },
         {
           "rank": 5,
-          "usageRate": 0.8,
+          "usageRate": 0.7,
           "name": "しんちょう"
         },
         {
@@ -164,7 +164,7 @@
         },
         {
           "rank": 8,
-          "usageRate": 0.1,
+          "usageRate": 0.2,
           "name": "なまいき"
         },
         {
@@ -349,7 +349,7 @@
         },
         {
           "rank": 15,
-          "usageRate": 0.9,
+          "usageRate": 1,
           "values": {
             "hp": 32,
             "attack": 15,
@@ -387,24 +387,24 @@
           "rank": 18,
           "usageRate": 0.8,
           "values": {
-            "hp": 32,
-            "attack": 32,
-            "defense": 0,
-            "specialAttack": 0,
-            "specialDefense": 0,
-            "speed": 0
-          }
-        },
-        {
-          "rank": 19,
-          "usageRate": 0.8,
-          "values": {
             "hp": 16,
             "attack": 32,
             "defense": 0,
             "specialAttack": 0,
             "specialDefense": 0,
             "speed": 18
+          }
+        },
+        {
+          "rank": 19,
+          "usageRate": 0.8,
+          "values": {
+            "hp": 32,
+            "attack": 32,
+            "defense": 0,
+            "specialAttack": 0,
+            "specialDefense": 0,
+            "speed": 0
           }
         },
         {
@@ -594,7 +594,7 @@
       ]
     },
     "double": {
-      "updatedAt": "2026年8月11日 10:30",
+      "updatedAt": "2026年8月11日 11:00",
       "moves": [
         {
           "rank": 1,
@@ -613,7 +613,7 @@
         },
         {
           "rank": 4,
-          "usageRate": 63.8,
+          "usageRate": 63.7,
           "name": "まもる"
         },
         {
@@ -623,7 +623,7 @@
         },
         {
           "rank": 6,
-          "usageRate": 26.5,
+          "usageRate": 26.4,
           "name": "つるぎのまい"
         },
         {
@@ -650,12 +650,12 @@
       "items": [
         {
           "rank": 1,
-          "usageRate": 35.4,
+          "usageRate": 35.5,
           "name": "ヨプのみ"
         },
         {
           "rank": 2,
-          "usageRate": 24.9,
+          "usageRate": 24.8,
           "name": "いのちのたま"
         },
         {
@@ -771,7 +771,7 @@
       "evs": [
         {
           "rank": 1,
-          "usageRate": 13.9,
+          "usageRate": 13.8,
           "values": {
             "hp": 32,
             "attack": 32,

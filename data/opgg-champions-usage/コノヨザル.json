@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "fetchedAt": "2026-08-11T01:59:31.651Z",
+  "fetchedAt": "2026-08-11T02:12:47.429Z",
   "name": "コノヨザル",
   "formats": {
     "single": {
-      "updatedAt": "2026年8月11日 10:30",
+      "updatedAt": "2026年8月11日 11:00",
       "moves": [
         {
           "rank": 1,
@@ -13,12 +13,12 @@
         },
         {
           "rank": 2,
-          "usageRate": 91.4,
+          "usageRate": 91.3,
           "name": "ドレインパンチ"
         },
         {
           "rank": 3,
-          "usageRate": 81.5,
+          "usageRate": 81.4,
           "name": "ビルドアップ"
         },
         {
@@ -80,7 +80,7 @@
         },
         {
           "rank": 5,
-          "usageRate": 2.1,
+          "usageRate": 2.2,
           "name": "きあいのタスキ"
         },
         {
@@ -117,7 +117,7 @@
         },
         {
           "rank": 2,
-          "usageRate": 37,
+          "usageRate": 37.1,
           "name": "やるき"
         },
         {
@@ -129,7 +129,7 @@
       "natures": [
         {
           "rank": 1,
-          "usageRate": 54.5,
+          "usageRate": 54.6,
           "name": "いじっぱり"
         },
         {
@@ -139,12 +139,12 @@
         },
         {
           "rank": 3,
-          "usageRate": 14.9,
+          "usageRate": 14.8,
           "name": "しんちょう"
         },
         {
           "rank": 4,
-          "usageRate": 10.6,
+          "usageRate": 10.7,
           "name": "わんぱく"
         },
         {
@@ -317,9 +317,9 @@
           "values": {
             "hp": 32,
             "attack": 2,
-            "defense": 0,
+            "defense": 32,
             "specialAttack": 0,
-            "specialDefense": 32,
+            "specialDefense": 0,
             "speed": 0
           }
         },
@@ -329,9 +329,9 @@
           "values": {
             "hp": 32,
             "attack": 2,
-            "defense": 32,
+            "defense": 0,
             "specialAttack": 0,
-            "specialDefense": 0,
+            "specialDefense": 32,
             "speed": 0
           }
         },
@@ -387,24 +387,24 @@
           "rank": 18,
           "usageRate": 0.8,
           "values": {
-            "hp": 32,
-            "attack": 0,
-            "defense": 2,
-            "specialAttack": 0,
-            "specialDefense": 0,
-            "speed": 32
-          }
-        },
-        {
-          "rank": 19,
-          "usageRate": 0.8,
-          "values": {
             "hp": 24,
             "attack": 32,
             "defense": 0,
             "specialAttack": 0,
             "specialDefense": 0,
             "speed": 10
+          }
+        },
+        {
+          "rank": 19,
+          "usageRate": 0.8,
+          "values": {
+            "hp": 32,
+            "attack": 0,
+            "defense": 2,
+            "specialAttack": 0,
+            "specialDefense": 0,
+            "speed": 32
           }
         },
         {
@@ -433,7 +433,7 @@
         },
         {
           "rank": 22,
-          "usageRate": 0.7,
+          "usageRate": 0.6,
           "values": {
             "hp": 24,
             "attack": 1,
@@ -445,18 +445,6 @@
         },
         {
           "rank": 23,
-          "usageRate": 0.6,
-          "values": {
-            "hp": 32,
-            "attack": 0,
-            "defense": 24,
-            "specialAttack": 0,
-            "specialDefense": 10,
-            "speed": 0
-          }
-        },
-        {
-          "rank": 24,
           "usageRate": 0.5,
           "values": {
             "hp": 32,
@@ -468,19 +456,19 @@
           }
         },
         {
-          "rank": 25,
+          "rank": 24,
           "usageRate": 0.5,
           "values": {
             "hp": 32,
             "attack": 0,
-            "defense": 5,
+            "defense": 24,
             "specialAttack": 0,
-            "specialDefense": 29,
+            "specialDefense": 10,
             "speed": 0
           }
         },
         {
-          "rank": 26,
+          "rank": 25,
           "usageRate": 0.5,
           "values": {
             "hp": 2,
@@ -492,7 +480,31 @@
           }
         },
         {
+          "rank": 26,
+          "usageRate": 0.5,
+          "values": {
+            "hp": 32,
+            "attack": 0,
+            "defense": 5,
+            "specialAttack": 0,
+            "specialDefense": 29,
+            "speed": 0
+          }
+        },
+        {
           "rank": 27,
+          "usageRate": 0.5,
+          "values": {
+            "hp": 0,
+            "attack": 32,
+            "defense": 2,
+            "specialAttack": 0,
+            "specialDefense": 32,
+            "speed": 0
+          }
+        },
+        {
+          "rank": 28,
           "usageRate": 0.5,
           "values": {
             "hp": 32,
@@ -504,7 +516,7 @@
           }
         },
         {
-          "rank": 28,
+          "rank": 29,
           "usageRate": 0.5,
           "values": {
             "hp": 0,
@@ -513,18 +525,6 @@
             "specialAttack": 0,
             "specialDefense": 2,
             "speed": 32
-          }
-        },
-        {
-          "rank": 29,
-          "usageRate": 0.5,
-          "values": {
-            "hp": 0,
-            "attack": 32,
-            "defense": 2,
-            "specialAttack": 0,
-            "specialDefense": 32,
-            "speed": 0
           }
         },
         {
@@ -594,7 +594,7 @@
       ]
     },
     "double": {
-      "updatedAt": "2026年8月11日 10:30",
+      "updatedAt": "2026年8月11日 11:00",
       "moves": [
         {
           "rank": 1,
@@ -608,7 +608,7 @@
         },
         {
           "rank": 3,
-          "usageRate": 53.8,
+          "usageRate": 53.9,
           "name": "ドレインパンチ"
         },
         {
@@ -690,7 +690,7 @@
         },
         {
           "rank": 9,
-          "usageRate": 1.2,
+          "usageRate": 1.1,
           "name": "ロゼルのみ"
         },
         {
@@ -819,7 +819,7 @@
         },
         {
           "rank": 5,
-          "usageRate": 3,
+          "usageRate": 2.9,
           "values": {
             "hp": 9,
             "attack": 32,
@@ -843,7 +843,7 @@
         },
         {
           "rank": 7,
-          "usageRate": 2.5,
+          "usageRate": 2.4,
           "values": {
             "hp": 32,
             "attack": 32,
@@ -1025,24 +1025,24 @@
           "rank": 22,
           "usageRate": 0.4,
           "values": {
-            "hp": 2,
-            "attack": 32,
-            "defense": 0,
-            "specialAttack": 0,
-            "specialDefense": 32,
-            "speed": 0
-          }
-        },
-        {
-          "rank": 23,
-          "usageRate": 0.4,
-          "values": {
             "hp": 13,
             "attack": 32,
             "defense": 0,
             "specialAttack": 0,
             "specialDefense": 0,
             "speed": 21
+          }
+        },
+        {
+          "rank": 23,
+          "usageRate": 0.4,
+          "values": {
+            "hp": 2,
+            "attack": 32,
+            "defense": 0,
+            "specialAttack": 0,
+            "specialDefense": 32,
+            "speed": 0
           }
         },
         {
@@ -1061,24 +1061,24 @@
           "rank": 25,
           "usageRate": 0.4,
           "values": {
-            "hp": 32,
-            "attack": 7,
-            "defense": 18,
-            "specialAttack": 0,
-            "specialDefense": 8,
-            "speed": 1
-          }
-        },
-        {
-          "rank": 26,
-          "usageRate": 0.4,
-          "values": {
             "hp": 0,
             "attack": 32,
             "defense": 2,
             "specialAttack": 0,
             "specialDefense": 32,
             "speed": 0
+          }
+        },
+        {
+          "rank": 26,
+          "usageRate": 0.4,
+          "values": {
+            "hp": 32,
+            "attack": 7,
+            "defense": 18,
+            "specialAttack": 0,
+            "specialDefense": 8,
+            "speed": 1
           }
         },
         {

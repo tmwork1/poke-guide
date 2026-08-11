@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "fetchedAt": "2026-08-11T01:58:59.344Z",
+  "fetchedAt": "2026-08-11T02:12:12.964Z",
   "name": "ピクシー",
   "formats": {
     "single": {
-      "updatedAt": "2026年8月11日 10:30",
+      "updatedAt": "2026年8月11日 11:00",
       "moves": [
         {
           "rank": 1,
@@ -33,7 +33,7 @@
         },
         {
           "rank": 6,
-          "usageRate": 21.9,
+          "usageRate": 21.8,
           "name": "かえんほうしゃ"
         },
         {
@@ -181,7 +181,7 @@
       "evs": [
         {
           "rank": 1,
-          "usageRate": 26.2,
+          "usageRate": 26.3,
           "values": {
             "hp": 32,
             "attack": 0,
@@ -594,11 +594,11 @@
       ]
     },
     "double": {
-      "updatedAt": "2026年8月11日 10:30",
+      "updatedAt": "2026年8月11日 11:00",
       "moves": [
         {
           "rank": 1,
-          "usageRate": 83.2,
+          "usageRate": 83.3,
           "name": "このゆびとまれ"
         },
         {
@@ -633,12 +633,12 @@
         },
         {
           "rank": 8,
-          "usageRate": 9.5,
+          "usageRate": 9.4,
           "name": "つきのひかり"
         },
         {
           "rank": 9,
-          "usageRate": 9.3,
+          "usageRate": 9.2,
           "name": "アシストパワー"
         },
         {
@@ -676,12 +676,12 @@
         {
           "rank": 6,
           "usageRate": 1.9,
-          "name": "ビアーのみ"
+          "name": "いのちのたま"
         },
         {
           "rank": 7,
           "usageRate": 1.9,
-          "name": "いのちのたま"
+          "name": "ビアーのみ"
         },
         {
           "rank": 8,
@@ -695,7 +695,7 @@
         },
         {
           "rank": 10,
-          "usageRate": 0.8,
+          "usageRate": 0.7,
           "name": "ひかりのこな"
         }
       ],
@@ -707,19 +707,19 @@
         },
         {
           "rank": 2,
-          "usageRate": 28.7,
+          "usageRate": 28.8,
           "name": "マジックガード"
         },
         {
           "rank": 3,
-          "usageRate": 3.8,
+          "usageRate": 3.9,
           "name": "メロメロボディ"
         }
       ],
       "natures": [
         {
           "rank": 1,
-          "usageRate": 52.4,
+          "usageRate": 52.3,
           "name": "ずぶとい"
         },
         {
@@ -744,7 +744,7 @@
         },
         {
           "rank": 6,
-          "usageRate": 2.1,
+          "usageRate": 2.2,
           "name": "なまいき"
         },
         {
@@ -771,7 +771,7 @@
       "evs": [
         {
           "rank": 1,
-          "usageRate": 22.4,
+          "usageRate": 22.5,
           "values": {
             "hp": 32,
             "attack": 0,
@@ -855,7 +855,7 @@
         },
         {
           "rank": 8,
-          "usageRate": 2,
+          "usageRate": 1.9,
           "values": {
             "hp": 32,
             "attack": 0,
@@ -867,18 +867,6 @@
         },
         {
           "rank": 9,
-          "usageRate": 1.9,
-          "values": {
-            "hp": 32,
-            "attack": 0,
-            "defense": 24,
-            "specialAttack": 0,
-            "specialDefense": 10,
-            "speed": 0
-          }
-        },
-        {
-          "rank": 10,
           "usageRate": 1.8,
           "values": {
             "hp": 32,
@@ -890,8 +878,20 @@
           }
         },
         {
+          "rank": 10,
+          "usageRate": 1.8,
+          "values": {
+            "hp": 32,
+            "attack": 0,
+            "defense": 24,
+            "specialAttack": 0,
+            "specialDefense": 10,
+            "speed": 0
+          }
+        },
+        {
           "rank": 11,
-          "usageRate": 1.5,
+          "usageRate": 1.4,
           "values": {
             "hp": 25,
             "attack": 0,
@@ -903,7 +903,7 @@
         },
         {
           "rank": 12,
-          "usageRate": 1.5,
+          "usageRate": 1.4,
           "values": {
             "hp": 32,
             "attack": 0,
@@ -1037,11 +1037,11 @@
           "rank": 23,
           "usageRate": 0.8,
           "values": {
-            "hp": 32,
+            "hp": 30,
             "attack": 0,
-            "defense": 25,
-            "specialAttack": 9,
-            "specialDefense": 0,
+            "defense": 26,
+            "specialAttack": 0,
+            "specialDefense": 10,
             "speed": 0
           }
         },
@@ -1049,11 +1049,11 @@
           "rank": 24,
           "usageRate": 0.8,
           "values": {
-            "hp": 30,
+            "hp": 32,
             "attack": 0,
-            "defense": 26,
-            "specialAttack": 0,
-            "specialDefense": 10,
+            "defense": 25,
+            "specialAttack": 9,
+            "specialDefense": 0,
             "speed": 0
           }
         },
@@ -1085,23 +1085,23 @@
           "rank": 27,
           "usageRate": 0.7,
           "values": {
-            "hp": 7,
-            "attack": 0,
-            "defense": 27,
-            "specialAttack": 32,
-            "specialDefense": 0,
-            "speed": 0
-          }
-        },
-        {
-          "rank": 28,
-          "usageRate": 0.7,
-          "values": {
             "hp": 15,
             "attack": 0,
             "defense": 24,
             "specialAttack": 0,
             "specialDefense": 27,
+            "speed": 0
+          }
+        },
+        {
+          "rank": 28,
+          "usageRate": 0.6,
+          "values": {
+            "hp": 7,
+            "attack": 0,
+            "defense": 27,
+            "specialAttack": 32,
+            "specialDefense": 0,
             "speed": 0
           }
         },
@@ -1174,12 +1174,12 @@
         {
           "rank": 9,
           "usageRate": null,
-          "name": "ヤミラミ"
+          "name": "エルフーン"
         },
         {
           "rank": 10,
           "usageRate": null,
-          "name": "エルフーン"
+          "name": "ヤミラミ"
         }
       ]
     }

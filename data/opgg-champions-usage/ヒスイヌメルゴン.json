@@ -1,14 +1,14 @@
 {
   "schemaVersion": 1,
-  "fetchedAt": "2026-08-11T01:59:39.207Z",
-  "name": "ヌメルゴン",
+  "fetchedAt": "2026-08-11T02:12:57.628Z",
+  "name": "ヒスイヌメルゴン",
   "formats": {
     "single": {
-      "updatedAt": "2026年8月11日 10:30",
+      "updatedAt": "2026年8月11日 11:00",
       "moves": [
         {
           "rank": 1,
-          "usageRate": 52.3,
+          "usageRate": 52.4,
           "name": "りゅうせいぐん"
         },
         {
@@ -18,7 +18,7 @@
         },
         {
           "rank": 3,
-          "usageRate": 43.8,
+          "usageRate": 43.9,
           "name": "ラスターカノン"
         },
         {
@@ -33,12 +33,12 @@
         },
         {
           "rank": 6,
-          "usageRate": 27,
+          "usageRate": 26.9,
           "name": "ドラゴンテール"
         },
         {
           "rank": 7,
-          "usageRate": 25.8,
+          "usageRate": 25.9,
           "name": "たてこもる"
         },
         {
@@ -53,7 +53,7 @@
         },
         {
           "rank": 10,
-          "usageRate": 17.6,
+          "usageRate": 17.5,
           "name": "れいとうビーム"
         }
       ],
@@ -65,7 +65,7 @@
         },
         {
           "rank": 2,
-          "usageRate": 11.4,
+          "usageRate": 11.3,
           "name": "オボンのみ"
         },
         {
@@ -80,7 +80,7 @@
         },
         {
           "rank": 5,
-          "usageRate": 5.2,
+          "usageRate": 5.3,
           "name": "シュカのみ"
         },
         {
@@ -122,7 +122,7 @@
         },
         {
           "rank": 3,
-          "usageRate": 26.1,
+          "usageRate": 26.2,
           "name": "シェルアーマー"
         }
       ],
@@ -134,7 +134,7 @@
         },
         {
           "rank": 2,
-          "usageRate": 26.4,
+          "usageRate": 26.3,
           "name": "なまいき"
         },
         {
@@ -241,7 +241,7 @@
         },
         {
           "rank": 6,
-          "usageRate": 3.1,
+          "usageRate": 3.2,
           "values": {
             "hp": 32,
             "attack": 0,
@@ -364,9 +364,9 @@
           "usageRate": 0.9,
           "values": {
             "hp": 22,
-            "attack": 0,
-            "defense": 0,
-            "specialAttack": 12,
+            "attack": 11,
+            "defense": 1,
+            "specialAttack": 0,
             "specialDefense": 32,
             "speed": 0
           }
@@ -376,9 +376,9 @@
           "usageRate": 0.9,
           "values": {
             "hp": 22,
-            "attack": 11,
-            "defense": 1,
-            "specialAttack": 0,
+            "attack": 0,
+            "defense": 0,
+            "specialAttack": 12,
             "specialDefense": 32,
             "speed": 0
           }
@@ -423,10 +423,10 @@
           "rank": 21,
           "usageRate": 0.7,
           "values": {
-            "hp": 22,
-            "attack": 12,
-            "defense": 0,
-            "specialAttack": 0,
+            "hp": 0,
+            "attack": 0,
+            "defense": 2,
+            "specialAttack": 32,
             "specialDefense": 32,
             "speed": 0
           }
@@ -435,10 +435,10 @@
           "rank": 22,
           "usageRate": 0.7,
           "values": {
-            "hp": 0,
-            "attack": 0,
-            "defense": 2,
-            "specialAttack": 32,
+            "hp": 22,
+            "attack": 12,
+            "defense": 0,
+            "specialAttack": 0,
             "specialDefense": 32,
             "speed": 0
           }
@@ -594,16 +594,16 @@
       ]
     },
     "double": {
-      "updatedAt": "2026年8月11日 10:30",
+      "updatedAt": "2026年8月11日 11:00",
       "moves": [
         {
           "rank": 1,
-          "usageRate": 58.1,
+          "usageRate": 58,
           "name": "ラスターカノン"
         },
         {
           "rank": 2,
-          "usageRate": 50.8,
+          "usageRate": 50.7,
           "name": "まもる"
         },
         {
@@ -628,7 +628,7 @@
         },
         {
           "rank": 7,
-          "usageRate": 22.8,
+          "usageRate": 22.9,
           "name": "りゅうせいぐん"
         },
         {
@@ -638,7 +638,7 @@
         },
         {
           "rank": 9,
-          "usageRate": 20,
+          "usageRate": 19.9,
           "name": "ヘビーボンバー"
         },
         {
@@ -650,12 +650,12 @@
       "items": [
         {
           "rank": 1,
-          "usageRate": 62.8,
+          "usageRate": 62.6,
           "name": "たべのこし"
         },
         {
           "rank": 2,
-          "usageRate": 9.3,
+          "usageRate": 9.4,
           "name": "オボンのみ"
         },
         {
@@ -665,7 +665,7 @@
         },
         {
           "rank": 4,
-          "usageRate": 5,
+          "usageRate": 4.9,
           "name": "ピントレンズ"
         },
         {
@@ -675,7 +675,7 @@
         },
         {
           "rank": 6,
-          "usageRate": 3.2,
+          "usageRate": 3.1,
           "name": "ヨプのみ"
         },
         {
@@ -707,7 +707,7 @@
         },
         {
           "rank": 2,
-          "usageRate": 24.1,
+          "usageRate": 24,
           "name": "ぬめぬめ"
         },
         {
@@ -719,12 +719,12 @@
       "natures": [
         {
           "rank": 1,
-          "usageRate": 27.4,
+          "usageRate": 27.3,
           "name": "ひかえめ"
         },
         {
           "rank": 2,
-          "usageRate": 24.4,
+          "usageRate": 24.3,
           "name": "ずぶとい"
         },
         {
@@ -744,7 +744,7 @@
         },
         {
           "rank": 6,
-          "usageRate": 5.5,
+          "usageRate": 5.7,
           "name": "おだやか"
         },
         {
@@ -771,7 +771,7 @@
       "evs": [
         {
           "rank": 1,
-          "usageRate": 15,
+          "usageRate": 14.9,
           "values": {
             "hp": 32,
             "attack": 0,
@@ -783,7 +783,7 @@
         },
         {
           "rank": 2,
-          "usageRate": 12,
+          "usageRate": 11.9,
           "values": {
             "hp": 32,
             "attack": 0,
@@ -915,6 +915,18 @@
         },
         {
           "rank": 13,
+          "usageRate": 1.8,
+          "values": {
+            "hp": 2,
+            "attack": 0,
+            "defense": 0,
+            "specialAttack": 32,
+            "specialDefense": 32,
+            "speed": 0
+          }
+        },
+        {
+          "rank": 14,
           "usageRate": 1.7,
           "values": {
             "hp": 31,
@@ -926,7 +938,7 @@
           }
         },
         {
-          "rank": 14,
+          "rank": 15,
           "usageRate": 1.7,
           "values": {
             "hp": 0,
@@ -938,7 +950,7 @@
           }
         },
         {
-          "rank": 15,
+          "rank": 16,
           "usageRate": 1.7,
           "values": {
             "hp": 32,
@@ -947,18 +959,6 @@
             "specialAttack": 0,
             "specialDefense": 0,
             "speed": 2
-          }
-        },
-        {
-          "rank": 16,
-          "usageRate": 1.6,
-          "values": {
-            "hp": 2,
-            "attack": 0,
-            "defense": 0,
-            "specialAttack": 32,
-            "specialDefense": 32,
-            "speed": 0
           }
         },
         {
@@ -999,7 +999,7 @@
         },
         {
           "rank": 20,
-          "usageRate": 1.4,
+          "usageRate": 1.3,
           "values": {
             "hp": 32,
             "attack": 0,
@@ -1097,24 +1097,24 @@
           "rank": 28,
           "usageRate": 0.7,
           "values": {
-            "hp": 32,
-            "attack": 0,
-            "defense": 10,
-            "specialAttack": 2,
-            "specialDefense": 22,
-            "speed": 0
-          }
-        },
-        {
-          "rank": 29,
-          "usageRate": 0.7,
-          "values": {
             "hp": 29,
             "attack": 0,
             "defense": 21,
             "specialAttack": 0,
             "specialDefense": 15,
             "speed": 1
+          }
+        },
+        {
+          "rank": 29,
+          "usageRate": 0.7,
+          "values": {
+            "hp": 32,
+            "attack": 0,
+            "defense": 10,
+            "specialAttack": 2,
+            "specialDefense": 22,
+            "speed": 0
           }
         },
         {
