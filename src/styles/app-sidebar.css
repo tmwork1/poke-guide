@@ -1,0 +1,134 @@
+/* 全ページ共通のデスクトップ用サイドバーナビゲーション(AppSidebar.astro)。固定位置・開閉(transform)は global.css の .app-sidebar 側で定義し、ここではサイドバー内部の見た目(余白・タイポグラフィ・アクティブ表示)のみを扱う。 */
+	/* サイドバーの固定位置・開閉(transform)は global.css の .app-sidebar 側で定義する。
+	   ここではサイドバー内部の見た目(余白・タイポグラフィ・アクティブ表示)のみを扱う。 */
+	.app-sidebar-brand {
+		display: block;
+		padding: var(--space-5) var(--space-5) var(--space-4);
+		font-size: 1.3rem;
+		font-weight: 800;
+		color: var(--color-text);
+		text-decoration: none;
+		letter-spacing: -0.01em;
+	}
+
+	.app-sidebar-brand:hover {
+		color: var(--color-primary);
+	}
+
+	.app-sidebar-nav {
+		padding: var(--space-1) 0 var(--space-6);
+	}
+
+	.app-sidebar-section + .app-sidebar-section {
+		margin-top: var(--space-5);
+	}
+
+	.app-sidebar-heading {
+		margin: 0 0 var(--space-2);
+		padding: 0 var(--space-5);
+		font-size: var(--font-size-sm3);
+		font-weight: 700;
+		letter-spacing: 0.02em;
+		color: var(--color-text-muted);
+	}
+
+	.app-sidebar-list {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+	}
+
+	.app-sidebar-link {
+		position: relative;
+		display: flex;
+		align-items: center;
+		gap: var(--space-3);
+		margin: 0.15rem var(--space-3);
+		padding: var(--space-3) var(--space-3);
+		border-radius: var(--radius-md);
+		font-size: var(--font-size-sm1);
+		font-weight: 500;
+		color: var(--color-text);
+		text-decoration: none;
+		transition: background 0.15s, color 0.15s;
+	}
+
+	a.app-sidebar-link:hover {
+		background: var(--color-surface-alt);
+	}
+
+	/* アクティブ項目: primary-soft背景+primary文字色に加え、サイドバー左端に4pxの
+	   インジケータを出す(margin分だけ左にはみ出させ、サイドバー本体の縁に接触させる)。 */
+	.app-sidebar-link[data-active="true"] {
+		background: var(--color-primary-soft);
+		color: var(--color-primary);
+		font-weight: 700;
+	}
+
+	.app-sidebar-link[data-active="true"]::before {
+		content: "";
+		position: absolute;
+		left: calc(var(--space-3) * -1);
+		top: var(--space-2);
+		bottom: var(--space-2);
+		width: 4px;
+		border-radius: 0 4px 4px 0;
+		background: var(--color-primary);
+	}
+
+	.app-sidebar-link-disabled {
+		color: var(--color-text-muted);
+		cursor: default;
+	}
+
+	.app-sidebar-icon {
+		display: inline-flex;
+		flex-shrink: 0;
+	}
+
+	/* 2026-08-02: チームアイコン(users)の背後ボールを前面ボールより暗くして区別する。
+	   opacityではなくfilter: brightness()を使う理由: opacityは背景色と混ざるため、
+	   ライトテーマの白背景と混ざると逆に「薄い色」に見えてしまい「暗くする」という
+	   意図に反する。brightnessならcurrentColorがライト/ダーク/アクティブ状態の
+	   どの色でも一貫して暗くなる。
+	   :global() が必要な理由: ICONS の中身は set:html で注入する生HTML文字列なので、
+	   Astroのテンプレートコンパイラを通らずscoped属性(data-astro-cid-*)が付与されない。
+	   素のクラスセレクタのままだとscoped属性付き前提のセレクタになり一致しない。 */
+	.app-sidebar-icon-ball-back {
+		filter: brightness(0.6);
+	}
+
+	.app-sidebar-label {
+		flex: 1;
+	}
+
+	.app-sidebar-badge {
+		/* 2026-07-27 ラウンド20 20-G3: 0.65rem(10.4px)は下限12pxを割っていた。
+		   --font-size-sm3(0.75rem=12px)に是正する。 */
+		font-size: var(--font-size-sm3);
+		padding: 0.15em 0.55em;
+		flex-shrink: 0;
+	}
+
+	/* 2026-07-27 ラウンド20 20-H2: ログイン情報をサイドバー最下段に固定表示する。
+	   global.css 側で .app-sidebar を display:flex; flex-direction:column にしてあるので、
+	   margin-top: auto でこのブロックだけ下端に押し出す。 */
+	.app-sidebar-account {
+		margin-top: auto;
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: var(--space-2);
+		padding: var(--space-4) var(--space-5);
+		border-top: 1px solid var(--color-border);
+		font-size: var(--font-size-sm2);
+		color: var(--color-text-muted);
+	}
+
+	.app-sidebar-account-email {
+		max-width: 100%;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+

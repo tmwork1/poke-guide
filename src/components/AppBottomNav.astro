@@ -1,4 +1,5 @@
 ---
+import '../styles/app-bottom-nav.css';
 interface Props {
 	current?: "box" | "team" | "dev" | "speed-chart" | "ranked-teams";
 }
@@ -38,62 +39,3 @@ const { current } = Astro.props;
 		</a>
 	</div>
 </nav>
-
-<style>
-	.app-bottom-nav {
-		position: fixed;
-		left: 0;
-		right: 0;
-		bottom: 0;
-		z-index: 20;
-		background: var(--color-surface);
-		border-top: 1px solid var(--color-border);
-		padding-bottom: env(safe-area-inset-bottom);
-	}
-
-	.app-bottom-nav-list {
-		display: flex;
-		height: var(--bottom-nav-height);
-		overflow-x: auto;
-		scrollbar-width: none;
-	}
-
-	.app-bottom-nav-list::-webkit-scrollbar {
-		display: none;
-	}
-
-	.app-bottom-nav-item {
-		flex: 0 0 64px;
-		min-width: 64px;
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		justify-content: center;
-		gap: var(--space-1);
-		padding: var(--space-1);
-		border: 0;
-		background: transparent;
-		color: var(--color-text-muted);
-		font: inherit;
-		font-size: var(--font-size-sm3);
-		line-height: 1;
-		text-decoration: none;
-		white-space: nowrap;
-	}
-
-	.app-bottom-nav-item[data-active="true"] {
-		color: var(--color-primary);
-	}
-
-	.app-bottom-nav-item.is-disabled {
-		color: var(--color-text-muted);
-		opacity: 0.6;
-		cursor: not-allowed;
-	}
-
-	@media (min-width: 900px) {
-		.app-bottom-nav {
-			display: none;
-		}
-	}
-</style>
