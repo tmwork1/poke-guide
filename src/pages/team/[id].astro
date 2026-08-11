@@ -4349,20 +4349,19 @@ const initialTeamJson = team
 
 				formationMobileBoxGrid.replaceChildren(formationMobileAddButton);
 				const term = formationMobileSearchInput.value.trim();
-				for (const p of allPokemon.filter((candidate) => matchesSearch(candidate, term))) {
+				// UI改修依頼「編成済みの個体を下のボックス一覧に表示しない」。デスクトップ左パネルの
+				// isCurrentMember除外(renderSelectList参照)と同じ考え方をこちらにも適用する。
+				for (const p of allPokemon.filter((candidate) => !isCurrentMember(candidate.id) && matchesSearch(candidate, term))) {
 					const card = document.createElement("button");
 					card.type = "button";
 					card.className = "card box-card card-pokemon";
-					const memberSlot = Array.from(membersBySlot.entries()).find(([, member]) => member.id === p.id)?.[0];
-					card.setAttribute("aria-label", `${displayName(p)}${memberSlot ? `、${memberSlot}番目の枠に編成済み` : "を編成"}`);
+					card.setAttribute("aria-label", `${displayName(p)}を編成`);
 					card.addEventListener("click", () => {
 						if (selectedFormationSlot != null) {
 							const targetSlot = selectedFormationSlot;
 							selectedFormationSlot = null;
 							renderFormationMobile();
 							assignToSlot(p, targetSlot);
-						} else if (memberSlot != null) {
-							removeMemberFromSlot(memberSlot);
 						} else {
 							assignToSlot(p);
 						}
@@ -4422,12 +4421,6 @@ const initialTeamJson = team
 					contentRow.appendChild(movesGrid);
 					body.appendChild(contentRow);
 					card.appendChild(body);
-					if (memberSlot != null) {
-						const badge = document.createElement("span");
-						badge.className = "team-formation-mobile__member-badge";
-						badge.textContent = `${memberSlot}番`;
-						card.appendChild(badge);
-					}
 					formationMobileBoxGrid.appendChild(card);
 				}
 			}
