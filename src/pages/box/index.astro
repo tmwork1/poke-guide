@@ -181,44 +181,10 @@ const user = Astro.locals.user;
 	</div>
 
 	<script>
-		// UI刷新: カードに公式絵を表示するためのブラウザ専用ヘルパー。box/[id].astro の
-		// applySprite と同じ「初期display:none→onloadで表示」方式を採るため、この<script>内にも
-		// 同等のロジックを直接持たせる(box/[id].astroは編集禁止のため、ヘルパー自体を
-		// 共有インポートすることはしない)。
-		// ラウンド4: タイプ/テラスバッジ・アイテム画像は表示自体を撤回したため、
-		// loadTypesMap/loadItemSpriteMap等のインポートとヘルパーは削除した
-		// (タイプ・持ち物・技・テラスタイプは検索対象としては引き続き有効で、
-		// カードのtitle属性=ホバーツールチップから参照できるようにしてある)。
-		// ラウンド5: 持ち物(画像バッジ)を復元するため loadItemSpriteMap/itemImageUrl を再度
-		// インポートする(box/[id].astroが使っているものと同一のヘルパー、src/lib/sprite-urls.ts)。
-		// ラウンド21 21-B3: 技名→タイプの解決に loadMoveTypeMap を追加 import する(既存関数、
-		// box/[id].astroが技入力欄の枠色付けに使っているものと同一)。
 		import {
-			loadImageIdMap,
-			officialArtworkUrl,
-			loadBaseStatsMap,
-			loadMoveTypeMap,
-		} from "../../lib/pokemon-master-data";
-		// ラウンド21 21-B2でテラスタイプ表示を宝石型アイコン(teraTypeIconUrl)から通常タイプの
-		// 丸アイコン(typeIconUrl)へ差し替えたが、ラウンド28 28-G1(ユーザー指示)で
-		// generate_type_icons.pyが作り直され宝石型の縁を綺麗に繋ぎ合わせたテラス専用アイコンが
-			// 再生成されたため、21-B2(および23-G2)を撤回してteraTypeIconUrlへ戻す。typeIconUrlは
-			// このファイル内で他に使っていないためimportから外す(sprite-urls.tsの関数自体は
-			// 共通ファイルのため消さない)。
-		// UI改修依頼(ボックス画面、2026-08-02): 技チップのタイプ別背景色(type-colors.tsの
-		// TYPE_COLORS/DEFAULT_TYPE_COLOR)を廃止し、技名の前にタイプアイコンを置く方式へ変更した。
-		// アイコンURLはsprite-urls.tsのtypeIconUrl(技→タイプの解決自体はloadMoveTypeMapのまま
-		// 変更しない)。type-colors.tsのimportはこの用途以外に無いため削除した。
-		// UI改修依頼(2026-08-09): 簡素化時に失われた技タイプアイコン表示を復元する。
-		import { loadItemSpriteMap, itemIconUrl, typeIconUrl } from "../../lib/sprite-urls";
-		// ラウンド18: 実数値計算の共通化。box/[id].astro・share/[slug].astro・pokemon/[name].astro
-		// と4箇所にコピーされていた chmpToLegacyEffort/calcHpStat/calcOtherStat/
-		// NATURE_STAT_MODIFIERS を src/lib/stats.ts に統合した(このファイルが原本だった)。
-		import {
-			NATURE_STAT_MODIFIERS,
-			calcHpStat,
-			calcOtherStat,
-		} from "../../lib/stats";
+			ownedPokemonDisplayName as displayName,
+			renderBoxPokemonCard,
+		} from "../../lib/box-pokemon-card";
 		import { kanaIncludes } from "../../lib/kana";
 		import { resolveDexNo } from "../../lib/species-dex";
 		import { initializeCardDeleteMode } from "../../lib/card-delete-mode";
@@ -243,16 +209,6 @@ const user = Astro.locals.user;
 			updated_at: string;
 			last_used_at: string | null;
 		}
-
-		// 実数値計算共通の列順(evs/ivs配列の並びと一致)。
-		// [HP, 攻撃, 防御, 特攻, 特防, 素早さ] (box/[id].astro の STAT_KEYS と同じ順序)。
-		const STAT_KEYS = ["hp", "atk", "def", "spa", "spd", "spe"] as const;
-		const STAT_LABELS = ["H", "A", "B", "C", "D", "S"] as const;
-
-		// ラウンド18: NATURE_STAT_MODIFIERS・chmpToLegacyEffort・calcHpStat・calcOtherStatは
-		// src/lib/stats.ts に統合した(このファイルが原本だったコピーは削除。上のimport参照)。
-		// vendor/jpoke/src/jpoke/model/stats.py の calc_hp/calc_stat/chmp_to_legacy_effort と
-		// 完全に同じ式であることの出典は src/lib/stats.ts 冒頭のコメント参照。
 
 		function el<T extends HTMLElement>(id: string): T {
 			const found = document.getElementById(id);
@@ -293,114 +249,6 @@ const user = Astro.locals.user;
 			// ラウンド27 27-B3: 旧activeTags(複数タグの絞り込み状態)を単一boolean(お気に入りの
 			// みを表示するか)に置き換える。
 			let favoriteOnly = false;
-
-			// UI刷新: 種族名→imageId(画像用PokeAPI ID)、種族名→種族値のマップ。
-			// いずれも非同期fetchだが、ここでは待たずにPromiseだけ確保しておく。
-			// 一覧の初回描画(loadList→renderList)はこのPromiseの解決を待たずに進める
-			// (「一覧が表示されるまでの体感を遅くしない」ことを優先するため)。マップが解決した時点で
-			// 各カードの画像・実数値側から個別にthenするので、一覧より数百ms遅れて追いつく形になる。
-			const imageIdMapPromise = loadImageIdMap();
-			const baseStatsMapPromise = loadBaseStatsMap();
-			// UI改修依頼(2026-08-09): 各技名からタイプアイコンを解決する既存マスターデータを再利用する。
-			const moveTypeMapPromise = loadMoveTypeMap();
-			// ラウンド5: 持ち物バッジ用。アイテム和名→sprite相対パスのマップ(box/[id].astroと同じ)。
-			const itemSpriteMapPromise = loadItemSpriteMap();
-			// ラウンド21 21-B3: 技チップの背景色付け用。技名→タイプのマップ(box/[id].astroが
-			// 技入力欄の枠色付けに使っているものと同一関数)。
-
-			// nickname・species_nameのどちらも空(自動登録直後の空個体)の場合、カード見出しが
-			// 空文字にならないよう "(未設定)" にフォールバックする。並べ替え・検索・削除確認
-			// ダイアログの見出し、カードの表示名(ラウンド4)に共通で使う。
-			function displayName(p: OwnedPokemon): string {
-				if (p.nickname && p.nickname.trim() !== "") return p.nickname;
-				if (p.species_name && p.species_name.trim() !== "") return p.species_name;
-				return "(未設定)";
-			}
-
-			// ラウンド32 32-B4(ユーザー指示第15弾): 「カードのホバー表示にはステータスやメモなど、
-			// カード上に表示されていない情報だけ表示する」。旧title(とくせい/持ち物/わざ)は
-			// 32-B2・32-B3でその3つがカード上に常時可視になったため重複と判断し、実数値
-			// (H/A/B/C/D/S)とメモに入れ替える(round-32.mdより)。実数値はapplyActualStats()が
-			// 非同期(種族値マップ解決待ち)でstatValueEls/data-modを埋めるため、そちらが解決した
-			// 後に呼び出す(下のrenderCard内、applyActualStats(...).then(...)参照)。
-			// 種族値が解決できずstatValueElsが"-"のままの個体は実数値行を省略する(嘘の値は出さない)。
-			// メモ・実数値のどちらも無ければtitle属性自体を出さない(ユーザー指示どおり)。
-			// 34-B3(ユーザー指示第16弾、round-34.md): 「ホバー時のステータス表記から"実数値:"を
-			// 削除し、性格補正はA200+, C135-のように数値の後に+/-をつける」。
-			// mark を▲/▼から+/-へ変更(ラベル→値→記号の順は維持、結果 `A200+` `C135-` になる)。
-			type ActualStat = { value: number; mod: "up" | "down" | null };
-			function buildStatSummary(stats: ActualStat[] | null): string | null {
-				if (!stats) return null;
-				return STAT_LABELS.map((label, i) => {
-					const stat = stats[i];
-					const mark = stat.mod === "up" ? "+" : stat.mod === "down" ? "-" : "";
-					return `${label}${stat.value}${mark}`;
-				}).join(" ");
-			}
-			function applyCardTooltip(card: HTMLAnchorElement, stats: ActualStat[] | null, p: OwnedPokemon): void {
-				const lines: string[] = [];
-				const ability = p.ability_name?.trim() ?? "";
-				if (ability) lines.push(`特性: ${ability}`);
-				const teraType = p.tera_type?.trim() ?? "";
-				if (teraType) lines.push(`テラスタイプ: ${teraType}`);
-				const statSummary = buildStatSummary(stats);
-				if (statSummary) lines.push(statSummary);
-				const memoText = p.memo?.trim() ?? "";
-				if (memoText) lines.push(`メモ: ${memoText}`);
-				if (lines.length > 0) card.title = lines.join("\n");
-			}
-
-			// UI刷新: カード内の公式絵。取得できない場合は頭文字の丸バッジにフォールバックする。
-			// 初期display:noneのままloading="lazy"を付けると、画面外扱いでfetch自体が行われず
-			// onloadが永久に発火しない(過去に踏んだ不具合、box/[id].astroのapplySprite参照)。
-			async function applyCardArtwork(imgEl: HTMLImageElement, name: string): Promise<void> {
-				const imageId = name ? (await imageIdMapPromise).get(name) : undefined;
-				if (imageId == null) return;
-				imgEl.src = officialArtworkUrl(imageId);
-			}
-
-			// ラウンド5: 公式絵に重ねる持ち物バッジ。sprite相対パスが解決できない/画像読み込みに
-			// 失敗した場合はバッジごと隠す(box/[id].astroのapplyItemImageと同様、テキストの
-			// フォールバックは持たせない。アイテム名はカードのtitle属性から参照できる)。
-			async function applyItemBadge(imgEl: HTMLImageElement, badgeEl: HTMLElement, itemName: string): Promise<void> {
-				const name = itemName.trim();
-				if (!name) {
-					badgeEl.hidden = true;
-					return;
-				}
-				const spritePath = (await itemSpriteMapPromise).get(name);
-				if (!spritePath) {
-					badgeEl.hidden = true;
-					return;
-				}
-				imgEl.onerror = () => {
-					badgeEl.hidden = true;
-				};
-				imgEl.onload = () => {
-					badgeEl.hidden = false;
-				};
-				imgEl.src = itemIconUrl(spritePath);
-			}
-
-			// UI改修依頼(2026-08-09): 実数値DOMは廃止するが、title用の計算結果はデータとして維持する。
-			async function calculateActualStats(p: OwnedPokemon): Promise<ActualStat[] | null> {
-				const base = p.species_name ? (await baseStatsMapPromise).get(p.species_name) : undefined;
-				if (!base) return null;
-				const level = p.level ?? 50;
-				const mod = NATURE_STAT_MODIFIERS[p.nature ?? ""] ?? { up: null, down: null };
-				return STAT_KEYS.map((key, i) => {
-					const iv = p.ivs[i] ?? 31;
-					const ev = p.evs[i] ?? 0;
-					const value =
-						key === "hp"
-							? calcHpStat(level, base[i], iv, ev)
-							: calcOtherStat(level, base[i], iv, ev, mod.up === key ? 1.1 : mod.down === key ? 0.9 : 1.0);
-					return {
-						value,
-						mod: key !== "hp" && mod.up === key ? "up" : key !== "hp" && mod.down === key ? "down" : null,
-					};
-				});
-			}
 
 			// ラウンド4: カードの表示からタイプ・特性・持ち物・テラスタイプ・技を外したが、
 			// 検索対象はそれらすべてを引き続き含める(「表示されない項目も検索できる」ことを
@@ -482,138 +330,19 @@ const user = Astro.locals.user;
 			// タイプ・性格・特性・持ち物・テラスタイプ・技はtitle属性(ホバーツールチップ)に回す。
 			function renderCard(p: OwnedPokemon): HTMLAnchorElement {
 				const card = document.createElement("a");
-				card.className = "card box-card card-pokemon" + (p.is_pinned ? " is-pinned" : "");
 				card.href = `/box/${encodeURIComponent(p.id)}`;
 				const name = displayName(p);
-				card.setAttribute("aria-label", `${name}を編集`);
-				// title(ホバーツールチップ)は下のapplyActualStats().then(...)で実数値が
-				// 解決してから設定する(32-B4)。
-
-				// --- ピン留め(お気に入り、カード左上の三角形トリム領域)/削除(カード右上)。
-				//     39-B2/39-B3(ユーザー指示第21弾、round-39.md): 対角配置にするため、
-				//     旧来の単一.card-actions(右上に2つ縦積み)から分離する。ピン留めボタンは
-				//     .card-actionsの外に出し、card直下へ直接appendして左上に固定する
-				//     (.card-pokemonがposition:relativeなので基準になる)。クリックでお気に入りを
-				//     トグルする機能・data-pinned属性・イベントリスナーは変更しない
-				//     (見た目=CSSのclip-pathで三角形にするだけ、round-39.md 39-B2の指示どおり)。 ---
-				const pinButton = document.createElement("button");
-				pinButton.type = "button";
-				pinButton.className = "icon-button pin-toggle";
-				pinButton.dataset.pinned = String(p.is_pinned);
-				// 星の描画はglobal.cssの共通ルールへ委譲し、状態属性だけを表示の根拠にする。
-				const pinStar = document.createElement("span");
-				pinStar.className = "favorite-star-glyph";
-				pinStar.setAttribute("aria-hidden", "true");
-				pinButton.appendChild(pinStar);
-				const pinLabel = p.is_pinned ? "ピン留めを解除する" : "ピン留めする";
-				pinButton.title = pinLabel;
-				pinButton.setAttribute("aria-label", pinLabel);
-				pinButton.addEventListener("click", (event) => {
-					// カード(<a>)のクリックによる/box/{id}への遷移を止める。
-					event.preventDefault();
-					event.stopPropagation();
-					void togglePin(p);
+				return renderBoxPokemonCard({
+					root: card,
+					pokemon: p,
+					displayName: name,
+					ariaLabel: `${name}を編集`,
+					pin: {
+						isPinned: p.is_pinned,
+						onToggle: () => togglePin(p),
+					},
+					onDelete: () => deletePokemon(p),
 				});
-				card.appendChild(pinButton);
-
-				// 削除ボタン: 39-B3で右上へ移動(旧来から位置は変えず、お気に入りが左上へ
-				// 抜けたことで対角配置になる)。.card-actionsはこの1個だけを持つ箱として維持する。
-				const actions = document.createElement("div");
-				actions.className = "card-actions";
-
-				const deleteButton = document.createElement("button");
-				deleteButton.type = "button";
-				deleteButton.className = "icon-button delete-button";
-				// UI改修依頼(2026-08-02): 削除アイコンをゴミ箱の絵文字から×のSVGへ統一する
-				// (全画面共通方針。他画面でも同じsvgを使う予定なのでサイズ・stroke-widthは変えない)。
-				deleteButton.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
-				deleteButton.title = "削除";
-				deleteButton.setAttribute("aria-label", "削除");
-				deleteButton.addEventListener("click", (event) => {
-					event.preventDefault();
-					event.stopPropagation();
-					void deletePokemon(p);
-				});
-				actions.appendChild(deleteButton);
-
-				card.appendChild(actions);
-
-				// --- 優先順位1位: 公式絵 ---
-				const artwork = document.createElement("div");
-				artwork.className = "card-artwork";
-				const artworkImg = document.createElement("img");
-				artworkImg.alt = "";
-				artwork.appendChild(artworkImg);
-				card.appendChild(artwork);
-				void applyCardArtwork(artworkImg, p.species_name ?? "");
-
-				// UI改修依頼(2026-08-09): 持ち物名は描画せず、画像だけを公式絵の右下に重ねる。
-				const itemBadge = document.createElement("span");
-				itemBadge.className = "card-item-badge";
-				itemBadge.hidden = true;
-				const itemImg = document.createElement("img");
-				itemImg.alt = "";
-				itemBadge.appendChild(itemImg);
-				card.appendChild(itemBadge);
-				void applyItemBadge(itemImg, itemBadge, p.item_name ?? "");
-
-				// --- 優先順位2位・3位: 名前+実数値6値。
-				//     C-5を継続: <a>のaria-labelと重複するのでbody全体はaria-hiddenにする
-				//     (フォーカス可能な★/🗑はこのdivの外=兄弟要素なので隠しても到達性に影響しない)。 ---
-				const body = document.createElement("div");
-				body.className = "card-body";
-				body.setAttribute("aria-hidden", "true");
-
-				// UI改修依頼(2026-08-02): 名前を1行省略(ellipsis)のまま表示する行。
-				// UI改修依頼(2026-08-04、要件3): テラスバッジ(teraBadge)はこの行から
-				// 下の.card-item-row(abilityCell)側へ移した(生成・appendTeraBadge呼び出しは
-				// そちら参照)。
-				const nameRow = document.createElement("div");
-				nameRow.className = "card-name-row";
-
-				const nameEl = document.createElement("p");
-				nameEl.className = "card-name";
-				nameEl.textContent = name;
-				nameRow.appendChild(nameEl);
-
-				body.appendChild(nameRow);
-
-				// UI改修依頼(2026-08-09): 下段は技の縦リストと公式絵の2列。技0件でも4行分を予約する。
-				const moves = p.move_names.filter((moveName) => moveName && moveName.trim() !== "");
-				const movesGrid = document.createElement("div");
-				movesGrid.className = "card-moves-grid";
-				// UI改修依頼(2026-08-09): 技名の左へタイプアイコンを復元する。不明タイプはhiddenのままにする。
-				for (const moveName of moves) {
-					const moveEl = document.createElement("span");
-					moveEl.className = "card-move-chip";
-					const moveTypeIcon = document.createElement("img");
-					moveTypeIcon.className = "card-move-type-icon";
-					moveTypeIcon.alt = "";
-					moveTypeIcon.hidden = true;
-					moveEl.appendChild(moveTypeIcon);
-					void moveTypeMapPromise.then((moveTypeMap) => {
-						const moveType = moveTypeMap.get(moveName);
-						const moveTypeIconSrc = moveType ? typeIconUrl(moveType) : null;
-						if (!moveTypeIconSrc) return;
-						moveTypeIcon.src = moveTypeIconSrc;
-						moveTypeIcon.hidden = false;
-					});
-					const moveTextEl = document.createElement("span");
-					moveTextEl.className = "card-move-chip-text";
-					moveTextEl.textContent = moveName;
-					moveEl.appendChild(moveTextEl);
-					movesGrid.appendChild(moveEl);
-				}
-				const contentRow = document.createElement("div");
-				contentRow.className = "card-content-row";
-				contentRow.appendChild(movesGrid);
-				body.appendChild(contentRow);
-
-				void calculateActualStats(p).then((stats) => applyCardTooltip(card, stats, p));
-
-				card.appendChild(body);
-
-				return card;
 			}
 
 			function renderList(): void {

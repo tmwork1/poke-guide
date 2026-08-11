@@ -2326,7 +2326,7 @@ const initialTeamJson = team
 		// 相性チェック(2026-08-02)で連続技のヒット数が必要なため loadMultiHitMoveMap を追加import
 		// する(Battle.calc_damages() は連続技でも1ヒットぶんしか返さないため。
 		// src/lib/pyodide-engine.ts の calcMaxDamageMatrix のコメント参照)。
-		import { loadImageIdMap, officialArtworkUrl, spriteUrl, loadBaseStatsMap, loadMoveDetailMap, loadMoveTypeMap, loadMultiHitMoveMap, loadTypesMap } from "../../lib/pokemon-master-data";
+		import { loadImageIdMap, officialArtworkUrl, spriteUrl, loadBaseStatsMap, loadMoveDetailMap, loadMultiHitMoveMap, loadTypesMap } from "../../lib/pokemon-master-data";
 		// UI改修依頼(チーム編集左パネル、2026-08-02)「候補カードをボックス画面と共通化する」で
 		// 技チップにタイプアイコンを追加するため、typeIconUrlを追加importする(box/index.astroの
 		// applyMoveChipTypeIconsと同じ用途)。
@@ -2334,6 +2334,10 @@ const initialTeamJson = team
 		import { resolveDexNo } from "../../lib/species-dex";
 		import { selectionBlockReason, type SelectionCandidate, type SelectionBlockReason } from "../../lib/team-validation";
 		import { STAT_KEYS, NATURE_STAT_MODIFIERS, calcHpStat, calcOtherStat } from "../../lib/stats";
+		import {
+			ownedPokemonDisplayName as displayName,
+			renderBoxPokemonCard,
+		} from "../../lib/box-pokemon-card";
 		import { kanaIncludes } from "../../lib/kana";
 		// 🔴 UI改修依頼(チーム編集画面 右パネル、2026-08-01)「右パネルには登録されている
 		// ダメージ計算の圧縮版を表示する」。表示ロジックは純粋関数として切り出してある
@@ -2547,8 +2551,6 @@ const initialTeamJson = team
 			const imageIdMapPromise = loadImageIdMap();
 			const itemSpriteMapPromise = loadItemSpriteMap();
 			const baseStatsMapPromise = loadBaseStatsMap();
-			// モバイル編成のボックスカードだけは /box と同じ軽量な技名→タイプ表を使う。
-			const formationCardMoveTypeMapPromise = loadMoveTypeMap();
 
 			const STAT_LABELS: Record<(typeof STAT_KEYS)[number], string> = {
 				hp: "H", atk: "A", def: "B", spa: "C", spd: "D", spe: "S",
@@ -2581,13 +2583,6 @@ const initialTeamJson = team
 
 			// ボックスの全個体(選択バーの中身)。GET /api/owned-pokemon から取得する。
 			let allPokemon: OwnedPokemonRecord[] = [];
-
-			// nickname・species_nameのどちらも空の場合のフォールバック(/boxのdisplayNameと同じ語彙)。
-			function displayName(p: OwnedPokemonRecord): string {
-				if (p.nickname && p.nickname.trim() !== "") return p.nickname;
-				if (p.species_name && p.species_name.trim() !== "") return p.species_name;
-				return "(未設定)";
-			}
 
 			function candidateOf(p: OwnedPokemonRecord): SelectionCandidate {
 				return {
@@ -2714,74 +2709,6 @@ const initialTeamJson = team
 					};
 					iconEl.src = url;
 				}
-			}
-
-			// モバイル編成下部のカードは /box の DOM と読み込み中・失敗時の見た目まで揃える。
-			// 汎用 applySprite/applyItemIcon は他の表示で fallback と初期非表示を必要とするため、
-			// その共通挙動は変えず、このカード専用の小さなヘルパーへ分ける。
-			async function applyFormationCardArtwork(imgEl: HTMLImageElement, name: string): Promise<void> {
-				const imageId = name ? (await imageIdMapPromise).get(name) : undefined;
-				if (imageId == null) return;
-				imgEl.src = officialArtworkUrl(imageId);
-			}
-
-			async function applyFormationCardItemBadge(
-				imgEl: HTMLImageElement,
-				badgeEl: HTMLElement,
-				itemName: string,
-			): Promise<void> {
-				const name = itemName.trim();
-				if (!name) {
-					badgeEl.hidden = true;
-					return;
-				}
-				const spritePath = (await itemSpriteMapPromise).get(name);
-				if (!spritePath) {
-					badgeEl.hidden = true;
-					return;
-				}
-				imgEl.onerror = () => {
-					badgeEl.hidden = true;
-				};
-				imgEl.onload = () => {
-					badgeEl.hidden = false;
-				};
-				imgEl.src = itemIconUrl(spritePath);
-			}
-
-			async function applyFormationCardMoveTypeIcons(
-				entries: { iconEl: HTMLImageElement; moveName: string }[],
-			): Promise<void> {
-				const moveTypeMap = await formationCardMoveTypeMapPromise;
-				for (const { iconEl, moveName } of entries) {
-					const moveType = moveTypeMap.get(moveName);
-					const moveTypeIconSrc = moveType ? typeIconUrl(moveType) : null;
-					if (!moveTypeIconSrc) continue;
-					iconEl.src = moveTypeIconSrc;
-					iconEl.hidden = false;
-				}
-			}
-
-			function applyFormationCardTooltip(
-				card: HTMLButtonElement,
-				stats: Awaited<ReturnType<typeof computeStats>>,
-				p: OwnedPokemonRecord,
-			): void {
-				const lines: string[] = [];
-				const ability = p.ability_name?.trim() ?? "";
-				if (ability) lines.push(`特性: ${ability}`);
-				const teraType = p.tera_type?.trim() ?? "";
-				if (teraType) lines.push(`テラスタイプ: ${teraType}`);
-				if (stats) {
-					lines.push(
-						stats
-							.map((stat) => `${stat.label}${stat.value}${stat.mod === "up" ? "+" : stat.mod === "down" ? "-" : ""}`)
-							.join(" "),
-					);
-				}
-				const memoText = p.memo?.trim() ?? "";
-				if (memoText) lines.push(`メモ: ${memoText}`);
-				if (lines.length > 0) card.title = lines.join("\n");
 			}
 
 			// 🔴 UI改修依頼(チーム編集画面 右パネル、2026-08-01)「現在の表示は中央のカードと内容が
@@ -4425,8 +4352,6 @@ const initialTeamJson = team
 				for (const p of allPokemon.filter((candidate) => !isCurrentMember(candidate.id) && matchesSearch(candidate, term))) {
 					const card = document.createElement("button");
 					card.type = "button";
-					card.className = "card box-card card-pokemon";
-					card.setAttribute("aria-label", `${displayName(p)}を編成`);
 					card.addEventListener("click", () => {
 						if (selectedFormationSlot != null) {
 							const targetSlot = selectedFormationSlot;
@@ -4437,59 +4362,13 @@ const initialTeamJson = team
 							assignToSlot(p);
 						}
 					});
-					const artwork = document.createElement("div");
-					artwork.className = "card-artwork";
-					const artworkImg = document.createElement("img");
-					artworkImg.alt = "";
-					artwork.appendChild(artworkImg);
-					card.appendChild(artwork);
-					void applyFormationCardArtwork(artworkImg, p.species_name ?? "");
-
-					const itemBadge = document.createElement("span");
-					itemBadge.className = "card-item-badge";
-					itemBadge.hidden = true;
-					const itemImg = document.createElement("img");
-					itemImg.alt = "";
-					itemBadge.appendChild(itemImg);
-					card.appendChild(itemBadge);
-					void applyFormationCardItemBadge(itemImg, itemBadge, p.item_name ?? "");
-
-					const body = document.createElement("div");
-					body.className = "card-body";
-					body.setAttribute("aria-hidden", "true");
-					const nameRow = document.createElement("div");
-					nameRow.className = "card-name-row";
-					const name = document.createElement("p");
-					name.className = "card-name";
-					name.textContent = displayName(p);
-					nameRow.appendChild(name);
-					body.appendChild(nameRow);
-
-					const movesGrid = document.createElement("div");
-					movesGrid.className = "card-moves-grid";
-					const moveTypeIconEntries: { iconEl: HTMLImageElement; moveName: string }[] = [];
-					for (const moveName of p.move_names.filter((move) => move && move.trim() !== "")) {
-						const move = document.createElement("span");
-						move.className = "card-move-chip";
-						const moveTypeIcon = document.createElement("img");
-						moveTypeIcon.className = "card-move-type-icon";
-						moveTypeIcon.alt = "";
-						moveTypeIcon.hidden = true;
-						move.appendChild(moveTypeIcon);
-						moveTypeIconEntries.push({ iconEl: moveTypeIcon, moveName });
-						const moveText = document.createElement("span");
-						moveText.className = "card-move-chip-text";
-						moveText.textContent = moveName;
-						move.appendChild(moveText);
-						movesGrid.appendChild(move);
-					}
-					void applyFormationCardMoveTypeIcons(moveTypeIconEntries);
-					const contentRow = document.createElement("div");
-					contentRow.className = "card-content-row";
-					contentRow.appendChild(movesGrid);
-					body.appendChild(contentRow);
-					void computeStats(p).then((stats) => applyFormationCardTooltip(card, stats, p));
-					card.appendChild(body);
+					const name = displayName(p);
+					renderBoxPokemonCard({
+						root: card,
+						pokemon: p,
+						displayName: name,
+						ariaLabel: `${name}を編成`,
+					});
 					formationMobileBoxGrid.appendChild(card);
 				}
 			}
