@@ -1,15 +1,17 @@
 /* チーム編集画面の「ポケモン」タブのカード用スタイル。 */
 /* DOM生成元: src/pages/team/[id].astro の renderOverview() 系関数(document.createElementで動的生成)。 */
 
-/* 6枠のメンバープレビューを2列×3行に並べるグリッド(#team-overview-grid)。 */
+/* 6枠のメンバープレビューを横長の1列リストに並べるグリッド(#team-overview-grid)。 */
 
 .team-overview-thumb-grid {
 	--team-card-gap: var(--space-2);
 	--team-card-edge-gap: var(--space-2);
-	--team-card-padding: var(--space-1);
+	--team-card-padding: 0;
+	--team-card-row-height: 7.75rem;
 
 	display: grid;
-	grid-template-columns: repeat(2, minmax(0, 1fr));
+	grid-template-columns: minmax(0, 1fr);
+	grid-auto-rows: var(--team-card-row-height);
 	gap: var(--team-card-gap);
 	margin-inline: calc(var(--space-5) * -1);
 	padding-inline: var(--team-card-edge-gap);
@@ -18,10 +20,9 @@
 /* 枠1つぶんの外枠。中身は空き枠(.card-team-empty-slot)かデータ枠(.team-overview-preview-card)のどちらか。 */
 
 .team-overview-thumb-grid .box-card {
-	position: relative;
 	display: flex;
 	min-width: 0;
-	aspect-ratio: 1 / 1;
+	min-height: 0;
 	flex-direction: column;
 	padding: var(--team-card-padding);
 	overflow: hidden;
@@ -32,7 +33,6 @@
 
 .team-overview-thumb-grid .card-team-empty-slot {
 	display: flex;
-	aspect-ratio: 1 / 1;
 	align-items: center;
 	justify-content: center;
 	border: 1px dashed var(--color-border);
@@ -46,48 +46,82 @@
 /* Preview card */
 
 /* データ枠本体(<a>)。src/components/box-id/MobileTrainingBar.astroの育成プレビューバー
-   (.pokemon-preview、src/styles/box-pokemon-preview.css参照)と同じクラス構成を、
-   --pokemon-preview-*でおよそ半分のスケールに縮小して再現するカード。 */
+	(.pokemon-preview、src/styles/box-pokemon-preview.css参照)と同じ3カラム構成を、
+	6枠を一覧しやすい密度に調整したカード。 */
 
 .team-overview-thumb-grid .team-overview-preview-card {
 	--pokemon-preview-column-gap: var(--space-1);
 	--pokemon-preview-padding: calc(var(--space-5) / 3);
-	--pokemon-preview-content-gap: calc(var(--space-1) / 2);
-	--pokemon-preview-stats-column-gap: var(--space-1);
-	--pokemon-preview-stats-inline-end-gap: 0;
-	--pokemon-preview-font-size: var(--font-size-xs);
 	--pokemon-preview-type-icon-size: 1.1em;
-	--pokemon-preview-move-type-icon-size: 1.5em;
-	--pokemon-preview-item-icon-size: 1.8em;
-	--pokemon-preview-move-row-gap: 5px;
+	--pokemon-preview-move-type-icon-size: 1.35em;
+	--pokemon-preview-item-icon-size: 1.5em;
 	--team-card-item-badge-size: var(--pokemon-preview-item-icon-size);
-	--team-card-item-badge-inset: var(--space-1);
-	--team-card-sprite-size: 7rem;
-	--team-card-sprite-opacity: 0.5;
+	--team-card-item-stats-gap: calc(var(--space-1) / 2);
+	--team-card-sprite-size: 4.5rem;
+	--team-card-sprite-opacity: 1;
+	/* Name (nickname or species name) */
+	--team-card-name-font-size: var(--font-size-xs);
+	--team-card-name-font-weight: 600;
+	--team-card-name-line-height: 1.6;
+	--team-card-name-color: var(--color-text);
+	/* Ability row */
+	--team-card-details-font-size: var(--font-size-xs);
+	--team-card-details-font-weight: 400;
+	--team-card-details-line-height: 1;
+	--team-card-details-gap: calc(var(--space-1) / 2);
+	--team-card-details-color: var(--color-text);
+	/* Move list and rows */
+	--team-card-moves-font-size: var(--font-size-xs);
+	--team-card-moves-font-weight: 400;
+	--team-card-moves-line-height: 1;
+	--team-card-moves-icon-gap: calc(var(--space-1) / 2);
+	--team-card-moves-gap: calc(var(--space-1) / 2);
+	--team-card-moves-color: var(--color-text);
+	/* Vertical spacing between the name, ability, and move list */
+	--team-card-left-content-gap: calc(var(--space-1) / 2);
+	/* Stats table labels and values */
+	--team-card-stats-label-font-size: var(--font-size-xs);
+	--team-card-stats-label-font-weight: 500;
+	--team-card-stats-label-line-height: 1;
+	--team-card-stats-label-color: var(--color-text-muted);
+	--team-card-stats-value-font-size: var(--font-size-xs);
+	--team-card-stats-value-font-weight: 500;
+	--team-card-stats-value-line-height: 1;
+	--team-card-stats-value-color: var(--color-text);
+	--team-card-stats-value-color-up: var(--color-stat-up);
+	--team-card-stats-value-color-down: var(--color-stat-down);
+	--team-card-stats-row-padding-block-start: calc(var(--space-1) / 4);
+	--team-card-stats-column-gap: var(--space-1);
+	/* Species-name fallback shown only when the sprite image cannot load */
+	--team-card-sprite-fallback-font-size: var(--font-size-xs);
+	--team-card-sprite-fallback-font-weight: 400;
+	--team-card-sprite-fallback-line-height: 1.6;
+	--team-card-sprite-fallback-color: var(--color-text-muted);
 
 	display: block;
 	min-height: 0;
 	color: var(--color-text);
-	font-size: var(--pokemon-preview-font-size);
 	background: var(--color-surface-alt);
 	border: 1px solid var(--color-border);
 	border-radius: var(--radius-zero);
 }
 
-/* .pokemon-preview-main: カード内を左(名前/とくせい/わざ)・右(実数値)の2カラムに分けるグリッド。
-   種族スプライトの透かし(.pokemon-preview-identity)はこの上に絶対配置で重なる。 */
+/* .pokemon-preview-main: 左(名前/とくせい/わざ)・中央(種族スプライト)・
+	右(持ち物/実数値)の3カラム。全要素を通常フローに置き、互いに重ねない。 */
 
 .team-overview-preview-card .pokemon-preview-main {
-	position: relative;
 	display: grid;
-	grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+	grid-template-columns: minmax(0, 1fr) var(--team-card-sprite-size) max-content;
+	align-items: stretch;
 	gap: var(--pokemon-preview-column-gap);
+	min-width: 0;
 	min-height: 100%;
 	padding: var(--pokemon-preview-padding);
 	background: var(--color-surface-alt);
 }
 
 .team-overview-preview-card .pokemon-preview-left,
+.team-overview-preview-card .pokemon-preview-identity,
 .team-overview-preview-card .pokemon-preview-right {
 	min-width: 0;
 }
@@ -97,14 +131,17 @@
 .team-overview-preview-card .pokemon-preview-left {
 	display: flex;
 	flex-direction: column;
-	gap: var(--pokemon-preview-content-gap);
+	gap: var(--team-card-left-content-gap);
 }
 
 /* .pokemon-preview-name: ニックネーム(未設定時は種族名)。 */
 
 .team-overview-preview-card .pokemon-preview-name {
 	overflow: hidden;
-	font-weight: 600;
+	font-size: var(--team-card-name-font-size);
+	font-weight: var(--team-card-name-font-weight);
+	line-height: var(--team-card-name-line-height);
+	color: var(--team-card-name-color);
 	text-overflow: ellipsis;
 	white-space: nowrap;
 }
@@ -112,20 +149,20 @@
 /* Details and moves */
 
 /* .pokemon-preview-details: とくせい名の行(子div1つ)。
-   .pokemon-preview-icon-text: 持ち物バッジ(.pokemon-preview-item)にも付くアイコン+テキスト共通レイアウト。
    .pokemon-preview-moves li: わざ一覧の各行(タイプアイコン+わざ名)。 */
 
-.team-overview-preview-card .pokemon-preview-details,
-.team-overview-preview-card .pokemon-preview-icon-text,
-.team-overview-preview-card .pokemon-preview-moves li {
+.team-overview-preview-card .pokemon-preview-details {
 	display: flex;
 	align-items: center;
-	gap: var(--pokemon-preview-content-gap);
+	gap: var(--team-card-details-gap);
 	min-width: 0;
-	line-height: 1;
+	font-size: var(--team-card-details-font-size);
+	font-weight: var(--team-card-details-font-weight);
+	line-height: var(--team-card-details-line-height);
+	color: var(--team-card-details-color);
 }
 
-/* はみ出したテキスト(とくせい名・わざ名)を省略記号にする。 */
+/* 極端に長い自由入力に対する最終フォールバック。通常の名前・わざ名には十分な幅を取る。 */
 
 .team-overview-preview-card .pokemon-preview-details > div,
 .team-overview-preview-card .pokemon-preview-icon-text span,
@@ -135,15 +172,26 @@
 	white-space: nowrap;
 }
 
-/* .pokemon-preview-moves: わざ一覧(最大4件、ol)。左カラムの下端に固定表示。 */
+/* .pokemon-preview-moves: わざ一覧(最大4件、ol)。 */
 
 .team-overview-preview-card .pokemon-preview-moves {
 	display: flex;
 	flex-direction: column;
-	gap: var(--pokemon-preview-move-row-gap);
+	gap: var(--team-card-moves-gap);
 	margin: auto 0 0;
 	padding: 0;
 	list-style: none;
+}
+
+.team-overview-preview-card .pokemon-preview-moves li {
+	display: flex;
+	align-items: center;
+	gap: var(--team-card-moves-icon-gap);
+	min-width: 0;
+	font-size: var(--team-card-moves-font-size);
+	font-weight: var(--team-card-moves-font-weight);
+	line-height: var(--team-card-moves-line-height);
+	color: var(--team-card-moves-color);
 }
 
 /* わざ名の先頭に出すタイプアイコンのspan(タイプ判明までhiddenで非表示)。 */
@@ -165,26 +213,18 @@
 
 /* Identity */
 
-/* .pokemon-preview-identity: 種族スプライトを背景として薄く透かし表示する層。
-   main全体に絶対配置で重ね、下端中央にスプライトを寄せる(pointer-events: none)。 */
+/* .pokemon-preview-identity: 中央カラムで種族スプライトを通常配置する。 */
 
 .team-overview-preview-card .pokemon-preview-identity {
-	position: absolute;
-	inset-inline: 0;
-	inset-block-end: var(--pokemon-preview-padding);
-	z-index: 0;
 	display: flex;
-	align-items: flex-end;
+	align-items: center;
 	justify-content: center;
-	min-width: 0;
 	pointer-events: none;
 }
 
 /* スプライト画像(img)と取得失敗時のフォールバック文字(種族名の先頭1文字、span)のラッパー。 */
 
 .team-overview-preview-card .pokemon-preview-sprite-wrap {
-	position: relative;
-	inset: auto;
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -202,19 +242,27 @@
 }
 
 .team-overview-preview-card .pokemon-preview-sprite-wrap span {
-	color: var(--color-text-muted);
+	font-size: var(--team-card-sprite-fallback-font-size);
+	font-weight: var(--team-card-sprite-fallback-font-weight);
+	line-height: var(--team-card-sprite-fallback-line-height);
+	color: var(--team-card-sprite-fallback-color);
 }
 
 /* Item and stats */
 
-/* .pokemon-preview-item: 持ち物アイコンのバッジ。カード右上に絶対配置。
-   持ち物なし、またはアイコン画像が未取得の間は[hidden]。 */
+/* .pokemon-preview-right: 持ち物バッジと実数値を右カラム内に縦積みする。 */
+
+.team-overview-preview-card .pokemon-preview-right {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-end;
+	gap: var(--team-card-item-stats-gap);
+}
+
+/* .pokemon-preview-item: 右カラム上部の持ち物アイコン。
+	持ち物なし、またはアイコン画像が未取得の間は[hidden]。 */
 
 .team-overview-preview-card .pokemon-preview-item {
-	position: absolute;
-	inset-block-start: calc(var(--team-card-padding) + var(--pokemon-preview-padding));
-	inset-inline-end: calc(var(--team-card-padding) + var(--pokemon-preview-padding));
-	z-index: 2;
 	display: flex;
 	width: var(--team-card-item-badge-size);
 	height: var(--team-card-item-badge-size);
@@ -233,44 +281,51 @@
 	object-fit: contain;
 }
 
-/* .pokemon-preview-stats: 実数値テーブル(table)。カード右下に絶対配置。 */
+/* .pokemon-preview-stats: 右カラム内の2列(ラベル/実数値)テーブル。 */
 
 .team-overview-preview-card .pokemon-preview-stats {
-	position: absolute;
-	inset-block-end: var(--pokemon-preview-padding);
-	inset-inline-end: var(--pokemon-preview-padding);
-	z-index: 1;
 	width: auto;
+	margin-block-start: auto;
+	margin-inline-start: auto;
 	border-collapse: collapse;
 	border-spacing: 0;
-	font-size: var(--font-size-xs);
-	line-height: 1;
 }
 
 .team-overview-preview-card .pokemon-preview-stats th,
 .team-overview-preview-card .pokemon-preview-stats td {
-	padding: var(--pokemon-preview-content-gap) 0 0;
-	color: var(--color-text);
-	font-weight: 500;
+	padding: var(--team-card-stats-row-padding-block-start) 0 0;
 	text-align: right;
 	background: transparent;
 	border: 0;
 }
 
+.team-overview-preview-card .pokemon-preview-stats th {
+	font-size: var(--team-card-stats-label-font-size);
+	font-weight: var(--team-card-stats-label-font-weight);
+	line-height: var(--team-card-stats-label-line-height);
+	color: var(--team-card-stats-label-color);
+}
+
+.team-overview-preview-card .pokemon-preview-stats td {
+	font-size: var(--team-card-stats-value-font-size);
+	font-weight: var(--team-card-stats-value-font-weight);
+	line-height: var(--team-card-stats-value-line-height);
+	color: var(--team-card-stats-value-color);
+}
+
 /* thはステータス名(HP/こうげき等)のラベル列。 */
 
 .team-overview-preview-card .pokemon-preview-stats th:first-child {
-	padding-right: var(--pokemon-preview-stats-column-gap);
-	color: var(--color-text-muted);
+	padding-right: var(--team-card-stats-column-gap);
 	text-align: left;
 }
 
 /* 実数値td: 性格補正で上昇/下降しているステータスの色分け(data-mod属性)。 */
 
 .team-overview-preview-card .pokemon-preview-stats td[data-mod="up"] {
-	color: var(--color-stat-up);
+	color: var(--team-card-stats-value-color-up);
 }
 
 .team-overview-preview-card .pokemon-preview-stats td[data-mod="down"] {
-	color: var(--color-stat-down);
+	color: var(--team-card-stats-value-color-down);
 }
