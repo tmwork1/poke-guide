@@ -223,8 +223,8 @@
 }
 
 #opponent-notes-section .tera-dropdown-image {
-  width: var(--icon-size-sm);
-  height: var(--icon-size-sm);
+  width: 20px;
+  height: 20px;
   object-fit: contain;
   flex-shrink: 0;
 }
@@ -306,29 +306,29 @@
 }
 
 #opponent-notes-section .damage-type-badge-img {
-  height: var(--icon-size-sm);
-  width: var(--icon-size-sm);
+  height: 20px;
+  width: 20px;
   filter: drop-shadow(0 0 1px var(--color-surface));
 }
 
 #opponent-notes-section .damage-type-badge-fallback {
-  width: var(--icon-size-sm);
-  height: var(--icon-size-sm);
+  width: 20px;
+  height: 20px;
   border: 1px solid var(--color-border);
   border-radius: 50%;
   display: none;
 }
 
 #species-type-badge .type-badge-img {
-  height: var(--icon-size-sm);
-  width: var(--icon-size-sm);
+  height: 20px;
+  width: 20px;
   filter: drop-shadow(0 0 1px var(--color-surface));
   border-radius: 50%;
 }
 
 #species-type-badge .type-badge-fallback {
-  width: var(--icon-size-sm);
-  height: var(--icon-size-sm);
+  width: 20px;
+  height: 20px;
   border: 1px solid var(--color-border);
   border-radius: 50%;
   display: none;
@@ -353,8 +353,8 @@
 }
 
 #edit-form .tera-dropdown-option-image, #opponent-notes-section .tera-dropdown-option-image {
-  width: var(--icon-size-sm);
-  height: var(--icon-size-sm);
+  width: 20px;
+  height: 20px;
   object-fit: contain;
   flex-shrink: 0;
 }
@@ -1172,15 +1172,15 @@
 }
 
 .damage-detail-panel .damage-detail-selection-icon {
-  width: var(--icon-size-md);
-  height: var(--icon-size-md);
+  width: 28px;
+  height: 28px;
   object-fit: contain;
   flex-shrink: 0;
 }
 
 .damage-detail-panel .damage-detail-selection-icon-fallback {
-  width: var(--icon-size-md);
-  height: var(--icon-size-md);
+  width: 28px;
+  height: 28px;
   font-size: var(--font-size-sm2);
   background: var(--color-surface-alt);
   border: 1px solid var(--color-border);

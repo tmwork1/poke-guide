@@ -112,7 +112,7 @@ async function applyTypeBadge(container: HTMLElement, name: string): Promise<voi
 	for (const t of types) {
 		const imgEl = document.createElement("img");
 		imgEl.className = "type-badge-img";
-		// CSS側(--icon-size-sm=20px)と一致させる
+		// CSS側(.type-badge-img、20px)と一致させる
 		// (width/height属性は実際の描画サイズをCSSが決めるまでの意図サイズヒント)。
 		imgEl.width = 20;
 		imgEl.height = 20;

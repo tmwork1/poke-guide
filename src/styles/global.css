@@ -52,6 +52,7 @@
   --space-8: 3rem;
 
   /* --- タイポグラフィスケール --- */
+  --font-size-sm4: 0.675rem;
   --font-size-sm3: 0.75rem;
   --font-size-sm2: 0.85rem;
   --font-size-sm1: 0.95rem;
@@ -59,11 +60,6 @@
   --font-size-lg1: 1.05rem;
   --font-size-lg2: 1.5rem;
   --font-size-lg3: 1.9rem;
-
-  /* --- アイコンサイズ規格(2026-07-27 ラウンド20 20-G1) --- */
-  --icon-size-sm: 20px;
-  --icon-size-md: 28px;
-  --icon-size-lg: 40px;
 
   --line-height-tight: 1.25;
   --line-height-snug: 1.4;

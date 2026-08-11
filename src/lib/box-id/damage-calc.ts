@@ -2502,7 +2502,7 @@ if (opponentNotesSection) {
 		typeBadge.className = "damage-type-badge";
 		const typeBadgeImg = document.createElement("img");
 		typeBadgeImg.className = "damage-type-badge-img";
-		typeBadgeImg.width = 20; // 20-G1: --icon-size-sm(20px)に合わせる(旧18)
+		typeBadgeImg.width = 20; // box-damage-card.cssの.damage-type-badge-img(20px)に合わせる
 		typeBadgeImg.height = 20;
 		typeBadgeImg.alt = "";
 		typeBadgeImg.style.display = "none";

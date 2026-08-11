@@ -121,8 +121,8 @@
   width: auto;
   min-width: 0;
   max-width: 100%;
-  min-height: calc(var(--icon-size-sm) - var(--space-1));
-  height: calc(var(--icon-size-sm) - var(--space-1));
+  min-height: calc(20px - var(--space-1));
+  height: calc(20px - var(--space-1));
   padding: 0;
   font-size: var(--move-picker-control-size);
   font-weight: 400;

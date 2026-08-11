@@ -817,7 +817,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		   同居していたが、これをボタン専用の6列目に分離する:
 		     5列目 2.8rem(44.8px) … 実数値の数字だけ。見出し「実数値」(3文字)が折り返さない
 		       下限で、3桁の数値(実測29px前後)も余裕で収まる。
-		     6列目 var(--icon-size-md)(28px) … ボタン専用列。box/index.astro等の.icon-button・
+		     6列目 28px … ボタン専用列。box/index.astro等の.icon-button・
 		       DamageCalcSection.astroの.damage-row-icon-buttonと同じ既存トークンをそのまま
 		       列幅に使うため、新規トークンは作らない。
 		   値とボタンが同じセルを分け合わなくなったことで、ヘッダー「実数値」見出し・各行の値の
@@ -829,7 +829,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		   変更しない。⚠️ .stat-table-headerと.stat-rowのgrid-template-columnsは必ず同じ値に
 		   保つこと(下の.stat-row側コメント参照)。 */
 		/* 🔴 UI改修依頼(個体編集左パネル、2026-08-03)「H・B・D行の個別"調整"ボタンとS行のリンクを
-		   撤去する」対応により、上記2026-08-02で新設した6列目(ボタン専用列、var(--icon-size-md))は
+		   撤去する」対応により、上記2026-08-02で新設した6列目(ボタン専用列、28px)は
 		   不要になった。全6行(H/A/B/C/D/S)からボタン・リンクが消え、5列目(実数値の数字だけ)の
 		   隣に何も並ばなくなったため、5列グリッドに戻す(値は6列目導入前と同じ5列目2.8rem・
 		   1〜4列目も据え置き)。6列目ぶんの幅(28px)+gap 1個分(0.4rem)は、他の固定列を削らずとも
@@ -1812,11 +1812,11 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	/* UI改善ラウンド28ユーザー指示(28-G1)「テラスタイプ画像には専用アイコンを使う」により、
 	   PokeAPIの横長リボン画像(実寸200×48前後、英語表記込み)からteraTypeIconUrlの正方形
 	   専用アイコンへ切り替えた(<script>のupdateTeraDropdownButton参照)。専用アイコンは
-	   幅を持て余すため固定サイズにし(通常タイプアイコンと同じ--icon-size-sm、20px)、
+	   幅を持て余すため固定サイズにし(通常タイプアイコンと同じ20px)、
 	   隣にテラスタイプ名のテキスト(#tera-dropdown-placeholder、下記)を並べる。宝石型
 	   アイコンはジグザグの尖った縁を持つため、border-radius: 50%による丸トリミングは
 	   掛けない(掛けると縁が削れる)。 */
-	#edit-form .tera-dropdown-image { width: var(--icon-size-sm); height: var(--icon-size-sm); object-fit: contain; flex-shrink: 0; }
+	#edit-form .tera-dropdown-image { width: 20px; height: 20px; object-fit: contain; flex-shrink: 0; }
 	/* ラウンド24ユーザー指示(24-L3)「テラスなしを目立たなくする」と同じ視覚言語
 	   (#edit-form input:placeholder-shownと同じ破線枠+透明背景)を、テラスなし選択中の
 	   ボタンにも適用する(<script>のupdateTeraDropdownButton参照)。
@@ -1916,7 +1916,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		border-style: dashed;
 		background: transparent;
 	}
-	#edit-form .item-dropdown-image { width: var(--icon-size-sm); height: var(--icon-size-sm); object-fit: contain; flex-shrink: 0; }
+	#edit-form .item-dropdown-image { width: 20px; height: 20px; object-fit: contain; flex-shrink: 0; }
 	#edit-form .item-dropdown-placeholder {
 		overflow: hidden;
 		text-overflow: ellipsis;
@@ -1966,18 +1966,18 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	   画像を入れられないため、入力欄の左に絶対配置し、input側のpadding-leftで
 	   文字と重ならないようにする(検索欄の虫眼鏡アイコンと同じ定石)。 */
 	#edit-form .move-input-group { position: relative; }
-	/* UI改善ラウンド40ユーザー指示(40-L1)「タイプアイコン+10%」により、共通トークン
-	   --icon-size-sm(20px、他の箇所=アイテム/テラス画像等でも使い回している)自体は
-	   変更せず(他箇所への影響を避ける)、この技タイプアイコンだけ--move-type-icon-size
-	   という専用の変数(20px×1.1=22px)を定義してwidth/heightに使う。padding-left側
-	   (下記.field-with-image.move-input-group > input)も同じ変数を参照するように
-	   揃えることで、アイコンが大きくなった分だけ技名の文字と重ならないよう再計算する。 */
+	/* UI改善ラウンド40ユーザー指示(40-L1)「タイプアイコン+10%」により、他の箇所
+	   (アイテム/テラス画像等)と同じ20pxはそのまま据え置き、この技タイプアイコンだけ
+	   --move-type-icon-sizeという専用の変数(20px×1.1=22px)を定義してwidth/heightに使う。
+	   padding-left側(下記.field-with-image.move-input-group > input)も同じ変数を参照
+	   するように揃えることで、アイコンが大きくなった分だけ技名の文字と重ならないよう
+	   再計算する。 */
 	#edit-form .move-type-icon {
 		position: absolute;
 		left: 0.55em;
 		top: 50%;
 		transform: translateY(-50%);
-		--move-type-icon-size: calc(var(--icon-size-sm) * 1.1);
+		--move-type-icon-size: calc(20px * 1.1);
 		width: var(--move-type-icon-size);
 		height: var(--move-type-icon-size);
 		display: flex;
@@ -1994,9 +1994,9 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		padding-leftの値は上書きされない実測結果が出た(技名の先頭文字とアイコンが重なる
 		事故)。セレクタに.field-grid/.field-with-imageを含めて詳細度を同等以上にする。
 		🔴 ラウンド40(40-L1)でアイコン本体を1.1倍にしたため、ここも同じ計算式
-		(--icon-size-sm * 1.1)に合わせる(20px→22pxぶん、+2pxだけ余裕を広げる)。 */
+		(20px * 1.1)に合わせる(20px→22pxぶん、+2pxだけ余裕を広げる)。 */
 	#edit-form .field-grid .field-with-image.move-input-group > input {
-		padding-left: calc((var(--icon-size-sm) * 1.1) + 0.9em);
+		padding-left: calc((20px * 1.1) + 0.9em);
 		/* UI改善ラウンド38(38-L1): 右端に追加したドラッグハンドル(.move-drag-handle、
 		   下記)と技名の文字が重ならないよう、右側にもパディングを確保する。詳細度は
 		   上のpadding-leftと同じ理由(コメント参照)でこのセレクタに揃える必要がある。 */
@@ -2191,7 +2191,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		   (scrollWidth<=clientWidth)で確認済み。9文字以上の長い名前はなお省略され得るが、
 		   title属性(<script>のupdateItemNameDisplay参照、既存のまま)で全文をホバー表示する。 */
 		/* 🔴 UI改善ラウンド29(29-B3)「アイテム/テラス画像を16px→20px程度へ」により、
-		   .item-image-badge/.top-block-tera-imageを16px→var(--icon-size-sm)(20px)へ拡大した
+		   .item-image-badge/.top-block-tera-imageを16px→20pxへ拡大した
 		   (下記参照)。コーナー列の幅119pxは28-L1で確定した理論上限119.5pxのまま変えられない
 		   ため(0.5pxの余裕しかない、round-28.md積み残し参照)、拡大した分はこのmax-widthを
 		   8.2em→7.8emへ縮めて吸収する(119-20-gap1.8pxの残り97.2pxに対し93.6pxで3.6pxの
@@ -2242,8 +2242,8 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		   ⚠️ [hidden]は詳細度で負けるため(pitfalls.md)、displayを指定するこのクラスには
 		   [hidden]用のdisplay:noneを併記する。 */
 		/* 🔴 UI改善ラウンド29(29-B3)「アイテム/テラス画像を16px→20px程度へ」により、
-		   16px→var(--icon-size-sm)(20px、#species-type-badgeのタイプアイコンと同じ既存
-		   トークン)へ拡大する。.item-image-badgeと同じサイズを保つ方針(28-L6)は継続する。 */
+		   16px→20px(#species-type-badgeのタイプアイコンと同じ値)へ拡大する。
+		   .item-image-badgeと同じサイズを保つ方針(28-L6)は継続する。 */
 		/* UI改善ラウンド31ユーザー指示(31-L3)「ポケモン画像の領域にテラスタル画像は不要」により
 		   常時非表示にする。DOMは残す(<script>のrefreshTopBlockTeraImage/applyTeraImageが
 		   このimg/フォールバックを引き続き参照するため、要素自体は削除しない)。
@@ -2252,12 +2252,12 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		   showColorFallback()はfallbackEl.style.display="block"を直接インライン指定するため、
 		   フォールバック側だけ!importantで打ち消す。テラスタル選択欄(.tera-dropdown-button)側の
 		   アイコンは対象外(31-L4/31-L5でそちらは維持)。 */
-		.top-block-tera-image { width: var(--icon-size-sm); height: var(--icon-size-sm); object-fit: contain; display: none; }
+		.top-block-tera-image { width: 20px; height: 20px; object-fit: contain; display: none; }
 		.top-block-tera-image[hidden] { display: none; }
 		.top-block-tera-image-fallback {
 			display: none !important;
-			width: var(--icon-size-sm);
-			height: var(--icon-size-sm);
+			width: 20px;
+			height: 20px;
 			border-radius: 50%;
 			border: 1px solid var(--color-border);
 		}
@@ -2290,19 +2290,18 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 			justify-content: center;
 		}
 		/* ラウンド20ユーザー指示(20-G1)「アイテム・タイプ・テラスタル画像が小さすぎる」対応:
-		   public/type-icons/はいずれも実測96×96pxで拡大の余力があるため、共通トークン
-		   --icon-size-sm(20px、src/styles/global.cssで定義済み)まで引き上げる。 */
+		   public/type-icons/はいずれも実測96×96pxで拡大の余力があるため、20pxまで引き上げる。 */
 		.type-badge-img {
-			height: var(--icon-size-sm);
-			width: var(--icon-size-sm);
+			height: 20px;
+			width: 20px;
 			border-radius: 50%;
 			/* 淡い背景のカードに重なっても輪郭が見えるように薄く縁を付ける。 */
 			filter: drop-shadow(0 0 1px var(--color-surface));
 		}
 		.type-badge-fallback {
 			display: none;
-			width: var(--icon-size-sm);
-			height: var(--icon-size-sm);
+			width: 20px;
+			height: 20px;
 			border-radius: 50%;
 			border: 1px solid var(--color-border);
 		}
@@ -2321,18 +2320,18 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 			gap: 6px;
 		}
 		/* ラウンド20(20-G1)以前は種族アイコンからのはみ出しを抑えるため14pxまで縮めていたが、
-		   --icon-size-sm(20px)を下回るのは12px下限とは別の「アイコン規格」統一の要件に反する
+		   他のタイプ/アイテム/テラス画像と同じ20pxを下回ると見た目の大きさが揃わなくなる
 		   ため、multi/inline側とも20px以上に揃える(はみ出しは.species-icon-box自体が160pxと
 		   十分大きいため実害なし。実装時にPlaywrightで実測して確認)。 */
-		.type-badge-multi .type-badge-img { height: var(--icon-size-sm); width: var(--icon-size-sm); }
-		.type-badge-multi .type-badge-fallback { width: var(--icon-size-sm); height: var(--icon-size-sm); }
+		.type-badge-multi .type-badge-img { height: 20px; width: 20px; }
+		.type-badge-multi .type-badge-fallback { width: 20px; height: 20px; }
 		/* 元々はテラスタイプ画像をselectの隣に置くための「種族アイコン用の絶対配置を打ち消す」
 		   クラスだったが、23-L3(テラスタイプの<select>化)以降どこからも参照されずに残っていた。
 		   ラウンド26ユーザー指示(26-L2)で、種族アイコン右上の重ね表示から解放した
 		   #species-type-badge(アイコン領域内の通常フロー項目)に再利用する
 		   (position:staticという効果がそのまま使えるため新規クラスを作らない)。 */
 		.type-badge-inline { position: static; }
-		.type-badge-inline .type-badge-img { height: var(--icon-size-sm); width: var(--icon-size-sm); }
+		.type-badge-inline .type-badge-img { height: 20px; width: 20px; }
 
 		/* ラウンド20ユーザー指示(20-G1): 持ち物画像はPokeAPIのドット絵(32×32相当)を都度
 		   フェッチしており、28px超では元絵が粗く見える。ラウンド21ユーザー指示(21-L2)で
@@ -2373,8 +2372,8 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		   🔴 UI改善ラウンド28ユーザー指示(28-L3)「アイテム画像はアイテム文字より少し大きい程度まで
 		   縮小」により、ラウンド24(24-L1)で41pxまで拡大したのを大きく縮小する。隣に並ぶ
 		   アイテム名の文字(.item-name-display)のfont-sizeは実測15.04px(0.94rem×root16px)
-		   なので、その1.5倍前後=22pxにする(共通トークン--icon-size-sm(20px、global.css定義済み)は
-		   本来20pxだが、実測比率(1.5倍前後)を優先しこのバッジだけ独自の22pxを使う)。
+		   なので、その1.5倍前後=22pxにする(基準は20pxだが、実測比率(1.5倍前後)を
+		   優先しこのバッジだけ独自の22pxを使う)。
 		   追加対応(28-L5)「アイテム名が省略されて読めない」により、22px→18px→16pxへさらに
 		   縮小する(アイテム名のfont-sizeも0.94rem→0.75rem(12px、プロジェクトの文字下限)に
 		   縮小したため、16/12≈1.33倍で28-L3の「文字より少し大きい程度」の範囲を維持できる)。
@@ -2382,27 +2381,25 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		/* 🔴 UI改善ラウンド29(29-B3)「左パネルのアイテム/テラス画像を16px→20px程度へ」:
 		   タイプバッジ(#species-type-badge、20px×1個以上)に対しアイテム/テラス画像16pxが
 		   2.6倍差で、同じ帯・同じ隅配置の同一階層にあるため正当化されない(00-foundation.md)。
-		   var(--icon-size-sm)(20px)はタイプバッジ側(.type-badge-inline .type-badge-img)が
-		   既に使っている既存トークンで、新規サイズを作らずここでも転用する。拡大に伴う
+		   タイプバッジ側(.type-badge-inline .type-badge-img)と同じ20pxをここでも使う。拡大に伴う
 		   コーナー列(.top-block-icon-corner、幅119px)との重なりは.item-name-displayの
 		   max-widthを7.8emへ縮めて吸収した(上記参照)。 */
 		/* 🔴 UI改善ラウンド31ユーザー指示(31-L2)「アイテム画像+文字のサイズを大きくする」により、
-		   var(--icon-size-sm)(20px、タイプバッジ等と共有の「アイコン規格」トークン)から離れ、
-		   このバッジだけの固定値24pxにする(維持すべき点「アイコン規格20px…他のアイコンまで
-		   一緒に大きくしないこと」に従い、共有トークン自体は変更しない)。隣のアイテム名
+		   タイプバッジ等と同じ20pxから離れ、このバッジだけの固定値24pxにする
+		   (タイプバッジ等、他のアイコンまで一緒に大きくしないため)。隣のアイテム名
 		   (.item-name-display、1.125rem=18px)との比は24/18=1.33倍。 */
 		/* 🔴 UI改善ラウンド32ユーザー指示(32-L3)により、31-L2で持ち物だけの固定値24pxにしていたのを
-		   アイコン規格20px(var(--icon-size-sm)、28-L1〜L6で確定した既存トークン)へ戻す。 */
+		   20px(28-L1〜L6で確定した値)へ戻す。 */
 		/* 🔴 UI改善ラウンド34ユーザー指示(34-L4)「アイテムの画像サイズを+50%」により、
-		   20px→30pxへ拡大する。共有トークン--icon-size-sm自体は変更禁止(他の20px規格
-		   アイコン=タイプバッジ・テラス画像等に影響するため)、このバッジだけ固定値で
-		   上書きする(31-L2で一度固定値24pxにした前例と同じやり方)。拡大後もコーナー列
+		   20px→30pxへ拡大する。他の20pxアイコン(タイプバッジ・テラス画像等)には影響させず、
+		   このバッジだけ固定値で上書きする(31-L2で一度固定値24pxにした前例と同じやり方)。
+		   拡大後もコーナー列
 		   (.top-block-icon-corner、幅180px)との重なりが無いことを実測して確認した
 		   (画像30px+gap+アイテム名max-width121px相当の合計約153.5pxで180px以内に収まる。
 		   報告参照)。 */
 		/* 🔴 UI改善ラウンド35ユーザー指示(35-L1)「アイテムアイコン+10%」により、
-		   30px→33px(30×1.1)へ拡大する。共有トークン--icon-size-sm自体は変更しない
-		   (これまでと同じ、このバッジだけの固定値上書き)。拡大後もコーナー列
+		   30px→33px(30×1.1)へ拡大する(これまでと同じ、このバッジだけの固定値上書き)。
+		   拡大後もコーナー列
 		   (.top-block-icon-corner、幅180px)との重なりが無いことを実測して確認した
 		   (画像33px+gap2.4px+アイテム名max-width121.07px相当の合計約156.5pxで
 		   180px以内、余裕23.5px)。
@@ -2676,7 +2673,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	}
 	.item-dropdown-option:hover,
 	.item-dropdown-option.is-active { background: var(--color-surface-alt); }
-	.item-dropdown-option-image { width: var(--icon-size-sm); height: var(--icon-size-sm); object-fit: contain; flex-shrink: 0; }
+	.item-dropdown-option-image { width: 20px; height: 20px; object-fit: contain; flex-shrink: 0; }
 	.item-dropdown-option-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 	.item-dropdown-option[hidden] { display: none; }
 	.item-dropdown-empty {
@@ -2752,10 +2749,10 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		font-size: var(--font-size-sm3);
 		font-weight: 400;
 		field-sizing: content;
-		/* 見出しの16.8px line-heightを越えないよう、既存トークン同士の差で16px高にする。 */
-		height: calc(var(--icon-size-sm) - var(--space-1));
+		/* 見出しの16.8px line-heightを越えないよう、20pxとスペーストークンの差で16px高にする。 */
+		height: calc(20px - var(--space-1));
 		/* 共通フォーム部品のmin-heightを上書きし、内容幅を余分な内側余白で広げない。 */
-		min-height: calc(var(--icon-size-sm) - var(--space-1));
+		min-height: calc(20px - var(--space-1));
 		padding: 0;
 		box-sizing: border-box;
 	}

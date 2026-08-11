@@ -64,7 +64,7 @@
   );
 
   /* Action buttons */
-  --box-card-action-size: var(--icon-size-md);
+  --box-card-action-size: 28px;
   --box-card-action-offset: var(--space-2);
   --box-card-action-inset-block-start: var(--box-card-action-offset);
   --box-card-action-inset-inline-end: var(--box-card-action-offset);

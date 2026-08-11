@@ -2060,8 +2060,8 @@ const initialTeamJson = team
 		/* スプライトは1.1倍(44px→48px、ユーザー要望2026-08-04)。本文の2行にまたがる専用列。 */
 		.team-suggest-sprite {
 			/* ドット絵に合わせて幅を詰め、種族名とアイテム名の表示領域を確保する。 */
-			width: var(--icon-size-lg);
-			height: var(--icon-size-lg);
+			width: 40px;
+			height: 40px;
 			flex: none;
 			display: flex;
 			align-items: center;
@@ -2132,8 +2132,8 @@ const initialTeamJson = team
 		}
 		.team-damage-title-sprite {
 			display: inline-flex;
-			width: calc((var(--icon-size-sm) + var(--space-1)) * 1.1);
-			height: calc((var(--icon-size-sm) + var(--space-1)) * 1.1);
+			width: calc((20px + var(--space-1)) * 1.1);
+			height: calc((20px + var(--space-1)) * 1.1);
 			margin-right: var(--space-2);
 			vertical-align: middle;
 		}
