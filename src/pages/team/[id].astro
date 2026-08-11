@@ -92,20 +92,30 @@ const initialTeamJson = team
 		})
 	: '';
 ---
-<AppLayout title={pageTitle} current="team" backHref="/team" bodyClass={bodyClass}>
+<AppLayout title={pageTitle} current="team" hideTopbar={true} bodyClass={bodyClass}>
+	{team && (
+		<nav class="second-bar" aria-label="チーム編集メニュー">
+			<div class="second-bar__list">
+				<a class="second-bar__item" href="/team">戻る</a>
+				<button type="button" class="second-bar__item" data-mobile-tab="team" data-active="true" aria-current="page"><span>チーム</span></button>
+				<button type="button" class="second-bar__item" data-mobile-tab="formation"><span>編成</span></button>
+				<span class="second-bar__item is-disabled" aria-disabled="true"><span>データ</span></span>
+				<span class="second-bar__item is-disabled" aria-disabled="true"><span>相性</span></span>
+			</div>
+		</nav>
+	)}
 	{/* UI改修依頼(チーム編集ヘッダー、2026-08-01)「保存済みを非表示にする」。box/[id].astroの
 	    23-H1相当の対応と同じ考え方: #autosave-status/#autosave-status-textのid・DOM自体は
 	    <script>のel()参照(見つからないとthrowしてJS初期化が止まる)のため残し、
 	    テキストだけを下の<style>で常時非表示にする(保存失敗時=data-state="error"のときだけ
 	    見せる。box/[id].astro側の実装が無い場合はteam側限定の判断として同じ方式を採用)。 */}
 	{team && (
-		<Fragment slot="topbar-status">
+		<div class="team-mobile-actions" id="team-mobile-actions">
 			<p id="autosave-status" class="status-text" data-state="saved">
 				<span id="autosave-status-text">保存済み</span>
 				<button id="retry-button" type="button" title="保存に失敗しました。クリックして再試行" aria-label="保存に失敗しました。クリックして再試行">再試行</button>
 			</p>
-		</Fragment>
-	)}
+
 	{/* UI改修依頼(チーム編集ヘッダー)「右端に削除ボタン追加」。box/[id].astroの
 	    #delete-buttonと同じマークアップ・確認ダイアログ・アイコンにする。
 	    UI改修依頼(チーム編集ヘッダー)「匿名でデータ提供するトグルを追加する」。box/[id].astroの
@@ -118,14 +128,7 @@ const initialTeamJson = team
 	    ここに書くのはJS初期化前に一瞬だけ見える初期値(<script>のsyncCollectionOptOutTitleが
 	    ページ読み込み直後に実際の状態へ即座に補正する)。メンバー0人のときはtitleに理由を明示した
 	    上でdisabledにする(対象が無いため、この場合のtitleはJSでも変更しない)。 */}
-	{team && (
-		<Fragment slot="topbar-actions">
-			{/* UI改修依頼(2026-08-05): 機能・id・イベント配線を維持したまま共通トップバーへ戻す。
-			    画面上の水平位置はCSSで従来の中央パネル左端に合わせる。 */}
-			<button id="matchup-check-button" class="btn-ghost" type="button" aria-pressed="false" title="使用率上位20体との相性を右パネルに表示する">
-				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><line x1="12" y1="1" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="23"/><line x1="1" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="23" y2="12"/></svg>
-				相性チェック
-			</button>
+		<div class="team-mobile-actions__controls">
 			<label
 				class="collection-opt-out-toggle"
 				for="team-collection-opt-out-toggle"
@@ -159,7 +162,8 @@ const initialTeamJson = team
 				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
 				削除
 			</button>
-		</Fragment>
+		</div>
+		</div>
 	)}
 	<style>
 		/* 基本のトークン・カード・ボタン・フォーム部品は src/styles/global.css に集約済み。
@@ -173,6 +177,38 @@ const initialTeamJson = team
 		}
 		#autosave-status {
 			margin: 0;
+		}
+		.team-mobile-actions {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			gap: var(--space-3);
+			padding: var(--space-3) var(--space-5);
+			border-bottom: 1px solid var(--color-border);
+		}
+		.team-mobile-actions__controls {
+			display: flex;
+			align-items: center;
+			gap: var(--space-3);
+			margin-left: auto;
+		}
+		.team-edit-shell[data-mobile-tab="team"] .team-edit-layout,
+		.team-edit-shell[data-mobile-tab="formation"] #team-overview-tab {
+			display: none;
+		}
+		.team-matchup-check-row {
+			display: flex;
+			justify-content: flex-start;
+			margin: var(--space-4) 0;
+		}
+		.team-matchup-check-row #matchup-check-button {
+			display: inline-flex;
+			position: static;
+			left: auto;
+		}
+		@media (max-width: 640px) {
+			.team-mobile-actions { align-items: flex-start; }
+			.team-mobile-actions__controls { flex-wrap: wrap; justify-content: flex-end; }
 		}
 		/* UI改修依頼(チーム編集ヘッダー、2026-08-01)「保存済みを非表示にする」。box/[id].astro
 		   ラウンド11(11-1)と同じ方針: #autosave-status-text自体はDOM/idごと残し(<script>の
@@ -768,7 +804,14 @@ const initialTeamJson = team
 					</div>
 				</section>
 			) : (
-				<div class="team-edit-layout" id="team-edit-layout" data-team-id={team.id} data-initial-team={initialTeamJson}>
+				<div class="team-edit-shell" id="team-edit-layout" data-team-id={team.id} data-initial-team={initialTeamJson} data-mobile-tab="team">
+					<section id="team-overview-tab" class="panel">
+						<div class="panel-content">
+							<div id="team-overview-fields"></div>
+							<div id="team-overview-grid" class="team-overview-thumb-grid" aria-label="チームメンバーのプレビュー"></div>
+						</div>
+					</section>
+					<div class="team-edit-layout">
 					{/* --- 左: ポケモン選択バー(帯)。R-7: 検索欄を上部に固定し、下にボックスの個体を
 					    縦一列に並べる。行自体はJS(document.createElement)で生成するため、
 					    pitfalls.md「Astroのscoped styleはJSで生成した要素に効かない」に従い
@@ -934,6 +977,12 @@ const initialTeamJson = team
 							    UI改修依頼(チーム編集中央パネル)「2x3配置に変更」により、1列縦積みから
 							    3列2行のグリッドへ変更する(CSSは下の.team-slots参照)。 */}
 							<div id="team-slots" class="team-slots"></div>
+							<div class="team-matchup-check-row">
+								<button id="matchup-check-button" class="btn-ghost" type="button" aria-pressed="false" title="使用率上位20体との相性を右パネルに表示する">
+									<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><line x1="12" y1="1" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="23"/><line x1="1" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="23" y2="12"/></svg>
+									相性チェック
+								</button>
+							</div>
 
 							{/* UI改修依頼(チーム編集中央パネル、2026-08-02)「メモ欄のplaceholderを
 							    "メモ"だけにする」。aria-label="メモ"は元々同じ文言のため変更不要。 */}
@@ -1038,6 +1087,7 @@ const initialTeamJson = team
 						</div>
 					</aside>
 				</div>
+				</div>
 			)
 		}
 	</div>
@@ -1046,6 +1096,71 @@ const initialTeamJson = team
 	    JSで生成した要素に効かない」に従い is:global で定義する。.team-select-bar / .team-slots
 	    配下に限定したセレクタにしてグローバルへ漏れないようにする。 --- */}
 	<style is:global>
+		.team-overview-thumb-grid {
+			display: grid;
+			grid-template-columns: repeat(3, minmax(0, 1fr));
+			gap: var(--space-3);
+		}
+		.team-overview-thumb-grid .box-card {
+			position: relative;
+			display: flex;
+			min-width: 0;
+			min-height: 9rem;
+			flex-direction: column;
+			overflow: hidden;
+			text-decoration: none;
+		}
+		.team-overview-thumb-grid .card-artwork {
+			display: flex;
+			min-height: 5rem;
+			align-items: center;
+			justify-content: center;
+			background: var(--color-surface-alt);
+		}
+		.team-overview-thumb-grid .card-artwork img {
+			width: 5rem;
+			height: 5rem;
+			object-fit: contain;
+		}
+		.team-overview-thumb-grid .team-overview-fallback {
+			display: none;
+			align-items: center;
+			justify-content: center;
+			width: 5rem;
+			height: 5rem;
+			color: var(--color-text-muted);
+		}
+		.team-overview-thumb-grid .card-body { padding: var(--space-3); }
+		.team-overview-thumb-grid .card-name {
+			margin: 0;
+			overflow: hidden;
+			font-size: var(--font-size-sm);
+			font-weight: 700;
+			text-overflow: ellipsis;
+			white-space: nowrap;
+		}
+		.team-overview-thumb-grid .card-moves-grid {
+			display: grid;
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+			gap: var(--space-2);
+			margin-top: var(--space-2);
+		}
+		.team-overview-thumb-grid .card-move-chip {
+			overflow: hidden;
+			color: var(--color-text-muted);
+			font-size: var(--font-size-sm);
+			text-overflow: ellipsis;
+			white-space: nowrap;
+		}
+		.team-overview-thumb-grid .card-team-empty-slot {
+			display: flex;
+			min-height: 9rem;
+			align-items: center;
+			justify-content: center;
+			border: 1px dashed var(--color-border);
+			color: var(--color-text-muted);
+		}
+		.team-overview-thumb-grid .team-slot-number { font-size: var(--font-size-lg); }
 		/* UI改修依頼(チーム編集ヘッダー)「チーム名表示を削除する」。box/[id].astroの23-H1と
 		   同じ手法(AppLayoutは編集禁止のため、bodyClass="team-edit-page"を起点にしたグローバル
 		   セレクタで.app-topbar-title(AppLayout側の要素、このページのscoped<style>では選択
@@ -2442,6 +2557,20 @@ const initialTeamJson = team
 
 		const layoutRoot = document.getElementById("team-edit-layout");
 		if (layoutRoot) {
+			const mobileTabButtons = Array.from(document.querySelectorAll<HTMLButtonElement>(".second-bar [data-mobile-tab]"));
+			const setMobileTab = (tab: "team" | "formation") => {
+				layoutRoot.dataset.mobileTab = tab;
+				for (const button of mobileTabButtons) {
+					const active = button.dataset.mobileTab === tab;
+					button.dataset.active = active ? "true" : "false";
+					if (active) button.setAttribute("aria-current", "page");
+					else button.removeAttribute("aria-current");
+				}
+			};
+			setMobileTab(new URLSearchParams(window.location.search).get("tab") === "formation" ? "formation" : "team");
+			for (const button of mobileTabButtons) {
+				button.addEventListener("click", () => setMobileTab(button.dataset.mobileTab === "formation" ? "formation" : "team"));
+			}
 			const teamId = layoutRoot.dataset.teamId as string;
 			const initialTeam: InitialTeam = JSON.parse(layoutRoot.dataset.initialTeam || "{}");
 
@@ -2453,6 +2582,10 @@ const initialTeamJson = team
 
 			const nameInput = el<HTMLInputElement>("team-name");
 			const memoInput = el<HTMLInputElement>("team-memo");
+			const overviewFields = el<HTMLElement>("team-overview-fields");
+			const overviewGrid = el<HTMLElement>("team-overview-grid");
+			const metaFields = document.querySelector<HTMLElement>(".team-meta-fields");
+			if (metaFields) overviewFields.append(metaFields, memoInput);
 			// 🔴 UI改修依頼(チーム編集画面、2026-08-01)「個体編集と同様にレギュレーション指定機能」。
 			const regulationSelect = el<HTMLSelectElement>("team-regulation");
 			const regulationFilterWrap = el<HTMLElement>("regulation-filter-wrap");
@@ -4151,6 +4284,54 @@ const initialTeamJson = team
 				return wrap as unknown as HTMLElement;
 			}
 
+			function renderOverviewGrid(): void {
+				overviewGrid.innerHTML = "";
+				for (let slot = 1; slot <= 6; slot += 1) {
+					const p = membersBySlot.get(slot);
+					if (!p) {
+						const empty = document.createElement("div");
+						empty.className = "card box-card card-team-empty-slot";
+						empty.setAttribute("aria-hidden", "true");
+						const slotNumber = document.createElement("span");
+						slotNumber.className = "team-slot-number";
+						slotNumber.textContent = String(slot);
+						empty.appendChild(slotNumber);
+						overviewGrid.appendChild(empty);
+						continue;
+					}
+
+					const card = document.createElement("a");
+					card.className = "card box-card card-pokemon";
+					card.href = `/box/${encodeURIComponent(p.id)}`;
+					card.setAttribute("aria-label", `${p.nickname?.trim() || p.species_name}を編集`);
+					const artwork = document.createElement("div");
+					artwork.className = "card-artwork";
+					const img = document.createElement("img");
+					img.alt = "";
+					const fallback = document.createElement("span");
+					fallback.className = "team-overview-fallback";
+					artwork.append(img, fallback);
+					void applySprite(img, fallback, p.species_name);
+
+					const body = document.createElement("div");
+					body.className = "card-body";
+					const name = document.createElement("p");
+					name.className = "card-name";
+					name.textContent = p.nickname?.trim() || p.species_name;
+					const moves = document.createElement("div");
+					moves.className = "card-moves-grid";
+					for (const moveName of (p.move_names ?? []).filter((move) => move?.trim())) {
+						const move = document.createElement("span");
+						move.className = "card-move-chip";
+						move.textContent = moveName;
+						moves.appendChild(move);
+					}
+					body.append(name, moves);
+					card.append(artwork, body);
+					overviewGrid.appendChild(card);
+				}
+			}
+
 			function renderSlots(): void {
 				slotsRoot.innerHTML = "";
 				for (let slot = 1; slot <= 6; slot += 1) {
@@ -4231,6 +4412,7 @@ const initialTeamJson = team
 					});
 					slotsRoot.appendChild(card);
 				}
+				renderOverviewGrid();
 			}
 
 			// UI改修依頼(チーム編集中央パネル、2026-08-02)「カード外クリックでハイライトを
