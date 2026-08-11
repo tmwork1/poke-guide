@@ -2516,7 +2516,7 @@ const initialTeamJson = team
 
 			// UI改修依頼(チーム編集左パネル/右パネル)「ステータスも表示」。box/index.astroの
 			// applyActualStatsと同じ式・同じフォールバック(level??50, iv??31, ev??0)。
-			async function computeStats(p: OwnedPokemonRecord): Promise<{ key: string; label: string; value: number; mod: "up" | "down" | null }[] | null> {
+			async function computeStats(p: OwnedPokemonRecord): Promise<{ key: string; label: string; value: number; ev: number; mod: "up" | "down" | null }[] | null> {
 				const base = p.species_name ? (await baseStatsMapPromise).get(p.species_name) : undefined;
 				if (!base) return null;
 				const level = p.level ?? 50;
@@ -2529,7 +2529,7 @@ const initialTeamJson = team
 							? calcHpStat(level, base[i], iv, ev)
 							: calcOtherStat(level, base[i], iv, ev, mod.up === key ? 1.1 : mod.down === key ? 0.9 : 1.0);
 					const statMod = key === "hp" ? null : mod.up === key ? "up" : mod.down === key ? "down" : null;
-					return { key, label: STAT_LABELS[key], value, mod: statMod };
+					return { key, label: STAT_LABELS[key], value, ev, mod: statMod };
 				});
 			}
 
@@ -4210,12 +4210,22 @@ const initialTeamJson = team
 					void applySprite(img, fallback, p.species_name);
 					identity.appendChild(spriteWrap);
 					const itemName = p.item_name?.trim() ?? "";
-					const stats = document.createElement("table");
+					// UI改修依頼(team/pokemonカード、2026-08-11)「実数値表示を縦積みではなく
+					// 横積みにしてカード最下部に配置する」。右パネルのteam-damage-stats/
+					// team-damage-stats-line(display:contentsで6列グリッドの行を作る手法)と
+					// 同じ考え方で、ラベル行・努力値行・実数値行の3段×6列にする。
+					const stats = document.createElement("div");
 					stats.className = "pokemon-preview-stats";
 					stats.setAttribute("aria-label", "実数値");
-					const statsBody = document.createElement("tbody");
-					stats.appendChild(statsBody);
-					main.append(left, identity, stats);
+					const statsLabelLine = document.createElement("div");
+					statsLabelLine.className = "pokemon-preview-stats-line";
+					const statsEvLine = document.createElement("div");
+					statsEvLine.className = "pokemon-preview-stats-line";
+					const statsValueLine = document.createElement("div");
+					statsValueLine.className = "pokemon-preview-stats-line";
+					stats.append(statsLabelLine, statsEvLine, statsValueLine);
+					left.appendChild(stats);
+					main.append(left, identity);
 					card.appendChild(main);
 					if (itemName) {
 						const item = document.createElement("div");
@@ -4234,14 +4244,19 @@ const initialTeamJson = team
 					void computeStats(p).then((computed) => {
 						if (!card.isConnected || !computed) return;
 						for (const stat of computed) {
-							const row = document.createElement("tr");
-							const label = document.createElement("th");
+							const label = document.createElement("span");
+							label.className = "pokemon-preview-stat-key";
 							label.textContent = stat.label;
-							const value = document.createElement("td");
+							const ev = document.createElement("span");
+							ev.className = "pokemon-preview-stat-ev";
+							ev.textContent = stat.ev > 0 ? `+${stat.ev}` : "-";
+							const value = document.createElement("span");
+							value.className = "pokemon-preview-stat-value";
 							value.textContent = String(stat.value);
 							if (stat.mod) value.dataset.mod = stat.mod;
-							row.append(label, value);
-							statsBody.appendChild(row);
+							statsLabelLine.appendChild(label);
+							statsEvLine.appendChild(ev);
+							statsValueLine.appendChild(value);
 						}
 					});
 				}
