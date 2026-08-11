@@ -109,12 +109,28 @@
   position: relative;
   display: grid;
   grid-template-rows: auto 1fr;
+  /* /box は <a>、チーム編成は <button> で同じカードを使う。フォームコントロールの
+     appearance・中央揃え・太字・狭い行高をカードへ持ち込まず、<a> と同じ基準へ戻す。 */
+  appearance: none;
+  font: inherit;
   align-items: stretch;
+  justify-content: normal;
   gap: var(--box-card-gap);
   aspect-ratio: var(--box-card-aspect-ratio);
   overflow: hidden;
   text-decoration: none;
+  text-align: start;
   color: inherit;
+}
+.box-grid .box-card:hover,
+.box-grid .box-card:focus-within {
+  /* global.css の button:hover:not(:disabled) は .card:hover より詳細度が高い。
+     カード共通の hover/focus 背景をここで所有し、要素種別に依存させない。 */
+  background: color-mix(
+    in srgb,
+    var(--color-surface-alt) 90%,
+    var(--color-primary) 10%
+  );
 }
 .box-grid .box-card:focus-visible {
   outline: var(--box-card-focus-outline);
