@@ -30,6 +30,7 @@
 		"refresh-suggestions": "node ./scripts/db/refresh-suggestions.mjs",
 		"backfill-archetypes": "node ./scripts/db/backfill-archetypes.mjs",
 		"backfill-ranked-archetypes": "node ./scripts/db/backfill-ranked-archetypes.mjs",
+		"fetch:opgg-champions-usage": "node scripts/opgg/fetch-champions-usage.mjs",
 		"ranker:fetch-teams": "python scripts/ranker/fetch_team_json.py",
 		"ranker:fetch-articles": "python scripts/ranker/fetch_search_pages.py",
 		"ranker:index": "python scripts/ranker/extract_articles.py",
