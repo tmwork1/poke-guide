@@ -58,6 +58,7 @@ import { TERA_TYPES } from "../tera-types";
 // shared-core.tsは"../sprite-urls"からteraTypeIconUrlをimportしているが再exportしていない
 // ため(shared-core.tsはこのラウンドの編集対象外)、ここで直接importする。
 import { teraTypeIconUrl } from "../sprite-urls";
+import { initializeCardDeleteMode } from "../card-delete-mode";
 // UI改修依頼(ダメージ計算カード、2026-08-01)「レギュレーションに応じてテラスタル選択
 // ボックスの表示ON/OFFを切り替える」用。判定は必ずこの関数を使い、自前ロジックを書かない
 // (仕様: 未指定はtrue=表示・M-*はfalse=非表示・T-*はtrue=表示。src/lib/regulations.ts参照)。
@@ -2229,7 +2230,7 @@ if (opponentNotesSection) {
 	const collapsedRowSet = new WeakSet<DamageRowState>();
 	// モバイルは1カラムでカード幅を親に追従させるため、展開時のpx幅固定を使わない。
 	function isNarrowLayout(): boolean {
-		return window.matchMedia("(max-width: 899px)").matches;
+		return true;
 	}
 	// 🔴 UI改修依頼(個体編集画面、2026-08-02)「耐久調整」機能の土台。refreshCollapsedViewsは
 	// 耐久調整ポップアップに貼る圧縮表示の複製(buildCollapsedPreview、下方参照)を作る前に、
@@ -3895,6 +3896,7 @@ if (opponentNotesSection) {
 	});
 
 	const damageRowsListEl = el<HTMLElement>("damage-rows-list");
+	initializeCardDeleteMode(damageRowsListEl, ".card-damage", ".damage-row-delete-button");
 	const engineStatusEl = el<HTMLElement>("damage-calc-engine-status");
 	const engineStatusTextEl = el<HTMLElement>("damage-calc-engine-status-text");
 	const engineReloadButton = el<HTMLButtonElement>("damage-calc-engine-reload-button");
@@ -3970,7 +3972,7 @@ if (opponentNotesSection) {
 		damageDetailPanelEl.classList.remove("is-mobile-inline", "is-mobile-suggest");
 		if (damageDetailPanelOriginalParentEl) damageDetailPanelOriginalParentEl.appendChild(damageDetailPanelEl);
 	}
-	window.matchMedia("(max-width: 899px)").addEventListener("change", refreshMobileDetailPlacement);
+	refreshMobileDetailPlacement();
 	// 技列の追加上限がレイアウト幅で変わる(モバイル2 / デスクトップ3、currentMaxColumnsToAdd)ため、
 	// 境界をまたいだら「＋ 技を追加」ボタンの有効/無効と折りたたみ時「＋」ボタンの表示を
 	// 描き直す(そうしないとデスクトップ→モバイルへ縮めた直後、押しても何も起きない
@@ -4126,7 +4128,7 @@ if (opponentNotesSection) {
 	function buildAddRowTile(): HTMLButtonElement {
 		const tile = document.createElement("button");
 		tile.type = "button";
-		tile.className = "add-card-tile";
+		tile.className = "add-card-tile box-add-button";
 		// DamageCard.pngの「ダメージ計算追加ボタン」(カードの外・下側)にあたる。
 		// 1枚のカード = 相手1体分のダメージ計算なので、追加すると新しい相手の行が増える。
 		tile.setAttribute("aria-label", "ダメージ計算を追加");

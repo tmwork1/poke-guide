@@ -1,0 +1,60 @@
+---
+import '../../styles/speed-adjust-dialog.css';
+
+interface Props {
+	pokemonId: string;
+}
+
+const { pokemonId } = Astro.props;
+const speedChartSrc = `/speed-chart?owned=${encodeURIComponent(pokemonId)}&embed=1`;
+---
+
+<div id="speed-adjust-backdrop" class="speed-adjust-backdrop" hidden></div>
+<section
+	id="speed-adjust-dialog"
+	class="speed-adjust-dialog"
+	role="dialog"
+	aria-modal="true"
+	aria-label="すばやさ調整"
+	tabindex="-1"
+	hidden
+>
+	<iframe id="speed-adjust-dialog-frame" class="speed-adjust-dialog-frame" title="すばやさ調整" data-src={speedChartSrc}></iframe>
+</section>
+
+<script>
+	const triggers = document.querySelectorAll<HTMLButtonElement>("[data-speed-adjust-trigger]");
+	const backdrop = document.getElementById("speed-adjust-backdrop");
+	const dialog = document.getElementById("speed-adjust-dialog");
+	const frame = document.getElementById("speed-adjust-dialog-frame") as HTMLIFrameElement | null;
+	let opener: HTMLButtonElement | null = null;
+
+	function closeDialog() {
+		if (!dialog || !backdrop || !frame) return;
+		dialog.hidden = true;
+		backdrop.hidden = true;
+		frame.removeAttribute("src");
+		opener?.focus();
+	}
+
+	function openDialog(trigger: HTMLButtonElement) {
+		if (!dialog || !backdrop || !frame) return;
+		opener = trigger;
+		frame.src = frame.dataset.src ?? "";
+		backdrop.hidden = false;
+		dialog.hidden = false;
+		dialog.focus();
+	}
+
+	triggers.forEach((trigger) => trigger.addEventListener("click", () => openDialog(trigger)));
+	backdrop?.addEventListener("click", closeDialog);
+	document.addEventListener("keydown", (event) => {
+		if (event.key === "Escape" && dialog && !dialog.hidden) closeDialog();
+	});
+	window.addEventListener("message", (event) => {
+		if (event.origin !== window.location.origin) return;
+		const data = event.data as { type?: string } | null;
+		if (data?.type === "speed-chart:close") closeDialog();
+		if (data?.type === "speed-chart:applied") window.location.reload();
+	});
+</script>

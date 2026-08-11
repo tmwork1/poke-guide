@@ -1,8 +1,17 @@
-/* /box/[id] training screen layout. Component-specific styles remain with their parts. */
+/* /box/[id] is intentionally a mobile-only editing experience. */
+body.box-edit-page {
+  --topbar-height: 0px;
+}
+
+body.box-edit-page .app-topbar {
+  display: none;
+}
+
 .edit-layout-left,
 .edit-layout-right {
   min-width: 0;
 }
+
 .edit-layout-left .stat-adjustment-section {
   --stat-grid-template-columns:
     minmax(3.75rem, 1fr)
@@ -16,67 +25,21 @@
   --stat-ev-mobile-button-inline-size: 2.75rem;
   --stat-ev-mobile-button-block-size: 30px;
 }
-.edit-layout-right {
-  padding: var(--space-6) var(--space-5);
+
+.edit-shell:not([data-mobile-tab="damage"]) .edit-layout-right,
+.edit-shell[data-mobile-tab="damage"] .edit-layout-left {
+  display: none;
 }
 
-@media (max-width: 899px) {
-  body.box-edit-page .app-topbar {
-    display: none;
-  }
-  body.box-edit-page {
-    --topbar-height: 0px;
-    --mobile-second-bar-height: 53px;
-  }
-  .edit-shell:not([data-mobile-tab="damage"]) .edit-layout-right {
-    display: none;
-  }
-  .edit-shell[data-mobile-tab="damage"] .edit-layout-left {
-    display: none;
-  }
-  .edit-shell[data-mobile-tab="damage"] .edit-layout-right {
-    padding: var(--space-3) var(--space-3) 0;
-  }
-  .mobile-edit-actions {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: flex-end;
-    gap: var(--space-3);
-    padding: var(--space-4) var(--space-5) var(--space-5);
-  }
+.edit-shell[data-mobile-tab="damage"] .edit-layout-right {
+  padding: var(--space-3) var(--space-3) 0;
 }
 
-@media (min-width: 900px) {
-  .mobile-edit-actions {
-    display: none;
-  }
-}
-
-@media (min-width: 1200px) {
-  .edit-shell {
-    display: flex;
-    flex-direction: column;
-    min-height: calc(100vh - var(--topbar-height));
-  }
-  .edit-layout {
-    display: grid;
-    grid-template-columns: minmax(320px, 480px) 1fr;
-    gap: 1.4rem;
-    align-items: stretch;
-    flex: 1 1 auto;
-    min-height: 0;
-  }
-  .edit-layout-left {
-    height: 100%;
-  }
-}
-
-@media (min-width: 1600px) {
-  .edit-layout {
-    grid-template-columns: minmax(320px, 440px) minmax(520px, 1fr) minmax(
-        300px,
-        360px
-      );
-  }
+.mobile-edit-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5) var(--space-5);
 }

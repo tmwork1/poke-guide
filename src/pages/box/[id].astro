@@ -17,6 +17,7 @@ import LeftPanel from '../../components/box-id/LeftPanel.astro';
 import DamageCalcSection from '../../components/box-id/DamageCalcSection.astro';
 import RightPanel from '../../components/box-id/RightPanel.astro';
 import BulkAdjustDialog from '../../components/box-id/BulkAdjustDialog.astro';
+import SpeedAdjustDialog from '../../components/box-id/SpeedAdjustDialog.astro';
 import MobileTrainingBar from '../../components/box-id/MobileTrainingBar.astro';
 import '../../styles/box-edit-page.css';
 import { getSupabaseAdminClient, getSupabasePublicClient } from '../../lib/supabase';
@@ -635,6 +636,7 @@ const isOptedOut = optOutRemainingText !== "";
 			    開く。マークアップ・スタイルはBulkAdjustDialog.astro、ロジックは
 			    src/lib/box-id/bulk-adjust.tsに実装済み(このページ側はimportと配置のみ)。 */}
 			<BulkAdjustDialog />
+			<SpeedAdjustDialog pokemonId={pokemon.id} />
 			</>
 		)
 	}
@@ -657,21 +659,31 @@ const isOptedOut = optOutRemainingText !== "";
 	    このCSSで一緒に消える。消えたままだとモバイルから削除も非公開切り替えもできなくなるため、
 	    src/lib/box-id/mobile-edit-tabs.ts がDOMごとタブ本文側へ移設している(戻り先も保持済み)。 */}
 	<style is:global>
-		@media (max-width: 899px) {
-			body.box-edit-page .app-topbar { display: none; }
+		body.box-edit-page .app-topbar { display: none; }
 			/* UI改修依頼(モバイル、2026-08-09)「セカンドバーを画面上部へ戻す」。
 			   --topbar-height はトップバーの実測高さ(global.cssの:root)で、ポケモンプレビュー
 			   (.pokemon-preview の position:sticky; top)や .edit-shell の高さ計算が
 			   これを見る。トップバーを消した以上0にしないと、本文が画面上端から一段浮いてしまう。
-			   --mobile-second-bar-height は画面上端にstickyで貼り付くセカンドバー
-			   (.training-screen-bar、MobileTrainingBar.astro参照)の実測高さ。
+			   --second-bar-height は画面上端にstickyで貼り付くセカンドバー
+			   (.second-bar、MobileTrainingBar.astro参照)の実測高さ。
 			   ポケモンプレビューをその直下にstickyで貼り付けるためのtopオフセットに使う。
 			   値はdevサーバー+Playwrightの
 			   getBoundingClientRectで実測した53px(バー内のアイコン/ラベルの固定サイズで
 			   決まるため、画面幅やテキスト長では変わらない)。バーの構成を変えたら実測し直す。
 			   コンポーネントのscoped styleではなくここ(body)に置くことで、MobileTrainingBar.astro
 			   内の要素へカスタムプロパティのDOM継承で届く。 */
-			body.box-edit-page { --topbar-height: 0px; --mobile-second-bar-height: 53px; }
+		body.box-edit-page { --topbar-height: 0px; }
+		/* The editor intentionally keeps the compact tabbed layout at every width. */
+		.edit-shell:not([data-mobile-tab="damage"]) .edit-layout-right,
+		.edit-shell[data-mobile-tab="damage"] .edit-layout-left { display: none; }
+		.edit-shell[data-mobile-tab="damage"] .edit-layout-right { padding: var(--space-3) var(--space-3) 0; }
+		.mobile-edit-actions {
+			display: flex;
+			flex-wrap: wrap;
+			align-items: center;
+			justify-content: flex-end;
+			gap: var(--space-3);
+			padding: var(--space-4) var(--space-5) var(--space-5);
 		}
 	</style>
 

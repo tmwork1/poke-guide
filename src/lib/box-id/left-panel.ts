@@ -1885,6 +1885,11 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 	windowEl.hidden = true;
 	windowEl.setAttribute("role", "dialog");
 	windowEl.setAttribute("aria-label", "技を選択");
+	windowEl.setAttribute("aria-modal", "false");
+
+	const backdropEl = document.createElement("div");
+	backdropEl.className = "move-picker-backdrop";
+	backdropEl.hidden = true;
 
 	const headerEl = document.createElement("div");
 	headerEl.className = "move-picker-header";
@@ -1929,6 +1934,24 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 	headerEl.appendChild(closeButton);
 
 	windowEl.appendChild(headerEl);
+
+	const slotTabsEl = document.createElement("div");
+	slotTabsEl.className = "move-picker-slot-tabs";
+	for (const slot of [1, 2, 3, 4]) {
+		const slotButton = document.createElement("button");
+		slotButton.type = "button";
+		slotButton.className = "move-picker-slot-tab";
+		slotButton.dataset.slot = String(slot);
+		slotButton.textContent = `技${slot}`;
+		slotButton.addEventListener("click", () => {
+			activeSlot = slot;
+			titleEl.textContent = `技${slot}を選択`;
+			updateSlotTabs();
+			renderRows();
+		});
+		slotTabsEl.appendChild(slotButton);
+	}
+	windowEl.appendChild(slotTabsEl);
 
 	const noteEl = document.createElement("p");
 	noteEl.className = "move-picker-note";
@@ -2048,7 +2071,20 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 	// z-index:-1ではなくauto(position:fixedのみ)を使う。このウィンドウをbodyの
 	// 「先頭の子」として挿入することで、box/[id].astroがSSRで描画する`.card-damage`
 	// (position:relative、同じCSS区分(6))よりも必ずDOM順で先(=同区分内比較で背面)になる。
-	document.body.insertBefore(windowEl, document.body.firstChild);
+	document.body.insertBefore(backdropEl, document.body.firstChild);
+	document.body.insertBefore(windowEl, backdropEl.nextSibling);
+
+	function updateSlotTabs(): void {
+		for (const tab of Array.from(slotTabsEl.querySelectorAll<HTMLButtonElement>(".move-picker-slot-tab"))) {
+			const slot = Number(tab.dataset.slot);
+			const selected = slot === activeSlot;
+			const moveName = (document.getElementById(`move-${slot}`) as HTMLInputElement | null)?.value.trim();
+			tab.textContent = moveName || `技${slot}`;
+			tab.setAttribute("aria-label", `技${slot}: ${moveName || "未選択"}`);
+			tab.classList.toggle("is-selected", selected);
+			tab.setAttribute("aria-pressed", String(selected));
+		}
+	}
 
 	function updateSortButtonIndicators(): void {
 		for (const btn of Array.from(table.querySelectorAll<HTMLButtonElement>(".move-picker-sort-btn"))) {
@@ -2175,6 +2211,7 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 		// 一切変更していない)。
 		targetInput.dispatchEvent(new Event("input", { bubbles: true }));
 		targetInput.dispatchEvent(new Event("change", { bubbles: true }));
+		updateSlotTabs();
 		for (const el2 of Array.from(tbody.querySelectorAll(".move-picker-row.is-selected"))) {
 			el2.classList.remove("is-selected");
 		}
@@ -2399,15 +2436,19 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 		if (activeInput) reposition(activeInput);
 	}
 
-	function openPicker(slot: number, inputEl: HTMLInputElement): void {
+	function openPicker(slot: number, inputEl: HTMLInputElement, mobileModal = false): void {
 		// 幅の狭い画面(デスクトップ2カラム構成が成立しない1200px未満相当)では
 		// 「左パネルの右側に外付け」という前提が成立しない。この場合は開かず、
 		// 既存のdatalist(直接タイプ)による絞り込みだけを使ってもらう(壊さない)。
-		if (window.innerWidth < 900) return;
+		if (window.innerWidth < 900 && !mobileModal) return;
 		activeSlot = slot;
 		titleEl.textContent = `技${slot}を選択`;
+		windowEl.classList.toggle("is-mobile-modal", mobileModal);
+		windowEl.setAttribute("aria-modal", String(mobileModal));
+		backdropEl.hidden = !mobileModal;
+		updateSlotTabs();
 		windowEl.hidden = false;
-		reposition(inputEl);
+		if (!mobileModal) reposition(inputEl);
 		window.addEventListener("resize", onScrollOrResize);
 		window.addEventListener("scroll", onScrollOrResize, true);
 		void refreshPool();
@@ -2415,11 +2456,15 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 
 	function closePicker(): void {
 		windowEl.hidden = true;
+		windowEl.classList.remove("is-mobile-modal");
+		windowEl.setAttribute("aria-modal", "false");
+		backdropEl.hidden = true;
 		window.removeEventListener("resize", onScrollOrResize);
 		window.removeEventListener("scroll", onScrollOrResize, true);
 	}
 
 	closeButton.addEventListener("click", closePicker);
+	backdropEl.addEventListener("click", closePicker);
 	toggleInput.addEventListener("change", () => {
 		learnsetOnly = toggleInput.checked;
 		void refreshPool();
@@ -2448,6 +2493,11 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 		input.addEventListener("focus", () => openPicker(slot, input));
 		input.addEventListener("mousedown", () => openPicker(slot, input));
 	}
+
+	document.addEventListener("move-picker:open", () => {
+		const firstInput = document.getElementById("move-1") as HTMLInputElement | null;
+		if (firstInput) openPicker(1, firstInput, true);
+	});
 
 	// 匿名集計サジェスト機能: 種族変更に伴いloadPopularBuildSuggestionsがlastMoveSuggestionを
 	// 更新したとき、このウィンドウが開いていれば「人気」列・並び順を最新化する

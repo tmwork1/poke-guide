@@ -153,12 +153,11 @@ export function notifyDetailAbilityChanged(row: DamageRowState, abilityName: str
 }
 
 export function isWideSidebarLayout(): boolean {
-	return window.matchMedia("(min-width: 1600px)").matches;
+	return false;
 }
 // 1600px未満ではオーバーレイ(スライドイン+背景)として開閉する。
 // 1600px以上は常時表示の3カラム目なので開閉操作自体が不要。
 export function openDetailPanelOverlayIfNarrow(): void {
-	if (isWideSidebarLayout()) return;
 	detailPanelEl.classList.add("is-open");
 	detailBackdropEl.hidden = false;
 }

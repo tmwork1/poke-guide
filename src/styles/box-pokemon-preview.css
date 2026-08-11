@@ -4,68 +4,6 @@
   display: contents;
 }
 
-/* Training screen bar */
-
-.training-screen-bar {
-  --training-screen-bar-item-min-width: calc(var(--space-8) + var(--space-6));
-  --training-screen-bar-z-index: 20;
-  --training-screen-bar-border: 1px solid var(--color-border);
-  --training-screen-bar-item-line-height: 1;
-  --training-screen-bar-item-disabled-opacity: 0.6;
-  --training-screen-bar-icon-size: var(--icon-size-sm);
-  --training-screen-bar-icon-stroke-width: 2.05;
-
-  position: sticky;
-  top: var(--topbar-height);
-  z-index: var(--training-screen-bar-z-index);
-  background: var(--color-surface);
-  border-bottom: var(--training-screen-bar-border);
-}
-
-.training-screen-bar-list {
-  display: flex;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-
-.training-screen-bar-list::-webkit-scrollbar {
-  display: none;
-}
-
-.training-screen-bar-item {
-  display: flex;
-  flex: 1 0 var(--training-screen-bar-item-min-width);
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-1);
-  min-width: var(--training-screen-bar-item-min-width);
-  padding: var(--space-2) var(--space-1);
-  color: var(--color-text-muted);
-  font: inherit;
-  font-size: var(--font-size-xs);
-  line-height: var(--training-screen-bar-item-line-height);
-  white-space: nowrap;
-  cursor: pointer;
-  background: transparent;
-  border: 0;
-}
-
-.training-screen-bar-item[data-active="true"] {
-  color: var(--color-primary);
-}
-
-.training-screen-bar-item.is-disabled {
-  opacity: var(--training-screen-bar-item-disabled-opacity);
-  cursor: not-allowed;
-}
-
-.training-screen-bar-item svg {
-  width: var(--training-screen-bar-icon-size);
-  height: var(--training-screen-bar-icon-size);
-  stroke-width: var(--training-screen-bar-icon-stroke-width);
-}
-
 /* Pokemon preview */
 
 .pokemon-preview {
@@ -87,7 +25,7 @@
   --pokemon-preview-stats-font-weight: 500;
 
   position: sticky;
-  top: calc(var(--topbar-height) + var(--mobile-second-bar-height));
+  top: calc(var(--topbar-height) + var(--second-bar-height));
   z-index: var(--pokemon-preview-z-index);
   overflow: hidden;
   font-size: var(--pokemon-preview-font-size);
@@ -301,7 +239,8 @@
   display: none;
 }
 
-@media (max-width: 899px) {
+/* The box editor is mobile-only. */
+@media (min-width: 0) {
   #mobile-training-ui[data-mobile-tab="damage"] .pokemon-preview {
     display: none;
   }
@@ -322,13 +261,5 @@
     align-items: center;
     justify-content: flex-end;
     gap: var(--space-2);
-  }
-}
-
-@media (min-width: 900px) {
-  .training-screen-bar,
-  .pokemon-preview,
-  .mobile-damage-toolbar {
-    display: none;
   }
 }

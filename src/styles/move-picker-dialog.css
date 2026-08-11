@@ -1,0 +1,204 @@
+/* /box/[id] のわざ編集モーダル。
+ * 余白・文字サイズはこの変数だけを変更して調整できる。 */
+:root {
+  --move-picker-dialog-z-index: 100;
+  --move-picker-backdrop-z-index: 99;
+  --move-picker-dialog-inset: var(--space-3);
+  --move-picker-dialog-max-width: 42rem;
+  --move-picker-dialog-max-height: min(78dvh, 42rem);
+  --move-picker-dialog-radius: var(--radius-lg);
+
+  --move-picker-header-gap: var(--space-3);
+  --move-picker-header-padding: 0.6rem 0.8rem;
+  --move-picker-tabs-gap: var(--space-2);
+  --move-picker-tabs-padding: var(--space-2) var(--space-3);
+  --move-picker-note-padding: var(--space-2) 0.8rem;
+  --move-picker-table-header-padding: 0 0.4rem 0.35rem;
+  --move-picker-table-cell-padding: var(--space-1) 0.4rem;
+  --move-picker-empty-padding: var(--space-4);
+
+  --move-picker-title-size: var(--font-size-sm);
+  --move-picker-control-size: var(--font-size-xs);
+  --move-picker-table-size: var(--font-size-xs);
+  --move-picker-empty-size: var(--font-size-sm);
+  --move-picker-close-size: var(--font-size-lg);
+}
+
+.move-picker-window {
+  position: fixed;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-md);
+}
+
+.move-picker-window[hidden],
+.move-picker-backdrop[hidden],
+.move-picker-note[hidden] { display: none; }
+
+.move-picker-slot-tabs { display: none; }
+
+.move-picker-header {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: var(--move-picker-header-gap);
+  padding: var(--move-picker-header-padding);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.move-picker-title {
+  flex: 1 1 auto;
+  color: var(--color-text);
+  font-size: var(--move-picker-title-size);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.move-picker-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--color-text-muted);
+  font-size: var(--move-picker-control-size);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.move-picker-toggle .toggle-switch { width: 26px; height: 14px; }
+.move-picker-toggle .toggle-switch-thumb { width: 10px; height: 10px; }
+.move-picker-toggle .toggle-switch-input:checked + .toggle-switch-track .toggle-switch-thumb { transform: translateX(12px); }
+
+.move-picker-close {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: var(--move-picker-close-size);
+  line-height: 1;
+  cursor: pointer;
+}
+.move-picker-close:hover { background: var(--color-surface-alt); color: var(--color-text); }
+.move-picker-close:focus-visible,
+.move-picker-sort-btn:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 1px; }
+
+.move-picker-note {
+  flex-shrink: 0;
+  margin: 0;
+  padding: var(--move-picker-note-padding);
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  font-size: var(--move-picker-control-size);
+}
+
+.move-picker-table-wrap { flex: 1 1 auto; min-height: 0; margin: 0; overflow-y: auto; }
+.move-picker-table { width: 100%; border-spacing: 0; border-collapse: separate; font-size: var(--move-picker-table-size); }
+.move-picker-table thead th {
+  position: sticky;
+  z-index: 1;
+  top: 0;
+  padding: var(--move-picker-table-header-padding);
+  background: var(--color-surface);
+  box-shadow: inset 0 -1px 0 var(--color-border);
+  text-align: left;
+  vertical-align: top;
+}
+.move-picker-th { display: flex; align-items: center; gap: var(--space-1); }
+.move-picker-th-filter { min-width: 0; margin-top: 0; }
+.move-picker-th-filter input,
+.move-picker-th-filter select {
+  box-sizing: border-box;
+  width: auto;
+  min-width: 0;
+  max-width: 100%;
+  min-height: calc(var(--icon-size-sm) - var(--space-1));
+  height: calc(var(--icon-size-sm) - var(--space-1));
+  padding: 0;
+  font-size: var(--move-picker-control-size);
+  font-weight: 400;
+  field-sizing: content;
+}
+.move-picker-sort-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--color-text);
+  font-size: var(--move-picker-control-size);
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.move-picker-sort-btn::after { content: "↕"; color: var(--color-text-muted); font-size: var(--font-size-sm); }
+.move-picker-sort-btn.is-active::after { content: "↑"; color: var(--color-primary); }
+.move-picker-sort-btn.is-active[data-sort-dir="desc"]::after { content: "↓"; }
+.move-picker-table tbody td { padding: var(--move-picker-table-cell-padding); border-bottom: 1px solid var(--color-border); color: var(--color-text); }
+.move-picker-cell-num { font-variant-numeric: tabular-nums; text-align: right; }
+.move-picker-cell-type { display: flex; align-items: center; gap: var(--space-1); white-space: nowrap; }
+.move-picker-type-icon { flex-shrink: 0; border-radius: 50%; }
+.move-picker-row { cursor: pointer; }
+.move-picker-row:hover { background: var(--color-surface-alt); }
+.move-picker-row.is-selected { background: color-mix(in srgb, var(--color-primary) 18%, transparent); }
+.move-picker-row:focus-visible { outline: 2px solid var(--color-primary); outline-offset: -2px; }
+.move-picker-empty { margin: 0; padding: var(--move-picker-empty-padding); color: var(--color-text-muted); font-size: var(--move-picker-empty-size); text-align: center; }
+
+/* LeftPanel.astro の旧来のグローバル指定より優先し、上の変数を唯一の調整窓口にする。 */
+body .move-picker-title { font-size: var(--move-picker-title-size); }
+body .move-picker-toggle { font-size: var(--move-picker-control-size); }
+body .move-picker-close { font-size: var(--move-picker-close-size); }
+body .move-picker-note { padding: var(--move-picker-note-padding); font-size: var(--move-picker-control-size); }
+body .move-picker-table { font-size: var(--move-picker-table-size); }
+body .move-picker-table thead th { padding: var(--move-picker-table-header-padding); }
+body .move-picker-th-filter input,
+body .move-picker-th-filter select,
+body .move-picker-sort-btn { font-size: var(--move-picker-control-size); }
+body .move-picker-table tbody td { padding: var(--move-picker-table-cell-padding); }
+body .move-picker-empty { padding: var(--move-picker-empty-padding); font-size: var(--move-picker-empty-size); }
+
+@media (max-width: 899px) {
+  .move-picker-backdrop {
+    position: fixed;
+    z-index: var(--move-picker-backdrop-z-index);
+    inset: 0;
+    background: rgb(0 0 0 / 42%);
+  }
+  body .move-picker-window.is-mobile-modal {
+    z-index: var(--move-picker-dialog-z-index);
+    left: var(--move-picker-dialog-inset) !important;
+    top: 50% !important;
+    width: calc(100vw - (var(--move-picker-dialog-inset) * 2)) !important;
+    max-width: var(--move-picker-dialog-max-width);
+    max-height: var(--move-picker-dialog-max-height) !important;
+    transform: translateY(-50%);
+    border-radius: var(--move-picker-dialog-radius);
+  }
+  body .move-picker-slot-tabs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--move-picker-tabs-gap);
+    padding: var(--move-picker-tabs-padding);
+    border-bottom: 1px solid var(--color-border);
+  }
+  body .move-picker-slot-tab {
+    min-height: 2rem;
+    padding: 0 var(--space-2);
+    overflow: hidden;
+    font-size: var(--move-picker-title-size);
+    font-weight: 400;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  body .move-picker-slot-tab.is-selected { border-color: var(--color-primary); background: var(--color-primary); color: var(--color-on-primary, #fff); }
+}

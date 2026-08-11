@@ -94,6 +94,7 @@ const SUMMARY_NATURE_ID = 'speed-chart-owned-summary-nature';
 const SUMMARY_ITEM_ID = 'speed-chart-owned-summary-item';
 const SUMMARY_EVS_ID = 'speed-chart-owned-summary-evs';
 const SUMMARY_VALUE_ID = 'speed-chart-owned-summary-value';
+const SUMMARY_RAW_VALUE_ID = 'speed-chart-owned-summary-raw-value';
 const ERROR_BANNER_ID = 'speed-chart-owned-error';
 
 const NATURE_EFFECT_MODIFIER: Record<'up' | 'neutral' | 'down', number> = {
@@ -298,7 +299,13 @@ export function initOwnedPanel(ctx: OwnedPanelContext): OwnedPanelController {
     // 所有するR-12の方針どおり、ここでは表示だけを更新しスクロールは行わない)。
     const valueEl = document.getElementById(SUMMARY_VALUE_ID);
     if (valueEl) {
-      valueEl.textContent = `すばやさ ${currentValue}`;
+      const embedded = document.querySelector<HTMLElement>('.speed-chart-table')?.dataset.embedded === 'true';
+      valueEl.textContent = embedded ? String(currentValue) : `すばやさ ${currentValue}`;
+    }
+    const rawValueEl = document.getElementById(SUMMARY_RAW_VALUE_ID);
+    if (rawValueEl) {
+      const effect = getNatureSpeedEffect(currentNature);
+      rawValueEl.textContent = String(calcOtherStat(50, ctx.baseSpeed, 31, currentEvs[5] ?? 0, NATURE_EFFECT_MODIFIER[effect]));
     }
   }
 
@@ -458,11 +465,15 @@ export function initOwnedPanel(ctx: OwnedPanelContext): OwnedPanelController {
     // UI不具合修正(2026-08-06): flex直下のテキストノードをspanで包み、省略記号を確実に表示する。
       const label = document.createElement('span');
       label.className = 'speed-chart-apply-label';
-      label.textContent = buttonLabel;
+      const natureLabel = document.createElement('span');
+      natureLabel.textContent = selection.nature;
+      const evLabel = document.createElement('span');
+      evLabel.textContent = String(selection.evSpe);
+      label.append(natureLabel, evLabel);
       button.title = selection.usesScarf && ctx.scarfItemName
         ? `${buttonLabel} / ${ctx.scarfItemName}を使用`
         : `${buttonLabel} / すばやさ補正アイテムなし`;
-      button.append(createRefreshIcon(), label);
+      button.append(label);
       button.addEventListener('click', () => {
         void handleApply(selection, button);
       });
@@ -515,9 +526,12 @@ export function initOwnedPanel(ctx: OwnedPanelContext): OwnedPanelController {
       return;
     }
 
-    // 要件2(2026-08-01第2弾): 適用成功後は個体編集画面(/box/<id>)へ戻る。
-    // R-10で決めた「成功後もページに留まり続けて別の行を適用できる」はユーザー指示により撤回。
-    // 内部状態の更新・再描画は不要(このままページ遷移する)。
+    // 通常表示では従来どおり個体編集画面へ戻る。個体編集モーダル内(iframe)では親へ
+    // 保存完了を通知して親画面を更新させる。iframe自身を /box/:id へ遷移させない。
+    if (window.parent !== window) {
+      window.parent.postMessage({ type: 'speed-chart:applied', ownedId: ctx.ownedRecord.id }, window.location.origin);
+      return;
+    }
     window.location.href = `/box/${ctx.ownedRecord.id}`;
   }
 

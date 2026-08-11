@@ -249,6 +249,31 @@
 .box-grid .box-card .delete-button {
   display: none;
 }
+
+/* 長押し中は誤って編集画面へ遷移しないよう、削除だけを前面に出す。 */
+#owned-pokemon-list.is-card-delete-mode .box-card {
+  animation: card-delete-wiggle .16s ease-in-out infinite alternate;
+}
+#owned-pokemon-list.is-card-delete-mode .box-card .delete-button {
+  display: inline-flex;
+  pointer-events: auto;
+}
+#owned-pokemon-list.is-card-delete-mode .box-card .pin-toggle {
+  pointer-events: none;
+}
+
+@keyframes card-delete-wiggle {
+  from { transform: rotate(-.45deg); }
+  to { transform: rotate(.45deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #owned-pokemon-list.is-card-delete-mode .box-card {
+    animation: none;
+    outline: 2px solid var(--color-danger-strong);
+    outline-offset: 2px;
+  }
+}
 .box-grid .box-card .card-content-row {
   display: flex;
   align-items: var(--box-card-content-align-items);

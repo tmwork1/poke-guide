@@ -183,7 +183,8 @@
 		.damage-detail-backdrop { display: none !important; }
 		/* 今回のUI改修: 閉じるボタンが隠れるデスクトップでも、3モード共通のタイトル帯は残す。 */
 	}
-	@media (max-width: 899px) {
+	/* The editor uses this inline detail panel at every viewport width. */
+	@media (min-width: 0) {
 		.edit-layout-detail, .damage-detail-backdrop { display: none; }
 		.damage-detail-panel.is-mobile-inline {
 			position: static;

@@ -60,6 +60,10 @@ const { hasOwnedPanel, ownedId } = Astro.props;
 				<span id="speed-chart-owned-summary-nature" class="badge badge-muted"></span>
 				<span id="speed-chart-owned-summary-evs" class="badge badge-muted"></span>
 			</span>
+			<span class="speed-chart-owned-raw-value">
+				<span>すばやさ</span>
+				<strong id="speed-chart-owned-summary-raw-value" class="tnum"></strong>
+			</span>
 			{/* UI改修依頼(すばやさ早見表、2026-08-02)
 			    「S実数値 xxx を すばやさ xxx に変える」「現在地へ戻るボタンを削除し、この表示自体を
 			    ボタン化して同じ動作(現在地へスクロール)を担わせる」: 表示文言はowned-panel.tsの
@@ -78,6 +82,7 @@ const { hasOwnedPanel, ownedId } = Astro.props;
 				<button type="button" id="speed-chart-owned-jump-button" class="btn-ghost speed-chart-owned-jump-button" title="現在地へ戻る">移動</button>
 			</div>
 			{/* UI改修(2026-08-06): 保存対象に含めない表示専用のすばやさランク入力。 */}
+			<div class="speed-chart-owned-controls">
 			<div class="speed-chart-rank-field rank-field">
 				<label for="speed-chart-rank-input">ランク</label>
 				<input id="speed-chart-rank-input" type="number" min="-6" max="6" step="1" inputmode="numeric" value="0" />
@@ -92,15 +97,16 @@ const { hasOwnedPanel, ownedId } = Astro.props;
 						<input type="checkbox" id="speed-chart-ability-toggle" class="toggle-switch-input" aria-label="特性を考慮" />
 						<span class="toggle-switch-track" aria-hidden="true"><span class="toggle-switch-thumb"></span></span>
 					</span>
-					<span>特性を考慮</span>
+					<span>特性<span class="speed-chart-modifier-consider">を考慮</span></span>
 				</label>
 				<label class="speed-chart-owned-modifier-toggle">
 					<span class="toggle-switch">
 						<input type="checkbox" id="speed-chart-item-toggle" class="toggle-switch-input" aria-label="アイテムを考慮" checked />
 						<span class="toggle-switch-track" aria-hidden="true"><span class="toggle-switch-thumb"></span></span>
 					</span>
-					<span>アイテムを考慮</span>
+					<span>アイテム<span class="speed-chart-modifier-consider">を考慮</span></span>
 				</label>
+			</div>
 			</div>
 		</div>
 	)}
@@ -240,6 +246,7 @@ const { hasOwnedPanel, ownedId } = Astro.props;
 		align-items: center;
 		gap: var(--space-2);
 	}
+	.speed-chart-owned-raw-value { display: none; }
 	.speed-chart-owned-jump-button {
 		padding: 0.2em 0.5em;
 		font-size: var(--font-size-xs);
@@ -272,6 +279,7 @@ const { hasOwnedPanel, ownedId } = Astro.props;
 		flex-wrap: wrap;
 		gap: var(--space-1) var(--space-3);
 	}
+	.speed-chart-owned-controls { display: contents; }
 	.speed-chart-owned-modifier-toggle {
 		display: inline-flex;
 		align-items: center;

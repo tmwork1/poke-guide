@@ -499,10 +499,8 @@ export async function initSpeedChartPage(): Promise<void> {
   // 要件4: 現在のトグル状態(showReachableOnly)とlastKnownReachableValuesに基づき、
   // currentRowsを絞り込んでから描画する。レギュレーション切替・トグル切替の両方から呼ばれる。
   function renderVisibleRows(): void {
-    const rows =
-      hasOwnedPanel && showReachableOnly && lastKnownReachableValues
-        ? filterRowsByReachableValues(currentRows, lastKnownReachableValues)
-        : currentRows;
+    // すばやさ調整では候補を絞り込まず、常に全実数値を表示する。
+    const rows = currentRows;
     // UI改修依頼(すばやさ早見表、2026-08-02)要件2: currentRows/filterRowsByReachableValuesは
     // いずれも実数値降順を維持するため、昇順表示のときはここで配列を反転するだけでよい
     // (元配列は書き換えない。groups内の族降順など行内の並びは昇降どちらでも変えない)。
@@ -578,6 +576,7 @@ export async function initSpeedChartPage(): Promise<void> {
             chipWidthByName,
             chipOriginWidthByName,
             chipLayoutMetrics,
+			tableEl?.dataset.embedded === 'true',
           ),
         );
 
@@ -967,6 +966,7 @@ function buildChipsCell(
   chipWidthByName: Map<string, number>,
   chipOriginWidthByName: Map<string, number>,
   chipLayoutMetrics: ChipLayoutMetrics | null,
+  showAllChips: boolean,
 ): HTMLElement {
   const cell = document.createElement('div');
   cell.className = 'speed-chart-chips-cell';
@@ -992,18 +992,8 @@ function buildChipsCell(
     }
   }
 
-  const { kept } = chipLayoutMetrics
-    ? limitRowChipsByWidth(
-        orderedFormNames,
-        usageCounts,
-        baseSpeedByName,
-        effectiveWidthByName,
-        chipLayoutMetrics.gapWidth,
-        chipLayoutMetrics.containerWidth,
-        chipLayoutMetrics.overflowBadgeWidth,
-      )
-    : { kept: orderedFormNames };
-  const keptSet = new Set(kept);
+  // チップは常に全件表示する。収まらない場合は表示領域側で横スクロールさせる。
+  const keptSet = new Set(orderedFormNames);
 
   // droppedCountはlimitRowChipsByWidthの戻り値(フォルム名基準の件数)をそのまま使わず、
   // 「実際に描画しなかったエントリ数」で数え直す。上の近似により「名前が生き残る/落ちる」の
@@ -1019,7 +1009,7 @@ function buildChipsCell(
   const droppedCount = group.entries.length - renderedCount;
   // 足切りが起きたグループには必ず可視で件数を示す(黙って切ると「そのポケモンは居ない」と
   // 誤読されるため。stack.mdの「no silent caps」と同趣旨)。
-  if (droppedCount > 0) {
+  if (!showAllChips && droppedCount > 0) {
     const overflow = document.createElement('span');
     overflow.className = 'speed-chart-chip-overflow';
     overflow.textContent = `+${droppedCount}件`;

@@ -1,222 +1,150 @@
-/* /box page layout styles. Card design tokens live in box-card.css. */
+/* /box: モバイル用のポケモン一覧画面。カード本体の見た目は box-card.css に分離する。 */
 @import "./box-card.css";
+@import "./box-add-button.css";
 
-/* Toolbar */
-
-.toolbar-search {
-  flex: 0 1 26rem;
+/* ページ全体: .page.box-shell */
+.box-shell {
+  --box-search-control-size: 40px;
+  --box-add-control-size: 60px;
+  --box-floating-controls-gap: 20px;
+  --box-floating-controls-backdrop-padding-y: 10px;
+  /* 検索欄と追加ボタンの操作群を上下に移動するためのオフセット。 */
+  --box-floating-controls-offset-y: 24px;
+  min-height: 100dvh;
 }
 
-.toolbar-search input {
-  width: 100%;
-  min-width: 12em;
-}
-
-#sort-select-wrap .sort-icon {
-  transform-origin: center;
-}
-#sort-select-wrap[data-order="desc"] .sort-icon {
-  transform: rotate(180deg);
-}
-/* Stack toolbar controls on narrow screens. */
-@media (max-width: 640px) {
-  .toolbar-search {
-    flex-basis: auto;
-  }
-
-  .toolbar-search input,
-  .toolbar-regulation select,
-  .toolbar-sort select {
-    width: 100%;
-    min-width: 0;
-    flex: 1 1 0;
-  }
-}
-
-/* Card grid */
-
-.box-content {
-  padding: 0 var(--box-grid-edge-gap);
-}
+/* ページ見出し: h1.box-page-title（一覧はカードを先頭から表示するため非表示） */
 .box-page-title {
   display: none;
 }
 
-.box-grid {
-  display: grid;
-
-  grid-template-columns: repeat(
-    auto-fill,
-    minmax(0, var(--box-card-grid-column-size))
+/*
+ * 画面下部の検索領域: #box-toolbar
+ *
+ * DOM には件数・お気に入り・レギュレーション・並び順も含まれるが、
+ * この一覧画面では検索入力だけを表示する。右側は固定の追加ボタン分を空ける。
+ * 追加ボタンと同じ高さ・bottom値にすることで、Y方向の中心をそろえる。
+ */
+#box-toolbar {
+  position: fixed;
+  top: auto;
+  right: calc(var(--box-add-control-size) + var(--space-5) + var(--box-floating-controls-gap));
+  bottom: calc(
+    var(--bottom-nav-height) + var(--space-2) + env(safe-area-inset-bottom) +
+      var(--box-floating-controls-offset-y)
   );
-  gap: var(--box-card-grid-gap);
-  align-items: stretch;
-  margin-top: var(--space-6);
+  left: var(--space-5);
+  z-index: 16;
+  isolation: isolate;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
 }
 
-/* Keep dynamically rendered cards as direct grid children. */
+/* 検索欄だけに敷く背面レイヤー。ぼかしを保ちつつ、暗さだけを両端で自然に逃がす。 */
+#box-toolbar::before {
+  position: absolute;
+  top: calc(var(--box-floating-controls-backdrop-padding-y) * -1);
+  right: calc(var(--space-4) * -1);
+  bottom: calc(var(--box-floating-controls-backdrop-padding-y) * -1);
+  left: calc(var(--space-4) * -1);
+  z-index: -1;
+  content: "";
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse 78% 88% at 50% 50%,
+    rgba(10, 12, 16, 0.2) 0%,
+    rgba(10, 12, 16, 0.18) 48%,
+    rgba(10, 12, 16, 0.1) 72%,
+    rgba(10, 12, 16, 0.03) 88%,
+    transparent 100%
+  );
+  border-radius: var(--radius-lg);
+  backdrop-filter: blur(4px);
+}
+
+#box-toolbar .toolbar-item:not(.toolbar-search),
+#box-toolbar .search-icon {
+  display: none;
+}
+
+/* 検索入力の幅: .toolbar-search > .search-input-wrap > input#search-input */
+#box-toolbar .toolbar-search,
+#box-toolbar .search-input-wrap,
+#box-toolbar .toolbar-search input {
+  display: block;
+  width: 100%;
+  min-width: 0;
+}
+
+#box-toolbar .toolbar-search input {
+  height: var(--box-search-control-size);
+  padding: 0 var(--space-3);
+  color: #ffffff;
+  background: #20242d;
+  border-color: rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-md);
+  box-shadow:
+    0 3px 8px rgba(0, 0, 0, 0.2),
+    0 1px 2px rgba(0, 0, 0, 0.14);
+}
+
+#box-toolbar .toolbar-search input::placeholder {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+#box-toolbar .toolbar-search input:focus {
+  border-color: rgba(255, 255, 255, 0.24);
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* カード一覧の余白: .box-content（上下左右を共通の edge gap にする） */
+.box-content {
+  padding: var(--box-grid-edge-gap);
+  --box-grid-edge-gap: var(--space-2);
+}
+
+/* カードを3列で並べるグリッド: .box-content > .box-grid */
+.box-grid {
+  --box-card-grid-gap: var(--space-1);
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--box-card-grid-gap);
+  align-items: stretch;
+}
+
+/* 動的に描画するポケモンカードの差し込み先: #owned-pokemon-list */
 #owned-pokemon-list {
   display: contents;
 }
 
-/* Add Pokémon tile */
-.box-grid .add-card-tile {
-  flex-direction: column;
-  gap: var(--space-1);
-  font-size: var(--font-size-sm);
-  width: 100%;
-  aspect-ratio: 1 / 1;
-  padding: var(--space-2);
-  border-width: 1px;
-  transition:
-    border-color 0.15s,
-    color 0.15s,
-    background 0.15s;
-}
-.box-grid .add-card-tile:hover {
-  background: var(--color-primary-soft);
+/* 追加ボタン: button#add-pokemon-button.box-add-button（画面右下に固定） */
+.box-grid .box-add-button {
+  position: fixed;
+  right: var(--space-5);
+  bottom: calc(
+    var(--bottom-nav-height) + var(--space-2) + env(safe-area-inset-bottom) +
+      var(--box-floating-controls-offset-y) +
+      (var(--box-search-control-size) - var(--box-add-control-size)) * 0.5
+  );
+  z-index: 17;
+  --box-add-button-size: var(--box-add-control-size);
 }
 
-.box-grid .add-card-tile .add-card-tile-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  border: 1px solid var(--color-border);
-  font-size: 1.4rem;
-  font-weight: 300;
-  line-height: 1;
-  color: inherit;
-  transition: border-color 0.15s;
-}
-.box-grid .add-card-tile:hover .add-card-tile-icon {
-  border-color: var(--color-primary);
-}
-.box-grid .add-card-tile-label {
-  font-size: 0.9em;
-}
-.box-grid .add-card-tile-hint {
-  display: none;
-}
-/* Mobile grid and toolbar */
-@media (max-width: 899px) {
-  .box-shell {
-    min-height: 100dvh;
-  }
-  .box-page-title {
-    display: block;
-    margin: 0;
-    padding: var(--space-4) var(--space-5);
-    font-size: var(--font-size-lg);
-    font-weight: 500;
-    line-height: 1.25;
-  }
-  #box-toolbar {
-    position: fixed;
-    top: auto;
-    left: var(--space-5);
-    right: calc(56px + var(--space-5) * 3);
-    bottom: calc(
-      var(--bottom-nav-height) + var(--space-2) + env(safe-area-inset-bottom)
-    );
-    z-index: 16;
-    padding: 0;
-    background: transparent;
-    border: 0;
-    box-shadow: none;
-  }
-  #box-toolbar .toolbar-item:not(.toolbar-search) {
-    display: none;
-  }
-  #box-toolbar .toolbar-search,
-  #box-toolbar .search-input-wrap {
-    display: block;
-    width: 100%;
-  }
-  #box-toolbar .search-icon {
-    display: none;
-  }
-  #box-toolbar .toolbar-search input {
-    width: 100%;
-    min-width: 0;
-    height: 20px;
-    padding: 0 var(--space-3);
-    border-color: var(--color-primary);
-    border-radius: var(--radius-md);
-    background: var(--color-primary);
-    color: var(--color-primary-contrast);
-    box-shadow: var(--shadow-sm);
-  }
-  #box-toolbar .toolbar-search input::placeholder {
-    color: color-mix(in srgb, var(--color-primary-contrast) 76%, transparent);
-  }
-  #box-toolbar .toolbar-search input:focus {
-    border-color: var(--color-primary);
-    outline: 2px solid var(--color-primary);
-    outline-offset: 2px;
-  }
-  .box-content {
-    padding: 0 var(--box-grid-edge-gap) calc(56px + var(--space-5));
-  }
-  .box-grid {
-    margin-top: 0;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: var(--box-card-grid-gap);
-  }
-  .box-grid .add-card-tile {
-    position: fixed;
-    right: var(--space-5);
-    bottom: calc(
-      var(--bottom-nav-height) + var(--space-2) + env(safe-area-inset-bottom)
-    );
-    z-index: 15;
-    width: 56px;
-    height: 56px;
-    min-height: 56px;
-    aspect-ratio: 1 / 1;
-    padding: 0;
-    border-radius: 50%;
-    border-color: var(--color-primary);
-    background: var(--color-primary);
-    color: var(--color-primary-contrast);
-    box-shadow: var(--shadow-md);
-  }
-  .box-grid .add-card-tile:hover {
-    background: var(--color-primary-hover);
-    border-color: var(--color-primary-hover);
-  }
-  .box-grid .add-card-tile .add-card-tile-icon {
-    width: auto;
-    height: auto;
-    border: 0;
-    font-size: var(--font-size-2xl);
-    color: var(--color-primary-contrast);
-  }
-  .box-grid .add-card-tile-label,
-  .box-grid .add-card-tile-hint {
-    display: none;
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .box-grid .add-card-tile,
-  .box-grid .add-card-tile .add-card-tile-icon {
-    transition: none;
-  }
-}
-
-/* List state messages */
+/* 一覧の読み込み・エラー表示: #loading-message / #error-message */
 #loading-message,
 #error-message {
-  color: var(--color-text-muted);
   margin-top: var(--space-6);
+  color: var(--color-text-muted);
 }
 
 #error-message {
   color: var(--color-danger-strong);
 }
 
+/* 検索結果が0件の場合の空状態: #no-match-message */
 #no-match-message.empty-state {
   margin-top: var(--space-4);
 }

@@ -57,7 +57,7 @@ const user = Astro.locals.user;
 			user ? (
 				<Fragment>
 					<h1 class="box-page-title">ボックス</h1>
-					<div class="panel panel-top panel-toolbar" id="box-toolbar">
+					<div class="panel panel-top second-bar second-bar--toolbar" id="box-toolbar">
 						{/* UI改修依頼(ボックス画面、2026-08-02)「件数バッジ(#pokemon-count-badge)を
 						    現在の右端から検索ボックスの左へ移動する」。旧topbar-statusスロットの
 						    件数バッジ(旧位置は並べ替えの右、ツールバー末尾)をここ(ハンバーガー
@@ -146,7 +146,7 @@ const user = Astro.locals.user;
 						<p id="error-message" hidden></p>
 
 						<div class="box-grid">
-							<button type="button" class="add-card-tile" id="add-pokemon-button" aria-label="個体を追加">
+							<button type="button" class="add-card-tile box-add-button" id="add-pokemon-button" aria-label="個体を追加">
 								<span class="add-card-tile-icon" aria-hidden="true">＋</span>
 								<span class="add-card-tile-label">個体を追加</span>
 								<span class="add-card-tile-hint" hidden></span>
@@ -221,6 +221,7 @@ const user = Astro.locals.user;
 		} from "../../lib/stats";
 		import { kanaIncludes } from "../../lib/kana";
 		import { resolveDexNo } from "../../lib/species-dex";
+		import { initializeCardDeleteMode } from "../../lib/card-delete-mode";
 
 		interface OwnedPokemon {
 			id: string;
@@ -260,6 +261,9 @@ const user = Astro.locals.user;
 		}
 
 		const listRoot = document.getElementById("owned-pokemon-list");
+		if (listRoot instanceof HTMLElement) {
+			initializeCardDeleteMode(listRoot, ".box-card", ".delete-button");
+		}
 		if (listRoot) {
 			const loadingMessage = el<HTMLElement>("loading-message");
 			const errorMessage = el<HTMLElement>("error-message");

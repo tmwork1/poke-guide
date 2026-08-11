@@ -1,0 +1,76 @@
+/* ボックス編集ページのダメージタブ全体の配置と共通操作。 */
+
+body.box-edit-page .app-topbar-title {
+  display: none;
+}
+
+#opponent-notes-section {
+  min-width: 0;
+  container: damage-section / inline-size;
+}
+
+#opponent-notes-section .damage-rows-list {
+  gap: var(--space-3);
+  flex-direction: column;
+  display: flex;
+}
+
+#opponent-notes-section .damage-calc-engine-status {
+  font-size: var(--font-size-xs);
+  margin: 0 0 .4rem;
+}
+
+#opponent-notes-section .damage-calc-engine-status[hidden] {
+  display: none;
+}
+
+@media (width <= 899px) {
+  #opponent-notes-section .damage-rows-list {
+    padding-bottom: calc(56px + var(--bottom-nav-height) + var(--space-4));
+  }
+}
+
+/* トップバーの一括開閉ボタン。 */
+#damage-collapse-toggle-button {
+  left: 1376.78px;
+  top: calc(var(--topbar-height) / 2 - 1px);
+  z-index: 21;
+  font-size: var(--font-size-sm);
+  align-items: center;
+  gap: .32em;
+  display: flex;
+  position: fixed;
+  transform: translateY(-50%);
+}
+
+@media (width <= 1739px) {
+  #damage-collapse-toggle-button {
+    z-index: auto;
+    position: static;
+    top: auto;
+    left: auto;
+    transform: none;
+  }
+}
+
+#damage-collapse-toggle-button .damage-collapse-toggle-chevron {
+  font-size: 1.3rem;
+  font-weight: 600;
+  line-height: 1;
+  transition: transform .15s;
+  display: inline-block;
+}
+
+#damage-collapse-toggle-button[aria-expanded="true"] .damage-collapse-toggle-chevron {
+  transform: rotate(-90deg);
+}
+
+#damage-collapse-toggle-button[aria-expanded="false"] .damage-collapse-toggle-chevron {
+  transform: rotate(90deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #damage-collapse-toggle-button .damage-collapse-toggle-chevron {
+    transition: none;
+  }
+}

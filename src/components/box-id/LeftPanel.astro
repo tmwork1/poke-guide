@@ -10,6 +10,7 @@
 import type { OwnedPokemonRecord } from '../../lib/owned-pokemon';
 import { TERA_TYPES } from '../../lib/tera-types';
 import { REGULATIONS_NEWEST_FIRST, REGULATION_PLACEHOLDER, isTerastalRegulation } from '../../lib/regulations';
+import '../../styles/move-picker-dialog.css';
 
 interface Props {
 	pokemon: OwnedPokemonRecord;
@@ -371,9 +372,20 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		    全機能利用できるため、代替経路が失われるわけではない)。
 		    並び替えの実装はleft-panel.tsのsetupMoveReorderDrag()参照(値をスワップする方式、
 		    詳細は同関数のコメント)。 */}
-		<button type="button" class="mobile-move-toggle btn-ghost" aria-controls="mobile-move-fields" aria-expanded="false">
-			<span>わざ編集</span><span class="mobile-move-toggle-icon" aria-hidden="true">›</span>
-		</button>
+		<div class="mobile-move-actions">
+			<button type="button" class="mobile-move-toggle btn-ghost" aria-haspopup="dialog" aria-label="わざ編集を開く">
+				<span class="mobile-edit-action-label">わざ編集</span>
+			</button>
+			<button
+				type="button"
+				class="mobile-speed-adjust-button btn-ghost"
+				data-speed-adjust-trigger
+				aria-label="すばやさ早見表を開く"
+				title="すばやさ早見表を開く"
+			>
+				<span class="mobile-edit-action-label">すばやさ調整</span>
+			</button>
+		</div>
 		<div id="mobile-move-fields" class="field-grid move-fields-grid is-mobile-collapsed">
 			{MOVE_SLOTS.map((slot, i) => (
 				<div class="field">
@@ -642,15 +654,16 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 			<button type="button" id="bulk-adjust-button" class="btn-ghost stat-adjust-action-button" disabled>
 				<span class="bulk-adjust-button-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 4h-7"/><path d="M10 4H3"/><path d="M21 12h-9"/><path d="M8 12H3"/><path d="M21 20h-5"/><path d="M12 20H3"/><circle cx="12" cy="4" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="14" cy="20" r="2"/></svg></span><span class="bulk-adjust-button-label">耐久調整</span>
 			</button>
-			<a
+			<button
+				type="button"
 				class="btn-ghost stat-adjust-action-button"
-				href={`/speed-chart?owned=${pokemon.id}`}
+				data-speed-adjust-trigger
 				aria-label="すばやさ早見表を開く"
 				title="すばやさ早見表を開く"
 			>
 				<span class="stat-adjust-action-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.34 19a10 10 0 1 1 17.32 0"/><path d="m12 12 4-3"/></svg></span>
 				<span class="stat-adjust-action-label">すばやさ調整</span>
-			</a>
+			</button>
 		</div>
 		</div>
 		{/* ラウンド3 B-7: 「努力値合計」は要件により削除した。チャンピオンズルールは合計上限が
@@ -994,7 +1007,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	   (実数値ラッパーは自動配置で5列目に入り、.stat-table-headerとの列対応は崩れない)。
 	   ⚠️ 460px以下は.stat-rowが4列グリッド(実数値が4列目)に切り替わるため、
 	   下の@media (max-width: 460px)側で grid-column を3列目単独へ戻している。 */
-	@media (max-width: 899px) {
+	@media (min-width: 0) {
 		.stat-row .stat-ev-range-controls input[type="range"] { display: none; }
 		.stat-row .stat-ev-step-button { display: inline-flex; }
 		.stat-row .stat-input-controls { display: flex; align-items: center; justify-content: flex-end; gap: var(--space-1); min-width: 0; grid-column: 3 / 5; }
@@ -1421,7 +1434,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	/* 🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08)「耐久最大化・耐久調整・すばやさ調整の
 	   3ボタンをモバイルで非表示にする」対応。マークアップ(<div class="stat-adjust-actions">、
 	   LeftPanel.astro本体側)自体・デスクトップでの表示は変更せず、899px以下だけdisplay:noneにする。 */
-	@media (max-width: 899px) {
+	@media (min-width: 0) {
 		.stat-adjust-actions { display: none; }
 	}
 
@@ -2412,17 +2425,39 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		}
 		.item-image-badge[hidden] { display: none; }
 
+	.mobile-move-actions { display: none; }
 	.mobile-move-toggle { display: none; }
-	@media (max-width: 899px) {
+	.mobile-speed-adjust-button { display: none; }
+	@media (min-width: 0) {
 		.top-block-icon { display: none; }
 		.top-block-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+		.mobile-move-actions {
+			display: grid;
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+			gap: var(--space-2);
+			margin-top: var(--space-6);
+		}
 		.mobile-move-toggle {
 			display: flex;
 			align-items: center;
-			justify-content: space-between;
+			justify-content: center;
 			width: 100%;
-			margin-top: var(--space-6);
-			font-size: var(--font-size-md);
+			margin-top: 0;
+			font: inherit;
+			font-size: var(--font-size-sm);
+			font-weight: 400;
+			line-height: 1;
+		}
+		.mobile-speed-adjust-button {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			width: 100%;
+			box-sizing: border-box;
+			font: inherit;
+			font-size: var(--font-size-sm);
+			font-weight: 400;
+			line-height: 1;
 		}
 		/* 🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08)「わざ編集ボタンを横幅いっぱいの
 		   見た目にする」対応。899px以下では既にwidth:100%が指定済みだが、.btn-ghost(透明背景)
@@ -2432,18 +2467,18 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		   var(--color-border) + background: var(--color-surface)、hoverでvar(--color-surface-alt))を
 		   流用し、.btn-ghost側の透明化上書き(background: transparent; border-color: transparent;
 		   color: var(--color-text-muted))だけを打ち消す。新しい色・トークンは作らない。 */
-		.mobile-move-toggle {
+		.mobile-move-toggle,
+		.mobile-speed-adjust-button {
 			background: var(--color-surface);
 			border-color: var(--color-border);
 			color: var(--color-text);
 		}
-		.mobile-move-toggle:hover:not(:disabled) {
+		.mobile-move-toggle:hover:not(:disabled),
+		.mobile-speed-adjust-button:hover {
 			background: var(--color-surface-alt);
 			border-color: var(--color-border);
 			color: var(--color-text);
 		}
-		.mobile-move-toggle-icon { color: var(--color-text-muted); }
-		.mobile-move-toggle[aria-expanded="true"] .mobile-move-toggle-icon { transform: rotate(90deg); }
 		#edit-form .move-fields-grid.is-mobile-collapsed { display: none; }
 		#edit-form .move-fields-grid.is-mobile-collapsed + .stat-adjustment-section {
 			margin-top: var(--space-5);
@@ -2516,8 +2551,6 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
     常に前面になる)」へ変更した。詳細な実測値・ジオメトリの説明はsrc/lib/box-id/left-panel.ts
     の reposition() 直前のコメントに集約したので、位置計算を読む場合はそちらを参照。 */}
 <style is:global>
-	.move-picker-window {
-		position: fixed;
 		/* UI改修依頼(個体編集左パネル)「技選択テーブルは左パネルの右側に併設する」対応で
 		   z-index:autoから明示的な正の値へ変更した。ラウンド38時点はz-index:autoのまま
 		   (このブロック直前のコメント参照)`.card-damage`に必ず負けるDOM順の背面側に留めることで
@@ -2527,24 +2560,59 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		   `.app-sidebar`(z-index:30)・`#damage-detail-panel`(z-index:60)より小さい値にして
 		   常時最前面のその2つには引き続き負ける(reposition()側でこの2つとの幾何的な重なり
 		   自体を避ける設計は変えていないが、保険としても安全側)。 */
+	.move-picker-window {
+		position: fixed;
 		z-index: 10;
 		display: flex;
 		flex-direction: column;
-		background: var(--color-surface);
+		overflow: hidden;
 		border: 1px solid var(--color-border);
 		border-radius: var(--radius-md);
+		background: var(--color-surface);
 		box-shadow: var(--shadow-md);
-		overflow: hidden;
 	}
 	.move-picker-window[hidden] { display: none; }
+	.move-picker-backdrop[hidden] { display: none; }
+	.move-picker-slot-tabs { display: none; }
 
-	.move-picker-header {
-		display: flex;
-		align-items: center;
-		gap: var(--space-3);
-		padding: 0.6rem 0.8rem;
-		border-bottom: 1px solid var(--color-border);
-		flex-shrink: 0;
+	@media (max-width: 899px) {
+		.move-picker-backdrop {
+			position: fixed;
+			inset: 0;
+			z-index: 99;
+			background: rgb(0 0 0 / 42%);
+		}
+		.move-picker-window.is-mobile-modal {
+			z-index: 100;
+			left: var(--space-3) !important;
+			top: 50% !important;
+			width: calc(100vw - (var(--space-3) * 2)) !important;
+			max-width: 42rem;
+			max-height: min(78dvh, 42rem) !important;
+			transform: translateY(-50%);
+			border-radius: var(--radius-lg);
+		}
+		.move-picker-slot-tabs {
+			display: grid;
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+			gap: var(--space-2);
+			padding: var(--space-2) var(--space-3);
+			border-bottom: 1px solid var(--color-border);
+		}
+		.move-picker-slot-tab {
+			min-height: 2rem;
+			padding: 0 var(--space-2);
+			font-size: var(--font-size-sm);
+			font-weight: 400;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			white-space: nowrap;
+		}
+		.move-picker-slot-tab.is-selected {
+			background: var(--color-primary);
+			border-color: var(--color-primary);
+			color: var(--color-on-primary, #fff);
+		}
 	}
 	.move-picker-title {
 		font-weight: 700;
@@ -2744,10 +2812,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	import "../../lib/box-id/left-panel";
 
 	const moveToggle = document.querySelector<HTMLButtonElement>(".mobile-move-toggle");
-	const moveFields = document.getElementById("mobile-move-fields");
 	moveToggle?.addEventListener("click", () => {
-		const expanded = moveToggle.getAttribute("aria-expanded") === "true";
-		moveToggle.setAttribute("aria-expanded", String(!expanded));
-		moveFields?.classList.toggle("is-mobile-collapsed", expanded);
+		document.dispatchEvent(new CustomEvent("move-picker:open"));
 	});
 </script>
