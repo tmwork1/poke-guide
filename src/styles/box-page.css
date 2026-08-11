@@ -19,15 +19,6 @@
   --box-grid-edge-gap: var(--space-2);
 }
 
-/* カードを3列で並べるグリッド: .box-content > .box-grid */
-.box-grid {
-  --box-card-grid-gap: var(--space-1);
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--box-card-grid-gap);
-  align-items: stretch;
-}
-
 /* 動的に描画するポケモンカードの差し込み先: #owned-pokemon-list */
 #owned-pokemon-list {
   display: contents;
