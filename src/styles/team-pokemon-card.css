@@ -51,11 +51,9 @@
 
 .team-overview-thumb-grid .team-overview-preview-card {
 	--pokemon-preview-padding: calc(var(--space-5) / 3);
-	--pokemon-preview-type-icon-size: 1.1em;
-	--pokemon-preview-move-type-icon-size: 1.4em;
+	--pokemon-preview-move-type-icon-size: 1.3em;
 	--pokemon-preview-item-icon-size: 1.5em;
 	--team-card-item-badge-size: var(--pokemon-preview-item-icon-size);
-	--team-card-item-badge-inset: var(--space-1);
 	--team-card-item-gap: calc(var(--space-1) / 2);
 	--team-card-item-gutter: calc(var(--team-card-item-badge-size) + var(--team-card-item-gap));
 	--team-card-sprite-size: 8rem;
