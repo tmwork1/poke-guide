@@ -4164,6 +4164,9 @@ const initialTeamJson = team
 					main.className = "pokemon-preview-main";
 					const left = document.createElement("div");
 					left.className = "pokemon-preview-left";
+					const nameEl = document.createElement("div");
+					nameEl.className = "pokemon-preview-name";
+					nameEl.textContent = p.nickname?.trim() || p.species_name;
 					const details = document.createElement("div");
 					details.className = "pokemon-preview-details";
 					const ability = document.createElement("div");
@@ -4194,7 +4197,7 @@ const initialTeamJson = team
 						move.textContent = "-";
 						moves.appendChild(move);
 					}
-					left.append(details, moves);
+					left.append(nameEl, details, moves);
 					const identity = document.createElement("div");
 					identity.className = "pokemon-preview-identity";
 					const spriteWrap = document.createElement("div");

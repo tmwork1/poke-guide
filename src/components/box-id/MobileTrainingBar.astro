@@ -9,9 +9,10 @@ import '../../styles/box-pokemon-preview.css';
 interface Props {
   pokemon: OwnedPokemonRecord;
   activeTab?: 'training' | 'data';
+  backHref?: string;
 }
 
-const { pokemon, activeTab = 'training' } = Astro.props;
+const { pokemon, activeTab = 'training', backHref = '/box' } = Astro.props;
 const moves = pokemon.move_names ?? [];
 const master = (pokemonMasterRaw as Array<{name:string;imageId:number}>).find((entry) => entry.name === pokemon.species_name);
 const detail = (pokemonDetailRaw as Array<{name:string;baseStats:number[]}>).find((entry) => entry.name === pokemon.species_name);
@@ -23,7 +24,7 @@ const previewStats = detail ? statKeys.map((key, index) => index === 0 ? calcHpS
 <div class="mobile-training-ui" id="mobile-training-ui" data-mobile-tab={activeTab}>
   <nav class="second-bar" id="mobile-training-bar" aria-label="個体編集メニュー">
     <div class="second-bar__list">
-      <a class="second-bar__item" href="/box">戻る</a>
+      <a class="second-bar__item" href={backHref}>戻る</a>
       {activeTab === 'data' ? (
         <a class="second-bar__item" href={`/box/${encodeURIComponent(pokemon.id)}`}><span>育成</span></a>
       ) : (
