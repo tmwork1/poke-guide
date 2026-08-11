@@ -59,7 +59,7 @@
 	--team-card-sprite-size: 8rem;
 	--team-card-sprite-opacity: 0.5;
 	/* Name (nickname or species name) */
-	--team-card-name-font-size: var(--font-size-sm3);
+	--team-card-name-font-size: var(--font-size-sm2);
 	--team-card-name-font-weight: 600;
 	--team-card-name-line-height: 1.6;
 	--team-card-name-color: var(--color-text);
@@ -79,7 +79,7 @@
 	/* Vertical spacing between the name, ability, and move list */
 	--team-card-left-content-gap: calc(var(--space-1) / 2);
 	/* Stats table labels and values */
-	--team-card-stats-label-font-size: var(--font-size-sm3);
+	--team-card-stats-label-font-size: var(--font-size-sm4);
 	--team-card-stats-label-font-weight: 500;
 	--team-card-stats-label-line-height: 1;
 	--team-card-stats-label-color: var(--color-text-muted);
@@ -349,4 +349,70 @@
 
 .team-overview-preview-card .pokemon-preview-stat-value[data-mod="down"] {
 	color: var(--team-card-stats-value-color-down);
+}
+
+/* モバイル編成タブのチームメイトカード。詳細プレビューとは分離し、公式絵と持ち物だけを表示する。 */
+.team-mate-card {
+	position: relative;
+	display: flex;
+	min-width: 0;
+	aspect-ratio: 1 / 1;
+	align-items: center;
+	justify-content: center;
+	padding: var(--space-1);
+	overflow: hidden;
+	color: var(--color-text);
+	background: var(--color-surface-alt);
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius-sm);
+	cursor: pointer;
+}
+.team-mate-card:hover,
+.team-mate-card:focus-visible,
+.team-mate-card.is-selected {
+	border-color: var(--color-primary);
+	outline: 2px solid var(--color-primary);
+	outline-offset: -2px;
+}
+.team-mate-card--empty {
+	border-style: dashed;
+	color: var(--color-text-muted);
+	font-size: var(--font-size-sm2);
+	font-weight: 700;
+}
+.team-mate-card__art {
+	width: 100%;
+	height: 100%;
+	object-fit: contain;
+}
+.team-mate-card__fallback {
+	display: none;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+	height: 100%;
+	border-radius: 50%;
+	background: var(--color-primary-soft);
+	color: var(--color-primary);
+	font-size: var(--font-size-sm2);
+	font-weight: 700;
+}
+.team-mate-card__item {
+	position: absolute;
+	right: 0;
+	bottom: 0;
+	display: flex;
+	width: 36%;
+	aspect-ratio: 1;
+	align-items: center;
+	justify-content: center;
+	padding: 2px;
+	background: var(--color-surface);
+	border: 1px solid var(--color-border);
+	border-radius: 50%;
+}
+.team-mate-card__item img {
+	width: 100%;
+	height: 100%;
+	object-fit: contain;
 }

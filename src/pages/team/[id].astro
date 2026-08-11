@@ -13,6 +13,7 @@ import { getSupabaseAdminClient } from '../../lib/supabase';
 import { getTeam, type Team } from '../../lib/team';
 import '../../styles/team-pokemon-card.css';
 import '../../styles/team-pokemon-tab.css';
+import '../../styles/box-card.css';
 // 🔴 UI改修依頼(チーム編集画面、2026-08-01)「個体編集と同様にレギュレーション指定機能を追加」。
 // 候補は jpoke 由来の一覧(src/lib/regulations.ts)。画面側でレギュレーション名を
 // ハードコードしない(box/[id].astro の左パネルと同じ方針)。
@@ -1000,6 +1001,29 @@ const initialTeamJson = team
 						</div>
 					</aside>
 				</div>
+				<section id="team-formation-mobile" aria-label="チーム編成">
+					<div class="team-formation-mobile__mates" aria-label="チームメイト">
+						<div id="team-formation-mobile-slots" class="team-formation-mobile__slot-grid"></div>
+					</div>
+					<div class="team-formation-mobile__box">
+						<div class="team-formation-mobile__toolbar">
+							<div class="search-input-wrap">
+								<svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+									<circle cx="11" cy="11" r="7" />
+									<line x1="21" y1="21" x2="16.65" y2="16.65" />
+								</svg>
+								<input id="team-formation-mobile-search" class="field-control" type="search" placeholder="ポケモンを検索" aria-label="ポケモンを検索" autocomplete="off" />
+							</div>
+						</div>
+						<p id="team-formation-mobile-status" class="status-text" hidden></p>
+						<div id="team-formation-mobile-box-grid" class="box-grid">
+							<button id="team-formation-mobile-add" class="add-card-tile" type="button" aria-label="個体を追加">
+								<span class="add-card-tile-icon" aria-hidden="true">＋</span>
+								<span class="add-card-tile-label">個体を追加</span>
+							</button>
+						</div>
+					</div>
+				</section>
 				</div>
 			)
 		}
@@ -2445,6 +2469,12 @@ const initialTeamJson = team
 			const dedupeToggle = el<HTMLInputElement>("team-select-dedupe-toggle");
 			const favoriteFilterToggle = el<HTMLInputElement>("favorite-filter-toggle");
 			const slotsRoot = el<HTMLElement>("team-slots");
+			const formationMobileSlotsRoot = el<HTMLElement>("team-formation-mobile-slots");
+			const formationMobileSearchInput = el<HTMLInputElement>("team-formation-mobile-search");
+			const formationMobileAddButton = el<HTMLButtonElement>("team-formation-mobile-add");
+			const formationMobileStatus = el<HTMLElement>("team-formation-mobile-status");
+			const formationMobileBoxGrid = el<HTMLElement>("team-formation-mobile-box-grid");
+			let selectedFormationSlot: number | null = null;
 
 			const searchInput = el<HTMLInputElement>("pokemon-search-input");
 			const sortSelect = el<HTMLSelectElement>("pokemon-sort-select");
@@ -3803,6 +3833,7 @@ const initialTeamJson = team
 				membersBySlot.set(slot, p);
 				renderSlots();
 				renderSelectList();
+				renderFormationMobile();
 				scheduleSave();
 				refreshCollectionOptOutToggle();
 				// 編成が変わったのでサジェストを取り直す(2026-08-02)。
@@ -3825,6 +3856,7 @@ const initialTeamJson = team
 				else membersBySlot.delete(toSlot);
 				renderSlots();
 				renderSelectList();
+				renderFormationMobile();
 				scheduleSave();
 			}
 
@@ -3920,6 +3952,7 @@ const initialTeamJson = team
 				membersBySlot.delete(slot);
 				renderSlots();
 				renderSelectList();
+				renderFormationMobile();
 				scheduleSave();
 				refreshCollectionOptOutToggle();
 				// 編成が変わったのでサジェストを取り直す(2026-08-02)。
@@ -4260,6 +4293,159 @@ const initialTeamJson = team
 							statsValueLine.appendChild(value);
 						}
 					});
+				}
+			}
+
+			function renderFormationMobile(): void {
+				formationMobileSlotsRoot.innerHTML = "";
+				for (let slot = 1; slot <= 6; slot += 1) {
+					const member = membersBySlot.get(slot);
+					const card = document.createElement("button");
+					card.type = "button";
+					card.className = "team-mate-card";
+					card.dataset.slot = String(slot);
+					card.setAttribute("aria-pressed", String(selectedFormationSlot === slot));
+					if (selectedFormationSlot === slot) card.classList.add("is-selected");
+					card.addEventListener("click", () => {
+						selectedFormationSlot = selectedFormationSlot === slot ? null : slot;
+						renderFormationMobile();
+					});
+
+					if (!member) {
+						card.classList.add("team-mate-card--empty");
+						card.setAttribute("aria-label", `${slot}番目の空き枠を選択`);
+						card.textContent = String(slot);
+					} else {
+						card.setAttribute("aria-label", `${displayName(member)}、${slot}番目の枠を選択`);
+						const sprite = document.createElement("img");
+						sprite.className = "team-mate-card__art";
+						sprite.alt = "";
+						sprite.style.display = "none";
+						const fallback = document.createElement("span");
+						fallback.className = "team-mate-card__fallback";
+						card.append(sprite, fallback);
+						void applySprite(sprite, fallback, member.species_name);
+						const itemName = member.item_name?.trim() ?? "";
+						if (itemName) {
+							const item = document.createElement("span");
+							item.className = "team-mate-card__item";
+							const itemImg = document.createElement("img");
+							itemImg.alt = "";
+							itemImg.style.display = "none";
+							item.appendChild(itemImg);
+							card.appendChild(item);
+							void applyItemIcon(itemImg, itemName, item);
+						}
+					}
+					formationMobileSlotsRoot.appendChild(card);
+				}
+
+				formationMobileBoxGrid.replaceChildren(formationMobileAddButton);
+				const term = formationMobileSearchInput.value.trim();
+				for (const p of allPokemon.filter((candidate) => matchesSearch(candidate, term))) {
+					const card = document.createElement("button");
+					card.type = "button";
+					card.className = "card box-card card-pokemon";
+					const memberSlot = Array.from(membersBySlot.entries()).find(([, member]) => member.id === p.id)?.[0];
+					card.setAttribute("aria-label", `${displayName(p)}${memberSlot ? `、${memberSlot}番目の枠に編成済み` : "を編成"}`);
+					card.addEventListener("click", () => {
+						if (selectedFormationSlot != null) {
+							const targetSlot = selectedFormationSlot;
+							selectedFormationSlot = null;
+							renderFormationMobile();
+							assignToSlot(p, targetSlot);
+						} else if (memberSlot != null) {
+							removeMemberFromSlot(memberSlot);
+						} else {
+							assignToSlot(p);
+						}
+					});
+					const art = document.createElement("div");
+					art.className = "card-artwork";
+					const sprite = document.createElement("img");
+					sprite.alt = "";
+					sprite.style.display = "none";
+					const fallback = document.createElement("span");
+					fallback.style.cssText = "display:none;width:100%;height:100%;align-items:center;justify-content:center;";
+					art.append(sprite, fallback);
+					void applySprite(sprite, fallback, p.species_name);
+					card.appendChild(art);
+
+					const itemBadge = document.createElement("span");
+					itemBadge.className = "card-item-badge";
+					itemBadge.hidden = true;
+					const itemImg = document.createElement("img");
+					itemImg.alt = "";
+					itemBadge.appendChild(itemImg);
+					card.appendChild(itemBadge);
+					void applyItemIcon(itemImg, p.item_name?.trim() ?? "", itemBadge);
+
+					const body = document.createElement("div");
+					body.className = "card-body";
+					body.setAttribute("aria-hidden", "true");
+					const nameRow = document.createElement("div");
+					nameRow.className = "card-name-row";
+					const name = document.createElement("p");
+					name.className = "card-name";
+					name.textContent = displayName(p);
+					nameRow.appendChild(name);
+					body.appendChild(nameRow);
+
+					const movesGrid = document.createElement("div");
+					movesGrid.className = "card-moves-grid";
+					const moveTypeIconEntries: { iconEl: HTMLImageElement; visibilityEl: HTMLElement; moveName: string }[] = [];
+					for (const moveName of p.move_names.filter((move) => move && move.trim() !== "")) {
+						const move = document.createElement("span");
+						move.className = "card-move-chip";
+						const moveTypeIcon = document.createElement("img");
+						moveTypeIcon.className = "card-move-type-icon";
+						moveTypeIcon.alt = "";
+						moveTypeIcon.hidden = true;
+						move.appendChild(moveTypeIcon);
+						moveTypeIconEntries.push({ iconEl: moveTypeIcon, visibilityEl: moveTypeIcon, moveName });
+						const moveText = document.createElement("span");
+						moveText.className = "card-move-chip-text";
+						moveText.textContent = moveName;
+						move.appendChild(moveText);
+						movesGrid.appendChild(move);
+					}
+					void applySelectMoveChipTypeIcons(moveTypeIconEntries);
+					const contentRow = document.createElement("div");
+					contentRow.className = "card-content-row";
+					contentRow.appendChild(movesGrid);
+					body.appendChild(contentRow);
+					card.appendChild(body);
+					if (memberSlot != null) {
+						const badge = document.createElement("span");
+						badge.className = "team-formation-mobile__member-badge";
+						badge.textContent = `${memberSlot}番`;
+						card.appendChild(badge);
+					}
+					formationMobileBoxGrid.appendChild(card);
+				}
+			}
+
+			async function createFormationMobilePokemon(): Promise<void> {
+				formationMobileAddButton.disabled = true;
+				formationMobileStatus.hidden = true;
+				try {
+					const res = await fetch("/api/owned-pokemon", {
+						method: "POST",
+						credentials: "same-origin",
+						headers: { "Content-Type": "application/json" },
+						body: JSON.stringify({ nickname: "", species_name: "", level: null, nature: "", ability_name: "", item_name: "", tera_type: "", regulation: "", evs: [0, 0, 0, 0, 0, 0], ivs: [31, 31, 31, 31, 31, 31], move_names: [], memo: "", tags: [], is_pinned: false }),
+					});
+					const body = (await res.json().catch(() => ({}))) as { data?: OwnedPokemonRecord; error?: string };
+					if (!res.ok || !body.data) throw new Error(body.error ?? `個体を追加できませんでした (status=${res.status})`);
+					allPokemon = [body.data, ...allPokemon];
+					renderSelectList();
+					renderFormationMobile();
+				} catch (err) {
+					console.error(err);
+					formationMobileStatus.textContent = "個体を追加できませんでした。時間をおいて再度お試しください。";
+					formationMobileStatus.hidden = false;
+				} finally {
+					formationMobileAddButton.disabled = false;
 				}
 			}
 
@@ -4790,6 +4976,8 @@ const initialTeamJson = team
 			});
 			memoInput.addEventListener("input", scheduleSave);
 			searchInput.addEventListener("input", renderSelectList);
+			formationMobileSearchInput.addEventListener("input", renderFormationMobile);
+			formationMobileAddButton.addEventListener("click", () => void createFormationMobilePokemon());
 			sortSelect.addEventListener("change", renderSelectList);
 			// 編成変更時は既存の追加・削除経路が再描画するため、トグル操作だけを追加する。
 			dedupeToggle.addEventListener("change", renderSelectList);
@@ -4874,6 +5062,7 @@ const initialTeamJson = team
 			// --- 初期化 ---
 			// SSR取得済みのメンバーは fetch を待たずに即描画する(6枠が空でも一瞬も待たせない)。
 			renderSlots();
+			renderFormationMobile();
 			refreshCollectionOptOutToggle();
 			// サジェスト(2026-08-02)。SSR時点のメンバーだけで先に問い合わせられるので、
 			// 個体一覧のfetch完了は待たない。ただし「手持ちにあるか」の判定(findOwnedMatch)は
@@ -4896,6 +5085,7 @@ const initialTeamJson = team
 					}
 					selectLoadingMessage.hidden = true;
 					renderSelectList();
+					renderFormationMobile();
 					refreshCollectionOptOutToggle();
 					// サジェストの操作ボタンは「手持ちに一致する個体があるか」で文言が変わる
 					// (findOwnedMatch)。その判定材料である allPokemon が今届いたので、

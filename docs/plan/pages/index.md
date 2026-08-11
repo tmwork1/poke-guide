@@ -6,7 +6,8 @@
 
 ## 状態
 
-- **進行中: なし**(2026-08-06 時点)
+- **進行中: なし**(2026-08-11 時点)
+- **直近の完了: チーム編集ページのモバイル「編成」タブ追加**(2026-08-11)。`docs/plan/pages/team.md`「モバイル編成タブの追加(2026-08-11)」節。受け入れ基準24〜30を全件pass(Coordinator実測)
 - **直近の完了: 上位構築(`/ranked-teams`)** → `docs/plan/pages/ranked-teams.md`(2026-08-06 P1〜P6完了。受け入れ基準29件のうち28件をCoordinatorが実測でpass判定、1件(未ログイン閲覧)はdev環境が常にdevユーザーを注入する制約のためコード確認のみ)。**マイグレーション0件**(既存の `ranked_teams` / `ranked_team_members` を読むだけ)。**見た目の磨き込みは `ui` skill に引き渡し可能**
 - **直近の完了: すばやさ早見表(`/speed-chart`)** → `docs/plan/pages/speed-chart.md`(2026-08-01 P1〜P6完了。受け入れ基準33件すべてをCoordinatorが実測でpass判定)。**見た目の磨き込みは `ui` skill に引き渡し可能**
 - **直近の完了: チーム(`/team` + `/team/[id]`)** → `docs/plan/pages/team.md`(2026-07-29 P1〜P6完了。受け入れ基準23件のうち22件をCoordinatorが実測でpass判定、1件はdev環境の制約でコード確認のみ)。**見た目の磨き込みは `ui` skill に引き渡し済み**
