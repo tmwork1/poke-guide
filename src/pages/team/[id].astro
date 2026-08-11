@@ -128,41 +128,6 @@ const initialTeamJson = team
 	    ここに書くのはJS初期化前に一瞬だけ見える初期値(<script>のsyncCollectionOptOutTitleが
 	    ページ読み込み直後に実際の状態へ即座に補正する)。メンバー0人のときはtitleに理由を明示した
 	    上でdisabledにする(対象が無いため、この場合のtitleはJSでも変更しない)。 */}
-		<div class="team-mobile-actions__controls">
-			<label
-				class="collection-opt-out-toggle"
-				for="team-collection-opt-out-toggle"
-				title={teamMemberCount === 0
-					? 'チームに個体を入れると、匿名集計への提供可否を切り替えられます'
-					: '30日間有効'}
-			>
-				<span class="toggle-switch">
-					<input
-						id="team-collection-opt-out-toggle"
-						type="checkbox"
-						class="toggle-switch-input"
-						disabled={teamMemberCount === 0}
-						aria-label="非公開"
-					/>
-					<span class="toggle-switch-track" aria-hidden="true">
-						<span class="toggle-switch-thumb"></span>
-					</span>
-				</span>
-				<span class="collection-opt-out-toggle-label">非公開</span>
-				<span id="team-collection-opt-out-status" class="collection-opt-out-status" hidden></span>
-			</label>
-			{/* 🔴 UI改修依頼(チーム編集ヘッダー、2026-08-04)「相性チェックボタンは、左端がチーム名
-			    ボックスと同じになるあたりに移動」。旧来はここ(topbar-actions、非公開トグル・削除
-			    ボタンと横並び)にあったが、共通トップバーは画面全体で1行のバーであり、中央パネルの
-			    チーム名ボックス(.team-meta-fields配下)とはレイアウト文脈が別で、x座標を揃える
-			    余地が無かった。ボタン本体は中央パネル側(.team-matchup-check-row、下の
-			    .panel-content内でチーム名ボックスと同じ左端に自然に揃う。詳細はそちらのコメント
-			    参照)へ移動した。非公開トグル・削除ボタンはこのスロットの構造を変えずそのまま残す。 */}
-			<button id="delete-team-button" class="btn-danger" type="button">
-				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-				削除
-			</button>
-		</div>
 		</div>
 	)}
 	<style>
@@ -659,18 +624,17 @@ const initialTeamJson = team
 		.team-edit-main .panel-content {
 			padding-top: var(--space-5);
 		}
-		/* 🔴 UI改修依頼(チーム編集画面、2026-08-01): チーム名の隣にレギュレーション選択を
-		   並べる。チーム名は可変幅(1fr)、レギュレーションは中身(M-A等の短い値)に合った
-		   固定幅で足りるため、2列グリッドにする。 */
+		/* チーム名の隣にレギュレーション選択を並べる。チーム名は可変幅(1fr)、
+		   レギュレーションは表示内容に合う幅にする。 */
 		.team-meta-fields {
 			display: grid;
-			grid-template-columns: minmax(0, 1fr) 12rem;
+			grid-template-columns: minmax(0, 1fr) auto;
 			gap: var(--space-3);
 			align-items: end;
 			margin-bottom: var(--space-6);
 		}
 		.team-meta-fields > .field { margin: 0; }
-		.team-regulation-field select { width: 100%; }
+		.team-regulation-field select { width: auto; }
 		/* UI改修依頼(チーム編集中央パネル、2026-08-01)「"レギュレーション"ラベルを削除する。
 		   他のUIと同様にplaceholderの色を薄くする」。LeftPanel.astroの
 		   #edit-form #regulation[data-empty="true"]:not(:focus) と同じ値(破線・透明背景・
@@ -806,6 +770,20 @@ const initialTeamJson = team
 						<div class="panel-content">
 							<div id="team-overview-fields"></div>
 							<div id="team-overview-grid" class="team-overview-thumb-grid" aria-label="チームメンバーのプレビュー"></div>
+							<div class="team-mobile-actions__controls">
+								<label class="collection-opt-out-toggle" for="team-collection-opt-out-toggle" title={teamMemberCount === 0 ? 'チームに個体を入れると、匿名集計への提供可否を切り替えられます' : '30日間有効'}>
+									<span class="toggle-switch">
+										<input id="team-collection-opt-out-toggle" type="checkbox" class="toggle-switch-input" disabled={teamMemberCount === 0} aria-label="非公開" />
+										<span class="toggle-switch-track" aria-hidden="true"><span class="toggle-switch-thumb"></span></span>
+									</span>
+									<span class="collection-opt-out-toggle-label">非公開</span>
+									<span id="team-collection-opt-out-status" class="collection-opt-out-status" hidden></span>
+								</label>
+								<button id="delete-team-button" class="btn-danger" type="button">
+									<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+									削除
+								</button>
+							</div>
 						</div>
 					</section>
 					<div class="team-edit-layout">
@@ -1097,6 +1075,8 @@ const initialTeamJson = team
 			display: grid;
 			grid-template-columns: repeat(2, minmax(0, 1fr));
 			gap: var(--space-3);
+			margin-inline: calc(var(--space-5) * -1);
+			padding-inline: var(--box-grid-edge-gap);
 		}
 		.team-overview-thumb-grid .box-card {
 			position: relative;
@@ -1177,7 +1157,7 @@ const initialTeamJson = team
 			font-size: var(--pokemon-preview-font-size);
 			background: var(--color-surface-alt);
 			border: 1px solid var(--color-border);
-			border-radius: var(--radius-md);
+			border-radius: var(--radius-zero);
 		}
 		.team-overview-preview-card .pokemon-preview-main { display: grid; grid-template-columns: minmax(0, 1fr) var(--pokemon-preview-sprite-size) minmax(0, 1.1fr); gap: var(--pokemon-preview-column-gap); min-height: 6.5rem; padding: var(--pokemon-preview-padding); background: var(--color-surface-alt); }
 		.team-overview-preview-card .pokemon-preview-left, .team-overview-preview-card .pokemon-preview-right { display: flex; flex-direction: column; min-width: 0; }
