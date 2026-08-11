@@ -661,7 +661,7 @@ const initialTeamJson = team
 		}
 		/* 🔴 UI改修依頼(チーム編集画面、2026-08-01): チーム名の隣にレギュレーション選択を
 		   並べる。チーム名は可変幅(1fr)、レギュレーションは中身(M-A等の短い値)に合った
-		   固定幅で足りるため、2列グリッドにする。狭幅では縦積みに戻す(下の@media)。 */
+		   固定幅で足りるため、2列グリッドにする。 */
 		.team-meta-fields {
 			display: grid;
 			grid-template-columns: minmax(0, 1fr) 12rem;
@@ -681,9 +681,6 @@ const initialTeamJson = team
 			border-style: dashed;
 			background: transparent;
 			color: var(--color-text-muted);
-		}
-		@media (max-width: 720px) {
-			.team-meta-fields { grid-template-columns: 1fr; }
 		}
 		.team-name-input {
 			width: 100%;
@@ -1098,7 +1095,7 @@ const initialTeamJson = team
 	<style is:global>
 		.team-overview-thumb-grid {
 			display: grid;
-			grid-template-columns: repeat(3, minmax(0, 1fr));
+			grid-template-columns: repeat(2, minmax(0, 1fr));
 			gap: var(--space-3);
 		}
 		.team-overview-thumb-grid .box-card {
