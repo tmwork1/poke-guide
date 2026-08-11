@@ -97,7 +97,7 @@ const initialTeamJson = team
 		<nav class="second-bar" aria-label="チーム編集メニュー">
 			<div class="second-bar__list">
 				<a class="second-bar__item" href="/team">戻る</a>
-				<button type="button" class="second-bar__item" data-mobile-tab="team" data-active="true" aria-current="page"><span>チーム</span></button>
+				<button type="button" class="second-bar__item" data-mobile-tab="pokemon" data-active="true" aria-current="page"><span>ポケモン</span></button>
 				<button type="button" class="second-bar__item" data-mobile-tab="formation"><span>編成</span></button>
 				<span class="second-bar__item is-disabled" aria-disabled="true"><span>データ</span></span>
 				<span class="second-bar__item is-disabled" aria-disabled="true"><span>相性</span></span>
@@ -157,7 +157,7 @@ const initialTeamJson = team
 			gap: var(--space-3);
 			margin-left: auto;
 		}
-		.team-edit-shell[data-mobile-tab="team"] .team-edit-layout,
+		.team-edit-shell[data-mobile-tab="pokemon"] .team-edit-layout,
 		.team-edit-shell[data-mobile-tab="formation"] #team-overview-tab {
 			display: none;
 		}
@@ -765,7 +765,7 @@ const initialTeamJson = team
 					</div>
 				</section>
 			) : (
-				<div class="team-edit-shell" id="team-edit-layout" data-team-id={team.id} data-initial-team={initialTeamJson} data-mobile-tab="team">
+				<div class="team-edit-shell" id="team-edit-layout" data-team-id={team.id} data-initial-team={initialTeamJson} data-mobile-tab="pokemon">
 					<section id="team-overview-tab" class="panel">
 						<div class="panel-content">
 							<div id="team-overview-fields"></div>
@@ -2577,7 +2577,7 @@ const initialTeamJson = team
 		const layoutRoot = document.getElementById("team-edit-layout");
 		if (layoutRoot) {
 			const mobileTabButtons = Array.from(document.querySelectorAll<HTMLButtonElement>(".second-bar [data-mobile-tab]"));
-			const setMobileTab = (tab: "team" | "formation") => {
+			const setMobileTab = (tab: "pokemon" | "formation") => {
 				layoutRoot.dataset.mobileTab = tab;
 				for (const button of mobileTabButtons) {
 					const active = button.dataset.mobileTab === tab;
@@ -2586,9 +2586,9 @@ const initialTeamJson = team
 					else button.removeAttribute("aria-current");
 				}
 			};
-			setMobileTab(new URLSearchParams(window.location.search).get("tab") === "formation" ? "formation" : "team");
+			setMobileTab(new URLSearchParams(window.location.search).get("tab") === "formation" ? "formation" : "pokemon");
 			for (const button of mobileTabButtons) {
-				button.addEventListener("click", () => setMobileTab(button.dataset.mobileTab === "formation" ? "formation" : "team"));
+				button.addEventListener("click", () => setMobileTab(button.dataset.mobileTab === "formation" ? "formation" : "pokemon"));
 			}
 			const teamId = layoutRoot.dataset.teamId as string;
 			const initialTeam: InitialTeam = JSON.parse(layoutRoot.dataset.initialTeam || "{}");
