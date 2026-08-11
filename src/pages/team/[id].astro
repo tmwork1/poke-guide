@@ -14,6 +14,7 @@ import { getTeam, type Team } from '../../lib/team';
 import '../../styles/team-pokemon-card.css';
 import '../../styles/team-pokemon-tab.css';
 import '../../styles/box-card.css';
+import '../../styles/floating-list-controls.css';
 // 🔴 UI改修依頼(チーム編集画面、2026-08-01)「個体編集と同様にレギュレーション指定機能を追加」。
 // 候補は jpoke 由来の一覧(src/lib/regulations.ts)。画面側でレギュレーション名を
 // ハードコードしない(box/[id].astro の左パネルと同じ方針)。
@@ -1001,23 +1002,29 @@ const initialTeamJson = team
 						</div>
 					</aside>
 				</div>
-				<section id="team-formation-mobile" aria-label="チーム編成">
+				<section id="team-formation-mobile" class="floating-list-page" aria-label="チーム編成">
 					<div class="team-formation-mobile__mates" aria-label="チームメイト">
 						<div id="team-formation-mobile-slots" class="team-formation-mobile__slot-grid"></div>
 					</div>
 					<div class="team-formation-mobile__box">
-						<div class="team-formation-mobile__toolbar">
-							<div class="search-input-wrap">
-								<svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-									<circle cx="11" cy="11" r="7" />
-									<line x1="21" y1="21" x2="16.65" y2="16.65" />
-								</svg>
-								<input id="team-formation-mobile-search" class="field-control" type="search" placeholder="ポケモンを検索" aria-label="ポケモンを検索" autocomplete="off" />
+						{/* 検索欄+追加ボタンは /box・/team(一覧) と同じ「下部固定の浮き型」UI
+						    (floating-list-controls.css)をそのまま再利用する。マークアップは
+						    src/pages/team/index.astro の #team-toolbar / #add-team-button と
+						    同じクラス構成。 */}
+						<div class="panel panel-top second-bar second-bar--toolbar floating-list-toolbar" id="team-formation-mobile-toolbar">
+							<div class="toolbar-item toolbar-search">
+								<div class="search-input-wrap">
+									<svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+										<circle cx="11" cy="11" r="7" />
+										<line x1="21" y1="21" x2="16.65" y2="16.65" />
+									</svg>
+									<input id="team-formation-mobile-search" class="field-control" type="search" placeholder="ポケモンを検索" aria-label="ポケモンを検索" autocomplete="off" />
+								</div>
 							</div>
 						</div>
 						<p id="team-formation-mobile-status" class="status-text" hidden></p>
 						<div id="team-formation-mobile-box-grid" class="box-grid">
-							<button id="team-formation-mobile-add" class="add-card-tile" type="button" aria-label="個体を追加">
+							<button id="team-formation-mobile-add" class="add-card-tile floating-list-add-button" type="button" aria-label="個体を追加">
 								<span class="add-card-tile-icon" aria-hidden="true">＋</span>
 								<span class="add-card-tile-label">個体を追加</span>
 							</button>
