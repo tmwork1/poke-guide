@@ -4212,6 +4212,14 @@ const initialTeamJson = team
 					const right = document.createElement("div");
 					right.className = "pokemon-preview-right";
 					const itemName = p.item_name?.trim() ?? "";
+					const stats = document.createElement("table");
+					stats.className = "pokemon-preview-stats";
+					stats.setAttribute("aria-label", "実数値");
+					const statsBody = document.createElement("tbody");
+					stats.appendChild(statsBody);
+					right.appendChild(stats);
+					main.append(left, identity, right);
+					card.appendChild(main);
 					if (itemName) {
 						const item = document.createElement("div");
 						item.className = "pokemon-preview-item pokemon-preview-icon-text";
@@ -4221,17 +4229,9 @@ const initialTeamJson = team
 						const itemImage = document.createElement("img");
 						itemImage.alt = "";
 						item.appendChild(itemImage);
-						right.appendChild(item);
+						card.appendChild(item);
 						void applyItemIcon(itemImage, itemName, item);
 					}
-					const stats = document.createElement("table");
-					stats.className = "pokemon-preview-stats";
-					stats.setAttribute("aria-label", "実数値");
-					const statsBody = document.createElement("tbody");
-					stats.appendChild(statsBody);
-					right.appendChild(stats);
-					main.append(left, identity, right);
-					card.appendChild(main);
 					overviewGrid.appendChild(card);
 					void applySelectMoveChipTypeIcons(moveIconEntries);
 					void computeStats(p).then((computed) => {
