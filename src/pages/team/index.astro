@@ -17,6 +17,7 @@
 export const prerender = false;
 
 import AppLayout from '../../layouts/AppLayout.astro';
+import '../../styles/team-page.css';
 // 🔴 UI改修依頼(チームトップ画面、2026-08-01)「レギュレーションによるフィルタを追加」。
 // 候補は jpoke 由来の一覧(src/lib/regulations.ts)。画面側でレギュレーション名を
 // ハードコードしない(ボックス画面 box/index.astro と同じ方針)。
@@ -98,49 +99,6 @@ const user = Astro.locals.user;
 		#team-list {
 			display: contents;
 		}
-		/* チームカードは常に6枠ぶんのサムネイルを描画するため、カード自体は正方形にしない
-		   (box/index.astroのcard-pokemonと違い、内容量が個体ごとにばらつかないため高さは
-		   自然と揃う)。追加タイルは基底.add-card-tile(global.css)のまま使い、CSS Gridの
-		   既定align-items:stretchで同じ行のチームカードと同じ高さに伸びるのに任せる。 */
-		.team-grid .add-card-tile {
-			flex-direction: column;
-			gap: var(--space-1);
-			font-size: var(--font-size-sm);
-			width: 100%;
-			padding: var(--space-2);
-			border-width: 1px;
-			transition: border-color 0.15s, color 0.15s, background 0.15s;
-		}
-		.team-grid .add-card-tile:hover {
-			background: var(--color-primary-soft);
-		}
-		.team-grid .add-card-tile .add-card-tile-icon {
-			display: inline-flex;
-			align-items: center;
-			justify-content: center;
-			width: 44px;
-			height: 44px;
-			border-radius: 50%;
-			border: 1px solid var(--color-border);
-			font-size: 1.4rem;
-			font-weight: 300;
-			line-height: 1;
-			color: inherit;
-			transition: border-color 0.15s;
-		}
-		.team-grid .add-card-tile:hover .add-card-tile-icon {
-			border-color: var(--color-primary);
-		}
-		.team-grid .add-card-tile-label {
-			font-size: 0.9em;
-		}
-		@media (prefers-reduced-motion: reduce) {
-			.team-grid .add-card-tile,
-			.team-grid .add-card-tile .add-card-tile-icon {
-				transition: none;
-			}
-		}
-
 		/* --- 状態メッセージ(読み込み中・エラー・空状態2種。box/index.astroと同じ作り) --- */
 		#loading-message,
 		#error-message {
@@ -473,11 +431,12 @@ const user = Astro.locals.user;
 		}
 	</style>
 
-	<div class="page team-shell">
+	<div class="page team-shell floating-list-page">
 		{
 			user ? (
 				<Fragment>
-					<div class="panel panel-top second-bar second-bar--toolbar" id="team-toolbar">
+					<h1 class="team-page-title">チーム</h1>
+					<div class="panel panel-top second-bar second-bar--toolbar floating-list-toolbar" id="team-toolbar">
 						{/* UI改修依頼(チームトップ画面、2026-08-02)「ヘッダーの件数バッジを検索ボックスの
 						    左に置く」: 旧topbar-statusスロットの件数バッジ。id/classは変更しない
 						    (<script>がgetElementByIdで参照する)。以前はツールバー末尾(margin-left: auto で
@@ -560,7 +519,7 @@ const user = Astro.locals.user;
 						<p id="error-message" hidden></p>
 
 						<div class="team-grid">
-							<button type="button" class="add-card-tile" id="add-team-button">
+							<button type="button" class="add-card-tile floating-list-add-button" id="add-team-button" aria-label="チームを追加">
 								<span class="add-card-tile-icon" aria-hidden="true">＋</span>
 								<span class="add-card-tile-label">チームを追加</span>
 							</button>
@@ -608,6 +567,7 @@ const user = Astro.locals.user;
 			nickname: string | null;
 			species_name: string;
 			item_name: string | null;
+			move_names: string[];
 		}
 		interface TeamMemberEntry {
 			slot: number;
@@ -758,10 +718,9 @@ const user = Astro.locals.user;
 			// チームカードを丸ごとクリック可能な<a>にする(box/index.astroの.card-pokemonと同じ方針)。
 			// 削除ボタンはカード内の<button>だが、クリック時は必ずpreventDefault/stopPropagationして
 			// カード本体の遷移(/team/<id>)と競合しないようにする。
-			function renderCard(t: Team): HTMLAnchorElement {
-				const card = document.createElement("a");
+			function renderCard(t: Team): HTMLElement {
+				const card = document.createElement("article");
 				card.className = "card card-team";
-				card.href = `/team/${encodeURIComponent(t.id)}`;
 				const name = displayName(t);
 				card.setAttribute("aria-label", `${name} を編集`);
 
@@ -846,8 +805,9 @@ const user = Astro.locals.user;
 				// --- ヘッダ行(2〜3行目): チーム名 ---
 				// UI改修依頼(チームトップ画面、2026-08-04)「チーム名が長い場合に2,3行へ折り返す」
 				// 対応(CSS側、.card-team-name参照)に合わせ、この行を1行目から2〜3行目へ移した。
-				const header = document.createElement("div");
+				const header = document.createElement("a");
 				header.className = "card-team-header";
+				header.href = `/team/${encodeURIComponent(t.id)}`;
 
 				const nameEl = document.createElement("p");
 				nameEl.className = "card-team-name";
@@ -860,29 +820,32 @@ const user = Astro.locals.user;
 
 				// --- メンバーの公式絵ミニサムネイル列(6枠常時描画。空き枠はプレースホルダー) ---
 				const thumbGrid = document.createElement("div");
-				thumbGrid.className = "card-team-thumb-grid";
+				thumbGrid.className = "card-team-thumb-grid box-grid";
 
 				const membersBySlot = new Map(t.members.map((m) => [m.slot, m]));
 				for (let slot = 1; slot <= 6; slot++) {
 					const member = membersBySlot.get(slot);
-					const thumb = document.createElement("div");
-					thumb.className = "card-team-thumb" + (member ? "" : " is-empty");
 					if (member) {
 						// UI改修依頼(2026-08-05)「ポケモンアイコンのホバー時にNN、未設定時は種族名を表示する」対応。
 						const pokemonName = member.owned_pokemon.nickname?.trim()
 							|| member.owned_pokemon.species_name?.trim()
 							|| "ポケモン";
-						thumb.title = pokemonName;
-						thumb.setAttribute("aria-label", pokemonName);
+						const memberCard = document.createElement("a");
+						memberCard.className = "card box-card card-pokemon";
+						memberCard.href = `/box/${encodeURIComponent(member.owned_pokemon.id)}`;
+						memberCard.setAttribute("aria-label", `${pokemonName}を編集`);
+						const artwork = document.createElement("div");
+						artwork.className = "card-artwork";
 						const img = document.createElement("img");
-						img.className = "card-team-thumb-img";
 						img.alt = "";
 						img.style.display = "none";
-						thumb.appendChild(img);
+						artwork.appendChild(img);
+						memberCard.appendChild(artwork);
 
 						const fallback = document.createElement("span");
 						fallback.className = "card-team-thumb-fallback";
-						thumb.appendChild(fallback);
+						fallback.style.display = "none";
+						memberCard.appendChild(fallback);
 
 						void applyThumbSprite(img, fallback, member.owned_pokemon.species_name ?? "");
 
@@ -895,18 +858,41 @@ const user = Astro.locals.user;
 						const itemName = member.owned_pokemon.item_name ?? "";
 						itemImg.title = itemName;
 						itemBadge.appendChild(itemImg);
-						thumb.appendChild(itemBadge);
+						memberCard.appendChild(itemBadge);
 						void applyThumbItemSprite(itemBadge, itemImg, itemName);
+
+						const body = document.createElement("div");
+						body.className = "card-body";
+						const nameRow = document.createElement("div");
+						nameRow.className = "card-name-row";
+						const nameEl = document.createElement("p");
+						nameEl.className = "card-name";
+						nameEl.textContent = pokemonName;
+						nameRow.appendChild(nameEl);
+						body.appendChild(nameRow);
+						const movesGrid = document.createElement("div");
+						movesGrid.className = "card-moves-grid";
+						for (const moveName of (member.owned_pokemon.move_names ?? []).filter(Boolean).slice(0, 4)) {
+							const moveEl = document.createElement("span");
+							moveEl.className = "card-move-chip";
+							moveEl.textContent = moveName;
+							movesGrid.appendChild(moveEl);
+						}
+						body.appendChild(movesGrid);
+						memberCard.appendChild(body);
+						thumbGrid.appendChild(memberCard);
 					} else {
 						// UI改修依頼(チームトップ画面、2026-08-01)「未設定枠には中央に薄い色で
 						// その枠がチーム内で何番目か(N)の数字を表示する」。
+						const thumb = document.createElement("div");
+						thumb.className = "card-team-empty-slot";
 						thumb.setAttribute("aria-hidden", "true");
 						const slotNumber = document.createElement("span");
 						slotNumber.className = "card-team-thumb-slot-number";
 						slotNumber.textContent = String(slot);
 						thumb.appendChild(slotNumber);
+						thumbGrid.appendChild(thumb);
 					}
-					thumbGrid.appendChild(thumb);
 				}
 
 				card.appendChild(thumbGrid);

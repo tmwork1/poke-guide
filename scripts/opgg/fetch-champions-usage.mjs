@@ -20,19 +20,19 @@ const EVS = [
 ];
 
 function options(argv) {
-  const result = { output: OUTPUT, limit: Infinity, delayMs: 350 };
+  const result = { output: OUTPUT, limit: Infinity, delayMs: 350, season: null };
   for (let i = 0; i < argv.length; i += 1) {
     const flag = argv[i];
     if (flag === '--help' || flag === '-h') {
-      console.log('Usage: npm run fetch:opgg-champions-usage -- [--output directory] [--limit n] [--delay-ms n]');
+      console.log('Usage: npm run fetch:opgg-champions-usage -- [--season season-id] [--output directory] [--limit n] [--delay-ms n]');
       process.exit(0);
     }
     if (flag === '--cleanup-only') { result.cleanupOnly = true; continue; }
     if (flag === '--normalize-files') { result.normalizeFiles = true; continue; }
-    const key = { '--output': 'output', '--limit': 'limit', '--delay-ms': 'delayMs' }[flag];
+    const key = { '--output': 'output', '--limit': 'limit', '--delay-ms': 'delayMs', '--season': 'season' }[flag];
     const value = argv[++i];
     if (!key || !value) throw new Error(`Invalid option: ${flag}`);
-    result[key] = key === 'output' ? value : Number(value);
+    result[key] = key === 'output' || key === 'season' ? value : Number(value);
     if (key !== 'output' && (!Number.isInteger(result[key]) || result[key] < 1)) throw new Error(`${flag} must be a positive integer`);
   }
   return result;
@@ -110,6 +110,27 @@ function slugs(html) {
   const re = new RegExp(`${BASE.replaceAll('/', '\\/')}\\/pokedex\\/([^"?#/]+)`, 'g');
   return [...new Set([...html.matchAll(re)].map((match) => match[1]))];
 }
+function availableSeasons(html) {
+  // The Next/RSC payload serializes its embedded JSON with escaped quotes.
+  // Normalize only those delimiters before extracting the tier metadata.
+  const payload = html.replaceAll('\\"', '"');
+  const optionIds = payload.match(/"seasonOptionIds":(\[[^\]]+\])/);
+  const selected = payload.match(/"seasons":\[\{"id":"([^"]+)","label":"[^"]+","comparisonLabel"/);
+  if (!optionIds || !selected) throw new Error('Current season was not found in the OP.GG tier payload.');
+  const ids = JSON.parse(optionIds[1]).filter((id) => typeof id === 'string');
+  if (!ids.includes(selected[1])) throw new Error('OP.GG tier payload has an inconsistent selected season.');
+  const labels = new Map(ids.map((id) => {
+    const escaped = id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const match = payload.match(new RegExp(`"id":"${escaped}","label":"([^"]+)"`));
+    return [id, match?.[1] ?? id];
+  }));
+  return { ids, labels, currentId: selected[1] };
+}
+function seasonDirectoryName(id) {
+  // Keep the upstream identifier out of the filesystem entirely: even a
+  // superficially safe id can be a Windows-reserved device name.
+  return `id-${Buffer.from(id).toString('base64url')}`;
+}
 async function saveJson(path, value) {
   await mkdir(dirname(path), { recursive: true });
   // A crash can leave only the temporary file; the app always sees the last valid JSON.
@@ -183,27 +204,35 @@ async function normalizeFileNames(directory, completed, nameMap) {
 async function main() {
   const config = options(process.argv.slice(2));
   const destination = resolve(config.output);
-  await mkdir(destination, { recursive: true });
+  const tier = `${ORIGIN}${BASE}/tier`;
+  const tierHtml = await get(tier);
+  const seasonOptions = availableSeasons(tierHtml);
+  config.season ??= seasonOptions.currentId;
+  if (!seasonOptions.ids.includes(config.season)) {
+    throw new Error(`--season must be an OP.GG season id from the current tier payload: ${seasonOptions.ids.join(', ')}`);
+  }
+  const seasonDirName = seasonDirectoryName(config.season);
+  const seasonDirectory = `${destination}/seasons/${seasonDirName}`;
+  await mkdir(seasonDirectory, { recursive: true });
   const nameMap = await loadPokemonNameMap();
-  const completed = await loadIndex(`${destination}/index.json`);
+  const completed = await loadIndex(`${seasonDirectory}/index.json`);
   if (config.cleanupOnly) {
-    await cleanStaleOutput(destination, completed);
-    console.log(`Removed stale generated JSON files from ${destination}`);
+    await cleanStaleOutput(seasonDirectory, completed);
+    console.log(`Removed stale generated JSON files from ${seasonDirectory}`);
     return;
   }
   if (config.normalizeFiles) {
-    const normalized = await normalizeFileNames(destination, completed, nameMap);
-    await saveJson(`${destination}/index.json`, {
+    const normalized = await normalizeFileNames(seasonDirectory, completed, nameMap);
+    await saveJson(`${seasonDirectory}/index.json`, {
       schemaVersion: 1,
       fetchedAt: new Date().toISOString(),
       pokemon: [...normalized].map(([slug, entry]) => ({ slug, ...entry })),
     });
-    await cleanStaleOutput(destination, normalized);
-    console.log(`Normalized Pokemon file names in ${destination}`);
+    await cleanStaleOutput(seasonDirectory, normalized);
+    console.log(`Normalized Pokemon file names in ${seasonDirectory}`);
     return;
   }
-  const tier = `${ORIGIN}${BASE}/tier`;
-  const found = slugs(await get(tier)).slice(0, config.limit);
+  const found = slugs(tierHtml).slice(0, config.limit);
   if (!found.length) throw new Error('No Pokemon detail URLs found on the public tier page.');
   const failures = [];
   console.log(`Fetching ${found.length} Pokemon sequentially (each Pokemon is saved to its own file immediately)...`);
@@ -216,21 +245,43 @@ async function main() {
       if (!pokemonName) throw new Error('Pokemon name was not found in the page.');
       const displayName = jpokePokemonName(slug, pokemonName, nameMap);
       const file = pokemonFileName(displayName, slug, completed);
-      const pokemon = { schemaVersion: 1, fetchedAt: new Date().toISOString(), name: displayName, formats: { single: parse(singleHtml), double: parse(doubleHtml) } };
-      await saveJson(`${destination}/${file}`, pokemon);
       const previous = completed.get(slug);
+      const fetchedAt = new Date().toISOString();
+      const formats = { single: parse(singleHtml), double: parse(doubleHtml) };
+      // schemaVersion 2 keeps the v1 `formats` snapshot for existing readers while
+      // storing independently collected snapshots under an explicit season key.
+      const existing = previous ? JSON.parse(await readFile(`${seasonDirectory}/${previous.file}`, 'utf8')) : null;
+      const seasons = { ...(existing?.seasons ?? {}), [config.season]: { fetchedAt, formats } };
+      const pokemon = { schemaVersion: 2, fetchedAt, name: displayName, formats, seasons };
+      await saveJson(`${seasonDirectory}/${file}`, pokemon);
       completed.set(slug, { name: displayName, file });
       if (previous?.file && previous.file !== file) {
-        await unlink(`${destination}/${previous.file}`).catch((error) => {
+        await unlink(`${seasonDirectory}/${previous.file}`).catch((error) => {
           if (error.code !== 'ENOENT') throw error;
         });
       }
-      await saveJson(`${destination}/index.json`, {
+      await saveJson(`${seasonDirectory}/index.json`, {
         schemaVersion: 1,
         fetchedAt: new Date().toISOString(),
         // slug is a stable source identifier for resilient re-runs; the data files themselves need only the Japanese name.
         pokemon: found.filter((entrySlug) => completed.has(entrySlug)).map((entrySlug) => ({ slug: entrySlug, ...completed.get(entrySlug) })),
       });
+      let manifest = { schemaVersion: 1, seasons: [] };
+      try { manifest = JSON.parse(await readFile(`${destination}/seasons.json`, 'utf8')); } catch (error) { if (error.code !== 'ENOENT') throw error; }
+      const seasonEntry = {
+        id: config.season,
+        label: seasonOptions.labels.get(config.season) ?? config.season,
+        directory: `seasons/${seasonDirName}`,
+        fetchedAt,
+        isCurrent: config.season === seasonOptions.currentId,
+        collectionMode: 'current-snapshot',
+      };
+      manifest.seasons = [
+        ...(Array.isArray(manifest.seasons) ? manifest.seasons : []).filter((entry) => entry?.id !== config.season),
+        seasonEntry,
+      ].map((entry) => ({ ...entry, isCurrent: entry.id === seasonOptions.currentId }));
+      manifest.currentSeasonId = seasonOptions.currentId;
+      await saveJson(`${destination}/seasons.json`, manifest);
       console.log(`[${index + 1}/${found.length}] ${slug} saved`);
     } catch (error) {
       failures.push({ slug, message: error.message });
@@ -240,7 +291,7 @@ async function main() {
   if (failures.length) {
     throw new Error(`${failures.length} Pokemon could not be updated. Existing data was kept; retry the command. Failed slugs: ${failures.map(({ slug }) => slug).join(', ')}`);
   }
-  await cleanStaleOutput(destination, completed);
-  console.log(`Saved ${found.length} Pokemon files to ${destination}`);
+  await cleanStaleOutput(seasonDirectory, completed);
+  console.log(`Saved ${found.length} Pokemon files to ${seasonDirectory}`);
 }
 main().catch((error) => { console.error(`Collection failed: ${error.message}`); process.exitCode = 1; });

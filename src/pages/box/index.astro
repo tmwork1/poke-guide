@@ -52,12 +52,12 @@ const user = Astro.locals.user;
 ---
 <AppLayout title="ボックス" description="所持しているポケモンの一覧・検索・並べ替え" current="box" hideTopbar={true}>
 
-	<div class="page box-shell">
+	<div class="page box-shell floating-list-page">
 		{
 			user ? (
 				<Fragment>
 					<h1 class="box-page-title">ボックス</h1>
-					<div class="panel panel-top second-bar second-bar--toolbar" id="box-toolbar">
+					<div class="panel panel-top second-bar second-bar--toolbar floating-list-toolbar" id="box-toolbar">
 						{/* UI改修依頼(ボックス画面、2026-08-02)「件数バッジ(#pokemon-count-badge)を
 						    現在の右端から検索ボックスの左へ移動する」。旧topbar-statusスロットの
 						    件数バッジ(旧位置は並べ替えの右、ツールバー末尾)をここ(ハンバーガー
@@ -146,7 +146,7 @@ const user = Astro.locals.user;
 						<p id="error-message" hidden></p>
 
 						<div class="box-grid">
-							<button type="button" class="add-card-tile box-add-button" id="add-pokemon-button" aria-label="個体を追加">
+							<button type="button" class="add-card-tile floating-list-add-button" id="add-pokemon-button" aria-label="個体を追加">
 								<span class="add-card-tile-icon" aria-hidden="true">＋</span>
 								<span class="add-card-tile-label">個体を追加</span>
 								<span class="add-card-tile-hint" hidden></span>

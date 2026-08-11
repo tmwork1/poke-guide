@@ -4,7 +4,7 @@ const editShell = document.getElementById("edit-shell");
 
 if (mobileTrainingUi && mobileTrainingBar && editShell) {
 	type MobileTab = "training" | "damage";
-	let activeTab: MobileTab = "training";
+	let activeTab: MobileTab = new URLSearchParams(window.location.search).get("tab") === "damage" ? "damage" : "training";
 	const tabButtons = mobileTrainingBar.querySelectorAll<HTMLButtonElement>("button[data-mobile-tab]");
 
 	// The page is mobile-only, so controls can be moved once instead of being

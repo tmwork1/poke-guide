@@ -1,0 +1,82 @@
+/* /box・/team の下部固定「検索 + 追加」操作で共用するUI。各画面は変数だけを指定する。 */
+.floating-list-page {
+  --floating-list-search-control-size: 40px;
+  --floating-list-add-control-size: 60px;
+  --floating-list-controls-gap: 20px;
+  --floating-list-controls-backdrop-padding-y: 10px;
+  --floating-list-controls-offset-y: 24px;
+}
+
+.floating-list-toolbar {
+  --list-search-control-size: var(--floating-list-search-control-size);
+  position: fixed;
+  top: auto;
+  right: calc(var(--floating-list-add-control-size) + var(--space-5) + var(--floating-list-controls-gap));
+  bottom: calc(var(--bottom-nav-height) + var(--space-2) + env(safe-area-inset-bottom) + var(--floating-list-controls-offset-y));
+  left: var(--space-5);
+  z-index: 16;
+  isolation: isolate;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+.floating-list-toolbar::before {
+  position: absolute;
+  inset-block: calc(var(--floating-list-controls-backdrop-padding-y) * -1);
+  inset-inline: calc(var(--space-4) * -1);
+  z-index: -1;
+  content: "";
+  pointer-events: none;
+  background: radial-gradient(ellipse 78% 88% at 50% 50%, rgba(10, 12, 16, 0.2) 0%, rgba(10, 12, 16, 0.18) 48%, rgba(10, 12, 16, 0.1) 72%, rgba(10, 12, 16, 0.03) 88%, transparent 100%);
+  border-radius: var(--radius-lg);
+  backdrop-filter: blur(4px);
+}
+
+.floating-list-page .floating-list-add-button {
+  position: fixed;
+  right: var(--space-5);
+  bottom: calc(var(--bottom-nav-height) + var(--space-2) + env(safe-area-inset-bottom) + var(--floating-list-controls-offset-y) + (var(--floating-list-search-control-size) - var(--floating-list-add-control-size)) * 0.5);
+  z-index: 17;
+  width: var(--floating-list-add-control-size);
+  height: var(--floating-list-add-control-size);
+  min-height: var(--floating-list-add-control-size);
+  padding: 0;
+  aspect-ratio: 1 / 1;
+  color: var(--color-primary-contrast);
+  background: var(--color-primary);
+  border: 0;
+  border-radius: 50%;
+  box-shadow: 0 5px 12px rgba(0, 0, 0, 0.28), 0 1px 2px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.28);
+}
+
+.floating-list-page .floating-list-add-button:hover {
+  color: var(--color-primary-contrast);
+  background: var(--color-primary-hover);
+}
+
+.floating-list-page .floating-list-add-button .add-card-tile-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  height: auto;
+  border: 0;
+  font-size: var(--font-size-2xl);
+}
+
+.floating-list-page .floating-list-add-button .add-card-tile-label,
+.floating-list-page .floating-list-add-button .add-card-tile-hint {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .floating-list-page .floating-list-add-button { transition: none; }
+}
+
+.floating-list-toolbar .toolbar-item:not(.toolbar-search), .floating-list-toolbar .search-icon { display: none; }
+.floating-list-toolbar .toolbar-search, .floating-list-toolbar .search-input-wrap, .floating-list-toolbar .toolbar-search input { display: block; width: 100%; min-width: 0; }
+.floating-list-toolbar .toolbar-search input { height: var(--list-search-control-size, 40px); padding: 0 var(--space-3); color: #fff; background: #20242d; border-color: rgba(255, 255, 255, .12); border-radius: var(--radius-md); box-shadow: 0 3px 8px rgba(0, 0, 0, .2), 0 1px 2px rgba(0, 0, 0, .14); }
+.floating-list-toolbar .toolbar-search input::placeholder { color: rgba(255, 255, 255, .7); }
+.floating-list-toolbar .toolbar-search input:focus { border-color: rgba(255, 255, 255, .24); outline: 2px solid var(--color-primary); outline-offset: 2px; }

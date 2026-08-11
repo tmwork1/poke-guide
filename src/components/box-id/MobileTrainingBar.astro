@@ -1,28 +1,42 @@
 ---
 import type { OwnedPokemonRecord } from '../../lib/owned-pokemon';
+import pokemonMasterRaw from '../../../public/master-data/autocomplete/pokemon.json';
+import pokemonDetailRaw from '../../../public/master-data/detail/pokemon.json';
+import { NATURE_STAT_MODIFIERS, calcHpStat, calcOtherStat, type StatKey } from '../../lib/stats';
+import { officialArtworkUrl } from '../../lib/pokemon-master-data';
 import '../../styles/box-pokemon-preview.css';
 
 interface Props {
   pokemon: OwnedPokemonRecord;
+  activeTab?: 'training' | 'data';
 }
 
-const { pokemon } = Astro.props;
+const { pokemon, activeTab = 'training' } = Astro.props;
 const moves = pokemon.move_names ?? [];
+const master = (pokemonMasterRaw as Array<{name:string;imageId:number}>).find((entry) => entry.name === pokemon.species_name);
+const detail = (pokemonDetailRaw as Array<{name:string;baseStats:number[]}>).find((entry) => entry.name === pokemon.species_name);
+const statKeys: StatKey[] = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'];
+const nature = NATURE_STAT_MODIFIERS[pokemon.nature ?? ''] ?? { up: null, down: null };
+const previewStats = detail ? statKeys.map((key, index) => index === 0 ? calcHpStat(pokemon.level ?? 50, detail.baseStats[index], pokemon.ivs[index] ?? 31, pokemon.evs[index] ?? 0) : calcOtherStat(pokemon.level ?? 50, detail.baseStats[index], pokemon.ivs[index] ?? 31, pokemon.evs[index] ?? 0, nature.up === key ? 1.1 : nature.down === key ? 0.9 : 1)) : [];
 ---
 
-<div class="mobile-training-ui" id="mobile-training-ui" data-mobile-tab="training">
+<div class="mobile-training-ui" id="mobile-training-ui" data-mobile-tab={activeTab}>
   <nav class="second-bar" id="mobile-training-bar" aria-label="個体編集メニュー">
     <div class="second-bar__list">
       <a class="second-bar__item" href="/box">戻る</a>
-      <button type="button" class="second-bar__item" data-mobile-tab="training" data-active="true" aria-current="page">
-        <span>育成</span>
-      </button>
-      <button type="button" class="second-bar__item" data-mobile-tab="damage">
-        <span>ダメージ</span>
-      </button>
-      <span class="second-bar__item is-disabled" aria-disabled="true">
+      {activeTab === 'data' ? (
+        <a class="second-bar__item" href={`/box/${encodeURIComponent(pokemon.id)}`}><span>育成</span></a>
+      ) : (
+        <button type="button" class="second-bar__item" data-mobile-tab="training" data-active="true" aria-current="page"><span>育成</span></button>
+      )}
+      {activeTab === 'data' ? (
+        <a class="second-bar__item" href={`/box/${encodeURIComponent(pokemon.id)}?tab=damage`}><span>ダメージ</span></a>
+      ) : (
+        <button type="button" class="second-bar__item" data-mobile-tab="damage"><span>ダメージ</span></button>
+      )}
+      <a class="second-bar__item" href={`/box/data?pokemon=${encodeURIComponent(pokemon.id)}`} data-active={activeTab === 'data' ? 'true' : undefined} aria-current={activeTab === 'data' ? 'page' : undefined}>
         <span>データ</span>
-      </span>
+      </a>
       <span class="second-bar__item is-disabled" aria-disabled="true">
         <span>相性</span>
       </span>
@@ -47,8 +61,8 @@ const moves = pokemon.move_names ?? [];
     </div>
     <div class="pokemon-preview-identity">
       <div class="pokemon-preview-sprite-wrap">
-        <img id="pokemon-preview-species-sprite" alt={pokemon.species_name} style="display:none;" />
-        <span id="pokemon-preview-species-sprite-fallback">{pokemon.species_name.slice(0, 1)}</span>
+        <img id="pokemon-preview-species-sprite" src={master ? officialArtworkUrl(master.imageId) : undefined} alt={pokemon.species_name} style={master ? undefined : 'display:none;'} />
+        <span id="pokemon-preview-species-sprite-fallback" style={master ? 'display:none;' : undefined}>{pokemon.species_name.slice(0, 1)}</span>
       </div>
     </div>
     <div class="pokemon-preview-right">
@@ -58,11 +72,11 @@ const moves = pokemon.move_names ?? [];
       </div>
       <table class="pokemon-preview-stats" aria-label="実数値と努力値">
         <tbody>
-          {[['hp', 'H'], ['atk', 'A'], ['def', 'B'], ['spa', 'C'], ['spd', 'D'], ['spe', 'S']].map(([key, label]) => (
+          {[['hp', 'H'], ['atk', 'A'], ['def', 'B'], ['spa', 'C'], ['spd', 'D'], ['spe', 'S']].map(([key, label], index) => (
             <tr>
               <th>{label}</th>
-              <td id={`pokemon-preview-stat-${key}`}>-</td>
-              <td id={`pokemon-preview-ev-${key}`}>-</td>
+              <td id={`pokemon-preview-stat-${key}`} data-mod={nature.up === key ? 'up' : nature.down === key ? 'down' : undefined}>{previewStats[index] ?? '-'}</td>
+              <td id={`pokemon-preview-ev-${key}`}>{pokemon.evs[index] ? `+${pokemon.evs[index]}` : '-'}</td>
             </tr>
           ))}
         </tbody>
