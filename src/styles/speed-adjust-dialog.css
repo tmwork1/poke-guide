@@ -51,41 +51,41 @@ body.speed-chart-page:has(.speed-chart-embed-toolbar) {
   --speed-adjust-control-gap: var(--space-4);
 
   /* 共通: 個別指定のない表内テキスト */
-  --speed-adjust-base-size: var(--font-size-sm);
+  --speed-adjust-base-size: var(--font-size-sm2);
 
   /* ヘッダー: 「すばやさ調整」見出し / 閉じる（×） */
-  --speed-adjust-toolbar-size: var(--font-size-sm);
-  --speed-adjust-toolbar-title-size: var(--font-size-md);
-  --speed-adjust-toolbar-close-size: var(--font-size-lg);
+  --speed-adjust-toolbar-size: var(--font-size-sm2);
+  --speed-adjust-toolbar-title-size: var(--font-size-sm1);
+  --speed-adjust-toolbar-close-size: var(--font-size-lg1);
 
   /* 表: 読み込み・エラー文 / 左端の実数値 / 補正量・種族値 */
-  --speed-adjust-status-size: var(--font-size-sm);
-  --speed-adjust-table-value-size: var(--font-size-md);
-  --speed-adjust-table-meta-size: var(--font-size-sm);
-  --speed-adjust-table-base-speed-size: var(--font-size-sm);
+  --speed-adjust-status-size: var(--font-size-sm2);
+  --speed-adjust-table-value-size: var(--font-size-sm1);
+  --speed-adjust-table-meta-size: var(--font-size-sm2);
+  --speed-adjust-table-base-speed-size: var(--font-size-sm2);
 
   /* 表: 性格・努力値などのチップ / チップの出典文 / ×1.5など / 省略表示 */
-  --speed-adjust-chip-size: var(--font-size-xs);
-  --speed-adjust-chip-origin-size: var(--font-size-xs);
+  --speed-adjust-chip-size: var(--font-size-sm3);
+  --speed-adjust-chip-origin-size: var(--font-size-sm3);
   --speed-adjust-chip-modifier-size: 0.9em;
-  --speed-adjust-chip-overflow-size: var(--font-size-xs);
+  --speed-adjust-chip-overflow-size: var(--font-size-sm3);
 
   /* 表: 個体へ更新するボタン（性格・努力値） */
-  --speed-adjust-apply-size: var(--font-size-xs);
+  --speed-adjust-apply-size: var(--font-size-sm3);
 
   /* 下部サマリー: 「すばやさ」「補正後」のラベル / 数値 */
-  --speed-adjust-label-size: var(--font-size-xs);
-  --speed-adjust-value-size: var(--font-size-sm);
+  --speed-adjust-label-size: var(--font-size-sm3);
+  --speed-adjust-value-size: var(--font-size-sm2);
 
   /* 下部サマリー: 更新ボタン1行目の性格 / 性格・努力値バッジ / 「移動」 */
   --speed-adjust-button-label-size: 0.625rem;
   --speed-adjust-badge-size: 0.6875rem;
-  --speed-adjust-jump-size: var(--font-size-xs);
+  --speed-adjust-jump-size: var(--font-size-sm3);
 
   /* 下部サマリー: 「特性」「アイテム」 / ランク数値入力 / ランクの－・＋ */
-  --speed-adjust-toggle-size: var(--font-size-xs);
-  --speed-adjust-rank-input-size: var(--font-size-xs);
-  --speed-adjust-rank-stepper-size: var(--font-size-md);
+  --speed-adjust-toggle-size: var(--font-size-sm3);
+  --speed-adjust-rank-input-size: var(--font-size-sm3);
+  --speed-adjust-rank-stepper-size: var(--font-size-sm1);
 }
 
 /* モーダル内では数値・バッジ・ボタンを含め、強調の太字を使わない。 */

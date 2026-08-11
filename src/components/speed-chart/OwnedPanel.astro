@@ -147,7 +147,7 @@ const { hasOwnedPanel, ownedId } = Astro.props;
 		padding: var(--space-3);
 		background: var(--color-surface-alt);
 		border-radius: var(--radius-md);
-		font-size: var(--font-size-sm);
+		font-size: var(--font-size-sm2);
 	}
 	/* hasOwnedPanel=falseのときは子要素が一切描画されず空になる。空の背景ボックスだけが
 	   サイドバーに残らないよう、空のときはこの要素自体を消す。 */
@@ -205,7 +205,7 @@ const { hasOwnedPanel, ownedId } = Astro.props;
 	   触らない)。 */
 	.speed-chart-owned-edit-button {
 		padding: 0.2em 0.6em;
-		font-size: var(--font-size-xs);
+		font-size: var(--font-size-sm3);
 		font-weight: 600;
 		flex-shrink: 0;
 	}
@@ -239,7 +239,7 @@ const { hasOwnedPanel, ownedId } = Astro.props;
 	   (旧<span>時代のfont-weight:700/color:var(--color-primary-strong)はbtn-primaryの
 	   指定と重複・矛盾するため削除し、btn-primary側に委ねる)。 */
 	.speed-chart-owned-summary-value {
-		font-size: var(--font-size-md);
+		font-size: var(--font-size-sm1);
 	}
 	.speed-chart-owned-summary-value-row {
 		display: flex;
@@ -249,7 +249,7 @@ const { hasOwnedPanel, ownedId } = Astro.props;
 	.speed-chart-owned-raw-value { display: none; }
 	.speed-chart-owned-jump-button {
 		padding: 0.2em 0.5em;
-		font-size: var(--font-size-xs);
+		font-size: var(--font-size-sm3);
 		font-weight: 500;
 		color: var(--color-text-muted);
 		border: 1px solid var(--color-border);
@@ -262,7 +262,7 @@ const { hasOwnedPanel, ownedId } = Astro.props;
 		width: 3.4em;
 		min-height: 0;
 		padding: 0.3em;
-		font-size: var(--font-size-xs);
+		font-size: var(--font-size-sm3);
 		text-align: center;
 		background: var(--color-surface-alt);
 		appearance: textfield;
@@ -284,7 +284,7 @@ const { hasOwnedPanel, ownedId } = Astro.props;
 		display: inline-flex;
 		align-items: center;
 		gap: var(--space-2);
-		font-size: var(--font-size-xs);
+		font-size: var(--font-size-sm3);
 		color: var(--color-text-muted);
 		white-space: nowrap;
 	}
@@ -308,7 +308,7 @@ const { hasOwnedPanel, ownedId } = Astro.props;
 	   このファイルの他要素と同じく念のため明示しておく。 */
 	.speed-chart-owned-unavailable {
 		color: var(--color-text-muted);
-		font-size: var(--font-size-sm);
+		font-size: var(--font-size-sm2);
 	}
 	.speed-chart-owned-unavailable[hidden] {
 		display: none;
@@ -366,7 +366,7 @@ const { hasOwnedPanel, ownedId } = Astro.props;
 		align-items: center;
 		gap: var(--space-1);
 		min-width: 0;
-		font-size: var(--font-size-xs);
+		font-size: var(--font-size-sm3);
 		padding: 0.2em 0.8em;
 		/* UI改修(2026-08-02第4弾)要件4: 太字をやめる。global.css の
 		   button.btn-primary { font-weight: 700 } は(0,1,1)、こちらは.speed-chart-owned

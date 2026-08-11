@@ -52,13 +52,13 @@
   --space-8: 3rem;
 
   /* --- タイポグラフィスケール --- */
-  --font-size-xs: 0.75rem;
-  --font-size-sm: 0.85rem;
-  --font-size-md: 0.95rem;
+  --font-size-sm3: 0.75rem;
+  --font-size-sm2: 0.85rem;
+  --font-size-sm1: 0.95rem;
   --font-size-base: 1rem;
-  --font-size-lg: 1.05rem;
-  --font-size-xl: 1.5rem;
-  --font-size-2xl: 1.9rem;
+  --font-size-lg1: 1.05rem;
+  --font-size-lg2: 1.5rem;
+  --font-size-lg3: 1.9rem;
 
   /* --- アイコンサイズ規格(2026-07-27 ラウンド20 20-G1) --- */
   --icon-size-sm: 20px;
@@ -149,7 +149,7 @@ a {
 }
 
 .page-title {
-  font-size: var(--font-size-xl);
+  font-size: var(--font-size-lg2);
   line-height: var(--line-height-tight);
   font-weight: 700;
   margin: 0 0 var(--space-2);
@@ -159,7 +159,7 @@ a {
 .page-subtitle {
   color: var(--color-text-muted);
   margin: 0 0 var(--space-6);
-  font-size: var(--font-size-md);
+  font-size: var(--font-size-sm1);
 }
 
 .page-header {
@@ -186,7 +186,7 @@ a {
   display: inline-flex;
   align-items: center;
   gap: 0.3em;
-  font-size: var(--font-size-md);
+  font-size: var(--font-size-sm1);
   font-weight: 500;
   text-decoration: none;
   color: var(--color-text-muted);
@@ -282,7 +282,7 @@ a {
 }
 
 .panel h2 {
-  font-size: var(--font-size-lg);
+  font-size: var(--font-size-lg1);
   line-height: var(--line-height-snug);
   font-weight: 700;
   margin: 0 0 var(--space-4);
@@ -296,7 +296,7 @@ a {
 
 .card-hint {
   color: var(--color-text-muted);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-sm2);
   margin-top: calc(var(--space-2) * -1);
   margin-bottom: var(--space-4);
 }
@@ -354,7 +354,7 @@ fieldset {
 }
 
 legend {
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-sm2);
   font-weight: 600;
   color: var(--color-text-muted);
   padding: 0 0.4em;
@@ -362,7 +362,7 @@ legend {
 
 label {
   display: inline-block;
-  font-size: var(--font-size-md);
+  font-size: var(--font-size-sm1);
   color: var(--color-text);
 }
 
@@ -391,7 +391,7 @@ label {
 .field-label {
   flex-shrink: 0;
   min-width: var(--field-label-width, auto);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-sm2);
   font-weight: 600;
   color: var(--color-text-muted);
 }
@@ -407,7 +407,7 @@ label {
 
 .field-hint {
   margin: calc(var(--space-1) * -1) 0 0;
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-sm3);
   color: var(--color-text-muted);
 }
 
@@ -631,7 +631,7 @@ input[type="range"]:focus-visible::-moz-range-thumb {
 
 .stat-grid-label {
   display: block;
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-sm2);
   font-weight: 600;
   color: var(--color-text-muted);
   margin-bottom: var(--space-2);
@@ -648,7 +648,7 @@ input[type="range"]:focus-visible::-moz-range-thumb {
   flex-direction: column;
   align-items: flex-start;
   gap: var(--space-1);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-sm3);
   font-weight: 600;
   color: var(--color-text-muted);
   min-width: 0;
@@ -723,14 +723,14 @@ input[type="range"]:focus-visible::-moz-range-thumb {
 
 .empty-state-title {
   margin: 0 0 var(--space-1);
-  font-size: var(--font-size-lg);
+  font-size: var(--font-size-lg1);
   font-weight: 700;
   color: var(--color-text);
 }
 
 .empty-state-hint {
   margin: 0;
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-sm2);
 }
 
 .empty-state.is-compact {
@@ -743,7 +743,7 @@ input[type="range"]:focus-visible::-moz-range-thumb {
 }
 
 .empty-state.is-compact .empty-state-title {
-  font-size: var(--font-size-md);
+  font-size: var(--font-size-sm1);
 }
 
 .empty-state.is-compact .empty-state-hint {
@@ -901,7 +901,7 @@ a.btn-ghost:hover {
   display: inline-flex;
   align-items: center;
   gap: var(--space-1);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-sm3);
   color: var(--color-text-muted);
 }
 
@@ -1028,7 +1028,7 @@ input[type="checkbox"].toggle-switch-input {
   background: var(--color-primary-soft);
   color: var(--color-primary);
 
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-sm3);
   font-weight: 700;
 }
 
@@ -1040,7 +1040,7 @@ input[type="checkbox"].toggle-switch-input {
 /* --- ステータステキスト(自動保存・エンジン読み込み等の状態表示で共通利用) --- */
 .status-text {
   font-weight: 600;
-  font-size: var(--font-size-md);
+  font-size: var(--font-size-sm1);
   display: inline-flex;
   align-items: center;
   gap: 0.4em;
@@ -1136,7 +1136,7 @@ td:first-child {
 th {
   background: var(--color-surface-alt);
   font-weight: 700;
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-sm2);
   color: var(--color-text-muted);
 }
 

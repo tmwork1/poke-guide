@@ -806,7 +806,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		       WCAG 2.5.8の下限を維持)。
 		       2列目 2.4rem のまま据え置く。値(種族値3桁=29px)基準では2.2rem(35.2px)でも
 		       足りるが、⚠️ 列幅を縛っているのは値ではなく**見出しの「種族値」**(3文字×
-		       var(--font-size-xs)=12px → 実測36px)で、2.2remにすると見出しが「種族/値」の
+		       var(--font-size-sm3)=12px → 実測36px)で、2.2remにすると見出しが「種族/値」の
 		       2行に折り返してヘッダーが1行ぶん高くなる(実測で発覚し差し戻した)。
 		   ・4列目(努力値の数値入力)は操作性に直結するため変更しない。5列目も6.2remのまま
 		     据え置く(大きくしたボタンの左右に余白を残すため)。1列目から浮いた4.8pxが
@@ -839,9 +839,9 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		grid-template-columns: var(--stat-grid-template-columns);
 		gap: var(--stat-column-gap);
 		/* UI統一感レビュー(32-U-B1): 同じ行内の.ev-remaining(「残りN」)が持つ
-		   共通トークンvar(--font-size-xs)(12px)に対し、ここだけ直値0.78rem(12.48px)
+		   共通トークンvar(--font-size-sm3)(12px)に対し、ここだけ直値0.78rem(12.48px)
 		   だった。共通トークンを持つ側を基準に寄せる(太さ600/700の差は階層差として維持)。 */
-		font-size: var(--font-size-xs);
+		font-size: var(--font-size-sm3);
 		font-weight: 600;
 		color: var(--color-text-muted);
 		/* UI改善ラウンド49(B-3): 左右paddingを外す。以前は0.1rem(1.6px)あり、
@@ -903,7 +903,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	   見た目を作るためのもの)をすべて削除した。要素自体が<span>になったため、
 	   .stat-table-header-nature配下には何のfont関連プロパティも指定しない ──
 	   これにより隣の"種族値"見出し(<span>種族値</span>、同じく個別指定を持たず
-	   .stat-table-headerの既定値(font-size: var(--font-size-xs)/font-weight: 600/
+	   .stat-table-headerの既定値(font-size: var(--font-size-sm3)/font-weight: 600/
 	   color: var(--color-text-muted))をそのまま継承しているだけ)と、指定経路まで
 	   完全に同一になる(実測: 2要素のgetComputedStyle().fontSize/fontWeight/colorが
 	   一致することを確認済み、報告参照)。 */
@@ -930,8 +930,8 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	   ヘッダ高さが2行→1行になる)。 */
 	.ev-remaining {
 		/* ラウンド20ユーザー指示(20-G3)文字の下限12px対応: 0.72rem(11.5px)→
-		   --font-size-xs(0.75rem=12px)に上げる。 */
-		font-size: var(--font-size-xs);
+		   --font-size-sm3(0.75rem=12px)に上げる。 */
+		font-size: var(--font-size-sm3);
 		font-weight: 400;
 		color: var(--color-text-muted);
 	}
@@ -981,7 +981,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		height: 24px;
 		min-height: 24px;
 		padding: 0;
-		font-size: var(--font-size-sm);
+		font-size: var(--font-size-sm2);
 		font-weight: 700;
 		line-height: 1;
 	}
@@ -1042,7 +1042,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 			background: var(--color-surface-alt);
 			border: 1px solid var(--color-border);
 			border-radius: var(--radius-zero);
-			font-size: var(--font-size-md);
+			font-size: var(--font-size-sm1);
 			font-weight: 400;
 		}
 		/* 増減ボタンは入力欄と同じ30pxの正方形にする。端点ボタンは区別のため既存幅を維持する。 */
@@ -1061,7 +1061,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	.stat-ev-toggle-spacer { display: none; }
 	/* 努力値の数値入力も左パネル用の詰めた寸法に揃える(6行あるので効き方が大きい)。 */
 	/* ラウンド23ユーザー指示(23-L5): 努力値の数値入力も中央揃えにする。 */
-	.stat-row input[type="number"] { font-size: var(--font-size-md); padding: 0.3em 0.5em; width: 100%; text-align: center; }
+	.stat-row input[type="number"] { font-size: var(--font-size-sm1); padding: 0.3em 0.5em; width: 100%; text-align: center; }
 	.stat-row input[type="range"] { width: 100%; }
 	/* 🔴 UI改修依頼(個体編集左パネル、2026-08-04)「努力値バー選択時の枠ハイライトの廃止」。
 	   努力値バー(EVスライダー、この.stat-row内のinput[type="range"])に限定して、フォーカス時の
@@ -1355,8 +1355,8 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	.hp-fixed-note {
 		margin: var(--space-1) 0 0;
 		/* ラウンド20ユーザー指示(20-G3)文字の下限12px対応: 0.72rem(11.5px)→
-		   --font-size-xs(0.75rem=12px)に上げる。 */
-		font-size: var(--font-size-xs);
+		   --font-size-sm3(0.75rem=12px)に上げる。 */
+		font-size: var(--font-size-sm3);
 		color: var(--color-text-muted);
 	}
 
@@ -1372,18 +1372,18 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		gap: var(--space-2);
 		margin: 0.6rem 0 0;
 	}
-	.stat-adjustment-section { font-size: var(--font-size-md); }
+	.stat-adjustment-section { font-size: var(--font-size-sm1); }
 	/* ボタン本体は.btn-ghost(global.css、透明背景+ホバーでsurface-alt)をそのまま使う。パネル幅に
 	   対して「耐久指数最大化」(7文字)を含む3ボタンが横並びで収まるよう、.btn-ghostの既定
 	   (padding: var(--space-2) 1.1em、font-size: 継承=1rem)より一段階詰めた既存トークンの組み
-	   合わせに絞る(新しい値ではなく、旧.stat-adjust-button等でも使っていたvar(--font-size-sm)/
+	   合わせに絞る(新しい値ではなく、旧.stat-adjust-button等でも使っていたvar(--font-size-sm2)/
 	   var(--space-1)/var(--space-2)を再利用)。flex: 1 1 auto + flex-wrap: wrapで、3つ全体が
 	   収まらない狭幅では自然に折り返す(テキストが見切れることを避ける)。 */
 	.stat-adjust-action-button {
 		flex: 1 1 auto;
 		justify-content: center;
 		gap: 0.35em;
-		font-size: var(--font-size-md);
+		font-size: var(--font-size-sm1);
 		padding: var(--space-1) var(--space-2);
 		white-space: nowrap;
 		/* 共通buttonの強めのウェイトを一段細くし、補助操作としての階層に合わせる。 */
@@ -1632,7 +1632,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		min-width: 0;
 		width: 100%;
 		margin: 0;
-		font-size: var(--font-size-md);
+		font-size: var(--font-size-sm1);
 		padding: 0.42em 0.6em;
 		/* ラウンド4の積み残し: 特性欄が長い値(「ウーラオス(いちげき)」相当の長さ)で
 		   見切れる。省略記号で「切れている」ことを視覚的に示す(全文はtitle属性で確認)。
@@ -1721,7 +1721,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		min-width: 0;
 		width: 100%;
 		margin: 0;
-		font-size: var(--font-size-md);
+		font-size: var(--font-size-sm1);
 		padding: 0.42em 0.6em;
 		/* ラウンド4の積み残し: 持ち物欄が長い値(「こだわりハチマキ」等)で見切れる。 */
 		overflow: hidden;
@@ -1798,7 +1798,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		border-radius: var(--radius-sm);
 		background: var(--color-surface);
 		cursor: pointer;
-		font-size: var(--font-size-md);
+		font-size: var(--font-size-sm1);
 		font-weight: 400;
 		line-height: var(--line-height-snug);
 		color: var(--color-text);
@@ -1886,7 +1886,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		border-radius: var(--radius-sm);
 		background: var(--color-surface);
 		cursor: pointer;
-		font-size: var(--font-size-md);
+		font-size: var(--font-size-sm1);
 		font-weight: 400;
 		line-height: var(--line-height-snug);
 		color: var(--color-text);
@@ -1944,7 +1944,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		box-sizing: border-box;
 		margin-bottom: var(--space-1);
 		padding: 0.35em 0.5em;
-		font-size: var(--font-size-sm);
+		font-size: var(--font-size-sm2);
 	}
 	#edit-form .item-dropdown-list {
 		margin: 0;
@@ -2219,11 +2219,11 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		   入力欄と同じ書式にする」により、32-U-C1の裁定(600への統一)を部分撤回する。
 		   入力欄(#edit-form .top-block-fields .field > input.field-control等)はfont-weightを
 		   指定しておらず既定のnormal(400)のままなので、ここも600→400に戻して「入力欄と
-		   同じ書式」というユーザー指示に合わせる(font-size: var(--font-size-md)は入力欄と同値で
+		   同じ書式」というユーザー指示に合わせる(font-size: var(--font-size-sm1)は入力欄と同値で
 		   変更不要)。/boxカード側の.card-item-name(600)は対象ファイル外(box/index.astro)
 		   のため今回は変更しない。 */
 		.item-name-display {
-			font-size: var(--font-size-md);
+			font-size: var(--font-size-sm1);
 			font-weight: 400;
 			color: var(--color-text);
 			max-width: 8.05em;
@@ -2444,7 +2444,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 			width: 100%;
 			margin-top: 0;
 			font: inherit;
-			font-size: var(--font-size-sm);
+			font-size: var(--font-size-sm2);
 			font-weight: 400;
 			line-height: 1;
 		}
@@ -2455,7 +2455,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 			width: 100%;
 			box-sizing: border-box;
 			font: inherit;
-			font-size: var(--font-size-sm);
+			font-size: var(--font-size-sm2);
 			font-weight: 400;
 			line-height: 1;
 		}
@@ -2602,7 +2602,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		.move-picker-slot-tab {
 			min-height: 2rem;
 			padding: 0 var(--space-2);
-			font-size: var(--font-size-sm);
+			font-size: var(--font-size-sm2);
 			font-weight: 400;
 			overflow: hidden;
 			text-overflow: ellipsis;
@@ -2616,7 +2616,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	}
 	.move-picker-title {
 		font-weight: 700;
-		font-size: var(--font-size-sm);
+		font-size: var(--font-size-sm2);
 		color: var(--color-text);
 		flex: 1 1 auto;
 		white-space: nowrap;
@@ -2625,7 +2625,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		display: flex;
 		align-items: center;
 		gap: 0.4rem;
-		font-size: var(--font-size-xs);
+		font-size: var(--font-size-sm3);
 		color: var(--color-text-muted);
 		white-space: nowrap;
 		cursor: pointer;
@@ -2671,7 +2671,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		padding: 0.35rem var(--space-2);
 		border-radius: var(--radius-sm);
 		cursor: pointer;
-		font-size: var(--font-size-md);
+		font-size: var(--font-size-sm1);
 		color: var(--color-text);
 	}
 	.item-dropdown-option:hover,
@@ -2681,7 +2681,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	.item-dropdown-option[hidden] { display: none; }
 	.item-dropdown-empty {
 		padding: var(--space-2);
-		font-size: var(--font-size-xs);
+		font-size: var(--font-size-sm3);
 		color: var(--color-text-muted);
 		text-align: center;
 	}
@@ -2696,7 +2696,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		border: none;
 		background: transparent;
 		color: var(--color-text-muted);
-		font-size: var(--font-size-lg);
+		font-size: var(--font-size-lg1);
 		line-height: 1;
 		cursor: pointer;
 		border-radius: var(--radius-sm);
@@ -2707,7 +2707,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	.move-picker-note {
 		margin: 0;
 		padding: var(--space-2) 0.8rem;
-		font-size: var(--font-size-xs);
+		font-size: var(--font-size-sm3);
 		color: var(--color-text-muted);
 		border-bottom: 1px solid var(--color-border);
 		flex-shrink: 0;
@@ -2727,7 +2727,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		/* stickyセルと罫線を同じ描画単位にし、スクロール時にヘッダー上端から本文が覗くのを防ぐ。 */
 		border-collapse: separate;
 		border-spacing: 0;
-		font-size: var(--font-size-xs);
+		font-size: var(--font-size-sm3);
 	}
 	.move-picker-table thead th {
 		position: sticky;
@@ -2749,7 +2749,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		width: auto;
 		max-width: 100%;
 		min-width: 0;
-		font-size: var(--font-size-xs);
+		font-size: var(--font-size-sm3);
 		font-weight: 400;
 		field-sizing: content;
 		/* 見出しの16.8px line-heightを越えないよう、既存トークン同士の差で16px高にする。 */
@@ -2767,7 +2767,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		background: transparent;
 		color: var(--color-text);
 		font-weight: 700;
-		font-size: var(--font-size-xs);
+		font-size: var(--font-size-sm3);
 		padding: 0;
 		cursor: pointer;
 		white-space: nowrap;
@@ -2777,7 +2777,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		/* 「人気」を含む全ソート列で同じ昇順/降順マーカーを使う。 */
 		content: "↑↓";
 		color: var(--color-text-muted);
-		font-size: var(--font-size-sm);
+		font-size: var(--font-size-sm2);
 	}
 	.move-picker-sort-btn.is-active::after {
 		/* ステータス表の性格補正で使う▲▼との混同を避け、矢印の字形に統一する。 */
@@ -2805,7 +2805,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		padding: var(--space-4);
 		text-align: center;
 		color: var(--color-text-muted);
-		font-size: var(--font-size-sm);
+		font-size: var(--font-size-sm2);
 	}
 </style>
 <script>

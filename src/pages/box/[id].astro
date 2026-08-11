@@ -330,7 +330,7 @@ const isOptedOut = optOutRemainingText !== "";
 		}
 		/* 共通トップバーの戻るリンク(.app-topbar-back)と文字組みを揃える。
 		   font-familyとletter-spacingは、戻るリンクと同様にbodyからの継承値を使う。 */
-		#delete-button { font-size: var(--font-size-md); }
+		#delete-button { font-size: var(--font-size-sm1); }
 		/* ラウンド8指摘(A-5(2)): 幅390pxで折り返し先が無くwhite-space:normalのまま1文字ずつ
 		   縦に折り返り(実測46×169px)、w900でも3行に折れていた。1行に固定する
 		   (トップバー側の折り返し対策はglobal.css/AppLayout.astro担当の別エージェントの範囲)。 */
@@ -367,7 +367,7 @@ const isOptedOut = optOutRemainingText !== "";
 			display: inline-flex;
 			align-items: center;
 			gap: 0.4em;
-			font-size: var(--font-size-md);
+			font-size: var(--font-size-sm1);
 			font-weight: 500;
 			color: var(--color-text-muted);
 			white-space: nowrap;
@@ -377,7 +377,7 @@ const isOptedOut = optOutRemainingText !== "";
 		   折りたたむ/展開・非公開ボタンのhover時は背景を変えず文字色だけprimaryにする」対応。
 		   font-familyとletter-spacingは明示せず、戻るボタンと同様にbodyから継承する。 */
 		button#damage-collapse-toggle-button {
-			font-size: var(--font-size-md);
+			font-size: var(--font-size-sm1);
 			font-weight: 500;
 		}
 		button#damage-collapse-toggle-button:hover:not(:disabled) {

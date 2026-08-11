@@ -74,7 +74,7 @@ const defaultSeason = resolveDefaultSeason(seasons);
     .toolbar-build-search { flex: 0 1 13rem; }
     .toolbar-search input, .toolbar-build-search input { width: 100%; min-width: 12em; }
     .toolbar-season { flex: 0 0 auto; }
-    .toolbar-season label { font-size: var(--font-size-sm); color: var(--color-text-muted); white-space: nowrap; }
+    .toolbar-season label { font-size: var(--font-size-sm2); color: var(--color-text-muted); white-space: nowrap; }
     .ranked-teams-shell { max-width: none; }
     @media (max-width: 640px) {
       .toolbar-search, .toolbar-build-search { flex-basis: auto; }
@@ -97,7 +97,7 @@ const defaultSeason = resolveDefaultSeason(seasons);
     .ranked-team-list .ranked-team-article-group { display: flex; align-items: center; gap: var(--space-2); min-width: 0; flex: 1 1 18rem; }
     .ranked-team-list .ranked-team-article-link { display: inline-flex; align-items: center; gap: var(--space-1); min-width: 0; }
     .ranked-team-list .ranked-team-article-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .ranked-team-list .ranked-team-article-icon { flex: none; width: var(--font-size-sm); height: var(--font-size-sm); }
+    .ranked-team-list .ranked-team-article-icon { flex: none; width: var(--font-size-sm2); height: var(--font-size-sm2); }
     .ranked-team-list .ranked-team-host { flex-shrink: 0; max-width: 14rem; overflow: hidden; text-overflow: ellipsis; }
     .ranked-team-list .ranked-team-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(18rem, 0.34fr); }
     /* 広幅では6体を1行に収め、同一行の最大内容高へ伸ばして欠損のある枠とも高さを揃える。 */
@@ -108,15 +108,15 @@ const defaultSeason = resolveDefaultSeason(seasons);
     .ranked-team-list .ranked-team-image-wrap { position: relative; display: inline-flex; align-items: center; justify-content: center; max-width: 100%; }
     .ranked-team-list .ranked-team-pokemon-image { width: 72px; height: 72px; max-width: 100%; object-fit: contain; }
     .ranked-team-list .ranked-team-image-fallback { display: flex; align-items: center; justify-content: center; width: 56px; height: 56px; border-radius: 50%; background: var(--color-primary-soft); color: var(--color-primary); font-weight: 700; }
-    .ranked-team-list .ranked-team-species-name { max-width: 100%; padding: 0 var(--space-1); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--font-size-xs); }
+    .ranked-team-list .ranked-team-species-name { max-width: 100%; padding: 0 var(--space-1); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--font-size-sm3); }
     .ranked-team-list .ranked-team-item-badge { position: absolute; right: 0; bottom: var(--space-1); display: inline-flex; align-items: center; justify-content: center; width: var(--icon-size-md); height: var(--icon-size-md); }
     .ranked-team-list .ranked-team-item-badge img { width: 100%; height: 100%; object-fit: contain; }
-    .ranked-team-list .ranked-team-ability { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--color-text-muted); font-size: var(--font-size-xs); }
+    .ranked-team-list .ranked-team-ability { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--color-text-muted); font-size: var(--font-size-sm3); }
     .ranked-team-list .ranked-team-moves { width: max-content; max-width: 100%; min-width: 0; margin-inline: auto; display: flex; flex-direction: column; gap: var(--space-1); }
     .ranked-team-list .ranked-team-move { min-width: 0; display: flex; align-items: center; gap: var(--space-1); }
     /* 技名と同じ12px基準に揃え、アイコンだけが行内で目立たない大きさにする。 */
-    .ranked-team-list .ranked-team-move-type { flex: 0 0 auto; width: var(--font-size-xs); height: var(--font-size-xs); object-fit: contain; }
-    .ranked-team-list .ranked-team-move-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--color-text); font-size: var(--font-size-xs); }
+    .ranked-team-list .ranked-team-move-type { flex: 0 0 auto; width: var(--font-size-sm3); height: var(--font-size-sm3); object-fit: contain; }
+    .ranked-team-list .ranked-team-move-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--color-text); font-size: var(--font-size-sm3); }
     .ranked-team-list .ranked-team-details { margin: 0; padding: var(--space-4); border-left: 1px solid var(--color-border); display: flex; flex-direction: column; justify-content: center; gap: var(--space-3); }
     .ranked-team-list .ranked-team-detail-row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
     .ranked-team-list .ranked-team-detail-row dt { font-weight: 700; }

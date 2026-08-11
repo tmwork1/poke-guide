@@ -182,7 +182,7 @@ const initialTeamJson = team
 			align-items: center;
 			gap: 0.4em;
 			/* 戻るボタン(.app-topbar-back)と同じ文字規格に揃える。 */
-			font-size: var(--font-size-md);
+			font-size: var(--font-size-sm1);
 			font-weight: 500;
 			color: var(--color-text-muted);
 			white-space: nowrap;
@@ -203,7 +203,7 @@ const initialTeamJson = team
 		.collection-opt-out-status[data-state="error"] { color: var(--color-danger); }
 		/* 2026-08-05: global.cssのbutton.btn-dangerが持つ太字指定を上書きし、
 		   戻るボタン(.app-topbar-back)と同じ文字サイズ・太さへ揃える。 */
-		#delete-team-button { font-size: var(--font-size-md); white-space: nowrap; font-weight: 500; }
+		#delete-team-button { font-size: var(--font-size-sm1); white-space: nowrap; font-weight: 500; }
 		/* 🔴 UI改修依頼(チーム編集ヘッダー、2026-08-02)「非公開・削除ボタンの余白サイズを
 		   個体編集画面と同じにする」。box/[id].astro が2026-08-01の依頼(「データ提供スイッチと
 		   削除ボタンの間の余白を広げる」)で #delete-button に足した margin-left が、
@@ -246,7 +246,7 @@ const initialTeamJson = team
 		   ダーク8.87:1でWCAG AAを満たすことが実測済み)。
 		   2026-08-05: 共通トップバーへ移しても従来の水平位置を保つため、表示幅ではボタンを
 		   トップバー基準で中央パネル左端へ絶対配置する。配色・フォントサイズは変更しない。 */
-		#matchup-check-button { font-size: var(--font-size-sm); white-space: nowrap; display: none; }
+		#matchup-check-button { font-size: var(--font-size-sm2); white-space: nowrap; display: none; }
 		/* 3カラム時の左列幅は、ヘッダーボタンと本文グリッドで共有して更新漏れを防ぐ。 */
 		:global(:root) { --team-left-col: 335px; }
 		#matchup-check-button[aria-pressed="true"] {
@@ -275,7 +275,7 @@ const initialTeamJson = team
 			padding: var(--space-3);
 		}
 		.team-matchup-heading {
-			font-size: var(--font-size-sm);
+			font-size: var(--font-size-sm2);
 			font-weight: 600;
 			margin: 0 0 var(--space-2);
 		}
@@ -299,7 +299,7 @@ const initialTeamJson = team
 			border: none;
 			background: var(--color-surface);
 			color: var(--color-text-muted);
-			font-size: var(--font-size-xs);
+			font-size: var(--font-size-sm3);
 			font-weight: 600;
 			padding: 0.25em 0.4em;
 			line-height: var(--line-height-tight);
@@ -326,7 +326,7 @@ const initialTeamJson = team
 			color: var(--color-primary-contrast);
 		}
 		.team-matchup-status {
-			font-size: var(--font-size-xs);
+			font-size: var(--font-size-sm3);
 			color: var(--color-text-muted);
 			margin: var(--space-2) 0 0;
 			line-height: var(--line-height-snug);
@@ -458,7 +458,7 @@ const initialTeamJson = team
 		}
 		.team-select-filters-row > .regulation-filter-toggle {
 			/* 294pxの行に2トグルと件数を同居させるため、既存の最小文字トークンを使う。 */
-			font-size: var(--font-size-xs);
+			font-size: var(--font-size-sm3);
 		}
 		.team-select-count {
 			margin-left: auto;
@@ -489,7 +489,7 @@ const initialTeamJson = team
 			display: inline-flex;
 			align-items: center;
 			gap: 0.4em;
-			font-size: var(--font-size-sm);
+			font-size: var(--font-size-sm2);
 			color: var(--color-text-muted);
 			white-space: nowrap;
 			cursor: pointer;
@@ -520,7 +520,7 @@ const initialTeamJson = team
 			display: inline-flex;
 			align-items: center;
 			gap: 0.4em;
-			font-size: var(--font-size-sm);
+			font-size: var(--font-size-sm2);
 			color: var(--color-text-muted);
 			white-space: nowrap;
 			cursor: pointer;
@@ -646,7 +646,7 @@ const initialTeamJson = team
 		}
 		.team-preview-empty {
 			color: var(--color-text-muted);
-			font-size: var(--font-size-sm);
+			font-size: var(--font-size-sm2);
 		}
 
 		/* 🔴 UI改修依頼(チーム編集画面 右パネル、2026-08-04)「右パネル共通のタイトル帯」。
@@ -672,7 +672,7 @@ const initialTeamJson = team
 		   (改修依頼の「クラス名の改名・削除はしないこと」に従う)。 */
 		.team-panel-header-title {
 			margin: 0;
-			font-size: var(--font-size-sm);
+			font-size: var(--font-size-sm2);
 			font-weight: 700;
 			overflow: hidden;
 			text-overflow: ellipsis;
@@ -1136,7 +1136,7 @@ const initialTeamJson = team
 			/* UI改修依頼(チーム編集左パネル、2026-08-01)「種族名以外の文字をもう少し大きくする」
 			   により0.88rem(14.08px)から引き上げていた値(0.95rem)を維持する。 */
 			/* 2行目のNNは中央配置を保ち、既存の小サイズトークンへ縮める。 */
-			font-size: var(--font-size-sm);
+			font-size: var(--font-size-sm2);
 			font-weight: 700;
 			white-space: nowrap;
 			overflow: hidden;
@@ -1182,7 +1182,7 @@ const initialTeamJson = team
 			min-width: 0;
 		}
 		.team-select-bar .select-row-ability-name {
-			font-size: var(--font-size-xs);
+			font-size: var(--font-size-sm3);
 			line-height: var(--line-height-tight);
 			font-weight: 600;
 			color: var(--color-text-muted);
@@ -1206,7 +1206,7 @@ const initialTeamJson = team
 			object-fit: contain;
 		}
 		.team-select-bar .select-row-item-name {
-			font-size: var(--font-size-xs);
+			font-size: var(--font-size-sm3);
 			line-height: var(--line-height-tight);
 			font-weight: 600;
 			color: var(--color-text-muted);
@@ -1230,7 +1230,7 @@ const initialTeamJson = team
 			align-items: center;
 			gap: var(--space-1);
 			min-width: 0;
-			font-size: var(--font-size-xs);
+			font-size: var(--font-size-sm3);
 			line-height: var(--line-height-tight);
 			font-weight: 600;
 			color: var(--color-text-muted);
@@ -1260,7 +1260,7 @@ const initialTeamJson = team
 		   外す。新色は作らない。 */
 		.team-select-bar .select-row-reason {
 			/* A-3(b): 0.74rem(11.84px)は12px下限を割っていたため、12pxのトークンに是正。 */
-			font-size: var(--font-size-xs);
+			font-size: var(--font-size-sm3);
 			font-weight: 700;
 			width: 100%;
 		}
@@ -1394,7 +1394,7 @@ const initialTeamJson = team
 			   font-weight:600(太字)は他画面の検索欄placeholder等より主張が強すぎたため、通常の
 			   太さに戻す(色は既存のvar(--color-text-muted)のまま、両テーマ対応を崩さない)。 */
 			font-weight: 400;
-			font-size: var(--font-size-md);
+			font-size: var(--font-size-sm1);
 			cursor: default;
 			text-align: center;
 			white-space: pre-line;
@@ -1538,7 +1538,7 @@ const initialTeamJson = team
 			align-items: center;
 			width: 100%;
 			gap: var(--space-1);
-			font-size: var(--font-size-sm);
+			font-size: var(--font-size-sm2);
 			color: var(--color-text-muted);
 			/* UI改修依頼(チーム編集中央パネル、2026-08-02)実測修正: bodyの既定
 			   line-height:1.6を打ち消さずに継承しており、1行しか無いチップ状の表示には
@@ -1562,7 +1562,7 @@ const initialTeamJson = team
 			gap: var(--space-1);
 			width: 100%;
 			min-height: var(--space-4);
-			font-size: var(--font-size-xs);
+			font-size: var(--font-size-sm3);
 			line-height: var(--line-height-tight);
 			color: var(--color-text-muted);
 			white-space: nowrap;
@@ -1607,7 +1607,7 @@ const initialTeamJson = team
 		   (1.25、bodyの既定1.6から)に引き締め、1200〜1600px帯で技の2段目が見切れていた問題
 		   (上の.card-team-slotコメント参照)の解消に充てる。 */
 		.team-slots .slot-stat-key {
-			font-size: var(--font-size-xs);
+			font-size: var(--font-size-sm3);
 			font-weight: 700;
 			color: var(--color-text-muted);
 			text-align: center;
@@ -1616,7 +1616,7 @@ const initialTeamJson = team
 		.team-slots .slot-stat-key[data-mod="up"] { color: var(--color-danger-strong); }
 		.team-slots .slot-stat-key[data-mod="down"] { color: var(--color-primary); }
 		.team-slots .slot-stat-value {
-			font-size: var(--font-size-xs);
+			font-size: var(--font-size-sm3);
 			font-weight: 700;
 			text-align: center;
 			line-height: var(--line-height-tight);
@@ -1637,7 +1637,7 @@ const initialTeamJson = team
 			align-items: center;
 			gap: var(--space-1);
 			min-width: 0;
-			font-size: var(--font-size-xs);
+			font-size: var(--font-size-sm3);
 			font-weight: 600;
 			color: var(--color-text-muted);
 			padding: calc(var(--space-1) * 0.32) 0;
@@ -1756,7 +1756,7 @@ const initialTeamJson = team
 		}
 		.team-preview-panel .team-damage-owner {
 			margin: 0;
-			font-size: var(--font-size-sm);
+			font-size: var(--font-size-sm2);
 			font-weight: 800;
 			overflow: hidden;
 			text-overflow: ellipsis;
@@ -1764,7 +1764,7 @@ const initialTeamJson = team
 		}
 		.team-preview-panel .team-damage-status {
 			margin: 0;
-			font-size: var(--font-size-xs);
+			font-size: var(--font-size-sm3);
 			color: var(--color-text-muted);
 		}
 		.team-preview-panel .team-damage-list {
@@ -1846,7 +1846,7 @@ const initialTeamJson = team
 		.team-preview-panel .team-damage-direction {
 			flex: 0 0 auto;
 			display: inline-flex;
-			font-size: var(--font-size-xs);
+			font-size: var(--font-size-sm3);
 			font-weight: 600;
 			line-height: var(--line-height-tight);
 			padding: 0.1em 0.55em;
@@ -1862,7 +1862,7 @@ const initialTeamJson = team
 		.team-preview-panel .team-damage-name {
 			flex: 1 1 auto;
 			min-width: 0;
-			font-size: var(--font-size-sm);
+			font-size: var(--font-size-sm2);
 			font-weight: 700;
 			overflow: hidden;
 			text-overflow: ellipsis;
@@ -1873,13 +1873,13 @@ const initialTeamJson = team
 			align-items: center;
 			gap: var(--space-1);
 			min-width: 0;
-			font-size: var(--font-size-xs);
+			font-size: var(--font-size-sm3);
 			color: var(--color-text-muted);
 		}
 		.team-preview-panel .team-damage-ability {
 			flex: 1 1 auto;
 			min-width: 0;
-			font-size: var(--font-size-xs);
+			font-size: var(--font-size-sm3);
 			color: var(--color-text-muted);
 			overflow: hidden;
 			text-overflow: ellipsis;
@@ -1928,7 +1928,7 @@ const initialTeamJson = team
 			display: contents;
 		}
 		.team-preview-panel .team-damage-stat-key {
-			font-size: var(--font-size-xs);
+			font-size: var(--font-size-sm3);
 			font-weight: 700;
 			color: var(--color-text-muted);
 			text-align: center;
@@ -1936,7 +1936,7 @@ const initialTeamJson = team
 		.team-preview-panel .team-damage-stat-key[data-mod="up"] { color: var(--color-danger-strong); }
 		.team-preview-panel .team-damage-stat-key[data-mod="down"] { color: var(--color-primary); }
 		.team-preview-panel .team-damage-stat-value {
-			font-size: var(--font-size-xs);
+			font-size: var(--font-size-sm3);
 			font-weight: 700;
 			text-align: center;
 		}
@@ -1947,7 +1947,7 @@ const initialTeamJson = team
 		   可読性を保てる12pxのトークンへ統一する)。 */
 		.team-preview-panel .team-damage-move-line {
 			margin: var(--space-1) 0 0;
-			font-size: var(--font-size-xs);
+			font-size: var(--font-size-sm3);
 			font-weight: 700;
 			overflow: hidden;
 			text-overflow: ellipsis;
@@ -1959,7 +1959,7 @@ const initialTeamJson = team
 		   詳細設定を出す場所が他に無いため折り返して全部見せる。 */
 		.team-preview-panel .team-damage-detail-line {
 			margin: 0;
-			font-size: var(--font-size-xs);
+			font-size: var(--font-size-sm3);
 			line-height: var(--line-height-snug);
 			color: var(--color-text-muted);
 			overflow-wrap: anywhere;
@@ -1982,11 +1982,11 @@ const initialTeamJson = team
 			   (border-left 4px)にほぼ接して見えるため(実測: 文字の開始位置が padding の
 			   端ちょうど)。 */
 			padding: var(--space-1) var(--space-2) var(--space-1) var(--space-3);
-			font-size: var(--font-size-xs);
+			font-size: var(--font-size-sm3);
 			line-height: var(--line-height-tight);
 		}
 		.team-preview-panel .team-damage-result-verdict {
-			font-size: var(--font-size-md);
+			font-size: var(--font-size-sm1);
 			font-weight: 800;
 		}
 		.team-preview-panel .team-damage-result-detail {
@@ -1994,14 +1994,14 @@ const initialTeamJson = team
 		}
 		.team-preview-panel .team-damage-result-note {
 			flex: 1 0 100%;
-			font-size: var(--font-size-xs);
+			font-size: var(--font-size-sm3);
 			font-weight: 500;
 			white-space: normal;
 		}
 		/* UI改修依頼(右パネル、2026-08-02)「計算結果の縦余白を削って圧縮する」。 */
 		.team-preview-panel .team-damage-memo {
 			margin: 0;
-			font-size: var(--font-size-xs);
+			font-size: var(--font-size-sm3);
 			color: var(--color-text-muted);
 			overflow: hidden;
 			text-overflow: ellipsis;
@@ -2017,12 +2017,12 @@ const initialTeamJson = team
 			padding: var(--space-3);
 		}
 		.team-suggest-heading {
-			font-size: var(--font-size-sm);
+			font-size: var(--font-size-sm2);
 			font-weight: 600;
 			margin: 0 0 var(--space-1);
 		}
 		.team-suggest-status {
-			font-size: var(--font-size-sm);
+			font-size: var(--font-size-sm2);
 			color: var(--color-text-muted);
 			margin: 0;
 		}
@@ -2051,7 +2051,7 @@ const initialTeamJson = team
 		}
 		.team-suggest-rank {
 			/* 順位を一覧の視覚的な起点にするため、従来値の1.5倍にする。 */
-			font-size: calc(var(--font-size-xs) * 1.5);
+			font-size: calc(var(--font-size-sm3) * 1.5);
 			font-weight: 700;
 			color: var(--color-text-muted);
 			min-width: 1.2em;
@@ -2078,7 +2078,7 @@ const initialTeamJson = team
 			border-radius: 50%;
 			background: var(--color-surface-alt);
 			color: var(--color-text-muted);
-			font-size: var(--font-size-xs);
+			font-size: var(--font-size-sm3);
 			align-items: center;
 			justify-content: center;
 		}
@@ -2092,7 +2092,7 @@ const initialTeamJson = team
 			min-width: 0;
 		}
 		.team-suggest-name {
-			font-size: var(--font-size-sm);
+			font-size: var(--font-size-sm2);
 			font-weight: 600;
 			white-space: nowrap;
 			overflow: hidden;
@@ -2104,7 +2104,7 @@ const initialTeamJson = team
 		   読めなくなるため、折り返して2行以上になることを許す(カードの高さは伸びる)。
 		   UI改修依頼(2026-08-04)アイテムを最優先で読めるよう先頭に置く。 */
 		.team-suggest-build {
-			font-size: var(--font-size-xs);
+			font-size: var(--font-size-sm3);
 			color: var(--color-text-muted);
 			display: flex;
 			align-items: center;
@@ -2123,7 +2123,7 @@ const initialTeamJson = team
 		/* UI改修依頼(2026-08-05)「持ち物名を中央カードと同じ表示にする」対応。 */
 		.team-suggest-item-name {
 			font-weight: 600;
-			font-size: var(--font-size-xs);
+			font-size: var(--font-size-sm3);
 			color: var(--color-text-muted);
 			min-width: 0;
 			overflow: hidden;
@@ -2155,7 +2155,7 @@ const initialTeamJson = team
 		/* 根拠(共起した種族名、または「上位チームのN%が採用」)。ここで切れると
 		   提案の説得力そのものが失われるため折り返す。 */
 		.team-suggest-reason {
-			font-size: var(--font-size-xs);
+			font-size: var(--font-size-sm3);
 			color: var(--color-text-muted);
 			line-height: var(--line-height-snug);
 			margin-top: 0.1em;
@@ -2168,7 +2168,7 @@ const initialTeamJson = team
 		/* 持ち物がチーム内で重複する型(そのままでは編成できない)への注意書き。
 		   候補自体は消さない ── 「持ち物を変えれば使える」という情報は残す価値があるため。 */
 		.team-suggest-conflict {
-			font-size: var(--font-size-xs);
+			font-size: var(--font-size-sm3);
 			color: var(--color-risky-strong);
 		}
 		/* UI改修依頼(右パネル サジェスト、2026-08-04)「3列目のセルに収まる縦長のボタン」へ変更。
@@ -2184,7 +2184,7 @@ const initialTeamJson = team
 			/* 鉛筆とラベルを横並びのまま収める。 */
 			width: 6.4em;
 			max-width: 6.4em;
-			font-size: var(--font-size-xs);
+			font-size: var(--font-size-sm3);
 			line-height: var(--line-height-tight);
 			padding: var(--space-1);
 			white-space: normal;
@@ -2264,7 +2264,7 @@ const initialTeamJson = team
 			top: var(--space-1);
 			left: var(--space-1);
 			/* UI改修依頼(2026-08-05)「スコアを一段縮小して左上へ配置」対応。 */
-			font-size: calc(var(--font-size-xs) * 0.85);
+			font-size: calc(var(--font-size-sm3) * 0.85);
 			font-weight: 700;
 			font-variant-numeric: tabular-nums;
 			color: var(--color-text-muted);
@@ -2281,7 +2281,7 @@ const initialTeamJson = team
 			border-radius: 50%;
 			background: var(--color-surface-alt);
 			color: var(--color-text-muted);
-			font-size: var(--font-size-xs);
+			font-size: var(--font-size-sm3);
 			align-items: center;
 			justify-content: center;
 		}

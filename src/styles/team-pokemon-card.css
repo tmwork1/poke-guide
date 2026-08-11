@@ -40,7 +40,7 @@
 }
 
 .team-overview-thumb-grid .team-slot-number {
-	font-size: var(--font-size-lg);
+	font-size: var(--font-size-lg1);
 }
 
 /* Preview card */
@@ -59,18 +59,18 @@
 	--team-card-sprite-size: 8rem;
 	--team-card-sprite-opacity: 0.5;
 	/* Name (nickname or species name) */
-	--team-card-name-font-size: var(--font-size-xs);
+	--team-card-name-font-size: var(--font-size-sm3);
 	--team-card-name-font-weight: 600;
 	--team-card-name-line-height: 1.6;
 	--team-card-name-color: var(--color-text);
 	/* Ability row */
-	--team-card-details-font-size: var(--font-size-xs);
+	--team-card-details-font-size: var(--font-size-sm3);
 	--team-card-details-font-weight: 400;
 	--team-card-details-line-height: 1;
 	--team-card-details-gap: calc(var(--space-1) / 2);
 	--team-card-details-color: var(--color-text-muted);
 	/* Move list and rows */
-	--team-card-moves-font-size: var(--font-size-xs);
+	--team-card-moves-font-size: var(--font-size-sm3);
 	--team-card-moves-font-weight: 400;
 	--team-card-moves-line-height: 1;
 	--team-card-moves-icon-gap: calc(var(--space-1) / 2);
@@ -79,11 +79,11 @@
 	/* Vertical spacing between the name, ability, and move list */
 	--team-card-left-content-gap: calc(var(--space-1) / 2);
 	/* Stats table labels and values */
-	--team-card-stats-label-font-size: var(--font-size-xs);
+	--team-card-stats-label-font-size: var(--font-size-sm3);
 	--team-card-stats-label-font-weight: 500;
 	--team-card-stats-label-line-height: 1;
 	--team-card-stats-label-color: var(--color-text-muted);
-	--team-card-stats-value-font-size: var(--font-size-xs);
+	--team-card-stats-value-font-size: var(--font-size-sm3);
 	--team-card-stats-value-font-weight: 500;
 	--team-card-stats-value-line-height: 1.2;
 	--team-card-stats-value-color: var(--color-text);
@@ -97,7 +97,7 @@
 	--team-card-stats-ev-line-height: 1;
 	--team-card-stats-ev-color: var(--color-text-muted);
 	/* Species-name fallback shown only when the sprite image cannot load */
-	--team-card-sprite-fallback-font-size: var(--font-size-xs);
+	--team-card-sprite-fallback-font-size: var(--font-size-sm3);
 	--team-card-sprite-fallback-font-weight: 400;
 	--team-card-sprite-fallback-line-height: 1.6;
 	--team-card-sprite-fallback-color: var(--color-text-muted);

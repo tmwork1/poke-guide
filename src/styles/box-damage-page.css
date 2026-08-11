@@ -16,7 +16,7 @@ body.box-edit-page .app-topbar-title {
 }
 
 #opponent-notes-section .damage-calc-engine-status {
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-sm3);
   margin: 0 0 .4rem;
 }
 
@@ -35,7 +35,7 @@ body.box-edit-page .app-topbar-title {
   left: 1376.78px;
   top: calc(var(--topbar-height) / 2 - 1px);
   z-index: 21;
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-sm2);
   align-items: center;
   gap: .32em;
   display: flex;

@@ -40,7 +40,7 @@
   --box-card-item-badge-inset-block-end: var(--box-card-item-badge-offset);
 
   /* Name */
-  --box-card-name-font-size: var(--font-size-xs);
+  --box-card-name-font-size: var(--font-size-sm3);
   --box-card-name-font-weight: 500;
   --box-card-name-row-justify-content: flex-start;
   --box-card-name-text-align: left;
@@ -48,10 +48,10 @@
 
   /* Move list */
   --box-card-move-gap: 0.05rem;
-  --box-card-move-font-size: var(--font-size-xs);
+  --box-card-move-font-size: var(--font-size-sm3);
   --box-card-move-font-weight: 300;
 
-  --box-card-move-icon-size: var(--font-size-xs);
+  --box-card-move-icon-size: var(--font-size-sm3);
   --box-card-move-icon-gap: 3px;
   --box-card-move-row-padding: 0.04rem 0;
   --box-card-content-justify-content: flex-start;
@@ -72,7 +72,7 @@
   --box-card-action-border: 1px solid var(--color-border);
   --box-card-action-border-radius: 999px;
   --box-card-action-color: var(--color-text-muted);
-  --box-card-action-font-size: var(--font-size-sm);
+  --box-card-action-font-size: var(--font-size-sm2);
   --box-card-action-line-height: 1;
   --box-card-action-shadow: var(--shadow-sm);
   --box-card-action-hover-background: var(--color-surface-alt);
@@ -83,7 +83,7 @@
   /* Favorite button */
   --box-card-favorite-size: 52px;
   --box-card-favorite-padding: 7px 0 0 7px;
-  --box-card-favorite-font-size: var(--font-size-lg);
+  --box-card-favorite-font-size: var(--font-size-lg1);
   --box-card-favorite-background: var(--color-surface-alt);
   --box-card-favorite-color: var(--color-text-muted);
   --box-card-favorite-hover-background: var(--color-surface);

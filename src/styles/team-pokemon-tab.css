@@ -54,7 +54,7 @@
 	   最小幅)で横スクロールを引き起こす下限になりうるため明示的に打ち消す
 	   (width:100%で親に追従させる)。
 	   🔴 UI改修依頼(チーム編集中央パネル、2026-08-01)「チーム名ボックスのサイズを
-	   レギュレーションと揃えて小さくする」。旧来は--font-size-xl(24px)・font-weight:700
+	   レギュレーションと揃えて小さくする」。旧来は--font-size-lg2(24px)・font-weight:700
 	   で目立たせていたが、隣の.team-regulation-field selectは既定の.field-controlサイズ
 	   (font-sizeの上書きなし=inherit)のまま。この差でチーム名だけ縦に大きくずれて見えて
 	   いたため、font-size/font-weightの上書きを撤去しレギュレーション欄と同じ既定サイズに

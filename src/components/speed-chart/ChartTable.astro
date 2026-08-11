@@ -329,10 +329,10 @@ const { regulation, ownedId, hasOwnedPanel, embedded = false } = Astro.props;
 		grid-column: 3;
 		grid-row: 1;
 		gap: 2px;
-		font-size: var(--font-size-xs);
+		font-size: var(--font-size-sm3);
 		white-space: nowrap;
 	}
-	:global(.speed-chart-table[data-embedded='true'] .speed-chart-owned-raw-value strong) { font-size: var(--font-size-md); }
+	:global(.speed-chart-table[data-embedded='true'] .speed-chart-owned-raw-value strong) { font-size: var(--font-size-sm1); }
 	:global(.speed-chart-table[data-embedded='true'] .speed-chart-owned-summary-value-row) {
 		grid-column: 4;
 		grid-row: 1;
@@ -343,12 +343,12 @@ const { regulation, ownedId, hasOwnedPanel, embedded = false } = Astro.props;
 	:global(.speed-chart-table[data-embedded='true'] .speed-chart-owned-summary-value)::before {
 		content: '補正後';
 		display: block;
-		font-size: var(--font-size-xs);
+		font-size: var(--font-size-sm3);
 	}
 	:global(.speed-chart-table[data-embedded='true'] .speed-chart-owned-summary-value) {
 		display: grid;
 		gap: 2px;
-		font-size: var(--font-size-md);
+		font-size: var(--font-size-sm1);
 	}
 	:global(.speed-chart-table[data-embedded='true'] .speed-chart-owned-controls) {
 		display: flex;
@@ -393,7 +393,7 @@ const { regulation, ownedId, hasOwnedPanel, embedded = false } = Astro.props;
 		background: var(--color-surface-alt);
 		border: 1px solid var(--color-border);
 		border-radius: var(--radius-zero);
-		font-size: var(--font-size-md);
+		font-size: var(--font-size-sm1);
 		font-weight: 400;
 	}
 	:global(.speed-chart-table[data-embedded='true'] .speed-chart-rank-field .rank-stepper:hover:not(:disabled)) {
@@ -479,7 +479,7 @@ const { regulation, ownedId, hasOwnedPanel, embedded = false } = Astro.props;
 	   (/box/[id]の.stat-row-realと同じ階層)。列幅(80px)に対して数値だけが左寄りだと
 	   詰まって見えるため中央寄せにする。 */
 	.speed-chart-table .speed-chart-value-cell {
-		font-size: var(--font-size-lg);
+		font-size: var(--font-size-lg1);
 		font-weight: 700;
 		padding-top: 0;
 		text-align: center;
@@ -490,7 +490,7 @@ const { regulation, ownedId, hasOwnedPanel, embedded = false } = Astro.props;
 	   3列目の1段目(ポケモンチップ)と視覚的な高さが揃うよう、チップのpadding分だけ
 	   上に余白を持たせる。
 	   要件D: 太字はやめ(バッジ.speed-chart-spread-badgeだけは既存の太字意匠を維持、下で個別に
-	   font-weight: 700を指定)、文字サイズを1段上げる(--font-size-xs → --font-size-sm)。 */
+	   font-weight: 700を指定)、文字サイズを1段上げる(--font-size-sm3 → --font-size-sm2)。 */
 	.speed-chart-table .speed-chart-meta-cell {
 		display: flex;
 		flex-wrap: wrap;
@@ -498,7 +498,7 @@ const { regulation, ownedId, hasOwnedPanel, embedded = false } = Astro.props;
 		gap: 0.35em;
 		min-width: 0;
 		padding-top: 0;
-		font-size: var(--font-size-sm);
+		font-size: var(--font-size-sm2);
 		font-weight: 500;
 		color: var(--color-text);
 		line-height: var(--line-height-snug);
@@ -506,7 +506,7 @@ const { regulation, ownedId, hasOwnedPanel, embedded = false } = Astro.props;
 	.speed-chart-table .speed-chart-base-speed-label {
 		color: var(--color-text-muted);
 		font-weight: 500;
-		font-size: var(--font-size-md);
+		font-size: var(--font-size-sm1);
 	}
 	/* 3列目: ポケモンを1段目、その補正要因を2段目・左寄せ(チップの並び自体は左寄せのまま)。 */
 	.speed-chart-table .speed-chart-chips-cell {
@@ -530,7 +530,7 @@ const { regulation, ownedId, hasOwnedPanel, embedded = false } = Astro.props;
 	   して「ポケモンが主・要因が補足」という情報の主従を示す。補正なしグループ(素の実数値)には
 	   要因が無いため、その場合はこの要素自体を出力しない(chart-table.ts参照)。 */
 	.speed-chart-table .speed-chart-chip-origin {
-		font-size: var(--font-size-xs);
+		font-size: var(--font-size-sm3);
 		font-weight: 500;
 		color: var(--color-text-muted);
 		line-height: var(--line-height-snug);
@@ -631,7 +631,7 @@ const { regulation, ownedId, hasOwnedPanel, embedded = false } = Astro.props;
 	.speed-chart-table .speed-chart-chip-overflow {
 		display: inline-flex;
 		align-items: center;
-		font-size: var(--font-size-xs);
+		font-size: var(--font-size-sm3);
 		color: var(--color-text-muted);
 		white-space: nowrap;
 		padding: 0.1rem 0.4rem;
@@ -646,7 +646,7 @@ const { regulation, ownedId, hasOwnedPanel, embedded = false } = Astro.props;
 		display: inline-flex;
 		align-items: center;
 		gap: var(--space-1);
-		font-size: var(--font-size-xs);
+		font-size: var(--font-size-sm3);
 		background: var(--color-surface-alt);
 		border-radius: 999px;
 		padding: 0.1rem 0.5rem 0.1rem 0.1rem;
