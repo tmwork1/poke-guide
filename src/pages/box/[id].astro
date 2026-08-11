@@ -22,6 +22,7 @@ import MobileTrainingBar from '../../components/box-id/MobileTrainingBar.astro';
 import '../../styles/box-edit-page.css';
 import { getSupabaseAdminClient, getSupabasePublicClient } from '../../lib/supabase';
 import { getOwnedPokemon, type OwnedPokemonRecord } from '../../lib/owned-pokemon';
+import { isValidUuid } from '../api/_shared';
 
 const user = Astro.locals.user;
 const id = Astro.params.id;
@@ -165,6 +166,8 @@ const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 // pokemonがnull(個体が見つからない)のときはpageTitleが種族名ではなく固定文言「個体編集」
 // (エラー状態の案内)なので、そちらは隠さない(bodyClassをpokemon存在時だけ付与する)。
 const bodyClass = pokemon ? "box-edit-page" : undefined;
+const fromTeam = Astro.url.searchParams.get('fromTeam');
+const backHref = isValidUuid(fromTeam) ? `/team/${encodeURIComponent(fromTeam)}` : '/box';
 
 // 匿名集計サジェスト機能・第4段階(UI: 収集拒否トグル)。owned_pokemon.collection_opt_out_until
 // (null=収集対象、未来日時=拒否期間中)から、SSR時点での「拒否中かどうか」と「残り日数」を
@@ -182,7 +185,7 @@ function formatOptOutRemaining(until: string | null | undefined): string {
 const optOutRemainingText = pokemon ? formatOptOutRemaining(pokemon.collection_opt_out_until) : "";
 const isOptedOut = optOutRemainingText !== "";
 ---
-<AppLayout title={pageTitle} current="box" backHref="/box" bodyClass={bodyClass}>
+<AppLayout title={pageTitle} current="box" backHref={backHref} bodyClass={bodyClass}>
 	{/* 共通トップバー移行(2026-07-26): 独自の.page-header(戻る/保存状態/ポケモン名/削除ボタン)を
 	    撤去し、AppLayoutのbackHref/title/topbar-status/topbar-actionsへ移した(box/index.astroの
 	    先行移行と同じ方針)。保存状態(#autosave-status等)と削除ボタン(#delete-button)は

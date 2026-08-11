@@ -5,6 +5,7 @@
 	justify-content: space-between;
 	gap: var(--space-3);
 	padding: var(--space-3) var(--space-5);
+	background: var(--color-surface);
 	border-bottom: 1px solid var(--color-border);
 }
 .team-mobile-actions__controls {

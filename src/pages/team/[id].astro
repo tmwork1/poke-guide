@@ -2613,17 +2613,24 @@ const initialTeamJson = team
 
 			// 持ち物アイコン(アイコン+名前、R-8)。アイコンが解決できない/読み込み失敗のときも
 			// 名前のテキストは残す(box/index.astroの持ち物行と同じ考え方)。
-			async function applyItemIcon(imgEl: HTMLImageElement, itemName: string): Promise<void> {
+			async function applyItemIcon(
+				imgEl: HTMLImageElement,
+				itemName: string,
+				visibilityEl?: HTMLElement,
+			): Promise<void> {
 				const spritePath = (await itemSpriteMapPromise).get(itemName);
 				if (!spritePath) {
 					imgEl.style.display = "none";
+					if (visibilityEl) visibilityEl.hidden = true;
 					return;
 				}
 				imgEl.onerror = () => {
 					imgEl.style.display = "none";
+					if (visibilityEl) visibilityEl.hidden = true;
 				};
 				imgEl.onload = () => {
 					imgEl.style.display = "";
+					if (visibilityEl) visibilityEl.hidden = false;
 				};
 				imgEl.src = itemIconUrl(spritePath);
 			}
@@ -2650,20 +2657,20 @@ const initialTeamJson = team
 			// (このファイルは右パネルの技分類判定(moveCategoryOf)で既にloadMoveDetailMap()を
 			// 呼んでおり、内部でキャッシュされる=fetchが増えるわけではない)。
 			async function applySelectMoveChipTypeIcons(
-				entries: { iconEl: HTMLImageElement; moveName: string }[],
+				entries: { iconEl: HTMLImageElement; visibilityEl: HTMLElement; moveName: string }[],
 			): Promise<void> {
 				if (entries.length === 0) return;
 				const detailMap = await loadMoveDetailMap();
-				for (const { iconEl, moveName } of entries) {
+				for (const { iconEl, visibilityEl, moveName } of entries) {
 					const type = detailMap.get(moveName)?.type;
 					if (!type) continue;
 					const url = typeIconUrl(type);
 					if (!url) continue;
 					iconEl.onerror = () => {
-						iconEl.hidden = true;
+						visibilityEl.hidden = true;
 					};
 					iconEl.onload = () => {
-						iconEl.hidden = false;
+						visibilityEl.hidden = false;
 					};
 					iconEl.src = url;
 				}
@@ -4065,7 +4072,7 @@ const initialTeamJson = team
 				const movesEl = document.createElement("div");
 				movesEl.className = "slot-moves";
 				if (moves.length > 0) {
-					const moveChipEntries: { iconEl: HTMLImageElement; moveName: string }[] = [];
+					const moveChipEntries: { iconEl: HTMLImageElement; visibilityEl: HTMLElement; moveName: string }[] = [];
 					for (const move of moves) {
 						const chip = document.createElement("span");
 						chip.className = "slot-move-chip";
@@ -4078,7 +4085,7 @@ const initialTeamJson = team
 						textEl.textContent = move;
 						chip.append(iconEl, textEl);
 						movesEl.appendChild(chip);
-						moveChipEntries.push({ iconEl, moveName: move });
+						moveChipEntries.push({ iconEl, visibilityEl: iconEl, moveName: move });
 					}
 					void applySelectMoveChipTypeIcons(moveChipEntries);
 				} else {
@@ -4151,7 +4158,7 @@ const initialTeamJson = team
 
 					const card = document.createElement("a");
 					card.className = "card box-card card-pokemon pokemon-preview team-overview-preview-card";
-					card.href = `/box/${encodeURIComponent(p.id)}`;
+					card.href = `/box/${encodeURIComponent(p.id)}?fromTeam=${encodeURIComponent(teamId)}`;
 					card.setAttribute("aria-label", `${p.nickname?.trim() || p.species_name}を編集`);
 					const main = document.createElement("div");
 					main.className = "pokemon-preview-main";
@@ -4161,14 +4168,11 @@ const initialTeamJson = team
 					details.className = "pokemon-preview-details";
 					const ability = document.createElement("div");
 					ability.textContent = p.ability_name?.trim() || "-";
-					const typeIcons = document.createElement("span");
-					typeIcons.className = "pokemon-preview-type-icons";
-					typeIcons.setAttribute("aria-label", "タイプ");
-					details.append(ability, typeIcons);
+					details.appendChild(ability);
 					const moves = document.createElement("ol");
 					moves.className = "pokemon-preview-moves";
 					moves.setAttribute("aria-label", "技");
-					const moveIconEntries: { iconEl: HTMLImageElement; moveName: string }[] = [];
+					const moveIconEntries: { iconEl: HTMLImageElement; visibilityEl: HTMLElement; moveName: string }[] = [];
 					for (const moveName of p.move_names.slice(0, 4)) {
 						const move = document.createElement("li");
 						const typeIcon = document.createElement("span");
@@ -4181,7 +4185,9 @@ const initialTeamJson = team
 						text.textContent = moveName?.trim() || "-";
 						move.append(typeIcon, text);
 						moves.appendChild(move);
-						if (moveName?.trim()) moveIconEntries.push({ iconEl: typeIconImage, moveName });
+						if (moveName?.trim()) {
+							moveIconEntries.push({ iconEl: typeIconImage, visibilityEl: typeIcon, moveName });
+						}
 					}
 					while (moves.children.length < 4) {
 						const move = document.createElement("li");
@@ -4202,36 +4208,29 @@ const initialTeamJson = team
 					identity.appendChild(spriteWrap);
 					const right = document.createElement("div");
 					right.className = "pokemon-preview-right";
-					const item = document.createElement("div");
-					item.className = "pokemon-preview-item pokemon-preview-icon-text";
-					const itemImage = document.createElement("img");
-					itemImage.alt = "";
-					itemImage.style.display = "none";
-					const itemText = document.createElement("span");
 					const itemName = p.item_name?.trim() ?? "";
-					itemText.textContent = itemName || "アイテムなし";
-					item.append(itemImage, itemText);
-					if (itemName) void applyItemIcon(itemImage, itemName);
 					const stats = document.createElement("table");
 					stats.className = "pokemon-preview-stats";
 					stats.setAttribute("aria-label", "実数値");
 					const statsBody = document.createElement("tbody");
 					stats.appendChild(statsBody);
-					right.append(item, stats);
+					right.appendChild(stats);
 					main.append(left, identity, right);
 					card.appendChild(main);
+					if (itemName) {
+						const item = document.createElement("div");
+						item.className = "pokemon-preview-item pokemon-preview-icon-text";
+						item.hidden = true;
+						item.title = itemName;
+						item.setAttribute("aria-label", `アイテム: ${itemName}`);
+						const itemImage = document.createElement("img");
+						itemImage.alt = "";
+						item.appendChild(itemImage);
+						card.appendChild(item);
+						void applyItemIcon(itemImage, itemName, item);
+					}
 					overviewGrid.appendChild(card);
 					void applySelectMoveChipTypeIcons(moveIconEntries);
-					void loadTypesMap().then((typesMap) => {
-						if (!card.isConnected) return;
-						for (const typeName of typesMap.get(p.species_name) ?? []) {
-							const typeIcon = document.createElement("img");
-							typeIcon.src = typeIconUrl(typeName) ?? "";
-							typeIcon.alt = typeName;
-							typeIcon.title = typeName;
-							typeIcons.appendChild(typeIcon);
-						}
-					});
 					void computeStats(p).then((computed) => {
 						if (!card.isConnected || !computed) return;
 						for (const stat of computed) {
@@ -4545,7 +4544,7 @@ const initialTeamJson = team
 				movesRow.className = "select-row-moves";
 				const rowMoves = p.move_names.filter((m) => m && m.trim() !== "");
 				if (rowMoves.length > 0) {
-					const chipEntries: { iconEl: HTMLImageElement; moveName: string }[] = [];
+					const chipEntries: { iconEl: HTMLImageElement; visibilityEl: HTMLElement; moveName: string }[] = [];
 					for (const move of rowMoves) {
 						const chip = document.createElement("span");
 						chip.className = "select-row-move-chip";
@@ -4559,7 +4558,7 @@ const initialTeamJson = team
 						textEl.textContent = move;
 						chip.appendChild(textEl);
 						movesRow.appendChild(chip);
-						chipEntries.push({ iconEl, moveName: move });
+						chipEntries.push({ iconEl, visibilityEl: iconEl, moveName: move });
 					}
 					void applySelectMoveChipTypeIcons(chipEntries);
 				} else {
