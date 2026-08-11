@@ -1,0 +1,113 @@
+/* チーム編集画面の「ポケモン」タブのカード用スタイル。 */
+/* 6枠のメンバープレビューを2列×3行に並べるグリッド。 */
+.team-overview-thumb-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: var(--space-3);
+	margin-inline: calc(var(--space-5) * -1);
+	padding-inline: var(--box-grid-edge-gap);
+}
+.team-overview-thumb-grid .box-card {
+	position: relative;
+	display: flex;
+	min-width: 0;
+	min-height: 9rem;
+	flex-direction: column;
+	overflow: hidden;
+	text-decoration: none;
+}
+.team-overview-thumb-grid .card-artwork {
+	display: flex;
+	min-height: 5rem;
+	align-items: center;
+	justify-content: center;
+	background: var(--color-surface-alt);
+}
+.team-overview-thumb-grid .card-artwork img {
+	width: 5rem;
+	height: 5rem;
+	object-fit: contain;
+}
+.team-overview-thumb-grid .team-overview-fallback {
+	display: none;
+	align-items: center;
+	justify-content: center;
+	width: 5rem;
+	height: 5rem;
+	color: var(--color-text-muted);
+}
+.team-overview-thumb-grid .card-body { padding: var(--space-3); }
+.team-overview-thumb-grid .card-name {
+	margin: 0;
+	overflow: hidden;
+	font-size: var(--font-size-sm);
+	font-weight: 700;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.team-overview-thumb-grid .card-moves-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: var(--space-2);
+	margin-top: var(--space-2);
+}
+.team-overview-thumb-grid .card-move-chip {
+	overflow: hidden;
+	color: var(--color-text-muted);
+	font-size: var(--font-size-sm);
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+/* 空き枠を破線枠と枠番号で示すプレースホルダー。 */
+.team-overview-thumb-grid .card-team-empty-slot {
+	display: flex;
+	min-height: 9rem;
+	align-items: center;
+	justify-content: center;
+	border: 1px dashed var(--color-border);
+	color: var(--color-text-muted);
+}
+.team-overview-thumb-grid .team-slot-number { font-size: var(--font-size-lg); }
+/* src/components/box-id/MobileTrainingBar.astroの育成プレビューバー(.pokemon-preview、src/styles/box-pokemon-preview.css参照)を、--pokemon-preview-*でおよそ半分のスケールに縮小して再現するカード。 */
+.team-overview-thumb-grid .team-overview-preview-card {
+	--pokemon-preview-column-gap: var(--space-1);
+	--pokemon-preview-padding: calc(var(--space-5) / 3);
+	--pokemon-preview-content-gap: calc(var(--space-1) / 2);
+	--pokemon-preview-item-stats-gap: var(--pokemon-preview-content-gap);
+	--pokemon-preview-stats-column-gap: var(--space-1);
+	--pokemon-preview-stats-inline-end-gap: 0;
+	--pokemon-preview-sprite-size: calc((var(--space-8) + var(--space-6)) / 3);
+	--pokemon-preview-font-size: var(--font-size-xs);
+	--pokemon-preview-type-icon-size: 1.1em;
+	--pokemon-preview-move-type-icon-size: 1.1em;
+	--pokemon-preview-item-icon-size: 1.2em;
+	--pokemon-preview-move-row-gap: 1px;
+	display: block;
+	min-height: 0;
+	color: var(--color-text);
+	font-size: var(--pokemon-preview-font-size);
+	background: var(--color-surface-alt);
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius-zero);
+}
+.team-overview-preview-card .pokemon-preview-main { display: grid; grid-template-columns: minmax(0, 1fr) var(--pokemon-preview-sprite-size) minmax(0, 1.1fr); gap: var(--pokemon-preview-column-gap); min-height: 6.5rem; padding: var(--pokemon-preview-padding); background: var(--color-surface-alt); }
+.team-overview-preview-card .pokemon-preview-left, .team-overview-preview-card .pokemon-preview-right { display: flex; flex-direction: column; min-width: 0; }
+.team-overview-preview-card .pokemon-preview-details, .team-overview-preview-card .pokemon-preview-icon-text, .team-overview-preview-card .pokemon-preview-moves li { display: flex; align-items: center; gap: var(--pokemon-preview-content-gap); min-width: 0; line-height: 1; }
+.team-overview-preview-card .pokemon-preview-details > div, .team-overview-preview-card .pokemon-preview-icon-text span, .team-overview-preview-card .pokemon-preview-moves li > span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.team-overview-preview-card .pokemon-preview-type-icons { display: flex; flex: none; gap: var(--space-1); }
+.team-overview-preview-card .pokemon-preview-type-icons img, .team-overview-preview-card .pokemon-preview-moves .move-type-icon img { display: block; width: var(--pokemon-preview-type-icon-size); height: var(--pokemon-preview-type-icon-size); object-fit: contain; }
+.team-overview-preview-card .pokemon-preview-moves { display: flex; flex-direction: column; gap: var(--pokemon-preview-move-row-gap); margin: auto 0 0; padding: 0; list-style: none; }
+.team-overview-preview-card .pokemon-preview-moves .move-type-icon { flex-shrink: 0; }
+.team-overview-preview-card .pokemon-preview-moves .move-type-icon img { width: var(--pokemon-preview-move-type-icon-size); height: var(--pokemon-preview-move-type-icon-size); }
+.team-overview-preview-card .pokemon-preview-moves .move-type-icon[hidden] { display: none; }
+.team-overview-preview-card .pokemon-preview-identity { position: relative; display: flex; align-items: center; justify-content: center; min-width: 0; }
+.team-overview-preview-card .pokemon-preview-sprite-wrap { display: flex; align-items: center; justify-content: center; width: var(--pokemon-preview-sprite-size); height: var(--pokemon-preview-sprite-size); pointer-events: none; }
+.team-overview-preview-card .pokemon-preview-sprite-wrap img { width: 100%; height: 100%; object-fit: contain; }
+.team-overview-preview-card .pokemon-preview-sprite-wrap span { color: var(--color-text-muted); }
+.team-overview-preview-card .pokemon-preview-item { justify-content: flex-end; }
+.team-overview-preview-card .pokemon-preview-icon-text img { display: block; flex-shrink: 0; width: var(--pokemon-preview-item-icon-size); height: var(--pokemon-preview-item-icon-size); object-fit: contain; }
+.team-overview-preview-card .pokemon-preview-stats { width: auto; margin: var(--pokemon-preview-item-stats-gap) 0 0 auto; border-collapse: collapse; border-spacing: 0; font-size: var(--font-size-xs); line-height: 1; }
+.team-overview-preview-card .pokemon-preview-stats th, .team-overview-preview-card .pokemon-preview-stats td { padding: var(--pokemon-preview-content-gap) 0 0; color: var(--color-text); font-weight: 500; text-align: right; background: transparent; border: 0; }
+.team-overview-preview-card .pokemon-preview-stats th:first-child { padding-right: var(--pokemon-preview-stats-column-gap); color: var(--color-text-muted); text-align: left; }
+.team-overview-preview-card .pokemon-preview-stats td[data-mod="up"] { color: var(--color-stat-up); }
+.team-overview-preview-card .pokemon-preview-stats td[data-mod="down"] { color: var(--color-stat-down); }

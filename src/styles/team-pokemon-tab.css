@@ -1,0 +1,66 @@
+/* チーム編集画面の「ポケモン」タブのレイアウト用スタイル。 */
+.team-mobile-actions {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--space-3);
+	padding: var(--space-3) var(--space-5);
+	border-bottom: 1px solid var(--color-border);
+}
+.team-mobile-actions__controls {
+	display: flex;
+	align-items: center;
+	gap: var(--space-3);
+	margin-left: auto;
+}
+.team-edit-shell[data-mobile-tab="pokemon"] .team-edit-layout,
+.team-edit-shell[data-mobile-tab="formation"] #team-overview-tab {
+	display: none;
+}
+@media (max-width: 640px) {
+	.team-mobile-actions { align-items: flex-start; }
+	.team-mobile-actions__controls { flex-wrap: wrap; justify-content: flex-end; }
+}
+
+/* チーム名の隣にレギュレーション選択を並べる。チーム名は可変幅(1fr)、
+   レギュレーションは表示内容に合う幅にする。 */
+.team-meta-fields {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	gap: var(--space-3);
+	align-items: end;
+	margin-bottom: var(--space-6);
+}
+.team-meta-fields > .field { margin: 0; }
+.team-regulation-field select { width: auto; }
+/* UI改修依頼(チーム編集中央パネル、2026-08-01)「"レギュレーション"ラベルを削除する。
+   他のUIと同様にplaceholderの色を薄くする」。LeftPanel.astroの
+   #edit-form #regulation[data-empty="true"]:not(:focus) と同じ値(破線・透明背景・
+   薄い文字色)を踏襲する(新しい値は作らない)。<select>には:placeholder-shownが無いため、
+   値が空のときだけJS/SSRが付けるdata-empty="true"を使う(<script>の
+   syncRegulationPlaceholder参照)。 */
+#team-regulation[data-empty="true"]:not(:focus) {
+	border-style: dashed;
+	background: transparent;
+	color: var(--color-text-muted);
+}
+.team-name-input {
+	width: 100%;
+	/* global.cssの input[type="text"] { min-width: 12em } は、900px幅(2カラム化する
+	   最小幅)で横スクロールを引き起こす下限になりうるため明示的に打ち消す
+	   (width:100%で親に追従させる)。
+	   🔴 UI改修依頼(チーム編集中央パネル、2026-08-01)「チーム名ボックスのサイズを
+	   レギュレーションと揃えて小さくする」。旧来は--font-size-xl(24px)・font-weight:700
+	   で目立たせていたが、隣の.team-regulation-field selectは既定の.field-controlサイズ
+	   (font-sizeの上書きなし=inherit)のまま。この差でチーム名だけ縦に大きくずれて見えて
+	   いたため、font-size/font-weightの上書きを撤去しレギュレーション欄と同じ既定サイズに
+	   揃える。 */
+	min-width: 0;
+}
+/* UI改修依頼(チーム編集中央パネル)「メモは下に移動」により6枠の下へ動いたため、
+   margin-topではなく6枠との間隔をteam-slots側のmargin-bottomで確保する
+   (このinput自体は他の場所にmarginを持たない)。 */
+.team-memo-input {
+	width: 100%;
+	min-width: 0;
+}
