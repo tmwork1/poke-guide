@@ -15,6 +15,7 @@ import '../../styles/team-pokemon-card.css';
 import '../../styles/team-pokemon-tab.css';
 import '../../styles/box-card.css';
 import '../../styles/floating-list-controls.css';
+import '../../styles/team-data-tab.css';
 // 🔴 UI改修依頼(チーム編集画面、2026-08-01)「個体編集と同様にレギュレーション指定機能を追加」。
 // 候補は jpoke 由来の一覧(src/lib/regulations.ts)。画面側でレギュレーション名を
 // ハードコードしない(box/[id].astro の左パネルと同じ方針)。
@@ -103,7 +104,7 @@ const initialTeamJson = team
 				<a class="second-bar__item" href="/team">戻る</a>
 				<button type="button" class="second-bar__item" data-mobile-tab="pokemon" data-active="true" aria-current="page"><span>ポケモン</span></button>
 				<button type="button" class="second-bar__item" data-mobile-tab="formation"><span>編成</span></button>
-				<span class="second-bar__item is-disabled" aria-disabled="true"><span>データ</span></span>
+				<button type="button" class="second-bar__item" data-mobile-tab="data"><span>データ</span></button>
 				<button type="button" class="second-bar__item" data-mobile-tab="matchup"><span>相性</span></button>
 			</div>
 		</nav>
@@ -960,6 +961,23 @@ const initialTeamJson = team
 								data-role="defense"
 								aria-checked="false"
 							>防御</button>
+						</div>
+					</div>
+				</section>
+				<section id="team-data-mobile" class="floating-list-page" aria-label="チームデータ">
+					<div class="team-formation-mobile__mates" aria-label="チームメイト">
+						<div id="team-data-mobile-slots" class="team-formation-mobile__slot-grid"></div>
+					</div>
+					<div class="team-data-mobile__panels">
+						<ul id="team-data-mobile-suggest-list" class="team-data-suggest-list" aria-label="おすすめポケモン"></ul>
+						<div id="team-data-mobile-similar" class="team-data-similar-panel" hidden>
+							<p class="status-text">準備中です。</p>
+						</div>
+					</div>
+					<div class="team-data-mobile__subtabs">
+						<div class="team-matchup-direction-toggle" role="radiogroup" aria-label="データタブの表示切替">
+							<button id="team-data-mobile-tab-suggest" class="team-matchup-direction-option" type="button" role="radio" data-role="suggest" aria-checked="true">おすすめ</button>
+							<button id="team-data-mobile-tab-similar" class="team-matchup-direction-option" type="button" role="radio" data-role="similar" aria-checked="false">類似構築</button>
 						</div>
 					</div>
 				</section>
@@ -2375,7 +2393,7 @@ const initialTeamJson = team
 		const layoutRoot = document.getElementById("team-edit-layout");
 		if (layoutRoot) {
 			const mobileTabButtons = Array.from(document.querySelectorAll<HTMLButtonElement>(".second-bar [data-mobile-tab]"));
-			type MobileTab = "pokemon" | "formation" | "matchup";
+			type MobileTab = "pokemon" | "formation" | "matchup" | "data";
 			const setMobileTab = (tab: MobileTab) => {
 				const tabChanged = layoutRoot.dataset.mobileTab !== tab;
 				layoutRoot.dataset.mobileTab = tab;
@@ -2394,11 +2412,15 @@ const initialTeamJson = team
 				}
 			};
 			const requestedMobileTab = new URLSearchParams(window.location.search).get("tab");
-			setMobileTab(requestedMobileTab === "formation" || requestedMobileTab === "matchup" ? requestedMobileTab : "pokemon");
+			setMobileTab(
+				requestedMobileTab === "formation" || requestedMobileTab === "matchup" || requestedMobileTab === "data"
+					? requestedMobileTab
+					: "pokemon",
+			);
 			for (const button of mobileTabButtons) {
 				button.addEventListener("click", () => {
 					const tab = button.dataset.mobileTab;
-					setMobileTab(tab === "formation" || tab === "matchup" ? tab : "pokemon");
+					setMobileTab(tab === "formation" || tab === "matchup" || tab === "data" ? tab : "pokemon");
 				});
 			}
 			const teamId = layoutRoot.dataset.teamId as string;
@@ -2428,6 +2450,20 @@ const initialTeamJson = team
 			const favoriteFilterToggle = el<HTMLInputElement>("favorite-filter-toggle");
 			const slotsRoot = el<HTMLElement>("team-slots");
 			const formationMobileSlotsRoot = el<HTMLElement>("team-formation-mobile-slots");
+			const teamDataMobileSlotsRoot = el<HTMLElement>("team-data-mobile-slots");
+			const teamDataMobileSuggestList = el<HTMLUListElement>("team-data-mobile-suggest-list");
+			const teamDataMobileSimilar = el<HTMLElement>("team-data-mobile-similar");
+			const teamDataMobileSuggestTab = el<HTMLButtonElement>("team-data-mobile-tab-suggest");
+			const teamDataMobileSimilarTab = el<HTMLButtonElement>("team-data-mobile-tab-similar");
+			function setTeamDataMobileSubtab(tab: "suggest" | "similar"): void {
+				const showingSuggestions = tab === "suggest";
+				teamDataMobileSuggestTab.setAttribute("aria-checked", String(showingSuggestions));
+				teamDataMobileSimilarTab.setAttribute("aria-checked", String(!showingSuggestions));
+				teamDataMobileSuggestList.hidden = !showingSuggestions;
+				teamDataMobileSimilar.hidden = showingSuggestions;
+			}
+			teamDataMobileSuggestTab.addEventListener("click", () => setTeamDataMobileSubtab("suggest"));
+			teamDataMobileSimilarTab.addEventListener("click", () => setTeamDataMobileSubtab("similar"));
 			const formationMobileSearchInput = el<HTMLInputElement>("team-formation-mobile-search");
 			const formationMobileAddButton = el<HTMLButtonElement>("team-formation-mobile-add");
 			const formationMobileStatus = el<HTMLElement>("team-formation-mobile-status");
@@ -3228,6 +3264,103 @@ const initialTeamJson = team
 				return card;
 			}
 
+			function buildDataSuggestionCard(suggestion: TeamSuggestion, rank: number): HTMLElement {
+				void rank;
+				const owned = findOwnedMatch(suggestion);
+				const card = document.createElement("li");
+				card.className = "team-data-suggest-card";
+
+				const artwork = document.createElement("div");
+				artwork.className = "card-artwork";
+				const artworkImg = document.createElement("img");
+				artworkImg.alt = "";
+				artwork.appendChild(artworkImg);
+				const artworkFallback = document.createElement("span");
+				void applySprite(artworkImg, artworkFallback, suggestion.speciesName);
+
+				const itemBadge = document.createElement("span");
+				itemBadge.className = "card-item-badge";
+				itemBadge.hidden = !suggestion.itemName;
+				const itemImg = document.createElement("img");
+				itemImg.alt = "";
+				itemBadge.appendChild(itemImg);
+				if (suggestion.itemName) void applyItemIcon(itemImg, suggestion.itemName, itemBadge);
+
+				const artworkWrap = document.createElement("div");
+				artworkWrap.className = "team-data-suggest-artwork";
+				artworkWrap.append(artwork, itemBadge);
+				card.appendChild(artworkWrap);
+
+				const body = document.createElement("div");
+				body.className = "team-data-suggest-body";
+				const nameEl = document.createElement("span");
+				nameEl.className = "team-suggest-name";
+				nameEl.textContent = suggestion.speciesName;
+				nameEl.title = suggestion.speciesName;
+				body.appendChild(nameEl);
+
+				const reasonEl = document.createElement("div");
+				reasonEl.className = "team-suggest-reason";
+				if (suggestion.reason) {
+					const percent = Math.round(suggestion.reason.ratio * 100);
+					const reasonNameEl = document.createElement("span");
+					reasonNameEl.className = "team-suggest-reason-name";
+					reasonNameEl.textContent = suggestion.reason.seedSpeciesName;
+					reasonEl.append(reasonNameEl, ` (同時採用 ${percent}%)`);
+					reasonEl.title = `共起 ${suggestion.reason.coTeams}/${suggestion.reason.seedTeams}チーム・lift ${suggestion.reason.lift.toFixed(2)}`;
+				} else {
+					const percent = Math.round((suggestion.usageTeams / Math.max(suggestion.totalTeams, 1)) * 100);
+					reasonEl.textContent = `採用率 ${percent}%`;
+					reasonEl.title = `${suggestion.usageTeams}体 / ${suggestion.totalTeams}チーム相当`;
+				}
+				body.appendChild(reasonEl);
+
+				if (suggestion.itemConflict && suggestion.itemName) {
+					const conflictEl = document.createElement("div");
+					conflictEl.className = "team-suggest-conflict";
+					conflictEl.textContent = `${suggestion.itemName}が重複`;
+					body.appendChild(conflictEl);
+				}
+				card.appendChild(body);
+
+				const action = document.createElement("button");
+				action.type = "button";
+				action.className = "team-suggest-action";
+				if (owned) {
+					const label = owned.nickname?.trim() || owned.species_name;
+					action.textContent = "チームに追加";
+					action.title = `手持ちの${label}を入れる`;
+					action.disabled = firstEmptySlot() == null;
+					action.addEventListener("click", () => {
+						assignToSlot(owned);
+					});
+				} else {
+					const editIcon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+					editIcon.setAttribute("width", "14");
+					editIcon.setAttribute("height", "14");
+					editIcon.setAttribute("viewBox", "0 0 24 24");
+					editIcon.setAttribute("fill", "none");
+					editIcon.setAttribute("stroke", "currentColor");
+					editIcon.setAttribute("stroke-width", "2");
+					editIcon.setAttribute("stroke-linecap", "round");
+					editIcon.setAttribute("stroke-linejoin", "round");
+					editIcon.setAttribute("aria-hidden", "true");
+					const editBody = document.createElementNS("http://www.w3.org/2000/svg", "path");
+					editBody.setAttribute("d", "M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z");
+					const editTip = document.createElementNS("http://www.w3.org/2000/svg", "path");
+					editTip.setAttribute("d", "m15 5 4 4");
+					editIcon.append(editBody, editTip);
+					action.append(editIcon, "育成する");
+					action.title = "この型で個体を作る";
+					action.addEventListener("click", () => {
+						void createPokemonFromSuggestion(suggestion, action);
+					});
+				}
+				card.appendChild(action);
+
+				return card;
+			}
+
 			// 直近の応答。個体一覧(allPokemon)が後から届いたときに「手持ちにあるか」の
 			// 判定をやり直して再描画するために保持する(APIは叩き直さない)。
 			let lastSuggestResponse: { suggestions: TeamSuggestion[]; basis: string } | null = null;
@@ -3247,6 +3380,7 @@ const initialTeamJson = team
 				});
 				renderSelectList();
 				suggestEl.innerHTML = "";
+				teamDataMobileSuggestList.replaceChildren();
 
 				// UI改修依頼(右パネル、2026-08-04)見出しは右パネル共通のタイトル帯へ表示する。
 				// scheduleSuggestions/loadSuggestionsは編成が変わるたびに走るため、個体プレビュー中
@@ -3269,6 +3403,10 @@ const initialTeamJson = team
 							? "提案がありません。"
 							: "条件に一致する提案がありません。";
 					suggestEl.appendChild(empty);
+					const dataEmpty = document.createElement("li");
+					dataEmpty.className = empty.className;
+					dataEmpty.textContent = empty.textContent;
+					teamDataMobileSuggestList.appendChild(dataEmpty);
 					return;
 				}
 
@@ -3276,6 +3414,7 @@ const initialTeamJson = team
 				list.className = "team-suggest-list";
 				filtered.forEach((s, index) => list.appendChild(buildSuggestionCard(s, index + 1)));
 				suggestEl.appendChild(list);
+				filtered.forEach((s, index) => teamDataMobileSuggestList.appendChild(buildDataSuggestionCard(s, index + 1)));
 			}
 
 			async function loadSuggestions(): Promise<void> {
@@ -4268,6 +4407,13 @@ const initialTeamJson = team
 				});
 				renderTeamMateSlots({
 					root: matchupMobileSlotsRoot,
+					membersBySlot,
+					displayName,
+					applySprite,
+					applyItemIcon,
+				});
+				renderTeamMateSlots({
+					root: teamDataMobileSlotsRoot,
 					membersBySlot,
 					displayName,
 					applySprite,
