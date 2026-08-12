@@ -9,13 +9,16 @@
 export const prerender = false;
 
 import AppLayout from '../../layouts/AppLayout.astro';
-import { getSupabaseAdminClient } from '../../lib/supabase';
+import { getSupabaseAdminClient, getSupabasePublicClient } from '../../lib/supabase';
 import { getTeam, type Team } from '../../lib/team';
+import { listRankedSeasons } from '../../lib/ranked-teams';
+import { resolveDefaultSeason } from '../../lib/ranked-teams-validation';
 import '../../styles/team-pokemon-card.css';
 import '../../styles/team-pokemon-tab.css';
 import '../../styles/box-card.css';
 import '../../styles/floating-list-controls.css';
 import '../../styles/team-data-tab.css';
+import '../../styles/ranked-team-card.css';
 // 🔴 UI改修依頼(チーム編集画面、2026-08-01)「個体編集と同様にレギュレーション指定機能を追加」。
 // 候補は jpoke 由来の一覧(src/lib/regulations.ts)。画面側でレギュレーション名を
 // ハードコードしない(box/[id].astro の左パネルと同じ方針)。
@@ -96,6 +99,13 @@ const initialTeamJson = team
 			members: team.members,
 		})
 	: '';
+
+let rankedSeason: string | null = null;
+try {
+	rankedSeason = resolveDefaultSeason(await listRankedSeasons(await getSupabasePublicClient()));
+} catch (error) {
+	console.error('[team/[id]] 類似構築のシーズン取得に失敗しました:', error);
+}
 ---
 <AppLayout title={pageTitle} current="team" hideTopbar={true} bodyClass={bodyClass}>
 	{team && (
@@ -104,7 +114,7 @@ const initialTeamJson = team
 				<a class="second-bar__item" href="/team">戻る</a>
 				<button type="button" class="second-bar__item" data-mobile-tab="pokemon" data-active="true" aria-current="page"><span>ポケモン</span></button>
 				<button type="button" class="second-bar__item" data-mobile-tab="formation"><span>編成</span></button>
-				<button type="button" class="second-bar__item" data-mobile-tab="data"><span>データ</span></button>
+				<button type="button" class="second-bar__item" data-mobile-tab="data"><span>類似構築</span></button>
 				<button type="button" class="second-bar__item" data-mobile-tab="matchup"><span>相性</span></button>
 			</div>
 		</nav>
@@ -651,7 +661,7 @@ const initialTeamJson = team
 					</div>
 				</section>
 			) : (
-				<div class="team-edit-shell" id="team-edit-layout" data-team-id={team.id} data-initial-team={initialTeamJson} data-mobile-tab="pokemon">
+				<div class="team-edit-shell" id="team-edit-layout" data-team-id={team.id} data-initial-team={initialTeamJson} data-mobile-tab="pokemon" data-ranked-season={rankedSeason ?? ''}>
 					<section id="team-overview-tab" class="panel">
 						<div class="panel-content">
 							<div id="team-overview-fields"></div>
@@ -968,13 +978,11 @@ const initialTeamJson = team
 						</div>
 					</div>
 				</section>
-				<section id="team-data-mobile" class="floating-list-page" aria-label="チームデータ">
+				<section id="team-data-mobile" class="floating-list-page" aria-label="類似構築">
 					<div class="team-formation-mobile__mates" aria-label="チームメイト">
 						<div id="team-data-mobile-slots" class="team-formation-mobile__slot-grid"></div>
 					</div>
-					<div id="team-data-mobile-similar" class="team-data-similar-panel">
-						<p class="status-text">準備中です。</p>
-					</div>
+					<div id="team-data-mobile-similar" class="team-data-similar-panel" aria-label="類似構築"></div>
 				</section>
 				</div>
 			)
@@ -2284,6 +2292,9 @@ const initialTeamJson = team
 			renderBoxPokemonCard,
 		} from "../../lib/box-pokemon-card";
 		import { renderTeamMateSlots } from "../../lib/team-mate-card";
+		import { renderTopBuildCard } from "../../lib/ranked-teams/card";
+		import { calculateTeamSimilarity } from "../../lib/build-similarity";
+		import type { RankedTeam } from "../../lib/ranked-teams";
 		import { kanaIncludes } from "../../lib/kana";
 		// 🔴 UI改修依頼(チーム編集画面 右パネル、2026-08-01)「右パネルには登録されている
 		// ダメージ計算の圧縮版を表示する」。表示ロジックは純粋関数として切り出してある
@@ -2447,6 +2458,7 @@ const initialTeamJson = team
 			const formationMobileSlotsRoot = el<HTMLElement>("team-formation-mobile-slots");
 			const formationMobileSuggestIcons = el<HTMLElement>("team-formation-mobile-suggest-icons");
 			const teamDataMobileSlotsRoot = el<HTMLElement>("team-data-mobile-slots");
+			const teamDataMobileSimilarRoot = el<HTMLElement>("team-data-mobile-similar");
 			const formationMobileSearchInput = el<HTMLInputElement>("team-formation-mobile-search");
 			const formationMobileAddButton = el<HTMLButtonElement>("team-formation-mobile-add");
 			const formationMobileStatus = el<HTMLElement>("team-formation-mobile-status");
@@ -3361,6 +3373,81 @@ const initialTeamJson = team
 			}
 
 			// =================================================================================
+			// 類似構築: 現在の編成(membersBySlot)と育成内容が近いランク入り構築を表示する。
+			// 「データ」タブ→類似構築パネル(#team-data-mobile-similar)専用。対象は最新シーズンのみ。
+			// ランキングデータは初回の1回だけ取得してキャッシュし、以後は編成が変わるたびに
+			// クライアント側で並べ替えるだけにする(再フェッチしない)。
+			// =================================================================================
+
+			const rankedSeason = layoutRoot.dataset.rankedSeason || null;
+			let rankedTeamsPromise: Promise<RankedTeam[]> | null = null;
+			function loadRankedTeams(): Promise<RankedTeam[]> {
+				if (!rankedSeason) return Promise.resolve([]);
+				if (!rankedTeamsPromise) {
+					rankedTeamsPromise = fetch(`/api/ranked-teams?season=${encodeURIComponent(rankedSeason)}`, { credentials: "same-origin" })
+						.then(async (res) => {
+							if (!res.ok) throw new Error(`類似構築の取得に失敗しました (status=${res.status})`);
+							const body = (await res.json()) as { teams: RankedTeam[] };
+							return body.teams ?? [];
+						})
+						.catch((err) => {
+							rankedTeamsPromise = null;
+							throw err;
+						});
+				}
+				return rankedTeamsPromise;
+			}
+
+			function setSimilarBuildsStatus(message: string, state?: "loading" | "error"): void {
+				teamDataMobileSimilarRoot.innerHTML = "";
+				const p = document.createElement("p");
+				p.className = "team-data-similar-status status-text";
+				if (state) p.dataset.state = state;
+				p.textContent = message;
+				teamDataMobileSimilarRoot.appendChild(p);
+			}
+
+			function renderSimilarBuilds(teams: RankedTeam[]): void {
+				const team = Array.from(membersBySlot.values());
+				const scored = teams
+					.map((t) => ({ team: t, similarity: calculateTeamSimilarity(team, t.members) }))
+					.filter((entry) => entry.similarity > 0)
+					.sort((a, b) => b.similarity - a.similarity || a.team.rank - b.team.rank);
+				if (scored.length === 0) {
+					setSimilarBuildsStatus("類似する上位構築がありません。");
+					return;
+				}
+				const list = document.createElement("div");
+				list.className = "ranked-team-cards";
+				for (const entry of scored) list.appendChild(renderTopBuildCard(entry.team));
+				teamDataMobileSimilarRoot.innerHTML = "";
+				teamDataMobileSimilarRoot.appendChild(list);
+			}
+
+			let similarBuildsRequestId = 0;
+			async function loadSimilarBuilds(): Promise<void> {
+				const requestId = (similarBuildsRequestId += 1);
+				setSimilarBuildsStatus("類似構築を計算中…", "loading");
+				try {
+					const teams = await loadRankedTeams();
+					if (requestId !== similarBuildsRequestId) return;
+					renderSimilarBuilds(teams);
+				} catch (err) {
+					console.error(err);
+					if (requestId !== similarBuildsRequestId) return;
+					setSimilarBuildsStatus("類似構築を読み込めませんでした。", "error");
+				}
+			}
+
+			let similarBuildsTimer: number | undefined;
+			function scheduleSimilarBuilds(): void {
+				window.clearTimeout(similarBuildsTimer);
+				similarBuildsTimer = window.setTimeout(() => {
+					void loadSimilarBuilds();
+				}, 700);
+			}
+
+			// =================================================================================
 			// 相性チェック(ユーザー要望、2026-08-02)
 			// 「使用率上位20体のポケモンとの攻守の相性を可視化する」。
 			//
@@ -3844,6 +3931,7 @@ const initialTeamJson = team
 				refreshCollectionOptOutToggle();
 				// 編成が変わったのでサジェストを取り直す(2026-08-02)。
 				scheduleSuggestions();
+				scheduleSimilarBuilds();
 				// 相性チェックを開いている場合は、その計算もやり直す(2026-08-02)。
 				scheduleMatchup();
 			}
@@ -3963,6 +4051,7 @@ const initialTeamJson = team
 				refreshCollectionOptOutToggle();
 				// 編成が変わったのでサジェストを取り直す(2026-08-02)。
 				scheduleSuggestions();
+				scheduleSimilarBuilds();
 				// 相性チェックを開いている場合は、その計算もやり直す(2026-08-02)。
 				scheduleMatchup();
 			}
@@ -5002,6 +5091,7 @@ const initialTeamJson = team
 			// allPokemon に依存するため、一覧が届いた時点でボタンの出し分けを描き直す
 			// (下の fetch("/api/owned-pokemon") の then を参照)。
 			void loadSuggestions();
+			void loadSimilarBuilds();
 
 			fetch("/api/owned-pokemon", { credentials: "same-origin" })
 				.then(async (res) => {
