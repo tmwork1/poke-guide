@@ -483,13 +483,9 @@ const user = Astro.locals.user;
 	</div>
 
 	<script>
-		// UI: チームカードに公式絵ミニサムネイルを表示するためのブラウザ専用ヘルパー。
-		// box/index.astroのapplyCardSpriteと同じ「初期display:none→onloadで表示、
-		// 解決不能/読み込み失敗時は頭文字バッジへフォールバック」方式を採る。
-		import { loadBaseStatsMap, loadImageIdMap, loadMoveTypeMap, officialArtworkUrl } from "../../lib/pokemon-master-data";
-		import { loadItemSpriteMap, itemIconUrl, typeIconUrl } from "../../lib/sprite-urls";
+		// チームカードの6枠は/boxと同じ共有カード描画を使い、一覧固有の操作だけを渡す。
 		import { kanaIncludes } from "../../lib/kana";
-		import { NATURE_STAT_MODIFIERS, calcHpStat, calcOtherStat } from "../../lib/stats";
+		import { renderTeamMemberGrid } from "../../lib/team-card";
 
 		// GET /api/teams が返す1メンバーの owned_pokemon。表示に必要な列だけを持つ
 		// (src/lib/team.ts の TeamMember/OwnedPokemonRecord のサブセット)。
@@ -553,72 +549,10 @@ const user = Astro.locals.user;
 			// box/index.astroのfavoriteOnlyと同じ単一boolean(絞り込み軸は「お気に入りのみ」だけ)。
 			let favoriteOnly = false;
 
-			// 種族名→imageId(画像用PokeAPI ID)のマップ。一覧の初回描画(loadList→renderList)は
-			// この解決を待たずに進め、解決済みになった時点で各サムネイルから個別にthenする
-			// (box/index.astroと同じ「体感速度を優先」の方針)。
-			const imageIdMapPromise = loadImageIdMap();
-			const baseStatsMapPromise = loadBaseStatsMap();
-			const moveTypeMapPromise = loadMoveTypeMap();
-			const STAT_KEYS = ["hp", "atk", "def", "spa", "spd", "spe"] as const;
-			const STAT_LABELS = ["H", "A", "B", "C", "D", "S"] as const;
-
 			// name(空/未設定)なら「無題のチーム」にフォールバック(docs/plan/pages/team.md確定仕様)。
 			function displayName(t: Team): string {
 				if (t.name && t.name.trim() !== "") return t.name;
 				return "無題のチーム";
-			}
-
-			async function applyCardArtwork(imgEl: HTMLImageElement, name: string): Promise<void> {
-				const imageId = name ? (await imageIdMapPromise).get(name) : undefined;
-				if (imageId == null) return;
-				imgEl.src = officialArtworkUrl(imageId);
-			}
-
-			// UI改修依頼(チームトップ画面)「アイテムアイコンも表示」。box/index.astroの
-			// .card-item-badge(applyItemImage相当)と同じ「解決不能/読み込み失敗時はバッジごと
-			// 隠す」方式。アイテムの画像用マップは初回参照時に1回だけ取得しキャッシュする。
-			const itemSpriteMapPromise = loadItemSpriteMap();
-			async function applyItemBadge(imgEl: HTMLImageElement, badgeEl: HTMLElement, itemName: string): Promise<void> {
-				const name = itemName.trim();
-				if (!name) {
-					badgeEl.hidden = true;
-					return;
-				}
-				const spritePath = name ? (await itemSpriteMapPromise).get(name) : undefined;
-				const url = spritePath ? itemIconUrl(spritePath) : null;
-				if (!url) {
-					badgeEl.hidden = true;
-					return;
-				}
-				imgEl.onerror = () => {
-					badgeEl.hidden = true;
-				};
-				imgEl.onload = () => {
-					badgeEl.hidden = false;
-				};
-				imgEl.src = url;
-			}
-
-			type ActualStat = { value: number; mod: "up" | "down" | null };
-			function applyCardTooltip(card: HTMLElement, stats: ActualStat[] | null, p: TeamMemberPokemon): void {
-				const lines: string[] = [];
-				if (p.ability_name?.trim()) lines.push(`特性: ${p.ability_name.trim()}`);
-				if (p.tera_type?.trim()) lines.push(`テラスタイプ: ${p.tera_type.trim()}`);
-				if (stats) lines.push(STAT_LABELS.map((label, i) => `${label}${stats[i].value}${stats[i].mod === "up" ? "+" : stats[i].mod === "down" ? "-" : ""}`).join(" "));
-				if (p.memo?.trim()) lines.push(`メモ: ${p.memo.trim()}`);
-				if (lines.length) card.title = lines.join("\n");
-			}
-			async function calculateActualStats(p: TeamMemberPokemon): Promise<ActualStat[] | null> {
-				const base = p.species_name ? (await baseStatsMapPromise).get(p.species_name) : undefined;
-				if (!base) return null;
-				const level = p.level ?? 50;
-				const mod = NATURE_STAT_MODIFIERS[p.nature ?? ""] ?? { up: null, down: null };
-				return STAT_KEYS.map((key, i) => {
-					const value = key === "hp"
-						? calcHpStat(level, base[i], p.ivs[i] ?? 31, p.evs[i] ?? 0)
-						: calcOtherStat(level, base[i], p.ivs[i] ?? 31, p.evs[i] ?? 0, mod.up === key ? 1.1 : mod.down === key ? 0.9 : 1);
-					return { value, mod: key !== "hp" && mod.up === key ? "up" : key !== "hp" && mod.down === key ? "down" : null };
-				});
 			}
 
 			// チーム名の部分一致(box/index.astroのmatchesSearchと同じAND部分一致方式)。
@@ -779,123 +713,26 @@ const user = Astro.locals.user;
 
 				// --- メンバーの公式絵ミニサムネイル列(6枠常時描画。空き枠はプレースホルダー) ---
 				const thumbGrid = document.createElement("div");
-				thumbGrid.className = "box-grid";
-
 				const membersBySlot = new Map(t.members.map((m) => [m.slot, m]));
-				for (let slot = 1; slot <= 6; slot++) {
-					const member = membersBySlot.get(slot);
-					if (member) {
+				renderTeamMemberGrid(thumbGrid, {
+					membersBySlot,
+					toCardContent: (member) => {
 						// UI改修依頼(2026-08-05)「ポケモンアイコンのホバー時にNN、未設定時は種族名を表示する」対応。
 						const pokemonName = member.owned_pokemon.nickname?.trim()
 							|| member.owned_pokemon.species_name?.trim()
 							|| "ポケモン";
-						// /box のカードと同じ DOM/CSS を使う。チーム固有なのは親の 3 x 2 配置だけ。
-						const memberCard = document.createElement("div");
-						memberCard.className = "card box-card card-pokemon" + (member.owned_pokemon.is_pinned ? " is-pinned" : "");
-						memberCard.setAttribute("aria-label", `${pokemonName}を編集`);
-						const pinButton = document.createElement("button");
-						pinButton.type = "button";
-						pinButton.className = "icon-button pin-toggle";
-						pinButton.dataset.pinned = String(member.owned_pokemon.is_pinned);
-						const pinStar = document.createElement("span");
-						pinStar.className = "favorite-star-glyph";
-						pinStar.setAttribute("aria-hidden", "true");
-						pinButton.appendChild(pinStar);
-						const pinLabel = member.owned_pokemon.is_pinned ? "ピン留めを解除する" : "ピン留めする";
-						pinButton.title = pinLabel;
-						pinButton.setAttribute("aria-label", pinLabel);
-						pinButton.addEventListener("click", (event) => {
-							event.preventDefault();
-							event.stopPropagation();
-							void togglePokemonPin(member.owned_pokemon);
-						});
-						memberCard.appendChild(pinButton);
-						const actions = document.createElement("div");
-						actions.className = "card-actions";
-						const deleteButton = document.createElement("button");
-						deleteButton.type = "button";
-						deleteButton.className = "icon-button delete-button";
-						deleteButton.title = "削除";
-						deleteButton.setAttribute("aria-label", "削除");
-						deleteButton.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
-						deleteButton.addEventListener("click", (event) => {
-							event.preventDefault();
-							event.stopPropagation();
-							void deletePokemon(member.owned_pokemon);
-						});
-						actions.appendChild(deleteButton);
-						memberCard.appendChild(actions);
-						const artwork = document.createElement("div");
-						artwork.className = "card-artwork";
-						const img = document.createElement("img");
-						img.alt = "";
-						artwork.appendChild(img);
-						memberCard.appendChild(artwork);
-						void applyCardArtwork(img, member.owned_pokemon.species_name ?? "");
-
-						const itemBadge = document.createElement("span");
-						itemBadge.className = "card-item-badge";
-						itemBadge.hidden = true;
-						const itemImg = document.createElement("img");
-						itemImg.alt = "";
-						const itemName = member.owned_pokemon.item_name ?? "";
-						itemBadge.appendChild(itemImg);
-						memberCard.appendChild(itemBadge);
-						void applyItemBadge(itemImg, itemBadge, itemName);
-
-						const body = document.createElement("div");
-						body.className = "card-body";
-						body.setAttribute("aria-hidden", "true");
-						const nameRow = document.createElement("div");
-						nameRow.className = "card-name-row";
-						const nameEl = document.createElement("p");
-						nameEl.className = "card-name";
-						nameEl.textContent = pokemonName;
-						nameRow.appendChild(nameEl);
-						body.appendChild(nameRow);
-						const movesGrid = document.createElement("div");
-						movesGrid.className = "card-moves-grid";
-						for (const moveName of (member.owned_pokemon.move_names ?? []).filter((moveName) => moveName && moveName.trim() !== "")) {
-							const moveEl = document.createElement("span");
-							moveEl.className = "card-move-chip";
-							const moveTypeIcon = document.createElement("img");
-							moveTypeIcon.className = "card-move-type-icon";
-							moveTypeIcon.alt = "";
-							moveTypeIcon.hidden = true;
-							moveEl.appendChild(moveTypeIcon);
-							void moveTypeMapPromise.then((moveTypeMap) => {
-								const moveType = moveTypeMap.get(moveName);
-								const moveTypeIconSrc = moveType ? typeIconUrl(moveType) : null;
-								if (!moveTypeIconSrc) return;
-								moveTypeIcon.src = moveTypeIconSrc;
-								moveTypeIcon.hidden = false;
-							});
-							const moveTextEl = document.createElement("span");
-							moveTextEl.className = "card-move-chip-text";
-							moveTextEl.textContent = moveName;
-							moveEl.appendChild(moveTextEl);
-							movesGrid.appendChild(moveEl);
-						}
-						const contentRow = document.createElement("div");
-						contentRow.className = "card-content-row";
-						contentRow.appendChild(movesGrid);
-						body.appendChild(contentRow);
-						memberCard.appendChild(body);
-						void calculateActualStats(member.owned_pokemon).then((stats) => applyCardTooltip(memberCard, stats, member.owned_pokemon));
-						thumbGrid.appendChild(memberCard);
-					} else {
-						// UI改修依頼(チームトップ画面、2026-08-01)「未設定枠には中央に薄い色で
-						// その枠がチーム内で何番目か(N)の数字を表示する」。
-						const thumb = document.createElement("div");
-						thumb.className = "card box-card card-team-empty-slot";
-						thumb.setAttribute("aria-hidden", "true");
-						const slotNumber = document.createElement("span");
-						slotNumber.className = "team-slot-number";
-						slotNumber.textContent = String(slot);
-						thumb.appendChild(slotNumber);
-						thumbGrid.appendChild(thumb);
-					}
-				}
+						return {
+							pokemon: member.owned_pokemon,
+							displayName: pokemonName,
+							ariaLabel: `${pokemonName}を編集`,
+							pin: {
+								isPinned: member.owned_pokemon.is_pinned,
+								onToggle: () => togglePokemonPin(member.owned_pokemon),
+							},
+							onDelete: () => deletePokemon(member.owned_pokemon),
+						};
+					},
+				});
 
 				card.appendChild(thumbGrid);
 

@@ -1,6 +1,7 @@
 import type { RankedTeam } from '../ranked-teams';
 import { officialArtworkUrl } from '../pokemon-master-data';
 import { itemIconUrl, typeIconUrl } from '../sprite-urls';
+import { renderTeamMemberGrid } from '../team-card';
 
 function element<K extends keyof HTMLElementTagNameMap>(
   tag: K,
@@ -13,14 +14,7 @@ function element<K extends keyof HTMLElementTagNameMap>(
   return node;
 }
 
-export function renderRankedTeamCard(
-  team: RankedTeam,
-  imageIdMap: Map<string, number>,
-  itemSpriteMap: Map<string, string>,
-  moveTypeMap: Map<string, string>,
-): HTMLElement {
-  const card = element('article', 'card card-ranked-team');
-
+function buildRankedTeamHeader(team: RankedTeam): HTMLElement {
   const header = element('header', 'ranked-team-header');
   header.append(element('span', 'badge tnum', `${team.rank}位`));
   if (team.rating !== null) {
@@ -61,7 +55,17 @@ export function renderRankedTeamCard(
     }
     header.append(linkGroup);
   }
-  card.append(header);
+  return header;
+}
+
+export function renderRankedTeamCard(
+  team: RankedTeam,
+  imageIdMap: Map<string, number>,
+  itemSpriteMap: Map<string, string>,
+  moveTypeMap: Map<string, string>,
+): HTMLElement {
+  const card = element('article', 'card card-ranked-team');
+  card.append(buildRankedTeamHeader(team));
 
   const body = element('div', 'ranked-team-body');
   const memberGrid = element('div', 'ranked-team-members');
@@ -146,5 +150,37 @@ export function renderRankedTeamCard(
   }
   body.append(details);
   card.append(body);
+  return card;
+}
+
+export function renderTopBuildCard(team: RankedTeam): HTMLElement {
+  const card = element('article', 'card card-ranked-team');
+  card.append(buildRankedTeamHeader(team));
+
+  const memberGrid = element('div');
+  const membersBySlot = new Map(team.members.map((member) => [member.slot, member]));
+  renderTeamMemberGrid(memberGrid, {
+    membersBySlot,
+    toCardContent: (member) => {
+      const displayName = member.speciesKey ?? member.speciesName;
+      return {
+        pokemon: {
+          species_name: displayName,
+          level: 50,
+          nature: null,
+          ability_name: member.ability,
+          item_name: member.itemName,
+          tera_type: null,
+          evs: [0, 0, 0, 0, 0, 0],
+          ivs: [31, 31, 31, 31, 31, 31],
+          move_names: member.moveNames,
+          memo: null,
+        },
+        displayName,
+        ariaLabel: displayName,
+      };
+    },
+  });
+  card.append(memberGrid);
   return card;
 }

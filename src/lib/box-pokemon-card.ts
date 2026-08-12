@@ -34,7 +34,7 @@ export interface BoxPokemonCardPinOptions {
 	onToggle: () => void | Promise<void>;
 }
 
-export interface BoxPokemonCardOptions<T extends HTMLAnchorElement | HTMLButtonElement> {
+export interface BoxPokemonCardOptions<T extends HTMLElement> {
 	root: T;
 	pokemon: BoxPokemonCardPokemon;
 	displayName: string;
@@ -126,7 +126,7 @@ async function calculateActualStats(pokemon: BoxPokemonCardPokemon): Promise<Act
 // カード上に表示されていない情報だけをホバーで示す。性格補正は A200+ / C135- のように
 // 数値の後ろへ付ける。情報が一つも無ければtitle属性自体を追加しない。
 function applyCardTooltip(
-	card: HTMLAnchorElement | HTMLButtonElement,
+	card: HTMLElement,
 	stats: ActualStat[] | null,
 	pokemon: BoxPokemonCardPokemon,
 ): void {
@@ -150,10 +150,10 @@ function applyCardTooltip(
 }
 
 /**
- * 新規作成済みの<a>または<button>へ、共有ボックスカードのDOMを同期的に組み立てる。
+ * 新規作成済みのHTMLElementへ、共有ボックスカードのDOMを同期的に組み立てる。
  * 画像URL・技タイプ・実数値ツールチップはPromise解決後に流し込む。
  */
-export function renderBoxPokemonCard<T extends HTMLAnchorElement | HTMLButtonElement>(
+export function renderBoxPokemonCard<T extends HTMLElement>(
 	options: BoxPokemonCardOptions<T>,
 ): T {
 	const { root: card, pokemon, displayName, ariaLabel, pin, onDelete } = options;
