@@ -15,99 +15,6 @@
 		display: block;
 	}
 
-	.team-data-mobile__panels {
-		padding: var(--space-3) var(--space-3) calc(var(--space-7) + var(--space-6));
-	}
-
-	.team-data-suggest-list {
-		display: grid;
-		gap: var(--space-3);
-		max-width: 34rem;
-		margin: 0 auto;
-		padding: 0;
-		list-style: none;
-	}
-
-	.team-data-suggest-list[hidden] {
-		display: none;
-	}
-
-	.team-data-suggest-card {
-		display: grid;
-		grid-template-columns: calc(var(--space-7) + var(--space-6)) minmax(0, 1fr) auto;
-		align-items: center;
-		gap: var(--space-3);
-		padding: var(--space-3);
-		background: var(--color-surface);
-		border: 1px solid var(--color-border);
-		border-radius: var(--radius-md);
-	}
-
-	.team-data-suggest-artwork {
-		position: relative;
-		width: calc(var(--space-7) + var(--space-6));
-		aspect-ratio: 1 / 1;
-	}
-
-	.team-data-suggest-artwork .card-artwork {
-		position: absolute;
-		inset: 0;
-	}
-
-	.team-data-suggest-artwork .card-artwork img {
-		width: 100%;
-		height: 100%;
-		object-fit: contain;
-	}
-
-	.team-data-suggest-artwork .card-item-badge {
-		position: absolute;
-		inset-inline-end: var(--space-1);
-		inset-block-end: var(--space-1);
-		width: var(--space-5);
-		height: var(--space-5);
-		padding: var(--space-1);
-		background: var(--color-surface);
-		border: 1px solid var(--color-border);
-		border-radius: var(--radius-sm);
-	}
-
-	.team-data-suggest-artwork .card-item-badge[hidden] {
-		display: none;
-	}
-
-	.team-data-suggest-artwork .card-item-badge img {
-		display: block;
-		width: 100%;
-		height: 100%;
-		object-fit: contain;
-	}
-
-	.team-data-suggest-body {
-		display: grid;
-		gap: var(--space-1);
-		min-width: 0;
-	}
-
-	.team-data-suggest-card .team-suggest-name,
-	.team-data-suggest-card .team-suggest-reason,
-	.team-data-suggest-card .team-suggest-conflict {
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-	}
-
-	.team-data-suggest-card .team-suggest-action {
-		align-self: center;
-		white-space: nowrap;
-	}
-
-	.team-data-suggest-list .team-suggest-status {
-		padding: var(--space-4);
-		color: var(--color-text-muted);
-		text-align: center;
-	}
-
 	.team-data-similar-panel {
 		max-width: 34rem;
 		margin: 0 auto;
@@ -118,14 +25,6 @@
 		text-align: center;
 	}
 
-	.team-data-mobile__subtabs {
-		position: sticky;
-		bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom));
-		z-index: 3;
-		padding: var(--space-2) var(--space-3);
-		background: var(--color-surface);
-		border-top: 1px solid var(--color-border);
-	}
 }
 
 @media (min-width: 900px) {

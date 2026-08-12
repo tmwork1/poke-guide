@@ -910,6 +910,10 @@ const initialTeamJson = team
 					<div class="team-formation-mobile__mates" aria-label="チームメイト">
 						<div id="team-formation-mobile-slots" class="team-formation-mobile__slot-grid"></div>
 					</div>
+					<div class="team-formation-mobile__suggest" aria-label="おすすめポケモン">
+						<span class="team-formation-mobile__suggest-label">おすすめ</span>
+						<div id="team-formation-mobile-suggest-icons" class="team-formation-mobile__suggest-icons"></div>
+					</div>
 					<div class="team-formation-mobile__box">
 						{/* 検索欄+追加ボタンは /box・/team(一覧) と同じ「下部固定の浮き型」UI
 						    (floating-list-controls.css)をそのまま再利用する。マークアップは
@@ -968,17 +972,8 @@ const initialTeamJson = team
 					<div class="team-formation-mobile__mates" aria-label="チームメイト">
 						<div id="team-data-mobile-slots" class="team-formation-mobile__slot-grid"></div>
 					</div>
-					<div class="team-data-mobile__panels">
-						<ul id="team-data-mobile-suggest-list" class="team-data-suggest-list" aria-label="おすすめポケモン"></ul>
-						<div id="team-data-mobile-similar" class="team-data-similar-panel" hidden>
-							<p class="status-text">準備中です。</p>
-						</div>
-					</div>
-					<div class="team-data-mobile__subtabs">
-						<div class="team-matchup-direction-toggle" role="radiogroup" aria-label="データタブの表示切替">
-							<button id="team-data-mobile-tab-suggest" class="team-matchup-direction-option" type="button" role="radio" data-role="suggest" aria-checked="true">おすすめ</button>
-							<button id="team-data-mobile-tab-similar" class="team-matchup-direction-option" type="button" role="radio" data-role="similar" aria-checked="false">類似構築</button>
-						</div>
+					<div id="team-data-mobile-similar" class="team-data-similar-panel">
+						<p class="status-text">準備中です。</p>
 					</div>
 				</section>
 				</div>
@@ -2450,20 +2445,8 @@ const initialTeamJson = team
 			const favoriteFilterToggle = el<HTMLInputElement>("favorite-filter-toggle");
 			const slotsRoot = el<HTMLElement>("team-slots");
 			const formationMobileSlotsRoot = el<HTMLElement>("team-formation-mobile-slots");
+			const formationMobileSuggestIcons = el<HTMLElement>("team-formation-mobile-suggest-icons");
 			const teamDataMobileSlotsRoot = el<HTMLElement>("team-data-mobile-slots");
-			const teamDataMobileSuggestList = el<HTMLUListElement>("team-data-mobile-suggest-list");
-			const teamDataMobileSimilar = el<HTMLElement>("team-data-mobile-similar");
-			const teamDataMobileSuggestTab = el<HTMLButtonElement>("team-data-mobile-tab-suggest");
-			const teamDataMobileSimilarTab = el<HTMLButtonElement>("team-data-mobile-tab-similar");
-			function setTeamDataMobileSubtab(tab: "suggest" | "similar"): void {
-				const showingSuggestions = tab === "suggest";
-				teamDataMobileSuggestTab.setAttribute("aria-checked", String(showingSuggestions));
-				teamDataMobileSimilarTab.setAttribute("aria-checked", String(!showingSuggestions));
-				teamDataMobileSuggestList.hidden = !showingSuggestions;
-				teamDataMobileSimilar.hidden = showingSuggestions;
-			}
-			teamDataMobileSuggestTab.addEventListener("click", () => setTeamDataMobileSubtab("suggest"));
-			teamDataMobileSimilarTab.addEventListener("click", () => setTeamDataMobileSubtab("similar"));
 			const formationMobileSearchInput = el<HTMLInputElement>("team-formation-mobile-search");
 			const formationMobileAddButton = el<HTMLButtonElement>("team-formation-mobile-add");
 			const formationMobileStatus = el<HTMLElement>("team-formation-mobile-status");
@@ -3264,101 +3247,32 @@ const initialTeamJson = team
 				return card;
 			}
 
-			function buildDataSuggestionCard(suggestion: TeamSuggestion, rank: number): HTMLElement {
-				void rank;
+			function buildSuggestIcon(suggestion: TeamSuggestion): HTMLElement {
 				const owned = findOwnedMatch(suggestion);
-				const card = document.createElement("li");
-				card.className = "team-data-suggest-card";
-
-				const artwork = document.createElement("div");
-				artwork.className = "card-artwork";
-				const artworkImg = document.createElement("img");
-				artworkImg.alt = "";
-				artwork.appendChild(artworkImg);
-				const artworkFallback = document.createElement("span");
-				void applySprite(artworkImg, artworkFallback, suggestion.speciesName);
-
-				const itemBadge = document.createElement("span");
-				itemBadge.className = "card-item-badge";
-				itemBadge.hidden = !suggestion.itemName;
-				const itemImg = document.createElement("img");
-				itemImg.alt = "";
-				itemBadge.appendChild(itemImg);
-				if (suggestion.itemName) void applyItemIcon(itemImg, suggestion.itemName, itemBadge);
-
-				const artworkWrap = document.createElement("div");
-				artworkWrap.className = "team-data-suggest-artwork";
-				artworkWrap.append(artwork, itemBadge);
-				card.appendChild(artworkWrap);
-
-				const body = document.createElement("div");
-				body.className = "team-data-suggest-body";
-				const nameEl = document.createElement("span");
-				nameEl.className = "team-suggest-name";
-				nameEl.textContent = suggestion.speciesName;
-				nameEl.title = suggestion.speciesName;
-				body.appendChild(nameEl);
-
-				const reasonEl = document.createElement("div");
-				reasonEl.className = "team-suggest-reason";
-				if (suggestion.reason) {
-					const percent = Math.round(suggestion.reason.ratio * 100);
-					const reasonNameEl = document.createElement("span");
-					reasonNameEl.className = "team-suggest-reason-name";
-					reasonNameEl.textContent = suggestion.reason.seedSpeciesName;
-					reasonEl.append(reasonNameEl, ` (同時採用 ${percent}%)`);
-					reasonEl.title = `共起 ${suggestion.reason.coTeams}/${suggestion.reason.seedTeams}チーム・lift ${suggestion.reason.lift.toFixed(2)}`;
-				} else {
-					const percent = Math.round((suggestion.usageTeams / Math.max(suggestion.totalTeams, 1)) * 100);
-					reasonEl.textContent = `採用率 ${percent}%`;
-					reasonEl.title = `${suggestion.usageTeams}体 / ${suggestion.totalTeams}チーム相当`;
-				}
-				body.appendChild(reasonEl);
-
-				if (suggestion.itemConflict && suggestion.itemName) {
-					const conflictEl = document.createElement("div");
-					conflictEl.className = "team-suggest-conflict";
-					conflictEl.textContent = `${suggestion.itemName}が重複`;
-					body.appendChild(conflictEl);
-				}
-				card.appendChild(body);
-
-				const action = document.createElement("button");
-				action.type = "button";
-				action.className = "team-suggest-action";
+				const button = document.createElement("button");
+				button.type = "button";
+				button.className = "team-formation-suggest-icon";
+				button.title = suggestion.speciesName;
+				button.setAttribute("aria-label", `${suggestion.speciesName}を育成`);
+				const img = document.createElement("img");
+				img.alt = "";
+				const fallback = document.createElement("span");
+				button.appendChild(img);
+				void applySprite(img, fallback, suggestion.speciesName);
 				if (owned) {
 					const label = owned.nickname?.trim() || owned.species_name;
-					action.textContent = "チームに追加";
-					action.title = `手持ちの${label}を入れる`;
-					action.disabled = firstEmptySlot() == null;
-					action.addEventListener("click", () => {
+					button.title = `手持ちの${label}を入れる`;
+					button.setAttribute("aria-label", `${label}をチームに追加`);
+					button.disabled = firstEmptySlot() == null;
+					button.addEventListener("click", () => {
 						assignToSlot(owned);
 					});
 				} else {
-					const editIcon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-					editIcon.setAttribute("width", "14");
-					editIcon.setAttribute("height", "14");
-					editIcon.setAttribute("viewBox", "0 0 24 24");
-					editIcon.setAttribute("fill", "none");
-					editIcon.setAttribute("stroke", "currentColor");
-					editIcon.setAttribute("stroke-width", "2");
-					editIcon.setAttribute("stroke-linecap", "round");
-					editIcon.setAttribute("stroke-linejoin", "round");
-					editIcon.setAttribute("aria-hidden", "true");
-					const editBody = document.createElementNS("http://www.w3.org/2000/svg", "path");
-					editBody.setAttribute("d", "M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z");
-					const editTip = document.createElementNS("http://www.w3.org/2000/svg", "path");
-					editTip.setAttribute("d", "m15 5 4 4");
-					editIcon.append(editBody, editTip);
-					action.append(editIcon, "育成する");
-					action.title = "この型で個体を作る";
-					action.addEventListener("click", () => {
-						void createPokemonFromSuggestion(suggestion, action);
+					button.addEventListener("click", () => {
+						void createPokemonFromSuggestion(suggestion, button);
 					});
 				}
-				card.appendChild(action);
-
-				return card;
+				return button;
 			}
 
 			// 直近の応答。個体一覧(allPokemon)が後から届いたときに「手持ちにあるか」の
@@ -3380,7 +3294,7 @@ const initialTeamJson = team
 				});
 				renderSelectList();
 				suggestEl.innerHTML = "";
-				teamDataMobileSuggestList.replaceChildren();
+				formationMobileSuggestIcons.replaceChildren();
 
 				// UI改修依頼(右パネル、2026-08-04)見出しは右パネル共通のタイトル帯へ表示する。
 				// scheduleSuggestions/loadSuggestionsは編成が変わるたびに走るため、個体プレビュー中
@@ -3403,10 +3317,6 @@ const initialTeamJson = team
 							? "提案がありません。"
 							: "条件に一致する提案がありません。";
 					suggestEl.appendChild(empty);
-					const dataEmpty = document.createElement("li");
-					dataEmpty.className = empty.className;
-					dataEmpty.textContent = empty.textContent;
-					teamDataMobileSuggestList.appendChild(dataEmpty);
 					return;
 				}
 
@@ -3414,7 +3324,7 @@ const initialTeamJson = team
 				list.className = "team-suggest-list";
 				filtered.forEach((s, index) => list.appendChild(buildSuggestionCard(s, index + 1)));
 				suggestEl.appendChild(list);
-				filtered.forEach((s, index) => teamDataMobileSuggestList.appendChild(buildDataSuggestionCard(s, index + 1)));
+				filtered.forEach((s) => formationMobileSuggestIcons.appendChild(buildSuggestIcon(s)));
 			}
 
 			async function loadSuggestions(): Promise<void> {
