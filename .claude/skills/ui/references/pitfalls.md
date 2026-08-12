@@ -127,6 +127,33 @@ Coordinatorが実測して発覚し、2回目でバリデーション層を直�
 
 ---
 
+## dev serverの起動(2026-08-12 整理)
+
+### まずWindows側で直接 `npm run dev` を試す
+以前は `node_modules/@rolldown/binding-win32-x64-msvc` が無く、Windows側から直接 `npx astro build` するとネイティブbindingエラーになったため、**WSL(Ubuntu)側でdev serverを動かす運用**にしていた。**2026-08-12時点ではこのbindingが入っており、Windows側から直接 `npm run dev` / `npx astro build` の両方が問題なく動く**ことを確認済み(boxページのタブ分割作業で実測)。WSL側は `/mnt/c/...` 越しの9pマウントI/Oが遅く、`vite`の依存関係再最適化(`Re-optimizing dependencies`)だけで**5分以上固まる**ことがある(2026-08-12実測。Windows側なら`npm run dev`はバックグラウンドdaemonとして数秒で立ち上がる)。
+
+- **まずWindows側で `npm run dev` を試す。** `@rolldown/binding-win32-x64-msvc` が見つからないというネイティブbindingエラーが出た場合だけ、下記「WSL側で起動する場合」にフォールバックする。
+- Astro 7の `npm run dev` はバックグラウンドdaemonとして起動し、**コマンド自体はログを出してすぐ終了する**(プロセスは常駐)。止めるには `npx astro dev stop`。ポート確認は `npx astro dev status` または `curl -s -o /dev/null -w "%{http_code}" http://localhost:4321/`(4321が埋まっていると4322…にずれることがある。詳細は下記Playwright節「`astro dev` はデーモンで、ポートは4321とは限らない」)。
+- dev server起動中に同じディレクトリで `npx astro build` を並行実行すると、両者が `node_modules/.vite` を共有しているため**dev serverが壊れる**ことがある(`The file does not exist at ".../deps_ssr/astro_app_entrypoint_dev.js"` のようなエラーで応答しなくなる)。buildの検証をしたいときは、buildが終わるのを待つか、dev serverを一旦止める。壊れた場合は `node_modules/.vite` と `.astro` を削除して再起動すれば直る。
+
+### 🔴 WSL側とWindows側のdev serverを同時に動かすと `SQLITE_IOERR (SHMOPEN)` で起動直後にクラッシュする
+WSL側・Windows側どちらの `astro dev` も、同じ実体である `.wrangler/state/v3/{cache,kv,images}/*/metadata.sqlite`(cache/KV/imagesのローカルエミュレート用DB)を掴む。**両方を同時に起動すると、後から起動した側がロック競合で `workerd/util/sqlite.c++` の `Fatal uncaught kj::Exception`(`disk I/O error: SQLITE_IOERR (extended: SQLITE_IOERR_SHMOPEN)`)を出して即クラッシュする。**
+- **実例(2026-08-07)**: モバイルナビ実装の検証でWSL側 `npx astro dev` を再起動しようとしたところ、毎回起動直後にこのエラーでクラッシュした。`.wrangler/state/v3` 配下の `*.sqlite-shm` 等を消そうとしても `Device or resource busy` / `Permission denied` で削除できず、WSL側の `pgrep -af workerd` では何もヒットしなかった(原因はWindows側に残っていたため、WSL側だけをいくら確認しても分からなかった)。
+- **実例(2026-08-12)**: 逆方向(WSL側のプロセスがWindows側の起動をブロック)でも同じ症状が再現した。`.sqlite-shm`/`.sqlite-wal` の削除が `Permission denied` になったが、`lsof`(WSL側)には何も出ず、PowerShellの `Get-Process node,workerd` で初めてWindows側に残っていた `node.exe`/`workerd.exe` を発見できた。
+- **対策**: **必ずどちらか片方だけを動かす。** 起動前にもう片方が残っていないか確認する。
+  - Windows側の確認・停止: PowerShellで `Get-Process node,workerd -ErrorAction SilentlyContinue`(必要なら `Get-CimInstance Win32_Process -Filter "Name='node.exe' or Name='workerd.exe'" | Select ProcessId,CommandLine` でコマンドラインも見る)→ 該当PIDを `Stop-Process -Force`。
+  - WSL側の確認・停止: `wsl.exe -e bash -lc "pkill -9 -f 'astro dev'"`。⚠️ `pkill -f` は自分自身の引数にパターン文字列 (`astro dev`) が含まれるため、まれに自分自身を巻き込んで exit code 137/9 のような終了コードを返すことがある(実害はない。プロセスは正常に落ちている)。
+  - ロックが解けたら、`.wrangler/state/v3/{cache,kv,images}/*/metadata.sqlite-{shm,wal}`(gitignore対象、削除しても再生成される)を消してから起動し直す。
+
+### WSL側で起動する場合(Windows側が使えないときのフォールバック)
+- WSLからは `/mnt/c/Users/tmtmp/Documents/pokemon/poke-commons` としてマウントされている(Windows側と同じファイル実体)。`wsl.exe -e bash -lc "<command>"` から操作する(`wsl -l -v` でディストリビューション一覧・起動状態を確認できる)。
+- **ログインシェルはデフォルトでWindows側のnodeを拾う。** 先頭で明示的に `export PATH="$HOME/.nvm/versions/node/v22.23.2/bin:$PATH"` する(バージョン番号は `ls ~/.nvm/versions/node/` で都度確認。この修正を忘れると、bashのエラーではなく**Windows cmd.exeの文字化けした「'astro' は、内部コマンドまたは外部コマンドとして認識されていません」というエラー**が返り紛らわしい)。
+- **WSLは無操作だと自動停止する。** dev serverを起動したら、Bashツールの `run_in_background: true` で `wsl.exe -e bash -lc "... && exec npx astro dev --host 0.0.0.0"` をフォアグラウンドプロセスとして張り付けたまま維持する(この生きたプロセスがWSLのアイドル停止を防ぐ)。
+- **起動確認は気長に待つ。** `/mnt/c/...` 越しの9p I/Oが遅く、`vite` の依存関係再最適化(`Re-optimizing dependencies`)だけで**数分(2026-08-12実測で5分以上)**かかることがある。`curl -s -o /dev/null -w "%{http_code}" http://localhost:4321/` のポーリングで待つ(sleep連打で固定時間待つのではなく、ポーリングジョブに完了通知させる)。
+- WSL上でPlaywright(`npm run shot` 含む)を初めて動かす場合の追加インストール手順は、下記Playwright節「WSL環境でPlaywrightを初めて動かすには追加インストールが要る」を参照。
+
+---
+
 ## マイグレーション・DB接続
 
 ### `.env` の `DATABASE_URL` と `.dev.vars` の `SUPABASE_URL` は別のDBを指している
@@ -141,8 +168,8 @@ Coordinatorが実測して発覚し、2回目でバリデーション層を直�
 ### WSL2からはSupabaseの直接DBホスト名(`db.<ref>.supabase.co`)にIPv6到達性が無いことがある
 このホストはIPv4のAレコードを持たずIPv6のみで解決される。WSL2の仮想ネットワークはIPv6のデフォルトルートを持たないことがあり、`node`/`pg` から接続すると `ENETUNREACH`(NODE_OPTIONSの`--dns-result-order=ipv4first`でも直らない、そもそもIPv4アドレスが無いため)になる。**ネイティブWindows側(PowerShellから直接 `node`)にはIPv6の実路がある**ことが多いので、マイグレーション等のDB直接接続スクリプトは、詰まったらWSL経由をやめてWindows側のnode(`node_modules` はWindows側からも同じパスで見えるため動く)から実行する。
 
-### `astro dev` が起動中に、同じディレクトリで `npx astro build` を並行実行すると dev serverが壊れる
-両者は `node_modules/.vite` を共有しており、buildの依存最適化がdev serverの使っているキャッシュファイルを消してしまうことがある(実際に `The file does not exist at ".../deps_ssr/astro_app_entrypoint_dev.js"` エラーでdev serverが応答しなくなった)。**buildの検証をしたいときは、buildが終わるのを待ってから実行するか、dev serverを一旦止める。** 壊れた場合は `node_modules/.vite` と `.astro` を削除してdev serverを再起動すれば直る。
+### `astro dev` とビルド検証の並行実行、WSL/Windowsのdev server起動方法
+→ 「dev serverの起動」節(このファイル冒頭寄り)にまとめた。
 
 ---
 
@@ -391,7 +418,5 @@ primary `#27acd9` / success `#409f89` / danger `#f8705b` / risky `#c9820f`、お
 - **実例(ラウンド40、2026-07-30)**: フィクスチャの`is_pinned`基準値ズレを復元しようとしたエージェントが、Git Bash経由で`curl -X PUT ... -d '{"species_name":"メガリザードンX",...}'`のように日本語を含むJSONを直接引数で渡したところ、Windows上のGit Bashの引数エンコーディングの都合で`species_name`等の日本語フィールドがDBに文字化けした状態で保存されてしまった。
 - **対策**: このプロジェクトのWindows環境で日本語を含むJSONボディをPUT/POSTする場合、**curlの`-d`に日本語を直接埋め込まない。** 一度`GET`でレコード全体を取得し、Node.jsスクリプト側(`fetch`または`fs.writeFileSync`で一時ファイルに書き出してから`curl --data-binary @file`)でJSONを組み立てて送る(UTF-8が正しく扱われる)。curlで直接送るのは英数字のみのフィールド(`is_pinned`の真偽値等)に限定するか、それも一時ファイル経由にするのが安全。
 
-### WSL側のdev server起動が `SQLITE_IOERR (SHMOPEN)` で毎回落ちる: Windows側に別のdev serverが残っている
-- **実例(2026-08-07)**: モバイルナビ実装の検証でWSL側`npx astro dev`を再起動しようとしたところ、`workerd/util/sqlite.c++`の`Fatal uncaught kj::Exception`(`disk I/O error: SQLITE_IOERR (extended: SQLITE_IOERR_SHMOPEN)`)で毎回起動直後にクラッシュした。`.wrangler/state/v3`配下の`*.sqlite-shm`等を消そうとしても`Device or resource busy`/`Permission denied`で削除できず、WSL側の`pgrep -af workerd`では何もヒットしなかった。
-- **原因**: Windows側で別途 `npm run dev`(Windowsネイティブの`node.exe`+`node_modules/@cloudflare/workerd-windows-64/bin/workerd.exe`)が起動したまま残っており、これが`.wrangler/state/v3`のsqlite(cache/kv/images)を掴んでいた。WSL側のプロセス一覧には映らないため、WSL側だけをいくら確認しても原因が分からない。
-- **対策**: PowerShellで`Get-CimInstance Win32_Process -Filter "Name='node.exe' or Name='workerd.exe'" | Select ProcessId,CommandLine`のように**Windows側のプロセスも確認する**(WSLの`ps`/`pgrep`はWSL内のプロセスしか見えない)。該当のnode.exe/workerd.exeを`Stop-Process -Force`で止めてから、ロックされていた`.wrangler/state/v3/{cache,kv,images}`配下(gitignore対象、再生成される)を削除し、WSL側で`npx astro dev`を起動し直す。以後は「WSL側のdev serverはClaude自身が管理する」運用を徹底し、Windows側で`npm run dev`を直接叩かない。
+### WSL側のdev server起動が `SQLITE_IOERR (SHMOPEN)` で毎回落ちる
+→ 「dev serverの起動」節(このファイル冒頭寄り)「🔴 WSL側とWindows側のdev serverを同時に動かすと…」にまとめた。**WindowsとWSLを同時に動かさないことが対策であり、「Windows側でdev serverを動かすこと自体」が原因ではない**(2026-08-07時点ではWindows側のbinding不備もあってWSL専用運用にしていたが、2026-08-12にbindingが解消され、単独ならどちらでも動く)。
