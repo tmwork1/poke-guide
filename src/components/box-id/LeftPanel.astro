@@ -1,9 +1,7 @@
 ---
-// box/[id].astro 構造分割ラウンド(フェーズ1)。
-// 左サイド(ポケモン編集パネル、.panel-left)のテンプレート・scoped style・スクリプトを
-// src/pages/box/[id].astro から切り出したコンポーネント。見た目・ロジックは一切変更していない
-// (定義位置の移動のみ)。呼び出し元(box/[id].astro)は pokemon(SSRで取得済みの個体データ、
-// 存在確認済み=非null)だけをpropsで渡す。
+// 左サイド(ポケモン編集パネル、.panel-left)のテンプレート・scoped style・スクリプトを持つ
+// コンポーネント。呼び出し元(box/[id].astro)は pokemon(SSRで取得済み、存在確認済み=非null)
+// だけをpropsで渡す。
 //
 // スクリプト本体は src/lib/box-id/left-panel.ts に切り出してあり、下の<script>から
 // 副作用importする(共有コア関数は src/lib/box-id/shared-core.ts 経由で left-panel.ts が使う)。
@@ -17,25 +15,15 @@ interface Props {
 }
 const { pokemon } = Astro.props;
 
-// 🔴 UI改修依頼(個体編集左パネル・レギュレーション対応、2026-08-01)
-// 「レギュレーション "T-<n>" のときだけ、2段目の右側にテラスタル選択ボックスを表示」+
-// ユーザー確認(同日)「レギュレーション未指定のときは従来どおり表示、M-* のときだけ非表示」。
 // SSR時点の初期表示をここで決め、以後の切り替えは #regulation の change ハンドラ
 // (src/lib/box-id/left-panel.ts の syncTeraFieldVisibility)が担う。
 // 非表示にしても tera_type の保存値には触れない(M-* を選んで戻せば元の値が復帰する)。
 const showTeraField = isTerastalRegulation(pokemon.regulation);
 
-// 🔴 UI改修依頼(個体編集左パネル、2026-08-01)「性格をREAD限定(編集不可)にする」により、
-// ラウンド48(A-7)で追加した直接入力用の<datalist>候補(NATURE_NAMES)は不要になった
-// (datalistは編集可能なinputでなければ意味を持たないため、入力欄の撤回とセットで削除する)。
-// ▲/▼ボタンによる上昇/下降切り替えは従来どおり残る(NATURE_STAT_MODIFIERS自体は
-// left-panel.ts側の照合ロジックが引き続き使うため、ここでのimportだけを削除する)。
-
-// ラウンド12指摘(A-3): 能力値ラベルは全角表記(「素早さ」等)だとラベル列(最大幅)が
-// スライダー列(最狭・操作対象)を圧迫していたため、表示上はH/A/B/C/D/Sの1文字表記に
-// 統一する(相手ビルド箱・/box一覧のSTAT_LABELS = ["H","A","B","C","D","S"]と表記を揃える。
-// 統一感の要件でもある)。full(素早さ等の正式名称)はaria-label/titleに必ず残し、
-// アクセシビリティ上「短縮表記だけになる」ことを避ける。
+// 能力値ラベルは全角表記(「素早さ」等)だとラベル列(最大幅)がスライダー列(最狭・操作対象)を
+// 圧迫するため、表示上はH/A/B/C/D/Sの1文字表記に統一する(相手ビルド箱・/box一覧の
+// STAT_LABELS = ["H","A","B","C","D","S"]と表記を揃える)。full(素早さ等の正式名称)は
+// aria-label/titleに必ず残し、アクセシビリティ上「短縮表記だけになる」ことを避ける。
 const STAT_LABELS: Array<{ key: string; label: string; short: string }> = [
 	{ key: "hp", label: "HP", short: "H" },
 	{ key: "atk", label: "攻撃", short: "A" },
@@ -46,22 +34,6 @@ const STAT_LABELS: Array<{ key: string; label: string; short: string }> = [
 ];
 
 const MOVE_SLOTS = [1, 2, 3, 4];
-
-// 🔴 UI改修依頼(個体編集左パネル、2026-08-01)により、R-11(すばやさ早見表 結線)で追加した
-// S行限定のアイコンリンク用SVG定数(SPEED_CHART_ICON)は不要になった(同じ機能のボタンは
-// ヘッダー側へ移設。下のstat-table内の分岐も撤回済み)。
-
-// 🔴 UI改修依頼(個体編集左パネル、2026-08-03)「H・B・D行の個別"調整"ボタンとS行のリンクを
-// 撤去し、ステータス表の下に統合ボタン行を新設する」対応により、2026-08-02に導入した
-// STAT_ADJUST_BUTTONS定数(H/B/D行それぞれのボタンid・aria-label文字列を保持していた)は
-// 不要になった。3つのボタンの意味は失われたわけではなく、新設した#durability-index-button
-// (このファイル内、.stat-adjust-actions参照)が「総合/物理/特殊の耐久指数をそれぞれ最大化する」
-// という同じ機能を1つのボタンにまとめて引き継ぐ。当時の個別ラベル文言(参考として残す):
-//   hp(旧stat-adjust-hp) : 総合耐久指数(H×B×D÷(B+D))が最大になる努力値配分にする
-//   def(旧stat-adjust-def): 物理耐久指数(H×B)が最大になる努力値配分にする
-//   spd(旧stat-adjust-spd): 特殊耐久指数(H×D)が最大になる努力値配分にする
-// S行のすばやさ早見表リンク(旧stat-speed-chart-link)も同じ統合ボタン行へ「すばやさ調整」として
-// 移設した(機能・遷移先/speed-chart?owned=<id>は変更していない)。
 
 function statAt(values: number[] | undefined, index: number, fallback: number): number {
 	return values && typeof values[index] === "number" ? values[index] : fallback;
@@ -77,69 +49,32 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 >
 	<section class="panel panel-left">
 		<div class="top-block">
-			{/* UI改善ラウンド26ユーザー指示(26-L2)「今のポケモンアイコンサイズのまま、
-			    アイコン領域を全幅に拡大。タイプ画像、アイテム画像+アイテム名、テラスタイプ画像を
-			    余裕をもって配置する。もともとアイコン横に配置していた入力欄は下に移動。」
-			    .top-block-icon(アイコン領域)を.top-block-fields(種族/ニックネーム/特性/性格)
-			    と横並びだった2カラム構成から、アイコン領域を上段・入力欄を下段に積む縦2段構成に
-			    変える(横並び2カラム→縦積み2段。アイコン自体のサイズ=.species-icon-box
-			    160px/144pxは変えない)。画像はいずれも初期状態が display:none で、読み込み成功時
-			    (onload)に表示する方式。そのため loading="lazy" を付けてはいけない —
-			    display:none の画像は遅延読み込みの対象外として一切fetchされず、onloadが
-			    永久に発火しないまま隠れ続ける。
-			    🔴 UI改善ラウンド28ユーザー指示(28-L1)「ポケモン画像が帯の左半分に配置されているが、
-			    帯の全幅を使って中央配置する」により、ラウンド27(27-H1)の「中央寄せゾーン
-			    (.top-block-icon-center、flex:1)+右コーナー列(.top-block-icon-corner、
-			    flex:0 0 auto)」の2分割flexを撤回する。27-H1が絶対配置を避けた理由(種族アイコン
-			    160px+テラスドロップダウン170px+アイテム表示分がコンテナ幅約400pxの中で
-			    重なる恐れ)は、28-L4でテラスドロップダウンを帯の外(下の.field-grid-single、
-			    持ち物入力欄の右)へ出したことで解消した。帯に残るのはタイプバッジ・アイテム
-			    表示・テラス画像(読み取り専用、28-L2)だけになり必要幅が大きく減るため、
-			    絶対配置のオーバーレイを使っても実測上重ならない(検証時にgetBoundingClientRect
-			    で必ず確認する)。
-			    実装: .top-block-icon自体をflexでjustify-content:centerにし、#species-icon-box
-			    (もう.top-block-icon-centerで包まない)を直接の子にして帯の全幅に対して
-			    中央寄せする。.top-block-icon-corner はposition:absoluteでinset-block:0; right:0の
-			    オーバーレイにし、通常フローから外すことで中央寄せの計算に一切影響しないように
-			    する(中身: 上=タイプバッジ、下=アイテム(画像+名前)+テラス画像の2段、
-			    28-L2)。 */}
+			{/* 画像はいずれも初期状態が display:none で、読み込み成功時(onload)に表示する方式。
+			    そのため loading="lazy" を付けてはいけない — display:none の画像は遅延読み込みの
+			    対象外として一切fetchされず、onloadが永久に発火しないまま隠れ続ける。
+			    実装: .top-block-icon自体をflexでjustify-content:centerにし、#species-icon-boxに
+			    margin-inline:autoを与えて残り幅の中で中央寄せする。.top-block-icon-cornerは
+			    flex: 0 0 auto の固定幅カラム(中身: 上=タイプバッジ、下=アイテム(画像+名前)+
+			    テラス画像の2段)で、#species-icon-boxとの重なりはフレックスレイアウトが
+			    自動的に回避する。 */}
 			<div class="top-block-icon">
 				<div id="species-icon-box" class="species-icon-box">
 					<img id="species-sprite" class="species-sprite-img" width="72" height="72" alt="" style="display:none;" />
 					<span id="species-sprite-fallback" class="sprite-fallback species-sprite-fallback-lg"></span>
 				</div>
 				<div class="top-block-icon-corner">
-					{/* ラウンド3 B-6: 以前はtypes配列の先頭(types?.[0])しか見ておらず、複合タイプ
-					    (例: メガリザードンX=ほのお/ドラゴン)が単一タイプとして表示されていた。
-					    <script>のapplyTypeBadge()がtypes全件ぶんの<img>をこの空コンテナに
-					    動的に追加する(タイプ数は種族によって1〜2件で可変のため、静的に
-					    <img>を並べず空コンテナにした)。ラウンド21(21-L1)で横並びに変更。
-					    ラウンド26ユーザー指示(26-L2)により、種族アイコン右上の重ね表示(絶対配置)
-					    から、アイコン脇に並ぶ通常フローの1項目へ移した。position:staticにする
-					    .type-badge-inline(23-L3で導入して以後どこからも参照されていなかった
-					    クラス。position:staticという効果がそのまま使えるため新規クラスを作らず
-					    再利用する)を追加する。ラウンド28ユーザー指示(28-L2)により、この
-					    コーナー列(top-block-icon-corner、28-L1で絶対配置のオーバーレイに変更)の
-					    先頭=右上に置く。 */}
+					{/* <script>のapplyTypeBadge()がtypes全件ぶんの<img>をこの空コンテナに動的に
+					    追加する(複合タイプ種族はtypesが2件になるため、先頭要素だけ見ると
+					    片方のタイプが欠落する。タイプ数は種族によって1〜2件で可変のため、
+					    静的に<img>を並べず空コンテナにした)。.type-badge-inlineは
+					    position:staticにするクラス。 */}
 					<span id="species-type-badge" class="type-badge type-badge-multi type-badge-inline"></span>
-					{/* ラウンド26ユーザー指示(26-L2)「アイテム画像+アイテム名(テキスト)を余裕を
-					    もって配置する」。アイテム名の文字表示はこれまで#item入力欄(下の.field-grid内)
-					    にしか無かった(新規の表示要素)。#item-name-displayは読み取り専用の<span>で、
-					    #itemの値をそのまま反映するだけ(保存経路はこれまでどおり#item自体、
-					    buildPayloadは変えない。<script>のupdateItemNameDisplay参照)。
-					    ラウンド21ユーザー指示(21-L2)由来のアイテム画像バッジ(#item-image-badge)は、
-					    以前は種族アイコンの右下に重ねる絶対配置(親の.top-block-icon-sub、
-					    position:absolute)だったが、このアイコン領域が全幅になり重ねる必要が
-					    無くなったため、通常フローの1項目としてアイテム名の隣に並べる
-					    (.top-block-icon-sub自体は廃止。item-image-badge自体はposition:absoluteを
-					    持たないクラスなのでそのまま使い回せる)。
-					    🔴 UI改善ラウンド28ユーザー指示(28-L2)「タイプアイコンは右上、アイテム
-					    (画像+名前)とテラスタイプ(画像)は上下に重ねて右下に配置」により、この
-					    .top-block-icon-info(既存クラス)をコーナー列の下側に置く(タイプバッジと
-					    縦に並ぶ)構成は維持しつつ、中身を「1段目=アイテム(画像+名前)、
-					    2段目=テラスタイプ画像(読み取り専用、下記#top-block-tera-image参照)」の
-					    縦2段にする。旧26-L2で同居していたテラスタル選択ボックス(#tera-dropdown-*)は
-					    28-L4で下の.field-grid-single(持ち物入力欄の右)へ移設した。 */}
+					{/* #item-name-displayは読み取り専用の<span>で、#itemの値をそのまま反映する
+					    だけ(保存経路は#item自体、buildPayloadは変えない。<script>の
+					    updateItemNameDisplay参照)。item-image-badgeは通常フローの1項目として
+					    アイテム名の隣に並べる。
+					    .top-block-icon-info内は「1段目=アイテム(画像+名前)、2段目=テラスタイプ
+					    画像(読み取り専用、下記#top-block-tera-image参照)」の縦2段構成。 */}
 					<div class="top-block-icon-info">
 						<div class="top-block-item-display">
 							<span id="item-image-badge" class="item-image-badge" hidden>
@@ -147,45 +82,20 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 							</span>
 							<span id="item-name-display" class="item-name-display"></span>
 						</div>
-						{/* UI改善ラウンド28ユーザー指示(28-L2)「テラスタイプ(画像)は…上下に重ねて
-						    右下に配置」。読み取り専用の<img>(クリックしても開かない。値の選択は
-						    28-L4で移設したテラスタル選択ボックス側で行う)。表示ロジックは
-						    applyTeraImage()を再利用する(<script>のrefreshTopBlockTeraImage参照。
-						    テラス未設定時は画像・フォールバックとも隠れ、高さも詰まる)。 */}
+						{/* 読み取り専用の<img>(クリックしても開かない。値の選択はテラスタル選択
+						    ボックス側で行う)。表示ロジックはapplyTeraImage()を再利用する
+						    (<script>のrefreshTopBlockTeraImage参照。テラス未設定時は画像・
+						    フォールバックとも隠れ、高さも詰まる)。 */}
 						<img id="top-block-tera-image" class="top-block-tera-image" alt="" style="display:none;" />
 						<span id="top-block-tera-image-fallback" class="top-block-tera-image-fallback" style="display:none;"></span>
 					</div>
 				</div>
 			</div>
 
-			{/* ラウンド5ユーザー指示: ラウンド3 A-8で「横並びラベルに統一」したのを撤回し、
-			    ラベル要素を廃止してplaceholder + aria-labelに戻す(値が入ると何の欄か
-			    分からなくなるという第4弾ラウンド4の指摘は、値が短いうちは placeholder が
-			    透けて見えるので実運用上大きな問題にならないというユーザー判断)。
-			    aria-labelはスクリーンリーダー対応のため必ず残す。.field/.field-controlは
-			    flexコンテナなのでlabel(1つ目の子)を無くしても崩れない(global.css参照)。 */}
-			{/* ラウンド17指摘(B-4)で「種族→ニックネーム→特性」から「種族→特性→ニックネーム」に
-			    入れ替えていたが、ラウンド21ユーザー指示(21-L3)「ニックネームは種族名の下に
-			    配置する」により再度「種族→ニックネーム→特性」へ戻す(ユーザー指示のため
-			    ラウンド17の判断を撤回。順序を変えるだけで#nickname/#abilityのid・
-			    textInputIds/buildPayloadの参照は一切変えていない)。
-			    ラウンド26ユーザー指示(26-L2)により、この入力欄一式(.top-block-fields)は
-			    アイコン領域(.top-block-icon)の下段に移動した(横並び2カラム→縦積み2段。
-			    空いた全幅を活かすため2列グリッドに詰める。#species-name/#nickname/#ability/
-			    #nature-readout-valueのid・値・保存経路は一切変えていない)。 */}
-			{/* 🔴 UI改修依頼(個体編集左パネル・レギュレーション対応、2026-08-01)により、この
-			    入力欄グリッド(.top-block-fields)を2列×3段に組み替えた:
-			      1段目 種族 / ニックネーム
-			      2段目 レギュレーション / テラスタル(レギュレーションが T-<n> のときだけ表示)
-			      3段目 特性 / 持ち物
-			    ・「性格ボックスを廃止。性格はステータス表の1列目のヘッダーとする(種族値、の左側)」
-			      により、ここにあった性格欄(#nature-readout-value)は下の.stat-table-header内へ
-			      移設した(id・datalist・保存経路・left-panel.ts側のハンドラは一切変えていない。
-			      DOM上の位置だけが変わった)。
-			    ・「特性とアイテムを3段目に並べて配置」により、持ち物+テラスの独立行だった
-			      .field-grid-single(28-L4)を解体し、持ち物はこのグリッドの3段目右へ、
-			      テラスは2段目右へ移した(#item/#tera とドロップダウン一式のマークアップ・idは
-			      そのまま。DOM上の位置だけが変わった)。 */}
+			{/* ラベル要素は使わずplaceholder + aria-labelにする(値が入るとplaceholderは
+			    消えるが、値は短いことが多いため実運用上大きな問題にはならない)。aria-labelは
+			    スクリーンリーダー対応のため必ず残す。.field/.field-controlはflexコンテナ
+			    なのでlabel(1つ目の子)を無くしても崩れない(global.css参照)。 */}
 			<div class="top-block-fields">
 				<div class="field">
 					<input

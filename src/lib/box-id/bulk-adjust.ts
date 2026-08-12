@@ -1,6 +1,4 @@
-// UI改修依頼(個体編集画面、2026-08-02)「耐久調整」機能。
-//
-// トップバーの #bulk-adjust-button(box/[id].astro側の静的マークアップ、実装済み・元は
+// トップバーの #bulk-adjust-button(box/[id].astro側の静的マークアップ、元は
 // disabled)を押すと、防御方向(相手→自分)のダメージ計算カードだけを圧縮表示した
 // ポップアップ(src/components/box-id/BulkAdjustDialog.astro)を開く。カードごとに
 // 「N発をM%以上の確率で耐える」の N・M を入力し、同じボタン(このとき「ステータスを計算」に
@@ -47,7 +45,6 @@ const bulkAdjustButtonLabelEl = bulkAdjustButton.querySelector<HTMLElement>(".bu
 const backdropEl = el<HTMLElement>("bulk-adjust-backdrop");
 const dialogEl = el<HTMLElement>("bulk-adjust-dialog");
 const dialogCloseButton = el<HTMLButtonElement>("bulk-adjust-dialog-close");
-// UI改修依頼(個体編集画面、2026-08-04)「ウィンドウ上部に計算する ボタンを配置」。
 const dialogComputeButton = el<HTMLButtonElement>("bulk-adjust-dialog-compute-button");
 const dialogStatusEl = el<HTMLElement>("bulk-adjust-dialog-status");
 const dialogBodyInnerEl = el<HTMLElement>("bulk-adjust-dialog-body-inner");
@@ -75,10 +72,7 @@ if (opponentNotesSectionEl) {
 let isDialogOpen = false;
 let isComputing = false;
 let currentRows: BulkAdjustRowSnapshot[] = [];
-// 🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08 第2弾)「"調整に含める"ボタンを廃止。
-// 代わりにカードの右上に削除ボタン(×)を追加し、カードごと削除する」により、
-// 行ごとのON/OFF(includeInput)は廃止した。ダイアログに残っている行=計算対象、という
-// 単純な対応にする(削除された行はこのMapからも消える)。
+// ダイアログに残っている行=計算対象、という単純な対応にする(削除された行はこのMapからも消える)。
 const rowInputEls = new Map<string, { nInput: HTMLInputElement; mInput: HTMLInputElement }>();
 let activeAbortController: AbortController | null = null;
 
@@ -94,7 +88,7 @@ function updateComputeButtonDisabled(): void {
 	else if (!isComputing && dialogStatusEl.textContent === "計算対象の攻撃がありません") dialogStatusEl.textContent = "";
 }
 
-// UI改修依頼(2026-08-05): 画面側の確定数表示が最大10発までを扱うため、入力・探索も同じ範囲にそろえる。
+// 画面側の確定数表示が最大10発までを扱うため、入力・探索も同じ範囲にそろえる。
 const MAX_ATTACK_COUNT = 10;
 
 // 現在のカードに表示済みの累計確定数(「確N」)を初期値に使う。計算前・10発以上・
@@ -114,11 +108,10 @@ function setButtonLabel(text: string): void {
 
 // ダイアログを開いていない間だけ、「エンジン準備済み・防御カード1枚以上」で有効化する
 // (#damage-collapse-toggle-buttonのupdateCollapseToggleButtonLabelと同じ「disabled切り替えを
-// 1関数に集約する」流儀)。BulkAdjustBridgeには行の増減・名前変更を通知する購読機構が無く
-// (damage-calc.ts/shared-core.tsは編集対象外のため追加できない)、かつ相手ポケモン名や
-// 技名の入力(input.valueの変更)はDOM属性の変化を伴わずMutationObserverでは拾えないため、
-// 軽い間隔ポーリングで最新状態に追随させる(600ms間隔。getDefenseRows()は既存行配列を
-// 読むだけの軽量処理のため負荷は無視できる)。
+// 1関数に集約する」流儀)。BulkAdjustBridgeには行の増減・名前変更を通知する購読機構が無く、
+// かつ相手ポケモン名や技名の入力(input.valueの変更)はDOM属性の変化を伴わずMutationObserverでは
+// 拾えないため、軽い間隔ポーリングで最新状態に追随させる(600ms間隔。getDefenseRows()は
+// 既存行配列を読むだけの軽量処理のため負荷は無視できる)。
 function updateBulkAdjustButtonReadyState(): void {
 	if (isDialogOpen || isComputing) return;
 	const bridge = getBulkAdjustBridge();
@@ -153,11 +146,9 @@ function buildRowEl(bridge: NonNullable<ReturnType<typeof getBulkAdjustBridge>>,
 	previewWrap.className = "bulk-adjust-row-preview";
 	const preview = bridge.buildCollapsedPreview(row.id);
 	if (preview) {
-		// 🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08 第2弾)「種族名を非表示にして、
-		// 代わりに特性を1段目に配置する」。圧縮表示の1段目は[攻撃/防御バッジ][種族名]、
-		// 2段目は[特性][テラス情報]という構成(damage-calc.tsのcollapsedMetaRow/
-		// collapsedTeraRow参照)。このダイアログでは種族名はドット絵で分かる一方、
-		// 耐久調整の判断に効くのは特性(マルチスケイル等)なので入れ替える。
+		// 圧縮表示の1段目は[攻撃/防御バッジ][種族名]、2段目は[特性][テラス情報]という構成
+		// (damage-calc.tsのcollapsedMetaRow/collapsedTeraRow参照)。このダイアログでは種族名は
+		// ドット絵で分かる一方、耐久調整の判断に効くのは特性(マルチスケイル等)なので入れ替える。
 		// ⚠️ previewはbuildCollapsedPreview()が返す表示専用の複製なので、ここで組み替えても
 		// VSタブの実カード(#damage-rows-list配下)には一切影響しない。
 		// ⚠️ CSSだけでは実現できない: 種族名と特性は別の親div(1段目/2段目)に入っており、
@@ -170,8 +161,7 @@ function buildRowEl(bridge: NonNullable<ReturnType<typeof getBulkAdjustBridge>>,
 	}
 	wrap.appendChild(previewWrap);
 
-	// 🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08 第2弾)「カードの右上に削除ボタン(×)を
-	// 追加し、カードごと削除する。ただし、削除されるのは調整ウィンドウ上のみで、VSタブには残る」。
+	// 削除ボタンで消すのは調整ウィンドウ上の行だけで、VSタブのカードには影響しない。
 	// currentRows(=VSタブの実カードのスナップショット)には手を触れず、この行のDOMと
 	// rowInputElsの登録だけを消す。runCompute()は rowInputEls に残っている行だけを
 	// ソルバへ渡すので、消した行は今回の計算から外れる。次にダイアログを開き直すと
@@ -195,10 +185,8 @@ function buildRowEl(bridge: NonNullable<ReturnType<typeof getBulkAdjustBridge>>,
 
 	const nLabel = document.createElement("label");
 	const nLabelTextBefore = document.createElement("span");
-	// 🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08 第2弾)
-	// 「"xxxの攻撃N発をM%以上の確率で耐える" → "攻撃N発をM%以上で耐える" に短縮」。
 	// 誰の攻撃かは直上のカード(ドット絵+特性+実数値)で分かるので種族名は省く。
-	// aria-labelは読み上げだけが頼りなので、従来どおり種族名を含めたままにする。
+	// aria-labelは読み上げだけが頼りなので、種族名を含めたままにする。
 	nLabelTextBefore.textContent = "攻撃";
 	const nInput = document.createElement("input");
 	nInput.type = "number";
@@ -207,7 +195,7 @@ function buildRowEl(bridge: NonNullable<ReturnType<typeof getBulkAdjustBridge>>,
 	nInput.max = String(MAX_ATTACK_COUNT);
 	nInput.step = "1";
 	nInput.inputMode = "numeric";
-	// UI改修依頼(2026-08-05): 開く時点の努力値配分に対する確定数を優先し、努力値変更後に古い入力値を持ち越さない。
+	// 開く時点の努力値配分に対する確定数を優先し、努力値変更後に古い入力値を持ち越さない。
 	nInput.value = String(currentConfirmedCount(preview) ?? 1);
 	nInput.setAttribute("aria-label", `${row.name}の攻撃を何発耐えるか(発)`);
 	const nLabelTextAfter = document.createElement("span");
@@ -228,8 +216,6 @@ function buildRowEl(bridge: NonNullable<ReturnType<typeof getBulkAdjustBridge>>,
 	mLabelTextAfter.textContent = "%以上で耐える";
 	mLabel.append(mInput, mLabelTextAfter);
 
-	// 「調整に含める」チェックボックスは 2026-08-08 第2弾の指示で廃止した(代わりに上の
-	// 削除ボタン×で行ごと外す)。
 	inputsRow.append(nLabel, mLabel);
 	wrap.appendChild(inputsRow);
 
@@ -246,7 +232,7 @@ function openDialog(): void {
 	dialogBodyInnerEl.innerHTML = "";
 	dialogStatusEl.textContent = "";
 	if (currentRows.length === 0) {
-		// 要件: 0件のときはポップアップを開かない(ボタンはdisabledのはずだが、行の削除等の
+		// 0件のときはポップアップを開かない(ボタンはdisabledのはずだが、行の削除等の
 		// タイミングで開いてしまった場合の防御的フォールバック)。
 		return;
 	}
@@ -295,7 +281,6 @@ bulkAdjustButton.addEventListener("click", () => {
 	}
 });
 dialogCloseButton.addEventListener("click", closeDialog);
-// UI改修依頼(個体編集画面、2026-08-04)「ウィンドウ上部に計算する ボタンを配置」。
 // 外部トリガー(#bulk-adjust-button、ダイアログを開いている間は「ステータスを計算」実行
 // ボタンを兼ねる)と完全に同じ共通関数runCompute()を呼ぶだけで、実行ロジックは二重に
 // 持たない(closeDialog()→renderBulkAdjustResults()のフローもrunCompute()内に閉じている)。
@@ -318,8 +303,7 @@ function setComputingState(computing: boolean): void {
 	bulkAdjustButton.disabled = computing;
 	updateComputeButtonDisabled();
 	dialogCloseButton.disabled = false; // 中断経路として閉じるボタンは常に押せるようにする
-	// 行ごとのON/OFFは廃止したので(2026-08-08 第2弾、上のrowInputEls参照)、
-	// 計算中かどうかだけで入力欄の可否を決める。
+	// rowInputElsに残っている行だけが計算対象なので、計算中かどうかだけで入力欄の可否を決める。
 	for (const { nInput, mInput } of rowInputEls.values()) {
 		nInput.disabled = computing;
 		mInput.disabled = computing;
@@ -343,8 +327,7 @@ async function runCompute(): Promise<void> {
 	dialogStatusEl.textContent = "";
 
 	// ×で外した行はソルバへ渡す前に除外し、ソルバ側の契約を変えない
-	// (2026-08-08 第2弾でチェックボックスによるON/OFFから「行ごと削除」へ変わったので、
-	// 判定は「rowInputElsにまだ登録が残っているか」になった)。
+	// (判定は「rowInputElsにまだ登録が残っているか」)。
 	const includedRows = currentRows.filter((row) => rowInputEls.has(row.id));
 	if (includedRows.length === 0) {
 		dialogStatusEl.textContent = "計算対象の攻撃がありません";

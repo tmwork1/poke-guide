@@ -19,13 +19,9 @@ import '../../styles/box-card.css';
 import '../../styles/floating-list-controls.css';
 import '../../styles/team-data-tab.css';
 import '../../styles/team-card.css';
-// 🔴 UI改修依頼(チーム編集画面、2026-08-01)「個体編集と同様にレギュレーション指定機能を追加」。
-// 候補は jpoke 由来の一覧(src/lib/regulations.ts)。画面側でレギュレーション名を
-// ハードコードしない(box/[id].astro の左パネルと同じ方針)。
-// 2026-08-01追記(同日ユーザー指示「選択肢を新しい順に並べる」、box/index.astro・LeftPanel.astro
-// と同じ対応): REGULATIONS(定義順=古い順)ではなくCoordinatorがsrc/lib/regulations.tsに
-// 追加したREGULATIONS_NEWEST_FIRST(新しい順の配列)を使う。regulations.ts自体はこのファイルの
-// 担当外のため編集しない。
+// レギュレーション候補は jpoke 由来の一覧(src/lib/regulations.ts)。画面側でレギュレーション名を
+// ハードコードしない(box/[id].astro の左パネルと同じ方針)。選択肢は新しい順に並べるため、
+// REGULATIONS(定義順=古い順)ではなくREGULATIONS_NEWEST_FIRST(新しい順の配列)を使う。
 import { REGULATIONS_NEWEST_FIRST, REGULATION_PLACEHOLDER } from '../../lib/regulations';
 
 const user = Astro.locals.user;
@@ -54,34 +50,27 @@ function displayTeamName(t: Team): string {
 
 const pageTitle = team ? displayTeamName(team) : 'チーム編集';
 
-// UI改修依頼(チーム編集ヘッダー)「チーム名表示を削除する」。box/[id].astroの23-H1と同じ手法:
 // AppLayoutは編集禁止なので、<title>タグ(ブラウザタブ)にはpageTitleを残しつつ、可視の見出し
 // (.app-topbar-title)だけをbodyClass経由のグローバルCSS(下の<style is:global>の
 // `body.team-edit-page .app-topbar-title`参照)で非表示にする。loadError/team未検出時は
 // pageTitleが固定文言なので隠さない(teamが存在するときだけbodyClassを付与)。
 const bodyClass = team ? 'team-edit-page' : undefined;
 
-// UI改修依頼(チーム編集ヘッダー)「匿名でデータ提供するトグルを追加する」。個体編集画面
-// (box/[id].astro)のトグルはowned_pokemon.collection_opt_out_untilを個体単位で持つが、
-// teamsテーブルにはチーム単位の対応する列が無い(migrations/007_teams.sqlに列なし)。
-// このタスクは1ファイル(このファイル)のみの変更に限定されており、マイグレーション追加や
-// lib/team.ts・APIルートの変更は範囲外のため、新しい列は作らない。代わりに「このチームに
-// 入っている個体全員」に対して、既存のPATCH /api/owned-pokemon/:id { collection_opt_out }
-// (個体編集画面と全く同じエンドポイント、box/[id].astro参照)を一括で呼ぶ「チーム一括トグル」
-// として実装する(下の<script>参照)。SSR時点ではlib/team.tsのSELECTがcollection_opt_out_until
-// を含まないため正確な初期状態が分からず、ここでは「未収集拒否(提供中)」を既定値としてSSR
-// で仮置きし、クライアント側でGET /api/owned-pokemon(既存の左パネル用フェッチ)の結果から
-// 実際の状態に補正する(<script>のrefreshCollectionOptOutToggle参照)。メンバーが0人のときは
-// 対象が無いため無効化する。
+// 個体編集画面(box/[id].astro)のトグルはowned_pokemon.collection_opt_out_untilを個体単位で
+// 持つが、teamsテーブルにはチーム単位の対応する列が無い(migrations/007_teams.sqlに列なし)。
+// 新しい列は作らず、代わりに「このチームに入っている個体全員」に対して、既存の
+// PATCH /api/owned-pokemon/:id { collection_opt_out }(個体編集画面と全く同じエンドポイント、
+// box/[id].astro参照)を一括で呼ぶ「チーム一括トグル」として実装する(下の<script>参照)。
+// SSR時点ではlib/team.tsのSELECTがcollection_opt_out_untilを含まないため正確な初期状態が
+// 分からず、ここでは「未収集拒否(提供中)」を既定値としてSSRで仮置きし、クライアント側で
+// GET /api/owned-pokemon(既存の左パネル用フェッチ)の結果から実際の状態に補正する
+// (<script>のrefreshCollectionOptOutToggle参照)。メンバーが0人のときは対象が無いため無効化する。
 //
-// 🔴 UI改修依頼(チーム編集ヘッダー、2026-08-01)「公開設定のトグルを個体編集画面と同じ方針に
-// 変更する」。ラベルを「非公開」にし、既定OFF、ホバーテキストをOFF時「育成データを匿名で
-// 提供する」/ON時「30日間有効」にする。これはUI表示(ラベル・title・checkedの向き)だけの反転
-// であり、DBの意味(collection_opt_out_until)・保存されるペイロード(PATCH { collection_opt_out }）
-// は一切変えない。旧: checked=true が「提供中」(collection_opt_out=false)を表した。
-// 新: checked=true が「非公開」(collection_opt_out=true)を表す。checkedの真偽値を丸ごと反転
-// させるだけで、保存結果自体は完全に同じになる(<script>のrefreshCollectionOptOutToggle/
-// 変更ハンドラ参照)。
+// ラベルは「非公開」、既定OFF、ホバーテキストはOFF時「育成データを匿名で提供する」/ON時
+// 「30日間有効」。UI表示(ラベル・title・checkedの向き)は、DBの意味
+// (collection_opt_out_until)・保存されるペイロード(PATCH { collection_opt_out })に対して
+// 反転している: checked=true が「非公開」(collection_opt_out=true)を表す
+// (<script>のrefreshCollectionOptOutToggle/変更ハンドラ参照)。
 const teamMemberCount = team ? team.members.length : 0;
 
 // 初期メンバー(0〜6要素、SSR取得済み)をクライアント<script>へそのまま引き渡す。
@@ -92,9 +81,9 @@ const initialTeamJson = team
 			id: team.id,
 			name: team.name,
 			memo: team.memo,
-			// 🔴 UI改修依頼(チーム編集画面、2026-08-01)。<select id="team-regulation">の初期値は
-			// SSRのselected属性で足りるが、InitialTeam型の他の項目と揃えて渡しておく
-			// (クライアント側から「保存済みの値」を参照したくなったときにSSR側の変更を要らなくする)。
+			// <select id="team-regulation">の初期値はSSRのselected属性で足りるが、InitialTeam型の
+			// 他の項目と揃えて渡しておく(クライアント側から「保存済みの値」を参照したくなったときに
+			// SSR側の変更を要らなくする)。
 			regulation: team.regulation,
 			members: team.members,
 		})
@@ -119,11 +108,9 @@ try {
 			</div>
 		</nav>
 	)}
-	{/* UI改修依頼(チーム編集ヘッダー、2026-08-01)「保存済みを非表示にする」。box/[id].astroの
-	    23-H1相当の対応と同じ考え方: #autosave-status/#autosave-status-textのid・DOM自体は
-	    <script>のel()参照(見つからないとthrowしてJS初期化が止まる)のため残し、
-	    テキストだけを下の<style>で常時非表示にする(保存失敗時=data-state="error"のときだけ
-	    見せる。box/[id].astro側の実装が無い場合はteam側限定の判断として同じ方式を採用)。 */}
+	{/* #autosave-status/#autosave-status-textのid・DOM自体は<script>のel()参照
+	    (見つからないとthrowしてJS初期化が止まる)のため残し、テキストだけを下の<style>で
+	    常時非表示にする(保存失敗時=data-state="error"のときだけ見せる)。 */}
 	{team && (
 		<div class="team-mobile-actions" id="team-mobile-actions">
 			<p id="autosave-status" class="status-text" data-state="saved">
@@ -131,18 +118,16 @@ try {
 				<button id="retry-button" type="button" title="保存に失敗しました。クリックして再試行" aria-label="保存に失敗しました。クリックして再試行">再試行</button>
 			</p>
 
-	{/* UI改修依頼(チーム編集ヘッダー)「右端に削除ボタン追加」。box/[id].astroの
-	    #delete-buttonと同じマークアップ・確認ダイアログ・アイコンにする。
-	    UI改修依頼(チーム編集ヘッダー)「匿名でデータ提供するトグルを追加する」。box/[id].astroの
-	    .collection-opt-out-toggle一式(label > .toggle-switch + ラベルテキスト + ステータス欄)を
-	    そのまま踏襲する(上のフロントマターのコメント参照。マークアップ・aria-label・title文言は
-	    個体編集画面と同じ語彙で揃え、対象が「この個体」ではなく「チームの個体全員」である点だけ
-	    titleとaria-labelの文言に反映する)。
-	    🔴 2026-08-01追記: 「非公開」トグルへ改称に伴い、初期checkedは付けない(既定OFF=非公開で
-	    はない=提供中、フロントマターのコメント参照)。titleもOFF/ONで文言が変わる仕様のため、
-	    ここに書くのはJS初期化前に一瞬だけ見える初期値(<script>のsyncCollectionOptOutTitleが
-	    ページ読み込み直後に実際の状態へ即座に補正する)。メンバー0人のときはtitleに理由を明示した
-	    上でdisabledにする(対象が無いため、この場合のtitleはJSでも変更しない)。 */}
+	{/* #delete-buttonと同じマークアップ・確認ダイアログ・アイコンにする(box/[id].astro)。
+	    .collection-opt-out-toggle一式(label > .toggle-switch + ラベルテキスト + ステータス欄)は
+	    box/[id].astroをそのまま踏襲する(上のフロントマターのコメント参照。マークアップ・
+	    aria-label・title文言は個体編集画面と同じ語彙で揃え、対象が「この個体」ではなく
+	    「チームの個体全員」である点だけtitleとaria-labelの文言に反映する)。
+	    初期checkedは付けない(既定OFF=非公開ではない=提供中、フロントマターのコメント参照)。
+	    titleもOFF/ONで文言が変わる仕様のため、ここに書くのはJS初期化前に一瞬だけ見える初期値
+	    (<script>のsyncCollectionOptOutTitleがページ読み込み直後に実際の状態へ即座に補正する)。
+	    メンバー0人のときはtitleに理由を明示した上でdisabledにする(対象が無いため、この場合の
+	    titleはJSでも変更しない)。 */}
 		</div>
 	)}
 	<style>
@@ -158,11 +143,10 @@ try {
 		#autosave-status {
 			margin: 0;
 		}
-		/* UI改修依頼(チーム編集ヘッダー、2026-08-01)「保存済みを非表示にする」。box/[id].astro
-		   ラウンド11(11-1)と同じ方針: #autosave-status-text自体はDOM/idごと残し(<script>の
-		   el("autosave-status-text")がthrowするのを避けるため)、テキストだけを常時非表示にする。
-		   保存失敗(data-state="error")のときだけ、唯一のリカバリ手段である#retry-buttonに
-		   気づけるよう理由テキストを見せる(box/[id].astroと同じ判断)。 */
+		/* #autosave-status-text自体はDOM/idごと残し(<script>のel("autosave-status-text")が
+		   throwするのを避けるため)、テキストだけを常時非表示にする。保存失敗
+		   (data-state="error")のときだけ、唯一のリカバリ手段である#retry-buttonに気づけるよう
+		   理由テキストを見せる(box/[id].astroと同じ判断)。 */
 		#autosave-status-text {
 			display: none;
 		}
@@ -178,8 +162,8 @@ try {
 			display: none;
 		}
 
-		/* UI改修依頼(チーム編集ヘッダー)「匿名でデータ提供するトグルを追加する」。トグル本体の
-		   見た目(.toggle-switch一式)は複数ページで使うためglobal.cssの共通定義を参照する。 */
+		/* トグル本体の見た目(.toggle-switch一式)は複数ページで使うためglobal.cssの共通定義を
+		   参照する。 */
 		.collection-opt-out-toggle {
 			display: inline-flex;
 			align-items: center;
@@ -202,34 +186,22 @@ try {
 		.collection-opt-out-status { color: var(--color-text-muted); }
 		.collection-opt-out-status[hidden] { display: none; }
 		.collection-opt-out-status[data-state="error"] { color: var(--color-danger); }
-		/* 2026-08-05: global.cssのbutton.btn-dangerが持つ太字指定を上書きし、
+		/* global.cssのbutton.btn-dangerが持つ太字指定を上書きし、
 		   戻るボタン(.app-topbar-back)と同じ文字サイズ・太さへ揃える。 */
 		#delete-team-button { font-size: var(--font-size-sm1); white-space: nowrap; font-weight: 500; }
-		/* 🔴 UI改修依頼(チーム編集ヘッダー、2026-08-02)「非公開・削除ボタンの余白サイズを
-		   個体編集画面と同じにする」。box/[id].astro が2026-08-01の依頼(「データ提供スイッチと
-		   削除ボタンの間の余白を広げる」)で #delete-button に足した margin-left が、
-		   こちらのページには入っていなかった。実測(1920px幅)で判明した唯一の差分:
-		     個体編集: 非公開トグル 1715.2〜1799.5 / 削除 1823.5〜1904(間隔24px)
-		     チーム編集: 非公開トグル 1731.2〜1815.5 / 削除 1823.5〜1904(間隔8px)
-		   削除ボタン自体の座標・寸法・配色・角丸は元から完全一致していたが、この16pxの差の
-		   ぶんだけ非公開トグルが右へ寄っていた。box/[id].astro と同じ対処
-		   (.app-topbar-actions の gap は全画面共通のため AppLayout は編集せず、
-		   このページscopedで削除ボタンにだけ margin-left を足す)をそのまま踏襲する。
-		   🔴 UI改修依頼(チーム編集ヘッダー、2026-08-04)「非公開ボタンと削除ボタンの間隔を
-		   広げる」。box/[id].astro 側(#delete-button)が同日の依頼で var(--space-4) から
-		   var(--space-5) へ広げているのを確認済みのため、同じトークンにこちらも揃える。 */
+		/* .app-topbar-actions の gap は全画面共通のため AppLayout は編集せず、このページ
+		   scopedで削除ボタンにだけ margin-left を足し、box/[id].astro の #delete-button と
+		   同じ間隔に揃える。 */
 		#delete-team-button { margin-left: var(--space-5); }
-		/* 🔴 UI改修依頼(チーム編集ヘッダー、2026-08-04)「削除ボタンの平常時/ホバーの配色を
-		   入れ替える」。box/[id].astro の #delete-button(2026-08-04に同じ依頼で対応済み、
-		   このファイル上部のコメント参照)と同じ入れ替えをこちらにも適用する。基底
-		   (global.css の button.btn-danger)は 平常時=塗り(background:var(--color-danger-strong),
+		/* box/[id].astro の #delete-button と同じ配色に揃える。基底(global.css の
+		   button.btn-danger)は平常時=塗り(background:var(--color-danger-strong),
 		   color:var(--color-primary-contrast))、hover時=白地反転
 		   (background:var(--color-surface), color:var(--color-danger-strong))。
 		   #delete-team-buttonはIDセレクタで button.btn-danger より詳細度が高いため、
 		   global.css自体は変更せずに上書きできる(他画面の.btn-danger既定配色は維持される)。
 		   border(2px solid var(--color-danger-strong))は基底のまま変えない。
 		   background/colorは平常時・hover時の両方で必ずセットで書く(片方だけ上書きすると
-		   文字色=背景色になって見えなくなる事故がbox/[id].astro側で実際に起きたため)。 */
+		   文字色=背景色になって見えなくなるため)。 */
 		#delete-team-button {
 			background: var(--color-surface);
 			color: var(--color-danger-strong);
@@ -298,60 +270,45 @@ try {
 		/* --- 全体レイアウト: 左=ポケモン選択バー(帯)/ 中央=チーム名・メモ・6枠(可読幅1080px) ---
 		   docs/plan/00-foundation.md「レイアウト原則」どおり、選択バーは画面端から
 		   画面端まで伸びる帯(.panel.panel-left)。中央は.panel-contentで1080pxに絞る(R-11)。
-		   受け入れ検証で実測バグ修正(2026-07-29): 閾値をもともと900pxにしていたが、900px幅では
-		   サイドバー(256px)+選択バー(約380px)を引くと中央カラムが約264pxしか残らず、
-		   そこへ横長の6枠カードを入れていたため、ポケモン名・技名が1文字ずつ縦に折り返されて
-		   読めなくなっていた(実測で発覚)。これはbox/[id].astroの.edit-layoutが900px→1200pxに
-		   引き上げた過去の罠(docs/plan/00-foundation.md 245行目)と同一原因なので、
-		   当時は同じ閾値(1200px)に揃えていた。
-		   🔴 UI改修依頼(チーム編集画面、2026-08-02)「チームパネルの幅はポケモンカードが
-		   ちょうど収まるサイズに狭める」「残りの領域をすべて右パネルにあてがう」。中央カラム
-		   (チーム6枠)を`1fr`(可変)から754pxの固定幅に、右カラム(プレビュー)を固定
-		   `minmax(280px, 340px)`から下限だけ残した可変幅`minmax(240px, 1fr)`に変更した
-		   (値の根拠は下の各ルールのコメント参照)。中央カラムが固定幅になったことで、
-		   2カラム化に必要な最小横幅が変わったため、閾値も再計算して引き上げた
-		   (根拠は直後の@media 2件のコメント参照。npm run shotで実測して決定、報告参照)。 */
+		   閾値を900px未満にしないこと: サイドバー(256px)+選択バー(約380px)を引くと中央カラムが
+		   約264pxしか残らず、横長の6枠カードを入れるとポケモン名・技名が1文字ずつ縦に折り返されて
+		   読めなくなる(box/[id].astroの.edit-layoutが900px→1200pxに引き上げた罠、
+		   docs/plan/00-foundation.md 245行目と同一原因)。
+		   中央カラム(チーム6枠)は`1fr`(可変)ではなく754pxの固定幅、右カラム(プレビュー)は固定
+		   `minmax(280px, 340px)`ではなく下限だけ残した可変幅`minmax(240px, 1fr)`にする
+		   (値の根拠は下の各ルールのコメント参照)。中央カラムが固定幅のため、2カラム化に
+		   必要な最小横幅もそれに応じて決める(根拠は直後の@media 2件のコメント参照)。 */
 		.team-edit-layout {
 			display: block;
 		}
 		@media (min-width: 1300px) {
 			.team-edit-layout {
 				display: grid;
-				/* UI改修依頼(チーム編集左パネル、2026-08-01)「パネルの幅を20%狭くする」。
-				   1920px幅で実測した変更前の.team-select-bar幅は380px(minmaxのmax=380pxで頭打ち)。
-				   380px×0.8=304pxへ縮小し、下限(min)も同じ比率で300px→240pxへ縮める
-				   (min/maxの比率を変えないため)。実測結果は報告参照。
-				   🔴 UI改修依頼(チーム編集画面、2026-08-02)「チームパネルの幅はポケモンカードが
-				   ちょうど収まるサイズに狭める」。中央カラムを754pxの固定幅にする。
+				/* .team-select-barの幅304px(下限240px)は、380px(.team-select-bar幅の上限)を
+				   0.8倍したもの。下限(min)も同じ比率で300px→240pxへ縮めている
+				   (min/maxの比率を変えないため)。
+				   中央カラムの754pxはポケモンカードがちょうど収まる幅:
 				   754px = カード230px×3枚 + gap(var(--space-3)=12px)×2 + 左右padding
-				   (var(--space-5)=20px)×2 = 690+24+40 = 754px(.team-edit-mainのpadding分。
-				   実測(getBoundingClientRect)で3枚のカードが左右に余白なく収まることを確認した、
-				   報告参照)。
-				   閾値を1200px→1300pxへ引き上げた根拠: 中央カラムが固定幅754pxになったため、
-				   2カラム化に必要な最小横幅はサイドバー(256px)+選択バー最小(240px)+
-				   チーム(754px)=1250px。実測(npm run shot、複数幅で目視確認)で1250px前後は
-				   余裕がほぼ無かったため、安全マージンを見て1300pxを採用した(報告参照)。 */
+				   (var(--space-5)=20px)×2 = 690+24+40 = 754px(.team-edit-mainのpadding分)。
+				   閾値1300pxの根拠: 中央カラムが固定幅754pxのため、2カラム化に必要な
+				   最小横幅はサイドバー(256px)+選択バー最小(240px)+チーム(754px)=1250px。
+				   1250px前後では余裕がほぼ無いため、安全マージンを見て1300pxにしている。 */
 				grid-template-columns: minmax(240px, 304px) 754px;
 				align-items: stretch;
 			}
 		}
-		/* UI改修依頼(チーム編集左パネル)「右パネルを追加」対応。box/[id].astroの
-		   .edit-layout(3カラム化、RightPanel.astro参照)と同じ考え方で3カラム目
-		   (.team-preview-panel)を追加する。2カラム時(下の閾値未満)では右パネルは
-		   非表示にする(下の.team-preview-panel参照)、幅が無いところに無理に3カラム目を
+		/* box/[id].astroの.edit-layout(3カラム化、RightPanel.astro参照)と同じ考え方で
+		   3カラム目(.team-preview-panel)を追加する。2カラム時(下の閾値未満)では右パネルは
+		   非表示にする(下の.team-preview-panel参照)。幅が無いところに無理に3カラム目を
 		   押し込むと中央カラムの6枠カードが再び潰れるため(上のコメントの実測バグと同じ罠)。
-		   🔴 UI改修依頼(チーム編集画面、2026-08-02)「残りの領域をすべて右パネルにあてがう」。
-		   右カラムを固定`minmax(280px, 340px)`から下限だけ残した`minmax(240px, 1fr)`へ変更
+		   右カラムは固定`minmax(280px, 340px)`ではなく下限だけ残した`minmax(240px, 1fr)`
 		   (下限240pxはbox/[id].astroの右パネル`minmax(300px, 360px)`と同様、潰れ防止の
 		   下限を残すパターンを踏襲。上限を`1fr`にして残り幅を丸ごと割り当てる)。
-		   閾値を1600px→1650pxへ引き上げた根拠: 3カラム時に必要な最小横幅は2カラム時の
-		   1250px(256+240+754)に右パネルの下限240pxを足した1490px。実測(npm run shot、
-		   報告参照)で1490px前後は右パネルが窮屈だったため、安全マージンを見て1650pxを
-		   採用した。 */
+		   閾値1650pxの根拠: 3カラム時に必要な最小横幅は2カラム時の1250px(256+240+754)に
+		   右パネルの下限240pxを足した1490px。1490px前後では右パネルが窮屈になるため、
+		   安全マージンを見て1650pxにしている。 */
 		@media (min-width: 1650px) {
 			.team-edit-layout {
-				/* UI改修依頼(2026-08-05)「右パネルを20%縮小し、中央へ多めに配分」対応。
-				   1920px表示時の右列を約606pxから約485pxへ縮め、左+31px・中央+90pxへ配分する。 */
 				grid-template-columns: minmax(240px, var(--team-left-col)) 844px minmax(192px, 1fr);
 			}
 		}
@@ -370,8 +327,7 @@ try {
 		   .edit-layout-leftが2カラム化のメディアクエリでだけheight:100%を付けているのと
 		   同じ考え方。縦積み時に選択バーが画面いっぱいの高さを占有すると、6枠に到達するまで
 		   1画面ぶん余計にスクロールする羽目になる)。閾値は.team-edit-layoutの2カラム化と
-		   必ず揃えること(2026-08-02に1200px→1300pxへ変更、根拠は上の.team-edit-layout
-		   コメント参照)。 */
+		   必ず揃えること(根拠は上の.team-edit-layoutコメント参照)。 */
 		@media (min-width: 1300px) {
 			.team-select-bar {
 				position: sticky;
@@ -402,11 +358,10 @@ try {
 			   26.2pxで、入力文字の開始位置まで2.8pxを確保できる。 */
 			padding-left: 29px;
 		}
-		/* UI改修依頼(チーム編集左パネル)「ソート機能を追加する」。box/index.astroの
-		   .sort-select-wrap/.sort-icon/.toolbar-sort selectと同じ値(アイコン左重畳+
-		   select側padding-left)をこのページのスコープへ複製する(新しい値は作っていない)。 */
-		/* 🔴 UI改修依頼(チーム編集左パネル、2026-08-01)「レギュレーションフィルタとソートを
-		   横並びに配置する」。検索欄(#pokemon-search-input)は対象外で、この2つだけを
+		/* box/index.astroの.sort-select-wrap/.sort-icon/.toolbar-sort selectと同じ値
+		   (アイコン左重畳+select側padding-left)をこのページのスコープへ複製する
+		   (新しい値は作っていない)。 */
+		/* 検索欄(#pokemon-search-input)は対象外で、レギュレーションフィルタとソートの2つだけを
 		   共通の行コンテナ(.team-select-filters-row、マークアップ側で新設)にまとめて
 		   flexで横並びにする。レギュレーションフィルタが非表示(hidden、チームに
 		   レギュレーション未指定のとき)のときはflex子がソート側1個だけになり、
@@ -430,23 +385,19 @@ try {
 		.team-select-regulation-filter {
 			flex: 1 1 0;
 			min-width: 0;
-			/* UI改修依頼(チーム編集左パネル、2026-08-02)「レギュレーションフィルタをトグル
-			   スイッチに変更する」。旧来は塗りつぶしボタンが自身でwidth:100%; height:100%を
-			   持ち隣のソートセレクトと縦の高さを揃えていたが、トグルスイッチ(ラベル+スイッチ、
-			   コンテンツサイズ)はそれを持たないため、この行(align-items:stretchで高さが
-			   ソートセレクト基準に伸びる)側でdisplay:flex; align-items:centerにして
-			   トグルを縦中央に揃える。 */
+			/* トグルスイッチ(ラベル+スイッチ、コンテンツサイズ)は幅・高さを自身で規定しないため、
+			   この行(align-items:stretchで高さがソートセレクト基準に伸びる)側で
+			   display:flex; align-items:centerにしてトグルを縦中央に揃える。 */
 			display: flex;
 			align-items: center;
 		}
 		.team-select-regulation-filter[hidden] {
 			display: none;
 		}
-		/* UI改修依頼(チーム編集左パネル、2026-08-02)「レギュレーションフィルタをトグル
-		   スイッチに変更する」。ヘッダーの.collection-opt-out-toggle(「非公開」トグル、上の
-		   フロントマター直後の<style>参照)と全く同じ視覚言語(inline-flex + gap + 本文小さめの
-		   文字色)にする。トグル本体(.toggle-switch一式)は同じscoped<style>内で既に定義済みの
-		   ものをそのまま使う(このページ内の別セクションなので複製不要)。 */
+		/* ヘッダーの.collection-opt-out-toggle(「非公開」トグル、上のフロントマター直後の
+		   <style>参照)と全く同じ視覚言語(inline-flex + gap + 本文小さめの文字色)にする。
+		   トグル本体(.toggle-switch一式)は同じscoped<style>内で既に定義済みのものをそのまま
+		   使う(このページ内の別セクションなので複製不要)。 */
 		.regulation-filter-toggle {
 			display: inline-flex;
 			align-items: center;
@@ -464,10 +415,10 @@ try {
 			min-width: 0;
 		}
 
-		/* UI改修依頼(右パネル サジェスト、2026-08-04)「メガシンカを含める」「育成済みのみ
-		   表示」の2トグル。視覚言語は上の.regulation-filter-toggleと同一だが、そちらは
-		   レギュレーション絞り込み専用の意味を持つクラス名のため、意味の異なるこちらの
-		   トグルには専用クラス名を用意し、同じ値をそのまま複製する(新しい値は作っていない)。
+		/* 「メガシンカを含める」「育成済みのみ表示」の2トグル。視覚言語は上の
+		   .regulation-filter-toggleと同一だが、そちらはレギュレーション絞り込み専用の意味を
+		   持つクラス名のため、意味の異なるこちらのトグルには専用クラス名を用意し、同じ値を
+		   そのまま複製する(新しい値は作っていない)。
 		   #team-suggestはJS(renderSuggestions)がinnerHTMLで丸ごと書き換えるため、
 		   トグル自体はその外(兄弟要素)の静的マークアップに置く。 */
 		.team-suggest-toggles {

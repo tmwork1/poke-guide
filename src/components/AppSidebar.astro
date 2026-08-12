@@ -1,14 +1,9 @@
 ---
 import '../styles/app-sidebar.css';
-// 全ページ共通のサイドバー(UI刷新、2026-07-25)。docs/ui_proposal/Box.png 等のワイヤーフレームに準拠する。
-// アイコンは外部ライブラリを使わず、lucide風の線画をインラインSVGとして自前定義する。
 interface Props {
 	current?: "box" | "team" | "dev" | "speed-chart" | "ranked-teams";
 	/**
-	 * 2026-07-27 ラウンド20 20-H2: ログイン情報をサイドバー最下段に表示するため、
-	 * AppLayout.astro が Astro.locals.user から読んだ値をそのまま受け取る。
-	 * AppSidebar は chrome="public"(/share 等)では描画されないため、ここに渡らない
-	 * = 未ログインの第三者にログイン情報が漏れることはない。
+	 * AppSidebar は chrome="public" では描画されないため、公開ページでログイン情報を表示しない。
 	 */
 	user?: { email?: string | null; displayName?: string | null; id?: string } | null;
 }
@@ -20,14 +15,9 @@ const ICONS = {
 	// 上ドーム片(下端中央に半円の切り欠き)と下ボウル片(上端中央に半円の切り欠き)を
 	// 隙間を空けて上下に配置し、間の帯と2つの切り欠きが向き合ってできる中央の丸い穴は
 	// あえて塗らない透明部分のままにする(SVGに背景矩形が無いのでページ背景が自然に透ける)。
-	// 2026-08-02: 外周が正確な真円に見えるよう、上下パーツで同じ1つの円(中心(12,12)・半径9)を
-	// 共有し、その円を上下2本の水平な弦(y=10.75とy=13.25)で切る形に直した(以前は上下パーツが
-	// 別々の円になっており、左右端でわずかに真円からズレていた)。中央の切り欠き穴も同じ弦の高さで
-	// 半弦長を計算し直し、より正確な円に近づけている。
-	// 同日追記: 中央の穴を2.8→3.4→3.8まで拡大(ユーザーの追加指示で再拡大、比率r2/R=0.4222)。
-	// 2026-08-05: 中央穴をr=4.2へ拡大。弦は中心から±1.25なので、半弦長は
+	// 外周は中心(12,12)・半径9の1つの円を水平な弦(y=10.75、y=13.25)で切り、真円を保つ。
+	// 中央穴は半径4.2、弦は中心から±1.25なので、半弦長は
 	// sqrt(4.2^2 - 1.25^2)=4.0097（左右端x=12±4.0097）として左右対称にした。
-	// さらにアイコン全体を一回り大きく見せるため、
 	// <g transform="translate(-1.667 -1.667) scale(1.1389)"> で全体を1.1389倍
 	// (実効半径9→10.25相当)に拡大した。svg自体のwidth/height="20"・viewBoxは変更しておらず、
 	// viewBox内の描画サイズ(余白)だけを詰めている。
@@ -36,21 +26,18 @@ const ICONS = {
 	// 背後のボール(右上寄り、中心(15,7.56)・半径7.56)を先に描画し、前面のボール(左下寄り、
 	// 中心(9,14.5)・半径8.1)を後で描画することで自然な重なりにする。中心間距離(約9.17)は
 	// どちらの半径よりも大きく保ち、前面ボールの中央穴が背面ボールにほぼ飲み込まれて
-	// 顔のように見えてしまう崩れ(2026-08-02の検証で発生・修正済み)を避けている。
+	// 顔のように見える崩れを避けている。
 	// 背後のボールは .app-sidebar-icon-ball-back で暗く(filter: brightness)して前面と区別する。
-	// 2026-08-02: 各ボールの中央穴をhomeと同じ比率(r2/R≈0.4222)まで拡大(背後2.18→2.96、
-	// 前面2.33→3.17)。
-	// 2026-08-05: 両ボールを1.08倍（背面R=7.56、前面R=8.10）に拡大し、穴もr/R=0.4222を維持。
+	// 中央穴は home と同じ比率(r2/R≈0.4222)を維持する。
 	// 各弦の半弦長sqrt(R^2-dy^2)／sqrt(r^2-dy^2)から交点を算出した。中心間距離9.174は最大R=8.10より大きい。
 	users: `<svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path class="app-sidebar-icon-ball-back" d="M7.513 6.512 A7.56 7.56 0 0 1 22.487 6.512 L18.015 6.512 A3.192 3.192 0 0 0 11.985 6.512 L7.513 6.512 Z" fill="currentColor"/><path class="app-sidebar-icon-ball-back" d="M22.487 8.608 A7.56 7.56 0 0 1 7.513 8.608 L11.985 8.608 A3.192 3.192 0 0 0 18.015 8.608 L22.487 8.608 Z" fill="currentColor"/><path d="M0.978 13.377 A8.1 8.1 0 0 1 17.022 13.377 L12.230 13.377 A3.420 3.420 0 0 0 5.770 13.377 L0.978 13.377 Z" fill="currentColor"/><path d="M17.022 15.623 A8.1 8.1 0 0 1 0.978 15.623 L5.770 15.623 A3.420 3.420 0 0 0 12.230 15.623 L17.022 15.623 Z" fill="currentColor"/></svg>`,
 	"trending-up": `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.05" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>`,
 	trophy: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.05" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v5a5 5 0 0 1-10 0V4Z"/><path d="M7 6H4v2a4 4 0 0 0 4 4"/><path d="M17 6h3v2a4 4 0 0 1-4 4"/></svg>`,
 	// 開発者向け(/e2e-test-harness)用: レンチの塗りつぶしシルエット(Material Iconsの"build"相当のパス)。
 	// 元のpathはviewBox 24x24のほぼ端から端(bbox約22x22)を占め、他の線画4アイコン(概ね20x20に
-	// 収まる余白設計)より一回り大きく見えていたため、2026-08-02に transform で0.9077倍に縮小し
+	// 収まる余白設計)より一回り大きく見えるため、transform で0.9077倍に縮小し
 	// 中央寄せした(縮小後のbboxはx:2.0-22.0, y:2.06-21.94 ≒ 20x20相当)。
 	code: `<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><path d="M22.7 19l-9.1-9.1c.9-2.3.4-5-1.5-6.9-2-2-5-2.4-7.4-1.3L9 6 6 9 1.6 4.7C.4 7.1.9 10.1 2.9 12.1c1.9 1.9 4.6 2.4 6.9 1.5l9.1 9.1c.4.4 1 .4 1.4 0l2.3-2.3c.5-.4.5-1.1.1-1.4z" transform="translate(1.133 1.062) scale(0.9077)"/></svg>`,
-	// UI改修依頼(2026-08-05)「呼称を『すばやさ』に変更」対応。すばやさ(/speed-chart)用のメーターアイコン。
 	zap: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.05" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg>`,
 } as const;
 
@@ -70,14 +57,12 @@ const SECTIONS: { heading: string; items: SidebarItem[] }[] = [
 		items: [
 			{ key: "box", label: "ボックス", href: "/box", icon: "home" },
 			{ key: "team", label: "チーム", href: "/team", icon: "users" },
-			// UI改修依頼(2026-08-05)「左メニューの名称を『すばやさ』に変更」対応。
 			{ key: "speed-chart", label: "すばやさ", href: "/speed-chart", icon: "zap" },
 		],
 	},
 	{
 		heading: "データ",
 		items: [
-			// UI改修依頼(2026-08-06)「『トレンド』『上位構築』をデータグループにまとめる」対応。
 			{ key: "trend", label: "トレンド", icon: "trending-up", disabled: true },
 			{ key: "ranked-teams", label: "上位構築", href: "/ranked-teams", icon: "trophy" },
 		],
@@ -85,7 +70,6 @@ const SECTIONS: { heading: string; items: SidebarItem[] }[] = [
 	{
 		heading: "その他",
 		items: [
-			// UI改修依頼(2026-08-05)「開発者向けを準備中にする」対応。ページは残し、サイドバーの導線だけ無効化する。
 			{ key: "dev", label: "開発者向け", icon: "code", disabled: true },
 		],
 	},
@@ -131,12 +115,7 @@ const SECTIONS: { heading: string; items: SidebarItem[] }[] = [
 		{
 			user ? (
 				<Fragment>
-					{/* UI改善ラウンド33 33-G1(ユーザー判断待ちキューの回答「接頭辞を削除」): 可視テキストからは
-					    「ログイン中: 」を削除しメールアドレスのみ表示する(移設先がログアウトボタンの真上のため
-					    文脈で伝わる、というユーザーの判断)。読み上げでは引き続き「ログイン中のアカウントである」
-					    ことが伝わるよう、aria-labelに接頭辞付きの文言を残す(28-R9と同じ「視覚的に消しても
-					    読み上げ情報は落とさない」方針)。クラス名 app-sidebar-account-email は改名しない
-					    (global.cssのモバイル二重表示打ち消しが依存している)。 */}
+					{/* 視覚テキストにないログイン状態を支援技術へ伝える。 */}
 					<span class="app-sidebar-account-email" aria-label={`ログイン中: ${user.email ?? user.displayName ?? user.id}`}>{user.email ?? user.displayName ?? user.id}</span>
 					<form method="POST" action="/api/auth/logout">
 						<button type="submit" class="btn-ghost">ログアウト</button>

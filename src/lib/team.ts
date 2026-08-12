@@ -17,12 +17,12 @@
 //   4. Supabase クライアントは呼び出し元(APIルート等)から注入させる(このファイル自身は
 //      import.meta.env や getSupabaseAdminClient() を呼ばない)
 //
-// ##### R-2(セキュリティ): 他人の owned_pokemon をチームに紐付けられないようにする #####
+// ##### セキュリティ: 他人の owned_pokemon をチームに紐付けられないようにする #####
 // service_role は RLS をバイパスするため、`members[]` に含まれる owned_pokemon_id が
 // 本人のものであることを、書き込み(replaceTeamMembers)前に必ずこのファイルで検証する。
 // 1件でも他人のIDが混ざっていれば DB に一切書き込まず forbidden 扱いで拒否する。
 // RPC関数(replace_team_members)側でも同じ検証を行うが、それは「最後の砦」であって
-// このlib層の検証を省略してよい理由にはならない(設計レビュー R-2)。
+// このlib層の検証を省略してよい理由にはならない。
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { OwnedPokemonRecord } from './owned-pokemon';
 import type { TeamMemberInput } from './team-validation';
@@ -45,14 +45,14 @@ export interface TeamMember {
   owned_pokemon: OwnedPokemonRecord;
 }
 
-// 空き slot は配列に含めない(0〜6要素。設計レビュー R-5)。
+// 空き slot は配列に含めない(0〜6要素)。
 export interface Team extends TeamRecord {
   members: TeamMember[];
 }
 
 export type TeamResult<T> = { ok: true; data: T } | { ok: false; error: string };
 
-// replaceTeamMembers専用の結果型。violation: 'forbidden' は R-2 のオーナーシップ検証で
+// replaceTeamMembers専用の結果型。violation: 'forbidden' はオーナーシップ検証で
 // 弾かれたことを示し、呼び出し元(APIルート)がこれを 400 にマッピングできるようにする
 // (それ以外の ok:false は DB エラー等の 500 相当として扱う想定)。
 export type ReplaceTeamResult =
@@ -123,13 +123,13 @@ export async function listTeams(
     query = query.ilike('name', `%${term}%`);
   }
 
-  // UI改修依頼(チームトップ画面)「お気に入り機能を追加」。owned-pokemon.tsのlistOwnedPokemonと
+  // owned-pokemon.tsのlistOwnedPokemonと
   // 同じ方針: ピン留めは常に上部固定したうえで、そのうえで並び替えキーを適用する
   // (実際の一覧画面はクライアント側で再ソートするため、この並びはAPIの契約としての一貫性のため)。
   query = query.order('is_pinned', { ascending: false });
   switch (options.sort) {
     case 'name':
-      // 無題チーム(name=null)は末尾(設計レビュー R-14。listOwnedPokemonのnicknameソートと同じ方針)。
+      // 無題チーム(name=null)は末尾(listOwnedPokemonのnicknameソートと同じ方針)。
       query = query.order('name', { ascending: true, nullsFirst: false });
       break;
     case 'updated_at':
@@ -183,8 +183,7 @@ export async function createTeam(userId: string, supabase: SupabaseClient): Prom
 // PATCH /api/teams/:id: is_pinnedだけを更新する軽量経路(owned-pokemon.tsのupdatePinStatusと
 // 同じ設計)。PUT(全項目上書き契約)とは別の追加経路であり、PUTの契約は変更しない。updated_atには
 // 一切触れないため、「最終更新順」表示中にこれをトグルしても対象チーム自身の表示順位置が動かない
-// ことを保証する(owned_pokemon側でround-40.md 40-B1→round-41.md 41-B2が撤回した経緯と同じ理由で、
-// 最初からupdated_atに触れない設計にする)。
+// ことを保証する。
 // owned_pokemonのupdatePinStatusと異なりTeamはmembers(team_membersとのjoin)を持つため、
 // UPDATEの.select(TEAM_COLUMNS)だけではmembersを含まないTeamRecordしか返らず、クライアント側の
 // Team型(members必須)と不整合になる(実際にPlaywrightで「更新後、renderCardがt.members.lengthで
@@ -232,11 +231,11 @@ export async function deleteTeam(userId: string, id: string, supabase: SupabaseC
 
 // PUT /api/teams/:id: name/memo/regulation/members の全項目上書き。
 // メンバーの置換は supabase.rpc('replace_team_members', ...) で単一トランザクションとして行う
-// (設計レビュー R-4。素朴な「DELETE→INSERT」の2リクエストにすると、DELETE成功→INSERT失敗で
+// (素朴な「DELETE→INSERT」の2リクエストにすると、DELETE成功→INSERT失敗で
 // メンバーが全消失しうる)。
 //
 // 処理順序:
-//   1. R-2のオーナーシップ検証: members[] の全 owned_pokemon_id が本人の owned_pokemon か確認。
+//   1. オーナーシップ検証: members[] の全 owned_pokemon_id が本人の owned_pokemon か確認。
 //      1件でも欠けていれば DB に一切書き込まず forbidden で拒否する。
 //   2. teams.name/memo/regulation を更新(対象が存在しない/他人の所有物なら data:null で即終了。
 //      この場合 RPC は呼ばない = 404 相当のケースで無駄な書き込み試行をしない)。

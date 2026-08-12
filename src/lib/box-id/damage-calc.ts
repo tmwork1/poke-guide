@@ -1,28 +1,17 @@
-// box/[id].astro 構造分割ラウンド(フェーズ2)。
+// ダメージ計算(#opponent-notes-section)専用のロジック一式。
 //
-// ダメージ計算(#opponent-notes-section)専用のロジック一式
-// (docs/plan/ui_parallelization.md 4.1節「ダメージ計算専用54」)。元は box/[id].astro の
-// <script> 内、`if (opponentNotesSection) { ... }` ブロックにまとまって定義されていたもので、
-// ロジックは一切変更せずこのファイルへ移設した(定義位置の変更のみ)。
-//
-// 右サイド(詳細設定サイドバー)専用のロジックは right-panel.ts へ切り出した
-// (buildSideSection/renderColumnLevelDetailPanel/buildToggleButton/buildIconToggleGroup/
-// deselectRowIfCurrent 等16関数)。ダメージ計算・右サイドは元々1つのクロージャスコープを
-// 共有し scheduleRowSave/scheduleRowCalc/refreshRowConditionChips 等で密結合していた
-// (ui_parallelization.md 3節・4.2節)ため、無理に独立させず、このファイルと right-panel.ts は
-// 通常の import/export で直接依存し合っている(コーディネーターへの報告事項: 相互import。
-// deselectRowIfCurrent/renderDetailPanelEmpty/renderColumnLevelDetailPanel/
-// openDetailPanelOverlayIfNarrow はright-panel.tsからimportし、DAMAGE_WEATHERS等の選択肢
-// 配列・clampIntは逆にright-panel.tsがこのファイルからimportする。いずれも関数宣言
-// (hoistされるため循環import下でも安全)または、実際に使われるのが両モジュールの評価が
-// 完了した後(ユーザー操作時)のみの値なので、初期化順序の問題は無い)。
+// 右サイド(詳細設定サイドバー)専用のロジックは right-panel.ts に分離している。
+// このファイルと right-panel.ts は import/export で相互依存している(deselectRowIfCurrent/
+// renderDetailPanelEmpty/renderColumnLevelDetailPanel/openDetailPanelOverlayIfNarrow は
+// right-panel.tsからimportし、DAMAGE_WEATHERS等の選択肢配列・clampIntは逆にright-panel.ts
+// がこのファイルからimportする)。いずれも関数宣言(hoistされるため循環import下でも安全)、
+// または実際に使われるのが両モジュールの評価が完了した後(ユーザー操作時)のみの値なので、
+// 初期化順序の問題は無い。
 //
 // DAMAGE_WEATHERS/DAMAGE_TERRAINS/DAMAGE_AILMENTS/DAMAGE_ATTACKER_VOLATILES/
-// DAMAGE_DEFENDER_VOLATILES/clampIntの6つは、元は`if (opponentNotesSection)`ブロックの
-// 内側で定義されていたが、right-panel.tsから参照する必要があるため、このファイルの
-// 先頭(トップレベル、ガードの外)へ機械的に引き上げてexportした。どちらも#opponent-notes-section
-// の有無に依存しない純粋なデータ/ユーティリティのため、実行タイミングを変えても
-// 動作に影響は無い(値・ロジックは一切変更していない)。
+// DAMAGE_DEFENDER_VOLATILES/clampIntの6つはトップレベル(#opponent-notes-sectionのガードの
+// 外)で定義してexportしている。right-panel.tsから参照する必要があり、どちらも
+// #opponent-notes-sectionの有無に依存しない純粋なデータ/ユーティリティのため。
 import { el } from "../owned-pokemon-form";
 import {
 	initEngine,
@@ -47,20 +36,19 @@ import {
 	loadMultiHitMoveMap,
 	loadAbilitiesMap,
 	officialArtworkUrl,
-	// 🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08 第2弾)「相手ビルドのポケモンアイコンを
-	// ドット絵に変更」用。applySprite()のurlFn既定値と同じ関数だが、デスクトップは
-	// officialArtworkUrl のままにするため明示的に受け取って出し分ける(下のrefreshSprite参照)。
+	// モバイル版では相手ビルドのポケモンアイコンをドット絵にするため、applySprite()の
+	// urlFn既定値(officialArtworkUrl)とは別にspriteUrlを明示的に受け取って出し分ける
+	// (下のrefreshSprite参照)。
 	spriteUrl,
 } from "../pokemon-master-data";
 import { type StatKey, STAT_KEYS, NATURE_STAT_MODIFIERS, calcHpStat, calcOtherStat } from "../stats";
 import { TERA_TYPES } from "../tera-types";
-// UI改善ラウンド40ユーザー指示(40-D1)「テラス選択ボックスを左パネルと共通化する」用。
-// shared-core.tsは"../sprite-urls"からteraTypeIconUrlをimportしているが再exportしていない
-// ため(shared-core.tsはこのラウンドの編集対象外)、ここで直接importする。
+// テラス選択ボックスを左パネルと共通化するために使う。shared-core.tsは"../sprite-urls"から
+// teraTypeIconUrlをimportしているが再exportしていないため、ここで直接importする。
 import { teraTypeIconUrl } from "../sprite-urls";
 import { initializeCardDeleteMode } from "../card-delete-mode";
-// UI改修依頼(ダメージ計算カード、2026-08-01)「レギュレーションに応じてテラスタル選択
-// ボックスの表示ON/OFFを切り替える」用。判定は必ずこの関数を使い、自前ロジックを書かない
+// レギュレーションに応じてテラスタル選択ボックスの表示ON/OFFを切り替えるために使う。
+// 判定は必ずこの関数を使い、自前ロジックを書かない
 // (仕様: 未指定はtrue=表示・M-*はfalse=非表示・T-*はtrue=表示。src/lib/regulations.ts参照)。
 import { isTerastalRegulation } from "../regulations";
 import {
@@ -103,21 +91,16 @@ import {
 	notifyDetailMoveChanged,
 	notifyDetailAbilityChanged,
 } from "./right-panel";
-// ダメージ計算のサジェスト(ユーザー要望、2026-08-05)。描画は右パネル側(damage-suggest.ts)に
+// ダメージ計算のサジェスト。描画は右パネル側(damage-suggest.ts)に
 // あり、このファイルは「いま画面にどんな計算があるか」と「1件を新しいカードにする」の
 // 2つだけをブリッジとして提供する(shared-core.tsのregisterDamageCalcBridgeと同じ登録パターン)。
 import { initDamageSuggest, registerDamageSuggestBridge, type DamageCalcSuggestion } from "./damage-suggest";
 import { damageCalcSuggestionKey } from "../damage-calc-suggest";
 
-// もともとはラウンド4ユーザー指示「技の詳細はリンクではなくホバー表示にする」用に
-// 導入したローダー(public/master-data/detail/moves.json、src/pages/moves/[name].astroが
-// 表示に使っているのと同じ静的データを技名でMap化)。ホバー表示自体はラウンド20
-// ユーザー指示(20-L2)「わざのヘルプ表示を削除」で撤去したが、下のgetMoveCategory()
-// (壁・ランク補正の自動判定に技の物理/特殊/変化区分を使う、ラウンド5由来)が
-// 引き続きこのMapを参照しているため、ローダー自体とMoveDetailEntry型は残す
-// (編集してよいファイルがこのページのみのため専用ローダーをここに直接持たせる方針も
-// 変えていない)。ツールチップ表示専用だったMOVE_CATEGORY_LABEL(物理/特殊/変化の
-// 日本語ラベル)は参照元ごと無くなったため削除した。
+// public/master-data/detail/moves.json(src/pages/moves/[name].astroが表示に使っている
+// のと同じ静的データ)を技名でMap化するローダー。下のgetMoveCategory()
+// (壁・ランク補正の自動判定に技の物理/特殊/変化区分を使う)が参照しているため、
+// ローダー自体とMoveDetailEntry型を保持している。
 interface MoveDetailEntry {
 	name: string;
 	type: string | null;
@@ -142,8 +125,7 @@ function loadMoveDetailMap(): Promise<Map<string, MoveDetailEntry>> {
 }
 void loadMoveDetailMap(); // 表示直後に一度だけfetchしておく(imageIdMapPromise等と同じ方針)
 
-// ラウンド5ユーザー指示(壁のon/off・攻守ランクの単一入力)の実装用: 技名から
-// 物理/特殊/変化を同期的に引けるキャッシュ。moveDetailMapPromiseは非同期のため、
+// 技名から物理/特殊/変化を同期的に引けるキャッシュ。moveDetailMapPromiseは非同期のため、
 // 入力のたびに壁・ランクの派生値(resolveColumnDerivedFields)を即座に再計算したい
 // UI操作からは同期関数として使いたい。ローカルの静的JSONなので、ページ表示直後の
 // void loadMoveDetailMap()呼び出しからほぼ即座に解決し、実運用上ユーザーが
@@ -158,25 +140,22 @@ function getMoveCategory(name: string): MoveDetailEntry["category"] | null {
 	return moveDetailMapCache.get(trimmed)?.category ?? null;
 }
 
-// ラウンド20: jpoke fix(lethal)「通常のダメージ計算に従わない攻撃技の致死率を正しく
-// 計算する」の取り込みにより、calc_lethal経路(pyodide-engine.ts)がカウンター・
-// ちきゅうなげ・OHKO技等の固定/割合ダメージ技も正しく計算するようになった
-// (vendor/jpoke/src/jpoke/core/lethal.py・handlers/lethal.pyに専用ハンドラが追加され、
-// 対象14件中13件が解消。.claude/skills/jpoke/references/damage-calc.md参照)。
-// ラウンド19で追加した「power:nullの技は一律算出不能」という広い抑止はもう不要。
+// calc_lethal経路(pyodide-engine.ts)はカウンター・ちきゅうなげ・OHKO技等の固定/割合
+// ダメージ技も正しく計算する(vendor/jpoke/src/jpoke/core/lethal.py・handlers/lethal.pyに
+// 専用ハンドラがある。.claude/skills/jpoke/references/damage-calc.md参照)。
 // 唯一「はきだす」だけは、威力が「ためこむ」の回数で決まりその回数決定が
 // Event.ON_TRY_MOVE_1(実戦の技実行フロー)でのみ行われるため、そのフローを通らない
-// calc_lethalでは今回のfixの対象外のまま(handlers/lethal.pyのはきだす_reset_stockpile
-// は使用後のランク巻き戻しのみを担当し、ダメージ自体を設定するハンドラが無い)。
+// calc_lethalでは対象外(handlers/lethal.pyのはきだす_reset_stockpileは使用後のランク
+// 巻き戻しのみを担当し、ダメージ自体を設定するハンドラが無い)。
 function isUnsupportedLethalMove(name: string): boolean {
 	return name.trim() === "はきだす";
 }
 const UNSUPPORTED_LETHAL_NOTE =
 	"この技は威力が「ためこむ」を使った回数によって変わる特殊な計算式のため、ダメージを算出できません。";
 
-// ラウンド22指摘(22-D-1)「変化技(まもる等)が『10発以上 0(0%)』と表示される」。
-// ダメージ0は事実だが「10発以上」は「あと少しで倒せる」ように誤読されうる。
-// isUnsupportedLethalMoveと同じ仕組み(理由を示して数値を出さない)に合流させる。
+// 変化技(まもる等)は実際のダメージが0だが、「10発以上 0(0%)」という表示は
+// 「あと少しで倒せる」ように誤読されうるため、isUnsupportedLethalMoveと同じ仕組み
+// (理由を示して数値を出さない)に合流させる。
 // 変化技(category === "status")はゲーム仕様として直接ダメージを一切発生させない
 // (物理/特殊技との違いはこの1点)ため、getMoveCategory()の結果だけで判定できる。
 // ⚠️ moveDetailMapCacheがまだ解決していない初期の一瞬はgetMoveCategoryがnullを返し
@@ -202,51 +181,35 @@ const UNSUPPORTED_LETHAL_TOTAL_NOTE_SOME =
 	"技列に「はきだす」を含むため、算出できる技だけを合算した参考値です(はきだすは0ダメージとして計算されています)。";
 const UNSUPPORTED_LETHAL_TOTAL_NOTE_ALL =
 	"技列がすべて「はきだす」のため、合計のダメージを算出できません。";
-// ラウンド22指摘(22-D-1)。変化技は0ダメージが「近似値」ではなく仕様として確定した値
-// なので(はきだすのような「未知の値を0扱いしている」ケースとは異なる)、一部だけ
-// 変化技を含む場合の断り書きは不要(他の技の実ダメージがそのまま正しく合算される)。
-// 「全技列が変化技(または変化技+はきだすの組み合わせ)」のときだけ理由を示す。
+// 変化技は0ダメージが「近似値」ではなく仕様として確定した値なので(はきだすのような
+// 「未知の値を0扱いしている」ケースとは異なる)、一部だけ変化技を含む場合の断り書きは
+// 不要(他の技の実ダメージがそのまま正しく合算される)。「全技列が変化技(または
+// 変化技+はきだすの組み合わせ)」のときだけ理由を示す。
 const STATUS_MOVE_TOTAL_NOTE_ALL = "技列がすべて変化技のため、合計のダメージを算出できません。";
 const STATUS_AND_UNSUPPORTED_TOTAL_NOTE_ALL =
 	"技列がすべて変化技または「はきだす」のため、合計のダメージを算出できません。";
 
-// タイプごとの色(タイプ画像/テラスタイプ画像が取得できない場合の色ボックスフォールバック用、
-// Pokemon.pngワイヤーフレーム参照)。慣習的なタイプカラー。ステラは公式に単色が無いため近似値。
-// ラウンド21ユーザー指示(21-L8): 以前はこの<script>にローカル定義していたが、
-// エージェントPがsrc/lib/type-colors.tsへ切り出したため(値は同一)、そちらからimportする
-// (上のimport群にTYPE_COLORS/DEFAULT_TYPE_COLORを追加済み)。ローカル定義は削除した。
-
-// applySprite/applyTypeBadge(左サイド専用)/applyTeraImage/applyItemImage/updateSliderProgress/
-// pairEvSlider(左サイド専用)/NATURE_NAME_BY_BOOSTS/natureNameFromBoosts/normalizedNatureBoosts/
-// toggleNatureUp/toggleNatureDownは構造分割ラウンド(フェーズ1)でshared-core.ts/left-panel.tsへ
-// 移設した(上のimport参照。ロジックは一切変更していない)。
-// ラウンド20ユーザー指示(20-D3): 相手ビルドカードのH/A/B/C/D/S見出しをクリックすると
-// 無補正→上昇→下降→無補正と3循環させる(ラウンド5の「▲/▼を独立ボタン化する」を
-// このカードに限り撤回)。状態機械を作り直すのではなく、上のtoggleNatureUp/
-// toggleNatureDown(左パネルと共有)にそのまま委譲する薄いラッパーにすることで、
-// 上のコメントにある旧cycleNatureBoosts()の事故(1個のボタンが上昇/下降を直接
-// 持ち替えて不完全な組み合わせになり、見かけ上リセットされた)を再現しない。
-// 🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08 第2弾)「相手ビルドの性格補正が
-// 機能していない(バグ)」の修正に使う退避テーブル。
+// 相手ビルドカードのH/A/B/C/D/S見出しをクリックすると無補正→上昇→下降→無補正と
+// 3循環させる。状態機械を作り直すのではなく、上のtoggleNatureUp/toggleNatureDown
+// (左パネルと共有)にそのまま委譲する薄いラッパーにする。
 //
-// 【何が壊れていたか】(実測、Playwright 390px・カード1件)
-//   性格補正は上昇・下降の両方が揃って初めて有効になる(片方だけの状態は実在しない性格に
-//   なるため normalizedNatureBoosts が「まじめ」へ正規化する。shared-core.ts参照)。
-//   ところがこの3循環(無補正→上昇→下降→無補正)では、ある列を「無補正→上昇」に進める
-//   たびに natureUp が無条件でその列へ移る。つまり
-//     A を1回押す → A▲(natureUp=atk)
-//     C を1回押す → C▲(natureUp=spa。★ここで A の▲が消える)
-//     C をもう1回 → C▼(natureUp=null, natureDown=spa)
-//   となり、2つ目の列を▼にしようとすると必ず1つ目の▲を通り道で壊してしまう。
-//   結果として「上昇と下降が同時に立っている状態」をこのUIからは一度も作れず、
-//   実数値も確N表示も永遠に無補正のままだった(既存データに入っている A▲/C▼ の
-//   組み合わせは、別UI・旧実装で保存されたもの)。
+// 【この3循環の罠】性格補正は上昇・下降の両方が揃って初めて有効になる(片方だけの状態は
+// 実在しない性格になるため normalizedNatureBoosts が「まじめ」へ正規化する。shared-core.ts
+// 参照)。ところがこの3循環では、ある列を「無補正→上昇」に進めるたびに natureUp が
+// 無条件でその列へ移るため、
+//   A を1回押す → A▲(natureUp=atk)
+//   C を1回押す → C▲(natureUp=spa。★ここで A の▲が消える)
+//   C をもう1回 → C▼(natureUp=null, natureDown=spa)
+// となり、2つ目の列を▼にしようとすると必ず1つ目の▲を通り道で壊してしまう。結果として
+// 「上昇と下降が同時に立っている状態」をこのUIからは一度も作れず、実数値も確N表示も
+// 永遠に無補正のままになる(既存データに入っているA▲/C▼の組み合わせは、別UIで
+// 保存されたもの)。
 //
 // 【直し方】列Xが「無補正→上昇」へ進むときに、Xが押しのけた直前の上昇保持者を覚えておき、
 // 同じ列Xが「上昇→下降」へ進んだ瞬間に元の保持者へ戻す。上のシナリオは
 //   A▲ → (C 1回目) C▲ ※Aを退避 → (C 2回目) A▲ + C▼
 // となり、3循環の定義(1列だけを見れば 無補正→上昇→下降→無補正)は一切変えずに
-// 「上昇1つ・下降1つ」の正しい性格へ到達できるようになる。
+// 「上昇1つ・下降1つ」の正しい性格へ到達できる。
 // 退避は「同じ列を続けて押している間」だけ有効な一時状態なので、行ごとに1件だけ持ち、
 // 使ったら捨てる(行の寿命に紐づけるためWeakMap)。
 const evictedNatureUpByCycle = new WeakMap<DamageRowState, { by: StatKey; previous: StatKey | null }>();
@@ -314,13 +277,11 @@ export function clampInt(n: number, min: number, max: number): number {
 	return Math.min(max, Math.max(min, Math.round(n)));
 }
 
-// UI改善ラウンド48(A-4)ユーザー指示(第32弾)「相手ビルドの情報を種族ごとにローカルに
-// 記録しておき、次に同じ種族をビルドする際にデフォルト値として設定する」。
-// DBの opponent_notes.opponent_build はカード単位の保存のみで、同じ種族を別カードで
-// 再入力するたびに性格・特性・持ち物・テラス・努力値を打ち直す必要があったため、
-// ブラウザの localStorage に「種族名→最後に使ったビルド」を記録する(DBへの
-// 新規カラム追加はしない、というユーザー指示による新規実装)。他機能と衝突しない
-// 名前空間にする。
+// 相手ビルドの情報を種族ごとにローカルに記録しておき、次に同じ種族をビルドする際に
+// デフォルト値として設定する。DBの opponent_notes.opponent_build はカード単位の保存のみで、
+// 同じ種族を別カードで再入力するたびに性格・特性・持ち物・テラス・努力値を打ち直す必要が
+// あったため、ブラウザの localStorage に「種族名→最後に使ったビルド」を記録する
+// (DBへの新規カラム追加はしない)。他機能と衝突しない名前空間にする。
 const OPPONENT_BUILD_PRESET_KEY_PREFIX = "poke-commons:opponent-build-preset:";
 
 interface OpponentBuildPreset {

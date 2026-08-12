@@ -1,12 +1,8 @@
-// box/[id].astro 構造分割ラウンド(フェーズ1)。
-//
-// 左サイド(ポケモン編集パネル、.panel-left)専用のロジック一式。元は box/[id].astro の
-// <script> 内、`if (form) { ... }` ブロック(#opponent-notes-section より前)に定義されていた
-// もので、ロジックは一切変更せずこのファイルへ移設した(定義位置の変更のみ)。
+// 左サイド(ポケモン編集パネル、.panel-left)専用のロジック一式。
 //
 // このファイルは src/components/box-id/LeftPanel.astro の <script> から
 // `import "../../lib/box-id/left-panel";` の形で副作用importされ、モジュール読み込み時に
-// 即座に自身を初期化する(元のインラインスクリプトと同じ「読み込まれたら即実行」の挙動)。
+// 即座に自身を初期化する。
 //
 // 共有コア(shared-core.ts)の buildAttackerSpec/recalcStats はこの左パネルの
 // leftNatureUp/leftNatureDown・renderStatsUnavailable・updateEvRemaining を必要とするため、
@@ -50,14 +46,12 @@ import {
 	registerLeftPanelBridge,
 	wrapToRange,
 } from "./shared-core";
-// UI改修依頼(個体編集画面、2026-08-02→2026-08-03統合)「耐久指数最大化」ボタン
-// (ステータス表の下、#durability-index-button)の配線。計算(純JS、Pyodide不要)は
-// durability-index.ts、一覧表示はright-panel.tsのrenderCandidateList()(耐久調整
-// ポップアップと共用の汎用レンダラ)に委譲し、このファイルは「現在の種族値・努力値・性格を
-// 渡して総合/物理/特殊の3指数を計算する」「3件を右パネルへ一覧表示する」「クリックされた
-// 候補を左パネルへ反映する」の橋渡しだけを担う。旧・H/B/D個別3ボタン
-// (#stat-adjust-hp/def/spd)時代はボタン押下で即座にbestを左パネルへ適用していたが、
-// 単一ボタン化に伴い、押下時は表示のみ・適用は一覧クリック時のみに変更した。
+// 「耐久指数最大化」ボタン(ステータス表の下、#durability-index-button)の配線。
+// 計算(純JS、Pyodide不要)はdurability-index.ts、一覧表示はright-panel.tsの
+// renderCandidateList()(耐久調整ポップアップと共用の汎用レンダラ)に委譲し、このファイルは
+// 「現在の種族値・努力値・性格を渡して総合/物理/特殊の3指数を計算する」「3件を右パネルへ
+// 一覧表示する」「クリックされた候補を左パネルへ反映する」の橋渡しだけを担う。押下時は
+// 表示のみで、左パネルへの適用は一覧クリック時のみ行う。
 import {
 	maximizeDurabilityIndex,
 	type DurabilityIndexKind,

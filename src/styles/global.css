@@ -41,7 +41,7 @@
   --radius-md: 12px;
   --radius-lg: 16px;
 
-  /* --- 余白スケール(2026-07-26 UI品質改善: タスクA) --- */
+  /* --- 余白スケール --- */
   --space-1: 0.25rem;
   --space-2: 0.5rem;
   --space-3: 0.75rem;
@@ -370,7 +370,7 @@ label {
   flex-wrap: wrap;
 }
 
-/* --- ラベル付きフィールド(2026-07-26 UI品質改善: タスクA新設) --- */
+/* --- ラベル付きフィールド --- */
 .field {
   display: flex;
   align-items: center;
@@ -483,7 +483,7 @@ input::placeholder {
   opacity: 0.8;
 }
 
-/* --- チェックボックス・ラジオ(ラウンド15 A-6/B-10) --- */
+/* --- チェックボックス・ラジオ --- */
 input[type="radio"],
 input[type="checkbox"] {
   appearance: none;
@@ -1167,7 +1167,7 @@ dialog#opponent-note-form-container::backdrop {
   background: var(--color-overlay);
 }
 
-/* --- 共通レイアウト(AppLayout.astro / AppSidebar.astro、UI刷新 2026-07-25) --- */
+/* --- 共通レイアウト --- */
 :root {
   --sidebar-width: 256px;
   --bottom-nav-height: 60px;

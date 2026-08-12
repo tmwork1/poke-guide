@@ -1,4 +1,4 @@
-// GET/PUT/DELETE /api/owned-pokemon/:id (育成データ管理計画.md §8 Phase C-1)。
+// GET/PUT/DELETE /api/owned-pokemon/:id (育成データ管理計画.md §8)。
 //
 // 認証必須(401)。実際のクエリは全て src/lib/owned-pokemon.ts へ委譲し、このファイル自身は
 // 生の Supabase クエリを書かない(userIdフィルタ漏れによる他人データ露出を防ぐための設計、
@@ -61,7 +61,7 @@ export async function PUT({ request, cookies, params }: APIContext): Promise<Res
   // PUT は「全項目を毎回送る」置換契約(育成データ管理計画.md §6.2)のため、置換対象の
   // 全フィールドが payload に存在することを必須にする(mode: 'replace')。これが無いと
   // {} のような部分的なpayloadが検証を素通りし、既存データが既定値で全消去されてしまう
-  // (2026-07に実際に発生したデータ消失バグ、owned-pokemon-validation.ts のコメント参照)。
+  // (owned-pokemon-validation.ts のコメント参照)。
   const validation = validateOwnedPokemonRequestBody(body.data, { mode: 'replace' });
   if (!validation.ok) return badRequest(validation.error);
 
@@ -97,13 +97,11 @@ export async function DELETE({ request, cookies, params }: APIContext): Promise<
   return jsonResponse({ data: { id } }, 200);
 }
 
-// PATCH /api/owned-pokemon/:id: is_pinned または collection_opt_out のみを更新する軽量経路
-// (is_pinnedは41-B2、round-41.md。collection_opt_outは匿名集計サジェスト機能・第1段階で追加)。
+// PATCH /api/owned-pokemon/:id: is_pinned または collection_opt_out のみを更新する軽量経路。
 // PUT(全項目上書き契約、§6.2)とは別の追加経路であり、PUTの契約は変更しない。
 // updatePinStatus()/updateCollectionOptOut() はそれぞれの対象列だけを UPDATE し updated_at には
 // 触れないため、「更新順」表示中にこれらをトグルしても対象個体自身の表示順位置が動かないことを
-// 保証する(is_pinnedについては round-40.mdの40-B1が「トグルした個体自身が動くことは許容」と
-// していた判断を、round-41.mdの41-B2がここで撤回した。collection_opt_outも同じ理由で踏襲する)。
+// 保証する。
 export async function PATCH({ request, cookies, params }: APIContext): Promise<Response> {
   const user = await getSessionUser(request, cookies);
   if (!user) return jsonResponse({ error: 'Unauthorized' }, 401);

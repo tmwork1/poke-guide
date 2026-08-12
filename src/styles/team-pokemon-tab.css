@@ -142,8 +142,7 @@
 }
 .team-meta-fields > .field { margin: 0; }
 .team-regulation-field select { width: 4.5rem; }
-/* UI改修依頼(チーム編集中央パネル、2026-08-01)「"レギュレーション"ラベルを削除する。
-   他のUIと同様にplaceholderの色を薄くする」。LeftPanel.astroの
+/* LeftPanel.astroの
    #edit-form #regulation[data-empty="true"]:not(:focus) と同じ値(破線・透明背景・
    薄い文字色)を踏襲する(新しい値は作らない)。<select>には:placeholder-shownが無いため、
    値が空のときだけJS/SSRが付けるdata-empty="true"を使う(<script>の
@@ -157,18 +156,12 @@
 	width: 100%;
 	/* global.cssの input[type="text"] { min-width: 12em } は、900px幅(2カラム化する
 	   最小幅)で横スクロールを引き起こす下限になりうるため明示的に打ち消す
-	   (width:100%で親に追従させる)。
-	   🔴 UI改修依頼(チーム編集中央パネル、2026-08-01)「チーム名ボックスのサイズを
-	   レギュレーションと揃えて小さくする」。旧来は--font-size-lg2(24px)・font-weight:700
-	   で目立たせていたが、隣の.team-regulation-field selectは既定の.field-controlサイズ
-	   (font-sizeの上書きなし=inherit)のまま。この差でチーム名だけ縦に大きくずれて見えて
-	   いたため、font-size/font-weightの上書きを撤去しレギュレーション欄と同じ既定サイズに
-	   揃える。 */
+	   (width:100%で親に追従させる)。フォントサイズ・太さは上書きしない
+	   (隣の.team-regulation-field selectと同じ既定の.field-controlサイズに揃える)。 */
 	min-width: 0;
 }
-/* UI改修依頼(チーム編集中央パネル)「メモは下に移動」により6枠の下へ動いたため、
-   margin-topではなく6枠との間隔をteam-slots側のmargin-bottomで確保する
-   (このinput自体は他の場所にmarginを持たない)。 */
+/* メモ欄は6枠の下に配置されるため、間隔はmargin-topではなく6枠側(team-slots)の
+   margin-bottomで確保する(このinput自体は他の場所にmarginを持たない)。 */
 .team-memo-input {
 	width: 100%;
 	min-width: 0;

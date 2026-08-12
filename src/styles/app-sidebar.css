@@ -1,6 +1,3 @@
-/* 全ページ共通のデスクトップ用サイドバーナビゲーション(AppSidebar.astro)。固定位置・開閉(transform)は global.css の .app-sidebar 側で定義し、ここではサイドバー内部の見た目(余白・タイポグラフィ・アクティブ表示)のみを扱う。 */
-	/* サイドバーの固定位置・開閉(transform)は global.css の .app-sidebar 側で定義する。
-	   ここではサイドバー内部の見た目(余白・タイポグラフィ・アクティブ表示)のみを扱う。 */
 	.app-sidebar-brand {
 		display: block;
 		padding: var(--space-5) var(--space-5) var(--space-4);
@@ -86,8 +83,7 @@
 		flex-shrink: 0;
 	}
 
-	/* 2026-08-02: チームアイコン(users)の背後ボールを前面ボールより暗くして区別する。
-	   opacityではなくfilter: brightness()を使う理由: opacityは背景色と混ざるため、
+	/* opacityではなくfilter: brightness()を使う。opacityは背景色と混ざるため、
 	   ライトテーマの白背景と混ざると逆に「薄い色」に見えてしまい「暗くする」という
 	   意図に反する。brightnessならcurrentColorがライト/ダーク/アクティブ状態の
 	   どの色でも一貫して暗くなる。
@@ -103,15 +99,13 @@
 	}
 
 	.app-sidebar-badge {
-		/* 2026-07-27 ラウンド20 20-G3: 0.65rem(10.4px)は下限12pxを割っていた。
-		   --font-size-sm3(0.75rem=12px)に是正する。 */
+		/* 12px未満は WCAG の可読性下限を割るため、--font-size-sm3 を使う。 */
 		font-size: var(--font-size-sm3);
 		padding: 0.15em 0.55em;
 		flex-shrink: 0;
 	}
 
-	/* 2026-07-27 ラウンド20 20-H2: ログイン情報をサイドバー最下段に固定表示する。
-	   global.css 側で .app-sidebar を display:flex; flex-direction:column にしてあるので、
+	/* global.css 側で .app-sidebar を display:flex; flex-direction:column にしているため、
 	   margin-top: auto でこのブロックだけ下端に押し出す。 */
 	.app-sidebar-account {
 		margin-top: auto;
@@ -131,4 +125,3 @@
 		text-overflow: ellipsis;
 		white-space: nowrap;
 	}
-

@@ -21,7 +21,7 @@ function notFound(): Response {
 }
 
 // validateTeamComposition() が返す違反種別ごとの日本語メッセージ。ページ担当がそのまま
-// 表示に使える文言にする(依頼元の指示どおり)。
+// 表示に使える文言にする。
 const COMPOSITION_VIOLATION_MESSAGES: Record<TeamCompositionViolation, string> = {
   'over-capacity': 'チームには6体まで編成できます',
   'duplicate-species': '同じ種族の個体を複数編成することはできません',
@@ -132,7 +132,6 @@ export async function DELETE({ request, cookies, params }: APIContext): Promise<
 
 // PATCH /api/teams/:id: is_pinnedのみを更新する軽量経路(owned-pokemon.tsのPATCH
 // /api/owned-pokemon/:idと同じ設計。src/pages/api/owned-pokemon/[id].ts参照)。
-// UI改修依頼(チームトップ画面)「ボックス画面と同様にお気に入り機能を追加する」。
 export async function PATCH({ request, cookies, params }: APIContext): Promise<Response> {
   const user = await getSessionUser(request, cookies);
   if (!user) return jsonResponse({ error: 'Unauthorized' }, 401);

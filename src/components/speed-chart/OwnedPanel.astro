@@ -1,10 +1,9 @@
 ---
 // すばやさ早見表(/speed-chart)「この個体」領域の静的テンプレート部分。
-// 確定した設計のファイル分割表: 「凡例・個体サマリ・エラー表示のテンプレート」。
-// R-13により「この個体」列自体は独立したカラムではなく、ChartTable.astro が組み立てる各行の
+// 「この個体」列自体は独立したカラムではなく、ChartTable.astro が組み立てる各行の
 // 3列目のセルとして描かれる(実際のセルDOMは src/lib/speed-chart/owned-panel.ts が
 // document.createElement() で生成する)。このコンポーネントが担うのは行の外にある
-// 常設のUI(R-9凡例、個体サマリ、R-10保存失敗バナー)だけ。
+// 常設のUI(凡例、個体サマリ、保存失敗バナー)だけ。
 //
 // 個体サマリの中身は、SSR時点ではまだ種族値・スプライトID
 // (public/master-data/detail・autocomplete/pokemon.json、ブラウザ側でfetchする設計)が無く
@@ -12,15 +11,13 @@
 // 画像srcを差し込む(id経由。テーブル本体が「読み込み中...」→行描画に切り替わるのと同じ
 // 非同期パターン)。
 //
-// UI改修(2026-08-02第3弾)要件1: 右パネルを「個体調整専用」にする一環で、個体サマリを
-// 上から5段構成に組み替えた: ①アイコン ②ニックネーム ③特性・アイテム ④性格・努力値
-// ⑤S実数値。旧「この個体:」ラベル+種族名+性格/持ち物バッジ+S実数値の4段構成から、
-// アイコン段を追加し性格/持ち物バッジ段を「特性・アイテム」「性格・努力値」の2段に
-// 分割した(バッジ4つを1行に詰め込むと260px幅で窮屈になるため)。
+// 個体サマリは上から5段構成: ①アイコン ②ニックネーム ③特性・アイテム ④性格・努力値
+// ⑤S実数値。性格/持ち物バッジ段を「特性・アイテム」「性格・努力値」の2段に分けているのは、
+// バッジ4つを1行に詰め込むと260px幅で窮屈になるため。
 interface Props {
   hasOwnedPanel: boolean;
   /**
-   * UI改修(2026-08-02第4弾)要件1: アイコン右の編集ボタン(/box/<id>への遷移)用。
+   * アイコン右の編集ボタン(/box/<id>への遷移)用。
    * ChartTable.astro が data-owned-id を持つ ownedId をそのまま渡す(?owned=なしのときは
    * null で、その場合ボタン自体を出さない)。
    */
@@ -32,8 +29,8 @@ const { hasOwnedPanel, ownedId } = Astro.props;
 	{hasOwnedPanel && (
 		<div class="speed-chart-owned-summary" id="speed-chart-owned-summary">
 			<div class="speed-chart-owned-profile">
-			{/* UI改修(2026-08-02第4弾)要件1: アイコン(1段目)の右に個体編集(/box/<id>)への
-			    編集ボタンを並べる。img自体のid/classは変えない(owned-panel.tsがid経由で
+			{/* アイコン(1段目)の右に個体編集(/box/<id>)への編集ボタンを並べる。
+			    img自体のid/classは変えない(owned-panel.tsがid経由で
 			    src/hiddenを出し分けるため)。ラッパーはこの段専用(2段目以降には影響しない)。 */}
 			<div class="speed-chart-owned-summary-header">
 				<img id="speed-chart-owned-summary-sprite" class="sprite-icon speed-chart-owned-summary-sprite" alt="" hidden />
@@ -64,24 +61,16 @@ const { hasOwnedPanel, ownedId } = Astro.props;
 				<span>すばやさ</span>
 				<strong id="speed-chart-owned-summary-raw-value" class="tnum"></strong>
 			</span>
-			{/* UI改修依頼(すばやさ早見表、2026-08-02)
-			    「S実数値 xxx を すばやさ xxx に変える」「現在地へ戻るボタンを削除し、この表示自体を
-			    ボタン化して同じ動作(現在地へスクロール)を担わせる」: 表示文言はowned-panel.tsの
-			    updateSummary()側で変更する(このファイルはid/クラスの器のみ)。<span>から<button>に
-			    変え、クリックで現在地へスクロールするハンドラをsrc/lib/speed-chart/chart-table.ts側で
-			    このidに対して登録する(旧#speed-chart-back-to-currentと同じ動作)。
-			    title="現在地へ戻る"は静的(状態に依らず同じ文言)なのでここで固定、
-			    aria-labelは実数値込みの文言をowned-panel.tsが動的に設定する(WCAG 2.5.3
-			    Label in Name対応。可視テキスト「すばやさ xxx」を含めた文言にし、アクセシブルネームが
-			    可視ラベルを包含するようにする)。ボタンであることが見た目でも分かるよう、
-			    既存の「ボーダー同色の塗り→ホバーで白地に反転」方式(global.css button.btn-primary、
-			    新色は作らない)のクラスを付与する。 */}
-			{/* UI改修(2026-08-06): 値は通常テキスト、スクロール操作は控えめな専用ボタンに分ける。 */}
+			{/* 値(#speed-chart-owned-summary-value)は通常テキストで表示文言はowned-panel.tsの
+			    updateSummary()側で設定する(このファイルはid/クラスの器のみ)。スクロール操作は
+			    隣の#speed-chart-owned-jump-buttonという専用ボタンに分ける。クリック時のスクロール
+			    処理はsrc/lib/speed-chart/chart-table.ts側でこのidにイベントリスナーを登録して行う。
+			    title="現在地へ戻る"は静的(状態に依らず同じ文言)なのでここで固定する。 */}
 			<div class="speed-chart-owned-summary-value-row">
 				<span id="speed-chart-owned-summary-value" class="tnum speed-chart-owned-summary-value"></span>
 				<button type="button" id="speed-chart-owned-jump-button" class="btn-ghost speed-chart-owned-jump-button" title="現在地へ戻る">移動</button>
 			</div>
-			{/* UI改修(2026-08-06): 保存対象に含めない表示専用のすばやさランク入力。 */}
+			{/* 保存対象に含めない表示専用のすばやさランク入力。 */}
 			<div class="speed-chart-owned-controls">
 			<div class="speed-chart-rank-field rank-field">
 				<label for="speed-chart-rank-input">ランク</label>
@@ -111,8 +100,8 @@ const { hasOwnedPanel, ownedId } = Astro.props;
 		</div>
 	)}
 	{/*
-		不具合修正(2026-08-02): ?owned=個体の種族が選択中レギュレーションの母集団に
-		存在しない(例: フィクスチャのハバタクカミのようにregulationsが空配列)と、
+		?owned=個体の種族が選択中レギュレーションの母集団に
+		存在しない(例: regulationsが空配列のフォルム)と、
 		chart-table.tsのrender()内でformsByName.get()がundefinedになりownedControllerが
 		nullのままになる。その結果owned-panel.tsのupdateSummary()が一度も呼ばれず、
 		#speed-chart-owned-summaryは中身の無い灰色の箱として残ってしまう
@@ -134,11 +123,9 @@ const { hasOwnedPanel, ownedId } = Astro.props;
 <style>
 	/* 静的マークアップ(scoped styleで足りる。JS生成されるのは行内の「この個体」セルのみで、
 	   これらの要素とは別)。
-	   UI改修(2026-08-02第2弾): 旧トップバー(画面幅いっぱいの帯)から幅260pxの
-	   サイドバー(ChartTable.astroの.speed-chart-side、gap: var(--space-4)で
-	   縦に項目を積む)最下段のカードへ移植。帯前提だった左右padding・border-bottomは
-	   やめ、サイドバー内の1ブロックとして自己完結する角丸カード(.cardと同じ
-	   --radius-md、背景はそのまま.speed-chart-side自体の背景(--color-surface)に対して
+	   幅260pxのサイドバー(ChartTable.astroの.speed-chart-side、gap: var(--space-4)で
+	   縦に項目を積む)最下段のカードとして、自己完結する角丸カード(.cardと同じ
+	   --radius-md、背景は.speed-chart-side自体の背景(--color-surface)に対して
 	   区別が付く--color-surface-altを踏襲)にする。 */
 	.speed-chart-owned-panel-static {
 		display: flex;
@@ -154,10 +141,9 @@ const { hasOwnedPanel, ownedId } = Astro.props;
 	.speed-chart-owned-panel-static:empty {
 		display: none;
 	}
-	/* 幅260pxではニックネーム・特性/アイテム・性格/努力値・S実数値を横一列
-	   (旧flex-wrap)に並べると1文字ずつ折り返されて潰れる(pitfalls.md「潰れて
-	   読めなくなる破綻」)。各段を縦積みにする(長い名前は行内で2行に折り返すのは
-	   許容)。 */
+	/* 幅260pxではニックネーム・特性/アイテム・性格/努力値・S実数値を横一列に並べると
+	   1文字ずつ折り返されて潰れる(pitfalls.md「潰れて読めなくなる破綻」)。各段を
+	   縦積みにする(長い名前は行内で2行に折り返すのは許容)。 */
 	.speed-chart-owned-summary {
 		display: flex;
 		flex-direction: column;
@@ -174,13 +160,13 @@ const { hasOwnedPanel, ownedId } = Astro.props;
 		background: var(--color-surface);
 		border-radius: var(--radius-sm);
 	}
-	/* 不具合修正(2026-08-02): 母集団に居ない個体のときchart-table.tsがhidden属性を立てる
+	/* 母集団に居ない個体のときchart-table.tsがhidden属性を立てる
 	   (「データ破損に見える空箱」を防ぐため)。displayをflexで明示しているクラスなので、
 	   pitfalls.mdの罠どおり[hidden]の詳細度勝ち負けが起きる。明示的に上書きする。 */
 	.speed-chart-owned-summary[hidden] {
 		display: none;
 	}
-	/* UI改修(2026-08-02第5弾): 「アイコン、NNは中央配置」要件。カード全体は
+	/* アイコンとニックネームは中央配置。カード全体は
 	   align-items: flex-start(3段目以降=特性/アイテム・性格/努力値・S実数値は左揃えのまま)
 	   を維持しつつ、1段目(このラッパー)だけ align-self: center で中央に寄せる。
 	   ラッパー自体の幅はflex-basis auto=コンテンツ幅(アイコン+gap+編集ボタン)のままなので、
@@ -209,7 +195,7 @@ const { hasOwnedPanel, ownedId } = Astro.props;
 		font-weight: 600;
 		flex-shrink: 0;
 	}
-	/* UI改修(2026-08-02第5弾): ニックネーム(2段目)も1段目と同じ理由で中央配置。
+	/* ニックネーム(2段目)も1段目と同じ理由で中央配置。
 	   align-self: centerだけだと「1行に収まる長さのときは中央、260px幅を使い切って
 	   折り返すときはボックス自体が親幅いっぱいまで広がり文字は左端に残る」という
 	   ズレが起きる(flexアイテムの自動幅がfit-contentのため)。text-align: centerを
@@ -232,12 +218,7 @@ const { hasOwnedPanel, ownedId } = Astro.props;
 		align-items: center;
 		gap: var(--space-1);
 	}
-	/* UI改修依頼(すばやさ早見表、2026-08-02)「すばやさxxx表示自体をボタン化する」:
-	   <button class="btn-primary">化(global.css)により背景・枠線・文字色・太字・paddingは
-	   既にbtn-primaryが提供する(「ボーダー同色の塗り→ホバーで白地に反転」方式。新色は
-	   作らない)。ここではこの値を主役として見せるためのfont-sizeだけをページ固有に足す
-	   (旧<span>時代のfont-weight:700/color:var(--color-primary-strong)はbtn-primaryの
-	   指定と重複・矛盾するため削除し、btn-primary側に委ねる)。 */
+	/* この値を主役として見せるための font-size だけをページ固有に足す(装飾はテキストのため持たない)。 */
 	.speed-chart-owned-summary-value {
 		font-size: var(--font-size-sm1);
 	}
@@ -254,7 +235,7 @@ const { hasOwnedPanel, ownedId } = Astro.props;
 		color: var(--color-text-muted);
 		border: 1px solid var(--color-border);
 	}
-	/* UI改修(2026-08-06): /box/[id]のランク入力と同じ密度・強調・端点状態を再現する。 */
+	/* /box/[id]のランク入力と同じ密度・強調・端点状態を再現する。 */
 	.speed-chart-rank-field {
 		align-self: flex-start;
 	}
@@ -303,7 +284,7 @@ const { hasOwnedPanel, ownedId } = Astro.props;
 	.severity-bar[hidden] {
 		display: none;
 	}
-	/* 不具合修正(2026-08-02): 個体サマリの代わりに出す控えめな注記。displayを明示していない
+	/* 個体サマリの代わりに出す控えめな注記。displayを明示していない
 	   (素の<p>のブロック表示のまま)ためUAの[hidden]{display:none}で足りるが、
 	   このファイルの他要素と同じく念のため明示しておく。 */
 	.speed-chart-owned-unavailable {
@@ -316,7 +297,7 @@ const { hasOwnedPanel, ownedId } = Astro.props;
 </style>
 
 <style is:global>
-	/* UI不具合修正(2026-08-06): アイテム画像と名称はowned-panel.tsが後から生成するため、
+	/* アイテム画像と名称はowned-panel.tsが後から生成するため、
 	   scoped styleではなくglobal側でサイズ固定と一行省略を適用する。 */
 	#speed-chart-owned-summary-item img {
 		width: var(--space-5);
@@ -357,9 +338,8 @@ const { hasOwnedPanel, ownedId } = Astro.props;
 		gap: var(--space-1);
 		width: 100%;
 	}
-	/* UI改修(2026-08-02第3弾)要件2・3: ボタンテキストを「[アイコン] いじっぱり 努力値6」
-	   の形にする(下の内訳テキストは廃止し、ボタン単体で結果とページ遷移することの
-	   両方が分かるようにする)。アイコン(owned-panel.tsがSVGをDOM生成して先頭に挿入)と
+	/* ボタンテキストは「[アイコン] いじっぱり 努力値6」の形(ボタン単体で結果とページ遷移する
+	   ことの両方が分かるようにする)。アイコン(owned-panel.tsがSVGをDOM生成して先頭に挿入)と
 	   テキストを横並びにするため、ボタン自体をinline-flexにしてgapで間隔を作る。 */
 	.speed-chart-owned .speed-chart-apply-button {
 		display: inline-flex;
@@ -368,11 +348,10 @@ const { hasOwnedPanel, ownedId } = Astro.props;
 		min-width: 0;
 		font-size: var(--font-size-sm3);
 		padding: 0.2em 0.8em;
-		/* UI改修(2026-08-02第4弾)要件4: 太字をやめる。global.css の
-		   button.btn-primary { font-weight: 700 } は(0,1,1)、こちらは.speed-chart-owned
-		   (領域ルート)経由の(0,2,0)で詳細度が上回るため確実に上書きできる。 */
+		/* global.css の button.btn-primary { font-weight: 700 } は(0,1,1)、こちらは
+		   .speed-chart-owned(領域ルート)経由の(0,2,0)で詳細度が上回るため確実に上書きできる。 */
 		font-weight: 500;
-		/* UI改修(2026-08-06): 長いアイテム名でもパネル幅を越えず一段に収める。 */
+		/* 長いアイテム名でもパネル幅を越えず一段に収める。 */
 		max-width: 100%;
 		background: var(--color-surface);
 		color: var(--color-primary);
@@ -385,7 +364,7 @@ const { hasOwnedPanel, ownedId } = Astro.props;
 	.speed-chart-owned .speed-chart-apply-icon {
 		flex: 0 0 auto;
 	}
-	/* UI不具合修正(2026-08-06): flex直下のテキストでは省略記号が出ないため、
+	/* flex直下のテキストでは省略記号が出ないため、
 	   owned-panel.tsが生成するラベルspan側で一行省略する。 */
 	.speed-chart-owned .speed-chart-apply-label {
 		min-width: 0;

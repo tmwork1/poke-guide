@@ -9,16 +9,14 @@
 // - 検索・並べ替えは box と同じくクライアント側で完結させる(初回取得後、追加のAPI呼び出しを
 //   発生させない設計を踏襲。GET /api/teams が受け付ける ?sort=/?search= はサーバー側の便宜のため
 //   用意されているが、このページは box と同じ「1回取得してクライアントでフィルタ」方式に揃える)。
-// - 「絞り込み」は当初ツールバーに置かない設計だった(docs/plan/pages/team.md 参照。チームに
-//   絞る軸が無いため)が、UI改修依頼(2026-08-01)「ボックス画面と同様にお気に入り機能(フィルタも)
-//   を追加する」により、box/index.astroと同じ「お気に入りのみ表示」の単一トグルのみ追加した。
-// - 一覧カードは体数バッジ(N/6)+メンバーの公式絵ミニサムネイル列を持つ(設計レビューR-12: これが
+// - 絞り込みは「お気に入りのみ表示」の単一トグルのみ持つ(docs/plan/pages/team.md 参照。
+//   チームは他に絞り込める軸が無いため)。box/index.astroと同じトグルを踏襲する。
+// - 一覧カードは体数バッジ(N/6)+メンバーの公式絵ミニサムネイル列を持つ(これが
 //   無いと「複数の構成案を並べて見比べる」というページの存在理由が果たせない)。
 export const prerender = false;
 
 import AppLayout from '../../layouts/AppLayout.astro';
 import '../../styles/team-page.css';
-// 🔴 UI改修依頼(チームトップ画面、2026-08-01)「レギュレーションによるフィルタを追加」。
 // 候補は jpoke 由来の一覧(src/lib/regulations.ts)。画面側でレギュレーション名を
 // ハードコードしない(ボックス画面 box/index.astro と同じ方針)。
 import { REGULATIONS } from '../../lib/regulations';
@@ -27,27 +25,21 @@ const user = Astro.locals.user;
 ---
 <AppLayout title="チーム" description="登録したチーム編成の一覧・検索・並べ替え" current="team" hideTopbar={true}>
 	{/*
-	  UI改修依頼(チームトップ画面、2026-08-02)「トップバー削除・セカンドトップバー化」:
-	  box/index.astroの同名改修(2026-08-02、box/index.astro冒頭コメント参照)を踏襲する。
-	  hideTopbar={true}によりAppLayoutの<header class="app-topbar">を描画しなくなったため、
-	  旧topbar-statusスロット(件数バッジ)はこのページ自身のツールバー(.second-bar--toolbar、
+	  hideTopbar={true}によりAppLayoutの<header class="app-topbar">を描画しないため、
+	  件数バッジはこのページ自身のツールバー(.second-bar--toolbar、
 	  #team-toolbar)内へ直接配置する(下記マークアップ、id="team-count-badge"・
 	  class="badge tnum"は変更しない、<script>がgetElementByIdで参照するため)。
 	*/}
 	<style>
 		/* --- ツールバー(検索+並べ替え。box/index.astroの.second-bar--toolbarをそのまま流用。
 		   「絞り込み」はこのページには置かない(docs/plan/pages/team.md参照)。 --- */
-		/* UI改修依頼(チームトップ画面、2026-08-02)「トップバー削除・セカンドトップバー化」:
-		   box/index.astroの.second-bar--toolbar(2026-08-02改修)と同じ値をそのまま複製する
+		/* box/index.astroの.second-bar--toolbarと同じ値をそのまま複製する
 		   (このツールバーがAppLayoutの共通<header class="app-topbar">の代わりを務める)。
 		   sticky/z-index/background/border-bottomはglobal.cssの.app-topbarと同じ値
 		   (新しい値は作らない)。 */
-		/* UI改修依頼(チームトップ画面、2026-08-02)「ヘッダーの件数バッジを検索ボックスの左に置く」:
-		   旧topbar-statusスロットの件数バッジをツールバー右端(margin-left: auto)から検索ボックスの
-		   直前へ移動した(box/index.astroの同時改修と結果的に同じ配置になる)。ツールバー先頭寄りに
-		   置くだけで良く、右端に押し出すための margin-left: auto はもう不要なため削除した
-		   (pitfalls.md「flex: 1 1 0は余白を全部飲む」と同種の事故を避ける: auto marginを残したまま
-		   検索ボックスの前に移すと、今度は検索ボックス側が右端まで押し出されてしまう)。 */
+		/* 件数バッジはツールバー先頭寄りに配置し、margin-left: autoは付けない
+		   (pitfalls.md「flex: 1 1 0は余白を全部飲む」と同種の事故を避ける: auto marginを
+		   残すと後続の検索ボックスが右端まで押し出されてしまう)。 */
 		.toolbar-count {
 			flex-shrink: 0;
 		}
@@ -59,12 +51,11 @@ const user = Astro.locals.user;
 			min-width: 12em;
 		}
 
-		/* UI改修依頼(2026-08-05)「お気に入りボタンは枠と背景を透明にし、選択時は星だけを黄色にする」対応。
-		   当初はAstroのscoped styleがページをまたがないためbox/index.astroと同じ値を複製したが、
-		   一覧間で共有するためglobal.cssの.favorite-filter-toggleへ集約した。 */
+		/* お気に入りボタン(.favorite-filter-toggle)のスタイルはglobal.cssに集約されている
+		   (Astroのscoped styleはページをまたがないため、一覧間で共有するにはglobal.cssに置く
+		   必要がある)。 */
 
-		/* UI改修依頼(チームトップ画面、2026-08-02)「セカンドトップバーのデザインをボックス画面に
-		   あわせる」: 「並べ替え」の<label>を削除し、box/index.astroの.sort-select-wrap/.sort-icon
+		/* 「並べ替え」の<label>は表示せず、box/index.astroの.sort-select-wrap/.sort-icon
 		   と同じ手法(検索欄の.search-input-wrap/.search-iconと同じ、position:absoluteのアイコン+
 		   select側padding-left)でソートアイコンをselectの左側に重ねる。 */
 
@@ -127,9 +118,7 @@ const user = Astro.locals.user;
 						</div>
 
 						<div class="toolbar-item toolbar-search">
-							{/* UI改修依頼(チームトップ画面、2026-08-02)「セカンドトップバーのデザインを
-							    ボックス画面にあわせる」: 可視の「検索」<label>を削除し、box/index.astroと
-							    同じくaria-labelで維持する。 */}
+							{/* 可視の「検索」<label>は置かず、box/index.astroと同じくaria-labelで維持する。 */}
 							<div class="search-input-wrap">
 								<svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 									<circle cx="11" cy="11" r="7" />
@@ -146,8 +135,7 @@ const user = Astro.locals.user;
 							</div>
 						</div>
 
-						{/* UI改修依頼(チームトップ画面)「ボックス画面と同様にお気に入り機能(フィルタも)を
-						    追加する」。box/index.astroの.toolbar-favorite/#favorite-filter-toggleと
+						{/* box/index.astroの.toolbar-favorite/#favorite-filter-toggleと
 						    同じマークアップ・クラス名(下のCSS参照、値も同一)を踏襲する。 */}
 						<div class="toolbar-item toolbar-favorite">
 							<button
@@ -161,8 +149,7 @@ const user = Astro.locals.user;
 							</button>
 						</div>
 
-						{/* 🔴 UI改修依頼(チームトップ画面、2026-08-01)「レギュレーションによるフィルタを
-						    追加」。選択肢は既知のレギュレーションと「すべて」を使う
+						{/* 選択肢は既知のレギュレーションと「すべて」を使う
 						    (2画面で絞り込みの語彙を揃える)。取得済みの一覧をクライアント側で絞る点も同じ。 */}
 						<div class="toolbar-item toolbar-regulation">
 							<label class="field-label" for="regulation-filter">レギュレーション</label>
@@ -173,10 +160,8 @@ const user = Astro.locals.user;
 						</div>
 
 						<div class="toolbar-item toolbar-sort">
-							{/* UI改修依頼(チームトップ画面、2026-08-02)「セカンドトップバーのデザインを
-							    ボックス画面にあわせる」: 可視の「並べ替え」<label>を削除し、
-							    box/index.astroの.sort-select-wrap/.sort-iconと同じSVGアイコン重畳
-							    パターンに揃える。 */}
+							{/* 可視の「並べ替え」<label>は置かず、box/index.astroの.sort-select-wrap/.sort-icon
+							    と同じSVGアイコン重畳パターンに揃える。 */}
 							<div class="sort-select-wrap">
 								<svg class="sort-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 									<path d="M7 4v16" />
@@ -187,7 +172,6 @@ const user = Astro.locals.user;
 								<select id="sort-select" class="field-control" aria-label="並べ替え">
 									{/* 「〜順」は付けない: /box の並べ替え(最終更新/最終使用/ニックネーム)に表記を揃える。 */}
 									<option value="updated_at">最終更新</option>
-									{/* UI改修依頼(2026-08-06)で並べ替え対象が明確になるよう「チーム名」に統一する。 */}
 									<option value="name">チーム名</option>
 								</select>
 							</div>

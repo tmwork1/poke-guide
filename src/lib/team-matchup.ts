@@ -1,4 +1,4 @@
-// チーム編集画面「相性チェック」(ユーザー要望、2026-08-02)の純粋ロジック。
+// チーム編集画面「相性チェック」の純粋ロジック。
 //
 // 使用率上位N体の相手に対して、自チーム全員の「最大ダメージのHP割合」を平均し、
 // その値でアイコンの濃さを変えて有利・不利を一目で分かるようにする機能の、
@@ -10,7 +10,7 @@
 // calcMaxDamageMatrix()、相手ポケモンの取得は GET /api/matchup-targets が担う。
 //
 // =============================================================================
-// 仕様(ユーザー指示、2026-08-02)
+// 仕様
 // =============================================================================
 // 攻撃:
 //   1. 相手ポケモンを1体選ぶ。性格補正なし、努力値はH32振り。
@@ -33,7 +33,7 @@ export const OPPONENT_NATURE = 'まじめ';
 /** 防御側の相手が持つ技の最大数(実機の4枠に合わせる)。 */
 export const OPPONENT_MAX_MOVES = 4;
 
-/** 相性チェックの対象にする使用率上位の体数(ユーザー指示「N=20」)。 */
+/** 相性チェックの対象にする使用率上位の体数。 */
 export const MATCHUP_TOP_N = 20;
 
 /**
@@ -138,7 +138,6 @@ export function averageRatio(ratios: readonly number[]): number | null {
 }
 
 /**
- * UI改修依頼(2026-08-05)「攻撃側もスコアが高いほど不利にする」対応。
  * 生の攻撃スコアだけを反転し、防御側と同じ「大きいほど不利」の向きへ揃える。
  */
 export function matchupDisadvantageScore(rawScore: number, direction: MatchupDirection): number {
@@ -148,7 +147,7 @@ export function matchupDisadvantageScore(rawScore: number, direction: MatchupDir
 /**
  * 平均割合(score)を、アイコンの不透明度(MATCHUP_MIN_OPACITY〜1)へ写す。
  *
- * UI改修依頼(2026-08-05)により攻守とも score が大きい = 不利へ統一したため、
+ * 攻守とも score が大きいほど不利という向きに統一されているため、
  * 大きい(不利な)相手ほど濃く残して目に留まるようにする。
  *
  * min/max は同時に表示している相手全員の score の最小・最大。正規化の理由は
@@ -162,7 +161,7 @@ export function matchupOpacity(
 ): number {
 	const range = Math.max(max - min, MATCHUP_SCORE_MIN_RANGE);
 	const normalized = range > 0 ? Math.min(1, Math.max(0, (score - min) / range)) : 0;
-	// UI改修依頼(2026-08-05)「攻守とも高いほど不利」対応。_directionは呼び出し契約を保つため受け取るが、同じ向きなので分岐しない。
+	// _directionは呼び出し契約を保つため受け取るが、同じ向きなので分岐しない。
 	const disadvantage = normalized;
 	return MATCHUP_MIN_OPACITY + (1 - MATCHUP_MIN_OPACITY) * disadvantage;
 }

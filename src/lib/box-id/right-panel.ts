@@ -1,20 +1,14 @@
-// box/[id].astro 構造分割ラウンド(フェーズ2)。
-//
-// 右サイド(詳細設定サイドバー、#damage-detail-panel)専用のロジック一式
-// (docs/plan/ui_parallelization.md 4.1節「右サイド専用16」)。元は box/[id].astro の
-// <script> 内、`if (opponentNotesSection) { ... }` ブロックのうち
-// 「--- 詳細設定サイドバー ---」以降にまとまって定義されていたもので、ロジックは
-// 一切変更せずこのファイルへ移設した(定義位置の変更のみ)。
+// 右サイド(詳細設定サイドバー、#damage-detail-panel)専用のロジック一式。
 //
 // ダメージ計算(damage-calc.ts)とは scheduleRowSave/scheduleRowCalc/refreshRowConditionChips/
 // selectColumn/renderDetailPanel/getSelectedRow/getSelectedColumn/clearSelection(いずれも
-// shared-core.ts経由。フェーズ1で確立済み)に加え、DAMAGE_WEATHERS/DAMAGE_TERRAINS/
-// DAMAGE_AILMENTS/DAMAGE_ATTACKER_VOLATILES/DAMAGE_DEFENDER_VOLATILES/clampInt(damage-calc.ts
-// からexport、後述)・deselectRowIfCurrent/renderDetailPanelEmpty/renderColumnLevelDetailPanel/
+// shared-core.ts経由)に加え、DAMAGE_WEATHERS/DAMAGE_TERRAINS/DAMAGE_AILMENTS/
+// DAMAGE_ATTACKER_VOLATILES/DAMAGE_DEFENDER_VOLATILES/clampInt(damage-calc.tsからexport、
+// 後述)・deselectRowIfCurrent/renderDetailPanelEmpty/renderColumnLevelDetailPanel/
 // openDetailPanelOverlayIfNarrow(このファイルからdamage-calc.tsへexport)という2方向の
-// 依存がある(コーディネーターへの報告事項: damage-calc.ts⇄right-panel.tsは相互import。
-// いずれも関数宣言(hoistされ、循環import下でも安全)またはモジュール top-level で
-// 即時評価されない値のみを跨いでいるため、実行時の初期化順序に問題は無い)。
+// 依存がある(damage-calc.ts⇄right-panel.tsは相互import。いずれも関数宣言(hoistされ、
+// 循環import下でも安全)またはモジュール top-level で即時評価されない値のみを跨いでいる
+// ため、実行時の初期化順序に問題は無い)。
 //
 // このファイルは damage-calc.ts の #opponent-notes-section ガード内から
 // `initRightPanel()` を1回呼ばれることで初期化される(#damage-detail-panel 等は
