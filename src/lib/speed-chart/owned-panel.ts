@@ -34,7 +34,7 @@ import { calcOtherStat, NATURE_STAT_MODIFIERS } from '../stats';
 import { validateSpeedChartApplyPayload } from '../speed-chart-validation';
 import type { OwnedPokemonRecord } from '../owned-pokemon';
 import { spriteUrl } from '../pokemon-master-data';
-import { itemIconUrl, loadItemSpriteMap } from '../sprite-urls';
+import { itemIconUrl } from '../sprite-urls';
 
 export const OWNED_CURRENT_VALUE_EVENT = 'speed-chart:owned-current-changed';
 
@@ -265,15 +265,11 @@ export function initOwnedPanel(ctx: OwnedPanelContext): OwnedPanelController {
         // UI不具合修正(2026-08-06): 一行省略時にも名称全体を確認できるようにする。
         itemEl.title = currentItem;
         itemEl.appendChild(text);
-        void loadItemSpriteMap().then((map) => {
-          const spritePath = map.get(currentItem);
-          if (!spritePath || !itemEl.isConnected || itemEl.querySelector('img')) return;
-          const image = document.createElement('img');
-          image.alt = '';
-          image.src = itemIconUrl(spritePath);
-          image.addEventListener('error', () => image.remove(), { once: true });
-          itemEl.prepend(image);
-        });
+        const image = document.createElement('img');
+        image.alt = '';
+        image.src = itemIconUrl(currentItem);
+        image.addEventListener('error', () => image.remove(), { once: true });
+        itemEl.prepend(image);
       } else {
         itemEl.removeAttribute('title');
         itemEl.textContent = 'アイテムなし';

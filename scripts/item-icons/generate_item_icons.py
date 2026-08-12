@@ -3,6 +3,16 @@
 対して常に一定の比率を占めるよう拡大縮小・中央配置し直した画像を public/item-icons/ に
 事前生成して置くスクリプト(scripts/type-icons/generate_type_icons.py のアイテム版)。
 
+## 出力ファイル名(2026-08-12変更)
+出力ファイル名は items.json の spritePath(PokeAPI固有のスラッグ、例 "choice-band" /
+"gen9/booster-energy")ではなく、アイテムの和名(items.json の name、例
+"こだわりハチマキ")を使う。spritePath はあくまで PokeAPI から画像を取得するための
+ソースURL組み立てにのみ使い、リポジトリ内のファイル名・参照コード(sprite-urls.ts の
+itemIconUrl())は和名で統一する。理由は、spritePath が存在しないアイテム(items.json で
+spritePath: null、こんごうだま系の一部やチャンピオンズ限定アイテム等)にも将来
+generate_item_icons_gamewith.py 等の別ソースから和名ベースでアイコンを追加できるように
+するため(spritePath という PokeAPI 由来の識別子にファイル名を縛られない)。
+
 ## 背景
 src/lib/sprite-urls.ts の itemImageUrl() が返す画像は
 https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/{spritePath}.png
@@ -95,11 +105,11 @@ scripts/item-icons/measure 相当の使い捨てコードで実行。再現手�
 ## 使い方
     python scripts/item-icons/generate_item_icons.py
 
-    public/master-data/autocomplete/items.json のspritePath一覧(nullは除外)を読み、
-    全アイテムのアイコンを public/item-icons/{spritePath}.png に生成する。サブ
-    ディレクトリ(gen8/, gen9/)は維持する。再実行可能(既存ファイルは上書き)。
-    ネットワークアクセスが必要(raw.githubusercontent.com から都度取得、ローカル
-    キャッシュは持たない)。
+    public/master-data/autocomplete/items.json の(name, spritePath)一覧(spritePathが
+    nullの項目は除外)を読み、全アイテムのアイコンを public/item-icons/{name}.png に
+    生成する(サブディレクトリは持たない。取得元URLの gen8/gen9 はソース側のみ)。
+    再実行可能(既存ファイルは上書き)。ネットワークアクセスが必要
+    (raw.githubusercontent.com から都度取得、ローカルキャッシュは持たない)。
 
 ## 依存
     Pillow (pip install Pillow)。scripts/type-icons/generate_type_icons.py と同様。
@@ -190,25 +200,27 @@ def build_normalized_icon(im: Image.Image) -> Image.Image:
     return cropped.resize((OUTPUT_SIZE, OUTPUT_SIZE), Image.LANCZOS)
 
 
-def load_sprite_paths() -> list[str]:
+def load_items() -> list[tuple[str, str]]:
+    """(name, spritePath)の一覧を返す。spritePathがnullの項目は除外する。"""
     data = json.loads(ITEMS_JSON.read_text(encoding="utf-8"))
-    paths = []
+    items = []
     seen = set()
     for entry in data:
+        name = entry.get("name")
         sprite_path = entry.get("spritePath")
-        if not sprite_path or sprite_path in seen:
+        if not name or not sprite_path or name in seen:
             continue
-        seen.add(sprite_path)
-        paths.append(sprite_path)
-    return paths
+        seen.add(name)
+        items.append((name, sprite_path))
+    return items
 
 
-def generate_one(sprite_path: str) -> Path:
+def generate_one(name: str, sprite_path: str) -> Path:
     url = f"{SPRITES_BASE}/{sprite_path}.png"
     im = fetch_image(url)
     result = build_normalized_icon(im)
 
-    out_path = OUT_DIR / f"{sprite_path}.png"
+    out_path = OUT_DIR / f"{name}.png"
     out_path.parent.mkdir(parents=True, exist_ok=True)
     result.save(out_path)
     return out_path
@@ -216,30 +228,30 @@ def generate_one(sprite_path: str) -> Path:
 
 def main() -> None:
     OUT_DIR.mkdir(parents=True, exist_ok=True)
-    sprite_paths = load_sprite_paths()
+    items = load_items()
 
     total_bytes = 0
     failures: list[tuple[str, str]] = []
     print(f"出力先: {OUT_DIR}")
-    print(f"対象: {len(sprite_paths)} 件")
-    for i, sprite_path in enumerate(sprite_paths, 1):
+    print(f"対象: {len(items)} 件")
+    for i, (name, sprite_path) in enumerate(items, 1):
         try:
-            out_path = generate_one(sprite_path)
+            out_path = generate_one(name, sprite_path)
         except Exception as exc:  # noqa: BLE001 - 1件失敗しても残りを続ける
-            failures.append((sprite_path, str(exc)))
-            print(f"[{i}/{len(sprite_paths)}] {sprite_path}: FAILED - {exc}")
+            failures.append((name, str(exc)))
+            print(f"[{i}/{len(items)}] {name} ({sprite_path}): FAILED - {exc}")
             continue
         size = out_path.stat().st_size
         total_bytes += size
         rel = out_path.relative_to(REPO_ROOT)
-        print(f"[{i}/{len(sprite_paths)}] {sprite_path} -> {rel} ({size}B)")
+        print(f"[{i}/{len(items)}] {name} ({sprite_path}) -> {rel} ({size}B)")
 
-    ok = len(sprite_paths) - len(failures)
-    print(f"\n完了: {ok}/{len(sprite_paths)} 枚生成。合計サイズ: {total_bytes:,} バイト ({total_bytes / 1024:.1f} KiB)")
+    ok = len(items) - len(failures)
+    print(f"\n完了: {ok}/{len(items)} 枚生成。合計サイズ: {total_bytes:,} バイト ({total_bytes / 1024:.1f} KiB)")
     if failures:
         print(f"\n失敗 {len(failures)} 件:")
-        for sprite_path, reason in failures:
-            print(f"  - {sprite_path}: {reason}")
+        for name, reason in failures:
+            print(f"  - {name}: {reason}")
 
 
 if __name__ == "__main__":

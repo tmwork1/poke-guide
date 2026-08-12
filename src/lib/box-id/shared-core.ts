@@ -238,10 +238,10 @@ export async function applyTeraImage(imgEl: HTMLImageElement, fallbackEl: HTMLEl
 	imgEl.src = url;
 }
 
-// UI刷新(Pokemon.png): アイテム画像。アイテム名に対応するsprite相対パスが
-// 取得できない/画像読み込み失敗時は画像を隠し、既存のテキスト入力(#item)の表示に委ねる
-// (色表現の代替が無いアイテムには専用フォールバックは設けない)。
-export async function applyItemImage(imgEl: HTMLImageElement, name: string): Promise<void> {
+// UI刷新(Pokemon.png): アイテム画像。アイテム名が空/画像読み込み失敗時は画像を隠し、
+// 既存のテキスト入力(#item)の表示に委ねる(色表現の代替が無いアイテムには専用
+// フォールバックは設けない)。
+export function applyItemImage(imgEl: HTMLImageElement, name: string): void {
 	// バッジ(.damage-item-badge)が白丸+枠+影を持つように
 	// なったため、画像だけを隠すと「空の白丸」が残る。画像の表示可否に合わせて
 	// バッジごと隠す(/boxの.card-item-badgeと同じ方針)。
@@ -254,9 +254,8 @@ export async function applyItemImage(imgEl: HTMLImageElement, name: string): Pro
 		imgEl.removeAttribute("src");
 		if (badgeEl) badgeEl.hidden = true;
 	};
-	const spritePath = name ? (await itemSpriteMapPromise).get(name) : undefined;
-	const url = spritePath ? itemIconUrl(spritePath) : null;
-	if (!url) {
+	const trimmed = name.trim();
+	if (!trimmed) {
 		hideBadge();
 		return;
 	}
@@ -265,7 +264,7 @@ export async function applyItemImage(imgEl: HTMLImageElement, name: string): Pro
 		if (badgeEl) badgeEl.hidden = false;
 		imgEl.style.display = "";
 	};
-	imgEl.src = url;
+	imgEl.src = itemIconUrl(trimmed);
 }
 
 // UI刷新: 性格による実数値の上昇/下降ステータスの判定テーブル

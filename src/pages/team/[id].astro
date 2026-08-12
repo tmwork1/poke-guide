@@ -18,7 +18,7 @@ import '../../styles/team-pokemon-tab.css';
 import '../../styles/box-card.css';
 import '../../styles/floating-list-controls.css';
 import '../../styles/team-data-tab.css';
-import '../../styles/ranked-team-card.css';
+import '../../styles/team-card.css';
 // 🔴 UI改修依頼(チーム編集画面、2026-08-01)「個体編集と同様にレギュレーション指定機能を追加」。
 // 候補は jpoke 由来の一覧(src/lib/regulations.ts)。画面側でレギュレーション名を
 // ハードコードしない(box/[id].astro の左パネルと同じ方針)。
@@ -2283,7 +2283,7 @@ try {
 		// UI改修依頼(チーム編集左パネル、2026-08-02)「候補カードをボックス画面と共通化する」で
 		// 技チップにタイプアイコンを追加するため、typeIconUrlを追加importする(box/index.astroの
 		// applyMoveChipTypeIconsと同じ用途)。
-		import { loadItemSpriteMap, itemIconUrl, teraTypeIconUrl, typeIconUrl } from "../../lib/sprite-urls";
+		import { itemIconUrl, teraTypeIconUrl, typeIconUrl } from "../../lib/sprite-urls";
 		import { resolveDexNo } from "../../lib/species-dex";
 		import { selectionBlockReason, type SelectionCandidate, type SelectionBlockReason } from "../../lib/team-validation";
 		import { STAT_KEYS, NATURE_STAT_MODIFIERS, calcHpStat, calcOtherStat } from "../../lib/stats";
@@ -2519,7 +2519,6 @@ try {
 			let draggedMemberSlot: number | null = null;
 
 			const imageIdMapPromise = loadImageIdMap();
-			const itemSpriteMapPromise = loadItemSpriteMap();
 			const baseStatsMapPromise = loadBaseStatsMap();
 
 			const STAT_LABELS: Record<(typeof STAT_KEYS)[number], string> = {
@@ -2618,13 +2617,12 @@ try {
 
 			// 持ち物アイコン(アイコン+名前、R-8)。アイコンが解決できない/読み込み失敗のときも
 			// 名前のテキストは残す(box/index.astroの持ち物行と同じ考え方)。
-			async function applyItemIcon(
+			function applyItemIcon(
 				imgEl: HTMLImageElement,
 				itemName: string,
 				visibilityEl?: HTMLElement,
-			): Promise<void> {
-				const spritePath = (await itemSpriteMapPromise).get(itemName);
-				if (!spritePath) {
+			): void {
+				if (!itemName) {
 					imgEl.style.display = "none";
 					if (visibilityEl) visibilityEl.hidden = true;
 					return;
@@ -2637,7 +2635,7 @@ try {
 					imgEl.style.display = "";
 					if (visibilityEl) visibilityEl.hidden = false;
 				};
-				imgEl.src = itemIconUrl(spritePath);
+				imgEl.src = itemIconUrl(itemName);
 			}
 
 			// テラスタイプアイコン(アイコン+名前)。teraTypeIconUrlは同期解決(静的マップ)。
@@ -3418,7 +3416,7 @@ try {
 					return;
 				}
 				const list = document.createElement("div");
-				list.className = "ranked-team-cards";
+				list.className = "team-grid";
 				for (const entry of scored) list.appendChild(renderTopBuildCard(entry.team));
 				teamDataMobileSimilarRoot.innerHTML = "";
 				teamDataMobileSimilarRoot.appendChild(list);

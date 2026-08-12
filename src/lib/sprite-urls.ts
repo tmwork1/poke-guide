@@ -77,18 +77,25 @@ export function itemImageUrl(spritePath: string): string {
 // 面積比がバラバラ(実測でメガストーン0.22〜こだわりハチマキ等0.54、かつアイテムに
 // よってキャンバス自体が30x30/160x160の2種類混在)なため、画面上で同じCSSサイズ
 // (object-fit: contain)に並べると見た目の大きさが揃わない問題があった
-// (2026-08-01 ユーザー報告)。
+// (2026-08-01 ユーザー報告)。加えて30x30原画のアイテムは96pxへの拡大でぼやける問題も
+// あった(2026-08-12 ユーザー報告)。
 // scripts/item-icons/generate_item_icons.py が、絵柄の不透明ピクセルの外接矩形を検出し、
 // それが出力キャンバスに対して常に同じ比率を占めるよう拡大縮小・中央配置し直した画像を
 // public/item-icons/ 配下にビルド時ではなく事前生成し、リポジトリにコミットしている
-// (type-icons/typeIconUrl()と同じ「生成済み画像を事前コミットする」方式)。
+// (type-icons/typeIconUrl()と同じ「生成済み画像を事前コミットする」方式)。ぼやけの解消策
+// として scripts/item-icons/generate_item_icons_gamewith.py が一部アイテムを高解像度な
+// 別ソース(gamewith.jp)へ差し替えている。
 // 以下はその生成済み画像のURL(ルート相対パス)を返す。
 
-// sprite相対パス(例 "choice-band" / "gen9/booster-energy")から、見た目の大きさを
-// 正規化したアイテムアイコン画像のURLを返す。画像本体は public/item-icons/{spritePath}.png
-// (生成: scripts/item-icons/generate_item_icons.py)。
-export function itemIconUrl(spritePath: string): string {
-  return `/item-icons/${spritePath}.png`;
+// アイテム和名(items.json の name。例 "こだわりハチマキ")から、見た目の大きさを
+// 正規化したアイテムアイコン画像のURLを返す。画像本体は
+// public/item-icons/{アイテム和名}.png (生成: scripts/item-icons/generate_item_icons.py /
+// generate_item_icons_gamewith.py)。ファイル名は和名で統一しており、items.json の
+// spritePath(PokeAPI固有のスラッグ)には依存しない(spritePathが存在しないアイテムにも
+// 別ソースからアイコンを追加できるようにするため)。ファイルが存在しない場合の判定は
+// 呼び出し側の<img>のonerrorに委ねる(事前のexistsチェックは行わない)。
+export function itemIconUrl(itemName: string): string {
+  return `/item-icons/${encodeURIComponent(itemName)}.png`;
 }
 
 // 和名タイプ名から通常タイプバッジ画像URLを返す。未知の型名なら null。

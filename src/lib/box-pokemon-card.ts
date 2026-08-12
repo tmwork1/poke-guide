@@ -4,7 +4,7 @@ import {
 	loadMoveTypeMap,
 	officialArtworkUrl,
 } from "./pokemon-master-data";
-import { itemIconUrl, loadItemSpriteMap, typeIconUrl } from "./sprite-urls";
+import { itemIconUrl, typeIconUrl } from "./sprite-urls";
 import { NATURE_STAT_MODIFIERS, STAT_KEYS, calcHpStat, calcOtherStat } from "./stats";
 
 // このカードは /box と team編成タブで共有している。片方だけ直すと表示が食い違うので、
@@ -55,7 +55,6 @@ const STAT_LABELS = ["H", "A", "B", "C", "D", "S"] as const;
 const imageIdMapPromise = loadImageIdMap();
 const baseStatsMapPromise = loadBaseStatsMap();
 const moveTypeMapPromise = loadMoveTypeMap();
-const itemSpriteMapPromise = loadItemSpriteMap();
 
 // nickname・species_nameのどちらも空(自動登録直後の空個体)の場合、カード見出しが
 // 空文字にならないよう "(未設定)" にフォールバックする。両画面の並べ替え・検索・確認
@@ -75,16 +74,11 @@ async function applyCardArtwork(imgEl: HTMLImageElement, name: string): Promise<
 	imgEl.src = officialArtworkUrl(imageId);
 }
 
-// 公式絵に重ねる持ち物バッジ。sprite相対パスが解決できない/画像読み込みに失敗した場合は
-// バッジごと隠す(box/[id].astroのapplyItemImageと同様、テキストのフォールバックは持たせない)。
-async function applyItemBadge(imgEl: HTMLImageElement, badgeEl: HTMLElement, itemName: string): Promise<void> {
+// 公式絵に重ねる持ち物バッジ。アイテム名が空/画像読み込みに失敗した場合はバッジごと隠す
+// (box/[id].astroのapplyItemImageと同様、テキストのフォールバックは持たせない)。
+function applyItemBadge(imgEl: HTMLImageElement, badgeEl: HTMLElement, itemName: string): void {
 	const name = itemName.trim();
 	if (!name) {
-		badgeEl.hidden = true;
-		return;
-	}
-	const spritePath = (await itemSpriteMapPromise).get(name);
-	if (!spritePath) {
 		badgeEl.hidden = true;
 		return;
 	}
@@ -94,7 +88,7 @@ async function applyItemBadge(imgEl: HTMLImageElement, badgeEl: HTMLElement, ite
 	imgEl.onload = () => {
 		badgeEl.hidden = false;
 	};
-	imgEl.src = itemIconUrl(spritePath);
+	imgEl.src = itemIconUrl(name);
 }
 
 // 実数値DOMは持たないが、title用の計算結果はデータとして維持する。

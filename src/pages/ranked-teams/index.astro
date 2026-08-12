@@ -104,7 +104,6 @@ const defaultSeason = resolveDefaultSeason(seasons);
     import type { RankedTeam } from '../../lib/ranked-teams';
     import { matchesBuildSearch, matchesSpeciesSearch, RANKED_TEAMS_PAGE_SIZE } from '../../lib/ranked-teams-validation';
     import { loadImageIdMap, loadMoveTypeMap } from '../../lib/pokemon-master-data';
-    import { loadItemSpriteMap } from '../../lib/sprite-urls';
     import { renderRankedTeamCard } from '../../lib/ranked-teams/card';
 
     interface RankedTeamsResponse { season: string; teams: RankedTeam[]; }
@@ -121,7 +120,7 @@ const defaultSeason = resolveDefaultSeason(seasons);
       const buildSearch = document.querySelector<HTMLInputElement>('#ranked-team-build-search')!;
       const seasonSelect = document.querySelector<HTMLSelectElement>('#ranked-team-season')!;
       const cache = new Map<string, RankedTeam[]>();
-      const [imageIdMap, itemSpriteMap, moveTypeMap] = await Promise.all([loadImageIdMap(), loadItemSpriteMap(), loadMoveTypeMap()]);
+      const [imageIdMap, moveTypeMap] = await Promise.all([loadImageIdMap(), loadMoveTypeMap()]);
       let visibleCount = RANKED_TEAMS_PAGE_SIZE;
       let currentTeams: RankedTeam[] = [];
       let debounceTimer: ReturnType<typeof setTimeout> | undefined;
@@ -136,7 +135,7 @@ const defaultSeason = resolveDefaultSeason(seasons);
       function render(): void {
         const filtered = filteredTeams();
         const visible = filtered.slice(0, visibleCount);
-        cards.replaceChildren(...visible.map((team) => renderRankedTeamCard(team, imageIdMap, itemSpriteMap, moveTypeMap)));
+        cards.replaceChildren(...visible.map((team) => renderRankedTeamCard(team, imageIdMap, moveTypeMap)));
         count.textContent = `${filtered.length}件`;
         count.hidden = false;
         empty.hidden = filtered.length !== 0;

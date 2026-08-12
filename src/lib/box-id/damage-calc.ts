@@ -2511,8 +2511,9 @@ if (opponentNotesSection) {
 		typeBadge.append(typeBadgeImg, typeBadgeFallback);
 		const itemBadge = document.createElement("span");
 		itemBadge.className = "damage-item-badge";
-		// applyItemImage()は非同期なので、既定は非表示にしておく
-		// (持ち物なしの相手で空バッジ・壊れ画像アイコンが一瞬でも出ないようにする)。
+		// applyItemImage()は画像読み込み(onload/onerror)を待って表示を切り替えるので、
+		// 既定は非表示にしておく(持ち物なしの相手で空バッジ・壊れ画像アイコンが
+		// 一瞬でも出ないようにする)。
 		itemBadge.hidden = true;
 		const itemImg = document.createElement("img");
 		itemImg.className = "damage-item-image";
