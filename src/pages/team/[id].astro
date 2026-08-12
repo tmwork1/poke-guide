@@ -104,7 +104,7 @@ const initialTeamJson = team
 				<button type="button" class="second-bar__item" data-mobile-tab="pokemon" data-active="true" aria-current="page"><span>ポケモン</span></button>
 				<button type="button" class="second-bar__item" data-mobile-tab="formation"><span>編成</span></button>
 				<span class="second-bar__item is-disabled" aria-disabled="true"><span>データ</span></span>
-				<span class="second-bar__item is-disabled" aria-disabled="true"><span>相性</span></span>
+				<button type="button" class="second-bar__item" data-mobile-tab="matchup"><span>相性</span></button>
 			</div>
 		</nav>
 	)}
@@ -1028,6 +1028,35 @@ const initialTeamJson = team
 								<span class="add-card-tile-icon" aria-hidden="true">＋</span>
 								<span class="add-card-tile-label">個体を追加</span>
 							</button>
+						</div>
+					</div>
+				</section>
+				<section id="team-matchup-mobile" class="floating-list-page" aria-label="チーム相性">
+					<div class="team-formation-mobile__mates" aria-label="チームメイト">
+						<div id="team-matchup-mobile-slots" class="team-formation-mobile__slot-grid"></div>
+					</div>
+					<div class="team-matchup-mobile__results">
+						<p id="team-matchup-mobile-status" class="team-matchup-status" hidden></p>
+						<ul id="team-matchup-mobile-list" class="team-matchup-list"></ul>
+					</div>
+					<div class="team-matchup-mobile__direction">
+						<div class="team-matchup-direction-toggle" role="radiogroup" aria-label="相性チェックの方向">
+							<button
+								id="matchup-mobile-direction-attack"
+								class="team-matchup-direction-option"
+								type="button"
+								role="radio"
+								data-role="attack"
+								aria-checked="true"
+							>攻撃</button>
+							<button
+								id="matchup-mobile-direction-defense"
+								class="team-matchup-direction-option"
+								type="button"
+								role="radio"
+								data-role="defense"
+								aria-checked="false"
+							>防御</button>
 						</div>
 					</div>
 				</section>
@@ -2338,6 +2367,7 @@ const initialTeamJson = team
 			ownedPokemonDisplayName as displayName,
 			renderBoxPokemonCard,
 		} from "../../lib/box-pokemon-card";
+		import { renderTeamMateSlots } from "../../lib/team-mate-card";
 		import { kanaIncludes } from "../../lib/kana";
 		// 🔴 UI改修依頼(チーム編集画面 右パネル、2026-08-01)「右パネルには登録されている
 		// ダメージ計算の圧縮版を表示する」。表示ロジックは純粋関数として切り出してある
@@ -2442,7 +2472,9 @@ const initialTeamJson = team
 		const layoutRoot = document.getElementById("team-edit-layout");
 		if (layoutRoot) {
 			const mobileTabButtons = Array.from(document.querySelectorAll<HTMLButtonElement>(".second-bar [data-mobile-tab]"));
-			const setMobileTab = (tab: "pokemon" | "formation") => {
+			type MobileTab = "pokemon" | "formation" | "matchup";
+			const setMobileTab = (tab: MobileTab) => {
+				const tabChanged = layoutRoot.dataset.mobileTab !== tab;
 				layoutRoot.dataset.mobileTab = tab;
 				for (const button of mobileTabButtons) {
 					const active = button.dataset.mobileTab === tab;
@@ -2450,10 +2482,21 @@ const initialTeamJson = team
 					if (active) button.setAttribute("aria-current", "page");
 					else button.removeAttribute("aria-current");
 				}
+				if (tab === "matchup" && tabChanged) {
+					// 初期URLの適用は相性DOM参照の初期化より前に行われるため、計算開始だけを
+					// 現在の同期スクリプトの完了後へ送る。クリック時も同じ経路で即座に開始する。
+					queueMicrotask(() => {
+						if (layoutRoot.dataset.mobileTab === "matchup") void runMatchup();
+					});
+				}
 			};
-			setMobileTab(new URLSearchParams(window.location.search).get("tab") === "formation" ? "formation" : "pokemon");
+			const requestedMobileTab = new URLSearchParams(window.location.search).get("tab");
+			setMobileTab(requestedMobileTab === "formation" || requestedMobileTab === "matchup" ? requestedMobileTab : "pokemon");
 			for (const button of mobileTabButtons) {
-				button.addEventListener("click", () => setMobileTab(button.dataset.mobileTab === "formation" ? "formation" : "pokemon"));
+				button.addEventListener("click", () => {
+					const tab = button.dataset.mobileTab;
+					setMobileTab(tab === "formation" || tab === "matchup" ? tab : "pokemon");
+				});
 			}
 			const teamId = layoutRoot.dataset.teamId as string;
 			const initialTeam: InitialTeam = JSON.parse(layoutRoot.dataset.initialTeam || "{}");
@@ -3411,6 +3454,11 @@ const initialTeamJson = team
 			const matchupListEl = el<HTMLElement>("team-matchup-list");
 			const matchupAttackButton = el<HTMLButtonElement>("matchup-direction-attack");
 			const matchupDefenseButton = el<HTMLButtonElement>("matchup-direction-defense");
+			const matchupMobileSlotsRoot = el<HTMLElement>("team-matchup-mobile-slots");
+			const matchupMobileStatusEl = el<HTMLElement>("team-matchup-mobile-status");
+			const matchupMobileListEl = el<HTMLElement>("team-matchup-mobile-list");
+			const matchupMobileAttackButton = el<HTMLButtonElement>("matchup-mobile-direction-attack");
+			const matchupMobileDefenseButton = el<HTMLButtonElement>("matchup-mobile-direction-defense");
 			const matchupCheckButton = el<HTMLButtonElement>("matchup-check-button");
 
 			let matchupDirection: MatchupDirection = "attack";
@@ -3432,13 +3480,19 @@ const initialTeamJson = team
 			let selectedMatchupTargetIndex: number | null = null;
 
 			function setMatchupStatus(message: string | null): void {
-				if (message === null) {
-					matchupStatusEl.hidden = true;
-					matchupStatusEl.textContent = "";
-					return;
+				for (const statusEl of [matchupStatusEl, matchupMobileStatusEl]) {
+					if (message === null) {
+						statusEl.hidden = true;
+						statusEl.textContent = "";
+					} else {
+						statusEl.textContent = message;
+						statusEl.hidden = false;
+					}
 				}
-				matchupStatusEl.textContent = message;
-				matchupStatusEl.hidden = false;
+			}
+
+			function clearMatchupLists(): void {
+				for (const listRoot of [matchupListEl, matchupMobileListEl]) listRoot.innerHTML = "";
 			}
 
 			// 相性チェックの対象になるチームメンバー(種族名が入っているものだけ)。
@@ -3510,11 +3564,15 @@ const initialTeamJson = team
 			 */
 			function clearMatchupMemberHighlights(): void {
 				selectedMatchupTargetIndex = null;
-				for (const card of matchupListEl.querySelectorAll(".team-matchup-card")) {
-					card.classList.remove("is-selected");
+				for (const listRoot of [matchupListEl, matchupMobileListEl]) {
+					for (const card of listRoot.querySelectorAll(".team-matchup-card")) {
+						card.classList.remove("is-selected");
+					}
 				}
-				for (const card of slotsRoot.querySelectorAll(".card-team-slot")) {
-					card.classList.remove("is-disadvantaged");
+				for (const slotRoot of [slotsRoot, matchupMobileSlotsRoot]) {
+					for (const card of slotRoot.querySelectorAll("[data-slot]")) {
+						card.classList.remove("is-disadvantaged");
+					}
 				}
 			}
 
@@ -3525,7 +3583,7 @@ const initialTeamJson = team
 				typesMap: Map<string, string[]>,
 				isAttackMove: (moveName: string) => boolean,
 			): void {
-				matchupListEl.innerHTML = "";
+				clearMatchupLists();
 				clearMatchupMemberHighlights();
 				const scored = scores
 					? scoreToOpacities(
@@ -3534,7 +3592,8 @@ const initialTeamJson = team
 						)
 					: targets.map((t) => ({ item: t, score: null as number | null, opacity: null as number | null }));
 
-				for (const [targetIndex, entry] of scored.entries()) {
+				function createMatchupCard(targetIndex: number): HTMLLIElement {
+					const entry = scored[targetIndex];
 					const target = entry.item;
 					const card = document.createElement("li");
 					card.className = "team-matchup-card";
@@ -3589,11 +3648,19 @@ const initialTeamJson = team
 							);
 							for (const [slot, member] of membersBySlot) {
 								if (!disadvantagedIds.has(member.id)) continue;
-								slotsRoot.querySelector<HTMLElement>(`.card-team-slot[data-slot="${slot}"]`)?.classList.add("is-disadvantaged");
+								for (const slotRoot of [slotsRoot, matchupMobileSlotsRoot]) {
+									slotRoot.querySelector<HTMLElement>(`[data-slot="${slot}"]`)?.classList.add("is-disadvantaged");
+								}
 							}
 						});
 					}
-					matchupListEl.appendChild(card);
+					return card;
+				}
+
+				for (const listRoot of [matchupListEl, matchupMobileListEl]) {
+					for (let targetIndex = 0; targetIndex < scored.length; targetIndex += 1) {
+						listRoot.appendChild(createMatchupCard(targetIndex));
+					}
 				}
 			}
 
@@ -3651,14 +3718,14 @@ const initialTeamJson = team
 				} catch (err) {
 					console.error(err);
 					if (requestId !== matchupRequestId) return;
-					matchupListEl.innerHTML = "";
+					clearMatchupLists();
 					setMatchupStatus("上位ポケモンの一覧を読み込めませんでした。");
 					return;
 				}
 				if (requestId !== matchupRequestId) return;
 
 				if (targets.length === 0) {
-					matchupListEl.innerHTML = "";
+					clearMatchupLists();
 					setMatchupStatus("集計データがまだありません。");
 					return;
 				}
@@ -3773,7 +3840,7 @@ const initialTeamJson = team
 
 			// 編成が変わったら計算し直す。サジェスト(scheduleSuggestions)と同じ700msのデバウンス。
 			function scheduleMatchup(): void {
-				if (!matchupActive) return;
+				if (!matchupActive && layoutRoot.dataset.mobileTab !== "matchup") return;
 				window.clearTimeout(matchupTimer);
 				matchupTimer = window.setTimeout(() => {
 					void runMatchup();
@@ -3783,8 +3850,12 @@ const initialTeamJson = team
 			function setMatchupDirection(direction: MatchupDirection): void {
 				if (matchupDirection === direction) return;
 				matchupDirection = direction;
-				matchupAttackButton.setAttribute("aria-checked", direction === "attack" ? "true" : "false");
-				matchupDefenseButton.setAttribute("aria-checked", direction === "defense" ? "true" : "false");
+				for (const button of [matchupAttackButton, matchupMobileAttackButton]) {
+					button.setAttribute("aria-checked", direction === "attack" ? "true" : "false");
+				}
+				for (const button of [matchupDefenseButton, matchupMobileDefenseButton]) {
+					button.setAttribute("aria-checked", direction === "defense" ? "true" : "false");
+				}
 				void runMatchup();
 			}
 
@@ -3822,6 +3893,8 @@ const initialTeamJson = team
 			matchupCheckButton.addEventListener("click", () => setMatchupMode(!matchupActive));
 			matchupAttackButton.addEventListener("click", () => setMatchupDirection("attack"));
 			matchupDefenseButton.addEventListener("click", () => setMatchupDirection("defense"));
+			matchupMobileAttackButton.addEventListener("click", () => setMatchupDirection("attack"));
+			matchupMobileDefenseButton.addEventListener("click", () => setMatchupDirection("defense"));
 
 			// UI改修依頼(チーム編集左パネル)「ダブルクリックとドラッグアンドドロップでチームに
 			// 設定できるように」。クリック単体での追加(旧仕様)はプレビュー表示に譲り、実際の
@@ -4302,48 +4375,25 @@ const initialTeamJson = team
 			}
 
 			function renderFormationMobile(): void {
-				formationMobileSlotsRoot.innerHTML = "";
-				for (let slot = 1; slot <= 6; slot += 1) {
-					const member = membersBySlot.get(slot);
-					const card = document.createElement("button");
-					card.type = "button";
-					card.className = "team-mate-card";
-					card.dataset.slot = String(slot);
-					card.setAttribute("aria-pressed", String(selectedFormationSlot === slot));
-					if (selectedFormationSlot === slot) card.classList.add("is-selected");
-					card.addEventListener("click", () => {
+				renderTeamMateSlots({
+					root: formationMobileSlotsRoot,
+					membersBySlot,
+					displayName,
+					selectedSlot: selectedFormationSlot,
+					onSlotClick: (slot) => {
 						selectedFormationSlot = selectedFormationSlot === slot ? null : slot;
 						renderFormationMobile();
-					});
-
-					if (!member) {
-						card.classList.add("team-mate-card--empty");
-						card.setAttribute("aria-label", `${slot}番目の空き枠を選択`);
-						card.textContent = String(slot);
-					} else {
-						card.setAttribute("aria-label", `${displayName(member)}、${slot}番目の枠を選択`);
-						const sprite = document.createElement("img");
-						sprite.className = "team-mate-card__art";
-						sprite.alt = "";
-						sprite.style.display = "none";
-						const fallback = document.createElement("span");
-						fallback.className = "team-mate-card__fallback";
-						card.append(sprite, fallback);
-						void applySprite(sprite, fallback, member.species_name);
-						const itemName = member.item_name?.trim() ?? "";
-						if (itemName) {
-							const item = document.createElement("span");
-							item.className = "team-mate-card__item";
-							const itemImg = document.createElement("img");
-							itemImg.alt = "";
-							itemImg.style.display = "none";
-							item.appendChild(itemImg);
-							card.appendChild(item);
-							void applyItemIcon(itemImg, itemName, item);
-						}
-					}
-					formationMobileSlotsRoot.appendChild(card);
-				}
+					},
+					applySprite,
+					applyItemIcon,
+				});
+				renderTeamMateSlots({
+					root: matchupMobileSlotsRoot,
+					membersBySlot,
+					displayName,
+					applySprite,
+					applyItemIcon,
+				});
 
 				formationMobileBoxGrid.replaceChildren(formationMobileAddButton);
 				const term = formationMobileSearchInput.value.trim();

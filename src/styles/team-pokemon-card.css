@@ -374,6 +374,16 @@
 	outline: 2px solid var(--color-primary);
 	outline-offset: -2px;
 }
+.team-mate-card--readonly {
+	cursor: default;
+}
+.team-mate-card--readonly:hover {
+	border-color: var(--color-border);
+	outline: none;
+}
+.team-mate-card.is-disadvantaged {
+	background: color-mix(in srgb, var(--color-surface) 80%, var(--color-risky-strong) 20%);
+}
 .team-mate-card--empty {
 	border-style: dashed;
 	color: var(--color-text-muted);
