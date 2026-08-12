@@ -4,17 +4,9 @@ export const prerender = false;
 import AppLayout from '../../layouts/AppLayout.astro';
 import MobileTrainingBar from '../../components/box-id/MobileTrainingBar.astro';
 import { getOwnedPokemon } from '../../lib/owned-pokemon';
-import { getSupabaseAdminClient, getSupabasePublicClient } from '../../lib/supabase';
-import {
-  listRankedSeasons,
-  listRankedTeamsBySeason,
-  type RankedTeam,
-} from '../../lib/ranked-teams';
-import { resolveDefaultSeason } from '../../lib/ranked-teams-validation';
-import { calculateBuildSimilarity } from '../../lib/build-similarity';
+import { getSupabaseAdminClient } from '../../lib/supabase';
+import seasonManifest from '../../../data/opgg-champions-usage/seasons.json';
 import '../../styles/data-page.css';
-import '../../styles/box-card.css';
-import '../../styles/ranked-team-card.css';
 
 const user = Astro.locals.user;
 const selectedId = Astro.url.searchParams.get('pokemon');
@@ -22,69 +14,168 @@ const result = user && selectedId
   ? await getOwnedPokemon(user.id, selectedId, await getSupabaseAdminClient())
   : null;
 const pokemon = result?.ok ? result.data : null;
+const dataFiles = import.meta.glob('../../../data/opgg-champions-usage/seasons/*/*.json', {
+  eager: true,
+  import: 'default',
+});
+const manifestSeasons = [...(seasonManifest.seasons ?? [])].sort((a, b) => {
+  const currentSeasonId = seasonManifest.currentSeasonId;
+  const aIsCurrent = a.isCurrent || a.id === currentSeasonId;
+  const bIsCurrent = b.isCurrent || b.id === currentSeasonId;
+  if (aIsCurrent && !bIsCurrent) return -1;
+  if (bIsCurrent && !aIsCurrent) return 1;
+  return String(b.fetchedAt ?? '').localeCompare(String(a.fetchedAt ?? ''));
+});
+const hasSingleBattleData = (value: any) => {
+  const single = value?.formats?.single;
+  return Boolean(
+    single &&
+      ['abilities', 'natures', 'items', 'moves', 'evs', 'teammates'].some(
+        (key) => Array.isArray(single[key]) && single[key].length,
+      ),
+  );
+};
+const seasons = pokemon
+  ? manifestSeasons.filter((entry) =>
+      Object.entries(dataFiles).some(
+        ([path, value]: any) =>
+          path.includes(`/${entry.directory}/`) &&
+          value?.name === pokemon.species_name &&
+          hasSingleBattleData(value),
+      ),
+    )
+  : [];
+const requestedSeason = Astro.url.searchParams.get('season');
+const seasonIds = seasons.map((entry) => entry.id);
+const season = seasonIds.includes(requestedSeason ?? '') ? requestedSeason! : seasons[0]?.id ?? null;
 
-let similarTeams: Array<RankedTeam & { similarity: number }> = [];
-let similarBuildsError = '';
-if (pokemon) {
-  try {
-    const supabasePublic = await getSupabasePublicClient();
-    const seasons = await listRankedSeasons(supabasePublic);
-    const season = resolveDefaultSeason(seasons);
-    if (season) {
-      const teams = await listRankedTeamsBySeason(season, supabasePublic);
-      similarTeams = teams
-        .flatMap((team) => {
-          const member = team.members.find((m) => m.speciesName === pokemon.species_name);
-          if (!member) return [];
-          return [{ ...team, similarity: calculateBuildSimilarity(pokemon, member) }];
-        })
-        .sort((a, b) => b.similarity - a.similarity || a.rank - b.rank);
-    }
-  } catch (error) {
-    console.error('[box/data] 類似構築の取得に失敗しました:', error);
-    similarBuildsError = '類似構築を読み込めませんでした。';
-  }
+// Keep SSR output, the selected option and the shared URL in agreement.  A
+// manifest season without this Pokemon's battle payload must not stay in the URL.
+if (pokemon && requestedSeason && season && requestedSeason !== season) {
+  return Astro.redirect(`/box/data?pokemon=${encodeURIComponent(selectedId!)}&season=${encodeURIComponent(season)}`);
 }
+
+const seasonDirectory = seasons.find((entry) => entry.id === season)?.directory;
+const opgg = pokemon && seasonDirectory
+  ? (Object.entries(dataFiles).find(
+      ([path, value]: any) =>
+        path.includes(`/${seasonDirectory}/`) && value?.name === pokemon.species_name,
+    )?.[1] as any)
+  : null;
+const single = opgg?.formats?.single;
+const hasData = hasSingleBattleData(opgg);
+const ranked = (
+  rows: Array<{ rank: number; name: string; usageRate: number | null }> | undefined,
+  teammate = false,
+) =>
+  rows?.slice(0, 4).map((row) =>
+    `${row.rank}. ${row.name} — ${teammate || row.usageRate === null ? '使用率非公開' : `${row.usageRate}%`}`,
+  ).join('\n') || 'データなし';
+const evRanked = (
+  rows: Array<{ rank: number; usageRate: number; values: Record<string, number> }> | undefined,
+) =>
+  rows?.slice(0, 4).map((row) =>
+    `${row.rank}. H${row.values.hp}/A${row.values.attack}/B${row.values.defense}/C${row.values.specialAttack}/D${row.values.specialDefense}/S${row.values.speed} — ${row.usageRate}%`,
+  ).join('\n') || 'データなし';
 ---
 
-<AppLayout title="類似構築" description="育成内容が近いランク入り構築" current="box" hideTopbar={true}>
+<AppLayout title="データ" description="OP.GG使用率データ" current="box" hideTopbar={true}>
   <div class="page box-data-page">
     {pokemon ? (
       <MobileTrainingBar pokemon={pokemon} activeTab="data" />
     ) : (
       <section class="pokemon-data-preview" aria-labelledby="data-preview-title">
-        <p class="data-kicker">類似構築</p>
+        <p class="data-kicker">育成データレビュー</p>
         <h1 id="data-preview-title">ポケモンを選択してください</h1>
-        <p>ボックス詳細画面の「類似構築」から、選択中のポケモンに近い上位構築を確認できます。</p>
+        <p>ボックス詳細画面の「データ」から、選択中のポケモンの使用率を確認できます。</p>
         <a class="btn-ghost" href="/box">ボックスを開く</a>
       </section>
     )}
 
     {pokemon && (
       <main class="box-data-main">
-        <section id="similar-builds-panel" class="data-panel" aria-label="類似構築">
-          <h2>類似構築</h2>
-          {similarBuildsError ? (
-            <p class="data-pending" role="alert">{similarBuildsError}</p>
-          ) : similarTeams.length === 0 ? (
-            <p class="data-pending">類似する上位構築がありません。</p>
-          ) : (
-            <div id="similar-builds-cards" class="ranked-team-cards" data-teams={JSON.stringify(similarTeams)}></div>
+        <div class="data-view-controls" role="tablist" aria-label="データ表示">
+          <button id="battle-data-tab" type="button" role="tab" aria-selected="true">
+            バトルデータ
+          </button>
+          <button id="ranked-data-tab" type="button" role="tab" aria-selected="false">
+            上位構築
+          </button>
+          {seasons.length > 0 && (
+            <button
+              class="data-season-unavailable"
+              type="button"
+              disabled
+              title="シーズンを読み込み中"
+            >
+              シーズン
+            </button>
           )}
+        </div>
+
+        <section id="battle-data-panel" class="data-panel" role="tabpanel" aria-labelledby="battle-data-tab">
+          {hasData ? (
+            <>
+              <h2 id="trend-title">トレンド</h2>
+              <div class="trend-detail-card">
+                <div class="trend-detail-cell"><span>特性</span><strong>{ranked(single?.abilities)}</strong></div>
+                <div class="trend-detail-cell"><span>性格</span><strong>{ranked(single?.natures)}</strong></div>
+                <div class="trend-detail-cell"><span>アイテム</span><strong>{ranked(single?.items)}</strong></div>
+                <div class="trend-detail-cell"><span>わざ</span><strong>{ranked(single?.moves)}</strong></div>
+                <div class="trend-detail-cell"><span>努力値</span><strong>{evRanked(single?.evs)}</strong></div>
+                <div class="trend-detail-cell"><span>同時採用ポケモン</span><strong>{ranked(single?.teammates, true)}</strong></div>
+              </div>
+            </>
+          ) : (
+            <section class="data-empty" aria-live="polite">
+              <h2>バトルデータなし</h2>
+              <p>このポケモンのシングルバトルデータはまだありません。</p>
+            </section>
+          )}
+        </section>
+
+        <section id="ranked-data-panel" class="data-panel data-pending" role="tabpanel" aria-labelledby="ranked-data-tab" hidden>
+          <h2>上位構築</h2>
+          <p>上位構築データは準備中です。</p>
         </section>
       </main>
     )}
   </div>
 </AppLayout>
 
-<script>
-  import { renderTopBuildCard } from '../../lib/ranked-teams/card';
-
-  const root = document.querySelector<HTMLElement>('#similar-builds-cards');
-  if (root) {
-    const teams = JSON.parse(root.dataset.teams ?? '[]');
-    for (const team of teams) {
-      root.appendChild(renderTopBuildCard(team));
+<script define:vars={{ seasons, season, selectedId }}>
+  const unavailable = document.querySelector('.data-season-unavailable');
+  if (unavailable && seasons.length) {
+    const select = document.createElement('select');
+    select.className = 'data-season-select';
+    for (const entry of seasons) {
+      select.add(new Option(entry.label ?? entry.id, entry.id, entry.id === season, entry.id === season));
     }
+    select.addEventListener('change', () => {
+      const params = new URLSearchParams();
+      if (selectedId) params.set('pokemon', selectedId);
+      params.set('season', select.value);
+      window.location.search = params.toString();
+    });
+    unavailable.replaceWith(select);
   }
+</script>
+
+<script>
+  const battleTab = document.querySelector<HTMLButtonElement>('#battle-data-tab');
+  const rankedTab = document.querySelector<HTMLButtonElement>('#ranked-data-tab');
+  const battlePanel = document.querySelector<HTMLElement>('#battle-data-panel');
+  const rankedPanel = document.querySelector<HTMLElement>('#ranked-data-panel');
+  battleTab?.addEventListener('click', () => {
+    battleTab.setAttribute('aria-selected', 'true');
+    rankedTab?.setAttribute('aria-selected', 'false');
+    if (battlePanel) battlePanel.hidden = false;
+    if (rankedPanel) rankedPanel.hidden = true;
+  });
+  rankedTab?.addEventListener('click', () => {
+    rankedTab.setAttribute('aria-selected', 'true');
+    battleTab?.setAttribute('aria-selected', 'false');
+    if (rankedPanel) rankedPanel.hidden = false;
+    if (battlePanel) battlePanel.hidden = true;
+  });
 </script>

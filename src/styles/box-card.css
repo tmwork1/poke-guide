@@ -122,16 +122,6 @@
   text-align: start;
   color: inherit;
 }
-.box-grid .card-team-empty-slot {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px dashed var(--color-border);
-  color: var(--color-text-muted);
-}
-.box-grid .team-slot-number {
-  font-size: var(--font-size-lg1);
-}
 .box-grid .box-card:hover,
 .box-grid .box-card:focus-within {
   /* global.css の button:hover:not(:disabled) は .card:hover より詳細度が高い。
