@@ -17,6 +17,45 @@ export interface RenderTeamMemberGridOptions<M> {
 	toCardContent: (member: M, slot: number) => TeamMemberCardContent;
 }
 
+export interface TeamCardBadgeContent {
+	className: string;
+	text: string;
+	title?: string;
+}
+
+export interface TeamCardMemoContent {
+	text?: string;
+	title?: string;
+	ariaLabel?: string;
+}
+
+export type TeamCardCornerAction =
+	| {
+			type: "pin";
+			isPinned: boolean;
+			label: string;
+			onToggle: () => void | Promise<void>;
+	  }
+	| {
+			type: "link";
+			href: string;
+			label: string;
+			title?: string;
+			content: Node;
+	  };
+
+export interface RenderTeamCardOptions<M> extends RenderTeamMemberGridOptions<M> {
+	href?: string;
+	ariaLabel?: string;
+	name: string;
+	nameTitle?: string;
+	cornerAction?: TeamCardCornerAction;
+	onDelete?: () => void | Promise<void>;
+	/** 指定時は空でも要素を作る。非表示要素をDOMに残す /team の既存仕様を保つため。 */
+	memo?: TeamCardMemoContent;
+	badges?: readonly TeamCardBadgeContent[];
+}
+
 /** チームカード(team/index.astro)と上位構築カード(ranked-teams/card.ts)で共有する6枠メンバーグリッド。 */
 export function renderTeamMemberGrid<M>(root: HTMLElement, options: RenderTeamMemberGridOptions<M>): void {
 	root.className = "box-grid";
@@ -40,4 +79,96 @@ export function renderTeamMemberGrid<M>(root: HTMLElement, options: RenderTeamMe
 		renderBoxPokemonCard({ root: cardRoot, ...content });
 		root.appendChild(cardRoot);
 	}
+}
+
+/**
+ * チーム一覧と類似構築で共有する、ヘッダ帯から6枠までを含むカード本体。
+ * href があるカードだけリンクにし、類似構築は記事リンクを内包できる article にする。
+ */
+export function renderTeamCard<M>(options: RenderTeamCardOptions<M>): HTMLElement {
+	const card = document.createElement(options.href === undefined ? "article" : "a");
+	card.className = "card-team";
+	if (options.href !== undefined) (card as HTMLAnchorElement).href = options.href;
+	if (options.ariaLabel !== undefined) card.setAttribute("aria-label", options.ariaLabel);
+
+	// 重なり順も既存DOMの一部なので、右上アクション → 削除 → メタ行の順を維持する。
+	if (options.cornerAction?.type === "pin") {
+		const action = options.cornerAction;
+		const pinButton = document.createElement("button");
+		pinButton.type = "button";
+		pinButton.className = "card-team-pin";
+		pinButton.dataset.pinned = String(action.isPinned);
+		const pinStar = document.createElement("span");
+		pinStar.className = "favorite-star-glyph";
+		pinStar.setAttribute("aria-hidden", "true");
+		pinButton.appendChild(pinStar);
+		pinButton.title = action.label;
+		pinButton.setAttribute("aria-label", action.label);
+		pinButton.addEventListener("click", (event) => {
+			event.preventDefault();
+			event.stopPropagation();
+			void action.onToggle();
+		});
+		card.appendChild(pinButton);
+	} else if (options.cornerAction?.type === "link") {
+		const action = options.cornerAction;
+		const link = document.createElement("a");
+		link.className = "card-team-article-link";
+		link.href = action.href;
+		link.target = "_blank";
+		link.rel = "noopener noreferrer";
+		link.title = action.title ?? action.label;
+		link.setAttribute("aria-label", action.label);
+		link.appendChild(action.content);
+		card.appendChild(link);
+	}
+
+	if (options.onDelete) {
+		const deleteButton = document.createElement("button");
+		deleteButton.type = "button";
+		deleteButton.className = "card-team-delete";
+		// 全画面で使う×アイコンと同じSVG。非表示でもDOMは従来どおり残す。
+		deleteButton.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+		deleteButton.title = "削除";
+		deleteButton.setAttribute("aria-label", "削除");
+		deleteButton.addEventListener("click", (event) => {
+			event.preventDefault();
+			event.stopPropagation();
+			void options.onDelete?.();
+		});
+		card.appendChild(deleteButton);
+	}
+
+	const metaRow = document.createElement("div");
+	metaRow.className = "card-team-meta-row";
+	if (options.memo !== undefined) {
+		const memo = document.createElement("p");
+		memo.className = "card-team-memo";
+		if (options.memo.text !== undefined) memo.textContent = options.memo.text;
+		if (options.memo.title !== undefined) memo.title = options.memo.title;
+		if (options.memo.ariaLabel !== undefined) memo.setAttribute("aria-label", options.memo.ariaLabel);
+		metaRow.appendChild(memo);
+	}
+	for (const badgeContent of options.badges ?? []) {
+		const badge = document.createElement("span");
+		badge.className = badgeContent.className;
+		badge.textContent = badgeContent.text;
+		if (badgeContent.title !== undefined) badge.title = badgeContent.title;
+		metaRow.appendChild(badge);
+	}
+	card.appendChild(metaRow);
+
+	const header = document.createElement("div");
+	header.className = "card-team-header";
+	const name = document.createElement("p");
+	name.className = "card-team-name";
+	name.textContent = options.name;
+	name.title = options.nameTitle ?? options.name;
+	header.appendChild(name);
+	card.appendChild(header);
+
+	const memberGrid = document.createElement("div");
+	renderTeamMemberGrid(memberGrid, options);
+	card.appendChild(memberGrid);
+	return card;
 }

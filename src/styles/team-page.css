@@ -1,5 +1,7 @@
-/* /team 一覧。モバイルのチームカードと、/box と揃えた下部操作。 */
-@import "./box-card.css";
+/* /team 一覧。ページ固有の外枠と、/box と揃えた下部操作。
+   チームカード本体(.team-grid > .card-team)のスタイルは /team/[id] の「類似構築」タブと
+   共有するため src/styles/team-card.css に集約してある(このファイルには置かない)。 */
+@import "./team-card.css";
 @import "./floating-list-controls.css";
 
 .team-shell {
@@ -10,94 +12,8 @@
   padding: var(--box-grid-edge-gap) var(--box-grid-edge-gap) calc(var(--bottom-nav-height) + 6rem) !important;
 }
 
-.team-grid {
-  display: grid !important;
-  grid-template-columns: minmax(0, 1fr) !important;
-  gap: var(--space-4);
-  margin: 0 !important;
+/* JSがinnerHTMLを差し替えてもカードが .team-grid の直接の子として並ぶようにする
+   (追加タイルは #team-list の外側の兄弟なので再描画で触られない。box/index.astro と同じ戦略)。 */
+#team-list {
+  display: contents;
 }
-
-/* ui/mobile/7.png: ヘッダー + 3 x 2 のメンバー枠。 */
-.team-grid .card-team {
-  --box-card-grid-gap: var(--space-1);
-  gap: var(--box-card-grid-gap) !important;
-  padding: 0 !important;
-  overflow: visible;
-  border: 0 !important;
-  border-radius: 0 !important;
-  background: transparent;
-  box-shadow: none !important;
-}
-
-.team-grid .card-team .card-team-header {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start !important;
-  align-items: center !important;
-  min-height: 38px;
-  padding: var(--space-3) 8rem var(--space-3) var(--space-3) !important;
-  background: var(--color-surface-alt);
-  border-radius: 0;
-  color: inherit;
-  text-decoration: none;
-}
-
-.team-grid .card-team .card-team-name {
-  font-size: var(--font-size-base) !important;
-  font-weight: 600 !important;
-  text-align: left !important;
-  -webkit-line-clamp: 1 !important;
-}
-
-.team-grid .card-team .card-team-meta-row {
-  position: absolute;
-  top: 9px;
-  right: 48px;
-  padding: 0 !important;
-}
-
-.team-grid .card-team .card-team-memo,
-.team-grid .card-team .card-team-count-badge { display: none !important; }
-
-.team-grid .card-team .card-team-regulation-badge {
-  padding: 0.3rem 0.55rem;
-  color: var(--color-text-muted);
-  background: var(--color-surface-alt);
-  border-radius: var(--radius-sm) !important;
-  font-size: var(--font-size-sm3);
-}
-
-.team-grid .card-team .card-team-pin {
-  top: 8px !important;
-  left: auto !important;
-  right: var(--space-2) !important;
-  width: 32px !important;
-  height: 32px !important;
-  padding: 0 !important;
-  align-items: center !important;
-  justify-content: center !important;
-  clip-path: none !important;
-  background: transparent !important;
-  color: var(--color-text-muted);
-  font-size: 1.7rem;
-}
-
-.team-grid .card-team .card-team-pin[data-pinned="true"] {
-  background: transparent !important;
-  color: #f2ce1b !important;
-}
-
-.team-grid .card-team .card-team-delete { display: none !important; }
-
-.team-grid .card-team .card-team-empty-slot {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--color-text-muted);
-  font-size: 1.5rem;
-  font-weight: 700;
-  line-height: 1;
-  user-select: none;
-}
-
-.team-grid .card-team .team-slot-number { opacity: 0.58; }

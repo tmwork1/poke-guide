@@ -1,0 +1,186 @@
+/* ============================================================================
+   チームカード(.team-grid > .card-team)。
+   /team 一覧の1チーム=1カードと、/team/[id] の「類似構築」タブに並ぶ上位構築カードで
+   **同一の見た目**を共有するための唯一の定義元。
+
+   【なぜこのファイルができたか】
+   元は2箇所に分かれていた:
+     (1) src/pages/team/index.astro の <style is:global> ブロック(カード本体・ヘッダ行・
+         メタ行・削除/お気に入りボタンの基底スタイル)
+     (2) src/styles/team-page.css のモバイル用上書き(!important つき)
+   どちらも /team ページにしか読み込まれないため、同じ6枠グリッド(renderTeamMemberGrid、
+   src/lib/team-card.ts)を使う /team/[id] の上位構築カードには一切効かず、
+   カード外枠・ヘッダー・カード間隔が別実装(.card.card-ranked-team +
+   ranked-team-card.css)になっていた。両者を1ファイルに統合し、2段重ねだった
+   基底+上書きを**計算後の実効値1段**に解いたのがこのファイル。
+
+   JSがdocument.createElement()で生成する要素に当てるため、ページのscoped styleでは
+   なくCSSファイル(グローバル)で持つ(pitfalls.md「Astroのscoped styleはJSで生成した
+   要素に効かない」)。セレクタは .team-grid 配下に限定してグローバルへ漏らさない。
+
+   ルート CLAUDE.md「スタイル定義」の要求(画面・コンポーネント固有のスタイルは対象ごとの
+   CSSファイルへ集約する)にも、この統合で合致する。
+   ============================================================================ */
+
+@import "./box-card.css";
+
+/* --- カードのリスト。モバイル1カラム(ui/mobile のチーム一覧)。
+   /team では .team-content.box-content(team-page.css)の左右 --box-grid-edge-gap が
+   外側の余白を、/team/[id] では .team-data-similar-panel(team-data-tab.css)が
+   同じ値の余白を持つ。カード間隔はここの gap(--space-4)だけが決める。 --- */
+.team-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-4);
+  align-items: stretch;
+  margin: 0;
+}
+
+/* --- カード本体。ヘッダ帯 + 6枠グリッドを縦に積むだけの透明な器で、
+   枠線・背景・影は持たない(帯と各枠が自前の背景を持つ)。
+   ヘッダ帯と6枠グリッドの間隔は --box-card-grid-gap(=枠どうしの間隔)に揃え、
+   カード内のリズムを6枠グリッドと一致させる。 --- */
+.team-grid .card-team {
+  --box-card-grid-gap: var(--space-1);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--box-card-grid-gap);
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: inherit;
+  text-decoration: none;
+}
+.team-grid .card-team:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* --- ヘッダ帯: タイトル1行を左寄せで置く。
+   右側の padding 8rem は、絶対配置の .card-team-meta-row(右48px)と
+   右上のアイコンボタン(右8px・32px角)がタイトルに重ならないためのクリアランス。 --- */
+.team-grid .card-team .card-team-header {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  min-height: 38px;
+  padding: var(--space-3) 8rem var(--space-3) var(--space-3);
+  background: var(--color-surface-alt);
+  border-radius: 0;
+  color: inherit;
+  text-decoration: none;
+}
+.team-grid .card-team .card-team-name {
+  width: 100%;
+  margin: 0;
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  line-height: var(--line-height-tight);
+  text-align: left;
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* --- ヘッダ帯の右側に重ねるバッジ列(/team はレギュレーション、
+   類似構築タブは順位とレート)。右上のアイコンボタン(32px角 + 右8px)の
+   左隣に来るよう right: 48px。 --- */
+.team-grid .card-team .card-team-meta-row {
+  position: absolute;
+  top: 9px;
+  right: 48px;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0;
+}
+/* .badge(global.css)を土台に、帯の上で主張しすぎない控えめな見え方へ寄せる。
+   レギュレーション/順位/レートで同じ見た目を使う。 */
+.team-grid .card-team .card-team-regulation-badge,
+.team-grid .card-team .card-team-rank-badge,
+.team-grid .card-team .card-team-rating-badge {
+  flex-shrink: 0;
+  padding: 0.3rem 0.55rem;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-alt);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm3);
+  white-space: nowrap;
+}
+
+/* --- 右上のアイコンスロット(32px角)。/team はお気に入りの星(button)、
+   類似構築タブは構築記事へのリンク(a)。要素種別が違うだけで位置と寸法は同一。 --- */
+.team-grid .card-team .card-team-pin,
+.team-grid .card-team .card-team-article-link {
+  position: absolute;
+  top: 8px;
+  right: var(--space-2);
+  left: auto;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  clip-path: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-weight: 400;
+  line-height: 1;
+}
+.team-grid .card-team .card-team-pin {
+  font-size: var(--font-size-lg1);
+}
+.team-grid .card-team .card-team-pin:hover {
+  background: transparent;
+  color: var(--color-text);
+}
+.team-grid .card-team .card-team-pin[data-pinned="true"],
+.team-grid .card-team .card-team-pin[data-pinned="true"]:hover {
+  background: transparent;
+  color: #f2ce1b;
+}
+.team-grid .card-team .card-team-article-link:hover {
+  color: var(--color-text);
+}
+.team-grid .card-team .card-team-article-link svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* --- 見せない要素。DOM生成側(renderTeamCard)は触らず、CSSでのみ隠す
+   (.claude/skills/ui/references/pitfalls.md「壊してはいけないもの」節)。
+   モバイルのチームカードはメモ・体数バッジ・削除ボタンを出さない
+   (メモはヘッダ帯に入らず、削除はチーム詳細側で行う)。 --- */
+.team-grid .card-team .card-team-memo,
+.team-grid .card-team .card-team-count-badge,
+.team-grid .card-team .card-team-delete {
+  display: none;
+}
+
+/* --- 空き枠(renderTeamMemberGrid が6枠に足りない分を埋める)。破線枠は box-card.css の
+   .box-grid .card-team-empty-slot 側が持ち、ここでは何番目の枠かを示す数字の見え方だけを決める。 --- */
+.team-grid .card-team .card-team-empty-slot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-muted);
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1;
+  user-select: none;
+}
+.team-grid .card-team .team-slot-number {
+  opacity: 0.58;
+}

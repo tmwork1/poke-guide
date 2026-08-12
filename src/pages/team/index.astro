@@ -75,29 +75,12 @@ const user = Astro.locals.user;
 			.toolbar-sort select { width: 100%; min-width: 0; }
 		}
 
-		/* --- カードグリッド(box/index.astroの.box-gridと同じ戦略)。
-		   #team-list は display:contents にして、JSがinnerHTMLを差し替えても
-		   その子要素(チームカード)がそのままこの.team-gridの直接の子として並ぶようにする。
-		   追加タイル(button.add-card-tile)は#team-listの外側の兄弟要素なので、
-		   一覧の再描画では一切触れられず、常に先頭に残り続ける(box/index.astroと同じ理由)。
-		   カードグリッド自体は.panel-contentを使わず画面幅いっぱいに流す(00-foundation.md
-		   「操作系は全幅」)。 --- */
+		/* --- カードグリッド(.team-grid)と #team-list の display:contents は
+		   src/styles/team-card.css / team-page.css が持つ。/team/[id] の「類似構築」タブと
+		   カードの見た目・間隔を1つの定義元から共有するため、このscoped styleには置かない
+		   (ルートCLAUDE.md「スタイル定義」)。 --- */
 		.team-content {
 			padding: 0 var(--space-5);
-		}
-		.team-grid {
-			display: grid;
-			/* UI改修依頼(チームトップ画面、2026-08-04)「カードサイズ・ポケモンアイコンを少し
-			   大きくする」: 最小幅を220pxから、global.cssの.card-gridが既に使っている
-			   確立済みの値240pxへ揃える(新しい値は作らない)。カード幅が広がった分だけ
-			   .card-team-thumb-grid(3列)の1マスも比例して大きくなる。 */
-			grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-			gap: var(--space-4);
-			align-items: stretch;
-			margin-top: var(--space-6);
-		}
-		#team-list {
-			display: contents;
 		}
 		/* --- 状態メッセージ(読み込み中・エラー・空状態2種。box/index.astroと同じ作り) --- */
 		#loading-message,
@@ -120,250 +103,14 @@ const user = Astro.locals.user;
 	</style>
 
 	{/*
-	  チームカード(.card.card-team)は下部の<script>がdocument.createElement()で生成するため、
+	  チームカード(.card-team)は下部の<script>がdocument.createElement()で生成するため、
 	  Astroのscoped style(data-astro-cid-*属性が付いた静的マークアップにしか当たらない)では
-	  スタイルが適用されない(pitfalls.md「Astroのscoped styleはJSで生成した要素に効かない」)。
-	  よってこれはis:globalで定義する。グローバルに漏れないよう.team-grid配下に限定したセレクタにする。
+	  スタイルが当たらない(pitfalls.md「Astroのscoped styleはJSで生成した要素に効かない」)。
+	  よってカード本体のスタイルはCSSファイル src/styles/team-card.css が持つ
+	  (上のフロントマターで読み込む team-page.css が @import している)。
+	  /team/[id] の「類似構築」タブに並ぶ上位構築カードも同じファイルを読み込み、
+	  同一の見た目・カード間隔を共有する。
 	*/}
-	<style is:global>
-		/* --- チームカード本体。基底の.card(global.css)にbackground/border/box-shadow/hoverの
-		   持ち上がりを委譲し、ここでは.team-grid内固有のレイアウト(縦積み・ヘッダ行・サムネ行)
-		   だけを定義する(box/index.astroの.card-pokemonと同じ委譲方針)。 --- */
-		.team-grid .card-team {
-			position: relative;
-			display: flex;
-			flex-direction: column;
-			gap: var(--space-3);
-			text-decoration: none;
-			color: inherit;
-			/* UI改修依頼(チームトップ画面、2026-08-01)「ボックス画面と同じお気に入りデザインを
-			   使う」対応。box/index.astroの.pin-toggle(カード左上角の直角三角形トリム)は
-			   .card-pokemon側のoverflow:hiddenに支えられている(clip-pathで作った三角形が
-			   カードの角丸からはみ出す部分を切り落とす)。このカードにも同じoverflow:hiddenを
-			   足し、下の.card-team-pinで同じ意匠を再現できるようにする(box/index.astroは
-			   別エージェントが編集中の担当外ファイルのため、値をこちらへ複製する。
-			   .favorite-filter-toggleと同じ複製方針)。 */
-			overflow: hidden;
-		}
-		.team-grid .card-team:focus-visible {
-			outline: 2px solid var(--color-primary);
-			outline-offset: 2px;
-		}
-
-		/* --- ヘッダ行(2〜3行目): チーム名(空/未設定なら「無題のチーム」)のみ。
-		   UI改修依頼(チームトップ画面、2026-08-04)「レギュレーションタグとチームタイトルの
-		   行を入れ替える」で、従来1行目だったこの行を2〜3行目へ移した(JS側renderCard、
-		   下のcard.appendChild呼び出し順を参照)。
-		   旧仕様ではこの行が1行目で、お気に入り三角形(52×52px、下の.card-team-pin参照)・
-		   削除ボタン(右上28px)の水平クリアランス(padding-left 2.75rem / padding-right 1.5rem、
-		   算出根拠は下の.card-team-meta-rowのコメントへ移設)をここに持たせていたが、
-		   1行目を.card-team-meta-rowに譲った今はここでは不要になった:
-		   カードpadding(--space-3 = 12px)+ metaRowの高さ(memo/regulationバッジぶん、
-		   概ね20px前後)+ 行間gap(--space-3 = 12px)を足した2行目の開始y座標(約44〜48px)
-		   では、三角形の残り幅がカード自体のpadding(12px)の中に収まりコンテンツ領域まで
-		   届かない(この三角形は52px地点で幅0になる直角三角形のため)。よって
-		   padding-left/padding-rightはこのヘッダ行からは外した。 */
-		.team-grid .card-team .card-team-header {
-			display: flex;
-			align-items: flex-start;
-			justify-content: center;
-		}
-		.team-grid .card-team .card-team-name {
-			width: 100%;
-			margin: 0;
-			font-size: var(--font-size-lg1);
-			font-weight: 700;
-			line-height: var(--line-height-tight);
-			text-align: center;
-			white-space: normal;
-			display: -webkit-box;
-			-webkit-line-clamp: 3;
-			-webkit-box-orient: vertical;
-			overflow: hidden;
-			text-overflow: ellipsis;
-		}
-
-		/* --- メタ行(1行目): レギュレーションタグ + メモアイコン(round-30 A-9(b)/(c)で
-		   導入したメモ+体数バッジの行。中身のJS生成順自体は変えていない)。
-		   UI改修依頼(チームトップ画面、2026-08-04)「レギュレーションタグとチームタイトルの
-		   行を入れ替える」でこの行を1行目に移した(JS側renderCard、card.appendChild(metaRow)を
-		   card.appendChild(header)より先に呼ぶよう順序を変更)。結果としてメモアイコンも
-		   この行(レギュレーションタグと同じ行)に来る。
-		   お気に入り三角形・削除ボタンの水平クリアランス(padding-left 2.75rem /
-		   padding-right 1.5rem。算出根拠は旧.card-team-headerのコメント参照。カード自体の
-		   padding(12px)を差し引いた不足分を埋める値で、削除ボタン側は 36px - 12px = 24px
-		   = 1.5rem、お気に入り三角形側は 52px - 12px = 40px(2.5rem)に4pxの余白を足した
-		   2.75rem)は、1行目になったこの行に移設した。メモは空/未設定のチームでも同じ高さの
-		   <p>を必ず描画し(JS側)、min-heightで行の高さを固定することで、メモの有無で
-		   カード全体の高さが変わらないようにする(round-30 A-9(b))。 --- */
-		.team-grid .card-team .card-team-meta-row {
-			display: flex;
-			align-items: center;
-			gap: var(--space-2);
-			padding-left: 2.75rem;
-			padding-right: calc(1.5rem + var(--space-2));
-		}
-		/* UI改修依頼(チームトップ画面、2026-08-01)「チームメモをカードに常時表示せず、ホバー時に
-		   表示するようにする」。以前はメモ本文を1行省略で常時表示していたが、box/index.astroや
-		   このファイル自身が随所で使っている「title属性によるネイティブホバーツールチップ」の
-		   確立済み規格(nameEl.titleと同じ手法)に揃え、メモがあるときだけ小さな
-		   アイコン(📝)を表示してtitleに全文を持たせる方式に変える(JS側、下のrenderCard参照)。
-		   min-heightはメモ有無に関わらずメタ行の高さを揃えるため(round-30 A-9(b))そのまま維持する。 */
-		.team-grid .card-team .card-team-memo {
-			flex: 1 1 auto;
-			min-width: 0;
-			margin: 0;
-			min-height: calc(var(--font-size-sm2) * 1.4);
-			font-size: var(--font-size-sm2);
-			line-height: var(--line-height-snug);
-			color: var(--color-text-muted);
-			white-space: nowrap;
-			overflow: hidden;
-			text-overflow: ellipsis;
-		}
-		/* UI改修依頼(チームトップ画面、2026-08-01)「『n/6』のような登録数表示を削除する」。
-		   要素を消す指示でもDOMは残してCSSで見せない方針(.claude/skills/ui/references/pitfalls.md
-		   「壊してはいけないもの」節、box/index.astroの.card-stat-gridと同じ扱い)に従い、
-		   JS側の生成(renderCard)自体は変更せずdisplay:noneでのみ隠す。 */
-		.team-grid .card-team .card-team-count-badge {
-			flex-shrink: 0;
-			display: none;
-		}
-		/* UI改修依頼(チームトップ画面、2026-08-01)「カードごとにレギュレーションをタグ表示する」。
-		   新しい色トークンは作らず、このファイルで既に確立済みの.badge(global.css、
-		   card-team-count-badgeと同じ土台)をそのまま流用する。regulationがnullのチームは
-		   要素自体を生成しない(JS側renderCard参照。team/[id].astroのテラスタイプ未設定と同じ
-		   判断: 合法な「未設定」状態のため行/要素を出さない)。 */
-		.team-grid .card-team .card-team-regulation-badge {
-			flex-shrink: 0;
-			white-space: nowrap;
-		}
-
-		/* --- 削除ボタン: box/index.astroの.icon-button.delete-buttonと同じ規格
-		   (28px丸ボタン・--color-danger-strong・hover時のみ可視)。カード遷移(<a>)と衝突しない
-		   よう、クリック時はpreventDefault+stopPropagationする(JS側)。
-		   UI改修依頼(2026-08-02): アイコンをゴミ箱の絵文字から×のSVGへ統一したため、
-		   絵文字前提だったfont-size/font-weightは不要になり削除した(SVGの14×14pxは
-		   インラインSVG自体の width/height 属性で決まる)。 --- */
-		.team-grid .card-team .card-team-delete {
-			position: absolute;
-			top: var(--space-2);
-			right: var(--space-2);
-			z-index: 2;
-			display: inline-flex;
-			align-items: center;
-			justify-content: center;
-			width: 28px;
-			height: 28px;
-			padding: 0;
-			border-radius: 999px;
-			border: 1px solid var(--color-border);
-			background: var(--color-surface);
-			color: var(--color-danger-strong);
-			line-height: 1;
-			box-shadow: var(--shadow-sm);
-		}
-		.team-grid .card-team .card-team-delete:hover {
-			background: var(--color-danger-soft);
-			border-color: var(--color-danger-strong);
-		}
-		.team-grid .card-team .card-team-delete:focus-visible {
-			outline: 2px solid var(--color-primary);
-			outline-offset: 2px;
-		}
-		@media (hover: hover) and (pointer: fine) {
-			.team-grid .card-team .card-team-delete {
-				opacity: 0;
-				pointer-events: none;
-				transition: opacity 0.15s, background 0.15s, border-color 0.15s;
-			}
-			.team-grid .card-team:hover .card-team-delete,
-			.team-grid .card-team:focus-within .card-team-delete {
-				opacity: 1;
-				pointer-events: auto;
-			}
-		}
-		@media (prefers-reduced-motion: reduce) {
-			.team-grid .card-team .card-team-delete { transition: none; }
-		}
-
-		/* --- お気に入り(ピン留め)ボタン。
-		   UI改修依頼(チームトップ画面、2026-08-01)「ボックス画面(/box)と同じお気に入り
-		   デザインを使う」により、box/index.astroの.pin-toggle(2026-08-01時点の実装)と
-		   同じ値へ作り替える: 28px丸ボタンをやめ、カード左上角に密着する36×36pxの
-		   直角三角形トリム(clip-path)にする。三角形の意匠自体を常時見せる方針のため、
-		   お気に入り状態(★)・非お気に入り状態(☆)のどちらも常時可視のまま
-		   (.card-team-deleteのようなhover限定表示にはしない、box/index.astroと同じ判断)。
-		   box/index.astroは別エージェントが編集中の担当外ファイルのため直接参照はせず、
-		   値をこのページのscoped styleへ複製する(.favorite-filter-toggleと同じ複製方針)。
-		   アイコン文字(★/☆)は三角形の重心付近(左上から辺の1/3)に来るようpaddingで寄せる。
-		   ピン留め中の配色は従来どおり--color-risky/--color-primary-contrastを使う
-		   (新しい値は作っていない)。 --- */
-		/* UI改修依頼(チームトップ画面、2026-08-02)「お気に入りの星印が見切れている問題を
-		   ボックス画面を参考に修正する」: box/index.astroの.pin-toggleは2026-08-01の実測
-		   (Playwright、Range.getBoundingClientRect())で36×36px・padding 5pxでは星のグリフが
-		   斜辺からはみ出すことが判明し、52×52px・padding 7pxへ拡大済み。このカードの三角形は
-		   box側の複製(上のコメント参照)なので、同じ実測済みの値へ揃える。 */
-		.team-grid .card-team .card-team-pin {
-			position: absolute;
-			top: 0;
-			left: 0;
-			z-index: 2;
-			display: inline-flex;
-			align-items: flex-start;
-			justify-content: flex-start;
-			width: 52px;
-			height: 52px;
-			padding: 7px 0 0 7px;
-			border: none;
-			border-radius: 0;
-			box-shadow: none;
-			clip-path: polygon(0 0, 100% 0, 0 100%);
-			background: var(--color-surface-alt);
-			color: var(--color-text-muted);
-			font-weight: 400;
-			font-size: var(--font-size-lg1);
-			line-height: 1;
-		}
-		.team-grid .card-team .card-team-pin:hover {
-			background: var(--color-surface);
-			color: var(--color-text);
-		}
-		.team-grid .card-team .card-team-pin[data-pinned="true"] {
-			background: var(--color-risky);
-			color: var(--color-primary-contrast);
-		}
-		.team-grid .card-team .card-team-pin[data-pinned="true"]:hover {
-			background: var(--color-risky);
-			color: var(--color-primary-contrast);
-		}
-
-		/* --- メンバーの公式絵ミニサムネイル列(設計レビューR-12): 6枠ぶんを常に描画し、
-		   空き枠は点線の空プレースホルダーとして見せる(「並べて見比べる」目的の要)。 ---
-		   UI改修依頼(チームトップ画面)「配置を1x6→2x3に、アイコンを2倍に」対応:
-		   1行6列から3列2行へ変更する。カード幅は変えないため、1マスの幅(aspect-ratio:1/1の
-		   サムネイル自体のサイズ)は6列時のちょうど2倍になる(「アイコンを2倍に」を数値指定
-		   ではなくこの列数変更だけで自然に満たす)。 */
-		/* UI改修依頼(チームトップ画面、2026-08-01)「未設定のポケモンの枠を、設定済みの枠と
-		   同じ見た目にする」。round-30 A-4で導入した空き枠専用の破線罫線(is-empty、旧
-		   `border: 2px dashed var(--color-text-muted); background: transparent;`)は撤回し、
-		   .card-team-thumbの基底スタイル(実線罫線var(--color-border)+背景var(--color-surface))を
-		   設定済み/未設定の両方でそのまま使う(このルール自体を削除)。.is-emptyクラスの付与
-		   (下のscript参照)自体は変更しない(枠内の中央番号表示の分岐に使う)。
-		   代わりに、未設定枠だけ中央にその枠が何番目(N)かを薄い色の数字で表示する
-		   (.card-team-thumb-slot-number、下記。設定済み枠は公式絵で埋まるため数字は出さない)。
-		   UI改修依頼(2026-08-06)でアイコンの枠と背景を廃止し、空き枠番号は枠なしでも
-		   6枠の位置が分かるよう不透明度を上げる。 */
-		/* UI改修依頼(チームトップ画面)「アイテムアイコンも表示」。box/index.astroの
-		   .card-item-badge(スプライト右下重畳)と同じ考え方をミニサムネイル用に縮小して適用する。
-		   .card-team-thumbは既にposition:relativeを持つため、その右下隅に重ねる。
-		   UI改修依頼(チームトップ画面、2026-08-01)「アイテムアイコンの丸枠を削除する」:
-		   border-radius: 50%(丸枠)を撤去する。背景・枠線・影は、公式絵に重なっても
-		   アイコンが視認できるようにするための土台として残す(丸みだけを除去)。 */
-		/* button:disabledと同じ罠(pitfalls.md): [hidden]のdisplay:noneをこのルールのflexが
-		   詳細度で上書きしてしまうため、明示的に上書きする(box/index.astroの
-		   .card-item-badge[hidden]と同じ対策)。 */
-	</style>
 
 	<div class="page team-shell floating-list-page">
 		{
@@ -483,9 +230,9 @@ const user = Astro.locals.user;
 	</div>
 
 	<script>
-		// チームカードの6枠は/boxと同じ共有カード描画を使い、一覧固有の操作だけを渡す。
+		// チームカードは外枠から6枠まで共用し、1枠の実体はその中から /box のカード描画へ委譲する。
 		import { kanaIncludes } from "../../lib/kana";
-		import { renderTeamMemberGrid } from "../../lib/team-card";
+		import { renderTeamCard } from "../../lib/team-card";
 
 		// GET /api/teams が返す1メンバーの owned_pokemon。表示に必要な列だけを持つ
 		// (src/lib/team.ts の TeamMember/OwnedPokemonRecord のサブセット)。
@@ -608,113 +355,35 @@ const user = Astro.locals.user;
 				return sorted;
 			}
 
-			// チームカードを丸ごとクリック可能な<a>にする(box/index.astroの.card-pokemonと同じ方針)。
-			// 削除ボタンはカード内の<button>だが、クリック時は必ずpreventDefault/stopPropagationして
-			// カード本体の遷移(/team/<id>)と競合しないようにする。
+			// 共用レンダラへ一覧固有の操作とメタ情報を渡す。hrefを渡したカードは従来どおり
+			// 丸ごとクリック可能な<a>になり、内部ボタンの遷移抑止もレンダラが担う。
 			function renderCard(t: Team): HTMLElement {
-				const card = document.createElement("a");
-				card.className = "card-team";
-				card.href = `/team/${encodeURIComponent(t.id)}`;
 				const name = displayName(t);
-				card.setAttribute("aria-label", `${name} を編集`);
-
-				// UI改修依頼(チームトップ画面)「お気に入り機能を追加する」。box/index.astroの
-				// pinButton(左上・常時可視)と同じ発想。削除ボタン(右上)と対角配置にする。
-				const pinButton = document.createElement("button");
-				pinButton.type = "button";
-				pinButton.className = "card-team-pin";
-				pinButton.dataset.pinned = String(t.is_pinned);
-				// UI改修依頼(2026-08-06)でお気に入りの星表示を共通クラスへ集約する。
-				const pinStar = document.createElement("span");
-				pinStar.className = "favorite-star-glyph";
-				pinStar.setAttribute("aria-hidden", "true");
-				pinButton.appendChild(pinStar);
 				const pinLabel = t.is_pinned ? "お気に入りを解除する" : "お気に入りにする";
-				pinButton.title = pinLabel;
-				pinButton.setAttribute("aria-label", pinLabel);
-				pinButton.addEventListener("click", (event) => {
-					event.preventDefault();
-					event.stopPropagation();
-					void toggleTeamPin(t);
-				});
-				card.appendChild(pinButton);
-
-				const deleteButton = document.createElement("button");
-				deleteButton.type = "button";
-				deleteButton.className = "card-team-delete";
-				// UI改修依頼(2026-08-02): 削除アイコンをゴミ箱の絵文字から×のSVGへ統一する
-				// (全画面共通方針。box/index.astroの.icon-button.delete-buttonと同一のSVG文字列)。
-				deleteButton.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
-				deleteButton.title = "削除";
-				deleteButton.setAttribute("aria-label", "削除");
-				deleteButton.addEventListener("click", (event) => {
-					event.preventDefault();
-					event.stopPropagation();
-					void deleteTeamCard(t);
-				});
-				card.appendChild(deleteButton);
-
-				// --- メタ行(1行目): レギュレーションタグ + メモアイコン ---
-				// UI改修依頼(チームトップ画面、2026-08-04)「レギュレーションタグとチームタイトルの
-				// 行を入れ替える」でこの行を1行目に移した(旧: round-30 A-9(b)/(c)で導入した
-				// メモ+体数バッジの行。中身の生成ロジック自体は変えていない)。以前のcard.appendChild呼び
-				// 出し順は header→metaRowだったが、metaRow→headerに変え、1行目をレギュレーションタグ
-				// (+メモアイコン)、2〜3行目をチーム名にする。
-				// UI改修依頼(チームトップ画面、2026-08-01)「チームメモをカードに常時表示せず、
-				// ホバー時に表示するようにする」。本文を直接テキスト表示していたのをやめ、
-				// メモがあるときだけ小さなアイコン(📝)を出し、全文はtitle属性(ネイティブの
-				// ホバーツールチップ、box/index.astroのname.title等と同じ確立済み規格)に持たせる。
-				// メモが無いときはアイコンも出さない(空でも高さは.card-team-memoのmin-heightで保つ、
-				// round-30 A-9(b)の意図を維持)。
-				const metaRow = document.createElement("div");
-				metaRow.className = "card-team-meta-row";
-
-				const memoEl = document.createElement("p");
-				memoEl.className = "card-team-memo";
 				const memoText = (t.memo ?? "").trim();
-				if (memoText) {
-					memoEl.textContent = "📝";
-					memoEl.title = memoText;
-					memoEl.setAttribute("aria-label", `メモ: ${memoText}`);
-				}
-				metaRow.appendChild(memoEl);
-
-				// UI改修依頼(チームトップ画面、2026-08-01)「カードごとにレギュレーションをタグ表示する」。
-				// nullは合法な未設定状態のため、要素自体を生成しない(itemName/teraTypeと同じ判断)。
 				const regulation = t.regulation?.trim() ?? "";
-				if (regulation) {
-					const regulationBadge = document.createElement("span");
-					regulationBadge.className = "badge card-team-regulation-badge";
-					regulationBadge.textContent = regulation;
-					metaRow.appendChild(regulationBadge);
-				}
-
-				const memberCountBadge = document.createElement("span");
-				memberCountBadge.className = "badge tnum card-team-count-badge";
-				memberCountBadge.textContent = `${t.members.length}/6`;
-				metaRow.appendChild(memberCountBadge);
-
-				card.appendChild(metaRow);
-
-				// --- ヘッダ行(2〜3行目): チーム名 ---
-				// UI改修依頼(チームトップ画面、2026-08-04)「チーム名が長い場合に2,3行へ折り返す」
-				// 対応(CSS側、.card-team-name参照)に合わせ、この行を1行目から2〜3行目へ移した。
-				const header = document.createElement("div");
-				header.className = "card-team-header";
-
-				const nameEl = document.createElement("p");
-				nameEl.className = "card-team-name";
-				nameEl.textContent = name;
-				// round-30 A-9(a): 省略された全文をホバーで読めるようにする。
-				nameEl.title = name;
-				header.appendChild(nameEl);
-
-				card.appendChild(header);
-
-				// --- メンバーの公式絵ミニサムネイル列(6枠常時描画。空き枠はプレースホルダー) ---
-				const thumbGrid = document.createElement("div");
 				const membersBySlot = new Map(t.members.map((m) => [m.slot, m]));
-				renderTeamMemberGrid(thumbGrid, {
+				return renderTeamCard({
+					href: `/team/${encodeURIComponent(t.id)}`,
+					ariaLabel: `${name} を編集`,
+					name,
+					cornerAction: {
+						type: "pin",
+						isPinned: t.is_pinned,
+						label: pinLabel,
+						onToggle: () => toggleTeamPin(t),
+					},
+					onDelete: () => deleteTeamCard(t),
+					// メモが空でも<p>を生成し、体数バッジ・削除ボタンとともに既存DOMを維持する。
+					memo: memoText
+						? { text: "📝", title: memoText, ariaLabel: `メモ: ${memoText}` }
+						: {},
+					badges: [
+						...(regulation
+							? [{ className: "badge card-team-regulation-badge", text: regulation }]
+							: []),
+						{ className: "badge tnum card-team-count-badge", text: `${t.members.length}/6` },
+					],
 					membersBySlot,
 					toCardContent: (member) => {
 						// UI改修依頼(2026-08-05)「ポケモンアイコンのホバー時にNN、未設定時は種族名を表示する」対応。
@@ -733,10 +402,6 @@ const user = Astro.locals.user;
 						};
 					},
 				});
-
-				card.appendChild(thumbGrid);
-
-				return card;
 			}
 
 			function renderList(): void {

@@ -2,6 +2,12 @@
 	display: none;
 }
 
+/* /team 一覧の .team-content.box-content と同じ左右8pxを確保し、
+	類似構築カードの幅をモバイルのチームカードと揃える。下余白は .app-main が持つ。 */
+.team-data-similar-panel {
+	padding: var(--space-2);
+}
+
 .team-edit-shell[data-mobile-tab="data"] #team-overview-tab {
 	display: none;
 }

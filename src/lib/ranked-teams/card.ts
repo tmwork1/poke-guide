@@ -1,7 +1,7 @@
 import type { RankedTeam } from '../ranked-teams';
 import { officialArtworkUrl } from '../pokemon-master-data';
 import { itemIconUrl, typeIconUrl } from '../sprite-urls';
-import { renderTeamMemberGrid } from '../team-card';
+import { renderTeamCard } from '../team-card';
 
 function element<K extends keyof HTMLElementTagNameMap>(
   tag: K,
@@ -12,6 +12,25 @@ function element<K extends keyof HTMLElementTagNameMap>(
   if (className) node.className = className;
   if (text !== undefined) node.textContent = text;
   return node;
+}
+
+/** 外部リンクを示す「箱+矢印」アイコン。上位構築カードと /ranked-teams のカードで共有する。 */
+function createExternalLinkIcon(className?: string): SVGSVGElement {
+  const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  if (className) icon.setAttribute('class', className);
+  icon.setAttribute('viewBox', '0 0 24 24');
+  icon.setAttribute('fill', 'none');
+  icon.setAttribute('stroke', 'currentColor');
+  icon.setAttribute('stroke-width', '2');
+  icon.setAttribute('stroke-linecap', 'round');
+  icon.setAttribute('stroke-linejoin', 'round');
+  icon.setAttribute('aria-hidden', 'true');
+  const box = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  box.setAttribute('d', 'M15 5H6a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-9');
+  const arrow = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  arrow.setAttribute('d', 'M13 3h8v8M10 14 21 3');
+  icon.append(box, arrow);
+  return icon;
 }
 
 function buildRankedTeamHeader(team: RankedTeam): HTMLElement {
@@ -27,21 +46,7 @@ function buildRankedTeamHeader(team: RankedTeam): HTMLElement {
     const label = team.articleTitle ?? team.articleHost ?? '構築記事';
     const link = element('a', 'ranked-team-article-link');
     link.append(element('span', 'ranked-team-article-label', label));
-    const externalIcon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    externalIcon.setAttribute('class', 'ranked-team-article-icon');
-    externalIcon.setAttribute('viewBox', '0 0 24 24');
-    externalIcon.setAttribute('fill', 'none');
-    externalIcon.setAttribute('stroke', 'currentColor');
-    externalIcon.setAttribute('stroke-width', '2');
-    externalIcon.setAttribute('stroke-linecap', 'round');
-    externalIcon.setAttribute('stroke-linejoin', 'round');
-    externalIcon.setAttribute('aria-hidden', 'true');
-    const externalBox = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    externalBox.setAttribute('d', 'M15 5H6a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-9');
-    const externalArrow = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    externalArrow.setAttribute('d', 'M13 3h8v8M10 14 21 3');
-    externalIcon.append(externalBox, externalArrow);
-    link.append(externalIcon);
+    link.append(createExternalLinkIcon('ranked-team-article-icon'));
     link.href = team.articleUrl;
     link.target = '_blank';
     link.rel = 'noopener noreferrer';
@@ -61,7 +66,6 @@ function buildRankedTeamHeader(team: RankedTeam): HTMLElement {
 export function renderRankedTeamCard(
   team: RankedTeam,
   imageIdMap: Map<string, number>,
-  itemSpriteMap: Map<string, string>,
   moveTypeMap: Map<string, string>,
 ): HTMLElement {
   const card = element('article', 'card card-ranked-team');
@@ -94,17 +98,15 @@ export function renderRankedTeamCard(
       imageWrap.append(element('span', 'ranked-team-image-fallback', displayName.charAt(0) || '?'));
     }
     if (member.itemName) {
-      const spritePath = itemSpriteMap.get(member.itemName);
-      if (spritePath) {
-        const badge = element('span', 'ranked-team-item-badge');
-        badge.title = member.itemName;
-        const itemImage = element('img');
-        itemImage.src = itemIconUrl(spritePath);
-        itemImage.alt = member.itemName;
-        itemImage.loading = 'lazy';
-        badge.append(itemImage);
-        imageWrap.append(badge);
-      }
+      const badge = element('span', 'ranked-team-item-badge');
+      badge.title = member.itemName;
+      const itemImage = element('img');
+      itemImage.src = itemIconUrl(member.itemName);
+      itemImage.alt = member.itemName;
+      itemImage.loading = 'lazy';
+      itemImage.addEventListener('error', () => badge.remove(), { once: true });
+      badge.append(itemImage);
+      imageWrap.append(badge);
     }
     thumb.append(imageWrap);
 
@@ -154,12 +156,32 @@ export function renderRankedTeamCard(
 }
 
 export function renderTopBuildCard(team: RankedTeam): HTMLElement {
-  const card = element('article', 'card card-ranked-team');
-  card.append(buildRankedTeamHeader(team));
-
-  const memberGrid = element('div');
   const membersBySlot = new Map(team.members.map((member) => [member.slot, member]));
-  renderTeamMemberGrid(memberGrid, {
+  const trainerName = team.trainerName ?? team.articleHost ?? 'トレーナー不明';
+  const articleLabel = team.articleTitle ?? team.articleHost ?? '構築記事';
+  return renderTeamCard({
+    name: trainerName,
+    nameTitle: trainerName,
+    cornerAction: team.articleUrl
+      ? {
+          type: 'link',
+          href: team.articleUrl,
+          label: articleLabel,
+          title: articleLabel,
+          // 18pxの寸法は共用カード側のアイコンスロットCSSで決める。
+          content: createExternalLinkIcon(),
+        }
+      : undefined,
+    badges: [
+      { className: 'badge card-team-rank-badge tnum', text: `${team.rank}位` },
+      ...(team.rating !== null
+        ? [{
+            className: 'badge card-team-rating-badge tnum',
+            text: String(Math.round(team.rating)),
+            title: `レート ${team.rating}`,
+          }]
+        : []),
+    ],
     membersBySlot,
     toCardContent: (member) => {
       const displayName = member.speciesKey ?? member.speciesName;
@@ -181,6 +203,4 @@ export function renderTopBuildCard(team: RankedTeam): HTMLElement {
       };
     },
   });
-  card.append(memberGrid);
-  return card;
 }
