@@ -8,7 +8,7 @@ import '../../styles/box-pokemon-preview.css';
 
 interface Props {
   pokemon: OwnedPokemonRecord;
-  activeTab?: 'training' | 'data';
+  activeTab?: 'training' | 'battle-data' | 'ranked-teams';
   backHref?: string;
 }
 
@@ -25,18 +25,21 @@ const previewStats = detail ? statKeys.map((key, index) => index === 0 ? calcHpS
   <nav class="second-bar" id="mobile-training-bar" aria-label="個体編集メニュー">
     <div class="second-bar__list">
       <a class="second-bar__item" href={backHref}>戻る</a>
-      {activeTab === 'data' ? (
-        <a class="second-bar__item" href={`/box/${encodeURIComponent(pokemon.id)}`}><span>育成</span></a>
-      ) : (
+      {activeTab === 'training' ? (
         <button type="button" class="second-bar__item" data-mobile-tab="training" data-active="true" aria-current="page"><span>育成</span></button>
-      )}
-      {activeTab === 'data' ? (
-        <a class="second-bar__item" href={`/box/${encodeURIComponent(pokemon.id)}?tab=damage`}><span>ダメージ</span></a>
       ) : (
-        <button type="button" class="second-bar__item" data-mobile-tab="damage"><span>ダメージ</span></button>
+        <a class="second-bar__item" href={`/box/${encodeURIComponent(pokemon.id)}`}><span>育成</span></a>
       )}
-      <a class="second-bar__item" href={`/box/data?pokemon=${encodeURIComponent(pokemon.id)}`} data-active={activeTab === 'data' ? 'true' : undefined} aria-current={activeTab === 'data' ? 'page' : undefined}>
-        <span>データ</span>
+      {activeTab === 'training' ? (
+        <button type="button" class="second-bar__item" data-mobile-tab="damage"><span>ダメージ</span></button>
+      ) : (
+        <a class="second-bar__item" href={`/box/${encodeURIComponent(pokemon.id)}?tab=damage`}><span>ダメージ</span></a>
+      )}
+      <a class="second-bar__item" href={`/box/data?pokemon=${encodeURIComponent(pokemon.id)}`} data-active={activeTab === 'battle-data' ? 'true' : undefined} aria-current={activeTab === 'battle-data' ? 'page' : undefined}>
+        <span>バトルデータ</span>
+      </a>
+      <a class="second-bar__item" href={`/box/ranked?pokemon=${encodeURIComponent(pokemon.id)}`} data-active={activeTab === 'ranked-teams' ? 'true' : undefined} aria-current={activeTab === 'ranked-teams' ? 'page' : undefined}>
+        <span>上位チーム</span>
       </a>
       <span class="second-bar__item is-disabled" aria-disabled="true">
         <span>相性</span>

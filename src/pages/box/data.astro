@@ -4,14 +4,9 @@ export const prerender = false;
 import AppLayout from '../../layouts/AppLayout.astro';
 import MobileTrainingBar from '../../components/box-id/MobileTrainingBar.astro';
 import { getOwnedPokemon } from '../../lib/owned-pokemon';
-import { getSupabaseAdminClient, getSupabasePublicClient } from '../../lib/supabase';
-import { listRankedSeasons } from '../../lib/ranked-teams';
-import { resolveDefaultSeason } from '../../lib/ranked-teams-validation';
+import { getSupabaseAdminClient } from '../../lib/supabase';
 import seasonManifest from '../../../data/opgg-champions-usage/seasons.json';
 import '../../styles/data-page.css';
-// 上位構築タブのカードは /team 一覧・/team/[id] の類似構築タブと共用の renderTopBuildCard() を
-// そのまま使うため、そのスタイル定義元(box-card.cssを@importしている)も読み込む。
-import '../../styles/team-card.css';
 
 const user = Astro.locals.user;
 const selectedId = Astro.url.searchParams.get('pokemon');
@@ -19,14 +14,6 @@ const result = user && selectedId
   ? await getOwnedPokemon(user.id, selectedId, await getSupabaseAdminClient())
   : null;
 const pokemon = result?.ok ? result.data : null;
-let rankedSeason: string | null = null;
-if (pokemon) {
-  try {
-    rankedSeason = resolveDefaultSeason(await listRankedSeasons(await getSupabasePublicClient()));
-  } catch (error) {
-    console.error('[box/data] 上位構築のシーズン取得に失敗しました:', error);
-  }
-}
 const dataFiles = import.meta.glob('../../../data/opgg-champions-usage/seasons/*/*.json', {
   eager: true,
   import: 'default',
@@ -92,38 +79,23 @@ const evRanked = (
   ).join('\n') || 'データなし';
 ---
 
-<AppLayout title="データ" description="OP.GG使用率データ" current="box" hideTopbar={true}>
+<AppLayout title="バトルデータ" description="OP.GG使用率データ" current="box" hideTopbar={true}>
   <div class="page box-data-page">
     {pokemon ? (
-      <MobileTrainingBar pokemon={pokemon} activeTab="data" />
+      <MobileTrainingBar pokemon={pokemon} activeTab="battle-data" />
     ) : (
       <section class="pokemon-data-preview" aria-labelledby="data-preview-title">
         <p class="data-kicker">育成データレビュー</p>
         <h1 id="data-preview-title">ポケモンを選択してください</h1>
-        <p>ボックス詳細画面の「データ」から、選択中のポケモンの使用率を確認できます。</p>
+        <p>ボックス詳細画面の「バトルデータ」から、選択中のポケモンの使用率を確認できます。</p>
         <a class="btn-ghost" href="/box">ボックスを開く</a>
       </section>
     )}
 
     {pokemon && (
-      <main
-        class="box-data-main"
-        data-ranked-season={rankedSeason ?? ''}
-        data-pokemon-build={JSON.stringify({
-          species_name: pokemon.species_name,
-          ability_name: pokemon.ability_name,
-          item_name: pokemon.item_name,
-          move_names: pokemon.move_names,
-        })}
-      >
-        <div class="data-view-controls" role="tablist" aria-label="データ表示">
-          <button id="battle-data-tab" type="button" role="tab" aria-selected="true">
-            バトルデータ
-          </button>
-          <button id="ranked-data-tab" type="button" role="tab" aria-selected="false">
-            上位構築
-          </button>
-          {seasons.length > 0 && (
+      <main class="box-data-main">
+        {seasons.length > 0 && (
+          <div class="data-view-controls">
             <button
               class="data-season-unavailable"
               type="button"
@@ -132,10 +104,10 @@ const evRanked = (
             >
               シーズン
             </button>
-          )}
-        </div>
+          </div>
+        )}
 
-        <section id="battle-data-panel" class="data-panel" role="tabpanel" aria-labelledby="battle-data-tab">
+        <section class="data-panel">
           {hasData ? (
             <>
               <h2 id="trend-title">トレンド</h2>
@@ -153,15 +125,6 @@ const evRanked = (
               <h2>バトルデータなし</h2>
               <p>このポケモンのシングルバトルデータはまだありません。</p>
             </section>
-          )}
-        </section>
-
-        <section id="ranked-data-panel" class="data-panel" role="tabpanel" aria-labelledby="ranked-data-tab" hidden>
-          <h2>上位構築</h2>
-          {rankedSeason ? (
-            <p id="ranked-data-status" class="box-ranked-status status-text" data-state="loading">上位構築を計算中…</p>
-          ) : (
-            <p id="ranked-data-status" class="box-ranked-status status-text">上位構築データはまだありません。</p>
           )}
         </section>
       </main>
@@ -185,87 +148,4 @@ const evRanked = (
     });
     unavailable.replaceWith(select);
   }
-</script>
-
-<script>
-  const battleTab = document.querySelector<HTMLButtonElement>('#battle-data-tab');
-  const rankedTab = document.querySelector<HTMLButtonElement>('#ranked-data-tab');
-  const battlePanel = document.querySelector<HTMLElement>('#battle-data-panel');
-  const rankedPanel = document.querySelector<HTMLElement>('#ranked-data-panel');
-  battleTab?.addEventListener('click', () => {
-    battleTab.setAttribute('aria-selected', 'true');
-    rankedTab?.setAttribute('aria-selected', 'false');
-    if (battlePanel) battlePanel.hidden = false;
-    if (rankedPanel) rankedPanel.hidden = true;
-  });
-  rankedTab?.addEventListener('click', () => {
-    rankedTab.setAttribute('aria-selected', 'true');
-    battleTab?.setAttribute('aria-selected', 'false');
-    if (rankedPanel) rankedPanel.hidden = false;
-    if (battlePanel) battlePanel.hidden = true;
-  });
-</script>
-
-<script>
-  import { calculateBuildSimilarity } from '../../lib/build-similarity';
-  import { renderTopBuildCard } from '../../lib/ranked-teams/card';
-  import type { RankedTeam } from '../../lib/ranked-teams';
-
-  const main = document.querySelector<HTMLElement>('.box-data-main');
-  const panel = document.querySelector<HTMLElement>('#ranked-data-panel');
-  const rankedSeason = main?.dataset.rankedSeason || null;
-  const pokemonBuildJson = main?.dataset.pokemonBuild;
-
-  function setRankedStatus(message: string, state?: 'loading' | 'error'): void {
-    if (!panel) return;
-    panel.innerHTML = '<h2>上位構築</h2>';
-    const status = document.createElement('p');
-    status.className = 'box-ranked-status status-text';
-    if (state) status.dataset.state = state;
-    status.textContent = message;
-    panel.appendChild(status);
-  }
-
-  async function loadRankedBuilds(): Promise<void> {
-    if (!panel || !rankedSeason || !pokemonBuildJson) return;
-
-    const pokemonBuild = JSON.parse(pokemonBuildJson) as {
-      species_name: string;
-      ability_name: string | null;
-      item_name: string | null;
-      move_names: string[];
-    };
-
-    try {
-      const response = await fetch(`/api/ranked-teams?season=${encodeURIComponent(rankedSeason)}`, {
-        credentials: 'same-origin',
-      });
-      if (!response.ok) throw new Error(`上位構築の取得に失敗しました (status=${response.status})`);
-      const body = (await response.json()) as { teams: RankedTeam[] };
-      const teams = body.teams ?? [];
-      const scored = teams
-        .map((team) => {
-          const matched = team.members.find((member) => member.speciesName === pokemonBuild.species_name);
-          return matched ? { team, similarity: calculateBuildSimilarity(pokemonBuild, matched) } : null;
-        })
-        .filter((entry): entry is { team: RankedTeam; similarity: number } => entry !== null)
-        .sort((a, b) => b.similarity - a.similarity || a.team.rank - b.team.rank);
-
-      if (scored.length === 0) {
-        setRankedStatus('この個体を採用した上位構築がありません。');
-        return;
-      }
-
-      const list = document.createElement('div');
-      list.className = 'team-grid';
-      for (const entry of scored) list.appendChild(renderTopBuildCard(entry.team));
-      panel.innerHTML = '<h2>上位構築</h2>';
-      panel.appendChild(list);
-    } catch (error) {
-      console.error(error);
-      setRankedStatus('上位構築を読み込めませんでした。', 'error');
-    }
-  }
-
-  void loadRankedBuilds();
 </script>
