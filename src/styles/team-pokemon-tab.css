@@ -28,45 +28,48 @@
 	display: none;
 }
 
+.team-edit-shell[data-mobile-tab="matchup"] .team-edit-layout {
+	display: none;
+}
+.team-edit-shell[data-mobile-tab="matchup"] #team-matchup-mobile {
+	display: block;
+}
+.team-formation-mobile__mates {
+	position: sticky;
+	top: calc(var(--topbar-height) + var(--second-bar-height));
+	z-index: 3;
+	padding: var(--space-2) var(--space-3);
+	background: var(--color-surface);
+	border-bottom: 1px solid var(--color-border);
+}
+.team-formation-mobile__slot-grid {
+	display: grid;
+	grid-template-columns: repeat(6, minmax(0, 1fr));
+	gap: var(--space-1);
+	max-width: 34rem;
+	margin-inline: auto;
+}
+.team-matchup-mobile__results {
+	padding: var(--space-3);
+}
+.team-matchup-mobile__direction {
+	position: sticky;
+	bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom));
+	z-index: 3;
+	padding: var(--space-2) var(--space-3);
+	background: var(--color-surface);
+	border-top: 1px solid var(--color-border);
+}
+
 @media (max-width: 899px) {
-	.team-edit-shell[data-mobile-tab="formation"] .team-edit-layout,
-	.team-edit-shell[data-mobile-tab="matchup"] .team-edit-layout {
+	.team-edit-shell[data-mobile-tab="formation"] .team-edit-layout {
 		display: none;
 	}
 	.team-edit-shell[data-mobile-tab="formation"] #team-formation-mobile {
 		display: block;
 	}
-	.team-edit-shell[data-mobile-tab="matchup"] #team-matchup-mobile {
-		display: block;
-	}
-	.team-formation-mobile__mates {
-		position: sticky;
-		top: calc(var(--topbar-height) + var(--second-bar-height));
-		z-index: 3;
-		padding: var(--space-2) var(--space-3);
-		background: var(--color-surface);
-		border-bottom: 1px solid var(--color-border);
-	}
-	.team-formation-mobile__slot-grid {
-		display: grid;
-		grid-template-columns: repeat(6, minmax(0, 1fr));
-		gap: var(--space-1);
-		max-width: 34rem;
-		margin-inline: auto;
-	}
 	.team-formation-mobile__box {
 		padding: var(--space-4) var(--space-3) calc(var(--space-7) + var(--space-6));
-	}
-	.team-matchup-mobile__results {
-		padding: var(--space-3);
-	}
-	.team-matchup-mobile__direction {
-		position: sticky;
-		bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom));
-		z-index: 3;
-		padding: var(--space-2) var(--space-3);
-		background: var(--color-surface);
-		border-top: 1px solid var(--color-border);
 	}
 	/* box-card.cssの.box-card は元々<a>を前提に書かれている。<a>はグリッド項目として
 	   既定で軌道(track)いっぱいにストレッチされるが、<button>はフォームコントロールの
@@ -81,9 +84,11 @@
 }
 
 @media (min-width: 900px) {
-	#team-formation-mobile,
-	#team-matchup-mobile {
+	#team-formation-mobile {
 		display: none !important;
+	}
+	.team-matchup-mobile__direction {
+		bottom: env(safe-area-inset-bottom);
 	}
 }
 @media (max-width: 640px) {

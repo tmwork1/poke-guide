@@ -147,16 +147,6 @@ const initialTeamJson = team
 		#autosave-status {
 			margin: 0;
 		}
-		.team-matchup-check-row {
-			display: flex;
-			justify-content: flex-start;
-			margin: var(--space-4) 0;
-		}
-		.team-matchup-check-row #matchup-check-button {
-			display: inline-flex;
-			position: static;
-			left: auto;
-		}
 		/* UI改修依頼(チーム編集ヘッダー、2026-08-01)「保存済みを非表示にする」。box/[id].astro
 		   ラウンド11(11-1)と同じ方針: #autosave-status-text自体はDOM/idごと残し(<script>の
 		   el("autosave-status-text")がthrowするのを避けるため)、テキストだけを常時非表示にする。
@@ -194,9 +184,7 @@ const initialTeamJson = team
 			cursor: not-allowed;
 			opacity: 0.7;
 		}
-		/* UI改修依頼(2026-08-05)「相性チェック・非公開を戻るボタンと同じhover色にする」対応。
-		   非公開はlabel内のinputがdisabledになる構造なので、:has()で無効時を除外する。 */
-		#matchup-check-button:hover:not(:disabled),
+		/* 非公開はlabel内のinputがdisabledになる構造なので、:has()で無効時を除外する。 */
 		.collection-opt-out-toggle:hover:not(:has(.toggle-switch-input:disabled)) {
 			color: var(--color-primary);
 		}
@@ -240,47 +228,8 @@ const initialTeamJson = team
 			color: var(--color-primary-contrast);
 		}
 
-		/* --- 相性チェック(ユーザー要望、2026-08-02) --- */
-		/* 見た目は他のトップバー操作と同じ .btn-ghost で、ONのときだけ塗りつぶす。配色は新設せず、
-		   このページの攻守セグメント(下記 .team-matchup-direction-option[data-role="defense"])と
-		   同じ --color-primary-strong + --color-primary-contrast の組み合わせを使う
-		   (DamageCalcSection.astro のコメントにあるとおり、この組はライト4.62:1/
-		   ダーク8.87:1でWCAG AAを満たすことが実測済み)。
-		   2026-08-05: 共通トップバーへ移しても従来の水平位置を保つため、表示幅ではボタンを
-		   トップバー基準で中央パネル左端へ絶対配置する。配色・フォントサイズは変更しない。 */
-		#matchup-check-button { font-size: var(--font-size-sm2); white-space: nowrap; display: none; }
-		/* 3カラム時の左列幅は、ヘッダーボタンと本文グリッドで共有して更新漏れを防ぐ。 */
+		/* 3カラム時の左列幅を本文グリッドで共有する。 */
 		:global(:root) { --team-left-col: 335px; }
-		#matchup-check-button[aria-pressed="true"] {
-			background: var(--color-primary-strong);
-			border-color: var(--color-primary-strong);
-			color: var(--color-primary-contrast);
-		}
-		/* ON時は共通hoverの文字色を上書きし、背景だけで押下フィードバックを示す。 */
-		#matchup-check-button[aria-pressed="true"]:hover:not(:disabled) {
-			background: color-mix(in srgb, var(--color-primary-strong) 90%, var(--color-surface) 10%);
-			border-color: var(--color-primary);
-			color: var(--color-primary-contrast);
-		}
-		/* 右パネルが出ない幅では行自体を隠す(閾値は .team-preview-panel と必ず揃えること)。 */
-		@media (min-width: 1650px) {
-			/* トップバーはサイドバー右端が原点。チーム名左端=共有する左列幅+中央padding。 */
-			#matchup-check-button {
-				display: inline-flex;
-				position: absolute;
-				/* 左カラム幅 + 中央.panelの左paddingで、実測611pxのチーム名入力左端へ揃える。 */
-				left: calc(var(--team-left-col) + var(--space-5));
-			}
-		}
-
-		.team-matchup {
-			padding: var(--space-3);
-		}
-		.team-matchup-heading {
-			font-size: var(--font-size-sm2);
-			font-weight: 600;
-			margin: 0 0 var(--space-2);
-		}
 		/* 攻撃・防御の切り替え。個体編集画面のダメージ計算カードの攻守セグメント
 		   (src/components/box-id/DamageCalcSection.astro の
 		   .damage-row-direction-toggle / .damage-row-direction-option)と同じ意匠。
@@ -667,11 +616,7 @@ const initialTeamJson = team
 			border-bottom: 1px solid var(--color-border);
 		}
 		.team-panel-header-band[hidden] { display: none; }
-		/* UI改修依頼の3状態(個体プレビュー/サジェスト/相性チェック)を1つの見出しに統一する。
-		   本文側の.team-damage-owner / .team-suggest-heading / .team-matchup-heading
-		   (このファイル内の既存クラス、削除していない)は、この帯へ見出しを移した結果いずれも
-		   このページでは使用しなくなったが、クラス名・CSSルール自体は変更・削除しない
-		   (改修依頼の「クラス名の改名・削除はしないこと」に従う)。 */
+		/* 個体プレビューとサジェストの見出しを1つの帯に統一する。 */
 		.team-panel-header-title {
 			margin: 0;
 			font-size: var(--font-size-sm2);
@@ -892,12 +837,6 @@ const initialTeamJson = team
 							    UI改修依頼(チーム編集中央パネル)「2x3配置に変更」により、1列縦積みから
 							    3列2行のグリッドへ変更する(CSSは下の.team-slots参照)。 */}
 							<div id="team-slots" class="team-slots"></div>
-							<div class="team-matchup-check-row">
-								<button id="matchup-check-button" class="btn-ghost" type="button" aria-pressed="false" title="使用率上位20体との相性を右パネルに表示する">
-									<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><line x1="12" y1="1" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="23"/><line x1="1" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="23" y2="12"/></svg>
-									相性チェック
-								</button>
-							</div>
 
 							{/* UI改修依頼(チーム編集中央パネル、2026-08-02)「メモ欄のplaceholderを
 							    "メモ"だけにする」。aria-label="メモ"は元々同じ文言のため変更不要。 */}
@@ -920,11 +859,7 @@ const initialTeamJson = team
 					    (下の.team-preview-panel参照)。 --- */}
 					<aside class="panel team-preview-panel" id="team-preview-panel">
 						{/* 🔴 UI改修依頼(チーム編集画面 右パネル、2026-08-04)「右パネル共通のタイトル帯を
-						    追加する」。個体プレビュー/サジェスト/相性チェックの3状態はそれぞれ独立した
-						    見出し(team-damage-owner / team-suggest-heading / team-matchup-heading、
-						    このファイル内で複数箇所に既存)を持つだけで、背景色付きの帯・共通ヘッダーが
-						    無かった。3状態の切り替えロジック自体(#team-preview-content/#team-suggest/
-						    #team-matchupのhidden切り替え)は変えず、見出しテキストの表示先だけをこの
+						    追加する」。個体プレビュー/サジェストの見出しテキストの表示先をこの
 						    共通の帯へ差し替える(<script>のsetPanelHeaderTitle参照)。初期状態はhidden
 						    (中身が無い空の帯を出さないため。各状態が最初に見出しをセットするタイミングで
 						    表示に切り替わる)。 */}
@@ -949,7 +884,7 @@ const initialTeamJson = team
 						    一式(このページのscoped<style>で既に定義済み)を流用し、新しいスイッチの見た目は
 						    作らない。#team-suggestはJS(renderSuggestions)がinnerHTMLで丸ごと書き換えるため、
 						    トグル自体はその中に置かず兄弟要素にし、表示/非表示は#team-suggestと同じタイミング
-						    (renderPreviewPanel/closePreviewPanel/setMatchupMode参照)で切り替える
+						    (renderPreviewPanel/closePreviewPanel参照)で切り替える
 						    (<script>のsuggestTogglesEl参照)。 */}
 						<div class="team-suggest-toggles" id="team-suggest-toggles">
 							<label class="team-suggest-toggle" for="team-suggest-mega-toggle">
@@ -968,38 +903,6 @@ const initialTeamJson = team
 							</label>
 						</div>
 						<div class="team-suggest" id="team-suggest"></div>
-						{/* 相性チェック(ユーザー要望、2026-08-02)。トップバーの「相性チェック」を押している
-						    間だけ表示し、上の #team-suggest / #team-preview-content を隠して右パネルを
-						    丸ごと占有する(<script>の setMatchupMode 参照)。
-						    最上部の攻守セグメントだけは静的マークアップで置き(このファイルのscoped
-						    <style>が効く)、相手ポケモンのカード一覧はJSが生成するため、そのスタイルは
-						    下の<style is:global>側に置く(pitfalls.md「Astroのscoped styleはJSで生成した
-						    要素に効かない」)。 */}
-						<div class="team-matchup" id="team-matchup" hidden>
-							{/* UI改修依頼(右パネル、2026-08-04)見出し「使用率上位20体との相性」は右パネル
-							    共通のタイトル帯(#team-panel-header-title、上の.team-preview-panel直下)へ
-							    移動した。テキスト自体は<script>のsetMatchupMode(active=true時)がセットする。 */}
-							<div class="team-matchup-direction-toggle" role="radiogroup" aria-label="相性チェックの方向">
-								<button
-									id="matchup-direction-attack"
-									class="team-matchup-direction-option"
-									type="button"
-									role="radio"
-									data-role="attack"
-									aria-checked="true"
-								>攻撃</button>
-								<button
-									id="matchup-direction-defense"
-									class="team-matchup-direction-option"
-									type="button"
-									role="radio"
-									data-role="defense"
-									aria-checked="false"
-								>防御</button>
-							</div>
-							<p class="team-matchup-status" id="team-matchup-status" hidden></p>
-							<ul class="team-matchup-list" id="team-matchup-list"></ul>
-						</div>
 					</aside>
 				</div>
 				<section id="team-formation-mobile" class="floating-list-page" aria-label="チーム編成">
@@ -2561,10 +2464,8 @@ const initialTeamJson = team
 			const previewPanelEl = el<HTMLElement>("team-preview-panel");
 
 			// 🔴 UI改修依頼(チーム編集画面 右パネル、2026-08-04)右パネル共通のタイトル帯。
-			// 個体プレビュー(renderPreviewPanel)/サジェスト(renderSuggestions)/相性チェック
-			// (setMatchupMode)の3状態それぞれが持っていた見出しの表示先をここへ統一する
-			// (3状態の切り替えロジック自体、すなわち#team-preview-content/#team-suggest/
-			// #team-matchupのhidden切り替えは変えない)。
+			// 個体プレビュー(renderPreviewPanel)とサジェスト(renderSuggestions)の見出しを
+			// ここへ統一する。
 			const panelHeaderBandEl = el<HTMLElement>("team-panel-header-band");
 			const panelHeaderTitleEl = el<HTMLElement>("team-panel-header-title");
 			function setPanelHeaderTitle(text: string): void {
@@ -2585,11 +2486,6 @@ const initialTeamJson = team
 			// (draggedPokemonId)とは別に、埋まっている枠自身をドラッグしたときの移動元slot番号を
 			// 保持する専用変数(renderSlots参照)。
 			let draggedMemberSlot: number | null = null;
-
-			// 相性チェック(ユーザー要望、2026-08-02)が右パネルを占有しているか。
-			// renderPreviewPanel / closePreviewPanel より手前で宣言しているのは、
-			// それらが「相性チェック中は右パネルに触らない」ガードでこの変数を読むため。
-			let matchupActive = false;
 
 			const imageIdMapPromise = loadImageIdMap();
 			const itemSpriteMapPromise = loadItemSpriteMap();
@@ -2981,10 +2877,6 @@ const initialTeamJson = team
 			let previewRequestId = 0;
 
 			async function renderPreviewPanel(p: OwnedPokemonRecord): Promise<void> {
-				// 相性チェック中は右パネルを相性チェックが占有している(setMatchupMode参照)。
-				// 枠のクリック自体(選択ハイライト)は従来どおり効かせつつ、右パネルの差し替えだけ
-				// 行わない ── ここで描いてしまうと相性チェックの一覧が黙って消える。
-				if (matchupActive) return;
 				const requestId = (previewRequestId += 1);
 				previewEmptyEl.hidden = true;
 				previewContentEl.hidden = false;
@@ -3052,9 +2944,6 @@ const initialTeamJson = team
 			// (previewEmptyElは元々常時hidden・無テキストの設計(上のマークアップのコメント参照)
 			// のため、ここで表示に戻す必要はない)。
 			function closePreviewPanel(): void {
-				// 相性チェック中は suggestEl を出し直してはいけない(右パネルは相性チェックが
-				// 占有している)。renderPreviewPanel 側と同じガード。
-				if (matchupActive) return;
 				previewRequestId += 1;
 				previewContentEl.hidden = true;
 				previewContentEl.innerHTML = "";
@@ -3361,11 +3250,11 @@ const initialTeamJson = team
 
 				// UI改修依頼(右パネル、2026-08-04)見出しは右パネル共通のタイトル帯へ表示する。
 				// scheduleSuggestions/loadSuggestionsは編成が変わるたびに走るため、個体プレビュー中
-				// (previewContentElが表示中)や相性チェック中(matchupActive)でも背後で呼ばれうる
+				// (previewContentElが表示中)でも背後で呼ばれうる
 				// (suggestElはその間hiddenのまま、renderSuggestions自体は元からそうだった)。
 				// この場合、いま実際に表示中の状態の見出しを上書きしてはいけないので、サジェストが
 				// 見えている状態のときだけ帯を更新する。
-				if (!matchupActive && previewContentEl.hidden) {
+				if (previewContentEl.hidden) {
 					setPanelHeaderTitle("おすすめポケモン");
 				}
 
@@ -3449,17 +3338,11 @@ const initialTeamJson = team
 				moves: PopularMoveOption[];
 			}
 
-			const matchupEl = el<HTMLElement>("team-matchup");
-			const matchupStatusEl = el<HTMLElement>("team-matchup-status");
-			const matchupListEl = el<HTMLElement>("team-matchup-list");
-			const matchupAttackButton = el<HTMLButtonElement>("matchup-direction-attack");
-			const matchupDefenseButton = el<HTMLButtonElement>("matchup-direction-defense");
 			const matchupMobileSlotsRoot = el<HTMLElement>("team-matchup-mobile-slots");
 			const matchupMobileStatusEl = el<HTMLElement>("team-matchup-mobile-status");
 			const matchupMobileListEl = el<HTMLElement>("team-matchup-mobile-list");
 			const matchupMobileAttackButton = el<HTMLButtonElement>("matchup-mobile-direction-attack");
 			const matchupMobileDefenseButton = el<HTMLButtonElement>("matchup-mobile-direction-defense");
-			const matchupCheckButton = el<HTMLButtonElement>("matchup-check-button");
 
 			let matchupDirection: MatchupDirection = "attack";
 			// 上位20体の一覧は編成にも向きにも依存しないので、ページ内で1回だけ取得して使い回す。
@@ -3477,22 +3360,23 @@ const initialTeamJson = team
 				ratios: (number[] | null)[];
 			}
 			const matchupMemberRatioCache = new Map<string, MatchupMemberRatioCacheEntry>();
+			let matchupCardEls: HTMLLIElement[] = [];
+			const matchupClickableCards = new WeakSet<HTMLLIElement>();
 			let selectedMatchupTargetIndex: number | null = null;
 
 			function setMatchupStatus(message: string | null): void {
-				for (const statusEl of [matchupStatusEl, matchupMobileStatusEl]) {
-					if (message === null) {
-						statusEl.hidden = true;
-						statusEl.textContent = "";
-					} else {
-						statusEl.textContent = message;
-						statusEl.hidden = false;
-					}
+				if (message === null) {
+					matchupMobileStatusEl.hidden = true;
+					matchupMobileStatusEl.textContent = "";
+				} else {
+					matchupMobileStatusEl.textContent = message;
+					matchupMobileStatusEl.hidden = false;
 				}
 			}
 
 			function clearMatchupLists(): void {
-				for (const listRoot of [matchupListEl, matchupMobileListEl]) listRoot.innerHTML = "";
+				matchupMobileListEl.innerHTML = "";
+				matchupCardEls = [];
 			}
 
 			// 相性チェックの対象になるチームメンバー(種族名が入っているものだけ)。
@@ -3558,45 +3442,25 @@ const initialTeamJson = team
 				return Math.round((target.usageTeams / Math.max(target.totalTeams, 1)) * 100);
 			}
 
-			/**
-			 * 相手カードの一覧を描く。scores が null のときは「まだ計算していない」状態
-			 * (相手の顔ぶれだけ先に見せる)。
-			 */
 			function clearMatchupMemberHighlights(): void {
 				selectedMatchupTargetIndex = null;
-				for (const listRoot of [matchupListEl, matchupMobileListEl]) {
-					for (const card of listRoot.querySelectorAll(".team-matchup-card")) {
-						card.classList.remove("is-selected");
-					}
+				for (const card of matchupMobileListEl.querySelectorAll(".team-matchup-card")) {
+					card.classList.remove("is-selected");
 				}
-				for (const slotRoot of [slotsRoot, matchupMobileSlotsRoot]) {
-					for (const card of slotRoot.querySelectorAll("[data-slot]")) {
-						card.classList.remove("is-disadvantaged");
-					}
+				for (const card of matchupMobileSlotsRoot.querySelectorAll("[data-slot]")) {
+					card.classList.remove("is-disadvantaged");
 				}
 			}
 
-			function renderMatchupList(
-				targets: MatchupTarget[],
-				scores: (number | null)[] | null,
-				memberRatios: MatchupMemberRatioCacheEntry | null,
-				typesMap: Map<string, string[]>,
-				isAttackMove: (moveName: string) => boolean,
-			): void {
+			/** pending 状態の相手カードを作り、相性タブの一覧へ追加する。 */
+			function createMatchupCards(targets: MatchupTarget[], typesMap: Map<string, string[]>): void {
 				clearMatchupLists();
 				clearMatchupMemberHighlights();
-				const scored = scores
-					? scoreToOpacities(
-							targets.map((t, i) => ({ item: t, score: scores[i] ?? null })),
-							matchupDirection,
-						)
-					: targets.map((t) => ({ item: t, score: null as number | null, opacity: null as number | null }));
 
-				function createMatchupCard(targetIndex: number): HTMLLIElement {
-					const entry = scored[targetIndex];
-					const target = entry.item;
+				function createMatchupCard(target: MatchupTarget): HTMLLIElement {
 					const card = document.createElement("li");
 					card.className = "team-matchup-card";
+					card.dataset.state = "pending";
 
 					// ユーザー指示「カード(アイコンのみ)」。数値は title(ツールチップ)にだけ入れる。
 					const img = document.createElement("img");
@@ -3609,58 +3473,98 @@ const initialTeamJson = team
 
 					// ツールチップは識別に必要な種族名とタイプだけに限定する。
 					const typeNames = (typesMap.get(target.speciesName) ?? []).join("/");
-					const heading = typeNames ? `${target.speciesName}\n${typeNames}` : target.speciesName;
-					if (scores === null) {
-						card.dataset.state = "pending";
-						card.title = heading;
-					} else if (entry.score === null || entry.opacity === null) {
-						card.dataset.state = "unknown";
-						card.title = heading;
-					} else {
-						if (entry.opacity >= 0.5) {
-							card.classList.add("is-disadvantageous");
-							// 下限28%を保ち、最大1.0では70%まで広げて不利度の差を明確にする。
-							const mix = 28 + (entry.opacity - 0.5) * 84;
-							card.style.setProperty("--matchup-mix", `${mix}%`);
-						}
-						card.title = heading;
-						// 内部で保持している相性スコアを、比較しやすい固定2桁で左上に表示する。
-						const scoreEl = document.createElement("span");
-						scoreEl.className = "team-matchup-score";
-						scoreEl.textContent = entry.score.toFixed(2);
-						card.appendChild(scoreEl);
-						card.addEventListener("click", () => {
-							if (!memberRatios) return;
-							const ratios = memberRatios.ratios[targetIndex];
-							if (!ratios) return;
-							if (selectedMatchupTargetIndex === targetIndex) {
-								clearMatchupMemberHighlights();
-								return;
-							}
-							clearMatchupMemberHighlights();
-							selectedMatchupTargetIndex = targetIndex;
-							card.classList.add("is-selected");
-							// 個別割合50%を境界にする。防御は被ダメージ50%以上、攻撃は与ダメージ50%未満を不利と判定。
-							const disadvantagedIds = new Set(
-								memberRatios.memberIds.filter((_, i) =>
-									matchupDirection === "defense" ? ratios[i] >= 0.5 : ratios[i] < 0.5,
-								),
-							);
-							for (const [slot, member] of membersBySlot) {
-								if (!disadvantagedIds.has(member.id)) continue;
-								for (const slotRoot of [slotsRoot, matchupMobileSlotsRoot]) {
-									slotRoot.querySelector<HTMLElement>(`[data-slot="${slot}"]`)?.classList.add("is-disadvantaged");
-								}
-							}
-						});
-					}
+					card.title = typeNames ? `${target.speciesName}\n${typeNames}` : target.speciesName;
 					return card;
 				}
 
-				for (const listRoot of [matchupListEl, matchupMobileListEl]) {
-					for (let targetIndex = 0; targetIndex < scored.length; targetIndex += 1) {
-						listRoot.appendChild(createMatchupCard(targetIndex));
+				for (const target of targets) {
+					const card = createMatchupCard(target);
+					matchupCardEls.push(card);
+					matchupMobileListEl.appendChild(card);
+				}
+			}
+
+			/** 計算済みの1体について、既存カードのDOMを保ったまま結果を反映する。 */
+			function applyMatchupCardResult(
+				targetIndex: number,
+				score: number | null,
+				opacity: number | null,
+				memberRatios: MatchupMemberRatioCacheEntry,
+			): void {
+				const card = matchupCardEls[targetIndex];
+				if (!card) return;
+
+				card.classList.remove("is-disadvantageous");
+				card.style.removeProperty("--matchup-mix");
+
+				if (score === null || opacity === null) {
+					card.dataset.state = "unknown";
+					card.querySelector(".team-matchup-score")?.remove();
+					return;
+				}
+
+				delete card.dataset.state;
+				if (opacity >= 0.5) {
+					card.classList.add("is-disadvantageous");
+					// 下限28%を保ち、最大1.0では70%まで広げて不利度の差を明確にする。
+					const mix = 28 + (opacity - 0.5) * 84;
+					card.style.setProperty("--matchup-mix", `${mix}%`);
+				}
+
+				// 内部で保持している相性スコアを、比較しやすい固定2桁で左上に表示する。
+				let scoreEl = card.querySelector<HTMLSpanElement>(".team-matchup-score");
+				if (!scoreEl) {
+					scoreEl = document.createElement("span");
+					scoreEl.className = "team-matchup-score";
+					card.appendChild(scoreEl);
+				}
+				scoreEl.textContent = score.toFixed(2);
+
+				if (matchupClickableCards.has(card)) return;
+				matchupClickableCards.add(card);
+				card.addEventListener("click", () => {
+					const ratios = memberRatios.ratios[targetIndex];
+					if (!ratios) return;
+					if (selectedMatchupTargetIndex === targetIndex) {
+						clearMatchupMemberHighlights();
+						return;
 					}
+					clearMatchupMemberHighlights();
+					selectedMatchupTargetIndex = targetIndex;
+					card.classList.add("is-selected");
+					// 個別割合50%を境界にする。防御は被ダメージ50%以上、攻撃は与ダメージ50%未満を不利と判定。
+					const disadvantagedIds = new Set(
+						memberRatios.memberIds.filter((_, i) =>
+							matchupDirection === "defense" ? ratios[i] >= 0.5 : ratios[i] < 0.5,
+						),
+					);
+					for (const [slot, member] of membersBySlot) {
+						if (!disadvantagedIds.has(member.id)) continue;
+						matchupMobileSlotsRoot
+							.querySelector<HTMLElement>(`[data-slot="${slot}"]`)
+							?.classList.add("is-disadvantaged");
+					}
+				});
+			}
+
+			/**
+			 * 相手カードの一覧を描く。scores が null のときは「まだ計算していない」状態
+			 * (相手の顔ぶれだけ先に見せる)。
+			 */
+			function renderMatchupList(
+				targets: MatchupTarget[],
+				scores: (number | null)[] | null,
+				memberRatios: MatchupMemberRatioCacheEntry | null,
+				typesMap: Map<string, string[]>,
+			): void {
+				createMatchupCards(targets, typesMap);
+				if (!scores || !memberRatios) return;
+				const scored = scoreToOpacities(
+					targets.map((target, i) => ({ item: target, score: scores[i] ?? null })),
+					matchupDirection,
+				);
+				for (let targetIndex = 0; targetIndex < scored.length; targetIndex += 1) {
+					applyMatchupCardResult(targetIndex, scored[targetIndex].score, scored[targetIndex].opacity, memberRatios);
 				}
 			}
 
@@ -3739,7 +3643,7 @@ const initialTeamJson = team
 
 				const members = matchupTeamMembers();
 				if (members.length === 0) {
-					renderMatchupList(targets, null, null, typesMap, isAttackMove);
+					renderMatchupList(targets, null, null, typesMap);
 					setMatchupStatus("チームにポケモンを入れると相性を計算します。");
 					return;
 				}
@@ -3748,14 +3652,14 @@ const initialTeamJson = team
 				const cached = matchupScoreCache.get(cacheKey);
 				const cachedMemberRatios = matchupMemberRatioCache.get(cacheKey);
 				if (cached && cachedMemberRatios) {
-					renderMatchupList(targets, cached, cachedMemberRatios, typesMap, isAttackMove);
+					renderMatchupList(targets, cached, cachedMemberRatios, typesMap);
 					setMatchupStatus(null);
 					return;
 				}
 
 				// 計算前でも顔ぶれは先に出す(Pyodideの初回ロードは十数秒かかることがあるため、
 				// 空のパネルのまま待たせない)。
-				renderMatchupList(targets, null, null, typesMap, isAttackMove);
+				renderMatchupList(targets, null, null, typesMap);
 
 				setMatchupStatus("相性チェックを準備中…");
 				// Pyodide本体・jpoke wheelのオフラインキャッシュ(2回目以降の再ダウンロード回避)。
@@ -3787,6 +3691,7 @@ const initialTeamJson = team
 
 				const scores: (number | null)[] = new Array(targets.length).fill(null);
 				const memberRatios: (number[] | null)[] = new Array(targets.length).fill(null);
+				const memberRatioEntry = { memberIds: members.map((p) => p.id), ratios: memberRatios };
 				let engineRestarted = false;
 				for (let i = 0; i < targets.length; i += 1) {
 					setMatchupStatus(`相性を計算中… (${i + 1}/${targets.length})`);
@@ -3825,13 +3730,25 @@ const initialTeamJson = team
 						}
 						scores[i] = null;
 					}
+					if (requestId !== matchupRequestId) return;
+
+					// 未計算の相手は含めず、ここまでに判明したスコアだけで濃淡を正規化し直す。
+					const scoredSoFar = scoreToOpacities(
+						targets.slice(0, i + 1).map((target, targetIndex) => ({
+							item: target,
+							score: scores[targetIndex] ?? null,
+						})),
+						matchupDirection,
+					);
+					for (let targetIndex = 0; targetIndex < scoredSoFar.length; targetIndex += 1) {
+						const entry = scoredSoFar[targetIndex];
+						applyMatchupCardResult(targetIndex, entry.score, entry.opacity, memberRatioEntry);
+					}
 				}
 				if (requestId !== matchupRequestId) return;
 
 				matchupScoreCache.set(cacheKey, scores);
-				const memberRatioEntry = { memberIds: members.map((p) => p.id), ratios: memberRatios };
 				matchupMemberRatioCache.set(cacheKey, memberRatioEntry);
-				renderMatchupList(targets, scores, memberRatioEntry, typesMap, isAttackMove);
 				const unknownCount = scores.filter((s) => s === null).length;
 				setMatchupStatus(
 					unknownCount > 0 ? `${unknownCount}体は採用技のデータが無いため計算していません(破線の枠)。` : null,
@@ -3840,7 +3757,7 @@ const initialTeamJson = team
 
 			// 編成が変わったら計算し直す。サジェスト(scheduleSuggestions)と同じ700msのデバウンス。
 			function scheduleMatchup(): void {
-				if (!matchupActive && layoutRoot.dataset.mobileTab !== "matchup") return;
+				if (layoutRoot.dataset.mobileTab !== "matchup") return;
 				window.clearTimeout(matchupTimer);
 				matchupTimer = window.setTimeout(() => {
 					void runMatchup();
@@ -3850,49 +3767,11 @@ const initialTeamJson = team
 			function setMatchupDirection(direction: MatchupDirection): void {
 				if (matchupDirection === direction) return;
 				matchupDirection = direction;
-				for (const button of [matchupAttackButton, matchupMobileAttackButton]) {
-					button.setAttribute("aria-checked", direction === "attack" ? "true" : "false");
-				}
-				for (const button of [matchupDefenseButton, matchupMobileDefenseButton]) {
-					button.setAttribute("aria-checked", direction === "defense" ? "true" : "false");
-				}
+				matchupMobileAttackButton.setAttribute("aria-checked", direction === "attack" ? "true" : "false");
+				matchupMobileDefenseButton.setAttribute("aria-checked", direction === "defense" ? "true" : "false");
 				void runMatchup();
 			}
 
-			// 相性チェックは右パネルを丸ごと占有する(個体プレビュー・サジェストを隠す)。
-			// もう一度押すと元のニュートラル状態(サジェスト表示)へ戻る。
-			function setMatchupMode(active: boolean): void {
-				matchupActive = active;
-				matchupCheckButton.setAttribute("aria-pressed", active ? "true" : "false");
-				matchupEl.hidden = !active;
-				if (active) {
-					// 進行中のプレビューfetchが後から書き戻すのも止める(closePreviewPanelと同じ手法。
-					// ただしあちらは相性チェック中は早期returnするので、ここで直接行う)。
-					previewRequestId += 1;
-					previewContentEl.hidden = true;
-					previewContentEl.innerHTML = "";
-					suggestEl.hidden = true;
-					suggestTogglesEl.hidden = true;
-					// UI改修依頼(右パネル、2026-08-04)見出しは右パネル共通のタイトル帯へ表示する
-					// (以前は#team-matchup内に静的な.team-matchup-heading<p>を置いていた)。
-					setPanelHeaderTitle("相性チェック");
-					void runMatchup();
-				} else {
-					// 進行中の計算結果は捨てる(戻ってきたときに古い編成の濃淡を描かない)。
-					matchupRequestId += 1;
-					window.clearTimeout(matchupTimer);
-					clearMatchupMemberHighlights();
-					suggestEl.hidden = false;
-					suggestTogglesEl.hidden = false;
-					// もう一度押すと元のニュートラル状態(サジェスト表示)へ戻るため、帯の見出しも
-					// closePreviewPanelと同じ文言に戻す。
-					setPanelHeaderTitle("おすすめポケモン");
-				}
-			}
-
-			matchupCheckButton.addEventListener("click", () => setMatchupMode(!matchupActive));
-			matchupAttackButton.addEventListener("click", () => setMatchupDirection("attack"));
-			matchupDefenseButton.addEventListener("click", () => setMatchupDirection("defense"));
 			matchupMobileAttackButton.addEventListener("click", () => setMatchupDirection("attack"));
 			matchupMobileDefenseButton.addEventListener("click", () => setMatchupDirection("defense"));
 
