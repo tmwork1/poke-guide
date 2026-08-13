@@ -87,13 +87,6 @@ const user = Astro.locals.user;
 								<slot name="topbar-actions" />
 							</div>
 						)}
-						{
-							isPublicChrome && (
-								<div class="app-topbar-account app-topbar-account-desktop">
-									<a class="btn-primary" href="/api/auth/login">自分の育成を管理する</a>
-								</div>
-							)
-						}
 					</div>
 				</div>
 			</header>
@@ -219,10 +212,6 @@ const user = Astro.locals.user;
 		flex-wrap: wrap;
 	}
 
-	/* この表示切り替えは scoped style 内に置く。global.css 側で
-	   `.app-topbar-account-desktop { display: none }` を書くと、
-	   scoped styleの実質詳細度 0,2,0 に付ける `.app-topbar-account { display: flex }` に負けて
-	   モバイルで二重表示と横スクロールが起きる。 */
 	.app-topbar-account {
 		display: flex;
 		align-items: center;
@@ -232,20 +221,6 @@ const user = Astro.locals.user;
 		white-space: nowrap;
 		/* 狭い幅でページ固有操作と共存しても横スクロールしないよう縮小を許可する。 */
 		min-width: 0;
-	}
-
-	.app-topbar-account-desktop {
-		display: none;
-	}
-
-	@media (min-width: 900px) {
-		.app-topbar-account-mobile {
-			display: none;
-		}
-
-		.app-topbar-account-desktop {
-			display: flex;
-		}
 	}
 
 	@media (max-width: 899px) {

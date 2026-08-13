@@ -1260,47 +1260,6 @@ dialog#opponent-note-form-container::backdrop {
   padding-bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom));
 }
 
-@media (min-width: 900px) {
-  :root {
-    --topbar-height: 65px;
-  }
-
-  .app-topbar {
-    margin-left: var(--sidebar-width);
-  }
-
-  .app-shell:not(.is-public) .app-topbar-row-brand {
-    display: none;
-  }
-
-  .app-topbar-row-main {
-    border-top: 0;
-  }
-
-  .app-sidebar-overlay {
-    display: none;
-  }
-
-  .app-sidebar {
-    transform: none;
-    visibility: visible;
-    transition: none;
-  }
-
-  .app-main {
-    margin-left: var(--sidebar-width);
-  }
-
-  .app-shell:not(.is-public) .app-main {
-    padding-bottom: 0;
-  }
-
-  .app-shell.is-public .app-topbar,
-  .app-shell.is-public .app-main {
-    margin-left: 0;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .app-sidebar {
     transition: none;

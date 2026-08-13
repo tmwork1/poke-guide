@@ -1,4 +1,4 @@
-/* モバイル幅(900px未満)専用のボトムナビゲーション(AppBottomNav.astro)。 */
+/* 常時表示のボトムナビゲーション (AppBottomNav.astro) */
 	.app-bottom-nav {
 		position: fixed;
 		left: 0;
@@ -49,10 +49,3 @@
 		opacity: 0.6;
 		cursor: not-allowed;
 	}
-
-	@media (min-width: 900px) {
-		.app-bottom-nav {
-			display: none;
-		}
-	}
-
