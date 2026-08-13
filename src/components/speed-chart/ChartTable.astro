@@ -68,57 +68,6 @@ const { regulation, ownedId, hasOwnedPanel, embedded = false } = Astro.props;
 		display: none;
 		box-sizing: border-box;
 	}
-	@media (min-width: 1200px) {
-		.speed-chart-layout {
-			display: grid;
-			/* 俯瞰位置を読み取りやすくするため、従来18pxのミニマップ幅を3倍にする。 */
-			grid-template-columns: 54px minmax(0, 1fr);
-			align-items: start;
-		}
-		.speed-chart-table[data-has-owned-panel='true'] .speed-chart-layout {
-			grid-template-columns: 54px minmax(0, 1fr) 260px;
-		}
-		.speed-chart-minimap {
-			display: block;
-			grid-column: 1;
-			grid-row: 1;
-			position: sticky;
-			top: var(--topbar-height);
-			height: calc(100vh - var(--topbar-height));
-			/* 横パディングを除き、トラック右端を表の左端へ隣接させる。 */
-			padding: var(--space-2) 0;
-		}
-		.speed-chart-content {
-			grid-column: 2;
-			grid-row: 1;
-			/* 通常の本文余白は維持しつつ、ミニマップとの間だけ空けない。 */
-			padding-left: 0;
-		}
-		.speed-chart-table[data-has-owned-panel='true'] .speed-chart-content {
-			grid-column: 2;
-		}
-		.speed-chart-table[data-has-owned-panel='true'] .speed-chart-side {
-			grid-column: 3;
-			grid-row: 1;
-			position: sticky;
-			/* 要件B: 共通トップバー復活により画面上端はposition: sticky; top: 0のトップバーが
-			   占有する(高さ--topbar-height、global.cssが:rootと@mediaでデスクトップ/モバイル
-			   それぞれの値を公開)。0固定だとトップバーの下に潜り込むため、stickyの吸着位置・
-			   高さの上限/下限をすべて--topbar-height分ずらす(値をベタ書きしない)。 */
-			top: var(--topbar-height);
-			max-height: calc(100vh - var(--topbar-height));
-			overflow-y: auto;
-			/* 見た目修正3: 中身が短いと.panel-right の帯(背景・左罫線)がページ途中で
-			   終わり、その下がページ背景のままになっていた。min-heightを足して画面端まで
-			   帯を伸ばす。max-heightと同値にしてあるので、中身がこれを超える場合は
-			   従来通りmax-height側が効いてパネル内スクロール(overflow-y: auto)になり、
-			   sticky+スクロールの挙動は変わらない(min/max-heightは競合しない別プロパティで
-			   どちらを先に書いても結果は同じだが、意図が伝わるようmax-heightの直後に置く)。
-			   1200px未満では表の上に積まれるだけなので、このmin-heightはこのメディアクエリの
-			   内側にだけ入れる(狭幅で画面高さぶんの空白帯にならないように)。 */
-			min-height: calc(100vh - var(--topbar-height));
-		}
-	}
 	.speed-chart-minimap-track {
 		position: relative;
 		height: 100%;
