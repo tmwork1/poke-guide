@@ -182,6 +182,14 @@ sonnetレビュアー1体(データモデル/API・情報設計/導線・プレ�
 - スクリーンショット: `/data`のライト/ダーク両方で30.png/7.pngのレイアウト(順位+アイコン+種族名ヘッダー、2x3グリッドカード、右端アイコンレール、下部固定の検索/シーズンバー)を確認。
 - `/box/data`: 直接のログイン検証は未実施(認証セッションの用意が必要なため)だが、変更はマークアップを`BattleDataCard`呼び出しへ置き換えるのみでロジック・条件分岐は変更していないこと、`npm run build`の型チェックが通ることで確認とした。
 
+### 修正: レイアウトが30.pngの指示と乖離していた点(2026-08-13、ユーザー指摘)
+初回実装ではアイコンレールが本文と同じ余白付きのflex子要素になっており、30.pngが示す「画面右端に張り付いた独立の縦スクロールバー領域」「画面幅をフルに活用する本文」という構成になっていなかった。`src/styles/data-hub-page.css`を以下のとおり修正した。
+- `.battle-data-rail`を`position:sticky`(flex子要素)から`position:fixed`(画面右端に`top`〜`bottom`まで通しで張り付く独立の帯、`background`/`border-left`でスクロールバー風の見た目)に変更。
+- `.battle-data-body`の左右パディングを縮小し、レール分(`--battle-data-rail-width: 44px`)だけ右側を確保する形にして、カード本体が使える横幅を拡大。
+- `.battle-data-controls`(検索/シーズンの固定バー)は`right:0`から`right: var(--battle-data-rail-width)`に変更し、レールの手前で止まるようにした(レールが検索バーの行でも通しで見える)。
+- 非アクティブパネルでの`inert`+`display:none`対象に`.battle-data-rail`も追加(`position:fixed`は`inert`だけでは隠れない、既知の論点どおり)。
+- Playwright実測: レールのbounding boxが`x:346, width:44, top:36(=second-bar直下), height:748(bottom-navの直上まで)`で画面右端に通しで張り付いていること、検索バーが`width:346`(=390-44)でレール手前に収まること、タブ切替でレール・検索バー双方が非表示になること、横スクロール無しを確認。スクリーンショット(ライト/ダーク)で30.pngと同等の構図(右端の帯+ほぼ全幅のカード)を確認。
+
 ## 参照
 - `docs/ui/mobile/29.png` / `30.png` / `31.png` / `7.png`(バトルデータカード)
 - `docs/plan/00-foundation.md`(レイアウト原則)

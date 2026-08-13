@@ -27,21 +27,22 @@
 }
 
 /* バトルデータタブ(docs/ui/mobile/30.png): 使用率ランキング一覧+アイコンレール+
-   検索/シーズン切替。カード本体(.trend-detail-card)は battle-data-card.css 側。 */
+   検索/シーズン切替。カード本体(.trend-detail-card)は battle-data-card.css 側。
+   レールは本文の内側ではなく画面右端に張り付く独立の帯(縦スクロールバーの領域を
+   明示する指示図の意図)として実装し、本文・検索バーはその分だけ幅を譲る。 */
+.battle-data-panel {
+	--battle-data-rail-width: 44px;
+}
+
 .battle-data-panel .panel-content {
 	padding: 0;
 }
 
 .battle-data-body {
-	display: flex;
-	align-items: flex-start;
-	gap: var(--space-2);
-	padding: var(--space-4) var(--space-3) calc(76px + env(safe-area-inset-bottom));
+	padding: var(--space-3) calc(var(--battle-data-rail-width) + var(--space-2)) calc(76px + env(safe-area-inset-bottom)) var(--space-2);
 }
 
 .battle-data-list {
-	flex: 1;
-	min-width: 0;
 	display: flex;
 	flex-direction: column;
 	gap: var(--space-4);
@@ -89,15 +90,20 @@
 }
 
 .battle-data-rail {
-	position: sticky;
-	top: calc(var(--topbar-height) + var(--second-bar-height) + var(--space-2));
-	flex: 0 0 auto;
+	position: fixed;
+	top: calc(var(--topbar-height) + var(--second-bar-height));
+	right: 0;
+	bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom));
+	z-index: 15;
+	width: var(--battle-data-rail-width);
 	display: flex;
 	flex-direction: column;
+	align-items: center;
 	gap: var(--space-2);
-	max-height: calc(100vh - var(--topbar-height) - var(--second-bar-height) - var(--space-4));
 	overflow-y: auto;
-	padding: var(--space-1);
+	padding: var(--space-2) 0;
+	background: var(--color-surface-alt);
+	border-left: 1px solid var(--color-border);
 }
 
 .battle-data-rail-item {
@@ -108,7 +114,7 @@
 	overflow: hidden;
 	border: 1px solid var(--color-border);
 	border-radius: 50%;
-	background: var(--color-surface-alt);
+	background: var(--color-surface);
 }
 
 .battle-data-rail-item img {
@@ -123,7 +129,7 @@
 
 .battle-data-controls {
 	position: fixed;
-	right: 0;
+	right: var(--battle-data-rail-width);
 	bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom));
 	left: 0;
 	z-index: 16;
@@ -134,9 +140,10 @@
 	border-top: 1px solid var(--color-border);
 }
 
-/* 非アクティブ側パネル(タブ切替でinertが付く)ではfixedバーも隠す。
+/* 非アクティブ側パネル(タブ切替でinertが付く)ではfixed要素も隠す。
    position:fixedはinert属性だけでは視覚的に隠れないため、CSSで明示的に消す。 */
-.data-hub-panel[inert] .battle-data-controls {
+.data-hub-panel[inert] .battle-data-controls,
+.data-hub-panel[inert] .battle-data-rail {
 	display: none;
 }
 
