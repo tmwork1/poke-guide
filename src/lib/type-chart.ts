@@ -395,7 +395,7 @@ export interface TypeEffectivenessGroup {
 
 // 攻撃技のタイプ(和名。わるあがき等タイプなしの技は null)から、防御側の各タイプに対する倍率を
 // 「効果ばつぐん(×2)/いまひとつ(×0.5)/効果がない(×0)」に分類して返す。
-// 等倍(×1)のタイプは意図的に含めない(round-09.md B-2「等倍のタイプは列挙しないこと」。
+// 等倍(×1)のタイプは意図的に含めない。
 // 18タイプ中、等倍が最多を占めるため列挙すると情報量が薄くなる)。
 export function getTypeEffectiveness(attackType: string | null): TypeEffectivenessGroup[] {
   const row = attackType == null ? TYPELESS_ROW : TYPE_CHART[attackType];

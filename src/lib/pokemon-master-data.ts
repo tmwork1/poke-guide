@@ -57,10 +57,8 @@ export function spriteUrl(imageId: number): string {
 // Pokemon.png ワイヤーフレームの「ポケモンアイコン(公式絵)」用。
 // ドット絵と同じく public/pokemon-artwork/ から同一オリジンで配信するが、こちらは原画をそのまま
 // 置いていない。原画は475x475/平均145.8KBで1284件=178.6MBになり、gitにもデプロイにも載らない。
-// 一方アプリの実表示は /box 115px・/team 72px・/pokemon/[name] 160px(2026-08-06 実測)と
 // 原画よりはるかに小さいため、Retina(2倍)を見込んだ320pxに縮小しWebP(q82)で保存している
 // (生成: scripts/pokemon-artwork/generate_pokemon_artwork.py。約1/8の22.6MB)。
-// ⚠️ 拡張子が .webp であってドット絵の .png ではない。
 export function officialArtworkUrl(imageId: number): string {
   return `/pokemon-artwork/${imageId}.webp`;
 }
@@ -114,7 +112,7 @@ let abilitiesCache: Promise<Map<string, string[]>> | null = null;
 // detail/pokemon.jsonをソースにしているが、キャッシュ済みPromiseパターンを揃えるため
 // あえて別関数・別キャッシュにしている)。box/[id].astro 左パネルの特性selectを、
 // 種族に属する特性だけに絞り込むために使う(21-L5)。
-// ⚠️ 隠れ特性(夢特性)の区別データは存在しない。abilities は単なるフラット配列で、
+// 隠れ特性(夢特性)の区別データは存在しない。abilities は単なるフラット配列で、
 // どれが隠れ特性かを示すキーは vendor/jpoke の生データ(ps-champ-ja/pokedex.json)の
 // 時点で既に失われている。区別しようとしないこと。
 export function loadAbilitiesMap(): Promise<Map<string, string[]>> {
@@ -193,14 +191,6 @@ export function loadMoveTypeMap(): Promise<Map<string, string>> {
   return moveTypeCache;
 }
 
-// UI改善ラウンド37(37-1〜37-3): 左パネルの技選択専用ウィンドウ(box-id/left-panel.ts)が
-// 技名・タイプ・分類・威力・命中・PPの列表示/フィルタ/ソートに使う詳細データ。
-// detail/moves.json は元々 src/pages/moves/[name].astro がビルド時にimportして使うだけで、
-// クライアント側からfetchするローダーが無かった(round-37.md調査済み)。他のload*Map()と
-// 同じ「fetch→Map化→モジュールスコープでキャッシュ→失敗時はconsole.warn+空Mapで握りつぶす」
-// パターンに従う(162〜182行目のloadMoveTypeMap参照)。
-// MoveCategory型はsrc/pages/moves/[name].astroの同名型と同じ定義。.astroからexportできない
-// ため、型だけこちらに複製している(round-37.md「対象ファイル」節に明記の既知の重複)。
 export type MoveCategory = "physical" | "special" | "status";
 
 export interface MoveDetail {
@@ -239,10 +229,9 @@ interface MegaStoneAutocompleteEntry {
 let megaStoneCache: Promise<Map<string, string>> | null = null;
 
 // メガ後種族名 -> メガストーン名(例: "メガリザードンX" -> "リザードナイトX")。
-// UI改善ラウンド23 23-G3: メガシンカポケモンを選択したら持ち物を対応するメガストーンに
-// 自動設定するために使う。前向き(種族 -> アイテム)の対応表なので、jpoke.data.megaevol.
+// 前向き(種族 -> アイテム)の対応表なので、jpoke.data.megaevol.
 // MEGA_STONES(逆引き)では曖昧になって漏れる「メガニャオニクス(オス)/(メス)」も含む。
-// ⚠️ ただし「ニャオニクスナイト」自体はjpokeのITEMS(=items.json)に存在しないという
+// 「ニャオニクスナイト」自体はjpokeのITEMS(=items.json)に存在しないという
 // 既知の不整合がある(build_mega_stonesのdocstring参照)。呼び出し側は値をそのまま
 // items.json の存在確認なしに信用しないこと。
 // 命名規則("メガXXX"→"XXXナイト")では導出できない例が85件中32件(約38%)あるため、

@@ -385,22 +385,10 @@ const { regulation, ownedId, hasOwnedPanel, embedded = false } = Astro.props;
 		user-select: none;
 	}
 
-	/* --- 行・グループ・チップ(src/lib/speed-chart/chart-table.ts が動的生成する要素) ---
-	   pitfalls.md「Astroのscoped styleはJSで生成した要素に効かない」への対応。
-	   領域ルートクラス .speed-chart-table で必ず絞る(確定仕様)。
-	   UI改修(2026-08-02第2弾)要件2: 1物理行 = 1グループ(振り方+補正の組)になった
-	   (以前は1物理行=1族で、族の中の複数グループを縦に積んでいた)。族・配分・倍率は
-	   2列目に、ポケモンと補正要因は3列目に分かれる。同じ実数値に属する行は
-	   .speed-chart-row-value-end が付いた最後の行の下にだけ罫線を引く。 */
 	.speed-chart-table .speed-chart-row {
 		display: grid;
 		grid-template-columns: var(--speed-chart-columns);
 		gap: var(--space-4);
-		/* UI改修(2026-08-02第5弾)要件3: 1つの実数値の中に族(baseSpeed)ごとの行が縦に並ぶ
-		   構成で、var(--space-3)は段間が間延びして見えたため1段詰める(var(--space-2))。
-		   実数値のまとまり自体は.speed-chart-row-value-endの罫線(下記)で区切られており、
-		   段間パディングを詰めても罫線がある限りグルーピングは読み取れる(1920px・390px
-		   双方でスクリーンショット確認済み)。 */
 		padding: var(--space-2) 0;
 		align-items: center;
 	}
@@ -480,13 +468,6 @@ const { regulation, ownedId, hasOwnedPanel, embedded = false } = Astro.props;
 		line-height: var(--line-height-snug);
 		text-align: center;
 	}
-	/* 振り方(最速/準速/無振り/最遅)バッジ。
-	   UI改修(2026-08-02第5弾)要件1: 「最速/準速/無振り」は本来3値の質的分類ではなく
-	   「すばやさへの投資量」という1本の連続量(多→少)なので、primary(青)/success(緑)/
-	   risky(黄)という無関係な色相をバラバラに割り当てていた旧配色をやめ、「最速=青→
-	   準速=青とグレーの中間→無振り=グレー」の単色グラデーションに統一する(色の濃淡だけで
-	   投資量の大小を表す)。新しい色・生hexは作らず、既存トークン(primary-soft/-strong・
-	   surface-alt・text-muted)とcolor-mixの組み合わせだけで3段を作る。 */
 	.speed-chart-table .speed-chart-spread-badge {
 		display: inline-flex;
 		align-items: center;
@@ -495,12 +476,6 @@ const { regulation, ownedId, hasOwnedPanel, embedded = false } = Astro.props;
 		font-size: inherit;
 		font-weight: 700;
 		vertical-align: middle;
-		/* UI改修依頼(すばやさ早見表、2026-08-02)「補正倍率バッジのサイズを配分バッジにそろえる」:
-		   .speed-chart-magnitude-badge(下)はvar(--color-border)の1px枠を持つため、枠なしの
-		   このバッジと高さが2px(実測20.375px vs 22.375px)ズレていた。padding/font-sizeは
-		   既に同値(0.05em 0.55em / inherit、いずれもJSが同じ親.speed-chart-meta-cellの
-		   font-sizeを継承するため実測でも一致済み)なので、見た目を変えない透明枠で
-		   高さだけを合わせる(色は追加しない)。 */
 		border: 1px solid transparent;
 	}
 	/* max(最速): 既存のprimary系のまま(要件1「最速=既存のprimary系のまま」)。

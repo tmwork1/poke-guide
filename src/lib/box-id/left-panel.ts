@@ -57,20 +57,8 @@ import {
 	type DurabilityIndexKind,
 	type DurabilityIndexCandidate,
 } from "./durability-index";
-// ⚠️ 実装時に踏んだ罠: renderCandidateList/openDetailPanelOverlayIfNarrowを他の関数と同じ
-// 静的importにすると、box/[id].astroでLeftPanel.astroがDamageCalcSection.astroより先に
-// レンダリングされる(=このファイルのscriptが先に評価される)ため、right-panel.ts⇄damage-calc.ts
-// の相互import(既存、両ファイルとも編集対象外)へ「right-panel.ts側から先に入る」経路が
-// 新たに生まれてしまう。既存の相互importは「damage-calc.ts側から先に入る」順序でのみ安全
-// (right-panel.tsコメント「モジュール top-level で即時評価されない値のみを跨いでいる」参照)
-// になるよう設計されていたため、順序が変わると right-panel.ts の `let detailPanelEl` 等が
-// 自身の宣言文へ到達する前に initRightPanel() から代入されてしまい、
-// "Cannot access 'detailPanelEl' before initialization" で例外になる
-// (実機のPlaywright検証で再現・特定した)。型だけの参照(CandidateListItem)は実行時に
-// 消えるため static import のままでよいが、実行時に呼ぶ関数(renderCandidateList/
-// openDetailPanelOverlayIfNarrow)はボタンクリック時(=ページの全scriptが評価を終え、
-// damage-calc.ts側から通常どおりright-panel.tsが初期化された後)に初めてdynamic import
-// することで、モジュールグラフへ入る経路を変えないようにする(loadRightPanel、下記)。
+// right-panel.ts と damage-calc.ts の初期化順を変えると循環参照で TDZ 例外になるため、
+// 実行時の参照はページ初期化後まで遅延読み込みする。
 import type { CandidateListItem } from "./right-panel";
 let rightPanelModulePromise: Promise<typeof import("./right-panel")> | null = null;
 function loadRightPanel(): Promise<typeof import("./right-panel")> {
@@ -78,13 +66,7 @@ function loadRightPanel(): Promise<typeof import("./right-panel")> {
 	return rightPanelModulePromise;
 }
 
-// UI品質改善(2026-07-26 第4弾 11-4): #move-listのlearnset優先並び替え(rebuildMoveListForSpecies、
-// 下で定義)は #move-list に既に候補が入っている前提で動く。loadAutocomplete()は元は<script>末尾で
-// void呼び出ししていたが、それより先にupdateSpeciesDisplay()の初回呼び出し(ページ読み込み時の
-// 種族名反映、下の方)が走るため、呼び出し順のままでは並び替え時に#move-listがまだ空になってしまう。
-// loadAutocomplete()はdatalistへ<option>を追記するだけで内部にキャッシュを持たない
-// (二重に呼ぶと候補が重複する)ため、呼び出し箇所はこの1箇所だけに保ち、Promiseを
-// 変数で保持してrebuildMoveListForSpecies側から待ち合わせに使う。
+// 候補の並び替えはリスト構築後に行う必要があり、候補の二重追加も避けるため読み込み Promise を共有する。
 // 純粋なsubject_key組み立てをNodeテストからimportできるよう、DOMの無い環境では副作用を起動しない。
 const autocompleteReadyPromise = typeof document === "undefined" ? Promise.resolve() : loadAutocomplete();
 
@@ -92,13 +74,7 @@ const typesMapPromise = loadTypesMap();
 const moveTypeMapPromise = loadMoveTypeMap();
 const learnsetMapPromise = loadLearnsetMap();
 
-// UI刷新(Pokemon.png): 種族アイコン右上の「タイプ画像」バッジ。
-// ラウンド3 B-6: 以前はtypes配列の先頭(types?.[0])だけを1枚の<img>に表示しており、
-// 複合タイプ(例: メガリザードンX=ほのお/ドラゴン、ハバタクカミ=ゴースト/フェアリー)が
-// 単一タイプとして表示される不正確な状態だった。containerに全タイプぶんの<img>を
-// 動的に追加する方式に変更する(タイプ数が種族によって1〜2件で可変なため)。
-// 取得できない(sprite-urls側がnullを返す/画像404)場合は既存のTYPE_COLORSによる
-// 色ボックス表現にフォールバックする。種族名が空/タイプ不明の場合はコンテナを空にする。
+// タイプ数は可変なのでバッジを動的に追加し、画像を取得できない場合は色表現へフォールバックする。
 async function applyTypeBadge(container: HTMLElement, name: string): Promise<void> {
 	container.innerHTML = "";
 	const types = name ? (await typesMapPromise).get(name) : undefined;
@@ -139,8 +115,6 @@ async function applyTypeBadge(container: HTMLElement, name: string): Promise<voi
 // range側の操作でnumber側の値をプログラム的に更新しても、numberInput自体の
 // input/changeイベントは発火しない(ブラウザの仕様)ため、range側のリスナーで
 // onSync()を明示的に呼び、既存の自動保存/実数値再計算をトリガーする。
-// UI品質改善(2026-07-26 第4弾): global.cssの--slider-progressに現在値/32の割合を
-// 設定し、「振った分だけ着色」されるようにする(要件)。
 function updateSliderProgress(rangeInput: HTMLInputElement): void {
 	const value = Number(rangeInput.value) || 0;
 	const percent = Math.min(100, Math.max(0, (value / 32) * 100));
@@ -156,13 +130,7 @@ function pairEvSlider(numberId: string, rangeId: string, onSync: () => void): vo
 		updateSliderProgress(rangeInput);
 		onSync();
 	});
-	// ラウンド40(40-T2)対応: numberInput側はLeftPanel.astroでmin/max属性を外して
-	// あるため、ネイティブの増減スピナー矢印・ArrowUp/ArrowDown・ホイール操作のいずれも
-	// 範囲外の値(33や-1等)をそのままinputイベントで渡してくる。ここでwrapToRange()に
-	// 通してから range 側・number 側の両方に書き戻す(numberInput.value自体も
-	// 循環後の値に補正することで、表示上も「32の次は0」に見えるようにする)。
-	// range側(スライダー)は据え置き(ドラッグ操作は循環させると直感に反するため、
-	// 40-T2の対象はあくまで増減ボタン付きの数値入力=スピンボックスのみ)。
+	// 数値入力は範囲外の値を渡し得るため、循環後の値を両入力へ書き戻す。
 	numberInput.addEventListener("input", () => {
 		const n = Number(numberInput.value);
 		if (Number.isFinite(n)) {
@@ -174,27 +142,6 @@ function pairEvSlider(numberId: string, rangeId: string, onSync: () => void): vo
 	});
 }
 
-// UI改善ラウンド34ユーザー指示(34-C1)「種族名・特性・アイテム・技の選択ボックスは
-// 一度選択した状態で再クリックしても、フィルタが適用されており他の選択肢が表示されない。
-// フィルタ結果だけ表示するのではなく、フィルタ結果を最上位に表示するようにしたい」対応。
-//
-// 診断: #species-name/#item/#move-1〜#move-4はネイティブ<input list="...">+<datalist>。
-// Chromium系ブラウザは「現在の入力値と一致しない<option>を候補から除外(非表示)する」
-// 独自フィルタを持つ。値が確定済み(=候補の1つと完全一致)の状態で再度フォーカスすると、
-// ブラウザは現在値でフィルタをかけ直すため他の選択肢がほぼ隠れる(候補1件になることが多い)。
-// これはCSS/DOM順の変更だけでは制御できないブラウザ既定動作。
-//
-// 方針: フォーカス時に現在値を一時変数へ退避してからinput.valueを空にし、ブラウザに
-// 全件を表示させる。空にする直前に<datalist>内の<option>を退避した現在値に近い順
-// (完全一致→前方一致→部分一致→残り、安定ソートで同順位内の相対順序=既存の並びは維持)に
-// 並べ替えておくことで、「フィルタ結果(=現在値に近いもの)が実質的に最上位に来る」体裁に
-// する。blur時、ユーザーが新しい値を選ばず(=inputイベントが発火せず)値が空のままなら、
-// 退避値を書き戻す(誤って値を消したままにしない)。ユーザーが実際に打鍵/datalistから
-// 選択した場合はinputイベントが発火するため、その後は書き戻さない(新しい値を尊重する)。
-//
-// 技(#move-1〜#move-4)は#move-listを4つのinputで共有しており、rebuildMoveListForSpecies()
-// が既にlearnset優先で並べ替え済み(下記参照)。安定ソートで同順位(rank)内の相対順序を
-// 保つため、learnset優先の並びを壊さずに「現在値との近さ」だけをさらに上乗せできる。
 function rankByProximity(optionValue: string, currentValue: string): number {
 	if (optionValue === currentValue) return 0;
 	if (optionValue.startsWith(currentValue)) return 1;
@@ -273,38 +220,6 @@ function setupDatalistRefocus(input: HTMLInputElement, datalist: HTMLDataListEle
 	});
 }
 
-// 匿名集計サジェスト機能。編集中の個体と同じ種族(species_name)について、他ユーザーが
-// 登録した個体を匿名集計した「よく使われる性格/アイテム/テラス/技」を、対応する選択候補
-// (datalist/カスタムドロップダウン/技選択ウィンドウ)の並び順・表示テキストに反映する。
-// バックエンド(GET /api/suggestions、変更不要)は該当種族のサンプル数がk-匿名性の閾値
-// (既定5件)未満だと該当kindの行自体が存在しない(data: [])——この場合は各候補リストを
-// 元の並び順・元のテキストのまま変更しない(過去の「常時表示される空枠」を作らない方針を、
-// 候補リストへの「上書きをしない」という形で引き継ぐ)。
-//
-// 🔴 UI改修依頼(個体編集左パネル、2026-08-01)「サジェストはリストボックスの候補に反映し、
-// パネルに常時表示しない。人気順に並び替えたり作用率を併記したりする。」により、常時表示の
-// ヒント段落(#nature-suggestion-hint等、旧実装。LeftPanel.astroから削除済み)を廃止し、
-// 各候補リストそのものを書き換える方式に置き換えた。
-//
-// 対象は性格・持ち物・テラス・技の4箇所(既存のsuggestions kindがpopular_nature/
-// popular_item/popular_tera/popular_moveの4種類のみのため、migrations/009参照)。
-// 特性(#ability<select>)は対応するsuggestions kindが存在しない——特性はそもそも
-// 「その種族が持ちうる特性」しか候補に出ない設計(rebuildAbilityOptions参照、通常1〜3件)
-// で、人気順に並び替える元データが無い。無理に新しいkindを作らず、rebuildAbilityOptions
-// 自体には手を入れない。
-//
-// 🔴 d7552ad「サジェストがレギュレーションを混ぜている件」の解消(UI改修依頼 2026-08-01
-// 「サジェストもレギュレーションにフォーカスして精度を高めたい」/「レギュレーションを
-// 指定した場合は、サジェストをそのレギュレーション限定の情報に絞る」)。
-// migrations/013_regulation.sql の refresh_popular_builds() が、同じ集計を2つのスコープで
-// 書き出すようになった:
-//   subject_key = '種族名'        … 全レギュレーション横断(従来と同じ。レギュレーション未指定時に使う)
-//   subject_key = '種族名|M-A'    … そのレギュレーション限定
-// このファイルは編集中の個体の #regulation の値に応じて subject_key を切り替えるだけでよく、
-// GET /api/suggestions 自体は無変更。
-//
-// ユーザー指示により、規制別集計が取得不能または空のときは種族名だけの横断集計へフォールバックする。
-// データが少ない規制でも候補を空にせず、popular_nature/item/tera/moveを同じ取得方針に統一する。
 type SuggestionOption = { value: string; count: number; ratio: number };
 type SuggestionPayload = { sample_size: number; options: SuggestionOption[] };
 type SuggestionRow = { payload?: SuggestionPayload };
@@ -579,11 +494,6 @@ if (form) {
 			setText(`pokemon-preview-ev-${key}`, ev && Number(ev) !== 0 ? `+${ev}` : "-");
 		}
 	}
-	// UI改修依頼(個体編集画面、2026-08-03)「耐久指数最大化」ボタン(ステータス表の下、
-	// #durability-index-button)。静的マークアップ(LeftPanel.astro)では常にdisabledで
-	// 描画されており、種族値が引けて実数値が計算でき、かつ努力値が残っているときだけ
-	// 有効化する。種族値の有無はapplyBaseStats()の判定結果をモジュールスコープへ保持し、
-	// 努力値変更のたびにupdateEvRemaining()から両条件をまとめて再判定する。
 	const durabilityIndexButton = el<HTMLButtonElement>("durability-index-button");
 	function updateDurabilityIndexButtonEnabled(): void {
 		const remaining = 66 - STAT_KEYS.reduce((sum, k) => sum + readEv(k), 0);
@@ -598,19 +508,12 @@ if (form) {
 			if (!el2) continue;
 			el2.textContent = base ? String(base[i]) : "-";
 		}
-		// ラウンド17指摘(B-5): HP種族値1(全1290種でヌケニンのみ)は努力値を振っても
-		// 実数値が動かない(calcHpStatのbase===1特例と同じ判定)。誤解を招かないよう
-		// 注記の表示/非表示をここで切り替える。
 		const hpFixedNoteEl = document.getElementById("hp-fixed-note");
 		if (hpFixedNoteEl) hpFixedNoteEl.hidden = !(base && base[0] === 1);
 		hasBaseStatsForDurabilityIndex = !!base;
 		updateDurabilityIndexButtonEnabled();
 	}
 
-	// UI品質改善(2026-07-26 第4弾 11-4): 技候補(#move-list)を種族の覚え技(learnset)
-	// 優先で並べ替える。種族名変更のたびにupdateSpeciesDisplay()から呼ぶ(初期表示・
-	// 入力のどちらにも追随)。種族が未確定/存在しない名前のときは全技リストのみ
-	// (元の挙動)にフォールバックする。
 	const moveListEl = el<HTMLDataListElement>("move-list");
 	// loadAutocomplete()が#move-listへ追記した「全技」の一覧(716件)は1度だけ読み取って
 	// キャッシュする。この関数自身が#move-listの中身を並べ替えて書き換えるため、
@@ -649,9 +552,6 @@ if (form) {
 		moveListEl.appendChild(fragment);
 	}
 
-	// ラウンド21ユーザー指示(21-L8)「タイプアイコンを技名の左に置く」。技が未入力/タイプ不明のときは
-	// アイコンを隠す([hidden]は詳細度で負けるため、CSS側で[hidden]用のdisplay:noneを
-	// 併記済み。pitfalls.md参照)。
 	async function updateMoveTypeIcon(input: HTMLInputElement): Promise<void> {
 		const wrap = input.closest<HTMLElement>(".move-input-group");
 		const iconWrap = wrap?.querySelector<HTMLElement>(".move-type-icon");
@@ -674,10 +574,6 @@ if (form) {
 		iconWrap.hidden = false;
 	}
 
-	// ラウンド4ユーザー指示: 性格の選択UIを廃止し、能力値ラベル(HP以外)のクリックで
-	// 上昇/下降を切り替える。上昇1つ・下降1つの排他選択(新しく選ぶと元の保持者からは
-	// 自動的に外れる)。初期値はSSRで埋め込んだ現在の性格名(data-nature)を
-	// NATURE_STAT_MODIFIERSで正引きして復元する。
 	let leftNatureUp: StatKey | null = null;
 	let leftNatureDown: StatKey | null = null;
 	{
@@ -713,10 +609,6 @@ if (form) {
 	const speciesSpriteFallback = el<HTMLElement>("species-sprite-fallback");
 	const speciesTypeBadge = el<HTMLElement>("species-type-badge");
 
-	// UI品質改善(2026-07-26 第4弾): ページ見出し(ニックネーム/種族名)を種族名/ニックネームの
-	// 入力に追随して更新する。ヘッダはpokemonが存在するときだけSSRで描画されるため、
-	// この<script>ブロック自体がpokemon存在時(=#edit-form描画時)にしか実行されず、
-	// 要素は必ず存在する。
 	const topbarTitleEl = document.querySelector<HTMLElement>(".app-topbar-title");
 
 	function updateHeaderIdentity(): void {
@@ -738,13 +630,8 @@ if (form) {
 	}
 	speciesInput.addEventListener("input", updateSpeciesDisplay);
 	updateSpeciesDisplay();
-	// UI改善ラウンド34ユーザー指示(34-C1): 再クリック時に他の種族候補が隠れてしまう
-	// ネイティブdatalistフィルタを回避する(上のsetupDatalistRefocus参照)。
 	setupDatalistRefocus(speciesInput, el<HTMLDataListElement>("pokemon-list"));
 	attachKanaTypeAhead(speciesInput, el<HTMLDataListElement>("pokemon-list"));
-	// ラウンド3 B-12: 実数値は純JS計算になったので、エンジンの初期化を待たず
-	// ページ表示直後に計算する(以前はcombinedDamageEngineProgress経由でエンジン
-	// 準備完了後にしか呼ばれておらず、それまで「(未計算)」のままだった)。
 	void recalcStats();
 
 	// UI刷新(Pokemon.png): アイテム画像(入力の横)。アイテム名が変わるたびに差し替える。
@@ -753,16 +640,9 @@ if (form) {
 	function updateItemImage(): void {
 		void applyItemImage(itemImageEl, itemInput.value.trim());
 	}
-	// ラウンド4の積み残し: 持ち物欄が長い値(「こだわりハチマキ」等)で見切れる。
-	// 幅を大きく取れないため、titleでホバー時に全文を見られるようにする
-	// (CSS側のtext-overflow:ellipsisと合わせて、見切れていることが分かる+全文も確認できる)。
 	function updateItemTitle(): void {
 		itemInput.title = itemInput.value.trim();
 	}
-	// UI改善ラウンド26ユーザー指示(26-L2)「アイテム画像+アイテム名(テキスト)を余裕を
-	// もって配置する」。#item-name-displayは読み取り専用の表示のみ(既存の#item入力欄・
-	// buildPayloadの保存経路は一切変えない)。持ち物なしのときは25-R2/24-L3と同じ
-	// 「muted文字色」の見た目にする(placeholder風。CSSは.item-name-display.is-empty参照)。
 	const itemNameDisplayEl = el<HTMLElement>("item-name-display");
 	function updateItemNameDisplay(): void {
 		const name = itemInput.value.trim();
@@ -776,23 +656,9 @@ if (form) {
 	updateItemImage();
 	updateItemTitle();
 	updateItemNameDisplay();
-	// UI改善ラウンド34ユーザー指示(34-C1): 再クリック時に他の持ち物候補が隠れてしまう
-	// ネイティブdatalistフィルタを回避する(上のsetupDatalistRefocus参照)。#itemはこの後
-	// hidden化する(下記41-L1参照)ため、これ以降ユーザーが直接クリックすることは無くなるが、
-	// 挙動自体は無害なので変更しない。
 	setupDatalistRefocus(itemInput, el<HTMLDataListElement>("item-list"));
 	attachKanaTypeAhead(itemInput, el<HTMLDataListElement>("item-list"));
 
-	// UI改善ラウンド41ユーザー指示(41-L1)「アイテム選択ボックスもテラスタルと同様に、
-	// 選択肢をアイコン+テキストで表示」。テラス側(下のteraSelect一式、buildTeraDropdown相当)を
-	// 参照実装にする。#item(上のitemInput、LeftPanel.astro側でhidden化済み)は保存経路の
-	// 実体として残し、値の変更はitemInput.value経由のまま(buildPayloadは変えない)。
-	// テラス(19種、SSR時に<select>へ全option埋め込み済み)と違い、アイテムは候補が
-	// #item-list(datalist、loadAutocomplete()がitems.jsonから流し込む、270件規模)にしか
-	// 無く、しかも非同期取得のため、初回ドロップダウンを開いたタイミングで1回だけ
-	// <li>一覧を構築する(遅延構築。ページ表示直後に270件ぶんのアイコン画像を全部
-	// フェッチするコストを避けるため)。絞り込み入力(#item-dropdown-search)は既存の
-	// 「アイテム名を打って絞り込む」操作性を維持するための追加要素(テラスには無い)。
 	const itemDropdownButton = el<HTMLButtonElement>("item-dropdown-button");
 	const itemDropdownImage = el<HTMLImageElement>("item-dropdown-image");
 	const itemDropdownPlaceholder = el<HTMLElement>("item-dropdown-placeholder");
@@ -953,9 +819,6 @@ if (form) {
 	itemInput.addEventListener("input", updateItemDropdownButton);
 	updateItemDropdownButton();
 
-	// ラウンド21ユーザー指示(21-L5): 特性はそのポケモンに属する特性だけを候補とする
-	// <select>にする(予測変換のinput/datalistは不要という指示のため撤去)。種族が
-	// 変わるたびに候補を作り直し、現在の値が新しい候補に無ければクリアする。
 	const abilitySelectEl = el<HTMLSelectElement>("ability");
 	let abilityRequestToken = 0;
 	async function rebuildAbilityOptions(name: string): Promise<void> {
@@ -977,25 +840,12 @@ if (form) {
 			return;
 		}
 		abilitySelectEl.disabled = false;
-		// UI改善ラウンド34ユーザー指示(34-C2)「ポケモンが選択されている状態での、特性選択
-		// ボックスの"特性を選択"という候補を削除」。ここに到達するのは種族(pokemon)が
-		// 確定していてabilities.length>0の場合に限る(nameが空/該当なしならabilities=[]と
-		// なり上のガード節で早期returnする)。この分岐では下のvalue決定ロジックが
-		// 必ずどれか実在の特性(previousValueかabilities[0])を選ぶため、「特性を選択」の
-		// プレースホルダーは選んでも意味の無い余剰候補でしかなかった(誤って選ぶと
-		// ability_name=""で保存されてしまう入口にもなっていた)。種族未選択時
-		// (abilities.length===0の分岐、上記)のプレースホルダー(textContent="特性")は
-		// 今回のスコープ外のため変更しない。
 		for (const a of abilities) {
 			const opt = document.createElement("option");
 			opt.value = a;
 			opt.textContent = a;
 			abilitySelectEl.appendChild(opt);
 		}
-		// UI改善ラウンド26ユーザー指示(26-L1)「特性はデフォルトで一つ目の特性を設定する。
-		// 特性なし状態は発生しなくなる。」保存済みの値が新しい候補に無い場合のフォールバック先を
-		// ""(「特性を選択」のプレースホルダー)ではなく候補の先頭(abilities[0])にする。
-		// 種族名を確定した瞬間に特性が自動で埋まり自動保存される(下のscheduleSave()参照)。
 		abilitySelectEl.value = abilities.includes(previousValue) ? previousValue : abilities[0];
 		abilitySelectEl.title = abilitySelectEl.value;
 		if (abilitySelectEl.value !== previousValue) scheduleSave();
@@ -1003,18 +853,6 @@ if (form) {
 	abilitySelectEl.addEventListener("change", () => {
 		abilitySelectEl.title = abilitySelectEl.value;
 	});
-	// 種族名のinputイベント(1文字ごと)には結線しない: 編集途中の不完全な種族名で候補が
-	// 毎回作り直され、既存の正しい特性選択が失われてしまう事故を避けるため、種族名が
-	// 「確定した」タイミング(blur、またはdatalistからの選択によるchangeイベント)でのみ
-	// 再構築する。
-	// UI改修依頼(共通)「メガシンカポケモンのアイテムをメガストーンで固定する」により、
-	// 「持ち物が既に入っていれば何もしない」自動設定から、メガシンカ種族が確定している間は
-	// 常にメガストーンへ強制し、持ち物選択ボタン自体を操作不能にする方式へ変更した
-	// (ゲーム仕様上メガシンカ中はメガストーン以外を持てないため)。ページ初期表示時
-	// (保存済みデータが誤ったアイテムを持っている場合を含む)にも働くよう、下のinit呼び出しにも
-	// 追加している。rebuildAbilityOptionsと同じくinput(1文字ごと)ではなくchange
-	// (blur/確定)にのみ結線する(理由も同じ: 入力途中の不完全な種族名で誤発火させない)。
-	// 操作不能の理由を示すtitleも画面内の「アイテム」表記に揃える。
 	const megaStoneLockedTitle = "メガシンカ中はアイテムをメガストーンに固定します";
 	function setItemLocked(locked: boolean): void {
 		itemDropdownButton.disabled = locked;
@@ -1043,20 +881,10 @@ if (form) {
 		// 自動補完も持ち物変更なので、現在の型に対応する技人気を更新する。
 		schedulePopularBuildSuggestionsReload();
 		flashAutofillHint(itemInput, () => updateItemTitle());
-		// UI改善ラウンド41ユーザー指示(41-L1)で#item自体をhidden化したため、
-		// flashAutofillHint()がitemInputに付ける視覚的なハイライト(border-color+box-shadow)は
-		// 見えなくなった。表示を担う#item-dropdown-button側にも同じ視覚言語(既存の
-		// #edit-form #item.is-autofilledと同じトークン、上記CSS参照)で一時的にハイライトする。
 		itemDropdownButton.classList.add("is-autofilled");
 		window.setTimeout(() => itemDropdownButton.classList.remove("is-autofilled"), 1400);
 		setItemLocked(true);
 	}
-	// 🔴 UI改修依頼(個体編集左パネル・レギュレーション対応、2026-08-01)。
-	// #regulation(2段目左の選択ボックス)は次の3つを駆動する:
-	//   ① テラスタル選択ボックス(2段目右、#tera-field)の表示/非表示
-	//   ② 未選択時の placeholder 表現(data-empty="true" → 破線・薄字。LeftPanel.astroのCSS)
-	//   ③ 人気度サジェストの母集団の切り替え(subject_key に '|レギュレーション' を足す)
-	// 保存(scheduleSave)は下の changeInputIds に "regulation" を足すことで行う。
 	const regulationSelect = el<HTMLSelectElement>("regulation");
 	const teraField = document.getElementById("tera-field");
 
@@ -1087,11 +915,6 @@ if (form) {
 		suggestionReloadTimer = setTimeout(reloadPopularBuildSuggestions, 200);
 	}
 
-	// ①: レギュレーションが M-* のときはテラス欄を隠す(未指定・T-* のときは表示)。
-	// 隠すだけで #tera の値には触れない ── 別のレギュレーションに戻したときに
-	// 保存済みのテラスタイプがそのまま復帰するようにするため(値の破棄はしない、
-	// というユーザー確認 2026-08-01 の判断)。SSR側の初期状態は LeftPanel.astro の
-	// showTeraField が同じ関数(isTerastalRegulation)で決めている。
 	function syncTeraFieldVisibility(): void {
 		if (!teraField) return;
 		teraField.hidden = !isTerastalRegulation(currentRegulation());
@@ -1128,11 +951,6 @@ if (form) {
 	// 1回呼ぶ。
 	reloadPopularBuildSuggestions();
 
-	// UI改善ラウンド25(25-L1/25-L2): テラスタイプ画像バッジ(#tera-image-badge)は25-L1で
-	// 廃止した。テラスタイプの視覚表現はテラスタイプ選択欄そのものに統合する。
-	// #tera(<select>)はhidden化して保存経路の値の実体として残し(値の変更は
-	// 引き続きteraSelect.value経由)、その位置にボタン+リストボックスのカスタム
-	// ドロップダウン(#tera-dropdown-button/#tera-dropdown-list)を作る。
 	const teraSelect = el<HTMLSelectElement>("tera");
 	const teraDropdownButton = el<HTMLButtonElement>("tera-dropdown-button");
 	const teraDropdownImage = el<HTMLImageElement>("tera-dropdown-image");
@@ -1247,10 +1065,6 @@ if (form) {
 	});
 	updateTeraDropdownButton();
 
-	// UI改善ラウンド28ユーザー指示(28-L2)「テラスタイプ(画像)はアイテムの下に重ねて右下に
-	// 配置する」。帯(.top-block-icon)の右下に、読み取り専用のテラスタイプ画像
-	// (#top-block-tera-image、クリックしても開かない。選択自体は上のテラスタル選択ボックス
-	// 側で行う)を新設する。表示ロジックはapplyTeraImage()をそのまま再利用する。
 	const topBlockTeraImage = el<HTMLImageElement>("top-block-tera-image");
 	const topBlockTeraFallback = el<HTMLElement>("top-block-tera-image-fallback");
 	function refreshTopBlockTeraImage(): void {
@@ -1259,20 +1073,12 @@ if (form) {
 	teraSelect.addEventListener("change", refreshTopBlockTeraImage);
 	refreshTopBlockTeraImage();
 
-	// ラウンド4ユーザー指示で追加した「技の詳細はリンクではなくホバー表示にする」
-	// ツールチップは、ラウンド20ユーザー指示(20-L2)「わざのヘルプ表示を削除」により撤去した。
-	// ただし同じループ内で技名inputに結線していたタイプ色反映(updateMoveTypeColor)は
-	// 独立した機能なので、トリガー<span>を経由せず#move-1〜#move-4のinputへ直接結線する。
 	for (let slot = 1; slot <= 4; slot++) {
 		const input = document.getElementById(`move-${slot}`) as HTMLInputElement | null;
 		if (!input) continue;
 		input.addEventListener("input", () => void updateMoveTypeIcon(input));
 		input.addEventListener("change", () => void updateMoveTypeIcon(input));
 		void updateMoveTypeIcon(input);
-		// UI改善ラウンド34ユーザー指示(34-C1): 再クリック時に他の技候補が隠れてしまう
-		// ネイティブdatalistフィルタを回避する(上のsetupDatalistRefocus参照)。#move-listは
-		// 4つの技inputで共有しているが、安定ソートのためlearnset優先の並び
-		// (rebuildMoveListForSpecies参照)は壊さない。
 		setupDatalistRefocus(input, moveListEl);
 		attachKanaTypeAhead(input, moveListEl);
 	}
@@ -1301,14 +1107,9 @@ if (form) {
 			nickname: el<HTMLInputElement>("nickname").value.trim(),
 			species_name: speciesInput.value.trim(),
 			level: preservedLevel,
-			// ラウンド4ユーザー指示: 性格の選択UIは廃止し、能力値ラベルのクリックで選んだ
-			// 上昇/下降から性格名を逆算して保存する(API契約は変えない=従来どおり性格名を送る)。
 			nature: currentLeftNature(),
 			ability_name: el<HTMLSelectElement>("ability").value.trim(),
 			item_name: el<HTMLInputElement>("item").value.trim(),
-			// テラス欄が非表示(M-*)でも #tera の値はそのまま保存する。非表示は「このルールでは
-			// 使わない」という表示上の判断であって、保存済みの値を捨てる指示ではない
-			// (ユーザー確認 2026-08-01。別のレギュレーションに戻せば元の値が見える)。
 			tera_type: el<HTMLSelectElement>("tera").value,
 			regulation: el<HTMLSelectElement>("regulation").value,
 			evs: STAT_KEYS.map((k) => readEv(k)),
@@ -1320,8 +1121,6 @@ if (form) {
 		};
 	}
 
-	// ラウンド5ユーザー指示: ▲/▼ボタンの押下状態は「実際にクリックして選ばれている
-	// 生の状態」(leftNatureUp/leftNatureDown)をそのまま反映する(正規化前)。
 	function refreshNatureButtons(): void {
 		// NATURE_TOGGLE_KEYS(下方で const 宣言)はこの関数がページ表示直後に呼ばれる
 		// (TDZでまだ初期化されていない)ため、ここではSTAT_KEYSから都度フィルタする。
@@ -1331,7 +1130,6 @@ if (form) {
 			const downBtn = document.getElementById(`nature-down-${key}`);
 			if (upBtn) upBtn.setAttribute("aria-pressed", String(leftNatureUp === key));
 			if (downBtn) downBtn.setAttribute("aria-pressed", String(leftNatureDown === key));
-			// ラウンド21ユーザー指示(21-L7): A/B/C/D/SラベルもBoolean上昇/下降で赤・青に。
 			const labelEl = document.getElementById(`nature-label-${key}`);
 			if (labelEl) {
 				if (leftNatureUp === key) labelEl.dataset.mod = "up";
@@ -1339,17 +1137,10 @@ if (form) {
 				else delete labelEl.dataset.mod;
 			}
 		}
-		// ラウンド21ユーザー指示(21-L4)「技の上に性格も表示する」。
-		// 🔴 UI改修依頼(個体編集左パネル、2026-08-01)「性格をREAD限定にする」により、
-		// #nature-readout-valueはLeftPanel.astro側で<input>から読み取り専用の<span>へ
-		// 変更した。書き戻し先を.value代入からtextContent代入へ追随する(id・呼び出し順は
-		// 変えていない)。
 		const natureReadoutEl = document.getElementById("nature-readout-value");
 		if (natureReadoutEl) natureReadoutEl.textContent = currentLeftNature();
 	}
 
-	// ラウンド5ユーザー指示: 「実数値」ラベルの左あたりに 66-(努力値合計) を表示する
-	// (チャンピオンズルールの努力値合計上限66に対する残りポイント)。
 	function updateEvRemaining(): void {
 		const remainEl = document.getElementById("ev-remaining");
 		const total = STAT_KEYS.reduce((sum, k) => sum + readEv(k), 0);
@@ -1434,9 +1225,6 @@ if (form) {
 		void saveNow();
 	});
 
-	// ラウンド21ユーザー指示(21-L5): #abilityは<input>から<select>に変わったため、
-	// input用のtextInputIds(自動保存)から外し、select用のchangeInputIds(change
-	// イベントでの自動保存)へ移す。ここを漏らすと特性を変更しても保存されない。
 	const textInputIds = ["nickname", "species-name", "item", "memo", ...STAT_KEYS.map((k) => `ev-${k}`), "move-1", "move-2", "move-3", "move-4"];
 	for (const id of textInputIds) {
 		const target = document.getElementById(id);
@@ -1474,8 +1262,6 @@ if (form) {
 		});
 	}
 
-	// ラウンド5ユーザー指示: ▲/▼を独立した当たり判定にする。▲は上昇の保持者のみ、
-	// ▼は下降の保持者のみを切り替える(toggleNatureUp/toggleNatureDown参照)。
 	const NATURE_TOGGLE_KEYS = STAT_KEYS.filter((k) => k !== "hp");
 	for (const key of NATURE_TOGGLE_KEYS) {
 		const upButton = document.getElementById(`nature-up-${key}`);
@@ -1496,14 +1282,6 @@ if (form) {
 		});
 	}
 
-	// 🔴 ラウンド48ユーザー追加指示(A-7)「性格の欄から性格を直接変更できるようにする」で
-	// #nature-readout-valueのchangeハンドラ(直接入力→NATURE_STAT_MODIFIERSと完全一致検証)を
-	// 追加していたが、🔴 UI改修依頼(個体編集左パネル、2026-08-01)「性格をREAD限定にする」に
-	// よりA-7の判断を撤回した。要素自体がLeftPanel.astro側で読み取り専用の<span>になり
-	// changeイベントを発火しないため、このハンドラごと削除する。性格の変更手段は
-	// ▲/▼ボタン(上のnature-up-{key}/nature-down-{key}クリックハンドラ)のみに戻る。
-
-	// UI刷新: 努力値の各スライダーを数値入力とペアリングする。
 	for (const k of STAT_KEYS) {
 		pairEvSlider(`ev-${k}`, `ev-${k}-range`, () => {
 			scheduleSave();
@@ -1529,15 +1307,6 @@ if (form) {
 			polygon?.setAttribute("points", nextEndpoint === "max" ? "15,12 9,8 9,16" : "9,12 15,8 15,16");
 		});
 	}
-	// 🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08)「種族値と努力値の間に0/-/+/32の
-	// 4ボタンを配置する」対応。899px以下のモバイルではスライダーの代わりに0/-/+/32の4ボタンを
-	// 表示する(見た目の切り替えはLeftPanel.astro側のscoped<style>、@media (max-width: 899px)参照)。
-	// -/+ボタンも上の.stat-ev-endpoint-button(0/32ボタン)と同じ方針で、rangeInputのvalueを
-	// 書き換えてからinputイベントを発火させ、pairEvSlider側の同期・自動保存・実数値再計算に
-	// そのまま乗せる。rangeInput自体はmin="0"/max="32"属性を持つ(数値入力欄と異なり、
-	// 上のUI改善ラウンド40(40-T2)コメントにあるラップ対応は数値入力欄側だけの話でrange側には
-	// 関係ない)ため、value代入時にブラウザが自動的に0〜32へクランプする。念のためJS側でも
-	// 明示的にクランプし、育成ルール(努力値0〜32)を超えないことを保証する。
 	for (const button of document.querySelectorAll<HTMLButtonElement>(".stat-ev-step-button")) {
 		button.addEventListener("click", () => {
 			const rangeInput = document.getElementById(button.dataset.evTarget ?? "") as HTMLInputElement | null;
@@ -1572,26 +1341,6 @@ if (form) {
 		})();
 	});
 
-	// 匿名集計サジェスト機能・第4段階(UI: データ提供トグル)。この個体を性格/アイテム/テラス/
-	// 技の匿名集計対象から除外する。PATCH /api/owned-pokemon/:id に { collection_opt_out: boolean }
-	// を送るだけの軽量経路(is_pinnedのPATCHと同じパターン、上のdeleteButton同様ownedPokemonIdを
-	// 使う)で、フォーム全体の自動保存(saveNow/scheduleSave、デバウンス付きPUT)とは完全に別経路
-	// ——チェックのたびに即座に送信し、PUTのpayload(buildPayload)には一切含めない。
-	//
-	// UI改修依頼(個体編集ヘッダー)により、チェックの意味を「拒否」(true=拒否)から
-	// 「匿名でデータ提供する」(true=提供)へ反転させた。UIのcheckedはずっと「提供する」側の
-	// 意味のまま保ち、サーバーへ送るcollection_opt_out(true=拒否)はその論理否定を送る。
-	//
-	// 🔴 UI改修依頼(2026-08-01)でラベルを「非公開」に変え、**もう一度**意味を反転させた。
-	// checked の意味は「提供する」から「非公開(=収集拒否)」へ戻り、既定はOFF(=提供する)。
-	// そのため送信値は論理否定ではなく checked そのものになる。
-	// ⚠ この行の否定を外し忘れると、UIの表示は新しい意味なのに送信値だけ旧ロジックのまま
-	// になり、「非公開ON」で collection_opt_out:false(=収集対象のまま)が送られる。
-	// 実際にヘッダー担当が実機で踏んで報告した(表示は正しいのにDBが逆になる)。
-	// DBの意味(collection_opt_out_until: NULL/過去=収集対象、未来=拒否期間中)は不変。
-	// あわせて「あとN日」のカウントダウン表示(旧renderOptOutStatus)は撤去し、30日で自動的に
-	// 解除される旨はラベルのtitle属性(box/[id].astro側の静的な説明文)でホバー説明に一本化した。
-	// このステータス要素はPATCH失敗時のエラーメッセージ表示にのみ引き続き使う。
 	const collectionOptOutToggle = document.getElementById("collection-opt-out-toggle") as HTMLInputElement | null;
 	const collectionOptOutStatusEl = document.getElementById("collection-opt-out-status");
 
@@ -1629,26 +1378,6 @@ if (form) {
 		});
 	}
 
-	// 個体の公開共有トグル(PUT /api/owned-pokemon/:id/share)のUIは要件により廃止した。
-	// APIと公開ページ(/share/[slug])自体は残っているので、UIを再び付けたくなった場合は
-	// git履歴のこの位置にあった renderShareStatus / is-public チェックボックスの実装を参照すること。
-
-	// ============================================================
-	// UI改修依頼(個体編集画面、2026-08-03)「耐久指数最大化」ボタンの配線
-	// ============================================================
-	// マークアップ(LeftPanel.astro)・計算(durability-index.ts)・一覧表示(right-panel.tsの
-	// renderCandidateList、耐久調整ポップアップと共用)はいずれも実装済み。ここでは
-	// (1)ボタン押下→現在の種族値・努力値・性格から総合/物理/特殊3指数それぞれのbestを求めて
-	// 右パネルへ一覧表示(この時点では左パネルは変更しない)、(2)一覧クリックでその配分を
-	// 左パネルへ適用、の2つを配線する。
-	//
-	// ⚠️ 努力値の書き換えは.valueへの代入だけではinput/changeどちらのイベントも発火せず、
-	// 再計算(recalcStats)も自動保存(scheduleSave、textInputIds経由)も走らない
-	// (このファイル上部、textInputIds/statAffectingIdsの設定箇所参照)。同じファイル内の
-	// bulk-adjust.ts(耐久調整ポップアップ、編集禁止ファイル)のapplyEvToLeftPanelと
-	// 完全に同じ手順(値を代入したうえでinput/changeの両方をbubbles:trueで発火)を踏む。
-	// 性格はここでは変更しない(耐久指数の最大化はH/B/Dの努力値配分のみが対象で、
-	// 性格は現在の値のまま使う。durability-index.ts参照)。
 	function applyDurabilityEvToLeftPanel(key: "hp" | "def" | "spd", value: number): void {
 		const input = document.getElementById(`ev-${key}`) as HTMLInputElement | null;
 		if (!input) return;
@@ -1668,26 +1397,12 @@ if (form) {
 		return kind === "total" ? value.toFixed(2) : String(Math.round(value));
 	}
 
-	// UI改修依頼(個体編集画面、2026-08-03)旧「耐久調整」3ボタン(H/B/D個別)を単一の
-	// 「耐久指数最大化」ボタンへ統合。押下時に総合/物理/特殊の3指数をまとめて計算し、
-	// 右パネルへ3件同時表示する(切り替えボタンは無し)。旧実装と異なり、ボタン押下だけでは
-	// 左パネルを更新しない(3件を表示するだけ)。一覧内の候補をクリックしたときだけ、その
-	// 候補のH/B/D配分を左パネルへ適用する。
 	const DURABILITY_INDEX_KINDS: { kind: DurabilityIndexKind; heading: string; headingHelp: string }[] = [
 		{ kind: "total", heading: "総合耐久指数", headingHelp: "H×B×D÷(B+D)" },
 		{ kind: "physical", heading: "物理耐久指数", headingHelp: "H×B" },
 		{ kind: "special", heading: "特殊耐久指数", headingHelp: "H×D" },
 	];
 
-	// UI改修依頼(個体編集画面、2026-08-04)「耐久調整/耐久最大化 カードデザイン統一」により、
-	// 表示をright-panel.tsの新API renderDurabilityIndexResults()(統一カード、依頼4〜6)へ
-	// 差し替えた(コーディネーター許可、この関数の呼び出し部分のみ変更)。旧実装は候補クリック
-	// のたびにmaximizeDurabilityIndex()を再計算していた(適用後は現在のH/B/Dが変わり、
-	// 残り予算・bestが変わり得るため)。renderDurabilityIndexResults()はこの「今の状態で
-	// 計算し直す」処理そのものをbuildGroups/getCurrentEvsという関数として受け取り、内部の
-	// 再描画(候補クリック後を含む)のたびに呼び直す設計にしたため、計算ロジック
-	// (maximizeDurabilityIndex呼び出し・DURABILITY_INDEX_KINDS・baseStats/natureの扱い)は
-	// このファイル側にそのまま残る。
 	async function runDurabilityIndexMaximize(): Promise<void> {
 		const name = speciesInput.value.trim();
 		if (!name) return; // ボタンは種族名が空のときdisabledのはずだが、念のための防御
@@ -1715,21 +1430,8 @@ if (form) {
 		void runDurabilityIndexMaximize();
 	});
 
-	// ============================================================
-	// UI改善ラウンド37(37-1〜37-3): 技選択の専用ウィンドウ
-	// ============================================================
-	// 技入力欄(#move-1〜#move-4)は普通のリストボックス(<input list="move-list">、
-	// setupDatalistRefocus参照)のままだと、タイプ/分類/PPで絞り込んだりソートしたり
-	// できない。4スロット共有の1ウィンドウ・インスタンスを作り、「どのスロットに
-	// 入力中か」をactiveSlotという内部状態で管理する(RightPanel.astroの詳細設定
-	// サイドバーが「選択中の技列」を切り替えて表示するのと同じ考え方、round-37.md参照)。
-	// 既存のdatalist挙動(直接タイプでの絞り込み・再クリック時フィルタ対策)は
-	// setupDatalistRefocusのまま一切変更しない。このウィンドウは追加の選択手段。
 	setupMovePickerWindow(speciesInput);
 
-	// ============================================================
-	// UI改善ラウンド38(38-L1): 技1〜4のドラッグ&ドロップ並び替え
-	// ============================================================
 	setupMoveReorderDrag();
 
 	// 実数値計算と画像読み込みは非同期なので、入力イベントでの即時同期に加えて
@@ -1750,33 +1452,6 @@ if (form) {
 	syncPokemonPreview();
 }
 
-// UI改善ラウンド38ユーザー指示(38-L1)「技の順番をドラッグアンドドロップで入れ替えられる
-// ようにしたい」への対応。
-//
-// 設計方針: #move-1〜#move-4のDOM位置・id自体は一切動かさない。代わりに、ドラッグ&ドロップの
-// 結果として4つの入力欄の「値」を並べ替える。理由は、この4つのidに依存する既存ロジックが
-// 複数あり、DOM位置を動かす実装だとそれらとの整合を都度取り直す必要が出るため:
-//   - setupMovePickerWindow()のactiveSlot(上記参照)は`move-${activeSlot}`というidで
-//     document.getElementByIdを都度呼ぶ設計(DOM位置に依存しない)。値スワップ方式なら
-//     このロジックには一切手を入れずに済む(ドラッグ後も「今開いているウィンドウがどの
-//     スロット向けか」の対応関係が崩れない)。
-//   - setupDatalistRefocus・updateMoveTypeIcon・textInputIds(自動保存)はいずれも
-//     document.getElementById("move-N")で固定id参照するため、DOM位置が変わっても
-//     動作自体は変わらないが、値スワップ方式ならそもそも影響が及ばない。
-//   - readMoveNames()(owned-pokemon-form.ts)はmove-1→move-4の順でidを読んで
-//     move_names配列を作る。DOM位置ではなくid順で読むため、値スワップ方式が
-//     「画面上の並び=保存される並び」を保証するのに最も直接的。
-//
-// ドラッグの実装はHTML5 Drag and Drop API(dragstart/dragover/drop)ではなく、
-// mousedown/mousemove/mouseupの手実装にした。ネイティブDnD APIはブラウザ間の実装差・
-// dataTransferのセキュリティ制約があり、Playwrightでの自動テスト時にdragstart/drop相当の
-// イベントを安定して発火させるにはpage.mouse.down/move/upで十分な素朴な実装の方が検証しやすい
-// (mousedown/mousemove/mouseupは通常のマウス操作そのものであり、Playwrightのmouse APIが
-// そのままdispatchする)。
-//
-// ハンドル(.move-drag-handle)は入力欄の兄弟要素(input自体ではない)。#move-N入力欄自体には
-// 一切リスナーを追加しないため、ラウンド37の技選択ウィンドウ(input.mousedown→openPicker)や
-// setupDatalistRefocus(input.mousedown→openWithFullList)の挙動と競合しない。
 function setupMoveReorderDrag(): void {
 	const groups = ([1, 2, 3, 4] as const)
 		.map((slot) => {
@@ -1843,19 +1518,10 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 		.filter((input): input is HTMLInputElement => input !== null);
 	if (moveInputEls.length === 0) return; // #move-1〜#move-4が無いページでは何もしない(安全側)
 
-	// 🔴 UI改修依頼(個体編集左パネル、2026-08-01)「サジェストはリストボックスの候補に反映し、
-	// 人気順に並び替えたり作用率を併記したりする」により、"popularity"(人気、種族ごとの
-	// popular_move サジェストのratio)を並び替え可能な列として追加する。既存の6キーと同じ
-	// makeSortButton/comparatorの仕組みに合流させることで、「初期表示は人気順、ユーザーが
-	// 別の列ヘッダをクリックしたらそちらが優先される」を新しい分岐追加なしに実現する
-	// (sortKeyは開いた後もモジュール外へリセットされない永続状態のため、一度でも
-	// ヘッダをクリックすればそれ以降は常にユーザーの選択が優先される)。
 	type SortKey = "popularity" | "name" | "type" | "category" | "power" | "accuracy" | "pp";
 	type SortDir = "asc" | "desc";
 
 	const CATEGORY_LABELS: Record<MoveCategory, string> = { physical: "物理", special: "特殊", status: "変化" };
-	// タイプ/分類は「文字列/カテゴリ順で構わない」(round-37.md 37-3)。物理→特殊→変化の
-	// 慣習的な並びをランクで表現する(アルファベット順だと直感に反するため)。
 	const CATEGORY_RANK: Record<MoveCategory, number> = { physical: 0, special: 1, status: 2 };
 
 	let activeSlot: number | null = null;
@@ -1892,13 +1558,6 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 	titleEl.textContent = "技を選択";
 	headerEl.appendChild(titleEl);
 
-	// UI改善ラウンド41ユーザー指示(41-L4)。
-	// 1. 文言修正: 「覚える技だけ表示する」→「覚える技のみ表示」。
-	// 2. 見た目をチェックボックスからトグルスイッチに変更する(このプロジェクトに既存の
-	//    toggle/switch規格が無いことをgrepで確認済み。LeftPanel.astro側の<style is:global>に
-	//    汎用の.toggle-switch一式を新規に作った)。<input type="checkbox">自体は
-	//    visually-hidden化するだけで、checked状態・change イベント・aria-labelは
-	//    一切変えない(下のtoggleInput参照はこれまでどおり)。
 	const toggleLabel = document.createElement("label");
 	toggleLabel.className = "move-picker-toggle";
 	const toggleSwitchEl = document.createElement("span");
@@ -1964,7 +1623,6 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 		btn.type = "button";
 		btn.className = "move-picker-sort-btn";
 		btn.dataset.sortKey = key;
-		// UI改修依頼(2026-08-05)「タイプ・分類列はラベルを出さず、矢印だけでソートする」対応。
 		btn.textContent = iconOnly ? "" : label;
 		if (iconOnly) btn.setAttribute("aria-label", `${label}で並び替え`);
 		btn.addEventListener("click", () => {
@@ -1990,7 +1648,6 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 			const filterWrap = document.createElement("div");
 			filterWrap.className = "move-picker-th-filter";
 			filterWrap.appendChild(filterEl);
-			// UI改修依頼(2026-08-05)「技名はソート→入力、タイプ・分類は入力→ソートの一段構成」対応。
 			if (iconOnlySort) top.append(filterWrap, sortButton);
 			else top.append(sortButton, filterWrap);
 		} else {
@@ -2157,9 +1814,6 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 		return sortDir === "asc" ? result : -result;
 	}
 
-	// 種族の覚え技(learnsetMapPromiseはこのファイル上部で既にモジュールスコープ定義済み、
-	// rebuildMoveListForSpeciesと共用)でプールを絞り込む。種族未選択/該当なしのときは
-	// クラッシュせず全件表示にフォールバックする(round-37.md 37-2の要件どおり)。
 	async function refreshPool(): Promise<void> {
 		await ensureAllMovesLoaded();
 		const speciesName = speciesInput.value.trim();
@@ -2379,30 +2033,6 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 				if (r.bottom > positionedBottom) positionedBottom = r.bottom;
 			}
 		}
-		// UI改善ラウンド40ユーザー指示(40-L3-2)追記、ラウンド41ユーザー指示(41-L2)で根本原因を
-		// 特定・是正済み: 性格補正の上下ボタン(.stat-nature-up/.stat-nature-down、
-		// stat-tableの各行)がこのウィンドウより手前に表示されるバグがあった。
-		// 【根本原因(41-L2で特定)】ボタン自身・祖先はすべてposition:static・z-index:auto・
-		// transform/opacity/willChange/contain/isolationいずれも既定値だったが、押下時
-		// (aria-pressed="true")の縁取り表現にfilter: drop-shadow(...)を::beforeへ適用して
-		// いた。filterはスタッキングコンテキストを生成するプロパティで、実測(Playwright、
-		// document.elementFromPoint)したところ、この::beforeのfilterが**ホスト要素
-		// (.stat-nature-btn自身)を暗黙にスタッキングコンテキスト化**しており、非押下時
-		// (filterなし)は正しくこのウィンドウが手前に来る一方、押下時だけボタンが
-		// 「position指定+z-index:auto」と同じレイヤーに昇格してDOM順のタイブレークで
-		// 勝ってしまっていた(このウィンドウはdocument.bodyの先頭子=DOM順で先のため、
-		// 同レイヤーの要素には後から現れるものが勝つ)。
-		// 【是正】LeftPanel.astro側の.stat-nature-btnの縁取りを、filterを使わない
-		// 「二重三角形(::before=一回り大きい縁取り色、::after=現在サイズの塗り色、
-		// grid-area:1/1で重ねる)」方式に置き換え、スタッキングコンテキストを生成する
-		// プロパティを一切使わないようにした(LeftPanel.astroの.stat-nature-btn CSSコメント
-		// 参照)。これによりこのウィンドウは常にこのボタンより手前になるため、このバグ自体は
-		// 解消済みだが、このスキャンロジック(reposition()が性格補正ボタンの下端も座標回避の
-		// 対象に含める処理)自体は「重ならない方が見た目に自然」という理由で無害なため残す
-		// (41-L2要件「座標のずらしは残してよい」より)。将来また同種の「filterや
-		// transform等を::before/::afterに使う新要素」を追加する際は、同じ罠(ホスト要素が
-		// 暗黙にスタッキングコンテキスト化する)を踏まないよう、position/z-index/filter/
-		// transform/opacity/will-change/contain/isolationのいずれも使わない実装を優先すること。
 		if (!canDockRight) {
 			for (const el of Array.from(anchor.querySelectorAll<HTMLElement>(".stat-nature-up, .stat-nature-down"))) {
 				const r = el.getBoundingClientRect();

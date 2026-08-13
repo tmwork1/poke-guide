@@ -21,7 +21,7 @@
 // OpponentFieldInput / OpponentClientResultInput)だけを入力に取る」純粋関数として
 // ここに独立実装した。DOM・fetch・Node API に依存しないこと(src/lib/stats.ts と同じ制約)。
 //
-// ⚠️ 表示語彙(「確N」「10発以上」「攻撃側どく」「急所」「壁」など)は個体編集画面の
+// 表示語彙(「確N」「10発以上」「攻撃側どく」「急所」「壁」など)は個体編集画面の
 // 圧縮表示と一致させてある。damage-calc.ts 側の語彙を変えるときはこちらも合わせること
 // (対応する実装: damage-calc.ts の describeSeriesVerdict / describeStandaloneLethal /
 // describeExtendedTotalNoLethalLabel / formatCumulativeDamage /
@@ -74,7 +74,7 @@ export function isUnsupportedLethalMove(name: string): boolean {
 }
 
 /**
- * 1件の攻撃(技カード1枚)の条件を、旧形式(field直下に共通で持っていた時代)の値で
+ * 1件の攻撃(技カード1枚)の条件を、field直下の共通値で
  * 埋めたうえでスカラーへ正規化したもの。damage-calc.ts の DamageColumnState のうち、
  * 圧縮表示に必要な項目だけを持つ。
  */
@@ -111,10 +111,10 @@ function rankFrom(boosts: number[] | undefined, primary: StatKey, secondary: Sta
 }
 
 /**
- * opponent_notes.field(+旧形式の move_name)を、表示用の攻撃列へ正規化する。
+ * opponent_notes.fieldとmove_nameを、表示用の攻撃列へ正規化する。
  * damage-calc.ts の rowFromNote()(legacyConditions → columnFromAttack)と同じ優先順位:
  * 技カードごとの値(field.attacks[i])があればそれを使い、無い項目だけ field 直下の
- * 旧形式の値で埋める。field.attacks が空なら move_name の単発メモとして1件に畳む。
+ * field直下の共通値で埋める。field.attacks が空なら move_name の単発メモとして1件に畳む。
  */
 export function normalizeNoteAttacks(
 	field: OpponentFieldInput | null | undefined,

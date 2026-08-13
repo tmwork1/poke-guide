@@ -8,22 +8,18 @@
 import AppLayout from '../../layouts/AppLayout.astro';
 import { getSupabasePublicClient } from '../../lib/supabase';
 import { getPublicOwnedPokemonBySlug, type PublicOwnedPokemonRecord } from '../../lib/owned-pokemon';
-// ラウンド13 A-2: 実数値をサーバ側(フロントマター)で計算するための種族値データ。
 // pokemon/[name].astro と同じく public/master-data/detail/pokemon.json をビルド時 import する
 // (ビルド時に確定する静的データなのでfetchではなくESM importで読める)。
 import pokemonDetailRaw from '../../../public/master-data/detail/pokemon.json';
-// ラウンド15 A-2: タイプ欄+公式絵を追加するための画像ID・タイプデータ。
 // detail/pokemon.json は types は持つが imageId(公式絵のPokeAPI ID)を持たないため、
 // pokemon/[name].astro が使っているのと同じ autocomplete/pokemon.json
 // (dexNo+imageId+types を name で引ける軽量データ)をこちらもビルド時 import で読む。
 import pokemonMasterRaw from '../../../public/master-data/autocomplete/pokemon.json';
-// ラウンド15 A-4: 技名を /moves/[name] へリンクしてよいか(=そのページが実在するか)の判定用。
 // moves/[name].astro の getStaticPaths() は detail/moves.json (Object.values) をそのまま
 // パス生成に使っているため、同じソースから作ったSetで存在確認すれば、リンク切れ・404遷移を
 // 作らずに済む(存在しない技名は素のテキストのままにする)。
 import { officialArtworkUrl } from '../../lib/pokemon-master-data';
 import { typeIconUrl } from '../../lib/sprite-urls';
-// ラウンド18: 実数値計算の共通化。box/index.astro・box/[id].astro・pokemon/[name].astroと
 // 4箇所にコピーされていたchmpToLegacyEffort/calcHpStat/calcOtherStat/NATURE_STAT_MODIFIERSを
 // src/lib/stats.tsに統合した。
 import { NATURE_STAT_MODIFIERS, calcHpStat, calcOtherStat } from '../../lib/stats';
@@ -39,7 +35,6 @@ const { slug } = Astro.params;
 const STAT_KEYS = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'] as const;
 const STAT_LABELS = ['H', 'A', 'B', 'C', 'D', 'S'] as const;
 
-// ラウンド18: 実数値の計算式(chmpToLegacyEffort/calcHpStat/calcOtherStat/
 // NATURE_STAT_MODIFIERS)はsrc/lib/stats.tsに統合した(このファイルにあったコピーは削除。
 // 上のimport参照。出典はsrc/lib/stats.ts冒頭のコメント参照)。
 interface PokemonDetailEntry {
@@ -51,7 +46,6 @@ const baseStatsMap = new Map<string, number[]>(
 	Object.values(pokemonDetailRaw as Record<string, PokemonDetailEntry>).map((p) => [p.name, p.baseStats]),
 );
 
-// ラウンド15 A-2: 種族名からタイプ・公式絵IDを引くための軽量マップ
 // (pokemon/[name].astro の masterEntry/artworkUrl と同じ組み立て方)。
 interface PokemonMasterEntry {
 	name: string;
@@ -64,7 +58,6 @@ const pokemonMasterMap = new Map<string, PokemonMasterEntry>(
 	(pokemonMasterRaw as PokemonMasterEntry[]).map((p) => [p.name, p]),
 );
 
-// ラウンド15 A-4: /moves/[name] が実在する技名の集合(存在しない技名はリンク化せず素のテキストにする)。
 interface StatCell {
 	label: (typeof STAT_LABELS)[number];
 	ev: number;
@@ -93,7 +86,6 @@ if (!pokemon) {
 
 const displayName = pokemon ? (pokemon.nickname || pokemon.species_name) : '';
 
-// ラウンド13 A-2: 実数値をリクエスト時にサーバ側で計算し、静的HTMLとして焼く
 // (クライアントJS・Pyodideは一切使わない)。種族値が解決できない場合は value を null のまま
 // 残し、表示側で "-" にフォールバックする。
 let statCells: StatCell[] = STAT_LABELS.map((label) => ({ label, ev: 0, value: null, mod: null }));
@@ -119,14 +111,12 @@ if (pokemon) {
 	});
 }
 
-// ラウンド15 A-2: masterEntry が見つからない種族名(データに無い)では画像・タイプ欄を
 // 一切出さない。過去に「<img>だけ隠して空のラッパー(白い丸)が残り続ける」事故が3回
 // 起きているため、<img>単体ではなく右カラムのラッパーごと隠す(下のテンプレート側で
 // masterEntry の有無だけを条件にする)。
 const masterEntry = pokemon ? pokemonMasterMap.get(pokemon.species_name) ?? null : null;
 const artworkUrl = masterEntry ? officialArtworkUrl(masterEntry.imageId) : null;
 
-// ラウンド15 A-4: 種族名の詳細ページ(/pokemon/[name])が実在するか。
 // baseStatsMap は /pokemon/[name].astro の getStaticPaths() と同じ detail/pokemon.json 由来なので、
 // ここに無い名前は静的パスも生成されておらず、リンクにすると必ず404になる。
 // A-1: 未使用だった description props を実際に渡す(公開ページなのに meta description が
@@ -149,12 +139,6 @@ const description = pokemon
 				<section class="panel">
 					<div class="panel-content">
 						<h2>育成内容</h2>
-						{/* ラウンド15 A-2/A-4: 左にテキスト情報(dl)、右に公式絵+タイプアイコンピルを
-						    flexで並べる(pokemon/[name].astro の .identity-block と同じ
-						    「テキスト flex:1 / 画像 flex:0 0 auto + margin-left:auto」構成に揃える。
-						    編集禁止ファイルのクラスは流用せずこのページ専用に新設した)。
-						    ポケモン名・技名は詳細ページが実在する場合のみ<a>化し、区切りの" / "は
-						    リンク外に置く。 */}
 						<div class="share-identity">
 							<dl>
 								<dt>ポケモン</dt>
@@ -206,10 +190,6 @@ const description = pokemon
 				<section class="panel">
 					<div class="panel-content">
 						<h2>能力値</h2>
-						{/* ラウンド13 A-5: 素の<table>をやめ、/boxの数値グリッド語彙(行ラベル1列+H/A/B/C/D/Sの
-						    6列の7列グリッド)に統一する。クラス名は/boxから流用せずこのページ専用に新設した。
-						    DOMは行優先(見出し7セル→努力値7セル→実数値7セル)。個体値の行はIV=31固定という
-						    仕様上つねに同じ値が並ぶだけで情報量が無いため削除し、.card-hintの1行に置き換える。 */}
 						<div class="share-stat-grid">
 							<span class="share-stat-row-label" aria-hidden="true"></span>
 							{STAT_LABELS.map((label) => <span class="share-stat-col-label">{label}</span>)}
@@ -226,12 +206,6 @@ const description = pokemon
 								</span>
 							))}
 						</div>
-						{/* ラウンド13追補: グローバルの.card-hintは「見出し直下に詰めて置く」前提で
-						    margin-top: calc(var(--space-2) * -1) を持つ(box/[id].astro・pokemon/[name].astro・
-						    search/index.astroの各.card-hintは全てh2/h3直後で使われている)。このページだけは
-						    見出しではなく7列グリッドの直後に置くため、他画面の.card-hintの意味を変えずに
-						    ここだけ打ち消す(グローバル側は編集しない)。詳細度はscoped属性2つぶん
-						    (0,3,0)でグローバルの0,1,0に確実に勝つ。 */}
 						<p class="share-stat-hint card-hint" hidden></p>
 					</div>
 				</section>
@@ -241,12 +215,6 @@ const description = pokemon
 </AppLayout>
 
 <style>
-	/* ラウンド15 A-2: 育成内容パネルを「テキスト情報(dl) + 右に公式絵/タイプ」の
-	   flex行にする。pokemon/[name].astro の .identity-block と同じ考え方
-	   (dl側 flex:1、画像側 flex:0 0 auto + margin-left:auto で右詰め、
-	   幅が足りない画面では折り返す)だが、編集禁止ファイルのクラスは流用せず
-	   このページ専用クラスとして新設した。.panel-content の max-width: 1080px は
-	   変更しない(このflex行はその内側で完結する)。 */
 	.share-identity {
 		display: flex;
 		flex-wrap: wrap;
@@ -303,8 +271,6 @@ const description = pokemon
 		}
 	}
 
-	/* ラウンド13 A-5: 4.5rem(行ラベル列)+ 6列(H/A/B/C/D/S)の7列グリッド。
-	   罫線は使わない(旧<table>のライト1.25:1/ダーク1.27:1問題はこれ自体で解消する)。 */
 	.share-stat-grid {
 		display: grid;
 		grid-template-columns: 4.5rem repeat(6, minmax(0, 1fr));

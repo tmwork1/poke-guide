@@ -162,11 +162,6 @@ function resolveTotalTeamCount(
   return regulations.reduce((total, regulation) => total + (teamCountByRegulation[regulation] ?? 0), 0);
 }
 
-// UI改修(2026-08-02)要件1: 「表示しない条件」を静的ファイル(speed-chart.json)で管理できる
-// ようにする。src/lib/speed-chart.ts は編集禁止(担当外)のため、SpeedChartConfig 本体には
-// hiddenEntries が無い。このファイル限定で使うローカル型として拡張する(readEmbeddedJson は
-// ジェネリックなJSONパースなので、embedされたJSONに hiddenEntries キーが増えても
-// index.astro側の埋め込みを変える必要はなく、ここで型を足すだけで届く)。
 /** hiddenEntries.rules の1件。「指定された項目がすべて一致するエントリを消す」の意味。 */
 interface HiddenEntryRule {
   /** 省略時は振り方を問わない。src/lib/speed-chart.ts の SPEED_SPREADS のキー。 */
@@ -176,10 +171,6 @@ interface HiddenEntryRule {
   /** 表示には使わない。なぜ消すかのメモ。 */
   reason?: string;
 }
-// UI改修(2026-08-02第4弾)要件2: hiddenEntries(「組み合わせ」を消す設定)と並ぶ形で、
-// 「フォルム(ポケモン)そのもの」を表から出さない設定を追加する。両者は消す対象の意味が
-// 違う(hiddenEntriesは振り方×補正の有無という条件、hiddenPokemonはフォルム名そのもの)ため、
-// 設定のキー・型を分けたまま保持する(1つのルール体系に統合しない)。
 type SpeedChartPageConfig = SpeedChartConfig & {
   speciesAdoptionRate?: {
     enabled: boolean;
@@ -200,12 +191,6 @@ export async function initSpeedChartPage(): Promise<void> {
 
   const config = readEmbeddedJson<SpeedChartPageConfig>('speed-chart-config');
   const adoptionByRegulation = readEmbeddedJson<Record<string, AdoptionRateData>>('speed-chart-adoption-data') ?? {};
-  // 追加改修(2026-08-01第2弾)要件1: レギュレーション別の種族使用率。集計元は 2026-08-05 の
-  // ユーザー指示により ranked_team_members だけから「アプリ登録個体 + ランキング個体」の
-  // 合算プール(migrations/021 の combined_species_usage)へ移行した。
-  // index.astroが1レギュレーションずつではなく全レギュレーション分(横断スコープ '' を含む)
-  // まとめて埋め込むため、レギュレーション切替時に追加のfetchなしで再計算できる
-  // (adoptionByRegulationと同じ設計)。
   const usageByRegulation = readEmbeddedJson<Record<string, SpeciesUsageCounts>>('speed-chart-usage-data') ?? {};
   const teamCountByRegulation =
     readEmbeddedJson<Record<string, number>>('speed-chart-team-count-data') ?? {};
@@ -216,16 +201,7 @@ export async function initSpeedChartPage(): Promise<void> {
   const bodyEl = document.getElementById('speed-chart-rows-body');
   const regSelect = document.getElementById('speed-chart-regulation-select') as HTMLSelectElement | null;
   const knownRegulations = getKnownRegulations(regSelect);
-  // UI改修(2026-08-02第3弾)要件1: 「ジャンプ」ボタン(speed-chart-jump-button)は廃止され、
-  // レギュレーション選択・実数値入力は共通トップバー(AppLayout)へ移った(idは維持)。
-  // ボタン要素自体が無くなったため、Enterキーでのジャンプだけを維持する。
   const jumpInput = document.getElementById('speed-chart-jump-input') as HTMLInputElement | null;
-  // UI改修依頼(すばやさ早見表、2026-08-02)「現在地へ戻るボタンを削除し、すばやさxxx表示自体を
-  // ボタン化して同じ動作を担わせる」: 旧#speed-chart-back-to-current(ChartTable.astro側、
-  // 現在はhidden属性で非表示)のクリックハンドラを、OwnedPanel.astroの「すばやさ xxx」表示
-  // (#speed-chart-owned-summary-value、owned-panel.tsがbutton化しaria-label/titleを設定)へ
-  // 差し替える。ハンドラの中身(scrollToValue呼び出し)自体は変更しない。
-  // UI改修(2026-08-06): 実数値表示と操作を分離したため専用の移動ボタンを参照する。
   const backButton = document.getElementById('speed-chart-owned-jump-button');
   // 要件4: ?owned=があるときだけ存在するトグル(ChartTable.astro側もhasOwnedPanelで条件付け済み)。
   const reachableOnlyToggle = document.getElementById('speed-chart-reachable-only-toggle') as HTMLInputElement | null;
@@ -253,10 +229,6 @@ export async function initSpeedChartPage(): Promise<void> {
   const scarfEntry = findScarfItemEntry(masterData.speedModifiers.items);
   const imageIdByName = new Map(masterData.pokemonAutocomplete.map((p) => [p.name, p.imageId]));
   const pokemonDetailByName = new Map(masterData.pokemonDetail.map((p) => [p.name, p]));
-  // UI改修(2026-08-02第3弾)要件6: 補正要因(特性名/わざ名/持ち物名)はレギュレーションを跨いで
-  // 固定の集合(effectiveModifiersはレギュレーション非依存)なので、チップ幅と同様に
-  // ensureChipMetricsの計測対象名としてここで1回だけ求めておく(formsByNameは母集団が
-  // レギュレーションごとに変わるためrender()内で作り直すが、こちらは作り直し不要)。
   const modifierNames = new Set(effectiveModifiers.map((m) => m.name));
 
   // 1実数値に対して、その値を作るグループ(振り方+補正の組)の数だけ物理行(.speed-chart-row)が
@@ -269,30 +241,13 @@ export async function initSpeedChartPage(): Promise<void> {
   let currentHighlightValue: number | null = null;
   let lastKnownOwnedValue: number | null = null;
   let hasScrolledInitially = false;
-  // 追加改修(2026-08-01第2弾)要件4の状態。
   let currentRows: SpeedChartRow[] = [];
   // R-12更新: 「個体が到達可能な実数値の集合」はowned-panel.tsが所有する。ここではCustomEvent
   // 経由で受け取った値をキャッシュするだけ(クロージャ共有はしない)。
   let lastKnownReachableValues: Set<number> | null = null;
-  // UI改修(2026-08-02)要件2: トグルの意味を反転(マークアップ側のラベルが「すべて表示」に
-  // 変わり、checked外し=既定に変更済み)。checked(ON)=すべての実数値を表示(絞り込みなし)、
-  // unchecked(OFF、既定)=個体がとりうる実数値だけ表示。showReachableOnly という変数名・
-  // renderVisibleRows() の絞り込みロジック自体は据え置き(「trueなら絞り込む」の意味は
-  // 変わらない)なので、初期値はDOMのchecked状態を反転させて導出する。
-  // ?owned=が無いときはトグル自体が無くこの値は使われない。
   let showReachableOnly = !(reachableOnlyToggle?.checked ?? false);
-  // UI改修依頼(すばやさ早見表、2026-08-02)「実数値ソートの昇降を入れ替えるトグルを追加する」:
-  // buildSpeedChartRows(src/lib/speed-chart.ts、編集禁止)は常に実数値の降順で返すため、
-  // 昇順はこのファイル側でrows配列を反転させて対応する(renderVisibleRows参照)。
   let sortOrder: 'asc' | 'desc' = orderButton?.dataset.order === 'asc' ? 'asc' : 'desc';
-  // 要件3の不具合修正(2026-08-01): 「行ごとの実際の合計幅」で足切りするための実測キャッシュ。
-  // フォルム名 -> チップ1個の実測幅(px)。チップ幅は名前とアイコンだけで決まるため、
-  // フォルム名をキーに1回だけ測ればよい(レギュレーションを跨いでも再利用する。
-  // ensureChipMetrics参照)。
   const chipWidthByName = new Map<string, number>();
-  // UI改修(2026-08-02第3弾)要件6: 補正要因は以前は1グループに1つだけ(2段目に横幅いっぱいで
-  // 表示)だったが、チップごとに表示するようになったため、要因ラベル自体の幅も
-  // (チップと同じ理由で)要因名ごとに1回だけ実測してキャッシュする。
   const chipOriginWidthByName = new Map<string, number>();
   // 3列目セル幅・チップ間gap・「+N件」バッジ幅は行によらず一定(固定グリッド列幅のため)
   // なので初回のみ実測してキャッシュする。
@@ -418,11 +373,6 @@ export async function initSpeedChartPage(): Promise<void> {
       regulation === ALL_REGULATIONS_VALUE
         ? mergeAdoptionRateData(adoptionByRegulation, knownRegulations)
         : adoptionByRegulation[regulation];
-    // 要件1: buildSpeedChartRows(src/lib/speed-chart.ts、編集禁止)の結果に対し、
-    // speed-chart.json の hiddenEntries.rules に一致するエントリをここで後段フィルタする。
-    // UI改修(2026-08-02第4弾)要件2: 続けて hiddenPokemon.names に載っているフォルムの
-    // エントリも落とす(メタモン等)。2つのフィルタを別関数のまま順に適用する
-    // (「組み合わせ条件」と「ポケモン名」で意味が違うため、判定ロジックも分けておく)。
     currentRows = filterRowsByHiddenPokemon(
       filterRowsByHiddenEntries(
         buildSpeedChartRows(population, effectiveModifiers, config!.adoptionRate, adoptionData, config!.minSpreadAdoptionRate),
@@ -461,9 +411,6 @@ export async function initSpeedChartPage(): Promise<void> {
           abilityModifier: ownedRecord.ability_name
             ? masterData.speedModifiers.abilities[ownedRecord.ability_name] ?? null
             : null,
-          // UI改修(2026-08-02第3弾)要件5: 右パネルの個体情報にアイコンを出すため、
-          // このファイルが既に持っているimageIdByNameから引いて渡す(owned-panel.ts側は
-          // マスターデータそのものを持たない)。
           spriteImageId: imageIdByName.get(ownedName) ?? null,
         });
       }
@@ -501,9 +448,6 @@ export async function initSpeedChartPage(): Promise<void> {
   function renderVisibleRows(): void {
     // すばやさ調整では候補を絞り込まず、常に全実数値を表示する。
     const rows = currentRows;
-    // UI改修依頼(すばやさ早見表、2026-08-02)要件2: currentRows/filterRowsByReachableValuesは
-    // いずれも実数値降順を維持するため、昇順表示のときはここで配列を反転するだけでよい
-    // (元配列は書き換えない。groups内の族降順など行内の並びは昇降どちらでも変えない)。
     renderRows(sortOrder === 'asc' ? [...rows].reverse() : rows);
   }
 
@@ -524,8 +468,6 @@ export async function initSpeedChartPage(): Promise<void> {
       }
     }
 
-    // 要件3の不具合修正: このレギュレーションの母集団のうち未計測のフォルムだけを一括計測する
-    // (計測フェーズと描画フェーズを分離。レイアウトスラッシング回避)。
     chipLayoutMetrics = ensureChipMetrics(
       bodyEl!,
       tableEl!,
@@ -649,15 +591,9 @@ export async function initSpeedChartPage(): Promise<void> {
     // R-12: 「行のハイライトを描き直すだけ」。セル内部の3状態描画自体はowned-panel.tsが行う。
     if (detail.navigate) renderVisibleRows();
     applyHighlight(detail.value);
-    // UI改修(2026-08-06): ランク変更時だけ補正済み現在地へ自動で移動する。
     if (detail.navigate) scrollToValue(detail.value);
   });
 
-  // 追加改修(2026-08-01第2弾)要件4・R-12更新: 「個体が到達可能な実数値の集合」は
-  // owned-panel.tsが所有し、CustomEventで一方向に通知する。ここでは値をキャッシュして
-  // renderVisibleRows()の絞り込みに使うだけ(owned-panel.ts側の内部変数は直接参照しない)。
-  // render()の中でinitOwnedPanel()が呼ばれた時点でこのリスナーが同期的に発火するよう、
-  // render(initialRegulation)より前にここで登録しておく。
   document.addEventListener(OWNED_REACHABLE_VALUES_EVENT, (event) => {
     const detail = (event as CustomEvent<OwnedReachableValuesEventDetail>).detail;
     lastKnownReachableValues = new Set(detail.values);
@@ -671,13 +607,6 @@ export async function initSpeedChartPage(): Promise<void> {
     if (ownedController) applyHighlight(ownedController.getCurrentValue());
   });
 
-  // UI改修依頼(すばやさ早見表、2026-08-02)要件2: 並び順トグル。切替でrows配列が丸ごと
-  // 反転するため、何もしないとスクロール位置(pxオフセット)はそのままなのに中身が
-  // 全く別の実数値に変わり、体感上「現在地を見失う」破綻になる。切替前に画面内の
-  // 基準行(currentHighlightValueがあればそれを優先、無ければビューポート中央に一番近い行)を
-  // 覚えておき、再描画後に同じ実数値へ(アニメーション無しで)スクロールし直すことで
-  // 現在地・スクロール位置の連続性を保つ。ハイライト自体はrenderRows内で
-  // currentHighlightValueを見て再適用されるため、ここで別途何もする必要はない。
   orderButton?.addEventListener('click', () => {
     const nextOrder: 'asc' | 'desc' = sortOrder === 'desc' ? 'asc' : 'desc';
     const anchorValue = findAnchorRowValue();
@@ -699,10 +628,6 @@ export async function initSpeedChartPage(): Promise<void> {
     if (labelEl) labelEl.textContent = label;
   }
 
-  // UI改修依頼(すばやさ早見表、2026-08-02)要件2: 並び順トグルの直前に「今どの実数値を
-  // 見ているか」を求める。現在地ハイライトがあればそれを最優先(個体調整の基準行が
-  // 動いて見えると混乱するため)、無ければ画面内で最も上端(ビューポート先頭)に近い行の
-  // 実数値をビューポート内の目印として使う。
   function findAnchorRowValue(): number | null {
     if (currentHighlightValue !== null) return currentHighlightValue;
     let closestValue: number | null = null;
@@ -750,11 +675,6 @@ export async function initSpeedChartPage(): Promise<void> {
   render(initialRegulation);
 }
 
-// 不具合修正(2026-08-02): render()から呼ぶ。#speed-chart-owned-summary(個体サマリ本体)と
-// #speed-chart-owned-unavailable(空状態の注記。OwnedPanel.astro側で既定hidden)を、
-// controllerが得られたかどうかで排他的に出し分ける。owned-panel.tsと同じ流儀で
-// getElementByIdを使い、要素が無くても(hasOwnedPanel=falseで元々描画されていない場合も)
-// 落ちないようにする。
 function applyOwnedPanelAvailability(available: boolean): void {
   const summaryEl = document.getElementById('speed-chart-owned-summary');
   if (summaryEl) summaryEl.hidden = !available;
@@ -762,12 +682,6 @@ function applyOwnedPanelAvailability(available: boolean): void {
   if (unavailableEl) unavailableEl.hidden = available;
 }
 
-// UI改修(2026-08-02)要件1: speed-chart.json の hiddenEntries.rules に一致するエントリを
-// 早見表から取り除く。条件を静的ファイル側に持たせたいという指示のため、判定ロジック自体は
-// ここに置き、ルールの中身(何を消すか)は設定ファイルから読む(ハードコードしない)。
-// buildSpeedChartRows の結果配列・各行の entries 配列を直接書き換えず、新しい配列を作って
-// 返す(元の配列を破壊しない)。フィルタ後に entries が空になった行(=その実数値を作る
-// 組み合わせが1つも残らない)は行ごと落とす。
 function filterRowsByHiddenEntries(rows: SpeedChartRow[], rules: HiddenEntryRule[]): SpeedChartRow[] {
   if (rules.length === 0) return rows;
   const result: SpeedChartRow[] = [];
@@ -786,11 +700,6 @@ function matchesHiddenEntryRule(entry: SpeedChartEntry, rule: HiddenEntryRule): 
   return true;
 }
 
-// UI改修(2026-08-02第4弾)要件2: speed-chart.json の hiddenPokemon.names に載っている
-// フォルムを早見表から取り除く(メタモン等、フォルムそのものを出したくない場合)。
-// filterRowsByHiddenEntries と同じ流儀(元配列を破壊せず新しい配列を作る。entriesが空に
-// なった行は行ごと落とす)に揃える。名前は完全一致のみ(部分一致・正規化はしない。
-// public/master-data/autocomplete/pokemon.json のフォルム名と完全一致する前提)。
 function filterRowsByHiddenPokemon(rows: SpeedChartRow[], hiddenNames: string[]): SpeedChartRow[] {
   if (hiddenNames.length === 0) return rows;
   const hiddenNameSet = new Set(hiddenNames);
@@ -846,25 +755,6 @@ function buildDashCell(): HTMLElement {
   return wrap;
 }
 
-// UI改修(2026-08-02第2弾)要件2/3: 「1物理行 = 1族」だった構成をやめ、「1物理行 = 1グループ
-// (振り方+補正の組)」にする(以前は族ごとにブロックへまとめ、ブロック内の複数グループを
-// 2列目のセル内に縦積みしていた)。列も「実数値 / 族・配分・倍率 / ポケモン・補正要因」の
-// 3列に分かれたため、族ラベルは行ごとに繰り返し出す(2列目、group.baseSpeed)。
-// 要件1: 表示ON/OFFトグルは廃止したため、補正ありグループを隠すフィルタは無い
-// (groupEntriesIntoRowGroupsは常に全グループを返す)。
-//
-// UI改修(2026-08-02第3弾)不具合修正: グルーピングキーに「補正の種類と名前」
-// (category:name。例: 特性「こうそくいどう」とメガメタグロスの持ち物補正)を含めていたため、
-// 同じ族・同じ振り方・同じ倍率(x2)でも要因が違うだけで別の物理行に分かれてしまっていた
-// (110族最速x2のライチュウ(アローラ)とメガメタグロスが2行に分かれるバグ)。
-// ユーザー要望により「族・振り方・倍率」が一致すれば1行にまとめる(ランク補正S+2と
-// 2倍の持ち物/特性が同じ「x2」になる場合も同じ扱いでよい、との明示指示)。要因の情報は
-// 行単位ではなくチップ単位(RowGroupEntry.originName)で持つようになったため、まとめても
-// 情報は失われない。
-//   - groupEntriesIntoRowGroups: 1実数値ぶんのentriesを「振り方+族+倍率」でグルーピングし、
-//     族(baseSpeed)降順のフラットな配列で返す(同じ族内は出現順を維持。Array#sortの
-//     安定性に依存する。ES2019以降で仕様上保証されている)。
-//   - buildMetaCell/buildChipsCell: 1つのRowGroup(=1つの物理行)の2列目・3列目を作る。
 /** 3列目に描くチップ1個ぶん(ポケモン+その補正要因の組)。 */
 interface RowGroupEntry {
   formName: string;
@@ -908,9 +798,6 @@ function groupEntriesIntoRowGroups(
     }
   }
 
-  // 要件1(2026-08-01第2弾)+第3弾要件6: グループ内を使用率降順(→すばやさ種族値降順→
-  // 種族名昇順)に並べる。同じフォルムの異なる要因は上で1エントリに統合済みだが、順位表は
-  // 引き続きユニークなフォルム名から作り、その順位でentriesを安定ソートする。
   const orderedGroups = Array.from(groups.values(), (group) => {
     const uniqueFormNames = Array.from(new Set(group.entries.map((e) => e.formName)));
     const rankByName = new Map(
@@ -941,9 +828,6 @@ function buildMetaCell(group: RowGroup): HTMLElement {
 
   if (group.magnitudeLabel) {
     const magnitude = document.createElement('span');
-    // UI改修(2026-08-02第4弾)要件1: 補正量をバッジ(カード)として見せるためのクラス。
-    // 見た目のCSSはChartTable.astro側で `.speed-chart-table .speed-chart-magnitude-badge`
-    // として定義される(このファイルはクラス名を付けるだけで見た目を持たない)。
     magnitude.className = 'speed-chart-magnitude-badge';
     magnitude.textContent = group.magnitudeLabel;
     cell.appendChild(magnitude);
@@ -952,12 +836,6 @@ function buildMetaCell(group: RowGroup): HTMLElement {
   return cell;
 }
 
-/**
- * 3列目(ポケモンのチップ)を作る。UI改修(2026-08-02第3弾)要件6により、補正要因はグループに
- * つき1つではなく、チップ(エントリ)ごとに「.speed-chart-chip-unit」として
- * チップ+要因ラベルを1組にして出す(同じ族・振り方・倍率にまとめた結果、要因が異なる
- * ポケモンが同じ行に混在するため)。
- */
 function buildChipsCell(
   group: RowGroup,
   imageIdByName: Map<string, number>,
@@ -1053,22 +931,6 @@ interface ChipLayoutMetrics {
   overflowBadgeWidth: number;
 }
 
-// 要件3の不具合修正(2026-08-01): 「行ごとの実際の合計幅」で足切りするため、チップ幅を
-// フォルム名ごとに実測してキャッシュする(名前が同じならアイコン・幅も同じなので、
-// 1回測れば以後のレギュレーション切替でも使い回せる)。
-//
-// ⚠ getBoundingClientRect()を1行ずつ呼ぶとレイアウトスラッシングになるため、
-// 「未計測のフォルムを一括でDOMに書き込む(書き込みフェーズ)→まとめて一度に読み取る
-// (読み取りフェーズ)」の2フェーズに分離する(このループの中では書き込みと読み取りを
-// 混在させない)。
-//
-// containerWidth/gapWidth/overflowBadgeWidthは初回呼び出し時のみ実測し(existingがnullの
-// 場合)、以後は引数で受け取った既存値をそのまま返す(グリッド列幅は行によらず一定のため
-// 再測定は不要)。
-//
-// UI改修(2026-08-02第3弾)要件6: 補正要因がチップごとの縦積みユニット(.speed-chart-chip-unit)
-// になったため、足切り判定に使う「要因ラベル自体の幅」もチップ幅と同じ書き込み→読み取りの
-// 2フェーズで実測する(originNames引数・chipOriginWidthByName引数を追加)。
 function ensureChipMetrics(
   bodyEl: HTMLElement,
   tableEl: HTMLElement,
@@ -1078,9 +940,6 @@ function ensureChipMetrics(
   chipWidthByName: Map<string, number>,
   chipOriginWidthByName: Map<string, number>,
   existing: ChipLayoutMetrics | null,
-  // UI改修(2026-08-02第2弾): 4列目(調整)は?owned=連携時だけ存在する。プローブ行の列数が
-  // 実際の行の列数とズレるとグリッドの列幅計算がズレる(3列目=minmax(0,1fr)の可変列の
-  // 実測幅が変わってしまう)ため、実際の行と同じ条件で4列目の有無を揃える。
   hasOwnedPanel: boolean,
 ): ChipLayoutMetrics | null {
   const missing = [...formNames].filter((name) => !chipWidthByName.has(name));
@@ -1165,22 +1024,8 @@ function ensureChipMetrics(
   return metrics;
 }
 
-// 追加改修(2026-08-01第3弾)要件1: 補正量(S+1/2倍等)と原因(特性名・わざ名・持ち物名)を
-// 別の段に分けるため、以前は1本の文字列(例: "2倍 かるわざ")にまとめていたのを2つの関数に
-// 分割する。以前は持ち物だけ名前のみ表示(倍率を省略)していたが、段を分けた今は
-// 「[最速] 120族 x1.5」/「こだわりスカーフ」のように持ち物にも倍率を表示したほうが
-// amounts-row(1段目)が特性・わざの行と同じ書式で揃うため、持ち物の特例は廃止する。
-//
-// 第4弾要件4(2026-08-01): 「S+n」(ランク表記)と「1.5倍」(和風の倍率表記)が混在していたのを
-// 「xN」に統一する。ランク補正はfloor(値*(2+stages)/2)で適用される(speed-chart.tsの
-// applySpeedRank)ため、表示上の倍率も同じ式(2+stages)/2から求める(例: S+1→x1.5、S+2→x2、
-// S+6→x4)。
 function formatModifierMagnitude(modifier: SpeedModifierEntry): string {
   const ratio = modifier.kind === 'rank' ? (2 + modifier.stages) / 2 : modifier.numerator / modifier.denominator;
-  // UI改修(2026-08-02第4弾)要件1: 表記を「x1.5」から数学記号「×」(U+00D7。全角「x」ではない)に
-  // 変更する。この文字列は groupEntriesIntoRowGroups のグルーピングキー(magnitudeLabel)にも
-  // そのまま使われるが、接頭辞を変えただけで同値性の判定基準(文字列全体の一致)は変わらない
-  // ため、同じ倍率同士は引き続き1行にまとまる。
   return `×${formatRatio(ratio)}`;
 }
 

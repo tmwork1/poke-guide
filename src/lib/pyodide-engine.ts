@@ -39,7 +39,6 @@ const PYODIDE_SCRIPT_URL = `${PYODIDE_CDN_BASE}pyodide.js`;
 // ビルド時にVite静的import(src/pages/api/search.ts が同ディレクトリ配下の
 // autocomplete/*.json を静的importしているのと同じ方式)で読み込み、URLを組み立てる。
 // これにより vendor/jpoke のバージョンが上がって wheel ファイル名が変わっても、
-// このファイルを手動更新する必要が無くなる(UI改善ラウンド22 22-E-3で対応。
 // 実行時fetchを増やさないよう、あえて静的importにしている)。
 import jpokeWheelManifest from "../../public/master-data/pyodide/wheel-manifest.json";
 const JPOKE_WHEEL_URL = `/master-data/pyodide/wheels/${jpokeWheelManifest.filename}`;
@@ -152,7 +151,7 @@ export interface CalcDamagesOptions {
    */
   hitCount?: number;
   /**
-   * `calcLethalSequence()` 専用(2026-08-02追加)。true の場合、攻撃ごとの
+   * true の場合、攻撃ごとの
    * isolated側計算(`perAttackDamages`/`perAttackLethal` の元になる、その技を
    * 単体で見た場合の計算)を丸ごとスキップする。省略時は false(既定値は
    * 必ず false にすること。既存の呼び出し元 `src/lib/box-id/damage-calc.ts` の
@@ -253,13 +252,11 @@ export interface CalcLethalSequenceResult {
    * 部分的な致死可能性(確率が0%より大きく100%未満)だけでは打ち切らず、
    * 生存分岐に対して後続の攻撃を計算し続ける。
    *
-   * 2026-07-30時点: 各攻撃は`battle.calc_lethal()`の`resume_from`引数
-   * (jpoke側にこの日に追加された機能)で前の攻撃終了時点のHP状態を引き継いで
+   * 各攻撃は`battle.calc_lethal()`の`resume_from`引数で前の攻撃終了時点のHP状態を引き継いで
    * 計算する(BOOTSTRAP_PYTHON内`calc_lethal_sequence_json`の`sequential_hits`
    * 参照)。これにより、防御側がマルチスケイル等の「HPが満タンかどうか」で
    * ダメージが変わる特性を持つ場合でも、2発目以降で正しく「満タンではない」
-   * 状態として計算される(以前は攻撃ごとに専用Battleを毎回フルHPから作り直す
-   * 実装だったため、2発目以降も誤ってマルチスケイル等が発動し続けるバグがあった)。
+   * 状態として計算されるため、2発目以降にマルチスケイル等が誤って発動し続けない。
    */
   lethal: LethalResult[];
   /**
@@ -285,9 +282,7 @@ export interface CalcLethalSequenceResult {
    * 攻撃列を先頭から実際に合成した(`lethal`と同じ範囲の)累計ダメージの
    * 厳密な最小値・最大値。各攻撃の最小同士・最大同士を単純加算した近似値ではなく、
    * `resume_from` で引き継いだ各攻撃の `damage_dist`(全ヒット分を`add_dist`で
-   * 畳み込み済み)をさらに攻撃列ぶん`add_dist`で合成した値(2026-07-30以前は
-   * `LethalHitResult.__add__` で独立計算した結果同士を合成していたが、`lethal`と
-   * 同じ理由で`resume_from`ベースに切り替えた)。
+   * 畳み込み済み)をさらに攻撃列ぶん`add_dist`で合成した値。
    *
    * 重要: これは「与えた打点の合計」であり、**たべのこし等の回復やどく・やけどの
    * 継続ダメージは含まない**。jpokeはターン終了時処理を `hp_dist` 側にしか
@@ -446,7 +441,7 @@ from jpoke.utils.constants import STATS, STAT_RANK_MIN, STAT_RANK_MAX
 from jpoke.utils.lethal_dist import State, add_dist
 
 
-# 2026-08-02: WASM(Pyodide)ヒープが "memory access out of bounds" で致命的に
+# WASM(Pyodide)ヒープが "memory access out of bounds" で致命的に
 # クラッシュする問題への対処。原因は vendor/jpoke/src/jpoke/core/lethal.py の
 # calc_lethal() が呼び出しごとに Battle 全体を deepcopy すること。Battle は
 # 約12個のマネージャ(EventManager/VolatileManager/...)が全て self.battle = battle
@@ -573,10 +568,8 @@ def _apply_stealth_rock(battle, defender, enabled):
 def _resolve_move(pokemon, move_name):
     """ポケモンの技リストからmove_nameに一致する技を探す。
 
-    見つからない場合はmove_nameから新規にMoveを生成する(以前はactive.moves[0]に
-    フォールバックしていたが、calc_lethal_sequence_jsonのように1体が複数の
-    異なる技を扱う経路では、無関係な技に静かにフォールバックすると計算結果が
-    誤ってしまうため、要求されたmove_nameそのものを使う形に変更した)。
+    見つからない場合はmove_nameから新規にMoveを生成する。複数の異なる技を扱う経路で
+    無関係な技へフォールバックすると計算結果が誤るため、要求されたmove_nameを使う。
     """
     for m in pokemon.moves:
         if m.name == move_name:
@@ -750,7 +743,7 @@ def calc_lethal_sequence_json(attacker_spec, defender_spec, attacks, seed, criti
     """攻撃列(attacks: [{"moveName": str, "hitCount": int, ...per-attack条件}, ...])を
     先頭から順に当てていったときの、各段階での累計致死率・技ごとの参考値を計算する。
 
-    'sequential_only'(2026-08-02追加。既定False): Trueの場合、'isolated'側の計算
+    'sequential_only': Trueの場合、'isolated'側の計算
     (perAttackDamages/perAttackLethalの元になる、攻撃ごとの単体計算)を丸ごと
     スキップする。耐久調整のソルバー('src/lib/box-id/bulk-adjust-solver.ts')は
     'lethal'(sequential側)しか読んでおらず、isolated側は計算されてから
@@ -794,7 +787,7 @@ def calc_lethal_sequence_json(attacker_spec, defender_spec, attacks, seed, criti
     そもそも起こらない。加えて'_lethal_loop'は'results.append(result)'の**後**に
     致死判定するため、1回の呼び出しは常に1件以上の結果を返す)。
 
-    重要(3・2種類の計算を分けて行う理由。2026-07-30改修): 攻撃1件につき
+    重要: 攻撃1件につき
     'attack_battle.calc_lethal()'を**2回**呼ぶ。同じ'attack_battle'に対して
     'resume_from'の有無だけを変えて呼んでも、'calc_lethal()'は呼び出しのたびに
     battleをdeepcopyするだけで干渉しない。
@@ -805,8 +798,7 @@ def calc_lethal_sequence_json(attacker_spec, defender_spec, attacks, seed, criti
       - 'sequential'(前の攻撃終了時点のLethalHitResultを'resume_from'に渡す):
         lethal/cumulativeDamage(技列を先頭から実際に当てていった累計)専用。
 
-    'resume_from'はjpoke側にこの日('2026-07-30')追加された機能
-    ('jpoke/src/jpoke/core/lethal.py'の'calc_lethal()'引数、
+    'resume_from'は'jpoke/src/jpoke/core/lethal.py'の'calc_lethal()'引数で、
     'Battle.calc_lethal()'から委譲)で、フルHPからの新規計算ではなく、渡した
     'LethalHitResult'の'initial_hp'・'hp_dist'(分岐ごとの特性/道具消費フラグ込み)・
     'attack_count'から計算を再開できる。防御側が「HPが満タんかどうか」でダメージが
@@ -827,8 +819,7 @@ def calc_lethal_sequence_json(attacker_spec, defender_spec, attacks, seed, criti
     '_apply_damage_by_branch'参照)、'calc_lethal()'(resume_from経由の合成も含む)が
     返す'hp_dist'は常に0未満にならない。そのため'sequential'側(lethal/
     cumulativeDamageの元になる'sequential_result')はクランプ不要になった
-    (2026-07-30改修前は'LethalHitResult.__add__'内部の'subtract_dist'が
-    'minimum'を指定しない別経路だったため、'_clamp_hp_dist_min0'が必須だった)。
+    '_clamp_hp_dist_min0'は、'minimum'を指定しない'__add__'経由の自己合成でのみ必要になる。
     一方'perAttackLethal'の「同じ技を自分自身に'__add__'で繰り返し加算する」自己合成
     (下記'repeat_acc')は引き続き'__add__'経由のため、'_clamp_hp_dist_min0'を
     そのまま維持する。
@@ -1051,7 +1042,7 @@ def calc_lethal_sequence_json(attacker_spec, defender_spec, attacks, seed, criti
 def calc_max_damage_matrix_json(attacker_specs, defender_specs, move_hit_counts, field_spec, critical, seed):
     """攻撃側 × 防御側の総当たりで「攻撃側の技のうち最大の1発ダメージ」を求める。
 
-    チーム編集画面の相性チェック(ユーザー要望 2026-08-02)専用。20体 × 6体 = 120組に対して
+    総当たり計算では
     JS から calc_damages_json() を個別に呼ぶと、'pyodide.toPy()' とJSON往復が組の数だけ発生する。
     総当たりをPython側の1回の呼び出しに畳むことで、往復を組数ぶんまとめて削れる。
 
@@ -1223,7 +1214,7 @@ export function isEngineReady(): boolean {
   return currentStatus === "ready" && pyodideSingleton !== null && calcDamagesJsonFn !== null;
 }
 
-// --- 致命的WASMエラー検知(2026-08-02追加) ---
+// --- 致命的WASMエラー検知 ---
 //
 // 背景: `calc_lethal()` (vendor/jpoke/src/jpoke/core/lethal.py) は呼び出しごとに
 // Battle全体をdeepcopyし、Battleは約12個のマネージャが循環参照し合う巨大な
@@ -1409,7 +1400,7 @@ export async function calcStats(spec: PokemonSpec): Promise<{ stats: Stats }> {
  * (`pyodide-engine.ts` の `BOOTSTRAP_PYTHON` 内 `calc_lethal_sequence_json`)の
  * コメント参照)。攻撃1件ごとに専用の Battle を新規構築するため、例えば
  * 「1発目だけテラスタル発動」「2発目で壁を消す」といった、1つの Battle を
- * 使い回していた旧実装では表現できなかった条件も指定できる。
+ * 攻撃ごとの条件を指定できる。
  * `options.seed`(乱数シード)のみ、技ごとに変える要件が無いため引き続き
  * 攻撃列全体で共通。
  *
@@ -1418,8 +1409,7 @@ export async function calcStats(spec: PokemonSpec): Promise<{ stats: Stats }> {
  * (`perAttackDamages`/`perAttackLethal` は打ち切りと独立に常に全攻撃ぶん計算される)。
  * jpoke の `Battle.calc_lethal()` を経由するようになったため、たべのこし回復・
  * どく/やけどの継続ダメージ・がんじょう/きあいのタスキ等のターン終了時/
- * ダメージ適用時ハンドラも反映される(旧実装の自前HP分布積算方式では
- * 未対応だった制約はこの変更で解消した)。
+ * ダメージ適用時ハンドラも反映される。
  */
 export async function calcLethalSequence(
   attackerSpec: PokemonSpec,
@@ -1492,7 +1482,7 @@ export interface CalcMaxDamageMatrixOptions {
 /**
  * 攻撃側 × 防御側の総当たりで、各組の「最大ダメージ1発」を一度に計算する。
  *
- * チーム編集画面の相性チェック(ユーザー要望 2026-08-02)のための一括APIで、
+ * 総当たりを一括で計算するAPIで、
  * `calcDamages()` を組の数だけ呼ぶ代わりに Python 側で総当たりを回す
  * (往復とヒープ消費の削減。詳細は BOOTSTRAP_PYTHON の `calc_max_damage_matrix_json`
  * のdocstring参照)。致死率は計算しないため `calc_lethal()` を経由しない。

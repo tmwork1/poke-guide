@@ -104,9 +104,8 @@ export interface OpponentFieldInput {
   order?: number;
 }
 
-// client_result jsonb の形状(UI側のダメージ計算結果スナップショット。サーバは形だけ検証し
-// 再計算はしない)。旧形式(単発メモ、damages のみ)・新形式(攻撃列の加算ダメージ計算、
-// perAttackDamages/lethal)の両方を許容するため、フィールドは全て任意にしている。
+// client_result jsonb はUI側の計算結果のスナップショットであり、サーバは再計算しない。
+// 単発メモと攻撃列の両方を許容するため、フィールドは全て任意にしている。
 export interface OpponentClientResultInput {
   defenderHp: number;
   // 攻撃列の各攻撃を単体で見た場合のダメージ値一覧(perAttackDamages[攻撃のインデックス][...])。
@@ -122,7 +121,7 @@ export interface OpponentClientResultInput {
   // 加算後(攻撃列を先頭から順に当てた)ダメージの厳密な最小/最大
   // (LethalHitResult.__add__による分布合成の結果。各攻撃の最小/最大の単純合計ではない)。
   cumulativeDamage?: { min: number; max: number };
-  // 旧形式(単発メモ)互換: 単一の技の1発あたりダメージ乱数16段階。
+  // 単発メモでは、単一の技の1発あたりダメージ乱数16段階を保持する。
   damages?: number[];
 }
 

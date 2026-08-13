@@ -9,18 +9,12 @@
 // 切替時に追加のSSR/APIアクセスなしで再計算できる。R-12の「変更時にURLをhistory.replaceState
 // で書き換える」がページ遷移を伴わないことを前提にした設計)。
 //
-// 2026-08-02 UI改修: hideTopbar運用をやめ共通トップバーへ戻した。レギュレーション選択・
-// 実数値ジャンプは全ユーザー向けの常設UIのためトップバー(topbar-actions)に置き、右パネルは
-// ?owned=がある場合の個体調整専用UIだけを残す。
 export const prerender = false;
 
 import AppLayout from '../../layouts/AppLayout.astro';
 import ChartTable from '../../components/speed-chart/ChartTable.astro';
 import '../../styles/speed-adjust-dialog.css';
-// UI改修依頼(すばやさ早見表、2026-08-02)「レギュレーション選択の候補を新しい順に並べる」:
-// REGULATIONS(古い順、既定値解決ロジックがREGULATIONS[REGULATIONS.length - 1]=最新に依存)は
-// そのまま使い続け、選択ボックスの表示順だけ src/lib/regulations.ts が既に公開している
-// REGULATIONS_NEWEST_FIRST(表示専用の逆順コピー)に差し替える。
+// 既定値の解決は REGULATIONS の末尾が最新であることに依存するため、表示順だけ別配列を使う。
 import { REGULATIONS, REGULATIONS_NEWEST_FIRST } from '../../lib/regulations';
 import { getSupabaseAdminClient, getSupabasePublicClient } from '../../lib/supabase';
 import { getOwnedPokemon, type OwnedPokemonRecord } from '../../lib/owned-pokemon';
@@ -78,7 +72,6 @@ try {
 	const { data, error } = await publicClient
 		.from('suggestions')
 		.select('kind, subject_key, payload')
-		// UI改修依頼(2026-08-05)「最遅をS下降性格の採用率で判定」対応。
 		.in('kind', ['popular_item', 'popular_move', 'popular_nature'])
 		.like('subject_key', '%|%');
 
@@ -108,27 +101,12 @@ try {
 	console.error('[speed-chart] failed to load adoption rate data', err);
 }
 
-// ============================================================================
-// 追加改修(2026-08-01 ユーザー指示・第2弾) 要件1: 種族(フォルム)ごとの使用率
-// ============================================================================
 // 「レギュレーション別の種族使用率」を集計済みRPC combined_species_usage()(migrations/021)
 // から取る。suggestions(持ち物・技の種族"内"採用率、上のadoptionByRegulation)とは別の指標。
-//
-// 【2026-08-05 のユーザー指示による集計元の変更】
-// 「サジェストの集計元は、本アプリに登録されているデータと過去のランキングデータを
-// 重みづけなしで合算したプールにする」に合わせ、母集団を ranked_team_members だけから
-// 「owned_pokemon(収集拒否を除く) + ranked_team_members」の1個体1票の合算プールへ変えた。
 // 分母(teamCountByRegulation)は021が返す team_equivalents = ランキングの実チーム数 +
 // アプリ個体数÷6。ランキングだけのときは実チーム数そのものになるため、
 // src/config/speed-chart.json の speciesAdoptionRate(threshold 0.005 / minSampleSize 50)は
 // 従来と同じ尺度のまま使える。
-//
-// 【旧実装からの改善】
-// 旧実装は「PostgRESTの集約関数が既定で無効」「max_rows=1000でranked_team_members全件
-// (6,241件)を1クエリで取れない」という2つの制約から、season_regulations 1回 +
-// ranked_team_members のページング7回 + ranked_teams のページングで計8クエリ以上を投げ、
-// GROUP BY をこのファイルのJSで行っていた(当時はmigrations/の編集が禁止だった)。
-// 021 で集計RPCを追加できたため、DB側でGROUP BYが完結し1〜2クエリになった。
 // 返る行数は「(レギュレーション数+1) × k-匿名性を満たす種族数」で実測295行だが、
 // 将来 max_rows(1000)を超えても欠落しないようページングは残す。
 interface CombinedSpeciesUsageRow {
@@ -184,7 +162,6 @@ try {
 }
 ---
 <AppLayout
-	{/* UI改修依頼(2026-08-05)「メニュー項目とページタイトルを『すばやさ』に変更」対応。 */}
 	title="すばやさ"
 	description="レギュレーション別のすばやさ実数値早見表"
 	current="speed-chart"
@@ -199,7 +176,6 @@ try {
 	</div>}
 	{!embedded && <Fragment slot="topbar-actions">
 		{/* 可視ラベルとselectをfor/idで結び、トップバー上でも選択対象を明確にする。 */}
-		{/* UI改修(2026-08-06): 関連するラベルと選択欄だけを既存のまとまりで詰める。 */}
 		<div class="toolbar-item">
 			<label class="speed-chart-regulation-label" for="speed-chart-regulation-select">レギュレーション</label>
 			<select id="speed-chart-regulation-select">
@@ -220,7 +196,6 @@ try {
 				<span class="sort-dir-toggle-label">速い順</span>
 			</button>
 		</div>
-		{/* UI改修(2026-08-06): 表示範囲は表全体の操作なのでトップバーへ移す。 */}
 		{hasOwnedPanel && <label class="speed-chart-reachable-toggle">
 			<span class="toggle-switch">
 				<input type="checkbox" id="speed-chart-reachable-only-toggle" class="toggle-switch-input" aria-label="すべて表示" />
@@ -317,7 +292,6 @@ try {
 		display: flex;
 		align-items: center;
 	}
-	/* UI改修(2026-08-06): トップバーでも既存トグルの密度と操作領域を維持する。 */
 	.speed-chart-reachable-toggle {
 		display: inline-flex;
 		align-items: center;
@@ -328,20 +302,7 @@ try {
 </style>
 
 <style is:global>
-	/* UI改修依頼(すばやさ早見表トップバー)「タイトル表示を消す」「入力ボックスを左寄せにする」。
-	   .app-topbar-title / .app-topbar-row-main はいずれも AppLayout.astro 側の要素で、
-	   AppLayout.astro は編集禁止(このページの担当範囲外)のためこのページの scoped <style>
-	   からは選択できない。team/[id].astro の23-H1(bodyClass="team-edit-page"でタイトルを
-	   隠す手法)と同じ方針で、AppLayoutにbodyClass="speed-chart-page"を渡し(上のフロント
-	   マター)、body クラスで確実にスコープしたグローバルセレクタで打ち消す。
-	   - .app-topbar-title は非表示にするだけ(<title>タグ/ブラウザタブの表示は pageTitle と
-	     独立のため影響しない)。
-	   - .app-topbar-row-main は global.css の .app-topbar-row が持つ
-	     `justify-content: space-between`(詳細度 0,1,0)により右端寄せになっている。
-	     `body.speed-chart-page .app-topbar-row-main`(詳細度 0,2,1)はこれより高いため、
-	     global.cssへの変更なし・注入順序に依存せず確実に上書きできる
-	     (pitfalls.md「global.cssの指定がAstroのscoped styleに詳細度で負ける」の逆で、
-	     ここはページ側が勝つ側なので同じ罠を踏まない)。 */
+	/* AppLayout の要素を対象にするため、body クラスでスコープしたグローバルセレクタを使う。 */
 	body.speed-chart-page .app-topbar-title {
 		display: none;
 	}
