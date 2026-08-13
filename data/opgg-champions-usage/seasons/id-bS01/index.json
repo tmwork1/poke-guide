@@ -1,11 +1,1181 @@
 {
   "schemaVersion": 1,
-  "fetchedAt": "2026-08-11T03:46:39.289Z",
+  "fetchedAt": "2026-08-13T13:33:55.960Z",
   "pokemon": [
     {
       "slug": "garchomp",
       "name": "ガブリアス",
       "file": "ガブリアス.json"
+    },
+    {
+      "slug": "primarina",
+      "name": "アシレーヌ",
+      "file": "アシレーヌ.json"
+    },
+    {
+      "slug": "meowscarada",
+      "name": "マスカーニャ",
+      "file": "マスカーニャ.json"
+    },
+    {
+      "slug": "archaludon",
+      "name": "ブリジュラス",
+      "file": "ブリジュラス.json"
+    },
+    {
+      "slug": "mimikyu",
+      "name": "ミミッキュ",
+      "file": "ミミッキュ.json"
+    },
+    {
+      "slug": "hippowdon",
+      "name": "カバルドン",
+      "file": "カバルドン.json"
+    },
+    {
+      "slug": "gyarados",
+      "name": "ギャラドス",
+      "file": "ギャラドス.json"
+    },
+    {
+      "slug": "dragonite",
+      "name": "カイリュー",
+      "file": "カイリュー.json"
+    },
+    {
+      "slug": "metagross",
+      "name": "メタグロス",
+      "file": "メタグロス.json"
+    },
+    {
+      "slug": "delphox",
+      "name": "マフォクシー",
+      "file": "マフォクシー.json"
+    },
+    {
+      "slug": "charizard",
+      "name": "リザードン",
+      "file": "リザードン.json"
+    },
+    {
+      "slug": "corviknight",
+      "name": "アーマーガア",
+      "file": "アーマーガア.json"
+    },
+    {
+      "slug": "scizor",
+      "name": "ハッサム",
+      "file": "ハッサム.json"
+    },
+    {
+      "slug": "basculegion-male",
+      "name": "イダイトウ(オス)",
+      "file": "イダイトウ(オス).json"
+    },
+    {
+      "slug": "hydreigon",
+      "name": "サザンドラ",
+      "file": "サザンドラ.json"
+    },
+    {
+      "slug": "glimmora",
+      "name": "キラフロル",
+      "file": "キラフロル.json"
+    },
+    {
+      "slug": "greninja",
+      "name": "ゲッコウガ",
+      "file": "ゲッコウガ.json"
+    },
+    {
+      "slug": "gengar",
+      "name": "ゲンガー",
+      "file": "ゲンガー.json"
+    },
+    {
+      "slug": "raichu",
+      "name": "ライチュウ",
+      "file": "ライチュウ.json"
+    },
+    {
+      "slug": "samurott-hisui",
+      "name": "ダイケンキ(ヒスイ)",
+      "file": "ダイケンキ(ヒスイ).json"
+    },
+    {
+      "slug": "aegislash",
+      "name": "ギルガルド(シールド)",
+      "file": "ギルガルド(シールド).json"
+    },
+    {
+      "slug": "gholdengo",
+      "name": "サーフゴー",
+      "file": "サーフゴー.json"
+    },
+    {
+      "slug": "volcarona",
+      "name": "ウルガモス",
+      "file": "ウルガモス.json"
+    },
+    {
+      "slug": "blaziken",
+      "name": "バシャーモ",
+      "file": "バシャーモ.json"
+    },
+    {
+      "slug": "kingambit",
+      "name": "ドドゲザン",
+      "file": "ドドゲザン.json"
+    },
+    {
+      "slug": "umbreon",
+      "name": "ブラッキー",
+      "file": "ブラッキー.json"
+    },
+    {
+      "slug": "rotom-wash",
+      "name": "ウォッシュロトム",
+      "file": "ウォッシュロトム.json"
+    },
+    {
+      "slug": "lopunny",
+      "name": "ミミロップ",
+      "file": "ミミロップ.json"
+    },
+    {
+      "slug": "sylveon",
+      "name": "ニンフィア",
+      "file": "ニンフィア.json"
+    },
+    {
+      "slug": "venusaur",
+      "name": "フシギバナ",
+      "file": "フシギバナ.json"
+    },
+    {
+      "slug": "lucario",
+      "name": "ルカリオ",
+      "file": "ルカリオ.json"
+    },
+    {
+      "slug": "starmie",
+      "name": "スターミー",
+      "file": "スターミー.json"
+    },
+    {
+      "slug": "staraptor",
+      "name": "ムクホーク",
+      "file": "ムクホーク.json"
+    },
+    {
+      "slug": "ninetales-alolan",
+      "name": "キュウコン(アローラ)",
+      "file": "キュウコン(アローラ).json"
+    },
+    {
+      "slug": "skeledirge",
+      "name": "ラウドボーン",
+      "file": "ラウドボーン.json"
+    },
+    {
+      "slug": "bellibolt",
+      "name": "ハラバリー",
+      "file": "ハラバリー.json"
+    },
+    {
+      "slug": "toxapex",
+      "name": "ドヒドイデ",
+      "file": "ドヒドイデ.json"
+    },
+    {
+      "slug": "dragapult",
+      "name": "ドラパルト",
+      "file": "ドラパルト.json"
+    },
+    {
+      "slug": "floette-eternal-flower",
+      "name": "フラエッテ",
+      "file": "フラエッテ.json"
+    },
+    {
+      "slug": "swampert",
+      "name": "ラグラージ",
+      "file": "ラグラージ.json"
+    },
+    {
+      "slug": "clefable",
+      "name": "ピクシー",
+      "file": "ピクシー.json"
+    },
+    {
+      "slug": "scovillain",
+      "name": "スコヴィラン",
+      "file": "スコヴィラン.json"
+    },
+    {
+      "slug": "tyranitar",
+      "name": "バンギラス",
+      "file": "バンギラス.json"
+    },
+    {
+      "slug": "meganium",
+      "name": "メガニウム",
+      "file": "メガニウム.json"
+    },
+    {
+      "slug": "mawile",
+      "name": "クチート",
+      "file": "クチート.json"
+    },
+    {
+      "slug": "excadrill",
+      "name": "ドリュウズ",
+      "file": "ドリュウズ.json"
+    },
+    {
+      "slug": "ceruledge",
+      "name": "ソウブレイズ",
+      "file": "ソウブレイズ.json"
+    },
+    {
+      "slug": "grimmsnarl",
+      "name": "オーロンゲ",
+      "file": "オーロンゲ.json"
+    },
+    {
+      "slug": "pelipper",
+      "name": "ペリッパー",
+      "file": "ペリッパー.json"
+    },
+    {
+      "slug": "blastoise",
+      "name": "カメックス",
+      "file": "カメックス.json"
+    },
+    {
+      "slug": "kangaskhan",
+      "name": "ガルーラ",
+      "file": "ガルーラ.json"
+    },
+    {
+      "slug": "whimsicott",
+      "name": "エルフーン",
+      "file": "エルフーン.json"
+    },
+    {
+      "slug": "sneasler",
+      "name": "オオニューラ",
+      "file": "オオニューラ.json"
+    },
+    {
+      "slug": "mamoswine",
+      "name": "マンムー",
+      "file": "マンムー.json"
+    },
+    {
+      "slug": "espathra",
+      "name": "クエスパトラ",
+      "file": "クエスパトラ.json"
+    },
+    {
+      "slug": "snorlax",
+      "name": "カビゴン",
+      "file": "カビゴン.json"
+    },
+    {
+      "slug": "scolipede",
+      "name": "ペンドラー",
+      "file": "ペンドラー.json"
+    },
+    {
+      "slug": "rotom-heat",
+      "name": "ヒートロトム",
+      "file": "ヒートロトム.json"
+    },
+    {
+      "slug": "zoroark-hisui",
+      "name": "ゾロアーク(ヒスイ)",
+      "file": "ゾロアーク(ヒスイ).json"
+    },
+    {
+      "slug": "annihilape",
+      "name": "コノヨザル",
+      "file": "コノヨザル.json"
+    },
+    {
+      "slug": "vanilluxe",
+      "name": "バイバニラ",
+      "file": "バイバニラ.json"
+    },
+    {
+      "slug": "maushold-family-of-four",
+      "name": "イッカネズミ",
+      "file": "イッカネズミ.json"
+    },
+    {
+      "slug": "milotic",
+      "name": "ミロカロス",
+      "file": "ミロカロス.json"
+    },
+    {
+      "slug": "araquanid",
+      "name": "オニシズクモ",
+      "file": "オニシズクモ.json"
+    },
+    {
+      "slug": "sableye",
+      "name": "ヤミラミ",
+      "file": "ヤミラミ.json"
+    },
+    {
+      "slug": "kleavor",
+      "name": "バサギリ",
+      "file": "バサギリ.json"
+    },
+    {
+      "slug": "gallade",
+      "name": "エルレイド",
+      "file": "エルレイド.json"
+    },
+    {
+      "slug": "ditto",
+      "name": "メタモン",
+      "file": "メタモン.json"
+    },
+    {
+      "slug": "orthworm",
+      "name": "ミミズズ",
+      "file": "ミミズズ.json"
+    },
+    {
+      "slug": "goodra-hisui",
+      "name": "ヌメルゴン(ヒスイ)",
+      "file": "ヌメルゴン(ヒスイ).json"
+    },
+    {
+      "slug": "victreebel",
+      "name": "ウツボット",
+      "file": "ウツボット.json"
+    },
+    {
+      "slug": "gardevoir",
+      "name": "サーナイト",
+      "file": "サーナイト.json"
+    },
+    {
+      "slug": "dragalge",
+      "name": "ドラミドロ",
+      "file": "ドラミドロ.json"
+    },
+    {
+      "slug": "froslass",
+      "name": "ユキメノコ",
+      "file": "ユキメノコ.json"
+    },
+    {
+      "slug": "banette",
+      "name": "ジュペッタ",
+      "file": "ジュペッタ.json"
+    },
+    {
+      "slug": "serperior",
+      "name": "ジャローダ",
+      "file": "ジャローダ.json"
+    },
+    {
+      "slug": "azumarill",
+      "name": "マリルリ",
+      "file": "マリルリ.json"
+    },
+    {
+      "slug": "slowbro",
+      "name": "ヤドラン",
+      "file": "ヤドラン.json"
+    },
+    {
+      "slug": "skarmory",
+      "name": "エアームド",
+      "file": "エアームド.json"
+    },
+    {
+      "slug": "sceptile",
+      "name": "ジュカイン",
+      "file": "ジュカイン.json"
+    },
+    {
+      "slug": "empoleon",
+      "name": "エンペルト",
+      "file": "エンペルト.json"
+    },
+    {
+      "slug": "sinistcha",
+      "name": "ヤバソチャ",
+      "file": "ヤバソチャ.json"
+    },
+    {
+      "slug": "chandelure",
+      "name": "シャンデラ",
+      "file": "シャンデラ.json"
+    },
+    {
+      "slug": "hatterene",
+      "name": "ブリムオン",
+      "file": "ブリムオン.json"
+    },
+    {
+      "slug": "vivillon",
+      "name": "ビビヨン",
+      "file": "ビビヨン.json"
+    },
+    {
+      "slug": "overqwil",
+      "name": "ハリーマン",
+      "file": "ハリーマン.json"
+    },
+    {
+      "slug": "conkeldurr",
+      "name": "ローブシン",
+      "file": "ローブシン.json"
+    },
+    {
+      "slug": "diggersby",
+      "name": "ホルード",
+      "file": "ホルード.json"
+    },
+    {
+      "slug": "polteageist",
+      "name": "ポットデス",
+      "file": "ポットデス.json"
+    },
+    {
+      "slug": "espeon",
+      "name": "エーフィ",
+      "file": "エーフィ.json"
+    },
+    {
+      "slug": "slowking-galarian",
+      "name": "ヤドキング(ガラル)",
+      "file": "ヤドキング(ガラル).json"
+    },
+    {
+      "slug": "pyroar",
+      "name": "カエンジシ",
+      "file": "カエンジシ.json"
+    },
+    {
+      "slug": "armarouge",
+      "name": "グレンアルマ",
+      "file": "グレンアルマ.json"
+    },
+    {
+      "slug": "incineroar",
+      "name": "ガオガエン",
+      "file": "ガオガエン.json"
+    },
+    {
+      "slug": "arcanine-hisui",
+      "name": "ウインディ(ヒスイ)",
+      "file": "ウインディ(ヒスイ).json"
+    },
+    {
+      "slug": "toucannon",
+      "name": "ドデカバシ",
+      "file": "ドデカバシ.json"
+    },
+    {
+      "slug": "palafin",
+      "name": "イルカマン(ナイーブ)",
+      "file": "イルカマン(ナイーブ).json"
+    },
+    {
+      "slug": "gliscor",
+      "name": "グライオン",
+      "file": "グライオン.json"
+    },
+    {
+      "slug": "heracross",
+      "name": "ヘラクロス",
+      "file": "ヘラクロス.json"
+    },
+    {
+      "slug": "vileplume",
+      "name": "ラフレシア",
+      "file": "ラフレシア.json"
+    },
+    {
+      "slug": "chesnaught",
+      "name": "ブリガロン",
+      "file": "ブリガロン.json"
+    },
+    {
+      "slug": "torkoal",
+      "name": "コータス",
+      "file": "コータス.json"
+    },
+    {
+      "slug": "scrafty",
+      "name": "ズルズキン",
+      "file": "ズルズキン.json"
+    },
+    {
+      "slug": "pinsir",
+      "name": "カイロス",
+      "file": "カイロス.json"
+    },
+    {
+      "slug": "sharpedo",
+      "name": "サメハダー",
+      "file": "サメハダー.json"
+    },
+    {
+      "slug": "basculegion-female",
+      "name": "イダイトウ(メス)",
+      "file": "イダイトウ(メス).json"
+    },
+    {
+      "slug": "houndstone",
+      "name": "ハカドッグ",
+      "file": "ハカドッグ.json"
+    },
+    {
+      "slug": "vaporeon",
+      "name": "シャワーズ",
+      "file": "シャワーズ.json"
+    },
+    {
+      "slug": "aerodactyl",
+      "name": "プテラ",
+      "file": "プテラ.json"
+    },
+    {
+      "slug": "reuniclus",
+      "name": "ランクルス",
+      "file": "ランクルス.json"
+    },
+    {
+      "slug": "quaquaval",
+      "name": "ウェーニバル",
+      "file": "ウェーニバル.json"
+    },
+    {
+      "slug": "tinkaton",
+      "name": "デカヌチャン",
+      "file": "デカヌチャン.json"
+    },
+    {
+      "slug": "weavile",
+      "name": "マニューラ",
+      "file": "マニューラ.json"
+    },
+    {
+      "slug": "feraligatr",
+      "name": "オーダイル",
+      "file": "オーダイル.json"
+    },
+    {
+      "slug": "eelektross",
+      "name": "シビルドン",
+      "file": "シビルドン.json"
+    },
+    {
+      "slug": "slowbro-galarian",
+      "name": "ヤドラン(ガラル)",
+      "file": "ヤドラン(ガラル).json"
+    },
+    {
+      "slug": "aggron",
+      "name": "ボスゴドラ",
+      "file": "ボスゴドラ.json"
+    },
+    {
+      "slug": "heliolisk",
+      "name": "エレザード",
+      "file": "エレザード.json"
+    },
+    {
+      "slug": "tauros-paldean-blaze",
+      "name": "ケンタロス(パルデア炎)",
+      "file": "ケンタロス(パルデア炎).json"
+    },
+    {
+      "slug": "abomasnow",
+      "name": "ユキノオー",
+      "file": "ユキノオー.json"
+    },
+    {
+      "slug": "slowking",
+      "name": "ヤドキング",
+      "file": "ヤドキング.json"
+    },
+    {
+      "slug": "decidueye-hisui",
+      "name": "ジュナイパー(ヒスイ)",
+      "file": "ジュナイパー(ヒスイ).json"
+    },
+    {
+      "slug": "salazzle",
+      "name": "エンニュート",
+      "file": "エンニュート.json"
+    },
+    {
+      "slug": "talonflame",
+      "name": "ファイアロー",
+      "file": "ファイアロー.json"
+    },
+    {
+      "slug": "beedrill",
+      "name": "スピアー",
+      "file": "スピアー.json"
+    },
+    {
+      "slug": "alakazam",
+      "name": "フーディン",
+      "file": "フーディン.json"
+    },
+    {
+      "slug": "infernape",
+      "name": "ゴウカザル",
+      "file": "ゴウカザル.json"
+    },
+    {
+      "slug": "lycanroc-dusk",
+      "name": "ルガルガン(たそがれ)",
+      "file": "ルガルガン(たそがれ).json"
+    },
+    {
+      "slug": "altaria",
+      "name": "チルタリス",
+      "file": "チルタリス.json"
+    },
+    {
+      "slug": "glalie",
+      "name": "オニゴーリ",
+      "file": "オニゴーリ.json"
+    },
+    {
+      "slug": "noivern",
+      "name": "オンバーン",
+      "file": "オンバーン.json"
+    },
+    {
+      "slug": "ninetales",
+      "name": "キュウコン",
+      "file": "キュウコン.json"
+    },
+    {
+      "slug": "typhlosion-hisui",
+      "name": "バクフーン(ヒスイ)",
+      "file": "バクフーン(ヒスイ).json"
+    },
+    {
+      "slug": "kommo-o",
+      "name": "ジャラランガ",
+      "file": "ジャラランガ.json"
+    },
+    {
+      "slug": "pidgeot",
+      "name": "ピジョット",
+      "file": "ピジョット.json"
+    },
+    {
+      "slug": "hawlucha",
+      "name": "ルチャブル",
+      "file": "ルチャブル.json"
+    },
+    {
+      "slug": "rotom-mow",
+      "name": "カットロトム",
+      "file": "カットロトム.json"
+    },
+    {
+      "slug": "ariados",
+      "name": "アリアドス",
+      "file": "アリアドス.json"
+    },
+    {
+      "slug": "glaceon",
+      "name": "グレイシア",
+      "file": "グレイシア.json"
+    },
+    {
+      "slug": "malamar",
+      "name": "カラマネロ",
+      "file": "カラマネロ.json"
+    },
+    {
+      "slug": "jolteon",
+      "name": "サンダース",
+      "file": "サンダース.json"
+    },
+    {
+      "slug": "arcanine",
+      "name": "ウインディ",
+      "file": "ウインディ.json"
+    },
+    {
+      "slug": "chimecho",
+      "name": "チリーン",
+      "file": "チリーン.json"
+    },
+    {
+      "slug": "krookodile",
+      "name": "ワルビアル",
+      "file": "ワルビアル.json"
+    },
+    {
+      "slug": "runerigus",
+      "name": "デスバーン",
+      "file": "デスバーン.json"
+    },
+    {
+      "slug": "torterra",
+      "name": "ドダイトス",
+      "file": "ドダイトス.json"
+    },
+    {
+      "slug": "crabominable",
+      "name": "ケケンカニ",
+      "file": "ケケンカニ.json"
+    },
+    {
+      "slug": "mudsdale",
+      "name": "バンバドロ",
+      "file": "バンバドロ.json"
+    },
+    {
+      "slug": "medicham",
+      "name": "チャーレム",
+      "file": "チャーレム.json"
+    },
+    {
+      "slug": "politoed",
+      "name": "ニョロトノ",
+      "file": "ニョロトノ.json"
+    },
+    {
+      "slug": "tsareena",
+      "name": "アマージョ",
+      "file": "アマージョ.json"
+    },
+    {
+      "slug": "steelix",
+      "name": "ハガネール",
+      "file": "ハガネール.json"
+    },
+    {
+      "slug": "clawitzer",
+      "name": "ブロスター",
+      "file": "ブロスター.json"
+    },
+    {
+      "slug": "cofagrigus",
+      "name": "デスカーン",
+      "file": "デスカーン.json"
+    },
+    {
+      "slug": "ampharos",
+      "name": "デンリュウ",
+      "file": "デンリュウ.json"
+    },
+    {
+      "slug": "slurpuff",
+      "name": "ペロリーム",
+      "file": "ペロリーム.json"
+    },
+    {
+      "slug": "barbaracle",
+      "name": "ガメノデス",
+      "file": "ガメノデス.json"
+    },
+    {
+      "slug": "spiritomb",
+      "name": "ミカルゲ",
+      "file": "ミカルゲ.json"
+    },
+    {
+      "slug": "houndoom",
+      "name": "ヘルガー",
+      "file": "ヘルガー.json"
+    },
+    {
+      "slug": "klefki",
+      "name": "クレッフィ",
+      "file": "クレッフィ.json"
+    },
+    {
+      "slug": "machamp",
+      "name": "カイリキー",
+      "file": "カイリキー.json"
+    },
+    {
+      "slug": "roserade",
+      "name": "ロズレイド",
+      "file": "ロズレイド.json"
+    },
+    {
+      "slug": "pikachu",
+      "name": "ピカチュウ",
+      "file": "ピカチュウ.json"
+    },
+    {
+      "slug": "forretress",
+      "name": "フォレトス",
+      "file": "フォレトス.json"
+    },
+    {
+      "slug": "musharna",
+      "name": "ムシャーナ",
+      "file": "ムシャーナ.json"
+    },
+    {
+      "slug": "avalugg",
+      "name": "クレベース",
+      "file": "クレベース.json"
+    },
+    {
+      "slug": "garganacl",
+      "name": "キョジオーン",
+      "file": "キョジオーン.json"
+    },
+    {
+      "slug": "morpeko",
+      "name": "モルペコ(まんぷく)",
+      "file": "モルペコ(まんぷく).json"
+    },
+    {
+      "slug": "goodra",
+      "name": "ヌメルゴン",
+      "file": "ヌメルゴン.json"
+    },
+    {
+      "slug": "emboar",
+      "name": "エンブオー",
+      "file": "エンブオー.json"
+    },
+    {
+      "slug": "absol",
+      "name": "アブソル",
+      "file": "アブソル.json"
+    },
+    {
+      "slug": "arbok",
+      "name": "アーボック",
+      "file": "アーボック.json"
+    },
+    {
+      "slug": "audino",
+      "name": "タブンネ",
+      "file": "タブンネ.json"
+    },
+    {
+      "slug": "trevenant",
+      "name": "オーロット",
+      "file": "オーロット.json"
+    },
+    {
+      "slug": "rhyperior",
+      "name": "ドサイドン",
+      "file": "ドサイドン.json"
+    },
+    {
+      "slug": "tauros-paldean-aqua",
+      "name": "ケンタロス(パルデア水)",
+      "file": "ケンタロス(パルデア水).json"
+    },
+    {
+      "slug": "zoroark",
+      "name": "ゾロアーク",
+      "file": "ゾロアーク.json"
+    },
+    {
+      "slug": "golurk",
+      "name": "ゴルーグ",
+      "file": "ゴルーグ.json"
+    },
+    {
+      "slug": "sandaconda",
+      "name": "サダイジャ",
+      "file": "サダイジャ.json"
+    },
+    {
+      "slug": "hydrapple",
+      "name": "カミツオロチ",
+      "file": "カミツオロチ.json"
+    },
+    {
+      "slug": "leafeon",
+      "name": "リーフィア",
+      "file": "リーフィア.json"
+    },
+    {
+      "slug": "farigiraf",
+      "name": "リキキリン",
+      "file": "リキキリン.json"
+    },
+    {
+      "slug": "liepard",
+      "name": "レパルダス",
+      "file": "レパルダス.json"
+    },
+    {
+      "slug": "manectric",
+      "name": "ライボルト",
+      "file": "ライボルト.json"
+    },
+    {
+      "slug": "pangoro",
+      "name": "ゴロンダ",
+      "file": "ゴロンダ.json"
+    },
+    {
+      "slug": "alcremie",
+      "name": "マホイップ",
+      "file": "マホイップ.json"
+    },
+    {
+      "slug": "aurorus",
+      "name": "アマルルガ",
+      "file": "アマルルガ.json"
+    },
+    {
+      "slug": "toxicroak",
+      "name": "ドクロッグ",
+      "file": "ドクロッグ.json"
+    },
+    {
+      "slug": "bastiodon",
+      "name": "トリデプス",
+      "file": "トリデプス.json"
+    },
+    {
+      "slug": "meowstic-male",
+      "name": "ニャオニクス(オス)",
+      "file": "ニャオニクス(オス).json"
+    },
+    {
+      "slug": "emolga",
+      "name": "エモンガ",
+      "file": "エモンガ.json"
+    },
+    {
+      "slug": "florges",
+      "name": "フラージェス",
+      "file": "フラージェス.json"
+    },
+    {
+      "slug": "drampa",
+      "name": "ジジーロン",
+      "file": "ジジーロン.json"
+    },
+    {
+      "slug": "mr.-rime",
+      "name": "バリコオル",
+      "file": "バリコオル.json"
+    },
+    {
+      "slug": "typhlosion",
+      "name": "バクフーン",
+      "file": "バクフーン.json"
+    },
+    {
+      "slug": "flareon",
+      "name": "ブースター",
+      "file": "ブースター.json"
+    },
+    {
+      "slug": "falinks",
+      "name": "タイレーツ",
+      "file": "タイレーツ.json"
+    },
+    {
+      "slug": "camerupt",
+      "name": "バクーダ",
+      "file": "バクーダ.json"
+    },
+    {
+      "slug": "avalugg-hisui",
+      "name": "クレベース(ヒスイ)",
+      "file": "クレベース(ヒスイ).json"
+    },
+    {
+      "slug": "stunfisk",
+      "name": "マッギョ",
+      "file": "マッギョ.json"
+    },
+    {
+      "slug": "gourgeist-super",
+      "name": "パンプジン(とくだい)",
+      "file": "パンプジン(とくだい).json"
+    },
+    {
+      "slug": "tyrantrum",
+      "name": "ガチゴラス",
+      "file": "ガチゴラス.json"
+    },
+    {
+      "slug": "rotom-frost",
+      "name": "フロストロトム",
+      "file": "フロストロトム.json"
+    },
+    {
+      "slug": "beartic",
+      "name": "ツンベアー",
+      "file": "ツンベアー.json"
+    },
+    {
+      "slug": "decidueye",
+      "name": "ジュナイパー",
+      "file": "ジュナイパー.json"
+    },
+    {
+      "slug": "luxray",
+      "name": "レントラー",
+      "file": "レントラー.json"
+    },
+    {
+      "slug": "wyrdeer",
+      "name": "アヤシシ",
+      "file": "アヤシシ.json"
+    },
+    {
+      "slug": "furfrou",
+      "name": "トリミアン",
+      "file": "トリミアン.json"
+    },
+    {
+      "slug": "rampardos",
+      "name": "ラムパルド",
+      "file": "ラムパルド.json"
+    },
+    {
+      "slug": "garbodor",
+      "name": "ダストダス",
+      "file": "ダストダス.json"
+    },
+    {
+      "slug": "meowstic-female",
+      "name": "ニャオニクス(メス)",
+      "file": "ニャオニクス(メス).json"
+    },
+    {
+      "slug": "rotom-fan",
+      "name": "スピンロトム",
+      "file": "スピンロトム.json"
+    },
+    {
+      "slug": "tauros",
+      "name": "ケンタロス",
+      "file": "ケンタロス.json"
+    },
+    {
+      "slug": "dedenne",
+      "name": "デデンネ",
+      "file": "デデンネ.json"
+    },
+    {
+      "slug": "qwilfish",
+      "name": "ハリーセン",
+      "file": "ハリーセン.json"
+    },
+    {
+      "slug": "stunfisk-galarian",
+      "name": "マッギョ(ガラル)",
+      "file": "マッギョ(ガラル).json"
+    },
+    {
+      "slug": "appletun",
+      "name": "タルップル",
+      "file": "タルップル.json"
+    },
+    {
+      "slug": "flapple",
+      "name": "アップリュー",
+      "file": "アップリュー.json"
+    },
+    {
+      "slug": "samurott",
+      "name": "ダイケンキ",
+      "file": "ダイケンキ.json"
+    },
+    {
+      "slug": "gourgeist-average",
+      "name": "パンプジン(ふつう)",
+      "file": "パンプジン(ふつう).json"
+    },
+    {
+      "slug": "raichu-alolan",
+      "name": "ライチュウ(アローラ)",
+      "file": "ライチュウ(アローラ).json"
+    },
+    {
+      "slug": "simipour",
+      "name": "ヒヤッキー",
+      "file": "ヒヤッキー.json"
+    },
+    {
+      "slug": "aromatisse",
+      "name": "フレフワン",
+      "file": "フレフワン.json"
+    },
+    {
+      "slug": "gourgeist-large",
+      "name": "パンプジン(おおきい)",
+      "file": "パンプジン(おおきい).json"
+    },
+    {
+      "slug": "lycanroc",
+      "name": "ルガルガン(まひる)",
+      "file": "ルガルガン(まひる).json"
+    },
+    {
+      "slug": "oranguru",
+      "name": "ヤレユータン",
+      "file": "ヤレユータン.json"
+    },
+    {
+      "slug": "gourgeist-small",
+      "name": "パンプジン(ちいさい)",
+      "file": "パンプジン(ちいさい).json"
+    },
+    {
+      "slug": "lycanroc-midnight",
+      "name": "ルガルガン(まよなか)",
+      "file": "ルガルガン(まよなか).json"
+    },
+    {
+      "slug": "watchog",
+      "name": "ミルホッグ",
+      "file": "ミルホッグ.json"
+    },
+    {
+      "slug": "rotom",
+      "name": "ロトム",
+      "file": "ロトム.json"
+    },
+    {
+      "slug": "passimian",
+      "name": "ナゲツケサル",
+      "file": "ナゲツケサル.json"
+    },
+    {
+      "slug": "simisear",
+      "name": "バオッキー",
+      "file": "バオッキー.json"
+    },
+    {
+      "slug": "simisage",
+      "name": "ヤナッキー",
+      "file": "ヤナッキー.json"
+    },
+    {
+      "slug": "castform",
+      "name": "ポワルン",
+      "file": "ポワルン.json"
+    },
+    {
+      "slug": "tauros-paldean-combat",
+      "name": "ケンタロス(パルデア闘)",
+      "file": "ケンタロス(パルデア闘).json"
     }
   ]
 }

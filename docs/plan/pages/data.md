@@ -190,7 +190,11 @@ sonnetレビュアー1体(データモデル/API・情報設計/導線・プレ�
 - 非アクティブパネルでの`inert`+`display:none`対象に`.battle-data-rail`も追加(`position:fixed`は`inert`だけでは隠れない、既知の論点どおり)。
 - Playwright実測: レールのbounding boxが`x:346, width:44, top:36(=second-bar直下), height:748(bottom-navの直上まで)`で画面右端に通しで張り付いていること、検索バーが`width:346`(=390-44)でレール手前に収まること、タブ切替でレール・検索バー双方が非表示になること、横スクロール無しを確認。スクリーンショット(ライト/ダーク)で30.pngと同等の構図(右端の帯+ほぼ全幅のカード)を確認。
 
-## 参照
+### 修正: カードとレールの間に無駄な余白があった点(2026-08-13、ユーザー指摘「スクロールバー以外の横幅はすべてバトルデータカード(+左右gap)に割り振る」)
+Playwrightで実測すると、カード右端(x=310)とレール左端(x=346)の間に36pxの未使用領域があった。原因は、ベースの`.panel`クラス(`global.css`)が持つ左右20pxの固定paddingが`.battle-data-panel`にも継承されたまま残っており、レール分を差し引くための`.battle-data-body`側のpadding計算とは無関係に効いていたため(パディングが二重に積み上がっていた)。
+- `.battle-data-panel { padding: 0; }`を追加してベースの`.panel`paddingを打ち消した。
+- `.battle-data-body`のpaddingを`space-3 rail-width 76px+safe-area 0`に単純化(左は`.data-hub-scroll`の`margin: 0 var(--space-2)`だけに任せ、右は純粋にレール幅分のみ確保)。
+- 再測定: 左ギャップ8px・カード330px・右ギャップ8px・レール44px = 390px(画面幅ちょうど)。左右対称のギャップになり、`npm test`(588件)・`npm run build`とも成功を確認。
 - `docs/ui/mobile/29.png` / `30.png` / `31.png` / `7.png`(バトルデータカード)
 - `docs/plan/00-foundation.md`(レイアウト原則)
 - `.claude/skills/new-page/references/stack.md`

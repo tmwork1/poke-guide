@@ -1,0 +1,2334 @@
+{
+  "schemaVersion": 2,
+  "fetchedAt": "2026-08-13T13:32:09.075Z",
+  "name": "ゾロアーク",
+  "formats": {
+    "single": {
+      "updatedAt": "2026年8月13日 22:30",
+      "moves": [
+        {
+          "rank": 1,
+          "usageRate": 84.8,
+          "name": "ナイトバースト"
+        },
+        {
+          "rank": 2,
+          "usageRate": 47.7,
+          "name": "かえんほうしゃ"
+        },
+        {
+          "rank": 3,
+          "usageRate": 43.9,
+          "name": "ヘドロばくだん"
+        },
+        {
+          "rank": 4,
+          "usageRate": 32.7,
+          "name": "ふいうち"
+        },
+        {
+          "rank": 5,
+          "usageRate": 24.6,
+          "name": "カウンター"
+        },
+        {
+          "rank": 6,
+          "usageRate": 18.9,
+          "name": "アンコール"
+        },
+        {
+          "rank": 7,
+          "usageRate": 14.4,
+          "name": "サイコキネシス"
+        },
+        {
+          "rank": 8,
+          "usageRate": 14,
+          "name": "きあいだま"
+        },
+        {
+          "rank": 9,
+          "usageRate": 14,
+          "name": "わるだくみ"
+        },
+        {
+          "rank": 10,
+          "usageRate": 11.8,
+          "name": "トリック"
+        }
+      ],
+      "items": [
+        {
+          "rank": 1,
+          "usageRate": 54.7,
+          "name": "きあいのタスキ"
+        },
+        {
+          "rank": 2,
+          "usageRate": 17.9,
+          "name": "こだわりスカーフ"
+        },
+        {
+          "rank": 3,
+          "usageRate": 7.6,
+          "name": "いのちのたま"
+        },
+        {
+          "rank": 4,
+          "usageRate": 3,
+          "name": "くろいメガネ"
+        },
+        {
+          "rank": 5,
+          "usageRate": 2.6,
+          "name": "ひかりのこな"
+        },
+        {
+          "rank": 6,
+          "usageRate": 2.1,
+          "name": "たつじんのおび"
+        },
+        {
+          "rank": 7,
+          "usageRate": 2.1,
+          "name": "オボンのみ"
+        },
+        {
+          "rank": 8,
+          "usageRate": 1.4,
+          "name": "こうかくレンズ"
+        },
+        {
+          "rank": 9,
+          "usageRate": 1.1,
+          "name": "ラムのみ"
+        },
+        {
+          "rank": 10,
+          "usageRate": 1,
+          "name": "せんせいのツメ"
+        }
+      ],
+      "abilities": [
+        {
+          "rank": 1,
+          "usageRate": 100,
+          "name": "イリュージョン"
+        }
+      ],
+      "natures": [
+        {
+          "rank": 1,
+          "usageRate": 51.8,
+          "name": "おくびょう"
+        },
+        {
+          "rank": 2,
+          "usageRate": 20.9,
+          "name": "ひかえめ"
+        },
+        {
+          "rank": 3,
+          "usageRate": 7.1,
+          "name": "おっとり"
+        },
+        {
+          "rank": 4,
+          "usageRate": 6.6,
+          "name": "せっかち"
+        },
+        {
+          "rank": 5,
+          "usageRate": 4.3,
+          "name": "うっかりや"
+        },
+        {
+          "rank": 6,
+          "usageRate": 4.2,
+          "name": "むじゃき"
+        },
+        {
+          "rank": 7,
+          "usageRate": 1.5,
+          "name": "ようき"
+        },
+        {
+          "rank": 8,
+          "usageRate": 1.1,
+          "name": "いじっぱり"
+        },
+        {
+          "rank": 9,
+          "usageRate": 1,
+          "name": "れいせい"
+        },
+        {
+          "rank": 10,
+          "usageRate": 0.9,
+          "name": "ずぶとい"
+        }
+      ],
+      "evs": [
+        {
+          "rank": 1,
+          "usageRate": 46.3,
+          "values": {
+            "hp": 2,
+            "attack": 0,
+            "defense": 0,
+            "specialAttack": 32,
+            "specialDefense": 0,
+            "speed": 32
+          }
+        },
+        {
+          "rank": 2,
+          "usageRate": 10.7,
+          "values": {
+            "hp": 0,
+            "attack": 0,
+            "defense": 2,
+            "specialAttack": 32,
+            "specialDefense": 0,
+            "speed": 32
+          }
+        },
+        {
+          "rank": 3,
+          "usageRate": 7.3,
+          "values": {
+            "hp": 0,
+            "attack": 2,
+            "defense": 0,
+            "specialAttack": 32,
+            "specialDefense": 0,
+            "speed": 32
+          }
+        },
+        {
+          "rank": 4,
+          "usageRate": 6.6,
+          "values": {
+            "hp": 0,
+            "attack": 0,
+            "defense": 0,
+            "specialAttack": 32,
+            "specialDefense": 2,
+            "speed": 32
+          }
+        },
+        {
+          "rank": 5,
+          "usageRate": 6.3,
+          "values": {
+            "hp": 0,
+            "attack": 0,
+            "defense": 0,
+            "specialAttack": 32,
+            "specialDefense": 0,
+            "speed": 32
+          }
+        },
+        {
+          "rank": 6,
+          "usageRate": 3.6,
+          "values": {
+            "hp": 0,
+            "attack": 0,
+            "defense": 1,
+            "specialAttack": 32,
+            "specialDefense": 1,
+            "speed": 32
+          }
+        },
+        {
+          "rank": 7,
+          "usageRate": 1.6,
+          "values": {
+            "hp": 1,
+            "attack": 0,
+            "defense": 1,
+            "specialAttack": 32,
+            "specialDefense": 0,
+            "speed": 32
+          }
+        },
+        {
+          "rank": 8,
+          "usageRate": 1.4,
+          "values": {
+            "hp": 32,
+            "attack": 0,
+            "defense": 0,
+            "specialAttack": 32,
+            "specialDefense": 0,
+            "speed": 2
+          }
+        },
+        {
+          "rank": 9,
+          "usageRate": 1.2,
+          "values": {
+            "hp": 2,
+            "attack": 32,
+            "defense": 0,
+            "specialAttack": 0,
+            "specialDefense": 0,
+            "speed": 32
+          }
+        },
+        {
+          "rank": 10,
+          "usageRate": 1.2,
+          "values": {
+            "hp": 4,
+            "attack": 0,
+            "defense": 0,
+            "specialAttack": 32,
+            "specialDefense": 0,
+            "speed": 30
+          }
+        },
+        {
+          "rank": 11,
+          "usageRate": 1.1,
+          "values": {
+            "hp": 1,
+            "attack": 0,
+            "defense": 0,
+            "specialAttack": 32,
+            "specialDefense": 1,
+            "speed": 32
+          }
+        },
+        {
+          "rank": 12,
+          "usageRate": 0.9,
+          "values": {
+            "hp": 0,
+            "attack": 0,
+            "defense": 32,
+            "specialAttack": 32,
+            "specialDefense": 0,
+            "speed": 2
+          }
+        },
+        {
+          "rank": 13,
+          "usageRate": 0.9,
+          "values": {
+            "hp": 0,
+            "attack": 0,
+            "defense": 32,
+            "specialAttack": 32,
+            "specialDefense": 2,
+            "speed": 0
+          }
+        },
+        {
+          "rank": 14,
+          "usageRate": 0.9,
+          "values": {
+            "hp": 0,
+            "attack": 0,
+            "defense": 0,
+            "specialAttack": 32,
+            "specialDefense": 3,
+            "speed": 31
+          }
+        },
+        {
+          "rank": 15,
+          "usageRate": 0.8,
+          "values": {
+            "hp": 0,
+            "attack": 1,
+            "defense": 0,
+            "specialAttack": 32,
+            "specialDefense": 0,
+            "speed": 32
+          }
+        },
+        {
+          "rank": 16,
+          "usageRate": 0.8,
+          "values": {
+            "hp": 32,
+            "attack": 0,
+            "defense": 0,
+            "specialAttack": 2,
+            "specialDefense": 0,
+            "speed": 32
+          }
+        },
+        {
+          "rank": 17,
+          "usageRate": 0.7,
+          "values": {
+            "hp": 0,
+            "attack": 0,
+            "defense": 16,
+            "specialAttack": 32,
+            "specialDefense": 0,
+            "speed": 18
+          }
+        },
+        {
+          "rank": 18,
+          "usageRate": 0.6,
+          "values": {
+            "hp": 0,
+            "attack": 0,
+            "defense": 20,
+            "specialAttack": 14,
+            "specialDefense": 3,
+            "speed": 29
+          }
+        },
+        {
+          "rank": 19,
+          "usageRate": 0.6,
+          "values": {
+            "hp": 32,
+            "attack": 0,
+            "defense": 3,
+            "specialAttack": 0,
+            "specialDefense": 6,
+            "speed": 25
+          }
+        },
+        {
+          "rank": 20,
+          "usageRate": 0.4,
+          "values": {
+            "hp": 0,
+            "attack": 0,
+            "defense": 0,
+            "specialAttack": 32,
+            "specialDefense": 32,
+            "speed": 2
+          }
+        },
+        {
+          "rank": 21,
+          "usageRate": 0.4,
+          "values": {
+            "hp": 8,
+            "attack": 0,
+            "defense": 7,
+            "specialAttack": 32,
+            "specialDefense": 1,
+            "speed": 18
+          }
+        },
+        {
+          "rank": 22,
+          "usageRate": 0.4,
+          "values": {
+            "hp": 2,
+            "attack": 0,
+            "defense": 32,
+            "specialAttack": 32,
+            "specialDefense": 0,
+            "speed": 0
+          }
+        },
+        {
+          "rank": 23,
+          "usageRate": 0.4,
+          "values": {
+            "hp": 19,
+            "attack": 0,
+            "defense": 0,
+            "specialAttack": 15,
+            "specialDefense": 0,
+            "speed": 32
+          }
+        },
+        {
+          "rank": 24,
+          "usageRate": 0.3,
+          "values": {
+            "hp": 1,
+            "attack": 0,
+            "defense": 2,
+            "specialAttack": 32,
+            "specialDefense": 3,
+            "speed": 28
+          }
+        },
+        {
+          "rank": 25,
+          "usageRate": 0.3,
+          "values": {
+            "hp": 4,
+            "attack": 0,
+            "defense": 0,
+            "specialAttack": 30,
+            "specialDefense": 0,
+            "speed": 32
+          }
+        },
+        {
+          "rank": 26,
+          "usageRate": 0.3,
+          "values": {
+            "hp": 8,
+            "attack": 32,
+            "defense": 7,
+            "specialAttack": 0,
+            "specialDefense": 1,
+            "speed": 18
+          }
+        },
+        {
+          "rank": 27,
+          "usageRate": 0.3,
+          "values": {
+            "hp": 15,
+            "attack": 0,
+            "defense": 0,
+            "specialAttack": 32,
+            "specialDefense": 0,
+            "speed": 19
+          }
+        },
+        {
+          "rank": 28,
+          "usageRate": 0.3,
+          "values": {
+            "hp": 32,
+            "attack": 32,
+            "defense": 2,
+            "specialAttack": 0,
+            "specialDefense": 0,
+            "speed": 0
+          }
+        },
+        {
+          "rank": 29,
+          "usageRate": 0.2,
+          "values": {
+            "hp": 2,
+            "attack": 0,
+            "defense": 2,
+            "specialAttack": 32,
+            "specialDefense": 0,
+            "speed": 30
+          }
+        },
+        {
+          "rank": 30,
+          "usageRate": 0.2,
+          "values": {
+            "hp": 0,
+            "attack": 32,
+            "defense": 0,
+            "specialAttack": 2,
+            "specialDefense": 0,
+            "speed": 32
+          }
+        }
+      ],
+      "teammates": [
+        {
+          "rank": 1,
+          "usageRate": null,
+          "name": "ガブリアス"
+        },
+        {
+          "rank": 2,
+          "usageRate": null,
+          "name": "マスカーニャ"
+        },
+        {
+          "rank": 3,
+          "usageRate": null,
+          "name": "メタグロス"
+        },
+        {
+          "rank": 4,
+          "usageRate": null,
+          "name": "ゲッコウガ"
+        },
+        {
+          "rank": 5,
+          "usageRate": null,
+          "name": "カイリュー"
+        },
+        {
+          "rank": 6,
+          "usageRate": null,
+          "name": "リザードン"
+        },
+        {
+          "rank": 7,
+          "usageRate": null,
+          "name": "バシャーモ"
+        },
+        {
+          "rank": 8,
+          "usageRate": null,
+          "name": "アシレーヌ"
+        },
+        {
+          "rank": 9,
+          "usageRate": null,
+          "name": "ムクホーク"
+        },
+        {
+          "rank": 10,
+          "usageRate": null,
+          "name": "ミミッキュ"
+        }
+      ]
+    },
+    "double": {
+      "updatedAt": "2026年8月13日 22:30",
+      "moves": [
+        {
+          "rank": 1,
+          "usageRate": 72.5,
+          "name": "ナイトバースト"
+        },
+        {
+          "rank": 2,
+          "usageRate": 51,
+          "name": "ヘドロばくだん"
+        },
+        {
+          "rank": 3,
+          "usageRate": 37.7,
+          "name": "まもる"
+        },
+        {
+          "rank": 4,
+          "usageRate": 33.7,
+          "name": "かえんほうしゃ"
+        },
+        {
+          "rank": 5,
+          "usageRate": 22.8,
+          "name": "ちょうはつ"
+        },
+        {
+          "rank": 6,
+          "usageRate": 18.3,
+          "name": "みきり"
+        },
+        {
+          "rank": 7,
+          "usageRate": 18.1,
+          "name": "あくのはどう"
+        },
+        {
+          "rank": 8,
+          "usageRate": 17.4,
+          "name": "きあいだま"
+        },
+        {
+          "rank": 9,
+          "usageRate": 17,
+          "name": "サイコキネシス"
+        },
+        {
+          "rank": 10,
+          "usageRate": 16.7,
+          "name": "ふいうち"
+        }
+      ],
+      "items": [
+        {
+          "rank": 1,
+          "usageRate": 24.2,
+          "name": "きあいのタスキ"
+        },
+        {
+          "rank": 2,
+          "usageRate": 22.5,
+          "name": "いのちのたま"
+        },
+        {
+          "rank": 3,
+          "usageRate": 14.6,
+          "name": "こだわりスカーフ"
+        },
+        {
+          "rank": 4,
+          "usageRate": 12.3,
+          "name": "ものしりメガネ"
+        },
+        {
+          "rank": 5,
+          "usageRate": 7,
+          "name": "くろいメガネ"
+        },
+        {
+          "rank": 6,
+          "usageRate": 5.8,
+          "name": "たつじんのおび"
+        },
+        {
+          "rank": 7,
+          "usageRate": 3.7,
+          "name": "ひかりのこな"
+        },
+        {
+          "rank": 8,
+          "usageRate": 3,
+          "name": "きあいのハチマキ"
+        },
+        {
+          "rank": 9,
+          "usageRate": 1.3,
+          "name": "ヨプのみ"
+        },
+        {
+          "rank": 10,
+          "usageRate": 1.1,
+          "name": "ロゼルのみ"
+        }
+      ],
+      "abilities": [
+        {
+          "rank": 1,
+          "usageRate": 100,
+          "name": "イリュージョン"
+        }
+      ],
+      "natures": [
+        {
+          "rank": 1,
+          "usageRate": 53.8,
+          "name": "おくびょう"
+        },
+        {
+          "rank": 2,
+          "usageRate": 28.9,
+          "name": "ひかえめ"
+        },
+        {
+          "rank": 3,
+          "usageRate": 4.8,
+          "name": "ようき"
+        },
+        {
+          "rank": 4,
+          "usageRate": 3.7,
+          "name": "うっかりや"
+        },
+        {
+          "rank": 5,
+          "usageRate": 2.2,
+          "name": "おっとり"
+        },
+        {
+          "rank": 6,
+          "usageRate": 2.1,
+          "name": "いじっぱり"
+        },
+        {
+          "rank": 7,
+          "usageRate": 2,
+          "name": "れいせい"
+        },
+        {
+          "rank": 8,
+          "usageRate": 0.8,
+          "name": "やんちゃ"
+        },
+        {
+          "rank": 9,
+          "usageRate": 0.7,
+          "name": "せっかち"
+        },
+        {
+          "rank": 10,
+          "usageRate": 0.5,
+          "name": "おだやか"
+        }
+      ],
+      "evs": [
+        {
+          "rank": 1,
+          "usageRate": 36.7,
+          "values": {
+            "hp": 2,
+            "attack": 0,
+            "defense": 0,
+            "specialAttack": 32,
+            "specialDefense": 0,
+            "speed": 32
+          }
+        },
+        {
+          "rank": 2,
+          "usageRate": 20,
+          "values": {
+            "hp": 0,
+            "attack": 0,
+            "defense": 0,
+            "specialAttack": 32,
+            "specialDefense": 2,
+            "speed": 32
+          }
+        },
+        {
+          "rank": 3,
+          "usageRate": 8.9,
+          "values": {
+            "hp": 0,
+            "attack": 0,
+            "defense": 2,
+            "specialAttack": 32,
+            "specialDefense": 0,
+            "speed": 32
+          }
+        },
+        {
+          "rank": 4,
+          "usageRate": 5.2,
+          "values": {
+            "hp": 2,
+            "attack": 32,
+            "defense": 0,
+            "specialAttack": 0,
+            "specialDefense": 0,
+            "speed": 32
+          }
+        },
+        {
+          "rank": 5,
+          "usageRate": 4.3,
+          "values": {
+            "hp": 0,
+            "attack": 0,
+            "defense": 0,
+            "specialAttack": 32,
+            "specialDefense": 0,
+            "speed": 32
+          }
+        },
+        {
+          "rank": 6,
+          "usageRate": 4.3,
+          "values": {
+            "hp": 4,
+            "attack": 0,
+            "defense": 0,
+            "specialAttack": 32,
+            "specialDefense": 0,
+            "speed": 30
+          }
+        },
+        {
+          "rank": 7,
+          "usageRate": 4.2,
+          "values": {
+            "hp": 15,
+            "attack": 0,
+            "defense": 0,
+            "specialAttack": 30,
+            "specialDefense": 0,
+            "speed": 21
+          }
+        },
+        {
+          "rank": 8,
+          "usageRate": 2.3,
+          "values": {
+            "hp": 2,
+            "attack": 0,
+            "defense": 32,
+            "specialAttack": 32,
+            "specialDefense": 0,
+            "speed": 0
+          }
+        },
+        {
+          "rank": 9,
+          "usageRate": 2,
+          "values": {
+            "hp": 0,
+            "attack": 0,
+            "defense": 32,
+            "specialAttack": 32,
+            "specialDefense": 2,
+            "speed": 0
+          }
+        },
+        {
+          "rank": 10,
+          "usageRate": 2,
+          "values": {
+            "hp": 15,
+            "attack": 0,
+            "defense": 10,
+            "specialAttack": 31,
+            "specialDefense": 10,
+            "speed": 0
+          }
+        },
+        {
+          "rank": 11,
+          "usageRate": 1,
+          "values": {
+            "hp": 32,
+            "attack": 26,
+            "defense": 4,
+            "specialAttack": 0,
+            "specialDefense": 4,
+            "speed": 0
+          }
+        },
+        {
+          "rank": 12,
+          "usageRate": 0.9,
+          "values": {
+            "hp": 32,
+            "attack": 0,
+            "defense": 2,
+            "specialAttack": 32,
+            "specialDefense": 0,
+            "speed": 0
+          }
+        },
+        {
+          "rank": 13,
+          "usageRate": 0.8,
+          "values": {
+            "hp": 5,
+            "attack": 0,
+            "defense": 5,
+            "specialAttack": 30,
+            "specialDefense": 5,
+            "speed": 21
+          }
+        },
+        {
+          "rank": 14,
+          "usageRate": 0.7,
+          "values": {
+            "hp": 0,
+            "attack": 32,
+            "defense": 0,
+            "specialAttack": 32,
+            "specialDefense": 0,
+            "speed": 2
+          }
+        },
+        {
+          "rank": 15,
+          "usageRate": 0.6,
+          "values": {
+            "hp": 19,
+            "attack": 0,
+            "defense": 0,
+            "specialAttack": 32,
+            "specialDefense": 0,
+            "speed": 15
+          }
+        },
+        {
+          "rank": 16,
+          "usageRate": 0.6,
+          "values": {
+            "hp": 32,
+            "attack": 0,
+            "defense": 0,
+            "specialAttack": 0,
+            "specialDefense": 0,
+            "speed": 32
+          }
+        },
+        {
+          "rank": 17,
+          "usageRate": 0.5,
+          "values": {
+            "hp": 2,
+            "attack": 0,
+            "defense": 0,
+            "specialAttack": 32,
+            "specialDefense": 32,
+            "speed": 0
+          }
+        },
+        {
+          "rank": 18,
+          "usageRate": 0.5,
+          "values": {
+            "hp": 12,
+            "attack": 0,
+            "defense": 2,
+            "specialAttack": 32,
+            "specialDefense": 20,
+            "speed": 0
+          }
+        },
+        {
+          "rank": 19,
+          "usageRate": 0.5,
+          "values": {
+            "hp": 14,
+            "attack": 20,
+            "defense": 0,
+            "specialAttack": 0,
+            "specialDefense": 0,
+            "speed": 32
+          }
+        },
+        {
+          "rank": 20,
+          "usageRate": 0.4,
+          "values": {
+            "hp": 29,
+            "attack": 0,
+            "defense": 0,
+            "specialAttack": 32,
+            "specialDefense": 0,
+            "speed": 5
+          }
+        },
+        {
+          "rank": 21,
+          "usageRate": 0.4,
+          "values": {
+            "hp": 32,
+            "attack": 0,
+            "defense": 0,
+            "specialAttack": 32,
+            "specialDefense": 0,
+            "speed": 0
+          }
+        },
+        {
+          "rank": 22,
+          "usageRate": 0.4,
+          "values": {
+            "hp": 0,
+            "attack": 2,
+            "defense": 0,
+            "specialAttack": 32,
+            "specialDefense": 0,
+            "speed": 32
+          }
+        },
+        {
+          "rank": 23,
+          "usageRate": 0.4,
+          "values": {
+            "hp": 2,
+            "attack": 0,
+            "defense": 0,
+            "specialAttack": 32,
+            "specialDefense": 20,
+            "speed": 12
+          }
+        },
+        {
+          "rank": 24,
+          "usageRate": 0.2,
+          "values": {
+            "hp": 0,
+            "attack": 0,
+            "defense": 8,
+            "specialAttack": 18,
+            "specialDefense": 8,
+            "speed": 32
+          }
+        },
+        {
+          "rank": 25,
+          "usageRate": 0.2,
+          "values": {
+            "hp": 0,
+            "attack": 4,
+            "defense": 0,
+            "specialAttack": 30,
+            "specialDefense": 0,
+            "speed": 32
+          }
+        },
+        {
+          "rank": 26,
+          "usageRate": 0.2,
+          "values": {
+            "hp": 32,
+            "attack": 16,
+            "defense": 2,
+            "specialAttack": 0,
+            "specialDefense": 0,
+            "speed": 16
+          }
+        },
+        {
+          "rank": 27,
+          "usageRate": 0.2,
+          "values": {
+            "hp": 3,
+            "attack": 0,
+            "defense": 0,
+            "specialAttack": 32,
+            "specialDefense": 0,
+            "speed": 31
+          }
+        },
+        {
+          "rank": 28,
+          "usageRate": 0.2,
+          "values": {
+            "hp": 15,
+            "attack": 22,
+            "defense": 21,
+            "specialAttack": 0,
+            "specialDefense": 8,
+            "speed": 0
+          }
+        },
+        {
+          "rank": 29,
+          "usageRate": 0.1,
+          "values": {
+            "hp": 0,
+            "attack": 0,
+            "defense": 2,
+            "specialAttack": 32,
+            "specialDefense": 32,
+            "speed": 0
+          }
+        },
+        {
+          "rank": 30,
+          "usageRate": 0.1,
+          "values": {
+            "hp": 0,
+            "attack": 32,
+            "defense": 0,
+            "specialAttack": 0,
+            "specialDefense": 0,
+            "speed": 32
+          }
+        }
+      ],
+      "teammates": [
+        {
+          "rank": 1,
+          "usageRate": null,
+          "name": "ガブリアス"
+        },
+        {
+          "rank": 2,
+          "usageRate": null,
+          "name": "ライチュウ"
+        },
+        {
+          "rank": 3,
+          "usageRate": null,
+          "name": "オオニューラ"
+        },
+        {
+          "rank": 4,
+          "usageRate": null,
+          "name": "エルフーン"
+        },
+        {
+          "rank": 5,
+          "usageRate": null,
+          "name": "リザードン"
+        },
+        {
+          "rank": 6,
+          "usageRate": null,
+          "name": "マスカーニャ"
+        },
+        {
+          "rank": 7,
+          "usageRate": null,
+          "name": "イダイトウ (オスのすがた)"
+        },
+        {
+          "rank": 8,
+          "usageRate": null,
+          "name": "ガオガエン"
+        },
+        {
+          "rank": 9,
+          "usageRate": null,
+          "name": "ヤミラミ"
+        },
+        {
+          "rank": 10,
+          "usageRate": null,
+          "name": "ゲンガー"
+        }
+      ]
+    }
+  },
+  "seasons": {
+    "m-5": {
+      "fetchedAt": "2026-08-13T13:32:09.075Z",
+      "formats": {
+        "single": {
+          "updatedAt": "2026年8月13日 22:30",
+          "moves": [
+            {
+              "rank": 1,
+              "usageRate": 84.8,
+              "name": "ナイトバースト"
+            },
+            {
+              "rank": 2,
+              "usageRate": 47.7,
+              "name": "かえんほうしゃ"
+            },
+            {
+              "rank": 3,
+              "usageRate": 43.9,
+              "name": "ヘドロばくだん"
+            },
+            {
+              "rank": 4,
+              "usageRate": 32.7,
+              "name": "ふいうち"
+            },
+            {
+              "rank": 5,
+              "usageRate": 24.6,
+              "name": "カウンター"
+            },
+            {
+              "rank": 6,
+              "usageRate": 18.9,
+              "name": "アンコール"
+            },
+            {
+              "rank": 7,
+              "usageRate": 14.4,
+              "name": "サイコキネシス"
+            },
+            {
+              "rank": 8,
+              "usageRate": 14,
+              "name": "きあいだま"
+            },
+            {
+              "rank": 9,
+              "usageRate": 14,
+              "name": "わるだくみ"
+            },
+            {
+              "rank": 10,
+              "usageRate": 11.8,
+              "name": "トリック"
+            }
+          ],
+          "items": [
+            {
+              "rank": 1,
+              "usageRate": 54.7,
+              "name": "きあいのタスキ"
+            },
+            {
+              "rank": 2,
+              "usageRate": 17.9,
+              "name": "こだわりスカーフ"
+            },
+            {
+              "rank": 3,
+              "usageRate": 7.6,
+              "name": "いのちのたま"
+            },
+            {
+              "rank": 4,
+              "usageRate": 3,
+              "name": "くろいメガネ"
+            },
+            {
+              "rank": 5,
+              "usageRate": 2.6,
+              "name": "ひかりのこな"
+            },
+            {
+              "rank": 6,
+              "usageRate": 2.1,
+              "name": "たつじんのおび"
+            },
+            {
+              "rank": 7,
+              "usageRate": 2.1,
+              "name": "オボンのみ"
+            },
+            {
+              "rank": 8,
+              "usageRate": 1.4,
+              "name": "こうかくレンズ"
+            },
+            {
+              "rank": 9,
+              "usageRate": 1.1,
+              "name": "ラムのみ"
+            },
+            {
+              "rank": 10,
+              "usageRate": 1,
+              "name": "せんせいのツメ"
+            }
+          ],
+          "abilities": [
+            {
+              "rank": 1,
+              "usageRate": 100,
+              "name": "イリュージョン"
+            }
+          ],
+          "natures": [
+            {
+              "rank": 1,
+              "usageRate": 51.8,
+              "name": "おくびょう"
+            },
+            {
+              "rank": 2,
+              "usageRate": 20.9,
+              "name": "ひかえめ"
+            },
+            {
+              "rank": 3,
+              "usageRate": 7.1,
+              "name": "おっとり"
+            },
+            {
+              "rank": 4,
+              "usageRate": 6.6,
+              "name": "せっかち"
+            },
+            {
+              "rank": 5,
+              "usageRate": 4.3,
+              "name": "うっかりや"
+            },
+            {
+              "rank": 6,
+              "usageRate": 4.2,
+              "name": "むじゃき"
+            },
+            {
+              "rank": 7,
+              "usageRate": 1.5,
+              "name": "ようき"
+            },
+            {
+              "rank": 8,
+              "usageRate": 1.1,
+              "name": "いじっぱり"
+            },
+            {
+              "rank": 9,
+              "usageRate": 1,
+              "name": "れいせい"
+            },
+            {
+              "rank": 10,
+              "usageRate": 0.9,
+              "name": "ずぶとい"
+            }
+          ],
+          "evs": [
+            {
+              "rank": 1,
+              "usageRate": 46.3,
+              "values": {
+                "hp": 2,
+                "attack": 0,
+                "defense": 0,
+                "specialAttack": 32,
+                "specialDefense": 0,
+                "speed": 32
+              }
+            },
+            {
+              "rank": 2,
+              "usageRate": 10.7,
+              "values": {
+                "hp": 0,
+                "attack": 0,
+                "defense": 2,
+                "specialAttack": 32,
+                "specialDefense": 0,
+                "speed": 32
+              }
+            },
+            {
+              "rank": 3,
+              "usageRate": 7.3,
+              "values": {
+                "hp": 0,
+                "attack": 2,
+                "defense": 0,
+                "specialAttack": 32,
+                "specialDefense": 0,
+                "speed": 32
+              }
+            },
+            {
+              "rank": 4,
+              "usageRate": 6.6,
+              "values": {
+                "hp": 0,
+                "attack": 0,
+                "defense": 0,
+                "specialAttack": 32,
+                "specialDefense": 2,
+                "speed": 32
+              }
+            },
+            {
+              "rank": 5,
+              "usageRate": 6.3,
+              "values": {
+                "hp": 0,
+                "attack": 0,
+                "defense": 0,
+                "specialAttack": 32,
+                "specialDefense": 0,
+                "speed": 32
+              }
+            },
+            {
+              "rank": 6,
+              "usageRate": 3.6,
+              "values": {
+                "hp": 0,
+                "attack": 0,
+                "defense": 1,
+                "specialAttack": 32,
+                "specialDefense": 1,
+                "speed": 32
+              }
+            },
+            {
+              "rank": 7,
+              "usageRate": 1.6,
+              "values": {
+                "hp": 1,
+                "attack": 0,
+                "defense": 1,
+                "specialAttack": 32,
+                "specialDefense": 0,
+                "speed": 32
+              }
+            },
+            {
+              "rank": 8,
+              "usageRate": 1.4,
+              "values": {
+                "hp": 32,
+                "attack": 0,
+                "defense": 0,
+                "specialAttack": 32,
+                "specialDefense": 0,
+                "speed": 2
+              }
+            },
+            {
+              "rank": 9,
+              "usageRate": 1.2,
+              "values": {
+                "hp": 2,
+                "attack": 32,
+                "defense": 0,
+                "specialAttack": 0,
+                "specialDefense": 0,
+                "speed": 32
+              }
+            },
+            {
+              "rank": 10,
+              "usageRate": 1.2,
+              "values": {
+                "hp": 4,
+                "attack": 0,
+                "defense": 0,
+                "specialAttack": 32,
+                "specialDefense": 0,
+                "speed": 30
+              }
+            },
+            {
+              "rank": 11,
+              "usageRate": 1.1,
+              "values": {
+                "hp": 1,
+                "attack": 0,
+                "defense": 0,
+                "specialAttack": 32,
+                "specialDefense": 1,
+                "speed": 32
+              }
+            },
+            {
+              "rank": 12,
+              "usageRate": 0.9,
+              "values": {
+                "hp": 0,
+                "attack": 0,
+                "defense": 32,
+                "specialAttack": 32,
+                "specialDefense": 0,
+                "speed": 2
+              }
+            },
+            {
+              "rank": 13,
+              "usageRate": 0.9,
+              "values": {
+                "hp": 0,
+                "attack": 0,
+                "defense": 32,
+                "specialAttack": 32,
+                "specialDefense": 2,
+                "speed": 0
+              }
+            },
+            {
+              "rank": 14,
+              "usageRate": 0.9,
+              "values": {
+                "hp": 0,
+                "attack": 0,
+                "defense": 0,
+                "specialAttack": 32,
+                "specialDefense": 3,
+                "speed": 31
+              }
+            },
+            {
+              "rank": 15,
+              "usageRate": 0.8,
+              "values": {
+                "hp": 0,
+                "attack": 1,
+                "defense": 0,
+                "specialAttack": 32,
+                "specialDefense": 0,
+                "speed": 32
+              }
+            },
+            {
+              "rank": 16,
+              "usageRate": 0.8,
+              "values": {
+                "hp": 32,
+                "attack": 0,
+                "defense": 0,
+                "specialAttack": 2,
+                "specialDefense": 0,
+                "speed": 32
+              }
+            },
+            {
+              "rank": 17,
+              "usageRate": 0.7,
+              "values": {
+                "hp": 0,
+                "attack": 0,
+                "defense": 16,
+                "specialAttack": 32,
+                "specialDefense": 0,
+                "speed": 18
+              }
+            },
+            {
+              "rank": 18,
+              "usageRate": 0.6,
+              "values": {
+                "hp": 0,
+                "attack": 0,
+                "defense": 20,
+                "specialAttack": 14,
+                "specialDefense": 3,
+                "speed": 29
+              }
+            },
+            {
+              "rank": 19,
+              "usageRate": 0.6,
+              "values": {
+                "hp": 32,
+                "attack": 0,
+                "defense": 3,
+                "specialAttack": 0,
+                "specialDefense": 6,
+                "speed": 25
+              }
+            },
+            {
+              "rank": 20,
+              "usageRate": 0.4,
+              "values": {
+                "hp": 0,
+                "attack": 0,
+                "defense": 0,
+                "specialAttack": 32,
+                "specialDefense": 32,
+                "speed": 2
+              }
+            },
+            {
+              "rank": 21,
+              "usageRate": 0.4,
+              "values": {
+                "hp": 8,
+                "attack": 0,
+                "defense": 7,
+                "specialAttack": 32,
+                "specialDefense": 1,
+                "speed": 18
+              }
+            },
+            {
+              "rank": 22,
+              "usageRate": 0.4,
+              "values": {
+                "hp": 2,
+                "attack": 0,
+                "defense": 32,
+                "specialAttack": 32,
+                "specialDefense": 0,
+                "speed": 0
+              }
+            },
+            {
+              "rank": 23,
+              "usageRate": 0.4,
+              "values": {
+                "hp": 19,
+                "attack": 0,
+                "defense": 0,
+                "specialAttack": 15,
+                "specialDefense": 0,
+                "speed": 32
+              }
+            },
+            {
+              "rank": 24,
+              "usageRate": 0.3,
+              "values": {
+                "hp": 1,
+                "attack": 0,
+                "defense": 2,
+                "specialAttack": 32,
+                "specialDefense": 3,
+                "speed": 28
+              }
+            },
+            {
+              "rank": 25,
+              "usageRate": 0.3,
+              "values": {
+                "hp": 4,
+                "attack": 0,
+                "defense": 0,
+                "specialAttack": 30,
+                "specialDefense": 0,
+                "speed": 32
+              }
+            },
+            {
+              "rank": 26,
+              "usageRate": 0.3,
+              "values": {
+                "hp": 8,
+                "attack": 32,
+                "defense": 7,
+                "specialAttack": 0,
+                "specialDefense": 1,
+                "speed": 18
+              }
+            },
+            {
+              "rank": 27,
+              "usageRate": 0.3,
+              "values": {
+                "hp": 15,
+                "attack": 0,
+                "defense": 0,
+                "specialAttack": 32,
+                "specialDefense": 0,
+                "speed": 19
+              }
+            },
+            {
+              "rank": 28,
+              "usageRate": 0.3,
+              "values": {
+                "hp": 32,
+                "attack": 32,
+                "defense": 2,
+                "specialAttack": 0,
+                "specialDefense": 0,
+                "speed": 0
+              }
+            },
+            {
+              "rank": 29,
+              "usageRate": 0.2,
+              "values": {
+                "hp": 2,
+                "attack": 0,
+                "defense": 2,
+                "specialAttack": 32,
+                "specialDefense": 0,
+                "speed": 30
+              }
+            },
+            {
+              "rank": 30,
+              "usageRate": 0.2,
+              "values": {
+                "hp": 0,
+                "attack": 32,
+                "defense": 0,
+                "specialAttack": 2,
+                "specialDefense": 0,
+                "speed": 32
+              }
+            }
+          ],
+          "teammates": [
+            {
+              "rank": 1,
+              "usageRate": null,
+              "name": "ガブリアス"
+            },
+            {
+              "rank": 2,
+              "usageRate": null,
+              "name": "マスカーニャ"
+            },
+            {
+              "rank": 3,
+              "usageRate": null,
+              "name": "メタグロス"
+            },
+            {
+              "rank": 4,
+              "usageRate": null,
+              "name": "ゲッコウガ"
+            },
+            {
+              "rank": 5,
+              "usageRate": null,
+              "name": "カイリュー"
+            },
+            {
+              "rank": 6,
+              "usageRate": null,
+              "name": "リザードン"
+            },
+            {
+              "rank": 7,
+              "usageRate": null,
+              "name": "バシャーモ"
+            },
+            {
+              "rank": 8,
+              "usageRate": null,
+              "name": "アシレーヌ"
+            },
+            {
+              "rank": 9,
+              "usageRate": null,
+              "name": "ムクホーク"
+            },
+            {
+              "rank": 10,
+              "usageRate": null,
+              "name": "ミミッキュ"
+            }
+          ]
+        },
+        "double": {
+          "updatedAt": "2026年8月13日 22:30",
+          "moves": [
+            {
+              "rank": 1,
+              "usageRate": 72.5,
+              "name": "ナイトバースト"
+            },
+            {
+              "rank": 2,
+              "usageRate": 51,
+              "name": "ヘドロばくだん"
+            },
+            {
+              "rank": 3,
+              "usageRate": 37.7,
+              "name": "まもる"
+            },
+            {
+              "rank": 4,
+              "usageRate": 33.7,
+              "name": "かえんほうしゃ"
+            },
+            {
+              "rank": 5,
+              "usageRate": 22.8,
+              "name": "ちょうはつ"
+            },
+            {
+              "rank": 6,
+              "usageRate": 18.3,
+              "name": "みきり"
+            },
+            {
+              "rank": 7,
+              "usageRate": 18.1,
+              "name": "あくのはどう"
+            },
+            {
+              "rank": 8,
+              "usageRate": 17.4,
+              "name": "きあいだま"
+            },
+            {
+              "rank": 9,
+              "usageRate": 17,
+              "name": "サイコキネシス"
+            },
+            {
+              "rank": 10,
+              "usageRate": 16.7,
+              "name": "ふいうち"
+            }
+          ],
+          "items": [
+            {
+              "rank": 1,
+              "usageRate": 24.2,
+              "name": "きあいのタスキ"
+            },
+            {
+              "rank": 2,
+              "usageRate": 22.5,
+              "name": "いのちのたま"
+            },
+            {
+              "rank": 3,
+              "usageRate": 14.6,
+              "name": "こだわりスカーフ"
+            },
+            {
+              "rank": 4,
+              "usageRate": 12.3,
+              "name": "ものしりメガネ"
+            },
+            {
+              "rank": 5,
+              "usageRate": 7,
+              "name": "くろいメガネ"
+            },
+            {
+              "rank": 6,
+              "usageRate": 5.8,
+              "name": "たつじんのおび"
+            },
+            {
+              "rank": 7,
+              "usageRate": 3.7,
+              "name": "ひかりのこな"
+            },
+            {
+              "rank": 8,
+              "usageRate": 3,
+              "name": "きあいのハチマキ"
+            },
+            {
+              "rank": 9,
+              "usageRate": 1.3,
+              "name": "ヨプのみ"
+            },
+            {
+              "rank": 10,
+              "usageRate": 1.1,
+              "name": "ロゼルのみ"
+            }
+          ],
+          "abilities": [
+            {
+              "rank": 1,
+              "usageRate": 100,
+              "name": "イリュージョン"
+            }
+          ],
+          "natures": [
+            {
+              "rank": 1,
+              "usageRate": 53.8,
+              "name": "おくびょう"
+            },
+            {
+              "rank": 2,
+              "usageRate": 28.9,
+              "name": "ひかえめ"
+            },
+            {
+              "rank": 3,
+              "usageRate": 4.8,
+              "name": "ようき"
+            },
+            {
+              "rank": 4,
+              "usageRate": 3.7,
+              "name": "うっかりや"
+            },
+            {
+              "rank": 5,
+              "usageRate": 2.2,
+              "name": "おっとり"
+            },
+            {
+              "rank": 6,
+              "usageRate": 2.1,
+              "name": "いじっぱり"
+            },
+            {
+              "rank": 7,
+              "usageRate": 2,
+              "name": "れいせい"
+            },
+            {
+              "rank": 8,
+              "usageRate": 0.8,
+              "name": "やんちゃ"
+            },
+            {
+              "rank": 9,
+              "usageRate": 0.7,
+              "name": "せっかち"
+            },
+            {
+              "rank": 10,
+              "usageRate": 0.5,
+              "name": "おだやか"
+            }
+          ],
+          "evs": [
+            {
+              "rank": 1,
+              "usageRate": 36.7,
+              "values": {
+                "hp": 2,
+                "attack": 0,
+                "defense": 0,
+                "specialAttack": 32,
+                "specialDefense": 0,
+                "speed": 32
+              }
+            },
+            {
+              "rank": 2,
+              "usageRate": 20,
+              "values": {
+                "hp": 0,
+                "attack": 0,
+                "defense": 0,
+                "specialAttack": 32,
+                "specialDefense": 2,
+                "speed": 32
+              }
+            },
+            {
+              "rank": 3,
+              "usageRate": 8.9,
+              "values": {
+                "hp": 0,
+                "attack": 0,
+                "defense": 2,
+                "specialAttack": 32,
+                "specialDefense": 0,
+                "speed": 32
+              }
+            },
+            {
+              "rank": 4,
+              "usageRate": 5.2,
+              "values": {
+                "hp": 2,
+                "attack": 32,
+                "defense": 0,
+                "specialAttack": 0,
+                "specialDefense": 0,
+                "speed": 32
+              }
+            },
+            {
+              "rank": 5,
+              "usageRate": 4.3,
+              "values": {
+                "hp": 0,
+                "attack": 0,
+                "defense": 0,
+                "specialAttack": 32,
+                "specialDefense": 0,
+                "speed": 32
+              }
+            },
+            {
+              "rank": 6,
+              "usageRate": 4.3,
+              "values": {
+                "hp": 4,
+                "attack": 0,
+                "defense": 0,
+                "specialAttack": 32,
+                "specialDefense": 0,
+                "speed": 30
+              }
+            },
+            {
+              "rank": 7,
+              "usageRate": 4.2,
+              "values": {
+                "hp": 15,
+                "attack": 0,
+                "defense": 0,
+                "specialAttack": 30,
+                "specialDefense": 0,
+                "speed": 21
+              }
+            },
+            {
+              "rank": 8,
+              "usageRate": 2.3,
+              "values": {
+                "hp": 2,
+                "attack": 0,
+                "defense": 32,
+                "specialAttack": 32,
+                "specialDefense": 0,
+                "speed": 0
+              }
+            },
+            {
+              "rank": 9,
+              "usageRate": 2,
+              "values": {
+                "hp": 0,
+                "attack": 0,
+                "defense": 32,
+                "specialAttack": 32,
+                "specialDefense": 2,
+                "speed": 0
+              }
+            },
+            {
+              "rank": 10,
+              "usageRate": 2,
+              "values": {
+                "hp": 15,
+                "attack": 0,
+                "defense": 10,
+                "specialAttack": 31,
+                "specialDefense": 10,
+                "speed": 0
+              }
+            },
+            {
+              "rank": 11,
+              "usageRate": 1,
+              "values": {
+                "hp": 32,
+                "attack": 26,
+                "defense": 4,
+                "specialAttack": 0,
+                "specialDefense": 4,
+                "speed": 0
+              }
+            },
+            {
+              "rank": 12,
+              "usageRate": 0.9,
+              "values": {
+                "hp": 32,
+                "attack": 0,
+                "defense": 2,
+                "specialAttack": 32,
+                "specialDefense": 0,
+                "speed": 0
+              }
+            },
+            {
+              "rank": 13,
+              "usageRate": 0.8,
+              "values": {
+                "hp": 5,
+                "attack": 0,
+                "defense": 5,
+                "specialAttack": 30,
+                "specialDefense": 5,
+                "speed": 21
+              }
+            },
+            {
+              "rank": 14,
+              "usageRate": 0.7,
+              "values": {
+                "hp": 0,
+                "attack": 32,
+                "defense": 0,
+                "specialAttack": 32,
+                "specialDefense": 0,
+                "speed": 2
+              }
+            },
+            {
+              "rank": 15,
+              "usageRate": 0.6,
+              "values": {
+                "hp": 19,
+                "attack": 0,
+                "defense": 0,
+                "specialAttack": 32,
+                "specialDefense": 0,
+                "speed": 15
+              }
+            },
+            {
+              "rank": 16,
+              "usageRate": 0.6,
+              "values": {
+                "hp": 32,
+                "attack": 0,
+                "defense": 0,
+                "specialAttack": 0,
+                "specialDefense": 0,
+                "speed": 32
+              }
+            },
+            {
+              "rank": 17,
+              "usageRate": 0.5,
+              "values": {
+                "hp": 2,
+                "attack": 0,
+                "defense": 0,
+                "specialAttack": 32,
+                "specialDefense": 32,
+                "speed": 0
+              }
+            },
+            {
+              "rank": 18,
+              "usageRate": 0.5,
+              "values": {
+                "hp": 12,
+                "attack": 0,
+                "defense": 2,
+                "specialAttack": 32,
+                "specialDefense": 20,
+                "speed": 0
+              }
+            },
+            {
+              "rank": 19,
+              "usageRate": 0.5,
+              "values": {
+                "hp": 14,
+                "attack": 20,
+                "defense": 0,
+                "specialAttack": 0,
+                "specialDefense": 0,
+                "speed": 32
+              }
+            },
+            {
+              "rank": 20,
+              "usageRate": 0.4,
+              "values": {
+                "hp": 29,
+                "attack": 0,
+                "defense": 0,
+                "specialAttack": 32,
+                "specialDefense": 0,
+                "speed": 5
+              }
+            },
+            {
+              "rank": 21,
+              "usageRate": 0.4,
+              "values": {
+                "hp": 32,
+                "attack": 0,
+                "defense": 0,
+                "specialAttack": 32,
+                "specialDefense": 0,
+                "speed": 0
+              }
+            },
+            {
+              "rank": 22,
+              "usageRate": 0.4,
+              "values": {
+                "hp": 0,
+                "attack": 2,
+                "defense": 0,
+                "specialAttack": 32,
+                "specialDefense": 0,
+                "speed": 32
+              }
+            },
+            {
+              "rank": 23,
+              "usageRate": 0.4,
+              "values": {
+                "hp": 2,
+                "attack": 0,
+                "defense": 0,
+                "specialAttack": 32,
+                "specialDefense": 20,
+                "speed": 12
+              }
+            },
+            {
+              "rank": 24,
+              "usageRate": 0.2,
+              "values": {
+                "hp": 0,
+                "attack": 0,
+                "defense": 8,
+                "specialAttack": 18,
+                "specialDefense": 8,
+                "speed": 32
+              }
+            },
+            {
+              "rank": 25,
+              "usageRate": 0.2,
+              "values": {
+                "hp": 0,
+                "attack": 4,
+                "defense": 0,
+                "specialAttack": 30,
+                "specialDefense": 0,
+                "speed": 32
+              }
+            },
+            {
+              "rank": 26,
+              "usageRate": 0.2,
+              "values": {
+                "hp": 32,
+                "attack": 16,
+                "defense": 2,
+                "specialAttack": 0,
+                "specialDefense": 0,
+                "speed": 16
+              }
+            },
+            {
+              "rank": 27,
+              "usageRate": 0.2,
+              "values": {
+                "hp": 3,
+                "attack": 0,
+                "defense": 0,
+                "specialAttack": 32,
+                "specialDefense": 0,
+                "speed": 31
+              }
+            },
+            {
+              "rank": 28,
+              "usageRate": 0.2,
+              "values": {
+                "hp": 15,
+                "attack": 22,
+                "defense": 21,
+                "specialAttack": 0,
+                "specialDefense": 8,
+                "speed": 0
+              }
+            },
+            {
+              "rank": 29,
+              "usageRate": 0.1,
+              "values": {
+                "hp": 0,
+                "attack": 0,
+                "defense": 2,
+                "specialAttack": 32,
+                "specialDefense": 32,
+                "speed": 0
+              }
+            },
+            {
+              "rank": 30,
+              "usageRate": 0.1,
+              "values": {
+                "hp": 0,
+                "attack": 32,
+                "defense": 0,
+                "specialAttack": 0,
+                "specialDefense": 0,
+                "speed": 32
+              }
+            }
+          ],
+          "teammates": [
+            {
+              "rank": 1,
+              "usageRate": null,
+              "name": "ガブリアス"
+            },
+            {
+              "rank": 2,
+              "usageRate": null,
+              "name": "ライチュウ"
+            },
+            {
+              "rank": 3,
+              "usageRate": null,
+              "name": "オオニューラ"
+            },
+            {
+              "rank": 4,
+              "usageRate": null,
+              "name": "エルフーン"
+            },
+            {
+              "rank": 5,
+              "usageRate": null,
+              "name": "リザードン"
+            },
+            {
+              "rank": 6,
+              "usageRate": null,
+              "name": "マスカーニャ"
+            },
+            {
+              "rank": 7,
+              "usageRate": null,
+              "name": "イダイトウ (オスのすがた)"
+            },
+            {
+              "rank": 8,
+              "usageRate": null,
+              "name": "ガオガエン"
+            },
+            {
+              "rank": 9,
+              "usageRate": null,
+              "name": "ヤミラミ"
+            },
+            {
+              "rank": 10,
+              "usageRate": null,
+              "name": "ゲンガー"
+            }
+          ]
+        }
+      }
+    }
+  }
+}
