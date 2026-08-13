@@ -1,0 +1,100 @@
+/* /share/[slug] 公開共有ページ全体のレイアウト。 */
+	.share-identity {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: flex-start;
+		gap: var(--space-6);
+	}
+	.share-identity dl {
+		flex: 1 1 320px;
+		min-width: 0;
+	}
+	.share-identity-media {
+		flex: 0 0 auto;
+		margin-left: auto;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: var(--space-3);
+	}
+	.share-identity-media img {
+		display: block;
+		width: 160px;
+		height: 160px;
+		object-fit: contain;
+	}
+	.share-identity-type-list {
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: center;
+		gap: var(--space-2);
+		list-style: none;
+		margin: 0;
+		padding: 0;
+	}
+	/* pokemon/[name].astro の .identity-type-chip と同形(アイコン+タイプ名テキストの併記、
+	   色だけに意味を持たせない)。 */
+	.share-identity-type-chip {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.4em;
+		padding: 0.2em 0.7em 0.2em 0.3em;
+		border-radius: 999px;
+		background: var(--color-surface-alt);
+		font-weight: 600;
+	}
+	.share-identity-type-chip img {
+		display: block;
+		width: 28px;
+		height: 28px;
+		border-radius: 50%;
+	}
+	@media (max-width: 640px) {
+		.share-identity-media {
+			margin-left: 0;
+		}
+	}
+
+	.share-stat-grid {
+		display: grid;
+		grid-template-columns: 4.5rem repeat(6, minmax(0, 1fr));
+		gap: var(--space-1) 0.4rem;
+		align-items: center;
+	}
+	/* グローバルの.card-hintが持つ margin-top: calc(var(--space-2) * -1) を打ち消す
+	   (このページでは見出しではなく上のグリッド直後に置くため、負マージンだとグリッドに
+	   食い込んで「実数値」ラベルの注記に見えてしまう)。グリッドとの間は通常の余白
+	   (--space-3)を空け、グリッド左端と揃う独立した1行として読めるようにする。
+	   .card-hintクラス自体は他画面(box/[id].astro・pokemon/[name].astro・search/index.astro)
+	   でも見出し直下の詰め配置に使われているため、グローバル側は変更せずこのページ専用の
+	   .share-stat-hintをscoped styleで足して打ち消す(scoped属性2つぶんの詳細度で確実に勝つ)。 */
+	.share-stat-hint {
+		margin-top: var(--space-3);
+	}
+	.share-stat-row-label {
+		font-size: var(--font-size-sm2);
+		font-weight: 700;
+		color: var(--color-text-muted);
+		white-space: nowrap;
+	}
+	.share-stat-col-label {
+		font-size: var(--font-size-sm2);
+		font-weight: 700;
+		text-align: center;
+		color: var(--color-text-muted);
+	}
+	.share-stat-cell {
+		text-align: center;
+		font-size: var(--font-size-sm1);
+	}
+	.share-stat-cell-real {
+		font-size: 1.1em;
+		font-weight: 700;
+	}
+	/* box/[id].astroと同じ共通トークン(上昇=赤系/下降=青系)を参照する。 */
+	.share-stat-cell-real[data-mod='up'] {
+		color: var(--color-stat-up);
+	}
+	.share-stat-cell-real[data-mod='down'] {
+		color: var(--color-stat-down);
+	}
