@@ -255,7 +255,7 @@
     border-bottom: var(--mobile-damage-toolbar-border);
   }
 
-  .mobile-damage-toolbar-actions {
+.mobile-damage-toolbar-actions {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -263,3 +263,5 @@
     gap: var(--space-2);
   }
 }
+
+.pokemon-preview-item-image-hidden { display: none; }
