@@ -43,10 +43,10 @@ if (user && id) {
 	}
 }
 
-// UI改修依頼(ダメージ計算カード、2026-08-04)項目5「防御時の技候補を相手の技の使用率順に
-// 表示する」。suggestionsテーブル(kind='popular_move')の全種族分を1クエリでまとめて取得し、
-// DamageCalcSection.astroへ埋め込みJSONとして渡す(speed-chart/index.astroの採用率データ
-// 取得と同じ考え方を踏襲するが、既存の関数・型は再利用せずbox-id向けに新規記述する)。
+// 防御時の技候補を相手の技の使用率順に表示するため、suggestionsテーブル
+// (kind='popular_move')の全種族分を1クエリでまとめて取得し、DamageCalcSection.astroへ
+// 埋め込みJSONとして渡す(speed-chart/index.astroの採用率データ取得と同じ考え方を踏襲するが、
+// 既存の関数・型は再利用せずbox-id向けに新規記述する)。
 // subject_keyは「種族名」(全レギュレーション横断、regulationKey="all")または
 // 「種族名|レギュレーション」(区切り文字"|")の形。クエリが失敗しても500にせず空オブジェクトに
 // フォールバックする(speed-chart/index.astroのtry/catchパターンを参考)。pokemonが取得できた
@@ -131,9 +131,9 @@ if (pokemon) {
 // 選択肢一覧)はもうフロントマターで使わない。対応表(NATURE_STAT_MODIFIERS)は<script>側に
 // 定義しており、vendor/jpoke/src/jpoke/data/nature.py の NATURE_MODIFIER と一致させている。
 
-// TERA_TYPES(19タイプの選択肢一覧)は src/lib/tera-types.ts へ切り出し済み(2026-07-28
-// ラウンド23 22-B-1)。以前はここに直接定義していたが、左パネル用<script>と
-// #opponent-notes-section用<script>にも同じ配列が複製されていた(3箇所重複)。値・順序は不変。
+// TERA_TYPES(19タイプの選択肢一覧)は src/lib/tera-types.ts へ切り出し済み(左パネル用<script>と
+// #opponent-notes-section用<script>にも同じ配列が複製されていたため、3箇所重複を解消した)。
+// 値・順序は不変。
 
 // UI刷新(ダメージ計算カード化): 天候/地形/相手側の壁/状態異常の選択肢は、行(対戦相手)ごとに
 // JSで動的生成するカードの中で使うため、Astroフロントマター側では定義せず、ブラウザ専用<script>内に
@@ -144,25 +144,23 @@ if (pokemon) {
 // STAT_LABELS/MOVE_SLOTS/statAt は左パネル専用のためLeftPanel.astroへ移設した
 // (構造分割ラウンド、フェーズ1)。
 
-// 共通トップバー移行(2026-07-26): このpageTitleはAppLayoutのtitleプロパティに渡され、
-// (a) <title>タグ(ブラウザタブ)と (b) トップバー左のテキスト表示、両方に使われる。
-// 以前は<title>タグ用に「◯◯を編集」、可視のh1見出しには接尾辞なしの「◯◯」という
-// 別々の文字列を使っていたが、ページ読み込み直後に<script>のupdateHeaderIdentity()が
-// .app-topbar-titleを接尾辞なしの文字列で上書きするため、両方を同じ値にしないと
-// 表示直後に見出しが「◯◯を編集」→「◯◯」へ一瞬で変わって見えてしまう(実機で確認)。
-// 接尾辞なしの名前で統一する(ブラウザタブは「◯◯ | Poke-Commons」になる)。
-// UI品質改善(2026-07-26 第4弾 11-1): 以前はニックネーム優先(nickname || species_name)
-// だったが、要件によりヘッダー表示からニックネームを外し種族名固定にする。ニックネーム
-// 入力欄自体(左パネルの#nickname)は残す(保存対象としても変更なし)。updateHeaderIdentity側
-// (<script>)も同じ理由でニックネームを見ないよう合わせて変更している(そうしないと
-// ページ読み込み直後にJSがニックネーム入りの文字列で上書きしてしまうため)。
+// pageTitleはAppLayoutのtitleプロパティに渡され、(a) <title>タグ(ブラウザタブ)と
+// (b) トップバー左のテキスト表示、両方に使われる。ページ読み込み直後に<script>の
+// updateHeaderIdentity()が.app-topbar-titleを接尾辞なしの文字列で上書きするため、
+// <title>用の文字列とpageTitleを別の値にすると、表示直後に見出しが一瞬で
+// 別の文字列に変わって見えてしまう(実機で確認)。接尾辞なしの名前で統一する
+// (ブラウザタブは「◯◯ | Poke-Commons」になる)。
+// ヘッダー表示は種族名固定でニックネームを見ない(nickname || species_nameにはしない)。
+// ニックネーム入力欄自体(左パネルの#nickname)は残す(保存対象としても変更なし)。
+// updateHeaderIdentity側(<script>)も同じ理由でニックネームを見ないよう揃えている
+// (そうしないとページ読み込み直後にJSがニックネーム入りの文字列で上書きしてしまうため)。
 const pageTitle = pokemon ? pokemon.species_name : "個体編集";
-// ラウンド23ユーザー指示(23-H1): 「種族名を削除」。<title>タグ(ブラウザタブ・履歴での
-// 個体識別に必要)には残しつつ、トップバーの可視の見出しからだけ種族名を消す。AppLayoutの
-// titleプロパティは<title>と.app-topbar-titleの両方を兼ねており、AppLayout自体は編集禁止
-// (全ページに影響するため)。AppLayoutが既に持っているbodyClass propを使い、
-// body要素にこのページだけのクラスを付け、その配下の.app-topbar-titleを
-// このページのCSSだけで非表示にする(AppLayout.astroのマークアップ・propは一切変更しない)。
+// <title>タグ(ブラウザタブ・履歴での個体識別に必要)には種族名を残しつつ、トップバーの
+// 可視の見出しからは種族名を消す。AppLayoutのtitleプロパティは<title>と.app-topbar-title
+// の両方を兼ねており、AppLayout自体は編集禁止(全ページに影響するため)。AppLayoutが
+// 既に持っているbodyClass propを使い、body要素にこのページだけのクラスを付け、その配下の
+// .app-topbar-titleをこのページのCSSだけで非表示にする(AppLayout.astroのマークアップ・
+// propは一切変更しない)。
 // pokemonがnull(個体が見つからない)のときはpageTitleが種族名ではなく固定文言「個体編集」
 // (エラー状態の案内)なので、そちらは隠さない(bodyClassをpokemon存在時だけ付与する)。
 const bodyClass = pokemon ? "box-edit-page" : undefined;
@@ -186,63 +184,47 @@ const optOutRemainingText = pokemon ? formatOptOutRemaining(pokemon.collection_o
 const isOptedOut = optOutRemainingText !== "";
 ---
 <AppLayout title={pageTitle} current="box" backHref={backHref} bodyClass={bodyClass}>
-	{/* 共通トップバー移行(2026-07-26): 独自の.page-header(戻る/保存状態/ポケモン名/削除ボタン)を
-	    撤去し、AppLayoutのbackHref/title/topbar-status/topbar-actionsへ移した(box/index.astroの
-	    先行移行と同じ方針)。保存状態(#autosave-status等)と削除ボタン(#delete-button)は
-	    <script>のel()がid参照する(見つからないとel()がthrowし、フォーム全体のJSが
-	    初期化できなくなる)ため、id/classは変えずスロットへそのまま移す。
-	    ポケモン名の見出しはtitleプロパティ(pageTitle、上のフロントマターで算出済み。
-	    pokemonがnullなら固定文言「個体編集」)に委譲したため、旧#header-title/#header-subtitle
-	    のマークアップは廃止した。以後のニックネーム/種族名入力への追随(旧updateHeaderIdentity)は
-	    idを持たないAppLayout側の.app-topbar-titleをquerySelectorで直接更新する(<script>参照)。
-	    ラウンド23(23-H1): .app-topbar-title自体はAppLayout側の要素なのでこのページのscoped
-	    <style>では選択できない(scoped styleはdata-astro-cid-*がこのファイル由来の要素にしか
-	    効かない)。bodyClass="box-edit-page"を付け、下の<style is:global>側で
-	    `body.box-edit-page .app-topbar-title`として非表示にする。 */}
+	{/* .page-header(戻る/保存状態/ポケモン名/削除ボタン)相当のUIはAppLayoutのbackHref/title/
+	    topbar-status/topbar-actionsへ委譲する。保存状態(#autosave-status等)と削除ボタン
+	    (#delete-button)は<script>のel()がid参照する(見つからないとel()がthrowし、フォーム
+	    全体のJSが初期化できなくなる)ため、id/classは変えずスロットへそのまま置く。
+	    ポケモン名の見出しはtitleプロパティ(pageTitle、上のフロントマターで算出済み。pokemonが
+	    nullなら固定文言「個体編集」)に委譲する。ニックネーム/種族名入力への追随
+	    (updateHeaderIdentity)は、idを持たないAppLayout側の.app-topbar-titleをquerySelectorで
+	    直接更新する(<script>参照)。
+	    .app-topbar-title自体はAppLayout側の要素なのでこのページのscoped<style>では選択できない
+	    (scoped styleはdata-astro-cid-*がこのファイル由来の要素にしか効かない)。bodyClass=
+	    "box-edit-page"を付け、下の<style is:global>側で`body.box-edit-page .app-topbar-title`
+	    として非表示にする。 */}
 	{pokemon && (
 		<Fragment slot="topbar-status">
 			<p id="autosave-status" class="status-text" data-state="saved">
 				<span id="autosave-status-text">保存済み</span><button id="retry-button" type="button" title="保存に失敗しました。クリックして再試行" aria-label="保存に失敗しました。クリックして再試行">再試行</button>
 			</p>
-			{/* ラウンド17指摘(B-1): ダメージ計算カードは行ごとに独立して自動保存されるため、
-			    画面外にスクロールしたカードの保存失敗はカード自身のfooter(保存失敗時のみ表示)を
-			    見ないと気づけない。常時可視なスティッキー上部バー(AppLayoutのtopbar、
-			    このスロットの中)に失敗件数だけを出す(<script>のupdateOpponentNotesFailureAlert
-			    参照)。通常時はhiddenで何も見えない(A-2と同じく「通常時は非表示」を崩さない)。 */}
+			{/* ダメージ計算カードは行ごとに独立して自動保存されるため、画面外にスクロールした
+			    カードの保存失敗はカード自身のfooter(保存失敗時のみ表示)を見ないと気づけない。
+			    常時可視なスティッキー上部バー(AppLayoutのtopbar、このスロットの中)に失敗件数だけを
+			    出す(<script>のupdateOpponentNotesFailureAlert参照)。通常時はhiddenで何も見えない。 */}
 			<span id="opponent-notes-save-alert" class="opponent-notes-save-alert" hidden></span>
 		</Fragment>
 	)}
 	{pokemon && (
 		<Fragment slot="topbar-actions">
-			{/* UI改修依頼(個体編集左パネル、2026-08-01)「ヘッダーの"すばやさ調整"ボタンは、
-			    S実数値の右隣の調整ボタンに置き換える」により、このヘッダーボタンは撤去する。
-			    同機能のボタンは src/components/box-id/LeftPanel.astro のS行側へ移設する
-			    (別エージェント担当)。 */}
-			{/* UI改善ラウンド41ユーザー指示(41-H1)「すべて折りたたむボタンは、X位置はそのままで、
-			    個体編集画面のヘッダ(戻るボタンがある領域)に移す」により、ラウンド40(40-H1)
-			    「ダメージカード領域の上に置く」を撤回し、38-H1と同じくヘッダーへ再移動する。
-			    damage-collapse-toggle-button(単一トグルボタン、交互切り替えのロジックは
-			    src/lib/box-id/damage-calc.ts側にそのまま。elはgetElementById経由のためDOM上の
-			    位置に依存しない)をこのFragmentへ追加する。「X位置はそのまま」の実測対応
-			    (position:fixedで移動前の左端座標を再現する)はCSS側(src/components/box-id/
+			{/* damage-collapse-toggle-button(単一トグルボタン、交互切り替えのロジックはsrc/lib/box-id/
+			    damage-calc.ts側にある。elはgetElementById経由のためDOM上の位置に依存しない)を
+			    このFragmentに置く。見た目の位置(X座標)はCSS側(src/components/box-id/
 			    DamageCalcSection.astro の damage-collapse-toggle-button ルール、is:globalのため
-			    置き場所を問わず効く)で行う。旧 damage-rows-toolbar(DamageCalcSection.astro、
-			    damage-rows-list直上)は撤去し、重複UIを残さない。 */}
-			{/* ラウンド21ユーザー指示(21-H1): 「個体削除はゴミ箱+赤背景の定番デザインにする」。
-			    ラウンド3 B-9(既定はmuted、hover時だけdangerに転じ誤操作を抑止する設計)を撤回する。
-			    アイコンはインラインSVGのゴミ箱(絵文字🗑はOS/フォントで見た目が変わるため
-			    定番デザインに向かない、という判断で新規に書き起こした)。誤操作の抑止は
-			    常時赤にする代わりに既存のwindow.confirm()(<script>のdeleteButtonクリック
-			    ハンドラ、変更していない)に委ねる。 */}
-			{/* UI改善ラウンド43ユーザー指示(43-H1)「すべて折りたたむ・すべて展開ボタンにも>>記号を
-			    追加(左端)」。左端にchevron(既存の個別カード折りたたみボタンと同じ»グリフ)を
-			    追加し、状態(折りたたみ中/展開中)に応じて回転させる(CSSはDamageCalcSection.astro
-			    の#damage-collapse-toggle-button .damage-collapse-toggle-chevron参照)。
+			    置き場所を問わず効く)でposition:fixedにより固定している。 */}
+			{/* アイコンはインラインSVGのゴミ箱(絵文字🗑はOS/フォントで見た目が変わるため
+			    定番デザインに向かない)。誤操作の抑止は色を抑える代わりに既存のwindow.confirm()
+			    (<script>のdeleteButtonクリックハンドラ)に委ねる。 */}
+			{/* 左端にchevron(既存の個別カード折りたたみボタンと同じ»グリフ)を置き、状態
+			    (折りたたみ中/展開中)に応じて回転させる(CSSはDamageCalcSection.astro の
+			    #damage-collapse-toggle-button .damage-collapse-toggle-chevron参照)。
 			    labelはdamage-calc.tsのupdateCollapseToggleButtonLabel()がテキストを差し替える
-			    対象を.damage-collapse-toggle-labelに変更したため、ここでもspanで囲む
-			    (ボタン全体のtextContentを差し替えるとchevronごと消えてしまうため)。
-			    aria-expanded初期値はJS初期化直後にupdateCollapseToggleButtonLabel()が
-			    必ず上書きするため、静的マークアップ上の値はプレースホルダーでよい。 */}
+			    対象なのでspanで囲む(ボタン全体のtextContentを差し替えるとchevronごと消えてしまうため)。
+			    aria-expanded初期値はJS初期化直後にupdateCollapseToggleButtonLabel()が必ず
+			    上書きするため、静的マークアップ上の値はプレースホルダーでよい。 */}
 			<button id="damage-collapse-toggle-button" class="btn-ghost" type="button" disabled aria-expanded="false">
 				<span class="damage-collapse-toggle-chevron" aria-hidden="true">»</span><span class="damage-collapse-toggle-label">すべて折りたたむ</span>
 			</button>
@@ -253,23 +235,13 @@ const isOptedOut = optOutRemainingText !== "";
 			    実際の使用例は src/lib/box-id/left-panel.ts の setupMovePickerWindow が動的生成する
 			    マークアップ)をそのまま流用する(is:globalのためコンポーネント境界をまたいで効く。
 			    CSSの重複定義はしない)。
-			    UI改修依頼(個体編集ヘッダー、2026-08-01)「『匿名でデータ提供する』を『非公開』に
-			    変更する。デフォルトOFF」により意味を反転させた: 以前は checked=true が「提供する」
-			    (=収集対象、!isOptedOut)だったが、今は checked=true が「非公開」(=収集拒否、
-			    isOptedOut)を表す。DBの意味(owned_pokemon.collection_opt_out_until: NULLまたは
-			    過去=収集対象、未来=拒否期間中)自体はまったく変えていない。UI側の表示・ラベル・
-			    checkedの向きだけを反転させた。
-			    ⚠️ この反転に伴い、src/lib/box-id/left-panel.ts の change ハンドラ(PATCHの
-			    body: JSON.stringify({ collection_opt_out: !nextProviding })の行)は
-			    「checked=trueのとき送るべき値」が入れ替わるため、そちらも
-			    `collection_opt_out: nextProviding`(否定を外す)に直さないと、この画面で
-			    トグルを操作した結果が意図と逆になる。left-panel.tsは別エージェントの担当
-			    ファイルのため、ここでは変更せずCoordinatorへ報告する(この行の対応が
-			    完了するまで、実際にクリックしての検証は要注意)。
+			    checked=true は「非公開」(=収集拒否、isOptedOut)を表す。DBの意味
+			    (owned_pokemon.collection_opt_out_until: NULLまたは過去=収集対象、未来=拒否期間中)
+			    とcheckedの向きが一致しないため、送信側(left-panel.ts)はcheckedの値をそのまま
+			    collection_opt_outとして送る(否定しない)。
 			    ホバーテキストはOFF/ONで変える(下の<script>参照、初期値はSSRで出し分け済み)。
-			    状態テキスト(#collection-opt-out-status)は元々「残り日数」表示ではなく
-			    PATCH失敗時のエラーメッセージ専用(left-panel.ts側で既にそう実装済み)なので、
-			    意味の反転による追加変更は不要。 */}
+			    状態テキスト(#collection-opt-out-status)は「残り日数」表示ではなくPATCH失敗時の
+			    エラーメッセージ専用(left-panel.ts側で実装済み)。 */}
 			<label
 				id="collection-opt-out-label"
 				class="collection-opt-out-toggle"
@@ -296,33 +268,26 @@ const isOptedOut = optOutRemainingText !== "";
 		   ここにはこのページ固有のレイアウト・状態表現だけを残す。 */
 		#retry-button { display: none; margin-left: 0.4em; }
 		#retry-button.visible { display: inline-flex; }
-		/* 共通トップバー移行(2026-07-26・実測バグ修正): #autosave-statusは<p>要素で、
-		   global.cssに全要素共通のmarginリセットが無いため既定のUAスタイル(1em 0)が
-		   そのまま残っていた。旧レイアウトでは.page-header自体の高さが可変で、周囲の
-		   flex計算(.edit-shellのheight:100vh−実測ヘッダ高さ)に自動的に吸収されていたため
-		   問題にならなかったが、AppLayoutのトップバーは高さがCSS変数--topbar-height
+		/* #autosave-statusは<p>要素で、global.cssに全要素共通のmarginリセットが無いため
+		   既定のUAスタイル(1em 0)が残る。AppLayoutのトップバーは高さがCSS変数--topbar-height
 		   (固定値、デスクトップ65px)前提で.edit-shell/.damage-detail-panelの高さ計算に
 		   使われるため、<p>の既定marginぶん(実測で往復約16px)だけトップバーの実高さが
-		   --topbar-heightからずれ、ページ全体に余計な縦スクロールが出ていた(実測で発覚)。
+		   --topbar-heightからずれ、ページ全体に余計な縦スクロールが出る(実測で発覚)。
 		   marginを0にしてトップバーの実測高さを--topbar-heightに一致させる。 */
 		#autosave-status { margin: 0; }
-		/* UI品質改善(2026-07-26 第4弾 11-1): ヘッダーから「保存済み」等の保存状態テキスト表示を
-		   削除する要件。#autosave-status/#autosave-status-textはid/DOMごと残す
-		   (<script>のel("autosave-status")/el("autosave-status-text")が参照しており、
-		   要素そのものを削除するとel()がthrowしてフォーム全体のJS初期化が止まるため)。
-		   最小対応としてテキスト(span)だけをCSSで常時非表示にし、コンテナ(#autosave-status)
-		   自体は残す。コンテナごと非表示にすると子要素の#retry-buttonも道連れで
-		   描画されなくなり、保存失敗時の唯一のリカバリ手段(クリックでの再試行)に気づく
-		   手段が完全に無くなってしまうため、#retry-button自身の表示/非表示は既存どおり
-		   .visibleクラス(保存失敗時にJSが付与)に委ねる=失敗時だけ「再試行」ボタンが
-		   単独で現れる形にした(通常時は何も見えない)。
-		   ラウンド17指摘(A-2): 上記の「常時非表示」は保存失敗時も理由(「保存に失敗しました。」)を
-		   一切見せていなかった。#retry-buttonが唐突に現れるだけで、なぜ現れたのかが画面から
-		   分からない(このページは保存ボタンが無く自動保存に全面依存し、過去に個体データが
-		   書き換わる事故も起きている場所のため、失敗理由を隠したままにする割に合わない)。
-		   保存失敗時(data-state="error")だけテキストを見せ、通常時(saved/saving/idle)は
-		   上記のとおり非表示のまま据え置く(ラウンド11の要件「ヘッダーから保存済み表示を削除」は
-		   壊さない)。 */
+		/* ヘッダーには通常「保存済み」等の保存状態テキストを表示しない。#autosave-status/
+		   #autosave-status-textはid/DOMごと残す(<script>のel("autosave-status")/
+		   el("autosave-status-text")が参照しており、要素そのものを削除するとel()がthrowして
+		   フォーム全体のJS初期化が止まるため)。テキスト(span)だけをCSSで常時非表示にし、
+		   コンテナ(#autosave-status)自体は残す。コンテナごと非表示にすると子要素の
+		   #retry-buttonも道連れで描画されなくなり、保存失敗時の唯一のリカバリ手段
+		   (クリックでの再試行)に気づく手段が完全に無くなってしまうため、#retry-button自身の
+		   表示/非表示は既存どおり.visibleクラス(保存失敗時にJSが付与)に委ねる=失敗時だけ
+		   「再試行」ボタンが単独で現れる形にした(通常時は何も見えない)。
+		   ただし保存失敗時(data-state="error")だけはテキストも見せる: 「常時非表示」のままだと
+		   #retry-buttonが唐突に現れるだけで理由(「保存に失敗しました。」)が画面から分からない
+		   (このページは保存ボタンが無く自動保存に全面依存し、過去に個体データが書き換わる
+		   事故も起きている場所のため、失敗理由を隠したままにする割に合わない)。 */
 		#autosave-status-text { display: none; }
 		#autosave-status[data-state="error"] #autosave-status-text {
 			display: inline;
@@ -331,23 +296,20 @@ const isOptedOut = optOutRemainingText !== "";
 		/* 共通トップバーの戻るリンク(.app-topbar-back)と文字組みを揃える。
 		   font-familyとletter-spacingは、戻るリンクと同様にbodyからの継承値を使う。 */
 		#delete-button { font-size: var(--font-size-sm1); }
-		/* ラウンド8指摘(A-5(2)): 幅390pxで折り返し先が無くwhite-space:normalのまま1文字ずつ
-		   縦に折り返り(実測46×169px)、w900でも3行に折れていた。1行に固定する
-		   (トップバー側の折り返し対策はglobal.css/AppLayout.astro担当の別エージェントの範囲)。 */
+		/* 幅390pxで折り返し先が無くwhite-space:normalのまま1文字ずつ縦に折り返り
+		   (実測46×169px)、w900でも3行に折れていた。1行に固定する。 */
 		#delete-button { white-space: nowrap; }
 		/* 基底(global.css の button.btn-danger)の太字を、戻るリンクと同じ500に上書きする。 */
 		#delete-button { font-weight: 500; }
-		/* UI改修依頼(個体編集画面、2026-08-04)「削除ボタンの平常時/ホバーの配色を入れ替える」。
-		   基底(global.css の button.btn-danger、887-902行目)は 平常時=塗り
+		/* 基底(global.css の button.btn-danger)は 平常時=塗り
 		   (background:var(--color-danger-strong), color:var(--color-primary-contrast))、
 		   hover時=白地反転(background:var(--color-surface), color:var(--color-danger-strong))。
-		   このページの#delete-buttonだけ逆にする(#delete-buttonはIDセレクタで
-		   button.btn-danger(要素+クラス)より詳細度が高いため、global.css自体は変更せずに
-		   上書きできる。他画面(/team/[id]等)が使う.btn-danger の既定配色はそのまま維持する)。
+		   このページの#delete-buttonだけ逆にする(#delete-buttonはIDセレクタでbutton.btn-danger
+		   (要素+クラス)より詳細度が高いため、global.css自体は変更せずに上書きできる。
+		   他画面(/team/[id]等)が使う.btn-danger の既定配色はそのまま維持する)。
 		   border(2px solid var(--color-danger-strong))は基底のまま変えない。
-		   ⚠️ すぐ下(298行目付近)のラウンド23実バグの教訓どおり、backgroundとcolorは
-		   平常時・hover時の両方で必ずセットで書く(片方だけ上書きすると文字色=背景色になって
-		   見えなくなる事故を再発するため)。 */
+		   ⚠️ backgroundとcolorは平常時・hover時の両方で必ずセットで書く(片方だけ上書きすると
+		   文字色=背景色になって見えなくなる事故があるため)。 */
 		#delete-button {
 			background: var(--color-surface);
 			color: var(--color-danger-strong);
@@ -373,9 +335,7 @@ const isOptedOut = optOutRemainingText !== "";
 			white-space: nowrap;
 			cursor: pointer;
 		}
-		/* UI改修依頼(2026-08-05)「折りたたむ/展開ボタンを戻るボタンと同じ文字組みにし、
-		   折りたたむ/展開・非公開ボタンのhover時は背景を変えず文字色だけprimaryにする」対応。
-		   font-familyとletter-spacingは明示せず、戻るボタンと同様にbodyから継承する。 */
+		/* font-familyとletter-spacingは明示せず、戻るボタンと同様にbodyから継承する。 */
 		button#damage-collapse-toggle-button {
 			font-size: var(--font-size-sm1);
 			font-weight: 500;
@@ -391,16 +351,11 @@ const isOptedOut = optOutRemainingText !== "";
 			color: var(--color-text-muted);
 		}
 		.collection-opt-out-status[hidden] { display: none; }
-		/* UI改修依頼(個体編集ヘッダー、2026-08-01)「データ提供スイッチと削除ボタンの間の
-		   余白を広げる」。.app-topbar-actions(AppLayout.astro側)のgapはvar(--space-2)=8px
-		   でトップバー全ボタン共通のため、AppLayoutは編集せず(全画面に影響する)、この
-		   ページscopedで#delete-buttonにだけ追加のmargin-leftを足す。実測: 変更前は
-		   トグルの右端から削除ボタン左端まで8px → 変更後24px(8+var(--space-4)=16px)。 */
-		/* UI改修依頼(個体編集画面、2026-08-04)「非公開と削除ボタンの間を少しあける」。
-		   上記21-H1適用後の24px(8+var(--space-4)=16px)でもまだ狭いとの指摘のため、
-		   既存トークンの中で1段広いvar(--space-5)(1.25rem=20px)に変更する。
-		   トグル右端から削除ボタン左端まで28px(8+20)になる(新規の値は作らず、
-		   既存スペーシングトークンの範囲内で選定)。 */
+		/* .app-topbar-actions(AppLayout.astro側)のgapはvar(--space-2)=8pxでトップバー全
+		   ボタン共通のため、AppLayoutは編集せず(全画面に影響する)、このページscopedで
+		   #delete-buttonにだけ追加のmargin-leftを足す。トグル右端から削除ボタン左端まで
+		   28px(8+var(--space-5)=20px)になる(新規の値は作らず、既存スペーシングトークンの
+		   範囲内で選定)。 */
 		#delete-button { margin-left: var(--space-5); }
 		/* PATCH失敗時のみ(<script>側がdata-state="error"を付与)最小限のエラー色を出す。
 		   #autosave-status[data-state="error"] #autosave-status-text と同じ温度感(赤字テキストの
@@ -408,26 +363,13 @@ const isOptedOut = optOutRemainingText !== "";
 		.collection-opt-out-status[data-state="error"] {
 			color: var(--color-danger);
 		}
-		/* ラウンド23実バグ修正: 上記の21-H1コントラスト是正ブロック(ページscoped)を撤去した。
-		   ラウンド22の22-A-1でglobal.cssの.btn-danger自体を--color-danger-strongに直したため、
-		   このページscopedブロックは基底(global.css)と完全に同じ値になり不要だった。
-		   問題は「不要」だけでなく実害があった: このブロックの#delete-button{background:...}が
-		   常にbackgroundを上書きし続けるため、hover時にglobal.cssの
-		   .btn-danger:hover{background:var(--color-surface)}(白地反転)が詳細度で負けて
-		   適用されなかった。一方この#delete-button:hoverブロックのcolorだけは
-		   --color-danger-strongに変わるため、hover時に文字色=背景色(どちらも
-		   --color-danger-strong)になり「この個体を削除」の文字が完全に見えなくなっていた
-		   (実測: コントラスト比 1.00:1、ライト/ダーク両方で再現)。ブロックを削除すれば
-		   global.cssの基底hoverルール(background:surface + color:danger-strong)がそのまま効き、
-		   自動的に直る(削除後の実測: hover文字コントラスト5.96:1、AA適合)。 */
-
-		/* ラウンド17指摘(B-1): ダメージ計算カード(#opponent-notes-section)は行(相手)ごとに
-		   独立して自動保存されるため、カード自身のfooter(失敗時のみ表示)は画面外へ
-		   スクロールすると見えなくなる。AppLayoutのトップバーはposition:stickyで常時可視なので
-		   ここに失敗件数だけを出す(<script>のupdateOpponentNotesFailureAlert参照)。
+		/* ダメージ計算カード(#opponent-notes-section)は行(相手)ごとに独立して自動保存
+		   されるため、カード自身のfooter(失敗時のみ表示)は画面外へスクロールすると
+		   見えなくなる。AppLayoutのトップバーはposition:stickyで常時可視なのでここに
+		   失敗件数だけを出す(<script>のupdateOpponentNotesFailureAlert参照)。
 		   .app-topbar-status(親のspan)がwhite-space:nowrapの1行構成のため、<p>ではなく
 		   同じ<span>系で追加し、ブロック化してトップバーの実高さ(--topbar-height)を
-		   広げないようにする(#autosave-statusの<p>まわりの実測バグ修正コメント参照)。 */
+		   広げないようにする(#autosave-statusの<p>まわりのコメント参照)。 */
 		.opponent-notes-save-alert {
 			display: inline;
 			margin-left: 0.6em;
@@ -435,13 +377,6 @@ const isOptedOut = optOutRemainingText !== "";
 			font-weight: 700;
 		}
 		.opponent-notes-save-alert[hidden] { display: none; }
-
-		/* 共通トップバー移行(2026-07-26): 独自の.page-header/.edit-page-header-*(戻る/
-		   保存状態/ポケモン名見出し/削除ボタン)はAppLayoutのbackHref/title/topbar-status/
-		   topbar-actionsスロットへ移設したため、このページのスコープドCSSからは全廃した
-		   (#retry-button/.status-textは真のグローバルスタイルなのでこのページに残す必要がなく、
-		   global.css/このファイル下部の定義でそのまま効く。.save-row-deleteはラウンド21 21-H1で
-		   撤去済み)。 */
 
 		/* ダメージ計算カード化(UI刷新): 右カラム(#opponent-notes-section)の内容は
 		   「対戦相手メモ」から「ダメージ計算」カードに全面刷新した。行・列・詳細設定ダイアログは
@@ -451,12 +386,12 @@ const isOptedOut = optOutRemainingText !== "";
 
 		/* UI刷新: 左右2カラムレイアウト(docs/plan/ui_plan.md)。
 		   編集フォーム(左・固定幅)とダメージ計算カード(右・可変幅)を左右に並べる。
-		   閾値はもともと900pxだったが1200pxに引き上げた: 左の編集フォームは能力値行
-		   (種族値+スライダー+入力欄+実数値)の都合で最小幅が実測736px前後あり、
-		   grid-template-columnsの minmax(320px, 480px) は「コンテンツの最小幅が上限を
-		   超える場合はそちらが勝つ」ため、1024px幅では左トラックが736pxまで膨らんで
-		   右カラムが226pxに潰れ、ダメージ計算カードがページごと横スクロールしていた
-		   (実測で発覚)。2カラムにするだけの幅が無い環境では縦積みにする方が破綻しない。
+		   1200px未満では2カラムにしない: 左の編集フォームは能力値行(種族値+スライダー+
+		   入力欄+実数値)の都合で最小幅が実測736px前後あり、grid-template-columnsの
+		   minmax(320px, 480px) は「コンテンツの最小幅が上限を超える場合はそちらが勝つ」ため、
+		   1024px幅では左トラックが736pxまで膨らんで右カラムが226pxに潰れ、ダメージ計算カードが
+		   ページごと横スクロールしていた(実測で発覚)。2カラムにするだけの幅が無い環境では
+		   縦積みにする方が破綻しない。
 		   モバイル/中間幅では通常のブロック要素として上から下へ縦積みになる
 		   (グリッド自体を適用しないため、追加のメディアクエリなしで縦積みに戻る)。 */
 		.edit-layout-left, .edit-layout-right { min-width: 0; }
@@ -520,35 +455,26 @@ const isOptedOut = optOutRemainingText !== "";
 			}
 		}
 
-		/* UI刷新: 実数値の常時表示。性格補正は文字色で表現する
-		   (旧battle-assistant-svの表現を踏襲。上昇=赤系、下降=青系、補正なしは既定色のまま)。
-		   ラウンド3 A-7: #1d6fd1のハードコード(このページに3箇所)はダークで下降色3.30:1と
-		   WCAG AA未達だった一方、--color-danger直参照の上昇色もライトで2.81:1が未達という
-		   「両モードで片方ずつ落ちる鏡像」だったため、現在はglobal.cssの
-		   --color-stat-up/--color-stat-downに集約し、モードごとに値を持たせる(/box/index.astroのA-4と同値に統一)。
+		/* UI刷新: 実数値の常時表示。性格補正は文字色で表現する(上昇=赤系、下降=青系、
+		   補正なしは既定色のまま)。#1d6fd1のハードコードはダークで下降色3.30:1、
+		   --color-danger直参照の上昇色もライトで2.81:1と、両モードで片方ずつWCAG AA未達に
+		   なるため、global.cssの--color-stat-up/--color-stat-downに集約し、モードごとに
+		   値を持たせる(/box/index.astroと同値に統一)。
 		   is:global側(#opponent-notes-sectionの.damage-stat-value)からもこのカスタム
 		   プロパティを参照するが、Astroのスコープ属性はセレクタにのみ影響し、カスタム
 		   プロパティの値はDOM継承で下層のグローバル要素にも届くため問題なく効く。
-		   UI品質改善(帯構成への刷新)時には.edit-shellへ切り出していたが、複数画面で同じ値を
-		   使うためglobal.cssへ移した。マークアップのclass="edit-shell"は他の用途もあるため維持する。 */
-		/* ラウンド21ユーザー指示(21-G1)の残作業: ここにあった --select-arrow(light/dark)は
-		   src/styles/global.cssの:root/ダークメディアクエリへ昇格済み(エージェントP実装)。
-		   下の #edit-form select / #opponent-notes-section select(is:global側)の重複定義も
-		   同じくglobal.cssの共通selectルールに統合済みのため削除した。global.cssはAstroの
-		   スコープ機構を経由しない素のスタイルシートなので、#edit-form内の静的<select>にも
-		   #opponent-notes-section内でJSが動的生成する<select>にも同じ1つの定義で届く。
-		   3ページ(/box, /pokemon/[name], /box/[id])のselectが同じ見た目のままであることを
-		   実測して確認済み(このラウンドの報告参照)。 */
-		/* ラウンド3 B-11の積み残し: 未入力欄が「壊れたフォーム」に見えるという指摘への対応。
-		   placeholderが表示されている(=空欄)間は破線+透明背景にして「空きスロット」を
-		   能動的に表現する(入力中/フォーカス中は通常の実線に戻す。:not(:focus)で除外)。
-		   input:placeholder-shownはtextarea/inputにのみ有効(select非対応)。
-		   ⚠️ ラウンド24ユーザー指示(24-L3)によりこの判断の一部を撤回する: 「『テラスなし』の
-		   既定オプション自体が空欄相当の意味を持つため対象外でよい」としていたが、ユーザーから
-		   「テラスなし選択中も他の値と同じ文字色・同じ見た目で表示され、目立たない扱いになっていない」
-		   と明示的に指摘された。ラウンド25(25-L2)で#tera(<select>)自体は非表示になったため、
-		   同じ視覚言語(破線+透明背景+muted文字色)は新設の.tera-dropdown-button.is-tera-unselected
-		   (下の#edit-form .tera-dropdown-button定義参照)へ引き継いだ。 */
+		   マークアップのclass="edit-shell"は他の用途もあるため維持する。 */
+		/* select要素の矢印アイコン(--select-arrow)やスタイルはsrc/styles/global.cssの共通
+		   selectルールに統合済みで、このページには重複定義しない。global.cssはAstroのスコープ
+		   機構を経由しない素のスタイルシートなので、#edit-form内の静的<select>にも
+		   #opponent-notes-section内でJSが動的生成する<select>にも同じ1つの定義で届く。 */
+		/* 未入力欄は「壊れたフォーム」に見えないよう、placeholderが表示されている(=空欄)間は
+		   破線+透明背景にして「空きスロット」を能動的に表現する(入力中/フォーカス中は通常の
+		   実線に戻す。:not(:focus)で除外)。input:placeholder-shownはtextarea/inputにのみ
+		   有効(select非対応)。
+		   #tera(<select>)自体は非表示になっており、同じ視覚言語(破線+透明背景+muted文字色)は
+		   .tera-dropdown-button.is-tera-unselected(下の#edit-form .tera-dropdown-button定義参照)
+		   が引き継ぐ。 */
 		/* 左サイド(.panel-left/#edit-form)専用のscoped style一式(.stat-*・.top-block-*・
 		   .species-icon-box・.type-badge-*・.item-image-badge・.tera-dropdown-*・
 		   .move-type-icon・.memo-input 等)は構造分割ラウンド(フェーズ1)により
@@ -569,11 +495,6 @@ const isOptedOut = optOutRemainingText !== "";
 			.edit-layout-left {
 				height: 100%;
 			}
-			/* 元は `.edit-layout-left > form` / `.edit-layout-left > form > .panel` という、
-			   このページ(.edit-layout-left)とLeftPanel.astroが描画するform/.panelをまたぐ
-			   複合セレクタだったが、Astroのscoped styleはコンポーネントをまたいで効かないため
-			   (pitfalls.md参照)、構造分割ラウンド(フェーズ1)でLeftPanel.astro自身のscoped
-			   <style>(#edit-form/.panel-left セレクタ)へ書き換えて移設した(見た目は変えていない)。 */
 		}
 		/* .top-block-icon 以下、.tuning-button までの左サイド専用scoped styleは構造分割ラウンド
 		   (フェーズ1)で src/components/box-id/LeftPanel.astro へ移設した(見た目は一切変更していない)。 */
@@ -609,12 +530,10 @@ const isOptedOut = optOutRemainingText !== "";
 			    src/lib/box-id/left-panel.ts へ切り出した(見た目・ロジックは一切変更していない)。
 			    SSRで取得済みのpokemon(この分岐では非null)だけをpropsで渡す。 */}
 			<LeftPanel pokemon={pokemon} />
-			{/* UI改修依頼(モバイル、2026-08-07)「提案図のとおり、モバイルではセカンドバー以外の
-			    ヘッダーを一切置かない」対応。900px未満では共通トップバー(.app-topbar)を隠すため、
-			    そこに載っていた保存状態・非公開トグル・削除ボタンの移設先を育成タブ本文の最下部に
-			    用意する(ユーザー指示: 育成タブの下部へ移す)。実際に要素を差し込むのは
-			    src/lib/box-id/mobile-edit-tabs.ts(DOMごと移動させるのでイベントは張り直さない)。
-			    900px以上ではこの箱は空のまま display:none にする。 */}
+			{/* 900px未満では共通トップバー(.app-topbar)を隠すため、そこに載っていた保存状態・
+			    非公開トグル・削除ボタンの移設先を育成タブ本文の最下部に用意する。実際に要素を
+			    差し込むのは src/lib/box-id/mobile-edit-tabs.ts(DOMごと移動させるのでイベントは
+			    張り直さない)。900px以上ではこの箱は空のまま display:none にする。 */}
 			<div class="mobile-edit-actions" id="mobile-edit-actions"></div>
 			</div>
 
@@ -634,10 +553,10 @@ const isOptedOut = optOutRemainingText !== "";
 			<RightPanel />
 			</div>
 
-			{/* UI改修依頼(個体編集画面、2026-08-02)「耐久調整」機能のポップアップ本体。
-			    トップバーの#bulk-adjust-button(上のFragment slot="topbar-actions"参照)から
-			    開く。マークアップ・スタイルはBulkAdjustDialog.astro、ロジックは
-			    src/lib/box-id/bulk-adjust.tsに実装済み(このページ側はimportと配置のみ)。 */}
+			{/* 「耐久調整」機能のポップアップ本体。トップバーの#bulk-adjust-button
+			    (上のFragment slot="topbar-actions"参照)から開く。マークアップ・スタイルは
+			    BulkAdjustDialog.astro、ロジックはsrc/lib/box-id/bulk-adjust.tsに実装済み
+			    (このページ側はimportと配置のみ)。 */}
 			<BulkAdjustDialog />
 			<SpeedAdjustDialog pokemonId={pokemon.id} />
 			</>
@@ -651,20 +570,18 @@ const isOptedOut = optOutRemainingText !== "";
 	<datalist id="item-list"></datalist>
 	<script type="application/json" id="box-species-usage-data" set:html={JSON.stringify(speciesUsageByRegulation)} />
 
-	{/* UI改修依頼(モバイル、2026-08-07)「docs/ui_proposal/mobile/ の提案図のように、モバイル画面では
-	    指定されたセカンドバー以外のヘッダーを一切置かない」対応。提案図
-	    (ui_mobile_box_個体編集_*.png)はどれも画面上端がセカンドバーで、共通ヘッダー(アプリロゴ)も
-	    「← 戻る」も描かれていない。.app-topbar は AppLayout.astro 側の要素で、AppLayout自体は
-	    編集禁止(全ページに影響する)のため、既存の bodyClass="box-edit-page"(23-H1で導入)を使って
-	    このページだけを対象に is:global で隠す。AppLayoutのhideTopbar propは幅に関係なく描画自体を
-	    やめてしまうため、デスクトップのトップバーを残す今回の要件には使えない。
+	{/* 提案図(docs/ui_proposal/mobile/ の ui_mobile_box_個体編集_*.png)はどれも画面上端が
+	    セカンドバーで、共通ヘッダー(アプリロゴ)も「← 戻る」も描かれていない。.app-topbar は
+	    AppLayout.astro 側の要素で、AppLayout自体は編集禁止(全ページに影響する)のため、
+	    既存の bodyClass="box-edit-page" を使ってこのページだけを対象に is:global で隠す。
+	    AppLayoutのhideTopbar propは幅に関係なく描画自体をやめてしまうため、デスクトップの
+	    トップバーを残したいこのページでは使えない。
 	    ⚠️ トップバーに載っていた操作系(保存状態・耐久調整・すべて折りたたむ・非公開・削除)は
 	    このCSSで一緒に消える。消えたままだとモバイルから削除も非公開切り替えもできなくなるため、
 	    src/lib/box-id/mobile-edit-tabs.ts がDOMごとタブ本文側へ移設している(戻り先も保持済み)。 */}
 	<style is:global>
 		body.box-edit-page .app-topbar { display: none; }
-			/* UI改修依頼(モバイル、2026-08-09)「セカンドバーを画面上部へ戻す」。
-			   --topbar-height はトップバーの実測高さ(global.cssの:root)で、ポケモンプレビュー
+			/* --topbar-height はトップバーの実測高さ(global.cssの:root)で、ポケモンプレビュー
 			   (.pokemon-preview の position:sticky; top)や .edit-shell の高さ計算が
 			   これを見る。トップバーを消した以上0にしないと、本文が画面上端から一段浮いてしまう。
 			   --second-bar-height は画面上端にstickyで貼り付くセカンドバー

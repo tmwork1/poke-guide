@@ -1,32 +1,9 @@
 ---
-// すばやさ早見表(/speed-chart)本体のテンプレート(確定した設計のファイル分割表:
-// 「表全体のテンプレート(3列とも含む)」)。実データの取得・行の描画は一切ここでは行わず、
-// src/lib/speed-chart/chart-table.ts(<script>からimportして呼び出すだけ)に委譲する。
+// すばやさ早見表(/speed-chart)本体のテンプレート。
+// 実データの取得・行の描画は chart-table.ts に委譲する。
 // SSR側(index.astro)はレギュレーション一覧・初期レギュレーション・?owned=の有無だけを
-// このコンポーネントへ渡す。マスターデータ本体・採用率データ・埋め込みレコードは
-// index.astro が <script type="application/json"> で直接埋め込む(このコンポーネントの
-// 外側)ため、ここではdata-*属性だけを介してchart-table.tsへ橋渡しする。
-//
-// UI改修(2026-08-02 第3弾。ユーザー指示):
-//   1. 常設UI(レギュレーション選択・実数値ジャンプ)は共通トップバー(index.astro側が
-//      hideTopbarをやめてAppLayoutの<header class="app-topbar">を復活させる)へ移した。
-//      このコンポーネントはもう持たない(id="speed-chart-regulation-select"/
-//      "speed-chart-jump-input" はAppLayout側のトップバーに存在する)。
-//   2. 右パネル(.speed-chart-side)は個体調整専用のUIだけにする: OwnedPanel(個体情報)→
-//      「とりうるすばやさのみ」トグル。ハンバーガー・戻るリンクは
-//      共通トップバー復活により不要(id重複を避けるためこのファイルからは削除)。
-//      UI改修依頼(2026-08-02)「現在地へ戻るボタンを削除し、すばやさxxx表示自体をボタン化する」:
-//      旧#speed-chart-back-to-currentボタンはOwnedPanel.astroの「すばやさ xxx」表示
-//      (#speed-chart-owned-summary-value)がボタン化されて同じ役割を引き継いだため、
-//      このファイル内の記述からは外した(要素自体はDOM保持のままCSSで非表示。下記参照)。
-//   3. hasOwnedPanelがfalseのときは右パネル自体をレンダリングしない(空の帯を防ぐ)。
-//      その場合レイアウトは1カラムになる(data-has-owned-panel属性で分岐、:has()は使わない)。
-//   4. トップバーが復活しsticky(position: sticky; top: 0)で常に画面上端に残るため、
-//      右パネルのsticky位置は--topbar-height(global.cssが:rootと@mediaで公開)ぶん
-//      下げる。表のヘッダー行(.speed-chart-columns-header)は自明な列名のため廃止。
-//   5. 2列目(族・配分・倍率)は太字をやめ、文字サイズを1段上げる。
-//   6. 3列目の補正要因は、グループ単位ではなくポケモンのチップごとに中央揃えで表示する
-//      (chart-table.ts側が.speed-chart-chip-unitでチップと要因を1組にまとめて出す)。
+// 渡す。マスターデータ本体・採用率データ・埋め込みレコードは index.astro が
+// <script type="application/json"> で埋め込み、data-*属性で chart-table.ts へ橋渡しする。
 import OwnedPanel from './OwnedPanel.astro';
 
 interface Props {
@@ -45,32 +22,13 @@ const { regulation, ownedId, hasOwnedPanel, embedded = false } = Astro.props;
 	data-embedded={String(embedded)}
 >
 	<div class="speed-chart-layout">
-		{/* 右パネルは「個体調整専用のUI」だけ(要件): OwnedPanel(個体情報)→
-		    「現在地へ戻る」→「とりうるすばやさのみ」トグル。常設UI(レギュレーション・
-		    実数値ジャンプ)は共通トップバー(index.astro/AppLayout)に移ったのでここには置かない。
-		    hasOwnedPanelがfalseのとき(?owned=なし)は個体調整の対象が無いため、右パネル自体を
-		    レンダリングしない(空の帯が残るのを防ぐ。1200px以上のグリッド定義も
-		    data-has-owned-panel='true'の場合だけ効くようスコープしてある。下のstyle参照)。
-		    1200px以上で表の右に常設(sticky)、それ未満では表の上に積む(DOM順が
-		    パネル→表なので、狭幅ではメディアクエリ無しでそのまま上に来る)。
-		    2カラム化の閾値を900pxではなく1200pxにしているのは、サイドバー256px+
-		    右パネル分を引いた残りにこの表(4列)を入れると900px前後では列が潰れるため
-		    (pitfalls.md「左右2カラムの新規ページは最初から1200pxに揃える」)。 */}
+		{/* 右パネルは個体調整専用のUI。hasOwnedPanelがfalseのときはレンダリングしない。
+		    1200px以上で表の右に常設(sticky)、それ未満では表の上に積む。 */}
 		{hasOwnedPanel && (
 			<aside class="speed-chart-side panel panel-right">
 				<OwnedPanel hasOwnedPanel={hasOwnedPanel} ownedId={ownedId} />
-				{/* UI改修依頼(すばやさ早見表、2026-08-02)「現在地へ戻るボタンを削除し、
-				    すばやさxxx表示自体をボタン化して同じ動作を担わせる」: このボタンの機能は
-				    OwnedPanel.astroの「すばやさ xxx」表示(#speed-chart-owned-summary-value)へ
-				    移した。src/lib/speed-chart/chart-table.tsから引き続きid参照されている
-				    (pitfalls.md「要素を消す指示はDOMを残しCSSで見せない方針にする」)ため、
-				    要素自体は削除せずhidden属性で非表示にする(クリックハンドラの登録先も
-				    chart-table.ts側でこの新しいボタンへ切り替え済み)。 */}
-				{/* UI改修(2026-08-06): 全件表示トグルと移動操作はトップバー／サマリへ移設した。 */}
-				{/* UI改修(2026-08-02第4弾)要件3: 「とりうるすばやさのみ」(絞り込み)から
-				    「すべて表示」(展開)へ意味を反転させる。idは変えない(chart-table.tsが
-				    参照)。checkedを外し既定OFF=絞り込み表示のまま、ONで全件表示にする
-				    (checked/uncheckedの解釈反転はchart-table.ts側の担当)。 */}
+				{/* 「とりうるすばやさのみ」トグル。checked/uncheckedの解釈は
+				    chart-table.ts側で行う。 */}
 			</aside>
 		)}
 
@@ -81,9 +39,7 @@ const { regulation, ownedId, hasOwnedPanel, embedded = false } = Astro.props;
 		</div>
 
 		<div class="panel-content speed-chart-content">
-			{/* 要件C: 列見出し(実数値/族・配分・倍率/…)は自明なので廃止。表の1行目が
-			    直接来るため、詰まりすぎないよう.speed-chart-content側に上余白を持たせる
-			    (下のstyleブロック参照)。 */}
+			{/* 列見出しは廃止(自明なため)。上余白は.speed-chart-content側に持たせる。 */}
 			<p id="speed-chart-status" class="speed-chart-status">読み込み中…</p>
 			<div id="speed-chart-rows" class="speed-chart-rows" hidden>
 				<div id="speed-chart-rows-body"></div>
@@ -182,7 +138,7 @@ const { regulation, ownedId, hasOwnedPanel, embedded = false } = Astro.props;
 		cursor: grab;
 	}
 
-	/* 右パネル本体。個体調整専用のUI(OwnedPanel/現在地へ戻る/とりうるすばやさのみ)を縦に積む。 */
+	/* 右パネル本体。 */
 	.speed-chart-side {
 		display: flex;
 		flex-direction: column;
@@ -196,12 +152,7 @@ const { regulation, ownedId, hasOwnedPanel, embedded = false } = Astro.props;
 			border-bottom: 1px solid var(--color-border);
 		}
 	}
-	/* UI改修(2026-08-06): 右パネル末尾の操作を移設したため専用CSSも削除した。 */
-	/* UI改修依頼(すばやさ早見表、2026-08-02): hidden属性を確実に効かせるため、旧
-	   .speed-chart-side-button[hidden]ではdisplay:noneを明示していた。 */
-	/* トグルスイッチ本体は複数ページで使うためglobal.cssの共通定義を参照する。
-	   UI改修(2026-08-02第2弾)要件1: 「すばやさ上昇要因を表示」トグルは廃止し常に表示する
-	   ようにしたため、移設前に残っていたのは「とりうるすばやさのみ」だけだった。 */
+	/* トグルスイッチ本体は複数ページで使うためglobal.cssの共通定義を参照する。 */
 	/* 列構成は「実数値 / 族・配分・倍率 / ポケモン・補正要因」の3列。
 	   ?owned= 連携時のみ「調整」を4列目として足す。JS生成行(下の is:global 側)が
 	   この列幅を参照するよう、テンプレートをカスタムプロパティで1箇所に持つ
@@ -216,23 +167,16 @@ const { regulation, ownedId, hasOwnedPanel, embedded = false } = Astro.props;
 		color: var(--color-text-muted);
 		margin: var(--space-4) 0;
 	}
-	/* サイドバーと表の間に余白を設ける(/box/[id]の.box-content { padding: 0 var(--space-5); }
-	   と同種)。要件C: 列見出し(.speed-chart-columns-header)を廃止し表の1行目が直接来る
-	   ようになったため、上端が詰まりすぎないよう上方向にも余白を確保する
-	   (旧見出し行が持っていたpadding-top: var(--space-3)相当)。 */
+	/* サイドバーと表の間に余白。列見出し廃止に伴い、上方向にも余白を確保。 */
 	.speed-chart-content {
 		padding: var(--space-4) var(--space-5) 0;
 	}
-	/* 見た目修正1: このラッパーは共有クラス.panel-content(global.css)を持ち、
-	   本文の可読幅を1080pxに制限する前提が付いている。しかしこの表は「横に広いほど良い」
-	   (3列目のポケモンチップが幅で足切りされ「+N件」表示が多発する)ため、
-	   このページに限り上限を意図的に打ち消す。scoped styleは[data-astro-cid-*]付与により
-	   .panel-contentより詳細度で確実に勝つ(global.css自体は編集しない)。 */
+	/* 本文の可読幅制限を打ち消す(.panel-contentの1080pxを解除)。
+	   表は「横に広いほど良い」ため。 */
 	.speed-chart-content {
 		max-width: none;
 	}
-	/* 埋め込み時は、参考UIの「早見表 + 下部調整バー」にする。表だけをスクロール
-	   させ、個体の補正・ランク操作は常に下端に残す。 */
+	/* 埋め込み時は「早見表 + 下部調整バー」レイアウト。 */
 	.speed-chart-table[data-embedded='true'] {
 		height: 100%;
 		min-height: 0;

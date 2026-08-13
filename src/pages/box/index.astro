@@ -1,51 +1,34 @@
 ---
-// Phase C-2 → UI刷新(2026-07-25): 個体一覧ページ(ボックス)。サイトのホームでもある。
+// 個体一覧ページ(ボックス)。サイトのホームでもある。
 // docs/ui_proposal/Box.png のワイヤーフレーム(上部に検索/絞り込み/並べ替えの横一列ツールバー、
 // その下にカードグリッド。グリッド先頭セルは「追加」タイル)に準拠する。
 // ログイン時は GET /api/owned-pokemon から取得した一覧をクライアント側で描画する
 // (並び替え・タグフィルタ・文字列検索はいずれも初回取得後にクライアント側で完結させ、
 // 操作のたびに追加のAPI呼び出しを発生させない設計。育成データ管理計画.md §6.1が文字列検索の
 // クライアント側フィルタを明示的に許容しているため、他の絞り込みも同じ方針に揃えている)。
-// 未ログイン時の表示は Phase A-3 から変更しない(強制リダイレクトはしない)。
+// 未ログイン時は強制リダイレクトしない。
 //
-// UI品質改善 第4弾ラウンド4(2026-07-26 ユーザー直接指示、docs/plan/ui_plan.md「ラウンド4の要件」
-// 参照): カードを1辺およそ200pxの正方形に作り直す(旧312×401pxの約1/3の面積)。
-// ゲーム本編のボックス画面と同じ「スプライトのグリッド」に寄せ、一覧性(1画面に並ぶ枚数)を
-// 最優先にする。この方針に合わせて、ラウンド2/3で追加したタイプバッジ・テラスバッジ・
-// 性格表示・特性/持ち物/技の常時表示・努力値ミニバーは撤回し、カードには
-// 「公式絵 → 名前 → 実数値6値(性格による↑↓付き)」だけを残す(ユーザー指示の優先順どおり)。
-// 削った情報(特性・持ち物・テラスタイプ・技)は検索対象からは外さず(matchesSearchは変更しない)、
-// カード(<a>)の title 属性(ネイティブのホバーツールチップ)経由で参照できるようにする。
-//
-// ラウンド5(2026-07-26 ユーザー指示第2弾、ui_plan.md「ラウンド5の要件」参照): 「アイテム・技を
-// 表示する」との指示に従い、正方形・1/3面積の方針は維持したまま持ち物と技をカードに復元する。
-// 優先順位(公式絵>名前>実数値6値>持ち物>技)を守りつつ、
-// - 持ち物は公式絵の右下に重ねる小さな丸バッジ(画像のみ)にして縦方向の予算を消費しない形にした
-//   (実測でアイテム名まで文字表示すると「こだわりハチマキ」等の長い値が210px前後の正方形には
-//   収まらなかったため画像のみを採用。名前はカードtitleツールチップに残す)。
-// - 技は実数値グリッドの下に2×2グリッドで小さく表示し、未設定スロットは何も出さない
-//   (ラウンド3で「-」を4つ並べると壊れて見えるという指摘が出たため、空文字列はfilterで除外する)。
-// カードは 185px→210px 正方形へわずかに拡大(1620px前後の実効グリッド幅で8列→7列になる)。
-//
-// ラウンド27(2026-07-29 ユーザー指示第12弾、docs/plan/ui_rounds/round-27.md「ボックス画面」節
-// 参照): 27-B1 アイテム画像を公式絵への重ね配置(.card-badge-row)から分離し、.card-body内の
-// 名前行と技グリッドの間の新しい行(.card-item-row)へ移動。画像の右にアイテム名を表示する。
-// 27-B2 テラスバッジは.card-badge-rowに残るが、アイコンと被らない程度に右へ深く寄せる。
-// 27-B3 タグ絞り込みUI(複数タグ選択、旧activeTags/renderTagFilters/matchesTags)を廃止し、
-// 「お気に入りのみ表示」の単一トグル(favoriteFilterToggle/matchesFavorite)に置き換えた
-// (タグ自体のデータ・保存経路は変更しない。一覧の絞り込みUIだけを対象にした縮小)。
-// 27-B4 ピン留め(お気に入り)時のカード全体のハイライト(.is-pinnedのborder/background)を
-// 廃止し、★/☆マーク表示だけを残す。
+// カードはおよそ210px四方の正方形(ゲーム本編のボックス画面と同じ「スプライトのグリッド」に
+// 寄せ、一覧性を優先する)。表示は「公式絵→名前→実数値6値(性格による↑↓付き)→持ち物→技」の
+// 優先順。持ち物は公式絵の右下に重ねる小さな丸バッジ(画像のみ。アイテム名まで文字表示すると
+// 「こだわりハチマキ」等の長い値が正方形に収まらないため、名前はカードtitleツールチップに
+// 回す)。技は実数値グリッドの下に2×2グリッドで表示し、未設定スロットは何も出さない
+// (「-」を4つ並べると壊れて見えるため、空文字列はfilterで除外する)。
+// タイプバッジ・テラスバッジ・性格表示・特性の常時表示・努力値ミニバーはカードに出さないが、
+// 検索対象からは外さない(matchesSearchはタイプ・特性・持ち物・テラスタイプ・技を含む)。
+// アイテム画像は公式絵への重ね配置ではなく.card-item-row(名前行と技グリッドの間)に分離し、
+// 画像の右にアイテム名を表示する。テラスバッジは.card-badge-rowに残り、アイコンと被らない
+// 程度に右へ寄せる。
+// 絞り込みUIは「お気に入りのみ表示」の単一トグル(favoriteFilterToggle/matchesFavorite)のみ
+// (タグ自体のデータ・保存経路には触れない)。ピン留め(お気に入り)はカード全体のハイライトは
+// せず、★/☆マーク表示だけで示す。
 export const prerender = false;
 
 import AppLayout from '../../layouts/AppLayout.astro';
 import '../../styles/box-page.css';
-// 🔴 UI改修依頼(ボックス画面、2026-08-01)「レギュレーションによるフィルタを追加」。
-// 候補は jpoke 由来の一覧(src/lib/regulations.ts)。画面側でレギュレーション名を
-// ハードコードしない。
-// 2026-08-01追記(同日ユーザー指示「選択肢を新しい順に並べる」): REGULATIONS(定義順)ではなく
-// Coordinatorがsrc/lib/regulations.tsに追加したREGULATIONS_NEWEST_FIRST(新しい順の配列)を使う。
-// regulations.ts自体はこのファイルの担当外のため編集しない。
+// レギュレーションの選択肢は jpoke 由来の一覧(src/lib/regulations.ts)。画面側で
+// レギュレーション名をハードコードしない。定義順のREGULATIONSではなく、新しい順の
+// REGULATIONS_NEWEST_FIRSTを使う。
 import { REGULATIONS_NEWEST_FIRST } from '../../lib/regulations';
 
 const user = Astro.locals.user;
@@ -58,18 +41,15 @@ const user = Astro.locals.user;
 				<Fragment>
 					<h1 class="box-page-title">ボックス</h1>
 					<div class="panel panel-top second-bar second-bar--toolbar floating-list-toolbar" id="box-toolbar">
-						{/* UI改修依頼(ボックス画面、2026-08-02)「件数バッジ(#pokemon-count-badge)を
-						    現在の右端から検索ボックスの左へ移動する」。旧topbar-statusスロットの
-						    件数バッジ(旧位置は並べ替えの右、ツールバー末尾)をここ(ハンバーガー
-						    ボタンの直後・検索ボックスの直前)へ移動した。id/classは変更しない
+						{/* 件数バッジ(#pokemon-count-badge)。id/classは変更しない
 						    (<script>がgetElementByIdで参照する)。 */}
 						<div class="toolbar-item toolbar-count">
 							<span class="badge tnum" id="pokemon-count-badge" hidden>0</span>
 						</div>
 						<div class="toolbar-item toolbar-search">
-							{/* ラウンド42 42-B1(ユーザー指示)により可視の「検索」ラベルを削除。
-							    このプロジェクトで確立済みの「ラベル要素を廃止しplaceholder+aria-labelに
-							    統一」パターンに合わせ、アクセシビリティ上のラベルはaria-labelで維持する。 */}
+							{/* 可視の「検索」ラベルは置かない。このプロジェクトで確立済みの
+							    「ラベル要素を廃止しplaceholder+aria-labelに統一」パターンに合わせ、
+							    アクセシビリティ上のラベルはaria-labelで維持する。 */}
 							<div class="search-input-wrap">
 								<svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 									<circle cx="11" cy="11" r="7" />
@@ -87,10 +67,8 @@ const user = Astro.locals.user;
 						</div>
 
 						<div class="toolbar-item toolbar-favorite">
-							{/* ラウンド27 27-B3(ユーザー指示)によりタグ絞り込みUI(#tag-filter-toolbar、
-							    複数タグ選択+すべて一致)を廃止し、「お気に入りのみ表示」の単一トグルに
-							    置き換えた。データ側のtagsフィールド・保存経路は変更しない
-							    (削除するのは一覧画面の絞り込みUIだけ)。 */}
+							{/* 絞り込みUIは「お気に入りのみ表示」の単一トグルのみ(複数タグ選択のUIは
+							    持たない)。データ側のtagsフィールド・保存経路には触れない。 */}
 							<button
 								type="button"
 								id="favorite-filter-toggle"
@@ -102,12 +80,9 @@ const user = Astro.locals.user;
 							</button>
 						</div>
 
-						{/* 🔴 UI改修依頼(ボックス画面、2026-08-01)「レギュレーションによるフィルタを追加」。
-						    お気に入りトグルと並べ替えの間に置く(左から 検索 → お気に入り →
+						{/* お気に入りトグルと並べ替えの間に置く(左から 検索 → お気に入り →
 						    レギュレーション → 並べ替え)。既存の絞り込み(検索・お気に入り)と同じく
-						    サーバーには問い合わせず、取得済みの一覧をクライアント側で絞る
-						    (このページ冒頭のコメント「並び替え・タグフィルタ・文字列検索はいずれも
-						    初回取得後にクライアント側で完結させる」方針に揃える)。
+						    サーバーには問い合わせず、取得済みの一覧をクライアント側で絞る。
 						    可視ラベルをselectと関連付け、選択肢は具体的なレギュレーションと
 						    「すべて」に絞る。 */}
 						<div class="toolbar-item toolbar-regulation">
@@ -160,8 +135,8 @@ const user = Astro.locals.user;
 							<p class="empty-state-hint" hidden></p>
 						</div>
 
-						{/* UI品質改善ラウンド2(B-9): 検索/絞り込みの結果が0件のときの案内。登録自体は
-						    あるので空状態(#empty-message)とはメッセージを変え、見た目だけ揃える。 */}
+						{/* 検索/絞り込みの結果が0件のときの案内。登録自体はあるので空状態
+						    (#empty-message)とはメッセージを変え、見た目だけ揃える。 */}
 						<div id="no-match-message" class="empty-state" hidden>
 							<p class="empty-state-icon" aria-hidden="true">🔍</p>
 							<p class="empty-state-title">条件に一致する個体がありません</p>
@@ -232,11 +207,7 @@ const user = Astro.locals.user;
 			const sortDirToggleLabel = sortDirToggle.querySelector<HTMLElement>(".sort-dir-toggle-label");
 			if (!sortDirToggleLabel) throw new Error("要素が見つかりません: .sort-dir-toggle-label");
 			const searchInput = el<HTMLInputElement>("search-input");
-			// ラウンド27 27-B3(ユーザー指示)によりタグ絞り込みUI(tagFilterToolbar/
-			// tagFilterList、複数タグ選択)を廃止し、「お気に入りのみ表示」の単一トグルに
-			// 置き換えた。
 			const favoriteFilterToggle = el<HTMLButtonElement>("favorite-filter-toggle");
-			// 🔴 UI改修依頼(ボックス画面、2026-08-01)「レギュレーションによるフィルタを追加」。
 			const regulationFilter = el<HTMLSelectElement>("regulation-filter");
 			const addButton = el<HTMLButtonElement>("add-pokemon-button");
 			// textContentではなくinnerHTMLで保存する。addButtonは「＋」の大きいアイコンと
@@ -246,13 +217,10 @@ const user = Astro.locals.user;
 
 			let allPokemon: OwnedPokemon[] = [];
 			let sortOrder: "asc" | "desc" = "desc";
-			// ラウンド27 27-B3: 旧activeTags(複数タグの絞り込み状態)を単一boolean(お気に入りの
-			// みを表示するか)に置き換える。
 			let favoriteOnly = false;
 
-			// ラウンド4: カードの表示からタイプ・特性・持ち物・テラスタイプ・技を外したが、
-			// 検索対象はそれらすべてを引き続き含める(「表示されない項目も検索できる」ことを
-			// 明示的に要求されているため、この関数はラウンド2時点から変更しない)。
+			// カードの表示にはタイプ・特性・持ち物・テラスタイプ・技を出さないが、検索対象は
+			// それらすべてを引き続き含める(表示されない項目も検索できるようにする)。
 			function matchesSearch(p: OwnedPokemon, term: string): boolean {
 				if (!term) return true;
 				const haystack = [
@@ -271,13 +239,11 @@ const user = Astro.locals.user;
 					.every((token) => kanaIncludes(haystack, token));
 			}
 
-			// ラウンド27 27-B3(ユーザー指示): 「しぼりこみ条件はお気に入りだけにする」。
 			// お気に入り=is_pinnedと同義(pinButtonの★/☆と同じデータ)。
 			function matchesFavorite(p: OwnedPokemon): boolean {
 				return !favoriteOnly || p.is_pinned;
 			}
 
-			// 🔴 UI改修依頼(ボックス画面、2026-08-01)「レギュレーションによるフィルタを追加」。
 			// ""=すべて / 選択肢にある値=そのレギュレーションの個体だけ。
 			// 廃止済みの値や未知の値は、URLクエリ等から渡されても「すべて」として扱う。
 			function matchesRegulation(p: OwnedPokemon): boolean {
@@ -326,8 +292,8 @@ const user = Astro.locals.user;
 			// UI刷新: カード全体を<a>にして丸ごとクリック可能にする(要件3、遷移先は/box/{id})。
 			// ピン留め/削除のアイコンボタンは<a>の中の<button>として置くが、クリック時は必ず
 			// preventDefault/stopPropagationしてカード本体の遷移と競合しないようにする。
-			// ラウンド4: カードは「公式絵→名前→実数値6値」だけの正方形にする。撤回した
-			// タイプ・性格・特性・持ち物・テラスタイプ・技はtitle属性(ホバーツールチップ)に回す。
+			// カード本体は「公式絵→名前→実数値6値→持ち物→技」で、タイプ・性格・特性は
+			// title属性(ホバーツールチップ)で参照する。
 			function renderCard(p: OwnedPokemon): HTMLAnchorElement {
 				const card = document.createElement("a");
 				card.href = `/box/${encodeURIComponent(p.id)}`;
@@ -351,10 +317,9 @@ const user = Astro.locals.user;
 				);
 				const sorted = sortPokemon(filtered);
 				listRoot.innerHTML = "";
-				// UI刷新(要件10)→ラウンド2(B-9): 「本当に0件」と「絞り込みで0件」を区別する。
-				// 以前は絞り込み0件のメッセージをグリッド内(display:contents経由)に差し込んでいて
-				// 縮んだ追加タイルの右横に宙に浮いて見えたため、グリッドの外の#no-match-messageへ
-				// 切り出し、#empty-messageと同じ.empty-stateの見た目に揃える。
+				// 「本当に0件」と「絞り込みで0件」を区別する。#no-match-messageはグリッドの外に
+				// 置く(グリッド内だと縮んだ追加タイルの右横に宙に浮いて見えるため)。
+				// #empty-messageと同じ.empty-stateの見た目に揃える。
 				const isTrulyEmpty = allPokemon.length === 0;
 				emptyMessage.hidden = !isTrulyEmpty;
 				noMatchMessage.hidden = isTrulyEmpty || sorted.length > 0;
@@ -367,14 +332,11 @@ const user = Astro.locals.user;
 
 			async function togglePin(p: OwnedPokemon): Promise<void> {
 				try {
-					// 41-B2(ユーザー指示第23弾、round-41.md): 従来はPUT(全項目上書き契約、§6.2)を
-					// 経由していたため、サーバ側(updateOwnedPokemon)が無条件でupdated_atを
-					// 現在時刻へ進めてしまい、「更新順」表示中にお気に入りをトグルするとトグルした
-					// 個体自身の表示順位置まで動いてしまっていた(round-40.mdの40-B1はこれを
-					// 「要件で明示的に許容」としていたが、round-41.mdの41-B2はこの判断を撤回した)。
 					// is_pinnedだけを更新しupdated_atに触れない専用のPATCH経路
-					// (updatePinStatus、src/lib/owned-pokemon.ts)を呼ぶことで、「更新順」表示中の
-					// トグル操作がトグルした個体自身を含めどの個体の位置も動かさないようにする。
+					// (updatePinStatus、src/lib/owned-pokemon.ts)を呼ぶ。PUT(全項目上書き)経由だと
+					// サーバ側が無条件でupdated_atを現在時刻へ進めてしまい、「更新順」表示中に
+					// お気に入りをトグルした個体が自分自身の表示順位置まで動いてしまうため、
+					// この専用経路でどの個体の位置も動かさないようにする。
 					const res = await fetch(`/api/owned-pokemon/${encodeURIComponent(p.id)}`, {
 						method: "PATCH",
 						credentials: "same-origin",

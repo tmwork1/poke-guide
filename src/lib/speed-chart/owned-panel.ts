@@ -1,18 +1,15 @@
 // すばやさ早見表(/speed-chart)「この個体」セルのレンダラ。
 //
-// R-13(確定した設計): 「この個体」列は独立したカラムではなく、ChartTable側(chart-table.ts)が
+// R-13: 「この個体」列は独立したカラムではなく、ChartTable側(chart-table.ts)が
 // 1行ぶん組み立てるたびに呼び出す「セルのレンダラ」。このファイルの責務(ファイル分割表どおり):
 //   - その個体で実現可能なすばやさ実数値の列挙(素の性格3種×S努力値0〜32×持ち物2種の直積。
 //     ランク上昇は含めない。P1確定仕様)
-//   - 「この個体」セルの3状態描画(R-7: 現在[クリック不可] / [性格 努力値N]ボタン / −。
-//     ボタン下の内訳テキストはUI改修2026-08-02第3弾要件3で廃止した。「現在」マーカーの矢印は
-//     UI改修2026-08-02第4弾要件1で廃止した)
+//   - 「この個体」セルの3状態描画(R-7: 現在[クリック不可] / [性格 努力値N]ボタン / −)
 //   - クリック時の PUT /api/owned-pokemon/:id(R-1: 全項目上書き契約を厳守。埋め込まれた
 //     レコード全体をspreadしてから nature/evs/item_name の3項目だけ上書きする)
 //   - 保存失敗時の表示(R-10: エラー文言・現在マーカーを動かさない・候補を再クリック可能に戻す)
-//   - 調整ボタンが提案する性格の、現在の性格に対する「近さ」の調整(UI改修2026-08-02第4弾
-//     要件3。selectMinimalCostSpeedOption()が返す性格をこのファイル側で置き換える。詳細は
-//     pickReplacementNature()のコメント参照)
+//   - 調整ボタンが提案する性格の、現在の性格に対する「近さ」の調整(selectMinimalCostSpeedOption()
+//     が返す性格をこのファイル側で置き換える。詳細は pickReplacementNature()のコメント参照)
 //
 // 共有状態の所有(R-12): 「個体の現在のS実数値」はこのモジュールが所有する。chart-table.ts へは
 // document 上の CustomEvent(OWNED_CURRENT_VALUE_EVENT)で一方向に通知するだけで、chart-table.ts
@@ -44,9 +41,9 @@ export interface OwnedCurrentValueEventDetail {
   navigate?: boolean;
 }
 
-// 追加改修(2026-08-01第2弾)要件4・R-12更新: 「個体が到達可能な実数値の集合」はこのモジュールが
-// 所有し、CustomEventでchart-table.tsへ一方向に通知する(panel→table)。chart-table.tsはこれを
-// 受けて行の表示/非表示を切り替えるだけで、combos自体(このモジュールの内部状態)には触れない。
+// 「個体が到達可能な実数値の集合」はこのモジュールが所有し、CustomEventで
+// chart-table.tsへ一方向に通知する(panel→table)。chart-table.tsはこれを受けて
+// 行の表示/非表示を切り替えるだけで、combos自体(このモジュールの内部状態)には触れない。
 export const OWNED_REACHABLE_VALUES_EVENT = 'speed-chart:owned-reachable-values-changed';
 
 export interface OwnedReachableValuesEventDetail {
@@ -58,7 +55,7 @@ export interface OwnedPanelContext {
   ownedRecord: OwnedPokemonRecord;
   baseSpeed: number;
   /**
-   * こだわりスカーフの倍率補正。メガ種族(R-4)、またはそのレギュレーションでスカーフが
+   * こだわりスカーフの倍率補正。メガ種族またはそのレギュレーションでスカーフが
    * 使えない場合は呼び出し側(chart-table.ts)が null を渡す。
    */
   scarfModifier: SpeedModifierMultiplier | null;
@@ -74,8 +71,7 @@ export interface OwnedPanelContext {
   /**
    * 個体サマリのアイコン(1段目)用のスプライトID(PokeAPIの画像ID)。
    * chart-table.ts が imageIdByName.get(ownedRecord.species_name) ?? null を渡す。
-   * フォルム名がマスターデータに見つからない等でnullのときは、アイコン段は
-   * hiddenのまま(何も表示しない。UI改修2026-08-02第3弾要件1)。
+   * フォルム名がマスターデータに見つからない等でnullのときはアイコン段は表示しない。
    */
   spriteImageId: number | null;
 }

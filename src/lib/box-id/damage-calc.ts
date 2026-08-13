@@ -235,7 +235,6 @@ function cycleColumnNature(row: DamageRowState, key: StatKey): void {
 // 上のファイル冒頭コメント参照)。
 export const DAMAGE_WEATHERS = [
 	{ value: "はれ", label: "はれ", icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4.5"/><line x1="12" y1="1.5" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22.5"/><line x1="4" y1="4" x2="5.8" y2="5.8"/><line x1="18.2" y1="18.2" x2="20" y2="20"/><line x1="1.5" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22.5" y2="12"/><line x1="4" y1="20" x2="5.8" y2="18.2"/><line x1="18.2" y1="5.8" x2="20" y2="4"/></svg>` },
-	// 今回のUI改修: 「あめ」は雲ではなく傘で即座に識別できるよう、同じ18px・線幅のSVGに揃える。
 	{ value: "あめ", label: "あめ", icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 0 1 18 0Z"/><path d="M12 12v6.5a2.5 2.5 0 0 0 5 0"/><path d="M12 3V1.5"/></svg>` },
 	{ value: "すなあらし", label: "すなあらし", icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 5c4 1.6 9 1.6 13 .3s4.5-1 4 .5"/><path d="M6 9.5c3 1.2 6.5 1.2 9.5 0s3.5-.9 3.7.2"/><path d="M8.5 14c2 1 4.2 1 6 0s2.6-.8 2.7.2"/><path d="M10.5 18.3c1.2.6 2.4.6 3.4 0"/><path d="M12 21.5v.8"/></svg>` },
 	{ value: "ゆき", label: "ゆき", icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="2" x2="12" y2="22"/><line x1="4" y1="7" x2="20" y2="17"/><line x1="4" y1="17" x2="20" y2="7"/></svg>` },
@@ -255,10 +254,9 @@ export const DAMAGE_AILMENTS = [
 	{ value: "ねむり", label: "ねむり" },
 	{ value: "こおり", label: "こおり" },
 ];
-// UI改善タスク(揮発状態のホバー説明追加): 各項目のtitleはvendor/jpoke実装
-// (src/jpoke/data/volatile.py・src/jpoke/handlers/volatile.py)を確認して書いた説明文。
-// 数値(割合・倍率)を変更する場合は必ずjpoke skill(.claude/skills/jpoke)経由で
-// 実装を確認し直すこと(ダメージ計算に影響する数値のため誤記厳禁)。
+// 各項目のtitleはvendor/jpoke実装(src/jpoke/data/volatile.py・src/jpoke/handlers/volatile.py)
+// を確認して書いた説明文。数値(割合・倍率)を変更する場合は必ずjpoke skill(.claude/skills/jpoke)
+// 経由で実装を確認し直すこと(ダメージ計算に影響する数値のため誤記厳禁)。
 export const DAMAGE_ATTACKER_VOLATILES = [
 	{ value: "じゅうでん", label: "じゅうでん", title: "次に出すでんきタイプの技の威力が2倍になる(技を1回使うと解除される)" },
 ];
@@ -342,11 +340,10 @@ function isOpponentBuildUnset(row: DamageRowState): boolean {
 	);
 }
 
-// UI改修依頼(ダメージ計算カード、2026-08-04)項目5「防御時の技候補を相手の技の使用率順に
-// 表示する」。box/[id].astro(SSR)がDamageCalcSection.astro経由で埋め込んだJSON
+// box/[id].astro(SSR)がDamageCalcSection.astro経由で埋め込んだJSON
 // (<script type="application/json" id="damage-calc-move-adoption-data">)を読むヘルパー。
-// src/lib/speed-chart/chart-table.tsのreadEmbeddedJson(小さな汎用ヘルパー)と同じロジックを
-// コピーする(importできないファイルのため自前実装。著作権上の問題は無い)。
+// src/lib/speed-chart/chart-table.tsのreadEmbeddedJson(小さな汎用ヘルパー)と同じロジックだが、
+// importできないファイルのため自前実装している。
 function readEmbeddedJson<T>(elementId: string): T | null {
 	const el = document.getElementById(elementId);
 	if (!el || !el.textContent) return null;
@@ -364,20 +361,12 @@ const moveAdoptionBySpecies =
 
 const opponentNotesSection = document.getElementById("opponent-notes-section");
 if (opponentNotesSection) {
-	// ラウンド18ユーザー指示の実装当時、この値は左パネルの `const form` の
-	// data-id属性(form.dataset.id)から取っていたが、#edit-formがLeftPanel.astroへ
-	// 移設されたため(構造分割ラウンド・フェーズ1)、この<script>から直接
-	// #opponent-notes-sectionのdata-owned-pokemon-id属性(値は同じくpokemon.id、
-	// テンプレート参照)を読む形に書き換えた。値は変わらない。
 	const ownedPokemonId = opponentNotesSection.dataset.ownedPokemonId ?? "";
 
-	// UI改修依頼(ダメージ計算カード、2026-08-01)「レギュレーションに応じてテラスタル選択
-	// ボックスの表示ON/OFFを切り替える。左パネルの#regulationを変えたらダメージカード側も
-	// 追随する」。#regulation(左パネル、LeftPanel.astro/left-panel.ts。このラウンドの
-	// 編集対象外ファイル)はこのファイルからは値を読むだけに留め、既存のchangeリスナー
-	// (left-panel.ts側でsyncTeraFieldVisibility/syncRegulationPlaceholder等を呼んでいる)は
-	// 一切変更しない。ここでは同じ要素へ**別のリスナーを追加**するだけ(DOM標準のイベント
-	// 購読は同一要素に何個でも独立して登録できる)なので、left-panel.tsを編集せずに追随できる。
+	// #regulation(LeftPanel.astro/left-panel.ts)はこのファイルからは値を読むだけに留め、
+	// left-panel.ts側の既存changeリスナー(syncTeraFieldVisibility/syncRegulationPlaceholder等)は
+	// 変更しない。同じ要素へ別のリスナーを追加するだけ(DOM標準のイベント購読は同一要素に
+	// 何個でも独立して登録できる)で追随できる。
 	const regulationSelectEl = document.getElementById("regulation") as HTMLSelectElement | null;
 	function currentIndividualRegulation(): string | null {
 		if (!regulationSelectEl) return null;
@@ -388,13 +377,11 @@ if (opponentNotesSection) {
 	// 下方参照)への参照。DamageRowState自体にフィールドを追加せず(shared-core.tsは編集
 	// 対象外ファイルのため)、rowCollapseHandles等と同じくWeakMapで対応付ける。
 	const rowTeraFieldWraps = new WeakMap<DamageRowState, HTMLElement>();
-	// UI改修依頼(ダメージ計算カード、2026-08-02)「圧縮表示中も、展開表示と同様にレギュレーションに
-	// 応じてテラスタルの表示・非表示を自動判断する」。圧縮表示側のテラス関連表示
-	// (相手のテラスタイプ名/アイコン、技列の「攻撃側テラスタル」「防御側テラスタル」チップ)は
-	// renderRow()内のrefreshTypeBadge()/refreshCollapsedTechniques()がそれぞれ持っており、
-	// どちらもrow.teraType等が変わった時にしか呼ばれない(=regulation変更単独では再実行されない)。
-	// rowTeraFieldWraps同様、行ごとに「圧縮表示のテラス関連表示を最新化する関数」をWeakMapへ
-	// 登録しておき、syncTeraFieldVisibility()から展開側の表示切り替えとまとめて呼び直す。
+	// 圧縮表示側のテラス関連表示(相手のテラスタイプ名/アイコン、技列の「攻撃側テラスタル」
+	// 「防御側テラスタル」チップ)はrenderRow()内のrefreshTypeBadge()/refreshCollapsedTechniques()が
+	// 持っているが、どちらもrow.teraType等が変わった時にしか呼ばれない(regulation変更単独では
+	// 再実行されない)。rowTeraFieldWraps同様、行ごとに「圧縮表示のテラス関連表示を最新化する関数」を
+	// WeakMapへ登録しておき、syncTeraFieldVisibility()から展開側の表示切り替えとまとめて呼び直す。
 	const rowCollapsedTeraRefreshers = new WeakMap<DamageRowState, () => void>();
 	function syncTeraFieldVisibility(): void {
 		const show = isTerastalRegulation(currentIndividualRegulation());
@@ -406,13 +393,12 @@ if (opponentNotesSection) {
 	}
 	regulationSelectEl?.addEventListener("change", syncTeraFieldVisibility);
 
-	// 構造分割ラウンド(フェーズ1): shared-core.tsのscheduleRowSave/scheduleRowCalc/
-	// refreshRowConditionChips/renderDetailPanel/selectColumnは、このブロック内で
-	// 下に定義するsetRowSaveStatus/saveRow/recalcRow/renderConditionChipsInto/
-	// renderDetailPanelEmpty/renderColumnLevelDetailPanel/openDetailPanelOverlayIfNarrow
-	// を呼ぶ(元は同じクロージャスコープの兄弟関数を直接参照していた)。関数宣言は
-	// このブロック内でホイストされるため、実際に定義される行より前のこの位置で
-	// 登録しても問題ない(呼び出しは実際にユーザー操作等が起きた後になる)。
+	// shared-core.tsのscheduleRowSave/scheduleRowCalc/refreshRowConditionChips/renderDetailPanel/
+	// selectColumnは、このブロック内で下に定義するsetRowSaveStatus/saveRow/recalcRow/
+	// renderConditionChipsInto/renderDetailPanelEmpty/renderColumnLevelDetailPanel/
+	// openDetailPanelOverlayIfNarrowを呼ぶ。関数宣言はこのブロック内でホイストされるため、
+	// 実際に定義される行より前のこの位置で登録しても問題ない(呼び出しは実際にユーザー操作等が
+	// 起きた後になる)。
 	registerDamageCalcBridge({
 		recalcRow: (row) => recalcRow(row),
 		saveRow: (row) => saveRow(row),
@@ -434,24 +420,20 @@ if (opponentNotesSection) {
 			openDetailPanelOverlayIfNarrow();
 		},
 	});
-	// 構造分割ラウンド(フェーズ2): 右サイド(詳細設定サイドバー)専用のDOM参照・
-	// イベント登録・初期空状態描画は right-panel.ts へ移設した。元は同じクロージャ内で
-	// モジュールスコープの const として実行されていたが(下のrp_block参照)、ファイルを
-	// 分けたことで right-panel.ts 側は #damage-detail-panel 等が必ず存在する
+	// 右サイド(詳細設定サイドバー)専用のDOM参照・イベント登録・初期空状態描画は
+	// right-panel.ts へ分離している。right-panel.ts側は#damage-detail-panel等が必ず存在する
 	// (=opponentNotesSectionが存在する)ことを保証できないため、initRightPanel()という
 	// 明示的な初期化関数に包み、ここ(#opponent-notes-sectionが存在すると判明した直後)から
-	// 1回だけ呼ぶ形にした。呼び出し順序・実行内容はロジック上一切変えていない(元のファイルで
-	// 実行されていた「DOM取得→イベント登録→初期renderDetailPanelEmpty()呼び出し」を
-	// そのまま関数化しただけ)。
+	// 1回だけ呼ぶ。
 	initRightPanel();
 
-	// ラウンド17指摘(B-1): ダメージ計算カードは行(相手)ごとに独立して自動保存されるため、
-	// カード自身のfooter(失敗時のみ表示)は画面外にスクロールすると見えなくなる。
-	// AppLayoutのトップバー(position:sticky)は常時可視なので、失敗している行数だけを
-	// ここに出す(setRowSaveStatus/deleteRowの呼び出し箇所からupdateOpponentNotesFailure
-	// Alert()を呼ぶ。rowsは下方で `let rows: DamageRowState[] = []` として宣言される変数を
-	// 参照するが、この関数は実際に保存イベントが起きた時点で初めて呼ばれるため、
-	// スクリプト初期化順の問題は無い)。
+	// ダメージ計算カードは行(相手)ごとに独立して自動保存されるため、カード自身のfooter
+	// (失敗時のみ表示)は画面外にスクロールすると見えなくなる。AppLayoutのトップバー
+	// (position:sticky)は常時可視なので、失敗している行数だけをここに出す
+	// (setRowSaveStatus/deleteRowの呼び出し箇所からupdateOpponentNotesFailureAlert()を呼ぶ。
+	// rowsは下方で `let rows: DamageRowState[] = []` として宣言される変数を参照するが、
+	// この関数は実際に保存イベントが起きた時点で初めて呼ばれるため、スクリプト初期化順の
+	// 問題は無い)。
 	const opponentNotesSaveAlertEl = document.getElementById("opponent-notes-save-alert");
 	function updateOpponentNotesFailureAlert(): void {
 		if (!opponentNotesSaveAlertEl) return;
@@ -465,47 +447,21 @@ if (opponentNotesSection) {
 		}
 	}
 
-	// UI刷新: 相手ビルドselect用。TERA_TYPESはこの<script>タグ冒頭でsrc/lib/tera-types.tsから
-	// importしたものをそのまま使う(ラウンド23の22-B-1でローカル複製を解消した)。
-	// ラウンド4ユーザー指示により性格の<select>(NATURES一覧)は廃止した
-	// (努力値/実数値グリッドのH/A/B/C/D/S見出しクリックへ置き換え。左パネルと同じ
-	// natureNameFromBoosts/NATURE_STAT_MODIFIERSを使う)。
-	// 天候/地形の選択肢。src/pages/damage-calc/index.astro の WEATHERS/TERRAINSと
-	// 同じ選択肢で同期させること(jpoke側の定義が正)。ただし、ラウンド11ユーザー指示
-	// (2026-07-26 第4弾)により、個体編集の詳細設定パネルのみ強天候3種(おおひでり/
-	// おおあめ/らんきりゅう)を選択肢から除外している(damage-calc側はスコープ外・
-	// 未変更のまま)。
-	// ラウンド5ユーザー指示(要件10): 天候・フィールドはセレクトをやめてアイコン選択式に
-	// する。このプロジェクトはAppSidebar.astroでlucide風のインラインSVGを自前定義する
-	// 流儀のため、同じ流儀(24x24 viewBox)で簡易アイコンを用意する。
-	// 🔴 UI改善ラウンド39ユーザー指示(39-R1、同ターン内で「ミストフィールドに限らず天候・
-	// フィールドアイコン全部」と訂正)・ラウンド40ユーザー指示(40-R1、対象をラウンド38-R1で
-	// 差し替えたすなあらし/サイコ/ミストも含む全アイコンへ拡大)により、線をわずかに太くする。
-	// stroke-width 1.75→2.1(DAMAGE_WEATHERS/DAMAGE_TERRAINSの8アイコン全部で統一)。
-	// ミストフィールドは線でなく塗りつぶしの円(斑点)なのでstroke-widthの変更自体は見た目に
-	// 影響しないが、同ラウンドの指示にある「斑点も見やすさ優先で微調整してよい」に従い、
-	// 各circleのrを一律+0.15して粒を少し大きくした(1.3→1.45等、下記DAMAGE_TERRAINS参照)。
-	// ラウンド11ユーザー指示(要件11-9): 強天候(おおひでり/おおあめ/らんきりゅう)は選択肢から削除。
-	// ⚠️ ラウンド24ユーザー指示(24-R1)「天候・フィールドの"なし"を廃止し、未選択なら"なし"扱いにする」
-	// により、「なしも選択肢の1つとして常に並べる(radiogroupで必ずどれか1つを選ぶ)」という設計を
-	// 撤回する。「なし」の選択肢(value: ""、旧ICON_NONE)自体を配列から削除し、天候・フィールドとも
-	// 4択にした。「なし」相当はbuildIconToggleGroup()側のトグルオフ(選択中のボタンの再クリックで
-	// value: ""に戻す、下記参照)で表現する。ICON_NONEはどこからも参照されなくなったため削除した。
+	// 相手ビルドselect用のTERA_TYPESはこの<script>タグ冒頭でsrc/lib/tera-types.tsからimportした
+	// ものをそのまま使う。性格の<select>(NATURES一覧)は廃止しており、努力値/実数値グリッドの
+	// H/A/B/C/D/S見出しクリックで性格を決める(左パネルと同じnatureNameFromBoosts/
+	// NATURE_STAT_MODIFIERSを使う)。
+	// 天候/地形の選択肢はsrc/pages/damage-calc/index.astro の WEATHERS/TERRAINSと同じ選択肢で
+	// 同期させること(jpoke側の定義が正)。ただし、個体編集の詳細設定パネルのみ強天候3種
+	// (おおひでり/おおあめ/らんきりゅう)を選択肢から除外している(damage-calc側は対象外)。
+	// 天候・フィールドはセレクトではなくアイコン選択式で、AppSidebar.astroのlucide風インラインSVG
+	// (24x24 viewBox)と同じ流儀で簡易アイコンを用意している。
+	// 「なし」の選択肢は配列に含めない。「なし」相当はbuildIconToggleGroup()側のトグルオフ
+	// (選択中のボタンの再クリックでvalue: ""に戻す、下記参照)で表現する。
 
-	// DAMAGE_TERRAINS/DAMAGE_AILMENTSはファイル先頭へ移設した(上のexport const参照)。
-	// ラウンド5ユーザー指示(要件11): 壁は種類が不要。on/offの1トグルにする
-	// (DAMAGE_SIDE_FIELDSの3種セレクトは廃止。実際にどちらを立てるかは
-	// resolveColumnDerivedFields()が技の物理/特殊分類から自動判定する)。
-	// jpokeのAilmentNameと一致させる(空は「状態異常なし」)。
-	// ラウンド11ユーザー指示(要件11-8): ゆめうつつを選択肢から削除(6種+なし)。
-	// 「11-8の修正」ユーザー指示(2026-07-26追加、そのまま引用):
-	// 「状態異常は種類が多く場所をとるのでリストから選択する方式にする」。
-	// 一度buildIconToggleGroup()のアイコントグルに置き換えたが、選択肢7個(なし込み)は
-	// 天候/フィールド(なし込み5個)より専有面積が大きく複数行に折り返して省スペース化の
-	// 効果を打ち消していたため、素朴なnative <select>に戻した(buildSideSection参照)。
-	// この置き換えのために追加していた状態異常専用の単色SVG6種(ICON_AILMENT_POISON等)は
-	// 他で使われていないことをgrepで確認のうえ削除済み(天候/フィールドのアイコンは維持)。
-	// DAMAGE_AILMENTS/DAMAGE_ATTACKER_VOLATILES/DAMAGE_DEFENDER_VOLATILESはファイル先頭へ移設した(上のexport const参照)。
+	// 壁は種類を持たずon/offの1トグルで、実際にどちらを立てるかはresolveColumnDerivedFields()が
+	// 技の物理/特殊分類から自動判定する。状態異常の選択肢はjpokeのAilmentNameと一致させる
+	// (空は「状態異常なし」)。ゆめうつつは選択肢から除外している(6種+なし)。
 
 	const STAT_KANJI: Record<string, string> = { hp: "H", atk: "A", def: "B", spa: "C", spd: "D", spe: "S" };
 	// 連続技(1ターンに複数回ヒットする技)の技名 -> [最小ヒット数, 最大ヒット数]。
@@ -521,30 +477,21 @@ if (opponentNotesSection) {
 	// そのため「打点はHPを超えているのに確定的な致死判定にならない」という表示が
 	// 正しく成立しうるので、数字だけを見て矛盾と誤読されないようツールチップで補足する
 	// (pyodide-engine.tsのCalcLethalSequenceResult.cumulativeDamageのコメント参照)。
-	// ラウンド20(20-D4)で「未撃破」という語自体を廃止し、ラウンド21(21-D7)で
-	// 「乱M (x%) →確N」の2段表記も廃止して「確N」単独(未到達なら「10発以上」)に
-	// 一本化したため、この注記の文言もそれらの語を使わないよう更新した。
 	const TOTAL_RESULT_HINT =
 		"ダメージ量は与えた打点の合計です(たべのこし等の回復やどく・やけどの継続ダメージは含みません)。" +
 		"確Nの判定はそれらも反映した実際の致死率なので、打点がHPを超えていても確定的な致死判定にならないことがあります。";
-	// ラウンド6ユーザー指示(要件5): 技列(加算条件)は最大3つまでしか追加できない
-	// (カードの高さを技列3つぶんでちょうど収まるようにするため)。この上限は
-	// 「追加」操作にのみ効く上限であり、既存データを削らない: 過去に保存された
-	// メモが4件以上のattacksを持っていても(サーバ側 opponent-notes-validation.ts の
-	// MAX_ATTACK_COUNT=6までは元々許容されている)、renderColumnsはrow.attacksを
-	// 全件そのまま描画する(=表示はする)。「＋」ボタンをrow.attacks.length>=3で
-	// 無効化するだけなので、4件以上の既存行はカードが少し縦に伸びるが、データが
-	// 消えたり保存が壊れたりすることはない。opponent-notes-validation.ts側の変更は
-	// 不要(このファイルは編集禁止でもある)。
+	// 技列(加算条件)は最大3つまでしか追加できない(カードの高さを技列3つぶんでちょうど
+	// 収まるようにするため)。この上限は「追加」操作にのみ効く上限であり、既存データを
+	// 削らない: 過去に保存されたメモが4件以上のattacksを持っていても(サーバ側
+	// opponent-notes-validation.ts のMAX_ATTACK_COUNT=6までは元々許容されている)、
+	// renderColumnsはrow.attacksを全件そのまま描画する(=表示はする)。「＋」ボタンを
+	// row.attacks.length>=3で無効化するだけなので、4件以上の既存行はカードが少し縦に
+	// 伸びるが、データが消えたり保存が壊れたりすることはない。
 	const MAX_COLUMNS_TO_ADD = 3;
-	// 🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08)「モバイル版では技カードを2つまでに
-	// 限定し、あらかじめ左右にスペースを設けておく」。899px以下では技列セクションを
-	// 固定2列(grid-template-columns: 1fr 1fr、DamageCalcSection.astro参照)にして
-	// 技カードがカード幅の半分ずつを占めるため、3枚目は必ず2行目へ折り返してカードの
-	// 高さが跳ねる。追加操作の上限だけをモバイルで2に下げる。
-	// 上の3の説明と同じく、これは「追加」操作にのみ効く上限であり既存データは削らない
-	// (3件以上のattacksを持つ既存行はrenderColumnsが全件そのまま描画し、2列gridの
-	// 2行目以降へ折り返す)。
+	// 899px以下では技列セクションを固定2列(grid-template-columns: 1fr 1fr、
+	// DamageCalcSection.astro参照)にして技カードがカード幅の半分ずつを占めるため、
+	// 3枚目は必ず2行目へ折り返してカードの高さが跳ねる。追加操作の上限だけをモバイルで
+	// 2に下げる(上と同じく既存データは削らない)。
 	const MAX_COLUMNS_TO_ADD_NARROW = 2;
 	// isNarrowLayout()はこのブロック内の関数宣言(下方)なのでホイストされ、実際に
 	// 呼ばれるのは行の描画・ユーザー操作の時点=定義行より後になるため前方参照で問題ない
@@ -552,30 +499,20 @@ if (opponentNotesSection) {
 	function currentMaxColumnsToAdd(): number {
 		return isNarrowLayout() ? MAX_COLUMNS_TO_ADD_NARROW : MAX_COLUMNS_TO_ADD;
 	}
-	// CALC_DEBOUNCE_MS/SAVE_DEBOUNCE_MSは構造分割ラウンド(フェーズ1)でshared-core.tsへ
-	// 移設した(scheduleRowCalc/scheduleRowSaveと同じ場所)。
 
 	// 1列 = 技カード1枚。天候・地形・壁・急所・ランク補正・状態異常・テラスタル発動は
 	// すべてこのDamageColumnState(技カードごと)に持たせる。エンジン側は攻撃1件ごとに
 	// 独立したBattleを構築するため、これらは技カード間で完全に独立して効く
 	// (pyodide-engine.ts の calc_lethal_sequence_json 参照)。
-	// ラウンド6ユーザー指示でweather/terrain/wallEnabledだけ「カード全体の設定」として
-	// 行内の全技カードへ同時に書き込む特別扱いにしていたが、ラウンド7ユーザー指示
-	// (方針転換)でこの「カード全体設定」という概念自体を廃止した。天候・フィールド・
-	// 壁を含む全項目が、技列をクリックしたときのサイドバー(renderColumnLevelDetailPanel)
-	// からその技カード1枚だけを書き換える、単純な1階層の設計に戻った。
-	// データ形式は元々このDamageColumnStateどおり技カードごとに保存できる作りだった
-	// ため(既存メモの互換読み込みも含め)、このラウンドでの変更はサイドバーの組み立てと
-	// 選択状態(クリック挙動)だけで、保存フォーマット・opponent-notes-validation.ts
-	// 側の変更は不要(noteToRowStateの旧形式互換ロジックも参照。行レベルにしか
-	// 保存されていなかった古いメモは、その値を各技カードの初期値として引き継ぐ)。
+	// 天候・フィールド・壁を含む全項目は、技列をクリックしたときのサイドバー
+	// (renderColumnLevelDetailPanel)からその技カード1枚だけを書き換える、単純な1階層の設計。
+	// 行レベルにしか保存されていなかった古いメモは、noteToRowStateの互換ロジックがその値を
+	// 各技カードの初期値として引き継ぐ。
 	// attacker/defender は「攻撃側/防御側という役割」を指し、row.direction によって
 	// どちらが所持ポケモンかが入れ替わる(attacker=常に所持ポケモン、ではない)。
-	// DamageColumnStateは構造分割ラウンド(フェーズ1)でshared-core.tsへ移設し、
-	// 型としてimportしている(上のimport参照。フィールドの中身は一切変更していない)。
 
 	// 技カード1枚分の初期状態。詳細設定の既定値は「何も起きていない状態」。
-	// legacy には、旧形式(カード共通の詳細設定を持つ既存メモ)から引き継ぐ値を渡す。
+	// legacyには、カード共通の詳細設定を持つ形式の既存メモから引き継ぐ値を渡す。
 	function createEmptyColumn(legacy?: Partial<DamageColumnState>): DamageColumnState {
 		return {
 			moveName: "",
@@ -600,13 +537,12 @@ if (opponentNotesSection) {
 		};
 	}
 
-	// UI改善ラウンド38ユーザー指示(38-D7): 「技を追加」で2個目以降の技カラムを
-	// 増やすとき、直前のカラムの「詳細設定」(天候・フィールド・壁・急所・ランク補正・
-	// 状態異常・じゅうでん等のvolatile・テラスタル発動)を引き継ぐ。技名・ヒット回数は
-	// 技固有の値のため引き継がない(moveName/hitCountをこの戻り値に含めない)。
-	// createEmptyColumn()の`legacy`引数(既存メモの旧形式互換用、上のコメント参照)を
-	// そのまま再利用し、この関数が作るPartial<DamageColumnState>を渡す形にする
-	// (createEmptyColumnの引数自体は増やさない)。
+	// 「技を追加」で2個目以降の技カラムを増やすとき、直前のカラムの「詳細設定」
+	// (天候・フィールド・壁・急所・ランク補正・状態異常・じゅうでん等のvolatile・
+	// テラスタル発動)を引き継ぐ。技名・ヒット回数は技固有の値のため引き継がない
+	// (moveName/hitCountをこの戻り値に含めない)。createEmptyColumn()の`legacy`引数
+	// (上のコメント参照)をそのまま再利用し、この関数が作るPartial<DamageColumnState>を
+	// 渡す形にする(createEmptyColumnの引数自体は増やさない)。
 	function inheritedColumnDetailDefaults(previous: DamageColumnState): Partial<DamageColumnState> {
 		return {
 			critical: previous.critical,
@@ -656,8 +592,8 @@ if (opponentNotesSection) {
 		}
 	}
 
-	// 旧形式互換: 既存メモに保存されていた能力ごとのランク配列(attackerBoosts/
-	// defenderBoosts)から、新UIのスカラー値(attackerRank/defenderRank)を復元する。
+	// 後方互換: 既存メモに保存されていた能力ごとのランク配列(attackerBoosts/
+	// defenderBoosts)から、UI上のスカラー値(attackerRank/defenderRank)を復元する。
 	// 「どれか1つでも立っていればON」の考え方と同様に、攻撃側はatk→spaの順、
 	// 防御側はdef→spdの順で最初に非ゼロの値を採用する(両方非ゼロという通常は
 	// 起こらない組み合わせのときはatk/defを優先する、という決め打ちの解釈)。
@@ -667,13 +603,11 @@ if (opponentNotesSection) {
 		if (primary !== 0) return primary;
 		return boosts[STAT_KEYS.indexOf(secondaryKey)] ?? 0;
 	}
-	// 旧形式互換: 個別の壁(リフレクター/ひかりのかべ/オーロラベール)のうち
-	// 「どれか1つでも立っていればON」と解釈する(要件)。
+	// 後方互換: 個別の壁(リフレクター/ひかりのかべ/オーロラベール)のうち
+	// 「どれか1つでも立っていればON」と解釈する。
 
 	// 1行 = 相手1体分の状態。opponent_notesの1レコードに対応する
 	// (id: null は「まだPOSTしていない=ローカルのみの新規行」を表す)。
-	// DamageRowStateは構造分割ラウンド(フェーズ1)でshared-core.tsへ移設し、
-	// 型としてimportしている(上のimport参照。フィールドの中身は一切変更していない)。
 
 	function createEmptyRow(): DamageRowState {
 		return {
@@ -711,13 +645,13 @@ if (opponentNotesSection) {
 
 	// 保存済みopponent_notesレコード -> 行の状態への変換。
 	// 既存データ(attacksを持たずmove_nameだけの旧メモ)は1列に変換する
-	// (要件: 既存メモを壊さない)。
-	// ラウンド11ユーザー指示(実装リスク1・必須対応): DAMAGE_WEATHERS/DAMAGE_AILMENTSから
-	// 選択肢を削除しても、既に保存済みの個体データには削除した値(おおひでり/ゆめうつつ等)が
-	// 残っている場合がある。アイコン群は選択肢配列にない値を「どれも選択されていない」ように
-	// しか描画できないため、描画前にこの関数で選択肢配列に存在しない値を空文字へ正規化する
-	// (正規化した行はfetchAndRenderRows側でscheduleRowSave()を呼び、正規化後の値で
-	// 保存し直す。アイコンは全部非選択なのにエンジン計算だけ古い値を使う、という不整合を防ぐ)。
+	// (既存メモを壊さない)。
+	// DAMAGE_WEATHERS/DAMAGE_AILMENTSの選択肢配列に無い値(おおひでり/ゆめうつつ等)が
+	// 既に保存済みの個体データに残っている場合がある。アイコン群は選択肢配列にない値を
+	// 「どれも選択されていない」ようにしか描画できないため、描画前にこの関数で選択肢配列に
+	// 存在しない値を空文字へ正規化する(正規化した行はfetchAndRenderRows側でscheduleRowSave()を
+	// 呼び、正規化後の値で保存し直す。アイコンは全部非選択なのにエンジン計算だけ古い値を使う、
+	// という不整合を防ぐ)。
 	function sanitizeColumnChoices(column: DamageColumnState): boolean {
 		let changed = false;
 		if (column.weather !== "" && !DAMAGE_WEATHERS.some((w) => w.value === column.weather)) {
@@ -732,8 +666,8 @@ if (opponentNotesSection) {
 			column.defenderAilment = "";
 			changed = true;
 		}
-		// ラウンド20ユーザー指示(20-R3): 揮発状態も選択肢配列(DAMAGE_ATTACKER_VOLATILES/
-		// DAMAGE_DEFENDER_VOLATILES)に無い値は同じ理屈で正規化する。
+		// 揮発状態も選択肢配列(DAMAGE_ATTACKER_VOLATILES/DAMAGE_DEFENDER_VOLATILES)に
+		// 無い値は同じ理屈で正規化する。
 		const sanitizedAttackerVolatiles = column.attackerVolatiles.filter((v) =>
 			DAMAGE_ATTACKER_VOLATILES.some((opt) => opt.value === v),
 		);
@@ -754,10 +688,9 @@ if (opponentNotesSection) {
 	// 戻り値のneedsResaveは、上のsanitizeColumnChoices()が1つでも値を書き換えたことを表す
 	// (=保存済みデータに廃止済みの選択肢が残っていた)。呼び出し側(fetchAndRenderRows)は
 	// これがtrueの行だけscheduleRowSave()して正規化後の値をサーバへ書き戻す。
-	// UI改修依頼(ダメージ計算カード、2026-08-04)「カード並び順の永続化」。opponent_notesには
-	// 並び順カラムが無いため、field(jsonb)にorder?: number(分数キー方式)を持たせている
-	// (src/lib/opponent-notes-validation.tsのOpponentFieldInput参照)。戻り値にorderを足し、
-	// 呼び出し元(fetchAndRenderRows)がrowSortOrderへ登録する形にする。
+	// opponent_notesには並び順カラムが無いため、field(jsonb)にorder?: number(分数キー方式)を
+	// 持たせている(src/lib/opponent-notes-validation.tsのOpponentFieldInput参照)。戻り値に
+	// orderを足し、呼び出し元(fetchAndRenderRows)がrowSortOrderへ登録する形にする。
 	function noteToRowState(note: OpponentNoteRecord): { row: DamageRowState; needsResave: boolean; order?: number } {
 		const row = createEmptyRow();
 		let needsResave = false;
@@ -767,9 +700,8 @@ if (opponentNotesSection) {
 		// direction未指定の既存メモは、従来の解釈どおり「この所持ポケモンが攻撃側」とみなす。
 		row.direction = field.direction === "defense" ? "defense" : "attack";
 		row.name = build.name ?? "";
-		// ラウンド4ユーザー指示: 保存済みの性格名からnatureUp/natureDownを正引きして
-		// 復元する(いじっぱり→atk上昇/spa下降、等。既存データを開いたときに正しく
-		// ↑↓が復元されることの実機確認が必須要件)。
+		// 保存済みの性格名からnatureUp/natureDownを正引きして復元する
+		// (いじっぱり→atk上昇/spa下降、等)。
 		{
 			const mod = NATURE_STAT_MODIFIERS[build.nature ?? ""] ?? { up: null, down: null };
 			row.natureUp = mod.up;
@@ -782,9 +714,8 @@ if (opponentNotesSection) {
 		row.evs = STAT_KEYS.map((_, i) => build.evs?.[i] ?? 0);
 		row.seedRaw = field.seed != null ? String(field.seed) : "";
 
-		// 旧形式互換: 詳細設定がカード共通(field直下)に保存されていた時代のメモは、
-		// その値を全ての技カードの初期値として引き継ぐ。こうすることで旧メモを開いた
-		// ときの計算結果が以前と変わらない(=既存メモを壊さない)。引き継いだ後は
+		// 後方互換: 詳細設定がカード共通(field直下)に保存されている形式のメモは、
+		// その値を全ての技カードの初期値として引き継ぐ(既存メモを壊さない)。引き継いだ後は
 		// 技カードごとに保存されるため、field直下のこれらのキーは書き戻さない。
 		const legacyConditions: Partial<DamageColumnState> = {
 			critical: field.critical ?? false,
@@ -798,7 +729,7 @@ if (opponentNotesSection) {
 			defenderAilment: field.defenderAilment ?? "",
 			defenderTerastallized: field.defenderTerastallized ?? false,
 		};
-		// ラウンド5ユーザー指示の後方互換: 壁は「個別の3フラグのどれか1つでも
+		// 後方互換: 壁は「個別の3フラグのどれか1つでも
 		// 立っていればON」、ランクは「該当する2能力(atk/spa、def/spd)のうち
 		// 最初に非ゼロの値」をスカラーとして復元する(rankFromLegacyBoosts参照)。
 		// 実際にAPI保存・エンジン呼び出しに使う配列は、この復元したスカラー値から
@@ -837,7 +768,7 @@ if (opponentNotesSection) {
 		if (field.attacks && field.attacks.length > 0) {
 			row.attacks = field.attacks.map(columnFromAttack);
 		} else if (note.move_name) {
-			// 旧形式互換: move_nameのみのメモを1列に変換する。
+			// 後方互換: move_nameのみのメモを1列に変換する。
 			row.attacks = [columnFromAttack({ moveName: note.move_name })];
 		} else {
 			const column = createEmptyColumn(legacyConditions);
@@ -851,10 +782,6 @@ if (opponentNotesSection) {
 		const order = typeof field.order === "number" && Number.isFinite(field.order) ? field.order : undefined;
 		return { row, needsResave, order };
 	}
-
-
-	// clampIntはファイル先頭へ移設した(上のexport function参照。right-panel.tsから参照するため)。
-
 
 	function parseSeed(raw: string): number | undefined {
 		const trimmed = raw.trim();
@@ -904,23 +831,14 @@ if (opponentNotesSection) {
 		};
 	}
 
-	// ラウンド21ユーザー指示(21-D7、ラウンド20 20-D4で導入した「乱M (x%) →確N」の
-	// 2段表記を撤回): 「乱3 (…) → 確4 という表記は意味が通じない。すべて込みの
-	// 最終結果1つだけを表示する」。判定は「確実に倒せるのは何発目か」の1つだけを返す。
-	// 10発以内に確殺(probability>=0.9999、浮動小数の誤差込み)に到達する最初の位置が
-	// あれば「確N」のみを返し、そこへ至る前段の乱数確率(乱M (x%))は一切表示しない。
-	// 10発以内に到達しなければ、呼び出し元から渡されたnoLethalLabel(技列側/加算後側の
-	// いずれも「10発以上」相当の文字列を渡す。describeExtendedTotalNoLethalLabel参照)を返す。
-	// severityは.severity-barの色分け(lethal=確1/risky=確2/safe=確3以降・10発以上)に使う。
-	//
-	// ⚠️ 当初の指示(round-21.md)は「技列側(.damage-column-result)は既に確定数を
-	// 1つだけ出しているので触らない」としていたが、これは誤りだった。実データ
-	// (フィクスチャ c8680844-... の対戦相手メモ「ディンルー」、じしんhitCount=1)で
-	// 検証したところ、perAttackLethal[0] = [{1, 0.9375}, {2, 1}] であり、旧実装の
-	// describeSeriesVerdict(series, ...)は最初の非0要素(attackCount1, probability0.9375)
-	// を見出しにして「乱1 (93.8%) →確2」を返していた。つまり技列側もこの共有関数を
-	// 経由しており、同じ2段表記の不具合を実際に抱えていた(row.lethalを使う加算後側
-	// (renderTotalDisplay)だけの問題ではなかった)。共有関数1箇所を直せば両方直る。
+	// 判定は「確実に倒せるのは何発目か」の1つだけを返す。10発以内に確殺
+	// (probability>=0.9999、浮動小数の誤差込み)に到達する最初の位置があれば「確N」のみを返し、
+	// そこへ至る前段の乱数確率は一切表示しない。10発以内に到達しなければ、呼び出し元から
+	// 渡されたnoLethalLabel(技列側/加算後側のいずれも「10発以上」相当の文字列を渡す。
+	// describeExtendedTotalNoLethalLabel参照)を返す。severityは.severity-barの色分け
+	// (lethal=確1/risky=確2/safe=確3以降・10発以上)に使う。
+	// 技列側(.damage-column-result)と加算後側(renderTotalDisplay)の両方がこの共有関数を
+	// 経由するため、ここを直せば両方に反映される。
 	function describeSeriesVerdict(
 		series: LethalResult[] | undefined,
 		noLethalLabel: string,
@@ -944,10 +862,9 @@ if (opponentNotesSection) {
 	// 整数カウントなので、最後に必ず合計で割って正規化する。
 	// hitCountは掛けない: perAttackDamagesは「その攻撃1回ぶん(全ヒット合計)」に
 	// 意味が変わっている(pyodide-engine.tsのCalcLethalSequenceResult参照)。
-	// ラウンド21ユーザー指示(21-D7): describeSeriesVerdictと同じく、「一部の乱数分岐だけが
-	// 致死する(zero > 0だが zero !== total)」段階では確定と言えないため、全分岐が
-	// 致死(zero === total)になるまで確定数として採用しない(旧実装はzero>0の最初の
-	// 位置で即座に返しており、「乱N (xx.x%)」相当の未確定値を返していた)。
+	// describeSeriesVerdictと同じく、「一部の乱数分岐だけが致死する(zero > 0だが
+	// zero !== total)」段階では確定と言えないため、全分岐が致死(zero === total)に
+	// なるまで確定数として採用しない。
 	const MAX_STANDALONE_ATTACKS = 10;
 	function describeStandaloneLethal(
 		damages: number[] | undefined,
@@ -979,23 +896,18 @@ if (opponentNotesSection) {
 		return { label: `${MAX_STANDALONE_ATTACKS}発以上`, severity: "safe" };
 	}
 
-	// ラウンド20ユーザー指示(20-D4): 相手ビルドカード(加算後)の結果から「未撃破」という
-	// 語を廃止し、実際に倒せるまで攻撃を伸ばしたときの確定数と致死率を出す。
 	// describeSeriesVerdict(result.lethal, ...)は、設定済みの攻撃列(最大3枚)の範囲内で
 	// 一度も確殺(致死率100%)に到達しなかったときにこの第2引数(noLethalLabel)をそのまま
-	// 表示する。以前はここに固定文字列"未撃破"を渡していたが、この関数はその代わりに
-	// 「設定済みの攻撃列を先頭から繰り返し当て続けたら何発で倒せるか」を、技列側
-	// (describeStandaloneLethal)と同じ分布演算(1発ごとにHP分布から差し引き0で
-	// クリップする)で見積もり、その結果をdescribeSeriesVerdict自身にもう一度通した
-	// labelを返す(ラウンド21・21-D7以降は「確N」「10発以上」のいずれかになり、技列側と
-	// 語彙が揃う。乱数確率(乱M (xx.x%))を経由する中間段階の表示はもう無い)。実際の
-	// 攻撃列の範囲内(result.lethalが担保する区間)はエンジンの厳密な値(たべのこし等の
-	// ターン終了時処理を含む)をそのまま使い、この関数が呼ばれるのは範囲内で確殺に
-	// 未到達のときだけなので、精度が落ちるのは「まだ確認できていない延長部分」に
-	// 限られる(describeStandaloneLethalと同じ精度レベル。ターン終了時処理を含まない
-	// 近似値であることは変えていない)。ただし有効な攻撃列が1件だけの行では、技列側と
-	// 同じ perAttackLethal[0](エンジンの厳密値)をそのまま使うため近似は発生しない
-	// (技列側の「確N」と加算後側の数値が食い違わない)。
+	// 表示する。この関数は「設定済みの攻撃列を先頭から繰り返し当て続けたら何発で倒せるか」を、
+	// 技列側(describeStandaloneLethal)と同じ分布演算(1発ごとにHP分布から差し引き0で
+	// クリップする)で見積もり、その結果をdescribeSeriesVerdict自身にもう一度通したlabelを
+	// 返す。実際の攻撃列の範囲内(result.lethalが担保する区間)はエンジンの厳密な値
+	// (たべのこし等のターン終了時処理を含む)をそのまま使い、この関数が呼ばれるのは範囲内で
+	// 確殺に未到達のときだけなので、精度が落ちるのは「まだ確認できていない延長部分」に
+	// 限られる(describeStandaloneLethalと同じ精度レベルで、ターン終了時処理を含まない
+	// 近似値)。ただし有効な攻撃列が1件だけの行では、技列側と同じperAttackLethal[0]
+	// (エンジンの厳密値)をそのまま使うため近似は発生しない(技列側の「確N」と加算後側の
+	// 数値が食い違わない)。
 	function describeExtendedTotalNoLethalLabel(
 		row: DamageRowState,
 		result: OpponentClientResultInput,
@@ -1060,9 +972,6 @@ if (opponentNotesSection) {
 			}
 		}
 		const hp = result.defenderHp;
-		// ラウンド23ユーザー指示(23-D5)「総合結果から『累計』を削除」。数値と割合は
-		// 残し、ラベルの「累計」の文字だけを外す(技列側は元々ラベルを付けていないため
-		// この関数だけの変更で足りる)。
 		if (hp && hp > 0) {
 			const pctMin = Math.floor((min / hp) * 100);
 			const pctMax = Math.ceil((max / hp) * 100);
@@ -1086,8 +995,8 @@ if (opponentNotesSection) {
 		return range;
 	}
 
-	// ラウンド3 B-4: 累計(加算後)で既に確殺に到達している位置(=それ以降の技は
-	// 撃つ前提が崩れている)を求める。result.lethalはcalcLethalSequenceの累計致死率
+	// 累計(加算後)で既に確殺に到達している位置(=それ以降の技は撃つ前提が崩れている)を
+	// 求める。result.lethalはcalcLethalSequenceの累計致死率
 	// 系列で、probability>=0.9999になった最初のattackCountが「そこで確実に倒せる」
 	// 位置。数値自体(技ごとの独立判定)は変えず、視覚的に控えめにする材料としてのみ使う。
 	function computeConfirmedKillAttackCount(result: OpponentClientResultInput | null): number | null {
@@ -1096,27 +1005,17 @@ if (opponentNotesSection) {
 		return confirmed ? confirmed.attackCount : null;
 	}
 
-	// ラウンド4の積み残し(ラウンド3 C-4「結果チップの主役化」): 以前は
-	// 「75〜90 (40〜49%) 確3」のように結果テキストを1本の文字列として詰め込んで
-	// おり、3枚並べたときに一番読みたい結論(確N/乱N)が他の数値に埋もれていた。
+	// 判定(確N/乱N等)を大きく太字で左に、ダメージ量の詳細を小さく右に配置する2分割構造。
 	// is:global側の.damage-row-total-result(grid auto 1fr)/.damage-column-result
-	// (ラウンド11から横並びflex-direction:row。要件11-5参照)と組み合わせ、判定
-	// (確N/乱N/未撃破等)を大きく太字で左に、ダメージ量の詳細を小さく右に配置する
-	// 2分割構造にする。
-	// severity(背景色・左罫線の色)は引き続き.severity-bar[data-severity]が
-	// 要素全体に適用するため、ここでは中身のDOM構造だけを変える。
-	// UI改善ラウンド42ユーザー指示(42-D3)「計算結果が10発以上のときは確定数表記をせず、
-	// ダメージ量のみ表示する」。describeStandaloneLethal/describeSeriesVerdictが
-	// 10発当てても確殺に至らないケースで返すラベルは`${MAX_STANDALONE_ATTACKS}発以上`
-	// (="10発以上")の1種類だけ(上のMAX_STANDALONE_ATTACKS定義・両関数参照)。この値と
-	// 一致するときだけverdictSpan(太字の確定数ラベル)自体を生成・appendしない
-	// (detailSpanのみ残す)。呼び出し元(renderColumnDisplays=個別技カード側/
-	// renderTotalDisplay=累計結果側、いずれもこの関数を経由する)を区別する必要はなく、
-	// この1関数を直せば両方に適用される。
-	// severity(背景色。.severity-bar[data-severity]、確3以降と同じsafe=薄青系
-	// (41-D4)のまま)は据え置く判断にした(round-42.md「見た目上違和感が強ければ
-	// safeのままとする」という実装者判断に委ねられた項目。色付きの帯にダメージ量だけが
-	// 載る見た目を実機で確認し、違和感が無かったため変更しない)。
+	// (横並びflex-direction:row)と組み合わせて使う。severity(背景色・左罫線の色)は
+	// 引き続き.severity-bar[data-severity]が要素全体に適用するため、ここでは中身のDOM構造
+	// だけを変える。
+	// describeStandaloneLethal/describeSeriesVerdictが10発当てても確殺に至らないケースで
+	// 返すラベルは`${MAX_STANDALONE_ATTACKS}発以上`(="10発以上")の1種類だけ(上の
+	// MAX_STANDALONE_ATTACKS定義・両関数参照)。この値と一致するときだけverdictSpan
+	// (太字の確定数ラベル)自体を生成・appendしない(detailSpanのみ残す)。呼び出し元
+	// (renderColumnDisplays=個別技カード側/renderTotalDisplay=累計結果側、いずれもこの関数を
+	// 経由する)を区別する必要はなく、この1関数を直せば両方に適用される。
 	const TEN_OR_MORE_LABEL = `${MAX_STANDALONE_ATTACKS}発以上`;
 	function setResultVerdict(el: HTMLElement, detailText: string, label: string): void {
 		el.innerHTML = "";
@@ -1168,25 +1067,23 @@ if (opponentNotesSection) {
 				return;
 			}
 			validPos += 1;
-			// ラウンド3 B-4: 累計で既に確殺に到達した位置より後ろの列は「1発目で撃破済」
-			// のような撃破済みキャプションを添えて控えめにする(第3弾の「列は独立判定」の
-			// 方針どおり数値自体は変えない)。
+			// 累計で既に確殺に到達した位置より後ろの列は「1発目で撃破済」のような撃破済み
+			// キャプションを添えて控えめにする(数値自体は変えない)。
 			applyOverkill(confirmedKillAt != null && validPos > confirmedKillAt);
-			// ラウンド22指摘(22-D-1): 変化技(まもる等)は静的な技データの時点で判定できる
-			// (category==="status"はゲーム仕様として常にダメージ0のため、エンジンの
-			// 計算結果を待つ必要が無い)。「10発以上 0(0%)」のような誤解を招く表示を
-			// 出さず、はきだすと同じ仕組みで理由だけを示す。⚠️ OHKO技(じわれ等)・
-			// はきだすは変化技ではない(物理技)ため、この分岐には入らずこれまでどおり
-			// 通常のダメージ表示/はきだす専用の断り書きに進む。
+			// 変化技(まもる等)は静的な技データの時点で判定できる(category==="status"は
+			// ゲーム仕様として常にダメージ0のため、エンジンの計算結果を待つ必要が無い)。
+			// 「10発以上 0(0%)」のような誤解を招く表示を出さず、はきだすと同じ仕組みで
+			// 理由だけを示す。⚠️ OHKO技(じわれ等)・はきだすは変化技ではない(物理技)ため、
+			// この分岐には入らずこれまでどおり通常のダメージ表示/はきだす専用の断り書きに進む。
 			if (isStatusMove(attack.moveName)) {
 				setResultPlain(target, STATUS_MOVE_NOTE);
 				target.dataset.severity = "none";
 				return;
 			}
-			// ラウンド20: 「はきだす」だけはエンジンの計算結果を待たず(静的な技データだけで
-			// 判定できるため)、確N/10発以上のような「0ダメージ」に見える表示を出さず
-			// 理由を示す。他の技(カウンター・ちきゅうなげ・OHKO技等)は今はエンジンが
-			// 正しく計算するため、以下の通常経路をそのまま通す。
+			// 「はきだす」だけはエンジンの計算結果を待たず(静的な技データだけで判定できる
+			// ため)、確N/10発以上のような「0ダメージ」に見える表示を出さず理由を示す。
+			// 他の技(カウンター・ちきゅうなげ・OHKO技等)はエンジンが正しく計算するため、
+			// 以下の通常経路をそのまま通す。
 			if (isUnsupportedLethalMove(attack.moveName)) {
 				setResultPlain(target, UNSUPPORTED_LETHAL_NOTE);
 				target.dataset.severity = "none";
@@ -1218,10 +1115,8 @@ if (opponentNotesSection) {
 		if (!target) return;
 		const result = row.clientResult;
 		const validAttacks = validAttacksOf(row);
-		// UI改善ラウンド45(ユーザー指示第29弾、B-3): 技列が2つ以上あるとき、合計行「確N」が
-		// 何を数えているか圧縮表示だけでは伝わらない指摘(round-45.md)への対応。totalBlock
-		// (.damage-row-total)は展開/圧縮で共有要素なので、DOM構造自体は変えず、ここで
-		// data-multi-move属性だけを立てる(見た目には影響しない)。実際の注記表示は
+		// totalBlock(.damage-row-total)は展開/圧縮で共有要素なので、DOM構造自体は変えず、
+		// ここでdata-multi-move属性だけを立てる(見た目には影響しない)。実際の注記表示は
 		// CSS側(#opponent-notes-section .card-damage[data-collapsed="true"]
 		// .damage-row-total-result[data-multi-move="true"] .damage-result-verdict::after、
 		// DamageCalcSection.astro)が圧縮状態限定のセレクタで生成コンテンツとして足すため、
@@ -1233,15 +1128,14 @@ if (opponentNotesSection) {
 			target.dataset.severity = "none";
 			return;
 		}
-		// ラウンド20: 技列に「はきだす」を含む場合、エンジン(calc_lethal_sequence_json)は
-		// その技の寄与を0として他の技と合成した値をそのまま返す。全技がその対象
-		// (合算しても常に0)なら、素の確N表示は「0ダメージに見える」誤解を
-		// 再現するため、静的な技データの時点で数値を出さず理由だけ示す。
+		// 技列に「はきだす」を含む場合、エンジン(calc_lethal_sequence_json)はその技の
+		// 寄与を0として他の技と合成した値をそのまま返す。全技がその対象(合算しても常に0)
+		// なら、素の確N表示は「0ダメージに見える」誤解を再現するため、静的な技データの
+		// 時点で数値を出さず理由だけ示す。
 		const hasUnsupported = validAttacks.some((a) => isUnsupportedLethalMove(a.moveName));
-		// ラウンド22指摘(22-D-1): 変化技(まもる等)も同じ扱いにする。単独では
-		// 技列側(renderColumnDisplays)のisStatusMove分岐で処理されるが、全技列が
-		// 変化技(または変化技+はきだすの組み合わせ)だと合計側も「10発以上 0(0%)」の
-		// ような誤解を招く表示になるため、こちらでも判定する。
+		// 変化技(まもる等)も同じ扱いにする。単独では技列側(renderColumnDisplays)の
+		// isStatusMove分岐で処理されるが、全技列が変化技(または変化技+はきだすの組み合わせ)
+		// だと合計側も「10発以上 0(0%)」のような誤解を招く表示になるため、こちらでも判定する。
 		const hasStatus = validAttacks.some((a) => isStatusMove(a.moveName));
 		const allNoDamage = validAttacks.every(
 			(a) => isStatusMove(a.moveName) || isUnsupportedLethalMove(a.moveName),
@@ -1279,9 +1173,8 @@ if (opponentNotesSection) {
 		target.dataset.severity = severity;
 	}
 
-	// ラウンド20ユーザー指示(20-D3、ラウンド5の判断を撤回): 上下ボタンを廃止し、
-	// H/A/B/C/D/S見出し自体が「無補正→上昇→下降→無補正」を巡回する1個のボタンになった。
-	// 状態を反映する対象もキーごとの1ボタン(row.natureColLabelEls[key])だけになったため、
+	// H/A/B/C/D/S見出し自体が「無補正→上昇→下降→無補正」を巡回する1個のボタンになっている。
+	// 状態を反映する対象はキーごとの1ボタン(row.natureColLabelEls[key])だけなので、
 	// 「実際にクリックして選ばれている生の状態」(row.natureUp/row.natureDown)をもとに
 	// data-mod(色分け。既存の.damage-ev-col-label[data-mod]と共有) / 小さな▲▼インジケータ
 	// (.damage-ev-nature-indicator、色だけに頼らないWCAG 1.4.1対応) / aria-label・titleの
@@ -1317,7 +1210,7 @@ if (opponentNotesSection) {
 
 	// 実数値グリッド(H/A/B/C/D/S)のみを更新する。ダメージ計算(攻撃列)とは独立に、
 	// 相手ビルドの入力(性格・特性・持ち物・テラスタイプ・努力値)が変わるたびに呼ぶ。
-	// ラウンド3 B-12: 左パネルのrecalcStats()と同様、エンジン非依存の純JS計算に切り替える
+	// 左パネルのrecalcStats()と同様、エンジン非依存の純JS計算に切り替える
 	// (calcHpStat/calcOtherStatはモジュールスコープで定義済み)。ダメージ計算(recalcRow内の
 	// この先の処理)は引き続きisEngineReady()待ちのまま。
 	// rowCollapseHandlesは下方のconstだが、実際の呼び出しはその初期化後なのでTDZには触れない。
@@ -1336,9 +1229,9 @@ if (opponentNotesSection) {
 			return;
 		}
 		const level = 50;
-		// ラウンド4ユーザー指示: 性格<select>を廃止したので、row.natureUp/natureDownを
-		// 使う。片方だけ選択中の不完全な状態はnormalizedNatureBoostsで「まじめ」に
-		// 正規化してから使う(保存されるnatureと表示を一致させるため)。
+		// 性格<select>は廃止しており、row.natureUp/natureDownを使う。片方だけ選択中の
+		// 不完全な状態はnormalizedNatureBoostsで「まじめ」に正規化してから使う
+		// (保存されるnatureと表示を一致させるため)。
 		const natureMod = normalizedNatureBoosts(row.natureUp, row.natureDown);
 		STAT_KEYS.forEach((key, i) => {
 			const target = row.statValueEls[key];
@@ -1353,22 +1246,18 @@ if (opponentNotesSection) {
 				if (mod) target.dataset.mod = mod;
 				else delete target.dataset.mod;
 			}
-			// ラウンド20ユーザー指示(20-D3): row.natureColLabelEls[key]は現在、H/A/B/C/D/Sの
-			// 見出し自体が性格循環ボタンになっている(旧・別ボタン時代の名残でここに
-			// あったcolLabel.dataset.modへの書き戻しは削除した)。このボタンの見た目
-			// (data-mod・▲▼インジケータ・aria-label/title)はクリック直後の「生の状態」
-			// (row.natureUp/row.natureDown)を反映するrefreshRowNatureButtons()が
-			// 単独で担当する。ここ(recalcRowStatsOnly)はnormalizedNatureBoosts
-			// (上昇/下降が両方揃って初めて有効という正規化)を使うため、片方だけ選択中の
-			// 直後にここで上書きすると、クリックした瞬間に見えたはずの色/▲▼表示が
-			// 一瞬で消えてしまう(実機テストで発覚した回帰)。実数値の数字側
-			// (statValueEls)は正規化された値のままで正しい(実際の計算に使う値と
-			// 一致させる必要があるため)。
+			// row.natureColLabelEls[key]の見た目(data-mod・▲▼インジケータ・aria-label/title)は
+			// クリック直後の「生の状態」(row.natureUp/row.natureDown)を反映する
+			// refreshRowNatureButtons()が単独で担当する。ここ(recalcRowStatsOnly)は
+			// normalizedNatureBoosts(上昇/下降が両方揃って初めて有効という正規化)を使うため、
+			// 片方だけ選択中の直後にここで上書きすると、クリックした瞬間に見えたはずの色/▲▼表示が
+			// 一瞬で消えてしまう。実数値の数字側(statValueEls)は正規化された値のままで正しい
+			// (実際の計算に使う値と一致させる必要があるため)。
 		});
 		rowCollapseHandles.get(row)?.refreshCollapsedViews();
 	}
 
-	// ラウンド22指摘(22-F)の対応で使う、キー順に依存しない構造比較用の正規化文字列化。
+	// キー順に依存しない構造比較用の正規化文字列化。
 	// オブジェクトのキーをソートしてから再帰的にJSON化するため、Postgres jsonbのキー
 	// 並び替え(実測で確認: サーバから返るclient_resultはJS側の挿入順と異なる順で
 	// 返ってくる)があっても値が同じなら同じ文字列になる。null/数値/文字列/配列/
@@ -1381,16 +1270,13 @@ if (opponentNotesSection) {
 		return `{${keys.map((k) => `${JSON.stringify(k)}:${canonicalStringify(record[k])}`).join(",")}}`;
 	}
 
-	// 🔴 UI改修依頼(個体編集画面、2026-08-02)「耐久調整」機能の土台。recalcRow() が
-	// calcLethalSequence()/calcStats() を呼ぶ直前に組み立てている値(攻守切り替え・
-	// テラスタルのクランプ・乱数シード)を、耐久調整ブリッジ(下のregisterBulkAdjustBridge
-	// 呼び出し・getDefenseRows)からも同じ手順で取得できるよう、recalcRow内にあった
-	// 該当箇所(攻守切り替え〜options組み立て)をこの1関数へ切り出した。
-	// ⚠️ カードの確N表示(recalcRow)と耐久調整の計算対象(getDefenseRows)が別々のロジックで
-	// 値を組み立てると、両者が食い違う(画面は確1なのに耐久調整では耐える、といった不整合)
-	// おそれがあるため、必ずこの1関数だけから両方が導出されるようにする。ロジック自体は
-	// 元のrecalcRow内の対応箇所から1文字も変えずに移設しただけの純粋なリファクタリング
-	// (呼び出し側のrecalcRowは同じ引数・同じ順序でこの関数の戻り値を使うだけ)。
+	// recalcRow() がcalcLethalSequence()/calcStats() を呼ぶ直前に組み立てている値
+	// (攻守切り替え・テラスタルのクランプ・乱数シード)は、耐久調整ブリッジ
+	// (下のregisterBulkAdjustBridge呼び出し・getDefenseRows)からも同じ手順で取得する必要が
+	// あるため、この1関数に集約している。カードの確N表示(recalcRow)と耐久調整の計算対象
+	// (getDefenseRows)が別々のロジックで値を組み立てると、両者が食い違う(画面は確1なのに
+	// 耐久調整では耐える、といった不整合)おそれがあるため、必ずこの1関数だけから両方が
+	// 導出されるようにする。
 	function buildSequenceInputs(
 		row: DamageRowState,
 		attacks: OpponentAttackInput[],
@@ -1414,7 +1300,7 @@ if (opponentNotesSection) {
 		const opponentSpec: PokemonSpec = buildDefenderStatsSpec(row);
 		const attackerSpec = selfIsAttacker ? selfSpec : opponentSpec;
 		const defenderSpec = selfIsAttacker ? opponentSpec : selfSpec;
-		// ラウンド17指摘(A-1・実バグ)の核心対応: jpokeはteraType未指定でも
+		// jpokeはteraType未指定でも
 		// テラスタル発動すると自身の第1タイプへ黙ってフォールバックし、無警告で
 		// 2.0倍のタイプ一致補正がかかる(`.claude/skills/jpoke/references/ruleset.md`
 		// §4・`damage-calc.md` 3補参照)。サイドバーのチェックボックスはテラスタイプが
@@ -1445,9 +1331,9 @@ if (opponentNotesSection) {
 	// そのまま表示し続ける。
 	async function recalcRow(row: DamageRowState): Promise<void> {
 		await recalcRowStatsOnly(row);
-		// ラウンド5ユーザー指示(要件11・12): 壁on/off・攻守ランクのスカラー値から、
-		// 実際にエンジンへ渡す配列(attackerBoosts/defenderBoosts/defenderSideFields)を
-		// 技名の物理/特殊分類にもとづいて算出し直す(resolveColumnDerivedFields参照)。
+		// 壁on/off・攻守ランクのスカラー値から、実際にエンジンへ渡す配列
+		// (attackerBoosts/defenderBoosts/defenderSideFields)を技名の物理/特殊分類にもとづいて
+		// 算出し直す(resolveColumnDerivedFields参照)。
 		for (const a of row.attacks) resolveColumnDerivedFields(a);
 		const name = row.name.trim();
 		if (name === "" || !isEngineReady()) {
@@ -1460,13 +1346,9 @@ if (opponentNotesSection) {
 			renderColumnDisplays(row);
 			return;
 		}
-		// ラウンド22指摘(22-F)「読み込むだけでDBにPUTが飛ぶ」対応。改修前の再計算後の
-		// scheduleRowSave(row)は無条件で、Pyodide初期化完了時にcombinedDamageEngineProgress()
-		// が全行を一括recalcRow()する(6740行付近)たびに、内容が1バイトも変わらなくても
-		// PUTが飛んでupdated_atだけが無意味に更新されていた(実機のPlaywrightネットワーク
-		// 計測で、対戦相手メモ4件すべてがページ読み込みのたびにPUTされることを確認済み。
-		// この23-D改修前のコード(git stashで退避して比較)でも同じ現象が再現したため、
-		// このラウンドで新規に混入したものではなく既存のバグと確認できた)。
+		// Pyodide初期化完了時にcombinedDamageEngineProgress()が全行を一括recalcRow()する
+		// たびに、内容が1バイトも変わらなくてもscheduleRowSave(row)を無条件で呼ぶとPUTが
+		// 飛んでupdated_atだけが無意味に更新されてしまう。
 		// 直前の保存済みclientResultを控えておき、再計算後に実際に値が変わったときだけ
 		// scheduleRowSave()を呼ぶ。ユーザーが実際に技/努力値/ランク等を変更した場合は
 		// 必ず数値が変わる(=保存される)ため、自動保存の仕組み自体は変えていない。
@@ -1492,7 +1374,7 @@ if (opponentNotesSection) {
 			renderColumnDisplays(row);
 			// エンジン初期化直後の再計算(要件: 保存済みclientResultはページ再読み込み直後の
 			// スナップショット表示用。エンジン初期化後は再計算して上書きする)を含め、
-			// 再計算後の値が以前の保存値と実際に異なるときだけ保存する(22-F)。
+			// 再計算後の値が以前の保存値と実際に異なるときだけ保存する。
 			// ⚠️ PostgresのjsonbはキーをJS側の挿入順とは異なる順で返す(実測で確認済み。
 			// 例: サーバは{lethal,defenderHp,perAttackLethal,...}の順で返すが、この関数の
 			// オブジェクトリテラルはdefenderHpが先頭)。単純なJSON.stringify比較はキー順の
@@ -1512,28 +1394,19 @@ if (opponentNotesSection) {
 		}
 	}
 
-	// scheduleRowCalcは構造分割ラウンド(フェーズ1)でshared-core.tsへ移設した
-	// (recalcRowを呼ぶ処理は下の registerDamageCalcBridge 経由になる。上のimport参照)。
-
-	// ラウンド3 A-4は「保存済みのときだけ隠す」だったが、ラウンド4ユーザー指示は
-	// 「下部の保存済み表示は削除する」とより踏み込んだもの。DOMと.damage-row-footer/
-	// .damage-row-save-statusクラスはJS/E2Eが参照する可能性があるため残したまま、
-	// 保存失敗(state==="error")のとき以外は常に視覚的に隠す(再試行導線が必要な
-	// 失敗時だけは残す)。row.saveStatusEl/textContentの更新箇所をこの1関数に集約する。
+	// DOMと.damage-row-footer/.damage-row-save-statusクラスはJS/E2Eが参照する可能性が
+	// あるため残したまま、保存失敗(state==="error")のとき以外は常に視覚的に隠す
+	// (再試行導線が必要な失敗時だけは残す)。row.saveStatusEl/textContentの更新箇所を
+	// この1関数に集約する。
 	function setRowSaveStatus(row: DamageRowState, state: string, text: string): void {
 		if (row.saveStatusEl) {
 			row.saveStatusEl.dataset.state = state;
 			row.saveStatusEl.textContent = text;
 		}
 		if (row.footerEl) row.footerEl.hidden = state !== "error";
-		// ラウンド17指摘(B-1): この行の保存状態が変わるたびに、常時可視なトップバーの
-		// 失敗件数表示も更新する。
+		// この行の保存状態が変わるたびに、常時可視なトップバーの失敗件数表示も更新する。
 		updateOpponentNotesFailureAlert();
 	}
-
-	// scheduleRowSaveは構造分割ラウンド(フェーズ1)でshared-core.tsへ移設した
-	// (setRowSaveStatus/saveRowを呼ぶ処理は下の registerDamageCalcBridge 経由になる。
-	// 上のimport参照)。
 
 	// デバウンス付き即時自動保存(左パネルのsaveNow()と同じ流儀)。
 	// 相手ポケモン名が空のうちはPOSTしない(サーバ検証でopponent_build.nameが必須のため)。
@@ -1543,9 +1416,9 @@ if (opponentNotesSection) {
 			setRowSaveStatus(row, "idle", "未保存(相手ポケモン名を入力すると保存されます)");
 			return;
 		}
-		// UI改善ラウンド48(A-4): 相手ポケモン名が非空で保存が起きるたびに、相手ビルド
-		// (性格・特性・持ち物・テラス・努力値)を種族名キーでlocalStorageへ上書き記録する
-		// (「最後に使ったビルド」がその種族の既定値になる、という指示どおりの挙動)。
+		// 相手ポケモン名が非空で保存が起きるたびに、相手ビルド(性格・特性・持ち物・テラス・
+		// 努力値)を種族名キーでlocalStorageへ上書き記録する(「最後に使ったビルド」が
+		// その種族の既定値になる)。
 		saveOpponentBuildPreset(name, {
 			nature: row.nature,
 			natureUp: row.natureUp,
@@ -1578,7 +1451,7 @@ if (opponentNotesSection) {
 			};
 			// 詳細設定は attacks[i](技カードごと)に入っているため、field直下の
 			// カード共通キー(weather/critical/attackerBoosts等)はもう書き出さない。
-			// 読み込み側(noteToRowState)は旧形式のキーがあれば技カードの初期値として
+			// 読み込み側(noteToRowState)は以前の保存形式のキーがあれば技カードの初期値として
 			// 引き継ぐので、既存メモの内容が失われることはない。
 			const field: OpponentFieldInput = {
 				direction: row.direction,
@@ -1664,19 +1537,17 @@ if (opponentNotesSection) {
 		if (idx !== -1) rows.splice(idx, 1);
 		deselectRowIfCurrent(row);
 		rebuildRowsList();
-		// ラウンド17指摘(B-1): 保存失敗中だった行を削除した場合、失敗件数から除外する。
+		// 保存失敗中だった行を削除した場合、失敗件数から除外する。
 		updateOpponentNotesFailureAlert();
 	}
 
-	// UI改善ラウンド38ユーザー指示(38-D2): 攻撃側(row.direction === "attack"、
-	// このポケモン自身が攻撃する行)の技候補は、種族の覚え技全体(#move-listの並び、
-	// left-panel.tsのrebuildMoveListForSpeciesが管理)ではなく、左パネルの技1〜4欄に
-	// 現在入力されている値(=このポケモン固有の実際の選択)を最上位に表示する。
-	// 共有<datalist id="move-list">自体を書き換えると左パネル本体・受け(defense)側の
+	// 攻撃側(row.direction === "attack"、このポケモン自身が攻撃する行)の技候補は、種族の
+	// 覚え技全体(#move-listの並び、left-panel.tsのrebuildMoveListForSpeciesが管理)ではなく、
+	// 左パネルの技1〜4欄に現在入力されている値(=このポケモン固有の実際の選択)を最上位に
+	// 表示する。共有<datalist id="move-list">自体を書き換えると左パネル本体・受け(defense)側の
 	// 技候補まで巻き込むため、この専用の<datalist id="move-list-self-first">を新設し、
 	// 攻撃側のmoveInputだけlist属性をこちらに向ける(left-panel.ts/LeftPanel.astroは
 	// 一切編集しない。#move-1〜#move-4のvalueをDOM経由で読むだけ)。
-	// 🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08 第2弾)「技の候補から変化技を削除」。
 	// 変化技(category === "status")は仕様上ダメージを一切発生させず、選んでも
 	// 「変化技のため、ダメージは発生しません。」(STATUS_MOVE_NOTE)が出るだけなので、
 	// ダメージカードの技名候補(datalist)からは最初から外す。
@@ -1722,8 +1593,7 @@ if (opponentNotesSection) {
 		}
 	}
 
-	// UI改修依頼(ダメージ計算カード、2026-08-04)項目5「防御時の技候補を相手の技の使用率順に
-	// 表示する」。上のSELF_FIRST_MOVE_DATALIST_ID(攻撃側=自分の技1〜4を最上位にする)と
+	// 上のSELF_FIRST_MOVE_DATALIST_ID(攻撃側=自分の技1〜4を最上位にする)と
 	// 対になる、防御側(row.direction === "defense"、相手が攻撃してくる技を入力する列)専用の
 	// datalist。#move-list(覚え技優先の並び)のoptionsをベースに、モジュール冒頭で読み込んだ
 	// moveAdoptionBySpecies(box/[id].astroがSSRで埋め込んだsuggestions由来の使用率)で
@@ -1775,16 +1645,14 @@ if (opponentNotesSection) {
 		column.moveName = list.options[0]?.value ?? "";
 	}
 
-	// UI改修依頼(個体編集画面・モバイル、2026-08-08)「デフォルトの表示状態でカードを
-	// 追加するボタンを表示する」対応。技列(加算条件)を1つ追加する処理は、元々
-	// renderColumns内の「＋ 技を追加」ボタン(addButton)のクリックハンドラだけに書かれていたが、
-	// 折りたたみ時の「＋」ボタン(renderRow内のcollapsedTechniques、下方参照)からも同じ処理を
-	// 呼ぶ必要があるため、共通関数に切り出す(重複コード防止)。呼び出し側(addButton自身、
-	// 折りたたみ時ボタン)は事前にMAX_COLUMNS_TO_ADD到達チェック(disabled/hidden)を
-	// 行っているが、念のためここでも二重にガードする。
+	// 技列(加算条件)を1つ追加する処理は、renderColumns内の「＋ 技を追加」ボタン(addButton)の
+	// クリックハンドラだけでなく、折りたたみ時の「＋」ボタン(renderRow内のcollapsedTechniques、
+	// 下方参照)からも同じ処理を呼ぶ必要があるため、共通関数に切り出している(重複コード防止)。
+	// 呼び出し側(addButton自身、折りたたみ時ボタン)は事前にMAX_COLUMNS_TO_ADD到達チェック
+	// (disabled/hidden)を行っているが、念のためここでも二重にガードする。
 	function addAttackColumn(row: DamageRowState): void {
 		if (row.attacks.length >= currentMaxColumnsToAdd()) return;
-		// 38-D7: 直前のカラム(row.attacks末尾)があれば、その詳細設定を引き継ぐ。
+		// 直前のカラム(row.attacks末尾)があれば、その詳細設定を引き継ぐ。
 		const previousColumn = row.attacks[row.attacks.length - 1];
 		const column = createEmptyColumn(previousColumn ? inheritedColumnDetailDefaults(previousColumn) : undefined);
 		fillFirstMoveCandidate(row, column);
@@ -1804,17 +1672,15 @@ if (opponentNotesSection) {
 		row.attacks.forEach((attack, index) => {
 			const col = document.createElement("div");
 			col.className = "damage-column";
-			// ラウンド6ユーザー指示(要件2): クリック委譲(renderRow内のroot.addEventListener)が
-			// クリックされた技列を特定するために使う。列は加算/削除のたびに作り直されるため、
-			// 都度この時点のindexで振り直す。
+			// クリック委譲(renderRow内のroot.addEventListener)がクリックされた技列を
+			// 特定するために使う。列は加算/削除のたびに作り直されるため、都度この時点の
+			// indexで振り直す。
 			col.dataset.columnIndex = String(index);
 
-			// ラウンド3 B-3: 技列を横に連結する=加算という関係が伝わりにくかったため、
-			// 「1発目」「2発目」…の順序キャプションを添える。
-			// ラウンド25ユーザー指示(25-D2)「ダメージカードを左右分割し、左側に
-			// 数字を書く」により、orderLabelはcol直下ではなく左側の狭い帯として残し、
-			// それ以外(技名行・ヒット回数行・条件・結果表示)は新設のcolBody
-			// (.damage-column-body、右側)にまとめる。
+			// 技列を横に連結する=加算という関係が伝わりにくいため、「1発目」「2発目」…の
+			// 順序キャプションを添える。orderLabelは左側の狭い帯として残し、それ以外
+			// (技名行・ヒット回数行・条件・結果表示)は新設のcolBody(.damage-column-body、
+			// 右側)にまとめる。
 			const orderLabel = document.createElement("span");
 			orderLabel.className = "damage-column-order-label";
 			orderLabel.textContent = `${index + 1}`;
@@ -1829,13 +1695,13 @@ if (opponentNotesSection) {
 			// placeholder/aria-labelも向きに合わせて言い換える(誰の技を入れる欄なのかが
 			// 分からないと、受け計算のときに自分の技を入れてしまう)。
 			const attackerIsOpponent = row.direction === "defense";
-			// 38-D2: 自分(このポケモン)が攻撃側のときだけ、左パネルの技1〜4を最上位にした
+			// 自分(このポケモン)が攻撃側のときだけ、左パネルの技1〜4を最上位にした
 			// 専用datalistを使う(上のensureSelfFirstMoveDatalist/refreshSelfFirstMoveDatalist参照)。
 			// 相手が攻撃側(受け計算)のときは種族全体の候補(#move-list)のまま変えない。
 			if (attackerIsOpponent) {
-				// UI改修依頼(ダメージ計算カード、2026-08-04)項目5: 防御側(相手が攻撃側)の
-				// 技候補は、種族全体の候補(#move-list)をそのまま使うのではなく、相手の
-				// 使用率順に並べ直した専用datalistを使う(上のensureOpponentPopularityMoveDatalist/
+				// 防御側(相手が攻撃側)の技候補は、種族全体の候補(#move-list)をそのまま
+				// 使うのではなく、相手の使用率順に並べ直した専用datalistを使う
+				// (上のensureOpponentPopularityMoveDatalist/
 				// refreshOpponentPopularityMoveDatalist参照。攻撃側=SELF_FIRST_MOVE_DATALIST_ID
 				// と同じ構造)。
 				ensureOpponentPopularityMoveDatalist();
@@ -1861,8 +1727,8 @@ if (opponentNotesSection) {
 				row.attacks[index].moveName = moveInput.value;
 				// 今回の要件: 技が変わった瞬間だけ、critRatioに基づく確定急所の自動入力を試す。
 				void notifyDetailMoveChanged(row, row.attacks[index]);
-				// ラウンド21ユーザー指示(21-D6): 「マルチヒット技のデフォルトヒット回数はMax」。
-				// ここ(技名inputへのユーザーの生入力)は「新規にこの技へ切り替えた」瞬間そのものなので
+				// マルチヒット技のデフォルトヒット回数はMaxにする。ここ(技名inputへのユーザーの
+				// 生入力)は「新規にこの技へ切り替えた」瞬間そのものなので
 				// preferMax:trueを渡す。保存済みメモの復元(renderColumns初期描画、下の
 				// { silent: true }呼び出し)はこの経路を通らないため、保存値(attack.hitCount)を
 				// 勝手に書き換えることはない。
@@ -1871,22 +1737,18 @@ if (opponentNotesSection) {
 				scheduleRowSave(row);
 			});
 
-			// ラウンド6ユーザー指示(要件1): 歯車(⚙)ボタンを廃止した。この技列自体を
-			// クリックする(フォーム要素の外側限定。renderRow内のroot.addEventListener参照)と
-			// この技だけの設定(急所・ランク補正など)がサイドバーに表示される。
-			// ラウンド3 B-2の積み残し: 削除ボタン(×)は技名行にまとめる
-			// (以前は技名直下の中空に取り残され、その下に200px以上の空白ができていた)。
+			// この技列自体をクリックする(フォーム要素の外側限定。renderRow内の
+			// root.addEventListener参照)と、この技だけの設定(急所・ランク補正など)が
+			// サイドバーに表示される。削除ボタン(×)は技名行にまとめて配置する。
 			const moveRow = document.createElement("div");
 			moveRow.className = "damage-column-move-row";
 			moveRow.appendChild(moveInput);
 			colBody.appendChild(moveRow);
 
-			// ラウンド6ユーザー指示(要件4): この技に実際に効いている条件(カード全体の
-			// 天候・フィールド・壁も、この技だけの急所・ランク補正等も区別せず)をまとめて
-			// 一覧するチップ。既存の.damage-row-condition-chips(以前は相手ビルドの箱に
-			// 1個だけ置いていた)をそのまま流用し、技列1枚につき1個生成する
-			// (collectConditionChips/refreshRowConditionChips参照。ONの項目だけを出し、
-			// 既定値のものは出さない)。
+			// この技に実際に効いている条件(天候・フィールド・壁も、この技だけの急所・ランク
+			// 補正等も区別せず)をまとめて一覧するチップ。.damage-row-condition-chipsを
+			// 技列1枚につき1個生成する(collectConditionChips/refreshRowConditionChips参照。
+			// ONの項目だけを出し、既定値のものは出さない)。
 			const conditionChips = document.createElement("div");
 			conditionChips.className = "damage-row-condition-chips";
 			conditionChips.hidden = true;
@@ -1894,13 +1756,13 @@ if (opponentNotesSection) {
 			row.columnChipEls.push(conditionChips);
 
 			// 技名inputと結果表示の間: DamageCard.pngで「計算の細かい条件を入れる予定」と
-			// されている領域。ラウンド12指摘(B-3)で連続回数(.damage-column-hitcount-row)は
-			// 技名行(moveRow)側へ移したため、ここに残るのは撃破済み注記のみ。
+			// されている領域。連続回数(.damage-column-hitcount-row)は技名行(moveRow)側へ
+			// 移したため、ここに残るのは撃破済み注記のみ。
 			const conditions = document.createElement("div");
 			conditions.className = "damage-column-conditions";
 			colBody.appendChild(conditions);
 
-			// ラウンド3 B-4: 累計で既に撃破済みになった以降の列を控えめに示すキャプション
+			// 累計で既に撃破済みになった以降の列を控えめに示すキャプション
 			// (renderColumnDisplaysのcomputeConfirmedKillAttackCount参照。数値自体は
 			// 変えない=列は独立判定のまま)。
 			const overkillNote = document.createElement("p");
@@ -1908,12 +1770,9 @@ if (opponentNotesSection) {
 			overkillNote.hidden = true;
 			conditions.appendChild(overkillNote);
 
-			// ラウンド12指摘(B-3): 技名入力400pxに対し中身が118px(最長でも176px)しか
-			// 使っていなかった。「N発目+技名」の同行化(ラウンド10)の延長として、
-			// ヒット回数もこの技名行(moveRow)へ同居させ、多段ヒット技の行ぶん
-			// (実測約28px)の縦を回収する。クラス名 .damage-column-hitcount-row は
-			// E2Eが参照しているため改名しない(要素をmoveRowへappendするだけで、
-			// クラス名・[hidden]による表示/非表示ロジックは変えない)。
+			// ヒット回数はこの技名行(moveRow)へ同居させ、多段ヒット技の行ぶんの縦を回収する。
+			// クラス名 .damage-column-hitcount-row はE2Eが参照しているため改名しない(要素を
+			// moveRowへappendするだけで、クラス名・[hidden]による表示/非表示ロジックは変えない)。
 			const hitRow = document.createElement("div");
 			hitRow.className = "damage-column-hitcount-row";
 			const hitInput = document.createElement("input");
@@ -1942,7 +1801,7 @@ if (opponentNotesSection) {
 			// silent: 初回描画時はtrue。値を補正してもここでは保存・再計算を予約しない
 			// (描画しただけで保存が走ると、何も編集していないのに保存状態が点滅する)。
 			// 補正後の値は、この直後に走る recalcRow() の成功時保存で自然に永続化される。
-			// ラウンド21ユーザー指示(21-D6): preferMaxは、技名inputへのユーザーの生入力
+			// preferMaxは、技名inputへのユーザーの生入力
 			// (moveInput の "input" イベント)からだけtrueで渡される。renderColumns初期描画
 			// (下の { silent: true } 呼び出し。保存済みメモの復元・行の再構築の両方がここを通る)
 			// は常にfalse/未指定なので、attackState.hitCount(保存値)を優先して勝手に
@@ -1977,14 +1836,13 @@ if (opponentNotesSection) {
 				const label = range[0] === range[1]
 					? `ヒット数(${range[0]}回固定)`
 					: `ヒット数(${range[0]}〜${range[1]}回)`;
-				// ラウンド19: 「2〜5」という範囲の表示だけでは、実際のヒット数がプレイヤーの
+				// 「2〜5」という範囲の表示だけでは、実際のヒット数がプレイヤーの
 				// 入力ではなく技ごとの確率で決まる乱数であり、この入力欄は「何回ヒットしたと
 				// 仮定するか」を指定するものだと伝わらない(初回選択時に最小値へクランプされる
 				// 理由も分からない)。確率の出典: .claude/skills/jpoke/references/damage-calc.md
 				// 「3. 急所・命中・多段ヒットの扱い」(2〜5回技は37.5%/37.5%/12.5%/12.5%、
 				// それ以外の範囲は一様分布)。range[0]===range[1](固定回数技)は乱数の要素が
 				// 無いため対象外のまま。
-				// 🔴 UI改善ラウンド29(29-D2)「ふくろだたきのヒット数ツールチップが事実と異なる」:
 				// ふくろだたきだけは乱数ではなく、選出中の生存かつ状態異常でないポケモンの数で
 				// 決定的にヒット数が決まる(出典: vendor/jpoke/src/jpoke/handlers/move_attack.py
 				// :3049-3054)。他の多段ヒット技(22件)はこの乱数の汎用文言のままで正しい。
@@ -1996,7 +1854,6 @@ if (opponentNotesSection) {
 					: `${label}。${hitCountNote}ここでは指定した回数ヒットした場合を計算します。`;
 				hitInput.setAttribute("aria-label", label);
 					unit.textContent = "ヒット";
-				// ラウンド21ユーザー指示(21-D6): 「マルチヒット技のデフォルトヒット回数はMax」。
 				// 新規にこの技へ切り替えた直後(preferMax:true)だけrange[1](最大)にする。
 				// それ以外(保存済みメモの復元・行の再構築)はattackState.hitCount(保存値、
 				// 新規技行では常に1)をそのままクランプする従来どおりの挙動を維持する。
@@ -2006,8 +1863,6 @@ if (opponentNotesSection) {
 			hitRow.hidden = true; // マスタデータの読み込み完了まではひとまず隠しておく
 			void refreshHitCountVisibility({ silent: true });
 
-			// UI改善ラウンド43ユーザー指示(43-D6)「技カードの削除ボタンを技カード右上に固定」。
-			// 以前は[技名][×]を技名行(moveRow)にまとめてインライン配置していた(ラウンド3 B-2)が、
 			// カード全体の削除ボタン(.damage-row-delete-button、position:absolute; top; right)と
 			// 同じ考え方で、この技カード(col、.damage-column)自身を基準に右上へ絶対配置する。
 			// moveRowへは追加せず、col直下へ直接appendする(CSSはDamageCalcSection.astroの
@@ -2045,17 +1900,16 @@ if (opponentNotesSection) {
 		});
 
 		// 「加算条件追加ボタン」(DamageCard.pngの右下)。
-		// ラウンド6ユーザー指示(要件5): 技列は最大3つまで。3つに達したら押せなくする
-		// だけでなく、ラベル文言そのものを理由の説明に差し替える(titleのhoverだけに
-		// 頼らない = 見ただけで「なぜ押せないか」が分かる状態にする)。
+		// 技列は最大3つまで。3つに達したら押せなくするだけでなく、ラベル文言そのものを
+		// 理由の説明に差し替える(titleのhoverだけに頼らない = 見ただけで「なぜ押せないか」が
+		// 分かる状態にする)。
 		const addButton = document.createElement("button");
 		addButton.type = "button";
 		addButton.className = "damage-add-column-button";
 		// 上限はレイアウト幅で変わる(モバイルは2、デスクトップは3。currentMaxColumnsToAdd参照)。
 		const maxColumns = currentMaxColumnsToAdd();
 		const isAtMax = row.attacks.length >= maxColumns;
-		// UI品質改善(ラウンド8 A-2): 上限到達時の説明文はコントラストが低く読めない
-		// うえ48pxを消費し続けていた。文言はホバー用title向けに残しつつ、スロット自体を
+		// 上限到達時の説明文はホバー用title向けに残しつつ、スロット自体を
 		// data-max="true"でCSS側から隠す(DOMは残す。下のCSS
 		// .damage-add-column-slot[data-max="true"]参照)。
 		if (row.addColumnSlotEl) row.addColumnSlotEl.dataset.max = String(isAtMax);
@@ -2068,24 +1922,21 @@ if (opponentNotesSection) {
 			addButton.textContent = "＋ 技を追加";
 			addButton.title = "加算する技を追加する(上から順に当てた加算ダメージ計算になります)";
 		}
-		// UI改修依頼(個体編集画面・モバイル、2026-08-08): 実際に技を1つ追加する処理は
-		// addAttackColumn(row)(fillFirstMoveCandidateの直後で定義)へ切り出し済み。
-		// 折りたたみ時の「＋」ボタン(renderRow内のcollapsedTechniques)と共通化するため。
+		// 実際に技を1つ追加する処理はaddAttackColumn(row)(fillFirstMoveCandidateの直後で定義)
+		// へ切り出している。折りたたみ時の「＋」ボタン(renderRow内のcollapsedTechniques)と
+		// 共通化するため。
 		addButton.addEventListener("click", () => addAttackColumn(row));
 		(row.addColumnSlotEl ?? row.columnsEl).appendChild(addButton);
 
 		renderColumnDisplays(row);
-		// ラウンド6ユーザー指示(要件4): 列を作り直すと条件チップの器
-		// (.damage-row-condition-chips)も作り直されるため、中身をここで再描画する。
+		// 列を作り直すと条件チップの器(.damage-row-condition-chips)も作り直されるため、
+		// 中身をここで再描画する。
 		refreshRowConditionChips(row);
-		// ラウンド6ユーザー指示(要件2): 列を作り直すとis-selectedマーカーも失われるため
-		// (columnsEl.innerHTMLを丸ごと差し替えているため)、選択中ならここで再適用する。
-		// ラウンド7ユーザー指示(方針転換): 「カード全体設定」という代替の表示先が
-		// 無くなったため、選択されていた技列自体が削除された場合は選択を完全に解除する
-		// (サイドバーは空状態に戻る。既存データ自体は失われない)。
-		// selectedRow/selectedColumnはshared-core.tsへ移設したため、getSelectedRow/
-		// getSelectedColumn/clearSelection経由で読み書きする(構造分割ラウンド・フェーズ1。
-		// ロジック自体は変えていない)。
+		// 列を作り直すとis-selectedマーカーも失われるため(columnsEl.innerHTMLを丸ごと
+		// 差し替えているため)、選択中ならここで再適用する。選択されていた技列自体が
+		// 削除された場合は選択を完全に解除する(サイドバーは空状態に戻る。既存データ自体は
+		// 失われない)。selectedRow/selectedColumnはshared-core.tsへ移設したため、
+		// getSelectedRow/getSelectedColumn/clearSelection経由で読み書きする。
 		if (getSelectedRow() === row) {
 			const currentSelectedColumn = getSelectedColumn();
 			if (currentSelectedColumn && row.attacks.includes(currentSelectedColumn)) {
@@ -2097,30 +1948,23 @@ if (opponentNotesSection) {
 		}
 	}
 
-	// --- 詳細設定サイドバーに表示する内容(ラウンド7ユーザー指示・方針転換) ---
+	// --- 詳細設定サイドバーに表示する内容 ---
 	// 天候・地形・壁・急所・ランク補正・状態異常・テラスタル発動は、実装上はすべて
-	// DamageColumnStateとして技カード(攻撃列)ごとに保持している。ラウンド3〜5では
-	// 「見出しは技名なのに中身は行全体で共通の設定」という食い違いを避けるため、
-	// これら全部をひとまとめにして行内の全技列へ同時反映する1枚の⚙ダイアログにし、
-	// ラウンド6では天候・フィールド・壁だけ「カード全体の設定」として残し、他を
-	// 技ごとの独立設定に分割していた。ラウンド7ユーザー指示で「カード全体設定」という
-	// 概念自体を廃止し、天候・フィールド・壁も含めた全項目が技列をクリックしたときの
-	// サイドバー(renderColumnLevelDetailPanel)からその技カード1枚だけを書き換える、
-	// 単純な1階層の設計に戻った。
-	// 保存フォーマット(技カードごとのフィールド)自体は元から変えていないので
-	// opponent-notes-validation.ts側の変更は不要。
+	// DamageColumnStateとして技カード(攻撃列)ごとに保持している。全項目は技列をクリック
+	// したときのサイドバー(renderColumnLevelDetailPanel)からその技カード1枚だけを書き換える、
+	// 単純な1階層の設計になっている。保存フォーマット(技カードごとのフィールド)は
+	// opponent-notes-validation.ts側と一致している。
 	// ステルスロック等の設置技はcalc_damages/calc_lethalではイベントが発火せず効果ゼロと
 	// 判明しているため、ここには置かない。
-	// ラウンド5ユーザー指示: 壁・ランクの判定はUI上のスカラー値(wallEnabled/
-	// attackerRank/defenderRank)で行う。attackerBoosts等の配列はresolveColumn
-	// DerivedFields()が技名の分類判明後に算出する派生値なので、値がまだ0のまま
-	// (技名未入力・分類不明の間)でもスカラー側は即座に正しい状態を反映できる。
+	// 壁・ランクの判定はUI上のスカラー値(wallEnabled/attackerRank/defenderRank)で行う。
+	// attackerBoosts等の配列はresolveColumnDerivedFields()が技名の分類判明後に算出する
+	// 派生値なので、値がまだ0のまま(技名未入力・分類不明の間)でもスカラー側は即座に
+	// 正しい状態を反映できる。
 
 	// 既定以外の条件を短いラベルの配列にする(技列ごとのONチップ表示用)。
 	// 天候・フィールド・壁・急所・ランク補正・状態異常・テラスタル発動のうち、
-	// 既定でない値がすべて漏れなくここに出ること。ラウンド7で全項目が技ごとの
-	// 独立設定になったため、この関数はもともと1つのDamageColumnStateだけを見る
-	// 実装のまま(カード全体/技ごとを区別する必要自体が無くなった=単純化)。
+	// 既定でない値がすべて漏れなくここに出ること。この関数は1つのDamageColumnStateだけを
+	// 見る実装で、カード全体/技ごとを区別する必要はない。
 	type ConditionGroup = { label: "攻撃側" | "防御側" | null; chips: string[] };
 
 	function collectConditionGroups(a: DamageColumnState, showTera: boolean): ConditionGroup[] {
@@ -2158,7 +2002,7 @@ if (opponentNotesSection) {
 	function renderConditionChipsInto(container: HTMLElement, attack: DamageColumnState): void {
 		container.innerHTML = "";
 		// 展開表示は、非テラスレギュレーションでも計算に残っているテラスタル設定を
-		// ユーザーが把握できるよう常に表示する。折りたたみ表示だけはユーザー指示どおり
+		// ユーザーが把握できるよう常に表示する。折りたたみ表示だけは
 		// refreshCollapsedTechniques()側でレギュレーションに応じて出し分ける。
 		const groups = collectConditionGroups(attack, true);
 		container.hidden = groups.length === 0;
@@ -2178,34 +2022,27 @@ if (opponentNotesSection) {
 		});
 	}
 
-	// refreshRowConditionChipsは構造分割ラウンド(フェーズ1)でshared-core.tsへ移設した
-	// (row.columnChipEls[i]へのrenderConditionChipsInto呼び出しはregisterDamageCalcBridge
-	// 経由になる。上のimport参照)。
-
-	// UI改善ラウンド36ユーザー指示(第18弾・機能追加)「ダメージカードの折りたたみ機能」。
-	// 状態はDBに保存しない(ページ再読み込みでは既定=展開状態に戻ってよい、というユーザー
-	// 指示どおり)ため、JSメモリ内(このモジュールのクロージャ)だけで完結させる。
-	// DamageRowState(shared-core.ts、このラウンドの編集対象外ファイル)にはフィールドを
-	// 追加せず、row参照をキーにしたWeakSet/WeakMapで折りたたみ状態と行ごとの
+	// 折りたたみ状態はDBに保存しない(ページ再読み込みでは既定の展開状態に戻る)ため、
+	// JSメモリ内(このモジュールのクロージャ)だけで完結させる。DamageRowStateには
+	// フィールドを追加せず、row参照をキーにしたWeakSet/WeakMapで折りたたみ状態と行ごとの
 	// setCollapsed()を保持する(WeakなのでrowがGCされれば自動的に参照も外れる)。
 	const collapsedRowSet = new WeakSet<DamageRowState>();
 	// モバイルは1カラムでカード幅を親に追従させるため、展開時のpx幅固定を使わない。
 	function isNarrowLayout(): boolean {
 		return true;
 	}
-	// 🔴 UI改修依頼(個体編集画面、2026-08-02)「耐久調整」機能の土台。refreshCollapsedViewsは
-	// 耐久調整ポップアップに貼る圧縮表示の複製(buildCollapsedPreview、下方参照)を作る前に、
-	// 元のカードの折りたたみ状態(dataset.collapsed)を一切変えずに、折りたたみ用DOM
-	// (.damage-row-collapsed-summary/.damage-row-collapsed-techniques・実数値表)の中身だけを
-	// 最新化するために追加した。setCollapsed()が呼んでいるrefreshCollapsedSummary()/
-	// refreshCollapsedStats()/refreshCollapsedTechniques()の3つをこの1関数にまとめて、
-	// setCollapsedと同じくrenderRowのクロージャ内で定義してWeakMapへ登録する。
+	// refreshCollapsedViewsは、元のカードの折りたたみ状態(dataset.collapsed)を一切変えずに、
+	// 折りたたみ用DOM(.damage-row-collapsed-summary/.damage-row-collapsed-techniques・
+	// 実数値表)の中身だけを最新化する(耐久調整ポップアップに貼る圧縮表示の複製
+	// buildCollapsedPreview作成前などに使う)。setCollapsed()が呼んでいる
+	// refreshCollapsedSummary()/refreshCollapsedStats()/refreshCollapsedTechniques()の3つを
+	// この1関数にまとめて、setCollapsedと同じくrenderRowのクロージャ内で定義して
+	// WeakMapへ登録する。
 	const rowCollapseHandles = new WeakMap<
 		DamageRowState,
 		{ setCollapsed: (collapsed: boolean) => void; refreshCollapsedViews: () => void }
 	>();
-	// 🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08 第2弾)「相手ビルドのポケモンアイコンを
-	// ドット絵に変更」。ドット絵(モバイル)と公式アートワーク(デスクトップ)の切り替えは
+	// ドット絵(モバイル)と公式アートワーク(デスクトップ)の切り替えは
 	// 画像URLの差でしかないため、幅の境界をまたいだ瞬間に各行のrefreshSprite()を呼び直す
 	// 必要がある。rowCollapseHandlesと同じく、renderRowのクロージャ内の関数をWeakMapで
 	// 行に紐づけておき、下方のmatchMediaリスナーがrows(表示中の行)を回して呼ぶ
@@ -2217,8 +2054,7 @@ if (opponentNotesSection) {
 		}
 	}
 
-	// 🔴 UI改善ラウンド40ユーザー指示(40-D1)「テラスタイプ選択ボックスは、左パネルのもの
-	// (選択肢にアイコンが見えるカスタムドロップダウン)と共通化する」。LeftPanel.astro
+	// テラスタイプ選択ボックスはLeftPanel.astro
 	// 226〜249行目・left-panel.ts 500〜613行目の#tera-dropdown-button/#tera-dropdown-list
 	// (ボタン+リストボックスのカスタムドロップダウン)と同じ見た目・挙動を持つが、左パネル側は
 	// ページに1個しか無い前提でid固定のgetElementById()を使っているのに対し、ダメージカードは
@@ -2354,9 +2190,9 @@ if (opponentNotesSection) {
 		wrap.append(button, list);
 		updateButton();
 
-		// UI改善ラウンド48(A-4): 種族プリセット適用時に、クリック操作を介さず外部から
-		// 表示だけを更新できるようにする(onChangeは呼ばない。値の反映・再計算・保存の
-		// トリガーは呼び出し側=applyOpponentBuildPreset側でまとめて行う)。
+		// 種族プリセット適用時に、クリック操作を介さず外部から表示だけを更新できるようにする
+		// (onChangeは呼ばない。値の反映・再計算・保存のトリガーは呼び出し側=
+		// applyOpponentBuildPreset側でまとめて行う)。
 		function setValue(newValue: string): void {
 			value = newValue;
 			for (const opt of optionEls) opt.li.classList.toggle("is-active", opt.value === value);
@@ -2369,8 +2205,8 @@ if (opponentNotesSection) {
 	// --- 行(相手1体)のDOM構築 ---
 	function renderRow(row: DamageRowState): HTMLElement {
 		const root = document.createElement("article");
-		// UI品質改善(デザイン原則整合): ダメージ計算1件=対戦相手1体は追加/削除できる
-		// コレクション要素なので、基底.card(global.css)+ページ固有の.card-damageにする。
+		// ダメージ計算1件=対戦相手1体は追加/削除できるコレクション要素なので、
+		// 基底.card(global.css)+ページ固有の.card-damageにする。
 		root.className = "card card-damage";
 		row.root = root;
 
@@ -2379,18 +2215,16 @@ if (opponentNotesSection) {
 		root.appendChild(body);
 
 		// --- 左側: 相手ビルドの箱(DamageCard.pngの左側のボックス) ---
-		// ラウンド7ユーザー指示(方針転換): この箱のクリックは無反応(サイドバーを
-		// 開くのは技列の箱だけ)という確定仕様になったため、選択マーカー用の
-		// row.buildEl参照は廃止した。
+		// この箱のクリックは無反応(サイドバーを開くのは技列の箱だけ)。選択マーカー用の
+		// row.buildEl参照は持たない。
 		const buildEl = document.createElement("div");
 		buildEl.className = "damage-row-build";
 		body.appendChild(buildEl);
 
-		// 🔴 UI改善ラウンド28ユーザー指示(28-D1)「相手アイコンは最初の5段分(攻守切替+
-		// 種族名/特性/持ち物/テラスの4段)を使う」により、buildMain/buildLeftを先に
-		// 組み立て、actionsRow(1段目)をbuildLeftの中に入れる(以前はbuildEl直下の
-		// 独立した行だった)。こうするとbuildLeftの高さ=actionsRow+buildFields(1〜5段目)
-		// になり、隣のspriteBox(下記)がalign-items:stretchでその高さに追随する。
+		// 相手アイコンは最初の5段分(攻守切替+種族名/特性/持ち物/テラスの4段)を使う。
+		// buildMain/buildLeftを先に組み立て、actionsRow(1段目)をbuildLeftの中に入れることで
+		// buildLeftの高さ=actionsRow+buildFields(1〜5段目)になり、隣のspriteBox(下記)が
+		// align-items:stretchでその高さに追随する。
 		const buildMain = document.createElement("div");
 		buildMain.className = "damage-row-build-main";
 		buildEl.appendChild(buildMain);
@@ -2403,8 +2237,7 @@ if (opponentNotesSection) {
 		actionsRow.className = "damage-row-actions";
 		buildLeft.appendChild(actionsRow);
 
-		// ラウンド20ユーザー指示(20-D2、旧・単一トグルボタンを撤回): 「攻撃」「防御」の
-		// 2値セグメントコントロールにする(role="radiogroup"+role="radio"。
+		// 「攻撃」「防御」の2値セグメントコントロールにする(role="radiogroup"+role="radio"。
 		// refreshDirectionUi参照)。
 		const directionToggle = document.createElement("div");
 		directionToggle.className = "damage-row-direction-toggle";
@@ -2413,7 +2246,7 @@ if (opponentNotesSection) {
 		const attackOption = document.createElement("button");
 		attackOption.type = "button";
 		attackOption.className = "damage-row-direction-option";
-		// UI改善ラウンド26(26-D1): 攻撃/防御を区別するdata-role属性を新設する
+		// 攻撃/防御を区別するdata-role属性
 		// (CSSは.damage-row-direction-option[data-role="attack"/"defense"][aria-checked="true"]参照)。
 		attackOption.dataset.role = "attack";
 		attackOption.setAttribute("role", "radio");
@@ -2428,7 +2261,6 @@ if (opponentNotesSection) {
 		actionsRow.appendChild(directionToggle);
 
 		// 2〜5段目: 名前input+特性/持ち物/テラスの縦スタック(.damage-row-build-fields)。
-		// UI品質改善(ラウンド8 A-1)由来の構成をそのまま維持する。
 		const buildFields = document.createElement("div");
 		buildFields.className = "damage-row-build-fields";
 		buildLeft.appendChild(buildFields);
@@ -2543,21 +2375,16 @@ if (opponentNotesSection) {
 		// テキストでは重複表示しない。特性名は42-D4時点では「実装者判断で表示しない」
 		// としていたが、🔴 UI改善ラウンド46ユーザー指示(第30弾、A-1)でこの判断を撤回し、
 		// 上のcollapsedAbilityElとして追加した(理由は上のコメント参照)。
-		// 実測(round-42.md検証時、フィクスチャc8680844-...のカイリュー行)で判明: 6項目を
-		// flex-wrapの1コンテナに任せると、build幅340px(スプライト80px分を引いた残り
-		// 約234px)ぎりぎりのところで「S116だけ2行目に孤立して折り返る」ような不揃いな
-		// 折り返りが起き、カード同士の高さが行によって102.75px/116.06pxとばらつく事故が
-		// 実測で見つかった(3桁の実数値が並ぶと数px単位でギリギリ)。ラウンド45はH/A/B
-		// (1行目)・C/D/S(2行目)に固定で分けた3列×2行gridで対応した。
-		// 🔴 UI改善ラウンド47ユーザー指示(第31弾、A-1): 当初「6項目を1行flexに詰める」案を
-		// 実装したが、Coordinatorから追加指示があり「ラベル行(H/A/B/C/D/S)+実数値行の
-		// 2段・6列表」という確定仕様に差し替えられた(1行flexだと最悪ケースでフォントを
-		// 12px下限ギリギリまで縮める必要があり見た目が窮屈になるため撤回)。6個のラベル要素を
-		// 先に1段目、6個の実数値要素を2段目に配置し、6列グリッド(grid-auto-flow:row既定)へ
-		// display:contentsで直接参加させることで、同じ列位置に縦の対応が取れる
-		// (H↑値、A↑値…と6列すべてが揃う)。性格補正の上昇/下降は、ラウンド45で追加した
-		// 値側の▲/▼記号ではなく、ラベル文字への+/-付記(例: A+/C-)で表現する新仕様になった
-		// (refreshCollapsedStats参照、値には記号を付けない)。
+		// 6項目をflex-wrapの1コンテナに任せると、build幅340px(スプライト80px分を引いた
+		// 残り約234px)ぎりぎりのところで一部の項目だけ2行目に孤立するような不揃いな
+		// 折り返りが起き、カードの高さが行によってばらつく(3桁の実数値が並ぶと数px単位で
+		// ギリギリになるため)。H/A/B(1行目)・C/D/S(2行目)に固定で分けた3列×2行gridで
+		// 対応している。
+		// 6個のラベル要素を1段目、6個の実数値要素を2段目に配置し、6列グリッド
+		// (grid-auto-flow:row既定)へdisplay:contentsで直接参加させることで、同じ列位置に
+		// 縦の対応が取れる(H↑値、A↑値…と6列すべてが揃う)。性格補正の上昇/下降は、
+		// 値側の記号ではなくラベル文字への▲/▼付記で表現する(refreshCollapsedStats参照、
+		// 値には記号を付けない)。
 		const collapsedStatsEl = document.createElement("div");
 		collapsedStatsEl.className = "damage-row-collapsed-stats";
 		const collapsedStatKeyEls: Partial<Record<StatKey, HTMLElement>> = {};
@@ -2581,25 +2408,19 @@ if (opponentNotesSection) {
 			collapsedStatValueEls[key] = valueEl;
 		});
 		collapsedStatsEl.append(statLabelRow, statValueRow);
-		// 🔴 UI改善ラウンド47ユーザー指示(第31弾、追加指示A-7、A-5を撤回して差し替え):
-		// 直前のA-5実装(種族名・攻撃/防御バッジ・特性を1段の.damage-row-collapsed-meta-rowに
-		// まとめる)を、ユーザーの再指定「1段目: 攻撃/防御 種族名 / 2段目: 特性、テラスタル」
-		// により2段構成へ作り直す。
-		// 1段目(.damage-row-collapsed-meta-row、既存クラス名を流用): 攻撃/防御バッジ
-		// (collapsedDirectionEl)→種族名(collapsedNameEl)の順(ユーザー指定の並び順に合わせて
-		// DOM追加順を変更。以前のA-5はnameEl→directionElの順だった)。特性(collapsedAbilityEl)は
-		// この行から外す。バッジ・種族名とも省略しない(flex:0 0 auto、下のCSS参照)。
-		// 2段目(.damage-row-collapsed-tera-row、新設): 特性(collapsedAbilityEl、既存要素を
-		// そのままこちらへ移動。スタイル・ellipsis仕様は維持)→テラス情報の順。
-		// テラス情報はスプライト画像に重ねていた既存の.damage-type-badge(typeBadgeImg/
+		// 折りたたみ時のメタ情報は2段構成: 1段目(.damage-row-collapsed-meta-row)は
+		// 攻撃/防御バッジ(collapsedDirectionEl)→種族名(collapsedNameEl)の順で、両方とも
+		// 省略しない(flex:0 0 auto、下のCSS参照)。2段目(.damage-row-collapsed-tera-row)は
+		// 特性(collapsedAbilityEl、スタイル・ellipsis仕様は展開時と維持)→テラス情報の順。
+		// テラス情報はスプライト画像に重ねる.damage-type-badge(typeBadgeImg/
 		// typeBadgeFallback)をやめ(折りたたみ時限定でCSS側をdisplay:noneに戻す、下方の
 		// [data-collapsed="true"] .damage-type-badge参照)、ここに新しい小アイコン
 		// (collapsedTeraImg/collapsedTeraFallback)として表示する。applyTeraImage()の
 		// シグネチャ(imgEl, fallbackEl, teraName)はtypeBadgeImg/typeBadgeFallbackへの
 		// 呼び出しと同一で、同じ関数を2組の要素へそれぞれ適用するだけでよい(下方の
-		// refreshTypeBadge参照)。特性・テラアイコンの合計が234.42px幅を超える場合は
-		// A-5と同じ考え方で特性側だけellipsis省略する(flex:1 1 auto; min-width:0、
-		// テラアイコン側はflex:0 0 auto固定サイズ)。
+		// refreshTypeBadge参照)。特性・テラアイコンの合計が幅を超える場合は特性側だけ
+		// ellipsis省略する(flex:1 1 auto; min-width:0、テラアイコン側はflex:0 0 auto固定
+		// サイズ)。
 		const collapsedTeraImg = document.createElement("img");
 		collapsedTeraImg.className = "damage-row-collapsed-tera-icon-img";
 		collapsedTeraImg.width = 16;
@@ -2613,7 +2434,6 @@ if (opponentNotesSection) {
 		const collapsedTeraIconEl = document.createElement("span");
 		collapsedTeraIconEl.className = "damage-row-collapsed-tera-icon";
 		collapsedTeraIconEl.append(collapsedTeraImg, collapsedTeraFallback);
-		// round-47.md A-7「テキストラベル(タイプ名)を併記するかは実装者判断でよい」に基づき、
 		// アイコンの右にタイプ名テキストを添える。アイコン・名前とも省略対象にしない固定サイズの
 		// 塊としてまとめる(.damage-row-collapsed-tera-info、下記append参照。CSSは
 		// DamageCalcSection.astro参照)。
@@ -2634,32 +2454,24 @@ if (opponentNotesSection) {
 		function refreshCollapsedSummary(): void {
 			collapsedNameEl.textContent = row.name.trim() || "(名前未設定)";
 			const selfAttacks = row.direction !== "defense";
-			// UI改善ラウンド45(ユーザー指示第29弾、A-4)で「攻撃/防御」→「与ダメ/被ダメ」に
-			// 変更したが(%の基準が伝わらないというプレイヤー視点レビュアー指摘への対応)、
-			// 🔴 UI改善ラウンド47ユーザー指示(第31弾、A-2)によりユーザーが明示的にこれを
-			// 撤回し「攻撃/防御」への復帰を指示した(ワイヤーフレーム
-			// docs/ui_proposal/ダメージカード_圧縮.png の表記に合わせる)。ユーザー判断が
-			// 最優先のため撤回する。ラウンド45が指摘した「%の基準が伝わらない」問題自体は
-			// 復活する(再度指摘があれば別解決策を検討する、round-47.md参照)。展開時の
-			// インタラクティブなセグメントコントロール(.damage-row-direction-option、
-			// 下のattackOption/defenseOption)は「攻撃」「防御」のまま元々変更していない
-			// (別要素・別の確定仕様)。dataset.role(色分け用)はラウンド45のまま変更しない。
+			// collapsedDirectionElの文言は「攻撃」「防御」(docs/ui_proposal/ダメージカード_圧縮.png
+			// の表記に合わせる)。展開時のインタラクティブなセグメントコントロール
+			// (.damage-row-direction-option、下のattackOption/defenseOption)とは別要素で、
+			// そちらの文言は独立して「攻撃」「防御」のまま変えていない。
 			collapsedDirectionEl.textContent = selfAttacks ? "攻撃" : "防御";
 			collapsedDirectionEl.dataset.role = selfAttacks ? "attack" : "defense";
-			// UI改善ラウンド46ユーザー指示(第30弾、A-1): 名前欄の
-			// row.name.trim() || "(名前未設定)" と同じフォールバック文法に揃える。
-			// title属性にもフルテキストを持たせ、ellipsis省略時のツールチップにする
-			// (round-46.md、UI・プレイヤー視点レビュアー重複指摘、統合済み)。
+			// 名前欄の row.name.trim() || "(名前未設定)" と同じフォールバック文法に揃える。
+			// title属性にもフルテキストを持たせ、ellipsis省略時のツールチップにする。
 			const abilityText = row.abilityName.trim() || "(特性未設定)";
 			collapsedAbilityEl.textContent = abilityText;
 			collapsedAbilityEl.title = abilityText;
 		}
-		// 42-D4: H/A/B/C/D/Sの実数値だけをこの折りたたみ用の行へ複製する。実数値の算出
-		// ロジック自体(性格補正込み)は展開時の.damage-ev-grid(row.statValueEls)を
-		// recalcRowStatsOnly()が最新化しており、この関数はその結果(表示済みのtextContent/
-		// data-mod)をそのまま読み写すだけ(計算式を二重に持たない)。折りたたみ中は
-		// 入力欄が隠れて編集不可なため(36-1の既存方針)、この読み写しはsetCollapsed()の
-		// タイミングだけで行えば値がずれることはない(下のsetCollapsed参照)。
+		// H/A/B/C/D/Sの実数値だけをこの折りたたみ用の行へ複製する。実数値の算出ロジック自体
+		// (性格補正込み)は展開時の.damage-ev-grid(row.statValueEls)をrecalcRowStatsOnly()が
+		// 最新化しており、この関数はその結果(表示済みのtextContent/data-mod)をそのまま読み写す
+		// だけ(計算式を二重に持たない)。折りたたみ中は入力欄が隠れて編集不可なため、この
+		// 読み写しはsetCollapsed()のタイミングだけで行えば値がずれることはない(下の
+		// setCollapsed参照)。
 		function refreshCollapsedStats(): void {
 			for (const key of STAT_KEYS) {
 				const keyTarget = collapsedStatKeyEls[key];
@@ -2667,19 +2479,12 @@ if (opponentNotesSection) {
 				const source = row.statValueEls[key];
 				if (!keyTarget || !valueTarget) continue;
 				const mod = source?.dataset.mod;
-				// UI改善ラウンド45(ユーザー指示第29弾、A-3)で性格補正の上昇/下降を値側に
-				// ▲/▼記号として追加したが(色のみ表現はWCAG 1.4.1に抵触するため)、
-				// UI改善ラウンド47ユーザー指示(第31弾、A-1、Coordinator追加指示)により
-				// 「ラベル行+実数値行の2段・6列表」への変更に伴い、記号の付与位置がラベル側
-				// (H/A/B/C/D/Sの文字)へ移り、一時的に▲/▼ではなく+/-をラベル文字に直接付記する
-				// 形にしていた(例: 上昇ならA+、下降ならC-)。
-				// 🔴 UI改善ラウンド47ユーザー指示(第31弾、A-7実装後にさらに追加)「性格補正は
-				// +/-ではなく展開中と同じ三角形で表現する」により、記号だけを+/-→▲/▼に戻す
-				// (付与位置=ラベル文字への直接付記はそのまま変更しない、例: 上昇ならA▲、
-				// 下降ならC▼)。展開時の.damage-ev-nature-indicator(describeNatureCycleState、
-				// 上方参照)と同じグリフを使う。値側には記号を付けない。色は新色を作らず、
-				// 既存の--color-stat-up/--color-stat-down(.damage-row-collapsed-stat-key[data-mod]、
-				// DamageCalcSection.astro)をそのままラベル側に付け替えて流用する。
+				// 性格補正の上昇/下降はラベル文字(H/A/B/C/D/Sの文字)へ▲/▼を直接付記して表現する
+				// (色のみ表現はWCAG 1.4.1に抵触するため。例: 上昇ならA▲、下降ならC▼)。展開時の
+				// .damage-ev-nature-indicator(describeNatureCycleState、上方参照)と同じグリフを
+				// 使う。値側には記号を付けない。色は既存の--color-stat-up/--color-stat-down
+				// (.damage-row-collapsed-stat-key[data-mod]、DamageCalcSection.astro)を
+				// そのままラベル側に付け替えて流用する。
 				const suffix = mod === "up" ? "▲" : mod === "down" ? "▼" : "";
 				keyTarget.textContent = STAT_KANJI[key] + suffix;
 				if (mod) keyTarget.dataset.mod = mod;
@@ -2699,21 +2504,17 @@ if (opponentNotesSection) {
 		attachKanaTypeAhead(nameInput, el<HTMLDataListElement>("pokemon-list"));
 		nameRow.appendChild(nameInput);
 
-		// 🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08)「ダメージカードの相手ビルドサイズを
-		// 大幅削減」(docs/ui_proposal/mobile/box_個体編集_vs_相手ビルド.png)。提案図の相手ビルドは
-		// 「ドット絵 + [攻撃][特性][テラスタル]の1行 + H〜Sの3段表」だけで、種族名の入力欄が
-		// 描かれていない。ユーザー確認済みの確定仕様は「ドット絵をタップすると種族名入力欄が
-		// その場に現れてフォーカスされる」。
-		// 実装方針: 入力欄はDOMから消さず(自動保存契約 row.name / 既存のdatalist補助・
-		// change時のプリセット適用をそのまま使うため)、モバイルのCSSで既定 display:none にし、
-		// この buildEl.dataset.mobileEdit の値で出し分ける。
+		// ドット絵をタップすると種族名入力欄がその場に現れてフォーカスされる。
+		// 入力欄はDOMから消さず(自動保存契約 row.name / 既存のdatalist補助・change時の
+		// プリセット適用をそのまま使うため)、モバイルのCSSで既定 display:none にし、この
+		// buildEl.dataset.mobileEdit の値で出し分ける。
 		// role/tabindexはデスクトップでも付くが、デスクトップでは入力欄が常時見えているため
 		// 「クリックすると種族名欄にフォーカスが移るだけ」の無害な導線になる(モバイル判定で
 		// 属性を付け外しする仕組みを行ごとに持つより、こちらのほうが単純で壊れにくい)。
 		spriteBox.setAttribute("role", "button");
 		spriteBox.tabIndex = 0;
 		spriteBox.setAttribute("aria-label", "相手の種族名を編集");
-		// ⚠️ 「入力欄からフォーカスが外れたら畳む」方式は採らない(実装途中で実測して撤回した):
+		// ⚠️ 「入力欄からフォーカスが外れたら畳む」方式は採らない:
 		// 畳むのはmousedown(=次のタップの入り口)で起きるため、開いていた行のぶんだけ
 		// 画面が上にずれ、mousedownとmouseupで別の要素が当たって「1回目のタップが無反応に
 		// なる」事故になる(努力値テキストで再現)。同じトリガをもう一度押して閉じる
@@ -2747,10 +2548,8 @@ if (opponentNotesSection) {
 			delete buildEl.dataset.mobileEdit;
 		});
 
-		// 🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08 第2弾)「相手ビルドのポケモンアイコンを
-		// ドット絵に変更」。デスクトップ(900px以上)は従来どおり公式アートワーク
-		// (officialArtworkUrl)のままで、899px以下だけPokeAPIのドット絵(spriteUrl。
-		// 左パネルの持ち物バッジ等と同じソース)に差し替える。
+		// デスクトップ(900px以上)は公式アートワーク(officialArtworkUrl)のままで、899px以下
+		// だけPokeAPIのドット絵(spriteUrl。左パネルの持ち物バッジ等と同じソース)に差し替える。
 		// 幅の境界をまたいだときは下方のmatchMediaリスナーが全行のこの関数を呼び直す。
 		function refreshSprite(): void {
 			void applySprite(
@@ -2762,35 +2561,28 @@ if (opponentNotesSection) {
 		}
 		rowSpriteRefreshers.set(row, refreshSprite);
 		function refreshTypeBadge(): void {
-			// 🔴 UI改善ラウンド31ユーザー指示(31-D4b)で追加していた選択欄左の専用アイコン
-			// (teraFieldIcon/teraFieldIconFallback)への同時更新は、🔴 UI改善ラウンド40
-			// ユーザー指示(40-D1)「テラス選択ボックスを左パネルと共通化する」により、
-			// アイコン表示自体がbuildTeraDropdown()のボタン内蔵アイコン(下方のteraDropdown
-			// 参照。row.teraTypeが変わるたびに内部でteraTypeIconUrlを引き直す)に一本化された
-			// ため不要になった(選択欄の外に重ねる専用アイコンはもう無い)。
+			// テラスタイプのアイコン表示はbuildTeraDropdown()のボタン内蔵アイコン(下方の
+			// teraDropdown参照。row.teraTypeが変わるたびに内部でteraTypeIconUrlを引き直す)に
+			// 一本化されている。選択欄の外に重ねる専用アイコンは無い。
 			void applyTeraImage(typeBadgeImg, typeBadgeFallback, row.teraType);
-			// 🔴 UI改善ラウンド47ユーザー指示(第31弾、A-7): 折りたたみ2段目
-			// (collapsedTeraRow)の小アイコンも同じrow.teraTypeで更新する。上のtypeBadgeImg/
-			// typeBadgeFallbackへの呼び出しと同じapplyTeraImage()を、別の要素ペア
+			// 折りたたみ2段目(collapsedTeraRow)の小アイコンも同じrow.teraTypeで更新する。上の
+			// typeBadgeImg/typeBadgeFallbackへの呼び出しと同じapplyTeraImage()を、別の要素ペア
 			// (collapsedTeraImg/collapsedTeraFallback)へそのまま適用するだけでよい。
 			void applyTeraImage(collapsedTeraImg, collapsedTeraFallback, row.teraType);
-			// round-47.md A-7「テキストラベル(タイプ名)を併記するかは実装者判断でよい」に
-			// 基づき、アイコンの隣にタイプ名テキストを表示する。テラスタイプ未設定
+			// アイコンの隣にタイプ名テキストを表示する。テラスタイプ未設定
 			// (row.teraType==="")のときは空文字にし、アイコン(applyTeraImageがimg/fallback
 			// 両方をdisplay:noneにする)と同じく何も見えない状態にする。
 			const teraTypeText = row.teraType.trim();
 			collapsedTeraNameEl.textContent = teraTypeText;
 			collapsedTeraNameEl.title = teraTypeText;
-			// UI改修依頼(共通方針、2026-08-01)「テラスタイプが未設定の場合、"未設定"などと
-			// 表示せず要素ごと非表示にする」。アイコン(applyTeraImage)・名前テキストは既に
-			// 空/非表示になっているが、それだけだと空のicon+textラッパー(collapsedTeraInfoEl、
-			// gap込み)が場所だけ占有して残るため、ラッパーごと隠す(持ち物バッジ等、他の
-			// 未設定表現と同じ「要素ごと消す」流儀に揃える)。
-			// UI改修依頼(ダメージ計算カード、2026-08-02)「圧縮表示もレギュレーションに応じて
-			// テラスタルの表示・非表示を自動判断する」。展開側のrowTeraFieldWraps(相手の
-			// テラスタイプ選択欄、syncTeraFieldVisibility()参照)と同じisTerastalRegulation()
-			// 判定を、圧縮表示の相手テラスタイプ表示(このcollapsedTeraInfoEl)にもかける。
-			// row.teraType自体は変更しない(表示の出し分けのみ)。
+			// テラスタイプが未設定の場合は要素ごと非表示にする("未設定"等と表示しない)。
+			// アイコン(applyTeraImage)・名前テキストは既に空/非表示になっているが、それだけだと
+			// 空のicon+textラッパー(collapsedTeraInfoEl、gap込み)が場所だけ占有して残るため、
+			// ラッパーごと隠す(持ち物バッジ等、他の未設定表現と同じ「要素ごと消す」流儀に揃える)。
+			// 展開側のrowTeraFieldWraps(相手のテラスタイプ選択欄、syncTeraFieldVisibility()参照)
+			// と同じisTerastalRegulation()判定を、圧縮表示の相手テラスタイプ表示
+			// (このcollapsedTeraInfoEl)にもかける。row.teraType自体は変更しない
+			// (表示の出し分けのみ)。
 			collapsedTeraInfoEl.hidden =
 				teraTypeText === "" || !isTerastalRegulation(currentIndividualRegulation());
 		}
@@ -2809,9 +2601,9 @@ if (opponentNotesSection) {
 			refreshCollapsedSummary();
 			onFieldInput();
 		});
-		// 23-D2: 種族名が確定した(blur、またはpokemon-listのdatalist選択によるchange)
+		// 種族名が確定した(blur、またはpokemon-listのdatalist選択によるchange)
 		// タイミングでのみ特性候補を作り直す(理由は上のabilitySelectコメント参照)。
-		// UI改善ラウンド48(A-4): 同じタイミングで、種族ごとのローカルプリセット(性格・特性・
+		// 同じタイミングで、種族ごとのローカルプリセット(性格・特性・
 		// 持ち物・テラス・努力値)の自動適用も試みる(applyOpponentBuildPresetは同期関数。
 		// 下方でabilitySelect/itemInput/teraDropdown/evInputEls定義後に関数宣言するが、
 		// 関数宣言はホイストされ、実行時(=ユーザーが種族名を確定した後)には既に

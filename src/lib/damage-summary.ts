@@ -3,8 +3,7 @@
 //
 // 【何のためにあるか】
 // チーム編集画面(/team/[id])の右パネルに、選択した個体に登録済みのダメージ計算を
-// 圧縮版で並べるため(UI改修依頼 2026-08-01「右パネルには登録されているダメージ計算の
-// 圧縮版を表示する」、ワイヤーフレーム docs/ui_proposal/ダメージカード_圧縮.png)。
+// 圧縮版で並べるため(ワイヤーフレーム docs/ui_proposal/ダメージカード_圧縮.png)。
 // 表示内容は個体編集画面(/box/[id])のダメージカードを折りたたんだ状態と同じ:
 //   アイコン | 種族名 / 攻撃 or 防御 / 特性 / H-A-B-C-D-S
 //            | 技名 / 詳細設定 / 累計計算結果
@@ -176,7 +175,6 @@ export function collectNoteConditionChips(attack: NormalizedNoteAttack, category
 	if (attack.critical) chips.push('急所');
 	if (attack.attackerAilment) chips.push(`攻撃側${attack.attackerAilment}`);
 	if (attack.defenderAilment) chips.push(`防御側${attack.defenderAilment}`);
-	// UI改修依頼(2026-08-05)「詳細表示のテラス表記をテラスタルへ統一」対応。
 	if (attack.attackerTerastallized) chips.push('攻撃側テラスタル');
 	if (attack.defenderTerastallized) chips.push('防御側テラスタル');
 	const atkLabel = category === 'special' ? '特攻' : '攻撃';

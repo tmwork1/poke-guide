@@ -462,20 +462,15 @@ try {
 			overflow-y: auto;
 			/* カード右端とスクロールバーが接触しないよう最小限の余白を確保する。 */
 			padding-right: var(--space-2);
-			/* B-1は実装後にCoordinatorが差し戻した(round-30.md「Coordinatorの実測検証で
-			   差し戻した変更」節)。29-R1と同型の margin-block: auto による上下中央寄せを
-			   一度入れたが、実機では検索欄の直下に約310pxの空白が空き、リストが宙に浮いて
-			   「検索欄と選択リストが別の帯」に見えた。同じラウンドでユーザーが右パネルに
-			   対して「最上部」(31-R1)を明示し 29-R1 の中央寄せ自体を撤回しているため、
-			   この帯にだけ同じパターンを新規導入するのは最新の方針と逆行する。
-			   下端の空白(657px)は個体が増えれば自然に埋まる性質のものなので、
-			   上端起点のまま据え置く。 */
+			/* margin-block: auto による上下中央寄せは、個体数が少ない間は検索欄の直下に
+			   大きな空白が生まれ、リストが宙に浮いて見えるため使わない。上端起点で配置し、
+			   下端の空白は個体数が増えれば自然に埋まる。 */
 			display: flex;
 			flex-direction: column;
 		}
-		/* 1300px未満(選択バーが帯ではなく縦積みの通常ブロックになる、2026-08-02に1200px→
-		   1300pxへ閾値変更、上の.team-edit-layoutコメント参照)では高さを固定せず、
-		   代わりに際限なく伸びないよう上限を設ける(ボックスの個体数が多いユーザー向け)。 */
+		/* 選択バーが帯ではなく縦積みの通常ブロックになる幅(1300px未満、上の.team-edit-layout
+		   コメント参照)では高さを固定せず、代わりに際限なく伸びないよう上限を設ける
+		   (ボックスの個体数が多いユーザー向け)。 */
 		@media (max-width: 1299px) {
 			.team-select-list-wrap {
 				max-height: 60vh;
@@ -490,44 +485,36 @@ try {
 
 		/* 選択バー内の空状態(0件/検索一致0件)。box/index.astroの.empty-stateと同じ語彙・見た目。 */
 
-		/* --- 中央カラム: チーム名・メモ + 6枠(R-11: .panel-contentで1080pxに収める) ---
-		   🔴 UI改修依頼(チーム編集画面、2026-08-02)「チームパネルの幅はポケモンカードが
-		   ちょうど収まるサイズに狭める」。このカラム自体には幅を指定せず(.team-edit-layoutの
-		   grid-template-columns側で754pxの固定トラックとして定義、上の.team-edit-layout
-		   コメント参照)、グリッドトラック幅をそのまま受け取る。1300px未満(縦積み)では
-		   幅指定が効かないブロック要素に戻り、100%幅で伸びる(固定幅は2カラム以上でのみ
-		   意味を持つ)。 --- */
+		/* --- 中央カラム: チーム名・メモ + 6枠(.panel-contentで1080pxに収める) ---
+		   このカラム自体には幅を指定せず(.team-edit-layoutのgrid-template-columns側で
+		   754pxの固定トラックとして定義、上の.team-edit-layoutコメント参照)、グリッドトラック幅を
+		   そのまま受け取る。1300px未満(縦積み)では幅指定が効かないブロック要素に戻り、
+		   100%幅で伸びる(固定幅は2カラム以上でのみ意味を持つ)。 --- */
 		.team-edit-main {
 			min-width: 0;
-			/* UI改修依頼(チーム編集中央パネル、2026-08-01)「左右のパネルとの間に余白を入れる」。
-			   変更前は左パネル(.team-select-bar、右のborder-right)・右パネル(.team-preview-panel)
-			   のどちらとも実測0pxで密着していた(.team-edit-mainにも.panel-contentにも横paddingが
-			   無かったため)。.panelの既定横padding(var(--space-5)=20px)と同じ値をこの中央カラム自体に
-			   も持たせ、左右どちらの隣接パネルとも視覚的な余白ができるようにする(.panel-contentの
-			   max-width:1080pxはそのまま、余白ぶんだけ実効幅が狭まるがレイアウトは崩れない)。
-			   🔴 2026-08-02: この左右padding(var(--space-5)=20px×2=40px)は、上の
-			   .team-edit-layoutコメントに書いた754px固定幅の計算に含まれている
+			/* 左パネル(.team-select-bar、右のborder-right)・右パネル(.team-preview-panel)との
+			   間に視覚的な余白を作るため、.panelの既定横padding(var(--space-5)=20px)と同じ値を
+			   この中央カラム自体にも持たせる(.panel-contentのmax-width:1080pxはそのまま、
+			   余白ぶんだけ実効幅が狭まるがレイアウトは崩れない)。
+			   この左右padding(var(--space-5)=20px×2=40px)は、上の.team-edit-layoutコメントに
+			   書いた754px固定幅の計算に含まれている
 			   (754 = 230×3(カード) + 12×2(gap) + 20×2(このpadding))。 */
 			padding: 0 var(--space-5);
 		}
-		/* UI改修依頼(チーム編集中央パネル、2026-08-02)「チーム名段の上に余白を追加する」。
-		   .team-edit-mainは横paddingのみで縦paddingが無く、ヘッダー直下にチーム名欄が密着していた。
+		/* .team-edit-mainは横paddingのみで縦paddingが無く、ヘッダー直下にチーム名欄が密着する。
 		   .panel-content(max-width:1080pxのみを持つ共有クラス、global.css)には触れず、
 		   このページ限定でpadding-topを足す。 */
 		.team-edit-main .panel-content {
 			padding-top: var(--space-5);
 		}
 
-		/* UI改修依頼(チーム編集中央パネル)「2x3配置に変更」。1列縦積みから3列2行のグリッドへ。
-		   UI改修依頼(チーム編集中央パネル、2026-08-02)「カードサイズを正方形のまま小さくする」。
-		   3列(1fr)のグリッド自体は維持しつつ、各カード側で `width: min(100%, 230px)` に固定する
+		/* 1列縦積みではなく3列2行のグリッド。各カード側で `width: min(100%, 230px)` に固定する
 		   (下の.card-team-slot参照)。justify-items: center で各カードを列内で中央寄せにし、
-		   実測(1920px)で1枚あたり約320px幅だったものを約230px四方まで縮めた余白を列内に
-		   均等配分する(片側だけに空白が寄るのを防ぐ)。
-		   🔴 UI改修依頼(チーム編集中央パネル、2026-08-04): カード高さの`aspect-ratio: 1/1`固定は
-		   技リストの見切れ事故により撤去した(下の.card-team-slotコメント参照)。align-itemsを
-		   明示していないため、CSS Gridの既定(stretch)により同じ行の3枚は自動的に同じ高さへ
-		   揃う(1〜3枚目・4〜6枚目それぞれの行内で不揃いにならない)。 */
+		   縮めた余白を列内に均等配分する(片側だけに空白が寄るのを防ぐ)。
+		   カード高さは`aspect-ratio: 1/1`で固定すると技リストが見切れるため使わない
+		   (下の.card-team-slotコメント参照)。align-itemsを明示していないため、
+		   CSS Gridの既定(stretch)により同じ行の3枚は自動的に同じ高さへ揃う
+		   (1〜3枚目・4〜6枚目それぞれの行内で不揃いにならない)。 */
 		.team-slots {
 			display: grid;
 			grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -538,13 +525,11 @@ try {
 			margin-bottom: var(--space-4);
 		}
 
-		/* --- 右: プレビューパネル(UI改修依頼、チーム編集左パネル)。box/[id].astroの
-		   RightPanel.astroと同じ考え方で、3カラム化の閾値未満では表示しない(グリッド自体も
-		   2カラムのため)。🔴 2026-08-02のUI改修依頼「残りの領域をすべて右パネルにあてがう」で
-		   閾値を1600px→1650pxへ変更(根拠は上の.team-edit-layoutコメント参照、
-		   .team-edit-layoutの3カラム化のメディアクエリと必ず揃えること)。幅自体は
-		   .team-edit-layoutのgrid-template-columns側(`minmax(240px, 1fr)`)で決まるため、
-		   このルールでは幅を指定しない。 --- */
+		/* --- 右: プレビューパネル。box/[id].astroのRightPanel.astroと同じ考え方で、
+		   3カラム化の閾値未満では表示しない(グリッド自体も2カラムのため。閾値は
+		   上の.team-edit-layoutコメント参照、.team-edit-layoutの3カラム化のメディアクエリと
+		   必ず揃えること)。幅自体は.team-edit-layoutのgrid-template-columns側
+		   (`minmax(240px, 1fr)`)で決まるため、このルールでは幅を指定しない。 --- */
 		.team-preview-panel {
 			display: none;
 		}
@@ -562,8 +547,7 @@ try {
 			font-size: var(--font-size-sm2);
 		}
 
-		/* 🔴 UI改修依頼(チーム編集画面 右パネル、2026-08-04)「右パネル共通のタイトル帯」。
-		   既存の他画面に流用できる「帯状の背景色付きセクション見出し」クラスは見当たらなかった
+		/* 「帯状の背景色付きセクション見出し」クラスは他画面に見当たらなかった
 		   (global.cssの.panel-topは区切り線のみで背景色を持たない)ため、既存トークンだけを
 		   使って新規に作る(新しい色は増やさない: 背景は--color-surface-alt、区切り線は
 		   --panel-topと同じ--color-border)。
@@ -651,12 +635,9 @@ try {
 									id="pokemon-search-input"
 									type="search"
 									class="field-control"
-									{/* UI改修依頼(チーム編集左パネル、2026-08-01)「パネルの幅を20%狭くする」に伴う
-									   実測修正: 380px時代のplaceholder全文(「ニックネーム・種族名で検索」)は304pxへの
-									   縮小後、実機で末尾の1文字が枠内に収まりきらず見切れることを実測で確認した
-									   (虫眼鏡アイコンが既に「検索」の意味を担うため、placeholderだけ短縮して
+									{/* 虫眼鏡アイコンが既に「検索」の意味を担うため、placeholderは短縮し
 									   「で検索」を省く。aria-labelはスクリーンリーダー向けに情報量を落とさず
-									   全文のまま維持する)。 */}
+									   全文のまま維持する。 */}
 									placeholder="ポケモンを検索"
 									aria-label="ポケモンを検索"
 									autocomplete="off"
@@ -666,7 +647,6 @@ try {
 								<div class="sort-select-wrap">
 									<svg class="sort-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4v16" /><path d="M4 7l3-3 3 3" /><path d="M17 20V4" /><path d="M14 17l3 3 3-3" /></svg>
 									<select id="pokemon-sort-select" class="field-control" aria-label="並べ替え">
-										<!-- UI改修依頼(2026-08-06): 候補を更新日時・利用日時・おすすめ・図鑑IDの4基準へ更新する。 -->
 										{/* 一覧APIが持つ利用日時と図鑑番号を基準に、用途が明確な4候補へ統一する。 */}
 										<option value="updated_at">最終更新</option>
 										<option value="last_used_at">よく使う</option>
@@ -676,25 +656,15 @@ try {
 								</div>
 							</div>
 							</div>
-							{/* UI改修依頼(チーム編集左パネル)「ソート機能を追加する」。box/index.astroの
-							    並べ替え(.sort-select-wrap、34-B2でラベル<label>を廃しアイコン重畳に統一
-							    済み)と同じマークアップ・アイコンを踏襲する。選べる基準はOwnedPokemonRecord
-							    が既に持つ値の中から自然なもの: 登録順(created_at、既定)・名前順
-							    (表示名=displayNameのニックネーム優先、ja collateで自然順)・種族名順。
-							    「タイプ順」は選択バーの個体データにタイプ情報が無く新規取得が必要になる
-							    ため採用しない(依頼文の「例えば」は例示であり必須ではないと判断)。 */}
-							{/* 🔴 UI改修依頼(チーム編集画面、2026-08-01)+ ユーザー確認(同日、
-							    「絞り込みトグルを付ける」)。チームにレギュレーションが指定されている
-							    ときだけ現れるトグルで、既定ON=そのレギュレーションで使える個体だけを
-							    選択バーに出す。OFFにすると従来どおり全個体が出る。
-							    「使える個体」= 個体のレギュレーションがチームと一致するもの + 個体側が
-							    未指定のもの(未指定は「まだ決めていない」であって「使えない」ではないため、
-							    隠すと既存の個体が軒並み消えて選べなくなる)。
+							{/* チームにレギュレーションが指定されているときだけ現れるトグルで、既定ON=
+							    そのレギュレーションで使える個体だけを選択バーに出す。OFFにすると
+							    全個体が出る。「使える個体」= 個体のレギュレーションがチームと一致するもの +
+							    個体側が未指定のもの(未指定は「まだ決めていない」であって「使えない」ではない
+							    ため、隠すと既存の個体が軒並み消えて選べなくなる)。
 							    チーム側が未指定のときは絞る基準が無いのでトグル自体を隠す
 							    (下のsyncRegulationFilterToggle参照)。 */}
-							{/* 🔴 UI改修依頼(チーム編集左パネル、2026-08-01)「レギュレーションフィルタと
-							    ソートを横並びに配置する」。検索欄(#pokemon-search-input)は含めず、
-							    この2つだけを共通の行コンテナに入れてflexで横並びにする
+							{/* 検索欄(#pokemon-search-input)は含めず、レギュレーションフィルタとソートの
+							    2つだけを共通の行コンテナに入れてflexで横並びにする
 							    (CSSは上のscoped<style>の.team-select-filters-row参照)。 */}
 							<div class="team-select-filters-row">
 								<label class="regulation-filter-toggle" for="favorite-filter-toggle">
@@ -706,13 +676,11 @@ try {
 									<span class="toggle-switch"><input id="team-select-dedupe-toggle" type="checkbox" class="toggle-switch-input" checked /><span class="toggle-switch-track" aria-hidden="true"><span class="toggle-switch-thumb"></span></span></span>
 									<span>重複を除外</span>
 								</label>
-								{/* UI改修依頼(チーム編集左パネル、2026-08-02)「レギュレーションフィルタを
-								    トグルスイッチに変更する」。ヘッダーの「非公開」トグル(上のフロントマター/
-								    <style>の.toggle-switch一式、#team-collection-opt-out-toggle参照)と
-								    全く同じ意匠を踏襲する(新しいスイッチは作らない)。同じ.astroコンポーネント内の
-								    静的マークアップなので、scoped<style>で定義済みの.toggle-switch系クラスを
-								    そのまま流用できる(複製不要)。旧来の塗りつぶしボタン(data-active/
-								    aria-pressed)はチェックボックスのchecked状態に置き換える(下の<script>の
+								{/* ヘッダーの「非公開」トグル(上のフロントマター/<style>の.toggle-switch一式、
+								    #team-collection-opt-out-toggle参照)と全く同じ意匠を踏襲する(新しい
+								    スイッチは作らない)。同じ.astroコンポーネント内の静的マークアップなので、
+								    scoped<style>で定義済みの.toggle-switch系クラスをそのまま流用できる
+								    (複製不要)。チェックボックスのchecked状態で表す(下の<script>の
 								    syncRegulationFilterToggle参照。非公開トグルと違いAPI保存は伴わない、
 								    クライアント側のみのフィルタ状態)。 */}
 								<div class="team-select-regulation-filter" id="regulation-filter-wrap" hidden>
@@ -752,19 +720,13 @@ try {
 						</div>
 					</section>
 
-					{/* --- 中央: チーム名 + 6枠 + メモ。.panel-contentで可読幅1080pxに収める(R-11・基準23)。
-					    UI改修依頼(チーム編集中央パネル)「未設定の場合...を削除」「メモは下に移動」により、
-					    ヒント文言を削除しメモ欄を6枠の下へ移動した。 --- */}
+					{/* --- 中央: チーム名 + 6枠 + メモ。.panel-contentで可読幅1080pxに収める(R-11・基準23)。 --- */}
 					<div class="team-edit-main">
 						<div class="panel-content">
 							<div class="team-meta-fields">
-								{/* 🔴 UI改修依頼(チーム編集中央パネル、2026-08-01)「"チーム名"ラベルを削除して
-								    placeholderにする」。旧来はラベル付きフィールド規格(.field/.field-stack/
-								    .field-label)で可視ラベル「チーム名」を出していたが、この依頼により撤去し
-								    placeholder="チーム名"(既に設定済み)だけに委ねる。可視ラベルが無くなる分、
-								    アクセシビリティのためinputへaria-labelを戻す(可視ラベル追加時に一度外した
-								    経緯があるが、ラベル自体を削除した今は逆にaria-labelが唯一のアクセシブル
-								    ネームの提供元になる)。 */}
+								{/* 可視ラベルは置かずplaceholder="チーム名"だけに委ねるため、アクセシビリティの
+								    ためinputへaria-labelを付ける(aria-labelが唯一のアクセシブルネームの
+								    提供元になる)。 */}
 								<div class="field field-stack">
 									<input
 										id="team-name"
@@ -776,16 +738,14 @@ try {
 										value={team.name ?? ''}
 									/>
 								</div>
-								{/* 🔴 UI改修依頼(チーム編集画面、2026-08-01)「個体編集と同様にレギュレーション
-								    指定機能を追加」。個体編集側(LeftPanel.astroの#regulation)と同じく
-								    「なし」を先頭のvalue=""のoptionが担い、保存時はnullに正規化される
-								    (team-validation.tsのnormalizeOptionalString)。チーム名の隣に置く。
-								    2026-08-01追記「"レギュレーション"というラベルを削除する。他のUIと同様に
-								    placeholderの色を薄くする」: 可視ラベル(<label>)は撤去し、LeftPanel.astroの
-								    #regulationと同じくplaceholder + aria-labelの方式に揃える(アクセシビリティ
-								    上のaccessible nameはaria-labelが担う)。未選択時はLeftPanel.astroの
-								    #regulation[data-empty="true"]と同じCSS(破線・薄い文字色)を適用するため
-								    data-emptyを付ける(<script>のsyncRegulationPlaceholder参照)。 */}
+								{/* 個体編集側(LeftPanel.astroの#regulation)と同じく「なし」を先頭の
+								    value=""のoptionが担い、保存時はnullに正規化される
+								    (team-validation.tsのnormalizeOptionalString)。可視ラベル(<label>)は置かず、
+								    LeftPanel.astroの#regulationと同じくplaceholder + aria-labelの方式に揃える
+								    (アクセシビリティ上のaccessible nameはaria-labelが担う)。未選択時は
+								    LeftPanel.astroの#regulation[data-empty="true"]と同じCSS(破線・薄い
+								    文字色)を適用するためdata-emptyを付ける(<script>のsyncRegulationPlaceholder
+								    参照)。 */}
 								<div class="field team-regulation-field">
 									<select id="team-regulation" class="field-control" aria-label="レギュレーション" data-empty={team.regulation ? undefined : 'true'}>
 										<option value="">{REGULATION_PLACEHOLDER}</option>
@@ -796,12 +756,9 @@ try {
 
 							{/* 6枠(基準3)。空き枠も枠として常に描く。中身はJS(renderSlots)が生成するため、
 							    子要素(.card-team-slot)のスタイルは下の<style is:global>側に置く。
-							    UI改修依頼(チーム編集中央パネル)「2x3配置に変更」により、1列縦積みから
-							    3列2行のグリッドへ変更する(CSSは下の.team-slots参照)。 */}
+							    3列2行のグリッドで配置する(CSSは下の.team-slots参照)。 */}
 							<div id="team-slots" class="team-slots"></div>
 
-							{/* UI改修依頼(チーム編集中央パネル、2026-08-02)「メモ欄のplaceholderを
-							    "メモ"だけにする」。aria-label="メモ"は元々同じ文言のため変更不要。 */}
 							<input
 								id="team-memo"
 								class="field-control team-memo-input"
@@ -814,39 +771,31 @@ try {
 						</div>
 					</div>
 
-					{/* --- 右: 選択バーで1回クリックしたポケモンの詳細プレビュー(UI改修依頼
-					    「右パネルを追加し、1回クリックでポケモンの詳細を見れるようにする」)。
-					    中身はJS(renderPreviewPanel)が生成する。box/[id].astroのRightPanelと同じく
-					    幅の無い環境(1650px未満、2026-08-02に閾値変更)では非表示にする
-					    (下の.team-preview-panel参照)。 --- */}
+					{/* --- 右: 選択バーで1回クリックしたポケモンの詳細プレビュー。中身はJS
+					    (renderPreviewPanel)が生成する。box/[id].astroのRightPanelと同じく
+					    幅の無い環境(1650px未満)では非表示にする(下の.team-preview-panel参照)。 --- */}
 					<aside class="panel team-preview-panel" id="team-preview-panel">
-						{/* 🔴 UI改修依頼(チーム編集画面 右パネル、2026-08-04)「右パネル共通のタイトル帯を
-						    追加する」。個体プレビュー/サジェストの見出しテキストの表示先をこの
-						    共通の帯へ差し替える(<script>のsetPanelHeaderTitle参照)。初期状態はhidden
-						    (中身が無い空の帯を出さないため。各状態が最初に見出しをセットするタイミングで
-						    表示に切り替わる)。 */}
+						{/* 個体プレビュー/サジェストの見出しテキストの表示先をこの共通の帯へ差し替える
+						    (<script>のsetPanelHeaderTitle参照)。初期状態はhidden(中身が無い空の帯を
+						    出さないため。各状態が最初に見出しをセットするタイミングで表示に切り替わる)。 */}
 						<div class="team-panel-header-band" id="team-panel-header-band" hidden>
 							<p class="team-panel-header-title" id="team-panel-header-title"></p>
 						</div>
-						{/* UI改修依頼(右パネル、2026-08-01)「"左の一覧からポケモンをクリックすると、
-						    ここに詳細が表示されます。"を削除する」。文言だけを消すと空の<p>が1行ぶんの
-						    余白を残すため、要素自体を最初からhiddenにする(pitfalls.md「要素を消す指示
-						    でもDOMは残す」に従い、#team-preview-emptyのid自体は<script>のel()参照
-						    (previewEmptyEl)が必要とするため残す。renderPreviewPanelがこの要素を
-						    hidden=trueにする処理は元々あり、二度と表示されない前提でも壊れない)。 */}
+						{/* 文言だけを消すと空の<p>が1行ぶんの余白を残すため、要素自体を最初からhiddenに
+						    する(pitfalls.md「要素を消す指示でもDOMは残す」に従い、#team-preview-emptyの
+						    idは<script>のel()参照(previewEmptyEl)が必要なため残す。renderPreviewPanelが
+						    この要素をhidden=trueにする処理は元々あり、二度と表示されない前提でも壊れない)。 */}
 						<p class="team-preview-empty" id="team-preview-empty" hidden></p>
 						<div class="team-preview-content" id="team-preview-content" hidden></div>
-						{/* チームポケモンのサジェスト(ユーザー要望、2026-08-02)。右パネルの
-						    ニュートラル状態(どの個体も選択していないとき)に出す枠。
-						    個体を選ぶと上の#team-preview-contentに差し替わり、選択解除で戻る
-						    (renderPreviewPanel / closePreviewPanel が両方をトグルする)。
+						{/* チームポケモンのサジェスト。右パネルのニュートラル状態(どの個体も選択して
+						    いないとき)に出す枠。個体を選ぶと上の#team-preview-contentに差し替わり、
+						    選択解除で戻る(renderPreviewPanel / closePreviewPanel が両方をトグルする)。
 						    中身はJS(renderSuggestions)が生成する。 */}
-						{/* UI改修依頼(右パネル サジェスト、2026-08-04)「メガシンカを含める」トグルを追加する。
-						    左パネルの.regulation-filter-toggleと同じ.toggle-switch
-						    一式(このページのscoped<style>で既に定義済み)を流用し、新しいスイッチの見た目は
-						    作らない。#team-suggestはJS(renderSuggestions)がinnerHTMLで丸ごと書き換えるため、
-						    トグル自体はその中に置かず兄弟要素にし、表示/非表示は#team-suggestと同じタイミング
-						    (renderPreviewPanel/closePreviewPanel参照)で切り替える
+						{/* 左パネルの.regulation-filter-toggleと同じ.toggle-switch一式(このページの
+						    scoped<style>で既に定義済み)を流用し、新しいスイッチの見た目は作らない。
+						    #team-suggestはJS(renderSuggestions)がinnerHTMLで丸ごと書き換えるため、
+						    トグル自体はその中に置かず兄弟要素にし、表示/非表示は#team-suggestと同じ
+						    タイミング(renderPreviewPanel/closePreviewPanel参照)で切り替える
 						    (<script>のsuggestTogglesEl参照)。 */}
 						<div class="team-suggest-toggles" id="team-suggest-toggles">
 							<label class="team-suggest-toggle" for="team-suggest-mega-toggle">
@@ -944,20 +893,18 @@ try {
 	    JSで生成した要素に効かない」に従い is:global で定義する。.team-select-bar / .team-slots
 	    配下に限定したセレクタにしてグローバルへ漏れないようにする。 --- */}
 	<style is:global>
-		/* UI改修依頼(チーム編集ヘッダー)「チーム名表示を削除する」。box/[id].astroの23-H1と
-		   同じ手法(AppLayoutは編集禁止のため、bodyClass="team-edit-page"を起点にしたグローバル
-		   セレクタで.app-topbar-title(AppLayout側の要素、このページのscoped<style>では選択
-		   できない)だけを隠す。<title>タグ(ブラウザタブ)はpageTitleのまま残る)。 */
+		/* box/[id].astroの23-H1と同じ手法(AppLayoutは編集禁止のため、bodyClass="team-edit-page"を
+		   起点にしたグローバルセレクタで.app-topbar-title(AppLayout側の要素、このページの
+		   scoped<style>では選択できない)だけを隠す。<title>タグ(ブラウザタブ)はpageTitleの
+		   まま残る)。 */
 		body.team-edit-page .app-topbar-title {
 			display: none;
 		}
 
 		/* ------------------------------------------------------------------ */
 		/* 選択バーの1行(.pokemon-select-row)                                  */
-		/* UI改修依頼(チーム編集左パネル)「特性/アイテム/ステータスも表示」「ダブルクリックと
-		   ドラッグアンドドロップでチームに設定」「編集リンクを追加」対応で、行全体を1個の
-		   <button>にする構造から「プレビュー用button(.select-row-main)」+
-		   「編集リンク(.select-row-edit-link)」を横に並べる<div>構造へ組み替えた
+		/* 行全体を1個の<button>にする構造ではなく、「プレビュー用button(.select-row-main)」+
+		   「編集リンク(.select-row-edit-link)」を横に並べる<div>構造にする
 		   (<button>の中に<a>を入れることはHTML的に無効なため)。 */
 		/* ------------------------------------------------------------------ */
 		.team-select-bar .pokemon-select-row {
@@ -971,23 +918,20 @@ try {
 		.team-select-bar .pokemon-select-row.is-dragging {
 			opacity: 0.5;
 		}
-		/* UI改修依頼(チーム編集左パネル、2026-08-02)「候補カードをボックス画面(/box)の
-		   カードと共通化する」。box/index.astroの.card-pokemon(スプライト→カード名(中央揃え)
-		   →テラスタイプ→特性/持ち物→技2列)と同じ縦積みレイアウトへ組み替える。box側の
-		   CSSは/boxでしか読み込まれない(<style is:global>がbox/index.astro内に閉じているため)
-		   ため、値をこのページへ複製する(box/index.astro・global.cssは編集禁止)。
-		   お気に入り(.pin-toggle)・削除ボタンはこのパネルの用途(チームに追加する候補を選ぶ
-		   ピッカー)には不要なため持ち込まない。左パネルの帯は最大304px(.team-edit-layoutの
-		   grid-template-columns参照、実測でも内側パディングを引くと264px程度)しかなく、
-		   box一覧のカード(約210〜240pxの正方形グリッド)と違い縦一列に並ぶリストのため、
-		   aspect-ratio: 1/1は使わずカードの高さは中身に応じた自然な高さのままにする
-		   (詳細な数値は実測して報告に記載)。 */
+		/* box/index.astroの.card-pokemon(スプライト→カード名(中央揃え)→テラスタイプ→
+		   特性/持ち物→技2列)と同じ縦積みレイアウトにする。box側のCSSは/boxでしか読み込まれない
+		   (<style is:global>がbox/index.astro内に閉じているため)ため、値をこのページへ複製する
+		   (box/index.astro・global.cssは編集禁止)。お気に入り(.pin-toggle)・削除ボタンは
+		   このパネルの用途(チームに追加する候補を選ぶピッカー)には不要なため持ち込まない。
+		   左パネルの帯は最大304px(.team-edit-layoutのgrid-template-columns参照、実測でも
+		   内側パディングを引くと264px程度)しかなく、box一覧のカード(約210〜240pxの正方形
+		   グリッド)と違い縦一列に並ぶリストのため、aspect-ratio: 1/1は使わずカードの高さは
+		   中身に応じた自然な高さのままにする。 */
 		.team-select-bar .select-row-main {
 			flex: 1 1 auto;
 			min-width: 0;
 			display: grid;
 			grid-template-columns: calc(var(--space-7) + var(--space-6)) minmax(0, 1fr);
-			/* UI改修依頼(2026-08-05)「ポケモン領域と技4つのY中心を揃えてカードを圧縮」対応。 */
 			align-items: center;
 			column-gap: var(--space-1);
 			row-gap: var(--space-1);
@@ -1068,8 +1012,6 @@ try {
 		}
 		.team-select-bar .select-row-name {
 			min-width: 0;
-			/* UI改修依頼(チーム編集左パネル、2026-08-01)「種族名以外の文字をもう少し大きくする」
-			   により0.88rem(14.08px)から引き上げていた値(0.95rem)を維持する。 */
 			/* 2行目のNNは中央配置を保ち、既存の小サイズトークンへ縮める。 */
 			font-size: var(--font-size-sm2);
 			font-weight: 700;
@@ -1128,7 +1070,6 @@ try {
 		}
 		.team-select-bar .select-row-item-badge {
 			flex: none;
-			/* UI改修依頼(2026-08-06): 20%拡大済みの寸法から、さらに10%拡大する。 */
 			width: calc(var(--space-4) * 1.32);
 			height: calc(var(--space-4) * 1.32);
 			display: flex;
@@ -1183,7 +1124,7 @@ try {
 			overflow: hidden;
 			text-overflow: ellipsis;
 		}
-		/* UI改修依頼(2026-08-05)「技未設定は空欄にし高さを維持」対応。 */
+		/* 技未設定時も高さを維持するため、最低高さを確保する。 */
 		.team-select-bar .select-row-move-chip-unset {
 			min-height: 1.2em;
 		}
@@ -1206,38 +1147,25 @@ try {
 		.team-select-bar .select-row-reason:not([data-reason="already-in-team"]) {
 			color: var(--color-danger-strong);
 		}
-		/* 🔴 UI改修依頼(チーム編集左パネル、2026-08-02)「行の右端にあるドラッグ用グリップ
-		   (6点のドット格子)を廃止する」。要素を「消す」指示はDOMを残しCSSで見せない方針にする
-		   (pitfalls.md)。要素自体(buildSelectRowのdragHandle)・row.appendChildは残したまま、
-		   display: noneで見た目だけ消す。ドラッグ&ドロップ自体(row.draggable=true、
-		   rowのdragstart/dragend)はこのグリップ要素と無関係(rowが直接draggable/イベントを
-		   持つ)なので、動作は維持される。 */
+		/* 要素を「消す」指示はDOMを残しCSSで見せない方針にする(pitfalls.md)。要素自体
+		   (buildSelectRowのdragHandle)・row.appendChildは残したまま、display: noneで見た目
+		   だけ消す。ドラッグ&ドロップ自体(row.draggable=true、rowのdragstart/dragend)は
+		   このグリップ要素と無関係(rowが直接draggable/イベントを持つ)なので、動作は維持される。 */
 		.team-select-bar .select-row-drag-handle {
 			display: none;
 		}
 		/* ------------------------------------------------------------------ */
 		/* 6枠カード(.card-team-slot)。中身はfilled/emptyのいずれか(R-8)。       */
-		/* UI改修依頼(チーム編集中央パネル)「2x3配置に変更」「ポケモンの情報の見せ方を
-		   ボックス画面と表記をそろえる」により、横並び(番号+絵+情報+操作)から
-		   ボックス画面の.card-pokemonと同じ縦積み(絵を中央上・情報を下)へ組み替える
-		   (3列グリッドの1マスは幅が半分弱に狭まるため、横並びのままだと窮屈になる)。
-		   position:relativeは番号ウォーターマーク(下記.slot-watermark-number)・
-		   編集/削除ボタンの絶対配置の基準になる。 --- */
-		/* UI改修依頼(チーム編集中央パネル、2026-08-02)「カードサイズを正方形のまま小さくする」
-		   「カードサイズを固定し、設定済み/未設定によらず変動しないようにする」経緯で、
-		   width指定 + aspect-ratio: 1/1 で正方形を強制し、overflow: hiddenでflexアイテムの
-		   自動最小サイズ(min-height:auto)を打ち消していた。
-		   🔴 UI改修依頼(チーム編集中央パネル、2026-08-04)「アイコン拡大(64px→84px)+
-		   特性/アイテムの2行分割+技のアイコン付き表示」により中身の必要縦幅が増えたのに
-		   正方形の高さは変わらないままだったため、技リストの3・4個目がoverflow: hiddenで
-		   物理的に見切れる実害が出た(スクリーンショットで確認、報告参照)。
-		   aspect-ratio: 1/1 と overflow: hidden をどちらも撤去し、高さを中身に応じて自然に
-		   伸ばす方針に変更する。overflow: hiddenは画像等のはみ出し防止用ではなく
-		   (.slot-artは自身の固定width/heightとobject-fit: containで完結しており、親のoverflow
-		   に依存していない)、上記の正方形強制の副産物として付いていただけだったので、
-		   撤去しても他要素のはみ出しを防ぐ手段は別途不要と判断した。
+		/* ボックス画面の.card-pokemonと同じ縦積み(絵を中央上・情報を下)にする(3列グリッドの
+		   1マスは幅が半分弱に狭まるため、横並びだと窮屈になる)。position:relativeは番号
+		   ウォーターマーク(下記.slot-watermark-number)・編集/削除ボタンの絶対配置の基準になる。 --- */
+		/* aspect-ratio: 1/1 で正方形を基本形にしつつ、height: auto + min-height: auto を
+		   併用することで、技リストなど中身の必要高がカード幅を超える場合はそのぶんだけ
+		   縦へ伸ばせるようにする(overflow: hiddenで固定高に切り詰めると技リストが物理的に
+		   見切れるため使わない。.slot-artは自身の固定width/heightとobject-fit: containで
+		   完結しており、親のoverflowには依存していない)。
 		   幅230pxは、幅を縮めつつ中身(絵・名前・特性/持ち物・実数値6列・技2x2)が1文字ずつの
-		   折り返しを起こさない範囲として実測しながら調整した値なので、width側は維持する
+		   折り返しを起こさない範囲として調整した値なので、width側は維持する
 		   (下のslot-art等のサイズ・line-height明示的な引き締めもそのまま踏襲する)。
 		   高さはCSS Gridの既定の行内ストレッチ(.team-slots側にalign-itemsの上書きが無いため、
 		   同じグリッド行の3枚は自動的に同じ高さになる)に委ね、1〜3枚目・4〜6枚目の不揃いを防ぐ。 */
@@ -1253,12 +1181,10 @@ try {
 			/* 230pxの上限では技の最終行が正方形からはみ出すため、既存の列幅を使い切って
 			   内部要素を縮めずに必要な縦幅を確保する。 */
 			width: 100%;
-			/* UI改修依頼(2026-08-05)「縦余白を削ったうえでカードを正方形にする」対応。 */
 			aspect-ratio: 1 / 1;
 			height: auto;
-			/* flexアイテムの自動最小サイズを打ち消す必要があった以前とは異なり、現在は技一覧を
-			   枠内に収める必要があるため、中身の必要高を下限にして狭い列だけ縦へ伸ばす。
-			   行高への追従も明示し、内容量が少ない同じ行のカードだけ短くなるのを防ぐ。 */
+			/* 中身の必要高を下限にして、狭い列だけ縦へ伸ばす。行高への追従も明示し、内容量が
+			   少ない同じ行のカードだけ短くなるのを防ぐ。 */
 			min-height: auto;
 			padding: var(--space-2);
 		}
@@ -1269,14 +1195,10 @@ try {
 			border-color: var(--color-primary);
 			background: color-mix(in srgb, var(--color-surface) 90%, var(--color-primary) 10%);
 		}
-		/* UI改修依頼(チーム編集中央パネル)「シングルクリックで右パネルにプレビュー」
-		   「ダブルクリックで削除」。埋まっている枠(<script>のrenderSlotsがdata-filled="true"の
-		   ときだけclick/dblclickを付与)だけをクリック可能にする(空き枠は何も起きないため
-		   カーソルを変えない)。
-		   🔴 UI改修依頼(チーム編集中央パネル、2026-08-01)「10. チームメンバーどうしを
-		   ドラッグアンドドロップで並べ替えできる機能を追加する」。埋まっている枠はdraggable
-		   にもなるため、ドラッグ中は左パネルの選択行(.pokemon-select-row.is-dragging)と
-		   同じ「持ち上げている」見た目(半透明)にする。 */
+		/* 埋まっている枠(<script>のrenderSlotsがdata-filled="true"のときだけclick/dblclickを
+		   付与)だけをクリック可能にする(空き枠は何も起きないためカーソルを変えない)。
+		   埋まっている枠はdraggableにもなるため、ドラッグ中は左パネルの選択行
+		   (.pokemon-select-row.is-dragging)と同じ「持ち上げている」見た目(半透明)にする。 */
 		.team-slots .card-team-slot[data-filled="true"] {
 			cursor: pointer;
 		}
@@ -1284,10 +1206,9 @@ try {
 			border-color: var(--color-primary);
 			background: color-mix(in srgb, var(--color-surface) 95%, var(--color-primary) 5%);
 		}
-		/* UI改修依頼(チーム編集中央パネル、2026-08-02)「カードをクリックしたら選択中と
-		   分かるハイライトを表示し、カード外クリックで解除する」。上のhoverと同系統の
-		   強調(border-color: var(--color-primary))だが、常時ハイライトだと分かるよう
-		   背景の混色比率をhoverより濃くする(<script>のcard.click/documentのclick監視参照)。 */
+		/* 上のhoverと同系統の強調(border-color: var(--color-primary))だが、常時ハイライトだと
+		   分かるよう背景の混色比率をhoverより濃くする(<script>のcard.click/documentのclick
+		   監視参照)。 */
 		.team-slots .card-team-slot.is-selected {
 			border-color: var(--color-primary);
 			background: color-mix(in srgb, var(--color-surface) 90%, var(--color-primary) 10%);
@@ -1301,20 +1222,15 @@ try {
 		.team-slots .card-team-slot.is-dragging {
 			opacity: 0.5;
 		}
-		/* 🔴 UI改修依頼(チーム編集中央パネル、2026-08-01)「3. ドラッグアンドドロップで
-		   チームに追加する機能を追加し、"この枠にいれる"ボタンを廃止する」。候補→枠の
-		   D&D自体は既に実装済み(<script>のdragover/dragleave/drop、assignToSlot参照)で
-		   壊していない。旧来は選択ルールが実際に埋める最小番号の1枠だけを<button>にして
-		   「＋ この枠に入れる」を押せるようにしていたが、この依頼によりその補助ボタンを廃止し、
-		   全ての空き枠を同じ非アクションの<div>(ドラッグ&ドロップでの追加だけを受け付ける)に
-		   統一する(<script>のbuildEmptySlotContent参照)。 */
+		/* 候補→枠のD&D自体は既に実装済み(<script>のdragover/dragleave/drop、assignToSlot参照)。
+		   全ての空き枠は同じ非アクションの<div>(ドラッグ&ドロップでの追加だけを受け付ける)に
+		   する(<script>のbuildEmptySlotContent参照)。 */
 		.team-slots .slot-empty-cta {
 			flex: 1 1 auto;
 			width: 100%;
 			display: flex;
-			/* UI改修依頼(チーム編集中央パネル)2x3グリッド化に伴い、カード全体を縦積みにした
-			   (上の.card-team-slotコメント参照)。空き枠プレースホルダーも同じ縦積みに揃え、
-			   カードの中央にラベルを配置する。 */
+			/* 上の.card-team-slotコメントの縦積みに揃え、空き枠プレースホルダーもカードの
+			   中央にラベルを配置する。 */
 			flex-direction: column;
 			align-items: center;
 			justify-content: center;
@@ -1323,11 +1239,9 @@ try {
 			border: 0;
 			padding: 0;
 			color: var(--color-text-muted);
-			/* UI改修依頼(2026-08-05)「空き枠の案内色をさらに薄くし、指定位置で改行」対応。 */
 			opacity: 0.55;
-			/* UI改修依頼(チーム編集中央パネル、2026-08-02)「他のplaceholderと同程度の薄さにする」。
-			   font-weight:600(太字)は他画面の検索欄placeholder等より主張が強すぎたため、通常の
-			   太さに戻す(色は既存のvar(--color-text-muted)のまま、両テーマ対応を崩さない)。 */
+			/* font-weight:600(太字)は他画面の検索欄placeholder等より主張が強すぎるため、通常の
+			   太さにする(色は既存のvar(--color-text-muted)のまま、両テーマ対応を崩さない)。 */
 			font-weight: 400;
 			font-size: var(--font-size-sm1);
 			cursor: default;
@@ -1335,12 +1249,7 @@ try {
 			white-space: pre-line;
 		}
 
-		/* 🔴 UI改修依頼(チーム編集中央パネル、2026-08-01)「6. 番号(1~6)の丸枠を削除し、
-		   大きく太い斜め文字を左上にうすく表示する(ポケモン未設定のカードも共通)」。
-		   旧来は埋まった枠(.slot-number、絵の左上に重ねる円形バッジ)と空き枠
-		   (.slot-empty-number、破線の円形バッジ)で別クラス・別スタイルだったが、
-		   この依頼により両方を同じ1個の要素(.slot-watermark-number)に統一する。
-		   position:absoluteでカード左上に重ね、回転+低い不透明度でウォーターマーク化する
+		/* position:absoluteでカード左上に重ね、回転+低い不透明度でウォーターマーク化する
 		   (pointer-events:noneでクリックの邪魔をしない)。他の要素(スプライト・編集/削除
 		   ボタン等)より奥に見えるよう z-index:0 にし、実コンテンツ側(.slot-art/.slot-info/
 		   .slot-empty-cta)にz-index:1を与えて手前に出す。状態の違い(埋まり/空き)は
@@ -1357,8 +1266,6 @@ try {
 			line-height: 1;
 			color: var(--color-text-muted);
 			opacity: 0.14;
-			/* UI改修依頼(チーム編集中央パネル、2026-08-02)「番号の斜め表示を垂直に戻す」。
-			   回転前提だったtransform/transform-originを撤去する。 */
 			pointer-events: none;
 			user-select: none;
 		}
@@ -1373,16 +1280,9 @@ try {
 		}
 		.team-slots .slot-art {
 			flex: 0 0 auto;
-			/* 🔴 UI改修依頼(チーム編集中央パネル、2026-08-01)「カードを再レイアウトする」。
-			   box/index.astroのカードは公式絵に幅の過半(min(56%, 113px))を割り当てて一覧性より
+			/* box/index.astroのカードは公式絵に幅の過半(min(56%, 113px))を割り当てて一覧性より
 			   絵の存在感を優先している。このカード(1辺約290〜310px、box一覧の210〜240pxより
-			   大きい)でも同じ考え方で88px→104pxへ拡大し、名前・メタ情報より絵が主役に見える
-			   比率へ寄せる(3列グリッドの最小幅でも余裕がある範囲、実測は報告参照)。
-			   UI改修依頼(チーム編集中央パネル、2026-08-02)「カードサイズを正方形のまま
-			   小さくする」に伴い、230px四方のカードに名前・特性/持ち物・実数値6列・技2x2まで
-			   収める必要があるため104px→72pxへ縮小、さらに1200〜1600px帯の実測(技2段目が
-			   見切れていた、上の.card-team-slotコメント参照)を受けて64pxまで追加で縮めていたが、
-			   今回は既存スペーシングトークンの組み合わせで84pxへ拡大する。 */
+			   大きい)でも同じ考え方で、名前・メタ情報より絵が主役に見える比率にする。 */
 			width: calc(var(--space-7) * 2 + var(--space-5));
 			height: calc(var(--space-7) * 2 + var(--space-5));
 			display: flex;
@@ -1413,14 +1313,9 @@ try {
 			display: flex;
 			flex-direction: column;
 			align-items: center;
-			/* UI改修依頼(チーム編集中央パネル、2026-08-02)「カードサイズを正方形のまま
-			   小さくする」に伴い縦方向のゆとりを詰める(0.3rem→0.25rem)。 */
 			gap: var(--space-1);
 		}
-		/* UI改修依頼(チーム編集中央パネル、2026-08-02)「ニックネーム/種族名を中央表示にし、
-		   その右隣にテラスタルアイコンと編集ボタンを置く」。旧来は3列グリッド(左スペーサー/
-		   中央=NN+テラス/右=編集ボタン)で編集ボタンをカード右端に固定していたが、この依頼により
-		   NN・テラスアイコン・編集ボタンを1つの横並び(flex)にまとめ、その全体をカード幅の中で
+		/* NN・テラスアイコン・編集ボタンを1つの横並び(flex)にまとめ、その全体をカード幅の中で
 		   中央寄せする(=NNの右隣にテラスアイコン、さらにその右に編集ボタンが並ぶ)。
 		   テラスアイコンは後述のとおりテキストラベルを持たないアイコンのみのバッジにする。 */
 		.team-slots .slot-name-row {
@@ -1440,11 +1335,10 @@ try {
 			text-overflow: ellipsis;
 			white-space: nowrap;
 		}
-		/* UI改修依頼(チーム編集中央パネル、2026-08-02)「テラスタルはアイコンのみ(タイプ名の
-		   テキストは表示しない)」。テキストラベルの<span>を生成しなくなった(buildFilledSlotContent
-		   参照)ため、この要素は特性セル内でアイコン1個だけを収める。テラスタイプ名は
-		   title/aria-labelに残しアクセシビリティ上の情報量は落とさない。
-		   .slot-meta-item は特性セル内のテラスアイコン専用で、背景や枠を付けず画像だけを見せる。 */
+		/* テキストラベルの<span>を生成しない(buildFilledSlotContent参照)ため、この要素は
+		   特性セル内でアイコン1個だけを収める。テラスタイプ名はtitle/aria-labelに残し
+		   アクセシビリティ上の情報量は落とさない。.slot-meta-item は特性セル内のテラス
+		   アイコン専用で、背景や枠を付けず画像だけを見せる。 */
 		.team-slots .slot-meta-item {
 			display: inline-flex;
 			align-items: center;
@@ -1475,10 +1369,9 @@ try {
 			gap: var(--space-1);
 			font-size: var(--font-size-sm2);
 			color: var(--color-text-muted);
-			/* UI改修依頼(チーム編集中央パネル、2026-08-02)実測修正: bodyの既定
-			   line-height:1.6を打ち消さずに継承しており、1行しか無いチップ状の表示には
-			   不要な行間だった。var(--line-height-tight)(1.25)で引き締め、1200〜1600px帯で
-			   技の2段目が見切れていた問題(上の.card-team-slotコメント参照)の解消に充てる。 */
+			/* bodyの既定line-height:1.6を打ち消さずに継承すると、1行しか無いチップ状の表示には
+			   不要な行間になる。var(--line-height-tight)(1.25)で引き締める(1200〜1600px帯で
+			   技の2段目が見切れる問題の解消にも寄与する。上の.card-team-slotコメント参照)。 */
 			line-height: var(--line-height-tight);
 		}
 		.team-slots .slot-meta-cell {
@@ -1505,10 +1398,9 @@ try {
 			text-overflow: ellipsis;
 			text-align: center;
 		}
-		/* UI改修依頼(チーム編集中央パネル、2026-08-02)「カードサイズを正方形のまま
-		   小さくする」実測修正: 特性/持ち物ラベルに1行ellipsis制御が無く、幅が縮んだことで
-		   長い文字列が単語の途中で2行に折り返っていた(buildFilledSlotContentのコメント参照)。
-		   .slot-nicknameと同じ制御をability/itemラベルにも適用する。 */
+		/* 特性/持ち物ラベルに1行ellipsis制御が無いと、幅が縮んだ場合に長い文字列が単語の途中で
+		   2行に折り返る(buildFilledSlotContentのコメント参照)。.slot-nicknameと同じ制御を
+		   ability/itemラベルにも適用する。 */
 		.team-slots .slot-meta-text {
 			min-width: 0;
 			overflow: hidden;
@@ -1518,16 +1410,14 @@ try {
 		}
 		/* A-6: 特性が未設定のとき(ゲーム上「値が無い」状態が存在しない項目)を明示するための強調。
 		   新色は作らず既存の--color-danger-strongを流用する。持ち物(合法な空)には使わない。
-		   2026-08-01: テラスタイプは未設定時に行ごと非表示にする方針へ変更したため、この強調の
-		   対象からは外れた(buildFilledSlotContent参照。クラス自体は特性向けに引き続き使う)。 */
+		   テラスタイプは未設定時に行ごと非表示にするため、この強調の対象からは外れる
+		   (buildFilledSlotContent参照。クラス自体は特性向けに引き続き使う)。 */
 		.team-slots .slot-meta-unset {
 			color: var(--color-danger-strong);
 			font-weight: 700;
 		}
-		/* UI改修依頼(チーム編集中央パネル、2026-08-02)「実数値をラベル行+数値行の2段表記に
-		   する」。右パネルのbuildDamageCard内.team-damage-stats/.team-damage-stats-line
-		   (6列ラベル行+実数値行)と同じ考え方をこのカードにも適用する(旧slot-stat-row/
-		   slot-stat-chipの1行チップ表記は撤去)。 */
+		/* 右パネルのbuildDamageCard内.team-damage-stats/.team-damage-stats-line
+		   (6列ラベル行+実数値行)と同じ考え方をこのカードにも適用する。 */
 		.team-slots .slot-stats {
 			display: grid;
 			grid-template-columns: repeat(6, auto);
@@ -1538,9 +1428,9 @@ try {
 		.team-slots .slot-stats-line {
 			display: contents;
 		}
-		/* UI改修依頼(チーム編集中央パネル、2026-08-02)実測修正: line-heightをvar(--line-height-tight)
-		   (1.25、bodyの既定1.6から)に引き締め、1200〜1600px帯で技の2段目が見切れていた問題
-		   (上の.card-team-slotコメント参照)の解消に充てる。 */
+		/* line-heightをvar(--line-height-tight)(1.25、bodyの既定1.6から)に引き締め、
+		   1200〜1600px帯で技の2段目が見切れる問題(上の.card-team-slotコメント参照)の
+		   解消に充てる。 */
 		.team-slots .slot-stat-key {
 			font-size: var(--font-size-sm3);
 			font-weight: 700;
@@ -1556,9 +1446,8 @@ try {
 			text-align: center;
 			line-height: var(--line-height-tight);
 		}
-		/* 🔴 UI改修依頼(チーム編集中央パネル、2026-08-01)「9. 技は2x2配置にする」。
-		   旧来のflex-wrapは技数によって並びが不揃いになるため、box/index.astroの
-		   .card-moves-gridと同じ2列固定gridに変更する。 */
+		/* 技数によって並びが不揃いになるflex-wrapではなく、box/index.astroの.card-moves-gridと
+		   同じ2列固定gridにする。 */
 		.team-slots .slot-moves {
 			display: grid;
 			grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1577,8 +1466,8 @@ try {
 			color: var(--color-text-muted);
 			padding: calc(var(--space-1) * 0.32) 0;
 			text-align: left;
-			/* UI改修依頼(チーム編集中央パネル、2026-08-02)実測修正: line-heightを
-			   var(--line-height-tight)に引き締める(上のslot-stat-keyコメントと同じ理由)。 */
+			/* line-heightをvar(--line-height-tight)に引き締める(上のslot-stat-keyコメントと
+			   同じ理由)。 */
 			line-height: var(--line-height-tight);
 		}
 		.team-slots .slot-move-chip-icon {
@@ -1601,15 +1490,12 @@ try {
 		}
 		/* 削除ボタンはカード(.card-team-slot、position:relative)自身の右上端に絶対配置する
 		   (box/index.astroの.card-pokemon .card-actions=28px円形アイコンボタン規格を踏襲、
-		   新しい値は作らない)。
-		   UI改修依頼(チーム編集中央パネル、2026-08-06)「カードの削除ボタンをボックス画面
-		   (/box)と同じくホバー時に表示する」。box/index.astroの
-		   .card-pokemon .delete-button(src/pages/box/index.astro、読むだけで編集はしない)の
-		   配色・font-weightに合わせる: background/borderは.icon-button共通のまま、
-		   font-weight: 400(box側は「global.cssの.delete-buttonは太字パディングでアイコン
-		   専用ボタンには大きすぎる」という理由で明示的に上書きしている)。ホバーは
-		   background: var(--color-danger-soft) + border-color: var(--color-danger-strong)
-		   に揃える(旧来はvar(--color-surface-alt)だけで危険操作の色が付いていなかった)。
+		   新しい値は作らない)。box/index.astroの.card-pokemon .delete-button
+		   (src/pages/box/index.astro、読むだけで編集はしない)の配色・font-weightに合わせる:
+		   background/borderは.icon-button共通のまま、font-weight: 400(box側は「global.cssの
+		   .delete-buttonは太字パディングでアイコン専用ボタンには大きすぎる」という理由で明示的に
+		   上書きしている)。ホバーはbackground: var(--color-danger-soft) +
+		   border-color: var(--color-danger-strong)で危険操作であることを示す。
 		   hover/focus-within限定表示とタッチ時の常時表示も同じ方針で適用する。 */
 		.team-slots .slot-remove-btn {
 			position: absolute;
@@ -1645,9 +1531,7 @@ try {
 			color: var(--color-danger-strong);
 			border-color: var(--color-danger-strong);
 		}
-		/* UI改修依頼(チーム編集中央パネル、2026-08-02)「編集ボタンを名前段の右端に配置する」→
-		   さらに同日の追加依頼「テラスタルアイコンと編集ボタンを並べて配置する」により、
-		   3列グリッドの右端セル固定ではなく.slot-name-row(flex、上で中央寄せに変更済み)の
+		/* 3列グリッドの右端セル固定ではなく.slot-name-row(flex、上で中央寄せに変更済み)の
 		   末尾アイテムとして並ぶ。サイズ・配色(28px円形+枠線)は変えない。 */
 		.team-slots .slot-edit-link {
 			flex: 0 0 auto;
@@ -1671,8 +1555,7 @@ try {
 
 		/* ------------------------------------------------------------------ */
 		/* 右: ダメージ計算の圧縮表示パネル                                     */
-		/* 🔴 UI改修依頼(チーム編集画面 右パネル、2026-08-01)「右パネルには登録されて  */
-		/* いるダメージ計算の圧縮版を表示する」。ワイヤーフレーム                 */
+		/* 右パネルには登録されているダメージ計算の圧縮版を表示する。ワイヤーフレーム            */
 		/* docs/ui_proposal/ダメージカード_圧縮.png の構成を、右パネルの実効幅     */
 		/* (minmax(280px,340px) − .panelの左右padding 20px×2 = 240〜300px)に      */
 		/* 合わせて縦積みにしたもの。個体編集画面の折りたたみ表示                 */
@@ -1680,8 +1563,7 @@ try {
 		/* 配色トークンを使い、新しい色・新しいフォントサイズは増やさない。       */
 		/* DOMはJS(buildDamageCard)が生成するためこの<style is:global>に置く。   */
 		/* ------------------------------------------------------------------ */
-		/* UI改修依頼(右パネル、2026-08-02)「計算結果の縦余白を削って圧縮する」。
-		   見出し・状態文・カード一覧の間の縦gapをvar(--space-3)(12px)からvar(--space-2)
+		/* 見出し・状態文・カード一覧の間の縦gapをvar(--space-3)(12px)からvar(--space-2)
 		   (8px)へ詰める(以下、このパネル配下の縦方向の余白を同じ考え方でまとめて詰める)。 */
 		.team-preview-panel .team-preview-content {
 			display: flex;
@@ -1708,8 +1590,6 @@ try {
 			padding: 0;
 			display: flex;
 			flex-direction: column;
-			/* UI改修依頼(右パネル、2026-08-02)「計算結果の縦余白を削って圧縮する」。
-			   カード同士の間隔をvar(--space-3)(12px)からvar(--space-2)(8px)へ詰める。 */
 			gap: var(--space-2);
 			min-width: 0;
 		}
@@ -1723,7 +1603,6 @@ try {
 			/* 横方向も既存トークンへ寄せ、カード高は増やさない。 */
 			padding: var(--space-1) var(--space-2);
 			min-width: 0;
-			/* UI改修依頼(2026-08-05)「計算結果をカード下端へ寄せる」対応。 */
 			display: flex;
 			flex-direction: column;
 		}
@@ -1738,7 +1617,6 @@ try {
 		.team-preview-panel .team-damage-sprite {
 			position: relative;
 			flex: 0 0 auto;
-			/* UI改修依頼(2026-08-05)「タイトル行のポケモンアイコンを少し拡大」対応。 */
 			width: 68px;
 			height: 68px;
 			display: flex;
@@ -1877,8 +1755,7 @@ try {
 		}
 
 		/* --- 下段: 技名 / 詳細設定 / 累計計算結果 --- */
-		/* UI改修依頼(右パネル、2026-08-02)「計算結果の縦余白を削って圧縮する」により、
-		   このブロック配下の上部marginをまとめて詰める(var(--space-2)=8px→var(--space-1)=4px、
+		/* このブロック配下の上部marginをまとめて詰める(var(--space-2)=8px→var(--space-1)=4px、
 		   可読性を保てる12pxのトークンへ統一する)。 */
 		.team-preview-panel .team-damage-move-line {
 			margin: var(--space-1) 0 0;
@@ -1901,16 +1778,14 @@ try {
 		}
 		/* .severity-bar(global.css)の既定marginは上下 var(--space-3) だが、
 		   カード内では技名行との間隔を詰める。色・角丸・左罫線は共通定義のまま。
-		   UI改修依頼(右パネル、2026-08-02)「計算結果の縦余白を削って圧縮する」により
-		   margin-top・上下paddingをさらに詰める(4px2.4rem/0.3rem→0.2rem)。
-		   UI改修依頼(2026-08-05)修正漏れ対応: チップ内部の上下寸法を個体編集の累計結果に
-		   揃え、継承で広がっていた行高を固定する。 */
+		   margin-top・上下paddingを詰め、チップ内部の上下寸法を個体編集の累計結果に揃え、
+		   継承で広がっていた行高を固定する。 */
 		.team-preview-panel .team-damage-result {
 			display: flex;
 			flex-wrap: wrap;
 			align-items: baseline;
 			gap: 0 var(--space-2);
-			/* UI改修依頼(2026-08-05)「計算結果を下寄せ」対応。本文後の余白を吸収し最終段に置く。 */
+			/* margin: auto 0 0 で本文後の余白を吸収し、要素を最終段(カード下端)へ寄せる。 */
 			margin: auto 0 0;
 			order: 1;
 			/* 左だけ広めにする。確定数(確N)は font-weight 800 の漢字で、左の罫線
@@ -1933,7 +1808,6 @@ try {
 			font-weight: 500;
 			white-space: normal;
 		}
-		/* UI改修依頼(右パネル、2026-08-02)「計算結果の縦余白を削って圧縮する」。 */
 		.team-preview-panel .team-damage-memo {
 			margin: 0;
 			font-size: var(--font-size-sm3);
@@ -1943,11 +1817,11 @@ try {
 			white-space: nowrap;
 		}
 
-		/* --- チームポケモンのサジェスト(ユーザー要望、2026-08-02)。右パネルのニュートラル
-		   状態に出す「おすすめのポケモンと型」ランキング。JS(renderSuggestions)が生成する
-		   要素なので、このファイルの scoped <style> ではなくここ(is:global)に置く。
-		   幅は右パネルの実効幅(実測 約300px)しかないため、ダメージカード(.team-damage-card)と
-		   同じく1カラムの縦積みで組み、はみ出す文言は省略記号で畳む。 --- */
+		/* --- チームポケモンのサジェスト。右パネルのニュートラル状態に出す「おすすめのポケモンと
+		   型」ランキング。JS(renderSuggestions)が生成する要素なので、このファイルの
+		   scoped <style> ではなくここ(is:global)に置く。幅は右パネルの実効幅(実測 約300px)
+		   しかないため、ダメージカード(.team-damage-card)と同じく1カラムの縦積みで組み、
+		   はみ出す文言は省略記号で畳む。 --- */
 		.team-suggest {
 			padding: var(--space-3);
 		}
@@ -1992,7 +1866,7 @@ try {
 			min-width: 1.2em;
 			text-align: right;
 		}
-		/* スプライトは1.1倍(44px→48px、ユーザー要望2026-08-04)。本文の2行にまたがる専用列。 */
+		/* 本文の2行にまたがる専用列。 */
 		.team-suggest-sprite {
 			/* ドット絵に合わせて幅を詰め、種族名とアイテム名の表示領域を確保する。 */
 			width: 40px;
@@ -2037,7 +1911,7 @@ try {
 		/* 右パネルの本文列は実測で約165pxしかなく、特性+持ち物+役割を1行に収めると
 		   ほぼ必ず省略記号で切れる。省略すると「どの型か」という提案の中身そのものが
 		   読めなくなるため、折り返して2行以上になることを許す(カードの高さは伸びる)。
-		   UI改修依頼(2026-08-04)アイテムを最優先で読めるよう先頭に置く。 */
+		   アイテムを最優先で読めるよう先頭に置く。 */
 		.team-suggest-build {
 			font-size: var(--font-size-sm3);
 			color: var(--color-text-muted);
@@ -2055,7 +1929,6 @@ try {
 			height: 14px;
 			flex: none;
 		}
-		/* UI改修依頼(2026-08-05)「持ち物名を中央カードと同じ表示にする」対応。 */
 		.team-suggest-item-name {
 			font-weight: 600;
 			font-size: var(--font-size-sm3);
@@ -2096,7 +1969,7 @@ try {
 			margin-top: 0.1em;
 		}
 		.team-suggest-reason-name {
-			/* UI改修依頼(2026-08-05)「相性のよいポケモン名を前後と同じ書式にする」対応。 */
+			/* 前後のテキストと同じ書式にそろえる。 */
 			font-weight: inherit;
 			color: inherit;
 		}
@@ -2106,9 +1979,8 @@ try {
 			font-size: var(--font-size-sm3);
 			color: var(--color-risky-strong);
 		}
-		/* UI改修依頼(右パネル サジェスト、2026-08-04)「3列目のセルに収まる縦長のボタン」へ変更。
-		   以前は grid-column:1/-1 で下に全幅表示していた。文字が縦書きにならないよう
-		   white-space:normalで折り返し、幅は4.5em程度に抑える。 */
+		/* 3列目のセルに収まる縦長のボタンにする。文字が縦書きにならないよう
+		   white-space:normalで折り返し、幅を抑える。 */
 		.team-suggest-action {
 			align-self: stretch;
 			justify-self: stretch;
@@ -2148,10 +2020,10 @@ try {
 			opacity: 0.6;
 		}
 
-		/* --- 相性チェックの相手カード一覧(ユーザー要望、2026-08-02)。JS(renderMatchupList)が
-		   生成する要素なので、このファイルの scoped <style> ではなくここ(is:global)に置く。
-		   カードの中身はユーザー指示どおりアイコンのみ。数値(平均ダメージ割合)は
-		   title 属性にだけ入れ、一覧の見た目は「濃さ」だけで読ませる。 --- */
+		/* --- 相性チェックの相手カード一覧。JS(renderMatchupList)が生成する要素なので、
+		   このファイルの scoped <style> ではなくここ(is:global)に置く。カードの中身は
+		   アイコンのみ。数値(平均ダメージ割合)はtitle 属性にだけ入れ、一覧の見た目は
+		   「濃さ」だけで読ませる。 --- */
 		.team-matchup-list {
 			list-style: none;
 			margin: var(--space-3) 0 0;
@@ -2176,8 +2048,7 @@ try {
 			background: var(--color-surface);
 			transition: border-color 0.2s ease, background 0.2s ease;
 		}
-		/* UI改修依頼(2026-08-05)「相性カード背景を濃くする」対応。
-		   既存トークンだけを混ぜ、ダークモードでも本文色とのコントラストを保つ。 */
+		/* 既存トークンだけを混ぜ、ダークモードでも本文色とのコントラストを保つ。 */
 		.team-matchup-card.is-disadvantageous {
 			background: color-mix(in srgb, var(--color-surface) calc(100% - var(--matchup-mix, 28%)), var(--color-risky) var(--matchup-mix, 28%));
 		}
@@ -2198,7 +2069,6 @@ try {
 			/* 絶対配置の基準となるボーダー内側から枠幅だけ戻し、ボーダーボックス左上へ揃える。 */
 			top: var(--space-1);
 			left: var(--space-1);
-			/* UI改修依頼(2026-08-05)「スコアを一段縮小して左上へ配置」対応。 */
 			font-size: calc(var(--font-size-sm3) * 0.85);
 			font-weight: 700;
 			font-variant-numeric: tabular-nums;
@@ -2227,11 +2097,10 @@ try {
 		// 自動保存のデバウンス方式は box/[id].astro と同じ(700ms・保存ボタンは作らない・
 		// topbar-statusスロットで状態表示)。初期表示データ(SSR取得済みのチーム)は
 		// #team-edit-layout の data-initial-team から読む(fetch往復を待たずに6枠を描ける)。
-		// 相性チェック(2026-08-02)で連続技のヒット数が必要なため loadMultiHitMoveMap を追加import
-		// する(Battle.calc_damages() は連続技でも1ヒットぶんしか返さないため。
+		// 連続技のヒット数が必要なため loadMultiHitMoveMap を追加importする
+		// (Battle.calc_damages() は連続技でも1ヒットぶんしか返さないため。
 		// src/lib/pyodide-engine.ts の calcMaxDamageMatrix のコメント参照)。
 		import { loadImageIdMap, officialArtworkUrl, spriteUrl, loadBaseStatsMap, loadMoveDetailMap, loadMultiHitMoveMap, loadTypesMap } from "../../lib/pokemon-master-data";
-		// UI改修依頼(チーム編集左パネル、2026-08-02)「候補カードをボックス画面と共通化する」で
 		// 技チップにタイプアイコンを追加するため、typeIconUrlを追加importする(box/index.astroの
 		// applyMoveChipTypeIconsと同じ用途)。
 		import { itemIconUrl, teraTypeIconUrl, typeIconUrl } from "../../lib/sprite-urls";
@@ -2247,11 +2116,8 @@ try {
 		import { calculateTeamSimilarity } from "../../lib/build-similarity";
 		import type { RankedTeam } from "../../lib/ranked-teams";
 		import { kanaIncludes } from "../../lib/kana";
-		// 🔴 UI改修依頼(チーム編集画面 右パネル、2026-08-01)「右パネルには登録されている
-		// ダメージ計算の圧縮版を表示する」。表示ロジックは純粋関数として切り出してある
-		// (renderPreviewPanel/buildDamageCard の実装コメント参照)。
-		// 🔴 UI改修依頼(右パネル、2026-08-01)「11. テラスタルしていない条件の計算では
-		// テラスタル画像を非表示にする」。summarizeOpponentNoteが返すteraType/abilityName等
+		// 表示ロジックは純粋関数として切り出してある(renderPreviewPanel/buildDamageCard の実装
+		// コメント参照)。summarizeOpponentNoteが返すteraType/abilityName等
 		// (相手ビルド=OpponentNoteSummary)は「相手がテラスタルを持っているか」という静的な
 		// ビルド属性で、「この計算条件で実際にテラスタルしたか」とは別物(damage-summary.tsの
 		// NormalizedNoteAttackが持つattackerTerastallized/defenderTerastallizedが後者に当たる、
@@ -2268,9 +2134,9 @@ try {
 			type MoveCategory,
 			type OpponentNoteLike,
 		} from "../../lib/damage-summary";
-		// 相性チェック(ユーザー要望、2026-08-02)。ブラウザ内 Pyodide + jpoke でダメージを計算する
-		// (このページで Pyodide を使うのはこの機能だけなので、初期化はボタンを押したときの遅延初期化。
-		// box/[id].astro の「表示直後にプリフェッチ」はあちらのページ限定の例外)。
+		// ブラウザ内 Pyodide + jpoke でダメージを計算する(このページで Pyodide を使うのは
+		// この機能だけなので、初期化はボタンを押したときの遅延初期化。box/[id].astro の
+		// 「表示直後にプリフェッチ」はあちらのページ限定の例外)。
 		import {
 			calcMaxDamageMatrix,
 			initEngine,
@@ -2304,28 +2170,27 @@ try {
 			ability_name: string | null;
 			item_name: string | null;
 			tera_type: string | null;
-			// 🔴 UI改修依頼(チーム編集画面、2026-08-01): 選択バーのレギュレーション絞り込みに使う。
-			// SSR(lib/team.tsのTEAM_MEMBER_SELECT)・GET /api/owned-pokemon(OWNED_POKEMON_COLUMNS)の
-			// 両方に regulation を追加済みなので、この型に足すだけで両経路から読める。
+			// 選択バーのレギュレーション絞り込みに使う。SSR(lib/team.tsのTEAM_MEMBER_SELECT)・GET
+			// /api/owned-pokemon(OWNED_POKEMON_COLUMNS)の両方に regulation を追加済みなので、
+			// この型に足すだけで両経路から読める。
 			regulation: string | null;
 			move_names: string[];
-			// UI改修依頼(チーム編集左パネル)「ステータスも表示」対応で追加。box/index.astroと同じ
-			// 実数値計算(src/lib/stats.ts)に使う。level/nature/evs/ivsもSSR・GET /api/owned-pokemon
-			// の両方に既に含まれているため、フロント側の型に足すだけでよい。
+			// box/index.astroと同じ実数値計算(src/lib/stats.ts)に使う。level/nature/evs/ivsもSSR・
+			// GET /api/owned-pokemonの両方に既に含まれているため、フロント側の型に足すだけでよい。
 			level: number | null;
 			nature: string | null;
 			evs: number[];
 			ivs: number[];
-			// UI改修依頼(チーム編集左パネル)「ソート機能を追加する」の「登録順」用。SSR
-			// (lib/team.tsのTEAM_MEMBER_SELECT)・GET /api/owned-pokemon(OWNED_POKEMON_COLUMNS)の
-			// 両方に既にcreated_atを含んでいるため、この型に足すだけで読める(新規フェッチ不要)。
+			// 「登録順」ソートに使う。SSR(lib/team.tsのTEAM_MEMBER_SELECT)・GET /api/owned-pokemon
+			// (OWNED_POKEMON_COLUMNS)の両方に既にcreated_atを含んでいるため、この型に足すだけで
+			// 読める(新規フェッチ不要)。
 			created_at: string;
 			// 一覧APIに既存の日時を、左パネルの利用目的別ソートに使う。
 			updated_at: string;
 			last_used_at: string | null;
 			is_pinned: boolean;
 			memo: string | null;
-			// UI改修依頼(チーム編集ヘッダー)「匿名でデータ提供するトグル」用。GET
+			// 匿名でデータ提供するトグル用。GET
 			// /api/owned-pokemonのレスポンスには含まれるが、SSR(lib/team.tsのTEAM_MEMBER_SELECT)
 			// には含まれていない(このファイル単体の変更ではlib/team.tsを直せないため)。そのため
 			// SSR直後のmembersBySlot初期値ではundefinedになりうる値としてoptionalにし、GET
@@ -2396,12 +2261,9 @@ try {
 			const metaFields = document.querySelector<HTMLElement>(".team-meta-fields");
 			if (metaFields) overviewFields.append(metaFields);
 			overviewGrid.insertAdjacentElement("afterend", memoInput);
-			// 🔴 UI改修依頼(チーム編集画面、2026-08-01)「個体編集と同様にレギュレーション指定機能」。
 			const regulationSelect = el<HTMLSelectElement>("team-regulation");
 			const regulationFilterWrap = el<HTMLElement>("regulation-filter-wrap");
-			// UI改修依頼(チーム編集左パネル、2026-08-02)「トグルスイッチに変更する」に伴い
-			// <button>から<input type="checkbox">へマークアップを変えたため、要素の型も
-			// HTMLButtonElementからHTMLInputElementへ変える。
+			// <button>ではなく<input type="checkbox">なので、要素の型もHTMLInputElementにする。
 			const regulationFilterToggle = el<HTMLInputElement>("regulation-filter-toggle");
 			const dedupeToggle = el<HTMLInputElement>("team-select-dedupe-toggle");
 			const favoriteFilterToggle = el<HTMLInputElement>("favorite-filter-toggle");
@@ -2434,20 +2296,18 @@ try {
 
 			const previewEmptyEl = el<HTMLElement>("team-preview-empty");
 			const previewContentEl = el<HTMLElement>("team-preview-content");
-			// チームポケモンのサジェスト(ユーザー要望、2026-08-02)の描画先。
+			// チームポケモンのサジェストの描画先。
 			const suggestEl = el<HTMLElement>("team-suggest");
-			// サジェストの表示条件トグル(ユーザー要望、2026-08-04)。#team-suggestの中身は
+			// サジェストの表示条件トグル。#team-suggestの中身は
 			// renderSuggestionsがinnerHTMLで丸ごと書き換えるため、トグル自体は兄弟要素にしてある
 			// (上の静的マークアップ参照)。表示/非表示はsuggestElと同じタイミングで切り替える。
 			const suggestTogglesEl = el<HTMLElement>("team-suggest-toggles");
 			const includeMegaToggle = el<HTMLInputElement>("team-suggest-mega-toggle");
-			// UI改修依頼(チーム編集中央パネル、2026-08-02)カード外クリックでの選択解除判定に使う
-			// (右パネル内のクリックは選択解除の対象外にする)。
+			// カード外クリックでの選択解除判定に使う(右パネル内のクリックは選択解除の対象外にする)。
 			const previewPanelEl = el<HTMLElement>("team-preview-panel");
 
-			// 🔴 UI改修依頼(チーム編集画面 右パネル、2026-08-04)右パネル共通のタイトル帯。
-			// 個体プレビュー(renderPreviewPanel)とサジェスト(renderSuggestions)の見出しを
-			// ここへ統一する。
+			// 右パネル共通のタイトル帯。個体プレビュー(renderPreviewPanel)とサジェスト
+			// (renderSuggestions)の見出しをここへ統一する。
 			const panelHeaderBandEl = el<HTMLElement>("team-panel-header-band");
 			const panelHeaderTitleEl = el<HTMLElement>("team-panel-header-title");
 			function setPanelHeaderTitle(text: string): void {
@@ -2456,17 +2316,14 @@ try {
 				panelHeaderBandEl.hidden = false;
 			}
 
-			// UI改修依頼(チーム編集左パネル)「ドラッグアンドドロップでチームに設定できるように
-			// する」。dataTransferはドラッグ元(別ウィンドウ等)の互換性のため一応セットするが、
+			// dataTransferはドラッグ元(別ウィンドウ等)の互換性のため一応セットするが、
 			// 同一ページ内のドラッグしか想定していないため、実際の受け渡しはこのモジュール内の
 			// 変数(draggedPokemonId)で行う(dataTransfer.getData()はdragover中は読めない
 			// ブラウザ実装が多く、dropまで値を保持する目的にも向かないため)。
 			let draggedPokemonId: string | null = null;
 
-			// 🔴 UI改修依頼(チーム編集中央パネル、2026-08-01)「10. チームメンバーどうしを
-			// ドラッグアンドドロップで並べ替えできる機能を追加する」。候補ポケモンのドラッグ
-			// (draggedPokemonId)とは別に、埋まっている枠自身をドラッグしたときの移動元slot番号を
-			// 保持する専用変数(renderSlots参照)。
+			// 候補ポケモンのドラッグ(draggedPokemonId)とは別に、埋まっている枠自身をドラッグ
+			// したときの移動元slot番号を保持する専用変数(renderSlots参照)。
 			let draggedMemberSlot: number | null = null;
 
 			const imageIdMapPromise = loadImageIdMap();
@@ -2476,8 +2333,7 @@ try {
 				hp: "H", atk: "A", def: "B", spa: "C", spd: "D", spe: "S",
 			};
 
-			// UI改修依頼(チーム編集左パネル/右パネル)「ステータスも表示」。box/index.astroの
-			// applyActualStatsと同じ式・同じフォールバック(level??50, iv??31, ev??0)。
+			// box/index.astroのapplyActualStatsと同じ式・同じフォールバック(level??50, iv??31, ev??0)。
 			async function computeStats(p: OwnedPokemonRecord): Promise<{ key: string; label: string; value: number; ev: number; mod: "up" | "down" | null }[] | null> {
 				const base = p.species_name ? (await baseStatsMapPromise).get(p.species_name) : undefined;
 				if (!base) return null;
@@ -2516,8 +2372,8 @@ try {
 				return Array.from(membersBySlot.values()).map(candidateOf);
 			}
 
-			// UI改修依頼(チーム編集左パネル)「ドラッグアンドドロップで設定」用。既に埋まっている
-			// 枠へドロップして入れ替える(=その枠自身の在籍は重複扱いしない)場合に使う。
+			// 既に埋まっている枠へドロップして入れ替える(=その枠自身の在籍は重複扱いしない)場合に
+			// 使う。
 			function currentCandidatesExcludingSlot(slot: number): SelectionCandidate[] {
 				return Array.from(membersBySlot.entries())
 					.filter(([s]) => s !== slot)
@@ -2605,11 +2461,10 @@ try {
 				imgEl.src = url;
 			}
 
-			// UI改修依頼(チーム編集左パネル、2026-08-02)「候補カードをボックス画面(/box)と
-			// 共通化する」。技チップの前に置くタイプアイコン(box/index.astroの
-			// applyMoveChipTypeIconsと同じ考え方)。技→タイプの解決はloadMoveDetailMapを使う
-			// (このファイルは右パネルの技分類判定(moveCategoryOf)で既にloadMoveDetailMap()を
-			// 呼んでおり、内部でキャッシュされる=fetchが増えるわけではない)。
+			// 技チップの前に置くタイプアイコン(box/index.astroのapplyMoveChipTypeIconsと
+			// 同じ考え方)。技→タイプの解決はloadMoveDetailMapを使う(このファイルは右パネルの
+			// 技分類判定(moveCategoryOf)で既にloadMoveDetailMap()を呼んでおり、内部でキャッシュ
+			// される=fetchが増えるわけではない)。
 			async function applySelectMoveChipTypeIcons(
 				entries: { iconEl: HTMLImageElement; visibilityEl: HTMLElement; moveName: string }[],
 			): Promise<void> {
@@ -2630,13 +2485,8 @@ try {
 				}
 			}
 
-			// 🔴 UI改修依頼(チーム編集画面 右パネル、2026-08-01)「現在の表示は中央のカードと内容が
-			// 被っている。右パネルには登録されているダメージ計算の圧縮版を表示する」。
-			//
-			// 変更前は選んだ個体そのもの(スプライト・特性・持ち物・テラス・実数値・技)を並べていたが、
-			// これは中央の6枠カード(renderSlots)および左パネルの選択行(renderSelectList)と同じ
-			// 情報だった。代わりに、その個体に登録済みの対戦相手メモ(opponent_notes)を
-			// ワイヤーフレーム docs/ui_proposal/ダメージカード_圧縮.png の構成
+			// 選んだ個体に登録済みの対戦相手メモ(opponent_notes)を、ワイヤーフレーム
+			// docs/ui_proposal/ダメージカード_圧縮.png の構成
 			// (アイコン | 種族名 / 攻撃or防御 / 特性 / H-A-B-C-D-S ‖ 技名 / 詳細設定 / 累計計算結果)
 			// で一覧する。個体編集画面(/box/[id])のダメージカードを折りたたんだ状態と同じ内容で、
 			// 表示ロジックは src/lib/damage-summary.ts(純粋関数・ユニットテスト済み)に置いてある。
@@ -2646,7 +2496,7 @@ try {
 			// スナップショットを即座に表示するのと同じ経路)。右パネルを見るためだけに数MBの
 			// wheel を落とさせないため。
 			//
-			// 右パネルは1650px未満では非表示(2026-08-02に閾値変更)。チーム編成そのものには影響しない(membersBySlotを
+			// 右パネルは1650px未満では非表示にする。チーム編成そのものには影響しない(membersBySlotを
 			// 一切変更しない、見るだけの機能)。
 			const notesCache = new Map<string, OpponentNoteLike[] | "error">();
 
@@ -2681,8 +2531,7 @@ try {
 
 			function buildDamageCard(note: OpponentNoteLike, baseStats: Map<string, number[]>): HTMLElement {
 				const summary = summarizeOpponentNote(note, moveCategoryOf);
-				// 🔴 UI改修依頼(右パネル、2026-08-01)「11. テラスタルしていない条件の計算では
-				// テラスタル画像を非表示にする」。summary.teraTypeは相手ビルドが持つテラスタイプ
+				// summary.teraTypeは相手ビルドが持つテラスタイプ
 				// (静的な設定値)であり、この計算条件下で実際にテラスタルしたかどうかは別に
 				// field.attacks[].attackerTerastallized/defenderTerastallizedを見る必要がある。
 				// summary.direction(この個体=owned_pokemonから見た向き)が "attack" なら相手は
@@ -2753,10 +2602,8 @@ try {
 					itemInfo.title = summary.itemName;
 					spriteBox.appendChild(itemInfo);
 				}
-				// 共通指示(2026-08-01)「テラスタイプがない場合は"未設定"などと表示せず非表示にする」。
-				// 🔴 UI改修依頼(右パネル、2026-08-01)「11. テラスタルしていない条件の計算では
-				// テラスタル画像を非表示にする」。相手がテラスタイプを持っていても、この条件で
-				// 実際にテラスタルしていなければ(opponentTerastallized === false)表示しない。
+				// 相手がテラスタイプを持っていても、この条件で実際にテラスタルしていなければ
+				// (opponentTerastallized === false)表示しない。
 				if (summary.teraType && opponentTerastallized) {
 					const teraInfo = document.createElement("span");
 					teraInfo.className = "team-damage-tera-info";
@@ -2867,10 +2714,8 @@ try {
 				suggestEl.hidden = true;
 				suggestTogglesEl.hidden = true;
 
-				// UI改修依頼(右パネル、2026-08-04)見出しは右パネル共通のタイトル帯
-				// (#team-panel-header-title)へ表示する。以前はここ(previewContentEl内)に
-				// .team-damage-owner の<p>を都度生成していたが、帯の導入により表示先だけを
-				// 差し替えた(このページ内で.team-damage-ownerクラス自体は削除していない)。
+				// 見出しは右パネル共通のタイトル帯(#team-panel-header-title)へ表示する
+				// (このページ内で.team-damage-ownerクラス自体は削除していない)。
 				setPanelHeaderTitle("ダメージ計算");
 				const titleSprite = document.createElement("span");
 				titleSprite.className = "team-damage-title-sprite";
@@ -2892,8 +2737,6 @@ try {
 				statusEl.textContent = "読み込み中…";
 				previewContentEl.appendChild(statusEl);
 
-				// UI改修依頼(右パネル、2026-08-02)「最下部の"個体を編集"ボタンを削除する」。
-				// 旧・editLinkの参照先が無くなったため、listElはinsertBeforeではなくappendChildで足す。
 				const [notes, baseStats] = await Promise.all([fetchOpponentNotes(p.id), baseStatsMapPromise]);
 				if (requestId !== previewRequestId) return; // 別の個体が選び直された
 
@@ -2912,17 +2755,15 @@ try {
 				previewContentEl.appendChild(listEl);
 			}
 
-			// UI改修依頼(チーム編集中央パネル、2026-08-02)「カード外をクリックしてもダメージ計算
-			// 表示が残り続けるバグを直す」。原因調査: 「カード外クリックでハイライトを解除する」
-			// document click リスナー(下部のdocument.addEventListener("click", ...)参照)は
-			// .card-team-slot から is-selected クラスを外すだけで、右パネルの中身
-			// (previewContentEl、renderPreviewPanelがinnerHTMLで書き込む)には一切触れていな
-			// かった。そのためカードの選択ハイライトは消えても、直前に選んだ個体のダメージ計算が
-			// 右パネルに描画されたまま残っていた。previewRequestIdを進めて
-			// renderPreviewPanel側の非同期処理(await後のrequestId !== previewRequestIdチェック、
-			// 上のrenderPreviewPanel参照)も無効化しつつ、previewContentElを空にして隠す
-			// (previewEmptyElは元々常時hidden・無テキストの設計(上のマークアップのコメント参照)
-			// のため、ここで表示に戻す必要はない)。
+			// 「カード外クリックでハイライトを解除する」document click リスナー
+			// (下部のdocument.addEventListener("click", ...)参照)は.card-team-slot から
+			// is-selected クラスを外すだけで、右パネルの中身(previewContentEl、
+			// renderPreviewPanelがinnerHTMLで書き込む)には触れない。そのままではカードの選択
+			// ハイライトが消えても、直前に選んだ個体のダメージ計算が右パネルに残ってしまう。
+			// previewRequestIdを進めてrenderPreviewPanel側の非同期処理(await後の
+			// requestId !== previewRequestIdチェック、上のrenderPreviewPanel参照)も無効化しつつ、
+			// previewContentElを空にして隠す(previewEmptyElは元々常時hidden・無テキストの設計
+			// (上のマークアップのコメント参照)のため、ここで表示に戻す必要はない)。
 			function closePreviewPanel(): void {
 				previewRequestId += 1;
 				previewContentEl.hidden = true;
@@ -2930,14 +2771,14 @@ try {
 				// ニュートラル状態に戻ったのでサジェストを出し直す(下の renderSuggestions 参照)。
 				suggestEl.hidden = false;
 				suggestTogglesEl.hidden = false;
-				// UI改修依頼(右パネル、2026-08-04)個体プレビューの見出しで上書きされたままの
-				// 共通タイトル帯を、ニュートラル状態(サジェスト)の見出しに戻す。テキストは
-				// renderSuggestions が使っているものと同じ固定文言。
+				// 個体プレビューの見出しで上書きされたままの共通タイトル帯を、ニュートラル状態
+				// (サジェスト)の見出しに戻す。テキストはrenderSuggestions が使っているものと
+				// 同じ固定文言。
 				setPanelHeaderTitle("おすすめポケモン");
 			}
 
 			// =================================================================================
-			// チームポケモンのサジェスト(ユーザー要望、2026-08-02)
+			// チームポケモンのサジェスト
 			// 「現在のチームメンバーを参照して、残りの枠に入れるとよいポケモンを提案する」。
 			// 集計は GET /api/team-suggestions(スコアリングは src/lib/team-suggest.ts、
 			// 共起の集計は migrations/016 のSQL関数)。ここは表示と操作だけを担う。
@@ -2985,8 +2826,8 @@ try {
 				suggestEl.appendChild(p);
 			}
 
-			// メガシンカ種族の判定用マスターデータ(ユーザー要望、2026-08-04。「メガシンカを含める」
-			// トグル)。mega-stones.json は「種族名→メガストーン名」の対応表(src/lib/speed-chart/
+			// メガシンカ種族の判定用マスターデータ(「メガシンカを含める」トグル用)。
+			// mega-stones.json は「種族名→メガストーン名」の対応表(src/lib/speed-chart/
 			// chart-table.ts の loadMasterData と同じ要領でfetchする)。文字列の「メガ」接頭辞判定は
 			// 誤判定・取り漏れの余地があるため使わず、このマスターデータのspeciesに載っているかどうか
 			// だけで判定する。
@@ -3027,8 +2868,7 @@ try {
 				return exact ?? usable[0];
 			}
 
-			// 表示条件トグル(ユーザー要望、2026-08-04)。「メガシンカを含める」OFF時はメガシンカ種族を
-			// 除外する。
+			// 表示条件トグル(「メガシンカを含める」トグル)。OFF時はメガシンカ種族を除外する。
 			// APIを叩き直さず、直近の応答に対してクライアント側でフィルタする。
 			async function filterSuggestions(suggestions: TeamSuggestion[]): Promise<TeamSuggestion[]> {
 				let result = suggestions;
@@ -3167,8 +3007,7 @@ try {
 				card.appendChild(body);
 
 				// 操作: 手持ちにあれば枠へ入れる、無ければその型で新規登録する。ラベルは
-				// 「育成する」/「チームに追加」に統一する(ユーザー要望、2026-08-04。以前は
-				// 「手持ちの◯◯を入れる」だったが、個体名はtitleに残して文言だけ揃える)。
+				// 「育成する」/「チームに追加」に統一し、個体名はtitleに残す。
 				const action = document.createElement("button");
 				action.type = "button";
 				action.className = "team-suggest-action";
@@ -3257,7 +3096,7 @@ try {
 				suggestEl.innerHTML = "";
 				formationMobileSuggestIcons.replaceChildren();
 
-				// UI改修依頼(右パネル、2026-08-04)見出しは右パネル共通のタイトル帯へ表示する。
+				// 見出しは右パネル共通のタイトル帯へ表示する。
 				// scheduleSuggestions/loadSuggestionsは編成が変わるたびに走るため、個体プレビュー中
 				// (previewContentElが表示中)でも背後で呼ばれうる
 				// (suggestElはその間hiddenのまま、renderSuggestions自体は元からそうだった)。
@@ -3397,15 +3236,15 @@ try {
 			}
 
 			// =================================================================================
-			// 相性チェック(ユーザー要望、2026-08-02)
+			// 相性チェック
 			// 「使用率上位20体のポケモンとの攻守の相性を可視化する」。
 			//
 			// 相手の一覧と採用技は GET /api/matchup-targets、数式は src/lib/team-matchup.ts、
 			// ダメージ計算はブラウザ内 Pyodide + jpoke(calcMaxDamageMatrix)。ここは
 			// 「取得 → 計算の駆動 → 描画」の繋ぎだけを担う。
 			//
-			// 相手の条件(ユーザー指示): 性格補正なし・努力値H32振り・Lv50・IV31。特性と持ち物は
-			// 指示に無いため付けない(jpoke は空文字を渡すと特性なし・持ち物なしの個体になる)。
+			// 相手の条件: 性格補正なし・努力値H32振り・Lv50・IV31。特性と持ち物は
+			// 付けない(jpoke は空文字を渡すと特性なし・持ち物なしの個体になる)。
 			// これは「環境の平均的な個体」ではなく「同じ土俵で並べるための基準個体」であり、
 			// 20体を互いに比較するための基準として一貫していることを優先している。
 			//
@@ -3510,7 +3349,7 @@ try {
 				};
 			}
 
-			/** 相手ポケモンの基準個体(ユーザー指示: 性格補正なし・H32振り)。 */
+			/** 相手ポケモンの基準個体(性格補正なし・H32振り)。 */
 			function matchupOpponentSpec(target: MatchupTarget, moveNames: string[]): PokemonSpec {
 				return {
 					name: target.speciesName,
@@ -3547,7 +3386,7 @@ try {
 					card.className = "team-matchup-card";
 					card.dataset.state = "pending";
 
-					// ユーザー指示「カード(アイコンのみ)」。数値は title(ツールチップ)にだけ入れる。
+					// カード表示はアイコンのみ。数値は title(ツールチップ)にだけ入れる。
 					const img = document.createElement("img");
 					img.className = "team-matchup-sprite-img";
 					img.alt = "";
@@ -3675,12 +3514,12 @@ try {
 					// ── 「そのメンバーはこの相手に何も通せない」と同じ扱いにするのが安全側。
 					const memberRatios = teamAttackSpecs.map((_, i) => damageRatio(result.maxDamage[i]?.[0] ?? 0, hp));
 					const rawScore = averageRatio(memberRatios);
-					// UI改修依頼(2026-08-05)「攻撃スコアを反転し、高いほど不利に統一」対応。
+					// スコアは値が高いほど不利になるよう統一する(matchupDisadvantageScore参照)。
 					if (rawScore === null) return null;
 					return { score: matchupDisadvantageScore(rawScore, "attack"), memberRatios };
 				}
 
-				// 防御: 相手1体 → チーム全員。相手の技は攻撃技だけを採用率上位4つ(ユーザー指示)。
+				// 防御: 相手1体 → チーム全員。相手の技は攻撃技だけを採用率上位4つ。
 				const opponentMoves = pickOpponentAttackMoves(target.moves, isAttackMove);
 				// 採用技が集計されていない種族(母数が k-匿名性の閾値未満)は、技0本で計算すると
 				// 「一切ダメージを受けない最も安全な相手」に見えてしまう。計算せず「データなし」にする。
@@ -3860,12 +3699,10 @@ try {
 			matchupMobileAttackButton.addEventListener("click", () => setMatchupDirection("attack"));
 			matchupMobileDefenseButton.addEventListener("click", () => setMatchupDirection("defense"));
 
-			// UI改修依頼(チーム編集左パネル)「ダブルクリックとドラッグアンドドロップでチームに
-			// 設定できるように」。クリック単体での追加(旧仕様)はプレビュー表示に譲り、実際の
-			// 追加操作はダブルクリック/ドラッグ&ドロップに一本化する。targetSlotを指定した場合は
-			// その枠へ(既に埋まっていれば入れ替え)、省略時は空き枠のうち最小番号に入れる
-			// (旧仕様のfirstEmptySlotと同じ)。選択ルール(selectionBlockReason)は入れ替え先の枠
-			// 自身の在籍を重複扱いしないよう、対象枠を除いた候補リストで判定する。
+			// クリック単体での追加はプレビュー表示に譲り、実際の追加操作はダブルクリック/
+			// ドラッグ&ドロップに一本化する。targetSlotを指定した場合はその枠へ(既に埋まっていれば
+			// 入れ替え)、省略時は空き枠のうち最小番号に入れる。選択ルール(selectionBlockReason)は
+			// 入れ替え先の枠自身の在籍を重複扱いしないよう、対象枠を除いた候補リストで判定する。
 			function assignToSlot(p: OwnedPokemonRecord, targetSlot?: number): void {
 				const slot = targetSlot ?? firstEmptySlot();
 				if (slot == null) return;
@@ -3878,15 +3715,14 @@ try {
 				renderFormationMobile();
 				scheduleSave();
 				refreshCollectionOptOutToggle();
-				// 編成が変わったのでサジェストを取り直す(2026-08-02)。
+				// 編成が変わったのでサジェストを取り直す。
 				scheduleSuggestions();
 				scheduleSimilarBuilds();
-				// 相性チェックを開いている場合は、その計算もやり直す(2026-08-02)。
+				// 相性チェックを開いている場合は、その計算もやり直す。
 				scheduleMatchup();
 			}
 
-			// 🔴 UI改修依頼(チーム編集中央パネル、2026-08-01)「10. チームメンバーどうしを
-			// ドラッグアンドドロップで並べ替えできる機能を追加する」。assignToSlotは候補ポケモン用の
+			// assignToSlotは候補ポケモン用の
 			// 重複チェック(selectionBlockReason)を含むため、既に編成済みの2枠を入れ替える
 			// (在籍総数は変わらない)操作には不適切(移動先に既にいる個体を「重複」と誤検知しうる)。
 			// membersBySlotの中身を直接swapするだけの専用関数にする。片方が空きでもよい(=移動)。
@@ -3903,9 +3739,8 @@ try {
 				scheduleSave();
 			}
 
-			// UI改修依頼(チーム編集ヘッダー)「匿名でデータ提供するトグル」。現在のチームメンバー
-			// (owned_pokemon)のIDだけを返す(重複はteam-validationの選択ルールで既に防がれている
-			// ため考慮不要)。
+			// 匿名でデータ提供するトグル用。現在のチームメンバー(owned_pokemon)のIDだけを返す
+			// (重複はteam-validationの選択ルールで既に防がれているため考慮不要)。
 			function currentMemberIds(): string[] {
 				return Array.from(membersBySlot.values()).map((p) => p.id);
 			}
@@ -3923,10 +3758,9 @@ try {
 			// を持たない)しか無いため、その場合は「全員提供中」を既定値として扱う(DBの既定値
 			// =NULL=提供中と一致するため、fetch完了までの一瞬だけ生じる楽観値。fetch完了後に
 			// このcronがもう一度呼ばれ正確な値に補正される→fetchハンドラ参照)。
-			// 🔴 UI改修依頼(チーム編集ヘッダー、2026-08-01)「非公開」トグルへの改称に伴い、
-			// checkedの向きを反転する: 「メンバー全員が提供中」のときだけfalse(=非公開ではない)、
-			// 1人でも拒否中(非公開)ならtrueにする(旧: 全員提供中のときtrue)。DBを読む式
-			// (isProviding)自体は変えていない、checkedへの反映だけを反転させている。
+			// checkedの向きが反転している: 「メンバー全員が提供中」のときだけfalse(=非公開ではない)、
+			// 1人でも拒否中(非公開)ならtrueになる。DBを読む式(isProviding)自体とcheckedへの
+			// 反映方向は独立している。
 			function refreshCollectionOptOutToggle(): void {
 				const ids = currentMemberIds();
 				if (ids.length === 0) {
@@ -3944,8 +3778,8 @@ try {
 				syncCollectionOptOutTitle();
 			}
 
-			// UI改修依頼(チーム編集ヘッダー、2026-08-02)個体編集画面(/box/[id])と共通化:
-			// ホバーテキストはON/OFFで文言を変えず常に固定文字列「30日間有効」にする。
+			// 個体編集画面(/box/[id])と共通化: ホバーテキストはON/OFFで文言を変えず常に固定
+			// 文字列「30日間有効」にする。
 			// メンバー0人時(disabled)のtitleはSSR側の固定文言のまま変えない(<AppLayout>の
 			// topbar-actionsスロット、上のフロントマター参照)。
 			const collectionOptOutLabel = document.querySelector<HTMLLabelElement>(".collection-opt-out-toggle");
@@ -3957,19 +3791,13 @@ try {
 			// --- 6枠の描画(基準3: 常に6枠) ---
 			// A-1: 選択バーで個体をクリックすると常に「空き枠のうち最小番号」に入る
 			// (選択ルールは受け入れ基準4で確定済み・変更不可)。
-			// 🔴 UI改修依頼(チーム編集中央パネル、2026-08-01)「3. ドラッグアンドドロップで
-			// チームに追加する機能を追加し、"この枠にいれる"ボタンを廃止する」。旧来は
-			// isNextToFill(=firstEmptySlot()と一致)の1枠だけを実際に押せる<button>にし、
-			// 「＋ この枠に入れる」で検索欄へフォーカスする補助動線を提供していたが、この依頼に
-			// よりボタン自体を廃止する。候補→枠のドラッグ&ドロップは既に実装済み(row.draggable /
+			// 候補→枠のドラッグ&ドロップは既に実装済み(row.draggable /
 			// dragstart・dragend、枠側のdragover/dragleave/drop、assignToSlot呼び出し。
-			// renderSlots参照)で変更不要なため、全ての空き枠を同じ非アクションの<div>にし、
+			// renderSlots参照)。全ての空き枠を同じ非アクションの<div>にし、
 			// D&Dで追加できることが伝わる文言にする。
 			function buildEmptySlotContent(slot: number): HTMLElement {
 				const wrap = document.createDocumentFragment();
 
-				// 🔴 UI改修依頼(チーム編集中央パネル、2026-08-01)「6. 番号(1~6)の丸枠を削除し、
-				// 大きく太い斜め文字を左上にうすく表示する(ポケモン未設定のカードも共通)」。
 				const watermark = document.createElement("span");
 				watermark.className = "slot-watermark-number";
 				watermark.setAttribute("aria-hidden", "true");
@@ -3979,7 +3807,6 @@ try {
 				placeholder.className = "slot-empty-cta";
 				placeholder.setAttribute("aria-label", `${slot}番目の枠は空きです。左の一覧からドラッグ&ドロップすると追加できます`);
 				const label = document.createElement("span");
-				// UI改修依頼(2026-08-05)「空き枠案内を指定の2行表記にする」対応。
 				label.textContent = "ドラッグまたは\nダブルクリックで追加";
 				placeholder.appendChild(label);
 
@@ -3987,10 +3814,8 @@ try {
 				return wrap as unknown as HTMLElement;
 			}
 
-			// UI改修依頼(チーム編集中央パネル)「ダブルクリックまたは削除ボタンで、その個体を
-			// チームから削除できるようにする」。旧・removeButtonのクリックハンドラをここへ切り出し、
-			// カード自体のdblclickハンドラ(renderSlots参照)と共有する(挙動は変えていない:
-			// membersBySlotから外す→再描画→自動保存)。
+			// カード自体のdblclickハンドラ(renderSlots参照)と削除ボタンで共有する
+			// (挙動: membersBySlotから外す→再描画→自動保存)。
 			function removeMemberFromSlot(slot: number): void {
 				membersBySlot.delete(slot);
 				renderSlots();
@@ -3998,20 +3823,19 @@ try {
 				renderFormationMobile();
 				scheduleSave();
 				refreshCollectionOptOutToggle();
-				// 編成が変わったのでサジェストを取り直す(2026-08-02)。
+				// 編成が変わったのでサジェストを取り直す。
 				scheduleSuggestions();
 				scheduleSimilarBuilds();
-				// 相性チェックを開いている場合は、その計算もやり直す(2026-08-02)。
+				// 相性チェックを開いている場合は、その計算もやり直す。
 				scheduleMatchup();
 			}
 
 			function buildFilledSlotContent(slot: number, p: OwnedPokemonRecord): HTMLElement {
 				const wrap = document.createDocumentFragment();
 
-				// 🔴 UI改修依頼(チーム編集中央パネル、2026-08-01)「6. 番号(1~6)の丸枠を削除し、
-				// 大きく太い斜め文字を左上にうすく表示する」。空き枠(buildEmptySlotContent)と
-				// 同じクラス(.slot-watermark-number)を使い、同じ位置・同じスタイルにする
-				// (状態の違いはCSS側のopacity濃淡だけで表現、data-filled属性で出し分ける)。
+				// 空き枠(buildEmptySlotContent)と同じクラス(.slot-watermark-number)を使い、
+				// 同じ位置・同じスタイルにする(状態の違いはCSS側のopacity濃淡だけで表現、
+				// data-filled属性で出し分ける)。
 				const watermarkEl = document.createElement("span");
 				watermarkEl.className = "slot-watermark-number";
 				watermarkEl.setAttribute("aria-hidden", "true");
@@ -4032,11 +3856,9 @@ try {
 				infoEl.className = "slot-info";
 				let teraItem: HTMLSpanElement | null = null;
 
-				// UI改修依頼(チーム編集中央パネル、2026-08-02)「ニックネーム/種族名を中央表示に
-				// し、その右隣にテラスタルアイコンと編集ボタンを置く。テラスタルはアイコンのみ」。
 				// nameRowは横並びflex(CSS参照)で、NN→テラスアイコン→編集ボタンの順に並べ、
-				// 全体をカード幅の中で中央寄せする(旧来の3列グリッド+nameCenterラッパーは廃止)。
-				// 種族名(R-8のspeciesEl)は表示しなくなったため、この画面では生成しない。
+				// 全体をカード幅の中で中央寄せする。種族名(R-8のspeciesEl)は表示しなくなったため、
+				// この画面では生成しない。
 				const nameRow = document.createElement("div");
 				nameRow.className = "slot-name-row";
 				const name = displayName(p);
@@ -4046,13 +3868,10 @@ try {
 				nicknameEl.textContent = name;
 				nameRow.appendChild(nicknameEl);
 
-				// 🔴 UI改修依頼(共通、2026-08-01)「テラスタイプが未設定の場合、"未設定"などと
-				// 表示せず要素ごと非表示にする」。値が無いときはteraItem自体を生成しない
+				// 値が無いときはteraItem自体を生成しない
 				// (pitfalls.mdの「DOMは残す」方針は要素の削除を指示されたケースには当たらない)。
-				// A-7: 「テラス」は口語短縮なので公式用語「テラスタイプ」に統一する(この方針自体は維持)。
-				// UI改修依頼(チーム編集中央パネル、2026-08-02)「テラスタルはアイコンのみ表示し、
-				// "ほのお"等のタイプ名テキストは表示しない」。テキストの<span>(旧teraLabel)は
-				// 生成せず、アイコンだけのバッジにする。テラスタイプ名はtitle/aria-labelに
+				// A-7: 「テラス」は口語短縮なので公式用語「テラスタイプ」に統一する。
+				// アイコンだけのバッジにする。テラスタイプ名はtitle/aria-labelに
 				// 残し、スクリーンリーダー・ホバー双方でアクセス可能にする。
 				const teraType = p.tera_type?.trim() ?? "";
 				if (teraType) {
@@ -4069,10 +3888,9 @@ try {
 				}
 				infoEl.appendChild(nameRow);
 
-				// UI改修依頼(チーム編集中央パネル、2026-08-02)「ボックス画面と同様に、特性と
-				// アイテムを同じ段に配置する」。box/index.astroの.card-item-row(grid 2列)/
-				// .card-item-row-cell(flex中央寄せ)と同じ作りに揃える(CSS参照、metaRowは
-				// 特性・アイテムの2項目のみになる。テラスタイプは上のnameRowへ移した)。
+				// box/index.astroの.card-item-row(grid 2列)/.card-item-row-cell(flex中央寄せ)と
+				// 同じ作りに揃える(CSS参照、metaRowは特性・アイテムの2項目のみになる。
+				// テラスタイプは上のnameRowへ移した)。
 				const metaRow = document.createElement("div");
 				metaRow.className = "slot-meta-row";
 
@@ -4083,14 +3901,11 @@ try {
 				abilityCell.className = "slot-meta-cell";
 				const abilityName = p.ability_name?.trim() ?? "";
 				const abilityLabel = document.createElement("span");
-				// UI改修依頼(チーム編集中央パネル、2026-08-02)「カードサイズを正方形のまま
-				// 小さくする」に伴う実測修正: 幅が230pxに縮んだ結果、特性/持ち物のラベルに
-				// overflow制御が無かったため長い文字列が単語の途中で2行に折り返ってしまう
-				// (実測: メガリザードンXの持ち物名が「リザードナイ」「トX」のように割れた)。
-				// nicknameEl(.slot-nickname)と同じ1行ellipsis制御をslot-meta-textとして
-				// 共通化し、ability/itemの両ラベルに適用する(下のitemLabel参照)。
+				// 幅が230pxしかなく、特性/持ち物のラベルにoverflow制御が無いと長い文字列が単語の
+				// 途中で2行に折り返る(例: メガリザードンXの持ち物名が「リザードナイ」「トX」の
+				// ように割れる)。nicknameEl(.slot-nickname)と同じ1行ellipsis制御をslot-meta-text
+				// として共通化し、ability/itemの両ラベルに適用する(下のitemLabel参照)。
 				abilityLabel.className = "slot-meta-text";
-				// UI改修依頼(チーム編集中央パネル)「ボックス画面と表記をそろえる」対応:
 				// box/index.astroの.card-ability-nameはラベル無しの特性名だけを出すため、
 				// ここも「特性: 」の接頭辞を外し値だけにする(未設定の強調自体は残す)。
 				if (abilityName) {
@@ -4117,8 +3932,8 @@ try {
 					itemImg.style.display = "none";
 					void applyItemIcon(itemImg, itemName);
 					const itemLabel = document.createElement("span");
-					// UI改修依頼(チーム編集中央パネル、2026-08-02): 上のabilityLabelと同じ理由で
-					// slot-meta-textを適用し、長い持ち物名が単語の途中で折り返るのを防ぐ。
+					// 上のabilityLabelと同じ理由でslot-meta-textを適用し、長い持ち物名が単語の途中で
+					// 折り返るのを防ぐ。
 					itemLabel.className = "slot-meta-text";
 					itemLabel.textContent = itemName;
 					itemCell.append(itemImg, itemLabel);
@@ -4173,11 +3988,9 @@ try {
 				}
 				infoEl.appendChild(movesEl);
 
-				// UI改修依頼(チーム編集中央パネル、2026-08-02)「編集ボタンを名前段の右端に配置
-				// する」→ 同日の追加依頼「テラスタルアイコンと編集ボタンを並べて配置する」により、
 				// nameRow(横並びflex、CSS参照)の末尾にテラスアイコンと並べて置く。削除ボタンは
-				// 変更なし(カード(wrap経由でcard-team-slot直下)の右上端へ絶対配置のまま、CSS側は
-				// .team-slots .slot-remove-btn参照)。
+				// カード(wrap経由でcard-team-slot直下)の右上端へ絶対配置のまま
+				// (CSS側は.team-slots .slot-remove-btn参照)。
 				const editLink = document.createElement("a");
 				editLink.className = "btn-ghost slot-edit-link";
 				editLink.href = `/box/${encodeURIComponent(p.id)}`;
@@ -4193,17 +4006,15 @@ try {
 				});
 				nameRow.appendChild(editLink);
 
-				// UI改修依頼(チーム編集中央パネル)「ダブルクリックまたは削除ボタンで、その個体を
-				// チームから削除できるようにする」。×アイコンのアイコンボタン
-				// (box/index.astroの.icon-button規格=28px円形+枠線)。危険操作であることは常時
-				// --color-danger-strongの文字色で示す(B-2の判断を踏襲し確認ダイアログは追加しない。
-				// チームからの除外は個体そのものの削除ではなく、いつでも選択バーから再度追加できる
-				// 低リスクな操作のため)。
+				// ×アイコンのアイコンボタン(box/index.astroの.icon-button規格=28px円形+枠線)。
+				// 危険操作であることは常時--color-danger-strongの文字色で示す(B-2の判断を踏襲し
+				// 確認ダイアログは追加しない。チームからの除外は個体そのものの削除ではなく、
+				// いつでも選択バーから再度追加できる低リスクな操作のため)。
 				const removeButton = document.createElement("button");
 				removeButton.type = "button";
 				removeButton.className = "btn-ghost slot-remove-btn";
-				// UI改修依頼(2026-08-02): 削除アイコンをゴミ箱の絵文字/SVGから×のSVGへ統一する
-				// (全画面共通方針。box/index.astroの.icon-button.delete-buttonと同一のSVG文字列)。
+				// 全画面共通方針で×のSVGを使う(box/index.astroの.icon-button.delete-buttonと
+				// 同一のSVG文字列)。
 				removeButton.innerHTML =
 					'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
 				removeButton.title = "チームから外す";
@@ -4287,11 +4098,9 @@ try {
 					void applySprite(img, fallback, p.species_name);
 					identity.appendChild(spriteWrap);
 					const itemName = p.item_name?.trim() ?? "";
-					// UI改修依頼(team/pokemonカード、2026-08-11)「実数値表示を縦積みではなく
-					// 横積みにしてカード最下部に配置する」。右パネルのteam-damage-stats/
-					// team-damage-stats-line(display:contentsで6列グリッドの行を作る手法)と
-					// 同じ考え方で、ラベル行・実数値行・努力値行の3段×6列にする
-					// (努力値は実数値の下、2026-08-11追加依頼)。
+					// 右パネルのteam-damage-stats/team-damage-stats-line(display:contentsで6列
+					// グリッドの行を作る手法)と同じ考え方で、ラベル行・実数値行・努力値行の3段×6列に
+					// する(努力値は実数値の下)。
 					const stats = document.createElement("div");
 					stats.className = "pokemon-preview-stats";
 					stats.setAttribute("aria-label", "実数値");

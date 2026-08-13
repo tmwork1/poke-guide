@@ -1,12 +1,12 @@
 // すばやさ早見表(/speed-chart)の早見表本体(ChartTable.astro)のブラウザ側ロジック。
 //
-// 責務(確定した設計のファイル分割表):
+// 責務:
 //   - マスターデータの取得(public/master-data/ 配下をブラウザから fetch する。既存の
 //     pokemon-master-data.ts 等と同じ「クライアント側で1回fetchする」流儀に揃える)
 //   - レギュレーション切替(R-12: 「現在のレギュレーション」はこのモジュールが所有する)
-//   - 行の描画(R-13: 表と右カラムを分けず横一列にする。UI改修(2026-08-02第2弾)で列構成は
-//     「実数値/族・配分・倍率/ポケモン・補正要因/(調整。?owned=連携時のみ)」の3〜4列になった。
-//     「調整」列の中身はowned-panel.tsに描画を委譲する。このファイル自身はセルの中身を知らない)
+//   - 行の描画(R-13: 表と右カラムを分けず横一列にする。列構成は
+//     「実数値/族・配分・倍率/ポケモン・補正要因/(調整。?owned=連携時のみ)」の3〜4列。
+//     「調整」列の中身はowned-panel.tsに委譲する。このファイル自身はセルの中身を知らない)
 //   - 実数値ジャンプ・現在地スクロール(R-6/R-8)
 //
 // 共有状態の向き(R-12): 「個体の現在のS実数値」は owned-panel.ts が所有する。このファイルは
@@ -79,7 +79,7 @@ interface MasterData {
 
 const ROOT_SELECTOR = '.speed-chart-table';
 const ALL_REGULATIONS_VALUE = 'all';
-// UI改修依頼(2026-08-05)「最遅の採用率判定」対応。全規制表示でも性格率を加重平均する。
+// 全規制表示でも性格率を加重平均する。
 const ADOPTION_CATEGORIES = ['items', 'moves', 'natures'] as const;
 
 function getKnownRegulations(regSelect: HTMLSelectElement | null): string[] {

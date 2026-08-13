@@ -47,12 +47,11 @@ import { type StatKey, STAT_KEYS, NATURE_STAT_MODIFIERS, calcHpStat, calcOtherSt
 import type { OpponentClientResultInput } from "../opponent-notes-validation";
 import { kanaIncludes } from "../kana";
 
-// UI改善ラウンド40ユーザー指示(40-T2)「スピンボックスは上下限で打ち切らず循環するUIにする」。
 // [min, max]の範囲外の値を、範囲の反対側から続くように循環(モジュロ演算)させる。
 // 例: min=0,max=32のとき 33→0、-1→32、50→17(50 mod 33)。育成ルールの範囲自体
 // (min/max引数)は呼び出し側がそのまま渡すだけで、この関数は「範囲を超えたときの
-// 挙動」だけを変える(上下限の値自体は変更しない)。
-// ダメージ計算カード側の努力値スピンボックスからも使うため共有化した(2026-08-06)。
+// 挙動」だけを変える(上下限の値自体は変更しない)。左パネル・ダメージ計算カード双方の
+// 努力値スピンボックスから共有して使う。
 export function wrapToRange(value: number, min: number, max: number): number {
 	const size = max - min + 1;
 	return (((value - min) % size) + size) % size + min;
@@ -270,8 +269,8 @@ export function applyItemImage(imgEl: HTMLImageElement, name: string): void {
 // UI刷新: 性格による実数値の上昇/下降ステータスの判定テーブル
 // (vendor/jpoke/src/jpoke/data/nature.py の NATURE_MODIFIER と同期させること。
 // まじめ・すなお・てれや・がんばりや・きまぐれの5つは補正なし)。
-// ラウンド4ユーザー指示: 性格の選択UIを廃止し、能力値ラベルのクリックによる上昇/下降の
-// 指定(StatKey、HP以外)から性格名を逆算する。NATURE_STAT_MODIFIERS(nature.pyから
+// 能力値ラベルのクリックによる上昇/下降の指定(StatKey、HP以外)から性格名を逆算する。
+// NATURE_STAT_MODIFIERS(nature.pyから
 // 転記した正の対応表)を1回だけ反転してMapにしておく(25種の性格のうち、上昇/下降が
 // ともに非nullで異なる20種だけが対象。まじめ・てれや・がんばりや・すなお・きまぐれの5つは
 // 「無補正」という同じ意味なので反転せず、natureNameFromBoosts側でまとめて「まじめ」に
@@ -287,7 +286,7 @@ for (const [name, mod] of Object.entries(NATURE_STAT_MODIFIERS)) {
 // 「上昇と下降が同じ能力になる場合、および両方未選択の場合は無補正の性格(まじめ等)として
 // 扱う」ため、up===down(理論上は起こらない設計だが防御的に)・どちらかnullの場合は
 // 「まじめ」に正規化する(てれや/がんばりや/すなお/きまぐれも同じ無補正だが、代表として
-// 「まじめ」を使うとユーザー指示に明記されている)。
+// 「まじめ」を使う)。
 export function natureNameFromBoosts(up: StatKey | null, down: StatKey | null): string {
 	if (!up || !down || up === down) return "まじめ";
 	return NATURE_NAME_BY_BOOSTS.get(`${up}:${down}`) ?? "まじめ";
@@ -305,7 +304,7 @@ export function normalizedNatureBoosts(up: StatKey | null, down: StatKey | null)
 	return NATURE_STAT_MODIFIERS[name] ?? { up: null, down: null };
 }
 
-// ラウンド5ユーザー指示: ステータスラベルのクリックによる上昇/下降切り替え。
+// ステータスラベルのクリックによる上昇/下降切り替え。
 // ▲(上昇)/▼(下降)を完全に独立したトグルにする。▲は上昇の保持者を差し替える/
 // 解除するだけで下降には一切触れず、▼も同様(下降の保持者を差し替える/解除するだけで
 // 上昇には触れない)。
@@ -347,10 +346,10 @@ export function buildAttackerSpec(extra?: Partial<PokemonSpec>): PokemonSpec {
 	};
 }
 
-// ラウンド3 B-12: 実数値の常時表示がPyodide(jpoke)の初期化完了に依存していたため、
-// CDNが不通のときは左パネル・ダメージカードの実数値6個すべてが「(未計算)」のままに
-// なっていた。チャンピオンズルールはIV=31固定・レベル常時50なので、種族値データだけで
-// 実数値が出せる純JS計算(calcHpStat/calcOtherStat)に切り替えた。
+// 実数値の常時表示をPyodide(jpoke)の初期化完了に依存させると、CDNが不通のときに
+// 左パネル・ダメージカードの実数値6個すべてが「(未計算)」のままになる。チャンピオンズ
+// ルールはIV=31固定・レベル常時50なので、種族値データだけで実数値が出せる純JS計算
+// (calcHpStat/calcOtherStat)を使う。
 export async function recalcStats(): Promise<void> {
 	leftPanelBridge!.updateEvRemaining();
 	const name = el<HTMLInputElement>("species-name").value.trim();
@@ -364,7 +363,7 @@ export async function recalcStats(): Promise<void> {
 		return;
 	}
 	const level = 50;
-	// ラウンド4ユーザー指示: 性格<select>を廃止したので、クリックで選んだ
+	// 性格<select>ではなく、クリックで選んだ
 	// leftNatureUp/leftNatureDownを使う。ただし片方だけ選択中の不完全な状態は
 	// normalizedNatureBoostsで「まじめ」(無補正)に正規化してから使う
 	// (保存されるnatureと表示を一致させるため)。
@@ -406,12 +405,11 @@ export function registerDamageCalcBridge(bridge: DamageCalcBridge): void {
 	damageCalcBridge = bridge;
 }
 
-// 🔴 UI改修依頼(個体編集画面、2026-08-02)「耐久調整」機能の土台。
-// 耐久調整ポップアップ(後続実装、src/lib/box-id/bulk-adjust.ts 等が新規に担当)は
-// 「防御(相手→自分)方向のダメージ計算カード」だけを圧縮表示し、その計算条件を使って
-// 性格+努力値の組み合わせを探索する。上のDamageCalcBridgeと全く同じ登録(register)
-// パターンで、damage-calc.ts側(#opponent-notes-sectionブロック内)からrow一覧・
-// カードDOMへのアクセスを提供するブリッジを追加する。
+// 耐久調整ポップアップ(src/lib/box-id/bulk-adjust.ts 等)は「防御(相手→自分)方向の
+// ダメージ計算カード」だけを圧縮表示し、その計算条件を使って性格+努力値の組み合わせを
+// 探索する。上のDamageCalcBridgeと同じ登録(register)パターンで、damage-calc.ts側
+// (#opponent-notes-sectionブロック内)からrow一覧・カードDOMへのアクセスを提供する
+// ブリッジを追加する。
 //
 // ⚠️ getDefenseRowsが組み立てるattackerSpec/attacks/optionsは、recalcRow()が
 // calcLethalSequence()を呼ぶ直前に組み立てているものと**寸分違わず同一の内部ヘルパー
@@ -419,7 +417,7 @@ export function registerDamageCalcBridge(bridge: DamageCalcBridge): void {
 // 耐久調整の計算(このブリッジ)が別々のロジックから値を組み立てると、両者の結果が
 // 食い違う(=表示は確1なのに耐久調整では耐えない、といった不整合)リスクがあるため、
 // 「単一の実装から両方が導出される」ことを最重要要件として damage-calc.ts 側で
-// リファクタリングしている(詳細はdamage-calc.tsのbuildSequenceInputsのコメント参照)。
+// 実装している(詳細はdamage-calc.tsのbuildSequenceInputsのコメント参照)。
 export interface BulkAdjustRowSnapshot {
 	/** 行の識別子(既存の row を一意に指せるもの)。 */
 	id: string;
@@ -487,7 +485,7 @@ export function refreshRowConditionChips(row: DamageRowState): void {
 	});
 }
 
-// --- 詳細設定サイドバー(ラウンド5ユーザー指示・要件9) ---
+// --- 詳細設定サイドバー ---
 // 「特定の技列」の選択状態。selectedRow/selectedColumnは元は #opponent-notes-section ブロック
 // 内のモジュールスコープ変数だったが、selectColumn/applySelectionMarks/renderDetailPanelが
 // このファイルへ移ったため、この状態もここへ移す(ダメージ計算/右サイドの一部関数
@@ -516,11 +514,10 @@ export function renderDetailPanel(): void {
 	damageCalcBridge!.renderColumnLevelDetailPanel(selectedRow, selectedColumn);
 }
 
-// ラウンド7ユーザー指示(方針転換): 選択状態を「どの技列か」の1階層だけに簡素化した
-// (相手ビルドの箱側のマーカーは廃止)。.damage-column(技列)だけを扱う。
-// clearSelectionMarksはselectColumnからしか呼ばれない内部ヘルパーのため非exportのまま
-// このファイルに置く(単体でDOM操作するだけの自己完結した処理で、ダメージ計算/右サイドの
-// 他の関数への依存が無いため、ブリッジ経由にせずそのまま移設できた)。
+// 選択状態は「どの技列か」の1階層だけを扱う(.damage-column単位。相手ビルドの箱側の
+// マーカーは持たない)。clearSelectionMarksはselectColumnからしか呼ばれない内部ヘルパーの
+// ため非exportのままこのファイルに置く(単体でDOM操作するだけの自己完結した処理で、
+// ダメージ計算/右サイドの他の関数への依存が無いため、ブリッジ経由にせずそのまま移設できた)。
 function clearSelectionMarks(row: DamageRowState): void {
 	row.columnsEl?.querySelectorAll<HTMLElement>(".damage-column.is-selected").forEach((columnEl) => {
 		columnEl.classList.remove("is-selected");
@@ -546,8 +543,8 @@ export function selectColumn(row: DamageRowState, column: DamageColumnState): vo
 	damageCalcBridge!.openDetailPanelOverlayIfNarrow();
 }
 
-// UI改善タスク(ダメージカード外クリックで選択解除)。カード外(ページの余白・左パネル等)を
-// クリックしたときに、選択中の技列があればその見た目のマーク(.is-selected)を消し、
+// カード外(ページの余白・左パネル等)をクリックしたときに、選択中の技列があればその
+// 見た目のマーク(.is-selected)を消し、
 // 選択状態(selectedRow/selectedColumn)をクリアし、右パネルを空表示に戻す。呼び出し元
 // (damage-calc.ts側のdocument全体のクリック監視)は「クリック位置がどのrow.rootにも
 // #damage-detail-panelにも含まれない」ことだけを判定し、実際の解除処理はここへ委譲する。

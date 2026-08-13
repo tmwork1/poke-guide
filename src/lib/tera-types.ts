@@ -1,8 +1,5 @@
 // テラスタイプの選択肢一覧(19タイプ、jpokeの型定義と同じ順序)。
-//
-// 由来(2026-07-28 ラウンド23 22-B-1): src/pages/box/[id].astro に同じ配列が3箇所
-// (Astroフロントマター / 左パネルの<script>ブロック / #opponent-notes-section の<script>ブロック)
-// に重複定義されていた。値と順序を変えずにこのモジュールへ切り出し、3箇所からimportする。
+// src/pages/box/[id].astro に重複定義されていた配列を切り出し、共用モジュール化した。
 // フロントマター(サーバー側)はこのファイルを直接importできるが、ブラウザ側の<script>は
 // モジュールscriptとしてimportしている(define:varsは使っていないため通常のTS importが効く)。
 export const TERA_TYPES = [

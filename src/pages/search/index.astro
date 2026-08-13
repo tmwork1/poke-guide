@@ -1,10 +1,9 @@
 ---
 // Phase 4-2: 検索UI(ポケモン・技・特性・持ち物の横断検索)。
-// 🔴 UI改善ラウンド33 33-S1(ユーザー判断待ちキューの回答「DOMごと削除」): Phase 4-3で
-// 実装した「最近注目されているもの」表示枠(GET /api/suggestions?kind=trending_search)は
-// 常に空のまま10ラウンド以上放置されていたため、DOMごと削除した(→ round-33.md)。
-// API本体(src/pages/api/suggestions.ts)は他ページからの参照が無いことをgrepで確認した
-// うえでサーバー側はそのまま残している。クライアント側のfetch処理のみ削除した。
+// このページに「最近注目されているもの」表示枠は無い。API本体
+// (src/pages/api/suggestions.ts, GET ?kind=trending_search)は他ページからの参照が
+// 無いことを確認した上でサーバー側はそのまま残しており、クライアント側のfetch処理だけを
+// 持たない。
 //
 // 設計方針は damage-calc/index.astro を踏襲する:
 //   - このページ自体は SSR のプレースホルダー(静的なフォームの描画のみ)。

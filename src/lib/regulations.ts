@@ -15,7 +15,6 @@ import regulationsMasterData from '../../public/master-data/autocomplete/regulat
 export const REGULATIONS: readonly string[] = (regulationsMasterData as Array<{ name: string }>).map((r) => r.name);
 
 // 選択ボックスに並べる順(新しいレギュレーションが上)。
-// UI改修依頼(2026-08-01)「レギュレーションの選択肢は新しい順に並べる」対応。
 //
 // ⚠ REGULATIONS 自体は並べ替えない。jpoke の Literal 定義順(= 古い順)であることに依存している
 // 箇所があるため ── 具体的には src/lib/speed-chart-validation.ts の
@@ -25,8 +24,7 @@ export const REGULATIONS: readonly string[] = (regulationsMasterData as Array<{ 
 export const REGULATIONS_NEWEST_FIRST: readonly string[] = [...REGULATIONS].reverse();
 
 // 選択ボックスの placeholder。「レギュレーションなし(未指定)」を選ぶための空 option の
-// ラベルであり、値は空文字("")=DB上は NULL。UI改修依頼(2026-08-01)の
-// 「なし、を指定するために placeholder "レギュレーション" のままを許容する」に対応する。
+// ラベル。値は空文字("")= DB上は NULL。
 export const REGULATION_PLACEHOLDER = 'レギュレーション';
 
 export function isKnownRegulation(value: unknown): value is string {
@@ -43,14 +41,11 @@ export function normalizeRegulation(value: unknown): string | null {
   return isKnownRegulation(trimmed) ? trimmed : null;
 }
 
-// テラスタルが存在するレギュレーションかどうか。
-//
-// UI改修依頼(2026-08-01)「レギュレーション "T-<n>" のときだけテラスタル選択ボックスを表示」+
-// ユーザー確認(同日)「レギュレーション未指定のときは従来どおり表示、M-* のときだけ非表示」。
-// ポケモンチャンピオンズ(M-*)にテラスタルは存在しない(vendor/jpoke の
-// ranked_team_members.tera_type が全件NULLである理由もこれ。migrations/010_ranked_teams.sql参照)
-// ため、M-* を選んだときだけテラス欄を隠す。未指定(null)は「まだ決めていない」であって
-// 「テラスタル無しのルール」ではないので、既存個体の編集を壊さないよう表示側に倒す。
+// テラスタルが存在するレギュレーションかどうか。ポケモンチャンピオンズ(M-*)には
+// テラスタルが存在しない(vendor/jpoke の ranked_team_members.tera_type が全件NULL。
+// migrations/010_ranked_teams.sql 参照)ため、M-* を選んだときだけテラス欄を隠す。
+// 未指定(null)は「まだ決めていない」であって「テラスタル無しのルール」ではないので、
+// 既存個体の編集を壊さないよう表示側に倒す。
 export function isTerastalRegulation(regulation: string | null | undefined): boolean {
   if (regulation == null || regulation === '') return true; // 未指定 = 従来どおり表示
   return regulation.startsWith('T-');

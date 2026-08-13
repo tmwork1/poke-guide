@@ -3,10 +3,8 @@
 // 依存しないこと(SSR(src/pages/speed-chart/index.astro)とブラウザ側スクリプト
 // (src/lib/speed-chart/chart-table.ts・owned-panel.ts)の両方からimportされるため)。
 //
-// 【仕様の出典】 docs/plan/pages/speed-chart.md
-// 「設計レビュー(2026-08-01)」R-2/R-3/R-4/R-14、「P3追補: ユーザー追加要件」U-1/U-2、
-// 「確定した設計(P4への入力)」を参照。実数値の計算式そのものは再実装せず
-// src/lib/stats.ts の calcOtherStat をそのまま使う。
+// 【仕様の出典】 docs/plan/pages/speed-chart.md を参照。
+// 実数値の計算式そのものは再実装せず src/lib/stats.ts の calcOtherStat をそのまま使う。
 //
 // 【この画面のマスターデータ】
 //   - public/master-data/detail/speed-modifiers.json … jpokeから機械抽出した補正の全件

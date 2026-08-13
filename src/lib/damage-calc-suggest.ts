@@ -1,4 +1,4 @@
-// ダメージ計算のサジェスト(ユーザー要望、2026-08-05)の純粋ロジック。
+// ダメージ計算のサジェストの純粋ロジック。
 // 個体育成画面の右パネルに「そのポケモンの型でよく行われているダメージ計算」を出すために、
 // suggestions テーブル(migrations/020_damage_calc_suggestions.sql が書き込む
 // kind='popular_damage_calc_archetype' / 'popular_damage_calc_species')の payload を

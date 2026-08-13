@@ -2292,11 +2292,8 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 		emptyMessageEl.hidden = !isEmpty;
 	}
 
-	// 🔴 UI改善ラウンド38(round-37.mdの「実装中に見つかったバグ」節への対応)。
-	// 37-1時点の実装は「.panel-leftの右端に外付け」(left = anchorRect.right + gap)
-	// だったが、これは.edit-layout-right(ダメージカード列)の真上に重なる位置になる。
-	// 実測(Playwright、フィクスチャc8680844-...・ダメージカード4枚、ビューポート1920x1080)で
-	// 判明した実際のジオメトリ:
+	// .panel-leftの右端に外付けする配置は、.edit-layout-right(ダメージカード列)の
+	// 真上に重なる位置になり得る。実測したジオメトリ:
 	//   .panel-left        x: 256.0 〜 696.0  (position:static、レイヤー3)
 	//   .edit-layout-right x: 718.4 〜 1537.6 (position:static、レイヤー3。ただしこの中の
 	//                                          .card-damage自体はposition:relativeでレイヤー6)
@@ -2309,14 +2306,14 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 	// z-index:auto)」より必ず背面になるため、.panel-left自体や.edit-layout-right自身の
 	// 余白部分(グリッドgap・padding、position指定なし)は、このウィンドウと重なっても
 	// **常にこのウィンドウの背面**になる(=重なってもウィンドウが操作可能)。
-	// 一方.card-damage(レイヤー6)とはDOM順のタイブレークになるため、37-1の設計どおり
+	// 一方.card-damage(レイヤー6)とはDOM順のタイブレークになるため、
 	// このウィンドウをdocument.bodyの先頭子として挿入していることで、重なる部分は
 	// 引き続きカードが前面になる。.damage-detail-panel/.app-sidebarはレイヤー7(正のz-index)
 	// で常に最前面のため、この2つの矩形とだけは重ねてはいけない(重ねてもウィンドウ側が
 	// 常に埋もれて一切操作できなくなるだけで、「一部は操作できる」にすらならない)。
 	//
-	// 上記の理由により、右へ外付けする37-1時点の設計を撤回し、.panel-left自身の列
-	// (position:staticなので重ねてもこのウィンドウが前面になる)に重ねる形へ変更する。
+	// 幅が確保できない場合は、.panel-left自身の列
+	// (position:staticなので重ねてもこのウィンドウが前面になる)に重ねる。
 	// 具体的には、left = anchorRect.left(.panel-leftの左端に揃える。.app-sidebarの右端と
 	// 一致するため.app-sidebarへの食い込みも起きない)。右端は「実在する.card-damageの中で
 	// 最も左の座標」の直前までに制限する(.edit-layout-right自身の左paddingぶんの余白
@@ -2327,8 +2324,8 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 	// 合わせて幅を潰してしまう回帰を防ぐガード。 left + 200 未満のカードは「隣ではなく下」と
 	// みなす)。
 	//
-	// 縦位置(top)は37-1時点の「今フォーカスしている技入力欄の上端」から変更した。
-	// .panel-leftへ重ねる方式にしたことで新たに実測で見つかった罠: .panel-left内は
+	// 縦位置(top)は「今フォーカスしている技入力欄の上端」ではなく、以下の実測に基づく
+	// 下限を使う。.panel-leftへ重ねる方式には次の罠がある: .panel-left内は
 	// 全体がposition:staticではなく、アイコン画像を添える入力欄だけ`.field-with-image`系の
 	// ラッパー(.species-icon-box/.tera-dropdown-wrap/.move-input-group、いずれも
 	// position:relative・z-index:auto)がある。これらはこのウィンドウと同じレイヤー6のため、
@@ -2344,15 +2341,13 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 	// 一切衝突しなくなる。特定のピクセル値を決め打ちにせず、実行時に
 	// `.panel-left`配下のposition!=staticな要素をすべて洗い出し、その最下端(bottom)の
 	// 最大値をtopの下限にする(将来.panel-left側にアイコン付き入力欄が増減しても
-	// 追随できるようにするため)。 */
-	// UI改修依頼(個体編集左パネル)「技選択テーブルは左パネルの右側に併設する」により、
-	// ラウンド38の「.panel-left自体に重ねる」設計から「.panel-leftの右側に外付けする」
-	// (ラウンド37-1と同じ水平配置)へ戻す。ラウンド38で問題になった「ダメージカード列に
-	// 重なると背面に埋もれて操作不能になる」点は、今回`.move-picker-window`にz-index:10を
-	// 明示指定したことで解消済み(このファイル冒頭のCSSコメント参照。`.card-damage`
-	// (position:relative・z-index:auto)に確実に勝つ)。
+	// 追随できるようにするため)。
+	// 技選択テーブルは既定では左パネルの右側に外付けする。「.panel-left自体に重ねる」設計に
+	// 戻す際に問題だった「ダメージカード列に重なると背面に埋もれて操作不能になる」点は、
+	// `.move-picker-window`にz-index:10を明示指定したことで解消している(このファイル
+	// 冒頭のCSSコメント参照。`.card-damage`(position:relative・z-index:auto)に確実に勝つ)。
 	// ただし900〜1199px幅(1200px未満)は.edit-layoutが2カラムグリッド化されず.panel-leftが
-	// 全幅ブロックになるため、右側に外付けする余地(最低320px)が無い。この場合はラウンド38の
+	// 全幅ブロックになるため、右側に外付けする余地(最低320px)が無い。この場合は
 	// 「.panel-left自体に重ねる」動作にフォールバックする(z-index:10が.move-input-group等の
 	// レイヤー6ラッパーには引き続き確実に勝つため、重ねても操作不能にはならない)。
 	function reposition(inputEl: HTMLInputElement): void {

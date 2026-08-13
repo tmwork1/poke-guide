@@ -1,5 +1,5 @@
-// UI刷新: 個体編集ページ(box/[id].astro)でポケモン名からスプライト・タイプ・種族値を
-// 引くためのブラウザ専用モジュール。autocomplete/pokemon.json(軽量、dexNo+imageId+types入り)と
+// 個体編集ページ(box/[id].astro)でポケモン名からスプライト・タイプ・種族値を引く
+// ブラウザ専用モジュール。autocomplete/pokemon.json(軽量、dexNo+imageId+types入り)と
 // detail/pokemon.json(重め、baseStats入り)の2つの静的JSONを name をキーに参照する。
 //
 // 画像取得には dexNo(本来の全国図鑑番号)ではなく imageId(PokeAPIの画像ID)を使う。
@@ -46,13 +46,10 @@ export async function loadTypesMap(): Promise<Map<string, string[]>> {
 
 // ドット絵は public/pokemon-sprites/{imageId}.png に事前ダウンロードした画像を同一オリジンから
 // 配信する(生成: scripts/pokemon-sprites/generate_pokemon_sprites.py。item-icons/type-icons と
-// 同じ「生成済み画像を事前コミットする」方式)。
-// 2026-08-06 まではPokeAPIのraw.githubusercontent.comを実行時に直接参照していたが、実測で
-// (1) 上流の Cache-Control が max-age=300(5分)しかなく、300枚並ぶ /ranked-teams では5分後の
-// 再訪で300本の条件付きリクエストが発生する、(2) 画像が1KB前後なのでコストは転送量ではなく
-// 別オリジンへのDNS+TCP+TLS確立(初回266ms)、(3) ブラウザのHTTPキャッシュはトップレベル
-// サイト単位で分割されており「他サイトのCDNキャッシュを使い回せる」利点は現在成立しない、
-// と判明したためローカル化した。詳細は docs/plan/pokemon-sprites-localization.md。
+// 同じ「生成済み画像を事前コミットする」方式)。PokeAPIの別オリジン参照から変更したのは、
+// 上流の Cache-Control が max-age=300(5分)で、キャッシュコストが転送量ではなくDNS+TCP+TLS確立、
+// ブラウザのHTTPキャッシュがトップレベルサイト単位で分割されているため。
+// 詳細は docs/plan/pokemon-sprites-localization.md を参照。
 export function spriteUrl(imageId: number): string {
   return `/pokemon-sprites/${imageId}.png`;
 }

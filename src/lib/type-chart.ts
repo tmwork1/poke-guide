@@ -1,11 +1,8 @@
 // タイプ相性表(攻撃技のタイプ -> 防御側のタイプごとの倍率)。
 // データの正は vendor/jpoke/src/jpoke/data/type_chart.py の TYPE_MODIFIER。
-// scripts/build-master-data のマスターデータ生成パイプラインはタイプ相性を抽出しておらず、
-// public/master-data 配下のJSONには存在しない(round-09.md B-2 で確認済み)。
-// sprite-urls.ts の TYPE_NAME_TO_ID が「19種類だけなので専用JSONを持たずコード内に直接持つ」
-// 前例を作っているため、同じ方針で18種×18種(324通り)をこのファイルに直接持たせる
-// (round-09.md B-2 の判断・round-13.md Coordinatorの指示)。マスターデータ生成パイプラインには
-// 手を入れない。
+// マスターデータ生成パイプラインはタイプ相性を抽出していないため、public/master-data 配下の
+// JSONには存在しない。sprite-urls.ts が TYPE_NAME_TO_ID をコード内に直接持つ前例に習い、
+// 18種×18種(324通り)をこのファイルに直接持たせる。
 //
 // 実在する攻撃技のタイプは18種(public/master-data/detail/moves.json の実データで確認済み。
 // ステラはテラスタル専用でmoves.jsonのtypeフィールドには一度も出現しない)。

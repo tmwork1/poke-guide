@@ -1,9 +1,8 @@
-// owned_pokemon への読み書きを集約する、HTTP/セッションの知識を一切持たないデータアクセス層
-// (育成データ管理計画.md §8 Phase C-1)。
+// owned_pokemon への読み書きを集約するデータアクセス層。HTTP/セッションに依存しない。
 //
 // ##### 最重要: このファイルが「他人のデータへの唯一の砦」であること #####
 // poke-commons の書き込みAPIは全て getSupabaseAdminClient()(service_role、RLSを常にバイパスする)
-// 経由で実行する設計(damage-calcs.ts と同じ方針。廃止済みの builds.ts も同じ方針だった、計画書§2.3)。つまり owned_pokemon の
+// 経由で実行する設計。つまり owned_pokemon の
 // RLSポリシー(migrations/005_owned_pokemon_rls.sql)はこの経路には一切効かない。
 // 「ログイン中のユーザーが自分以外の個体を閲覧・改ざんできない」ことを保証するのは、
 // この下の各関数が発行するクエリに必ず含む `.eq('user_id', userId)` のみである。

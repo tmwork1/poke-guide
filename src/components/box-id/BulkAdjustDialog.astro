@@ -1,6 +1,4 @@
 ---
-// UI改修依頼(個体編集画面、2026-08-02)「耐久調整」機能。
-//
 // トップバーの #bulk-adjust-button(box/[id].astro側の静的マークアップ、実装済み)を押すと
 // 開く「耐久調整ポップアップ」の器(マークアップ+スタイル)。中身(圧縮表示された防御方向の
 // ダメージ計算カードの複製・N/M入力欄・進捗表示)はすべて src/lib/box-id/bulk-adjust.ts が
@@ -38,15 +36,14 @@
 >
 	<div class="bulk-adjust-dialog-header">
 		<h2 id="bulk-adjust-dialog-title" class="bulk-adjust-dialog-title">耐久調整</h2>
-		{/* UI改修依頼(2026-08-05): 解なし・入力不足・計算失敗を閉じずに伝えられるよう、タイトルと同じ段に共通ステータス領域を置く。 */}
+		{/* 解なし・入力不足・計算失敗を閉じずに伝えられるよう、タイトルと同じ段に共通ステータス領域を置く。 */}
 		<span id="bulk-adjust-dialog-status" class="bulk-adjust-dialog-status" role="status" aria-live="polite"></span>
 		<div class="bulk-adjust-dialog-toolbar">
 			<button type="button" id="bulk-adjust-dialog-compute-button" class="btn-primary bulk-adjust-dialog-compute-button">計算</button>
 		</div>
 		<button type="button" id="bulk-adjust-dialog-close" class="btn-ghost bulk-adjust-dialog-close" aria-label="耐久調整ポップアップを閉じる">×</button>
 	</div>
-	{/* UI改修依頼(個体編集画面、2026-08-05)「計算ボタンをタイトル行の右側に配置」。
-	    ダイアログ外のトリガーボタン(#bulk-adjust-button、box/[id].astro側)は、ダイアログを
+	{/* ダイアログ外のトリガーボタン(#bulk-adjust-button、box/[id].astro側)は、ダイアログを
 	    開いている間だけ「ステータスを計算」ラベルに変わり実行ボタンを兼ねているが、
 	    トップバーの操作ボタン列に埋まっていて見つけにくい。ダイアログ内のタイトル行から直接計算できる
 	    ボタンを置く。クリック時の処理(bulk-adjust.ts)は外部トリガーと
@@ -126,7 +123,7 @@
 	.bulk-adjust-dialog-status { margin-left: auto; color: var(--color-text-muted); font-size: var(--font-size-sm2); min-width: 0; }
 	.bulk-adjust-dialog-close { font-size: var(--font-size-lg1); padding: 0.2em 0.55em; flex-shrink: 0; }
 
-	/* UI改修依頼(個体編集画面、2026-08-05): 既存クラスを維持したままタイトル行内のボタン枠として使う。 */
+	/* 既存クラスを維持したままタイトル行内のボタン枠として使う。 */
 	.bulk-adjust-dialog-toolbar {
 		display: flex;
 		justify-content: center;
@@ -173,9 +170,8 @@
 
 	.bulk-adjust-empty-message { margin: 0; color: var(--color-text-muted); }
 
-	/* カード1枚(圧縮表示の複製)+N/M入力欄の組。
-	   🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08 第2弾)「カードの右上に削除ボタン(×)を
-	   追加」により、その絶対配置の基準としてposition:relativeを持たせる。 */
+	/* カード1枚(圧縮表示の複製)+N/M入力欄の組。カード右上の削除ボタン(×)の
+	   絶対配置の基準としてposition:relativeを持たせる。 */
 	.bulk-adjust-row {
 		position: relative;
 		display: flex;
@@ -210,9 +206,6 @@
 	   不要。カード自体のCSSがwidth:100%相当で伸びる)。 */
 	.bulk-adjust-row-preview { width: 100%; min-width: 0; }
 	.bulk-adjust-row-preview .card-damage { width: 100%; }
-	/* 「調整に含める」チェックボックス(.bulk-adjust-include-label)と、その除外状態を
-	   薄く見せる .is-excluded は 🔴 UI改修依頼(2026-08-08 第2弾)で廃止した
-	   (行ごと×で削除する方式に変更。bulk-adjust.tsのremoveButton参照)。 */
 	/* 圧縮表示の1段目に特性を出す(bulk-adjust.tsが複製カードのDOMを組み替える)。
 	   1段目は「バッジ+種族名」前提のnowrap指定なので、特性が長いときに省略できるよう
 	   このダイアログ内だけ縮小・省略を許可する。 */
@@ -259,20 +252,18 @@
 	   ⚠️ @media は基本定義より後ろに書くこと(このリポジトリで2件実例のある罠)。 */
 	@media (max-width: 480px) {
 		.bulk-adjust-dialog { width: 96vw; }
-		/* 🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08 第2弾)で行を×で全削除できるように
-		   なったぶん、ステータス文言(「計算対象の攻撃がありません」)が常時出るようになった。
-		   ヘッダーは [タイトル][ステータス][計算ボタン][×] の1行flexで、計算ボタンが
-		   min-width:12rem(192px)で縮まないため、390px幅ではステータス文言が入った瞬間に
-		   行があふれ、×が計算ボタンの下に潜り込んでクリックできなくなる
-		   (実測、Playwright: 「compute button intercepts pointer events」で×のクリックが失敗)。
+		/* ヘッダーは [タイトル][ステータス][計算ボタン][×] の1行flexで、計算ボタンが
+		   min-width:12rem(192px)で縮まないため、390px幅ではステータス文言
+		   (「計算対象の攻撃がありません」等)が入った瞬間に行があふれ、×が計算ボタンの
+		   下に潜り込んでクリックできなくなる(実測、Playwright:
+		   「compute button intercepts pointer events」で×のクリックが失敗)。
 		   狭幅では折り返しを許可し、ステータスは独立した行へ落とす。 */
 		.bulk-adjust-dialog-header { flex-wrap: wrap; }
 		.bulk-adjust-dialog-status { order: 10; flex: 1 0 100%; margin-left: 0; }
 		button.bulk-adjust-dialog-compute-button { min-width: 8rem; }
 	}
 
-	/* UI改修依頼(個体編集画面、2026-08-02)「圧縮プレビューの不要な操作要素を隠す」。
-	   複製カード(buildCollapsedPreview()、damage-calc.ts)は表示専用(内部のinput/select/
+	/* 複製カード(buildCollapsedPreview()、damage-calc.ts)は表示専用(内部のinput/select/
 	   textarea/buttonは全てdisabled+tabindex=-1済み)だが、×(カード削除ボタン、
 	   .damage-row-delete-button)と折りたたみトグルの矢印(.damage-row-collapse-toggle-button)は
 	   見た目上そのまま残ってしまい、押せそうに見えるのは誤解を招く。

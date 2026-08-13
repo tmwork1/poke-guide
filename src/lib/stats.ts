@@ -1,10 +1,8 @@
 // 実数値(H/A/B/C/D/S)の計算式。チャンピオンズルール(IV=31固定・努力値0〜32スケール・
 // Lv50固定)専用の純JS実装で、vendor/jpoke(Pyodide経由で動くPython実装)とは独立に動く。
-// ラウンド18: /box, /box/[id], /share/[slug], /pokemon/[name] の4画面に同じ計算関数が
-// コピーされていた(ラウンド3 B-12・ラウンド13 A-2・ラウンド14 B-1で複製、
-// round-09.md A-2/round-13.mdで「次ラウンドで統合する」と積み残されていたもの)ため、
+// /box, /box/[id], /share/[slug], /pokemon/[name] の4画面に同じ計算関数がコピーされていたため
 // このファイルへ統合した。振る舞いは一切変えていない(表示される数値は統合前後で完全一致する
-// ことをPlaywrightで実測済み。詳細は docs/plan/ui_rounds/round-18.md 参照)。
+// ことをPlaywrightで実測済み)。
 //
 // 【仕様の出典】 .claude/skills/jpoke/references/ruleset.md
 // 「1. チャンピオンズルール」「2. 実数値の計算式」「3. 性格補正」に、vendor/jpoke の

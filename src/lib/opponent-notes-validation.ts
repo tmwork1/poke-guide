@@ -44,7 +44,7 @@ export interface OpponentAttackInput {
   attackerTerastallized?: boolean;
   // 揮発性状態名の一覧(例 "じゅうでん")。src/lib/pyodide-engine.ts の
   // PokemonSpec.volatiles/SequenceAttack.attackerVolatiles/defenderVolatiles に対応する
-  // 追加キー(UI改善ラウンド20 20-R3)。状態異常名(attackerAilment/defenderAilment)と同様、
+  // 追加キー。状態異常名(attackerAilment/defenderAilment)と同様、
   // 許容リストはjpoke側の定義が正であり、ここでは二重管理のホワイトリストを作らず
   // 「文字列配列であること」のみを検証する。
   attackerVolatiles?: string[];
@@ -94,7 +94,7 @@ export interface OpponentFieldInput {
   // つまり「attacker は常に所持ポケモン」ではない点に注意すること(将来この意味を誤解しないため、
   // ここに明記する)。省略時は既存データ互換のため 'attack' 相当として扱う。
   direction?: 'attack' | 'defense';
-  // ##### カードの並び順(ダメージ計算カード、2026-08-04追加) #####
+  // ##### カードの並び順(ダメージ計算カード) #####
   // opponent_notes テーブルには並び順を保持するカラムが存在しない(created_at DESCで
   // 一覧取得している)ため、この field(jsonb)に分数キー方式(fractional indexing)で
   // 並び順を持たせる。値が小さいほど先頭に近い。小数を許容する(挿入のたびに前後の値の

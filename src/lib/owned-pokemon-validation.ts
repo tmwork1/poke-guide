@@ -1,6 +1,6 @@
 // /api/owned-pokemon・/api/owned-pokemon/:id のリクエストボディ検証ロジック。
 // Astro/Cloudflare ランタイムに依存しない純粋な関数として切り出し、node --test で
-// ユニットテストできるようにする（廃止済みの src/lib/build-validation.ts と同じ方針を踏襲）。
+// ユニットテストできるようにする。
 //
 // PUT(更新)は「全項目を毎回送る」楽観的自動保存の設計(育成データ管理計画.md §6.2)のため、
 // POST(新規作成)と同じ形の全項目バリデーションを共有する(廃止済みの build-validation.ts と同様、

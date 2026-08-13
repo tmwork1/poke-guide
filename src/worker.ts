@@ -1,5 +1,5 @@
 // Astro の fetch ハンドラを合成する Worker エントリ。wrangler.jsonc の "main" をこのファイルに向けている。
-// scheduled ハンドラは Phase 5-1 の集計 cron ジョブ(開発プラン §2.5, §3 Phase5-1)。
+// scheduled ハンドラは集計 cron ジョブ。
 import { handle } from '@astrojs/cloudflare/handler';
 import { getSupabaseAdminClient } from './lib/supabase';
 
@@ -9,8 +9,8 @@ export default {
 	},
 
 	async scheduled(event, env, ctx) {
-		// wrangler.jsonc の triggers.crons から呼ばれる。集計対象が1ジョブのみのため分スロット分岐は行わない
-		// (ジョブが増えたら event.cron の値で分岐する。開発プラン §2.5 の「1 Cron + 分スロット分岐」方針)。
+		// wrangler.jsonc の triggers.crons から呼ばれる。集計対象が1ジョブのみのため分スロット分岐は行わない。
+		// (ジョブが増えたら event.cron の値で分岐する)
 		// getSupabaseAdminClient は cloudflare:workers の env を直接読む (src/config/env.ts) ため、
 		// ここで受け取った env 引数を渡す必要はない (他の API ルートと同じ流儀)。
 		const supabase = await getSupabaseAdminClient();
