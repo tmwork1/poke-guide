@@ -172,8 +172,17 @@
 	}
 }
 
+/* 隣接する2枚のパネルは横並び(タブ)なので、.panel + .panel(global.css)の
+   区切り線はここでは意味を持たない(2枚目の上端に1本線が走るだけ)。 */
+.data-hub-panel + .data-hub-panel {
+	border-top: 0;
+}
+
 .top-builds-panel {
 	padding: 0;
+	/* /team のカード一覧は .panel の中ではなくページ地色(--color-bg)の上に並ぶ。
+	   同じ見た目にするため、このタブでは .panel の白い面(--color-surface)を出さない。 */
+	background: transparent;
 }
 
 .top-builds-panel .panel-content {
@@ -196,19 +205,13 @@
 	color: var(--color-danger-strong);
 }
 
-.top-builds-list .ranked-team-status,
-.top-builds-list .empty-state {
-	margin-inline: var(--space-3);
-}
-
-.top-builds-list .team-grid {
-	padding-inline: var(--space-3);
-}
-
+/* カードの左右余白は /team(.team-content.box-content = --box-grid-edge-gap)と一致させる。
+   .data-hub-scroll の margin-inline が同じ --space-2 をすでに確保しているため、
+   ここで追加の左右余白は持たない(足すと /team よりカードが細くなる)。 */
 .top-builds-load-more-wrap {
 	display: flex;
 	justify-content: center;
-	padding: var(--space-6) var(--space-3);
+	padding: var(--space-6) 0;
 }
 
 .top-builds-load-more-wrap[hidden],

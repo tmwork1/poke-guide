@@ -1,6 +1,9 @@
 /* ボックス画面とチーム画面で共有するカード間隔。 */
 :root {
   --box-card-grid-gap: var(--space-1);
+  /* カード一覧の左右余白。/box・/team・上位チーム一覧(データ>上位チーム、
+     /box/ranked)がこの1つの値を共有し、どの画面でもカード幅が揃うようにする。 */
+  --box-grid-edge-gap: var(--space-2);
 }
 
 .box-grid {
@@ -12,10 +15,6 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--box-card-grid-gap);
   align-items: stretch;
-}
-
-.box-content {
-  --box-grid-edge-gap: var(--space-2);
 }
 
 .box-grid .box-card {
