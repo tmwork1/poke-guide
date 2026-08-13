@@ -49,6 +49,7 @@ export interface BoxPokemonCardOptions<T extends HTMLElement> {
 type ActualStat = { value: number; mod: "up" | "down" | null };
 
 const STAT_LABELS = ["H", "A", "B", "C", "D", "S"] as const;
+const MOVE_SLOT_COUNT = 4;
 
 // 種族名→imageId、種族値、技タイプ、持ち物画像のマップはいずれもローダー側でもキャッシュ
 // されている。カードはこれらを待たず同期的に返し、解決後に画像・titleを個別に流し込む。
@@ -248,23 +249,28 @@ export function renderBoxPokemonCard<T extends HTMLElement>(
 	// 下段は技の縦リスト。空文字の技スロットは描画せず、不明タイプのアイコンはhiddenのままにする。
 	const movesGrid = document.createElement("div");
 	movesGrid.className = "card-moves-grid";
-	for (const moveName of pokemon.move_names.filter((move) => move && move.trim() !== "")) {
+	for (let i = 0; i < MOVE_SLOT_COUNT; i++) {
+		const moveName = pokemon.move_names[i]?.trim() ?? "";
 		const moveEl = document.createElement("span");
 		moveEl.className = "card-move-chip";
 		const moveTypeBar = document.createElement("span");
 		moveTypeBar.className = "card-move-type-bar";
-		moveTypeBar.hidden = true;
 		moveEl.appendChild(moveTypeBar);
-		void moveTypeMapPromise.then((moveTypeMap) => {
-			const moveType = moveTypeMap.get(moveName);
-			if (!moveType) return;
-			moveTypeBar.style.backgroundColor = TYPE_COLORS[moveType] ?? DEFAULT_TYPE_COLOR;
-			moveTypeBar.hidden = false;
-		});
-		const moveTextEl = document.createElement("span");
-		moveTextEl.className = "card-move-chip-text";
-		moveTextEl.textContent = moveName;
-		moveEl.appendChild(moveTextEl);
+		if (moveName) {
+			moveTypeBar.hidden = true;
+			void moveTypeMapPromise.then((moveTypeMap) => {
+				const moveType = moveTypeMap.get(moveName);
+				if (!moveType) return;
+				moveTypeBar.style.backgroundColor = TYPE_COLORS[moveType] ?? DEFAULT_TYPE_COLOR;
+				moveTypeBar.hidden = false;
+			});
+			const moveTextEl = document.createElement("span");
+			moveTextEl.className = "card-move-chip-text";
+			moveTextEl.textContent = moveName;
+			moveEl.appendChild(moveTextEl);
+		} else {
+			moveTypeBar.classList.add("card-move-type-bar--empty");
+		}
 		movesGrid.appendChild(moveEl);
 	}
 	const contentRow = document.createElement("div");

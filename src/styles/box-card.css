@@ -64,6 +64,7 @@
   --box-card-content-align-items: flex-end;
   --box-card-move-line-height: var(--line-height-tight);
   --box-card-move-color: var(--color-text);
+  --box-card-move-type-bar-empty-color: #fff;
   --box-card-move-min-height: calc(
     4 * (1.2 * var(--box-card-move-font-size) + 0.08rem) + 3 *
       var(--box-card-move-gap)
@@ -405,7 +406,9 @@
   flex: 0 0 var(--box-card-move-type-bar-width);
   width: var(--box-card-move-type-bar-width);
   height: var(--box-card-move-icon-size);
-  border-radius: var(--radius-sm);
+}
+.box-grid .box-card .card-move-type-bar--empty {
+  background-color: var(--box-card-move-type-bar-empty-color);
 }
 .box-grid .box-card .card-move-type-bar[hidden] {
   display: none;
