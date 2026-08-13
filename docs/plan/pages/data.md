@@ -202,3 +202,78 @@ Playwrightで実測すると、カード右端(x=310)とレール左端(x=346)�
 - `src/styles/second-bar.css`
 - `src/lib/battle-data-card.ts`, `src/components/data/BattleDataCard.astro`, `src/styles/battle-data-card.css`(バトルデータカードの共通実装)
 - `src/pages/box/data.astro`(バトルデータカードのもう一方の利用元)
+
+## 追加フェーズ: 「上位構築」タブ→「上位チーム」タブの実装(2026-08-13)
+
+ユーザー指示(2026-08-13):
+1. セカンドバーのタブ名「上位構築」を「上位チーム」に変更する。
+2. `docs/ui/mobile/31.png` にしたがって、当該タブに実データを実装する。上位構築カードは `box/ranked.astro`(=ボックス詳細「上位チーム」タブ)で実装済みのものをそのまま利用する。
+
+仕様の輪郭が既存実装(`/ranked-teams`・`src/pages/box/ranked.astro`・上記バトルデータタブ追加)からほぼ全て流用できるため、Explorerエージェント・設計レビューは省略し、Coordinatorが直接下記のとおり確定した。
+
+### ワイヤーフレーム(`docs/ui/mobile/31.png`、Read tool で確認済み)
+セカンドバー(「上位構築」)/ 上位構築カードを縦に並べたコンテンツ / 下部固定「検索」1個+「シーズン」/ ナビゲーション、の構成。バトルデータタブ(30.png)と違いアイコンレールは無い。
+
+### 既存実装調査(Read tool で確認済み)
+- `src/pages/box/ranked.astro`: `renderTopBuildCard()`(`src/lib/ranked-teams/card.ts`)を`team-card.css`(`.team-grid`)のスタイルで描画。**これがユーザー指示の「box > 上位チーム」の実装**。`renderRankedTeamCard()`(`.card-ranked-team` / `ranked-team-card.css`、`/ranked-teams`が使う方)とは別物で、今回は前者を使う。
+- `renderTopBuildCard(team: RankedTeam): HTMLElement` は追加の imageIdMap 等を必要としない(`box/ranked.astro`同様、`team`だけ渡せばよい)。
+- `src/pages/ranked-teams/index.astro`: シーズン一覧取得(`listRankedSeasons`+`resolveDefaultSeason`)、`/api/ranked-teams?season=`によるクライアントフェッチ+シーズンごとキャッシュ、`matchesSpeciesSearch`/`matchesBuildSearch`によるフィルタ、`RANKED_TEAMS_PAGE_SIZE`(50件)+「もっと見る」の実装が既にある。**新規API不要**、同じ`/api/ranked-teams`を叩く。
+- `src/styles/data-hub-page.css`の`.battle-data-controls`(下部固定の検索/シーズンバー、`[inert]`時に`display:none`にする既存パターン)をそのまま流用する。ただしアイコンレールが無いので`right: var(--battle-data-rail-width)`ではなく`right: 0`にする。
+
+### 確定した設計(判断が割れる論点はここで決定、理由つき)
+- **タブ内部ID**: `data-data-hub-tab="top-builds"` / `data-tab="top-builds"` は変更しない(`DATA_HUB_TABS`・テスト・R-7の設計意図に影響するため)。**変更するのは表示テキストのみ**(「上位構築」→「上位チーム」)。
+- **カード実装**: `renderTopBuildCard()` + `.team-grid`(`team-card.css`)を使う(ユーザー指示どおり)。`renderRankedTeamCard()`は使わない。
+- **検索欄は1個のみ**: 31.pngには検索ボックスが1個しか描かれておらず、`/ranked-teams`の2欄(種族名+特性/アイテム/技)とは異なる。種族名検索(`matchesSpeciesSearch`)のみ実装し、`matchesBuildSearch`は使わない(`box/ranked.astro`も種族名一致だけで上位チームを絞り込んでいる用途と一致するため)。
+- **シーズン切替はクライアント再フェッチ**(ページ遷移・リロードなし): バトルデータタブは静的JSONのSSRのためクエリパラメータ+`window.location.search`書き換え(ページ再読込)だったが、上位構築データは`/ranked-teams`と同じAPIから取得するため、同じくクライアント側で`fetch`し直す(`/ranked-teams`の`selectSeason()`と同じキャッシュ+差し替えパターン)。タブのスクロール位置・アクティブ状態を壊さないためにも再読込しない方が良い。
+- **もっと見る」ページング**: `RANKED_TEAMS_PAGE_SIZE`(50件)をそのまま流用。
+- **R-2の対応(旧プレースホルダー文言)は今回で解消**: 「上位構築」ラベルの重複懸念(下部ナビの`/ranked-teams`との混同)への対応として付けていた案内リンクは、実データ実装+タブ名を「上位チーム」に変更したことで別ラベルになり解消する。プレースホルダー文言は削除する。
+
+### スコープ内 / スコープ外
+**スコープ内**
+- `src/pages/data/index.astro`: 第2セカンドバータブのボタン文言を「上位構築」→「上位チーム」に変更。`data-tab="top-builds"`パネルをプレースホルダーから実データへ置き換え(SSRでシーズン一覧取得、クライアントで`/api/ranked-teams`フェッチ→`renderTopBuildCard()`で`.team-grid`に描画)。
+- 下部固定の検索(種族名のみ)+シーズン`<select>`バー(`.top-builds-controls`、`.battle-data-controls`のパターン踏襲、レール無し版)。
+- ローディング/エラー/0件時の空状態(`/ranked-teams`の`.ranked-team-status`/`.empty-state`パターン踏襲)。
+- 「もっと見る」ページング(50件区切り)。
+- `src/styles/data-hub-page.css`への追記(新規クラスのみ、既存クラスは変更しない)。
+
+**スコープ外**
+- `matchesBuildSearch`(特性/アイテム/技検索)の追加。
+- `/ranked-teams`ページ自体・`box/ranked.astro`自体の変更(参照のみ、編集しない)。
+- 選出パターン・立ち回り等の詳細情報(既存`renderTopBuildCard()`のスコープ外のまま)。
+
+### 受け入れ基準
+1. `/data`のセカンドバー2つ目のタブ文言が「上位チーム」になっている(「上位構築」ではない)。`data-data-hub-tab`属性値は`top-builds`のまま。
+2. タブを開くと、デフォルトシーズンの上位構築が`renderTopBuildCard()`(`.team-grid > .card-team`)のカードとして縦一覧表示される(`box/ranked.astro`と同一マークアップ・スタイル)。
+3. 種族名検索欄に入力すると、一致しないチームのカードが非表示/除外され、0件時は空状態が表示される。入力を消すと全件に戻る。
+4. シーズン`<select>`を変更すると、ページ遷移せずにそのシーズンのチームへ表示が切り替わる(`/api/ranked-teams?season=`への再フェッチ、キャッシュ利用)。
+5. 初期表示は50件まで、「もっと見る」クリックで次の50件が追加表示される。
+6. 検索/シーズンバーはバトルデータタブと同様に画面下部固定で、非アクティブ時(`data-tab="top-builds"`パネルに`inert`が付いている間)は`display:none`になる。
+7. `npm test`が実装前より件数増(新規ユニットテストは無くてもよいが、既存の`data-hub-tabs`/`ranked-teams-validation`関連テストが壊れていないこと)。
+8. `npm run build`が成功する。
+9. `/ranked-teams`・`/box/ranked.astro`(ログイン+個体選択が必要なため実測困難な場合はコード上非改変であることの確認でも可)・`/box`・`/team`が回帰していない。
+10. 1920px・390pxでページ全体の横スクロールが発生しない。
+
+### 実施結果(2026-08-13)
+
+実装はcodex(`codex exec --sandbox danger-full-access`)に委任。完了報告どおり`src/pages/data/index.astro`・`src/styles/data-hub-page.css`の2ファイルのみ変更されていることを`git diff`で確認した。
+
+**Coordinatorが発見し追加修正したバグ**: 実装直後にユーザーが「チームトップ画面(`/team`)と比べてチームカードの横幅が狭い。カードの後ろに余計な背景があるためと思われる」と指摘。Playwrightで実測したところ、`.top-builds-panel .panel-content`が`global.css`の`.panel-content { max-width: 1080px; }`(読み物向けの汎用制約)を継承しており、1920px幅でもカードが1080px幅に制限されていた(`/team`は`.panel-content`を使わないため制約を受けず1904px幅まで伸びる)。`.top-builds-panel .panel-content { max-width: none; }`を追加して解消し、`/team`と同じ1904px幅になることをPlaywrightで再実測して確認した。**同じ`.panel-content`ラッパーを使っている`.battle-data-panel`にも同根の制約(1920px幅でも本文が約1043pxに制限)が残っている**が、今回のユーザー指摘は上位チームタブのみだったためそちらは変更していない(将来「バトルデータタブも横幅が狭い」と指摘された場合はこの節を参照)。
+
+### 受け入れ基準の判定
+| # | 基準 | 結果 | 実測 |
+|---|---|---|---|
+| 1 | タブ文言が「上位チーム」・内部ID`top-builds`のまま | ✅ pass | スクリーンショット・DOM実測で確認 |
+| 2 | `renderTopBuildCard()`のカードが縦一覧表示 | ✅ pass | Playwright実測: 初期50件、`.team-grid > .card-team`構造を確認 |
+| 3 | 種族名検索でフィルタ、0件で空状態 | ✅ pass | Playwright実測: 「ゲンガー」で31件、存在しない語で0件+空状態表示 |
+| 4 | シーズン切替がページ遷移なしで再フェッチ | ✅ pass | Playwright実測: `M-2`選択後カード数50件に切り替わり(1回目は一時的なフェッチ揺らぎで0件になったが2回の再実行で安定して成功、実装側のバグではないと判断)、URL遷移なし |
+| 5 | 50件区切り+もっと見る | ✅ pass | Playwright実測: 初期50件→クリックで100件 |
+| 6 | 下部固定バーがタブ非アクティブ時`display:none` | ✅ pass | Playwright実測: `battle-data`に戻すと`topControlsVisible:false`、`top-builds`表示中は`battle-data-rail`が`display:none` |
+| 7 | `npm test`が壊れていない | ✅ pass | 588件 pass(実装前と同数、新規ユニットテストなし。既存の`ranked-teams-validation`等のテストが壊れていないことを確認) |
+| 8 | `npm run build`成功 | ✅ pass | exit code 0、`Complete!` |
+| 9 | 既存ページ回帰なし | ✅ pass | `/box/ranked`(未選択時のプレビュー状態)・`/ranked-teams`・`/box`・`/team`をスクリーンショットで確認、レイアウト崩れなし |
+| 10 | 横スクロールなし | ✅ pass | Playwright実測: `scrollWidth - innerWidth = 0`(1920px) |
+
+### スコープ外に落としたもの(将来やるなら何から)
+- `matchesBuildSearch`(特性/アイテム/技検索)の追加。
+- `/ranked-teams`との統合(重複整理)。
+- `.battle-data-panel .panel-content`の同根の`max-width: 1080px`制約(上記「Coordinatorが発見し追加修正したバグ」参照。指摘があれば`.top-builds-panel`と同じ1行で直せる)。

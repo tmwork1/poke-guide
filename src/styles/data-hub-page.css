@@ -171,3 +171,90 @@
 		display: none;
 	}
 }
+
+.top-builds-panel {
+	padding: 0;
+}
+
+.top-builds-panel .panel-content {
+	padding: 0;
+	/* .panel-content の既定 max-width: 1080px(global.css)は読み物向けの制約で、
+	   /team・/box/ranked と同一の見た目にすべきチームカードグリッドには不要。
+	   外すと /team と同じ幅までカードが伸びる。 */
+	max-width: none;
+}
+
+.top-builds-list {
+	padding: var(--space-3) 0 calc(76px + env(safe-area-inset-bottom));
+}
+
+.top-builds-list .ranked-team-status {
+	color: var(--color-text-muted);
+}
+
+.top-builds-list #top-builds-error {
+	color: var(--color-danger-strong);
+}
+
+.top-builds-list .ranked-team-status,
+.top-builds-list .empty-state {
+	margin-inline: var(--space-3);
+}
+
+.top-builds-list .team-grid {
+	padding-inline: var(--space-3);
+}
+
+.top-builds-load-more-wrap {
+	display: flex;
+	justify-content: center;
+	padding: var(--space-6) var(--space-3);
+}
+
+.top-builds-load-more-wrap[hidden],
+#top-builds-load-more[hidden],
+#top-builds-empty[hidden],
+.top-builds-list .ranked-team-status[hidden] {
+	display: none;
+}
+
+.top-builds-controls {
+	position: fixed;
+	right: 0;
+	bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom));
+	left: 0;
+	z-index: 16;
+	display: flex;
+	gap: var(--space-2);
+	padding: var(--space-3);
+	background: var(--color-surface);
+	border-top: 1px solid var(--color-border);
+}
+
+.data-hub-panel[inert] .top-builds-controls {
+	display: none;
+}
+
+.top-builds-controls .search-input-wrap {
+	flex: 1;
+	min-width: 0;
+}
+
+.top-builds-season-field {
+	display: flex;
+	flex: 0 0 auto;
+	align-items: center;
+	gap: var(--space-2);
+}
+
+.top-builds-season-field label {
+	color: var(--color-text-muted);
+	font-size: var(--font-size-sm2);
+	white-space: nowrap;
+}
+
+@media (max-width: 420px) {
+	.top-builds-season-field label {
+		display: none;
+	}
+}

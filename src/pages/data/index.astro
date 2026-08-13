@@ -4,11 +4,25 @@ export const prerender = false;
 import AppLayout from '../../layouts/AppLayout.astro';
 import BattleDataCard from '../../components/data/BattleDataCard.astro';
 import { hasSingleBattleData, type SingleFormatData } from '../../lib/battle-data-card';
+import { listRankedSeasons } from '../../lib/ranked-teams';
+import { resolveDefaultSeason } from '../../lib/ranked-teams-validation';
+import { getSupabasePublicClient } from '../../lib/supabase';
 import { spriteUrl } from '../../lib/pokemon-master-data';
 import pokemonMasterRaw from '../../../public/master-data/autocomplete/pokemon.json';
 import seasonManifest from '../../../data/opgg-champions-usage/seasons.json';
 import '../../styles/data-hub-page.css';
 import '../../styles/battle-data-card.css';
+import '../../styles/team-card.css';
+
+let rankedSeasons: Awaited<ReturnType<typeof listRankedSeasons>> = [];
+let rankedSeasonsError = '';
+try {
+  rankedSeasons = await listRankedSeasons(await getSupabasePublicClient());
+} catch (error) {
+  console.error('[data] ranked season loading failed:', error);
+  rankedSeasonsError = 'シーズン一覧を読み込めませんでした。時間をおいて再度お試しください。';
+}
+const defaultRankedSeason = resolveDefaultSeason(rankedSeasons);
 
 // box/data.astro と同じ並び順ロジック(現在シーズンを先頭に、以降は取得日時の新しい順)。
 const manifestSeasons = [...(seasonManifest.seasons ?? [])].sort((a, b) => {
@@ -79,7 +93,7 @@ if (seasonEntry && seasonIndex?.pokemon) {
 	<nav class="second-bar" aria-label="データページの表示切り替え">
 		<div class="second-bar__list">
 			<button type="button" class="second-bar__item" data-data-hub-tab="battle-data" data-active="true" aria-current="page">バトルデータ</button>
-			<button type="button" class="second-bar__item" data-data-hub-tab="top-builds">上位構築</button>
+			<button type="button" class="second-bar__item" data-data-hub-tab="top-builds">上位チーム</button>
 		</div>
 	</nav>
 
@@ -137,12 +151,35 @@ if (seasonEntry && seasonIndex?.pokemon) {
 			)}
 		</section>
 
-		<section class="panel data-hub-panel" data-tab="top-builds" inert aria-hidden="true">
+		<section class="panel data-hub-panel top-builds-panel" data-tab="top-builds" inert aria-hidden="true">
 			<div class="panel-content">
-				<div class="empty-state">
-					<p class="empty-state-icon" aria-hidden="true">🏆</p>
-					<p class="empty-state-title">上位構築ランキングは準備中です</p>
-					<p class="empty-state-hint">現在の上位構築は下部ナビの<a href="/ranked-teams">「上位構築」</a>からご覧いただけます。</p>
+				<main class="top-builds-list" data-default-season={defaultRankedSeason ?? ''} data-initial-error={rankedSeasonsError}>
+					<p id="top-builds-loading" class="ranked-team-status">読み込み中…</p>
+					<p id="top-builds-error" class="ranked-team-status" role="alert" hidden></p>
+					<div id="top-builds-cards" class="team-grid"></div>
+					<div id="top-builds-empty" class="empty-state" hidden>
+						<p class="empty-state-icon" aria-hidden="true">🔍</p>
+						<p class="empty-state-title">条件に一致するチームがありません</p>
+						<p class="empty-state-hint">検索条件を変更してください。</p>
+					</div>
+					<div class="top-builds-load-more-wrap">
+						<button type="button" id="top-builds-load-more" class="btn-ghost" hidden>もっと見る</button>
+					</div>
+				</main>
+			</div>
+
+			<div class="top-builds-controls">
+				<div class="search-input-wrap">
+					<svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+						<circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+					</svg>
+					<input id="top-builds-search" type="search" class="field-control" placeholder="ポケモン名で検索" aria-label="ポケモン名で検索" autocomplete="off" />
+				</div>
+				<div class="top-builds-season-field">
+					<label for="top-builds-season">シーズン</label>
+					<select id="top-builds-season" class="field-control" disabled={rankedSeasons.length === 0}>
+						{rankedSeasons.map((entry) => <option value={entry.season} selected={entry.season === defaultRankedSeason}>{entry.season}</option>)}
+					</select>
 				</div>
 			</div>
 		</section>
@@ -232,5 +269,88 @@ if (seasonEntry && seasonIndex?.pokemon) {
 			params.set('season', seasonSelect.value);
 			window.location.search = params.toString();
 		});
+	</script>
+
+	<script>
+		import type { RankedTeam } from '../../lib/ranked-teams';
+		import { matchesSpeciesSearch, RANKED_TEAMS_PAGE_SIZE } from '../../lib/ranked-teams-validation';
+		import { renderTopBuildCard } from '../../lib/ranked-teams/card';
+
+		interface RankedTeamsResponse { season: string; teams: RankedTeam[]; }
+
+		const root = document.querySelector<HTMLElement>('.top-builds-list');
+		if (root) {
+			const cards = document.querySelector<HTMLElement>('#top-builds-cards')!;
+			const loading = document.querySelector<HTMLElement>('#top-builds-loading')!;
+			const error = document.querySelector<HTMLElement>('#top-builds-error')!;
+			const empty = document.querySelector<HTMLElement>('#top-builds-empty')!;
+			const loadMore = document.querySelector<HTMLButtonElement>('#top-builds-load-more')!;
+			const search = document.querySelector<HTMLInputElement>('#top-builds-search')!;
+			const seasonSelect = document.querySelector<HTMLSelectElement>('#top-builds-season')!;
+			const cache = new Map<string, RankedTeam[]>();
+			let visibleCount = RANKED_TEAMS_PAGE_SIZE;
+			let currentTeams: RankedTeam[] = [];
+			let debounceTimer: ReturnType<typeof setTimeout> | undefined;
+
+			function filteredTeams(): RankedTeam[] {
+				return currentTeams.filter((team) => matchesSpeciesSearch(team.members, search.value));
+			}
+
+			function render(): void {
+				const filtered = filteredTeams();
+				const visible = filtered.slice(0, visibleCount);
+				cards.replaceChildren(...visible.map((team) => renderTopBuildCard(team)));
+				empty.hidden = filtered.length !== 0;
+				loadMore.hidden = visible.length >= filtered.length;
+			}
+
+			async function selectSeason(season: string): Promise<void> {
+				loading.hidden = false;
+				error.hidden = true;
+				cards.replaceChildren();
+				empty.hidden = true;
+				loadMore.hidden = true;
+				visibleCount = RANKED_TEAMS_PAGE_SIZE;
+				try {
+					if (!cache.has(season)) {
+						const response = await fetch(`/api/ranked-teams?season=${encodeURIComponent(season)}`);
+						if (!response.ok) throw new Error('上位チームを取得できませんでした');
+						const payload = await response.json() as RankedTeamsResponse;
+						cache.set(season, payload.teams);
+					}
+					currentTeams = cache.get(season) ?? [];
+					render();
+				} catch (cause) {
+					currentTeams = [];
+					error.textContent = cause instanceof Error ? cause.message : '上位チームを取得できませんでした';
+					error.hidden = false;
+				} finally {
+					loading.hidden = true;
+				}
+			}
+
+			search.addEventListener('input', () => {
+				if (debounceTimer !== undefined) clearTimeout(debounceTimer);
+				debounceTimer = setTimeout(() => {
+					visibleCount = RANKED_TEAMS_PAGE_SIZE;
+					render();
+				}, 150);
+			});
+			seasonSelect.addEventListener('change', () => void selectSeason(seasonSelect.value));
+			loadMore.addEventListener('click', () => {
+				visibleCount += RANKED_TEAMS_PAGE_SIZE;
+				render();
+			});
+
+			const initialError = root.dataset.initialError ?? '';
+			const defaultSeason = root.dataset.defaultSeason ?? '';
+			if (initialError || !defaultSeason) {
+				loading.hidden = true;
+				error.textContent = initialError || '表示できるシーズンがありません';
+				error.hidden = false;
+			} else {
+				void selectSeason(defaultSeason);
+			}
+		}
 	</script>
 </AppLayout>
