@@ -564,14 +564,6 @@ if (opponentNotesSection) {
 		};
 	}
 
-	// ラウンド5ユーザー指示: 壁のon/off・攻守ランクのスカラー値から、実際にAPI保存・
-	// エンジン呼び出しに使う配列(attackerBoosts/defenderBoosts/defenderSideFields)を
-	// 技名の物理/特殊分類にもとづいて自動算出する。技が未入力・分類不明(変化技等)の
-	// ときは「どちらの能力に載せるべきか決められない」ため、壁・ランクとも無効化する
-	// (中途半端に片方の能力にだけ載せると誤ったダメージ計算になるため)。
-	// エンジン契約(pyodide-engine.ts): PokemonSpec.boostsは能力ごとのランク配列
-	// ([HP無視,攻撃,防御,特攻,特防,素早さ])、FieldSpec.defenderSideFieldsは
-	// サイドフィールド効果名の配列(例["リフレクター"])。
 	function resolveColumnDerivedFields(column: DamageColumnState): void {
 		const category = getMoveCategory(column.moveName);
 		const atkBoosts = STAT_KEYS.map(() => 0);
@@ -1980,14 +1972,6 @@ if (opponentNotesSection) {
 		if (showTera && a.defenderTerastallized) defender.push("テラスタル");
 		if (a.weather) field.push(a.weather);
 		if (a.terrain) field.push(a.terrain);
-		// 🔴 UI改善ラウンド29(29-D1)「条件チップ『攻撃+6』が技の分類を区別しない固定文言」:
-		// resolveColumnDerivedFields()(上記)は技の物理/特殊分類でatk/spaのどちらに
-		// ランクを載せるか自動振り分け済み(計算自体は正しい)。表記だけが「攻撃」固定で、
-		// 特殊技でも実際に乗っているのは特攻(C)ランクなのに「攻撃」と表示され誤解を招く。
-		// getMoveCategory(a.moveName)で物理/特殊を判定し、物理なら「攻撃/防御」、特殊なら
-		// 「特攻/特防」と出し分ける(右パネルの単一「ランク」入力欄自体は変えない)。
-		// 今回の表記統一では、グループ見出しで側を判別できることを優先してこの出し分けを廃止する。
-		// 攻撃側・防御側はグループ見出しで判別できるため、能力名ではなく共通の「ランク」で示す。
 		if (a.attackerRank !== 0) attacker.push(`ランク${a.attackerRank > 0 ? "+" : ""}${a.attackerRank}`);
 		if (a.defenderRank !== 0) defender.push(`ランク${a.defenderRank > 0 ? "+" : ""}${a.defenderRank}`);
 		return [
@@ -2269,18 +2253,6 @@ if (opponentNotesSection) {
 		nameRow.className = "pokemon-name-row";
 		buildFields.appendChild(nameRow);
 
-		// ラウンド4で24px→48pxに拡大、ラウンド5ユーザー指示で「まだ小さすぎる」との
-		// 再指摘で72px64pxに拡大、ラウンド8指摘(A-1)で名前行から出したぶんの余白を使い
-		// 96px/88pxへ拡大、ラウンド26ユーザー指示(26-D3)「攻撃・防御ボタンの幅を短縮し、
-		// 空いた分でポケモンアイコンを大きくする」により112px/104pxへさらに拡大する
-		// (.damage-sprite-boxのCSSと合わせる)。
-		// 持ち物画像は名前行の横幅を圧迫しないよう名前inputの隣に置かず、種族アイコンの
-		// 右下バッジ(テラスタイプバッジは右上)として重ねる。
-		// 🔴 UI改善ラウンド28ユーザー指示(28-D1)「ポケモンアイコンは最初の5段分使う」
-		// により、spriteBox自体の高さはCSS側でbuildLeft(1〜5段目)の高さに
-		// stretchで追随させる(.damage-row-build-main { align-items: stretch }参照)。
-		// img自体はwidth/height属性による固定サイズをやめ、object-fit:containで
-		// 箱いっぱいに収める(CSSの img.sprite-icon 参照。縦横比は保つ)。
 		const spriteBox = document.createElement("div");
 		spriteBox.className = "damage-sprite-box";
 		const spriteImg = document.createElement("img");
@@ -2317,74 +2289,22 @@ if (opponentNotesSection) {
 		itemImg.alt = "";
 		itemImg.style.display = "none";
 		itemBadge.appendChild(itemImg);
-		// 🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08)「ダメージカードの相手ビルドサイズを
-		// 大幅削減」。提案図(box_個体編集_vs_相手ビルド.png)では、持ち物がまだ決まっていなくても
-		// ドット絵の右下にオレンジ色の丸い「?」バッジが常に見えていて、そこをタップして
-		// 持ち物を選ぶ導線になっている。持ち物アイコンが出せないとき(=applyItemImageが
-		// バッジごとhiddenにする状態。未設定・アイコン画像が引けない種類の両方を含む)に
-		// 代わりに見せるプレースホルダを1個だけ入れておく(表示切り替えはモバイルのCSSのみ。
-		// デスクトップの「持ち物なしならバッジごと出さない」既存仕様は変更しない)。
 		const itemBadgePlaceholder = document.createElement("span");
 		itemBadgePlaceholder.className = "damage-item-badge-placeholder";
 		itemBadgePlaceholder.setAttribute("aria-hidden", "true");
 		itemBadgePlaceholder.textContent = "?";
 		itemBadge.appendChild(itemBadgePlaceholder);
 		spriteBox.append(spriteImg, spriteFallback, typeBadge, itemBadge);
-		// ラウンド8指摘(A-1): 以前は名前行(nameRow)の中に置いていたが、名前行が
-		// スプライトの高さぶん1行占有してしまう原因だったため、名前行の外へ出していた。
-		// ラウンド27ユーザー指示(27-D1)でbuildMain(入力ボックス一式buildLeftの隣)へ戻し、
-		// 🔴 ラウンド28ユーザー指示(28-D1)でbuildLeftが1段目(actionsRow)を含むようになった
-		// ことで、このspriteBoxも1〜5段目ぶんの高さまで自動的に伸びる。
 		buildMain.appendChild(spriteBox);
 
-		// UI改善ラウンド36ユーザー指示(36-1)「折りたたみ時に代わりに出す要素」: 相手ポケモン名
-		// (読み取り専用)+攻守の向き。buildLeft(入力欄一式)を隠す折りたたみ時だけCSSで
-		// display:flexにする(#opponent-notes-section .damage-row-collapsed-summary参照)。
-		// 実体の<input>/トグルボタンを複製せず、値をtextContentへ反映するだけの
-		// 読み取り専用表示にすることで、自動保存契約(row.name/row.direction)には
-		// 一切影響しない(refreshCollapsedSummary参照、下で定義)。
 		const collapsedSummary = document.createElement("div");
 		collapsedSummary.className = "damage-row-collapsed-summary";
 		const collapsedNameEl = document.createElement("span");
 		collapsedNameEl.className = "damage-row-collapsed-name";
 		const collapsedDirectionEl = document.createElement("span");
 		collapsedDirectionEl.className = "damage-row-collapsed-direction";
-		// UI改善ラウンド46ユーザー指示(第30弾、A-1): ラウンド42時点では「340px幅に名前・
-		// 攻守バッジ・実数値6つを収める時点で十分密になっており、特性名まで足すと1行に
-		// 収まらず可読性を損なう」と判断して特性名を出していなかった(下のコメント参照)。
-		// ラウンド45でこの左ブロック(.damage-row-collapsed-summary)の幅が115.2px→234.42pxに
-		// 拡張され、当時の空間制約の前提が変わったため、round-46.mdのワイヤーフレーム
-		// (docs/ui_proposal/ダメージカード_圧縮.png、種族名→攻撃or防御→特性→実数値の
-		// 4行構成)どおり特性行を追加する。特性はマルチスケイル・しんりょく・こだいかっせい・
-		// メガランチャーのようにダメージ計算そのものに直結する情報であり、折りたたみ一覧
-		// だけで相手を見比べる場面での判断ミスを防ぐ(round-46.md、プレイヤー視点レビュアー
-		// 指摘)。右側の技列2段目(.damage-row-collapsed-detail-line)と同一仕様
-		// (0.76rem/font-weight 400/var(--color-text-muted)/nowrap+ellipsis+title)で新設し、
-		// 新色・新フォントサイズは増やさない(round-46.md、UIレビュアー指摘の実装方針)。
 		const collapsedAbilityEl = document.createElement("span");
 		collapsedAbilityEl.className = "damage-row-collapsed-ability";
-		// 🔴 UI改善ラウンド42ユーザー指示(42-D4、38-D6を撤回): 使用技名を「/」区切りで
-		// 列挙していた旧collapsedMovesEl(.damage-row-collapsed-moves)は削除した。
-		// round-42.mdの総評「圧縮前後で情報の欠落が大きい」を受け、使用技はヒット数・
-		// 詳細設定込みで右側の新設3段表示(refreshCollapsedTechniques、下方参照)へ
-		// 表示場所を移す。この左側summaryには代わりに、42-D4が要件とする「H/A/B/C/D/Sの
-		// 実数値のみ」の行(collapsedStatsEl)を追加する(種族値・努力値・スライダーは
-		// 出さない。展開時の.damage-ev-gridをまるごと出す旧方式とは別に、実数値だけの
-		// コンパクトな新規表示にする)。テラスタイプは既存のtypeBadge(spriteBoxに重ねる
-		// アイコン、42-D4「アイテム・テラスタルはアイコンのみ」の対象)で既に見えているため
-		// テキストでは重複表示しない。特性名は42-D4時点では「実装者判断で表示しない」
-		// としていたが、🔴 UI改善ラウンド46ユーザー指示(第30弾、A-1)でこの判断を撤回し、
-		// 上のcollapsedAbilityElとして追加した(理由は上のコメント参照)。
-		// 6項目をflex-wrapの1コンテナに任せると、build幅340px(スプライト80px分を引いた
-		// 残り約234px)ぎりぎりのところで一部の項目だけ2行目に孤立するような不揃いな
-		// 折り返りが起き、カードの高さが行によってばらつく(3桁の実数値が並ぶと数px単位で
-		// ギリギリになるため)。H/A/B(1行目)・C/D/S(2行目)に固定で分けた3列×2行gridで
-		// 対応している。
-		// 6個のラベル要素を1段目、6個の実数値要素を2段目に配置し、6列グリッド
-		// (grid-auto-flow:row既定)へdisplay:contentsで直接参加させることで、同じ列位置に
-		// 縦の対応が取れる(H↑値、A↑値…と6列すべてが揃う)。性格補正の上昇/下降は、
-		// 値側の記号ではなくラベル文字への▲/▼付記で表現する(refreshCollapsedStats参照、
-		// 値には記号を付けない)。
 		const collapsedStatsEl = document.createElement("div");
 		collapsedStatsEl.className = "damage-row-collapsed-stats";
 		const collapsedStatKeyEls: Partial<Record<StatKey, HTMLElement>> = {};
@@ -2623,16 +2543,7 @@ if (opponentNotesSection) {
 			applyOpponentBuildPreset(nameInput.value.trim());
 		});
 
-		// ラウンド6ユーザー指示(要件1): ⚙(この行の計算条件)ボタンは廃止した。
-		// ラウンド7ユーザー指示(方針転換): 相手ビルドの箱のクリックは無反応(サイドバーを
-		// 開くのは技列の箱だけ)という確定仕様になった(このrenderRow末尾の
-		// root.addEventListener("click", ...)参照)。
 
-		// ラウンド21ユーザー指示(21-D3、以前はactionsRow=攻守切り替えボタンと同じ1行目に
-		// 同居させていた構成を撤回): 「削除ボタンはカード全体の右上に移動。×印を使う」。
-		// カード(root)直下にposition:absoluteで置く(CSSは.damage-row-delete-button参照。
-		// hover/focus-within時のみ可視 + 既存のwindow.confirm()(deleteRow内)の
-		// 二重の誤操作抑止)。
 		const deleteRowButton = document.createElement("button");
 		deleteRowButton.type = "button";
 		deleteRowButton.className = "btn-ghost damage-row-icon-button damage-row-delete-button";
@@ -2642,45 +2553,21 @@ if (opponentNotesSection) {
 		deleteRowButton.addEventListener("click", () => void deleteRow(row));
 		root.appendChild(deleteRowButton);
 
-		// UI改善ラウンド36ユーザー指示(36-2)「折りたたみ・展開のきりかえボタンを右下に配置」。
-		// 削除ボタンが右上に戻ったことで空いた右下の座席(CSSは
-		// .damage-row-collapse-toggle-button参照)に、この行専用の折りたたみ/展開トグルを置く。
-		// 状態はDBに保存しない(row.collapsed相当のフィールドをDamageRowState自体には追加せず、
-		// このファイル内のWeakSet/WeakMapだけで完結させる。下のsetCollapsed/collapsedRowSet参照)。
 		const collapseToggleButton = document.createElement("button");
 		collapseToggleButton.type = "button";
 		collapseToggleButton.className = "btn-ghost damage-row-icon-button damage-row-collapse-toggle-button";
 		root.appendChild(collapseToggleButton);
 
-		// UI改善ラウンド38ユーザー指示(38-D5)「折りたたみ・展開ボタンは >> を90度回転させた
-		// デザインにする。ボタンに枠は表示しない」。文字自体は常に"»"(二重山括弧、見た目は
-		// 右向きの>>2つ)で固定し、90度の回転方向だけをCSS側([aria-expanded]、下の
-		// .damage-row-collapse-toggle-button参照)で状態ごとに切り替える(回転後は
-		// 展開中=上向き"^^"、折りたたみ中=下向き"vv"に見える)。枠(border)はCSS側で除去する。
-		// 🔴 UI改善ラウンド43ユーザー指示(43-D5)「丸枠の中心と記号の中心を一致させる」対応:
-		// 以前はボタン自身(textContent="»")にtransform(rotate)を掛けていたが、ボタン自身に
-		// transformを掛けると円形の背景(border-radius:50%の丸枠)も一緒に動く/回転する
-		// (円は回転しても見た目が変わらないため回転自体は無害だったが、中心を補正する
-		// translateYを足すと、円と文字が一緒にずれるだけで「円の中の文字の位置」は
-		// 一切変わらないことが実測で判明した)。円(ボタン自身の背景)を動かさずに文字だけを
-		// 補正するため、glyph用の<span>を新設し、rotate/translateYはこのspanにだけ適用する
-		// (CSSはDamageCalcSection.astroの.damage-row-collapse-toggle-glyph参照)。
 		const collapseToggleGlyph = document.createElement("span");
 		collapseToggleGlyph.className = "damage-row-collapse-toggle-glyph";
 		collapseToggleGlyph.textContent = "»";
 		collapseToggleGlyph.setAttribute("aria-hidden", "true");
 		collapseToggleButton.appendChild(collapseToggleGlyph);
 		function setCollapsed(collapsed: boolean): void {
-			// UI改修依頼(ダメージカード)「圧縮前後で全体の横幅が変わらないようにする」対応。
-			// .card-damageは幅を指定せず内容量(技列の枚数等)で決まるため、折りたたみで
-			// .damage-row-columns-wrap等がdisplay:noneになると内容が減り、カード自体の横幅も
-			// 一緒に縮んでいた。まだ展開状態のレイアウトが残っている(=dataset.collapsedを
-			// 書き換える前)今のうちに実測幅を固定し、折りたたみ後もその幅を維持する。
-			// getBoundingClientRect()はレイアウトを強制するため、必ずdataset.collapsedの
-			// 変更より前に呼ぶこと(後に呼ぶと既に折りたたみ後の縮んだ幅を読んでしまう)。
 			if (isNarrowLayout()) {
 				root.style.width = "";
 			} else if (collapsed && root.dataset.collapsed !== "true") {
+				// 折りたたみ後の縮小幅ではなく展開時の幅を維持するため、状態変更前に計測する。
 				const expandedWidth = root.getBoundingClientRect().width;
 				if (expandedWidth > 0) root.style.width = `${expandedWidth}px`;
 			}
@@ -2700,26 +2587,10 @@ if (opponentNotesSection) {
 			);
 			collapseToggleButton.setAttribute("aria-expanded", String(!collapsed));
 			refreshCollapsedSummary();
-			// 🔴 UI改善ラウンド42ユーザー指示(42-D4/42-D5): 折りたたみ時にだけ見える
-			// 実数値行(refreshCollapsedStats)・技列3段表示(refreshCollapsedTechniques)も
-			// このタイミングで最新化する。両関数とも、参照するDOM要素(collapsedStatsEl配下・
-			// collapsedTechniques配下)はrenderRowの後半(techniquesRow組み立て時)で
-			// constされるため、この関数自体は先に定義されていても、実際に呼ばれる
-			// (=setCollapsed()が呼ばれる)のはrenderRow全体の構築が完了した後(下方の
-			// 初回setCollapsed(false)呼び出し、またはユーザーのクリック)に限られる限り
-			// 問題ない(関数宣言のホイストと、それが参照するconst変数の初期化完了は別物
-			// なので、初回呼び出し位置をrenderRowの末尾に置いている。下方参照)。
 			refreshCollapsedStats();
 			refreshCollapsedTechniques();
-			// 🔴 38-H1: 個別行の折りたたみ切り替え(このボタン自身のクリックでも、
-			// ヘッダーの単一トグルボタンからのsetAllRowsCollapsed()経由でも)のたびに、
-			// ヘッダーボタンのラベルを最新の「全部畳まれているか」判定で更新する。
 			updateCollapseToggleButtonLabel();
 		}
-		// 🔴 UI改修依頼(個体編集画面、2026-08-02)「耐久調整」機能の土台。setCollapsed()から
-		// dataset.collapsed/width操作を除いた「表示中身の最新化」だけを行う版。耐久調整
-		// ポップアップ用の複製(buildCollapsedPreview)を作る直前に、このカード(元のDOM)の
-		// 折りたたみ状態を変えずに.damage-row-collapsed-summary等の中身だけ最新化するために使う。
 		function refreshCollapsedViews(): void {
 			refreshCollapsedSummary();
 			refreshCollapsedStats();
@@ -2731,14 +2602,6 @@ if (opponentNotesSection) {
 		// 増やさないための実装手段。上のimport元のshared-core.tsは編集対象外ファイルのため)。
 		// 耐久調整ブリッジ(refreshCollapsedViews)もここで一緒に登録する。
 		rowCollapseHandles.set(row, { setCollapsed, refreshCollapsedViews });
-		// 🔴 UI改善ラウンド42ユーザー指示(42-D4/42-D5)対応: 初回のsetCollapsed(false)呼び出しは
-		// renderRow末尾(techniquesRow/collapsedTechniques・totalBlock等すべてのconst構築が
-		// 完了した後、下方のrefreshSprite()等の初期描画呼び出しの並びに移設した。旧実装は
-		// ここ(buildLeft/ev-grid/techniques-rowを組み立てるより前)で即座に呼んでいたが、
-		// setCollapsed()がrefreshCollapsedTechniques()(collapsedMoveListEl/
-		// collapsedDetailLineEl等、techniquesRow組み立て時に初めてconstされる変数を参照する)を
-		// 呼ぶようになったため、ここで即座に呼ぶとTDZ(初期化前のconst参照)でエラーになる。
-		// 呼び出しタイミングを移すだけで、「初期状態は展開」という結果自体は変わらない。
 
 		// 攻守切り替え。「攻撃」「防御」どちらを押しても、押した側の値になる
 		// (同じ側を押しても意味は変わらないが、setDirectionは冪等なので害はない)。
@@ -2748,10 +2611,6 @@ if (opponentNotesSection) {
 			const selfAttacks = row.direction !== "defense";
 			attackOption.setAttribute("aria-checked", String(selfAttacks));
 			defenseOption.setAttribute("aria-checked", String(!selfAttacks));
-			// ラウンド21ユーザー指示(21-D4)でカード全体の背景色を方向別に出し分けるために
-			// 導入したroot.dataset.directionは、ラウンド26ユーザー指示(26-D1)でその
-			// CSSルール(.card-damage[data-direction=...])自体を撤回した後も、方向を示す
-			// DOM属性として残す(他の用途で参照される可能性を考慮。実害は無い)。
 			root.dataset.direction = selfAttacks ? "attack" : "defense";
 			const attackDetail = "この個体の技で相手を攻撃する計算です。";
 			const defenseDetail = "相手の技をこの個体が受ける計算です。";
@@ -2774,13 +2633,6 @@ if (opponentNotesSection) {
 			renderColumns(row);
 			onFieldInput();
 		}
-		// 🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08)「ダメージカードの相手ビルドサイズを
-		// 大幅削減」。提案図(box_個体編集_vs_相手ビルド.png)の1行目は[攻撃][特性][テラスタル]の
-		// 3ボタンで、攻守は2値セグメントではなく1個のボタン+注記「クリックして攻防入れ替え」に
-		// なっている。モバイルでは非選択側をCSSで隠す(下記CSS
-		// .damage-row-direction-option[aria-checked="false"])ため、見えているボタン=現在の向きで
-		// あり、それを押す操作は「切り替えたい」以外に意味がない。そこでモバイルのときだけ
-		// 押された側ではなく反対側へ倒す。デスクトップは2値セグメントのまま(押した側になる)。
 		function onDirectionOptionClick(clicked: "attack" | "defense"): void {
 			if (isNarrowLayout()) {
 				setDirection(row.direction === "defense" ? "attack" : "defense");
@@ -2795,19 +2647,7 @@ if (opponentNotesSection) {
 		selectsRow.className = "damage-row-build-grid";
 		buildFields.appendChild(selectsRow);
 
-		// ラウンド4ユーザー指示: 性格の<select>は廃止した。性格は努力値/実数値グリッドの
-		// H/A/B/C/D/S見出しクリック(下のevGrid構築部分、natureColLabelEls参照)で
-		// 決まるようになったため、1行(性格select)ぶん高さも削減できる。
 
-		// ラウンド23ユーザー指示(23-D2、=ラウンド22の22-Cを統合): 特性はその種族が
-		// 持ちうる特性だけを候補とする<select>にする(左パネルのrebuildAbilityOptions()
-		// と同じ考え方。ただし左パネルはローカル変数に密結合していて共通関数化されて
-		// いないため、ここでも同じloadAbilitiesMap()を呼ぶ専用実装を用意する)。
-		// ⚠️ 相手ビルドは種族名を頻繁に打ち替えるため、1文字ごとの"input"イベントで
-		// 候補を作り直すと入力途中で選択肢が消え続けて操作を妨げる(左パネルのコメント
-		// 「pitfalls.mdの自動保存リスクと同種」参照)。種族名inputの"change"
-		// (blur/確定時)にだけ結線し、タイプ中は現在の候補を保持する(実機で
-		// 妨げないことを確認済み。判断根拠は報告参照)。
 		const abilitySelect = document.createElement("select");
 		abilitySelect.setAttribute("aria-label", "相手の特性");
 		{
@@ -2841,8 +2681,6 @@ if (opponentNotesSection) {
 				abilitySelect.title = "";
 				if (previousValue !== "") {
 					row.abilityName = "";
-					// UI改善ラウンド46ユーザー指示(第30弾、A-1): 折りたたみ左ブロックの
-					// 特性行(collapsedAbilityEl)もrow.abilityNameの変化に追随させる。
 					refreshCollapsedSummary();
 					onFieldInput();
 				}
@@ -2861,16 +2699,10 @@ if (opponentNotesSection) {
 				opt.textContent = a;
 				abilitySelect.appendChild(opt);
 			}
-			// UI改善ラウンド26ユーザー指示(26-L1/26-R2)「相手ビルドの特性もデフォルトで
-			// 一つ目の特性を設定する」。左パネルのrebuildAbilityOptions()と同じ考え方で、
-			// 保存済みの値が新しい候補に無い場合のフォールバック先を""ではなく
-			// 候補の先頭(abilities[0])にする。
 			abilitySelect.value = abilities.includes(previousValue) ? previousValue : abilities[0];
 			abilitySelect.title = abilitySelect.value;
 			if (abilitySelect.value !== previousValue) {
 				row.abilityName = abilitySelect.value;
-				// UI改善ラウンド46ユーザー指示(第30弾、A-1): 特性のデフォルト設定
-				// (26-L1/26-R2)でも折りたたみ左ブロックの特性行を最新化する。
 				refreshCollapsedSummary();
 				onFieldInput();
 			}
@@ -2882,23 +2714,12 @@ if (opponentNotesSection) {
 			// 今回の要件: 相手特性変更時だけ、各技列の天候・フィールド自動入力を試す。
 			notifyDetailAbilityChanged(row, row.abilityName);
 			abilitySelect.title = abilitySelect.value;
-			// UI改善ラウンド46ユーザー指示(第30弾、A-1): 特性<select>のchangeイベントで
-			// row.abilityNameが変わるたびに折りたたみ左ブロックの特性行も追随させる。
 			refreshCollapsedSummary();
 			onFieldInput();
 			refreshAbilityCycleButton();
 		});
 		selectsRow.appendChild(abilitySelect);
 
-		// 🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08 第2弾)「特性はリストボックスでは
-		// なく、クリックすると [特性なし → 特性1 → 特性2 → … → 特性なし] をループするボタンに
-		// する。ボタンの見た目はただのテキストにして目立たなくする」。
-		// <select>自体は消さずモバイルでCSS非表示にし、この薄いラッパーボタンから
-		// abilitySelect.value を進めて change を発火させる(row.abilityNameの更新・
-		// notifyDetailAbilityChanged・折りたたみ表示の追随・自動保存は、すべて上の
-		// change ハンドラ1本に集約されたまま。デスクトップの<select>の見た目・挙動は無変更)。
-		// ループの並びは<select>のoption順そのもの。rebuildRowAbilityOptions()が先頭に
-		// value="" のプレースホルダを置くので、それがそのまま提案の「特性なし」になる。
 		const abilityCycleButton = document.createElement("button");
 		abilityCycleButton.type = "button";
 		abilityCycleButton.className = "damage-row-ability-cycle";
@@ -2942,15 +2763,6 @@ if (opponentNotesSection) {
 		});
 		selectsRow.appendChild(itemInput);
 
-		// 🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08): 提案図の注記「アイテムアイコン。
-		// クリックしてアイテム選択」。ドット絵の右下に重ねた持ち物バッジをタップすると、
-		// モバイルで畳んである持ち物入力欄がその場に現れてフォーカスされる(種族名側の
-		// beginMobileNameEditと同じ仕組み。上方のspriteBoxのコメント参照)。
-		// ⚠️ itemBadgeはspriteBoxの子なので、stopPropagation()しないと種族名編集の
-		// クリックハンドラまで走ってしまう(後勝ちで種族名欄が開く事故になる)。
-		// ⚠️ メガシンカ種族では持ち物がメガストーンに固定されitemInputがdisabledになる
-		// (applyRowMegaStoneAutofill)。そのときは編集モードにせず、バッジ側も
-		// aria-disabledで操作できないことを伝える。
 		itemBadge.setAttribute("role", "button");
 		itemBadge.tabIndex = 0;
 		itemBadge.setAttribute("aria-label", "相手の持ち物を選択");
@@ -2978,16 +2790,8 @@ if (opponentNotesSection) {
 			delete buildEl.dataset.mobileEdit;
 		});
 
-		// UI改修依頼(共通)「メガシンカポケモンのアイテムをメガストーンで固定する」により、
-		// 「持ち物が既に入っていれば何もしない」自動設定から、メガシンカ種族が確定している間は
-		// 常にメガストーンへ強制し持ち物欄自体を編集不能にする方式へ変更した(ゲーム仕様上
-		// メガシンカ中はメガストーン以外を持てないため)。相手の種族は頻繁に打ち替えるため、
-		// rebuildRowAbilityOptionsと同じくnameInputの"change"(blur/確定)にのみ結線する。
 		const megaStoneLockedTitle = "メガシンカ中はアイテムをメガストーンに固定します";
 		let rowMegaStoneAutofillToken = 0;
-		// 🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08): 持ち物欄がロックされている間は、
-		// その欄を開くための入口(ドット絵右下の持ち物バッジ)も操作できないことを伝える。
-		// disabledの付け外しと必ず同じタイミングで呼ぶ。
 		function syncItemBadgeDisabled(): void {
 			if (itemInput.disabled) {
 				itemBadge.setAttribute("aria-disabled", "true");
@@ -3028,65 +2832,24 @@ if (opponentNotesSection) {
 		// 同じ考え方)。
 		void applyRowMegaStoneAutofill(row.name);
 
-		// 🔴 UI改善ラウンド40ユーザー指示(40-D1)「テラスタイプ選択ボックスは、左パネルのもの
-		// (選択肢にアイコンが見えるカスタムドロップダウン)と共通化する」。以前の<select>+
-		// 左に絶対配置したアイコンのオーバーレイを撤回し、buildTeraDropdown()(下方定義。
-		// LeftPanel.astro/left-panel.tsの#tera-dropdown-button/#tera-dropdown-list相当を
-		// idを使わないクロージャ実装に書き直したもの)でこのカードの相手テラスタイプ
-		// ドロップダウンを1つ生成する。ダメージカードは複数枚同時に存在しうるため、
-		// idの一意性に依存しないこの実装が必要(左パネルはページ内に1個だけなのでidで
-		// 事足りるが、こちらは行の数だけインスタンスが要る)。
 		const teraDropdown = buildTeraDropdown(row.teraType, "相手のテラスタイプ", (newValue) => {
 			row.teraType = newValue;
 			refreshTypeBadge();
 			onFieldInput();
 		});
 		selectsRow.appendChild(teraDropdown.wrap);
-		// UI改修依頼(2026-08-01)「レギュレーションに応じてテラスタル選択ボックスの表示
-		// ON/OFFを切り替える」。初期表示はこの生成時点の#regulation値で決め、以後は
-		// 上のsyncTeraFieldVisibility()(#regulationのchangeリスナー)が追随する。
 		rowTeraFieldWraps.set(row, teraDropdown.wrap);
 		teraDropdown.wrap.hidden = !isTerastalRegulation(currentIndividualRegulation());
-		// UI改修依頼(ダメージ計算カード、2026-08-02)「圧縮表示もレギュレーションに応じて
-		// テラスタルの表示・非表示を自動判断する」。refreshTypeBadge()/refreshCollapsedTechniques()
-		// はどちらも関数宣言(ホイストされる)なので、本体の定義位置(前者は上方、後者は下方)より
-		// このregisterのほうが先でも参照できる(上のrowTeraFieldWraps.set()と同じホイスト依存の
-		// 既存パターン)。実際に呼ばれるのはsyncTeraFieldVisibility()実行時(regulation変更後)。
 		rowCollapsedTeraRefreshers.set(row, () => {
 			refreshTypeBadge();
 			refreshCollapsedTechniques();
 		});
 
-		// 努力値/実数値グリッド(DamageCard.pngの「努力値 ＨＡＢＣＤＳ」「実数値 ＨＡＢＣＤＳ」)。
-		// CSSが7列グリッド(行ラベル1列 + H/A/B/C/D/Sの6列)なので、DOMも行優先で
-		// 「見出し7セル → 努力値7セル → 実数値7セル」の順に生成する。
-		// ラウンド27ユーザー指示(27-D1)ではbuildLeft(スプライトの左側の列、202px相当)に
-		// 入れていたが、🔴 ラウンド28ユーザー指示(28-D3)「ステータスは相手ビルド領域の
-		// 全幅を使う」により、buildLeftではなくbuildEl直下(buildMainの下、全幅=321px相当)
-		// に置き直す。数値がくっついて見える窮屈さを解消する。
 		const evGrid = document.createElement("div");
 		evGrid.className = "damage-ev-grid";
 		buildEl.appendChild(evGrid);
 
-		// 1段目: 行ラベル列を空けたうえでH/A/B/C/D/Sの見出し。
-		// ラウンド4ユーザー指示: 「性格の選択UIは廃止し、能力値のラベルをクリックして
-		// 上昇/下降を切り替える」。この指示は編集画面全体に適用されるため、相手ビルドの
-		// 努力値/実数値グリッドの見出しもクリック対象にする(1行まるごと削れるので
-		// カード高さの削減にもなる)。HPは性格補正が無いのでクリック対象外。
-		// ラウンド20ユーザー指示(20-D3、ラウンド5の「▲/▼を独立ボタン化する」を撤回):
-		// 上下2個の専用ボタン(nature-up-{key}/nature-down-{key}と同じ設計、縦3段
-		// ▲/文字/▼)をやめ、見出しの文字自体を1個のボタンにして「無補正→上昇→下降→
-		// 無補正」を巡回させる(高さが3段から1段になり、カード高さの削減にも寄与する)。
-		// 色だけで状態を伝えないよう(WCAG 1.4.1)、文字色(--color-stat-up/--color-stat-down。新色は
-		// 作らない)に加えて文字の直後に小さく▲/▼を添える(.damage-ev-nature-indicator、
-		// aria-hiddenで装飾扱い。実際の状態説明はボタンのaria-label/titleが担う)。
 		const natureColLabelEls: Partial<Record<string, HTMLElement>> = {};
-		// 見出し行の1列目(行ラベル列)の空セル。🔴 UI改修依頼(個体編集画面・モバイル、
-		// 2026-08-08)「ダメージカードの相手ビルドサイズを大幅削減」
-		// (docs/ui_proposal/mobile/box_個体編集_vs_相手ビルド.png)では行ラベル列そのものが
-		// 無い6列表になるため、CSS側でこの空セルも消す必要がある。nth-child依存の脆い
-		// セレクタを書かずに済むよう、クラス名を与えておく(デスクトップでは何のスタイルも
-		// 当たらない=見た目は従来どおり空のspan)。
 		const evCornerEl = document.createElement("span");
 		evCornerEl.className = "damage-ev-corner";
 		evGrid.appendChild(evCornerEl);
@@ -3123,21 +2886,7 @@ if (opponentNotesSection) {
 		evRowLabel.className = "damage-ev-row-label";
 		evRowLabel.textContent = "努力値";
 		evGrid.appendChild(evRowLabel);
-		// UI改善ラウンド48(A-4): 種族プリセット適用時にこの行の努力値入力欄へ直接
-		// 値を書き戻せるよう、STAT_KEYS順で参照を保持しておく(row自体には型を
-		// 追加しない。renderRowのローカルクロージャで完結させる)。
 		const evInputEls: HTMLInputElement[] = [];
-		// 🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08)「ダメージカードの相手ビルドサイズを
-		// 大幅削減」(docs/ui_proposal/mobile/box_個体編集_vs_相手ビルド.png)。提案図の努力値行は
-		// 「+32 / - / +4」というテキスト表示で、数値入力欄(スピナー付きinput[type=number]、
-		// 実測1行あたり約24px)は描かれていない。ユーザー確認済みの確定仕様は
-		// 「テキスト表示にし、タップしたらその1項目だけ入力欄に切り替えて編集できる」。
-		// そのため input を <span class="damage-ev-cell"> で包み、同じグリッドセルの中に
-		// 表示用ボタン(.damage-ev-value-text)を同居させる。
-		// ⚠️ デスクトップ(900px以上)の見た目は一切変えない: .damage-ev-cell は display:block・
-		// .damage-ev-value-text は display:none を既定にし、既存の
-		// `#opponent-notes-section .damage-ev-grid input[type="number"]`(子孫セレクタなので
-		// ラップ後もそのまま効く)がこれまでどおり幅100%でセルを埋める。
 		const evTextRefreshers: Array<() => void> = [];
 		STAT_KEYS.forEach((key, i) => {
 			const cell = document.createElement("span");
@@ -3185,15 +2934,6 @@ if (opponentNotesSection) {
 				delete cell.dataset.editing;
 			});
 
-			// 🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08 第2弾)「努力値をクリックしたら、
-			// 左右に MIN - + MAX の4ボタンを表示する」。従来はタップでその1セルが数値入力欄に
-			// 変わるだけで、実機ではスピナーが小さすぎて値を動かせなかった。
-			// 育成タブの努力値操作(LeftPanel.astro、0/-/+/32の4ボタン)と同じ操作体系に揃える。
-			// セルは1/6列(実測55px弱)しか無いので、編集中だけCSSでセルを努力値行の全幅へ
-			// 絶対配置し(下記 .damage-ev-cell[data-editing="true"]、行の高さは変わらない)、
-			// [MIN][−] 入力欄 [+][MAX] の並びで見せる。
-			// 値の更新は必ず input の "input" イベント経由にする(row.evs への書き戻し・
-			// 表示テキスト更新・再計算・自動保存が上の1ハンドラに集約されているため)。
 			function stepEv(next: number): void {
 				input.value = String(clampInt(next, 0, 32));
 				input.dispatchEvent(new Event("input", { bubbles: true }));
@@ -3235,15 +2975,6 @@ if (opponentNotesSection) {
 			for (const refresh of evTextRefreshers) refresh();
 		}
 
-		// UI改善ラウンド48(A-4)ユーザー指示(第32弾)「相手ビルドの情報を種族ごとにローカルに
-		// 記録しておき、次に同じ種族をビルドする際にデフォルト値として設定する」の適用側。
-		// 保存側はsaveRow()参照(モジュール先頭のsaveOpponentBuildPreset/loadOpponentBuildPreset/
-		// isOpponentBuildUnset)。この行の相手ビルド5項目(性格/特性/持ち物/テラス/努力値)が
-		// すべて未設定のときに限り、種族名に対応するプリセットがあれば適用する。
-		// 🔴 既存カード(DBから読み込んだ行)を絶対に上書きしない: isOpponentBuildUnset()が
-		// falseならここで即return するため、何か1つでも値が入っている行(=既存カードの
-		// 典型)には一切触れない。発動するのは「新規に追加した空行へ初めて種族名を
-		// 入力したとき」だけ。
 		function applyOpponentBuildPreset(speciesName: string): void {
 			const trimmed = speciesName.trim();
 			if (trimmed === "") return;
@@ -3288,9 +3019,6 @@ if (opponentNotesSection) {
 				const evInput = evInputEls[i];
 				if (evInput) evInput.value = String(row.evs[i] ?? 0);
 			});
-			// 🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08): モバイルでは努力値が
-			// テキスト表示(.damage-ev-value-text)になるため、入力欄への書き戻しと同時に
-			// 表示テキストも最新化しないとプリセット適用が画面に反映されない。
 			refreshAllEvTexts();
 
 			refreshCollapsedSummary();
@@ -3312,19 +3040,7 @@ if (opponentNotesSection) {
 		}
 		row.statValueEls = statValueEls;
 
-		// ラウンド3 A-6(5)で追加した条件チップは、以前は相手ビルドの箱(努力値グリッド
-		// 直下)に1個だけ置いていた。ラウンド6ユーザー指示(要件4・8)で「技ごとにONの
-		// 条件をまとめて表示する」設計に変わったため、この箱には置かず、各技列
-		// (.damage-column)側に1個ずつ生成するよう移した(renderColumns参照。
-		// row.columnChipEls/refreshRowConditionChips参照)。
 
-		// 「加算後(打点の合計)」(全技列の合計)。
-		// 🔴 ラウンド24ユーザー指示(24-D1、実装中にユーザーから訂正): 当初「カード全体
-		// (root)の全幅フッター」として実装したが誤りだった。正しくは「相手ビルドの箱
-		// (buildEl)の最下段ではなく、ダメージカード領域=技列側(techniquesRow、右側)の
-		// 最下部」に移動する、が要件。カード全体(左右をまたぐ全幅)ではなく、右側の
-		// 技列カラムの下に置く。要素自体はここで組み立て、実際のappendChild先(下の
-		// techniquesRow.appendChild(totalBlock))はtechniquesRowを組み立てた後に行う。
 		const totalBlock = document.createElement("div");
 		totalBlock.className = "damage-row-total";
 		const totalLabel = document.createElement("span");
@@ -3334,21 +3050,10 @@ if (opponentNotesSection) {
 		totalResult.className = "severity-bar damage-row-total-result tnum";
 		totalResult.textContent = "(計算前)";
 		totalResult.dataset.severity = "none";
-		// ダメージ量と判定で参照している値の性質が違うため、そのことを明示する。
-		// 「264〜312 (114〜135%) 10発以上」のように、打点がHPを超えているのに
-		// 確定的な致死判定にならない表示が正しく成立しうる(たべのこし持ちの相手など。
-		// ラウンド20(20-D4)で「未撃破」という語自体は廃止し、ラウンド23(23-D5)で
-		// 数値ラベルの「累計」も外した)。
 		totalResult.title = TOTAL_RESULT_HINT;
 		totalBlock.append(totalLabel, totalResult);
 		row.totalResultEl = totalResult;
 
-		// --- 下段: 攻撃列(横に並べると加算ダメージ計算) ---
-		// ラウンド5ユーザー指示(要件7の作り直し): 相手ビルドの箱(buildEl)を上段、
-		// 技列を下段に積む2段組にしたため、技列(columnsWrap)と「＋」(addColumnSlot)を
-		// 束ねる横方向ラッパー(techniquesRow)を新設し、bodyの直接の子として
-		// このラッパー1つだけを追加する(columnsWrap/addColumnSlot自体は
-		// 従来どおりのクラス名・要素のまま、親がbodyからtechniquesRowに変わっただけ)。
 		const techniquesRow = document.createElement("div");
 		techniquesRow.className = "damage-row-techniques-row";
 		body.appendChild(techniquesRow);
@@ -3365,21 +3070,8 @@ if (opponentNotesSection) {
 		row.addColumnSlotEl = addColumnSlot;
 		renderColumns(row);
 
-		// 🔴 UI改善ラウンド42ユーザー指示(42-D5)「ダメージカードは3段表示。1段目は技名、
-		// 2段目に詳細設定、3段目に累計の結果」。折りたたみ時の技列側(旧・「/」区切り
-		// 1行、collapsedMovesEl)を作り直す。1段目(collapsedMoveListEl)・2段目
-		// (collapsedDetailLineEl)をこのブロックで新設し、3段目は既存のtotalBlock
-		// (.damage-row-total、下でappendする)をそのまま流用する(クラス名・要素とも
-		// 変更しない。壊してはいけないクラス名、pitfalls.md参照)。
 		const collapsedTechniques = document.createElement("div");
 		collapsedTechniques.className = "damage-row-collapsed-techniques";
-		// 技名・条件テキストの2段(collapsedMoveListEl/collapsedDetailLineEl)をまとめる
-		// ラッパー。元は「折りたたみ時にもその右へ『＋』ボタンを横並びに置く」ために
-		// 新設したが、🔴 UI改修依頼(2026-08-08)「ダメージカードの圧縮表示を廃止」により
-		// モバイルでは圧縮状態自体が発生しなくなったため、その「＋」ボタン
-		// (.damage-row-collapsed-add-column-button)は削除した。ラッパー自体は
-		// デスクトップの折りたたみ表示・耐久調整ポップアップの複製で使い続けるため残す
-		// (中の2つの<p>はどちらもmargin:0なので、素の縦積みと見た目は同じ)。
 		const collapsedTechniquesText = document.createElement("div");
 		collapsedTechniquesText.className = "damage-row-collapsed-techniques-text";
 		const collapsedMoveListEl = document.createElement("p");
@@ -3395,9 +3087,6 @@ if (opponentNotesSection) {
 		// タイミングだけで読み直せば表示がずれることはない(refreshCollapsedStatsと
 		// 同じ考え方)。
 		function refreshCollapsedTechniques(): void {
-			// 1段目: 技名(+複数回ヒットする技には"(N発)"を付記。round-42.mdの例
-			// 「スケイルショット(5発) + フレアドライブ」どおり、hitCount===1のときは
-			// 付記しない)。技名が空の列(技が無い列)は列挙から除く。
 			const namedAttacks = row.attacks.filter((a) => a.moveName.trim() !== "");
 			if (namedAttacks.length === 0) {
 				collapsedMoveListEl.textContent = "(技未設定)";
@@ -3412,17 +3101,6 @@ if (opponentNotesSection) {
 				collapsedMoveListEl.textContent = movesText;
 				collapsedMoveListEl.title = movesText;
 			}
-			// 2段目: 詳細設定。既存のcollectConditionChips()(技列側の条件チップ、
-			// .damage-row-condition-chipsと同じ判定ロジック)を技列ごとに呼び、右パネル・
-			// 技列チップと同じ語彙(攻撃側どく/防御側テラスタル/急所/かべ等)で列挙する。
-			// 技列が複数あり、かつ条件が付いている列が複数あるときだけ列番号
-			// (.damage-column-order-labelと同じ1始まりの番号)を先頭に付けて区別する
-			// (単一技列、または条件が1列にしか付いていない場合は番号を付けない=
-			// 冗長な"1: "を出さない)。
-			// UI改修依頼(ダメージ計算カード、2026-08-02)「圧縮表示もレギュレーションに応じて
-			// テラスタルの表示・非表示を自動判断する」。展開側のrowTeraFieldWraps判定
-			// (isTerastalRegulation(currentIndividualRegulation()))と同じ値を、圧縮表示の
-			// 「攻撃側テラスタル」「防御側テラスタル」チップの出し分けにも使う。
 			const showTera = isTerastalRegulation(currentIndividualRegulation());
 			const chipGroups: { index: number; text: string }[] = [];
 			row.attacks.forEach((a, i) => {
@@ -3445,8 +3123,6 @@ if (opponentNotesSection) {
 				collapsedDetailLineEl.textContent = detailText;
 				collapsedDetailLineEl.title = detailText;
 			}
-			// 🔴 UI改修依頼(2026-08-08)「ダメージカードの圧縮表示を廃止」により、ここにあった
-			// 折りたたみ時の「＋」ボタンの上限判定(hidden/title の更新)はボタンごと削除した。
 		}
 
 		// 24-D1(訂正後): totalBlockはbuildElでもrootでもなく、techniquesRow
@@ -3454,11 +3130,6 @@ if (opponentNotesSection) {
 		// 収まる1行になり、相手ビルドの箱(左側)には掛からない。
 		techniquesRow.appendChild(totalBlock);
 
-		// --- 下部: 保存状態 ---
-		// メモ欄は要件により廃止した(row.memo自体は既存の値を保って送り返すために残す)。
-		// ラウンド4ユーザー指示: 「下部の保存済み表示は削除する」。DOMは残す(JS/E2Eが
-		// クラス名を参照する可能性があるため)が、初期描画時点(idle/saved相当)は
-		// 常に隠す(setRowSaveStatus参照。保存失敗時だけ表示する)。
 		const footer = document.createElement("div");
 		footer.className = "damage-row-footer";
 		footer.hidden = true;
@@ -3486,32 +3157,13 @@ if (opponentNotesSection) {
 		refreshDirectionUi();
 		renderColumnDisplays(row); // 保存済みclientResultをまず即座に表示する
 		void recalcRow(row); // エンジン初期化済みなら実数値・ダメージを再計算して上書きする
-		// UI改善ラウンド36ユーザー指示(36-1)「初期状態は展開」。🔴 UI改善ラウンド42
-		// ユーザー指示(42-D4/42-D5)対応でこの呼び出し位置をrenderRow冒頭付近から
-		// ここ(techniquesRow/collapsedTechniques・totalBlock等すべての構築完了後)へ
-		// 移した(上のsetCollapsed定義の直後にあったコメント参照。TDZ回避のため)。
 		setCollapsed(false);
 		// 専用ハンドルを廃止し、圧縮時だけカード面全体からswapを開始できるようにする。
 		setupCollapsedCardDrag(row, root);
 
-		// ラウンド5ユーザー指示(要件9)・ラウンド6ユーザー指示(要件1・2)・
-		// ラウンド7ユーザー指示(方針転換): ⚙ボタンは廃止したままだが、「相手ビルドの
-		// 箱をクリックしてもカード全体設定を開く」という挙動自体をユーザー確定仕様として
-		// 廃止した。サイドバーを開くのは技列の箱だけ(それ以外をクリックしても無反応)。
-		// まず共通のガードとして、カード内の入力欄(技列にも<select>/<input>がある)を
-		// クリックしたときに意図せず選択が切り替わらないよう、選択トリガーはフォーム
-		// 要素の外側に限定する(このガードを外すと入力のたびにサイドバーが切り替わる
-		// 回帰が起きるため、技列側の分岐の前段に必ず置く)。
-		// ガードを通過し、かつ.damage-column(技列)の内側だったときだけ
-		// selectColumn()を呼ぶ。それ以外(相手ビルドの箱・技列の下の余白・フッターなど)
-		// は何もしない=既に開いているサイドバーの内容も変えない。
 		root.addEventListener("click", (event) => {
 			const target = event.target as HTMLElement | null;
 			if (target?.closest("input, select, textarea, button, a, label")) return;
-			// 🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08)「ダメージカードの圧縮表示を
-			// 廃止」により、ここにあった「モバイルの圧縮カードはカードのどこを押しても
-			// 1つ目の技を選択する」分岐を削除した(899px以下では圧縮状態自体が発生しなく
-			// なったため到達不能。技カードは常に見えているので直接タップできる)。
 			const columnEl = target?.closest<HTMLElement>(".damage-column");
 			if (!columnEl) return;
 			const idx = Number(columnEl.dataset.columnIndex);
@@ -3544,20 +3196,8 @@ if (opponentNotesSection) {
 		observer.observe(selfAbilitySelect, { childList: true });
 	});
 
-	// UI改修依頼(ダメージ計算カード、2026-08-04)「カードをドラッグ&ドロップで並び替え」。
-	// opponent_notesテーブルには並び順カラムが無いため、field(jsonb)のorder?: number
-	// (分数キー方式。src/lib/opponent-notes-validation.tsのOpponentFieldInput参照)で
-	// 並び順を管理する。DamageRowState型自体は編集対象外(shared-core.ts)のため、
-	// rowTeraFieldWraps等と同じくWeakMapで行ごとに対応付ける。値が無い行(=既存データの
-	// 大半)はサーバー返却順(created_at DESC)をそのままフォールバックとして使う
-	// (fetchAndRenderRows/reorderRow参照)。
 	const rowSortOrder = new WeakMap<DamageRowState, number>();
 
-	// 🔴 UI改修依頼(個体編集画面、2026-08-02)「耐久調整」機能の土台。row.idはPOST前の
-	// 新規行だとnull(619行目付近のid: null参照)のため、耐久調整ブリッジが行を一意に
-	// 指すためのidはrow.id(あれば)を優先しつつ、無ければローカル専用の合成idを割り当てて
-	// WeakMapへキャッシュする(一度決めたidは、以後row.idが変わっても差し替えない=
-	// getDefenseRows→buildCollapsedPreviewの往復の間でidがぶれないようにするため)。
 	const bulkAdjustRowIds = new WeakMap<DamageRowState, string>();
 	let bulkAdjustRowIdSeq = 0;
 	function bulkAdjustRowId(row: DamageRowState): string {
@@ -3621,13 +3261,6 @@ if (opponentNotesSection) {
 		// 念のため両方処理する)。
 		clone.removeAttribute("id");
 		clone.querySelectorAll<HTMLElement>("[id]").forEach((idEl) => idEl.removeAttribute("id"));
-		// 🔴 実機で発覚した回帰(2026-08-08): モバイルの詳細設定パネル(#damage-detail-panel)は
-		// 「技カードをタップするとその場でインライン展開する」対応(refreshMobileDetailPlacement)
-		// により、選択中はこのカードの子孫(技列セクション内)へDOM移動している。以前は
-		// カードの外の兄弟だったため複製に入り込まなかったが、今は cloneNode(true) が
-		// パネルまで丸ごと複製してしまい、耐久調整ポップアップの圧縮プレビューに
-		// 詳細設定パネルが丸ごと写り込んでいた。複製側からは必ず取り除く
-		// (複製なので、実体である元のパネルには影響しない)。
 		clone.querySelectorAll<HTMLElement>(".damage-detail-panel").forEach((panelEl) => panelEl.remove());
 		// 表示専用の複製なので、フォーム要素(name属性の有無を問わず)はすべて操作不可にする
 		// (誤操作・自動保存の暴発を防ぐ)。tabindex="-1"でフォーカスが入らないようにもする。
@@ -3656,23 +3289,6 @@ if (opponentNotesSection) {
 	const engineReloadButton = el<HTMLButtonElement>("damage-calc-engine-reload-button");
 	engineReloadButton.addEventListener("click", () => window.location.reload());
 
-	// UI改善タスク「ダメージカードの外をクリックしたら選択(フォーカス)状態を解除する」。
-	// 2082行目付近の「リストの外側をクリックしたら閉じる」(テラスタルドロップダウン)と
-	// 同じ考え方: document全体のクリックを監視し、クリック位置(target)が選択の対象で
-	// ある技カード(.damage-column)にも右パネルの詳細設定エリア(#damage-detail-panel。
-	// パネル内の操作は選択解除の対象外にする)にも含まれない場合だけ選択解除する。
-	// 🔴 UI改修依頼(個体編集ダメージカード、2026-08-02)「技カードの外をクリックしたときに、
-	// 技カードへのフォーカスが外れるようにする」により、判定の基準を「ダメージカード全体
-	// (row.root)の外側」から「技カード(.damage-column)の外側」へ狭めた。これにより
-	// 相手ビルドの箱・カードのフッター・技カード下の余白など「カード内だが技カードの外」を
-	// クリックしたときも選択が外れる(以前はカード内なら何をクリックしても選択が残っていた)。
-	// row.root を辿らなくなったため rows への依存も無くなった(行の追加・削除で判定が
-	// 古くなる余地が無くなり、閉包経由で最新のrowsを見る必要も無い)。
-	// closest() のためにElementへ絞る(テキストノードをクリックした場合、event.targetは
-	// Chromiumでは要素になるが、仕様上Nodeなのでガードしておく)。技カードごと削除された
-	// 直後(× ボタン)は target が切り離された部分木に居るが、その部分木にも .damage-column
-	// の祖先が残るため closest() は非nullを返し、ここでは何もしない(選択マークの整合は
-	// renderColumns / rebuildRowsList 側が持つ。従来の row.root.contains() と同じ挙動)。
 	const damageDetailPanelEl = el<HTMLElement>("damage-detail-panel");
 	const damageDetailPanelOriginalParentEl = damageDetailPanelEl.parentElement;
 	function refreshMobileDetailPlacement(): void {
@@ -3687,14 +3303,6 @@ if (opponentNotesSection) {
 		const selectedRow = getSelectedRow();
 		const selectedColumn = getSelectedColumn();
 		if (selectedRow && selectedColumn && selectedRow.root?.parentElement === damageRowsListEl) {
-			// 🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08)「技カードをクリックすると
-			// 詳細設定がインライン展開される」。提案図
-			// (docs/ui_proposal/mobile/box_個体編集_vs_詳細設定.png)では、展開された詳細設定は
-			// ダメージカードの内側・技カード列の直下・累計ダメージ(.damage-row-total)の上に
-			// 開く。従来はカード全体(root)の直後へ移していたため、累計ダメージがパネルより
-			// 上に残り「そのカード自身が展開された」ようには見えていなかった。
-			// 技列セクション(.damage-row-techniques-row)はaddColumnSlotの親であり、
-			// 累計結果ブロックはその直下の子(renderRow参照)。
 			const techniquesRow = selectedRow.addColumnSlotEl?.parentElement ?? null;
 			const totalBlock = techniquesRow?.querySelector<HTMLElement>(":scope > .damage-row-total") ?? null;
 			if (techniquesRow && totalBlock) {
@@ -3752,32 +3360,7 @@ if (opponentNotesSection) {
 		clearSelectionAndMarks();
 	});
 
-	// UI改善ラウンド36ユーザー指示(36-3)で「すべて折りたたむ・展開する」の2ボタン版を導入し、
-	// 🔴 UI改善ラウンド38ユーザー指示(38-H1)「ヘッダーに移動し単一ボタンで交互切り替え」により
-	// 単一トグルボタンへ統合した。ボタン本体はDamageCalcSection.astroではなく
-	// src/pages/box/[id].astro の<Fragment slot="topbar-actions">内(AppLayout共通トップバー)
-	// にあるが、id経由のel()で問題なく取得できる(同じページのDOMツリーに含まれるため)。
-	// 個々の行の折りたたみボタン(setCollapsed、上のrowCollapseHandles参照)との状態整合は
-	// setAllRowsCollapsed()が各行のsetCollapsed()をそのまま呼ぶことで保つ(全展開後に1行だけ
-	// 再度折りたたむ、といった操作も個別ボタン側のsetCollapsedがそのまま効くため破綻しない)。
-	// ボタンのラベル/disabled切り替えはupdateCollapseToggleButtonLabel()に集約し、
-	// 「行の追加・削除」「個別行の折りたたみ切り替え」「このボタン自身のクリック」の
-	// 3経路すべてから呼ぶ(setCollapsed内・rebuildRowsList内、下方の該当箇所を参照。
-	// この関数はここより上のsetCollapsed定義から前方参照されるが、関数宣言はブロック内で
-	// ホイストされ、かつ実際に呼ばれるのは行の初期化時=この行の実行より後になるため問題ない
-	// 既存のregisterDamageCalcBridge等と同じ考え方)。
 	const damageCollapseToggleButtonEl = el<HTMLButtonElement>("damage-collapse-toggle-button");
-	// UI改善ラウンド43ユーザー指示(43-H1)「すべて折りたたむ・すべて展開ボタンにも>>記号を
-	// 追加(左端)」。box/[id].astro側の静的マークアップを
-	// <span class="damage-collapse-toggle-chevron">»</span><span class="damage-collapse-toggle-label">
-	// の2要素構成にしたため(<Fragment slot="topbar-actions">参照)、ここではlabelSpan側の
-	// textContentだけを差し替える(textContent全体を上書きするとchevronSpanごと消えてしまうため)。
-	// 個別カードの折りたたみボタン(.damage-row-collapse-toggle-button)と同じ回転ロジックを
-	// 流用する: このボタン自身にaria-expandedを立て、CSS側(DamageCalcSection.astro、
-	// #damage-collapse-toggle-button .damage-collapse-toggle-chevron)がその属性値で
-	// chevronSpanだけを回転させる(ボタン本体やlabelSpanは回転しない)。
-	// 「現在すべて折りたたまれていない(=少なくとも1枚は展開中)」を"expanded"寄りの状態とみなし、
-	// 個別ボタンの「展開中=aria-expanded="true"で上向き」と同じ向きの対応にする。
 	const damageCollapseToggleLabelEl = damageCollapseToggleButtonEl.querySelector<HTMLElement>(
 		".damage-collapse-toggle-label",
 	);
@@ -3804,12 +3387,6 @@ if (opponentNotesSection) {
 		updateCollapseToggleButtonLabel();
 	});
 
-	// カード追加処理を1箇所にまとめる(通常の追加タイルと、0件時の空状態内CTAの両方から呼ぶ。
-	// ラウンド3 B-5参照)。
-	// UI改修依頼(ダメージ計算カード、2026-08-04)「新規カードは先頭に追加する」により、
-	// rows.push()からrows.unshift()に変更する。並び順(rowSortOrder)も「現在rowsの中の
-	// 最小order値 − 1000」を割り当てて先頭扱いにする(既存行が誰もorderを持たない
-	// = 通常のケースでは基準を0とみなす)。
 	function addNewRowAndFocus(): void {
 		const row = createEmptyRow();
 		// 通常の新規カードだけ初期技を補う。サジェスト・既存メモの復元経路には適用しない。
@@ -3825,12 +3402,6 @@ if (opponentNotesSection) {
 		row.root?.querySelector<HTMLInputElement>('input[aria-label="相手ポケモン名"]')?.focus();
 	}
 
-	// ダメージ計算のサジェスト(ユーザー要望、2026-08-05)。候補1件を新しいカードにする。
-	// 追加位置・order値の付け方・rebuildRowsListの呼び方はaddNewRowAndFocus()と同じにする
-	// (「新規カードは先頭に追加する」というUI改修依頼 2026-08-04 の挙動を2箇所で食い違わせない)。
-	// 相手のビルド(性格・特性・持ち物・テラス・努力値)は集計側が項目ごとの最頻値として
-	// 返してくるものをそのまま入れる(migrations/020)。値が無い項目は空のままにし、
-	// 保存済みの個体データと同じく「未入力」として扱う。
 	function addSuggestedRow(suggestion: DamageCalcSuggestion): void {
 		const row = createEmptyRow();
 		row.direction = suggestion.direction;
@@ -3899,16 +3470,8 @@ if (opponentNotesSection) {
 	}
 
 	function rebuildRowsList(): void {
-		// UI改善ラウンド36ユーザー指示(36-3)「相手が0件のときはツールバー自体が意味を
-		// 持たない」→ 🔴 38-H1でヘッダーの単一ボタンに統合した後も同じ考え方を踏襲し、
-		// 0件のときはボタンをdisabledにする(updateCollapseToggleButtonLabel内)。
-		// 行の追加・削除のたびに「全部畳まれているか」の判定結果が変わりうるため、ここでも
-		// 呼び直す。
 		updateCollapseToggleButtonLabel();
 		damageRowsListEl.innerHTML = "";
-		// UI改修依頼(ダメージ計算カード、2026-08-04)「追加ボタンを最上部に固定配置する」
-		// により、以前は行ループの後ろに追加していたbuildAddRowTile()をループの前に移す
-		// 0件のときも同じ追加タイルだけを表示する。
 		damageRowsListEl.appendChild(buildAddRowTile());
 		for (const row of rows) {
 			if (row.root) damageRowsListEl.appendChild(row.root);
@@ -3983,10 +3546,6 @@ if (opponentNotesSection) {
 			});
 			if (!res.ok) throw new Error(`一覧の取得に失敗しました (status=${res.status})`);
 			const body = (await res.json()) as { data: OpponentNoteRecord[] };
-			// ラウンド11ユーザー指示(実装リスク1): 選択肢配列から削除された値
-			// (おおひでり/ゆめうつつ等)が残っていた行は、正規化後の値でPUTし直す
-			// (renderRow()がrow.saveStatusEl/footerElを設定した後でないと
-			// scheduleRowSave()が使えないため、renderRowループの後にまとめて行う)。
 			const rowsNeedingResave: DamageRowState[] = [];
 			rows = body.data.map((note) => {
 				const { row, needsResave, order } = noteToRowState(note);
@@ -3994,11 +3553,6 @@ if (opponentNotesSection) {
 				if (order !== undefined) rowSortOrder.set(row, order);
 				return row;
 			});
-			// UI改修依頼(ダメージ計算カード、2026-08-04)「カードの並び順を永続化する」。
-			// order値を持つ行はorder昇順、持たない行(既存データはほぼ全部これに該当)は
-			// サーバー返却順(created_at DESC)の元インデックスを仮のorder値として扱う
-			// (Array.prototype.sortは安定ソートなので、order値を持つ行が1つも無ければ
-			// 実質的に元の並びのまま=現状維持のフォールバックになる)。
 			rows = rows
 				.map((row, index) => ({ row, sortKey: rowSortOrder.has(row) ? (rowSortOrder.get(row) as number) : index }))
 				.sort((a, b) => a.sortKey - b.sortKey)
@@ -4006,14 +3560,6 @@ if (opponentNotesSection) {
 			for (const row of rows) renderRow(row);
 			for (const row of rowsNeedingResave) scheduleRowSave(row);
 			rebuildRowsList();
-			// 🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08)「ダメージカードの圧縮表示を廃止し、
-			// 常に2枚の技カードが見えるようにする」。以前はここで「保存済み行を初めて描画した
-			// 直後だけモバイル既定を圧縮表示にする」(setAllRowsCollapsed(true))を行っていたが、
-			// 圧縮表示ではカードを開かないと技カードに辿り着けなかった。899px以下では常に
-			// 展開状態で表示する(個別カードの折りたたみボタンもCSSで非表示にした。
-			// DamageCalcSection.astroの.damage-row-collapse-toggle-button参照)。
-			// デスクトップ(900px以上)の折りたたみ機能は従来どおり残す。
-			// 初期表示では画面幅にかかわらず技列を自動選択せず、詳細パネルも空状態に戻す。
 			clearSelection();
 			renderDetailPanel();
 		} catch (err) {
@@ -4028,17 +3574,8 @@ if (opponentNotesSection) {
 
 	void fetchAndRenderRows();
 
-	// ダメージ計算のサジェスト(ユーザー要望、2026-08-05)の初期取得。上のブリッジ登録より後
-	// (= listExistingKeys/addSuggestion が使える状態)であればよく、fetchAndRenderRows()の
-	// 完了は待たない ── 取得が先に終わってもサジェストは「まだ画面に無い計算」を1件も
-	// 除外しないだけで、カードが揃った時点で次の再描画から正しく除外される。
 	initDamageSuggest();
 
-	// --- エンジン初期化状態の表示・準備完了時の全行再計算 ---
-	// ラウンド3 B-12: 失敗時、以前はpyodide-engine.ts由来の生のメッセージ(CDNの
-	// URLを含みうる)をそのまま表示していた。内部URLを含まない定型文に差し替え、
-	// 再読み込みボタンを出す(テキストはengineStatusTextElだけを更新し、
-	// engineStatusEl.textContent への直接代入はしない=ボタンを消さないため)。
 	function renderEngineStatus(progress: EngineProgress): void {
 		engineStatusEl.dataset.state = progress.status;
 		// 準備完了後は行そのものを隠す。カードを囲むパネルを廃した結果、この1行だけが
@@ -4063,9 +3600,6 @@ if (opponentNotesSection) {
 	function combinedDamageEngineProgress(progress: EngineProgress): void {
 		renderEngineStatus(progress);
 		if (progress.status === "ready") {
-			// 左パネルの実数値表示(recalcStats)も、エンジン初期化完了と同時に更新する
-			// (旧実装がengineInitButton経由のcombinedEngineProgressで担っていた処理を踏襲、
-			// 左パネルの入力・自動保存自体には一切手を入れていない)。
 			void recalcStats();
 			for (const row of rows) {
 				void recalcRow(row);

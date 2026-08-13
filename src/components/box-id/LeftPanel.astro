@@ -115,32 +115,12 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 					<input id="nickname" class="field-control" type="text" autocomplete="off" placeholder="ニックネーム" aria-label="ニックネーム" value={pokemon.nickname ?? ""} />
 				</div>
 				<div class="field">
-					{/* 🔴 UI改修依頼(2026-08-01)「2段目の左側(種族名の下)にレギュレーションの選択
-					    ボックスを追加。なし、を指定するためにplaceholder "レギュレーション" のままを
-					    許容する」。候補は src/lib/regulations.ts の REGULATIONS(jpokeの
-					    jpoke.types.Regulation から build:master-data で生成)。アプリ側で
-					    レギュレーション名をハードコードしない。
-					    「なし」は value="" の先頭optionが担い、保存時は null に正規化される
-					    (owned-pokemon-validation.ts の normalizeOptionalString)。未選択のときだけ
-					    data-empty="true" が付き、他の未入力欄(placeholder表示)と同じ破線・
-					    薄い文字色になる(下のCSS / left-panel.ts の syncRegulationPlaceholder)。 */}
 					<select id="regulation" class="field-control" aria-label="レギュレーション" data-empty={pokemon.regulation ? undefined : "true"}>
 						<option value="">{REGULATION_PLACEHOLDER}</option>
-						{/* 🔴 UI改修依頼(個体編集左パネル、2026-08-01)「レギュレーションの選択肢を
-						    新しい順に並べる」により、REGULATIONS(古い順)ではなくregulations.ts側で
-						    既に用意されている REGULATIONS_NEWEST_FIRST([...REGULATIONS].reverse()、
-						    regulations.ts自体は編集対象外)を使う。selected判定・value・保存経路は
-						    一切変えていない(並び順だけの変更)。 */}
 						{REGULATIONS_NEWEST_FIRST.map((r) => <option value={r} selected={pokemon.regulation === r}>{r}</option>)}
 					</select>
 				</div>
 				<div class="field field-tera" id="tera-field" hidden={!showTeraField}>
-					{/* UI改善ラウンド28ユーザー指示(28-L4)により、旧.top-block-icon-info内にあった
-					    テラスタル選択ボックス一式をここへ移設した(マークアップはラウンド25(25-L2)当時と
-					    ほぼ同じ、.top-block-tera-wrap(帯専用の固定幅170pxオーバーライド)は不要になった
-					    ため外した)。ボタンの中身は28-G1で専用アイコン(正方形)に変わったことに伴い、
-					    アイコン+テラスタイプ名のテキストを並べる形にする(<script>のupdateTeraDropdownButton
-					    参照。未設定時は従来どおり「テラスなし」のplaceholder)。 */}
 					<div class="field-with-image tera-dropdown-wrap">
 						<select id="tera" aria-label="テラスタイプ" title="テラスタイプ" hidden>
 							<option value="">テラスタルなし</option>
@@ -165,37 +145,13 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 						>
 						</ul>
 					</div>
-					{/* 🔴 UI改修依頼(個体編集左パネル、2026-08-01)により、ここにあった常時表示の
-					    ヒント段落(#tera-suggestion-hint)は撤去した。人気のテラスタイプは
-					    #tera-dropdown-list(上記.tera-dropdown-wrap内)の並び順・候補テキストへの
-					    "(NN%)"併記に反映する形に変更した(<script>のapplyTeraSuggestionOrdering、
-					    left-panel.ts参照)。 */}
 				</div>
 				<div class="field field-ability">
-					{/* ラウンド21ユーザー指示(21-L5)「特性はそのポケモンに属する特性だけを候補と
-					    する選択ボックスにする」により<input list=...>から<select>へ置き換える。
-					    <script>のrebuildAbilityOptions()が種族確定後にloadAbilitiesMap()から
-					    候補を作り直すため、SSR側はpokemon.ability_nameを唯一の<option>として
-					    仮置きするだけでよい(JS初期化直後にすぐ置き換わる)。#ability-list
-					    datalist自体は右パネル(相手ビルド)がまだ使うため削除しない。 */}
 					<select id="ability" class="field-control" aria-label="特性" title={pokemon.ability_name ?? ""}>
 						<option value={pokemon.ability_name ?? ""} selected>{pokemon.ability_name || "特性"}</option>
 					</select>
 				</div>
 				<div class="field">
-					{/* UI改善ラウンド41ユーザー指示(41-L1)「アイテム選択ボックスもテラスタルと同様に、
-					    選択肢をアイコン+テキストで表示」。テラスドロップダウン(#tera-dropdown-*、下記
-					    tera-dropdown-wrap参照)一式を参照実装にする。保存経路(buildPayloadが参照する
-					    #itemの値)は変えない: #item自体(<input type="text">)を実体として残し、
-					    テラスの#tera(隠しselect)と同じくhidden化する(#item-list<datalist>自体は
-					    右パネル等が引き続き使う可能性があるため削除しない)。
-					    テラス(19種)と違いアイテムは候補が数百件規模(#item-listの候補元、
-					    <script>のgetItemOptionNames参照)のため、テラスと同じ全件表示ではなく
-					    開いたときに絞り込み入力(#item-dropdown-search)付きの一覧を作る
-					    (既存の「アイテム名を打って絞り込む」操作性を維持するため)。
-					    アイコン解決はshared-core.tsの共有関数applyItemImage()をコピーせず
-					    そのまま再利用する(<script>のupdateItemDropdownButton/
-					    buildItemDropdownOptions参照)。 */}
 					<div class="field-with-image item-dropdown-wrap">
 						<input id="item" type="text" list="item-list" autocomplete="off" aria-label="アイテム" value={pokemon.item_name ?? ""} title={pokemon.item_name ?? ""} hidden />
 						<button
@@ -226,62 +182,12 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 							</ul>
 						</div>
 					</div>
-					{/* 🔴 UI改修依頼(個体編集左パネル、2026-08-01)により、ここにあった常時表示の
-					    ヒント段落(#item-suggestion-hint)は撤去した。人気の持ち物は
-					    #item-dropdown-list(上記.item-dropdown-wrap内)の並び順・候補テキストへの
-					    "(NN%)"併記に反映する形に変更した(<script>のapplyItemSuggestionOrdering、
-					    left-panel.ts参照)。ヒント削除に伴い、縦積み用の場繰り扱いクラス
-					    (field-with-suggestion)も不要になったため、この.fieldは通常の.field
-					    (global.cssの行方向レイアウト)に戻した。 */}
 				</div>
 			</div>
-			{/* 🔴 UI改修依頼(個体編集左パネル、2026-08-01)「サジェストはリストボックスの候補に
-			    反映し、パネルに常時表示しない」により、ここにあった常時表示のヒント段落
-			    (#nature-suggestion-hint)は撤去した。当時は人気の性格を#nature-list<datalist>
-			    の並び順・label属性(作用率)に反映していたが、同日の別要件「性格をREAD限定にする」で
-			    #nature-readout-valueを<input>から読み取り専用の<span>へ変更したのに伴い、
-			    #nature-list<datalist>自体(編集可能なinputが無いと機能しない)を削除した。 */}
 		</div>
 
-		{/* 🔴 UI改修依頼(個体編集左パネル・レギュレーション対応、2026-08-01)により、ここにあった
-		    持ち物+テラスタルの独立行(.field-grid.field-grid-single、28-L4で作った行)は解体した。
-		    持ち物は上の.top-block-fieldsの3段目右(特性の隣)へ、テラスタルは2段目右へ移設している
-		    (マークアップ・idはそのまま移動しただけ)。 */}
 
 
-		{/* UI改善ラウンド26ユーザー指示(26-L3)「アイテム段と技段の間にも横棒を配置」。
-		    既存の区切り線トークン(border-top: 1px solid var(--color-border)、
-		    .damage-row-footer等で使っている定石と同じ色・太さ)をこの技グリッド
-		    (.move-fields-grid、下のCSS参照)にだけ追加する。 */}
-		{/* 技は2列×2段に詰める(縦1080に収めるため)。
-		    ラウンド4ユーザー指示: 「技1〜4でそれぞれラベルを置かず、"わざ" と1個
-		    置いておけばよい」。個別の技1〜技4ラベル(A-8で横並びラベルに統一した
-		    もの)をやめ、グループ見出し1つ(.field-group-label)にしていたが、
-		    ラウンド20ユーザー指示(20-L1)で他の項目(種族・特性・ニックネーム)と同じく
-		    placeholder方式に揃えるため、この見出し自体を撤去し各inputに
-		    placeholder="技N"を付ける(aria-label="技N"は維持してa11yを保つ)。
-		    ラウンド20ユーザー指示(20-L2): 技の詳細ホバー表示(旧.move-detail-trigger、
-		    ⓘアイコン+ツールチップ)は撤去した。
-		    ラウンド21ユーザー指示(21-L8)「技に背景色をつけると選択中のハイライト表示の
-		    ように見えてしまう。背景色はつけず、タイプアイコンを技名の左に置く」。
-		    <input>の中には画像を入れられないため、入力欄の左に絶対配置し、
-		    input側のpadding-leftで文字と重ならないようにする(検索欄の虫眼鏡アイコンと
-		    同じ定石)。ラウンド23ユーザー指示(23-L4)「技の選択ボックスの枠色をタイプごとに
-		    変えない」により、border-colorをタイプ色にしていたupdateMoveTypeColor()は
-		    関数ごと削除した(タイプアイコンで足りるため)。枠色は他の入力欄と同じ既定色。 */}
-		{/* UI改善ラウンド38ユーザー指示(38-L1)「技の順番をドラッグアンドドロップで入れ替え」。
-		    各技入力欄の右端に専用のドラッグハンドル(.move-drag-handle)を追加する。
-		    ハンドルを入力欄自体ではなく別要素にした理由: 入力欄自体をdraggable/pointerの
-		    起点にすると、ラウンド37の技選択ウィンドウ(setupMovePickerWindow、
-		    input.mousedownでopenPicker)やテキスト選択・キャレット移動と操作が競合する。
-		    ハンドルはinputの兄弟要素(#move-N入力欄自体はDOM上の位置・idを一切動かさない)
-		    なので、input側の既存リスナー(mousedown→openPicker、setupDatalistRefocus等)には
-		    無関係。装飾的なグリップ(CSSのドット格子、下記.move-drag-handle参照)のみで、
-		    aria-hidden="true"にしてスクリンリーダーには公開しない(マウス操作専用の追加手段
-		    という位置づけ。技名の直接入力・技選択ウィンドウはキーボードでも引き続き
-		    全機能利用できるため、代替経路が失われるわけではない)。
-		    並び替えの実装はleft-panel.tsのsetupMoveReorderDrag()参照(値をスワップする方式、
-		    詳細は同関数のコメント)。 */}
 		<div class="mobile-move-actions">
 			<button type="button" class="mobile-move-toggle btn-ghost" aria-haspopup="dialog" aria-label="わざ編集を開く">
 				<span class="mobile-edit-action-label">わざ編集</span>
@@ -306,15 +212,6 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 						<input
 							id={`move-${slot}`}
 							type="text"
-							{/* UI改善ラウンド40ユーザー指示(40-L3-1)「技選択テーブル導入後も古い技候補表示
-							    (ブラウザ標準datalist)が残っている」対応。ラウンド37で専用の技選択
-							    ウィンドウ(.move-picker-window、setupMovePickerWindow)を追加したが、
-							    この#move-1〜#move-4の<input>にはlist="move-list"が残ったままだった
-							    ため、ネイティブdatalist候補と専用ウィンドウが同時に表示されていた。
-							    共有の<datalist id="move-list">自体(box/[id].astro側で定義)は
-							    右パネル(相手ビルド)の技入力欄がまだ使用するため削除しない
-							    (168行目付近コメント参照)。左パネルのこの4つの<input>だけ
-							    list属性を外す(右パネル側のinputには一切影響しない)。 */}
 							autocomplete="off"
 							placeholder={`技${slot}`}
 							aria-label={`技${slot}`}
@@ -325,93 +222,27 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 				</div>
 			))}
 		</div>
-		{/* 🔴 UI改修依頼(個体編集左パネル、2026-08-01)により、ここにあった常時表示のヒント段落
-		    (#move-suggestion-hint)は撤去した。人気の技は技選択ウィンドウ(setupMovePickerWindow、
-		    <script>のleft-panel.ts参照)の「人気」列(並び替え可能、初期表示は人気順)に反映する
-		    形に変更した。 */}
 
 		<div class="stat-adjustment-section">
 			<div class="stat-table">
 			<div class="stat-table-header">
-				{/* 🔴 UI改修依頼(個体編集左パネル、2026-08-01)「性格ボックスを廃止。性格は
-				    ステータス表の1列目のヘッダーとする(種族値、の左側)」。上の.top-block-fields内に
-				    あった性格欄をここ(ヘッダー1列目、それまで空の<span>だったセル)へ移設した。
-				    id="nature-readout-value"・left-panel.tsのrefreshNatureButtons()書き戻し先は
-				    一切変えていない。DOM上の位置だけが変わった。
-				    ▲/▼ボタン(各能力値行の左端)との併用も従来どおり(両方が同じ
-				    leftNatureUp/leftNatureDownを操作する)。 */}
 				<span class="stat-table-header-nature">
-					{/* ラウンド23ユーザー指示(23-L2)「性格は、特性の下に入力ボックスを配置する。
-					    ただし入力不可にしておき自動決定の仕組みを続投。」ラウンド21(21-L4)は
-					    「<input readonly>にしない、操作できる部品に見えると疑問を生む」と
-					    明記していた。ラウンド48ユーザー追加指示(A-7)で一度直接編集可能な
-					    <input>に変えたが、🔴 UI改修依頼(個体編集左パネル、2026-08-01)
-					    「性格をREAD限定(編集不可)にして、"種族値"と同じフォントで表示する」
-					    により、A-7の判断をここで撤回する。
-					    ・要素自体を<input>から読み取り専用の<span>へ変更する(id・DOM上の位置は
-					    変えない。left-panel.ts側もrefreshNatureButtons()の書き戻し先を
-					    .value代入からtextContent代入へ追随済み。#nature-list<datalist>と
-					    それに依存していたapplyNatureSuggestionOrdering呼び出し対象・
-					    直接入力のchangeハンドラは、編集可能なinputが無いと成立しないため
-					    セットで削除した)。
-					    ・見た目は入力欄然とした枠(.field-control相当のborder/padding/背景)を
-					    外し、隣の"種族値"見出し(<span>種族値</span>、装飾用クラスを持たず
-					    .stat-table-headerの既定値(font-size:xs/font-weight:600/
-					    color:text-muted)をそのまま継承しているだけ)と完全に同じフォントに
-					    揃える。そのため専用のCSS上書き(旧.stat-table-header-nature > input)を
-					    削除し、このspanには何のfont関連プロパティも指定しない
-					    (=種族値ヘッダーと同じ継承経路になる)。
-					    ・▲/▼ボタン(各能力値行の左端)による上昇/下降切り替えは残す(唯一の
-					    性格変更手段。leftNatureUp/leftNatureDownを操作する経路は変えていない)。 */}
 					<span
 						id="nature-readout-value"
 						aria-label="性格"
 					>{pokemon.nature ?? ""}</span>
 				</span>
 				<span>種族値</span>
-				{/* ラウンド3 B-10: スライダーと数値入力を別グリッド列に分けたため(scoped
-				    <style>の.stat-row参照)、この見出しはgrid-column:span 2で両方の
-				    真上を覆う(以前は数値入力の上に何も見出しが無いように見えていた)。
-				    ラウンド8指摘(A-4): 残りポイント(#ev-remaining)は「実数値」ヘッダ側に
-				    2行で同居していたが、意味的には努力値入力欄の残量なのでこちら側へ移す。
-				    justify-content:space-betweenで左「努力値(0〜32)」・右「残り18」に
-				    (<script>のupdateEvRemaining参照)。
-				    ラウンド24ユーザー指示(24-L4)「"努力値"の文字はスライドバーの中央に配置」により、
-				    1つのspan(grid-column:span 2)だったものを2つに分離する。
-				    .stat-table-header-ev-label(スライダー列=3列目単独)は他の見出しと同じ
-				    中央揃えの対象になり、.stat-table-header-ev-remaining(努力値数値列=4列目単独)は
-				    右寄せを維持する(上のscoped<style>参照。「残りN」の位置・見た目は変えない)。 */}
 				<span class="stat-table-header-ev-label">
-					{/* ラウンド20ユーザー指示(20-L3): 「(0〜32)」はaria-label側に含まれていない
-					    プレーンテキストの一部だったため、これだけを削除する(aria-labelは各入力の
-					    aria-label="◯◯の努力値"のまま変更していない)。 */}
 					努力値
 				</span>
 				<span class="stat-table-header-ev-remaining">
 					<span id="ev-remaining" class="ev-remaining tnum"></span>
 				</span>
 				<span class="stat-table-header-real-label">実数値</span>
-				{/* 🔴 UI改修依頼(個体編集左パネル、2026-08-03)「H・B・D行の個別"調整"ボタンと
-				    S行のリンクを撤去する」により、2026-08-02に新設したボタン専用の6列目(値と
-				    ボタンを分離するための空セルを含む)は不要になった。6列だったグリッドを
-				    5列に戻す(下の.stat-table-header/.stat-rowのgrid-template-columns参照。
-				    2つは必ず同じ値に保つこと)。この見出し側の空セル(旧<span aria-hidden="true">)も
-				    5列目のテキスト1個で完結するため削除した。 */}
 			</div>
 			{STAT_LABELS.map(({ key, label: statLabel, short: statShort }, i) => (
 				<div class="stat-row">
-					{/* ラウンド5ユーザー指示: ステータスラベルのクリックによる上昇/下降切り替えを
-					    作り直す。以前は1個のボタンを「無補正→上昇→下降→無補正」と巡回させて
-					    いたが、(a)押せる見た目が無い(b)ある能力を↑にすると別の能力の↓が
-					    黙って消える(c)2回目のクリックで全補正が消える、という実質操作不能な
-					    挙動だった(いじっぱり保存済みのメガリザードンXが検証中に「まじめ」に
-					    書き換わった事故はこれが原因)。
-					    → ▲(上昇)/▼(下降)を独立した当たり判定のボタンに分離する。
-					    ▲は他の能力の▲だけを解除し(▼は一切変更しない)、▼も同様(<script>の
-					    leftNatureUp/leftNatureDown、nature-up-{key}/nature-down-{key}の
-					    クリックハンドラ参照)。押下中の状態は塗り色(--color-stat-up/--color-stat-down)+
-					    aria-pressedで明示する。HPは性格補正の対象外なのでボタン自体を置かず、
-					    位置だけ揃えるプレースホルダーを入れる。 */}
 					{key === "hp" ? (
 						<span class="stat-row-label" aria-label={statLabel} title={statLabel}>
 							<span class="stat-nature-btn stat-nature-placeholder" aria-hidden="true"></span>
@@ -428,11 +259,6 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 								aria-label={`${statLabel}を性格補正で上昇させる`}
 								title={`${statLabel}を上昇に設定`}
 							>▲</button>
-							{/* ラウンド21ユーザー指示(21-L7)「A,B,...のラベル色も赤・青に変わるようにする」。
-							    上昇なら--color-stat-up(赤系)・下降なら--color-stat-down(青系)。相手ビルドカード側
-							    (20-D3)の--color-stat-up/--color-stat-downと同じglobal.cssの変数を
-							    再利用して揃える。<script>のrefreshNatureButtons()がdata-mod属性を
-							    書き戻す(色だけで意味を伝えないためaria-pressedの▲▼ボタン自体も維持)。 */}
 							<span id={`nature-label-${key}`} class="stat-row-label-short">{statShort}</span>
 							<button
 								type="button"
@@ -449,18 +275,6 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 					    スライダー・数値入力の両方に aria-label で「どの能力の努力値か」を持たせる。 */}
 					<div class="stat-input-controls">
 						{/* 端点ボタンもrangeのinputイベントへ合流させ、再計算・残量更新・自動保存を共通化する。 */}
-						{/* 🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08)「種族値と努力値の間に0/-/+/32の
-						    4ボタンを配置する」対応。899px以下ではスライダー(input[type="range"])を非表示にし、
-						    代わりに新設の.stat-ev-step-button(-/+)をスライダーの左右に挟んで表示する
-						    (下記scoped<style>の@media (max-width: 899px)参照)。DOM順を
-						    「0ボタン→-ボタン→(非表示化される)スライダー→+ボタン→32ボタン」の順にしておくことで、
-						    flexの並び順がそのまま見た目の「0 / - / + / 32」になる(新たなorder指定は不要)。
-						    デスクトップ(900px以上)はこのブロックの対象外のため、
-						    スライダー操作・既存の0/32ボタンの見た目は一切変更しない。
-						    -/+のクリックハンドラは既存の0/32ボタンと同じ配線方針(left-panel.tsの
-						    .stat-ev-endpoint-buttonクリックハンドラ参照)を踏襲し、rangeInput.valueを
-						    書き換えてからinputイベントを発火させることで、pairEvSlider側の同期・
-						    自動保存・実数値再計算にそのまま乗せる(left-panel.ts側の配線を参照)。 */}
 						<div class="stat-ev-range-controls">
 							<button type="button" class="btn-ghost stat-ev-step-button" data-ev-target={`ev-${key}-range`} data-ev-step="-1" aria-label={`${statShort}の努力値を1減らす`}>−</button>
 							<input
@@ -480,16 +294,6 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 								<span class="stat-ev-endpoint-text" aria-hidden="true">MAX</span>
 							</button>
 						</div>
-						{/* UI改善ラウンド40ユーザー指示(40-T2)「スピンボックスは上下限で打ち切らず
-						    循環するUIにする」対応。min/max属性を残したままだと、ブラウザ既定の
-						    増減スピナー矢印・ArrowUp/ArrowDownキー・ホイール操作のいずれも上下限で
-						    値を静かに止めてしまい、そもそも範囲外の値でinputイベント自体が
-						    発火しない(実測、Playwright: min/max属性ありのままArrowUpを押しても
-						    値が変化しない)。育成ルール(努力値0〜32)自体は変えないが、
-						    「上下限を超えたら循環させる」挙動はJS側(left-panel.tsのwrapToRange、
-						    pairEvSlider内)でしか実現できないため、あえてmin/max属性を外す
-						    (実際の範囲チェック・保存時のクランプはowned-pokemon-form.tsの
-						    readEv()が引き続き0〜32でクランプするため、育成ルールが破られることはない)。 */}
 						<input
 							id={`ev-${key}`}
 							type="number"
@@ -498,57 +302,15 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 							value={statAt(pokemon.evs, i, 0)}
 						/>
 					</div>
-					{/* 🔴 UI改修依頼(個体編集左パネル、2026-08-03)「H・B・D行の個別"調整"ボタンと
-					    S行のリンクを撤去し、ステータス表の下に統合ボタン行を新設する」対応。
-					    2026-08-02に導入した「H・B・D行はボタン、S行はすばやさ早見表リンク、
-					    A・C行はプレースホルダー」という行ごとの3分岐(<a>/<button>/プレースホルダー)を
-					    すべて撤去し、全6行(H/A/B/C/D/S)ともボタン・リンクを一切表示しない
-					    (統合先は下の.stat-table直後の.stat-adjust-actions参照)。
-					    このwrap要素(.stat-row-real-wrap)自体・クラス名は撤去しない: 460px以下の
-					    モバイルレイアウト(下の@media (max-width: 460px)の.stat-row-real-wrap参照、
-					    grid-column:1/-1のflexとしてラベル行の下に字下げ表示する構造)がこの要素と
-					    クラスに依存しているため。デスクトップ幅ではdisplay:contentsにして
-					    このラッパー自身をレイアウトツリーから消し、中の値を.stat-row直接の子
-					    (=5列目のグリッドアイテム)にする(867行目付近の
-					    .stat-row .stat-input-controls { display: contents; } と同じ既存の流儀を
-					    踏襲。新しいパラダイムではない)。
-					    valueEl(id=stat-${key})自体・left-panel.tsのrecalcStats/
-					    renderStatsUnavailableのtextContent書き換え対象は変わらない。 */}
 					<span class="stat-row-real-wrap">
 						<span id={`stat-${key}`} class="stat-row-real stat-value tnum">-</span>
 					</span>
 				</div>
 			))}
 		</div>
-		{/* ラウンド17指摘(B-5): ヌケニン(HP種族値1、全1290種でヌケニンのみ)はHの努力値
-		    スライダーを操作しても実数値が変わらない(vendor/jpoke/src/jpoke/model/stats.py
-		    の`if base == 1: return 1`、アプリ側の複製はcalcHpStat参照)。何も注記が無いと
-		    「バグでは」と誤解しうるため、該当種族を選んだときだけ見える注記を出す
-		    (<script>のapplyBaseStats参照。baseStats[0]===1のときだけhidden解除)。
-		    数値グリッド(.stat-table)は5列固定グリッドで新しい列を増やす余地が無いため、
-		    グリッドの外(直下)に1行だけ追加する。 */}
 		<p id="hp-fixed-note" class="hp-fixed-note" hidden>
 			H(種族値1で固定): このポケモンはHPの種族値が1のため、努力値を振っても実数値は常に1のままです。
 		</p>
-		{/* 🔴 UI改修依頼(個体編集左パネル、2026-08-03)「ステータス表の下に新しいボタン行を追加する」
-		    対応。ラウンド3 B-8(下の注記参照)で「準備中」として一度撤去した「耐久調整」がここで
-		    実装として戻ってくるほか、H/B/D行の個別"調整"ボタン・S行のすばやさ早見表リンク
-		    (いずれも撤去。上のSTAT_LABELS.map内・STAT_ADJUST_BUTTONS定数のコメント参照)を
-		    1つの統合ボタン行にまとめる:
-		      1. 耐久指数最大化(#durability-index-button、新規): 総合/物理/特殊の耐久指数を
-		         それぞれ最大化する努力値の候補を表示する。配線は別エージェント(left-panel.ts側)の
-		         担当のため、ここでは骨組み(disabled)だけを置く。
-		      2. 耐久調整(#bulk-adjust-button): box/[id].astroのトップバーにあった既存ボタンを
-		         ここへ移設したもの。⚠️ id="bulk-adjust-button"・子spanのclass=
-		         "bulk-adjust-button-icon"/"bulk-adjust-button-label"は既存スクリプト
-		         (src/lib/box-id/bulk-adjust.ts、このファイルの編集対象外)がそのまま参照するため
-		         1文字も変えていない。配線・機能はbulk-adjust.ts側にあるため、DOM上の位置を
-		         移しただけで動作する。
-		      3. すばやさ調整: 旧S行の<a href={`/speed-chart?owned=${pokemon.id}`}>をラベルだけ
-		         変えてここへ移設(遷移先・機能は変更していない)。
-		    3つとも見た目を揃えるため.stat-adjust-action-button(+.btn-ghost)で統一する。耐久調整は
-		    sliders-horizontal(Lucide相当)、すばやさ調整は速度計のSVGを使う
-		    (新しい色・サイズトークンは作らない)。 */}
 		<div class="stat-adjust-actions">
 			<button
 				type="button"
@@ -576,14 +338,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 			</button>
 		</div>
 		</div>
-		{/* ラウンド3 B-7: 「努力値合計」は要件により削除した。チャンピオンズルールは合計上限が
-		    無く、この数値は何の判断にも使えない(「510の残り」を連想させる誤った示唆に
-		    なる)ため撤去した。 */}
 
-		{/* ラウンド3 B-8: 「攻撃調整」「耐久調整」(準備中)は要件により撤去した。
-		    🔴 UI改修依頼(個体編集左パネル、2026-08-03)により「耐久調整」は上の.stat-adjust-actions
-		    (#bulk-adjust-button)として実装が戻ってきた。「攻撃調整」は引き続き未実装のまま
-		    (今回の対応範囲外)。 */}
 
 		{/* 「その他の設定(レベル・タグ・ピン留め・共有)」は要件により廃止した。
 		    ただし PUT /api/owned-pokemon/:id は全項目上書きの契約なので、送らないと
@@ -591,8 +346,6 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		    ペイロードにそのまま載せ直す(下の <script> の buildPayload を参照)。 */}
 		<textarea id="memo" class="memo-input" placeholder="メモ" aria-label="メモ">{pokemon.memo ?? ""}</textarea>
 
-		{/* ラウンド4ユーザー指示: 「この個体を削除」はページヘッダ右上へ移設した
-		    (#delete-button自体はヘッダ側markupを参照。ここには何も残らない)。 */}
 	</section>
 </form>
 <style>
@@ -603,149 +356,24 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		border-style: dashed;
 		background: transparent;
 	}
-	/* ラウンド48追加指示(2026-07-30、A-5): ユーザー「ニックネーム入力欄の枠も実線にする」。
-	   #nicknameだけ上記の破線ルールから除外し、global.css:474-487の基底input style
-	   (border: 1px solid var(--color-border); background: var(--color-surface))と
-	   同じ見た目に戻す。IDセレクタを2つ重ねているため詳細度(0,2,0)は上記ルール(0,1,0)
-	   より高く、記載順に関わらず勝つ。 */
 	#edit-form input#nickname:placeholder-shown:not(:focus) {
 		border-style: solid;
 		background: var(--color-surface);
 	}
-	/* 🔴 UI改修依頼(個体編集画面、2026-08-02)「実数値のフォントを他の要素とそろえ、主張を
-	   弱める」対応。font-size 1.15em(.stat-row-real側の1.05emに後勝ちで実質上書きされていたが、
-	   font-weightはここでしか指定していない)とfont-weight 700が、種族値(.stat-row-base、
-	   通常の太さ・var(--color-text-muted))や特性/持ち物などの入力欄(font:inherit、通常の太さ)に
-	   比べて強調されすぎていた。font-sizeは他要素と同じvar(--font-size-base)、font-weightも通常(400)に下げる。
-	   colorはvar(--color-text)のまま変更しない(pitfalls.md「白くする/濃くする指示を固定色で
-	   実装すると破綻する」を踏まえ、既存のテーマ追従トークンを維持する。data-mod="up"/"down"時の
-	   var(--color-stat-up)/var(--color-stat-down)への切り替えも変更していない)。 */
 	/* 薄い文字色でも判別しやすくするため、既存ウェイトの次段階へ上げる。 */
 	.stat-value { display: inline-block; margin-top: 0.15em; font-size: var(--font-size-base); font-weight: 400; color: var(--color-text); }
 	.stat-value[data-mod="up"] { color: var(--color-stat-up); }
 	.stat-value[data-mod="down"] { color: var(--color-stat-down); }
 
-	/* UI刷新: 能力値を「種族値・努力スライドバー・実数値」の1行に統合(Pokemon.png参照)。
-	   ラウンド3 B-10: ヘッダ行の「努力値(0〜32)」がスライダーの上にしかかかっておらず、
-	   数値入力の上には何も無いように見えていた。原因はスライダー+数値入力が
-	   .stat-input-controls という1つのflexコンテナ(=1グリッドセル)にまとまっていたこと。
-	   スライダー/数値入力を独立した5列目・4列目に分け、ヘッダ側の「努力値」だけ
-	   grid-column:span 2 でその2列を跨がせることで、実際に数値入力の真上にも
-	   見出しの範囲が届くようにする。 */
-	/* UI改善ラウンド39ユーザー指示(39-L2)「.stat-table配下のテキストフォントを、特性・
-	   アイテム等の入力欄(global.cssの共通フォント)に統一する」への対応。
-	   実測(Playwright、getComputedStyle().fontFamily): #ability(select)・#item/#nickname
-	   (input)・#move-1・#ev-hp(input[type=number])はいずれも
-	   `-apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Kaku Gothic ProN",
-	   "Noto Sans JP", sans-serif`(global.cssのbody指定、input/select/textareaの
-	   font:inheritで継承)。.stat-table配下(#base-hp・#stat-hp・.stat-row-label・
-	   .stat-table-header内のspan・.stat-row-real)も同じ文字列を実測し、両者は既に完全に
-	   一致していた。LeftPanel.astro側のscoped styleにも.stat-table系にfont-familyを
-	   個別指定する規則は元々存在しない(このファイルをgrepしてfont-family宣言が1件も
-	   無いことを確認済み)。そのため「上書きを外す/合わせる」対応が必要な差分自体が
-	   存在しない(=既に統一済み)。今回は測定結果をここに残すだけに留め、CSSの変更は
-	   行わない(将来また同じ疑いで再調査されるのを防ぐため、判断根拠を明記する)。 */
 	.stat-adjustment-section {
 		/* 表の操作要素と下部アクションの端をそろえ、パネル端への張り付きを防ぐ。 */
 		padding-inline-start: var(--stat-table-inline-start-padding);
 		padding-inline-end: var(--stat-table-inline-end-padding);
 	}
 	.stat-table { display: flex; flex-direction: column; gap: var(--space-1); }
-	/* UI品質改善(ラウンド8 A-4): このヘッダはfont-size:0.78remの上でem指定の
-	   grid-template-columnsを使っていたが、.stat-row側はfont-size指定なし(=1rem)で
-	   同じem指定だったため、emの基準が食い違い実寸が別物になっていた(1列目で23.8pxずれ)。
-	   両方をremに統一する(行側の実寸は変わらない、ヘッダ側だけが正しい位置に揃う)。
-	   ラウンド12指摘(A-3): 操作対象のスライダー(3列目)が実測89.6px(1段階2.8px)しかない
-	   一方、ラベル列(1列目)が108.8pxで最大になっていた。ラベルをH/A/B/C/D/S表記に
-	   統一したことで1列目の必要幅が縮むため、6.8rem→4.2rem・2列目3.2rem→2.6rem・
-	   4列目3.4rem→3.2rem・5列目3.6rem→3.4remに詰め、浮いた分をすべて3列目
-	   (スライダー)へ回す(89.6px→約147px)。
-	   ラウンド8 A-4の事故(このヘッダだけfont-sizeが違いem解釈がずれた)を再発させない
-	   ため、.stat-table-headerと.stat-rowのgrid-template-columnsは必ず同じ値にすること
-	   (どちらか一方だけ変更しないこと)。 */
 	.stat-table-header {
 		display: grid;
-		/* 🔴 UI改修依頼(個体編集画面、2026-08-02)「ステータス表のヘッダー行の上下位置を全列で
-		   そろえる」対応。原因はalign-items未指定(grid既定のstretch)で、各セルの中身の組み方が
-		   列ごとに違っていたこと: 1列目(性格)・5列目(実数値)は内部が
-		   display:flex; align-items:centerのラッパーで、ストレッチされたセル内でもflexが
-		   自前でコンテンツを中央に寄せていたのに対し、2〜4列目(種族値/努力値/残りN)は
-		   プレーンな<span>(テキストのみ)で、ブロックとして引き伸ばされたセルの中でも
-		   コンテンツは天面に張り付いたまま(ブロックボックスは自動で垂直中央寄せしない)だった。
-		   実測(Playwright、getBoundingClientRect)で「残りN」(#ev-remaining)のテキストが
-		   他列より上に出ていたのはこれが原因。データ行側(.stat-row、下記参照)は既に
-		   align-items:centerを持っており、ヘッダー行だけこの指定が抜けていた
-		   (2つのgrid-template-columnsは値を必ず揃える運用だったが、align-itemsは対象外だった)。
-		   ヘッダー行にも同じalign-items:centerを足し、全列のセルをrowの高さに対して
-		   中央寄せにする(セル内部がflexかプレーンテキストかに関わらず、セル自体の外枠が
-		   コンテンツぶんの高さに縮んで中央へ来るため、列ごとの実装差による上下ズレが解消する)。 */
 		align-items: center;
-		/* 🔴 UI改修依頼(個体編集左パネル、2026-08-01)「S行の実数値の右に"調整"ボタンを追加する」
-		   対応。5列固定グリッド自体(列を増やさない)は維持したまま、1列目(ラベル)と5列目
-		   (実数値)の配分だけ組み替える。
-		   実測(Playwright、getBoundingClientRect): 1列目の実内容(▲24px+ラベル1文字約11px+
-		   ▼24px+gap0.3em×2≒9.6px)は約68.8pxで、旧6.4rem(102.4px)には約33.6pxの余白が
-		   あった。5rem(80px)に詰めても約11pxの余白が残り、▲▼ボタン(24×24px、WCAG 2.5.8の
-		   24×24下限)を圧迫しない。
-		   5列目は実数値(3桁tabular-nums、"888"で実測29px)+gap(0.3rem=4.8px)+
-		   「調整」ボタン(0.7remの2文字+padding、実測約38px)の合計約71.8pxを収める必要が
-		   あるため、3.2rem(51.2px)→5.4rem(86.4px)に広げる。差分35.2pxのうち25.6pxを
-		   1列目の削減分(102.4→80)から、残り9.6pxを列間gap(0.5rem→0.4rem、4箇所で6.4px)＋
-		   スライダー列(3列目、1fr)からわずかに融通する(スライダー列は399px中123.8pxと
-		   十分広く、数px程度の縮小は視認できない)。2列目(種族値)・4列目(努力値数値入力)は
-		   数値入力欄の操作性に直結するため変更しない。 */
-		/* 🔴 UI改修依頼(個体編集左パネル、2026-08-02)「調整ボタンを大きくする」対応。
-		   ボタン(.stat-speed-chart-link)のpadding/font-sizeを広げた分、5列目の必要幅が
-		   実測約71.8px→約92pxに増える。1列目(ラベル)は▲24px+ラベル1文字+▼24px+
-		   gap0.3em×2の実測約71.6pxに対し5rem(80px)ではまだ約8.4pxの余白が残っていたため、
-		   4.4rem(70.4px)まで詰めて浮いた9.6pxを5列目へ回す。5列目は5.4rem(86.4px)→
-		   6.2rem(99.2px)に広げる(残りの差分はスライダー列(3列目、1fr)がわずかに縮む形で
-		   自動吸収される。実測でスライダーの操作性・横スクロール有無を確認済み)。 */
-		/* 🔴 UI改修依頼(個体編集左パネル、2026-08-02 第2弾)「調整ボタンをさらに大きくする。
-		   左右のスペースに余裕がないので、テーブル全体のバランスを再調整する」対応。
-		   実測(Playwright、getBoundingClientRect、1920px幅・.stat-table実測399px)に基づく再配分:
-		   ・5列目(6.2rem=99.2px)の実内容は「実数値3桁28.98px + gap 0.3rem=4.8px + ボタン42px」
-		     =75.78pxしかなく、約23.4pxが未使用のまま余っていた。つまりボタンを大きくする余地は
-		     5列目の中に既にあり、他列を削らなくても実測53.2pxまで広げられる(余白は約11px残る)。
-		   ・そのうえで「左右のスペースに余裕がない」への対応として、内容に対して余っていた
-		     1列目・2列目を実測ベースで詰め、浮いた分はすべて操作対象であるスライダー列
-		     (3列目、1fr)へ回す:
-		       1列目 4.4rem(70.4px)→4.1rem(65.6px)。実内容は▲24px+gap+ラベル最大約12.5px+
-		       gap+▼24px。下の.stat-row-labelのgapを0.3em(4.8px)→0.1em(1.6px)へ詰めたため
-		       実内容は約63.7pxとなり、65.6pxでも約1.9pxの余白が残る(▲▼は24×24pxのまま=
-		       WCAG 2.5.8の下限を維持)。
-		       2列目 2.4rem のまま据え置く。値(種族値3桁=29px)基準では2.2rem(35.2px)でも
-		       足りるが、⚠️ 列幅を縛っているのは値ではなく**見出しの「種族値」**(3文字×
-		       var(--font-size-sm3)=12px → 実測36px)で、2.2remにすると見出しが「種族/値」の
-		       2行に折り返してヘッダーが1行ぶん高くなる(実測で発覚し差し戻した)。
-		   ・4列目(努力値の数値入力)は操作性に直結するため変更しない。5列目も6.2remのまま
-		     据え置く(大きくしたボタンの左右に余白を残すため)。1列目から浮いた4.8pxが
-		     3列目へ移り、スライダーは実測114.3px→119.1pxに広がる。 */
-		/* 🔴 UI改修依頼(個体編集左パネル、2026-08-02)「H・B・D行にも"調整"ボタンを追加する。
-		   実数値＋ボタンが詰まっているのでレイアウトを整理する」対応(設計アドバイザー案)。
-		   5列だったグリッドを6列にする。旧5列目(6.2rem)には「実数値の数字+gap+ボタン」が
-		   同居していたが、これをボタン専用の6列目に分離する:
-		     5列目 2.8rem(44.8px) … 実数値の数字だけ。見出し「実数値」(3文字)が折り返さない
-		       下限で、3桁の数値(実測29px前後)も余裕で収まる。
-		     6列目 28px … ボタン専用列。box/index.astro等の.icon-button・
-		       DamageCalcSection.astroの.damage-row-icon-buttonと同じ既存トークンをそのまま
-		       列幅に使うため、新規トークンは作らない。
-		   値とボタンが同じセルを分け合わなくなったことで、ヘッダー「実数値」見出し・各行の値の
-		   中心位置は5列目セルの構造上そのまま一致するようになり、幅合わせ専用の不可視
-		   プレースホルダー(旧.stat-table-header-real/.stat-speed-chart-placeholderのSVGコピー)が
-		   不要になった(マークアップ側コメント・実測は報告参照)。
-		   浮いた分はすべてスライダー列(3列目、1fr)へ回る。実測: スライダー列は約119px→約139pxに
-		   広がる(0〜32の33段階で1段3.6px→4.2px、操作性が改善する)。他の列(1・2・4列目)は
-		   変更しない。⚠️ .stat-table-headerと.stat-rowのgrid-template-columnsは必ず同じ値に
-		   保つこと(下の.stat-row側コメント参照)。 */
-		/* 🔴 UI改修依頼(個体編集左パネル、2026-08-03)「H・B・D行の個別"調整"ボタンとS行のリンクを
-		   撤去する」対応により、上記2026-08-02で新設した6列目(ボタン専用列、28px)は
-		   不要になった。全6行(H/A/B/C/D/S)からボタン・リンクが消え、5列目(実数値の数字だけ)の
-		   隣に何も並ばなくなったため、5列グリッドに戻す(値は6列目導入前と同じ5列目2.8rem・
-		   1〜4列目も据え置き)。6列目ぶんの幅(28px)+gap 1個分(0.4rem)は、他の固定列を削らずとも
-		   グリッドの仕組み上そのまま3列目(スライダー、minmax(0, 1fr))へ吸収される(fr列は
-		   固定列の合計を引いた残り全部を占めるため、固定列を1つ減らせば自動的にfr列が広がる。
-		   実測: スライダー列は約139px→約173px)。 */
 		grid-template-columns: var(--stat-grid-template-columns);
 		gap: var(--stat-column-gap);
 		/* UI統一感レビュー(32-U-B1): 同じ行内の.ev-remaining(「残りN」)が持つ
@@ -754,69 +382,17 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		font-size: var(--font-size-sm3);
 		font-weight: 600;
 		color: var(--color-text-muted);
-		/* UI改善ラウンド49(B-3): 左右paddingを外す。以前は0.1rem(1.6px)あり、
-		   .stat-row(paddingなし)と同じgrid-template-columnsを共有しているにも関わらず
-		   列境界が1.6pxずれていた(見出し・データ行の実測で確認、round-49.md参照)。
-		   下パディング(0.35rem、見出しとデータ行の間隔)は変更しない。 */
 		padding: 0 0 0.35rem;
 		margin-bottom: 0.15rem;
 		border-bottom: 1px solid var(--color-border);
 	}
-	/* ラウンド8指摘(A-4): 残りポイント(#ev-remaining)を「実数値」側から移し、
-	   左「努力値(0〜32)」・右「残りN」に分ける(残ポイントが努力値入力欄の真上に来て
-	   意味も合う。<script>のupdateEvRemaining参照)。 */
-	/* ラウンド23ユーザー指示(23-L5)「ステータス関連のラベルと数値をすべて中央揃え」に対し、
-	   ここだけは意図的に対象外にした。「努力値」(列見出し)と「残りN」(努力値合計の
-	   ライブ残量表示、<script>のupdateEvRemaining参照)は役割が異なる2つのテキストで、
-	   space-betweenは「左=見出し/右=残量インジケータ」という意味を担っている。中央揃えに
-	   すると2つのテキストが隣接して団子になり、「見出しなのか値なのか」が読み取りにくくなる
-	   ことを実物で確認した(判断根拠は報告参照)。他の見出し・行(種族値/努力値数値/実数値)は
-	   すべて中央揃えに統一した。
-	   ⚠️ ラウンド24ユーザー指示(24-L4)「"努力値"の文字はスライドバーの中央に配置」により、
-	   上記23-L5の判断のうち「1つのflexコンテナ(span 2)のままにする」という実装方法だけを
-	   撤回する(「努力値」と「残りN」を意味的に区別する判断自体は撤回しない)。理由: この
-	   1コンテナ+space-between構成では「努力値」が必ずスライダー列(3列目)の左端に寄り、
-	   中央に来ない。マークアップを.stat-table-header-ev-label(3列目単独)/
-	   .stat-table-header-ev-remaining(4列目単独)の2つのgridアイテムに分離し、
-	   「努力値」は他の見出しと同じ中央揃えルールに合流させ、「残りN」だけ右寄せを維持することで
-	   見た目上の位置(残りNの右端=努力値数値列の右端)は変えずに「努力値」だけ中央へ動かす。
-	   🔴 UI改善ラウンド35ユーザー指示(35-L2)「努力値の"残りN"をスピンボックスの中心に揃える」
-	   により、23-L5/24-L4で意図的に据え置いた上記の右寄せ判断を撤回し、text-align: centerへ
-	   変更する。.stat-row側の努力値数値入力(4列目、.stat-row input[type="number"]、
-	   23-L5によりtext-align:centerかつwidth:100%で3.2rem列いっぱいに広がる)と同じ列(4列目)
-	   のこのヘッダも中央揃えにすることで、入力欄の中心x座標と「残りN」テキストの中心x座標が
-	   一致する(実測して確認、報告参照)。 */
 	.stat-table-header-ev-remaining {
 		text-align: center;
 	}
-	/* 🔴 UI改修依頼(個体編集左パネル、2026-08-02)「H・B・D行にも"調整"ボタンを追加する。
-	   実数値＋ボタンが詰まっているのでレイアウトを整理する」対応。
-	   旧実装は「実数値」見出しを.stat-table-header-real(flex)でテキスト+非表示プレース
-	   ホルダーの2要素グループにし、下の.stat-row-real-wrap(値+ボタン)と同じ幅・gapで
-	   中央寄せすることで中心位置を無理やり合わせていた。ボタン専用の6列目を新設した今は
-	   この見出しが5列目セルにテキスト1個だけを置けばよくなり(セルを分け合う相手が
-	   居なくなった)、flexラッパー自体が不要になったため撤去する。overflow/ellipsisだけを
-	   引き継ぐ。 */
 	.stat-table-header-real-label {
 		overflow: hidden;
 		text-overflow: ellipsis;
 	}
-	/* 🔴 UI改修依頼(個体編集左パネル、2026-08-01)「性格ボックスを廃止。性格はステータス表の
-	   1列目のヘッダーとする(種族値、の左側)」。それまで空だったヘッダー1列目のセルに
-	   性格表示(#nature-readout-value、上の.top-block-fieldsから移設)を入れる。
-	   列幅は.stat-table-header/.stat-rowのgrid-template-columns 1列目(6.4rem、後述の
-	   入力欄時代に広げた値のまま)で、今回は変更しない(列幅を変えるとスライダー列(3列目)の
-	   幅に影響するため、必要以上に広げない/狭めない)。
-	   🔴 UI改修依頼(個体編集左パネル、2026-08-01)「性格をREAD限定にして"種族値"と同じ
-	   フォントで表示する」により、以前ここにあった<input class="field-control">向けの
-	   専用フォント上書き(0.82rem・font-weight 400・padding・border等、入力欄然とした
-	   見た目を作るためのもの)をすべて削除した。要素自体が<span>になったため、
-	   .stat-table-header-nature配下には何のfont関連プロパティも指定しない ──
-	   これにより隣の"種族値"見出し(<span>種族値</span>、同じく個別指定を持たず
-	   .stat-table-headerの既定値(font-size: var(--font-size-sm3)/font-weight: 600/
-	   color: var(--color-text-muted))をそのまま継承しているだけ)と、指定経路まで
-	   完全に同一になる(実測: 2要素のgetComputedStyle().fontSize/fontWeight/colorが
-	   一致することを確認済み、報告参照)。 */
 	.stat-table-header-nature {
 		display: flex;
 		align-items: center;
@@ -828,19 +404,8 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		text-overflow: ellipsis;
 		white-space: nowrap;
 	}
-	/* ラウンド24ユーザー指示(24-L4)対応: 「残りN」(.stat-table-header-ev-remaining)だけを
-	   中央揃え化の対象から除外する。「努力値」(.stat-table-header-ev-label)は他の見出しと
-	   同じ挙動でよいため、あえて:not()の対象に加えない(=下のルールで自動的に中央揃えになる)。
-	   🔴 ラウンド35(35-L2)で.stat-table-header-ev-remaining自体もtext-align:centerに
-	   変更したため、結果的にこの:not()による除外は無意味(両方centerになる)になったが、
-	   セレクタ自体は将来また「残りNだけ別扱い」に戻す可能性を考慮しそのまま残す。 */
 	.stat-table-header > span:not(.stat-table-header-ev-remaining) { text-align: center; }
-	/* ラウンド8指摘(A-4): 残りポイントを.stat-table-header-ev側へ移したため、この見出しは
-	   「実数値」の1行だけになった(以前のflex-direction:columnの2行構成を廃止、
-	   ヘッダ高さが2行→1行になる)。 */
 	.ev-remaining {
-		/* ラウンド20ユーザー指示(20-G3)文字の下限12px対応: 0.72rem(11.5px)→
-		   --font-size-sm3(0.75rem=12px)に上げる。 */
 		font-size: var(--font-size-sm3);
 		font-weight: 400;
 		color: var(--color-text-muted);
@@ -850,18 +415,6 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	.ev-remaining:empty { display: none; }
 	.stat-row {
 		display: grid;
-		/* ラウンド12指摘(A-3): .stat-table-header と必ず同じ値にすること(上のヘッダ側の
-		   コメント参照。ラウンド8 A-4のem解釈ずれ事故の再発防止)。
-		   🔴 UI改修依頼(個体編集左パネル、2026-08-01)によりgrid-template-columns/gapを
-		   変更(理由は上の.stat-table-headerコメント参照。値は必ず同一に保つ)。
-		   🔴 UI改修依頼(個体編集左パネル、2026-08-02)により再度変更(理由は上の
-		   .stat-table-headerコメント参照。値は必ず同一に保つ)。
-		   🔴 UI改修依頼(個体編集左パネル、2026-08-02 第2弾)により再度変更(理由は上の
-		   .stat-table-headerコメント参照。値は必ず同一に保つ)。 */
-		/* 🔴 UI改修依頼(個体編集左パネル、2026-08-02)ボタン専用の6列目を新設していたが、
-		   🔴 UI改修依頼(個体編集左パネル、2026-08-03)「H・B・D行の個別"調整"ボタンとS行の
-		   リンクを撤去する」対応により5列に戻す(理由は上の.stat-table-headerコメント参照。
-		   値は必ず同一に保つ)。 */
 		grid-template-columns: var(--stat-grid-template-columns);
 		align-items: center;
 		gap: var(--stat-column-gap);
@@ -877,13 +430,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	.stat-ev-endpoint-button { flex: 0 0 36px; width: 36px; height: 36px; min-height: 36px; padding: 0; border-color: transparent; }
 	/* 端点操作は性格補正色と競合させず、淡色トークンの塗り三角で示す。 */
 	.stat-ev-endpoint-button { color: var(--color-text-muted); }
-	/* UI改修依頼(2026-08-05)「努力値min/maxの三角アイコンを一回り拡大」対応。外形は維持する。 */
 	.stat-ev-endpoint-button svg { width: 28.5px; height: 28.5px; fill: currentColor; stroke: none; }
-	/* 🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08)「種族値と努力値の間に0/-/+/32の
-	   4ボタンを配置する」対応。-/+ボタン(.stat-ev-step-button)を新設する。デスクトップでは
-	   非表示にし、下の@media (max-width: 899px)で表示へ切り替える(899px以下のモバイル限定の
-	   変更で、900px以上のデスクトップ表示には一切影響しない)。サイズは.stat-nature-btn
-	   (24×24px、このファイル内の性格▲▼ボタン)と同じWCAG 2.5.8下限に合わせる。 */
 	.stat-ev-step-button {
 		display: none;
 		flex: 0 0 24px;
@@ -903,20 +450,6 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	   -/+ボタンと同じ24pxへ縮める(実測、Playwright: 36pxのまま4ボタン+数値入力を
 	   並べると390px幅で横方向にあふれることを確認したため)。900px以上のデスクトップは
 	   このブロックの対象外のため、スライダー自体の表示・0/32ボタンの36pxサイズは一切変更しない。 */
-	/* 🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08 第2弾)「努力値操作のボタンは
-	   "0" "-" "+" "32" の4つにして、努力値ボックスの左右に2個ずつ配置する。見た目もボタンらしくする」。
-	   従来(同日の第1弾)は4ボタンが全て数値入力欄の左側に固まっていた(実測、Playwright 390px)。
-	   【左右2個ずつに割る仕組み】数値入力欄(input[type="number"])は .stat-input-controls の
-	   直接の子、4ボタンはその中の .stat-ev-range-controls の子で、DOM上は別の入れ子にある。
-	   モバイルだけ .stat-ev-range-controls を display:contents にして入れ子を1段潰し、
-	   5要素(0/−/range/+/32)と数値入力欄を .stat-input-controls 直下の同一flex行に揃えたうえで、
-	   order で「0 → − → 数値 → + → 32」に並べ替える(DOM順は変えないのでデスクトップは無傷)。
-	   【グリッド列】デスクトップの.stat-rowは5列(…|3:努力値ゲージ|4:数値入力|5:実数値)で、
-	   .stat-input-controls は display:contents により子2つが3列目・4列目へ割れていた。
-	   flex化すると1個のグリッドアイテムになるため、3〜4列目にまたがる grid-column: 3 / 5 を与える
-	   (実数値ラッパーは自動配置で5列目に入り、.stat-table-headerとの列対応は崩れない)。
-	   ⚠️ 460px以下は.stat-rowが4列グリッド(実数値が4列目)に切り替わるため、
-	   下の@media (max-width: 460px)側で grid-column を3列目単独へ戻している。 */
 	@media (min-width: 0) {
 		.stat-row .stat-ev-range-controls input[type="range"] { display: none; }
 		.stat-row .stat-ev-step-button { display: inline-flex; }
@@ -970,23 +503,8 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	.stat-ev-endpoint-text { display: none; }
 	.stat-ev-toggle-spacer { display: none; }
 	/* 努力値の数値入力も左パネル用の詰めた寸法に揃える(6行あるので効き方が大きい)。 */
-	/* ラウンド23ユーザー指示(23-L5): 努力値の数値入力も中央揃えにする。 */
 	.stat-row input[type="number"] { font-size: var(--font-size-sm1); padding: 0.3em 0.5em; width: 100%; text-align: center; }
 	.stat-row input[type="range"] { width: 100%; }
-	/* 🔴 UI改修依頼(個体編集左パネル、2026-08-04)「努力値バー選択時の枠ハイライトの廃止」。
-	   努力値バー(EVスライダー、この.stat-row内のinput[type="range"])に限定して、フォーカス時の
-	   枠を打ち消す。global.css自体は編集しない(他画面のrange inputに影響するため)。
-	   打ち消す対象は2箇所ある:
-	   1. global.css:532-538 の input:focus 共通ルール(outline: 2px solid var(--color-primary))。
-	      input[type="range"]は他のテキスト系input(474-478行目)と違いborder/backgroundを
-	      持たないため見た目上は「バーの周りを囲う矩形の枠」として現れる。
-	   2. global.css:714-722 の input[type="range"]:focus-visible::-webkit-slider-thumb /
-	      ::-moz-range-thumb(outline: 2px solid var(--color-primary))。つまみの周りに出る
-	      円形のアウトライン。
-	   このscoped styleはAstroのスコープ属性により(0,2,0)以上の詳細度を持ち、global.css側の
-	   同種ルール(pitfalls.md「global.cssの指定がscoped styleに詳細度で負ける」と同じ理屈)に
-	   確実に勝つ。数値入力(input[type="number"])側のフォーカス表示は変更しない
-	   (テキスト入力としてフォーカスの視覚化が必要なため対象外)。 */
 	.stat-row input[type="range"]:focus {
 		outline: none;
 	}
@@ -996,117 +514,10 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	.stat-row input[type="range"]:focus-visible::-moz-range-thumb {
 		outline: none;
 	}
-	/* ラウンド23ユーザー指示(23-L5): ラベル列も中央揃えにする(justify-content:center追加)。
-	   このspanは▲ボタン+短縮ラベル+▼ボタンの3要素をflexで横並びにしており、列幅(1列目)に
-	   対して内容幅が余るぶん左に寄っていた。
-	   🔴 UI改修依頼(個体編集左パネル、2026-08-02)「ステータスラベルの垂直位置ズレ」対応。
-	   body(global.css)のline-height:1.6がこのspan内の文字(H/A/B/C/D/S)に継承されており、
-	   文字の行ボックス(1rem×1.6=25.6px)がbaseline以下に確保する余白(descender用の空間、
-	   このフォントでは英大文字が使わない)ぶん、文字のインク自体は行ボックスの幾何中心より
-	   上寄りに見える。一方、▲▼ボタン(.stat-nature-btn、24×24pxのgrid、border-trickで
-	   三角形を描画)は左右2つを合わせると視覚上ボックス中心に揃う形状のため、同じ
-	   align-items:centerでも文字だけが上にズレて見えていた(実測、--scale 6のクロップで確認)。
-	   line-height: 1 に上書きして行ボックスの余分な下側余白を削り、文字の見た目の中心を
-	   ▲▼ボタンの中心に近づける(HP行のプレースホルダー構成を含め、このspan配下の
-	   テキストノード全体に継承される)。 */
-	/* 🔴 UI改修依頼(個体編集左パネル、2026-08-02 第2弾)「ステータスラベルと性格補正の三角形の
-	   上下位置がずれている。横のスペースも少し減らす」対応。
-	   (1) 上下位置: 原因は上のline-height側ではなく▲▼ボタン(.stat-nature-btn)の内部レイアウト
-	       だった。詳細と対処は.stat-nature-btnのコメントを参照(このspan側は変更していない。
-	       実測でラベル文字のインク中心631.36pxはボタンの箱の中心631.11pxと0.25pxしか違わず、
-	       ずれていたのは三角形の方(実測627.48px=3.63px上)だった)。
-	   (2) 横のスペース: gap 0.3em(4.8px)→0.1em(1.6px)。▲▼ボタンは24×24pxの当たり判定の中に
-	       14px幅の三角形を中央配置しているため、gapを0.1emにしても三角形とラベル文字の間には
-	       実測で約6.6pxの余白が残る(gap 0.3em時は約9.8px)。当たり判定24×24px(WCAG 2.5.8)は
-	       維持したまま見た目の間隔だけを詰める。詰めた分は1列目の列幅
-	       (grid-template-columns 4.4rem→4.1rem、上の.stat-table-headerコメント参照)に反映し、
-	       スライダー列へ回している。 */
-	/* 🔴 UI改修依頼(個体編集画面、2026-08-02)「H/A/B/C/D/Sラベルのフォントを他の要素と
-	   そろえる」対応。font-weight: 700(太字)が、隣接する種族値(.stat-row-base、通常の太さ)や
-	   ヘッダーの見出し等に比べて強調されすぎていた。通常の太さ(400)に下げて主張を弱める
-	   (colorは.stat-row-label-short[data-mod]のvar(--color-stat-up)/var(--color-stat-down)による
-	   性格補正の色分けをそのまま使うため変更しない)。 */
 	/* 色トークンは維持し、ラベルだけ既存ウェイトの次段階へ上げて読みやすくする。 */
 	.stat-row-label { font-weight: 400; white-space: nowrap; display: flex; align-items: center; justify-content: center; gap: 0.1em; line-height: 1; }
-	/* ラウンド21ユーザー指示(21-L7)「A,B,...のラベル色も赤・青に変わるようにする」。
-	   相手ビルドカード側(20-D3)と同じ--color-stat-up/--color-stat-down
-	   (global.cssで定義。ライト4.86-4.94:1・ダーク7.2-7.6:1)を
-	   そのまま再利用して揃える(新色は作らない)。色だけで意味を伝えない(WCAG 1.4.1)ため、
-	   ▲▼ボタン自体の形状が方向を示す既存の手掛かりと併用する。 */
 	.stat-row-label-short[data-mod="up"] { color: var(--color-stat-up); }
 	.stat-row-label-short[data-mod="down"] { color: var(--color-stat-down); }
-	/* ラウンド5ユーザー指示: ステータスラベルのクリックによる上昇/下降切り替えを作り直す。
-	   以前は1個のボタンで「無補正→上昇→下降→無補正」を巡回させていたが、
-	   (a)押せる見た目が無い(b)ある能力を↑にすると別の能力の↓が黙って消える
-	   (c)2回目のクリックで全補正が消える、という実質操作不能な挙動だった。
-	   ▲(上昇)/▼(下降)を完全に独立したボタンにする: ▲クリックは他の能力の▲だけを
-	   解除し(▼には一切触れない)、▼クリックも同様。これにより「上昇を選んだら
-	   下降が消えた」「もう一回押したら両方消えた」という事故が起きなくなる。
-	   常時見えるアウトライン(点線)で押せることを示し、選択中は色を塗って
-	   aria-pressed="true"にする(現在の選択状態が一目・スクリーンリーダー双方で分かる)。 */
-	/* UI品質改善(ラウンド8 A-7): width/height/font-sizeが全てemだったため、
-	   font-size自身(0.68em=10.88px)を基準にwidth/heightが決まる入れ子になり、
-	   実寸14.1×13.1pxしか出ていなかった(WCAG 2.5.8の24×24を大きく割る)。
-	   px指定にしてemの入れ子事故を断つ。行高は入力欄29pxがbindingなので
-	   高さコストは0。背景を明示し、行hover時にも枠線でprimaryを示す
-	   (状態表示=▲/▼独立・aria-pressed・押下時の塗りは一切変えない)。 */
-	/* ラウンド20ユーザー指示(20-L4)「ステータス補正の上下ボタンは三角形をボタン本体として
-	   小型化する」により、四角ボタン(22×20px、背景+枠線付き)を撤去し、CSSの
-	   border-styleトリックで作る三角形そのものをボタン本体にした。
-	   ⚠️ ラウンド21ユーザー指示(21-L7)で20-L4を是正する: 三角形の実寸10×6px・クリック
-	   領域14×12pxは小さすぎて押しづらく、色の判別も困難だった。クリック領域を
-	   一般的なタッチターゲットの下限である24×24pxまで戻し、三角形の実寸も14×9pxに
-	   拡大する(20-G3の12px下限はこのボタンには適用しない。文字を表示しないため=図形)。
-	   文字("▲"/"▼")はマークアップ・aria-label/titleとも変更していない
-	   (アクセシブルネームはaria-labelが優先されるため実害なし)が、視覚的にはfont-size:0で
-	   隠す。#nature-up-{key}/#nature-down-{key}のID・aria-pressed/aria-label/titleは
-	   <script>側が参照しているため一切変更しない。 */
-	/* 🔴 UI改善ラウンド41ユーザー指示(41-L2)「技選択テーブルを最前面に配置。現在は性格補正▲より
-	   後ろにある」により、ラウンド40(40-L3-2)で「対症療法」のまま残っていた根本原因をここで
-	   是正する。実機調査(Playwright、document.elementFromPoint・getComputedStyleの祖先総当たり)
-	   で判明した根本原因: このボタン自身・祖先(.stat-row-label/.stat-row/.stat-table/
-	   .panel-left/#edit-form等)はいずれもposition:static・filter:none(実測済み)だが、
-	   押下時(aria-pressed="true")だけ::beforeにfilter: drop-shadow(...)を適用していた
-	   (旧実装)。この filter がホスト要素(.stat-nature-btn自体)を暗黙にスタッキング
-	   コンテキスト化してしまい(Chromiumの実挙動として実測確認済み: 非押下ボタン<filterなし>
-	   では.move-picker-window側の要素がelementFromPointで取得されて正しく手前に来るのに対し、
-	   押下ボタン<filterあり>だけ強制的に重ねてもボタン自身が取得され続けた)、
-	   `.move-picker-window`(document.bodyの先頭子。position:fixed・z-index:auto)と同じ
-	   スタッキングレイヤーに昇格したこのボタンが、DOM順のタイブレーク(ウィンドウがbody先頭子=
-	   DOM順で先)で不利になり手前に出ていた。
-	   対応: 縁取りをfilter(drop-shadow)ではなく、CSSトライアングルの定石である
-	   「一回り大きい三角形(::before、縁取り色)の上に、現在サイズの三角形(::after、塗り色)を
-	   重ねる」二重三角形方式に置き換える。両方とも同じグリッドセル(grid-area: 1 / 1)に
-	   固定することで、position:absolute/relativeやfilterなど新しいスタッキングコンテキストを
-	   生成するプロパティを一切使わずに重ね合わせる(displayをinline-flexからinline-gridに
-	   変更。grid/flexアイテムはz-index:autoのままなら新しいスタッキングコンテキストを
-	   作らない、CSS Grid/Flexbox仕様の「z-index other than auto」条項どおり)。これにより
-	   このボタンは常にposition指定のない通常フロー要素のままとなり、`.move-picker-window`
-	   (position:fixed)より必ず背面になる(CSS2.1 Appendix Eのスタッキング順どおりに戻る)。
-	   実機再検証(Playwright、ウィンドウをボタン座標に強制的に重ねてelementFromPoint)で、
-	   修正後は押下状態でも`.move-picker-window`側の要素が取得されることを確認した(報告参照)。
-	   `reposition()`(left-panel.ts)の座標回避ロジックはこの修正後も残す(41-L2要件どおり、
-	   重なりそのものを避ける挙動自体は無害なUXのため)。 */
-	/* 🔴 UI改修依頼(個体編集左パネル、2026-08-02 第2弾)「ステータスラベルと性格補正の三角形の
-	   上下位置がずれている」対応。align-content: center を追加する。
-	   実機でのピクセル実測(Playwright、deviceScaleFactor 8でスクリーンショットを撮り、
-	   canvasに読み込んで列ごとのインク上下端を走査)で判明した根本原因:
-	     ボタンの箱      : y 619.11〜643.11(24px、中心631.11)
-	     三角形のインク  : y 622.98〜631.98(9px、中心627.48) ← 箱の中心より3.63px上
-	     ラベル文字のインク: y 625.73〜636.98(cap高11.25px、中心631.36) ← 箱の中心とほぼ一致
-	   つまりズレていたのは文字側ではなく三角形側だった。このボタンのマークアップは
-	   <button>▲</button> で、font-size:0で見えなくしている「▲」のテキストノードが残っている。
-	   display:inline-grid のもとでは、このテキストノードが**匿名グリッドアイテム**として
-	   自動配置される。::before/::afterは grid-area: 1 / 1 に明示配置済みなので1行1列は埋まって
-	   おり、匿名アイテムは行2へ送られる=暗黙の行が2本できる。align-content の既定値
-	   normal(=stretch)は余った15px(24−9)を2本の行へ均等に配る(行1=16.5px、行2=7.5px)ため、
-	   align-items:center による三角形の中央寄せは「行1=16.5pxの中央」で行われ、結果として
-	   箱の中心より (24−16.5)/2 = 3.75px 上にずれていた(実測3.63pxと一致)。
-	   align-content: center にすると行トラック群(合計9px)自体が箱の中央に置かれるため、
-	   三角形の中心が箱の中心=ラベル文字のインク中心に揃う。
-	   マークアップ(▲/▼のテキスト、aria-pressed/aria-label/title、id)は一切変更していない
-	   (<script>側が参照しているため)。押下時に::beforeが一回り大きい三角形になっても、
-	   行1の高さがその分だけ伸びて中央寄せされるだけなので同心のまま崩れない。 */
 	.stat-nature-btn {
 		display: inline-grid;
 		place-items: center;
@@ -1121,10 +532,6 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		cursor: pointer;
 		flex-shrink: 0;
 	}
-	/* ::before = 押下時だけ縁取り(一回り大きい三角形)を描く(下の[aria-pressed="true"]参照。
-	   非押下時はborderを持たないため0×0で何も描画されない)。::after = 常時表示する塗りの
-	   三角形本体(旧実装では::beforeが兼ねていたが、縁取りとの二重表示のため分離した)。
-	   grid-area: 1 / 1 で両方を同じセルに固定し、place-items: centerで中央に重ねる。 */
 	.stat-nature-btn::before,
 	.stat-nature-btn::after {
 		content: "";
@@ -1132,67 +539,11 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		width: 0;
 		height: 0;
 	}
-	/* 🔴 UI改修依頼(個体編集左パネル、2026-08-03)「性格補正▲▼三角形の比率を修正」対応。
-	   旧寸法(半幅7px×高さ9px=幅14px:高さ9px≒1.56:1)は一般的な矢印/三角形の見た目に対して
-	   横長すぎた。半幅を6px・高さを10pxにし、幅12px:高さ10px=1.2:1という、標準的な矢印
-	   アイコン(多くのUIキットが概ね1.1〜1.3:1のレンジ)に近い比率へ調整する。
-	   当たり判定である.stat-nature-btn自体(24×24px、WCAG 2.5.8の下限)は変更しない。 */
 	.stat-nature-up::after { border-left: 6px solid transparent; border-right: 6px solid transparent; border-bottom: 10px solid var(--color-text-muted); }
 	.stat-nature-down::after { border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 10px solid var(--color-text-muted); }
 	.stat-nature-btn:hover::after { border-bottom-color: var(--color-primary); border-top-color: var(--color-primary); }
 	.stat-row:hover .stat-nature-btn::after { border-bottom-color: var(--color-primary); border-top-color: var(--color-primary); }
 	.stat-nature-btn:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 1px; }
-	/* 塗り色(--color-stat-up/--color-stat-down、新色は作らない)で押下状態を示す。aria-pressedも
-	   セットで書き戻しており(<script>のrefreshNatureButtons参照)、色だけに頼らず
-	   スクリーンリーダーにも状態が伝わる(WCAG 1.4.1、pitfalls.md参照)。
-	   🔴 UI改善ラウンド31ユーザー指示(31-L8)「性格補正の三角形のハイライトが見づらいので、
-	   塗りつぶしだけでなく、縁取りしてさらに強調表示する」により、選択中(aria-pressed=true)
-	   の三角形にだけ縁取りを追加する。三角形はborderトリックで作った図形(矩形ではない)なので
-	   通常のoutline/borderでは縁取りできない。drop-shadowを上下左右1pxずつ4方向に重ねて
-	   図形の輪郭に沿った縁取りを作る(既知の技法)。色は新色を作らず既存トークン
-	   --color-text(ライト/ダーク両方で背景・塗り色との対比が付く中立色)を使う。 */
-	/* 🔴 UI改善ラウンド32ユーザー指示(32-L6)「三角形の縁取りの色は、塗りつぶし色と同系色で
-	   強調するデザインにする」により、31-L8の黒縁(--color-text)を撤回し、塗り色と同系統の
-	   より濃い/深い既存トークンに変える。上昇=danger系の塗り(--color-stat-up)に対し
-	   --color-danger-strong、下降=primary系の塗り(--color-stat-down)に対し--color-primary-strong
-	   (いずれもglobal.cssで既に用意済みの「濃色派生」トークン。29-R2の区切り線でも同じ
-	   トークンを使っていた実績がある)。新色は作らない。「非選択と一目で区別できる」
-	   (31-L8の要件)は縁取り+塗り色の両方(非選択はfilter:noneかつmuted一色)で引き続き
-	   満たす。ライト/ダーク両方で--scale 3の拡大クロップを撮り、縁取りが背景に沈んでいないか
-	   目視確認する(報告参照)。
-	   🔴 UI改善ラウンド34ユーザー指示(34-L3)「性格補正の上三角(▲)の強調表示が効いていない」
-	   により、上昇側の縁取り色を再修正する。実測(相対輝度からのコントラスト比算出): ライトの
-	   塗り--color-stat-up(#c9432c、L=0.166)と縁取り--color-danger-strong(#b23a26、L=0.126)は
-	   コントラスト比 約1.23:1 しか無く、ほぼ同じ濃さの隣接色同士でほぼ視認できない
-	   (下降側は塗り--color-stat-down(#1d6fd1)と縁取り--color-primary-strong(#1a7ea1)で
-	   輝度差が大きく、たまたま識別しやすかった。32-L6の「同系色で強調」という設計意図自体は
-	   維持しつつ、上昇側だけ濃さがほぼ同じという偶然の不具合を直す)。
-	   新色は作らず、同じdanger系統の既存トークンの中から塗りとの輝度差が大きい
-	   --color-danger-soft(ライト#fdece8、L=0.868)を選ぶ。塗りとのコントラスト比は
-	   約4.25:1まで改善する(--color-danger #f8705b も試したが約1.73:1でまだ不足)。
-	   このトークンはダークモードでも既存の32-L6-darkの暫定回避策(下記参照)と同じ値
-	   (rgba(255,139,120,0.16))に自動で切り替わるカスタムプロパティのため、
-	   ダーク専用の@media上書きが不要になった(下記32-L6-darkのブロックごと削除、
-	   ベース定義のvar(--color-danger-soft)がライト/ダーク両方の値を担う)。
-	   🔴 UI改善ラウンド41ユーザー指示(41-L3)「性格上昇補正の上三角の強調表示も、下降補正と
-	   同様に縁取りする」により、下降側の縁取り色を再調整する。技法自体(縁取り)は既にラウンド
-	   34-L3の時点で上昇・下降の両方にあったが、実測(相対輝度からのコントラスト比算出、
-	   WCAG式)したところ下降側の「塗り--color-stat-down(#1d6fd1)と縁取り--color-primary-strong
-	   (#1a7ea1)」は約1.07:1(ライト)・約1.06:1(ダーク)しか無く、この記録が過去に想定していた
-	   「輝度差が大きくたまたま識別しやすかった」は誤りで、実際には上昇側の34-L3修正前
-	   (約1.23:1)と同程度かそれ以下の、ほぼ視認できない組み合わせだったと判明した
-	   (ユーザーが今回「下降と同様になっていない」と指摘したのは、実際には下降側の縁取りも
-	   十分ではなく、相対的に上昇側の方だけが34-L3の修正でしっかり見えるようになっていた
-	   ためと考えられる)。新色は作らず、34-L3と同じ考え方(塗りに対して輝度差が大きい
-	   「soft」系トークンを使う)で--color-primary-strongを--color-primary-soft
-	   (ライト#e6f6fb、ダークrgba(77,195,234,0.16))に差し替える。実測コントラスト比:
-	   ライト約4.46:1・ダーク約5.54:1(上昇側のライト約4.24:1・ダーク約5.45:1とほぼ同等)。
-	   --color-primary-softは32-U-B1等で既に使われている既存トークン(新色ではない)で、
-	   「primary系のsoft(薄色)」という上昇側--color-danger-softと対になる自然な選択でもある。 */
-	/* 🔴 UI改修依頼(個体編集左パネル、2026-08-03)三角形本体(::after)の比率調整に伴い、縁取り
-	   (::before、旧・半幅8px×高さ10px)も同じ「半幅+1px・高さ+1px」という元々の成長量を保った
-	   まま、新しい本体寸法(半幅6px×高さ10px)を基準に縮小する: 半幅7px×高さ11px
-	   (幅14px:高さ11px≒1.27:1、本体の1.2:1に近い比率のまま輪郭ぶんだけ一回り大きい)。 */
 	.stat-nature-up[aria-pressed="true"]::before {
 		border-left: 7px solid transparent;
 		border-right: 7px solid transparent;
@@ -1208,73 +559,20 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	/* HPは性格補正の対象外(クリック不可)。位置を揃えるためのプレースホルダーで、
 	   ::beforeを持たない(=何も描画されない)ため「押せない」ことを見た目でも伝える。 */
 	.stat-nature-placeholder { cursor: default; }
-	/* ラウンド23ユーザー指示(23-L5)「ステータス関連のラベルと数値をすべて中央揃え」。
-	   種族値・実数値とも中央揃えにする(実数値は以前 text-align: right だった)。
-	   ⚠️ どちらも.tnum(tabular-nums)を維持しており、桁が変わっても列内でガタつかない
-	   (中央揃えは桁ズレが目立ちやすいため、tabular-numsの維持が特に重要)。 */
 	.stat-row-base { color: var(--color-text-muted); text-align: center; }
-	/* 🔴 UI改修依頼(個体編集左パネル、2026-08-02)「H・B・D行にも"調整"ボタンを追加する。
-	   実数値＋ボタンが詰まっているのでレイアウトを整理する」対応。
-	   このラッパー要素自体・クラス名は撤去しない: 460px以下のモバイルレイアウト(下の
-	   @media (max-width: 460px)の.stat-row-real-wrap参照、grid-column:1/-1のflexとして
-	   ラベル列の下に字下げ表示する構造)がこの要素とクラスに依存しているため。
-	   デスクトップ幅では display: contents にしてこのラッパー自身をレイアウトツリーから消し、
-	   中の値(.stat-row-real)とボタン(.stat-adjust-button)を.stat-row直接の子(=5列目・
-	   6列目のグリッドアイテム)にする。これは867行目付近の
-	   .stat-row .stat-input-controls { display: contents; }(460px以下でdisplay:flexに
-	   戻す構成)と同じ既存の流儀の反復であり、新しいパラダイムではない。
-	   flex系のプロパティ(align-items/justify-content/gap)はdisplay:contents時は無視される
-	   が、460px以下の@media側で再びdisplay:flexに戻すため定義自体は残す。 */
 	.stat-row-real-wrap { display: contents; align-items: center; justify-content: center; gap: var(--space-1); min-width: 0; }
-	/* 🔴 UI改修依頼(個体編集画面、2026-08-02)「実数値のフォントを他の要素とそろえる」対応。
-	   このクラスは.stat-value(上記)と同じ要素に同時に付き、詳細度が同じ(0,1,0)のため
-	   ソース順で後にあるこちらのfont-sizeが勝っていた(1.15em→実質1.05em)。font-weightは
-	   ここでは指定していないため.stat-value側の値(700→今回400に変更)がそのまま効く。
-	   font-sizeも他要素と同じvar(--font-size-base)に揃える。 */
-	/* 🔴 UI改修依頼(個体編集左パネル、2026-08-02)「実数値の数字が行の垂直中心より下に
-	   ズレている」対応。実測(Playwright、getBoundingClientRect、個体
-	   c8680844-dd43-42a4-bdf1-f3de11fe3267、メガリザードンX、H〜D/S全6行で共通)で
-	   判明した原因: .stat-row-real は.stat-value(上記648行目)も同時に持ち、
-	   .stat-value側の margin-top: 0.15em(16px基準で2.4px)が効いていた。この値は
-	   .stat-value が単独の(隣にボタンが無い)文脈で使われていた頃の名残で、ここでは
-	   親の.stat-row-real-wrap(flex, align-items:center)が.stat-speed-chart-link/
-	   placeholder(28px)と並べて中央揃えする構造になっている。margin-topが上側だけに
-	   付くとwrap内での中央揃えの基準がその分下にズレ、結果としてrow中心より1.19px
-	   下に表示されていた(全行で.stat-row centerYとの差分が一致して1.19px)。
-	   margin-top: 0 で打ち消すと、wrap内のalign-items:centerが.stat-row-real
-	   自体の高さ(25.6px、line-height継承)を基準に中央揃えするようになり、
-	   .stat-speed-chart-link(28px、既にrow中心と一致)と同じ中心に揃う
-	   (実測: 修正後は全6行でrow centerYとの差が0.01px以下に縮小、報告参照)。
-	   font-sizeは元々ここで揃えていたvar(--font-size-base)の指定をそのまま維持する。 */
 	.stat-row-real {
 		padding-inline-end: var(--space-1);
 		text-align: right;
 		font-size: var(--font-size-base);
 		margin-top: 0;
 	}
-	/* 🔴 UI改修依頼(個体編集左パネル、2026-08-03)「H・B・D行の個別"調整"ボタンとS行のリンクを
-	   撤去する」対応により、2026-08-02の一連の改修(調整ボタンの拡大・アイコン化・H/B/D行への
-	   追加)で育ってきた.stat-speed-chart-link/.stat-adjust-button/.stat-speed-chart-placeholderの
-	   3クラスとそのCSS(サイズ・ホバー配色・プレースホルダー)は、対応するマークアップ(<a>/
-	   <button>/プレースホルダー<span>、上のSTAT_LABELS.map内)がすべて撤去されたため丸ごと削除する。
-	   同じ機能(耐久指数最大化・耐久調整・すばやさ調整)はステータス表の下の統合ボタン行
-	   (.stat-adjust-actions、下記参照)へ移設し、そちらは新しいクラス(.stat-adjust-action-button
-	   等)と既存の.btn-ghost(global.css)を組み合わせる方式にした。 */
-	/* ラウンド17指摘(B-5): ヌケニン限定の注記。既定は非表示(hidden属性)、通常種族では
-	   何も増えない(<script>のapplyBaseStats参照)。 */
 	.hp-fixed-note {
 		margin: var(--space-1) 0 0;
-		/* ラウンド20ユーザー指示(20-G3)文字の下限12px対応: 0.72rem(11.5px)→
-		   --font-size-sm3(0.75rem=12px)に上げる。 */
 		font-size: var(--font-size-sm3);
 		color: var(--color-text-muted);
 	}
 
-	/* 🔴 UI改修依頼(個体編集左パネル、2026-08-03)「ステータス表の下に新しいボタン行を追加する」
-	   対応。耐久指数最大化・耐久調整・すばやさ調整の3つを横並びにする行。間隔は他のセクション間隔
-	   (直上の.hp-fixed-note、margin-top 0.3rem)を踏まえてやや広め(0.6rem)にし、独立した
-	   操作行であることを示す。ボタン同士のgapは.app-topbar-actions等でも使っているvar(--space-2)
-	   (8px)に揃える(新しいトークンは作らない)。 */
 	.stat-adjust-actions {
 		display: flex;
 		flex-wrap: wrap;
@@ -1299,20 +597,6 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		/* 共通buttonの強めのウェイトを一段細くし、補助操作としての階層に合わせる。 */
 		font-weight: 400;
 	}
-	/* 🔴 UI改修依頼(個体編集左パネル、2026-08-04)「ボタンらしくない」というユーザー指摘への
-	   対応。.btn-ghost(global.css 904-914行目)は透明背景+ホバーでうっすら背景が付くだけで、
-	   クリック可能に見えにくい。global.css自体には「枠線付き・背景色あり」の専用クラス
-	   (.btn-secondary/.btn-outline等)は存在しない(grep確認済み)ため、実質的なセカンダリボタンの
-	   見た目は無修飾の<button>要素の既定style(global.css 822-845行目、border: 1px solid
-	   var(--color-border) + background: var(--color-surface)、hoverでvar(--color-surface-alt)、
-	   /box・/team一覧の#favorite-filter-toggle非活性状態と同じ既定)である。
-	   マークアップの.btn-ghostクラス自体は<a>要素(すばやさ調整)がbutton相当の
-	   display/padding/border-radius等の基礎style(global.css 822-825行目のa.btn-ghost)を
-	   受け取るために構造上必要なため残し、ここで.btn-ghost側の「透明化」上書き
-	   (background: transparent; border-color: transparent; color: var(--color-text-muted))
-	   だけを打ち消して、既存の無修飾button既定と同じ見た目(枠線+背景+ホバー)に戻す。
-	   新しい色・トークンは作らず、既存のvar(--color-surface)/var(--color-border)/
-	   var(--color-surface-alt)/var(--color-text)を再利用するのみ。 */
 	.stat-adjust-action-button {
 		background: var(--color-surface);
 		border-color: var(--color-border);
@@ -1341,106 +625,31 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		height: 16px;
 		vertical-align: middle;
 	}
-	/* 🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08)「耐久最大化・耐久調整・すばやさ調整の
-	   3ボタンをモバイルで非表示にする」対応。マークアップ(<div class="stat-adjust-actions">、
-	   LeftPanel.astro本体側)自体・デスクトップでの表示は変更せず、899px以下だけdisplay:noneにする。 */
 	@media (min-width: 0) {
 		.stat-adjust-actions { display: none; }
 	}
 
-	/* 🔴 UI改修依頼(個体編集左パネル、2026-08-01)「サジェストはリストボックスの候補に反映し、
-	   パネルに常時表示しない」により、常時表示のヒント段落一式(#nature-suggestion-hint等)と
-	   それ専用だった.suggestion-hint/.field-with-suggestionは撤去した(いずれもこのファイル内
-	   の他の要素からは参照されていないことをgrep確認済み)。作用率の表示先は各候補リスト
-	   (当時は#nature-list/#item-dropdown-list/#tera-dropdown-list/技選択ウィンドウ側。
-	   #nature-listは同日の別要件「性格をREAD限定にする」で後述のとおり削除済み)に移った。 */
 	@media (max-width: 460px) {
 		.stat-table-header { display: none; }
-		/* ラウンド12指摘(A-3)追随: 1列目はもともと「とくこう」等の全角ラベル+▲▼ボタンの
-		   幅として5.4emを確保していたが、ラベルがH/A/B/C/D/Sの1文字になったぶん
-		   3.6emまで詰めても収まっていた(▲▼ボタン18px×2+1文字+gapの実測から算出)。
-		   ⚠️ ラウンド21ユーザー指示(21-L7)で▲▼ボタンを24×24pxへ拡大したため、
-		   3.6em(57.6px)では収まらなくなる(24px×2+gap+1文字 ≒ 68px)。4.6emに広げ、
-		   浮いた分はスライダー(3列目、1fr)から差し引く。 */
-		/* 🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08)「種族値と努力値の間に0/-/+/32の
-		   4ボタンを配置する」対応でgrid-template-columnsの3列目・4列目の役割を入れ替える。
-		   従来は3列目(努力値入力欄)を固定幅3.4em、4列目(実数値)をminmax(0, 1fr)で余った横幅を
-		   吸収する役割にしていたが、0/-/+/32の4ボタン+数値入力欄を1行に収めるには3列目により
-		   広いゲージ幅が要る。実数値は最大3桁の数字1つを表示するだけで済むため、3remの固定幅に
-		   変えても崩れない(デスクトップの実数値列2.8remより余裕を持たせた)。 */
 		.stat-row { grid-template-columns: 3.8rem 2.6rem minmax(0, 1fr) 3rem; row-gap: var(--space-1); }
 		/* 460px以下では努力値のボタン行(0/-/+/32)+数値入力を1つのflex行にまとめる
 		   (デスクトップの5列グリッドは幅が無いと成立しないため)。 */
-		/* 🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08 第2弾)追随: この幅の.stat-rowは
-		   4列グリッド(4列目=実数値)なので、899px以下ブロックで与えた grid-column: 3 / 5 は
-		   実数値の席を奪ってしまう。3列目単独へ戻す。 */
 		.stat-row .stat-input-controls { display: flex; align-items: center; justify-content: flex-end; gap: var(--space-1); min-width: 0; grid-column: 3; }
 		/* 390px級の実機幅では 0/−/数値/+/32 の5要素が1行に収まりきらないため、
 		   ボタンの最小幅だけ 30px → 26px(WCAG 2.5.8の24px下限は満たす)へ詰める。 */
 		.stat-row .stat-ev-endpoint-button,
 		.stat-row .stat-ev-step-button { min-width: var(--stat-ev-mobile-button-inline-size); }
 		.stat-row .stat-ev-step-button { min-width: var(--stat-ev-mobile-button-block-size); }
-		/* 🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08)により、この460px以下の極小幅でも
-		   0/-/+/32ボタンを表示する方針に変えたため、.stat-ev-range-controls自体を丸ごと
-		   非表示にしていた旧ルール(スライダー+旧0/32ボタンをまとめて隠し、素の数値入力欄だけを
-		   残す設計)は撤回する。スライダー(input[type="range"])自体は上の
-		   @media (max-width: 899px)側で既に非表示化されているため、ここで個別に対応する必要はない
-		   (899px以下ブロックの中に460px以下のブロックが包含される関係にあり、ここではスライダー
-		   非表示は前提として扱ってよい)。 */
 		.stat-row .stat-input-controls input[type="number"] { flex: 0 0 3.2em; width: 3.2em; }
-		/* ラウンド23ユーザー指示(23-L5)の中央揃え化は、この460px以下の1行レイアウト
-		   (実数値がラベル列の下にpadding-leftで字下げして続く行内表示、デスクトップの
-		   5列グリッドとは別構造)には適用しない。ここで中央揃えにすると値がラベルの
-		   真下から離れて意味的なつながりが読み取りにくくなるため、意図的に除外した
-		   (判断根拠は報告参照)。 */
-		/* 🔴 UI改修依頼(個体編集左パネル、2026-08-01)により、実数値セルは.stat-row-real単体の
-		   グリッドアイテムから.stat-row-real-wrap(flex、値+ボタン/プレースホルダー)に
-		   変わった。デスクトップ側のjustify-content:centerのままだと字下げ表示の意図
-		   (ラベル列の真下から続けて表示)が崩れるため、この460px以下ではラッパー側に
-		   grid-column/padding-leftを移し、内側をflex-startへ変更する
-		   (.stat-row-real自体はもうグリッドアイテムではないため、grid-column指定は不要)。
-		   🔴 UI改修依頼(個体編集左パネル、2026-08-02)デスクトップ側の基底ルールを
-		   display: contents に変更した(6列グリッドの理由は.stat-table-headerコメント参照)ため、
-		   この460px以下では明示的に display: flex へ戻す(868行目付近の
-		   .stat-row .stat-input-controls と同じ、"display:contentsをこの幅だけ元に戻す"という
-		   既存の流儀を踏襲)。 */
 		.stat-row-real-wrap { display: flex; grid-column: 4; justify-content: flex-end; min-width: 0; }
 		.stat-row-base,
 		.stat-row-real { padding-inline-end: 0; text-align: center; font-weight: 400; }
 		.stat-row-label { gap: 0; }
 	}
 
-	/* ラウンド3 B-7: 「努力値合計」は要件により削除した。チャンピオンズルールは合計上限が
-	   無く、この数値は何の判断にも使えない(「510の残り」を連想させる誤った示唆になる)ため、
-	   表示自体を撤去した(.ev-total-line/#ev-totalのマークアップとJSも削除)。 */
 
-	/* 🔴 UI改善ラウンド32ユーザー指示(32-L1)「上側とヘッダーの間の余白を少し減らし」により、
-	   .panel-left(基底は共通クラス.panel、src/styles/global.cssのpadding: var(--space-6)
-	   var(--space-5)=24px 20px)のpadding-topだけを1rem(16px)へ減らす。⚠️ .panel-leftは
-	   /team/[id].astroも使う共有クラス名だが、Astroのscoped<style>はコンパイル時に
-	   data-astro-cid-*付きセレクタへ変換されるため、このファイル由来の要素にしか効かない
-	   (pitfalls.md「AstroのscopedスタイルはJSで生成した要素に効かない」の裏返しで、
-	   逆に「静的マークアップにはこのファイル限定で効く」)。global.css自体・/team側は
-	   変更しない。ユーザー追加指示「ポケモンアイコンサイズ変更はなし」により
-	   .species-sprite-img(144×144)は変更しない(下記参照)。 */
 	.panel-left { padding-top: 1rem; }
 
-	/* UI刷新: 種族アイコン(公式絵)ボックス(Pokemon.png参照)。右上に「タイプ画像」バッジを重ねる。
-	   ラウンド4ユーザー指示「ポケモンのアイコンが小さい」: 88px/72pxから拡大する。
-	   ラウンド12指摘(A-2): .top-block-fieldsの幅をflex-basis指定から比率指定に変えた
-	   ことで浮いた約64px(下記.top-block-fields参照)をここへ回し、128px→160pxに拡大する
-	   (縦の高さコストは無い=行の高さは元々.top-block-fields側の3行入力で決まっていたため)。
-	   スプライト側は元の余白比率(128px箱に112pxスプライト=片側8px)を保ったまま
-	   160px箱に144pxスプライトへ揃える。
-	   🔴 UI改善ラウンド34ユーザー指示(34-L1)「ポケモンアイコンを+10%」により、
-	   ラウンド32(32-L1)でユーザーが明示した「ポケモンアイコンサイズ変更はなし」を撤回する
-	   (今回はユーザーが再度明示的に拡大を指示しているため)。144px→158px(144×1.1=158.4を
-	   四捨五入)。箱(.species-icon-box)は画像より一回り大きい箱として設計されているため
-	   (従来160px箱-144px画像=片側8px余白)、画像だけ拡大すると余白が1pxしか残らず窮屈になる。
-	   箱側も比例して158+18=176px(片側9px余白、従来とほぼ同じ余白比率)に拡大する。
-	   #species-icon-boxは.top-block-icon-corner(固定幅180px、後述)と横並びで
-	   margin-inline:autoにより残り幅の中で中央寄せされるため、拡大後もこの2要素が
-	   重ならないことをgetBoundingClientRectで実測して確認した(報告参照)。 */
 	.species-icon-box {
 		position: relative;
 		display: flex;
@@ -1449,8 +658,6 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		width: 176px;
 		height: 176px;
 		border-radius: var(--radius-md);
-		/* UI改善ラウンド31ユーザー指示(31-L1)「ポケモン画像の背景色を除去」により、
-		   角丸の薄い箱の背景(--color-surface-alt)を撤去する。画像自体は158×158のまま。 */
 		background: transparent;
 		flex-shrink: 0;
 	}
@@ -1463,36 +670,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	   本体と入れ替わっても箱内のサイズ感が変わらないようにする。 */
 	.species-sprite-fallback-lg { width: 142px; height: 142px; font-size: 3.2rem; }
 
-	/* UI刷新: Pokemon.png レイアウト。上部ブロック(種族/ニックネーム/特性 + アイコン)。
-	   ラウンド4ユーザー指示により性格は表示しなくなった(能力値ラベルのクリックへ移行)。
-	   UI改善ラウンド26ユーザー指示(26-L2)「アイコン領域を全幅に拡大。入力欄は下に移動」に
-	   より、.top-block-icon(アイコン領域)と.top-block-fields(入力欄一式)の横並び2カラムを
-	   撤回し、アイコン領域を上段・入力欄を下段に積む縦2段構成にする(ラウンド12指摘(A-2)で
-	   確立した「折半比率」の考え方はこの変更で不要になった)。 */
-	/* 🔴 UI改善ラウンド31ユーザー指示(31-L6)「種族〜テラスタルの入力ボックスのY間隔を詰める」
-	   により、0.3rem(4.8px)→0.75rem(12px、下のgap値と揃える)へ変更する。この margin-bottom は
-	   .top-block(種族/ニックネーム/特性/性格)と直後の.field-grid.field-grid-single(持ち物/
-	   テラスタル)の間の縦間隔そのものになる(31-L4の対応で.top-block-fields内の各.fieldの
-	   margin-topを0にしたため、この行間はここの一箇所だけで決まる)。
-	   🔴 UI改善ラウンド34ユーザー指示(34-L2)「種族名〜テラスタイプの縦余白も、技どうしの
-	   縦余白と同じになるように詰める」により、0.75rem(12px)→0.4rem(6.4px、下の
-	   #edit-form .field-grid のgap値と同じ)へさらに詰める。31-L6/32-L4の「間隔を広げる」
-	   判断をこの一点(種族〜テラスタイプの縦間隔)に限り反転させる(技→ステータス間の
-	   margin-bottom(2rem)等、このラウンドの対象外の間隔は変更しない)。 */
-	/* UI改修依頼(2026-08-05)「ポケモンアイコン段の上下余白を30%減らす」対応。 */
 	.top-block { display: flex; flex-direction: column; gap: 0.35rem; margin-bottom: 0.4rem; }
-	/* ラウンド26ユーザー指示(26-L2)により全幅の下段になったため、空いた横幅を活かして
-	   種族/ニックネーム/特性/性格を2列×2行のグリッドに詰める(以前は.top-block-icon
-	   固定幅と折半する片側カラムの縦1列だった)。狭幅(520px以下)は既存の.field-gridと
-	   同じ閾値で1列に戻す(下の@media (max-width: 520px)参照)。
-	   🔴 UI改善ラウンド31ユーザー指示(31-L6)「種族〜テラスタルの入力ボックスのY間隔を詰める」
-	   により、row-gapを0.3rem(4.8px)→0.75rem(12px)に変更する。列内の2行(種族/ニックネーム行→
-	   特性/性格行)の間隔はこのgapだけで決まる(下の.field:first-child撤回参照。修正前は
-	   これに各.fieldの margin-top(--space-2)が積み重なって20.8pxになっていた)。
-	   🔴 UI改善ラウンド34ユーザー指示(34-L2)「種族名〜テラスタイプの縦余白も、技どうしの
-	   縦余白と同じになるように詰める」により、row-gapを0.75rem(12px)→0.4rem(6.4px、下の
-	   #edit-form .field-grid のgap値と同じ)へさらに詰める(31-L6の「間隔を広げる」判断を
-	   この一点に限り反転)。列間(column-gap 0.6rem)はこのラウンドの対象外のため変更しない。 */
 	.top-block-fields {
 		display: grid;
 		grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1500,23 +678,8 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		width: 100%;
 	}
 
-	/* 🔴 UI改善ラウンド31ユーザー指示(31-L4)「種族名とニックネームの入力欄のY位置をそろえる」
-	   により、旧来の`.field:first-child { margin-top: 0; }`(種族欄=1列目1行目だけを対象にした
-	   個別打ち消し)を撤回する。この方式では2列目1行目(ニックネーム)には効かず、
-	   ニックネーム欄だけがglobal.cssの基底.fieldマージン(margin: var(--space-2) 0)ぶん
-	   下にずれていた(実測4.0pxのズレの原因)。.top-block-fields内の全.fieldのmargin自体を
-	   0にし、縦の間隔は上のgrid gapだけで作る(2列とも同じ行に属する.fieldは同じ上端に揃う)。
-	   ラウンド12指摘(A-5)が解決しようとした「1行目の縦位置バラバラ」問題も、原因が
-	   margin:0の徹底に置き換わっただけで引き続き解消されたままになる。 */
 	#edit-form .top-block-fields .field { margin: 0; }
 
-	/* 🔴 UI改修依頼(個体編集左パネル・レギュレーション対応、2026-08-01)
-	   テラス欄(2段目右)はレギュレーションによって出たり消えたりする。消えたときに
-	   grid の自動配置が繰り上がって「特性が2段目右へ、持ち物が3段目左へ」とずれてしまうのを
-	   防ぐため、3段目の先頭(特性)だけ列を固定する。grid-column:1 を指定した項目は
-	   1列目にしか置かれないので、2段目1列目(レギュレーション)が埋まっている以上
-	   必ず3段目1列目に落ちる。テラス欄が表示されている通常時の配置も変わらない。
-	   狭幅時(下の @media で grid-template-columns:1fr になる)は 1列しか無いため無害。 */
 	#edit-form .top-block-fields > .field-ability { grid-column: 1; }
 
 	/* [hidden] は display:flex を持つ .field(global.css)に詳細度で負けるため明示する
@@ -1534,9 +697,6 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		color: var(--color-text-muted);
 	}
 
-	/* ラウンド5ユーザー指示: 第4弾でラベル(.field-label)を復活させたが「ラベルをやめ
-	   placeholderにする」という撤回指示により、ここでは .field は単なる幅100%の
-	   コンテナとして使う(ラベルが無いのでflexの単一子として自然に振る舞う)。 */
 	#edit-form .top-block-fields .field > input.field-control,
 	#edit-form .top-block-fields .field > select.field-control {
 		min-width: 0;
@@ -1544,23 +704,10 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		margin: 0;
 		font-size: var(--font-size-sm1);
 		padding: 0.42em 0.6em;
-		/* ラウンド4の積み残し: 特性欄が長い値(「ウーラオス(いちげき)」相当の長さ)で
-		   見切れる。省略記号で「切れている」ことを視覚的に示す(全文はtitle属性で確認)。
-		   text-overflowの効果にはoverflow:hiddenが必須(一部ブラウザでinput要素は
-		   既定でoverflow:hiddenだが、明示しないとellipsisが効かないケースがある)。 */
 		overflow: hidden;
 		text-overflow: ellipsis;
 	}
 
-	/* アイテム/テラスタイプ、技1〜4はカードの横幅に対して2列グリッドのまま維持する。
-	   ラウンド5ユーザー指示によりラベル(A-8で統一した横並びラベル)は撤去し、
-	   placeholder + aria-labelに戻したため、--field-label-widthはもう使わない。
-	   🔴 UI改善ラウンド34ユーザー指示(34-L2)「技ボックス間の縦横スペースを等間隔にして
-	   少し詰める」により、column-gapを0.6rem(9.6px)→0.4rem(6.4px)へ詰め、row-gap(既に
-	   0.4rem=6.4px)と揃える(技ボックスは.move-fields-gridがこの基底クラスをそのまま
-	   継承するため、ここを直接変更する)。.field-grid-single(持ち物/テラス)は1行しか
-	   ないためrow-gapは実質無関係で、column-gapが9.6px→6.4pxへ詰まるだけ(実測して
-	   窮屈になっていないことを確認した。報告参照)。 */
 	#edit-form .field-grid {
 		display: grid;
 		grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1568,62 +715,12 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		margin-bottom: var(--space-2);
 	}
 	#edit-form .field-grid > .field { margin: 0; }
-	/* UI改善ラウンド26(26-L2): テラスタイプ欄をアイコン領域内へ移設した結果、この行(旧・
-	   持ち物+テラスタイプの2列グリッド)には持ち物入力欄1つしか残らない。2列グリッドの
-	   ままだと2列目が空いて間延びするため、この行だけ単独行(1列)に切り替えていた。
-	   🔴 UI改善ラウンド28ユーザー指示(28-L4)「テラスタル選択ボックスはアイテム入力欄の
-	   右側に配置」により、テラスタル選択ボックスをこの行の2列目へ戻したため、この
-	   1列オーバーライドを撤回する(削除)。.field-grid-single(クラス名はそのまま維持)は
-	   上の#edit-form .field-gridの基本定義(2列グリッド)がそのまま効く。 */
-	/* UI改善ラウンド26(26-L3)「アイテム段と技段の間にも横棒を配置」。他の区切り線
-	   (.damage-row-footer等)と同じトークン(1px solid var(--color-border))で揃えていた。
-	   🔴 UI改善ラウンド31ユーザー指示(31-L7)「アイテムと技の入力欄の間の横棒を削除し、
-	   代わりに間隔を広げる。技とステータスの間の間隔も同じだけ確保する」により、
-	   (a) border-top/padding-topを撤去(横棒を消す。区切りは間隔の広さそのものに委ねる)。
-	   ⚠️ 実測で判明した誤り: 当初「直前の.field-grid-singleのmargin-bottomと兄弟マージン
-	   相殺(collapse)が起きる」という前提でmargin-top/bottomをそれぞれ1remにしたが、
-	   実際は#edit-formがdisplay:flex(flex-direction:column、縦の並び)であり、
-	   flexアイテム同士の縦マージンは相殺しない(CSS仕様上の既知の挙動)。実測すると
-	   gap(b)=8px(field-grid-singleのmargin-bottom)+16px(move-fields-gridのmargin-top)=24px、
-	   gap(c)=16px(move-fields-gridのmargin-bottom)+0px(.stat-tableのmargin-top、未指定)=16pxと
-	   不揃いになっていた(24px≠16px)。
-	   (b)(c)を同値にするため、直前の.field-grid-single側のmargin-bottomを0にし(下記
-	   #edit-form .field-grid.field-grid-single参照)、gap(b)(c)とも「このmove-fields-gridの
-	   margin-top/margin-bottomだけ」で決まるようにする。1remずつ(16px)で統一し、
-	   修正前(b)9.6px/(c)8.0pxからどちらも拡大する。 */
-	/* 🔴 UI改善ラウンド32ユーザー指示(32-L4)「技とステータスの間の間隔をさらに広げて、
-	   アイテムと技の間のスペースと揃える」により、両方をさらに広げる。31-L7時点では
-	   margin-top(持ち物→技のgap)=margin-bottom(技→ステータスのgap)=1rem(16px)の
-	   同値だったが、round-32.mdの分析どおり「持ち物→技は入力欄の枠と枠の間」「技→
-	   ステータスは入力欄の枠と.stat-table-header(文字ラベル、padding-bottom 0.35rem)の間」で
-	   境界の性質が違うため、同じ数値でも技→ステータス側が詰まって見える。単純に同値へ
-	   揃えるだけでは31-L7の再演になるため、技→ステータス側(margin-bottom)を持ち物→技側
-	   (margin-top)よりさらに広く取り、視覚的な余白量を揃える。 */
 	#edit-form .field-grid.move-fields-grid {
 		margin-top: var(--space-6);
 		margin-bottom: var(--space-7);
 	}
-	/* 🔴 UI改善ラウンド31ユーザー指示(31-L7)対応の一部: 持ち物/テラス行(.field-grid-single)
-	   自身のmargin-bottom(基底#edit-form .field-gridの0.5rem)を0にし、直後の
-	   .field-grid.move-fields-gridとの間隔を後者のmargin-topだけで一元管理する
-	   (#edit-formがflexコンテナのためマージン相殺が起きない、上のコメント参照)。 */
-	/* 🔴 レギュレーション対応の改修(2026-08-01)で .field-grid-single(持ち物/テラス行)自体を
-	   解体したため、この打ち消しルールは対象を失った。技グリッド(.move-fields-grid)の
-	   直前は .top-block(margin-bottom を持たない)になり、間隔は引き続き
-	   .move-fields-grid の margin-top(1.5rem)だけで決まるので、31-L7 の
-	   「gap(b)(c)を同値にする」意図はそのまま保たれる。ルールは削除した。 */
-	/* ラウンド21ユーザー指示(21-L6)で導入した.field-span-all(テラスタイプ欄が19タイプの
-	   アイコンを並べるため2列目の狭い幅に収まらず、grid-column: 1 / -1で自分の行を占有する
-	   ためのクラス)は、ラウンド23(23-L3)でテラスタイプを<select>に戻したことで不要になった
-	   (再び持ち物と同じ2列グリッドに収まる幅のため)。マークアップからクラスを外し、この
-	   定義も削除した。 */
 	/* 2列に詰めたぶん1つあたりの幅が狭いので、この左パネル内だけ文字と余白を少し詰めて
 	   「ブーストエナジー」「こだいかっせい」クラスの長さが枠内に収まるようにする。 */
-	/* 🔴 レギュレーション対応の改修(2026-08-01)で持ち物・テラスの一式(.field-with-image)が
-	   .field-grid.field-grid-single から .top-block-fields へ移ったため、以下の
-	   「.field-grid配下の.field-with-image」向けルール3組は .top-block-fields 配下にも
-	   同じように効かせる必要がある(セレクタに片方しか書かないと、持ち物/テラスだけ
-	   幅100%が効かず内容幅に収縮する・フォントが他の入力欄と揃わない、という形で崩れる)。 */
 	#edit-form .field-grid .field-with-image > input,
 	#edit-form .field-grid .field-with-image > select,
 	#edit-form .top-block-fields .field-with-image > input,
@@ -1633,13 +730,9 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		margin: 0;
 		font-size: var(--font-size-sm1);
 		padding: 0.42em 0.6em;
-		/* ラウンド4の積み残し: 持ち物欄が長い値(「こだわりハチマキ」等)で見切れる。 */
 		overflow: hidden;
 		text-overflow: ellipsis;
 	}
-	/* ドロップダウン統一(ラウンド4): 上のpadding(shorthand)がpadding-rightも
-	   0.6emに戻してしまうため、矢印ぶんの余白をselectだけ広げ直す(このルールが
-	   後ろにあるので勝つ)。 */
 	#edit-form .field-grid .field-with-image > select,
 	#edit-form .top-block-fields .field-with-image > select {
 		padding-right: 1.8em;
@@ -1652,50 +745,15 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	#edit-form .field-with-image > img,
 	#edit-form .field-with-image > span,
 	#edit-form .field-with-image > a { flex: 0 0 auto; }
-	/* ラウンド12指摘(A-1): .field-with-image自体には親(.field)いっぱいに広がる指定が無く、
-	   中身(inputの内容幅)に収縮フィットしていたため、持ち物(実測189px)/テラス(113px)/技
-	   (164px)の右端が列幅195pxに対してバラバラだった。.field-gridの直下(.field経由)にある
-	   ものだけ、列幅いっぱいに伸びるようflex/width/min-widthを明示する(左パネルの外で
-	   .field-with-imageが別の使われ方をしていないか確認した上でセレクタをこの階層に絞る)。 */
 	#edit-form .field-grid > .field > .field-with-image,
 	#edit-form .top-block-fields > .field > .field-with-image { flex: 1 1 auto; width: 100%; min-width: 0; }
 
-	/* UI改善ラウンド23(23-G3): メガシンカ種族選択時に持ち物をメガストーンへ自動設定した
-	   ことを示す一時的なハイライト(JSがis-autofilledクラスを付け、約1.4秒後に自動で外す。
-	   flashAutofillHint参照)。box-shadowのみで高さを取らないため、下端が画面ギリギリの
-	   左パネルのレイアウトを崩さない。input:focus(global.css)と同系統の色だが、リング幅を
-	   広げて別要素と誤認しないようにする。 */
 	#edit-form #item.is-autofilled {
 		border-color: var(--color-primary);
 		box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 30%, transparent);
 	}
 
-	/* ラウンド25ユーザー指示(25-L2)「テラスタイプ選択を、選択ボックスの位置にPokeAPIの
-	   テラスタイプ画像(アイコン+英語タイプ表記)がそのまま出るUIにする」。
-	   ラウンド23の23-L3(<select>+左に小さい丸アイコン、.tera-select-wrap/
-	   .tera-type-icon)を撤回し、ボタン+リストボックスのカスタムドロップダウンに
-	   置き換える(21-L6で一度似た構成を作ったが23-L3で削除済みのため作り直し)。
-	   #tera(<select>)は保存経路・値の実体として隠したまま残る(HTML側でhidden属性、
-	   <script>のbuildTeraDropdown参照)。
-	   🔴 UI改善ラウンド28ユーザー指示(28-L4)「テラスタル選択ボックスはアイテム入力欄の
-	   右側に配置」により、この一式を帯(.top-block-icon)の中から.field-grid-single
-	   (持ち物入力欄の右列)へ移設した(ウィジェットのロジック=開閉・選択・保存は
-	   一切変えていない、<script>のbuildTeraDropdown参照)。移設先は.field-grid内の
-	   .field-with-imageなので、ここでの明示的なflex指定は不要になった(旧#edit-form
-	   .field-with-image > .tera-dropdown-wrapは削除。#edit-form .field-grid > .field >
-	   .field-with-image { flex: 1 1 auto; width: 100%; }が既に効く)。 */
 	#edit-form .tera-dropdown-wrap { position: relative; width: 100%; }
-	/* 🔴 UI改善ラウンド31ユーザー指示(31-L5)「テラスタル入力欄も左揃え」により
-	   justify-content: flex-start を明示する(global.cssの共通`button`ルールが
-	   justify-content: center を持ち、このボタンは何も上書きしていなかったため中央寄せに
-	   なっていた。既存のtext-align:leftはflexレイアウトの子要素配置には効かない)。
-	   🔴 UI改善ラウンド31ユーザー指示(31-L4)「持ち物入力欄とテラスタル選択欄のY位置・高さを
-	   揃える」により、min-height/line-heightを明示する(<button>はglobal.cssの
-	   `input[type="text"], select { min-height: 2.35rem; line-height: var(--line-height-snug); }`
-	   の対象に含まれず、UAデフォルトのline-heightのまま高さがinput/selectと1.1pxずれていた)。 */
-	/* UI改善ラウンド44(A-2): <button>要素はglobal.cssの共通buttonルール(font-weight: 600)を
-	   暗黙継承しており、34-L4で確定した「入力欄はすべて400にフラット化する」方針
-	   (.item-name-display等)から漏れていた。同じ方針の延長としてfont-weight: 400を明示する。 */
 	#edit-form .tera-dropdown-button {
 		display: flex;
 		align-items: center;
@@ -1719,21 +777,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		outline: 2px solid var(--color-primary);
 		outline-offset: 1px;
 	}
-	/* UI改善ラウンド28ユーザー指示(28-G1)「テラスタイプ画像には専用アイコンを使う」により、
-	   PokeAPIの横長リボン画像(実寸200×48前後、英語表記込み)からteraTypeIconUrlの正方形
-	   専用アイコンへ切り替えた(<script>のupdateTeraDropdownButton参照)。専用アイコンは
-	   幅を持て余すため固定サイズにし(通常タイプアイコンと同じ20px)、
-	   隣にテラスタイプ名のテキスト(#tera-dropdown-placeholder、下記)を並べる。宝石型
-	   アイコンはジグザグの尖った縁を持つため、border-radius: 50%による丸トリミングは
-	   掛けない(掛けると縁が削れる)。 */
 	#edit-form .tera-dropdown-image { width: 20px; height: 20px; object-fit: contain; flex-shrink: 0; }
-	/* ラウンド24ユーザー指示(24-L3)「テラスなしを目立たなくする」と同じ視覚言語
-	   (#edit-form input:placeholder-shownと同じ破線枠+透明背景)を、テラスなし選択中の
-	   ボタンにも適用する(<script>のupdateTeraDropdownButton参照)。
-	   UI改善ラウンド28ユーザー指示(28-L4)により、#tera-dropdown-placeholder(既存ID、
-	   改名しない)は「未選択時の代替テキスト」から「選択中も常時表示するラベル
-	   テキスト」へ役割を広げた(アイコン+テキストを常に並べる)。選択中は
-	   .is-tera-value-textを付け、mutedを打ち消して通常の文字色にする。 */
 	#edit-form .tera-dropdown-button.is-tera-unselected {
 		border-style: dashed;
 		background: transparent;
@@ -1771,19 +815,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	   box/[id].astro側の<style is:global>に定義する(#species-type-badge .type-badge-fallbackの
 	   直後)。 */
 
-	/* UI改善ラウンド41ユーザー指示(41-L1)。アイテム選択ドロップダウンのボタン・パネル自体は
-	   このコンポーネントの静的マークアップ(上記item-dropdown-wrap)なのでscoped<style>が効く。
-	   見た目はテラスの#edit-form .tera-dropdown-button/.tera-dropdown-list(上記)と完全に
-	   揃える(枠・高さ・角丸・影は同じトークンを再利用、新色は作らない)。ただし候補が
-	   数百件規模のため、パネル内部に絞り込み入力(.item-dropdown-search)を追加した分だけ
-	   構造がテラスと異なる(テラスの<ul>単体に対し、アイテムは検索欄+<ul>を1枚のパネルに
-	   まとめる)。<li>/<img>/<span>はテラスと同様<script>のbuildItemDropdownOptionsが
-	   動的生成するため、それらのスタイルは下のLeftPanel.astro自身の<style is:global>
-	   ブロック(.move-picker-*と同居)に置く(box/[id].astroは編集禁止のため、テラスのように
-	   box/[id].astro側の<style is:global>には置けない)。 */
 	#edit-form .item-dropdown-wrap { position: relative; width: 100%; }
-	/* UI改善ラウンド44(A-3): テラスボタン(A-2)と同じ理由でfont-weight未指定によりbutton基底の
-	   600を継承していた。34-L4の「入力欄はすべて400にフラット化する」方針に揃えるため明示する。 */
 	#edit-form .item-dropdown-button {
 		display: flex;
 		align-items: center;
@@ -1814,10 +846,6 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		cursor: not-allowed;
 	}
 	#edit-form .item-dropdown-button:disabled:hover { border-color: var(--color-border); }
-	/* ラウンド23(23-G3)のメガストーン自動設定ハイライトは、従来は#item自体(hidden化前は
-	   可視の<input>)へ付けていたが、hidden化した今は入力欄自体を見せる場所が無いため、
-	   このボタン側に同じ視覚言語(既存の#edit-form #item.is-autofilledと同じトークン)で
-	   付け直す(<script>のapplyLeftMegaStoneAutofill参照。新色は作らない)。 */
 	#edit-form .item-dropdown-button.is-autofilled {
 		border-color: var(--color-primary);
 		box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 30%, transparent);
@@ -1864,24 +892,10 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		overflow-y: auto;
 	}
 
-	/* ラウンド23ユーザー指示(23-L4)「技の選択ボックスの枠色をタイプごとに変えない」により、
-	   技名確定時にborder-colorをタイプ色にしていたupdateMoveTypeColor()を関数ごと削除した
-	   (UI品質改善11-3で追加・21-L8でbackground-colorのみ先に撤去していたもの)。技の入力欄は
-	   他の入力欄と同じ既定の枠色になる(タイプは左のアイコンで伝わる)。この
-	   transition: border-color自体は他の状態変化(focus等)にも汎用的に効くため残す。 */
 	#edit-form .move-input-group > input {
 		transition: border-color 0.15s ease;
 	}
-	/* ラウンド21ユーザー指示(21-L8): タイプアイコンを技名の左に置く。<input>の中には
-	   画像を入れられないため、入力欄の左に絶対配置し、input側のpadding-leftで
-	   文字と重ならないようにする(検索欄の虫眼鏡アイコンと同じ定石)。 */
 	#edit-form .move-input-group { position: relative; }
-	/* UI改善ラウンド40ユーザー指示(40-L1)「タイプアイコン+10%」により、他の箇所
-	   (アイテム/テラス画像等)と同じ20pxはそのまま据え置き、この技タイプアイコンだけ
-	   --move-type-icon-sizeという専用の変数(20px×1.1=22px)を定義してwidth/heightに使う。
-	   padding-left側(下記.field-with-image.move-input-group > input)も同じ変数を参照
-	   するように揃えることで、アイコンが大きくなった分だけ技名の文字と重ならないよう
-	   再計算する。 */
 	#edit-form .move-type-icon {
 		position: absolute;
 		left: 0.55em;
@@ -1898,27 +912,10 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	   このspan自体がhiddenのまま(<script>のupdateMoveTypeIcon参照)。 */
 	#edit-form .move-type-icon[hidden] { display: none; }
 	#edit-form .move-type-icon img { width: 100%; height: 100%; border-radius: 50%; object-fit: contain; }
-	/* ⚠️ 詳細度に注意: #edit-form .field-grid .field-with-image > input(上記)が
-		padding: 0.42em 0.6em というshorthandを持ち、classが1つ多い(.field-grid
-		.field-with-imageの2つ+要素結合子)ぶんこちらより詳細度が高いため、後方に書いても
-		padding-leftの値は上書きされない実測結果が出た(技名の先頭文字とアイコンが重なる
-		事故)。セレクタに.field-grid/.field-with-imageを含めて詳細度を同等以上にする。
-		🔴 ラウンド40(40-L1)でアイコン本体を1.1倍にしたため、ここも同じ計算式
-		(20px * 1.1)に合わせる(20px→22pxぶん、+2pxだけ余裕を広げる)。 */
 	#edit-form .field-grid .field-with-image.move-input-group > input {
 		padding-left: calc((20px * 1.1) + 0.9em);
-		/* UI改善ラウンド38(38-L1): 右端に追加したドラッグハンドル(.move-drag-handle、
-		   下記)と技名の文字が重ならないよう、右側にもパディングを確保する。詳細度は
-		   上のpadding-leftと同じ理由(コメント参照)でこのセレクタに揃える必要がある。 */
 		padding-right: calc(14px + 0.9em);
 	}
-	/* UI改善ラウンド38ユーザー指示(38-L1)「技の順番をドラッグアンドドロップで入れ替え」。
-	   ドラッグハンドルはCSSのみで描く簡易グリップ(ドット格子)。装飾要素なので
-	   aria-hidden="true"(マークアップ側)、キーボード操作対象にもしない
-	   (判断根拠は上のマークアップ側コメント参照)。
-	   並び替え中の視覚フィードバック: ドラッグ元(.is-dragging)は半透明化、ドロップ先候補
-	   (.is-drag-over)は既存の他要素のfocus-visibleと同じ色系統(--color-primary、
-	   .stat-nature-btn:focus-visible参照)の点線アウトラインで示す。 */
 	#edit-form .move-drag-handle {
 		position: absolute;
 		right: 0.4em;
@@ -1940,40 +937,9 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		outline-offset: 2px;
 		border-radius: var(--radius-md);
 	}
-	/* ラウンド21(21-L4)の「読み取り専用のラベル+値のテキスト表示」(<p class="nature-readout">)は
-	   ラウンド23(23-L2)ユーザー指示により<input readonly class="field-control">へ置き換えた
-	   (特性の直下、他の入力欄と見た目を揃える)。.nature-readout系のCSSはもう使われないため
-	   削除した。ラウンド43ユーザー指示(43-L1)「ホバー時にテキスト表示はせず、代わりにマウスが
-	   編集不可マークになるようにする」により、title属性(ブラウザ標準ツールチップ)は削除し、
-	   代わりにcursorをdefaultからnot-allowed(編集不可マーク)へ変更していた
-	   (#nature-readout-value[readonly]セレクタ)。
-	   🔴 ラウンド48ユーザー追加指示(A-7)によりreadonly属性自体を外して直接編集可能にした
-	   ため、上記の[readonly]セレクタは要素にマッチしなくなり無意味化した。編集可能な通常の
-	   input(.field-control基底のcursor: text)に戻すため、このルールごと削除する。
-	   🔴 UI改修依頼(個体編集左パネル、2026-08-01)によりA-7の判断自体を撤回し、
-	   <input>から読み取り専用の<span>へ戻した(上の.stat-table-header-nature参照)。
-	   <span>はそもそもcursor/pointer-events等の入力欄向けCSSを一切必要としないため、
-	   この節に追加のCSSは無い。 */
 
-	/* ラウンド4ユーザー指示: 「技1〜4」個別ラベルの代わりに置く1個のグループ見出しだったが、
-	   ラウンド20ユーザー指示(20-L1)でplaceholder方式に統一したため.field-group-label自体を
-	   撤去した(マークアップ側のspanも削除済み)。 */
 
-	/* ラウンド4ユーザー指示で追加した「技の詳細はリンクではなくホバー表示にする」
-	   ツールチップ(.move-detail-trigger/.move-detail-tooltip)は、ラウンド20ユーザー指示
-	   (20-L2)「わざのヘルプ表示を削除」により撤去した(マークアップ・<script>の
-	   setupMoveDetailTooltips相当のロジックも削除済み)。 */
 
-	/* UI品質改善: メモ欄は「空いた縦スペースを吸収して伸びる」せいで実測200px近くまで
-	   膨らみ、情報密度に対して過大だった。メモ自体は控えめな固定高さ(最大10em)に
-	   留めていたが、ラウンド20ユーザー指示(20-L5)「メモ欄の高さ増加」によりmin/max両方を
-	   引き上げる(4.4em→8em / 10em→16em)。左パネルは縦フレックスで余白をメモ欄が
-	   吸収する設計のため、拡張後も左パネル下端が画面外に出ないことを実測済み
-	   (1440×1080・1920×1080、実装時の検証記録参照)。 */
-	/* 🔴 UI改善ラウンド32ユーザー指示(32-L5)「ステータスとメモの間の間隔を広げる」により、
-	   margin-topを0(実測0.06px=ほぼ密着)から1.75rem(28px)へ広げる。32-L4で技→ステータス
-	   側に設定したmargin-bottom(2rem=32px)と近い値にしつつ、「メモは別の情報ブロックなので
-	   同値以上が妥当」という要件に沿って若干広めにする。 */
 	#edit-form .memo-input { width: 100%; min-width: 0; min-height: 8em; max-height: 16em; margin: 1.75rem 0 var(--space-2); resize: vertical; }
 	@media (max-width: 520px) {
 		#edit-form .field-grid { grid-template-columns: 1fr; }
@@ -2011,22 +977,6 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 			min-height: 0;
 		}
 	}
-		/* UI改善ラウンド26ユーザー指示(26-L2)「アイコン領域を全幅に拡大。タイプ画像、
-		   アイテム画像+アイテム名、テラスタイプ画像を余裕をもって配置する」により、
-		   .top-block-icon(アイコン領域)を種族アイコン+バッジ群の縦フレックス(旧構成)から
-		   全幅の横フレックスに作り直した。
-		   UI改善ラウンド28ユーザー指示(28-L1)「ポケモン画像が帯の左半分に配置されているが、
-		   帯の全幅を使って中央配置する」により、ラウンド27(27-H1)の「中央寄せゾーン+右コーナー列」の
-		   2分割flexを撤回し、#species-icon-boxを帯の全幅に対して中央寄せしていた。
-		   🔴 UI改善ラウンド31ユーザー指示(31-L2)「アイテム画像+文字のサイズを大きくする。
-		   ポケモン画像を少し左に移動してよい」により、28-L1の「帯の全幅に対する厳密な中央寄せ」を
-		   この要件の範囲で撤回する(round-31.md「この指示で撤回される過去の判断」表に明記)。
-		   コーナー列(アイテム画像+名前)を拡大すると必要幅が増え、絶対配置オーバーレイのままだと
-		   #species-icon-boxとの重なりを避けられないため、コーナー列を通常フロー(flex: 0 0 auto の
-		   固定幅カラム)に戻す。#species-icon-box側はflexの子要素のまま`margin-inline: auto`を
-		   付与し、コーナー列を差し引いた残り幅の中で中央寄せされるようにする(=中央寄せの意図は
-		   保ちつつ、コーナー列ぶんだけ左に寄る。27-H1が絶対配置を避けた理由だった重なりは、
-		   固定幅の通常フローに戻すことでレイアウトエンジンが自動的に回避する)。 */
 		.top-block-icon {
 			position: relative;
 			flex-shrink: 0;
@@ -2039,43 +989,14 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		   (flexのauto marginは兄弟の固定幅を差し引いた余白を吸収する)。 */
 		#species-icon-box { margin-inline: auto; }
 		.top-block-icon-corner {
-			/* UI改善ラウンド31(31-L2)により絶対配置(position:absolute; inset-block:0; right:0)を
-			   撤回し、通常フローの固定幅カラムに戻す(#species-icon-boxとの重なりは
-			   フレックスレイアウトが自動的に回避する)。
-			   幅180px: アイテム画像24px(下記.item-image-badge)+行gap+アイテム名の確保幅
-			   (max-width 8.05em、font-size 1.125rem時 ≈144.9px、画像+gap込みで≈171.3px)を収める最小限より少し余裕を持たせた値。
-			   実装時にgetBoundingClientRectで#species-icon-boxと本要素の矩形が重ならないことを
-			   確認する。 */
 			flex: 0 0 auto;
 			width: 180px;
 			display: flex;
 			flex-direction: column;
-			/* 🔴 UI改善ラウンド32ユーザー指示(32-L2)「タイプ画像はアイテム表示と同じ位置で左揃え」
-			   により、flex-end(右揃え)→flex-startへ変更する。この列の直接の子は
-			   #species-type-badge(タイプバッジ)と.top-block-icon-info(アイテム表示+テラス画像)の
-			   2つで、どちらも自分自身の内容幅ぶんしか占めない(stretchしない)ため、
-			   flex-startにすると両方が独立にこの列の左端(=.top-block-icon-corner自身の
-			   左端)へ揃う。.top-block-icon-info側は内部もalign-items:flex-start(28-L6で確立済み)
-			   なので、その最初の子である.top-block-item-display(→.item-image)の左端も
-			   同じ列左端に揃い、結果としてタイプバッジと.item-imageのx座標が一致する
-			   (実測して報告する)。 */
 			align-items: flex-start;
 			justify-content: space-between;
 			gap: 0.4rem;
 		}
-		/* タイプ画像に続き、アイテム画像+名前とテラスタイプ画像(読み取り専用)をまとめる。
-		   UI改善ラウンド28ユーザー指示(28-L2)「アイテム(画像+名前)とテラスタイプ(画像)は
-		   上下に重ねて右下に配置」により、1段目=アイテム表示、2段目=テラスタイプ画像の
-		   縦積みにする(テラスタル選択ボックス自体は28-L4で.field-grid-singleへ移設済み)。
-		   🔴 UI改善ラウンド28(左サイド実装後の追加対応・28-L6)「テラス画像がアイテム行と
-		   揃っておらず上下に重ねた塊に見えない」により、align-itemsをflex-end→flex-startに
-		   変更する。アイテム表示行(.top-block-item-display、画像→名前の順)がこのdiv内で
-		   最も幅の広い子要素であるため、div自体の右端はこれまでどおり.top-block-icon-corner
-		   の右端に揃う(コーナー列側のalign-items:flex-endで決まる。この変更では動かない)。
-		   一方、div内部をflex-startにすることで、アイテム行とテラス画像がどちらもdivの
-		   左端(=アイテム画像の左端)を基準に積まれるようになり、「画像→画像」で縦の視線が
-		   通る配置(提案(a))になる。テラス画像はアイテム画像よりだいぶ幅が狭いため、
-		   flex-endのままだと右端に寄って孤立して見えていた(28-L6の問題そのもの)。 */
 		.top-block-icon-info {
 			display: flex;
 			flex-direction: column;
@@ -2084,54 +1005,6 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 			min-width: 0;
 		}
 		.top-block-item-display { display: flex; align-items: center; gap: 0.15rem; min-width: 0; }
-		/* アイテム名の読み取り専用表示(26-L2で新設)。#itemの値をそのまま反映するだけで、
-		   保存経路自体は#item入力欄(下の.field-grid内)のまま変えない
-		   (<script>のupdateItemNameDisplay参照)。持ち物なしのときは25-R2/24-L3と同じ
-		   「placeholder風」の見た目(muted色)にする。
-		   🔴 UI改善ラウンド28(左サイド実装後の追加対応・28-L5)「アイテム名が省略されて
-		   読めない(こだわりハチマキ→こだわり…)」により、font-sizeを0.94rem(15.04px)から
-		   0.75rem(12px、プロジェクトの文字下限そのもの)へ縮小する。0.8125rem(13px)を
-		   まず試したが実測でなお省略された(scrollWidth104px > clientWidth92px)ため、
-		   下限の12pxまで下げ、合わせてアイテム画像を22px→16pxへ縮小(下記.item-image-badge
-		   参照)、行内gapを0.3rem→0.15rem、コーナー列の幅を110px→119pxへ拡張(上記
-		   .top-block-icon-corner参照)した。max-widthは5.4em(旧フォントサイズ基準)から
-		   8.2em(新フォントサイズ12px基準、119-16-gap1.8pxの残り101.2pxに対し2.6pxの
-		   安全マージン)へ広げる。この4点セットで「こだわりハチマキ」「ブーストエナジー」
-		   など8文字クラスの持ち物名がellipsisなしで全文表示されることを実測
-		   (scrollWidth<=clientWidth)で確認済み。9文字以上の長い名前はなお省略され得るが、
-		   title属性(<script>のupdateItemNameDisplay参照、既存のまま)で全文をホバー表示する。 */
-		/* 🔴 UI改善ラウンド29(29-B3)「アイテム/テラス画像を16px→20px程度へ」により、
-		   .item-image-badge/.top-block-tera-imageを16px→20pxへ拡大した
-		   (下記参照)。コーナー列の幅119pxは28-L1で確定した理論上限119.5pxのまま変えられない
-		   ため(0.5pxの余裕しかない、round-28.md積み残し参照)、拡大した分はこのmax-widthを
-		   8.2em→7.8emへ縮めて吸収する(119-20-gap1.8pxの残り97.2pxに対し93.6pxで3.6pxの
-		   安全マージン。実装時にgetBoundingClientRectで#species-icon-box右端と
-		   .top-block-icon-cornerの重なりが無いことを実測して確認する)。9文字以上の長い名前は
-		   なお省略され得るが、title属性(<script>のupdateItemNameDisplay参照、既存のまま)で
-		   全文をホバー表示する。 */
-		/* 🔴 UI改善ラウンド31ユーザー指示(31-L2)「アイテム画像+文字のサイズを大きくする」により、
-		   0.75rem(12px、文字下限ちょうど)→1.125rem(18px)へ拡大する。アイテム画像は
-		   20px→24px(下記.item-image-badge参照)。24/18=1.33倍で、ラウンド28(28-L3)の
-		   「3.2倍は過大」を踏まえた1〜1.5倍の範囲に収まる。max-widthのem値(8.05em)は
-		   据え置き(このプロパティの1emはこの要素自身のfont-sizeを基準に計算されるため、
-		   フォント拡大後もem値をそのまま保てば文字数換算の収容量が変わらない=
-		   「こだわりハチマキ」等8文字クラスがellipsisなしで収まる比率を維持できる)。 */
-		/* 🔴 UI改善ラウンド32ユーザー指示(32-L3)「アイテム画像+名前表示のサイズを、種族名などと
-		   揃える」により、31-L2で1.125rem(18px)へ拡大したのを種族名入力欄(.field-control、
-		   0.94rem=15.04px)に揃える。31-L2の部分撤回(round-32.md「この指示で撤回される過去の
-		   判断」表に明記)。max-width: 8.05emはこの要素自身のfont-sizeを基準に再計算されるため
-		   (31-L2のコメント参照)、em値は変更しなくても文字数換算の収容量が保たれる
-		   (「こだわりハチマキ」でscrollWidth===clientWidthを実測して確認する)。 */
-		/* UI統一感レビュー(32-U-C1): /boxカードの.card-item-name(600)に対しここは既定の400で
-		   ウェイトが逆転していた。視認性重視で/box側が意図的に太くしているため600に揃える
-		   (サイズ15.04pxとアイコン比は箱の制約が違うため揃えない、と裁定済み)。
-		   🔴 UI改善ラウンド34ユーザー指示(34-L4)「アイテムの画像サイズを+50%して、文字は
-		   入力欄と同じ書式にする」により、32-U-C1の裁定(600への統一)を部分撤回する。
-		   入力欄(#edit-form .top-block-fields .field > input.field-control等)はfont-weightを
-		   指定しておらず既定のnormal(400)のままなので、ここも600→400に戻して「入力欄と
-		   同じ書式」というユーザー指示に合わせる(font-size: var(--font-size-sm1)は入力欄と同値で
-		   変更不要)。/boxカード側の.card-item-name(600)は対象ファイル外(box/index.astro)
-		   のため今回は変更しない。 */
 		.item-name-display {
 			font-size: var(--font-size-sm1);
 			font-weight: 400;
@@ -2142,26 +1015,6 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 			white-space: nowrap;
 		}
 		.item-name-display.is-empty { color: var(--color-text-muted); }
-		/* UI改善ラウンド28ユーザー指示(28-L2)「テラスタイプ(画像)は…右下に配置」。読み取り
-		   専用の画像(#top-block-tera-image、クリックしても開かない。選択は28-L4のテラスタル
-		   選択ボックス側で行う)。専用アイコン(28-G1)は宝石型の正方形画像なので
-		   border-radius: 50%は掛けない(縁が削れる)。
-		   🔴 UI改善ラウンド28(左サイド実装後の追加対応・28-L6)「テラス画像のサイズはアイテム
-		   画像と揃えること」により、24px→16px(下記.item-image-badgeと同じサイズ、28-L5で
-		   さらに縮小したのに追随)に変更する。
-		   ⚠️ [hidden]は詳細度で負けるため(pitfalls.md)、displayを指定するこのクラスには
-		   [hidden]用のdisplay:noneを併記する。 */
-		/* 🔴 UI改善ラウンド29(29-B3)「アイテム/テラス画像を16px→20px程度へ」により、
-		   16px→20px(#species-type-badgeのタイプアイコンと同じ値)へ拡大する。
-		   .item-image-badgeと同じサイズを保つ方針(28-L6)は継続する。 */
-		/* UI改善ラウンド31ユーザー指示(31-L3)「ポケモン画像の領域にテラスタル画像は不要」により
-		   常時非表示にする。DOMは残す(<script>のrefreshTopBlockTeraImage/applyTeraImageが
-		   このimg/フォールバックを引き続き参照するため、要素自体は削除しない)。
-		   applyTeraImage()のonload成功時はimgEl.style.display=""(インライン指定の解除)に
-		   なるだけなのでこのdisplay:noneへフォールバックするが、画像読み込み失敗時の
-		   showColorFallback()はfallbackEl.style.display="block"を直接インライン指定するため、
-		   フォールバック側だけ!importantで打ち消す。テラスタル選択欄(.tera-dropdown-button)側の
-		   アイコンは対象外(31-L4/31-L5でそちらは維持)。 */
 		.top-block-tera-image { width: 20px; height: 20px; object-fit: contain; display: none; }
 		.top-block-tera-image[hidden] { display: none; }
 		.top-block-tera-image-fallback {
@@ -2171,11 +1024,6 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 			border-radius: 50%;
 			border: 1px solid var(--color-border);
 		}
-		/* UI改善ラウンド28ユーザー指示(28-L1)により、狭幅(480px以下)では
-		   .top-block-icon-corner(28-L1で絶対配置化・幅117px固定、28-L5で110px→117pxに拡張)を
-		   通常フローに戻し、種族アイコンの下に中央寄せで積む(絶対配置の固定幅のままだと、
-		   コンテナ全体が狭いこの幅では中身が詰まりすぎるため)。.top-block-icon自体は元々
-		   align-items:centerなので、flex-direction:columnにするだけで水平方向も中央寄せになる。 */
 		@media (max-width: 480px) {
 			.top-block-icon { flex-direction: column; }
 			.top-block-icon-corner { position: static; width: auto; max-width: 100%; align-items: center; }
@@ -2183,14 +1031,6 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 			.item-name-display { max-width: 10em; }
 		}
 
-		/* UI刷新: タイプアイコン/テラスタイプアイコンバッジ。画像取得失敗・未解決時は
-		   TYPE_COLORSによる色ボックスにフォールバックする(<script>のapplyTypeBadge/applyTeraImage参照)。
-		   ラウンド5ユーザー指示: 以前はPokeAPIの横長リボン画像(アイコン+英字, 200x40前後)を
-		   object-fit:cover + object-position:left center で無理やり正方形に切り出していたが、
-		   タイプごとに余白が違うためフェアリー等でマークが中央からずれて英字が混ざって見える
-		   問題があった。scripts/type-icons/generate_type_icons.py がマーク部分だけを画像内容から
-		   検出して事前に正方形へ切り出した画像(public/type-icons/)に切り替えたため、
-		   もうCSS側で切り出す必要はない。border-radius:50%だけで円形に見える。 */
 		.type-badge {
 			position: absolute;
 			top: -8px;
@@ -2199,8 +1039,6 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 			align-items: center;
 			justify-content: center;
 		}
-		/* ラウンド20ユーザー指示(20-G1)「アイテム・タイプ・テラスタル画像が小さすぎる」対応:
-		   public/type-icons/はいずれも実測96×96pxで拡大の余力があるため、20pxまで引き上げる。 */
 		.type-badge-img {
 			height: 20px;
 			width: 20px;
@@ -2215,112 +1053,17 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 			border-radius: 50%;
 			border: 1px solid var(--color-border);
 		}
-		/* ラウンド3 B-6: applyTypeBadge()がtypes配列の先頭(types?.[0])しか見ておらず、
-		   複合タイプ(例: メガリザードンX=ほのお/ドラゴン)が単一タイプとして表示されていた。
-		   全タイプ分の<img>をJSが動的に追加するコンテナに変更した(縦積みだった当初の理由は
-		   下記21-L1で撤回)。 */
-		/* ラウンド21ユーザー指示(21-L1)「タイプアイコンは横並び配置」により縦積みを撤回する。
-		   複合タイプでもアイコンサイズは縮めない(.species-icon-box自体が160pxと十分大きく、
-		   横に伸びる余地があるため)。 */
 		.type-badge-multi {
 			flex-direction: row;
 			align-items: center;
-			/* 🔴 UI改善ラウンド32ユーザー指示(32-L2)「2タイプ間の距離を少しあける」により
-			   2px→6pxへ広げる。 */
 			gap: 6px;
 		}
-		/* ラウンド20(20-G1)以前は種族アイコンからのはみ出しを抑えるため14pxまで縮めていたが、
-		   他のタイプ/アイテム/テラス画像と同じ20pxを下回ると見た目の大きさが揃わなくなる
-		   ため、multi/inline側とも20px以上に揃える(はみ出しは.species-icon-box自体が160pxと
-		   十分大きいため実害なし。実装時にPlaywrightで実測して確認)。 */
 		.type-badge-multi .type-badge-img { height: 20px; width: 20px; }
 		.type-badge-multi .type-badge-fallback { width: 20px; height: 20px; }
-		/* 元々はテラスタイプ画像をselectの隣に置くための「種族アイコン用の絶対配置を打ち消す」
-		   クラスだったが、23-L3(テラスタイプの<select>化)以降どこからも参照されずに残っていた。
-		   ラウンド26ユーザー指示(26-L2)で、種族アイコン右上の重ね表示から解放した
-		   #species-type-badge(アイコン領域内の通常フロー項目)に再利用する
-		   (position:staticという効果がそのまま使えるため新規クラスを作らない)。 */
 		.type-badge-inline { position: static; }
 		.type-badge-inline .type-badge-img { height: 20px; width: 20px; }
 
-		/* ラウンド20ユーザー指示(20-G1): 持ち物画像はPokeAPIのドット絵(32×32相当)を都度
-		   フェッチしており、28px超では元絵が粗く見える。ラウンド21ユーザー指示(21-L2)で
-		   28px→56pxへ拡大した際、実解像度(32×32相当)を大きく超えるため
-		   image-rendering: pixelatedを当てていた。ラウンド23ユーザー指示(23-L1)
-		   「アイテム画像を2/3に縮小」で56px→37pxに縮小した結果、実解像度32×32に
-		   ほぼ収まる(37px相当のCSSピクセル)ため、拡大クロップで見比べた結果ぼやけ・
-		   ジャギーの差が実測で判別できないレベルまで縮まった。pixelatedを残しても
-		   実害は無いため(37pxはdeviceScaleFactor:1相当の環境ではほぼ等倍表示になり
-		   pixelatedの有無で見た目が変わらない)、判断が割れた場合の安全側としてそのまま
-		   維持していた。
-		   🔴 UI改善ラウンド40ユーザー指示(40-L2)「ブーストエナジーのアイコンの模様が
-		   つぶれて見える」により上記の前提を再検証した。実際に取得できる画像アセット
-		   (public/master-data/autocomplete/items.json のspritePath)を実測すると、
-		   270件中210件は末尾ディレクトリ無し(sprites/items/{name}.png)で実解像度30×30
-		   (旧コメントの「32×32相当」はほぼ正しい)だが、gen8/gen9配下の53件
-		   (ブーストエナジー=gen9/booster-energy.png含む)は実解像度160×160の、
-		   輪郭のアンチエイリアス・グラデーションを持つ高精細イラストであり、ドット絵ではない
-		   (実測、Python/PILでダウンロード・サイズ確認)。この160×160画像を31pxまで
-		   縮小する際にimage-rendering: pixelated(最近傍補間を強制)を適用すると、
-		   本来なめらかな輪郭・グラデーションがブロック状に劣化する(実ブラウザ
-		   スクリーンショットで比較、booster-energyの球体・縁取りの縮小結果がpixelatedでは
-		   ギザギザに、autoでは滑らかに描画されることを確認)。これが「模様がつぶれて
-		   見える」の原因と判断する。
-		   一方、30×30のroot直下アイテム(210件)は31pxとほぼ等倍(拡大率1.03倍)のため、
-		   pixelated→autoに変えても実測で見分けが付かないレベルの差しか出ない
-		   (choice-band.pngで同様に比較確認済み)。そのため、pixelatedを外して
-		   autoに統一しても既存の低解像度アイテムを退行させることはない。 */
 		.item-image { width: 100%; height: 100%; object-fit: contain; image-rendering: auto; }
-		/* 持ち物バッジ: 種族アイコン(.species-icon-box)の右下に重ねる絶対配置。
-		   ラウンド23ユーザー指示(23-G1)「アイテム画像の丸枠を廃止し直接表示する」により、
-		   丸枠(border-radius/background/border/box-shadow/padding)を撤去し、画像を直接置く。
-		   ⚠️ [hidden]は詳細度で負けるため、displayを指定するこのクラスには[hidden]用の
-		   display:noneを必ず併記する(.card-item-badgeが同じ事故を2回起こしている、
-		   pitfalls.md参照)。持ち物なしの個体で空バッジが残らないことを実測して確認した。
-		   枠が無くなったことで背景(種族アイコンのスプライト)に直接乗るため、ドット絵の輪郭が
-		   背景に溶けないかライト・ダーク両方で拡大クロップして目視確認した(判断根拠は報告参照)。
-		   🔴 UI改善ラウンド28ユーザー指示(28-L3)「アイテム画像はアイテム文字より少し大きい程度まで
-		   縮小」により、ラウンド24(24-L1)で41pxまで拡大したのを大きく縮小する。隣に並ぶ
-		   アイテム名の文字(.item-name-display)のfont-sizeは実測15.04px(0.94rem×root16px)
-		   なので、その1.5倍前後=22pxにする(基準は20pxだが、実測比率(1.5倍前後)を
-		   優先しこのバッジだけ独自の22pxを使う)。
-		   追加対応(28-L5)「アイテム名が省略されて読めない」により、22px→18px→16pxへさらに
-		   縮小する(アイテム名のfont-sizeも0.94rem→0.75rem(12px、プロジェクトの文字下限)に
-		   縮小したため、16/12≈1.33倍で28-L3の「文字より少し大きい程度」の範囲を維持できる)。
-		   width/height属性(下記HTML側の<img id="item-image">)も16に合わせて変更済み。 */
-		/* 🔴 UI改善ラウンド29(29-B3)「左パネルのアイテム/テラス画像を16px→20px程度へ」:
-		   タイプバッジ(#species-type-badge、20px×1個以上)に対しアイテム/テラス画像16pxが
-		   2.6倍差で、同じ帯・同じ隅配置の同一階層にあるため正当化されない(00-foundation.md)。
-		   タイプバッジ側(.type-badge-inline .type-badge-img)と同じ20pxをここでも使う。拡大に伴う
-		   コーナー列(.top-block-icon-corner、幅119px)との重なりは.item-name-displayの
-		   max-widthを7.8emへ縮めて吸収した(上記参照)。 */
-		/* 🔴 UI改善ラウンド31ユーザー指示(31-L2)「アイテム画像+文字のサイズを大きくする」により、
-		   タイプバッジ等と同じ20pxから離れ、このバッジだけの固定値24pxにする
-		   (タイプバッジ等、他のアイコンまで一緒に大きくしないため)。隣のアイテム名
-		   (.item-name-display、1.125rem=18px)との比は24/18=1.33倍。 */
-		/* 🔴 UI改善ラウンド32ユーザー指示(32-L3)により、31-L2で持ち物だけの固定値24pxにしていたのを
-		   20px(28-L1〜L6で確定した値)へ戻す。 */
-		/* 🔴 UI改善ラウンド34ユーザー指示(34-L4)「アイテムの画像サイズを+50%」により、
-		   20px→30pxへ拡大する。他の20pxアイコン(タイプバッジ・テラス画像等)には影響させず、
-		   このバッジだけ固定値で上書きする(31-L2で一度固定値24pxにした前例と同じやり方)。
-		   拡大後もコーナー列
-		   (.top-block-icon-corner、幅180px)との重なりが無いことを実測して確認した
-		   (画像30px+gap+アイテム名max-width121px相当の合計約153.5pxで180px以内に収まる。
-		   報告参照)。 */
-		/* 🔴 UI改善ラウンド35ユーザー指示(35-L1)「アイテムアイコン+10%」により、
-		   30px→33px(30×1.1)へ拡大する(これまでと同じ、このバッジだけの固定値上書き)。
-		   拡大後もコーナー列
-		   (.top-block-icon-corner、幅180px)との重なりが無いことを実測して確認した
-		   (画像33px+gap2.4px+アイテム名max-width121.07px相当の合計約156.5pxで
-		   180px以内、余裕23.5px)。
-		   🔴 UI改善ラウンド39ユーザー指示(39-L1)「アイテムアイコンを現在値の95%に縮小」により、
-		   33px→31px(33×0.95=31.35を四捨五入)へ縮小する。他要素との重なり判定は
-		   縮小方向のみでコーナー列(180px)にはさらに余裕ができるため再実測は不要
-		   (拡大時の36-L1〜35-L1の実測結果がそのまま安全側の上限として成立する)。
-		   🔴 UI改修依頼(個体編集左パネル、2026-08-01)「アイテムアイコンを10%小さくする」により、
-		   実測(Playwright、getBoundingClientRect)で変更前サイズが31×31pxであることを確認した上で
-		   31px→28px(31×0.9=27.9を四捨五入)へ縮小する。縮小方向のみでコーナー列(180px)との
-		   重なり判定は再実測不要(上記39-L1と同じ理由)。 */
 		.item-image-badge {
 			/* 現在値28pxの90%=25.2pxを整数化し、コーナー列内の余裕を増やす。 */
 			width: 25px;
@@ -2366,14 +1109,6 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 			font-weight: 400;
 			line-height: 1;
 		}
-		/* 🔴 UI改修依頼(個体編集画面・モバイル、2026-08-08)「わざ編集ボタンを横幅いっぱいの
-		   見た目にする」対応。899px以下では既にwidth:100%が指定済みだが、.btn-ghost(透明背景)
-		   のため押せるボタンに見えにくいという指摘への対応。global.css自体には「枠線付き・
-		   背景色あり」の専用クラスが存在しない(上の.stat-adjust-action-button、1277行目付近の
-		   コメント参照)ため、同じ考え方で無修飾の<button>要素の既定style(border: 1px solid
-		   var(--color-border) + background: var(--color-surface)、hoverでvar(--color-surface-alt))を
-		   流用し、.btn-ghost側の透明化上書き(background: transparent; border-color: transparent;
-		   color: var(--color-text-muted))だけを打ち消す。新しい色・トークンは作らない。 */
 		.mobile-move-toggle,
 		.mobile-speed-adjust-button {
 			background: var(--color-surface);
@@ -2392,81 +1127,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		}
 	}
 </style>
-{/* UI改善ラウンド37(37-1〜37-3)「左パネルの技選択の専用ウィンドウ」。
-    #move-1〜#move-4のいずれかにフォーカス/クリックすると、box-id/left-panel.tsの
-    setupMovePickerWindow()がdocument.body直下にdocument.createElement()で組み立てる
-    (4スロット共有の1インスタンス、内部状態でどのスロットに入力中かを管理)。
-    このコンポーネントのAstro scoped <style>は「そのコンポーネントが描画した要素」にしか
-    data-astro-cid-*を付与しないため、JSが動的生成するこのウィンドウ一式には一切効かない
-    (#edit-form .tera-dropdown-list直後のコメント、pitfalls.md「AstroのscopedスタイルはJSで
-    生成した要素に効かない」を参照)。box/[id].astro側の<style is:global>(RightPanel/
-    DamageCalcSection領域)とは無関係な新規ブロックとして、このコンポーネント自身に
-    <style is:global>を新設する(クラス名はすべて.move-picker-*で他コンポーネントの
-    グローバルスタイルと衝突しないようにした)。
-    🔴 37-1の要件「ダメージカードと一部被るが、背後にそのまま置いておく」への対応。
-    round-37.mdの指示どおりまず`position:fixed; z-index:-1`で実装し、Playwrightで実機検証
-    したところ致命的な罠が実測で見つかったため、z-indexの与え方を1回撤回して設計し直した
-    (経緯を残す。同じ罠にまた落ちないため必ず読むこと):
-    - 【当初案とその失敗】z-index:-1をdocument.body直下のこのウィンドウに与えたところ、
-      技入力欄をクリックしてもトグルスイッチ1つクリックできない(Playwrightの
-      page.click()が30秒timeoutで失敗)という致命的な状態になった。原因を
-      document.elementFromPointで調査したところ、`.edit-layout-right`(box/[id].astro側、
-      DamageCalcSectionを包むグリッド列。position指定を一切持たない通常フロー要素)が
-      クリックを奪っていた。
-    - 【原因】CSS2.1 Appendix Eのスタッキング順(背面から前面へ): (1)背景 (2)負のz-index
-      (3)position指定のない通常フロー要素 (4)float (5)インライン (6)position指定
-      +z-index:auto/0の要素 (7)正のz-index。`.card-damage`自体は`position:relative`
-      (z-index:auto、DamageCalcSection.astro内で削除ボタンのabsolute配置の基準にするため
-      既に設定されている)なので実は(6)に属し、(2)の自ウィンドウより確実に前面になる
-      (これは要件どおり)。しかし`.edit-layout-right`(カードを包む1frのグリッド列。
-      左右padding付きで実質ビューポート右側の全域を占める)はposition未指定=(3)に属し、
-      (3)は(2)より前面。つまり「カードの手前に見える」だけでなく「カードが描画されて
-      いない`.edit-layout-right`の余白部分」まで丸ごと(2)の自ウィンドウより前面になり、
-      ウィンドウの実質ほぼ全域(технически右カラムに重なる範囲すべて)がクリック不能になった。
-      `.edit-layout-right`はbox/[id].astro側の編集禁止ファイルにあり、position指定を
-      追加できない。
-    - 【解決】z-index:-1をやめ、z-index指定なし(auto)のままにする。
-      `position:fixed`だけで既に(6)「position指定+z-index:auto」に属するため、
-      `.edit-layout-right`(3)には確実に勝つ(=重ならない領域で操作可能)。
-      `.card-damage`(同じく(6))とは同一区分内のDOM順で前後が決まる仕様のため、
-      このウィンドウをdocument.bodyの**先頭の子**として挿入する(<script>のsetupMovePickerWindow
-      内、insertBefore(el, body.firstChild)参照)。box/[id].astro側でSSR済みの
-      `.edit-shell`(→`.card-damage`を含む)は必ずこのウィンドウより後にDOMへ現れるため、
-      同区分内のDOM順比較でウィンドウが常に先(=背面)になり、「カードと重なる部分は
-      カードが前面」を満たしたまま、「重ならない部分はウィンドウが操作可能」も両立する
-      (`.app-topbar`z-index:20/`.app-sidebar`z-index:30等の明示的な正のz-index要素は
-      区分(7)のためこのウィンドウより常に前面のままで無関係)。
-    - fixedを選んだ理由: containing blockを.panel-left等の中間要素に依存させず
-      (position:relativeを与えるだけでは新しいstacking contextにならないため祖先を
-      辿る不確実性が残る)、document.body直下+fixedにすることでスタッキング上の祖先を
-      html/body(いずれもposition/transform/filter/opacityを持たないことをglobal.cssで
-      確認済み)だけに単純化した。
-    - 実測確認(Playwright、document.elementFromPointで実施): カードと重なる領域では
-      `.card-damage`(またはその子孫)が取得され(=カードが前面)、重ならない右側の
-      はみ出し領域では`#move-picker-window`配下の要素が取得される(=操作可能)ことを
-      確認した。トグル/フィルタ/ソート/行クリックのPlaywright実機操作もすべて成功した
-      (実装報告参照)。
-    - .move-picker-window自体は`display:flex`を持つため、[hidden]属性だけではUAの
-      `display:none`がこのdisplay:flexに詳細度で負ける(pitfalls.md既知の罠、このファイル内の
-      .move-type-icon[hidden]等と同じパターン)。`.move-picker-window[hidden]`で明示的に
-      display:noneを上書きする。
-    🔴 UI改善ラウンド38追記: 上記のz-index/DOM順によるスタッキング設計自体はそのまま有効だが、
-    37-1実装時点の「.panel-leftの右端(=ダメージカード列の真上)に外付けする」という水平位置の
-    決め方には別の致命的な不具合があった(ダメージカードが複数枚あると実質ウィンドウの
-    大部分が操作不能になる。round-37.md「実装中に見つかったバグ」節参照)。ラウンド38で
-    水平位置の決め方を「.panel-left自体の列に重ねる(position:staticなのでこのウィンドウが
-    常に前面になる)」へ変更した。詳細な実測値・ジオメトリの説明はsrc/lib/box-id/left-panel.ts
-    の reposition() 直前のコメントに集約したので、位置計算を読む場合はそちらを参照。 */}
 <style is:global>
-		/* UI改修依頼(個体編集左パネル)「技選択テーブルは左パネルの右側に併設する」対応で
-		   z-index:autoから明示的な正の値へ変更した。ラウンド38時点はz-index:autoのまま
-		   (このブロック直前のコメント参照)`.card-damage`に必ず負けるDOM順の背面側に留めることで
-		   「.panel-left自体に重ねる」設計を成立させていたが、今回は逆に`.card-damage`列に
-		   併設(=重なった場合は前面に出したい)する設計へ変更したため、position:relativeで
-		   z-index:autoな`.card-damage`(CSS2.1 Appendix E区分6)に確実に勝つよう区分7へ上げる。
-		   `.app-sidebar`(z-index:30)・`#damage-detail-panel`(z-index:60)より小さい値にして
-		   常時最前面のその2つには引き続き負ける(reposition()側でこの2つとの幾何的な重なり
-		   自体を避ける設計は変えていないが、保険としても安全側)。 */
 	.move-picker-window {
 		position: fixed;
 		z-index: 10;
@@ -2537,40 +1198,13 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		white-space: nowrap;
 		cursor: pointer;
 	}
-	/* UI改善ラウンド41ユーザー指示(41-L4)「チェックボックスの代わりにトグルスイッチを使う」。
-	   このプロジェクトに既存のtoggle/switch規格が無いか確認済み(grep該当ゼロ)のため新規に作る。
-	   一般的な規格(角丸の背景トラック+丸いつまみ)。<input type="checkbox">自体は
-	   visually-hiddenの定石(絶対配置+1pxサイズ+overflow:hidden、display:noneにしないのは
-	   スクリーンリーダー・キーボードフォーカスを保つため)で隠し、隣接する.toggle-switch-trackを
-	   CSSだけで描く(<script>のsetupMovePickerWindow参照。checked状態・changeイベント・
-	   aria-labelは一切変えない)。 */
 	/* 12pxのラベルに対してスイッチが主張しすぎないよう、技選択内だけ26×14pxへ縮める。 */
 	.move-picker-toggle .toggle-switch { width: 26px; height: 14px; }
-	/* 🔴 UI改修依頼(個体編集左パネル、2026-08-01)「トグルスイッチの裏に残っているチェック
-	   ボックスを削除する」対応。実機調査(Playwright、getComputedStyle)で判明した原因:
-	   src/styles/global.cssの`input[type="checkbox"]`が持つ既定スタイル(実寸1.05em角の
-	   枠付きボックス、position:relative)は、素のクラスセレクタ`.toggle-switch-input`
-	   (詳細度0,1,0)より高い詳細度(要素+属性=0,1,1)を持つため、この visually-hidden 定石
-	   (position:absolute + 1pxサイズ + clip)がpositionから順に上書きされて無効化されていた
-	   (positionがrelativeに戻るとclip: rectはそもそも絶対/固定配置要素にしか効かない仕様の
-	   ため機能せず、実寸1.05em(≒17px)のネイティブ風チェックボックスがトラックの左に
-	   そのまま表示されていた)。読み込み順(global.cssとこのis:globalブロックのどちらが
-	   先に注入されるか)に依存せず確実に上書きするため、セレクタに`input[type="checkbox"]`を
-	   足して詳細度を0,2,1に引き上げる(global.cssの`input[type="checkbox"]`単体0,1,1に対し
-	   常に勝つ)。当たり判定(クリック・キーボード操作・スクリーンリーダー)は維持したまま
-	   視覚的にだけ隠す方針(opacity:0+サイズ0ではなく、position:absolute+1px+clipの定石)は
-	   変えていない。この部品は個体編集ヘッダー(box/[id].astro)、技選択ウィンドウ(move-picker)、
-	   team/[id].astro等で使われるため、現在はglobal.cssで同じ定義を共有する。 */
 	/* 左右2pxの内側余白を保つため、14px高トラック内のつまみは10pxにする。 */
 	.move-picker-toggle .toggle-switch-thumb { width: 10px; height: 10px; }
 	/* 26px幅から左右余白と10pxつまみを引いた12pxだけ動かし、ON時も右端に収める。 */
 	.move-picker-toggle .toggle-switch-input:checked + .toggle-switch-track .toggle-switch-thumb { transform: translateX(12px); }
 
-	/* UI改善ラウンド41ユーザー指示(41-L1)。アイテムドロップダウンの<li>/<img>/<span>は
-	   <script>のbuildItemDropdownOptionsがdocument.createElement()で動的生成するため、
-	   上のscoped<style>は効かない(.tera-dropdown-option系と同じ理由、このファイル冒頭の
-	   コメント参照)。box/[id].astroは編集禁止のため、テラスのようにそちらのis:globalへは
-	   置けない。このファイル自身の<style is:global>(.move-picker-*と同居)にまとめる。 */
 	.item-dropdown-option {
 		display: flex;
 		align-items: center;
@@ -2619,7 +1253,6 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		border-bottom: 1px solid var(--color-border);
 		flex-shrink: 0;
 	}
-	/* UI改修依頼(2026-08-05)「空の注記を残さずタイトルと表を密着」対応。 */
 	.move-picker-note[hidden] { display: none; }
 
 	.move-picker-table-wrap {
@@ -2648,7 +1281,6 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		vertical-align: top;
 		z-index: 1;
 	}
-	/* UI改修依頼(2026-08-05)「技名・タイプ・分類の操作を一段に収める」対応。 */
 	.move-picker-th { display: flex; align-items: center; gap: var(--space-1); }
 	.move-picker-th-filter { margin-top: 0; min-width: 0; }
 	.move-picker-th-filter input,

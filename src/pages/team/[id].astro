@@ -3941,10 +3941,6 @@ try {
 				metaRow.appendChild(itemCell);
 				infoEl.appendChild(metaRow);
 
-				// UI改修依頼(チーム編集中央パネル、2026-08-02)「実数値をラベル行+数値行の2段に
-				// 分ける」。右パネルのbuildDamageCard内.team-damage-stats/
-				// .team-damage-stats-lineと同じ考え方(ラベル行+実数値行の6列表)を適用する
-				// (computeStatsは選択バー側で既に使っている実数値計算をそのまま再利用)。
 				// 実数値表の重複を避け、性格と0以外の努力値をHABCDS順の1段へ置き換える。
 				const trainingEl = document.createElement("div");
 				trainingEl.className = "slot-training";
@@ -4179,8 +4175,6 @@ try {
 
 				formationMobileBoxGrid.replaceChildren(formationMobileAddButton);
 				const term = formationMobileSearchInput.value.trim();
-				// UI改修依頼「編成済みの個体を下のボックス一覧に表示しない」。デスクトップ左パネルの
-				// isCurrentMember除外(renderSelectList参照)と同じ考え方をこちらにも適用する。
 				for (const p of allPokemon.filter((candidate) => !isCurrentMember(candidate.id) && matchesSearch(candidate, term))) {
 					const card = document.createElement("button");
 					card.type = "button";
@@ -4239,18 +4233,8 @@ try {
 					if (p) {
 						card.dataset.filled = "true";
 						card.appendChild(buildFilledSlotContent(slot, p));
-						// UI改修依頼(チーム編集中央パネル)
-						// 「7. ダブルクリックまたは削除ボタンで、その個体をチームから削除できる」
-						// 「8. シングルクリックで、右パネルにその個体の詳細を表示する」。
-						// 左パネルの選択行(mainButton)と全く同じ操作割り当て(1回クリック=プレビュー、
-						// ダブルクリック=変更操作)をカード全体に適用する。削除ボタン自身のクリックは
-						// stopPropagation済みなので、ここでの2重発火(プレビュー→即削除)は起きない。
 						card.addEventListener("click", () => {
 							void renderPreviewPanel(p);
-							// UI改修依頼(チーム編集中央パネル、2026-08-02)「カードをクリックしたら
-							// 選択中であることが分かるハイライトを表示し、カード外クリックで解除する」。
-							// 他のカードから外し、このカードだけに付ける(document側の解除リスナーは
-							// 下部の初期化ブロック参照)。
 							for (const other of slotsRoot.querySelectorAll(".card-team-slot")) {
 								other.classList.remove("is-selected");
 							}
@@ -4259,10 +4243,6 @@ try {
 						card.addEventListener("dblclick", () => {
 							removeMemberFromSlot(slot);
 						});
-						// 🔴 UI改修依頼(チーム編集中央パネル、2026-08-01)「10. チームメンバーどうしを
-						// ドラッグアンドドロップで並べ替えできる機能を追加する」。候補→枠のD&D
-						// (draggedPokemonId)とは別の変数(draggedMemberSlot)にドラッグ元のslot番号を
-						// 保持する。埋まっている枠だけdraggableにする(空き枠には動かす対象が無い)。
 						card.draggable = true;
 						card.addEventListener("dragstart", () => {
 							draggedMemberSlot = slot;
@@ -4277,11 +4257,6 @@ try {
 						card.appendChild(buildEmptySlotContent(slot));
 					}
 
-					// UI改修依頼(チーム編集左パネル)「ドラッグアンドドロップでチームに設定」。
-					// 空き枠・埋まっている枠のどちらにもドロップできる(埋まっている枠は入れ替え)。
-					// 🔴 UI改修依頼(チーム編集中央パネル、2026-08-01)「10. メンバーどうしの並べ替え」。
-					// 候補ポケモン(draggedPokemonId)からのドロップと、メンバー間移動
-					// (draggedMemberSlot)からのドロップを同じdragover/drop内で分岐させる。
 					card.addEventListener("dragover", (event) => {
 						if (!draggedPokemonId && draggedMemberSlot == null) return;
 						if (draggedMemberSlot === slot) return; // 自分自身へのドロップは無意味
@@ -4312,15 +4287,6 @@ try {
 				renderOverviewGrid();
 			}
 
-			// UI改修依頼(チーム編集中央パネル、2026-08-02)「カード外クリックでハイライトを
-			// 解除する」。src/lib/box-id/damage-calc.tsのダメージカード選択解除
-			// (document全体のクリックを監視し、対象カード群にも右パネルにも含まれなければ
-			// 解除する)と同じ考え方。右パネル(#team-preview-panel)はプレビュー内の操作を
-			// 選択解除の対象外にするため、containsチェックの対象に含める。
-			// 🔴 UI改修依頼(チーム編集中央パネル、2026-08-02)「カード外をクリックしてもダメージ
-			// 計算表示が残り続けるバグを直す」。従来はis-selectedクラスを外すだけで右パネルの
-			// 中身(previewContentEl)には触れていなかった(上のclosePreviewPanelのコメント参照)。
-			// 選択解除と同時にclosePreviewPanel()を呼び、右パネルを閉じる。
 			document.addEventListener("click", (event) => {
 				const target = event.target as Node;
 				if (previewPanelEl.contains(target)) return;
@@ -4343,12 +4309,6 @@ try {
 					.every((token) => kanaIncludes(haystack, token));
 			}
 
-			// UI改修依頼(チーム編集左パネル)「チームに含まれる個体を(左パネルの一覧から)
-			// 非表示にする」。以前は「編成済み」(already-in-team、選択ルールの3禁止理由とは別扱い)
-			// としてグレーアウト表示していたが、この依頼により一覧そのものから除外する。
-			// 🔴 UI改修依頼(チーム編集画面、2026-08-01)+ ユーザー確認「絞り込みトグルを付ける」。
-			// チームにレギュレーションが指定されていて、かつトグルがONのときだけ、
-			// 「そのレギュレーションで使える個体」(= 一致 or 個体側が未指定)に絞る。
 			let regulationFilterOn = true;
 
 			function currentTeamRegulation(): string | null {
@@ -4384,20 +4344,10 @@ try {
 				const teamRegulation = currentTeamRegulation();
 				regulationFilterWrap.hidden = teamRegulation === null;
 				const label = document.getElementById("regulation-filter-toggle-label");
-				// UI改修依頼(チーム編集左パネル、2026-08-02)「"M-B"の後に半角スペースを入れる」。
-				// レギュレーション名は動的なので、組み立てているここに半角スペースを足す
-				// (`${teamRegulation}のみ` → `${teamRegulation} のみ`)。
 				if (label) label.textContent = teamRegulation ? `${teamRegulation} のみ` : "レギュレーション一致のみ";
-				// UI改修依頼(チーム編集左パネル、2026-08-02)「トグルスイッチに変更する」に伴い、
-				// data-active/aria-pressed(旧<button>の押下状態表現)からcheckbox本来のchecked
-				// プロパティへ置き換える(ネイティブに状態を持つため追加のaria属性は不要)。
 				regulationFilterToggle.checked = regulationFilterOn;
 			}
 
-			// UI改修依頼(チーム編集中央パネル、2026-08-01)「"レギュレーション"ラベルを削除する。
-			// 他のUIと同様にplaceholderの色を薄くする」。LeftPanel.astro(個体編集)の
-			// syncRegulationPlaceholderと同じ考え方: <select>には:placeholder-shownが無いため、
-			// 値が空のときだけdata-empty="true"を付け外しする(CSSは上のscoped<style>参照)。
 			function syncRegulationPlaceholder(): void {
 				if (currentTeamRegulation() === null) regulationSelect.dataset.empty = "true";
 				else delete regulationSelect.dataset.empty;
@@ -4410,14 +4360,6 @@ try {
 				return false;
 			}
 
-			// UI改修依頼(チーム編集左パネル)「ソート機能を追加する」。box/index.astroのsortPokemon
-			// と同じ考え方(選択中の並べ替え基準で毎回ソートし直す)。基準は4つ:
-			//   - 登録順(既定): created_at昇順(古い=先に登録した個体を先頭に。box/index.astroの
-			//     「最終更新順」は降順=新しい順だったが、「登録順」は文字通り登録した順序を素直に
-			//     表す方が自然だと判断し昇順にした)
-			//   - おすすめ順: 直近のサジェスト応答の配列順を種族ごとの順位として使う。未取得時は登録順
-			//   - 名前順: displayName(ニックネーム優先、無ければ種族名)のja collate
-			//   - 種族名順: species_nameのja collate
 			function sortPokemon(list: OwnedPokemonRecord[]): OwnedPokemonRecord[] {
 				const sort = sortSelect.value;
 				return [...list].sort((a, b) => {
@@ -4441,15 +4383,6 @@ try {
 				});
 			}
 
-			// UI改修依頼(チーム編集左パネル)「個体編集ボタンを削除する」により、旧・編集リンク
-			// (<a>「編集」、/box/{id}への遷移)は撤去した。以前はrow全体を1個の<button>にできず、
-			// 「プレビュー用のbutton」+「編集リンク」を横に並べた<div>構造にしていたが、編集リンクが
-			// 無くなった今もこの<div>ラップ構造自体は変えていない(ドラッグ&ドロップのdraggable属性を
-			// row側に持たせる都合上、rowとmainButtonを分けておく設計は引き続き必要なため)。
-			// 操作の割り当て:
-			//   - 1回クリック(mainButton) : 右パネルにプレビュー表示(チーム編成は変更しない)
-			//   - ダブルクリック(mainButton): 空き枠のうち最小番号に追加(旧・単クリックの動作を踏襲)
-			//   - ドラッグ&ドロップ(row全体): ドラッグ先の枠(空き/埋まり問わず)に設定
 			function buildSelectRow(p: OwnedPokemonRecord): HTMLElement {
 				const row = document.createElement("div");
 				row.className = "pokemon-select-row";
@@ -4459,14 +4392,6 @@ try {
 				mainButton.type = "button";
 				mainButton.className = "select-row-main";
 
-				// UI改修依頼(チーム編集左パネル、2026-08-02)「候補カードをボックス画面(/box)の
-				// カードと共通化する」。box/index.astroの.card-pokemon(スプライト→カード名
-				// (中央揃え)→テラスタイプ→特性/持ち物→技2列)と同じ縦積み構成に組み替える。
-				// box側のCSS(<style is:global>)は/boxでしか読み込まれないため、値はこのページの
-				// is:globalスタイルへ複製する(box/index.astro・global.cssは編集しない)。
-				// お気に入り(.pin-toggle)・削除ボタンはこのパネルの用途(チームに追加する候補を
-				// 選ぶピッカー)には不要なため持ち込まない。ダブルクリック/D&Dでの追加・編集リンクの
-				// 既存動作(下のmainButton/rowのイベントリスナー)は変更しない。
 				const artEl = document.createElement("span");
 				artEl.className = "select-row-art";
 				const spriteImg = document.createElement("img");
@@ -4483,7 +4408,6 @@ try {
 				bodyEl.className = "select-row-body";
 				const name = displayName(p);
 
-				// 2026-08-05: 1行目に画像・アイコン・技等、2行目にNNだけを置く。
 				const nameRow = document.createElement("span");
 				nameRow.className = "select-row-name-row";
 				const nameEl = document.createElement("span");
@@ -4518,10 +4442,6 @@ try {
 				}
 				// アイコン列はアートの右へ独立配置し、画像との重なりを避ける。
 
-				// 技(最大4つ)。タイプアイコン付きチップを右列に1列で並べる(背景色なし・
-				// 技名の前にタイプアイコン・セル内左揃え。上のapplySelectMoveChipTypeIcons参照)。
-				// UI改修依頼(2026-08-05)「技未設定は文字を出さず空欄にする」対応。
-				// 空チップのDOMは残し、CSSのmin-heightで通常の1行分を維持する。
 				const movesRow = document.createElement("span");
 				movesRow.className = "select-row-moves";
 				const rowMoves = p.move_names.filter((m) => m && m.trim() !== "");
@@ -4581,12 +4501,6 @@ try {
 				mainButton.append(artEl, bodyEl);
 				row.appendChild(mainButton);
 
-				// 🔴 UI改修依頼(チーム編集左パネル、2026-08-02)「行の右端にあるドラッグ用グリップを
-				// 廃止する」。要素を「消す」指示はDOMを残しCSSで見せない方針にする(pitfalls.md)ため、
-				// 要素自体・row.appendChildは残し、CSS側(.select-row-drag-handle、下のis:global
-				// スタイル参照)でdisplay:noneにする。ドラッグ&ドロップ自体(row.draggable=true、
-				// 下のdragstart/dragend)はこの要素と無関係(rowが直接draggable/イベントを持つ)
-				// なので、見た目を消しても動作は維持される。
 				const dragHandle = document.createElement("span");
 				dragHandle.className = "select-row-drag-handle";
 				dragHandle.setAttribute("aria-hidden", "true");
@@ -4616,11 +4530,6 @@ try {
 				selectEmptyState.hidden = true;
 
 				const term = searchInput.value.trim();
-				// UI改修依頼(チーム編集左パネル)「チームに含まれる個体を一覧から非表示にする」
-				// 「ソート機能を追加する」。isCurrentMemberで除外してからsortPokemonで並べ替える
-				// (除外により、既存の選択ルール由来の"already-in-team"理由は表示上到達しなくなる。
-				// selectionBlockReason自体・BLOCK_REASON_LABELSは他の禁止理由(6体編成済み/種族重複/
-				// 持ち物重複)で引き続き使うため残す)。
 				const filtered = sortPokemon(
 					allPokemon.filter((p) => !isCurrentMember(p.id) && matchesFavorite(p) && matchesTeamRegulation(p) && matchesDedupe(p) && matchesSearch(p, term)),
 				);
@@ -4716,8 +4625,6 @@ try {
 				void saveNow();
 			});
 
-			// UI改修依頼(チーム編集ヘッダー)「右端に削除ボタン追加」。box/[id].astroの
-			// deleteButtonハンドラと同じ確認ダイアログ→DELETE→遷移のパターン。
 			deleteTeamButton.addEventListener("click", () => {
 				void (async () => {
 					if (!window.confirm("このチームを削除します。よろしいですか?")) return;
@@ -4763,17 +4670,12 @@ try {
 			dedupeToggle.addEventListener("change", renderSelectList);
 			favoriteFilterToggle.addEventListener("change", renderSelectList);
 
-			// 🔴 UI改修依頼(チーム編集画面、2026-08-01)。レギュレーションを変えると
-			// 「選択バーに出す個体」も変わるため、保存と同時に一覧を描き直す。
 			regulationSelect.addEventListener("change", () => {
 				syncRegulationFilterToggle();
 				syncRegulationPlaceholder();
 				renderSelectList();
 				scheduleSave();
 			});
-			// UI改修依頼(チーム編集左パネル、2026-08-02)「トグルスイッチに変更する」に伴い、
-			// <button>のclickから<input type="checkbox">のchangeへ差し替える(ヘッダーの
-			// 「非公開」トグル=#team-collection-opt-out-toggleと同じイベント)。
 			regulationFilterToggle.addEventListener("change", () => {
 				regulationFilterOn = regulationFilterToggle.checked;
 				syncRegulationFilterToggle();
@@ -4783,25 +4685,12 @@ try {
 			syncRegulationFilterToggle();
 			syncRegulationPlaceholder();
 
-			// サジェストの表示条件トグル(ユーザー要望、2026-08-04)。APIは叩き直さず、
-			// 直近の応答(lastSuggestResponse)があれば同じデータのままフィルタし直す
-			// (filterSuggestionsがトグルの.checkedを見るため、まだ結果が無ければ何もしなくても
-			// 次にrenderSuggestionsが呼ばれたときに反映される)。
 			includeMegaToggle.addEventListener("change", () => {
 				if (lastSuggestResponse) {
 					void renderSuggestions(lastSuggestResponse.suggestions, lastSuggestResponse.basis);
 				}
 			});
 
-			// UI改修依頼(チーム編集ヘッダー)「匿名でデータ提供するトグル」。個体編集画面
-			// (src/lib/box-id/left-panel.ts)と同じPATCH経路を、現在のチームメンバー全員に対して
-			// 一括で呼ぶ(既存の1個体用APIをそのまま流用。新しいAPI・DB列は追加していない)。
-			// 失敗時はcheckedを元に戻しエラーメッセージを表示する(個体編集画面と同じ温度感)。
-			// 🔴 2026-08-01「非公開」トグルへの改称により、checkedの意味が反転している
-			// (checked=true が「非公開」=collection_opt_out=true)。保存するペイロード自体
-			// (collection_opt_out の真偽値)は変えていない ── nextProviding は反転後のcheckedから
-			// 「提供中かどうか」を計算し直しているだけで、PATCHボディの式(!nextProviding)は
-			// 変更前と同一。
 			collectionOptOutToggle.addEventListener("change", () => {
 				void (async () => {
 					// checked_after(クリック直後の値)は「非公開かどうか」を表す。
@@ -4844,10 +4733,6 @@ try {
 			renderSlots();
 			renderFormationMobile();
 			refreshCollectionOptOutToggle();
-			// サジェスト(2026-08-02)。SSR時点のメンバーだけで先に問い合わせられるので、
-			// 個体一覧のfetch完了は待たない。ただし「手持ちにあるか」の判定(findOwnedMatch)は
-			// allPokemon に依存するため、一覧が届いた時点でボタンの出し分けを描き直す
-			// (下の fetch("/api/owned-pokemon") の then を参照)。
 			void loadSuggestions();
 			void loadSimilarBuilds();
 
