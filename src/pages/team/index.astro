@@ -30,68 +30,6 @@ const user = Astro.locals.user;
 	  #team-toolbar)内へ直接配置する(下記マークアップ、id="team-count-badge"・
 	  class="badge tnum"は変更しない、<script>がgetElementByIdで参照するため)。
 	*/}
-	<style>
-		/* --- ツールバー(検索+並べ替え。box/index.astroの.second-bar--toolbarをそのまま流用。
-		   「絞り込み」はこのページには置かない(docs/plan/pages/team.md参照)。 --- */
-		/* box/index.astroの.second-bar--toolbarと同じ値をそのまま複製する
-		   (このツールバーがAppLayoutの共通<header class="app-topbar">の代わりを務める)。
-		   sticky/z-index/background/border-bottomはglobal.cssの.app-topbarと同じ値
-		   (新しい値は作らない)。 */
-		/* 件数バッジはツールバー先頭寄りに配置し、margin-left: autoは付けない
-		   (pitfalls.md「flex: 1 1 0は余白を全部飲む」と同種の事故を避ける: auto marginを
-		   残すと後続の検索ボックスが右端まで押し出されてしまう)。 */
-		.toolbar-count {
-			flex-shrink: 0;
-		}
-		.toolbar-search {
-			flex: 0 1 26rem;
-		}
-		.toolbar-search input {
-			width: 100%;
-			min-width: 12em;
-		}
-
-		/* お気に入りボタン(.favorite-filter-toggle)のスタイルはglobal.cssに集約されている
-		   (Astroのscoped styleはページをまたがないため、一覧間で共有するにはglobal.cssに置く
-		   必要がある)。 */
-
-		/* 「並べ替え」の<label>は表示せず、box/index.astroの.sort-select-wrap/.sort-icon
-		   と同じ手法(検索欄の.search-input-wrap/.search-iconと同じ、position:absoluteのアイコン+
-		   select側padding-left)でソートアイコンをselectの左側に重ねる。 */
-
-		@media (max-width: 640px) {
-			.toolbar-search { flex-basis: auto; }
-			.toolbar-search input,
-			.toolbar-regulation select,
-			.toolbar-sort select { width: 100%; min-width: 0; }
-		}
-
-		/* --- カードグリッド(.team-grid)と #team-list の display:contents は
-		   src/styles/team-card.css / team-page.css が持つ。/team/[id] の「類似構築」タブと
-		   カードの見た目・間隔を1つの定義元から共有するため、このscoped styleには置かない
-		   (ルートCLAUDE.md「スタイル定義」)。 --- */
-		.team-content {
-			padding: 0 var(--space-5);
-		}
-		/* --- 状態メッセージ(読み込み中・エラー・空状態2種。box/index.astroと同じ作り) --- */
-		#loading-message,
-		#error-message {
-			color: var(--color-text-muted);
-			margin-top: var(--space-6);
-		}
-		#error-message { color: var(--color-danger-strong); }
-
-		#no-match-message.empty-state {
-			margin-top: var(--space-4);
-		}
-
-		/* .badge(global.css)は display:inline-flex を持つため、UAの[hidden]{display:none}に
-		   author style(same-specificity/origin勝ち)として勝ってしまう(pitfalls.md「[hidden]は
-		   詳細度で負ける」)。件数バッジをhidden属性で隠すこのページでは明示的に打ち消す。 */
-		#team-count-badge[hidden] {
-			display: none;
-		}
-	</style>
 
 	{/*
 	  チームカード(.card-team)は下部の<script>がdocument.createElement()で生成するため、
