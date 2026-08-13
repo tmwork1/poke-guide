@@ -281,9 +281,6 @@ try {
 		.team-edit-layout {
 			display: block;
 		}
-		@media (min-width: 1300px) {
-			.team-edit-layout {
-				display: grid;
 				/* .team-select-barの幅304px(下限240px)は、380px(.team-select-bar幅の上限)を
 				   0.8倍したもの。下限(min)も同じ比率で300px→240pxへ縮めている
 				   (min/maxの比率を変えないため)。
@@ -293,10 +290,6 @@ try {
 				   閾値1300pxの根拠: 中央カラムが固定幅754pxのため、2カラム化に必要な
 				   最小横幅はサイドバー(256px)+選択バー最小(240px)+チーム(754px)=1250px。
 				   1250px前後では余裕がほぼ無いため、安全マージンを見て1300pxにしている。 */
-				grid-template-columns: minmax(240px, 304px) 754px;
-				align-items: stretch;
-			}
-		}
 		/* box/[id].astroの.edit-layout(3カラム化、RightPanel.astro参照)と同じ考え方で
 		   3カラム目(.team-preview-panel)を追加する。2カラム時(下の閾値未満)では右パネルは
 		   非表示にする(下の.team-preview-panel参照)。幅が無いところに無理に3カラム目を
@@ -307,11 +300,6 @@ try {
 		   閾値1650pxの根拠: 3カラム時に必要な最小横幅は2カラム時の1250px(256+240+754)に
 		   右パネルの下限240pxを足した1490px。1490px前後では右パネルが窮屈になるため、
 		   安全マージンを見て1650pxにしている。 */
-		@media (min-width: 1650px) {
-			.team-edit-layout {
-				grid-template-columns: minmax(240px, var(--team-left-col)) 844px minmax(192px, 1fr);
-			}
-		}
 
 		.team-select-bar {
 			display: flex;
@@ -328,13 +316,6 @@ try {
 		   同じ考え方。縦積み時に選択バーが画面いっぱいの高さを占有すると、6枠に到達するまで
 		   1画面ぶん余計にスクロールする羽目になる)。閾値は.team-edit-layoutの2カラム化と
 		   必ず揃えること(根拠は上の.team-edit-layoutコメント参照)。 */
-		@media (min-width: 1300px) {
-			.team-select-bar {
-				position: sticky;
-				top: var(--topbar-height);
-				height: calc(100vh - var(--topbar-height));
-			}
-		}
 
 		.team-select-search {
 			flex: 0 0 auto;
@@ -471,10 +452,8 @@ try {
 		/* 選択バーが帯ではなく縦積みの通常ブロックになる幅(1300px未満、上の.team-edit-layout
 		   コメント参照)では高さを固定せず、代わりに際限なく伸びないよう上限を設ける
 		   (ボックスの個体数が多いユーザー向け)。 */
-		@media (max-width: 1299px) {
-			.team-select-list-wrap {
-				max-height: 60vh;
-			}
+		.team-select-list-wrap {
+			max-height: 60vh;
 		}
 
 		#pokemon-select-list {
@@ -532,15 +511,6 @@ try {
 		   (`minmax(240px, 1fr)`)で決まるため、このルールでは幅を指定しない。 --- */
 		.team-preview-panel {
 			display: none;
-		}
-		@media (min-width: 1650px) {
-			.team-preview-panel {
-				display: block;
-				position: sticky;
-				top: var(--topbar-height);
-				height: calc(100vh - var(--topbar-height));
-				overflow-y: auto;
-			}
 		}
 		.team-preview-empty {
 			color: var(--color-text-muted);

@@ -12,29 +12,18 @@
 	display: none;
 }
 
-@media (max-width: 899px) {
-	.team-edit-shell[data-mobile-tab="data"] .team-edit-layout {
-		display: none;
-	}
-
-	.team-edit-shell[data-mobile-tab="data"] #team-data-mobile {
-		display: block;
-	}
-
-	.team-data-similar-status {
-		max-width: 34rem;
-		margin: 0 auto;
-		padding: var(--space-4);
-		background: var(--color-surface);
-		border: 1px solid var(--color-border);
-		border-radius: var(--radius-md);
-		text-align: center;
-	}
-
+.team-edit-shell[data-mobile-tab="data"] .team-edit-layout {
+	display: none;
 }
-
-@media (min-width: 900px) {
-	#team-data-mobile {
-		display: none !important;
-	}
+.team-edit-shell[data-mobile-tab="data"] #team-data-mobile {
+	display: block;
+}
+.team-data-similar-status {
+	max-width: 34rem;
+	margin: 0 auto;
+	padding: var(--space-4);
+	background: var(--color-surface);
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius-md);
+	text-align: center;
 }
