@@ -14,6 +14,7 @@ export const prerender = false;
 import AppLayout from '../../layouts/AppLayout.astro';
 import ChartTable from '../../components/speed-chart/ChartTable.astro';
 import '../../styles/speed-adjust-dialog.css';
+import '../../styles/speed-chart-page.css';
 // 既定値の解決は REGULATIONS の末尾が最新であることに依存するため、表示順だけ別配列を使う。
 import { REGULATIONS, REGULATIONS_NEWEST_FIRST } from '../../lib/regulations';
 import { getSupabaseAdminClient, getSupabasePublicClient } from '../../lib/supabase';
@@ -228,86 +229,3 @@ try {
 		window.parent.postMessage({ type: 'speed-chart:close' }, window.location.origin);
 	});
 </script>}
-
-<style>
-	.speed-chart-embed-toolbar {
-		display: flex;
-		align-items: center;
-		gap: var(--space-2);
-		flex-wrap: wrap;
-		padding: var(--space-3) var(--space-4);
-		border-bottom: 1px solid var(--color-border);
-		background: var(--color-surface);
-	}
-	.speed-chart-embed-title { white-space: nowrap; }
-	.speed-chart-embed-close { margin-left: auto; font-size: var(--font-size-lg1); line-height: 1; }
-	:global(.speed-chart-page:has(.speed-chart-embed-toolbar)) {
-		height: 100dvh;
-		overflow: hidden;
-	}
-	:global(.speed-chart-page:has(.speed-chart-embed-toolbar) .app-main) {
-		display: flex;
-		flex-direction: column;
-		height: calc(100dvh - 57px);
-		min-height: 0;
-		padding: 0;
-	}
-	:global(.speed-chart-page:has(.speed-chart-embed-toolbar) .speed-chart-table) {
-		flex: 1;
-		height: 100%;
-		min-height: 0;
-	}
-	@media (max-width: 699px) {
-		.speed-chart-embed-toolbar { padding: var(--space-2); gap: var(--space-1); }
-		.speed-chart-embed-toolbar .speed-chart-regulation-label { display: none; }
-		.speed-chart-embed-title { width: 100%; }
-		.speed-chart-embed-close { position: absolute; top: var(--space-2); right: var(--space-2); }
-	}
-</style>
-
-<style>
-	:global(.app-topbar-actions):has(.speed-chart-regulation-label) {
-		gap: var(--space-5);
-	}
-	/* トップバーは横幅が限られるため、レギュレーション選択・実数値ジャンプ入力は
-	   中身(3桁の実数値・レギュレーション名)に対して過大にならない幅に絞る。
-	   .app-topbar-actions 側で既に display:flex; gap; flex-wrap が効くため、
-	   ここでは各要素の幅だけを調整すれば横並び・900px未満での折り返しの両方に対応できる。 */
-	#speed-chart-regulation-select {
-		width: auto;
-		min-width: 0;
-		flex: none;
-	}
-	.speed-chart-regulation-label {
-		font-size: var(--font-size-sm2);
-		color: var(--color-text-muted);
-		white-space: nowrap;
-	}
-
-	#speed-chart-jump-input {
-		width: 7rem;
-	}
-
-	.speed-chart-order-select-wrap {
-		display: flex;
-		align-items: center;
-	}
-	.speed-chart-reachable-toggle {
-		display: inline-flex;
-		align-items: center;
-		gap: var(--space-2);
-		font-size: var(--font-size-sm2);
-		white-space: nowrap;
-	}
-</style>
-
-<style is:global>
-	/* AppLayout の要素を対象にするため、body クラスでスコープしたグローバルセレクタを使う。 */
-	body.speed-chart-page .app-topbar-title {
-		display: none;
-	}
-
-	body.speed-chart-page .app-topbar-row-main {
-		justify-content: flex-start;
-	}
-</style>
