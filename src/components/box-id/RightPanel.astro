@@ -118,43 +118,6 @@
 	   (JS初期化前のフォールバック)とJS生成(renderDetailPanelEmpty)の両方から使われるが、
 	   後者はscoped<style>が効かない(pitfalls.md)。同じ1つの定義で両方に効かせるため、
 	   静的/動的どちらの経路でも確実に効くis:global側に統一する。 */
-	@media (min-width: 1600px) {
-		.edit-layout-detail { display: block; min-width: 0; height: 100%; }
-		/* 右の詳細設定は画面右端に密着し、上下いっぱいに伸びる帯として扱う
-		   (設計図 docs/ui_proposal/個体編集_全体レイアウト.png)。top/bottomの隙間・角丸・
-		   全周borderは持たせない。border-leftは.panel-right修飾子(global.css。マークアップ側は
-		   既にclass="damage-detail-panel panel-right"を持つ)に委譲する。
-		   このパネルの位置基準はdocument scrollで、position:sticky; top:0のトップバー
-		   (--topbar-height、デスクトップ65px)と共有している。topを0のままにすると
-		   トップバーの裏に隠れて上端が食い込むため(実機で発覚)、トップバーの直下に
-		   張り付くよう top: var(--topbar-height) にする。
-		   高さは height:100% (行の実高さ、.edit-layout-leftと同じ連鎖) を基本にしつつ、
-		   max-height:calc(100vh - var(--topbar-height)) で上限を「ビューポートからトップバー
-		   ぶんを引いた残り1画面」に固定する。これにより:
-		   (a) 通常時(行がちょうど1画面に収まる)はheight:100%がそのまま効き、左の帯と
-		   ぴったり同じ高さで画面いっぱいに伸びる(height:100vh一本だと、行の高さが
-		   「ページ見出しの実高さ+100vh」まで押し上げられ、ページ全体に見出し分の
-		   余計な縦スクロールが生まれてしまうことを実測で確認したため採用しなかった)。
-		   (b) ダメージ計算カード側(中央カラム)が増えて行がビューポートより長くなった
-		   場合はmax-heightが効いて「トップバーを除いた1画面ぶん」で頭打ちになり、
-		   position:stickyでの追随+内部スクロール(.damage-detail-panel-bodyの
-		   overflow-y:auto)が従来どおり働く。 */
-		.damage-detail-panel {
-			position: sticky;
-			top: var(--topbar-height);
-			right: auto;
-			bottom: auto;
-			width: 100%;
-			height: 100%;
-			max-height: calc(100vh - var(--topbar-height));
-			box-shadow: none;
-			transform: none;
-		}
-		/* 1600px以上では常時表示のパネルなので閉じるボタン・背景オーバーレイは不要。 */
-		.damage-detail-panel-close { display: none; }
-		.damage-detail-backdrop { display: none !important; }
-		/* 今回のUI改修: 閉じるボタンが隠れるデスクトップでも、3モード共通のタイトル帯は残す。 */
-	}
 	/* The editor uses this inline detail panel at every viewport width. */
 	@media (min-width: 0) {
 		.edit-layout-detail, .damage-detail-backdrop { display: none; }

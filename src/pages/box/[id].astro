@@ -405,7 +405,7 @@ const isOptedOut = optOutRemainingText !== "";
 		.edit-layout-right {
 			padding: var(--space-6) var(--space-5);
 		}
-		@media (max-width: 899px) {
+
 			/* モバイルのセカンドバー状態に合わせ、育成フォームとダメージ計算を同じ場所で切り替える。 */
 			.edit-shell:not([data-mobile-tab="damage"]) .edit-layout-right { display: none; }
 			.edit-shell[data-mobile-tab="damage"] .edit-layout-left { display: none; }
@@ -424,36 +424,6 @@ const isOptedOut = optOutRemainingText !== "";
 				gap: var(--space-3);
 				padding: var(--space-4) var(--space-5) var(--space-5);
 			}
-		}
-		/* 900px以上ではトップバーが本来の置き場所なので、この受け皿は空のまま畳んでおく
-		   (空でもgap/paddingぶんの余白が出てしまうため display:none にする)。 */
-		@media (min-width: 900px) {
-			.mobile-edit-actions { display: none; }
-		}
-		@media (min-width: 1200px) {
-			.edit-layout {
-				display: grid;
-				grid-template-columns: minmax(320px, 480px) 1fr;
-				gap: 1.4rem;
-				/* UI品質改善(帯構成への刷新): align-items:startだと各カラムが自分のコンテンツ分の
-				   高さしか持たず、左の帯(.panel-left)が画面下端の手前で途切れて背景色が
-				   見えてしまっていた(実測で発覚)。stretchに変え、行の高さ(3カラムのうち
-				   最も長いものに揃う)まで各カラムを引き伸ばす。実際に左パネルをその高さまで
-				   伸ばす連鎖(height:100%)は下の別の@media (min-width: 1200px)ブロック
-				   (.edit-layout-left以下)を参照。 */
-				align-items: stretch;
-			}
-		}
-		/* UI品質改善(帯構成への刷新): .edit-layout-detail(3カラム目)・.damage-detail-panel*の
-		   scoped styleは構造分割ラウンド(フェーズ2)で src/components/box-id/RightPanel.astro へ
-		   移設した(見た目は一切変更していない。Astroのscoped styleはコンポーネントをまたいで
-		   効かないため、要素とCSSを同じファイルに揃える必要があった)。このページ側には
-		   グリッド自体(.edit-layout)の3カラム化だけを残す。 */
-		@media (min-width: 1600px) {
-			.edit-layout {
-				grid-template-columns: minmax(320px, 440px) minmax(520px, 1fr) minmax(300px, 360px);
-			}
-		}
 
 		/* UI刷新: 実数値の常時表示。性格補正は文字色で表現する(上昇=赤系、下降=青系、
 		   補正なしは既定色のまま)。#1d6fd1のハードコードはダークで下降色3.30:1、
@@ -480,22 +450,6 @@ const isOptedOut = optOutRemainingText !== "";
 		   .move-type-icon・.memo-input 等)は構造分割ラウンド(フェーズ1)により
 		   src/components/box-id/LeftPanel.astro へ移設した(見た目は一切変更していない)。 */
 
-		/* .stat-table 以下、@media (min-width: 1200px) 直前までの左サイド専用scoped styleは構造分割ラウンド
-		   (フェーズ1)で src/components/box-id/LeftPanel.astro へ移設した(見た目は一切変更していない)。 */
-		@media (min-width: 1200px) {
-			.edit-shell {
-				display: flex;
-				flex-direction: column;
-				min-height: calc(100vh - var(--topbar-height));
-			}
-			.edit-layout {
-				flex: 1 1 auto;
-				min-height: 0;
-			}
-			.edit-layout-left {
-				height: 100%;
-			}
-		}
 		/* .top-block-icon 以下、.tuning-button までの左サイド専用scoped styleは構造分割ラウンド
 		   (フェーズ1)で src/components/box-id/LeftPanel.astro へ移設した(見た目は一切変更していない)。 */
 	</style>

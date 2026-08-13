@@ -945,38 +945,6 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		#edit-form .field-grid { grid-template-columns: 1fr; }
 	}
 
-	/* デスクトップでは左パネルのカードを縦フレックスにして画面の高さいっぱいまで伸ばし、
-	   ダメージ計算カード側(右カラム)とおおむね高さを揃える。box/[id].astro側の
-	   .edit-shell/.edit-layout/.edit-layout-leftの高さの連鎖(height:100%)を受け、
-	   このコンポーネント内の#edit-form/.panel-leftまで届かせる。
-	   ⚠️ このルールは元々 box/[id].astro 側で `.edit-layout-left > form` /
-	   `.edit-layout-left > form > .panel` という、box/[id].astro自身のdiv(.edit-layout-left)
-	   とこのコンポーネントが描画するform/.panelをまたぐ複合セレクタとして書かれていたが、
-	   Astroのscoped styleは「そのコンポーネントが描画した要素」にしか自身のスコープ属性を
-	   付与しないため、form/.panelをLeftPanel.astroへ切り出すとそのセレクタは一致しなくなる
-	   (pitfalls.md「Astroのscoped styleはコンポーネントをまたいで効かない」と同種の制約)。
-	   このコンポーネント自身のscoped<style>から、このコンポーネントが描画する要素だけを
-	   指す#edit-form/.panel-leftセレクタに書き換えた(box/[id].astro側は
-	   .edit-shell/.edit-layout/.edit-layout-leftの3ルールだけを保持する)。
-	   .panel-leftは基底.panel(global.css、display指定なし)にflex関連プロパティを追加するだけで、
-	   他に.panel/.panel-leftのdisplay/flex-direction/width/min-heightを設定するルールが
-	   無いことを確認済みのため、セレクタの詳細度が変わっても見た目は変化しない。 */
-	@media (min-width: 1200px) {
-		#edit-form {
-			display: flex;
-			flex-direction: column;
-			height: 100%;
-		}
-		/* UI品質改善(デザイン原則整合): 個体編集フォームを包むこの1枚は「1画面に1つの骨格領域」
-		   なのでカード(可算コレクション要素)ではなくパネル(.panel)。 */
-		.panel-left {
-			flex: 1 1 auto;
-			display: flex;
-			flex-direction: column;
-			width: 100%;
-			min-height: 0;
-		}
-	}
 		.top-block-icon {
 			position: relative;
 			flex-shrink: 0;
@@ -1143,44 +1111,42 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	.move-picker-backdrop[hidden] { display: none; }
 	.move-picker-slot-tabs { display: none; }
 
-	@media (max-width: 899px) {
-		.move-picker-backdrop {
-			position: fixed;
-			inset: 0;
-			z-index: 99;
-			background: rgb(0 0 0 / 42%);
-		}
-		.move-picker-window.is-mobile-modal {
-			z-index: 100;
-			left: var(--space-3) !important;
-			top: 50% !important;
-			width: calc(100vw - (var(--space-3) * 2)) !important;
-			max-width: 42rem;
-			max-height: min(78dvh, 42rem) !important;
-			transform: translateY(-50%);
-			border-radius: var(--radius-lg);
-		}
-		.move-picker-slot-tabs {
-			display: grid;
-			grid-template-columns: repeat(2, minmax(0, 1fr));
-			gap: var(--space-2);
-			padding: var(--space-2) var(--space-3);
-			border-bottom: 1px solid var(--color-border);
-		}
-		.move-picker-slot-tab {
-			min-height: 2rem;
-			padding: 0 var(--space-2);
-			font-size: var(--font-size-sm2);
-			font-weight: 400;
-			overflow: hidden;
-			text-overflow: ellipsis;
-			white-space: nowrap;
-		}
-		.move-picker-slot-tab.is-selected {
-			background: var(--color-primary);
-			border-color: var(--color-primary);
-			color: var(--color-on-primary, #fff);
-		}
+	.move-picker-backdrop {
+		position: fixed;
+		inset: 0;
+		z-index: 99;
+		background: rgb(0 0 0 / 42%);
+	}
+	.move-picker-window.is-mobile-modal {
+		z-index: 100;
+		left: var(--space-3) !important;
+		top: 50% !important;
+		width: calc(100vw - (var(--space-3) * 2)) !important;
+		max-width: 42rem;
+		max-height: min(78dvh, 42rem) !important;
+		transform: translateY(-50%);
+		border-radius: var(--radius-lg);
+	}
+	.move-picker-slot-tabs {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: var(--space-2);
+		padding: var(--space-2) var(--space-3);
+		border-bottom: 1px solid var(--color-border);
+	}
+	.move-picker-slot-tab {
+		min-height: 2rem;
+		padding: 0 var(--space-2);
+		font-size: var(--font-size-sm2);
+		font-weight: 400;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+	.move-picker-slot-tab.is-selected {
+		background: var(--color-primary);
+		border-color: var(--color-primary);
+		color: var(--color-on-primary, #fff);
 	}
 	.move-picker-title {
 		font-weight: 700;

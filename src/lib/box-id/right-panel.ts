@@ -1321,7 +1321,7 @@ export function initRightPanel(): void {
 	detailPanelCloseButton = el<HTMLButtonElement>("damage-detail-panel-close");
 	detailBackdropEl = el<HTMLElement>("damage-detail-backdrop");
 	detailPanelCloseButton.addEventListener("click", () => {
-		if (window.matchMedia("(max-width: 899px)").matches) {
+		if (true) {
 			clearSelectionAndMarks();
 			return;
 		}

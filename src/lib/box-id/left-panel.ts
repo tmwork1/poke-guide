@@ -2059,7 +2059,7 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 		// 幅の狭い画面(デスクトップ2カラム構成が成立しない1200px未満相当)では
 		// 「左パネルの右側に外付け」という前提が成立しない。この場合は開かず、
 		// 既存のdatalist(直接タイプ)による絞り込みだけを使ってもらう(壊さない)。
-		if (window.innerWidth < 900 && !mobileModal) return;
+		if (!mobileModal) return;
 		activeSlot = slot;
 		titleEl.textContent = `技${slot}を選択`;
 		windowEl.classList.toggle("is-mobile-modal", mobileModal);
