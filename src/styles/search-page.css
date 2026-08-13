@@ -1,0 +1,48 @@
+/* /search ページ全体のレイアウト。 */
+			h3 { font-size: var(--font-size-base); margin-bottom: var(--space-1); }
+			/* global.css の `label { min-width: 6.5em }` 撤廃(UI品質改善タスクA)に伴い、
+			   キーワード欄のラベル幅をこのページ側で維持する(.radio-labelは対象外)。 */
+			.row > label:not(.radio-label) {
+				min-width: 6.5em;
+				font-size: var(--font-size-sm2);
+				font-weight: 600;
+				color: var(--color-text-muted);
+			}
+			.radio-label { min-width: auto; font-weight: normal; margin-right: var(--space-4); }
+			.result-block { margin: var(--space-3) 0; }
+			.result-block ul { padding-left: 1.2em; }
+			/* B-2: 結果リストの実コンテンツ幅は最長「リザードン(キョダイ)」でも171pxしかないのに
+			   .panel-content は1080px確保しているため、4件表示時にパネル右側84%が空白になる。
+			   カテゴリ(ポケモン/技/特性/持ち物)ごとに独立した<ul>をCSS multi-columnで多段化し、
+			   少数件でも横方向に密度を持たせる。<ul>自体はこのページの静的マークアップ内にあり
+			   (中身の<li>/<a>のみJSで動的生成)、data-astro-cid-*が付与されるためscoped styleで
+			   問題なく効く(A-7で対処した「JS生成要素にscopedが効かない」問題とは別レイヤー)。 */
+			.result-block ul {
+				column-width: 220px;
+				column-gap: var(--space-6);
+			}
+			.result-block li {
+				break-inside: avoid;
+			}
+			/* B-6: キーワード入力欄が .panel-content(1080px)の中で207pxのまま伸びず、
+			   placeholderが「特性」で切れていた。.row (global.css) はflex-wrapのみで
+			   flex-directionをcolumnに切り替えないため、#queryの伸長がそのまま横幅に
+			   反映される。 */
+			#query { flex: 1 1 320px; max-width: 36rem; }
+			/* pitfalls.md: `flex: 1 1 320px` は縦積み(flex-direction: column)に切り替わる
+			   ブレークポイントでflex-basisが主軸=高さの基準として解釈され、入力欄が320px
+			   まで伸びる事故が/boxのツールバーで実際に起きた。.rowはこのページでは常に
+			   flex-direction: row(columnへの切り替えを持たない)ため実害は無いはずだが、
+			   将来の回帰に備えて同じガードをここにも置く。 */
+			@media (max-width: 640px) {
+				#query { flex-basis: auto; }
+			}
+			/* 以下の2ルールは document.createElement() で生成する要素(検索結果の<a>と
+			   サジェスト空状態の<p>)に適用する。Astroの scoped style は data-astro-cid-*
+			   属性が付いた要素にしか効かず、JSで生成した要素には付与されないため、
+			   上の scoped <style> に書いても効かない(scopedのまま詳細度を上げても直らない)。
+			   このページ内で一意な id (#results-section / #trending-search) を前置し、
+			   他ページへスコープが漏れないようにする。 */
+			#results-section .result-block a { text-decoration: none; }
+			#results-section .result-block a:hover { text-decoration: underline; }
+
