@@ -1,7 +1,7 @@
 ---
 import '../styles/app-sidebar.css';
 interface Props {
-	current?: "box" | "team" | "dev" | "speed-chart" | "ranked-teams";
+	current?: "box" | "team" | "dev" | "speed-chart" | "ranked-teams" | "data";
 	/**
 	 * AppSidebar は chrome="public" では描画されないため、公開ページでログイン情報を表示しない。
 	 */
@@ -63,7 +63,7 @@ const SECTIONS: { heading: string; items: SidebarItem[] }[] = [
 	{
 		heading: "データ",
 		items: [
-			{ key: "trend", label: "トレンド", icon: "trending-up", disabled: true },
+			{ key: "data", label: "データ", href: "/data", icon: "trending-up" },
 			{ key: "ranked-teams", label: "上位構築", href: "/ranked-teams", icon: "trophy" },
 		],
 	},

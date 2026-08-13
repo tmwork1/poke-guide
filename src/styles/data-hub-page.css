@@ -1,0 +1,27 @@
+.data-hub-scroll {
+	display: flex;
+	gap: var(--space-2);
+	margin: 0 var(--space-2);
+	overflow-x: auto;
+	overscroll-behavior-x: contain;
+	scroll-snap-type: x mandatory;
+	touch-action: pan-x;
+}
+
+.data-hub-panel {
+	flex: 0 0 100%;
+	min-width: 0;
+	scroll-snap-align: start;
+}
+
+.data-hub-panel .panel-content {
+	padding: var(--space-5);
+}
+
+.data-hub-panel .empty-state {
+	margin-top: 0;
+}
+
+.data-hub-panel[inert] {
+	user-select: none;
+}

@@ -1,7 +1,7 @@
 ---
 import '../styles/app-bottom-nav.css';
 interface Props {
-	current?: "box" | "team" | "dev" | "speed-chart" | "ranked-teams";
+	current?: "box" | "team" | "dev" | "speed-chart" | "ranked-teams" | "data";
 }
 
 const { current } = Astro.props;
@@ -13,10 +13,10 @@ const { current } = Astro.props;
 			<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="7" x2="20" y2="7" /><line x1="4" y1="12" x2="20" y2="12" /><line x1="4" y1="17" x2="20" y2="17" /></svg>
 			<span>メニュー</span>
 		</button>
-		<span class="app-bottom-nav-item is-disabled" aria-disabled="true">
+		<a class="app-bottom-nav-item" href="/data" data-active={current === "data" ? "true" : undefined} aria-current={current === "data" ? "page" : undefined}>
 			<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.05" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
-			<span>トレンド</span>
-		</span>
+			<span>データ</span>
+		</a>
 		<a class="app-bottom-nav-item" href="/box" data-active={current === "box" ? "true" : undefined} aria-current={current === "box" ? "page" : undefined}>
 			<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.05" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 7.5 12 3 3 7.5v9L12 21l9-4.5v-9Z"/><path d="M3.5 7.3 12 12l8.5-4.7"/><path d="M12 12v9"/></svg>
 			<span>ボックス</span>

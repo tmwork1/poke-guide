@@ -1,0 +1,84 @@
+---
+export const prerender = false;
+
+import AppLayout from '../../layouts/AppLayout.astro';
+import '../../styles/data-hub-page.css';
+---
+
+<AppLayout title="データ" current="data" hideTopbar={true}>
+	<nav class="second-bar" aria-label="データページの表示切り替え">
+		<div class="second-bar__list">
+			<button type="button" class="second-bar__item" data-data-hub-tab="battle-data" data-active="true" aria-current="page">バトルデータ</button>
+			<button type="button" class="second-bar__item" data-data-hub-tab="top-builds">上位構築</button>
+		</div>
+	</nav>
+
+	<div class="data-hub-scroll" data-data-hub-scroll>
+		<section class="panel data-hub-panel" data-tab="battle-data">
+			<div class="panel-content">
+				<div class="empty-state">
+					<p class="empty-state-icon" aria-hidden="true">📊</p>
+					<p class="empty-state-title">バトルデータは準備中です</p>
+					<p class="empty-state-hint">対戦で役立つデータを掲載予定です。</p>
+				</div>
+			</div>
+		</section>
+
+		<section class="panel data-hub-panel" data-tab="top-builds" inert aria-hidden="true">
+			<div class="panel-content">
+				<div class="empty-state">
+					<p class="empty-state-icon" aria-hidden="true">🏆</p>
+					<p class="empty-state-title">上位構築ランキングは準備中です</p>
+					<p class="empty-state-hint">現在の上位構築は下部ナビの<a href="/ranked-teams">「上位構築」</a>からご覧いただけます。</p>
+				</div>
+			</div>
+		</section>
+	</div>
+
+	<script>
+		import { DATA_HUB_TABS, resolveActiveTabIndex } from '../../lib/data-hub-tabs';
+
+		const scrollContainer = document.querySelector('[data-data-hub-scroll]');
+		const tabButtons = document.querySelectorAll('[data-data-hub-tab]');
+		const panels = document.querySelectorAll('[data-tab]');
+
+		if (scrollContainer && tabButtons.length === DATA_HUB_TABS.length && panels.length === DATA_HUB_TABS.length) {
+			const syncActiveTab = () => {
+				const activeIndex = resolveActiveTabIndex(scrollContainer.scrollLeft, scrollContainer.clientWidth, DATA_HUB_TABS.length);
+
+				tabButtons.forEach((tabButton, index) => {
+					const isActive = index === activeIndex;
+					if (isActive) tabButton.setAttribute('data-active', 'true');
+					else tabButton.removeAttribute('data-active');
+					if (isActive) tabButton.setAttribute('aria-current', 'page');
+					else tabButton.removeAttribute('aria-current');
+				});
+
+				panels.forEach((panel, index) => {
+					const isActive = index === activeIndex;
+					panel.toggleAttribute('inert', !isActive);
+					if (isActive) panel.removeAttribute('aria-hidden');
+					else panel.setAttribute('aria-hidden', 'true');
+				});
+			};
+
+			tabButtons.forEach((tabButton, index) => {
+				tabButton.addEventListener('click', () => {
+					panels[index]?.scrollIntoView({ behavior: 'smooth', inline: 'start' });
+				});
+			});
+
+			if ('onscrollend' in window) {
+				scrollContainer.addEventListener('scrollend', syncActiveTab);
+			} else {
+				let debounceTimer;
+				scrollContainer.addEventListener('scroll', () => {
+					clearTimeout(debounceTimer);
+					debounceTimer = setTimeout(syncActiveTab, 150);
+				});
+			}
+
+			syncActiveTab();
+		}
+	</script>
+</AppLayout>
