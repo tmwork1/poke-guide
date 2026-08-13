@@ -13,8 +13,10 @@ PokeAPI画像と同様の特性を示した)。
 
 ## 対象
 記事内の `alt` 属性(日本語アイテム名)を public/master-data/autocomplete/items.json
-の `name` と突き合わせ、完全一致したものだけを対象とする(2026-08-12時点で記事中
-73件がヒットし、items.json と73/73マッチ。うち72件が従来30x30原画由来だった)。
+の `name` と突き合わせ、完全一致したものだけを対象とする(2026-08-14時点で記事中
+148件がヒットし、items.json と147/148マッチ。マッチしなかった1件は本ゲームに
+存在しない「ニャオニクスナイト」)。147件のうちメガストーン(`i_item_m`+数字の
+ファイル名)が74件を占める。
 spritePathがnull(PokeAPI原画が存在しない)のアイテムでも、items.jsonにname自体が
 存在すればマッチ対象になる(出力ファイル名は和名のみで決まるため、spritePathの有無に
 依存しない)。記事に掲載のないアイテムは対象外とし、generate_item_icons.py が生成した
@@ -56,8 +58,15 @@ ARTICLE_URL = "https://gamewith.jp/pokemon-champions/546487"
 # 記事HTML中の `<img data-original='.../i_item123.png' ... alt='アイテム名'>` を拾う。
 # gamewithはlazyload用placeholder imgと実urlを持つ非表示imgの2つを毎回セットで
 # 出力するため、同じURLが2回ヒットするが呼び出し側でdictに詰めて重複除去する。
+#
+# 画像ファイル名は `i_item123.png` (通常アイテム)だけでなく `i_item_m494.png`
+# (メガストーン、`_m`+数字)のパターンも存在する。以前は `i_item\d+\.png` のみに
+# マッチする正規表現だったため、記事に掲載されているにもかかわらずメガストーン
+# 74件が正規表現に一致せず高画質化対象から漏れていた(2026-08-14 ユーザー報告
+# 「ルカリオナイトなど低画質画像が残っている」で判明。ルカリオナイトの元画像は
+# PokeAPIの30x30原画のままだった)。`[a-zA-Z0-9_]*` に広げてどちらの命名も拾う。
 ITEM_IMG_RE = re.compile(
-    r"data-original='(https://img\.gamewith\.jp/article_tools/pokemon-champions/gacha/i_item\d+\.png)'"
+    r"data-original='(https://img\.gamewith\.jp/article_tools/pokemon-champions/gacha/i_item[a-zA-Z0-9_]*\.png)'"
     r"[^>]*alt='([^']*)'"
 )
 
