@@ -4,8 +4,9 @@ import {
 	loadMoveTypeMap,
 	officialArtworkUrl,
 } from "./pokemon-master-data";
-import { itemIconUrl, typeIconUrl } from "./sprite-urls";
+import { itemIconUrl } from "./sprite-urls";
 import { NATURE_STAT_MODIFIERS, STAT_KEYS, calcHpStat, calcOtherStat } from "./stats";
+import { DEFAULT_TYPE_COLOR, TYPE_COLORS } from "./type-colors";
 
 // このカードは /box と team編成タブで共有している。片方だけ直すと表示が食い違うので、
 // カード内部のDOM・ツールチップ・付属ボタンを変更するときは必ずこのファイルで行う。
@@ -68,9 +69,14 @@ export function ownedPokemonDisplayName(pokemon: OwnedPokemonDisplayNameSource):
 // UI刷新: カード内の公式絵。取得できない場合は画像を未設定のままにする。
 // 初期display:noneのままloading="lazy"を付けると、画面外扱いでfetch自体が行われず
 // onloadが永久に発火しない(過去に踏んだ不具合、box/[id].astroのapplySprite参照)。
-async function applyCardArtwork(imgEl: HTMLImageElement, name: string): Promise<void> {
+async function applyCardArtwork(
+	artwork: HTMLElement,
+	imgEl: HTMLImageElement,
+	name: string,
+): Promise<void> {
 	const imageId = name ? (await imageIdMapPromise).get(name) : undefined;
 	if (imageId == null) return;
+	artwork.hidden = false;
 	imgEl.src = officialArtworkUrl(imageId);
 }
 
@@ -199,11 +205,12 @@ export function renderBoxPokemonCard<T extends HTMLElement>(
 
 	const artwork = document.createElement("div");
 	artwork.className = "card-artwork";
+	artwork.hidden = true;
 	const artworkImg = document.createElement("img");
 	artworkImg.alt = "";
 	artwork.appendChild(artworkImg);
 	card.appendChild(artwork);
-	void applyCardArtwork(artworkImg, pokemon.species_name ?? "");
+	void applyCardArtwork(artwork, artworkImg, pokemon.species_name ?? "");
 
 	// 持ち物名は描画せず、画像だけを公式絵の右下に重ねる。
 	const itemBadge = document.createElement("span");
@@ -228,23 +235,31 @@ export function renderBoxPokemonCard<T extends HTMLElement>(
 	nameRow.appendChild(nameEl);
 	body.appendChild(nameRow);
 
+	const nature = pokemon.nature?.trim() ?? "";
+	const evLabels = STAT_LABELS.filter((_, index) => (pokemon.evs[index] ?? 0) >= 7).join("");
+	const natureEvsText = [nature, evLabels].filter(Boolean).join(" ");
+	if (natureEvsText) {
+		const natureEvsEl = document.createElement("p");
+		natureEvsEl.className = "card-nature-evs";
+		natureEvsEl.textContent = natureEvsText;
+		body.appendChild(natureEvsEl);
+	}
+
 	// 下段は技の縦リスト。空文字の技スロットは描画せず、不明タイプのアイコンはhiddenのままにする。
 	const movesGrid = document.createElement("div");
 	movesGrid.className = "card-moves-grid";
 	for (const moveName of pokemon.move_names.filter((move) => move && move.trim() !== "")) {
 		const moveEl = document.createElement("span");
 		moveEl.className = "card-move-chip";
-		const moveTypeIcon = document.createElement("img");
-		moveTypeIcon.className = "card-move-type-icon";
-		moveTypeIcon.alt = "";
-		moveTypeIcon.hidden = true;
-		moveEl.appendChild(moveTypeIcon);
+		const moveTypeBar = document.createElement("span");
+		moveTypeBar.className = "card-move-type-bar";
+		moveTypeBar.hidden = true;
+		moveEl.appendChild(moveTypeBar);
 		void moveTypeMapPromise.then((moveTypeMap) => {
 			const moveType = moveTypeMap.get(moveName);
-			const moveTypeIconSrc = moveType ? typeIconUrl(moveType) : null;
-			if (!moveTypeIconSrc) return;
-			moveTypeIcon.src = moveTypeIconSrc;
-			moveTypeIcon.hidden = false;
+			if (!moveType) return;
+			moveTypeBar.style.backgroundColor = TYPE_COLORS[moveType] ?? DEFAULT_TYPE_COLOR;
+			moveTypeBar.hidden = false;
 		});
 		const moveTextEl = document.createElement("span");
 		moveTextEl.className = "card-move-chip-text";

@@ -45,12 +45,19 @@
   --box-card-name-text-align: left;
   --box-card-name-line-height: var(--line-height-tight);
 
+  /* Nature and EV summary */
+  --box-card-nature-evs-font-size: var(--font-size-sm2);
+  --box-card-nature-evs-font-weight: 300;
+  --box-card-nature-evs-line-height: var(--line-height-tight);
+  --box-card-nature-evs-color: var(--color-text-muted);
+
   /* Move list */
   --box-card-move-gap: 0.05rem;
   --box-card-move-font-size: var(--font-size-sm3);
   --box-card-move-font-weight: 300;
 
   --box-card-move-icon-size: var(--font-size-sm3);
+  --box-card-move-type-bar-width: 3px;
   --box-card-move-icon-gap: 3px;
   --box-card-move-row-padding: 0.04rem 0;
   --box-card-content-justify-content: flex-start;
@@ -321,6 +328,7 @@
   justify-content: var(--box-card-name-row-justify-content);
   gap: var(--box-card-gap);
   width: 100%;
+  min-width: 0;
   position: relative;
   z-index: 1;
 }
@@ -333,6 +341,20 @@
   font-weight: var(--box-card-name-font-weight);
   line-height: var(--box-card-name-line-height);
   text-align: var(--box-card-name-text-align);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.box-grid .box-card .card-nature-evs {
+  margin: 0;
+  min-width: 0;
+  position: relative;
+  z-index: 1;
+  color: var(--box-card-nature-evs-color);
+  font-size: var(--box-card-nature-evs-font-size);
+  font-weight: var(--box-card-nature-evs-font-weight);
+  line-height: var(--box-card-nature-evs-line-height);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -379,13 +401,13 @@
   color: var(--box-card-move-color);
   padding: var(--box-card-move-row-padding);
 }
-.box-grid .box-card .card-move-type-icon {
-  flex: 0 0 var(--box-card-move-icon-size);
-  width: var(--box-card-move-icon-size);
+.box-grid .box-card .card-move-type-bar {
+  flex: 0 0 var(--box-card-move-type-bar-width);
+  width: var(--box-card-move-type-bar-width);
   height: var(--box-card-move-icon-size);
-  object-fit: contain;
+  border-radius: var(--radius-sm);
 }
-.box-grid .box-card .card-move-type-icon[hidden] {
+.box-grid .box-card .card-move-type-bar[hidden] {
   display: none;
 }
 .box-grid .box-card .card-move-chip-text {
