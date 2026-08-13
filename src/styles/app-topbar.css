@@ -1,0 +1,84 @@
+/* 全ページ共通トップバー(AppLayout.astro)内部の見た目(余白・タイポグラフィ)。位置・高さ(sticky/z-index/--topbar-height)は global.css の .app-topbar 側で定義する。 */
+
+	/* 位置・高さ(sticky/z-index/--topbar-height)は global.css の .app-topbar 側で定義する
+	   (左右の帯が参照する --topbar-height を :root で公開する必要があるため)。
+	   ここではトップバー内部の見た目(余白・タイポグラフィ)のみを扱う
+	   (AppSidebar.astro と同じ役割分担)。 */
+	.app-topbar-row-left {
+		display: flex;
+		align-items: center;
+		gap: var(--space-3);
+	}
+
+	.app-topbar-brand {
+		font-weight: 800;
+		font-size: var(--font-size-lg1);
+		white-space: nowrap;
+	}
+
+	.app-topbar-back {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.3em;
+		font-size: var(--font-size-sm1);
+		font-weight: 500;
+		text-decoration: none;
+		color: var(--color-text-muted);
+		white-space: nowrap;
+		flex-shrink: 0;
+	}
+
+	.app-topbar-back-icon {
+		flex-shrink: 0;
+		transition: transform 0.15s ease;
+	}
+
+	.app-topbar-back:hover {
+		color: var(--color-primary);
+	}
+
+	.app-topbar-back:hover .app-topbar-back-icon {
+		transform: translateX(-2px);
+	}
+
+	.app-topbar-title {
+		font-weight: 800;
+		font-size: var(--font-size-lg1);
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	.app-topbar-status {
+		color: var(--color-text-muted);
+		font-size: var(--font-size-sm2);
+		white-space: nowrap;
+	}
+
+	/* 独立コントロール同士の間隔を、8pxと .second-bar--toolbar の24pxの中間にして
+	   共通トップバー内で詰まりすぎないようにする。 */
+	.app-topbar-actions {
+		display: flex;
+		align-items: center;
+		gap: var(--space-4);
+		flex-wrap: wrap;
+	}
+
+	.app-topbar-account {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+		font-size: var(--font-size-sm2);
+		color: var(--color-text-muted);
+		white-space: nowrap;
+		/* 狭い幅でページ固有操作と共存しても横スクロールしないよう縮小を許可する。 */
+		min-width: 0;
+	}
+
+	@media (max-width: 899px) {
+		/* ページ固有操作を折り返し、狭い幅での横スクロールを防ぐ。 */
+		.app-topbar-row-main {
+			flex-wrap: wrap;
+			row-gap: var(--space-2);
+		}
+	}
