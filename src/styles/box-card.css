@@ -64,7 +64,7 @@
   --box-card-content-align-items: flex-end;
   --box-card-move-line-height: var(--line-height-tight);
   --box-card-move-color: var(--color-text);
-  --box-card-move-type-bar-empty-color: #fff;
+  --box-card-move-type-bar-empty-color: #000;
   --box-card-move-min-height: calc(
     4 * (1.2 * var(--box-card-move-font-size) + 0.08rem) + 3 *
       var(--box-card-move-gap)
@@ -396,6 +396,7 @@
   align-items: center;
   gap: var(--box-card-move-icon-gap);
   min-width: 0;
+  min-height: calc(1.2 * var(--box-card-move-font-size) + 0.08rem);
   font-size: var(--box-card-move-font-size);
   line-height: var(--box-card-move-line-height);
   font-weight: var(--box-card-move-font-weight);
@@ -420,4 +421,6 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  mask-image: linear-gradient(to right, black 0%, black 55%, rgba(0, 0, 0, 0.55) 85%, rgba(0, 0, 0, 0.25) 100%);
+  -webkit-mask-image: linear-gradient(to right, black 0%, black 55%, rgba(0, 0, 0, 0.55) 85%, rgba(0, 0, 0, 0.25) 100%);
 }
