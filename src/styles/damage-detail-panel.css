@@ -1,0 +1,440 @@
+/* box/[id] 編集画面の右サイド「詳細設定サイドバー」(RightPanel.astro)。中身はsrc/lib/box-id/right-panel.tsが動的に書き換える。 */
+	/* 1920px幅を基準に3カラム(左=編集フォーム/中央=ダメージ計算カード/右=詳細設定)を
+	   組めるだけの余地がある閾値として1600pxを採用した(実測: 編集フォーム最小幅約480px+
+	   ダメージ計算カード1枚実測約620px+サイドバー320px+gap×2+サイドナビ256px+
+	   ページ余白 ≒ 1600px弱)。1600px未満(2カラム/縦積みいずれの場合も)ではサイドバーを
+	   画面右端からのオーバーレイ(スライドイン)にする。
+	   選択トリガーは「技列の箱のクリック(フォーム要素の外側)→その技だけの設定」の1種類のみ。
+	   カード内の入力欄クリックで意図せず選択が走らないようにしている
+	   (<script>のselectColumn/renderRow末尾のroot.addEventListener参照)。 */
+	.edit-layout-detail { display: contents; }
+	/* UI品質改善(帯構成への刷新): 右端に接する罫線(border-left)は.panel-right修飾子
+	   (global.css)と役割が完全に一致するため、マークアップ側に panel-right クラスを
+	   追加してそちらに委ねる(下のmarkup、#damage-detail-panel参照)。position:fixed/
+	   width/transformによるスライドイン・box-shadowは.panel基底が持たない固有の
+	   振る舞いのため、無理に.panel基底へ寄せずこのスコープドスタイルに残す。 */
+	.damage-detail-panel {
+		position: fixed;
+		top: 0;
+		right: 0;
+		bottom: 0;
+		width: min(400px, 92vw);
+		z-index: 60;
+		display: flex;
+		flex-direction: column;
+		background: var(--color-surface);
+		box-shadow: var(--shadow-lg);
+		transform: translateX(100%);
+		transition: transform 0.2s ease;
+	}
+	.damage-detail-panel.is-open { transform: translateX(0); }
+	.damage-detail-backdrop {
+		position: fixed;
+		inset: 0;
+		z-index: 55;
+		background: var(--color-overlay);
+	}
+	.damage-detail-backdrop[hidden] { display: none; }
+	.damage-detail-panel-header {
+		display: flex;
+		align-items: center;
+		/* 今回の要件: 左にタイトル、右に閉じるボタンを置く共通帯にする。 */
+		justify-content: space-between;
+		gap: var(--space-2);
+		/* 3モード共通で密度を上げるため、横paddingは保ち縦paddingだけ一段縮める。 */
+		padding: var(--space-2) var(--space-4);
+		background: var(--color-surface-alt);
+		/* 今回の指示で3モード共通のタイトル直下の区切り線を復活させる。 */
+		border-bottom: 1px solid var(--color-border);
+		flex-shrink: 0;
+	}
+	.damage-detail-panel-title { min-width: 0; flex: 1 1 auto; font-weight: 700; }
+	.damage-detail-panel-close { font-size: var(--font-size-lg1); padding: 0.2em 0.55em; }
+	/* #damage-detail-panel-body自体をflex column化し、中身(JS生成の
+	   .damage-detail-panel-body-inner、is:global側で定義)にmargin-block:autoを持たせる
+	   ことで、中身がこの箱より短い間は上下中央に寄り、長くなればautoが0に収束して
+	   上端起点のoverflow-y:autoスクロールに戻る(⚠️ justify-content:centerをこちら側に
+	   付ける方法は不採用: 中身がこの箱より長くなったとき上端がoverflowで見切れる
+	   既知の不具合があるため)。
+	   #damage-detail-panel-body自体は静的マークアップ(下記<div id="damage-detail-panel-body">)
+	   なのでscoped<style>がそのまま効くが、中のinnerラッパーはJSのdocument.createElement()で
+	   生成するため、そちらのスタイルはis:global側に置く(pitfalls.mdの既知の罠)。 */
+	.damage-detail-panel-body {
+		flex: 1 1 auto;
+		display: flex;
+		flex-direction: column;
+		overflow-y: auto;
+		padding: 0.9rem var(--space-4) 1.4rem;
+	}
+	/* .damage-detail-panel-emptyはis:global側(#damage-detail-panel-body
+	   .damage-detail-panel-empty)で定義する。理由: このpは静的マークアップ
+	   (JS初期化前のフォールバック)とJS生成(renderDetailPanelEmpty)の両方から使われるが、
+	   後者はscoped<style>が効かない(pitfalls.md)。同じ1つの定義で両方に効かせるため、
+	   静的/動的どちらの経路でも確実に効くis:global側に統一する。 */
+	/* The editor uses this inline detail panel at every viewport width. */
+	@media (min-width: 0) {
+		.edit-layout-detail, .damage-detail-backdrop { display: none; }
+		.damage-detail-panel.is-mobile-inline {
+			position: static;
+			inset: auto;
+			width: auto;
+			max-width: 100%;
+			height: auto;
+			max-height: none;
+			transform: none;
+			box-shadow: none;
+			z-index: auto;
+			border: 1px solid var(--color-border);
+			border-radius: var(--radius-md);
+		}
+		.damage-detail-panel.is-mobile-inline .damage-detail-panel-body {
+			overflow-y: visible;
+			padding: var(--space-3);
+		}
+		/* サジェスト一覧はカード列に常設される(閉じる対象の選択が無い)ので閉じるボタンを出さない。 */
+		.damage-detail-panel.is-mobile-suggest .damage-detail-panel-close { display: none; }
+	}
+
+	/* 動的生成要素に限定し、耐久最大化・耐久調整の本文レイアウトには影響させない。 */
+	.damage-detail-panel .damage-detail-selection-heading {
+		gap: var(--space-3);
+	}
+	.damage-detail-panel .damage-detail-selection-move-type-icon {
+		--move-type-icon-size: calc(20px * 1.1);
+		width: var(--move-type-icon-size);
+		height: var(--move-type-icon-size);
+		border-radius: 50%;
+		object-fit: contain;
+		flex-shrink: 0;
+	}
+	.damage-detail-panel .damage-detail-selection-move-type-icon[hidden] { display: none; }
+	/* var(--font-size-sm3)は両側の見出しと同じ値。行クラスも含めて詳細度を上げ、読み込み順に依存せず適用する。 */
+	#damage-detail-panel-body .damage-detail-field-row .damage-detail-field-row-label {
+		font-size: var(--font-size-sm3);
+		font-weight: 600;
+		color: var(--color-text);
+	}
+
+	/* 右パネルの3用途(A:技カード選択時の詳細設定/B:耐久調整の候補一覧/C:耐久指数の候補一覧)の
+	   うちB・Cは「候補ボタンの縦リスト、クリックで左パネルに適用」という同一の
+	   インタラクションのため、src/lib/box-id/right-panel.ts の renderCandidateList()
+	   1つで両方を描画する(クラス名は機能非依存の candidate-list-* に統一しており、Cが固有の
+	   「指数」表示を必要とする場合も、このクラス構成のitem/segmentへ渡すデータを
+	   変えるだけで済み、CSSの2系統目を複製する必要はない)。
+	   document.createElement()による動的生成のため、Astroのscoped<style>は効かない
+	   (pitfalls.md「JSで生成した要素に効かない」)。#damage-detail-panel-body接頭辞の
+	   グローバルセレクタとして、既存の詳細設定UI(このファイル上部の
+	   #damage-detail-panel-body .damage-detail-*、DamageCalcSection.astro側)と同じ流儀で
+	   定義する。新しい色・角丸トークンは作らず、既存のCSS変数のみを使う。 */
+	#damage-detail-panel-body .candidate-list-heading {
+		margin: 0 0 var(--space-1);
+		font-weight: 700;
+	}
+	#damage-detail-panel-body .candidate-list-context,
+	#damage-detail-panel-body .candidate-list-note {
+		margin: 0 0 var(--space-3);
+		color: var(--color-text-muted);
+		font-size: var(--font-size-sm3);
+	}
+	#damage-detail-panel-body .candidate-list-empty-message {
+		margin: 0;
+		color: var(--color-text-muted);
+	}
+	#damage-detail-panel-body .candidate-list-truncated-note {
+		margin: 0 0 var(--space-3);
+		padding: var(--space-2) var(--space-3);
+		border-radius: var(--radius-sm);
+		background: var(--color-risky-soft);
+		color: var(--color-risky-strong);
+		font-size: var(--font-size-sm2);
+	}
+	#damage-detail-panel-body .candidate-list {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-2);
+	}
+	#damage-detail-panel-body .candidate-list-item {
+		width: 100%;
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 0.2em;
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-md);
+		padding: var(--space-2) var(--space-3);
+		background: var(--color-surface-alt);
+		text-align: left;
+		cursor: pointer;
+		font-size: var(--font-size-sm2);
+	}
+	#damage-detail-panel-body .candidate-list-item:hover,
+	#damage-detail-panel-body .candidate-list-item:focus-visible {
+		border-color: var(--color-primary);
+	}
+	/* 支援技術向けの状態は動的要素のaria-currentで示す。 */
+	#damage-detail-panel-body .candidate-list-item.is-applied {
+		border-color: var(--color-primary);
+		border-width: 2px;
+		padding: calc(var(--space-2) - 1px) calc(var(--space-3) - 1px);
+		background: var(--color-primary-soft);
+	}
+	#damage-detail-panel-body .candidate-list-item-segment {
+		display: flex;
+		align-items: baseline;
+		gap: 0.4em;
+	}
+	#damage-detail-panel-body .candidate-list-item-segment-label {
+		color: var(--color-text-muted);
+		font-size: var(--font-size-sm3);
+		flex-shrink: 0;
+	}
+	#damage-detail-panel-body .candidate-list-item-segment.is-emphasis .candidate-list-item-segment-value {
+		font-weight: 700;
+	}
+	#damage-detail-panel-body .candidate-list-item.has-warn-flag {
+		border-color: var(--color-risky);
+	}
+	#damage-detail-panel-body .candidate-list-item-flag {
+		font-weight: 700;
+	}
+	#damage-detail-panel-body .candidate-list-item-flag.is-warn {
+		color: var(--color-risky-strong);
+	}
+	#damage-detail-panel-body .candidate-list-item-flag.is-info {
+		color: var(--color-text-muted);
+		font-weight: 400;
+	}
+
+	/* 両モードとも「<ラベル>実数値(努力値)」形式(例: H180(27) B131(0) D105(0))をH/B/Dで
+	   1行に収めた統一カードにする。外枠は既存の.candidate-list-item(ボーダー・背景・
+	   is-applied等)をそのまま流用し(新色は作らない)、中身だけをこのカード専用の構造
+	   (right-panel.tsのbuildStatCardEl参照)に足す。 */
+	#damage-detail-panel-body .candidate-list-item-statline {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0 var(--space-3);
+		/* 候補の選択状態は背景と枠だけで示し、数値を見出しと競合させないため一段細くする。 */
+		font-weight: 400;
+	}
+	#damage-detail-panel-body .candidate-list-item-stat {
+		white-space: nowrap;
+	}
+	#damage-detail-panel-body .candidate-list-item-stat-ev {
+		color: var(--color-text-muted);
+		font-weight: 600;
+	}
+	/* 今回の要件: 耐久最大化の元カードはbutton化する。クリック処理の無い他モードの
+	   divカードだけは従来どおり非操作表示にする。 */
+	#damage-detail-panel-body div.candidate-list-item.is-current {
+		cursor: default;
+	}
+	#damage-detail-panel-body div.candidate-list-item.is-current:hover,
+	#damage-detail-panel-body div.candidate-list-item.is-current:focus-visible {
+		border-color: var(--color-border);
+	}
+	#damage-detail-panel-body .candidate-list-item-current-badge,
+	#damage-detail-panel-body .candidate-list-item-badge {
+		color: var(--color-text-muted);
+		font-size: var(--font-size-sm3);
+		font-weight: 600;
+	}
+	/* 依頼6: 指数名の見出し(サブタイトルフォント)。色・太さ・サイズは既存の.field-labelを
+	   そのまま流用し(right-panel.ts側でclass="field-label candidate-list-group-title"を
+	   付与)、このページ固有の間隔・ホバーヘルプ(title属性、依頼6の計算式)だけをここに足す。 */
+	#damage-detail-panel-body .candidate-list-group-title {
+		margin: var(--space-3) 0 0;
+		cursor: help;
+	}
+	#damage-detail-panel-body .candidate-list-group-title:first-child {
+		margin-top: 0;
+	}
+	/* 耐久調整の結果見出しとフィルタを同段に置き、狭幅では自然に折り返す。 */
+	#damage-detail-panel-body .candidate-list-result-heading-row {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		justify-content: space-between;
+		gap: var(--space-2);
+		margin-top: var(--space-3);
+	}
+	#damage-detail-panel-body .candidate-list-result-heading-row .candidate-list-group-title,
+	#damage-detail-panel-body .candidate-list-result-heading-row .candidate-list-filter-row { margin: 0; }
+	/* 依頼7: 「残り努力値以下のみ表示」トグル。トグル自体の見た目
+	   (.toggle-switch/.toggle-switch-track/.toggle-switch-thumb)はLeftPanel.astroの
+	   is:global側で定義済みの規格をそのまま使う(新規CSSはこの行の配置のみ)。 */
+	#damage-detail-panel-body .candidate-list-filter-row {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+		margin: 0 0 var(--space-3);
+		cursor: pointer;
+		font-size: var(--font-size-sm2);
+	}
+
+	/* --- 右パネルのニュートラル状態に「そのポケモンの型でよく行われているダメージ計算」を
+	   並べるサジェスト一覧。src/pages/team/[id].astro の .team-suggest-* 一式
+	   (順位 / 本文 / 操作 の3列グリッド、48pxスプライト、xsサイズのmuted補足行)を
+	   そのまま写している。値・トークンは新設せず、あちらで使われているものだけを使う。
+	   クラス名を .damage-suggest-* に分けているのは、team/[id].astro側のCSSがそのページの
+	   is:globalに閉じており共有できないため(共通化するならglobal.cssへの昇格が要る)。
+	   document.createElement()による動的生成のためscoped<style>は効かない
+	   (pitfalls.md「JSで生成した要素に効かない」)。 --- */
+	#damage-detail-panel-body .damage-suggest-list {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-2);
+	}
+	/* カード全体が1つのボタン(操作が「追加」の1種類しかないため。team側は
+	   「育成する/チームに追加」の2択があるので右端に別ボタンを置いている)。 */
+	#damage-detail-panel-body .damage-suggest-card-button {
+		width: 100%;
+		display: grid;
+		/* 順位 / 本文 / 追加ラベル の3列。本文列は minmax(0, 1fr) にしないと長い技名・
+		   持ち物名がグリッドを押し広げて横スクロールを起こす(team-suggest-cardと同じ)。 */
+		grid-template-columns: auto minmax(0, 1fr) auto;
+		align-items: center;
+		gap: var(--space-2);
+		padding: var(--space-2);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-sm);
+		background: var(--color-surface);
+		text-align: left;
+		cursor: pointer;
+		color: inherit;
+		font: inherit;
+	}
+	#damage-detail-panel-body .damage-suggest-card-button:hover,
+	#damage-detail-panel-body .damage-suggest-card-button:focus-visible {
+		border-color: var(--color-primary);
+	}
+	#damage-detail-panel-body .damage-suggest-rank {
+		font-size: calc(var(--font-size-sm3) * 1.5);
+		font-weight: 700;
+		color: var(--color-text-muted);
+		min-width: 1.2em;
+		text-align: right;
+	}
+	#damage-detail-panel-body .damage-suggest-body {
+		min-width: 0;
+		display: block;
+	}
+	/* 攻守チップ・スプライト・相手の種族名・相手の持ち物を1段目に置く。持ち物まで入ると
+	   右パネルの本文列(実測200px前後)には収まらないため、折り返しを許す(team側の
+	   .team-suggest-buildと同じ判断: 切ると提案の中身そのものが読めなくなる)。 */
+	#damage-detail-panel-body .damage-suggest-name-row {
+		display: flex;
+		align-items: center;
+		flex-wrap: wrap;
+		gap: 0.15em var(--space-2);
+		min-width: 0;
+	}
+	/* 攻守は中央パネルの攻守トグル(.damage-row-direction-option)と同じ語彙・同じ意味の
+	   チップ。配色もそちらに揃え、攻撃=危険色系/防御=primary系の既存トークンだけを使う。 */
+	#damage-detail-panel-body .damage-suggest-direction {
+		flex: none;
+		padding: 0 0.35em;
+		border-radius: var(--radius-sm);
+		font-size: var(--font-size-sm3);
+		font-weight: 600;
+	}
+	#damage-detail-panel-body .damage-suggest-direction[data-direction="attack"] {
+		background: var(--color-danger-soft);
+		color: var(--color-danger-strong);
+	}
+	#damage-detail-panel-body .damage-suggest-direction[data-direction="defense"] {
+		background: var(--color-primary-soft);
+		color: var(--color-primary);
+	}
+	#damage-detail-panel-body .damage-suggest-sprite {
+		width: 48px;
+		height: 48px;
+		flex: none;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+	#damage-detail-panel-body .damage-suggest-sprite-img {
+		max-width: 100%;
+		max-height: 100%;
+	}
+	#damage-detail-panel-body .damage-suggest-sprite-fallback {
+		display: none;
+		width: 35px;
+		height: 35px;
+		border-radius: 50%;
+		background: var(--color-surface-alt);
+		color: var(--color-text-muted);
+		font-size: var(--font-size-sm3);
+		align-items: center;
+		justify-content: center;
+	}
+	#damage-detail-panel-body .damage-suggest-name {
+		font-size: var(--font-size-sm2);
+		font-weight: 600;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		min-width: 0;
+	}
+	/* 技名(+その計算で想定されている相手の持ち物)。右パネルの本文列は実測で200px前後
+	   しかないため、折り返して2行になることを許す(切ると提案の中身が読めなくなる)。 */
+	#damage-detail-panel-body .damage-suggest-move-row {
+		display: flex;
+		align-items: center;
+		flex-wrap: wrap;
+		gap: 0.15em 0.25em;
+		line-height: var(--line-height-snug);
+		margin-top: 0.15em;
+	}
+	#damage-detail-panel-body .damage-suggest-move {
+		font-size: var(--font-size-sm2);
+		font-weight: 600;
+		min-width: 0;
+	}
+	/* アイコンと名前は不可分の1塊にする(バラで並べると折り返しで分断される)。 */
+	#damage-detail-panel-body .damage-suggest-item {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.25em;
+		min-width: 0;
+	}
+	#damage-detail-panel-body .damage-suggest-item-icon {
+		width: 14px;
+		height: 14px;
+		flex: none;
+	}
+	#damage-detail-panel-body .damage-suggest-item-name {
+		font-weight: 600;
+		font-size: var(--font-size-sm3);
+		color: var(--color-text-muted);
+	}
+	#damage-detail-panel-body .damage-suggest-reason {
+		display: block;
+		font-size: var(--font-size-sm3);
+		color: var(--color-text-muted);
+		line-height: var(--line-height-snug);
+		margin-top: 0.1em;
+	}
+	/* 3列目。実体はカード全体のボタンなので、これ自体は押せる見た目のラベルにとどめる
+	   (team-suggest-actionと同じ寸法・同じトークン)。 */
+	#damage-detail-panel-body .damage-suggest-action {
+		align-self: stretch;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 3.4em;
+		font-size: var(--font-size-sm3);
+		line-height: var(--line-height-tight);
+		padding: var(--space-1);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-sm);
+		background: var(--color-surface-alt);
+		color: var(--color-text);
+	}
+
