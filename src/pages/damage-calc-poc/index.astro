@@ -13,40 +13,9 @@
 // (SSR側・middleware.ts・worker.ts 等でimportすると `window` が無い環境で
 // 実行され失敗する)。
 import AppLayout from '../../layouts/AppLayout.astro';
+import '../../styles/damage-calc-poc-page.css';
 ---
 <AppLayout title="計算エンジン検証 (PoC)" current="dev">
-	<style>
-			label { display: inline-block; min-width: 8em; }
-			.row { margin: 0.4rem 0; }
-			input[type="text"], input[type="number"] {
-				padding: 0.3em 0.5em;
-				min-width: 12em;
-			}
-			button {
-				padding: 0.5em 1.2em;
-				font-size: 1rem;
-				cursor: pointer;
-			}
-			button:disabled { cursor: not-allowed; opacity: 0.6; }
-			#engine-status { font-weight: bold; }
-			#engine-status[data-state="loading"] { color: var(--color-warning); }
-			#engine-status[data-state="ready"] { color: var(--color-success); }
-			#engine-status[data-state="error"] { color: var(--color-danger); }
-			.spinner {
-				display: inline-block; width: 1em; height: 1em; border: 2px solid var(--color-border);
-				border-top-color: var(--color-warning); border-radius: 50%; animation: spin 0.8s linear infinite;
-				margin-right: 0.5em; vertical-align: -0.15em;
-			}
-			@keyframes spin { to { transform: rotate(360deg); } }
-			pre {
-				background: var(--color-surface-alt);
-				padding: 1rem;
-				overflow-x: auto;
-				white-space: pre-wrap;
-				word-break: break-all;
-			}
-			#calc-log { font-size: 0.85em; color: var(--color-text-muted); }
-		</style>
 	<div class="page">
 		<section class="panel">
 			<div class="panel-content">
