@@ -156,13 +156,37 @@ sonnetレビュアー1体(データモデル/API・情報設計/導線・プレ�
 - なし。
 
 ### スコープ外に落としたもの(将来やるなら何から)
-- 「バトルデータ」タブの実データ表示(30.png: ランキング一覧・バトルデータカード・シーズン切替・検索・アイコンレール)。
+- ~~「バトルデータ」タブの実データ表示(30.png: ランキング一覧・バトルデータカード・シーズン切替・検索・アイコンレール)。~~ → 2026-08-13追加フェーズで実装済み(下記参照)。
 - 「上位構築」タブの実データ表示・既存`/ranked-teams`との統合方法の決定。
 - iOS実機でのエッジスワイプ競合の実機検証(上記「P5で追加確認した項目」参照)。
 
+## 追加フェーズ: 「バトルデータ」タブの実装(2026-08-13)
+
+ユーザー指示(2026-08-13): `docs/ui/mobile/30.png` に従い、「データ」>「バトルデータ」タブ全体を作り込む。バトルデータカード本体(`docs/ui/mobile/7.png`)は `/box/data` の既存実装とコードの実体を完全に共通化すること、という2点が明示された。
+
+### 実装内容
+- **カード共通化**: `/box/data` に個体ごとインラインで実装されていたバトルデータカード(特性/性格/アイテム/わざ/努力値/同時採用ポケモンの2x3グリッド)を、以下3ファイルへ切り出した。`/box/data`・`/data`のバトルデータタブの両方がこれを呼び出すため、マークアップは完全に同一。
+  - `src/lib/battle-data-card.ts`: 純粋関数(`hasSingleBattleData`/`formatRanked`/`formatEvRanked`)。`tests/battle-data-card.test.ts`でユニットテスト済み。
+  - `src/components/data/BattleDataCard.astro`: `.trend-detail-card`のマークアップ本体。
+  - `src/styles/battle-data-card.css`: `.trend-detail-card`/`.trend-detail-cell`のスタイル(旧`data-page.css`から移設)。
+- **`/data`バトルデータタブ**(`src/pages/data/index.astro`): `data/opgg-champions-usage/seasons/<dir>/index.json`の`pokemon`配列順(=OP.GGランキングページの掲載順=使用率順位、`scripts/opgg/fetch-champions-usage.mjs`の`slugs()`参照)で、シングルバトルデータを持つポケモンを「順位+アイコン+種族名」のヘッダー+`BattleDataCard`として縦に並べた。右端に全件分のポケモンアイコンレール(`position:sticky`、クリックで該当カードへスムーズスクロール、`<a href="#id">`によるJS無効時のフォールバック付き)、下部固定に検索欄(`kanaIncludes`でかな表記ゆれを吸収した部分一致フィルタ、レール側も連動して隠す)とシーズン切替`<select>`を実装。
+- 固定表示の検索/シーズンバー(`.battle-data-controls`)は`position:fixed`のため、タブ切替で`inert`が付いた非アクティブパネル配下でも通常は消えない。`.data-hub-panel[inert] .battle-data-controls{display:none}`で明示的に隠した(実装中に気づいた点、下記「見つかった論点」参照)。
+
+### 見つかった論点(このページ実装中に判明、他のfixedバー付きタブUIを作る際も注意)
+- `position:fixed`要素は`inert`属性だけでは視覚的に隠れない(`inert`はフォーカス・操作を無効化するだけで、`display`は変えない)。横スクロールタブ内に`fixed`な操作バーを置く場合、非アクティブパネルへの`[inert] 子孫セレクタ`で明示的に`display:none`にする必要がある。
+
+### 検証結果(2026-08-13、Coordinator実測)
+- `npm test`: 588件 pass(実装前577件から+11件、`tests/battle-data-card.test.ts`)。
+- `npm run build`: 成功。
+- Playwright実測(`/data`、390×844): 検索フィルタ(不一致で0件→一致で1件表示に切替)、レールクリックでのスムーズスクロール、タブ切替時の`.battle-data-controls`表示/非表示切替、ページ全体の横スクロール無し(`scrollWidth - innerWidth = 0`)を確認、コンソールエラー無し。
+- スクリーンショット: `/data`のライト/ダーク両方で30.png/7.pngのレイアウト(順位+アイコン+種族名ヘッダー、2x3グリッドカード、右端アイコンレール、下部固定の検索/シーズンバー)を確認。
+- `/box/data`: 直接のログイン検証は未実施(認証セッションの用意が必要なため)だが、変更はマークアップを`BattleDataCard`呼び出しへ置き換えるのみでロジック・条件分岐は変更していないこと、`npm run build`の型チェックが通ることで確認とした。
+
 ## 参照
-- `docs/ui/mobile/29.png` / `30.png` / `31.png`
+- `docs/ui/mobile/29.png` / `30.png` / `31.png` / `7.png`(バトルデータカード)
 - `docs/plan/00-foundation.md`(レイアウト原則)
 - `.claude/skills/new-page/references/stack.md`
 - `src/components/box-id/MobileTrainingBar.astro`, `src/lib/box-id/mobile-edit-tabs.ts`(タブ切替の手本)
 - `src/styles/second-bar.css`
+- `src/lib/battle-data-card.ts`, `src/components/data/BattleDataCard.astro`, `src/styles/battle-data-card.css`(バトルデータカードの共通実装)
+- `src/pages/box/data.astro`(バトルデータカードのもう一方の利用元)

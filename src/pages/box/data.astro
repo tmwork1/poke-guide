@@ -3,10 +3,13 @@ export const prerender = false;
 
 import AppLayout from '../../layouts/AppLayout.astro';
 import MobileTrainingBar from '../../components/box-id/MobileTrainingBar.astro';
+import BattleDataCard from '../../components/data/BattleDataCard.astro';
 import { getOwnedPokemon } from '../../lib/owned-pokemon';
 import { getSupabaseAdminClient } from '../../lib/supabase';
+import { hasSingleBattleData } from '../../lib/battle-data-card';
 import seasonManifest from '../../../data/opgg-champions-usage/seasons.json';
 import '../../styles/data-page.css';
+import '../../styles/battle-data-card.css';
 
 const user = Astro.locals.user;
 const selectedId = Astro.url.searchParams.get('pokemon');
@@ -26,15 +29,6 @@ const manifestSeasons = [...(seasonManifest.seasons ?? [])].sort((a, b) => {
   if (bIsCurrent && !aIsCurrent) return 1;
   return String(b.fetchedAt ?? '').localeCompare(String(a.fetchedAt ?? ''));
 });
-const hasSingleBattleData = (value: any) => {
-  const single = value?.formats?.single;
-  return Boolean(
-    single &&
-      ['abilities', 'natures', 'items', 'moves', 'evs', 'teammates'].some(
-        (key) => Array.isArray(single[key]) && single[key].length,
-      ),
-  );
-};
 const seasons = pokemon
   ? manifestSeasons.filter((entry) =>
       Object.entries(dataFiles).some(
@@ -64,19 +58,6 @@ const opgg = pokemon && seasonDirectory
   : null;
 const single = opgg?.formats?.single;
 const hasData = hasSingleBattleData(opgg);
-const ranked = (
-  rows: Array<{ rank: number; name: string; usageRate: number | null }> | undefined,
-  teammate = false,
-) =>
-  rows?.slice(0, 4).map((row) =>
-    `${row.rank}. ${row.name} — ${teammate || row.usageRate === null ? '使用率非公開' : `${row.usageRate}%`}`,
-  ).join('\n') || 'データなし';
-const evRanked = (
-  rows: Array<{ rank: number; usageRate: number; values: Record<string, number> }> | undefined,
-) =>
-  rows?.slice(0, 4).map((row) =>
-    `${row.rank}. H${row.values.hp}/A${row.values.attack}/B${row.values.defense}/C${row.values.specialAttack}/D${row.values.specialDefense}/S${row.values.speed} — ${row.usageRate}%`,
-  ).join('\n') || 'データなし';
 ---
 
 <AppLayout title="バトルデータ" description="OP.GG使用率データ" current="box" hideTopbar={true}>
@@ -111,14 +92,7 @@ const evRanked = (
           {hasData ? (
             <>
               <h2 id="trend-title">トレンド</h2>
-              <div class="trend-detail-card">
-                <div class="trend-detail-cell"><span>特性</span><strong>{ranked(single?.abilities)}</strong></div>
-                <div class="trend-detail-cell"><span>性格</span><strong>{ranked(single?.natures)}</strong></div>
-                <div class="trend-detail-cell"><span>アイテム</span><strong>{ranked(single?.items)}</strong></div>
-                <div class="trend-detail-cell"><span>わざ</span><strong>{ranked(single?.moves)}</strong></div>
-                <div class="trend-detail-cell"><span>努力値</span><strong>{evRanked(single?.evs)}</strong></div>
-                <div class="trend-detail-cell"><span>同時採用ポケモン</span><strong>{ranked(single?.teammates, true)}</strong></div>
-              </div>
+              <BattleDataCard single={single} />
             </>
           ) : (
             <section class="data-empty" aria-live="polite">

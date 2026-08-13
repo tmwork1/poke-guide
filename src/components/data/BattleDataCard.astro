@@ -1,0 +1,22 @@
+---
+// バトルデータカード(特性/性格/アイテム/わざ/努力値/同時採用ポケモンの2x3グリッド、
+// docs/ui/mobile/7.png)。/box/data(個体ごと)と /data のバトルデータタブ(全体
+// ランキング)でマークアップを完全に一致させるため、実装をここへ一本化する。
+// スタイルは src/styles/battle-data-card.css(利用側ページが各自import)。
+import { formatEvRanked, formatRanked, type SingleFormatData } from '../../lib/battle-data-card';
+
+interface Props {
+  single: SingleFormatData | null | undefined;
+}
+
+const { single } = Astro.props;
+---
+
+<div class="trend-detail-card">
+  <div class="trend-detail-cell"><span>特性</span><strong>{formatRanked(single?.abilities)}</strong></div>
+  <div class="trend-detail-cell"><span>性格</span><strong>{formatRanked(single?.natures)}</strong></div>
+  <div class="trend-detail-cell"><span>アイテム</span><strong>{formatRanked(single?.items)}</strong></div>
+  <div class="trend-detail-cell"><span>わざ</span><strong>{formatRanked(single?.moves)}</strong></div>
+  <div class="trend-detail-cell"><span>努力値</span><strong>{formatEvRanked(single?.evs)}</strong></div>
+  <div class="trend-detail-cell"><span>同時採用ポケモン</span><strong>{formatRanked(single?.teammates, true)}</strong></div>
+</div>

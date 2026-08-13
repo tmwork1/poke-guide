@@ -25,3 +25,141 @@
 .data-hub-panel[inert] {
 	user-select: none;
 }
+
+/* バトルデータタブ(docs/ui/mobile/30.png): 使用率ランキング一覧+アイコンレール+
+   検索/シーズン切替。カード本体(.trend-detail-card)は battle-data-card.css 側。 */
+.battle-data-panel .panel-content {
+	padding: 0;
+}
+
+.battle-data-body {
+	display: flex;
+	align-items: flex-start;
+	gap: var(--space-2);
+	padding: var(--space-4) var(--space-3) calc(76px + env(safe-area-inset-bottom));
+}
+
+.battle-data-list {
+	flex: 1;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-4);
+}
+
+.battle-data-entry {
+	scroll-margin-top: calc(var(--topbar-height) + var(--second-bar-height) + var(--space-3));
+}
+
+.battle-data-entry[hidden] {
+	display: none;
+}
+
+.battle-data-entry-header {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	padding: var(--space-2) var(--space-3);
+	background: var(--color-surface-alt);
+	border: 1px solid var(--color-border);
+	border-bottom: 0;
+	font-weight: 700;
+}
+
+.battle-data-entry-rank {
+	min-width: 1.6em;
+	color: var(--color-text-muted);
+	font-size: var(--font-size-sm2);
+	text-align: right;
+}
+
+.battle-data-entry-icon {
+	width: 32px;
+	height: 32px;
+	object-fit: contain;
+}
+
+.battle-data-entry-name {
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	font-size: var(--font-size-sm2);
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.battle-data-rail {
+	position: sticky;
+	top: calc(var(--topbar-height) + var(--second-bar-height) + var(--space-2));
+	flex: 0 0 auto;
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-2);
+	max-height: calc(100vh - var(--topbar-height) - var(--second-bar-height) - var(--space-4));
+	overflow-y: auto;
+	padding: var(--space-1);
+}
+
+.battle-data-rail-item {
+	display: block;
+	flex: 0 0 auto;
+	width: 28px;
+	height: 28px;
+	overflow: hidden;
+	border: 1px solid var(--color-border);
+	border-radius: 50%;
+	background: var(--color-surface-alt);
+}
+
+.battle-data-rail-item img {
+	width: 100%;
+	height: 100%;
+	object-fit: contain;
+}
+
+.battle-data-rail-item[hidden] {
+	display: none;
+}
+
+.battle-data-controls {
+	position: fixed;
+	right: 0;
+	bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom));
+	left: 0;
+	z-index: 16;
+	display: flex;
+	gap: var(--space-2);
+	padding: var(--space-3);
+	background: var(--color-surface);
+	border-top: 1px solid var(--color-border);
+}
+
+/* 非アクティブ側パネル(タブ切替でinertが付く)ではfixedバーも隠す。
+   position:fixedはinert属性だけでは視覚的に隠れないため、CSSで明示的に消す。 */
+.data-hub-panel[inert] .battle-data-controls {
+	display: none;
+}
+
+.battle-data-controls .search-input-wrap {
+	flex: 1;
+	min-width: 0;
+}
+
+.battle-data-season-field {
+	display: flex;
+	flex: 0 0 auto;
+	align-items: center;
+	gap: var(--space-2);
+}
+
+.battle-data-season-field label {
+	color: var(--color-text-muted);
+	font-size: var(--font-size-sm2);
+	white-space: nowrap;
+}
+
+@media (max-width: 420px) {
+	.battle-data-season-field label {
+		display: none;
+	}
+}

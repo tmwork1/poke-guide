@@ -2,7 +2,77 @@
 export const prerender = false;
 
 import AppLayout from '../../layouts/AppLayout.astro';
+import BattleDataCard from '../../components/data/BattleDataCard.astro';
+import { hasSingleBattleData, type SingleFormatData } from '../../lib/battle-data-card';
+import { spriteUrl } from '../../lib/pokemon-master-data';
+import pokemonMasterRaw from '../../../public/master-data/autocomplete/pokemon.json';
+import seasonManifest from '../../../data/opgg-champions-usage/seasons.json';
 import '../../styles/data-hub-page.css';
+import '../../styles/battle-data-card.css';
+
+// box/data.astro と同じ並び順ロジック(現在シーズンを先頭に、以降は取得日時の新しい順)。
+const manifestSeasons = [...(seasonManifest.seasons ?? [])].sort((a, b) => {
+  const currentSeasonId = seasonManifest.currentSeasonId;
+  const aIsCurrent = a.isCurrent || a.id === currentSeasonId;
+  const bIsCurrent = b.isCurrent || b.id === currentSeasonId;
+  if (aIsCurrent && !bIsCurrent) return -1;
+  if (bIsCurrent && !aIsCurrent) return 1;
+  return String(b.fetchedAt ?? '').localeCompare(String(a.fetchedAt ?? ''));
+});
+
+const requestedSeason = Astro.url.searchParams.get('season');
+const seasonIds = manifestSeasons.map((entry) => entry.id);
+const season = seasonIds.includes(requestedSeason ?? '') ? requestedSeason! : manifestSeasons[0]?.id ?? null;
+
+// SSR出力・選択中オプション・共有URLを一致させる(box/data.astroと同じ理由)。
+if (requestedSeason && season && requestedSeason !== season) {
+  return Astro.redirect(`/data?season=${encodeURIComponent(season)}`);
+}
+
+const seasonEntry = manifestSeasons.find((entry) => entry.id === season);
+
+const dataFiles = import.meta.glob('../../../data/opgg-champions-usage/seasons/*/*.json', {
+  eager: true,
+  import: 'default',
+});
+
+// index.jsonのpokemon配列は取得元(OP.GGのランキングページ)に現れた順、つまり使用率順位の
+// 順番をそのまま保持している(scripts/opgg/fetch-champions-usage.mjsのslugs()参照)。
+const seasonIndex = seasonEntry
+  ? (Object.entries(dataFiles).find(([path]) => path.includes(`/${seasonEntry.directory}/index.json`))?.[1] as
+      | { pokemon?: Array<{ slug: string; name: string; file: string }> }
+      | undefined)
+  : undefined;
+
+const masterByName = new Map(
+  (pokemonMasterRaw as Array<{ name: string; imageId: number }>).map((entry) => [entry.name, entry.imageId]),
+);
+
+interface BattleDataEntry {
+  rank: number;
+  name: string;
+  imageId: number | null;
+  elementId: string;
+  single: SingleFormatData;
+}
+
+const entries: BattleDataEntry[] = [];
+if (seasonEntry && seasonIndex?.pokemon) {
+  for (const item of seasonIndex.pokemon) {
+    const opgg = Object.entries(dataFiles).find(
+      ([path, value]: any) => path.includes(`/${seasonEntry.directory}/`) && value?.name === item.name,
+    )?.[1] as any;
+    if (!hasSingleBattleData(opgg)) continue;
+    const rank = entries.length + 1;
+    entries.push({
+      rank,
+      name: item.name,
+      imageId: masterByName.get(item.name) ?? null,
+      elementId: `battle-data-entry-${rank}`,
+      single: opgg.formats.single,
+    });
+  }
+}
 ---
 
 <AppLayout title="データ" current="data" hideTopbar={true}>
@@ -14,14 +84,57 @@ import '../../styles/data-hub-page.css';
 	</nav>
 
 	<div class="data-hub-scroll" data-data-hub-scroll>
-		<section class="panel data-hub-panel" data-tab="battle-data">
+		<section class="panel data-hub-panel battle-data-panel" data-tab="battle-data">
 			<div class="panel-content">
-				<div class="empty-state">
-					<p class="empty-state-icon" aria-hidden="true">📊</p>
-					<p class="empty-state-title">バトルデータは準備中です</p>
-					<p class="empty-state-hint">対戦で役立つデータを掲載予定です。</p>
-				</div>
+				{entries.length > 0 ? (
+					<div class="battle-data-body">
+						<div class="battle-data-list" id="battle-data-list">
+							{entries.map((entry) => (
+								<article class="battle-data-entry" id={entry.elementId} data-battle-data-entry data-species-name={entry.name}>
+									<header class="battle-data-entry-header">
+										<span class="battle-data-entry-rank">{entry.rank}</span>
+										{entry.imageId !== null && <img class="battle-data-entry-icon" src={spriteUrl(entry.imageId)} alt="" loading="lazy" />}
+										<span class="battle-data-entry-name">{entry.name}</span>
+									</header>
+									<BattleDataCard single={entry.single} />
+								</article>
+							))}
+						</div>
+						<nav class="battle-data-rail" aria-label="ポケモン一覧へジャンプ">
+							{entries.map((entry) => (
+								<a class="battle-data-rail-item" href={`#${entry.elementId}`} data-battle-data-rail-item data-species-name={entry.name} aria-label={entry.name}>
+									{entry.imageId !== null && <img src={spriteUrl(entry.imageId)} alt="" loading="lazy" />}
+								</a>
+							))}
+						</nav>
+					</div>
+				) : (
+					<div class="empty-state">
+						<p class="empty-state-icon" aria-hidden="true">📊</p>
+						<p class="empty-state-title">{seasonEntry ? 'このシーズンのバトルデータはまだありません' : 'バトルデータはまだありません'}</p>
+						<p class="empty-state-hint">対戦で役立つデータを掲載予定です。</p>
+					</div>
+				)}
 			</div>
+
+			{manifestSeasons.length > 0 && (
+				<div class="battle-data-controls">
+					<div class="search-input-wrap">
+						<svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+							<circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+						</svg>
+						<input id="battle-data-search" type="search" class="field-control" placeholder="ポケモン名で検索" aria-label="ポケモン名で検索" autocomplete="off" disabled={entries.length === 0} />
+					</div>
+					<div class="battle-data-season-field">
+						<label for="battle-data-season">シーズン</label>
+						<select id="battle-data-season" class="field-control">
+							{manifestSeasons.map((entry) => (
+								<option value={entry.id} selected={entry.id === season}>{entry.label ?? entry.id}</option>
+							))}
+						</select>
+					</div>
+				</div>
+			)}
 		</section>
 
 		<section class="panel data-hub-panel" data-tab="top-builds" inert aria-hidden="true">
@@ -80,5 +193,44 @@ import '../../styles/data-hub-page.css';
 
 			syncActiveTab();
 		}
+	</script>
+
+	<script>
+		import { kanaIncludes } from '../../lib/kana';
+
+		const list = document.querySelector<HTMLElement>('#battle-data-list');
+		const entries = list ? Array.from(list.querySelectorAll<HTMLElement>('[data-battle-data-entry]')) : [];
+		const railItems = Array.from(document.querySelectorAll<HTMLAnchorElement>('[data-battle-data-rail-item]'));
+		const search = document.querySelector<HTMLInputElement>('#battle-data-search');
+		const seasonSelect = document.querySelector<HTMLSelectElement>('#battle-data-season');
+
+		function applyFilter(): void {
+			const term = search?.value ?? '';
+			for (const entry of entries) {
+				const name = entry.dataset.speciesName ?? '';
+				const visible = term.trim() === '' || kanaIncludes(name, term);
+				entry.hidden = !visible;
+				const rail = railItems.find((item) => item.dataset.speciesName === name);
+				if (rail) rail.hidden = !visible;
+			}
+		}
+
+		search?.addEventListener('input', applyFilter);
+
+		for (const item of railItems) {
+			item.addEventListener('click', (event) => {
+				const targetId = item.getAttribute('href')?.slice(1);
+				const target = targetId ? document.getElementById(targetId) : null;
+				if (!target) return;
+				event.preventDefault();
+				target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+			});
+		}
+
+		seasonSelect?.addEventListener('change', () => {
+			const params = new URLSearchParams(window.location.search);
+			params.set('season', seasonSelect.value);
+			window.location.search = params.toString();
+		});
 	</script>
 </AppLayout>
