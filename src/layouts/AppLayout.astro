@@ -1,6 +1,5 @@
 ---
 import '../styles/global.css';
-import AppSidebar from '../components/AppSidebar.astro';
 import AppBottomNav from '../components/AppBottomNav.astro';
 
 interface Props {
@@ -29,11 +28,6 @@ const isPublicChrome = chrome === "public";
 
 const pageTitle = title === "Poke-Commons" ? title : `${title} | Poke-Commons`;
 
-// 個体管理機能専用のログインレーン(src/middleware.ts が locals.user にセットする)。
-// ダメージ計算・検索等の既存の匿名機能はこの値を参照しないため、ここで読むだけでは
-// 既存ページの挙動に影響しない。chrome="public" のときはこの値の有無に関わらず
-// 常にログイン導線のみを出す(第三者に自分のログイン状態・メールアドレスを見せないため)。
-const user = Astro.locals.user;
 ---
 
 <!doctype html>
@@ -92,58 +86,13 @@ const user = Astro.locals.user;
 			</header>
 			)}
 
-			{!isPublicChrome && <AppSidebar current={current} user={user} />}
-
 			{!isPublicChrome && <AppBottomNav current={current} />}
-
-			{!isPublicChrome && <div class="app-sidebar-overlay" id="app-sidebar-overlay"></div>}
 
 			<main class="app-main">
 				<slot />
 			</main>
 		</div>
 
-		<script>
-			// ドロワー開閉(モバイル専用): ハンバーガー / オーバーレイクリック / Esc / リンククリックで閉じる。
-			const toggle = document.getElementById("app-sidebar-toggle");
-			const sidebar = document.getElementById("app-sidebar");
-			const overlay = document.getElementById("app-sidebar-overlay");
-
-			function openDrawer() {
-				sidebar?.classList.add("is-open");
-				overlay?.classList.add("is-open");
-				toggle?.setAttribute("aria-expanded", "true");
-			}
-
-			function closeDrawer() {
-				sidebar?.classList.remove("is-open");
-				overlay?.classList.remove("is-open");
-				toggle?.setAttribute("aria-expanded", "false");
-			}
-
-			toggle?.addEventListener("click", () => {
-				if (sidebar?.classList.contains("is-open")) {
-					closeDrawer();
-				} else {
-					openDrawer();
-				}
-			});
-
-			overlay?.addEventListener("click", closeDrawer);
-
-			document.addEventListener("keydown", (event) => {
-				if (event.key === "Escape") {
-					closeDrawer();
-				}
-			});
-
-			sidebar?.addEventListener("click", (event) => {
-				const target = event.target as HTMLElement;
-				if (target.closest("a")) {
-					closeDrawer();
-				}
-			});
-		</script>
 	</body>
 </html>
 

@@ -9,10 +9,6 @@ const { current } = Astro.props;
 
 <nav class="app-bottom-nav" aria-label="メインナビゲーション">
 	<div class="app-bottom-nav-list">
-		<button type="button" class="app-bottom-nav-item" id="app-sidebar-toggle" aria-controls="app-sidebar" aria-expanded="false" aria-label="メニューを開く">
-			<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="7" x2="20" y2="7" /><line x1="4" y1="12" x2="20" y2="12" /><line x1="4" y1="17" x2="20" y2="17" /></svg>
-			<span>メニュー</span>
-		</button>
 		<a class="app-bottom-nav-item" href="/data" data-active={current === "data" ? "true" : undefined} aria-current={current === "data" ? "page" : undefined}>
 			<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.05" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
 			<span>データ</span>
