@@ -22,7 +22,7 @@
 		}
 		@keyframes spin { to { transform: rotate(360deg); } }
 		pre {
-			background: var(--color-surface-alt);
+			background: var(--color-bg);
 			padding: 1rem;
 			overflow-x: auto;
 			white-space: pre-wrap;

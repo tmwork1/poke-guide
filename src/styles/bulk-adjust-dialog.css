@@ -112,7 +112,7 @@
 		border: 1px solid var(--color-border);
 		border-radius: var(--radius-md);
 		padding: var(--space-3);
-		background: var(--color-surface-alt);
+		background: var(--color-bg);
 	}
 	/* 削除ボタン(×)。ダメージカード側の削除ボタン(.damage-row-delete-button)と同じ
 	   「カード右上・×・btn-ghost」の流儀に揃える。タップ対象28px以上を満たす大きさにする。
