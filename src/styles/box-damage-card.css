@@ -12,7 +12,7 @@
 }
 
 #opponent-notes-section .card-damage {
-  padding: var(--space-1) .6rem;
+  padding: var(--space-2) var(--space-3);
   max-width: 100%;
   margin: 0;
   position: relative;
@@ -37,12 +37,14 @@
   padding-bottom: var(--space-1);
   flex-flow: wrap;
   align-items: stretch;
-  gap: .6rem;
+  gap: var(--space-2);
   display: flex;
 }
 
 #opponent-notes-section .damage-row-build {
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
+  background: var(--color-surface);
   cursor: default;
   flex-direction: column;
   flex: 0 340px;
@@ -533,7 +535,10 @@
 }
 
 #opponent-notes-section .damage-row-total {
-  padding-top: var(--space-1);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-1);
+  background: var(--color-surface);
   margin-top: 0;
 }
 
@@ -659,7 +664,7 @@
 }
 
 #opponent-notes-section .damage-row-techniques-row {
-  gap: var(--space-1);
+  gap: var(--space-2);
   flex-direction: column;
   flex: 1 1 0;
   min-width: 140px;
@@ -668,7 +673,7 @@
 
 /* 技カラムとダメージ結果 */
 #opponent-notes-section .damage-row-columns-wrap {
-  gap: var(--space-1);
+  gap: var(--space-2);
   flex-direction: column;
   min-width: 0;
   max-width: calc(100% - 40px);
@@ -676,7 +681,7 @@
 }
 
 #opponent-notes-section .damage-row-columns {
-  gap: var(--space-1);
+  gap: var(--space-2);
   flex-direction: column;
   min-width: 0;
   display: flex;
@@ -1608,8 +1613,8 @@
   }
 
   #opponent-notes-section .damage-row-techniques-row {
-    column-gap: var(--space-1);
-    row-gap: var(--space-1);
+    column-gap: var(--space-2);
+    row-gap: var(--space-2);
     grid-template-columns: 1fr 1fr;
     align-items: stretch;
     width: 100%;
