@@ -24,10 +24,13 @@ import {
 	refreshRowConditionChips,
 	getSelectedRow,
 	getSelectedColumn,
+	getSelectedIsBuild,
 	clearSelection,
 	clearSelectionAndMarks,
 	renderDetailPanel,
 	selectColumn,
+	selectBuild,
+	getDamageBuildDetailForm,
 	configureDamageColumnMoveInput,
 	getDamageColumnMoveCandidates,
 	getDamageColumnMultiHitRange,
@@ -139,12 +142,12 @@ function setDetailPanelTitle(title: string | Node): void {
 	detailPanelPositionIndicatorEl.hidden = true;
 }
 
-function setColumnDetailPanelTitle(title: Node, row: DamageRowState, columnIndex: number): void {
+function setSlideDetailPanelTitle(title: Node, row: DamageRowState, positionIndex: number): void {
 	detailPanelTitleEl.replaceChildren(title);
-	const columnCount = row.attacks.length;
-	detailPanelPositionIndicatorEl.textContent = `${columnIndex + 1}/${columnCount}`;
-	detailPanelPositionIndicatorEl.setAttribute("aria-label", `${columnCount}件中${columnIndex + 1}件目`);
-	detailPanelPositionIndicatorEl.hidden = columnCount <= 1;
+	const slideCount = row.attacks.length + 1;
+	detailPanelPositionIndicatorEl.textContent = `${positionIndex + 1}/${slideCount}`;
+	detailPanelPositionIndicatorEl.setAttribute("aria-label", `${slideCount}件中${positionIndex + 1}件目`);
+	detailPanelPositionIndicatorEl.hidden = slideCount <= 1;
 }
 
 function initDetailPanelSwipe(): void {
@@ -155,13 +158,13 @@ function initDetailPanelSwipe(): void {
 		if (!event.isPrimary || event.button !== 0) return;
 		if (event.target instanceof Element && event.target.closest(interactiveSelector)) return;
 		gesture = { pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, deltaX: 0, deltaY: 0 };
-		detailPanelBodyEl.setPointerCapture(event.pointerId);
 	});
 	detailPanelBodyEl.addEventListener("pointermove", (event) => {
 		if (!gesture || gesture.pointerId !== event.pointerId) return;
 		gesture.deltaX = event.clientX - gesture.startX;
 		gesture.deltaY = event.clientY - gesture.startY;
 		if (Math.abs(gesture.deltaX) > Math.abs(gesture.deltaY) * DETAIL_PANEL_SWIPE_AXIS_RATIO) {
+			if (!detailPanelBodyEl.hasPointerCapture(event.pointerId)) detailPanelBodyEl.setPointerCapture(event.pointerId);
 			event.preventDefault();
 		}
 	});
@@ -176,11 +179,19 @@ function initDetailPanelSwipe(): void {
 
 		const row = getSelectedRow();
 		const column = getSelectedColumn();
-		if (!row || !column || row.attacks.length <= 1) return;
-		const currentIndex = row.attacks.indexOf(column);
-		if (currentIndex === -1) return;
+		if (!row) return;
+		const currentIndex = getSelectedIsBuild()
+			? 0
+			: column
+				? row.attacks.indexOf(column) + 1
+				: -1;
+		if (currentIndex < 0) return;
 		const nextIndex = deltaX < 0 ? currentIndex + 1 : currentIndex - 1;
-		const nextColumn = row.attacks[nextIndex];
+		if (nextIndex === 0) {
+			selectBuild(row);
+			return;
+		}
+		const nextColumn = row.attacks[nextIndex - 1];
 		if (nextColumn) selectColumn(row, nextColumn);
 	};
 	detailPanelBodyEl.addEventListener("pointerup", (event) => finishGesture(event));
@@ -1111,6 +1122,22 @@ export function buildSideSection(
 	return secondaryChipRow;
 }
 
+export function renderBuildDetailPanel(row: DamageRowState): void {
+	detailPanelBodyEl.innerHTML = "";
+	const form = getDamageBuildDetailForm(row);
+	if (!form) {
+		clearSelection();
+		renderDetailPanelEmpty();
+		return;
+	}
+
+	const title = document.createElement("span");
+	title.textContent = "相手ビルド";
+	setSlideDetailPanelTitle(title, row, 0);
+	detailPanelBodyEl.appendChild(form);
+	detailPanelBodyEl.scrollTop = 0;
+}
+
 export function renderColumnLevelDetailPanel(row: DamageRowState, column: DamageColumnState): void {
 // 選択中の技がない場合は、表示できる技を優先順位どおりに選ぶ。
 	detailPanelBodyEl.innerHTML = "";
@@ -1201,7 +1228,7 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 		return heading;
 	}
 	// 選択中の攻撃・防御関係は共通ヘッダーバンドに残し、説明テキストも編集時に同期する。
-	const refreshSelectionHeading = (): void => setColumnDetailPanelTitle(buildSelectionHeadingRow(), row, idx);
+	const refreshSelectionHeading = (): void => setSlideDetailPanelTitle(buildSelectionHeadingRow(), row, idx + 1);
 	refreshSelectionHeading();
 
 	const criticalButton = buildCriticalButton();

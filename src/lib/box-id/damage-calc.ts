@@ -66,13 +66,16 @@ import {
 	type BulkAdjustRowSnapshot,
 	getSelectedRow,
 	getSelectedColumn,
+	getSelectedIsBuild,
 	clearSelection,
 	scheduleRowSave,
 	scheduleRowCalc,
 	refreshRowConditionChips,
 	renderDetailPanel,
 	selectColumn,
+	selectBuild,
 	applySelectionMarks,
+	applyBuildSelectionMark,
 	clearSelectionAndMarks,
 	wrapToRange,
 	type DamageRowState,
@@ -82,6 +85,7 @@ import {
 	deselectRowIfCurrent,
 	renderDetailPanelEmpty,
 	renderColumnLevelDetailPanel,
+	renderBuildDetailPanel,
 	openDetailPanelOverlayIfNarrow as openRightPanelOverlayIfNarrow,
 	closeDetailPanelOverlay,
 	initRightPanel,
@@ -359,6 +363,9 @@ const moveAdoptionBySpecies =
 const opponentNotesSection = document.getElementById("opponent-notes-section");
 if (opponentNotesSection) {
 	const ownedPokemonId = opponentNotesSection.dataset.ownedPokemonId ?? "";
+	const rowBuildDetailForms = new WeakMap<DamageRowState, HTMLElement>();
+	const rowDetailStatValueEls = new WeakMap<DamageRowState, Partial<Record<string, HTMLElement>>>();
+	const rowReadonlyNatureLabelEls = new WeakMap<DamageRowState, Partial<Record<string, HTMLElement>>>();
 
 	// #regulation(LeftPanel.astro/left-panel.ts)はこのファイルからは値を読むだけに留め、
 	// left-panel.ts側の既存changeリスナー(syncTeraFieldVisibility/syncRegulationPlaceholder等)は
@@ -406,6 +413,11 @@ if (opponentNotesSection) {
 			renderColumnLevelDetailPanel(row, column);
 			refreshMobileDetailPlacement();
 		},
+		renderBuildDetailPanel: (row) => {
+			renderBuildDetailPanel(row);
+			refreshMobileDetailPlacement();
+		},
+		getBuildDetailForm: (row) => rowBuildDetailForms.get(row) ?? null,
 		openDetailPanelOverlayIfNarrow: () => {
 			if (isNarrowLayout()) {
 				refreshMobileDetailPlacement();
@@ -1177,16 +1189,18 @@ if (opponentNotesSection) {
 	function refreshRowNatureButtons(row: DamageRowState): void {
 		for (const key of STAT_KEYS) {
 			if (key === "hp") continue;
-			const btn = row.natureColLabelEls[key];
-			if (!btn) continue;
 			const mod = row.natureUp === key ? "up" : row.natureDown === key ? "down" : null;
-			if (mod) btn.dataset.mod = mod;
-			else delete btn.dataset.mod;
-			const indicatorEl = btn.querySelector<HTMLElement>(".damage-ev-nature-indicator");
 			const { indicator, description } = describeNatureCycleState(key, mod);
-			if (indicatorEl) indicatorEl.textContent = indicator;
-			btn.setAttribute("aria-label", description);
-			btn.title = description;
+			const targets = [row.natureColLabelEls[key], rowReadonlyNatureLabelEls.get(row)?.[key]];
+			for (const target of targets) {
+				if (!target) continue;
+				if (mod) target.dataset.mod = mod;
+				else delete target.dataset.mod;
+				const indicatorEl = target.querySelector<HTMLElement>(".damage-ev-nature-indicator");
+				if (indicatorEl) indicatorEl.textContent = indicator;
+				target.setAttribute("aria-label", description);
+				target.title = description;
+			}
 		}
 	}
 
@@ -1200,10 +1214,12 @@ if (opponentNotesSection) {
 		const base = name ? (await baseStatsMapPromise).get(name) : undefined;
 		if (!base) {
 			for (const key of STAT_KEYS) {
-				const target = row.statValueEls[key];
-				if (!target) continue;
-				target.textContent = "-";
-				delete target.dataset.mod;
+				const targets = [row.statValueEls[key], rowDetailStatValueEls.get(row)?.[key]];
+				for (const target of targets) {
+					if (!target) continue;
+					target.textContent = "-";
+					delete target.dataset.mod;
+				}
 			}
 			return;
 		}
@@ -1213,14 +1229,15 @@ if (opponentNotesSection) {
 		// (保存されるnatureと表示を一致させるため)。
 		const natureMod = normalizedNatureBoosts(row.natureUp, row.natureDown);
 		STAT_KEYS.forEach((key, i) => {
-			const target = row.statValueEls[key];
+			const targets = [row.statValueEls[key], rowDetailStatValueEls.get(row)?.[key]];
 			const mod = natureMod.up === key ? "up" : natureMod.down === key ? "down" : null;
-			if (target) {
-				const iv = 31;
-				const ev = row.evs[i] ?? 0;
-				const value = key === "hp"
-					? calcHpStat(level, base[i], iv, ev)
-					: calcOtherStat(level, base[i], iv, ev, mod === "up" ? 1.1 : mod === "down" ? 0.9 : 1.0);
+			const iv = 31;
+			const ev = row.evs[i] ?? 0;
+			const value = key === "hp"
+				? calcHpStat(level, base[i], iv, ev)
+				: calcOtherStat(level, base[i], iv, ev, mod === "up" ? 1.1 : mod === "down" ? 0.9 : 1.0);
+			for (const target of targets) {
+				if (!target) continue;
 				target.textContent = String(value);
 				if (mod) target.dataset.mod = mod;
 				else delete target.dataset.mod;
@@ -1869,7 +1886,9 @@ if (opponentNotesSection) {
 		// getSelectedRow/getSelectedColumn/clearSelection経由で読み書きする。
 		if (getSelectedRow() === row) {
 			const currentSelectedColumn = getSelectedColumn();
-			if (currentSelectedColumn && row.attacks.includes(currentSelectedColumn)) {
+			if (getSelectedIsBuild()) {
+				applyBuildSelectionMark(row);
+			} else if (currentSelectedColumn && row.attacks.includes(currentSelectedColumn)) {
 				applySelectionMarks(row, currentSelectedColumn);
 			} else {
 				clearSelection();
@@ -2159,14 +2178,36 @@ if (opponentNotesSection) {
 		directionToggle.append(attackOption, defenseOption);
 		actionsRow.appendChild(directionToggle);
 
-		// 2〜5段目: 名前input+特性/持ち物/テラスの縦スタック(.damage-row-build-fields)。
+		// 2〜5段目: カードには相手ビルドの読み取り専用サマリーだけを置く。
 		const buildFields = document.createElement("div");
 		buildFields.className = "damage-row-build-fields";
 		buildLeft.appendChild(buildFields);
 
 		const nameRow = document.createElement("div");
-		nameRow.className = "pokemon-name-row";
+		nameRow.className = "damage-build-readonly-name-row";
 		buildFields.appendChild(nameRow);
+		const nameText = document.createElement("span");
+		nameText.className = "damage-build-readonly-name";
+		nameRow.appendChild(nameText);
+
+		const readonlyFields = document.createElement("div");
+		readonlyFields.className = "damage-build-readonly-fields";
+		buildFields.appendChild(readonlyFields);
+		function makeReadonlyField(labelText: string): HTMLElement {
+			const field = document.createElement("span");
+			field.className = "damage-build-readonly-field";
+			const label = document.createElement("span");
+			label.className = "damage-build-readonly-label";
+			label.textContent = labelText;
+			const value = document.createElement("span");
+			value.className = "damage-build-readonly-value";
+			field.append(label, value);
+			readonlyFields.appendChild(field);
+			return value;
+		}
+		const abilityText = makeReadonlyField("特性");
+		const itemText = makeReadonlyField("持ち物");
+		const teraText = makeReadonlyField("テラス");
 
 		const spriteBox = document.createElement("div");
 		spriteBox.className = "damage-sprite-box";
@@ -2212,6 +2253,22 @@ if (opponentNotesSection) {
 		spriteBox.append(spriteImg, spriteFallback, typeBadge, itemBadge);
 		buildMain.appendChild(spriteBox);
 
+		const detailForm = document.createElement("div");
+		detailForm.className = "damage-detail-panel-body-inner damage-build-detail-form";
+		rowBuildDetailForms.set(row, detailForm);
+		const detailFields = document.createElement("div");
+		detailFields.className = "damage-build-detail-fields";
+		detailForm.appendChild(detailFields);
+		function makeDetailField(labelText: string, control: HTMLElement): HTMLElement {
+			const label = document.createElement("div");
+			label.className = "damage-build-detail-field";
+			const labelTextEl = document.createElement("span");
+			labelTextEl.className = "field-label damage-build-detail-field-label";
+			labelTextEl.textContent = labelText;
+			label.append(labelTextEl, control);
+			return label;
+		}
+
 		const nameInput = document.createElement("input");
 		nameInput.type = "text";
 		nameInput.setAttribute("list", "pokemon-list");
@@ -2221,50 +2278,11 @@ if (opponentNotesSection) {
 		nameInput.value = row.name;
 		// 相手側の動的入力にも左パネルと同じIME安全なdatalist補助を適用する。
 		attachKanaTypeAhead(nameInput, el<HTMLDataListElement>("pokemon-list"));
-		nameRow.appendChild(nameInput);
-
-		// ドット絵をタップすると種族名入力欄がその場に現れてフォーカスされる。
-		// 入力欄はDOMから消さず(自動保存契約 row.name / 既存のdatalist補助・change時の
-		// プリセット適用をそのまま使うため)、モバイルのCSSで既定 display:none にし、この
-		// buildEl.dataset.mobileEdit の値で出し分ける。
-		// role/tabindexはデスクトップでも付くが、デスクトップでは入力欄が常時見えているため
-		// 「クリックすると種族名欄にフォーカスが移るだけ」の無害な導線になる(モバイル判定で
-		// 属性を付け外しする仕組みを行ごとに持つより、こちらのほうが単純で壊れにくい)。
-		spriteBox.setAttribute("role", "button");
-		spriteBox.tabIndex = 0;
-		spriteBox.setAttribute("aria-label", "相手の種族名を編集");
-		// ⚠️ 「入力欄からフォーカスが外れたら畳む」方式は採らない:
-		// 畳むのはmousedown(=次のタップの入り口)で起きるため、開いていた行のぶんだけ
-		// 画面が上にずれ、mousedownとmouseupで別の要素が当たって「1回目のタップが無反応に
-		// なる」事故になる(努力値テキストで再現)。同じトリガをもう一度押して閉じる
-		// トグル方式なら、レイアウトが動くのは常にユーザーが意図した操作の瞬間だけになる。
-		function toggleMobileEdit(target: "name" | "item"): void {
-			if (buildEl.dataset.mobileEdit === target) {
-				delete buildEl.dataset.mobileEdit;
-				return;
-			}
-			// もう片方が開いていても、値を先に差し替えてからfocus()する
-			// (focus()が誘発するblurより先にCSSの出し分けを確定させる)。
-			buildEl.dataset.mobileEdit = target;
-		}
-		function beginMobileNameEdit(): void {
-			toggleMobileEdit("name");
-			if (buildEl.dataset.mobileEdit !== "name") return;
-			nameInput.focus();
-			nameInput.select();
-		}
-		spriteBox.addEventListener("click", beginMobileNameEdit);
-		spriteBox.addEventListener("keydown", (event) => {
-			if (event.key !== "Enter" && event.key !== " ") return;
-			event.preventDefault(); // Spaceでのページスクロールを止める
-			beginMobileNameEdit();
-		});
-		// Enterで確定したら畳む(タップ操作では同じドット絵をもう一度押して畳む)。
+		detailFields.appendChild(makeDetailField("種族名", nameInput));
 		nameInput.addEventListener("keydown", (event) => {
 			if (event.key !== "Enter") return;
-			if (buildEl.dataset.mobileEdit !== "name") return;
+			event.preventDefault();
 			nameInput.blur();
-			delete buildEl.dataset.mobileEdit;
 		});
 
 		// モバイル専用UIでも相手ポケモンは公式アートワークで統一する。
@@ -2286,8 +2304,17 @@ if (opponentNotesSection) {
 		function refreshItemImage(): void {
 			void applyItemImage(itemImg, row.itemName.trim());
 		}
+		let refreshReadonlyEvs = (): void => {};
+		function refreshBuildSummary(): void {
+			nameText.textContent = row.name.trim() || "相手ポケモン未設定";
+			abilityText.textContent = row.abilityName.trim() || "未設定";
+			itemText.textContent = row.itemName.trim() || "なし";
+			teraText.textContent = row.teraType.trim() || "なし";
+			refreshReadonlyEvs();
+		}
 
 		function onFieldInput(): void {
+			refreshBuildSummary();
 			scheduleRowCalc(row);
 			scheduleRowSave(row);
 		}
@@ -2369,8 +2396,8 @@ if (opponentNotesSection) {
 		defenseOption.addEventListener("click", () => onDirectionOptionClick("defense"));
 
 		const selectsRow = document.createElement("div");
-		selectsRow.className = "damage-row-build-grid";
-		buildFields.appendChild(selectsRow);
+		selectsRow.className = "damage-build-detail-grid";
+		detailFields.appendChild(selectsRow);
 
 
 		const abilitySelect = document.createElement("select");
@@ -2440,28 +2467,11 @@ if (opponentNotesSection) {
 			onFieldInput();
 			refreshAbilityCycleButton();
 		});
-		selectsRow.appendChild(abilitySelect);
+		selectsRow.appendChild(makeDetailField("特性", abilitySelect));
 
-		const abilityCycleButton = document.createElement("button");
-		abilityCycleButton.type = "button";
-		abilityCycleButton.className = "damage-row-ability-cycle";
 		function refreshAbilityCycleButton(): void {
-			const label = abilitySelect.value || "特性なし";
-			abilityCycleButton.textContent = label;
-			abilityCycleButton.title = label;
-			// 候補が引けない種族(未入力・入力途中)では<select>もdisabledになる。
-			// 回せるものが無いのでボタン側も同じ状態にする。
-			abilityCycleButton.disabled = abilitySelect.disabled || abilitySelect.options.length <= 1;
-			abilityCycleButton.setAttribute("aria-label", `相手の特性: ${label}。タップして切り替え`);
+			refreshBuildSummary();
 		}
-		abilityCycleButton.addEventListener("click", () => {
-			const count = abilitySelect.options.length;
-			if (count === 0) return;
-			// selectedIndexは未選択のとき-1になりうるが、その場合も次は0(先頭=特性なし)になる。
-			abilitySelect.selectedIndex = (abilitySelect.selectedIndex + 1) % count;
-			abilitySelect.dispatchEvent(new Event("change", { bubbles: true }));
-		});
-		selectsRow.appendChild(abilityCycleButton);
 		refreshAbilityCycleButton();
 		// 初期描画時点(保存済みメモの復元・新規行の生成いずれも)で、既にrow.nameが
 		// 入っていれば候補を組み立てておく(左パネルのvoid rebuildAbilityOptions(...)と
@@ -2483,44 +2493,28 @@ if (opponentNotesSection) {
 			refreshItemImage();
 			onFieldInput();
 		});
-		selectsRow.appendChild(itemInput);
+		const itemField = makeDetailField("アイテム", itemInput);
+		const itemLockNote = document.createElement("span");
+		itemLockNote.className = "damage-build-detail-lock-note";
+		itemLockNote.textContent = "メガストーン固定";
+		itemLockNote.hidden = true;
+		itemField.appendChild(itemLockNote);
+		selectsRow.appendChild(itemField);
 
-		itemBadge.setAttribute("role", "button");
-		itemBadge.tabIndex = 0;
-		itemBadge.setAttribute("aria-label", "相手の持ち物を選択");
-		function beginMobileItemEdit(): void {
-			if (itemInput.disabled) return;
-			toggleMobileEdit("item");
-			if (buildEl.dataset.mobileEdit !== "item") return;
-			itemInput.focus();
-			itemInput.select();
-		}
-		itemBadge.addEventListener("click", (event) => {
-			event.stopPropagation();
-			beginMobileItemEdit();
-		});
-		itemBadge.addEventListener("keydown", (event) => {
-			if (event.key !== "Enter" && event.key !== " ") return;
-			event.preventDefault();
-			event.stopPropagation();
-			beginMobileItemEdit();
-		});
 		itemInput.addEventListener("keydown", (event) => {
 			if (event.key !== "Enter") return;
-			if (buildEl.dataset.mobileEdit !== "item") return;
+			event.preventDefault();
 			itemInput.blur();
-			delete buildEl.dataset.mobileEdit;
 		});
 
 		const megaStoneLockedTitle = "メガシンカ中はアイテムをメガストーンに固定します";
 		let rowMegaStoneAutofillToken = 0;
 		function syncItemBadgeDisabled(): void {
+			itemLockNote.hidden = !itemInput.disabled;
 			if (itemInput.disabled) {
-				itemBadge.setAttribute("aria-disabled", "true");
-				itemBadge.title = megaStoneLockedTitle;
+				itemInput.dataset.megaLocked = "true";
 			} else {
-				itemBadge.removeAttribute("aria-disabled");
-				itemBadge.removeAttribute("title");
+				delete itemInput.dataset.megaLocked;
 			}
 		}
 		async function applyRowMegaStoneAutofill(speciesName: string): Promise<void> {
@@ -2559,13 +2553,76 @@ if (opponentNotesSection) {
 			refreshTypeBadge();
 			onFieldInput();
 		});
-		selectsRow.appendChild(teraDropdown.wrap);
-		rowTeraFieldWraps.set(row, teraDropdown.wrap);
-		teraDropdown.wrap.hidden = !isTerastalRegulation(currentIndividualRegulation());
+		const teraField = makeDetailField("テラスタイプ", teraDropdown.wrap);
+		selectsRow.appendChild(teraField);
+		rowTeraFieldWraps.set(row, teraField);
+		teraField.hidden = !isTerastalRegulation(currentIndividualRegulation());
 
+		const readonlyEvGrid = document.createElement("div");
+		readonlyEvGrid.className = "damage-ev-grid damage-ev-grid-readonly";
+		buildEl.appendChild(readonlyEvGrid);
+		const readonlyCornerEl = document.createElement("span");
+		readonlyCornerEl.className = "damage-ev-corner";
+		readonlyEvGrid.appendChild(readonlyCornerEl);
+		const readonlyNatureLabels: Partial<Record<string, HTMLElement>> = {};
+		for (const key of STAT_KEYS) {
+			const label = document.createElement("span");
+			label.className = "damage-ev-col-label";
+			label.append(document.createTextNode(STAT_KANJI[key]));
+			if (key !== "hp") {
+				const indicator = document.createElement("span");
+				indicator.className = "damage-ev-nature-indicator";
+				indicator.setAttribute("aria-hidden", "true");
+				label.appendChild(indicator);
+				readonlyNatureLabels[key] = label;
+			}
+			readonlyEvGrid.appendChild(label);
+		}
+		rowReadonlyNatureLabelEls.set(row, readonlyNatureLabels);
+
+		const readonlyStatRowLabel = document.createElement("span");
+		readonlyStatRowLabel.className = "damage-ev-row-label";
+		readonlyStatRowLabel.textContent = "実数値";
+		readonlyEvGrid.appendChild(readonlyStatRowLabel);
+		const readonlyStatValueEls: Partial<Record<string, HTMLElement>> = {};
+		for (const key of STAT_KEYS) {
+			const value = document.createElement("span");
+			value.className = "damage-stat-value tnum";
+			value.textContent = "-";
+			readonlyStatValueEls[key] = value;
+			readonlyEvGrid.appendChild(value);
+		}
+		row.statValueEls = readonlyStatValueEls;
+
+		const readonlyEvRowLabel = document.createElement("span");
+		readonlyEvRowLabel.className = "damage-ev-row-label";
+		readonlyEvRowLabel.textContent = "努力値";
+		readonlyEvGrid.appendChild(readonlyEvRowLabel);
+		const readonlyEvValueEls: HTMLElement[] = [];
+		STAT_KEYS.forEach((key, i) => {
+			const value = document.createElement("span");
+			value.className = "damage-ev-value-readonly tnum";
+			value.setAttribute("aria-label", `相手の${STAT_KANJI[key]}努力値`);
+			readonlyEvGrid.appendChild(value);
+			readonlyEvValueEls[i] = value;
+		});
+		refreshReadonlyEvs = () => {
+			readonlyEvValueEls.forEach((value, i) => {
+				const ev = row.evs[i] ?? 0;
+				value.textContent = ev > 0 ? `+${ev}` : "0";
+			});
+		};
+
+		const detailStats = document.createElement("section");
+		detailStats.className = "damage-build-detail-stats";
+		const detailStatsHeading = document.createElement("h3");
+		detailStatsHeading.className = "field-label damage-build-detail-stats-heading";
+		detailStatsHeading.textContent = "性格・努力値";
+		detailStats.appendChild(detailStatsHeading);
 		const evGrid = document.createElement("div");
-		evGrid.className = "damage-ev-grid";
-		buildEl.appendChild(evGrid);
+		evGrid.className = "damage-ev-grid damage-build-detail-ev-grid";
+		detailStats.appendChild(evGrid);
+		detailForm.appendChild(detailStats);
 
 		const natureColLabelEls: Partial<Record<string, HTMLElement>> = {};
 		const evCornerEl = document.createElement("span");
@@ -2612,7 +2669,7 @@ if (opponentNotesSection) {
 			statValueEls[key] = valueSpan;
 			evGrid.appendChild(valueSpan);
 		}
-		row.statValueEls = statValueEls;
+		rowDetailStatValueEls.set(row, statValueEls);
 
 		// 3段目: 努力値入力(チャンピオンズルールの0〜32スケール)。
 		const evRowLabel = document.createElement("span");
@@ -2817,6 +2874,8 @@ if (opponentNotesSection) {
 		refreshSprite();
 		refreshTypeBadge();
 		refreshItemImage();
+		refreshBuildSummary();
+		refreshRowNatureButtons(row);
 		refreshDirectionUi();
 		renderColumnDisplays(row); // 保存済みclientResultをまず即座に表示する
 		void recalcRow(row); // エンジン初期化済みなら実数値・ダメージを再計算して上書きする
@@ -2825,10 +2884,13 @@ if (opponentNotesSection) {
 			const target = event.target as HTMLElement | null;
 			if (target?.closest("input, select, textarea, button, a, label")) return;
 			const columnEl = target?.closest<HTMLElement>(".damage-column");
-			if (!columnEl) return;
-			const idx = Number(columnEl.dataset.columnIndex);
-			const column = row.attacks[idx];
-			if (column) selectColumn(row, column);
+			if (columnEl) {
+				const idx = Number(columnEl.dataset.columnIndex);
+				const column = row.attacks[idx];
+				if (column) selectColumn(row, column);
+				return;
+			}
+			if (target?.closest(".damage-row-build")) selectBuild(row);
 		});
 
 		return root;
@@ -2948,7 +3010,7 @@ if (opponentNotesSection) {
 
 		const selectedRow = getSelectedRow();
 		const selectedColumn = getSelectedColumn();
-		if (selectedRow && selectedColumn && selectedRow.root?.parentElement === damageRowsListEl) {
+		if (selectedRow && (selectedColumn || getSelectedIsBuild()) && selectedRow.root?.parentElement === damageRowsListEl) {
 			damageDetailPanelEl.classList.remove("is-mobile-inline", "is-mobile-suggest");
 			if (damageDetailPanelOriginalParentEl) damageDetailPanelOriginalParentEl.appendChild(damageDetailPanelEl);
 			return;

@@ -46,7 +46,7 @@
 #opponent-notes-section .damage-row-build {
   border-radius: var(--radius-zero);
   background: var(--color-surface);
-  cursor: default;
+  cursor: pointer;
   flex-direction: column;
   flex: 0 340px;
   gap: .15rem;
@@ -54,6 +54,47 @@
   max-width: 100%;
   padding: .35rem .6rem;
   display: flex;
+}
+
+#opponent-notes-section .damage-row-build.is-selected {
+  box-shadow: 0 0 0 1px var(--color-primary), var(--shadow-sm);
+}
+
+#opponent-notes-section .damage-build-readonly-name-row,
+#opponent-notes-section .damage-build-readonly-field {
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-1);
+}
+
+#opponent-notes-section .damage-build-readonly-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--font-size-sm2);
+  font-weight: 600;
+}
+
+#opponent-notes-section .damage-build-readonly-fields {
+  display: grid;
+  gap: var(--space-1);
+}
+
+#opponent-notes-section .damage-build-readonly-label {
+  flex: none;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm3);
+}
+
+#opponent-notes-section .damage-build-readonly-value {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--color-text);
+  font-size: var(--font-size-sm2);
 }
 
 #opponent-notes-section .damage-row-build-main {
@@ -493,6 +534,15 @@
 
 #opponent-notes-section .damage-stat-value[data-mod="down"] {
   color: var(--color-stat-down);
+}
+
+#opponent-notes-section .damage-ev-value-readonly {
+  display: block;
+  min-width: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm2);
+  line-height: var(--line-height-tight);
+  text-align: center;
 }
 
 #opponent-notes-section .damage-row-condition-chips {
@@ -1463,6 +1513,26 @@
     padding-right: 36px;
   }
 
+  #opponent-notes-section .card-damage .damage-build-readonly-name-row {
+    flex: 1 1 auto;
+    order: 2;
+  }
+
+  #opponent-notes-section .card-damage .damage-build-readonly-fields {
+    grid-template-columns: minmax(0, 1fr);
+    flex: 1 0 100%;
+    order: 3;
+    min-width: 0;
+  }
+
+  #opponent-notes-section .card-damage .damage-build-readonly-field {
+    gap: var(--space-1);
+  }
+
+  #opponent-notes-section .card-damage .damage-type-badge {
+    display: flex;
+  }
+
   #opponent-notes-section .card-damage .damage-row-build-fields, #opponent-notes-section .card-damage .damage-row-build-grid {
     display: contents;
   }
@@ -1634,7 +1704,7 @@
   }
 
   #opponent-notes-section .card-damage .damage-item-badge {
-    cursor: pointer;
+    cursor: inherit;
   }
 
   #opponent-notes-section .card-damage .damage-item-badge[hidden] {

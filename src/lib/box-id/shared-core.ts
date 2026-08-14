@@ -403,6 +403,8 @@ export interface DamageCalcBridge {
 	refreshColumnDisplay: (row: DamageRowState, column: DamageColumnState) => void;
 	renderDetailPanelEmpty: () => void;
 	renderColumnLevelDetailPanel: (row: DamageRowState, column: DamageColumnState) => void;
+	renderBuildDetailPanel: (row: DamageRowState) => void;
+	getBuildDetailForm: (row: DamageRowState) => HTMLElement | null;
 	openDetailPanelOverlayIfNarrow: () => void;
 }
 let damageCalcBridge: DamageCalcBridge | null = null;
@@ -428,6 +430,10 @@ export function getDamageColumnMultiHitRange(moveName: string): Promise<[number,
 
 export function refreshDamageColumnDisplay(row: DamageRowState, column: DamageColumnState): void {
 	damageCalcBridge!.refreshColumnDisplay(row, column);
+}
+
+export function getDamageBuildDetailForm(row: DamageRowState): HTMLElement | null {
+	return damageCalcBridge!.getBuildDetailForm(row);
 }
 
 // 耐久調整ポップアップ(src/lib/box-id/bulk-adjust.ts 等)は「防御(相手→自分)方向の
@@ -519,6 +525,7 @@ export function refreshRowConditionChips(row: DamageRowState): void {
 // 経由するよう書き換えている)。
 let selectedRow: DamageRowState | null = null;
 let selectedColumn: DamageColumnState | null = null;
+let selectedIsBuild = false;
 
 export function getSelectedRow(): DamageRowState | null {
 	return selectedRow;
@@ -526,13 +533,25 @@ export function getSelectedRow(): DamageRowState | null {
 export function getSelectedColumn(): DamageColumnState | null {
 	return selectedColumn;
 }
+export function getSelectedIsBuild(): boolean {
+	return selectedIsBuild;
+}
 export function clearSelection(): void {
 	selectedRow = null;
 	selectedColumn = null;
+	selectedIsBuild = false;
 }
 
 export function renderDetailPanel(): void {
-	if (!selectedRow || !selectedColumn) {
+	if (!selectedRow) {
+		damageCalcBridge!.renderDetailPanelEmpty();
+		return;
+	}
+	if (selectedIsBuild) {
+		damageCalcBridge!.renderBuildDetailPanel(selectedRow);
+		return;
+	}
+	if (!selectedColumn) {
 		damageCalcBridge!.renderDetailPanelEmpty();
 		return;
 	}
@@ -544,8 +563,8 @@ export function renderDetailPanel(): void {
 // ため非exportのままこのファイルに置く(単体でDOM操作するだけの自己完結した処理で、
 // ダメージ計算/右サイドの他の関数への依存が無いため、ブリッジ経由にせずそのまま移設できた)。
 function clearSelectionMarks(row: DamageRowState): void {
-	row.columnsEl?.querySelectorAll<HTMLElement>(".damage-column.is-selected").forEach((columnEl) => {
-		columnEl.classList.remove("is-selected");
+	row.root?.querySelectorAll<HTMLElement>(".damage-column.is-selected, .damage-row-build.is-selected").forEach((selectedEl) => {
+		selectedEl.classList.remove("is-selected");
 	});
 }
 
@@ -563,7 +582,23 @@ export function selectColumn(row: DamageRowState, column: DamageColumnState): vo
 	clearSelectionMarks(row);
 	selectedRow = row;
 	selectedColumn = column;
+	selectedIsBuild = false;
 	applySelectionMarks(row, column);
+	renderDetailPanel();
+	damageCalcBridge!.openDetailPanelOverlayIfNarrow();
+}
+
+export function applyBuildSelectionMark(row: DamageRowState): void {
+	row.root?.querySelector<HTMLElement>(".damage-row-build")?.classList.add("is-selected");
+}
+
+export function selectBuild(row: DamageRowState): void {
+	if (selectedRow && selectedRow !== row) clearSelectionMarks(selectedRow);
+	clearSelectionMarks(row);
+	selectedRow = row;
+	selectedColumn = null;
+	selectedIsBuild = true;
+	applyBuildSelectionMark(row);
 	renderDetailPanel();
 	damageCalcBridge!.openDetailPanelOverlayIfNarrow();
 }
