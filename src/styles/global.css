@@ -5,7 +5,6 @@
 
   --color-bg: #f3f4f8;
   --color-surface: #ffffff;
-  --color-surface-alt: #f8f9fc;
   --color-border: #e3e6ee;
   --color-text: #1f2430;
 
@@ -80,7 +79,6 @@
   :root {
     --color-bg: #14161d;
     --color-surface: #1c1f28;
-    --color-surface-alt: #22252f;
     --color-border: #2d313d;
     --color-text: #e7e9ee;
     --color-text-muted: #9aa1b0;
@@ -304,7 +302,7 @@ a {
 }
 
 .card {
-  background: var(--color-surface-alt);
+  background: var(--color-surface);
   border: 0px solid var(--color-border);
   border-radius: var(--radius-zero);
   padding: var(--space-3);
@@ -315,19 +313,32 @@ a {
     background-color 0.18s ease;
 }
 
-.card:hover,
 .card:focus-within {
   box-shadow: var(--shadow-md);
   background: color-mix(
     in srgb,
-    var(--color-surface-alt) 90%,
+    var(--color-surface) 90%,
     var(--color-primary) 10%
   );
 }
 
-.card:not(.is-selected):hover,
 .card:not(.is-selected):focus-within {
   border-color: var(--color-primary);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .card:hover {
+    box-shadow: var(--shadow-md);
+    background: color-mix(
+      in srgb,
+      var(--color-surface) 90%,
+      var(--color-primary) 10%
+    );
+  }
+
+  .card:not(.is-selected):hover {
+    border-color: var(--color-primary);
+  }
 }
 
 .card.is-selected {
@@ -667,7 +678,7 @@ input[type="range"]:focus-visible::-moz-range-thumb {
 
 .sprite-icon {
   border-radius: 50%;
-  background: var(--color-surface-alt);
+  background: var(--color-bg);
   object-fit: contain;
   flex-shrink: 0;
 }
@@ -785,8 +796,14 @@ a.btn-ghost:focus-visible {
   outline-offset: 2px;
 }
 
-button:hover:not(:disabled) {
-  background: var(--color-surface-alt);
+@media (hover: hover) and (pointer: fine) {
+  button:hover:not(:disabled) {
+    background: color-mix(
+      in srgb,
+      var(--color-surface) 90%,
+      var(--color-primary) 10%
+    );
+  }
 }
 
 button:disabled {
@@ -846,9 +863,15 @@ a.btn-ghost {
   color: var(--color-text-muted);
 }
 
-button.btn-ghost:hover:not(:disabled),
-a.btn-ghost:hover {
-  background: var(--color-surface-alt);
+@media (hover: hover) and (pointer: fine) {
+  button.btn-ghost:hover:not(:disabled),
+  a.btn-ghost:hover {
+    background: color-mix(
+      in srgb,
+      var(--color-surface) 90%,
+      var(--color-primary) 10%
+    );
+  }
 }
 
 .sort-dir-toggle {
@@ -867,9 +890,15 @@ a.btn-ghost:hover {
   padding: var(--space-2) var(--space-3);
 }
 
-.sort-dir-toggle:hover:not(:disabled) {
-  background: var(--color-surface-alt);
-  color: var(--color-text);
+@media (hover: hover) and (pointer: fine) {
+  .sort-dir-toggle:hover:not(:disabled) {
+    background: color-mix(
+      in srgb,
+      var(--color-surface) 90%,
+      var(--color-primary) 10%
+    );
+    color: var(--color-text);
+  }
 }
 
 .sort-dir-toggle:focus-visible {
@@ -1029,7 +1058,7 @@ input[type="checkbox"].toggle-switch-input {
 }
 
 .badge.badge-muted {
-  background: var(--color-surface-alt);
+  background: var(--color-bg);
   color: var(--color-text-muted);
 }
 
@@ -1088,7 +1117,7 @@ input[type="checkbox"].toggle-switch-input {
   color: var(--color-success-strong);
 }
 .severity-bar[data-severity="none"] {
-  background: var(--color-surface-alt);
+  background: var(--color-bg);
   border-left-color: var(--color-border);
   color: var(--color-text-muted);
   font-weight: 500;
@@ -1130,7 +1159,7 @@ td:first-child {
 }
 
 th {
-  background: var(--color-surface-alt);
+  background: var(--color-bg);
   font-weight: 700;
   font-size: var(--font-size-sm2);
   color: var(--color-text-muted);
