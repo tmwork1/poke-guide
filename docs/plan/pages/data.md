@@ -274,6 +274,6 @@ Playwrightで実測すると、カード右端(x=310)とレール左端(x=346)�
 | 10 | 横スクロールなし | ✅ pass | Playwright実測: `scrollWidth - innerWidth = 0`(1920px) |
 
 ### スコープ外に落としたもの(将来やるなら何から)
-- `matchesBuildSearch`(特性/アイテム/技検索)の追加。
-- `/ranked-teams`との統合(重複整理)。
+- `matchesBuildSearch`(特性/アイテム/技検索)の追加。**2026-08-14時点でも未移植**(`/ranked-teams`廃止時にユーザー承認済みの機能差。`docs/plan/pages/ranked-teams.md`参照)。
+- ~~`/ranked-teams`との統合(重複整理)~~ → **2026-08-14に実施**: `/ranked-teams`を301リダイレクト専用ページに置き換え、`/data`側にタブのディープリンク(`?tab=top-builds`、`src/lib/data-hub-tabs.ts`の`DATA_HUB_TABS`インデックスに対応)を追加。ホーム画面の「上位チーム」カードもこのURLを指す。
 - `.battle-data-panel .panel-content`の同根の`max-width: 1080px`制約(上記「Coordinatorが発見し追加修正したバグ」参照。指摘があれば`.top-builds-panel`と同じ1行で直せる)。

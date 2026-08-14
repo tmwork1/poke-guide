@@ -1,5 +1,7 @@
 # 上位構築(`/ranked-teams`)
 
+**⚠️ 廃止(2026-08-14)**: このページ(独立ルート `/ranked-teams`)はユーザー指示により廃止した。同等機能は `/data` の「上位チーム」タブ(`/data?tab=top-builds`)に統合済み(`docs/plan/pages/data.md`)。旧URLは `/data?tab=top-builds` への301リダイレクトのみが残る(`src/pages/ranked-teams/index.astro`)。構築内容(特性・アイテム・技)検索と件数バッジは統合先に移植していない(ユーザー承認済みの機能差)。ホーム画面の「上位チーム」カードも `/data?tab=top-builds` を指す(`docs/plan/pages/home.md`)。以下は廃止前の記録として残す。
+
 `new-page` skill の状態保存先。**このファイルが仕様・設計・受け入れ基準・実施結果の唯一の正。**
 
 ワイヤーフレーム: `docs/ui_proposal/上位構築.png`(唯一。このページに関係する他の提案図は無い)
