@@ -524,7 +524,7 @@ try {
 
 		/* 「帯状の背景色付きセクション見出し」クラスは他画面に見当たらなかった
 		   (global.cssの.panel-topは区切り線のみで背景色を持たない)ため、既存トークンだけを
-		   使って新規に作る(新しい色は増やさない: 背景は--color-surface-alt、区切り線は
+		   使って新規に作る(新しい色は増やさない: 背景は--color-bg、区切り線は
 		   --panel-topと同じ--color-border)。
 		   .team-preview-panelは.panelの既定padding(var(--space-6) var(--space-5))を継承する
 		   ため、この帯だけを画面(パネル)端まで伸ばす帯にするには同じ値の負マージンで打ち消し、
@@ -533,7 +533,7 @@ try {
 		.team-panel-header-band {
 			margin: calc(var(--space-6) * -1) calc(var(--space-5) * -1) var(--space-3) calc(var(--space-5) * -1);
 			padding: var(--space-3) var(--space-5);
-			background: var(--color-surface-alt);
+			background: var(--color-bg);
 			border-bottom: 1px solid var(--color-border);
 		}
 		.team-panel-header-band[hidden] { display: none; }
@@ -1519,12 +1519,12 @@ try {
 			padding: 0;
 			border-radius: 999px;
 			border: 1px solid var(--color-border);
-			background: var(--color-surface);
+			background: var(--color-bg);
 			color: var(--color-text-muted);
 			box-shadow: var(--shadow-sm);
 		}
 		.team-slots .slot-edit-link:hover {
-			background: var(--color-surface-alt);
+			background: var(--color-surface);
 			color: var(--color-primary);
 		}
 
@@ -1860,7 +1860,7 @@ try {
 			width: 35px;
 			height: 35px;
 			border-radius: 50%;
-			background: var(--color-surface-alt);
+			background: var(--color-bg);
 			color: var(--color-text-muted);
 			font-size: var(--font-size-sm3);
 			align-items: center;
@@ -1927,7 +1927,7 @@ try {
 			flex: none;
 			padding: 0 0.35em;
 			border-radius: var(--radius-sm);
-			background: var(--color-surface-alt);
+			background: var(--color-bg);
 		}
 		/* 特性だけは型の識別子ではなく最頻値からの推定(migrations/018)。持ち物・役割と同じ
 		   見た目だと確定情報に見えるため、点線の下線で「推定」であることを示す。 */
@@ -2033,7 +2033,7 @@ try {
 		}
 		.team-matchup-card[data-state="pending"],
 		.team-matchup-card[data-state="unknown"] {
-			background: var(--color-surface-alt);
+			background: var(--color-surface);
 		}
 		/* 枠はクリックした相手を示す選択状態にだけ使う。 */
 		.team-matchup-card.is-selected {
@@ -2059,7 +2059,7 @@ try {
 			width: 32px;
 			height: 32px;
 			border-radius: 50%;
-			background: var(--color-surface-alt);
+			background: var(--color-bg);
 			color: var(--color-text-muted);
 			font-size: var(--font-size-sm3);
 			align-items: center;
