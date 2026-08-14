@@ -5,6 +5,7 @@
 /* ページ全体: .page.box-shell */
 .box-shell {
   min-height: 100dvh;
+  --box-second-bar-gap: var(--space-2);
 }
 
 /* ページ見出し: h1.box-page-title（一覧はカードを先頭から表示するため非表示） */
@@ -15,6 +16,7 @@
 /* 検索入力の幅: .toolbar-search > .search-input-wrap > input#search-input */
 /* カード一覧の余白: .box-content（上下左右を共通の edge gap にする） */
 .box-content {
+  margin-top: var(--box-second-bar-gap);
   padding: var(--box-grid-edge-gap);
 }
 
