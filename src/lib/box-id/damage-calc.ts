@@ -56,8 +56,6 @@ import {
 	flashAutofillHint,
 	natureNameFromBoosts,
 	normalizedNatureBoosts,
-	toggleNatureUp,
-	toggleNatureDown,
 	buildAttackerSpec,
 	recalcStats,
 	baseStatsMapPromise,
@@ -77,10 +75,14 @@ import {
 	applySelectionMarks,
 	applyBuildSelectionMark,
 	clearSelectionAndMarks,
-	wrapToRange,
 	type DamageRowState,
 	type DamageColumnState,
 } from "./shared-core";
+import {
+	buildStatAdjustmentPanel,
+	type StatAdjustmentPanel,
+	type StatAdjustmentPanelOptions,
+} from "./stat-adjustment-panel";
 import {
 	deselectRowIfCurrent,
 	renderDetailPanelEmpty,
@@ -190,48 +192,6 @@ const UNSUPPORTED_LETHAL_TOTAL_NOTE_ALL =
 const STATUS_MOVE_TOTAL_NOTE_ALL = "技列がすべて変化技のため、合計のダメージを算出できません。";
 const STATUS_AND_UNSUPPORTED_TOTAL_NOTE_ALL =
 	"技列がすべて変化技または「はきだす」のため、合計のダメージを算出できません。";
-
-// 相手ビルドカードのH/A/B/C/D/S見出しをクリックすると無補正→上昇→下降→無補正と
-// 3循環させる。状態機械を作り直すのではなく、上のtoggleNatureUp/toggleNatureDown
-// (左パネルと共有)にそのまま委譲する薄いラッパーにする。
-//
-// 【この3循環の罠】性格補正は上昇・下降の両方が揃って初めて有効になる(片方だけの状態は
-// 実在しない性格になるため normalizedNatureBoosts が「まじめ」へ正規化する。shared-core.ts
-// 参照)。ところがこの3循環では、ある列を「無補正→上昇」に進めるたびに natureUp が
-// 無条件でその列へ移るため、
-//   A を1回押す → A▲(natureUp=atk)
-//   C を1回押す → C▲(natureUp=spa。★ここで A の▲が消える)
-//   C をもう1回 → C▼(natureUp=null, natureDown=spa)
-// となり、2つ目の列を▼にしようとすると必ず1つ目の▲を通り道で壊してしまう。結果として
-// 「上昇と下降が同時に立っている状態」をこのUIからは一度も作れず、実数値も確N表示も
-// 永遠に無補正のままになる(既存データに入っているA▲/C▼の組み合わせは、別UIで
-// 保存されたもの)。
-//
-// 【直し方】列Xが「無補正→上昇」へ進むときに、Xが押しのけた直前の上昇保持者を覚えておき、
-// 同じ列Xが「上昇→下降」へ進んだ瞬間に元の保持者へ戻す。上のシナリオは
-//   A▲ → (C 1回目) C▲ ※Aを退避 → (C 2回目) A▲ + C▼
-// となり、3循環の定義(1列だけを見れば 無補正→上昇→下降→無補正)は一切変えずに
-// 「上昇1つ・下降1つ」の正しい性格へ到達できる。
-// 退避は「同じ列を続けて押している間」だけ有効な一時状態なので、行ごとに1件だけ持ち、
-// 使ったら捨てる(行の寿命に紐づけるためWeakMap)。
-const evictedNatureUpByCycle = new WeakMap<DamageRowState, { by: StatKey; previous: StatKey | null }>();
-function cycleColumnNature(row: DamageRowState, key: StatKey): void {
-	const evicted = evictedNatureUpByCycle.get(row);
-	evictedNatureUpByCycle.delete(row);
-	if (row.natureUp === key) {
-		// 上昇→下降。この列が押しのけた保持者が居るなら、その列の上昇を復元する
-		// (居なければ従来どおり上昇なしになる)。
-		row.natureUp = evicted?.by === key ? evicted.previous : toggleNatureUp(row.natureUp, key);
-		row.natureDown = toggleNatureDown(row.natureDown, key);
-	} else if (row.natureDown === key) {
-		row.natureDown = toggleNatureDown(row.natureDown, key);
-	} else {
-		// 無補正→上昇。押しのける相手が居るときだけ退避する。
-		if (row.natureUp !== null) evictedNatureUpByCycle.set(row, { by: key, previous: row.natureUp });
-		row.natureUp = toggleNatureUp(row.natureUp, key);
-	}
-	row.nature = natureNameFromBoosts(row.natureUp, row.natureDown);
-}
 
 // 構造分割ラウンド(フェーズ2)でこのファイル先頭へ引き上げた6つ(right-panel.tsへexportするため。
 // 上のファイル冒頭コメント参照)。
@@ -363,7 +323,10 @@ const opponentNotesSection = document.getElementById("opponent-notes-section");
 if (opponentNotesSection) {
 	const ownedPokemonId = opponentNotesSection.dataset.ownedPokemonId ?? "";
 	const rowBuildDetailForms = new WeakMap<DamageRowState, HTMLElement>();
-	const rowDetailStatValueEls = new WeakMap<DamageRowState, Partial<Record<string, HTMLElement>>>();
+	const rowStatAdjustmentPanels = new WeakMap<DamageRowState, {
+		panel: StatAdjustmentPanel;
+		options: StatAdjustmentPanelOptions;
+	}>();
 	const rowReadonlyNatureLabelEls = new WeakMap<DamageRowState, Partial<Record<string, HTMLElement>>>();
 
 	// #regulation(LeftPanel.astro/left-panel.ts)はこのファイルからは値を読むだけに留め、
@@ -1216,14 +1179,21 @@ if (opponentNotesSection) {
 	async function recalcRowStatsOnly(row: DamageRowState): Promise<void> {
 		const name = row.name.trim();
 		const base = name ? (await baseStatsMapPromise).get(name) : undefined;
+		const panelState = rowStatAdjustmentPanels.get(row);
+		if (panelState) {
+			panelState.options.evs = row.evs;
+			panelState.options.nature = row.nature;
+			panelState.options.natureUp = row.natureUp;
+			panelState.options.natureDown = row.natureDown;
+			panelState.options.baseStats.splice(0, panelState.options.baseStats.length, ...(base ?? []));
+			panelState.panel.refresh();
+		}
 		if (!base) {
 			for (const key of STAT_KEYS) {
-				const targets = [row.statValueEls[key], rowDetailStatValueEls.get(row)?.[key]];
-				for (const target of targets) {
-					if (!target) continue;
-					target.textContent = "-";
-					delete target.dataset.mod;
-				}
+				const target = row.statValueEls[key];
+				if (!target) continue;
+				target.textContent = "-";
+				delete target.dataset.mod;
 			}
 			return;
 		}
@@ -1233,19 +1203,17 @@ if (opponentNotesSection) {
 		// (保存されるnatureと表示を一致させるため)。
 		const natureMod = normalizedNatureBoosts(row.natureUp, row.natureDown);
 		STAT_KEYS.forEach((key, i) => {
-			const targets = [row.statValueEls[key], rowDetailStatValueEls.get(row)?.[key]];
+			const target = row.statValueEls[key];
 			const mod = natureMod.up === key ? "up" : natureMod.down === key ? "down" : null;
 			const iv = 31;
 			const ev = row.evs[i] ?? 0;
 			const value = key === "hp"
 				? calcHpStat(level, base[i], iv, ev)
 				: calcOtherStat(level, base[i], iv, ev, mod === "up" ? 1.1 : mod === "down" ? 0.9 : 1.0);
-			for (const target of targets) {
-				if (!target) continue;
-				target.textContent = String(value);
-				if (mod) target.dataset.mod = mod;
-				else delete target.dataset.mod;
-			}
+			if (!target) return;
+			target.textContent = String(value);
+			if (mod) target.dataset.mod = mod;
+			else delete target.dataset.mod;
 			// row.natureColLabelEls[key]の見た目(data-mod・▲▼インジケータ・aria-label/title)は
 			// クリック直後の「生の状態」(row.natureUp/row.natureDown)を反映する
 			// refreshRowNatureButtons()が単独で担当する。ここ(recalcRowStatsOnly)は
@@ -2365,7 +2333,7 @@ if (opponentNotesSection) {
 		// タイミングでのみ特性候補を作り直す(理由は上のabilitySelectコメント参照)。
 		// 同じタイミングで、種族ごとのローカルプリセット(性格・特性・
 		// 持ち物・テラス・努力値)の自動適用も試みる(applyOpponentBuildPresetは同期関数。
-		// 下方でabilitySelect/itemInput/teraDropdown/evInputEls定義後に関数宣言するが、
+		// 下方でabilitySelect/itemInput/teraDropdown/statPanel定義後に関数宣言するが、
 		// 関数宣言はホイストされ、実行時(=ユーザーが種族名を確定した後)には既に
 		// 全て初期化済みのため、rebuildRowAbilityOptions/applyRowMegaStoneAutofillと
 		// 同じ理由で呼び出し位置がここでも問題ない)。
@@ -2665,152 +2633,27 @@ if (opponentNotesSection) {
 		detailStatsHeading.className = "field-label damage-build-detail-stats-heading";
 		detailStatsHeading.textContent = "性格・努力値";
 		detailStats.appendChild(detailStatsHeading);
-		const evGrid = document.createElement("div");
-		evGrid.className = "damage-ev-grid damage-build-detail-ev-grid";
-		detailStats.appendChild(evGrid);
+		const statPanelOptions: StatAdjustmentPanelOptions = {
+			baseStats: [],
+			evs: row.evs,
+			nature: row.nature,
+			natureUp: row.natureUp,
+			natureDown: row.natureDown,
+			onChange: () => {
+				row.evs = statPanelOptions.evs;
+				row.nature = statPanelOptions.nature;
+				row.natureUp = statPanelOptions.natureUp;
+				row.natureDown = statPanelOptions.natureDown;
+				refreshRowNatureButtons(row);
+				onFieldInput();
+			},
+		};
+		const statPanel = buildStatAdjustmentPanel(statPanelOptions);
+		rowStatAdjustmentPanels.set(row, { panel: statPanel, options: statPanelOptions });
+		detailStats.appendChild(statPanel.root);
 		detailForm.appendChild(detailStats);
 
-		const natureColLabelEls: Partial<Record<string, HTMLElement>> = {};
-		const evCornerEl = document.createElement("span");
-		evCornerEl.className = "damage-ev-corner";
-		evGrid.appendChild(evCornerEl);
-		for (const key of STAT_KEYS) {
-			if (key === "hp") {
-				const label = document.createElement("span");
-				label.className = "damage-ev-col-label";
-				label.textContent = STAT_KANJI[key];
-				evGrid.appendChild(label);
-				continue;
-			}
-			const cycleBtn = document.createElement("button");
-			cycleBtn.type = "button";
-			cycleBtn.className = "damage-ev-col-label damage-ev-nature-cycle";
-			const letter = document.createTextNode(STAT_KANJI[key]);
-			const indicator = document.createElement("span");
-			indicator.className = "damage-ev-nature-indicator";
-			indicator.setAttribute("aria-hidden", "true");
-			cycleBtn.append(letter, indicator);
-			cycleBtn.addEventListener("click", () => {
-				cycleColumnNature(row, key);
-				refreshRowNatureButtons(row);
-				void recalcRowStatsOnly(row);
-				onFieldInput();
-			});
-			evGrid.appendChild(cycleBtn);
-			natureColLabelEls[key] = cycleBtn;
-		}
-		row.natureColLabelEls = natureColLabelEls;
-		refreshRowNatureButtons(row);
-
-		// 2段目: 実数値(性格による上昇/下降は文字色で表現する)。
-		const statRowLabel = document.createElement("span");
-		statRowLabel.className = "damage-ev-row-label";
-		statRowLabel.textContent = "実数値";
-		evGrid.appendChild(statRowLabel);
-		const statValueEls: Partial<Record<string, HTMLElement>> = {};
-		for (const key of STAT_KEYS) {
-			const valueSpan = document.createElement("span");
-			valueSpan.className = "damage-stat-value tnum";
-			valueSpan.textContent = "-";
-			statValueEls[key] = valueSpan;
-			evGrid.appendChild(valueSpan);
-		}
-		rowDetailStatValueEls.set(row, statValueEls);
-
-		// 3段目: 努力値入力(チャンピオンズルールの0〜32スケール)。
-		const evRowLabel = document.createElement("span");
-		evRowLabel.className = "damage-ev-row-label";
-		evRowLabel.textContent = "努力値";
-		evGrid.appendChild(evRowLabel);
-		const evInputEls: HTMLInputElement[] = [];
-		const evTextRefreshers: Array<() => void> = [];
-		STAT_KEYS.forEach((key, i) => {
-			const cell = document.createElement("span");
-			cell.className = "damage-ev-cell";
-
-			const input = document.createElement("input");
-			input.type = "number";
-			input.className = "tnum";
-			input.step = "1";
-			input.value = String(row.evs[i] ?? 0);
-			input.setAttribute("aria-label", `相手の${STAT_KANJI[key]}努力値(0〜32)`);
-
-			// 表示専用の読み取り(0は「0」、1以上は「+32」形式)。
-			const valueText = document.createElement("button");
-			valueText.type = "button";
-			valueText.className = "damage-ev-value-text tnum";
-			function refreshEvText(): void {
-				const ev = row.evs[i] ?? 0;
-				valueText.textContent = ev > 0 ? `+${ev}` : "0";
-				valueText.setAttribute(
-					"aria-label",
-					`相手の${STAT_KANJI[key]}努力値 ${ev}。タップして編集`,
-				);
-			}
-			refreshEvText();
-			evTextRefreshers.push(refreshEvText);
-
-			input.addEventListener("input", () => {
-				const n = Number(input.value);
-				const wrapped = Number.isFinite(n) ? wrapToRange(Math.round(n), 0, 32) : 0;
-				input.value = String(wrapped);
-				row.evs[i] = wrapped;
-				refreshEvText();
-				onFieldInput();
-			});
-			// タップ(クリック)でこのセルだけ入力欄に切り替える。切り替えはCSSの
-			// [data-editing="true"] だけで表現し、実体のinputは常にDOMに存在させたままにする
-			// (既存の自動保存契約 row.evs / evInputEls への書き戻しに一切影響させないため)。
-			valueText.addEventListener("click", () => {
-				cell.dataset.editing = "true";
-				input.focus();
-				input.select();
-			});
-			input.addEventListener("blur", () => {
-				delete cell.dataset.editing;
-			});
-
-			function stepEv(next: number): void {
-				input.value = String(clampInt(next, 0, 32));
-				input.dispatchEvent(new Event("input", { bubbles: true }));
-			}
-			function makeEvStepButton(label: string, ariaLabel: string, compute: () => number): HTMLButtonElement {
-				const button = document.createElement("button");
-				button.type = "button";
-				button.className = "damage-ev-step-button";
-				button.textContent = label;
-				button.setAttribute("aria-label", `相手の${STAT_KANJI[key]}努力値を${ariaLabel}`);
-				// ⚠️ 編集モードを閉じるのは input の blur(下記)なので、押した瞬間に
-				// フォーカスが外れると1回目のタップだけが無効になる。mousedownの既定動作
-				// (フォーカス移動)を止めて、入力欄にフォーカスを残したまま押せるようにする。
-				button.addEventListener("mousedown", (event) => event.preventDefault());
-				button.addEventListener("click", () => stepEv(compute()));
-				return button;
-			}
-			const evMinButton = makeEvStepButton("MIN", "0にする", () => 0);
-			const evDecButton = makeEvStepButton("−", "1減らす", () => (row.evs[i] ?? 0) - 1);
-			const evIncButton = makeEvStepButton("+", "1増やす", () => (row.evs[i] ?? 0) + 1);
-			const evMaxButton = makeEvStepButton("MAX", "最大(32)にする", () => 32);
-
-			// ⚠️ 操作行(4ボタン+入力欄)は必ずこの専用ラッパーに入れ、セル自身は
-			// グリッドのフローに残すこと。セル自体をposition:absoluteにすると、そのセルが
-			// グリッドの自動配置から抜けて後続セル(残り5個の努力値と実数値の6個)が
-			// 1列ずつ前へ詰め、実数値のHが努力値行へ吸い上げられる(実測で再現)。
-			// ラッパーは既定display:contents(=箱を作らない)なので、デスクトップの
-			// 「セルの中に入力欄1個」という構造は従来のまま変わらない。
-			const editor = document.createElement("span");
-			editor.className = "damage-ev-editor";
-			// DOM順がそのまま並び順になる(編集中はCSSでflex行)。左に MIN・−、右に +・MAX。
-			editor.append(evMinButton, evDecButton, input, evIncButton, evMaxButton);
-			cell.append(editor, valueText);
-			evGrid.appendChild(cell);
-			evInputEls.push(input);
-		});
-		/** 努力値を外部(プリセット適用など)から書き換えたときに表示テキストを追随させる。 */
-		function refreshAllEvTexts(): void {
-			for (const refresh of evTextRefreshers) refresh();
-		}
-
+		// 相手ビルドのプリセット適用は、このパネルの同一インスタンスへ同期する。
 		function applyOpponentBuildPreset(speciesName: string): void {
 			const trimmed = speciesName.trim();
 			if (trimmed === "") return;
@@ -2824,7 +2667,12 @@ if (opponentNotesSection) {
 			row.abilityName = preset.abilityName;
 			row.itemName = preset.itemName;
 			row.teraType = preset.teraType;
-			row.evs = [...preset.evs];
+			row.evs.splice(0, row.evs.length, ...preset.evs);
+			statPanelOptions.evs = row.evs;
+			statPanelOptions.nature = row.nature;
+			statPanelOptions.natureUp = row.natureUp;
+			statPanelOptions.natureDown = row.natureDown;
+			statPanel.refresh();
 
 			refreshRowNatureButtons(row);
 
@@ -2850,12 +2698,6 @@ if (opponentNotesSection) {
 
 			teraDropdown.setValue(row.teraType);
 			refreshTypeBadge();
-
-			STAT_KEYS.forEach((_key, i) => {
-				const evInput = evInputEls[i];
-				if (evInput) evInput.value = String(row.evs[i] ?? 0);
-			});
-			refreshAllEvTexts();
 
 			onFieldInput();
 		}
