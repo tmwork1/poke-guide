@@ -44,7 +44,6 @@
 }
 
 #opponent-notes-section .damage-row-build {
-  border: 1px solid var(--color-border);
   border-radius: var(--radius-zero);
   background: var(--color-surface);
   cursor: default;
@@ -518,7 +517,6 @@
 }
 
 #opponent-notes-section .damage-row-total {
-  border: 1px solid var(--color-border);
   border-radius: var(--radius-zero);
   padding: var(--space-1);
   background: var(--color-surface);
@@ -648,7 +646,7 @@
 
 /* 技カラムとダメージ結果 */
 #opponent-notes-section .damage-row-columns-wrap {
-  gap: var(--space-2);
+  gap: var(--space-1);
   flex-direction: column;
   min-width: 0;
   max-width: calc(100% - 40px);
@@ -656,7 +654,7 @@
 }
 
 #opponent-notes-section .damage-row-columns {
-  gap: var(--space-2);
+  gap: var(--space-1);
   flex-direction: column;
   min-width: 0;
   display: flex;
@@ -674,7 +672,6 @@
 }
 
 #opponent-notes-section .damage-column {
-  border: 1px solid var(--color-border);
   border-radius: var(--radius-zero);
   width: 100%;
   padding: .16rem var(--space-2);
@@ -882,27 +879,25 @@
 
 #opponent-notes-section .damage-add-column-button {
   width: 100%;
-  padding: .4rem var(--space-2);
+  padding: .16rem var(--space-2);
   line-height: var(--line-height-snug);
   min-height: 3.1rem;
   font-size: var(--font-size-sm2);
-  border: 1px dashed var(--color-border);
-  background: var(--color-bg);
+  background: var(--color-surface);
   color: var(--color-text-muted);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-zero);
   justify-content: center;
   align-items: center;
+  text-align: center;
   gap: .35em;
   font-weight: 600;
-  transition: background .15s, color .15s, border-color .15s;
+  transition: background .15s, color .15s;
   display: flex;
 }
 
 #opponent-notes-section .damage-add-column-button:hover:not(:disabled) {
-  border-color: var(--color-primary);
   color: var(--color-primary);
   background: var(--color-primary-soft);
-  border-style: solid;
 }
 
 #opponent-notes-section .damage-add-column-button:disabled {
@@ -1300,16 +1295,6 @@
   overflow: hidden;
 }
 
-@media (prefers-color-scheme: dark) {
-  #opponent-notes-section .damage-row-build {
-    border-color: #5a6377;
-  }
-
-  #opponent-notes-section .damage-column {
-    border-color: var(--color-border);
-  }
-}
-
 @media (width >= 0) {
   #opponent-notes-section .box-add-button {
     position: fixed;
@@ -1329,8 +1314,8 @@
   }
 
   #opponent-notes-section .damage-row-techniques-row {
-    column-gap: var(--space-2);
-    row-gap: var(--space-2);
+    column-gap: var(--space-1);
+    row-gap: var(--space-1);
     grid-template-columns: 1fr 1fr;
     align-items: stretch;
     width: 100%;
