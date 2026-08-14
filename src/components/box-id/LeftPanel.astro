@@ -469,13 +469,14 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		}
 		.stat-row .stat-ev-step-button[data-ev-step="1"] { order: 4; }
 		.stat-row .stat-ev-endpoint-button[data-ev-toggle] { order: 5; }
-		/* 入力面より一段高いsurfaceと既存の小さい影で、端点・増減操作を控えめに浮かせる。 */
+		/* 入力面より一段高いsurfaceと既存の小さい影で、端点・増減操作を控えめに浮かせる。
+		   端点ボタン(»アイコンのみ)と増減ボタン(-/+)は同じ役割の並びなので等幅の正方形にする。 */
 		.stat-row .stat-ev-endpoint-button,
 		.stat-row .stat-ev-step-button {
 			box-sizing: border-box;
-			flex: 0 0 var(--stat-ev-mobile-button-inline-size);
-			width: var(--stat-ev-mobile-button-inline-size);
-			min-width: var(--stat-ev-mobile-button-inline-size);
+			flex: 0 0 var(--stat-ev-mobile-button-block-size);
+			width: var(--stat-ev-mobile-button-block-size);
+			min-width: var(--stat-ev-mobile-button-block-size);
 			height: var(--stat-ev-mobile-button-block-size);
 			min-height: var(--stat-ev-mobile-button-block-size);
 			padding: 0;
@@ -486,12 +487,6 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 			box-shadow: var(--shadow-sm);
 			font-size: var(--font-size-sm1);
 			font-weight: 400;
-		}
-		/* 増減ボタンは入力欄と同じ30pxの正方形にする。端点ボタンは区別のため既存幅を維持する。 */
-		.stat-row .stat-ev-step-button {
-			flex-basis: var(--stat-ev-mobile-button-block-size);
-			width: var(--stat-ev-mobile-button-block-size);
-			min-width: var(--stat-ev-mobile-button-block-size);
 		}
 	}
 	.stat-ev-toggle-spacer { display: none; }
@@ -630,7 +625,6 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		/* 390px級の実機幅では 0/−/数値/+/32 の5要素が1行に収まりきらないため、
 		   ボタンの最小幅だけ 30px → 26px(WCAG 2.5.8の24px下限は満たす)へ詰める。 */
 		.stat-row .stat-ev-endpoint-button,
-		.stat-row .stat-ev-step-button { min-width: var(--stat-ev-mobile-button-inline-size); }
 		.stat-row .stat-ev-step-button { min-width: var(--stat-ev-mobile-button-block-size); }
 		.stat-row .stat-input-controls input[type="number"] { flex: 0 0 3.2em; width: 3.2em; }
 		.stat-row-real-wrap { display: flex; grid-column: 4; justify-content: flex-end; min-width: 0; }
