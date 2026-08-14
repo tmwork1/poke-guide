@@ -19,7 +19,7 @@
 		height: 100%;
 		overflow: hidden;
 		border: 1px solid var(--color-border);
-		background: var(--color-surface-alt);
+		background: var(--color-surface);
 		cursor: pointer;
 	}
 	.speed-chart-minimap-viewport {
@@ -102,7 +102,7 @@
 		padding: var(--space-2) var(--space-3);
 		border-top: 1px solid var(--color-border);
 		border-bottom: 0;
-		background: var(--color-surface-alt);
+		background: var(--color-surface);
 	}
 	/* 個体の更新操作は、対象の実数値と対応づけて読めるよう実数値セルの直下へ置く。 */
 	.speed-chart-table[data-embedded='true'] .speed-chart-row {
@@ -229,7 +229,7 @@
 		min-height: 30px;
 		padding: 0;
 		color: var(--color-text-muted);
-		background: var(--color-surface-alt);
+		background: var(--color-surface);
 		border: 1px solid var(--color-border);
 		border-radius: var(--radius-zero);
 		font-size: var(--font-size-sm1);
@@ -386,34 +386,33 @@
 		background: var(--color-primary-soft);
 		color: color-mix(in srgb, var(--color-primary-strong) 90%, black 10%);
 	}
-	/* sub(準速): 「青とグレーの中間」を、背景はprimary-soft(青)とsurface-alt(グレー)を
+	/* sub(準速): 「青とニュートラルの中間」を、背景はprimary-soft(青)とsurfaceを
 	   55:45で、文字はprimary-strong(青)とtext-muted(グレー)を60:40でcolor-mixし、
 	   maxよりも彩度・明度差を落とした中間段として作る(生hexは使わず両トークンの混色のみ)。
-	   実測(Playwright、実ページの/speed-chartをgetComputedStyleで直接測定。alpha合成込み):
-	   ライト4.82:1、ダーク6.24:1。どちらも4.5:1を満たす。 */
+	   置き換え後のコントラスト値は未実測。CoordinatorがPlaywrightで実測して更新する。 */
 	.speed-chart-table .speed-chart-spread-badge[data-spread='sub'] {
-		background: color-mix(in srgb, var(--color-primary-soft) 55%, var(--color-surface-alt) 45%);
+		background: color-mix(in srgb, var(--color-primary-soft) 55%, var(--color-surface) 45%);
 		color: color-mix(in srgb, var(--color-primary-strong) 60%, var(--color-text-muted) 40%);
 	}
-	/* none(無振り): グラデーションの終端として彩度ゼロのグレーにする。surface-alt/text-muted
+	/* none(無振り): グラデーションの終端として彩度ゼロのグレーにする。surface/text-muted
 	   はこのファイル内の.speed-chart-chip-origin等でも使っている既存の「控えめな文字」の
-	   定番ペアで新規の混色は不要。実測(Playwright、実ページ測定): ライト5.68:1、
-	   ダーク5.90:1。 */
+	   定番ペアで新規の混色は不要。置き換え後のコントラスト値は未実測。
+	   CoordinatorがPlaywrightで実測して更新する。 */
 	.speed-chart-table .speed-chart-spread-badge[data-spread='none'] {
-		background: var(--color-surface-alt);
+		background: var(--color-surface);
 		color: var(--color-text-muted);
 	}
 	/* min(最遅): 無振りよりさらに控えめな段階。既存トークンだけで連続感を保つ。 */
 	.speed-chart-table .speed-chart-spread-badge[data-spread='min'] {
-		background: var(--color-surface-alt);
+		background: var(--color-surface);
 		color: var(--color-text-muted);
 		border-color: var(--color-border);
 	}
 	/* 2列目の補正量(×1.5等、chart-table.ts側が.speed-chart-magnitude-badgeを付与)。
 	   要件2: 配分バッジと並んだときに主従が分かるよう、配分バッジ(塗りのpill+太字)より
 	   控えめな「枠線付きの薄いチップ」にする。背景・文字は上のnone(無振り)バッジと同じ
-	   surface-alt/text-mutedペア(実測(Playwright、実ページ測定): ライト5.68:1・
-	   ダーク5.90:1、いずれも既存トークン同士の組み合わせで新規混色なし)を使い、
+	   surface/text-mutedペアを使う。置き換え後のコントラスト値は未実測のため、
+	   CoordinatorがPlaywrightで実測して更新する。既存トークン同士の組み合わせに
 	   境界線var(--color-border)を足して配分バッジ(境界線なしの塗りpill)と形で
 	   区別できるようにする。 */
 	.speed-chart-table .speed-chart-magnitude-badge {
@@ -424,7 +423,7 @@
 		font-size: 0.9em;
 		font-weight: 500;
 		vertical-align: middle;
-		background: var(--color-surface-alt);
+		background: var(--color-surface);
 		color: var(--color-text-muted);
 		border: 1px solid var(--color-border);
 	}
@@ -460,7 +459,7 @@
 		align-items: center;
 		gap: var(--space-1);
 		font-size: var(--font-size-sm3);
-		background: var(--color-surface-alt);
+		background: var(--color-surface);
 		border-radius: 999px;
 		padding: 0.1rem 0.5rem 0.1rem 0.1rem;
 	}

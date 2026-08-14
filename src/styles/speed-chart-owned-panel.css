@@ -4,13 +4,13 @@
 	   幅260pxのサイドバー(ChartTable.astroの.speed-chart-side、gap: var(--space-4)で
 	   縦に項目を積む)最下段のカードとして、自己完結する角丸カード(.cardと同じ
 	   --radius-md、背景は.speed-chart-side自体の背景(--color-surface)に対して
-	   区別が付く--color-surface-altを踏襲)にする。 */
+	   区別が付くよう--color-bgへ交互に切り替える。 */
 	.speed-chart-owned-panel-static {
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-2);
 		padding: var(--space-3);
-		background: var(--color-surface-alt);
+		background: var(--color-bg);
 		border-radius: var(--radius-md);
 		font-size: var(--font-size-sm2);
 	}
@@ -63,7 +63,7 @@
 		width: 52px;
 		height: 52px;
 	}
-	/* 編集ボタン。global.cssの a.btn-ghost(枠なし・透明背景・ホバーでsurface-alt)をそのまま
+	/* 編集ボタン。global.cssの a.btn-ghost(枠なし・透明背景・ホバーでsurfaceとprimaryの混色)をそのまま
 	   使い、新しい配色は作らない。260px幅のカード内でも詰まらないよう、既存のbutton基底より
 	   ひとまわり小さいpaddingにページ限定で調整する(a.btn-ghost自体はglobal.css編集禁止のため
 	   触らない)。 */
@@ -123,7 +123,7 @@
 		padding: 0.3em;
 		font-size: var(--font-size-sm3);
 		text-align: center;
-		background: var(--color-surface-alt);
+		background: var(--color-surface);
 		appearance: textfield;
 	}
 	.speed-chart-rank-field input[type='number']::-webkit-inner-spin-button,
