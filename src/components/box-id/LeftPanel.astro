@@ -482,7 +482,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 			min-height: var(--stat-ev-mobile-button-block-size);
 			padding: 0;
 			color: var(--color-text-muted);
-			background: var(--color-surface-alt);
+			background: var(--color-bg);
 			border: 1px solid var(--color-border);
 			border-radius: var(--radius-zero);
 			font-size: var(--font-size-sm1);
@@ -581,7 +581,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		margin: 0.6rem 0 0;
 	}
 	.stat-adjustment-section { font-size: var(--font-size-sm1); }
-	/* ボタン本体は.btn-ghost(global.css、透明背景+ホバーでsurface-alt)をそのまま使う。パネル幅に
+	/* ボタン本体は.btn-ghost(global.css、透明背景+ホバーでsurfaceとprimaryの混色)をそのまま使う。パネル幅に
 	   対して「耐久指数最大化」(7文字)を含む3ボタンが横並びで収まるよう、.btn-ghostの既定
 	   (padding: var(--space-2) 1.1em、font-size: 継承=1rem)より一段階詰めた既存トークンの組み
 	   合わせに絞る(新しい値ではなく、旧.stat-adjust-button等でも使っていたvar(--font-size-sm2)/
@@ -603,7 +603,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		color: var(--color-text);
 	}
 	.stat-adjust-action-button:hover:not(:disabled) {
-		background: var(--color-surface-alt);
+		background: var(--color-bg);
 		border-color: var(--color-border);
 		color: var(--color-text);
 	}
@@ -1085,7 +1085,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		}
 		.mobile-move-toggle:hover:not(:disabled),
 		.mobile-speed-adjust-button:hover {
-			background: var(--color-surface-alt);
+			background: var(--color-bg);
 			border-color: var(--color-border);
 			color: var(--color-text);
 		}
@@ -1181,8 +1181,12 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		font-size: var(--font-size-sm1);
 		color: var(--color-text);
 	}
-	.item-dropdown-option:hover,
-	.item-dropdown-option.is-active { background: var(--color-surface-alt); }
+	@media (hover: hover) and (pointer: fine) {
+		.item-dropdown-option:hover {
+			background: color-mix(in srgb, var(--color-surface) 90%, var(--color-primary) 10%);
+		}
+	}
+	.item-dropdown-option.is-active { background: var(--color-bg); }
 	.item-dropdown-option-image { width: 20px; height: 20px; object-fit: contain; flex-shrink: 0; }
 	.item-dropdown-option-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 	.item-dropdown-option[hidden] { display: none; }
@@ -1208,7 +1212,12 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		cursor: pointer;
 		border-radius: var(--radius-sm);
 	}
-	.move-picker-close:hover { background: var(--color-surface-alt); color: var(--color-text); }
+	@media (hover: hover) and (pointer: fine) {
+		.move-picker-close:hover {
+			background: color-mix(in srgb, var(--color-surface) 90%, var(--color-primary) 10%);
+			color: var(--color-text);
+		}
+	}
 	.move-picker-close:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 1px; }
 
 	.move-picker-note {
@@ -1301,7 +1310,11 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	.move-picker-cell-type { display: flex; align-items: center; gap: var(--space-1); white-space: nowrap; }
 	.move-picker-type-icon { flex-shrink: 0; border-radius: 50%; }
 	.move-picker-row { cursor: pointer; }
-	.move-picker-row:hover { background: var(--color-surface-alt); }
+	@media (hover: hover) and (pointer: fine) {
+		.move-picker-row:hover {
+			background: color-mix(in srgb, var(--color-surface) 90%, var(--color-primary) 10%);
+		}
+	}
 	.move-picker-row.is-selected { background: color-mix(in srgb, var(--color-primary) 18%, transparent); }
 	.move-picker-row:focus-visible { outline: 2px solid var(--color-primary); outline-offset: -2px; }
 

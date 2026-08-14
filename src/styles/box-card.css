@@ -83,7 +83,7 @@
   --box-card-action-font-size: var(--font-size-sm2);
   --box-card-action-line-height: 1;
   --box-card-action-shadow: var(--shadow-sm);
-  --box-card-action-hover-background: var(--color-surface-alt);
+  --box-card-action-hover-background: var(--color-bg);
   --box-card-action-hover-color: var(--color-text);
   --box-card-action-focus-outline: 2px solid var(--color-primary);
   --box-card-action-focus-outline-offset: 2px;
@@ -92,7 +92,7 @@
   --box-card-favorite-size: 52px;
   --box-card-favorite-padding: 7px 0 0 7px;
   --box-card-favorite-font-size: var(--font-size-lg1);
-  --box-card-favorite-background: var(--color-surface-alt);
+  --box-card-favorite-background: var(--color-bg);
   --box-card-favorite-color: var(--color-text-muted);
   --box-card-favorite-hover-background: var(--color-surface);
   --box-card-favorite-hover-color: var(--color-text);
@@ -140,15 +140,23 @@
 .box-grid .team-slot-number {
 	font-size: var(--font-size-lg1);
 }
-.box-grid .box-card:hover,
 .box-grid .box-card:focus-within {
   /* global.css の button:hover:not(:disabled) は .card:hover より詳細度が高い。
      カード共通の hover/focus 背景をここで所有し、要素種別に依存させない。 */
   background: color-mix(
     in srgb,
-    var(--color-surface-alt) 90%,
+    var(--color-surface) 90%,
     var(--color-primary) 10%
   );
+}
+@media (hover: hover) and (pointer: fine) {
+  .box-grid .box-card:hover {
+    background: color-mix(
+      in srgb,
+      var(--color-surface) 90%,
+      var(--color-primary) 10%
+    );
+  }
 }
 .box-grid .box-card:focus-visible {
   outline: var(--box-card-focus-outline);

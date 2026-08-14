@@ -43,7 +43,7 @@
 		gap: var(--space-2);
 		/* 3モード共通で密度を上げるため、横paddingは保ち縦paddingだけ一段縮める。 */
 		padding: var(--space-2) var(--space-4);
-		background: var(--color-surface-alt);
+		background: var(--color-bg);
 		/* 今回の指示で3モード共通のタイトル直下の区切り線を復活させる。 */
 		border-bottom: 1px solid var(--color-border);
 		flex-shrink: 0;
@@ -165,7 +165,7 @@
 		border: 1px solid var(--color-border);
 		border-radius: var(--radius-md);
 		padding: var(--space-2) var(--space-3);
-		background: var(--color-surface-alt);
+		background: var(--color-bg);
 		text-align: left;
 		cursor: pointer;
 		font-size: var(--font-size-sm2);
@@ -368,7 +368,7 @@
 		width: 35px;
 		height: 35px;
 		border-radius: 50%;
-		background: var(--color-surface-alt);
+		background: var(--color-bg);
 		color: var(--color-text-muted);
 		font-size: var(--font-size-sm3);
 		align-items: center;
@@ -434,7 +434,6 @@
 		padding: var(--space-1);
 		border: 1px solid var(--color-border);
 		border-radius: var(--radius-sm);
-		background: var(--color-surface-alt);
+		background: var(--color-bg);
 		color: var(--color-text);
 	}
-

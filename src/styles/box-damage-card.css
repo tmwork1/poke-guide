@@ -18,10 +18,18 @@
   position: relative;
 }
 
-#opponent-notes-section .card-damage:hover, #opponent-notes-section .card-damage:focus-within {
+#opponent-notes-section .card-damage:focus-within {
   box-shadow: var(--shadow-sm);
-  background: var(--color-surface-alt);
+  background: color-mix(in srgb, var(--color-surface) 90%, var(--color-primary) 10%);
   border-color: var(--color-border);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  #opponent-notes-section .card-damage:hover {
+    box-shadow: var(--shadow-sm);
+    background: color-mix(in srgb, var(--color-surface) 90%, var(--color-primary) 10%);
+    border-color: var(--color-border);
+  }
 }
 
 /* カード全体のレイアウト */
@@ -343,9 +351,16 @@
   display: flex;
 }
 
-#edit-form .tera-dropdown-option:hover, #edit-form .tera-dropdown-option:focus-visible, #opponent-notes-section .tera-dropdown-option:hover, #opponent-notes-section .tera-dropdown-option:focus-visible {
-  background: var(--color-surface-alt);
+#edit-form .tera-dropdown-option:focus-visible, #opponent-notes-section .tera-dropdown-option:focus-visible {
+  background: color-mix(in srgb, var(--color-surface) 90%, var(--color-primary) 10%);
   outline: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  #edit-form .tera-dropdown-option:hover, #opponent-notes-section .tera-dropdown-option:hover {
+    background: color-mix(in srgb, var(--color-surface) 90%, var(--color-primary) 10%);
+    outline: none;
+  }
 }
 
 #edit-form .tera-dropdown-option.is-active, #opponent-notes-section .tera-dropdown-option.is-active {
@@ -866,7 +881,7 @@
   min-height: 3.1rem;
   font-size: var(--font-size-sm2);
   border: 1px dashed var(--color-border);
-  background: var(--color-surface-alt);
+  background: var(--color-bg);
   color: var(--color-text-muted);
   border-radius: var(--radius-md);
   justify-content: center;
@@ -1007,7 +1022,7 @@
   gap: var(--space-1);
   font-size: var(--font-size-sm3);
   color: var(--color-text-muted);
-  background: var(--color-surface-alt);
+  background: var(--color-bg);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   cursor: pointer;
@@ -1092,7 +1107,7 @@
   min-height: 0;
   font-size: var(--font-size-sm3);
   text-align: center;
-  background: var(--color-surface-alt);
+  background: var(--color-bg);
   appearance: textfield;
   padding: .3em;
 }
@@ -1120,7 +1135,7 @@
   width: 5.3em;
   min-height: 0;
   font-size: var(--font-size-sm3);
-  background: var(--color-surface-alt);
+  background: var(--color-bg);
   flex: none;
   padding: .3em;
 }
@@ -1182,7 +1197,7 @@
   width: 28px;
   height: 28px;
   font-size: var(--font-size-sm2);
-  background: var(--color-surface-alt);
+  background: var(--color-bg);
   border: 1px solid var(--color-border);
   border-radius: 50%;
   flex-shrink: 0;
