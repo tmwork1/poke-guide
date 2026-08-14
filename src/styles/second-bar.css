@@ -108,3 +108,9 @@
     margin-left: 0;
   }
 }
+
+@media (prefers-color-scheme: dark) {
+  .second-bar {
+    background: var(--color-surface-alt);
+  }
+}
