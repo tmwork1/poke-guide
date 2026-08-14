@@ -1,0 +1,94 @@
+.home-page {
+	max-width: 480px;
+	margin: 0 auto;
+	padding: var(--space-5) var(--space-4) var(--space-7);
+}
+
+.home-brand {
+	display: flex;
+	align-items: center;
+	gap: var(--space-3);
+	margin-bottom: var(--space-5);
+}
+
+.home-brand-logo {
+	width: 48px;
+	height: 48px;
+	object-fit: contain;
+}
+
+.home-brand h1 {
+	margin: 0;
+	font-size: var(--font-size-lg2);
+	line-height: var(--line-height-tight);
+}
+
+.home-account {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: flex-end;
+	gap: var(--space-3);
+	margin-bottom: var(--space-6);
+}
+
+.home-account p,
+.home-account form {
+	margin: 0;
+}
+
+.home-account-name {
+	font-weight: 600;
+	overflow-wrap: anywhere;
+}
+
+.home-card-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: var(--space-3);
+}
+
+.home-card {
+	display: flex;
+	min-width: 0;
+	min-height: 9.5rem;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: var(--space-2);
+	color: var(--color-text);
+	text-align: center;
+	text-decoration: none;
+}
+
+.home-card:focus-visible {
+	outline: 2px solid var(--color-primary);
+	outline-offset: 2px;
+}
+
+.home-card-icon {
+	width: 2.5rem;
+	height: 2.5rem;
+	flex: none;
+	color: var(--color-primary);
+}
+
+.home-card-label {
+	font-weight: 700;
+	line-height: var(--line-height-snug);
+}
+
+.home-card-description {
+	color: var(--color-text-muted);
+	font-size: var(--font-size-sm3);
+	line-height: var(--line-height-snug);
+}
+
+.home-contact {
+	margin: var(--space-7) 0 0;
+	text-align: center;
+}
+
+.home-contact a {
+	color: var(--color-text-muted);
+}

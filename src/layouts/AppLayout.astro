@@ -6,7 +6,7 @@ import AppBottomNav from '../components/AppBottomNav.astro';
 interface Props {
 	title: string;
 	description?: string;
-	current?: "box" | "team" | "dev" | "speed-chart" | "ranked-teams" | "data";
+	current?: "home" | "box" | "team" | "dev" | "speed-chart" | "ranked-teams" | "data";
 	bodyClass?: string;
 	/** 指定すると「← 戻る」リンクをトップバー左端に出す。省略時は表示しない。 */
 	backHref?: string;
@@ -27,7 +27,7 @@ interface Props {
 const { title, description, current, bodyClass, backHref, backLabel, chrome = "app", hideTopbar = false } = Astro.props;
 const isPublicChrome = chrome === "public";
 
-const pageTitle = title === "Poke-Commons" ? title : `${title} | Poke-Commons`;
+const pageTitle = title === "ポケガイド" ? title : `${title} | ポケガイド`;
 
 ---
 
@@ -46,7 +46,7 @@ const pageTitle = title === "Poke-Commons" ? title : `${title} | Poke-Commons`;
 			<header class="app-topbar">
 				<div class="app-topbar-row app-topbar-row-brand">
 					<div class="app-topbar-row-left">
-						<span class="app-topbar-brand">Poke-Commons</span>
+						<a class="app-topbar-brand" href="/">ポケガイド</a>
 					</div>
 					{
 						isPublicChrome && (

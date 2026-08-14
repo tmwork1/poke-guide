@@ -1,7 +1,7 @@
 ---
 import '../styles/app-bottom-nav.css';
 interface Props {
-	current?: "box" | "team" | "dev" | "speed-chart" | "ranked-teams" | "data";
+	current?: "home" | "box" | "team" | "dev" | "speed-chart" | "ranked-teams" | "data";
 }
 
 const { current } = Astro.props;
@@ -9,6 +9,10 @@ const { current } = Astro.props;
 
 <nav class="app-bottom-nav" aria-label="メインナビゲーション">
 	<div class="app-bottom-nav-list">
+		<a class="app-bottom-nav-item" href="/" data-active={current === "home" ? "true" : undefined} aria-current={current === "home" ? "page" : undefined}>
+			<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.05" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V10Z"/><path d="M9 21v-6h6v6"/></svg>
+			<span>ホーム</span>
+		</a>
 		<a class="app-bottom-nav-item" href="/data" data-active={current === "data" ? "true" : undefined} aria-current={current === "data" ? "page" : undefined}>
 			<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.05" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
 			<span>データ</span>

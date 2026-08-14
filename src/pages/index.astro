@@ -1,5 +1,71 @@
 ---
-// ホームはボックス(所持ポケモン一覧)に統合したため /box へ転送する。
 export const prerender = false;
-return Astro.redirect("/box", 302);
+
+import AppLayout from '../layouts/AppLayout.astro';
+import '../styles/home-page.css';
+
+const user = Astro.locals.user;
+const userName = user?.displayName ?? user?.email;
 ---
+
+<AppLayout title="ポケガイド" description="ポケモン育成を管理するためのホーム画面" current="home" hideTopbar={true}>
+	<div class="page home-page">
+		<header class="home-brand">
+			<img class="home-brand-logo" src="/logo.png" alt="" width="48" height="48" />
+			<h1>ポケガイド</h1>
+		</header>
+
+		<section class="home-account" aria-label="アカウント">
+			{
+				user ? (
+					<Fragment>
+						<p class="home-account-name">{userName}</p>
+						<form method="post" action="/api/auth/logout">
+							<button type="submit">ログアウト</button>
+						</form>
+					</Fragment>
+				) : (
+					<Fragment>
+						<p>ログインが必要です</p>
+						<a class="btn-primary" href="/api/auth/login">Googleでログイン</a>
+					</Fragment>
+				)
+			}
+		</section>
+
+		<nav class="home-card-grid" aria-label="機能一覧">
+			<a class="card home-card" href="/box">
+				<svg class="home-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.05" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 7.5 12 3 3 7.5v9L12 21l9-4.5v-9Z"/><path d="M3.5 7.3 12 12l8.5-4.7"/><path d="M12 12v9"/></svg>
+				<span class="home-card-label">ボックス</span>
+				<span class="home-card-description">育成した個体を管理します</span>
+			</a>
+			<a class="card home-card" href="/team">
+				<svg class="home-card-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="8" cy="7" r="1.8"/><circle cx="16" cy="7" r="1.8"/><circle cx="8" cy="12" r="1.8"/><circle cx="16" cy="12" r="1.8"/><circle cx="8" cy="17" r="1.8"/><circle cx="16" cy="17" r="1.8"/></svg>
+				<span class="home-card-label">チーム</span>
+				<span class="home-card-description">チームを組んで確認します</span>
+			</a>
+			<a class="card home-card" href="/box">
+				<svg class="home-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.05" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 11h2m4 0h2M8 15h2m4 0h2M8 18h2m4 0h2"/></svg>
+				<span class="home-card-label">ダメージ計算</span>
+				<span class="home-card-description">個体を選ぶとダメージ計算に進めます</span>
+			</a>
+			<a class="card home-card" href="/data">
+				<svg class="home-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.05" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+				<span class="home-card-label">バトルデータ</span>
+				<span class="home-card-description">対戦のデータを確認します</span>
+			</a>
+			<a class="card home-card" href="/ranked-teams">
+				<svg class="home-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.05" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4h8v5a4 4 0 0 1-8 0V4Z"/><path d="M8 6H5v1a4 4 0 0 0 4 4M16 6h3v1a4 4 0 0 1-4 4M12 13v4M8 21h8M9 17h6"/></svg>
+				<span class="home-card-label">上位チーム</span>
+				<span class="home-card-description">上位のチームを参考にします</span>
+			</a>
+			<a class="card home-card" href="/speed-chart">
+				<svg class="home-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.05" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg>
+				<span class="home-card-label">すばやさ</span>
+				<span class="home-card-description">すばやさの順番を比較します</span>
+			</a>
+		</nav>
+
+		<p class="home-contact"><a href="https://x.com/ml7ddw0" target="_blank" rel="noopener noreferrer">お問い合わせ</a></p>
+	</div>
+</AppLayout>
