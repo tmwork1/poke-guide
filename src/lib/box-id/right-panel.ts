@@ -1479,15 +1479,8 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 	const defenderVolatileGroup = defenderSide.querySelector(".damage-detail-volatile-group");
 	if (defenderVolatileGroup) {
 		defenderVolatileGroup.insertBefore(wallButton, defenderVolatileGroup.firstChild);
-		const stealthRockButton = buildToggleButton(
-			"ステルスロック",
-			column.stealthRock,
-			(pressed) => applyToColumnField(() => { column.stealthRock = pressed; }),
-			{ title: "ステルスロックを1回踏んだ状態で計算する" },
-		);
-		wallButton.insertAdjacentElement("afterend", stealthRockButton);
 	} else {
-		// DAMAGE_DEFENDER_VOLATILESは常に9件を持つため通常はここに来ないが、
+		// DAMAGE_DEFENDER_VOLATILESは通常1件以上を持つためここには来ないが、
 		// 将来の変更に備えてフォールバックを用意する(かべチップ自体は必ず
 		// 防御側に出す)。
 		const fallbackRow = document.createElement("div");
@@ -1495,6 +1488,90 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 		fallbackRow.appendChild(wallButton);
 		defenderSide.appendChild(fallbackRow);
 	}
+
+	const hazardsGroup = document.createElement("div");
+	hazardsGroup.className = "damage-detail-group";
+	const hazardsHeading = document.createElement("p");
+	hazardsHeading.className = "damage-detail-section-heading";
+	hazardsHeading.textContent = "設置物";
+	hazardsGroup.appendChild(hazardsHeading);
+
+	const hazardsControls = document.createElement("div");
+	hazardsControls.className = "damage-detail-toggle-row";
+	const stealthRockButton = buildToggleButton(
+		"ステルスロック",
+		column.stealthRock,
+		(pressed) => applyToColumnField(() => { column.stealthRock = pressed; }),
+		{ title: "ステルスロックを1回踏んだ状態で計算する" },
+	);
+
+	const spikesField = document.createElement("div");
+	spikesField.className = "rank-field damage-detail-rank-field";
+	const spikesLabel = document.createElement("span");
+	spikesLabel.textContent = "まきびし";
+	const spikesInput = document.createElement("input");
+	spikesInput.type = "number";
+	spikesInput.min = "0";
+	spikesInput.max = "3";
+	spikesInput.step = "1";
+	spikesInput.inputMode = "numeric";
+	spikesInput.className = "damage-detail-rank-input";
+	spikesInput.value = String(clampInt(column.spikes, 0, 3));
+	const spikesDecrementButton = document.createElement("button");
+	spikesDecrementButton.type = "button";
+	spikesDecrementButton.className = "rank-stepper damage-detail-rank-stepper";
+	spikesDecrementButton.textContent = "－";
+	spikesDecrementButton.setAttribute("aria-label", "まきびしを1層減らす");
+	const spikesIncrementButton = document.createElement("button");
+	spikesIncrementButton.type = "button";
+	spikesIncrementButton.className = "rank-stepper damage-detail-rank-stepper";
+	spikesIncrementButton.textContent = "＋";
+	spikesIncrementButton.setAttribute("aria-label", "まきびしを1層増やす");
+	const updateSpikesDisplay = (): void => {
+		const n = Number(spikesInput.value);
+		const current = Number.isFinite(n) ? clampInt(n, 0, 3) : 0;
+		spikesInput.classList.toggle("is-nonzero", current > 0);
+		spikesInput.setAttribute("aria-label", `まきびし${current}層`);
+		spikesDecrementButton.disabled = current <= 0;
+		spikesIncrementButton.disabled = current >= 3;
+	};
+	const commitSpikes = (fallbackToZeroIfEmpty: boolean): void => {
+		const raw = spikesInput.value.trim();
+		if (!fallbackToZeroIfEmpty && raw === "") return;
+		const n = raw === "" || !Number.isFinite(Number(raw)) ? 0 : Number(raw);
+		const clamped = clampInt(n, 0, 3);
+		if (spikesInput.value !== String(clamped)) spikesInput.value = String(clamped);
+		applyToColumnField(() => { column.spikes = clamped; });
+		updateSpikesDisplay();
+	};
+	spikesInput.addEventListener("input", () => commitSpikes(false));
+	spikesInput.addEventListener("change", () => commitSpikes(true));
+	spikesInput.addEventListener("blur", () => commitSpikes(true));
+	const stepSpikes = (delta: -1 | 1): void => {
+		const n = Number(spikesInput.value);
+		const current = Number.isFinite(n) ? n : 0;
+		spikesInput.value = String(clampInt(current + delta, 0, 3));
+		commitSpikes(true);
+	};
+	spikesDecrementButton.addEventListener("click", () => stepSpikes(-1));
+	spikesIncrementButton.addEventListener("click", () => stepSpikes(1));
+	spikesInput.addEventListener(
+		"wheel",
+		(e) => {
+			if (document.activeElement === spikesInput) e.preventDefault();
+		},
+		{ passive: false },
+	);
+	const spikesStepperGroup = document.createElement("span");
+	spikesStepperGroup.className = "rank-stepper-group";
+	spikesStepperGroup.append(spikesDecrementButton, spikesInput, spikesIncrementButton);
+	const spikesUnit = document.createElement("span");
+	spikesUnit.textContent = "層";
+	spikesField.append(spikesLabel, spikesStepperGroup, spikesUnit);
+	updateSpikesDisplay();
+	hazardsControls.append(stealthRockButton, spikesField);
+	hazardsGroup.appendChild(hazardsControls);
+	sidesWrap.appendChild(hazardsGroup);
 
 	const weatherRow = document.createElement("div");
 	weatherRow.className = "damage-detail-field-row";

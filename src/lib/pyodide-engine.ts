@@ -210,6 +210,8 @@ export interface SequenceAttack {
   critical?: boolean;
   /** 防御側がステルスロックを1回踏んだ初期HPで計算するか */
   stealthRock?: boolean;
+  /** 防御側が踏むまきびしの層数。省略時は0 */
+  spikes?: number;
   /**
    * この攻撃時点での攻撃側ランク補正。省略時は attackerSpec.boosts にフォールバックする。
    * 形式は PokemonSpec.boosts と同じ([HP(無視), 攻撃, 防御, 特攻, 特防, 素早さ])。
@@ -436,7 +438,7 @@ import json
 from jpoke import Battle, Player, Pokemon, Move
 from jpoke.core import EventContext
 from jpoke.enums import Event
-from jpoke.handlers.field import ステルスロック_damage
+from jpoke.handlers.field import ステルスロック_damage, まきびし_damage
 from jpoke.utils.constants import STATS, STAT_RANK_MIN, STAT_RANK_MAX
 from jpoke.utils.lethal_dist import State, add_dist
 
@@ -563,6 +565,15 @@ def _apply_stealth_rock(battle, defender, enabled):
     """交代イベント全体を発火せず、jpoke本体の設置技ハンドラだけを適用する。"""
     if enabled:
         ステルスロック_damage(battle, EventContext(source=defender), None)
+
+
+def _apply_spikes(battle, defender_player, defender, layers):
+    """交代イベント全体を発火せず、指定層数のまきびしハンドラだけを適用する。"""
+    if layers <= 0:
+        return
+    layers = min(int(layers), 3)
+    battle.activate_side_field(defender_player, "まきびし", layers)
+    まきびし_damage(battle, EventContext(source=defender), None)
 
 
 def _resolve_move(pokemon, move_name):
@@ -900,6 +911,7 @@ def calc_lethal_sequence_json(attacker_spec, defender_spec, attacks, seed, criti
             _apply_battle_only_state(attack_battle, active_att, attacker_spec_for_attack)
             _apply_battle_only_state(attack_battle, active_dfd, defender_spec_for_attack)
             _apply_stealth_rock(attack_battle, active_dfd, attack.get("stealthRock", False))
+            _apply_spikes(attack_battle, p2, active_dfd, attack.get("spikes", 0))
             initial_defender_hp = active_dfd.hp
     
             move = _resolve_move(active_att, move_name)

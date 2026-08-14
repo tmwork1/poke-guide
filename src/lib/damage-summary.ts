@@ -87,6 +87,7 @@ export interface NormalizedNoteAttack {
 	/** 壁(リフレクター/ひかりのかべ/オーロラベール)がどれか1つでも立っているか。 */
 	wallEnabled: boolean;
 	stealthRock: boolean;
+	spikes: number;
 	attackerAilment: string;
 	defenderAilment: string;
 	attackerTerastallized: boolean;
@@ -133,6 +134,7 @@ export function normalizeNoteAttacks(
 			terrain: attack.terrain ?? f.terrain ?? '',
 			wallEnabled: Array.isArray(sideFields) && sideFields.length > 0,
 			stealthRock: attack.stealthRock ?? false,
+			spikes: attack.spikes ?? 0,
 			attackerAilment: attack.attackerAilment ?? f.attackerAilment ?? '',
 			defenderAilment: attack.defenderAilment ?? f.defenderAilment ?? '',
 			attackerTerastallized: attack.attackerTerastallized ?? f.attackerTerastallized ?? false,
@@ -172,6 +174,7 @@ export function collectNoteConditionChips(attack: NormalizedNoteAttack, category
 	if (attack.terrain) chips.push(attack.terrain);
 	if (attack.wallEnabled) chips.push('壁');
 	if (attack.stealthRock) chips.push('ステルスロック');
+	if (attack.spikes > 0) chips.push(`まきびし${attack.spikes}`);
 	if (attack.critical) chips.push('急所');
 	if (attack.attackerAilment) chips.push(`攻撃側${attack.attackerAilment}`);
 	if (attack.defenderAilment) chips.push(`防御側${attack.defenderAilment}`);

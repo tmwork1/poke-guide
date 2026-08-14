@@ -268,9 +268,7 @@ export const DAMAGE_DEFENDER_VOLATILES = [
 	{ value: "バインド", label: "バインド", title: "毎ターン最大HPの1/8のダメージを受ける" },
 	{ value: "アクアリング", label: "アクアリング", title: "毎ターン最大HPの1/16のHPが回復する" },
 	{ value: "ねをはる", label: "ねをはる", title: "毎ターン最大HPの1/16のHPが回復する" },
-	{ value: "タールショット", label: "タールショット", title: "ほのおタイプの技の弱点としての倍率が2倍になる" },
 	{ value: "ちいさくなる", label: "ちいさくなる", title: "ふみつけ等の一部の技が必ず命中し、威力が2倍になる" },
-	{ value: "きょけんとつげき", label: "きょけんとつげき", title: "相手から受ける技が必ず命中し、ダメージが2倍になる" },
 ];
 export function clampInt(n: number, min: number, max: number): number {
 	return Math.min(max, Math.max(min, Math.round(n)));
@@ -527,6 +525,7 @@ if (opponentNotesSection) {
 			terrain: "",
 			wallEnabled: false,
 			stealthRock: false,
+			spikes: 0,
 			defenderSideFields: [],
 			attackerRank: 0,
 			defenderRank: 0,
@@ -555,6 +554,7 @@ if (opponentNotesSection) {
 			terrain: previous.terrain,
 			wallEnabled: previous.wallEnabled,
 			stealthRock: previous.stealthRock,
+			spikes: clampInt(previous.spikes, 0, 3),
 			defenderSideFields: [...previous.defenderSideFields],
 			attackerRank: previous.attackerRank,
 			defenderRank: previous.defenderRank,
@@ -749,6 +749,7 @@ if (opponentNotesSection) {
 			if (attack.weather !== undefined) column.weather = attack.weather;
 			if (attack.terrain !== undefined) column.terrain = attack.terrain;
 			if (attack.stealthRock !== undefined) column.stealthRock = attack.stealthRock;
+			if (attack.spikes !== undefined) column.spikes = clampInt(attack.spikes, 0, 3);
 			if (attack.defenderSideFields !== undefined) column.defenderSideFields = attack.defenderSideFields;
 			if (attack.attackerBoosts !== undefined) column.attackerBoosts = attack.attackerBoosts;
 			if (attack.attackerAilment !== undefined) column.attackerAilment = attack.attackerAilment;
@@ -802,6 +803,7 @@ if (opponentNotesSection) {
 				weather: a.weather,
 				terrain: a.terrain,
 				stealthRock: a.stealthRock,
+				spikes: clampInt(a.spikes, 0, 3),
 				defenderSideFields: a.defenderSideFields,
 				attackerBoosts: a.attackerBoosts,
 				attackerAilment: a.attackerAilment,
@@ -1925,6 +1927,8 @@ if (opponentNotesSection) {
 		if (showTera && a.attackerTerastallized) attacker.push("テラスタル");
 		if (a.wallEnabled) defender.push("壁");
 		if (a.stealthRock) defender.push("ステルスロック");
+		const spikes = clampInt(a.spikes, 0, 3);
+		if (spikes > 0) defender.push(`まきびし${spikes}`);
 		if (a.defenderAilment) defender.push(a.defenderAilment);
 		if (showTera && a.defenderTerastallized) defender.push("テラスタル");
 		if (a.weather) field.push(a.weather);

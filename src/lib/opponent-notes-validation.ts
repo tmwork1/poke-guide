@@ -39,6 +39,7 @@ export interface OpponentAttackInput {
   hitCount?: number;
   critical?: boolean;
   stealthRock?: boolean;
+  spikes?: number;
   attackerBoosts?: number[];
   attackerAilment?: string;
   attackerTerastallized?: boolean;
@@ -226,6 +227,10 @@ function isAttacksArray(value: unknown): value is OpponentAttackInput[] {
     }
     if (v.critical !== undefined && typeof v.critical !== 'boolean') return false;
     if (v.stealthRock !== undefined && typeof v.stealthRock !== 'boolean') return false;
+    if (v.spikes !== undefined) {
+      if (typeof v.spikes !== 'number' || !Number.isInteger(v.spikes)) return false;
+      if (v.spikes < 0 || v.spikes > 3) return false;
+    }
     if (v.attackerBoosts !== undefined && !isBoostArray(v.attackerBoosts)) return false;
     if (v.attackerAilment !== undefined && typeof v.attackerAilment !== 'string') return false;
     if (v.attackerTerastallized !== undefined && typeof v.attackerTerastallized !== 'boolean') return false;
@@ -401,6 +406,7 @@ function validateOpponentField(value: unknown): { ok: true; value: OpponentField
       if (attack.hitCount !== undefined) normalized.hitCount = attack.hitCount;
       if (attack.critical !== undefined) normalized.critical = attack.critical;
       if (attack.stealthRock !== undefined) normalized.stealthRock = attack.stealthRock;
+      if (attack.spikes !== undefined) normalized.spikes = attack.spikes;
       if (attack.attackerBoosts !== undefined) normalized.attackerBoosts = attack.attackerBoosts;
       if (attack.attackerAilment !== undefined) normalized.attackerAilment = attack.attackerAilment;
       if (attack.attackerTerastallized !== undefined) normalized.attackerTerastallized = attack.attackerTerastallized;
