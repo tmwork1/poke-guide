@@ -4,6 +4,20 @@
 	padding: var(--space-5) var(--space-4) var(--space-7);
 }
 
+.home-topbar {
+	margin: calc(-1 * var(--space-5)) calc(-1 * var(--space-4)) var(--space-5);
+	padding: var(--space-2) var(--space-4);
+	background: var(--color-surface);
+	border-bottom: 1px solid var(--color-border);
+}
+
+.home-topbar .app-topbar-back {
+	padding: 0;
+	background: none;
+	border: none;
+	cursor: pointer;
+}
+
 .home-brand {
 	display: flex;
 	align-items: center;
@@ -30,6 +44,7 @@
 	justify-content: flex-end;
 	gap: var(--space-3);
 	margin-bottom: var(--space-6);
+	font-size: var(--font-size-sm2);
 }
 
 .home-account p,
@@ -38,20 +53,35 @@
 }
 
 .home-account-name {
+	font-size: var(--font-size-sm2);
 	font-weight: 600;
 	overflow-wrap: anywhere;
 }
 
+.home-account form button {
+	padding: 0;
+	font: inherit;
+	color: var(--color-text-muted);
+	text-decoration: underline;
+	background: none;
+	border: none;
+	cursor: pointer;
+}
+
+.home-account form button:hover {
+	color: var(--color-primary);
+}
+
 .home-card-grid {
 	display: grid;
-	grid-template-columns: repeat(2, minmax(0, 1fr));
+	grid-template-columns: repeat(3, minmax(0, 1fr));
 	gap: var(--space-3);
 }
 
 .home-card {
 	display: flex;
 	min-width: 0;
-	min-height: 9.5rem;
+	min-height: 7rem;
 	flex-direction: column;
 	align-items: center;
 	justify-content: center;
@@ -76,12 +106,7 @@
 .home-card-label {
 	font-weight: 700;
 	line-height: var(--line-height-snug);
-}
-
-.home-card-description {
-	color: var(--color-text-muted);
-	font-size: var(--font-size-sm3);
-	line-height: var(--line-height-snug);
+	word-break: keep-all;
 }
 
 .home-contact {
@@ -90,5 +115,8 @@
 }
 
 .home-contact a {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.35em;
 	color: var(--color-text-muted);
 }
