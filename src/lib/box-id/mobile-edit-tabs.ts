@@ -10,8 +10,8 @@ if (mobileTrainingUi && mobileTrainingBar && editShell) {
 	// The page is mobile-only, so controls can be moved once instead of being
 	// shuttled between the hidden desktop header on every viewport change.
 	const relocationSpecs: ReadonlyArray<readonly [elementId: string, hostId: string, damageTabOnly: boolean]> = [
-		["bulk-adjust-button", "mobile-damage-toolbar-actions", true],
-		["damage-collapse-toggle-button", "mobile-damage-toolbar-actions", true],
+		["bulk-adjust-button", "damage-rows-toolbar", true],
+		["damage-collapse-toggle-button", "damage-rows-toolbar", true],
 		["autosave-status", "mobile-edit-actions", false],
 		["opponent-notes-save-alert", "mobile-edit-actions", false],
 		["collection-opt-out-label", "mobile-edit-actions", false],

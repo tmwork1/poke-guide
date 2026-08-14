@@ -209,10 +209,8 @@ const isOptedOut = optOutRemainingText !== "";
 	{pokemon && (
 		<Fragment slot="topbar-actions">
 			{/* damage-collapse-toggle-button(単一トグルボタン、交互切り替えのロジックはsrc/lib/box-id/
-			    damage-calc.ts側にある。elはgetElementById経由のためDOM上の位置に依存しない)を
-			    このFragmentに置く。見た目の位置(X座標)はCSS側(src/components/box-id/
-			    DamageCalcSection.astro の damage-collapse-toggle-button ルール、is:globalのため
-			    置き場所を問わず効く)でposition:fixedにより固定している。 */}
+			    damage-calc.ts側にある)の静的な生成元。ダメージタブ表示時はmobile-edit-tabs.tsが
+			    DamageCalcSection.astro内の#damage-rows-toolbarへ移し、一覧直上の通常フローで表示する。 */}
 			{/* アイコンはインラインSVGのゴミ箱(絵文字🗑はOS/フォントで見た目が変わるため
 			    定番デザインに向かない)。誤操作の抑止は色を抑える代わりに既存のwindow.confirm()
 			    (<script>のdeleteButtonクリックハンドラ)に委ねる。 */}

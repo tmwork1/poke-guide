@@ -602,7 +602,22 @@
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   transition: background .15s, color .15s, border-color .15s;
+  display: none;
+  opacity: 0;
+  pointer-events: none;
   position: absolute;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  #opponent-notes-section .damage-row-delete-button {
+    display: inline-flex;
+  }
+
+  #opponent-notes-section .card-damage:hover .damage-row-delete-button,
+  #opponent-notes-section .card-damage:focus-within .damage-row-delete-button {
+    opacity: 1;
+    pointer-events: auto;
+  }
 }
 
 #opponent-notes-section .damage-row-delete-button:hover:not(:disabled) {
@@ -622,6 +637,8 @@
 }
 #opponent-notes-section .damage-rows-list.is-card-delete-mode .damage-row-delete-button {
   display: inline-flex;
+  opacity: 1;
+  pointer-events: auto;
   color: var(--color-danger-strong);
 }
 
@@ -677,7 +694,7 @@
 }
 
 #opponent-notes-section .damage-column {
-  border: 1px solid color-mix(in srgb, var(--color-border) 45%, transparent);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   width: 100%;
   padding: .16rem var(--space-2);
@@ -751,30 +768,39 @@
 
 #opponent-notes-section .damage-column-move-row {
   align-items: center;
+  justify-content: space-between;
   gap: var(--space-1);
-  flex-wrap: wrap;
+  min-width: 0;
   display: flex;
 }
 
-#opponent-notes-section .damage-row-columns > .damage-column:first-child .damage-column-move-row {
-  padding-right: 40px;
+#opponent-notes-section .damage-column-move-text {
+  min-width: 0;
+  color: var(--color-text);
+  font-size: var(--font-size-sm2);
+  font-weight: 700;
+  line-height: var(--line-height-tight);
+  overflow-wrap: anywhere;
+}
+
+#opponent-notes-section .damage-column-move-text.is-placeholder {
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+#opponent-notes-section .damage-column-hitcount-text {
+  flex: none;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm3);
+  line-height: var(--line-height-tight);
+}
+
+#opponent-notes-section .damage-column-hitcount-text[hidden] {
+  display: none;
 }
 
 #opponent-notes-section .damage-row-techniques-row {
   container: dmgtech / inline-size;
-}
-
-#opponent-notes-section .damage-column-move-row input[type="text"] {
-  flex: 1 1 0;
-  min-width: 3.4em;
-}
-
-#opponent-notes-section .damage-column.has-remove-button .damage-column-move-row {
-  padding-right: 40px;
-}
-
-#opponent-notes-section .damage-column-move-row .damage-column-hitcount-row {
-  flex: none;
 }
 
 #opponent-notes-section .damage-column-hitcount-row {
@@ -1032,9 +1058,58 @@
 }
 
 #damage-detail-panel-body .damage-detail-icon-btn.is-text-only {
-  font-size: var(--font-size-sm3);
+  min-height: var(--space-7);
+  font-size: var(--font-size-sm2);
   flex-direction: row;
-  padding: .3em .55em;
+  padding: .35em .65em;
+}
+
+#damage-detail-panel-body .damage-detail-move-editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+#damage-detail-panel-body .damage-detail-move-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+#damage-detail-panel-body .damage-detail-move-field {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+#damage-detail-panel-body .damage-detail-move-input {
+  width: 100%;
+  min-width: 0;
+  min-height: var(--space-7);
+  padding: .35em .55em;
+  font-size: var(--font-size-sm2);
+}
+
+#damage-detail-panel-body .damage-detail-hitcount-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+#damage-detail-panel-body .damage-detail-hitcount-row[hidden] {
+  display: none;
+}
+
+#damage-detail-panel-body .damage-detail-hitcount-input {
+  width: 4em;
+  min-height: var(--space-7);
+  padding: .35em;
+  text-align: center;
+  font-size: var(--font-size-sm2);
+}
+
+#damage-detail-panel-body .damage-detail-hitcount-unit {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm2);
 }
 
 #damage-detail-panel-body .damage-detail-icon-btn:hover {
@@ -1102,10 +1177,28 @@
   flex: none;
 }
 
+#damage-detail-panel-body .damage-detail-rank-field .rank-stepper-group {
+  gap: var(--space-1);
+}
+
+#damage-detail-panel-body .damage-detail-rank-stepper {
+  width: var(--space-7);
+  min-width: var(--space-7);
+  height: var(--space-7);
+  min-height: var(--space-7);
+  color: var(--color-text-muted);
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-zero);
+  box-shadow: var(--shadow-sm);
+  font-size: var(--font-size-sm1);
+  font-weight: 400;
+}
+
 #damage-detail-panel-body .damage-detail-rank-field input[type="number"] {
   width: 3.4em;
-  min-height: 0;
-  font-size: var(--font-size-sm3);
+  min-height: var(--space-7);
+  font-size: var(--font-size-sm2);
   text-align: center;
   background: var(--color-bg);
   appearance: textfield;
@@ -1132,12 +1225,12 @@
 }
 
 #damage-detail-panel-body .damage-detail-ailment-select {
-  width: 5.3em;
-  min-height: 0;
-  font-size: var(--font-size-sm3);
+  width: 7em;
+  min-height: var(--space-7);
+  font-size: var(--font-size-sm2);
   background: var(--color-bg);
   flex: none;
-  padding: .3em;
+  padding: .35em 1.4em .35em .5em;
 }
 
 #damage-detail-panel-body .damage-detail-ailment-select.is-ailment-unselected {
@@ -1233,7 +1326,7 @@
   }
 
   #opponent-notes-section .damage-column {
-    border-color: color-mix(in srgb, var(--color-border) 45%, transparent);
+    border-color: var(--color-border);
   }
 }
 
@@ -1504,10 +1597,6 @@
     z-index: 15;
   }
 
-  #mobile-damage-toolbar-actions #damage-collapse-toggle-button {
-    display: none;
-  }
-
   #opponent-notes-section .damage-row-body {
     flex-flow: column;
   }
@@ -1644,6 +1733,10 @@
     min-width: 0;
   }
 
+  #opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-row-direction-toggle {
+    min-width: 3.6em;
+  }
+
   #opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-row-build-grid select {
     display: none;
   }
@@ -1656,19 +1749,20 @@
     white-space: nowrap;
     text-overflow: ellipsis;
     cursor: pointer;
-    background: none;
-    border: 0;
-    border-radius: 0;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
     flex: 1 1 0;
     order: 2;
-    padding: 0;
+    padding: .22em .38em;
     display: inline-flex;
     overflow: hidden;
   }
 
   #opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-row-ability-cycle:hover:not(:disabled) {
     color: var(--color-text);
-    background: none;
+    background: var(--color-surface);
+    border-color: var(--color-primary);
   }
 
   #opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-row-tera-field {
@@ -1808,11 +1902,12 @@
   }
 
   #opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-item-badge[hidden] .damage-item-badge-placeholder {
-    background: var(--color-risky-strong);
-    width: 100%;
-    height: 100%;
-    color: var(--color-primary-contrast);
+    background: var(--color-surface);
+    width: 20px;
+    height: 20px;
+    color: var(--color-text-muted);
     font-size: var(--font-size-sm2);
+    border: 1px solid var(--color-border);
     border-radius: 50%;
     justify-content: center;
     align-items: center;
@@ -1824,4 +1919,10 @@
   #opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-item-badge[aria-disabled="true"] {
     cursor: default;
   }
+}
+
+/* 技カード長押し中は、選択・hover状態より優先して削除操作の進行を示す。 */
+#opponent-notes-section .damage-column.is-pressing {
+  border-color: var(--color-danger-strong);
+  box-shadow: 0 0 0 1px var(--color-danger-strong);
 }

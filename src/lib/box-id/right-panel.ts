@@ -25,6 +25,9 @@ import {
 	clearSelection,
 	clearSelectionAndMarks,
 	renderDetailPanel,
+	configureDamageColumnMoveInput,
+	getDamageColumnMultiHitRange,
+	refreshDamageColumnDisplay,
 	natureNameFromBoosts,
 	type DamageRowState,
 	type DamageColumnState,
@@ -909,8 +912,8 @@ export function buildSideSection(
 	);
 	const stepperGroup = document.createElement("span");
 	stepperGroup.className = "rank-stepper-group";
-	stepperGroup.append(incrementButton, decrementButton);
-	rankField.append(rankLabel, rankInput, stepperGroup);
+	stepperGroup.append(decrementButton, rankInput, incrementButton);
+	rankField.append(rankLabel, stepperGroup);
 	rankAilmentGroup.appendChild(headingRow);
 
 	const chipRow = document.createElement("div");
@@ -1155,8 +1158,102 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 		heading.append(selfIcon, selfIconFallback, arrow, opponentIcon, opponentIconFallback, moveTypeIcon, moveText);
 		return heading;
 	}
-	// 今回の要件: 選択中の技表示は本文ではなく共通ヘッダーバンドへ移す。
-	setDetailPanelTitle(buildSelectionHeadingRow());
+	// 選択中の技表示は共通ヘッダーバンドに残し、編集時は技名とタイプも同期する。
+	const refreshSelectionHeading = (): void => setDetailPanelTitle(buildSelectionHeadingRow());
+	refreshSelectionHeading();
+
+	const criticalButton = buildCriticalButton();
+	const refreshMoveEditorDisplay = (): void => {
+		refreshSelectionHeading();
+		criticalButton.setAttribute("aria-pressed", String(column.critical));
+	};
+	const moveSelectInput = document.createElement("input");
+	moveSelectInput.type = "text";
+	moveSelectInput.className = "damage-detail-move-input";
+	configureDamageColumnMoveInput(moveSelectInput, row, column);
+
+	const hitRow = document.createElement("div");
+	hitRow.className = "damage-column-hitcount-row damage-detail-hitcount-row";
+	const hitCountInput = document.createElement("input");
+	hitCountInput.type = "number";
+	hitCountInput.className = "damage-detail-hitcount-input";
+	hitCountInput.step = "1";
+	hitCountInput.value = String(column.hitCount ?? 1);
+	const hitCountUnit = document.createElement("span");
+	hitCountUnit.className = "damage-column-hitcount-unit damage-detail-hitcount-unit";
+	hitCountUnit.textContent = "ヒット";
+	hitRow.append(hitCountInput, hitCountUnit);
+
+	let hitCountRange: [number, number] = [1, 10];
+	async function refreshHitCountVisibility(options?: { silent?: boolean; preferMax?: boolean }): Promise<void> {
+		const name = column.moveName.trim();
+		const range = await getDamageColumnMultiHitRange(name);
+		if (!row.attacks.includes(column) || column.moveName.trim() !== name) return;
+		const applyCorrection = (value: number): void => {
+			const changed = column.hitCount !== value;
+			column.hitCount = value;
+			hitCountInput.value = String(value);
+			refreshDamageColumnDisplay(row, column);
+			refreshMoveEditorDisplay();
+			if (!changed || options?.silent) return;
+			scheduleRowCalc(row);
+			scheduleRowSave(row);
+		};
+		if (!range) {
+			hitCountRange = [1, 1];
+			hitRow.hidden = true;
+			applyCorrection(1);
+			return;
+		}
+		hitCountRange = range;
+		hitRow.hidden = false;
+		hitCountInput.min = String(range[0]);
+		hitCountInput.max = String(range[1]);
+		const label = range[0] === range[1]
+			? `ヒット数(${range[0]}回固定)`
+			: `ヒット数(${range[0]}〜${range[1]}回)`;
+		const hitCountNote = name === "ふくろだたき"
+			? "実際のヒット数はパーティの生存数(状態異常でない数)で決まります。乱数ではありません。"
+			: "実際のヒット数は技ごとの確率で決まる乱数です。";
+		hitCountInput.title = range[0] === range[1]
+			? label
+			: `${label}。${hitCountNote}ここでは指定した回数ヒットした場合を計算します。`;
+		hitCountInput.setAttribute("aria-label", label);
+		const desired = options?.preferMax ? range[1] : column.hitCount;
+		applyCorrection(clampInt(desired, range[0], range[1]));
+	}
+
+	moveSelectInput.addEventListener("input", () => {
+		column.moveName = moveSelectInput.value;
+		refreshDamageColumnDisplay(row, column);
+		refreshMoveEditorDisplay();
+		void notifyDetailMoveChanged(row, column).then(refreshMoveEditorDisplay);
+		void refreshHitCountVisibility({ preferMax: true });
+		scheduleRowCalc(row);
+		scheduleRowSave(row);
+	});
+	hitCountInput.addEventListener("input", () => {
+		const n = Number(hitCountInput.value);
+		column.hitCount = Number.isFinite(n) ? clampInt(n, hitCountRange[0], hitCountRange[1]) : hitCountRange[0];
+		hitCountInput.value = String(column.hitCount);
+		refreshDamageColumnDisplay(row, column);
+		refreshMoveEditorDisplay();
+		scheduleRowCalc(row);
+		scheduleRowSave(row);
+	});
+	hitRow.hidden = true;
+	void refreshHitCountVisibility({ silent: true });
+
+	const moveEditorGroup = document.createElement("div");
+	moveEditorGroup.className = "damage-detail-move-editor";
+	const moveControls = document.createElement("div");
+	moveControls.className = "damage-detail-move-controls";
+	const moveField = document.createElement("div");
+	moveField.className = "damage-detail-move-field";
+	moveField.appendChild(moveSelectInput);
+	moveControls.append(moveField, criticalButton);
+	moveEditorGroup.append(moveControls, hitRow);
+	contentWrap.appendChild(moveEditorGroup);
 
 	const sidesWrap = document.createElement("div");
 	sidesWrap.className = "damage-detail-sides";
@@ -1171,7 +1268,7 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 // テラスタイプは攻撃側・防御側それぞれの実値を渡す。
 	const selfTeraTypeValue = el<HTMLSelectElement>("tera").value;
 	const opponentTeraTypeValue = row.teraType;
-	const attackerSecondaryChipRow = buildSideSection(
+	buildSideSection(
 		attackerSide,
 		row,
 		"攻撃側",
@@ -1188,18 +1285,6 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 		(value) => { column.attackerVolatiles = value; },
 		true,
 	);
-	const criticalButton = buildCriticalButton();
-	if (attackerSecondaryChipRow) {
-		attackerSecondaryChipRow.insertBefore(criticalButton, attackerSecondaryChipRow.firstChild);
-	} else {
-		// DAMAGE_ATTACKER_VOLATILESは常に1件("じゅうでん")を持つため通常は
-		// ここに来ないが、将来の変更に備えてフォールバックを用意する
-		// (急所チップ自体は必ず攻撃側に出す)。
-		const fallbackRow = document.createElement("div");
-		fallbackRow.className = "damage-detail-chip-row";
-		fallbackRow.appendChild(criticalButton);
-		attackerSide.querySelector(".damage-detail-group")?.appendChild(fallbackRow);
-	}
 	buildSideSection(
 		defenderSide,
 		row,

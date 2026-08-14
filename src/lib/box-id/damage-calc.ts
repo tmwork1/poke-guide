@@ -36,10 +36,6 @@ import {
 	loadMultiHitMoveMap,
 	loadAbilitiesMap,
 	officialArtworkUrl,
-	// モバイル版では相手ビルドのポケモンアイコンをドット絵にするため、applySprite()の
-	// urlFn既定値(officialArtworkUrl)とは別にspriteUrlを明示的に受け取って出し分ける
-	// (下のrefreshSprite参照)。
-	spriteUrl,
 } from "../pokemon-master-data";
 import { type StatKey, STAT_KEYS, NATURE_STAT_MODIFIERS, calcHpStat, calcOtherStat } from "../stats";
 import { TERA_TYPES } from "../tera-types";
@@ -404,6 +400,9 @@ if (opponentNotesSection) {
 		saveRow: (row) => saveRow(row),
 		setRowSaveStatus: (row, state, text) => setRowSaveStatus(row, state, text),
 		renderConditionChipsInto: (container, attack) => renderConditionChipsInto(container, attack),
+		configureColumnMoveInput: (input, row, column) => configureColumnMoveInput(input, row, column),
+		getColumnMultiHitRange: (moveName) => getColumnMultiHitRange(moveName),
+		refreshColumnDisplay: (row, column) => refreshColumnDisplay(row, column),
 		renderDetailPanelEmpty: () => {
 			renderDetailPanelEmpty();
 			refreshMobileDetailPlacement();
@@ -1654,6 +1653,87 @@ if (opponentNotesSection) {
 		scheduleRowSave(row);
 	}
 
+	const columnDisplayRefreshers = new WeakMap<DamageColumnState, () => void>();
+
+	function refreshColumnDisplay(row: DamageRowState, column: DamageColumnState): void {
+		columnDisplayRefreshers.get(column)?.();
+		rowCollapseHandles.get(row)?.refreshCollapsedViews();
+	}
+
+	function configureColumnMoveInput(
+		moveInput: HTMLInputElement,
+		row: DamageRowState,
+		column: DamageColumnState,
+	): void {
+		const attackerIsOpponent = row.direction === "defense";
+		if (attackerIsOpponent) {
+			ensureOpponentPopularityMoveDatalist();
+			moveInput.setAttribute("list", OPPONENT_POPULARITY_MOVE_DATALIST_ID);
+			moveInput.addEventListener("focus", () => refreshOpponentPopularityMoveDatalist(row.name));
+			refreshOpponentPopularityMoveDatalist(row.name);
+			attachKanaTypeAhead(moveInput, ensureOpponentPopularityMoveDatalist());
+		} else {
+			ensureSelfFirstMoveDatalist();
+			moveInput.setAttribute("list", SELF_FIRST_MOVE_DATALIST_ID);
+			moveInput.addEventListener("focus", refreshSelfFirstMoveDatalist);
+			refreshSelfFirstMoveDatalist();
+			attachKanaTypeAhead(moveInput, ensureSelfFirstMoveDatalist());
+		}
+		const columnNumber = Math.max(0, row.attacks.indexOf(column)) + 1;
+		moveInput.placeholder = attackerIsOpponent ? "相手の技" : "技";
+		moveInput.setAttribute(
+			"aria-label",
+			attackerIsOpponent ? `相手が${columnNumber}番目に当ててくる技` : `${columnNumber}番目に当てる技`,
+		);
+		moveInput.autocomplete = "off";
+		moveInput.value = column.moveName;
+	}
+
+	async function getColumnMultiHitRange(moveName: string): Promise<[number, number] | undefined> {
+		const name = moveName.trim();
+		return name === "" ? undefined : (await multiHitMapPromise()).get(name);
+	}
+
+	const DAMAGE_COLUMN_LONG_PRESS_MS = 600;
+	function attachColumnLongPressDelete(
+		columnEl: HTMLElement,
+		row: DamageRowState,
+		column: DamageColumnState,
+	): void {
+		let pressTimer: ReturnType<typeof window.setTimeout> | undefined;
+		const clearPress = (): void => {
+			if (pressTimer !== undefined) window.clearTimeout(pressTimer);
+			pressTimer = undefined;
+			columnEl.classList.remove("is-pressing");
+		};
+		columnEl.addEventListener("pointerdown", (event) => {
+			if (event.button !== 0) return;
+			if (event.target instanceof Element && event.target.closest("button, input, textarea, select, option, label, a, [contenteditable='true']")) return;
+			// 親のカード削除モードとは別操作なので、同じ長押しで両方が発火しないようにする。
+			event.stopPropagation();
+			if (row.attacks.length <= 1) return;
+			columnEl.classList.add("is-pressing");
+			pressTimer = window.setTimeout(() => {
+				pressTimer = undefined;
+				const index = row.attacks.indexOf(column);
+				if (index === -1 || row.attacks.length <= 1) {
+					columnEl.classList.remove("is-pressing");
+					return;
+				}
+				row.attacks.splice(index, 1);
+				renderColumns(row);
+				scheduleRowCalc(row);
+				scheduleRowSave(row);
+			}, DAMAGE_COLUMN_LONG_PRESS_MS);
+		});
+		columnEl.addEventListener("pointerup", clearPress);
+		columnEl.addEventListener("pointercancel", clearPress);
+		columnEl.addEventListener("pointerleave", clearPress);
+		columnEl.addEventListener("contextmenu", (event) => {
+			if (pressTimer !== undefined) event.preventDefault();
+		});
+	}
+
 	// --- 列(攻撃)のDOM構築 ---
 	function renderColumns(row: DamageRowState): void {
 		if (!row.columnsEl) return;
@@ -1681,61 +1761,40 @@ if (opponentNotesSection) {
 			colBody.className = "damage-column-body";
 			col.appendChild(colBody);
 
-			const moveInput = document.createElement("input");
-			moveInput.type = "text";
-			// 攻守を切り替えると技列は「相手が撃ってくる技」になるので、入力欄の
-			// placeholder/aria-labelも向きに合わせて言い換える(誰の技を入れる欄なのかが
-			// 分からないと、受け計算のときに自分の技を入れてしまう)。
-			const attackerIsOpponent = row.direction === "defense";
-			// 自分(このポケモン)が攻撃側のときだけ、左パネルの技1〜4を最上位にした
-			// 専用datalistを使う(上のensureSelfFirstMoveDatalist/refreshSelfFirstMoveDatalist参照)。
-			// 相手が攻撃側(受け計算)のときは種族全体の候補(#move-list)のまま変えない。
-			if (attackerIsOpponent) {
-				// 防御側(相手が攻撃側)の技候補は、種族全体の候補(#move-list)をそのまま
-				// 使うのではなく、相手の使用率順に並べ直した専用datalistを使う
-				// (上のensureOpponentPopularityMoveDatalist/
-				// refreshOpponentPopularityMoveDatalist参照。攻撃側=SELF_FIRST_MOVE_DATALIST_ID
-				// と同じ構造)。
-				ensureOpponentPopularityMoveDatalist();
-				moveInput.setAttribute("list", OPPONENT_POPULARITY_MOVE_DATALIST_ID);
-				moveInput.addEventListener("focus", () => refreshOpponentPopularityMoveDatalist(row.name));
-				refreshOpponentPopularityMoveDatalist(row.name);
-				attachKanaTypeAhead(moveInput, ensureOpponentPopularityMoveDatalist());
-			} else {
-				ensureSelfFirstMoveDatalist();
-				moveInput.setAttribute("list", SELF_FIRST_MOVE_DATALIST_ID);
-				moveInput.addEventListener("focus", () => refreshSelfFirstMoveDatalist());
-				refreshSelfFirstMoveDatalist();
-				attachKanaTypeAhead(moveInput, ensureSelfFirstMoveDatalist());
-			}
-			moveInput.placeholder = attackerIsOpponent ? "相手の技" : "技";
-			moveInput.setAttribute(
-				"aria-label",
-				attackerIsOpponent ? `相手が${index + 1}番目に当ててくる技` : `${index + 1}番目に当てる技`,
-			);
-			moveInput.autocomplete = "off";
-			moveInput.value = attack.moveName;
-			moveInput.addEventListener("input", () => {
-				row.attacks[index].moveName = moveInput.value;
-				// 今回の要件: 技が変わった瞬間だけ、critRatioに基づく確定急所の自動入力を試す。
-				void notifyDetailMoveChanged(row, row.attacks[index]);
-				// マルチヒット技のデフォルトヒット回数はMaxにする。ここ(技名inputへのユーザーの
-				// 生入力)は「新規にこの技へ切り替えた」瞬間そのものなので
-				// preferMax:trueを渡す。保存済みメモの復元(renderColumns初期描画、下の
-				// { silent: true }呼び出し)はこの経路を通らないため、保存値(attack.hitCount)を
-				// 勝手に書き換えることはない。
-				void refreshHitCountVisibility({ preferMax: true });
-				scheduleRowCalc(row);
-				scheduleRowSave(row);
-			});
-
-			// この技列自体をクリックする(フォーム要素の外側限定。renderRow内の
-			// root.addEventListener参照)と、この技だけの設定(急所・ランク補正など)が
-			// サイドバーに表示される。削除ボタン(×)は技名行にまとめて配置する。
+			// 通常カードは表示専用とし、編集は技列クリックで開く詳細パネルへ集約する。
 			const moveRow = document.createElement("div");
 			moveRow.className = "damage-column-move-row";
-			moveRow.appendChild(moveInput);
+			const moveText = document.createElement("span");
+			moveText.className = "damage-column-move-text";
+			const hitText = document.createElement("span");
+			hitText.className = "damage-column-hitcount-text";
+			hitText.hidden = true;
+			moveRow.append(moveText, hitText);
 			colBody.appendChild(moveRow);
+			const refreshDisplay = (): void => {
+				const name = attack.moveName.trim();
+				moveText.textContent = name || "技未設定";
+				moveText.classList.toggle("is-placeholder", name === "");
+				hitText.hidden = true;
+				if (!name) {
+					attack.hitCount = 1;
+					return;
+				}
+				void multiHitMapPromise().then((multiHitMap) => {
+					if (!row.attacks.includes(attack) || attack.moveName.trim() !== name) return;
+					const range = multiHitMap.get(name);
+					if (!range) {
+						attack.hitCount = 1;
+						return;
+					}
+					attack.hitCount = clampInt(attack.hitCount, range[0], range[1]);
+					if (attack.hitCount < 2) return;
+					hitText.textContent = `${attack.hitCount}ヒット`;
+					hitText.hidden = false;
+				});
+			};
+			columnDisplayRefreshers.set(attack, refreshDisplay);
+			refreshDisplay();
 
 			// この技に実際に効いている条件(天候・フィールド・壁も、この技だけの急所・ランク
 			// 補正等も区別せず)をまとめて一覧するチップ。.damage-row-condition-chipsを
@@ -1762,118 +1821,7 @@ if (opponentNotesSection) {
 			overkillNote.hidden = true;
 			conditions.appendChild(overkillNote);
 
-			// ヒット回数はこの技名行(moveRow)へ同居させ、多段ヒット技の行ぶんの縦を回収する。
-			// クラス名 .damage-column-hitcount-row はE2Eが参照しているため改名しない(要素を
-			// moveRowへappendするだけで、クラス名・[hidden]による表示/非表示ロジックは変えない)。
-			const hitRow = document.createElement("div");
-			hitRow.className = "damage-column-hitcount-row";
-			const hitInput = document.createElement("input");
-			hitInput.type = "number";
-			hitInput.step = "1";
-			hitInput.value = String(attack.hitCount ?? 1);
-			hitInput.addEventListener("input", () => {
-				const n = Number(hitInput.value);
-				const range = hitCountRange;
-				row.attacks[index].hitCount = Number.isFinite(n) ? clampInt(n, range[0], range[1]) : range[0];
-				scheduleRowCalc(row);
-				scheduleRowSave(row);
-			});
-			hitRow.appendChild(hitInput);
-			const unit = document.createElement("span");
-			unit.className = "damage-column-hitcount-unit";
-			unit.textContent = "ヒット";
-			hitRow.appendChild(unit);
-			moveRow.appendChild(hitRow);
-
-			// 要件: 連続回数の指定は連続技のときだけ表示する。連続技かどうかは
-			// マスタデータ(moves.jsonのhits)で判定する。連続技でない技に切り替えられた
-			// ときは、隠すだけでなくhitCountを1に戻す(隠れた入力欄の値が計算に
-			// 効き続けると、画面に見えていない条件でダメージが変わってしまう)。
-			let hitCountRange: [number, number] = [1, 10];
-			// silent: 初回描画時はtrue。値を補正してもここでは保存・再計算を予約しない
-			// (描画しただけで保存が走ると、何も編集していないのに保存状態が点滅する)。
-			// 補正後の値は、この直後に走る recalcRow() の成功時保存で自然に永続化される。
-			// preferMaxは、技名inputへのユーザーの生入力
-			// (moveInput の "input" イベント)からだけtrueで渡される。renderColumns初期描画
-			// (下の { silent: true } 呼び出し。保存済みメモの復元・行の再構築の両方がここを通る)
-			// は常にfalse/未指定なので、attackState.hitCount(保存値)を優先して勝手に
-			// 書き換えることはない。
-			async function refreshHitCountVisibility(options?: { silent?: boolean; preferMax?: boolean }): Promise<void> {
-				const attackState = row.attacks[index];
-				if (!attackState) return;
-				const name = attackState.moveName.trim();
-				const range = name === "" ? undefined : (await multiHitMapPromise()).get(name);
-				const applyCorrection = (value: number): void => {
-					if (attackState.hitCount === value) return;
-					attackState.hitCount = value;
-					hitInput.value = String(value);
-					if (options?.silent) return;
-					scheduleRowCalc(row);
-					scheduleRowSave(row);
-				};
-				if (!range) {
-					// 連続技でない技はヒット数を指定させない(要件)。旧UIでは任意の技に
-					// 「N回連続」を指定できたため、既存メモに2以上が残っていることがある。
-					// 入力欄を隠すだけだと画面に出ていない倍率が計算に効き続けるので、
-					// 1に戻して表示と計算を一致させる。
-					hitCountRange = [1, 1];
-					hitRow.hidden = true;
-					applyCorrection(1);
-					return;
-				}
-				hitCountRange = range;
-				hitRow.hidden = false;
-				hitInput.min = String(range[0]);
-				hitInput.max = String(range[1]);
-				const label = range[0] === range[1]
-					? `ヒット数(${range[0]}回固定)`
-					: `ヒット数(${range[0]}〜${range[1]}回)`;
-				// 「2〜5」という範囲の表示だけでは、実際のヒット数がプレイヤーの
-				// 入力ではなく技ごとの確率で決まる乱数であり、この入力欄は「何回ヒットしたと
-				// 仮定するか」を指定するものだと伝わらない(初回選択時に最小値へクランプされる
-				// 理由も分からない)。確率の出典: .claude/skills/jpoke/references/damage-calc.md
-				// 「3. 急所・命中・多段ヒットの扱い」(2〜5回技は37.5%/37.5%/12.5%/12.5%、
-				// それ以外の範囲は一様分布)。range[0]===range[1](固定回数技)は乱数の要素が
-				// 無いため対象外のまま。
-				// ふくろだたきだけは乱数ではなく、選出中の生存かつ状態異常でないポケモンの数で
-				// 決定的にヒット数が決まる(出典: vendor/jpoke/src/jpoke/handlers/move_attack.py
-				// :3049-3054)。他の多段ヒット技(22件)はこの乱数の汎用文言のままで正しい。
-				const hitCountNote = name === "ふくろだたき"
-					? "実際のヒット数はパーティの生存数(状態異常でない数)で決まります。乱数ではありません。"
-					: "実際のヒット数は技ごとの確率で決まる乱数です。";
-				hitInput.title = range[0] === range[1]
-					? label
-					: `${label}。${hitCountNote}ここでは指定した回数ヒットした場合を計算します。`;
-				hitInput.setAttribute("aria-label", label);
-					unit.textContent = "ヒット";
-				// 新規にこの技へ切り替えた直後(preferMax:true)だけrange[1](最大)にする。
-				// それ以外(保存済みメモの復元・行の再構築)はattackState.hitCount(保存値、
-				// 新規技行では常に1)をそのままクランプする従来どおりの挙動を維持する。
-				const desired = options?.preferMax ? range[1] : attackState.hitCount;
-				applyCorrection(clampInt(desired, range[0], range[1]));
-			}
-			hitRow.hidden = true; // マスタデータの読み込み完了まではひとまず隠しておく
-			void refreshHitCountVisibility({ silent: true });
-
-			// カード全体の削除ボタン(.damage-row-delete-button、position:absolute; top; right)と
-			// 同じ考え方で、この技カード(col、.damage-column)自身を基準に右上へ絶対配置する。
-			// moveRowへは追加せず、col直下へ直接appendする(CSSはDamageCalcSection.astroの
-			// .damage-column-remove-button参照。.damage-columnにposition:relativeを追加済み)。
-			col.classList.toggle("has-remove-button", row.attacks.length > 1);
-			if (row.attacks.length > 1) {
-				const removeBtn = document.createElement("button");
-				removeBtn.type = "button";
-				removeBtn.className = "btn-ghost damage-row-icon-button damage-column-remove-button";
-				removeBtn.textContent = "×";
-				removeBtn.title = "この技カードを削除";
-				removeBtn.addEventListener("click", () => {
-					row.attacks.splice(index, 1);
-					renderColumns(row);
-					scheduleRowCalc(row);
-					scheduleRowSave(row);
-				});
-				col.appendChild(removeBtn);
-			}
+			attachColumnLongPressDelete(col, row, attack);
 
 			// 最下段(区切り線の下)に「技ごとのダメ・致死率」。margin-top:autoで
 			// 箱の下端に固定されるため、上の条件欄が増えても位置が変わらない。
@@ -2468,15 +2416,13 @@ if (opponentNotesSection) {
 			delete buildEl.dataset.mobileEdit;
 		});
 
-		// デスクトップ(900px以上)は公式アートワーク(officialArtworkUrl)のままで、899px以下
-		// だけPokeAPIのドット絵(spriteUrl。左パネルの持ち物バッジ等と同じソース)に差し替える。
-		// 幅の境界をまたいだときは下方のmatchMediaリスナーが全行のこの関数を呼び直す。
+		// モバイル専用UIでも相手ポケモンは公式アートワークで統一する。
 		function refreshSprite(): void {
 			void applySprite(
 				spriteImg,
 				spriteFallback,
 				row.name.trim(),
-				isNarrowLayout() ? spriteUrl : officialArtworkUrl,
+				officialArtworkUrl,
 			);
 		}
 		rowSpriteRefreshers.set(row, refreshSprite);
@@ -2881,7 +2827,22 @@ if (opponentNotesSection) {
 		row.natureColLabelEls = natureColLabelEls;
 		refreshRowNatureButtons(row);
 
-		// 2段目: 努力値入力(チャンピオンズルールの0〜32スケール)。
+		// 2段目: 実数値(性格による上昇/下降は文字色で表現する)。
+		const statRowLabel = document.createElement("span");
+		statRowLabel.className = "damage-ev-row-label";
+		statRowLabel.textContent = "実数値";
+		evGrid.appendChild(statRowLabel);
+		const statValueEls: Partial<Record<string, HTMLElement>> = {};
+		for (const key of STAT_KEYS) {
+			const valueSpan = document.createElement("span");
+			valueSpan.className = "damage-stat-value tnum";
+			valueSpan.textContent = "-";
+			statValueEls[key] = valueSpan;
+			evGrid.appendChild(valueSpan);
+		}
+		row.statValueEls = statValueEls;
+
+		// 3段目: 努力値入力(チャンピオンズルールの0〜32スケール)。
 		const evRowLabel = document.createElement("span");
 		evRowLabel.className = "damage-ev-row-label";
 		evRowLabel.textContent = "努力値";
@@ -2899,13 +2860,13 @@ if (opponentNotesSection) {
 			input.value = String(row.evs[i] ?? 0);
 			input.setAttribute("aria-label", `相手の${STAT_KANJI[key]}努力値(0〜32)`);
 
-			// 表示専用の読み取り(0は提案図どおり「-」、1以上は「+32」形式)。
+			// 表示専用の読み取り(0は「0」、1以上は「+32」形式)。
 			const valueText = document.createElement("button");
 			valueText.type = "button";
 			valueText.className = "damage-ev-value-text tnum";
 			function refreshEvText(): void {
 				const ev = row.evs[i] ?? 0;
-				valueText.textContent = ev > 0 ? `+${ev}` : "-";
+				valueText.textContent = ev > 0 ? `+${ev}` : "0";
 				valueText.setAttribute(
 					"aria-label",
 					`相手の${STAT_KANJI[key]}努力値 ${ev}。タップして編集`,
@@ -3024,22 +2985,6 @@ if (opponentNotesSection) {
 			refreshCollapsedSummary();
 			onFieldInput();
 		}
-
-		// 3段目: 実数値(性格による上昇/下降は文字色で表現する)。
-		const statRowLabel = document.createElement("span");
-		statRowLabel.className = "damage-ev-row-label";
-		statRowLabel.textContent = "実数値";
-		evGrid.appendChild(statRowLabel);
-		const statValueEls: Partial<Record<string, HTMLElement>> = {};
-		for (const key of STAT_KEYS) {
-			const valueSpan = document.createElement("span");
-			valueSpan.className = "damage-stat-value tnum";
-			valueSpan.textContent = "-";
-			statValueEls[key] = valueSpan;
-			evGrid.appendChild(valueSpan);
-		}
-		row.statValueEls = statValueEls;
-
 
 		const totalBlock = document.createElement("div");
 		totalBlock.className = "damage-row-total";
@@ -3348,7 +3293,7 @@ if (opponentNotesSection) {
 		for (const row of rows) {
 			renderColumns(row);
 			rowCollapseHandles.get(row)?.refreshCollapsedViews();
-			// モバイル=ドット絵 / デスクトップ=公式アートワークの出し分け(上のrowSpriteRefreshers参照)。
+			// レイアウト更新後も公式アートワークの読み込み状態を揃える。
 			rowSpriteRefreshers.get(row)?.();
 		}
 	});

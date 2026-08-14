@@ -396,6 +396,9 @@ export interface DamageCalcBridge {
 	saveRow: (row: DamageRowState) => Promise<void>;
 	setRowSaveStatus: (row: DamageRowState, state: string, text: string) => void;
 	renderConditionChipsInto: (container: HTMLElement, attack: DamageColumnState) => void;
+	configureColumnMoveInput: (input: HTMLInputElement, row: DamageRowState, column: DamageColumnState) => void;
+	getColumnMultiHitRange: (moveName: string) => Promise<[number, number] | undefined>;
+	refreshColumnDisplay: (row: DamageRowState, column: DamageColumnState) => void;
 	renderDetailPanelEmpty: () => void;
 	renderColumnLevelDetailPanel: (row: DamageRowState, column: DamageColumnState) => void;
 	openDetailPanelOverlayIfNarrow: () => void;
@@ -403,6 +406,22 @@ export interface DamageCalcBridge {
 let damageCalcBridge: DamageCalcBridge | null = null;
 export function registerDamageCalcBridge(bridge: DamageCalcBridge): void {
 	damageCalcBridge = bridge;
+}
+
+export function configureDamageColumnMoveInput(
+	input: HTMLInputElement,
+	row: DamageRowState,
+	column: DamageColumnState,
+): void {
+	damageCalcBridge!.configureColumnMoveInput(input, row, column);
+}
+
+export function getDamageColumnMultiHitRange(moveName: string): Promise<[number, number] | undefined> {
+	return damageCalcBridge!.getColumnMultiHitRange(moveName);
+}
+
+export function refreshDamageColumnDisplay(row: DamageRowState, column: DamageColumnState): void {
+	damageCalcBridge!.refreshColumnDisplay(row, column);
 }
 
 // 耐久調整ポップアップ(src/lib/box-id/bulk-adjust.ts 等)は「防御(相手→自分)方向の
