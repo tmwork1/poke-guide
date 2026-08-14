@@ -24,6 +24,8 @@
 		background: transparent;
 		border: 0;
 		border-radius: var(--radius-zero);
+		appearance: none;
+		-webkit-appearance: none;
 		cursor: pointer;
 		color: var(--color-text-muted);
 		flex-shrink: 0;

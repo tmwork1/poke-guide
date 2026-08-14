@@ -56,6 +56,10 @@
   background: transparent;
   border: 0;
   border-radius: var(--radius-zero);
+  /* button要素のネイティブappearanceが残っていると、iOS Safari等で背景色の上に
+     わずかな縁取り(上辺のハイライト/影)が重なって見えることがあるため明示的に消す。 */
+  appearance: none;
+  -webkit-appearance: none;
   text-decoration: none;
 }
 
