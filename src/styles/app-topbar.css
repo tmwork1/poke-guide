@@ -23,6 +23,7 @@
 		padding: 0;
 		background: transparent;
 		border: 0;
+		border-radius: var(--radius-zero);
 		cursor: pointer;
 		color: var(--color-text-muted);
 		flex-shrink: 0;

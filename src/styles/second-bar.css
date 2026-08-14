@@ -55,6 +55,7 @@
   cursor: pointer;
   background: transparent;
   border: 0;
+  border-radius: var(--radius-zero);
   text-decoration: none;
 }
 
