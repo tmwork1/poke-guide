@@ -16,6 +16,7 @@
 import { el, readEv } from "../owned-pokemon-form";
 import { spriteUrl } from "../pokemon-master-data";
 import { typeIconUrl } from "../sprite-urls";
+import { kanaIncludes } from "../kana";
 import {
 	applySprite,
 	scheduleRowCalc,
@@ -26,6 +27,7 @@ import {
 	clearSelectionAndMarks,
 	renderDetailPanel,
 	configureDamageColumnMoveInput,
+	getDamageColumnMoveCandidates,
 	getDamageColumnMultiHitRange,
 	refreshDamageColumnDisplay,
 	natureNameFromBoosts,
@@ -50,6 +52,7 @@ let detailPanelBodyEl: HTMLElement;
 let detailPanelTitleEl: HTMLElement;
 let detailPanelCloseButton: HTMLButtonElement;
 let detailBackdropEl: HTMLElement;
+let moveDropdownOutsideClickHandler: ((event: MouseEvent) => void) | null = null;
 
 type AutoInputState = {
 	critical?: boolean;
@@ -1132,22 +1135,6 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 		opponentIconFallback.className = "damage-detail-selection-icon-fallback";
 		void applySprite(opponentIcon, opponentIconFallback, row.name.trim(), spriteUrl);
 
-		const moveText = document.createElement("span");
-		moveText.className = "damage-detail-selection-move";
-		moveText.textContent = moveName || "(技未設定)";
-		const moveTypeIcon = document.createElement("img");
-		moveTypeIcon.className = "damage-detail-selection-move-type-icon";
-		moveTypeIcon.alt = "";
-		moveTypeIcon.hidden = true;
-		void moveAutoInputDetailsPromise.then((details) => {
-			const type = details.get(moveName)?.type;
-			const url = type ? typeIconUrl(type) : null;
-			if (!url) return;
-			moveTypeIcon.src = url;
-			moveTypeIcon.hidden = false;
-		});
-		moveTypeIcon.addEventListener("error", () => { moveTypeIcon.hidden = true; });
-
 		// 画像だけでは伝わらない情報(誰が攻撃/防御か、技名)をaria-label/titleで
 		// テキストとしても残す(WCAG 1.4.1、スクリーンリーダー利用者への退行を作らない)。
 		const attackerLabel = isSelfAttacking ? selfName : opponentName;
@@ -1155,10 +1142,10 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 		const fullText = `${attackerLabel} → ${defenderLabel} — ${moveName || "(技未設定)"}`;
 		heading.title = fullText;
 		heading.setAttribute("aria-label", fullText);
-		heading.append(selfIcon, selfIconFallback, arrow, opponentIcon, opponentIconFallback, moveTypeIcon, moveText);
+		heading.append(selfIcon, selfIconFallback, arrow, opponentIcon, opponentIconFallback);
 		return heading;
 	}
-	// 選択中の技表示は共通ヘッダーバンドに残し、編集時は技名とタイプも同期する。
+	// 選択中の攻撃・防御関係は共通ヘッダーバンドに残し、説明テキストも編集時に同期する。
 	const refreshSelectionHeading = (): void => setDetailPanelTitle(buildSelectionHeadingRow());
 	refreshSelectionHeading();
 
@@ -1171,6 +1158,95 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 	moveSelectInput.type = "text";
 	moveSelectInput.className = "damage-detail-move-input";
 	configureDamageColumnMoveInput(moveSelectInput, row, column);
+	moveSelectInput.removeAttribute("list");
+	moveSelectInput.setAttribute("aria-haspopup", "listbox");
+	moveSelectInput.setAttribute("aria-expanded", "false");
+
+	const moveComboWrap = document.createElement("div");
+	moveComboWrap.className = "damage-detail-move-combo";
+	const moveDropdownList = document.createElement("ul");
+	moveDropdownList.className = "damage-detail-move-dropdown-list";
+	moveDropdownList.setAttribute("role", "listbox");
+	moveDropdownList.hidden = true;
+
+	function closeMoveDropdown(): void {
+		moveDropdownList.hidden = true;
+		moveSelectInput.setAttribute("aria-expanded", "false");
+	}
+	function renderMoveDropdown(): void {
+		const query = moveSelectInput.value;
+		const candidates = getDamageColumnMoveCandidates(row, column)
+			.filter((candidateName) => query === "" || kanaIncludes(candidateName, query))
+			.slice(0, 30);
+		moveDropdownList.replaceChildren();
+		if (candidates.length === 0) {
+			const emptyOption = document.createElement("li");
+			emptyOption.className = "damage-detail-move-dropdown-option";
+			emptyOption.setAttribute("role", "option");
+			emptyOption.setAttribute("aria-disabled", "true");
+			const emptyText = document.createElement("span");
+			emptyText.className = "damage-detail-move-dropdown-option-text";
+			emptyText.textContent = "一致する技がありません";
+			emptyOption.appendChild(emptyText);
+			moveDropdownList.appendChild(emptyOption);
+		} else {
+			const fragment = document.createDocumentFragment();
+			for (const candidateName of candidates) {
+				const option = document.createElement("li");
+				option.className = "damage-detail-move-dropdown-option";
+				option.setAttribute("role", "option");
+				option.setAttribute("aria-label", candidateName);
+				const icon = document.createElement("img");
+				icon.className = "damage-detail-move-dropdown-option-icon";
+				icon.alt = "";
+				icon.hidden = true;
+				void moveAutoInputDetailsPromise.then((details) => {
+					const type = details.get(candidateName)?.type;
+					const url = type ? typeIconUrl(type) : null;
+					if (!url) return;
+					icon.src = url;
+					icon.hidden = false;
+				});
+				icon.addEventListener("error", () => { icon.hidden = true; });
+				const text = document.createElement("span");
+				text.className = "damage-detail-move-dropdown-option-text";
+				text.textContent = candidateName;
+				option.append(icon, text);
+				option.addEventListener("mousedown", (event) => event.preventDefault());
+				option.addEventListener("click", (event) => {
+					// inputイベントで候補DOMを差し替えるため、元のclickがdocumentまで到達すると
+					// 「詳細パネル外のクリック」と誤判定される。選択クリックはここで完結させる。
+					event.stopPropagation();
+					moveSelectInput.value = candidateName;
+					moveSelectInput.dispatchEvent(new Event("input", { bubbles: true }));
+					closeMoveDropdown();
+				});
+				fragment.appendChild(option);
+			}
+			moveDropdownList.appendChild(fragment);
+		}
+		moveDropdownList.hidden = false;
+		moveSelectInput.setAttribute("aria-expanded", "true");
+	}
+	moveSelectInput.addEventListener("focus", renderMoveDropdown);
+	moveSelectInput.addEventListener("input", renderMoveDropdown);
+	moveSelectInput.addEventListener("keydown", (event) => {
+		if (event.key === "Escape") closeMoveDropdown();
+	});
+	moveSelectInput.addEventListener("blur", () => {
+		window.setTimeout(() => {
+			if (!moveComboWrap.contains(document.activeElement)) closeMoveDropdown();
+		}, 0);
+	});
+	if (moveDropdownOutsideClickHandler) {
+		document.removeEventListener("click", moveDropdownOutsideClickHandler);
+	}
+	moveDropdownOutsideClickHandler = (event) => {
+		if (moveDropdownList.hidden || moveComboWrap.contains(event.target as Node)) return;
+		closeMoveDropdown();
+	};
+	document.addEventListener("click", moveDropdownOutsideClickHandler);
+	moveComboWrap.append(moveSelectInput, moveDropdownList);
 
 	const hitRow = document.createElement("div");
 	hitRow.className = "damage-column-hitcount-row damage-detail-hitcount-row";
@@ -1250,7 +1326,7 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 	moveControls.className = "damage-detail-move-controls";
 	const moveField = document.createElement("div");
 	moveField.className = "damage-detail-move-field";
-	moveField.appendChild(moveSelectInput);
+	moveField.appendChild(moveComboWrap);
 	moveControls.append(moveField, criticalButton);
 	moveEditorGroup.append(moveControls, hitRow);
 	contentWrap.appendChild(moveEditorGroup);

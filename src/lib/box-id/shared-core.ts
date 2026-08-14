@@ -397,6 +397,7 @@ export interface DamageCalcBridge {
 	setRowSaveStatus: (row: DamageRowState, state: string, text: string) => void;
 	renderConditionChipsInto: (container: HTMLElement, attack: DamageColumnState) => void;
 	configureColumnMoveInput: (input: HTMLInputElement, row: DamageRowState, column: DamageColumnState) => void;
+	getColumnMoveCandidates: (row: DamageRowState, column: DamageColumnState) => string[];
 	getColumnMultiHitRange: (moveName: string) => Promise<[number, number] | undefined>;
 	refreshColumnDisplay: (row: DamageRowState, column: DamageColumnState) => void;
 	renderDetailPanelEmpty: () => void;
@@ -414,6 +415,10 @@ export function configureDamageColumnMoveInput(
 	column: DamageColumnState,
 ): void {
 	damageCalcBridge!.configureColumnMoveInput(input, row, column);
+}
+
+export function getDamageColumnMoveCandidates(row: DamageRowState, column: DamageColumnState): string[] {
+	return damageCalcBridge!.getColumnMoveCandidates(row, column);
 }
 
 export function getDamageColumnMultiHitRange(moveName: string): Promise<[number, number] | undefined> {

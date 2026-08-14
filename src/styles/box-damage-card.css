@@ -1056,12 +1056,68 @@
   min-width: 0;
 }
 
+#damage-detail-panel-body .damage-detail-move-combo {
+  position: relative;
+}
+
 #damage-detail-panel-body .damage-detail-move-input {
   width: 100%;
   min-width: 0;
   min-height: var(--space-7);
   padding: .35em .55em;
   font-size: var(--font-size-sm2);
+}
+
+#damage-detail-panel-body .damage-detail-move-dropdown-list {
+  z-index: 5;
+  padding: var(--space-1);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  max-height: 16rem;
+  box-shadow: var(--shadow-md);
+  margin: 0;
+  list-style: none;
+  position: absolute;
+  top: calc(100% + .25rem);
+  left: 0;
+  right: 0;
+  overflow-y: auto;
+}
+
+#damage-detail-panel-body .damage-detail-move-dropdown-list[hidden] {
+  display: none;
+}
+
+#damage-detail-panel-body .damage-detail-move-dropdown-option {
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  align-items: center;
+  gap: .35rem;
+  padding: .25em .4em;
+  display: flex;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  #damage-detail-panel-body .damage-detail-move-dropdown-option:hover {
+    background: color-mix(in srgb, var(--color-surface) 90%, var(--color-primary) 10%);
+    outline: none;
+  }
+}
+
+#damage-detail-panel-body .damage-detail-move-dropdown-option-icon {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+#damage-detail-panel-body .damage-detail-move-dropdown-option-text {
+  font-size: var(--font-size-sm1);
+  color: var(--color-text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
 }
 
 #damage-detail-panel-body .damage-detail-hitcount-row {
@@ -1248,6 +1304,7 @@
 
 .damage-detail-panel .damage-detail-selection-heading {
   align-items: center;
+  justify-content: center;
   gap: .4rem;
   min-width: 0;
   margin: 0;
@@ -1283,16 +1340,6 @@
 
 .damage-detail-panel .damage-detail-selection-arrow.is-reversed {
   transform: scaleX(-1);
-}
-
-.damage-detail-panel .damage-detail-selection-move {
-  min-width: 0;
-  font-size: var(--font-size-sm2);
-  color: var(--color-text);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-weight: 700;
-  overflow: hidden;
 }
 
 @media (width >= 0) {

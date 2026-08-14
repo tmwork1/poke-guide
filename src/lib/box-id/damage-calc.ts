@@ -393,6 +393,7 @@ if (opponentNotesSection) {
 		setRowSaveStatus: (row, state, text) => setRowSaveStatus(row, state, text),
 		renderConditionChipsInto: (container, attack) => renderConditionChipsInto(container, attack),
 		configureColumnMoveInput: (input, row, column) => configureColumnMoveInput(input, row, column),
+		getColumnMoveCandidates: (row, column) => getColumnMoveCandidates(row, column),
 		getColumnMultiHitRange: (moveName) => getColumnMultiHitRange(moveName),
 		refreshColumnDisplay: (row, column) => refreshColumnDisplay(row, column),
 		renderDetailPanelEmpty: () => {
@@ -1661,6 +1662,16 @@ if (opponentNotesSection) {
 		);
 		moveInput.autocomplete = "off";
 		moveInput.value = column.moveName;
+	}
+
+	function getColumnMoveCandidates(row: DamageRowState, _column: DamageColumnState): string[] {
+		const attackerIsOpponent = row.direction === "defense";
+		if (attackerIsOpponent) {
+			refreshOpponentPopularityMoveDatalist(row.name);
+			return Array.from(ensureOpponentPopularityMoveDatalist().options, (option) => option.value);
+		}
+		refreshSelfFirstMoveDatalist();
+		return Array.from(ensureSelfFirstMoveDatalist().options, (option) => option.value);
 	}
 
 	async function getColumnMultiHitRange(moveName: string): Promise<[number, number] | undefined> {
