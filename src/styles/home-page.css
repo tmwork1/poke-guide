@@ -4,18 +4,11 @@
 	padding: var(--space-5) var(--space-4) var(--space-7);
 }
 
-.home-topbar {
+/* .second-bar 自体(sticky/border/背景/戻るボタン)は second-bar.css・app-topbar.css の
+   共通定義をそのまま使う。ここでは .home-page の左右パディング(--space-4)を打ち消して
+   フルブリードにする、ページ固有のレイアウト調整のみ行う。 */
+.home-page .second-bar {
 	margin: calc(-1 * var(--space-5)) calc(-1 * var(--space-4)) var(--space-5);
-	padding: var(--space-2) var(--space-4);
-	background: var(--color-surface);
-	border-bottom: 1px solid var(--color-border);
-}
-
-.home-topbar .app-topbar-back {
-	padding: 0;
-	background: none;
-	border: none;
-	cursor: pointer;
 }
 
 .home-brand {
