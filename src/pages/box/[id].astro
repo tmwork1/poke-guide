@@ -22,7 +22,6 @@ import MobileTrainingBar from '../../components/box-id/MobileTrainingBar.astro';
 import '../../styles/box-edit-page.css';
 import { getSupabaseAdminClient, getSupabasePublicClient } from '../../lib/supabase';
 import { getOwnedPokemon, type OwnedPokemonRecord } from '../../lib/owned-pokemon';
-import { isValidUuid } from '../api/_shared';
 
 const user = Astro.locals.user;
 const id = Astro.params.id;
@@ -157,15 +156,13 @@ if (pokemon) {
 const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 // <title>タグ(ブラウザタブ・履歴での個体識別に必要)には種族名を残しつつ、トップバーの
 // 可視の見出しからは種族名を消す。AppLayoutのtitleプロパティは<title>と.app-topbar-title
-// の両方を兼ねており、AppLayout自体は編集禁止(全ページに影響するため)。AppLayoutが
-// 既に持っているbodyClass propを使い、body要素にこのページだけのクラスを付け、その配下の
+// の両方を兼ねている。共通の見た目に関わる変更はAppLayout側で扱い、このページでは既に持つ
+// bodyClass propを使い、body要素にこのページだけのクラスを付け、その配下の
 // .app-topbar-titleをこのページのCSSだけで非表示にする(AppLayout.astroのマークアップ・
 // propは一切変更しない)。
 // pokemonがnull(個体が見つからない)のときはpageTitleが種族名ではなく固定文言「個体編集」
 // (エラー状態の案内)なので、そちらは隠さない(bodyClassをpokemon存在時だけ付与する)。
 const bodyClass = pokemon ? "box-edit-page" : undefined;
-const fromTeam = Astro.url.searchParams.get('fromTeam');
-const backHref = isValidUuid(fromTeam) ? `/team/${encodeURIComponent(fromTeam)}` : '/box';
 
 // 匿名集計サジェスト機能・第4段階(UI: 収集拒否トグル)。owned_pokemon.collection_opt_out_until
 // (null=収集対象、未来日時=拒否期間中)から、SSR時点での「拒否中かどうか」と「残り日数」を
@@ -183,8 +180,9 @@ function formatOptOutRemaining(until: string | null | undefined): string {
 const optOutRemainingText = pokemon ? formatOptOutRemaining(pokemon.collection_opt_out_until) : "";
 const isOptedOut = optOutRemainingText !== "";
 ---
-<AppLayout title={pageTitle} current="box" backHref={backHref} bodyClass={bodyClass}>
-	{/* .page-header(戻る/保存状態/ポケモン名/削除ボタン)相当のUIはAppLayoutのbackHref/title/
+<AppLayout title={pageTitle} current="box" bodyClass={bodyClass}>
+	{/* .page-header(戻る/保存状態/ポケモン名/削除ボタン)相当のUIは、戻るボタンをAppLayoutが常時表示する
+	    (history.back())ものとし、保存状態・ポケモン名・削除ボタンはAppLayoutのtitle/
 	    topbar-status/topbar-actionsへ委譲する。保存状態(#autosave-status等)と削除ボタン
 	    (#delete-button)は<script>のel()がid参照する(見つからないとel()がthrowし、フォーム
 	    全体のJSが初期化できなくなる)ため、id/classは変えずスロットへそのまま置く。
@@ -286,7 +284,7 @@ const isOptedOut = optOutRemainingText !== "";
 			</section>
 		) : (
 			<>
-			<MobileTrainingBar pokemon={pokemon} backHref={backHref} />
+			<MobileTrainingBar pokemon={pokemon} />
 			<div class="edit-layout">
 			<div class="edit-layout-left">
 			{/* 左サイド(ポケモン編集パネル、.panel-left)のテンプレート・scoped style・スクリプトは
@@ -335,9 +333,10 @@ const isOptedOut = optOutRemainingText !== "";
 	<script type="application/json" id="box-species-usage-data" set:html={JSON.stringify(speciesUsageByRegulation)} />
 
 	{/* 提案図(docs/ui_proposal/mobile/ の ui_mobile_box_個体編集_*.png)はどれも画面上端が
-	    セカンドバーで、共通ヘッダー(アプリロゴ)も「← 戻る」も描かれていない。.app-topbar は
-	    AppLayout.astro 側の要素で、AppLayout自体は編集禁止(全ページに影響する)のため、
-	    既存の bodyClass="box-edit-page" を使ってこのページだけを対象に is:global で隠す。
+	    セカンドバー(MobileTrainingBarの.second-bar)で、共通ヘッダー(アプリロゴ)も独立した
+	    「← 戻る」も描かれていない。戻るボタンはセカンドバー側のアイコンボタンとして表示する。
+	    .app-topbar は AppLayout.astro 側の要素で、既存の bodyClass="box-edit-page" を使って
+	    このページだけを対象に is:global で隠す。
 	    AppLayoutのhideTopbar propは幅に関係なく描画自体をやめてしまうため、デスクトップの
 	    トップバーを残したいこのページでは使えない。
 	    ⚠️ トップバーに載っていた操作系(保存状態・耐久調整・すべて折りたたむ・非公開・削除)は

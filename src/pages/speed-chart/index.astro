@@ -42,9 +42,6 @@ if (ownedId && user) {
 }
 
 const hasOwnedPanel = ownedRecord !== null;
-// backHrefは「?owned=があるとき」(要件のとおり、形式が正しいIDが指定されていれば出す。
-// 所有権の有無には依存しない)。
-const backHref = ownedId ? `/box/${ownedId}` : undefined;
 
 // レギュレーション決定順序(P1確定仕様): ?reg= → 連携個体のregulation → REGULATIONSの末尾(最新)。
 // REGULATIONSは常に非空(vendor/jpokeが最低1つのレギュレーションを持つ)前提のため、
@@ -166,7 +163,6 @@ try {
 	title="すばやさ"
 	description="レギュレーション別のすばやさ実数値早見表"
 	current="speed-chart"
-	backHref={backHref}
 	bodyClass="speed-chart-page"
 	chrome={embedded ? "public" : "app"}
 	hideTopbar={embedded}
