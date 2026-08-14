@@ -16,8 +16,15 @@
 /* 検索入力の幅: .toolbar-search > .search-input-wrap > input#search-input */
 /* カード一覧の余白: .box-content（上下左右を共通の edge gap にする） */
 .box-content {
-  margin-top: var(--box-second-bar-gap);
-  padding: var(--box-grid-edge-gap);
+  position: fixed;
+  top: var(--second-bar-height);
+  right: 0;
+  bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom));
+  left: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: var(--box-second-bar-gap);
+  background: var(--color-bg);
 }
 
 /* 動的に描画するポケモンカードの差し込み先: #owned-pokemon-list */
