@@ -190,6 +190,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 
 		<div class="mobile-move-actions">
 			<button type="button" class="mobile-move-toggle btn-ghost" aria-haspopup="dialog" aria-label="わざ編集を開く">
+				<span class="mobile-edit-action-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></span>
 				<span class="mobile-edit-action-label">わざ編集</span>
 			</button>
 			<button
@@ -199,6 +200,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 				aria-label="すばやさ早見表を開く"
 				title="すばやさ早見表を開く"
 			>
+				<span class="mobile-edit-action-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.34 19a10 10 0 1 1 17.32 0"/><path d="m12 12 4-3"/></svg></span>
 				<span class="mobile-edit-action-label">すばやさ調整</span>
 			</button>
 		</div>
@@ -288,10 +290,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 							/>
 							<button type="button" class="btn-ghost stat-ev-step-button" data-ev-target={`ev-${key}-range`} data-ev-step="1" aria-label={`${statShort}の努力値を1増やす`}>+</button>
 							<button type="button" class="btn-ghost stat-ev-endpoint-button" data-ev-target={`ev-${key}-range`} data-ev-endpoint="max" data-ev-toggle aria-label={`${statShort}の努力値を最大にする`}>
-								<svg viewBox="0 0 24 24" aria-hidden="true"><polygon points="15,12 9,8 9,16" fill="currentColor" stroke="none" /></svg>
-								{/* チャンピオンズルールの努力値上限は32(CLAUDE.md/jpoke skill参照)。上のrangeの
-								    max属性と同じ値をそのまま文字ラベルにする。 */}
-								<span class="stat-ev-endpoint-text" aria-hidden="true">MAX</span>
+								<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m17 11-5-5-5 5"/><path d="m17 18-5-5-5 5"/></svg>
 							</button>
 						</div>
 						<input
@@ -428,9 +427,10 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	.stat-ev-range-controls { display: flex; align-items: center; gap: var(--space-1); min-width: 0; }
 	.stat-ev-range-controls input[type="range"] { flex: 1 1 3.5rem; min-width: 3.5rem; }
 	.stat-ev-endpoint-button { flex: 0 0 36px; width: 36px; height: 36px; min-height: 36px; padding: 0; border-color: transparent; }
-	/* 端点操作は性格補正色と競合させず、淡色トークンの塗り三角で示す。 */
+	/* 端点操作は性格補正色と競合させず、淡色トークンの二重山形で示す。 */
 	.stat-ev-endpoint-button { color: var(--color-text-muted); }
-	.stat-ev-endpoint-button svg { width: 28.5px; height: 28.5px; fill: currentColor; stroke: none; }
+	.stat-ev-endpoint-button svg { width: 1.25em; height: 1.25em; transition: transform 0.2s; }
+	.stat-ev-endpoint-button[data-ev-endpoint="min"] svg { transform: rotate(180deg); }
 	.stat-ev-step-button {
 		display: none;
 		flex: 0 0 24px;
@@ -469,9 +469,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		}
 		.stat-row .stat-ev-step-button[data-ev-step="1"] { order: 4; }
 		.stat-row .stat-ev-endpoint-button[data-ev-toggle] { order: 5; }
-		/* 「見た目もボタンらしくする」: btn-ghost(透明・枠なし)のままだと素のテキストに見えるため、
-		   モバイルに限り通常のbutton基底と同じ面(--color-surface)と枠を戻す。文字色も
-		   --color-text-muted から通常の本文色へ上げて、押せる要素として読めるようにする。 */
+		/* 入力面より一段高いsurfaceと既存の小さい影で、端点・増減操作を控えめに浮かせる。 */
 		.stat-row .stat-ev-endpoint-button,
 		.stat-row .stat-ev-step-button {
 			box-sizing: border-box;
@@ -482,9 +480,10 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 			min-height: var(--stat-ev-mobile-button-block-size);
 			padding: 0;
 			color: var(--color-text-muted);
-			background: var(--color-bg);
+			background: var(--color-surface-raised);
 			border: 1px solid var(--color-border);
 			border-radius: var(--radius-zero);
+			box-shadow: var(--shadow-sm);
 			font-size: var(--font-size-sm1);
 			font-weight: 400;
 		}
@@ -494,13 +493,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 			width: var(--stat-ev-mobile-button-block-size);
 			min-width: var(--stat-ev-mobile-button-block-size);
 		}
-		/* 端点ボタンは三角アイコンをやめ、"0"/"32"の文字ラベルに差し替える(マークアップ側の
-		   .stat-ev-endpoint-text参照)。 */
-		.stat-row .stat-ev-endpoint-button svg { display: none; }
-		.stat-row .stat-ev-endpoint-text { display: inline; }
 	}
-	/* 文字ラベルはモバイル専用。デスクトップでは三角アイコンのままにする。 */
-	.stat-ev-endpoint-text { display: none; }
 	.stat-ev-toggle-spacer { display: none; }
 	/* 努力値の数値入力も左パネル用の詰めた寸法に揃える(6行あるので効き方が大きい)。 */
 	.stat-row input[type="number"] { font-size: var(--font-size-sm1); padding: 0.3em 0.5em; width: 100%; text-align: center; }
@@ -541,8 +534,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	}
 	.stat-nature-up::after { border-left: 6px solid transparent; border-right: 6px solid transparent; border-bottom: 10px solid var(--color-text-muted); }
 	.stat-nature-down::after { border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 10px solid var(--color-text-muted); }
-	.stat-nature-btn:hover::after { border-bottom-color: var(--color-primary); border-top-color: var(--color-primary); }
-	.stat-row:hover .stat-nature-btn::after { border-bottom-color: var(--color-primary); border-top-color: var(--color-primary); }
+	.stat-nature-btn:not([aria-pressed="true"]):hover::after { border-bottom-color: var(--color-primary); border-top-color: var(--color-primary); }
 	.stat-nature-btn:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 1px; }
 	.stat-nature-up[aria-pressed="true"]::before {
 		border-left: 7px solid transparent;
@@ -1079,9 +1071,17 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		}
 		.mobile-move-toggle,
 		.mobile-speed-adjust-button {
+			gap: var(--space-2);
+			min-height: 2.35rem;
+			padding: 0.42em 0.6em;
 			background: var(--color-surface);
 			border-color: var(--color-border);
 			color: var(--color-text);
+		}
+		.mobile-edit-action-icon {
+			display: inline-flex;
+			align-items: center;
+			flex-shrink: 0;
 		}
 		.mobile-move-toggle:hover:not(:disabled),
 		.mobile-speed-adjust-button:hover {

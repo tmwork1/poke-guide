@@ -17,7 +17,6 @@
   --pokemon-preview-z-index: 15;
   --pokemon-preview-font-size: var(--font-size-sm2);
   --pokemon-preview-type-icon-size: 1.3em;
-  --pokemon-preview-move-type-icon-size: 1.3em;
   --pokemon-preview-item-icon-size: 1.5em;
   --pokemon-preview-move-row-gap: 2px;
   --pokemon-preview-border: 1px solid var(--color-border);
@@ -59,14 +58,27 @@
 
 .pokemon-preview-details {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: stretch;
   gap: var(--pokemon-preview-content-gap);
   min-width: 0;
   line-height: 1;
 }
 
-.pokemon-preview-details > div {
+.pokemon-preview-species-line {
+  display: flex;
+  align-items: center;
+  gap: var(--pokemon-preview-content-gap);
   min-width: 0;
+}
+
+#pokemon-preview-species-name,
+#pokemon-preview-ability {
+  min-width: 0;
+}
+
+#pokemon-preview-species-name {
+  flex: 1 1 auto;
 }
 
 .pokemon-preview-type-icons {
@@ -82,7 +94,8 @@
   object-fit: contain;
 }
 
-.pokemon-preview-details > div,
+#pokemon-preview-species-name,
+#pokemon-preview-ability,
 .pokemon-preview-icon-text span,
 .pokemon-preview-moves li > span:last-child,
 #pokemon-preview-item {
@@ -113,15 +126,10 @@
   padding-bottom: 0;
 }
 
-.pokemon-preview-moves .move-type-icon {
-  flex-shrink: 0;
-}
-
-.pokemon-preview-moves .move-type-icon img {
-  display: block;
-  width: var(--pokemon-preview-move-type-icon-size);
-  height: var(--pokemon-preview-move-type-icon-size);
-  object-fit: contain;
+.pokemon-preview-move-type-bar {
+  flex: 0 0 var(--space-1);
+  width: var(--space-1);
+  height: 1em;
 }
 
 .pokemon-preview-icon-text img {
@@ -143,7 +151,7 @@
   flex-shrink: 0;
 }
 
-.pokemon-preview-moves .move-type-icon[hidden] {
+.pokemon-preview-move-type-bar[hidden] {
   display: none;
 }
 

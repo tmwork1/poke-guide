@@ -55,13 +55,16 @@ const previewStats = detail ? statKeys.map((key, index) => index === 0 ? calcHpS
     <div class="pokemon-preview-main">
     <div class="pokemon-preview-left">
       <div class="pokemon-preview-details">
+        <div class="pokemon-preview-species-line">
+          <div id="pokemon-preview-species-name">{pokemon.species_name || '-'}</div>
+          <span class="pokemon-preview-type-icons" id="pokemon-preview-type-icons" aria-label="タイプ"></span>
+        </div>
         <div id="pokemon-preview-ability">{pokemon.ability_name || '-'}</div>
-        <span class="pokemon-preview-type-icons" id="pokemon-preview-type-icons" aria-label="タイプ"></span>
       </div>
       <ol class="pokemon-preview-moves" aria-label="技">
         {[0, 1, 2, 3].map((index) => (
           <li>
-            <span class="move-type-icon" id={`pokemon-preview-move-type-${index + 1}`} hidden><img alt="" /></span>
+            <span class="pokemon-preview-move-type-bar" id={`pokemon-preview-move-type-${index + 1}`} hidden></span>
             <span id={`pokemon-preview-move-${index + 1}`}>{moves[index] || '-'}</span>
           </li>
         ))}

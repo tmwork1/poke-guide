@@ -454,6 +454,7 @@ if (form) {
 		}
 
 		const ability = document.getElementById("ability") as HTMLSelectElement | null;
+		setText("pokemon-preview-species-name", inputValue("species-name"));
 		setText("pokemon-preview-ability", ability?.selectedOptions[0]?.textContent?.trim() || ability?.value.trim() || "-");
 		setText("pokemon-preview-item", inputValue("item") || document.getElementById("item-dropdown-placeholder")?.textContent?.trim() || "アイテムなし");
 		const mirrorImage = (sourceId: string, targetId: string): void => {
@@ -468,19 +469,20 @@ if (form) {
 		};
 		mirrorImage("item-dropdown-image", "pokemon-preview-item-image");
 		for (let slot = 1; slot <= 4; slot++) {
-			setText(`pokemon-preview-move-${slot}`, inputValue(`move-${slot}`));
-			const input = document.getElementById(`move-${slot}`) as HTMLInputElement | null;
-			const sourceIcon = input?.closest<HTMLElement>(".move-input-group")?.querySelector<HTMLElement>(".move-type-icon");
-			const sourceImage = sourceIcon?.querySelector<HTMLImageElement>("img");
-			const previewIcon = document.getElementById(`pokemon-preview-move-type-${slot}`);
-			const previewImage = previewIcon?.querySelector<HTMLImageElement>("img");
-			const visible = Boolean(input?.value.trim() && sourceIcon && !sourceIcon.hidden && sourceImage?.src);
-			if (previewIcon) previewIcon.hidden = !visible;
-			if (sourceImage && previewImage) {
-				previewImage.src = sourceImage.src;
-				previewImage.alt = sourceImage.alt;
-				previewImage.title = sourceImage.title;
-			}
+			const moveName = inputValue(`move-${slot}`);
+			setText(`pokemon-preview-move-${slot}`, moveName);
+			const previewTypeBar = document.getElementById(`pokemon-preview-move-type-${slot}`);
+			if (!previewTypeBar) continue;
+			previewTypeBar.hidden = true;
+			previewTypeBar.style.removeProperty("background-color");
+			if (!moveName) continue;
+			void moveTypeMapPromise.then((moveTypeMap) => {
+				if (inputValue(`move-${slot}`) !== moveName) return;
+				const moveType = moveTypeMap.get(moveName);
+				if (!moveType) return;
+				previewTypeBar.style.backgroundColor = TYPE_COLORS[moveType] ?? DEFAULT_TYPE_COLOR;
+				previewTypeBar.hidden = false;
+			});
 		}
 		for (const key of STAT_KEYS) {
 			const sourceStat = document.getElementById(`stat-${key}`);
@@ -1302,9 +1304,6 @@ if (form) {
 			const nextEndpoint = endpoint === "max" ? "min" : "max";
 			button.dataset.evEndpoint = nextEndpoint;
 			button.setAttribute("aria-label", `努力値を${nextEndpoint === "max" ? "最大" : "最小"}にする`);
-			button.querySelector<HTMLElement>(".stat-ev-endpoint-text")!.textContent = nextEndpoint === "min" ? "min" : "MAX";
-			const polygon = button.querySelector("polygon");
-			polygon?.setAttribute("points", nextEndpoint === "max" ? "15,12 9,8 9,16" : "9,12 15,8 15,16");
 		});
 	}
 	for (const button of document.querySelectorAll<HTMLButtonElement>(".stat-ev-step-button")) {
