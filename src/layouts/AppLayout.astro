@@ -8,10 +8,6 @@ interface Props {
 	description?: string;
 	current?: "home" | "box" | "team" | "dev" | "speed-chart" | "data";
 	bodyClass?: string;
-	/** 指定すると「← 戻る」リンクをトップバー左端に出す。省略時は表示しない。 */
-	backHref?: string;
-	/** backHref 指定時のみ使用。省略時は「戻る」。 */
-	backLabel?: string;
 	/**
 	 * "public" では AppSidebar とオーバーレイを描画せず、第三者にアカウント情報や
 	 * 利用できないナビゲーションを表示しない。
@@ -24,7 +20,7 @@ interface Props {
 	hideTopbar?: boolean;
 }
 
-const { title, description, current, bodyClass, backHref, backLabel, chrome = "app", hideTopbar = false } = Astro.props;
+const { title, description, current, bodyClass, chrome = "app", hideTopbar = false } = Astro.props;
 const isPublicChrome = chrome === "public";
 
 const pageTitle = title === "ポケガイド" ? title : `${title} | ポケガイド`;
@@ -59,16 +55,12 @@ const pageTitle = title === "ポケガイド" ? title : `${title} | ポケガイ
 
 				<div class="app-topbar-row app-topbar-row-main">
 					<div class="app-topbar-left">
-						{
-							backHref && (
-								<a class="app-topbar-back" href={backHref}>
-									<svg class="app-topbar-back-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-										<path d="M15 6l-6 6 6 6" />
-									</svg>
-									{backLabel ?? "戻る"}
-								</a>
-							)
-						}
+						<button type="button" class="app-topbar-back" aria-label="戻る" onclick="history.back()">
+							<svg class="app-topbar-back-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+								<path d="M9 14 4 9l5-5" />
+								<path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11" />
+							</svg>
+						</button>
 						<span class="app-topbar-title">{title}</span>
 						{Astro.slots.has("topbar-status") && (
 							<span class="app-topbar-status">

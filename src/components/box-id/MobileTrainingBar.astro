@@ -9,10 +9,9 @@ import '../../styles/box-pokemon-preview.css';
 interface Props {
   pokemon: OwnedPokemonRecord;
   activeTab?: 'training' | 'battle-data' | 'ranked-teams';
-  backHref?: string;
 }
 
-const { pokemon, activeTab = 'training', backHref = '/box' } = Astro.props;
+const { pokemon, activeTab = 'training' } = Astro.props;
 const moves = pokemon.move_names ?? [];
 const master = (pokemonMasterRaw as Array<{name:string;imageId:number}>).find((entry) => entry.name === pokemon.species_name);
 const detail = (pokemonDetailRaw as Array<{name:string;baseStats:number[]}>).find((entry) => entry.name === pokemon.species_name);
@@ -24,7 +23,12 @@ const previewStats = detail ? statKeys.map((key, index) => index === 0 ? calcHpS
 <div class="mobile-training-ui" id="mobile-training-ui" data-mobile-tab={activeTab}>
   <nav class="second-bar" id="mobile-training-bar" aria-label="個体編集メニュー">
     <div class="second-bar__list">
-      <a class="second-bar__item" href={backHref}>戻る</a>
+      <button type="button" class="second-bar__item app-topbar-back" aria-label="戻る" onclick="history.back()">
+        <svg class="app-topbar-back-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M9 14 4 9l5-5" />
+          <path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11" />
+        </svg>
+      </button>
       {activeTab === 'training' ? (
         <button type="button" class="second-bar__item" data-mobile-tab="training" data-active="true" aria-current="page"><span>育成</span></button>
       ) : (
