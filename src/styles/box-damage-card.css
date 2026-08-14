@@ -686,6 +686,7 @@
 }
 
 #opponent-notes-section .damage-column {
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-zero);
   width: 100%;
   padding: .16rem var(--space-2);
@@ -1048,9 +1049,9 @@
 
 #damage-detail-panel-body .damage-detail-icon-btn.is-text-only {
   min-height: var(--space-7);
-  font-size: var(--font-size-sm2);
+  font-size: var(--font-size-sm1);
   flex-direction: row;
-  padding: .35em .65em;
+  padding: .4em .75em;
 }
 
 #damage-detail-panel-body .damage-detail-move-editor {
@@ -1227,10 +1228,10 @@
 }
 
 #damage-detail-panel-body .damage-detail-rank-stepper {
-  width: var(--space-7);
-  min-width: var(--space-7);
-  height: var(--space-7);
-  min-height: var(--space-7);
+  width: 30px;
+  min-width: 30px;
+  height: 30px;
+  min-height: 30px;
   color: var(--color-text-muted);
   background: var(--color-surface-raised);
   border: 1px solid var(--color-border);
@@ -1356,13 +1357,16 @@
   transform: scaleX(-1);
 }
 
-@media (width >= 0) {
+@media (width <= 899px) {
   #opponent-notes-section .box-add-button {
     position: fixed;
     right: var(--space-5);
     bottom: calc(var(--bottom-nav-height) + var(--space-4) + env(safe-area-inset-bottom));
     z-index: 15;
   }
+}
+
+@media (width >= 0) {
 
   #opponent-notes-section .damage-row-body {
     flex-flow: column;
@@ -1688,4 +1692,12 @@
 #opponent-notes-section .damage-column.is-pressing {
   border-color: var(--color-danger-strong);
   box-shadow: 0 0 0 1px var(--color-danger-strong);
+}
+
+@media (width <= 899px) {
+  #opponent-notes-section .card-damage .damage-row-direction-toggle {
+    flex: 0 0 auto;
+    width: 4.4em;
+    min-width: 4.4em;
+  }
 }

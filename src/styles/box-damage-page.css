@@ -33,6 +33,20 @@ body.box-edit-page .app-topbar-title {
 }
 
 @media (width <= 899px) {
+  #opponent-notes-section .damage-rows-toolbar {
+    position: fixed;
+    right: calc(var(--space-5) + var(--box-add-button-size, 60px) + var(--space-2));
+    bottom: calc(var(--bottom-nav-height) + var(--space-4) + env(safe-area-inset-bottom));
+    z-index: 15;
+    flex-wrap: nowrap;
+    margin-bottom: 0;
+  }
+
+  #opponent-notes-section .damage-rows-toolbar #bulk-adjust-button {
+    flex: none;
+    width: auto;
+  }
+
   #opponent-notes-section .damage-rows-list {
     padding-bottom: calc(56px + var(--bottom-nav-height) + var(--space-4));
   }
