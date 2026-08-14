@@ -615,6 +615,7 @@ if (opponentNotesSection) {
 			columnResultEls: [],
 			columnChipEls: [],
 			totalResultEl: null,
+			totalBlockEl: null,
 			saveStatusEl: null,
 			retryButtonEl: null,
 			footerEl: null,
@@ -1097,11 +1098,15 @@ if (opponentNotesSection) {
 	function renderTotalDisplay(row: DamageRowState): void {
 		const target = row.totalResultEl;
 		if (!target) return;
+		const setSeverity = (value: string): void => {
+			target.dataset.severity = value;
+			if (row.totalBlockEl) row.totalBlockEl.dataset.severity = value;
+		};
 		const result = row.clientResult;
 		const validAttacks = validAttacksOf(row);
 		if (validAttacks.length === 0) {
 			setResultPlain(target, "");
-			target.dataset.severity = "none";
+			setSeverity("none");
 			return;
 		}
 		// 技列に「はきだす」を含む場合、エンジン(calc_lethal_sequence_json)はその技の
@@ -1123,12 +1128,12 @@ if (opponentNotesSection) {
 					? STATUS_MOVE_TOTAL_NOTE_ALL
 					: UNSUPPORTED_LETHAL_TOTAL_NOTE_ALL;
 			setResultPlain(target, note);
-			target.dataset.severity = "none";
+			setSeverity("none");
 			return;
 		}
 		if (!result || !Array.isArray(result.perAttackDamages)) {
 			setResultPlain(target, isEngineReady() ? "(計算前)" : "(計算エンジンの初期化待ち)");
-			target.dataset.severity = "none";
+			setSeverity("none");
 			return;
 		}
 		const hasOhko = validAttacks.some((a) => OHKO_MOVE_NAMES.has(a.moveName.trim()));
@@ -1142,11 +1147,11 @@ if (opponentNotesSection) {
 			// 断り書きを添えて過信(色による確定的な印象)を防ぐ(severityは中立のnoneに)。
 			const detail = damageText ? `${damageText} ${UNSUPPORTED_LETHAL_TOTAL_NOTE_SOME}` : UNSUPPORTED_LETHAL_TOTAL_NOTE_SOME;
 			setResultVerdict(target, detail, label);
-			target.dataset.severity = "none";
+			setSeverity("none");
 			return;
 		}
 		setResultVerdict(target, damageText, label);
-		target.dataset.severity = severity;
+		setSeverity(severity);
 	}
 
 	// H/A/B/C/D/S見出し自体が「無補正→上昇→下降→無補正」を巡回する1個のボタンになっている。
@@ -2753,16 +2758,18 @@ if (opponentNotesSection) {
 
 		const totalBlock = document.createElement("div");
 		totalBlock.className = "damage-row-total";
+		totalBlock.dataset.severity = "none";
 		const totalLabel = document.createElement("span");
 		totalLabel.className = "damage-row-total-label";
 		totalLabel.textContent = "加算後(打点の合計)";
 		const totalResult = document.createElement("p");
-		totalResult.className = "severity-bar damage-row-total-result tnum";
+		totalResult.className = "damage-row-total-result tnum";
 		totalResult.textContent = "(計算前)";
 		totalResult.dataset.severity = "none";
 		totalResult.title = TOTAL_RESULT_HINT;
 		totalBlock.append(totalLabel, totalResult);
 		row.totalResultEl = totalResult;
+		row.totalBlockEl = totalBlock;
 
 		const techniquesRow = document.createElement("div");
 		techniquesRow.className = "damage-row-techniques-row";

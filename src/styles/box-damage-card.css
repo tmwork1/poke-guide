@@ -523,6 +523,26 @@
   margin-top: 0;
 }
 
+#opponent-notes-section .damage-row-total[data-severity="lethal"] {
+  background: var(--color-danger-soft);
+  color: var(--color-danger-strong);
+}
+
+#opponent-notes-section .damage-row-total[data-severity="risky"] {
+  background: var(--color-risky-soft);
+  color: var(--color-risky-strong);
+}
+
+#opponent-notes-section .damage-row-total[data-severity="safe"] {
+  background: var(--color-success-soft);
+  color: var(--color-success-strong);
+}
+
+#opponent-notes-section .damage-row-total[data-severity="none"] {
+  background: var(--color-bg);
+  color: var(--color-text-muted);
+}
+
 #opponent-notes-section .damage-row-total-label {
   font-size: var(--font-size-sm3);
   font-weight: 700;
@@ -554,12 +574,6 @@
   opacity: .85;
   text-align: right;
   font-weight: 500;
-}
-
-#opponent-notes-section .damage-row-total-result[data-severity="safe"] {
-  background: var(--color-primary-soft);
-  border-left-color: var(--color-primary);
-  color: var(--color-primary-strong);
 }
 
 #opponent-notes-section .damage-row-icon-button {

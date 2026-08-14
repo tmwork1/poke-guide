@@ -104,6 +104,7 @@ export interface DamageRowState {
 	columnResultEls: HTMLElement[];
 	columnChipEls: HTMLElement[];
 	totalResultEl: HTMLElement | null;
+	totalBlockEl: HTMLElement | null;
 	saveStatusEl: HTMLElement | null;
 	retryButtonEl: HTMLButtonElement | null;
 	footerEl: HTMLElement | null;
