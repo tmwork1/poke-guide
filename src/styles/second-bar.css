@@ -13,6 +13,7 @@
   top: var(--topbar-height);
   z-index: 20;
   display: flex;
+  min-height: var(--second-bar-height);
   align-items: stretch;
   gap: var(--space-2);
   padding-left: var(--space-4);

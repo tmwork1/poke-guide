@@ -14,6 +14,7 @@
 .home-brand {
 	display: flex;
 	align-items: center;
+	justify-content: center;
 	gap: var(--space-3);
 	margin-bottom: var(--space-5);
 }
@@ -32,10 +33,9 @@
 
 .home-account {
 	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	justify-content: flex-end;
-	gap: var(--space-3);
+	flex-direction: column;
+	align-items: flex-end;
+	gap: var(--space-2);
 	margin-bottom: var(--space-6);
 	font-size: var(--font-size-sm2);
 }
