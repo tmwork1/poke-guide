@@ -8,6 +8,7 @@ import { listRankedSeasons } from '../../lib/ranked-teams';
 import { resolveDefaultSeason } from '../../lib/ranked-teams-validation';
 import { getSupabasePublicClient } from '../../lib/supabase';
 import { spriteUrl } from '../../lib/pokemon-master-data';
+import { DATA_HUB_TABS } from '../../lib/data-hub-tabs';
 import pokemonMasterRaw from '../../../public/master-data/autocomplete/pokemon.json';
 import seasonManifest from '../../../data/opgg-champions-usage/seasons.json';
 import '../../styles/data-hub-page.css';
@@ -23,6 +24,9 @@ try {
   rankedSeasonsError = 'シーズン一覧を読み込めませんでした。時間をおいて再度お試しください。';
 }
 const defaultRankedSeason = resolveDefaultSeason(rankedSeasons);
+const requestedTab = Astro.url.searchParams.get('tab');
+const requestedTabIndex = DATA_HUB_TABS.indexOf(requestedTab as typeof DATA_HUB_TABS[number]);
+const initialTabIndex = requestedTabIndex >= 0 ? requestedTabIndex : 0;
 
 // box/data.astro と同じ並び順ロジック(現在シーズンを先頭に、以降は取得日時の新しい順)。
 const manifestSeasons = [...(seasonManifest.seasons ?? [])].sort((a, b) => {
@@ -92,13 +96,13 @@ if (seasonEntry && seasonIndex?.pokemon) {
 <AppLayout title="データ" current="data" hideTopbar={true}>
 	<nav class="second-bar" aria-label="データページの表示切り替え">
 		<div class="second-bar__list">
-			<button type="button" class="second-bar__item" data-data-hub-tab="battle-data" data-active="true" aria-current="page">バトルデータ</button>
-			<button type="button" class="second-bar__item" data-data-hub-tab="top-builds">上位チーム</button>
+			<button type="button" class="second-bar__item" data-data-hub-tab="battle-data" data-active={initialTabIndex === 0 ? 'true' : undefined} aria-current={initialTabIndex === 0 ? 'page' : undefined}>バトルデータ</button>
+			<button type="button" class="second-bar__item" data-data-hub-tab="top-builds" data-active={initialTabIndex === 1 ? 'true' : undefined} aria-current={initialTabIndex === 1 ? 'page' : undefined}>上位チーム</button>
 		</div>
 	</nav>
 
-	<div class="data-hub-scroll" data-data-hub-scroll>
-		<section class="panel data-hub-panel battle-data-panel" data-tab="battle-data">
+	<div class="data-hub-scroll" data-data-hub-scroll data-initial-tab-index={initialTabIndex}>
+		<section class="panel data-hub-panel battle-data-panel" data-tab="battle-data" inert={initialTabIndex !== 0} aria-hidden={initialTabIndex !== 0 ? 'true' : undefined}>
 			<div class="panel-content">
 				{entries.length > 0 ? (
 					<div class="battle-data-body">
@@ -151,7 +155,7 @@ if (seasonEntry && seasonIndex?.pokemon) {
 			)}
 		</section>
 
-		<section class="panel data-hub-panel top-builds-panel" data-tab="top-builds" inert aria-hidden="true">
+		<section class="panel data-hub-panel top-builds-panel" data-tab="top-builds" inert={initialTabIndex !== 1} aria-hidden={initialTabIndex !== 1 ? 'true' : undefined}>
 			<div class="panel-content">
 				<main class="top-builds-list" data-default-season={defaultRankedSeason ?? ''} data-initial-error={rankedSeasonsError}>
 					<p id="top-builds-loading" class="ranked-team-status">読み込み中…</p>
@@ -228,6 +232,8 @@ if (seasonEntry && seasonIndex?.pokemon) {
 				});
 			}
 
+			const initialTabIndex = Number(scrollContainer.dataset.initialTabIndex ?? '0');
+			scrollContainer.scrollLeft = initialTabIndex * scrollContainer.clientWidth;
 			syncActiveTab();
 		}
 	</script>
