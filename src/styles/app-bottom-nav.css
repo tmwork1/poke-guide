@@ -13,17 +13,11 @@
 	.app-bottom-nav-list {
 		display: flex;
 		height: var(--bottom-nav-height);
-		overflow-x: auto;
-		scrollbar-width: none;
-	}
-
-	.app-bottom-nav-list::-webkit-scrollbar {
-		display: none;
 	}
 
 	.app-bottom-nav-item {
-		flex: 0 0 64px;
-		min-width: 64px;
+		flex: 1 1 0;
+		min-width: 0;
 		display: flex;
 		flex-direction: column;
 		align-items: center;
