@@ -833,6 +833,14 @@
   display: flex;
 }
 
+#opponent-notes-section .damage-column-move-and-chips {
+  flex-direction: column;
+  gap: .15rem;
+  margin-block: auto;
+  min-width: 0;
+  display: flex;
+}
+
 #opponent-notes-section .damage-column.is-overkill {
   opacity: .55;
 }
@@ -859,6 +867,17 @@
   gap: var(--space-1);
   min-width: 0;
   display: flex;
+}
+
+#opponent-notes-section .damage-column-move-type-icon {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  object-fit: contain;
+}
+
+#opponent-notes-section .damage-column-move-type-icon[hidden] {
+  display: none;
 }
 
 #opponent-notes-section .damage-column-move-text {
@@ -911,7 +930,6 @@
 }
 
 #opponent-notes-section .damage-column-footer {
-  margin-top: auto;
   padding-top: .15rem;
 }
 
@@ -1490,6 +1508,7 @@
   #opponent-notes-section .damage-column {
     width: auto;
     min-width: 0;
+    align-self: start;
   }
 
   #opponent-notes-section .damage-add-column-slot {

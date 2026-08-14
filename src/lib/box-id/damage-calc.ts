@@ -41,7 +41,7 @@ import { type StatKey, STAT_KEYS, NATURE_STAT_MODIFIERS, calcHpStat, calcOtherSt
 import { TERA_TYPES } from "../tera-types";
 // テラス選択ボックスを左パネルと共通化するために使う。shared-core.tsは"../sprite-urls"から
 // teraTypeIconUrlをimportしているが再exportしていないため、ここで直接importする。
-import { teraTypeIconUrl } from "../sprite-urls";
+import { teraTypeIconUrl, typeIconUrl } from "../sprite-urls";
 import { initializeCardDeleteMode } from "../card-delete-mode";
 // レギュレーションに応じてテラスタル選択ボックスの表示ON/OFFを切り替えるために使う。
 // 判定は必ずこの関数を使い、自前ロジックを書かない
@@ -1740,21 +1740,34 @@ if (opponentNotesSection) {
 			const colBody = document.createElement("div");
 			colBody.className = "damage-column-body";
 			col.appendChild(colBody);
+			const moveAndChips = document.createElement("div");
+			moveAndChips.className = "damage-column-move-and-chips";
+			colBody.appendChild(moveAndChips);
 
 			// 通常カードは表示専用とし、編集は技列クリックで開く詳細パネルへ集約する。
 			const moveRow = document.createElement("div");
 			moveRow.className = "damage-column-move-row";
+			const moveTypeIcon = document.createElement("img");
+			moveTypeIcon.className = "damage-column-move-type-icon";
+			moveTypeIcon.alt = "";
+			moveTypeIcon.hidden = true;
+			moveTypeIcon.addEventListener("error", () => { moveTypeIcon.hidden = true; });
 			const moveText = document.createElement("span");
 			moveText.className = "damage-column-move-text";
 			const hitText = document.createElement("span");
 			hitText.className = "damage-column-hitcount-text";
 			hitText.hidden = true;
-			moveRow.append(moveText, hitText);
-			colBody.appendChild(moveRow);
+			moveRow.append(moveTypeIcon, moveText, hitText);
+			moveAndChips.appendChild(moveRow);
 			const refreshDisplay = (): void => {
 				const name = attack.moveName.trim();
 				moveText.textContent = name || "技未設定";
 				moveText.classList.toggle("is-placeholder", name === "");
+				const type = moveDetailMapCache?.get(name)?.type ?? null;
+				const iconUrl = type ? typeIconUrl(type) : null;
+				moveTypeIcon.hidden = !iconUrl;
+				if (iconUrl) moveTypeIcon.src = iconUrl;
+				else moveTypeIcon.removeAttribute("src");
 				hitText.hidden = true;
 				if (!name) {
 					attack.hitCount = 1;
@@ -1775,6 +1788,9 @@ if (opponentNotesSection) {
 			};
 			columnDisplayRefreshers.set(attack, refreshDisplay);
 			refreshDisplay();
+			void loadMoveDetailMap().then(() => {
+				if (row.attacks.includes(attack)) refreshDisplay();
+			});
 
 			// この技に実際に効いている条件(天候・フィールド・壁も、この技だけの急所・ランク
 			// 補正等も区別せず)をまとめて一覧するチップ。.damage-row-condition-chipsを
@@ -1783,7 +1799,7 @@ if (opponentNotesSection) {
 			const conditionChips = document.createElement("div");
 			conditionChips.className = "damage-row-condition-chips";
 			conditionChips.hidden = true;
-			colBody.appendChild(conditionChips);
+			moveAndChips.appendChild(conditionChips);
 			row.columnChipEls.push(conditionChips);
 
 			// 技名inputと結果表示の間: DamageCard.pngで「計算の細かい条件を入れる予定」と
@@ -1791,7 +1807,7 @@ if (opponentNotesSection) {
 			// 移したため、ここに残るのは撃破済み注記のみ。
 			const conditions = document.createElement("div");
 			conditions.className = "damage-column-conditions";
-			colBody.appendChild(conditions);
+			moveAndChips.appendChild(conditions);
 
 			// 累計で既に撃破済みになった以降の列を控えめに示すキャプション
 			// (renderColumnDisplaysのcomputeConfirmedKillAttackCount参照。数値自体は
