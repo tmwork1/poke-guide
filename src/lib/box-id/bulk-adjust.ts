@@ -52,10 +52,8 @@ const dialogFooterEl = el<HTMLElement>("bulk-adjust-dialog-footer");
 const cancelButton = el<HTMLButtonElement>("bulk-adjust-cancel-button");
 const progressTextEl = el<HTMLElement>("bulk-adjust-progress-text");
 
-// ⚠️ 圧縮表示カード(buildCollapsedPreview()の複製)のCSS
-// (「#opponent-notes-section .card-damage[data-collapsed="true"] ...」等、
-// DamageCalcSection.astroの<style is:global>)は、祖先に id="opponent-notes-section" を
-// 持つ要素があることを前提にしたセレクタになっている。このダイアログの静的マークアップは
+// カードのCSSは祖先に id="opponent-notes-section" を持つ要素があることを前提にした
+// セレクタになっている。このダイアログの静的マークアップは
 // box/[id].astro側では#opponent-notes-sectionの外に置かれているため、実行時にこの2要素
 // (背景オーバーレイ・ダイアログ本体)を#opponent-notes-sectionの直下へ移す。
 // position:fixedのため見た目上の位置(画面中央/画面全体)には一切影響しない
@@ -106,9 +104,8 @@ function setButtonLabel(text: string): void {
 	else bulkAdjustButton.textContent = text;
 }
 
-// ダイアログを開いていない間だけ、「エンジン準備済み・防御カード1枚以上」で有効化する
-// (#damage-collapse-toggle-buttonのupdateCollapseToggleButtonLabelと同じ「disabled切り替えを
-// 1関数に集約する」流儀)。BulkAdjustBridgeには行の増減・名前変更を通知する購読機構が無く、
+// ダイアログを開いていない間だけ、「エンジン準備済み・防御カード1枚以上」で有効化する。
+// BulkAdjustBridgeには行の増減・名前変更を通知する購読機構が無く、
 // かつ相手ポケモン名や技名の入力(input.valueの変更)はDOM属性の変化を伴わずMutationObserverでは
 // 拾えないため、軽い間隔ポーリングで最新状態に追随させる(600ms間隔。getDefenseRows()は
 // 既存行配列を読むだけの軽量処理のため負荷は無視できる)。
@@ -144,19 +141,8 @@ function buildRowEl(bridge: NonNullable<ReturnType<typeof getBulkAdjustBridge>>,
 
 	const previewWrap = document.createElement("div");
 	previewWrap.className = "bulk-adjust-row-preview";
-	const preview = bridge.buildCollapsedPreview(row.id);
+	const preview = bridge.buildCardPreview(row.id);
 	if (preview) {
-		// 圧縮表示の1段目は[攻撃/防御バッジ][種族名]、2段目は[特性][テラス情報]という構成
-		// (damage-calc.tsのcollapsedMetaRow/collapsedTeraRow参照)。このダイアログでは種族名は
-		// ドット絵で分かる一方、耐久調整の判断に効くのは特性(マルチスケイル等)なので入れ替える。
-		// ⚠️ previewはbuildCollapsedPreview()が返す表示専用の複製なので、ここで組み替えても
-		// VSタブの実カード(#damage-rows-list配下)には一切影響しない。
-		// ⚠️ CSSだけでは実現できない: 種族名と特性は別の親div(1段目/2段目)に入っており、
-		// order/display:contentsでは1段目へ移せないため、複製に対してDOMを組み替える。
-		preview.querySelector(".damage-row-collapsed-name")?.remove();
-		const metaRow = preview.querySelector(".damage-row-collapsed-meta-row");
-		const abilityEl = preview.querySelector(".damage-row-collapsed-ability");
-		if (metaRow && abilityEl) metaRow.appendChild(abilityEl);
 		previewWrap.appendChild(preview);
 	}
 	wrap.appendChild(previewWrap);

@@ -37,34 +37,3 @@ body.box-edit-page .app-topbar-title {
     padding-bottom: calc(56px + var(--bottom-nav-height) + var(--space-4));
   }
 }
-
-/* カード一覧直上の一括開閉ボタン。 */
-#damage-collapse-toggle-button {
-  font-size: var(--font-size-sm2);
-  align-items: center;
-  gap: .32em;
-  display: flex;
-  position: static;
-}
-
-#damage-collapse-toggle-button .damage-collapse-toggle-chevron {
-  font-size: 1.3rem;
-  font-weight: 600;
-  line-height: 1;
-  transition: transform .15s;
-  display: inline-block;
-}
-
-#damage-collapse-toggle-button[aria-expanded="true"] .damage-collapse-toggle-chevron {
-  transform: rotate(-90deg);
-}
-
-#damage-collapse-toggle-button[aria-expanded="false"] .damage-collapse-toggle-chevron {
-  transform: rotate(90deg);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  #damage-collapse-toggle-button .damage-collapse-toggle-chevron {
-    transition: none;
-  }
-}

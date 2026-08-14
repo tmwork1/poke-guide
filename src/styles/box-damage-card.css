@@ -39,7 +39,7 @@
   padding-bottom: var(--space-1);
   flex-flow: wrap;
   align-items: stretch;
-  gap: var(--space-2);
+  gap: var(--space-1);
   display: flex;
 }
 
@@ -65,10 +65,6 @@
 
 #opponent-notes-section .damage-sprite-box {
   order: 1;
-}
-
-#opponent-notes-section .damage-row-collapsed-summary {
-  order: 2;
 }
 
 #opponent-notes-section .damage-row-build-left {
@@ -108,21 +104,6 @@
   align-items: center;
   gap: var(--space-1);
   display: flex;
-}
-
-#opponent-notes-section .card-damage[data-collapsed="true"] {
-  cursor: grab;
-}
-
-#opponent-notes-section .card-damage.is-dragging {
-  opacity: .5;
-  cursor: grabbing;
-}
-
-#opponent-notes-section .card-damage.is-drag-over {
-  outline: 2px dashed var(--color-primary);
-  outline-offset: 2px;
-  border-radius: var(--radius-zero);
 }
 
 /* 攻撃・防御の切り替え操作 */
@@ -568,14 +549,6 @@
 #opponent-notes-section .damage-row-total-result .damage-result-verdict {
   font-size: var(--font-size-lg1);
   font-weight: 800;
-}
-
-#opponent-notes-section .card-damage[data-collapsed="true"] .damage-row-total-result[data-multi-move="true"] .damage-result-verdict:after {
-  content: "(技の合訁E";
-  font-size: var(--font-size-sm3);
-  opacity: .75;
-  margin-left: .3em;
-  font-weight: 500;
 }
 
 #opponent-notes-section .damage-row-total-result .damage-result-detail {
@@ -1337,265 +1310,6 @@
   }
 }
 
-/* 折りたたみカードの表示と操作 */
-#opponent-notes-section .damage-row-collapse-toggle-button {
-  bottom: var(--space-2);
-  right: var(--space-2);
-  z-index: 2;
-  background: var(--color-surface);
-  border: none;
-  transition: background .15s, color .15s;
-  position: absolute;
-}
-
-#opponent-notes-section .card-damage[data-collapsed="true"] .damage-row-collapse-toggle-button {
-  top: auto;
-  bottom: var(--space-2);
-  transform: none;
-}
-
-#opponent-notes-section .damage-row-collapse-toggle-glyph {
-  font-size: 1.3rem;
-  font-weight: 600;
-  line-height: 1;
-  transition: transform .15s;
-  display: inline-block;
-}
-
-#opponent-notes-section .damage-row-collapse-toggle-button[aria-expanded="true"] .damage-row-collapse-toggle-glyph {
-  transform: rotate(-90deg) translateY(-2px);
-}
-
-#opponent-notes-section .damage-row-collapse-toggle-button[aria-expanded="false"] .damage-row-collapse-toggle-glyph {
-  transform: rotate(90deg) translateY(-2px);
-}
-
-#opponent-notes-section .damage-row-collapse-toggle-button:hover:not(:disabled) {
-  border-color: var(--color-primary);
-  background: var(--color-primary-soft);
-}
-
-#opponent-notes-section .damage-row-collapse-toggle-button:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  #opponent-notes-section .damage-row-collapse-toggle-button, #opponent-notes-section .damage-row-collapse-toggle-glyph {
-    transition: none;
-  }
-}
-
-#opponent-notes-section .damage-row-collapsed-summary {
-  justify-content: center;
-  gap: var(--space-1);
-  flex-direction: column;
-  flex: auto;
-  min-width: 0;
-  display: none;
-}
-
-#opponent-notes-section .damage-row-collapsed-meta-row {
-  align-items: center;
-  gap: .4rem;
-  min-width: 0;
-  display: flex;
-}
-
-#opponent-notes-section .damage-row-collapsed-name {
-  font-size: var(--font-size-sm1);
-  color: var(--color-text);
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  flex: none;
-  max-width: 100%;
-  font-weight: 700;
-  overflow: hidden;
-}
-
-#opponent-notes-section .damage-row-collapsed-direction {
-  font-size: var(--font-size-sm3);
-  border-radius: var(--radius-sm);
-  color: var(--color-primary-contrast);
-  font-weight: 600;
-  line-height: var(--line-height-tight);
-  flex: none;
-  padding: .1em .55em;
-  display: inline-flex;
-}
-
-#opponent-notes-section .damage-row-collapsed-direction[data-role="attack"] {
-  background: var(--color-danger-strong);
-}
-
-#opponent-notes-section .damage-row-collapsed-direction[data-role="defense"] {
-  background: var(--color-primary-strong);
-}
-
-#opponent-notes-section .damage-row-collapsed-ability {
-  font-size: var(--font-size-sm3);
-  color: var(--color-text-muted);
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  flex: 0 auto;
-  min-width: 0;
-  font-weight: 400;
-  overflow: hidden;
-}
-
-#opponent-notes-section .damage-row-collapsed-tera-row {
-  align-items: center;
-  gap: .55rem;
-  min-width: 0;
-  display: flex;
-}
-
-#opponent-notes-section .damage-row-collapsed-tera-info {
-  align-items: center;
-  gap: var(--space-1);
-  flex: none;
-  display: inline-flex;
-}
-
-#opponent-notes-section .damage-row-collapsed-tera-info[hidden] {
-  display: none;
-}
-
-#opponent-notes-section .damage-row-collapsed-tera-icon {
-  flex: none;
-  justify-content: center;
-  align-items: center;
-  width: 16px;
-  height: 16px;
-  display: inline-flex;
-}
-
-#opponent-notes-section .damage-row-collapsed-tera-icon-img {
-  width: 16px;
-  height: 16px;
-  filter: drop-shadow(0 0 1px var(--color-surface));
-}
-
-#opponent-notes-section .damage-row-collapsed-tera-icon-fallback {
-  border: 1px solid var(--color-border);
-  border-radius: 50%;
-  width: 16px;
-  height: 16px;
-  display: none;
-}
-
-#opponent-notes-section .damage-row-collapsed-tera-name {
-  font-size: var(--font-size-sm3);
-  color: var(--color-text-muted);
-  white-space: nowrap;
-  flex: none;
-}
-
-#opponent-notes-section .damage-row-collapsed-stats {
-  grid-template-columns: repeat(6, 1fr);
-  gap: 0 .15rem;
-  margin-top: .1rem;
-  display: grid;
-}
-
-#opponent-notes-section .damage-row-collapsed-stats-line {
-  display: contents;
-}
-
-#opponent-notes-section .damage-row-collapsed-stat {
-  align-items: baseline;
-  gap: .05em;
-  display: inline-flex;
-}
-
-#opponent-notes-section .damage-row-collapsed-stat-key {
-  text-align: center;
-  font-weight: 600;
-  font-size: var(--font-size-sm2);
-  color: var(--color-text-muted);
-  line-height: 1.15;
-  display: block;
-}
-
-#opponent-notes-section .damage-row-collapsed-stat-key[data-mod="up"] {
-  color: var(--color-stat-up);
-}
-
-#opponent-notes-section .damage-row-collapsed-stat-key[data-mod="down"] {
-  color: var(--color-stat-down);
-}
-
-#opponent-notes-section .damage-row-collapsed-stat-value {
-  text-align: center;
-  font-weight: 700;
-  font-size: var(--font-size-sm2);
-  color: var(--color-text);
-  line-height: 1.15;
-  display: block;
-}
-
-#opponent-notes-section .card-damage[data-collapsed="true"] .damage-row-body {
-  align-items: center;
-}
-
-#opponent-notes-section .card-damage[data-collapsed="true"] .damage-row-techniques-row {
-  padding-top: var(--space-2);
-  align-self: stretch;
-}
-
-#opponent-notes-section .card-damage[data-collapsed="true"] .damage-row-total {
-  margin-top: auto;
-}
-
-#opponent-notes-section .card-damage[data-collapsed="true"] .damage-row-build-left, #opponent-notes-section .card-damage[data-collapsed="true"] .damage-ev-grid, #opponent-notes-section .card-damage[data-collapsed="true"] .damage-row-columns-wrap, #opponent-notes-section .card-damage[data-collapsed="true"] .damage-add-column-slot {
-  display: none;
-}
-
-#opponent-notes-section .card-damage[data-collapsed="true"] .damage-row-collapsed-summary {
-  display: flex;
-}
-
-#opponent-notes-section .card-damage[data-collapsed="true"] .damage-type-badge, #opponent-notes-section .damage-row-collapsed-techniques {
-  display: none;
-}
-
-#opponent-notes-section .card-damage[data-collapsed="true"] .damage-row-collapsed-techniques {
-  flex-direction: column;
-  gap: .1rem;
-  min-width: 0;
-  display: flex;
-}
-
-#opponent-notes-section .damage-row-collapsed-move-list {
-  font-size: var(--font-size-sm2);
-  color: var(--color-text);
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  margin: 0;
-  font-weight: 700;
-  overflow: hidden;
-}
-
-#opponent-notes-section .damage-row-collapsed-detail-line {
-  font-size: var(--font-size-sm3);
-  color: var(--color-text-muted);
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  margin: 0;
-  overflow: hidden;
-}
-
-#opponent-notes-section .damage-row-collapsed-detail-line[hidden] {
-  display: none;
-}
-
-#opponent-notes-section .damage-row-collapsed-techniques-text {
-  flex-direction: column;
-  gap: .1rem;
-  min-width: 0;
-  display: flex;
-}
-
 @media (width >= 0) {
   #opponent-notes-section .box-add-button {
     position: fixed;
@@ -1639,7 +1353,7 @@
     max-width: none;
   }
 
-  #opponent-notes-section .damage-row-collapsed-techniques, #opponent-notes-section .damage-row-total {
+  #opponent-notes-section .damage-row-total {
     grid-column: 1 / -1;
   }
 
@@ -1700,11 +1414,7 @@
     transform: translateX(-50%);
   }
 
-  #opponent-notes-section .damage-row-collapse-toggle-button {
-    display: none;
-  }
-
-  #opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-row-build {
+  #opponent-notes-section .card-damage .damage-row-build {
     grid-template-columns: auto minmax(0, 1fr);
     align-items: start;
     gap: .15rem .4rem;
@@ -1712,17 +1422,17 @@
     display: grid;
   }
 
-  #opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-row-build-main {
+  #opponent-notes-section .card-damage .damage-row-build-main {
     display: contents;
   }
 
-  #opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-sprite-box {
+  #opponent-notes-section .card-damage .damage-sprite-box {
     cursor: pointer;
     grid-area: 1 / 1 / span 2;
     align-self: start;
   }
 
-  #opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-row-build-left {
+  #opponent-notes-section .card-damage .damage-row-build-left {
     align-items: center;
     gap: var(--space-1);
     flex-flow: wrap;
@@ -1730,25 +1440,25 @@
     padding-right: 36px;
   }
 
-  #opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-row-build-fields, #opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-row-build-grid {
+  #opponent-notes-section .card-damage .damage-row-build-fields, #opponent-notes-section .card-damage .damage-row-build-grid {
     display: contents;
   }
 
-  #opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-row-actions {
+  #opponent-notes-section .card-damage .damage-row-actions {
     flex: none;
     order: 1;
     min-width: 0;
   }
 
-  #opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-row-direction-toggle {
+  #opponent-notes-section .card-damage .damage-row-direction-toggle {
     min-width: 3.6em;
   }
 
-  #opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-row-build-grid select {
+  #opponent-notes-section .card-damage .damage-row-build-grid select {
     display: none;
   }
 
-  #opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-row-ability-cycle {
+  #opponent-notes-section .card-damage .damage-row-ability-cycle {
     min-width: 0;
     font-weight: 400;
     font-size: var(--font-size-sm2);
@@ -1766,48 +1476,48 @@
     overflow: hidden;
   }
 
-  #opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-row-ability-cycle:hover:not(:disabled) {
+  #opponent-notes-section .card-damage .damage-row-ability-cycle:hover:not(:disabled) {
     color: var(--color-text);
     background: var(--color-surface);
     border-color: var(--color-primary);
   }
 
-  #opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-row-tera-field {
+  #opponent-notes-section .card-damage .damage-row-tera-field {
     flex: 1 1 0;
     order: 3;
     width: auto;
     min-width: 0;
   }
 
-  #opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-row-direction-toggle, #opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-row-direction-option, #opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-row-ability-cycle, #opponent-notes-section .card-damage:not([data-collapsed="true"]) .tera-dropdown-button {
+  #opponent-notes-section .card-damage .damage-row-direction-toggle, #opponent-notes-section .card-damage .damage-row-direction-option, #opponent-notes-section .card-damage .damage-row-ability-cycle, #opponent-notes-section .card-damage .tera-dropdown-button {
     min-height: 28px;
   }
 
-  #opponent-notes-section .card-damage:not([data-collapsed="true"]) .pokemon-name-row {
+  #opponent-notes-section .card-damage .pokemon-name-row {
     flex: 1 0 100%;
     order: 4;
     display: none;
   }
 
-  #opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-row-build-grid input[type="text"] {
+  #opponent-notes-section .card-damage .damage-row-build-grid input[type="text"] {
     flex: 1 0 100%;
     order: 5;
     display: none;
   }
 
-  #opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-row-build[data-mobile-edit="name"] .pokemon-name-row {
+  #opponent-notes-section .card-damage .damage-row-build[data-mobile-edit="name"] .pokemon-name-row {
     display: flex;
   }
 
-  #opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-row-build[data-mobile-edit="item"] .damage-row-build-grid input[type="text"] {
+  #opponent-notes-section .card-damage .damage-row-build[data-mobile-edit="item"] .damage-row-build-grid input[type="text"] {
     display: block;
   }
 
-  #opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-row-direction-option[aria-checked="false"] {
+  #opponent-notes-section .card-damage .damage-row-direction-option[aria-checked="false"] {
     display: none;
   }
 
-  #opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-ev-grid {
+  #opponent-notes-section .card-damage .damage-ev-grid {
     grid-area: 2 / 2;
     grid-template-columns: repeat(6, minmax(0, 1fr));
     gap: 0 .15rem;
@@ -1815,26 +1525,26 @@
     position: relative;
   }
 
-  #opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-ev-col-label, #opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-stat-value {
+  #opponent-notes-section .card-damage .damage-ev-col-label, #opponent-notes-section .card-damage .damage-stat-value {
     line-height: 1;
   }
 
-  #opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-ev-corner, #opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-ev-row-label {
+  #opponent-notes-section .card-damage .damage-ev-corner, #opponent-notes-section .card-damage .damage-ev-row-label {
     display: none;
   }
 
-  #opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-ev-cell {
+  #opponent-notes-section .card-damage .damage-ev-cell {
     justify-content: center;
     align-items: center;
     min-height: 1.75rem;
     display: flex;
   }
 
-  #opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-ev-cell input[type="number"] {
+  #opponent-notes-section .card-damage .damage-ev-cell input[type="number"] {
     display: none;
   }
 
-  #opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-ev-value-text {
+  #opponent-notes-section .card-damage .damage-ev-value-text {
     width: 100%;
     font-family: inherit;
     font-size: var(--font-size-sm2);
@@ -1848,12 +1558,12 @@
     display: block;
   }
 
-  #opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-ev-value-text:focus-visible {
+  #opponent-notes-section .card-damage .damage-ev-value-text:focus-visible {
     outline: 2px solid var(--color-primary);
     outline-offset: 1px;
   }
 
-  #opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-ev-cell[data-editing="true"] .damage-ev-editor {
+  #opponent-notes-section .card-damage .damage-ev-cell[data-editing="true"] .damage-ev-editor {
     z-index: 1;
     justify-content: center;
     align-items: center;
@@ -1867,18 +1577,18 @@
     right: 0;
   }
 
-  #opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-ev-cell[data-editing="true"] input[type="number"] {
+  #opponent-notes-section .card-damage .damage-ev-cell[data-editing="true"] input[type="number"] {
     text-align: center;
     flex: 0 0 3.2rem;
     width: 3.2rem;
     display: block;
   }
 
-  #opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-ev-cell[data-editing="true"] .damage-ev-value-text {
+  #opponent-notes-section .card-damage .damage-ev-cell[data-editing="true"] .damage-ev-value-text {
     display: none;
   }
 
-  #opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-ev-cell[data-editing="true"] .damage-ev-step-button {
+  #opponent-notes-section .card-damage .damage-ev-cell[data-editing="true"] .damage-ev-step-button {
     min-width: 30px;
     height: 26px;
     min-height: 26px;
@@ -1896,19 +1606,19 @@
     display: inline-flex;
   }
 
-  #opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-column-result {
+  #opponent-notes-section .card-damage .damage-column-result {
     display: none;
   }
 
-  #opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-item-badge {
+  #opponent-notes-section .card-damage .damage-item-badge {
     cursor: pointer;
   }
 
-  #opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-item-badge[hidden] {
+  #opponent-notes-section .card-damage .damage-item-badge[hidden] {
     display: flex;
   }
 
-  #opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-item-badge[hidden] .damage-item-badge-placeholder {
+  #opponent-notes-section .card-damage .damage-item-badge[hidden] .damage-item-badge-placeholder {
     background: var(--color-surface);
     width: 20px;
     height: 20px;
@@ -1923,7 +1633,7 @@
     display: flex;
   }
 
-  #opponent-notes-section .card-damage:not([data-collapsed="true"]) .damage-item-badge[aria-disabled="true"] {
+  #opponent-notes-section .card-damage .damage-item-badge[aria-disabled="true"] {
     cursor: default;
   }
 }

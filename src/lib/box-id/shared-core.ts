@@ -456,10 +456,10 @@ export interface BulkAdjustBridge {
 	/** direction === "defense" のカードだけを、上記スナップショットにして返す(表示順を維持)。 */
 	getDefenseRows: () => BulkAdjustRowSnapshot[];
 	/**
-	 * 指定した行のカードDOMを「圧縮表示(折りたたみ)状態」で複製して返す。
+	 * 指定した行のカードDOMを複製して返す。
 	 * ポップアップ内に貼るための表示専用の複製。存在しない id なら null。
 	 */
-	buildCollapsedPreview: (rowId: string) => HTMLElement | null;
+	buildCardPreview: (rowId: string) => HTMLElement | null;
 }
 // getBulkAdjustBridge()は既存のleftPanelBridge!/damageCalcBridge!のような非nullアサーションを
 // 使わない(後続実装がボタンの有効/無効判定に使うため、未登録の可能性を型で表現する)。

@@ -1,6 +1,6 @@
 ---
 // トップバーの #bulk-adjust-button(box/[id].astro側の静的マークアップ、実装済み)を押すと
-// 開く「耐久調整ポップアップ」の器(マークアップ+スタイル)。中身(圧縮表示された防御方向の
+// 開く「耐久調整ポップアップ」の器(マークアップ+スタイル)。中身(表示専用の防御方向の
 // ダメージ計算カードの複製・N/M入力欄・進捗表示)はすべて src/lib/box-id/bulk-adjust.ts が
 // document.createElement()で動的生成する。
 //
@@ -12,12 +12,10 @@
 // 踏襲する。
 //
 // ⚠️ 重要な設計上の注意(bulk-adjust.ts側の実装者・将来の変更者向け):
-// 圧縮表示カード(buildCollapsedPreview()の複製)の見た目を決めるCSS
-// (「#opponent-notes-section .card-damage[data-collapsed="true"] ...」等、
-// DamageCalcSection.astroの<style is:global>)は、すべて祖先に id="opponent-notes-section" を
+// カードの見た目を決めるCSSは、祖先に id="opponent-notes-section" を
 // 持つ要素があることを前提にしたセレクタになっている。このダイアログの静的マークアップは
 // box/[id].astro側でどこに配置しても構わない(position:fixedのため見た目上の位置には
-// 影響しない)が、複製カードに圧縮表示のCSSを実際に効かせるには、bulk-adjust.ts側で
+// 影響しない)が、複製カードにCSSを実際に効かせるには、bulk-adjust.ts側で
 // このダイアログのルート要素を実行時に #opponent-notes-section の子として
 // appendChild()し直す必要がある(bulk-adjust.ts起動時に1回だけ行う。詳細は
 // bulk-adjust.tsのコメント参照)。#opponent-notes-section自身の子要素の入れ替えは

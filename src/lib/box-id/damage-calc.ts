@@ -370,21 +370,13 @@ if (opponentNotesSection) {
 		return value === "" ? null : value;
 	}
 	// 行(相手)ごとに1個生成されるテラスタイプ選択ボックス(buildTeraDropdown()のwrap、
-	// 下方参照)への参照。DamageRowState自体にフィールドを追加せず(shared-core.tsは編集
-	// 対象外ファイルのため)、rowCollapseHandles等と同じくWeakMapで対応付ける。
+	// 下方参照)への参照。DamageRowState自体にフィールドを追加せず、WeakMapで対応付ける。
 	const rowTeraFieldWraps = new WeakMap<DamageRowState, HTMLElement>();
-	// 圧縮表示側のテラス関連表示(相手のテラスタイプ名/アイコン、技列の「攻撃側テラスタル」
-	// 「防御側テラスタル」チップ)はrenderRow()内のrefreshTypeBadge()/refreshCollapsedTechniques()が
-	// 持っているが、どちらもrow.teraType等が変わった時にしか呼ばれない(regulation変更単独では
-	// 再実行されない)。rowTeraFieldWraps同様、行ごとに「圧縮表示のテラス関連表示を最新化する関数」を
-	// WeakMapへ登録しておき、syncTeraFieldVisibility()から展開側の表示切り替えとまとめて呼び直す。
-	const rowCollapsedTeraRefreshers = new WeakMap<DamageRowState, () => void>();
 	function syncTeraFieldVisibility(): void {
 		const show = isTerastalRegulation(currentIndividualRegulation());
 		for (const row of rows) {
 			const wrap = rowTeraFieldWraps.get(row);
 			if (wrap) wrap.hidden = !show;
-			rowCollapsedTeraRefreshers.get(row)?.();
 		}
 	}
 	regulationSelectEl?.addEventListener("change", syncTeraFieldVisibility);
@@ -1106,14 +1098,6 @@ if (opponentNotesSection) {
 		if (!target) return;
 		const result = row.clientResult;
 		const validAttacks = validAttacksOf(row);
-		// totalBlock(.damage-row-total)は展開/圧縮で共有要素なので、DOM構造自体は変えず、
-		// ここでdata-multi-move属性だけを立てる(見た目には影響しない)。実際の注記表示は
-		// CSS側(#opponent-notes-section .card-damage[data-collapsed="true"]
-		// .damage-row-total-result[data-multi-move="true"] .damage-result-verdict::after、
-		// DamageCalcSection.astro)が圧縮状態限定のセレクタで生成コンテンツとして足すため、
-		// 展開表示は変わらない。全てのreturnパスで参照される属性のため、早期returnより
-		// 前(このtarget取得直後)に設定する。
-		target.dataset.multiMove = validAttacks.length >= 2 ? "true" : "false";
 		if (validAttacks.length === 0) {
 			setResultPlain(target, "");
 			target.dataset.severity = "none";
@@ -1204,8 +1188,6 @@ if (opponentNotesSection) {
 	// 左パネルのrecalcStats()と同様、エンジン非依存の純JS計算に切り替える
 	// (calcHpStat/calcOtherStatはモジュールスコープで定義済み)。ダメージ計算(recalcRow内の
 	// この先の処理)は引き続きisEngineReady()待ちのまま。
-	// rowCollapseHandlesは下方のconstだが、実際の呼び出しはその初期化後なのでTDZには触れない。
-	// 更新漏れを避けるため展開状態でも中身だけ同期する(折りたたみ状態や幅は変更しない)。
 	async function recalcRowStatsOnly(row: DamageRowState): Promise<void> {
 		const name = row.name.trim();
 		const base = name ? (await baseStatsMapPromise).get(name) : undefined;
@@ -1216,7 +1198,6 @@ if (opponentNotesSection) {
 				target.textContent = "-";
 				delete target.dataset.mod;
 			}
-			rowCollapseHandles.get(row)?.refreshCollapsedViews();
 			return;
 		}
 		const level = 50;
@@ -1245,7 +1226,6 @@ if (opponentNotesSection) {
 			// 一瞬で消えてしまう。実数値の数字側(statValueEls)は正規化された値のままで正しい
 			// (実際の計算に使う値と一致させる必要があるため)。
 		});
-		rowCollapseHandles.get(row)?.refreshCollapsedViews();
 	}
 
 	// キー順に依存しない構造比較用の正規化文字列化。
@@ -1450,9 +1430,8 @@ if (opponentNotesSection) {
 			};
 			const seed = parseSeed(row.seedRaw);
 			if (seed !== undefined) field.seed = seed;
-			// カード並び順(rowSortOrder、上方参照)。ドラッグ&ドロップで並び替えた行・
-			// 新規追加した行だけがWeakMapに値を持つ(既存データのまま一度も並び替えていない
-			// 行はundefinedのまま=サーバーに送らない、既存データ互換)。
+			// カード並び順(rowSortOrder、上方参照)。保存済み順序の復元と新規追加時の
+			// 挿入位置を維持する。値が無い行はサーバーに送らず既存データと互換にする。
 			const sortOrder = rowSortOrder.get(row);
 			if (sortOrder !== undefined) field.order = sortOrder;
 
@@ -1636,11 +1615,7 @@ if (opponentNotesSection) {
 		column.moveName = list.options[0]?.value ?? "";
 	}
 
-	// 技列(加算条件)を1つ追加する処理は、renderColumns内の「＋ 技を追加」ボタン(addButton)の
-	// クリックハンドラだけでなく、折りたたみ時の「＋」ボタン(renderRow内のcollapsedTechniques、
-	// 下方参照)からも同じ処理を呼ぶ必要があるため、共通関数に切り出している(重複コード防止)。
-	// 呼び出し側(addButton自身、折りたたみ時ボタン)は事前にMAX_COLUMNS_TO_ADD到達チェック
-	// (disabled/hidden)を行っているが、念のためここでも二重にガードする。
+	// 技列(加算条件)を1つ追加する処理を共通関数にまとめる。
 	function addAttackColumn(row: DamageRowState): void {
 		if (row.attacks.length >= currentMaxColumnsToAdd()) return;
 		// 直前のカラム(row.attacks末尾)があれば、その詳細設定を引き継ぐ。
@@ -1655,9 +1630,8 @@ if (opponentNotesSection) {
 
 	const columnDisplayRefreshers = new WeakMap<DamageColumnState, () => void>();
 
-	function refreshColumnDisplay(row: DamageRowState, column: DamageColumnState): void {
+	function refreshColumnDisplay(_row: DamageRowState, column: DamageColumnState): void {
 		columnDisplayRefreshers.get(column)?.();
-		rowCollapseHandles.get(row)?.refreshCollapsedViews();
 	}
 
 	function configureColumnMoveInput(
@@ -1863,8 +1837,7 @@ if (opponentNotesSection) {
 			addButton.title = "加算する技を追加する(上から順に当てた加算ダメージ計算になります)";
 		}
 		// 実際に技を1つ追加する処理はaddAttackColumn(row)(fillFirstMoveCandidateの直後で定義)
-		// へ切り出している。折りたたみ時の「＋」ボタン(renderRow内のcollapsedTechniques)と
-		// 共通化するため。
+		// へ切り出している。
 		addButton.addEventListener("click", () => addAttackColumn(row));
 		(row.addColumnSlotEl ?? row.columnsEl).appendChild(addButton);
 
@@ -1933,9 +1906,8 @@ if (opponentNotesSection) {
 	// 現在値で作り直す。
 	function renderConditionChipsInto(container: HTMLElement, attack: DamageColumnState): void {
 		container.innerHTML = "";
-		// 展開表示は、非テラスレギュレーションでも計算に残っているテラスタル設定を
-		// ユーザーが把握できるよう常に表示する。折りたたみ表示だけは
-		// refreshCollapsedTechniques()側でレギュレーションに応じて出し分ける。
+		// 非テラスレギュレーションでも計算に残っているテラスタル設定を
+		// ユーザーが把握できるよう常に表示する。
 		const groups = collectConditionGroups(attack, true);
 		container.hidden = groups.length === 0;
 		groups.forEach((group) => {
@@ -1954,37 +1926,15 @@ if (opponentNotesSection) {
 		});
 	}
 
-	// 折りたたみ状態はDBに保存しない(ページ再読み込みでは既定の展開状態に戻る)ため、
-	// JSメモリ内(このモジュールのクロージャ)だけで完結させる。DamageRowStateには
-	// フィールドを追加せず、row参照をキーにしたWeakSet/WeakMapで折りたたみ状態と行ごとの
-	// setCollapsed()を保持する(WeakなのでrowがGCされれば自動的に参照も外れる)。
-	const collapsedRowSet = new WeakSet<DamageRowState>();
-	// モバイルは1カラムでカード幅を親に追従させるため、展開時のpx幅固定を使わない。
 	function isNarrowLayout(): boolean {
 		return true;
 	}
-	// refreshCollapsedViewsは、元のカードの折りたたみ状態(dataset.collapsed)を一切変えずに、
-	// 折りたたみ用DOM(.damage-row-collapsed-summary/.damage-row-collapsed-techniques・
-	// 実数値表)の中身だけを最新化する(耐久調整ポップアップに貼る圧縮表示の複製
-	// buildCollapsedPreview作成前などに使う)。setCollapsed()が呼んでいる
-	// refreshCollapsedSummary()/refreshCollapsedStats()/refreshCollapsedTechniques()の3つを
-	// この1関数にまとめて、setCollapsedと同じくrenderRowのクロージャ内で定義して
-	// WeakMapへ登録する。
-	const rowCollapseHandles = new WeakMap<
-		DamageRowState,
-		{ setCollapsed: (collapsed: boolean) => void; refreshCollapsedViews: () => void }
-	>();
 	// ドット絵(モバイル)と公式アートワーク(デスクトップ)の切り替えは
 	// 画像URLの差でしかないため、幅の境界をまたいだ瞬間に各行のrefreshSprite()を呼び直す
-	// 必要がある。rowCollapseHandlesと同じく、renderRowのクロージャ内の関数をWeakMapで
+	// 必要がある。renderRowのクロージャ内の関数をWeakMapで
 	// 行に紐づけておき、下方のmatchMediaリスナーがrows(表示中の行)を回して呼ぶ
 	// (行ごとにリスナーを足すと、削除した行のクロージャがリスナー経由で残ってしまう)。
 	const rowSpriteRefreshers = new WeakMap<DamageRowState, () => void>();
-	function setAllRowsCollapsed(collapsed: boolean): void {
-		for (const row of rows) {
-			rowCollapseHandles.get(row)?.setCollapsed(collapsed);
-		}
-	}
 
 	// テラスタイプ選択ボックスはLeftPanel.astro
 	// 226〜249行目・left-panel.ts 500〜613行目の#tera-dropdown-button/#tera-dropdown-list
@@ -2245,122 +2195,6 @@ if (opponentNotesSection) {
 		spriteBox.append(spriteImg, spriteFallback, typeBadge, itemBadge);
 		buildMain.appendChild(spriteBox);
 
-		const collapsedSummary = document.createElement("div");
-		collapsedSummary.className = "damage-row-collapsed-summary";
-		const collapsedNameEl = document.createElement("span");
-		collapsedNameEl.className = "damage-row-collapsed-name";
-		const collapsedDirectionEl = document.createElement("span");
-		collapsedDirectionEl.className = "damage-row-collapsed-direction";
-		const collapsedAbilityEl = document.createElement("span");
-		collapsedAbilityEl.className = "damage-row-collapsed-ability";
-		const collapsedStatsEl = document.createElement("div");
-		collapsedStatsEl.className = "damage-row-collapsed-stats";
-		const collapsedStatKeyEls: Partial<Record<StatKey, HTMLElement>> = {};
-		const collapsedStatValueEls: Partial<Record<StatKey, HTMLElement>> = {};
-		const statLabelRow = document.createElement("div");
-		statLabelRow.className = "damage-row-collapsed-stats-line";
-		const statValueRow = document.createElement("div");
-		statValueRow.className = "damage-row-collapsed-stats-line";
-		STAT_KEYS.forEach((key) => {
-			const keyEl = document.createElement("span");
-			keyEl.className = "damage-row-collapsed-stat-key";
-			keyEl.textContent = STAT_KANJI[key];
-			statLabelRow.appendChild(keyEl);
-			collapsedStatKeyEls[key] = keyEl;
-		});
-		STAT_KEYS.forEach((key) => {
-			const valueEl = document.createElement("span");
-			valueEl.className = "damage-row-collapsed-stat-value tnum";
-			valueEl.textContent = "-";
-			statValueRow.appendChild(valueEl);
-			collapsedStatValueEls[key] = valueEl;
-		});
-		collapsedStatsEl.append(statLabelRow, statValueRow);
-		// 折りたたみ時のメタ情報は2段構成: 1段目(.damage-row-collapsed-meta-row)は
-		// 攻撃/防御バッジ(collapsedDirectionEl)→種族名(collapsedNameEl)の順で、両方とも
-		// 省略しない(flex:0 0 auto、下のCSS参照)。2段目(.damage-row-collapsed-tera-row)は
-		// 特性(collapsedAbilityEl、スタイル・ellipsis仕様は展開時と維持)→テラス情報の順。
-		// テラス情報はスプライト画像に重ねる.damage-type-badge(typeBadgeImg/
-		// typeBadgeFallback)をやめ(折りたたみ時限定でCSS側をdisplay:noneに戻す、下方の
-		// [data-collapsed="true"] .damage-type-badge参照)、ここに新しい小アイコン
-		// (collapsedTeraImg/collapsedTeraFallback)として表示する。applyTeraImage()の
-		// シグネチャ(imgEl, fallbackEl, teraName)はtypeBadgeImg/typeBadgeFallbackへの
-		// 呼び出しと同一で、同じ関数を2組の要素へそれぞれ適用するだけでよい(下方の
-		// refreshTypeBadge参照)。特性・テラアイコンの合計が幅を超える場合は特性側だけ
-		// ellipsis省略する(flex:1 1 auto; min-width:0、テラアイコン側はflex:0 0 auto固定
-		// サイズ)。
-		const collapsedTeraImg = document.createElement("img");
-		collapsedTeraImg.className = "damage-row-collapsed-tera-icon-img";
-		collapsedTeraImg.width = 16;
-		collapsedTeraImg.height = 16;
-		collapsedTeraImg.alt = "";
-		// typeBadgeImgと同じ理由(applyTeraImage解決前に壊れ画像アイコンが一瞬出ないよう
-		// 既定で隠す)。
-		collapsedTeraImg.style.display = "none";
-		const collapsedTeraFallback = document.createElement("span");
-		collapsedTeraFallback.className = "damage-row-collapsed-tera-icon-fallback";
-		const collapsedTeraIconEl = document.createElement("span");
-		collapsedTeraIconEl.className = "damage-row-collapsed-tera-icon";
-		collapsedTeraIconEl.append(collapsedTeraImg, collapsedTeraFallback);
-		// アイコンの右にタイプ名テキストを添える。アイコン・名前とも省略対象にしない固定サイズの
-		// 塊としてまとめる(.damage-row-collapsed-tera-info、下記append参照。CSSは
-		// DamageCalcSection.astro参照)。
-		const collapsedTeraNameEl = document.createElement("span");
-		collapsedTeraNameEl.className = "damage-row-collapsed-tera-name";
-		const collapsedTeraInfoEl = document.createElement("span");
-		collapsedTeraInfoEl.className = "damage-row-collapsed-tera-info";
-		collapsedTeraInfoEl.append(collapsedTeraIconEl, collapsedTeraNameEl);
-
-		const collapsedMetaRow = document.createElement("div");
-		collapsedMetaRow.className = "damage-row-collapsed-meta-row";
-		collapsedMetaRow.append(collapsedDirectionEl, collapsedNameEl);
-		const collapsedTeraRow = document.createElement("div");
-		collapsedTeraRow.className = "damage-row-collapsed-tera-row";
-		collapsedTeraRow.append(collapsedAbilityEl, collapsedTeraInfoEl);
-		collapsedSummary.append(collapsedMetaRow, collapsedTeraRow, collapsedStatsEl);
-		buildMain.appendChild(collapsedSummary);
-		function refreshCollapsedSummary(): void {
-			collapsedNameEl.textContent = row.name.trim() || "(名前未設定)";
-			const selfAttacks = row.direction !== "defense";
-			// collapsedDirectionElの文言は「攻撃」「防御」(docs/ui_proposal/ダメージカード_圧縮.png
-			// の表記に合わせる)。展開時のインタラクティブなセグメントコントロール
-			// (.damage-row-direction-option、下のattackOption/defenseOption)とは別要素で、
-			// そちらの文言は独立して「攻撃」「防御」のまま変えていない。
-			collapsedDirectionEl.textContent = selfAttacks ? "攻撃" : "防御";
-			collapsedDirectionEl.dataset.role = selfAttacks ? "attack" : "defense";
-			// 名前欄の row.name.trim() || "(名前未設定)" と同じフォールバック文法に揃える。
-			// title属性にもフルテキストを持たせ、ellipsis省略時のツールチップにする。
-			const abilityText = row.abilityName.trim() || "(特性未設定)";
-			collapsedAbilityEl.textContent = abilityText;
-			collapsedAbilityEl.title = abilityText;
-		}
-		// H/A/B/C/D/Sの実数値だけをこの折りたたみ用の行へ複製する。実数値の算出ロジック自体
-		// (性格補正込み)は展開時の.damage-ev-grid(row.statValueEls)をrecalcRowStatsOnly()が
-		// 最新化しており、この関数はその結果(表示済みのtextContent/data-mod)をそのまま読み写す
-		// だけ(計算式を二重に持たない)。折りたたみ中は入力欄が隠れて編集不可なため、この
-		// 読み写しはsetCollapsed()のタイミングだけで行えば値がずれることはない(下の
-		// setCollapsed参照)。
-		function refreshCollapsedStats(): void {
-			for (const key of STAT_KEYS) {
-				const keyTarget = collapsedStatKeyEls[key];
-				const valueTarget = collapsedStatValueEls[key];
-				const source = row.statValueEls[key];
-				if (!keyTarget || !valueTarget) continue;
-				const mod = source?.dataset.mod;
-				// 性格補正の上昇/下降はラベル文字(H/A/B/C/D/Sの文字)へ▲/▼を直接付記して表現する
-				// (色のみ表現はWCAG 1.4.1に抵触するため。例: 上昇ならA▲、下降ならC▼)。展開時の
-				// .damage-ev-nature-indicator(describeNatureCycleState、上方参照)と同じグリフを
-				// 使う。値側には記号を付けない。色は既存の--color-stat-up/--color-stat-down
-				// (.damage-row-collapsed-stat-key[data-mod]、DamageCalcSection.astro)を
-				// そのままラベル側に付け替えて流用する。
-				const suffix = mod === "up" ? "▲" : mod === "down" ? "▼" : "";
-				keyTarget.textContent = STAT_KANJI[key] + suffix;
-				if (mod) keyTarget.dataset.mod = mod;
-				else delete keyTarget.dataset.mod;
-				valueTarget.textContent = source?.textContent ?? "-";
-			}
-		}
-
 		const nameInput = document.createElement("input");
 		nameInput.type = "text";
 		nameInput.setAttribute("list", "pokemon-list");
@@ -2431,26 +2265,6 @@ if (opponentNotesSection) {
 			// teraDropdown参照。row.teraTypeが変わるたびに内部でteraTypeIconUrlを引き直す)に
 			// 一本化されている。選択欄の外に重ねる専用アイコンは無い。
 			void applyTeraImage(typeBadgeImg, typeBadgeFallback, row.teraType);
-			// 折りたたみ2段目(collapsedTeraRow)の小アイコンも同じrow.teraTypeで更新する。上の
-			// typeBadgeImg/typeBadgeFallbackへの呼び出しと同じapplyTeraImage()を、別の要素ペア
-			// (collapsedTeraImg/collapsedTeraFallback)へそのまま適用するだけでよい。
-			void applyTeraImage(collapsedTeraImg, collapsedTeraFallback, row.teraType);
-			// アイコンの隣にタイプ名テキストを表示する。テラスタイプ未設定
-			// (row.teraType==="")のときは空文字にし、アイコン(applyTeraImageがimg/fallback
-			// 両方をdisplay:noneにする)と同じく何も見えない状態にする。
-			const teraTypeText = row.teraType.trim();
-			collapsedTeraNameEl.textContent = teraTypeText;
-			collapsedTeraNameEl.title = teraTypeText;
-			// テラスタイプが未設定の場合は要素ごと非表示にする("未設定"等と表示しない)。
-			// アイコン(applyTeraImage)・名前テキストは既に空/非表示になっているが、それだけだと
-			// 空のicon+textラッパー(collapsedTeraInfoEl、gap込み)が場所だけ占有して残るため、
-			// ラッパーごと隠す(持ち物バッジ等、他の未設定表現と同じ「要素ごと消す」流儀に揃える)。
-			// 展開側のrowTeraFieldWraps(相手のテラスタイプ選択欄、syncTeraFieldVisibility()参照)
-			// と同じisTerastalRegulation()判定を、圧縮表示の相手テラスタイプ表示
-			// (このcollapsedTeraInfoEl)にもかける。row.teraType自体は変更しない
-			// (表示の出し分けのみ)。
-			collapsedTeraInfoEl.hidden =
-				teraTypeText === "" || !isTerastalRegulation(currentIndividualRegulation());
 		}
 		function refreshItemImage(): void {
 			void applyItemImage(itemImg, row.itemName.trim());
@@ -2464,7 +2278,6 @@ if (opponentNotesSection) {
 		nameInput.addEventListener("input", () => {
 			row.name = nameInput.value.trim();
 			refreshSprite();
-			refreshCollapsedSummary();
 			onFieldInput();
 		});
 		// 種族名が確定した(blur、またはpokemon-listのdatalist選択によるchange)
@@ -2499,56 +2312,6 @@ if (opponentNotesSection) {
 		deleteRowButton.addEventListener("click", () => void deleteRow(row));
 		root.appendChild(deleteRowButton);
 
-		const collapseToggleButton = document.createElement("button");
-		collapseToggleButton.type = "button";
-		collapseToggleButton.className = "btn-ghost damage-row-icon-button damage-row-collapse-toggle-button";
-		root.appendChild(collapseToggleButton);
-
-		const collapseToggleGlyph = document.createElement("span");
-		collapseToggleGlyph.className = "damage-row-collapse-toggle-glyph";
-		collapseToggleGlyph.textContent = "»";
-		collapseToggleGlyph.setAttribute("aria-hidden", "true");
-		collapseToggleButton.appendChild(collapseToggleGlyph);
-		function setCollapsed(collapsed: boolean): void {
-			if (isNarrowLayout()) {
-				root.style.width = "";
-			} else if (collapsed && root.dataset.collapsed !== "true") {
-				// 折りたたみ後の縮小幅ではなく展開時の幅を維持するため、状態変更前に計測する。
-				const expandedWidth = root.getBoundingClientRect().width;
-				if (expandedWidth > 0) root.style.width = `${expandedWidth}px`;
-			}
-			if (collapsed) {
-				collapsedRowSet.add(row);
-			} else {
-				collapsedRowSet.delete(row);
-				// 展開に戻すときは固定幅を解除し、内容量に応じた自然なサイズに戻す
-				// (技列の追加・削除で幅が変わる既存の挙動を壊さないため)。
-				root.style.width = "";
-			}
-			root.dataset.collapsed = collapsed ? "true" : "false";
-			collapseToggleButton.title = collapsed ? "この相手の入力欄を展開する" : "この相手の入力欄を折りたたむ";
-			collapseToggleButton.setAttribute(
-				"aria-label",
-				collapsed ? "この相手の入力欄を展開する" : "この相手の入力欄を折りたたむ",
-			);
-			collapseToggleButton.setAttribute("aria-expanded", String(!collapsed));
-			refreshCollapsedSummary();
-			refreshCollapsedStats();
-			refreshCollapsedTechniques();
-			updateCollapseToggleButtonLabel();
-		}
-		function refreshCollapsedViews(): void {
-			refreshCollapsedSummary();
-			refreshCollapsedStats();
-			refreshCollapsedTechniques();
-		}
-		collapseToggleButton.addEventListener("click", () => setCollapsed(!collapsedRowSet.has(row)));
-		// 36-3「すべて折りたたむ・展開する」ツールバーが行ごとのsetCollapsed()を呼べるように、
-		// row参照をキーにしたWeakMapへ登録する(DamageRowState自体にコールバック用フィールドを
-		// 増やさないための実装手段。上のimport元のshared-core.tsは編集対象外ファイルのため)。
-		// 耐久調整ブリッジ(refreshCollapsedViews)もここで一緒に登録する。
-		rowCollapseHandles.set(row, { setCollapsed, refreshCollapsedViews });
-
 		// 攻守切り替え。「攻撃」「防御」どちらを押しても、押した側の値になる
 		// (同じ側を押しても意味は変わらないが、setDirectionは冪等なので害はない)。
 		// 技列に入れる技は常に攻撃側の技なので、切り替えると技列の意味も入れ替わる
@@ -2571,7 +2334,6 @@ if (opponentNotesSection) {
 			// ユーザー入力済みの技は保ち、空欄だけ切替後の候補で補う。
 			for (const column of row.attacks) fillFirstMoveCandidate(row, column);
 			refreshDirectionUi();
-			refreshCollapsedSummary();
 			// 技列のplaceholder/aria-label(「技」⇄「相手の技」)も向きで変わるため作り直す。
 			// renderColumns()自身が末尾でselectedRow===rowなら
 			// renderDetailPanel()を呼ぶため、サイドバー側の向き別ラベル
@@ -2627,7 +2389,6 @@ if (opponentNotesSection) {
 				abilitySelect.title = "";
 				if (previousValue !== "") {
 					row.abilityName = "";
-					refreshCollapsedSummary();
 					onFieldInput();
 				}
 				// モバイルの特性ループボタン(下方のabilityCycleButton)も同じ状態へ揃える。
@@ -2649,7 +2410,6 @@ if (opponentNotesSection) {
 			abilitySelect.title = abilitySelect.value;
 			if (abilitySelect.value !== previousValue) {
 				row.abilityName = abilitySelect.value;
-				refreshCollapsedSummary();
 				onFieldInput();
 			}
 			// 候補を作り直したあとの確定値をモバイルの特性ループボタンへ反映する。
@@ -2660,7 +2420,6 @@ if (opponentNotesSection) {
 			// 今回の要件: 相手特性変更時だけ、各技列の天候・フィールド自動入力を試す。
 			notifyDetailAbilityChanged(row, row.abilityName);
 			abilitySelect.title = abilitySelect.value;
-			refreshCollapsedSummary();
 			onFieldInput();
 			refreshAbilityCycleButton();
 		});
@@ -2786,10 +2545,6 @@ if (opponentNotesSection) {
 		selectsRow.appendChild(teraDropdown.wrap);
 		rowTeraFieldWraps.set(row, teraDropdown.wrap);
 		teraDropdown.wrap.hidden = !isTerastalRegulation(currentIndividualRegulation());
-		rowCollapsedTeraRefreshers.set(row, () => {
-			refreshTypeBadge();
-			refreshCollapsedTechniques();
-		});
 
 		const evGrid = document.createElement("div");
 		evGrid.className = "damage-ev-grid";
@@ -2982,7 +2737,6 @@ if (opponentNotesSection) {
 			});
 			refreshAllEvTexts();
 
-			refreshCollapsedSummary();
 			onFieldInput();
 		}
 
@@ -3014,61 +2768,6 @@ if (opponentNotesSection) {
 		techniquesRow.appendChild(addColumnSlot);
 		row.addColumnSlotEl = addColumnSlot;
 		renderColumns(row);
-
-		const collapsedTechniques = document.createElement("div");
-		collapsedTechniques.className = "damage-row-collapsed-techniques";
-		const collapsedTechniquesText = document.createElement("div");
-		collapsedTechniquesText.className = "damage-row-collapsed-techniques-text";
-		const collapsedMoveListEl = document.createElement("p");
-		collapsedMoveListEl.className = "damage-row-collapsed-move-list";
-		const collapsedDetailLineEl = document.createElement("p");
-		collapsedDetailLineEl.className = "damage-row-collapsed-detail-line";
-		collapsedTechniquesText.append(collapsedMoveListEl, collapsedDetailLineEl);
-		collapsedTechniques.append(collapsedTechniquesText);
-		techniquesRow.appendChild(collapsedTechniques);
-		// 折りたたみ中は技列の入力欄(.damage-row-columns-wrap)が隠れて編集不可になる
-		// (36-1の既存方針)ため、row.attacksはsetCollapsed()呼び出し時点で確定した値に
-		// なっている。展開中の編集のたびに追随させる必要は無く、setCollapsed()の
-		// タイミングだけで読み直せば表示がずれることはない(refreshCollapsedStatsと
-		// 同じ考え方)。
-		function refreshCollapsedTechniques(): void {
-			const namedAttacks = row.attacks.filter((a) => a.moveName.trim() !== "");
-			if (namedAttacks.length === 0) {
-				collapsedMoveListEl.textContent = "(技未設定)";
-				collapsedMoveListEl.title = "";
-			} else {
-				const movesText = namedAttacks
-					.map((a) => {
-						const name = a.moveName.trim();
-						return a.hitCount > 1 ? `${name}(${a.hitCount}発)` : name;
-					})
-					.join(" + ");
-				collapsedMoveListEl.textContent = movesText;
-				collapsedMoveListEl.title = movesText;
-			}
-			const showTera = isTerastalRegulation(currentIndividualRegulation());
-			const chipGroups: { index: number; text: string }[] = [];
-			row.attacks.forEach((a, i) => {
-				if (a.moveName.trim() === "") return;
-				const groups = collectConditionGroups(a, showTera);
-				// グループ間は記号を挟まず、全角空白だけで区切る。
-				const text = groups.map((group) => [group.label, ...group.chips].filter(Boolean).join(" ")).join("　");
-				if (text) chipGroups.push({ index: i + 1, text });
-			});
-			if (chipGroups.length === 0) {
-				collapsedDetailLineEl.hidden = true;
-				collapsedDetailLineEl.textContent = "";
-				collapsedDetailLineEl.title = "";
-			} else {
-				const showIndex = namedAttacks.length > 1 && chipGroups.length > 0;
-				const detailText = chipGroups
-					.map((g) => (showIndex ? `${g.index}: ${g.text}` : g.text))
-					.join(" ｜ ");
-				collapsedDetailLineEl.hidden = false;
-				collapsedDetailLineEl.textContent = detailText;
-				collapsedDetailLineEl.title = detailText;
-			}
-		}
 
 		// 24-D1(訂正後): totalBlockはbuildElでもrootでもなく、techniquesRow
 		// (columnsWrap・addColumnSlotの後)の子にする。これにより技列カラムの下端に
@@ -3102,9 +2801,6 @@ if (opponentNotesSection) {
 		refreshDirectionUi();
 		renderColumnDisplays(row); // 保存済みclientResultをまず即座に表示する
 		void recalcRow(row); // エンジン初期化済みなら実数値・ダメージを再計算して上書きする
-		setCollapsed(false);
-		// 専用ハンドルを廃止し、圧縮時だけカード面全体からswapを開始できるようにする。
-		setupCollapsedCardDrag(row, root);
 
 		root.addEventListener("click", (event) => {
 			const target = event.target as HTMLElement | null;
@@ -3173,8 +2869,7 @@ if (opponentNotesSection) {
 			const attacks = validAttacksOf(row);
 			if (attacks.length === 0) continue;
 			const { attackerSpec, safeAttacks } = buildSequenceInputs(row, attacks);
-			// 表示用の技名一覧。refreshCollapsedTechniques()の1段目(collapsedMoveListEl)と
-			// 同じ「hitCount>1のときだけ(N発)を付記する」表記に揃える(3095行目付近参照)。
+			// 表示用の技名一覧。hitCount>1のときだけ(N発)を付記する。
 			const moveLabels = attacks.map((a) => ((a.hitCount ?? 1) > 1 ? `${a.moveName}(${a.hitCount}発)` : a.moveName));
 			result.push({
 				id: bulkAdjustRowId(row),
@@ -3188,18 +2883,11 @@ if (opponentNotesSection) {
 		return result;
 	}
 
-	// 指定した行のカードDOM(article.card.card-damage、row.root)を、折りたたみ表示状態で
-	// 複製して返す。ポップアップに貼るための表示専用の複製で、元のカードの展開/折りたたみ
-	// 状態には一切影響しない。
-	function buildCollapsedPreview(rowId: string): HTMLElement | null {
+	// 指定した行のカードDOM(article.card.card-damage、row.root)を複製して返す。
+	// ポップアップに貼るための表示専用の複製で、元のカードには影響しない。
+	function buildCardPreview(rowId: string): HTMLElement | null {
 		const row = findRowByBulkAdjustId(rowId);
 		if (!row || !row.root) return null;
-		// 複製の前に、この行の折りたたみ用DOM(.damage-row-collapsed-summary/
-		// .damage-row-collapsed-techniques・実数値表)を最新値で埋める。カードが展開状態の
-		// ままだとこれらの中身が空/古いままなので、複製前に必ず呼ぶ(refreshCollapsedViews、
-		// 上のrowCollapseHandles参照)。呼んでいるのは表示用DOMの更新だけで、root.dataset.
-		// collapsed・root.style.widthには触れない(元のカードの見た目は変えない)。
-		rowCollapseHandles.get(row)?.refreshCollapsedViews();
 		const clone = row.root.cloneNode(true) as HTMLElement;
 		// ページ内でidが重複すると document.getElementById が壊れるため、複製から
 		// すべてのid属性を再帰的に削除する(クローンのroot自身がidを持つ想定は無いが、
@@ -3213,18 +2901,14 @@ if (opponentNotesSection) {
 			(formEl as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement | HTMLButtonElement).disabled = true;
 			formEl.tabIndex = -1;
 		});
-		// setCollapsed()は折りたたみ時にroot.style.widthを実測値で固定するが(2611行目付近)、
-		// その固定幅を複製に持ち込むとポップアップ側のレイアウトを壊すため、複製の
-		// style.widthは常に空にする(ポップアップ側の幅はCSSに委ねる)。
+		// ポップアップ側の幅はCSSに委ねる。
 		clone.style.width = "";
-		// 複製側にだけ折りたたみ状態を強制する(元のカードのdataset.collapsedは変更しない)。
-		clone.dataset.collapsed = "true";
 		return clone;
 	}
 
 	registerBulkAdjustBridge({
 		getDefenseRows: () => getDefenseRows(),
-		buildCollapsedPreview: (rowId) => buildCollapsedPreview(rowId),
+		buildCardPreview: (rowId) => buildCardPreview(rowId),
 	});
 
 	const damageRowsListEl = el<HTMLElement>("damage-rows-list");
@@ -3281,18 +2965,12 @@ if (opponentNotesSection) {
 	}
 	refreshMobileDetailPlacement();
 	// 技列の追加上限がレイアウト幅で変わる(モバイル2 / デスクトップ3、currentMaxColumnsToAdd)ため、
-	// 境界をまたいだら「＋ 技を追加」ボタンの有効/無効と折りたたみ時「＋」ボタンの表示を
-	// 描き直す(そうしないとデスクトップ→モバイルへ縮めた直後、押しても何も起きない
-	// 「＋ 技を追加」が残る)。renderColumns()は同じrow.attacksから列を作り直すだけなので
+	// 境界をまたいだら「＋ 技を追加」ボタンの有効/無効を描き直す。
+	// renderColumns()は同じrow.attacksから列を作り直すだけなので
 	// 何度呼んでも状態は変わらない。
 	window.matchMedia("(max-width: 899px)").addEventListener("change", () => {
-		// 圧縮表示はモバイルでは廃止した(上のsetAllRowsCollapsed(true)撤去の注記参照)。
-		// デスクトップで畳んだカードを持ったまま899px以下へ縮めると、折りたたみボタンが
-		// CSSで消えるぶん畳んだまま開けなくなるため、狭くなった時点で全行を展開へ戻す。
-		if (isNarrowLayout()) setAllRowsCollapsed(false);
 		for (const row of rows) {
 			renderColumns(row);
-			rowCollapseHandles.get(row)?.refreshCollapsedViews();
 			// レイアウト更新後も公式アートワークの読み込み状態を揃える。
 			rowSpriteRefreshers.get(row)?.();
 		}
@@ -3303,33 +2981,6 @@ if (opponentNotesSection) {
 		if (target instanceof Element && target.closest(".damage-column")) return;
 		if (isNarrowLayout() && target instanceof Element && target.closest(".card-damage")) return;
 		clearSelectionAndMarks();
-	});
-
-	const damageCollapseToggleButtonEl = el<HTMLButtonElement>("damage-collapse-toggle-button");
-	const damageCollapseToggleLabelEl = damageCollapseToggleButtonEl.querySelector<HTMLElement>(
-		".damage-collapse-toggle-label",
-	);
-	function updateCollapseToggleButtonLabel(): void {
-		damageCollapseToggleButtonEl.disabled = rows.length === 0;
-		const allCollapsed = rows.length > 0 && rows.every((r) => collapsedRowSet.has(r));
-		const label = allCollapsed ? "すべて展開する" : "すべて折りたたむ";
-		if (damageCollapseToggleLabelEl) {
-			damageCollapseToggleLabelEl.textContent = label;
-		} else {
-			// 万一マークアップがこの構成でない場合のフォールバック(従来どおりボタン全体に文言を出す)。
-			damageCollapseToggleButtonEl.textContent = label;
-		}
-		damageCollapseToggleButtonEl.setAttribute("aria-expanded", allCollapsed ? "false" : "true");
-		const describedLabel = `${label}(ダメージ計算カード全件)`;
-		damageCollapseToggleButtonEl.setAttribute("aria-label", describedLabel);
-		damageCollapseToggleButtonEl.title = describedLabel;
-	}
-	damageCollapseToggleButtonEl.addEventListener("click", () => {
-		const allCollapsed = rows.length > 0 && rows.every((r) => collapsedRowSet.has(r));
-		// 押した結果が直感的であること(要件): 1枚でも展開中なら「すべて折りたたむ」を押した
-		// ことになり、全部畳まれているときだけ「すべて展開する」を押したことになる。
-		setAllRowsCollapsed(!allCollapsed);
-		updateCollapseToggleButtonLabel();
 	});
 
 	function addNewRowAndFocus(): void {
@@ -3415,69 +3066,12 @@ if (opponentNotesSection) {
 	}
 
 	function rebuildRowsList(): void {
-		updateCollapseToggleButtonLabel();
 		damageRowsListEl.innerHTML = "";
 		damageRowsListEl.appendChild(buildAddRowTile());
 		for (const row of rows) {
 			if (row.root) damageRowsListEl.appendChild(row.root);
 		}
 		refreshMobileDetailPlacement();
-	}
-
-	// ドロップ元とドロップ先の位置・order値を交換する。insertではなくswapにすることで、
-	// カードのどこへ落としても結果が一意になり、入れ替わった2行だけを保存すればよい。
-	function orderOfRowAt(row: DamageRowState, index: number): number {
-		const stored = rowSortOrder.get(row);
-		return stored !== undefined ? stored : index * 1000;
-	}
-	function swapRows(movedRow: DamageRowState, targetRow: DamageRowState): void {
-		const fromIdx = rows.indexOf(movedRow);
-		const targetIdx = rows.indexOf(targetRow);
-		if (fromIdx === -1 || targetIdx === -1 || movedRow === targetRow) return;
-		const movedOrder = orderOfRowAt(movedRow, fromIdx);
-		const targetOrder = orderOfRowAt(targetRow, targetIdx);
-		[rows[fromIdx], rows[targetIdx]] = [rows[targetIdx], rows[fromIdx]];
-		rowSortOrder.set(movedRow, targetOrder);
-		rowSortOrder.set(targetRow, movedOrder);
-		rebuildRowsList();
-		scheduleRowSave(movedRow);
-		scheduleRowSave(targetRow);
-	}
-
-	// 圧縮カードの任意位置から開始する。入力要素やボタンは将来圧縮表示へ追加されても
-	// 通常操作を優先し、展開カードおよび展開カードへのドロップは並べ替え対象にしない。
-	function setupCollapsedCardDrag(row: DamageRowState, root: HTMLElement): void {
-		root.addEventListener("mousedown", (downEvent) => {
-			if (root.dataset.collapsed !== "true") return;
-			const target = downEvent.target as HTMLElement | null;
-			if (target?.closest("input, select, textarea, button, a, label")) return;
-			downEvent.preventDefault();
-			let hoverRow: DamageRowState | null = null;
-			root.classList.add("is-dragging");
-
-			function clearDragOverMarks(): void {
-				for (const r of rows) r.root?.classList.remove("is-drag-over");
-			}
-			function onMove(moveEvent: MouseEvent): void {
-				const target = document.elementFromPoint(moveEvent.clientX, moveEvent.clientY);
-				const hoveredCard = (target as HTMLElement | null)?.closest<HTMLElement>(".card-damage") ?? null;
-				clearDragOverMarks();
-				hoverRow = null;
-				if (hoveredCard && hoveredCard !== root && hoveredCard.dataset.collapsed === "true") {
-					hoveredCard.classList.add("is-drag-over");
-					hoverRow = rows.find((r) => r.root === hoveredCard) ?? null;
-				}
-			}
-			function onUp(): void {
-				document.removeEventListener("mousemove", onMove);
-				document.removeEventListener("mouseup", onUp);
-				root.classList.remove("is-dragging");
-				clearDragOverMarks();
-				if (hoverRow) swapRows(row, hoverRow);
-			}
-			document.addEventListener("mousemove", onMove);
-			document.addEventListener("mouseup", onUp);
-		});
 	}
 
 	async function fetchAndRenderRows(): Promise<void> {

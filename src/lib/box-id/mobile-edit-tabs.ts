@@ -11,7 +11,6 @@ if (mobileTrainingUi && mobileTrainingBar && editShell) {
 	// shuttled between the hidden desktop header on every viewport change.
 	const relocationSpecs: ReadonlyArray<readonly [elementId: string, hostId: string, damageTabOnly: boolean]> = [
 		["bulk-adjust-button", "damage-rows-toolbar", true],
-		["damage-collapse-toggle-button", "damage-rows-toolbar", true],
 		["autosave-status", "mobile-edit-actions", false],
 		["opponent-notes-save-alert", "mobile-edit-actions", false],
 		["collection-opt-out-label", "mobile-edit-actions", false],

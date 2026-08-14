@@ -112,8 +112,7 @@ body.box-edit-page { --topbar-height: 0px; --second-bar-height: 37px; }
 		   重複定義しない。ここはラベル・状態テキストのレイアウトだけを追加する。
 		   戻るリンク(.app-topbar-back)と同じfont-size/font-weightを明示する。
 		   font-familyとletter-spacingは、戻るリンクと同様にbodyからの継承値を使う。
-		   トーンは#damage-collapse-toggle-button(.btn-ghost)に揃え、既定でmuted、常時色付きの
-		   目立つ表示にはしない。 */
+		   既定でmutedとし、常時色付きの目立つ表示にはしない。 */
 		.collection-opt-out-toggle {
 			display: inline-flex;
 			align-items: center;
@@ -125,14 +124,6 @@ body.box-edit-page { --topbar-height: 0px; --second-bar-height: 37px; }
 			cursor: pointer;
 		}
 		/* font-familyとletter-spacingは明示せず、戻るボタンと同様にbodyから継承する。 */
-		button#damage-collapse-toggle-button {
-			font-size: var(--font-size-sm1);
-			font-weight: 500;
-		}
-		button#damage-collapse-toggle-button:hover:not(:disabled) {
-			background: transparent;
-			color: var(--color-primary);
-		}
 		.collection-opt-out-toggle:hover:not(:has(.toggle-switch-input:disabled)) {
 			color: var(--color-primary);
 		}

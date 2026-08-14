@@ -138,17 +138,6 @@
 	   不要。カード自体のCSSがwidth:100%相当で伸びる)。 */
 	.bulk-adjust-row-preview { width: 100%; min-width: 0; }
 	.bulk-adjust-row-preview .card-damage { width: 100%; }
-	/* 圧縮表示の1段目に特性を出す(bulk-adjust.tsが複製カードのDOMを組み替える)。
-	   1段目は「バッジ+種族名」前提のnowrap指定なので、特性が長いときに省略できるよう
-	   このダイアログ内だけ縮小・省略を許可する。 */
-	#opponent-notes-section #bulk-adjust-dialog .damage-row-collapsed-meta-row .damage-row-collapsed-ability {
-		flex: 1 1 auto;
-		min-width: 0;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-	}
-
 	.bulk-adjust-row-inputs {
 		display: flex;
 		flex-wrap: wrap;
@@ -195,10 +184,9 @@
 		button.bulk-adjust-dialog-compute-button { min-width: 8rem; }
 	}
 
-	/* 複製カード(buildCollapsedPreview()、damage-calc.ts)は表示専用(内部のinput/select/
+	/* 複製カード(buildCardPreview()、damage-calc.ts)は表示専用(内部のinput/select/
 	   textarea/buttonは全てdisabled+tabindex=-1済み)だが、×(カード削除ボタン、
-	   .damage-row-delete-button)と折りたたみトグルの矢印(.damage-row-collapse-toggle-button)は
-	   見た目上そのまま残ってしまい、押せそうに見えるのは誤解を招く。
+	   .damage-row-delete-button)は見た目上そのまま残ってしまい、押せそうに見えるのは誤解を招く。
 	   ⚠️ このダイアログ自身が実行時に#opponent-notes-sectionの子として差し込まれる
 	   (このファイル冒頭コメント参照)ため、複製ボタンは元カードと同じ
 	   `#opponent-notes-section .damage-row-delete-button` 系のCSS
@@ -208,9 +196,8 @@
 	   (pitfalls.mdの「displayの打ち消しには詳細度に注意」と同種の罠)、id2つ+classの
 	   セレクタで確実に上回る。#bulk-adjust-dialogはこのポップアップ本体にしか一致せず、
 	   元のダメージ計算カード一覧(#damage-rows-list配下)には一致しないため、
-	   元のカードの×・矢印は非表示にならない(検証で両方を確認する)。 */
-	#opponent-notes-section #bulk-adjust-dialog .damage-row-delete-button,
-	#opponent-notes-section #bulk-adjust-dialog .damage-row-collapse-toggle-button {
+	   元のカードの×は非表示にならない。 */
+	#opponent-notes-section #bulk-adjust-dialog .damage-row-delete-button {
 		display: none;
 	}
 

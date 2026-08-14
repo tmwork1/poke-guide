@@ -208,22 +208,9 @@ const isOptedOut = optOutRemainingText !== "";
 	)}
 	{pokemon && (
 		<Fragment slot="topbar-actions">
-			{/* damage-collapse-toggle-button(単一トグルボタン、交互切り替えのロジックはsrc/lib/box-id/
-			    damage-calc.ts側にある)の静的な生成元。ダメージタブ表示時はmobile-edit-tabs.tsが
-			    DamageCalcSection.astro内の#damage-rows-toolbarへ移し、一覧直上の通常フローで表示する。 */}
 			{/* アイコンはインラインSVGのゴミ箱(絵文字🗑はOS/フォントで見た目が変わるため
 			    定番デザインに向かない)。誤操作の抑止は色を抑える代わりに既存のwindow.confirm()
 			    (<script>のdeleteButtonクリックハンドラ)に委ねる。 */}
-			{/* 左端にchevron(既存の個別カード折りたたみボタンと同じ»グリフ)を置き、状態
-			    (折りたたみ中/展開中)に応じて回転させる(CSSはDamageCalcSection.astro の
-			    #damage-collapse-toggle-button .damage-collapse-toggle-chevron参照)。
-			    labelはdamage-calc.tsのupdateCollapseToggleButtonLabel()がテキストを差し替える
-			    対象なのでspanで囲む(ボタン全体のtextContentを差し替えるとchevronごと消えてしまうため)。
-			    aria-expanded初期値はJS初期化直後にupdateCollapseToggleButtonLabel()が必ず
-			    上書きするため、静的マークアップ上の値はプレースホルダーでよい。 */}
-			<button id="damage-collapse-toggle-button" class="btn-ghost" type="button" disabled aria-expanded="false">
-				<span class="damage-collapse-toggle-chevron" aria-hidden="true">»</span><span class="damage-collapse-toggle-label">すべて折りたたむ</span>
-			</button>
 			{/* 匿名集計サジェスト機能・第4段階(UI: 収集拒否トグル)。この個体を性格/アイテム/
 			    テラス/技の匿名集計対象から除外するトグル。マークアップは
 			    src/components/box-id/LeftPanel.astro の is:global <style> に既にある
