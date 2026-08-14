@@ -1437,33 +1437,6 @@
     grid-column: 1 / -1;
   }
 
-  #opponent-notes-section .damage-detail-panel.is-mobile-inline:not(.is-mobile-suggest) {
-    border-color: var(--color-primary);
-    margin-top: var(--space-2);
-    position: relative;
-  }
-
-  #opponent-notes-section .damage-detail-panel.is-mobile-inline[data-mobile-arrow]:before {
-    content: "";
-    top: calc(-1 * var(--space-2));
-    border-left: var(--space-2) solid transparent;
-    border-right: var(--space-2) solid transparent;
-    border-bottom: var(--space-2) solid var(--color-primary);
-    width: 0;
-    height: 0;
-    position: absolute;
-  }
-
-  #opponent-notes-section .damage-detail-panel.is-mobile-inline[data-mobile-arrow="left"]:before {
-    left: 25%;
-    transform: translateX(-50%);
-  }
-
-  #opponent-notes-section .damage-detail-panel.is-mobile-inline[data-mobile-arrow="right"]:before {
-    left: 75%;
-    transform: translateX(-50%);
-  }
-
   #opponent-notes-section .card-damage .damage-row-build {
     grid-template-columns: auto minmax(0, 1fr);
     align-items: start;

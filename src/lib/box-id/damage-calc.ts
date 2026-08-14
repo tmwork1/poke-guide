@@ -82,7 +82,8 @@ import {
 	deselectRowIfCurrent,
 	renderDetailPanelEmpty,
 	renderColumnLevelDetailPanel,
-	openDetailPanelOverlayIfNarrow,
+	openDetailPanelOverlayIfNarrow as openRightPanelOverlayIfNarrow,
+	closeDetailPanelOverlay,
 	initRightPanel,
 	notifyDetailMoveChanged,
 	notifyDetailAbilityChanged,
@@ -398,6 +399,7 @@ if (opponentNotesSection) {
 		refreshColumnDisplay: (row, column) => refreshColumnDisplay(row, column),
 		renderDetailPanelEmpty: () => {
 			renderDetailPanelEmpty();
+			closeDetailPanelOverlay();
 			refreshMobileDetailPlacement();
 		},
 		renderColumnLevelDetailPanel: (row, column) => {
@@ -407,9 +409,8 @@ if (opponentNotesSection) {
 		openDetailPanelOverlayIfNarrow: () => {
 			if (isNarrowLayout()) {
 				refreshMobileDetailPlacement();
-				return;
 			}
-			openDetailPanelOverlayIfNarrow();
+			openRightPanelOverlayIfNarrow();
 		},
 	});
 	// 右サイド(詳細設定サイドバー)専用のDOM参照・イベント登録・初期空状態描画は
@@ -2941,35 +2942,17 @@ if (opponentNotesSection) {
 	function refreshMobileDetailPlacement(): void {
 		if (!isNarrowLayout()) {
 			damageDetailPanelEl.classList.remove("is-mobile-inline", "is-mobile-suggest");
-			delete damageDetailPanelEl.dataset.mobileArrow;
 			if (damageDetailPanelOriginalParentEl) damageDetailPanelOriginalParentEl.appendChild(damageDetailPanelEl);
 			return;
 		}
 
-		damageDetailPanelEl.classList.remove("is-open");
 		const selectedRow = getSelectedRow();
 		const selectedColumn = getSelectedColumn();
 		if (selectedRow && selectedColumn && selectedRow.root?.parentElement === damageRowsListEl) {
-			const techniquesRow = selectedRow.addColumnSlotEl?.parentElement ?? null;
-			const totalBlock = techniquesRow?.querySelector<HTMLElement>(":scope > .damage-row-total") ?? null;
-			if (techniquesRow && totalBlock) {
-				techniquesRow.insertBefore(damageDetailPanelEl, totalBlock);
-			} else {
-				// 構造が想定と違う場合(将来のDOM変更など)は従来どおりカードの直後に置く。
-				selectedRow.root.after(damageDetailPanelEl);
-			}
-			damageDetailPanelEl.classList.add("is-mobile-inline");
-			damageDetailPanelEl.classList.remove("is-mobile-suggest");
-			// パネルは技列セクションの左右2枠にまたがる全幅の段になるため、どちらの技カードから
-			// 開いたのかは上辺の三角マーカーの位置でしか表せない(CSS側の
-			// [data-mobile-arrow="left"|"right"]::before、DamageCalcSection.astro参照)。
-			// 2列gridなので列位置は「技カードの並び順 % 2」で決まる(既存データが3枚以上を
-			// 持つ行では2行目以降へ折り返すが、左右の対応は同じ式で正しい)。
-			const columnIndex = selectedRow.attacks.indexOf(selectedColumn);
-			damageDetailPanelEl.dataset.mobileArrow = columnIndex >= 0 && columnIndex % 2 === 1 ? "right" : "left";
+			damageDetailPanelEl.classList.remove("is-mobile-inline", "is-mobile-suggest");
+			if (damageDetailPanelOriginalParentEl) damageDetailPanelOriginalParentEl.appendChild(damageDetailPanelEl);
 			return;
 		}
-		delete damageDetailPanelEl.dataset.mobileArrow;
 		if (damageDetailPanelEl.querySelector("#damage-detail-panel-body .damage-suggest")) {
 			damageRowsListEl.appendChild(damageDetailPanelEl);
 			// 未選択のサジェスト一覧はカード列の一部として常設される(閉じる対象の選択が無い)。

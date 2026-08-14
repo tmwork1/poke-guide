@@ -15,19 +15,23 @@
 	   振る舞いのため、無理に.panel基底へ寄せずこのスコープドスタイルに残す。 */
 	.damage-detail-panel {
 		position: fixed;
-		top: 0;
+		top: auto;
+		left: 0;
 		right: 0;
 		bottom: 0;
-		width: min(400px, 92vw);
+		width: 100%;
+		max-height: 80vh;
 		z-index: 60;
 		display: flex;
 		flex-direction: column;
 		background: var(--color-surface);
 		box-shadow: var(--shadow-lg);
-		transform: translateX(100%);
+		border-left: 0;
+		border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+		transform: translateY(100%);
 		transition: transform 0.2s ease;
 	}
-	.damage-detail-panel.is-open { transform: translateX(0); }
+	.damage-detail-panel.is-open { transform: translateY(0); }
 	.damage-detail-backdrop {
 		position: fixed;
 		inset: 0;
@@ -49,6 +53,12 @@
 		flex-shrink: 0;
 	}
 	.damage-detail-panel-title { min-width: 0; flex: 1 1 auto; font-weight: 700; }
+	.damage-detail-position-indicator {
+		flex: 0 0 auto;
+		color: var(--color-text-muted);
+		font-size: var(--font-size-sm3);
+		font-variant-numeric: tabular-nums;
+	}
 	.damage-detail-panel-close { font-size: var(--font-size-lg1); padding: 0.2em 0.55em; }
 	/* #damage-detail-panel-body自体をflex column化し、中身(JS生成の
 	   .damage-detail-panel-body-inner、is:global側で定義)にmargin-block:autoを持たせる
@@ -65,15 +75,15 @@
 		flex-direction: column;
 		overflow-y: auto;
 		padding: 0.9rem var(--space-4) 1.4rem;
+		touch-action: pan-y;
 	}
 	/* .damage-detail-panel-emptyはis:global側(#damage-detail-panel-body
 	   .damage-detail-panel-empty)で定義する。理由: このpは静的マークアップ
 	   (JS初期化前のフォールバック)とJS生成(renderDetailPanelEmpty)の両方から使われるが、
 	   後者はscoped<style>が効かない(pitfalls.md)。同じ1つの定義で両方に効かせるため、
 	   静的/動的どちらの経路でも確実に効くis:global側に統一する。 */
-	/* The editor uses this inline detail panel at every viewport width. */
+	/* 未選択時のサジェスト一覧だけは、従来どおりカード一覧内へインライン配置する。 */
 	@media (min-width: 0) {
-		.edit-layout-detail, .damage-detail-backdrop { display: none; }
 		.damage-detail-panel.is-mobile-inline {
 			position: static;
 			inset: auto;

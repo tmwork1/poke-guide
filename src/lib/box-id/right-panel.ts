@@ -23,9 +23,11 @@ import {
 	scheduleRowSave,
 	refreshRowConditionChips,
 	getSelectedRow,
+	getSelectedColumn,
 	clearSelection,
 	clearSelectionAndMarks,
 	renderDetailPanel,
+	selectColumn,
 	configureDamageColumnMoveInput,
 	getDamageColumnMoveCandidates,
 	getDamageColumnMultiHitRange,
@@ -52,7 +54,10 @@ let detailPanelBodyEl: HTMLElement;
 let detailPanelTitleEl: HTMLElement;
 let detailPanelCloseButton: HTMLButtonElement;
 let detailBackdropEl: HTMLElement;
+let detailPanelPositionIndicatorEl: HTMLElement;
 let moveDropdownOutsideClickHandler: ((event: MouseEvent) => void) | null = null;
+const DETAIL_PANEL_SWIPE_THRESHOLD_PX = 64;
+const DETAIL_PANEL_SWIPE_AXIS_RATIO = 1.25;
 
 type AutoInputState = {
 	critical?: boolean;
@@ -131,6 +136,55 @@ export function closeDetailPanelOverlay(): void {
 /** 3モードで共用する帯を更新する。本文側に見出しを重複させないため描画入口で必ず呼ぶ。 */
 function setDetailPanelTitle(title: string | Node): void {
 	detailPanelTitleEl.replaceChildren(title);
+	detailPanelPositionIndicatorEl.hidden = true;
+}
+
+function setColumnDetailPanelTitle(title: Node, row: DamageRowState, columnIndex: number): void {
+	detailPanelTitleEl.replaceChildren(title);
+	const columnCount = row.attacks.length;
+	detailPanelPositionIndicatorEl.textContent = `${columnIndex + 1}/${columnCount}`;
+	detailPanelPositionIndicatorEl.setAttribute("aria-label", `${columnCount}件中${columnIndex + 1}件目`);
+	detailPanelPositionIndicatorEl.hidden = columnCount <= 1;
+}
+
+function initDetailPanelSwipe(): void {
+	let gesture: { pointerId: number; startX: number; startY: number; deltaX: number; deltaY: number } | null = null;
+	const interactiveSelector = "input, select, textarea, a, label, [contenteditable='true']";
+
+	detailPanelBodyEl.addEventListener("pointerdown", (event) => {
+		if (!event.isPrimary || event.button !== 0) return;
+		if (event.target instanceof Element && event.target.closest(interactiveSelector)) return;
+		gesture = { pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, deltaX: 0, deltaY: 0 };
+		detailPanelBodyEl.setPointerCapture(event.pointerId);
+	});
+	detailPanelBodyEl.addEventListener("pointermove", (event) => {
+		if (!gesture || gesture.pointerId !== event.pointerId) return;
+		gesture.deltaX = event.clientX - gesture.startX;
+		gesture.deltaY = event.clientY - gesture.startY;
+		if (Math.abs(gesture.deltaX) > Math.abs(gesture.deltaY) * DETAIL_PANEL_SWIPE_AXIS_RATIO) {
+			event.preventDefault();
+		}
+	});
+	const finishGesture = (event: PointerEvent, cancelled = false): void => {
+		if (!gesture || gesture.pointerId !== event.pointerId) return;
+		const { deltaX, deltaY } = gesture;
+		gesture = null;
+		if (detailPanelBodyEl.hasPointerCapture(event.pointerId)) detailPanelBodyEl.releasePointerCapture(event.pointerId);
+		if (cancelled || !detailPanelEl.classList.contains("is-open")) return;
+		if (Math.abs(deltaX) < DETAIL_PANEL_SWIPE_THRESHOLD_PX) return;
+		if (Math.abs(deltaX) <= Math.abs(deltaY) * DETAIL_PANEL_SWIPE_AXIS_RATIO) return;
+
+		const row = getSelectedRow();
+		const column = getSelectedColumn();
+		if (!row || !column || row.attacks.length <= 1) return;
+		const currentIndex = row.attacks.indexOf(column);
+		if (currentIndex === -1) return;
+		const nextIndex = deltaX < 0 ? currentIndex + 1 : currentIndex - 1;
+		const nextColumn = row.attacks[nextIndex];
+		if (nextColumn) selectColumn(row, nextColumn);
+	};
+	detailPanelBodyEl.addEventListener("pointerup", (event) => finishGesture(event));
+	detailPanelBodyEl.addEventListener("pointercancel", (event) => finishGesture(event, true));
 }
 
 export interface CandidateListItem {
@@ -1082,6 +1136,7 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 	const contentWrap = document.createElement("div");
 	contentWrap.className = "damage-detail-panel-body-inner";
 	detailPanelBodyEl.appendChild(contentWrap);
+	detailPanelBodyEl.scrollTop = 0;
 
 
 	function buildCriticalButton(): HTMLButtonElement {
@@ -1146,7 +1201,7 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 		return heading;
 	}
 	// 選択中の攻撃・防御関係は共通ヘッダーバンドに残し、説明テキストも編集時に同期する。
-	const refreshSelectionHeading = (): void => setDetailPanelTitle(buildSelectionHeadingRow());
+	const refreshSelectionHeading = (): void => setColumnDetailPanelTitle(buildSelectionHeadingRow(), row, idx);
 	refreshSelectionHeading();
 
 	const criticalButton = buildCriticalButton();
@@ -1481,6 +1536,12 @@ export function initRightPanel(): void {
 	detailPanelTitleEl = el<HTMLElement>("damage-detail-panel-title");
 	detailPanelCloseButton = el<HTMLButtonElement>("damage-detail-panel-close");
 	detailBackdropEl = el<HTMLElement>("damage-detail-backdrop");
+	detailPanelPositionIndicatorEl = document.createElement("span");
+	detailPanelPositionIndicatorEl.className = "damage-detail-position-indicator";
+	detailPanelPositionIndicatorEl.hidden = true;
+	detailPanelPositionIndicatorEl.setAttribute("aria-live", "polite");
+	detailPanelCloseButton.before(detailPanelPositionIndicatorEl);
+	initDetailPanelSwipe();
 	detailPanelCloseButton.addEventListener("click", () => {
 		if (true) {
 			clearSelectionAndMarks();
