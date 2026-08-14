@@ -57,7 +57,10 @@ let detailPanelBodyEl: HTMLElement;
 let detailPanelTitleEl: HTMLElement;
 let detailPanelCloseButton: HTMLButtonElement;
 let detailBackdropEl: HTMLElement;
-let detailPanelPositionIndicatorEl: HTMLElement;
+let detailPanelFooterEl: HTMLElement;
+let detailPanelMatchupEl: HTMLElement;
+let detailPanelTotalEl: HTMLElement;
+let detailPanelTotalResultEl: HTMLElement;
 let moveDropdownOutsideClickHandler: ((event: MouseEvent) => void) | null = null;
 const DETAIL_PANEL_SWIPE_THRESHOLD_PX = 64;
 const DETAIL_PANEL_SWIPE_AXIS_RATIO = 1.25;
@@ -138,16 +141,116 @@ export function closeDetailPanelOverlay(): void {
 
 /** 3モードで共用する帯を更新する。本文側に見出しを重複させないため描画入口で必ず呼ぶ。 */
 function setDetailPanelTitle(title: string | Node): void {
+	detailPanelTitleEl.classList.remove("is-tab-bar");
+	detailPanelTitleEl.removeAttribute("role");
+	detailPanelTitleEl.removeAttribute("aria-label");
+	detailPanelTitleEl.setAttribute("aria-live", "polite");
 	detailPanelTitleEl.replaceChildren(title);
-	detailPanelPositionIndicatorEl.hidden = true;
+	detailPanelFooterEl.hidden = true;
 }
 
-function setSlideDetailPanelTitle(title: Node, row: DamageRowState, positionIndex: number): void {
-	detailPanelTitleEl.replaceChildren(title);
-	const slideCount = row.attacks.length + 1;
-	detailPanelPositionIndicatorEl.textContent = `${positionIndex + 1}/${slideCount}`;
-	detailPanelPositionIndicatorEl.setAttribute("aria-label", `${slideCount}件中${positionIndex + 1}件目`);
-	detailPanelPositionIndicatorEl.hidden = slideCount <= 1;
+function setSlideDetailPanelTitle(row: DamageRowState, positionIndex: number): void {
+	detailPanelTitleEl.replaceChildren();
+	detailPanelTitleEl.classList.add("is-tab-bar");
+	detailPanelTitleEl.setAttribute("role", "tablist");
+	detailPanelTitleEl.setAttribute("aria-label", "ダメージ詳細の表示切り替え");
+	detailPanelTitleEl.removeAttribute("aria-live");
+	const tabs = ["相手ポケモン", ...row.attacks.map((_, index) => `わざ${index + 1}`)];
+	const selectTab = (index: number): void => {
+		if (index === 0) {
+			selectBuild(row);
+			return;
+		}
+		const column = row.attacks[index - 1];
+		if (column) selectColumn(row, column);
+	};
+	tabs.forEach((label, index) => {
+		const button = document.createElement("button");
+		button.type = "button";
+		button.className = "damage-detail-panel-tab";
+		button.setAttribute("role", "tab");
+		button.setAttribute("aria-selected", String(index === positionIndex));
+		button.tabIndex = index === positionIndex ? 0 : -1;
+		button.textContent = label;
+		button.addEventListener("click", () => selectTab(index));
+		button.addEventListener("keydown", (event) => {
+			let nextIndex: number | null = null;
+			if (event.key === "ArrowLeft") nextIndex = (index - 1 + tabs.length) % tabs.length;
+			if (event.key === "ArrowRight") nextIndex = (index + 1) % tabs.length;
+			if (event.key === "Home") nextIndex = 0;
+			if (event.key === "End") nextIndex = tabs.length - 1;
+			if (nextIndex == null) return;
+			event.preventDefault();
+			selectTab(nextIndex);
+		});
+		detailPanelTitleEl.appendChild(button);
+	});
+}
+
+function buildSelectionHeadingRow(row: DamageRowState): HTMLElement {
+	const heading = document.createElement("div");
+	heading.className = "damage-detail-selection-heading";
+	const opponentName = row.name.trim() || "(相手未設定)";
+	const selfSpeciesName = el<HTMLInputElement>("species-name").value.trim();
+	const selfName = selfSpeciesName || "(自分未設定)";
+	const isSelfAttacking = row.direction !== "defense";
+
+	const selfIcon = document.createElement("img");
+	selfIcon.className = "damage-detail-selection-icon";
+	selfIcon.alt = "";
+	selfIcon.style.display = "none";
+	const selfIconFallback = document.createElement("span");
+	selfIconFallback.className = "damage-detail-selection-icon-fallback";
+	void applySprite(selfIcon, selfIconFallback, selfSpeciesName, spriteUrl);
+
+	const arrowNs = "http://www.w3.org/2000/svg";
+	const arrow = document.createElementNS(arrowNs, "svg");
+	arrow.setAttribute("class", "damage-detail-selection-arrow");
+	arrow.setAttribute("aria-hidden", "true");
+	arrow.setAttribute("viewBox", "0 0 36 24");
+	arrow.setAttribute("focusable", "false");
+	if (!isSelfAttacking) arrow.classList.add("is-reversed");
+	const arrowPath = document.createElementNS(arrowNs, "path");
+	arrowPath.setAttribute("d", "M2 6L8 12L2 18M14 6L20 12L14 18M26 6L32 12L26 18");
+	arrowPath.setAttribute("fill", "none");
+	arrowPath.setAttribute("stroke", "currentColor");
+	arrowPath.setAttribute("stroke-width", "2.5");
+	arrowPath.setAttribute("stroke-linecap", "round");
+	arrowPath.setAttribute("stroke-linejoin", "round");
+	arrow.appendChild(arrowPath);
+
+	const opponentIcon = document.createElement("img");
+	opponentIcon.className = "damage-detail-selection-icon";
+	opponentIcon.alt = "";
+	opponentIcon.style.display = "none";
+	const opponentIconFallback = document.createElement("span");
+	opponentIconFallback.className = "damage-detail-selection-icon-fallback";
+	void applySprite(opponentIcon, opponentIconFallback, row.name.trim(), spriteUrl);
+
+	const attackerLabel = isSelfAttacking ? selfName : opponentName;
+	const defenderLabel = isSelfAttacking ? opponentName : selfName;
+	const fullText = `${attackerLabel} → ${defenderLabel}`;
+	heading.title = fullText;
+	heading.setAttribute("aria-label", fullText);
+	heading.append(selfIcon, selfIconFallback, arrow, opponentIcon, opponentIconFallback);
+	return heading;
+}
+
+function refreshDetailPanelFooter(row: DamageRowState): void {
+	detailPanelMatchupEl.replaceChildren(buildSelectionHeadingRow(row));
+	detailPanelFooterEl.hidden = false;
+	syncDetailPanelTotal(row);
+}
+
+/** カード側の累計結果が更新された直後に、選択中の行だけ固定フッターへミラーする。 */
+export function syncDetailPanelTotal(row: DamageRowState): void {
+	if (!detailPanelTotalResultEl || getSelectedRow() !== row || detailPanelFooterEl.hidden) return;
+	const source = row.totalResultEl;
+	if (!source) return;
+	detailPanelTotalResultEl.replaceChildren(...Array.from(source.childNodes, (node) => node.cloneNode(true)));
+	const severity = source.dataset.severity ?? "none";
+	detailPanelTotalResultEl.dataset.severity = severity;
+	detailPanelTotalEl.dataset.severity = severity;
 }
 
 function initDetailPanelSwipe(): void {
@@ -228,6 +331,7 @@ export interface CandidateListView {
 // (このファイル自身は「何が適用中か」の判定方法を知らない。renderBulkAdjustResultsの
 // currentAppliedEvs参照)。
 export function renderCandidateList(view: CandidateListView): void {
+	detailPanelFooterEl.hidden = true;
 	detailPanelBodyEl.innerHTML = "";
 	const inner = document.createElement("div");
 	inner.className = "damage-detail-panel-body-inner candidate-list-view";
@@ -913,13 +1017,11 @@ export function buildSideSection(
 	const rankLabel = document.createElement("span");
 	rankLabel.textContent = "ランク";
 	const rankInput = document.createElement("input");
-	rankInput.type = "number";
-	rankInput.min = "-6";
-	rankInput.max = "6";
-	rankInput.step = "1";
+	rankInput.type = "text";
 	rankInput.inputMode = "numeric";
 	rankInput.className = "damage-detail-rank-input";
-	rankInput.value = String(rank);
+	const formatRank = (value: number): string => value > 0 ? `+${value}` : String(value);
+	rankInput.value = formatRank(rank);
 	rankInput.setAttribute("aria-label", `${ariaSideLabel}の能力ランク`);
 	const decrementButton = document.createElement("button");
 	decrementButton.type = "button";
@@ -947,10 +1049,11 @@ export function buildSideSection(
 	// まだ矯正しない(毎キー入力で値を書き戻すとユーザーが"-6"を打てなくなるため)。
 	const commitRank = (fallbackToZeroIfEmpty: boolean): void => {
 		const raw = rankInput.value.trim();
-		if (!fallbackToZeroIfEmpty && (raw === "" || raw === "-")) return;
-		const n = raw === "" || raw === "-" || !Number.isFinite(Number(raw)) ? 0 : Number(raw);
+		if (!fallbackToZeroIfEmpty && (raw === "" || raw === "-" || raw === "+")) return;
+		const n = raw === "" || raw === "-" || raw === "+" || !Number.isFinite(Number(raw)) ? 0 : Number(raw);
 		const clamped = clampInt(n, -6, 6);
-		if (rankInput.value !== String(clamped)) rankInput.value = String(clamped);
+		const displayValue = formatRank(clamped);
+		if (rankInput.value !== displayValue) rankInput.value = displayValue;
 		onRankChange(clamped);
 		updateEmphasis();
 		updateStepperState();
@@ -964,7 +1067,7 @@ export function buildSideSection(
 	const stepRank = (delta: -1 | 1): void => {
 		const n = Number(rankInput.value);
 		const current = Number.isFinite(n) ? n : 0;
-		rankInput.value = String(clampInt(current + delta, -6, 6));
+		rankInput.value = formatRank(clampInt(current + delta, -6, 6));
 		commitRank(true);
 	};
 	decrementButton.addEventListener("click", () => stepRank(-1));
@@ -983,11 +1086,6 @@ export function buildSideSection(
 	stepperGroup.append(decrementButton, rankInput, incrementButton);
 	rankField.append(rankLabel, stepperGroup);
 	rankAilmentGroup.appendChild(headingRow);
-
-	const chipRow = document.createElement("div");
-	chipRow.className = "damage-detail-chip-row";
-	// 今回の要件: ランクを独立した1段目、状態異常・テラスタルを次の段に分ける。
-	rankAilmentGroup.append(rankField, chipRow);
 
 	const ailmentSelect = document.createElement("select");
 	ailmentSelect.className = "damage-detail-ailment-select";
@@ -1026,7 +1124,16 @@ export function buildSideSection(
 		scheduleRowSave(row);
 		refreshRowConditionChips(row);
 	});
-	chipRow.appendChild(ailmentSelect);
+	const rankAilmentRow = document.createElement("div");
+	rankAilmentRow.className = "damage-detail-rank-ailment-row";
+	rankAilmentRow.append(rankField, ailmentSelect);
+	rankAilmentGroup.appendChild(rankAilmentRow);
+
+	const stateGrid = document.createElement("div");
+	stateGrid.className = "damage-detail-chip-row damage-detail-state-grid damage-detail-volatile-group";
+	stateGrid.setAttribute("role", "group");
+	stateGrid.setAttribute("aria-label", `${ariaSideLabel}のテラスタルと状態`);
+	rankAilmentGroup.appendChild(stateGrid);
 
 	const teraAvailable = teraTypeValue !== "";
 	const teraButton = buildToggleButton(
@@ -1046,29 +1153,23 @@ export function buildSideSection(
 					"元の第1タイプへ自動フォールバックし意図しない2倍のタイプ一致補正になるため)",
 			},
 	);
-	chipRow.appendChild(teraButton);
+	stateGrid.appendChild(teraButton);
 	if (!teraAvailable) {
 		const teraNote = document.createElement("span");
 		teraNote.className = "damage-detail-tera-note";
 		teraNote.textContent = "(未設定)";
-		chipRow.appendChild(teraNote);
+		stateGrid.appendChild(teraNote);
 	}
 
-	let secondaryChipRow: HTMLElement | null = null;
-	if (mergeVolatileIntoChipRow && volatilesOptions.length > 0) {
-		secondaryChipRow = document.createElement("div");
-		secondaryChipRow.className = "damage-detail-chip-row";
-		rankAilmentGroup.appendChild(secondaryChipRow);
+	// テラスタルと揮発状態は一続きのグリッドにする。揮発状態同士は複数選択を維持する。
+	if (volatilesOptions.length > 0) {
 		for (const opt of volatilesOptions) {
 			const optButton = buildToggleButton(
 				opt.label,
 				volatilesValue.includes(opt.value),
 				() => {
-					// この行にはじゅうでん以外にも急所ボタン(呼び出し元が挿入)が
-					// 同居しうるため、data-volatile-value属性を持つボタンだけに
-					// 限定して現在の選択状態を読み直す(旧chipRow版と同じ考え方)。
 					const next = Array.from(
-						secondaryChipRow!.querySelectorAll<HTMLButtonElement>('button[data-volatile-value][aria-pressed="true"]'),
+						stateGrid.querySelectorAll<HTMLButtonElement>('button[data-volatile-value][aria-pressed="true"]'),
 					).map((btn) => btn.dataset.volatileValue ?? "");
 					onVolatilesChange(next);
 					scheduleRowCalc(row);
@@ -1078,48 +1179,10 @@ export function buildSideSection(
 				{ title: opt.title },
 			);
 			optButton.dataset.volatileValue = opt.value;
-			secondaryChipRow.appendChild(optButton);
+			stateGrid.appendChild(optButton);
 		}
 	}
-
-// 揮発状態は複数同時に成立するため、選択を排他制御しない。
-	if (!mergeVolatileIntoChipRow && volatilesOptions.length > 0) {
-		const volatileGroupWrap = document.createElement("div");
-		volatileGroupWrap.className = "damage-detail-group damage-detail-volatile-wrap";
-		parentEl.appendChild(volatileGroupWrap);
-		const volatileRow = document.createElement("div");
-		volatileRow.className = "damage-detail-volatile-row";
-		const volatileLabel = document.createElement("span");
-		volatileLabel.className = "damage-detail-volatile-row-label";
-		volatileLabel.textContent = "その他の状態";
-		volatileRow.appendChild(volatileLabel);
-		const volatileGroup = document.createElement("div");
-		volatileGroup.className = "damage-detail-volatile-group";
-		volatileGroup.setAttribute("role", "group");
-		volatileGroup.setAttribute("aria-label", `${ariaSideLabel}のその他の状態`);
-// 次の状態は現在値から計算し、イベント引数の状態に依存しない。
-		for (const opt of volatilesOptions) {
-			const optButton = buildToggleButton(
-				opt.label,
-				volatilesValue.includes(opt.value),
-				() => {
-					const next = Array.from(
-						volatileGroup.querySelectorAll<HTMLButtonElement>('button[data-volatile-value][aria-pressed="true"]'),
-					).map((btn) => btn.dataset.volatileValue ?? "");
-					onVolatilesChange(next);
-					scheduleRowCalc(row);
-					scheduleRowSave(row);
-					refreshRowConditionChips(row);
-				},
-				{ title: opt.title },
-			);
-			optButton.dataset.volatileValue = opt.value;
-			volatileGroup.appendChild(optButton);
-		}
-		volatileRow.appendChild(volatileGroup);
-		volatileGroupWrap.appendChild(volatileRow);
-	}
-	return secondaryChipRow;
+	return mergeVolatileIntoChipRow ? stateGrid : null;
 }
 
 export function renderBuildDetailPanel(row: DamageRowState): void {
@@ -1131,9 +1194,8 @@ export function renderBuildDetailPanel(row: DamageRowState): void {
 		return;
 	}
 
-	const title = document.createElement("span");
-	title.textContent = "相手ビルド";
-	setSlideDetailPanelTitle(title, row, 0);
+	setSlideDetailPanelTitle(row, 0);
+	refreshDetailPanelFooter(row);
 	detailPanelBodyEl.appendChild(form);
 	detailPanelBodyEl.scrollTop = 0;
 }
@@ -1177,63 +1239,11 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 			{ title: "急所固定で計算する(攻撃側だけの設定です)" },
 		);
 	}
-	function buildSelectionHeadingRow(): HTMLElement {
-		const heading = document.createElement("div");
-		heading.className = "damage-detail-selection-heading";
-		const opponentName = row.name.trim() || "(相手未設定)";
-		const selfName = el<HTMLInputElement>("species-name").value.trim() || "(自分未設定)";
-		const moveName = column.moveName.trim();
-		const isSelfAttacking = row.direction !== "defense";
-
-		const selfIcon = document.createElement("img");
-		selfIcon.className = "damage-detail-selection-icon";
-		selfIcon.alt = "";
-		selfIcon.style.display = "none";
-		const selfIconFallback = document.createElement("span");
-		selfIconFallback.className = "damage-detail-selection-icon-fallback";
-		void applySprite(selfIcon, selfIconFallback, el<HTMLInputElement>("species-name").value.trim(), spriteUrl);
-
-		const arrowNs = "http://www.w3.org/2000/svg";
-		const arrow = document.createElementNS(arrowNs, "svg");
-		arrow.setAttribute("class", "damage-detail-selection-arrow");
-		arrow.setAttribute("aria-hidden", "true");
-		arrow.setAttribute("viewBox", "0 0 36 24");
-		arrow.setAttribute("focusable", "false");
-		if (!isSelfAttacking) arrow.classList.add("is-reversed");
-		const arrowPath = document.createElementNS(arrowNs, "path");
-		arrowPath.setAttribute("d", "M2 6L8 12L2 18M14 6L20 12L14 18M26 6L32 12L26 18");
-		arrowPath.setAttribute("fill", "none");
-		arrowPath.setAttribute("stroke", "currentColor");
-		arrowPath.setAttribute("stroke-width", "2.5");
-		arrowPath.setAttribute("stroke-linecap", "round");
-		arrowPath.setAttribute("stroke-linejoin", "round");
-		arrow.appendChild(arrowPath);
-
-		const opponentIcon = document.createElement("img");
-		opponentIcon.className = "damage-detail-selection-icon";
-		opponentIcon.alt = "";
-		opponentIcon.style.display = "none";
-		const opponentIconFallback = document.createElement("span");
-		opponentIconFallback.className = "damage-detail-selection-icon-fallback";
-		void applySprite(opponentIcon, opponentIconFallback, row.name.trim(), spriteUrl);
-
-		// 画像だけでは伝わらない情報(誰が攻撃/防御か、技名)をaria-label/titleで
-		// テキストとしても残す(WCAG 1.4.1、スクリーンリーダー利用者への退行を作らない)。
-		const attackerLabel = isSelfAttacking ? selfName : opponentName;
-		const defenderLabel = isSelfAttacking ? opponentName : selfName;
-		const fullText = `${attackerLabel} → ${defenderLabel} — ${moveName || "(技未設定)"}`;
-		heading.title = fullText;
-		heading.setAttribute("aria-label", fullText);
-		heading.append(selfIcon, selfIconFallback, arrow, opponentIcon, opponentIconFallback);
-		return heading;
-	}
-	// 選択中の攻撃・防御関係は共通ヘッダーバンドに残し、説明テキストも編集時に同期する。
-	const refreshSelectionHeading = (): void => setSlideDetailPanelTitle(buildSelectionHeadingRow(), row, idx + 1);
-	refreshSelectionHeading();
+	setSlideDetailPanelTitle(row, idx + 1);
+	refreshDetailPanelFooter(row);
 
 	const criticalButton = buildCriticalButton();
 	const refreshMoveEditorDisplay = (): void => {
-		refreshSelectionHeading();
 		criticalButton.setAttribute("aria-pressed", String(column.critical));
 	};
 	const moveSelectInput = document.createElement("input");
@@ -1478,7 +1488,7 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 	defenderSide.appendChild(wallHint);
 	const defenderVolatileGroup = defenderSide.querySelector(".damage-detail-volatile-group");
 	if (defenderVolatileGroup) {
-		defenderVolatileGroup.insertBefore(wallButton, defenderVolatileGroup.firstChild);
+		defenderVolatileGroup.appendChild(wallButton);
 	} else {
 		// DAMAGE_DEFENDER_VOLATILESは通常1件以上を持つためここには来ないが、
 		// 将来の変更に備えてフォールバックを用意する(かべチップ自体は必ず
@@ -1640,11 +1650,10 @@ export function initRightPanel(): void {
 	detailPanelTitleEl = el<HTMLElement>("damage-detail-panel-title");
 	detailPanelCloseButton = el<HTMLButtonElement>("damage-detail-panel-close");
 	detailBackdropEl = el<HTMLElement>("damage-detail-backdrop");
-	detailPanelPositionIndicatorEl = document.createElement("span");
-	detailPanelPositionIndicatorEl.className = "damage-detail-position-indicator";
-	detailPanelPositionIndicatorEl.hidden = true;
-	detailPanelPositionIndicatorEl.setAttribute("aria-live", "polite");
-	detailPanelCloseButton.before(detailPanelPositionIndicatorEl);
+	detailPanelFooterEl = el<HTMLElement>("damage-detail-panel-footer");
+	detailPanelMatchupEl = el<HTMLElement>("damage-detail-panel-matchup");
+	detailPanelTotalEl = el<HTMLElement>("damage-detail-panel-total");
+	detailPanelTotalResultEl = el<HTMLElement>("damage-detail-panel-total-result");
 	initDetailPanelSwipe();
 	detailPanelCloseButton.addEventListener("click", () => {
 		if (true) {

@@ -20,7 +20,8 @@
 		right: 0;
 		bottom: 0;
 		width: 100%;
-		max-height: 80vh;
+		height: 80vh;
+		max-height: none;
 		z-index: 60;
 		display: flex;
 		flex-direction: column;
@@ -42,7 +43,6 @@
 	.damage-detail-panel-header {
 		display: flex;
 		align-items: center;
-		/* 今回の要件: 左にタイトル、右に閉じるボタンを置く共通帯にする。 */
 		justify-content: space-between;
 		gap: var(--space-2);
 		/* 3モード共通で密度を上げるため、横paddingは保ち縦paddingだけ一段縮める。 */
@@ -52,12 +52,38 @@
 		border-bottom: 1px solid var(--color-border);
 		flex-shrink: 0;
 	}
-	.damage-detail-panel-title { min-width: 0; flex: 1 1 auto; font-weight: 700; }
-	.damage-detail-position-indicator {
+	.damage-detail-panel-title {
+		min-width: 0;
+		flex: 1 1 auto;
+		font-weight: 700;
+	}
+	.damage-detail-panel-title.is-tab-bar {
+		display: flex;
+		align-items: stretch;
+		gap: var(--space-1);
+		overflow-x: auto;
+		scrollbar-width: none;
+	}
+	.damage-detail-panel-title.is-tab-bar::-webkit-scrollbar { display: none; }
+	.damage-detail-panel-tab {
 		flex: 0 0 auto;
+		padding: var(--space-2) var(--space-3);
+		border: 0;
+		border-bottom: 2px solid transparent;
+		background: none;
 		color: var(--color-text-muted);
-		font-size: var(--font-size-sm3);
-		font-variant-numeric: tabular-nums;
+		font: inherit;
+		font-size: var(--font-size-sm2);
+		cursor: pointer;
+	}
+	.damage-detail-panel-tab[aria-selected="true"] {
+		border-bottom-color: var(--color-primary);
+		color: var(--color-primary-strong);
+		background: var(--color-primary-soft);
+	}
+	.damage-detail-panel-tab:focus-visible {
+		outline: 2px solid var(--color-primary);
+		outline-offset: -2px;
 	}
 	.damage-detail-panel-close { font-size: var(--font-size-lg1); padding: 0.2em 0.55em; }
 	/* #damage-detail-panel-body自体をflex column化し、中身(JS生成の
@@ -70,12 +96,70 @@
 	   なのでscoped<style>がそのまま効くが、中のinnerラッパーはJSのdocument.createElement()で
 	   生成するため、そちらのスタイルはis:global側に置く(pitfalls.mdの既知の罠)。 */
 	.damage-detail-panel-body {
+		min-height: 0;
 		flex: 1 1 auto;
 		display: flex;
 		flex-direction: column;
 		overflow-y: auto;
 		padding: 0.9rem var(--space-4) 1.4rem;
 		touch-action: pan-y;
+	}
+	.damage-detail-panel-footer {
+		flex: 0 0 auto;
+		padding: var(--space-2) var(--space-4) calc(var(--space-2) + env(safe-area-inset-bottom));
+		border-top: 1px solid var(--color-border);
+		background: var(--color-surface);
+	}
+	.damage-detail-panel-footer[hidden] { display: none; }
+	.damage-detail-panel-matchup {
+		display: flex;
+		justify-content: center;
+		min-height: var(--space-7);
+		margin-bottom: var(--space-1);
+	}
+	.damage-detail-panel-total {
+		display: grid;
+		grid-template-columns: auto minmax(0, 1fr);
+		align-items: baseline;
+		gap: var(--space-2);
+		padding: var(--space-1) var(--space-2);
+		background: var(--color-bg);
+		color: var(--color-text-muted);
+	}
+	.damage-detail-panel-total[data-severity="lethal"] {
+		background: var(--color-danger-soft);
+		color: var(--color-danger-strong);
+	}
+	.damage-detail-panel-total[data-severity="risky"] {
+		background: var(--color-risky-soft);
+		color: var(--color-risky-strong);
+	}
+	.damage-detail-panel-total[data-severity="safe"] {
+		background: var(--color-success-soft);
+		color: var(--color-success-strong);
+	}
+	.damage-detail-panel-total-label {
+		font-size: var(--font-size-sm3);
+		font-weight: 700;
+	}
+	.damage-detail-panel-total-result {
+		display: grid;
+		grid-template-columns: auto minmax(0, 1fr);
+		align-items: baseline;
+		gap: var(--space-2);
+		min-width: 0;
+		margin: 0;
+		font-size: var(--font-size-sm2);
+		line-height: var(--line-height-tight);
+		text-align: right;
+	}
+	.damage-detail-panel-total-result .damage-result-verdict {
+		font-size: var(--font-size-lg1);
+		font-weight: 800;
+	}
+	.damage-detail-panel-total-result .damage-result-detail {
+		min-width: 0;
+		overflow-wrap: anywhere;
 	}
 	/* .damage-detail-panel-emptyはis:global側(#damage-detail-panel-body
 	   .damage-detail-panel-empty)で定義する。理由: このpは静的マークアップ
@@ -462,8 +546,22 @@
 		grid-template-columns: repeat(2, minmax(0, 1fr));
 		gap: var(--space-3);
 	}
-	#damage-detail-panel-body .damage-build-detail-fields > .damage-build-detail-field:first-child {
+	#damage-detail-panel-body .damage-build-detail-identity-row {
 		grid-column: 1 / -1;
+		display: grid;
+		grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr);
+		align-items: end;
+		gap: var(--space-2);
+	}
+	#damage-detail-panel-body .damage-build-detail-direction-toggle {
+		width: 4.4em;
+		min-width: 4.4em;
+		min-height: var(--space-7);
+		margin-bottom: 1px;
+	}
+	#damage-detail-panel-body .damage-build-detail-direction-toggle .damage-row-direction-option {
+		min-height: var(--space-7);
+		padding-inline: var(--space-1);
 	}
 	#damage-detail-panel-body .damage-build-detail-grid {
 		grid-column: 1 / -1;
@@ -478,6 +576,30 @@
 	#damage-detail-panel-body .damage-build-detail-field[hidden],
 	#damage-detail-panel-body .damage-build-detail-lock-note[hidden] {
 		display: none;
+	}
+	#damage-detail-panel-body .damage-detail-rank-ailment-row {
+		display: grid;
+		grid-template-columns: auto minmax(0, 1fr);
+		align-items: center;
+		gap: var(--space-2);
+		margin-bottom: var(--space-2);
+	}
+	#damage-detail-panel-body .damage-detail-rank-ailment-row .damage-detail-rank-field {
+		margin-bottom: 0;
+	}
+	#damage-detail-panel-body .damage-detail-rank-ailment-row .damage-detail-ailment-select {
+		width: 100%;
+		min-width: 0;
+	}
+	#damage-detail-panel-body .damage-detail-chip-row.damage-detail-state-grid {
+		display: grid;
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+		gap: var(--space-1);
+		margin-bottom: var(--space-1);
+	}
+	#damage-detail-panel-body .damage-detail-state-grid > .damage-detail-icon-btn {
+		width: 100%;
+		min-width: 0;
 	}
 	#damage-detail-panel-body .damage-build-detail-field input,
 	#damage-detail-panel-body .damage-build-detail-field select,

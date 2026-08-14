@@ -91,6 +91,7 @@ import {
 	initRightPanel,
 	notifyDetailMoveChanged,
 	notifyDetailAbilityChanged,
+	syncDetailPanelTotal,
 } from "./right-panel";
 // ダメージ計算のサジェスト。描画は右パネル側(damage-suggest.ts)に
 // あり、このファイルは「いま画面にどんな計算があるか」と「1件を新しいカードにする」の
@@ -1106,6 +1107,7 @@ if (opponentNotesSection) {
 			target.dataset.severity = severity;
 		});
 		renderTotalDisplay(row);
+		syncDetailPanelTotal(row);
 	}
 
 	// 左パネル最下段の「加算後のダメ・致死率」を更新する。技列が1つだけのときは
@@ -2197,21 +2199,39 @@ if (opponentNotesSection) {
 		const readonlyFields = document.createElement("div");
 		readonlyFields.className = "damage-build-readonly-fields";
 		buildFields.appendChild(readonlyFields);
-		function makeReadonlyField(labelText: string): HTMLElement {
+		function makeReadonlyField(labelText: string): { field: HTMLElement; value: HTMLElement } {
 			const field = document.createElement("span");
 			field.className = "damage-build-readonly-field";
-			const label = document.createElement("span");
-			label.className = "damage-build-readonly-label";
-			label.textContent = labelText;
+			if (labelText) {
+				const label = document.createElement("span");
+				label.className = "damage-build-readonly-label";
+				label.textContent = labelText;
+				field.appendChild(label);
+			}
 			const value = document.createElement("span");
 			value.className = "damage-build-readonly-value";
-			field.append(label, value);
+			field.appendChild(value);
 			readonlyFields.appendChild(field);
-			return value;
+			return { field, value };
 		}
-		const abilityText = makeReadonlyField("特性");
-		const itemText = makeReadonlyField("持ち物");
-		const teraText = makeReadonlyField("テラス");
+		const { field: abilityReadonlyField, value: abilityText } = makeReadonlyField("");
+		abilityReadonlyField.classList.add("damage-build-readonly-ability-line");
+		const readonlyTera = document.createElement("span");
+		readonlyTera.className = "damage-build-readonly-tera";
+		readonlyTera.hidden = true;
+		const readonlyTeraImg = document.createElement("img");
+		readonlyTeraImg.className = "damage-build-readonly-tera-icon";
+		readonlyTeraImg.width = 20;
+		readonlyTeraImg.height = 20;
+		readonlyTeraImg.alt = "";
+		readonlyTeraImg.style.display = "none";
+		const readonlyTeraFallback = document.createElement("span");
+		readonlyTeraFallback.className = "damage-build-readonly-tera-fallback";
+		const readonlyTeraText = document.createElement("span");
+		readonlyTeraText.className = "damage-build-readonly-tera-name";
+		readonlyTera.append(readonlyTeraImg, readonlyTeraFallback, readonlyTeraText);
+		abilityReadonlyField.appendChild(readonlyTera);
+		const { field: itemReadonlyField, value: itemText } = makeReadonlyField("持ち物");
 
 		const spriteBox = document.createElement("div");
 		spriteBox.className = "damage-sprite-box";
@@ -2223,17 +2243,6 @@ if (opponentNotesSection) {
 		spriteImg.style.display = "none";
 		const spriteFallback = document.createElement("span");
 		spriteFallback.className = "sprite-fallback";
-		const typeBadge = document.createElement("span");
-		typeBadge.className = "damage-type-badge";
-		const typeBadgeImg = document.createElement("img");
-		typeBadgeImg.className = "damage-type-badge-img";
-		typeBadgeImg.width = 20; // box-damage-card.cssの.damage-type-badge-img(20px)に合わせる
-		typeBadgeImg.height = 20;
-		typeBadgeImg.alt = "";
-		typeBadgeImg.style.display = "none";
-		const typeBadgeFallback = document.createElement("span");
-		typeBadgeFallback.className = "damage-type-badge-fallback";
-		typeBadge.append(typeBadgeImg, typeBadgeFallback);
 		const itemBadge = document.createElement("span");
 		itemBadge.className = "damage-item-badge";
 		// applyItemImage()は画像読み込み(onload/onerror)を待って表示を切り替えるので、
@@ -2242,10 +2251,10 @@ if (opponentNotesSection) {
 		itemBadge.hidden = true;
 		const itemImg = document.createElement("img");
 		itemImg.className = "damage-item-image";
-		// 23-D1: バッジのCSS(width/height:37px)に合わせる(表示サイズはCSSのwidth:100%/
+		// バッジのCSS(width/height:42px)に合わせる(表示サイズはCSSのwidth:100%/
 		// height:100%が決めるため実害は無いが、img自身の意図する解像度を一致させておく)。
-		itemImg.width = 37;
-		itemImg.height = 37;
+		itemImg.width = 42;
+		itemImg.height = 42;
 		itemImg.alt = "";
 		itemImg.style.display = "none";
 		itemBadge.appendChild(itemImg);
@@ -2254,7 +2263,7 @@ if (opponentNotesSection) {
 		itemBadgePlaceholder.setAttribute("aria-hidden", "true");
 		itemBadgePlaceholder.textContent = "?";
 		itemBadge.appendChild(itemBadgePlaceholder);
-		spriteBox.append(spriteImg, spriteFallback, typeBadge, itemBadge);
+		spriteBox.append(spriteImg, spriteFallback, itemBadge);
 		buildMain.appendChild(spriteBox);
 
 		const detailForm = document.createElement("div");
@@ -2272,6 +2281,27 @@ if (opponentNotesSection) {
 			label.append(labelTextEl, control);
 			return label;
 		}
+		const detailIdentityRow = document.createElement("div");
+		detailIdentityRow.className = "damage-build-detail-identity-row";
+		detailFields.appendChild(detailIdentityRow);
+		const detailDirectionToggle = document.createElement("div");
+		detailDirectionToggle.className = "damage-row-direction-toggle damage-build-detail-direction-toggle";
+		detailDirectionToggle.setAttribute("role", "radiogroup");
+		detailDirectionToggle.setAttribute("aria-label", "攻守の向き");
+		const detailAttackOption = document.createElement("button");
+		detailAttackOption.type = "button";
+		detailAttackOption.className = "damage-row-direction-option";
+		detailAttackOption.dataset.role = "attack";
+		detailAttackOption.setAttribute("role", "radio");
+		detailAttackOption.textContent = "攻撃";
+		const detailDefenseOption = document.createElement("button");
+		detailDefenseOption.type = "button";
+		detailDefenseOption.className = "damage-row-direction-option";
+		detailDefenseOption.dataset.role = "defense";
+		detailDefenseOption.setAttribute("role", "radio");
+		detailDefenseOption.textContent = "防御";
+		detailDirectionToggle.append(detailAttackOption, detailDefenseOption);
+		detailIdentityRow.appendChild(detailDirectionToggle);
 
 		const nameInput = document.createElement("input");
 		nameInput.type = "text";
@@ -2282,7 +2312,9 @@ if (opponentNotesSection) {
 		nameInput.value = row.name;
 		// 相手側の動的入力にも左パネルと同じIME安全なdatalist補助を適用する。
 		attachKanaTypeAhead(nameInput, el<HTMLDataListElement>("pokemon-list"));
-		detailFields.appendChild(makeDetailField("種族名", nameInput));
+		const nameField = makeDetailField("種族名", nameInput);
+		nameField.classList.add("damage-build-detail-name-field");
+		detailIdentityRow.appendChild(nameField);
 		nameInput.addEventListener("keydown", (event) => {
 			if (event.key !== "Enter") return;
 			event.preventDefault();
@@ -2300,10 +2332,10 @@ if (opponentNotesSection) {
 		}
 		rowSpriteRefreshers.set(row, refreshSprite);
 		function refreshTypeBadge(): void {
-			// テラスタイプのアイコン表示はbuildTeraDropdown()のボタン内蔵アイコン(下方の
-			// teraDropdown参照。row.teraTypeが変わるたびに内部でteraTypeIconUrlを引き直す)に
-			// 一本化されている。選択欄の外に重ねる専用アイコンは無い。
-			void applyTeraImage(typeBadgeImg, typeBadgeFallback, row.teraType);
+			const teraType = row.teraType.trim();
+			readonlyTera.hidden = teraType === "";
+			readonlyTeraText.textContent = teraType;
+			void applyTeraImage(readonlyTeraImg, readonlyTeraFallback, teraType);
 		}
 		function refreshItemImage(): void {
 			void applyItemImage(itemImg, row.itemName.trim());
@@ -2312,8 +2344,9 @@ if (opponentNotesSection) {
 		function refreshBuildSummary(): void {
 			nameText.textContent = row.name.trim() || "相手ポケモン未設定";
 			abilityText.textContent = row.abilityName.trim() || "未設定";
-			itemText.textContent = row.itemName.trim() || "なし";
-			teraText.textContent = row.teraType.trim() || "なし";
+			const itemName = row.itemName.trim();
+			itemText.textContent = itemName;
+			itemReadonlyField.hidden = itemName === "";
 			refreshReadonlyEvs();
 		}
 
@@ -2368,6 +2401,8 @@ if (opponentNotesSection) {
 			const selfAttacks = row.direction !== "defense";
 			attackOption.setAttribute("aria-checked", String(selfAttacks));
 			defenseOption.setAttribute("aria-checked", String(!selfAttacks));
+			detailAttackOption.setAttribute("aria-checked", String(selfAttacks));
+			detailDefenseOption.setAttribute("aria-checked", String(!selfAttacks));
 			root.dataset.direction = selfAttacks ? "attack" : "defense";
 			const attackDetail = "この個体の技で相手を攻撃する計算です。";
 			const defenseDetail = "相手の技をこの個体が受ける計算です。";
@@ -2375,6 +2410,10 @@ if (opponentNotesSection) {
 			attackOption.setAttribute("aria-label", `攻撃。${attackDetail}`);
 			defenseOption.title = defenseDetail;
 			defenseOption.setAttribute("aria-label", `防御。${defenseDetail}`);
+			detailAttackOption.title = attackDetail;
+			detailAttackOption.setAttribute("aria-label", `攻撃。${attackDetail}`);
+			detailDefenseOption.title = defenseDetail;
+			detailDefenseOption.setAttribute("aria-label", `防御。${defenseDetail}`);
 		}
 		function setDirection(next: "attack" | "defense"): void {
 			if (row.direction === next) return;
@@ -2398,6 +2437,8 @@ if (opponentNotesSection) {
 		}
 		attackOption.addEventListener("click", () => onDirectionOptionClick("attack"));
 		defenseOption.addEventListener("click", () => onDirectionOptionClick("defense"));
+		detailAttackOption.addEventListener("click", () => onDirectionOptionClick("attack"));
+		detailDefenseOption.addEventListener("click", () => onDirectionOptionClick("defense"));
 
 		const selectsRow = document.createElement("div");
 		selectsRow.className = "damage-build-detail-grid";
@@ -2558,7 +2599,8 @@ if (opponentNotesSection) {
 			onFieldInput();
 		});
 		const teraField = makeDetailField("テラスタイプ", teraDropdown.wrap);
-		selectsRow.appendChild(teraField);
+		teraField.classList.add("damage-build-detail-tera-field");
+		detailIdentityRow.appendChild(teraField);
 		rowTeraFieldWraps.set(row, teraField);
 		teraField.hidden = !isTerastalRegulation(currentIndividualRegulation());
 
@@ -3043,10 +3085,13 @@ if (opponentNotesSection) {
 		}
 	});
 	document.addEventListener("click", (e) => {
-		const target = e.target as Node;
-		if (damageDetailPanelEl.contains(target)) return;
-		if (target instanceof Element && target.closest(".damage-column")) return;
-		if (isNarrowLayout() && target instanceof Element && target.closest(".card-damage")) return;
+		// タブ切替はクリックハンドラ中でヘッダーを再構築する。その後にここへ
+		// バブリングしてきた時点ではe.targetが既にDOMから外れているため、現在の
+		// ツリーではなくイベント発火時の経路で内側クリックかを判定する。
+		const path = e.composedPath();
+		if (path.includes(damageDetailPanelEl)) return;
+		if (path.some((entry) => entry instanceof Element && entry.matches(".damage-column"))) return;
+		if (isNarrowLayout() && path.some((entry) => entry instanceof Element && entry.matches(".card-damage"))) return;
 		clearSelectionAndMarks();
 	});
 

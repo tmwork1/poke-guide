@@ -68,6 +68,51 @@
   gap: var(--space-1);
 }
 
+#opponent-notes-section .damage-build-readonly-field[hidden] {
+  display: none;
+}
+
+#opponent-notes-section .damage-build-readonly-ability-line {
+  align-items: center;
+}
+
+#opponent-notes-section .damage-build-readonly-ability-line > .damage-build-readonly-value {
+  flex: 0 1 auto;
+}
+
+#opponent-notes-section .damage-build-readonly-tera {
+  min-width: 0;
+  flex: 0 1 auto;
+  align-items: center;
+  gap: var(--space-1);
+  display: inline-flex;
+}
+
+#opponent-notes-section .damage-build-readonly-tera[hidden] {
+  display: none;
+}
+
+#opponent-notes-section .damage-build-readonly-tera-icon,
+#opponent-notes-section .damage-build-readonly-tera-fallback {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  object-fit: contain;
+}
+
+#opponent-notes-section .damage-build-readonly-tera-fallback {
+  display: none;
+}
+
+#opponent-notes-section .damage-build-readonly-tera-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--font-size-sm2);
+  color: var(--color-text);
+}
+
 #opponent-notes-section .damage-build-readonly-name {
   min-width: 0;
   overflow: hidden;
@@ -414,8 +459,8 @@
 #opponent-notes-section .damage-item-badge {
   justify-content: center;
   align-items: center;
-  width: 28px;
-  height: 28px;
+  width: 42px;
+  height: 42px;
   display: flex;
   position: absolute;
   bottom: -4px;
@@ -1291,7 +1336,7 @@
   font-weight: 400;
 }
 
-#damage-detail-panel-body .damage-detail-rank-field input[type="number"] {
+#damage-detail-panel-body .damage-detail-rank-field .damage-detail-rank-input {
   width: 3.4em;
   min-height: var(--space-7);
   font-size: var(--font-size-sm2);
@@ -1708,22 +1753,11 @@
   }
 
   #opponent-notes-section .card-damage .damage-item-badge[hidden] {
-    display: flex;
+    display: none;
   }
 
   #opponent-notes-section .card-damage .damage-item-badge[hidden] .damage-item-badge-placeholder {
-    background: var(--color-surface);
-    width: 20px;
-    height: 20px;
-    color: var(--color-text-muted);
-    font-size: var(--font-size-sm2);
-    border: 1px solid var(--color-border);
-    border-radius: 50%;
-    justify-content: center;
-    align-items: center;
-    font-weight: 700;
-    line-height: 1;
-    display: flex;
+    display: none;
   }
 
   #opponent-notes-section .card-damage .damage-item-badge[aria-disabled="true"] {

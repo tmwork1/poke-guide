@@ -25,10 +25,9 @@ import '../../styles/damage-detail-panel.css';
 <div class="edit-layout-detail">
 	<aside id="damage-detail-panel" class="damage-detail-panel panel-right" aria-label="ダメージ計算の詳細設定">
 		<div class="damage-detail-panel-header">
-			{/* 今回のUI改修: 3モード共通のタイトル帯として使い、動的な内容はright-panel.tsが差し替える。 */}
+			{/* 選択中はright-panel.tsが相手ポケモン/わざNのタブを差し込む。
+			    候補一覧では従来どおり通常のタイトル帯として再利用する。 */}
 			<div id="damage-detail-panel-title" class="damage-detail-panel-title" aria-live="polite"></div>
-			{/* 今回の要件で選択中の技表示と各結果タイトルを共通帯へ戻した。
-			    閉じるボタンは1600px未満のオーバーレイを閉じるため引き続き残す。 */}
 			{/* 1600px未満ではオーバーレイ化するため閉じるボタンを表示する
 			    (1600px以上の3カラム表示では常時可視のパネルなのでCSSで隠す)。 */}
 			<button type="button" id="damage-detail-panel-close" class="btn-ghost damage-detail-panel-close" aria-label="詳細設定を閉じる">×</button>
@@ -41,6 +40,13 @@ import '../../styles/damage-detail-panel.css';
 			    margin-block:autoの対象として維持する(DOM構造は残す)。 */}
 			<div class="damage-detail-panel-body-inner"></div>
 		</div>
+		<footer id="damage-detail-panel-footer" class="damage-detail-panel-footer" hidden>
+			<div id="damage-detail-panel-matchup" class="damage-detail-panel-matchup"></div>
+			<div id="damage-detail-panel-total" class="damage-detail-panel-total" data-severity="none">
+				<span class="damage-detail-panel-total-label">加算後（打点の合計）</span>
+				<p id="damage-detail-panel-total-result" class="damage-detail-panel-total-result tnum" data-severity="none"></p>
+			</div>
+		</footer>
 	</aside>
 </div>
 {/* 1600px未満でサイドバーをオーバーレイ表示する際の背景(クリックで閉じる)。 */}
