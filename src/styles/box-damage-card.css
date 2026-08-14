@@ -45,7 +45,7 @@
 
 #opponent-notes-section .damage-row-build {
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-zero);
   background: var(--color-surface);
   cursor: default;
   flex-direction: column;
@@ -122,7 +122,7 @@
 #opponent-notes-section .card-damage.is-drag-over {
   outline: 2px dashed var(--color-primary);
   outline-offset: 2px;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-zero);
 }
 
 /* 攻撃・防御の切り替え操作 */
@@ -538,7 +538,7 @@
 
 #opponent-notes-section .damage-row-total {
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-zero);
   padding: var(--space-1);
   background: var(--color-surface);
   margin-top: 0;
@@ -702,7 +702,7 @@
 
 #opponent-notes-section .damage-column {
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-zero);
   width: 100%;
   padding: .16rem var(--space-2);
   align-items: stretch;

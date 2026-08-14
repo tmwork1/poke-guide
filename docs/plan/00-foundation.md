@@ -125,13 +125,15 @@ tile は業界通念上「反復するグリッド項目」(Windows のライブ
 
 | 種別 | 値 | 該当 |
 |---|---|---|
-| **カードの外枠**(可算コレクション要素。上の「レイアウト原則」参照) | **0px**(`--radius-zero`) | `.card` 基底、`.box-card`、`.card-damage` |
+| **カードの外枠**(可算コレクション要素。上の「レイアウト原則」参照) | **0px**(`--radius-zero`) | `.card` 基底、`.box-card`、`.card-damage`、`.damage-row-build`(相手ビルド)、`.damage-column`(技カード)、`.damage-row-total`(結果表示) |
 | 円形(アイコン・アバター・スイッチ・ステッパー) | `50%` | `.sprite-icon`、typeバッジ、`.rank-stepper`、`.toggle-switch-thumb`、`.box-add-button` |
 | 入力欄・通常ボタン・カード内の小さな入れ子要素 | `--radius-sm`(8px) | input/select/textarea、通常ボタン、`.tera-dropdown-button`、`.damage-detail-icon-btn` |
-| カード内部の中間コンテナ(カードそのものではない副次的な箱) | `--radius-md`(12px) | `.damage-row-build`(相手ビルド箱)、`.damage-column`(技カラム)、`.tera-dropdown-list`、`.damage-add-column-button` |
+| カード内部の中間コンテナ(カードそのものではない副次的な箱) | `--radius-md`(12px) | `.tera-dropdown-list`、`.damage-add-column-button` |
 | 囲み枠・ダイアログ・空状態 | `--radius-lg`(16px) | `.empty-state`、`.add-card-tile`、`dialog#opponent-note-form-container` |
 
-**注意**: 「カードは角丸なし」の対象は**カードそのものの外枠だけ**。カード内部に入れ子で置く技カラムやドロップダウンリストのような副次的な箱は、通常のフォーム部品と同じ `--radius-sm`/`--radius-md` を使ってよい(=角丸禁止をカード内部の全要素へ機械的に広げない)。
+**注意**: 「カードは角丸なし」の対象は**カードそのものの外枠だけ**。カード内部に入れ子で置くドロップダウンリストのような副次的な箱は、通常のフォーム部品と同じ `--radius-sm`/`--radius-md` を使ってよい(=角丸禁止をカード内部の全要素へ機械的に広げない)。
+
+**2026-08-14追記**: `.damage-row-build`/`.damage-column`/`.damage-row-total` は元々「カード内部の中間コンテナ」として `--radius-md` を割り当てていたが、ダメージカードのレイアウト改修(4ゾーンをそれぞれ独立した枠線+背景を持つ「カード」としてbg背景の上に並べる形、チームカードのグリッドと同じ視覚言語)により、実質的に「カードの外枠」になったため、`--radius-zero` に変更しユーザーの指摘で上表を訂正した。
 
 ### フォントウェイト(font-weight)
 
