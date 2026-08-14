@@ -253,14 +253,6 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 						</span>
 					) : (
 						<span class="stat-row-label" aria-label={statLabel} title={statLabel}>
-							<button
-								type="button"
-								id={`nature-up-${key}`}
-								class="stat-nature-btn stat-nature-up"
-								aria-pressed="false"
-								aria-label={`${statLabel}を性格補正で上昇させる`}
-								title={`${statLabel}を上昇に設定`}
-							>▲</button>
 							<span id={`nature-label-${key}`} class="stat-row-label-short">{statShort}</span>
 							<button
 								type="button"
@@ -270,6 +262,14 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 								aria-label={`${statLabel}を性格補正で下降させる`}
 								title={`${statLabel}を下降に設定`}
 							>▼</button>
+							<button
+								type="button"
+								id={`nature-up-${key}`}
+								class="stat-nature-btn stat-nature-up"
+								aria-pressed="false"
+								aria-label={`${statLabel}を性格補正で上昇させる`}
+								title={`${statLabel}を上昇に設定`}
+							>▲</button>
 						</span>
 					)}
 					<span id={`base-${key}`} class="stat-row-base tnum">-</span>

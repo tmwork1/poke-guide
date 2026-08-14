@@ -160,7 +160,7 @@ export function buildStatAdjustmentPanel(options: StatAdjustmentPanelOptions): S
 			options.onChange();
 		});
 			natureButtons.set(key, { up, down, label: shortLabel });
-			labelWrap.append(up, shortLabel, down);
+			labelWrap.append(shortLabel, down, up);
 		}
 		row.appendChild(labelWrap);
 
