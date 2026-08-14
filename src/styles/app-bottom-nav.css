@@ -5,7 +5,7 @@
 		right: 0;
 		bottom: 0;
 		z-index: 20;
-		background: var(--color-surface);
+		background: var(--color-surface-raised);
 		padding-bottom: env(safe-area-inset-bottom);
 	}
 
@@ -41,10 +41,4 @@
 		color: var(--color-text-muted);
 		opacity: 0.6;
 		cursor: not-allowed;
-	}
-
-	@media (prefers-color-scheme: dark) {
-		.app-bottom-nav {
-			background: var(--color-surface);
-		}
 	}

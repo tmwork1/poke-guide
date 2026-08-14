@@ -17,7 +17,7 @@
   align-items: stretch;
   gap: var(--space-2);
   padding-left: var(--space-4);
-  background: var(--color-surface);
+  background: var(--color-surface-raised);
 }
 
 /* 戻るボタン。.second-bar__list(横スクロールするタブ一覧)の外に置き、
@@ -106,11 +106,5 @@
   .second-bar--toolbar .toolbar-item {
     width: 100%;
     margin-left: 0;
-  }
-}
-
-@media (prefers-color-scheme: dark) {
-  .second-bar {
-    background: var(--color-surface);
   }
 }

@@ -5,6 +5,7 @@
 
   --color-bg: #f3f4f8;
   --color-surface: #ffffff;
+  --color-surface-raised: #ffffff;
   --color-border: #e3e6ee;
   --color-text: #1f2430;
 
@@ -79,6 +80,7 @@
   :root {
     --color-bg: #14161d;
     --color-surface: #1c1f28;
+    --color-surface-raised: #242833;
     --color-border: #2d313d;
     --color-text: #e7e9ee;
     --color-text-muted: #9aa1b0;
@@ -1212,7 +1214,7 @@ dialog#opponent-note-form-container::backdrop {
 }
 
 .app-topbar {
-  background: var(--color-surface);
+  background: var(--color-surface-raised);
   border-bottom: 1px solid var(--color-border);
   position: sticky;
   top: 0;
