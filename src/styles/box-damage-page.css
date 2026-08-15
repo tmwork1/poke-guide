@@ -15,6 +15,7 @@
   --box-damage-engine-status-font-size: var(--font-size-sm3); /* 計算エンジン状態文の文字の大きさ */
 
   /* ── 7. 余白 ────────────────────────── */
+  --box-damage-panel-padding: var(--space-3) var(--space-3) 0; /* 画面端とダメージカードの間の余白。ダメージタブは常にタブ切替表示(data-mobile-tab="damage")のため画面幅を問わずこの値になる */
   --box-damage-mobile-list-padding-bottom: calc(56px + var(--bottom-nav-height) + var(--space-4)); /* モバイル時に固定操作列へ隠れない一覧下余白 */
   --box-damage-mobile-toolbar-inline-end: calc(var(--space-5) + var(--box-add-button-size, 60px) + var(--space-2)); /* モバイル時の操作列の右余白 */
   --box-damage-mobile-toolbar-block-end: calc(var(--bottom-nav-height) + var(--space-4) + env(safe-area-inset-bottom)); /* モバイル時の操作列の下余白 */
@@ -35,6 +36,7 @@ body.box-edit-page .app-topbar-title {
 
 #opponent-notes-section {
   min-width: 0;
+  padding: var(--box-damage-panel-padding);
   container: damage-section / inline-size;
 }
 
