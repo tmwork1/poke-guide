@@ -16,6 +16,9 @@
   --damage-build-text-gap: var(--space-1);
   --damage-build-area-gap: .4rem;
   --damage-column-detail-gap: var(--space-2);
+  --damage-gauge-lethal-fill: color-mix(in srgb, var(--color-danger-strong) 35%, var(--color-danger-soft) 65%);
+  --damage-gauge-risky-fill: color-mix(in srgb, var(--color-risky-strong) 35%, var(--color-risky-soft) 65%);
+  --damage-gauge-safe-fill: color-mix(in srgb, var(--color-success-strong) 35%, var(--color-success-soft) 65%);
   background: var(--color-bg);
   box-shadow: none;
   padding: var(--space-2) var(--space-3);
@@ -370,6 +373,7 @@
 
 #opponent-notes-section .damage-sprite-box img.sprite-icon {
   object-fit: contain;
+  image-rendering: pixelated;
   background: none;
   border-radius: 0;
   width: 100%;
@@ -667,7 +671,7 @@
 #opponent-notes-section .damage-row-total[data-severity="lethal"] {
   background: linear-gradient(to right,
     var(--color-danger-soft) 0 var(--gauge-min),
-    var(--color-danger-strong) var(--gauge-min) var(--gauge-max),
+    var(--damage-gauge-lethal-fill) var(--gauge-min) var(--gauge-max),
     var(--color-surface) var(--gauge-max) 100%);
   color: var(--color-danger-strong);
 }
@@ -675,7 +679,7 @@
 #opponent-notes-section .damage-row-total[data-severity="risky"] {
   background: linear-gradient(to right,
     var(--color-risky-soft) 0 var(--gauge-min),
-    var(--color-risky-strong) var(--gauge-min) var(--gauge-max),
+    var(--damage-gauge-risky-fill) var(--gauge-min) var(--gauge-max),
     var(--color-surface) var(--gauge-max) 100%);
   color: var(--color-risky-strong);
 }
@@ -683,7 +687,7 @@
 #opponent-notes-section .damage-row-total[data-severity="safe"] {
   background: linear-gradient(to right,
     var(--color-success-soft) 0 var(--gauge-min),
-    var(--color-success-strong) var(--gauge-min) var(--gauge-max),
+    var(--damage-gauge-safe-fill) var(--gauge-min) var(--gauge-max),
     var(--color-surface) var(--gauge-max) 100%);
   color: var(--color-success-strong);
 }
@@ -1748,6 +1752,7 @@
     width: 100%;
     height: 100%;
     object-fit: contain;
+    image-rendering: pixelated;
   }
 
   #opponent-notes-section .card-damage .damage-direction-self-fallback {

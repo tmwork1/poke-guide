@@ -35,7 +35,7 @@ import type {
 import {
 	loadMultiHitMoveMap,
 	loadAbilitiesMap,
-	officialArtworkUrl,
+	spriteUrl,
 } from "../pokemon-master-data";
 import { type StatKey, STAT_KEYS, NATURE_STAT_MODIFIERS, calcHpStat, calcOtherStat } from "../stats";
 import { TERA_TYPES } from "../tera-types";
@@ -2192,7 +2192,7 @@ if (opponentNotesSection) {
 			image.style.display = "none";
 			const fallback = document.createElement("span");
 			fallback.className = "damage-direction-self-fallback";
-			void applySprite(image, fallback, selfSpeciesName, officialArtworkUrl);
+			void applySprite(image, fallback, selfSpeciesName, spriteUrl);
 			badge.append(image, fallback);
 			return badge;
 		}
@@ -2357,13 +2357,13 @@ if (opponentNotesSection) {
 			nameInput.blur();
 		});
 
-		// モバイル専用UIでも相手ポケモンは公式アートワークで統一する。
+		// モバイル専用UIでも相手ポケモンはドット絵で統一する。
 		function refreshSprite(): void {
 			void applySprite(
 				spriteImg,
 				spriteFallback,
 				row.name.trim(),
-				officialArtworkUrl,
+				spriteUrl,
 			);
 		}
 		rowSpriteRefreshers.set(row, refreshSprite);
