@@ -1,5 +1,34 @@
-/* ボックス編集ページのダメージタブ全体の配置と共通操作。 */
+/* ===========================================================================
+   ボックス編集ページのダメージ計算タブ
 
+   画面のどこ: ボックス詳細 → ダメージ計算タブ
+   見た目を変えたいとき: 下の「チューニング変数」だけ触ればよい。
+                        それより下は構造なので通常はいじらない。
+   =========================================================================== */
+
+/* --------------------------------------------------------------------------
+   チューニング変数
+   ここの値を書き換えるとダメージ計算タブの見た目が変わる。
+   -------------------------------------------------------------------------- */
+#opponent-notes-section {
+  /* ── 1. 文字サイズ ─────────────────────── */
+  --box-damage-engine-status-font-size: var(--font-size-sm3); /* 計算エンジン状態文の文字の大きさ */
+
+  /* ── 7. 余白 ────────────────────────── */
+  --box-damage-mobile-list-padding-bottom: calc(56px + var(--bottom-nav-height) + var(--space-4)); /* モバイル時に固定操作列へ隠れない一覧下余白 */
+  --box-damage-mobile-toolbar-inline-end: calc(var(--space-5) + var(--box-add-button-size, 60px) + var(--space-2)); /* モバイル時の操作列の右余白 */
+  --box-damage-mobile-toolbar-block-end: calc(var(--bottom-nav-height) + var(--space-4) + env(safe-area-inset-bottom)); /* モバイル時の操作列の下余白 */
+  --box-damage-rows-gap: var(--space-3); /* ダメージ計算カード同士の縦の間隔 */
+  --box-damage-toolbar-gap: var(--space-2); /* 一括操作ボタン同士の間隔 */
+  --box-damage-toolbar-margin-bottom: var(--space-2); /* 操作列とカード一覧の間隔 */
+  --box-damage-engine-status-margin: 0 0 .4rem; /* 計算エンジン状態文の外側余白 */
+}
+
+/* --------------------------------------------------------------------------
+   ここから下は構造。レイアウトの組み立てなので通常は触らない。
+   -------------------------------------------------------------------------- */
+
+/* 編集ページ上部のタイトル */
 body.box-edit-page .app-topbar-title {
   display: none;
 }
@@ -10,7 +39,7 @@ body.box-edit-page .app-topbar-title {
 }
 
 #opponent-notes-section .damage-rows-list {
-  gap: var(--space-3);
+  gap: var(--box-damage-rows-gap);
   flex-direction: column;
   display: flex;
 }
@@ -19,13 +48,13 @@ body.box-edit-page .app-topbar-title {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: var(--space-2);
-  margin-bottom: var(--space-2);
+  gap: var(--box-damage-toolbar-gap);
+  margin-bottom: var(--box-damage-toolbar-margin-bottom);
 }
 
 #opponent-notes-section .damage-calc-engine-status {
-  font-size: var(--font-size-sm3);
-  margin: 0 0 .4rem;
+  font-size: var(--box-damage-engine-status-font-size);
+  margin: var(--box-damage-engine-status-margin);
 }
 
 #opponent-notes-section .damage-calc-engine-status[hidden] {
@@ -35,8 +64,8 @@ body.box-edit-page .app-topbar-title {
 @media (width <= 899px) {
   #opponent-notes-section .damage-rows-toolbar {
     position: fixed;
-    right: calc(var(--space-5) + var(--box-add-button-size, 60px) + var(--space-2));
-    bottom: calc(var(--bottom-nav-height) + var(--space-4) + env(safe-area-inset-bottom));
+    right: var(--box-damage-mobile-toolbar-inline-end);
+    bottom: var(--box-damage-mobile-toolbar-block-end);
     z-index: 15;
     flex-wrap: nowrap;
     margin-bottom: 0;
@@ -48,6 +77,6 @@ body.box-edit-page .app-topbar-title {
   }
 
   #opponent-notes-section .damage-rows-list {
-    padding-bottom: calc(56px + var(--bottom-nav-height) + var(--space-4));
+    padding-bottom: var(--box-damage-mobile-list-padding-bottom);
   }
 }

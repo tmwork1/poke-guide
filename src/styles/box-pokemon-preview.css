@@ -1,34 +1,77 @@
-/* Mobile training screen */
+/* ===========================================================================
+   ボックス編集画面のポケモンプレビュー
+
+   画面のどこ: ボックス詳細 → 育成・ダメージタブ上部のポケモン情報
+   見た目を変えたいとき: 下の「チューニング変数」だけ触ればよい。
+                        それより下は構造なので通常はいじらない。
+   =========================================================================== */
+
+/* --------------------------------------------------------------------------
+   チューニング変数
+   ここの値を書き換えるとポケモンプレビューの見た目が変わる。
+   -------------------------------------------------------------------------- */
+.pokemon-preview {
+  /* ── 1. 文字サイズ ─────────────────────── */
+  --pokemon-preview-font-size: var(--font-size-sm2); /* 基本文字の大きさ。大きくすると全体の文字が読みやすくなる */
+  --pokemon-preview-stats-font-size: var(--font-size-sm3); /* 能力値表の文字の大きさ */
+
+  /* ── 2. 文字の太さ・行間 ──────────────────── */
+  --pokemon-preview-stats-font-weight: 500; /* 能力値表の文字の太さ */
+  --pokemon-preview-stats-line-height: 1; /* 能力値表の行の詰まり具合。大きくすると行間が広がる */
+
+  /* ── 3. 文字色 ───────────────────────── */
+  --pokemon-preview-stat-color: var(--color-text); /* 通常の能力値の文字色 */
+  --pokemon-preview-stat-up-color: var(--color-stat-up); /* 性格で上がる能力値の文字色 */
+  --pokemon-preview-stat-down-color: var(--color-stat-down); /* 性格で下がる能力値の文字色 */
+  --pokemon-preview-stat-label-color: var(--color-text-muted); /* 能力値名の文字色 */
+  --pokemon-preview-sprite-fallback-color: var(--color-text-muted); /* 画像がないときの頭文字の色 */
+
+  /* ── 4. 背景色 ───────────────────────── */
+  --pokemon-preview-background: var(--color-surface); /* プレビュー外枠の背景色 */
+  --pokemon-preview-main-background: var(--color-bg); /* 情報欄の背景色 */
+
+  /* ── 5. 枠線・角丸 ─────────────────────── */
+  --pokemon-preview-border: 1px solid var(--color-border); /* 下端の区切り線。太さや色を変えると境界が目立つ */
+
+  /* ── 7. 余白 ────────────────────────── */
+  --pokemon-preview-padding: var(--space-5); /* プレビュー内側の余白。大きくすると情報が内側に寄る */
+  --pokemon-preview-stats-column-gap: 20px; /* 能力値表の列間隔。大きくすると数値の列が離れる */
+  --pokemon-preview-column-gap: var(--space-2); /* 左右の情報欄と中央画像の間隔。大きくすると各欄が離れる */
+  --pokemon-preview-content-gap: var(--space-1); /* 文字やアイコンの間隔。大きくすると各項目が離れる */
+  --pokemon-preview-item-stats-gap: var(--pokemon-preview-content-gap); /* 持ち物と能力値表の縦の間隔 */
+  --pokemon-preview-stats-inline-end-gap: var(--pokemon-preview-content-gap); /* 能力値表の右端余白 */
+  --pokemon-preview-move-row-gap: 2px; /* 技の行間。大きくすると技一覧が縦に広がる */
+
+  /* ── 8. 寸法 ────────────────────────── */
+  --pokemon-preview-sprite-size: calc((var(--space-8) + var(--space-6)) * 1.7); /* ポケモン画像の大きさ */
+  --pokemon-preview-item-icon-size: 1.5em; /* 持ち物アイコンの大きさ */
+  --pokemon-preview-type-icon-size: 1.3em; /* タイプアイコンの大きさ */
+  --pokemon-preview-move-type-bar-height: 1em; /* 技タイプバーの高さ */
+  --pokemon-preview-move-type-bar-width: var(--space-1); /* 技タイプバーの太さ */
+
+  /* ── 9. その他 ───────────────────────── */
+  --pokemon-preview-z-index: 15; /* スクロール時に前面に保つ順番。大きくすると他の要素より前に出る */
+}
+
+/* --------------------------------------------------------------------------
+   ここから下は構造。レイアウトの組み立てなので通常は触らない。
+   -------------------------------------------------------------------------- */
+
+/* モバイル編集画面の内容全体 */
 
 .mobile-training-ui {
   display: contents;
 }
 
-/* Pokemon preview */
+/* 画面上部に固定するポケモンプレビュー */
 
 .pokemon-preview {
-  --pokemon-preview-column-gap: var(--space-2);
-  --pokemon-preview-padding: var(--space-5);
-  --pokemon-preview-content-gap: var(--space-1);
-  --pokemon-preview-item-stats-gap: var(--pokemon-preview-content-gap);
-  --pokemon-preview-stats-column-gap: 20px;
-  --pokemon-preview-stats-inline-end-gap: var(--pokemon-preview-content-gap);
-  --pokemon-preview-sprite-size: calc((var(--space-8) + var(--space-6)) * 1.7);
-  --pokemon-preview-z-index: 15;
-  --pokemon-preview-font-size: var(--font-size-sm2);
-  --pokemon-preview-type-icon-size: 1.3em;
-  --pokemon-preview-item-icon-size: 1.5em;
-  --pokemon-preview-move-row-gap: 2px;
-  --pokemon-preview-border: 1px solid var(--color-border);
-  --pokemon-preview-stats-line-height: 1;
-  --pokemon-preview-stats-font-weight: 500;
-
   position: sticky;
   top: calc(var(--topbar-height) + var(--second-bar-height));
   z-index: var(--pokemon-preview-z-index);
   overflow: hidden;
   font-size: var(--pokemon-preview-font-size);
-  background: var(--color-surface);
+  background: var(--pokemon-preview-background);
   border-bottom: var(--pokemon-preview-border);
 }
 
@@ -37,7 +80,7 @@
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   gap: var(--pokemon-preview-column-gap);
   padding: var(--pokemon-preview-padding);
-  background: var(--color-bg);
+  background: var(--pokemon-preview-main-background);
 }
 
 .pokemon-preview-left,
@@ -54,7 +97,7 @@
   flex-direction: column;
 }
 
-/* Details and moves */
+/* 詳細情報と技一覧 */
 
 .pokemon-preview-details {
   display: flex;
@@ -127,9 +170,9 @@
 }
 
 .pokemon-preview-move-type-bar {
-  flex: 0 0 var(--space-1);
-  width: var(--space-1);
-  height: 1em;
+  flex: 0 0 var(--pokemon-preview-move-type-bar-width);
+  width: var(--pokemon-preview-move-type-bar-width);
+  height: var(--pokemon-preview-move-type-bar-height);
 }
 
 .pokemon-preview-icon-text img {
@@ -155,7 +198,7 @@
   display: none;
 }
 
-/* Identity */
+/* 中央のポケモン画像 */
 
 .pokemon-preview-identity {
   display: flex;
@@ -190,10 +233,10 @@
 }
 
 #pokemon-preview-species-sprite-fallback {
-  color: var(--color-text-muted);
+  color: var(--pokemon-preview-sprite-fallback-color);
 }
 
-/* Item and stats */
+/* 持ち物と能力値 */
 
 .pokemon-preview-item {
   margin-bottom: 0;
@@ -207,14 +250,14 @@
   width: auto;
   border-collapse: collapse;
   border-spacing: 0;
-  font-size: var(--font-size-sm3);
+  font-size: var(--pokemon-preview-stats-font-size);
   line-height: var(--pokemon-preview-stats-line-height);
 }
 
 .pokemon-preview-stats th,
 .pokemon-preview-stats td {
   padding: var(--pokemon-preview-content-gap) 0 0;
-  color: var(--color-text);
+  color: var(--pokemon-preview-stat-color);
   font-weight: var(--pokemon-preview-stats-font-weight);
   text-align: right;
   background: transparent;
@@ -223,7 +266,7 @@
 
 .pokemon-preview-stats th:first-child {
   padding-right: var(--pokemon-preview-stats-column-gap);
-  color: var(--color-text-muted);
+  color: var(--pokemon-preview-stat-label-color);
   text-align: left;
 }
 
@@ -232,14 +275,14 @@
 }
 
 .pokemon-preview-stats td[data-mod="up"] {
-  color: var(--color-stat-up);
+  color: var(--pokemon-preview-stat-up-color);
 }
 
 .pokemon-preview-stats td[data-mod="down"] {
-  color: var(--color-stat-down);
+  color: var(--pokemon-preview-stat-down-color);
 }
 
-/* The box editor is mobile-only. */
+/* ボックス編集画面は常にコンパクトなタブ表示を使う。 */
 @media (min-width: 0) {
   #mobile-training-ui[data-mobile-tab="damage"] .pokemon-preview {
     display: none;

@@ -1,29 +1,49 @@
-/* /box/[id] のわざ編集モーダル。
- * 余白・文字サイズはこの変数だけを変更して調整できる。 */
+/* ===========================================================================
+   わざ選択モーダル(/box/[id] で技を編集するときの一覧)
+
+   画面のどこ: ボックス詳細 → 技欄を選択 → 技一覧
+   見た目を変えたいとき: 下の「チューニング変数」だけ触ればよい。
+                        それより下は構造なので通常はいじらない。
+   =========================================================================== */
+
+/* ===========================================================================
+   チューニング変数
+   JavaScript が body 直下に生成するモーダルでも読めるよう、:root に置く。
+   =========================================================================== */
 :root {
+  /* ── 1. 文字サイズ ────────────────────────────────────── */
+  --move-picker-close-size: var(--font-size-lg1); /* 閉じるボタンの×。大きくすると記号が目立つ */
+  --move-picker-title-size: var(--font-size-sm2); /* 見出しとモバイルの技スロット名。大きくすると行が高くなる */
+  --move-picker-control-size: var(--font-size-sm3); /* 絞り込み・並べ替え操作。大きくすると操作文字が読みやすくなる */
+  --move-picker-table-size: var(--font-size-sm3); /* 技一覧の文字。大きくすると一覧の表示行数が減る */
+  --move-picker-empty-size: var(--font-size-sm2); /* 技がないときの案内文。大きくすると案内が目立つ */
+
+  /* ── 5. 枠線・角丸 ────────────────────────────────────── */
+  --move-picker-dialog-radius: var(--modal-radius); /* モバイルモーダルの角丸。大きくすると角が丸くなる */
+
+  /* ── 7. 余白 ──────────────────────────────────────────── */
+  --move-picker-header-gap: var(--space-3); /* ヘッダー内の要素間隔。大きくすると見出しと操作が離れる */
+  --move-picker-header-padding: 0.6rem 0.8rem; /* ヘッダー内側の余白。大きくするとヘッダーが厚くなる */
+  --move-picker-tabs-gap: var(--space-2); /* モバイルの技スロット間隔。大きくするとボタンが離れる */
+  --move-picker-tabs-padding: var(--space-2) var(--space-3); /* 技スロット列の内側余白。大きくすると列が厚くなる */
+  --move-picker-note-padding: var(--space-2) 0.8rem; /* 補足文の内側余白。大きくすると補足行が厚くなる */
+  --move-picker-table-header-padding: 0 0.4rem 0.35rem; /* 一覧見出しセルの余白。大きくすると見出し行が広がる */
+  --move-picker-table-cell-padding: var(--space-1) 0.4rem; /* 技一覧セルの余白。大きくすると各行が高くなる */
+  --move-picker-empty-padding: var(--space-4); /* 空一覧の内側余白。大きくすると案内の周囲が広がる */
+
+  /* ── 8. 寸法 ──────────────────────────────────────────── */
   --move-picker-dialog-z-index: 100;
   --move-picker-backdrop-z-index: 99;
   --move-picker-dialog-inset: var(--space-3);
   --move-picker-dialog-max-width: 42rem;
   --move-picker-dialog-max-height: min(78dvh, 42rem);
-  --move-picker-dialog-radius: var(--modal-radius);
-
-  --move-picker-header-gap: var(--space-3);
-  --move-picker-header-padding: 0.6rem 0.8rem;
-  --move-picker-tabs-gap: var(--space-2);
-  --move-picker-tabs-padding: var(--space-2) var(--space-3);
-  --move-picker-note-padding: var(--space-2) 0.8rem;
-  --move-picker-table-header-padding: 0 0.4rem 0.35rem;
-  --move-picker-table-cell-padding: var(--space-1) 0.4rem;
-  --move-picker-empty-padding: var(--space-4);
-
-  --move-picker-title-size: var(--font-size-sm2);
-  --move-picker-control-size: var(--font-size-sm3);
-  --move-picker-table-size: var(--font-size-sm3);
-  --move-picker-empty-size: var(--font-size-sm2);
-  --move-picker-close-size: var(--font-size-lg1);
 }
 
+/* ===========================================================================
+   ここから下は構造(レイアウトの組み立て)。通常は触らない。
+   =========================================================================== */
+
+/* 技一覧ウィンドウ */
 .move-picker-window {
   position: fixed;
   z-index: 10;
@@ -40,8 +60,10 @@
 .move-picker-backdrop[hidden],
 .move-picker-note[hidden] { display: none; }
 
+/* モバイル時だけ表示する技スロットのタブ */
 .move-picker-slot-tabs { display: none; }
 
+/* 見出し・絞り込み・閉じるボタンが並ぶ上部 */
 .move-picker-header {
   display: flex;
   flex-shrink: 0;
@@ -69,8 +91,16 @@
   cursor: pointer;
 }
 
-.move-picker-toggle .toggle-switch { width: 26px; height: 14px; }
-.move-picker-toggle .toggle-switch-thumb { width: 10px; height: 10px; }
+/* 技選択ヘッダーの「習得技のみ」切替スイッチの外枠 */
+.move-picker-toggle .toggle-switch {
+  width: 26px;
+  height: 14px;
+}
+/* 「習得技のみ」切替スイッチ内を左右に動くつまみ */
+.move-picker-toggle .toggle-switch-thumb {
+  width: 10px;
+  height: 10px;
+}
 .move-picker-toggle .toggle-switch-input:checked + .toggle-switch-track .toggle-switch-thumb { transform: translateX(12px); }
 
 .move-picker-close {
@@ -89,11 +119,20 @@
   cursor: pointer;
 }
 @media (hover: hover) and (pointer: fine) {
-  .move-picker-close:hover { background: color-mix(in srgb, var(--color-surface) 90%, var(--color-primary) 10%); color: var(--color-text); }
+  /* ポインターを重ねた閉じるボタンを淡い背景で示す */
+  .move-picker-close:hover {
+    background: color-mix(in srgb, var(--color-surface) 90%, var(--color-primary) 10%);
+    color: var(--color-text);
+  }
 }
 .move-picker-close:focus-visible,
-.move-picker-sort-btn:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 1px; }
+/* キーボード操作中の閉じるボタンと並べ替えボタンに共通する輪郭 */
+.move-picker-sort-btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
 
+/* 絞り込みに関する補足文 */
 .move-picker-note {
   flex-shrink: 0;
   margin: 0;
@@ -103,8 +142,20 @@
   font-size: var(--move-picker-control-size);
 }
 
-.move-picker-table-wrap { flex: 1 1 auto; min-height: 0; margin: 0; overflow-y: auto; }
-.move-picker-table { width: 100%; border-spacing: 0; border-collapse: separate; font-size: var(--move-picker-table-size); }
+/* 技一覧の縦スクロール領域 */
+.move-picker-table-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  margin: 0;
+  overflow-y: auto;
+}
+/* 技名・人気・タイプ・分類・威力・命中率を並べる技一覧表 */
+.move-picker-table {
+  width: 100%;
+  border-spacing: 0;
+  border-collapse: separate;
+  font-size: var(--move-picker-table-size);
+}
 .move-picker-table thead th {
   position: sticky;
   z-index: 1;
@@ -115,8 +166,17 @@
   text-align: left;
   vertical-align: top;
 }
-.move-picker-th { display: flex; align-items: center; gap: var(--space-1); }
-.move-picker-th-filter { min-width: 0; margin-top: 0; }
+/* 各列見出し内の並べ替えボタンと絞り込み欄を横に並べる行 */
+.move-picker-th {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+/* タイプ・分類などを列単位で絞り込む入力欄の枠 */
+.move-picker-th-filter {
+  min-width: 0;
+  margin-top: 0;
+}
 .move-picker-th-filter input,
 .move-picker-th-filter select {
   box-sizing: border-box;
@@ -143,35 +203,83 @@
   white-space: nowrap;
   cursor: pointer;
 }
-.move-picker-sort-btn::after { content: "↕"; color: var(--color-text-muted); font-size: var(--font-size-sm2); }
-.move-picker-sort-btn.is-active::after { content: "↑"; color: var(--color-primary); }
+/* 未選択の列見出しに付ける昇順・降順の並べ替え記号 */
+.move-picker-sort-btn::after {
+  content: "↕";
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm2);
+}
+/* 現在の並べ替え列に付ける昇順記号。降順時は直後のルールで下矢印にする */
+.move-picker-sort-btn.is-active::after {
+  content: "↑";
+  color: var(--color-primary);
+}
 .move-picker-sort-btn.is-active[data-sort-dir="desc"]::after { content: "↓"; }
-.move-picker-table tbody td { padding: var(--move-picker-table-cell-padding); border-bottom: 1px solid var(--color-border); color: var(--color-text); }
-.move-picker-cell-num { font-variant-numeric: tabular-nums; text-align: right; }
-.move-picker-cell-type { display: flex; align-items: center; gap: var(--space-1); white-space: nowrap; }
-.move-picker-type-icon { flex-shrink: 0; border-radius: 50%; }
+/* 技一覧の各データセル */
+.move-picker-table tbody td {
+  padding: var(--move-picker-table-cell-padding);
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text);
+}
+/* 人気・威力・命中率などの数値セル。桁幅を揃えて右寄せする */
+.move-picker-cell-num {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+/* タイプアイコンとタイプ名を並べるセル */
+.move-picker-cell-type {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  white-space: nowrap;
+}
+/* タイプ名の左に表示する丸いタイプアイコン */
+.move-picker-type-icon {
+  flex-shrink: 0;
+  border-radius: 50%;
+}
 .move-picker-row { cursor: pointer; }
 @media (hover: hover) and (pointer: fine) {
   .move-picker-row:hover { background: color-mix(in srgb, var(--color-surface) 90%, var(--color-primary) 10%); }
 }
 .move-picker-row.is-selected { background: color-mix(in srgb, var(--color-primary) 18%, transparent); }
-.move-picker-row:focus-visible { outline: 2px solid var(--color-primary); outline-offset: -2px; }
-.move-picker-empty { margin: 0; padding: var(--move-picker-empty-padding); color: var(--color-text-muted); font-size: var(--move-picker-empty-size); text-align: center; }
+/* キーボード操作で選択候補の技行にフォーカスしたときの輪郭 */
+.move-picker-row:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+/* 検索結果がないときの案内文 */
+.move-picker-empty {
+  margin: 0;
+  padding: var(--move-picker-empty-padding);
+  color: var(--color-text-muted);
+  font-size: var(--move-picker-empty-size);
+  text-align: center;
+}
 
 /* LeftPanel.astro の旧来のグローバル指定より優先し、上の変数を唯一の調整窓口にする。 */
 body .move-picker-title { font-size: var(--move-picker-title-size); }
 body .move-picker-toggle { font-size: var(--move-picker-control-size); }
 body .move-picker-close { font-size: var(--move-picker-close-size); }
-body .move-picker-note { padding: var(--move-picker-note-padding); font-size: var(--move-picker-control-size); }
+/* 絞り込み条件の補足文。旧来の指定より優先して余白と文字サイズを調整する */
+body .move-picker-note {
+  padding: var(--move-picker-note-padding);
+  font-size: var(--move-picker-control-size);
+}
 body .move-picker-table { font-size: var(--move-picker-table-size); }
 body .move-picker-table thead th { padding: var(--move-picker-table-header-padding); }
 body .move-picker-th-filter input,
 body .move-picker-th-filter select,
 body .move-picker-sort-btn { font-size: var(--move-picker-control-size); }
 body .move-picker-table tbody td { padding: var(--move-picker-table-cell-padding); }
-body .move-picker-empty { padding: var(--move-picker-empty-padding); font-size: var(--move-picker-empty-size); }
+/* 条件に一致する技がないときの案内文。旧来の指定より優先して大きさを調整する */
+body .move-picker-empty {
+  padding: var(--move-picker-empty-padding);
+  font-size: var(--move-picker-empty-size);
+}
 
 @media (max-width: 899px) {
+  /* 狭い画面では一覧を画面中央のモーダルとして表示する */
   .move-picker-backdrop {
     position: fixed;
     z-index: var(--move-picker-backdrop-z-index);
@@ -204,5 +312,10 @@ body .move-picker-empty { padding: var(--move-picker-empty-padding); font-size: 
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  body .move-picker-slot-tab.is-selected { border-color: var(--color-primary); background: var(--color-primary); color: var(--color-on-primary, #fff); }
+  /* モバイルで現在編集中の技スロットを主色で示す */
+  body .move-picker-slot-tab.is-selected {
+    border-color: var(--color-primary);
+    background: var(--color-primary);
+    color: var(--color-on-primary, #fff);
+  }
 }

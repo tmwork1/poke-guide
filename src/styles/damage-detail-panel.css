@@ -1,74 +1,199 @@
-/* box/[id] 編集画面の右サイド「詳細設定サイドバー」(RightPanel.astro)。中身はsrc/lib/box-id/right-panel.tsが動的に書き換える。 */
+/* ===========================================================================
+	ダメージ詳細パネル（/box/[id] のダメージ計算で開く詳細設定）
+
+	画面のどこ: ボックス編集 → ダメージ計算カード → 技または相手ポケモンの詳細パネル
+	見た目を変えたいとき: 下の「チューニング変数」だけ触ればよい。
+												それより下は構造なので通常はいじらない。
+	=========================================================================== */
+
+/* --------------------------------------------------------------------------
+	チューニング変数
+	ここの値を書き換えると、詳細パネル・候補一覧・相手ビルド編集の見た目が変わる。
+	-------------------------------------------------------------------------- */
+:root {
+	/* ── 1. 文字サイズ ─────────────────────── */
+	--damage-detail-font-size-lg: var(--font-size-lg1); /* 閉じるボタンと強調結果の文字サイズ。大きくすると目立つ */
+	--damage-detail-font-size-md: var(--font-size-sm1); /* テラスタイプ候補の文字サイズ。大きくすると候補名が読みやすくなる */
+	--damage-detail-font-size-sm: var(--font-size-sm2); /* 本文と操作部品の文字サイズ。大きくするとパネル全体の文字が大きくなる */
+	--damage-detail-font-size-xs: var(--font-size-sm3); /* 補足と小ラベルの文字サイズ。大きくすると細かな説明が読みやすくなる */
+
+	/* ── 2. 文字の太さ・行間 ─────────────────────── */
+	--damage-detail-font-weight-heavy: 800; /* 合計ダメージ判定の太さ。大きくすると結論が強調される */
+	--damage-detail-font-weight-bold: 700; /* 見出しと候補値の太さ。大きくすると重要情報が強く見える */
+	--damage-detail-title-font-weight: 700; /* 通常タイトルの太さ。大きくすると見出しが強く見える */
+	--damage-detail-font-weight-semibold: 600; /* 小見出しの太さ。大きくすると項目名が強く見える */
+	--damage-detail-font-weight-regular: 400; /* 通常文字の太さ。大きくすると入力値などが太く見える */
+	--damage-detail-line-height-snug: var(--line-height-snug); /* サジェスト説明の行間。大きくすると複数行が読みやすくなる */
+	--damage-detail-line-height-tight: var(--line-height-tight); /* 数値やボタンの行間。大きくすると上下にゆとりが出る */
+	--damage-detail-ev-step-line-height: 1; /* 増減記号の行高。大きくすると上下余白が増える */
+
+	/* ── 3. 文字色 ─────────────────────── */
+	--damage-detail-text-color: var(--color-text); /* 本文と入力値の文字色。濃くすると主要情報が強く見える */
+	--damage-detail-muted-color: var(--color-text-muted); /* 補足・未選択値の文字色。濃くすると補助情報が読みやすくなる */
+	--damage-detail-primary-strong-color: var(--color-primary-strong); /* 選択中タブの文字色。濃くすると選択状態が強く見える */
+	--damage-detail-danger-strong-color: var(--color-danger-strong); /* 危険判定と攻撃チップの文字色。濃くすると警告が強く見える */
+	--damage-detail-risky-strong-color: var(--color-risky-strong); /* 注意判定と警告文の文字色。濃くすると注意情報が強く見える */
+	--damage-detail-success-strong-color: var(--color-success-strong); /* 安全判定の文字色。濃くすると判定結果が強く見える */
+	--damage-detail-stat-up-color: var(--color-stat-up); /* 性格補正で上がる能力の色。変えると上昇能力の目印が変わる */
+	--damage-detail-stat-down-color: var(--color-stat-down); /* 性格補正で下がる能力の色。変えると下降能力の目印が変わる */
+
+	/* ── 4. 背景色 ─────────────────────── */
+	--damage-detail-backdrop-background: var(--color-overlay); /* パネル背後の暗幕。濃くすると背後の画面が見えにくくなる */
+	--damage-detail-surface-background: var(--color-surface); /* パネルや入力部品の背景色。変えると主要な面の色がまとめて変わる */
+	--damage-detail-page-background: var(--color-bg); /* 集計欄や候補カードの背景色。変えるとパネル本体との明暗差が変わる */
+	--damage-detail-raised-background: var(--color-surface-raised); /* 努力値の増減ボタンの背景色。変えるとボタンの浮き上がり方が変わる */
+	--damage-detail-primary-soft-color: var(--color-primary-soft); /* 選択中の薄い背景色。濃くすると選択面が目立つ */
+	--damage-detail-danger-soft-color: var(--color-danger-soft); /* 危険判定と攻撃チップの背景色。濃くすると危険側が目立つ */
+	--damage-detail-risky-soft-color: var(--color-risky-soft); /* 注意判定と省略通知の背景色。濃くすると注意領域が目立つ */
+	--damage-detail-success-soft-color: var(--color-success-soft); /* 安全判定の背景色。濃くすると安全側の判定帯が目立つ */
+
+	/* ── 5. 枠線・角丸 ─────────────────────── */
+	--damage-detail-panel-left-border: 0; /* 左端の枠線。太くすると左境界が見える */
+	--damage-detail-panel-radius: var(--modal-radius); /* 外枠の角丸。大きくするとパネルが丸くなる */
+	--damage-detail-border-color: var(--color-border); /* 区切り線と通常枠の色。濃くすると各領域の境界が目立つ */
+	--damage-detail-primary-color: var(--color-primary); /* 選択・フォーカスの強調色。変えると操作中の目印が変わる */
+	--damage-detail-risky-color: var(--color-risky); /* 注意付き候補の枠色。濃くすると注意候補が目立つ */
+	--damage-detail-radius-md: var(--radius-md); /* 候補カードと一覧の角丸。大きくすると丸みが増す */
+	--damage-detail-radius-sm: var(--radius-sm); /* 小ボタンや小カードの角丸。大きくすると丸みが増す */
+	--damage-detail-radius-zero: var(--radius-zero); /* 努力値増減ボタンの角丸。大きくすると角が丸くなる */
+	--damage-detail-header-border: 1px solid var(--color-border); /* ヘッダー下線。太くすると本文との境界が強くなる */
+	--damage-detail-footer-border: 1px solid var(--color-border); /* フッター上線。太くすると集計欄との境界が強くなる */
+	--damage-detail-inline-border: 1px solid var(--color-border); /* カード列内表示の外枠。太くすると一覧内で目立つ */
+	--damage-detail-tab-border: 2px solid transparent; /* タブ下線の太さ。太くすると選択位置が目立つ */
+	--damage-detail-focus-outline: 2px solid var(--color-primary); /* キーボード選択枠。太くすると見つけやすい */
+	--damage-detail-tab-focus-outline-offset: -2px; /* 選択枠の位置。小さくするとタブ内側へ入る */
+	--damage-detail-candidate-item-border: 1px solid var(--color-border); /* 候補カードの枠。太くすると境界が強くなる */
+	--damage-detail-candidate-applied-border-width: 2px; /* 適用中カードの枠幅。大きくすると選択中が目立つ */
+	--damage-detail-suggest-fallback-radius: 50%; /* 代替表示の角丸。小さくすると円から角のある形へ変わる */
+	--damage-detail-suggest-action-border: 1px solid var(--color-border); /* 追加ラベルの枠。太くするとボタンらしさが強くなる */
+	--damage-detail-tera-list-border: 1px solid var(--color-border); /* 候補一覧の外枠。太くすると境界が強くなる */
+	--damage-detail-tera-button-border: 1px solid var(--color-border); /* テラ選択ボタンの枠。太くすると入力欄が目立つ */
+	--damage-detail-ev-step-border: 1px solid var(--color-border); /* 増減ボタンの枠。太くすると境界が強くなる */
+
+	/* ── 6. 影 ─────────────────────── */
+	--damage-detail-panel-shadow: var(--shadow-lg); /* 外側の影。強くすると背景から浮いて見える */
+	--damage-detail-shadow-md: var(--shadow-md); /* テラスタイプ候補一覧の影。強くすると手前に浮いて見える */
+	--damage-detail-shadow-sm: var(--shadow-sm); /* 努力値増減ボタンの影。強くすると浮いて見える */
+	--damage-detail-autofill-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 30%, transparent); /* 自動入力欄の強調輪。太くすると目立つ */
+
+	/* ── 7. 余白 ─────────────────────── */
+	--damage-detail-space-lg: var(--space-4); /* 大きめの間隔。大きくすると主要な領域同士が離れる */
+	--damage-detail-space-md: var(--space-3); /* 標準の間隔。大きくするとカード内や入力欄同士が離れる */
+	--damage-detail-space-sm: var(--space-2); /* 小さめの間隔。大きくするとボタンや行の密度が下がる */
+	--damage-detail-space-xs: var(--space-1); /* 最小の間隔。大きくすると細かな項目間が広がる */
+	--damage-detail-body-padding: 0.9rem var(--space-4) 1.4rem; /* 本文の内側余白。大きくすると内容が外枠から離れる */
+	--damage-detail-close-padding: 0.2em 0.55em; /* 閉じるボタンの余白。大きくすると押せる範囲が広がる */
+	--damage-detail-candidate-applied-padding: calc(var(--space-2) - 1px) calc(var(--space-3) - 1px); /* 太い枠を相殺する余白。大きくすると中身が内側へ寄る */
+	--damage-detail-candidate-segment-gap: 0.4em; /* 候補のラベルと値の間隔。大きくすると両者が離れる */
+	--damage-detail-candidate-item-gap: 0.2em; /* 候補カード内の行間。大きくすると数値や注意書きが離れる */
+	--damage-detail-suggest-name-row-gap: 0.15em var(--space-2); /* ポケモン名周辺の縦横間隔。大きくすると折り返しにゆとりが出る */
+	--damage-detail-suggest-direction-padding: 0 0.35em; /* 攻守チップの余白。大きくすると横に広がる */
+	--damage-detail-suggest-item-gap: 0.25em; /* 持ち物アイコンと名前の間隔。大きくすると両者が離れる */
+	--damage-detail-suggest-move-row-gap: 0.15em 0.25em; /* 技名と持ち物の縦横間隔。大きくすると情報同士が離れる */
+	--damage-detail-suggest-move-row-margin-top: 0.15em; /* 技名行の上余白。大きくするとポケモン名から離れる */
+	--damage-detail-suggest-reason-margin-top: 0.1em; /* 採用理由の上余白。大きくすると技名行から離れる */
+	--damage-detail-direction-toggle-margin-bottom: 1px; /* 攻守切り替え下の微調整。大きくすると上へ寄って見える */
+
+	/* ── 8. 寸法 ─────────────────────── */
+	--damage-detail-panel-width: min(92vw, 480px); /* 横幅。大きくすると入力欄や候補カードが横に広がる */
+	--damage-detail-panel-max-height: 85vh; /* 最大高さ。大きくすると一度に見える行数が増える */
+	--damage-detail-tera-list-max-height: 16rem; /* 候補一覧の最大高さ。大きくすると一度に見える件数が増える */
+	--damage-detail-suggest-sprite-size: 48px; /* ポケモン画像枠。大きくすると画像列が広がる */
+	--damage-detail-suggest-fallback-size: 35px; /* 画像がない場合の丸印。大きくすると代替表示が目立つ */
+	--stat-ev-mobile-button-block-size: 30px; /* 努力値編集ボタンの寸法。大きくするとタップ領域が広がる */
+	--move-type-icon-size: calc(20px * 1.1); /* 技タイプアイコン。大きくすると見出しの丸いアイコンが大きくなる */
+	--damage-detail-tera-icon-size: 20px; /* テラタイプアイコン。大きくすると候補行が高くなる */
+	--damage-detail-suggest-item-icon-size: 14px; /* 持ち物アイコン。大きくすると持ち物が目立つ */
+	--damage-detail-direction-toggle-width: 4.4em; /* 攻守切り替えの横幅。大きくすると切り替え欄が広がる */
+	--damage-detail-suggest-action-width: 3.4em; /* 右端の追加ラベル幅。大きくするとラベル列が広がる */
+	--damage-detail-ev-input-width: 3.2rem; /* 努力値入力欄の横幅。大きくすると数値周辺に余裕が出る */
+
+	/* ── 9. その他 ─────────────────────── */
+	--damage-detail-panel-open-opacity: 1; /* 開いた状態の透明度。小さくすると背後が透ける */
+	--damage-detail-panel-closed-opacity: 0; /* 閉じた状態の透明度。大きくすると閉じる途中も見えやすい */
+	--damage-detail-panel-transition-duration: 0.2s; /* 開閉時間。大きくすると動きがゆっくりになる */
+}
+
+/* --------------------------------------------------------------------------
+	ここから下は構造。レイアウトの組み立てなので通常は触らない。
+	-------------------------------------------------------------------------- */
+
+/* 右サイドの詳細設定パネル。中身は right-panel.ts が動的に書き換える。 */
 	/* 1920px幅を基準に3カラム(左=編集フォーム/中央=ダメージ計算カード/右=詳細設定)を
-	   組めるだけの余地がある閾値として1600pxを採用した(実測: 編集フォーム最小幅約480px+
-	   ダメージ計算カード1枚実測約620px+サイドバー320px+gap×2+サイドナビ256px+
-	   ページ余白 ≒ 1600px弱)。1600px未満(2カラム/縦積みいずれの場合も)ではサイドバーを
-	   画面右端からのオーバーレイ(スライドイン)にする。
-	   選択トリガーは「技列の箱のクリック(フォーム要素の外側)→その技だけの設定」の1種類のみ。
-	   カード内の入力欄クリックで意図せず選択が走らないようにしている
-	   (<script>のselectColumn/renderRow末尾のroot.addEventListener参照)。 */
+		組めるだけの余地がある閾値として1600pxを採用した(実測: 編集フォーム最小幅約480px+
+		ダメージ計算カード1枚実測約620px+サイドバー320px+gap×2+サイドナビ256px+
+		ページ余白 ≒ 1600px弱)。1600px未満(2カラム/縦積みいずれの場合も)ではサイドバーを
+		画面右端からのオーバーレイ(スライドイン)にする。
+		選択トリガーは「技列の箱のクリック(フォーム要素の外側)→その技だけの設定」の1種類のみ。
+		カード内の入力欄クリックで意図せず選択が走らないようにしている
+		(<script>のselectColumn/renderRow末尾のroot.addEventListener参照)。 */
+	/* 3カラム表示時に右端のパネルを配置する受け皿 */
 	.edit-layout-detail { display: contents; }
+
+	/* --------------------------------------------------------------------------
+		パネル外枠と背景
+		-------------------------------------------------------------------------- */
 	/* UI品質改善(帯構成への刷新): 右端に接する罫線(border-left)は.panel-right修飾子
-	   (global.css)と役割が完全に一致するため、マークアップ側に panel-right クラスを
-	   追加してそちらに委ねる(下のmarkup、#damage-detail-panel参照)。position:fixed/
-	   width/transformによるスライドイン・box-shadowは.panel基底が持たない固有の
-	   振る舞いのため、無理に.panel基底へ寄せずこのスコープドスタイルに残す。 */
+		(global.css)と役割が完全に一致するため、マークアップ側に panel-right クラスを
+		追加してそちらに委ねる(下のmarkup、#damage-detail-panel参照)。position:fixed/
+		width/transformによるスライドイン・box-shadowは.panel基底が持たない固有の
+		振る舞いのため、無理に.panel基底へ寄せずこのスコープドスタイルに残す。 */
 	.damage-detail-panel {
 		position: fixed;
 		top: 50%;
 		left: 50%;
 		right: auto;
 		bottom: auto;
-		width: min(92vw, 480px);
+		width: var(--damage-detail-panel-width);
 		height: auto;
-		max-height: 85vh;
+		max-height: var(--damage-detail-panel-max-height);
 		z-index: 60;
 		display: flex;
 		flex-direction: column;
 		overflow: hidden;
-		background: var(--color-surface);
-		box-shadow: var(--shadow-lg);
-		border-left: 0;
-		border-radius: var(--modal-radius);
+		background: var(--damage-detail-surface-background);
+		box-shadow: var(--damage-detail-panel-shadow);
+		border-left: var(--damage-detail-panel-left-border);
+		border-radius: var(--damage-detail-panel-radius);
 		transform: translate(-50%, -50%) scale(0.96);
-		opacity: 0;
+		opacity: var(--damage-detail-panel-closed-opacity);
 		pointer-events: none;
-		transition: transform 0.2s ease, opacity 0.2s ease;
+		transition: transform var(--damage-detail-panel-transition-duration) ease, opacity var(--damage-detail-panel-transition-duration) ease;
 	}
 	.damage-detail-panel.is-open {
 		transform: translate(-50%, -50%) scale(1);
-		opacity: 1;
+		opacity: var(--damage-detail-panel-open-opacity);
 		pointer-events: auto;
 	}
 	.damage-detail-backdrop {
 		position: fixed;
 		inset: 0;
 		z-index: 55;
-		background: var(--color-overlay);
+		background: var(--damage-detail-backdrop-background);
 	}
 	.damage-detail-backdrop[hidden] { display: none; }
 	.damage-detail-panel-header {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		gap: var(--space-2);
+		gap: var(--damage-detail-space-sm);
 		/* 3モード共通で密度を上げるため、横paddingは保ち縦paddingだけ一段縮める。 */
-		padding: var(--space-2) var(--space-4);
+		padding: var(--damage-detail-space-sm) var(--damage-detail-space-lg);
 		/* 今回の指示で3モード共通のタイトル直下の区切り線を復活させる。
-		   背景はモーダル本体(--color-surface)と同化させ、var(--color-bg)(ページ背景、
-		   ダークモードでは--color-surfaceより暗い)による帯を作らない。 */
-		border-bottom: 1px solid var(--color-border);
+			背景はモーダル本体(--color-surface)と同化させ、var(--damage-detail-page-background)(ページ背景、
+			ダークモードでは--color-surfaceより暗い)による帯を作らない。 */
+		border-bottom: var(--damage-detail-header-border);
 		flex-shrink: 0;
 	}
 	.damage-detail-panel-title {
 		min-width: 0;
 		flex: 1 1 auto;
-		font-weight: 700;
+		font-weight: var(--damage-detail-title-font-weight);
 	}
 	.damage-detail-panel-title.is-tab-bar {
 		display: flex;
 		align-items: stretch;
-		gap: var(--space-1);
+		gap: var(--damage-detail-space-xs);
 		overflow-x: auto;
 		scrollbar-width: none;
 	}
@@ -76,106 +201,113 @@
 	.damage-detail-panel-tab {
 		flex: 1 1 0;
 		min-width: max-content;
-		padding: var(--space-2) var(--space-3);
+		padding: var(--damage-detail-space-sm) var(--damage-detail-space-md);
 		border: 0;
-		border-bottom: 2px solid transparent;
+		border-bottom: var(--damage-detail-tab-border);
 		background: none;
-		color: var(--color-text-muted);
+		color: var(--damage-detail-muted-color);
 		font: inherit;
-		font-size: var(--font-size-sm2);
+		font-size: var(--damage-detail-font-size-sm);
 		text-align: center;
 		cursor: pointer;
 	}
 	.damage-detail-panel-tab[aria-selected="true"] {
-		border-bottom-color: var(--color-primary);
-		color: var(--color-primary-strong);
-		background: var(--color-primary-soft);
+		border-bottom-color: var(--damage-detail-primary-color);
+		color: var(--damage-detail-primary-strong-color);
+		background: var(--damage-detail-primary-soft-color);
 	}
 	.damage-detail-panel-tab:focus-visible {
-		outline: 2px solid var(--color-primary);
-		outline-offset: -2px;
+		outline: var(--damage-detail-focus-outline);
+		outline-offset: var(--damage-detail-tab-focus-outline-offset);
 	}
-	.damage-detail-panel-close { font-size: var(--font-size-lg1); padding: 0.2em 0.55em; }
+	/* パネル右上の「×」ボタン */
+	.damage-detail-panel-close {
+		font-size: var(--damage-detail-font-size-lg);
+		padding: var(--damage-detail-close-padding);
+	}
 	/* #damage-detail-panel-body自体をflex column化し、中身(JS生成の
-	   .damage-detail-panel-body-inner、is:global側で定義)にmargin-block:autoを持たせる
-	   ことで、中身がこの箱より短い間は上下中央に寄り、長くなればautoが0に収束して
-	   上端起点のoverflow-y:autoスクロールに戻る(⚠️ justify-content:centerをこちら側に
-	   付ける方法は不採用: 中身がこの箱より長くなったとき上端がoverflowで見切れる
-	   既知の不具合があるため)。
-	   #damage-detail-panel-body自体は静的マークアップ(下記<div id="damage-detail-panel-body">)
-	   なのでscoped<style>がそのまま効くが、中のinnerラッパーはJSのdocument.createElement()で
-	   生成するため、そちらのスタイルはis:global側に置く(pitfalls.mdの既知の罠)。 */
+		.damage-detail-panel-body-inner、is:global側で定義)にmargin-block:autoを持たせる
+		ことで、中身がこの箱より短い間は上下中央に寄り、長くなればautoが0に収束して
+		上端起点のoverflow-y:autoスクロールに戻る(⚠️ justify-content:centerをこちら側に
+		付ける方法は不採用: 中身がこの箱より長くなったとき上端がoverflowで見切れる
+		既知の不具合があるため)。
+		#damage-detail-panel-body自体は静的マークアップ(下記<div id="damage-detail-panel-body">)
+		なのでscoped<style>がそのまま効くが、中のinnerラッパーはJSのdocument.createElement()で
+		生成するため、そちらのスタイルはis:global側に置く(pitfalls.mdの既知の罠)。 */
+	/* --------------------------------------------------------------------------
+		スクロール本文と合計ダメージ欄
+		-------------------------------------------------------------------------- */
 	.damage-detail-panel-body {
 		min-height: 0;
 		flex: 1 1 auto;
 		display: flex;
 		flex-direction: column;
 		overflow-y: auto;
-		padding: 0.9rem var(--space-4) 1.4rem;
+		padding: var(--damage-detail-body-padding);
 		touch-action: pan-y;
 	}
 	.damage-detail-panel-footer {
 		flex: 0 0 auto;
-		padding: var(--space-2) var(--space-4) calc(var(--space-2) + env(safe-area-inset-bottom));
-		border-top: 1px solid var(--color-border);
-		background: var(--color-surface);
+		padding: var(--damage-detail-space-sm) var(--damage-detail-space-lg) calc(var(--damage-detail-space-sm) + env(safe-area-inset-bottom));
+		border-top: var(--damage-detail-footer-border);
+		background: var(--damage-detail-surface-background);
 	}
 	.damage-detail-panel-footer[hidden] { display: none; }
 	.damage-detail-panel-matchup {
 		display: flex;
 		justify-content: center;
 		min-height: var(--space-7);
-		margin-bottom: var(--space-1);
+		margin-bottom: var(--damage-detail-space-xs);
 	}
 	.damage-detail-panel-total {
 		display: grid;
 		grid-template-columns: auto minmax(0, 1fr);
 		align-items: baseline;
-		gap: var(--space-2);
-		padding: var(--space-1) var(--space-2);
-		background: var(--color-bg);
-		color: var(--color-text-muted);
+		gap: var(--damage-detail-space-sm);
+		padding: var(--damage-detail-space-xs) var(--damage-detail-space-sm);
+		background: var(--damage-detail-page-background);
+		color: var(--damage-detail-muted-color);
 	}
 	.damage-detail-panel-total[data-severity="lethal"] {
-		background: var(--color-danger-soft);
-		color: var(--color-danger-strong);
+		background: var(--damage-detail-danger-soft-color);
+		color: var(--damage-detail-danger-strong-color);
 	}
 	.damage-detail-panel-total[data-severity="risky"] {
-		background: var(--color-risky-soft);
-		color: var(--color-risky-strong);
+		background: var(--damage-detail-risky-soft-color);
+		color: var(--damage-detail-risky-strong-color);
 	}
 	.damage-detail-panel-total[data-severity="safe"] {
-		background: var(--color-success-soft);
-		color: var(--color-success-strong);
+		background: var(--damage-detail-success-soft-color);
+		color: var(--damage-detail-success-strong-color);
 	}
 	.damage-detail-panel-total-label {
-		font-size: var(--font-size-sm3);
-		font-weight: 700;
+		font-size: var(--damage-detail-font-size-xs);
+		font-weight: var(--damage-detail-font-weight-bold);
 	}
 	.damage-detail-panel-total-result {
 		display: grid;
 		grid-template-columns: auto minmax(0, 1fr);
 		align-items: baseline;
-		gap: var(--space-2);
+		gap: var(--damage-detail-space-sm);
 		min-width: 0;
 		margin: 0;
-		font-size: var(--font-size-sm2);
-		line-height: var(--line-height-tight);
+		font-size: var(--damage-detail-font-size-sm);
+		line-height: var(--damage-detail-line-height-tight);
 		text-align: right;
 	}
 	.damage-detail-panel-total-result .damage-result-verdict {
-		font-size: var(--font-size-lg1);
-		font-weight: 800;
+		font-size: var(--damage-detail-font-size-lg);
+		font-weight: var(--damage-detail-font-weight-heavy);
 	}
 	.damage-detail-panel-total-result .damage-result-detail {
 		min-width: 0;
 		overflow-wrap: anywhere;
 	}
 	/* .damage-detail-panel-emptyはis:global側(#damage-detail-panel-body
-	   .damage-detail-panel-empty)で定義する。理由: このpは静的マークアップ
-	   (JS初期化前のフォールバック)とJS生成(renderDetailPanelEmpty)の両方から使われるが、
-	   後者はscoped<style>が効かない(pitfalls.md)。同じ1つの定義で両方に効かせるため、
-	   静的/動的どちらの経路でも確実に効くis:global側に統一する。 */
+		.damage-detail-panel-empty)で定義する。理由: このpは静的マークアップ
+		(JS初期化前のフォールバック)とJS生成(renderDetailPanelEmpty)の両方から使われるが、
+		後者はscoped<style>が効かない(pitfalls.md)。同じ1つの定義で両方に効かせるため、
+		静的/動的どちらの経路でも確実に効くis:global側に統一する。 */
 	/* 未選択時のサジェスト一覧だけは、従来どおりカード一覧内へインライン配置する。 */
 	@media (min-width: 0) {
 		.damage-detail-panel.is-mobile-inline {
@@ -186,27 +318,29 @@
 			height: auto;
 			max-height: none;
 			transform: none;
-			opacity: 1;
+			opacity: var(--damage-detail-panel-open-opacity);
 			pointer-events: auto;
 			box-shadow: none;
 			z-index: auto;
-			border: 1px solid var(--color-border);
-			border-radius: var(--radius-md);
+			border: var(--damage-detail-inline-border);
+			border-radius: var(--damage-detail-radius-md);
 		}
 		.damage-detail-panel.is-mobile-inline .damage-detail-panel-body {
 			overflow-y: visible;
-			padding: var(--space-3);
+			padding: var(--damage-detail-space-md);
 		}
 		/* サジェスト一覧はカード列に常設される(閉じる対象の選択が無い)ので閉じるボタンを出さない。 */
 		.damage-detail-panel.is-mobile-suggest .damage-detail-panel-close { display: none; }
 	}
 
 	/* 動的生成要素に限定し、耐久最大化・耐久調整の本文レイアウトには影響させない。 */
+	/* --------------------------------------------------------------------------
+		選択中の対面と入力項目
+		-------------------------------------------------------------------------- */
 	.damage-detail-panel .damage-detail-selection-heading {
-		gap: var(--space-3);
+		gap: var(--damage-detail-space-md);
 	}
 	.damage-detail-panel .damage-detail-selection-move-type-icon {
-		--move-type-icon-size: calc(20px * 1.1);
 		width: var(--move-type-icon-size);
 		height: var(--move-type-icon-size);
 		border-radius: 50%;
@@ -214,45 +348,48 @@
 		flex-shrink: 0;
 	}
 	.damage-detail-panel .damage-detail-selection-move-type-icon[hidden] { display: none; }
-	/* var(--font-size-sm3)は両側の見出しと同じ値。行クラスも含めて詳細度を上げ、読み込み順に依存せず適用する。 */
+	/* var(--damage-detail-font-size-xs)は両側の見出しと同じ値。行クラスも含めて詳細度を上げ、読み込み順に依存せず適用する。 */
 	#damage-detail-panel-body .damage-detail-field-row .damage-detail-field-row-label {
-		font-size: var(--font-size-sm3);
-		font-weight: 600;
-		color: var(--color-text);
+		font-size: var(--damage-detail-font-size-xs);
+		font-weight: var(--damage-detail-font-weight-semibold);
+		color: var(--damage-detail-text-color);
 	}
 
 	/* 右パネルの3用途(A:技カード選択時の詳細設定/B:耐久調整の候補一覧/C:耐久指数の候補一覧)の
-	   うちB・Cは「候補ボタンの縦リスト、クリックで左パネルに適用」という同一の
-	   インタラクションのため、src/lib/box-id/right-panel.ts の renderCandidateList()
-	   1つで両方を描画する(クラス名は機能非依存の candidate-list-* に統一しており、Cが固有の
-	   「指数」表示を必要とする場合も、このクラス構成のitem/segmentへ渡すデータを
-	   変えるだけで済み、CSSの2系統目を複製する必要はない)。
-	   document.createElement()による動的生成のため、Astroのscoped<style>は効かない
-	   (pitfalls.md「JSで生成した要素に効かない」)。#damage-detail-panel-body接頭辞の
-	   グローバルセレクタとして、既存の詳細設定UI(このファイル上部の
-	   #damage-detail-panel-body .damage-detail-*、DamageCalcSection.astro側)と同じ流儀で
-	   定義する。新しい色・角丸トークンは作らず、既存のCSS変数のみを使う。 */
+		うちB・Cは「候補ボタンの縦リスト、クリックで左パネルに適用」という同一の
+		インタラクションのため、src/lib/box-id/right-panel.ts の renderCandidateList()
+		1つで両方を描画する(クラス名は機能非依存の candidate-list-* に統一しており、Cが固有の
+		「指数」表示を必要とする場合も、このクラス構成のitem/segmentへ渡すデータを
+		変えるだけで済み、CSSの2系統目を複製する必要はない)。
+		document.createElement()による動的生成のため、Astroのscoped<style>は効かない
+		(pitfalls.md「JSで生成した要素に効かない」)。#damage-detail-panel-body接頭辞の
+		グローバルセレクタとして、既存の詳細設定UI(このファイル上部の
+		#damage-detail-panel-body .damage-detail-*、DamageCalcSection.astro側)と同じ流儀で
+		定義する。新しい色・角丸トークンは作らず、既存のCSS変数のみを使う。 */
+	/* --------------------------------------------------------------------------
+		耐久調整・耐久指数の候補一覧
+		-------------------------------------------------------------------------- */
 	#damage-detail-panel-body .candidate-list-heading {
-		margin: 0 0 var(--space-1);
-		font-weight: 700;
+		margin: 0 0 var(--damage-detail-space-xs);
+		font-weight: var(--damage-detail-font-weight-bold);
 	}
 	#damage-detail-panel-body .candidate-list-context,
 	#damage-detail-panel-body .candidate-list-note {
-		margin: 0 0 var(--space-3);
-		color: var(--color-text-muted);
-		font-size: var(--font-size-sm3);
+		margin: 0 0 var(--damage-detail-space-md);
+		color: var(--damage-detail-muted-color);
+		font-size: var(--damage-detail-font-size-xs);
 	}
 	#damage-detail-panel-body .candidate-list-empty-message {
 		margin: 0;
-		color: var(--color-text-muted);
+		color: var(--damage-detail-muted-color);
 	}
 	#damage-detail-panel-body .candidate-list-truncated-note {
-		margin: 0 0 var(--space-3);
-		padding: var(--space-2) var(--space-3);
-		border-radius: var(--radius-sm);
-		background: var(--color-risky-soft);
-		color: var(--color-risky-strong);
-		font-size: var(--font-size-sm2);
+		margin: 0 0 var(--damage-detail-space-md);
+		padding: var(--damage-detail-space-sm) var(--damage-detail-space-md);
+		border-radius: var(--damage-detail-radius-sm);
+		background: var(--damage-detail-risky-soft-color);
+		color: var(--damage-detail-risky-strong-color);
+		font-size: var(--damage-detail-font-size-sm);
 	}
 	#damage-detail-panel-body .candidate-list {
 		list-style: none;
@@ -260,98 +397,98 @@
 		padding: 0;
 		display: flex;
 		flex-direction: column;
-		gap: var(--space-2);
+		gap: var(--damage-detail-space-sm);
 	}
 	#damage-detail-panel-body .candidate-list-item {
 		width: 100%;
 		display: flex;
 		flex-direction: column;
 		align-items: flex-start;
-		gap: 0.2em;
-		border: 1px solid var(--color-border);
-		border-radius: var(--radius-md);
-		padding: var(--space-2) var(--space-3);
-		background: var(--color-bg);
+		gap: var(--damage-detail-candidate-item-gap);
+		border: var(--damage-detail-candidate-item-border);
+		border-radius: var(--damage-detail-radius-md);
+		padding: var(--damage-detail-space-sm) var(--damage-detail-space-md);
+		background: var(--damage-detail-page-background);
 		text-align: left;
 		cursor: pointer;
-		font-size: var(--font-size-sm2);
+		font-size: var(--damage-detail-font-size-sm);
 	}
 	#damage-detail-panel-body .candidate-list-item:hover,
 	#damage-detail-panel-body .candidate-list-item:focus-visible {
-		border-color: var(--color-primary);
+		border-color: var(--damage-detail-primary-color);
 	}
 	/* 支援技術向けの状態は動的要素のaria-currentで示す。 */
 	#damage-detail-panel-body .candidate-list-item.is-applied {
-		border-color: var(--color-primary);
-		border-width: 2px;
-		padding: calc(var(--space-2) - 1px) calc(var(--space-3) - 1px);
-		background: var(--color-primary-soft);
+		border-color: var(--damage-detail-primary-color);
+		border-width: var(--damage-detail-candidate-applied-border-width);
+		padding: var(--damage-detail-candidate-applied-padding);
+		background: var(--damage-detail-primary-soft-color);
 	}
 	#damage-detail-panel-body .candidate-list-item-segment {
 		display: flex;
 		align-items: baseline;
-		gap: 0.4em;
+		gap: var(--damage-detail-candidate-segment-gap);
 	}
 	#damage-detail-panel-body .candidate-list-item-segment-label {
-		color: var(--color-text-muted);
-		font-size: var(--font-size-sm3);
+		color: var(--damage-detail-muted-color);
+		font-size: var(--damage-detail-font-size-xs);
 		flex-shrink: 0;
 	}
 	#damage-detail-panel-body .candidate-list-item-segment.is-emphasis .candidate-list-item-segment-value {
-		font-weight: 700;
+		font-weight: var(--damage-detail-font-weight-bold);
 	}
 	#damage-detail-panel-body .candidate-list-item.has-warn-flag {
-		border-color: var(--color-risky);
+		border-color: var(--damage-detail-risky-color);
 	}
 	#damage-detail-panel-body .candidate-list-item-flag {
-		font-weight: 700;
+		font-weight: var(--damage-detail-font-weight-bold);
 	}
 	#damage-detail-panel-body .candidate-list-item-flag.is-warn {
-		color: var(--color-risky-strong);
+		color: var(--damage-detail-risky-strong-color);
 	}
 	#damage-detail-panel-body .candidate-list-item-flag.is-info {
-		color: var(--color-text-muted);
-		font-weight: 400;
+		color: var(--damage-detail-muted-color);
+		font-weight: var(--damage-detail-font-weight-regular);
 	}
 
 	/* 両モードとも「<ラベル>実数値(努力値)」形式(例: H180(27) B131(0) D105(0))をH/B/Dで
-	   1行に収めた統一カードにする。外枠は既存の.candidate-list-item(ボーダー・背景・
-	   is-applied等)をそのまま流用し(新色は作らない)、中身だけをこのカード専用の構造
-	   (right-panel.tsのbuildStatCardEl参照)に足す。 */
+		1行に収めた統一カードにする。外枠は既存の.candidate-list-item(ボーダー・背景・
+		is-applied等)をそのまま流用し(新色は作らない)、中身だけをこのカード専用の構造
+		(right-panel.tsのbuildStatCardEl参照)に足す。 */
 	#damage-detail-panel-body .candidate-list-item-statline {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 0 var(--space-3);
+		gap: 0 var(--damage-detail-space-md);
 		/* 候補の選択状態は背景と枠だけで示し、数値を見出しと競合させないため一段細くする。 */
-		font-weight: 400;
+		font-weight: var(--damage-detail-font-weight-regular);
 	}
 	#damage-detail-panel-body .candidate-list-item-stat {
 		white-space: nowrap;
 	}
 	#damage-detail-panel-body .candidate-list-item-stat-ev {
-		color: var(--color-text-muted);
-		font-weight: 600;
+		color: var(--damage-detail-muted-color);
+		font-weight: var(--damage-detail-font-weight-semibold);
 	}
 	/* 今回の要件: 耐久最大化の元カードはbutton化する。クリック処理の無い他モードの
-	   divカードだけは従来どおり非操作表示にする。 */
+		divカードだけは従来どおり非操作表示にする。 */
 	#damage-detail-panel-body div.candidate-list-item.is-current {
 		cursor: default;
 	}
 	#damage-detail-panel-body div.candidate-list-item.is-current:hover,
 	#damage-detail-panel-body div.candidate-list-item.is-current:focus-visible {
-		border-color: var(--color-border);
+		border-color: var(--damage-detail-border-color);
 	}
 	#damage-detail-panel-body .candidate-list-item-current-badge,
 	#damage-detail-panel-body .candidate-list-item-badge {
-		color: var(--color-text-muted);
-		font-size: var(--font-size-sm3);
-		font-weight: 600;
+		color: var(--damage-detail-muted-color);
+		font-size: var(--damage-detail-font-size-xs);
+		font-weight: var(--damage-detail-font-weight-semibold);
 	}
 	/* 依頼6: 指数名の見出し(サブタイトルフォント)。色・太さ・サイズは既存の.field-labelを
-	   そのまま流用し(right-panel.ts側でclass="field-label candidate-list-group-title"を
-	   付与)、このページ固有の間隔・ホバーヘルプ(title属性、依頼6の計算式)だけをここに足す。 */
+		そのまま流用し(right-panel.ts側でclass="field-label candidate-list-group-title"を
+		付与)、このページ固有の間隔・ホバーヘルプ(title属性、依頼6の計算式)だけをここに足す。 */
 	#damage-detail-panel-body .candidate-list-group-title {
-		margin: var(--space-3) 0 0;
+		margin: var(--damage-detail-space-md) 0 0;
 		cursor: help;
 	}
 	#damage-detail-panel-body .candidate-list-group-title:first-child {
@@ -363,53 +500,56 @@
 		flex-wrap: wrap;
 		align-items: center;
 		justify-content: space-between;
-		gap: var(--space-2);
-		margin-top: var(--space-3);
+		gap: var(--damage-detail-space-sm);
+		margin-top: var(--damage-detail-space-md);
 	}
 	#damage-detail-panel-body .candidate-list-result-heading-row .candidate-list-group-title,
 	#damage-detail-panel-body .candidate-list-result-heading-row .candidate-list-filter-row { margin: 0; }
 	/* 依頼7: 「残り努力値以下のみ表示」トグル。トグル自体の見た目
-	   (.toggle-switch/.toggle-switch-track/.toggle-switch-thumb)はLeftPanel.astroの
-	   is:global側で定義済みの規格をそのまま使う(新規CSSはこの行の配置のみ)。 */
+		(.toggle-switch/.toggle-switch-track/.toggle-switch-thumb)はLeftPanel.astroの
+		is:global側で定義済みの規格をそのまま使う(新規CSSはこの行の配置のみ)。 */
 	#damage-detail-panel-body .candidate-list-filter-row {
 		display: flex;
 		align-items: center;
-		gap: var(--space-2);
-		margin: 0 0 var(--space-3);
+		gap: var(--damage-detail-space-sm);
+		margin: 0 0 var(--damage-detail-space-md);
 		cursor: pointer;
-		font-size: var(--font-size-sm2);
+		font-size: var(--damage-detail-font-size-sm);
 	}
 
 	/* --- 右パネルのニュートラル状態に「そのポケモンの型でよく行われているダメージ計算」を
-	   並べるサジェスト一覧。src/pages/team/[id].astro の .team-suggest-* 一式
-	   (順位 / 本文 / 操作 の3列グリッド、48pxスプライト、xsサイズのmuted補足行)を
-	   そのまま写している。値・トークンは新設せず、あちらで使われているものだけを使う。
-	   クラス名を .damage-suggest-* に分けているのは、team/[id].astro側のCSSがそのページの
-	   is:globalに閉じており共有できないため(共通化するならglobal.cssへの昇格が要る)。
-	   document.createElement()による動的生成のためscoped<style>は効かない
-	   (pitfalls.md「JSで生成した要素に効かない」)。 --- */
+		並べるサジェスト一覧。src/pages/team/[id].astro の .team-suggest-* 一式
+		(順位 / 本文 / 操作 の3列グリッド、48pxスプライト、xsサイズのmuted補足行)を
+		そのまま写している。値・トークンは新設せず、あちらで使われているものだけを使う。
+		クラス名を .damage-suggest-* に分けているのは、team/[id].astro側のCSSがそのページの
+		is:globalに閉じており共有できないため(共通化するならglobal.cssへの昇格が要る)。
+		document.createElement()による動的生成のためscoped<style>は効かない
+		(pitfalls.md「JSで生成した要素に効かない」)。 --- */
+	/* --------------------------------------------------------------------------
+		よく使われるダメージ計算のサジェスト一覧
+		-------------------------------------------------------------------------- */
 	#damage-detail-panel-body .damage-suggest-list {
 		list-style: none;
 		margin: 0;
 		padding: 0;
 		display: flex;
 		flex-direction: column;
-		gap: var(--space-2);
+		gap: var(--damage-detail-space-sm);
 	}
 	/* カード全体が1つのボタン(操作が「追加」の1種類しかないため。team側は
-	   「育成する/チームに追加」の2択があるので右端に別ボタンを置いている)。 */
+		「育成する/チームに追加」の2択があるので右端に別ボタンを置いている)。 */
 	#damage-detail-panel-body .damage-suggest-card-button {
 		width: 100%;
 		display: grid;
 		/* 順位 / 本文 / 追加ラベル の3列。本文列は minmax(0, 1fr) にしないと長い技名・
-		   持ち物名がグリッドを押し広げて横スクロールを起こす(team-suggest-cardと同じ)。 */
+			持ち物名がグリッドを押し広げて横スクロールを起こす(team-suggest-cardと同じ)。 */
 		grid-template-columns: auto minmax(0, 1fr) auto;
 		align-items: center;
-		gap: var(--space-2);
-		padding: var(--space-2);
-		border: 1px solid var(--color-border);
-		border-radius: var(--radius-sm);
-		background: var(--color-surface);
+		gap: var(--damage-detail-space-sm);
+		padding: var(--damage-detail-space-sm);
+		border: 1px solid var(--damage-detail-border-color);
+		border-radius: var(--damage-detail-radius-sm);
+		background: var(--damage-detail-surface-background);
 		text-align: left;
 		cursor: pointer;
 		color: inherit;
@@ -417,12 +557,12 @@
 	}
 	#damage-detail-panel-body .damage-suggest-card-button:hover,
 	#damage-detail-panel-body .damage-suggest-card-button:focus-visible {
-		border-color: var(--color-primary);
+		border-color: var(--damage-detail-primary-color);
 	}
 	#damage-detail-panel-body .damage-suggest-rank {
-		font-size: calc(var(--font-size-sm3) * 1.5);
-		font-weight: 700;
-		color: var(--color-text-muted);
+		font-size: calc(var(--damage-detail-font-size-xs) * 1.5);
+		font-weight: var(--damage-detail-font-weight-bold);
+		color: var(--damage-detail-muted-color);
 		min-width: 1.2em;
 		text-align: right;
 	}
@@ -431,35 +571,35 @@
 		display: block;
 	}
 	/* 攻守チップ・スプライト・相手の種族名・相手の持ち物を1段目に置く。持ち物まで入ると
-	   右パネルの本文列(実測200px前後)には収まらないため、折り返しを許す(team側の
-	   .team-suggest-buildと同じ判断: 切ると提案の中身そのものが読めなくなる)。 */
+		右パネルの本文列(実測200px前後)には収まらないため、折り返しを許す(team側の
+		.team-suggest-buildと同じ判断: 切ると提案の中身そのものが読めなくなる)。 */
 	#damage-detail-panel-body .damage-suggest-name-row {
 		display: flex;
 		align-items: center;
 		flex-wrap: wrap;
-		gap: 0.15em var(--space-2);
+		gap: var(--damage-detail-suggest-name-row-gap);
 		min-width: 0;
 	}
 	/* 攻守は中央パネルの攻守トグル(.damage-row-direction-option)と同じ語彙・同じ意味の
-	   チップ。配色もそちらに揃え、攻撃=危険色系/防御=primary系の既存トークンだけを使う。 */
+		チップ。配色もそちらに揃え、攻撃=危険色系/防御=primary系の既存トークンだけを使う。 */
 	#damage-detail-panel-body .damage-suggest-direction {
 		flex: none;
-		padding: 0 0.35em;
-		border-radius: var(--radius-sm);
-		font-size: var(--font-size-sm3);
-		font-weight: 600;
+		padding: var(--damage-detail-suggest-direction-padding);
+		border-radius: var(--damage-detail-radius-sm);
+		font-size: var(--damage-detail-font-size-xs);
+		font-weight: var(--damage-detail-font-weight-semibold);
 	}
 	#damage-detail-panel-body .damage-suggest-direction[data-direction="attack"] {
-		background: var(--color-danger-soft);
-		color: var(--color-danger-strong);
+		background: var(--damage-detail-danger-soft-color);
+		color: var(--damage-detail-danger-strong-color);
 	}
 	#damage-detail-panel-body .damage-suggest-direction[data-direction="defense"] {
-		background: var(--color-primary-soft);
-		color: var(--color-primary);
+		background: var(--damage-detail-primary-soft-color);
+		color: var(--damage-detail-primary-color);
 	}
 	#damage-detail-panel-body .damage-suggest-sprite {
-		width: 48px;
-		height: 48px;
+		width: var(--damage-detail-suggest-sprite-size);
+		height: var(--damage-detail-suggest-sprite-size);
 		flex: none;
 		display: flex;
 		align-items: center;
@@ -471,109 +611,111 @@
 	}
 	#damage-detail-panel-body .damage-suggest-sprite-fallback {
 		display: none;
-		width: 35px;
-		height: 35px;
-		border-radius: 50%;
-		background: var(--color-bg);
-		color: var(--color-text-muted);
-		font-size: var(--font-size-sm3);
+		width: var(--damage-detail-suggest-fallback-size);
+		height: var(--damage-detail-suggest-fallback-size);
+		border-radius: var(--damage-detail-suggest-fallback-radius);
+		background: var(--damage-detail-page-background);
+		color: var(--damage-detail-muted-color);
+		font-size: var(--damage-detail-font-size-xs);
 		align-items: center;
 		justify-content: center;
 	}
 	#damage-detail-panel-body .damage-suggest-name {
-		font-size: var(--font-size-sm2);
-		font-weight: 600;
+		font-size: var(--damage-detail-font-size-sm);
+		font-weight: var(--damage-detail-font-weight-semibold);
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
 		min-width: 0;
 	}
 	/* 技名(+その計算で想定されている相手の持ち物)。右パネルの本文列は実測で200px前後
-	   しかないため、折り返して2行になることを許す(切ると提案の中身が読めなくなる)。 */
+		しかないため、折り返して2行になることを許す(切ると提案の中身が読めなくなる)。 */
 	#damage-detail-panel-body .damage-suggest-move-row {
 		display: flex;
 		align-items: center;
 		flex-wrap: wrap;
-		gap: 0.15em 0.25em;
-		line-height: var(--line-height-snug);
-		margin-top: 0.15em;
+		gap: var(--damage-detail-suggest-move-row-gap);
+		line-height: var(--damage-detail-line-height-snug);
+		margin-top: var(--damage-detail-suggest-move-row-margin-top);
 	}
 	#damage-detail-panel-body .damage-suggest-move {
-		font-size: var(--font-size-sm2);
-		font-weight: 600;
+		font-size: var(--damage-detail-font-size-sm);
+		font-weight: var(--damage-detail-font-weight-semibold);
 		min-width: 0;
 	}
 	/* アイコンと名前は不可分の1塊にする(バラで並べると折り返しで分断される)。 */
 	#damage-detail-panel-body .damage-suggest-item {
 		display: inline-flex;
 		align-items: center;
-		gap: 0.25em;
+		gap: var(--damage-detail-suggest-item-gap);
 		min-width: 0;
 	}
 	#damage-detail-panel-body .damage-suggest-item-icon {
-		width: 14px;
-		height: 14px;
+		width: var(--damage-detail-suggest-item-icon-size);
+		height: var(--damage-detail-suggest-item-icon-size);
 		flex: none;
 	}
 	#damage-detail-panel-body .damage-suggest-item-name {
-		font-weight: 600;
-		font-size: var(--font-size-sm3);
-		color: var(--color-text-muted);
+		font-weight: var(--damage-detail-font-weight-semibold);
+		font-size: var(--damage-detail-font-size-xs);
+		color: var(--damage-detail-muted-color);
 	}
 	#damage-detail-panel-body .damage-suggest-reason {
 		display: block;
-		font-size: var(--font-size-sm3);
-		color: var(--color-text-muted);
-		line-height: var(--line-height-snug);
-		margin-top: 0.1em;
+		font-size: var(--damage-detail-font-size-xs);
+		color: var(--damage-detail-muted-color);
+		line-height: var(--damage-detail-line-height-snug);
+		margin-top: var(--damage-detail-suggest-reason-margin-top);
 	}
 	/* 3列目。実体はカード全体のボタンなので、これ自体は押せる見た目のラベルにとどめる
-	   (team-suggest-actionと同じ寸法・同じトークン)。 */
+		(team-suggest-actionと同じ寸法・同じトークン)。 */
 	#damage-detail-panel-body .damage-suggest-action {
 		align-self: stretch;
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		width: 3.4em;
-		font-size: var(--font-size-sm3);
-		line-height: var(--line-height-tight);
-		padding: var(--space-1);
-		border: 1px solid var(--color-border);
-		border-radius: var(--radius-sm);
-		background: var(--color-bg);
-		color: var(--color-text);
+		width: var(--damage-detail-suggest-action-width);
+		font-size: var(--damage-detail-font-size-xs);
+		line-height: var(--damage-detail-line-height-tight);
+		padding: var(--damage-detail-space-xs);
+		border: var(--damage-detail-suggest-action-border);
+		border-radius: var(--damage-detail-radius-sm);
+		background: var(--damage-detail-page-background);
+		color: var(--damage-detail-text-color);
 	}
 
 	/* 相手ビルドは既存のボトムシート本体だけを差し替えて編集する。 */
+	/* --------------------------------------------------------------------------
+		相手ポケモンのビルド編集
+		-------------------------------------------------------------------------- */
 	#damage-detail-panel-body .damage-build-detail-form {
-		--stat-ev-mobile-button-block-size: 30px;
 		width: 100%;
 		display: flex;
 		flex-direction: column;
-		gap: var(--space-4);
+		gap: var(--damage-detail-space-lg);
 	}
 	#damage-detail-panel-body .damage-build-detail-fields,
 	#damage-detail-panel-body .damage-build-detail-grid {
 		display: grid;
 		grid-template-columns: repeat(2, minmax(0, 1fr));
-		gap: var(--space-3);
+		gap: var(--damage-detail-space-md);
 	}
 	#damage-detail-panel-body .damage-build-detail-identity-row {
 		grid-column: 1 / -1;
 		display: grid;
 		grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr);
 		align-items: end;
-		gap: var(--space-2);
+		gap: var(--damage-detail-space-sm);
 	}
 	#damage-detail-panel-body .damage-build-detail-direction-toggle {
-		width: 4.4em;
-		min-width: 4.4em;
+		width: var(--damage-detail-direction-toggle-width);
+		min-width: var(--damage-detail-direction-toggle-width);
 		min-height: var(--space-7);
-		margin-bottom: 1px;
+		margin-bottom: var(--damage-detail-direction-toggle-margin-bottom);
 	}
 	#damage-detail-panel-body .damage-build-detail-direction-toggle .damage-row-direction-option {
 		min-height: var(--space-7);
-		padding-inline: var(--space-1);
+		padding-inline: var(--damage-detail-space-xs);
 	}
 	#damage-detail-panel-body .damage-build-detail-grid {
 		grid-column: 1 / -1;
@@ -582,7 +724,7 @@
 		min-width: 0;
 		display: flex;
 		flex-direction: column;
-		gap: var(--space-1);
+		gap: var(--damage-detail-space-xs);
 		position: relative;
 	}
 	#damage-detail-panel-body .damage-build-detail-field[hidden],
@@ -593,8 +735,8 @@
 		display: grid;
 		grid-template-columns: auto minmax(0, 1fr);
 		align-items: center;
-		gap: var(--space-2);
-		margin-bottom: var(--space-2);
+		gap: var(--damage-detail-space-sm);
+		margin-bottom: var(--damage-detail-space-sm);
 	}
 	#damage-detail-panel-body .damage-detail-rank-ailment-row .damage-detail-rank-field {
 		margin-bottom: 0;
@@ -606,8 +748,8 @@
 	#damage-detail-panel-body .damage-detail-chip-row.damage-detail-state-grid {
 		display: grid;
 		grid-template-columns: repeat(3, minmax(0, 1fr));
-		gap: var(--space-1);
-		margin-bottom: var(--space-1);
+		gap: var(--damage-detail-space-xs);
+		margin-bottom: var(--damage-detail-space-xs);
 	}
 	#damage-detail-panel-body .damage-detail-state-grid > .damage-detail-icon-btn {
 		width: 100%;
@@ -620,12 +762,12 @@
 		min-width: 0;
 	}
 	#damage-detail-panel-body .damage-build-detail-lock-note {
-		color: var(--color-text-muted);
-		font-size: var(--font-size-sm3);
+		color: var(--damage-detail-muted-color);
+		font-size: var(--damage-detail-font-size-xs);
 	}
 	#damage-detail-panel-body .damage-build-detail-form input.is-autofilled {
-		border-color: var(--color-primary);
-		box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 30%, transparent);
+		border-color: var(--damage-detail-primary-color);
+		box-shadow: var(--damage-detail-autofill-shadow);
 	}
 	#damage-detail-panel-body .damage-build-detail-form .damage-row-tera-field {
 		position: relative;
@@ -636,14 +778,14 @@
 		display: flex;
 		align-items: center;
 		justify-content: flex-start;
-		gap: var(--space-1);
-		padding: var(--space-2);
-		border: 1px solid var(--color-border);
-		border-radius: var(--radius-sm);
-		background: var(--color-surface);
-		color: var(--color-text);
-		font-size: var(--font-size-sm2);
-		font-weight: 400;
+		gap: var(--damage-detail-space-xs);
+		padding: var(--damage-detail-space-sm);
+		border: var(--damage-detail-tera-button-border);
+		border-radius: var(--damage-detail-radius-sm);
+		background: var(--damage-detail-surface-background);
+		color: var(--damage-detail-text-color);
+		font-size: var(--damage-detail-font-size-sm);
+		font-weight: var(--damage-detail-font-weight-regular);
 		text-align: left;
 		cursor: pointer;
 	}
@@ -653,8 +795,8 @@
 	}
 	#damage-detail-panel-body .damage-build-detail-form .tera-dropdown-image,
 	#damage-detail-panel-body .damage-build-detail-form .tera-dropdown-option-image {
-		width: 20px;
-		height: 20px;
+		width: var(--damage-detail-tera-icon-size);
+		height: var(--damage-detail-tera-icon-size);
 		object-fit: contain;
 		flex: none;
 	}
@@ -663,26 +805,27 @@
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
-		color: var(--color-text-muted);
+		color: var(--damage-detail-muted-color);
 	}
 	#damage-detail-panel-body .damage-build-detail-form .tera-dropdown-placeholder.is-tera-value-text {
-		color: var(--color-text);
+		color: var(--damage-detail-text-color);
 	}
+	/* ボタン直下に開くテラスタイプ候補一覧 */
 	#damage-detail-panel-body .damage-build-detail-form .tera-dropdown-list {
 		z-index: 5;
 		position: absolute;
-		top: calc(100% + var(--space-1));
+		top: calc(100% + var(--damage-detail-space-xs));
 		left: 0;
 		right: 0;
-		max-height: 16rem;
+		max-height: var(--damage-detail-tera-list-max-height);
 		overflow-y: auto;
 		margin: 0;
-		padding: var(--space-1);
+		padding: var(--damage-detail-space-xs);
 		list-style: none;
-		background: var(--color-surface);
-		border: 1px solid var(--color-border);
-		border-radius: var(--radius-md);
-		box-shadow: var(--shadow-md);
+		background: var(--damage-detail-surface-background);
+		border: var(--damage-detail-tera-list-border);
+		border-radius: var(--damage-detail-radius-md);
+		box-shadow: var(--damage-detail-shadow-md);
 	}
 	#damage-detail-panel-body .damage-build-detail-form .tera-dropdown-list[hidden] {
 		display: none;
@@ -690,33 +833,36 @@
 	#damage-detail-panel-body .damage-build-detail-form .tera-dropdown-option {
 		display: flex;
 		align-items: center;
-		gap: var(--space-1);
-		padding: var(--space-1) var(--space-2);
-		border-radius: var(--radius-sm);
+		gap: var(--damage-detail-space-xs);
+		padding: var(--damage-detail-space-xs) var(--damage-detail-space-sm);
+		border-radius: var(--damage-detail-radius-sm);
 		cursor: pointer;
 	}
 	#damage-detail-panel-body .damage-build-detail-form .tera-dropdown-option.is-active {
-		background: var(--color-primary-soft);
+		background: var(--damage-detail-primary-soft-color);
 	}
 	#damage-detail-panel-body .damage-build-detail-form .tera-dropdown-option-text {
 		min-width: 0;
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
-		font-size: var(--font-size-sm1);
-		color: var(--color-text);
+		font-size: var(--damage-detail-font-size-md);
+		color: var(--damage-detail-text-color);
 	}
+	/* --------------------------------------------------------------------------
+		実数値・努力値の編集
+		-------------------------------------------------------------------------- */
 	#damage-detail-panel-body .damage-build-detail-stats {
 		min-width: 0;
 	}
 	#damage-detail-panel-body .damage-build-detail-stats-heading {
-		margin: 0 0 var(--space-2);
+		margin: 0 0 var(--damage-detail-space-sm);
 	}
 	#damage-detail-panel-body .damage-build-detail-ev-grid {
 		grid-template-columns: repeat(6, minmax(0, 1fr));
 		display: grid;
 		align-items: center;
-		gap: var(--space-1);
+		gap: var(--damage-detail-space-xs);
 		margin: 0;
 		position: relative;
 	}
@@ -729,36 +875,36 @@
 		display: block;
 		min-width: 0;
 		text-align: center;
-		font-size: var(--font-size-sm2);
-		line-height: var(--line-height-tight);
+		font-size: var(--damage-detail-font-size-sm);
+		line-height: var(--damage-detail-line-height-tight);
 	}
 	#damage-detail-panel-body .damage-build-detail-ev-grid .damage-ev-col-label {
-		color: var(--color-text-muted);
-		font-weight: 600;
+		color: var(--damage-detail-muted-color);
+		font-weight: var(--damage-detail-font-weight-semibold);
 	}
 	#damage-detail-panel-body .damage-build-detail-ev-grid .damage-ev-nature-cycle {
 		width: 100%;
-		padding: var(--space-1) 0;
+		padding: var(--damage-detail-space-xs) 0;
 		border: 0;
 		background: none;
 		cursor: pointer;
 		display: inline-flex;
 		align-items: baseline;
 		justify-content: center;
-		gap: var(--space-1);
+		gap: var(--damage-detail-space-xs);
 		font-family: inherit;
 	}
 	#damage-detail-panel-body .damage-build-detail-ev-grid .damage-ev-col-label[data-mod="up"],
 	#damage-detail-panel-body .damage-build-detail-ev-grid .damage-stat-value[data-mod="up"] {
-		color: var(--color-stat-up);
+		color: var(--damage-detail-stat-up-color);
 	}
 	#damage-detail-panel-body .damage-build-detail-ev-grid .damage-ev-col-label[data-mod="down"],
 	#damage-detail-panel-body .damage-build-detail-ev-grid .damage-stat-value[data-mod="down"] {
-		color: var(--color-stat-down);
+		color: var(--damage-detail-stat-down-color);
 	}
 	#damage-detail-panel-body .damage-build-detail-ev-grid .damage-stat-value {
-		color: var(--color-text);
-		font-weight: 700;
+		color: var(--damage-detail-text-color);
+		font-weight: var(--damage-detail-font-weight-bold);
 	}
 	#damage-detail-panel-body .damage-build-detail-ev-grid .damage-ev-cell {
 		min-width: 0;
@@ -772,9 +918,9 @@
 		display: block;
 		border: 0;
 		background: none;
-		color: var(--color-text-muted);
+		color: var(--damage-detail-muted-color);
 		font: inherit;
-		font-size: var(--font-size-sm2);
+		font-size: var(--damage-detail-font-size-sm);
 		padding: 0;
 		text-align: center;
 		cursor: pointer;
@@ -787,22 +933,22 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		gap: var(--space-1);
+		gap: var(--damage-detail-space-xs);
 		position: absolute;
 		left: 0;
 		right: 0;
 		bottom: 0;
-		background: var(--color-surface);
+		background: var(--damage-detail-surface-background);
 	}
 	#damage-detail-panel-body .damage-build-detail-ev-grid .damage-ev-cell[data-editing="true"] .damage-ev-value-text {
 		display: none;
 	}
 	#damage-detail-panel-body .damage-build-detail-ev-grid .damage-ev-editor input[type="number"] {
-		flex: 0 0 3.2rem;
-		width: 3.2rem;
+		flex: 0 0 var(--damage-detail-ev-input-width);
+		width: var(--damage-detail-ev-input-width);
 		height: var(--stat-ev-mobile-button-block-size);
 		min-height: var(--stat-ev-mobile-button-block-size);
-		padding: 0 var(--space-1);
+		padding: 0 var(--damage-detail-space-xs);
 		text-align: center;
 	}
 	#damage-detail-panel-body .damage-build-detail-ev-grid .damage-ev-step-button {
@@ -816,12 +962,12 @@
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		color: var(--color-text-muted);
-		background: var(--color-surface-raised);
-		border: 1px solid var(--color-border);
-		border-radius: var(--radius-zero);
-		box-shadow: var(--shadow-sm);
-		font-size: var(--font-size-sm3);
-		font-weight: 400;
-		line-height: 1;
+		color: var(--damage-detail-muted-color);
+		background: var(--damage-detail-raised-background);
+		border: var(--damage-detail-ev-step-border);
+		border-radius: var(--damage-detail-radius-zero);
+		box-shadow: var(--damage-detail-shadow-sm);
+		font-size: var(--damage-detail-font-size-xs);
+		font-weight: var(--damage-detail-font-weight-regular);
+		line-height: var(--damage-detail-ev-step-line-height);
 	}

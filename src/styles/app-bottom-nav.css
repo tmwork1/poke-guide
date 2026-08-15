@@ -1,44 +1,91 @@
-/* 常時表示のボトムナビゲーション (AppBottomNav.astro) */
-	.app-bottom-nav {
-		position: fixed;
-		left: 0;
-		right: 0;
-		bottom: 0;
-		z-index: 20;
-		background: var(--color-surface-raised);
-		padding-bottom: env(safe-area-inset-bottom);
-	}
+/* ===========================================================================
+   全ページ共通のボトムナビゲーション(AppBottomNav.astro)
 
-	.app-bottom-nav-list {
-		display: flex;
-		height: var(--bottom-nav-height);
-	}
+   画面のどこ: 画面下端に常時表示される「ホーム・ボックス・チーム・データ・ダメージ」。
+   見た目を変えたいとき: 下の「チューニング変数」だけ触ればよい。
+                        高さ(--bottom-nav-height)は global.css 側で管理している。
+   =========================================================================== */
 
-	.app-bottom-nav-item {
-		flex: 1 1 0;
-		min-width: 0;
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		justify-content: center;
-		gap: var(--space-1);
-		padding: var(--space-1);
-		border: 0;
-		background: transparent;
-		color: var(--color-text-muted);
-		font: inherit;
-		font-size: var(--font-size-sm3);
-		line-height: 1;
-		text-decoration: none;
-		white-space: nowrap;
-	}
+/* ===========================================================================
+   チューニング変数
+   =========================================================================== */
+.app-bottom-nav {
+  /* ── 1. 文字サイズ ────────────────────────────────────── */
+  --app-bottom-nav-item-font-size: var(--font-size-sm3); /* 各アイコン下の項目名。大きくするとナビの文字が目立つ。 */
 
-	.app-bottom-nav-item[data-active="true"] {
-		color: var(--color-primary);
-	}
+  /* ── 2. 文字の太さ・行間 ──────────────────────────────── */
+  --app-bottom-nav-item-line-height: 1; /* 項目名の行間。大きくすると文字行が縦に広がる。 */
 
-	.app-bottom-nav-item.is-disabled {
-		color: var(--color-text-muted);
-		opacity: 0.6;
-		cursor: not-allowed;
-	}
+  /* ── 3. 文字色 ────────────────────────────────────────── */
+  --app-bottom-nav-item-color: var(--color-text-muted); /* 未選択項目のアイコンと文字色。薄くすると選択項目との差が広がる。 */
+  --app-bottom-nav-active-color: var(--color-primary); /* 現在地のアイコンと文字色。変えると選択中の強調色が変わる。 */
+  --app-bottom-nav-disabled-color: var(--color-text-muted); /* 利用不可項目の色。薄くすると無効状態がより控えめになる。 */
+
+  /* ── 4. 背景色 ────────────────────────────────────────── */
+  --app-bottom-nav-background: var(--color-surface-raised); /* 下部ナビ全体の背景色。変えると画面下端の帯の色が変わる。 */
+  --app-bottom-nav-item-background: transparent; /* 各項目の背景色。色を付けると項目ごとの領域が塗られる。 */
+
+  /* ── 5. 枠線・角丸 ────────────────────────────────────── */
+  --app-bottom-nav-item-border: 0; /* 各項目の枠線。太くすると項目の境界に枠が付く。 */
+
+  /* ── 7. 余白 ──────────────────────────────────────────── */
+  --app-bottom-nav-safe-area-padding: env(safe-area-inset-bottom); /* 端末下端の安全領域。大きくするとナビが下端から離れる。 */
+  --app-bottom-nav-item-padding: var(--space-1); /* 各項目の内側余白。大きくするとアイコンと文字の周囲が広がる。 */
+  --app-bottom-nav-item-gap: var(--space-1); /* アイコンと項目名の間隔。大きくすると上下の距離が広がる。 */
+
+  /* ── 9. その他 ────────────────────────────────────────── */
+  --app-bottom-nav-disabled-opacity: 0.6; /* 利用不可項目の透明度。小さくするとさらに薄く見える。 */
+}
+
+/* ===========================================================================
+   ここから下は構造(レイアウトの組み立て)。通常は触らない。
+   =========================================================================== */
+
+/* 画面下端に固定するナビ全体 */
+.app-bottom-nav {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 20;
+  background: var(--app-bottom-nav-background);
+  padding-bottom: var(--app-bottom-nav-safe-area-padding);
+}
+
+/* 5項目を横一列に並べる領域 */
+.app-bottom-nav-list {
+  display: flex;
+  height: var(--bottom-nav-height);
+}
+
+/* アイコンと項目名を縦に並べる各リンク */
+.app-bottom-nav-item {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--app-bottom-nav-item-gap);
+  padding: var(--app-bottom-nav-item-padding);
+  border: var(--app-bottom-nav-item-border);
+  background: var(--app-bottom-nav-item-background);
+  color: var(--app-bottom-nav-item-color);
+  font: inherit;
+  font-size: var(--app-bottom-nav-item-font-size);
+  line-height: var(--app-bottom-nav-item-line-height);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+/* 現在開いているページの項目 */
+.app-bottom-nav-item[data-active="true"] {
+  color: var(--app-bottom-nav-active-color);
+}
+
+/* 利用できない項目 */
+.app-bottom-nav-item.is-disabled {
+  color: var(--app-bottom-nav-disabled-color);
+  opacity: var(--app-bottom-nav-disabled-opacity);
+  cursor: not-allowed;
+}

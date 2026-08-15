@@ -3,118 +3,119 @@
 :root {
   color-scheme: light dark;
 
-  --color-bg: #f3f4f8;
-  --color-surface: #ffffff;
-  --color-surface-raised: #ffffff;
-  --color-border: #e3e6ee;
-  --color-text: #1f2430;
+  /* ── 1. 文字サイズ ────────────────────────────────────── */
+  --font-size-lg3: 1.9rem; /* 空状態などの大きなアイコン。大きくすると視線を集める表示が拡大する。 */
+  --font-size-lg2: 1.5rem; /* ページ見出し。大きくすると各画面の主見出しが強調される。 */
+  --font-size-lg1: 1.05rem; /* パネル見出しやカード名。大きくすると小見出しが目立つ。 */
+  --font-size-base: 1rem; /* 本文の基準文字サイズ。参照箇所を大きくすると標準文が拡大する。 */
+  --font-size-sm1: 0.95rem; /* ラベルや補助見出し。大きくすると本文に近い補助文字が拡大する。 */
+  --font-size-sm2: 0.85rem; /* フィールド名や注記。大きくすると補助情報が読みやすくなる。 */
+  --font-size-sm3: 0.75rem; /* カード内情報やバッジ。大きくすると小さな表示が拡大する。 */
+  --font-size-sm4: 0.675rem; /* 最小の注釈。大きくすると最も控えめな文字が拡大する。 */
 
-  --color-text-muted: #5b6472;
+  /* ── 2. 文字の太さ・行間 ──────────────────────────────── */
+  --line-height-normal: 1.6; /* 本文の標準行間。大きくすると複数行の間隔が広がる。 */
+  --line-height-snug: 1.4; /* 入力欄やボタンの行間。大きくすると各コントロールが縦に広がる。 */
+  --line-height-tight: 1.25; /* 見出しやカード内文字の詰めた行間。大きくすると行同士が離れる。 */
 
-  --color-primary: #27acd9;
-  --color-primary-hover: #27acd9;
-  --color-primary-soft: #e6f6fb;
-  --color-primary-contrast: #ffffff;
+  /* ── 3. 文字色 ────────────────────────────────────────── */
+  --color-text: #1f2430; /* 本文と主要ラベルの色。濃さを変えると画面全体の文字コントラストが変わる。 */
+  --color-text-muted: #5b6472; /* 注記や未選択項目の色。薄くすると補助情報が目立たなくなる。 */
+  --color-primary-contrast: #ffffff; /* 主要色のボタン上に載る文字色。背景との読みやすさを左右する。 */
+  --color-primary-strong: #1a7ea1; /* リンクや強い主要色表示。濃さを変えると強調度が変わる。 */
+  --color-primary: #27acd9; /* 選択状態・リンク・主要ボタンの基準色。変えるとアプリの主な強調色が変わる。 */
+  --color-success: #409f89; /* 保存成功や安全状態の色。変えると成功表示と成功ボタンの色が変わる。 */
+  --color-danger: #f8705b; /* エラーや危険状態の色。変えると警告表示の強調色が変わる。 */
+  --color-warning: #aaaaaa; /* 保存中や読み込み中の色。変えると進行中表示の目立ち方が変わる。 */
+  --color-risky: #c9820f; /* 注意状態やお気に入りの色。変えると注意を促す表示の色が変わる。 */
+  --color-success-strong: #2b6b5c; /* 安全度バーの文字色。濃さを変えると成功表示の文字コントラストが変わる。 */
+  --color-danger-strong: #b23a26; /* 削除ボタンや危険度バーの文字色。濃さを変えると危険表示の強さが変わる。 */
+  --color-risky-strong: #8a5806; /* 注意度バーの文字色。濃さを変えると注意表示の文字コントラストが変わる。 */
+  --color-stat-up: #c9432c; /* 能力上昇を示す文字・目印の色。変えると上昇表示の識別色が変わる。 */
+  --color-stat-down: #1d6fd1; /* 能力下降を示す文字・目印の色。変えると下降表示の識別色が変わる。 */
 
-  --color-success: #409f89;
-  --color-success-soft: #e6f4f1;
-  --color-danger: #f8705b;
-  --color-danger-soft: #fdece8;
-  --color-warning: #aaaaaa;
-  --color-warning-soft: #eeeeee;
-  --color-risky: #c9820f;
-  --color-risky-soft: #fbeed4;
+  /* ── 4. 背景色 ────────────────────────────────────────── */
+  --color-bg: #f3f4f8; /* ページ全体と控えめな面の背景色。変えるとアプリの下地が変わる。 */
+  --color-surface: #ffffff; /* カード・パネル・入力欄の背景色。変えると主要な面の色が変わる。 */
+  --color-surface-raised: #ffffff; /* トップバーや下部ナビの背景色。変えると固定された面の色が変わる。 */
+  --color-primary-hover: #27acd9; /* 主要ボタンにポインターを重ねた背景色。変えるとホバー時の反応色が変わる。 */
+  --color-primary-soft: #e6f6fb; /* 選択タブや補助強調の薄い背景色。濃くすると選択範囲が目立つ。 */
+  --color-success-soft: #e6f4f1; /* 成功・安全状態の薄い背景色。濃くすると成功領域が目立つ。 */
+  --color-danger-soft: #fdece8; /* エラー・危険状態の薄い背景色。濃くすると危険領域が目立つ。 */
+  --color-warning-soft: #eeeeee; /* 注意・待機状態に使う薄い背景色。濃くすると注意領域が目立つ。 */
+  --color-risky-soft: #fbeed4; /* 要注意状態の薄い背景色。濃くすると注意領域が目立つ。 */
+  --color-overlay: rgba(0, 0, 0, 0.45); /* ダイアログ背後を覆う色。濃くすると背後の画面が見えにくくなる。 */
 
-  --color-danger-strong: #b23a26;
-  --color-risky-strong: #8a5806;
-  --color-success-strong: #2b6b5c;
+  /* ── 5. 枠線・角丸 ────────────────────────────────────── */
+  --color-border: #e3e6ee; /* パネル・入力欄・表の枠線色。濃くすると要素の境界が明瞭になる。 */
+  --modal-radius: var(--radius-lg); /* ダイアログ外枠の角丸。大きくするとダイアログの角が丸くなる。 */
+  --radius-lg: 16px; /* ダイアログや大きな空状態の角丸。大きくすると大型要素の角が丸くなる。 */
+  --radius-md: 12px; /* フィールドセットや検索欄の角丸。大きくすると中型要素の角が丸くなる。 */
+  --radius-sm: 8px; /* 入力欄・ボタン・小さなバーの角丸。大きくすると操作部品の角が丸くなる。 */
+  --radius-zero: 0px; /* 角丸を付けないカードやタブの値。大きくすると該当要素にも丸みが付く。 */
 
-  --color-primary-strong: #1a7ea1;
-
-  --color-stat-up: #c9432c;
-  --color-stat-down: #1d6fd1;
-
-  --color-overlay: rgba(0, 0, 0, 0.45);
-
-  --radius-zero: 0px;
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --modal-radius: var(--radius-lg);
-
-  /* --- 余白スケール --- */
-  --space-1: 0.25rem;
-  --space-2: 0.5rem;
-  --space-3: 0.75rem;
-  --space-4: 1rem;
-  --space-5: 1.25rem;
-  --space-6: 1.5rem;
-  --space-7: 2rem;
-  --space-8: 3rem;
-
-  /* --- タイポグラフィスケール --- */
-  --font-size-sm4: 0.675rem;
-  --font-size-sm3: 0.75rem;
-  --font-size-sm2: 0.85rem;
-  --font-size-sm1: 0.95rem;
-  --font-size-base: 1rem;
-  --font-size-lg1: 1.05rem;
-  --font-size-lg2: 1.5rem;
-  --font-size-lg3: 1.9rem;
-
-  --line-height-tight: 1.25;
-  --line-height-snug: 1.4;
-  --line-height-normal: 1.6;
-
-  --shadow-sm:
-    0 1px 2px rgba(15, 23, 42, 0.07), 0 1px 1px rgba(15, 23, 42, 0.04);
-  --shadow-md:
-    0 10px 24px rgba(15, 23, 42, 0.12), 0 2px 6px rgba(15, 23, 42, 0.07);
-
+  /* ── 6. 影 ────────────────────────────────────────────── */
   --shadow-lg:
-    0 20px 48px rgba(15, 23, 42, 0.18), 0 6px 16px rgba(15, 23, 42, 0.1);
+    0 20px 48px rgba(15, 23, 42, 0.18), 0 6px 16px rgba(15, 23, 42, 0.1); /* ダイアログや浮遊ボタンの大きな影。強くすると前面に浮いて見える。 */
+  --shadow-md:
+    0 10px 24px rgba(15, 23, 42, 0.12), 0 2px 6px rgba(15, 23, 42, 0.07); /* ホバー中のカードなどの中程度の影。強くすると持ち上がって見える。 */
+  --shadow-sm:
+    0 1px 2px rgba(15, 23, 42, 0.07), 0 1px 1px rgba(15, 23, 42, 0.04); /* 通常カードや小部品の影。強くすると面の境界が目立つ。 */
 
-  --select-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1.5 2L6 6.2L10.5 2' fill='none' stroke='%236b7280' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  /* ── 7. 余白 ──────────────────────────────────────────── */
+  --space-8: 3rem; /* ページ内で最大の余白。大きくすると大きなセクション間が広がる。 */
+  --space-7: 2rem; /* 空状態など大型要素の内側余白。大きくすると内容の周囲が広がる。 */
+  --space-6: 1.5rem; /* パネル外周や大きな項目間の余白。大きくすると主要ブロックが離れる。 */
+  --space-5: 1.25rem; /* パネル左右やセクション間の余白。大きくすると内容が端から離れる。 */
+  --space-4: 1rem; /* カード列や見出し下の標準余白。大きくすると要素間が広がる。 */
+  --space-3: 0.75rem; /* 入力欄や行内の中間余白。大きくすると操作部品の間が広がる。 */
+  --space-2: 0.5rem; /* 小さな項目間や入力欄内側の余白。大きくすると内容の密度が下がる。 */
+  --space-1: 0.25rem; /* アイコン横など最小の余白。大きくすると密接した要素が離れる。 */
+
+  /* ── 9. その他 ────────────────────────────────────────── */
+  --select-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1.5 2L6 6.2L10.5 2' fill='none' stroke='%236b7280' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); /* セレクト欄の矢印画像。差し替えると選択欄右端の記号が変わる。 */
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --color-bg: #14161d;
-    --color-surface: #20232d;
-    --color-surface-raised: #262b37;
-    --color-border: #2d313d;
-    --color-text: #e7e9ee;
-    --color-text-muted: #9aa1b0;
+    /* ── 3. 文字色(ダークテーマで上書き) ─────────────────── */
+    --color-text: #e7e9ee; /* ダーク画面の本文色。明るくすると主要文字のコントラストが上がる。 */
+    --color-text-muted: #9aa1b0; /* ダーク画面の注記色。暗くすると補助情報が目立たなくなる。 */
+    --color-primary-contrast: #14161d; /* ダーク画面の主要ボタン上の文字色。背景との読みやすさを左右する。 */
+    --color-primary-strong: var(--color-primary); /* ダーク画面のリンク色。変えると強い主要色表示の色が変わる。 */
+    --color-primary: #4dc3ea; /* ダーク画面の選択・リンク・主要ボタン色。変えると主な強調色が変わる。 */
+    --color-success: #55b6a0; /* ダーク画面の成功・安全表示色。変えると成功状態の識別色が変わる。 */
+    --color-danger: #ff8b78; /* ダーク画面のエラー・危険表示色。変えると危険状態の識別色が変わる。 */
+    --color-warning: #9aa1b0; /* ダーク画面の保存中・読込中表示色。変えると進行中表示の目立ち方が変わる。 */
+    --color-risky: #e0a940; /* ダーク画面の注意・お気に入り色。変えると注意状態の識別色が変わる。 */
+    --color-success-strong: var(--color-success); /* ダーク画面の安全度バー文字色。変えると安全表示の文字色が変わる。 */
+    --color-danger-strong: var(--color-danger); /* ダーク画面の削除・危険度バー文字色。変えると危険表示の文字色が変わる。 */
+    --color-risky-strong: var(--color-risky); /* ダーク画面の注意度バー文字色。変えると注意表示の文字色が変わる。 */
+    --color-stat-up: var(--color-danger); /* ダーク画面の能力上昇色。変えると上昇表示の識別色が変わる。 */
+    --color-stat-down: #6fb6f7; /* ダーク画面の能力下降色。変えると下降表示の識別色が変わる。 */
 
-    --color-primary: #4dc3ea;
-    --color-primary-hover: #4dc3ea;
-    --color-primary-soft: rgba(77, 195, 234, 0.16);
-    --color-primary-contrast: #14161d;
+    /* ── 4. 背景色(ダークテーマで上書き) ─────────────────── */
+    --color-bg: #14161d; /* ダーク画面全体の下地色。変えるとアプリ全体の暗さが変わる。 */
+    --color-surface: #20232d; /* ダーク画面のカード・入力欄背景色。変えると主要な面の色が変わる。 */
+    --color-surface-raised: #262b37; /* ダーク画面のトップバー・下部ナビ背景色。変えると固定面の色が変わる。 */
+    --color-primary-hover: #4dc3ea; /* ダーク画面の主要ボタンのホバー背景色。変えると反応色が変わる。 */
+    --color-primary-soft: rgba(77, 195, 234, 0.16); /* ダーク画面の選択タブ背景色。濃くすると選択範囲が目立つ。 */
+    --color-success-soft: rgba(85, 182, 160, 0.16); /* ダーク画面の成功状態背景色。濃くすると成功領域が目立つ。 */
+    --color-danger-soft: rgba(255, 139, 120, 0.16); /* ダーク画面の危険状態背景色。濃くすると危険領域が目立つ。 */
+    --color-warning-soft: rgba(154, 161, 176, 0.16); /* ダーク画面の待機状態背景色。濃くすると待機領域が目立つ。 */
+    --color-risky-soft: rgba(224, 169, 64, 0.16); /* ダーク画面の要注意状態背景色。濃くすると注意領域が目立つ。 */
 
-    --color-success: #55b6a0;
-    --color-success-soft: rgba(85, 182, 160, 0.16);
-    --color-danger: #ff8b78;
-    --color-danger-soft: rgba(255, 139, 120, 0.16);
-    --color-warning: #9aa1b0;
-    --color-warning-soft: rgba(154, 161, 176, 0.16);
-    --color-risky: #e0a940;
-    --color-risky-soft: rgba(224, 169, 64, 0.16);
+    /* ── 5. 枠線・角丸(ダークテーマで上書き) ─────────────── */
+    --color-border: #2d313d; /* ダーク画面の枠線色。明るくすると要素同士の境界が明瞭になる。 */
 
-    --color-danger-strong: var(--color-danger);
-    --color-risky-strong: var(--color-risky);
-    --color-success-strong: var(--color-success);
-
-    --color-primary-strong: var(--color-primary);
-
-    --color-stat-up: var(--color-danger);
-    --color-stat-down: #6fb6f7;
-
-    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
-    --shadow-md: 0 12px 28px rgba(0, 0, 0, 0.55), 0 2px 8px rgba(0, 0, 0, 0.4);
+    /* ── 6. 影(ダークテーマで上書き) ─────────────────────── */
     --shadow-lg:
-      0 24px 56px rgba(0, 0, 0, 0.65), 0 8px 20px rgba(0, 0, 0, 0.45);
+      0 24px 56px rgba(0, 0, 0, 0.65), 0 8px 20px rgba(0, 0, 0, 0.45); /* ダーク画面の大きな影。強くすると浮遊要素が前面に見える。 */
+    --shadow-md: 0 12px 28px rgba(0, 0, 0, 0.55), 0 2px 8px rgba(0, 0, 0, 0.4); /* ダーク画面の中程度の影。強くするとホバーカードが浮いて見える。 */
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4); /* ダーク画面の小さな影。強くすると通常カードの境界が目立つ。 */
 
-    --select-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1.5 2L6 6.2L10.5 2' fill='none' stroke='%239aa1b0' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    /* ── 9. その他(ダークテーマで上書き) ─────────────────── */
+    --select-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1.5 2L6 6.2L10.5 2' fill='none' stroke='%239aa1b0' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); /* ダーク画面のセレクト矢印。差し替えると選択欄右端の記号が変わる。 */
   }
 }
 
@@ -578,7 +579,7 @@ input[type="range"] {
   margin: 0;
   background: transparent;
   cursor: pointer;
-  --slider-progress: 50%;
+  --slider-progress: 50%; /* レンジ入力の塗り済み位置。大きくすると主要色の区間が右へ伸びる。 */
 }
 
 input[type="range"]:disabled {
@@ -1201,9 +1202,9 @@ dialog#opponent-note-form-container::backdrop {
 
 /* --- 共通レイアウト --- */
 :root {
-  --bottom-nav-height: 60px;
-
-  --topbar-height: 129px;
+  /* ── 8. 寸法 ──────────────────────────────────────────── */
+  --topbar-height: 129px; /* 全ページ共通トップバーの高さ。大きくすると本文の開始位置が下がる。 */
+  --bottom-nav-height: 60px; /* 画面下部ナビの高さ。大きくすると本文下端の退避量も増える。 */
 }
 
 .app-shell {
@@ -1211,7 +1212,7 @@ dialog#opponent-note-form-container::backdrop {
 }
 
 .app-shell.no-topbar {
-  --topbar-height: 0px;
+  --topbar-height: 0px; /* トップバー非表示ページの高さ上書き。0にすると本文が画面上端から始まる。 */
 }
 
 .app-topbar {

@@ -1,29 +1,61 @@
+/* ===========================================================================
+   チーム編集画面の「データ」タブ
+
+   画面のどこ: チーム詳細 → モバイル表示 → データタブ
+   見た目を変えたいとき: 下の「チューニング変数」だけ触ればよい。
+   =========================================================================== */
+
+/* --------------------------------------------------------------------------
+   チューニング変数
+   -------------------------------------------------------------------------- */
+:root {
+  /* ── 4. 背景色 ───────────────────────── */
+  --team-data-status-background: var(--color-surface); /* 読み込み状態カードの背景色 */
+
+  /* ── 5. 枠線・角丸 ─────────────────────── */
+  --team-data-status-border: 1px solid var(--color-border); /* 読み込み状態カードの枠線 */
+  --team-data-status-border-radius: var(--radius-md); /* 読み込み状態カードの角の丸み */
+
+  /* ── 7. 余白 ────────────────────────── */
+  --team-data-similar-panel-padding: var(--space-2); /* 類似構築カード一覧の外側余白 */
+  --team-data-status-margin: 0 auto; /* 読み込み状態カードの外側余白。autoにより中央寄せになる */
+  --team-data-status-padding: var(--space-4); /* 読み込み状態カード内側の余白 */
+
+  /* ── 8. 寸法 ────────────────────────── */
+  --team-data-status-max-width: 34rem; /* 読み込み状態カードの最大幅。大きくすると横に広がる */
+}
+
+/* --------------------------------------------------------------------------
+   ここから下は構造
+   -------------------------------------------------------------------------- */
+
+/* データタブを開いたときに表示するモバイル用の内容領域 */
 #team-data-mobile {
-	display: none;
+  display: none;
 }
 
 /* /team 一覧の .team-content.box-content と同じ左右8pxを確保し、
-	類似構築カードの幅をモバイルのチームカードと揃える。下余白は .app-main が持つ。 */
+  類似構築カードの幅をモバイルのチームカードと揃える。下余白は .app-main が持つ。 */
 .team-data-similar-panel {
-	padding: var(--space-2);
+  padding: var(--team-data-similar-panel-padding);
 }
 
 .team-edit-shell[data-mobile-tab="data"] #team-overview-tab {
-	display: none;
+  display: none;
 }
 
 .team-edit-shell[data-mobile-tab="data"] .team-edit-layout {
-	display: none;
+  display: none;
 }
 .team-edit-shell[data-mobile-tab="data"] #team-data-mobile {
-	display: block;
+  display: block;
 }
 .team-data-similar-status {
-	max-width: 34rem;
-	margin: 0 auto;
-	padding: var(--space-4);
-	background: var(--color-surface);
-	border: 1px solid var(--color-border);
-	border-radius: var(--radius-md);
-	text-align: center;
+  max-width: var(--team-data-status-max-width);
+  margin: var(--team-data-status-margin);
+  padding: var(--team-data-status-padding);
+  background: var(--team-data-status-background);
+  border: var(--team-data-status-border);
+  border-radius: var(--team-data-status-border-radius);
+  text-align: center;
 }

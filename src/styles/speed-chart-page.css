@@ -1,16 +1,53 @@
-/* /speed-chart ページ全体のレイアウト(speed-chart/index.astro)。早見表本体はspeed-chart-table.css、「この個体」領域はspeed-chart-owned-panel.cssに分離済み。 */
+/* ===========================================================================
+	すばやさ順位表ページ全体
+
+	画面のどこ: /speed-chart のトップバーと埋め込み時の操作バー
+	見た目を変えたいとき: 下の「チューニング変数」だけ触ればよい。
+												それより下は構造なので通常はいじらない。
+	=========================================================================== */
+
+/* --------------------------------------------------------------------------
+	チューニング変数
+	ページ本体とトップバーの両方から使うため、:root に置く。
+	-------------------------------------------------------------------------- */
+:root {
+	/* ── 1. 文字サイズ ─────────────────────── */
+	--speed-chart-embed-close-font-size: var(--font-size-lg1); /* 閉じるボタンの文字サイズ。大きくすると×が目立つ */
+	--speed-chart-regulation-font-size: var(--font-size-sm2); /* レギュレーション表示の文字サイズ。大きくするとラベルが目立つ */
+	--speed-chart-reachable-font-size: var(--font-size-sm2); /* 絞り込みトグルの文字サイズ。大きくするとラベルが目立つ */
+
+	/* ── 7. 余白 ─────────────────────── */
+	--speed-chart-topbar-actions-gap: var(--space-5); /* トップバーの操作項目間隔。大きくすると項目が離れる */
+	--speed-chart-embed-toolbar-padding: var(--space-3) var(--space-4); /* 操作バーの内側余白。大きくするとバーが大きくなる */
+	--speed-chart-embed-toolbar-gap: var(--space-2); /* 操作バー内の項目間隔。大きくすると操作項目が離れる */
+	--speed-chart-reachable-gap: var(--space-2); /* 絞り込みトグルの部品間隔。大きくするとラベルとスイッチが離れる */
+
+	/* ── 8. 寸法 ─────────────────────── */
+	--speed-chart-embed-main-height: calc(100dvh - 57px); /* 埋め込み時の本文高。大きくすると表の表示領域が増える */
+	--speed-chart-jump-input-width: 7rem; /* 実数値ジャンプ入力欄の幅。大きくすると多くの文字を表示できる */
+}
+
+/* --------------------------------------------------------------------------
+	ここから下は構造。レイアウトの組み立てなので通常は触らない。
+	-------------------------------------------------------------------------- */
+
+/* 埋め込み時の上部操作バー */
 
 .speed-chart-embed-toolbar {
 	display: flex;
 	align-items: center;
-	gap: var(--space-2);
+	gap: var(--speed-chart-embed-toolbar-gap);
 	flex-wrap: wrap;
-	padding: var(--space-3) var(--space-4);
+	padding: var(--speed-chart-embed-toolbar-padding);
 	border-bottom: 1px solid var(--color-border);
 	background: var(--color-surface);
 }
 .speed-chart-embed-title { white-space: nowrap; }
-.speed-chart-embed-close { margin-left: auto; font-size: var(--font-size-lg1); line-height: 1; }
+.speed-chart-embed-close {
+	margin-left: auto;
+	font-size: var(--speed-chart-embed-close-font-size);
+	line-height: 1;
+}
 .speed-chart-page:has(.speed-chart-embed-toolbar) {
 	height: 100dvh;
 	overflow: hidden;
@@ -18,7 +55,7 @@
 .speed-chart-page:has(.speed-chart-embed-toolbar) .app-main {
 	display: flex;
 	flex-direction: column;
-	height: calc(100dvh - 57px);
+	height: var(--speed-chart-embed-main-height);
 	min-height: 0;
 	padding: 0;
 }
@@ -28,32 +65,39 @@
 	min-height: 0;
 }
 @media (max-width: 699px) {
-	.speed-chart-embed-toolbar { padding: var(--space-2); gap: var(--space-1); }
+	.speed-chart-embed-toolbar {
+		padding: var(--space-2);
+		gap: var(--space-1);
+	}
 	.speed-chart-embed-toolbar .speed-chart-regulation-label { display: none; }
 	.speed-chart-embed-title { width: 100%; }
-	.speed-chart-embed-close { position: absolute; top: var(--space-2); right: var(--space-2); }
+	.speed-chart-embed-close {
+		position: absolute;
+		top: var(--space-2);
+		right: var(--space-2);
+	}
 }
 
 .app-topbar-actions:has(.speed-chart-regulation-label) {
-	gap: var(--space-5);
+	gap: var(--speed-chart-topbar-actions-gap);
 }
 /* トップバーは横幅が限られるため、レギュレーション選択・実数値ジャンプ入力は
-   中身(3桁の実数値・レギュレーション名)に対して過大にならない幅に絞る。
-   .app-topbar-actions 側で既に display:flex; gap; flex-wrap が効くため、
-   ここでは各要素の幅だけを調整すれば横並び・900px未満での折り返しの両方に対応できる。 */
+	中身(3桁の実数値・レギュレーション名)に対して過大にならない幅に絞る。
+	.app-topbar-actions 側で既に display:flex; gap; flex-wrap が効くため、
+	ここでは各要素の幅だけを調整すれば横並び・900px未満での折り返しの両方に対応できる。 */
 #speed-chart-regulation-select {
 	width: auto;
 	min-width: 0;
 	flex: none;
 }
 .speed-chart-regulation-label {
-	font-size: var(--font-size-sm2);
+	font-size: var(--speed-chart-regulation-font-size);
 	color: var(--color-text-muted);
 	white-space: nowrap;
 }
 
 #speed-chart-jump-input {
-	width: 7rem;
+	width: var(--speed-chart-jump-input-width);
 }
 
 .speed-chart-order-select-wrap {
@@ -63,8 +107,8 @@
 .speed-chart-reachable-toggle {
 	display: inline-flex;
 	align-items: center;
-	gap: var(--space-2);
-	font-size: var(--font-size-sm2);
+	gap: var(--speed-chart-reachable-gap);
+	font-size: var(--speed-chart-reachable-font-size);
 	white-space: nowrap;
 }
 

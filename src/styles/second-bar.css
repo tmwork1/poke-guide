@@ -1,13 +1,63 @@
-/* Page-level secondary bars.
- *
- * Use `.second-bar` for the sticky shell. Choose either the text-navigation
- * structure (`__back` + `__list` / `__item`) or the `--toolbar` modifier for controls.
- */
+/* ===========================================================================
+   ページ単位のセカンドバー(戻るボタン・横タブ・検索フィルター)
 
+   画面のどこ: 共通トップバーの直下、またはトップバーを隠した一覧画面の上端。
+   使い分け: 文字ナビは `.second-bar__back` と `.second-bar__list` / `__item`、
+             検索・絞り込み操作は `.second-bar--toolbar` を使う。
+   見た目を変えたいとき: 下の「チューニング変数」だけ触ればよい。
+   =========================================================================== */
+
+/* 高さは他ファイルの固定位置計算からも参照されるため、:root のまま公開する。 */
 :root {
-  --second-bar-height: 36px;
+  --second-bar-height: 36px; /* セカンドバーの基準高さ。大きくするとバーと後続コンテンツの開始位置が下がる。 */
 }
 
+/* ===========================================================================
+   チューニング変数
+   =========================================================================== */
+.second-bar {
+  /* ── 1. 文字サイズ ────────────────────────────────────── */
+  --second-bar-item-font-size: var(--font-size-sm2); /* 横タブの項目名。大きくすると各タブの文字が目立つ。 */
+
+  /* ── 2. 文字の太さ・行間 ──────────────────────────────── */
+  --second-bar-item-line-height: 1; /* 横タブの行間。大きくすると項目名の行が縦に広がる。 */
+
+  /* ── 3. 文字色 ────────────────────────────────────────── */
+  --second-bar-item-color: var(--color-text-muted); /* 未選択タブの文字色。薄くすると選択中との差が広がる。 */
+  --second-bar-item-hover-color: var(--color-primary); /* タブに触れたときの文字色。変えると操作時の強調色が変わる。 */
+  --second-bar-item-active-color: var(--color-primary); /* 選択中タブの文字色。変えると現在地の強調色が変わる。 */
+
+  /* ── 4. 背景色 ────────────────────────────────────────── */
+  --second-bar-background: var(--color-surface-raised); /* バー全体の背景色。変えるとトップバー直下の帯の色が変わる。 */
+  --second-bar-item-background: transparent; /* 未選択タブの背景色。色を付けると各タブの領域が塗られる。 */
+  --second-bar-item-active-background: var(--color-primary-soft); /* 選択中タブの背景色。濃くすると現在地が目立つ。 */
+
+  /* ── 5. 枠線・角丸 ────────────────────────────────────── */
+  --second-bar-item-border: 0; /* 横タブの枠線。太くすると各項目の周囲に枠が付く。 */
+  --second-bar-item-border-radius: var(--radius-zero); /* 横タブの角丸。大きくすると選択背景の角が丸くなる。 */
+
+  /* ── 7. 余白 ──────────────────────────────────────────── */
+  --second-bar-padding-left: var(--space-4); /* バー左端の内側余白。大きくすると戻るボタンやタブが右へ寄る。 */
+  --second-bar-gap: var(--space-2); /* 戻るボタンと横タブ一覧の間隔。大きくすると両者が離れる。 */
+  --second-bar-item-padding: 0 var(--space-2); /* 各横タブの左右余白。大きくするとタブの横幅が広がる。 */
+  --second-bar-toolbar-padding: var(--space-3) var(--space-5); /* 検索ツールバーの内側余白。大きくすると操作列が帯の端から離れる。 */
+  --second-bar-toolbar-gap: var(--space-3) var(--space-6); /* 検索ツールバーの行間・列間。大きくすると操作同士が離れる。 */
+
+  /* ── 9. その他 ────────────────────────────────────────── */
+  --second-bar-disabled-opacity: 0.6; /* 利用不可タブの透明度。小さくするとさらに薄く見える。 */
+}
+
+/* ツールバー項目はセカンドバー外でも使われるため、項目自身に変数を持たせる。 */
+.toolbar-item {
+  /* ── 7. 余白 ──────────────────────────────────────────── */
+  --second-bar-toolbar-item-gap: var(--space-2); /* ラベル・アイコン・入力欄の間隔。大きくすると項目内が広がる。 */
+}
+
+/* ===========================================================================
+   ここから下は構造(レイアウトの組み立て)。通常は触らない。
+   =========================================================================== */
+
+/* 画面上端に追従するセカンドバー外枠 */
 .second-bar {
   position: sticky;
   top: var(--topbar-height);
@@ -15,9 +65,9 @@
   display: flex;
   min-height: var(--second-bar-height);
   align-items: stretch;
-  gap: var(--space-2);
-  padding-left: var(--space-4);
-  background: var(--color-surface-raised);
+  gap: var(--second-bar-gap);
+  padding-left: var(--second-bar-padding-left);
+  background: var(--second-bar-background);
 }
 
 /* 戻るボタン。.second-bar__list(横スクロールするタブ一覧)の外に置き、
@@ -28,7 +78,7 @@
   align-items: center;
 }
 
-/* Text-only navigation bar */
+/* 文字だけの横スクロール式タブ一覧 */
 .second-bar__list {
   display: flex;
   flex: 1 1 auto;
@@ -37,26 +87,28 @@
   scrollbar-width: none;
 }
 
+/* 横タブ一覧のスクロールバーを隠す */
 .second-bar__list::-webkit-scrollbar {
   display: none;
 }
 
+/* 横タブ一覧の各項目 */
 .second-bar__item {
   display: flex;
   flex: 0 0 auto;
   align-items: center;
   justify-content: center;
   min-height: var(--second-bar-height);
-  padding: 0 var(--space-2);
-  color: var(--color-text-muted);
+  padding: var(--second-bar-item-padding);
+  color: var(--second-bar-item-color);
   font: inherit;
-  font-size: var(--font-size-sm2);
-  line-height: 1;
+  font-size: var(--second-bar-item-font-size);
+  line-height: var(--second-bar-item-line-height);
   white-space: nowrap;
   cursor: pointer;
-  background: transparent;
-  border: 0;
-  border-radius: var(--radius-zero);
+  background: var(--second-bar-item-background);
+  border: var(--second-bar-item-border);
+  border-radius: var(--second-bar-item-border-radius);
   /* button要素のネイティブappearanceが残っていると、iOS Safari等で背景色の上に
      わずかな縁取り(上辺のハイライト/影)が重なって見えることがあるため明示的に消す。 */
   appearance: none;
@@ -65,32 +117,35 @@
 }
 
 .second-bar__item:hover:not(.is-disabled) {
-  color: var(--color-primary);
+  color: var(--second-bar-item-hover-color);
 }
 
+/* 現在選択されている横タブ */
 .second-bar__item[data-active="true"] {
-  color: var(--color-primary);
-  background: var(--color-primary-soft);
+  color: var(--second-bar-item-active-color);
+  background: var(--second-bar-item-active-background);
 }
 
+/* 利用できない横タブ */
 .second-bar__item.is-disabled {
-  opacity: 0.6;
+  opacity: var(--second-bar-disabled-opacity);
   cursor: not-allowed;
 }
 
-/* Search and filter toolbar */
+/* 検索・絞り込みコントロールを並べるツールバー */
 .second-bar--toolbar {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-3) var(--space-6);
-  padding: var(--space-3) var(--space-5);
+  gap: var(--second-bar-toolbar-gap);
+  padding: var(--second-bar-toolbar-padding);
 }
 
+/* ツールバー内のラベル・アイコン・入力欄をまとめる1項目 */
 .toolbar-item {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--second-bar-toolbar-item-gap);
 }
 
 .toolbar-item[hidden] {
@@ -98,6 +153,7 @@
 }
 
 @media (max-width: 640px) {
+  /* 狭い画面ではツールバー項目を縦に積む */
   .second-bar--toolbar {
     flex-direction: column;
     align-items: stretch;

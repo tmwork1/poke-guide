@@ -1,16 +1,31 @@
+/* ===========================================================================
+   ポケモンのボックスカード(/box の一覧・チーム編成・上位チーム一覧で使うカード)
+
+   画面のどこ: ポケモンを正方形のカードで並べる一覧。名前・性格と努力値・技・持ち物を表示する。
+   見た目を変えたいとき: 下の「チューニング変数」だけ触ればよい。
+                        それより下は構造なので通常はいじらない。
+   =========================================================================== */
+
+/* ===========================================================================
+   チューニング変数
+   ここの値を書き換えると見た目が変わる。宣言スコープを保ったまま種類ごとにまとめている。
+   =========================================================================== */
+
 /* ボックス画面とチーム画面で共有するカード間隔。 */
 :root {
-  --box-card-grid-gap: var(--space-1);
+  /* ── 7. 余白 ──────────────────────────────────────────── */
+  --box-card-grid-gap: var(--space-1); /* 一覧で隣り合うカード同士の間隔。広げると各カードの間が離れる */
   /* カード一覧の左右余白。/box・/team・上位チーム一覧(データ>上位チーム、
      /box/ranked)がこの1つの値を共有し、どの画面でもカード幅が揃うようにする。 */
-  --box-grid-edge-gap: var(--space-2);
+  --box-grid-edge-gap: var(--space-2); /* 一覧の左右端と画面端との余白。増やすとカード列の表示領域が狭まる */
 }
 
 .box-grid {
+  /* ── 8. 寸法 ──────────────────────────────────────────── */
   --box-card-grid-column-size: min(
     250px,
     calc((100% - 2 * var(--box-card-grid-gap)) / 3)
-  );
+  ); /* 3列表示を判定するときのカード1列分の基準幅。大きくすると広い画面で列を保ちやすい */
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--box-card-grid-gap);
@@ -18,99 +33,98 @@
 }
 
 .box-grid .box-card {
-  /* Card layout */
-  --box-card-padding: var(--space-2);
-  --box-card-gap: var(--space-1);
-  --box-card-aspect-ratio: 1 / 1;
-  --box-card-focus-outline: 2px solid var(--color-primary);
-  --box-card-focus-outline-offset: 2px;
+  /* ── 1. 文字サイズ ────────────────────────────────────── */
+  --box-card-favorite-font-size: var(--font-size-lg1); /* カード左上に載るお気に入りの星印。大きくすると三角形の中で存在感が増す */
+  --box-card-name-font-size: var(--font-size-sm3); /* ポケモンの名前。カード左上に出る主要な文字の大きさ */
+  --box-card-move-font-size: var(--font-size-sm3); /* カード下部に並ぶ技名。上げると4行分の必要な高さも増える */
+  --box-card-nature-evs-font-size: var(--font-size-sm2); /* 性格と努力値の要約。大きくすると背景画像の手前で読みやすくなる */
+  --box-card-action-font-size: var(--font-size-sm2); /* 右上の丸い操作ボタン内のアイコン。変更するとボタン内での占有率が変わる */
 
-  /* Artwork */
-  --box-card-artwork-width: 75%;
-  --box-card-artwork-opacity: 0.4;
-  --box-card-artwork-gradient-slope: 100%;
-  --box-card-artwork-inset-inline-end: var(--box-card-gap);
-  --box-card-artwork-inset-block-end: var(--box-card-gap);
-  --box-card-artwork-aspect-ratio: 1 / 1;
+  /* ── 2. 文字の太さ・行間 ──────────────────────────────── */
+  --box-card-name-font-weight: 500; /* ポケモン名の太さ。数値を上げるほど名前が強調される */
+  --box-card-delete-font-weight: 400; /* 削除ボタンの記号の太さ。数値を下げると線が軽く見える */
+  --box-card-nature-evs-font-weight: 300; /* 性格・努力値要約の線の太さ。名前より細くして情報の優先度を抑える */
+  --box-card-move-font-weight: 300; /* 技名4行の文字の太さ。増やすと一覧の文字密度が高く見える */
+  --box-card-name-line-height: var(--line-height-tight); /* ポケモン名1行の行高。広げると名前の上下に使う領域が増える */
+  --box-card-nature-evs-line-height: var(--line-height-tight); /* 性格・努力値の1行が占める高さ。狭めると要約がよりコンパクトになる */
+  --box-card-move-line-height: var(--line-height-tight); /* 各技名の行高。値を上げると技一覧全体が縦へ広がる */
+  --box-card-action-line-height: 1; /* 操作アイコンの行ボックス高。ボタン中央での上下位置に影響する */
 
-  /* Item badge */
-  --box-card-item-badge-size: 20%;
-  --box-card-item-badge-offset: 3%;
-  --box-card-item-badge-inset-inline-end: var(--box-card-item-badge-offset);
-  --box-card-item-badge-inset-block-end: var(--box-card-item-badge-offset);
+  /* ── 3. 文字色 ────────────────────────────────────────── */
+  --box-card-nature-evs-color: var(--color-text-muted); /* 性格と努力値の要約文字を控えめに見せる色 */
+  --box-card-move-color: var(--color-text); /* 技名の文字に使う基本色 */
+  --box-card-action-color: var(--color-text-muted); /* 通常時の丸い操作アイコンを目立たせすぎない色 */
+  --box-card-action-hover-color: var(--color-text); /* ポインターを載せた操作アイコンの文字色 */
+  --box-card-favorite-color: var(--color-text-muted); /* 未登録状態のお気に入り星印の色 */
+  --box-card-favorite-hover-color: var(--color-text); /* 未登録の星ボタンへポインターを載せたときの星色 */
+  --box-card-favorite-pinned-color: var(--color-primary-contrast); /* お気に入り登録済みの背景上で星を判別しやすくする色 */
+  --box-card-delete-color: var(--color-danger-strong); /* 削除操作であることを示すアイコンの警告色 */
 
-  /* Name */
-  --box-card-name-font-size: var(--font-size-sm3);
-  --box-card-name-font-weight: 500;
-  --box-card-name-row-justify-content: flex-start;
-  --box-card-name-text-align: left;
-  --box-card-name-line-height: var(--line-height-tight);
+  /* ── 4. 背景色 ────────────────────────────────────────── */
+  --box-card-move-type-bar-empty-color: #000; /* 技が空欄の行に表示するタイプバーの塗り色 */
+  --box-card-action-background: var(--color-surface); /* 右上に並ぶ丸い操作ボタンの通常時の下地 */
+  --box-card-action-hover-background: var(--color-bg); /* 丸い操作ボタンへポインターを載せたときの下地色 */
+  --box-card-favorite-background: var(--color-bg); /* 未登録のお気に入りボタンが作る左上の三角形の色 */
+  --box-card-favorite-hover-background: var(--color-surface); /* 未登録の星へポインターを載せた際の三角形背景 */
+  --box-card-favorite-pinned-background: var(--color-risky); /* お気に入り登録済みであることを示す星ボタンの背景色 */
+  --box-card-delete-background: var(--color-surface); /* 削除ボタンをまだ選んでいないときの背景 */
+  --box-card-delete-hover-background: var(--color-danger-soft); /* 削除ボタンを指したときに危険操作を伝える薄い背景色 */
 
-  /* Nature and EV summary */
-  --box-card-nature-evs-font-size: var(--font-size-sm2);
-  --box-card-nature-evs-font-weight: 300;
-  --box-card-nature-evs-line-height: var(--line-height-tight);
-  --box-card-nature-evs-color: var(--color-text-muted);
+  /* ── 5. 枠線・角丸 ────────────────────────────────────── */
+  --box-card-focus-outline: 2px solid var(--color-primary); /* キーボード操作でカード自体を選んだときのフォーカス枠 */
+  --box-card-focus-outline-offset: 2px; /* カード外周とフォーカス枠の距離。増やすと枠が外側へ離れる */
+  --box-card-action-border: 1px solid var(--color-border); /* 右上の丸い操作ボタンを背景から区切る輪郭線 */
+  --box-card-action-border-radius: 999px; /* 操作ボタンの角丸。十分大きい値で正円の輪郭を保つ */
+  --box-card-action-focus-outline: 2px solid var(--color-primary); /* キーボードで操作ボタンを選択した位置を示す外枠 */
+  --box-card-action-focus-outline-offset: 2px; /* 操作ボタンと選択中の外枠との隙間。広げると輪がボタンから離れる */
+  --box-card-delete-border: 1px solid var(--color-border); /* 通常時の削除ボタンを囲む境界線 */
+  --box-card-delete-hover-border: var(--color-danger-strong); /* 削除ボタンへポインターを載せたときの枠線色 */
 
-  /* Move list */
-  --box-card-move-gap: 0.05rem;
-  --box-card-move-font-size: var(--font-size-sm3);
-  --box-card-move-font-weight: 300;
+  /* ── 6. 影 ────────────────────────────────────────────── */
+  --box-card-action-shadow: var(--shadow-sm); /* 操作ボタンをカード面から少し浮かせて見せる影 */
 
-  --box-card-move-icon-size: var(--font-size-sm3);
-  --box-card-move-type-bar-width: 3px;
-  --box-card-move-icon-gap: 3px;
-  --box-card-move-row-padding: 0.04rem 0;
-  --box-card-content-justify-content: flex-start;
-  --box-card-content-align-items: flex-end;
-  --box-card-move-line-height: var(--line-height-tight);
-  --box-card-move-color: var(--color-text);
-  --box-card-move-type-bar-empty-color: #000;
+  /* ── 7. 余白 ──────────────────────────────────────────── */
+  --box-card-padding: var(--space-2); /* カード外枠から名前や技までの内側余白。増やすと内容領域が小さくなる */
+  --box-card-gap: var(--space-1); /* カード内の主要な行同士と操作ボタン同士の間隔 */
+  --box-card-action-offset: var(--space-2); /* 右上の操作ボタン群をカードの上端・右端から離す共通距離 */
+  --box-card-favorite-padding: 7px 0 0 7px; /* 左上の三角形内で星印を右下方向へ配置する内側余白 */
+  --box-card-move-gap: 0.05rem; /* 上下に連続する技の行間。広げると技一覧の総高も増す */
+  --box-card-move-row-padding: 0.04rem 0; /* 技1行の上下に足す余白。増やすと各行の高さがそろって広がる */
+  --box-card-move-icon-gap: 3px; /* 技タイプの細いバーと技名との横方向の隙間 */
+
+  /* ── 8. 寸法 ──────────────────────────────────────────── */
+  --box-card-artwork-width: 75%; /* 右下に透かすポケモン画像の横幅。大きくするとカードを覆う範囲が広がる */
+  --box-card-favorite-size: 52px; /* 左上のお気に入り三角形を作る正方形領域の一辺 */
+  --box-card-action-size: 28px; /* 右上の各丸型操作ボタンの幅と高さ */
+  --box-card-item-badge-size: 20%; /* 右下に重ねる持ち物アイコンの一辺。カード幅に対する比率 */
+  --box-card-move-icon-size: var(--font-size-sm3); /* 技タイプバーの高さ。技名の文字サイズに合わせた寸法 */
+  --box-card-move-type-bar-width: 3px; /* 技名の左に立つタイプ識別バーの太さ */
   --box-card-move-min-height: calc(
     4 * (1.2 * var(--box-card-move-font-size) + 0.08rem) + 3 *
       var(--box-card-move-gap)
-  );
+  ); /* 技が少ないカードでも4行分の領域を確保する最小の高さ */
+  --box-card-artwork-inset-inline-end: var(--box-card-gap); /* 透かし画像をカード右端から内側へ寄せる距離 */
+  --box-card-artwork-inset-block-end: var(--box-card-gap); /* 透かし画像をカード下端から持ち上げる距離 */
+  --box-card-item-badge-offset: 3%; /* 持ち物アイコンを右端・下端から離す基準距離 */
+  --box-card-item-badge-inset-inline-end: var(--box-card-item-badge-offset); /* 持ち物アイコンの右端側の配置位置。増やすと左へ移動する */
+  --box-card-item-badge-inset-block-end: var(--box-card-item-badge-offset); /* 持ち物アイコンの下端側の配置位置。増やすと上へ移動する */
+  --box-card-action-inset-block-start: var(--box-card-action-offset); /* 操作ボタン群をカード上端から下げる位置 */
+  --box-card-action-inset-inline-end: var(--box-card-action-offset); /* 操作ボタン群をカード右端から左へ入れる位置 */
 
-  /* Action buttons */
-  --box-card-action-size: 28px;
-  --box-card-action-offset: var(--space-2);
-  --box-card-action-inset-block-start: var(--box-card-action-offset);
-  --box-card-action-inset-inline-end: var(--box-card-action-offset);
-  --box-card-action-background: var(--color-surface);
-  --box-card-action-border: 1px solid var(--color-border);
-  --box-card-action-border-radius: 999px;
-  --box-card-action-color: var(--color-text-muted);
-  --box-card-action-font-size: var(--font-size-sm2);
-  --box-card-action-line-height: 1;
-  --box-card-action-shadow: var(--shadow-sm);
-  --box-card-action-hover-background: var(--color-bg);
-  --box-card-action-hover-color: var(--color-text);
-  --box-card-action-focus-outline: 2px solid var(--color-primary);
-  --box-card-action-focus-outline-offset: 2px;
-
-  /* Favorite button */
-  --box-card-favorite-size: 52px;
-  --box-card-favorite-padding: 7px 0 0 7px;
-  --box-card-favorite-font-size: var(--font-size-lg1);
-  --box-card-favorite-background: var(--color-bg);
-  --box-card-favorite-color: var(--color-text-muted);
-  --box-card-favorite-hover-background: var(--color-surface);
-  --box-card-favorite-hover-color: var(--color-text);
-  --box-card-favorite-pinned-background: var(--color-risky);
-  --box-card-favorite-pinned-color: var(--color-primary-contrast);
-
-  /* Delete button */
-  --box-card-delete-background: var(--color-surface);
-  --box-card-delete-border: 1px solid var(--color-border);
-  --box-card-delete-color: var(--color-danger-strong);
-  --box-card-delete-font-weight: 400;
-  --box-card-delete-hover-background: var(--color-danger-soft);
-  --box-card-delete-hover-border: var(--color-danger-strong);
-  --box-card-delete-transition-duration: 0.15s;
+  /* ── 9. その他 ────────────────────────────────────────── */
+  --box-card-aspect-ratio: 1 / 1; /* カード外形の縦横比。現在は一覧を正方形でそろえる */
+  --box-card-artwork-aspect-ratio: 1 / 1; /* 透かし画像の表示枠の縦横比。元画像を正方形の領域に収める */
+  --box-card-name-row-justify-content: flex-start; /* 名前行の内容を横方向の先頭へ寄せる配置方式 */
+  --box-card-name-text-align: left; /* 長さの異なるポケモン名の文字開始位置を左にそろえる */
+  --box-card-content-justify-content: flex-start; /* 性格・努力値などの内容行を横方向の先頭から配置する */
+  --box-card-content-align-items: flex-end; /* 内容行を縦方向の末尾に合わせ、カード下側へ寄せる */
+  --box-card-artwork-opacity: 0.4; /* ポケモン画像のグラデーション終端側の透け具合。下げるほど背景になじむ */
+  --box-card-artwork-gradient-slope: 100%; /* 透かし画像のマスクが終端の透明度へ達する位置 */
+  --box-card-delete-transition-duration: 0.15s; /* 削除ボタンの表示・配色が切り替わるアニメーション時間 */
 
 }
 
-/* Card structure */
+/* カードの外枠と基本レイアウト */
 
 .box-grid .box-card {
   padding: var(--box-card-padding);
@@ -131,14 +145,14 @@
   color: inherit;
 }
 .box-grid .card-team-empty-slot {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	border: 1px dashed var(--color-border);
-	color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed var(--color-border);
+  color: var(--color-text-muted);
 }
 .box-grid .team-slot-number {
-	font-size: var(--font-size-lg1);
+  font-size: var(--font-size-lg1);
 }
 .box-grid .box-card:focus-within {
   /* global.css の button:hover:not(:disabled) は .card:hover より詳細度が高い。
@@ -163,7 +177,7 @@
   outline-offset: var(--box-card-focus-outline-offset);
 }
 
-/* Transparent artwork */
+/* カード右下に透かして重ねるポケモン画像 */
 .box-grid .box-card .card-artwork {
   position: absolute;
   inset-inline-end: var(--box-card-artwork-inset-inline-end);
@@ -182,7 +196,7 @@
   -webkit-mask-image: linear-gradient(to left, black 0%, rgba(0, 0, 0, var(--box-card-artwork-opacity)) var(--box-card-artwork-gradient-slope));
 }
 
-/* Action buttons */
+/* カード右上に縦並びする操作ボタン */
 .box-grid .box-card .card-actions {
   position: absolute;
   inset-block-start: var(--box-card-action-inset-block-start);
@@ -216,7 +230,7 @@
   outline-offset: var(--box-card-action-focus-outline-offset);
 }
 
-/* Favorite button */
+/* カード左上の三角形のお気に入りボタン */
 .box-grid .box-card .pin-toggle {
   position: absolute;
   top: 0;
@@ -254,7 +268,7 @@
   color: var(--box-card-favorite-pinned-color);
 }
 
-/* Delete button */
+/* 削除モードでカード右上に表示する削除ボタン */
 .box-grid .box-card .delete-button {
   background: var(--box-card-delete-background);
   border: var(--box-card-delete-border);
@@ -291,7 +305,7 @@
   }
 }
 
-/* Card content */
+/* カード内の名前・性格・努力値などの内容 */
 .box-grid .box-card .card-body {
   display: contents;
 }
@@ -391,7 +405,7 @@
   display: none;
 }
 
-/* Move list */
+/* カード下部に4行並ぶ技一覧 */
 .box-grid .box-card .card-moves-grid {
   display: flex;
   flex: 0 1 auto;

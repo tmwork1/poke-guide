@@ -1,100 +1,159 @@
-/* /share/[slug] 公開共有ページ全体のレイアウト。 */
-	.share-identity {
-		display: flex;
-		flex-wrap: wrap;
-		align-items: flex-start;
-		gap: var(--space-6);
-	}
-	.share-identity dl {
-		flex: 1 1 320px;
-		min-width: 0;
-	}
-	.share-identity-media {
-		flex: 0 0 auto;
-		margin-left: auto;
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		gap: var(--space-3);
-	}
-	.share-identity-media img {
-		display: block;
-		width: 160px;
-		height: 160px;
-		object-fit: contain;
-	}
-	.share-identity-type-list {
-		display: flex;
-		flex-wrap: wrap;
-		justify-content: center;
-		gap: var(--space-2);
-		list-style: none;
-		margin: 0;
-		padding: 0;
-	}
-	/* pokemon/[name].astro の .identity-type-chip と同形(アイコン+タイプ名テキストの併記、
-	   色だけに意味を持たせない)。 */
-	.share-identity-type-chip {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.4em;
-		padding: 0.2em 0.7em 0.2em 0.3em;
-		border-radius: 999px;
-		background: var(--color-bg);
-		font-weight: 600;
-	}
-	.share-identity-type-chip img {
-		display: block;
-		width: 28px;
-		height: 28px;
-		border-radius: 50%;
-	}
-	@media (max-width: 640px) {
-		.share-identity-media {
-			margin-left: 0;
-		}
-	}
+/* ===========================================================================
+   公開共有ページ(/share/[slug])
 
-	.share-stat-grid {
-		display: grid;
-		grid-template-columns: 4.5rem repeat(6, minmax(0, 1fr));
-		gap: var(--space-1) 0.4rem;
-		align-items: center;
-	}
-	/* グローバルの.card-hintが持つ margin-top: calc(var(--space-2) * -1) を打ち消す
-	   (このページでは見出しではなく上のグリッド直後に置くため、負マージンだとグリッドに
-	   食い込んで「実数値」ラベルの注記に見えてしまう)。グリッドとの間は通常の余白
-	   (--space-3)を空け、グリッド左端と揃う独立した1行として読めるようにする。
-	   .card-hintクラス自体は他画面(box/[id].astro・pokemon/[name].astro・search/index.astro)
-	   でも見出し直下の詰め配置に使われているため、グローバル側は変更せずこのページ専用の
-	   .share-stat-hintをscoped styleで足して打ち消す(scoped属性2つぶんの詳細度で確実に勝つ)。 */
-	.share-stat-hint {
-		margin-top: var(--space-3);
-	}
-	.share-stat-row-label {
-		font-size: var(--font-size-sm2);
-		font-weight: 700;
-		color: var(--color-text-muted);
-		white-space: nowrap;
-	}
-	.share-stat-col-label {
-		font-size: var(--font-size-sm2);
-		font-weight: 700;
-		text-align: center;
-		color: var(--color-text-muted);
-	}
-	.share-stat-cell {
-		text-align: center;
-		font-size: var(--font-size-sm1);
-	}
-	.share-stat-cell-real {
-		font-size: 1.1em;
-		font-weight: 700;
-	}
-	/* box/[id].astroと同じ共通トークン(上昇=赤系/下降=青系)を参照する。 */
-	.share-stat-cell-real[data-mod='up'] {
-		color: var(--color-stat-up);
-	}
-	.share-stat-cell-real[data-mod='down'] {
-		color: var(--color-stat-down);
-	}
+   画面のどこ: 共有されたポケモンの情報、タイプ、能力値を表示するページ
+   見た目を変えたいとき: 下の「チューニング変数」だけ触ればよい。
+   =========================================================================== */
+
+/* ===========================================================================
+   チューニング変数
+   =========================================================================== */
+:root {
+  /* ── 1. 文字サイズ ────────────────────────────────────── */
+  --share-page-stat-label-font-size: var(--font-size-sm2); /* 能力値表の行・列見出し。大きくすると項目名が読みやすくなる */
+  --share-page-stat-value-font-size: var(--font-size-sm1); /* 能力値表の数値。大きくすると数値が目立つ */
+  --share-page-stat-real-font-size: 1.1em; /* 補正後の実数値。大きくすると通常値との差が分かりやすくなる */
+
+  /* ── 2. 文字の太さ・行間 ──────────────────────────────── */
+  --share-page-type-chip-font-weight: 600; /* タイプ名の太さ。太くするとタイプ表示が目立つ */
+  --share-page-stat-label-font-weight: 700; /* 能力値表の見出し太さ。太くすると数値との区別が強まる */
+  --share-page-stat-real-font-weight: 700; /* 補正後の実数値の太さ。太くすると重要な数値が目立つ */
+
+  /* ── 3. 文字色 ────────────────────────────────────────── */
+  --share-page-stat-label-color: var(--color-text-muted); /* 能力値表の見出し色。薄くすると数値が際立つ */
+  --share-page-stat-up-color: var(--color-stat-up); /* 上昇補正の実数値色。変えると上昇表示の印象が変わる */
+  --share-page-stat-down-color: var(--color-stat-down); /* 下降補正の実数値色。変えると下降表示の印象が変わる */
+
+  /* ── 4. 背景色 ────────────────────────────────────────── */
+  --share-page-type-chip-background: var(--color-bg); /* タイプ表示チップの背景。変えるとタイプ表示の区別が変わる */
+
+  /* ── 5. 枠線・角丸 ────────────────────────────────────── */
+  --share-page-type-chip-radius: 999px; /* タイプ表示チップの角丸。小さくすると角張った形になる */
+  --share-page-type-icon-radius: 50%; /* タイプアイコンの角丸。変えるとアイコンの形が変わる */
+
+  /* ── 7. 余白 ──────────────────────────────────────────── */
+  --share-page-identity-gap: var(--space-6); /* ポケモン情報と画像の間隔。大きくすると横に離れる */
+  --share-page-media-gap: var(--space-3); /* 画像とタイプ一覧の間隔。大きくすると縦に離れる */
+  --share-page-type-list-gap: var(--space-2); /* タイプチップどうしの間隔。大きくするとチップが離れる */
+  --share-page-type-chip-gap: 0.4em; /* タイプチップ内のアイコンと名前の間隔。大きくすると離れる */
+  --share-page-type-chip-padding: 0.2em 0.7em 0.2em 0.3em; /* タイプチップの内側余白。大きくするとチップが大きくなる */
+  --share-page-stat-grid-gap: var(--space-1) 0.4rem; /* 能力値表の行・列間隔。大きくすると数値が離れる */
+  --share-page-stat-hint-margin-top: var(--space-3); /* 能力値表と補足の間隔。大きくすると注記が下へ離れる */
+
+  /* ── 8. 寸法 ──────────────────────────────────────────── */
+  --share-page-identity-detail-basis: 320px; /* ポケモン詳細欄の基準幅。大きくすると画像が折り返しやすくなる */
+  --share-page-image-size: 160px; /* ポケモン画像の大きさ。大きくすると画像が目立つ */
+  --share-page-type-icon-size: 28px; /* タイプチップ内アイコンの大きさ。大きくするとタイプが目立つ */
+  --share-page-stat-label-column-width: 4.5rem; /* 能力値表の左見出し列幅。大きくすると数値列が狭くなる */
+}
+
+/* ===========================================================================
+   ここから下は構造(レイアウトの組み立て)。通常は触らない。
+   =========================================================================== */
+
+/* ポケモンの基本情報と画像を横に並べるエリア */
+.share-identity {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--share-page-identity-gap);
+}
+/* 公開個体のポケモン名・性格・特性・持ち物・テラスタイプ・技構成 */
+.share-identity dl {
+  flex: 1 1 var(--share-page-identity-detail-basis);
+  min-width: 0;
+}
+/* 基本情報の右側に置く公式画像とタイプ一覧のまとまり */
+.share-identity-media {
+  flex: 0 0 auto;
+  margin-left: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--share-page-media-gap);
+}
+/* 公開個体の公式イラスト。画像枠内に全体が収まるよう表示する */
+.share-identity-media img {
+  display: block;
+  width: var(--share-page-image-size);
+  height: var(--share-page-image-size);
+  object-fit: contain;
+}
+
+/* pokemon/[name].astro の .identity-type-chip と同形(アイコン+タイプ名テキストの併記、
+   色だけに意味を持たせない)。 */
+/* ポケモン画像の下に並ぶタイプ一覧 */
+.share-identity-type-list {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--share-page-type-list-gap);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+/* 公式画像の下に並べる、アイコンと名前を組み合わせたタイプ表示 */
+.share-identity-type-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--share-page-type-chip-gap);
+  padding: var(--share-page-type-chip-padding);
+  border-radius: var(--share-page-type-chip-radius);
+  background: var(--share-page-type-chip-background);
+  font-weight: var(--share-page-type-chip-font-weight);
+}
+/* タイプ表示の左側に置く丸いタイプアイコン */
+.share-identity-type-chip img {
+  display: block;
+  width: var(--share-page-type-icon-size);
+  height: var(--share-page-type-icon-size);
+  border-radius: var(--share-page-type-icon-radius);
+}
+
+@media (max-width: 640px) {
+  /* 狭い画面で画像を詳細欄の横へ寄せない */
+  .share-identity-media { margin-left: 0; }
+}
+
+/* 能力値を横6列で表示する表 */
+.share-stat-grid {
+  display: grid;
+  grid-template-columns: var(--share-page-stat-label-column-width) repeat(6, minmax(0, 1fr));
+  gap: var(--share-page-stat-grid-gap);
+  align-items: center;
+}
+/* グローバルの.card-hintが持つ margin-top: calc(var(--space-2) * -1) を打ち消す
+   (このページでは見出しではなく上のグリッド直後に置くため、負マージンだとグリッドに
+   食い込んで「実数値」ラベルの注記に見えてしまう)。グリッドとの間は通常の余白
+   (--space-3)を空け、グリッド左端と揃う独立した1行として読めるようにする。
+   .card-hintクラス自体は他画面(box/[id].astro・pokemon/[name].astro・search/index.astro)
+   でも見出し直下の詰め配置に使われているため、グローバル側は変更せずこのページ専用の
+   .share-stat-hintをscoped styleで足して打ち消す(scoped属性2つぶんの詳細度で確実に勝つ)。 */
+.share-stat-hint { margin-top: var(--share-page-stat-hint-margin-top); }
+/* 能力値表の左端に置く「努力値」「実数値」の行見出し */
+.share-stat-row-label {
+  font-size: var(--share-page-stat-label-font-size);
+  font-weight: var(--share-page-stat-label-font-weight);
+  color: var(--share-page-stat-label-color);
+  white-space: nowrap;
+}
+/* 能力値表の上端に置くHP・攻撃・防御などの列見出し */
+.share-stat-col-label {
+  font-size: var(--share-page-stat-label-font-size);
+  font-weight: var(--share-page-stat-label-font-weight);
+  text-align: center;
+  color: var(--share-page-stat-label-color);
+}
+/* 能力値表に並ぶ各能力の努力値と実数値 */
+.share-stat-cell {
+  text-align: center;
+  font-size: var(--share-page-stat-value-font-size);
+}
+/* 能力値表の実数値。努力値より大きく太い文字で示す */
+.share-stat-cell-real {
+  font-size: var(--share-page-stat-real-font-size);
+  font-weight: var(--share-page-stat-real-font-weight);
+}
+/* box/[id].astroと同じ共通トークン(上昇=赤系/下降=青系)を参照する。 */
+.share-stat-cell-real[data-mod='up'] { color: var(--share-page-stat-up-color); }
+.share-stat-cell-real[data-mod='down'] { color: var(--share-page-stat-down-color); }

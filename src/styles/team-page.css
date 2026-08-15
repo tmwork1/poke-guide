@@ -1,80 +1,108 @@
 /* /team 一覧。ページ固有の外枠と、/box と揃えた下部操作。
-   チームカード本体(.team-grid > .card-team)のスタイルは /team/[id] の「類似構築」タブと
-   共有するため src/styles/team-card.css に集約してある(このファイルには置かない)。 */
+	チームカード本体(.team-grid > .card-team)のスタイルは /team/[id] の「類似構築」タブと
+	共有するため src/styles/team-card.css に集約してある(このファイルには置かない)。 */
 @import "./team-card.css";
 @import "./floating-list-controls.css";
 
+/* --------------------------------------------------------------------------
+	チューニング変数
+	/team 一覧ページで使う余白と状態メッセージの見た目を調整する。
+	-------------------------------------------------------------------------- */
+:root {
+	/* ── 3. 文字色 ───────────────────────── */
+	--team-page-status-color: var(--color-text-muted); /* 読み込み中・空状態メッセージの文字色 */
+	--team-page-error-color: var(--color-danger-strong); /* エラーメッセージの文字色 */
+
+	/* ── 7. 余白 ────────────────────────── */
+	--team-page-content-padding: var(--box-grid-edge-gap) var(--box-grid-edge-gap) calc(var(--bottom-nav-height) + 6rem); /* 一覧の外側余白。下側は固定ナビと重ならない余白 */
+	--team-page-status-margin-top: var(--space-6); /* 読み込み中・エラー表示の上側余白 */
+	--team-page-content-inline-padding: var(--space-5); /* ページ本文の左右余白 */
+	--team-page-empty-margin-top: var(--space-4); /* 検索結果なし表示の上側余白 */
+
+	/* ── 8. 寸法 ────────────────────────── */
+	--team-page-shell-min-height: 100dvh; /* 一覧ページの最低の高さ。大きくすると短い内容でも縦に伸びる */
+	--team-page-toolbar-search-max-width: 26rem; /* 検索欄の最大幅。大きくすると横長になる */
+	--team-page-toolbar-search-min-width: 12em; /* 検索欄の最小幅。小さくすると狭い画面で縮めやすい */
+}
+
+/* --------------------------------------------------------------------------
+	ここから下は構造
+	-------------------------------------------------------------------------- */
+
 .team-shell {
-  min-height: 100dvh;
+	min-height: var(--team-page-shell-min-height);
 }
 
 .team-content.box-content {
-  padding: var(--box-grid-edge-gap) var(--box-grid-edge-gap) calc(var(--bottom-nav-height) + 6rem) !important;
+	padding: var(--team-page-content-padding) !important;
 }
 
 /* JSがinnerHTMLを差し替えてもカードが .team-grid の直接の子として並ぶようにする
-   (追加タイルは #team-list の外側の兄弟なので再描画で触られない。box/index.astro と同じ戦略)。 */
+	(追加タイルは #team-list の外側の兄弟なので再描画で触られない。box/index.astro と同じ戦略)。 */
 #team-list {
-  display: contents;
+	display: contents;
 }
 
 		/* --- ツールバー(検索+並べ替え。box/index.astroの.second-bar--toolbarをそのまま流用。
-		   「絞り込み」はこのページには置かない(docs/plan/pages/team.md参照)。 --- */
+			「絞り込み」はこのページには置かない(docs/plan/pages/team.md参照)。 --- */
 		/* box/index.astroの.second-bar--toolbarと同じ値をそのまま複製する
-		   (このツールバーがAppLayoutの共通<header class="app-topbar">の代わりを務める)。
-		   sticky/z-index/background/border-bottomはglobal.cssの.app-topbarと同じ値
-		   (新しい値は作らない)。 */
+			(このツールバーがAppLayoutの共通<header class="app-topbar">の代わりを務める)。
+			sticky/z-index/background/border-bottomはglobal.cssの.app-topbarと同じ値
+			(新しい値は作らない)。 */
 		/* 件数バッジはツールバー先頭寄りに配置し、margin-left: autoは付けない
-		   (pitfalls.md「flex: 1 1 0は余白を全部飲む」と同種の事故を避ける: auto marginを
-		   残すと後続の検索ボックスが右端まで押し出されてしまう)。 */
+			(pitfalls.md「flex: 1 1 0は余白を全部飲む」と同種の事故を避ける: auto marginを
+			残すと後続の検索ボックスが右端まで押し出されてしまう)。 */
 		.toolbar-count {
 			flex-shrink: 0;
 		}
 		.toolbar-search {
-			flex: 0 1 26rem;
+			flex: 0 1 var(--team-page-toolbar-search-max-width);
 		}
 		.toolbar-search input {
 			width: 100%;
-			min-width: 12em;
+			min-width: var(--team-page-toolbar-search-min-width);
 		}
 
 		/* お気に入りボタン(.favorite-filter-toggle)のスタイルはglobal.cssに集約されている
-		   (Astroのscoped styleはページをまたがないため、一覧間で共有するにはglobal.cssに置く
-		   必要がある)。 */
+			(Astroのscoped styleはページをまたがないため、一覧間で共有するにはglobal.cssに置く
+			必要がある)。 */
 
 		/* 「並べ替え」の<label>は表示せず、box/index.astroの.sort-select-wrap/.sort-icon
-		   と同じ手法(検索欄の.search-input-wrap/.search-iconと同じ、position:absoluteのアイコン+
-		   select側padding-left)でソートアイコンをselectの左側に重ねる。 */
+			と同じ手法(検索欄の.search-input-wrap/.search-iconと同じ、position:absoluteのアイコン+
+			select側padding-left)でソートアイコンをselectの左側に重ねる。 */
 
 		@media (max-width: 640px) {
 			.toolbar-search { flex-basis: auto; }
 			.toolbar-search input,
 			.toolbar-regulation select,
-			.toolbar-sort select { width: 100%; min-width: 0; }
+			.toolbar-sort select {
+				width: 100%;
+				min-width: 0;
+			}
 		}
 
 		/* --- カードグリッド(.team-grid)と #team-list の display:contents は
-		   src/styles/team-card.css / team-page.css が持つ。/team/[id] の「類似構築」タブと
-		   カードの見た目・間隔を1つの定義元から共有するため、このscoped styleには置かない
-		   (ルートCLAUDE.md「スタイル定義」)。 --- */
+			src/styles/team-card.css / team-page.css が持つ。/team/[id] の「類似構築」タブと
+			カードの見た目・間隔を1つの定義元から共有するため、このscoped styleには置かない
+			(ルートCLAUDE.md「スタイル定義」)。 --- */
 		.team-content {
-			padding: 0 var(--space-5);
+			padding: 0 var(--team-page-content-inline-padding);
 		}
 		/* --- 状態メッセージ(読み込み中・エラー・空状態2種。box/index.astroと同じ作り) --- */
 		#loading-message,
 		#error-message {
-			color: var(--color-text-muted);
-			margin-top: var(--space-6);
+			color: var(--team-page-status-color);
+			margin-top: var(--team-page-status-margin-top);
 		}
-		#error-message { color: var(--color-danger-strong); }
+		#error-message { color: var(--team-page-error-color); }
 
 		#no-match-message.empty-state {
-			margin-top: var(--space-4);
+			margin-top: var(--team-page-empty-margin-top);
 		}
 
 		/* .badge(global.css)は display:inline-flex を持つため、UAの[hidden]{display:none}に
-		   author style(same-specificity/origin勝ち)として勝ってしまう(pitfalls.md「[hidden]は
-		   詳細度で負ける」)。件数バッジをhidden属性で隠すこのページでは明示的に打ち消す。 */
+			author style(same-specificity/origin勝ち)として勝ってしまう(pitfalls.md「[hidden]は
+			詳細度で負ける」)。件数バッジをhidden属性で隠すこのページでは明示的に打ち消す。 */
 		#team-count-badge[hidden] {
 			display: none;
 		}

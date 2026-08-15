@@ -2,10 +2,42 @@
 @import "./box-card.css";
 @import "./floating-list-controls.css";
 
-/* ページ全体: .page.box-shell */
+/* ===========================================================================
+   ボックス一覧ページ
+
+   画面のどこ: ボックス → 登録済みポケモンのカード一覧
+   見た目を変えたいとき: 下の「チューニング変数」だけ触ればよい。
+                        それより下は構造なので通常はいじらない。
+   =========================================================================== */
+
+/* --------------------------------------------------------------------------
+   チューニング変数
+   ここの値を書き換えると一覧ページの見た目が変わる。
+   -------------------------------------------------------------------------- */
 .box-shell {
-  min-height: 100dvh;
-  --box-second-bar-gap: var(--space-2);
+  /* ── 3. 文字色 ───────────────────────── */
+  --box-page-message-color: var(--color-text-muted); /* 読み込み文の文字色 */
+  --box-page-error-color: var(--color-danger-strong); /* エラー文の文字色 */
+
+  /* ── 4. 背景色 ───────────────────────── */
+  --box-page-content-background: var(--color-bg); /* カード一覧の背景色 */
+
+  /* ── 7. 余白 ────────────────────────── */
+  --box-page-message-margin-top: var(--space-6); /* 読み込み・エラー文の上余白 */
+  --box-page-empty-margin-top: var(--space-4); /* 検索結果なしの文の上余白 */
+  --box-second-bar-gap: var(--space-2); /* カード一覧の外側余白。大きくすると画面端から離れる */
+
+  /* ── 8. 寸法 ────────────────────────── */
+  --box-page-min-height: 100dvh; /* ページの最低高さ。大きくすると短い一覧でも画面を埋める */
+}
+
+/* --------------------------------------------------------------------------
+   ここから下は構造。レイアウトの組み立てなので通常は触らない。
+   -------------------------------------------------------------------------- */
+
+/* ページ全体 */
+.box-shell {
+  min-height: var(--box-page-min-height);
 }
 
 /* ページ見出し: h1.box-page-title（一覧はカードを先頭から表示するため非表示） */
@@ -13,7 +45,6 @@
   display: none;
 }
 
-/* 検索入力の幅: .toolbar-search > .search-input-wrap > input#search-input */
 /* カード一覧の余白: .box-content（上下左右を共通の edge gap にする） */
 .box-content {
   position: fixed;
@@ -24,7 +55,7 @@
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   padding: var(--box-second-bar-gap);
-  background: var(--color-bg);
+  background: var(--box-page-content-background);
 }
 
 /* 動的に描画するポケモンカードの差し込み先: #owned-pokemon-list */
@@ -35,15 +66,15 @@
 /* 一覧の読み込み・エラー表示: #loading-message / #error-message */
 #loading-message,
 #error-message {
-  margin-top: var(--space-6);
-  color: var(--color-text-muted);
+  margin-top: var(--box-page-message-margin-top);
+  color: var(--box-page-message-color);
 }
 
 #error-message {
-  color: var(--color-danger-strong);
+  color: var(--box-page-error-color);
 }
 
 /* 検索結果が0件の場合の空状態: #no-match-message */
 #no-match-message.empty-state {
-  margin-top: var(--space-4);
+  margin-top: var(--box-page-empty-margin-top);
 }

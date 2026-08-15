@@ -1,24 +1,185 @@
-.box-data-page{max-width:760px;padding-bottom:calc(64px + env(safe-area-inset-bottom))}.box-data-secondbar{padding:0}.pokemon-data-preview{min-height:170px;padding:var(--space-5);background:var(--color-surface);border-bottom:1px solid var(--color-border)}.pokemon-data-preview h1{margin:0;font-size:var(--font-size-lg2)}.pokemon-data-preview p{margin:var(--space-2) 0;color:var(--color-text-muted)}.data-kicker{font-size:var(--font-size-sm2);font-weight:700}.box-data-main{padding:var(--space-4)}.data-panel h2{margin:0 0 var(--space-3);font-size:var(--font-size-lg1)}.opgg-source{margin:0 0 var(--space-2);color:var(--color-text-muted);font-size:var(--font-size-sm3)}.box-data-controls{position:fixed;right:0;bottom:calc(var(--bottom-nav-height) + env(safe-area-inset-bottom));left:0;z-index:16;padding:var(--space-3);background:var(--color-surface);border-top:1px solid var(--color-border);font-size:var(--font-size-sm2);font-weight:700}@media(max-width:420px){.pokemon-data-preview{padding:var(--space-4)}.box-data-main{padding:var(--space-3)}}
-.data-view-controls{display:flex;justify-content:flex-end;gap:var(--space-1);margin-bottom:var(--space-3)}.data-view-controls button{padding:var(--space-2);border:1px solid var(--color-border);background:var(--color-surface);font:inherit;font-size:var(--font-size-sm2)}.data-view-controls .data-season-unavailable{color:var(--color-text-muted);opacity:.72}.data-pending{padding:var(--space-5);color:var(--color-text-muted)}
-.data-empty{padding:var(--space-5);border:1px solid var(--color-border);background:var(--color-surface);color:var(--color-text-muted)}.data-empty h2{color:var(--color-text);margin-bottom:var(--space-2)}.data-empty p{margin:0}
+/* ===========================================================================
+   個別データ・上位チームページ(/box/data、/box/ranked)
+
+   画面のどこ: ボックス内ポケモンのデータ表示と上位チーム一覧
+   見た目を変えたいとき: 下の「チューニング変数」だけ触ればよい。
+   =========================================================================== */
+
+/* ===========================================================================
+   チューニング変数
+   =========================================================================== */
+:root {
+  /* ── 1. 文字サイズ ────────────────────────────────────── */
+  --data-page-preview-title-font-size: var(--font-size-lg2); /* ポケモン名の見出し。大きくするとページの主題が目立つ */
+  --data-page-panel-title-font-size: var(--font-size-lg1); /* データ区画の見出し。大きくすると区画の区別が強まる */
+  --data-page-kicker-font-size: var(--font-size-sm2); /* ポケモン名の前の補足文字。大きくすると補足が目立つ */
+  --data-page-controls-font-size: var(--font-size-sm2); /* 画面下の操作バー文字。大きくすると操作が読みやすくなる */
+  --data-page-source-font-size: var(--font-size-sm3); /* データ出典の文字。大きくすると注記が読みやすくなる */
+
+  /* ── 2. 文字の太さ・行間 ──────────────────────────────── */
+  --data-page-kicker-font-weight: 700; /* ポケモン名の前の補足文字。太くすると見出しらしくなる */
+  --data-page-controls-font-weight: 700; /* 操作バーの文字。太くするとボタン群が目立つ */
+
+  /* ── 3. 文字色 ────────────────────────────────────────── */
+  --data-page-muted-color: var(--color-text-muted); /* 説明・出典・未利用表示の色。薄くすると主情報が際立つ */
+  --data-page-empty-title-color: var(--color-text); /* 空状態の見出し色。変えると案内の強さが変わる */
+
+  /* ── 4. 背景色 ────────────────────────────────────────── */
+  --data-page-preview-background: var(--color-surface); /* ポケモン概要エリアの背景。変えると上部の区切りが変わる */
+  --data-page-controls-background: var(--color-surface); /* 画面下の操作バー背景。変えると操作エリアの区別が変わる */
+  --data-page-empty-background: var(--color-surface); /* 空状態の案内枠背景。変えると案内の存在感が変わる */
+
+  /* ── 5. 枠線・角丸 ────────────────────────────────────── */
+  --data-page-border: 1px solid var(--color-border); /* 概要・操作バー・案内枠の境界線。太さや色で区切りが変わる */
+  --data-page-ranked-status-radius: var(--radius-md); /* 上位チーム状態枠の角丸。大きくすると柔らかい印象になる */
+
+  /* ── 7. 余白 ──────────────────────────────────────────── */
+  --data-page-preview-padding: var(--space-5); /* ポケモン概要の内側余白。大きくすると内容が内側に寄る */
+  --data-page-main-padding: var(--space-4); /* ページ本文の内側余白。大きくすると各区画が内側に寄る */
+  --data-page-controls-padding: var(--space-3); /* 画面下の操作バー内側余白。大きくすると操作部が厚くなる */
+  --data-page-view-controls-gap: var(--space-1); /* 表示切替ボタンどうしの間隔。大きくするとボタンが離れる */
+  --data-page-view-controls-margin-bottom: var(--space-3); /* 表示切替と本文の間隔。大きくすると上下に余裕が出る */
+  --data-page-view-button-padding: var(--space-2); /* 表示切替ボタンの内側余白。大きくすると押せる面積が広がる */
+  --data-page-empty-padding: var(--space-5); /* 空状態の案内枠内側余白。大きくすると案内がゆったりする */
+  --data-page-ranked-status-padding: var(--space-4); /* 上位チーム状態枠の内側余白。大きくすると案内がゆったりする */
+  --data-page-preview-description-margin: var(--space-2) 0; /* ポケモン説明の上下余白。大きくするとタイトルから離れる */
+  --data-page-panel-title-margin: 0 0 var(--space-3); /* 区画見出しの下余白。大きくすると内容との間が開く */
+  --data-page-source-margin: 0 0 var(--space-2); /* 出典表示の下余白。大きくすると次の内容から離れる */
+  --data-page-empty-title-margin-bottom: var(--space-2); /* 空状態見出しの下余白。大きくすると説明から離れる */
+  --data-page-ranked-status-margin: 0 auto; /* 上位チーム状態枠の外側余白。変えると横位置が変わる */
+  --data-page-preview-padding-mobile: var(--space-4); /* 狭い画面の概要内側余白。大きくすると概要が厚くなる */
+  --data-page-main-padding-mobile: var(--space-3); /* 狭い画面の本文内側余白。大きくすると本文が内側に寄る */
+
+  /* ── 8. 寸法 ──────────────────────────────────────────── */
+  --data-page-max-width: 760px; /* ページ全体の最大幅。大きくすると広い画面で横に伸びる */
+  --data-page-preview-min-height: 170px; /* ポケモン概要の最低高さ。大きくすると上部に余白が増える */
+  --data-page-ranked-status-max-width: 34rem; /* 上位チーム状態枠の最大幅。大きくすると案内枠が横に広がる */
+
+  /* ── 9. その他 ────────────────────────────────────────── */
+  --data-page-unavailable-opacity: .72; /* 利用不可の表示の透明度。小さくすると操作不可が分かりやすい */
+}
+
+/* ===========================================================================
+   ここから下は構造(レイアウトの組み立て)。通常は触らない。
+   =========================================================================== */
+
+/* 個別データ・上位チームページの外枠 */
+.box-data-page {
+  max-width: var(--data-page-max-width);
+  padding-bottom: calc(64px + env(safe-area-inset-bottom));
+}
+.box-data-secondbar { padding: 0; }
+
+/* ポケモン名と説明を表示する上部概要 */
+.pokemon-data-preview {
+  min-height: var(--data-page-preview-min-height);
+  padding: var(--data-page-preview-padding);
+  background: var(--data-page-preview-background);
+  border-bottom: var(--data-page-border);
+}
+/* ポケモン未選択時に表示する「ポケモンを選択してください」の見出し */
+.pokemon-data-preview h1 {
+  margin: 0;
+  font-size: var(--data-page-preview-title-font-size);
+}
+/* ポケモン未選択時の案内文と、その上に付く短い分類名 */
+.pokemon-data-preview p {
+  margin: var(--data-page-preview-description-margin);
+  color: var(--data-page-muted-color);
+}
+/* 未選択案内の上に表示する「育成データレビュー」の分類名 */
+.data-kicker {
+  font-size: var(--data-page-kicker-font-size);
+  font-weight: var(--data-page-kicker-font-weight);
+}
+.box-data-main { padding: var(--data-page-main-padding); }
+/* バトルデータ欄の「トレンド」または空表示の見出し */
+.data-panel h2 {
+  margin: var(--data-page-panel-title-margin);
+  font-size: var(--data-page-panel-title-font-size);
+}
+.opgg-source {
+  margin: var(--data-page-source-margin);
+  color: var(--data-page-muted-color);
+  font-size: var(--data-page-source-font-size);
+}
+
+/* 画面下に固定するデータ操作バー */
+.box-data-controls {
+  position: fixed;
+  right: 0;
+  bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom));
+  left: 0;
+  z-index: 16;
+  padding: var(--data-page-controls-padding);
+  background: var(--data-page-controls-background);
+  border-top: var(--data-page-border);
+  font-size: var(--data-page-controls-font-size);
+  font-weight: var(--data-page-controls-font-weight);
+}
+
+@media (max-width: 420px) {
+  /* 狭い画面の概要と本文 */
+  .pokemon-data-preview { padding: var(--data-page-preview-padding-mobile); }
+  .box-data-main { padding: var(--data-page-main-padding-mobile); }
+}
+
+/* データの表示形式を切り替えるボタン列 */
+.data-view-controls {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--data-page-view-controls-gap);
+  margin-bottom: var(--data-page-view-controls-margin-bottom);
+}
+/* シーズンを切り替える操作列のボタン */
+.data-view-controls button {
+  padding: var(--data-page-view-button-padding);
+  border: var(--data-page-border);
+  background: var(--data-page-controls-background);
+  font: inherit;
+  font-size: var(--data-page-controls-font-size);
+}
+/* シーズン一覧の読み込み前に表示する無効状態の仮ボタン */
+.data-view-controls .data-season-unavailable {
+  color: var(--data-page-muted-color);
+  opacity: var(--data-page-unavailable-opacity);
+}
+.data-pending {
+  padding: var(--data-page-empty-padding);
+  color: var(--data-page-muted-color);
+}
+
+/* データが無いときの案内枠 */
+.data-empty {
+  padding: var(--data-page-empty-padding);
+  border: var(--data-page-border);
+  background: var(--data-page-empty-background);
+  color: var(--data-page-muted-color);
+}
+/* バトルデータが無いことを伝える案内枠の見出し */
+.data-empty h2 {
+  color: var(--data-page-empty-title-color);
+  margin-bottom: var(--data-page-empty-title-margin-bottom);
+}
+.data-empty p { margin: 0; }
 
 /* box/ranked.astro(上位チーム)は renderTopBuildCard + team-card.css で /team 一覧と
    カード本体を共用している。器の左右余白も同じ --box-grid-edge-gap に揃えないと
    カードだけ細くなるため、このページに限り .box-data-main の既定 padding を上書きする
    (@media 内の padding ショートハンドより詳細度が高いので、狭幅でも効く)。 */
-.box-ranked-page .box-data-main {
-  padding-inline: var(--box-grid-edge-gap);
-}
+/* /box/ranked のカード一覧を /team と同じ左右余白にする */
+.box-ranked-page .box-data-main { padding-inline: var(--box-grid-edge-gap); }
 
 /* box/ranked.astro(上位チーム)のロード中/エラー/0件時のステータス文言。/team/[id] の
    .team-data-similar-status(team-data-tab.css)と同じ見た目にして、実カード一覧に
    差し替わる前の枠を揃える。 */
+/* /box/ranked の読み込み・エラー・0件時の状態枠 */
 .box-ranked-status {
-  max-width: 34rem;
-  margin: 0 auto;
-  padding: var(--space-4);
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  max-width: var(--data-page-ranked-status-max-width);
+  margin: var(--data-page-ranked-status-margin);
+  padding: var(--data-page-ranked-status-padding);
+  background: var(--data-page-empty-background);
+  border: var(--data-page-border);
+  border-radius: var(--data-page-ranked-status-radius);
   text-align: center;
 }

@@ -1,27 +1,90 @@
-/* /box・/team の下部固定「検索 + 追加」操作で共用するUI。各画面は変数だけを指定する。 */
+/* ===========================================================================
+   一覧画面の下部固定操作(/box・/teamで共用する検索欄と追加ボタン)
+
+   画面のどこ: ボトムナビの少し上に浮く検索欄と、右下の丸い追加ボタン。
+   見た目を変えたいとき: 下の「チューニング変数」だけ触ればよい。
+   =========================================================================== */
+
+/* ===========================================================================
+   チューニング変数
+   =========================================================================== */
 .floating-list-page {
-  --floating-list-search-control-size: 40px;
-  --floating-list-add-control-size: 60px;
-  --floating-list-controls-gap: 20px;
-  --floating-list-controls-backdrop-padding: 10px;
-  --floating-list-controls-offset-y: 24px;
+  /* ── 1. 文字サイズ ────────────────────────────────────── */
+  --floating-list-add-icon-font-size: var(--font-size-lg3); /* 丸い追加ボタン中央の「＋」。大きくすると記号が目立つ。 */
+
+  /* ── 3. 文字色 ────────────────────────────────────────── */
+  --floating-list-add-color: var(--color-primary-contrast); /* 追加ボタンの「＋」の色。背景との読みやすさを左右する。 */
+  --floating-list-search-color: #fff; /* 固定検索欄の入力文字色。暗い背景との差を左右する。 */
+  --floating-list-search-muted-color: rgba(255, 255, 255, .7); /* 検索アイコンとプレースホルダーの色。薄くすると補助表示が控えめになる。 */
+
+  /* ── 4. 背景色 ────────────────────────────────────────── */
+  --floating-list-toolbar-background: transparent; /* 固定検索ツールバーの下地。色を付けると検索欄の周囲が塗られる。 */
+  --floating-list-backdrop-background: radial-gradient(ellipse 78% 88% at 50% 50%, rgba(10, 12, 16, 0.2) 0%, rgba(10, 12, 16, 0.18) 48%, rgba(10, 12, 16, 0.1) 72%, rgba(10, 12, 16, 0.03) 88%, transparent 100%); /* 検索欄の背後に広がる暗いぼかし。濃くすると下の一覧が透けにくくなる。 */
+  --floating-list-add-background: var(--color-primary); /* 丸い追加ボタンの背景色。変えると右下の主操作色が変わる。 */
+  --floating-list-add-hover-background: var(--color-primary-hover); /* 追加ボタンに触れたときの背景色。変えると操作時の反応色が変わる。 */
+  --floating-list-search-background: #20242d; /* 固定検索欄の背景色。変えると下部検索欄の明るさが変わる。 */
+
+  /* ── 5. 枠線・角丸 ────────────────────────────────────── */
+  --floating-list-toolbar-border: 0; /* 固定検索ツールバーの枠線。太くすると外周に枠が付く。 */
+  --floating-list-backdrop-border-radius: var(--radius-lg); /* 検索欄背後のぼかしの角丸。大きくするとぼかし領域の角が丸くなる。 */
+  --floating-list-add-border: 0; /* 丸い追加ボタンの枠線。太くするとボタン外周に枠が付く。 */
+  --floating-list-add-border-radius: 50%; /* 追加ボタンの丸み。小さくすると円形から角のある形へ近づく。 */
+  --floating-list-add-icon-border: 0; /* 「＋」アイコン領域の枠線。太くすると記号の周囲に枠が付く。 */
+  --floating-list-search-border-color: rgba(255, 255, 255, .12); /* 固定検索欄の通常枠色。濃くすると入力欄の輪郭が目立つ。 */
+  --floating-list-search-border-radius: var(--radius-md); /* 固定検索欄の角丸。大きくすると入力欄の角が丸くなる。 */
+  --floating-list-search-focus-border-color: rgba(255, 255, 255, .24); /* 入力中の検索欄の枠色。濃くするとフォーカス状態が目立つ。 */
+  --floating-list-search-focus-outline: 2px solid var(--color-primary); /* 入力中の検索欄の外枠。太くすると選択中の輪郭が強くなる。 */
+  --floating-list-search-focus-outline-offset: 2px; /* 検索欄とフォーカス外枠の間隔。大きくすると輪郭が外へ離れる。 */
+
+  /* ── 6. 影 ────────────────────────────────────────────── */
+  --floating-list-toolbar-shadow: none; /* 固定検索ツールバー全体の影。付けるとツールバー領域が浮いて見える。 */
+  --floating-list-add-shadow: var(--shadow-lg), inset 0 1px 0 rgba(255, 255, 255, 0.28); /* 追加ボタンの外側と上辺の影。強くするとボタンが浮いて見える。 */
+  --floating-list-search-shadow: 0 3px 8px rgba(0, 0, 0, .2), 0 1px 2px rgba(0, 0, 0, .14); /* 固定検索欄の影。強くすると一覧より手前に浮いて見える。 */
+
+  /* ── 7. 余白 ──────────────────────────────────────────── */
+  --floating-list-controls-offset-y: 24px; /* 検索・追加操作とボトムナビの間隔。大きくすると両方が上へ移動する。 */
+  --floating-list-controls-gap: 20px; /* 検索欄と追加ボタンの横間隔。大きくすると両者が離れる。 */
+  --floating-list-controls-edge-offset: var(--space-5); /* 検索欄左端と追加ボタン右端の画面端余白。大きくすると内側へ寄る。 */
+  --floating-list-controls-bottom-gap: var(--space-2); /* 操作列とボトムナビの基本間隔。大きくすると操作列が上へ移動する。 */
+  --floating-list-controls-backdrop-padding: 10px; /* 検索欄背後のぼかしの広がり。大きくすると周囲を広く覆う。 */
+  --floating-list-toolbar-padding: 0; /* 固定検索ツールバーの内側余白。大きくすると検索欄が外枠から離れる。 */
+  --floating-list-add-padding: 0; /* 追加ボタン内の余白。大きくすると「＋」の使える領域が狭くなる。 */
+  --floating-list-search-padding: 0 var(--space-3) 0 2.1em; /* 検索欄の内側余白。左を大きくすると文字がアイコンから離れる。 */
+
+  /* ── 8. 寸法 ──────────────────────────────────────────── */
+  --floating-list-add-control-size: 60px; /* 丸い追加ボタンの直径。大きくすると右下ボタンが拡大する。 */
+  --floating-list-search-control-size: 40px; /* 固定検索欄の高さ。大きくすると入力欄が縦に広がる。 */
+
+  /* ── 9. その他 ────────────────────────────────────────── */
+  --floating-list-backdrop-blur: 4px; /* 検索欄背後のぼかし量。大きくすると下の一覧がよりぼやける。 */
 }
 
+/* 検索欄の高さを既存の共通検索変数へ渡す。 */
 .floating-list-toolbar {
-  --list-search-control-size: var(--floating-list-search-control-size);
+  /* ── 8. 寸法 ──────────────────────────────────────────── */
+  --list-search-control-size: var(--floating-list-search-control-size); /* 固定検索欄の実際の高さ。元の寸法変数に追従する。 */
+}
+
+/* ===========================================================================
+   ここから下は構造(レイアウトの組み立て)。通常は触らない。
+   =========================================================================== */
+
+/* ボトムナビ上に固定する検索ツールバー */
+.floating-list-toolbar {
   position: fixed;
   top: auto;
-  right: calc(var(--floating-list-add-control-size) + var(--space-5) + var(--floating-list-controls-gap));
-  bottom: calc(var(--bottom-nav-height) + var(--space-2) + env(safe-area-inset-bottom) + var(--floating-list-controls-offset-y));
-  left: var(--space-5);
+  right: calc(var(--floating-list-add-control-size) + var(--floating-list-controls-edge-offset) + var(--floating-list-controls-gap));
+  bottom: calc(var(--bottom-nav-height) + var(--floating-list-controls-bottom-gap) + env(safe-area-inset-bottom) + var(--floating-list-controls-offset-y));
+  left: var(--floating-list-controls-edge-offset);
   z-index: 16;
   isolation: isolate;
-  padding: 0;
-  background: transparent;
-  border: 0;
-  box-shadow: none;
+  padding: var(--floating-list-toolbar-padding);
+  background: var(--floating-list-toolbar-background);
+  border: var(--floating-list-toolbar-border);
+  box-shadow: var(--floating-list-toolbar-shadow);
 }
 
+/* 検索欄の周囲だけに広がる半透明のぼかし */
 .floating-list-toolbar::before {
   position: absolute;
   inset-block: calc(var(--floating-list-controls-backdrop-padding) * -1);
@@ -29,57 +92,98 @@
   z-index: -1;
   content: "";
   pointer-events: none;
-  background: radial-gradient(ellipse 78% 88% at 50% 50%, rgba(10, 12, 16, 0.2) 0%, rgba(10, 12, 16, 0.18) 48%, rgba(10, 12, 16, 0.1) 72%, rgba(10, 12, 16, 0.03) 88%, transparent 100%);
-  border-radius: var(--radius-lg);
-  backdrop-filter: blur(4px);
+  background: var(--floating-list-backdrop-background);
+  border-radius: var(--floating-list-backdrop-border-radius);
+  backdrop-filter: blur(var(--floating-list-backdrop-blur));
   mask-image: radial-gradient(ellipse 78% 88% at 50% 50%, black 0%, black 48%, rgba(0, 0, 0, 0.75) 72%, rgba(0, 0, 0, 0.25) 88%, transparent 100%);
   -webkit-mask-image: radial-gradient(ellipse 78% 88% at 50% 50%, black 0%, black 48%, rgba(0, 0, 0, 0.75) 72%, rgba(0, 0, 0, 0.25) 88%, transparent 100%);
 }
 
+/* 検索欄の右に固定する丸い追加ボタン */
 .floating-list-page .floating-list-add-button {
   position: fixed;
-  right: var(--space-5);
-  bottom: calc(var(--bottom-nav-height) + var(--space-2) + env(safe-area-inset-bottom) + var(--floating-list-controls-offset-y) + (var(--floating-list-search-control-size) - var(--floating-list-add-control-size)) * 0.5);
+  right: var(--floating-list-controls-edge-offset);
+  bottom: calc(var(--bottom-nav-height) + var(--floating-list-controls-bottom-gap) + env(safe-area-inset-bottom) + var(--floating-list-controls-offset-y) + (var(--floating-list-search-control-size) - var(--floating-list-add-control-size)) * 0.5);
   z-index: 17;
   width: var(--floating-list-add-control-size);
   height: var(--floating-list-add-control-size);
   min-height: var(--floating-list-add-control-size);
-  padding: 0;
+  padding: var(--floating-list-add-padding);
   aspect-ratio: 1 / 1;
-  color: var(--color-primary-contrast);
-  background: var(--color-primary);
-  border: 0;
-  border-radius: 50%;
-  box-shadow: var(--shadow-lg), inset 0 1px 0 rgba(255, 255, 255, 0.28);
+  color: var(--floating-list-add-color);
+  background: var(--floating-list-add-background);
+  border: var(--floating-list-add-border);
+  border-radius: var(--floating-list-add-border-radius);
+  box-shadow: var(--floating-list-add-shadow);
 }
 
 .floating-list-page .floating-list-add-button:hover {
-  color: var(--color-primary-contrast);
-  background: var(--color-primary-hover);
+  color: var(--floating-list-add-color);
+  background: var(--floating-list-add-hover-background);
 }
 
+/* 追加ボタン中央の「＋」記号 */
 .floating-list-page .floating-list-add-button .add-card-tile-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: auto;
   height: auto;
-  border: 0;
-  font-size: var(--font-size-lg3);
+  border: var(--floating-list-add-icon-border);
+  font-size: var(--floating-list-add-icon-font-size);
 }
 
+/* 固定表示ではカード型ボタン用の説明文を隠す */
 .floating-list-page .floating-list-add-button .add-card-tile-label,
 .floating-list-page .floating-list-add-button .add-card-tile-hint {
   display: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .floating-list-page .floating-list-add-button { transition: none; }
+  .floating-list-page .floating-list-add-button {
+    transition: none;
+  }
 }
 
-.floating-list-toolbar .toolbar-item:not(.toolbar-search) { display: none; }
-.floating-list-toolbar .toolbar-search, .floating-list-toolbar .search-input-wrap, .floating-list-toolbar .toolbar-search input { display: block; width: 100%; min-width: 0; }
-.floating-list-toolbar .toolbar-search input { height: var(--list-search-control-size, 40px); padding: 0 var(--space-3) 0 2.1em; color: #fff; background: #20242d; border-color: rgba(255, 255, 255, .12); border-radius: var(--radius-md); box-shadow: 0 3px 8px rgba(0, 0, 0, .2), 0 1px 2px rgba(0, 0, 0, .14); }
-.floating-list-toolbar .search-icon { color: rgba(255, 255, 255, .7); top: 50%; transform: translateY(-50%); }
-.floating-list-toolbar .toolbar-search input::placeholder { color: rgba(255, 255, 255, .7); }
-.floating-list-toolbar .toolbar-search input:focus { border-color: rgba(255, 255, 255, .24); outline: 2px solid var(--color-primary); outline-offset: 2px; }
+/* 固定ツールバーでは検索以外の絞り込み項目を隠す */
+.floating-list-toolbar .toolbar-item:not(.toolbar-search) {
+  display: none;
+}
+
+/* 検索項目と入力欄をツールバー幅いっぱいに広げる */
+.floating-list-toolbar .toolbar-search,
+.floating-list-toolbar .search-input-wrap,
+.floating-list-toolbar .toolbar-search input {
+  display: block;
+  width: 100%;
+  min-width: 0;
+}
+
+/* 下部固定用の暗い検索入力欄 */
+.floating-list-toolbar .toolbar-search input {
+  height: var(--list-search-control-size, 40px);
+  padding: var(--floating-list-search-padding);
+  color: var(--floating-list-search-color);
+  background: var(--floating-list-search-background);
+  border-color: var(--floating-list-search-border-color);
+  border-radius: var(--floating-list-search-border-radius);
+  box-shadow: var(--floating-list-search-shadow);
+}
+
+/* 検索欄左端の虫眼鏡 */
+.floating-list-toolbar .search-icon {
+  color: var(--floating-list-search-muted-color);
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.floating-list-toolbar .toolbar-search input::placeholder {
+  color: var(--floating-list-search-muted-color);
+}
+
+/* 入力中の検索欄 */
+.floating-list-toolbar .toolbar-search input:focus {
+  border-color: var(--floating-list-search-focus-border-color);
+  outline: var(--floating-list-search-focus-outline);
+  outline-offset: var(--floating-list-search-focus-outline-offset);
+}

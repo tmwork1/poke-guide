@@ -1,12 +1,67 @@
-/* チーム編集画面の「ポケモン」タブのレイアウト用スタイル。 */
+/* ===========================================================================
+	チーム編集画面のモバイル用タブ
+
+	画面のどこ: チーム詳細 → モバイル表示 → ポケモン・編成・相性タブ
+	見た目を変えたいとき: 下の「チューニング変数」だけ触ればよい。
+	=========================================================================== */
+
+/* --------------------------------------------------------------------------
+	チューニング変数
+	-------------------------------------------------------------------------- */
+:root {
+	/* ── 1. 文字サイズ ─────────────────────── */
+	--team-pokemon-tab-suggest-label-font-size: var(--font-size-sm2); /* 「おすすめ」見出しの文字サイズ */
+
+	/* ── 3. 文字色 ───────────────────────── */
+	--team-pokemon-tab-suggest-label-color: var(--color-text-muted); /* 「おすすめ」見出しの文字色 */
+	--team-pokemon-tab-regulation-empty-color: var(--color-text-muted); /* 未選択時のレギュレーション文字色 */
+
+	/* ── 4. 背景色 ───────────────────────── */
+	--team-pokemon-tab-actions-background: var(--color-surface); /* 操作列の背景色 */
+	--team-pokemon-tab-mates-background: var(--color-surface); /* チームメイト枠の背景色 */
+	--team-pokemon-tab-suggest-background: var(--color-surface); /* おすすめ列の背景色 */
+	--team-pokemon-tab-direction-background: var(--color-surface); /* 方向説明の背景色 */
+
+	/* ── 5. 枠線・角丸 ─────────────────────── */
+	--team-pokemon-tab-actions-border: 1px solid var(--color-border); /* 操作列下部の区切り線 */
+	--team-pokemon-tab-mates-border: 1px solid var(--color-border); /* チームメイト枠下部の区切り線 */
+	--team-pokemon-tab-suggest-border: 1px solid var(--color-border); /* おすすめ列下部の区切り線 */
+	--team-pokemon-tab-direction-border: 1px solid var(--color-border); /* 方向説明上部の区切り線 */
+
+	/* ── 7. 余白 ────────────────────────── */
+	--team-pokemon-tab-formation-box-padding: var(--space-4) var(--space-3) calc(var(--space-7) + var(--space-6)); /* ボックス一覧の外側余白。下側は固定ナビと重ならない余白 */
+	--team-pokemon-tab-meta-fields-margin-bottom: var(--space-6); /* 入力欄と6枠の間隔 */
+	--team-pokemon-tab-actions-padding: var(--space-3) var(--space-5); /* 操作列の内側余白 */
+	--team-pokemon-tab-actions-gap: var(--space-3); /* 操作列の要素どうしの間隔 */
+	--team-pokemon-tab-suggest-gap: var(--space-3); /* 見出しとおすすめアイコンの間隔 */
+	--team-pokemon-tab-matchup-results-padding: var(--space-3); /* 相性結果一覧の内側余白 */
+	--team-pokemon-tab-meta-fields-gap: var(--space-3); /* チーム名とレギュレーションの間隔 */
+	--team-pokemon-tab-mates-padding: var(--space-2) var(--space-3); /* チームメイト枠の内側余白 */
+	--team-pokemon-tab-suggest-padding: var(--space-2) var(--space-3); /* おすすめ列の内側余白 */
+	--team-pokemon-tab-direction-padding: var(--space-2) var(--space-3); /* 相性表の方向説明の内側余白 */
+	--team-pokemon-tab-slot-gap: var(--space-1); /* 6つのチームメイト枠の間隔 */
+	--team-pokemon-tab-suggest-icons-gap: var(--space-1); /* おすすめアイコンどうしの間隔 */
+
+	/* ── 8. 寸法 ────────────────────────── */
+	--team-pokemon-tab-slot-max-width: 34rem; /* 6枠全体の最大幅。大きくすると横に広がる */
+	--team-pokemon-tab-regulation-width: 4.5rem; /* レギュレーション選択欄の幅 */
+	--team-pokemon-tab-suggest-min-height: calc(var(--space-7) + var(--space-2)); /* おすすめ列の最低の高さ */
+	--team-pokemon-tab-suggest-icon-size: calc(var(--space-7) + var(--space-2)); /* おすすめアイコンの正方形サイズ */
+}
+
+/* --------------------------------------------------------------------------
+	ここから下は構造
+	-------------------------------------------------------------------------- */
+
+/* ポケモンタブ上部: 自動保存エラー時だけ表示する操作列 */
 .team-mobile-actions {
 	display: none;
 	align-items: center;
 	justify-content: space-between;
-	gap: var(--space-3);
-	padding: var(--space-3) var(--space-5);
-	background: var(--color-surface);
-	border-bottom: 1px solid var(--color-border);
+	gap: var(--team-pokemon-tab-actions-gap);
+	padding: var(--team-pokemon-tab-actions-padding);
+	background: var(--team-pokemon-tab-actions-background);
+	border-bottom: var(--team-pokemon-tab-actions-border);
 }
 .team-mobile-actions:has(#autosave-status[data-state="error"]) {
 	display: flex;
@@ -14,7 +69,7 @@
 .team-mobile-actions__controls {
 	display: flex;
 	align-items: center;
-	gap: var(--space-3);
+	gap: var(--team-pokemon-tab-actions-gap);
 	margin-left: auto;
 }
 .team-edit-shell[data-mobile-tab="pokemon"] .team-edit-layout,
@@ -38,42 +93,42 @@
 	position: sticky;
 	top: calc(var(--topbar-height) + var(--second-bar-height));
 	z-index: 3;
-	padding: var(--space-2) var(--space-3);
-	background: var(--color-surface);
-	border-bottom: 1px solid var(--color-border);
+	padding: var(--team-pokemon-tab-mates-padding);
+	background: var(--team-pokemon-tab-mates-background);
+	border-bottom: var(--team-pokemon-tab-mates-border);
 }
 .team-formation-mobile__slot-grid {
 	display: grid;
 	grid-template-columns: repeat(6, minmax(0, 1fr));
-	gap: var(--space-1);
-	max-width: 34rem;
+	gap: var(--team-pokemon-tab-slot-gap);
+	max-width: var(--team-pokemon-tab-slot-max-width);
 	margin-inline: auto;
 }
 .team-formation-mobile__suggest {
 	display: flex;
 	align-items: center;
-	gap: var(--space-3);
-	min-height: calc(var(--space-7) + var(--space-2));
-	padding: var(--space-2) var(--space-3);
-	background: var(--color-surface);
-	border-bottom: 1px solid var(--color-border);
+	gap: var(--team-pokemon-tab-suggest-gap);
+	min-height: var(--team-pokemon-tab-suggest-min-height);
+	padding: var(--team-pokemon-tab-suggest-padding);
+	background: var(--team-pokemon-tab-suggest-background);
+	border-bottom: var(--team-pokemon-tab-suggest-border);
 }
 .team-formation-mobile__suggest-label {
 	flex-shrink: 0;
-	color: var(--color-text-muted);
-	font-size: var(--font-size-sm2);
+	color: var(--team-pokemon-tab-suggest-label-color);
+	font-size: var(--team-pokemon-tab-suggest-label-font-size);
 }
 .team-formation-mobile__suggest-icons {
 	display: flex;
 	flex: 1;
 	min-width: 0;
-	gap: var(--space-1);
+	gap: var(--team-pokemon-tab-suggest-icons-gap);
 	overflow-x: auto;
 }
 .team-formation-suggest-icon {
-	flex: 0 0 calc(var(--space-7) + var(--space-2));
-	width: calc(var(--space-7) + var(--space-2));
-	height: calc(var(--space-7) + var(--space-2));
+	flex: 0 0 var(--team-pokemon-tab-suggest-icon-size);
+	width: var(--team-pokemon-tab-suggest-icon-size);
+	height: var(--team-pokemon-tab-suggest-icon-size);
 	padding: 0;
 	border: 0;
 	background: transparent;
@@ -85,15 +140,15 @@
 	object-fit: contain;
 }
 .team-matchup-mobile__results {
-	padding: var(--space-3);
+	padding: var(--team-pokemon-tab-matchup-results-padding);
 }
 .team-matchup-mobile__direction {
 	position: sticky;
 	bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom));
 	z-index: 3;
-	padding: var(--space-2) var(--space-3);
-	background: var(--color-surface);
-	border-top: 1px solid var(--color-border);
+	padding: var(--team-pokemon-tab-direction-padding);
+	background: var(--team-pokemon-tab-direction-background);
+	border-top: var(--team-pokemon-tab-direction-border);
 }
 
 .team-edit-shell[data-mobile-tab="formation"] .team-edit-layout {
@@ -103,54 +158,57 @@
 	display: block;
 }
 .team-formation-mobile__box {
-	padding: var(--space-4) var(--space-3) calc(var(--space-7) + var(--space-6));
+	padding: var(--team-pokemon-tab-formation-box-padding);
 }
 	/* box-card.cssの.box-card は元々<a>を前提に書かれている。<a>はグリッド項目として
-	   既定で軌道(track)いっぱいにストレッチされるが、<button>はフォームコントロールの
-	   固有サイズ計算により明示的にwidthを指定しないとストレッチされず、内容(技名テキスト等)
-	   に応じた幅のまま軌道からはみ出す(実測: min-width:0だけでは直らず、width:100%を
-	   足して初めて軌道幅(約119px)に一致した)。この差がbox-card.cssの技名省略(ellipsis)を
-	   box画面(<a>版)とteam画面(<button>版)で食い違わせていた原因。 */
+		既定で軌道(track)いっぱいにストレッチされるが、<button>はフォームコントロールの
+		固有サイズ計算により明示的にwidthを指定しないとストレッチされず、内容(技名テキスト等)
+		に応じた幅のまま軌道からはみ出す(実測: min-width:0だけでは直らず、width:100%を
+		足して初めて軌道幅(約119px)に一致した)。この差がbox-card.cssの技名省略(ellipsis)を
+		box画面(<a>版)とteam画面(<button>版)で食い違わせていた原因。 */
 #team-formation-mobile button.box-card {
 	width: 100%;
 	min-width: 0;
 }
 @media (max-width: 640px) {
 	.team-mobile-actions { align-items: flex-start; }
-	.team-mobile-actions__controls { flex-wrap: wrap; justify-content: flex-end; }
+	.team-mobile-actions__controls {
+		flex-wrap: wrap;
+		justify-content: flex-end;
+	}
 }
 
 /* チーム名の隣にレギュレーション選択を並べる。チーム名は可変幅(1fr)、
-   レギュレーションは表示内容に合う幅にする。 */
+	レギュレーションは表示内容に合う幅にする。 */
 .team-meta-fields {
 	display: grid;
 	grid-template-columns: minmax(0, 1fr) auto;
-	gap: var(--space-3);
+	gap: var(--team-pokemon-tab-meta-fields-gap);
 	align-items: end;
-	margin-bottom: var(--space-6);
+	margin-bottom: var(--team-pokemon-tab-meta-fields-margin-bottom);
 }
 .team-meta-fields > .field { margin: 0; }
-.team-regulation-field select { width: 4.5rem; }
+.team-regulation-field select { width: var(--team-pokemon-tab-regulation-width); }
 /* LeftPanel.astroの
-   #edit-form #regulation[data-empty="true"]:not(:focus) と同じ値(破線・透明背景・
-   薄い文字色)を踏襲する(新しい値は作らない)。<select>には:placeholder-shownが無いため、
-   値が空のときだけJS/SSRが付けるdata-empty="true"を使う(<script>の
-   syncRegulationPlaceholder参照)。 */
+	#edit-form #regulation[data-empty="true"]:not(:focus) と同じ値(破線・透明背景・
+	薄い文字色)を踏襲する(新しい値は作らない)。<select>には:placeholder-shownが無いため、
+	値が空のときだけJS/SSRが付けるdata-empty="true"を使う(<script>の
+	syncRegulationPlaceholder参照)。 */
 #team-regulation[data-empty="true"]:not(:focus) {
 	border-style: dashed;
 	background: transparent;
-	color: var(--color-text-muted);
+	color: var(--team-pokemon-tab-regulation-empty-color);
 }
 .team-name-input {
 	width: 100%;
 	/* global.cssの input[type="text"] { min-width: 12em } は、900px幅(2カラム化する
-	   最小幅)で横スクロールを引き起こす下限になりうるため明示的に打ち消す
-	   (width:100%で親に追従させる)。フォントサイズ・太さは上書きしない
-	   (隣の.team-regulation-field selectと同じ既定の.field-controlサイズに揃える)。 */
+		最小幅)で横スクロールを引き起こす下限になりうるため明示的に打ち消す
+		(width:100%で親に追従させる)。フォントサイズ・太さは上書きしない
+		(隣の.team-regulation-field selectと同じ既定の.field-controlサイズに揃える)。 */
 	min-width: 0;
 }
 /* メモ欄は6枠の下に配置されるため、間隔はmargin-topではなく6枠側(team-slots)の
-   margin-bottomで確保する(このinput自体は他の場所にmarginを持たない)。 */
+	margin-bottomで確保する(このinput自体は他の場所にmarginを持たない)。 */
 .team-memo-input {
 	width: 100%;
 	min-width: 0;

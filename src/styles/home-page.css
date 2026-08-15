@@ -1,115 +1,166 @@
+/* ===========================================================================
+   ホームページ(/)
+
+   画面のどこ: ロゴ、アカウント情報、主要ページへのカードを並べるトップ画面
+   見た目を変えたいとき: 下の「チューニング変数」だけ触ればよい。
+   =========================================================================== */
+
+/* ===========================================================================
+   チューニング変数
+   =========================================================================== */
+:root {
+  /* ── 1. 文字サイズ ────────────────────────────────────── */
+  --home-page-brand-title-font-size: var(--font-size-lg2); /* ロゴ横のページ名。大きくするとブランド名が目立つ */
+  --home-page-account-font-size: var(--font-size-sm2); /* アカウント情報の文字。大きくするとユーザー情報が読みやすくなる */
+
+  /* ── 2. 文字の太さ・行間 ──────────────────────────────── */
+  --home-page-brand-title-line-height: var(--line-height-tight); /* ブランド名の行間。大きくすると複数行時の間隔が広がる */
+  --home-page-account-name-font-weight: 600; /* アカウント名の太さ。太くすると名前が目立つ */
+  --home-page-card-label-font-weight: 700; /* メニューカード名の太さ。太くするとリンク先が目立つ */
+  --home-page-card-label-line-height: var(--line-height-snug); /* メニューカード名の行間。大きくすると複数行表示が広がる */
+
+  /* ── 3. 文字色 ────────────────────────────────────────── */
+  --home-page-card-color: var(--color-text); /* メニューカード名の色。変えるとリンク全体の印象が変わる */
+  --home-page-muted-color: var(--color-text-muted); /* ログアウト・問い合わせリンクの色。薄くすると補助操作らしくなる */
+  --home-page-link-hover-color: var(--color-primary); /* 補助リンクのホバー色。変えると操作時の強調色が変わる */
+  --home-page-card-icon-color: var(--color-primary); /* メニューカードのアイコン色。変えると各機能の印象が変わる */
+
+  /* ── 5. 枠線・角丸 ────────────────────────────────────── */
+  --home-page-card-focus-outline: 2px solid var(--color-primary); /* メニューカードのキーボード選択枠。太さや色で選択状態が変わる */
+  --home-page-card-focus-outline-offset: 2px; /* 選択枠とカードの間隔。大きくすると枠が外側へ離れる */
+
+  /* ── 7. 余白 ──────────────────────────────────────────── */
+  --home-page-padding: var(--space-5) var(--space-4) var(--space-7); /* ページ外周の余白。大きくすると内容が内側に寄る */
+  --home-page-second-bar-margin: calc(-1 * var(--space-5)) calc(-1 * var(--space-4)) var(--space-5); /* 上部バーをページ端まで広げる余白。変えるとバーの位置がずれる */
+  --home-page-brand-gap: var(--space-3); /* ロゴとブランド名の間隔。大きくすると横に離れる */
+  --home-page-brand-margin-bottom: var(--space-5); /* ブランド行の下余白。大きくするとアカウント情報から離れる */
+  --home-page-account-gap: var(--space-2); /* アカウント情報内の間隔。大きくすると項目が離れる */
+  --home-page-account-margin-bottom: var(--space-6); /* アカウント情報の下余白。大きくするとカード一覧から離れる */
+  --home-page-card-grid-gap: var(--space-3); /* メニューカードどうしの間隔。大きくするとカードが離れる */
+  --home-page-card-gap: var(--space-2); /* カード内のアイコンと名前の間隔。大きくすると縦に離れる */
+  --home-page-contact-margin: var(--space-7) 0 0; /* 問い合わせリンクの上余白。大きくするとカード一覧から離れる */
+  --home-page-contact-link-gap: 0.35em; /* 問い合わせリンク内のアイコンと文字の間隔。大きくすると離れる */
+
+  /* ── 8. 寸法 ──────────────────────────────────────────── */
+  --home-page-max-width: 480px; /* ページの最大幅。大きくすると広い画面で内容が横に広がる */
+  --home-page-logo-size: 48px; /* ブランドロゴの大きさ。大きくするとロゴが目立つ */
+  --home-page-card-min-height: 7rem; /* メニューカードの最低高さ。大きくするとカードが縦に伸びる */
+  --home-page-card-icon-size: 2.5rem; /* メニューカードのアイコンサイズ。大きくすると機能の印象が強まる */
+}
+
+/* ===========================================================================
+   ここから下は構造(レイアウトの組み立て)。通常は触らない。
+   =========================================================================== */
+
+/* ホーム画面の外枠 */
 .home-page {
-	max-width: 480px;
-	margin: 0 auto;
-	padding: var(--space-5) var(--space-4) var(--space-7);
+  max-width: var(--home-page-max-width);
+  margin: 0 auto;
+  padding: var(--home-page-padding);
 }
 
 /* .second-bar 自体(sticky/border/背景/戻るボタン)は second-bar.css・app-topbar.css の
    共通定義をそのまま使う。ここでは .home-page の左右パディング(--space-4)を打ち消して
    フルブリードにする、ページ固有のレイアウト調整のみ行う。 */
-.home-page .second-bar {
-	margin: calc(-1 * var(--space-5)) calc(-1 * var(--space-4)) var(--space-5);
-}
+/* ページ端まで広げる上部の戻る・切替バー */
+.home-page .second-bar { margin: var(--home-page-second-bar-margin); }
 
+/* ロゴとブランド名の行 */
 .home-brand {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	gap: var(--space-3);
-	margin-bottom: var(--space-5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--home-page-brand-gap);
+  margin-bottom: var(--home-page-brand-margin-bottom);
 }
-
+/* ホーム上部でサービス名の左に表示するロゴ画像 */
 .home-brand-logo {
-	width: 48px;
-	height: 48px;
-	object-fit: contain;
+  width: var(--home-page-logo-size);
+  height: var(--home-page-logo-size);
+  object-fit: contain;
 }
-
+/* ロゴ横のサービス名「ポケガイド」 */
 .home-brand h1 {
-	margin: 0;
-	font-size: var(--font-size-lg2);
-	line-height: var(--line-height-tight);
+  margin: 0;
+  font-size: var(--home-page-brand-title-font-size);
+  line-height: var(--home-page-brand-title-line-height);
 }
 
+/* ログイン中のアカウント情報 */
 .home-account {
-	display: flex;
-	flex-direction: column;
-	align-items: flex-end;
-	gap: var(--space-2);
-	margin-bottom: var(--space-6);
-	font-size: var(--font-size-sm2);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--home-page-account-gap);
+  margin-bottom: var(--home-page-account-margin-bottom);
+  font-size: var(--home-page-account-font-size);
 }
-
-.home-account p,
-.home-account form {
-	margin: 0;
-}
-
+.home-account p, .home-account form { margin: 0; }
+/* ログイン中のユーザー名。長い名前は途中でも折り返す */
 .home-account-name {
-	font-size: var(--font-size-sm2);
-	font-weight: 600;
-	overflow-wrap: anywhere;
+  font-size: var(--home-page-account-font-size);
+  font-weight: var(--home-page-account-name-font-weight);
+  overflow-wrap: anywhere;
 }
-
+/* アカウント情報の下に置くログアウトボタン */
 .home-account form button {
-	padding: 0;
-	font: inherit;
-	color: var(--color-text-muted);
-	text-decoration: underline;
-	background: none;
-	border: none;
-	cursor: pointer;
+  padding: 0;
+  font: inherit;
+  color: var(--home-page-muted-color);
+  text-decoration: underline;
+  background: none;
+  border: none;
+  cursor: pointer;
 }
+.home-account form button:hover { color: var(--home-page-link-hover-color); }
 
-.home-account form button:hover {
-	color: var(--color-primary);
-}
-
+/* 主要機能へ移動する3列のメニューカード */
 .home-card-grid {
-	display: grid;
-	grid-template-columns: repeat(3, minmax(0, 1fr));
-	gap: var(--space-3);
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--home-page-card-grid-gap);
 }
-
+/* ボックス・チームなど主要機能へ移動するメニューカード */
 .home-card {
-	display: flex;
-	min-width: 0;
-	min-height: 7rem;
-	flex-direction: column;
-	align-items: center;
-	justify-content: center;
-	gap: var(--space-2);
-	color: var(--color-text);
-	text-align: center;
-	text-decoration: none;
+  display: flex;
+  min-width: 0;
+  min-height: var(--home-page-card-min-height);
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--home-page-card-gap);
+  color: var(--home-page-card-color);
+  text-align: center;
+  text-decoration: none;
 }
-
+/* キーボード操作でメニューカードにフォーカスしたときの輪郭 */
 .home-card:focus-visible {
-	outline: 2px solid var(--color-primary);
-	outline-offset: 2px;
+  outline: var(--home-page-card-focus-outline);
+  outline-offset: var(--home-page-card-focus-outline-offset);
 }
-
+/* 各メニューカードの機能を表すアイコン */
 .home-card-icon {
-	width: 2.5rem;
-	height: 2.5rem;
-	flex: none;
-	color: var(--color-primary);
+  width: var(--home-page-card-icon-size);
+  height: var(--home-page-card-icon-size);
+  flex: none;
+  color: var(--home-page-card-icon-color);
 }
-
+/* 各メニューカードの「ボックス」「チーム」などの機能名 */
 .home-card-label {
-	font-weight: 700;
-	line-height: var(--line-height-snug);
-	word-break: keep-all;
+  font-weight: var(--home-page-card-label-font-weight);
+  line-height: var(--home-page-card-label-line-height);
+  word-break: keep-all;
 }
 
+/* 画面下部の問い合わせリンク */
 .home-contact {
-	margin: var(--space-7) 0 0;
-	text-align: center;
+  margin: var(--home-page-contact-margin);
+  text-align: center;
 }
-
+/* 画面下部のXアイコン付き「お問い合わせ」リンク */
 .home-contact a {
-	display: inline-flex;
-	align-items: center;
-	gap: 0.35em;
-	color: var(--color-text-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--home-page-contact-link-gap);
+  color: var(--home-page-muted-color);
 }

@@ -1,4 +1,39 @@
-/* box 系画面で共通利用する、右下固定の追加ボタン本体。配置は各画面で定義する。 */
+/* ===========================================================================
+   ボックス系画面共通の追加ボタン
+
+   画面のどこ: ボックス系画面の右下に表示する「追加」ボタン
+   見た目を変えたいとき: 下の「チューニング変数」だけ触ればよい。
+                        それより下は構造なので通常はいじらない。
+   =========================================================================== */
+
+/* --------------------------------------------------------------------------
+   チューニング変数
+   ここの値を書き換えると追加ボタンの見た目が変わる。
+   -------------------------------------------------------------------------- */
+.box-add-button {
+  /* ── 1. 文字サイズ ─────────────────────── */
+  --box-add-button-icon-font-size: var(--font-size-lg3); /* 追加アイコンの大きさ */
+
+  /* ── 3. 文字色 ───────────────────────── */
+  --box-add-button-color: var(--color-primary-contrast); /* ボタン内の文字・アイコンの色 */
+  --box-add-button-hover-color: var(--color-primary-contrast); /* ホバー時の文字・アイコンの色 */
+
+  /* ── 4. 背景色 ───────────────────────── */
+  --box-add-button-background: var(--color-primary); /* 通常時の背景色 */
+  --box-add-button-hover-background: var(--color-primary-hover); /* ホバー時の背景色 */
+
+  /* ── 5. 枠線・角丸 ─────────────────────── */
+  --box-add-button-border-radius: 50%; /* 角の丸さ。50%で円形になる */
+
+  /* ── 6. 影 ─────────────────────────── */
+  --box-add-button-shadow: 0 8px 18px rgba(0, 0, 0, 0.36), 0 2px 4px rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.28); /* 立体感を作る影。濃くするとボタンが浮いて見える */
+}
+
+/* --------------------------------------------------------------------------
+   ここから下は構造。レイアウトの組み立てなので通常は触らない。
+   -------------------------------------------------------------------------- */
+
+/* 右下に配置する丸い追加ボタン */
 .box-add-button {
   isolation: isolate;
   width: var(--box-add-button-size, 60px);
@@ -6,21 +41,20 @@
   min-height: var(--box-add-button-size, 60px);
   padding: 0;
   aspect-ratio: 1 / 1;
-  color: var(--color-primary-contrast);
-  background: var(--color-primary);
+  color: var(--box-add-button-color);
+  background: var(--box-add-button-background);
   border: 0;
-  border-radius: 50%;
-  box-shadow:
-    0 8px 18px rgba(0, 0, 0, 0.36),
-    0 2px 4px rgba(0, 0, 0, 0.22),
-    inset 0 1px 0 rgba(255, 255, 255, 0.28);
+  border-radius: var(--box-add-button-border-radius);
+  box-shadow: var(--box-add-button-shadow);
 }
 
+/* 追加ボタンにポインターを重ねたとき */
 .box-add-button:hover {
-  color: var(--color-primary-contrast);
-  background: var(--color-primary-hover);
+  color: var(--box-add-button-hover-color);
+  background: var(--box-add-button-hover-background);
 }
 
+/* 追加を表すアイコン */
 .box-add-button .add-card-tile-icon {
   display: inline-flex;
   align-items: center;
@@ -28,15 +62,17 @@
   width: auto;
   height: auto;
   border: 0;
-  font-size: var(--font-size-lg3);
+  font-size: var(--box-add-button-icon-font-size);
 }
 
+/* このボタンでは表示しない補助テキスト */
 .box-add-button .add-card-tile-label,
 .box-add-button .add-card-tile-hint {
   display: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
+  /* 動きを減らす設定時の追加ボタン */
   .box-add-button {
     transition: none;
   }

@@ -1,55 +1,102 @@
-/* /speed-chart の「この個体」領域(OwnedPanel.astro)。凡例・個体サマリ・保存失敗バナー。行内セルの実体はsrc/lib/speed-chart/owned-panel.tsが動的生成する。 */
+/* ===========================================================================
+	すばやさ順位表の「この個体」パネル
+
+	画面のどこ: すばやさ順位表 → 右側または埋め込み時下部の個体サマリと調整操作
+	見た目を変えたいとき: 下の「チューニング変数」だけ触ればよい。
+												それより下は構造なので通常はいじらない。
+	=========================================================================== */
+
+/* --------------------------------------------------------------------------
+	チューニング変数
+	動的に生成される行内セルからも参照するため、:root に置く。
+	-------------------------------------------------------------------------- */
+:root {
+	/* ── 1. 文字サイズ ─────────────────────── */
+	--speed-chart-owned-value-font-size: var(--font-size-sm1); /* 実数値の文字サイズ。大きくすると数値が目立つ */
+	--speed-chart-owned-panel-font-size: var(--font-size-sm2); /* サマリ全体の文字サイズ。大きくすると情報が読みやすくなる */
+	--speed-chart-owned-edit-font-size: var(--font-size-sm3); /* 編集ボタンの文字サイズ。大きくするとラベルが目立つ */
+	--speed-chart-owned-jump-font-size: var(--font-size-sm3); /* 移動ボタンの文字サイズ。大きくするとラベルが目立つ */
+
+	/* ── 4. 背景色 ─────────────────────── */
+	--speed-chart-owned-panel-background: var(--color-bg); /* サマリカードの背景色。変えると右パネルとのコントラストが変わる */
+
+	/* ── 5. 枠線・角丸 ─────────────────────── */
+	--speed-chart-owned-panel-radius: var(--radius-md); /* サマリカードの角丸。大きくすると角が丸くなる */
+	--speed-chart-owned-profile-radius: var(--radius-sm); /* プロフィール枠の角丸。大きくすると角が丸くなる */
+	--speed-chart-owned-apply-border: 2px solid var(--color-primary); /* 個体候補ボタンの枠線。太くすると輪郭が目立つ */
+
+	/* ── 7. 余白 ─────────────────────── */
+	--speed-chart-owned-panel-padding: var(--space-3); /* サマリカードの内側余白。大きくすると内容が内側に寄る */
+	--speed-chart-owned-panel-gap: var(--space-2); /* サマリカード内の項目間隔。大きくすると縦に離れる */
+	--speed-chart-owned-profile-padding: var(--space-2); /* プロフィール枠の内側余白。大きくすると内容が内側に寄る */
+	--speed-chart-owned-profile-gap: var(--space-1); /* プロフィール内の項目間隔。大きくすると縦に離れる */
+	--speed-chart-owned-edit-padding: 0.2em 0.6em; /* 編集ボタンの内側余白。大きくするとボタンが大きくなる */
+	--speed-chart-owned-jump-padding: 0.2em 0.5em; /* 移動ボタンの内側余白。大きくするとボタンが大きくなる */
+	--speed-chart-rank-input-padding: 0.3em; /* ランク入力欄の内側余白。大きくすると入力欄が大きくなる */
+	--speed-chart-owned-option-gap: var(--space-1); /* 行内の個体候補どうしの間隔。大きくすると候補が離れる */
+	--speed-chart-owned-apply-padding: 0.2em 0.8em; /* 個体候補ボタンの内側余白。大きくするとボタンが大きくなる */
+
+	/* ── 8. 寸法 ─────────────────────── */
+	--speed-chart-owned-sprite-size: 52px; /* 個体アイコンの寸法。大きくするとアイコンが目立つ */
+	--speed-chart-rank-input-width: 3.4em; /* ランク入力欄の幅。大きくすると数値の周囲が広がる */
+}
+
+/* --------------------------------------------------------------------------
+	ここから下は構造。レイアウトの組み立てなので通常は触らない。
+	-------------------------------------------------------------------------- */
+
+/* 個体サマリカード */
 	/* 静的マークアップ(scoped styleで足りる。JS生成されるのは行内の「この個体」セルのみで、
-	   これらの要素とは別)。
-	   幅260pxのサイドバー(ChartTable.astroの.speed-chart-side、gap: var(--space-4)で
-	   縦に項目を積む)最下段のカードとして、自己完結する角丸カード(.cardと同じ
-	   --radius-md、背景は.speed-chart-side自体の背景(--color-surface)に対して
-	   区別が付くよう--color-bgへ交互に切り替える。 */
+		これらの要素とは別)。
+		幅260pxのサイドバー(ChartTable.astroの.speed-chart-side、gap: var(--space-4)で
+		縦に項目を積む)最下段のカードとして、自己完結する角丸カード(.cardと同じ
+		--radius-md、背景は.speed-chart-side自体の背景(--color-surface)に対して
+		区別が付くよう--color-bgへ交互に切り替える。 */
 	.speed-chart-owned-panel-static {
 		display: flex;
 		flex-direction: column;
-		gap: var(--space-2);
-		padding: var(--space-3);
-		background: var(--color-bg);
-		border-radius: var(--radius-md);
-		font-size: var(--font-size-sm2);
+		gap: var(--speed-chart-owned-panel-gap);
+		padding: var(--speed-chart-owned-panel-padding);
+		background: var(--speed-chart-owned-panel-background);
+		border-radius: var(--speed-chart-owned-panel-radius);
+		font-size: var(--speed-chart-owned-panel-font-size);
 	}
 	/* hasOwnedPanel=falseのときは子要素が一切描画されず空になる。空の背景ボックスだけが
-	   サイドバーに残らないよう、空のときはこの要素自体を消す。 */
+		サイドバーに残らないよう、空のときはこの要素自体を消す。 */
 	.speed-chart-owned-panel-static:empty {
 		display: none;
 	}
 	/* 幅260pxではニックネーム・特性/アイテム・性格/努力値・S実数値を横一列に並べると
-	   1文字ずつ折り返されて潰れる(pitfalls.md「潰れて読めなくなる破綻」)。各段を
-	   縦積みにする(長い名前は行内で2行に折り返すのは許容)。 */
+		1文字ずつ折り返されて潰れる(pitfalls.md「潰れて読めなくなる破綻」)。各段を
+		縦積みにする(長い名前は行内で2行に折り返すのは許容)。 */
 	.speed-chart-owned-summary {
 		display: flex;
 		flex-direction: column;
 		align-items: flex-start;
-		gap: var(--space-1);
+		gap: var(--speed-chart-owned-profile-gap);
 	}
 	.speed-chart-owned-profile {
 		display: flex;
 		flex-direction: column;
 		align-items: flex-start;
-		gap: var(--space-1);
+		gap: var(--speed-chart-owned-profile-gap);
 		width: 100%;
-		padding: var(--space-2);
+		padding: var(--speed-chart-owned-profile-padding);
 		background: var(--color-surface);
-		border-radius: var(--radius-sm);
+		border-radius: var(--speed-chart-owned-profile-radius);
 	}
 	/* 母集団に居ない個体のときchart-table.tsがhidden属性を立てる
-	   (「データ破損に見える空箱」を防ぐため)。displayをflexで明示しているクラスなので、
-	   pitfalls.mdの罠どおり[hidden]の詳細度勝ち負けが起きる。明示的に上書きする。 */
+		(「データ破損に見える空箱」を防ぐため)。displayをflexで明示しているクラスなので、
+		pitfalls.mdの罠どおり[hidden]の詳細度勝ち負けが起きる。明示的に上書きする。 */
 	.speed-chart-owned-summary[hidden] {
 		display: none;
 	}
 	/* アイコンとニックネームは中央配置。カード全体は
-	   align-items: flex-start(3段目以降=特性/アイテム・性格/努力値・S実数値は左揃えのまま)
-	   を維持しつつ、1段目(このラッパー)だけ align-self: center で中央に寄せる。
-	   ラッパー自体の幅はflex-basis auto=コンテンツ幅(アイコン+gap+編集ボタン)のままなので、
-	   「アイコンだけ中央でボタンがはみ出す」ではなく「アイコンと編集ボタンの2つセットごと」
-	   中央に来る。 */
+		align-items: flex-start(3段目以降=特性/アイテム・性格/努力値・S実数値は左揃えのまま)
+		を維持しつつ、1段目(このラッパー)だけ align-self: center で中央に寄せる。
+		ラッパー自体の幅はflex-basis auto=コンテンツ幅(アイコン+gap+編集ボタン)のままなので、
+		「アイコンだけ中央でボタンがはみ出す」ではなく「アイコンと編集ボタンの2つセットごと」
+		中央に来る。 */
 	.speed-chart-owned-summary-header {
 		display: flex;
 		align-items: center;
@@ -57,39 +104,39 @@
 		align-self: center;
 	}
 	/* アイコン段(1段目)。48〜56pxの正方形。中央寄せは親の.speed-chart-owned-summary-header
-	   側(align-self: center)で行うため、画像自体には左右位置の指定を持たせない。src/hiddenの
-	   出し分けはowned-panel.tsが行う(spriteImageIdが無い個体はhiddenのまま=何も表示しない)。 */
+		側(align-self: center)で行うため、画像自体には左右位置の指定を持たせない。src/hiddenの
+		出し分けはowned-panel.tsが行う(spriteImageIdが無い個体はhiddenのまま=何も表示しない)。 */
 	.speed-chart-owned-summary-sprite {
-		width: 52px;
-		height: 52px;
+		width: var(--speed-chart-owned-sprite-size);
+		height: var(--speed-chart-owned-sprite-size);
 	}
 	/* 編集ボタン。global.cssの a.btn-ghost(枠なし・透明背景・ホバーでsurfaceとprimaryの混色)をそのまま
-	   使い、新しい配色は作らない。260px幅のカード内でも詰まらないよう、既存のbutton基底より
-	   ひとまわり小さいpaddingにページ限定で調整する(a.btn-ghost自体はglobal.css編集禁止のため
-	   触らない)。 */
+		使い、新しい配色は作らない。260px幅のカード内でも詰まらないよう、既存のbutton基底より
+		ひとまわり小さいpaddingにページ限定で調整する(a.btn-ghost自体はglobal.css編集禁止のため
+		触らない)。 */
 	.speed-chart-owned-edit-button {
-		padding: 0.2em 0.6em;
-		font-size: var(--font-size-sm3);
+		padding: var(--speed-chart-owned-edit-padding);
+		font-size: var(--speed-chart-owned-edit-font-size);
 		font-weight: 600;
 		flex-shrink: 0;
 	}
 	/* ニックネーム(2段目)も1段目と同じ理由で中央配置。
-	   align-self: centerだけだと「1行に収まる長さのときは中央、260px幅を使い切って
-	   折り返すときはボックス自体が親幅いっぱいまで広がり文字は左端に残る」という
-	   ズレが起きる(flexアイテムの自動幅がfit-contentのため)。text-align: centerを
-	   併記することで、2行に折り返した場合も各行が中央揃えのまま崩れない。 */
+		align-self: centerだけだと「1行に収まる長さのときは中央、260px幅を使い切って
+		折り返すときはボックス自体が親幅いっぱいまで広がり文字は左端に残る」という
+		ズレが起きる(flexアイテムの自動幅がfit-contentのため)。text-align: centerを
+		併記することで、2行に折り返した場合も各行が中央揃えのまま崩れない。 */
 	.speed-chart-owned-summary-species {
 		font-weight: 700;
 		align-self: center;
 		text-align: center;
 	}
 	/* 特性/アイテム(3段目)・性格/努力値(4段目)の2項目バッジは、.badgeの左paddingぶん
-	   単独で縦積みにするとニックネーム・実数値(いずれもpaddingなしの素のテキスト)と
-	   左端がズレて見える(実測でインデントが揃わない不具合)。2つのバッジを1つの行に
-	   まとめて横並びにすることで、この行自体は他の行と同じくpaddingなしで左端0から
-	   始まり、「バッジが並ぶ1行」であることが視覚的にも明確になる。260px幅では
-	   折り返さず収まる想定だが、念のためflex-wrapは許容しておく(1文字ずつの折り返しには
-	   ならない)。 */
+		単独で縦積みにするとニックネーム・実数値(いずれもpaddingなしの素のテキスト)と
+		左端がズレて見える(実測でインデントが揃わない不具合)。2つのバッジを1つの行に
+		まとめて横並びにすることで、この行自体は他の行と同じくpaddingなしで左端0から
+		始まり、「バッジが並ぶ1行」であることが視覚的にも明確になる。260px幅では
+		折り返さず収まる想定だが、念のためflex-wrapは許容しておく(1文字ずつの折り返しには
+		ならない)。 */
 	.speed-chart-owned-summary-badges {
 		display: flex;
 		flex-wrap: wrap;
@@ -98,7 +145,7 @@
 	}
 	/* この値を主役として見せるための font-size だけをページ固有に足す(装飾はテキストのため持たない)。 */
 	.speed-chart-owned-summary-value {
-		font-size: var(--font-size-sm1);
+		font-size: var(--speed-chart-owned-value-font-size);
 	}
 	.speed-chart-owned-summary-value-row {
 		display: flex;
@@ -107,8 +154,8 @@
 	}
 	.speed-chart-owned-raw-value { display: none; }
 	.speed-chart-owned-jump-button {
-		padding: 0.2em 0.5em;
-		font-size: var(--font-size-sm3);
+		padding: var(--speed-chart-owned-jump-padding);
+		font-size: var(--speed-chart-owned-jump-font-size);
 		font-weight: 500;
 		color: var(--color-text-muted);
 		border: 1px solid var(--color-border);
@@ -118,9 +165,9 @@
 		align-self: flex-start;
 	}
 	.speed-chart-rank-field input[type='number'] {
-		width: 3.4em;
+		width: var(--speed-chart-rank-input-width);
 		min-height: 0;
-		padding: 0.3em;
+		padding: var(--speed-chart-rank-input-padding);
 		font-size: var(--font-size-sm3);
 		text-align: center;
 		background: var(--color-surface);
@@ -136,7 +183,7 @@
 	.speed-chart-owned-modifier-toggles {
 		display: flex;
 		flex-wrap: wrap;
-		gap: var(--space-1) var(--space-3);
+		gap: var(--speed-chart-owned-option-gap) var(--space-3);
 	}
 	.speed-chart-owned-controls { display: contents; }
 	.speed-chart-owned-modifier-toggle {
@@ -150,21 +197,21 @@
 	.speed-chart-owned-summary-item {
 		display: inline-flex;
 		align-items: center;
-		gap: var(--space-1);
+		gap: var(--speed-chart-owned-option-gap);
 		min-width: 0;
 		max-width: 100%;
 		overflow: hidden;
 		white-space: nowrap;
 	}
 	/* .severity-bar[data-severity]は基底(global.css)がdisplay指定を持たないブロック要素なので、
-	   [hidden]の詳細度勝ち負けは発生しない(pitfalls.mdの罠は「displayを明示したクラス」限定)。
-	   念のため明示しておく。 */
+		[hidden]の詳細度勝ち負けは発生しない(pitfalls.mdの罠は「displayを明示したクラス」限定)。
+		念のため明示しておく。 */
 	.severity-bar[hidden] {
 		display: none;
 	}
 	/* 個体サマリの代わりに出す控えめな注記。displayを明示していない
-	   (素の<p>のブロック表示のまま)ためUAの[hidden]{display:none}で足りるが、
-	   このファイルの他要素と同じく念のため明示しておく。 */
+		(素の<p>のブロック表示のまま)ためUAの[hidden]{display:none}で足りるが、
+		このファイルの他要素と同じく念のため明示しておく。 */
 	.speed-chart-owned-unavailable {
 		color: var(--color-text-muted);
 		font-size: var(--font-size-sm2);
@@ -174,7 +221,7 @@
 	}
 
 	/* アイテム画像と名称はowned-panel.tsが後から生成するため、
-	   scoped styleではなくglobal側でサイズ固定と一行省略を適用する。 */
+		scoped styleではなくglobal側でサイズ固定と一行省略を適用する。 */
 	#speed-chart-owned-summary-item img {
 		width: var(--space-5);
 		height: var(--space-5);
@@ -188,14 +235,14 @@
 		white-space: nowrap;
 	}
 	/* --- 「この個体」セルの中身(src/lib/speed-chart/owned-panel.ts が動的生成する要素) ---
-	   pitfalls.md「Astroのscoped styleはJSで生成した要素に効かない」への対応。
-	   領域ルートクラス .speed-chart-owned で必ず絞り、ファイルの読み込み順に依存させない
-	   (docs/plan/pages/speed-chart.md 確定仕様)。 */
+		pitfalls.md「Astroのscoped styleはJSで生成した要素に効かない」への対応。
+		領域ルートクラス .speed-chart-owned で必ず絞り、ファイルの読み込み順に依存させない
+		(docs/plan/pages/speed-chart.md 確定仕様)。 */
 	.speed-chart-owned {
 		display: flex;
 		flex-direction: column;
 		align-items: flex-start;
-		gap: var(--space-1);
+		gap: var(--speed-chart-owned-option-gap);
 		min-height: 1.6em;
 	}
 	.speed-chart-owned .speed-chart-owned-current {
@@ -215,23 +262,23 @@
 		width: 100%;
 	}
 	/* ボタンテキストは「[アイコン] いじっぱり 努力値6」の形(ボタン単体で結果とページ遷移する
-	   ことの両方が分かるようにする)。アイコン(owned-panel.tsがSVGをDOM生成して先頭に挿入)と
-	   テキストを横並びにするため、ボタン自体をinline-flexにしてgapで間隔を作る。 */
+		ことの両方が分かるようにする)。アイコン(owned-panel.tsがSVGをDOM生成して先頭に挿入)と
+		テキストを横並びにするため、ボタン自体をinline-flexにしてgapで間隔を作る。 */
 	.speed-chart-owned .speed-chart-apply-button {
 		display: inline-flex;
 		align-items: center;
 		gap: var(--space-1);
 		min-width: 0;
 		font-size: var(--font-size-sm3);
-		padding: 0.2em 0.8em;
+		padding: var(--speed-chart-owned-apply-padding);
 		/* global.css の button.btn-primary { font-weight: 700 } は(0,1,1)、こちらは
-		   .speed-chart-owned(領域ルート)経由の(0,2,0)で詳細度が上回るため確実に上書きできる。 */
+			.speed-chart-owned(領域ルート)経由の(0,2,0)で詳細度が上回るため確実に上書きできる。 */
 		font-weight: 500;
 		/* 長いアイテム名でもパネル幅を越えず一段に収める。 */
 		max-width: 100%;
 		background: var(--color-surface);
 		color: var(--color-primary);
-		border: 2px solid var(--color-primary);
+		border: var(--speed-chart-owned-apply-border);
 	}
 	.speed-chart-owned .speed-chart-apply-button:hover:not(:disabled) {
 		background: var(--color-primary);
@@ -241,7 +288,7 @@
 		flex: 0 0 auto;
 	}
 	/* flex直下のテキストでは省略記号が出ないため、
-	   owned-panel.tsが生成するラベルspan側で一行省略する。 */
+		owned-panel.tsが生成するラベルspan側で一行省略する。 */
 	.speed-chart-owned .speed-chart-apply-label {
 		min-width: 0;
 		overflow: hidden;

@@ -1,12 +1,72 @@
-/* /speed-chart の早見表本体(ChartTable.astro)。行の実データはsrc/lib/speed-chart/chart-table.tsが動的生成する。 */
+/* ===========================================================================
+	すばやさ順位表(/speed-chart の早見表本体)
+
+	画面のどこ: すばやさ順位表 → ポケモン群を実数値ごとに並べる一覧
+	見た目を変えたいとき: 下の「チューニング変数」だけ触ればよい。
+												それより下は構造なので通常はいじらない。
+	=========================================================================== */
+
+/* --------------------------------------------------------------------------
+	チューニング変数
+	動的に生成される行セルと埋め込み表示からも参照するため、:root に置く。
+	-------------------------------------------------------------------------- */
+:root {
+	/* ── 1. 文字サイズ ─────────────────────── */
+	--speed-chart-value-font-size: var(--font-size-lg1); /* 実数値の文字サイズ。大きくすると数値が目立つ */
+	--speed-chart-base-speed-font-size: var(--font-size-sm1); /* 種族値ラベルの文字サイズ。大きくすると補足情報が目立つ */
+	--speed-chart-meta-font-size: var(--font-size-sm2); /* 種族値などの文字サイズ。大きくすると補足情報が目立つ */
+	--speed-chart-origin-font-size: var(--font-size-sm3); /* 補正要因の文字サイズ。大きくすると要因が目立つ */
+
+	/* ── 3. 文字色 ─────────────────────── */
+	--speed-chart-origin-color: var(--color-text-muted); /* 補正要因の文字色。変えると要因の控えめさが変わる */
+
+	/* ── 4. 背景色 ─────────────────────── */
+	--speed-chart-current-row-background: var(--color-success-soft); /* 現在地の行の背景色。変えると現在地の強調色が変わる */
+
+	/* ── 5. 枠線・角丸 ─────────────────────── */
+	--speed-chart-row-border: 1px solid var(--color-border); /* 実数値グループ末尾の区切り線。太くすると行の境目が目立つ */
+	--speed-chart-badge-radius: 999px; /* 配分・倍率バッジの角丸。小さくすると角張る */
+	--speed-chart-chip-radius: 999px; /* ポケモンチップの角丸。小さくすると角張る */
+
+	/* ── 7. 余白 ─────────────────────── */
+	--speed-chart-side-padding: var(--space-4) var(--space-5); /* 右パネルの内側余白。大きくすると内容が内側に寄る */
+	--speed-chart-side-gap: var(--space-4); /* 右パネル内の項目間隔。大きくすると縦方向に離れる */
+	--speed-chart-content-padding: var(--space-4) var(--space-5) 0; /* 表の周囲の余白。大きくすると表が内側に寄る */
+	--speed-chart-row-gap: var(--space-4); /* 表の列どうしの間隔。大きくすると列が離れる */
+	--speed-chart-row-padding: var(--space-2) 0; /* 各行の上下余白。大きくすると行の高さが増す */
+	--speed-chart-embedded-content-padding: var(--space-3) var(--space-4); /* 埋め込み時の表の余白。大きくすると表示領域が狭まる */
+	--speed-chart-embedded-side-padding: var(--space-2) var(--space-3); /* 埋め込み時の下部パネル余白。大きくすると内容が内側に寄る */
+	--speed-chart-embedded-apply-padding: var(--space-1) var(--space-2); /* 適用ボタンの内側余白。大きくするとボタンが大きくなる */
+	--speed-chart-status-margin: var(--space-4) 0; /* 読み込み状態表示の上下余白。大きくすると表から離れる */
+	--speed-chart-value-padding-inline: var(--space-2); /* 実数値セルの左右余白。大きくすると数値の周囲が広がる */
+	--speed-chart-meta-gap: 0.35em; /* 種族値・配分・倍率の間隔。大きくすると横に離れる */
+	--speed-chart-chips-row-gap: 0.4rem; /* ポケモンチップどうしの間隔。大きくするとチップが離れる */
+	--speed-chart-chips-gap: var(--space-1); /* ポケモン行と補正要因の間隔。大きくすると縦に離れる */
+	--speed-chart-chip-unit-gap: 0.15rem; /* ポケモンチップと補正要因の間隔。大きくすると上下に離れる */
+	--speed-chart-chip-padding: 0.1rem 0.5rem 0.1rem 0.1rem; /* ポケモンチップの内側余白。大きくするとチップが大きくなる */
+	--speed-chart-badge-padding: 0.05em 0.55em; /* 配分・倍率バッジの内側余白。大きくするとバッジが大きくなる */
+
+	/* ── 8. 寸法 ─────────────────────── */
+	--speed-chart-embedded-side-max-height: 172px; /* 埋め込み時の下部パネル最大高。大きくするとパネルを多く表示する */
+	--speed-chart-embedded-apply-min-width: 64px; /* 適用ボタンの最小幅。大きくするとボタンが横に広がる */
+	--speed-chart-embedded-apply-min-height: 38px; /* 適用ボタンの最小高。大きくするとボタンが縦に大きくなる */
+	--speed-chart-embedded-owned-min-height: 30px; /* 埋め込み時の個体操作欄の最小高。大きくすると操作欄が高くなる */
+	--speed-chart-chip-icon-size: 22px; /* ポケモンチップのアイコン寸法。大きくするとアイコンが大きくなる */
+}
+
+/* --------------------------------------------------------------------------
+	ここから下は構造。レイアウトの組み立てなので通常は触らない。
+	-------------------------------------------------------------------------- */
+
+/* 早見表と「この個体」右パネルの配置 */
 
 	/* 要件A/B: 表(左)と右パネルの2カラム。DOM順は「右パネル → 表」なので、グリッドを
-	   適用しない狭幅では右パネルが表の上に積まれる(追加のメディアクエリ不要)。
-	   1200px以上でだけグリッドにし、列を明示配置して見た目の左右を入れ替える。
-	   右パネル自体がhasOwnedPanel=falseのとき描画されなくなった(テンプレート側で分岐)ため、
-	   グリッド定義は data-has-owned-panel='true' のときだけ効くようスコープする。falseのときは
-	   .speed-chart-layoutが素のdisplay: blockのままになり、表だけの1カラムになる
-	   (:has()は使わず、既存のdata-has-owned-panel属性で分岐する)。 */
+		適用しない狭幅では右パネルが表の上に積まれる(追加のメディアクエリ不要)。
+		1200px以上でだけグリッドにし、列を明示配置して見た目の左右を入れ替える。
+		右パネル自体がhasOwnedPanel=falseのとき描画されなくなった(テンプレート側で分岐)ため、
+		グリッド定義は data-has-owned-panel='true' のときだけ効くようスコープする。falseのときは
+		.speed-chart-layoutが素のdisplay: blockのままになり、表だけの1カラムになる
+		(:has()は使わず、既存のdata-has-owned-panel属性で分岐する)。 */
 	.speed-chart-layout {
 		display: block;
 	}
@@ -37,8 +97,8 @@
 	.speed-chart-side {
 		display: flex;
 		flex-direction: column;
-		gap: var(--space-4);
-		padding: var(--space-4) var(--space-5);
+		gap: var(--speed-chart-side-gap);
+		padding: var(--speed-chart-side-padding);
 	}
 	/* 狭幅(1カラム時)は下辺で表と区切る(.panel-rightの左罫線は縦並びでは意味を持たない)。 */
 	@media (max-width: 1199px) {
@@ -49,9 +109,9 @@
 	}
 	/* トグルスイッチ本体は複数ページで使うためglobal.cssの共通定義を参照する。 */
 	/* 列構成は「実数値 / 族・配分・倍率 / ポケモン・補正要因」の3列。
-	   ?owned= 連携時のみ「調整」を4列目として足す。JS生成行(下の is:global 側)が
-	   この列幅を参照するよう、テンプレートをカスタムプロパティで1箇所に持つ
-	   (:rootではなく領域ルートに置くので他ページへは漏れない)。 */
+		?owned= 連携時のみ「調整」を4列目として足す。JS生成行(下の is:global 側)が
+		この列幅を参照するよう、テンプレートをカスタムプロパティで1箇所に持つ
+		(:rootではなく領域ルートに置くので他ページへは漏れない)。 */
 	.speed-chart-table {
 		--speed-chart-columns: 80px 168px minmax(0, 1fr);
 	}
@@ -60,17 +120,20 @@
 	}
 	.speed-chart-status {
 		color: var(--color-text-muted);
-		margin: var(--space-4) 0;
+		margin: var(--speed-chart-status-margin);
 	}
 	/* サイドバーと表の間に余白。列見出し廃止に伴い、上方向にも余白を確保。 */
 	.speed-chart-content {
-		padding: var(--space-4) var(--space-5) 0;
+		padding: var(--speed-chart-content-padding);
 	}
 	/* 本文の可読幅制限を打ち消す(.panel-contentの1080pxを解除)。
-	   表は「横に広いほど良い」ため。 */
+		表は「横に広いほど良い」ため。 */
 	.speed-chart-content {
 		max-width: none;
 	}
+	/* --------------------------------------------------------------------------
+		埋め込み表示(モーダル内の早見表と下部調整バー)
+		-------------------------------------------------------------------------- */
 	/* 埋め込み時は「早見表 + 下部調整バー」レイアウト。 */
 	.speed-chart-table[data-embedded='true'] {
 		height: 100%;
@@ -87,7 +150,7 @@
 		grid-row: 1;
 		min-height: 0;
 		overflow-y: auto;
-		padding: var(--space-3) var(--space-4);
+		padding: var(--speed-chart-embedded-content-padding);
 	}
 	.speed-chart-table[data-embedded='true'] .speed-chart-minimap {
 		display: none;
@@ -97,9 +160,9 @@
 		grid-row: 2;
 		position: static;
 		min-height: 0;
-		max-height: 172px;
+		max-height: var(--speed-chart-embedded-side-max-height);
 		overflow: auto;
-		padding: var(--space-2) var(--space-3);
+		padding: var(--speed-chart-embedded-side-padding);
 		border-top: 1px solid var(--color-border);
 		border-bottom: 0;
 		background: var(--color-surface);
@@ -117,14 +180,14 @@
 	}
 	.speed-chart-table[data-embedded='true'] .speed-chart-owned {
 		align-items: center;
-		min-height: 30px;
+		min-height: var(--speed-chart-embedded-owned-min-height);
 	}
 	.speed-chart-table[data-embedded='true'] .speed-chart-apply-button {
 		box-sizing: border-box;
 		display: grid;
-		min-width: 64px;
-		min-height: 38px;
-		padding: var(--space-1) var(--space-2);
+		min-width: var(--speed-chart-embedded-apply-min-width);
+		min-height: var(--speed-chart-embedded-apply-min-height);
+		padding: var(--speed-chart-embedded-apply-padding);
 		line-height: 1.15;
 	}
 	.speed-chart-table[data-embedded='true'] .speed-chart-apply-label {
@@ -152,7 +215,11 @@
 		background: transparent;
 	}
 	.speed-chart-table[data-embedded='true'] .speed-chart-owned-summary-header { align-self: auto; }
-	.speed-chart-table[data-embedded='true'] .speed-chart-owned-summary-sprite { width: 48px; height: 48px; }
+	/* 表内に埋め込んだ所持個体サマリーのポケモン画像 */
+	.speed-chart-table[data-embedded='true'] .speed-chart-owned-summary-sprite {
+		width: 48px;
+		height: 48px;
+	}
 	.speed-chart-table[data-embedded='true'] .speed-chart-owned-edit-button,
 	.speed-chart-table[data-embedded='true'] .speed-chart-owned-summary-species,
 	.speed-chart-table[data-embedded='true'] .speed-chart-owned-profile .speed-chart-owned-summary-badges { display: none; }
@@ -218,8 +285,16 @@
 	.speed-chart-table[data-embedded='true'] .speed-chart-modifier-consider { display: none; }
 	.speed-chart-table[data-embedded='true'] .speed-chart-rank-field > input { grid-column: 2; }
 	.speed-chart-table[data-embedded='true'] .speed-chart-rank-field .rank-stepper-group { display: contents; }
-	.speed-chart-table[data-embedded='true'] #speed-chart-rank-decrement { grid-column: 1; grid-row: 1; }
-	.speed-chart-table[data-embedded='true'] #speed-chart-rank-increment { grid-column: 3; grid-row: 1; }
+	/* 埋め込み表示のランク操作で、数値入力の左に置く下降ボタン */
+	.speed-chart-table[data-embedded='true'] #speed-chart-rank-decrement {
+		grid-column: 1;
+		grid-row: 1;
+	}
+	/* 埋め込み表示のランク操作で、数値入力の右に置く上昇ボタン */
+	.speed-chart-table[data-embedded='true'] #speed-chart-rank-increment {
+		grid-column: 3;
+		grid-row: 1;
+	}
 	/* 個体編集の努力値調整と同じ、角張った枠付きの−/＋ボタンにそろえる。 */
 	.speed-chart-table[data-embedded='true'] .speed-chart-rank-field .rank-stepper {
 		box-sizing: border-box;
@@ -251,9 +326,17 @@
 			grid-template-columns: 44px minmax(72px, 1fr) minmax(48px, auto) minmax(78px, auto);
 			column-gap: var(--space-1);
 		}
-		.speed-chart-table[data-embedded='true'] .speed-chart-owned-summary-sprite { width: 40px; height: 40px; }
+		/* 699px以下では所持個体サマリーのポケモン画像を一回り小さくする */
+		.speed-chart-table[data-embedded='true'] .speed-chart-owned-summary-sprite {
+			width: 40px;
+			height: 40px;
+		}
 		.speed-chart-table[data-embedded='true'] .speed-chart-owned-summary > .speed-chart-owned-summary-badges { gap: 2px; }
-		.speed-chart-table[data-embedded='true'] .speed-chart-owned-summary > .speed-chart-owned-summary-badges .badge { padding: 0.15em 0.35em; font-size: 0.6875rem; }
+		/* 699px以下では性格・特性・持ち物・努力値のバッジを詰めて表示する */
+		.speed-chart-table[data-embedded='true'] .speed-chart-owned-summary > .speed-chart-owned-summary-badges .badge {
+			padding: 0.15em 0.35em;
+			font-size: 0.6875rem;
+		}
 		.speed-chart-table[data-embedded='true'] .speed-chart-owned-summary-value-row { flex-wrap: nowrap; }
 		.speed-chart-table[data-embedded='true'] .speed-chart-owned-jump-button { padding: 0.15em 0.3em; }
 		.speed-chart-table[data-embedded='true'] .speed-chart-owned-controls { gap: var(--space-2); }
@@ -279,11 +362,14 @@
 		user-select: none;
 	}
 
+	/* --------------------------------------------------------------------------
+		順位表の行(実数値・配分・ポケモンチップ)
+		-------------------------------------------------------------------------- */
 	.speed-chart-table .speed-chart-row {
 		display: grid;
 		grid-template-columns: var(--speed-chart-columns);
-		gap: var(--space-4);
-		padding: var(--space-2) 0;
+		gap: var(--speed-chart-row-gap);
+		padding: var(--speed-chart-row-padding);
 		align-items: center;
 	}
 	/* 補正要因が2段目にある行だけは、数値・メタ情報をチップの上端に揃える。 */
@@ -295,36 +381,36 @@
 		align-items: center;
 	}
 	.speed-chart-table .speed-chart-row.speed-chart-row-value-end {
-		border-bottom: 1px solid var(--color-border);
+		border-bottom: var(--speed-chart-row-border);
 	}
 	.speed-chart-table .speed-chart-row.is-current-row {
-		background: var(--color-success-soft);
+		background: var(--speed-chart-current-row-background);
 	}
 	/* 実数値: 同じページ内に「ポケモン群」「この個体」という他の主コンテンツが並ぶ比較用の表
-	   なので、00-foundation.mdの「脇役の数値グリッド」区分(16.8px=1.05em/700)を採用する
-	   (/box/[id]の.stat-row-realと同じ階層)。列幅(80px)に対して数値だけが左寄りだと
-	   詰まって見えるため中央寄せにする。 */
+		なので、00-foundation.mdの「脇役の数値グリッド」区分(16.8px=1.05em/700)を採用する
+		(/box/[id]の.stat-row-realと同じ階層)。列幅(80px)に対して数値だけが左寄りだと
+		詰まって見えるため中央寄せにする。 */
 	.speed-chart-table .speed-chart-value-cell {
-		font-size: var(--font-size-lg1);
+		font-size: var(--speed-chart-value-font-size);
 		font-weight: 700;
 		padding-top: 0;
 		text-align: center;
-		padding-left: var(--space-2);
-		padding-right: var(--space-2);
+		padding-left: var(--speed-chart-value-padding-inline);
+		padding-right: var(--speed-chart-value-padding-inline);
 	}
 	/* 2列目: 族(すばやさ種族値)・配分バッジ(最速/準速/無振り)・倍率(x1.5等)を1行に。
-	   3列目の1段目(ポケモンチップ)と視覚的な高さが揃うよう、チップのpadding分だけ
-	   上に余白を持たせる。
-	   要件D: 太字はやめ(バッジ.speed-chart-spread-badgeだけは既存の太字意匠を維持、下で個別に
-	   font-weight: 700を指定)、文字サイズを1段上げる(--font-size-sm3 → --font-size-sm2)。 */
+		3列目の1段目(ポケモンチップ)と視覚的な高さが揃うよう、チップのpadding分だけ
+		上に余白を持たせる。
+		要件D: 太字はやめ(バッジ.speed-chart-spread-badgeだけは既存の太字意匠を維持、下で個別に
+		font-weight: 700を指定)、文字サイズを1段上げる(--font-size-sm3 → --font-size-sm2)。 */
 	.speed-chart-table .speed-chart-meta-cell {
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
-		gap: 0.35em;
+		gap: var(--speed-chart-meta-gap);
 		min-width: 0;
 		padding-top: 0;
-		font-size: var(--font-size-sm2);
+		font-size: var(--speed-chart-meta-font-size);
 		font-weight: 500;
 		color: var(--color-text);
 		line-height: var(--line-height-snug);
@@ -332,72 +418,72 @@
 	.speed-chart-table .speed-chart-base-speed-label {
 		color: var(--color-text-muted);
 		font-weight: 500;
-		font-size: var(--font-size-sm1);
+		font-size: var(--speed-chart-base-speed-font-size);
 	}
 	/* 3列目: ポケモンを1段目、その補正要因を2段目・左寄せ(チップの並び自体は左寄せのまま)。 */
 	.speed-chart-table .speed-chart-chips-cell {
 		display: flex;
 		flex-direction: column;
 		align-items: flex-start;
-		gap: var(--space-1);
+		gap: var(--speed-chart-chips-gap);
 		min-width: 0;
 	}
 	/* 要件E: 補正要因は「グループに1つ」ではなく「チップ(=ポケモン)ごとに1つ」表示する
-	   (chart-table.tsが.speed-chart-chip-unitでチップと要因を1組にまとめて出す。
-	   旧.speed-chart-group-originはグループ単位1個描画だったため廃止)。
-	   1組の中で要因をチップの下・中央揃えにする。 */
+		(chart-table.tsが.speed-chart-chip-unitでチップと要因を1組にまとめて出す。
+		旧.speed-chart-group-originはグループ単位1個描画だったため廃止)。
+		1組の中で要因をチップの下・中央揃えにする。 */
 	.speed-chart-table .speed-chart-chip-unit {
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		gap: 0.15rem;
+		gap: var(--speed-chart-chip-unit-gap);
 	}
 	/* 補正要因(特性名/わざ名/持ち物名)。ポケモンより一段軽い扱い(色を薄く・太字にしない)に
-	   して「ポケモンが主・要因が補足」という情報の主従を示す。補正なしグループ(素の実数値)には
-	   要因が無いため、その場合はこの要素自体を出力しない(chart-table.ts参照)。 */
+		して「ポケモンが主・要因が補足」という情報の主従を示す。補正なしグループ(素の実数値)には
+		要因が無いため、その場合はこの要素自体を出力しない(chart-table.ts参照)。 */
 	.speed-chart-table .speed-chart-chip-origin {
-		font-size: var(--font-size-sm3);
+		font-size: var(--speed-chart-origin-font-size);
 		font-weight: 500;
-		color: var(--color-text-muted);
+		color: var(--speed-chart-origin-color);
 		line-height: var(--line-height-snug);
 		text-align: center;
 	}
 	.speed-chart-table .speed-chart-spread-badge {
 		display: inline-flex;
 		align-items: center;
-		padding: 0.05em 0.55em;
-		border-radius: 999px;
+		padding: var(--speed-chart-badge-padding);
+		border-radius: var(--speed-chart-badge-radius);
 		font-size: inherit;
 		font-weight: 700;
 		vertical-align: middle;
 		border: 1px solid transparent;
 	}
 	/* max(最速): 既存のprimary系のまま(要件1「最速=既存のprimary系のまま」)。
-	   実測(Playwright+getComputedStyleを実ページから取得し相対輝度式でコントラスト計算。
-	   color-mixの結果はcomputed styleが`color(srgb r g b / a)`形式で返ることがあるため
-	   注意して読む。alpha付き背景(ダークの--color-primary-softはrgba)は実際の祖先要素の
-	   背景色に合成してから輝度計算する): primary-soft背景に対してprimary-strongの文字色は
-	   ライトで4.17:1しかなく、この段のfont-size(12px相当)は太字でもWCAG AA大文字テキストの
-	   閾値(18.7px相当)に届かないため4.5:1が必要。global.cssは変えずcolor-mixで10%黒を
-	   混ぜてライト4.95:1に是正する。この同じ1本のCSSルールがダークにも適用され、
-	   ダークは実測5.32:1(--color-primary-softがrgba(…, 0.16)のためページ背景
-	   var(--color-bg)と合成された色で計算)。両テーマとも4.5:1を満たす。 */
+		実測(Playwright+getComputedStyleを実ページから取得し相対輝度式でコントラスト計算。
+		color-mixの結果はcomputed styleが`color(srgb r g b / a)`形式で返ることがあるため
+		注意して読む。alpha付き背景(ダークの--color-primary-softはrgba)は実際の祖先要素の
+		背景色に合成してから輝度計算する): primary-soft背景に対してprimary-strongの文字色は
+		ライトで4.17:1しかなく、この段のfont-size(12px相当)は太字でもWCAG AA大文字テキストの
+		閾値(18.7px相当)に届かないため4.5:1が必要。global.cssは変えずcolor-mixで10%黒を
+		混ぜてライト4.95:1に是正する。この同じ1本のCSSルールがダークにも適用され、
+		ダークは実測5.32:1(--color-primary-softがrgba(…, 0.16)のためページ背景
+		var(--color-bg)と合成された色で計算)。両テーマとも4.5:1を満たす。 */
 	.speed-chart-table .speed-chart-spread-badge[data-spread='max'] {
 		background: var(--color-primary-soft);
 		color: color-mix(in srgb, var(--color-primary-strong) 90%, black 10%);
 	}
 	/* sub(準速): 「青とニュートラルの中間」を、背景はprimary-soft(青)とsurfaceを
-	   55:45で、文字はprimary-strong(青)とtext-muted(グレー)を60:40でcolor-mixし、
-	   maxよりも彩度・明度差を落とした中間段として作る(生hexは使わず両トークンの混色のみ)。
-	   置き換え後のコントラスト値は未実測。CoordinatorがPlaywrightで実測して更新する。 */
+		55:45で、文字はprimary-strong(青)とtext-muted(グレー)を60:40でcolor-mixし、
+		maxよりも彩度・明度差を落とした中間段として作る(生hexは使わず両トークンの混色のみ)。
+		置き換え後のコントラスト値は未実測。CoordinatorがPlaywrightで実測して更新する。 */
 	.speed-chart-table .speed-chart-spread-badge[data-spread='sub'] {
 		background: color-mix(in srgb, var(--color-primary-soft) 55%, var(--color-surface) 45%);
 		color: color-mix(in srgb, var(--color-primary-strong) 60%, var(--color-text-muted) 40%);
 	}
 	/* none(無振り): グラデーションの終端として彩度ゼロのグレーにする。surface/text-muted
-	   はこのファイル内の.speed-chart-chip-origin等でも使っている既存の「控えめな文字」の
-	   定番ペアで新規の混色は不要。置き換え後のコントラスト値は未実測。
-	   CoordinatorがPlaywrightで実測して更新する。 */
+		はこのファイル内の.speed-chart-chip-origin等でも使っている既存の「控えめな文字」の
+		定番ペアで新規の混色は不要。置き換え後のコントラスト値は未実測。
+		CoordinatorがPlaywrightで実測して更新する。 */
 	.speed-chart-table .speed-chart-spread-badge[data-spread='none'] {
 		background: var(--color-surface);
 		color: var(--color-text-muted);
@@ -409,17 +495,17 @@
 		border-color: var(--color-border);
 	}
 	/* 2列目の補正量(×1.5等、chart-table.ts側が.speed-chart-magnitude-badgeを付与)。
-	   要件2: 配分バッジと並んだときに主従が分かるよう、配分バッジ(塗りのpill+太字)より
-	   控えめな「枠線付きの薄いチップ」にする。背景・文字は上のnone(無振り)バッジと同じ
-	   surface/text-mutedペアを使う。置き換え後のコントラスト値は未実測のため、
-	   CoordinatorがPlaywrightで実測して更新する。既存トークン同士の組み合わせに
-	   境界線var(--color-border)を足して配分バッジ(境界線なしの塗りpill)と形で
-	   区別できるようにする。 */
+		要件2: 配分バッジと並んだときに主従が分かるよう、配分バッジ(塗りのpill+太字)より
+		控えめな「枠線付きの薄いチップ」にする。背景・文字は上のnone(無振り)バッジと同じ
+		surface/text-mutedペアを使う。置き換え後のコントラスト値は未実測のため、
+		CoordinatorがPlaywrightで実測して更新する。既存トークン同士の組み合わせに
+		境界線var(--color-border)を足して配分バッジ(境界線なしの塗りpill)と形で
+		区別できるようにする。 */
 	.speed-chart-table .speed-chart-magnitude-badge {
 		display: inline-flex;
 		align-items: center;
-		padding: 0.05em 0.55em;
-		border-radius: 999px;
+		padding: var(--speed-chart-badge-padding);
+		border-radius: var(--speed-chart-badge-radius);
 		font-size: 0.9em;
 		font-weight: 500;
 		vertical-align: middle;
@@ -428,16 +514,16 @@
 		border: 1px solid var(--color-border);
 	}
 	/* ポケモンチップの並び(3列目の1段目)。chart-table.tsのbuildRowContentが
-	   limitRowChipsByWidthで行の幅に収まる件数だけ残し、収まらない分は「+N件」バッジで示す。
-	   要件E: 各チップは.speed-chart-chip-unit(チップ+補正要因を縦積み)単位になり、要因の
-	   有無でユニットの高さが揃わないため、align-itemsをcenterからflex-startに変える
-	   (中央だと要因付き/なしのチップの上端がバラつく)。 */
+		limitRowChipsByWidthで行の幅に収まる件数だけ残し、収まらない分は「+N件」バッジで示す。
+		要件E: 各チップは.speed-chart-chip-unit(チップ+補正要因を縦積み)単位になり、要因の
+		有無でユニットの高さが揃わないため、align-itemsをcenterからflex-startに変える
+		(中央だと要因付き/なしのチップの上端がバラつく)。 */
 	.speed-chart-table .speed-chart-chips-row {
 		display: flex;
 		flex-wrap: wrap;
 		align-items: flex-start;
 		justify-content: flex-start;
-		gap: 0.4rem;
+		gap: var(--speed-chart-chips-row-gap);
 		width: 100%;
 	}
 	.speed-chart-table .speed-chart-chip-overflow {
@@ -448,10 +534,10 @@
 		white-space: nowrap;
 		padding: 0.1rem 0.4rem;
 		/* .speed-chart-chipはアイコン(22px)込みの高さを持つため、アイコンを持たないこの
-		   バッジは同じpaddingでも本文の行の高さぶん低くなる。align-itemsがflex-startになった
-		   (上のコメント参照)ことで.speed-chart-chip-unit(縦積み)と並んだときは
-		   自然と上端が揃うため、line-heightでの高さ合わせは.speed-chart-chip単体との
-		   比較用として残す(このバッジ自身の見た目は変えない)。 */
+			バッジは同じpaddingでも本文の行の高さぶん低くなる。align-itemsがflex-startになった
+			(上のコメント参照)ことで.speed-chart-chip-unit(縦積み)と並んだときは
+			自然と上端が揃うため、line-heightでの高さ合わせは.speed-chart-chip単体との
+			比較用として残す(このバッジ自身の見た目は変えない)。 */
 		line-height: 22px;
 	}
 	.speed-chart-table .speed-chart-chip {
@@ -460,28 +546,28 @@
 		gap: var(--space-1);
 		font-size: var(--font-size-sm3);
 		background: var(--color-surface);
-		border-radius: 999px;
-		padding: 0.1rem 0.5rem 0.1rem 0.1rem;
+		border-radius: var(--speed-chart-chip-radius);
+		padding: var(--speed-chart-chip-padding);
 	}
 	.speed-chart-table .speed-chart-chip-icon {
-		width: 22px;
-		height: 22px;
+		width: var(--speed-chart-chip-icon-size);
+		height: var(--speed-chart-chip-icon-size);
 	}
 	.speed-chart-table .speed-chart-owned-cell {
 		min-width: 0;
 	}
 
 	/* 狭幅レイアウト対応(390px幅で撮影して確認): 80px 168px minmax(0, 1fr) の固定グリッドは、
-	   左右padding(.speed-chart-content)と1・2列目・gap(var(--space-4)×2)を引くと3列目に
-	   約70pxしか残らず、ポケモンチップの名前が「オ/ニ/ュ/ー/ラ」のように1文字ずつ縦へ
-	   折り返す(pitfalls.md「潰れて読めなくなる破綻は横スクロールを伴わない」の典型)。
-	   この幅では列を維持すること自体を諦め、「実数値」列+「それ以外(族・配分・倍率/
-	   ポケモン・補正要因/調整)を縦に積む」列の2列に組み替える。
-	   セルは常に「実数値 → meta → chips →(調整時のみ)owned」の順でDOMに並ぶ(chart-table.ts
-	   側の仕様、このファイルでは変更不可)ため、meta/chips/ownedへ明示的にgrid-column: 2を
-	   与えるだけでよい(grid-auto-flowの既定は1列目側から詰めるため、指定しないと1列目に
-	   はみ出す)。列見出し行(.speed-chart-columns-header)は要件Cにより廃止したため、
-	   ここで別途非表示にする必要はない。 */
+		左右padding(.speed-chart-content)と1・2列目・gap(var(--space-4)×2)を引くと3列目に
+		約70pxしか残らず、ポケモンチップの名前が「オ/ニ/ュ/ー/ラ」のように1文字ずつ縦へ
+		折り返す(pitfalls.md「潰れて読めなくなる破綻は横スクロールを伴わない」の典型)。
+		この幅では列を維持すること自体を諦め、「実数値」列+「それ以外(族・配分・倍率/
+		ポケモン・補正要因/調整)を縦に積む」列の2列に組み替える。
+		セルは常に「実数値 → meta → chips →(調整時のみ)owned」の順でDOMに並ぶ(chart-table.ts
+		側の仕様、このファイルでは変更不可)ため、meta/chips/ownedへ明示的にgrid-column: 2を
+		与えるだけでよい(grid-auto-flowの既定は1列目側から詰めるため、指定しないと1列目に
+		はみ出す)。列見出し行(.speed-chart-columns-header)は要件Cにより廃止したため、
+		ここで別途非表示にする必要はない。 */
 	@media (max-width: 767px) {
 		.speed-chart-table .speed-chart-row {
 			grid-template-columns: 60px minmax(0, 1fr);
@@ -493,8 +579,8 @@
 			grid-column: 2;
 		}
 		/* 実数値セルの左右paddingを詰めて、60px幅でも3桁の実数値(例: 150)が折り返さない
-		   余白を確保する(60px - 8px(空白1回分)で残り52pxに対し、太字1.05emの3桁数字は
-		   実測30px前後で収まる)。 */
+			余白を確保する(60px - 8px(空白1回分)で残り52pxに対し、太字1.05emの3桁数字は
+			実測30px前後で収まる)。 */
 		.speed-chart-table .speed-chart-value-cell {
 			padding-left: var(--space-1);
 			padding-right: var(--space-1);

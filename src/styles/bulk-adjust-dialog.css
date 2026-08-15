@@ -1,17 +1,72 @@
-/* box/[id] の「耐久調整ポップアップ」(BulkAdjustDialog.astro)の見た目。中身はsrc/lib/box-id/bulk-adjust.tsがdocument.createElement()で動的生成する。 */
+/* ===========================================================================
+	耐久調整ポップアップ(/box/[id] で複数の防御条件をまとめて計算する画面)
+
+	画面のどこ: ボックス詳細 → 耐久調整
+	見た目を変えたいとき: 下の「チューニング変数」だけ触ればよい。
+												それより下は構造なので通常はいじらない。
+	=========================================================================== */
+
+/* ===========================================================================
+	チューニング変数
+	JavaScript が生成する固定ダイアログと背景オーバーレイでも読めるよう、:root に置く。
+	=========================================================================== */
+:root {
+	/* ── 1. 文字サイズ ────────────────────────────────────── */
+	--bulk-adjust-title-font-size: var(--font-size-base); /* ダイアログ見出し。大きくするとタイトルが目立つ */
+	--bulk-adjust-status-font-size: var(--font-size-sm2); /* 計算状況の文。大きくすると状態が読みやすくなる */
+	--bulk-adjust-close-font-size: var(--font-size-lg1); /* 閉じるボタンの×。大きくすると記号が目立つ */
+	--bulk-adjust-inputs-font-size: var(--font-size-sm2); /* N発・確率の入力行。大きくすると入力説明が読みやすくなる */
+
+	/* ── 3. 文字色 ────────────────────────────────────────── */
+	--bulk-adjust-muted-color: var(--color-text-muted); /* 状態文と補足文の色。薄くすると主操作との差が増す */
+	--bulk-adjust-remove-hover-color: var(--color-danger-strong); /* 削除ボタンに触れたときの色。濃くすると危険操作が目立つ */
+
+	/* ── 4. 背景色 ────────────────────────────────────────── */
+	--bulk-adjust-backdrop-background: var(--color-overlay); /* 背景オーバーレイ。濃くすると背後の画面が暗くなる */
+	--bulk-adjust-dialog-background: var(--color-surface); /* ダイアログの下地。変えると全体の面色が変わる */
+	--bulk-adjust-row-background: var(--color-bg); /* 条件カードの下地。変えると各カードの面色が変わる */
+
+	/* ── 5. 枠線・角丸 ────────────────────────────────────── */
+	--bulk-adjust-dialog-border: 1px solid var(--color-border); /* ダイアログ外枠。太くすると輪郭が目立つ */
+	--bulk-adjust-dialog-radius: var(--radius-lg); /* ダイアログの角丸。大きくすると角が丸くなる */
+	--bulk-adjust-row-border: 1px solid var(--color-border); /* 条件カードの枠線。濃くするとカードの区切りが強くなる */
+	--bulk-adjust-row-radius: var(--radius-md); /* 条件カードの角丸。大きくすると各カードが丸くなる */
+
+	/* ── 6. 影 ────────────────────────────────────────────── */
+	--bulk-adjust-dialog-shadow: var(--shadow-lg); /* ダイアログの影。強くすると画面手前に浮いて見える */
+
+	/* ── 7. 余白 ──────────────────────────────────────────── */
+	--bulk-adjust-header-gap: var(--space-3); /* ヘッダー内の要素間隔。大きくすると操作が離れる */
+	--bulk-adjust-header-padding: var(--space-4) var(--space-5); /* ヘッダー内側の余白。大きくするとヘッダーが厚くなる */
+	--bulk-adjust-body-padding: var(--space-4) var(--space-5); /* 本文内側の余白。大きくすると内容が内側に寄る */
+	--bulk-adjust-body-gap: var(--space-4); /* 条件カードどうしの間隔。大きくするとカードが離れる */
+	--bulk-adjust-footer-padding: var(--space-3) var(--space-5); /* フッター内側の余白。大きくすると下部が厚くなる */
+	--bulk-adjust-row-gap: var(--space-2); /* 条件カード内の行間。大きくすると入力欄とプレビューが離れる */
+	--bulk-adjust-row-padding: var(--space-3); /* 条件カード内側の余白。大きくするとカードが大きくなる */
+
+	/* ── 8. 寸法 ──────────────────────────────────────────── */
+	--bulk-adjust-dialog-width: min(720px, 94vw); /* ダイアログ横幅。大きくすると横に広がる */
+	--bulk-adjust-dialog-max-height: min(82vh, 900px); /* ダイアログ最大高さ。大きくすると本文の表示領域が増える */
+	--bulk-adjust-compute-min-width: 12rem; /* 計算ボタンの最小幅。大きくすると主操作が目立つ */
+	--bulk-adjust-remove-size: 28px; /* 条件カードの削除ボタン。大きくすると押しやすくなる */
+}
+
+/* ===========================================================================
+	ここから下は構造(レイアウトの組み立て)。通常は触らない。
+	=========================================================================== */
 	/* JSが動的生成する中身を含むため、このダイアログ関連のスタイルはすべてis:globalにする
-	   (Astroのscoped styleはJSで生成した要素に効かない。このリポジトリで実際に踏まれた罠。
-	   pitfalls.md参照)。クラス名はすべて bulk-adjust- 接頭辞で他画面と衝突しないようにする。 */
+		(Astroのscoped styleはJSで生成した要素に効かない。このリポジトリで実際に踏まれた罠。
+		pitfalls.md参照)。クラス名はすべて bulk-adjust- 接頭辞で他画面と衝突しないようにする。 */
 
 	/* 背景オーバーレイ・ダイアログ本体とも、既存の#damage-detail-panel/backdropより手前
-	   (z-index:60/55)に出す必要があるため70/71を使う(このページで確認できる最大値は60)。
-	   モーダルなので、RightPanel.astroのスライドイン(transform)ではなく画面中央に固定する。
-	   ⚠️ 実装時に踏んだ罠: inset:0にすると、ダイアログを開いている間ずっと画面全体
-	   (トップバーの上まで)を覆ってしまい、このダイアログを開閉する当のトリガーボタン
-	   (#bulk-adjust-button、トップバー内。ダイアログを開いている間は「ステータスを計算」に
-	   ラベルが変わり計算実行ボタンを兼ねる)がクリックできなくなる(Playwrightの実機検証で
-	   「backdropがポインタイベントを奪っている」ことを確認した)。トップバー
-	   (--topbar-height、global.css)ぶんだけ上を空け、topより下だけを覆う。 */
+		(z-index:60/55)に出す必要があるため70/71を使う(このページで確認できる最大値は60)。
+		モーダルなので、RightPanel.astroのスライドイン(transform)ではなく画面中央に固定する。
+		⚠️ 実装時に踏んだ罠: inset:0にすると、ダイアログを開いている間ずっと画面全体
+		(トップバーの上まで)を覆ってしまい、このダイアログを開閉する当のトリガーボタン
+		(#bulk-adjust-button、トップバー内。ダイアログを開いている間は「ステータスを計算」に
+		ラベルが変わり計算実行ボタンを兼ねる)がクリックできなくなる(Playwrightの実機検証で
+		「backdropがポインタイベントを奪っている」ことを確認した)。トップバー
+		(--topbar-height、global.css)ぶんだけ上を空け、topより下だけを覆う。 */
 	.bulk-adjust-backdrop {
 		position: fixed;
 		top: var(--topbar-height);
@@ -19,10 +74,10 @@
 		right: 0;
 		bottom: 0;
 		z-index: 70;
-		background: var(--color-overlay);
+		background: var(--bulk-adjust-backdrop-background);
 	}
 	/* ⚠️ [hidden]は詳細度で負ける既知の罠(このリポジトリで4件実例あり)。
-	   display:flexを持つクラスには必ず対応する[hidden]規則を併記すること。 */
+		display:flexを持つクラスには必ず対応する[hidden]規則を併記すること。 */
 	.bulk-adjust-backdrop[hidden] { display: none; }
 
 	.bulk-adjust-dialog {
@@ -31,14 +86,14 @@
 		left: 50%;
 		transform: translate(-50%, -50%);
 		z-index: 71;
-		width: min(720px, 94vw);
-		max-height: min(82vh, 900px);
+		width: var(--bulk-adjust-dialog-width);
+		max-height: var(--bulk-adjust-dialog-max-height);
 		display: flex;
 		flex-direction: column;
-		background: var(--color-surface);
-		border: 1px solid var(--color-border);
-		border-radius: var(--radius-lg);
-		box-shadow: var(--shadow-lg);
+		background: var(--bulk-adjust-dialog-background);
+		border: var(--bulk-adjust-dialog-border);
+		border-radius: var(--bulk-adjust-dialog-radius);
+		box-shadow: var(--bulk-adjust-dialog-shadow);
 	}
 	.bulk-adjust-dialog[hidden] { display: none; }
 
@@ -46,14 +101,30 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		gap: var(--space-3);
-		padding: var(--space-4) var(--space-5);
+		gap: var(--bulk-adjust-header-gap);
+		padding: var(--bulk-adjust-header-padding);
 		border-bottom: 1px solid var(--color-border);
 		flex-shrink: 0;
 	}
-	.bulk-adjust-dialog-title { margin: 0; font-size: var(--font-size-base); font-weight: 700; }
-	.bulk-adjust-dialog-status { margin-left: auto; color: var(--color-text-muted); font-size: var(--font-size-sm2); min-width: 0; }
-	.bulk-adjust-dialog-close { font-size: var(--font-size-lg1); padding: 0.2em 0.55em; flex-shrink: 0; }
+	/* 耐久調整ダイアログの見出し文字 */
+	.bulk-adjust-dialog-title {
+		margin: 0;
+		font-size: var(--bulk-adjust-title-font-size);
+		font-weight: 700;
+	}
+	/* 計算対象なし・入力不足・失敗などをタイトル行の右側に表示するステータス */
+	.bulk-adjust-dialog-status {
+		margin-left: auto;
+		color: var(--bulk-adjust-muted-color);
+		font-size: var(--bulk-adjust-status-font-size);
+		min-width: 0;
+	}
+	/* ダイアログ右上の閉じるボタン */
+	.bulk-adjust-dialog-close {
+		font-size: var(--bulk-adjust-close-font-size);
+		padding: 0.2em 0.55em;
+		flex-shrink: 0;
+	}
 
 	/* 既存クラスを維持したままタイトル行内のボタン枠として使う。 */
 	.bulk-adjust-dialog-toolbar {
@@ -69,7 +140,7 @@
 		color: var(--color-primary);
 		border: 2px solid var(--color-primary);
 		/* 操作の主目的だと分かる幅を確保するため、トークンにない必要最小限の幅だけ生値にする。 */
-		min-width: 12rem;
+		min-width: var(--bulk-adjust-compute-min-width);
 		max-width: 100%;
 	}
 	button.bulk-adjust-dialog-compute-button:hover:not(:disabled) {
@@ -81,69 +152,80 @@
 		flex: 1 1 auto;
 		min-height: 0;
 		overflow-y: auto;
-		padding: var(--space-4) var(--space-5);
+		padding: var(--bulk-adjust-body-padding);
 	}
 	.bulk-adjust-dialog-body-inner {
 		display: flex;
 		flex-direction: column;
-		gap: var(--space-4);
+		gap: var(--bulk-adjust-body-gap);
 	}
 
 	.bulk-adjust-dialog-footer {
 		display: flex;
 		align-items: center;
 		gap: var(--space-3);
-		padding: var(--space-3) var(--space-5);
+		padding: var(--bulk-adjust-footer-padding);
 		border-top: 1px solid var(--color-border);
 		flex-shrink: 0;
 	}
 	.bulk-adjust-dialog-footer[hidden] { display: none; }
-	.bulk-adjust-progress-text { color: var(--color-text-muted); font-size: var(--font-size-sm2); }
+	/* 計算中にフッターへ表示する進捗件数 */
+	.bulk-adjust-progress-text {
+		color: var(--bulk-adjust-muted-color);
+		font-size: var(--bulk-adjust-status-font-size);
+	}
 
-	.bulk-adjust-empty-message { margin: 0; color: var(--color-text-muted); }
+	.bulk-adjust-empty-message {
+		margin: 0;
+		color: var(--bulk-adjust-muted-color);
+	}
 
 	/* カード1枚(圧縮表示の複製)+N/M入力欄の組。カード右上の削除ボタン(×)の
-	   絶対配置の基準としてposition:relativeを持たせる。 */
+		絶対配置の基準としてposition:relativeを持たせる。 */
 	.bulk-adjust-row {
 		position: relative;
 		display: flex;
 		flex-direction: column;
-		gap: var(--space-2);
-		border: 1px solid var(--color-border);
-		border-radius: var(--radius-md);
-		padding: var(--space-3);
-		background: var(--color-bg);
+		gap: var(--bulk-adjust-row-gap);
+		border: var(--bulk-adjust-row-border);
+		border-radius: var(--bulk-adjust-row-radius);
+		padding: var(--bulk-adjust-row-padding);
+		background: var(--bulk-adjust-row-background);
 	}
 	/* 削除ボタン(×)。ダメージカード側の削除ボタン(.damage-row-delete-button)と同じ
-	   「カード右上・×・btn-ghost」の流儀に揃える。タップ対象28px以上を満たす大きさにする。
-	   ⚠️ 圧縮表示の複製カードが持つ×(.damage-row-delete-button)は、このダイアログ内では
-	   下方のルールでdisplay:noneにしてあるため、×が2つ並ぶことはない。 */
+		「カード右上・×・btn-ghost」の流儀に揃える。タップ対象28px以上を満たす大きさにする。
+		⚠️ 圧縮表示の複製カードが持つ×(.damage-row-delete-button)は、このダイアログ内では
+		下方のルールでdisplay:noneにしてあるため、×が2つ並ぶことはない。 */
 	.bulk-adjust-row-remove {
 		position: absolute;
 		top: var(--space-2);
 		right: var(--space-2);
-		width: 28px;
-		height: 28px;
-		min-height: 28px;
+		width: var(--bulk-adjust-remove-size);
+		height: var(--bulk-adjust-remove-size);
+		min-height: var(--bulk-adjust-remove-size);
 		padding: 0;
-		font-size: var(--font-size-lg1);
+		font-size: var(--bulk-adjust-close-font-size);
 		line-height: 1;
-		color: var(--color-text-muted);
+		color: var(--bulk-adjust-muted-color);
 	}
 	.bulk-adjust-row-remove:hover:not(:disabled) {
-		color: var(--color-danger-strong);
+		color: var(--bulk-adjust-remove-hover-color);
 	}
 	/* 複製カード(.card-damage)は本来カード一覧の中で使う前提の幅・余白を持つため、
-	   ダイアログの中でも横幅いっぱいに広がるようにする(親側の追加のmax-width指定は
-	   不要。カード自体のCSSがwidth:100%相当で伸びる)。 */
-	.bulk-adjust-row-preview { width: 100%; min-width: 0; }
+		ダイアログの中でも横幅いっぱいに広がるようにする(親側の追加のmax-width指定は
+		不要。カード自体のCSSがwidth:100%相当で伸びる)。 */
+	/* 調整対象ごとに複製したダメージ計算カードを収める枠 */
+	.bulk-adjust-row-preview {
+		width: 100%;
+		min-width: 0;
+	}
 	.bulk-adjust-row-preview .card-damage { width: 100%; }
 	.bulk-adjust-row-inputs {
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
 		gap: var(--space-2) var(--space-3);
-		font-size: var(--font-size-sm2);
+		font-size: var(--bulk-adjust-inputs-font-size);
 	}
 	.bulk-adjust-row-inputs label {
 		display: inline-flex;
@@ -153,10 +235,10 @@
 		white-space: nowrap;
 	}
 	/* ⚠️ 実装時に踏んだ罠: type="number"はネイティブの増減スピナーぶんの横幅を内側に
-	   確保する。width: 4.2emだと既定値100(M入力欄)の3桁目がスピナーの下に隠れて
-	   見えなくなる(値自体は"100"のままでDOM上は正しいが、視覚的に"10"に見えて
-	   誤読を招く。Playwrightのinputvalue()と実際の見た目を突き合わせて発覚)。
-	   3桁+スピナーが確実に収まる幅へ広げる。 */
+		確保する。width: 4.2emだと既定値100(M入力欄)の3桁目がスピナーの下に隠れて
+		見えなくなる(値自体は"100"のままでDOM上は正しいが、視覚的に"10"に見えて
+		誤読を招く。Playwrightのinputvalue()と実際の見た目を突き合わせて発覚)。
+		3桁+スピナーが確実に収まる幅へ広げる。 */
 	.bulk-adjust-n-input {
 		width: 3.6em;
 		text-align: right;
@@ -167,50 +249,55 @@
 	}
 
 	/* 480px未満(狭幅端末)では入力欄のwhite-space:nowrapのせいで折り返し先が無く
-	   1文字ずつ縦に潰れる事故(このリポジトリで実例あり)を避けるため、行自体を
-	   折り返し可能にする(上のflex-wrap:wrapは既に効くが、labelの内部は
-	   white-space:nowrapのままにして「◯発を」がラベル内で分断されないようにする)。
-	   ⚠️ @media は基本定義より後ろに書くこと(このリポジトリで2件実例のある罠)。 */
+		1文字ずつ縦に潰れる事故(このリポジトリで実例あり)を避けるため、行自体を
+		折り返し可能にする(上のflex-wrap:wrapは既に効くが、labelの内部は
+		white-space:nowrapのままにして「◯発を」がラベル内で分断されないようにする)。
+		⚠️ @media は基本定義より後ろに書くこと(このリポジトリで2件実例のある罠)。 */
 	@media (max-width: 480px) {
 		.bulk-adjust-dialog { width: 96vw; }
 		/* ヘッダーは [タイトル][ステータス][計算ボタン][×] の1行flexで、計算ボタンが
-		   min-width:12rem(192px)で縮まないため、390px幅ではステータス文言
-		   (「計算対象の攻撃がありません」等)が入った瞬間に行があふれ、×が計算ボタンの
-		   下に潜り込んでクリックできなくなる(実測、Playwright:
-		   「compute button intercepts pointer events」で×のクリックが失敗)。
-		   狭幅では折り返しを許可し、ステータスは独立した行へ落とす。 */
+			min-width:12rem(192px)で縮まないため、390px幅ではステータス文言
+			(「計算対象の攻撃がありません」等)が入った瞬間に行があふれ、×が計算ボタンの
+			下に潜り込んでクリックできなくなる(実測、Playwright:
+			「compute button intercepts pointer events」で×のクリックが失敗)。
+			狭幅では折り返しを許可し、ステータスは独立した行へ落とす。 */
 		.bulk-adjust-dialog-header { flex-wrap: wrap; }
-		.bulk-adjust-dialog-status { order: 10; flex: 1 0 100%; margin-left: 0; }
+		/* 狭い画面ではステータスをヘッダー末尾の独立した1行に送る */
+		.bulk-adjust-dialog-status {
+			order: 10;
+			flex: 1 0 100%;
+			margin-left: 0;
+		}
 		button.bulk-adjust-dialog-compute-button { min-width: 8rem; }
 	}
 
 	/* 複製カード(buildCardPreview()、damage-calc.ts)は表示専用(内部のinput/select/
-	   textarea/buttonは全てdisabled+tabindex=-1済み)だが、×(カード削除ボタン、
-	   .damage-row-delete-button)は見た目上そのまま残ってしまい、押せそうに見えるのは誤解を招く。
-	   ⚠️ このダイアログ自身が実行時に#opponent-notes-sectionの子として差し込まれる
-	   (このファイル冒頭コメント参照)ため、複製ボタンは元カードと同じ
-	   `#opponent-notes-section .damage-row-delete-button` 系のCSS
-	   (DamageCalcSection.astroのposition:absolute等、display指定は無い)を継承して
-	   見えている。同じ詳細度(id1+class1)のセレクタで上書きしようとするとAstroの
-	   コンポーネント読み込み順というソース順序に結果が左右され不安定なため
-	   (pitfalls.mdの「displayの打ち消しには詳細度に注意」と同種の罠)、id2つ+classの
-	   セレクタで確実に上回る。#bulk-adjust-dialogはこのポップアップ本体にしか一致せず、
-	   元のダメージ計算カード一覧(#damage-rows-list配下)には一致しないため、
-	   元のカードの×は非表示にならない。 */
+		textarea/buttonは全てdisabled+tabindex=-1済み)だが、×(カード削除ボタン、
+		.damage-row-delete-button)は見た目上そのまま残ってしまい、押せそうに見えるのは誤解を招く。
+		⚠️ このダイアログ自身が実行時に#opponent-notes-sectionの子として差し込まれる
+		(このファイル冒頭コメント参照)ため、複製ボタンは元カードと同じ
+		`#opponent-notes-section .damage-row-delete-button` 系のCSS
+		(DamageCalcSection.astroのposition:absolute等、display指定は無い)を継承して
+		見えている。同じ詳細度(id1+class1)のセレクタで上書きしようとするとAstroの
+		コンポーネント読み込み順というソース順序に結果が左右され不安定なため
+		(pitfalls.mdの「displayの打ち消しには詳細度に注意」と同種の罠)、id2つ+classの
+		セレクタで確実に上回る。#bulk-adjust-dialogはこのポップアップ本体にしか一致せず、
+		元のダメージ計算カード一覧(#damage-rows-list配下)には一致しないため、
+		元のカードの×は非表示にならない。 */
 	#opponent-notes-section #bulk-adjust-dialog .damage-row-delete-button {
 		display: none;
 	}
 
 	/* ⚠️ 実装時に踏んだ罠(狭幅・Playwright実機検証で発覚、z-indexでの対策は不発だった):
-	   1739px以下では#bulk-adjust-button(box/[id].astro側)がposition:staticの通常
-	   フローに戻り、トップバーの操作ボタン列(.app-topbar-actions)の一員になる。この列は
-	   ボタン数が多く、390px等の極端な狭幅ではflex-wrapで折り返して2行以上になることがあり、
-	   実際の折り返し後の高さが--topbar-height(global.cssの固定実測値)を超えるケースがある。
-	   当初このボタンにz-index(backdropの70より大きい値)を与えて前面に出そうとしたが、
-	   祖先の.app-topbar自身がposition:sticky+z-index:20(global.css)で独自のスタッキング
-	   コンテキストを作っているため、子であるこのボタンのz-indexは.app-topbarの外の要素
-	   (このdialogのbackdrop、z-index:70)とは比較されず無効だった(実機のelementFromPointで
-	   確認: z-index:72を与えてもbackdropが依然として最前面だった)。そのため、backdrop側の
-	   top位置をCSSの固定値ではなく、実際のトップバー高さをJSで測って動的に設定する方式に
-	   変更した(src/lib/box-id/bulk-adjust.tsのopenDialog()参照)。ここではbackdropの
-	   基本の位置(top:var(--topbar-height))だけを残し、実測値による上書きはJS側に委ねる。 */
+		1739px以下では#bulk-adjust-button(box/[id].astro側)がposition:staticの通常
+		フローに戻り、トップバーの操作ボタン列(.app-topbar-actions)の一員になる。この列は
+		ボタン数が多く、390px等の極端な狭幅ではflex-wrapで折り返して2行以上になることがあり、
+		実際の折り返し後の高さが--topbar-height(global.cssの固定実測値)を超えるケースがある。
+		当初このボタンにz-index(backdropの70より大きい値)を与えて前面に出そうとしたが、
+		祖先の.app-topbar自身がposition:sticky+z-index:20(global.css)で独自のスタッキング
+		コンテキストを作っているため、子であるこのボタンのz-indexは.app-topbarの外の要素
+		(このdialogのbackdrop、z-index:70)とは比較されず無効だった(実機のelementFromPointで
+		確認: z-index:72を与えてもbackdropが依然として最前面だった)。そのため、backdrop側の
+		top位置をCSSの固定値ではなく、実際のトップバー高さをJSで測って動的に設定する方式に
+		変更した(src/lib/box-id/bulk-adjust.tsのopenDialog()参照)。ここではbackdropの
+		基本の位置(top:var(--topbar-height))だけを残し、実測値による上書きはJS側に委ねる。 */

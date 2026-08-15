@@ -1,9 +1,43 @@
-/* /box/[id] のすばやさ調整モーダル */
+/* ===========================================================================
+   すばやさ調整モーダル(/box/[id] から開く、iframe を含む固定ダイアログ)
+
+   画面のどこ: ボックス詳細 → すばやさ調整
+   見た目を変えたいとき: 下の「チューニング変数」だけ触ればよい。
+                        それより下は構造なので通常はいじらない。
+   =========================================================================== */
+
+/* ===========================================================================
+   チューニング変数
+   固定ダイアログと iframe 内の画面の両方で使うため、:root に置く。
+   =========================================================================== */
+:root {
+  /* ── 4. 背景色 ────────────────────────────────────────── */
+  --speed-adjust-backdrop-background: rgb(0 0 0 / 28%); /* 背景オーバーレイ。濃くすると背後の画面が暗くなる */
+
+  /* ── 5. 枠線・角丸 ────────────────────────────────────── */
+  --speed-adjust-dialog-border: 1px solid var(--color-border); /* ダイアログの外枠。太くすると枠が目立つ */
+  --speed-adjust-dialog-radius: var(--radius-lg); /* ダイアログの角丸。大きくすると角が丸くなる */
+
+  /* ── 6. 影 ────────────────────────────────────────────── */
+  --speed-adjust-dialog-shadow: var(--shadow-lg); /* ダイアログの影。強くすると前面に浮いて見える */
+
+  /* ── 8. 寸法 ──────────────────────────────────────────── */
+  --speed-adjust-dialog-width: min(1200px, 84vw); /* ダイアログの横幅。大きくすると横に広がる */
+  --speed-adjust-dialog-height: min(820px, 80vh); /* ダイアログの高さ。大きくすると表示領域が増える */
+  --speed-adjust-dialog-mobile-width: 92vw; /* 狭い画面での横幅。大きくすると左右の余白が減る */
+  --speed-adjust-dialog-mobile-height: 82dvh; /* 狭い画面での高さ。大きくすると上下の余白が減る */
+}
+
+/* ===========================================================================
+   ここから下は構造(レイアウトの組み立て)。通常は触らない。
+   =========================================================================== */
+
+/* 背景オーバーレイ */
 .speed-adjust-backdrop {
   position: fixed;
   inset: 0;
   z-index: 100;
-  background: rgb(0 0 0 / 28%);
+  background: var(--speed-adjust-backdrop-background);
 }
 
 .speed-adjust-backdrop[hidden],
@@ -11,21 +45,23 @@
   display: none;
 }
 
+/* すばやさ調整のダイアログ本体 */
 .speed-adjust-dialog {
   position: fixed;
   z-index: 101;
   top: 50%;
   left: 50%;
-  width: min(1200px, 84vw);
-  height: min(820px, 80vh);
+  width: var(--speed-adjust-dialog-width);
+  height: var(--speed-adjust-dialog-height);
   transform: translate(-50%, -50%);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
+  border: var(--speed-adjust-dialog-border);
+  border-radius: var(--speed-adjust-dialog-radius);
   background: var(--color-surface);
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--speed-adjust-dialog-shadow);
   overflow: hidden;
 }
 
+/* ダイアログ内のすばやさ表 */
 .speed-adjust-dialog-frame {
   display: block;
   width: 100%;
@@ -36,8 +72,8 @@
 
 @media (max-width: 899px) {
   .speed-adjust-dialog {
-    width: 92vw;
-    height: 82dvh;
+    width: var(--speed-adjust-dialog-mobile-width);
+    height: var(--speed-adjust-dialog-mobile-height);
   }
 }
 
@@ -93,6 +129,10 @@ body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-spre
   font-weight: 400;
 }
 
+/* --------------------------------------------------------------------------
+   iframe 内のヘッダーと速度表
+   -------------------------------------------------------------------------- */
+/* 表の上部にある「すばやさ調整」見出しと閉じる操作 */
 body.speed-chart-page .speed-chart-embed-toolbar {
   padding: var(--speed-adjust-toolbar-padding);
   font-size: var(--speed-adjust-toolbar-size);
@@ -143,6 +183,7 @@ body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-magn
   font-size: var(--speed-adjust-chip-modifier-size);
 }
 
+/* 表のスクロール領域 */
 body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-content {
   padding: var(--speed-adjust-content-padding);
 }
@@ -162,6 +203,10 @@ body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-chip
   padding-bottom: var(--space-1);
 }
 
+/* --------------------------------------------------------------------------
+   iframe 内の下部個体サマリー
+   -------------------------------------------------------------------------- */
+/* 表の右側または下部に出る、選択中個体の要約 */
 body.speed-chart-page .speed-chart-table[data-embedded='true'][data-has-owned-panel='true'] .speed-chart-side {
   padding: var(--speed-adjust-summary-padding);
 }
@@ -228,6 +273,7 @@ body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-rank
 }
 
 @media (max-width: 699px) {
+  /* 狭い iframe では余白と操作間隔だけを縮める */
   body.speed-chart-page:has(.speed-chart-embed-toolbar) {
     --speed-adjust-toolbar-padding: var(--space-2);
     --speed-adjust-content-padding: var(--space-2) var(--space-3);

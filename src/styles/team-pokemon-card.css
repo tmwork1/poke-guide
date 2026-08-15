@@ -4,6 +4,7 @@
 /* 6枠のメンバープレビューを2列×3行に並べるグリッド(#team-overview-grid)。 */
 
 .team-overview-thumb-grid {
+	/* ── 7. 余白 ────────────────────────── */
 	--team-card-gap: var(--space-2);
 	--team-card-edge-gap: var(--space-2);
 	--team-card-padding: var(--space-1);
@@ -43,64 +44,75 @@
 	font-size: var(--font-size-lg1);
 }
 
-/* Preview card */
+/* プレビューカード */
 
 /* データ枠本体(<a>)。src/components/box-id/MobileTrainingBar.astroの育成プレビューバー
-   (.pokemon-preview、src/styles/box-pokemon-preview.css参照)と同じクラス構成を、
-   --pokemon-preview-*でおよそ半分のスケールに縮小して再現するカード。 */
+	(.pokemon-preview、src/styles/box-pokemon-preview.css参照)と同じクラス構成を、
+	--pokemon-preview-*でおよそ半分のスケールに縮小して再現するカード。 */
 
 .team-overview-thumb-grid .team-overview-preview-card {
-	--pokemon-preview-padding: calc(var(--space-5) / 3);
-	--pokemon-preview-move-type-icon-size: 1.3em;
-	--pokemon-preview-item-icon-size: 1.5em;
-	--team-card-item-badge-size: var(--pokemon-preview-item-icon-size);
-	--team-card-item-gap: calc(var(--space-1) / 2);
-	--team-card-item-gutter: calc(var(--team-card-item-badge-size) + var(--team-card-item-gap));
-	--team-card-sprite-size: 8rem;
-	--team-card-sprite-opacity: 0.5;
-	/* Name (nickname or species name) */
+	/* ── 1. 文字サイズ ─────────────────────── */
+	/* 名前(ニックネーム、未設定時は種族名) */
 	--team-card-name-font-size: var(--font-size-sm2);
-	--team-card-name-font-weight: 600;
-	--team-card-name-line-height: 1.6;
-	--team-card-name-color: var(--color-text);
-	/* Ability row */
+	/* とくせいの行 */
 	--team-card-details-font-size: var(--font-size-sm3);
-	--team-card-details-font-weight: 400;
-	--team-card-details-line-height: 1;
-	--team-card-details-gap: calc(var(--space-1) / 2);
-	--team-card-details-color: var(--color-text-muted);
-	/* Move list and rows */
+	/* わざ一覧と各行 */
 	--team-card-moves-font-size: var(--font-size-sm3);
-	--team-card-moves-font-weight: 400;
-	--team-card-moves-line-height: 1;
-	--team-card-moves-icon-gap: calc(var(--space-1) / 2);
-	--team-card-moves-gap: calc(var(--space-1) / 2);
-	--team-card-moves-color: var(--color-text);
-	/* Vertical spacing between the name, ability, and move list */
-	--team-card-left-content-gap: calc(var(--space-1) / 2);
-	/* Stats table labels and values */
-	--team-card-stats-label-font-size: var(--font-size-sm4);
-	--team-card-stats-label-font-weight: 500;
-	--team-card-stats-label-line-height: 1;
-	--team-card-stats-label-color: var(--color-text-muted);
 	--team-card-stats-value-font-size: var(--font-size-sm3);
+	/* スプライト画像を取得できないときだけ表示する種族名の代替文字 */
+	--team-card-sprite-fallback-font-size: var(--font-size-sm3);
+	/* 実数値表のラベルと数値 */
+	--team-card-stats-label-font-size: var(--font-size-sm4);
+	/* 努力値行(+32, 0なら-)。ラベルと同じグレー系だが実数値行との区別のため少し控えめにする。 */
+	--team-card-stats-ev-font-size: var(--team-card-stats-label-font-size);
+
+	/* ── 2. 文字の太さ・行間 ──────────────────── */
+	--team-card-name-font-weight: 600;
+	--team-card-stats-label-font-weight: 500;
 	--team-card-stats-value-font-weight: 500;
+	--team-card-details-font-weight: 400;
+	--team-card-moves-font-weight: 400;
+	--team-card-stats-ev-font-weight: 400;
+	--team-card-sprite-fallback-font-weight: 400;
+	--team-card-name-line-height: 1.6;
+	--team-card-sprite-fallback-line-height: 1.6;
 	--team-card-stats-value-line-height: 1.2;
+	--team-card-details-line-height: 1;
+	--team-card-moves-line-height: 1;
+	--team-card-stats-label-line-height: 1;
+	--team-card-stats-ev-line-height: 1;
+
+	/* ── 3. 文字色 ───────────────────────── */
+	--team-card-name-color: var(--color-text);
+	--team-card-details-color: var(--color-text-muted);
+	--team-card-moves-color: var(--color-text);
 	--team-card-stats-value-color: var(--color-text);
 	--team-card-stats-value-color-up: var(--color-stat-up);
 	--team-card-stats-value-color-down: var(--color-stat-down);
-	--team-card-stats-row-padding-block-start: calc(var(--space-1) / 4);
-	--team-card-stats-column-gap: var(--space-1);
-	/* 努力値行(+32, 0なら-)。ラベルと同じグレー系だが実数値行との区別のため少し控えめにする。 */
-	--team-card-stats-ev-font-size: var(--team-card-stats-label-font-size);
-	--team-card-stats-ev-font-weight: 400;
-	--team-card-stats-ev-line-height: 1;
+	--team-card-stats-label-color: var(--color-text-muted);
 	--team-card-stats-ev-color: var(--color-text-muted);
-	/* Species-name fallback shown only when the sprite image cannot load */
-	--team-card-sprite-fallback-font-size: var(--font-size-sm3);
-	--team-card-sprite-fallback-font-weight: 400;
-	--team-card-sprite-fallback-line-height: 1.6;
 	--team-card-sprite-fallback-color: var(--color-text-muted);
+
+	/* ── 7. 余白 ────────────────────────── */
+	--pokemon-preview-padding: calc(var(--space-5) / 3);
+	--team-card-stats-column-gap: var(--space-1);
+	--team-card-item-gap: calc(var(--space-1) / 2);
+	--team-card-details-gap: calc(var(--space-1) / 2);
+	--team-card-moves-icon-gap: calc(var(--space-1) / 2);
+	--team-card-moves-gap: calc(var(--space-1) / 2);
+	/* 名前・とくせい・わざ一覧の縦方向の間隔 */
+	--team-card-left-content-gap: calc(var(--space-1) / 2);
+	--team-card-stats-row-padding-block-start: calc(var(--space-1) / 4);
+
+	/* ── 8. 寸法 ────────────────────────── */
+	--team-card-sprite-size: 8rem;
+	--team-card-item-gutter: calc(var(--team-card-item-badge-size) + var(--team-card-item-gap));
+	--pokemon-preview-item-icon-size: 1.5em;
+	--team-card-item-badge-size: var(--pokemon-preview-item-icon-size);
+	--pokemon-preview-move-type-icon-size: 1.3em;
+
+	/* ── 9. その他 ───────────────────────── */
+	--team-card-sprite-opacity: 0.5;
 
 	display: block;
 	min-height: 0;
@@ -111,7 +123,7 @@
 }
 
 /* .pokemon-preview-main: 名前・とくせい・わざ・実数値にカード内の全幅を使わせる単一カラム。
-   種族スプライトの透かし(.pokemon-preview-identity)だけが、この上に絶対配置で重なる。 */
+	種族スプライトの透かし(.pokemon-preview-identity)だけが、この上に絶対配置で重なる。 */
 
 .team-overview-preview-card .pokemon-preview-main {
 	position: relative;
@@ -134,7 +146,7 @@
 }
 
 /* .pokemon-preview-name: ニックネーム(未設定時は種族名)。右上の持ち物バッジと重なる
-   行末部分だけ、余白を確保する。 */
+	行末部分だけ、余白を確保する。 */
 
 .team-overview-preview-card .pokemon-preview-name {
 	overflow: hidden;
@@ -147,11 +159,11 @@
 	white-space: nowrap;
 }
 
-/* Details and moves */
+/* とくせいとわざ */
 
 /* .pokemon-preview-details: とくせい名の行(子div1つ)。
-   .pokemon-preview-icon-text: 持ち物バッジ(.pokemon-preview-item)にも付くアイコン+テキスト共通レイアウト。
-   .pokemon-preview-moves li: わざ一覧の各行(タイプアイコン+わざ名)。 */
+	.pokemon-preview-icon-text: 持ち物バッジ(.pokemon-preview-item)にも付くアイコン+テキスト共通レイアウト。
+	.pokemon-preview-moves li: わざ一覧の各行(タイプアイコン+わざ名)。 */
 
 .team-overview-preview-card .pokemon-preview-details {
 	display: flex;
@@ -221,10 +233,10 @@
 	display: none;
 }
 
-/* Identity */
+/* 種族スプライト */
 
 /* .pokemon-preview-identity: 種族スプライトを背景として薄く透かし表示する層。
-   main全体に絶対配置で重ね、中央右寄せにスプライトを置く(pointer-events: none)。 */
+	main全体に絶対配置で重ね、中央右寄せにスプライトを置く(pointer-events: none)。 */
 
 .team-overview-preview-card .pokemon-preview-identity {
 	position: absolute;
@@ -265,10 +277,10 @@
 	color: var(--team-card-sprite-fallback-color);
 }
 
-/* Item and stats */
+/* 持ち物と実数値 */
 
 /* .pokemon-preview-item: 持ち物アイコンのバッジ。カード右上に絶対配置。
-   持ち物なし、またはアイコン画像が未取得の間は[hidden]。 */
+	持ち物なし、またはアイコン画像が未取得の間は[hidden]。 */
 
 .team-overview-preview-card .pokemon-preview-item {
 	position: absolute;
@@ -294,8 +306,8 @@
 }
 
 /* .pokemon-preview-stats: カード最下部(.pokemon-preview-leftの末尾、moves直後)に横積みで
-   置く実数値。ラベル行・実数値行・努力値行の3段×6列を、右パネルのteam-damage-stats/
-   team-damage-stats-line(display:contentsで行を作る手法)と同じ考え方でグリッド化する。 */
+	置く実数値。ラベル行・実数値行・努力値行の3段×6列を、右パネルのteam-damage-stats/
+	team-damage-stats-line(display:contentsで行を作る手法)と同じ考え方でグリッド化する。 */
 
 .team-overview-preview-card .pokemon-preview-stats {
 	display: grid;
