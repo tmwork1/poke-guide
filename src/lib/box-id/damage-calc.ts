@@ -36,7 +36,6 @@ import {
 	loadMultiHitMoveMap,
 	loadAbilitiesMap,
 	officialArtworkUrl,
-	spriteUrl,
 } from "../pokemon-master-data";
 import { type StatKey, STAT_KEYS, NATURE_STAT_MODIFIERS, calcHpStat, calcOtherStat } from "../stats";
 import { TERA_TYPES } from "../tera-types";
@@ -2193,7 +2192,7 @@ if (opponentNotesSection) {
 			image.style.display = "none";
 			const fallback = document.createElement("span");
 			fallback.className = "damage-direction-self-fallback";
-			void applySprite(image, fallback, selfSpeciesName, spriteUrl);
+			void applySprite(image, fallback, selfSpeciesName, officialArtworkUrl);
 			badge.append(image, fallback);
 			return badge;
 		}
@@ -2663,7 +2662,7 @@ if (opponentNotesSection) {
 			evValue.className = "damage-ev-value-readonly tnum";
 			evValue.setAttribute("aria-label", `相手の${STAT_KANJI[key]}努力値`);
 			readonlyEvValueEls[i] = evValue;
-			stat.append(label, document.createTextNode(" "), value, evValue);
+			stat.append(label, value, evValue);
 			readonlyEvGrid.appendChild(stat);
 		});
 		rowReadonlyNatureLabelEls.set(row, readonlyNatureLabels);
