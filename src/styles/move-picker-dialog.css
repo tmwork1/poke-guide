@@ -6,7 +6,7 @@
   --move-picker-dialog-inset: var(--space-3);
   --move-picker-dialog-max-width: 42rem;
   --move-picker-dialog-max-height: min(78dvh, 42rem);
-  --move-picker-dialog-radius: var(--radius-lg);
+  --move-picker-dialog-radius: var(--modal-radius);
 
   --move-picker-header-gap: var(--space-3);
   --move-picker-header-padding: 0.6rem 0.8rem;

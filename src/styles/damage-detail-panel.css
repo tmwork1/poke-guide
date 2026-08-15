@@ -28,7 +28,7 @@
 		background: var(--color-surface);
 		box-shadow: var(--shadow-lg);
 		border-left: 0;
-		border-radius: var(--radius-lg);
+		border-radius: var(--modal-radius);
 		transform: translate(-50%, -50%) scale(0.96);
 		opacity: 0;
 		pointer-events: none;
