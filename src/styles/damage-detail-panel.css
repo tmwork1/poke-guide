@@ -25,6 +25,7 @@
 		z-index: 60;
 		display: flex;
 		flex-direction: column;
+		overflow: hidden;
 		background: var(--color-surface);
 		box-shadow: var(--shadow-lg);
 		border-left: 0;
@@ -43,7 +44,7 @@
 		position: fixed;
 		inset: 0;
 		z-index: 55;
-		background: transparent;
+		background: var(--color-overlay);
 	}
 	.damage-detail-backdrop[hidden] { display: none; }
 	.damage-detail-panel-header {
@@ -53,8 +54,9 @@
 		gap: var(--space-2);
 		/* 3モード共通で密度を上げるため、横paddingは保ち縦paddingだけ一段縮める。 */
 		padding: var(--space-2) var(--space-4);
-		background: var(--color-bg);
-		/* 今回の指示で3モード共通のタイトル直下の区切り線を復活させる。 */
+		/* 今回の指示で3モード共通のタイトル直下の区切り線を復活させる。
+		   背景はモーダル本体(--color-surface)と同化させ、var(--color-bg)(ページ背景、
+		   ダークモードでは--color-surfaceより暗い)による帯を作らない。 */
 		border-bottom: 1px solid var(--color-border);
 		flex-shrink: 0;
 	}
