@@ -133,11 +133,11 @@
 .data-empty p { margin: 0; }
 
 /* box/ranked.astro(上位チーム)は renderTopBuildCard + team-card.css で /team 一覧と
-   カード本体を共用している。器の左右余白も同じ --box-grid-edge-gap に揃えないと
+   カード本体を共用している。器の左右余白も同じ --list-grid-edge-gap に揃えないと
    カードだけ細くなるため、このページに限り .box-data-main の既定 padding を上書きする
    (@media 内の padding ショートハンドより詳細度が高いので、狭幅でも効く)。 */
 /* /box/ranked のカード一覧を /team と同じ左右余白にする */
-.box-ranked-page .box-data-main { padding-inline: var(--box-grid-edge-gap); }
+.box-ranked-page .box-data-main { padding-inline: var(--list-grid-edge-gap); }
 
 /* box/ranked.astro(上位チーム)のロード中/エラー/0件時のステータス文言。/team/[id] の
    .team-data-similar-status(team-data-tab.css)と同じ見た目にして、実カード一覧に

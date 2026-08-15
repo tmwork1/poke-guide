@@ -79,9 +79,9 @@ body.box-edit-page .app-topbar {
 		(.second-bar、MobileTrainingBar.astro参照)の実測高さ。
 		ポケモンプレビューをその直下にstickyで貼り付けるためのtopオフセットに使う。
 		値はdevサーバー+Playwrightの
-		getBoundingClientRectで実測した37px(second-bar.cssの--second-bar-height基準値
+		getBoundingClientRectで実測した37px(global.cssの--second-bar-height基準値
 		36px+下端border 1px。戻るボタンを.second-bar__listの外に出したことで、
-		second-bar.css既定の36pxに一致するようになった)。バーの構成を変えたら実測し直す。
+		global.css既定の36pxに一致するようになった)。バーの構成を変えたら実測し直す。
 		コンポーネントのscoped styleではなくここ(body)に置くことで、MobileTrainingBar.astro
 		内の要素へカスタムプロパティのDOM継承で届く。 */
 .edit-layout-left,

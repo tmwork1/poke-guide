@@ -14,7 +14,7 @@
 	--team-page-error-color: var(--color-danger-strong); /* エラーメッセージの文字色 */
 
 	/* ── 7. 余白 ────────────────────────── */
-	--team-page-content-padding: var(--box-grid-edge-gap) var(--box-grid-edge-gap) calc(var(--bottom-nav-height) + 6rem); /* 一覧の外側余白。下側は固定ナビと重ならない余白 */
+	--team-page-content-padding: var(--list-grid-edge-gap) var(--list-grid-edge-gap) calc(var(--bottom-nav-height) + 6rem); /* 一覧の外側余白。下側は固定ナビと重ならない余白 */
 	--team-page-status-margin-top: var(--space-6); /* 読み込み中・エラー表示の上側余白 */
 	--team-page-content-inline-padding: var(--space-5); /* ページ本文の左右余白 */
 	--team-page-empty-margin-top: var(--space-4); /* 検索結果なし表示の上側余白 */

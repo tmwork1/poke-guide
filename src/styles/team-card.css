@@ -83,7 +83,7 @@
    -------------------------------------------------------------------------- */
 
 /* --- カードのリスト。モバイル1カラム(ui/mobile のチーム一覧)。
-   /team では .team-content.box-content(team-page.css)の左右 --box-grid-edge-gap が
+   /team では .team-content.box-content(team-page.css)の左右 --list-grid-edge-gap が
    外側の余白を、/team/[id] では .team-data-similar-panel(team-data-tab.css)が
    同じ値の余白を持つ。カード間隔はここの gap(--space-4)だけが決める。 --- */
 .team-grid {

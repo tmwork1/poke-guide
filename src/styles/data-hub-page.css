@@ -230,7 +230,7 @@
 .top-builds-list { padding: var(--data-hub-top-builds-list-padding); }
 .top-builds-list .ranked-team-status { color: var(--data-hub-muted-color); }
 .top-builds-list #top-builds-error { color: var(--data-hub-error-color); }
-/* カードの左右余白は /team(.team-content.box-content = --box-grid-edge-gap)と一致させる。
+/* カードの左右余白は /team(.team-content.box-content = --list-grid-edge-gap)と一致させる。
    .data-hub-scroll の margin-inline が同じ --space-2 をすでに確保しているため、
    ここで追加の左右余白は持たない(足すと /team よりカードが細くなる)。 */
 .top-builds-load-more-wrap {
