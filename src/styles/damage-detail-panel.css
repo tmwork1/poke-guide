@@ -43,7 +43,7 @@
 		position: fixed;
 		inset: 0;
 		z-index: 55;
-		background: var(--color-overlay);
+		background: transparent;
 	}
 	.damage-detail-backdrop[hidden] { display: none; }
 	.damage-detail-panel-header {
