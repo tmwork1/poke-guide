@@ -2992,9 +2992,9 @@ if (opponentNotesSection) {
 		const existingOrders = rows
 			.map((r) => rowSortOrder.get(r))
 			.filter((v): v is number => v !== undefined);
-		const minOrder = existingOrders.length > 0 ? Math.min(...existingOrders) : 0;
-		rowSortOrder.set(row, minOrder - 1000);
-		rows.unshift(row);
+		const maxOrder = existingOrders.length > 0 ? Math.max(...existingOrders) : 0;
+		rowSortOrder.set(row, maxOrder + 1000);
+		rows.push(row);
 		rebuildRowsList();
 		row.root?.querySelector<HTMLInputElement>('input[aria-label="相手ポケモン名"]')?.focus();
 	}
@@ -3019,9 +3019,9 @@ if (opponentNotesSection) {
 		const existingOrders = rows
 			.map((r) => rowSortOrder.get(r))
 			.filter((v): v is number => v !== undefined);
-		const minOrder = existingOrders.length > 0 ? Math.min(...existingOrders) : 0;
-		rowSortOrder.set(row, minOrder - 1000);
-		rows.unshift(row);
+		const maxOrder = existingOrders.length > 0 ? Math.max(...existingOrders) : 0;
+		rowSortOrder.set(row, maxOrder + 1000);
+		rows.push(row);
 		rebuildRowsList();
 		// 相手名が入っている=保存できる状態なので、通常の編集と同じ経路で保存と再計算を予約する。
 		scheduleRowSave(row);
