@@ -68,21 +68,28 @@
   gap: var(--space-1);
 }
 
+#opponent-notes-section .damage-build-readonly-name-row {
+  flex-wrap: wrap;
+}
+
 #opponent-notes-section .damage-build-readonly-field[hidden] {
   display: none;
 }
 
 #opponent-notes-section .damage-build-readonly-ability-line {
-  align-items: center;
+  align-items: baseline;
+  max-width: 100%;
 }
 
 #opponent-notes-section .damage-build-readonly-ability-line > .damage-build-readonly-value {
-  flex: 0 1 auto;
+  flex: 0 0 auto;
+  max-width: 100%;
 }
 
 #opponent-notes-section .damage-build-readonly-tera {
   min-width: 0;
-  flex: 0 1 auto;
+  flex: 0 0 auto;
+  max-width: 100%;
   align-items: center;
   gap: var(--space-1);
   display: inline-flex;
@@ -119,7 +126,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: var(--font-size-sm2);
-  font-weight: 600;
+  font-weight: 400;
 }
 
 #opponent-notes-section .damage-build-readonly-fields {
@@ -140,6 +147,7 @@
   white-space: nowrap;
   color: var(--color-text);
   font-size: var(--font-size-sm2);
+  font-weight: 400;
 }
 
 #opponent-notes-section .damage-row-build-main {
@@ -487,6 +495,43 @@
   display: grid;
 }
 
+#opponent-notes-section .damage-ev-grid-readonly {
+  align-items: baseline;
+  gap: var(--space-1);
+  white-space: nowrap;
+  display: flex;
+}
+
+#opponent-notes-section .damage-ev-readonly-stat {
+  align-items: baseline;
+  color: var(--color-text);
+  font-size: var(--font-size-sm2);
+  line-height: var(--line-height-tight);
+  display: inline-flex;
+}
+
+#opponent-notes-section .damage-ev-readonly-stat[data-mod="up"] {
+  color: var(--color-stat-up);
+}
+
+#opponent-notes-section .damage-ev-readonly-stat[data-mod="down"] {
+  color: var(--color-stat-down);
+}
+
+#opponent-notes-section .damage-ev-readonly-stat > .damage-ev-col-label,
+#opponent-notes-section .damage-ev-readonly-stat > .damage-stat-value,
+#opponent-notes-section .damage-ev-readonly-stat > .damage-ev-value-readonly {
+  color: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  text-align: start;
+  display: inline;
+}
+
+#opponent-notes-section .damage-ev-readonly-stat > .damage-ev-col-label {
+  margin-right: var(--space-1);
+}
+
 #opponent-notes-section .damage-ev-row-label {
   font-size: var(--font-size-sm2);
   font-weight: 700;
@@ -619,17 +664,26 @@
 }
 
 #opponent-notes-section .damage-row-total[data-severity="lethal"] {
-  background: var(--color-danger-soft);
+  background: linear-gradient(to right,
+    var(--color-danger-soft) 0 var(--gauge-min),
+    var(--color-danger-strong) var(--gauge-min) var(--gauge-max),
+    var(--color-surface) var(--gauge-max) 100%);
   color: var(--color-danger-strong);
 }
 
 #opponent-notes-section .damage-row-total[data-severity="risky"] {
-  background: var(--color-risky-soft);
+  background: linear-gradient(to right,
+    var(--color-risky-soft) 0 var(--gauge-min),
+    var(--color-risky-strong) var(--gauge-min) var(--gauge-max),
+    var(--color-surface) var(--gauge-max) 100%);
   color: var(--color-risky-strong);
 }
 
 #opponent-notes-section .damage-row-total[data-severity="safe"] {
-  background: var(--color-success-soft);
+  background: linear-gradient(to right,
+    var(--color-success-soft) 0 var(--gauge-min),
+    var(--color-success-strong) var(--gauge-min) var(--gauge-max),
+    var(--color-surface) var(--gauge-max) 100%);
   color: var(--color-success-strong);
 }
 
@@ -656,6 +710,11 @@
   column-gap: .5em;
   margin: 0;
   padding: .18rem .45rem;
+  text-shadow:
+    -1px -1px 0 var(--color-surface),
+    1px -1px 0 var(--color-surface),
+    -1px 1px 0 var(--color-surface),
+    1px 1px 0 var(--color-surface);
   display: grid;
 }
 
@@ -785,7 +844,7 @@
   border-radius: var(--radius-zero);
   width: 100%;
   padding: .16rem var(--space-2);
-  align-items: stretch;
+  align-items: center;
   gap: var(--space-2);
   background: var(--color-surface);
   cursor: pointer;
@@ -856,15 +915,27 @@
 }
 
 #opponent-notes-section .damage-column-conditions {
-  gap: var(--space-1);
-  flex-direction: column;
+  flex: 1 0 auto;
+  max-width: 100%;
+  min-width: 0;
+  justify-content: flex-end;
   display: flex;
 }
 
 #opponent-notes-section .damage-column-move-row {
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-1);
+  min-width: 0;
+  display: flex;
+}
+
+#opponent-notes-section .damage-column-move-identity {
+  align-items: center;
+  gap: var(--space-1);
+  flex: 1 0 auto;
+  max-width: 100%;
   min-width: 0;
   display: flex;
 }
@@ -882,11 +953,14 @@
 
 #opponent-notes-section .damage-column-move-text {
   min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  overflow-wrap: normal;
+  white-space: nowrap;
   color: var(--color-text);
   font-size: var(--font-size-sm2);
   font-weight: 700;
   line-height: var(--line-height-tight);
-  overflow-wrap: anywhere;
 }
 
 #opponent-notes-section .damage-column-move-text.is-placeholder {
@@ -1494,7 +1568,7 @@
   #opponent-notes-section .damage-row-techniques-row {
     column-gap: var(--space-1);
     row-gap: var(--space-1);
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr);
     align-items: stretch;
     width: 100%;
     min-width: 0;
@@ -1563,10 +1637,21 @@
     display: contents;
   }
 
-  #opponent-notes-section .card-damage .damage-sprite-box {
-    cursor: pointer;
+  #opponent-notes-section .card-damage .damage-build-matchup {
     grid-area: 1 / 1 / span 2;
     align-self: start;
+    align-items: center;
+    gap: var(--space-1);
+    display: flex;
+  }
+
+  #opponent-notes-section .card-damage .damage-sprite-box {
+    cursor: pointer;
+    order: 2;
+  }
+
+  #opponent-notes-section .card-damage[data-direction="defense"] .damage-sprite-box {
+    order: 1;
   }
 
   #opponent-notes-section .card-damage .damage-row-build-left {
@@ -1607,8 +1692,72 @@
     min-width: 0;
   }
 
-  #opponent-notes-section .card-damage .damage-row-direction-toggle {
-    min-width: 3.6em;
+  #opponent-notes-section .card-damage[data-direction="defense"] .damage-row-actions {
+    order: 2;
+  }
+
+  #opponent-notes-section .card-damage .damage-build-matchup .damage-row-direction-toggle {
+    border: none;
+    border-radius: var(--radius-zero);
+    min-width: 0;
+    overflow: visible;
+  }
+
+  #opponent-notes-section .card-damage .damage-build-matchup .damage-row-direction-option {
+    align-items: center;
+    gap: 0;
+    min-height: 0;
+    color: var(--color-text-muted);
+    background: none;
+    flex-direction: column;
+    padding: 0;
+    display: flex;
+  }
+
+  #opponent-notes-section .card-damage .damage-build-matchup .damage-row-direction-option[data-role="attack"][aria-checked="true"],
+  #opponent-notes-section .card-damage .damage-build-matchup .damage-row-direction-option[data-role="defense"][aria-checked="true"] {
+    color: var(--color-text-muted);
+    background: none;
+  }
+
+  #opponent-notes-section .card-damage .damage-direction-self-badge {
+    width: var(--space-7);
+    height: var(--space-7);
+    justify-content: center;
+    align-items: center;
+    display: flex;
+  }
+
+  #opponent-notes-section .card-damage .damage-direction-self-image {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    image-rendering: pixelated;
+  }
+
+  #opponent-notes-section .card-damage .damage-direction-self-fallback {
+    width: 100%;
+    height: 100%;
+    border-radius: var(--radius-md);
+    background: var(--color-bg);
+    justify-content: center;
+    align-items: center;
+    display: flex;
+  }
+
+  #opponent-notes-section .card-damage .damage-direction-arrow {
+    color: var(--color-text);
+    font-size: var(--font-size-sm2);
+    line-height: var(--line-height-tight);
+  }
+
+  #opponent-notes-section .card-damage[data-direction="defense"] .damage-direction-arrow {
+    transform: scaleX(-1);
+  }
+
+  #opponent-notes-section .card-damage .damage-column-move-row .damage-row-condition-chips {
+    margin-top: 0;
+    justify-content: flex-end;
   }
 
   #opponent-notes-section .card-damage .damage-row-build-grid select {
@@ -1646,7 +1795,7 @@
     min-width: 0;
   }
 
-  #opponent-notes-section .card-damage .damage-row-direction-toggle, #opponent-notes-section .card-damage .damage-row-direction-option, #opponent-notes-section .card-damage .damage-row-ability-cycle, #opponent-notes-section .card-damage .tera-dropdown-button {
+  #opponent-notes-section .card-damage .damage-row-ability-cycle, #opponent-notes-section .card-damage .tera-dropdown-button {
     min-height: 28px;
   }
 
@@ -1676,10 +1825,50 @@
 
   #opponent-notes-section .card-damage .damage-ev-grid {
     grid-area: 2 / 2;
-    grid-template-columns: repeat(6, minmax(0, 1fr));
-    gap: 0 .15rem;
+    gap: var(--space-1);
     margin-top: 0;
     position: relative;
+  }
+
+  #opponent-notes-section .card-damage[data-direction="attack"] .damage-ev-readonly-stat[data-stat="atk"],
+  #opponent-notes-section .card-damage[data-direction="attack"] .damage-ev-readonly-stat[data-stat="spa"],
+  #opponent-notes-section .card-damage[data-direction="attack"] .damage-ev-readonly-stat[data-stat="spe"],
+  #opponent-notes-section .card-damage[data-direction="defense"] .damage-ev-readonly-stat[data-stat="hp"],
+  #opponent-notes-section .card-damage[data-direction="defense"] .damage-ev-readonly-stat[data-stat="def"],
+  #opponent-notes-section .card-damage[data-direction="defense"] .damage-ev-readonly-stat[data-stat="spd"],
+  #opponent-notes-section .card-damage[data-direction="defense"] .damage-ev-readonly-stat[data-stat="spe"] {
+    display: none;
+  }
+
+  #opponent-notes-section .card-damage[data-direction="attack"] .damage-ev-readonly-stat[data-stat="def"]::before,
+  #opponent-notes-section .card-damage[data-direction="attack"] .damage-ev-readonly-stat[data-stat="spd"]::before,
+  #opponent-notes-section .card-damage[data-direction="defense"] .damage-ev-readonly-stat[data-stat="spa"]::before {
+    content: "/";
+    color: var(--color-text-muted);
+    margin-right: var(--space-1);
+  }
+
+  #opponent-notes-section .card-damage .damage-build-readonly-fields {
+    display: flex;
+    flex-wrap: wrap;
+  }
+
+  #opponent-notes-section .card-damage .damage-build-readonly-ability-line {
+    flex: 0 0 auto;
+    max-width: 100%;
+  }
+
+  #opponent-notes-section .card-damage .damage-build-readonly-ability-line > .damage-build-readonly-value {
+    color: var(--color-text);
+    font-weight: 400;
+  }
+
+  #opponent-notes-section .card-damage .damage-build-readonly-item-line {
+    display: none;
+  }
+
+  #opponent-notes-section .card-damage .damage-row-total-label {
+    display: none;
   }
 
   #opponent-notes-section .card-damage .damage-ev-col-label, #opponent-notes-section .card-damage .damage-stat-value {
@@ -1791,9 +1980,9 @@
 }
 
 @media (width <= 899px) {
-  #opponent-notes-section .card-damage .damage-row-direction-toggle {
+  #opponent-notes-section .card-damage .damage-build-matchup .damage-row-direction-toggle {
     flex: 0 0 auto;
-    width: 4.4em;
-    min-width: 4.4em;
+    width: auto;
+    min-width: 0;
   }
 }

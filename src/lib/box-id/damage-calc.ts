@@ -36,6 +36,7 @@ import {
 	loadMultiHitMoveMap,
 	loadAbilitiesMap,
 	officialArtworkUrl,
+	spriteUrl,
 } from "../pokemon-master-data";
 import { type StatKey, STAT_KEYS, NATURE_STAT_MODIFIERS, calcHpStat, calcOtherStat } from "../stats";
 import { TERA_TYPES } from "../tera-types";
@@ -322,6 +323,7 @@ const moveAdoptionBySpecies =
 const opponentNotesSection = document.getElementById("opponent-notes-section");
 if (opponentNotesSection) {
 	const ownedPokemonId = opponentNotesSection.dataset.ownedPokemonId ?? "";
+	const selfSpeciesName = document.querySelector<HTMLElement>(".pokemon-preview")?.dataset.speciesName?.trim() ?? "";
 	const rowBuildDetailForms = new WeakMap<DamageRowState, HTMLElement>();
 	const rowStatAdjustmentPanels = new WeakMap<DamageRowState, {
 		panel: StatAdjustmentPanel;
@@ -915,7 +917,10 @@ if (opponentNotesSection) {
 	// 求めた厳密な最小/最大)を使う。この関数は、cumulativeDamage が無い時代の
 	// client_result スナップショットを表示するときのフォールバック
 	// (各攻撃の最小同士・最大同士を単純加算した近似値)。
-	function formatCumulativeDamage(row: DamageRowState, result: OpponentClientResultInput): string {
+	function formatCumulativeDamage(
+		row: DamageRowState,
+		result: OpponentClientResultInput,
+	): { text: string; pctMin?: number; pctMax?: number } {
 		const valid = validAttacksOf(row);
 		const per = result.perAttackDamages;
 		const exact = result.cumulativeDamage;
@@ -925,12 +930,12 @@ if (opponentNotesSection) {
 			min = exact.min;
 			max = exact.max;
 		} else {
-			if (!Array.isArray(per) || valid.length === 0) return "";
+			if (!Array.isArray(per) || valid.length === 0) return { text: "" };
 			min = 0;
 			max = 0;
 			for (let i = 0; i < valid.length; i += 1) {
 				const damages = per[i];
-				if (!Array.isArray(damages) || damages.length === 0) return "";
+				if (!Array.isArray(damages) || damages.length === 0) return { text: "" };
 				min += Math.min(...damages);
 				max += Math.max(...damages);
 			}
@@ -940,9 +945,9 @@ if (opponentNotesSection) {
 			const pctMin = Math.floor((min / hp) * 100);
 			const pctMax = Math.ceil((max / hp) * 100);
 			const pct = pctMin === pctMax ? `${pctMin}%` : `${pctMin}〜${pctMax}%`;
-			return `${min}〜${max} (${pct})`;
+			return { text: `${min}〜${max} (${pct})`, pctMin, pctMax };
 		}
-		return `${min}〜${max}`;
+		return { text: `${min}〜${max}` };
 	}
 
 	function formatDamageRange(damages: number[] | undefined, defenderHp: number | undefined): string {
@@ -1080,7 +1085,21 @@ if (opponentNotesSection) {
 		if (!target) return;
 		const setSeverity = (value: string): void => {
 			target.dataset.severity = value;
-			if (row.totalBlockEl) row.totalBlockEl.dataset.severity = value;
+			if (!row.totalBlockEl) return;
+			row.totalBlockEl.dataset.severity = value;
+			if (value === "none") {
+				row.totalBlockEl.style.removeProperty("--gauge-min");
+				row.totalBlockEl.style.removeProperty("--gauge-max");
+			}
+		};
+		const setGauge = (pctMin: number | undefined, pctMax: number | undefined): void => {
+			if (!row.totalBlockEl || pctMin == null || pctMax == null) {
+				row.totalBlockEl?.style.removeProperty("--gauge-min");
+				row.totalBlockEl?.style.removeProperty("--gauge-max");
+				return;
+			}
+			row.totalBlockEl.style.setProperty("--gauge-min", `${Math.min(Math.max(pctMin, 0), 100)}%`);
+			row.totalBlockEl.style.setProperty("--gauge-max", `${Math.min(Math.max(pctMax, 0), 100)}%`);
 		};
 		const result = row.clientResult;
 		const validAttacks = validAttacksOf(row);
@@ -1117,7 +1136,8 @@ if (opponentNotesSection) {
 			return;
 		}
 		const hasOhko = validAttacks.some((a) => OHKO_MOVE_NAMES.has(a.moveName.trim()));
-		const damageText = formatCumulativeDamage(row, result) + (hasOhko ? ` ${OHKO_NOTE}` : "");
+		const cumulativeDamage = formatCumulativeDamage(row, result);
+		const damageText = cumulativeDamage.text + (hasOhko ? ` ${OHKO_NOTE}` : "");
 		const { label, severity } = describeSeriesVerdict(
 			result.lethal,
 			describeExtendedTotalNoLethalLabel(row, result),
@@ -1132,6 +1152,8 @@ if (opponentNotesSection) {
 		}
 		setResultVerdict(target, damageText, label);
 		setSeverity(severity);
+		if (severity === "none") setGauge(undefined, undefined);
+		else setGauge(cumulativeDamage.pctMin, cumulativeDamage.pctMax);
 	}
 
 	// H/A/B/C/D/S見出し自体が「無補正→上昇→下降→無補正」を巡回する1個のボタンになっている。
@@ -1747,6 +1769,8 @@ if (opponentNotesSection) {
 			// 通常カードは表示専用とし、編集は技列クリックで開く詳細パネルへ集約する。
 			const moveRow = document.createElement("div");
 			moveRow.className = "damage-column-move-row";
+			const moveIdentity = document.createElement("div");
+			moveIdentity.className = "damage-column-move-identity";
 			const moveTypeIcon = document.createElement("img");
 			moveTypeIcon.className = "damage-column-move-type-icon";
 			moveTypeIcon.alt = "";
@@ -1757,7 +1781,8 @@ if (opponentNotesSection) {
 			const hitText = document.createElement("span");
 			hitText.className = "damage-column-hitcount-text";
 			hitText.hidden = true;
-			moveRow.append(moveTypeIcon, moveText, hitText);
+			moveIdentity.append(moveTypeIcon, moveText, hitText);
+			moveRow.appendChild(moveIdentity);
 			moveAndChips.appendChild(moveRow);
 			const refreshDisplay = (): void => {
 				const name = attack.moveName.trim();
@@ -1799,15 +1824,13 @@ if (opponentNotesSection) {
 			const conditionChips = document.createElement("div");
 			conditionChips.className = "damage-row-condition-chips";
 			conditionChips.hidden = true;
-			moveAndChips.appendChild(conditionChips);
 			row.columnChipEls.push(conditionChips);
 
-			// 技名inputと結果表示の間: DamageCard.pngで「計算の細かい条件を入れる予定」と
-			// されている領域。連続回数(.damage-column-hitcount-row)は技名行(moveRow)側へ
-			// 移したため、ここに残るのは撃破済み注記のみ。
+			// 技名と同じ行の右側に、現在有効な詳細条件のチップをまとめる。
 			const conditions = document.createElement("div");
 			conditions.className = "damage-column-conditions";
-			moveAndChips.appendChild(conditions);
+			conditions.appendChild(conditionChips);
+			moveRow.appendChild(conditions);
 
 			// 累計で既に撃破済みになった以降の列を控えめに示すキャプション
 			// (renderColumnDisplaysのcomputeConfirmedKillAttackCount参照。数値自体は
@@ -1815,7 +1838,7 @@ if (opponentNotesSection) {
 			const overkillNote = document.createElement("p");
 			overkillNote.className = "damage-column-overkill-note";
 			overkillNote.hidden = true;
-			conditions.appendChild(overkillNote);
+			moveAndChips.appendChild(overkillNote);
 
 			attachColumnLongPressDelete(col, row, attack);
 
@@ -2136,14 +2159,17 @@ if (opponentNotesSection) {
 		const buildMain = document.createElement("div");
 		buildMain.className = "damage-row-build-main";
 		buildEl.appendChild(buildMain);
+		const matchup = document.createElement("div");
+		matchup.className = "damage-build-matchup";
+		buildMain.appendChild(matchup);
 		const buildLeft = document.createElement("div");
 		buildLeft.className = "damage-row-build-left";
 		buildMain.appendChild(buildLeft);
 
-		// 1段目: 攻守切り替えボタン。
+		// 自分側のドット絵と相手スプライトをつなぐ矢印が攻守切り替えを兼ねる。
 		const actionsRow = document.createElement("div");
 		actionsRow.className = "damage-row-actions";
-		buildLeft.appendChild(actionsRow);
+		matchup.appendChild(actionsRow);
 
 		// 「攻撃」「防御」の2値セグメントコントロールにする(role="radiogroup"+role="radio"。
 		// refreshDirectionUi参照)。
@@ -2158,13 +2184,36 @@ if (opponentNotesSection) {
 		// (CSSは.damage-row-direction-option[data-role="attack"/"defense"][aria-checked="true"]参照)。
 		attackOption.dataset.role = "attack";
 		attackOption.setAttribute("role", "radio");
-		attackOption.textContent = "攻撃";
+		function makeSelfSpriteBadge(): HTMLElement {
+			const badge = document.createElement("span");
+			badge.className = "damage-direction-self-badge";
+			const image = document.createElement("img");
+			image.className = "damage-direction-self-image";
+			image.alt = "";
+			image.style.display = "none";
+			const fallback = document.createElement("span");
+			fallback.className = "damage-direction-self-fallback";
+			void applySprite(image, fallback, selfSpeciesName, spriteUrl);
+			badge.append(image, fallback);
+			return badge;
+		}
+		const attackSelfBadge = makeSelfSpriteBadge();
+		const attackArrow = document.createElement("span");
+		attackArrow.className = "damage-direction-arrow";
+		attackArrow.setAttribute("aria-hidden", "true");
+		attackArrow.textContent = ">>>";
+		attackOption.append(attackSelfBadge, attackArrow);
 		const defenseOption = document.createElement("button");
 		defenseOption.type = "button";
 		defenseOption.className = "damage-row-direction-option";
 		defenseOption.dataset.role = "defense";
 		defenseOption.setAttribute("role", "radio");
-		defenseOption.textContent = "防御";
+		const defenseArrow = document.createElement("span");
+		defenseArrow.className = "damage-direction-arrow";
+		defenseArrow.setAttribute("aria-hidden", "true");
+		defenseArrow.textContent = ">>>";
+		const defenseSelfBadge = makeSelfSpriteBadge();
+		defenseOption.append(defenseSelfBadge, defenseArrow);
 		directionToggle.append(attackOption, defenseOption);
 		actionsRow.appendChild(directionToggle);
 
@@ -2200,6 +2249,7 @@ if (opponentNotesSection) {
 		}
 		const { field: abilityReadonlyField, value: abilityText } = makeReadonlyField("");
 		abilityReadonlyField.classList.add("damage-build-readonly-ability-line");
+		nameRow.appendChild(abilityReadonlyField);
 		const readonlyTera = document.createElement("span");
 		readonlyTera.className = "damage-build-readonly-tera";
 		readonlyTera.hidden = true;
@@ -2214,8 +2264,11 @@ if (opponentNotesSection) {
 		const readonlyTeraText = document.createElement("span");
 		readonlyTeraText.className = "damage-build-readonly-tera-name";
 		readonlyTera.append(readonlyTeraImg, readonlyTeraFallback, readonlyTeraText);
-		abilityReadonlyField.appendChild(readonlyTera);
+		readonlyFields.appendChild(readonlyTera);
 		const { field: itemReadonlyField, value: itemText } = makeReadonlyField("持ち物");
+		itemReadonlyField.classList.add("damage-build-readonly-item-line");
+		itemReadonlyField.setAttribute("aria-label", "持ち物");
+		itemReadonlyField.hidden = true;
 
 		const spriteBox = document.createElement("div");
 		spriteBox.className = "damage-sprite-box";
@@ -2248,7 +2301,7 @@ if (opponentNotesSection) {
 		itemBadgePlaceholder.textContent = "?";
 		itemBadge.appendChild(itemBadgePlaceholder);
 		spriteBox.append(spriteImg, spriteFallback, itemBadge);
-		buildMain.appendChild(spriteBox);
+		matchup.appendChild(spriteBox);
 
 		const detailForm = document.createElement("div");
 		detailForm.className = "damage-detail-panel-body-inner damage-build-detail-form";
@@ -2328,9 +2381,7 @@ if (opponentNotesSection) {
 		function refreshBuildSummary(): void {
 			nameText.textContent = row.name.trim() || "相手ポケモン未設定";
 			abilityText.textContent = row.abilityName.trim() || "未設定";
-			const itemName = row.itemName.trim();
-			itemText.textContent = itemName;
-			itemReadonlyField.hidden = itemName === "";
+			itemText.textContent = "";
 			refreshReadonlyEvs();
 		}
 
@@ -2591,55 +2642,36 @@ if (opponentNotesSection) {
 		const readonlyEvGrid = document.createElement("div");
 		readonlyEvGrid.className = "damage-ev-grid damage-ev-grid-readonly";
 		buildEl.appendChild(readonlyEvGrid);
-		const readonlyCornerEl = document.createElement("span");
-		readonlyCornerEl.className = "damage-ev-corner";
-		readonlyEvGrid.appendChild(readonlyCornerEl);
 		const readonlyNatureLabels: Partial<Record<string, HTMLElement>> = {};
-		for (const key of STAT_KEYS) {
+		const readonlyStatValueEls: Partial<Record<string, HTMLElement>> = {};
+		const readonlyEvValueEls: HTMLElement[] = [];
+		STAT_KEYS.forEach((key, i) => {
+			const stat = document.createElement("span");
+			stat.className = "damage-ev-readonly-stat";
+			stat.dataset.stat = key;
 			const label = document.createElement("span");
 			label.className = "damage-ev-col-label";
-			label.append(document.createTextNode(STAT_KANJI[key]));
+			label.textContent = STAT_KANJI[key];
 			if (key !== "hp") {
-				const indicator = document.createElement("span");
-				indicator.className = "damage-ev-nature-indicator";
-				indicator.setAttribute("aria-hidden", "true");
-				label.appendChild(indicator);
-				readonlyNatureLabels[key] = label;
+				readonlyNatureLabels[key] = stat;
 			}
-			readonlyEvGrid.appendChild(label);
-		}
-		rowReadonlyNatureLabelEls.set(row, readonlyNatureLabels);
-
-		const readonlyStatRowLabel = document.createElement("span");
-		readonlyStatRowLabel.className = "damage-ev-row-label";
-		readonlyStatRowLabel.textContent = "実数値";
-		readonlyEvGrid.appendChild(readonlyStatRowLabel);
-		const readonlyStatValueEls: Partial<Record<string, HTMLElement>> = {};
-		for (const key of STAT_KEYS) {
 			const value = document.createElement("span");
 			value.className = "damage-stat-value tnum";
 			value.textContent = "-";
 			readonlyStatValueEls[key] = value;
-			readonlyEvGrid.appendChild(value);
-		}
-		row.statValueEls = readonlyStatValueEls;
-
-		const readonlyEvRowLabel = document.createElement("span");
-		readonlyEvRowLabel.className = "damage-ev-row-label";
-		readonlyEvRowLabel.textContent = "努力値";
-		readonlyEvGrid.appendChild(readonlyEvRowLabel);
-		const readonlyEvValueEls: HTMLElement[] = [];
-		STAT_KEYS.forEach((key, i) => {
-			const value = document.createElement("span");
-			value.className = "damage-ev-value-readonly tnum";
-			value.setAttribute("aria-label", `相手の${STAT_KANJI[key]}努力値`);
-			readonlyEvGrid.appendChild(value);
-			readonlyEvValueEls[i] = value;
+			const evValue = document.createElement("span");
+			evValue.className = "damage-ev-value-readonly tnum";
+			evValue.setAttribute("aria-label", `相手の${STAT_KANJI[key]}努力値`);
+			readonlyEvValueEls[i] = evValue;
+			stat.append(label, document.createTextNode(" "), value, evValue);
+			readonlyEvGrid.appendChild(stat);
 		});
+		rowReadonlyNatureLabelEls.set(row, readonlyNatureLabels);
+		row.statValueEls = readonlyStatValueEls;
 		refreshReadonlyEvs = () => {
 			readonlyEvValueEls.forEach((value, i) => {
 				const ev = row.evs[i] ?? 0;
-				value.textContent = ev > 0 ? `+${ev}` : "-";
+				value.textContent = ev > 0 ? `(+${ev})` : "";
 			});
 		};
 
@@ -2723,7 +2755,7 @@ if (opponentNotesSection) {
 		totalBlock.dataset.severity = "none";
 		const totalLabel = document.createElement("span");
 		totalLabel.className = "damage-row-total-label";
-		totalLabel.textContent = "加算後(打点の合計)";
+		totalLabel.textContent = "累計結果";
 		const totalResult = document.createElement("p");
 		totalResult.className = "damage-row-total-result tnum";
 		totalResult.textContent = "(計算前)";
