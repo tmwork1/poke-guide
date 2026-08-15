@@ -8,7 +8,7 @@
 /* ===========================================================================
    チューニング変数
    =========================================================================== */
-:root {
+body.home-page {
   /* ── 1. 文字サイズ ────────────────────────────────────── */
   --home-page-brand-title-font-size: var(--font-size-lg2); /* ロゴ横のページ名。大きくするとブランド名が目立つ */
   --home-page-account-font-size: var(--font-size-sm2); /* アカウント情報の文字。大きくするとユーザー情報が読みやすくなる */
@@ -52,8 +52,11 @@
    ここから下は構造(レイアウトの組み立て)。通常は触らない。
    =========================================================================== */
 
-/* ホーム画面の外枠 */
-.home-page {
+/* ホーム画面の外枠。
+   チューニング変数を載せる<body>にも home-page クラスが付くため、.home-page だけだと
+   body にもこの外枠指定が当たってしまう。外枠の実体は<div class="page home-page">の
+   方なので、.page との複合セレクタで body を除外する。 */
+.page.home-page {
   max-width: var(--home-page-max-width);
   margin: 0 auto;
   padding: var(--home-page-padding);
@@ -63,7 +66,7 @@
    共通定義をそのまま使う。ここでは .home-page の左右パディング(--space-4)を打ち消して
    フルブリードにする、ページ固有のレイアウト調整のみ行う。 */
 /* ページ端まで広げる上部の戻る・切替バー */
-.home-page .second-bar { margin: var(--home-page-second-bar-margin); }
+.page.home-page .second-bar { margin: var(--home-page-second-bar-margin); }
 
 /* ロゴとブランド名の行 */
 .home-brand {

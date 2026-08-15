@@ -126,7 +126,7 @@ const description = pokemon
 	? `${displayName}(${pokemon.species_name})の育成データを公開しています。性格・特性・持ち物・技構成・努力値・実数値を確認できます。`
 	: '指定された個体は存在しないか、非公開に設定されています。';
 ---
-<AppLayout title={pokemon ? `${displayName}の個体` : '見つかりません'} description={description} chrome="public">
+<AppLayout title={pokemon ? `${displayName}の個体` : '見つかりません'} description={description} chrome="public" bodyClass="share-page">
 	<div class="page">
 
 		{!pokemon ? (

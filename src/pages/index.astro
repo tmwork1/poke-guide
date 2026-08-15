@@ -8,7 +8,7 @@ const user = Astro.locals.user;
 const userName = user?.displayName ?? user?.email;
 ---
 
-<AppLayout title="ポケガイド" description="ポケモン育成を管理するためのホーム画面" current="home" hideTopbar={true}>
+<AppLayout title="ポケガイド" description="ポケモン育成を管理するためのホーム画面" current="home" hideTopbar={true} bodyClass="home-page">
 	<div class="page home-page">
 		<nav class="second-bar">
 			<button type="button" class="second-bar__back app-topbar-back" aria-label="戻る" onclick="history.back()">

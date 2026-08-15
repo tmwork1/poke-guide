@@ -23,7 +23,7 @@ import { REGULATIONS } from '../../lib/regulations';
 
 const user = Astro.locals.user;
 ---
-<AppLayout title="チーム" description="登録したチーム編成の一覧・検索・並べ替え" current="team" hideTopbar={true}>
+<AppLayout title="チーム" description="登録したチーム編成の一覧・検索・並べ替え" current="team" hideTopbar={true} bodyClass="team-page">
 	{/*
 	  hideTopbar={true}によりAppLayoutの<header class="app-topbar">を描画しないため、
 	  件数バッジはこのページ自身のツールバー(.second-bar--toolbar、
