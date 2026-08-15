@@ -358,8 +358,8 @@
   flex-shrink: 0;
   justify-content: center;
   align-items: center;
-  width: 80px;
-  height: 80px;
+  width: 40px;
+  height: 40px;
   display: flex;
   position: relative;
 }
@@ -375,11 +375,11 @@
 #opponent-notes-section .damage-sprite-box .sprite-fallback {
   background: none;
   border-radius: 0;
-  font-size: 2.1rem;
+  font-size: 1.1rem;
 }
 
 #opponent-notes-section .damage-sprite-box:has(.damage-item-badge:not([hidden])) img.sprite-icon {
-  transform: translateX(-4px);
+  transform: translateX(-2px);
 }
 
 #opponent-notes-section .damage-type-badge {
@@ -467,12 +467,12 @@
 #opponent-notes-section .damage-item-badge {
   justify-content: center;
   align-items: center;
-  width: 42px;
-  height: 42px;
+  width: 21px;
+  height: 21px;
   display: flex;
   position: absolute;
-  bottom: -4px;
-  right: -4px;
+  bottom: -2px;
+  right: -2px;
 }
 
 #opponent-notes-section .damage-item-badge[hidden] {
@@ -523,6 +523,7 @@
 #opponent-notes-section .damage-ev-readonly-stat > .damage-ev-value-readonly {
   color: inherit;
   font-size: inherit;
+  font-weight: 400;
   line-height: inherit;
   text-align: start;
   display: inline;
@@ -726,7 +727,7 @@
 #opponent-notes-section .damage-row-total-result .damage-result-detail {
   font-size: var(--font-size-sm2);
   opacity: .85;
-  text-align: right;
+  text-align: left;
   font-weight: 500;
 }
 
@@ -831,6 +832,9 @@
 #opponent-notes-section .damage-add-column-slot {
   flex: auto;
   align-items: center;
+  height: 72px;
+  min-height: 72px;
+  max-height: 72px;
   max-width: calc(100% - 40px);
   display: flex;
 }
@@ -843,6 +847,9 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-zero);
   width: 100%;
+  height: 72px;
+  min-height: 72px;
+  max-height: 72px;
   padding: .16rem var(--space-2);
   align-items: center;
   gap: var(--space-2);
@@ -917,9 +924,11 @@
 #opponent-notes-section .damage-column-conditions {
   flex: 1 0 auto;
   max-width: 100%;
+  max-height: 2.6em;
   min-width: 0;
   justify-content: flex-end;
   display: flex;
+  overflow-y: auto;
 }
 
 #opponent-notes-section .damage-column-move-row {
@@ -1081,6 +1090,7 @@
 
 #opponent-notes-section .damage-add-column-button {
   width: 100%;
+  height: 100%;
   padding: .16rem var(--space-2);
   line-height: var(--line-height-snug);
   min-height: 3.1rem;
@@ -1581,12 +1591,18 @@
 
   #opponent-notes-section .damage-column {
     width: auto;
+    height: 72px;
+    min-height: 72px;
+    max-height: 72px;
     min-width: 0;
     align-self: start;
   }
 
   #opponent-notes-section .damage-add-column-slot {
     align-self: stretch;
+    height: 72px;
+    min-height: 72px;
+    max-height: 72px;
     min-width: 0;
     max-width: none;
   }
