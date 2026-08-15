@@ -2639,7 +2639,7 @@ if (opponentNotesSection) {
 		refreshReadonlyEvs = () => {
 			readonlyEvValueEls.forEach((value, i) => {
 				const ev = row.evs[i] ?? 0;
-				value.textContent = ev > 0 ? `+${ev}` : "0";
+				value.textContent = ev > 0 ? `+${ev}` : "-";
 			});
 		};
 
