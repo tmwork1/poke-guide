@@ -25,7 +25,6 @@
 	--damage-detail-font-weight-regular: 400; /* 通常文字の太さ。大きくすると入力値などが太く見える */
 	--damage-detail-line-height-snug: var(--line-height-snug); /* サジェスト説明の行間。大きくすると複数行が読みやすくなる */
 	--damage-detail-line-height-tight: var(--line-height-tight); /* 数値やボタンの行間。大きくすると上下にゆとりが出る */
-	--damage-detail-ev-step-line-height: 1; /* 増減記号の行高。大きくすると上下余白が増える */
 
 	/* ── 3. 文字色 ─────────────────────── */
 	--damage-detail-text-color: var(--color-text); /* 本文と入力値の文字色。濃くすると主要情報が強く見える */
@@ -34,14 +33,11 @@
 	--damage-detail-danger-strong-color: var(--color-danger-strong); /* 危険判定と攻撃チップの文字色。濃くすると警告が強く見える */
 	--damage-detail-risky-strong-color: var(--color-risky-strong); /* 注意判定と警告文の文字色。濃くすると注意情報が強く見える */
 	--damage-detail-success-strong-color: var(--color-success-strong); /* 安全判定の文字色。濃くすると判定結果が強く見える */
-	--damage-detail-stat-up-color: var(--color-stat-up); /* 性格補正で上がる能力の色。変えると上昇能力の目印が変わる */
-	--damage-detail-stat-down-color: var(--color-stat-down); /* 性格補正で下がる能力の色。変えると下降能力の目印が変わる */
 
 	/* ── 4. 背景色 ─────────────────────── */
 	--damage-detail-backdrop-background: var(--color-overlay); /* パネル背後の暗幕。濃くすると背後の画面が見えにくくなる */
 	--damage-detail-surface-background: var(--color-surface); /* パネルや入力部品の背景色。変えると主要な面の色がまとめて変わる */
 	--damage-detail-page-background: var(--color-bg); /* 集計欄や候補カードの背景色。変えるとパネル本体との明暗差が変わる */
-	--damage-detail-raised-background: var(--color-surface-raised); /* 努力値の増減ボタンの背景色。変えるとボタンの浮き上がり方が変わる */
 	--damage-detail-primary-soft-color: var(--color-primary-soft); /* 選択中の薄い背景色。濃くすると選択面が目立つ */
 	--damage-detail-danger-soft-color: var(--color-danger-soft); /* 危険判定と攻撃チップの背景色。濃くすると危険側が目立つ */
 	--damage-detail-risky-soft-color: var(--color-risky-soft); /* 注意判定と省略通知の背景色。濃くすると注意領域が目立つ */
@@ -55,7 +51,6 @@
 	--damage-detail-risky-color: var(--color-risky); /* 注意付き候補の枠色。濃くすると注意候補が目立つ */
 	--damage-detail-radius-md: var(--radius-md); /* 候補カードと一覧の角丸。大きくすると丸みが増す */
 	--damage-detail-radius-sm: var(--radius-sm); /* 小ボタンや小カードの角丸。大きくすると丸みが増す */
-	--damage-detail-radius-zero: var(--radius-zero); /* 努力値増減ボタンの角丸。大きくすると角が丸くなる */
 	--damage-detail-header-border: 1px solid var(--color-border); /* ヘッダー下線。太くすると本文との境界が強くなる */
 	--damage-detail-footer-border: 1px solid var(--color-border); /* フッター上線。太くすると集計欄との境界が強くなる */
 	--damage-detail-inline-border: 1px solid var(--color-border); /* カード列内表示の外枠。太くすると一覧内で目立つ */
@@ -68,12 +63,10 @@
 	--damage-detail-suggest-action-border: 1px solid var(--color-border); /* 追加ラベルの枠。太くするとボタンらしさが強くなる */
 	--damage-detail-tera-list-border: 1px solid var(--color-border); /* 候補一覧の外枠。太くすると境界が強くなる */
 	--damage-detail-tera-button-border: 1px solid var(--color-border); /* テラ選択ボタンの枠。太くすると入力欄が目立つ */
-	--damage-detail-ev-step-border: 1px solid var(--color-border); /* 増減ボタンの枠。太くすると境界が強くなる */
 
 	/* ── 6. 影 ─────────────────────── */
 	--damage-detail-panel-shadow: var(--shadow-lg); /* 外側の影。強くすると背景から浮いて見える */
 	--damage-detail-shadow-md: var(--shadow-md); /* テラスタイプ候補一覧の影。強くすると手前に浮いて見える */
-	--damage-detail-shadow-sm: var(--shadow-sm); /* 努力値増減ボタンの影。強くすると浮いて見える */
 	--damage-detail-autofill-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 30%, transparent); /* 自動入力欄の強調輪。太くすると目立つ */
 
 	/* ── 7. 余白 ─────────────────────── */
@@ -101,12 +94,10 @@
 	--damage-detail-suggest-sprite-size: 48px; /* ポケモン画像枠。大きくすると画像列が広がる */
 	--damage-detail-suggest-fallback-size: 35px; /* 画像がない場合の丸印。大きくすると代替表示が目立つ */
 	--stat-ev-mobile-button-block-size: 30px; /* 努力値編集ボタンの寸法。大きくするとタップ領域が広がる */
-	--move-type-icon-size: calc(20px * 1.1); /* 技タイプアイコン。大きくすると見出しの丸いアイコンが大きくなる */
 	--damage-detail-tera-icon-size: 20px; /* テラタイプアイコン。大きくすると候補行が高くなる */
 	--damage-detail-suggest-item-icon-size: 14px; /* 持ち物アイコン。大きくすると持ち物が目立つ */
 	--damage-detail-direction-toggle-width: 4.4em; /* 攻守切り替えの横幅。大きくすると切り替え欄が広がる */
 	--damage-detail-suggest-action-width: 3.4em; /* 右端の追加ラベル幅。大きくするとラベル列が広がる */
-	--damage-detail-ev-input-width: 3.2rem; /* 努力値入力欄の横幅。大きくすると数値周辺に余裕が出る */
 
 	/* ── 9. その他 ─────────────────────── */
 	--damage-detail-panel-open-opacity: 1; /* 開いた状態の透明度。小さくすると背後が透ける */
@@ -303,11 +294,6 @@
 		min-width: 0;
 		overflow-wrap: anywhere;
 	}
-	/* .damage-detail-panel-emptyはis:global側(#damage-detail-panel-body
-		.damage-detail-panel-empty)で定義する。理由: このpは静的マークアップ
-		(JS初期化前のフォールバック)とJS生成(renderDetailPanelEmpty)の両方から使われるが、
-		後者はscoped<style>が効かない(pitfalls.md)。同じ1つの定義で両方に効かせるため、
-		静的/動的どちらの経路でも確実に効くis:global側に統一する。 */
 	/* 未選択時のサジェスト一覧だけは、従来どおりカード一覧内へインライン配置する。 */
 	@media (min-width: 0) {
 		.damage-detail-panel.is-mobile-inline {
@@ -340,14 +326,6 @@
 	.damage-detail-panel .damage-detail-selection-heading {
 		gap: var(--damage-detail-space-md);
 	}
-	.damage-detail-panel .damage-detail-selection-move-type-icon {
-		width: var(--move-type-icon-size);
-		height: var(--move-type-icon-size);
-		border-radius: 50%;
-		object-fit: contain;
-		flex-shrink: 0;
-	}
-	.damage-detail-panel .damage-detail-selection-move-type-icon[hidden] { display: none; }
 	/* var(--damage-detail-font-size-xs)は両側の見出しと同じ値。行クラスも含めて詳細度を上げ、読み込み順に依存せず適用する。 */
 	#damage-detail-panel-body .damage-detail-field-row .damage-detail-field-row-label {
 		font-size: var(--damage-detail-font-size-xs);
@@ -446,11 +424,6 @@
 	#damage-detail-panel-body .candidate-list-item-flag.is-warn {
 		color: var(--damage-detail-risky-strong-color);
 	}
-	#damage-detail-panel-body .candidate-list-item-flag.is-info {
-		color: var(--damage-detail-muted-color);
-		font-weight: var(--damage-detail-font-weight-regular);
-	}
-
 	/* 両モードとも「<ラベル>実数値(努力値)」形式(例: H180(27) B131(0) D105(0))をH/B/Dで
 		1行に収めた統一カードにする。外枠は既存の.candidate-list-item(ボーダー・背景・
 		is-applied等)をそのまま流用し(新色は作らない)、中身だけをこのカード専用の構造
@@ -857,117 +830,4 @@
 	}
 	#damage-detail-panel-body .damage-build-detail-stats-heading {
 		margin: 0 0 var(--damage-detail-space-sm);
-	}
-	#damage-detail-panel-body .damage-build-detail-ev-grid {
-		grid-template-columns: repeat(6, minmax(0, 1fr));
-		display: grid;
-		align-items: center;
-		gap: var(--damage-detail-space-xs);
-		margin: 0;
-		position: relative;
-	}
-	#damage-detail-panel-body .damage-build-detail-ev-grid .damage-ev-corner,
-	#damage-detail-panel-body .damage-build-detail-ev-grid .damage-ev-row-label {
-		display: none;
-	}
-	#damage-detail-panel-body .damage-build-detail-ev-grid .damage-ev-col-label,
-	#damage-detail-panel-body .damage-build-detail-ev-grid .damage-stat-value {
-		display: block;
-		min-width: 0;
-		text-align: center;
-		font-size: var(--damage-detail-font-size-sm);
-		line-height: var(--damage-detail-line-height-tight);
-	}
-	#damage-detail-panel-body .damage-build-detail-ev-grid .damage-ev-col-label {
-		color: var(--damage-detail-muted-color);
-		font-weight: var(--damage-detail-font-weight-semibold);
-	}
-	#damage-detail-panel-body .damage-build-detail-ev-grid .damage-ev-nature-cycle {
-		width: 100%;
-		padding: var(--damage-detail-space-xs) 0;
-		border: 0;
-		background: none;
-		cursor: pointer;
-		display: inline-flex;
-		align-items: baseline;
-		justify-content: center;
-		gap: var(--damage-detail-space-xs);
-		font-family: inherit;
-	}
-	#damage-detail-panel-body .damage-build-detail-ev-grid .damage-ev-col-label[data-mod="up"],
-	#damage-detail-panel-body .damage-build-detail-ev-grid .damage-stat-value[data-mod="up"] {
-		color: var(--damage-detail-stat-up-color);
-	}
-	#damage-detail-panel-body .damage-build-detail-ev-grid .damage-ev-col-label[data-mod="down"],
-	#damage-detail-panel-body .damage-build-detail-ev-grid .damage-stat-value[data-mod="down"] {
-		color: var(--damage-detail-stat-down-color);
-	}
-	#damage-detail-panel-body .damage-build-detail-ev-grid .damage-stat-value {
-		color: var(--damage-detail-text-color);
-		font-weight: var(--damage-detail-font-weight-bold);
-	}
-	#damage-detail-panel-body .damage-build-detail-ev-grid .damage-ev-cell {
-		min-width: 0;
-		min-height: var(--stat-ev-mobile-button-block-size);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-	}
-	#damage-detail-panel-body .damage-build-detail-ev-grid .damage-ev-value-text {
-		width: 100%;
-		display: block;
-		border: 0;
-		background: none;
-		color: var(--damage-detail-muted-color);
-		font: inherit;
-		font-size: var(--damage-detail-font-size-sm);
-		padding: 0;
-		text-align: center;
-		cursor: pointer;
-	}
-	#damage-detail-panel-body .damage-build-detail-ev-grid .damage-ev-editor {
-		display: none;
-	}
-	#damage-detail-panel-body .damage-build-detail-ev-grid .damage-ev-cell[data-editing="true"] .damage-ev-editor {
-		z-index: 1;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		gap: var(--damage-detail-space-xs);
-		position: absolute;
-		left: 0;
-		right: 0;
-		bottom: 0;
-		background: var(--damage-detail-surface-background);
-	}
-	#damage-detail-panel-body .damage-build-detail-ev-grid .damage-ev-cell[data-editing="true"] .damage-ev-value-text {
-		display: none;
-	}
-	#damage-detail-panel-body .damage-build-detail-ev-grid .damage-ev-editor input[type="number"] {
-		flex: 0 0 var(--damage-detail-ev-input-width);
-		width: var(--damage-detail-ev-input-width);
-		height: var(--stat-ev-mobile-button-block-size);
-		min-height: var(--stat-ev-mobile-button-block-size);
-		padding: 0 var(--damage-detail-space-xs);
-		text-align: center;
-	}
-	#damage-detail-panel-body .damage-build-detail-ev-grid .damage-ev-step-button {
-		box-sizing: border-box;
-		flex: 0 0 var(--stat-ev-mobile-button-block-size);
-		width: var(--stat-ev-mobile-button-block-size);
-		min-width: var(--stat-ev-mobile-button-block-size);
-		height: var(--stat-ev-mobile-button-block-size);
-		min-height: var(--stat-ev-mobile-button-block-size);
-		padding: 0;
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		color: var(--damage-detail-muted-color);
-		background: var(--damage-detail-raised-background);
-		border: var(--damage-detail-ev-step-border);
-		border-radius: var(--damage-detail-radius-zero);
-		box-shadow: var(--damage-detail-shadow-sm);
-		font-size: var(--damage-detail-font-size-xs);
-		font-weight: var(--damage-detail-font-weight-regular);
-		line-height: var(--damage-detail-ev-step-line-height);
 	}

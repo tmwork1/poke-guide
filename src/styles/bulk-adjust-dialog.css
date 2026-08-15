@@ -175,10 +175,6 @@
 		font-size: var(--bulk-adjust-status-font-size);
 	}
 
-	.bulk-adjust-empty-message {
-		margin: 0;
-		color: var(--bulk-adjust-muted-color);
-	}
 
 	/* カード1枚(圧縮表示の複製)+N/M入力欄の組。カード右上の削除ボタン(×)の
 		絶対配置の基準としてposition:relativeを持たせる。 */

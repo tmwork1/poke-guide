@@ -42,7 +42,6 @@
   --color-primary-soft: #e6f6fb; /* 選択タブや補助強調の薄い背景色。濃くすると選択範囲が目立つ。 */
   --color-success-soft: #e6f4f1; /* 成功・安全状態の薄い背景色。濃くすると成功領域が目立つ。 */
   --color-danger-soft: #fdece8; /* エラー・危険状態の薄い背景色。濃くすると危険領域が目立つ。 */
-  --color-warning-soft: #eeeeee; /* 注意・待機状態に使う薄い背景色。濃くすると注意領域が目立つ。 */
   --color-risky-soft: #fbeed4; /* 要注意状態の薄い背景色。濃くすると注意領域が目立つ。 */
   --color-overlay: rgba(0, 0, 0, 0.45); /* ダイアログ背後を覆う色。濃くすると背後の画面が見えにくくなる。 */
 
@@ -102,7 +101,6 @@
     --color-primary-soft: rgba(77, 195, 234, 0.16); /* ダーク画面の選択タブ背景色。濃くすると選択範囲が目立つ。 */
     --color-success-soft: rgba(85, 182, 160, 0.16); /* ダーク画面の成功状態背景色。濃くすると成功領域が目立つ。 */
     --color-danger-soft: rgba(255, 139, 120, 0.16); /* ダーク画面の危険状態背景色。濃くすると危険領域が目立つ。 */
-    --color-warning-soft: rgba(154, 161, 176, 0.16); /* ダーク画面の待機状態背景色。濃くすると待機領域が目立つ。 */
     --color-risky-soft: rgba(224, 169, 64, 0.16); /* ダーク画面の要注意状態背景色。濃くすると注意領域が目立つ。 */
 
     /* ── 5. 枠線・角丸(ダークテーマで上書き) ─────────────── */
@@ -154,12 +152,6 @@ a {
   letter-spacing: -0.01em;
 }
 
-.page-subtitle {
-  color: var(--color-text-muted);
-  margin: 0 0 var(--space-6);
-  font-size: var(--font-size-sm1);
-}
-
 .page-header {
   display: flex;
   flex-wrap: wrap;
@@ -178,21 +170,6 @@ a {
     flex-direction: column;
     align-items: flex-start;
   }
-}
-
-.back-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3em;
-  font-size: var(--font-size-sm1);
-  font-weight: 500;
-  text-decoration: none;
-  color: var(--color-text-muted);
-  margin-bottom: var(--space-4);
-}
-
-.back-link:hover {
-  color: var(--color-primary);
 }
 
 .panel {
@@ -297,12 +274,6 @@ a {
   font-size: var(--font-size-sm2);
   margin-top: calc(var(--space-2) * -1);
   margin-bottom: var(--space-4);
-}
-
-.card-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: var(--space-4);
 }
 
 .card {
@@ -414,12 +385,6 @@ label {
 .field-control {
   flex: 1 1 auto;
   min-width: 0;
-}
-
-.field-hint {
-  margin: calc(var(--space-1) * -1) 0 0;
-  font-size: var(--font-size-sm3);
-  color: var(--color-text-muted);
 }
 
 /* --- 入力欄 --- */
@@ -640,35 +605,6 @@ input[type="range"]:focus-visible::-moz-range-thumb {
   outline-offset: 2px;
 }
 
-.stat-grid-label {
-  display: block;
-  font-size: var(--font-size-sm2);
-  font-weight: 600;
-  color: var(--color-text-muted);
-  margin-bottom: var(--space-2);
-}
-
-.stat-inputs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-3);
-}
-
-.stat-input {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--space-1);
-  font-size: var(--font-size-sm3);
-  font-weight: 600;
-  color: var(--color-text-muted);
-  min-width: 0;
-}
-
-.stat-input input {
-  width: 4.4em;
-}
-
 .stat-input-controls {
   display: flex;
   align-items: center;
@@ -761,12 +697,6 @@ input[type="range"]:focus-visible::-moz-range-thumb {
   margin-bottom: var(--space-3);
 }
 
-.move-inputs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.7rem;
-}
-
 /* --- ボタン --- */
 button,
 a.btn-primary,
@@ -828,19 +758,6 @@ button.btn-primary:hover:not(:disabled),
 a.btn-primary:hover {
   background: var(--color-surface);
   color: var(--color-primary);
-}
-
-button.btn-success {
-  background: var(--color-success);
-  border: 2px solid var(--color-success);
-  color: var(--color-primary-contrast);
-  padding: calc(var(--space-2) - 1px) calc(1.1em - 1px);
-  font-weight: 700;
-}
-
-button.btn-success:hover:not(:disabled) {
-  background: var(--color-surface);
-  color: var(--color-success);
 }
 
 button.btn-danger,
@@ -1183,21 +1100,6 @@ dt {
 
 dd {
   margin: 0;
-}
-
-/* --- ダイアログ(対戦相手メモの追加/編集フォーム) --- */
-dialog#opponent-note-form-container {
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: var(--space-6);
-  max-width: min(560px, 92vw);
-  max-height: 88vh;
-  overflow-y: auto;
-  background: var(--color-surface);
-  color: var(--color-text);
-}
-dialog#opponent-note-form-container::backdrop {
-  background: var(--color-overlay);
 }
 
 /* --- 共通レイアウト --- */

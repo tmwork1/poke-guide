@@ -14,11 +14,9 @@
   --data-page-panel-title-font-size: var(--font-size-lg1); /* データ区画の見出し。大きくすると区画の区別が強まる */
   --data-page-kicker-font-size: var(--font-size-sm2); /* ポケモン名の前の補足文字。大きくすると補足が目立つ */
   --data-page-controls-font-size: var(--font-size-sm2); /* 画面下の操作バー文字。大きくすると操作が読みやすくなる */
-  --data-page-source-font-size: var(--font-size-sm3); /* データ出典の文字。大きくすると注記が読みやすくなる */
 
   /* ── 2. 文字の太さ・行間 ──────────────────────────────── */
   --data-page-kicker-font-weight: 700; /* ポケモン名の前の補足文字。太くすると見出しらしくなる */
-  --data-page-controls-font-weight: 700; /* 操作バーの文字。太くするとボタン群が目立つ */
 
   /* ── 3. 文字色 ────────────────────────────────────────── */
   --data-page-muted-color: var(--color-text-muted); /* 説明・出典・未利用表示の色。薄くすると主情報が際立つ */
@@ -36,7 +34,6 @@
   /* ── 7. 余白 ──────────────────────────────────────────── */
   --data-page-preview-padding: var(--space-5); /* ポケモン概要の内側余白。大きくすると内容が内側に寄る */
   --data-page-main-padding: var(--space-4); /* ページ本文の内側余白。大きくすると各区画が内側に寄る */
-  --data-page-controls-padding: var(--space-3); /* 画面下の操作バー内側余白。大きくすると操作部が厚くなる */
   --data-page-view-controls-gap: var(--space-1); /* 表示切替ボタンどうしの間隔。大きくするとボタンが離れる */
   --data-page-view-controls-margin-bottom: var(--space-3); /* 表示切替と本文の間隔。大きくすると上下に余裕が出る */
   --data-page-view-button-padding: var(--space-2); /* 表示切替ボタンの内側余白。大きくすると押せる面積が広がる */
@@ -44,7 +41,6 @@
   --data-page-ranked-status-padding: var(--space-4); /* 上位チーム状態枠の内側余白。大きくすると案内がゆったりする */
   --data-page-preview-description-margin: var(--space-2) 0; /* ポケモン説明の上下余白。大きくするとタイトルから離れる */
   --data-page-panel-title-margin: 0 0 var(--space-3); /* 区画見出しの下余白。大きくすると内容との間が開く */
-  --data-page-source-margin: 0 0 var(--space-2); /* 出典表示の下余白。大きくすると次の内容から離れる */
   --data-page-empty-title-margin-bottom: var(--space-2); /* 空状態見出しの下余白。大きくすると説明から離れる */
   --data-page-ranked-status-margin: 0 auto; /* 上位チーム状態枠の外側余白。変えると横位置が変わる */
   --data-page-preview-padding-mobile: var(--space-4); /* 狭い画面の概要内側余白。大きくすると概要が厚くなる */
@@ -68,8 +64,6 @@
   max-width: var(--data-page-max-width);
   padding-bottom: calc(64px + env(safe-area-inset-bottom));
 }
-.box-data-secondbar { padding: 0; }
-
 /* ポケモン名と説明を表示する上部概要 */
 .pokemon-data-preview {
   min-height: var(--data-page-preview-min-height);
@@ -98,26 +92,6 @@
   margin: var(--data-page-panel-title-margin);
   font-size: var(--data-page-panel-title-font-size);
 }
-.opgg-source {
-  margin: var(--data-page-source-margin);
-  color: var(--data-page-muted-color);
-  font-size: var(--data-page-source-font-size);
-}
-
-/* 画面下に固定するデータ操作バー */
-.box-data-controls {
-  position: fixed;
-  right: 0;
-  bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom));
-  left: 0;
-  z-index: 16;
-  padding: var(--data-page-controls-padding);
-  background: var(--data-page-controls-background);
-  border-top: var(--data-page-border);
-  font-size: var(--data-page-controls-font-size);
-  font-weight: var(--data-page-controls-font-weight);
-}
-
 @media (max-width: 420px) {
   /* 狭い画面の概要と本文 */
   .pokemon-data-preview { padding: var(--data-page-preview-padding-mobile); }
@@ -144,11 +118,6 @@
   color: var(--data-page-muted-color);
   opacity: var(--data-page-unavailable-opacity);
 }
-.data-pending {
-  padding: var(--data-page-empty-padding);
-  color: var(--data-page-muted-color);
-}
-
 /* データが無いときの案内枠 */
 .data-empty {
   padding: var(--data-page-empty-padding);

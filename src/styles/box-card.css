@@ -21,11 +21,6 @@
 }
 
 .box-grid {
-  /* ── 8. 寸法 ──────────────────────────────────────────── */
-  --box-card-grid-column-size: min(
-    250px,
-    calc((100% - 2 * var(--box-card-grid-gap)) / 3)
-  ); /* 3列表示を判定するときのカード1列分の基準幅。大きくすると広い画面で列を保ちやすい */
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--box-card-grid-gap);
