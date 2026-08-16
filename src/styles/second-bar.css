@@ -10,6 +10,10 @@
 /* ===========================================================================
    チューニング変数
    =========================================================================== */
+:root {
+  --second-bar-height: 36px; /* セカンドバーの基準高さ。大きくするとバーと後続コンテンツの開始位置が下がる。 */
+}
+
 .second-bar {
   /* ── 1. 文字サイズ ────────────────────────────────────── */
   --second-bar-item-font-size: var(--font-size-sm2); /* 横タブの項目名。大きくすると各タブの文字が目立つ。 */
@@ -33,6 +37,7 @@
 
   /* ── 7. 余白 ──────────────────────────────────────────── */
   --second-bar-padding-left: var(--space-3); /* バー左端の内側余白。大きくすると戻るボタンやタブが右へ寄る。 */
+  --second-bar-margin: 0; /* バー外側の余白。ページ端まで広げる場合はページ側で上書きする。 */
   --second-bar-gap: var(--space-5); /* 戻るボタンと横タブ一覧の間隔。大きくすると両者が離れる。 */
   --second-bar-item-padding: 0 var(--space-3); /* 各横タブの左右余白。大きくするとタブの横幅が広がる。 */
   --second-bar-toolbar-padding: var(--space-3) var(--space-5); /* 検索ツールバーの内側余白。大きくすると操作列が帯の端から離れる。 */
@@ -61,6 +66,7 @@
   min-height: var(--second-bar-height);
   align-items: stretch;
   gap: var(--second-bar-gap);
+  margin: var(--second-bar-margin);
   padding-left: var(--second-bar-padding-left);
   background: var(--second-bar-background);
 }

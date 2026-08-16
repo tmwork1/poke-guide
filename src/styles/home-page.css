@@ -61,13 +61,11 @@ body.home-page {
   max-width: var(--home-page-max-width);
   margin: 0 auto;
   padding: var(--home-page-padding);
+  --second-bar-margin: var(--home-page-second-bar-margin);
 }
 
-/* .second-bar 自体(sticky/border/背景/戻るボタン)は second-bar.css・app-topbar.css の
-   共通定義をそのまま使う。ここでは .home-page の左右パディング(--space-4)を打ち消して
-   フルブリードにする、ページ固有のレイアウト調整のみ行う。 */
-/* ページ端まで広げる上部の戻る・切替バー */
-.page.home-page .second-bar { margin: var(--home-page-second-bar-margin); }
+/* セカンドバー自体のスタイルは second-bar.css に集約し、ここではページ端まで
+   広げるためのカスタムプロパティだけを指定する。 */
 
 /* ロゴとブランド名の行 */
 .home-brand {

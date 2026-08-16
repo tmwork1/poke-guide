@@ -42,7 +42,6 @@ body.box-edit-page {
 	--box-edit-autosave-status-margin: 0; /* 保存状態文の外側余白。0にすると上部バーの高さが増えない */
 
 	/* ── 8. 寸法 ────────────────────────── */
-	--second-bar-height: 37px; /* セカンドバーの高さ。大きくすると下のプレビュー開始位置が下がる */
 	--topbar-height: 0px; /* 非表示のトップバーの高さ。0にすると本文が画面上端から始まる */
 }
 
@@ -75,15 +74,8 @@ body.box-edit-page .app-topbar {
 	/* --topbar-height はトップバーの実測高さ(global.cssの:root)で、ポケモンプレビュー
 		(.pokemon-preview の position:sticky; top)や .edit-shell の高さ計算が
 		これを見る。トップバーを消した以上0にしないと、本文が画面上端から一段浮いてしまう。
-		--second-bar-height は画面上端にstickyで貼り付くセカンドバー
-		(.second-bar、MobileTrainingBar.astro参照)の実測高さ。
-		ポケモンプレビューをその直下にstickyで貼り付けるためのtopオフセットに使う。
-		値はdevサーバー+Playwrightの
-		getBoundingClientRectで実測した37px(global.cssの--second-bar-height基準値
-		36px+下端border 1px。戻るボタンを.second-bar__listの外に出したことで、
-		global.css既定の36pxに一致するようになった)。バーの構成を変えたら実測し直す。
-		コンポーネントのscoped styleではなくここ(body)に置くことで、MobileTrainingBar.astro
-		内の要素へカスタムプロパティのDOM継承で届く。 */
+		セカンドバーの高さは second-bar.css の共通設定を使い、ポケモンプレビューは
+		その値を直下へのsticky配置に使う。 */
 .edit-layout-left,
 .edit-layout-right {
 	min-width: 0;
