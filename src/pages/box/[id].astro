@@ -169,16 +169,6 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 // 算出する。過去日時(期限切れ)はnullと同じ扱い(=収集対象。拒否中の表示は出さない)にする。
 // このロジックは<script>側(src/lib/box-id/left-panel.ts)のPATCH成功時レスポンス反映でも
 // 同じ計算式(ミリ秒差をceilして日数化)を使うので、変更する場合は両方揃えること。
-function formatOptOutRemaining(until: string | null | undefined): string {
-	if (!until) return "";
-	const untilMs = new Date(until).getTime();
-	const diffMs = untilMs - Date.now();
-	if (diffMs <= 0) return "";
-	const days = Math.ceil(diffMs / (24 * 60 * 60 * 1000));
-	return `あと${days}日`;
-}
-const optOutRemainingText = pokemon ? formatOptOutRemaining(pokemon.collection_opt_out_until) : "";
-const isOptedOut = optOutRemainingText !== "";
 ---
 <AppLayout title={pageTitle} current="box" bodyClass={bodyClass}>
 	{/* .page-header(戻る/保存状態/ポケモン名/削除ボタン)相当のUIは、戻るボタンをAppLayoutが常時表示する
@@ -225,21 +215,6 @@ const isOptedOut = optOutRemainingText !== "";
 			    ホバーテキストはOFF/ONで変える(下の<script>参照、初期値はSSRで出し分け済み)。
 			    状態テキスト(#collection-opt-out-status)は「残り日数」表示ではなくPATCH失敗時の
 			    エラーメッセージ専用(left-panel.ts側で実装済み)。 */}
-			<label
-				id="collection-opt-out-label"
-				class="collection-opt-out-toggle"
-				for="collection-opt-out-toggle"
-				title="30日間有効"
-			>
-				<span class="toggle-switch">
-					<input id="collection-opt-out-toggle" type="checkbox" class="toggle-switch-input" checked={isOptedOut} aria-label="非公開" />
-					<span class="toggle-switch-track" aria-hidden="true">
-						<span class="toggle-switch-thumb"></span>
-					</span>
-				</span>
-				<span class="collection-opt-out-toggle-label">非公開</span>
-				<span id="collection-opt-out-status" class="collection-opt-out-status" hidden></span>
-			</label>
 			<button id="delete-button" class="btn-danger" type="button">
 				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
 				削除

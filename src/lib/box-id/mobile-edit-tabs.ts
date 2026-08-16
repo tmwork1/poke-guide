@@ -13,7 +13,6 @@ if (mobileTrainingUi && mobileTrainingBar && editShell) {
 		["bulk-adjust-button", "damage-rows-toolbar", true],
 		["autosave-status", "mobile-edit-actions", false],
 		["opponent-notes-save-alert", "mobile-edit-actions", false],
-		["collection-opt-out-label", "mobile-edit-actions", false],
 		["delete-button", "mobile-edit-actions", false],
 	];
 

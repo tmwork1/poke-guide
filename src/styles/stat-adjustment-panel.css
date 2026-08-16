@@ -48,11 +48,18 @@
 
 	/* ── 7. 余白 ──────────────────────────────────────────── */
 	--stat-table-gap: var(--space-1); /* 表の行間。大きくすると各能力値行が離れる */
+	--stat-row-label-gap: 0.1em; /* 性格補正ボタン同士の間隔。大きくするとボタンが離れる */
+	--stat-row-label-button-gap: 0.2em; /* ステータス名と性格補正ボタンの間隔。大きくするとラベルがボタンから離れる */
+	--stat-row-label-line-height: 1; /* ステータス名列の行高 */
 	--stat-header-padding: 0 0 0.35rem; /* 見出し下側の余白。大きくすると見出し行が高くなる */
 	--stat-header-margin-bottom: 0.15rem; /* 見出しと最初の行の間隔。大きくすると表に余裕が出る */
+	--stat-value-margin-top: 0.15em; /* 実数値の上側余白 */
 	--stat-control-gap: var(--space-1); /* 努力値操作部の間隔。大きくするとボタンと入力欄が離れる */
 	--stat-number-input-padding: 0.3em 0.5em; /* 数値入力の内側余白。大きくすると入力欄が厚くなる */
+	--stat-number-input-mobile-padding: 0 var(--space-1); /* モバイル数値入力の内側余白 */
 	--stat-real-padding-inline-end: var(--space-1); /* 実数値の右側余白。大きくすると列の右端から離れる */
+	--stat-icon-size: 1.25em; /* 端点ボタン内の矢印サイズ */
+	--stat-focus-outline-offset: 1px; /* キーボードフォーカス枠とボタンの間隔 */
 
 	/* ── 8. 寸法 ──────────────────────────────────────────── */
 	--stat-range-min-width: 3.5rem; /* 横長スライダーの最小幅。大きくすると狭い場所で縮みにくい */
@@ -61,6 +68,8 @@
 	--stat-number-input-width: 3.4rem; /* モバイル操作列の入力欄幅。大きくすると桁に余裕が出る */
 	--stat-number-input-height: 30px; /* モバイル操作列の入力欄高さ。大きくすると行が高くなる */
 	--stat-nature-button-size: 24px; /* 性格補正の三角ボタン。大きくすると記号が押しやすくなる */
+	--stat-nature-arrow-border-inline: 6px; /* 性格補正三角形の左右幅 */
+	--stat-nature-arrow-border-block: 10px; /* 性格補正三角形の上下幅 */
 
 	/* ── 9. その他 ────────────────────────────────────────── */
 	--stat-arrow-transition-duration: 0.2s; /* 端点ボタン矢印の回転時間。長くすると動きがゆっくりになる */
@@ -73,7 +82,7 @@
 /* 実数値 */
 .stat-value {
 	display: inline-block;
-	margin-top: 0.15em;
+	margin-top: var(--stat-value-margin-top);
 	font-size: var(--stat-value-font-size);
 	font-weight: var(--stat-value-font-weight);
 	color: var(--stat-value-color);
@@ -163,8 +172,8 @@
 }
 /* 努力値を最小・最大へ移す端点ボタンの二重山形アイコン */
 .stat-ev-endpoint-button svg {
-	width: 1.25em;
-	height: 1.25em;
+	width: var(--stat-icon-size);
+	height: var(--stat-icon-size);
 	transition: transform var(--stat-arrow-transition-duration);
 }
 .stat-ev-endpoint-button[data-ev-endpoint="min"] svg { transform: rotate(180deg); }
@@ -199,7 +208,7 @@
 		width: var(--stat-number-input-width);
 		height: var(--stat-number-input-height);
 		min-height: var(--stat-number-input-height);
-		padding: 0 var(--space-1);
+		padding: var(--stat-number-input-mobile-padding);
 		line-height: 1;
 	}
 	.stat-row .stat-ev-step-button[data-ev-step="1"] { order: 4; }
@@ -240,8 +249,11 @@
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	gap: 0.1em;
-	line-height: 1;
+	gap: var(--stat-row-label-gap);
+	line-height: var(--stat-row-label-line-height);
+}
+.stat-row-label-short {
+	margin-inline-end: var(--stat-row-label-button-gap);
 }
 .stat-row-label-short[data-mod="up"] { color: var(--stat-up-color); }
 .stat-row-label-short[data-mod="down"] { color: var(--stat-down-color); }
@@ -272,14 +284,14 @@
 	height: 0;
 }
 .stat-nature-up::after {
-	border-left: 6px solid transparent;
-	border-right: 6px solid transparent;
-	border-bottom: 10px solid var(--color-text-muted);
+	border-left: var(--stat-nature-arrow-border-inline) solid transparent;
+	border-right: var(--stat-nature-arrow-border-inline) solid transparent;
+	border-bottom: var(--stat-nature-arrow-border-block) solid var(--color-text-muted);
 }
 .stat-nature-down::after {
-	border-left: 6px solid transparent;
-	border-right: 6px solid transparent;
-	border-top: 10px solid var(--color-text-muted);
+	border-left: var(--stat-nature-arrow-border-inline) solid transparent;
+	border-right: var(--stat-nature-arrow-border-inline) solid transparent;
+	border-top: var(--stat-nature-arrow-border-block) solid var(--color-text-muted);
 }
 .stat-nature-btn:not([aria-pressed="true"]):hover::after {
 	border-bottom-color: var(--color-primary);
@@ -288,7 +300,7 @@
 /* キーボード操作で性格補正の上下ボタンにフォーカスしたときの輪郭 */
 .stat-nature-btn:focus-visible {
 	outline: var(--stat-focus-outline);
-	outline-offset: 1px;
+	outline-offset: var(--stat-focus-outline-offset);
 }
 .stat-nature-up[aria-pressed="true"] {
 	background: var(--stat-nature-up-background);
@@ -338,22 +350,29 @@
 	--stat-table-inline-start-padding: var(--space-1);
 	--stat-table-inline-end-padding: var(--space-2);
 	--stat-ev-mobile-button-block-size: 30px;
+	--stat-mobile-row-grid-template-columns: 3.8rem 2.6rem minmax(0, 1fr) 3rem;
+	--stat-mobile-row-gap: var(--space-1);
+	--stat-mobile-input-grid-column: 3;
+	--stat-mobile-real-grid-column: 4;
+	--stat-mobile-real-padding-inline-end: 0;
+	--stat-mobile-label-gap: 0;
+	--stat-mobile-label-button-gap: 0;
 }
 
 @media (max-width: 460px) {
 	/* 狭い画面では見出しを隠し、4列の操作しやすい並びに切り替える */
 	.stat-table-header { display: none; }
 	.stat-row {
-		grid-template-columns: 3.8rem 2.6rem minmax(0, 1fr) 3rem;
-		row-gap: var(--space-1);
+		grid-template-columns: var(--stat-mobile-row-grid-template-columns);
+		row-gap: var(--stat-mobile-row-gap);
 	}
 	.stat-row .stat-input-controls {
 		display: flex;
 		align-items: center;
 		justify-content: flex-end;
-		gap: var(--space-1);
+		gap: var(--stat-control-gap);
 		min-width: 0;
-		grid-column: 3;
+		grid-column: var(--stat-mobile-input-grid-column);
 	}
 	.stat-row .stat-ev-endpoint-button,
 	.stat-row .stat-ev-step-button { min-width: var(--stat-ev-mobile-button-block-size); }
@@ -365,16 +384,17 @@
 	/* 狭い画面で実数値を4列目に置き、右端へ揃える枠 */
 	.stat-row-real-wrap {
 		display: flex;
-		grid-column: 4;
+		grid-column: var(--stat-mobile-real-grid-column);
 		justify-content: flex-end;
 		min-width: 0;
 	}
 	.stat-row-base,
 	/* 狭い画面では種族値と実数値の右余白・配置・太さを揃える */
 	.stat-row-real {
-		padding-inline-end: 0;
+		padding-inline-end: var(--stat-mobile-real-padding-inline-end);
 		text-align: center;
 		font-weight: 400;
 	}
-	.stat-row-label { gap: 0; }
+	.stat-row-label { gap: var(--stat-mobile-label-gap); }
+	.stat-row-label-short { margin-inline-end: var(--stat-mobile-label-button-gap); }
 }
