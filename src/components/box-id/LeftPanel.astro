@@ -189,9 +189,9 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 
 
 		<div class="mobile-move-actions">
-			<button type="button" class="mobile-move-toggle btn-control" aria-haspopup="dialog" aria-label="わざ編集を開く">
+			<button type="button" class="mobile-move-toggle btn-control" aria-haspopup="dialog" aria-label="わざ選択を開く">
 				<span class="mobile-edit-action-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></span>
-				<span class="mobile-edit-action-label">わざ編集</span>
+				<span class="mobile-edit-action-label">わざ選択</span>
 			</button>
 			<button
 				type="button"
@@ -1125,18 +1125,22 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		border-bottom: 1px solid var(--color-border);
 	}
 	.move-picker-slot-tab {
+		display: flex;
+		align-items: center;
+		justify-content: flex-start;
 		min-height: 2rem;
 		padding: 0 var(--space-2);
 		font-size: var(--font-size-sm2);
 		font-weight: 400;
 		overflow: hidden;
 		text-overflow: ellipsis;
+		text-align: left;
 		white-space: nowrap;
 	}
 	.move-picker-slot-tab.is-selected {
-		background: var(--color-primary);
 		border-color: var(--color-primary);
-		color: var(--color-on-primary, #fff);
+		background: transparent;
+		color: var(--color-primary);
 	}
 	.move-picker-title {
 		font-weight: 700;
@@ -1223,7 +1227,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	.move-picker-table-wrap {
 		margin: 0;
 		padding: 0;
-		overflow-y: auto;
+		overflow: auto;
 		flex: 1 1 auto;
 		min-height: 0;
 	}
@@ -1244,6 +1248,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		padding: 0 0.4rem 0.35rem;
 		text-align: left;
 		vertical-align: top;
+		white-space: nowrap;
 		z-index: 1;
 	}
 	.move-picker-th { display: flex; align-items: center; gap: var(--space-1); }
@@ -1295,10 +1300,11 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		padding: var(--space-1) 0.4rem;
 		border-bottom: 1px solid var(--color-border);
 		color: var(--color-text);
+		white-space: nowrap;
 	}
 	.move-picker-cell-num { text-align: right; font-variant-numeric: tabular-nums; }
-	.move-picker-cell-type { display: flex; align-items: center; gap: var(--space-1); white-space: nowrap; }
-	.move-picker-type-icon { flex-shrink: 0; border-radius: 50%; }
+	.move-picker-cell-type { white-space: nowrap; text-align: center; vertical-align: middle; }
+	.move-picker-type-icon { flex-shrink: 0; width: var(--move-picker-type-icon-size); height: var(--move-picker-type-icon-size); border-radius: 50%; vertical-align: middle; }
 	.move-picker-row { cursor: pointer; }
 	@media (hover: hover) and (pointer: fine) {
 		.move-picker-row:hover {

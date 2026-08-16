@@ -36,7 +36,7 @@
 	--speed-chart-row-padding: var(--space-2) 0; /* 各行の上下余白。大きくすると行の高さが増す */
 	--speed-chart-embedded-content-padding: var(--space-3) var(--space-4); /* 埋め込み時の表の余白。大きくすると表示領域が狭まる */
 	--speed-chart-embedded-side-padding: var(--space-2) var(--space-3); /* 埋め込み時の下部パネル余白。大きくすると内容が内側に寄る */
-	--speed-chart-embedded-apply-padding: var(--space-1) var(--space-2); /* 適用ボタンの内側余白。大きくするとボタンが大きくなる */
+	--speed-chart-embedded-apply-padding: var(--speed-adjust-apply-padding, var(--space-1) var(--space-2)); /* 適用ボタンの内側余白。大きくするとボタンが大きくなる */
 	--speed-chart-status-margin: var(--space-4) 0; /* 読み込み状態表示の上下余白。大きくすると表から離れる */
 	--speed-chart-value-padding-inline: var(--space-2); /* 実数値セルの左右余白。大きくすると数値の周囲が広がる */
 	--speed-chart-meta-gap: 0.35em; /* 種族値・配分・倍率の間隔。大きくすると横に離れる */
@@ -48,10 +48,10 @@
 
 	/* ── 8. 寸法 ─────────────────────── */
 	--speed-chart-embedded-side-max-height: 172px; /* 埋め込み時の下部パネル最大高。大きくするとパネルを多く表示する */
-	--speed-chart-embedded-apply-min-width: 64px; /* 適用ボタンの最小幅。大きくするとボタンが横に広がる */
-	--speed-chart-embedded-apply-min-height: 38px; /* 適用ボタンの最小高。大きくするとボタンが縦に大きくなる */
+	--speed-chart-embedded-apply-min-width: var(--speed-adjust-apply-min-width, 64px); /* 適用ボタンの最小幅。大きくするとボタンが横に広がる */
+	--speed-chart-embedded-apply-min-height: var(--speed-adjust-apply-min-height, 38px); /* 適用ボタンの最小高。大きくするとボタンが縦に大きくなる */
 	--speed-chart-embedded-owned-min-height: 30px; /* 埋め込み時の個体操作欄の最小高。大きくすると操作欄が高くなる */
-	--speed-chart-chip-icon-size: 22px; /* ポケモンチップのアイコン寸法。大きくするとアイコンが大きくなる */
+	--speed-chart-chip-icon-size: var(--speed-adjust-chip-icon-size, 22px); /* ポケモンチップのアイコン寸法。大きくするとアイコンが大きくなる */
 }
 
 /* --------------------------------------------------------------------------
@@ -217,8 +217,8 @@
 	.speed-chart-table[data-embedded='true'] .speed-chart-owned-summary-header { align-self: auto; }
 	/* 表内に埋め込んだ所持個体サマリーのポケモン画像 */
 	.speed-chart-table[data-embedded='true'] .speed-chart-owned-summary-sprite {
-		width: 48px;
-		height: 48px;
+		width: var(--speed-adjust-owned-sprite-size, 48px);
+		height: var(--speed-adjust-owned-sprite-size, 48px);
 	}
 	.speed-chart-table[data-embedded='true'] .speed-chart-owned-edit-button,
 	.speed-chart-table[data-embedded='true'] .speed-chart-owned-summary-species,

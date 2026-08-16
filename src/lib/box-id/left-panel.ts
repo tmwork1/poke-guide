@@ -1536,6 +1536,7 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 	let allMoves: MoveDetail[] = [];
 	let allMovesReady = false;
 	let currentPool: MoveDetail[] = [];
+	let moveTypesByName: Map<string, string> | null = null;
 
 	// --- DOM構築(1回だけ。document.body直下にappendする理由は
 	//     LeftPanel.astro側の<style is:global>直前コメント参照) ---
@@ -1544,7 +1545,7 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 	windowEl.className = "move-picker-window";
 	windowEl.hidden = true;
 	windowEl.setAttribute("role", "dialog");
-	windowEl.setAttribute("aria-label", "技を選択");
+	windowEl.setAttribute("aria-label", "わざ選択");
 	windowEl.setAttribute("aria-modal", "false");
 
 	const backdropEl = document.createElement("div");
@@ -1577,7 +1578,6 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 	const toggleTextEl = document.createElement("span");
 	toggleTextEl.textContent = "覚える技のみ表示";
 	toggleLabel.append(toggleSwitchEl, toggleTextEl);
-	headerEl.appendChild(toggleLabel);
 
 
 	windowEl.appendChild(headerEl);
@@ -1603,6 +1603,10 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 	noteEl.className = "move-picker-note";
 	noteEl.hidden = true;
 	windowEl.appendChild(noteEl);
+	const tableControlsEl = document.createElement("div");
+	tableControlsEl.className = "move-picker-table-controls";
+	tableControlsEl.appendChild(toggleLabel);
+	windowEl.appendChild(tableControlsEl);
 
 	const tableWrap = document.createElement("div");
 	tableWrap.className = "move-picker-table-wrap";
@@ -1669,7 +1673,7 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 	const categoryFilterSelect = document.createElement("select");
 	categoryFilterSelect.setAttribute("aria-label", "分類で絞り込み");
 	for (const [value, label] of [
-		["", "すべて"],
+		["", "-"],
 		["physical", "物理"],
 		["special", "特殊"],
 		["status", "変化"],
@@ -1693,10 +1697,13 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 	nameHeader.append(nameFilterWrap, makeSortButton("わざ名", "name", true));
 	nameHeaderCell.appendChild(nameHeader);
 	headerRow.appendChild(nameHeaderCell);
-	// 匿名集計サジェスト機能: 「人気」列(種族ごとのpopular_moveサジェスト、作用率%を表示)。
-	// 既存の並び替え可能な列と同じ仕組み(makeSortButton/makeHeaderCell)に合流させる
-	// (絞り込みフィルタは無いのでfilterElはnull、威力/命中/PPと同じ扱い)。
-	headerRow.appendChild(makeHeaderCell("人気", "popularity", null));
+	// 人気列は値の意味が自明なので、見出しラベルを出さず並べ替えボタンだけを置く。
+	const popularityHeaderCell = document.createElement("th");
+	const popularityHeader = document.createElement("div");
+	popularityHeader.className = "move-picker-th";
+	popularityHeader.appendChild(makeSortButton("人気", "popularity", true));
+	popularityHeaderCell.appendChild(popularityHeader);
+	headerRow.appendChild(popularityHeaderCell);
 	headerRow.appendChild(makeHeaderCell("タイプ", "type", typeFilterSelect));
 	headerRow.appendChild(makeHeaderCell("分類", "category", categoryFilterSelect));
 	headerRow.appendChild(makeHeaderCell("威力", "power", null));
@@ -1731,12 +1738,28 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 			const slot = Number(tab.dataset.slot);
 			const selected = slot === activeSlot;
 			const moveName = (document.getElementById(`move-${slot}`) as HTMLInputElement | null)?.value.trim();
-			tab.textContent = moveName || `技${slot}`;
+			tab.replaceChildren();
+			const type = moveName ? moveTypesByName?.get(moveName) : undefined;
+			const iconUrl = type ? typeIconUrl(type) : undefined;
+			if (iconUrl) {
+				const icon = document.createElement("img");
+				icon.className = "move-picker-slot-type-icon";
+				icon.src = iconUrl;
+				icon.alt = "";
+				icon.title = type;
+				tab.appendChild(icon);
+			}
+			tab.append(moveName || `技${slot}`);
 			tab.setAttribute("aria-label", `技${slot}: ${moveName || "未選択"}`);
 			tab.classList.toggle("is-selected", selected);
 			tab.setAttribute("aria-pressed", String(selected));
 		}
 	}
+
+	void moveTypeMapPromise.then((moveTypes) => {
+		moveTypesByName = moveTypes;
+		updateSlotTabs();
+	});
 
 	function updateSortButtonIndicators(): void {
 		for (const btn of Array.from(table.querySelectorAll<HTMLButtonElement>(".move-picker-sort-btn"))) {
@@ -1754,7 +1777,7 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 		typeFilterSelect.innerHTML = "";
 		const allOpt = document.createElement("option");
 		allOpt.value = "";
-		allOpt.textContent = "すべて";
+		allOpt.textContent = "-";
 		typeFilterSelect.appendChild(allOpt);
 		for (const t of types) {
 			const opt = document.createElement("option");
@@ -1908,7 +1931,6 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 					img.className = "move-picker-type-icon";
 					typeTd.appendChild(img);
 				}
-				typeTd.appendChild(document.createTextNode(m.type));
 			} else {
 				typeTd.textContent = "-";
 			}
