@@ -32,9 +32,9 @@
   --second-bar-item-border-radius: var(--radius-zero); /* 横タブの角丸。大きくすると選択背景の角が丸くなる。 */
 
   /* ── 7. 余白 ──────────────────────────────────────────── */
-  --second-bar-padding-left: var(--space-4); /* バー左端の内側余白。大きくすると戻るボタンやタブが右へ寄る。 */
-  --second-bar-gap: var(--space-2); /* 戻るボタンと横タブ一覧の間隔。大きくすると両者が離れる。 */
-  --second-bar-item-padding: 0 var(--space-2); /* 各横タブの左右余白。大きくするとタブの横幅が広がる。 */
+  --second-bar-padding-left: var(--space-3); /* バー左端の内側余白。大きくすると戻るボタンやタブが右へ寄る。 */
+  --second-bar-gap: var(--space-5); /* 戻るボタンと横タブ一覧の間隔。大きくすると両者が離れる。 */
+  --second-bar-item-padding: 0 var(--space-3); /* 各横タブの左右余白。大きくするとタブの横幅が広がる。 */
   --second-bar-toolbar-padding: var(--space-3) var(--space-5); /* 検索ツールバーの内側余白。大きくすると操作列が帯の端から離れる。 */
   --second-bar-toolbar-gap: var(--space-3) var(--space-6); /* 検索ツールバーの行間・列間。大きくすると操作同士が離れる。 */
 

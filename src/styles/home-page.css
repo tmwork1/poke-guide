@@ -12,7 +12,7 @@ body.home-page {
   /* ── 1. 文字サイズ ────────────────────────────────────── */
   --home-page-brand-title-font-size: 1.3rem; /* ロゴ横のページ名。大きくするとブランド名が目立つ */
   --home-page-account-font-size: var(--font-size-sm2); /* アカウント情報の文字。大きくするとユーザー情報が読みやすくなる */
-  --home-page-card-label-font-size: var(--font-size-lg1); /* メニューカード名。大きくするとリンク先が読みやすくなる */
+  --home-page-card-label-font-size: var(--font-size-sm1); /* メニューカード名。大きくするとリンク先が読みやすくなる */
 
   /* ── 2. 文字の太さ・行間 ──────────────────────────────── */
   --home-page-brand-title-line-height: var(--line-height-tight); /* ブランド名の行間。大きくすると複数行時の間隔が広がる */

@@ -12,7 +12,7 @@
    -------------------------------------------------------------------------- */
 .box-add-button {
   /* ── 1. 文字サイズ ─────────────────────── */
-  --box-add-button-icon-font-size: var(--font-size-lg3); /* 追加アイコンの大きさ */
+  --box-add-button-icon-font-size: var(--font-size-lg4); /* 追加アイコンの大きさ */
 
   /* ── 3. 文字色 ───────────────────────── */
   --box-add-button-color: var(--color-primary-contrast); /* ボタン内の文字・アイコンの色 */

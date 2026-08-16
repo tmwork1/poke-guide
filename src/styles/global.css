@@ -4,8 +4,9 @@
   color-scheme: light dark;
 
   /* ── 1. 文字サイズ ────────────────────────────────────── */
-  --font-size-lg3: 1.9rem; /* 空状態などの大きなアイコン。大きくすると視線を集める表示が拡大する。 */
-  --font-size-lg2: 1.5rem; /* ページ見出し。大きくすると各画面の主見出しが強調される。 */
+  --font-size-lg4: 1.9rem; /* 空状態などの大きなアイコン。大きくすると視線を集める表示が拡大する。 */
+  --font-size-lg3: 1.5rem; /* ページ見出し。大きくすると各画面の主見出しが強調される。 */
+  --font-size-lg2: 1.25rem; /* パネル見出しやカード名。大きくすると小見出しが目立つ。 */
   --font-size-lg1: 1.05rem; /* パネル見出しやカード名。大きくすると小見出しが目立つ。 */
   --font-size-base: 1rem; /* 本文の基準文字サイズ。参照箇所を大きくすると標準文が拡大する。 */
   --font-size-sm1: 0.95rem; /* ラベルや補助見出し。大きくすると本文に近い補助文字が拡大する。 */
@@ -152,7 +153,7 @@ a {
 }
 
 .page-title {
-  font-size: var(--font-size-lg2);
+  font-size: var(--font-size-lg3);
   line-height: var(--line-height-tight);
   font-weight: 700;
   margin: 0 0 var(--space-2);

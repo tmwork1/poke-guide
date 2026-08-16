@@ -14,9 +14,17 @@
   /* ── 1. 文字サイズ ─────────────────────── */
   --pokemon-preview-font-size: var(--font-size-sm2); /* 基本文字の大きさ。大きくすると全体の文字が読みやすくなる */
   --pokemon-preview-stats-font-size: var(--font-size-sm3); /* 能力値表の文字の大きさ */
+  --pokemon-preview-species-name-font-size: var(--font-size-sm1);
+  --pokemon-preview-ability-font-size: var(--font-size-sm2);
+  --pokemon-preview-move-font-size: var(--font-size-sm2);
+  --pokemon-preview-item-font-size: var(--font-size-sm2);
+  --pokemon-preview-stat-label-font-size: var(--font-size-sm2);
+  --pokemon-preview-stat-value-font-size: var(--font-size-sm2);
+  --pokemon-preview-ev-font-size: var(--font-size-sm2);
+  --pokemon-preview-sprite-fallback-font-size: var(--font-size-sm2);
 
   /* ── 2. 文字の太さ・行間 ──────────────────── */
-  --pokemon-preview-stats-font-weight: 500; /* 能力値表の文字の太さ */
+  --pokemon-preview-stats-font-weight: 400; /* 能力値表の文字の太さ */
   --pokemon-preview-stats-line-height: 1; /* 能力値表の行の詰まり具合。大きくすると行間が広がる */
 
   /* ── 3. 文字色 ───────────────────────── */
@@ -25,6 +33,12 @@
   --pokemon-preview-stat-down-color: var(--color-stat-down); /* 性格で下がる能力値の文字色 */
   --pokemon-preview-stat-label-color: var(--color-text-muted); /* 能力値名の文字色 */
   --pokemon-preview-sprite-fallback-color: var(--color-text-muted); /* 画像がないときの頭文字の色 */
+  --pokemon-preview-species-name-color: var(--color-text);
+  --pokemon-preview-ability-color: var(--color-text-muted);
+  --pokemon-preview-move-color: var(--color-text);
+  --pokemon-preview-item-color: var(--color-text);
+  --pokemon-preview-stat-value-color: var(--color-text);
+  --pokemon-preview-ev-color: var(--color-text);
 
   /* ── 4. 背景色 ───────────────────────── */
   --pokemon-preview-background: var(--color-surface); /* プレビュー外枠の背景色 */
@@ -34,18 +48,20 @@
   --pokemon-preview-border: 1px solid var(--color-border); /* 下端の区切り線。太さや色を変えると境界が目立つ */
 
   /* ── 7. 余白 ────────────────────────── */
-  --pokemon-preview-padding: var(--space-5); /* プレビュー内側の余白。大きくすると情報が内側に寄る */
-  --pokemon-preview-stats-column-gap: 20px; /* 能力値表の列間隔。大きくすると数値の列が離れる */
+  --pokemon-preview-padding: var(--space-4); /* プレビュー内側の余白。大きくすると情報が内側に寄る */
+  --pokemon-preview-stats-column-gap: 15px; /* 能力値表の列間隔。大きくすると数値の列が離れる */
   --pokemon-preview-column-gap: var(--space-2); /* 左右の情報欄と中央画像の間隔。大きくすると各欄が離れる */
   --pokemon-preview-content-gap: var(--space-1); /* 文字やアイコンの間隔。大きくすると各項目が離れる */
-  --pokemon-preview-item-stats-gap: var(--pokemon-preview-content-gap); /* 持ち物と能力値表の縦の間隔 */
+  --pokemon-preview-species-type-gap: 0.5rem; /* 種族名とタイプアイコンの間隔 */
+  --pokemon-preview-item-stats-gap: var(--space-2); /* 持ち物と能力値表の縦の間隔 */
   --pokemon-preview-stats-inline-end-gap: var(--pokemon-preview-content-gap); /* 能力値表の右端余白 */
-  --pokemon-preview-move-row-gap: 2px; /* 技の行間。大きくすると技一覧が縦に広がる */
+  --pokemon-preview-move-row-gap: 0px; /* 技の行間。大きくすると技一覧が縦に広がる */
+  --pokemon-preview-sprite-bottom-gap: 0; /* ポケモン画像の下余白 */
 
   /* ── 8. 寸法 ────────────────────────── */
   --pokemon-preview-sprite-size: calc((var(--space-8) + var(--space-6)) * 1.7); /* ポケモン画像の大きさ */
-  --pokemon-preview-item-icon-size: 1.5em; /* 持ち物アイコンの大きさ */
-  --pokemon-preview-type-icon-size: 1.3em; /* タイプアイコンの大きさ */
+  --pokemon-preview-item-icon-size: 1.9em; /* 持ち物アイコンの大きさ */
+  --pokemon-preview-type-icon-size: 1.2em; /* タイプアイコンの大きさ */
   --pokemon-preview-move-type-bar-height: 1em; /* 技タイプバーの高さ */
   --pokemon-preview-move-type-bar-width: var(--space-1); /* 技タイプバーの太さ */
 
@@ -70,7 +86,6 @@
   top: calc(var(--topbar-height) + var(--second-bar-height));
   z-index: var(--pokemon-preview-z-index);
   overflow: hidden;
-  font-size: var(--pokemon-preview-font-size);
   background: var(--pokemon-preview-background);
   border-bottom: var(--pokemon-preview-border);
 }
@@ -111,7 +126,7 @@
 .pokemon-preview-species-line {
   display: flex;
   align-items: center;
-  gap: var(--pokemon-preview-content-gap);
+  gap: var(--pokemon-preview-species-type-gap);
   min-width: 0;
 }
 
@@ -121,7 +136,14 @@
 }
 
 #pokemon-preview-species-name {
-  flex: 1 1 auto;
+  flex: 0 1 auto;
+  font-size: var(--pokemon-preview-species-name-font-size);
+  color: var(--pokemon-preview-species-name-color);
+}
+
+#pokemon-preview-ability {
+  font-size: var(--pokemon-preview-ability-font-size);
+  color: var(--pokemon-preview-ability-color);
 }
 
 .pokemon-preview-type-icons {
@@ -169,6 +191,11 @@
   padding-bottom: 0;
 }
 
+.pokemon-preview-moves li > span:last-child {
+  font-size: var(--pokemon-preview-move-font-size);
+  color: var(--pokemon-preview-move-color);
+}
+
 .pokemon-preview-move-type-bar {
   flex: 0 0 var(--pokemon-preview-move-type-bar-width);
   width: var(--pokemon-preview-move-type-bar-width);
@@ -212,7 +239,7 @@
 
 .pokemon-preview-sprite-wrap {
   position: absolute;
-  top: 50%;
+  bottom: var(--pokemon-preview-sprite-bottom-gap);
   left: 50%;
   z-index: 0;
   display: flex;
@@ -223,7 +250,7 @@
   pointer-events: none;
   background: transparent;
   border: 0;
-  transform: translate(-50%, -50%);
+  transform: translateX(-50%);
 }
 
 #pokemon-preview-species-sprite {
@@ -233,6 +260,7 @@
 }
 
 #pokemon-preview-species-sprite-fallback {
+  font-size: var(--pokemon-preview-sprite-fallback-font-size);
   color: var(--pokemon-preview-sprite-fallback-color);
 }
 
@@ -243,6 +271,11 @@
   justify-content: flex-end;
 }
 
+#pokemon-preview-item {
+  font-size: var(--pokemon-preview-item-font-size);
+  color: var(--pokemon-preview-item-color);
+}
+
 .pokemon-preview-stats {
   margin-top: var(--pokemon-preview-item-stats-gap);
   margin-left: auto;
@@ -250,7 +283,6 @@
   width: auto;
   border-collapse: collapse;
   border-spacing: 0;
-  font-size: var(--pokemon-preview-stats-font-size);
   line-height: var(--pokemon-preview-stats-line-height);
 }
 
@@ -267,7 +299,18 @@
 .pokemon-preview-stats th:first-child {
   padding-right: var(--pokemon-preview-stats-column-gap);
   color: var(--pokemon-preview-stat-label-color);
+  font-size: var(--pokemon-preview-stat-label-font-size);
   text-align: left;
+}
+
+.pokemon-preview-stats td {
+  color: var(--pokemon-preview-stat-value-color);
+  font-size: var(--pokemon-preview-stat-value-font-size);
+}
+
+.pokemon-preview-stats td:last-child {
+  color: var(--pokemon-preview-ev-color);
+  font-size: var(--pokemon-preview-ev-font-size);
 }
 
 .pokemon-preview-stats td + td {
