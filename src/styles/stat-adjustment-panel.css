@@ -33,18 +33,18 @@
 	--stat-down-color: var(--color-stat-down); /* 下降補正の色。変えると下向き補正の印象が変わる */
 
 	/* ── 4. 背景色 ────────────────────────────────────────── */
-	--stat-button-background: var(--color-surface-raised); /* 努力値・性格ボタンの下地。変えると操作部の面色が変わる */
+	--stat-button-background: var(--control-button-background); /* 努力値・性格ボタンの下地。変えると操作部の面色が変わる */
 	--stat-nature-up-background: var(--color-danger-soft); /* 上昇性格ボタンの選択時背景。濃くすると選択が目立つ */
 	--stat-nature-down-background: var(--color-primary-soft); /* 下降性格ボタンの選択時背景。濃くすると選択が目立つ */
 
 	/* ── 5. 枠線・角丸 ────────────────────────────────────── */
 	--stat-header-border: 1px solid var(--color-border); /* 見出し下の区切り線。太くすると表の境目が強くなる */
-	--stat-button-border: 1px solid var(--color-border); /* 操作ボタンの枠線。濃くするとボタンの輪郭が強くなる */
-	--stat-button-radius: var(--radius-zero); /* 操作ボタンの角丸。大きくするとボタンが丸くなる */
+	--stat-button-border: var(--control-button-border); /* 操作ボタンの枠線。濃くするとボタンの輪郭が強くなる */
+	--stat-button-radius: var(--control-button-radius); /* 操作ボタンの角丸。大きくするとボタンが丸くなる */
 	--stat-focus-outline: 2px solid var(--color-primary); /* キーボード選択時の枠。太くすると現在位置が目立つ */
 
 	/* ── 6. 影 ────────────────────────────────────────────── */
-	--stat-button-shadow: var(--shadow-sm); /* 操作ボタンの影。強くするとボタンが浮いて見える */
+	--stat-button-shadow: var(--control-button-shadow); /* 操作ボタンの影。強くするとボタンが浮いて見える */
 
 	/* ── 7. 余白 ──────────────────────────────────────────── */
 	--stat-table-gap: var(--space-1); /* 表の行間。大きくすると各能力値行が離れる */
@@ -253,7 +253,7 @@
 	line-height: var(--stat-row-label-line-height);
 }
 .stat-row-label-short {
-	margin-inline-end: var(--stat-row-label-button-gap);
+	margin-inline: var(--stat-row-label-button-gap);
 }
 .stat-row-label-short[data-mod="up"] { color: var(--stat-up-color); }
 .stat-row-label-short[data-mod="down"] { color: var(--stat-down-color); }
@@ -396,5 +396,4 @@
 		font-weight: 400;
 	}
 	.stat-row-label { gap: var(--stat-mobile-label-gap); }
-	.stat-row-label-short { margin-inline-end: var(--stat-mobile-label-button-gap); }
 }

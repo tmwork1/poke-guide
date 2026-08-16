@@ -1,0 +1,55 @@
+/* Shared action controls. Text-entry controls live in form-controls.css. */
+:root {
+  /* Secondary controls share this treatment with the EV +/- buttons. */
+  --control-button-background: var(--color-surface-raised);
+  --control-button-border: 1px solid var(--color-border);
+  --control-button-radius: var(--radius-zero);
+  --control-button-shadow: var(--shadow-sm);
+}
+
+button, a.btn-primary, a.btn-danger, a.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4em;
+  font: inherit;
+  font-weight: 600;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) 1.1em;
+  line-height: var(--line-height-snug);
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+button:focus-visible, a.btn-primary:focus-visible, a.btn-danger:focus-visible, a.btn-ghost:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+button:disabled { cursor: not-allowed; opacity: 0.55; }
+@media (hover: hover) and (pointer: fine) {
+  button:hover:not(:disabled) { background: color-mix(in srgb, var(--color-surface) 90%, var(--color-primary) 10%); }
+}
+button.btn-primary, a.btn-primary { background: var(--color-primary); border: 2px solid var(--color-primary); color: var(--color-primary-contrast); padding: calc(var(--space-2) - 1px) calc(1.1em - 1px); font-weight: 700; }
+button.btn-primary:hover:not(:disabled), a.btn-primary:hover { background: var(--color-surface); color: var(--color-primary); }
+button.btn-danger, a.btn-danger, .delete-button { background: var(--color-danger-strong); border: 2px solid var(--color-danger-strong); color: var(--color-primary-contrast); padding: calc(var(--space-2) - 1px) calc(1.1em - 1px); font-weight: 700; }
+button.btn-danger:hover:not(:disabled), a.btn-danger:hover, .delete-button:hover:not(:disabled) { background: var(--color-surface); color: var(--color-danger-strong); }
+button.btn-ghost, a.btn-ghost { background: transparent; border-color: transparent; color: var(--color-text-muted); }
+
+/* Compact secondary actions: visibly interactive without adopting input styling. */
+button.btn-control {
+  background: var(--control-button-background);
+  border: var(--control-button-border);
+  border-radius: var(--control-button-radius);
+  box-shadow: var(--control-button-shadow);
+  color: var(--color-text-muted);
+}
+
+button.btn-control:hover:not(:disabled) {
+  background: var(--color-bg);
+  border-color: var(--color-border);
+  color: var(--color-text);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  button.btn-ghost:hover:not(:disabled), a.btn-ghost:hover { background: color-mix(in srgb, var(--color-surface) 90%, var(--color-primary) 10%); }
+}

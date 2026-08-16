@@ -15,6 +15,7 @@
 // #opponent-notes-section・#damage-detail-panel等はこのファイルの実行時に必ず存在する
 // (存在しない場合はel()がthrowする。left-panel.ts/damage-calc.tsと同じ前提)。
 import { el, readEv } from "../owned-pokemon-form";
+import { bindModalDismissal } from "../modal-dismiss";
 import {
 	getBulkAdjustBridge,
 	buildAttackerSpec,
@@ -44,7 +45,6 @@ const bulkAdjustButton = el<HTMLButtonElement>("bulk-adjust-button");
 const bulkAdjustButtonLabelEl = bulkAdjustButton.querySelector<HTMLElement>(".bulk-adjust-button-label");
 const backdropEl = el<HTMLElement>("bulk-adjust-backdrop");
 const dialogEl = el<HTMLElement>("bulk-adjust-dialog");
-const dialogCloseButton = el<HTMLButtonElement>("bulk-adjust-dialog-close");
 const dialogComputeButton = el<HTMLButtonElement>("bulk-adjust-dialog-compute-button");
 const dialogStatusEl = el<HTMLElement>("bulk-adjust-dialog-status");
 const dialogBodyInnerEl = el<HTMLElement>("bulk-adjust-dialog-body-inner");
@@ -266,7 +266,6 @@ bulkAdjustButton.addEventListener("click", () => {
 		openDialog();
 	}
 });
-dialogCloseButton.addEventListener("click", closeDialog);
 // 外部トリガー(#bulk-adjust-button、ダイアログを開いている間は「ステータスを計算」実行
 // ボタンを兼ねる)と完全に同じ共通関数runCompute()を呼ぶだけで、実行ロジックは二重に
 // 持たない(closeDialog()→renderBulkAdjustResults()のフローもrunCompute()内に閉じている)。
@@ -274,10 +273,7 @@ dialogComputeButton.addEventListener("click", () => {
 	if (isComputing) return;
 	void runCompute();
 });
-backdropEl.addEventListener("click", closeDialog);
-document.addEventListener("keydown", (e) => {
-	if (e.key === "Escape" && isDialogOpen) closeDialog();
-});
+bindModalDismissal({ backdrop: backdropEl, isOpen: () => isDialogOpen, onDismiss: closeDialog });
 cancelButton.addEventListener("click", () => {
 	activeAbortController?.abort();
 });
@@ -288,7 +284,6 @@ function setComputingState(computing: boolean): void {
 	dialogFooterEl.hidden = !computing;
 	bulkAdjustButton.disabled = computing;
 	updateComputeButtonDisabled();
-	dialogCloseButton.disabled = false; // 中断経路として閉じるボタンは常に押せるようにする
 	// rowInputElsに残っている行だけが計算対象なので、計算中かどうかだけで入力欄の可否を決める。
 	for (const { nInput, mInput } of rowInputEls.values()) {
 		nInput.disabled = computing;

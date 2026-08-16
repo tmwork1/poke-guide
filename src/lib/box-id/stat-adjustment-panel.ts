@@ -125,10 +125,7 @@ export function buildStatAdjustmentPanel(options: StatAdjustmentPanelOptions): S
 		labelWrap.setAttribute("aria-label", label);
 		labelWrap.title = label;
 		if (key === "hp") {
-			const spacer1 = makeSpan("stat-nature-btn stat-nature-placeholder");
-			spacer1.setAttribute("aria-hidden", "true");
-			const spacer2 = spacer1.cloneNode(false) as HTMLSpanElement;
-			labelWrap.append(document.createTextNode(short), spacer1, spacer2);
+			labelWrap.append(document.createTextNode(short));
 		} else {
 			const up = document.createElement("button");
 			up.type = "button";
@@ -160,7 +157,7 @@ export function buildStatAdjustmentPanel(options: StatAdjustmentPanelOptions): S
 			options.onChange();
 		});
 			natureButtons.set(key, { up, down, label: shortLabel });
-			labelWrap.append(shortLabel, down, up);
+			labelWrap.append(shortLabel, up, down);
 		}
 		row.appendChild(labelWrap);
 

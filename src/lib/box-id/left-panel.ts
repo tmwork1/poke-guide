@@ -14,6 +14,7 @@ import {
 	readEv,
 	readMoveNames,
 } from "../owned-pokemon-form";
+import { bindModalDismissal } from "../modal-dismiss";
 import {
 	loadTypesMap,
 	loadMoveTypeMap,
@@ -1554,7 +1555,7 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 	headerEl.className = "move-picker-header";
 	const titleEl = document.createElement("span");
 	titleEl.className = "move-picker-title";
-	titleEl.textContent = "技を選択";
+	titleEl.textContent = "わざ選択";
 	headerEl.appendChild(titleEl);
 
 	const toggleLabel = document.createElement("label");
@@ -1578,12 +1579,6 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 	toggleLabel.append(toggleSwitchEl, toggleTextEl);
 	headerEl.appendChild(toggleLabel);
 
-	const closeButton = document.createElement("button");
-	closeButton.type = "button";
-	closeButton.className = "move-picker-close";
-	closeButton.setAttribute("aria-label", "技選択ウィンドウを閉じる");
-	closeButton.textContent = "×";
-	headerEl.appendChild(closeButton);
 
 	windowEl.appendChild(headerEl);
 
@@ -1597,7 +1592,6 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 		slotButton.textContent = `技${slot}`;
 		slotButton.addEventListener("click", () => {
 			activeSlot = slot;
-			titleEl.textContent = `技${slot}を選択`;
 			updateSlotTabs();
 			renderRows();
 		});
@@ -1658,8 +1652,8 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 
 	const nameFilterInput = document.createElement("input");
 	nameFilterInput.type = "text";
-	nameFilterInput.placeholder = "技名で絞り込み";
-	nameFilterInput.setAttribute("aria-label", "技名で絞り込み");
+	nameFilterInput.placeholder = "わざ名";
+	nameFilterInput.setAttribute("aria-label", "わざ名で絞り込み");
 	nameFilterInput.addEventListener("input", () => {
 		filters.name = nameFilterInput.value.trim();
 		renderRows();
@@ -1690,7 +1684,15 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 		renderRows();
 	});
 
-	headerRow.appendChild(makeHeaderCell("技名", "name", nameFilterInput));
+	const nameHeaderCell = document.createElement("th");
+	const nameHeader = document.createElement("div");
+	nameHeader.className = "move-picker-th";
+	const nameFilterWrap = document.createElement("div");
+	nameFilterWrap.className = "move-picker-th-filter";
+	nameFilterWrap.appendChild(nameFilterInput);
+	nameHeader.append(nameFilterWrap, makeSortButton("わざ名", "name", true));
+	nameHeaderCell.appendChild(nameHeader);
+	headerRow.appendChild(nameHeaderCell);
 	// 匿名集計サジェスト機能: 「人気」列(種族ごとのpopular_moveサジェスト、作用率%を表示)。
 	// 既存の並び替え可能な列と同じ仕組み(makeSortButton/makeHeaderCell)に合流させる
 	// (絞り込みフィルタは無いのでfilterElはnull、威力/命中/PPと同じ扱い)。
@@ -1858,12 +1860,13 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 		// 一切変更していない)。
 		targetInput.dispatchEvent(new Event("input", { bubbles: true }));
 		targetInput.dispatchEvent(new Event("change", { bubbles: true }));
+		const nextEmptySlot = [1, 2, 3, 4].find((slot) => {
+			const input = document.getElementById(`move-${slot}`) as HTMLInputElement | null;
+			return !input?.value.trim();
+		});
+		if (nextEmptySlot != null) activeSlot = nextEmptySlot;
 		updateSlotTabs();
-		for (const el2 of Array.from(tbody.querySelectorAll(".move-picker-row.is-selected"))) {
-			el2.classList.remove("is-selected");
-		}
-		const row = tbody.querySelector<HTMLElement>(`[data-move-name="${CSS.escape(move.name)}"]`);
-		row?.classList.add("is-selected");
+		renderRows();
 	}
 
 	function renderRows(): void {
@@ -2060,7 +2063,6 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 		// 既存のdatalist(直接タイプ)による絞り込みだけを使ってもらう(壊さない)。
 		if (!mobileModal) return;
 		activeSlot = slot;
-		titleEl.textContent = `技${slot}を選択`;
 		windowEl.classList.toggle("is-mobile-modal", mobileModal);
 		windowEl.setAttribute("aria-modal", String(mobileModal));
 		backdropEl.hidden = !mobileModal;
@@ -2081,8 +2083,11 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 		window.removeEventListener("scroll", onScrollOrResize, true);
 	}
 
-	closeButton.addEventListener("click", closePicker);
-	backdropEl.addEventListener("click", closePicker);
+	bindModalDismissal({
+		backdrop: backdropEl,
+		isOpen: () => !windowEl.hidden && windowEl.getAttribute("aria-modal") === "true",
+		onDismiss: closePicker,
+	});
 	toggleInput.addEventListener("change", () => {
 		learnsetOnly = toggleInput.checked;
 		void refreshPool();
@@ -2113,8 +2118,12 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 	}
 
 	document.addEventListener("move-picker:open", () => {
-		const firstInput = document.getElementById("move-1") as HTMLInputElement | null;
-		if (firstInput) openPicker(1, firstInput, true);
+		const firstEmptySlot = [1, 2, 3, 4].find((slot) => {
+			const input = document.getElementById(`move-${slot}`) as HTMLInputElement | null;
+			return !input?.value.trim();
+		}) ?? 1;
+		const input = document.getElementById(`move-${firstEmptySlot}`) as HTMLInputElement | null;
+		if (input) openPicker(firstEmptySlot, input, true);
 	});
 
 	// 匿名集計サジェスト機能: 種族変更に伴いloadPopularBuildSuggestionsがlastMoveSuggestionを

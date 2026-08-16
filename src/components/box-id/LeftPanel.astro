@@ -189,13 +189,13 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 
 
 		<div class="mobile-move-actions">
-			<button type="button" class="mobile-move-toggle btn-ghost" aria-haspopup="dialog" aria-label="わざ編集を開く">
+			<button type="button" class="mobile-move-toggle btn-control" aria-haspopup="dialog" aria-label="わざ編集を開く">
 				<span class="mobile-edit-action-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></span>
 				<span class="mobile-edit-action-label">わざ編集</span>
 			</button>
 			<button
 				type="button"
-				class="mobile-speed-adjust-button btn-ghost"
+				class="mobile-speed-adjust-button btn-control"
 				data-speed-adjust-trigger
 				aria-label="すばやさ早見表を開く"
 				title="すばやさ早見表を開く"
@@ -248,20 +248,10 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 					{key === "hp" ? (
 						<span class="stat-row-label" aria-label={statLabel} title={statLabel}>
 							{statShort}
-							<span class="stat-nature-btn stat-nature-placeholder" aria-hidden="true"></span>
-							<span class="stat-nature-btn stat-nature-placeholder" aria-hidden="true"></span>
 						</span>
 					) : (
 						<span class="stat-row-label" aria-label={statLabel} title={statLabel}>
 							<span id={`nature-label-${key}`} class="stat-row-label-short">{statShort}</span>
-							<button
-								type="button"
-								id={`nature-down-${key}`}
-								class="stat-nature-btn stat-nature-down"
-								aria-pressed="false"
-								aria-label={`${statLabel}を性格補正で下降させる`}
-								title={`${statLabel}を下降に設定`}
-							>▼</button>
 							<button
 								type="button"
 								id={`nature-up-${key}`}
@@ -270,6 +260,14 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 								aria-label={`${statLabel}を性格補正で上昇させる`}
 								title={`${statLabel}を上昇に設定`}
 							>▲</button>
+							<button
+								type="button"
+								id={`nature-down-${key}`}
+								class="stat-nature-btn stat-nature-down"
+								aria-pressed="false"
+								aria-label={`${statLabel}を性格補正で下降させる`}
+								title={`${statLabel}を下降に設定`}
+							>▼</button>
 						</span>
 					)}
 					<span id={`base-${key}`} class="stat-row-base tnum">-</span>
@@ -504,6 +502,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	}
 	/* 色トークンは維持し、ラベルだけ既存ウェイトの次段階へ上げて読みやすくする。 */
 	.stat-row-label { font-weight: var(--stat-label-font-weight); white-space: nowrap; display: flex; align-items: center; justify-content: center; gap: var(--stat-row-label-gap); line-height: var(--stat-row-label-line-height); }
+	.stat-row-label-short { margin-inline: var(--stat-row-label-button-gap); }
 	.stat-row-label-short[data-mod="up"] { color: var(--color-stat-up); }
 	.stat-row-label-short[data-mod="down"] { color: var(--color-stat-down); }
 	.stat-nature-btn {
@@ -1073,22 +1072,12 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		.mobile-move-toggle,
 		.mobile-speed-adjust-button {
 			gap: var(--space-2);
-			min-height: 2.35rem;
 			padding: 0.42em 0.6em;
-			background: var(--color-surface);
-			border-color: var(--color-border);
-			color: var(--color-text);
 		}
 		.mobile-edit-action-icon {
 			display: inline-flex;
 			align-items: center;
 			flex-shrink: 0;
-		}
-		.mobile-move-toggle:hover:not(:disabled),
-		.mobile-speed-adjust-button:hover {
-			background: var(--color-bg);
-			border-color: var(--color-border);
-			color: var(--color-text);
 		}
 		#edit-form .move-fields-grid.is-mobile-collapsed { display: none; }
 		#edit-form .move-fields-grid.is-mobile-collapsed + .stat-adjustment-section {

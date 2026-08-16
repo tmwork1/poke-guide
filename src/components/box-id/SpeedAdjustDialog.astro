@@ -23,6 +23,7 @@ const speedChartSrc = `/speed-chart?owned=${encodeURIComponent(pokemonId)}&embed
 </section>
 
 <script>
+	import { bindModalDismissal } from "../../lib/modal-dismiss";
 	const triggers = document.querySelectorAll<HTMLButtonElement>("[data-speed-adjust-trigger]");
 	const backdrop = document.getElementById("speed-adjust-backdrop");
 	const dialog = document.getElementById("speed-adjust-dialog");
@@ -47,10 +48,7 @@ const speedChartSrc = `/speed-chart?owned=${encodeURIComponent(pokemonId)}&embed
 	}
 
 	triggers.forEach((trigger) => trigger.addEventListener("click", () => openDialog(trigger)));
-	backdrop?.addEventListener("click", closeDialog);
-	document.addEventListener("keydown", (event) => {
-		if (event.key === "Escape" && dialog && !dialog.hidden) closeDialog();
-	});
+	if (backdrop) bindModalDismissal({ backdrop, isOpen: () => !!dialog && !dialog.hidden, onDismiss: closeDialog });
 	window.addEventListener("message", (event) => {
 		if (event.origin !== window.location.origin) return;
 		const data = event.data as { type?: string } | null;

@@ -14,6 +14,7 @@
 // `initRightPanel()` を1回呼ばれることで初期化される(#damage-detail-panel 等は
 // #opponent-notes-section と常に同時にSSR描画されるため、ガードの共有は安全)。
 import { el, readEv } from "../owned-pokemon-form";
+import { bindModalDismissal } from "../modal-dismiss";
 import { spriteUrl } from "../pokemon-master-data";
 import { typeIconUrl } from "../sprite-urls";
 import { kanaIncludes } from "../kana";
@@ -26,7 +27,6 @@ import {
 	getSelectedColumn,
 	getSelectedIsBuild,
 	clearSelection,
-	clearSelectionAndMarks,
 	renderDetailPanel,
 	selectColumn,
 	selectBuild,
@@ -55,7 +55,6 @@ import { renderDamageSuggestPanel } from "./damage-suggest";
 let detailPanelEl: HTMLElement;
 let detailPanelBodyEl: HTMLElement;
 let detailPanelTitleEl: HTMLElement;
-let detailPanelCloseButton: HTMLButtonElement;
 let detailBackdropEl: HTMLElement;
 let detailPanelFooterEl: HTMLElement;
 let detailPanelMatchupEl: HTMLElement;
@@ -1648,21 +1647,17 @@ export function initRightPanel(): void {
 	detailPanelEl = el<HTMLElement>("damage-detail-panel");
 	detailPanelBodyEl = el<HTMLElement>("damage-detail-panel-body");
 	detailPanelTitleEl = el<HTMLElement>("damage-detail-panel-title");
-	detailPanelCloseButton = el<HTMLButtonElement>("damage-detail-panel-close");
 	detailBackdropEl = el<HTMLElement>("damage-detail-backdrop");
 	detailPanelFooterEl = el<HTMLElement>("damage-detail-panel-footer");
 	detailPanelMatchupEl = el<HTMLElement>("damage-detail-panel-matchup");
 	detailPanelTotalEl = el<HTMLElement>("damage-detail-panel-total");
 	detailPanelTotalResultEl = el<HTMLElement>("damage-detail-panel-total-result");
 	initDetailPanelSwipe();
-	detailPanelCloseButton.addEventListener("click", () => {
-		if (true) {
-			clearSelectionAndMarks();
-			return;
-		}
-		closeDetailPanelOverlay();
+	bindModalDismissal({
+		backdrop: detailBackdropEl,
+		isOpen: () => !detailBackdropEl.hidden,
+		onDismiss: closeDetailPanelOverlay,
 	});
-	detailBackdropEl.addEventListener("click", closeDetailPanelOverlay);
 	// 初期状態は何も選択されていない(空状態を表示)。
 	renderDetailPanelEmpty();
 }

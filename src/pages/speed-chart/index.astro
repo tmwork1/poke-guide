@@ -169,7 +169,6 @@ try {
 >
 	{embedded && <div class="speed-chart-embed-toolbar">
 		<strong class="speed-chart-embed-title">すばやさ調整</strong>
-		<button id="speed-chart-embed-close" class="btn-ghost speed-chart-embed-close" type="button" aria-label="すばやさ調整を閉じる">×</button>
 	</div>}
 	{!embedded && <Fragment slot="topbar-actions">
 		{/* 可視ラベルとselectをfor/idで結び、トップバー上でも選択対象を明確にする。 */}
@@ -219,9 +218,3 @@ try {
 		<script type="application/json" id="speed-chart-owned-record" set:html={JSON.stringify(ownedRecord)} />
 	)}
 </AppLayout>
-
-{embedded && <script is:inline>
-	document.getElementById('speed-chart-embed-close')?.addEventListener('click', () => {
-		window.parent.postMessage({ type: 'speed-chart:close' }, window.location.origin);
-	});
-</script>}
