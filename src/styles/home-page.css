@@ -10,13 +10,14 @@
    =========================================================================== */
 body.home-page {
   /* ── 1. 文字サイズ ────────────────────────────────────── */
-  --home-page-brand-title-font-size: var(--font-size-lg2); /* ロゴ横のページ名。大きくするとブランド名が目立つ */
+  --home-page-brand-title-font-size: 1.3rem; /* ロゴ横のページ名。大きくするとブランド名が目立つ */
   --home-page-account-font-size: var(--font-size-sm2); /* アカウント情報の文字。大きくするとユーザー情報が読みやすくなる */
+  --home-page-card-label-font-size: var(--font-size-lg1); /* メニューカード名。大きくするとリンク先が読みやすくなる */
 
   /* ── 2. 文字の太さ・行間 ──────────────────────────────── */
   --home-page-brand-title-line-height: var(--line-height-tight); /* ブランド名の行間。大きくすると複数行時の間隔が広がる */
-  --home-page-account-name-font-weight: 600; /* アカウント名の太さ。太くすると名前が目立つ */
-  --home-page-card-label-font-weight: 700; /* メニューカード名の太さ。太くするとリンク先が目立つ */
+  --home-page-account-name-font-weight: 500; /* アカウント名の太さ。太くすると名前が目立つ */
+  --home-page-card-label-font-weight: 500; /* メニューカード名の太さ。太くするとリンク先が目立つ */
   --home-page-card-label-line-height: var(--line-height-snug); /* メニューカード名の行間。大きくすると複数行表示が広がる */
 
   /* ── 3. 文字色 ────────────────────────────────────────── */
@@ -30,22 +31,22 @@ body.home-page {
   --home-page-card-focus-outline-offset: 2px; /* 選択枠とカードの間隔。大きくすると枠が外側へ離れる */
 
   /* ── 7. 余白 ──────────────────────────────────────────── */
-  --home-page-padding: var(--space-5) var(--space-4) var(--space-7); /* ページ外周の余白。大きくすると内容が内側に寄る */
+  --home-page-padding: var(--space-5) var(--space-3) var(--space-7); /* ページ外周の余白。大きくすると内容が内側に寄る */
   --home-page-second-bar-margin: calc(-1 * var(--space-5)) calc(-1 * var(--space-4)) var(--space-5); /* 上部バーをページ端まで広げる余白。変えるとバーの位置がずれる */
   --home-page-brand-gap: var(--space-3); /* ロゴとブランド名の間隔。大きくすると横に離れる */
   --home-page-brand-margin-bottom: var(--space-5); /* ブランド行の下余白。大きくするとアカウント情報から離れる */
   --home-page-account-gap: var(--space-2); /* アカウント情報内の間隔。大きくすると項目が離れる */
   --home-page-account-margin-bottom: var(--space-6); /* アカウント情報の下余白。大きくするとカード一覧から離れる */
-  --home-page-card-grid-gap: var(--space-3); /* メニューカードどうしの間隔。大きくするとカードが離れる */
+  --home-page-card-grid-gap: var(--space-2); /* メニューカードどうしの間隔。大きくするとカードが離れる */
   --home-page-card-gap: var(--space-2); /* カード内のアイコンと名前の間隔。大きくすると縦に離れる */
   --home-page-contact-margin: var(--space-7) 0 0; /* 問い合わせリンクの上余白。大きくするとカード一覧から離れる */
   --home-page-contact-link-gap: 0.35em; /* 問い合わせリンク内のアイコンと文字の間隔。大きくすると離れる */
 
   /* ── 8. 寸法 ──────────────────────────────────────────── */
   --home-page-max-width: 480px; /* ページの最大幅。大きくすると広い画面で内容が横に広がる */
-  --home-page-logo-size: 48px; /* ブランドロゴの大きさ。大きくするとロゴが目立つ */
+  --home-page-logo-size: 40px; /* ブランドロゴの大きさ。大きくするとロゴが目立つ */
   --home-page-card-min-height: 7rem; /* メニューカードの最低高さ。大きくするとカードが縦に伸びる */
-  --home-page-card-icon-size: 2.5rem; /* メニューカードのアイコンサイズ。大きくすると機能の印象が強まる */
+  --home-page-card-icon-size: 2rem; /* メニューカードのアイコンサイズ。大きくすると機能の印象が強まる */
 }
 
 /* ===========================================================================
@@ -150,6 +151,7 @@ body.home-page {
 }
 /* 各メニューカードの「ボックス」「チーム」などの機能名 */
 .home-card-label {
+  font-size: var(--home-page-card-label-font-size);
   font-weight: var(--home-page-card-label-font-weight);
   line-height: var(--home-page-card-label-line-height);
   word-break: keep-all;
