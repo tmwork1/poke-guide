@@ -15,12 +15,14 @@
   --box-damage-engine-status-font-size: var(--font-size-sm3); /* 計算エンジン状態文の文字の大きさ */
 
   /* ── 7. 余白 ────────────────────────── */
-  --box-damage-panel-padding: var(--space-3) var(--space-3) 0; /* 画面端とダメージカードの間の余白。ダメージタブは常にタブ切替表示(data-mobile-tab="damage")のため画面幅を問わずこの値になる */
+  --box-damage-panel-padding: 0 var(--space-3); /* 画面端とダメージカードの間の余白。ダメージタブは常にタブ切替表示(data-mobile-tab="damage")のため画面幅を問わずこの値になる。
+    上端の余白は持たない(下の.damage-calc-engine-statusのmargin-top参照。ここで持つと
+    そのpタグがhidden化された後もSecondHeaderがapp-headerから離れて浮いてしまうため)。 */
   --box-damage-mobile-list-padding-bottom: calc(56px + var(--bottom-nav-height) + var(--space-4)); /* モバイル時に浮いた追加ボタンへ隠れない一覧下余白 */
   --box-damage-rows-gap: var(--space-3); /* ダメージ計算カード同士の縦の間隔 */
   --box-damage-toolbar-gap: var(--space-2); /* 一括操作ボタン同士の間隔 */
   --box-damage-toolbar-margin-bottom: var(--space-2); /* 操作列とカード一覧の間隔 */
-  --box-damage-engine-status-margin: 0 0 .4rem; /* 計算エンジン状態文の外側余白 */
+  --box-damage-engine-status-margin: var(--space-3) 0 .4rem; /* 計算エンジン状態文の外側余白。上端は本来#opponent-notes-section側が持っていた画面端との余白(--box-damage-panel-padding参照)をここに移した */
 }
 
 /* --------------------------------------------------------------------------
