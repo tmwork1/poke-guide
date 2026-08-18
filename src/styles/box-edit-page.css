@@ -19,7 +19,7 @@
 	--stat-range-min-width: 3.5rem;
 	--stat-endpoint-button-size: 36px;
 	--stat-step-button-size: 24px;
-	--stat-number-input-width: 3.4rem;
+	--stat-number-input-width: 2.2rem; /* 努力値は最大2桁(0〜32)なので、その幅に狭める */
 	--stat-number-input-height: 30px;
 	--stat-number-input-mobile-padding: 0 var(--space-1);
 	--stat-nature-button-size: 24px;
@@ -63,7 +63,6 @@ body.box-edit-page {
 
 	/* ── 7. 余白 ────────────────────────── */
 	--box-edit-mobile-actions-padding: var(--space-4) var(--space-5) var(--space-5); /* モバイル操作列の内側余白 */
-	--box-edit-delete-margin-inline-start: var(--space-5); /* 収集拒否トグルと削除ボタンの間隔 */
 	--box-edit-mobile-actions-gap: var(--space-3); /* モバイル操作ボタン同士の間隔 */
 	--box-edit-opponent-alert-margin-inline-start: 0.6em; /* ダメージ計算の保存失敗件数の左余白 */
 	--box-edit-retry-margin-inline-start: 0.4em; /* 再試行ボタンの左余白 */
@@ -148,12 +147,10 @@ body.box-edit-page {
 			display: inline;
 			color: var(--box-edit-error-color);
 		}
-		/* 共通トップバーの戻るリンク(.app-header-back)と文字組みを揃える。
-			font-familyとletter-spacingは、戻るリンクと同様にbodyからの継承値を使う。 */
 		#delete-button { font-size: var(--box-edit-delete-font-size); }
-		/* 幅390pxで折り返し先が無くwhite-space:normalのまま1文字ずつ縦に折り返り
-			(実測46×169px)、w900でも3行に折れていた。1行に固定する。 */
-		#delete-button { white-space: nowrap; }
+		/* メモ欄の下に画面幅いっぱいの横長ボタンとして配置する(以前はヘッダー付近の狭い行に
+			収める都合で white-space: nowrap にしていたが、単独の全幅行になったため不要)。 */
+		#delete-button { width: 100%; margin-top: var(--space-3); }
 		/* 基底(global.css の button.btn-danger)の太字を、戻るリンクと同じ500に上書きする。 */
 		#delete-button { font-weight: var(--box-edit-delete-font-weight); }
 		/* 基底(global.css の button.btn-danger)は 平常時=塗り
@@ -197,12 +194,6 @@ body.box-edit-page {
 			color: var(--box-edit-collection-status-color);
 		}
 		.collection-opt-out-status[hidden] { display: none; }
-		/* .app-header-actions(AppLayout.astro側)のgapはvar(--space-2)=8pxでトップバー全
-			ボタン共通のため、AppLayoutは編集せず(全画面に影響する)、このページscopedで
-			#delete-buttonにだけ追加のmargin-leftを足す。トグル右端から削除ボタン左端まで
-			28px(8+var(--space-5)=20px)になる(新規の値は作らず、既存スペーシングトークンの
-			範囲内で選定)。 */
-		#delete-button { margin-left: var(--box-edit-delete-margin-inline-start); }
 		/* PATCH失敗時のみ(<script>側がdata-state="error"を付与)最小限のエラー色を出す。
 			#autosave-status[data-state="error"] #autosave-status-text と同じ温度感(赤字テキストの
 			み、追加のUI装飾なし)。 */

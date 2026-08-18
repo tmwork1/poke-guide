@@ -343,6 +343,18 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		    ペイロードにそのまま載せ直す(下の <script> の buildPayload を参照)。 */}
 		<textarea id="memo" class="memo-input" placeholder="メモ" aria-label="メモ">{pokemon.memo ?? ""}</textarea>
 
+		{/* 削除ボタン。以前はbox/[id].astro側でSSRし、mobile-edit-tabs.tsがJSで
+		    #mobile-edit-actionsへ移設していたが、移設が終わるまでの一瞬ヘッダーより上に表示される
+		    バグがあったため、最終的な表示位置(メモの下、画面幅いっぱいの横長ボタン)に直接置く。
+		    アイコンはインラインSVGのゴミ箱(絵文字🗑はOS/フォントで見た目が変わるため定番デザインに
+		    向かない)。誤操作の抑止は色を抑える代わりに既存のwindow.confirm()
+		    (<script>のdeleteButtonクリックハンドラ)に委ねる。スタイルはsrc/styles/box-edit-page.cssの
+		    #delete-button参照。 */}
+		<button id="delete-button" class="btn-danger" type="button">
+			<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+			削除
+		</button>
+
 	</section>
 </form>
 <style>

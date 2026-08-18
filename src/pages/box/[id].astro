@@ -166,9 +166,6 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 			    常時可視な上部バーに失敗件数だけを出す(<script>のupdateOpponentNotesFailureAlert参照)。
 			    通常時はhiddenで何も見えない。 */}
 			<span id="opponent-notes-save-alert" class="opponent-notes-save-alert" hidden></span>
-			{/* アイコンはインラインSVGのゴミ箱(絵文字🗑はOS/フォントで見た目が変わるため
-			    定番デザインに向かない)。誤操作の抑止は色を抑える代わりに既存のwindow.confirm()
-			    (<script>のdeleteButtonクリックハンドラ)に委ねる。 */}
 			{/* 匿名集計サジェスト機能・第4段階(UI: 収集拒否トグル)。この個体を性格/アイテム/
 			    テラス/技の匿名集計対象から除外するトグル。マークアップは
 			    src/components/box-id/LeftPanel.astro の is:global <style> に既にある
@@ -183,10 +180,12 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 			    ホバーテキストはOFF/ONで変える(下の<script>参照、初期値はSSRで出し分け済み)。
 			    状態テキスト(#collection-opt-out-status)は「残り日数」表示ではなくPATCH失敗時の
 			    エラーメッセージ専用(left-panel.ts側で実装済み)。 */}
-			<button id="delete-button" class="btn-danger" type="button">
-				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-				削除
-			</button>
+			{/* 削除ボタン(#delete-button)は src/components/box-id/LeftPanel.astro のメモ欄の下に
+			    画面幅いっぱいのボタンとして配置している(かつてはここでSSRし、
+			    src/lib/box-id/mobile-edit-tabs.ts がJSで#mobile-edit-actionsへ移設していたが、
+			    移設が終わるまでの一瞬ヘッダーより上に表示されるバグがあったため、最終位置に
+			    直接置く方式へ変更した)。アイコン・確認ダイアログ・クリックハンドラ
+			    (window.confirm())は変更していない。 */}
 		</Fragment>
 	)}
 	<div class="page edit-shell" id="edit-shell" data-mobile-tab="training">
