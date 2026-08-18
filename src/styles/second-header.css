@@ -62,3 +62,10 @@
 	align-items: center;
 	gap: var(--space-1);
 }
+
+/* 並べ替えの昇順/降順切り替えボタンは矢印アイコンのみで表示し、
+   「Z→A」等のテキストラベルは隠す(UI改修依頼。aria-labelには向きを残す)。 */
+.second-header-sort .sort-dir-toggle-label {
+	display: none;
+}
+

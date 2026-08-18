@@ -58,14 +58,11 @@
   background: var(--box-page-content-background);
 }
 
-/* second-header(検索・並べ替え)とは別枠の絞り込み行: #box-filter-row
-   （件数バッジ・お気に入り・レギュレーション。一覧グリッドと一緒にスクロールする） */
+/* 件数バッジ・お気に入り・レギュレーションフィルタの行: #box-filter-row。
+   非表示にする(UI改修依頼)。<script>がgetElementByIdで各要素を参照するため
+   マークアップ自体は残し、display:noneで見た目だけ消す。 */
 .box-filter-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-3) var(--space-5);
-  padding-bottom: var(--space-3);
+  display: none;
 }
 
 /* 動的に描画するポケモンカードの差し込み先: #owned-pokemon-list */
