@@ -611,16 +611,6 @@ if (form) {
 	const speciesSpriteFallback = el<HTMLElement>("species-sprite-fallback");
 	const speciesTypeBadge = el<HTMLElement>("species-type-badge");
 
-	const topbarTitleEl = document.querySelector<HTMLElement>(".app-header-title");
-
-	function updateHeaderIdentity(): void {
-		const species = speciesInput.value.trim();
-		const display = species || "個体編集";
-		if (topbarTitleEl) {
-			topbarTitleEl.textContent = display;
-		}
-	}
-
 	// 「図鑑で見る」リンクは要件により廃止(種族名の変更に追随するのは画像と種族値のみ)。
 	function updateSpeciesDisplay(): void {
 		const name = speciesInput.value.trim();
@@ -628,7 +618,6 @@ if (form) {
 		void applyTypeBadge(speciesTypeBadge, name);
 		void applyBaseStats(name);
 		void rebuildMoveListForSpecies(name);
-		updateHeaderIdentity();
 	}
 	speciesInput.addEventListener("input", updateSpeciesDisplay);
 	updateSpeciesDisplay();
