@@ -99,7 +99,7 @@ body.data-hub-page {
   flex-direction: column;
   gap: var(--data-hub-list-gap);
 }
-.battle-data-entry { scroll-margin-top: calc(var(--header-height) + var(--second-bar-height) + var(--space-3)); }
+.battle-data-entry { scroll-margin-top: calc(var(--header-height) + var(--app-header-secondary-height) + var(--space-3)); }
 .battle-data-entry[hidden] { display: none; }
 
 /* 順位・ポケモンアイコン・名前を並べるカード見出し */
@@ -139,7 +139,7 @@ body.data-hub-page {
 /* 画面右端に固定するポケモンへのジャンプレール */
 .battle-data-rail {
   position: fixed;
-  top: calc(var(--header-height) + var(--second-bar-height));
+  top: calc(var(--header-height) + var(--app-header-secondary-height));
   right: 0;
   bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom));
   z-index: 15;

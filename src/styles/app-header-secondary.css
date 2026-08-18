@@ -1,0 +1,167 @@
+﻿/* ===========================================================================
+   ページ単位のセカンドバー(戻るボタン・横タブ・検索フィルター)
+
+   画面のどこ: 共通トップバーの直下、またはトップバーを隠した一覧画面の上端。
+   使い分け: 文字ナビは `.app-header-secondary__back` と `.app-header-secondary__list` / `__item`、
+             検索・絞り込み操作は `.app-header-secondary--toolbar` を使う。
+   見た目を変えたいとき: 下の「チューニング変数」だけ触ればよい。
+   =========================================================================== */
+
+/* ===========================================================================
+   チューニング変数
+   =========================================================================== */
+:root {
+  --app-header-secondary-height: 36px; /* セカンドバーの基準高さ。大きくするとバーと後続コンテンツの開始位置が下がる。 */
+}
+
+.app-header-secondary {
+  /* ── 1. 文字サイズ ────────────────────────────────────── */
+  --app-header-secondary-item-font-size: var(--font-size-sm2); /* 横タブの項目名。大きくすると各タブの文字が目立つ。 */
+
+  /* ── 2. 文字の太さ・行間 ──────────────────────────────── */
+  --app-header-secondary-item-line-height: 1; /* 横タブの行間。大きくすると項目名の行が縦に広がる。 */
+
+  /* ── 3. 文字色 ────────────────────────────────────────── */
+  --app-header-secondary-item-color: var(--color-text-muted); /* 未選択タブの文字色。薄くすると選択中との差が広がる。 */
+  --app-header-secondary-item-hover-color: var(--color-primary); /* タブに触れたときの文字色。変えると操作時の強調色が変わる。 */
+  --app-header-secondary-item-active-color: var(--color-primary); /* 選択中タブの文字色。変えると現在地の強調色が変わる。 */
+
+  /* ── 4. 背景色 ────────────────────────────────────────── */
+  --app-header-secondary-background: var(--color-surface-raised); /* バー全体の背景色。変えるとトップバー直下の帯の色が変わる。 */
+  --app-header-secondary-item-background: transparent; /* 未選択タブの背景色。色を付けると各タブの領域が塗られる。 */
+  --app-header-secondary-item-active-background: var(--color-primary-soft); /* 選択中タブの背景色。濃くすると現在地が目立つ。 */
+
+  /* ── 5. 枠線・角丸 ────────────────────────────────────── */
+  --app-header-secondary-item-border: 0; /* 横タブの枠線。太くすると各項目の周囲に枠が付く。 */
+  --app-header-secondary-item-border-radius: var(--radius-zero); /* 横タブの角丸。大きくすると選択背景の角が丸くなる。 */
+
+  /* ── 7. 余白 ──────────────────────────────────────────── */
+  --app-header-secondary-padding-left: var(--space-3); /* バー左端の内側余白。大きくすると戻るボタンやタブが右へ寄る。 */
+  --app-header-secondary-margin: 0; /* バー外側の余白。ページ端まで広げる場合はページ側で上書きする。 */
+  --app-header-secondary-gap: var(--space-5); /* 戻るボタンと横タブ一覧の間隔。大きくすると両者が離れる。 */
+  --app-header-secondary-item-padding: 0 var(--space-3); /* 各横タブの左右余白。大きくするとタブの横幅が広がる。 */
+  --app-header-secondary-toolbar-padding: var(--space-3) var(--space-5); /* 検索ツールバーの内側余白。大きくすると操作列が帯の端から離れる。 */
+  --app-header-secondary-toolbar-gap: var(--space-3) var(--space-6); /* 検索ツールバーの行間・列間。大きくすると操作同士が離れる。 */
+
+  /* ── 9. その他 ────────────────────────────────────────── */
+  --app-header-secondary-disabled-opacity: 0.6; /* 利用不可タブの透明度。小さくするとさらに薄く見える。 */
+}
+
+/* ツールバー項目はセカンドバー外でも使われるため、項目自身に変数を持たせる。 */
+.toolbar-item {
+  /* ── 7. 余白 ──────────────────────────────────────────── */
+  --app-header-secondary-toolbar-item-gap: var(--space-2); /* ラベル・アイコン・入力欄の間隔。大きくすると項目内が広がる。 */
+}
+
+/* ===========================================================================
+   ここから下は構造(レイアウトの組み立て)。通常は触らない。
+   =========================================================================== */
+
+/* 画面上端に追従するセカンドバー外枠 */
+.app-header-secondary {
+  position: sticky;
+  top: var(--header-height);
+  z-index: 20;
+  display: flex;
+  min-height: var(--app-header-secondary-height);
+  align-items: stretch;
+  gap: var(--app-header-secondary-gap);
+  margin: var(--app-header-secondary-margin);
+  padding-left: var(--app-header-secondary-padding-left);
+  background: var(--app-header-secondary-background);
+}
+
+/* 戻るボタン。.app-header-secondary__list(横スクロールするタブ一覧)の外に置き、
+   スクロールに巻き込まれず常に左端の定位置に表示されるようにする。 */
+.app-header-secondary__back {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+}
+
+/* 文字だけの横スクロール式タブ一覧 */
+.app-header-secondary__list {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+/* 横タブ一覧のスクロールバーを隠す */
+.app-header-secondary__list::-webkit-scrollbar {
+  display: none;
+}
+
+/* 横タブ一覧の各項目 */
+.app-header-secondary__item {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--app-header-secondary-height);
+  padding: var(--app-header-secondary-item-padding);
+  color: var(--app-header-secondary-item-color);
+  font: inherit;
+  font-size: var(--app-header-secondary-item-font-size);
+  line-height: var(--app-header-secondary-item-line-height);
+  white-space: nowrap;
+  cursor: pointer;
+  background: var(--app-header-secondary-item-background);
+  border: var(--app-header-secondary-item-border);
+  border-radius: var(--app-header-secondary-item-border-radius);
+  /* button要素のネイティブappearanceが残っていると、iOS Safari等で背景色の上に
+     わずかな縁取り(上辺のハイライト/影)が重なって見えることがあるため明示的に消す。 */
+  appearance: none;
+  -webkit-appearance: none;
+  text-decoration: none;
+}
+
+.app-header-secondary__item:hover:not(.is-disabled) {
+  color: var(--app-header-secondary-item-hover-color);
+}
+
+/* 現在選択されている横タブ */
+.app-header-secondary__item[data-active="true"] {
+  color: var(--app-header-secondary-item-active-color);
+  background: var(--app-header-secondary-item-active-background);
+}
+
+/* 利用できない横タブ */
+.app-header-secondary__item.is-disabled {
+  opacity: var(--app-header-secondary-disabled-opacity);
+  cursor: not-allowed;
+}
+
+/* 検索・絞り込みコントロールを並べるツールバー */
+.app-header-secondary--toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--app-header-secondary-toolbar-gap);
+  padding: var(--app-header-secondary-toolbar-padding);
+}
+
+/* ツールバー内のラベル・アイコン・入力欄をまとめる1項目 */
+.toolbar-item {
+  display: flex;
+  align-items: center;
+  gap: var(--app-header-secondary-toolbar-item-gap);
+}
+
+.toolbar-item[hidden] {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  /* 狭い画面ではツールバー項目を縦に積む */
+  .app-header-secondary--toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .app-header-secondary--toolbar .toolbar-item {
+    width: 100%;
+    margin-left: 0;
+  }
+}
