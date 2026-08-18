@@ -1,0 +1,15 @@
+---
+// app-header(戻るボタン行、AppHeader.astro)の直下に置く検索・並べ替え用の帯。
+// /box・/team等、一覧系ページで繰り返し使うため、外枠だけをここで持ち、
+// 中身(検索欄・並べ替えコントロール等)は呼び出し側が<slot />へ渡す。
+interface Props {
+	ariaLabel?: string;
+	class?: string;
+}
+
+const { ariaLabel, class: className } = Astro.props;
+---
+
+<div class={`second-header${className ? ` ${className}` : ''}`} aria-label={ariaLabel}>
+	<slot />
+</div>

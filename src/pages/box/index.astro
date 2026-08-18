@@ -26,8 +26,10 @@ export const prerender = false;
 
 import AppLayout from '../../layouts/AppLayout.astro';
 import AppHeader from '../../components/AppHeader.astro';
+import SecondHeader from '../../components/SecondHeader.astro';
 import '../../styles/box-page.css';
 import '../../styles/app-header.css';
+import '../../styles/second-header.css';
 // レギュレーションの選択肢は jpoke 由来の一覧(src/lib/regulations.ts)。画面側で
 // レギュレーション名をハードコードしない。定義順のREGULATIONSではなく、新しい順の
 // REGULATIONS_NEWEST_FIRSTを使う。
@@ -43,13 +45,11 @@ const user = Astro.locals.user;
 				<Fragment>
 					<AppHeader />
 					<h1 class="box-page-title">ボックス</h1>
-					<div class="panel panel-top app-header app-header--toolbar floating-list-toolbar" id="box-toolbar">
-						{/* 件数バッジ(#pokemon-count-badge)。id/classは変更しない
-						    (<script>がgetElementByIdで参照する)。 */}
-						<div class="toolbar-item toolbar-count">
-							<span class="badge tnum" id="pokemon-count-badge" hidden>0</span>
-						</div>
-						<div class="toolbar-item toolbar-search">
+					{/* app-headerの直下に置く検索・並べ替え帯(SecondHeader、他画面でも再利用する
+					    独立コンポーネント)。検索・並べ替え以外の絞り込み(お気に入り・レギュレーション・
+					    件数バッジ)はここには置かず、#box-filter-rowへ分離する。 */}
+					<SecondHeader ariaLabel="検索・並べ替え" class="box-second-header">
+						<div class="second-header-search toolbar-item toolbar-search">
 							{/* 可視の「検索」ラベルは置かない。このプロジェクトで確立済みの
 							    「ラベル要素を廃止しplaceholder+aria-labelに統一」パターンに合わせ、
 							    アクセシビリティ上のラベルはaria-labelで維持する。 */}
@@ -69,34 +69,7 @@ const user = Astro.locals.user;
 							</div>
 						</div>
 
-						<div class="toolbar-item toolbar-favorite">
-							{/* 絞り込みUIは「お気に入りのみ表示」の単一トグルのみ(複数タグ選択のUIは
-							    持たない)。データ側のtagsフィールド・保存経路には触れない。 */}
-							<button
-								type="button"
-								id="favorite-filter-toggle"
-								class="favorite-filter-toggle"
-								data-active="false"
-								aria-pressed="false"
-							>
-								<span class="favorite-filter-star" aria-hidden="true">★</span> お気に入り
-							</button>
-						</div>
-
-						{/* お気に入りトグルと並べ替えの間に置く(左から 検索 → お気に入り →
-						    レギュレーション → 並べ替え)。既存の絞り込み(検索・お気に入り)と同じく
-						    サーバーには問い合わせず、取得済みの一覧をクライアント側で絞る。
-						    可視ラベルをselectと関連付け、選択肢は具体的なレギュレーションと
-						    「すべて」に絞る。 */}
-						<div class="toolbar-item toolbar-regulation">
-							<label class="field-label" for="regulation-filter">レギュレーション</label>
-							<select id="regulation-filter" class="field-control">
-								<option value="">すべて</option>
-								{REGULATIONS_NEWEST_FIRST.map((r) => <option value={r}>{r}</option>)}
-							</select>
-						</div>
-
-						<div class="toolbar-item toolbar-sort">
+						<div class="second-header-sort toolbar-item toolbar-sort">
 							<div class="sort-select-wrap" id="sort-select-wrap" data-order="desc">
 								<svg class="sort-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 									<path d="M12 20V4" />
@@ -116,10 +89,45 @@ const user = Astro.locals.user;
 								<span class="sort-dir-toggle-label">Z→A</span>
 							</button>
 						</div>
-
-					</div>
+					</SecondHeader>
 
 					<div class="box-content">
+						{/* 検索・並べ替え以外の絞り込み(件数バッジ・お気に入り・レギュレーション)。
+						    second-header(検索・並べ替えのみ)とは切り離し、一覧グリッドと一緒に
+						    スクロールする行として持つ。 */}
+						<div class="box-filter-row" id="box-filter-row">
+							{/* 件数バッジ(#pokemon-count-badge)。id/classは変更しない
+							    (<script>がgetElementByIdで参照する)。 */}
+							<div class="toolbar-item toolbar-count">
+								<span class="badge tnum" id="pokemon-count-badge" hidden>0</span>
+							</div>
+
+							<div class="toolbar-item toolbar-favorite">
+								{/* 絞り込みUIは「お気に入りのみ表示」の単一トグルのみ(複数タグ選択のUIは
+								    持たない)。データ側のtagsフィールド・保存経路には触れない。 */}
+								<button
+									type="button"
+									id="favorite-filter-toggle"
+									class="favorite-filter-toggle"
+									data-active="false"
+									aria-pressed="false"
+								>
+									<span class="favorite-filter-star" aria-hidden="true">★</span> お気に入り
+								</button>
+							</div>
+
+							{/* 既存の絞り込み(検索・お気に入り)と同じく、サーバーには問い合わせず、
+							    取得済みの一覧をクライアント側で絞る。可視ラベルをselectと関連付け、
+							    選択肢は具体的なレギュレーションと「すべて」に絞る。 */}
+							<div class="toolbar-item toolbar-regulation">
+								<label class="field-label" for="regulation-filter">レギュレーション</label>
+								<select id="regulation-filter" class="field-control">
+									<option value="">すべて</option>
+									{REGULATIONS_NEWEST_FIRST.map((r) => <option value={r}>{r}</option>)}
+								</select>
+							</div>
+						</div>
+
 						<p id="loading-message">読み込み中…</p>
 						<p id="error-message" hidden></p>
 

@@ -1,0 +1,64 @@
+/* ===========================================================================
+   セカンドヘッダー(app-headerの直下に置く検索・並べ替え帯)
+
+   画面のどこ: ページ最上部、app-header(戻るボタン行)のすぐ下。
+   使い分け: 検索欄は .second-header-search、並べ替えは .second-header-sort に置く。
+             このファイルは外枠と2スロットの配置だけを持ち、検索欄・並べ替えの
+             コントロール自体の見た目(input/selectなど)はglobal.cssの共通スタイルに委ねる。
+   見た目を変えたいとき: 下の「チューニング変数」だけ触ればよい。
+   =========================================================================== */
+
+/* ===========================================================================
+   チューニング変数
+   =========================================================================== */
+:root {
+	--second-header-height: 52px; /* セカンドヘッダーの基準高さ。大きくするとこの帯とその下のコンテンツの開始位置が下がる。 */
+}
+
+.second-header {
+	/* ── 4. 背景色 ────────────────────────────────────────── */
+	--second-header-background: var(--color-surface); /* 帯全体の背景色。 */
+
+	/* ── 5. 枠線 ──────────────────────────────────────────── */
+	--second-header-border-bottom: 1px solid var(--color-border); /* 帯下端の区切り線。 */
+
+	/* ── 7. 余白 ──────────────────────────────────────────── */
+	--second-header-padding: var(--space-2) var(--space-3); /* 帯の内側余白。大きくすると検索欄・並べ替えが帯の端から離れる。 */
+	--second-header-gap: var(--space-2); /* 検索欄と並べ替えの間隔。大きくすると両者が離れる。 */
+}
+
+/* ===========================================================================
+   ここから下は構造(レイアウトの組み立て)。通常は触らない。
+   =========================================================================== */
+
+/* 画面上端(app-headerの下)に追従する外枠 */
+.second-header {
+	position: sticky;
+	top: calc(var(--header-height) + var(--app-header-height));
+	z-index: 19;
+	display: flex;
+	align-items: center;
+	min-height: var(--second-header-height);
+	gap: var(--second-header-gap);
+	padding: var(--second-header-padding);
+	background: var(--second-header-background);
+	border-bottom: var(--second-header-border-bottom);
+}
+
+/* 検索欄スロット: 残り幅いっぱいに広がる */
+.second-header-search {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.second-header-search .search-input-wrap {
+	width: 100%;
+}
+
+/* 並べ替えスロット: 内容幅のまま右側に置く */
+.second-header-sort {
+	display: flex;
+	flex: 0 0 auto;
+	align-items: center;
+	gap: var(--space-1);
+}

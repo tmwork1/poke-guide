@@ -48,7 +48,7 @@
 /* カード一覧の余白: .box-content（上下左右を共通の edge gap にする） */
 .box-content {
   position: fixed;
-  top: var(--app-header-height);
+  top: calc(var(--header-height) + var(--app-header-height) + var(--second-header-height));
   right: 0;
   bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom));
   left: 0;
@@ -56,6 +56,16 @@
   -webkit-overflow-scrolling: touch;
   padding: var(--box-app-header-gap);
   background: var(--box-page-content-background);
+}
+
+/* second-header(検索・並べ替え)とは別枠の絞り込み行: #box-filter-row
+   （件数バッジ・お気に入り・レギュレーション。一覧グリッドと一緒にスクロールする） */
+.box-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3) var(--space-5);
+  padding-bottom: var(--space-3);
 }
 
 /* 動的に描画するポケモンカードの差し込み先: #owned-pokemon-list */
