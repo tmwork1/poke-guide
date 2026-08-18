@@ -79,6 +79,20 @@
   align-items: center;
 }
 
+/* 戻るボタンの具体的なスタイル */
+.app-header-back {
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  font-size: inherit;
+  padding: 0;
+}
+
+.app-header-back:hover {
+  color: var(--app-header-item-hover-color);
+}
+
 /* 文字だけの横スクロール式タブ一覧 */
 .app-header__list {
   display: flex;
