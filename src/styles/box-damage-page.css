@@ -16,9 +16,7 @@
 
   /* ── 7. 余白 ────────────────────────── */
   --box-damage-panel-padding: var(--space-3) var(--space-3) 0; /* 画面端とダメージカードの間の余白。ダメージタブは常にタブ切替表示(data-mobile-tab="damage")のため画面幅を問わずこの値になる */
-  --box-damage-mobile-list-padding-bottom: calc(56px + var(--bottom-nav-height) + var(--space-4)); /* モバイル時に固定操作列へ隠れない一覧下余白 */
-  --box-damage-mobile-toolbar-inline-end: calc(var(--space-5) + var(--box-add-button-size, 60px) + var(--space-2)); /* モバイル時の操作列の右余白 */
-  --box-damage-mobile-toolbar-block-end: calc(var(--bottom-nav-height) + var(--space-4) + env(safe-area-inset-bottom)); /* モバイル時の操作列の下余白 */
+  --box-damage-mobile-list-padding-bottom: calc(56px + var(--bottom-nav-height) + var(--space-4)); /* モバイル時に浮いた追加ボタンへ隠れない一覧下余白 */
   --box-damage-rows-gap: var(--space-3); /* ダメージ計算カード同士の縦の間隔 */
   --box-damage-toolbar-gap: var(--space-2); /* 一括操作ボタン同士の間隔 */
   --box-damage-toolbar-margin-bottom: var(--space-2); /* 操作列とカード一覧の間隔 */
@@ -59,21 +57,14 @@
   display: none;
 }
 
+/* 操作列(耐久調整ボタン)を包むSecondHeader(second-header.css)。
+   ダメージタブは幅を問わず常に同じモバイルUIで表示されるため、
+   sticky・背景・下線ありの見た目を幅で分岐させない。 */
+#opponent-notes-section .damage-toolbar-header {
+  z-index: 16; /* .pokemon-preview(15)より前面、.app-header(20)より背面 */
+}
+
 @media (width <= 899px) {
-  #opponent-notes-section .damage-rows-toolbar {
-    position: fixed;
-    right: var(--box-damage-mobile-toolbar-inline-end);
-    bottom: var(--box-damage-mobile-toolbar-block-end);
-    z-index: 15;
-    flex-wrap: nowrap;
-    margin-bottom: 0;
-  }
-
-  #opponent-notes-section .damage-rows-toolbar #bulk-adjust-button {
-    flex: none;
-    width: auto;
-  }
-
   #opponent-notes-section .damage-rows-list {
     padding-bottom: var(--box-damage-mobile-list-padding-bottom);
   }
