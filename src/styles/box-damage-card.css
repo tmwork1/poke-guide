@@ -73,7 +73,7 @@ body.box-edit-page {
   --damage-card-delete-background: var(--color-surface); /* 削除ボタンの通常背景色 */
   --damage-card-delete-hover-background: var(--color-danger-strong); /* 削除ボタンへマウスを載せたときの背景色 */
   --damage-card-column-background: var(--color-surface); /* 技カードの背景色 */
-  --damage-card-add-button-background: var(--color-surface); /* 「技を追加」ボタンの背景色 */
+  --damage-card-add-button-background: transparent; /* 「技を追加」ボタンの背景色 */
   --damage-detail-icon-button-background: var(--color-bg); /* アイコンボタンの通常背景色 */
 
   /* ── 5. 枠線・角丸 ─────────────────────── */
@@ -94,6 +94,7 @@ body.box-edit-page {
   --damage-card-action-radius: 50%; /* 削除ボタンの角丸。50%で円になる */
   --damage-card-delete-border: 1px solid var(--color-border); /* 削除ボタンの通常枠線 */
   --damage-card-column-radius: var(--radius-zero); /* 技カードの角丸 */
+  --damage-card-add-button-border: 1px solid var(--color-border); /* 「技を追加」ボタンの枠線 */
   --damage-card-add-button-radius: var(--radius-zero); /* 「技を追加」ボタンの角丸 */
   --damage-card-footer-border: 1px solid var(--color-border); /* 保存状態欄の上線 */
   --damage-detail-section-heading-border: 1px solid var(--color-border); /* 詳細セクションを分ける上線 */
@@ -207,7 +208,7 @@ body.box-edit-page {
   --damage-gauge-safe-fill: color-mix(in srgb, var(--color-success-strong) 35%, var(--color-success-soft) 65%); /* 耐える範囲のゲージ色 */
 
   /* ── 7. 余白 ─────────────────────── */
-  --damage-column-detail-gap: var(--space-2); /* 技名と補助情報の間隔 */
+  --damage-column-detail-gap: var(--space-4); /* 技名と補助情報の間隔 */
   --damage-build-area-gap: .4rem; /* 相手画像と文字情報の間隔 */
   --damage-build-icon-gap: var(--space-1); /* 自分・相手アイコンと攻守矢印の間隔 */
   --damage-build-text-gap: var(--space-1); /* 相手名・特性・テラスタイプの間隔 */
@@ -312,7 +313,7 @@ body.box-edit-page {
   max-width: 100%;
   align-items: center;
   gap: var(--damage-card-readonly-field-gap);
-  display: inline-flex;
+  display: none;
 }
 
 #opponent-notes-section .damage-build-readonly-tera[hidden] {
@@ -1217,6 +1218,7 @@ body.box-edit-page {
   min-height: 0;
   font-size: var(--damage-card-add-button-font-size);
   background: var(--damage-card-add-button-background);
+  border: var(--damage-card-add-button-border);
   color: var(--damage-card-add-button-color);
   border-radius: var(--damage-card-add-button-radius);
   justify-content: center;
@@ -1806,11 +1808,6 @@ body.box-edit-page {
     order: 2;
   }
 
-  /* 防御計算では自分と相手の画像順を入れ替える */
-  #opponent-notes-section .card-damage[data-direction="defense"] .damage-sprite-box {
-    order: 1;
-  }
-
   /* 相手名・特性・テラスタイプを折り返す文字領域 */
   #opponent-notes-section .card-damage .damage-row-build-left {
     align-items: center;
@@ -1844,10 +1841,6 @@ body.box-edit-page {
     flex: none;
     order: 1;
     min-width: 0;
-  }
-
-  #opponent-notes-section .card-damage[data-direction="defense"] .damage-row-actions {
-    order: 2;
   }
 
   /* コンパクト表示では攻守スイッチを対面アイコンとして見せる */
