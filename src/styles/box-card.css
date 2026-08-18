@@ -110,8 +110,7 @@
   --box-card-name-text-align: left; /* 長さの異なるポケモン名の文字開始位置を左にそろえる */
   --box-card-content-justify-content: flex-start; /* 性格・努力値などの内容行を横方向の先頭から配置する */
   --box-card-content-align-items: flex-end; /* 内容行を縦方向の末尾に合わせ、カード下側へ寄せる */
-  --box-card-artwork-opacity: 0.1; /* ポケモン画像のグラデーション終端側の透け具合。下げるほど背景になじむ */
-  --box-card-artwork-gradient-slope: 100%; /* 透かし画像のマスクが終端の透明度へ達する位置 */
+  --box-card-artwork-opacity: 0.5; /* ポケモン画像全体の透け具合。下げるほど背景になじむ */
   --box-card-delete-transition-duration: 0.15s; /* 削除ボタンの表示・配色が切り替わるアニメーション時間 */
 
 }
@@ -183,9 +182,7 @@
   width: 100%;
   height: 100%;
   object-fit: contain;
-  opacity: 1;
-  mask-image: linear-gradient(to left, black 0%, rgba(0, 0, 0, var(--box-card-artwork-opacity)) var(--box-card-artwork-gradient-slope));
-  -webkit-mask-image: linear-gradient(to left, black 0%, rgba(0, 0, 0, var(--box-card-artwork-opacity)) var(--box-card-artwork-gradient-slope));
+  opacity: var(--box-card-artwork-opacity);
 }
 
 /* カード右上に縦並びする操作ボタン */
