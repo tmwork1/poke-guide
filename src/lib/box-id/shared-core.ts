@@ -40,7 +40,13 @@
 
 import { el, readEv, readMoveNames } from "../owned-pokemon-form";
 import type { PokemonSpec, SequenceAttack } from "../pyodide-engine";
-import { loadImageIdMap, loadBaseStatsMap, loadMegaStoneMap, spriteUrl } from "../pokemon-master-data";
+import {
+	loadImageIdMap,
+	loadBaseStatsMap,
+	loadMegaStoneMap,
+	championSpriteUrl,
+	officialArtworkUrl,
+} from "../pokemon-master-data";
 import { loadItemSpriteMap, itemIconUrl, teraTypeIconUrl } from "../sprite-urls";
 import { TYPE_COLORS, DEFAULT_TYPE_COLOR } from "../type-colors";
 import { type StatKey, STAT_KEYS, NATURE_STAT_MODIFIERS, calcHpStat, calcOtherStat } from "../stats";
@@ -179,12 +185,13 @@ export function flashAutofillHint(inputEl: HTMLInputElement, revertTitle: () => 
 	}, 1400);
 }
 
-// UI刷新: <img>にスプライトを表示し、取得できない場合は頭文字の丸バッジにフォールバックする。
+// UI刷新: <img>にPokémon Championsのメニューアイコンを表示する。取得できない場合は
+// 公式絵(officialArtworkUrl)にフォールバックし、それも取得できない場合は頭文字の
+// 丸バッジにフォールバックする(championSpriteUrlのコメント参照)。
 export async function applySprite(
 	imgEl: HTMLImageElement,
 	fallbackEl: HTMLElement,
 	name: string,
-	urlFn: (imageId: number) => string = spriteUrl,
 ): Promise<void> {
 	const imageId = name ? (await imageIdMapPromise).get(name) : undefined;
 	if (imageId == null) {
@@ -193,7 +200,13 @@ export async function applySprite(
 		fallbackEl.textContent = name ? name.charAt(0) : "?";
 		return;
 	}
+	let triedArtworkFallback = false;
 	imgEl.onerror = () => {
+		if (!triedArtworkFallback) {
+			triedArtworkFallback = true;
+			imgEl.src = officialArtworkUrl(imageId);
+			return;
+		}
 		imgEl.style.display = "none";
 		fallbackEl.style.display = "flex";
 		fallbackEl.textContent = name.charAt(0);
@@ -202,7 +215,7 @@ export async function applySprite(
 		imgEl.style.display = "";
 		fallbackEl.style.display = "none";
 	};
-	imgEl.src = urlFn(imageId);
+	imgEl.src = championSpriteUrl(imageId);
 }
 
 // UI刷新(Pokemon.png): テラスタイプ画像(select横)。呼び出し元は左パネルの読み取り専用画像

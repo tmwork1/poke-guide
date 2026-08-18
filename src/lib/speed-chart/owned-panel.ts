@@ -30,7 +30,7 @@ import {
 import { calcOtherStat, NATURE_STAT_MODIFIERS } from '../stats';
 import { validateSpeedChartApplyPayload } from '../speed-chart-validation';
 import type { OwnedPokemonRecord } from '../owned-pokemon';
-import { spriteUrl } from '../pokemon-master-data';
+import { championSpriteUrl, officialArtworkUrl } from '../pokemon-master-data';
 import { itemIconUrl } from '../sprite-urls';
 
 export const OWNED_CURRENT_VALUE_EVENT = 'speed-chart:owned-current-changed';
@@ -200,7 +200,11 @@ export function initOwnedPanel(ctx: OwnedPanelContext): OwnedPanelController {
     const spriteEl = document.getElementById(SUMMARY_SPRITE_ID) as HTMLImageElement | null;
     if (spriteEl) {
       if (ctx.spriteImageId != null) {
-        spriteEl.src = spriteUrl(ctx.spriteImageId);
+        spriteEl.src = championSpriteUrl(ctx.spriteImageId);
+        spriteEl.onerror = () => {
+          spriteEl.onerror = null;
+          spriteEl.src = officialArtworkUrl(ctx.spriteImageId!);
+        };
         spriteEl.hidden = false;
       } else {
         spriteEl.hidden = true;

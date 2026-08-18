@@ -15,7 +15,6 @@
 // #opponent-notes-section と常に同時にSSR描画されるため、ガードの共有は安全)。
 import { el, readEv } from "../owned-pokemon-form";
 import { bindModalDismissal } from "../modal-dismiss";
-import { spriteUrl } from "../pokemon-master-data";
 import { typeIconUrl } from "../sprite-urls";
 import { kanaIncludes } from "../kana";
 import {
@@ -200,7 +199,7 @@ function buildSelectionHeadingRow(row: DamageRowState): HTMLElement {
 	selfIcon.style.display = "none";
 	const selfIconFallback = document.createElement("span");
 	selfIconFallback.className = "damage-detail-selection-icon-fallback";
-	void applySprite(selfIcon, selfIconFallback, selfSpeciesName, spriteUrl);
+	void applySprite(selfIcon, selfIconFallback, selfSpeciesName);
 
 	const arrowNs = "http://www.w3.org/2000/svg";
 	const arrow = document.createElementNS(arrowNs, "svg");
@@ -224,7 +223,7 @@ function buildSelectionHeadingRow(row: DamageRowState): HTMLElement {
 	opponentIcon.style.display = "none";
 	const opponentIconFallback = document.createElement("span");
 	opponentIconFallback.className = "damage-detail-selection-icon-fallback";
-	void applySprite(opponentIcon, opponentIconFallback, row.name.trim(), spriteUrl);
+	void applySprite(opponentIcon, opponentIconFallback, row.name.trim());
 
 	const attackerLabel = isSelfAttacking ? selfName : opponentName;
 	const defenderLabel = isSelfAttacking ? opponentName : selfName;

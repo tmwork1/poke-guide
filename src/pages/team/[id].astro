@@ -2073,7 +2073,7 @@ try {
 		// 連続技のヒット数が必要なため loadMultiHitMoveMap を追加importする
 		// (Battle.calc_damages() は連続技でも1ヒットぶんしか返さないため。
 		// src/lib/pyodide-engine.ts の calcMaxDamageMatrix のコメント参照)。
-		import { loadImageIdMap, officialArtworkUrl, spriteUrl, loadBaseStatsMap, loadMoveDetailMap, loadMultiHitMoveMap, loadTypesMap } from "../../lib/pokemon-master-data";
+		import { loadImageIdMap, officialArtworkUrl, championSpriteUrl, loadBaseStatsMap, loadMoveDetailMap, loadMultiHitMoveMap, loadTypesMap } from "../../lib/pokemon-master-data";
 		// 技チップにタイプアイコンを追加するため、typeIconUrlを追加importする(box/index.astroの
 		// applyMoveChipTypeIconsと同じ用途)。
 		import { itemIconUrl, teraTypeIconUrl, typeIconUrl } from "../../lib/sprite-urls";
@@ -2374,7 +2374,6 @@ try {
 				imgEl: HTMLImageElement,
 				fallbackEl: HTMLElement,
 				name: string,
-				urlForImage: (imageId: number) => string = officialArtworkUrl,
 			): Promise<void> {
 				const imageId = name ? (await imageIdMapPromise).get(name) : undefined;
 				if (imageId == null) {
@@ -2383,7 +2382,13 @@ try {
 					fallbackEl.textContent = name ? name.charAt(0) : "?";
 					return;
 				}
+				let triedArtworkFallback = false;
 				imgEl.onerror = () => {
+					if (!triedArtworkFallback) {
+						triedArtworkFallback = true;
+						imgEl.src = officialArtworkUrl(imageId);
+						return;
+					}
 					imgEl.style.display = "none";
 					fallbackEl.style.display = "flex";
 					fallbackEl.textContent = name.charAt(0);
@@ -2392,7 +2397,7 @@ try {
 					imgEl.style.display = "";
 					fallbackEl.style.display = "none";
 				};
-				imgEl.src = urlForImage(imageId);
+				imgEl.src = championSpriteUrl(imageId);
 			}
 
 			// 持ち物アイコン(アイコン+名前、R-8)。アイコンが解決できない/読み込み失敗のときも
@@ -2533,7 +2538,7 @@ try {
 				spriteFallback.className = "team-damage-sprite-fallback";
 				spriteBox.append(spriteImg, spriteFallback);
 				// 右パネルのダメージ対象は公式画像ではなくドット絵で統一する。
-				void applySprite(spriteImg, spriteFallback, summary.opponentName, spriteUrl);
+				void applySprite(spriteImg, spriteFallback, summary.opponentName);
 				buildRow.appendChild(spriteBox);
 
 				const buildText = document.createElement("div");
@@ -2703,7 +2708,7 @@ try {
 				panelHeaderTitleEl.replaceChildren(titleSprite, titleText);
 				panelHeaderTitleEl.title = `${displayName(p)} のダメージ計算`;
 				// ダメージ計算の見出しもカードと同じドット絵を使う。
-				void applySprite(titleSpriteImg, titleSpriteFallback, p.species_name, spriteUrl);
+				void applySprite(titleSpriteImg, titleSpriteFallback, p.species_name);
 
 				const statusEl = document.createElement("p");
 				statusEl.className = "team-damage-status";
@@ -2923,7 +2928,7 @@ try {
 				spriteFallback.className = "team-suggest-sprite-fallback";
 				spriteEl.append(spriteImg, spriteFallback);
 				// おすすめポケモンは公式画像ではなくドット絵で表示する。
-				void applySprite(spriteImg, spriteFallback, suggestion.speciesName, spriteUrl);
+				void applySprite(spriteImg, spriteFallback, suggestion.speciesName);
 				const nameEl = document.createElement("span");
 				nameEl.className = "team-suggest-name";
 				nameEl.textContent = suggestion.speciesName;
@@ -4375,7 +4380,7 @@ try {
 				spriteFallback.className = "select-row-sprite-fallback";
 				artEl.append(spriteImg, spriteFallback);
 				// 左候補だけは情報密度を優先し、URL生成をドット絵へ差し替える。
-				void applySprite(spriteImg, spriteFallback, p.species_name, spriteUrl);
+				void applySprite(spriteImg, spriteFallback, p.species_name);
 
 				const bodyEl = document.createElement("span");
 				bodyEl.className = "select-row-body";

@@ -2,6 +2,7 @@ import {
 	loadBaseStatsMap,
 	loadImageIdMap,
 	loadMoveTypeMap,
+	championSpriteUrl,
 	officialArtworkUrl,
 } from "./pokemon-master-data";
 import { itemIconUrl } from "./sprite-urls";
@@ -67,7 +68,8 @@ export function ownedPokemonDisplayName(pokemon: OwnedPokemonDisplayNameSource):
 	return "(未設定)";
 }
 
-// UI刷新: カード内の公式絵。取得できない場合は画像を未設定のままにする。
+// UI刷新: カード内のChampionsメニューアイコン。取得できない場合は公式絵にフォールバックし、
+// それも取得できない場合は未設定のままにする(shared-core.tsのapplySprite参照)。
 // 初期display:noneのままloading="lazy"を付けると、画面外扱いでfetch自体が行われず
 // onloadが永久に発火しない(過去に踏んだ不具合、box/[id].astroのapplySprite参照)。
 async function applyCardArtwork(
@@ -78,7 +80,16 @@ async function applyCardArtwork(
 	const imageId = name ? (await imageIdMapPromise).get(name) : undefined;
 	if (imageId == null) return;
 	artwork.hidden = false;
-	imgEl.src = officialArtworkUrl(imageId);
+	let triedArtworkFallback = false;
+	imgEl.onerror = () => {
+		if (!triedArtworkFallback) {
+			triedArtworkFallback = true;
+			imgEl.src = officialArtworkUrl(imageId);
+			return;
+		}
+		artwork.hidden = true;
+	};
+	imgEl.src = championSpriteUrl(imageId);
 }
 
 // 公式絵に重ねる持ち物バッジ。アイテム名が空/画像読み込みに失敗した場合はバッジごと隠す

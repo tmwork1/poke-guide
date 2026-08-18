@@ -32,7 +32,7 @@ function loadMasterMap(): Promise<Map<string, PokemonMasterEntry>> {
   return masterCache;
 }
 
-// 画像取得(spriteUrl/officialArtworkUrl)専用のIDマップ。dexNoではなくimageIdを返す
+// 画像取得(championSpriteUrl/officialArtworkUrl)専用のIDマップ。dexNoではなくimageIdを返す
 // (メガシンカ等の特殊フォルムをベース種族の画像にしないため)。
 export async function loadImageIdMap(): Promise<Map<string, number>> {
   const master = await loadMasterMap();
@@ -44,16 +44,6 @@ export async function loadTypesMap(): Promise<Map<string, string[]>> {
   return new Map([...master].map(([name, entry]) => [name, entry.types]));
 }
 
-// ドット絵は public/pokemon-sprites/{imageId}.png に事前ダウンロードした画像を同一オリジンから
-// 配信する(生成: scripts/pokemon-sprites/generate_pokemon_sprites.py。item-icons/type-icons と
-// 同じ「生成済み画像を事前コミットする」方式)。PokeAPIの別オリジン参照から変更したのは、
-// 上流の Cache-Control が max-age=300(5分)で、キャッシュコストが転送量ではなくDNS+TCP+TLS確立、
-// ブラウザのHTTPキャッシュがトップレベルサイト単位で分割されているため。
-// 詳細は docs/plan/pokemon-sprites-localization.md を参照。
-export function spriteUrl(imageId: number): string {
-  return `/pokemon-sprites/${imageId}.png`;
-}
-
 // Pokemon.png ワイヤーフレームの「ポケモンアイコン(公式絵)」用。
 // ドット絵と同じく public/pokemon-artwork/ から同一オリジンで配信するが、こちらは原画をそのまま
 // 置いていない。原画は475x475/平均145.8KBで1284件=178.6MBになり、gitにもデプロイにも載らない。
@@ -61,6 +51,17 @@ export function spriteUrl(imageId: number): string {
 // (生成: scripts/pokemon-artwork/generate_pokemon_artwork.py。約1/8の22.6MB)。
 export function officialArtworkUrl(imageId: number): string {
   return `/pokemon-artwork/${imageId}.webp`;
+}
+
+// Pokémon Champions公式のメニュー用アイコン(bulbagarden archives の
+// Category:Champions_menu_sprites)。public/pokemon-champion-sprites/ から同一オリジンで配信する
+// (生成: scripts/pokemon-champion-sprites/generate_pokemon_champion_sprites.py)。
+// bulbagarden側はChampionsに現在実装済みのポケモン/フォルムしか提供していないため、
+// 存在しないimageIdがある(2026-08時点で1284件中316件のみ)。呼び出し側はこの画像が
+// 取得できない場合、officialArtworkUrl() → 頭文字バッジの順にフォールバックすること
+// (shared-core.tsのapplySprite・box-pokemon-card.tsのapplyCardArtwork参照)。
+export function championSpriteUrl(imageId: number): string {
+  return `/pokemon-champion-sprites/${imageId}.png`;
 }
 
 interface PokemonDetailEntry {

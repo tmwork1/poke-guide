@@ -35,7 +35,6 @@ import type {
 import {
 	loadMultiHitMoveMap,
 	loadAbilitiesMap,
-	spriteUrl,
 } from "../pokemon-master-data";
 import { type StatKey, STAT_KEYS, NATURE_STAT_MODIFIERS, calcHpStat, calcOtherStat } from "../stats";
 import { TERA_TYPES } from "../tera-types";
@@ -2192,7 +2191,7 @@ if (opponentNotesSection) {
 			image.style.display = "none";
 			const fallback = document.createElement("span");
 			fallback.className = "damage-direction-self-fallback";
-			void applySprite(image, fallback, selfSpeciesName, spriteUrl);
+			void applySprite(image, fallback, selfSpeciesName);
 			badge.append(image, fallback);
 			return badge;
 		}
@@ -2363,7 +2362,6 @@ if (opponentNotesSection) {
 				spriteImg,
 				spriteFallback,
 				row.name.trim(),
-				spriteUrl,
 			);
 		}
 		rowSpriteRefreshers.set(row, refreshSprite);

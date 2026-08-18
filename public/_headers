@@ -17,7 +17,7 @@
 # リクエストが0本になり、5分との比較では利得をほぼ取り切れる。
 # (Astro が出力する /_astro/ 配下のハッシュ付きアセットはビルド側で扱われるのでここでは触らない)
 
-/pokemon-sprites/*
+/pokemon-champion-sprites/*
   Cache-Control: public, max-age=2592000
 
 /pokemon-artwork/*

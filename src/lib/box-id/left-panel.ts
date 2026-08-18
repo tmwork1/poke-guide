@@ -20,7 +20,6 @@ import {
 	loadMoveTypeMap,
 	loadLearnsetMap,
 	loadAbilitiesMap,
-	officialArtworkUrl,
 	loadMoveDetailMap,
 	type MoveDetail,
 	type MoveCategory,
@@ -625,7 +624,7 @@ if (form) {
 	// 「図鑑で見る」リンクは要件により廃止(種族名の変更に追随するのは画像と種族値のみ)。
 	function updateSpeciesDisplay(): void {
 		const name = speciesInput.value.trim();
-		void applySprite(speciesSpriteImg, speciesSpriteFallback, name, officialArtworkUrl);
+		void applySprite(speciesSpriteImg, speciesSpriteFallback, name);
 		void applyTypeBadge(speciesTypeBadge, name);
 		void applyBaseStats(name);
 		void rebuildMoveListForSpecies(name);

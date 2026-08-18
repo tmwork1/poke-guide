@@ -38,7 +38,7 @@ import {
   type SpeedModifiersData,
   type SpeedSpreadKind,
 } from '../speed-chart';
-import { spriteUrl } from '../pokemon-master-data';
+import { championSpriteUrl, officialArtworkUrl } from '../pokemon-master-data';
 import {
   initOwnedPanel,
   OWNED_CURRENT_VALUE_EVENT,
@@ -1041,7 +1041,11 @@ function buildChip(formName: string, imageIdByName: Map<string, number>): HTMLEl
   if (imageId) {
     const img = document.createElement('img');
     img.className = 'sprite-icon speed-chart-chip-icon';
-    img.src = spriteUrl(imageId);
+    img.src = championSpriteUrl(imageId);
+    img.onerror = () => {
+      img.onerror = null;
+      img.src = officialArtworkUrl(imageId);
+    };
     img.alt = '';
     img.loading = 'lazy';
     chip.appendChild(img);

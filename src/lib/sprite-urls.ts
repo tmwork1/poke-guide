@@ -2,7 +2,7 @@
 // URLの組み立て規則は vendor/jpoke/src/jpoke/utils/pokeapi.py (get_item_image_url /
 // get_type_image_url / get_tera_type_image_url) を参照実装とし、同じ流儀に揃えている
 // (画像は https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/... を
-// 実行時に参照する方式。pokemon-master-data.ts の spriteUrl/officialArtworkUrl と同様)。
+// 実行時に参照する方式。pokemon-master-data.ts の officialArtworkUrl と同様)。
 
 const SPRITES_BASE = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites";
 

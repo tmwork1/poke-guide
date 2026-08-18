@@ -18,7 +18,7 @@ import pokemonMasterRaw from '../../../public/master-data/autocomplete/pokemon.j
 // moves/[name].astro の getStaticPaths() は detail/moves.json (Object.values) をそのまま
 // パス生成に使っているため、同じソースから作ったSetで存在確認すれば、リンク切れ・404遷移を
 // 作らずに済む(存在しない技名は素のテキストのままにする)。
-import { officialArtworkUrl } from '../../lib/pokemon-master-data';
+import { championSpriteUrl, officialArtworkUrl } from '../../lib/pokemon-master-data';
 import { typeIconUrl } from '../../lib/sprite-urls';
 import '../../styles/share-page.css';
 // 4箇所にコピーされていたchmpToLegacyEffort/calcHpStat/calcOtherStat/NATURE_STAT_MODIFIERSを
@@ -116,7 +116,8 @@ if (pokemon) {
 // 起きているため、<img>単体ではなく右カラムのラッパーごと隠す(下のテンプレート側で
 // masterEntry の有無だけを条件にする)。
 const masterEntry = pokemon ? pokemonMasterMap.get(pokemon.species_name) ?? null : null;
-const artworkUrl = masterEntry ? officialArtworkUrl(masterEntry.imageId) : null;
+const artworkUrl = masterEntry ? championSpriteUrl(masterEntry.imageId) : null;
+const artworkFallbackUrl = masterEntry ? officialArtworkUrl(masterEntry.imageId) : null;
 
 // baseStatsMap は /pokemon/[name].astro の getStaticPaths() と同じ detail/pokemon.json 由来なので、
 // ここに無い名前は静的パスも生成されておらず、リンクにすると必ず404になる。
@@ -168,7 +169,7 @@ const description = pokemon
 							</dl>
 							{masterEntry && (
 								<div class="share-identity-media">
-									{artworkUrl && <img src={artworkUrl} width="160" height="160" alt="" />}
+									{artworkUrl && <img src={artworkUrl} onerror={artworkFallbackUrl ? `this.onerror=null;this.src='${artworkFallbackUrl}';` : undefined} width="160" height="160" alt="" />}
 									{masterEntry.types.length > 0 && (
 										<ul class="share-identity-type-list">
 											{masterEntry.types.map((t) => {

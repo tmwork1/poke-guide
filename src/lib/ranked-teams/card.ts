@@ -1,5 +1,5 @@
 import type { RankedTeam } from '../ranked-teams';
-import { officialArtworkUrl } from '../pokemon-master-data';
+import { championSpriteUrl, officialArtworkUrl } from '../pokemon-master-data';
 import { itemIconUrl, typeIconUrl } from '../sprite-urls';
 import { renderTeamCard } from '../team-card';
 
@@ -89,7 +89,17 @@ export function renderRankedTeamCard(
     const imageWrap = element('span', 'ranked-team-image-wrap');
     if (imageId !== undefined) {
       const image = element('img', 'ranked-team-pokemon-image');
-      image.src = officialArtworkUrl(imageId);
+      let triedArtworkFallback = false;
+      image.onerror = () => {
+        if (!triedArtworkFallback) {
+          triedArtworkFallback = true;
+          image.src = officialArtworkUrl(imageId);
+          return;
+        }
+        image.remove();
+        imageWrap.append(element('span', 'ranked-team-image-fallback', displayName.charAt(0) || '?'));
+      };
+      image.src = championSpriteUrl(imageId);
       image.alt = displayName;
       image.loading = 'lazy';
       image.decoding = 'async';

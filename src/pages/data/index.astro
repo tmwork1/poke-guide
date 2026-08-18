@@ -7,7 +7,7 @@ import { hasSingleBattleData, type SingleFormatData } from '../../lib/battle-dat
 import { listRankedSeasons } from '../../lib/ranked-teams';
 import { resolveDefaultSeason } from '../../lib/ranked-teams-validation';
 import { getSupabasePublicClient } from '../../lib/supabase';
-import { spriteUrl } from '../../lib/pokemon-master-data';
+import { championSpriteUrl, officialArtworkUrl } from '../../lib/pokemon-master-data';
 import { DATA_HUB_TABS } from '../../lib/data-hub-tabs';
 import pokemonMasterRaw from '../../../public/master-data/autocomplete/pokemon.json';
 import seasonManifest from '../../../data/opgg-champions-usage/seasons.json';
@@ -117,7 +117,7 @@ if (seasonEntry && seasonIndex?.pokemon) {
 								<article class="battle-data-entry" id={entry.elementId} data-battle-data-entry data-species-name={entry.name}>
 									<header class="battle-data-entry-header">
 										<span class="battle-data-entry-rank">{entry.rank}</span>
-										{entry.imageId !== null && <img class="battle-data-entry-icon" src={spriteUrl(entry.imageId)} alt="" loading="lazy" />}
+										{entry.imageId !== null && <img class="battle-data-entry-icon" src={championSpriteUrl(entry.imageId)} onerror={`this.onerror=null;this.src='${officialArtworkUrl(entry.imageId)}';`} alt="" loading="lazy" />}
 										<span class="battle-data-entry-name">{entry.name}</span>
 									</header>
 									<BattleDataCard single={entry.single} />
@@ -127,7 +127,7 @@ if (seasonEntry && seasonIndex?.pokemon) {
 						<nav class="battle-data-rail" aria-label="ポケモン一覧へジャンプ">
 							{entries.map((entry) => (
 								<a class="battle-data-rail-item" href={`#${entry.elementId}`} data-battle-data-rail-item data-species-name={entry.name} aria-label={entry.name}>
-									{entry.imageId !== null && <img src={spriteUrl(entry.imageId)} alt="" loading="lazy" />}
+									{entry.imageId !== null && <img src={championSpriteUrl(entry.imageId)} onerror={`this.onerror=null;this.src='${officialArtworkUrl(entry.imageId)}';`} alt="" loading="lazy" />}
 								</a>
 							))}
 						</nav>

@@ -3,7 +3,7 @@ import type { OwnedPokemonRecord } from '../../lib/owned-pokemon';
 import pokemonMasterRaw from '../../../public/master-data/autocomplete/pokemon.json';
 import pokemonDetailRaw from '../../../public/master-data/detail/pokemon.json';
 import { NATURE_STAT_MODIFIERS, calcHpStat, calcOtherStat, type StatKey } from '../../lib/stats';
-import { officialArtworkUrl } from '../../lib/pokemon-master-data';
+import { championSpriteUrl, officialArtworkUrl } from '../../lib/pokemon-master-data';
 import '../../styles/box-pokemon-preview.css';
 
 interface Props {
@@ -72,7 +72,7 @@ const previewStats = detail ? statKeys.map((key, index) => index === 0 ? calcHpS
     </div>
     <div class="pokemon-preview-identity">
       <div class="pokemon-preview-sprite-wrap">
-        <img id="pokemon-preview-species-sprite" src={master ? officialArtworkUrl(master.imageId) : undefined} alt={pokemon.species_name} style={master ? undefined : 'display:none;'} />
+        <img id="pokemon-preview-species-sprite" src={master ? championSpriteUrl(master.imageId) : undefined} onerror={master ? `this.onerror=null;this.src='${officialArtworkUrl(master.imageId)}';` : undefined} alt={pokemon.species_name} style={master ? undefined : 'display:none;'} />
         <span id="pokemon-preview-species-sprite-fallback" style={master ? 'display:none;' : undefined}>{pokemon.species_name.slice(0, 1)}</span>
       </div>
     </div>
