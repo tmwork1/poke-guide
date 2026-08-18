@@ -1,4 +1,4 @@
----
+﻿---
 // チーム編集ページ(docs/plan/pages/team.md「確定した設計 > 画面 > /team/[id](編集)」)。
 // 初期表示データは box/[id].astro と同じ方針で、API経由のfetchではなくAstroのフロントマター
 // (SSR)で src/lib/team.ts の getTeam() を直接呼び出す(初期表示が速く、「生のSupabaseクエリは
@@ -8,7 +8,8 @@
 // メッセージを表示するのみで、強制リダイレクトはしない(box/[id].astroと同じ既存方針)。
 export const prerender = false;
 
-import AppLayout from '../../layouts/AppLayout.astro';
+
+import SecondBar from '../../components/SecondBar.astro';
 import { getSupabaseAdminClient, getSupabasePublicClient } from '../../lib/supabase';
 import { getTeam, type Team } from '../../lib/team';
 import { listRankedSeasons } from '../../lib/ranked-teams';
@@ -98,20 +99,14 @@ try {
 ---
 <AppLayout title={pageTitle} current="team" hideTopbar={true} bodyClass={bodyClass}>
 	{team && (
-		<nav class="second-bar" aria-label="チーム編集メニュー">
-			<button type="button" class="second-bar__back app-topbar-back" aria-label="戻る" onclick="history.back()">
-				<svg class="app-topbar-back-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-					<path d="M9 14 4 9l5-5" />
-					<path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11" />
-				</svg>
-			</button>
+		<SecondBar ariaLabel="チーム編集メニュー">
 			<div class="second-bar__list">
 				<button type="button" class="second-bar__item" data-mobile-tab="pokemon" data-active="true" aria-current="page"><span>ポケモン</span></button>
 				<button type="button" class="second-bar__item" data-mobile-tab="formation"><span>編成</span></button>
 				<button type="button" class="second-bar__item" data-mobile-tab="data"><span>類似構築</span></button>
 				<button type="button" class="second-bar__item" data-mobile-tab="matchup"><span>相性</span></button>
 			</div>
-		</nav>
+		</SecondBar>
 	)}
 	{/* #autosave-status/#autosave-status-textのid・DOM自体は<script>のel()参照
 	    (見つからないとthrowしてJS初期化が止まる)のため残し、テキストだけを下の<style>で
