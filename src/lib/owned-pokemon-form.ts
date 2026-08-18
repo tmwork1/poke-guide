@@ -69,19 +69,6 @@ function replaceDatalistOptions(datalist: HTMLDataListElement, names: readonly s
   datalist.replaceChildren(fragment);
 }
 
-export function reorderPokemonDatalistByUsage(regulation?: string): void {
-  if (!pokemonNamesInPhysicalOrder) return;
-  const usageByRegulation = readSpeciesUsageData();
-  // This module is shared by pages without the box-specific SSR payload.
-  if (usageByRegulation === null) return;
-  const regulationKey = regulation ?? (document.getElementById('regulation') as HTMLSelectElement | null)?.value ?? '';
-  const usage = usageByRegulation[regulationKey.trim()] ?? {};
-  replaceDatalistOptions(
-    el<HTMLDataListElement>('pokemon-list'),
-    sortPokemonNamesByUsage(pokemonNamesInPhysicalOrder, usage),
-  );
-}
-
 async function fillDatalist(res: Response, datalistId: string): Promise<void> {
   const list = (await res.json()) as Array<{ name: string }>;
   const datalist = el<HTMLDataListElement>(datalistId);

@@ -10,7 +10,6 @@
 import {
 	el,
 	loadAutocomplete,
-	reorderPokemonDatalistByUsage,
 	readEv,
 	readMoveNames,
 } from "../owned-pokemon-form";
@@ -25,7 +24,6 @@ import {
 	type MoveCategory,
 } from "../pokemon-master-data";
 import { typeIconUrl, teraTypeIconUrl } from "../sprite-urls";
-import { isTerastalRegulation } from "../regulations";
 import { TYPE_COLORS, DEFAULT_TYPE_COLOR } from "../type-colors";
 import { type StatKey, STAT_KEYS, NATURE_STAT_MODIFIERS } from "../stats";
 import { kanaIncludes } from "../kana";
@@ -876,14 +874,6 @@ if (form) {
 		window.setTimeout(() => itemDropdownButton.classList.remove("is-autofilled"), 1400);
 		setItemLocked(true);
 	}
-	const regulationSelect = el<HTMLSelectElement>("regulation");
-	const teraField = document.getElementById("tera-field");
-
-	function currentRegulation(): string | null {
-		const value = regulationSelect.value.trim();
-		return value === "" ? null : value;
-	}
-
 	function currentArchetype(): ArchetypeKey | null {
 		// IV=31・Lv50は本アプリの育成ルール。現在の編集値を分類器へそのまま渡す。
 		return classifyArchetype({
@@ -897,7 +887,8 @@ if (form) {
 	}
 
 	function reloadPopularBuildSuggestions(): void {
-		void loadPopularBuildSuggestions(speciesInput.value.trim(), currentRegulation(), currentArchetype());
+		// レギュレーション属性の廃止により母集団は常に横断(未指定)扱いになる。
+		void loadPopularBuildSuggestions(speciesInput.value.trim(), null, currentArchetype());
 	}
 	let suggestionReloadTimer: ReturnType<typeof setTimeout> | undefined;
 	function schedulePopularBuildSuggestionsReload(): void {
@@ -905,28 +896,6 @@ if (form) {
 		if (suggestionReloadTimer) clearTimeout(suggestionReloadTimer);
 		suggestionReloadTimer = setTimeout(reloadPopularBuildSuggestions, 200);
 	}
-
-	function syncTeraFieldVisibility(): void {
-		if (!teraField) return;
-		teraField.hidden = !isTerastalRegulation(currentRegulation());
-	}
-
-	// ②: <select> には :placeholder-shown が無いため、空のときだけ data-empty を付ける。
-	function syncRegulationPlaceholder(): void {
-		if (currentRegulation() === null) regulationSelect.dataset.empty = "true";
-		else delete regulationSelect.dataset.empty;
-	}
-
-	regulationSelect.addEventListener("change", () => {
-		syncTeraFieldVisibility();
-		syncRegulationPlaceholder();
-		reorderPokemonDatalistByUsage(regulationSelect.value);
-		// ③: レギュレーションが変わると人気度の母集団そのものが変わるため取り直す。
-		reloadPopularBuildSuggestions();
-	});
-	// ページ初期表示時にも1回そろえる(SSRと同じ結果になるはずだが、二重管理にしない)。
-	syncTeraFieldVisibility();
-	syncRegulationPlaceholder();
 
 	speciesInput.addEventListener("change", () => {
 		void rebuildAbilityOptions(speciesInput.value.trim());
@@ -1091,8 +1060,6 @@ if (form) {
 			return [];
 		}
 	})();
-	const preservedIsPinned = form.dataset.pinned === "true";
-
 	function buildPayload() {
 		return {
 			nickname: el<HTMLInputElement>("nickname").value.trim(),
@@ -1102,13 +1069,11 @@ if (form) {
 			ability_name: el<HTMLSelectElement>("ability").value.trim(),
 			item_name: el<HTMLInputElement>("item").value.trim(),
 			tera_type: el<HTMLSelectElement>("tera").value,
-			regulation: el<HTMLSelectElement>("regulation").value,
 			evs: STAT_KEYS.map((k) => readEv(k)),
 			ivs: STAT_KEYS.map(() => 31),
 			move_names: readMoveNames(),
 			memo: el<HTMLTextAreaElement>("memo").value.trim(),
 			tags: preservedTags,
-			is_pinned: preservedIsPinned,
 		};
 	}
 
@@ -1226,7 +1191,7 @@ if (form) {
 	for (const id of ["item", ...STAT_KEYS.map((k) => `ev-${k}`), "move-1", "move-2", "move-3", "move-4"]) {
 		document.getElementById(id)?.addEventListener("input", schedulePopularBuildSuggestionsReload);
 	}
-	const changeInputIds = ["tera", "ability", "regulation"];
+	const changeInputIds = ["tera", "ability"];
 	for (const id of changeInputIds) {
 		const target = document.getElementById(id);
 		if (!target) continue;

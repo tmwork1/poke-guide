@@ -7,18 +7,12 @@
 // 副作用importする(共有コア関数は src/lib/box-id/shared-core.ts 経由で left-panel.ts が使う)。
 import type { OwnedPokemonRecord } from '../../lib/owned-pokemon';
 import { TERA_TYPES } from '../../lib/tera-types';
-import { REGULATIONS_NEWEST_FIRST, REGULATION_PLACEHOLDER, isTerastalRegulation } from '../../lib/regulations';
 import '../../styles/move-picker-dialog.css';
 
 interface Props {
 	pokemon: OwnedPokemonRecord;
 }
 const { pokemon } = Astro.props;
-
-// SSR時点の初期表示をここで決め、以後の切り替えは #regulation の change ハンドラ
-// (src/lib/box-id/left-panel.ts の syncTeraFieldVisibility)が担う。
-// 非表示にしても tera_type の保存値には触れない(M-* を選んで戻せば元の値が復帰する)。
-const showTeraField = isTerastalRegulation(pokemon.regulation);
 
 // 能力値ラベルは全角表記(「素早さ」等)だとラベル列(最大幅)がスライダー列(最狭・操作対象)を
 // 圧迫するため、表示上はH/A/B/C/D/Sの1文字表記に統一する(相手ビルド箱・/box一覧の
@@ -44,7 +38,6 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	data-id={pokemon.id}
 	data-level={pokemon.level ?? ""}
 	data-tags={JSON.stringify(pokemon.tags)}
-	data-pinned={String(pokemon.is_pinned)}
 	data-nature={pokemon.nature ?? ""}
 >
 	<section class="panel panel-left">
@@ -114,38 +107,6 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 				<div class="field">
 					<input id="nickname" class="field-control" type="text" autocomplete="off" placeholder="ニックネーム" aria-label="ニックネーム" value={pokemon.nickname ?? ""} />
 				</div>
-				<div class="field">
-					<select id="regulation" class="field-control" aria-label="レギュレーション" data-empty={pokemon.regulation ? undefined : "true"}>
-						<option value="">{REGULATION_PLACEHOLDER}</option>
-						{REGULATIONS_NEWEST_FIRST.map((r) => <option value={r} selected={pokemon.regulation === r}>{r}</option>)}
-					</select>
-				</div>
-				<div class="field field-tera" id="tera-field" hidden={!showTeraField}>
-					<div class="field-with-image tera-dropdown-wrap">
-						<select id="tera" aria-label="テラスタイプ" title="テラスタイプ" hidden>
-							<option value="">テラスタルなし</option>
-							{TERA_TYPES.map((t) => <option value={t} selected={pokemon.tera_type === t}>{t}</option>)}
-						</select>
-						<button
-							type="button"
-							id="tera-dropdown-button"
-							class="tera-dropdown-button"
-							aria-haspopup="listbox"
-							aria-expanded="false"
-						>
-							<img id="tera-dropdown-image" class="tera-dropdown-image" alt="" style="display:none;" />
-							<span id="tera-dropdown-placeholder" class="tera-dropdown-placeholder">テラスタルなし</span>
-						</button>
-						<ul
-							id="tera-dropdown-list"
-							class="tera-dropdown-list"
-							role="listbox"
-							aria-label="テラスタイプを選択"
-							hidden
-						>
-						</ul>
-					</div>
-				</div>
 				<div class="field field-ability">
 					<select id="ability" class="field-control" aria-label="特性" title={pokemon.ability_name ?? ""}>
 						<option value={pokemon.ability_name ?? ""} selected>{pokemon.ability_name || "特性"}</option>
@@ -181,6 +142,35 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 							>
 							</ul>
 						</div>
+					</div>
+				</div>
+				{/* テラスタルは特性の下に配置する(特性=行2左列のため、DOM順でここに置けば
+				    2列グリッドの次のセル=行3左列に自然と収まる)。以前はレギュレーションで
+				    対応世代を判定して隠していたが、レギュレーション属性の廃止に伴い常時表示する。 */}
+				<div class="field field-tera" id="tera-field">
+					<div class="field-with-image tera-dropdown-wrap">
+						<select id="tera" aria-label="テラスタイプ" title="テラスタイプ" hidden>
+							<option value="">テラスタルなし</option>
+							{TERA_TYPES.map((t) => <option value={t} selected={pokemon.tera_type === t}>{t}</option>)}
+						</select>
+						<button
+							type="button"
+							id="tera-dropdown-button"
+							class="tera-dropdown-button"
+							aria-haspopup="listbox"
+							aria-expanded="false"
+						>
+							<img id="tera-dropdown-image" class="tera-dropdown-image" alt="" style="display:none;" />
+							<span id="tera-dropdown-placeholder" class="tera-dropdown-placeholder">テラスタルなし</span>
+						</button>
+						<ul
+							id="tera-dropdown-list"
+							class="tera-dropdown-list"
+							role="listbox"
+							aria-label="テラスタイプを選択"
+							hidden
+						>
+						</ul>
 					</div>
 				</div>
 			</div>
@@ -228,6 +218,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		<div class="stat-adjustment-section">
 			<div class="stat-table">
 			<div class="stat-table-header">
+				<span class="stat-table-header-label" aria-hidden="true"></span>
 				<span class="stat-table-header-nature">
 					<span
 						id="nature-readout-value"
@@ -237,21 +228,21 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 				<span>種族値</span>
 				<span class="stat-table-header-ev-label">
 					努力値
-				</span>
-				<span class="stat-table-header-ev-remaining">
-					<span id="ev-remaining" class="ev-remaining tnum"></span>
+					<span class="stat-table-header-ev-remaining">
+						<span id="ev-remaining" class="ev-remaining tnum"></span>
+					</span>
 				</span>
 				<span class="stat-table-header-real-label">実数値</span>
 			</div>
 			{STAT_LABELS.map(({ key, label: statLabel, short: statShort }, i) => (
 				<div class="stat-row">
+					<span id={`nature-label-${key}`} class="stat-row-label" aria-label={statLabel} title={statLabel}>
+						{statShort}
+					</span>
 					{key === "hp" ? (
-						<span class="stat-row-label" aria-label={statLabel} title={statLabel}>
-							{statShort}
-						</span>
+						<span class="stat-row-nature" aria-hidden="true"></span>
 					) : (
-						<span class="stat-row-label" aria-label={statLabel} title={statLabel}>
-							<span id={`nature-label-${key}`} class="stat-row-label-short">{statShort}</span>
+						<span class="stat-row-nature">
 							<button
 								type="button"
 								id={`nature-up-${key}`}
@@ -395,8 +386,14 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		margin-bottom: var(--stat-header-margin-bottom);
 		border-bottom: 1px solid var(--color-border);
 	}
-	.stat-table-header-ev-remaining {
-		text-align: center;
+	/* 「努力値」ラベルと「残りN」カウンターは、EV列(努力値の実際の操作UIと同じ1列)に
+	   一緒に収める。列を分けていた頃の名残でクラス名にev-labelが残るが、実体は
+	   このヘッダーセル1つで努力値列全体を表す。 */
+	.stat-table-header-ev-label {
+		display: flex;
+		align-items: baseline;
+		justify-content: center;
+		gap: 0.35em;
 	}
 	.stat-table-header-real-label {
 		overflow: hidden;
@@ -413,7 +410,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		text-overflow: ellipsis;
 		white-space: nowrap;
 	}
-	.stat-table-header > span:not(.stat-table-header-ev-remaining) { text-align: center; }
+	.stat-table-header > span { text-align: center; }
 	.ev-remaining {
 		font-size: var(--font-size-sm3);
 		font-weight: 400;
@@ -463,7 +460,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	@media (min-width: 0) {
 		.stat-row .stat-ev-range-controls input[type="range"] { display: none; }
 		.stat-row .stat-ev-step-button { display: inline-flex; }
-		.stat-row .stat-input-controls { display: flex; align-items: center; justify-content: flex-end; gap: var(--space-1); min-width: 0; grid-column: 3 / 5; }
+		.stat-row .stat-input-controls { display: flex; align-items: center; justify-content: flex-end; gap: var(--space-1); min-width: 0; grid-column: 4; }
 		.stat-row .stat-ev-range-controls { display: contents; }
 		.stat-row .stat-ev-step-button[data-ev-step="-1"] { order: 2; }
 		/* 基底の .stat-row input[type="number"] は width:100% なので、flex行に置くと
@@ -501,7 +498,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	}
 	.stat-ev-toggle-spacer { display: none; }
 	/* 努力値の数値入力も左パネル用の詰めた寸法に揃える(6行あるので効き方が大きい)。 */
-	.stat-row input[type="number"] { font-size: var(--font-size-sm1); padding: 0.3em 0.5em; width: 100%; text-align: center; }
+	.stat-row input[type="number"] { font-size: var(--font-size-sm1); padding: 0.3em 0.5em; width: 100%; text-align: right; }
 	.stat-row input[type="range"] { width: 100%; }
 	.stat-row input[type="range"]:focus {
 		outline: none;
@@ -512,11 +509,15 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	.stat-row input[type="range"]:focus-visible::-moz-range-thumb {
 		outline: none;
 	}
-	/* 色トークンは維持し、ラベルだけ既存ウェイトの次段階へ上げて読みやすくする。 */
-	.stat-row-label { font-weight: var(--stat-label-font-weight); white-space: nowrap; display: flex; align-items: center; justify-content: center; gap: var(--stat-row-label-gap); line-height: var(--stat-row-label-line-height); }
-	.stat-row-label-short { margin-inline: var(--stat-row-label-button-gap); }
-	.stat-row-label-short[data-mod="up"] { color: var(--color-stat-up); }
-	.stat-row-label-short[data-mod="down"] { color: var(--color-stat-down); }
+	/* 色トークンは維持し、ラベルだけ既存ウェイトの次段階へ上げて読みやすくする。
+	   ラベル列は5列構成(ラベル|性格補正|種族値|努力値|実数値)の1列目単独になったため、
+	   性格補正ボタンを収めていた頃のgap/margin-inlineは不要になった。 */
+	.stat-row-label { font-weight: var(--stat-label-font-weight); white-space: nowrap; display: flex; align-items: center; justify-content: center; line-height: var(--stat-row-label-line-height); }
+	.stat-row-label[data-mod="up"] { color: var(--color-stat-up); }
+	.stat-row-label[data-mod="down"] { color: var(--color-stat-down); }
+	/* 性格補正列(▲▼2ボタン)。HP行は対象外のため空のプレースホルダーセルになる
+	   (中身が無くても列自体は残り、他行とグリッド位置が揃う)。 */
+	.stat-row-nature { display: flex; align-items: center; justify-content: center; gap: var(--stat-nature-buttons-gap); }
 	.stat-nature-btn {
 		display: inline-grid;
 		place-items: center;
@@ -546,25 +547,17 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	.stat-nature-down::after { border-left: var(--stat-nature-arrow-border-inline) solid transparent; border-right: var(--stat-nature-arrow-border-inline) solid transparent; border-top: var(--stat-nature-arrow-border-block) solid var(--color-text-muted); }
 	.stat-nature-btn:not([aria-pressed="true"]):hover::after { border-bottom-color: var(--color-primary); border-top-color: var(--color-primary); }
 	.stat-nature-btn:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 1px; }
+	/* ハイライトは背景色と矢印の色だけで表現し、枠線(border-color)は既定のままにする
+	   (性格補正ボタンのハイライト時に枠までハイライトしないというUI改修依頼)。 */
 	.stat-nature-up[aria-pressed="true"] {
 		background: var(--color-danger-soft);
-		border-color: var(--color-stat-up);
 	}
 	.stat-nature-up[aria-pressed="true"]::after { border-bottom-color: var(--color-stat-up); }
 	.stat-nature-down[aria-pressed="true"] {
 		background: var(--color-primary-soft);
-		border-color: var(--color-stat-down);
 	}
 	.stat-nature-down[aria-pressed="true"]::after { border-top-color: var(--color-stat-down); }
-	/* HPは性格補正の対象外(クリック不可)。位置を揃えるためのプレースホルダーで、
-	   ボックスも透明にして「押せない」ことを見た目でも伝える。 */
-	.stat-nature-placeholder {
-		cursor: default;
-		background: transparent;
-		border-color: transparent;
-		box-shadow: none;
-	}
-	.stat-row-base { color: var(--color-text-muted); text-align: center; }
+	.stat-row-base { color: var(--color-text-muted); text-align: right; }
 	.stat-row-real-wrap { display: contents; align-items: center; justify-content: center; gap: var(--space-1); min-width: 0; }
 	.stat-row-real {
 		padding-inline-end: var(--space-1);
@@ -644,11 +637,10 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		   ボタンの最小幅だけ 30px → 26px(WCAG 2.5.8の24px下限は満たす)へ詰める。 */
 		.stat-row .stat-ev-endpoint-button,
 		.stat-row .stat-ev-step-button { min-width: var(--stat-ev-mobile-button-block-size); }
-		.stat-row .stat-input-controls input[type="number"] { flex: 0 0 3.2em; width: 3.2em; }
+		.stat-row .stat-input-controls input[type="number"] { flex: 0 0 var(--stat-number-input-width); width: var(--stat-number-input-width); }
 	.stat-row-real-wrap { display: flex; grid-column: var(--stat-mobile-real-grid-column); justify-content: flex-end; min-width: 0; }
 		.stat-row-base,
-		.stat-row-real { padding-inline-end: 0; text-align: center; font-weight: 400; }
-		.stat-row-label { gap: var(--stat-mobile-label-gap); }
+		.stat-row-real { padding-inline-end: 0; text-align: right; font-weight: 400; }
 	}
 
 
@@ -687,19 +679,8 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	#edit-form .top-block-fields > .field-ability { grid-column: 1; }
 
 	/* [hidden] は display:flex を持つ .field(global.css)に詳細度で負けるため明示する
-	   (pitfalls.md「[hidden]が効かない」)。テラス欄の表示切り替えは
-	   left-panel.ts の syncTeraFieldVisibility が hidden 属性で行う。 */
+	   (pitfalls.md「[hidden]が効かない」)。 */
 	#edit-form .top-block-fields > .field[hidden] { display: none; }
-
-	/* レギュレーション選択ボックスの「未選択」表現。他の未入力欄
-	   (#edit-form input:placeholder-shown:not(:focus) の破線+透明背景)と揃える。
-	   <select> には :placeholder-shown が無いので、値が空のときだけ JS/SSR が付ける
-	   data-empty="true" を使う(left-panel.ts の syncRegulationPlaceholder)。 */
-	#edit-form #regulation[data-empty="true"]:not(:focus) {
-		border-style: dashed;
-		background: transparent;
-		color: var(--color-text-muted);
-	}
 
 	#edit-form .top-block-fields .field > input.field-control,
 	#edit-form .top-block-fields .field > select.field-control {
