@@ -43,8 +43,9 @@ const user = Astro.locals.user;
 		{
 			user ? (
 				<Fragment>
-					<AppHeader />
-					<h1 class="box-page-title">ボックス</h1>
+					<AppHeader>
+						<h1 class="app-header-title">ボックス</h1>
+					</AppHeader>
 					{/* app-headerの直下に置く検索・並べ替え帯(SecondHeader、他画面でも再利用する
 					    独立コンポーネント)。検索・並べ替え以外の絞り込み(お気に入り・レギュレーション・
 					    件数バッジ)はここには置かず、#box-filter-rowへ分離する。 */}
@@ -76,10 +77,9 @@ const user = Astro.locals.user;
 									<path d="M6 10l6-6 6 6" />
 								</svg>
 								<select id="sort-select" class="field-control" aria-label="並べ替え">
-									<option value="updated_at">最終更新</option>
-									<option value="last_used_at">よく使う</option>
-									<option value="dex_no">図鑑番号</option>
-									<option value="nickname">ニックネーム</option>
+									<option value="updated_at">更新順</option>
+									<option value="dex_no">番号順</option>
+									<option value="nickname">NN順</option>
 								</select>
 							</div>
 							<button type="button" class="sort-dir-toggle" id="sort-dir-toggle" data-order="desc" aria-label="並べ替えの向き: 降順">
@@ -267,9 +267,6 @@ const user = Astro.locals.user;
 			function sortPokemon(list: OwnedPokemon[]): OwnedPokemon[] {
 				const sort = sortSelect.value;
 				const compareAscending = (a: OwnedPokemon, b: OwnedPokemon): number => {
-					if (sort === "last_used_at") {
-						return new Date(a.last_used_at ?? 0).getTime() - new Date(b.last_used_at ?? 0).getTime();
-					}
 					if (sort === "nickname") {
 						return displayName(a).localeCompare(displayName(b), "ja");
 					}
@@ -285,10 +282,6 @@ const user = Astro.locals.user;
 				};
 				// お気に入りはカードのマークだけで示し、選択した並べ替え軸には介入させない。
 				return [...list].sort((a, b) => {
-					if (sort === "last_used_at") {
-						if (a.last_used_at === null && b.last_used_at !== null) return 1;
-						if (a.last_used_at !== null && b.last_used_at === null) return -1;
-					}
 					if (sort === "dex_no") {
 						const ad = resolveDexNo(a.species_name);
 						const bd = resolveDexNo(b.species_name);
@@ -454,7 +447,6 @@ const user = Astro.locals.user;
 			sortSelect.addEventListener("change", () => {
 				const defaultOrders: Record<string, "asc" | "desc"> = {
 					updated_at: "desc",
-					last_used_at: "desc",
 					dex_no: "asc",
 					nickname: "asc",
 				};

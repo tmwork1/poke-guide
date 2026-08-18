@@ -17,12 +17,15 @@
 .app-header {
   /* ── 1. 文字サイズ ────────────────────────────────────── */
   --app-header-item-font-size: var(--font-size-sm2); /* 横タブの項目名。大きくすると各タブの文字が目立つ。 */
+  --app-header-title-font-size: var(--font-size-lg1); /* 画面タイトルの文字サイズ。大きくすると見出しが目立つ。 */
 
   /* ── 2. 文字の太さ・行間 ──────────────────────────────── */
   --app-header-item-line-height: 1; /* 横タブの行間。大きくすると項目名の行が縦に広がる。 */
+  --app-header-title-font-weight: 700; /* 画面タイトルの太さ。大きくすると見出しがより強調される。 */
 
   /* ── 3. 文字色 ────────────────────────────────────────── */
   --app-header-item-color: var(--color-text-muted); /* 未選択タブの文字色。薄くすると選択中との差が広がる。 */
+  --app-header-title-color: var(--color-text); /* 画面タイトルの文字色。 */
   --app-header-item-hover-color: var(--color-primary); /* タブに触れたときの文字色。変えると操作時の強調色が変わる。 */
   --app-header-item-active-color: var(--color-primary); /* 選択中タブの文字色。変えると現在地の強調色が変わる。 */
 
@@ -91,6 +94,18 @@
 
 .app-header-back:hover {
   color: var(--app-header-item-hover-color);
+}
+
+/* 画面タイトル。戻るボタンの右に置く見出し(h1等、<slot />側で渡す) */
+.app-header-title {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  margin: 0;
+  color: var(--app-header-title-color);
+  font-size: var(--app-header-title-font-size);
+  font-weight: var(--app-header-title-font-weight);
+  line-height: 1;
 }
 
 /* 文字だけの横スクロール式タブ一覧 */

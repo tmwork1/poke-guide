@@ -40,11 +40,6 @@
   min-height: var(--box-page-min-height);
 }
 
-/* ページ見出し: h1.box-page-title（一覧はカードを先頭から表示するため非表示） */
-.box-page-title {
-  display: none;
-}
-
 /* カード一覧の余白: .box-content（上下左右を共通の edge gap にする） */
 .box-content {
   position: fixed;
