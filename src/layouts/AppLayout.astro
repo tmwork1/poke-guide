@@ -2,7 +2,6 @@
 import '../styles/global.css';
 import '../styles/form-controls.css';
 import '../styles/buttons.css';
-import '../styles/app-header.css';
 import AppBottomNav from '../components/AppBottomNav.astro';
 
 interface Props {
@@ -15,14 +14,9 @@ interface Props {
 	 * 利用できないナビゲーションを表示しない。
 	 */
 	chrome?: "app" | "public";
-	/**
-	 * true のときは --header-height を 0 にし、.app-main の min-height 計算を
-	 * 実際に描画されるトップバーの高さと同期する。
-	 */
-	hideTopbar?: boolean;
 }
 
-const { title, description, current, bodyClass, chrome = "app", hideTopbar = false } = Astro.props;
+const { title, description, current, bodyClass, chrome = "app" } = Astro.props;
 const isPublicChrome = chrome === "public";
 
 const pageTitle = title === "ポケガイド" ? title : `${title} | ポケガイド`;
@@ -39,48 +33,7 @@ const pageTitle = title === "ポケガイド" ? title : `${title} | ポケガイ
 		<slot name="head" />
 	</head>
 	<body class={bodyClass}>
-		<div class={`app-shell${isPublicChrome ? " is-public" : ""}${hideTopbar ? " no-topbar" : ""}`}>
-			{!hideTopbar && (
-			<header class="app-header">
-				<div class="app-header-row app-header-row-brand">
-					<div class="app-header-row-left">
-						<a class="app-header-brand" href="/">ポケガイド</a>
-					</div>
-					{
-						isPublicChrome && (
-							<div class="app-header-account app-header-account-mobile">
-								<a class="btn-primary" href="/api/auth/login">自分の育成を管理する</a>
-							</div>
-						)
-					}
-				</div>
-
-				<div class="app-header-row app-header-row-main">
-					<div class="app-header-left">
-						<button type="button" class="app-header-back" aria-label="戻る" onclick="history.back()">
-							<svg class="app-header-back-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-								<path d="M9 14 4 9l5-5" />
-								<path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11" />
-							</svg>
-						</button>
-						<span class="app-header-title">{title}</span>
-						{Astro.slots.has("topbar-status") && (
-							<span class="app-header-status">
-								<slot name="topbar-status" />
-							</span>
-						)}
-					</div>
-					<div class="app-header-right">
-						{Astro.slots.has("topbar-actions") && (
-							<div class="app-header-actions">
-								<slot name="topbar-actions" />
-							</div>
-						)}
-					</div>
-				</div>
-			</header>
-			)}
-
+		<div class={`app-shell${isPublicChrome ? " is-public" : ""}`}>
 			{!isPublicChrome && <AppBottomNav current={current} />}
 
 			<main class="app-main">

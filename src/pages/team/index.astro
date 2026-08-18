@@ -17,16 +17,17 @@ export const prerender = false;
 
 
 import '../../styles/team-page.css';
+import '../../styles/app-header.css';
+import AppHeader from '../../components/AppHeader.astro';
 // 候補は jpoke 由来の一覧(src/lib/regulations.ts)。画面側でレギュレーション名を
 // ハードコードしない(ボックス画面 box/index.astro と同じ方針)。
 import { REGULATIONS } from '../../lib/regulations';
 
 const user = Astro.locals.user;
 ---
-<AppLayout title="チーム" description="登録したチーム編成の一覧・検索・並べ替え" current="team" hideTopbar={true} bodyClass="team-page">
+<AppLayout title="チーム" description="登録したチーム編成の一覧・検索・並べ替え" current="team" bodyClass="team-page">
 	{/*
-	  hideTopbar={true}によりAppLayoutの<header class="app-header">を描画しないため、
-	  件数バッジはこのページ自身のツールバー(.app-header-secondary--toolbar、
+	  件数バッジはこのページ自身のツールバー(.app-header--toolbar、
 	  #team-toolbar)内へ直接配置する(下記マークアップ、id="team-count-badge"・
 	  class="badge tnum"は変更しない、<script>がgetElementByIdで参照するため)。
 	*/}
@@ -45,7 +46,7 @@ const user = Astro.locals.user;
 		{
 			user ? (
 				<Fragment>
-					<SecondBar toolbar class="panel floating-list-toolbar" id="team-toolbar">
+					<AppHeader toolbar class="panel floating-list-toolbar" id="team-toolbar">
 						<div class="toolbar-item toolbar-count">
 							<span class="badge tnum" id="team-count-badge" hidden>0</span>
 						</div>
@@ -109,7 +110,7 @@ const user = Astro.locals.user;
 								</select>
 							</div>
 						</div>
-					</SecondBar>
+					</AppHeader>
 
 					<div class="team-content box-content">
 						<p id="loading-message">読み込み中…</p>

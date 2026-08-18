@@ -3,15 +3,16 @@ export const prerender = false;
 
 
 import '../styles/home-page.css';
-import SecondBar from '../components/SecondBar.astro';
+import '../styles/app-header.css';
+import AppHeader from '../components/AppHeader.astro';
 
 const user = Astro.locals.user;
 const userName = user?.displayName ?? user?.email;
 ---
 
-<AppLayout title="ポケガイド" description="ポケモン育成を管理するためのホーム画面" current="home" hideTopbar={true} bodyClass="home-page">
+<AppLayout title="ポケガイド" description="ポケモン育成を管理するためのホーム画面" current="home" bodyClass="home-page">
 	<div class="page home-page">
-		<SecondBar />
+		<AppHeader />
 		<header class="home-brand">
 			<img class="home-brand-logo" src="/logo.png" alt="" width="48" height="48" />
 			<h1>ポケガイド</h1>

@@ -25,8 +25,9 @@
 export const prerender = false;
 
 import AppLayout from '../../layouts/AppLayout.astro';
-import SecondBar from '../../components/SecondBar.astro';
+import AppHeader from '../../components/AppHeader.astro';
 import '../../styles/box-page.css';
+import '../../styles/app-header.css';
 // レギュレーションの選択肢は jpoke 由来の一覧(src/lib/regulations.ts)。画面側で
 // レギュレーション名をハードコードしない。定義順のREGULATIONSではなく、新しい順の
 // REGULATIONS_NEWEST_FIRSTを使う。
@@ -34,13 +35,13 @@ import { REGULATIONS_NEWEST_FIRST } from '../../lib/regulations';
 
 const user = Astro.locals.user;
 ---
-<AppLayout title="ボックス" description="所持しているポケモンの一覧・検索・並べ替え" current="box" hideTopbar={true}>
+<AppLayout title="ボックス" description="所持しているポケモンの一覧・検索・並べ替え" current="box">
 
 	<div class="page box-shell floating-list-page">
 		{
 			user ? (
 				<Fragment>
-					<SecondBar />
+					<AppHeader />
 					<h1 class="box-page-title">ボックス</h1>
 					<div class="panel panel-top app-header-secondary app-header-secondary--toolbar floating-list-toolbar" id="box-toolbar">
 						{/* 件数バッジ(#pokemon-count-badge)。id/classは変更しない

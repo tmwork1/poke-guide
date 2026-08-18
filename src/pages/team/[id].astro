@@ -9,7 +9,7 @@
 export const prerender = false;
 
 
-import SecondBar from '../../components/SecondBar.astro';
+import AppHeader from '../../components/AppHeader.astro';
 import { getSupabaseAdminClient, getSupabasePublicClient } from '../../lib/supabase';
 import { getTeam, type Team } from '../../lib/team';
 import { listRankedSeasons } from '../../lib/ranked-teams';
@@ -20,6 +20,7 @@ import '../../styles/box-card.css';
 import '../../styles/floating-list-controls.css';
 import '../../styles/team-data-tab.css';
 import '../../styles/team-card.css';
+import '../../styles/app-header.css';
 // レギュレーション候補は jpoke 由来の一覧(src/lib/regulations.ts)。画面側でレギュレーション名を
 // ハードコードしない(box/[id].astro の左パネルと同じ方針)。選択肢は新しい順に並べるため、
 // REGULATIONS(定義順=古い順)ではなくREGULATIONS_NEWEST_FIRST(新しい順の配列)を使う。
@@ -50,11 +51,6 @@ function displayTeamName(t: Team): string {
 }
 
 const pageTitle = team ? displayTeamName(team) : 'チーム編集';
-
-// AppLayoutは編集禁止なので、<title>タグ(ブラウザタブ)にはpageTitleを残しつつ、可視の見出し
-// (.app-topbar-title)だけをbodyClass経由のグローバルCSS(下の<style is:global>の
-// `body.team-edit-page .app-topbar-title`参照)で非表示にする。loadError/team未検出時は
-// pageTitleが固定文言なので隠さない(teamが存在するときだけbodyClassを付与)。
 const bodyClass = team ? 'team-edit-page' : undefined;
 
 // 個体編集画面(box/[id].astro)のトグルはowned_pokemon.collection_opt_out_untilを個体単位で
@@ -97,16 +93,16 @@ try {
 	console.error('[team/[id]] 類似構築のシーズン取得に失敗しました:', error);
 }
 ---
-<AppLayout title={pageTitle} current="team" hideTopbar={true} bodyClass={bodyClass}>
+<AppLayout title={pageTitle} current="team" bodyClass={bodyClass}>
 	{team && (
-		<SecondBar ariaLabel="チーム編集メニュー">
-			<div class="second-bar__list">
-				<button type="button" class="second-bar__item" data-mobile-tab="pokemon" data-active="true" aria-current="page"><span>ポケモン</span></button>
-				<button type="button" class="second-bar__item" data-mobile-tab="formation"><span>編成</span></button>
-				<button type="button" class="second-bar__item" data-mobile-tab="data"><span>類似構築</span></button>
-				<button type="button" class="second-bar__item" data-mobile-tab="matchup"><span>相性</span></button>
+		<AppHeader ariaLabel="チーム編集メニュー">
+			<div class="app-header__list">
+				<button type="button" class="app-header__item" data-mobile-tab="pokemon" data-active="true" aria-current="page"><span>ポケモン</span></button>
+				<button type="button" class="app-header__item" data-mobile-tab="formation"><span>編成</span></button>
+				<button type="button" class="app-header__item" data-mobile-tab="data"><span>類似構築</span></button>
+				<button type="button" class="app-header__item" data-mobile-tab="matchup"><span>相性</span></button>
 			</div>
-		</SecondBar>
+		</AppHeader>
 	)}
 	{/* #autosave-status/#autosave-status-textのid・DOM自体は<script>のel()参照
 	    (見つからないとthrowしてJS初期化が止まる)のため残し、テキストだけを下の<style>で
@@ -187,10 +183,9 @@ try {
 		.collection-opt-out-status[hidden] { display: none; }
 		.collection-opt-out-status[data-state="error"] { color: var(--color-danger); }
 		/* global.cssのbutton.btn-dangerが持つ太字指定を上書きし、
-		   戻るボタン(.app-topbar-back)と同じ文字サイズ・太さへ揃える。 */
+		   戻るボタン(.app-header-back)と同じ文字サイズ・太さへ揃える。 */
 		#delete-team-button { font-size: var(--font-size-sm1); white-space: nowrap; font-weight: 500; }
-		/* .app-topbar-actions の gap は全画面共通のため AppLayout は編集せず、このページ
-		   scopedで削除ボタンにだけ margin-left を足し、box/[id].astro の #delete-button と
+		/* 削除ボタンの margin-left は box/[id].astro の #delete-button と
 		   同じ間隔に揃える。 */
 		#delete-team-button { margin-left: var(--space-5); }
 		/* box/[id].astro の #delete-button と同じ配色に揃える。基底(global.css の
@@ -861,14 +856,6 @@ try {
 	    JSで生成した要素に効かない」に従い is:global で定義する。.team-select-bar / .team-slots
 	    配下に限定したセレクタにしてグローバルへ漏れないようにする。 --- */}
 	<style is:global>
-		/* box/[id].astroの23-H1と同じ手法(AppLayoutは編集禁止のため、bodyClass="team-edit-page"を
-		   起点にしたグローバルセレクタで.app-topbar-title(AppLayout側の要素、このページの
-		   scoped<style>では選択できない)だけを隠す。<title>タグ(ブラウザタブ)はpageTitleの
-		   まま残る)。 */
-		body.team-edit-page .app-topbar-title {
-			display: none;
-		}
-
 		/* ------------------------------------------------------------------ */
 		/* 選択バーの1行(.pokemon-select-row)                                  */
 		/* 行全体を1個の<button>にする構造ではなく、「プレビュー用button(.select-row-main)」+
@@ -2182,7 +2169,7 @@ try {
 
 		const layoutRoot = document.getElementById("team-edit-layout");
 		if (layoutRoot) {
-			const mobileTabButtons = Array.from(document.querySelectorAll<HTMLButtonElement>(".second-bar [data-mobile-tab]"));
+			const mobileTabButtons = Array.from(document.querySelectorAll<HTMLButtonElement>(".app-header [data-mobile-tab]"));
 			type MobileTab = "pokemon" | "formation" | "matchup" | "data";
 			const setMobileTab = (tab: MobileTab) => {
 				const tabChanged = layoutRoot.dataset.mobileTab !== tab;
@@ -4619,15 +4606,8 @@ try {
 
 			// A-2(実バグ): トップバーはSSR時点のpageTitleで固定され、#team-nameのinputイベントで
 			// 追随する処理が存在しなかった(トップバーへの参照が本ファイルに0件だった)。
-			// box/[id].astroのupdateHeaderIdentity()(:4239-4257)と同じ手法を移植する:
-			// AppLayout.astroは編集禁止(全ページ共通)なので、トップバー側の要素はclass経由で
-			// このページのscriptから直接更新する。
-			const topbarTitleEl = document.querySelector<HTMLElement>(".app-topbar-title");
 			function updateHeaderIdentity(): void {
-				const name = nameInput.value.trim();
-				if (topbarTitleEl) {
-					topbarTitleEl.textContent = name || "無題のチーム";
-				}
+				// header identity updates (if needed) would go here
 			}
 
 			nameInput.addEventListener("input", () => {

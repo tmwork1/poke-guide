@@ -1,11 +1,12 @@
 ﻿---
-import SecondBar from '../SecondBar.astro';
+import AppHeader from '../AppHeader.astro';
 import type { OwnedPokemonRecord } from '../../lib/owned-pokemon';
 import pokemonMasterRaw from '../../../public/master-data/autocomplete/pokemon.json';
 import pokemonDetailRaw from '../../../public/master-data/detail/pokemon.json';
 import { NATURE_STAT_MODIFIERS, calcHpStat, calcOtherStat, type StatKey } from '../../lib/stats';
 import { championSpriteUrl, officialArtworkUrl } from '../../lib/pokemon-master-data';
 import '../../styles/box-pokemon-preview.css';
+import '../../styles/app-header.css';
 
 interface Props {
   pokemon: OwnedPokemonRecord;
@@ -22,29 +23,29 @@ const previewStats = detail ? statKeys.map((key, index) => index === 0 ? calcHpS
 ---
 
 <div class="mobile-training-ui" id="mobile-training-ui" data-mobile-tab={activeTab}>
-  <SecondBar id="mobile-training-bar" ariaLabel="個体編集メニュー">
-    <div class="app-header-secondary__list">
+  <AppHeader id="mobile-training-bar" ariaLabel="個体編集メニュー">
+    <div class="app-header__list">
       {activeTab === 'training' ? (
-        <button type="button" class="app-header-secondary__item" data-mobile-tab="training" data-active="true" aria-current="page"><span>育成</span></button>
+        <button type="button" class="app-header__item" data-mobile-tab="training" data-active="true" aria-current="page"><span>育成</span></button>
       ) : (
-        <a class="app-header-secondary__item" href={`/box/${encodeURIComponent(pokemon.id)}`}><span>育成</span></a>
+        <a class="app-header__item" href={`/box/${encodeURIComponent(pokemon.id)}`}><span>育成</span></a>
       )}
       {activeTab === 'training' ? (
-        <button type="button" class="app-header-secondary__item" data-mobile-tab="damage"><span>ダメージ</span></button>
+        <button type="button" class="app-header__item" data-mobile-tab="damage"><span>ダメージ</span></button>
       ) : (
-        <a class="app-header-secondary__item" href={`/box/${encodeURIComponent(pokemon.id)}?tab=damage`}><span>ダメージ</span></a>
+        <a class="app-header__item" href={`/box/${encodeURIComponent(pokemon.id)}?tab=damage`}><span>ダメージ</span></a>
       )}
-      <a class="app-header-secondary__item" href={`/box/data?pokemon=${encodeURIComponent(pokemon.id)}`} data-active={activeTab === 'battle-data' ? 'true' : undefined} aria-current={activeTab === 'battle-data' ? 'page' : undefined}>
+      <a class="app-header__item" href={`/box/data?pokemon=${encodeURIComponent(pokemon.id)}`} data-active={activeTab === 'battle-data' ? 'true' : undefined} aria-current={activeTab === 'battle-data' ? 'page' : undefined}>
         <span>バトルデータ</span>
       </a>
-      <a class="app-header-secondary__item" href={`/box/ranked?pokemon=${encodeURIComponent(pokemon.id)}`} data-active={activeTab === 'ranked-teams' ? 'true' : undefined} aria-current={activeTab === 'ranked-teams' ? 'page' : undefined}>
+      <a class="app-header__item" href={`/box/ranked?pokemon=${encodeURIComponent(pokemon.id)}`} data-active={activeTab === 'ranked-teams' ? 'true' : undefined} aria-current={activeTab === 'ranked-teams' ? 'page' : undefined}>
         <span>上位チーム</span>
       </a>
-      <span class="app-header-secondary__item is-disabled" aria-disabled="true">
+      <span class="app-header__item is-disabled" aria-disabled="true">
         <span>相性</span>
       </span>
     </div>
-  </SecondBar>
+  </AppHeader>
 
   <section class="pokemon-preview" aria-label="ポケモンプレビュー" data-species-name={pokemon.species_name}>
     <div class="pokemon-preview-main">

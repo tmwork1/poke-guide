@@ -60,7 +60,7 @@ const single = opgg?.formats?.single;
 const hasData = hasSingleBattleData(opgg);
 ---
 
-<AppLayout title="バトルデータ" description="OP.GG使用率データ" current="box" hideTopbar={true} bodyClass="data-page">
+<AppLayout title="バトルデータ" description="OP.GG使用率データ" current="box" bodyClass="data-page">
   <div class="page box-data-page">
     {pokemon ? (
       <MobileTrainingBar pokemon={pokemon} activeTab="battle-data" />
