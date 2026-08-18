@@ -74,6 +74,7 @@
 
   /* ── 6. 影 ────────────────────────────────────────────── */
   --box-card-action-shadow: var(--shadow-sm); /* 操作ボタンをカード面から少し浮かせて見せる影 */
+  --box-card-move-text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8); /* 技名の文字周りに落とす暗い影。背後のポケモン画像と重なっても文字を判別しやすくする */
 
   /* ── 7. 余白 ──────────────────────────────────────────── */
   --box-card-padding: var(--space-2); /* カード外枠から名前や技までの内側余白。増やすと内容領域が小さくなる */
@@ -432,6 +433,7 @@
   display: block;
   width: 100%;
   min-width: 0;
+  text-shadow: var(--box-card-move-text-shadow);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
