@@ -1,4 +1,4 @@
-/* /team 一覧。ページ固有の外枠と、/box と揃えた下部操作。
+﻿/* /team 一覧。ページ固有の外枠と、/box と揃えた下部操作。
 	チームカード本体(.team-grid > .card-team)のスタイルは /team/[id] の「類似構築」タブと
 	共有するため src/styles/team-card.css に集約してある(このファイルには置かない)。 */
 @import "./team-card.css";
@@ -46,8 +46,8 @@ body.team-page {
 		/* --- ツールバー(検索+並べ替え。box/index.astroの.second-bar--toolbarをそのまま流用。
 			「絞り込み」はこのページには置かない(docs/plan/pages/team.md参照)。 --- */
 		/* box/index.astroの.second-bar--toolbarと同じ値をそのまま複製する
-			(このツールバーがAppLayoutの共通<header class="app-topbar">の代わりを務める)。
-			sticky/z-index/background/border-bottomはglobal.cssの.app-topbarと同じ値
+			(このツールバーがAppLayoutの共通<header class="app-header">の代わりを務める)。
+			sticky/z-index/background/border-bottomはglobal.cssの.app-headerと同じ値
 			(新しい値は作らない)。 */
 		/* 件数バッジはツールバー先頭寄りに配置し、margin-left: autoは付けない
 			(pitfalls.md「flex: 1 1 0は余白を全部飲む」と同種の事故を避ける: auto marginを

@@ -1,4 +1,4 @@
-// 左サイド(ポケモン編集パネル、.panel-left)専用のロジック一式。
+﻿// 左サイド(ポケモン編集パネル、.panel-left)専用のロジック一式。
 //
 // このファイルは src/components/box-id/LeftPanel.astro の <script> から
 // `import "../../lib/box-id/left-panel";` の形で副作用importされ、モジュール読み込み時に
@@ -611,7 +611,7 @@ if (form) {
 	const speciesSpriteFallback = el<HTMLElement>("species-sprite-fallback");
 	const speciesTypeBadge = el<HTMLElement>("species-type-badge");
 
-	const topbarTitleEl = document.querySelector<HTMLElement>(".app-topbar-title");
+	const topbarTitleEl = document.querySelector<HTMLElement>(".app-header-title");
 
 	function updateHeaderIdentity(): void {
 		const species = speciesInput.value.trim();

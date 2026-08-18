@@ -1,4 +1,4 @@
-@import './second-bar.css';
+﻿@import './second-bar.css';
 
 :root {
   color-scheme: light dark;
@@ -940,7 +940,7 @@ dd {
 /* --- 共通レイアウト --- */
 :root {
   /* ── 8. 寸法 ──────────────────────────────────────────── */
-  --topbar-height: 129px; /* 全ページ共通トップバーの高さ。大きくすると本文の開始位置が下がる。 */
+  --header-height: 129px; /* 全ページ共通トップバーの高さ。大きくすると本文の開始位置が下がる。 */
   --bottom-nav-height: 60px; /* 画面下部ナビの高さ。大きくすると本文下端の退避量も増える。 */
   --list-grid-edge-gap: var(--space-2); /* 一覧の左右端と画面端との余白。増やすとカード列の表示領域が狭まる。 */
 }
@@ -950,10 +950,10 @@ dd {
 }
 
 .app-shell.no-topbar {
-  --topbar-height: 0px; /* トップバー非表示ページの高さ上書き。0にすると本文が画面上端から始まる。 */
+  --header-height: 0px; /* トップバー非表示ページの高さ上書き。0にすると本文が画面上端から始まる。 */
 }
 
-.app-topbar {
+.app-header {
   background: var(--color-surface-raised);
   border-bottom: 1px solid var(--color-border);
   position: sticky;
@@ -961,7 +961,7 @@ dd {
   z-index: 20;
 }
 
-.app-topbar-row {
+.app-header-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -969,12 +969,12 @@ dd {
   padding: var(--space-3) var(--space-4);
 }
 
-.app-topbar-row + .app-topbar-row {
+.app-header-row + .app-header-row {
   border-top: 1px solid var(--color-border);
 }
 
-.app-topbar-left,
-.app-topbar-right {
+.app-header-left,
+.app-header-right {
   display: flex;
   align-items: center;
   gap: var(--space-3);
@@ -982,7 +982,7 @@ dd {
 }
 
 .app-main {
-  min-height: calc(100vh - var(--topbar-height));
+  min-height: calc(100vh - var(--header-height));
 }
 
 .app-shell:not(.is-public) .app-main {

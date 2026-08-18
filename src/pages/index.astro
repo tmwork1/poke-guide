@@ -1,4 +1,4 @@
----
+﻿---
 export const prerender = false;
 
 import AppLayout from '../layouts/AppLayout.astro';
@@ -11,8 +11,8 @@ const userName = user?.displayName ?? user?.email;
 <AppLayout title="ポケガイド" description="ポケモン育成を管理するためのホーム画面" current="home" hideTopbar={true} bodyClass="home-page">
 	<div class="page home-page">
 		<nav class="second-bar">
-			<button type="button" class="second-bar__back app-topbar-back" aria-label="戻る" onclick="history.back()">
-				<svg class="app-topbar-back-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+			<button type="button" class="second-bar__back app-header-back" aria-label="戻る" onclick="history.back()">
+				<svg class="app-header-back-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 					<path d="M9 14 4 9l5-5" />
 					<path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11" />
 				</svg>

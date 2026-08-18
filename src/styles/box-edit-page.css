@@ -1,4 +1,4 @@
-/* ===========================================================================
+﻿/* ===========================================================================
 	ボックス編集ページ
 
 	画面のどこ: ボックス詳細 → ポケモンの育成編集・ダメージ計算
@@ -71,7 +71,7 @@ body.box-edit-page {
 	--box-edit-autosave-status-margin: 0; /* 保存状態文の外側余白。0にすると上部バーの高さが増えない */
 
 	/* ── 8. 寸法 ────────────────────────── */
-	--topbar-height: 0px; /* 非表示のトップバーの高さ。0にすると本文が画面上端から始まる */
+	--header-height: 0px; /* 非表示のトップバーの高さ。0にすると本文が画面上端から始まる */
 }
 
 /* 能力値調整表の列幅 */
@@ -96,11 +96,11 @@ body.box-edit-page {
 	-------------------------------------------------------------------------- */
 
 /* 編集ページではトップバーを隠す */
-body.box-edit-page .app-topbar {
+body.box-edit-page .app-header {
 	display: none;
 }
 
-	/* --topbar-height はトップバーの実測高さ(global.cssの:root)で、ポケモンプレビュー
+	/* --header-height はトップバーの実測高さ(global.cssの:root)で、ポケモンプレビュー
 		(.pokemon-preview の position:sticky; top)や .edit-shell の高さ計算が
 		これを見る。トップバーを消した以上0にしないと、本文が画面上端から一段浮いてしまう。
 		セカンドバーの高さは second-bar.css の共通設定を使い、ポケモンプレビューは
@@ -132,11 +132,11 @@ body.box-edit-page .app-topbar {
 		}
 		#retry-button.visible { display: inline-flex; }
 		/* #autosave-statusは<p>要素で、global.cssに全要素共通のmarginリセットが無いため
-			既定のUAスタイル(1em 0)が残る。AppLayoutのトップバーは高さがCSS変数--topbar-height
+			既定のUAスタイル(1em 0)が残る。AppLayoutのトップバーは高さがCSS変数--header-height
 			(固定値、デスクトップ65px)前提で.edit-shell/.damage-detail-panelの高さ計算に
 			使われるため、<p>の既定marginぶん(実測で往復約16px)だけトップバーの実高さが
-			--topbar-heightからずれ、ページ全体に余計な縦スクロールが出る(実測で発覚)。
-			marginを0にしてトップバーの実測高さを--topbar-heightに一致させる。 */
+			--header-heightからずれ、ページ全体に余計な縦スクロールが出る(実測で発覚)。
+			marginを0にしてトップバーの実測高さを--header-heightに一致させる。 */
 		#autosave-status { margin: var(--box-edit-autosave-status-margin); }
 		/* ヘッダーには通常「保存済み」等の保存状態テキストを表示しない。#autosave-status/
 			#autosave-status-textはid/DOMごと残す(<script>のel("autosave-status")/
@@ -156,7 +156,7 @@ body.box-edit-page .app-topbar {
 			display: inline;
 			color: var(--box-edit-error-color);
 		}
-		/* 共通トップバーの戻るリンク(.app-topbar-back)と文字組みを揃える。
+		/* 共通トップバーの戻るリンク(.app-header-back)と文字組みを揃える。
 			font-familyとletter-spacingは、戻るリンクと同様にbodyからの継承値を使う。 */
 		#delete-button { font-size: var(--box-edit-delete-font-size); }
 		/* 幅390pxで折り返し先が無くwhite-space:normalのまま1文字ずつ縦に折り返り
@@ -184,7 +184,7 @@ body.box-edit-page .app-topbar {
 		/* 匿名集計サジェスト機能・第4段階(UI: 収集拒否トグル)。.toggle-switch本体のCSSは
 			src/components/box-id/LeftPanel.astro の is:global <style> 側に既にあるためここでは
 			重複定義しない。ここはラベル・状態テキストのレイアウトだけを追加する。
-			戻るリンク(.app-topbar-back)と同じfont-size/font-weightを明示する。
+			戻るリンク(.app-header-back)と同じfont-size/font-weightを明示する。
 			font-familyとletter-spacingは、戻るリンクと同様にbodyからの継承値を使う。
 			既定でmutedとし、常時色付きの目立つ表示にはしない。 */
 		.collection-opt-out-toggle {
@@ -205,7 +205,7 @@ body.box-edit-page .app-topbar {
 			color: var(--box-edit-collection-status-color);
 		}
 		.collection-opt-out-status[hidden] { display: none; }
-		/* .app-topbar-actions(AppLayout.astro側)のgapはvar(--space-2)=8pxでトップバー全
+		/* .app-header-actions(AppLayout.astro側)のgapはvar(--space-2)=8pxでトップバー全
 			ボタン共通のため、AppLayoutは編集せず(全画面に影響する)、このページscopedで
 			#delete-buttonにだけ追加のmargin-leftを足す。トグル右端から削除ボタン左端まで
 			28px(8+var(--space-5)=20px)になる(新規の値は作らず、既存スペーシングトークンの
@@ -221,8 +221,8 @@ body.box-edit-page .app-topbar {
 			されるため、カード自身のfooter(失敗時のみ表示)は画面外へスクロールすると
 			見えなくなる。AppLayoutのトップバーはposition:stickyで常時可視なのでここに
 			失敗件数だけを出す(<script>のupdateOpponentNotesFailureAlert参照)。
-			.app-topbar-status(親のspan)がwhite-space:nowrapの1行構成のため、<p>ではなく
-			同じ<span>系で追加し、ブロック化してトップバーの実高さ(--topbar-height)を
+			.app-header-status(親のspan)がwhite-space:nowrapの1行構成のため、<p>ではなく
+			同じ<span>系で追加し、ブロック化してトップバーの実高さ(--header-height)を
 			広げないようにする(#autosave-statusの<p>まわりのコメント参照)。 */
 		.opponent-notes-save-alert {
 			display: inline;

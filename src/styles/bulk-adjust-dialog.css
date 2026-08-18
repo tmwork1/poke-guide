@@ -1,4 +1,4 @@
-/* ===========================================================================
+﻿/* ===========================================================================
 	耐久調整ポップアップ(/box/[id] で複数の防御条件をまとめて計算する画面)
 
 	画面のどこ: ボックス詳細 → 耐久調整
@@ -66,10 +66,10 @@ body.box-edit-page {
 		(#bulk-adjust-button、トップバー内。ダイアログを開いている間は「ステータスを計算」に
 		ラベルが変わり計算実行ボタンを兼ねる)がクリックできなくなる(Playwrightの実機検証で
 		「backdropがポインタイベントを奪っている」ことを確認した)。トップバー
-		(--topbar-height、global.css)ぶんだけ上を空け、topより下だけを覆う。 */
+		(--header-height、global.css)ぶんだけ上を空け、topより下だけを覆う。 */
 	.bulk-adjust-backdrop {
 		position: fixed;
-		top: var(--topbar-height);
+		top: var(--header-height);
 		left: 0;
 		right: 0;
 		bottom: 0;
@@ -286,14 +286,14 @@ body.box-edit-page {
 
 	/* ⚠️ 実装時に踏んだ罠(狭幅・Playwright実機検証で発覚、z-indexでの対策は不発だった):
 		1739px以下では#bulk-adjust-button(box/[id].astro側)がposition:staticの通常
-		フローに戻り、トップバーの操作ボタン列(.app-topbar-actions)の一員になる。この列は
+		フローに戻り、トップバーの操作ボタン列(.app-header-actions)の一員になる。この列は
 		ボタン数が多く、390px等の極端な狭幅ではflex-wrapで折り返して2行以上になることがあり、
-		実際の折り返し後の高さが--topbar-height(global.cssの固定実測値)を超えるケースがある。
+		実際の折り返し後の高さが--header-height(global.cssの固定実測値)を超えるケースがある。
 		当初このボタンにz-index(backdropの70より大きい値)を与えて前面に出そうとしたが、
-		祖先の.app-topbar自身がposition:sticky+z-index:20(global.css)で独自のスタッキング
-		コンテキストを作っているため、子であるこのボタンのz-indexは.app-topbarの外の要素
+		祖先の.app-header自身がposition:sticky+z-index:20(global.css)で独自のスタッキング
+		コンテキストを作っているため、子であるこのボタンのz-indexは.app-headerの外の要素
 		(このdialogのbackdrop、z-index:70)とは比較されず無効だった(実機のelementFromPointで
 		確認: z-index:72を与えてもbackdropが依然として最前面だった)。そのため、backdrop側の
 		top位置をCSSの固定値ではなく、実際のトップバー高さをJSで測って動的に設定する方式に
 		変更した(src/lib/box-id/bulk-adjust.tsのopenDialog()参照)。ここではbackdropの
-		基本の位置(top:var(--topbar-height))だけを残し、実測値による上書きはJS側に委ねる。 */
+		基本の位置(top:var(--header-height))だけを残し、実測値による上書きはJS側に委ねる。 */

@@ -1,4 +1,4 @@
-// トップバーの #bulk-adjust-button(box/[id].astro側の静的マークアップ、元は
+﻿// トップバーの #bulk-adjust-button(box/[id].astro側の静的マークアップ、元は
 // disabled)を押すと、防御方向(相手→自分)のダメージ計算カードだけを圧縮表示した
 // ポップアップ(src/components/box-id/BulkAdjustDialog.astro)を開く。カードごとに
 // 「N発をM%以上の確率で耐える」の N・M を入力し、同じボタン(このとき「ステータスを計算」に
@@ -227,15 +227,15 @@ function openDialog(): void {
 	}
 	updateComputeButtonDisabled();
 	// ⚠️ 実装時に踏んだ罠: 背景オーバーレイ(#bulk-adjust-backdrop)のtopはCSSで
-	// var(--topbar-height)固定にしていたが、狭幅(390px等)ではトップバーの操作ボタン列
-	// (.app-topbar-actions)が折り返して2行以上になることがあり、実際のトップバー高さが
+	// var(--header-height)固定にしていたが、狭幅(390px等)ではトップバーの操作ボタン列
+	// (.app-header-actions)が折り返して2行以上になることがあり、実際のトップバー高さが
 	// この固定値を超えてボタン(#bulk-adjust-button)自身が覆われクリック不能になる
-	// (Playwright実機検証で再現)。z-indexで前面に出す対策は.app-topbar自身が独自の
+	// (Playwright実機検証で再現)。z-indexで前面に出す対策は.app-header自身が独自の
 	// スタッキングコンテキスト(position:sticky+z-index:20、global.css)を持つため効かなかった
 	// (子要素のz-indexは外の要素と比較されない)。開くたびに実際のトップバー下端を測って
 	// backdropのtopへ反映することで、折り返しの有無・段数によらず常にボタンの真下から
 	// 覆うようにする。
-	const topbarEl = document.querySelector<HTMLElement>(".app-topbar");
+	const topbarEl = document.querySelector<HTMLElement>(".app-header");
 	backdropEl.style.top = topbarEl ? `${topbarEl.getBoundingClientRect().bottom}px` : "";
 	backdropEl.hidden = false;
 	dialogEl.hidden = false;

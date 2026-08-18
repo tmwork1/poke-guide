@@ -1,4 +1,4 @@
-/* ===========================================================================
+﻿/* ===========================================================================
 	すばやさ順位表ページ全体
 
 	画面のどこ: /speed-chart のトップバーと埋め込み時の操作バー
@@ -78,12 +78,12 @@ body.speed-chart-page {
 	}
 }
 
-.app-topbar-actions:has(.speed-chart-regulation-label) {
+.app-header-actions:has(.speed-chart-regulation-label) {
 	gap: var(--speed-chart-topbar-actions-gap);
 }
 /* トップバーは横幅が限られるため、レギュレーション選択・実数値ジャンプ入力は
 	中身(3桁の実数値・レギュレーション名)に対して過大にならない幅に絞る。
-	.app-topbar-actions 側で既に display:flex; gap; flex-wrap が効くため、
+	.app-header-actions 側で既に display:flex; gap; flex-wrap が効くため、
 	ここでは各要素の幅だけを調整すれば横並び・900px未満での折り返しの両方に対応できる。 */
 #speed-chart-regulation-select {
 	width: auto;
@@ -113,10 +113,10 @@ body.speed-chart-page {
 }
 
 /* AppLayout の要素を対象にするため、body クラスでスコープしたグローバルセレクタを使う。 */
-body.speed-chart-page .app-topbar-title {
+body.speed-chart-page .app-header-title {
 	display: none;
 }
 
-body.speed-chart-page .app-topbar-row-main {
+body.speed-chart-page .app-header-row-main {
 	justify-content: flex-start;
 }

@@ -1,0 +1,143 @@
+﻿/* ===========================================================================
+   蜈ｨ繝壹・繧ｸ蜈ｱ騾壹ヨ繝・・繝舌・(AppLayout.astro縺ｮ繧｢繝励Μ蜷阪・繝壹・繧ｸ蜷阪・謫堺ｽ懷・)
+
+   逕ｻ髱｢縺ｮ縺ｩ縺・ 逕ｻ髱｢荳顔ｫｯ縺ｫ蝗ｺ螳壹＆繧後ｋ2谿ｵ縺ｮ繝倥ャ繝繝ｼ縲・   隕九◆逶ｮ繧貞､峨∴縺溘＞縺ｨ縺・ 荳九・縲後メ繝･繝ｼ繝九Φ繧ｰ螟画焚縲阪□縺題ｧｦ繧後・繧医＞縲・                        菴咲ｽｮ繝ｻ鬮倥＆縺ｯ global.css 蛛ｴ縺ｧ邂｡逅・＠縺ｦ縺・ｋ縲・   =========================================================================== */
+
+/* ===========================================================================
+   繝√Η繝ｼ繝九Φ繧ｰ螟画焚
+   縺薙％縺ｮ蛟､繧呈嶌縺肴鋤縺医ｋ縺ｨ隕九◆逶ｮ縺悟､峨ｏ繧九らｨｮ鬘槭＃縺ｨ縺ｫ縺ｾ縺ｨ繧√※縺ゅｋ縲・   =========================================================================== */
+.app-header {
+  /* 笏笏 1. 譁・ｭ励し繧､繧ｺ 笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏 */
+  --app-header-brand-font-size: var(--font-size-lg1); /* 1谿ｵ逶ｮ縺ｮ繧｢繝励Μ蜷阪ょ､ｧ縺阪￥縺吶ｋ縺ｨ縲後・繧ｱ繧ｬ繧､繝峨阪′逶ｮ遶九▽縲・*/
+  --app-header-title-font-size: var(--font-size-lg1); /* 2谿ｵ逶ｮ縺ｮ繝壹・繧ｸ蜷阪ょ､ｧ縺阪￥縺吶ｋ縺ｨ迴ｾ蝨ｨ縺ｮ逕ｻ髱｢蜷阪′逶ｮ遶九▽縲・*/
+  --app-header-status-font-size: var(--font-size-sm2); /* 繝壹・繧ｸ蜷肴ｨｪ縺ｮ菫晏ｭ倡憾諷九ょ､ｧ縺阪￥縺吶ｋ縺ｨ迥ｶ諷玖｡ｨ遉ｺ縺檎岼遶九▽縲・*/
+  --app-header-account-font-size: var(--font-size-sm2); /* 蜈ｬ髢狗判髱｢縺ｮ繧｢繧ｫ繧ｦ繝ｳ繝域｡亥・縲ょ､ｧ縺阪￥縺吶ｋ縺ｨ譯亥・譁・′逶ｮ遶九▽縲・*/
+
+  /* 笏笏 2. 譁・ｭ励・螟ｪ縺輔・陦碁俣 笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏 */
+  --app-header-brand-font-weight: 800; /* 1谿ｵ逶ｮ縺ｮ繧｢繝励Μ蜷阪ょ､ｧ縺阪￥縺吶ｋ縺ｨ繝ｭ繧ｴ譁・ｭ励′螟ｪ縺上↑繧九・*/
+  --app-header-title-font-weight: 800; /* 2谿ｵ逶ｮ縺ｮ繝壹・繧ｸ蜷阪ょ､ｧ縺阪￥縺吶ｋ縺ｨ逕ｻ髱｢蜷阪′螟ｪ縺上↑繧九・*/
+
+  /* 笏笏 3. 譁・ｭ苓牡 笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏 */
+  --app-header-status-color: var(--color-text-muted); /* 繝壹・繧ｸ蜷肴ｨｪ縺ｮ菫晏ｭ倡憾諷九り埋縺上☆繧九→繝壹・繧ｸ蜷阪ｈ繧頑而縺医ａ縺ｫ縺ｪ繧九・*/
+  --app-header-account-color: var(--color-text-muted); /* 蜈ｬ髢狗判髱｢縺ｮ繧｢繧ｫ繧ｦ繝ｳ繝域｡亥・縲り埋縺上☆繧九→陬懷勧諠・ｱ縺ｨ縺励※逶ｮ遶九◆縺ｪ縺上↑繧九・*/
+
+  /* 笏笏 7. 菴咏區 笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏 */
+  --app-header-row-left-gap: var(--space-3); /* 1谿ｵ逶ｮ蟾ｦ蛛ｴ縺ｮ鬆・岼髢馴囈縲ょ､ｧ縺阪￥縺吶ｋ縺ｨ繧｢繝励Μ蜷榊捉霎ｺ縺悟ｺ・′繧九・*/
+  --app-header-actions-gap: var(--space-4); /* 蜿ｳ蛛ｴ縺ｮ謫堺ｽ懊・繧ｿ繝ｳ蜷悟｣ｫ縺ｮ髢馴囈縲ょ､ｧ縺阪￥縺吶ｋ縺ｨ蜷・桃菴懊′髮｢繧後ｋ縲・*/
+  --app-header-account-gap: var(--space-2); /* 繧｢繧ｫ繧ｦ繝ｳ繝域｡亥・蜀・・鬆・岼髢馴囈縲ょ､ｧ縺阪￥縺吶ｋ縺ｨ蜀・ｮｹ縺碁屬繧後ｋ縲・*/
+  --app-header-mobile-row-gap: var(--space-2); /* 迢ｭ縺・判髱｢縺ｧ謚倥ｊ霑斐＠縺溯｡後・髢馴囈縲ょ､ｧ縺阪￥縺吶ｋ縺ｨ繝倥ャ繝繝ｼ縺檎ｸｦ縺ｫ蠎・′繧九・*/
+}
+
+/* 謌ｻ繧九・繧ｿ繝ｳ縺ｯ繧ｻ繧ｫ繝ｳ繝峨ヰ繝ｼ縺ｧ繧ょ・蛻ｩ逕ｨ縺輔ｌ繧九◆繧√√・繧ｿ繝ｳ閾ｪ霄ｫ縺ｫ螟画焚繧呈戟縺溘○繧九・*/
+.app-header-back {
+  /* 笏笏 3. 譁・ｭ苓牡 笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏 */
+  --app-header-back-color: var(--color-text-muted); /* 謌ｻ繧狗泙蜊ｰ縺ｮ騾壼ｸｸ濶ｲ縲り埋縺上☆繧九→謗ｧ縺医ａ縺ｫ縺ｪ繧九・*/
+  --app-header-back-hover-color: var(--color-primary); /* 謌ｻ繧狗泙蜊ｰ縺ｫ隗ｦ繧後◆縺ｨ縺阪・濶ｲ縲ょ､峨∴繧九→謫堺ｽ懈凾縺ｮ蠑ｷ隱ｿ濶ｲ縺悟､峨ｏ繧九・*/
+
+  /* 笏笏 4. 閭梧勹濶ｲ 笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏 */
+  --app-header-back-background: transparent; /* 謌ｻ繧九・繧ｿ繝ｳ縺ｮ荳句慍縲り牡繧剃ｻ倥￠繧九→遏｢蜊ｰ縺ｮ蜻ｨ蝗ｲ縺悟｡励ｉ繧後ｋ縲・*/
+
+  /* 笏笏 5. 譫邱壹・隗剃ｸｸ 笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏 */
+  --app-header-back-border: 0; /* 謌ｻ繧九・繧ｿ繝ｳ縺ｮ譫邱壹ょ､ｪ縺上☆繧九→遏｢蜊ｰ縺ｮ蜻ｨ蝗ｲ縺ｫ譫縺御ｻ倥￥縲・*/
+  --app-header-back-border-radius: var(--radius-zero); /* 謌ｻ繧九・繧ｿ繝ｳ縺ｮ隗剃ｸｸ縲ょ､ｧ縺阪￥縺吶ｋ縺ｨ閭梧勹繧・棧縺ｮ隗偵′荳ｸ縺上↑繧九・*/
+
+  /* 笏笏 7. 菴咏區 笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏 */
+  --app-header-back-padding: 0; /* 謌ｻ繧狗泙蜊ｰ縺ｮ蜀・・菴咏區縲ょ､ｧ縺阪￥縺吶ｋ縺ｨ繝懊ち繝ｳ縺ｮ蜊譛臥ｯ・峇縺悟ｺ・′繧九・*/
+
+  /* 笏笏 9. 縺昴・莉・笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏 */
+  --app-header-back-transition-duration: 0.15s; /* 謌ｻ繧狗泙蜊ｰ縺悟虚縺乗凾髢薙ょ､ｧ縺阪￥縺吶ｋ縺ｨ遘ｻ蜍輔′繧・▲縺上ｊ縺ｫ縺ｪ繧九・*/
+  --app-header-back-hover-translate-x: -2px; /* 繝帙ヰ繝ｼ譎ゅ↓遏｢蜊ｰ縺悟ｷｦ縺ｸ蜍輔￥霍晞屬縲らｵｶ蟇ｾ蛟､繧貞､ｧ縺阪￥縺吶ｋ縺ｨ遘ｻ蜍暮㍼縺悟｢励∴繧九・*/
+}
+
+/* ===========================================================================
+   縺薙％縺九ｉ荳九・讒矩(繝ｬ繧､繧｢繧ｦ繝医・邨・∩遶九※)縲る壼ｸｸ縺ｯ隗ｦ繧峨↑縺・・   菴咲ｽｮ繝ｻ鬮倥＆(sticky/z-index/--header-height)縺ｯ global.css 縺ｮ .app-header 蛛ｴ縺ｧ
+   螳夂ｾｩ縺励√％縺薙〒縺ｯ繝医ャ繝励ヰ繝ｼ蜀・Κ縺ｮ隕九◆逶ｮ縺縺代ｒ謇ｱ縺・・   =========================================================================== */
+
+/* 1谿ｵ逶ｮ蟾ｦ蛛ｴ縺ｮ繧｢繝励Μ蜷阪ｒ鄂ｮ縺丞・ */
+.app-header-row-left {
+  display: flex;
+  align-items: center;
+  gap: var(--app-header-row-left-gap);
+}
+
+/* 1谿ｵ逶ｮ縺ｮ繧｢繝励Μ蜷・*/
+.app-header-brand {
+  font-weight: var(--app-header-brand-font-weight);
+  font-size: var(--app-header-brand-font-size);
+  white-space: nowrap;
+}
+
+/* 繝壹・繧ｸ蜷阪・蟾ｦ繧・そ繧ｫ繝ｳ繝峨ヰ繝ｼ蟾ｦ遶ｯ縺ｫ鄂ｮ縺乗綾繧九・繧ｿ繝ｳ */
+.app-header-back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--app-header-back-padding);
+  background: var(--app-header-back-background);
+  border: var(--app-header-back-border);
+  border-radius: var(--app-header-back-border-radius);
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  color: var(--app-header-back-color);
+  flex-shrink: 0;
+}
+
+/* 謌ｻ繧九・繧ｿ繝ｳ蜀・・遏｢蜊ｰ */
+.app-header-back-icon {
+  flex-shrink: 0;
+  transition: transform var(--app-header-back-transition-duration) ease;
+}
+
+.app-header-back:hover {
+  color: var(--app-header-back-hover-color);
+}
+
+.app-header-back:hover .app-header-back-icon {
+  transform: translateX(var(--app-header-back-hover-translate-x));
+}
+
+/* 2谿ｵ逶ｮ縺ｫ陦ｨ遉ｺ縺吶ｋ迴ｾ蝨ｨ縺ｮ繝壹・繧ｸ蜷・*/
+.app-header-title {
+  font-weight: var(--app-header-title-font-weight);
+  font-size: var(--app-header-title-font-size);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 繝壹・繧ｸ蜷阪・讓ｪ縺ｫ蜃ｺ繧倶ｿ晏ｭ倥・隱ｭ縺ｿ霎ｼ縺ｿ迥ｶ諷・*/
+.app-header-status {
+  color: var(--app-header-status-color);
+  font-size: var(--app-header-status-font-size);
+  white-space: nowrap;
+}
+
+/* 2谿ｵ逶ｮ蜿ｳ蛛ｴ縺ｫ荳ｦ縺ｶ繝壹・繧ｸ蝗ｺ譛峨・謫堺ｽ懊・繧ｿ繝ｳ */
+.app-header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--app-header-actions-gap);
+  flex-wrap: wrap;
+}
+
+/* 蜈ｬ髢狗判髱｢縺ｮ繧｢繧ｫ繧ｦ繝ｳ繝域｡亥・ */
+.app-header-account {
+  display: flex;
+  align-items: center;
+  gap: var(--app-header-account-gap);
+  font-size: var(--app-header-account-font-size);
+  color: var(--app-header-account-color);
+  white-space: nowrap;
+  /* 迢ｭ縺・ｹ・〒繝壹・繧ｸ蝗ｺ譛画桃菴懊→蜈ｱ蟄倥＠縺ｦ繧よｨｪ繧ｹ繧ｯ繝ｭ繝ｼ繝ｫ縺励↑縺・ｈ縺・ｸｮ蟆上ｒ險ｱ蜿ｯ縺吶ｋ縲・*/
+  min-width: 0;
+}
+
+@media (max-width: 899px) {
+  /* 繝壹・繧ｸ蝗ｺ譛画桃菴懊ｒ謚倥ｊ霑斐＠縲∫強縺・ｹ・〒縺ｮ讓ｪ繧ｹ繧ｯ繝ｭ繝ｼ繝ｫ繧帝亟縺舌・*/
+  .app-header-row-main {
+    flex-wrap: wrap;
+    row-gap: var(--app-header-mobile-row-gap);
+  }
+}
+

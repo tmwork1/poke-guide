@@ -1,4 +1,4 @@
-/* ===========================================================================
+﻿/* ===========================================================================
 	チーム編集画面のモバイル用タブ
 
 	画面のどこ: チーム詳細 → モバイル表示 → ポケモン・編成・相性タブ
@@ -91,7 +91,7 @@ body.team-edit-page {
 }
 .team-formation-mobile__mates {
 	position: sticky;
-	top: calc(var(--topbar-height) + var(--second-bar-height));
+	top: calc(var(--header-height) + var(--second-bar-height));
 	z-index: 3;
 	padding: var(--team-pokemon-tab-mates-padding);
 	background: var(--team-pokemon-tab-mates-background);

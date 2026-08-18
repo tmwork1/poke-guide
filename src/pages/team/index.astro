@@ -1,4 +1,4 @@
----
+﻿---
 // チーム一覧ページ(new-page計画 docs/plan/pages/team.md「確定した設計 > 画面 > /team(一覧)」)。
 // 手本は src/pages/box/index.astro(一覧ページの原本): ツールバーの構造・.box-grid の
 // 「display:contents + 追加タイルを外側の兄弟に置く」レンダリング戦略・空状態2種の作り・
@@ -25,7 +25,7 @@ const user = Astro.locals.user;
 ---
 <AppLayout title="チーム" description="登録したチーム編成の一覧・検索・並べ替え" current="team" hideTopbar={true} bodyClass="team-page">
 	{/*
-	  hideTopbar={true}によりAppLayoutの<header class="app-topbar">を描画しないため、
+	  hideTopbar={true}によりAppLayoutの<header class="app-header">を描画しないため、
 	  件数バッジはこのページ自身のツールバー(.second-bar--toolbar、
 	  #team-toolbar)内へ直接配置する(下記マークアップ、id="team-count-badge"・
 	  class="badge tnum"は変更しない、<script>がgetElementByIdで参照するため)。
@@ -46,8 +46,8 @@ const user = Astro.locals.user;
 			user ? (
 				<Fragment>
 					<div class="panel panel-top second-bar second-bar--toolbar floating-list-toolbar" id="team-toolbar">
-						<button type="button" class="app-topbar-back" aria-label="戻る" onclick="history.back()">
-							<svg class="app-topbar-back-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+						<button type="button" class="app-header-back" aria-label="戻る" onclick="history.back()">
+							<svg class="app-header-back-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 								<path d="M9 14 4 9l5-5" />
 								<path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11" />
 							</svg>

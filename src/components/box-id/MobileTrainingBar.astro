@@ -1,4 +1,4 @@
----
+﻿---
 import type { OwnedPokemonRecord } from '../../lib/owned-pokemon';
 import pokemonMasterRaw from '../../../public/master-data/autocomplete/pokemon.json';
 import pokemonDetailRaw from '../../../public/master-data/detail/pokemon.json';
@@ -22,8 +22,8 @@ const previewStats = detail ? statKeys.map((key, index) => index === 0 ? calcHpS
 
 <div class="mobile-training-ui" id="mobile-training-ui" data-mobile-tab={activeTab}>
   <nav class="second-bar" id="mobile-training-bar" aria-label="個体編集メニュー">
-    <button type="button" class="second-bar__back app-topbar-back" aria-label="戻る" onclick="history.back()">
-      <svg class="app-topbar-back-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <button type="button" class="second-bar__back app-header-back" aria-label="戻る" onclick="history.back()">
+      <svg class="app-header-back-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <path d="M9 14 4 9l5-5" />
         <path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11" />
       </svg>
