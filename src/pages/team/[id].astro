@@ -336,11 +336,9 @@ try {
 		/* box/index.astroの.sort-select-wrap/.sort-icon/.toolbar-sort selectと同じ値
 		   (アイコン左重畳+select側padding-left)をこのページのスコープへ複製する
 		   (新しい値は作っていない)。 */
-		/* 検索欄(#pokemon-search-input)は対象外で、レギュレーションフィルタとソートの2つだけを
+		/* 検索欄(#pokemon-search-input)は対象外で、お気に入り・重複除外の各トグルと件数だけを
 		   共通の行コンテナ(.team-select-filters-row、マークアップ側で新設)にまとめて
-		   flexで横並びにする。レギュレーションフィルタが非表示(hidden、チームに
-		   レギュレーション未指定のとき)のときはflex子がソート側1個だけになり、
-		   自然に残り幅いっぱいへ広がる。 */
+		   flexで横並びにする。 */
 		.team-select-filters-row {
 			display: flex;
 			flex-wrap: nowrap;
@@ -357,18 +355,6 @@ try {
 			align-self: center;
 		}
 		.team-select-count[hidden] { display: none; }
-		.team-select-regulation-filter {
-			flex: 1 1 0;
-			min-width: 0;
-			/* トグルスイッチ(ラベル+スイッチ、コンテンツサイズ)は幅・高さを自身で規定しないため、
-			   この行(align-items:stretchで高さがソートセレクト基準に伸びる)側で
-			   display:flex; align-items:centerにしてトグルを縦中央に揃える。 */
-			display: flex;
-			align-items: center;
-		}
-		.team-select-regulation-filter[hidden] {
-			display: none;
-		}
 		/* ヘッダーの.collection-opt-out-toggle(「非公開」トグル、上のフロントマター直後の
 		   <style>参照)と全く同じ視覚言語(inline-flex + gap + 本文小さめの文字色)にする。
 		   トグル本体(.toggle-switch一式)は同じscoped<style>内で既に定義済みのものをそのまま
@@ -620,15 +606,8 @@ try {
 								</div>
 							</div>
 							</div>
-							{/* チームにレギュレーションが指定されているときだけ現れるトグルで、既定ON=
-							    そのレギュレーションで使える個体だけを選択バーに出す。OFFにすると
-							    全個体が出る。「使える個体」= 個体のレギュレーションがチームと一致するもの +
-							    個体側が未指定のもの(未指定は「まだ決めていない」であって「使えない」ではない
-							    ため、隠すと既存の個体が軒並み消えて選べなくなる)。
-							    チーム側が未指定のときは絞る基準が無いのでトグル自体を隠す
-							    (下のsyncRegulationFilterToggle参照)。 */}
-							{/* 検索欄(#pokemon-search-input)は含めず、レギュレーションフィルタとソートの
-							    2つだけを共通の行コンテナに入れてflexで横並びにする
+							{/* 検索欄(#pokemon-search-input)は含めず、お気に入り・重複除外の各トグルと
+							    件数だけを共通の行コンテナに入れてflexで横並びにする
 							    (CSSは上のscoped<style>の.team-select-filters-row参照)。 */}
 							<div class="team-select-filters-row">
 								<label class="regulation-filter-toggle" for="favorite-filter-toggle">
@@ -640,29 +619,6 @@ try {
 									<span class="toggle-switch"><input id="team-select-dedupe-toggle" type="checkbox" class="toggle-switch-input" checked /><span class="toggle-switch-track" aria-hidden="true"><span class="toggle-switch-thumb"></span></span></span>
 									<span>重複を除外</span>
 								</label>
-								{/* ヘッダーの「非公開」トグル(上のフロントマター/<style>の.toggle-switch一式、
-								    #team-collection-opt-out-toggle参照)と全く同じ意匠を踏襲する(新しい
-								    スイッチは作らない)。同じ.astroコンポーネント内の静的マークアップなので、
-								    scoped<style>で定義済みの.toggle-switch系クラスをそのまま流用できる
-								    (複製不要)。チェックボックスのchecked状態で表す(下の<script>の
-								    syncRegulationFilterToggle参照。非公開トグルと違いAPI保存は伴わない、
-								    クライアント側のみのフィルタ状態)。 */}
-								<div class="team-select-regulation-filter" id="regulation-filter-wrap" hidden>
-									<label class="regulation-filter-toggle" for="regulation-filter-toggle">
-										<span class="toggle-switch">
-											<input
-												id="regulation-filter-toggle"
-												type="checkbox"
-												class="toggle-switch-input"
-												checked
-											/>
-											<span class="toggle-switch-track" aria-hidden="true">
-												<span class="toggle-switch-thumb"></span>
-											</span>
-										</span>
-										<span id="regulation-filter-toggle-label">レギュレーション一致のみ</span>
-									</label>
-								</div>
 								<span class="badge tnum team-select-count" id="pokemon-count-badge" hidden>0</span>
 							</div>
 						</div>
@@ -2126,10 +2082,6 @@ try {
 			ability_name: string | null;
 			item_name: string | null;
 			tera_type: string | null;
-			// 選択バーのレギュレーション絞り込みに使う。SSR(lib/team.tsのTEAM_MEMBER_SELECT)・GET
-			// /api/owned-pokemon(OWNED_POKEMON_COLUMNS)の両方に regulation を追加済みなので、
-			// この型に足すだけで両経路から読める。
-			regulation: string | null;
 			move_names: string[];
 			// box/index.astroと同じ実数値計算(src/lib/stats.ts)に使う。level/nature/evs/ivsもSSR・
 			// GET /api/owned-pokemonの両方に既に含まれているため、フロント側の型に足すだけでよい。
@@ -2218,9 +2170,6 @@ try {
 			if (metaFields) overviewFields.append(metaFields);
 			overviewGrid.insertAdjacentElement("afterend", memoInput);
 			const regulationSelect = el<HTMLSelectElement>("team-regulation");
-			const regulationFilterWrap = el<HTMLElement>("regulation-filter-wrap");
-			// <button>ではなく<input type="checkbox">なので、要素の型もHTMLInputElementにする。
-			const regulationFilterToggle = el<HTMLInputElement>("regulation-filter-toggle");
 			const dedupeToggle = el<HTMLInputElement>("team-select-dedupe-toggle");
 			const favoriteFilterToggle = el<HTMLInputElement>("favorite-filter-toggle");
 			const slotsRoot = el<HTMLElement>("team-slots");
@@ -4270,17 +4219,9 @@ try {
 					.every((token) => kanaIncludes(haystack, token));
 			}
 
-			let regulationFilterOn = true;
-
 			function currentTeamRegulation(): string | null {
 				const value = regulationSelect.value.trim();
 				return value === "" ? null : value;
-			}
-
-			function matchesTeamRegulation(p: OwnedPokemonRecord): boolean {
-				const teamRegulation = currentTeamRegulation();
-				if (teamRegulation === null || !regulationFilterOn) return true;
-				return !p.regulation || p.regulation === teamRegulation;
 			}
 
 			// 空のアイテムは重複扱いせず、編成済みの種族または実値のあるアイテムだけを除外する。
@@ -4296,17 +4237,6 @@ try {
 
 			function matchesFavorite(p: OwnedPokemonRecord): boolean {
 				return !favoriteFilterToggle.checked || p.is_pinned;
-			}
-
-			// チーム側が未指定のときは絞る基準が無いのでトグル自体を出さない
-			// (出しても押した瞬間に何も変わらず、機能していないように見えるため)。
-			// ラベルには現在のレギュレーション名を入れて、何で絞っているかを一目で分かるようにする。
-			function syncRegulationFilterToggle(): void {
-				const teamRegulation = currentTeamRegulation();
-				regulationFilterWrap.hidden = teamRegulation === null;
-				const label = document.getElementById("regulation-filter-toggle-label");
-				if (label) label.textContent = teamRegulation ? `${teamRegulation} のみ` : "レギュレーション一致のみ";
-				regulationFilterToggle.checked = regulationFilterOn;
 			}
 
 			function syncRegulationPlaceholder(): void {
@@ -4492,7 +4422,7 @@ try {
 
 				const term = searchInput.value.trim();
 				const filtered = sortPokemon(
-					allPokemon.filter((p) => !isCurrentMember(p.id) && matchesFavorite(p) && matchesTeamRegulation(p) && matchesDedupe(p) && matchesSearch(p, term)),
+					allPokemon.filter((p) => !isCurrentMember(p.id) && matchesFavorite(p) && matchesDedupe(p) && matchesSearch(p, term)),
 				);
 				pokemonCountBadge.textContent = String(filtered.length);
 				pokemonCountBadge.hidden = false;
@@ -4625,18 +4555,11 @@ try {
 			favoriteFilterToggle.addEventListener("change", renderSelectList);
 
 			regulationSelect.addEventListener("change", () => {
-				syncRegulationFilterToggle();
 				syncRegulationPlaceholder();
 				renderSelectList();
 				scheduleSave();
 			});
-			regulationFilterToggle.addEventListener("change", () => {
-				regulationFilterOn = regulationFilterToggle.checked;
-				syncRegulationFilterToggle();
-				renderSelectList();
-			});
-			// 初期表示(SSRで選択済みのレギュレーション)にもトグルの状態を合わせる。
-			syncRegulationFilterToggle();
+			// 初期表示(SSRで選択済みのレギュレーション)にもプレースホルダー状態を合わせる。
 			syncRegulationPlaceholder();
 
 			includeMegaToggle.addEventListener("change", () => {

@@ -26,7 +26,6 @@
 
 .box-grid .box-card {
   /* ── 1. 文字サイズ ────────────────────────────────────── */
-  --box-card-favorite-font-size: var(--font-size-lg1); /* カード左上に載るお気に入りの星印。大きくすると三角形の中で存在感が増す */
   --box-card-name-font-size: var(--font-size-sm3); /* ポケモンの名前。カード左上に出る主要な文字の大きさ */
   --box-card-move-font-size: var(--font-size-sm3); /* カード下部に並ぶ技名。上げると4行分の必要な高さも増える */
   --box-card-nature-evs-font-size: var(--font-size-sm3); /* 性格と努力値の要約。大きくすると背景画像の手前で読みやすくなる */
@@ -47,18 +46,12 @@
   --box-card-move-color: var(--color-text); /* 技名の文字に使う基本色 */
   --box-card-action-color: var(--color-text-muted); /* 通常時の丸い操作アイコンを目立たせすぎない色 */
   --box-card-action-hover-color: var(--color-text); /* ポインターを載せた操作アイコンの文字色 */
-  --box-card-favorite-color: var(--color-text-muted); /* 未登録状態のお気に入り星印の色 */
-  --box-card-favorite-hover-color: var(--color-text); /* 未登録の星ボタンへポインターを載せたときの星色 */
-  --box-card-favorite-pinned-color: var(--color-primary-contrast); /* お気に入り登録済みの背景上で星を判別しやすくする色 */
   --box-card-delete-color: var(--color-danger-strong); /* 削除操作であることを示すアイコンの警告色 */
 
   /* ── 4. 背景色 ────────────────────────────────────────── */
   --box-card-move-type-bar-empty-color: #000; /* 技が空欄の行に表示するタイプバーの塗り色 */
   --box-card-action-background: var(--color-surface); /* 右上に並ぶ丸い操作ボタンの通常時の下地 */
   --box-card-action-hover-background: var(--color-bg); /* 丸い操作ボタンへポインターを載せたときの下地色 */
-  --box-card-favorite-background: var(--color-bg); /* 未登録のお気に入りボタンが作る左上の三角形の色 */
-  --box-card-favorite-hover-background: var(--color-surface); /* 未登録の星へポインターを載せた際の三角形背景 */
-  --box-card-favorite-pinned-background: var(--color-risky); /* お気に入り登録済みであることを示す星ボタンの背景色 */
   --box-card-delete-background: var(--color-surface); /* 削除ボタンをまだ選んでいないときの背景 */
   --box-card-delete-hover-background: var(--color-danger-soft); /* 削除ボタンを指したときに危険操作を伝える薄い背景色 */
 
@@ -80,14 +73,12 @@
   --box-card-padding: var(--space-2); /* カード外枠から名前や技までの内側余白。増やすと内容領域が小さくなる */
   --box-card-gap: var(--space-1); /* カード内の主要な行同士と操作ボタン同士の間隔 */
   --box-card-action-offset: var(--space-2); /* 右上の操作ボタン群をカードの上端・右端から離す共通距離 */
-  --box-card-favorite-padding: 7px 0 0 7px; /* 左上の三角形内で星印を右下方向へ配置する内側余白 */
   --box-card-move-gap: 0.05rem; /* 上下に連続する技の行間。広げると技一覧の総高も増す */
   --box-card-move-row-padding: 0.04rem 0; /* 技1行の上下に足す余白。増やすと各行の高さがそろって広がる */
   --box-card-move-icon-gap: 3px; /* 技タイプの細いバーと技名との横方向の隙間 */
 
   /* ── 8. 寸法 ──────────────────────────────────────────── */
   --box-card-artwork-width: 75%; /* 右下に透かすポケモン画像の横幅。大きくするとカードを覆う範囲が広がる */
-  --box-card-favorite-size: 52px; /* 左上のお気に入り三角形を作る正方形領域の一辺 */
   --box-card-action-size: 28px; /* 右上の各丸型操作ボタンの幅と高さ */
   --box-card-item-badge-size: 20%; /* 右下に重ねる持ち物アイコンの一辺。カード幅に対する比率 */
   --box-card-move-icon-size: var(--font-size-sm3); /* 技タイプバーの高さ。技名の文字サイズに合わせた寸法 */
@@ -220,44 +211,6 @@
   outline-offset: var(--box-card-action-focus-outline-offset);
 }
 
-/* カード左上の三角形のお気に入りボタン */
-.box-grid .box-card .pin-toggle {
-  position: absolute;
-  top: 0;
-  left: 0;
-  z-index: 2;
-  width: var(--box-card-favorite-size);
-  height: var(--box-card-favorite-size);
-  padding: var(--box-card-favorite-padding);
-  border: none;
-  border-radius: 0;
-  box-shadow: none;
-  clip-path: polygon(0 0, 100% 0, 0 100%);
-  background: var(--box-card-favorite-background);
-  color: var(--box-card-favorite-color);
-  align-items: flex-start;
-  justify-content: flex-start;
-
-  font-size: var(--box-card-favorite-font-size);
-}
-
-.box-grid .box-card .pin-toggle .favorite-star-glyph {
-  display: inline-block;
-  line-height: 1;
-}
-.box-grid .box-card .pin-toggle:hover {
-  background: var(--box-card-favorite-hover-background);
-  color: var(--box-card-favorite-hover-color);
-}
-.box-grid .box-card .pin-toggle[data-pinned="true"] {
-  background: var(--box-card-favorite-pinned-background);
-  color: var(--box-card-favorite-pinned-color);
-}
-.box-grid .box-card .pin-toggle[data-pinned="true"]:hover {
-  background: var(--box-card-favorite-pinned-background);
-  color: var(--box-card-favorite-pinned-color);
-}
-
 /* 削除モードでカード右上に表示する削除ボタン */
 .box-grid .box-card .delete-button {
   background: var(--box-card-delete-background);
@@ -289,8 +242,7 @@
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .box-grid .box-card .delete-button,
-  .box-grid .box-card .pin-toggle {
+  .box-grid .box-card .delete-button {
     transition: none;
   }
 }
@@ -300,7 +252,6 @@
   display: contents;
 }
 
-.box-grid .box-card .pin-toggle,
 .box-grid .box-card .delete-button {
   display: none;
 }
@@ -312,9 +263,6 @@
 #owned-pokemon-list.is-card-delete-mode .box-card .delete-button {
   display: inline-flex;
   pointer-events: auto;
-}
-#owned-pokemon-list.is-card-delete-mode .box-card .pin-toggle {
-  pointer-events: none;
 }
 
 @keyframes card-delete-wiggle {

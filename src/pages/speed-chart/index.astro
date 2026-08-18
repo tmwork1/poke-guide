@@ -48,11 +48,13 @@ const hasOwnedPanel = ownedRecord !== null;
 // レギュレーション決定順序(P1確定仕様): ?reg= → 連携個体のregulation → REGULATIONSの末尾(最新)。
 // REGULATIONSは常に非空(vendor/jpokeが最低1つのレギュレーションを持つ)前提のため、
 // フォールバックのみ非nullを明示しておく(「レギュレーション未指定は許さない」)。
+// owned_pokemonからregulation列が廃止され個体側にレギュレーションを持たなくなったため、
+// resolveSpeedChartRegulationの第2引数(連携個体のregulationヒント)は常にnullを渡す。
 const requestedRegulation = Astro.url.searchParams.get('reg');
 const resolvedRegulation =
 	requestedRegulation === 'all'
 		? 'all'
-		: (resolveSpeedChartRegulation(requestedRegulation, ownedRecord?.regulation, REGULATIONS) ??
+		: (resolveSpeedChartRegulation(requestedRegulation, null, REGULATIONS) ??
 			REGULATIONS[REGULATIONS.length - 1] ??
 			'');
 

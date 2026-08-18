@@ -1,6 +1,5 @@
 import {
 	renderBoxPokemonCard,
-	type BoxPokemonCardPinOptions,
 	type BoxPokemonCardPokemon,
 } from "./box-pokemon-card";
 
@@ -8,7 +7,6 @@ export interface TeamMemberCardContent {
 	pokemon: BoxPokemonCardPokemon;
 	displayName: string;
 	ariaLabel: string;
-	pin?: BoxPokemonCardPinOptions;
 	onDelete?: () => void | Promise<void>;
 }
 

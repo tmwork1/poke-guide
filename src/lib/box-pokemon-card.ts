@@ -31,18 +31,11 @@ export interface OwnedPokemonDisplayNameSource {
 	species_name: string;
 }
 
-export interface BoxPokemonCardPinOptions {
-	isPinned: boolean;
-	onToggle: () => void | Promise<void>;
-}
-
 export interface BoxPokemonCardOptions<T extends HTMLElement> {
 	root: T;
 	pokemon: BoxPokemonCardPokemon;
 	displayName: string;
 	ariaLabel: string;
-	/** /box 専用。指定した場合だけ左上のピン留めボタンを生成する。 */
-	pin?: BoxPokemonCardPinOptions;
 	/** /box 専用。指定した場合だけ右上の削除ボタンを生成する。 */
 	onDelete?: () => void | Promise<void>;
 }
@@ -168,32 +161,9 @@ function applyCardTooltip(
 export function renderBoxPokemonCard<T extends HTMLElement>(
 	options: BoxPokemonCardOptions<T>,
 ): T {
-	const { root: card, pokemon, displayName, ariaLabel, pin, onDelete } = options;
-	card.className = "card box-card card-pokemon" + (pin?.isPinned ? " is-pinned" : "");
+	const { root: card, pokemon, displayName, ariaLabel, onDelete } = options;
+	card.className = "card box-card card-pokemon";
 	card.setAttribute("aria-label", ariaLabel);
-
-	if (pin) {
-		// ピン留めは.card-actionsの外でcard直下に置き、削除ボタンと対角配置する。
-		const pinButton = document.createElement("button");
-		pinButton.type = "button";
-		pinButton.className = "icon-button pin-toggle";
-		pinButton.dataset.pinned = String(pin.isPinned);
-		// 星の描画はglobal.cssの共通ルールへ委譲し、状態属性だけを表示の根拠にする。
-		const pinStar = document.createElement("span");
-		pinStar.className = "favorite-star-glyph";
-		pinStar.setAttribute("aria-hidden", "true");
-		pinButton.appendChild(pinStar);
-		const pinLabel = pin.isPinned ? "ピン留めを解除する" : "ピン留めする";
-		pinButton.title = pinLabel;
-		pinButton.setAttribute("aria-label", pinLabel);
-		pinButton.addEventListener("click", (event) => {
-			// 親カード(<a>)のクリックによる/box/{id}への遷移を止める。
-			event.preventDefault();
-			event.stopPropagation();
-			void pin.onToggle();
-		});
-		card.appendChild(pinButton);
-	}
 
 	if (onDelete) {
 		// .card-actionsは右上の削除ボタン1個だけを持つ箱として維持する。
@@ -234,7 +204,7 @@ export function renderBoxPokemonCard<T extends HTMLElement>(
 	card.appendChild(itemBadge);
 	void applyItemBadge(itemImg, itemBadge, pokemon.item_name ?? "");
 
-	// ルートのaria-labelと重複するのでbody全体はaria-hiddenにする。/boxのピン留め・削除
+	// ルートのaria-labelと重複するのでbody全体はaria-hiddenにする。/boxの削除
 	// ボタンはこのdivの外にあるため、隠してもフォーカス到達性へ影響しない。
 	const body = document.createElement("div");
 	body.className = "card-body";

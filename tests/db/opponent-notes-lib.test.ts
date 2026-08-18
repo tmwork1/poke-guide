@@ -52,7 +52,6 @@ function makeOwnedPokemonInput(overrides: Partial<OwnedPokemonRequestBody> = {})
     move_names: [],
     memo: null,
     tags: [],
-    is_pinned: false,
     ...overrides,
   };
 }

@@ -168,7 +168,6 @@ const user = Astro.locals.user;
 			ivs: number[];
 			move_names: string[];
 			memo: string | null;
-			is_pinned: boolean;
 		}
 		interface TeamMemberEntry {
 			slot: number;
@@ -298,10 +297,6 @@ const user = Astro.locals.user;
 							pokemon: member.owned_pokemon,
 							displayName: pokemonName,
 							ariaLabel: `${pokemonName}を編集`,
-							pin: {
-								isPinned: member.owned_pokemon.is_pinned,
-								onToggle: () => togglePokemonPin(member.owned_pokemon),
-							},
 							onDelete: () => deletePokemon(member.owned_pokemon),
 						};
 					},
@@ -331,24 +326,6 @@ const user = Astro.locals.user;
 				// 絞り込み中も現在の表示件数だけを示すため、/box と表記を揃える。
 				countBadge.textContent = String(visibleCount);
 				countBadge.hidden = false;
-			}
-
-			async function togglePokemonPin(p: TeamMemberPokemon): Promise<void> {
-				try {
-					const res = await fetch(`/api/owned-pokemon/${encodeURIComponent(p.id)}`, {
-						method: "PATCH", credentials: "same-origin", headers: { "Content-Type": "application/json" },
-						body: JSON.stringify({ is_pinned: !p.is_pinned }),
-					});
-					if (!res.ok) throw new Error(`ピン留め更新失敗: ${res.status}`);
-					const body = (await res.json()) as { data: TeamMemberPokemon };
-					for (const team of allTeams) {
-						for (const member of team.members) if (member.owned_pokemon.id === p.id) member.owned_pokemon = body.data;
-					}
-					renderList();
-				} catch (err) {
-					console.error(err);
-					window.alert("ピン留めを更新できませんでした。時間をおいて再度お試しください。");
-				}
 			}
 
 			async function deletePokemon(p: TeamMemberPokemon): Promise<void> {
