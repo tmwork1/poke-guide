@@ -62,11 +62,15 @@ body.home-page {
   max-width: var(--home-page-max-width);
   margin: 0 auto;
   padding: var(--home-page-padding);
-  --app-header-margin: var(--home-page-app-header-margin);
 }
 
 /* ページナビゲーション自体のスタイルは app-header.css に集約し、ここではページ端まで
-   広げるためのカスタムプロパティだけを指定する。 */
+   広げるためのカスタムプロパティだけを指定する。--app-header-margin は .app-header
+   ルール自身が同じ要素に既定値を宣言しているため、継承させるだけでは上書きできない。
+   nav.app-header要素自身をセレクタで直接指定する必要がある。 */
+.page.home-page .app-header {
+  --app-header-margin: var(--home-page-app-header-margin);
+}
 
 /* ロゴとブランド名の行 */
 .home-brand {
