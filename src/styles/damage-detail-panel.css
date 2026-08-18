@@ -96,7 +96,7 @@ body.box-edit-page {
 	--stat-ev-mobile-button-block-size: 30px; /* 努力値編集ボタンの寸法。大きくするとタップ領域が広がる */
 	--damage-detail-tera-icon-size: 20px; /* テラタイプアイコン。大きくすると候補行が高くなる */
 	--damage-detail-suggest-item-icon-size: 14px; /* 持ち物アイコン。大きくすると持ち物が目立つ */
-	--damage-detail-direction-toggle-width: 4.4em; /* 攻守切り替えの横幅。大きくすると切り替え欄が広がる */
+	--damage-detail-direction-toggle-width: 6.4em; /* 攻守切り替えの最小横幅。「攻撃」「防御」が折り返さない幅が必要(Cの修正) */
 	--damage-detail-suggest-action-width: 3.4em; /* 右端の追加ラベル幅。大きくするとラベル列が広がる */
 
 	/* ── 9. その他 ─────────────────────── */
@@ -674,21 +674,30 @@ body.box-edit-page {
 		gap: var(--damage-detail-space-md);
 	}
 	#damage-detail-panel-body .damage-build-detail-identity-row {
+		/* B: テラスタイプ欄を「わざ」タブへ移設したため、このグリッドは
+			攻守トグル+種族名入力の2列になった(以前は3列)。 */
 		grid-column: 1 / -1;
 		display: grid;
-		grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr);
+		grid-template-columns: auto minmax(0, 1fr);
 		align-items: end;
 		gap: var(--damage-detail-space-sm);
 	}
 	#damage-detail-panel-body .damage-build-detail-direction-toggle {
-		width: var(--damage-detail-direction-toggle-width);
+		/* C: 旧来の固定幅(4.4em)は「攻撃」「防御」2文字ラベル2つ分には狭すぎ、
+			折り返して縦2つの丸ボタンに見える不具合があった。中央カード側の
+			.damage-row-direction-toggle と同じく内容量に応じて幅が決まるようにし、
+			1行に収まる最小幅だけを保証する(--damage-detail-direction-toggle-width、
+			チューニング変数側で値を拡大済み)。 */
+		width: auto;
 		min-width: var(--damage-detail-direction-toggle-width);
 		min-height: var(--space-7);
 		margin-bottom: var(--damage-detail-direction-toggle-margin-bottom);
 	}
 	#damage-detail-panel-body .damage-build-detail-direction-toggle .damage-row-direction-option {
 		min-height: var(--space-7);
-		padding-inline: var(--damage-detail-space-xs);
+		padding-inline: var(--damage-detail-space-sm);
+		/* 「攻撃」「防御」の2文字ラベルが折り返さないようにする(Cの不具合の直接原因)。 */
+		white-space: nowrap;
 	}
 	#damage-detail-panel-body .damage-build-detail-grid {
 		grid-column: 1 / -1;
@@ -742,10 +751,15 @@ body.box-edit-page {
 		border-color: var(--damage-detail-primary-color);
 		box-shadow: var(--damage-detail-autofill-shadow);
 	}
-	#damage-detail-panel-body .damage-build-detail-form .damage-row-tera-field {
+	/* F: テラスタイプ選択(buildTeraDropdown)は元々「相手ポケモン」タブ
+		(.damage-build-detail-form)専用の見た目だったが、「わざ」タブ側の相手側
+		テラスタル欄(.damage-detail-tera-row、下記参照)でも同じ見た目を再利用するため、
+		.damage-build-detail-form限定だったセレクタを#damage-detail-panel-body全体へ
+		広げた(このパネル内で.tera-dropdown-*系クラスを使うのはテラスタイプ選択UIのみ)。 */
+	#damage-detail-panel-body .damage-row-tera-field {
 		position: relative;
 	}
-	#damage-detail-panel-body .damage-build-detail-form .tera-dropdown-button {
+	#damage-detail-panel-body .tera-dropdown-button {
 		width: 100%;
 		min-height: 0;
 		display: flex;
@@ -762,29 +776,29 @@ body.box-edit-page {
 		text-align: left;
 		cursor: pointer;
 	}
-	#damage-detail-panel-body .damage-build-detail-form .tera-dropdown-button.is-tera-unselected {
+	#damage-detail-panel-body .tera-dropdown-button.is-tera-unselected {
 		background: none;
 		border-style: dashed;
 	}
-	#damage-detail-panel-body .damage-build-detail-form .tera-dropdown-image,
-	#damage-detail-panel-body .damage-build-detail-form .tera-dropdown-option-image {
+	#damage-detail-panel-body .tera-dropdown-image,
+	#damage-detail-panel-body .tera-dropdown-option-image {
 		width: var(--damage-detail-tera-icon-size);
 		height: var(--damage-detail-tera-icon-size);
 		object-fit: contain;
 		flex: none;
 	}
-	#damage-detail-panel-body .damage-build-detail-form .tera-dropdown-placeholder {
+	#damage-detail-panel-body .tera-dropdown-placeholder {
 		min-width: 0;
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
 		color: var(--damage-detail-muted-color);
 	}
-	#damage-detail-panel-body .damage-build-detail-form .tera-dropdown-placeholder.is-tera-value-text {
+	#damage-detail-panel-body .tera-dropdown-placeholder.is-tera-value-text {
 		color: var(--damage-detail-text-color);
 	}
 	/* ボタン直下に開くテラスタイプ候補一覧 */
-	#damage-detail-panel-body .damage-build-detail-form .tera-dropdown-list {
+	#damage-detail-panel-body .tera-dropdown-list {
 		z-index: 5;
 		position: absolute;
 		top: calc(100% + var(--damage-detail-space-xs));
@@ -800,10 +814,10 @@ body.box-edit-page {
 		border-radius: var(--damage-detail-radius-md);
 		box-shadow: var(--damage-detail-shadow-md);
 	}
-	#damage-detail-panel-body .damage-build-detail-form .tera-dropdown-list[hidden] {
+	#damage-detail-panel-body .tera-dropdown-list[hidden] {
 		display: none;
 	}
-	#damage-detail-panel-body .damage-build-detail-form .tera-dropdown-option {
+	#damage-detail-panel-body .tera-dropdown-option {
 		display: flex;
 		align-items: center;
 		gap: var(--damage-detail-space-xs);
@@ -811,16 +825,23 @@ body.box-edit-page {
 		border-radius: var(--damage-detail-radius-sm);
 		cursor: pointer;
 	}
-	#damage-detail-panel-body .damage-build-detail-form .tera-dropdown-option.is-active {
+	#damage-detail-panel-body .tera-dropdown-option.is-active {
 		background: var(--damage-detail-primary-soft-color);
 	}
-	#damage-detail-panel-body .damage-build-detail-form .tera-dropdown-option-text {
+	#damage-detail-panel-body .tera-dropdown-option-text {
 		min-width: 0;
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
 		font-size: var(--damage-detail-font-size-md);
 		color: var(--damage-detail-text-color);
+	}
+	/* F: 「わざ」タブのテラスタル欄(自分側=on/offトグル、相手側=テラスタイプ選択)を
+		揮発状態(stateGrid)から別行に分ける。行自体のレイアウトは既存の
+		.damage-detail-toggle-row(横並び+間隔)をそのまま流用し(box-damage-card.css)、
+		ここでは相手側のテラスタイプ選択UIだけが横幅いっぱいに広がるよう追加する。 */
+	#damage-detail-panel-body .damage-detail-tera-row .damage-row-tera-field {
+		width: 100%;
 	}
 	/* --------------------------------------------------------------------------
 		実数値・努力値の編集

@@ -45,7 +45,13 @@ import {
 	DAMAGE_ATTACKER_VOLATILES,
 	DAMAGE_DEFENDER_VOLATILES,
 	clampInt,
+	buildTeraDropdown,
 } from "./damage-calc";
+// F: 「わざ」タブの相手側テラスタル欄の表示可否は、「相手ポケモン」タブに
+// あった旧テラスタイプ欄(rowTeraFieldWraps)と同じ判定を使う。判定は必ずこの関数を使い、
+// 自前ロジックを書かない(仕様: 未指定はtrue=表示・M-*はfalse=非表示・T-*はtrue=表示。
+// src/lib/regulations.ts参照)。
+import { isTerastalRegulation } from "../regulations";
 import { STAT_KEYS, type StatKey } from "../stats";
 import type { SolveResult, DurabilityCandidate } from "./bulk-adjust-solver";
 import type { DurabilityIndexCandidate, DurabilityIndexKind, MaximizeResult } from "./durability-index";
@@ -996,6 +1002,12 @@ export function buildSideSection(
 	volatilesValue: string[],
 	onVolatilesChange: (value: string[]) => void,
 	mergeVolatileIntoChipRow: boolean,
+	// F: この「側」(攻撃側/防御側)が相手を表しているか。trueならテラスタルの
+	// on/offトグルではなく、育成タブと同じテラスタイプ選択UI(buildTeraDropdown)を使う
+	// (相手ポケモンタブから移設したテラスタイプ欄の受け皿)。
+	isOpponentTeraSide: boolean,
+	// 相手側の場合のみ呼ばれる。row.teraTypeの更新はこのコールバックの責務。
+	onOpponentTeraTypeChange: (value: string) => void,
 ): HTMLElement | null {
 	const rankAilmentGroup = document.createElement("div");
 	rankAilmentGroup.className = "damage-detail-group";
@@ -1127,39 +1139,63 @@ export function buildSideSection(
 	rankAilmentRow.append(rankField, ailmentSelect);
 	rankAilmentGroup.appendChild(rankAilmentRow);
 
+	// F: テラスタルは揮発状態(stateGrid)と別行にする。
+	const teraRow = document.createElement("div");
+	teraRow.className = "damage-detail-toggle-row damage-detail-tera-row";
+	rankAilmentGroup.appendChild(teraRow);
+
+	if (isOpponentTeraSide) {
+		// 相手側は、レギュレーションでテラスタルが使える場合のみ、育成タブと同じ
+		// テラスタイプ選択UIを出す(「テラスタルなし」を選べば非発動として扱う)。
+		const regulationEl = document.getElementById("regulation") as HTMLSelectElement | null;
+		const regulationValue = regulationEl ? regulationEl.value.trim() || null : null;
+		if (isTerastalRegulation(regulationValue)) {
+			const teraDropdown = buildTeraDropdown(teraTypeValue, `${ariaSideLabel}のテラスタイプ`, (newValue) => {
+				onOpponentTeraTypeChange(newValue);
+				onTeraChange(newValue !== "");
+				scheduleRowCalc(row);
+				scheduleRowSave(row);
+				refreshRowConditionChips(row);
+			});
+			teraRow.appendChild(teraDropdown.wrap);
+		} else {
+			teraRow.hidden = true;
+		}
+	} else {
+		const teraAvailable = teraTypeValue !== "";
+		const teraButton = buildToggleButton(
+			"テラスタル",
+			teraAvailable && terastallized,
+			(pressed) => {
+				onTeraChange(pressed);
+				scheduleRowCalc(row);
+				scheduleRowSave(row);
+				refreshRowConditionChips(row);
+			},
+			teraAvailable
+				? { title: "テラスタル発動" }
+				: {
+					disabledTitle:
+						"テラスタイプが未設定のため使用できません(未設定のままテラスタル発動すると、" +
+						"元の第1タイプへ自動フォールバックし意図しない2倍のタイプ一致補正になるため)",
+				},
+		);
+		teraRow.appendChild(teraButton);
+		if (!teraAvailable) {
+			const teraNote = document.createElement("span");
+			teraNote.className = "damage-detail-tera-note";
+			teraNote.textContent = "(未設定)";
+			teraRow.appendChild(teraNote);
+		}
+	}
+
 	const stateGrid = document.createElement("div");
 	stateGrid.className = "damage-detail-chip-row damage-detail-state-grid damage-detail-volatile-group";
 	stateGrid.setAttribute("role", "group");
-	stateGrid.setAttribute("aria-label", `${ariaSideLabel}のテラスタルと状態`);
+	stateGrid.setAttribute("aria-label", `${ariaSideLabel}の状態`);
 	rankAilmentGroup.appendChild(stateGrid);
 
-	const teraAvailable = teraTypeValue !== "";
-	const teraButton = buildToggleButton(
-		"テラスタル",
-		teraAvailable && terastallized,
-		(pressed) => {
-			onTeraChange(pressed);
-			scheduleRowCalc(row);
-			scheduleRowSave(row);
-			refreshRowConditionChips(row);
-		},
-		teraAvailable
-			? { title: "テラスタル発動" }
-			: {
-				disabledTitle:
-					"テラスタイプが未設定のため使用できません(未設定のままテラスタル発動すると、" +
-					"元の第1タイプへ自動フォールバックし意図しない2倍のタイプ一致補正になるため)",
-			},
-	);
-	stateGrid.appendChild(teraButton);
-	if (!teraAvailable) {
-		const teraNote = document.createElement("span");
-		teraNote.className = "damage-detail-tera-note";
-		teraNote.textContent = "(未設定)";
-		stateGrid.appendChild(teraNote);
-	}
-
-	// テラスタルと揮発状態は一続きのグリッドにする。揮発状態同士は複数選択を維持する。
+	// 揮発状態同士は複数選択を維持する。
 	if (volatilesOptions.length > 0) {
 		for (const opt of volatilesOptions) {
 			const optButton = buildToggleButton(
@@ -1226,23 +1262,33 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 	detailPanelBodyEl.scrollTop = 0;
 
 
-	function buildCriticalButton(): HTMLButtonElement {
-		return buildToggleButton(
-			"急所",
-			column.critical,
-			(pressed) => {
-				autoInputLocks.set(column, { ...autoInputLocks.get(column), critical: true });
-				applyToColumnField(() => { column.critical = pressed; });
-			},
-			{ title: "急所固定で計算する(攻撃側だけの設定です)" },
-		);
+	// D: 急所固定は、このアプリの標準チェックボックス(global.cssのinput[type="checkbox"])
+	// +ラベルに変更した(旧: ピル型トグルボタン)。
+	function buildCriticalField(): { field: HTMLLabelElement; checkbox: HTMLInputElement } {
+		const field = document.createElement("label");
+		field.className = "damage-detail-critical-field";
+		const checkbox = document.createElement("input");
+		checkbox.type = "checkbox";
+		checkbox.checked = column.critical;
+		const title = "急所固定で計算する(攻撃側だけの設定です)";
+		checkbox.title = title;
+		checkbox.setAttribute("aria-label", title);
+		checkbox.addEventListener("change", () => {
+			const pressed = checkbox.checked;
+			autoInputLocks.set(column, { ...autoInputLocks.get(column), critical: true });
+			applyToColumnField(() => { column.critical = pressed; });
+		});
+		const text = document.createElement("span");
+		text.textContent = "急所";
+		field.append(checkbox, text);
+		return { field, checkbox };
 	}
 	setSlideDetailPanelTitle(row, idx + 1);
 	refreshDetailPanelFooter(row);
 
-	const criticalButton = buildCriticalButton();
+	const { field: criticalField, checkbox: criticalCheckbox } = buildCriticalField();
 	const refreshMoveEditorDisplay = (): void => {
-		criticalButton.setAttribute("aria-pressed", String(column.critical));
+		criticalCheckbox.checked = column.critical;
 	};
 	const moveSelectInput = document.createElement("input");
 	moveSelectInput.type = "text";
@@ -1417,7 +1463,7 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 	const moveField = document.createElement("div");
 	moveField.className = "damage-detail-move-field";
 	moveField.appendChild(moveComboWrap);
-	moveControls.append(moveField, criticalButton);
+	moveControls.append(moveField, criticalField);
 	moveEditorGroup.append(moveControls, hitRow);
 	contentWrap.appendChild(moveEditorGroup);
 
@@ -1450,6 +1496,9 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 		column.attackerVolatiles,
 		(value) => { column.attackerVolatiles = value; },
 		true,
+		// 攻撃側が相手を表すのは、自分が攻撃していない(=自分は防御側)ときだけ。
+		!selfIsAttackerForDialog,
+		(value) => { row.teraType = value; },
 	);
 	buildSideSection(
 		defenderSide,
@@ -1467,6 +1516,9 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 		column.defenderVolatiles,
 		(value) => { column.defenderVolatiles = value; },
 		false,
+		// 防御側が相手を表すのは、自分が攻撃している(=自分は攻撃側)ときだけ。
+		selfIsAttackerForDialog,
+		(value) => { row.teraType = value; },
 	);
 
 	const wallText = "かべ";

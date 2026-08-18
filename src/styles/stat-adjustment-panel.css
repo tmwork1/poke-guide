@@ -350,7 +350,15 @@
 	--stat-table-inline-start-padding: var(--space-1);
 	--stat-table-inline-end-padding: var(--space-2);
 	--stat-ev-mobile-button-block-size: 30px;
-	--stat-mobile-row-grid-template-columns: 3.8rem 2.6rem minmax(0, 1fr) 3rem;
+	/* H: 育成タブ(box-edit-page.cssの.edit-layout-left .stat-adjustment-section)の
+		5列構成(ラベル|性格補正|種族値|努力値|実数値)へ列の役割・並び順を揃える。
+		このパネルはbuildStatAdjustmentPanel()(stat-adjustment-panel.ts)が生成するDOMを
+		使っており、ラベルと性格補正▲▼ボタンは1セル(.stat-row-label)に同居する構造
+		(育成タブ側はLeftPanel.astro独自の静的マークアップで.stat-row-labelと
+		.stat-row-natureにセルが分かれている別実装のため、そのままでは5トラックに
+		対応しない)。よって1列目に育成タブのラベル列(1.4rem)+性格補正列(2.8rem)の
+		合計幅を割り当て、種族値・努力値・実数値の列順と役割は完全に一致させる。 */
+	--stat-mobile-row-grid-template-columns: 4.2rem 2rem minmax(0, 1fr) 2.6rem;
 	--stat-mobile-row-gap: var(--space-1);
 	--stat-mobile-input-grid-column: 3;
 	--stat-mobile-real-grid-column: 4;

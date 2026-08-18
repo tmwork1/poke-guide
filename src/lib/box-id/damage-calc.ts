@@ -42,10 +42,6 @@ import { TERA_TYPES } from "../tera-types";
 // teraTypeIconUrlをimportしているが再exportしていないため、ここで直接importする。
 import { teraTypeIconUrl, typeIconUrl } from "../sprite-urls";
 import { initializeCardDeleteMode } from "../card-delete-mode";
-// レギュレーションに応じてテラスタル選択ボックスの表示ON/OFFを切り替えるために使う。
-// 判定は必ずこの関数を使い、自前ロジックを書かない
-// (仕様: 未指定はtrue=表示・M-*はfalse=非表示・T-*はtrue=表示。src/lib/regulations.ts参照)。
-import { isTerastalRegulation } from "../regulations";
 import {
 	attachKanaTypeAhead,
 	applySprite,
@@ -318,6 +314,158 @@ function readEmbeddedJson<T>(elementId: string): T | null {
 const moveAdoptionBySpecies =
 	readEmbeddedJson<Record<string, Record<string, Record<string, number>>>>("damage-calc-move-adoption-data") ?? {};
 
+// テラスタイプ選択ボックスはLeftPanel.astro
+// 226〜249行目・left-panel.ts 500〜613行目の#tera-dropdown-button/#tera-dropdown-list
+// (ボタン+リストボックスのカスタムドロップダウン)と同じ見た目・挙動を持つが、左パネル側は
+// ページに1個しか無い前提でid固定のgetElementById()を使っているのに対し、ダメージカードは
+// 1枚につき1個・複数枚同時に存在しうるため、idを一切使わずクロージャで状態を閉じ込める
+// ファクトリ関数として書き直した(コピーではなく複数インスタンス生成できる形に再実装)。
+// CSSは#opponent-notes-section .tera-dropdown-button/.tera-dropdown-list/
+// .tera-dropdown-image/.tera-dropdown-placeholder/.tera-dropdown-option等
+// (DamageCalcSection.astroの<style is:global>、左パネルの#edit-form接頭辞ルールと
+// 値を共有)を参照する。
+// 「相手ポケモン」タブのテラスタイプ欄廃止(わざタブへ移設)に伴い、right-panel.tsの
+// buildSideSection()からも呼べるようモジュール top-level へ移設してexportした
+// (元は#opponent-notes-sectionガード内のprivate関数だった。TERA_TYPES/teraTypeIconUrlは
+// どちらもファイル冒頭のモジュールimportのため、この位置でも参照可能)。
+export function buildTeraDropdown(
+	initialValue: string,
+	ariaLabelPrefix: string,
+	onChange: (value: string) => void,
+): { wrap: HTMLElement; setValue: (value: string) => void } {
+	const wrap = document.createElement("div");
+	wrap.className = "damage-row-tera-field tera-dropdown-wrap";
+
+	const button = document.createElement("button");
+	button.type = "button";
+	button.className = "tera-dropdown-button";
+	button.setAttribute("aria-haspopup", "listbox");
+	button.setAttribute("aria-expanded", "false");
+
+	const image = document.createElement("img");
+	image.className = "tera-dropdown-image";
+	image.alt = "";
+	image.style.display = "none";
+	const placeholder = document.createElement("span");
+	placeholder.className = "tera-dropdown-placeholder";
+	placeholder.textContent = "テラスタルなし";
+	button.append(image, placeholder);
+
+	const list = document.createElement("ul");
+	list.className = "tera-dropdown-list";
+	list.setAttribute("role", "listbox");
+	list.setAttribute("aria-label", `${ariaLabelPrefix}を選択`);
+	list.hidden = true;
+
+	let value = initialValue;
+	const optionEls: { value: string; li: HTMLLIElement }[] = [];
+
+	function updateButton(): void {
+		const isUnselected = value === "";
+		button.classList.toggle("is-tera-unselected", isUnselected);
+		button.setAttribute("aria-label", value ? `${ariaLabelPrefix}: ${value}` : `${ariaLabelPrefix}: 未選択`);
+		placeholder.classList.toggle("is-tera-value-text", !isUnselected);
+		if (isUnselected) {
+			image.style.display = "none";
+			placeholder.textContent = "テラスタルなし";
+			return;
+		}
+		placeholder.textContent = value;
+		const url = teraTypeIconUrl(value);
+		if (!url) {
+			image.style.display = "none";
+			return;
+		}
+		image.alt = value;
+		image.onload = () => {
+			image.style.display = "";
+		};
+		image.onerror = () => {
+			image.style.display = "none";
+		};
+		image.src = url;
+	}
+
+	function closeList(): void {
+		list.hidden = true;
+		button.setAttribute("aria-expanded", "false");
+	}
+	function openList(): void {
+		for (const opt of optionEls) opt.li.classList.toggle("is-active", opt.value === value);
+		list.hidden = false;
+		button.setAttribute("aria-expanded", "true");
+	}
+	button.addEventListener("click", () => {
+		if (list.hidden) openList();
+		else closeList();
+	});
+	// リストの外側をクリックしたら閉じる(左パネル側と同じ一般的な挙動。pitfalls.md参照)。
+	document.addEventListener("click", (e) => {
+		if (list.hidden) return;
+		const target = e.target as Node;
+		if (button.contains(target) || list.contains(target)) return;
+		closeList();
+	});
+	button.addEventListener("keydown", (e) => {
+		if (e.key === "Escape") closeList();
+	});
+
+	function addOption(optValue: string, label: string): void {
+		const li = document.createElement("li");
+		li.className = "tera-dropdown-option";
+		li.setAttribute("role", "option");
+		li.tabIndex = -1;
+		li.dataset.value = optValue;
+		if (optValue === "") {
+			li.setAttribute("aria-label", "テラスタルなし");
+			const textEl = document.createElement("span");
+			textEl.className = "tera-dropdown-option-text";
+			textEl.textContent = "テラスタルなし";
+			li.appendChild(textEl);
+		} else {
+			li.setAttribute("aria-label", label);
+			const imgEl = document.createElement("img");
+			imgEl.className = "tera-dropdown-option-image";
+			imgEl.alt = label;
+			const url = teraTypeIconUrl(optValue);
+			if (url) imgEl.src = url;
+			li.appendChild(imgEl);
+			const textEl = document.createElement("span");
+			textEl.className = "tera-dropdown-option-text";
+			textEl.textContent = label;
+			li.appendChild(textEl);
+		}
+		li.addEventListener("click", () => {
+			if (value !== optValue) {
+				value = optValue;
+				updateButton();
+				onChange(value);
+			}
+			for (const opt of optionEls) opt.li.classList.toggle("is-active", opt.value === value);
+			closeList();
+		});
+		list.appendChild(li);
+		optionEls.push({ value: optValue, li });
+	}
+
+	addOption("", "テラスタルなし");
+	for (const t of TERA_TYPES) addOption(t, t);
+
+	wrap.append(button, list);
+	updateButton();
+
+	// 種族プリセット適用時に、クリック操作を介さず外部から表示だけを更新できるようにする
+	// (onChangeは呼ばない。値の反映・再計算・保存のトリガーは呼び出し側=
+	// applyOpponentBuildPreset側でまとめて行う)。
+	function setValue(newValue: string): void {
+		value = newValue;
+		for (const opt of optionEls) opt.li.classList.toggle("is-active", opt.value === value);
+		updateButton();
+	}
+
+	return { wrap, setValue };
+}
+
 const opponentNotesSection = document.getElementById("opponent-notes-section");
 if (opponentNotesSection) {
 	const ownedPokemonId = opponentNotesSection.dataset.ownedPokemonId ?? "";
@@ -330,8 +478,8 @@ if (opponentNotesSection) {
 	const rowReadonlyNatureLabelEls = new WeakMap<DamageRowState, Partial<Record<string, HTMLElement>>>();
 
 	// #regulation(LeftPanel.astro/left-panel.ts)はこのファイルからは値を読むだけに留め、
-	// left-panel.ts側の既存changeリスナー(syncTeraFieldVisibility/syncRegulationPlaceholder等)は
-	// 変更しない。同じ要素へ別のリスナーを追加するだけ(DOM標準のイベント購読は同一要素に
+	// left-panel.ts側の既存changeリスナー(syncRegulationPlaceholder等)は変更しない。
+	// 同じ要素へ別のリスナーを追加するだけ(DOM標準のイベント購読は同一要素に
 	// 何個でも独立して登録できる)で追随できる。
 	const regulationSelectEl = document.getElementById("regulation") as HTMLSelectElement | null;
 	function currentIndividualRegulation(): string | null {
@@ -339,17 +487,11 @@ if (opponentNotesSection) {
 		const value = regulationSelectEl.value.trim();
 		return value === "" ? null : value;
 	}
-	// 行(相手)ごとに1個生成されるテラスタイプ選択ボックス(buildTeraDropdown()のwrap、
-	// 下方参照)への参照。DamageRowState自体にフィールドを追加せず、WeakMapで対応付ける。
-	const rowTeraFieldWraps = new WeakMap<DamageRowState, HTMLElement>();
-	function syncTeraFieldVisibility(): void {
-		const show = isTerastalRegulation(currentIndividualRegulation());
-		for (const row of rows) {
-			const wrap = rowTeraFieldWraps.get(row);
-			if (wrap) wrap.hidden = !show;
-		}
-	}
-	regulationSelectEl?.addEventListener("change", syncTeraFieldVisibility);
+	// 旧: 「相手ポケモン」タブのテラスタイプ欄(rowTeraFieldWraps/syncTeraFieldVisibility)は
+	// テラスタイプ欄を「わざ」タブへ移設したことに伴い廃止した。移設先(right-panel.tsの
+	// buildSideSection)では、モーダルが開くたび(=毎回作り直すたび)にレギュレーションを
+	// 読み直して表示可否を決めるため、レギュレーション変更を追随させる持ち回りのMap・
+	// changeリスナーは不要になった。
 
 	// shared-core.tsのscheduleRowSave/scheduleRowCalc/refreshRowConditionChips/renderDetailPanel/
 	// selectColumnは、このブロック内で下に定義するsetRowSaveStatus/saveRow/recalcRow/
@@ -1983,153 +2125,9 @@ if (opponentNotesSection) {
 	// (行ごとにリスナーを足すと、削除した行のクロージャがリスナー経由で残ってしまう)。
 	const rowSpriteRefreshers = new WeakMap<DamageRowState, () => void>();
 
-	// テラスタイプ選択ボックスはLeftPanel.astro
-	// 226〜249行目・left-panel.ts 500〜613行目の#tera-dropdown-button/#tera-dropdown-list
-	// (ボタン+リストボックスのカスタムドロップダウン)と同じ見た目・挙動を持つが、左パネル側は
-	// ページに1個しか無い前提でid固定のgetElementById()を使っているのに対し、ダメージカードは
-	// 1枚につき1個・複数枚同時に存在しうるため、idを一切使わずクロージャで状態を閉じ込める
-	// ファクトリ関数として書き直した(コピーではなく複数インスタンス生成できる形に再実装)。
-	// CSSは#opponent-notes-section .tera-dropdown-button/.tera-dropdown-list/
-	// .tera-dropdown-image/.tera-dropdown-placeholder/.tera-dropdown-option等
-	// (DamageCalcSection.astroの<style is:global>、左パネルの#edit-form接頭辞ルールと
-	// 値を共有)を参照する。
-	function buildTeraDropdown(
-		initialValue: string,
-		ariaLabelPrefix: string,
-		onChange: (value: string) => void,
-	): { wrap: HTMLElement; setValue: (value: string) => void } {
-		const wrap = document.createElement("div");
-		wrap.className = "damage-row-tera-field tera-dropdown-wrap";
-
-		const button = document.createElement("button");
-		button.type = "button";
-		button.className = "tera-dropdown-button";
-		button.setAttribute("aria-haspopup", "listbox");
-		button.setAttribute("aria-expanded", "false");
-
-		const image = document.createElement("img");
-		image.className = "tera-dropdown-image";
-		image.alt = "";
-		image.style.display = "none";
-		const placeholder = document.createElement("span");
-		placeholder.className = "tera-dropdown-placeholder";
-		placeholder.textContent = "テラスタルなし";
-		button.append(image, placeholder);
-
-		const list = document.createElement("ul");
-		list.className = "tera-dropdown-list";
-		list.setAttribute("role", "listbox");
-		list.setAttribute("aria-label", `${ariaLabelPrefix}を選択`);
-		list.hidden = true;
-
-		let value = initialValue;
-		const optionEls: { value: string; li: HTMLLIElement }[] = [];
-
-		function updateButton(): void {
-			const isUnselected = value === "";
-			button.classList.toggle("is-tera-unselected", isUnselected);
-			button.setAttribute("aria-label", value ? `${ariaLabelPrefix}: ${value}` : `${ariaLabelPrefix}: 未選択`);
-			placeholder.classList.toggle("is-tera-value-text", !isUnselected);
-			if (isUnselected) {
-				image.style.display = "none";
-				placeholder.textContent = "テラスタルなし";
-				return;
-			}
-			placeholder.textContent = value;
-			const url = teraTypeIconUrl(value);
-			if (!url) {
-				image.style.display = "none";
-				return;
-			}
-			image.alt = value;
-			image.onload = () => {
-				image.style.display = "";
-			};
-			image.onerror = () => {
-				image.style.display = "none";
-			};
-			image.src = url;
-		}
-
-		function closeList(): void {
-			list.hidden = true;
-			button.setAttribute("aria-expanded", "false");
-		}
-		function openList(): void {
-			for (const opt of optionEls) opt.li.classList.toggle("is-active", opt.value === value);
-			list.hidden = false;
-			button.setAttribute("aria-expanded", "true");
-		}
-		button.addEventListener("click", () => {
-			if (list.hidden) openList();
-			else closeList();
-		});
-		// リストの外側をクリックしたら閉じる(左パネル側と同じ一般的な挙動。pitfalls.md参照)。
-		document.addEventListener("click", (e) => {
-			if (list.hidden) return;
-			const target = e.target as Node;
-			if (button.contains(target) || list.contains(target)) return;
-			closeList();
-		});
-		button.addEventListener("keydown", (e) => {
-			if (e.key === "Escape") closeList();
-		});
-
-		function addOption(optValue: string, label: string): void {
-			const li = document.createElement("li");
-			li.className = "tera-dropdown-option";
-			li.setAttribute("role", "option");
-			li.tabIndex = -1;
-			li.dataset.value = optValue;
-			if (optValue === "") {
-				li.setAttribute("aria-label", "テラスタルなし");
-				const textEl = document.createElement("span");
-				textEl.className = "tera-dropdown-option-text";
-				textEl.textContent = "テラスタルなし";
-				li.appendChild(textEl);
-			} else {
-				li.setAttribute("aria-label", label);
-				const imgEl = document.createElement("img");
-				imgEl.className = "tera-dropdown-option-image";
-				imgEl.alt = label;
-				const url = teraTypeIconUrl(optValue);
-				if (url) imgEl.src = url;
-				li.appendChild(imgEl);
-				const textEl = document.createElement("span");
-				textEl.className = "tera-dropdown-option-text";
-				textEl.textContent = label;
-				li.appendChild(textEl);
-			}
-			li.addEventListener("click", () => {
-				if (value !== optValue) {
-					value = optValue;
-					updateButton();
-					onChange(value);
-				}
-				for (const opt of optionEls) opt.li.classList.toggle("is-active", opt.value === value);
-				closeList();
-			});
-			list.appendChild(li);
-			optionEls.push({ value: optValue, li });
-		}
-
-		addOption("", "テラスタルなし");
-		for (const t of TERA_TYPES) addOption(t, t);
-
-		wrap.append(button, list);
-		updateButton();
-
-		// 種族プリセット適用時に、クリック操作を介さず外部から表示だけを更新できるようにする
-		// (onChangeは呼ばない。値の反映・再計算・保存のトリガーは呼び出し側=
-		// applyOpponentBuildPreset側でまとめて行う)。
-		function setValue(newValue: string): void {
-			value = newValue;
-			for (const opt of optionEls) opt.li.classList.toggle("is-active", opt.value === value);
-			updateButton();
-		}
-
-		return { wrap, setValue };
-	}
+	// buildTeraDropdownはモジュール冒頭(このif文より前)へ移設・exportした
+	// (相手ポケモンタブ廃止に伴い、わざタブ側=right-panel.tsからも同じ実装を使うため。
+	// 詳細は移設先のコメント参照)。
 
 	// --- 行(相手1体)のDOM構築 ---
 	function renderRow(row: DamageRowState): HTMLElement {
@@ -2307,13 +2305,21 @@ if (opponentNotesSection) {
 		const detailFields = document.createElement("div");
 		detailFields.className = "damage-build-detail-fields";
 		detailForm.appendChild(detailFields);
-		function makeDetailField(labelText: string, control: HTMLElement): HTMLElement {
+		// A: 種族名・特性・アイテムは、入力欄自体のplaceholder/aria-label(またはselectの
+		// 未選択option文言)で用途が自明なため、外側の可視ラベルを省く(box/index.astroの
+		// 確立パターン「可視の『検索』ラベルは置かず、aria-labelで維持する」と同じ考え方)。
+		// hideLabel=trueでもラップ用のdiv自体は返す(グリッド内で他フィールドと同じ
+		// .damage-build-detail-field構造を保つため)。
+		function makeDetailField(labelText: string, control: HTMLElement, hideLabel = false): HTMLElement {
 			const label = document.createElement("div");
 			label.className = "damage-build-detail-field";
-			const labelTextEl = document.createElement("span");
-			labelTextEl.className = "field-label damage-build-detail-field-label";
-			labelTextEl.textContent = labelText;
-			label.append(labelTextEl, control);
+			if (!hideLabel) {
+				const labelTextEl = document.createElement("span");
+				labelTextEl.className = "field-label damage-build-detail-field-label";
+				labelTextEl.textContent = labelText;
+				label.appendChild(labelTextEl);
+			}
+			label.appendChild(control);
 			return label;
 		}
 		const detailIdentityRow = document.createElement("div");
@@ -2347,7 +2353,7 @@ if (opponentNotesSection) {
 		nameInput.value = row.name;
 		// 相手側の動的入力にも左パネルと同じIME安全なdatalist補助を適用する。
 		attachKanaTypeAhead(nameInput, el<HTMLDataListElement>("pokemon-list"));
-		const nameField = makeDetailField("種族名", nameInput);
+		const nameField = makeDetailField("種族名", nameInput, true);
 		nameField.classList.add("damage-build-detail-name-field");
 		detailIdentityRow.appendChild(nameField);
 		nameInput.addEventListener("keydown", (event) => {
@@ -2397,7 +2403,7 @@ if (opponentNotesSection) {
 		// タイミングでのみ特性候補を作り直す(理由は上のabilitySelectコメント参照)。
 		// 同じタイミングで、種族ごとのローカルプリセット(性格・特性・
 		// 持ち物・テラス・努力値)の自動適用も試みる(applyOpponentBuildPresetは同期関数。
-		// 下方でabilitySelect/itemInput/teraDropdown/statPanel定義後に関数宣言するが、
+		// 下方でabilitySelect/itemInput/statPanel定義後に関数宣言するが、
 		// 関数宣言はホイストされ、実行時(=ユーザーが種族名を確定した後)には既に
 		// 全て初期化済みのため、rebuildRowAbilityOptions/applyRowMegaStoneAutofillと
 		// 同じ理由で呼び出し位置がここでも問題ない)。
@@ -2544,7 +2550,7 @@ if (opponentNotesSection) {
 			onFieldInput();
 			refreshAbilityCycleButton();
 		});
-		selectsRow.appendChild(makeDetailField("特性", abilitySelect));
+		selectsRow.appendChild(makeDetailField("特性", abilitySelect, true));
 
 		function refreshAbilityCycleButton(): void {
 			refreshBuildSummary();
@@ -2570,7 +2576,7 @@ if (opponentNotesSection) {
 			refreshItemImage();
 			onFieldInput();
 		});
-		const itemField = makeDetailField("アイテム", itemInput);
+		const itemField = makeDetailField("アイテム", itemInput, true);
 		const itemLockNote = document.createElement("span");
 		itemLockNote.className = "damage-build-detail-lock-note";
 		itemLockNote.textContent = "メガストーン固定";
@@ -2625,16 +2631,9 @@ if (opponentNotesSection) {
 		// 同じ考え方)。
 		void applyRowMegaStoneAutofill(row.name);
 
-		const teraDropdown = buildTeraDropdown(row.teraType, "相手のテラスタイプ", (newValue) => {
-			row.teraType = newValue;
-			refreshTypeBadge();
-			onFieldInput();
-		});
-		const teraField = makeDetailField("テラスタイプ", teraDropdown.wrap);
-		teraField.classList.add("damage-build-detail-tera-field");
-		detailIdentityRow.appendChild(teraField);
-		rowTeraFieldWraps.set(row, teraField);
-		teraField.hidden = !isTerastalRegulation(currentIndividualRegulation());
+		// B: テラスタイプ欄は「わざ」タブへ移設した(right-panel.tsのbuildSideSection、
+		// exportされたbuildTeraDropdownを再利用)。row.teraType自体は編成データとして
+		// 引き続きここで保持し、このタブでは編集しない(値の受け皿のみ)。
 
 		const readonlyEvGrid = document.createElement("div");
 		readonlyEvGrid.className = "damage-ev-grid damage-ev-grid-readonly";
@@ -2741,7 +2740,9 @@ if (opponentNotesSection) {
 			itemInput.title = row.itemName;
 			refreshItemImage();
 
-			teraDropdown.setValue(row.teraType);
+			// teraDropdownは「わざ」タブ側(B参照)に移設済みのため、ここでの表示更新は
+			// refreshTypeBadge()のみ(カードプレビューのテラアイコン。現状は常時非表示だが
+			// 内部状態としては維持する)。
 			refreshTypeBadge();
 
 			onFieldInput();

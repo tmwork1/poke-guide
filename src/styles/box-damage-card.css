@@ -179,7 +179,7 @@ body.box-edit-page {
   --damage-detail-control-min-height: var(--space-7); /* 詳細パネルの入力欄とボタンの最小高さ */
   --damage-detail-hitcount-width: 4em; /* 連続技の回数入力欄の幅 */
   --damage-detail-rank-stepper-size: 30px; /* ランク補正の＋－ボタンの大きさ */
-  --damage-detail-rank-input-width: 3.4em; /* ランク補正の数値入力欄の幅 */
+  --damage-detail-rank-input-width: 2.4em; /* ランク補正・まきびし入力欄の最小幅(E: field-sizingで内容量に合わせて広がる)。小さくすると窮屈になりやすい */
   --damage-detail-ailment-width: 7em; /* 状態異常の選択欄の幅 */
   --damage-detail-selection-icon-size: 28px; /* 選択中ポケモンのアイコンサイズ */
   --damage-detail-selection-arrow-width: 27px; /* 対面表示の矢印の幅 */
@@ -1353,10 +1353,31 @@ body.box-edit-page {
   display: grid;
 }
 
-/* 4個だけの条件群は下余白を付けず1行で閉じる */
+/* 4個だけの条件群は下余白を付けず1行で閉じる。
+   G: 天候・フィールドは排他選択(1つしか選べない)ため、ボタン同士が隣接した1本の
+   segment control(.damage-row-direction-toggle/.damage-row-direction-optionと同じ
+   外枠1本+区切り線だけの構成)にする。アイコン+ラベルの縦積み自体は個々のボタンの
+   内部レイアウトなので変えない。 */
 #damage-detail-panel-body .damage-detail-icon-group.is-row4 {
   grid-template-columns: repeat(4, minmax(0, 1fr));
   margin-bottom: 0;
+  gap: 0;
+  border: var(--damage-detail-icon-button-border);
+  border-radius: var(--damage-detail-icon-button-radius);
+  overflow: hidden;
+}
+
+#damage-detail-panel-body .damage-detail-icon-group.is-row4 .damage-detail-icon-btn {
+  border: none;
+  border-radius: 0;
+}
+
+#damage-detail-panel-body .damage-detail-icon-group.is-row4 .damage-detail-icon-btn + .damage-detail-icon-btn {
+  border-left: 1px solid var(--color-border);
+}
+
+#damage-detail-panel-body .damage-detail-icon-group.is-row4 .damage-detail-icon-btn:hover {
+  border-color: transparent;
 }
 
 /* 天候・壁などを選ぶアイコンボタン */
@@ -1398,6 +1419,18 @@ body.box-edit-page {
 #damage-detail-panel-body .damage-detail-move-field {
   flex: 1 1 0;
   min-width: 0;
+}
+
+/* D: 急所固定は、このアプリの標準チェックボックス(global.cssのinput[type="checkbox"])
+   +ラベルに変更した(旧: ピル型トグルボタン)。 */
+#damage-detail-panel-body .damage-detail-critical-field {
+  display: flex;
+  align-items: center;
+  gap: var(--damage-detail-space-xs);
+  flex: none;
+  white-space: nowrap;
+  font-size: var(--font-size-sm2);
+  cursor: pointer;
 }
 
 #damage-detail-panel-body .damage-detail-move-combo {
@@ -1578,7 +1611,12 @@ body.box-edit-page {
 }
 
 #damage-detail-panel-body .damage-detail-rank-field .damage-detail-rank-input {
-  width: var(--damage-detail-rank-input-width);
+  /* E: ランク(-6〜+6)・まきびし(0〜3)とも最大3文字のため、内容量に合わせて
+     自動で幅が決まるようにする(既存の.damage-detail-rank-input-widthは
+     窮屈にならないための下限値として使う)。 */
+  width: auto;
+  min-width: var(--damage-detail-rank-input-width);
+  field-sizing: content;
   min-height: var(--damage-detail-control-min-height);
   font-size: var(--font-size-sm2);
   text-align: center;
