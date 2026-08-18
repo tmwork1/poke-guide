@@ -43,11 +43,10 @@ body.team-page {
 	display: contents;
 }
 
-		/* --- ツールバー(検索+並べ替え。box/index.astroの.app-header-secondary--toolbarをそのまま流用。
+		/* --- ツールバー(検索+並べ替え。box/index.astroの.app-header--toolbarをそのまま流用。
 			「絞り込み」はこのページには置かない(docs/plan/pages/team.md参照)。 --- */
-		/* box/index.astroの.app-header-secondary--toolbarと同じ値をそのまま複製する
-			(このツールバーがAppLayoutの共通<header class="app-header">の代わりを務める)。
-			sticky/z-index/background/border-bottomはglobal.cssの.app-headerと同じ値
+		/* box/index.astroの.app-header--toolbarと同じ値をそのまま複製する。
+			sticky/z-index/background はapp-header.cssの.app-headerと同じ値
 			(新しい値は作らない)。 */
 		/* 件数バッジはツールバー先頭寄りに配置し、margin-left: autoは付けない
 			(pitfalls.md「flex: 1 1 0は余白を全部飲む」と同種の事故を避ける: auto marginを

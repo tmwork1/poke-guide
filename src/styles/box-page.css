@@ -25,7 +25,7 @@
   /* ── 7. 余白 ────────────────────────── */
   --box-page-message-margin-top: var(--space-6); /* 読み込み・エラー文の上余白 */
   --box-page-empty-margin-top: var(--space-4); /* 検索結果なしの文の上余白 */
-  --box-app-header-secondary-gap: var(--space-2); /* カード一覧の外側余白。大きくすると画面端から離れる */
+  --box-app-header-gap: var(--space-2); /* カード一覧の外側余白。大きくすると画面端から離れる */
 
   /* ── 8. 寸法 ────────────────────────── */
   --box-page-min-height: 100dvh; /* ページの最低高さ。大きくすると短い一覧でも画面を埋める */
@@ -48,13 +48,13 @@
 /* カード一覧の余白: .box-content（上下左右を共通の edge gap にする） */
 .box-content {
   position: fixed;
-  top: var(--app-header-secondary-height);
+  top: var(--app-header-height);
   right: 0;
   bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom));
   left: 0;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  padding: var(--box-app-header-secondary-gap);
+  padding: var(--box-app-header-gap);
   background: var(--box-page-content-background);
 }
 

@@ -83,7 +83,7 @@
 
 .pokemon-preview {
   position: sticky;
-  top: calc(var(--header-height) + var(--app-header-secondary-height));
+  top: calc(var(--header-height) + var(--app-header-height));
   z-index: var(--pokemon-preview-z-index);
   overflow: hidden;
   background: var(--pokemon-preview-background);

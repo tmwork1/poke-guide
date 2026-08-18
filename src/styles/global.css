@@ -940,45 +940,13 @@ dd {
 /* --- 共通レイアウト --- */
 :root {
   /* ── 8. 寸法 ──────────────────────────────────────────── */
-  --header-height: 129px; /* 全ページ共通トップバーの高さ。大きくすると本文の開始位置が下がる。 */
+  --header-height: 0px; /* 画面上端に固定表示される要素の高さ。ページ側で上書きして使う(例: box-edit-page.css)。 */
   --bottom-nav-height: 60px; /* 画面下部ナビの高さ。大きくすると本文下端の退避量も増える。 */
   --list-grid-edge-gap: var(--space-2); /* 一覧の左右端と画面端との余白。増やすとカード列の表示領域が狭まる。 */
 }
 
 .app-shell {
   min-height: 100vh;
-}
-
-.app-shell.no-topbar {
-  --header-height: 0px; /* トップバー非表示ページの高さ上書き。0にすると本文が画面上端から始まる。 */
-}
-
-.app-header {
-  background: var(--color-surface-raised);
-  border-bottom: 1px solid var(--color-border);
-  position: sticky;
-  top: 0;
-  z-index: 20;
-}
-
-.app-header-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  padding: var(--space-3) var(--space-4);
-}
-
-.app-header-row + .app-header-row {
-  border-top: 1px solid var(--color-border);
-}
-
-.app-header-left,
-.app-header-right {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  min-width: 0;
 }
 
 .app-main {

@@ -12,9 +12,11 @@
 export const prerender = false;
 
 import AppLayout from '../../layouts/AppLayout.astro';
+import AppHeader from '../../components/AppHeader.astro';
 import ChartTable from '../../components/speed-chart/ChartTable.astro';
 import '../../styles/speed-adjust-dialog.css';
 import '../../styles/speed-chart-page.css';
+import '../../styles/app-header.css';
 // 既定値の解決は REGULATIONS の末尾が最新であることに依存するため、表示順だけ別配列を使う。
 import { REGULATIONS, REGULATIONS_NEWEST_FIRST } from '../../lib/regulations';
 import { getSupabaseAdminClient, getSupabasePublicClient } from '../../lib/supabase';
@@ -169,8 +171,8 @@ try {
 	{embedded && <div class="speed-chart-embed-toolbar">
 		<strong class="speed-chart-embed-title">すばやさ調整</strong>
 	</div>}
-	{!embedded && <Fragment slot="topbar-actions">
-		{/* 可視ラベルとselectをfor/idで結び、トップバー上でも選択対象を明確にする。 */}
+	{!embedded && <AppHeader toolbar ariaLabel="すばやさ早見表の操作">
+		{/* 可視ラベルとselectをfor/idで結び、操作バー上でも選択対象を明確にする。 */}
 		<div class="toolbar-item">
 			<label class="speed-chart-regulation-label" for="speed-chart-regulation-select">レギュレーション</label>
 			<select id="speed-chart-regulation-select">
@@ -198,7 +200,7 @@ try {
 			</span>
 			<span>すべて表示</span>
 		</label>}
-	</Fragment>}
+	</AppHeader>}
 	<ChartTable
 		regulation={resolvedRegulation}
 		ownedId={ownedId}

@@ -70,8 +70,6 @@ body.box-edit-page {
 	--box-edit-collection-toggle-gap: 0.4em; /* 収集拒否ラベルとスイッチの間隔 */
 	--box-edit-autosave-status-margin: 0; /* 保存状態文の外側余白。0にすると上部バーの高さが増えない */
 
-	/* ── 8. 寸法 ────────────────────────── */
-	--header-height: 0px; /* 非表示のトップバーの高さ。0にすると本文が画面上端から始まる */
 }
 
 /* 能力値調整表の列幅 */
@@ -95,16 +93,10 @@ body.box-edit-page {
 	ここから下は構造。レイアウトの組み立てなので通常は触らない。
 	-------------------------------------------------------------------------- */
 
-/* 編集ページではトップバーを隠す */
-body.box-edit-page .app-header {
-	display: none;
-}
-
-	/* --header-height はトップバーの実測高さ(global.cssの:root)で、ポケモンプレビュー
-		(.pokemon-preview の position:sticky; top)や .edit-shell の高さ計算が
-		これを見る。トップバーを消した以上0にしないと、本文が画面上端から一段浮いてしまう。
-		ページナビゲーションの高さは app-header.css の共通設定を使い、ポケモンプレビューは
-		その値を直下へのsticky配置に使う。 */
+	/* --header-height はglobal.cssの:rootで既定0pxのCSS変数(共通トップバーはどのページにも
+		存在しない)。ポケモンプレビュー(.pokemon-preview の position:sticky; top、
+		box-pokemon-preview.css参照)がこれとページナビゲーション(.app-header、
+		app-header.css)の高さを合わせてsticky配置に使う。 */
 .edit-layout-left,
 .edit-layout-right {
 	min-width: 0;
