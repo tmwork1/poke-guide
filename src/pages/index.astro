@@ -13,29 +13,40 @@ const userName = user?.displayName ?? user?.email;
 
 <AppLayout title="ポケガイド" description="ポケモン育成を管理するためのホーム画面" current="home" bodyClass="home-page">
 	<div class="page home-page">
-		<AppHeader />
+		<AppHeader>
+			<div class="home-header-account">
+				{
+					user ? (
+						<details class="home-header-account-menu">
+							<summary class="home-header-account-icon" aria-label={`ログイン中: ${userName}`}>
+								<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+									<circle cx="12" cy="8" r="4" />
+									<path d="M4 20c0-4 3.5-7 8-7s8 3 8 7" />
+								</svg>
+							</summary>
+							<div class="home-header-account-panel">
+								<p class="home-account-name">{userName}</p>
+								<form method="post" action="/api/auth/logout">
+									<button type="submit">ログアウト</button>
+								</form>
+							</div>
+						</details>
+					) : (
+						<a class="home-header-account-icon" href="/api/auth/login" aria-label="Googleでログイン">
+							<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+								<path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+								<path d="M10 17l5-5-5-5" />
+								<path d="M15 12H3" />
+							</svg>
+						</a>
+					)
+				}
+			</div>
+		</AppHeader>
 		<header class="home-brand">
 			<img class="home-brand-logo" src="/logo.png" alt="" width="48" height="48" />
 			<h1>ポケガイド</h1>
 		</header>
-
-		<section class="home-account" aria-label="アカウント">
-			{
-				user ? (
-					<Fragment>
-						<p class="home-account-name">{userName}</p>
-						<form method="post" action="/api/auth/logout">
-							<button type="submit">ログアウト</button>
-						</form>
-					</Fragment>
-				) : (
-					<Fragment>
-						<p>ログインが必要です</p>
-						<a class="btn-primary" href="/api/auth/login">Googleでログイン</a>
-					</Fragment>
-				)
-			}
-		</section>
 
 		<nav class="home-card-grid" aria-label="機能一覧">
 			<a class="card home-card" href="/box">

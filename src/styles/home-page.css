@@ -12,6 +12,7 @@ body.home-page {
   /* ── 1. 文字サイズ ────────────────────────────────────── */
   --home-page-brand-title-font-size: 1.3rem; /* ロゴ横のページ名。大きくするとブランド名が目立つ */
   --home-page-account-font-size: var(--font-size-sm2); /* アカウント情報の文字。大きくするとユーザー情報が読みやすくなる */
+  --home-page-header-account-icon-size: 22px; /* ヘッダー右端のログイン状態アイコンの大きさ。大きくするとアイコンが目立つ */
   --home-page-card-label-font-size: var(--font-size-sm1); /* メニューカード名。大きくするとリンク先が読みやすくなる */
 
   /* ── 2. 文字の太さ・行間 ──────────────────────────────── */
@@ -32,11 +33,11 @@ body.home-page {
 
   /* ── 7. 余白 ──────────────────────────────────────────── */
   --home-page-padding: var(--space-5) var(--space-3) var(--space-7); /* ページ外周の余白。大きくすると内容が内側に寄る */
-  --home-page-app-header-margin: calc(-1 * var(--space-5)) calc(-1 * var(--space-4)) var(--space-5); /* 上部バーをページ端まで広げる余白。変えるとバーの位置がずれる */
+  --home-page-app-header-margin: calc(-1 * var(--space-5)) calc(-1 * var(--space-3)) var(--space-5); /* 上部バーをページ端まで広げる余白。変えるとバーの位置がずれる */
   --home-page-brand-gap: var(--space-3); /* ロゴとブランド名の間隔。大きくすると横に離れる */
   --home-page-brand-margin-bottom: var(--space-5); /* ブランド行の下余白。大きくするとアカウント情報から離れる */
-  --home-page-account-gap: var(--space-2); /* アカウント情報内の間隔。大きくすると項目が離れる */
-  --home-page-account-margin-bottom: var(--space-6); /* アカウント情報の下余白。大きくするとカード一覧から離れる */
+  --home-page-account-gap: var(--space-2); /* アカウント情報パネル内の間隔。大きくすると項目が離れる */
+  --home-page-header-account-padding-right: var(--space-2); /* ヘッダー右端とアイコンの間隔。大きくするとアイコンが内側に寄る */
   --home-page-card-grid-gap: var(--space-2); /* メニューカードどうしの間隔。大きくするとカードが離れる */
   --home-page-card-gap: var(--space-2); /* カード内のアイコンと名前の間隔。大きくすると縦に離れる */
   --home-page-contact-margin: var(--space-7) 0 0; /* 問い合わせリンクの上余白。大きくするとカード一覧から離れる */
@@ -88,24 +89,59 @@ body.home-page {
   line-height: var(--home-page-brand-title-line-height);
 }
 
-/* ログイン中のアカウント情報 */
-.home-account {
+/* ヘッダー右端に表示するログイン状態アイコン。AppHeaderがflexのため
+   margin-left: auto で右端へ寄せる。 */
+.home-header-account {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+  padding-right: var(--home-page-header-account-padding-right);
+}
+/* ログイン中/未ログインの小さいアイコンボタン
+   (ログイン中はdetailsのsummary、未ログインはログインページへの直リンク) */
+.home-header-account-icon {
+  display: flex;
+  width: var(--home-page-header-account-icon-size);
+  height: var(--home-page-header-account-icon-size);
+  align-items: center;
+  justify-content: center;
+  color: var(--home-page-muted-color);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.home-header-account-icon:hover { color: var(--home-page-link-hover-color); }
+.home-header-account-menu { position: relative; }
+/* summaryの既定マーカー(三角)を消す */
+.home-header-account-menu summary { list-style: none; }
+.home-header-account-menu summary::-webkit-details-marker { display: none; }
+/* ユーザー名・ログアウトボタンを表示する開閉パネル */
+.home-header-account-panel {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  z-index: 30;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
   gap: var(--home-page-account-gap);
-  margin-bottom: var(--home-page-account-margin-bottom);
+  margin-top: var(--space-2);
+  padding: var(--space-3);
   font-size: var(--home-page-account-font-size);
+  white-space: nowrap;
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
 }
-.home-account p, .home-account form { margin: 0; }
+.home-header-account-panel p, .home-header-account-panel form { margin: 0; }
 /* ログイン中のユーザー名。長い名前は途中でも折り返す */
 .home-account-name {
   font-size: var(--home-page-account-font-size);
   font-weight: var(--home-page-account-name-font-weight);
   overflow-wrap: anywhere;
 }
-/* アカウント情報の下に置くログアウトボタン */
-.home-account form button {
+/* パネル内に置くログアウトボタン */
+.home-header-account-panel form button {
   padding: 0;
   font: inherit;
   color: var(--home-page-muted-color);
@@ -114,7 +150,7 @@ body.home-page {
   border: none;
   cursor: pointer;
 }
-.home-account form button:hover { color: var(--home-page-link-hover-color); }
+.home-header-account-panel form button:hover { color: var(--home-page-link-hover-color); }
 
 /* 主要機能へ移動する3列のメニューカード */
 .home-card-grid {
