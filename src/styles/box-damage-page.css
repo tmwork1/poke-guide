@@ -59,9 +59,15 @@
 
 /* 操作列(耐久調整ボタン)を包むSecondHeader(second-header.css)。
    ダメージタブは幅を問わず常に同じモバイルUIで表示されるため、
-   sticky・背景・下線ありの見た目を幅で分岐させない。 */
+   sticky・背景・下線ありの見た目を幅で分岐させない。
+   #opponent-notes-section自身が左右padding(--box-damage-panel-padding)を持つため、
+   何もしないとSecondHeaderもその内側に収まってしまい、/boxのSecondHeader(画面端まで
+   届く帯)と配置がずれる。/boxと同じ「画面端まで届く帯」にするため、左右paddingぶんを
+   負のmarginで打ち消して画面幅いっぱいに広げる。 */
 #opponent-notes-section .damage-toolbar-header {
   z-index: 16; /* .pokemon-preview(15)より前面、.app-header(20)より背面 */
+  margin-inline: calc(var(--space-3) * -1);
+  width: calc(100% + var(--space-3) * 2);
 }
 
 @media (width <= 899px) {
