@@ -63,7 +63,6 @@ function makeInput(overrides: Partial<OwnedPokemonRequestBody> = {}): OwnedPokem
     move_names: [],
     memo: null,
     tags: [],
-    is_pinned: false,
     ...overrides,
   };
 }

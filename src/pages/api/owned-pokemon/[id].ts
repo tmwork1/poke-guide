@@ -14,7 +14,6 @@ import {
   getOwnedPokemon,
   updateCollectionOptOut,
   updateOwnedPokemon,
-  updatePinStatus,
 } from '../../../lib/owned-pokemon';
 import { ownedPokemonRateLimiter } from '../../../lib/rate-limit';
 
@@ -97,11 +96,10 @@ export async function DELETE({ request, cookies, params }: APIContext): Promise<
   return jsonResponse({ data: { id } }, 200);
 }
 
-// PATCH /api/owned-pokemon/:id: is_pinned または collection_opt_out のみを更新する軽量経路。
+// PATCH /api/owned-pokemon/:id: collection_opt_out のみを更新する軽量経路。
 // PUT(全項目上書き契約、§6.2)とは別の追加経路であり、PUTの契約は変更しない。
-// updatePinStatus()/updateCollectionOptOut() はそれぞれの対象列だけを UPDATE し updated_at には
-// 触れないため、「更新順」表示中にこれらをトグルしても対象個体自身の表示順位置が動かないことを
-// 保証する。
+// updateCollectionOptOut() は対象列だけを UPDATE し updated_at には触れないため、
+// 「更新順」表示中にこれをトグルしても対象個体自身の表示順位置が動かないことを保証する。
 export async function PATCH({ request, cookies, params }: APIContext): Promise<Response> {
   const user = await getSessionUser(request, cookies);
   if (!user) return jsonResponse({ error: 'Unauthorized' }, 401);
@@ -121,26 +119,11 @@ export async function PATCH({ request, cookies, params }: APIContext): Promise<R
   const body = await readRequiredJsonBody<unknown>(request);
   if (body.response) return body.response;
 
-  // このエンドポイントは { is_pinned: boolean } または { collection_opt_out: boolean } の
-  // どちらか一方のみを受け付ける(それ以外のフィールドは全項目上書き契約のPUTの役割のため、
-  // ここでは受け付けない)。
+  // このエンドポイントは { collection_opt_out: boolean } のみを受け付ける
+  // (それ以外のフィールドは全項目上書き契約のPUTの役割のため、ここでは受け付けない)。
   const payload = body.data;
   const isPlainObject = typeof payload === 'object' && payload !== null && !Array.isArray(payload);
   const keys = isPlainObject ? Object.keys(payload as object) : [];
-
-  if (isPlainObject && keys.length === 1 && keys[0] === 'is_pinned') {
-    const isPinned = (payload as { is_pinned?: unknown }).is_pinned;
-    if (typeof isPinned !== 'boolean') {
-      return badRequest('Request body must be exactly { is_pinned: boolean }');
-    }
-
-    const supabase = await getSupabaseAdminClient();
-    const result = await updatePinStatus(user.id, id, isPinned, supabase);
-    if (!result.ok) return jsonResponse({ error: result.error }, 500);
-    if (!result.data) return notFound();
-
-    return jsonResponse({ data: result.data }, 200);
-  }
 
   if (isPlainObject && keys.length === 1 && keys[0] === 'collection_opt_out') {
     const optOut = (payload as { collection_opt_out?: unknown }).collection_opt_out;
@@ -156,7 +139,7 @@ export async function PATCH({ request, cookies, params }: APIContext): Promise<R
     return jsonResponse({ data: result.data }, 200);
   }
 
-  return badRequest('Request body must be exactly { is_pinned: boolean } or { collection_opt_out: boolean }');
+  return badRequest('Request body must be exactly { collection_opt_out: boolean }');
 }
 
 export const POST = () => methodNotAllowed(['GET', 'PUT', 'PATCH', 'DELETE']);

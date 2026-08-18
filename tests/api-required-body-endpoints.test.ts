@@ -95,13 +95,11 @@ describe('PUT /api/owned-pokemon/:id (owned-pokemon/[id].ts) のボディ処理'
         ability_name: 'かたいツメ',
         item_name: 'こだわりハチマキ',
         tera_type: 'ほのお',
-        regulation: null,
         evs: [0, 32, 0, 0, 0, 16],
         ivs: [31, 31, 31, 31, 31, 31],
         move_names: ['フレアドライブ', 'がんせきふうじ'],
         memo: '',
         tags: [],
-        is_pinned: false,
       }),
     });
     const body = await readRequiredJsonBody<unknown>(request);
@@ -155,13 +153,11 @@ describe('PUT /api/owned-pokemon/:id (owned-pokemon/[id].ts) のボディ処理'
         ability_name: 'かたいツメ',
         item_name: 'こだわりハチマキ',
         tera_type: null,
-        regulation: null,
         evs: [0, 32, 0, 0, 0, 16],
         ivs: [31, 31, 31, 31, 31, 31],
         // move_names を意図的に省略する。
         memo: null,
         tags: [],
-        is_pinned: false,
       }),
     });
     const body = await readRequiredJsonBody<unknown>(request);
@@ -184,13 +180,11 @@ describe('PUT /api/owned-pokemon/:id (owned-pokemon/[id].ts) のボディ処理'
         ability_name: 'かたいツメ',
         item_name: 'こだわりハチマキ',
         tera_type: 'ほのお',
-        regulation: null,
         evs: [0, 32, 0, 0, 0, 16],
         ivs: [31, 31, 31, 31, 31, 31],
         move_names: ['フレアドライブ', 'がんせきふうじ'],
         memo: '',
         tags: [],
-        is_pinned: false,
       }),
     });
     const body = await readRequiredJsonBody<unknown>(request);
@@ -225,13 +219,11 @@ describe('POST /api/owned-pokemon (owned-pokemon.ts) のボディ処理', () => 
         ability_name: '',
         item_name: '',
         tera_type: '',
-        regulation: null,
         evs: [0, 0, 0, 0, 0, 0],
         ivs: [31, 31, 31, 31, 31, 31],
         move_names: [],
         memo: '',
         tags: [],
-        is_pinned: false,
       }),
     });
     const body = await readRequiredJsonBody<unknown>(request);

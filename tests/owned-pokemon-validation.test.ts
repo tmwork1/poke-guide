@@ -16,7 +16,6 @@ describe('validateOwnedPokemonRequestBody', () => {
       assert.deepEqual(result.value.ivs, [31, 31, 31, 31, 31, 31]);
       assert.deepEqual(result.value.move_names, []);
       assert.deepEqual(result.value.tags, []);
-      assert.equal(result.value.is_pinned, false);
     }
   });
 
@@ -34,7 +33,6 @@ describe('validateOwnedPokemonRequestBody', () => {
       move_names: ['でんきショック', '10まんボルト'],
       memo: 'メモ',
       tags: ['エース', ' 対面 '],
-      is_pinned: true,
     });
     assert.equal(result.ok, true);
     if (result.ok) {
@@ -49,7 +47,6 @@ describe('validateOwnedPokemonRequestBody', () => {
       assert.deepEqual(result.value.move_names, ['でんきショック', '10まんボルト']);
       assert.equal(result.value.memo, 'メモ');
       assert.deepEqual(result.value.tags, ['エース', '対面']);
-      assert.equal(result.value.is_pinned, true);
     }
   });
 
@@ -146,11 +143,6 @@ describe('validateOwnedPokemonRequestBody', () => {
     assert.equal(result.ok, false);
   });
 
-  it('is_pinnedが真偽値でない場合は拒否する', () => {
-    const result = validateOwnedPokemonRequestBody({ species_name: 'ピカチュウ', is_pinned: 'true' });
-    assert.equal(result.ok, false);
-  });
-
   it('bodyが配列の場合は拒否する', () => {
     const result = validateOwnedPokemonRequestBody([1, 2, 3]);
     assert.equal(result.ok, false);
@@ -178,14 +170,11 @@ describe('validateOwnedPokemonRequestBody(body, { mode: "replace" })', () => {
     ability_name: 'かたいツメ',
     item_name: 'こだわりハチマキ',
     tera_type: null,
-    // migrations/013_regulation.sql で追加した置換対象フィールド。
-    regulation: null,
     evs: [0, 32, 0, 0, 0, 16],
     ivs: [31, 31, 31, 31, 31, 31],
     move_names: ['フレアドライブ', 'がんせきふうじ'],
     memo: null,
     tags: [],
-    is_pinned: false,
   };
 
   it('{} (全フィールド未送信) は拒否する(今回のバグの直接的な再現テスト)', () => {
