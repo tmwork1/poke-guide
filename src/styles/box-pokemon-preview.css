@@ -67,6 +67,7 @@
 
   /* ── 9. その他 ───────────────────────── */
   --pokemon-preview-z-index: 15; /* スクロール時に前面に保つ順番。大きくすると他の要素より前に出る */
+  --pokemon-preview-sprite-shadow: var(--shadow-sm); /* ポケモン画像の影。浮いて見える強さを変えたいときはglobal.cssの--shadow-sm/--shadow-mdを差し替える */
 }
 
 /* --------------------------------------------------------------------------
@@ -257,6 +258,7 @@
   width: 100%;
   height: 100%;
   object-fit: contain;
+  filter: drop-shadow(var(--pokemon-preview-sprite-shadow));
 }
 
 #pokemon-preview-species-sprite-fallback {
@@ -322,6 +324,16 @@
 }
 
 .pokemon-preview-stats td[data-mod="down"] {
+  color: var(--pokemon-preview-stat-down-color);
+}
+
+/* ステータスラベル(H/A/B/C/D/S)にも性格補正の色を適用する。
+   .pokemon-preview-stats th:first-child より詳細度を上げて確実に上書きする。 */
+.pokemon-preview-stats th:first-child[data-mod="up"] {
+  color: var(--pokemon-preview-stat-up-color);
+}
+
+.pokemon-preview-stats th:first-child[data-mod="down"] {
   color: var(--pokemon-preview-stat-down-color);
 }
 

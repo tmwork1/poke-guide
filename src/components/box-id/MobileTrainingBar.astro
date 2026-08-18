@@ -81,7 +81,7 @@ const previewStats = detail ? statKeys.map((key, index) => index === 0 ? calcHpS
         <tbody>
           {[['hp', 'H'], ['atk', 'A'], ['def', 'B'], ['spa', 'C'], ['spd', 'D'], ['spe', 'S']].map(([key, label], index) => (
             <tr>
-              <th>{label}</th>
+              <th data-mod={nature.up === key ? 'up' : nature.down === key ? 'down' : undefined}>{label}</th>
               <td id={`pokemon-preview-stat-${key}`} data-mod={nature.up === key ? 'up' : nature.down === key ? 'down' : undefined}>{previewStats[index] ?? '-'}</td>
               <td id={`pokemon-preview-ev-${key}`}>{pokemon.evs[index] ? `+${pokemon.evs[index]}` : '-'}</td>
             </tr>
