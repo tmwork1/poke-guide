@@ -10,7 +10,7 @@
 ソースURL組み立てにのみ使い、リポジトリ内のファイル名・参照コード(sprite-urls.ts の
 itemIconUrl())は和名で統一する。理由は、spritePath が存在しないアイテム(items.json で
 spritePath: null、こんごうだま系の一部やチャンピオンズ限定アイテム等)にも将来
-generate_item_icons_gamewith.py 等の別ソースから和名ベースでアイコンを追加できるように
+generate_item_icons_serebii.py 等の別ソースから和名ベースでアイコンを追加できるように
 するため(spritePath という PokeAPI 由来の識別子にファイル名を縛られない)。
 
 ## 背景
