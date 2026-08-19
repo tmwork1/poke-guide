@@ -22,6 +22,7 @@ body.box-edit-page {
 
   /* ── 5. 枠線・角丸 ────────────────────────────────────── */
   --move-picker-dialog-radius: var(--modal-radius); /* モバイルモーダルの角丸。大きくすると角が丸くなる */
+  --move-picker-dialog-border: var(--modal-border); /* モーダルの外枠線。太くすると輪郭が目立つ */
 
   /* ── 7. 余白 ──────────────────────────────────────────── */
   --move-picker-header-gap: var(--space-3); /* ヘッダー内の要素間隔。大きくすると見出しと操作が離れる */
@@ -52,7 +53,7 @@ body.box-edit-page {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  border: 1px solid var(--color-border);
+  border: var(--move-picker-dialog-border);
   border-radius: var(--radius-md);
   background: var(--color-surface);
   box-shadow: var(--shadow-md);

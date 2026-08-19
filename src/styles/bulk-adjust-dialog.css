@@ -27,7 +27,7 @@ body.box-edit-page {
 	--bulk-adjust-row-background: var(--color-bg); /* 条件カードの下地。変えると各カードの面色が変わる */
 
 	/* ── 5. 枠線・角丸 ────────────────────────────────────── */
-	--bulk-adjust-dialog-border: 1px solid var(--color-border); /* ダイアログ外枠。太くすると輪郭が目立つ */
+	--bulk-adjust-dialog-border: var(--modal-border); /* ダイアログ外枠。太くすると輪郭が目立つ */
 	--bulk-adjust-dialog-radius: var(--radius-lg); /* ダイアログの角丸。大きくすると角が丸くなる */
 	--bulk-adjust-row-border: 1px solid var(--color-border); /* 条件カードの枠線。濃くするとカードの区切りが強くなる */
 	--bulk-adjust-row-radius: var(--radius-md); /* 条件カードの角丸。大きくすると各カードが丸くなる */

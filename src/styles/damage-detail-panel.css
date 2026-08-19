@@ -45,6 +45,7 @@ body.box-edit-page {
 
 	/* ── 5. 枠線・角丸 ─────────────────────── */
 	--damage-detail-panel-left-border: 0; /* 左端の枠線。太くすると左境界が見える */
+	--damage-detail-panel-border: var(--modal-border); /* パネル外枠の線。太くすると輪郭が目立つ */
 	--damage-detail-panel-radius: var(--modal-radius); /* 外枠の角丸。大きくするとパネルが丸くなる */
 	--damage-detail-border-color: var(--color-border); /* 区切り線と通常枠の色。濃くすると各領域の境界が目立つ */
 	--damage-detail-primary-color: var(--color-primary); /* 選択・フォーカスの強調色。変えると操作中の目印が変わる */
@@ -153,6 +154,7 @@ body.box-edit-page {
 		overflow: hidden;
 		background: var(--damage-detail-surface-background);
 		box-shadow: var(--damage-detail-panel-shadow);
+		border: var(--damage-detail-panel-border);
 		border-left: var(--damage-detail-panel-left-border);
 		border-radius: var(--damage-detail-panel-radius);
 		transform: translate(-50%, -50%) scale(0.96);

@@ -15,7 +15,7 @@ body.box-edit-page {
   --speed-adjust-backdrop-background: var(--color-overlay); /* 背景オーバーレイ。共通モーダルの暗幕色に合わせる */
 
   /* ── 5. 枠線・角丸 ────────────────────────────────────── */
-  --speed-adjust-dialog-border: 1px solid var(--color-border); /* ダイアログの外枠。太くすると枠が目立つ */
+  --speed-adjust-dialog-border: var(--modal-border); /* ダイアログの外枠。太くすると枠が目立つ */
   --speed-adjust-dialog-radius: var(--radius-lg); /* ダイアログの角丸。大きくすると角が丸くなる */
 
   /* ── 6. 影 ────────────────────────────────────────────── */
