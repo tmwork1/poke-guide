@@ -75,6 +75,7 @@ body.box-edit-page {
 	--damage-detail-space-sm: var(--space-2); /* 小さめの間隔。大きくするとボタンや行の密度が下がる */
 	--damage-detail-space-xs: var(--space-1); /* 最小の間隔。大きくすると細かな項目間が広がる */
 	--damage-detail-body-padding: 0.9rem var(--space-4) 1.4rem; /* 本文の内側余白。大きくすると内容が外枠から離れる */
+	--damage-detail-body-safe-area-padding-bottom: calc(1.4rem + env(safe-area-inset-bottom)); /* 本文最下部(モーダル最下部)の安全領域込み下余白。大きくすると画面下端の切り欠けから離れる */
 	--damage-detail-close-padding: 0.2em 0.55em; /* 閉じるボタンの余白。大きくすると押せる範囲が広がる */
 	--damage-detail-candidate-applied-padding: calc(var(--space-2) - 1px) calc(var(--space-3) - 1px); /* 太い枠を相殺する余白。大きくすると中身が内側へ寄る */
 	--damage-detail-candidate-segment-gap: 0.4em; /* 候補のラベルと値の間隔。大きくすると両者が離れる */
@@ -235,12 +236,17 @@ body.box-edit-page {
 		flex-direction: column;
 		overflow-y: auto;
 		padding: var(--damage-detail-body-padding);
+		/* footerの移動でこのbodyがモーダル最下部の要素になったため、画面下端の
+			安全領域(env(safe-area-inset-bottom))を避ける下パディングをここで持つ。 */
+		padding-bottom: var(--damage-detail-body-safe-area-padding-bottom);
 		touch-action: pan-y;
 	}
 	.damage-detail-panel-footer {
 		flex: 0 0 auto;
-		padding: var(--damage-detail-space-sm) var(--damage-detail-space-lg) calc(var(--damage-detail-space-sm) + env(safe-area-inset-bottom));
-		border-top: var(--damage-detail-footer-border);
+		padding: var(--damage-detail-space-sm) var(--damage-detail-space-lg);
+		/* タブ直下(header直後)に移動したため、直下にあるbodyとの区切り線を
+			border-topではなくborder-bottomにする。 */
+		border-bottom: var(--damage-detail-footer-border);
 		background: var(--damage-detail-surface-background);
 	}
 	.damage-detail-panel-footer[hidden] { display: none; }

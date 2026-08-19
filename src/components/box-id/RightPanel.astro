@@ -32,6 +32,13 @@ import '../../styles/stat-adjustment-panel.css';
 			{/* 1600px未満ではオーバーレイ化するため閉じるボタンを表示する
 			    (1600px以上の3カラム表示では常時可視のパネルなのでCSSで隠す)。 */}
 		</div>
+		<footer id="damage-detail-panel-footer" class="damage-detail-panel-footer" hidden>
+			<div id="damage-detail-panel-matchup" class="damage-detail-panel-matchup"></div>
+			<div id="damage-detail-panel-total" class="damage-detail-panel-total" data-severity="none">
+				<span class="damage-detail-panel-total-label">加算後（打点の合計）</span>
+				<p id="damage-detail-panel-total-result" class="damage-detail-panel-total-result tnum" data-severity="none"></p>
+			</div>
+		</footer>
 		<div id="damage-detail-panel-body" class="damage-detail-panel-body">
 			{/* JS初期化前・失敗時のフォールバックもJS生成側(renderDetailPanelEmpty)と同じ
 			    .damage-detail-panel-body-innerでラップし、margin-block:autoの対象にする。
@@ -40,13 +47,6 @@ import '../../styles/stat-adjustment-panel.css';
 			    margin-block:autoの対象として維持する(DOM構造は残す)。 */}
 			<div class="damage-detail-panel-body-inner"></div>
 		</div>
-		<footer id="damage-detail-panel-footer" class="damage-detail-panel-footer" hidden>
-			<div id="damage-detail-panel-matchup" class="damage-detail-panel-matchup"></div>
-			<div id="damage-detail-panel-total" class="damage-detail-panel-total" data-severity="none">
-				<span class="damage-detail-panel-total-label">加算後（打点の合計）</span>
-				<p id="damage-detail-panel-total-result" class="damage-detail-panel-total-result tnum" data-severity="none"></p>
-			</div>
-		</footer>
 	</aside>
 </div>
 {/* 1600px未満でサイドバーをオーバーレイ表示する際の背景(クリックで閉じる)。 */}
