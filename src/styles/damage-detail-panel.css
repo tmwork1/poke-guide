@@ -61,7 +61,6 @@ body.box-edit-page {
 	--damage-detail-candidate-item-border: 1px solid var(--color-border); /* 候補カードの枠。太くすると境界が強くなる */
 	--damage-detail-candidate-applied-border-width: 2px; /* 適用中カードの枠幅。大きくすると選択中が目立つ */
 	--damage-detail-suggest-fallback-radius: 50%; /* 代替表示の角丸。小さくすると円から角のある形へ変わる */
-	--damage-detail-suggest-action-border: 1px solid var(--color-border); /* 追加ラベルの枠。太くするとボタンらしさが強くなる */
 	--damage-detail-tera-list-border: 1px solid var(--color-border); /* 候補一覧の外枠。太くすると境界が強くなる */
 	--damage-detail-tera-button-border: 1px solid var(--color-border); /* テラ選択ボタンの枠。太くすると入力欄が目立つ */
 
@@ -86,7 +85,6 @@ body.box-edit-page {
 	--damage-detail-suggest-item-gap: 0.25em; /* 持ち物アイコンと名前の間隔。大きくすると両者が離れる */
 	--damage-detail-suggest-move-row-gap: 0.15em 0.25em; /* 技名と持ち物の縦横間隔。大きくすると情報同士が離れる */
 	--damage-detail-suggest-move-row-margin-top: 0.15em; /* 技名行の上余白。大きくするとポケモン名から離れる */
-	--damage-detail-suggest-reason-margin-top: 0.1em; /* 採用理由の上余白。大きくすると技名行から離れる */
 	--damage-detail-direction-toggle-margin-bottom: 1px; /* 攻守切り替え下の微調整。大きくすると上へ寄って見える */
 
 	/* ── 8. 寸法 ─────────────────────── */
@@ -100,7 +98,7 @@ body.box-edit-page {
 	--damage-detail-tera-icon-size: 20px; /* テラタイプアイコン。大きくすると候補行が高くなる */
 	--damage-detail-suggest-item-icon-size: 14px; /* 持ち物アイコン。大きくすると持ち物が目立つ */
 	--damage-detail-direction-toggle-width: 6.4em; /* 攻守切り替えの最小横幅。「攻撃」「防御」が折り返さない幅が必要(Cの修正) */
-	--damage-detail-suggest-action-width: 3.4em; /* 右端の追加ラベル幅。大きくするとラベル列が広がる */
+	--damage-detail-move-input-min-width: 5em; /* B-1: 技名入力欄の最小幅。短い技名でも窮屈にならない下限値 */
 
 	/* ── 9. その他 ─────────────────────── */
 	--damage-detail-panel-open-opacity: 1; /* 開いた状態の透明度。小さくすると背後が透ける */
@@ -219,6 +217,13 @@ body.box-edit-page {
 		padding: 0 var(--damage-detail-space-md);
 		border: 0;
 		border-bottom: var(--damage-detail-tab-border);
+		/* A-1: button要素のネイティブappearanceが角丸を持つ環境(Windows版Chromium等)があり、
+			選択中の背景塗り(aria-selected="true")が丸角ハイライトに見える不具合があった。
+			app-header__item(app-header.css)と同じ考え方で、角丸を明示的に0にし、
+			ネイティブappearanceも消す。 */
+		border-radius: var(--radius-zero);
+		appearance: none;
+		-webkit-appearance: none;
 		background: none;
 		color: var(--damage-detail-muted-color);
 		font: inherit;
@@ -297,6 +302,9 @@ body.box-edit-page {
 		align-items: baseline;
 		gap: var(--damage-detail-space-sm);
 		padding: var(--damage-detail-space-xs) var(--damage-detail-space-sm);
+		/* A-2: 強い色面にならないよう、角を持たせて「帯」ではなく「小さな結果表示」に
+			見せる(値そのものはこれまでどおりseverityで色分けする)。 */
+		border-radius: var(--damage-detail-radius-sm);
 		background: var(--damage-detail-page-background);
 		color: var(--damage-detail-muted-color);
 	}
@@ -324,8 +332,10 @@ body.box-edit-page {
 		text-align: right;
 	}
 	.damage-detail-panel-total-result .damage-result-verdict {
-		font-size: var(--damage-detail-font-size-lg);
-		font-weight: var(--damage-detail-font-weight-heavy);
+		/* A-2: これまでの大きく太い強調(font-size-lg/font-weight-heavy)は目立ちすぎるため、
+			1段階ずつ抑える(読み取れる情報量は変えない)。 */
+		font-size: var(--damage-detail-font-size-md);
+		font-weight: var(--damage-detail-font-weight-bold);
 	}
 	.damage-detail-panel-total-result .damage-result-detail {
 		min-width: 0;
@@ -547,42 +557,37 @@ body.box-edit-page {
 		gap: var(--damage-detail-space-sm);
 	}
 	/* カード全体が1つのボタン(操作が「追加」の1種類しかないため。team側は
-		「育成する/チームに追加」の2択があるので右端に別ボタンを置いている)。 */
+		「育成する/チームに追加」の2択があるので右端に別ボタンを置いている)。
+		C-1: ダメージカード(.card、global.css)と同様に、パネル背景の上へ直接置く
+		カードの見た目にする(新しいカードスタイルは作らず、.cardが使う既存トークン
+		(角丸・box-shadow・背景色)だけを流用する)。 */
 	#damage-detail-panel-body .damage-suggest-card-button {
 		width: 100%;
-		display: grid;
-		/* 順位 / 本文 / 追加ラベル の3列。本文列は minmax(0, 1fr) にしないと長い技名・
-			持ち物名がグリッドを押し広げて横スクロールを起こす(team-suggest-cardと同じ)。 */
-		grid-template-columns: auto minmax(0, 1fr) auto;
-		align-items: center;
-		gap: var(--damage-detail-space-sm);
+		display: block;
 		padding: var(--damage-detail-space-sm);
-		border: 1px solid var(--damage-detail-border-color);
-		border-radius: var(--damage-detail-radius-sm);
-		background: var(--damage-detail-surface-background);
+		border: 0;
+		border-radius: var(--radius-zero);
+		background: var(--damage-detail-page-background);
+		box-shadow: var(--shadow-sm);
 		text-align: left;
 		cursor: pointer;
 		color: inherit;
 		font: inherit;
+		transition: box-shadow 0.18s ease, background-color 0.18s ease;
 	}
 	#damage-detail-panel-body .damage-suggest-card-button:hover,
 	#damage-detail-panel-body .damage-suggest-card-button:focus-visible {
-		border-color: var(--damage-detail-primary-color);
-	}
-	#damage-detail-panel-body .damage-suggest-rank {
-		font-size: calc(var(--damage-detail-font-size-xs) * 1.5);
-		font-weight: var(--damage-detail-font-weight-bold);
-		color: var(--damage-detail-muted-color);
-		min-width: 1.2em;
-		text-align: right;
+		box-shadow: var(--damage-detail-shadow-md);
+		background: color-mix(in srgb, var(--damage-detail-page-background) 90%, var(--damage-detail-primary-color) 10%);
 	}
 	#damage-detail-panel-body .damage-suggest-body {
 		min-width: 0;
 		display: block;
 	}
-	/* 攻守チップ・スプライト・相手の種族名・相手の持ち物を1段目に置く。持ち物まで入ると
-		右パネルの本文列(実測200px前後)には収まらないため、折り返しを許す(team側の
-		.team-suggest-buildと同じ判断: 切ると提案の中身そのものが読めなくなる)。 */
+	/* 攻守チップ・スプライト・相手の持ち物を1段目に置く(C-3: 種族名の文字表示は削除し、
+		スプライトのalt/titleへ残す)。持ち物まで入ると右パネルの本文列(実測200px前後)には
+		収まらないため、折り返しを許す(team側の.team-suggest-buildと同じ判断: 切ると
+		提案の中身そのものが読めなくなる)。 */
 	#damage-detail-panel-body .damage-suggest-name-row {
 		display: flex;
 		align-items: center;
@@ -624,22 +629,17 @@ body.box-edit-page {
 		width: var(--damage-detail-suggest-fallback-size);
 		height: var(--damage-detail-suggest-fallback-size);
 		border-radius: var(--damage-detail-suggest-fallback-radius);
-		background: var(--damage-detail-page-background);
+		/* C-1でカード自体の背景をpage-backgroundにしたため、代替表示はカードに対して
+			コントラストが立つsurface-backgroundへ変える。 */
+		background: var(--damage-detail-surface-background);
 		color: var(--damage-detail-muted-color);
 		font-size: var(--damage-detail-font-size-xs);
 		align-items: center;
 		justify-content: center;
 	}
-	#damage-detail-panel-body .damage-suggest-name {
-		font-size: var(--damage-detail-font-size-sm);
-		font-weight: var(--damage-detail-font-weight-semibold);
-		white-space: nowrap;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		min-width: 0;
-	}
-	/* 技名(+その計算で想定されている相手の持ち物)。右パネルの本文列は実測で200px前後
-		しかないため、折り返して2行になることを許す(切ると提案の中身が読めなくなる)。 */
+	/* 技名(左)+タイプアイコン(C-4)。根拠(C-5)は同じ行の右側に表示する。右パネルの
+		本文列は実測で200px前後しかないため、折り返して2行になることを許す
+		(切ると提案の中身が読めなくなる)。 */
 	#damage-detail-panel-body .damage-suggest-move-row {
 		display: flex;
 		align-items: center;
@@ -647,6 +647,17 @@ body.box-edit-page {
 		gap: var(--damage-detail-suggest-move-row-gap);
 		line-height: var(--damage-detail-line-height-snug);
 		margin-top: var(--damage-detail-suggest-move-row-margin-top);
+	}
+	/* C-4: 技のタイプアイコン。既存の技名候補一覧(damage-detail-move-dropdown-option-icon)と
+		同じ大きさ(--damage-card-move-icon-size、box-damage-card.css)にする。 */
+	#damage-detail-panel-body .damage-suggest-move-type-icon {
+		width: var(--damage-card-move-icon-size);
+		height: var(--damage-card-move-icon-size);
+		flex: none;
+		object-fit: contain;
+	}
+	#damage-detail-panel-body .damage-suggest-move-type-icon[hidden] {
+		display: none;
 	}
 	#damage-detail-panel-body .damage-suggest-move {
 		font-size: var(--damage-detail-font-size-sm);
@@ -670,28 +681,15 @@ body.box-edit-page {
 		font-size: var(--damage-detail-font-size-xs);
 		color: var(--damage-detail-muted-color);
 	}
+	/* C-5: 根拠(「x%が計算」)は技名と同じ行の右端に表示する。母集団の実数・主語
+		(同じ型/同じポケモン)はtitle属性へ回した。 */
 	#damage-detail-panel-body .damage-suggest-reason {
-		display: block;
+		margin-left: auto;
+		padding-left: var(--damage-detail-space-sm);
 		font-size: var(--damage-detail-font-size-xs);
 		color: var(--damage-detail-muted-color);
 		line-height: var(--damage-detail-line-height-snug);
-		margin-top: var(--damage-detail-suggest-reason-margin-top);
-	}
-	/* 3列目。実体はカード全体のボタンなので、これ自体は押せる見た目のラベルにとどめる
-		(team-suggest-actionと同じ寸法・同じトークン)。 */
-	#damage-detail-panel-body .damage-suggest-action {
-		align-self: stretch;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		width: var(--damage-detail-suggest-action-width);
-		font-size: var(--damage-detail-font-size-xs);
-		line-height: var(--damage-detail-line-height-tight);
-		padding: var(--damage-detail-space-xs);
-		border: var(--damage-detail-suggest-action-border);
-		border-radius: var(--damage-detail-radius-sm);
-		background: var(--damage-detail-page-background);
-		color: var(--damage-detail-text-color);
+		white-space: nowrap;
 	}
 
 	/* 相手ビルドは既存のボトムシート本体だけを差し替えて編集する。 */
@@ -758,16 +756,40 @@ body.box-edit-page {
 		本体は変更しない、最小限の追加)。防御側→設置物・設置物→場の効果の境界は、hazardsGroup/
 		fieldEffectsGroupがどちらも既存の.damage-detail-group+.damage-detail-section-heading
 		(border-top付き)の構造をそのまま使っているため、追加CSSなしで既に線が入る。 */
+	/* B-4: セクション間の縦余白を詰める。box-damage-card.css既定の
+		margin-top:space-3/padding-top:space-2/gap:--damage-detail-side-gap(1.05rem)/
+		--damage-detail-side-padding(.7rem)/.damage-detail-groupのmargin-bottom(--space-2)を、
+		それぞれこのパネル内でより小さい既存spaceトークンへ差し替える
+		(視認性は区切り線・見出しが担うため密度を優先できる)。 */
 	#damage-detail-panel-body .damage-detail-sides {
 		border-top: var(--damage-detail-header-border);
+		margin-top: var(--damage-detail-space-md);
+		padding-top: var(--damage-detail-space-xs);
+		gap: var(--damage-detail-space-md);
 	}
 	#damage-detail-panel-body .damage-detail-side + .damage-detail-side {
 		border-top: var(--damage-detail-header-border);
+		padding-top: var(--damage-detail-space-sm);
+	}
+	#damage-detail-panel-body .damage-detail-group {
+		margin-bottom: var(--damage-detail-space-sm);
+	}
+	/* B-5: 天候・フィールドの4分割ボタン(.damage-detail-icon-group.is-row4、box-damage-card.css)は
+		ボタン間の仕切り線を隣接兄弟セレクタのborder-leftだけで表現している。同じbox-damage-card.css側の
+		hoverルール(.damage-detail-icon-group.is-row4 .damage-detail-icon-btn:hover { border-color:
+		transparent })がborder-color省略記法でborder-left-colorまで巻き込んで透明化してしまうため、
+		ONだったボタンをクリックしてOFFへ戻した直後(マウスが乗ったまま)に仕切り線が消えて見える
+		不具合があった。border-left-colorだけをホバー中も常に復元し、他3辺の透明化(個々のボタンの
+		枠を単独では見せない挙動)はそのまま維持する。 */
+	#damage-detail-panel-body .damage-detail-icon-group.is-row4 .damage-detail-icon-btn + .damage-detail-icon-btn:hover {
+		border-left-color: var(--damage-detail-border-color);
 	}
 	#damage-detail-panel-body .damage-detail-rank-ailment-row {
-		/* C-2: "ランク"ラベルを削除し、ランク・状態異常・テラスタイプを同じ段(3列)に配置する。 */
+		/* C-2: "ランク"ラベルを削除し、ランク・状態異常・テラスタイプを同じ段(3列)に配置する。
+			B-2: 状態異常列は内容量に合わせて縮めるため、2列目もautoにし、
+			余った幅はテラスタイプ列(3列目)だけが受け取るようにする。 */
 		display: grid;
-		grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr);
+		grid-template-columns: auto auto minmax(0, 1fr);
 		align-items: center;
 		gap: var(--damage-detail-space-sm);
 		margin-bottom: var(--damage-detail-space-sm);
@@ -776,8 +798,10 @@ body.box-edit-page {
 		margin-bottom: 0;
 	}
 	#damage-detail-panel-body .damage-detail-rank-ailment-row .damage-detail-ailment-select {
-		width: 100%;
-		min-width: 0;
+		/* B-2: 列いっぱいに伸ばす(width:100%)のをやめ、内容量に合わせた
+			box-damage-card.css既定の幅(--damage-detail-ailment-width、7em)に戻す。 */
+		width: auto;
+		min-width: var(--damage-detail-ailment-width);
 	}
 	/* C-2: テラスタイプ欄(.damage-detail-tera-row)を3列目として同じ段に収める。 */
 	#damage-detail-panel-body .damage-detail-rank-ailment-row .damage-detail-tera-row {
@@ -909,6 +933,40 @@ body.box-edit-page {
 		ここでは相手側のテラスタイプ選択UIだけが横幅いっぱいに広がるよう追加する。 */
 	#damage-detail-panel-body .damage-detail-tera-row .damage-row-tera-field {
 		width: 100%;
+	}
+	/* --------------------------------------------------------------------------
+		技選択欄(タイプアイコン・内容量に合わせた幅)
+		-------------------------------------------------------------------------- */
+	/* B-1: 技名入力欄は今まで(box-damage-card.cssのwidth:100%)横幅いっぱいに伸びきっていた。
+		技名の文字数に合わせて縮め、隣の急所チェックとの横並びは.damage-detail-move-controls
+		(box-damage-card.css、display:flex)側の余白でそのまま保たれる。 */
+	#damage-detail-panel-body .damage-detail-move-field {
+		flex: 0 1 auto;
+		min-width: 0;
+	}
+	#damage-detail-panel-body .damage-detail-move-combo {
+		display: flex;
+		align-items: center;
+		gap: var(--damage-detail-space-xs);
+	}
+	#damage-detail-panel-body .damage-detail-move-input {
+		width: auto;
+		/* field-sizingは能力ランク入力(.damage-detail-rank-input、box-damage-card.css)で
+			既に使われている手法をそのまま踏襲する(新しい実現方法を増やさない)。 */
+		field-sizing: content;
+		min-width: var(--damage-detail-move-input-min-width);
+		max-width: 100%;
+	}
+	/* B-1: 技を選択した後もタイプアイコンを表示する(既存のdamage-detail-move-dropdown-option-icon
+		と同じ大きさ、--damage-card-move-icon-sizeはbox-damage-card.cssで定義済みのトークン)。 */
+	#damage-detail-panel-body .damage-detail-move-type-icon {
+		width: var(--damage-card-move-icon-size);
+		height: var(--damage-card-move-icon-size);
+		flex: none;
+		object-fit: contain;
+	}
+	#damage-detail-panel-body .damage-detail-move-type-icon[hidden] {
+		display: none;
 	}
 	/* --------------------------------------------------------------------------
 		実数値・努力値の編集

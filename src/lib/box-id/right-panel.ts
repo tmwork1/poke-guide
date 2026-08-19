@@ -1381,7 +1381,32 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 		closeMoveDropdown();
 	};
 	document.addEventListener("click", moveDropdownOutsideClickHandler);
-	moveComboWrap.append(moveSelectInput, moveDropdownList);
+
+	// B-1: 技を選択した後も入力欄自体にタイプアイコンを出す(候補一覧の
+	// damage-detail-move-dropdown-option-iconと同じ「先に隠しておき、判明したら表示する」流儀)。
+	const moveTypeIcon = document.createElement("img");
+	moveTypeIcon.className = "damage-detail-move-type-icon";
+	moveTypeIcon.alt = "";
+	moveTypeIcon.hidden = true;
+	moveTypeIcon.addEventListener("error", () => { moveTypeIcon.hidden = true; });
+	function refreshMoveTypeIcon(): void {
+		const name = column.moveName.trim();
+		void moveAutoInputDetailsPromise.then((details) => {
+			// 表示中に別の技へ入力が進んでいたら、遅れて届いた結果は捨てる。
+			if (column.moveName.trim() !== name) return;
+			const type = name ? details.get(name)?.type : null;
+			const url = type ? typeIconUrl(type) : null;
+			if (!url) {
+				moveTypeIcon.hidden = true;
+				moveTypeIcon.removeAttribute("src");
+				return;
+			}
+			moveTypeIcon.src = url;
+			moveTypeIcon.hidden = false;
+		});
+	}
+	moveComboWrap.append(moveTypeIcon, moveSelectInput, moveDropdownList);
+	refreshMoveTypeIcon();
 
 	const hitRow = document.createElement("div");
 	hitRow.className = "damage-column-hitcount-row damage-detail-hitcount-row";
@@ -1438,6 +1463,7 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 		column.moveName = moveSelectInput.value;
 		refreshDamageColumnDisplay(row, column);
 		refreshMoveEditorDisplay();
+		refreshMoveTypeIcon();
 		void notifyDetailMoveChanged(row, column).then(refreshMoveEditorDisplay);
 		void refreshHitCountVisibility({ preferMax: true });
 		scheduleRowCalc(row);
@@ -1605,7 +1631,9 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 	for (let i = 0; i <= 3; i++) {
 		const opt = document.createElement("option");
 		opt.value = String(i);
-		opt.textContent = `${i}層`;
+		// C-4: aria-label「まきびしの層数」で文脈は伝わるため、可視テキストからは
+		// "層"を削除して数字だけにする。
+		opt.textContent = String(i);
 		opt.selected = clampInt(column.spikes, 0, 3) === i;
 		spikesSelect.appendChild(opt);
 	}
@@ -1616,7 +1644,16 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 	spikesField.append(spikesLabel, spikesSelect);
 	hazardsControls.append(stealthRockButton, spikesField);
 	hazardsGroup.appendChild(hazardsControls);
-	sidesWrap.appendChild(hazardsGroup);
+	// B-3: 「設置物」(ステルスロック/まきびし)は、sidesWrap直下の独立区画ではなく、
+	// 防御側セクション内・揮発状態グループ(defenderVolatileGroup)の直前に移動する
+	// (相手の設置物依存の状況を「防御側」の設定としてまとめて見せるため)。
+	// defenderVolatileGroupが取れない場合(DAMAGE_DEFENDER_VOLATILESが空になる将来の変更時)は
+	// 防御側セクションの末尾に足す。
+	if (defenderVolatileGroup) {
+		defenderVolatileGroup.before(hazardsGroup);
+	} else {
+		defenderSide.appendChild(hazardsGroup);
+	}
 
 	// C-1: 天候・フィールドは合わせて1つの区画「場の効果」として扱い、この2つの間には
 	// dividerを入れず、区画の先頭(天候の前)にだけ入れる。既存の「設置物」(hazardsGroup)と

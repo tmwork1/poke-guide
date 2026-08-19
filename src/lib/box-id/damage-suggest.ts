@@ -29,6 +29,7 @@ import {
 	type DamageCalcSuggestion,
 } from "../damage-calc-suggest";
 import { applySprite, applyItemImage, buildAttackerSpec, renderDetailPanel } from "./shared-core";
+import { typeIconUrl } from "../sprite-urls";
 
 // 右パネルの高さに収まる件数。取得側(020のtop_n=12)より少なくし、押せる候補だけを見せる。
 const VISIBLE_LIMIT = 6;
@@ -67,6 +68,17 @@ let loadedSubjectKey: string | null = null;
 // (left-panel.ts の popularBuildSuggestionsToken と同じパターン)。
 let loadToken = 0;
 let reloadTimer: ReturnType<typeof setTimeout> | undefined;
+
+// C-4: 技のタイプアイコン用に技名→タイプを引く。right-panel.ts(moveAutoInputDetailsPromise)と
+// 同じ考え方だが、このファイルからあちらへの依存を増やさないため(相互import増加を避ける
+// 既存方針)、独自に同じ /master-data/detail/moves.json を取得してキャッシュする。
+const moveTypeDetailsPromise: Promise<Map<string, string | null>> = fetch("/master-data/detail/moves.json")
+	.then((response) => response.json())
+	.then((moves: Array<{ name: string; type?: string | null }>) => new Map(moves.map((move) => [move.name, move.type ?? null])))
+	.catch((error) => {
+		console.warn("技のタイプ情報の読み込みに失敗しました", error);
+		return new Map<string, string | null>();
+	});
 
 /** いま編集中の値から型を判定する(left-panel.ts の currentArchetype と同じ入力・同じ分類器)。 */
 function currentArchetype(): { speciesName: string; archetype: ArchetypeKey | null } {
@@ -167,44 +179,42 @@ function buildDirectionChip(direction: DamageCalcSuggestion["direction"]): HTMLE
 	return chip;
 }
 
-function buildSuggestionCard(suggestion: DamageCalcSuggestion, rank: number): HTMLElement {
+function buildSuggestionCard(suggestion: DamageCalcSuggestion): HTMLElement {
 	const item = document.createElement("li");
 	item.className = "damage-suggest-card";
 
 	// カード全体を1つのボタンにする(依頼「サジェストをクリックするとダメージカードが追加される」)。
 	// team/[id].astro のサジェストは「育成する/チームに追加」で操作が2種類あるため右端に別ボタンを
 	// 置いているが、こちらは操作が1つしかないのでカードそのものを押せるようにするほうが素直。
+	// C-2: 視覚的な「追加」ラベルは廃止したため、操作可能であることはaria-labelで補う
+	// (ボタン自身の可視テキストはaria-labelがあれば読み上げに使われない点に注意)。
 	const button = document.createElement("button");
 	button.type = "button";
 	button.className = "damage-suggest-card-button";
-
-	const rankEl = document.createElement("span");
-	rankEl.className = "damage-suggest-rank";
-	rankEl.textContent = String(rank);
-	button.appendChild(rankEl);
+	button.setAttribute("aria-label", `${suggestion.opponentName}の${suggestion.moveName}を追加`);
 
 	const body = document.createElement("span");
 	body.className = "damage-suggest-body";
 
-	// 1段目: 攻守 + 相手のスプライト + 相手の種族名。
+	// 1段目: 攻守 + 相手のスプライト + (種族名は削除、C-3)相手の持ち物。
 	const nameRow = document.createElement("span");
 	nameRow.className = "damage-suggest-name-row";
 	nameRow.appendChild(buildDirectionChip(suggestion.direction));
 	const spriteEl = document.createElement("span");
 	spriteEl.className = "damage-suggest-sprite";
+	// C-3: 種族名の文字表示(nameEl)を削除する代わりに、どのポケモンかという情報が
+	// 完全には失われないよう、スプライト本体にalt/titleを設定する。
+	spriteEl.title = suggestion.opponentName;
 	const spriteImg = document.createElement("img");
 	spriteImg.className = "damage-suggest-sprite-img";
-	spriteImg.alt = "";
+	spriteImg.alt = suggestion.opponentName;
+	spriteImg.title = suggestion.opponentName;
 	const spriteFallback = document.createElement("span");
 	spriteFallback.className = "damage-suggest-sprite-fallback";
 	spriteEl.append(spriteImg, spriteFallback);
 	void applySprite(spriteImg, spriteFallback, suggestion.opponentName);
-	const nameEl = document.createElement("span");
-	nameEl.className = "damage-suggest-name";
-	nameEl.textContent = suggestion.opponentName;
-	nameEl.title = suggestion.opponentName;
-	nameRow.append(spriteEl, nameEl);
-	// 持ち物は相手のもの(集計側が返す想定ビルド)なので、相手の名前と同じ行に置く
+	nameRow.appendChild(spriteEl);
+	// 持ち物は相手のもの(集計側が返す想定ビルド)なので、相手のスプライトと同じ行に置く
 	// ── 下の技名の行に置くと、direction='attack' のとき「自分が使う技」と「相手の持ち物」が
 	// 同じ行に並んでどちらの持ち物か読めなくなる。team-suggest-name-row と同じ並びでもある。
 	if (suggestion.opponentBuild.itemName) {
@@ -224,32 +234,43 @@ function buildSuggestionCard(suggestion: DamageCalcSuggestion, rank: number): HT
 	}
 	body.appendChild(nameRow);
 
-	// 2段目: 技名。direction='attack' ならこの個体が使う技、'defense' なら相手が使う技
+	// 2段目: タイプアイコン + 技名(左) + 根拠(右、C-5でここへ移設)。
+	// direction='attack' ならこの個体が使う技、'defense' なら相手が使う技
 	// (どちらの技かは1段目の攻守チップが決める)。
 	const moveRow = document.createElement("span");
 	moveRow.className = "damage-suggest-move-row";
+	// C-4: 技のタイプアイコンを技名の左に追加する(right-panel.tsのmoveDropdownの
+	// アイコン表示と同じ「先に隠しておき、判明したら表示する」流儀)。
+	const moveTypeIcon = document.createElement("img");
+	moveTypeIcon.className = "damage-suggest-move-type-icon";
+	moveTypeIcon.alt = "";
+	moveTypeIcon.hidden = true;
+	void moveTypeDetailsPromise.then((types) => {
+		const type = types.get(suggestion.moveName);
+		const url = type ? typeIconUrl(type) : null;
+		if (!url) return;
+		moveTypeIcon.src = url;
+		moveTypeIcon.hidden = false;
+	});
+	moveTypeIcon.addEventListener("error", () => { moveTypeIcon.hidden = true; });
+	moveRow.appendChild(moveTypeIcon);
 	const moveEl = document.createElement("span");
 	moveEl.className = "damage-suggest-move";
 	moveEl.textContent = suggestion.moveName;
 	moveEl.title = suggestion.moveName;
 	moveRow.appendChild(moveEl);
-	body.appendChild(moveRow);
 
-	// 3段目: 根拠。母集団の実数はtitleに回し、本文は割合だけにする(右パネルは幅が狭い)。
-	// 主語は採用したキーの粒度そのもの(型で引けたのか種族へ落ちたのか)にする。
+	// C-5: 根拠は「x%が計算」まで短縮し、技名と同じ行の右側に表示する。母集団の実数と
+	// 主語(同じ型/同じポケモン、採用したキーの粒度そのもの)はtitleに残す。
 	const reasonEl = document.createElement("span");
 	reasonEl.className = "damage-suggest-reason";
 	const subject = currentBasis === "archetype" ? "同じ型" : "同じポケモン";
-	reasonEl.textContent = `${subject}の${Math.round(suggestion.ratio * 100)}%が計算`;
+	reasonEl.textContent = `${Math.round(suggestion.ratio * 100)}%が計算`;
 	reasonEl.title = `${subject}を育てている${suggestion.count}体が同じダメージ計算を登録`;
-	body.appendChild(reasonEl);
+	moveRow.appendChild(reasonEl);
+	body.appendChild(moveRow);
 
 	button.appendChild(body);
-
-	const action = document.createElement("span");
-	action.className = "damage-suggest-action";
-	action.textContent = "追加";
-	button.appendChild(action);
 
 	button.addEventListener("click", () => {
 		bridge?.addSuggestion(suggestion);
@@ -283,7 +304,7 @@ export function renderDamageSuggestPanel(
 
 	const list = document.createElement("ul");
 	list.className = "damage-suggest-list";
-	visible.forEach((suggestion, index) => list.appendChild(buildSuggestionCard(suggestion, index + 1)));
+	visible.forEach((suggestion) => list.appendChild(buildSuggestionCard(suggestion)));
 	inner.appendChild(list);
 	return true;
 }
