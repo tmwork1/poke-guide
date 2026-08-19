@@ -75,6 +75,7 @@ body.box-edit-page {
   --damage-card-column-background: var(--color-surface); /* 技カードの背景色 */
   --damage-card-add-button-background: transparent; /* 「技を追加」ボタンの背景色 */
   --damage-detail-icon-button-background: var(--color-bg); /* アイコンボタンの通常背景色 */
+  --damage-card-item-badge-background: var(--color-bg); /* 持ち物アイコンの背景色(ポケモン画像との見分けやすさ用) */
 
   /* ── 5. 枠線・角丸 ─────────────────────── */
   --damage-card-active-border-color: var(--color-border); /* hover・フォーカス時の枠線色 */
@@ -100,6 +101,8 @@ body.box-edit-page {
   --damage-detail-section-heading-border: 1px solid var(--color-border); /* 詳細セクションを分ける上線 */
   --damage-detail-icon-button-border: 1px solid var(--color-border); /* アイコンボタンの通常枠線 */
   --damage-detail-icon-button-radius: var(--radius-sm); /* アイコンボタンの角丸 */
+  --damage-card-item-badge-border: 1px solid var(--color-border); /* 持ち物アイコンの枠線 */
+  --damage-card-item-badge-radius: 50%; /* 持ち物アイコンの角丸。50%で円になる */
 
   /* ── 6. 影 ─────────────────────── */
   --damage-card-shadow: none; /* カードの通常時の影。強くするとカードが手前に浮いて見える */
@@ -116,7 +119,7 @@ body.box-edit-page {
   --damage-card-body-gap: var(--space-1); /* 相手情報と技一覧の間隔。大きくすると左右の領域が離れる */
   --damage-card-body-bottom-padding: var(--space-1); /* カード本文の下余白。大きくすると下端との間が広がる */
   --damage-card-build-gap: .15rem; /* 相手情報の各行の間隔。大きくすると縦に広がる */
-  --damage-card-readonly-field-gap: var(--space-3); /* 名前・特性・テラスタイプ表示の間隔 */
+  --damage-card-readonly-field-gap: var(--space-3); /* 名前・特性表示の間隔 */
   --damage-card-direction-padding: .25em .4em; /* 攻撃・防御スイッチの内側余白 */
   --damage-card-tera-button-gap: .35rem; /* テラスタイプの画像と名前の間隔 */
   --damage-card-tera-button-padding: .22em .38em; /* テラスタイプ選択ボタンの内側余白 */
@@ -166,8 +169,8 @@ body.box-edit-page {
   --damage-card-build-width: 340px; /* 広い画面での相手情報欄の幅。大きくすると技欄が狭くなる */
   --damage-card-tera-summary-icon-size: 20px; /* テラスタイプの小アイコン。大きくすると名前横の印が大きくなる */
   --damage-card-dropdown-max-height: 16rem; /* 候補リストの最大高さ。小さくすると早くスクロール表示になる */
-  --damage-card-sprite-size: 50px; /* 自分・相手ポケモン画像の表示サイズ(共通) */
-  --damage-card-item-badge-size: 23px; /* 持ち物アイコンの大きさ */
+  --damage-card-sprite-size: 32px; /* 自分・相手ポケモン画像の表示サイズ(共通) */
+  --damage-card-item-badge-size: 22px; /* 持ち物アイコンの大きさ */
   --damage-card-type-badge-size: 20px; /* タイプバッジの大きさ */
   --damage-card-stat-grid-label-width: 3.4em; /* 努力値表の左端ラベル幅。大きくすると数値列が右へ寄る */
   --damage-card-total-result-max-width: calc(100% - 40px); /* 累計結果の最大幅。小さくすると右側の空きが広がる */
@@ -176,6 +179,8 @@ body.box-edit-page {
   --damage-card-compact-row-height: 35px; /* 技カード1行の高さ。大きくすると一覧が縦に広がる */
   --damage-card-column-order-width: 1.4em; /* 技の順番番号を置く幅 */
   --damage-card-move-icon-size: 20px; /* 技タイプアイコンの大きさ */
+  --damage-card-move-identity-text-budget: 6.2em; /* 技名テキストに割り当てる幅の目安(4〜7文字程度を想定)。技名の長さに関わらず直後の条件チップの開始位置を揃えるための固定値。超過分は省略記号で切り詰める */
+  --damage-card-move-identity-max-width: calc(var(--damage-card-move-icon-size) + var(--damage-card-columns-gap) + var(--damage-card-move-identity-text-budget)); /* 技名+タイプアイコンの合計幅。この幅を固定することで条件チップの開始X座標を揃える */
   --damage-detail-control-min-height: var(--space-7); /* 詳細パネルの入力欄とボタンの最小高さ */
   --damage-detail-hitcount-width: 4em; /* 連続技の回数入力欄の幅 */
   --damage-detail-rank-stepper-size: 30px; /* ランク補正の＋－ボタンの大きさ */
@@ -463,6 +468,55 @@ body.box-edit-page {
   color: var(--damage-card-direction-selected-color);
 }
 
+/* 「相手ポケモン」タブの攻撃/防御切り替え(.damage-build-detail-direction-toggle)は
+   #damage-detail-panel(RightPanel.astro)側に描画され、#opponent-notes-sectionの外に
+   あるため、上の#opponent-notes-section配下ルールが一切当たらない(枠・角丸・区切り線・
+   選択色すべて未適用のまま素のボタンとして見えていた)。同じ見た目を独立して与える。 */
+#damage-detail-panel .damage-build-detail-direction-toggle {
+  border: var(--damage-card-direction-border);
+  border-radius: var(--damage-card-direction-border-radius);
+  display: flex;
+  overflow: hidden;
+}
+
+#damage-detail-panel .damage-build-detail-direction-toggle .damage-row-direction-option {
+  background: var(--damage-card-direction-background);
+  color: var(--damage-card-direction-color);
+  font-size: var(--damage-card-direction-font-size);
+  font-weight: var(--damage-card-direction-font-weight);
+  line-height: var(--damage-card-direction-line-height);
+  cursor: pointer;
+  border: none;
+  border-radius: 0;
+  flex: 1 1 0;
+  padding: var(--damage-card-direction-padding);
+  transition: background var(--damage-card-transition-duration), color var(--damage-card-transition-duration);
+}
+
+#damage-detail-panel .damage-build-detail-direction-toggle .damage-row-direction-option + .damage-row-direction-option {
+  border-left: 1px solid var(--color-border);
+}
+
+#damage-detail-panel .damage-build-detail-direction-toggle .damage-row-direction-option:hover:not([aria-checked="true"]) {
+  color: var(--damage-card-direction-hover-color);
+  background: var(--damage-card-direction-hover-background);
+}
+
+#damage-detail-panel .damage-build-detail-direction-toggle .damage-row-direction-option:focus-visible {
+  outline: var(--damage-card-control-focus-outline);
+  outline-offset: var(--damage-card-direction-focus-offset);
+}
+
+#damage-detail-panel .damage-build-detail-direction-toggle .damage-row-direction-option[data-role="attack"][aria-checked="true"] {
+  background: var(--damage-card-attack-background);
+  color: var(--damage-card-direction-selected-color);
+}
+
+#damage-detail-panel .damage-build-detail-direction-toggle .damage-row-direction-option[data-role="defense"][aria-checked="true"] {
+  background: var(--damage-card-defense-background);
+  color: var(--damage-card-direction-selected-color);
+}
+
 #opponent-notes-section .damage-row-tera-field {
   width: 100%;
   position: relative;
@@ -639,7 +693,10 @@ body.box-edit-page {
   display: none;
 }
 
-/* 相手ポケモン画像の右下に重なる持ち物アイコン */
+/* 相手ポケモン画像の右下に重なる持ち物アイコン。背景を付けてポケモン画像と見分けやすくする
+   (itemBadge.hidden=trueが既定で、applyItemImage()が画像読み込みに成功した時だけ表示される
+   ため、この背景も[hidden]と一緒に隠れる。持ち物なしの相手で空の丸背景だけが露出しないよう、
+   下の[hidden]ルールを崩さないこと)。 */
 #opponent-notes-section .damage-item-badge {
   justify-content: center;
   align-items: center;
@@ -649,6 +706,9 @@ body.box-edit-page {
   position: absolute;
   bottom: var(--damage-card-item-badge-offset);
   right: var(--damage-card-item-badge-offset);
+  background: var(--damage-card-item-badge-background);
+  border: var(--damage-card-item-badge-border);
+  border-radius: var(--damage-card-item-badge-radius);
 }
 
 #opponent-notes-section .damage-item-badge[hidden] {
@@ -1094,12 +1154,15 @@ body.box-edit-page {
   display: flex;
 }
 
-/* 技名とタイプアイコンをまとめる行 */
+/* 技名とタイプアイコンをまとめる行。max-widthを固定値にすることで、技名の長さに関わらず
+   直後の.damage-column-conditions(条件チップ)の開始X座標を揃える(技名が長い場合は
+   .damage-column-move-textのellipsisで切り詰める。flex-grow:1のため画面幅に余裕があれば
+   常にこのmax-widthまで広がる)。 */
 #opponent-notes-section .damage-column-move-identity {
   align-items: center;
   gap: var(--damage-card-columns-gap);
   flex: 1 0 auto;
-  max-width: 100%;
+  max-width: var(--damage-card-move-identity-max-width);
   min-width: 0;
   display: flex;
 }

@@ -91,6 +91,7 @@ body.box-edit-page {
 	/* ── 8. 寸法 ─────────────────────── */
 	--damage-detail-panel-width: min(92vw, 480px); /* 横幅。大きくすると入力欄や候補カードが横に広がる */
 	--damage-detail-panel-max-height: 85vh; /* 最大高さ。大きくすると一度に見える行数が増える */
+	--damage-detail-panel-height: min(var(--damage-detail-panel-max-height), 34rem); /* A-4: タブ切替でモーダルの高さを変えないための固定値。「相手ポケモン」タブの自然な高さ(実測約30.5rem)を目安に少し余裕を持たせた。大きくすると内容が少ないタブの下部余白が増える一方、内容が多いタブでスクロールする分量が減る */
 	--damage-detail-tera-list-max-height: 16rem; /* 候補一覧の最大高さ。大きくすると一度に見える件数が増える */
 	--damage-detail-suggest-sprite-size: 48px; /* ポケモン画像枠。大きくすると画像列が広がる */
 	--damage-detail-suggest-fallback-size: 35px; /* 画像がない場合の丸印。大きくすると代替表示が目立つ */
@@ -137,7 +138,14 @@ body.box-edit-page {
 		right: auto;
 		bottom: auto;
 		width: var(--damage-detail-panel-width);
-		height: auto;
+		/* A-4: 「相手ポケモン」タブと「わざ」タブで表示量が大きく異なり、height:autoのままだと
+			タブ切り替えのたびにモーダル全体の高さが変わっていた。高さを固定値にして、
+			本文側(.damage-detail-panel-body、既存のoverflow-y:auto)でスクロールさせる。
+			固定値は--damage-detail-panel-max-height(85vh)そのままだと内容が少ない
+			「相手ポケモン」タブ(実測約30.5rem)の下部に大きな余白ができるため、
+			そちらに合わせた--damage-detail-panel-heightを使う(内容が多い「わざ」タブは
+			本文側のスクロールで補う)。 */
+		height: var(--damage-detail-panel-height);
 		max-height: var(--damage-detail-panel-max-height);
 		z-index: 60;
 		display: flex;
@@ -169,8 +177,12 @@ body.box-edit-page {
 		align-items: center;
 		justify-content: space-between;
 		gap: var(--damage-detail-space-sm);
-		/* 3モード共通で密度を上げるため、横paddingは保ち縦paddingだけ一段縮める。 */
-		padding: var(--damage-detail-space-sm) var(--damage-detail-space-lg);
+		/* A-1: アプリ共通のapp-header(src/styles/app-header.css)と同じ考え方に揃える。
+			app-headerは縦paddingを持たず、高さは--app-header-height(36px)のmin-heightだけで
+			決めている。タブバー表示時に選択中ハイライトがモーダル左右端まで届くよう、
+			ヘッダー自体は横paddingのみ持ち、縦paddingは持たない(高さはmin-heightで確保する)。 */
+		padding: 0 var(--damage-detail-space-lg);
+		min-height: var(--app-header-height);
 		/* 今回の指示で3モード共通のタイトル直下の区切り線を復活させる。
 			背景はモーダル本体(--color-surface)と同化させ、var(--damage-detail-page-background)(ページ背景、
 			ダークモードでは--color-surfaceより暗い)による帯を作らない。 */
@@ -185,15 +197,24 @@ body.box-edit-page {
 	.damage-detail-panel-title.is-tab-bar {
 		display: flex;
 		align-items: stretch;
-		gap: var(--damage-detail-space-xs);
+		align-self: stretch;
+		/* app-header__listもタブ間にgapを持たない(隣接させ、選択ハイライトが
+			途切れなく見えるようにする)。 */
+		gap: 0;
 		overflow-x: auto;
 		scrollbar-width: none;
+		/* A-1: タブ自体をヘッダーの外枠(モーダル左右端)いっぱいまで広げる。ヘッダーの
+			横paddingを負のmarginで打ち消し、余白は各タブボタンの内側paddingだけで持たせる
+			(app-header__itemと同じ考え方)。 */
+		margin: 0 calc(var(--damage-detail-space-lg) * -1);
 	}
 	.damage-detail-panel-title.is-tab-bar::-webkit-scrollbar { display: none; }
 	.damage-detail-panel-tab {
 		flex: 1 1 0;
 		min-width: max-content;
-		padding: var(--damage-detail-space-sm) var(--damage-detail-space-md);
+		/* app-header__itemに倣い、縦paddingは持たずmin-heightだけで高さを揃える。 */
+		min-height: var(--app-header-height);
+		padding: 0 var(--damage-detail-space-md);
 		border: 0;
 		border-bottom: var(--damage-detail-tab-border);
 		background: none;
@@ -256,9 +277,21 @@ body.box-edit-page {
 		min-height: var(--space-7);
 		margin-bottom: var(--damage-detail-space-xs);
 	}
+	/* A-2: 対面アイコンと計算結果の間に挟む、選択中の技カードの技名(複数なら「 + 」区切り)。
+		#damage-detail-panel-totalより控えめな補助情報として、小さく・薄い色で表示する。 */
+	.damage-detail-panel-move-names {
+		margin-bottom: var(--damage-detail-space-xs);
+		color: var(--damage-detail-muted-color);
+		font-size: var(--damage-detail-font-size-xs);
+		text-align: center;
+		overflow-wrap: anywhere;
+	}
+	.damage-detail-panel-move-names:empty { display: none; }
 	.damage-detail-panel-total {
+		/* A-3: 「加算後（打点の合計）」ラベルを削除したため、ラベル+値の2列グリッドから
+			結果だけの1列に変える。 */
 		display: grid;
-		grid-template-columns: auto minmax(0, 1fr);
+		grid-template-columns: minmax(0, 1fr);
 		align-items: baseline;
 		gap: var(--damage-detail-space-sm);
 		padding: var(--damage-detail-space-xs) var(--damage-detail-space-sm);
@@ -276,10 +309,6 @@ body.box-edit-page {
 	.damage-detail-panel-total[data-severity="safe"] {
 		background: var(--damage-detail-success-soft-color);
 		color: var(--damage-detail-success-strong-color);
-	}
-	.damage-detail-panel-total-label {
-		font-size: var(--damage-detail-font-size-xs);
-		font-weight: var(--damage-detail-font-weight-bold);
 	}
 	.damage-detail-panel-total-result {
 		display: grid;
@@ -719,9 +748,24 @@ body.box-edit-page {
 	#damage-detail-panel-body .damage-build-detail-lock-note[hidden] {
 		display: none;
 	}
+	/* C-1: 攻撃側/防御側の小見出し(.damage-detail-side-heading-row内)はbox-damage-card.css側で
+		border-topを持たない(親.damage-detail-sidesとの二重線を避けるため意図的に消してある)。
+		「わざ、攻撃側、防御側、設置物、場の効果」の5区画すべての境界にdividerを入れる要件のため、
+		わざ→攻撃側の境界(.damage-detail-sides自体)・攻撃側→防御側の境界(2つ目の.damage-detail-side)
+		にだけ、既存の.damage-detail-section-heading相当の太さの線をここで足す(box-damage-card.css
+		本体は変更しない、最小限の追加)。防御側→設置物・設置物→場の効果の境界は、hazardsGroup/
+		fieldEffectsGroupがどちらも既存の.damage-detail-group+.damage-detail-section-heading
+		(border-top付き)の構造をそのまま使っているため、追加CSSなしで既に線が入る。 */
+	#damage-detail-panel-body .damage-detail-sides {
+		border-top: var(--damage-detail-header-border);
+	}
+	#damage-detail-panel-body .damage-detail-side + .damage-detail-side {
+		border-top: var(--damage-detail-header-border);
+	}
 	#damage-detail-panel-body .damage-detail-rank-ailment-row {
+		/* C-2: "ランク"ラベルを削除し、ランク・状態異常・テラスタイプを同じ段(3列)に配置する。 */
 		display: grid;
-		grid-template-columns: auto minmax(0, 1fr);
+		grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr);
 		align-items: center;
 		gap: var(--damage-detail-space-sm);
 		margin-bottom: var(--damage-detail-space-sm);
@@ -733,15 +777,30 @@ body.box-edit-page {
 		width: 100%;
 		min-width: 0;
 	}
+	/* C-2: テラスタイプ欄(.damage-detail-tera-row)を3列目として同じ段に収める。 */
+	#damage-detail-panel-body .damage-detail-rank-ailment-row .damage-detail-tera-row {
+		margin-bottom: 0;
+		min-width: 0;
+	}
 	#damage-detail-panel-body .damage-detail-chip-row.damage-detail-state-grid {
 		display: grid;
 		grid-template-columns: repeat(3, minmax(0, 1fr));
-		gap: var(--damage-detail-space-xs);
+		/* C-3: 天候ボタン(.damage-detail-icon-group.is-row4、box-damage-card.css)と同じ
+			「隣接して詰まった」密度に近づける。天候側はgap:0(境界線で隣接)なので、
+			揮発状態チップ側もチューニング変数のうち最小のxsよりさらに詰める。 */
+		gap: 2px;
 		margin-bottom: var(--damage-detail-space-xs);
 	}
 	#damage-detail-panel-body .damage-detail-state-grid > .damage-detail-icon-btn {
 		width: 100%;
 		min-width: 0;
+		/* C-3: 「やどりぎのタネ」のような長いラベルが3列グリッド内で折り返さないよう、
+			文字サイズと内側paddingをこのグリッドの中だけ詰める(is-text-onlyの
+			font-size-sm1・text-button-paddingはbox-damage-card.css側の他の用途と共通のため、
+			直接編集せずここで上書きする)。 */
+		font-size: var(--damage-detail-font-size-sm);
+		padding: var(--damage-detail-space-xs) var(--damage-detail-space-xs);
+		white-space: nowrap;
 	}
 	#damage-detail-panel-body .damage-build-detail-field input,
 	#damage-detail-panel-body .damage-build-detail-field select,
@@ -852,6 +911,18 @@ body.box-edit-page {
 	/* --------------------------------------------------------------------------
 		実数値・努力値の編集
 		-------------------------------------------------------------------------- */
+	/* C-4: まきびしの+/-ステッパーを0〜3層の<select>に置き換える。既存の状態異常選択
+		(.damage-detail-ailment-select、box-damage-card.css)と同じ見た目パターンを踏襲し、
+		独自デザインは作らない(トークンはbox-damage-card.css側で定義済みのものをそのまま使う)。 */
+	#damage-detail-panel-body .damage-detail-spikes-select {
+		width: auto;
+		min-width: var(--damage-detail-rank-input-width);
+		min-height: var(--damage-detail-control-min-height);
+		font-size: var(--font-size-sm2);
+		background: var(--color-bg);
+		flex: none;
+		padding: var(--damage-detail-ailment-padding);
+	}
 	#damage-detail-panel-body .damage-build-detail-stats {
 		min-width: 0;
 	}

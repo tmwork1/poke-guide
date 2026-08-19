@@ -631,6 +631,7 @@ if (opponentNotesSection) {
 			terrain: "",
 			wallEnabled: false,
 			stealthRock: false,
+			defenderDisguiseBroken: false,
 			spikes: 0,
 			defenderSideFields: [],
 			attackerRank: 0,
@@ -662,6 +663,7 @@ if (opponentNotesSection) {
 			terrain: previous.terrain,
 			wallEnabled: previous.wallEnabled,
 			stealthRock: previous.stealthRock,
+			defenderDisguiseBroken: previous.defenderDisguiseBroken,
 			spikes: clampInt(previous.spikes, 0, 3),
 			defenderSideFields: [...previous.defenderSideFields],
 			attackerRank: previous.attackerRank,
@@ -861,6 +863,7 @@ if (opponentNotesSection) {
 			if (attack.weather !== undefined) column.weather = attack.weather;
 			if (attack.terrain !== undefined) column.terrain = attack.terrain;
 			if (attack.stealthRock !== undefined) column.stealthRock = attack.stealthRock;
+			if (attack.defenderDisguiseBroken !== undefined) column.defenderDisguiseBroken = attack.defenderDisguiseBroken;
 			if (attack.spikes !== undefined) column.spikes = clampInt(attack.spikes, 0, 3);
 			if (attack.defenderSideFields !== undefined) column.defenderSideFields = attack.defenderSideFields;
 			if (attack.attackerBoosts !== undefined) column.attackerBoosts = attack.attackerBoosts;
@@ -917,6 +920,7 @@ if (opponentNotesSection) {
 				weather: a.weather,
 				terrain: a.terrain,
 				stealthRock: a.stealthRock,
+				defenderDisguiseBroken: a.defenderDisguiseBroken,
 				spikes: clampInt(a.spikes, 0, 3),
 				defenderSideFields: a.defenderSideFields,
 				attackerBoosts: a.attackerBoosts,

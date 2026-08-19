@@ -63,6 +63,7 @@ let detailPanelTitleEl: HTMLElement;
 let detailBackdropEl: HTMLElement;
 let detailPanelFooterEl: HTMLElement;
 let detailPanelMatchupEl: HTMLElement;
+let detailPanelMoveNamesEl: HTMLElement;
 let detailPanelTotalEl: HTMLElement;
 let detailPanelTotalResultEl: HTMLElement;
 let moveDropdownOutsideClickHandler: ((event: MouseEvent) => void) | null = null;
@@ -240,15 +241,29 @@ function buildSelectionHeadingRow(row: DamageRowState): HTMLElement {
 	return heading;
 }
 
+// A-2: 選択中の行が持つ、技名が入力済みの技カードすべての技名を「 + 」で連結する
+// (damage-calc.ts側のvalidAttacksOfと同じ「moveName.trim() !== ""」判定を、担当外の
+// あちらを変更せずこちら側で同等に行う)。
+function buildMoveNamesText(row: DamageRowState): string {
+	return row.attacks
+		.map((column) => column.moveName.trim())
+		.filter((name) => name !== "")
+		.join(" + ");
+}
+
 function refreshDetailPanelFooter(row: DamageRowState): void {
 	detailPanelMatchupEl.replaceChildren(buildSelectionHeadingRow(row));
+	detailPanelMoveNamesEl.textContent = buildMoveNamesText(row);
 	detailPanelFooterEl.hidden = false;
 	syncDetailPanelTotal(row);
 }
 
-/** カード側の累計結果が更新された直後に、選択中の行だけ固定フッターへミラーする。 */
+/** カード側の累計結果が更新された直後に、選択中の行だけ固定フッターへミラーする。
+ * damage-calc.ts側の再計算パイプライン(技名編集後のscheduleRowCalc等)から都度呼ばれるため、
+ * A-2の技名表示もここで一緒に更新し、技名を編集した直後の表示にも追従させる。 */
 export function syncDetailPanelTotal(row: DamageRowState): void {
 	if (!detailPanelTotalResultEl || getSelectedRow() !== row || detailPanelFooterEl.hidden) return;
+	if (detailPanelMoveNamesEl) detailPanelMoveNamesEl.textContent = buildMoveNamesText(row);
 	const source = row.totalResultEl;
 	if (!source) return;
 	detailPanelTotalResultEl.replaceChildren(...Array.from(source.childNodes, (node) => node.cloneNode(true)));
@@ -1025,8 +1040,8 @@ export function buildSideSection(
 
 	const rankField = document.createElement("div");
 	rankField.className = "rank-field damage-detail-rank-field";
-	const rankLabel = document.createElement("span");
-	rankLabel.textContent = "ランク";
+	// C-2: "ランク"の文字ラベルは削除し、ランク・状態異常・テラスタイプを同じ段に配置する
+	// (スピンボックス単体で意味が伝わるため、視覚的なラベルは持たせない)。
 	const rankInput = document.createElement("input");
 	rankInput.type = "text";
 	rankInput.inputMode = "numeric";
@@ -1095,7 +1110,7 @@ export function buildSideSection(
 	const stepperGroup = document.createElement("span");
 	stepperGroup.className = "rank-stepper-group";
 	stepperGroup.append(decrementButton, rankInput, incrementButton);
-	rankField.append(rankLabel, stepperGroup);
+	rankField.append(stepperGroup);
 	rankAilmentGroup.appendChild(headingRow);
 
 	const ailmentSelect = document.createElement("select");
@@ -1135,15 +1150,18 @@ export function buildSideSection(
 		scheduleRowSave(row);
 		refreshRowConditionChips(row);
 	});
+	// C-2: ランク・状態異常・テラスタイプを同じ段(3列)に配置する
+	// (damage-detail-panel.cssの.damage-detail-rank-ailment-rowを3列グリッドに変更済み)。
 	const rankAilmentRow = document.createElement("div");
 	rankAilmentRow.className = "damage-detail-rank-ailment-row";
 	rankAilmentRow.append(rankField, ailmentSelect);
 	rankAilmentGroup.appendChild(rankAilmentRow);
 
-	// F: テラスタルは揮発状態(stateGrid)と別行にする。
+	// F: テラスタルは揮発状態(stateGrid)と別行にする。C-2でランク・状態異常と同じ段の
+	// 3列目にするため、rankAilmentGroupではなくrankAilmentRow自体に追加する。
 	const teraRow = document.createElement("div");
 	teraRow.className = "damage-detail-toggle-row damage-detail-tera-row";
-	rankAilmentGroup.appendChild(teraRow);
+	rankAilmentRow.appendChild(teraRow);
 
 	// レギュレーションでテラスタルが使える場合のみ、育成タブと同じテラスタイプ選択UIを
 	// 出す(「テラスタルなし」を選べば非発動として扱う)。相手側・自分側とも同じ
@@ -1525,16 +1543,37 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 	wallHint.className = "damage-detail-toggle-hint";
 	wallHint.textContent = "技の分類で自動選択";
 	defenderSide.appendChild(wallHint);
-	const defenderVolatileGroup = defenderSide.querySelector(".damage-detail-volatile-group");
+
+	// C-3: 別エージェントが実装済みのDamageColumnState.defenderDisguiseBrokenを使い、
+	// 「ばけのかわ」ボタンをwallButton(かべ)と全く同じ方法(防御側の揮発状態グループへ
+	// 後からappendする既存パターン)で追加する。攻撃側には追加しない。
+	const disguiseBrokenButton = buildToggleButton(
+		"ばけのかわ",
+		column.defenderDisguiseBroken,
+		(pressed) => {
+			applyToColumnField(() => { column.defenderDisguiseBroken = pressed; });
+		},
+		{ title: "「ばけのかわ」が最初の1発で消費済みという想定で、防御側の初期HPを最大HPの1/8減らして計算する" },
+	);
+
+	const defenderVolatileGroup = defenderSide.querySelector<HTMLElement>(".damage-detail-volatile-group");
 	if (defenderVolatileGroup) {
-		defenderVolatileGroup.appendChild(wallButton);
+		defenderVolatileGroup.append(wallButton, disguiseBrokenButton);
+		// C-3: DAMAGE_DEFENDER_VOLATILES(damage-calc.ts、担当外)自体の並び順は五十音順ではない
+		// ため、配列は変えずDOM上の見た目の並びだけを五十音順(「ばけのかわ」を含む)に揃える。
+		const volatileGojuonOrder = [
+			"アクアリング", "かべ", "しおづけ", "ちいさくなる", "ねをはる", "のろい", "バインド", "ばけのかわ", "やどりぎのタネ",
+		];
+		Array.from(defenderVolatileGroup.querySelectorAll<HTMLButtonElement>("button"))
+			.sort((a, b) => volatileGojuonOrder.indexOf(a.textContent ?? "") - volatileGojuonOrder.indexOf(b.textContent ?? ""))
+			.forEach((button) => defenderVolatileGroup.appendChild(button));
 	} else {
 		// DAMAGE_DEFENDER_VOLATILESは通常1件以上を持つためここには来ないが、
-		// 将来の変更に備えてフォールバックを用意する(かべチップ自体は必ず
+		// 将来の変更に備えてフォールバックを用意する(かべ・ばけのかわチップ自体は必ず
 		// 防御側に出す)。
 		const fallbackRow = document.createElement("div");
 		fallbackRow.className = "damage-detail-toggle-row";
-		fallbackRow.appendChild(wallButton);
+		fallbackRow.append(wallButton, disguiseBrokenButton);
 		defenderSide.appendChild(fallbackRow);
 	}
 
@@ -1554,73 +1593,41 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 		{ title: "ステルスロックを1回踏んだ状態で計算する" },
 	);
 
+	// C-4: +/-ステッパーを廃止し、0〜3層の<select>に変える(層数は4択しかないため
+	// リストボックスの方が誤操作なく選べる)。
 	const spikesField = document.createElement("div");
 	spikesField.className = "rank-field damage-detail-rank-field";
 	const spikesLabel = document.createElement("span");
 	spikesLabel.textContent = "まきびし";
-	const spikesInput = document.createElement("input");
-	spikesInput.type = "number";
-	spikesInput.min = "0";
-	spikesInput.max = "3";
-	spikesInput.step = "1";
-	spikesInput.inputMode = "numeric";
-	spikesInput.className = "damage-detail-rank-input";
-	spikesInput.value = String(clampInt(column.spikes, 0, 3));
-	const spikesDecrementButton = document.createElement("button");
-	spikesDecrementButton.type = "button";
-	spikesDecrementButton.className = "rank-stepper damage-detail-rank-stepper";
-	spikesDecrementButton.textContent = "－";
-	spikesDecrementButton.setAttribute("aria-label", "まきびしを1層減らす");
-	const spikesIncrementButton = document.createElement("button");
-	spikesIncrementButton.type = "button";
-	spikesIncrementButton.className = "rank-stepper damage-detail-rank-stepper";
-	spikesIncrementButton.textContent = "＋";
-	spikesIncrementButton.setAttribute("aria-label", "まきびしを1層増やす");
-	const updateSpikesDisplay = (): void => {
-		const n = Number(spikesInput.value);
-		const current = Number.isFinite(n) ? clampInt(n, 0, 3) : 0;
-		spikesInput.classList.toggle("is-nonzero", current > 0);
-		spikesInput.setAttribute("aria-label", `まきびし${current}層`);
-		spikesDecrementButton.disabled = current <= 0;
-		spikesIncrementButton.disabled = current >= 3;
-	};
-	const commitSpikes = (fallbackToZeroIfEmpty: boolean): void => {
-		const raw = spikesInput.value.trim();
-		if (!fallbackToZeroIfEmpty && raw === "") return;
-		const n = raw === "" || !Number.isFinite(Number(raw)) ? 0 : Number(raw);
-		const clamped = clampInt(n, 0, 3);
-		if (spikesInput.value !== String(clamped)) spikesInput.value = String(clamped);
+	const spikesSelect = document.createElement("select");
+	spikesSelect.className = "damage-detail-spikes-select";
+	spikesSelect.setAttribute("aria-label", "まきびしの層数");
+	for (let i = 0; i <= 3; i++) {
+		const opt = document.createElement("option");
+		opt.value = String(i);
+		opt.textContent = `${i}層`;
+		opt.selected = clampInt(column.spikes, 0, 3) === i;
+		spikesSelect.appendChild(opt);
+	}
+	spikesSelect.addEventListener("change", () => {
+		const clamped = clampInt(Number(spikesSelect.value), 0, 3);
 		applyToColumnField(() => { column.spikes = clamped; });
-		updateSpikesDisplay();
-	};
-	spikesInput.addEventListener("input", () => commitSpikes(false));
-	spikesInput.addEventListener("change", () => commitSpikes(true));
-	spikesInput.addEventListener("blur", () => commitSpikes(true));
-	const stepSpikes = (delta: -1 | 1): void => {
-		const n = Number(spikesInput.value);
-		const current = Number.isFinite(n) ? n : 0;
-		spikesInput.value = String(clampInt(current + delta, 0, 3));
-		commitSpikes(true);
-	};
-	spikesDecrementButton.addEventListener("click", () => stepSpikes(-1));
-	spikesIncrementButton.addEventListener("click", () => stepSpikes(1));
-	spikesInput.addEventListener(
-		"wheel",
-		(e) => {
-			if (document.activeElement === spikesInput) e.preventDefault();
-		},
-		{ passive: false },
-	);
-	const spikesStepperGroup = document.createElement("span");
-	spikesStepperGroup.className = "rank-stepper-group";
-	spikesStepperGroup.append(spikesDecrementButton, spikesInput, spikesIncrementButton);
-	const spikesUnit = document.createElement("span");
-	spikesUnit.textContent = "層";
-	spikesField.append(spikesLabel, spikesStepperGroup, spikesUnit);
-	updateSpikesDisplay();
+	});
+	spikesField.append(spikesLabel, spikesSelect);
 	hazardsControls.append(stealthRockButton, spikesField);
 	hazardsGroup.appendChild(hazardsControls);
 	sidesWrap.appendChild(hazardsGroup);
+
+	// C-1: 天候・フィールドは合わせて1つの区画「場の効果」として扱い、この2つの間には
+	// dividerを入れず、区画の先頭(天候の前)にだけ入れる。既存の「設置物」(hazardsGroup)と
+	// 同じ.damage-detail-group+.damage-detail-section-heading(border-top付き)の構造を
+	// そのまま流用することで、追加CSSなしで区画境界のdividerが入る。
+	const fieldEffectsGroup = document.createElement("div");
+	fieldEffectsGroup.className = "damage-detail-group";
+	const fieldEffectsHeading = document.createElement("p");
+	fieldEffectsHeading.className = "damage-detail-section-heading";
+	fieldEffectsHeading.textContent = "場の効果";
+	fieldEffectsGroup.appendChild(fieldEffectsHeading);
 
 	const weatherRow = document.createElement("div");
 	weatherRow.className = "damage-detail-field-row";
@@ -1639,7 +1646,7 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 	);
 	weatherGroup.classList.add("is-row4");
 	weatherRow.appendChild(weatherGroup);
-	contentWrap.appendChild(weatherRow);
+	fieldEffectsGroup.appendChild(weatherRow);
 
 	const terrainRow = document.createElement("div");
 	terrainRow.className = "damage-detail-field-row";
@@ -1658,7 +1665,8 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 	);
 	terrainGroup.classList.add("is-row4");
 	terrainRow.appendChild(terrainGroup);
-	contentWrap.appendChild(terrainRow);
+	fieldEffectsGroup.appendChild(terrainRow);
+	sidesWrap.appendChild(fieldEffectsGroup);
 }
 
 // renderDetailPanel/clearSelectionMarks/applySelectionMarks/selectColumnは
@@ -1690,6 +1698,7 @@ export function initRightPanel(): void {
 	detailBackdropEl = el<HTMLElement>("damage-detail-backdrop");
 	detailPanelFooterEl = el<HTMLElement>("damage-detail-panel-footer");
 	detailPanelMatchupEl = el<HTMLElement>("damage-detail-panel-matchup");
+	detailPanelMoveNamesEl = el<HTMLElement>("damage-detail-panel-move-names");
 	detailPanelTotalEl = el<HTMLElement>("damage-detail-panel-total");
 	detailPanelTotalResultEl = el<HTMLElement>("damage-detail-panel-total-result");
 	initDetailPanelSwipe();
