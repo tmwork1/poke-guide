@@ -1006,8 +1006,9 @@ export function buildSideSection(
 	// on/offトグルではなく、育成タブと同じテラスタイプ選択UI(buildTeraDropdown)を使う
 	// (相手ポケモンタブから移設したテラスタイプ欄の受け皿)。
 	isOpponentTeraSide: boolean,
-	// 相手側の場合のみ呼ばれる。row.teraTypeの更新はこのコールバックの責務。
-	onOpponentTeraTypeChange: (value: string) => void,
+	// テラスタイプ選択時に呼ばれる。書き込み先(row.teraTypeか、
+	// column.attacker/defenderTeraTypeか)は呼び出し側が決める。
+	onTeraTypeChange: (value: string) => void,
 ): HTMLElement | null {
 	const rankAilmentGroup = document.createElement("div");
 	rankAilmentGroup.className = "damage-detail-group";
@@ -1144,49 +1145,29 @@ export function buildSideSection(
 	teraRow.className = "damage-detail-toggle-row damage-detail-tera-row";
 	rankAilmentGroup.appendChild(teraRow);
 
-	if (isOpponentTeraSide) {
-		// 相手側は、レギュレーションでテラスタルが使える場合のみ、育成タブと同じ
-		// テラスタイプ選択UIを出す(「テラスタルなし」を選べば非発動として扱う)。
-		const regulationEl = document.getElementById("regulation") as HTMLSelectElement | null;
-		const regulationValue = regulationEl ? regulationEl.value.trim() || null : null;
-		if (isTerastalRegulation(regulationValue)) {
-			const teraDropdown = buildTeraDropdown(teraTypeValue, `${ariaSideLabel}のテラスタイプ`, (newValue) => {
-				onOpponentTeraTypeChange(newValue);
-				onTeraChange(newValue !== "");
-				scheduleRowCalc(row);
-				scheduleRowSave(row);
-				refreshRowConditionChips(row);
-			});
-			teraRow.appendChild(teraDropdown.wrap);
-		} else {
-			teraRow.hidden = true;
+	// レギュレーションでテラスタルが使える場合のみ、育成タブと同じテラスタイプ選択UIを
+	// 出す(「テラスタルなし」を選べば非発動として扱う)。相手側・自分側とも同じ
+	// UIコンポーネント・同じレギュレーション判定を使う(以前は自分側だけレギュレーションを
+	// 見ずに常時トグルボタンを表示しており一貫性を欠いていたため統一した)。
+	const regulationEl = document.getElementById("regulation") as HTMLSelectElement | null;
+	const regulationValue = regulationEl ? regulationEl.value.trim() || null : null;
+	if (isTerastalRegulation(regulationValue)) {
+		const teraDropdown = buildTeraDropdown(teraTypeValue, `${ariaSideLabel}のテラスタイプ`, (newValue) => {
+			onTeraTypeChange(newValue);
+			onTeraChange(newValue !== "");
+			scheduleRowCalc(row);
+			scheduleRowSave(row);
+			refreshRowConditionChips(row);
+		});
+		if (!isOpponentTeraSide) {
+			// 自分側は、育成タブ(#tera)で確定した本来のテラスタイプとは別に、
+			// この技カードだけの仮想テラスタイプを試せる欄であることが分かるようにする。
+			teraDropdown.wrap.title =
+				"この技カードだけの仮のテラスタイプです(育成タブで確定した本来のテラスタイプを上書きして試せます)";
 		}
+		teraRow.appendChild(teraDropdown.wrap);
 	} else {
-		const teraAvailable = teraTypeValue !== "";
-		const teraButton = buildToggleButton(
-			"テラスタル",
-			teraAvailable && terastallized,
-			(pressed) => {
-				onTeraChange(pressed);
-				scheduleRowCalc(row);
-				scheduleRowSave(row);
-				refreshRowConditionChips(row);
-			},
-			teraAvailable
-				? { title: "テラスタル発動" }
-				: {
-					disabledTitle:
-						"テラスタイプが未設定のため使用できません(未設定のままテラスタル発動すると、" +
-						"元の第1タイプへ自動フォールバックし意図しない2倍のタイプ一致補正になるため)",
-				},
-		);
-		teraRow.appendChild(teraButton);
-		if (!teraAvailable) {
-			const teraNote = document.createElement("span");
-			teraNote.className = "damage-detail-tera-note";
-			teraNote.textContent = "(未設定)";
-			teraRow.appendChild(teraNote);
-		}
+		teraRow.hidden = true;
 	}
 
 	const stateGrid = document.createElement("div");
@@ -1488,7 +1469,9 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 		column.attackerRank,
 		column.attackerAilment,
 		column.attackerTerastallized,
-		selfIsAttackerForDialog ? selfTeraTypeValue : opponentTeraTypeValue,
+		selfIsAttackerForDialog
+			? (column.attackerTeraType || (column.attackerTerastallized ? selfTeraTypeValue : ""))
+			: opponentTeraTypeValue,
 		(value) => { column.attackerRank = value; },
 		(value) => { column.attackerAilment = value; },
 		(value) => { column.attackerTerastallized = value; },
@@ -1498,7 +1481,9 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 		true,
 		// 攻撃側が相手を表すのは、自分が攻撃していない(=自分は防御側)ときだけ。
 		!selfIsAttackerForDialog,
-		(value) => { row.teraType = value; },
+		selfIsAttackerForDialog
+			? (value) => { column.attackerTeraType = value; }
+			: (value) => { row.teraType = value; },
 	);
 	buildSideSection(
 		defenderSide,
@@ -1508,7 +1493,9 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 		column.defenderRank,
 		column.defenderAilment,
 		column.defenderTerastallized,
-		selfIsAttackerForDialog ? opponentTeraTypeValue : selfTeraTypeValue,
+		!selfIsAttackerForDialog
+			? (column.defenderTeraType || (column.defenderTerastallized ? selfTeraTypeValue : ""))
+			: opponentTeraTypeValue,
 		(value) => { column.defenderRank = value; },
 		(value) => { column.defenderAilment = value; },
 		(value) => { column.defenderTerastallized = value; },
@@ -1518,7 +1505,9 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 		false,
 		// 防御側が相手を表すのは、自分が攻撃している(=自分は攻撃側)ときだけ。
 		selfIsAttackerForDialog,
-		(value) => { row.teraType = value; },
+		!selfIsAttackerForDialog
+			? (value) => { column.defenderTeraType = value; }
+			: (value) => { row.teraType = value; },
 	);
 
 	const wallText = "かべ";

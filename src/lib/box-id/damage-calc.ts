@@ -638,10 +638,12 @@ if (opponentNotesSection) {
 			attackerBoosts: STAT_KEYS.map(() => 0),
 			attackerAilment: "",
 			attackerTerastallized: false,
+			attackerTeraType: "",
 			attackerVolatiles: [],
 			defenderBoosts: STAT_KEYS.map(() => 0),
 			defenderAilment: "",
 			defenderTerastallized: false,
+			defenderTeraType: "",
 			defenderVolatiles: [],
 			...legacy,
 		};
@@ -667,10 +669,12 @@ if (opponentNotesSection) {
 			attackerBoosts: [...previous.attackerBoosts],
 			attackerAilment: previous.attackerAilment,
 			attackerTerastallized: previous.attackerTerastallized,
+			attackerTeraType: previous.attackerTeraType,
 			attackerVolatiles: [...previous.attackerVolatiles],
 			defenderBoosts: [...previous.defenderBoosts],
 			defenderAilment: previous.defenderAilment,
 			defenderTerastallized: previous.defenderTerastallized,
+			defenderTeraType: previous.defenderTeraType,
 			defenderVolatiles: [...previous.defenderVolatiles],
 		};
 	}
@@ -829,9 +833,11 @@ if (opponentNotesSection) {
 			attackerBoosts: field.attackerBoosts ?? STAT_KEYS.map(() => 0),
 			attackerAilment: field.attackerAilment ?? "",
 			attackerTerastallized: field.attackerTerastallized ?? false,
+			attackerTeraType: field.attackerTeraType ?? "",
 			defenderBoosts: field.defenderBoosts ?? STAT_KEYS.map(() => 0),
 			defenderAilment: field.defenderAilment ?? "",
 			defenderTerastallized: field.defenderTerastallized ?? false,
+			defenderTeraType: field.defenderTeraType ?? "",
 		};
 		// 後方互換: 壁は「個別の3フラグのどれか1つでも
 		// 立っていればON」、ランクは「該当する2能力(atk/spa、def/spd)のうち
@@ -860,10 +866,12 @@ if (opponentNotesSection) {
 			if (attack.attackerBoosts !== undefined) column.attackerBoosts = attack.attackerBoosts;
 			if (attack.attackerAilment !== undefined) column.attackerAilment = attack.attackerAilment;
 			if (attack.attackerTerastallized !== undefined) column.attackerTerastallized = attack.attackerTerastallized;
+			if (attack.attackerTeraType !== undefined) column.attackerTeraType = attack.attackerTeraType;
 			if (attack.attackerVolatiles !== undefined) column.attackerVolatiles = attack.attackerVolatiles;
 			if (attack.defenderBoosts !== undefined) column.defenderBoosts = attack.defenderBoosts;
 			if (attack.defenderAilment !== undefined) column.defenderAilment = attack.defenderAilment;
 			if (attack.defenderTerastallized !== undefined) column.defenderTerastallized = attack.defenderTerastallized;
+			if (attack.defenderTeraType !== undefined) column.defenderTeraType = attack.defenderTeraType;
 			if (attack.defenderVolatiles !== undefined) column.defenderVolatiles = attack.defenderVolatiles;
 			deriveScalarsFromArrays(column);
 			if (sanitizeColumnChoices(column)) needsResave = true;
@@ -914,10 +922,12 @@ if (opponentNotesSection) {
 				attackerBoosts: a.attackerBoosts,
 				attackerAilment: a.attackerAilment,
 				attackerTerastallized: a.attackerTerastallized,
+				attackerTeraType: a.attackerTeraType,
 				attackerVolatiles: a.attackerVolatiles,
 				defenderBoosts: a.defenderBoosts,
 				defenderAilment: a.defenderAilment,
 				defenderTerastallized: a.defenderTerastallized,
+				defenderTeraType: a.defenderTeraType,
 				defenderVolatiles: a.defenderVolatiles,
 			}));
 	}
@@ -1440,13 +1450,23 @@ if (opponentNotesSection) {
 		// 保存データの状態に関わらず無警告2倍が絶対に起きないようにする
 		// (このクランプは「保存データの補正」ではなく「テラスタル発動は有効な
 		// テラスタイプがあって初めて意味を持つ」という仕様の一貫した適用)。
-		const attackerTeraAvailable = !!attackerSpec.teraType;
-		const defenderTeraAvailable = !!defenderSpec.teraType;
-		const safeAttacks: SequenceAttack[] = (attacks as SequenceAttack[]).map((a) => ({
-			...a,
-			attackerTerastallized: (a.attackerTerastallized ?? false) && attackerTeraAvailable,
-			defenderTerastallized: (a.defenderTerastallized ?? false) && defenderTeraAvailable,
-		}));
+		// 技カードごとに仮想テラスタイプ(attacker/defenderTeraType)でカード共通の
+		// specを上書きできるため、利用可否の判定もカード共通specだけでなく技カードごとに行う。
+		const safeAttacks: SequenceAttack[] = (attacks as SequenceAttack[]).map((a) => {
+			// 空文字列("上書きなし")はエンジン側のフォールバック規則(_resolve_attack_override)で
+			// 「明示的な上書き」と区別できないため、undefinedに変換してspec側の既定値に委ねる。
+			const attackerTeraType = a.attackerTeraType || undefined;
+			const defenderTeraType = a.defenderTeraType || undefined;
+			const attackerTeraAvailable = !!(attackerTeraType || attackerSpec.teraType);
+			const defenderTeraAvailable = !!(defenderTeraType || defenderSpec.teraType);
+			return {
+				...a,
+				attackerTeraType,
+				defenderTeraType,
+				attackerTerastallized: (a.attackerTerastallized ?? false) && attackerTeraAvailable,
+				defenderTerastallized: (a.defenderTerastallized ?? false) && defenderTeraAvailable,
+			};
+		});
 		// 場の状態・急所も技カードごとの値なので、カード共通のoptionsには
 		// 乱数シード(UIからは廃止済みだが既存メモの値は尊重する)だけを渡す。
 		const options: CalcDamagesOptions = {
