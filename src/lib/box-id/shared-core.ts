@@ -76,6 +76,9 @@ export interface DamageColumnState {
 	terrain: string;
 	wallEnabled: boolean;
 	stealthRock: boolean;
+	// みみっきゅの「ばけのかわ」が最初の1発で消費済みという想定で、防御側の初期HPを最大HPの
+	// 1/8減らした状態で計算するか。jpokeのアビリティ機構とは独立実装(pyodide-engine.ts参照)。
+	defenderDisguiseBroken: boolean;
 	spikes: number;
 	defenderSideFields: string[];
 	attackerRank: number;

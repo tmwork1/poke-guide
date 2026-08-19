@@ -210,6 +210,10 @@ export interface SequenceAttack {
   critical?: boolean;
   /** 防御側がステルスロックを1回踏んだ初期HPで計算するか */
   stealthRock?: boolean;
+  /** この攻撃の直前に、防御側の「ばけのかわ」が最初の1発で消費済みという想定で、最大HPの1/8を
+   * あらかじめ減らした状態で計算するか(jpokeのアビリティ機構とは独立の実装。stealthRockと同じ扱い)。
+   * 省略時はfalse */
+  defenderDisguiseBroken?: boolean;
   /** 防御側が踏むまきびしの層数。省略時は0 */
   spikes?: number;
   /**
@@ -571,6 +575,15 @@ def _apply_stealth_rock(battle, defender, enabled):
         ステルスロック_damage(battle, EventContext(source=defender), None)
 
 
+def _apply_disguise_break(battle, defender, enabled):
+    """みみっきゅの「ばけのかわ」が最初の1発で消費済みという想定で、jpokeのアビリティ機構
+    (data/ability.py の AbilityData)とは独立に、最大HPの1/8を直接減らす(タイプ相性に
+    関係しない固定割合。実機のばけのかわ消費時のHP減少はタイプ相性を考慮しないため)。
+    """
+    if enabled:
+        battle.modify_hp(defender, r=-1 / 8)
+
+
 def _apply_spikes(battle, defender_player, defender, layers):
     """交代イベント全体を発火せず、指定層数のまきびしハンドラだけを適用する。"""
     if layers <= 0:
@@ -917,6 +930,7 @@ def calc_lethal_sequence_json(attacker_spec, defender_spec, attacks, seed, criti
             _apply_battle_only_state(attack_battle, active_att, attacker_spec_for_attack)
             _apply_battle_only_state(attack_battle, active_dfd, defender_spec_for_attack)
             _apply_stealth_rock(attack_battle, active_dfd, attack.get("stealthRock", False))
+            _apply_disguise_break(attack_battle, active_dfd, attack.get("defenderDisguiseBroken", False))
             _apply_spikes(attack_battle, p2, active_dfd, attack.get("spikes", 0))
             initial_defender_hp = active_dfd.hp
     
