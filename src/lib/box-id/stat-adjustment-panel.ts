@@ -76,6 +76,9 @@ export function buildStatAdjustmentPanel(options: StatAdjustmentPanelOptions): S
 
 	const header = document.createElement("div");
 	header.className = "stat-table-header";
+	const headerLabelPlaceholder = makeSpan("stat-table-header-label");
+	headerLabelPlaceholder.setAttribute("aria-hidden", "true");
+	header.appendChild(headerLabelPlaceholder);
 	const natureHeader = makeSpan("stat-table-header-nature");
 	const natureReadout = makeSpan();
 	natureReadout.setAttribute("aria-label", "性格");
@@ -121,11 +124,18 @@ export function buildStatAdjustmentPanel(options: StatAdjustmentPanelOptions): S
 		const row = document.createElement("div");
 		row.className = "stat-row";
 
-		const labelWrap = makeSpan("stat-row-label");
+		// 育成タブ(LeftPanel.astro)と同じく、短縮ラベル(.stat-row-label)と性格補正の
+		// ▲▼ボタン(.stat-row-nature)を別セルに分ける。同じ構造にすることで
+		// stat-adjustment-panel.cssの列幅(--stat-grid-template-columns等)を両タブで
+		// 共通にでき、HP行(ボタン無し)だけラベルのX位置がずれる問題を解消する。
+		const labelWrap = makeSpan("stat-row-label", short);
 		labelWrap.setAttribute("aria-label", label);
 		labelWrap.title = label;
+		row.appendChild(labelWrap);
+
+		const natureWrap = makeSpan("stat-row-nature");
 		if (key === "hp") {
-			labelWrap.append(document.createTextNode(short));
+			natureWrap.setAttribute("aria-hidden", "true");
 		} else {
 			const up = document.createElement("button");
 			up.type = "button";
@@ -134,7 +144,6 @@ export function buildStatAdjustmentPanel(options: StatAdjustmentPanelOptions): S
 			up.setAttribute("aria-label", `${label}を性格補正で上昇させる`);
 			up.title = `${label}を上昇に設定`;
 			up.textContent = "▲";
-			const shortLabel = makeSpan("stat-row-label-short", short);
 			const down = document.createElement("button");
 			down.type = "button";
 			down.className = "stat-nature-btn stat-nature-down";
@@ -142,24 +151,24 @@ export function buildStatAdjustmentPanel(options: StatAdjustmentPanelOptions): S
 			down.setAttribute("aria-label", `${label}を性格補正で下降させる`);
 			down.title = `${label}を下降に設定`;
 			down.textContent = "▼";
-		up.addEventListener("click", () => {
-			options.natureUp = options.natureUp === key ? null : key;
-			if (options.natureUp === key && options.natureDown === key) options.natureDown = null;
-			options.nature = natureNameFromBoosts(options.natureUp, options.natureDown);
-			refresh();
-			options.onChange();
-		});
-		down.addEventListener("click", () => {
-			options.natureDown = options.natureDown === key ? null : key;
-			if (options.natureDown === key && options.natureUp === key) options.natureUp = null;
-			options.nature = natureNameFromBoosts(options.natureUp, options.natureDown);
-			refresh();
-			options.onChange();
-		});
-			natureButtons.set(key, { up, down, label: shortLabel });
-			labelWrap.append(shortLabel, up, down);
+			up.addEventListener("click", () => {
+				options.natureUp = options.natureUp === key ? null : key;
+				if (options.natureUp === key && options.natureDown === key) options.natureDown = null;
+				options.nature = natureNameFromBoosts(options.natureUp, options.natureDown);
+				refresh();
+				options.onChange();
+			});
+			down.addEventListener("click", () => {
+				options.natureDown = options.natureDown === key ? null : key;
+				if (options.natureDown === key && options.natureUp === key) options.natureUp = null;
+				options.nature = natureNameFromBoosts(options.natureUp, options.natureDown);
+				refresh();
+				options.onChange();
+			});
+			natureButtons.set(key, { up, down, label: labelWrap });
+			natureWrap.append(up, down);
 		}
-		row.appendChild(labelWrap);
+		row.appendChild(natureWrap);
 
 		const baseValue = makeSpan("stat-row-base tnum", "-");
 		baseValueEls.set(key, baseValue);

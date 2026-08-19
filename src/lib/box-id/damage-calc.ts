@@ -2065,7 +2065,7 @@ if (opponentNotesSection) {
 	// 天候・フィールド・壁・急所・ランク補正・状態異常・テラスタル発動のうち、
 	// 既定でない値がすべて漏れなくここに出ること。この関数は1つのDamageColumnStateだけを
 	// 見る実装で、カード全体/技ごとを区別する必要はない。
-	type ConditionGroup = { label: "攻撃側" | "防御側" | null; chips: string[] };
+	type ConditionGroup = { label: "攻撃" | "防御" | null; chips: string[] };
 
 	function collectConditionGroups(a: DamageColumnState, showTera: boolean): ConditionGroup[] {
 		const attacker: string[] = [];
@@ -2085,8 +2085,8 @@ if (opponentNotesSection) {
 		if (a.attackerRank !== 0) attacker.push(`ランク${a.attackerRank > 0 ? "+" : ""}${a.attackerRank}`);
 		if (a.defenderRank !== 0) defender.push(`ランク${a.defenderRank > 0 ? "+" : ""}${a.defenderRank}`);
 		return [
-			{ label: "攻撃側", chips: attacker },
-			{ label: "防御側", chips: defender },
+			{ label: "攻撃", chips: attacker },
+			{ label: "防御", chips: defender },
 			{ label: null, chips: field },
 		].filter((group) => group.chips.length > 0);
 	}
@@ -2193,21 +2193,37 @@ if (opponentNotesSection) {
 			badge.append(image, fallback);
 			return badge;
 		}
+		// 詳細設定パネルの対面表示(buildSelectionHeadingRow、right-panel.ts)と
+		// 同じ3連シェブロンSVGにして、テキストの">>>"と見た目の系統を揃える。
+		// 反転(防御向き)は既存CSSの[data-direction="defense"] .damage-direction-arrow
+		// (transform: scaleX(-1))がクラス名ベースでそのまま適用するので、ここでは
+		// 常に同じ形のSVGを作るだけでよい。
+		function makeDirectionArrow(): SVGSVGElement {
+			const svgNs = "http://www.w3.org/2000/svg";
+			const arrow = document.createElementNS(svgNs, "svg");
+			arrow.setAttribute("class", "damage-direction-arrow");
+			arrow.setAttribute("aria-hidden", "true");
+			arrow.setAttribute("viewBox", "0 0 36 24");
+			arrow.setAttribute("focusable", "false");
+			const path = document.createElementNS(svgNs, "path");
+			path.setAttribute("d", "M2 6L8 12L2 18M14 6L20 12L14 18M26 6L32 12L26 18");
+			path.setAttribute("fill", "none");
+			path.setAttribute("stroke", "currentColor");
+			path.setAttribute("stroke-width", "2.5");
+			path.setAttribute("stroke-linecap", "round");
+			path.setAttribute("stroke-linejoin", "round");
+			arrow.appendChild(path);
+			return arrow;
+		}
 		const attackSelfBadge = makeSelfSpriteBadge();
-		const attackArrow = document.createElement("span");
-		attackArrow.className = "damage-direction-arrow";
-		attackArrow.setAttribute("aria-hidden", "true");
-		attackArrow.textContent = ">>>";
+		const attackArrow = makeDirectionArrow();
 		attackOption.append(attackSelfBadge, attackArrow);
 		const defenseOption = document.createElement("button");
 		defenseOption.type = "button";
 		defenseOption.className = "damage-row-direction-option";
 		defenseOption.dataset.role = "defense";
 		defenseOption.setAttribute("role", "radio");
-		const defenseArrow = document.createElement("span");
-		defenseArrow.className = "damage-direction-arrow";
-		defenseArrow.setAttribute("aria-hidden", "true");
-		defenseArrow.textContent = ">>>";
+		const defenseArrow = makeDirectionArrow();
 		const defenseSelfBadge = makeSelfSpriteBadge();
 		defenseOption.append(defenseSelfBadge, defenseArrow);
 		directionToggle.append(attackOption, defenseOption);
@@ -2673,10 +2689,6 @@ if (opponentNotesSection) {
 
 		const detailStats = document.createElement("section");
 		detailStats.className = "damage-build-detail-stats";
-		const detailStatsHeading = document.createElement("h3");
-		detailStatsHeading.className = "field-label damage-build-detail-stats-heading";
-		detailStatsHeading.textContent = "性格・努力値";
-		detailStats.appendChild(detailStatsHeading);
 		const statPanelOptions: StatAdjustmentPanelOptions = {
 			baseStats: [],
 			evs: row.evs,

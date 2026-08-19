@@ -185,6 +185,8 @@ body.box-edit-page {
   --damage-detail-selection-arrow-width: 27px; /* 対面表示の矢印の幅 */
   --damage-detail-selection-arrow-height: 18px; /* 対面表示の矢印の高さ */
   --damage-card-mobile-control-height: 28px; /* 特性・テラスタイプ操作の最小高さ */
+  --damage-card-direction-arrow-width: 22px; /* カード上の攻守矢印アイコンの幅(詳細設定パネルの対面表示矢印と同系統のSVG) */
+  --damage-card-direction-arrow-height: 15px; /* カード上の攻守矢印アイコンの高さ */
 
   /* ── 9. その他 ─────────────────────── */
   --damage-card-transition-duration: .15s; /* hover色や影が切り替わる時間。大きくすると変化がゆっくりになる */
@@ -288,7 +290,10 @@ body.box-edit-page {
 }
 
 #opponent-notes-section .damage-build-readonly-name-row {
-  flex-wrap: wrap;
+  /* 種族名+特性名は必ず1行。入りきらない分は種族名側(.damage-build-readonly-name)を
+     省略記号で縮める(下記参照)。特性名(.damage-build-readonly-ability-line)は
+     flex: 0 0 auto で縮めず全部表示する。 */
+  flex-wrap: nowrap;
 }
 
 /* 値がない項目は行ごと隠す */
@@ -344,6 +349,7 @@ body.box-edit-page {
 
 #opponent-notes-section .damage-build-readonly-name {
   min-width: 0;
+  flex-shrink: 1;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1933,9 +1939,10 @@ body.box-edit-page {
   }
 
   #opponent-notes-section .card-damage .damage-direction-arrow {
-    color: var(--color-text);
-    font-size: var(--font-size-sm2);
-    line-height: var(--line-height-tight);
+    width: var(--damage-card-direction-arrow-width);
+    height: var(--damage-card-direction-arrow-height);
+    color: var(--color-text-muted);
+    flex-shrink: 0;
   }
 
   #opponent-notes-section .card-damage[data-direction="defense"] .damage-direction-arrow {

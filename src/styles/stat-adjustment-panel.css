@@ -48,8 +48,7 @@
 
 	/* ── 7. 余白 ──────────────────────────────────────────── */
 	--stat-table-gap: var(--space-1); /* 表の行間。大きくすると各能力値行が離れる */
-	--stat-row-label-gap: 0.1em; /* 性格補正ボタン同士の間隔。大きくするとボタンが離れる */
-	--stat-row-label-button-gap: 0.2em; /* ステータス名と性格補正ボタンの間隔。大きくするとラベルがボタンから離れる */
+	--stat-nature-buttons-gap: 0.1em; /* 性格補正▲▼ボタン同士の間隔。大きくするとボタンが離れる */
 	--stat-row-label-line-height: 1; /* ステータス名列の行高 */
 	--stat-header-padding: 0 0 0.35rem; /* 見出し下側の余白。大きくすると見出し行が高くなる */
 	--stat-header-margin-bottom: 0.15rem; /* 見出しと最初の行の間隔。大きくすると表に余裕が出る */
@@ -249,14 +248,18 @@
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	gap: var(--stat-row-label-gap);
 	line-height: var(--stat-row-label-line-height);
 }
-.stat-row-label-short {
-	margin-inline: var(--stat-row-label-button-gap);
+.stat-row-label[data-mod="up"] { color: var(--stat-up-color); }
+.stat-row-label[data-mod="down"] { color: var(--stat-down-color); }
+/* 性格補正の▲▼ボタン列。HP行は空(aria-hidden)のまま同じ列幅を占有し、
+   他の行とラベルのX位置を揃える。 */
+.stat-row-nature {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: var(--stat-nature-buttons-gap);
 }
-.stat-row-label-short[data-mod="up"] { color: var(--stat-up-color); }
-.stat-row-label-short[data-mod="down"] { color: var(--stat-down-color); }
 /* 性格補正を上げ下げする三角ボタン */
 .stat-nature-btn {
 	display: inline-grid;
@@ -341,34 +344,32 @@
 /* ダメージ詳細パネル内で使う列幅と操作ボタンの基準寸法 */
 #damage-detail-panel-body .stat-adjustment-section {
 	--stat-grid-template-columns:
-		minmax(3.75rem, 1fr)
-		minmax(2.75rem, 0.75fr)
+		minmax(1.5rem, 0.4fr)
+		minmax(2.75rem, 0.6fr)
+		minmax(2.5rem, 0.7fr)
 		minmax(7rem, 2.5fr)
-		minmax(3rem, 0.9fr)
 		minmax(3rem, 0.75fr);
 	--stat-column-gap: var(--space-1);
 	--stat-table-inline-start-padding: var(--space-1);
 	--stat-table-inline-end-padding: var(--space-2);
 	--stat-ev-mobile-button-block-size: 30px;
-	/* H: 育成タブ(box-edit-page.cssの.edit-layout-left .stat-adjustment-section)の
-		5列構成(ラベル|性格補正|種族値|努力値|実数値)へ列の役割・並び順を揃える。
-		このパネルはbuildStatAdjustmentPanel()(stat-adjustment-panel.ts)が生成するDOMを
-		使っており、ラベルと性格補正▲▼ボタンは1セル(.stat-row-label)に同居する構造
-		(育成タブ側はLeftPanel.astro独自の静的マークアップで.stat-row-labelと
-		.stat-row-natureにセルが分かれている別実装のため、そのままでは5トラックに
-		対応しない)。よって1列目に育成タブのラベル列(1.4rem)+性格補正列(2.8rem)の
-		合計幅を割り当て、種族値・努力値・実数値の列順と役割は完全に一致させる。 */
-	--stat-mobile-row-grid-template-columns: 4.2rem 2rem minmax(0, 1fr) 2.6rem;
+	/* H: buildStatAdjustmentPanel()(stat-adjustment-panel.ts)が生成するDOMを、
+		育成タブ(LeftPanel.astro)の静的マークアップと同じ構造(ラベルと性格補正
+		▲▼ボタンが.stat-row-label/.stat-row-natureの別セル)に揃えたため、
+		5列構成(ラベル|性格補正|種族値|努力値|実数値)がどちらのタブでも同じ列の
+		役割・並び順になった。列幅の値も育成タブ側
+		(box-edit-page.cssの.edit-layout-left .stat-adjustment-section)に合わせつつ、
+		このパネルは横幅が狭いため努力値・実数値列だけこのパネル従来の幅を維持する。
+		これによりHP行(性格補正ボタン無し)でもラベルのX位置が他の行とずれない。 */
+	--stat-mobile-row-grid-template-columns: 1.4rem 2.8rem 2rem minmax(0, 1fr) 2.6rem;
 	--stat-mobile-row-gap: var(--space-1);
-	--stat-mobile-input-grid-column: 3;
-	--stat-mobile-real-grid-column: 4;
+	--stat-mobile-input-grid-column: 4;
+	--stat-mobile-real-grid-column: 5;
 	--stat-mobile-real-padding-inline-end: 0;
-	--stat-mobile-label-gap: 0;
-	--stat-mobile-label-button-gap: 0;
 }
 
 @media (max-width: 460px) {
-	/* 狭い画面では見出しを隠し、4列の操作しやすい並びに切り替える */
+	/* 狭い画面では見出しを隠し、5列の操作しやすい並びに切り替える */
 	.stat-table-header { display: none; }
 	.stat-row {
 		grid-template-columns: var(--stat-mobile-row-grid-template-columns);
@@ -403,5 +404,4 @@
 		text-align: center;
 		font-weight: 400;
 	}
-	.stat-row-label { gap: var(--stat-mobile-label-gap); }
 }
