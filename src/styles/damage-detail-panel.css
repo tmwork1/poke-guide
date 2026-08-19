@@ -86,6 +86,10 @@ body.box-edit-page {
 	--damage-detail-suggest-move-row-gap: 0.15em 0.25em; /* 技名と持ち物の縦横間隔。大きくすると情報同士が離れる */
 	--damage-detail-suggest-move-row-margin-top: 0.15em; /* 技名行の上余白。大きくするとポケモン名から離れる */
 	--damage-detail-direction-toggle-margin-bottom: 1px; /* 攻守切り替え下の微調整。大きくすると上へ寄って見える */
+	--damage-detail-item-dropdown-button-padding: 0.42em 0.6em; /* 持ち物ボタンの内側余白(育成タブと同値)。大きくするとボタンが大きくなる */
+	--damage-detail-item-dropdown-button-gap: 0.35rem; /* 持ち物ボタンのアイコンと文字の間隔(育成タブと同値)。大きくすると両者が離れる */
+	--damage-detail-item-dropdown-search-padding: 0.35em 0.5em; /* 持ち物候補の絞り込み欄の内側余白(育成タブと同値)。大きくすると入力欄が大きくなる */
+	--damage-detail-item-dropdown-option-padding: 0.35rem var(--space-2); /* 持ち物候補1件の内側余白(育成タブと同値)。大きくすると候補行が高くなる */
 
 	/* ── 8. 寸法 ─────────────────────── */
 	--damage-detail-panel-width: min(92vw, 480px); /* 横幅。大きくすると入力欄や候補カードが横に広がる */
@@ -99,6 +103,9 @@ body.box-edit-page {
 	--damage-detail-suggest-item-icon-size: 14px; /* 持ち物アイコン。大きくすると持ち物が目立つ */
 	--damage-detail-direction-toggle-width: 6.4em; /* 攻守切り替えの最小横幅。「攻撃」「防御」が折り返さない幅が必要(Cの修正) */
 	--damage-detail-move-input-min-width: 5em; /* B-1: 技名入力欄の最小幅。短い技名でも窮屈にならない下限値 */
+	--damage-detail-item-dropdown-button-min-height: 2.35rem; /* 持ち物ボタンの最小高さ(育成タブと同値)。大きくするとボタンが大きくなる */
+	--damage-detail-item-dropdown-icon-size: 20px; /* 持ち物アイコン(ボタン・候補共通、育成タブと同値)。大きくすると候補行が高くなる */
+	--damage-detail-item-dropdown-list-max-height: 14rem; /* 持ち物候補一覧の最大高さ(育成タブと同値)。大きくすると一度に見える件数が増える */
 
 	/* ── 9. その他 ─────────────────────── */
 	--damage-detail-panel-open-opacity: 1; /* 開いた状態の透明度。小さくすると背後が透ける */
@@ -841,6 +848,139 @@ body.box-edit-page {
 	#damage-detail-panel-body .damage-build-detail-form input.is-autofilled {
 		border-color: var(--damage-detail-primary-color);
 		box-shadow: var(--damage-detail-autofill-shadow);
+	}
+	/* G: アイテム選択(buildItemDropdown、damage-calc.ts)は育成タブ(LeftPanel.astro
+		116-146行目・left-panel.ts 626-809行目付近)の持ち物カスタムドロップダウンと同じ見た目・
+		操作性(アイコン表示・使用率順の並び・検索フィルタ付き開閉パネル)にするための新設ルール。
+		値は#edit-form .item-dropdown-*(LeftPanel.astro側の<style>ブロック)と同じものを使い、
+		LeftPanel.astro側のCSSは変更せず、このパネル専用の別クラス名で複製する。 */
+	#damage-detail-panel-body .damage-build-detail-item-dropdown-wrap {
+		position: relative;
+		width: 100%;
+	}
+	#damage-detail-panel-body .damage-build-detail-item-dropdown-button {
+		display: flex;
+		align-items: center;
+		justify-content: flex-start;
+		gap: var(--damage-detail-item-dropdown-button-gap);
+		width: 100%;
+		min-height: var(--damage-detail-item-dropdown-button-min-height);
+		padding: var(--damage-detail-item-dropdown-button-padding);
+		border: 1px solid var(--damage-detail-border-color);
+		border-radius: var(--damage-detail-radius-sm);
+		background: var(--damage-detail-surface-background);
+		cursor: pointer;
+		font-size: var(--damage-detail-font-size-md);
+		font-weight: var(--damage-detail-font-weight-regular);
+		line-height: var(--damage-detail-line-height-snug);
+		color: var(--damage-detail-text-color);
+		text-align: left;
+	}
+	#damage-detail-panel-body .damage-build-detail-item-dropdown-button:hover {
+		border-color: var(--damage-detail-primary-color);
+	}
+	#damage-detail-panel-body .damage-build-detail-item-dropdown-button:focus-visible {
+		outline: var(--damage-detail-focus-outline);
+		outline-offset: 1px;
+	}
+	/* メガシンカ中は持ち物をメガストーンに固定するため操作不能にする(applyRowMegaStoneAutofill
+		参照)。button:disabledの見た目(opacity等)はglobal.css側に任せ、cursorだけ上書きする
+		(このボタン自身のcursor:pointerの方が詳細度が高く上書きされてしまうため)。 */
+	#damage-detail-panel-body .damage-build-detail-item-dropdown-button:disabled {
+		cursor: not-allowed;
+	}
+	#damage-detail-panel-body .damage-build-detail-item-dropdown-button:disabled:hover {
+		border-color: var(--damage-detail-border-color);
+	}
+	#damage-detail-panel-body .damage-build-detail-item-dropdown-button.is-autofilled {
+		border-color: var(--damage-detail-primary-color);
+		box-shadow: var(--damage-detail-autofill-shadow);
+	}
+	#damage-detail-panel-body .damage-build-detail-item-dropdown-button.is-item-unselected {
+		border-style: dashed;
+		background: none;
+	}
+	#damage-detail-panel-body .damage-build-detail-item-dropdown-image,
+	#damage-detail-panel-body .damage-build-detail-item-dropdown-option-image {
+		width: var(--damage-detail-item-dropdown-icon-size);
+		height: var(--damage-detail-item-dropdown-icon-size);
+		object-fit: contain;
+		flex-shrink: 0;
+	}
+	#damage-detail-panel-body .damage-build-detail-item-dropdown-placeholder {
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+		color: var(--damage-detail-muted-color);
+	}
+	#damage-detail-panel-body .damage-build-detail-item-dropdown-placeholder.is-item-value-text {
+		color: var(--damage-detail-text-color);
+	}
+	/* ボタン直下に開く持ち物候補一覧。テラスタイプ選択(.tera-dropdown-panel相当)と同じ位置決め・枠・影。 */
+	#damage-detail-panel-body .damage-build-detail-item-dropdown-panel {
+		position: absolute;
+		top: calc(100% + var(--damage-detail-space-xs));
+		left: 0;
+		right: 0;
+		z-index: 5;
+		padding: var(--damage-detail-space-xs);
+		background: var(--damage-detail-surface-background);
+		border: 1px solid var(--damage-detail-border-color);
+		border-radius: var(--damage-detail-radius-md);
+		box-shadow: var(--damage-detail-shadow-md);
+	}
+	#damage-detail-panel-body .damage-build-detail-item-dropdown-panel[hidden] {
+		display: none;
+	}
+	#damage-detail-panel-body .damage-build-detail-item-dropdown-search {
+		display: block;
+		width: 100%;
+		box-sizing: border-box;
+		margin-bottom: var(--damage-detail-space-xs);
+		padding: var(--damage-detail-item-dropdown-search-padding);
+		font-size: var(--damage-detail-font-size-sm);
+	}
+	#damage-detail-panel-body .damage-build-detail-item-dropdown-list {
+		margin: 0;
+		padding: 0;
+		list-style: none;
+		max-height: var(--damage-detail-item-dropdown-list-max-height);
+		overflow-y: auto;
+	}
+	#damage-detail-panel-body .damage-build-detail-item-dropdown-option {
+		display: flex;
+		align-items: center;
+		gap: var(--damage-detail-space-sm);
+		padding: var(--damage-detail-item-dropdown-option-padding);
+		border-radius: var(--damage-detail-radius-sm);
+		cursor: pointer;
+		font-size: var(--damage-detail-font-size-md);
+		color: var(--damage-detail-text-color);
+	}
+	@media (hover: hover) and (pointer: fine) {
+		#damage-detail-panel-body .damage-build-detail-item-dropdown-option:hover {
+			background: color-mix(in srgb, var(--damage-detail-surface-background) 90%, var(--damage-detail-primary-color) 10%);
+		}
+	}
+	#damage-detail-panel-body .damage-build-detail-item-dropdown-option.is-active {
+		background: var(--damage-detail-page-background);
+	}
+	#damage-detail-panel-body .damage-build-detail-item-dropdown-option-text {
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+	#damage-detail-panel-body .damage-build-detail-item-dropdown-option[hidden] {
+		display: none;
+	}
+	#damage-detail-panel-body .damage-build-detail-item-dropdown-empty {
+		padding: var(--damage-detail-space-sm);
+		font-size: var(--damage-detail-font-size-xs);
+		color: var(--damage-detail-muted-color);
+		text-align: center;
+	}
+	#damage-detail-panel-body .damage-build-detail-item-dropdown-empty[hidden] {
+		display: none;
 	}
 	/* F: テラスタイプ選択(buildTeraDropdown)は元々「相手ポケモン」タブ
 		(.damage-build-detail-form)専用の見た目だったが、「わざ」タブ側の相手側

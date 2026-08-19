@@ -42,10 +42,14 @@ import { TERA_TYPES } from "../tera-types";
 // teraTypeIconUrlをimportしているが再exportしていないため、ここで直接importする。
 import { teraTypeIconUrl, typeIconUrl } from "../sprite-urls";
 import { initializeCardDeleteMode } from "../card-delete-mode";
+// 相手ポケモンのアイテムドロップダウン(下のbuildItemDropdown参照)の検索欄で、育成タブの
+// 持ち物ドロップダウン(left-panel.ts)と同じかな・文字幅・英字大小を無視した絞り込みにする。
+import { kanaIncludes } from "../kana";
 import {
 	attachKanaTypeAhead,
 	applySprite,
 	applyTeraImage,
+	applyItemImage,
 	resolveMegaStoneItem,
 	flashAutofillHint,
 	natureNameFromBoosts,
@@ -463,6 +467,315 @@ export function buildTeraDropdown(
 	}
 
 	return { wrap, setValue };
+}
+
+// 「相手ポケモン」タブのアイテム欄は、育成タブ(LeftPanel.astro 116-146行目・left-panel.ts
+// 626-809行目付近)の持ち物カスタムドロップダウン(アイコン表示・使用率順の並び・検索フィルタ付き
+// 開閉パネル)と同じ見た目・操作性に揃える。left-panel.ts側はページに1個しか無い前提でid直書きの
+// 実装のため、上のbuildTeraDropdownと同じ「idを一切使わずクロージャで状態を閉じ込めるファクトリ
+// 関数」として複数インスタンス生成できる形に書き直す(コピーではなく再実装)。
+// CSSは#damage-detail-panel-body .damage-build-detail-item-dropdown-*(damage-detail-panel.css、
+// LeftPanel.astro側の#edit-form .item-dropdown-*と同じ値を使う別ルールとして新設)を参照する。
+type ItemSuggestionOption = { value: string; ratio: number };
+type ItemSuggestionPayload = { options: ItemSuggestionOption[] };
+type ItemSuggestionApiRow = { payload?: { options?: ItemSuggestionOption[] } };
+type ItemSuggestionApiResponse = { data?: ItemSuggestionApiRow[] };
+
+function itemSuggestionRatioText(ratio: number): string {
+	return `${Math.round(ratio * 100)}%`;
+}
+
+// 相手の持ち物ドロップダウンの使用率順(kind="popular_item")。技の使用率(moveAdoptionBySpecies、
+// box/[id].astroがSSRで埋め込み済み)と違いアイテムには埋め込みデータが無いため、種族名が
+// 確定するたびlive fetchする。left-panel.tsのfetchSuggestionPayload("popular_item", ...)と
+// 同じAPI・同じkind文字列・同じ「レギュレーション別が空なら横断集計へフォールバック」ロジックだが、
+// 左パネル側の実装は非exportかつ編集禁止(left-panel.ts)のため、このファイル側に複製する。
+async function fetchPopularItemSuggestion(
+	speciesName: string,
+	regulation: string | null,
+): Promise<ItemSuggestionPayload | undefined> {
+	async function fetchBySubjectKey(subjectKey: string): Promise<ItemSuggestionPayload | undefined> {
+		try {
+			const res = await fetch(`/api/suggestions?kind=popular_item&subject_key=${encodeURIComponent(subjectKey)}&limit=1`);
+			if (!res.ok) return undefined;
+			const json = (await res.json()) as ItemSuggestionApiResponse;
+			const payload = json.data?.[0]?.payload;
+			if (!payload || !Array.isArray(payload.options)) return undefined;
+			return { options: payload.options };
+		} catch {
+			return undefined;
+		}
+	}
+	const scoped = await fetchBySubjectKey(regulation ? `${speciesName}|${regulation}` : speciesName);
+	if (!regulation || (scoped?.options.length ?? 0) > 0) return scoped;
+	// 規制別が空の場合だけsubject_keyを種族名にして横断集計を再取得する(API契約は変えない)。
+	return fetchBySubjectKey(speciesName);
+}
+
+// #item-list(datalist、box/[id].astroにSSR描画済み、left-panel.tsのloadAutocomplete()が
+// 非同期に候補を流し込む)から全アイテム名を読む。left-panel.tsのgetItemOptionNames()と
+// 同じ「一度読めたら以降はキャッシュする」考え方だが、初回オープンの時点でまだ流し込みが
+// 終わっていない(=0件で読めてしまう)ケースがあるため、0件だったキャッシュは採用せず
+// 次回オープン時に読み直す(left-panel.ts側はページ初期化時にawait autocompleteReadyPromiseで
+// 読み込み完了を待てるが、autocompleteReadyPromiseは非exportのためこのファイルからは
+// 参照できず、この待機なしの遅延読み直し方式で妥当に対処する)。
+let itemDropdownNameCache: string[] | null = null;
+function getItemDropdownOptionNames(): string[] {
+	if (itemDropdownNameCache) return itemDropdownNameCache;
+	const datalist = document.getElementById("item-list") as HTMLDataListElement | null;
+	const names = datalist ? Array.from(datalist.options).map((o) => o.value) : [];
+	if (names.length > 0) itemDropdownNameCache = names;
+	return names;
+}
+
+interface ItemDropdownHandle {
+	/** ボタン+検索パネル一式のラッパー。makeDetailFieldの control としてそのまま渡す。 */
+	wrap: HTMLElement;
+	/** 値の実体(hidden)。左パネルと同じく、既存のflashAutofillHint(HTMLInputElementを要求する
+	 * shared-core.tsの共通関数、担当外ファイル)や、呼び出し元のrow.itemName書き込み・
+	 * onFieldInput呼び出しといった既存の値保存経路をそのまま使えるようにするための実入力要素。 */
+	input: HTMLInputElement;
+	/** inputの値をコード側から直接書き換えた(inputイベントを発火させない)ときに、
+	 * ボタンのアイコン・表示名を追随させる。applyRowMegaStoneAutofill/applyOpponentBuildPresetが使う。 */
+	refreshDisplay: () => void;
+	/** メガストーン固定中の選択操作無効化(旧itemInput.disabledの役割)。 */
+	setDisabled: (disabled: boolean) => void;
+	/** 使用率順の並べ替え・"(NN%)"付記(left-panel.tsのapplyItemSuggestionOrderingと同じロジック)。
+	 * データが無い/未取得なら元の順序のまま(no-op寄り)。 */
+	setPopularity: (payload: ItemSuggestionPayload | undefined) => void;
+	/** メガストーン自動設定時の強調表示(left-panel.tsのitemDropdownButton.classList.add
+	 * ("is-autofilled")と同じ、1.4秒だけボタンを強調する)。 */
+	flashAutofill: () => void;
+}
+
+function buildItemDropdown(initialValue: string): ItemDropdownHandle {
+	const wrap = document.createElement("div");
+	wrap.className = "damage-build-detail-item-dropdown-wrap";
+
+	const input = document.createElement("input");
+	input.type = "text";
+	input.setAttribute("aria-label", "相手のアイテム");
+	input.autocomplete = "off";
+	input.value = initialValue;
+	input.title = initialValue;
+	input.hidden = true;
+
+	const button = document.createElement("button");
+	button.type = "button";
+	button.className = "damage-build-detail-item-dropdown-button";
+	button.setAttribute("aria-haspopup", "listbox");
+	button.setAttribute("aria-expanded", "false");
+
+	const image = document.createElement("img");
+	image.className = "damage-build-detail-item-dropdown-image";
+	image.alt = "";
+	image.style.display = "none";
+	const placeholder = document.createElement("span");
+	placeholder.className = "damage-build-detail-item-dropdown-placeholder";
+	placeholder.textContent = "アイテムなし";
+	button.append(image, placeholder);
+
+	const panel = document.createElement("div");
+	panel.className = "damage-build-detail-item-dropdown-panel";
+	panel.hidden = true;
+
+	const search = document.createElement("input");
+	search.type = "text";
+	search.className = "damage-build-detail-item-dropdown-search";
+	search.placeholder = "アイテム名で絞り込み";
+	search.setAttribute("aria-label", "アイテム候補を絞り込み");
+	search.autocomplete = "off";
+
+	const list = document.createElement("ul");
+	list.className = "damage-build-detail-item-dropdown-list";
+	list.setAttribute("role", "listbox");
+	list.setAttribute("aria-label", "アイテムを選択");
+
+	panel.append(search, list);
+	wrap.append(input, button, panel);
+
+	const emptyEl = document.createElement("li");
+	emptyEl.className = "damage-build-detail-item-dropdown-empty";
+	emptyEl.textContent = "条件に一致するアイテムがありません";
+	emptyEl.setAttribute("aria-disabled", "true");
+	emptyEl.hidden = true;
+
+	const optionEls: { value: string; li: HTMLLIElement }[] = [];
+	let ratioMap: Map<string, number> | undefined;
+	let built = false;
+
+	function updateButton(): void {
+		const value = input.value.trim();
+		const isUnselected = value === "";
+		button.classList.toggle("is-item-unselected", isUnselected);
+		button.setAttribute("aria-label", value ? `アイテム: ${value}` : "アイテム: 未選択");
+		placeholder.classList.toggle("is-item-value-text", !isUnselected);
+		if (isUnselected) {
+			image.style.display = "none";
+			placeholder.textContent = "アイテムなし";
+			return;
+		}
+		placeholder.textContent = value;
+		void applyItemImage(image, value);
+	}
+
+	function closePanel(): void {
+		panel.hidden = true;
+		button.setAttribute("aria-expanded", "false");
+	}
+
+	function selectValue(value: string): void {
+		if (input.value !== value) {
+			input.value = value;
+			// row.itemNameの書き込みなど既存の値保存経路はinput/changeの両方をリッスンしている
+			// 前提のため(旧itemInput、左パネルのselectItemと同じ)、両方発火させる。
+			input.dispatchEvent(new Event("input"));
+			input.dispatchEvent(new Event("change"));
+		}
+		closePanel();
+	}
+
+	function buildOptions(): void {
+		if (built) return;
+		built = true;
+		const fragment = document.createDocumentFragment();
+		{
+			// テラスの「テラスタルなし」と同じ扱いで、アイテムを外す選択肢を先頭に固定で置く。
+			const li = document.createElement("li");
+			li.className = "damage-build-detail-item-dropdown-option";
+			li.setAttribute("role", "option");
+			li.tabIndex = -1;
+			li.dataset.value = "";
+			li.setAttribute("aria-label", "アイテムなし");
+			const textEl = document.createElement("span");
+			textEl.className = "damage-build-detail-item-dropdown-option-text";
+			textEl.textContent = "アイテムなし";
+			li.appendChild(textEl);
+			li.addEventListener("click", () => selectValue(""));
+			fragment.appendChild(li);
+			optionEls.push({ value: "", li });
+		}
+		for (const value of getItemDropdownOptionNames()) {
+			const li = document.createElement("li");
+			li.className = "damage-build-detail-item-dropdown-option";
+			li.setAttribute("role", "option");
+			li.tabIndex = -1;
+			li.dataset.value = value;
+			li.setAttribute("aria-label", value);
+			const imgEl = document.createElement("img");
+			imgEl.className = "damage-build-detail-item-dropdown-option-image";
+			imgEl.alt = "";
+			void applyItemImage(imgEl, value);
+			li.appendChild(imgEl);
+			const textEl = document.createElement("span");
+			textEl.className = "damage-build-detail-item-dropdown-option-text";
+			textEl.textContent = value;
+			li.appendChild(textEl);
+			li.addEventListener("click", () => selectValue(value));
+			fragment.appendChild(li);
+			optionEls.push({ value, li });
+		}
+		list.appendChild(fragment);
+		list.appendChild(emptyEl);
+	}
+
+	// 「アイテムなし」は先頭固定のまま、残りを使用率順(データが無いものは元の順序のまま)に
+	// 並べ替え、テキストへ"(NN%)"を追記する(left-panel.tsのapplyItemSuggestionOrderingと同じ)。
+	function applyOrdering(): void {
+		if (!built) return; // 未構築(次回buildOptions/openPanelで改めて適用される)
+		const noneEntry = optionEls.find((o) => o.value === "");
+		const rest = optionEls.filter((o) => o.value !== "");
+		rest.sort((a, b) => {
+			const ra = ratioMap?.get(a.value);
+			const rb = ratioMap?.get(b.value);
+			if (ra != null && rb != null) return rb - ra;
+			if (ra != null) return -1;
+			if (rb != null) return 1;
+			return 0;
+		});
+		for (const entry of rest) {
+			const ratio = ratioMap?.get(entry.value);
+			const textEl = entry.li.querySelector<HTMLElement>(".damage-build-detail-item-dropdown-option-text");
+			if (textEl) textEl.textContent = ratio != null ? `${entry.value}(${itemSuggestionRatioText(ratio)})` : entry.value;
+		}
+		if (noneEntry) list.appendChild(noneEntry.li);
+		for (const entry of rest) list.appendChild(entry.li);
+		list.appendChild(emptyEl); // 「該当するアイテムがありません」は常に末尾
+	}
+
+	function filterOptions(): void {
+		const query = search.value.trim();
+		let anyVisible = false;
+		for (const opt of optionEls) {
+			// 表示値は変えず、比較だけかな・文字幅・英字大小を正規化する。
+			const match = query === "" || kanaIncludes(opt.value, query);
+			opt.li.hidden = !match;
+			if (match) anyVisible = true;
+		}
+		emptyEl.hidden = anyVisible;
+	}
+	search.addEventListener("input", filterOptions);
+
+	function openPanel(): void {
+		buildOptions();
+		applyOrdering();
+		search.value = "";
+		for (const opt of optionEls) {
+			opt.li.classList.toggle("is-active", opt.value === input.value.trim());
+			opt.li.hidden = false;
+		}
+		emptyEl.hidden = true;
+		panel.hidden = false;
+		button.setAttribute("aria-expanded", "true");
+		search.focus();
+	}
+	button.addEventListener("click", () => {
+		if (panel.hidden) openPanel();
+		else closePanel();
+	});
+	// リストの外側をクリックしたら閉じる(左パネル・buildTeraDropdownと同じ一般的な挙動)。
+	document.addEventListener("click", (e) => {
+		if (panel.hidden) return;
+		const target = e.target as Node;
+		if (button.contains(target) || panel.contains(target)) return;
+		closePanel();
+	});
+	button.addEventListener("keydown", (e) => {
+		if (e.key === "Escape") closePanel();
+	});
+	search.addEventListener("keydown", (e) => {
+		if (e.key === "Escape") {
+			closePanel();
+			button.focus();
+		}
+	});
+
+	input.addEventListener("input", updateButton);
+	updateButton();
+
+	function setDisabled(disabled: boolean): void {
+		button.disabled = disabled;
+		if (disabled) closePanel();
+	}
+
+	function setPopularity(payload: ItemSuggestionPayload | undefined): void {
+		ratioMap = payload && payload.options.length > 0
+			? new Map(payload.options.map((o) => [o.value, o.ratio] as const))
+			: undefined;
+		applyOrdering();
+	}
+
+	let flashTimer: ReturnType<typeof window.setTimeout> | undefined;
+	function flashAutofill(): void {
+		if (flashTimer !== undefined) window.clearTimeout(flashTimer);
+		button.classList.add("is-autofilled");
+		flashTimer = window.setTimeout(() => {
+			button.classList.remove("is-autofilled");
+			flashTimer = undefined;
+		}, 1400);
+	}
+
+	return { wrap, input, refreshDisplay: updateButton, setDisabled, setPopularity, flashAutofill };
 }
 
 const opponentNotesSection = document.getElementById("opponent-notes-section");
@@ -2422,6 +2735,7 @@ if (opponentNotesSection) {
 				notifyDetailAbilityChanged(row, row.abilityName);
 			});
 			void applyRowMegaStoneAutofill(nameInput.value.trim());
+			void refreshRowItemPopularity(nameInput.value.trim());
 			applyOpponentBuildPreset(nameInput.value.trim());
 		});
 
@@ -2565,21 +2879,19 @@ if (opponentNotesSection) {
 		// 同じ考え方)。
 		void rebuildRowAbilityOptions(row.name);
 
-		const itemInput = document.createElement("input");
-		itemInput.type = "text";
-		itemInput.setAttribute("list", "item-list");
-		itemInput.placeholder = "アイテム";
-		itemInput.setAttribute("aria-label", "相手のアイテム");
-		itemInput.autocomplete = "off";
-		itemInput.value = row.itemName;
-		itemInput.title = row.itemName;
-		attachKanaTypeAhead(itemInput, el<HTMLDataListElement>("item-list"));
+		// アイテム欄は育成タブ(LeftPanel.astro+left-panel.ts)の持ち物カスタムドロップダウンと
+		// 同じ見た目・操作性(アイコン表示・使用率順の並び・検索フィルタ)に揃える
+		// (buildItemDropdown、上のbuildTeraDropdownと同じくidを使わないクロージャ式ファクトリ)。
+		// 値の実体はitemDropdown.input(hidden)が持ち、以降は従来のitemInputという名前・従来通りの
+		// input/changeイベント経由でrow.itemNameへ書き込む経路をそのまま維持する。
+		const itemDropdown = buildItemDropdown(row.itemName);
+		const itemInput = itemDropdown.input;
 		itemInput.addEventListener("input", () => {
 			row.itemName = itemInput.value.trim();
 			itemInput.title = row.itemName;
 			onFieldInput();
 		});
-		const itemField = makeDetailField("アイテム", itemInput, true);
+		const itemField = makeDetailField("アイテム", itemDropdown.wrap, true);
 		const itemLockNote = document.createElement("span");
 		itemLockNote.className = "damage-build-detail-lock-note";
 		itemLockNote.textContent = "メガストーン固定";
@@ -2587,51 +2899,59 @@ if (opponentNotesSection) {
 		itemField.appendChild(itemLockNote);
 		selectsRow.appendChild(itemField);
 
-		itemInput.addEventListener("keydown", (event) => {
-			if (event.key !== "Enter") return;
-			event.preventDefault();
-			itemInput.blur();
-		});
-
 		const megaStoneLockedTitle = "メガシンカ中はアイテムをメガストーンに固定します";
 		let rowMegaStoneAutofillToken = 0;
-		function syncItemBadgeDisabled(): void {
-			itemLockNote.hidden = !itemInput.disabled;
-			if (itemInput.disabled) {
-				itemInput.dataset.megaLocked = "true";
-			} else {
-				delete itemInput.dataset.megaLocked;
-			}
+		// メガストーン固定中はドロップダウンの選択操作自体を無効化する(旧itemInput.disabledの役割)。
+		function syncItemLock(locked: boolean): void {
+			itemDropdown.setDisabled(locked);
+			itemLockNote.hidden = !locked;
 		}
 		async function applyRowMegaStoneAutofill(speciesName: string): Promise<void> {
 			const token = ++rowMegaStoneAutofillToken;
 			const stoneName = await resolveMegaStoneItem(speciesName);
 			if (token !== rowMegaStoneAutofillToken) return; // より新しい呼び出しに追い越された
 			if (!stoneName) {
-				itemInput.disabled = false;
 				itemInput.title = row.itemName;
-				syncItemBadgeDisabled();
+				syncItemLock(false);
 				return;
 			}
 			if (row.itemName.trim() === stoneName) {
-				itemInput.disabled = true;
 				itemInput.title = megaStoneLockedTitle;
-				syncItemBadgeDisabled();
+				syncItemLock(true);
 				return;
 			}
 			row.itemName = stoneName;
 			itemInput.value = stoneName;
+			// inputイベントを発火させず直接書き換えたので、ボタンのアイコン・表示名を手動で追随させる
+			// (左パネルのapplyLeftMegaStoneAutofillが updateItemImage() 等を手動で呼ぶのと同じ考え方)。
+			itemDropdown.refreshDisplay();
 			onFieldInput();
 			flashAutofillHint(itemInput, () => {
 				itemInput.title = megaStoneLockedTitle;
 			});
-			itemInput.disabled = true;
-			syncItemBadgeDisabled();
+			itemDropdown.flashAutofill();
+			syncItemLock(true);
 		}
 		// 初期描画時点(保存済みメモの復元)で既にrow.nameがメガシンカ種族なら、保存済みの
 		// 持ち物が誤っていても正しいメガストーンへ補正しロックする(rebuildRowAbilityOptionsと
 		// 同じ考え方)。
 		void applyRowMegaStoneAutofill(row.name);
+
+		// アイテムの使用率順(popular_item)は技のような埋め込みデータが無いため、種族名が
+		// 確定するたびlive fetchし直す(fetchPopularItemSuggestion、上で定義)。
+		let rowItemPopularityToken = 0;
+		async function refreshRowItemPopularity(speciesName: string): Promise<void> {
+			const token = ++rowItemPopularityToken;
+			const trimmed = speciesName.trim();
+			if (!trimmed) {
+				itemDropdown.setPopularity(undefined);
+				return;
+			}
+			const payload = await fetchPopularItemSuggestion(trimmed, currentIndividualRegulation());
+			if (token !== rowItemPopularityToken) return; // より新しい呼び出しに追い越された
+			itemDropdown.setPopularity(payload);
+		}
+		void refreshRowItemPopularity(row.name);
 
 		// B: テラスタイプ欄は「わざ」タブへ移設した(right-panel.tsのbuildSideSection、
 		// exportされたbuildTeraDropdownを再利用)。row.teraType自体は編成データとして
@@ -2738,6 +3058,10 @@ if (opponentNotesSection) {
 
 			itemInput.value = row.itemName;
 			itemInput.title = row.itemName;
+			// inputイベントを発火させず直接書き換えたので、ボタンのアイコン・表示名を手動で追随させる
+			// (使用率の再取得は、この関数の唯一の呼び出し元であるnameInputのchangeリスナーが
+			// 既にrefreshRowItemPopularity(nameInput.value.trim())を呼んでいるため、ここでは不要)。
+			itemDropdown.refreshDisplay();
 
 			// teraDropdownは「わざ」タブ側(B参照)に移設済みのため、ここでの表示更新は
 			// refreshTypeBadge()のみ(カードプレビューのテラアイコン。現状は常時非表示だが
