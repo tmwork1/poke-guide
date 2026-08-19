@@ -221,12 +221,16 @@ export interface SequenceAttack {
   attackerAilment?: string;
   /** この攻撃時点で攻撃側がテラスタル発動済みか。省略時は attackerSpec.terastallized にフォールバックする */
   attackerTerastallized?: boolean;
+  /** この攻撃時点で攻撃側に適用するテラスタイプ(空文字列でない場合、attackerSpec.teraTypeより優先される)。省略時は attackerSpec.teraType にフォールバックする */
+  attackerTeraType?: string;
   /** この攻撃時点での防御側ランク補正。省略時は defenderSpec.boosts にフォールバックする */
   defenderBoosts?: number[];
   /** この攻撃時点での防御側状態異常。省略時は defenderSpec.ailment にフォールバックする */
   defenderAilment?: string;
   /** この攻撃時点で防御側がテラスタル発動済みか。省略時は defenderSpec.terastallized にフォールバックする */
   defenderTerastallized?: boolean;
+  /** この攻撃時点で防御側に適用するテラスタイプ(空文字列でない場合、defenderSpec.teraTypeより優先される)。省略時は defenderSpec.teraType にフォールバックする */
+  defenderTeraType?: string;
   /** この攻撃時点での攻撃側の揮発性状態名一覧。省略時は attackerSpec.volatiles にフォールバックする */
   attackerVolatiles?: string[];
   /** この攻撃時点での防御側の揮発性状態名一覧。省略時は defenderSpec.volatiles にフォールバックする */
@@ -734,11 +738,12 @@ def _resolve_attack_override(card_common_value, per_attack_value):
     return per_attack_value if per_attack_value is not None else card_common_value
 
 
-def _build_per_attack_spec(base_spec, boosts_key, ailment_key, tera_key, volatiles_key, attack):
+def _build_per_attack_spec(base_spec, boosts_key, ailment_key, tera_key, volatiles_key, tera_type_key, attack):
     """base_spec(攻撃側/防御側どちらかのカード共通PokemonSpec dict)に、attack(1攻撃分の
-    dict)側のper-attackキー(boosts_key/ailment_key/tera_key/volatiles_key。呼び出し側が
-    'attackerBoosts'/'attackerAilment'/'attackerTerastallized'/'attackerVolatiles' か
-    'defenderBoosts'/'defenderAilment'/'defenderTerastallized'/'defenderVolatiles' の
+    dict)側のper-attackキー(boosts_key/ailment_key/tera_key/volatiles_key/tera_type_key。
+    呼び出し側が'attackerBoosts'/'attackerAilment'/'attackerTerastallized'/
+    'attackerVolatiles'/'attackerTeraType' か 'defenderBoosts'/'defenderAilment'/
+    'defenderTerastallized'/'defenderVolatiles'/'defenderTeraType' の
     いずれかを渡す)をマージした新しいdictを返す。base_specへの副作用を避けるため
     dict(base_spec)で浅いコピーを作ってから上書きする。
     """
@@ -747,6 +752,7 @@ def _build_per_attack_spec(base_spec, boosts_key, ailment_key, tera_key, volatil
     spec["ailment"] = _resolve_attack_override(base_spec.get("ailment"), attack.get(ailment_key))
     spec["terastallized"] = _resolve_attack_override(base_spec.get("terastallized"), attack.get(tera_key))
     spec["volatiles"] = _resolve_attack_override(base_spec.get("volatiles"), attack.get(volatiles_key))
+    spec["teraType"] = _resolve_attack_override(base_spec.get("teraType"), attack.get(tera_type_key))
     return spec
 
 
@@ -879,11 +885,11 @@ def calc_lethal_sequence_json(attacker_spec, defender_spec, attacks, seed, criti
     
             attacker_spec_for_attack = _build_per_attack_spec(
                 attacker_spec, "attackerBoosts", "attackerAilment", "attackerTerastallized",
-                "attackerVolatiles", attack
+                "attackerVolatiles", "attackerTeraType", attack
             )
             defender_spec_for_attack = _build_per_attack_spec(
                 defender_spec, "defenderBoosts", "defenderAilment", "defenderTerastallized",
-                "defenderVolatiles", attack
+                "defenderVolatiles", "defenderTeraType", attack
             )
             # field_spec(カード共通)にattack側のper-attack上書きをマージする。
             # weather/terrain/defenderSideFieldsのいずれも、このBattle専用の

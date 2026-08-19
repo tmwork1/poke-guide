@@ -43,6 +43,13 @@ export interface OpponentAttackInput {
   attackerBoosts?: number[];
   attackerAilment?: string;
   attackerTerastallized?: boolean;
+  // attackerTeraType/defenderTeraType: 自分側の技カードごとに、育成タブで確定した本来の
+  // テラスタイプとは別の仮想テラスタイプを試せるようにするための上書き値。相手側は
+  // row.teraTypeを技ごとにON/OFFするだけで足りるが、自分側は本来のテラスタイプが
+  // #tera/DBのtera_typeで別途固定されているため、技カードごとの独立した上書きが必要。
+  // 空文字列は「上書きなし(本来のテラスタイプを使う)」を意味する。opponent_build.teraTypeと
+  // 同様、19タイプのホワイトリストは作らず「文字列であること」のみを検証する。
+  attackerTeraType?: string;
   // 揮発性状態名の一覧(例 "じゅうでん")。src/lib/pyodide-engine.ts の
   // PokemonSpec.volatiles/SequenceAttack.attackerVolatiles/defenderVolatiles に対応する
   // 追加キー。状態異常名(attackerAilment/defenderAilment)と同様、
@@ -52,6 +59,7 @@ export interface OpponentAttackInput {
   defenderBoosts?: number[];
   defenderAilment?: string;
   defenderTerastallized?: boolean;
+  defenderTeraType?: string;
   defenderVolatiles?: string[];
   defenderSideFields?: string[];
   weather?: string;
@@ -79,9 +87,15 @@ export interface OpponentFieldInput {
   // そのため検証は「文字列であること」のみに留める。
   attackerAilment?: string;
   attackerTerastallized?: boolean;
+  // attackerTeraType/defenderTeraType: 自分側の技カードごとに、育成タブで確定した本来の
+  // テラスタイプとは別の仮想テラスタイプを試せるようにするための上書き値(カード共通の
+  // 既定値。技カードごとの上書きは OpponentAttackInput.attackerTeraType/defenderTeraType)。
+  // 空文字列は「上書きなし(本来のテラスタイプを使う)」を意味する。
+  attackerTeraType?: string;
   defenderBoosts?: number[];
   defenderAilment?: string;
   defenderTerastallized?: boolean;
+  defenderTeraType?: string;
   // 攻撃列。未指定/空配列の場合は move_name による従来の「単発メモ」として扱う(既存データ互換)。
   attacks?: OpponentAttackInput[];
   // ##### 攻守の向き(個体編集画面のダメージ計算カードの「攻守切り替えボタン」用) #####
@@ -187,9 +201,11 @@ const OPPONENT_FIELD_KEYS = new Set([
   'attackerBoosts',
   'attackerAilment',
   'attackerTerastallized',
+  'attackerTeraType',
   'defenderBoosts',
   'defenderAilment',
   'defenderTerastallized',
+  'defenderTeraType',
   'attacks',
   'direction',
   'order',
@@ -234,10 +250,12 @@ function isAttacksArray(value: unknown): value is OpponentAttackInput[] {
     if (v.attackerBoosts !== undefined && !isBoostArray(v.attackerBoosts)) return false;
     if (v.attackerAilment !== undefined && typeof v.attackerAilment !== 'string') return false;
     if (v.attackerTerastallized !== undefined && typeof v.attackerTerastallized !== 'boolean') return false;
+    if (v.attackerTeraType !== undefined && typeof v.attackerTeraType !== 'string') return false;
     if (v.attackerVolatiles !== undefined && !isStringArray(v.attackerVolatiles)) return false;
     if (v.defenderBoosts !== undefined && !isBoostArray(v.defenderBoosts)) return false;
     if (v.defenderAilment !== undefined && typeof v.defenderAilment !== 'string') return false;
     if (v.defenderTerastallized !== undefined && typeof v.defenderTerastallized !== 'boolean') return false;
+    if (v.defenderTeraType !== undefined && typeof v.defenderTeraType !== 'string') return false;
     if (v.defenderVolatiles !== undefined && !isStringArray(v.defenderVolatiles)) return false;
     if (v.defenderSideFields !== undefined && !isStringArray(v.defenderSideFields)) return false;
     if (v.weather !== undefined && typeof v.weather !== 'string') return false;
@@ -329,9 +347,11 @@ function validateOpponentField(value: unknown): { ok: true; value: OpponentField
     attackerBoosts,
     attackerAilment,
     attackerTerastallized,
+    attackerTeraType,
     defenderBoosts,
     defenderAilment,
     defenderTerastallized,
+    defenderTeraType,
     attacks,
     direction,
     order,
@@ -361,6 +381,9 @@ function validateOpponentField(value: unknown): { ok: true; value: OpponentField
   if (attackerTerastallized !== undefined && typeof attackerTerastallized !== 'boolean') {
     return { ok: false, error: 'field.attackerTerastallized must be a boolean' };
   }
+  if (attackerTeraType !== undefined && typeof attackerTeraType !== 'string') {
+    return { ok: false, error: 'field.attackerTeraType must be a string' };
+  }
   if (defenderBoosts !== undefined && !isBoostArray(defenderBoosts)) {
     return { ok: false, error: `field.defenderBoosts must be an array of ${STAT_COUNT} integers between ${BOOST_MIN} and ${BOOST_MAX}` };
   }
@@ -369,6 +392,9 @@ function validateOpponentField(value: unknown): { ok: true; value: OpponentField
   }
   if (defenderTerastallized !== undefined && typeof defenderTerastallized !== 'boolean') {
     return { ok: false, error: 'field.defenderTerastallized must be a boolean' };
+  }
+  if (defenderTeraType !== undefined && typeof defenderTeraType !== 'string') {
+    return { ok: false, error: 'field.defenderTeraType must be a string' };
   }
   if (attacks !== undefined && !isAttacksArray(attacks)) {
     return {
@@ -394,9 +420,11 @@ function validateOpponentField(value: unknown): { ok: true; value: OpponentField
   if (attackerBoosts !== undefined) result.attackerBoosts = attackerBoosts;
   if (attackerAilment !== undefined) result.attackerAilment = attackerAilment;
   if (attackerTerastallized !== undefined) result.attackerTerastallized = attackerTerastallized;
+  if (attackerTeraType !== undefined) result.attackerTeraType = attackerTeraType;
   if (defenderBoosts !== undefined) result.defenderBoosts = defenderBoosts;
   if (defenderAilment !== undefined) result.defenderAilment = defenderAilment;
   if (defenderTerastallized !== undefined) result.defenderTerastallized = defenderTerastallized;
+  if (defenderTeraType !== undefined) result.defenderTeraType = defenderTeraType;
   if (attacks !== undefined) {
     // moveName の前後空白を除去する(opponent_build.name/move_name と同じ正規化の流儀)。
     // 既知キーだけを明示的にコピーする(isAttacksArrayのコメント参照: 未知キーは
@@ -410,10 +438,12 @@ function validateOpponentField(value: unknown): { ok: true; value: OpponentField
       if (attack.attackerBoosts !== undefined) normalized.attackerBoosts = attack.attackerBoosts;
       if (attack.attackerAilment !== undefined) normalized.attackerAilment = attack.attackerAilment;
       if (attack.attackerTerastallized !== undefined) normalized.attackerTerastallized = attack.attackerTerastallized;
+      if (attack.attackerTeraType !== undefined) normalized.attackerTeraType = attack.attackerTeraType;
       if (attack.attackerVolatiles !== undefined) normalized.attackerVolatiles = attack.attackerVolatiles;
       if (attack.defenderBoosts !== undefined) normalized.defenderBoosts = attack.defenderBoosts;
       if (attack.defenderAilment !== undefined) normalized.defenderAilment = attack.defenderAilment;
       if (attack.defenderTerastallized !== undefined) normalized.defenderTerastallized = attack.defenderTerastallized;
+      if (attack.defenderTeraType !== undefined) normalized.defenderTeraType = attack.defenderTeraType;
       if (attack.defenderVolatiles !== undefined) normalized.defenderVolatiles = attack.defenderVolatiles;
       if (attack.defenderSideFields !== undefined) normalized.defenderSideFields = attack.defenderSideFields;
       if (attack.weather !== undefined) normalized.weather = attack.weather;
