@@ -32,6 +32,11 @@ function loadMasterMap(): Promise<Map<string, PokemonMasterEntry>> {
   return masterCache;
 }
 
+// マスターJSONの挿入順(図鑑番号順・同種族のフォルムは隣接)を保った種族一覧。
+export function loadPokemonMasterList(): Promise<PokemonMasterEntry[]> {
+  return loadMasterMap().then((m) => [...m.values()]);
+}
+
 // 画像取得(championSpriteUrl/officialArtworkUrl)専用のIDマップ。dexNoではなくimageIdを返す
 // (メガシンカ等の特殊フォルムをベース種族の画像にしないため)。
 export async function loadImageIdMap(): Promise<Map<string, number>> {

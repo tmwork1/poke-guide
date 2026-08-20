@@ -619,8 +619,6 @@ if (form) {
 	}
 	speciesInput.addEventListener("input", updateSpeciesDisplay);
 	updateSpeciesDisplay();
-	setupDatalistRefocus(speciesInput, el<HTMLDataListElement>("pokemon-list"));
-	attachKanaTypeAhead(speciesInput, el<HTMLDataListElement>("pokemon-list"));
 	void recalcStats();
 
 	// UI刷新(Pokemon.png): アイテム画像(入力の横)。アイテム名が変わるたびに差し替える。

@@ -1,0 +1,302 @@
+/* ===========================================================================
+	ポケモン選択ダイアログ (/box/[id] の種族選択)
+	見た目を変えたいときは、まず下のチューニング変数を調整する。
+	=========================================================================== */
+body.box-edit-page {
+	--species-select-dialog-width: min(640px, 94vw);
+	--species-select-dialog-max-height: min(85vh, 720px);
+	--species-select-dialog-background: var(--color-surface);
+	--species-select-dialog-border: var(--modal-border);
+	--species-select-dialog-radius: var(--radius-lg);
+	--species-select-dialog-shadow: var(--shadow-lg);
+	--species-select-backdrop-background: var(--color-overlay);
+	--species-select-header-padding: var(--space-4) var(--space-5);
+	--species-select-content-padding: var(--space-3) var(--space-5);
+}
+
+/* 種族欄は既存のアイテム・テラス選択ボタンと同じ寸法にそろえる。 */
+.species-select-trigger {
+	display: flex;
+	align-items: center;
+	justify-content: flex-start;
+	gap: 0.35rem;
+	width: 100%;
+	min-height: 2.35rem;
+	padding: 0.42em 0.6em;
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius-sm);
+	background: var(--color-surface);
+	color: var(--color-text);
+	cursor: pointer;
+	font-size: var(--font-size-sm1);
+	font-weight: 400;
+	line-height: var(--line-height-snug);
+	text-align: left;
+}
+.species-select-trigger:hover { border-color: var(--color-primary); }
+.species-select-trigger:focus-visible,
+.species-select-cell:focus-visible,
+.species-select-sort-button:focus-visible,
+.species-select-type-button:focus-visible,
+.species-select-move-button:focus-visible,
+.species-select-sort-option:focus-visible,
+.species-select-type-chip:focus-visible,
+.species-select-move-chip-remove:focus-visible {
+	outline: 2px solid var(--color-primary);
+	outline-offset: 1px;
+}
+.species-select-trigger.is-empty { color: var(--color-text-muted); }
+.species-select-trigger-icon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 20px;
+	height: 20px;
+	object-fit: contain;
+	flex-shrink: 0;
+}
+.species-select-trigger-icon-img,
+.species-select-trigger-icon-fallback {
+	width: 20px;
+	height: 20px;
+	object-fit: contain;
+}
+.species-select-trigger.is-empty .species-select-trigger-icon { display: none; }
+.species-select-trigger-label {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.species-select-backdrop {
+	position: fixed;
+	inset: 0;
+	z-index: 70;
+	background: var(--species-select-backdrop-background);
+}
+.species-select-backdrop[hidden] { display: none; }
+
+.species-select-dialog {
+	position: fixed;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	z-index: 71;
+	width: var(--species-select-dialog-width);
+	max-height: var(--species-select-dialog-max-height);
+	display: flex;
+	flex-direction: column;
+	overflow: visible;
+	background: var(--species-select-dialog-background);
+	border: var(--species-select-dialog-border);
+	border-radius: var(--species-select-dialog-radius);
+	box-shadow: var(--species-select-dialog-shadow);
+}
+.species-select-dialog[hidden] { display: none; }
+
+.species-select-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--space-3);
+	padding: var(--species-select-header-padding);
+	border-bottom: 1px solid var(--color-border);
+	flex-shrink: 0;
+}
+.species-select-title { margin: 0; font-size: var(--font-size-base); font-weight: 700; }
+.species-select-close {
+	min-width: 28px;
+	min-height: 28px;
+	padding: 0.1em 0.45em;
+	font-size: var(--font-size-lg1);
+	line-height: 1;
+}
+
+.species-select-toolbar {
+	display: flex;
+	align-items: center;
+	gap: var(--space-3);
+	padding: var(--space-3) var(--space-5);
+	border-bottom: 1px solid var(--color-border);
+	flex-shrink: 0;
+}
+.species-select-mega-toggle {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.4rem;
+	font-size: var(--font-size-sm2);
+	color: var(--color-text-muted);
+	cursor: pointer;
+	white-space: nowrap;
+}
+
+.species-select-sort-wrap,
+.species-select-type-wrap,
+.species-select-move-wrap { position: relative; }
+.species-select-sort-button,
+.species-select-type-button,
+.species-select-move-button {
+	min-height: 2.35rem;
+	padding: 0.42em 0.6em;
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius-sm);
+	background: var(--color-surface);
+	color: var(--color-text);
+	cursor: pointer;
+	font: inherit;
+	font-size: var(--font-size-sm2);
+	text-align: left;
+}
+.species-select-sort-button:hover,
+.species-select-type-button:hover,
+.species-select-move-button:hover { border-color: var(--color-primary); }
+.species-select-sort-panel,
+.species-select-type-panel,
+.species-select-move-panel {
+	position: absolute;
+	top: calc(100% + 0.25rem);
+	left: 0;
+	z-index: 2;
+	min-width: max-content;
+	padding: var(--space-2);
+	background: var(--color-surface);
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius-md);
+	box-shadow: var(--shadow-md);
+}
+.species-select-sort-panel[hidden],
+.species-select-type-panel[hidden],
+.species-select-move-panel[hidden] { display: none; }
+.species-select-sort-panel { display: flex; flex-direction: column; gap: var(--space-1); }
+.species-select-sort-option {
+	border: 0;
+	border-radius: var(--radius-sm);
+	padding: 0.35rem var(--space-2);
+	background: transparent;
+	color: var(--color-text);
+	cursor: pointer;
+	font: inherit;
+	font-size: var(--font-size-sm2);
+	text-align: left;
+}
+.species-select-sort-option:hover,
+.species-select-sort-option.is-selected { background: color-mix(in srgb, var(--color-primary) 12%, transparent); }
+
+.species-select-grid-wrap {
+	flex: 1 1 auto;
+	min-height: 0;
+	overflow-y: auto;
+	padding: var(--species-select-content-padding);
+}
+.species-select-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+	gap: var(--space-2);
+}
+.species-select-grid[hidden] { display: none; }
+.species-select-cell {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 0.2rem;
+	min-width: 0;
+	padding: var(--space-1);
+	border: 1px solid transparent;
+	border-radius: var(--radius-sm);
+	background: transparent;
+	color: var(--color-text);
+	cursor: pointer;
+	font: inherit;
+}
+.species-select-cell:hover { border-color: var(--color-primary); }
+.species-select-cell-icon,
+.species-select-cell-fallback {
+	width: 40px;
+	height: 40px;
+	object-fit: contain;
+}
+.species-select-cell-name {
+	max-width: 100%;
+	font-size: var(--font-size-sm3);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.species-select-empty {
+	margin: 0;
+	padding: var(--space-5);
+	color: var(--color-text-muted);
+	font-size: var(--font-size-sm2);
+	text-align: center;
+}
+.species-select-empty[hidden] { display: none; }
+
+.species-select-filters {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--space-2);
+	padding: var(--space-3) var(--space-5);
+	border-top: 1px solid var(--color-border);
+	flex-shrink: 0;
+}
+.species-select-name-filter,
+.species-select-ability-filter { min-width: 0; flex: 1 1 10rem; }
+.species-select-type-panel {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--space-1);
+	width: min(16rem, 75vw);
+}
+.species-select-type-chip {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 32px;
+	height: 32px;
+	padding: 3px;
+	border: 1px solid transparent;
+	border-radius: var(--radius-sm);
+	background: transparent;
+	cursor: pointer;
+}
+.species-select-type-chip:hover,
+.species-select-type-chip.is-selected {
+	border-color: var(--color-primary);
+	background: color-mix(in srgb, var(--color-primary) 16%, transparent);
+}
+.species-select-type-chip img { width: 100%; height: 100%; object-fit: contain; }
+.species-select-move-panel { width: min(19rem, 80vw); }
+.species-select-move-input { display: block; width: 100%; min-width: 0; box-sizing: border-box; }
+.species-select-move-chips { display: flex; flex-wrap: wrap; gap: var(--space-1); margin-top: var(--space-2); }
+.species-select-move-chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.2rem;
+	padding: 0.2rem 0.25rem 0.2rem 0.45rem;
+	border-radius: 999px;
+	background: var(--color-bg);
+	font-size: var(--font-size-sm3);
+}
+.species-select-move-chip-remove {
+	width: 1.2rem;
+	height: 1.2rem;
+	padding: 0;
+	border: 0;
+	border-radius: 50%;
+	background: transparent;
+	color: var(--color-text-muted);
+	cursor: pointer;
+	font: inherit;
+	font-size: var(--font-size-base);
+	line-height: 1;
+}
+.species-select-move-chip-remove:hover { color: var(--color-danger); }
+
+/* @media は基本定義より後ろに置く。狭幅時の上書きが先の定義に負けないため。 */
+@media (max-width: 480px) {
+	.species-select-dialog { width: 96vw; }
+	.species-select-toolbar,
+	.species-select-filters { padding-inline: var(--space-3); }
+	.species-select-grid-wrap { padding-inline: var(--space-3); }
+}

@@ -7,6 +7,7 @@
 // 副作用importする(共有コア関数は src/lib/box-id/shared-core.ts 経由で left-panel.ts が使う)。
 import type { OwnedPokemonRecord } from '../../lib/owned-pokemon';
 import { TERA_TYPES } from '../../lib/tera-types';
+import SpeciesSelectDialog from './SpeciesSelectDialog.astro';
 import '../../styles/move-picker-dialog.css';
 
 interface Props {
@@ -93,16 +94,23 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 				<div class="field">
 					<input
 						id="species-name"
-						class="field-control"
 						type="text"
-						list="pokemon-list"
 						autocomplete="off"
-						required
-						autofocus
-						placeholder="種族"
-						aria-label="種族"
 						value={pokemon.species_name}
+						hidden
 					/>
+					<button
+						type="button"
+						id="species-select-trigger-button"
+						class="species-select-trigger"
+						aria-haspopup="dialog"
+					>
+						<span class="species-select-trigger-icon">
+							<img id="species-select-trigger-icon-img" class="species-select-trigger-icon-img" alt="" style="display:none;" />
+							<span id="species-select-trigger-icon-fallback" class="sprite-fallback species-select-trigger-icon-fallback"></span>
+						</span>
+						<span id="species-select-trigger-label" class="species-select-trigger-label">種族</span>
+					</button>
 				</div>
 				<div class="field">
 					<input id="nickname" class="field-control" type="text" autocomplete="off" placeholder="ニックネーム" aria-label="ニックネーム" value={pokemon.nickname ?? ""} />
@@ -345,6 +353,8 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 			<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
 			削除
 		</button>
+
+		<SpeciesSelectDialog />
 
 	</section>
 </form>

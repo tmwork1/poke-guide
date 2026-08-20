@@ -48,7 +48,7 @@ export function sortPokemonNamesByUsage(
     .map(({ name }) => name);
 }
 
-function readSpeciesUsageData(): SpeciesUsageByRegulation | null {
+export function readSpeciesUsageData(): SpeciesUsageByRegulation | null {
   const embedded = document.getElementById('box-species-usage-data');
   if (!embedded) return null;
   try {
