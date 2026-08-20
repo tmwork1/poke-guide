@@ -19,16 +19,6 @@ import '../../styles/box-damage-card.css';
 
 
 
-	<p id="damage-calc-engine-status" class="status-text damage-calc-engine-status" data-state="idle">
-
-		<span id="damage-calc-engine-status-text">準備中…</span>
-
-		<button id="damage-calc-engine-reload-button" type="button" class="btn-ghost" hidden>再試行</button>
-
-	</p>
-
-
-
 	{/* 狭い画面ではこの操作列(耐久調整ボタン)を、/box等と同じ「app-header直下に
 	    張り付くSecondHeader」として表示する(以前はカード一覧の右下に浮くフローティング
 	    ボタンだったが、追加ボタンと2つ並んで浮く見た目が煩雑だったため撤廃。位置調整は
@@ -37,6 +27,14 @@ import '../../styles/box-damage-card.css';
 	<SecondHeader ariaLabel="ダメージ計算の操作" class="damage-toolbar-header">
 		<div id="damage-rows-toolbar" class="damage-rows-toolbar"></div>
 	</SecondHeader>
+
+	<p id="damage-calc-engine-status" class="status-text damage-calc-engine-status" data-state="idle">
+
+		<span id="damage-calc-engine-status-text">準備中…</span>
+
+		<button id="damage-calc-engine-reload-button" type="button" class="btn-ghost" hidden>再試行</button>
+
+	</p>
 
 	<div id="damage-rows-list" class="damage-rows-list">
 
@@ -50,7 +48,7 @@ import '../../styles/box-damage-card.css';
 	    damage-suggest.tsのrenderDamageSuggestSection()がJSで描画する(0件のときはhidden、
 	    1件以上あれば表示)。 */}
 	<section id="damage-suggest-section" class="damage-suggest-section" hidden>
-		<p class="damage-suggest-section-heading">よく行われるダメージ計算</p>
+		<p class="damage-suggest-section-heading">人気の計算</p>
 		<ul id="damage-suggest-list" class="damage-suggest-list"></ul>
 	</section>
 
