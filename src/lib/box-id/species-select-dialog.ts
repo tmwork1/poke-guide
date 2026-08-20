@@ -43,9 +43,9 @@ const cellByName = new Map<string, HTMLButtonElement>();
 let spriteObserver: IntersectionObserver | null = null;
 
 const sortLabels: Record<SortMode, string> = {
-	popularity: "人気順",
-	dex: "図鑑番号順",
-	kana: "50音順",
+	popularity: "人気",
+	dex: "番号",
+	kana: "50音",
 };
 
 function getSpriteObserver(): IntersectionObserver {
@@ -77,7 +77,7 @@ function updateTriggerButton(): void {
 }
 
 function updateSortButton(): void {
-	sortButton.textContent = `⇅ ${sortLabels[sortMode].replace(/順$/, "")}`;
+	sortButton.textContent = `⇅ ${sortLabels[sortMode]}`;
 	for (const option of document.querySelectorAll<HTMLButtonElement>(".species-select-sort-option")) {
 		const selected = option.dataset.sort === sortMode;
 		option.classList.toggle("is-selected", selected);
