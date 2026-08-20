@@ -120,8 +120,8 @@ body.box-edit-page {
 .move-picker-toggle .toggle-switch-thumb {
   width: 14px;
   height: 14px;
-  top: 0;
-  left: 0;
+  top: -1px;
+  left: -1px;
 }
 .move-picker-toggle .toggle-switch-input:checked + .toggle-switch-track .toggle-switch-thumb { transform: translateX(12px); }
 

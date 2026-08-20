@@ -1159,7 +1159,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	/* 12pxのラベルに対してスイッチが主張しすぎないよう、技選択内だけ26×14pxへ縮める。 */
 	.move-picker-toggle .toggle-switch { width: 26px; height: 14px; }
 	/* 左右2pxの内側余白を保つため、14px高トラック内のつまみは10pxにする。 */
-	.move-picker-toggle .toggle-switch-thumb { width: 14px; height: 14px; top: 0; left: 0; }
+	.move-picker-toggle .toggle-switch-thumb { width: 14px; height: 14px; top: -1px; left: -1px; }
 	/* 26px幅から左右余白と10pxつまみを引いた12pxだけ動かし、ON時も右端に収める。 */
 	.move-picker-toggle .toggle-switch-input:checked + .toggle-switch-track .toggle-switch-thumb { transform: translateX(12px); }
 
