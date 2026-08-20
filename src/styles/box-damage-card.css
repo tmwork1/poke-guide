@@ -99,7 +99,6 @@ body.box-edit-page {
   --damage-card-add-button-border: 1px solid var(--color-border); /* 「技を追加」ボタンの枠線 */
   --damage-card-add-button-radius: var(--radius-zero); /* 「技を追加」ボタンの角丸 */
   --damage-card-footer-border: 1px solid var(--color-border); /* 保存状態欄の上線 */
-  --damage-detail-section-heading-border: 1px solid var(--color-border); /* 詳細セクションを分ける上線 */
   --damage-detail-icon-button-border: 1px solid var(--color-border); /* アイコンボタンの通常枠線 */
   --damage-detail-icon-button-radius: var(--radius-sm); /* アイコンボタンの角丸 */
   --damage-card-item-badge-border: 1px solid var(--color-border); /* 持ち物バッジの枠線 */
@@ -181,6 +180,7 @@ body.box-edit-page {
   --damage-card-move-identity-text-budget: 8.5em; /* 技名テキストに割り当てる幅の目安(8〜9文字程度を想定)。技名の長さに関わらず直後の条件チップの開始位置を揃えるための固定値。超過分は折り返す(切り詰めない) */
   --damage-card-move-identity-max-width: calc(var(--damage-card-move-icon-size) + var(--damage-card-columns-gap) + var(--damage-card-move-identity-text-budget)); /* 技名+タイプアイコンの合計幅。この幅を固定することで条件チップの開始X座標を揃える */
   --damage-detail-control-min-height: var(--space-7); /* 詳細パネルの入力欄とボタンの最小高さ */
+  --damage-detail-move-field-width: 10em; /* 技名入力欄の固定幅。マスターデータ最長の技名(全角8文字、実測content-fit幅は約9.3em)に安全マージンを足した値 */
   --damage-detail-hitcount-width: 4em; /* 連続技の回数入力欄の幅 */
   --damage-detail-rank-stepper-size: 30px; /* ランク補正の＋－ボタンの大きさ */
   --damage-detail-rank-input-width: 2.4em; /* ランク補正・まきびし入力欄の最小幅(E: field-sizingで内容量に合わせて広がる)。小さくすると窮屈になりやすい */
@@ -1267,12 +1267,12 @@ body.box-edit-page {
   margin-block: 0;
 }
 
-/* 「攻撃側」「防御側」など詳細設定の区切り見出し */
+/* 「攻撃側」「防御側」など詳細設定の区切り見出し。
+   区画同士の境界線(border-top)は廃止し、余白(margin/padding-top)だけで区切る。 */
 #damage-detail-panel-body .damage-detail-section-heading {
   font-size: var(--font-size-sm2);
   color: var(--color-text);
   margin: var(--damage-detail-section-heading-margin);
-  border-top: var(--damage-detail-section-heading-border);
   padding-top: var(--damage-detail-section-heading-padding);
   font-weight: 700;
 }
@@ -1400,9 +1400,11 @@ body.box-edit-page {
   gap: var(--space-2);
 }
 
+/* すべての技名(マスターデータ上最長で全角8文字)が収まる十分な固定幅。
+   画面幅に応じて伸縮させない(隣の急所チェックの位置がぶれないようにするため)。 */
 #damage-detail-panel-body .damage-detail-move-field {
-  flex: 1 1 0;
-  min-width: 0;
+  flex: none;
+  width: var(--damage-detail-move-field-width);
 }
 
 /* D: 急所固定は、このアプリの標準チェックボックス(global.cssのinput[type="checkbox"])

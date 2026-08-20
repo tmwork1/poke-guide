@@ -1603,13 +1603,9 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 		defenderSide.appendChild(fallbackRow);
 	}
 
-	const hazardsGroup = document.createElement("div");
-	hazardsGroup.className = "damage-detail-group";
-	const hazardsHeading = document.createElement("p");
-	hazardsHeading.className = "damage-detail-section-heading";
-	hazardsHeading.textContent = "設置物";
-	hazardsGroup.appendChild(hazardsHeading);
-
+	// UI改修: 「設置物」の独立区画(見出し+箱)は廃止し、ステルスロック/まきびしは
+	// 防御側セクションの通常の設定項目として(見出しなしで)扱う。挿入位置は従来どおり
+	// defenderVolatileGroupの直前(下の挿入処理を参照)。
 	const hazardsControls = document.createElement("div");
 	hazardsControls.className = "damage-detail-toggle-row";
 	const stealthRockButton = buildToggleButton(
@@ -1643,22 +1639,20 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 	});
 	spikesField.append(spikesLabel, spikesSelect);
 	hazardsControls.append(stealthRockButton, spikesField);
-	hazardsGroup.appendChild(hazardsControls);
 	// B-3: 「設置物」(ステルスロック/まきびし)は、sidesWrap直下の独立区画ではなく、
 	// 防御側セクション内・揮発状態グループ(defenderVolatileGroup)の直前に移動する
 	// (相手の設置物依存の状況を「防御側」の設定としてまとめて見せるため)。
 	// defenderVolatileGroupが取れない場合(DAMAGE_DEFENDER_VOLATILESが空になる将来の変更時)は
 	// 防御側セクションの末尾に足す。
 	if (defenderVolatileGroup) {
-		defenderVolatileGroup.before(hazardsGroup);
+		defenderVolatileGroup.before(hazardsControls);
 	} else {
-		defenderSide.appendChild(hazardsGroup);
+		defenderSide.appendChild(hazardsControls);
 	}
 
 	// C-1: 天候・フィールドは合わせて1つの区画「場の効果」として扱い、この2つの間には
-	// dividerを入れず、区画の先頭(天候の前)にだけ入れる。既存の「設置物」(hazardsGroup)と
-	// 同じ.damage-detail-group+.damage-detail-section-heading(border-top付き)の構造を
-	// そのまま流用することで、追加CSSなしで区画境界のdividerが入る。
+	// 見出しを入れず、区画の先頭(天候の前)にだけ見出し「場の効果」を入れる。
+	// .damage-detail-group+.damage-detail-section-headingの構造(見出し+余白)を流用する。
 	const fieldEffectsGroup = document.createElement("div");
 	fieldEffectsGroup.className = "damage-detail-group";
 	const fieldEffectsHeading = document.createElement("p");

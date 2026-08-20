@@ -102,7 +102,6 @@ body.box-edit-page {
 	--damage-detail-tera-icon-size: 20px; /* テラタイプアイコン。大きくすると候補行が高くなる */
 	--damage-detail-suggest-item-icon-size: 14px; /* 持ち物アイコン。大きくすると持ち物が目立つ */
 	--damage-detail-direction-toggle-width: 6.4em; /* 攻守切り替えの最小横幅。「攻撃」「防御」が折り返さない幅が必要(Cの修正) */
-	--damage-detail-move-input-min-width: 5em; /* B-1: 技名入力欄の最小幅。短い技名でも窮屈にならない下限値 */
 	--damage-detail-item-dropdown-button-min-height: 2.35rem; /* 持ち物ボタンの最小高さ(育成タブと同値)。大きくするとボタンが大きくなる */
 	--damage-detail-item-dropdown-icon-size: 20px; /* 持ち物アイコン(ボタン・候補共通、育成タブと同値)。大きくすると候補行が高くなる */
 	--damage-detail-item-dropdown-list-max-height: 14rem; /* 持ち物候補一覧の最大高さ(育成タブと同値)。大きくすると一度に見える件数が増える */
@@ -327,22 +326,21 @@ body.box-edit-page {
 		background: var(--damage-detail-success-soft-color);
 		color: var(--damage-detail-success-strong-color);
 	}
+	/* UI改修: 判定(damage-result-verdict)と詳細(damage-result-detail)を特別扱いせず、
+		技テキスト(.damage-column-move-text、box-damage-card.css)と同じフォントで中央配置する
+		(結果の危険度は#damage-detail-panel-totalの背景色だけで示し、文字自体は目立たせない)。 */
 	.damage-detail-panel-total-result {
-		display: grid;
-		grid-template-columns: auto minmax(0, 1fr);
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: center;
 		align-items: baseline;
 		gap: var(--damage-detail-space-sm);
 		min-width: 0;
 		margin: 0;
-		font-size: var(--damage-detail-font-size-sm);
+		font-size: var(--damage-card-move-font-size);
+		font-weight: var(--damage-card-move-font-weight);
 		line-height: var(--damage-detail-line-height-tight);
-		text-align: right;
-	}
-	.damage-detail-panel-total-result .damage-result-verdict {
-		/* A-2: これまでの大きく太い強調(font-size-lg/font-weight-heavy)は目立ちすぎるため、
-			1段階ずつ抑える(読み取れる情報量は変えない)。 */
-		font-size: var(--damage-detail-font-size-md);
-		font-weight: var(--damage-detail-font-weight-bold);
+		text-align: center;
 	}
 	.damage-detail-panel-total-result .damage-result-detail {
 		min-width: 0;
@@ -754,27 +752,18 @@ body.box-edit-page {
 	#damage-detail-panel-body .damage-build-detail-field[hidden] {
 		display: none;
 	}
-	/* C-1: 攻撃側/防御側の小見出し(.damage-detail-side-heading-row内)はbox-damage-card.css側で
-		border-topを持たない(親.damage-detail-sidesとの二重線を避けるため意図的に消してある)。
-		「わざ、攻撃側、防御側、設置物、場の効果」の5区画すべての境界にdividerを入れる要件のため、
-		わざ→攻撃側の境界(.damage-detail-sides自体)・攻撃側→防御側の境界(2つ目の.damage-detail-side)
-		にだけ、既存の.damage-detail-section-heading相当の太さの線をここで足す(box-damage-card.css
-		本体は変更しない、最小限の追加)。防御側→設置物・設置物→場の効果の境界は、hazardsGroup/
-		fieldEffectsGroupがどちらも既存の.damage-detail-group+.damage-detail-section-heading
-		(border-top付き)の構造をそのまま使っているため、追加CSSなしで既に線が入る。 */
+	/* UI改修: 区画同士の境界線(border-top)は廃止し、余白だけで区切りを表現する。 */
 	/* B-4: セクション間の縦余白を詰める。box-damage-card.css既定の
 		margin-top:space-3/padding-top:space-2/gap:--damage-detail-side-gap(1.05rem)/
 		--damage-detail-side-padding(.7rem)/.damage-detail-groupのmargin-bottom(--space-2)を、
 		それぞれこのパネル内でより小さい既存spaceトークンへ差し替える
 		(視認性は区切り線・見出しが担うため密度を優先できる)。 */
 	#damage-detail-panel-body .damage-detail-sides {
-		border-top: var(--damage-detail-header-border);
 		margin-top: var(--damage-detail-space-md);
 		padding-top: var(--damage-detail-space-xs);
 		gap: var(--damage-detail-space-md);
 	}
 	#damage-detail-panel-body .damage-detail-side + .damage-detail-side {
-		border-top: var(--damage-detail-header-border);
 		padding-top: var(--damage-detail-space-sm);
 	}
 	#damage-detail-panel-body .damage-detail-group {
@@ -1070,27 +1059,15 @@ body.box-edit-page {
 		width: 100%;
 	}
 	/* --------------------------------------------------------------------------
-		技選択欄(タイプアイコン・内容量に合わせた幅)
+		技選択欄(タイプアイコン・入力欄の横並び)
 		-------------------------------------------------------------------------- */
-	/* B-1: 技名入力欄は今まで(box-damage-card.cssのwidth:100%)横幅いっぱいに伸びきっていた。
-		技名の文字数に合わせて縮め、隣の急所チェックとの横並びは.damage-detail-move-controls
-		(box-damage-card.css、display:flex)側の余白でそのまま保たれる。 */
-	#damage-detail-panel-body .damage-detail-move-field {
-		flex: 0 1 auto;
-		min-width: 0;
-	}
+	/* 技名入力欄自体の横幅(すべての技名が収まる固定幅)はbox-damage-card.cssの
+		.damage-detail-move-fieldで一括管理する(ここでは重複定義しない)。ここでは
+		アイコン+入力欄を横並びにするレイアウトだけを担当する。 */
 	#damage-detail-panel-body .damage-detail-move-combo {
 		display: flex;
 		align-items: center;
 		gap: var(--damage-detail-space-xs);
-	}
-	#damage-detail-panel-body .damage-detail-move-input {
-		width: auto;
-		/* field-sizingは能力ランク入力(.damage-detail-rank-input、box-damage-card.css)で
-			既に使われている手法をそのまま踏襲する(新しい実現方法を増やさない)。 */
-		field-sizing: content;
-		min-width: var(--damage-detail-move-input-min-width);
-		max-width: 100%;
 	}
 	/* B-1: 技を選択した後もタイプアイコンを表示する(既存のdamage-detail-move-dropdown-option-icon
 		と同じ大きさ、--damage-card-move-icon-sizeはbox-damage-card.cssで定義済みのトークン)。 */
