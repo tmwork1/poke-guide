@@ -2818,6 +2818,9 @@ if (opponentNotesSection) {
 
 		const abilitySelect = document.createElement("select");
 		abilitySelect.setAttribute("aria-label", "相手の特性");
+		function syncAbilityUnselectedState(): void {
+			abilitySelect.classList.toggle("is-ability-unselected", abilitySelect.value === "");
+		}
 		{
 			// rebuildRowAbilityOptions()の初回解決(loadAbilitiesMap()のfetch完了)までの
 			// 仮表示。保存済みの値をそのまま1件だけ置く(左パネルのSSR初期値と同じ考え方)。
@@ -2827,6 +2830,7 @@ if (opponentNotesSection) {
 			placeholderOpt.selected = true;
 			abilitySelect.appendChild(placeholderOpt);
 		}
+		syncAbilityUnselectedState();
 		abilitySelect.title = row.abilityName;
 		let abilityRequestToken = 0;
 		async function rebuildRowAbilityOptions(speciesName: string): Promise<void> {
@@ -2846,6 +2850,7 @@ if (opponentNotesSection) {
 				emptyOpt.textContent = "特性なし";
 				abilitySelect.appendChild(emptyOpt);
 				abilitySelect.value = "";
+				syncAbilityUnselectedState();
 				abilitySelect.title = "";
 				if (previousValue !== "") {
 					row.abilityName = "";
@@ -2868,15 +2873,20 @@ if (opponentNotesSection) {
 			}
 			if (abilities.includes(previousValue)) {
 				abilitySelect.value = previousValue;
+				syncAbilityUnselectedState();
 			} else {
 				// 既存の選択値が候補にない(種族名が変わった等)場合は、候補先頭ではなく
 				// 採用率が最も高い特性をデフォルトにする。取得できない・該当なしの場合は
 				// 従来通り候補先頭にフォールバックする。
 				abilitySelect.value = abilities[0];
+				syncAbilityUnselectedState();
 				const popular = await fetchPopularAbilitySuggestion(trimmed, currentIndividualRegulation());
 				if (token !== abilityRequestToken) return; // より新しい呼び出しに追い越された
 				const popularValue = popular?.options.find((o) => abilities.includes(o.value))?.value;
-				if (popularValue) abilitySelect.value = popularValue;
+				if (popularValue) {
+					abilitySelect.value = popularValue;
+					syncAbilityUnselectedState();
+				}
 			}
 			abilitySelect.title = abilitySelect.value;
 			if (abilitySelect.value !== previousValue) {
@@ -2887,6 +2897,7 @@ if (opponentNotesSection) {
 			refreshAbilityCycleButton();
 		}
 		abilitySelect.addEventListener("change", () => {
+			syncAbilityUnselectedState();
 			row.abilityName = abilitySelect.value;
 			// 今回の要件: 相手特性変更時だけ、各技列の天候・フィールド自動入力を試す。
 			notifyDetailAbilityChanged(row, row.abilityName);
@@ -3072,6 +3083,7 @@ if (opponentNotesSection) {
 				abilitySelect.appendChild(opt);
 			}
 			abilitySelect.value = row.abilityName;
+			syncAbilityUnselectedState();
 			abilitySelect.title = row.abilityName;
 			refreshAbilityCycleButton();
 			notifyDetailAbilityChanged(row, row.abilityName);

@@ -1330,6 +1330,11 @@ body.box-edit-page {
   margin-block: 0;
 }
 
+/* 特性が未選択のときだけ、ネイティブselectの表示文字をプレースホルダ色にする。 */
+#damage-detail-panel-body .damage-build-detail-form select.is-ability-unselected {
+  color: var(--color-text-muted);
+}
+
 /* 「攻撃側」「防御側」など詳細設定の区切り見出し。
    区画同士の境界線(border-top)は廃止し、余白(margin/padding-top)だけで区切る。 */
 #damage-detail-panel-body .damage-detail-section-heading {
