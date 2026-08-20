@@ -1648,15 +1648,11 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 		defenderSide.appendChild(hazardsControls);
 	}
 
-	// C-1: 天候・フィールドは合わせて1つの区画「場の効果」として扱い、この2つの間には
-	// 見出しを入れず、区画の先頭(天候の前)にだけ見出し「場の効果」を入れる。
-	// .damage-detail-group+.damage-detail-section-headingの構造(見出し+余白)を流用する。
+	// UI改修: 「場の効果」の見出しテキストは廃止し、天候・フィールドをまとめる区画
+	// (fieldEffectsGroup)自体は残す(見出しなしで直接コントロールを並べる。
+	// 「設置物」(hazardsControls)と同じ考え方)。
 	const fieldEffectsGroup = document.createElement("div");
 	fieldEffectsGroup.className = "damage-detail-group";
-	const fieldEffectsHeading = document.createElement("p");
-	fieldEffectsHeading.className = "damage-detail-section-heading";
-	fieldEffectsHeading.textContent = "場の効果";
-	fieldEffectsGroup.appendChild(fieldEffectsHeading);
 
 	const weatherRow = document.createElement("div");
 	weatherRow.className = "damage-detail-field-row";
