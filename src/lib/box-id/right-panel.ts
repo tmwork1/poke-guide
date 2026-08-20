@@ -1408,15 +1408,17 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 
 	const hitRow = document.createElement("div");
 	hitRow.className = "damage-column-hitcount-row damage-detail-hitcount-row";
-	const hitCountInput = document.createElement("input");
-	hitCountInput.type = "number";
+	const hitCountFields = document.createElement("span");
+	hitCountFields.className = "damage-detail-hitcount-fields";
+	const hitCountInput = document.createElement("select");
 	hitCountInput.className = "damage-detail-hitcount-input";
-	hitCountInput.step = "1";
+	hitCountInput.setAttribute("aria-label", "ヒット数");
 	hitCountInput.value = String(column.hitCount ?? 1);
 	const hitCountUnit = document.createElement("span");
 	hitCountUnit.className = "damage-column-hitcount-unit damage-detail-hitcount-unit";
 	hitCountUnit.textContent = "ヒット";
-	hitRow.append(hitCountInput, hitCountUnit);
+	hitCountFields.append(hitCountInput, hitCountUnit);
+	hitRow.append(hitCountFields, criticalField);
 
 	let hitCountRange: [number, number] = [1, 10];
 	async function refreshHitCountVisibility(options?: { silent?: boolean; preferMax?: boolean }): Promise<void> {
@@ -1435,14 +1437,19 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 		};
 		if (!range) {
 			hitCountRange = [1, 1];
-			hitRow.hidden = true;
+			hitCountFields.hidden = true;
 			applyCorrection(1);
 			return;
 		}
 		hitCountRange = range;
-		hitRow.hidden = false;
-		hitCountInput.min = String(range[0]);
-		hitCountInput.max = String(range[1]);
+		hitCountFields.hidden = false;
+		hitCountInput.innerHTML = "";
+		for (let n = range[0]; n <= range[1]; n++) {
+			const option = document.createElement("option");
+			option.value = String(n);
+			option.textContent = String(n);
+			hitCountInput.appendChild(option);
+		}
 		const label = range[0] === range[1]
 			? `ヒット数(${range[0]}回固定)`
 			: `ヒット数(${range[0]}〜${range[1]}回)`;
@@ -1467,7 +1474,7 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 		scheduleRowCalc(row);
 		scheduleRowSave(row);
 	});
-	hitCountInput.addEventListener("input", () => {
+	hitCountInput.addEventListener("change", () => {
 		const n = Number(hitCountInput.value);
 		column.hitCount = Number.isFinite(n) ? clampInt(n, hitCountRange[0], hitCountRange[1]) : hitCountRange[0];
 		hitCountInput.value = String(column.hitCount);
@@ -1476,7 +1483,7 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 		scheduleRowCalc(row);
 		scheduleRowSave(row);
 	});
-	hitRow.hidden = true;
+	hitCountFields.hidden = true;
 	void refreshHitCountVisibility({ silent: true });
 
 	const moveEditorGroup = document.createElement("div");
@@ -1486,7 +1493,7 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 	const moveField = document.createElement("div");
 	moveField.className = "damage-detail-move-field";
 	moveField.appendChild(moveComboWrap);
-	moveControls.append(moveField, criticalField);
+	moveControls.append(moveField);
 	moveEditorGroup.append(moveControls, hitRow);
 	contentWrap.appendChild(moveEditorGroup);
 

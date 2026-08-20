@@ -1553,7 +1553,17 @@ body.box-edit-page {
   gap: var(--space-1);
 }
 
+#damage-detail-panel-body .damage-detail-hitcount-fields {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
 #damage-detail-panel-body .damage-detail-hitcount-row[hidden] {
+  display: none;
+}
+
+#damage-detail-panel-body .damage-detail-hitcount-fields[hidden] {
   display: none;
 }
 

@@ -828,13 +828,18 @@ body.box-edit-page {
 		background: var(--damage-detail-surface-background);
 		color: var(--damage-detail-text-color);
 		font-size: var(--damage-detail-font-size-sm);
-		font-weight: var(--damage-detail-font-weight-regular);
 		text-align: left;
 		cursor: pointer;
 	}
 	#damage-detail-panel-body .tera-dropdown-button.is-tera-unselected {
 		background: none;
 		border-style: dashed;
+		color: var(--color-text-muted);
+	}
+	#damage-detail-panel-body .tera-dropdown-button:not(.is-tera-unselected) {
+		color: var(--color-primary-strong);
+		border-color: var(--color-primary-strong);
+		font-weight: 700;
 	}
 	#damage-detail-panel-body .tera-dropdown-image,
 	#damage-detail-panel-body .tera-dropdown-option-image {
@@ -851,7 +856,7 @@ body.box-edit-page {
 		color: var(--damage-detail-muted-color);
 	}
 	#damage-detail-panel-body .tera-dropdown-placeholder.is-tera-value-text {
-		color: var(--damage-detail-text-color);
+		color: var(--color-primary-strong);
 	}
 	/* ボタン直下に開くテラスタイプ候補一覧 */
 	#damage-detail-panel-body .tera-dropdown-list {
