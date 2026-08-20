@@ -265,8 +265,8 @@ body.box-edit-page {
 }
 
 /* 相手ポケモンの型をまとめた情報欄。左列(.damage-row-build-left)=攻守バッジ・相手アイコン、
-   右列(.damage-row-build-right)=種族名・アイテム(上段、.damage-row-build-main)+
-   特性・実数値(下段、.damage-row-build-fields)の2列構成にする。 */
+   右列(.damage-row-build-right)=種族名・特性(上段、.damage-row-build-main)+
+   アイテム・実数値(下段、.damage-row-build-fields)の2列構成にする。 */
 #opponent-notes-section .damage-row-build {
   border-radius: var(--damage-card-build-border-radius);
   background: var(--damage-card-build-background);
@@ -289,7 +289,7 @@ body.box-edit-page {
   flex: none;
 }
 
-/* 右列: 種族名・アイテム(上段)/特性・実数値(下段) */
+/* 右列: 種族名・特性(上段)/アイテム・実数値(下段) */
 #opponent-notes-section .damage-row-build-right {
   flex: 1 1 auto;
   min-width: 0;
@@ -298,7 +298,7 @@ body.box-edit-page {
   display: flex;
 }
 
-/* 上段: 種族名・アイテム */
+/* 上段: 種族名・特性 */
 #opponent-notes-section .damage-row-build-main {
   align-items: center;
   gap: var(--damage-build-text-gap);
@@ -326,13 +326,15 @@ body.box-edit-page {
 }
 
 /* アイテム欄(アイコン+名前)。以前はspriteBox右下に重ねる丸バッジだったが、
-   右列上段に種族名と並べて表示するよう改修。 */
+   右列上段に種族名と並べて表示していた時期を経て、現在は右列下段で実数値表
+   (.damage-ev-grid-readonly)と行を分け合う。45%固定の上限は「上段で種族名と
+   場所を取り合う」前提だったため撤廃し、実数値表と自然に幅を分け合わせる
+   (本当に幅が足りないときだけ.damage-build-item-nameのellipsisが効けばよい)。 */
 #opponent-notes-section .damage-build-item-field {
   align-items: center;
   gap: var(--damage-card-tera-button-gap);
   min-width: 0;
-  max-width: 45%;
-  flex: none;
+  flex: 1 1 auto;
   display: flex;
 }
 
@@ -349,12 +351,12 @@ body.box-edit-page {
   font-size: var(--damage-card-build-detail-font-size);
 }
 
-/* 下段: 特性・テラス・実数値をまとめた控えめな行。1段目より文字を
+/* 下段: アイテム・実数値をまとめた控えめな行。1段目より文字を
    小さく薄くして情報の主従を示す(--damage-card-build-detail-*系トークン参照)。
-   右列(.damage-row-build-right)基準で中央寄せする。 */
+   上段(.damage-row-build-main)と開始位置をそろえるため左揃えにする。 */
 #opponent-notes-section .damage-row-build-fields {
   flex-wrap: wrap;
-  justify-content: center;
+  justify-content: flex-start;
   align-items: baseline;
   gap: var(--damage-card-build-gap) var(--damage-build-text-gap);
   color: var(--damage-card-build-detail-color);
@@ -389,6 +391,16 @@ body.box-edit-page {
   flex: none;
   color: var(--damage-card-summary-label-color);
   font-size: inherit;
+}
+
+/* 特性欄(.damage-build-readonly-ability-line)は改修1で下段(.damage-row-build-fields)から
+   上段(.damage-row-build-main)へ移動した。従来は下段コンテナのcolor/font-size継承だけで
+   控えめな文字にしていたが、上段に移った今はそれに頼れないため、同じ
+   --damage-card-build-detail-*系トークンをこの要素自身へ明示する。 */
+#opponent-notes-section .damage-build-readonly-ability-line {
+  min-width: 0;
+  color: var(--damage-card-build-detail-color);
+  font-size: var(--damage-card-build-detail-font-size);
 }
 
 /* --------------------------------------------------------------------------
@@ -798,10 +810,12 @@ body.box-edit-page {
   text-align: center;
 }
 
-/* 技に付いた天候・壁・状態異常などの条件チップ */
+/* 技に付いた天候・壁・状態異常などの条件チップ。この列自体が折り返すと親の
+   .damage-column-conditions側のoverflow-x: autoが効かず縦に伸びてしまうため、
+   折り返さず横スクロールに任せる(.damage-column-conditions参照)。 */
 #opponent-notes-section .damage-row-condition-chips {
   gap: var(--damage-card-condition-gap);
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   display: flex;
 }
 
@@ -1086,22 +1100,33 @@ body.box-edit-page {
   display: none;
 }
 
-/* 技カード内の条件チップ領域。幅が足りなければ折り返す(横スクロールはしない) */
+/* 技カード内の条件チップ領域。.damage-columnは高さが--damage-card-compact-row-heightに
+   固定されているため、幅が足りない分は折り返さず横スクロールにして1段に収める
+   (damage-detail-panel.cssの.damage-detail-panel-title.is-tab-barと同じパターン)。 */
 #opponent-notes-section .damage-column-conditions {
   flex: 1 1 auto;
   max-width: 100%;
   min-width: 0;
   justify-content: flex-start;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
   display: flex;
+}
+
+#opponent-notes-section .damage-column-conditions::-webkit-scrollbar {
+  display: none;
 }
 
 #opponent-notes-section .damage-column-conditions .damage-row-condition-chips {
   flex: none;
 }
 
+/* 技名・ヒット数(.damage-column-move-identity/.damage-column-hitcount-text)は
+   flex: noneで縮まないまま、条件チップ(.damage-column-conditions)側だけが
+   横スクロールで幅を吸収するため、この行自体は折り返さない。 */
 #opponent-notes-section .damage-column-move-row {
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
   justify-content: flex-start;
   gap: var(--damage-column-detail-gap);

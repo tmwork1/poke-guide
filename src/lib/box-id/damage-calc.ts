@@ -511,6 +511,37 @@ async function fetchPopularItemSuggestion(
 	return fetchBySubjectKey(speciesName);
 }
 
+// 「相手ポケモン」タブの特性欄のデフォルト選択(採用率が最も高い特性)用。
+// kind="popular_ability"はpopular_itemと全く同じpayload形式({ sample_size, options: [{ value, count, ratio }] }、
+// options自体が既にcount DESCでソート済み)のため、fetchPopularItemSuggestionと同じ構造・同じ
+// フォールバック(レギュレーション別が空なら種族名だけの横断集計へフォールバック)で複製する。
+type AbilitySuggestionOption = { value: string; ratio: number };
+type AbilitySuggestionPayload = { options: AbilitySuggestionOption[] };
+type AbilitySuggestionApiRow = { payload?: { options?: AbilitySuggestionOption[] } };
+type AbilitySuggestionApiResponse = { data?: AbilitySuggestionApiRow[] };
+
+async function fetchPopularAbilitySuggestion(
+	speciesName: string,
+	regulation: string | null,
+): Promise<AbilitySuggestionPayload | undefined> {
+	async function fetchBySubjectKey(subjectKey: string): Promise<AbilitySuggestionPayload | undefined> {
+		try {
+			const res = await fetch(`/api/suggestions?kind=popular_ability&subject_key=${encodeURIComponent(subjectKey)}&limit=1`);
+			if (!res.ok) return undefined;
+			const json = (await res.json()) as AbilitySuggestionApiResponse;
+			const payload = json.data?.[0]?.payload;
+			if (!payload || !Array.isArray(payload.options)) return undefined;
+			return { options: payload.options };
+		} catch {
+			return undefined;
+		}
+	}
+	const scoped = await fetchBySubjectKey(regulation ? `${speciesName}|${regulation}` : speciesName);
+	if (!regulation || (scoped?.options.length ?? 0) > 0) return scoped;
+	// 規制別が空の場合だけsubject_keyを種族名にして横断集計を再取得する(API契約は変えない)。
+	return fetchBySubjectKey(speciesName);
+}
+
 // #item-list(datalist、box/[id].astroにSSR描画済み、left-panel.tsのloadAutocomplete()が
 // 非同期に候補を流し込む)から全アイテム名を読む。left-panel.tsのgetItemOptionNames()と
 // 同じ「一度読めたら以降はキャッシュする」考え方だが、初回オープンの時点でまだ流し込みが
@@ -2482,8 +2513,8 @@ if (opponentNotesSection) {
 		//
 		// 左右2列構成にしている: 左列(buildLeft)=攻守の向き・相手アイコンという
 		// 「誰と誰の対面か」が一目で分かる主要情報。右列(buildRight)は縦2段で、
-		// 上段(buildMain)=種族名・アイテム、下段(buildFields)=特性・テラス・実数値という
-		// 補助情報をまとめて中央寄せ・小さめ/控えめな文字で表示する
+		// 上段(buildMain)=種族名・特性、下段(buildFields)=アイテム・実数値という
+		// 補助情報をまとめて左揃え・小さめ/控えめな文字で表示する
 		// (box-damage-card.cssの--damage-card-build-detail-*系チューニング変数参照)。
 		const buildEl = document.createElement("div");
 		buildEl.className = "damage-row-build";
@@ -2493,7 +2524,7 @@ if (opponentNotesSection) {
 		const buildLeft = document.createElement("div");
 		buildLeft.className = "damage-row-build-left";
 		buildEl.appendChild(buildLeft);
-		// 右列: 種族名・アイテム(上段)+特性・実数値(下段)。
+		// 右列: 種族名・特性(上段)+アイテム・実数値(下段)。
 		const buildRight = document.createElement("div");
 		buildRight.className = "damage-row-build-right";
 		buildEl.appendChild(buildRight);
@@ -2539,7 +2570,7 @@ if (opponentNotesSection) {
 		spriteBox.append(spriteImg, spriteFallback);
 		matchup.appendChild(spriteBox);
 
-		// 上段: 種族名・アイテム。
+		// 上段: 種族名・特性。
 		const buildMain = document.createElement("div");
 		buildMain.className = "damage-row-build-main";
 		buildRight.appendChild(buildMain);
@@ -2565,12 +2596,12 @@ if (opponentNotesSection) {
 		const itemNameText = document.createElement("span");
 		itemNameText.className = "damage-build-item-name";
 		buildItemField.appendChild(itemNameText);
-		buildMain.appendChild(buildItemField);
 
-		// 下段: 特性・テラス・実数値をまとめて中央寄せの控えめな行にする。
+		// 下段: アイテム・実数値をまとめて左揃えの控えめな行にする。
 		const buildFields = document.createElement("div");
 		buildFields.className = "damage-row-build-fields";
 		buildRight.appendChild(buildFields);
+		buildFields.appendChild(buildItemField);
 		function makeReadonlyField(labelText: string): { field: HTMLElement; value: HTMLElement } {
 			const field = document.createElement("span");
 			field.className = "damage-build-readonly-field";
@@ -2588,6 +2619,7 @@ if (opponentNotesSection) {
 		}
 		const { field: abilityReadonlyField, value: abilityText } = makeReadonlyField("");
 		abilityReadonlyField.classList.add("damage-build-readonly-ability-line");
+		buildMain.appendChild(abilityReadonlyField);
 
 		const detailForm = document.createElement("div");
 		detailForm.className = "damage-detail-panel-body-inner damage-build-detail-form";
@@ -2775,7 +2807,7 @@ if (opponentNotesSection) {
 			// 仮表示。保存済みの値をそのまま1件だけ置く(左パネルのSSR初期値と同じ考え方)。
 			const placeholderOpt = document.createElement("option");
 			placeholderOpt.value = row.abilityName;
-			placeholderOpt.textContent = row.abilityName || "特性";
+			placeholderOpt.textContent = row.abilityName || "特性なし";
 			placeholderOpt.selected = true;
 			abilitySelect.appendChild(placeholderOpt);
 		}
@@ -2795,7 +2827,7 @@ if (opponentNotesSection) {
 				abilitySelect.disabled = true;
 				const emptyOpt = document.createElement("option");
 				emptyOpt.value = "";
-				emptyOpt.textContent = "特性";
+				emptyOpt.textContent = "特性なし";
 				abilitySelect.appendChild(emptyOpt);
 				abilitySelect.value = "";
 				abilitySelect.title = "";
@@ -2810,7 +2842,7 @@ if (opponentNotesSection) {
 			abilitySelect.disabled = false;
 			const placeholderOpt = document.createElement("option");
 			placeholderOpt.value = "";
-			placeholderOpt.textContent = "特性を選択";
+			placeholderOpt.textContent = "特性なし";
 			abilitySelect.appendChild(placeholderOpt);
 			for (const a of abilities) {
 				const opt = document.createElement("option");
@@ -2818,7 +2850,18 @@ if (opponentNotesSection) {
 				opt.textContent = a;
 				abilitySelect.appendChild(opt);
 			}
-			abilitySelect.value = abilities.includes(previousValue) ? previousValue : abilities[0];
+			if (abilities.includes(previousValue)) {
+				abilitySelect.value = previousValue;
+			} else {
+				// 既存の選択値が候補にない(種族名が変わった等)場合は、候補先頭ではなく
+				// 採用率が最も高い特性をデフォルトにする。取得できない・該当なしの場合は
+				// 従来通り候補先頭にフォールバックする。
+				abilitySelect.value = abilities[0];
+				const popular = await fetchPopularAbilitySuggestion(trimmed, currentIndividualRegulation());
+				if (token !== abilityRequestToken) return; // より新しい呼び出しに追い越された
+				const popularValue = popular?.options.find((o) => abilities.includes(o.value))?.value;
+				if (popularValue) abilitySelect.value = popularValue;
+			}
 			abilitySelect.title = abilitySelect.value;
 			if (abilitySelect.value !== previousValue) {
 				row.abilityName = abilitySelect.value;
