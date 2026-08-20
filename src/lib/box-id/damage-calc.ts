@@ -2480,21 +2480,27 @@ if (opponentNotesSection) {
 		// この箱のクリックは無反応(サイドバーを開くのは技列の箱だけ)。選択マーカー用の
 		// row.buildEl参照は持たない。
 		//
-		// 2段構成にしている: 1段目(buildMain)=攻守の向き・相手アイコン・種族名という
-		// 「誰と誰の対面か」が一目で分かる主要情報。2段目(buildFields)=特性・テラス・
-		// アイテム・実数値という補助情報をまとめて中央寄せ・小さめ/控えめな文字で表示する
+		// 左右2列構成にしている: 左列(buildLeft)=攻守の向き・相手アイコンという
+		// 「誰と誰の対面か」が一目で分かる主要情報。右列(buildRight)は縦2段で、
+		// 上段(buildMain)=種族名・アイテム、下段(buildFields)=特性・テラス・実数値という
+		// 補助情報をまとめて中央寄せ・小さめ/控えめな文字で表示する
 		// (box-damage-card.cssの--damage-card-build-detail-*系チューニング変数参照)。
 		const buildEl = document.createElement("div");
 		buildEl.className = "damage-row-build";
 		body.appendChild(buildEl);
 
-		// 1段目: 攻守の向き・相手アイコン・種族名。
-		const buildMain = document.createElement("div");
-		buildMain.className = "damage-row-build-main";
-		buildEl.appendChild(buildMain);
+		// 左列: 攻守の向き・相手アイコン。
+		const buildLeft = document.createElement("div");
+		buildLeft.className = "damage-row-build-left";
+		buildEl.appendChild(buildLeft);
+		// 右列: 種族名・アイテム(上段)+特性・実数値(下段)。
+		const buildRight = document.createElement("div");
+		buildRight.className = "damage-row-build-right";
+		buildEl.appendChild(buildRight);
+
 		const matchup = document.createElement("div");
 		matchup.className = "damage-build-matchup";
-		buildMain.appendChild(matchup);
+		buildLeft.appendChild(matchup);
 
 		// 「攻撃」「防御」の向きを示す状態表示(クリックでの切り替えは廃止。向きの変更は
 		// 下方のdetailAttackOption/detailDefenseOption(詳細設定パネル側)のみで行う。
@@ -2531,25 +2537,40 @@ if (opponentNotesSection) {
 		const spriteFallback = document.createElement("span");
 		spriteFallback.className = "sprite-fallback";
 		spriteBox.append(spriteImg, spriteFallback);
-		// 持ち物アイコン。applyItemImage(shared-core.ts)がこのバッジ要素の.damage-item-badgeを
-		// closest()で見つけてhidden制御するため、クラス名は固定(applyItemImageのコメント参照)。
-		const itemBadge = document.createElement("span");
-		itemBadge.className = "damage-item-badge";
-		itemBadge.hidden = true;
-		const itemBadgeImg = document.createElement("img");
-		itemBadgeImg.alt = "";
-		itemBadge.appendChild(itemBadgeImg);
-		spriteBox.appendChild(itemBadge);
 		matchup.appendChild(spriteBox);
+
+		// 上段: 種族名・アイテム。
+		const buildMain = document.createElement("div");
+		buildMain.className = "damage-row-build-main";
+		buildRight.appendChild(buildMain);
 
 		const nameText = document.createElement("span");
 		nameText.className = "damage-build-readonly-name";
 		buildMain.appendChild(nameText);
 
-		// 2段目: 特性・テラス・アイテム・実数値をまとめて中央寄せの控えめな行にする。
+		// アイテム欄(アイコン+名前)。applyItemImage(shared-core.ts)がitemBadge要素の
+		// .damage-item-badgeをclosest()で見つけてhidden制御するため、クラス名は固定
+		// (applyItemImageのコメント参照)。変数名はbuildItemFieldとする
+		// (下方の詳細設定パネル側で別の`const itemField`(アイテムのドロップダウン欄)を
+		// 同じ関数スコープ内で宣言しており、名前が衝突するため)。
+		const buildItemField = document.createElement("span");
+		buildItemField.className = "damage-build-item-field";
+		buildItemField.hidden = true;
+		const itemBadge = document.createElement("span");
+		itemBadge.className = "damage-item-badge";
+		const itemBadgeImg = document.createElement("img");
+		itemBadgeImg.alt = "";
+		itemBadge.appendChild(itemBadgeImg);
+		buildItemField.appendChild(itemBadge);
+		const itemNameText = document.createElement("span");
+		itemNameText.className = "damage-build-item-name";
+		buildItemField.appendChild(itemNameText);
+		buildMain.appendChild(buildItemField);
+
+		// 下段: 特性・テラス・実数値をまとめて中央寄せの控えめな行にする。
 		const buildFields = document.createElement("div");
 		buildFields.className = "damage-row-build-fields";
-		buildEl.appendChild(buildFields);
+		buildRight.appendChild(buildFields);
 		function makeReadonlyField(labelText: string): { field: HTMLElement; value: HTMLElement } {
 			const field = document.createElement("span");
 			field.className = "damage-build-readonly-field";
@@ -2644,6 +2665,9 @@ if (opponentNotesSection) {
 		function refreshBuildSummary(): void {
 			nameText.textContent = row.name.trim() || "相手ポケモン未設定";
 			abilityText.textContent = row.abilityName.trim() || "未設定";
+			const itemName = row.itemName.trim();
+			buildItemField.hidden = itemName === "";
+			itemNameText.textContent = itemName;
 			void applyItemImage(itemBadgeImg, row.itemName);
 			refreshReadonlyEvs();
 		}
