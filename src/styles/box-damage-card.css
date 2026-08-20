@@ -169,6 +169,7 @@ body.box-edit-page {
   /* ── 8. 寸法 ─────────────────────── */
   --damage-card-max-width: 100%; /* カードの最大幅。小さくすると親要素より細くなる */
   --damage-card-build-width: 340px; /* 広い画面での相手情報欄の幅。大きくすると技欄が狭くなる */
+  --damage-card-build-col1-width: 7.5em; /* 相手情報2列グリッドの種族名・アイテム列幅。長い名前は省略して右列の実数値表示を確保する */
   --damage-card-tera-summary-icon-size: 20px; /* テラスタイプの小アイコン。大きくすると名前横の印が大きくなる */
   --damage-card-dropdown-max-height: 16rem; /* 候補リストの最大高さ。小さくすると早くスクロール表示になる */
   --damage-card-sprite-size: 40px; /* 自分・相手ポケモン画像の表示サイズ(共通) */
@@ -289,21 +290,21 @@ body.box-edit-page {
   flex: none;
 }
 
-/* 右列: 種族名・特性(上段)/アイテム・実数値(下段) */
+/* 右列: 種族名・特性(上段)/アイテム・実数値(下段)を2列×2行にそろえる */
 #opponent-notes-section .damage-row-build-right {
   flex: 1 1 auto;
   min-width: 0;
-  flex-direction: column;
-  gap: var(--damage-card-build-gap);
-  display: flex;
+  grid-template-columns: minmax(0, var(--damage-card-build-col1-width)) minmax(0, 1fr);
+  column-gap: var(--damage-build-text-gap);
+  row-gap: var(--damage-card-build-gap);
+  align-items: baseline;
+  display: grid;
 }
 
-/* 上段: 種族名・特性 */
-#opponent-notes-section .damage-row-build-main {
-  align-items: center;
-  gap: var(--damage-build-text-gap);
-  min-width: 0;
-  display: flex;
+/* DOM上の行ラッパーを外し、4要素を右列グリッドへ直接参加させる */
+#opponent-notes-section .damage-row-build-main,
+#opponent-notes-section .damage-row-build-fields {
+  display: contents;
 }
 
 /* 攻守の向き(directionToggle)と相手アイコン(spriteBox)の対面表示 */
@@ -316,7 +317,8 @@ body.box-edit-page {
 
 #opponent-notes-section .damage-build-readonly-name {
   min-width: 0;
-  flex: 1 1 auto;
+  grid-column: 1;
+  grid-row: 1;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -334,7 +336,8 @@ body.box-edit-page {
   align-items: center;
   gap: var(--damage-card-tera-button-gap);
   min-width: 0;
-  flex: 1 1 auto;
+  grid-column: 1;
+  grid-row: 2;
   display: flex;
 }
 
@@ -351,17 +354,10 @@ body.box-edit-page {
   font-size: var(--damage-card-build-detail-font-size);
 }
 
-/* 下段: アイテム・実数値をまとめた控えめな行。1段目より文字を
-   小さく薄くして情報の主従を示す(--damage-card-build-detail-*系トークン参照)。
-   上段(.damage-row-build-main)と開始位置をそろえるため左揃えにする。 */
+/* アイテム・実数値は控えめな文字色・サイズで表示する。 */
 #opponent-notes-section .damage-row-build-fields {
-  flex-wrap: wrap;
-  justify-content: flex-start;
-  align-items: baseline;
-  gap: var(--damage-card-build-gap) var(--damage-build-text-gap);
   color: var(--damage-card-build-detail-color);
   font-size: var(--damage-card-build-detail-font-size);
-  display: flex;
 }
 
 #opponent-notes-section .damage-build-readonly-field {
@@ -399,6 +395,8 @@ body.box-edit-page {
    --damage-card-build-detail-*系トークンをこの要素自身へ明示する。 */
 #opponent-notes-section .damage-build-readonly-ability-line {
   min-width: 0;
+  grid-column: 2;
+  grid-row: 1;
   color: var(--damage-card-build-detail-color);
   font-size: var(--damage-card-build-detail-font-size);
 }
@@ -719,6 +717,8 @@ body.box-edit-page {
 
 /* カード内に1行で並ぶ能力値サマリー */
 #opponent-notes-section .damage-ev-grid-readonly {
+  grid-column: 2;
+  grid-row: 2;
   align-items: baseline;
   gap: var(--space-1);
   white-space: nowrap;
@@ -1874,17 +1874,10 @@ body.box-edit-page {
     grid-column: 1 / -1;
   }
 
-  /* 相手情報欄(.damage-row-build)は左右2列構成(左列=damage-row-build-left、
-     右列=damage-row-build-right、右列はさらに上段=damage-row-build-main・
-     下段=damage-row-build-fieldsの縦2段)。通常のフローで並ぶだけなので、
-     ここではコンパクト表示用の余白調整のみ行う。 */
+  /* 相手情報欄は左列と、種族名・特性・アイテム・実数値の2列×2行グリッドで構成する。 */
   #opponent-notes-section .card-damage .damage-row-build {
     gap: var(--damage-card-mobile-build-gap);
     padding: var(--damage-card-mobile-build-padding);
-  }
-
-  #opponent-notes-section .card-damage .damage-row-build-main {
-    padding-right: var(--damage-card-mobile-summary-right-padding);
   }
 
   /* 攻守は「現在の向きを示す単一のピルバッジ」として見せる(.damage-suggest-direction=
