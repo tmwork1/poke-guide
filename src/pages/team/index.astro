@@ -95,15 +95,9 @@ const user = Astro.locals.user;
 						</div>
 
 						<div class="toolbar-item toolbar-sort">
-							{/* 可視の「並べ替え」<label>は置かず、box/index.astroの.sort-select-wrap/.sort-icon
-							    と同じSVGアイコン重畳パターンに揃える。 */}
+							{/* 可視の「並べ替え」<label>は置かず、⇅記号を重ねて表示する。 */}
 							<div class="sort-select-wrap">
-								<svg class="sort-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-									<path d="M7 4v16" />
-									<path d="M4 7l3-3 3 3" />
-									<path d="M17 20V4" />
-									<path d="M14 17l3 3 3-3" />
-								</svg>
+								<span class="sort-icon" aria-hidden="true">⇅</span>
 								<select id="sort-select" class="field-control" aria-label="並べ替え">
 									{/* 「〜順」は付けない: /box の並べ替え(最終更新/最終使用/ニックネーム)に表記を揃える。 */}
 									<option value="updated_at">最終更新</option>

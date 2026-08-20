@@ -223,6 +223,8 @@ a {
 .sort-select-wrap .sort-icon {
   position: absolute;
   left: 0.7em;
+  font-size: 15px;
+  line-height: 1;
   color: var(--color-text-muted);
   pointer-events: none;
 }
