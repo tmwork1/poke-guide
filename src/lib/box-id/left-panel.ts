@@ -1508,7 +1508,12 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 	const titleEl = document.createElement("span");
 	titleEl.className = "move-picker-title";
 	titleEl.textContent = "わざ選択";
-	headerEl.appendChild(titleEl);
+	const closeButton = document.createElement("button");
+	closeButton.type = "button";
+	closeButton.className = "move-picker-close";
+	closeButton.setAttribute("aria-label", "わざ選択を閉じる");
+	closeButton.textContent = "×";
+	headerEl.append(titleEl, closeButton);
 
 	const toggleLabel = document.createElement("label");
 	toggleLabel.className = "move-picker-toggle";
@@ -2056,6 +2061,7 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 		window.removeEventListener("scroll", onScrollOrResize, true);
 	}
 
+	closeButton.addEventListener("click", closePicker);
 	bindModalDismissal({
 		backdrop: backdropEl,
 		isOpen: () => !windowEl.hidden && windowEl.getAttribute("aria-modal") === "true",
