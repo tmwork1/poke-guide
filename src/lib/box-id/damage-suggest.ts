@@ -197,10 +197,12 @@ function buildSuggestionCard(suggestion: DamageCalcSuggestion): HTMLElement {
 	const body = document.createElement("span");
 	body.className = "damage-suggest-body";
 
-	// 1段目: 攻守 + 相手のスプライト + (種族名は削除、C-3)相手の持ち物。
-	const nameRow = document.createElement("span");
-	nameRow.className = "damage-suggest-name-row";
-	nameRow.appendChild(buildDirectionChip(suggestion.direction));
+	// 左列: 攻守チップ + 相手のスプライト。ダメージカード一覧の相手ビルドカード
+	// (.damage-row-build-left = .damage-build-matchup)と同じ「左列=攻守+アイコン」の
+	// 構成にそろえる(C-6でnameRowの1段目からleftへ分離)。
+	const left = document.createElement("span");
+	left.className = "damage-suggest-left";
+	left.appendChild(buildDirectionChip(suggestion.direction));
 	const spriteEl = document.createElement("span");
 	spriteEl.className = "damage-suggest-sprite";
 	// C-3: 種族名の文字表示(nameEl)を削除する代わりに、どのポケモンかという情報が
@@ -214,10 +216,26 @@ function buildSuggestionCard(suggestion: DamageCalcSuggestion): HTMLElement {
 	spriteFallback.className = "damage-suggest-sprite-fallback";
 	spriteEl.append(spriteImg, spriteFallback);
 	void applySprite(spriteImg, spriteFallback, suggestion.opponentName);
-	nameRow.appendChild(spriteEl);
-	// 持ち物は相手のもの(集計側が返す想定ビルド)なので、相手のスプライトと同じ行に置く
-	// ── 下の技名の行に置くと、direction='attack' のとき「自分が使う技」と「相手の持ち物」が
-	// 同じ行に並んでどちらの持ち物か読めなくなる。team-suggest-name-row と同じ並びでもある。
+	left.appendChild(spriteEl);
+	body.appendChild(left);
+
+	// 右列: 上段(特性・持ち物)+ 下段(技・根拠)の縦2段(C-6)。
+	const right = document.createElement("span");
+	right.className = "damage-suggest-right";
+
+	// 右列上段: 特性(新設)+ 持ち物。持ち物は相手のもの(集計側が返す想定ビルド)なので、
+	// 自分が使う技(direction='attack'のとき下段に出る)と混ざらないよう上段にまとめる。
+	const main = document.createElement("span");
+	main.className = "damage-suggest-right-main";
+	// 特性は値があるときだけ要素を作る(itemGroupと同じ流儀)。相手ビルドカードの
+	// 特性欄(.damage-build-readonly-ability-line)と同じ控えめな見た目にする。
+	if (suggestion.opponentBuild.abilityName) {
+		const abilityEl = document.createElement("span");
+		abilityEl.className = "damage-suggest-ability";
+		abilityEl.textContent = suggestion.opponentBuild.abilityName;
+		abilityEl.title = suggestion.opponentBuild.abilityName;
+		main.appendChild(abilityEl);
+	}
 	if (suggestion.opponentBuild.itemName) {
 		// アイコンと名前は1つの塊にする(別々にappendすると、折り返しでアイコンだけが
 		// 前の行に取り残される。実測で発覚)。
@@ -231,13 +249,13 @@ function buildSuggestionCard(suggestion: DamageCalcSuggestion): HTMLElement {
 		itemEl.className = "damage-suggest-item-name";
 		itemEl.textContent = suggestion.opponentBuild.itemName;
 		itemGroup.append(itemIcon, itemEl);
-		nameRow.appendChild(itemGroup);
+		main.appendChild(itemGroup);
 	}
-	body.appendChild(nameRow);
+	right.appendChild(main);
 
-	// 2段目: タイプアイコン + 技名(左) + 根拠(右、C-5でここへ移設)。
+	// 右列下段: タイプアイコン + 技名(左) + 根拠(右、C-5でここへ移設)。
 	// direction='attack' ならこの個体が使う技、'defense' なら相手が使う技
-	// (どちらの技かは1段目の攻守チップが決める)。
+	// (どちらの技かは左列の攻守チップが決める)。
 	const moveRow = document.createElement("span");
 	moveRow.className = "damage-suggest-move-row";
 	// C-4: 技のタイプアイコンを技名の左に追加する(right-panel.tsのmoveDropdownの
@@ -269,7 +287,8 @@ function buildSuggestionCard(suggestion: DamageCalcSuggestion): HTMLElement {
 	reasonEl.textContent = `${Math.round(suggestion.ratio * 100)}%が計算`;
 	reasonEl.title = `${subject}を育てている${suggestion.count}体が同じダメージ計算を登録`;
 	moveRow.appendChild(reasonEl);
-	body.appendChild(moveRow);
+	right.appendChild(moveRow);
+	body.appendChild(right);
 
 	button.appendChild(body);
 

@@ -2004,10 +2004,13 @@ body.box-edit-page {
    だけ表示していたが、開閉しなくても常に見えるほうが便利という要望で移設した(この移設に
    伴いdamage-detail-panel.cssから本セクションのルールを削除している)。
    src/pages/team/[id].astro の .team-suggest-* 一式(順位/本文/操作の3列グリッド、
-   48pxスプライト、xsサイズのmuted補足行)をそのまま写した見た目は変えていない。
-   値・トークンは新設せず、既存のカード用トークン(.card-damageの攻守バッジ配色・角丸)と
-   グローバルトークンだけを使う。document.createElement()による動的生成のため
-   scoped<style>は効かない(pitfalls.md「JSで生成した要素に効かない」)。
+   48pxスプライト、xsサイズのmuted補足行)を出発点にしていたが、C-6でダメージカード
+   一覧の相手ビルドカード(.damage-row-build)と同じ「左列=攻守+アイコン、右列=縦2段」の
+   2カラム構成に組み替えた(1カラム縦積みだと相手ビルドカードと見た目がそろわないため)。
+   値・トークンは新設せず、既存のカード用トークン(.card-damageの攻守バッジ配色・角丸、
+   damage-build-系/damage-card-build-系の各種CSS変数)とグローバルトークンだけを使う。
+   document.createElement()による動的生成のためscoped<style>は効かない
+   (pitfalls.md「JSで生成した要素に効かない」)。
    -------------------------------------------------------------------------- */
 #opponent-notes-section .damage-suggest-list {
   list-style: none;
@@ -2043,20 +2046,53 @@ body.box-edit-page {
   background: var(--damage-card-active-background);
 }
 
+/* 左列(攻守+アイコン)・右列(特性/持ち物+技/根拠)の2カラム。ダメージカード一覧の
+   相手ビルドカード(.damage-row-build)と同じ考え方(左列=固定幅で縮まない、
+   右列=残り幅いっぱい)。 */
 #opponent-notes-section .damage-suggest-body {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--damage-build-area-gap);
   min-width: 0;
-  display: block;
 }
 
-/* 攻守チップ・スプライト・相手の持ち物を1段目に置く。持ち物まで入ると一覧の幅には
-   収まらないため折り返しを許す(team側の.team-suggest-buildと同じ判断: 切ると
-   提案の中身そのものが読めなくなる)。 */
-#opponent-notes-section .damage-suggest-name-row {
+/* 左列: 攻守チップ + スプライト。中身は.damage-build-matchupと同じ横並びにする。 */
+#opponent-notes-section .damage-suggest-left {
+  display: flex;
+  align-items: center;
+  gap: var(--damage-build-icon-gap);
+  flex: none;
+}
+
+/* 右列: 上段(特性・持ち物)+ 下段(技・根拠)の縦2段。 */
+#opponent-notes-section .damage-suggest-right {
+  display: flex;
+  flex-direction: column;
+  gap: var(--damage-card-build-gap);
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* 右列上段: 特性(あれば)・相手の持ち物(あれば)を横に並べる。両方とも折り返しを
+   許す(team側の.team-suggest-buildと同じ判断: 切ると提案の中身そのものが読めなくなる)。 */
+#opponent-notes-section .damage-suggest-right-main {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: .15em var(--space-2);
   min-width: 0;
+}
+
+/* 特性は相手ビルドカードの特性欄(.damage-build-readonly-ability-line)と同じ、
+   控えめな文字色・サイズにする(--damage-card-build-detail-*系トークンを共有)。 */
+#opponent-notes-section .damage-suggest-ability {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+  color: var(--damage-card-build-detail-color);
+  font-size: var(--damage-card-build-detail-font-size);
 }
 
 /* 攻守チップは相手ビルドカードの攻守バッジ(.card-damage .damage-build-matchup
@@ -2106,14 +2142,16 @@ body.box-edit-page {
 }
 
 /* 技名(左)+タイプアイコン。根拠は同じ行の右側に表示する。列幅は限られるため
-   折り返して2行になることを許す(切ると提案の中身が読めなくなる)。 */
+   折り返して2行になることを許す(切ると提案の中身が読めなくなる)。
+   上段(.damage-suggest-right-main)との間隔は親(.damage-suggest-right)のgapに
+   任せるため、自前のmargin-topは持たない(C-6: 2列化に伴い親のflex方向が
+   縦に変わったため)。 */
 #opponent-notes-section .damage-suggest-move-row {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: .15em .25em;
   line-height: var(--line-height-snug);
-  margin-top: .15em;
 }
 
 /* 技のタイプアイコン。既存の技名候補一覧(damage-detail-move-dropdown-option-icon)と
