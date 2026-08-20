@@ -19,38 +19,25 @@ type SortMode = "popularity" | "dex" | "kana";
 const speciesInput = el<HTMLInputElement>("species-name");
 const triggerButton = el<HTMLButtonElement>("species-select-trigger-button");
 const triggerLabel = el<HTMLElement>("species-select-trigger-label");
-const triggerIconImg = el<HTMLImageElement>("species-select-trigger-icon-img");
-const triggerIconFallback = el<HTMLElement>("species-select-trigger-icon-fallback");
 const backdropEl = el<HTMLElement>("species-select-backdrop");
 const dialogEl = el<HTMLElement>("species-select-dialog");
 const closeButton = el<HTMLButtonElement>("species-select-close-button");
 const gridEl = el<HTMLElement>("species-select-grid");
 const emptyEl = el<HTMLElement>("species-select-empty");
-const nameFilterInput = el<HTMLInputElement>("species-select-name-filter");
-const abilityFilterInput = el<HTMLInputElement>("species-select-ability-filter");
-const megaToggle = el<HTMLInputElement>("species-select-mega-toggle");
+const searchInput = el<HTMLInputElement>("species-select-search-input");
 const sortButton = el<HTMLButtonElement>("species-select-sort-button");
 const sortPanel = el<HTMLElement>("species-select-sort-panel");
-const typeButton = el<HTMLButtonElement>("species-select-type-button");
-const typePanel = el<HTMLElement>("species-select-type-panel");
-const moveButton = el<HTMLButtonElement>("species-select-move-button");
-const movePanel = el<HTMLElement>("species-select-move-panel");
-const moveInput = el<HTMLInputElement>("species-select-move-input");
-const moveChipsEl = el<HTMLElement>("species-select-move-chips");
+const typeRow = el<HTMLElement>("species-select-type-row");
 
 let sortMode: SortMode = "popularity";
-let includeMega = true;
-let nameFilter = "";
-let abilityFilter = "";
-const selectedTypes = new Set<string>();
-const moveChips: string[] = [];
+let searchQuery = "";
+const selectedTypes: string[] = [];
 
 let masterList: PokemonMasterEntry[] | null = null;
 let abilitiesMap: Map<string, string[]> | null = null;
 let learnsetMap: Map<string, string[]> | null = null;
 let dataPromise: Promise<void> | null = null;
 let gridBuilt = false;
-let typePanelBuilt = false;
 const cellByName = new Map<string, HTMLButtonElement>();
 
 const sortLabels: Record<SortMode, string> = {
@@ -63,11 +50,10 @@ function updateTriggerButton(): void {
 	const name = speciesInput.value.trim();
 	triggerButton.classList.toggle("is-empty", name === "");
 	triggerLabel.textContent = name || "種族";
-	void applySprite(triggerIconImg, triggerIconFallback, name);
 }
 
 function updateSortButton(): void {
-	sortButton.textContent = `ソート条件(${sortLabels[sortMode]})`;
+	sortButton.setAttribute("aria-label", `ソート条件: ${sortLabels[sortMode]}`);
 	for (const option of document.querySelectorAll<HTMLButtonElement>(".species-select-sort-option")) {
 		const selected = option.dataset.sort === sortMode;
 		option.classList.toggle("is-selected", selected);
@@ -75,21 +61,9 @@ function updateSortButton(): void {
 	}
 }
 
-function updateTypeButton(): void {
-	typeButton.textContent = selectedTypes.size === 0 ? "タイプ (AND)" : `タイプ (AND) (${selectedTypes.size})`;
-}
-
-function updateMoveButton(): void {
-	moveButton.textContent = moveChips.length === 0 ? "覚えるわざ (AND)" : `覚えるわざ (AND) (${moveChips.length})`;
-}
-
 function closeAllPopovers(): void {
 	sortPanel.hidden = true;
-	typePanel.hidden = true;
-	movePanel.hidden = true;
 	sortButton.setAttribute("aria-expanded", "false");
-	typeButton.setAttribute("aria-expanded", "false");
-	moveButton.setAttribute("aria-expanded", "false");
 }
 
 function togglePopover(panel: HTMLElement, button: HTMLButtonElement): void {
@@ -150,25 +124,35 @@ async function ensureData(): Promise<void> {
 	return dataPromise;
 }
 
+function matchesSearch(entry: PokemonMasterEntry): boolean {
+	if (searchQuery === "") return true;
+	if (kanaIncludes(entry.name, searchQuery)) return true;
+	if ((abilitiesMap?.get(entry.name) ?? []).some((ability) => kanaIncludes(ability, searchQuery))) return true;
+	if ((learnsetMap?.get(entry.name) ?? []).some((move) => kanaIncludes(move, searchQuery))) return true;
+	return false;
+}
+
+function matchesType(entry: PokemonMasterEntry): boolean {
+	return selectedTypes.length === 0 || selectedTypes.every((type) => entry.types.includes(type));
+}
+
 function renderGrid(): void {
 	if (!masterList || !abilitiesMap || !learnsetMap) return;
-	let entries = masterList.filter((entry) =>
-		(includeMega || !(entry.forme?.startsWith("Mega") ?? false)) &&
-		(nameFilter === "" || kanaIncludes(entry.name, nameFilter)) &&
-		(selectedTypes.size === 0 || [...selectedTypes].every((type) => entry.types.includes(type))) &&
-		(abilityFilter === "" || (abilitiesMap.get(entry.name) ?? []).some((ability) => kanaIncludes(ability, abilityFilter))) &&
-		(moveChips.length === 0 || moveChips.every((move) => (learnsetMap.get(entry.name) ?? []).includes(move))),
-	);
+	const filtered = masterList.filter((entry) => matchesSearch(entry) && matchesType(entry));
+	const isMega = (entry: PokemonMasterEntry): boolean => entry.forme?.startsWith("Mega") ?? false;
+	const nonMegaEntries = filtered.filter((entry) => !isMega(entry));
+	const megaEntries = filtered.filter(isMega);
+	let sortedNonMega = nonMegaEntries;
 
 	if (sortMode === "kana") {
-		entries = [...entries].sort((a, b) => a.name.localeCompare(b.name, "ja"));
+		sortedNonMega = [...nonMegaEntries].sort((a, b) => a.name.localeCompare(b.name, "ja"));
 	} else if (sortMode === "popularity") {
 		const usageByRegulation = readSpeciesUsageData();
 		if (usageByRegulation !== null) {
 			const regulation = (document.getElementById("regulation") as HTMLSelectElement | null)?.value ?? "";
-			const byName = new Map(entries.map((entry) => [entry.name, entry]));
-			entries = sortPokemonNamesByUsage(
-				entries.map((entry) => entry.name),
+			const byName = new Map(nonMegaEntries.map((entry) => [entry.name, entry]));
+			sortedNonMega = sortPokemonNamesByUsage(
+				nonMegaEntries.map((entry) => entry.name),
 				usageByRegulation[regulation.trim()] ?? {},
 			).flatMap((name) => {
 				const entry = byName.get(name);
@@ -177,7 +161,28 @@ function renderGrid(): void {
 		}
 	}
 
-	const orderedButtons = entries.flatMap((entry) => {
+	const megaByDex = new Map<number, PokemonMasterEntry[]>();
+	for (const mega of megaEntries) {
+		const megas = megaByDex.get(mega.dexNo) ?? [];
+		megas.push(mega);
+		megaByDex.set(mega.dexNo, megas);
+	}
+
+	const ordered: PokemonMasterEntry[] = [];
+	const usedDex = new Set<number>();
+	for (const entry of sortedNonMega) {
+		ordered.push(entry);
+		const megas = megaByDex.get(entry.dexNo);
+		if (megas && !usedDex.has(entry.dexNo)) {
+			ordered.push(...megas);
+			usedDex.add(entry.dexNo);
+		}
+	}
+	for (const [dexNo, megas] of megaByDex) {
+		if (!usedDex.has(dexNo)) ordered.push(...megas);
+	}
+
+	const orderedButtons = ordered.flatMap((entry) => {
 		const cell = cellByName.get(entry.name);
 		return cell ? [cell] : [];
 	});
@@ -186,9 +191,7 @@ function renderGrid(): void {
 	if (orderedButtons.length > 0) gridEl.replaceChildren(...orderedButtons);
 }
 
-function buildTypePanelOnce(): void {
-	if (typePanelBuilt) return;
-	typePanelBuilt = true;
+function buildTypeRow(): void {
 	for (const type of TERA_TYPES) {
 		if (type === "ステラ") continue;
 		const chip = document.createElement("button");
@@ -204,40 +207,22 @@ function buildTypePanelOnce(): void {
 		icon.onerror = () => { icon.style.display = "none"; };
 		chip.appendChild(icon);
 		chip.addEventListener("click", () => {
-			if (selectedTypes.has(type)) selectedTypes.delete(type);
-			else selectedTypes.add(type);
-			const selected = selectedTypes.has(type);
-			chip.classList.toggle("is-selected", selected);
-			chip.setAttribute("aria-pressed", String(selected));
-			updateTypeButton();
+			const index = selectedTypes.indexOf(type);
+			if (index >= 0) {
+				selectedTypes.splice(index, 1);
+			} else {
+				if (selectedTypes.length >= 2) selectedTypes.shift();
+				selectedTypes.push(type);
+			}
+			for (const typeChip of typeRow.querySelectorAll<HTMLButtonElement>(".species-select-type-chip")) {
+				const selected = selectedTypes.includes(typeChip.getAttribute("aria-label") ?? "");
+				typeChip.classList.toggle("is-selected", selected);
+				typeChip.setAttribute("aria-pressed", String(selected));
+			}
 			renderGrid();
 		});
-		typePanel.appendChild(chip);
+		typeRow.appendChild(chip);
 	}
-}
-
-function renderMoveChips(): void {
-	const fragment = document.createDocumentFragment();
-	for (const move of moveChips) {
-		const chip = document.createElement("span");
-		chip.className = "species-select-move-chip";
-		chip.append(document.createTextNode(move));
-		const remove = document.createElement("button");
-		remove.type = "button";
-		remove.className = "species-select-move-chip-remove";
-		remove.setAttribute("aria-label", `${move}を削除`);
-		remove.textContent = "×";
-		remove.addEventListener("click", () => {
-			const index = moveChips.indexOf(move);
-			if (index >= 0) moveChips.splice(index, 1);
-			renderMoveChips();
-			updateMoveButton();
-			renderGrid();
-		});
-		chip.appendChild(remove);
-		fragment.appendChild(chip);
-	}
-	moveChipsEl.replaceChildren(fragment);
 }
 
 async function openDialog(): Promise<void> {
@@ -245,7 +230,7 @@ async function openDialog(): Promise<void> {
 	backdropEl.hidden = false;
 	dialogEl.hidden = false;
 	renderGrid();
-	nameFilterInput.focus();
+	searchInput.focus();
 }
 
 function closeDialog(): void {
@@ -273,36 +258,8 @@ for (const option of document.querySelectorAll<HTMLButtonElement>(".species-sele
 }
 updateSortButton();
 
-megaToggle.addEventListener("change", () => {
-	includeMega = megaToggle.checked;
+searchInput.addEventListener("input", () => {
+	searchQuery = searchInput.value.trim();
 	renderGrid();
 });
-nameFilterInput.addEventListener("input", () => {
-	nameFilter = nameFilterInput.value.trim();
-	renderGrid();
-});
-
-typeButton.addEventListener("click", () => {
-	buildTypePanelOnce();
-	togglePopover(typePanel, typeButton);
-});
-updateTypeButton();
-
-abilityFilterInput.addEventListener("input", () => {
-	abilityFilter = abilityFilterInput.value.trim();
-	renderGrid();
-});
-
-moveButton.addEventListener("click", () => togglePopover(movePanel, moveButton));
-moveInput.addEventListener("keydown", (event) => {
-	if (event.key !== "Enter") return;
-	event.preventDefault();
-	const move = moveInput.value.trim();
-	if (!move || moveChips.includes(move)) return;
-	moveChips.push(move);
-	moveInput.value = "";
-	renderMoveChips();
-	updateMoveButton();
-	renderGrid();
-});
-updateMoveButton();
+buildTypeRow();

@@ -14,44 +14,24 @@ import '../../styles/species-select-dialog.css';
 >
 	<div class="species-select-header">
 		<h2 id="species-select-dialog-title" class="species-select-title">ポケモン選択</h2>
-		<button type="button" id="species-select-close-button" class="btn-ghost species-select-close" aria-label="閉じる">×</button>
-	</div>
-	<div class="species-select-toolbar">
 		<div class="species-select-sort-wrap">
-			<button type="button" id="species-select-sort-button" class="species-select-sort-button" aria-haspopup="true" aria-expanded="false">ソート条件</button>
+			<button type="button" id="species-select-sort-button" class="species-select-sort-button" aria-haspopup="true" aria-expanded="false">⇅</button>
 			<div id="species-select-sort-panel" class="species-select-sort-panel" hidden>
 				<button type="button" class="species-select-sort-option" data-sort="popularity">人気順</button>
 				<button type="button" class="species-select-sort-option" data-sort="dex">図鑑番号順</button>
 				<button type="button" class="species-select-sort-option" data-sort="kana">50音順</button>
 			</div>
 		</div>
-		<label class="species-select-mega-toggle">
-			<span class="toggle-switch">
-				<input type="checkbox" id="species-select-mega-toggle" class="toggle-switch-input" checked />
-				<span class="toggle-switch-track"><span class="toggle-switch-thumb"></span></span>
-			</span>
-			<span>メガシンカ含む</span>
-		</label>
+		<button type="button" id="species-select-close-button" class="btn-ghost species-select-close" aria-label="閉じる">×</button>
 	</div>
 	<div class="species-select-grid-wrap">
 		<div id="species-select-grid" class="species-select-grid" role="listbox" aria-label="ポケモンを選択"></div>
 		<p id="species-select-empty" class="species-select-empty" hidden>条件に一致するポケモンがいません</p>
 	</div>
 	<div class="species-select-filters">
-		<input type="text" id="species-select-name-filter" class="species-select-name-filter" placeholder="種族名で絞り込み" aria-label="種族名で絞り込み" autocomplete="off" />
-		<div class="species-select-type-wrap">
-			<button type="button" id="species-select-type-button" class="species-select-type-button" aria-haspopup="true" aria-expanded="false">タイプ (AND)</button>
-			<div id="species-select-type-panel" class="species-select-type-panel" hidden></div>
-		</div>
-		<input type="text" id="species-select-ability-filter" class="species-select-ability-filter" list="ability-list" placeholder="特性で絞り込み" aria-label="特性で絞り込み" autocomplete="off" />
-		<div class="species-select-move-wrap">
-			<button type="button" id="species-select-move-button" class="species-select-move-button" aria-haspopup="true" aria-expanded="false">覚えるわざ (AND)</button>
-			<div id="species-select-move-panel" class="species-select-move-panel" hidden>
-				<input type="text" id="species-select-move-input" class="species-select-move-input" list="move-list" placeholder="技名を入力してEnterで追加" aria-label="覚えるわざを追加" autocomplete="off" />
-				<div id="species-select-move-chips" class="species-select-move-chips"></div>
-			</div>
-		</div>
+		<input type="text" id="species-select-search-input" class="species-select-search-input" placeholder="種族名・特性・覚える技で検索" aria-label="種族名・特性・覚える技で検索" autocomplete="off" />
 	</div>
+	<div id="species-select-type-row" class="species-select-type-row" role="group" aria-label="タイプで絞り込み"></div>
 </div>
 
 <script>
