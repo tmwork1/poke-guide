@@ -2425,16 +2425,25 @@ if (opponentNotesSection) {
 	// 天候・フィールド・壁・急所・ランク補正・状態異常・テラスタル発動のうち、
 	// 既定でない値がすべて漏れなくここに出ること。この関数は1つのDamageColumnStateだけを
 	// 見る実装で、カード全体/技ごとを区別する必要はない。
+	// テラスタイプの個別指定(attackerTeraType/defenderTeraType)が未設定のときのフォールバックは、
+	// 攻撃側・防御側で参照すべき値が異なる(どちらが自分でどちらが相手かはrow.directionで
+	// 入れ替わるため)。呼び出し元(renderConditionChipsInto)で自分の実際のテラスタイプと
+	// row.teraType(相手のテラスタイプ)を、attacker用/defender用に振り分けて渡す。
 	type ConditionGroup = { label: "攻撃" | "防御" | null; chips: string[] };
 
-	function collectConditionGroups(a: DamageColumnState, showTera: boolean, rowTeraType: string): ConditionGroup[] {
+	function collectConditionGroups(
+		a: DamageColumnState,
+		showTera: boolean,
+		attackerFallbackTeraType: string,
+		defenderFallbackTeraType: string,
+	): ConditionGroup[] {
 		const attacker: string[] = [];
 		const defender: string[] = [];
 		const field: string[] = [];
 		if (a.critical) attacker.push("急所");
 		if (a.attackerAilment) attacker.push(a.attackerAilment);
 		if (showTera && a.attackerTerastallized) {
-			const teraType = a.attackerTeraType || rowTeraType;
+			const teraType = a.attackerTeraType || attackerFallbackTeraType;
 			attacker.push(teraType ? `${teraType}テラスタル` : "テラスタル");
 		}
 		if (a.wallEnabled) defender.push("壁");
@@ -2443,7 +2452,7 @@ if (opponentNotesSection) {
 		if (spikes > 0) defender.push(`まきびし${spikes}`);
 		if (a.defenderAilment) defender.push(a.defenderAilment);
 		if (showTera && a.defenderTerastallized) {
-			const teraType = a.defenderTeraType || rowTeraType;
+			const teraType = a.defenderTeraType || defenderFallbackTeraType;
 			defender.push(teraType ? `${teraType}テラスタル` : "テラスタル");
 		}
 		if (a.weather) field.push(a.weather);
@@ -2463,7 +2472,14 @@ if (opponentNotesSection) {
 		container.innerHTML = "";
 		// 非テラスレギュレーションでも計算に残っているテラスタル設定を
 		// ユーザーが把握できるよう常に表示する。
-		const groups = collectConditionGroups(attack, true, row.teraType);
+		// 攻撃側・防御側どちらが自分かはrow.direction次第で入れ替わるため、
+		// テラスタイプ未指定時のフォールバックも自分の実テラスタイプ(#tera)と
+		// row.teraType(相手のテラスタイプ)を役割に応じて振り分ける。
+		const selfTeraTypeValue = el<HTMLSelectElement>("tera").value;
+		const selfIsAttacker = row.direction !== "defense";
+		const attackerFallbackTeraType = selfIsAttacker ? selfTeraTypeValue : row.teraType;
+		const defenderFallbackTeraType = selfIsAttacker ? row.teraType : selfTeraTypeValue;
+		const groups = collectConditionGroups(attack, true, attackerFallbackTeraType, defenderFallbackTeraType);
 		container.hidden = groups.length === 0;
 		groups.forEach((group) => {
 			if (group.label) {

@@ -2023,15 +2023,18 @@ body.box-edit-page {
 
 /* カード全体が1つのボタン(操作が「追加」の1種類しかないため。team側は
    「育成する/チームに追加」の2択があるので右端に別ボタンを置いている)。
-   .card-damageと同様、パネル背景の上に直接置くカードの見た目にする
-   (--damage-card-background/--damage-card-active-background=カード本体と同じ背景トークン)。 */
+   ダメージカード内部の実際に視認される面(相手ビルドの箱=.damage-row-build、
+   技カード=.damage-column)と同じsurface系トークン(--damage-card-build-background=
+   --color-surface)を使う。hoverも--color-surfaceを起点にした配色に揃える
+   (--damage-card-active-backgroundは--color-bg起点のため、surface背景から
+   ホバーした際に色が不自然に飛んでしまう)。 */
 #opponent-notes-section .damage-suggest-card-button {
   width: 100%;
   display: block;
   padding: var(--space-2);
   border: 0;
   border-radius: var(--radius-zero);
-  background: var(--damage-card-background);
+  background: var(--damage-card-build-background);
   box-shadow: var(--shadow-sm);
   text-align: left;
   cursor: pointer;
@@ -2043,7 +2046,7 @@ body.box-edit-page {
 #opponent-notes-section .damage-suggest-card-button:hover,
 #opponent-notes-section .damage-suggest-card-button:focus-visible {
   box-shadow: var(--shadow-md);
-  background: var(--damage-card-active-background);
+  background: color-mix(in srgb, var(--color-surface) 90%, var(--color-primary) 10%);
 }
 
 /* 左列(攻守+アイコン)・右列(特性/持ち物+技/根拠)の2カラム。ダメージカード一覧の
