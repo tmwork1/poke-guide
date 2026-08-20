@@ -168,7 +168,7 @@ body.box-edit-page {
   /* ── 8. 寸法 ─────────────────────── */
   --damage-card-max-width: 100%; /* カードの最大幅。小さくすると親要素より細くなる */
   --damage-card-build-width: 340px; /* 広い画面での相手情報欄の幅。大きくすると技欄が狭くなる */
-  --damage-card-build-col1-width: 7.5em; /* 相手情報2列グリッドの種族名・アイテム列幅。長い名前は省略して右列の実数値表示を確保する */
+  --damage-card-build-detail-col-width: 7.5em; /* 相手情報2列グリッドの特性・アイテム列幅。短い補助情報を右列へまとめ、左列の種族名・実数値表示を広く確保する */
   --damage-card-tera-summary-icon-size: 20px; /* テラスタイプの小アイコン。大きくすると名前横の印が大きくなる */
   --damage-card-dropdown-max-height: 16rem; /* 候補リストの最大高さ。小さくすると早くスクロール表示になる */
   --damage-card-sprite-size: 40px; /* 自分・相手ポケモン画像の表示サイズ(共通) */
@@ -178,7 +178,8 @@ body.box-edit-page {
   --damage-card-action-size: 28px; /* カード右上の丸い削除ボタンの大きさ */
   --damage-card-techniques-min-width: 140px; /* 技一覧領域の最小幅 */
   --damage-card-compact-row-height: 35px; /* 技カード1行の高さの下限。多段ヒット技のヒット数表示などで内容が増えるとこれより高くなる */
-  --damage-card-move-icon-size: 20px; /* 技タイプアイコンの大きさ */
+  --damage-card-move-icon-size: 20px; /* 技タイプバーの高さ */
+  --damage-card-move-type-bar-width: 3px; /* 技名の左に立つタイプ識別バーの太さ */
   --damage-detail-control-min-height: var(--space-7); /* 詳細パネルの入力欄とボタンの最小高さ */
   --damage-detail-move-field-width: 10em; /* 技名入力欄の固定幅。マスターデータ最長の技名(全角8文字、実測content-fit幅は約9.3em)に安全マージンを足した値 */
   --damage-detail-hitcount-width: 4em; /* 連続技の回数入力欄の幅 */
@@ -289,11 +290,11 @@ body.box-edit-page {
   flex: none;
 }
 
-/* 右列: 種族名・特性(上段)/アイテム・実数値(下段)を2列×2行にそろえる */
+/* 右側情報欄: 左列に種族名・実数値、右列に特性・アイテムを2列×2行でそろえる */
 #opponent-notes-section .damage-row-build-right {
   flex: 1 1 auto;
   min-width: 0;
-  grid-template-columns: minmax(0, var(--damage-card-build-col1-width)) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, var(--damage-card-build-detail-col-width));
   column-gap: var(--damage-build-text-gap);
   row-gap: var(--damage-card-build-gap);
   align-items: center;
@@ -327,16 +328,13 @@ body.box-edit-page {
   color: var(--damage-card-summary-color);
 }
 
-/* アイテム欄(アイコン+名前)。以前はspriteBox右下に重ねる丸バッジだったが、
-   右列上段に種族名と並べて表示していた時期を経て、現在は右列下段で実数値表
-   (.damage-ev-grid-readonly)と行を分け合う。45%固定の上限は「上段で種族名と
-   場所を取り合う」前提だったため撤廃し、実数値表と自然に幅を分け合わせる
-   (本当に幅が足りないときだけ.damage-build-item-nameのellipsisが効けばよい)。 */
+/* アイテム欄(アイコン+名前)。短い補助情報として特性の下に置き、名前が固定列幅を
+   超えるときだけ.damage-build-item-nameのellipsisを効かせる。 */
 #opponent-notes-section .damage-build-item-field {
   align-items: center;
   gap: var(--damage-card-tera-button-gap);
   min-width: 0;
-  grid-column: 1;
+  grid-column: 2;
   grid-row: 2;
   display: flex;
 }
@@ -717,7 +715,7 @@ body.box-edit-page {
 
 /* カード内に1行で並ぶ能力値サマリー */
 #opponent-notes-section .damage-ev-grid-readonly {
-  grid-column: 2;
+  grid-column: 1;
   grid-row: 2;
   align-items: baseline;
   gap: var(--space-1);
@@ -1134,7 +1132,7 @@ body.box-edit-page {
   display: flex;
 }
 
-/* 技名とタイプアイコンをまとめる行。技名(.damage-column-move-text)を優先して
+/* 技名とタイプバーをまとめる行。技名(.damage-column-move-text)を優先して
    見切れさせないため、伸びも縮みもしない内容量ベースの幅にする(flex: none)。
    幅が足りなければ.damage-column-move-row側で行ごと折り返す。 */
 #opponent-notes-section .damage-column-move-identity {
@@ -1146,14 +1144,13 @@ body.box-edit-page {
   display: flex;
 }
 
-#opponent-notes-section .damage-column-move-type-icon {
-  width: var(--damage-card-move-icon-size);
+#opponent-notes-section .damage-column-move-type-bar {
+  width: var(--damage-card-move-type-bar-width);
   height: var(--damage-card-move-icon-size);
   flex: none;
-  object-fit: contain;
 }
 
-#opponent-notes-section .damage-column-move-type-icon[hidden] {
+#opponent-notes-section .damage-column-move-type-bar[hidden] {
   display: none;
 }
 

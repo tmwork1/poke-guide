@@ -40,7 +40,8 @@ import { type StatKey, STAT_KEYS, NATURE_STAT_MODIFIERS, calcHpStat, calcOtherSt
 import { TERA_TYPES } from "../tera-types";
 // テラス選択ボックスを左パネルと共通化するために使う。shared-core.tsは"../sprite-urls"から
 // teraTypeIconUrlをimportしているが再exportしていないため、ここで直接importする。
-import { teraTypeIconUrl, typeIconUrl } from "../sprite-urls";
+import { teraTypeIconUrl } from "../sprite-urls";
+import { DEFAULT_TYPE_COLOR, TYPE_COLORS } from "../type-colors";
 import { initializeCardDeleteMode } from "../card-delete-mode";
 // 相手ポケモンのアイテムドロップダウン(下のbuildItemDropdown参照)の検索欄で、育成タブの
 // 持ち物ドロップダウン(left-panel.ts)と同じかな・文字幅・英字大小を無視した絞り込みにする。
@@ -2268,14 +2269,12 @@ if (opponentNotesSection) {
 			moveRow.className = "damage-column-move-row";
 			const moveIdentity = document.createElement("div");
 			moveIdentity.className = "damage-column-move-identity";
-			const moveTypeIcon = document.createElement("img");
-			moveTypeIcon.className = "damage-column-move-type-icon";
-			moveTypeIcon.alt = "";
-			moveTypeIcon.hidden = true;
-			moveTypeIcon.addEventListener("error", () => { moveTypeIcon.hidden = true; });
+			const moveTypeBar = document.createElement("span");
+			moveTypeBar.className = "damage-column-move-type-bar";
+			moveTypeBar.hidden = true;
 			const moveText = document.createElement("span");
 			moveText.className = "damage-column-move-text";
-			moveIdentity.append(moveTypeIcon, moveText);
+			moveIdentity.append(moveTypeBar, moveText);
 			moveRow.appendChild(moveIdentity);
 			moveAndChips.appendChild(moveRow);
 			// ヒット数(「5ヒット」等)は技名の右・条件チップの左に置く(moveRowの子として
@@ -2289,10 +2288,8 @@ if (opponentNotesSection) {
 				moveText.textContent = name || "技未設定";
 				moveText.classList.toggle("is-placeholder", name === "");
 				const type = moveDetailMapCache?.get(name)?.type ?? null;
-				const iconUrl = type ? typeIconUrl(type) : null;
-				moveTypeIcon.hidden = !iconUrl;
-				if (iconUrl) moveTypeIcon.src = iconUrl;
-				else moveTypeIcon.removeAttribute("src");
+				moveTypeBar.hidden = type === null;
+				if (type !== null) moveTypeBar.style.backgroundColor = TYPE_COLORS[type] ?? DEFAULT_TYPE_COLOR;
 				hitText.hidden = true;
 				if (!name) {
 					attack.hitCount = 1;
