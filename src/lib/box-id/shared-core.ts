@@ -418,7 +418,7 @@ export interface DamageCalcBridge {
 	recalcRow: (row: DamageRowState) => Promise<void>;
 	saveRow: (row: DamageRowState) => Promise<void>;
 	setRowSaveStatus: (row: DamageRowState, state: string, text: string) => void;
-	renderConditionChipsInto: (container: HTMLElement, attack: DamageColumnState) => void;
+	renderConditionChipsInto: (container: HTMLElement, attack: DamageColumnState, row: DamageRowState) => void;
 	configureColumnMoveInput: (input: HTMLInputElement, row: DamageRowState, column: DamageColumnState) => void;
 	getColumnMoveCandidates: (row: DamageRowState, column: DamageColumnState) => string[];
 	getColumnMultiHitRange: (moveName: string) => Promise<[number, number] | undefined>;
@@ -534,7 +534,7 @@ export function scheduleRowSave(row: DamageRowState): void {
 export function refreshRowConditionChips(row: DamageRowState): void {
 	row.attacks.forEach((attack, i) => {
 		const chipEl = row.columnChipEls[i];
-		if (chipEl) damageCalcBridge!.renderConditionChipsInto(chipEl, attack);
+		if (chipEl) damageCalcBridge!.renderConditionChipsInto(chipEl, attack, row);
 	});
 }
 

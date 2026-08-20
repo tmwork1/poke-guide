@@ -58,8 +58,6 @@ body.box-edit-page {
   --damage-card-delete-mode-color: var(--color-danger-strong); /* 長押し削除モード中の削除記号色 */
   --damage-card-add-button-color: var(--color-text-muted); /* 「技を追加」ボタンの文字色 */
   --damage-card-build-detail-color: var(--color-text-muted); /* 相手情報2段目(特性・テラス・アイテム・実数値)の文字色 */
-  --damage-card-direction-arrow-attack-color: var(--color-danger-strong); /* 攻守矢印(攻撃向き)の色 */
-  --damage-card-direction-arrow-defense-color: var(--color-primary-strong); /* 攻守矢印(防御向き)の色 */
 
   /* ── 4. 背景色 ─────────────────────── */
   --damage-card-background: var(--color-bg); /* カードの通常時の背景色 */
@@ -78,6 +76,7 @@ body.box-edit-page {
   --damage-card-column-background: var(--color-surface); /* 技カードの背景色 */
   --damage-card-add-button-background: transparent; /* 「技を追加」ボタンの背景色 */
   --damage-detail-icon-button-background: var(--color-bg); /* アイコンボタンの通常背景色 */
+  --damage-card-item-badge-background: var(--color-surface); /* 持ち物バッジ(相手アイコン右下)の背景色 */
 
   /* ── 5. 枠線・角丸 ─────────────────────── */
   --damage-card-active-border-color: var(--color-border); /* hover・フォーカス時の枠線色 */
@@ -103,6 +102,7 @@ body.box-edit-page {
   --damage-detail-section-heading-border: 1px solid var(--color-border); /* 詳細セクションを分ける上線 */
   --damage-detail-icon-button-border: 1px solid var(--color-border); /* アイコンボタンの通常枠線 */
   --damage-detail-icon-button-radius: var(--radius-sm); /* アイコンボタンの角丸 */
+  --damage-card-item-badge-border: 1px solid var(--color-border); /* 持ち物バッジの枠線 */
 
   /* ── 6. 影 ─────────────────────── */
   --damage-card-shadow: none; /* カードの通常時の影。強くするとカードが手前に浮いて見える */
@@ -112,6 +112,7 @@ body.box-edit-page {
   --damage-card-type-badge-filter: drop-shadow(0 0 1px var(--color-surface)); /* タイプバッジの縁取り影 */
   --damage-card-action-shadow: var(--shadow-sm); /* 削除ボタンの影 */
   --damage-card-column-selected-shadow: 0 0 0 1px var(--color-primary); /* 選択中の技カードを囲む線 */
+  --damage-card-item-badge-shadow: var(--shadow-sm); /* 持ち物バッジの影 */
 
   /* ── 7. 余白 ─────────────────────── */
   --damage-card-margin: 0; /* カード外側の余白。大きくすると隣のカードから離れる */
@@ -188,8 +189,8 @@ body.box-edit-page {
   --damage-detail-selection-arrow-width: 27px; /* 対面表示の矢印の幅 */
   --damage-detail-selection-arrow-height: 18px; /* 対面表示の矢印の高さ */
   --damage-card-mobile-control-height: 28px; /* 特性・テラスタイプ操作の最小高さ */
-  --damage-card-direction-arrow-width: 22px; /* カード上の攻守矢印アイコンの幅(詳細設定パネルの対面表示矢印と同系統のSVG) */
-  --damage-card-direction-arrow-height: 15px; /* カード上の攻守矢印アイコンの高さ */
+  --damage-card-item-badge-size: 18px; /* 持ち物バッジ(相手アイコン右下)の一辺 */
+  --damage-card-item-badge-offset: -2px; /* 持ち物バッジを相手アイコンの右下端からずらす距離。負の値で外側へはみ出す */
 
   /* ── 9. その他 ─────────────────────── */
   --damage-card-transition-duration: .15s; /* hover色や影が切り替わる時間。大きくすると変化がゆっくりになる */
@@ -336,32 +337,6 @@ body.box-edit-page {
   display: none;
 }
 
-#opponent-notes-section .damage-build-readonly-tera {
-  min-width: 0;
-  max-width: 100%;
-  align-items: center;
-  gap: calc(var(--damage-card-readonly-field-gap) / 2);
-  display: flex;
-}
-
-#opponent-notes-section .damage-build-readonly-tera[hidden] {
-  display: none;
-}
-
-#opponent-notes-section .damage-build-readonly-tera-icon,
-/* テラスタイプ画像を読み込めないときの代替表示 */
-#opponent-notes-section .damage-build-readonly-tera-fallback {
-  width: var(--damage-card-tera-summary-icon-size);
-  height: var(--damage-card-tera-summary-icon-size);
-  flex: none;
-  object-fit: contain;
-}
-
-#opponent-notes-section .damage-build-readonly-tera-fallback {
-  display: none;
-}
-
-#opponent-notes-section .damage-build-readonly-tera-name,
 #opponent-notes-section .damage-build-readonly-value {
   min-width: 0;
   overflow: hidden;
@@ -582,6 +557,34 @@ body.box-edit-page {
   background: none;
   border-radius: 0;
   font-size: var(--damage-card-sprite-fallback-font-size);
+}
+
+/* 相手アイコン右下に重ねる持ち物バッジ。applyItemImage(shared-core.ts)がアイテム名の有無・
+   画像読み込み結果に応じてhiddenを自動制御する(box-card.cssの.card-item-badgeと同じ考え方)。 */
+#opponent-notes-section .damage-item-badge {
+  position: absolute;
+  right: var(--damage-card-item-badge-offset);
+  bottom: var(--damage-card-item-badge-offset);
+  width: var(--damage-card-item-badge-size);
+  height: var(--damage-card-item-badge-size);
+  background: var(--damage-card-item-badge-background);
+  border: var(--damage-card-item-badge-border);
+  border-radius: 50%;
+  box-shadow: var(--damage-card-item-badge-shadow);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#opponent-notes-section .damage-item-badge[hidden] {
+  display: none;
+}
+
+#opponent-notes-section .damage-item-badge img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 50%;
 }
 
 /* 左側の育成情報フォームにある種族タイプバッジ */
@@ -1064,13 +1067,14 @@ body.box-edit-page {
 }
 
 /* 技名とタイプアイコンをまとめる行。max-widthを固定値にすることで、技名の長さに関わらず
-   直後の.damage-column-conditions(条件チップ)の開始X座標を揃える(技名が長い場合は
-   .damage-column-move-textを折り返す。省略記号での切り詰めはしない=技名は必ず全部
-   読める。flex-grow:1のため画面幅に余裕があれば常にこのmax-widthまで広がる)。 */
+   直後の.damage-column-conditions(条件チップ)の開始X座標を揃える(flex-grow:1のため
+   画面幅に余裕があれば常にこのmax-widthまで広がる)。ヒット数(.damage-column-hitcount-text、
+   同じ.damage-column-move-rowの兄弟)にスペースを譲れるよう縮小は許可する
+   (flex-shrink:0ではなく1。技名自体は.damage-column-move-text側で省略記号にする)。 */
 #opponent-notes-section .damage-column-move-identity {
   align-items: center;
   gap: var(--damage-card-columns-gap);
-  flex: 1 0 auto;
+  flex: 1 1 auto;
   max-width: var(--damage-card-move-identity-max-width);
   min-width: 0;
   display: flex;
@@ -1087,13 +1091,14 @@ body.box-edit-page {
   display: none;
 }
 
-/* 技名は省略記号で切り詰めず、.damage-column-move-identityのmax-width内で
-   折り返して全部読めるようにする(見切れ対策。技カード自体の高さは
-   .damage-column側でmin-heightのみに変更済みのため、折り返しても内容が隠れない)。 */
+/* 技名はヒット数(同じ.damage-column-move-row内、技名の右)を必ず見せるため、
+   折り返さず1行に収めて省略記号で切り詰める(技名の全文はカード全体のtitleやクリックで
+   開く詳細パネル側で確認できる)。 */
 #opponent-notes-section .damage-column-move-text {
   min-width: 0;
-  white-space: normal;
-  overflow-wrap: anywhere;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   color: var(--color-text);
   font-size: var(--damage-card-move-font-size);
   font-weight: var(--damage-card-move-font-weight);
@@ -1834,49 +1839,6 @@ body.box-edit-page {
   #opponent-notes-section .card-damage .damage-build-matchup .damage-row-direction-option[data-role="defense"][aria-checked="true"] {
     color: var(--color-text-muted);
     background: none;
-  }
-
-  /* 攻守矢印の横に置く自分のポケモン画像 */
-  #opponent-notes-section .card-damage .damage-direction-self-badge {
-    width: var(--damage-card-sprite-size);
-    height: var(--damage-card-sprite-size);
-    justify-content: center;
-    align-items: center;
-    display: flex;
-  }
-
-  #opponent-notes-section .card-damage .damage-direction-self-image {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-  }
-
-  #opponent-notes-section .card-damage .damage-direction-self-fallback {
-    width: 100%;
-    height: 100%;
-    border-radius: var(--radius-md);
-    background: var(--color-bg);
-    justify-content: center;
-    align-items: center;
-    display: flex;
-  }
-
-  #opponent-notes-section .card-damage .damage-direction-arrow {
-    width: var(--damage-card-direction-arrow-width);
-    height: var(--damage-card-direction-arrow-height);
-    color: var(--color-text-muted);
-    flex-shrink: 0;
-  }
-
-  /* 攻守の向きが一目で分かるよう、矢印の色を攻撃=赤系統・防御=青系統に分ける
-     (--damage-card-attack-background/--damage-card-defense-backgroundと同じ配色方針)。 */
-  #opponent-notes-section .card-damage[data-direction="attack"] .damage-direction-arrow {
-    color: var(--damage-card-direction-arrow-attack-color);
-  }
-
-  #opponent-notes-section .card-damage[data-direction="defense"] .damage-direction-arrow {
-    color: var(--damage-card-direction-arrow-defense-color);
-    transform: scaleX(-1);
   }
 
   #opponent-notes-section .card-damage .damage-column-move-row .damage-row-condition-chips {

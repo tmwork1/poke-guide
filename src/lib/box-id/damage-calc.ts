@@ -48,7 +48,6 @@ import { kanaIncludes } from "../kana";
 import {
 	attachKanaTypeAhead,
 	applySprite,
-	applyTeraImage,
 	applyItemImage,
 	resolveMegaStoneItem,
 	flashAutofillHint,
@@ -781,7 +780,6 @@ function buildItemDropdown(initialValue: string): ItemDropdownHandle {
 const opponentNotesSection = document.getElementById("opponent-notes-section");
 if (opponentNotesSection) {
 	const ownedPokemonId = opponentNotesSection.dataset.ownedPokemonId ?? "";
-	const selfSpeciesName = document.querySelector<HTMLElement>(".pokemon-preview")?.dataset.speciesName?.trim() ?? "";
 	const rowBuildDetailForms = new WeakMap<DamageRowState, HTMLElement>();
 	const rowStatAdjustmentPanels = new WeakMap<DamageRowState, {
 		panel: StatAdjustmentPanel;
@@ -815,7 +813,7 @@ if (opponentNotesSection) {
 		recalcRow: (row) => recalcRow(row),
 		saveRow: (row) => saveRow(row),
 		setRowSaveStatus: (row, state, text) => setRowSaveStatus(row, state, text),
-		renderConditionChipsInto: (container, attack) => renderConditionChipsInto(container, attack),
+		renderConditionChipsInto: (container, attack, row) => renderConditionChipsInto(container, attack, row),
 		configureColumnMoveInput: (input, row, column) => configureColumnMoveInput(input, row, column),
 		getColumnMoveCandidates: (row, column) => getColumnMoveCandidates(row, column),
 		getColumnMultiHitRange: (moveName) => getColumnMultiHitRange(moveName),
@@ -2249,13 +2247,12 @@ if (opponentNotesSection) {
 			moveIdentity.append(moveTypeIcon, moveText);
 			moveRow.appendChild(moveIdentity);
 			moveAndChips.appendChild(moveRow);
-			// ヒット数(「5ヒット」等)は技名と同じ行に置くと、多段ヒット技の技名を
-			// 圧迫して見切れさせてしまうため、技名行の下に独立した行として置く
-			// (moveAndChipsはflex-columnなので、追加した順にそのまま縦積みになる)。
+			// ヒット数(「5ヒット」等)は技名の右・条件チップの左に置く(moveRowの子として
+			// moveIdentityの直後に追加するため、DOM上の並び順がそのまま見た目の並び順になる)。
 			const hitText = document.createElement("span");
 			hitText.className = "damage-column-hitcount-text";
 			hitText.hidden = true;
-			moveAndChips.appendChild(hitText);
+			moveRow.appendChild(hitText);
 			const refreshDisplay = (): void => {
 				const name = attack.moveName.trim();
 				moveText.textContent = name || "技未設定";
@@ -2399,19 +2396,25 @@ if (opponentNotesSection) {
 	// 見る実装で、カード全体/技ごとを区別する必要はない。
 	type ConditionGroup = { label: "攻撃" | "防御" | null; chips: string[] };
 
-	function collectConditionGroups(a: DamageColumnState, showTera: boolean): ConditionGroup[] {
+	function collectConditionGroups(a: DamageColumnState, showTera: boolean, rowTeraType: string): ConditionGroup[] {
 		const attacker: string[] = [];
 		const defender: string[] = [];
 		const field: string[] = [];
 		if (a.critical) attacker.push("急所");
 		if (a.attackerAilment) attacker.push(a.attackerAilment);
-		if (showTera && a.attackerTerastallized) attacker.push("テラスタル");
+		if (showTera && a.attackerTerastallized) {
+			const teraType = a.attackerTeraType || rowTeraType;
+			attacker.push(teraType ? `${teraType}テラスタル` : "テラスタル");
+		}
 		if (a.wallEnabled) defender.push("壁");
 		if (a.stealthRock) defender.push("ステルスロック");
 		const spikes = clampInt(a.spikes, 0, 3);
 		if (spikes > 0) defender.push(`まきびし${spikes}`);
 		if (a.defenderAilment) defender.push(a.defenderAilment);
-		if (showTera && a.defenderTerastallized) defender.push("テラスタル");
+		if (showTera && a.defenderTerastallized) {
+			const teraType = a.defenderTeraType || rowTeraType;
+			defender.push(teraType ? `${teraType}テラスタル` : "テラスタル");
+		}
 		if (a.weather) field.push(a.weather);
 		if (a.terrain) field.push(a.terrain);
 		if (a.attackerRank !== 0) attacker.push(`ランク${a.attackerRank > 0 ? "+" : ""}${a.attackerRank}`);
@@ -2425,11 +2428,11 @@ if (opponentNotesSection) {
 
 	// 1枚の技列チップ器(.damage-row-condition-chips)の中身を、その技カードの
 	// 現在値で作り直す。
-	function renderConditionChipsInto(container: HTMLElement, attack: DamageColumnState): void {
+	function renderConditionChipsInto(container: HTMLElement, attack: DamageColumnState, row: DamageRowState): void {
 		container.innerHTML = "";
 		// 非テラスレギュレーションでも計算に残っているテラスタル設定を
 		// ユーザーが把握できるよう常に表示する。
-		const groups = collectConditionGroups(attack, true);
+		const groups = collectConditionGroups(attack, true, row.teraType);
 		container.hidden = groups.length === 0;
 		groups.forEach((group) => {
 			if (group.label) {
@@ -2507,52 +2510,13 @@ if (opponentNotesSection) {
 		attackOption.dataset.role = "attack";
 		// カード上のこのボタンはクリック不可の状態表示専用のため、タブ移動の対象からも外す。
 		attackOption.tabIndex = -1;
-		function makeSelfSpriteBadge(): HTMLElement {
-			const badge = document.createElement("span");
-			badge.className = "damage-direction-self-badge";
-			const image = document.createElement("img");
-			image.className = "damage-direction-self-image";
-			image.alt = "";
-			image.style.display = "none";
-			const fallback = document.createElement("span");
-			fallback.className = "damage-direction-self-fallback";
-			void applySprite(image, fallback, selfSpeciesName);
-			badge.append(image, fallback);
-			return badge;
-		}
-		// 詳細設定パネルの対面表示(buildSelectionHeadingRow、right-panel.ts)と
-		// 同じ3連シェブロンSVGにして、テキストの">>>"と見た目の系統を揃える。
-		// 反転(防御向き)は既存CSSの[data-direction="defense"] .damage-direction-arrow
-		// (transform: scaleX(-1))がクラス名ベースでそのまま適用するので、ここでは
-		// 常に同じ形のSVGを作るだけでよい。
-		function makeDirectionArrow(): SVGSVGElement {
-			const svgNs = "http://www.w3.org/2000/svg";
-			const arrow = document.createElementNS(svgNs, "svg");
-			arrow.setAttribute("class", "damage-direction-arrow");
-			arrow.setAttribute("aria-hidden", "true");
-			arrow.setAttribute("viewBox", "0 0 36 24");
-			arrow.setAttribute("focusable", "false");
-			const path = document.createElementNS(svgNs, "path");
-			path.setAttribute("d", "M2 6L8 12L2 18M14 6L20 12L14 18M26 6L32 12L26 18");
-			path.setAttribute("fill", "none");
-			path.setAttribute("stroke", "currentColor");
-			path.setAttribute("stroke-width", "2.5");
-			path.setAttribute("stroke-linecap", "round");
-			path.setAttribute("stroke-linejoin", "round");
-			arrow.appendChild(path);
-			return arrow;
-		}
-		const attackSelfBadge = makeSelfSpriteBadge();
-		const attackArrow = makeDirectionArrow();
-		attackOption.append(attackSelfBadge, attackArrow);
+		attackOption.textContent = "攻撃";
 		const defenseOption = document.createElement("button");
 		defenseOption.type = "button";
 		defenseOption.className = "damage-row-direction-option";
 		defenseOption.dataset.role = "defense";
 		defenseOption.tabIndex = -1;
-		const defenseArrow = makeDirectionArrow();
-		const defenseSelfBadge = makeSelfSpriteBadge();
-		defenseOption.append(defenseSelfBadge, defenseArrow);
+		defenseOption.textContent = "防御";
 		directionToggle.append(attackOption, defenseOption);
 		matchup.appendChild(directionToggle);
 
@@ -2567,6 +2531,15 @@ if (opponentNotesSection) {
 		const spriteFallback = document.createElement("span");
 		spriteFallback.className = "sprite-fallback";
 		spriteBox.append(spriteImg, spriteFallback);
+		// 持ち物アイコン。applyItemImage(shared-core.ts)がこのバッジ要素の.damage-item-badgeを
+		// closest()で見つけてhidden制御するため、クラス名は固定(applyItemImageのコメント参照)。
+		const itemBadge = document.createElement("span");
+		itemBadge.className = "damage-item-badge";
+		itemBadge.hidden = true;
+		const itemBadgeImg = document.createElement("img");
+		itemBadgeImg.alt = "";
+		itemBadge.appendChild(itemBadgeImg);
+		spriteBox.appendChild(itemBadge);
 		matchup.appendChild(spriteBox);
 
 		const nameText = document.createElement("span");
@@ -2594,28 +2567,6 @@ if (opponentNotesSection) {
 		}
 		const { field: abilityReadonlyField, value: abilityText } = makeReadonlyField("");
 		abilityReadonlyField.classList.add("damage-build-readonly-ability-line");
-		const readonlyTera = document.createElement("span");
-		readonlyTera.className = "damage-build-readonly-tera";
-		readonlyTera.hidden = true;
-		const readonlyTeraImg = document.createElement("img");
-		readonlyTeraImg.className = "damage-build-readonly-tera-icon";
-		readonlyTeraImg.width = 20;
-		readonlyTeraImg.height = 20;
-		readonlyTeraImg.alt = "";
-		readonlyTeraImg.style.display = "none";
-		const readonlyTeraFallback = document.createElement("span");
-		readonlyTeraFallback.className = "damage-build-readonly-tera-fallback";
-		const readonlyTeraText = document.createElement("span");
-		readonlyTeraText.className = "damage-build-readonly-tera-name";
-		readonlyTera.append(readonlyTeraImg, readonlyTeraFallback, readonlyTeraText);
-		buildFields.appendChild(readonlyTera);
-		// アイテム名は、廃止したアイテムアイコン(spriteBox右下のバッジ)に代わる唯一の
-		// 表示先になったため、値があるときだけ表示するreadonly欄として活性化する
-		// (refreshBuildSummary参照。以前はhidden固定で常に非表示だった)。
-		const { field: itemReadonlyField, value: itemText } = makeReadonlyField("持ち物");
-		itemReadonlyField.classList.add("damage-build-readonly-item-line");
-		itemReadonlyField.setAttribute("aria-label", "持ち物");
-		itemReadonlyField.hidden = true;
 
 		const detailForm = document.createElement("div");
 		detailForm.className = "damage-detail-panel-body-inner damage-build-detail-form";
@@ -2689,19 +2640,11 @@ if (opponentNotesSection) {
 			);
 		}
 		rowSpriteRefreshers.set(row, refreshSprite);
-		function refreshTypeBadge(): void {
-			const teraType = row.teraType.trim();
-			readonlyTera.hidden = teraType === "";
-			readonlyTeraText.textContent = teraType;
-			void applyTeraImage(readonlyTeraImg, readonlyTeraFallback, teraType);
-		}
 		let refreshReadonlyEvs = (): void => {};
 		function refreshBuildSummary(): void {
 			nameText.textContent = row.name.trim() || "相手ポケモン未設定";
 			abilityText.textContent = row.abilityName.trim() || "未設定";
-			const itemName = row.itemName.trim();
-			itemReadonlyField.hidden = itemName === "";
-			itemText.textContent = itemName;
+			void applyItemImage(itemBadgeImg, row.itemName);
 			refreshReadonlyEvs();
 		}
 
@@ -2892,11 +2835,6 @@ if (opponentNotesSection) {
 			onFieldInput();
 		});
 		const itemField = makeDetailField("アイテム", itemDropdown.wrap, true);
-		const itemLockNote = document.createElement("span");
-		itemLockNote.className = "damage-build-detail-lock-note";
-		itemLockNote.textContent = "メガストーン固定";
-		itemLockNote.hidden = true;
-		itemField.appendChild(itemLockNote);
 		selectsRow.appendChild(itemField);
 
 		const megaStoneLockedTitle = "メガシンカ中はアイテムをメガストーンに固定します";
@@ -2904,7 +2842,6 @@ if (opponentNotesSection) {
 		// メガストーン固定中はドロップダウンの選択操作自体を無効化する(旧itemInput.disabledの役割)。
 		function syncItemLock(locked: boolean): void {
 			itemDropdown.setDisabled(locked);
-			itemLockNote.hidden = !locked;
 		}
 		async function applyRowMegaStoneAutofill(speciesName: string): Promise<void> {
 			const token = ++rowMegaStoneAutofillToken;
@@ -3063,10 +3000,8 @@ if (opponentNotesSection) {
 			// 既にrefreshRowItemPopularity(nameInput.value.trim())を呼んでいるため、ここでは不要)。
 			itemDropdown.refreshDisplay();
 
-			// teraDropdownは「わざ」タブ側(B参照)に移設済みのため、ここでの表示更新は
-			// refreshTypeBadge()のみ(カードプレビューのテラアイコン。現状は常時非表示だが
-			// 内部状態としては維持する)。
-			refreshTypeBadge();
+			// teraDropdownは「わざ」タブ側(B参照)に移設済みのため、ここでの表示更新は不要
+			// (持ち物アイコンはonFieldInput()内のrefreshBuildSummary()が追随する)。
 
 			onFieldInput();
 		}
@@ -3129,7 +3064,6 @@ if (opponentNotesSection) {
 		footer.appendChild(retryButton);
 
 		refreshSprite();
-		refreshTypeBadge();
 		refreshBuildSummary();
 		refreshRowNatureButtons(row);
 		refreshDirectionUi();

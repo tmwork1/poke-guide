@@ -751,8 +751,7 @@ body.box-edit-page {
 		gap: var(--damage-detail-space-xs);
 		position: relative;
 	}
-	#damage-detail-panel-body .damage-build-detail-field[hidden],
-	#damage-detail-panel-body .damage-build-detail-lock-note[hidden] {
+	#damage-detail-panel-body .damage-build-detail-field[hidden] {
 		display: none;
 	}
 	/* C-1: 攻撃側/防御側の小見出し(.damage-detail-side-heading-row内)はbox-damage-card.css側で
@@ -840,10 +839,6 @@ body.box-edit-page {
 	#damage-detail-panel-body .damage-build-detail-field .damage-row-tera-field {
 		width: 100%;
 		min-width: 0;
-	}
-	#damage-detail-panel-body .damage-build-detail-lock-note {
-		color: var(--damage-detail-muted-color);
-		font-size: var(--damage-detail-font-size-xs);
 	}
 	#damage-detail-panel-body .damage-build-detail-form input.is-autofilled {
 		border-color: var(--damage-detail-primary-color);
