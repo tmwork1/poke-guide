@@ -34,6 +34,7 @@ body.speed-chart-page {
 /* 埋め込み時の上部操作バー */
 
 .speed-chart-embed-toolbar {
+	position: relative;
 	display: flex;
 	align-items: center;
 	gap: var(--speed-chart-embed-toolbar-gap);

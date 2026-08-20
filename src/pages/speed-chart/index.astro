@@ -172,6 +172,7 @@ try {
 >
 	{embedded && <div class="speed-chart-embed-toolbar">
 		<strong class="speed-chart-embed-title">すばやさ調整</strong>
+		<button type="button" class="speed-chart-embed-close" aria-label="すばやさ調整を閉じる">×</button>
 	</div>}
 	{!embedded && <AppHeader toolbar ariaLabel="すばやさ早見表の操作">
 		{/* 可視ラベルとselectをfor/idで結び、操作バー上でも選択対象を明確にする。 */}
@@ -220,4 +221,9 @@ try {
 	{hasOwnedPanel && (
 		<script type="application/json" id="speed-chart-owned-record" set:html={JSON.stringify(ownedRecord)} />
 	)}
+	{embedded && <script>
+		document.querySelector<HTMLButtonElement>(".speed-chart-embed-close")?.addEventListener("click", () => {
+			window.parent.postMessage({ type: "speed-chart:close" }, window.location.origin);
+		});
+	</script>}
 </AppLayout>
