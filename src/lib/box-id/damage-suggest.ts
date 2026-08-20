@@ -31,7 +31,7 @@ import {
 	type DamageCalcSuggestion,
 } from "../damage-calc-suggest";
 import { applySprite, applyItemImage, buildAttackerSpec } from "./shared-core";
-import { typeIconUrl } from "../sprite-urls";
+import { DEFAULT_TYPE_COLOR, TYPE_COLORS } from "../type-colors";
 
 // 右パネルの高さに収まる件数。取得側(020のtop_n=12)より少なくし、押せる候補だけを見せる。
 const VISIBLE_LIMIT = 6;
@@ -219,7 +219,7 @@ function buildSuggestionCard(suggestion: DamageCalcSuggestion): HTMLElement {
 	left.appendChild(spriteEl);
 	body.appendChild(left);
 
-	// 右列: 上段(特性・持ち物)+ 下段(技・根拠)の縦2段(C-6)。
+	// 右列: 特性・持ち物 / 技・根拠の2列×2行グリッド。
 	const right = document.createElement("span");
 	right.className = "damage-suggest-right";
 
@@ -253,31 +253,28 @@ function buildSuggestionCard(suggestion: DamageCalcSuggestion): HTMLElement {
 	}
 	right.appendChild(main);
 
-	// 右列下段: タイプアイコン + 技名(左) + 根拠(右、C-5でここへ移設)。
+	// 右列下段: タイプバー + 技名(左) + 根拠(右、C-5でここへ移設)。
 	// direction='attack' ならこの個体が使う技、'defense' なら相手が使う技
 	// (どちらの技かは左列の攻守チップが決める)。
 	const moveRow = document.createElement("span");
 	moveRow.className = "damage-suggest-move-row";
-	// C-4: 技のタイプアイコンを技名の左に追加する(right-panel.tsのmoveDropdownの
-	// アイコン表示と同じ「先に隠しておき、判明したら表示する」流儀)。
-	const moveTypeIcon = document.createElement("img");
-	moveTypeIcon.className = "damage-suggest-move-type-icon";
-	moveTypeIcon.alt = "";
-	moveTypeIcon.hidden = true;
+	const moveIdentity = document.createElement("span");
+	moveIdentity.className = "damage-suggest-move-identity";
+	// 技カードと同じタイプカラーのバーを技名の左に置く。タイプ判明までは隠す。
+	const moveTypeBar = document.createElement("span");
+	moveTypeBar.className = "damage-suggest-move-type-bar";
+	moveTypeBar.hidden = true;
 	void moveTypeDetailsPromise.then((types) => {
-		const type = types.get(suggestion.moveName);
-		const url = type ? typeIconUrl(type) : null;
-		if (!url) return;
-		moveTypeIcon.src = url;
-		moveTypeIcon.hidden = false;
+		const type = types.get(suggestion.moveName) ?? null;
+		moveTypeBar.hidden = type === null;
+		if (type !== null) moveTypeBar.style.backgroundColor = TYPE_COLORS[type] ?? DEFAULT_TYPE_COLOR;
 	});
-	moveTypeIcon.addEventListener("error", () => { moveTypeIcon.hidden = true; });
-	moveRow.appendChild(moveTypeIcon);
 	const moveEl = document.createElement("span");
 	moveEl.className = "damage-suggest-move";
 	moveEl.textContent = suggestion.moveName;
 	moveEl.title = suggestion.moveName;
-	moveRow.appendChild(moveEl);
+	moveIdentity.append(moveTypeBar, moveEl);
+	moveRow.appendChild(moveIdentity);
 
 	// C-5: 根拠は「x%が計算」まで短縮し、技名と同じ行の右側に表示する。母集団の実数と
 	// 主語(同じ型/同じポケモン、採用したキーの粒度そのもの)はtitleに残す。

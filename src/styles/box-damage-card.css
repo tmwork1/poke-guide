@@ -2111,28 +2111,30 @@ body.box-edit-page {
   flex: none;
 }
 
-/* 右列: 上段(特性・持ち物)+ 下段(技・根拠)の縦2段。 */
+/* 右列: 特性・持ち物 / 技・根拠を2列×2行でそろえる。短い補助情報を置く第2列は
+   相手ビルドカードと同じ固定幅にし、技名を置く第1列へ残りの幅を配る。 */
 #opponent-notes-section .damage-suggest-right {
-  display: flex;
-  flex-direction: column;
-  gap: var(--damage-card-build-gap);
   flex: 1 1 auto;
   min-width: 0;
+  grid-template-columns: minmax(0, 1fr) minmax(0, var(--damage-card-build-detail-col-width));
+  column-gap: var(--damage-build-text-gap);
+  row-gap: var(--damage-card-build-gap);
+  align-items: center;
+  justify-items: start;
+  display: grid;
 }
 
-/* 右列上段: 特性(あれば)・相手の持ち物(あれば)を横に並べる。両方とも折り返しを
-   許す(team側の.team-suggest-buildと同じ判断: 切ると提案の中身そのものが読めなくなる)。 */
-#opponent-notes-section .damage-suggest-right-main {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: .15em var(--space-2);
-  min-width: 0;
+/* DOM上の行ラッパーを透過し、4セルの中身を右列グリッドへ直接参加させる。 */
+#opponent-notes-section .damage-suggest-right-main,
+#opponent-notes-section .damage-suggest-move-row {
+  display: contents;
 }
 
 /* 特性は相手ビルドカードの特性欄(.damage-build-readonly-ability-line)と同じ、
    控えめな文字色・サイズにする(--damage-card-build-detail-*系トークンを共有)。 */
 #opponent-notes-section .damage-suggest-ability {
+  grid-column: 1;
+  grid-row: 1;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2188,29 +2190,26 @@ body.box-edit-page {
   justify-content: center;
 }
 
-/* 技名(左)+タイプアイコン。根拠は同じ行の右側に表示する。列幅は限られるため
-   折り返して2行になることを許す(切ると提案の中身が読めなくなる)。
-   上段(.damage-suggest-right-main)との間隔は親(.damage-suggest-right)のgapに
-   任せるため、自前のmargin-topは持たない(C-6: 2列化に伴い親のflex方向が
-   縦に変わったため)。 */
-#opponent-notes-section .damage-suggest-move-row {
+/* タイプバーと技名を1つのグリッドセルにまとめる。 */
+#opponent-notes-section .damage-suggest-move-identity {
+  grid-column: 1;
+  grid-row: 2;
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: .15em .25em;
+  gap: .25em;
+  max-width: 100%;
+  min-width: 0;
   line-height: var(--line-height-snug);
 }
 
-/* 技のタイプアイコン。既存の技名候補一覧(damage-detail-move-dropdown-option-icon)と
-   同じ大きさ(--damage-card-move-icon-size)にする。 */
-#opponent-notes-section .damage-suggest-move-type-icon {
-  width: var(--damage-card-move-icon-size);
+/* 技カードと同じ寸法のタイプ識別バー。 */
+#opponent-notes-section .damage-suggest-move-type-bar {
+  width: var(--damage-card-move-type-bar-width);
   height: var(--damage-card-move-icon-size);
   flex: none;
-  object-fit: contain;
 }
 
-#opponent-notes-section .damage-suggest-move-type-icon[hidden] {
+#opponent-notes-section .damage-suggest-move-type-bar[hidden] {
   display: none;
 }
 
@@ -2222,6 +2221,8 @@ body.box-edit-page {
 
 /* アイコンと名前は不可分の1塊にする(バラで並べると折り返しで分断される)。 */
 #opponent-notes-section .damage-suggest-item {
+  grid-column: 2;
+  grid-row: 1;
   display: inline-flex;
   align-items: center;
   gap: .25em;
@@ -2243,6 +2244,8 @@ body.box-edit-page {
 /* 根拠(「x%が計算」)は技名と同じ行の右端に表示する。母集団の実数・主語
    (同じ型/同じポケモン)はtitle属性へ回した。 */
 #opponent-notes-section .damage-suggest-reason {
+  grid-column: 2;
+  grid-row: 2;
   font-size: var(--font-size-sm3);
   color: var(--color-text-muted);
   line-height: var(--line-height-snug);
