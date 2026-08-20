@@ -14,24 +14,30 @@ import '../../styles/species-select-dialog.css';
 >
 	<div class="species-select-header">
 		<h2 id="species-select-dialog-title" class="species-select-title">ポケモン選択</h2>
+		<button type="button" id="species-select-close-button" class="btn-ghost species-select-close" aria-label="閉じる">×</button>
+	</div>
+	<div id="species-select-type-row" class="species-select-type-row" role="group" aria-label="タイプで絞り込み"></div>
+	<div class="species-select-search-sort-row">
+		<div class="search-input-wrap species-select-search-wrap">
+			<svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+				<circle cx="11" cy="11" r="7" />
+				<line x1="21" y1="21" x2="16.65" y2="16.65" />
+			</svg>
+			<input type="text" id="species-select-search-input" class="species-select-search-input field-control" placeholder="種族・特性・覚えるわざ" aria-label="種族・特性・覚えるわざで検索" autocomplete="off" />
+		</div>
 		<div class="species-select-sort-wrap">
-			<button type="button" id="species-select-sort-button" class="species-select-sort-button" aria-haspopup="true" aria-expanded="false">⇅</button>
+			<button type="button" id="species-select-sort-button" class="species-select-sort-button" aria-haspopup="true" aria-expanded="false">⇅人気順</button>
 			<div id="species-select-sort-panel" class="species-select-sort-panel" hidden>
 				<button type="button" class="species-select-sort-option" data-sort="popularity">人気順</button>
 				<button type="button" class="species-select-sort-option" data-sort="dex">図鑑番号順</button>
 				<button type="button" class="species-select-sort-option" data-sort="kana">50音順</button>
 			</div>
 		</div>
-		<button type="button" id="species-select-close-button" class="btn-ghost species-select-close" aria-label="閉じる">×</button>
 	</div>
 	<div class="species-select-grid-wrap">
 		<div id="species-select-grid" class="species-select-grid" role="listbox" aria-label="ポケモンを選択"></div>
 		<p id="species-select-empty" class="species-select-empty" hidden>条件に一致するポケモンがいません</p>
 	</div>
-	<div class="species-select-filters">
-		<input type="text" id="species-select-search-input" class="species-select-search-input" placeholder="種族名・特性・覚える技で検索" aria-label="種族名・特性・覚える技で検索" autocomplete="off" />
-	</div>
-	<div id="species-select-type-row" class="species-select-type-row" role="group" aria-label="タイプで絞り込み"></div>
 </div>
 
 <script>

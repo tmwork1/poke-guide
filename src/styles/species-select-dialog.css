@@ -101,14 +101,17 @@ body.box-edit-page {
 	line-height: 1;
 }
 
-.species-select-sort-wrap { position: relative; }
+.species-select-sort-wrap {
+	position: relative;
+	flex: 0 0 auto;
+}
 .species-select-sort-button {
 	display: flex;
 	align-items: center;
-	justify-content: center;
-	width: 2.2rem;
-	min-height: 2.2rem;
-	padding: 0;
+	justify-content: flex-start;
+	width: auto;
+	min-height: 2.35rem;
+	padding: 0.42em 0.6em;
 	border: 1px solid var(--color-border);
 	border-radius: var(--radius-sm);
 	background: var(--color-surface);
@@ -116,6 +119,8 @@ body.box-edit-page {
 	cursor: pointer;
 	font: inherit;
 	font-size: var(--font-size-base);
+	text-align: left;
+	white-space: nowrap;
 }
 .species-select-sort-button:hover { border-color: var(--color-primary); }
 .species-select-sort-panel {
@@ -195,14 +200,21 @@ body.box-edit-page {
 }
 .species-select-empty[hidden] { display: none; }
 
-.species-select-filters {
+.species-select-search-sort-row {
 	display: flex;
+	align-items: center;
+	gap: var(--space-2);
 	padding: var(--space-3) var(--space-5);
-	border-top: 1px solid var(--color-border);
+	border-bottom: 1px solid var(--color-border);
 	flex-shrink: 0;
+}
+.species-select-search-wrap {
+	flex: 1 1 auto;
+	min-width: 0;
 }
 .species-select-search-input {
 	width: 100%;
+	min-width: 0;
 	box-sizing: border-box;
 }
 .species-select-type-row {
@@ -210,7 +222,7 @@ body.box-edit-page {
 	grid-template-columns: repeat(9, 1fr);
 	gap: var(--space-1);
 	padding: var(--space-2) var(--space-5);
-	border-top: 1px solid var(--color-border);
+	border-bottom: 1px solid var(--color-border);
 	flex-shrink: 0;
 }
 .species-select-type-chip {
@@ -235,7 +247,7 @@ body.box-edit-page {
 /* @media は基本定義より後ろに置く。狭幅時の上書きが先の定義に負けないため。 */
 @media (max-width: 480px) {
 	.species-select-dialog { width: 96vw; }
-	.species-select-filters,
+	.species-select-search-sort-row,
 	.species-select-type-row { padding-inline: var(--space-3); }
 	.species-select-grid-wrap { padding-inline: var(--space-3); }
 }

@@ -53,7 +53,7 @@ function updateTriggerButton(): void {
 }
 
 function updateSortButton(): void {
-	sortButton.setAttribute("aria-label", `ソート条件: ${sortLabels[sortMode]}`);
+	sortButton.textContent = `⇅${sortLabels[sortMode]}`;
 	for (const option of document.querySelectorAll<HTMLButtonElement>(".species-select-sort-option")) {
 		const selected = option.dataset.sort === sortMode;
 		option.classList.toggle("is-selected", selected);
