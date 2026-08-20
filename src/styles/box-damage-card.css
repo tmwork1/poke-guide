@@ -1451,6 +1451,45 @@ body.box-edit-page {
   padding: var(--damage-detail-text-button-padding);
 }
 
+/* まきびしの層数selectを、同じ行の揮発状態トグルと同じピル型に見せる。 */
+#damage-detail-panel-body .damage-detail-toggle-row.damage-detail-chip-row {
+  gap: 2px;
+}
+
+#damage-detail-panel-body .damage-detail-toggle-row.damage-detail-chip-row > .damage-detail-icon-btn,
+#damage-detail-panel-body .damage-detail-toggle-row .damage-detail-spikes-select {
+  min-height: var(--damage-detail-control-min-height);
+  font-size: var(--damage-detail-font-size-sm);
+  padding: var(--damage-detail-space-xs);
+  white-space: nowrap;
+}
+
+#damage-detail-panel-body .damage-detail-toggle-row .damage-detail-spikes-select {
+  color: var(--color-text-muted);
+  background: var(--damage-detail-icon-button-background);
+  border: var(--damage-detail-icon-button-border);
+  border-radius: var(--damage-detail-icon-button-radius);
+  cursor: pointer;
+  flex: none;
+}
+
+#damage-detail-panel-body .damage-detail-toggle-row .damage-detail-spikes-select:not(.is-spikes-unselected) {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  font-weight: 700;
+}
+
+#damage-detail-panel-body .damage-detail-toggle-row .damage-detail-spikes-select:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+#damage-detail-panel-body .damage-detail-toggle-row .damage-detail-spikes-select:focus-visible {
+  outline: var(--damage-card-control-focus-outline);
+  outline-offset: 1px;
+}
+
 /* 詳細パネルの技名入力と連続回数 */
 #damage-detail-panel-body .damage-detail-move-editor {
   display: flex;

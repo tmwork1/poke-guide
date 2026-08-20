@@ -1493,8 +1493,8 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 	const moveField = document.createElement("div");
 	moveField.className = "damage-detail-move-field";
 	moveField.appendChild(moveComboWrap);
-	moveControls.append(moveField);
-	moveEditorGroup.append(moveControls, hitRow);
+	moveControls.append(moveField, hitRow);
+	moveEditorGroup.append(moveControls);
 	contentWrap.appendChild(moveEditorGroup);
 
 	const sidesWrap = document.createElement("div");
@@ -1612,7 +1612,7 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 	// 防御側セクションの通常の設定項目として(見出しなしで)扱う。挿入位置は従来どおり
 	// defenderVolatileGroupの直前(下の挿入処理を参照)。
 	const hazardsControls = document.createElement("div");
-	hazardsControls.className = "damage-detail-toggle-row";
+	hazardsControls.className = "damage-detail-toggle-row damage-detail-chip-row";
 	const stealthRockButton = buildToggleButton(
 		"ステルスロック",
 		column.stealthRock,
@@ -1620,30 +1620,37 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 		{ title: "ステルスロックを1回踏んだ状態で計算する" },
 	);
 
-	// C-4: +/-ステッパーを廃止し、0〜3層の<select>に変える(層数は4択しかないため
-	// リストボックスの方が誤操作なく選べる)。
-	const spikesField = document.createElement("div");
-	spikesField.className = "rank-field damage-detail-rank-field";
-	const spikesLabel = document.createElement("span");
-	spikesLabel.textContent = "まきびし";
+	// 0〜3層の4択はselectのまま維持し、閉じた状態の表示と選択色を状態異常selectと
+	// 同じプレースホルダパターンにそろえる。
 	const spikesSelect = document.createElement("select");
 	spikesSelect.className = "damage-detail-spikes-select";
 	spikesSelect.setAttribute("aria-label", "まきびしの層数");
+	spikesSelect.title = "まきびしの層数";
+	const spikes = clampInt(column.spikes, 0, 3);
+	const spikesPlaceholderOpt = document.createElement("option");
+	spikesPlaceholderOpt.value = "0";
+	spikesPlaceholderOpt.textContent = "まきびし";
+	spikesPlaceholderOpt.hidden = true;
+	spikesPlaceholderOpt.selected = spikes === 0;
+	spikesSelect.appendChild(spikesPlaceholderOpt);
 	for (let i = 0; i <= 3; i++) {
 		const opt = document.createElement("option");
 		opt.value = String(i);
-		// C-4: aria-label「まきびしの層数」で文脈は伝わるため、可視テキストからは
-		// "層"を削除して数字だけにする。
-		opt.textContent = String(i);
-		opt.selected = clampInt(column.spikes, 0, 3) === i;
+		opt.textContent = i === 0 ? "なし" : `まきびし${i}層`;
+		if (spikes === i && i !== 0) opt.selected = true;
 		spikesSelect.appendChild(opt);
 	}
+	function updateSpikesPlaceholderState(): void {
+		spikesSelect.classList.toggle("is-spikes-unselected", spikesSelect.value === "0");
+	}
+	updateSpikesPlaceholderState();
 	spikesSelect.addEventListener("change", () => {
 		const clamped = clampInt(Number(spikesSelect.value), 0, 3);
+		if (clamped === 0) spikesSelect.selectedIndex = 0;
+		updateSpikesPlaceholderState();
 		applyToColumnField(() => { column.spikes = clamped; });
 	});
-	spikesField.append(spikesLabel, spikesSelect);
-	hazardsControls.append(stealthRockButton, spikesField);
+	hazardsControls.append(stealthRockButton, spikesSelect);
 	// B-3: 「設置物」(ステルスロック/まきびし)は、sidesWrap直下の独立区画ではなく、
 	// 防御側セクション内・揮発状態グループ(defenderVolatileGroup)の直前に移動する
 	// (相手の設置物依存の状況を「防御側」の設定としてまとめて見せるため)。
