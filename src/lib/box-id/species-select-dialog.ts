@@ -45,7 +45,7 @@ let spriteObserver: IntersectionObserver | null = null;
 const sortLabels: Record<SortMode, string> = {
 	popularity: "人気",
 	dex: "番号",
-	kana: "50音",
+	kana: "種族",
 };
 
 function getSpriteObserver(): IntersectionObserver {
