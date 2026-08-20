@@ -118,8 +118,10 @@ body.box-edit-page {
 }
 /* 「習得技のみ」切替スイッチ内を左右に動くつまみ */
 .move-picker-toggle .toggle-switch-thumb {
-  width: 10px;
-  height: 10px;
+  width: 14px;
+  height: 14px;
+  top: 0;
+  left: 0;
 }
 .move-picker-toggle .toggle-switch-input:checked + .toggle-switch-track .toggle-switch-thumb { transform: translateX(12px); }
 
@@ -231,7 +233,7 @@ body.box-edit-page {
   background: transparent;
   color: var(--color-text);
   font-size: var(--move-picker-control-size);
-  font-weight: 700;
+  font-weight: 400;
   white-space: nowrap;
   cursor: pointer;
 }
@@ -277,7 +279,7 @@ body.box-edit-page {
 @media (hover: hover) and (pointer: fine) {
   .move-picker-row:hover { background: color-mix(in srgb, var(--color-surface) 90%, var(--color-primary) 10%); }
 }
-.move-picker-row.is-selected { background: color-mix(in srgb, var(--color-primary) 18%, transparent); }
+.move-picker-row.is-selected { background: color-mix(in srgb, var(--color-primary) 24%, transparent); }
 /* キーボード操作で選択候補の技行にフォーカスしたときの輪郭 */
 .move-picker-row:focus-visible {
   outline: 2px solid var(--color-primary);
@@ -337,7 +339,6 @@ body .move-picker-empty {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: var(--move-picker-tabs-gap);
     padding: var(--move-picker-tabs-padding);
-    border-bottom: 1px solid var(--color-border);
   }
   body .move-picker-slot-tab {
     display: flex;
