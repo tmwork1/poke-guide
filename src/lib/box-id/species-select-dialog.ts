@@ -77,7 +77,7 @@ function updateTriggerButton(): void {
 }
 
 function updateSortButton(): void {
-	sortButton.textContent = `⇅${sortLabels[sortMode]}`;
+	sortButton.textContent = `⇅ ${sortLabels[sortMode].replace(/順$/, "")}`;
 	for (const option of document.querySelectorAll<HTMLButtonElement>(".species-select-sort-option")) {
 		const selected = option.dataset.sort === sortMode;
 		option.classList.toggle("is-selected", selected);
