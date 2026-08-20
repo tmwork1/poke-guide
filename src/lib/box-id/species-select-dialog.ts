@@ -23,6 +23,7 @@ const backdropEl = el<HTMLElement>("species-select-backdrop");
 const dialogEl = el<HTMLElement>("species-select-dialog");
 const closeButton = el<HTMLButtonElement>("species-select-close-button");
 const gridEl = el<HTMLElement>("species-select-grid");
+const gridWrapEl = el<HTMLElement>("species-select-grid-wrap");
 const emptyEl = el<HTMLElement>("species-select-empty");
 const searchInput = el<HTMLInputElement>("species-select-search-input");
 const sortButton = el<HTMLButtonElement>("species-select-sort-button");
@@ -39,12 +40,35 @@ let learnsetMap: Map<string, string[]> | null = null;
 let dataPromise: Promise<void> | null = null;
 let gridBuilt = false;
 const cellByName = new Map<string, HTMLButtonElement>();
+let spriteObserver: IntersectionObserver | null = null;
 
 const sortLabels: Record<SortMode, string> = {
 	popularity: "人気順",
 	dex: "図鑑番号順",
 	kana: "50音順",
 };
+
+function getSpriteObserver(): IntersectionObserver {
+	if (!spriteObserver) {
+		spriteObserver = new IntersectionObserver(
+			(observedEntries) => {
+				for (const observedEntry of observedEntries) {
+					if (!observedEntry.isIntersecting) continue;
+					const cell = observedEntry.target as HTMLElement;
+					const name = cell.dataset.name;
+					const img = cell.querySelector<HTMLImageElement>(".species-select-cell-icon");
+					const fallback = cell.querySelector<HTMLElement>(".species-select-cell-fallback");
+					if (name && img && fallback) {
+						void applySprite(img, fallback, name);
+					}
+					spriteObserver?.unobserve(cell);
+				}
+			},
+			{ root: gridWrapEl, rootMargin: "300px 0px", threshold: 0 },
+		);
+	}
+	return spriteObserver;
+}
 
 function updateTriggerButton(): void {
 	const name = speciesInput.value.trim();
@@ -93,6 +117,7 @@ function buildGridOnce(): void {
 		cell.dataset.name = entry.name;
 		cell.setAttribute("role", "option");
 		cell.setAttribute("aria-label", entry.name);
+		cell.title = entry.name;
 
 		const img = document.createElement("img");
 		img.className = "species-select-cell-icon";
@@ -100,13 +125,10 @@ function buildGridOnce(): void {
 		img.style.display = "none";
 		const fallback = document.createElement("span");
 		fallback.className = "sprite-fallback species-select-cell-fallback";
-		const name = document.createElement("span");
-		name.className = "species-select-cell-name";
-		name.textContent = entry.name;
-		cell.append(img, fallback, name);
+		cell.append(img, fallback);
 		cell.addEventListener("click", () => selectSpecies(entry.name));
 		cellByName.set(entry.name, cell);
-		void applySprite(img, fallback, entry.name);
+		getSpriteObserver().observe(cell);
 	}
 }
 

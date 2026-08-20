@@ -26,7 +26,7 @@ body.box-edit-page {
 
   /* ── 7. 余白 ──────────────────────────────────────────── */
   --move-picker-header-gap: var(--space-3); /* ヘッダー内の要素間隔。大きくすると見出しと操作が離れる */
-  --move-picker-header-padding: 0.6rem 0.8rem; /* ヘッダー内側の余白。大きくするとヘッダーが厚くなる */
+  --move-picker-header-padding: var(--modal-header-padding); /* モーダル共通の見出し行余白。 */
   --move-picker-tabs-gap: var(--space-2); /* モバイルの技スロット間隔。大きくするとボタンが離れる */
   --move-picker-tabs-padding: var(--space-2) var(--space-3); /* 技スロット列の内側余白。大きくすると列が厚くなる */
   --move-picker-note-padding: var(--space-2) 0.8rem; /* 補足文の内側余白。大きくすると補足行が厚くなる */
@@ -80,6 +80,7 @@ body.box-edit-page {
   align-items: center;
   gap: var(--move-picker-header-gap);
   padding: var(--move-picker-header-padding);
+  min-height: var(--modal-header-min-height);
   border-bottom: 1px solid var(--color-border);
 }
 

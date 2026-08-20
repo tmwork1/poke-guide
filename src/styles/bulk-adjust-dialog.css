@@ -37,7 +37,7 @@ body.box-edit-page {
 
 	/* ── 7. 余白 ──────────────────────────────────────────── */
 	--bulk-adjust-header-gap: var(--space-3); /* ヘッダー内の要素間隔。大きくすると操作が離れる */
-	--bulk-adjust-header-padding: var(--space-4) var(--space-5); /* ヘッダー内側の余白。大きくするとヘッダーが厚くなる */
+	--bulk-adjust-header-padding: var(--modal-header-padding); /* モーダル共通の見出し行余白。 */
 	--bulk-adjust-body-padding: var(--space-4) var(--space-5); /* 本文内側の余白。大きくすると内容が内側に寄る */
 	--bulk-adjust-body-gap: var(--space-4); /* 条件カードどうしの間隔。大きくするとカードが離れる */
 	--bulk-adjust-footer-padding: var(--space-3) var(--space-5); /* フッター内側の余白。大きくすると下部が厚くなる */
@@ -103,6 +103,7 @@ body.box-edit-page {
 		justify-content: space-between;
 		gap: var(--bulk-adjust-header-gap);
 		padding: var(--bulk-adjust-header-padding);
+		min-height: var(--modal-header-min-height);
 		border-bottom: 1px solid var(--color-border);
 		flex-shrink: 0;
 	}
