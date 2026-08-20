@@ -296,7 +296,8 @@ body.box-edit-page {
   grid-template-columns: minmax(0, var(--damage-card-build-col1-width)) minmax(0, 1fr);
   column-gap: var(--damage-build-text-gap);
   row-gap: var(--damage-card-build-gap);
-  align-items: baseline;
+  align-items: center;
+  justify-items: start;
   display: grid;
 }
 
