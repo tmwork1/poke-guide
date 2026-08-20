@@ -23,6 +23,8 @@
   --box-damage-toolbar-gap: var(--space-2); /* 一括操作ボタン同士の間隔 */
   --box-damage-toolbar-margin-bottom: var(--space-2); /* 操作列とカード一覧の間隔 */
   --box-damage-engine-status-margin: var(--space-3) 0 .4rem; /* 計算エンジン状態文の外側余白。上端は本来#opponent-notes-section側が持っていた画面端との余白(--box-damage-panel-padding参照)をここに移した */
+  --box-damage-suggest-section-margin-top: var(--space-5); /* ダメージ計算カード一覧と「よく行われるダメージ計算」の間隔 */
+  --box-damage-suggest-heading-margin-bottom: var(--space-2); /* 「よく行われるダメージ計算」の見出しと一覧の間隔 */
 }
 
 /* --------------------------------------------------------------------------
@@ -73,7 +75,32 @@
 }
 
 @media (width <= 899px) {
-  #opponent-notes-section .damage-rows-list {
+  /* 浮いた追加ボタンへの隠れ避けは、以前は.damage-rows-list自身が持っていたが、
+     「よく行われるダメージ計算」を一覧の下に常設する形に変えたことで、一覧側に付けたままだと
+     一覧とサジェストの間に不自然な大きい空白ができてしまう(実機確認で発覚)。ボタンの
+     クリアランスは本来「ページ最下部と浮いたボタンの間隔」なので、#opponent-notes-section
+     自身(一覧+サジェストをまとめて包む器)に持たせ、サジェストの有無に関わらず
+     常に最下部だけに空くようにする。 */
+  #opponent-notes-section {
     padding-bottom: var(--box-damage-mobile-list-padding-bottom);
   }
+}
+
+/* 「よく行われるダメージ計算」。#damage-rows-listの下に常設する枠(中身のカード一覧
+   自体のスタイルはbox-damage-card.css)。ウィンドウ感を出さないよう、この外枠自体には
+   border/box-shadow/backgroundを付けない(個々のサジェストカードだけがカードとして
+   枠を持つ)。見出しもタイトルバーではなく、背景の上に置くただのテキストとして扱う。 */
+#opponent-notes-section .damage-suggest-section {
+  margin-top: var(--box-damage-suggest-section-margin-top);
+}
+
+#opponent-notes-section .damage-suggest-section[hidden] {
+  display: none;
+}
+
+#opponent-notes-section .damage-suggest-section-heading {
+  margin: 0 0 var(--box-damage-suggest-heading-margin-bottom);
+  font-size: var(--font-size-sm2);
+  font-weight: 600;
+  color: var(--color-text-muted);
 }

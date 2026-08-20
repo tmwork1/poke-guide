@@ -44,6 +44,16 @@ import '../../styles/box-damage-card.css';
 
 	</div>
 
+	{/* よく行われるダメージ計算のサジェスト。以前は#damage-detail-panel-body(技の詳細設定
+	    モーダル)の「何も選択していない」状態としてだけ表示していたが、開閉しなくても常に
+	    見えるほうが便利という要望で、カード一覧の直下に常設表示する形へ変更した。中身は
+	    damage-suggest.tsのrenderDamageSuggestSection()がJSで描画する(0件のときはhidden、
+	    1件以上あれば表示)。 */}
+	<section id="damage-suggest-section" class="damage-suggest-section" hidden>
+		<p class="damage-suggest-section-heading">よく行われるダメージ計算</p>
+		<ul id="damage-suggest-list" class="damage-suggest-list"></ul>
+	</section>
+
 </section>
 
 

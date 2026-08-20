@@ -55,7 +55,6 @@ import { isTerastalRegulation } from "../regulations";
 import { STAT_KEYS, type StatKey } from "../stats";
 import type { SolveResult, DurabilityCandidate } from "./bulk-adjust-solver";
 import type { DurabilityIndexCandidate, DurabilityIndexKind, MaximizeResult } from "./durability-index";
-import { renderDamageSuggestPanel } from "./damage-suggest";
 
 let detailPanelEl: HTMLElement;
 let detailPanelBodyEl: HTMLElement;
@@ -698,7 +697,6 @@ export function renderDetailPanelEmpty(): void {
 		lastCandidateListRedraw();
 		return;
 	}
-	if (renderDamageSuggestPanel(detailPanelBodyEl, setDetailPanelTitle)) return;
 	setDetailPanelTitle("");
 	detailPanelBodyEl.innerHTML = "";
 	const inner = document.createElement("div");

@@ -1970,3 +1970,173 @@ body.box-edit-page {
     min-width: 0;
   }
 }
+
+/* --------------------------------------------------------------------------
+   よく行われるダメージ計算のサジェスト一覧
+
+   #damage-rows-list の下(DamageCalcSection.astroの#damage-suggest-section)に常設表示する。
+   以前は#damage-detail-panel-body(技の詳細設定モーダル)の「何も選択していない」状態として
+   だけ表示していたが、開閉しなくても常に見えるほうが便利という要望で移設した(この移設に
+   伴いdamage-detail-panel.cssから本セクションのルールを削除している)。
+   src/pages/team/[id].astro の .team-suggest-* 一式(順位/本文/操作の3列グリッド、
+   48pxスプライト、xsサイズのmuted補足行)をそのまま写した見た目は変えていない。
+   値・トークンは新設せず、既存のカード用トークン(.card-damageの攻守バッジ配色・角丸)と
+   グローバルトークンだけを使う。document.createElement()による動的生成のため
+   scoped<style>は効かない(pitfalls.md「JSで生成した要素に効かない」)。
+   -------------------------------------------------------------------------- */
+#opponent-notes-section .damage-suggest-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+/* カード全体が1つのボタン(操作が「追加」の1種類しかないため。team側は
+   「育成する/チームに追加」の2択があるので右端に別ボタンを置いている)。
+   .card-damageと同様、パネル背景の上に直接置くカードの見た目にする
+   (--damage-card-background/--damage-card-active-background=カード本体と同じ背景トークン)。 */
+#opponent-notes-section .damage-suggest-card-button {
+  width: 100%;
+  display: block;
+  padding: var(--space-2);
+  border: 0;
+  border-radius: var(--radius-zero);
+  background: var(--damage-card-background);
+  box-shadow: var(--shadow-sm);
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+  transition: box-shadow .18s ease, background-color .18s ease;
+}
+
+#opponent-notes-section .damage-suggest-card-button:hover,
+#opponent-notes-section .damage-suggest-card-button:focus-visible {
+  box-shadow: var(--shadow-md);
+  background: var(--damage-card-active-background);
+}
+
+#opponent-notes-section .damage-suggest-body {
+  min-width: 0;
+  display: block;
+}
+
+/* 攻守チップ・スプライト・相手の持ち物を1段目に置く。持ち物まで入ると一覧の幅には
+   収まらないため折り返しを許す(team側の.team-suggest-buildと同じ判断: 切ると
+   提案の中身そのものが読めなくなる)。 */
+#opponent-notes-section .damage-suggest-name-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: .15em var(--space-2);
+  min-width: 0;
+}
+
+/* 攻守チップは相手ビルドカードの攻守バッジ(.card-damage .damage-build-matchup
+   .damage-row-direction-option、上のコンパクト表示ルール参照)と同じ配色・角丸にする。 */
+#opponent-notes-section .damage-suggest-direction {
+  flex: none;
+  padding: 0 .35em;
+  border-radius: var(--damage-card-direction-badge-radius);
+  font-size: var(--font-size-sm3);
+  font-weight: 600;
+}
+
+#opponent-notes-section .damage-suggest-direction[data-direction="attack"] {
+  background: var(--damage-card-attack-badge-background);
+  color: var(--damage-card-attack-badge-color);
+}
+
+#opponent-notes-section .damage-suggest-direction[data-direction="defense"] {
+  background: var(--damage-card-defense-badge-background);
+  color: var(--damage-card-defense-badge-color);
+}
+
+#opponent-notes-section .damage-suggest-sprite {
+  width: 48px;
+  height: 48px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#opponent-notes-section .damage-suggest-sprite-img {
+  max-width: 100%;
+  max-height: 100%;
+}
+
+#opponent-notes-section .damage-suggest-sprite-fallback {
+  display: none;
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm3);
+  align-items: center;
+  justify-content: center;
+}
+
+/* 技名(左)+タイプアイコン。根拠は同じ行の右側に表示する。列幅は限られるため
+   折り返して2行になることを許す(切ると提案の中身が読めなくなる)。 */
+#opponent-notes-section .damage-suggest-move-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: .15em .25em;
+  line-height: var(--line-height-snug);
+  margin-top: .15em;
+}
+
+/* 技のタイプアイコン。既存の技名候補一覧(damage-detail-move-dropdown-option-icon)と
+   同じ大きさ(--damage-card-move-icon-size)にする。 */
+#opponent-notes-section .damage-suggest-move-type-icon {
+  width: var(--damage-card-move-icon-size);
+  height: var(--damage-card-move-icon-size);
+  flex: none;
+  object-fit: contain;
+}
+
+#opponent-notes-section .damage-suggest-move-type-icon[hidden] {
+  display: none;
+}
+
+#opponent-notes-section .damage-suggest-move {
+  font-size: var(--damage-card-move-font-size);
+  font-weight: 600;
+  min-width: 0;
+}
+
+/* アイコンと名前は不可分の1塊にする(バラで並べると折り返しで分断される)。 */
+#opponent-notes-section .damage-suggest-item {
+  display: inline-flex;
+  align-items: center;
+  gap: .25em;
+  min-width: 0;
+}
+
+#opponent-notes-section .damage-suggest-item-icon {
+  width: 14px;
+  height: 14px;
+  flex: none;
+}
+
+#opponent-notes-section .damage-suggest-item-name {
+  font-weight: 600;
+  font-size: var(--font-size-sm3);
+  color: var(--color-text-muted);
+}
+
+/* 根拠(「x%が計算」)は技名と同じ行の右端に表示する。母集団の実数・主語
+   (同じ型/同じポケモン)はtitle属性へ回した。 */
+#opponent-notes-section .damage-suggest-reason {
+  margin-left: auto;
+  padding-left: var(--space-2);
+  font-size: var(--font-size-sm3);
+  color: var(--color-text-muted);
+  line-height: var(--line-height-snug);
+  white-space: nowrap;
+}

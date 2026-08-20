@@ -1,6 +1,6 @@
-// ダメージ計算のサジェスト。個体育成画面の右パネルの
-// ニュートラル状態に「そのポケモンの型でよく行われているダメージ計算」を並べ、クリックすると
-// 中央パネルにダメージ計算カードが1枚増える。
+// ダメージ計算のサジェスト。個体育成画面の「box/damage」タブに「そのポケモンの型で
+// よく行われているダメージ計算」を並べ、クリックすると中央のダメージ計算カード一覧に
+// カードが1枚増える。
 //
 // 責務の分割:
 //   - 集計         … migrations/020_damage_calc_suggestions.sql(suggestionsテーブルへ書き出す)
@@ -8,12 +8,14 @@
 //   - 純粋ロジック … src/lib/damage-calc-suggest.ts(キーの組み立て・payload正規化・重複除外)
 //   - このファイル … 取得の駆動・描画・クリック時のカード追加の橋渡し
 //
-// ■ 右パネルでの位置づけ
-// 右パネルは既に (A)技カード選択時の詳細設定 / (B)耐久調整の候補一覧 / (C)耐久指数の候補一覧 の
-// 3用途で取り合いになっている(src/lib/box-id/right-panel.ts)。依頼は「ニュートラル状態で
-// 表示する」なので、既存の優先順位 (A) > (B)(C) > 空 の一番最後、つまり
-// renderDetailPanelEmpty() が本当に何も出さない状態のときだけこのサジェストを出す
-// (= 新しい優先順位は (A) > (B)(C) > サジェスト > 空)。既存3用途の見え方は変えない。
+// ■ 表示位置
+// 以前は右パネル(#damage-detail-panel、技カード編集・耐久調整候補・耐久指数候補と取り合いに
+// なるモーダル)の「ニュートラル状態」としてだけ表示していたが、開閉しなくても常に見える方が
+// 便利という要望により、ダメージ計算カード一覧(#damage-rows-list)の直下に常設表示する
+// #damage-suggest-section/#damage-suggest-list(DamageCalcSection.astro)へ直接描画する形に
+// 変更した。右パネル側の優先順位(A:技カード編集 > B/C:耐久調整・耐久指数の候補一覧 > 空)には
+// もう関与しない(renderDamageSuggestSectionは右パネルの状態と無関係に、値の変更のたびに
+// 独立して呼ばれる)。
 //
 // ■ 型はサーバではなくクライアントで判定する
 // 左パネルの人気度サジェスト(left-panel.ts の currentArchetype)と同じく、いま編集中の値から
@@ -28,7 +30,7 @@ import {
 	parseDamageCalcSuggestionPayload,
 	type DamageCalcSuggestion,
 } from "../damage-calc-suggest";
-import { applySprite, applyItemImage, buildAttackerSpec, renderDetailPanel } from "./shared-core";
+import { applySprite, applyItemImage, buildAttackerSpec } from "./shared-core";
 import { typeIconUrl } from "../sprite-urls";
 
 // 右パネルの高さに収まる件数。取得側(020のtop_n=12)より少なくし、押せる候補だけを見せる。
@@ -134,7 +136,7 @@ async function loadSuggestions(): Promise<void> {
 	if (keys.length === 0) {
 		loadedSubjectKey = cacheKey;
 		currentSuggestions = [];
-		renderDetailPanel();
+		renderDamageSuggestSection();
 		return;
 	}
 
@@ -152,9 +154,8 @@ async function loadSuggestions(): Promise<void> {
 	loadedSubjectKey = cacheKey;
 	currentSuggestions = options;
 	currentBasis = basis;
-	// 取得は非同期なので、届いた時点でパネルを描き直す。いま (A)(B)(C) を表示中なら
-	// renderDetailPanel() はそちらを再描画するだけで、このサジェストは表に出ない。
-	renderDetailPanel();
+	// 取得は非同期なので、届いた時点で常設セクションを描き直す。
+	renderDamageSuggestSection();
 }
 
 /** 左パネルの編集・カードの増減など、サジェストの前提が変わったときに呼ぶ。 */
@@ -167,7 +168,7 @@ export function scheduleDamageSuggestReload(): void {
 
 /** カードを増減したときなど、取得はやり直さず「既に追加済み」の除外だけを引き直す。 */
 export function refreshDamageSuggestView(): void {
-	renderDetailPanel();
+	renderDamageSuggestSection();
 }
 
 function buildDirectionChip(direction: DamageCalcSuggestion["direction"]): HTMLElement {
@@ -283,30 +284,26 @@ function buildSuggestionCard(suggestion: DamageCalcSuggestion): HTMLElement {
 }
 
 /**
- * 右パネルのニュートラル状態としてサジェストを描画する。
- * 出すものが何も無ければ false を返し、呼び出し元(right-panel.ts の renderDetailPanelEmpty)は
- * 従来どおりの空状態へ落ちる ── 取得中・取得失敗・候補0件のときに文言だけが出るのは、
- * 「通常時は何も見せない」という空状態の方針と衝突するため、黙って空のままにする。
+ * #damage-rows-list の直下に常設する「よく行われるダメージ計算」を描画する。
+ * サジェストが1件も無ければ #damage-suggest-section を隠す ── 取得中・取得失敗・候補0件の
+ * ときに文言だけが出るのは「通常時は何も見せない」という方針と衝突するため、黙って隠す。
  */
-export function renderDamageSuggestPanel(
-	bodyEl: HTMLElement,
-	setTitle: (title: string | Node) => void,
-): boolean {
+export function renderDamageSuggestSection(): void {
+	const sectionEl = document.getElementById("damage-suggest-section");
+	const listEl = document.getElementById("damage-suggest-list");
+	if (!sectionEl || !listEl) return;
+
 	const existingKeys = new Set(bridge?.listExistingKeys() ?? []);
 	const visible = filterNewDamageCalcSuggestions(currentSuggestions, existingKeys, VISIBLE_LIMIT);
-	if (visible.length === 0) return false;
+	if (visible.length === 0) {
+		sectionEl.hidden = true;
+		listEl.innerHTML = "";
+		return;
+	}
 
-	setTitle("よく行われるダメージ計算");
-	bodyEl.innerHTML = "";
-	const inner = document.createElement("div");
-	inner.className = "damage-detail-panel-body-inner damage-suggest";
-	bodyEl.appendChild(inner);
-
-	const list = document.createElement("ul");
-	list.className = "damage-suggest-list";
-	visible.forEach((suggestion) => list.appendChild(buildSuggestionCard(suggestion)));
-	inner.appendChild(list);
-	return true;
+	sectionEl.hidden = false;
+	listEl.innerHTML = "";
+	visible.forEach((suggestion) => listEl.appendChild(buildSuggestionCard(suggestion)));
 }
 
 /** damage-calc.ts の #opponent-notes-section ガード内から1回だけ呼ばれる。 */
