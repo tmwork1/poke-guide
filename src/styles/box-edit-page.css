@@ -46,7 +46,7 @@
 #stat-status-adjust-body .stat-row-remaining-value {
 	display: flex;
 	align-items: center;
-	justify-content: center;
+	justify-content: flex-end;
 	min-width: 0;
 }
 .edit-layout-left .stat-nature-btn,

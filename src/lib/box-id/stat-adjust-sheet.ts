@@ -5,6 +5,33 @@ const body = document.getElementById("stat-status-adjust-body");
 const STAT_KEYS = ["hp", "atk", "def", "spa", "spd", "spe"] as const;
 const STAT_LABELS = ["H", "A", "B", "C", "D", "S"] as const;
 
+const remainingDisplay = document.getElementById("stat-adjust-sheet-remaining");
+
+function updateRemainingDisplay(): void {
+	if (!remainingDisplay) return;
+	const source = document.getElementById("stat-adjustment-section");
+	if (!source) return;
+	let total = 0;
+	for (const key of STAT_KEYS) {
+		const sourceRange = source.querySelector<HTMLInputElement>(`#ev-${key}-range`);
+		if (sourceRange) total += Number(sourceRange.value) || 0;
+	}
+	remainingDisplay.textContent = `残り${66 - total}`;
+}
+
+const remainingSource = document.getElementById("stat-adjustment-section");
+if (remainingSource) {
+	remainingSource.addEventListener("input", updateRemainingDisplay);
+	remainingSource.addEventListener("change", updateRemainingDisplay);
+	new MutationObserver(updateRemainingDisplay).observe(remainingSource, {
+		subtree: true,
+		childList: true,
+		characterData: true,
+		attributes: true,
+	});
+	updateRemainingDisplay();
+}
+
 export function resetStatAdjustSheet(): void {
 	if (!sheet || !toggle) return;
 	sheet.classList.remove("is-expanded");
@@ -18,23 +45,10 @@ function buildDamageStatAdjustmentSheet(): void {
 
 	const root = document.createElement("div");
 	root.className = "damage-stat-adjustment";
-	const remaining = document.createElement("span");
-	remaining.className = "damage-stat-adjustment-remaining tnum";
 	const rows = new Map<string, { range: HTMLInputElement; value: HTMLElement; real: HTMLElement }>();
-	const remainingRow = document.createElement("div");
-	remainingRow.className = "damage-stat-adjustment-row damage-stat-adjustment-remaining-row";
-	remainingRow.append(
-		document.createElement("span"),
-		document.createElement("span"),
-		document.createElement("span"),
-		document.createElement("span"),
-		document.createElement("span"),
-		remaining,
-		document.createElement("span"),
-	);
-	root.appendChild(remainingRow);
 
 	for (const [index, key] of STAT_KEYS.entries()) {
+		if (key === "spe") continue;
 		const row = document.createElement("div");
 		row.className = "damage-stat-adjustment-row";
 		const label = document.createElement("span");
@@ -93,16 +107,16 @@ function buildDamageStatAdjustmentSheet(): void {
 	body.appendChild(root);
 
 	const sync = (): void => {
-		let total = 0;
 		for (const key of STAT_KEYS) {
 			const sourceRange = source.querySelector<HTMLInputElement>(`#ev-${key}-range`);
-			const sourceReal = source.querySelector<HTMLElement>(`#stat-${key}`);
-			const sourceLabel = source.querySelector<HTMLElement>(`#nature-label-${key}`);
 			const row = rows.get(key);
 			if (!sourceRange || !row) continue;
+			const sourceReal = source.querySelector<HTMLElement>(`#stat-${key}`);
+			const sourceLabel = source.querySelector<HTMLElement>(`#nature-label-${key}`);
 			const ev = Number(sourceRange.value) || 0;
-			total += ev;
 			row.range.value = String(ev);
+			const progressPercent = Math.min(100, Math.max(0, (ev / 32) * 100));
+			row.range.style.setProperty("--slider-progress", `${progressPercent}%`);
 			row.value.textContent = String(ev);
 			row.real.textContent = sourceReal?.textContent ?? "-";
 			if (sourceLabel?.dataset.mod) row.value.dataset.mod = sourceLabel.dataset.mod;
@@ -113,7 +127,6 @@ function buildDamageStatAdjustmentSheet(): void {
 			const sheetButton = root.querySelector<HTMLButtonElement>(`.damage-stat-adjustment-nature-btn[data-stat-key="${key}"]`);
 			if (sheetButton) sheetButton.dataset.natureState = sourceButton?.dataset.natureState ?? "none";
 		}
-		remaining.textContent = `残り${66 - total}`;
 	};
 
 	source.addEventListener("input", sync);

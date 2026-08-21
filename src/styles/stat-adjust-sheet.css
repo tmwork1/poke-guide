@@ -2,13 +2,15 @@
 	position: fixed;
 	left: var(--space-4);
 	right: var(--space-4);
-	bottom: calc(var(--bottom-nav-height) + var(--space-2) + env(safe-area-inset-bottom));
-	z-index: 20;
+	bottom: 0;
+	z-index: 15;
 	display: flex;
 	flex-direction: column;
 	overflow: hidden;
-	border-radius: var(--radius-md);
+	padding-bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom));
+	border-radius: var(--radius-md) var(--radius-md) 0 0;
 	border: 1px solid var(--color-border);
+	border-bottom: none;
 	background: var(--color-surface-raised);
 	box-shadow: var(--shadow-md);
 }
@@ -18,15 +20,26 @@
 	display: flex;
 	align-items: center;
 	justify-content: center;
+	position: relative;
 	flex: none;
 	width: 100%;
 	min-height: 1.75rem;
-	padding: var(--space-1);
+	padding: var(--space-1) var(--space-2);
 	border: 0;
 	background: var(--color-surface-raised);
 	color: var(--color-text-muted);
 	font: inherit;
 	cursor: pointer;
+}
+
+.stat-adjust-sheet-remaining {
+	position: absolute;
+	right: var(--space-2);
+	top: 50%;
+	transform: translateY(-50%);
+	font-size: var(--font-size-sm3);
+	color: var(--color-text-muted);
+	white-space: nowrap;
 }
 
 .stat-adjust-sheet-toggle-icon {
@@ -62,7 +75,8 @@
 	padding: 0;
 	border: 1px solid var(--color-border);
 	border-radius: var(--radius-zero);
-	background: var(--color-control-raised);
+	background: var(--color-surface-raised);
+	box-shadow: var(--shadow-sm);
 	color: var(--color-text-muted);
 	font: inherit;
 	cursor: pointer;
@@ -75,17 +89,19 @@
 .damage-stat-adjustment-value[data-mod="down"],
 .damage-stat-adjustment-real[data-mod="down"] { color: var(--color-stat-down); }
 .damage-stat-adjustment-ev-value { display: flex; flex-direction: column; align-items: center; gap: 0.1rem; }
-.damage-stat-adjustment-remaining { display: block; font-size: var(--font-size-sm3); color: var(--color-text-muted); text-align: center; white-space: nowrap; }
 .damage-stat-adjustment-slider { min-width: 0; width: 100%; }
 .damage-stat-adjustment-nature { display: flex; justify-content: center; }
 .damage-stat-adjustment-nature-btn {
 	display: inline-grid;
 	place-items: center;
-	width: 1.3rem;
-	height: 1.8rem;
+	box-sizing: border-box;
+	width: 32px;
+	height: 32px;
 	padding: 0;
-	border: 0;
-	background: var(--color-control-raised);
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius-zero);
+	box-shadow: var(--shadow-sm);
+	background: var(--color-surface-raised);
 	color: var(--color-text-muted);
 	font: inherit;
 	cursor: pointer;
@@ -100,13 +116,13 @@
 }
 .damage-stat-adjustment-nature-btn[data-nature-state="up"] { background: var(--color-danger-soft); }
 .damage-stat-adjustment-nature-btn[data-nature-state="up"]::after {
-	border-left: 5px solid transparent;
-	border-right: 5px solid transparent;
-	border-bottom: 8px solid var(--color-stat-up);
+	border-left: 6px solid transparent;
+	border-right: 6px solid transparent;
+	border-bottom: 10px solid var(--color-stat-up);
 }
 .damage-stat-adjustment-nature-btn[data-nature-state="down"] { background: var(--color-primary-soft); }
 .damage-stat-adjustment-nature-btn[data-nature-state="down"]::after {
-	border-left: 5px solid transparent;
-	border-right: 5px solid transparent;
-	border-top: 8px solid var(--color-stat-down);
+	border-left: 6px solid transparent;
+	border-right: 6px solid transparent;
+	border-top: 10px solid var(--color-stat-down);
 }
