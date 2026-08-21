@@ -268,6 +268,7 @@
 	box-sizing: border-box;
 	width: var(--stat-nature-button-size);
 	height: var(--stat-nature-button-size);
+	min-height: 0;
 	padding: 0;
 	font-size: 0;
 	line-height: 0;

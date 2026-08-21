@@ -921,6 +921,7 @@ body.box-edit-page {
 #opponent-notes-section .damage-row-icon-button {
   width: var(--damage-card-action-size);
   height: var(--damage-card-action-size);
+  min-height: 0;
   font-size: var(--damage-card-action-font-size);
   box-shadow: var(--damage-card-action-shadow);
   border-radius: var(--damage-card-action-radius);

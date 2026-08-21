@@ -134,6 +134,7 @@ body.box-edit-page {
   justify-content: center;
   width: var(--move-picker-close-box-size);
   height: var(--move-picker-close-box-size);
+  min-height: 0;
   border: none;
   border-radius: var(--radius-sm);
   background: transparent;
@@ -231,6 +232,7 @@ body.box-edit-page {
   align-items: center;
   gap: var(--space-1);
   padding: 0;
+  min-height: 0;
   border: none;
   background: transparent;
   color: var(--color-text);

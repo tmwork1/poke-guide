@@ -193,6 +193,7 @@
   justify-content: center;
   width: var(--box-card-action-size);
   height: var(--box-card-action-size);
+  min-height: 0;
   padding: 0;
   border-radius: var(--box-card-action-border-radius);
   border: var(--box-card-action-border);

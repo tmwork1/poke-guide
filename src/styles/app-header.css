@@ -90,6 +90,7 @@
   cursor: pointer;
   font-size: inherit;
   padding: 0;
+  min-height: 0;
 }
 
 .app-header-back:hover {

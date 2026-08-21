@@ -198,6 +198,7 @@
 }
 .team-grid .card-team .card-team-pin {
   font-size: var(--team-card-pin-font-size);
+  min-height: 0;
 }
 .team-grid .card-team .card-team-pin:hover {
   background: transparent;

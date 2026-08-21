@@ -48,6 +48,7 @@ body.speed-chart-page {
 }
 .speed-chart-embed-close {
 	margin-left: auto;
+	min-height: 0;
 	font-size: var(--speed-chart-embed-close-font-size);
 	line-height: 1;
 }

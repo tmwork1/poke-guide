@@ -86,6 +86,7 @@
 /* 昇降切り替えボタンは枠線・背景を持たず、アイコンだけを表示する(UI改修依頼)。 */
 .second-header-sort .sort-dir-toggle {
 	padding: var(--space-1);
+	min-height: 0;
 	background: transparent;
 	border: 0;
 }
