@@ -42,6 +42,13 @@
 	align-items: center;
 	justify-content: center;
 }
+.edit-layout-left .stat-row-remaining-value,
+#stat-status-adjust-body .stat-row-remaining-value {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 0;
+}
 .edit-layout-left .stat-nature-btn,
 #stat-status-adjust-body .stat-nature-btn {
 	display: inline-grid;

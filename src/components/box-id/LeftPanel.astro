@@ -230,13 +230,17 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 					>{pokemon.nature ?? ""}</span>
 				</span>
 				<span>種族値</span>
-				<span class="stat-table-header-ev-label">
-					努力値
-					<span class="stat-table-header-ev-remaining">
-						<span id="ev-remaining" class="ev-remaining tnum"></span>
-					</span>
-				</span>
+				<span class="stat-table-header-ev-label">努力値</span>
 				<span class="stat-table-header-real-label">実数値</span>
+			</div>
+			<div class="stat-row stat-row-remaining">
+				<span class="stat-row-label" aria-hidden="true"></span>
+				<span class="stat-row-nature" aria-hidden="true"></span>
+				<span class="stat-row-base tnum" aria-hidden="true"></span>
+				<span class="stat-row-remaining-value">
+					<span id="ev-remaining" class="ev-remaining tnum"></span>
+				</span>
+				<span class="stat-row-real-wrap" aria-hidden="true"></span>
 			</div>
 			{STAT_LABELS.map(({ key, label: statLabel, short: statShort }, i) => (
 				<div class="stat-row">
@@ -410,14 +414,6 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		white-space: nowrap;
 	}
 	.stat-table-header > span { text-align: center; }
-	.ev-remaining {
-		font-size: var(--font-size-sm3);
-		font-weight: 400;
-		color: var(--color-text-muted);
-	}
-	.ev-remaining[data-state="zero"] { color: var(--color-success); }
-	.ev-remaining[data-state="over"] { color: var(--color-danger); }
-	.ev-remaining:empty { display: none; }
 	.stat-row {
 		display: grid;
 		grid-template-columns: var(--stat-grid-template-columns);

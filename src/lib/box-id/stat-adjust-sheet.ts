@@ -21,6 +21,18 @@ function buildDamageStatAdjustmentSheet(): void {
 	const remaining = document.createElement("span");
 	remaining.className = "damage-stat-adjustment-remaining tnum";
 	const rows = new Map<string, { range: HTMLInputElement; value: HTMLElement; real: HTMLElement }>();
+	const remainingRow = document.createElement("div");
+	remainingRow.className = "damage-stat-adjustment-row damage-stat-adjustment-remaining-row";
+	remainingRow.append(
+		document.createElement("span"),
+		document.createElement("span"),
+		document.createElement("span"),
+		document.createElement("span"),
+		document.createElement("span"),
+		remaining,
+		document.createElement("span"),
+	);
+	root.appendChild(remainingRow);
 
 	for (const [index, key] of STAT_KEYS.entries()) {
 		const row = document.createElement("div");
@@ -53,7 +65,6 @@ function buildDamageStatAdjustmentSheet(): void {
 		value.className = "damage-stat-adjustment-value tnum";
 		const evValue = document.createElement("span");
 		evValue.className = "damage-stat-adjustment-ev-value";
-		if (key === "hp") evValue.appendChild(remaining);
 		evValue.appendChild(value);
 		const range = document.createElement("input");
 		range.type = "range";
