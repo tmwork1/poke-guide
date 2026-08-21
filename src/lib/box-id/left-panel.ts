@@ -42,6 +42,7 @@ import {
 	recalcStats,
 	baseStatsMapPromise,
 	registerLeftPanelBridge,
+	scheduleAllRowsCalc,
 	wrapToRange,
 } from "./shared-core";
 // 「耐久指数最大化」ボタン(ステータス表の下、#durability-index-button)の配線。
@@ -1185,6 +1186,9 @@ if (form) {
 		if (!target) continue;
 		target.addEventListener("input", scheduleSave);
 	}
+	for (const id of STAT_KEYS.map((key) => `ev-${key}`)) {
+		document.getElementById(id)?.addEventListener("input", scheduleAllRowsCalc);
+	}
 	// 型判定に使う持ち物・努力値・技が変わったら、技人気だけを新しい型で取り直す。
 	for (const id of ["item", ...STAT_KEYS.map((k) => `ev-${k}`), "move-1", "move-2", "move-3", "move-4"]) {
 		document.getElementById(id)?.addEventListener("input", schedulePopularBuildSuggestionsReload);
@@ -1241,6 +1245,7 @@ if (form) {
 			scheduleSave();
 			void recalcStats();
 			schedulePopularBuildSuggestionsReload();
+			scheduleAllRowsCalc();
 		});
 	}
 	// 端点ボタンは値を直接保存せず、既存rangeのinputハンドラへ流して全ての副作用を揃える。
@@ -2060,7 +2065,6 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 		window.removeEventListener("resize", onScrollOrResize);
 		window.removeEventListener("scroll", onScrollOrResize, true);
 	}
-
 	closeButton.addEventListener("click", closePicker);
 	bindModalDismissal({
 		backdrop: backdropEl,

@@ -8,7 +8,8 @@
 
 
 /* ステータス調整テーブルのレイアウト調整用変数 */
-.edit-layout-left .stat-adjustment-section {
+.edit-layout-left .stat-adjustment-section,
+#stat-status-adjust-body .stat-adjustment-section {
 	--stat-table-gap: var(--space-1);
 	--stat-nature-buttons-gap: 0.15em; /* 性格補正列内の▲▼2ボタンの間隔 */
 	--stat-row-label-line-height: 1;
@@ -70,7 +71,8 @@ body.box-edit-page {
 }
 
 /* 能力値調整表の列幅 */
-.edit-layout-left .stat-adjustment-section {
+.edit-layout-left .stat-adjustment-section,
+#stat-status-adjust-body .stat-adjustment-section {
 	/* ── 7. 余白 ────────────────────────── */
 	--stat-table-inline-end-padding: var(--space-2); /* 能力値表の右余白 */
 	--stat-table-inline-start-padding: var(--space-1); /* 能力値表の左余白 */

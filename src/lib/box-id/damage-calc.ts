@@ -843,6 +843,11 @@ if (opponentNotesSection) {
 	// 起きた後になる)。
 	registerDamageCalcBridge({
 		recalcRow: (row) => recalcRow(row),
+		recalcAllRows: () => {
+			rows.forEach((row) => {
+				void recalcRow(row);
+			});
+		},
 		saveRow: (row) => saveRow(row),
 		setRowSaveStatus: (row, state, text) => setRowSaveStatus(row, state, text),
 		renderConditionChipsInto: (container, attack, row) => renderConditionChipsInto(container, attack, row),

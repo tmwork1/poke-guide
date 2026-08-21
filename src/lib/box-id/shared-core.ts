@@ -416,6 +416,7 @@ export async function recalcStats(): Promise<void> {
 //     renderDetailPanel/selectColumn が必要とする関数を登録する)。 ---
 export interface DamageCalcBridge {
 	recalcRow: (row: DamageRowState) => Promise<void>;
+	recalcAllRows: () => void;
 	saveRow: (row: DamageRowState) => Promise<void>;
 	setRowSaveStatus: (row: DamageRowState, state: string, text: string) => void;
 	renderConditionChipsInto: (container: HTMLElement, attack: DamageColumnState, row: DamageRowState) => void;
@@ -507,11 +508,20 @@ export function getBulkAdjustBridge(): BulkAdjustBridge | null {
 
 const CALC_DEBOUNCE_MS = 600;
 const SAVE_DEBOUNCE_MS = 1000;
+let allRowsCalcTimer: ReturnType<typeof setTimeout> | null = null;
 
 export function scheduleRowCalc(row: DamageRowState): void {
 	if (row.calcTimer) clearTimeout(row.calcTimer);
 	row.calcTimer = setTimeout(() => {
 		void damageCalcBridge!.recalcRow(row);
+	}, CALC_DEBOUNCE_MS);
+}
+
+export function scheduleAllRowsCalc(): void {
+	if (allRowsCalcTimer) clearTimeout(allRowsCalcTimer);
+	allRowsCalcTimer = setTimeout(() => {
+		allRowsCalcTimer = null;
+		damageCalcBridge!.recalcAllRows();
 	}, CALC_DEBOUNCE_MS);
 }
 

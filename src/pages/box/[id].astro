@@ -16,6 +16,7 @@ import AppLayout from '../../layouts/AppLayout.astro';
 import LeftPanel from '../../components/box-id/LeftPanel.astro';
 import DamageCalcSection from '../../components/box-id/DamageCalcSection.astro';
 import RightPanel from '../../components/box-id/RightPanel.astro';
+import StatAdjustSheet from '../../components/box-id/StatAdjustSheet.astro';
 import BulkAdjustDialog from '../../components/box-id/BulkAdjustDialog.astro';
 import SpeedAdjustDialog from '../../components/box-id/SpeedAdjustDialog.astro';
 import MobileTrainingBar from '../../components/box-id/MobileTrainingBar.astro';
@@ -232,6 +233,7 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 			    スクリプトは構造分割ラウンド(フェーズ2)により src/components/box-id/DamageCalcSection.astro +
 			    src/lib/box-id/damage-calc.ts へ切り出した(見た目・ロジックは一切変更していない)。 */}
 			<DamageCalcSection pokemonId={pokemon.id} moveAdoptionBySpecies={moveAdoptionBySpecies} />
+			<StatAdjustSheet />
 			</div>
 
 			{/* 右サイド(詳細設定サイドバー、#damage-detail-panel + #damage-detail-backdrop)の

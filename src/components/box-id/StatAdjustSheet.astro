@@ -1,0 +1,21 @@
+---
+import '../../styles/stat-adjust-sheet.css';
+---
+
+<div id="stat-adjust-sheet" class="stat-adjust-sheet">
+	<button
+		type="button"
+		id="stat-adjust-sheet-toggle"
+		class="stat-adjust-sheet-toggle"
+		aria-expanded="false"
+		aria-controls="stat-status-adjust-body"
+	>
+		<span class="stat-adjust-sheet-toggle-icon" aria-hidden="true">︿</span>
+		<span class="stat-adjust-sheet-toggle-label">ステータス調整</span>
+	</button>
+	<div id="stat-status-adjust-body" class="stat-adjust-sheet-body"></div>
+</div>
+
+<script>
+	import '../../lib/box-id/stat-adjust-sheet';
+</script>

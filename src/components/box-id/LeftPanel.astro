@@ -219,7 +219,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 			))}
 		</div>
 
-		<div class="stat-adjustment-section">
+		<div id="stat-adjustment-section" class="stat-adjustment-section">
 			<div class="stat-table">
 			<div class="stat-table-header">
 				<span class="stat-table-header-label" aria-hidden="true"></span>
@@ -330,6 +330,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 			</button>
 		</div>
 		</div>
+		<div id="stat-adjustment-home" hidden></div>
 
 
 		{/* 「その他の設定(レベル・タグ・ピン留め・共有)」は要件により廃止した。
