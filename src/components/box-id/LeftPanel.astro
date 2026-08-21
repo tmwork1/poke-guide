@@ -455,52 +455,45 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		font-weight: 700;
 		line-height: 1;
 	}
-	/* 899px以下(モバイル)ではスライダー(input[type="range"])を非表示にし、代わりに
-	   .stat-ev-step-button(-/+)を表示する。マークアップ側のDOM順(0ボタン→-→スライダー→+→32ボタン、
-	   LeftPanel.astro本体側コメント参照)により、非表示にしたぶん自動的に「0 / - / + / 32」の
-	   並びになる。既存の0/32端点ボタン(.stat-ev-endpoint-button、デスクトップは36px)は
-	   360〜460px程度の極小幅で数値入力欄と合わせて1行に収まりきらないため、この幅だけ
-	   -/+ボタンと同じ24pxへ縮める(実測、Playwright: 36pxのまま4ボタン+数値入力を
-	   並べると390px幅で横方向にあふれることを確認したため)。900px以上のデスクトップは
-	   このブロックの対象外のため、スライダー自体の表示・0/32ボタンの36pxサイズは一切変更しない。 */
-	@media (min-width: 0) {
-		.stat-row .stat-ev-range-controls input[type="range"] { display: none; }
-		.stat-row .stat-ev-step-button { display: inline-flex; }
-		.stat-row .stat-input-controls { display: flex; align-items: center; justify-content: flex-end; gap: var(--space-1); min-width: 0; grid-column: 4; }
-		.stat-row .stat-ev-range-controls { display: contents; }
-		.stat-row .stat-ev-step-button[data-ev-step="-1"] { order: 2; }
-		/* 基底の .stat-row input[type="number"] は width:100% なので、flex行に置くと
-		   余った横幅を全部吸って左右のボタンが両端へ離れてしまう(実測、700px幅)。
-		   4ボタンと1つのまとまりに見えるよう固定幅にして、行ごと中央へ寄せる
-		   (.stat-input-controls の justify-content: center)。 */
-		.stat-row .stat-input-controls > input[type="number"] { order: 3; flex: 0 0 var(--stat-number-input-width); width: var(--stat-number-input-width); }
-		.stat-row .stat-input-controls > input[type="number"] {
-			height: var(--stat-number-input-height);
-			min-height: var(--stat-number-input-height);
-			padding: var(--stat-number-input-mobile-padding);
-			line-height: 1;
-		}
-		.stat-row .stat-ev-step-button[data-ev-step="1"] { order: 4; }
-		.stat-row .stat-ev-endpoint-button[data-ev-toggle] { order: 5; }
-		/* 入力面より一段高いsurfaceと既存の小さい影で、端点・増減操作を控えめに浮かせる。
-		   端点ボタン(»アイコンのみ)と増減ボタン(-/+)は同じ役割の並びなので等幅の正方形にする。 */
-		.stat-row .stat-ev-endpoint-button,
-		.stat-row .stat-ev-step-button {
-			box-sizing: border-box;
-			flex: 0 0 var(--stat-ev-mobile-button-block-size);
-			width: var(--stat-ev-mobile-button-block-size);
-			min-width: var(--stat-ev-mobile-button-block-size);
-			height: var(--stat-ev-mobile-button-block-size);
-			min-height: var(--stat-ev-mobile-button-block-size);
-			padding: 0;
-			color: var(--color-text-muted);
-			background: var(--color-surface-raised);
-			border: 1px solid var(--color-border);
-			border-radius: var(--radius-zero);
-			box-shadow: var(--shadow-sm);
-			font-size: var(--font-size-sm1);
-			font-weight: 400;
-		}
+	/* モバイル専用の努力値操作。スライダーは値保持・同期用のDOMとして残しつつ非表示にし、
+	   DOM順(0ボタン→-→スライダー→+→32ボタン、LeftPanel.astro本体側コメント参照)を使って
+	   「0 / - / + / 32」のボタン操作を常時表示する。 */
+	.stat-row .stat-ev-range-controls input[type="range"] { display: none; }
+	.stat-row .stat-ev-step-button { display: inline-flex; }
+	.stat-row .stat-input-controls { display: flex; align-items: center; justify-content: flex-end; gap: var(--space-1); min-width: 0; grid-column: 4; }
+	.stat-row .stat-ev-range-controls { display: contents; }
+	.stat-row .stat-ev-step-button[data-ev-step="-1"] { order: 2; }
+	/* 基底の .stat-row input[type="number"] は width:100% なので、flex行に置くと
+	   余った横幅を全部吸って左右のボタンが両端へ離れてしまう(実測、700px幅)。
+	   4ボタンと1つのまとまりに見えるよう固定幅にして、行ごと中央へ寄せる
+	   (.stat-input-controls の justify-content: center)。 */
+	.stat-row .stat-input-controls > input[type="number"] { order: 3; flex: 0 0 var(--stat-number-input-width); width: var(--stat-number-input-width); }
+	.stat-row .stat-input-controls > input[type="number"] {
+		height: var(--stat-number-input-height);
+		min-height: var(--stat-number-input-height);
+		padding: var(--stat-number-input-mobile-padding);
+		line-height: 1;
+	}
+	.stat-row .stat-ev-step-button[data-ev-step="1"] { order: 4; }
+	.stat-row .stat-ev-endpoint-button[data-ev-toggle] { order: 5; }
+	/* 入力面より一段高いsurfaceと既存の小さい影で、端点・増減操作を控えめに浮かせる。
+	   端点ボタン(»アイコンのみ)と増減ボタン(-/+)は同じ役割の並びなので等幅の正方形にする。 */
+	.stat-row .stat-ev-endpoint-button,
+	.stat-row .stat-ev-step-button {
+		box-sizing: border-box;
+		flex: 0 0 var(--stat-ev-mobile-button-block-size);
+		width: var(--stat-ev-mobile-button-block-size);
+		min-width: var(--stat-ev-mobile-button-block-size);
+		height: var(--stat-ev-mobile-button-block-size);
+		min-height: var(--stat-ev-mobile-button-block-size);
+		padding: 0;
+		color: var(--color-text-muted);
+		background: var(--color-surface-raised);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-zero);
+		box-shadow: var(--shadow-sm);
+		font-size: var(--font-size-sm1);
+		font-weight: 400;
 	}
 	.stat-ev-toggle-spacer { display: none; }
 	/* 努力値の数値入力も左パネル用の詰めた寸法に揃える(6行あるので効き方が大きい)。 */
@@ -629,9 +622,8 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		height: 16px;
 		vertical-align: middle;
 	}
-	@media (min-width: 0) {
-		.stat-adjust-actions { display: none; }
-	}
+	/* モバイル専用では、このテンプレート上の操作群はJSがツールバーへ再配置するため常時非表示にする。 */
+	.stat-adjust-actions { display: none; }
 
 	@media (max-width: 460px) {
 		.stat-table-header { display: none; }

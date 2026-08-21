@@ -188,47 +188,47 @@
 	font-weight: var(--stat-step-button-font-weight);
 	line-height: 1;
 }
-@media (min-width: 0) {
-	.stat-row .stat-ev-range-controls input[type="range"] { display: none; }
-	.stat-row .stat-ev-step-button { display: inline-flex; }
-	.stat-row .stat-input-controls {
-		display: flex;
-		align-items: center;
-		justify-content: flex-end;
-		gap: var(--stat-control-gap);
-		min-width: 0;
-		grid-column: 3 / 5;
-	}
-	.stat-row .stat-ev-range-controls { display: contents; }
-	.stat-row .stat-ev-step-button[data-ev-step="-1"] { order: 2; }
-	.stat-row .stat-input-controls > input[type="number"] {
-		order: 3;
-		flex: 0 0 var(--stat-number-input-width);
-		width: var(--stat-number-input-width);
-		height: var(--stat-number-input-height);
-		min-height: var(--stat-number-input-height);
-		padding: var(--stat-number-input-mobile-padding);
-		line-height: 1;
-	}
-	.stat-row .stat-ev-step-button[data-ev-step="1"] { order: 4; }
-	.stat-row .stat-ev-endpoint-button[data-ev-toggle] { order: 5; }
-	.stat-row .stat-ev-endpoint-button,
-	.stat-row .stat-ev-step-button {
-		box-sizing: border-box;
-		flex: 0 0 var(--stat-ev-mobile-button-block-size);
-		width: var(--stat-ev-mobile-button-block-size);
-		min-width: var(--stat-ev-mobile-button-block-size);
-		height: var(--stat-ev-mobile-button-block-size);
-		min-height: var(--stat-ev-mobile-button-block-size);
-		padding: 0;
-		color: var(--stat-muted-color);
-		background: var(--stat-button-background);
-		border: var(--stat-button-border);
-		border-radius: var(--stat-button-radius);
-		box-shadow: var(--stat-button-shadow);
-		font-size: var(--stat-mobile-button-font-size);
-		font-weight: var(--stat-value-font-weight);
-	}
+/* モバイル専用の努力値操作。スライダーは値保持・同期用のDOMとして残しつつ非表示にし、
+   端点ボタンと増減ボタンによる操作を常時表示する。 */
+.stat-row .stat-ev-range-controls input[type="range"] { display: none; }
+.stat-row .stat-ev-step-button { display: inline-flex; }
+.stat-row .stat-input-controls {
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: var(--stat-control-gap);
+	min-width: 0;
+	grid-column: 3 / 5;
+}
+.stat-row .stat-ev-range-controls { display: contents; }
+.stat-row .stat-ev-step-button[data-ev-step="-1"] { order: 2; }
+.stat-row .stat-input-controls > input[type="number"] {
+	order: 3;
+	flex: 0 0 var(--stat-number-input-width);
+	width: var(--stat-number-input-width);
+	height: var(--stat-number-input-height);
+	min-height: var(--stat-number-input-height);
+	padding: var(--stat-number-input-mobile-padding);
+	line-height: 1;
+}
+.stat-row .stat-ev-step-button[data-ev-step="1"] { order: 4; }
+.stat-row .stat-ev-endpoint-button[data-ev-toggle] { order: 5; }
+.stat-row .stat-ev-endpoint-button,
+.stat-row .stat-ev-step-button {
+	box-sizing: border-box;
+	flex: 0 0 var(--stat-ev-mobile-button-block-size);
+	width: var(--stat-ev-mobile-button-block-size);
+	min-width: var(--stat-ev-mobile-button-block-size);
+	height: var(--stat-ev-mobile-button-block-size);
+	min-height: var(--stat-ev-mobile-button-block-size);
+	padding: 0;
+	color: var(--stat-muted-color);
+	background: var(--stat-button-background);
+	border: var(--stat-button-border);
+	border-radius: var(--stat-button-radius);
+	box-shadow: var(--stat-button-shadow);
+	font-size: var(--stat-mobile-button-font-size);
+	font-weight: var(--stat-value-font-weight);
 }
 .stat-ev-toggle-spacer { display: none; }
 /* 努力値を直接入力する数値欄と横長スライダー */
