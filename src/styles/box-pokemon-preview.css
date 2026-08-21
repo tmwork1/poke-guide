@@ -338,11 +338,8 @@
 }
 
 /* ボックス編集画面は常にコンパクトなタブ表示を使う。 */
-@media (min-width: 0) {
-  #mobile-training-ui[data-mobile-tab="damage"] .pokemon-preview {
-    display: none;
-  }
-
+#mobile-training-ui[data-mobile-tab="damage"] .pokemon-preview {
+  display: none;
 }
 
 .pokemon-preview-item-image-hidden { display: none; }

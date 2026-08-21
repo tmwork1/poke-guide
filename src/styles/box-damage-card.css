@@ -1841,8 +1841,6 @@ body.box-edit-page {
 /* --------------------------------------------------------------------------
    常時使われるコンパクトなカード配置
    -------------------------------------------------------------------------- */
-@media (width >= 0) {
-
   #opponent-notes-section .damage-row-body {
     flex-flow: column;
   }
@@ -2025,7 +2023,6 @@ body.box-edit-page {
   #opponent-notes-section .card-damage .damage-column-footer {
     display: none;
   }
-}
 
 /* 技カード長押し中は、選択・hover状態より優先して削除操作の進行を示す。 */
 #opponent-notes-section .damage-column.is-pressing {

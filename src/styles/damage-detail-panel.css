@@ -333,7 +333,6 @@ body.box-edit-page {
 		overflow-wrap: anywhere;
 	}
 	/* 未選択時のサジェスト一覧だけは、従来どおりカード一覧内へインライン配置する。 */
-	@media (min-width: 0) {
 		.damage-detail-panel.is-mobile-inline {
 			position: static;
 			inset: auto;
@@ -355,7 +354,6 @@ body.box-edit-page {
 		}
 		/* サジェスト一覧はカード列に常設される(閉じる対象の選択が無い)ので閉じるボタンを出さない。 */
 		.damage-detail-panel.is-mobile-suggest .damage-detail-panel-close { display: none; }
-	}
 
 	/* 動的生成要素に限定し、耐久最大化・耐久調整の本文レイアウトには影響させない。 */
 	/* --------------------------------------------------------------------------
