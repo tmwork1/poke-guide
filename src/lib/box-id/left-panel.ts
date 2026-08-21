@@ -37,8 +37,7 @@ import {
 	flashAutofillHint,
 	natureNameFromBoosts,
 	normalizedNatureBoosts,
-	toggleNatureUp,
-	toggleNatureDown,
+	nextNatureBoosts,
 	recalcStats,
 	baseStatsMapPromise,
 	registerLeftPanelBridge,
@@ -582,7 +581,7 @@ if (form) {
 		leftNatureUp = initial.up;
 		leftNatureDown = initial.down;
 	}
-	// ▲/▼ボタンの初期の押下状態を反映する(refreshNatureButtonsは関数宣言でホイスト
+	// 性格補正ボタンの初期状態を反映する(refreshNatureButtonsは関数宣言でホイスト
 	// されているため、この時点で呼び出せる)。
 	refreshNatureButtons();
 	// 保存データ・pyodideエンジンに渡す性格名はこの関数で都度導出する
@@ -1081,11 +1080,15 @@ if (form) {
 		// (TDZでまだ初期化されていない)ため、ここではSTAT_KEYSから都度フィルタする。
 		for (const key of STAT_KEYS) {
 			if (key === "hp") continue;
-			const upBtn = document.getElementById(`nature-up-${key}`);
-			const downBtn = document.getElementById(`nature-down-${key}`);
-			if (upBtn) upBtn.setAttribute("aria-pressed", String(leftNatureUp === key));
-			if (downBtn) downBtn.setAttribute("aria-pressed", String(leftNatureDown === key));
+			const button = document.getElementById(`nature-toggle-${key}`);
 			const labelEl = document.getElementById(`nature-label-${key}`);
+			const statLabel = labelEl?.getAttribute("aria-label") ?? key;
+			const state = leftNatureUp === key ? "up" : leftNatureDown === key ? "down" : "none";
+			if (button) {
+				button.dataset.natureState = state;
+				button.setAttribute("aria-label", `${statLabel}の性格補正: ${state === "up" ? "上昇" : state === "down" ? "下降" : "未設定"}`);
+				button.setAttribute("title", `クリックで性格補正を切り替える (現在: ${state === "up" ? "上昇" : state === "down" ? "下降" : "未設定"})`);
+			}
 			if (labelEl) {
 				if (leftNatureUp === key) labelEl.dataset.mod = "up";
 				else if (leftNatureDown === key) labelEl.dataset.mod = "down";
@@ -1203,7 +1206,7 @@ if (form) {
 	// UI刷新: ポケモン名/特性/持ち物/テラス/努力値のいずれかが変更されたら
 	// 実数値を再計算する(change イベントで十分。入力のたびの再計算は不要。
 	// IVは「チャンピオンズ」ルールで常に31固定のため変更対象から除外)。
-	// 性格の変更(クリックによる上昇/下降切り替え)は下のnature-toggleクリックハンドラ側で
+	// 性格の変更(クリックによる未設定・上昇・下降の循環)は下のnature-toggleクリックハンドラ側で
 	// 個別にscheduleSave/recalcStatsを呼ぶ(選択UIが無いのでchangeイベントが無い)。
 	const statAffectingIds = [
 		"species-name",
@@ -1222,17 +1225,11 @@ if (form) {
 
 	const NATURE_TOGGLE_KEYS = STAT_KEYS.filter((k) => k !== "hp");
 	for (const key of NATURE_TOGGLE_KEYS) {
-		const upButton = document.getElementById(`nature-up-${key}`);
-		const downButton = document.getElementById(`nature-down-${key}`);
-		upButton?.addEventListener("click", () => {
-			leftNatureUp = toggleNatureUp(leftNatureUp, key);
-			refreshNatureButtons();
-			void recalcStats();
-			scheduleSave();
-			schedulePopularBuildSuggestionsReload();
-		});
-		downButton?.addEventListener("click", () => {
-			leftNatureDown = toggleNatureDown(leftNatureDown, key);
+		const button = document.getElementById(`nature-toggle-${key}`);
+		button?.addEventListener("click", () => {
+			const next = nextNatureBoosts({ up: leftNatureUp, down: leftNatureDown }, key);
+			leftNatureUp = next.up;
+			leftNatureDown = next.down;
 			refreshNatureButtons();
 			void recalcStats();
 			scheduleSave();
@@ -2019,7 +2016,7 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 			}
 		}
 		if (!canDockRight) {
-			for (const el of Array.from(anchor.querySelectorAll<HTMLElement>(".stat-nature-up, .stat-nature-down"))) {
+			for (const el of Array.from(anchor.querySelectorAll<HTMLElement>(".stat-nature-btn"))) {
 				const r = el.getBoundingClientRect();
 				if (r.width <= 0 || r.height <= 0) continue;
 				if (r.bottom > positionedBottom) positionedBottom = r.bottom;

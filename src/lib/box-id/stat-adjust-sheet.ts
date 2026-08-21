@@ -31,16 +31,13 @@ function buildDamageStatAdjustmentSheet(): void {
 		const nature = document.createElement("span");
 		nature.className = "damage-stat-adjustment-nature";
 		if (key !== "hp") {
-			for (const direction of ["up", "down"] as const) {
-				const button = document.createElement("button");
-				button.type = "button";
-				button.className = `damage-stat-adjustment-nature-${direction}`;
-				button.dataset.statKey = key;
-				button.textContent = direction === "up" ? "▲" : "▼";
-				button.setAttribute("aria-label", `${STAT_LABELS[index]}の性格補正を${direction === "up" ? "上昇" : "下降"}にする`);
-				button.addEventListener("click", () => source.querySelector<HTMLButtonElement>(`#nature-${direction}-${key}`)?.click());
-				nature.appendChild(button);
-			}
+			const button = document.createElement("button");
+			button.type = "button";
+			button.className = "damage-stat-adjustment-nature-btn";
+			button.dataset.statKey = key;
+			button.setAttribute("aria-label", `${STAT_LABELS[index]}の性格補正を切り替える`);
+			button.addEventListener("click", () => source.querySelector<HTMLButtonElement>(`#nature-toggle-${key}`)?.click());
+			nature.appendChild(button);
 		}
 		const decrement = document.createElement("button");
 		decrement.type = "button";
@@ -101,11 +98,9 @@ function buildDamageStatAdjustmentSheet(): void {
 			else delete row.value.dataset.mod;
 			if (sourceReal?.dataset.mod) row.real.dataset.mod = sourceReal.dataset.mod;
 			else delete row.real.dataset.mod;
-			for (const direction of ["up", "down"] as const) {
-				const sourceButton = source.querySelector<HTMLButtonElement>(`#nature-${direction}-${key}`);
-				const sheetButton = root.querySelector<HTMLButtonElement>(`.damage-stat-adjustment-nature-${direction}[data-stat-key="${key}"]`);
-				if (sheetButton) sheetButton.setAttribute("aria-pressed", String(sourceButton?.getAttribute("aria-pressed") === "true"));
-			}
+			const sourceButton = source.querySelector<HTMLButtonElement>(`#nature-toggle-${key}`);
+			const sheetButton = root.querySelector<HTMLButtonElement>(`.damage-stat-adjustment-nature-btn[data-stat-key="${key}"]`);
+			if (sheetButton) sheetButton.dataset.natureState = sourceButton?.dataset.natureState ?? "none";
 		}
 		remaining.textContent = `残り${66 - total}`;
 	};

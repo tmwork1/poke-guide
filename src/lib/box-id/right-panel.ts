@@ -700,16 +700,20 @@ export function renderDetailPanelEmpty(): void {
 	detailPanelBodyEl.appendChild(inner);
 }
 
-function currentAppliedNatureKey(direction: "up" | "down"): StatKey | null {
+function currentAppliedNatureBoosts(): { up: StatKey | null; down: StatKey | null } {
+	let up: StatKey | null = null;
+	let down: StatKey | null = null;
 	for (const key of STAT_KEYS) {
 		if (key === "hp") continue;
-		const btn = document.getElementById(`nature-${direction}-${key}`);
-		if (btn?.getAttribute("aria-pressed") === "true") return key;
+		const state = document.getElementById(`nature-toggle-${key}`)?.dataset.natureState;
+		if (state === "up") up = key;
+		else if (state === "down") down = key;
 	}
-	return null;
+	return { up, down };
 }
 function currentAppliedNature(): string {
-	return natureNameFromBoosts(currentAppliedNatureKey("up"), currentAppliedNatureKey("down"));
+	const boosts = currentAppliedNatureBoosts();
+	return natureNameFromBoosts(boosts.up, boosts.down);
 }
 
 // 適用中判定は、候補ごとに性格が変わらない現在のソルバー契約に合わせH/B/D努力値だけで行う。

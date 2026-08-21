@@ -21,6 +21,7 @@ import {
 	buildAttackerSpec,
 	baseStatsMapPromise,
 	natureNameFromBoosts,
+	nextNatureBoosts,
 	type BulkAdjustRowSnapshot,
 } from "./shared-core";
 import {
@@ -353,7 +354,8 @@ async function runCompute(): Promise<void> {
 		return;
 	}
 	const fixedEvs = { atk: readEv("atk"), spa: readEv("spa"), spe: readEv("spe") };
-	const currentNature = natureNameFromBoosts(currentPressedNatureKey("up"), currentPressedNatureKey("down"));
+	const currentBoosts = currentLeftNatureBoosts();
+	const currentNature = natureNameFromBoosts(currentBoosts.up, currentBoosts.down);
 
 	const controller = new AbortController();
 	activeAbortController = controller;
@@ -406,30 +408,66 @@ async function runCompute(): Promise<void> {
 // ⚠️ 最も壊しやすい箇所。#ev-hp/#ev-def/#ev-spd は.valueへの代入だけではinput/change
 // どちらのイベントも発火せず、再計算(recalcStats)も自動保存(scheduleSave)も走らない
 // (left-panel.ts:224のコメントに明記)。値を代入したうえで input/change 両方を
-// bubbles:true で発火させる。性格は<select>ではなく#nature-up-{key}/#nature-down-{key}の
-// ▲▼トグルボタンをクリックする方式(toggleNatureUp/toggleNatureDown、shared-core.ts)。
-// 「同じものを再クリックすると解除、別のものをクリックすると差し替え」という既存の
-// トグル仕様に沿って、現在の押下状態と目的の性格から必要なボタンだけをclick()する。
-function currentPressedNatureKey(direction: "up" | "down"): StatKey | null {
+// bubbles:true で発火させる。性格は<select>ではなく#nature-toggle-{key}の単一ボタンを
+// クリックする方式(nextNatureBoosts、shared-core.ts)。ボタンは未設定 → 上昇 → 下降 →
+// 未設定と循環するため、現在と目的の状態から必要なクリック順を計画してclick()する。
+function currentLeftNatureBoosts(): { up: StatKey | null; down: StatKey | null } {
+	let up: StatKey | null = null;
+	let down: StatKey | null = null;
 	for (const key of STAT_KEYS) {
 		if (key === "hp") continue;
-		const btn = document.getElementById(`nature-${direction}-${key}`);
-		if (btn?.getAttribute("aria-pressed") === "true") return key;
+		const state = document.getElementById(`nature-toggle-${key}`)?.dataset.natureState;
+		if (state === "up") up = key;
+		else if (state === "down") down = key;
 	}
-	return null;
+	return { up, down };
+}
+
+type Boosts = { up: StatKey | null; down: StatKey | null };
+
+function planNatureClicks(current: Boosts, target: Boosts): StatKey[] {
+	const clicks: StatKey[] = [];
+	let state: Boosts = { ...current };
+
+	const click = (key: StatKey) => {
+		clicks.push(key);
+		state = nextNatureBoosts(state, key);
+	};
+
+	if (target.up === null && target.down === null) {
+		if (state.down !== null) click(state.down);
+		if (state.up !== null) {
+			const k = state.up;
+			click(k);
+			click(k);
+		}
+		return clicks;
+	}
+
+	if (state.down !== target.down) {
+		if (target.down !== null) {
+			if (state.up === target.down) {
+				click(target.down);
+			} else {
+				click(target.down);
+				if (state.down !== target.down) click(target.down);
+			}
+		}
+	}
+
+	if (state.up !== target.up && target.up !== null) {
+		click(target.up);
+	}
+
+	return clicks;
 }
 
 function applyNatureToLeftPanel(natureName: string): void {
 	const target = NATURE_STAT_MODIFIERS[natureName] ?? { up: null, down: null };
-	const currentUp = currentPressedNatureKey("up");
-	const currentDown = currentPressedNatureKey("down");
-	if (target.up !== currentUp) {
-		const keyToClick = target.up ?? currentUp;
-		if (keyToClick) (document.getElementById(`nature-up-${keyToClick}`) as HTMLButtonElement | null)?.click();
-	}
-	if (target.down !== currentDown) {
-		const keyToClick = target.down ?? currentDown;
-		if (keyToClick) (document.getElementById(`nature-down-${keyToClick}`) as HTMLButtonElement | null)?.click();
+	const current = currentLeftNatureBoosts();
+	const clicks = planNatureClicks(current, target);
+	for (const key of clicks) {
+		(document.getElementById(`nature-toggle-${key}`) as HTMLButtonElement | null)?.click();
 	}
 }
 

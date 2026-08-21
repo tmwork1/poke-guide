@@ -48,7 +48,6 @@
 
 	/* ── 7. 余白 ──────────────────────────────────────────── */
 	--stat-table-gap: var(--space-1); /* 表の行間。大きくすると各能力値行が離れる */
-	--stat-nature-buttons-gap: 0.1em; /* 性格補正▲▼ボタン同士の間隔。大きくするとボタンが離れる */
 	--stat-row-label-line-height: 1; /* ステータス名列の行高 */
 	--stat-header-padding: 0 0 0.35rem; /* 見出し下側の余白。大きくすると見出し行が高くなる */
 	--stat-header-margin-bottom: 0.15rem; /* 見出しと最初の行の間隔。大きくすると表に余裕が出る */
@@ -259,15 +258,14 @@
 }
 .stat-row-label[data-mod="up"] { color: var(--stat-up-color); }
 .stat-row-label[data-mod="down"] { color: var(--stat-down-color); }
-/* 性格補正の▲▼ボタン列。HP行は空(aria-hidden)のまま同じ列幅を占有し、
+/* 性格補正の切替ボタン列。HP行は空(aria-hidden)のまま同じ列幅を占有し、
    他の行とラベルのX位置を揃える。 */
 .stat-row-nature {
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	gap: var(--stat-nature-buttons-gap);
 }
-/* 性格補正を上げ下げする三角ボタン */
+/* 性格補正を未設定・上昇・下降で循環する三角ボタン */
 .stat-nature-btn {
 	display: inline-grid;
 	place-items: center;
@@ -294,35 +292,48 @@
 	width: 0;
 	height: 0;
 }
-.stat-nature-up::after {
+.stat-nature-btn[data-nature-state="none"]::before {
 	border-left: var(--stat-nature-arrow-border-inline) solid transparent;
 	border-right: var(--stat-nature-arrow-border-inline) solid transparent;
 	border-bottom: var(--stat-nature-arrow-border-block) solid var(--color-text-muted);
+	transform: translateY(calc(var(--stat-nature-arrow-border-block) * -0.35));
+	opacity: 0.45;
 }
-.stat-nature-down::after {
+.stat-nature-btn[data-nature-state="none"]::after {
 	border-left: var(--stat-nature-arrow-border-inline) solid transparent;
 	border-right: var(--stat-nature-arrow-border-inline) solid transparent;
 	border-top: var(--stat-nature-arrow-border-block) solid var(--color-text-muted);
+	transform: translateY(calc(var(--stat-nature-arrow-border-block) * 0.35));
+	opacity: 0.45;
 }
-.stat-nature-btn:not([aria-pressed="true"]):hover::after {
+.stat-nature-btn[data-nature-state="up"]::after {
+	border-left: var(--stat-nature-arrow-border-inline) solid transparent;
+	border-right: var(--stat-nature-arrow-border-inline) solid transparent;
+	border-bottom: var(--stat-nature-arrow-border-block) solid var(--stat-up-color);
+}
+.stat-nature-btn[data-nature-state="down"]::after {
+	border-left: var(--stat-nature-arrow-border-inline) solid transparent;
+	border-right: var(--stat-nature-arrow-border-inline) solid transparent;
+	border-top: var(--stat-nature-arrow-border-block) solid var(--stat-down-color);
+}
+.stat-nature-btn[data-nature-state="none"]:hover::before,
+.stat-nature-btn[data-nature-state="none"]:hover::after {
 	border-bottom-color: var(--color-primary);
 	border-top-color: var(--color-primary);
 }
-/* キーボード操作で性格補正の上下ボタンにフォーカスしたときの輪郭 */
+/* キーボード操作で性格補正ボタンにフォーカスしたときの輪郭 */
 .stat-nature-btn:focus-visible {
 	outline: var(--stat-focus-outline);
 	outline-offset: var(--stat-focus-outline-offset);
 }
-.stat-nature-up[aria-pressed="true"] {
+.stat-nature-btn[data-nature-state="up"] {
 	background: var(--stat-nature-up-background);
 	border-color: var(--stat-up-color);
 }
-.stat-nature-up[aria-pressed="true"]::after { border-bottom-color: var(--stat-up-color); }
-.stat-nature-down[aria-pressed="true"] {
+.stat-nature-btn[data-nature-state="down"] {
 	background: var(--stat-nature-down-background);
 	border-color: var(--stat-down-color);
 }
-.stat-nature-down[aria-pressed="true"]::after { border-top-color: var(--stat-down-color); }
 .stat-nature-placeholder {
 	cursor: default;
 	background: transparent;
@@ -359,7 +370,7 @@
 	--stat-ev-mobile-button-block-size: 32px;
 	/* H: buildStatAdjustmentPanel()(stat-adjustment-panel.ts)が生成するDOMを、
 		育成タブ(LeftPanel.astro)の静的マークアップと同じ構造(ラベルと性格補正
-		▲▼ボタンが.stat-row-label/.stat-row-natureの別セル)に揃えたため、
+		切替ボタンが.stat-row-label/.stat-row-natureの別セル)に揃えたため、
 		5列構成(ラベル|性格補正|種族値|努力値|実数値)がどちらのタブでも同じ列の
 		役割・並び順になった。列幅の値も育成タブ側
 		(box-edit-page.cssの.edit-layout-left .stat-adjustment-section)に合わせつつ、

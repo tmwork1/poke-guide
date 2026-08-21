@@ -249,20 +249,12 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 						<span class="stat-row-nature">
 							<button
 								type="button"
-								id={`nature-up-${key}`}
-								class="stat-nature-btn stat-nature-up"
-								aria-pressed="false"
-								aria-label={`${statLabel}を性格補正で上昇させる`}
-								title={`${statLabel}を上昇に設定`}
-							>▲</button>
-							<button
-								type="button"
-								id={`nature-down-${key}`}
-								class="stat-nature-btn stat-nature-down"
-								aria-pressed="false"
-								aria-label={`${statLabel}を性格補正で下降させる`}
-								title={`${statLabel}を下降に設定`}
-							>▼</button>
+								id={`nature-toggle-${key}`}
+								class="stat-nature-btn"
+								data-nature-state="none"
+								aria-label={`${statLabel}の性格補正`}
+								title={`${statLabel}の性格補正を切り替える`}
+							></button>
 						</span>
 					)}
 					<span id={`base-${key}`} class="stat-row-base tnum">-</span>
@@ -515,50 +507,6 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	.stat-row-label { font-weight: var(--stat-label-font-weight); white-space: nowrap; display: flex; align-items: center; justify-content: center; line-height: var(--stat-row-label-line-height); }
 	.stat-row-label[data-mod="up"] { color: var(--color-stat-up); }
 	.stat-row-label[data-mod="down"] { color: var(--color-stat-down); }
-	/* 性格補正列(▲▼2ボタン)。HP行は対象外のため空のプレースホルダーセルになる
-	   (中身が無くても列自体は残り、他行とグリッド位置が揃う)。 */
-	.stat-row-nature { display: flex; align-items: center; justify-content: center; gap: var(--stat-nature-buttons-gap); }
-	.stat-nature-btn {
-		display: inline-grid;
-		place-items: center;
-		align-content: center;
-		box-sizing: border-box;
-		width: var(--stat-nature-button-size);
-		height: var(--stat-nature-button-size);
-		padding: 0;
-		font-size: 0;
-		line-height: 0;
-		color: var(--color-text-muted);
-		background: var(--color-surface-raised);
-		border: 1px solid var(--color-border);
-		border-radius: var(--radius-zero);
-		box-shadow: var(--shadow-sm);
-		cursor: pointer;
-		flex-shrink: 0;
-	}
-	.stat-nature-btn::before,
-	.stat-nature-btn::after {
-		content: "";
-		grid-area: 1 / 1;
-		width: 0;
-		height: 0;
-	}
-	.stat-nature-up::after { border-left: var(--stat-nature-arrow-border-inline) solid transparent; border-right: var(--stat-nature-arrow-border-inline) solid transparent; border-bottom: var(--stat-nature-arrow-border-block) solid var(--color-text-muted); }
-	.stat-nature-down::after { border-left: var(--stat-nature-arrow-border-inline) solid transparent; border-right: var(--stat-nature-arrow-border-inline) solid transparent; border-top: var(--stat-nature-arrow-border-block) solid var(--color-text-muted); }
-	@media (hover: hover) and (pointer: fine) {
-		.stat-nature-btn:not([aria-pressed="true"]):hover::after { border-bottom-color: var(--color-primary); border-top-color: var(--color-primary); }
-	}
-	.stat-nature-btn:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 1px; }
-	/* ハイライトは背景色と矢印の色だけで表現し、枠線(border-color)は既定のままにする
-	   (性格補正ボタンのハイライト時に枠までハイライトしないというUI改修依頼)。 */
-	.stat-nature-up[aria-pressed="true"] {
-		background: var(--color-danger-soft);
-	}
-	.stat-nature-up[aria-pressed="true"]::after { border-bottom-color: var(--color-stat-up); }
-	.stat-nature-down[aria-pressed="true"] {
-		background: var(--color-primary-soft);
-	}
-	.stat-nature-down[aria-pressed="true"]::after { border-top-color: var(--color-stat-down); }
 	.stat-row-base { color: var(--color-text-muted); text-align: right; }
 	.stat-row-real-wrap { display: contents; align-items: center; justify-content: center; gap: var(--space-1); min-width: 0; }
 	.stat-row-real {
@@ -1290,7 +1238,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		font-size: var(--font-size-sm2);
 	}
 	.move-picker-sort-btn.is-active::after {
-		/* ステータス表の性格補正で使う▲▼との混同を避け、矢印の字形に統一する。 */
+		/* ステータス表の性格補正アイコンとの混同を避け、矢印の字形に統一する。 */
 		content: "↑";
 		color: var(--color-primary);
 	}

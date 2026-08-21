@@ -8,7 +8,7 @@
 // 17関数: scheduleRowSave / scheduleRowCalc / refreshRowConditionChips / renderDetailPanel /
 // selectColumn / applySelectionMarks / applySprite / applyTeraImage / applyItemImage /
 // resolveMegaStoneItem / flashAutofillHint / natureNameFromBoosts / normalizedNatureBoosts /
-// toggleNatureUp / toggleNatureDown / buildAttackerSpec / recalcStats
+// nextNatureBoosts / buildAttackerSpec / recalcStats
 //
 // ⚠️ 設計メモ(状態の所有権について、コーディネーターへの報告事項):
 // 元のコードでは3領域(左サイド/ダメージ計算/右サイド)が1つのクロージャスコープを共有していた
@@ -327,15 +327,14 @@ export function normalizedNatureBoosts(up: StatKey | null, down: StatKey | null)
 	return NATURE_STAT_MODIFIERS[name] ?? { up: null, down: null };
 }
 
-// ステータスラベルのクリックによる上昇/下降切り替え。
-// ▲(上昇)/▼(下降)を完全に独立したトグルにする。▲は上昇の保持者を差し替える/
-// 解除するだけで下降には一切触れず、▼も同様(下降の保持者を差し替える/解除するだけで
-// 上昇には触れない)。
-export function toggleNatureUp(current: StatKey | null, key: StatKey): StatKey | null {
-	return current === key ? null : key;
-}
-export function toggleNatureDown(current: StatKey | null, key: StatKey): StatKey | null {
-	return current === key ? null : key;
+// 性格補正ボタンをクリックしたときの3状態循環: 未設定 → 上昇 → 下降 → 未設定。
+export function nextNatureBoosts(
+	current: { up: StatKey | null; down: StatKey | null },
+	key: StatKey,
+): { up: StatKey | null; down: StatKey | null } {
+	if (current.up === key) return { up: null, down: key };
+	if (current.down === key) return { up: current.up, down: null };
+	return { up: key, down: current.down };
 }
 
 // --- 左パネル向けブリッジ(shared-core.ts → left-panel.ts の逆方向の依存を避けるため、

@@ -6,6 +6,7 @@ import {
 } from "../stats";
 import {
 	natureNameFromBoosts,
+	nextNatureBoosts,
 	normalizedNatureBoosts,
 	wrapToRange,
 } from "./shared-core";
@@ -89,7 +90,7 @@ export function buildStatAdjustmentPanel(options: StatAdjustmentPanelOptions): S
 	header.appendChild(makeSpan("stat-table-header-real-label", "実数値"));
 	table.appendChild(header);
 
-	const natureButtons = new Map<StatKey, { up: HTMLButtonElement; down: HTMLButtonElement; label: HTMLElement }>();
+	const natureButtons = new Map<StatKey, { button: HTMLButtonElement; label: HTMLElement }>();
 	const numberInputs = new Map<StatKey, HTMLInputElement>();
 	const rangeInputs = new Map<StatKey, HTMLInputElement>();
 	const realValueEls = new Map<StatKey, HTMLElement>();
@@ -120,7 +121,7 @@ export function buildStatAdjustmentPanel(options: StatAdjustmentPanelOptions): S
 		row.className = "stat-row";
 
 		// 育成タブ(LeftPanel.astro)と同じく、短縮ラベル(.stat-row-label)と性格補正の
-		// ▲▼ボタン(.stat-row-nature)を別セルに分ける。同じ構造にすることで
+		// 切替ボタン(.stat-row-nature)を別セルに分ける。同じ構造にすることで
 		// stat-adjustment-panel.cssの列幅(--stat-grid-template-columns等)を両タブで
 		// 共通にでき、HP行(ボタン無し)だけラベルのX位置がずれる問題を解消する。
 		const labelWrap = makeSpan("stat-row-label", short);
@@ -132,36 +133,22 @@ export function buildStatAdjustmentPanel(options: StatAdjustmentPanelOptions): S
 		if (key === "hp") {
 			natureWrap.setAttribute("aria-hidden", "true");
 		} else {
-			const up = document.createElement("button");
-			up.type = "button";
-			up.className = "stat-nature-btn stat-nature-up";
-			up.setAttribute("aria-pressed", "false");
-			up.setAttribute("aria-label", `${label}を性格補正で上昇させる`);
-			up.title = `${label}を上昇に設定`;
-			up.textContent = "▲";
-			const down = document.createElement("button");
-			down.type = "button";
-			down.className = "stat-nature-btn stat-nature-down";
-			down.setAttribute("aria-pressed", "false");
-			down.setAttribute("aria-label", `${label}を性格補正で下降させる`);
-			down.title = `${label}を下降に設定`;
-			down.textContent = "▼";
-			up.addEventListener("click", () => {
-				options.natureUp = options.natureUp === key ? null : key;
-				if (options.natureUp === key && options.natureDown === key) options.natureDown = null;
+			const button = document.createElement("button");
+			button.type = "button";
+			button.className = "stat-nature-btn";
+			button.dataset.natureState = "none";
+			button.setAttribute("aria-label", `${label}の性格補正を切り替える`);
+			button.title = `${label}の性格補正を切り替える`;
+			button.addEventListener("click", () => {
+				const next = nextNatureBoosts({ up: options.natureUp, down: options.natureDown }, key);
+				options.natureUp = next.up;
+				options.natureDown = next.down;
 				options.nature = natureNameFromBoosts(options.natureUp, options.natureDown);
 				refresh();
 				options.onChange();
 			});
-			down.addEventListener("click", () => {
-				options.natureDown = options.natureDown === key ? null : key;
-				if (options.natureDown === key && options.natureUp === key) options.natureUp = null;
-				options.nature = natureNameFromBoosts(options.natureUp, options.natureDown);
-				refresh();
-				options.onChange();
-			});
-			natureButtons.set(key, { up, down, label: labelWrap });
-			natureWrap.append(up, down);
+			natureButtons.set(key, { button, label: labelWrap });
+			natureWrap.appendChild(button);
 		}
 		row.appendChild(natureWrap);
 
@@ -242,8 +229,11 @@ export function buildStatAdjustmentPanel(options: StatAdjustmentPanelOptions): S
 		options.nature = natureNameFromBoosts(options.natureUp, options.natureDown);
 		natureReadout.textContent = options.nature;
 		for (const [key, controls] of natureButtons) {
-			controls.up.setAttribute("aria-pressed", String(options.natureUp === key));
-			controls.down.setAttribute("aria-pressed", String(options.natureDown === key));
+			const state = options.natureUp === key ? "up" : options.natureDown === key ? "down" : "none";
+			const statLabel = controls.label.getAttribute("aria-label") ?? key;
+			controls.button.dataset.natureState = state;
+			controls.button.setAttribute("aria-label", `${statLabel}の性格補正: ${state === "up" ? "上昇" : state === "down" ? "下降" : "未設定"}`);
+			controls.button.title = `クリックで性格補正を切り替える (現在: ${state === "up" ? "上昇" : state === "down" ? "下降" : "未設定"})`;
 			if (options.natureUp === key) controls.label.dataset.mod = "up";
 			else if (options.natureDown === key) controls.label.dataset.mod = "down";
 			else delete controls.label.dataset.mod;
