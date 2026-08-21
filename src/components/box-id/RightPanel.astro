@@ -11,15 +11,12 @@ import '../../styles/stat-adjustment-panel.css';
 // props不要(SSRデータに依存しない静的な空状態マークアップのみで、実際の中身はJSの
 // renderColumnLevelDetailPanel/renderDetailPanelEmptyが書き換える)。
 //
-// .edit-layout-detail(グリッドの3カラム目)・#damage-detail-backdrop(1600px未満の
-// オーバーレイ背景)はどちらもこのコンポーネントの一部として扱う(対応するCSS
-// (.damage-detail-panel*等)がAstroのscoped styleである以上、要素とCSSは同じ
-// コンポーネントに属する必要があるため)。
+// .edit-layout-detail と #damage-detail-backdrop は、常時オーバーレイで表示する
+// 詳細パネルの一部として扱う(対応するCSSも同じコンポーネントに属するため)。
 // box/[id].astro側は <div class="edit-layout">...<RightPanel /></div> の形で、
 // 他の2カラム(.edit-layout-left/.edit-layout-right)と同じ並びに呼び出すだけでよい。
 ---
-{/* 3カラム構成(左=編集フォーム/中央=ダメージ計算カード/右=詳細設定サイドバー、1600px以上。
-    それ未満は#damage-detail-panelがオーバーレイ化する。<script>のCSS・JS両方参照)。
+{/* モバイル専用UIの詳細設定パネル。常にオーバーレイとして表示する。<script>のCSS・JS両方参照)。
     #damage-detail-panel自体はどの行も選択されていないときも常に存在し、空状態を表示する
     (JSのrenderDetailPanel参照)。相手ビルドの箱のクリックは無反応で、選択トリガーは
     技列の箱のクリックのみ。 */}
@@ -29,8 +26,7 @@ import '../../styles/stat-adjustment-panel.css';
 			{/* 選択中はright-panel.tsが相手ポケモン/わざNのタブを差し込む。
 			    候補一覧では従来どおり通常のタイトル帯として再利用する。 */}
 			<div id="damage-detail-panel-title" class="damage-detail-panel-title" aria-live="polite"></div>
-			{/* 1600px未満ではオーバーレイ化するため閉じるボタンを表示する
-			    (1600px以上の3カラム表示では常時可視のパネルなのでCSSで隠す)。 */}
+			{/* 詳細パネルは常時オーバーレイのため、閉じるボタンを表示する。 */}
 		</div>
 		<footer id="damage-detail-panel-footer" class="damage-detail-panel-footer" hidden>
 			<div id="damage-detail-panel-matchup" class="damage-detail-panel-matchup"></div>
@@ -51,5 +47,5 @@ import '../../styles/stat-adjustment-panel.css';
 		</div>
 	</aside>
 </div>
-{/* 1600px未満でサイドバーをオーバーレイ表示する際の背景(クリックで閉じる)。 */}
+{/* 詳細パネルをオーバーレイ表示する際の背景(クリックで閉じる)。 */}
 <div id="damage-detail-backdrop" class="damage-detail-backdrop" hidden></div>

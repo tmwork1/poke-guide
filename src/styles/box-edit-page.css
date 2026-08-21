@@ -227,17 +227,6 @@ body.box-edit-page {
 			下の<style is:global>側に #opponent-notes-section 限定のセレクタとしてまとめて定義する
 			(scoped <style> は data-astro-cid-* が付かない動的生成要素には効かないため。要件参照)。 */
 
-		/* UI刷新: 左右2カラムレイアウト(docs/plan/ui_plan.md)。
-			編集フォーム(左・固定幅)とダメージ計算カード(右・可変幅)を左右に並べる。
-			1200px未満では2カラムにしない: 左の編集フォームは能力値行(種族値+スライダー+
-			入力欄+実数値)の都合で最小幅が実測736px前後あり、grid-template-columnsの
-			minmax(320px, 480px) は「コンテンツの最小幅が上限を超える場合はそちらが勝つ」ため、
-			1024px幅では左トラックが736pxまで膨らんで右カラムが226pxに潰れ、ダメージ計算カードが
-			ページごと横スクロールしていた(実測で発覚)。2カラムにするだけの幅が無い環境では
-			縦積みにする方が破綻しない。
-			モバイル/中間幅では通常のブロック要素として上から下へ縦積みになる
-			(グリッド自体を適用しないため、追加のメディアクエリなしで縦積みに戻る)。 */
-		.edit-layout-left, .edit-layout-right { min-width: 0; }
 		/* UI品質改善(帯構成への刷新): .page-wide の max-width 上書きは「浮いた囲み箱を中央寄せ
 			する」設計の名残で、帯(.panel系)が画面端まで伸びる設計とは相容れないため撤廃した。
 			左右カラムは.panel-left/.panel-right(画面端固定の帯)になった一方、中央カラムの
@@ -246,9 +235,6 @@ body.box-edit-page {
 			画面端とカードの間の余白は#opponent-notes-section自身に持たせている
 			(値・コメントはsrc/styles/box-damage-page.cssの--box-damage-panel-padding参照)。 */
 
-			/* モバイルのセカンドバー状態に合わせ、育成フォームとダメージ計算を同じ場所で切り替える。 */
-			.edit-shell:not([data-mobile-tab="damage"]) .edit-layout-right { display: none; }
-			.edit-shell[data-mobile-tab="damage"] .edit-layout-left { display: none; }
 			/* 共通トップバーから降りてきた 保存状態 / 非公開 の受け皿(上のマークアップと
 				src/lib/box-id/mobile-edit-tabs.ts 参照)。育成タブ本文の末尾に、削除ボタンの下の
 				独立した一列として置く(スタイル本体は冒頭の.mobile-edit-actions参照。ここでの
@@ -281,7 +267,3 @@ body.box-edit-page {
 
 		/* .top-block-icon 以下、.tuning-button までの左サイド専用scoped styleは構造分割ラウンド
 			(フェーズ1)で src/components/box-id/LeftPanel.astro へ移設した(見た目は一切変更していない)。 */
-
-		/* 編集画面はすべての幅で、意図的にコンパクトなタブ式レイアウトを維持する。 */
-		.edit-shell:not([data-mobile-tab="damage"]) .edit-layout-right,
-		.edit-shell[data-mobile-tab="damage"] .edit-layout-left { display: none; }

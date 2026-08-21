@@ -865,9 +865,7 @@ if (opponentNotesSection) {
 		},
 		getBuildDetailForm: (row) => rowBuildDetailForms.get(row) ?? null,
 		openDetailPanelOverlayIfNarrow: () => {
-			if (isNarrowLayout()) {
-				refreshMobileDetailPlacement();
-			}
+			refreshMobileDetailPlacement();
 			openRightPanelOverlayIfNarrow();
 		},
 	});
@@ -938,17 +936,10 @@ if (opponentNotesSection) {
 	// renderColumnsはrow.attacksを全件そのまま描画する(=表示はする)。「＋」ボタンを
 	// row.attacks.length>=3で無効化するだけなので、4件以上の既存行はカードが少し縦に
 	// 伸びるが、データが消えたり保存が壊れたりすることはない。
-	const MAX_COLUMNS_TO_ADD = 3;
-	// 899px以下では技列セクションを固定2列(grid-template-columns: 1fr 1fr、
-	// DamageCalcSection.astro参照)にして技カードがカード幅の半分ずつを占めるため、
-	// 3枚目は必ず2行目へ折り返してカードの高さが跳ねる。追加操作の上限だけをモバイルで
-	// 2に下げる(上と同じく既存データは削らない)。
+	// 追加操作は2列までに制限する。既存データは削らない。
 	const MAX_COLUMNS_TO_ADD_NARROW = 2;
-	// isNarrowLayout()はこのブロック内の関数宣言(下方)なのでホイストされ、実際に
-	// 呼ばれるのは行の描画・ユーザー操作の時点=定義行より後になるため前方参照で問題ない
-	// (既存のregisterDamageCalcBridge等と同じ考え方)。
 	function currentMaxColumnsToAdd(): number {
-		return isNarrowLayout() ? MAX_COLUMNS_TO_ADD_NARROW : MAX_COLUMNS_TO_ADD;
+		return MAX_COLUMNS_TO_ADD_NARROW;
 	}
 
 	// 1列 = 技カード1枚。天候・地形・壁・急所・ランク補正・状態異常・テラスタル発動は
@@ -2494,15 +2485,6 @@ if (opponentNotesSection) {
 		});
 	}
 
-	function isNarrowLayout(): boolean {
-		return true;
-	}
-	// ドット絵(モバイル)と公式アートワーク(デスクトップ)の切り替えは
-	// 画像URLの差でしかないため、幅の境界をまたいだ瞬間に各行のrefreshSprite()を呼び直す
-	// 必要がある。renderRowのクロージャ内の関数をWeakMapで
-	// 行に紐づけておき、下方のmatchMediaリスナーがrows(表示中の行)を回して呼ぶ
-	// (行ごとにリスナーを足すと、削除した行のクロージャがリスナー経由で残ってしまう)。
-	const rowSpriteRefreshers = new WeakMap<DamageRowState, () => void>();
 
 	// buildTeraDropdownはモジュール冒頭(このif文より前)へ移設・exportした
 	// (相手ポケモンタブ廃止に伴い、わざタブ側=right-panel.tsからも同じ実装を使うため。
@@ -2705,7 +2687,6 @@ if (opponentNotesSection) {
 				row.name.trim(),
 			);
 		}
-		rowSpriteRefreshers.set(row, refreshSprite);
 		let refreshReadonlyEvs = (): void => {};
 		function refreshBuildSummary(): void {
 			nameText.textContent = row.name.trim() || "相手ポケモン未設定";
@@ -2796,17 +2777,10 @@ if (opponentNotesSection) {
 			renderColumns(row);
 			onFieldInput();
 		}
-		function onDirectionOptionClick(clicked: "attack" | "defense"): void {
-			if (isNarrowLayout()) {
-				setDirection(row.direction === "defense" ? "attack" : "defense");
-				return;
-			}
-			setDirection(clicked);
-		}
 		// カード上のattackOption/defenseOptionは状態表示専用(クリックによる攻守反転は廃止)。
 		// 向きの変更は詳細設定パネル側のdetailAttackOption/detailDefenseOptionのみで行う。
-		detailAttackOption.addEventListener("click", () => onDirectionOptionClick("attack"));
-		detailDefenseOption.addEventListener("click", () => onDirectionOptionClick("defense"));
+		detailAttackOption.addEventListener("click", () => setDirection(row.direction === "defense" ? "attack" : "defense"));
+		detailDefenseOption.addEventListener("click", () => setDirection(row.direction === "defense" ? "attack" : "defense"));
 
 		const selectsRow = document.createElement("div");
 		selectsRow.className = "damage-build-detail-grid";
@@ -3284,12 +3258,6 @@ if (opponentNotesSection) {
 	const damageDetailPanelEl = el<HTMLElement>("damage-detail-panel");
 	const damageDetailPanelOriginalParentEl = damageDetailPanelEl.parentElement;
 	function refreshMobileDetailPlacement(): void {
-		if (!isNarrowLayout()) {
-			damageDetailPanelEl.classList.remove("is-mobile-inline", "is-mobile-suggest");
-			if (damageDetailPanelOriginalParentEl) damageDetailPanelOriginalParentEl.appendChild(damageDetailPanelEl);
-			return;
-		}
-
 		const selectedRow = getSelectedRow();
 		const selectedColumn = getSelectedColumn();
 		if (selectedRow && (selectedColumn || getSelectedIsBuild()) && selectedRow.root?.parentElement === damageRowsListEl) {
@@ -3309,17 +3277,6 @@ if (opponentNotesSection) {
 		if (damageDetailPanelOriginalParentEl) damageDetailPanelOriginalParentEl.appendChild(damageDetailPanelEl);
 	}
 	refreshMobileDetailPlacement();
-	// 技列の追加上限がレイアウト幅で変わる(モバイル2 / デスクトップ3、currentMaxColumnsToAdd)ため、
-	// 境界をまたいだら「＋ 技を追加」ボタンの有効/無効を描き直す。
-	// renderColumns()は同じrow.attacksから列を作り直すだけなので
-	// 何度呼んでも状態は変わらない。
-	window.matchMedia("(max-width: 899px)").addEventListener("change", () => {
-		for (const row of rows) {
-			renderColumns(row);
-			// レイアウト更新後も公式アートワークの読み込み状態を揃える。
-			rowSpriteRefreshers.get(row)?.();
-		}
-	});
 	document.addEventListener("click", (e) => {
 		// タブ切替はクリックハンドラ中でヘッダーを再構築する。その後にここへ
 		// バブリングしてきた時点ではe.targetが既にDOMから外れているため、現在の
@@ -3327,7 +3284,7 @@ if (opponentNotesSection) {
 		const path = e.composedPath();
 		if (path.includes(damageDetailPanelEl)) return;
 		if (path.some((entry) => entry instanceof Element && entry.matches(".damage-column"))) return;
-		if (isNarrowLayout() && path.some((entry) => entry instanceof Element && entry.matches(".card-damage"))) return;
+		if (path.some((entry) => entry instanceof Element && entry.matches(".card-damage"))) return;
 		clearSelectionAndMarks();
 	});
 

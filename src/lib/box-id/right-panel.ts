@@ -129,11 +129,7 @@ export function notifyDetailAbilityChanged(row: DamageRowState, abilityName: str
 	for (const column of row.attacks) applyAutomaticField(row, column, abilityName);
 }
 
-export function isWideSidebarLayout(): boolean {
-	return false;
-}
-// 1600px未満ではオーバーレイ(スライドイン+背景)として開閉する。
-// 1600px以上は常時表示の3カラム目なので開閉操作自体が不要。
+// 詳細パネルは常にオーバーレイとして開閉する。
 export function openDetailPanelOverlayIfNarrow(): void {
 	detailPanelEl.classList.add("is-open");
 	detailBackdropEl.hidden = false;
