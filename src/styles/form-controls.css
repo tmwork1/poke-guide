@@ -14,7 +14,7 @@ textarea {
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 
-input[type="text"], input[type="number"], input[type="search"], select { min-height: 2.35rem; }
+input[type="text"], input[type="number"], input[type="search"], select { min-height: var(--tap-target-min); }
 input[type="text"] { min-width: 12em; }
 select {
   appearance: none;

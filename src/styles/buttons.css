@@ -19,6 +19,7 @@ button, a.btn-primary, a.btn-danger, a.btn-ghost {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   padding: var(--space-2) 1.1em;
+  min-height: var(--tap-target-min);
   line-height: var(--line-height-snug);
   cursor: pointer;
   text-decoration: none;
