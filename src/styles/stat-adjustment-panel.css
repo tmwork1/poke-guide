@@ -66,7 +66,7 @@
 	--stat-step-button-size: 24px; /* 努力値を増減するボタン。大きくすると押しやすくなる */
 	--stat-number-input-width: 3.4rem; /* モバイル操作列の入力欄幅。大きくすると桁に余裕が出る */
 	--stat-number-input-height: 30px; /* モバイル操作列の入力欄高さ。大きくすると行が高くなる */
-	--stat-nature-button-size: 24px; /* 性格補正の三角ボタン。大きくすると記号が押しやすくなる */
+	--stat-nature-button-size: 32px; /* 性格補正の三角ボタン。大きくすると記号が押しやすくなる */
 	--stat-nature-arrow-border-inline: 6px; /* 性格補正三角形の左右幅 */
 	--stat-nature-arrow-border-block: 10px; /* 性格補正三角形の上下幅 */
 
@@ -353,7 +353,7 @@
 	--stat-column-gap: var(--space-1);
 	--stat-table-inline-start-padding: var(--space-1);
 	--stat-table-inline-end-padding: var(--space-2);
-	--stat-ev-mobile-button-block-size: 30px;
+	--stat-ev-mobile-button-block-size: 32px;
 	/* H: buildStatAdjustmentPanel()(stat-adjustment-panel.ts)が生成するDOMを、
 		育成タブ(LeftPanel.astro)の静的マークアップと同じ構造(ラベルと性格補正
 		▲▼ボタンが.stat-row-label/.stat-row-natureの別セル)に揃えたため、

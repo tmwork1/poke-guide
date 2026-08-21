@@ -90,7 +90,7 @@ body.box-edit-page {
 	--damage-detail-panel-max-height: 85vh; /* 最大高さ。大きくすると一度に見える行数が増える */
 	--damage-detail-panel-height: min(var(--damage-detail-panel-max-height), 34rem); /* A-4: タブ切替でモーダルの高さを変えないための固定値。「相手ポケモン」タブの自然な高さ(実測約30.5rem)を目安に少し余裕を持たせた。大きくすると内容が少ないタブの下部余白が増える一方、内容が多いタブでスクロールする分量が減る */
 	--damage-detail-tera-list-max-height: 16rem; /* 候補一覧の最大高さ。大きくすると一度に見える件数が増える */
-	--stat-ev-mobile-button-block-size: 30px; /* 努力値編集ボタンの寸法。大きくするとタップ領域が広がる */
+	--stat-ev-mobile-button-block-size: 32px; /* 努力値編集ボタンの寸法。大きくするとタップ領域が広がる */
 	--damage-detail-tera-icon-size: 20px; /* テラタイプアイコン。大きくすると候補行が高くなる */
 	--damage-detail-direction-toggle-width: 6.4em; /* 攻守切り替えの最小横幅。「攻撃」「防御」が折り返さない幅が必要(Cの修正) */
 	--damage-detail-item-dropdown-button-min-height: 2.35rem; /* 持ち物ボタンの最小高さ(育成タブと同値)。大きくするとボタンが大きくなる */
