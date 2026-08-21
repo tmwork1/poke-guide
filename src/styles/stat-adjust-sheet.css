@@ -93,18 +93,10 @@
 .damage-stat-adjustment-nature-btn::before,
 .damage-stat-adjustment-nature-btn::after { content: ""; grid-area: 1 / 1; width: 0; height: 0; }
 .damage-stat-adjustment-nature-btn[data-nature-state="none"]::before {
-	border-left: 4px solid transparent;
-	border-right: 4px solid transparent;
-	border-bottom: 6px solid var(--color-text-muted);
-	transform: translateY(-3px);
-	opacity: 0.45;
-}
-.damage-stat-adjustment-nature-btn[data-nature-state="none"]::after {
-	border-left: 4px solid transparent;
-	border-right: 4px solid transparent;
-	border-top: 6px solid var(--color-text-muted);
-	transform: translateY(3px);
-	opacity: 0.45;
+	width: 6px;
+	height: 6px;
+	border-radius: 50%;
+	background: var(--color-text-muted);
 }
 .damage-stat-adjustment-nature-btn[data-nature-state="up"] { background: var(--color-danger-soft); }
 .damage-stat-adjustment-nature-btn[data-nature-state="up"]::after {

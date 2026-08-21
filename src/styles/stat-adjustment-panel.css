@@ -68,6 +68,7 @@
 	--stat-nature-button-size: 32px; /* 性格補正の三角ボタン。大きくすると記号が押しやすくなる */
 	--stat-nature-arrow-border-inline: 6px; /* 性格補正三角形の左右幅 */
 	--stat-nature-arrow-border-block: 10px; /* 性格補正三角形の上下幅 */
+	--stat-nature-dot-size: 6px; /* 性格補正が未設定のときに表示する●の直径 */
 
 	/* ── 9. その他 ────────────────────────────────────────── */
 	--stat-arrow-transition-duration: 0.2s; /* 端点ボタン矢印の回転時間。長くすると動きがゆっくりになる */
@@ -293,18 +294,10 @@
 	height: 0;
 }
 .stat-nature-btn[data-nature-state="none"]::before {
-	border-left: var(--stat-nature-arrow-border-inline) solid transparent;
-	border-right: var(--stat-nature-arrow-border-inline) solid transparent;
-	border-bottom: var(--stat-nature-arrow-border-block) solid var(--color-text-muted);
-	transform: translateY(calc(var(--stat-nature-arrow-border-block) * -0.35));
-	opacity: 0.45;
-}
-.stat-nature-btn[data-nature-state="none"]::after {
-	border-left: var(--stat-nature-arrow-border-inline) solid transparent;
-	border-right: var(--stat-nature-arrow-border-inline) solid transparent;
-	border-top: var(--stat-nature-arrow-border-block) solid var(--color-text-muted);
-	transform: translateY(calc(var(--stat-nature-arrow-border-block) * 0.35));
-	opacity: 0.45;
+	width: var(--stat-nature-dot-size);
+	height: var(--stat-nature-dot-size);
+	border-radius: 50%;
+	background: var(--color-text-muted);
 }
 .stat-nature-btn[data-nature-state="up"]::after {
 	border-left: var(--stat-nature-arrow-border-inline) solid transparent;
@@ -316,10 +309,8 @@
 	border-right: var(--stat-nature-arrow-border-inline) solid transparent;
 	border-top: var(--stat-nature-arrow-border-block) solid var(--stat-down-color);
 }
-.stat-nature-btn[data-nature-state="none"]:hover::before,
-.stat-nature-btn[data-nature-state="none"]:hover::after {
-	border-bottom-color: var(--color-primary);
-	border-top-color: var(--color-primary);
+.stat-nature-btn[data-nature-state="none"]:hover::before {
+	background: var(--color-primary);
 }
 /* キーボード操作で性格補正ボタンにフォーカスしたときの輪郭 */
 .stat-nature-btn:focus-visible {

@@ -327,13 +327,13 @@ export function normalizedNatureBoosts(up: StatKey | null, down: StatKey | null)
 	return NATURE_STAT_MODIFIERS[name] ?? { up: null, down: null };
 }
 
-// 性格補正ボタンの遷移。クリックしたキーが上昇なら下降、下降なら未設定にする。
-// 未設定のキーは、上昇補正が未設定なら上昇に、既に設定済みなら下降に割り当てる。
+// 性格補正ボタンの遷移。上昇・下降どちらを保持しているキーを再クリックしても未設定に戻す。
+// 未設定のキーは、上昇補正が空いていれば上昇に、埋まっていれば下降に割り当てる。
 export function nextNatureBoosts(
 	current: { up: StatKey | null; down: StatKey | null },
 	key: StatKey,
 ): { up: StatKey | null; down: StatKey | null } {
-	if (current.up === key) return { up: null, down: key };
+	if (current.up === key) return { up: null, down: current.down };
 	if (current.down === key) return { up: current.up, down: null };
 	if (current.up === null) return { up: key, down: current.down };
 	return { up: current.up, down: key };
