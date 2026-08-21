@@ -328,7 +328,7 @@ export function normalizedNatureBoosts(up: StatKey | null, down: StatKey | null)
 }
 
 // 性格補正ボタンの遷移。上昇・下降どちらを保持しているキーを再クリックしても未設定に戻す。
-// 未設定のキーは、上昇補正が空いていれば上昇に、埋まっていれば下降に割り当てる。
+// 未設定のキーは、上昇が空いていれば上昇に、上昇のみ埋まっていれば下降に、両方埋まっていれば上昇に割り当てる（上昇を上書きする）。
 export function nextNatureBoosts(
 	current: { up: StatKey | null; down: StatKey | null },
 	key: StatKey,
@@ -336,7 +336,8 @@ export function nextNatureBoosts(
 	if (current.up === key) return { up: null, down: current.down };
 	if (current.down === key) return { up: current.up, down: null };
 	if (current.up === null) return { up: key, down: current.down };
-	return { up: current.up, down: key };
+	if (current.down === null) return { up: current.up, down: key };
+	return { up: key, down: current.down };
 }
 
 // --- 左パネル向けブリッジ(shared-core.ts → left-panel.ts の逆方向の依存を避けるため、
