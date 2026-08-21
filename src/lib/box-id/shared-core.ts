@@ -371,6 +371,13 @@ export function buildAttackerSpec(extra?: Partial<PokemonSpec>): PokemonSpec {
 	};
 }
 
+export function hpBracketLabel(hp: number): string {
+	const n = Math.round(hp / 16);
+	const offset = hp - 16 * n;
+	if (offset === 0) return "16n";
+	return `16n${offset > 0 ? "+" : ""}${offset}`;
+}
+
 // 実数値の常時表示をPyodide(jpoke)の初期化完了に依存させると、CDNが不通のときに
 // 左パネル・ダメージカードの実数値6個すべてが「(未計算)」のままになる。チャンピオンズ
 // ルールはIV=31固定・レベル常時50なので、種族値データだけで実数値が出せる純JS計算
@@ -403,6 +410,10 @@ export async function recalcStats(): Promise<void> {
 			? calcHpStat(level, base[i], iv, ev)
 			: calcOtherStat(level, base[i], iv, ev, natureMod.up === key ? 1.1 : natureMod.down === key ? 0.9 : 1.0);
 		valueEl.textContent = String(value);
+		if (key === "hp") {
+			const indicatorEl = document.getElementById("hp-16n-indicator");
+			if (indicatorEl) indicatorEl.textContent = hpBracketLabel(value);
+		}
 		if (natureMod.up === key) {
 			valueEl.dataset.mod = "up";
 		} else if (natureMod.down === key) {

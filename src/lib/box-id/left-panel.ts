@@ -1120,6 +1120,8 @@ if (form) {
 			valueEl.textContent = "-";
 			delete valueEl.dataset.mod;
 		}
+		const indicatorEl = document.getElementById("hp-16n-indicator");
+		if (indicatorEl) indicatorEl.textContent = "";
 	}
 
 	// デバウンス付き即時自動保存 + 楽観的UI更新(計画書§6.2)。
@@ -1226,12 +1228,12 @@ if (form) {
 	const NATURE_TOGGLE_KEYS = STAT_KEYS.filter((k) => k !== "hp");
 	for (const key of NATURE_TOGGLE_KEYS) {
 		const button = document.getElementById(`nature-toggle-${key}`);
-		button?.addEventListener("click", () => {
+		button?.addEventListener("click", async () => {
 			const next = nextNatureBoosts({ up: leftNatureUp, down: leftNatureDown }, key);
 			leftNatureUp = next.up;
 			leftNatureDown = next.down;
 			refreshNatureButtons();
-			void recalcStats();
+			await recalcStats();
 			scheduleSave();
 			schedulePopularBuildSuggestionsReload();
 		});

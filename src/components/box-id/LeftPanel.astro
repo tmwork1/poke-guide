@@ -240,7 +240,9 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 				<span class="stat-row-remaining-value">
 					<span id="ev-remaining" class="ev-remaining tnum"></span>
 				</span>
-				<span class="stat-row-real-wrap" aria-hidden="true"></span>
+				<span class="stat-row-real-wrap">
+					<span id="hp-16n-indicator" class="ev-remaining tnum"></span>
+				</span>
 			</div>
 			{STAT_LABELS.map(({ key, label: statLabel, short: statShort }, i) => (
 				<div class="stat-row">
@@ -638,6 +640,16 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		padding: 0.42em 0.6em;
 		overflow: hidden;
 		text-overflow: ellipsis;
+	}
+
+	#edit-form .top-block-fields .field > select.field-control {
+		min-height: 2.35rem;
+	}
+
+	#edit-form .top-block-fields .field > select.field-control:hover,
+	#edit-form .top-block-fields .field > select.field-control:focus,
+	#edit-form .top-block-fields .field > select.field-control:focus-visible {
+		background-image: none;
 	}
 
 	#edit-form .field-grid {

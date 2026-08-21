@@ -5,9 +5,8 @@ const body = document.getElementById("stat-status-adjust-body");
 const STAT_KEYS = ["hp", "atk", "def", "spa", "spd", "spe"] as const;
 const STAT_LABELS = ["H", "A", "B", "C", "D", "S"] as const;
 
-const remainingDisplay = document.getElementById("stat-adjust-sheet-remaining");
-
 function updateRemainingDisplay(): void {
+	const remainingDisplay = document.getElementById("stat-adjust-sheet-remaining");
 	if (!remainingDisplay) return;
 	const source = document.getElementById("stat-adjustment-section");
 	if (!source) return;
@@ -45,7 +44,7 @@ function buildDamageStatAdjustmentSheet(): void {
 
 	const root = document.createElement("div");
 	root.className = "damage-stat-adjustment";
-	const rows = new Map<string, { range: HTMLInputElement; value: HTMLElement; real: HTMLElement }>();
+	const rows = new Map<string, { range: HTMLInputElement; value: HTMLElement; real: HTMLElement; wrap: HTMLElement }>();
 
 	for (const [index, key] of STAT_KEYS.entries()) {
 		if (key === "spe") continue;
@@ -64,6 +63,11 @@ function buildDamageStatAdjustmentSheet(): void {
 			button.setAttribute("aria-label", `${STAT_LABELS[index]}の性格補正を切り替える`);
 			button.addEventListener("click", () => source.querySelector<HTMLButtonElement>(`#nature-toggle-${key}`)?.click());
 			nature.appendChild(button);
+		} else {
+			const remainingSpan = document.createElement("span");
+			remainingSpan.id = "stat-adjust-sheet-remaining";
+			remainingSpan.className = "stat-adjust-sheet-remaining tnum";
+			nature.appendChild(remainingSpan);
 		}
 		const decrement = document.createElement("button");
 		decrement.type = "button";
@@ -77,9 +81,6 @@ function buildDamageStatAdjustmentSheet(): void {
 		increment.setAttribute("aria-label", `${STAT_LABELS[index]}の努力値を増やす`);
 		const value = document.createElement("span");
 		value.className = "damage-stat-adjustment-value tnum";
-		const evValue = document.createElement("span");
-		evValue.className = "damage-stat-adjustment-ev-value";
-		evValue.appendChild(value);
 		const range = document.createElement("input");
 		range.type = "range";
 		range.min = "0";
@@ -87,6 +88,9 @@ function buildDamageStatAdjustmentSheet(): void {
 		range.step = "1";
 		range.className = "damage-stat-adjustment-slider";
 		range.setAttribute("aria-label", `${STAT_LABELS[index]}の努力値`);
+		const sliderWrap = document.createElement("div");
+		sliderWrap.className = "damage-stat-adjustment-slider-wrap";
+		sliderWrap.append(value, range);
 		const real = document.createElement("span");
 		real.className = "damage-stat-adjustment-real tnum";
 
@@ -100,9 +104,9 @@ function buildDamageStatAdjustmentSheet(): void {
 		decrement.addEventListener("click", () => setSourceValue(-1));
 		increment.addEventListener("click", () => setSourceValue(1));
 		range.addEventListener("input", () => setSourceValue(null));
-		row.append(label, nature, decrement, range, increment, evValue, real);
+		row.append(label, nature, decrement, sliderWrap, increment, real);
 		root.appendChild(row);
-		rows.set(key, { range, value, real });
+		rows.set(key, { range, value, real, wrap: sliderWrap });
 	}
 	body.appendChild(root);
 
@@ -116,7 +120,7 @@ function buildDamageStatAdjustmentSheet(): void {
 			const ev = Number(sourceRange.value) || 0;
 			row.range.value = String(ev);
 			const progressPercent = Math.min(100, Math.max(0, (ev / 32) * 100));
-			row.range.style.setProperty("--slider-progress", `${progressPercent}%`);
+			row.wrap.style.setProperty("--slider-progress", `${progressPercent}%`);
 			row.value.textContent = String(ev);
 			row.real.textContent = sourceReal?.textContent ?? "-";
 			if (sourceLabel?.dataset.mod) row.value.dataset.mod = sourceLabel.dataset.mod;
@@ -133,6 +137,7 @@ function buildDamageStatAdjustmentSheet(): void {
 	source.addEventListener("change", sync);
 	new MutationObserver(sync).observe(source, { subtree: true, childList: true, characterData: true, attributes: true });
 	sync();
+	updateRemainingDisplay();
 }
 
 toggle?.addEventListener("click", () => {

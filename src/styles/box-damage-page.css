@@ -15,13 +15,10 @@
   --box-damage-engine-status-font-size: var(--font-size-sm3); /* 計算エンジン状態文の文字の大きさ */
 
   /* ── 7. 余白 ────────────────────────── */
-  --box-damage-panel-padding: 0 var(--space-3); /* 画面端とダメージカードの間の余白。ダメージタブは常にタブ切替表示(data-mobile-tab="damage")のため画面幅を問わずこの値になる。
-    上端の余白は持たない。先頭のSecondHeaderをapp-header直下に密着させるため。 */
+  --box-damage-panel-padding: 0 var(--space-3); /* 画面端とダメージカードの間の余白。ダメージタブは常にタブ切替表示(data-mobile-tab="damage")のため画面幅を問わずこの値になる。 */
   --box-damage-mobile-list-padding-bottom: calc(56px + var(--bottom-nav-height) + var(--space-4)); /* モバイル時に浮いた追加ボタンへ隠れない一覧下余白 */
   --box-damage-rows-gap: var(--space-3); /* ダメージ計算カード同士の縦の間隔 */
-  --box-damage-toolbar-gap: var(--space-2); /* 一括操作ボタン同士の間隔 */
-  --box-damage-toolbar-margin-bottom: var(--space-2); /* 操作列とカード一覧の間隔 */
-  --box-damage-engine-status-margin: var(--space-3) 0 .4rem; /* 計算エンジン状態文の外側余白。上端はSecondHeaderとの間隔 */
+  --box-damage-engine-status-margin: var(--space-3) 0 .4rem; /* 計算エンジン状態文の外側余白 */
   --box-damage-suggest-section-margin-top: var(--space-5); /* ダメージ計算カード一覧と「よく行われるダメージ計算」の間隔 */
   --box-damage-suggest-heading-margin-bottom: var(--space-2); /* 「よく行われるダメージ計算」の見出しと一覧の間隔 */
 }
@@ -43,14 +40,6 @@
   display: flex;
 }
 
-#opponent-notes-section .damage-rows-toolbar {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--box-damage-toolbar-gap);
-  margin-bottom: var(--box-damage-toolbar-margin-bottom);
-}
-
 #opponent-notes-section .damage-calc-engine-status {
   font-size: var(--box-damage-engine-status-font-size);
   margin: var(--box-damage-engine-status-margin);
@@ -58,19 +47,6 @@
 
 #opponent-notes-section .damage-calc-engine-status[hidden] {
   display: none;
-}
-
-/* 操作列(耐久調整ボタン)を包むSecondHeader(second-header.css)。
-   ダメージタブは幅を問わず常に同じモバイルUIで表示されるため、
-   sticky・背景・下線ありの見た目を幅で分岐させない。
-   #opponent-notes-section自身が左右padding(--box-damage-panel-padding)を持つため、
-   何もしないとSecondHeaderもその内側に収まってしまい、/boxのSecondHeader(画面端まで
-   届く帯)と配置がずれる。/boxと同じ「画面端まで届く帯」にするため、左右paddingぶんを
-   負のmarginで打ち消して画面幅いっぱいに広げる。 */
-#opponent-notes-section .damage-toolbar-header {
-  z-index: 16; /* .pokemon-preview(15)より前面、.app-header(20)より背面 */
-  margin-inline: calc(var(--space-3) * -1);
-  width: calc(100% + var(--space-3) * 2);
 }
 
 @media (width <= 899px) {

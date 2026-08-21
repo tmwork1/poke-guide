@@ -7,8 +7,6 @@ interface Props {
 }
 
 const { pokemonId, moveAdoptionBySpecies } = Astro.props;
-import SecondHeader from '../SecondHeader.astro';
-import '../../styles/second-header.css';
 import '../../styles/box-damage-page.css';
 import '../../styles/box-add-button.css';
 import '../../styles/box-damage-card.css';
@@ -18,15 +16,6 @@ import '../../styles/box-damage-card.css';
 <section id="opponent-notes-section" class="damage-calc-area" data-owned-pokemon-id={pokemonId}>
 
 
-
-	{/* 狭い画面ではこの操作列(耐久調整ボタン)を、/box等と同じ「app-header直下に
-	    張り付くSecondHeader」として表示する(以前はカード一覧の右下に浮くフローティング
-	    ボタンだったが、追加ボタンと2つ並んで浮く見た目が煩雑だったため撤廃。位置調整は
-	    box-damage-page.cssの.damage-toolbar-header側で行う。900px以上では従来どおり
-	    張り付かない通常の行に戻す)。 */}
-	<SecondHeader ariaLabel="ダメージ計算の操作" class="damage-toolbar-header">
-		<div id="damage-rows-toolbar" class="damage-rows-toolbar"></div>
-	</SecondHeader>
 
 	<p id="damage-calc-engine-status" class="status-text damage-calc-engine-status" data-state="idle">
 
