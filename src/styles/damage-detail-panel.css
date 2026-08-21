@@ -427,9 +427,13 @@ body.box-edit-page {
 		cursor: pointer;
 		font-size: var(--damage-detail-font-size-sm);
 	}
-	#damage-detail-panel-body .candidate-list-item:hover,
 	#damage-detail-panel-body .candidate-list-item:focus-visible {
 		border-color: var(--damage-detail-primary-color);
+	}
+	@media (hover: hover) and (pointer: fine) {
+		#damage-detail-panel-body .candidate-list-item:hover {
+			border-color: var(--damage-detail-primary-color);
+		}
 	}
 	/* 支援技術向けの状態は動的要素のaria-currentで示す。 */
 	#damage-detail-panel-body .candidate-list-item.is-applied {
@@ -483,9 +487,13 @@ body.box-edit-page {
 	#damage-detail-panel-body div.candidate-list-item.is-current {
 		cursor: default;
 	}
-	#damage-detail-panel-body div.candidate-list-item.is-current:hover,
 	#damage-detail-panel-body div.candidate-list-item.is-current:focus-visible {
 		border-color: var(--damage-detail-border-color);
+	}
+	@media (hover: hover) and (pointer: fine) {
+		#damage-detail-panel-body div.candidate-list-item.is-current:hover {
+			border-color: var(--damage-detail-border-color);
+		}
 	}
 	#damage-detail-panel-body .candidate-list-item-current-badge,
 	#damage-detail-panel-body .candidate-list-item-badge {
@@ -610,8 +618,10 @@ body.box-edit-page {
 		ONだったボタンをクリックしてOFFへ戻した直後(マウスが乗ったまま)に仕切り線が消えて見える
 		不具合があった。border-left-colorだけをホバー中も常に復元し、他3辺の透明化(個々のボタンの
 		枠を単独では見せない挙動)はそのまま維持する。 */
-	#damage-detail-panel-body .damage-detail-icon-group.is-row4 .damage-detail-icon-btn + .damage-detail-icon-btn:hover {
-		border-left-color: var(--damage-detail-border-color);
+	@media (hover: hover) and (pointer: fine) {
+		#damage-detail-panel-body .damage-detail-icon-group.is-row4 .damage-detail-icon-btn + .damage-detail-icon-btn:hover {
+			border-left-color: var(--damage-detail-border-color);
+		}
 	}
 	#damage-detail-panel-body .damage-detail-rank-ailment-row {
 		/* C-2: "ランク"ラベルを削除し、ランク・状態異常・テラスタイプを同じ段(3列)に配置する。
@@ -694,8 +704,10 @@ body.box-edit-page {
 		color: var(--damage-detail-text-color);
 		text-align: left;
 	}
-	#damage-detail-panel-body .damage-build-detail-item-dropdown-button:hover {
-		border-color: var(--damage-detail-primary-color);
+	@media (hover: hover) and (pointer: fine) {
+		#damage-detail-panel-body .damage-build-detail-item-dropdown-button:hover {
+			border-color: var(--damage-detail-primary-color);
+		}
 	}
 	#damage-detail-panel-body .damage-build-detail-item-dropdown-button:focus-visible {
 		outline: var(--damage-detail-focus-outline);
@@ -707,8 +719,10 @@ body.box-edit-page {
 	#damage-detail-panel-body .damage-build-detail-item-dropdown-button:disabled {
 		cursor: not-allowed;
 	}
-	#damage-detail-panel-body .damage-build-detail-item-dropdown-button:disabled:hover {
-		border-color: var(--damage-detail-border-color);
+	@media (hover: hover) and (pointer: fine) {
+		#damage-detail-panel-body .damage-build-detail-item-dropdown-button:disabled:hover {
+			border-color: var(--damage-detail-border-color);
+		}
 	}
 	#damage-detail-panel-body .damage-build-detail-item-dropdown-button.is-autofilled {
 		border-color: var(--damage-detail-primary-color);

@@ -490,9 +490,11 @@ body.box-edit-page {
   border-left: 1px solid var(--color-border);
 }
 
-#damage-detail-panel .damage-build-detail-direction-toggle .damage-row-direction-option:hover:not([aria-checked="true"]) {
-  color: var(--damage-card-direction-hover-color);
-  background: var(--damage-card-direction-hover-background);
+@media (hover: hover) and (pointer: fine) {
+  #damage-detail-panel .damage-build-detail-direction-toggle .damage-row-direction-option:hover:not([aria-checked="true"]) {
+    color: var(--damage-card-direction-hover-color);
+    background: var(--damage-card-direction-hover-background);
+  }
 }
 
 #damage-detail-panel .damage-build-detail-direction-toggle .damage-row-direction-option:focus-visible {
@@ -538,8 +540,10 @@ body.box-edit-page {
   display: flex;
 }
 
-#opponent-notes-section .tera-dropdown-button:hover {
-  border-color: var(--damage-card-tera-button-hover-border-color);
+@media (hover: hover) and (pointer: fine) {
+  #opponent-notes-section .tera-dropdown-button:hover {
+    border-color: var(--damage-card-tera-button-hover-border-color);
+  }
 }
 
 #opponent-notes-section .tera-dropdown-button:focus-visible {
@@ -956,10 +960,12 @@ body.box-edit-page {
   }
 }
 
-#opponent-notes-section .damage-row-delete-button:hover:not(:disabled) {
-  background: var(--damage-card-delete-hover-background);
-  color: var(--damage-card-delete-hover-color);
-  border-color: var(--damage-card-delete-hover-background);
+@media (hover: hover) and (pointer: fine) {
+  #opponent-notes-section .damage-row-delete-button:hover:not(:disabled) {
+    background: var(--damage-card-delete-hover-background);
+    color: var(--damage-card-delete-hover-color);
+    border-color: var(--damage-card-delete-hover-background);
+  }
 }
 
 #opponent-notes-section .damage-row-delete-button:focus-visible {
@@ -1275,9 +1281,11 @@ body.box-edit-page {
   display: flex;
 }
 
-#opponent-notes-section .damage-add-column-button:hover:not(:disabled) {
-  color: var(--color-primary);
-  background: var(--color-primary-soft);
+@media (hover: hover) and (pointer: fine) {
+  #opponent-notes-section .damage-add-column-button:hover:not(:disabled) {
+    color: var(--color-primary);
+    background: var(--color-primary-soft);
+  }
 }
 
 #opponent-notes-section .damage-add-column-button:disabled {
@@ -1426,8 +1434,10 @@ body.box-edit-page {
   border-left: 1px solid var(--color-border);
 }
 
-#damage-detail-panel-body .damage-detail-icon-group.is-row4 .damage-detail-icon-btn:hover {
-  border-color: transparent;
+@media (hover: hover) and (pointer: fine) {
+  #damage-detail-panel-body .damage-detail-icon-group.is-row4 .damage-detail-icon-btn:hover {
+    border-color: transparent;
+  }
 }
 
 /* 天候・壁などを選ぶアイコンボタン */
@@ -1481,9 +1491,11 @@ body.box-edit-page {
   font-weight: 700;
 }
 
-#damage-detail-panel-body .damage-detail-toggle-row .damage-detail-spikes-select:hover {
-  border-color: var(--color-primary);
-  color: var(--color-primary);
+@media (hover: hover) and (pointer: fine) {
+  #damage-detail-panel-body .damage-detail-toggle-row .damage-detail-spikes-select:hover {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+  }
 }
 
 #damage-detail-panel-body .damage-detail-toggle-row .damage-detail-spikes-select:focus-visible {
@@ -1623,9 +1635,11 @@ body.box-edit-page {
   font-size: var(--font-size-sm2);
 }
 
-#damage-detail-panel-body .damage-detail-icon-btn:hover {
-  border-color: var(--color-primary);
-  color: var(--color-primary);
+@media (hover: hover) and (pointer: fine) {
+  #damage-detail-panel-body .damage-detail-icon-btn:hover {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+  }
 }
 
 #damage-detail-panel-body .damage-detail-icon-btn:focus-visible {
@@ -1645,9 +1659,11 @@ body.box-edit-page {
   opacity: .7;
 }
 
-#damage-detail-panel-body .damage-detail-icon-btn:disabled:hover {
-  border-color: var(--color-border);
-  color: var(--color-text-muted);
+@media (hover: hover) and (pointer: fine) {
+  #damage-detail-panel-body .damage-detail-icon-btn:disabled:hover {
+    border-color: var(--color-border);
+    color: var(--color-text-muted);
+  }
 }
 
 /* ランク・状態異常など、ラベルと入力を縦に並べる1項目 */
@@ -1897,16 +1913,28 @@ body.box-edit-page {
     box-shadow: var(--shadow-sm);
   }
 
-  #opponent-notes-section .damage-column:hover, #opponent-notes-section .damage-column:focus-within {
+  #opponent-notes-section .damage-column:focus-within {
     box-shadow: 0 0 0 1px var(--color-primary), var(--shadow-md);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    #opponent-notes-section .damage-column:hover {
+      box-shadow: 0 0 0 1px var(--color-primary), var(--shadow-md);
+    }
   }
 
   #opponent-notes-section .damage-column.is-selected {
     box-shadow: 0 0 0 1px var(--color-primary), var(--shadow-sm);
   }
 
-  #opponent-notes-section .damage-column.is-selected:hover, #opponent-notes-section .damage-column.is-selected:focus-within {
+  #opponent-notes-section .damage-column.is-selected:focus-within {
     box-shadow: 0 0 0 1px var(--color-primary), var(--shadow-md);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    #opponent-notes-section .damage-column.is-selected:hover {
+      box-shadow: 0 0 0 1px var(--color-primary), var(--shadow-md);
+    }
   }
 
   #opponent-notes-section .damage-column:active {
@@ -2085,10 +2113,16 @@ body.box-edit-page {
   transition: box-shadow .18s ease, background-color .18s ease;
 }
 
-#opponent-notes-section .damage-suggest-card-button:hover,
 #opponent-notes-section .damage-suggest-card-button:focus-visible {
   box-shadow: var(--shadow-md);
   background: color-mix(in srgb, var(--color-surface) 90%, var(--color-primary) 10%);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  #opponent-notes-section .damage-suggest-card-button:hover {
+    box-shadow: var(--shadow-md);
+    background: color-mix(in srgb, var(--color-surface) 90%, var(--color-primary) 10%);
+  }
 }
 
 /* 左列(攻守+アイコン)・右列(特性/持ち物+技/根拠)の2カラム。ダメージカード一覧の

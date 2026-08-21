@@ -544,7 +544,9 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	}
 	.stat-nature-up::after { border-left: var(--stat-nature-arrow-border-inline) solid transparent; border-right: var(--stat-nature-arrow-border-inline) solid transparent; border-bottom: var(--stat-nature-arrow-border-block) solid var(--color-text-muted); }
 	.stat-nature-down::after { border-left: var(--stat-nature-arrow-border-inline) solid transparent; border-right: var(--stat-nature-arrow-border-inline) solid transparent; border-top: var(--stat-nature-arrow-border-block) solid var(--color-text-muted); }
-	.stat-nature-btn:not([aria-pressed="true"]):hover::after { border-bottom-color: var(--color-primary); border-top-color: var(--color-primary); }
+	@media (hover: hover) and (pointer: fine) {
+		.stat-nature-btn:not([aria-pressed="true"]):hover::after { border-bottom-color: var(--color-primary); border-top-color: var(--color-primary); }
+	}
 	.stat-nature-btn:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 1px; }
 	/* ハイライトは背景色と矢印の色だけで表現し、枠線(border-color)は既定のままにする
 	   (性格補正ボタンのハイライト時に枠までハイライトしないというUI改修依頼)。 */
@@ -599,10 +601,12 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		border-color: var(--color-border);
 		color: var(--color-text);
 	}
-	.stat-adjust-action-button:hover:not(:disabled) {
-		background: var(--color-bg);
-		border-color: var(--color-border);
-		color: var(--color-text);
+	@media (hover: hover) and (pointer: fine) {
+		.stat-adjust-action-button:hover:not(:disabled) {
+			background: var(--color-bg);
+			border-color: var(--color-border);
+			color: var(--color-text);
+		}
 	}
 	/* box/[id].astroのトップバーにあった#bulk-adjust-buttonが持っていた「アイコンspan+ラベルspanを
 	   inline-flexで縦位置中央揃えにする」パターン(インラインSVGは既定でbaseline基準の余白が乗り、
@@ -755,7 +759,9 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		color: var(--color-text);
 		text-align: left;
 	}
-	#edit-form .tera-dropdown-button:hover { border-color: var(--color-primary); }
+	@media (hover: hover) and (pointer: fine) {
+		#edit-form .tera-dropdown-button:hover { border-color: var(--color-primary); }
+	}
 	#edit-form .tera-dropdown-button:focus-visible {
 		outline: 2px solid var(--color-primary);
 		outline-offset: 1px;
@@ -817,7 +823,9 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		color: var(--color-text);
 		text-align: left;
 	}
-	#edit-form .item-dropdown-button:hover { border-color: var(--color-primary); }
+	@media (hover: hover) and (pointer: fine) {
+		#edit-form .item-dropdown-button:hover { border-color: var(--color-primary); }
+	}
 	#edit-form .item-dropdown-button:focus-visible {
 		outline: 2px solid var(--color-primary);
 		outline-offset: 1px;
@@ -828,7 +836,9 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	#edit-form .item-dropdown-button:disabled {
 		cursor: not-allowed;
 	}
-	#edit-form .item-dropdown-button:disabled:hover { border-color: var(--color-border); }
+	@media (hover: hover) and (pointer: fine) {
+		#edit-form .item-dropdown-button:disabled:hover { border-color: var(--color-border); }
+	}
 	#edit-form .item-dropdown-button.is-autofilled {
 		border-color: var(--color-primary);
 		box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 30%, transparent);
@@ -912,7 +922,9 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		background-size: 6px 6px;
 		opacity: 0.55;
 	}
-	#edit-form .move-drag-handle:hover { opacity: 1; }
+	@media (hover: hover) and (pointer: fine) {
+		#edit-form .move-drag-handle:hover { opacity: 1; }
+	}
 	#edit-form .move-input-group.is-dragging { opacity: 0.5; }
 	#edit-form .move-input-group.is-dragging .move-drag-handle { cursor: grabbing; }
 	#edit-form .move-input-group.is-drag-over {

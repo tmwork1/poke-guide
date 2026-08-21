@@ -172,9 +172,11 @@ body.box-edit-page {
 			background: var(--box-edit-delete-background);
 			color: var(--box-edit-delete-color);
 		}
-		#delete-button:hover:not(:disabled) {
-			background: var(--box-edit-delete-hover-background);
-			color: var(--box-edit-delete-hover-color);
+		@media (hover: hover) and (pointer: fine) {
+			#delete-button:hover:not(:disabled) {
+				background: var(--box-edit-delete-hover-background);
+				color: var(--box-edit-delete-hover-color);
+			}
 		}
 		/* 匿名集計サジェスト機能・第4段階(UI: 収集拒否トグル)。.toggle-switch本体のCSSは
 			src/components/box-id/LeftPanel.astro の is:global <style> 側に既にあるためここでは
@@ -193,8 +195,10 @@ body.box-edit-page {
 			cursor: pointer;
 		}
 		/* font-familyとletter-spacingは明示せず、戻るボタンと同様にbodyから継承する。 */
-		.collection-opt-out-toggle:hover:not(:has(.toggle-switch-input:disabled)) {
-			color: var(--box-edit-collection-toggle-hover-color);
+		@media (hover: hover) and (pointer: fine) {
+			.collection-opt-out-toggle:hover:not(:has(.toggle-switch-input:disabled)) {
+				color: var(--box-edit-collection-toggle-hover-color);
+			}
 		}
 		.collection-opt-out-status {
 			color: var(--box-edit-collection-status-color);
