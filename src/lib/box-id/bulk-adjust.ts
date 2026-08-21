@@ -46,6 +46,7 @@ const bulkAdjustButtonLabelEl = bulkAdjustButton.querySelector<HTMLElement>(".bu
 const backdropEl = el<HTMLElement>("bulk-adjust-backdrop");
 const dialogEl = el<HTMLElement>("bulk-adjust-dialog");
 const dialogComputeButton = el<HTMLButtonElement>("bulk-adjust-dialog-compute-button");
+const dialogCloseButton = el<HTMLButtonElement>("bulk-adjust-dialog-close-button");
 const dialogStatusEl = el<HTMLElement>("bulk-adjust-dialog-status");
 const dialogBodyInnerEl = el<HTMLElement>("bulk-adjust-dialog-body-inner");
 const dialogFooterEl = el<HTMLElement>("bulk-adjust-dialog-footer");
@@ -273,6 +274,7 @@ dialogComputeButton.addEventListener("click", () => {
 	if (isComputing) return;
 	void runCompute();
 });
+dialogCloseButton.addEventListener("click", closeDialog);
 bindModalDismissal({ backdrop: backdropEl, isOpen: () => isDialogOpen, onDismiss: closeDialog });
 cancelButton.addEventListener("click", () => {
 	activeAbortController?.abort();

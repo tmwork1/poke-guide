@@ -14,7 +14,7 @@ body.box-edit-page {
 	/* ── 1. 文字サイズ ────────────────────────────────────── */
 	--bulk-adjust-title-font-size: var(--font-size-base); /* ダイアログ見出し。大きくするとタイトルが目立つ */
 	--bulk-adjust-status-font-size: var(--font-size-sm2); /* 計算状況の文。大きくすると状態が読みやすくなる */
-	--bulk-adjust-close-font-size: var(--font-size-lg1); /* 閉じるボタンの×。大きくすると記号が目立つ */
+	--bulk-adjust-close-font-size: var(--modal-close-font-size); /* 閉じるボタンの×。大きくすると記号が目立つ */
 	--bulk-adjust-inputs-font-size: var(--font-size-sm2); /* N発・確率の入力行。大きくすると入力説明が読みやすくなる */
 
 	/* ── 3. 文字色 ────────────────────────────────────────── */
@@ -36,8 +36,9 @@ body.box-edit-page {
 	--bulk-adjust-dialog-shadow: var(--shadow-lg); /* ダイアログの影。強くすると画面手前に浮いて見える */
 
 	/* ── 7. 余白 ──────────────────────────────────────────── */
-	--bulk-adjust-header-gap: var(--space-3); /* ヘッダー内の要素間隔。大きくすると操作が離れる */
+	--bulk-adjust-header-gap: var(--modal-header-gap); /* ヘッダー内の要素間隔。大きくすると操作が離れる */
 	--bulk-adjust-header-padding: var(--modal-header-padding); /* モーダル共通の見出し行余白。 */
+	--bulk-adjust-dialog-close-size: var(--modal-close-size); /* 閉じるボタンの最小タップ域。モーダルヘッダー規格(global.css)に揃える */
 	--bulk-adjust-body-padding: var(--space-4) var(--space-5); /* 本文内側の余白。大きくすると内容が内側に寄る */
 	--bulk-adjust-body-gap: var(--space-4); /* 条件カードどうしの間隔。大きくするとカードが離れる */
 	--bulk-adjust-footer-padding: var(--space-3) var(--space-5); /* フッター内側の余白。大きくすると下部が厚くなる */
@@ -100,38 +101,45 @@ body.box-edit-page {
 	.bulk-adjust-dialog-header {
 		display: flex;
 		align-items: center;
-		justify-content: space-between;
 		gap: var(--bulk-adjust-header-gap);
 		padding: var(--bulk-adjust-header-padding);
 		min-height: var(--modal-header-min-height);
 		border-bottom: 1px solid var(--color-border);
 		flex-shrink: 0;
 	}
-	/* 耐久調整ダイアログの見出し文字 */
+	/* 耐久調整ダイアログの見出し文字。モーダルヘッダー規格(global.css)に合わせ、
+		左端に置いてヘッダー内の余白を占有し、ステータス・操作・閉じるボタンを右へ押し出す。 */
 	.bulk-adjust-dialog-title {
+		flex: 1 1 auto;
+		min-width: 0;
 		margin: 0;
+		overflow: hidden;
 		font-size: var(--bulk-adjust-title-font-size);
 		font-weight: 700;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
-	/* 計算対象なし・入力不足・失敗などをタイトル行の右側に表示するステータス */
+	/* 計算対象なし・入力不足・失敗などをタイトルの右側に表示するステータス */
 	.bulk-adjust-dialog-status {
-		margin-left: auto;
+		flex-shrink: 0;
 		color: var(--bulk-adjust-muted-color);
 		font-size: var(--bulk-adjust-status-font-size);
 		min-width: 0;
 	}
-	/* ダイアログ右上の閉じるボタン */
+	/* ダイアログ右端の閉じるボタン(×)。モーダルヘッダー規格(global.css)に揃える。 */
 	.bulk-adjust-dialog-close {
-		font-size: var(--bulk-adjust-close-font-size);
-		padding: 0.2em 0.55em;
 		flex-shrink: 0;
+		min-width: var(--bulk-adjust-dialog-close-size);
+		min-height: var(--bulk-adjust-dialog-close-size);
+		padding: 0.1em 0.45em;
+		font-size: var(--bulk-adjust-close-font-size);
+		line-height: 1;
 	}
 
 	/* 既存クラスを維持したままタイトル行内のボタン枠として使う。 */
 	.bulk-adjust-dialog-toolbar {
 		display: flex;
-		justify-content: center;
-		flex: 1 1 auto;
+		flex-shrink: 0;
 		min-width: 0;
 	}
 	/* button.btn-primary(詳細度0,1,1)に勝つため要素セレクタを付け、削除ボタンと同じ太さを維持する。 */

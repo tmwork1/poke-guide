@@ -11,6 +11,11 @@ body.box-edit-page {
 	--species-select-dialog-shadow: var(--shadow-lg);
 	--species-select-backdrop-background: var(--color-overlay);
 	--species-select-header-padding: var(--modal-header-padding);
+	--species-select-header-gap: var(--modal-header-gap);
+	--species-select-title-font-size: var(--modal-title-font-size);
+	--species-select-title-font-weight: var(--modal-title-font-weight);
+	--species-select-close-font-size: var(--modal-close-font-size);
+	--species-select-close-size: var(--modal-close-size);
 	--species-select-content-padding: var(--space-3) var(--space-5);
 }
 
@@ -78,7 +83,7 @@ body.box-edit-page {
 .species-select-header {
 	display: flex;
 	align-items: center;
-	gap: var(--space-3);
+	gap: var(--species-select-header-gap);
 	padding: var(--species-select-header-padding);
 	min-height: var(--modal-header-min-height);
 	border-bottom: 1px solid var(--color-border);
@@ -91,17 +96,18 @@ body.box-edit-page {
 	margin-bottom: 0;
 	padding-bottom: 0;
 	border-bottom: none;
-	font-size: var(--font-size-base);
-	font-weight: 700;
+	font-size: var(--species-select-title-font-size);
+	font-weight: var(--species-select-title-font-weight);
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
 }
 .species-select-close {
-	min-width: 28px;
-	min-height: 28px;
+	flex-shrink: 0;
+	min-width: var(--species-select-close-size);
+	min-height: var(--species-select-close-size);
 	padding: 0.1em 0.45em;
-	font-size: var(--font-size-lg1);
+	font-size: var(--species-select-close-font-size);
 	line-height: 1;
 }
 

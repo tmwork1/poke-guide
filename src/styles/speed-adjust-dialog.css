@@ -92,10 +92,10 @@ body.speed-chart-page:has(.speed-chart-embed-toolbar) {
   /* 共通: 個別指定のない表内テキスト */
   --speed-adjust-base-size: var(--font-size-sm2);
 
-  /* ヘッダー: 「すばやさ調整」見出し / 閉じる（×） */
+  /* ヘッダー: 「すばやさ調整」見出し / 閉じる（×）。モーダルヘッダー規格(global.css)に揃える */
   --speed-adjust-toolbar-size: var(--font-size-sm2);
-  --speed-adjust-toolbar-title-size: var(--font-size-sm1);
-  --speed-adjust-toolbar-close-size: var(--font-size-lg1);
+  --speed-adjust-toolbar-title-size: var(--modal-title-font-size);
+  --speed-adjust-toolbar-close-size: var(--modal-close-font-size);
 
   /* 表: 読み込み・エラー文 / 左端の実数値 / 補正量・種族値 */
   --speed-adjust-status-size: var(--font-size-sm2);

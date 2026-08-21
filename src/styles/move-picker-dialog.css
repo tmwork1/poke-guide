@@ -12,8 +12,9 @@
    =========================================================================== */
 body.box-edit-page {
   /* ── 1. 文字サイズ ────────────────────────────────────── */
-  --move-picker-close-size: var(--font-size-lg1); /* 閉じるボタンの×。大きくすると記号が目立つ */
-  --move-picker-title-size: var(--font-size-sm2); /* 見出しとモバイルの技スロット名。大きくすると行が高くなる */
+  --move-picker-close-size: var(--modal-close-font-size); /* 閉じるボタンの×。大きくすると記号が目立つ */
+  --move-picker-header-title-size: var(--modal-title-font-size); /* ヘッダー見出し。モーダルヘッダー規格(global.css)に揃える */
+  --move-picker-title-size: var(--font-size-sm2); /* モバイルの技スロット名。大きくすると行が高くなる */
   --move-picker-control-size: var(--font-size-sm2); /* 絞り込み・並べ替え操作。大きくすると操作文字が読みやすくなる */
   --move-picker-table-size: var(--font-size-sm2); /* 技一覧の文字。大きくすると一覧の表示行数が減る */
   --move-picker-empty-size: var(--font-size-sm2); /* 技がないときの案内文。大きくすると案内が目立つ */
@@ -25,7 +26,8 @@ body.box-edit-page {
   --move-picker-dialog-border: var(--modal-border); /* モーダルの外枠線。太くすると輪郭が目立つ */
 
   /* ── 7. 余白 ──────────────────────────────────────────── */
-  --move-picker-header-gap: var(--space-3); /* ヘッダー内の要素間隔。大きくすると見出しと操作が離れる */
+  --move-picker-header-gap: var(--modal-header-gap); /* ヘッダー内の要素間隔。大きくすると見出しと操作が離れる */
+  --move-picker-close-box-size: var(--modal-close-size); /* 閉じるボタンの最小タップ域。モーダルヘッダー規格(global.css)に揃える */
   --move-picker-header-padding: var(--modal-header-padding); /* モーダル共通の見出し行余白。 */
   --move-picker-tabs-gap: var(--space-2); /* モバイルの技スロット間隔。大きくするとボタンが離れる */
   --move-picker-tabs-padding: var(--space-2) var(--space-3); /* 技スロット列の内側余白。大きくすると列が厚くなる */
@@ -87,7 +89,7 @@ body.box-edit-page {
 .move-picker-title {
   flex: 1 1 auto;
   color: var(--color-text);
-  font-size: var(--move-picker-title-size);
+  font-size: var(--move-picker-header-title-size);
   font-weight: 700;
   white-space: nowrap;
 }
@@ -130,8 +132,8 @@ body.box-edit-page {
   flex-shrink: 0;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: var(--move-picker-close-box-size);
+  height: var(--move-picker-close-box-size);
   border: none;
   border-radius: var(--radius-sm);
   background: transparent;
@@ -295,7 +297,7 @@ body.box-edit-page {
 }
 
 /* LeftPanel.astro の旧来のグローバル指定より優先し、上の変数を唯一の調整窓口にする。 */
-body .move-picker-title { font-size: var(--move-picker-title-size); }
+body .move-picker-title { font-size: var(--move-picker-header-title-size); }
 body .move-picker-toggle { font-size: var(--move-picker-control-size); }
 body .move-picker-close { font-size: var(--move-picker-close-size); }
 /* 絞り込み条件の補足文。旧来の指定より優先して余白と文字サイズを調整する */
