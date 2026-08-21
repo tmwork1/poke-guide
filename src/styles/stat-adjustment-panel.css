@@ -33,7 +33,7 @@
 	--stat-down-color: var(--color-stat-down); /* 下降補正の色。変えると下向き補正の印象が変わる */
 
 	/* ── 4. 背景色 ────────────────────────────────────────── */
-	--stat-button-background: var(--control-button-background); /* 努力値・性格ボタンの下地。変えると操作部の面色が変わる */
+	--stat-button-background: var(--color-bg); /* 努力値・性格ボタンの下地。シート背景より一段暗くして操作部を区別する */
 	--stat-nature-up-background: var(--color-danger-soft); /* 上昇性格ボタンの選択時背景。濃くすると選択が目立つ */
 	--stat-nature-down-background: var(--color-primary-soft); /* 下降性格ボタンの選択時背景。濃くすると選択が目立つ */
 
@@ -113,7 +113,6 @@
 	margin-bottom: var(--stat-header-margin-bottom);
 	border-bottom: var(--stat-header-border);
 }
-.stat-table-header-ev-remaining { text-align: center; }
 /* 実数値の列見出し。列幅を超える場合は省略記号で切り詰める */
 .stat-table-header-real-label {
 	overflow: hidden;
@@ -130,7 +129,7 @@
 	text-overflow: ellipsis;
 	white-space: nowrap;
 }
-.stat-table-header > span:not(.stat-table-header-ev-remaining) { text-align: center; }
+.stat-table-header > span { text-align: center; }
 /* 残り努力値の表示。0と超過時は状態に応じて色を変える */
 .ev-remaining {
 	font-size: var(--stat-ev-remaining-font-size);
@@ -198,12 +197,21 @@
 	justify-content: flex-end;
 	gap: var(--stat-control-gap);
 	min-width: 0;
-	grid-column: 3 / 5;
+	grid-column: 3 / 4;
 }
 .stat-row .stat-ev-range-controls { display: contents; }
 .stat-row .stat-ev-step-button[data-ev-step="-1"] { order: 2; }
-.stat-row .stat-input-controls > input[type="number"] {
-	order: 3;
+.stat-row .stat-ev-step-button[data-ev-step="1"] { order: 3; }
+.stat-row .stat-ev-value {
+	order: 4;
+	display: flex;
+	flex: 0 0 var(--stat-number-input-width);
+	flex-direction: column;
+	align-items: stretch;
+	gap: 0.1rem;
+	width: var(--stat-number-input-width);
+}
+.stat-row .stat-ev-value > input[type="number"] {
 	flex: 0 0 var(--stat-number-input-width);
 	width: var(--stat-number-input-width);
 	height: var(--stat-number-input-height);
@@ -211,7 +219,6 @@
 	padding: var(--stat-number-input-mobile-padding);
 	line-height: 1;
 }
-.stat-row .stat-ev-step-button[data-ev-step="1"] { order: 4; }
 .stat-row .stat-ev-endpoint-button[data-ev-toggle] { order: 5; }
 .stat-row .stat-ev-endpoint-button,
 .stat-row .stat-ev-step-button {
@@ -232,7 +239,7 @@
 }
 .stat-ev-toggle-spacer { display: none; }
 /* 努力値を直接入力する数値欄と横長スライダー */
-.stat-row input[type="number"] {
+.stat-row .stat-ev-value > input[type="number"] {
 	font-size: var(--stat-number-input-font-size);
 	padding: var(--stat-number-input-padding);
 	width: 100%;
@@ -322,11 +329,8 @@
 	border-color: transparent;
 	box-shadow: none;
 }
-/* 種族値と右端の実数値 */
-.stat-row-base {
-	color: var(--stat-muted-color);
-	text-align: center;
-}
+/* HP努力値の上に置く残数と右端の実数値 */
+.stat-ev-value .ev-remaining { text-align: center; white-space: nowrap; }
 .stat-row-real-wrap {
 	display: contents;
 	align-items: center;
@@ -347,7 +351,6 @@
 	--stat-grid-template-columns:
 		minmax(1.5rem, 0.4fr)
 		minmax(2.75rem, 0.6fr)
-		minmax(2.5rem, 0.7fr)
 		minmax(7rem, 2.5fr)
 		minmax(3rem, 0.75fr);
 	--stat-column-gap: var(--space-1);
@@ -362,10 +365,10 @@
 		(box-edit-page.cssの.edit-layout-left .stat-adjustment-section)に合わせつつ、
 		このパネルは横幅が狭いため努力値・実数値列だけこのパネル従来の幅を維持する。
 		これによりHP行(性格補正ボタン無し)でもラベルのX位置が他の行とずれない。 */
-	--stat-mobile-row-grid-template-columns: 1.4rem 2.8rem 2rem minmax(0, 1fr) 2.6rem;
+	--stat-mobile-row-grid-template-columns: 1.4rem 2.8rem minmax(0, 1fr) 2.6rem;
 	--stat-mobile-row-gap: var(--space-1);
-	--stat-mobile-input-grid-column: 4;
-	--stat-mobile-real-grid-column: 5;
+	--stat-mobile-input-grid-column: 3;
+	--stat-mobile-real-grid-column: 4;
 	--stat-mobile-real-padding-inline-end: 0;
 }
 
@@ -387,7 +390,7 @@
 	.stat-row .stat-ev-endpoint-button,
 	.stat-row .stat-ev-step-button { min-width: var(--stat-ev-mobile-button-block-size); }
 	/* 狭い画面の努力値数値入力を増減ボタンと同じ行に収める */
-	.stat-row .stat-input-controls input[type="number"] {
+	.stat-row .stat-ev-value > input[type="number"] {
 		flex: 0 0 3.2em;
 		width: 3.2em;
 	}
@@ -398,8 +401,6 @@
 		justify-content: flex-end;
 		min-width: 0;
 	}
-	.stat-row-base,
-	/* 狭い画面では種族値と実数値の右余白・配置・太さを揃える */
 	.stat-row-real {
 		padding-inline-end: var(--stat-mobile-real-padding-inline-end);
 		text-align: center;

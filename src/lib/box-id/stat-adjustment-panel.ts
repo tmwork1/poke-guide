@@ -84,17 +84,12 @@ export function buildStatAdjustmentPanel(options: StatAdjustmentPanelOptions): S
 	natureReadout.setAttribute("aria-label", "性格");
 	natureHeader.appendChild(natureReadout);
 	header.appendChild(natureHeader);
-	header.appendChild(makeSpan(undefined, "種族値"));
 	header.appendChild(makeSpan("stat-table-header-ev-label", "努力値"));
-	const remainingHeader = makeSpan("stat-table-header-ev-remaining");
 	const remaining = makeSpan("ev-remaining tnum");
-	remainingHeader.appendChild(remaining);
-	header.appendChild(remainingHeader);
 	header.appendChild(makeSpan("stat-table-header-real-label", "実数値"));
 	table.appendChild(header);
 
 	const natureButtons = new Map<StatKey, { up: HTMLButtonElement; down: HTMLButtonElement; label: HTMLElement }>();
-	const baseValueEls = new Map<StatKey, HTMLElement>();
 	const numberInputs = new Map<StatKey, HTMLInputElement>();
 	const rangeInputs = new Map<StatKey, HTMLInputElement>();
 	const realValueEls = new Map<StatKey, HTMLElement>();
@@ -170,10 +165,6 @@ export function buildStatAdjustmentPanel(options: StatAdjustmentPanelOptions): S
 		}
 		row.appendChild(natureWrap);
 
-		const baseValue = makeSpan("stat-row-base tnum", "-");
-		baseValueEls.set(key, baseValue);
-		row.appendChild(baseValue);
-
 		const inputControls = document.createElement("div");
 		inputControls.className = "stat-input-controls";
 		const rangeControls = document.createElement("div");
@@ -209,6 +200,8 @@ export function buildStatAdjustmentPanel(options: StatAdjustmentPanelOptions): S
 		endpoint.setAttribute("aria-label", `${short}の努力値を最大にする`);
 		endpoint.appendChild(makeEndpointIcon());
 
+		const evValue = makeSpan("stat-ev-value");
+		if (key === "hp") evValue.appendChild(remaining);
 		const number = document.createElement("input");
 		number.type = "number";
 		number.step = "1";
@@ -233,7 +226,8 @@ export function buildStatAdjustmentPanel(options: StatAdjustmentPanelOptions): S
 		});
 
 		rangeControls.append(decrement, range, increment, endpoint);
-		inputControls.append(rangeControls, number);
+		evValue.appendChild(number);
+		inputControls.append(rangeControls, evValue);
 		row.appendChild(inputControls);
 
 		const realWrap = makeSpan("stat-row-real-wrap");
@@ -273,9 +267,7 @@ export function buildStatAdjustmentPanel(options: StatAdjustmentPanelOptions): S
 				updateSliderProgress(range);
 			}
 			const base = options.baseStats[index];
-			const baseValue = baseValueEls.get(key);
 			const realValue = realValueEls.get(key);
-			if (baseValue) baseValue.textContent = Number.isFinite(base) ? String(base) : "-";
 			if (!realValue) return;
 			if (!Number.isFinite(base)) {
 				realValue.textContent = "-";

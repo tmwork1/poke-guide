@@ -26,21 +26,11 @@ if (mobileTrainingUi && mobileTrainingBar && editShell) {
 		}
 	}
 
-	function relocateStatAdjustmentSection(): void {
-		const section = document.getElementById("stat-adjustment-section");
-		if (!section) return;
-
-		if (activeTab === "damage") {
-			const host = document.getElementById("stat-status-adjust-body");
-			if (host && section.parentElement !== host) host.appendChild(section);
-			return;
-		}
-
-		const home = document.getElementById("stat-adjustment-home");
-		if (home?.parentElement && section.parentElement !== home.parentElement) {
-			home.parentElement.insertBefore(section, home.nextSibling);
-		}
-		resetStatAdjustSheet();
+	function updateStatAdjustmentSheetVisibility(): void {
+		const sheet = document.getElementById("stat-adjust-sheet");
+		if (!sheet) return;
+		sheet.hidden = activeTab !== "damage";
+		if (activeTab !== "damage") resetStatAdjustSheet();
 	}
 
 	function applyTab(): void {
@@ -53,7 +43,7 @@ if (mobileTrainingUi && mobileTrainingBar && editShell) {
 			else button.removeAttribute("aria-current");
 		}
 		relocateControls();
-		relocateStatAdjustmentSection();
+		updateStatAdjustmentSheetVisibility();
 	}
 
 	for (const button of tabButtons) {
