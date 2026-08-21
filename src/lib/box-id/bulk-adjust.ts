@@ -409,8 +409,8 @@ async function runCompute(): Promise<void> {
 // どちらのイベントも発火せず、再計算(recalcStats)も自動保存(scheduleSave)も走らない
 // (left-panel.ts:224のコメントに明記)。値を代入したうえで input/change 両方を
 // bubbles:true で発火させる。性格は<select>ではなく#nature-toggle-{key}の単一ボタンを
-// クリックする方式(nextNatureBoosts、shared-core.ts)。ボタンは未設定 → 上昇 → 下降 →
-// 未設定と循環するため、現在と目的の状態から必要なクリック順を計画してclick()する。
+// クリックする方式(nextNatureBoosts、shared-core.ts)。遷移規則そのものを使って、現在と
+// 目的の状態の間のクリック順を探索してclick()する。
 function currentLeftNatureBoosts(): { up: StatKey | null; down: StatKey | null } {
 	let up: StatKey | null = null;
 	let down: StatKey | null = null;
@@ -425,41 +425,33 @@ function currentLeftNatureBoosts(): { up: StatKey | null; down: StatKey | null }
 
 type Boosts = { up: StatKey | null; down: StatKey | null };
 
+function boostsKey(boosts: Boosts): string {
+	return `${boosts.up ?? ""}:${boosts.down ?? ""}`;
+}
+
 function planNatureClicks(current: Boosts, target: Boosts): StatKey[] {
-	const clicks: StatKey[] = [];
-	let state: Boosts = { ...current };
+	const targetKey = boostsKey(target);
+	if (boostsKey(current) === targetKey) return [];
 
-	const click = (key: StatKey) => {
-		clicks.push(key);
-		state = nextNatureBoosts(state, key);
-	};
+	const nonHpKeys = STAT_KEYS.filter((key) => key !== "hp");
+	const visited = new Set<string>([boostsKey(current)]);
+	const queue: Array<{ state: Boosts; path: StatKey[] }> = [{ state: current, path: [] }];
 
-	if (target.up === null && target.down === null) {
-		if (state.down !== null) click(state.down);
-		if (state.up !== null) {
-			const k = state.up;
-			click(k);
-			click(k);
-		}
-		return clicks;
-	}
-
-	if (state.down !== target.down) {
-		if (target.down !== null) {
-			if (state.up === target.down) {
-				click(target.down);
-			} else {
-				click(target.down);
-				if (state.down !== target.down) click(target.down);
-			}
+	while (queue.length > 0) {
+		const { state, path } = queue.shift()!;
+		for (const key of nonHpKeys) {
+			const next = nextNatureBoosts(state, key);
+			const nextKey = boostsKey(next);
+			if (visited.has(nextKey)) continue;
+			const nextPath = [...path, key];
+			if (nextKey === targetKey) return nextPath;
+			visited.add(nextKey);
+			queue.push({ state: next, path: nextPath });
 		}
 	}
 
-	if (state.up !== target.up && target.up !== null) {
-		click(target.up);
-	}
-
-	return clicks;
+	// 到達できない場合（理論上は起こらない）はクリックしない。
+	return [];
 }
 
 function applyNatureToLeftPanel(natureName: string): void {

@@ -327,14 +327,16 @@ export function normalizedNatureBoosts(up: StatKey | null, down: StatKey | null)
 	return NATURE_STAT_MODIFIERS[name] ?? { up: null, down: null };
 }
 
-// 性格補正ボタンをクリックしたときの3状態循環: 未設定 → 上昇 → 下降 → 未設定。
+// 性格補正ボタンの遷移。クリックしたキーが上昇なら下降、下降なら未設定にする。
+// 未設定のキーは、上昇補正が未設定なら上昇に、既に設定済みなら下降に割り当てる。
 export function nextNatureBoosts(
 	current: { up: StatKey | null; down: StatKey | null },
 	key: StatKey,
 ): { up: StatKey | null; down: StatKey | null } {
 	if (current.up === key) return { up: null, down: key };
 	if (current.down === key) return { up: current.up, down: null };
-	return { up: key, down: current.down };
+	if (current.up === null) return { up: key, down: current.down };
+	return { up: current.up, down: key };
 }
 
 // --- 左パネル向けブリッジ(shared-core.ts → left-panel.ts の逆方向の依存を避けるため、
