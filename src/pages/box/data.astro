@@ -39,15 +39,7 @@ const seasons = pokemon
       ),
     )
   : [];
-const requestedSeason = Astro.url.searchParams.get('season');
-const seasonIds = seasons.map((entry) => entry.id);
-const season = seasonIds.includes(requestedSeason ?? '') ? requestedSeason! : seasons[0]?.id ?? null;
-
-// Keep SSR output, the selected option and the shared URL in agreement.  A
-// manifest season without this Pokemon's battle payload must not stay in the URL.
-if (pokemon && requestedSeason && season && requestedSeason !== season) {
-  return Astro.redirect(`/box/data?pokemon=${encodeURIComponent(selectedId!)}&season=${encodeURIComponent(season)}`);
-}
+const season = seasons[0]?.id ?? null;
 
 const seasonDirectory = seasons.find((entry) => entry.id === season)?.directory;
 const opgg = pokemon && seasonDirectory
@@ -75,22 +67,6 @@ const hasData = hasSingleBattleData(opgg);
 
     {pokemon && (
       <main class="box-data-main">
-        {seasons.length > 0 && (
-          <div class="data-view-controls">
-            <div class="data-season-field">
-              <label for="box-data-season">シーズン</label>
-              <button
-                class="data-season-unavailable"
-                type="button"
-                disabled
-                title="シーズンを読み込み中"
-              >
-                シーズン
-              </button>
-            </div>
-          </div>
-        )}
-
         <section class:list={{ 'data-panel': true, 'data-panel--has-data': hasData }}>
           {hasData ? (
             <BattleDataCard single={single} />
@@ -105,22 +81,3 @@ const hasData = hasSingleBattleData(opgg);
     )}
   </div>
 </AppLayout>
-
-<script define:vars={{ seasons, season, selectedId }}>
-  const unavailable = document.querySelector('.data-season-unavailable');
-  if (unavailable && seasons.length) {
-    const select = document.createElement('select');
-    select.id = 'box-data-season';
-    select.className = 'data-season-select';
-    for (const entry of seasons) {
-      select.add(new Option(entry.label ?? entry.id, entry.id, entry.id === season, entry.id === season));
-    }
-    select.addEventListener('change', () => {
-      const params = new URLSearchParams();
-      if (selectedId) params.set('pokemon', selectedId);
-      params.set('season', select.value);
-      window.location.search = params.toString();
-    });
-    unavailable.replaceWith(select);
-  }
-</script>

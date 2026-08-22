@@ -14,7 +14,6 @@ body.data-page {
   --data-page-preview-title-font-size: var(--font-size-lg2); /* ポケモン名の見出し。大きくするとページの主題が目立つ */
   --data-page-panel-title-font-size: var(--font-size-lg1); /* データ区画の見出し。大きくすると区画の区別が強まる */
   --data-page-kicker-font-size: var(--font-size-sm2); /* ポケモン名の前の補足文字。大きくすると補足が目立つ */
-  --data-page-controls-font-size: var(--font-size-sm2); /* 画面下の操作バー文字。大きくすると操作が読みやすくなる */
 
   /* ── 2. 文字の太さ・行間 ──────────────────────────────── */
   --data-page-kicker-font-weight: 700; /* ポケモン名の前の補足文字。太くすると見出しらしくなる */
@@ -25,7 +24,6 @@ body.data-page {
 
   /* ── 4. 背景色 ────────────────────────────────────────── */
   --data-page-preview-background: var(--color-surface); /* ポケモン概要エリアの背景。変えると上部の区切りが変わる */
-  --data-page-controls-background: var(--color-surface); /* 画面下の操作バー背景。変えると操作エリアの区別が変わる */
   --data-page-empty-background: var(--color-surface); /* 空状態の案内枠背景。変えると案内の存在感が変わる */
 
   /* ── 5. 枠線・角丸 ────────────────────────────────────── */
@@ -35,9 +33,6 @@ body.data-page {
   /* ── 7. 余白 ──────────────────────────────────────────── */
   --data-page-preview-padding: var(--space-5); /* ポケモン概要の内側余白。大きくすると内容が内側に寄る */
   --data-page-main-padding: var(--space-4); /* ページ本文の内側余白。大きくすると各区画が内側に寄る */
-  --data-page-view-controls-gap: var(--space-1); /* 表示切替ボタンどうしの間隔。大きくするとボタンが離れる */
-  --data-page-view-controls-margin-bottom: var(--space-3); /* 表示切替と本文の間隔。大きくすると上下に余裕が出る */
-  --data-page-view-button-padding: var(--space-2); /* 表示切替ボタンの内側余白。大きくすると押せる面積が広がる */
   --data-page-empty-padding: var(--space-5); /* 空状態の案内枠内側余白。大きくすると案内がゆったりする */
   --data-page-ranked-status-padding: var(--space-4); /* 上位チーム状態枠の内側余白。大きくすると案内がゆったりする */
   --data-page-preview-description-margin: var(--space-2) 0; /* ポケモン説明の上下余白。大きくするとタイトルから離れる */
@@ -53,7 +48,6 @@ body.data-page {
   --data-page-ranked-status-max-width: 34rem; /* 上位チーム状態枠の最大幅。大きくすると案内枠が横に広がる */
 
   /* ── 9. その他 ────────────────────────────────────────── */
-  --data-page-unavailable-opacity: .72; /* 利用不可の表示の透明度。小さくすると操作不可が分かりやすい */
 }
 
 /* ===========================================================================
@@ -66,7 +60,7 @@ body.data-page {
   padding-bottom: calc(64px + env(safe-area-inset-bottom));
   display: flex;
   flex-direction: column;
-  min-height: calc(100vh - var(--header-height));
+  height: calc(100vh - var(--header-height));
 }
 /* ポケモン名と説明を表示する上部概要 */
 .pokemon-data-preview {
@@ -94,7 +88,11 @@ body.data-page {
   display: flex;
   flex: 1;
   flex-direction: column;
+  min-height: 0;
   padding: var(--data-page-main-padding);
+}
+.box-data-page:not(.box-ranked-page) .box-data-main {
+  background: var(--color-surface);
 }
 /* バトルデータなしの空表示見出し */
 .data-panel h2 {
@@ -107,36 +105,6 @@ body.data-page {
   .box-data-main { padding: var(--data-page-main-padding-mobile); }
 }
 
-/* データの表示形式を切り替えるボタン列 */
-.data-view-controls {
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--data-page-view-controls-gap);
-  margin-bottom: var(--data-page-view-controls-margin-bottom);
-}
-.data-season-field {
-  display: flex;
-  align-items: center;
-  gap: var(--data-page-view-controls-gap);
-}
-.data-season-field label {
-  color: var(--data-page-muted-color);
-  font-size: var(--data-page-controls-font-size);
-  white-space: nowrap;
-}
-/* シーズンを切り替える操作列のボタン */
-.data-view-controls :is(button, .data-season-select) {
-  padding: var(--data-page-view-button-padding);
-  border: var(--data-page-border);
-  background: var(--data-page-controls-background);
-  font: inherit;
-  font-size: var(--data-page-controls-font-size);
-}
-/* シーズン一覧の読み込み前に表示する無効状態の仮ボタン */
-.data-view-controls .data-season-unavailable {
-  color: var(--data-page-muted-color);
-  opacity: var(--data-page-unavailable-opacity);
-}
 /* データが無いときの案内枠 */
 .data-empty {
   padding: var(--data-page-empty-padding);
@@ -154,13 +122,15 @@ body.data-page {
 .data-panel--has-data {
   display: flex;
   flex: 1;
+  min-height: 0;
   margin-bottom: var(--data-page-bottom-nav-gap);
 }
 .data-panel--has-data .trend-detail-card {
   flex: 1;
+  min-height: 0;
 }
 .data-panel--has-data .trend-detail-cell {
-  height: auto;
+  height: 100%;
 }
 
 /* box/ranked.astro(上位チーム)は renderTopBuildCard + team-card.css で /team 一覧と

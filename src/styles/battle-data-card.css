@@ -12,10 +12,10 @@
   /* ── 1. 文字サイズ ────────────────────────────────────── */
   --battle-data-card-label-font-size: var(--font-size-sm2); /* 各マスの見出し。大きくすると項目名が目立つ */
   --battle-data-card-value-font-size: var(--font-size-sm3); /* 各マスのランキング値。大きくすると内容が読みやすくなる */
-  --battle-data-card-item-icon-size: 1.9em; /* アイテムアイコンの大きさ。行の文字サイズに追従する */
+  --battle-data-card-item-icon-size: 1.3em; /* アイテムアイコンの大きさ。行の文字サイズに追従する */
   --battle-data-card-type-icon-size: 1.2em; /* わざタイプアイコンの大きさ。行の文字サイズに追従する */
-  --battle-data-card-pokemon-icon-size: 2.2em; /* 同時採用ポケモンのアイコンの大きさ。マス内に収まる範囲で少し大きくする */
-  --battle-data-card-row-height: 2.4em; /* 最大アイコンに少し余白を加えた、全ランキング行共通の高さ */
+  --battle-data-card-pokemon-icon-size: 1.4em; /* 同時採用ポケモンのアイコンの大きさ。マス内に収まる範囲で少し大きくする */
+  --battle-data-card-row-height: 1.6em; /* 最大アイコンに少し余白を加えた、全ランキング行共通の高さ */
 
   /* ── 2. 文字の太さ・行間 ──────────────────────────────── */
   --battle-data-card-value-line-height: 1.55; /* ランキング値の行間。大きくすると複数行の間隔が広がる */
@@ -44,12 +44,15 @@
 .trend-detail-card {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(3, minmax(0, 1fr));
+  background: var(--color-bg);
   border: var(--battle-data-card-border);
 }
 
 /* 特性・性格など、カード内の1マス */
 .trend-detail-cell {
   min-width: 0;
+  min-height: 0;
   height: var(--battle-data-card-cell-height);
   padding: var(--battle-data-card-cell-padding);
   border-right: var(--battle-data-card-border);
