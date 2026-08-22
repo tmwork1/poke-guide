@@ -386,7 +386,7 @@ export function initOwnedPanel(ctx: OwnedPanelContext): OwnedPanelController {
       const natureLabel = document.createElement('span');
       natureLabel.textContent = selection.nature;
       const evLabel = document.createElement('span');
-      evLabel.textContent = String(selection.evSpe);
+      evLabel.textContent = `+${selection.evSpe}`;
       label.append(natureLabel, evLabel);
       button.title = selection.usesScarf && ctx.scarfItemName
         ? `${buttonLabel} / ${ctx.scarfItemName}を使用`
