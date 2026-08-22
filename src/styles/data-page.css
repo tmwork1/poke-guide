@@ -99,7 +99,7 @@ body.data-page {
   padding: var(--data-page-main-padding);
 }
 .box-data-page:not(.box-ranked-page) .box-data-main {
-  background: var(--color-surface);
+  background: var(--color-bg);
 }
 /* バトルデータなしの空表示見出し */
 .data-panel h2 {

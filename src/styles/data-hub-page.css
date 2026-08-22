@@ -87,9 +87,10 @@ body.data-hub-page {
    レールは本文の内側ではなく画面右端に張り付く独立の帯(縦スクロールバーの領域を
    明示する指示図の意図)として実装し、本文・検索バーはその分だけ幅を譲る。 */
 /* 既存の公開変数名を維持し、右端レールの幅をページ用つまみへ接続する。 */
-.battle-data-panel {
+.data-hub-panel.battle-data-panel {
   --battle-data-rail-width: var(--data-hub-rail-width);
   padding: 0;
+  background: var(--color-bg);
 }
 .battle-data-panel .panel-content { padding: 0; }
 .battle-data-body { padding: var(--space-3) var(--battle-data-rail-width) calc(76px + env(safe-area-inset-bottom)) 0; }

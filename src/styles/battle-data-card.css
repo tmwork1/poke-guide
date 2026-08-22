@@ -9,6 +9,7 @@
    チューニング変数
    =========================================================================== */
 .trend-detail-card {
+  --battle-data-card-background: var(--color-surface);
   /* ── 1. 文字サイズ ────────────────────────────────────── */
   --battle-data-card-label-font-size: var(--font-size-sm2); /* 各マスの見出し。大きくすると項目名が目立つ */
   --battle-data-card-value-font-size: var(--font-size-sm3); /* 各マスのランキング値。大きくすると内容が読みやすくなる */
@@ -61,7 +62,7 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   grid-template-rows: var(--battle-data-card-row1-height) minmax(0, 1fr) minmax(0, 1fr);
-  background: var(--color-bg);
+  background: var(--battle-data-card-background);
   border: var(--battle-data-card-border);
 }
 
