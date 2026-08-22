@@ -158,11 +158,6 @@
   padding: var(--space-3);
   min-width: 0;
 }
-.team-grid .card-team .card-team-meta-row--inline {
-  position: static;
-  flex: 0 0 auto;
-  min-width: 0;
-}
 .team-grid .card-team .card-team-header--inline .card-team-name {
   flex: 1 1 auto;
   min-width: 0;
@@ -203,6 +198,11 @@
   align-items: center;
   gap: var(--team-card-meta-gap);
   padding: 0;
+}
+.team-grid .card-team .card-team-meta-row--inline {
+  position: static;
+  flex: 0 0 auto;
+  min-width: 0;
 }
 /* .badge(global.css)を土台に、帯の上で主張しすぎない控えめな見え方へ寄せる。
    レギュレーション/順位/レートで同じ見た目を使う。 */
