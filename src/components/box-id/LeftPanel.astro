@@ -365,6 +365,15 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		border-style: solid;
 		background: var(--color-surface);
 	}
+	#edit-form .field-control:not(:disabled):not(:placeholder-shown),
+	#edit-form .field-control:not(:disabled):focus,
+	#edit-form .stat-row input[type="number"]:not(:disabled),
+	#edit-form .mobile-move-toggle:not(:disabled),
+	#edit-form .btn-control:not(:disabled),
+	#edit-form .memo-input:not(:disabled):not(:placeholder-shown),
+	#edit-form .memo-input:not(:disabled):focus {
+		background: var(--color-surface);
+	}
 	/* 薄い文字色でも判別しやすくするため、既存ウェイトの次段階へ上げる。 */
 	.stat-value { display: inline-block; margin-top: 0.15em; font-size: var(--font-size-base); font-weight: 400; color: var(--color-text); }
 	.stat-value[data-mod="up"] { color: var(--color-stat-up); }
