@@ -8,13 +8,6 @@
 	min-height: 0;
 	flex-direction: column;
 }
-.box-matchup-page__direction {
-	position: sticky;
-	top: 0;
-	z-index: 1;
-	padding-bottom: var(--space-3);
-	background: var(--color-bg);
-}
 .box-matchup-page__results {
 	flex: 1;
 }

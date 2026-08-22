@@ -725,26 +725,6 @@ try {
 						<p id="team-matchup-mobile-status" class="team-matchup-status" hidden></p>
 						<ul id="team-matchup-mobile-list" class="team-matchup-list"></ul>
 					</div>
-					<div class="team-matchup-mobile__direction">
-						<div class="team-matchup-direction-toggle" role="radiogroup" aria-label="相性チェックの方向">
-							<button
-								id="matchup-mobile-direction-attack"
-								class="team-matchup-direction-option"
-								type="button"
-								role="radio"
-								data-role="attack"
-								aria-checked="true"
-							>攻撃</button>
-							<button
-								id="matchup-mobile-direction-defense"
-								class="team-matchup-direction-option"
-								type="button"
-								role="radio"
-								data-role="defense"
-								aria-checked="false"
-							>防御</button>
-						</div>
-					</div>
 				</section>
 				<section id="team-data-mobile" class="floating-list-page" aria-label="類似構築">
 					<div class="team-formation-mobile__mates" aria-label="チームメイト">
@@ -3017,10 +2997,6 @@ try {
 			const matchupMobileSlotsRoot = el<HTMLElement>("team-matchup-mobile-slots");
 			const matchupMobileStatusEl = el<HTMLElement>("team-matchup-mobile-status");
 			const matchupMobileListEl = el<HTMLElement>("team-matchup-mobile-list");
-			const matchupMobileAttackButton = el<HTMLButtonElement>("matchup-mobile-direction-attack");
-			const matchupMobileDefenseButton = el<HTMLButtonElement>("matchup-mobile-direction-defense");
-
-			let matchupDirection: "attack" | "defense" = "attack";
 			function matchupTeamMembers(): OwnedPokemonRecord[] {
 				const members: OwnedPokemonRecord[] = [];
 				for (let slot = 1; slot <= 6; slot += 1) {
@@ -3057,18 +3033,6 @@ try {
 				if (layoutRoot.dataset.mobileTab !== "matchup") return;
 				matchupPanel.schedule();
 			}
-
-			function setMatchupDirection(direction: "attack" | "defense"): void {
-				if (matchupDirection === direction) return;
-				matchupDirection = direction;
-				matchupMobileAttackButton.setAttribute("aria-checked", direction === "attack" ? "true" : "false");
-				matchupMobileDefenseButton.setAttribute("aria-checked", direction === "defense" ? "true" : "false");
-				matchupPanel.setDirection(direction);
-			}
-
-			matchupMobileAttackButton.addEventListener("click", () => setMatchupDirection("attack"));
-			matchupMobileDefenseButton.addEventListener("click", () => setMatchupDirection("defense"));
-
 			// クリック単体での追加はプレビュー表示に譲り、実際の追加操作はダブルクリック/
 			// ドラッグ&ドロップに一本化する。targetSlotを指定した場合はその枠へ(既に埋まっていれば
 			// 入れ替え)、省略時は空き枠のうち最小番号に入れる。選択ルール(selectionBlockReason)は

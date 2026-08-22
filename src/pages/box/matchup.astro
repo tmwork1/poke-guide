@@ -48,12 +48,6 @@ const pokemon = result?.ok ? result.data : null;
         })}
       >
         <section class="box-matchup-panel" aria-label="相性チェック">
-          <div class="box-matchup-page__direction">
-            <div class="team-matchup-direction-toggle" role="radiogroup" aria-label="相性チェックの方向">
-              <button id="box-matchup-direction-attack" class="team-matchup-direction-option" type="button" role="radio" data-role="attack" aria-checked="true">攻撃</button>
-              <button id="box-matchup-direction-defense" class="team-matchup-direction-option" type="button" role="radio" data-role="defense" aria-checked="false">防御</button>
-            </div>
-          </div>
           <div class="box-matchup-page__results">
             <p id="box-matchup-status" class="team-matchup-status" hidden></p>
             <ul id="box-matchup-list" class="team-matchup-list"></ul>
@@ -70,26 +64,15 @@ const pokemon = result?.ok ? result.data : null;
   const main = document.querySelector<HTMLElement>('#box-matchup-main');
   const listElement = document.querySelector<HTMLElement>('#box-matchup-list');
   const statusElement = document.querySelector<HTMLElement>('#box-matchup-status');
-  const attackButton = document.querySelector<HTMLButtonElement>('#box-matchup-direction-attack');
-  const defenseButton = document.querySelector<HTMLButtonElement>('#box-matchup-direction-defense');
   const pokemonJson = main?.dataset.pokemon;
 
-  if (listElement && statusElement && attackButton && defenseButton && pokemonJson) {
+  if (listElement && statusElement && pokemonJson) {
     const pokemon = JSON.parse(pokemonJson) as MatchupPanelMember;
     const matchupPanel = createMatchupPanel({
       listElement,
       statusElement,
       getMembers: () => [pokemon],
     });
-
-    function setDirection(direction: 'attack' | 'defense'): void {
-      attackButton.setAttribute('aria-checked', direction === 'attack' ? 'true' : 'false');
-      defenseButton.setAttribute('aria-checked', direction === 'defense' ? 'true' : 'false');
-      matchupPanel.setDirection(direction);
-    }
-
-    attackButton.addEventListener('click', () => setDirection('attack'));
-    defenseButton.addEventListener('click', () => setDirection('defense'));
     void matchupPanel.run();
   }
 </script>

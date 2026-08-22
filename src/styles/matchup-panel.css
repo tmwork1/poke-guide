@@ -1,43 +1,3 @@
-/* 攻撃・防御の切り替え。 */
-.team-matchup-direction-toggle {
-	display: flex;
-	width: 100%;
-	border: 1px solid var(--color-border);
-	border-radius: var(--radius-md);
-	overflow: hidden;
-}
-.team-matchup-direction-option {
-	flex: 1 1 0;
-	min-width: 0;
-	border: none;
-	background: var(--color-surface);
-	color: var(--color-text-muted);
-	font-size: var(--font-size-sm3);
-	font-weight: 600;
-	padding: 0.25em 0.4em;
-	line-height: var(--line-height-tight);
-	cursor: pointer;
-	transition: background 0.15s, color 0.15s;
-}
-.team-matchup-direction-option + .team-matchup-direction-option {
-	border-left: 1px solid var(--color-border);
-}
-.team-matchup-direction-option:hover:not([aria-checked="true"]) {
-	color: var(--color-primary);
-	background: var(--color-primary-soft);
-}
-.team-matchup-direction-option:focus-visible {
-	outline: 2px solid var(--color-primary);
-	outline-offset: -2px;
-}
-.team-matchup-direction-option[data-role="attack"][aria-checked="true"] {
-	background: var(--color-danger-strong);
-	color: var(--color-primary-contrast);
-}
-.team-matchup-direction-option[data-role="defense"][aria-checked="true"] {
-	background: var(--color-primary-strong);
-	color: var(--color-primary-contrast);
-}
 .team-matchup-status {
 	font-size: var(--font-size-sm3);
 	color: var(--color-text-muted);
@@ -57,6 +17,8 @@
 }
 .team-matchup-card {
 	--matchup-card-border: 2px;
+	--matchup-attack-mix: 0%;
+	--matchup-defense-mix: 0%;
 	position: relative;
 	display: flex;
 	align-items: center;
@@ -64,14 +26,12 @@
 	aspect-ratio: 1 / 1;
 	border: var(--matchup-card-border) solid transparent;
 	border-radius: var(--radius-sm);
-	background: var(--color-surface);
+	background: linear-gradient(
+		135deg,
+		color-mix(in srgb, var(--color-surface) calc(100% - var(--matchup-attack-mix)), var(--color-danger-strong) var(--matchup-attack-mix)) 50%,
+		color-mix(in srgb, var(--color-surface) calc(100% - var(--matchup-defense-mix)), var(--color-primary-strong) var(--matchup-defense-mix)) 50%
+	);
 	transition: border-color 0.2s ease, background 0.2s ease;
-}
-.team-matchup-card.is-disadvantageous {
-	background: color-mix(in srgb, var(--color-surface) calc(100% - var(--matchup-mix, 28%)), var(--color-risky) var(--matchup-mix, 28%));
-}
-.team-matchup-card.is-disadvantageous .team-matchup-score {
-	color: var(--color-text);
 }
 .team-matchup-card[data-state="pending"],
 .team-matchup-card[data-state="unknown"] {
@@ -79,16 +39,6 @@
 }
 .team-matchup-card.is-selected {
 	border-color: var(--color-primary-strong);
-}
-.team-matchup-score {
-	position: absolute;
-	top: var(--space-1);
-	left: var(--space-1);
-	font-size: calc(var(--font-size-sm3) * 0.85);
-	font-weight: 700;
-	font-variant-numeric: tabular-nums;
-	color: var(--color-text-muted);
-	line-height: 1;
 }
 .team-matchup-sprite-img {
 	max-width: 100%;

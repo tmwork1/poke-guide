@@ -20,13 +20,11 @@ body.team-edit-page {
 	--team-pokemon-tab-actions-background: var(--color-surface); /* 操作列の背景色 */
 	--team-pokemon-tab-mates-background: var(--color-surface); /* チームメイト枠の背景色 */
 	--team-pokemon-tab-suggest-background: var(--color-surface); /* おすすめ列の背景色 */
-	--team-pokemon-tab-direction-background: var(--color-surface); /* 方向説明の背景色 */
 
 	/* ── 5. 枠線・角丸 ─────────────────────── */
 	--team-pokemon-tab-actions-border: 1px solid var(--color-border); /* 操作列下部の区切り線 */
 	--team-pokemon-tab-mates-border: 1px solid var(--color-border); /* チームメイト枠下部の区切り線 */
 	--team-pokemon-tab-suggest-border: 1px solid var(--color-border); /* おすすめ列下部の区切り線 */
-	--team-pokemon-tab-direction-border: 1px solid var(--color-border); /* 方向説明上部の区切り線 */
 
 	/* ── 7. 余白 ────────────────────────── */
 	--team-pokemon-tab-formation-box-padding: var(--space-4) var(--space-3) calc(var(--space-7) + var(--space-6)); /* ボックス一覧の外側余白。下側は固定ナビと重ならない余白 */
@@ -38,7 +36,6 @@ body.team-edit-page {
 	--team-pokemon-tab-meta-fields-gap: var(--space-3); /* チーム名とレギュレーションの間隔 */
 	--team-pokemon-tab-mates-padding: var(--space-2) var(--space-3); /* チームメイト枠の内側余白 */
 	--team-pokemon-tab-suggest-padding: var(--space-2) var(--space-3); /* おすすめ列の内側余白 */
-	--team-pokemon-tab-direction-padding: var(--space-2) var(--space-3); /* 相性表の方向説明の内側余白 */
 	--team-pokemon-tab-slot-gap: var(--space-1); /* 6つのチームメイト枠の間隔 */
 	--team-pokemon-tab-suggest-icons-gap: var(--space-1); /* おすすめアイコンどうしの間隔 */
 
@@ -142,15 +139,6 @@ body.team-edit-page {
 .team-matchup-mobile__results {
 	padding: var(--team-pokemon-tab-matchup-results-padding);
 }
-.team-matchup-mobile__direction {
-	position: sticky;
-	bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom));
-	z-index: 3;
-	padding: var(--team-pokemon-tab-direction-padding);
-	background: var(--team-pokemon-tab-direction-background);
-	border-top: var(--team-pokemon-tab-direction-border);
-}
-
 .team-edit-shell[data-mobile-tab="formation"] .team-edit-layout {
 	display: none;
 }

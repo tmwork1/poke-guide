@@ -50,9 +50,15 @@ export interface MatchupTarget {
 	moves: PopularMoveOption[];
 }
 
+interface MatchupScoreCacheEntry {
+	attack: (number | null)[];
+	defense: (number | null)[];
+}
+
 interface MatchupMemberRatioCacheEntry {
 	memberIds: string[];
-	ratios: (number[] | null)[];
+	attackRatios: (number[] | null)[];
+	defenseRatios: (number[] | null)[];
 }
 
 let matchupTargetsPromise: Promise<MatchupTarget[]> | null = null;
@@ -164,7 +170,6 @@ export interface MatchupPanelOptions {
 	listElement: HTMLElement;
 	statusElement: HTMLElement;
 	getMembers: () => MatchupPanelMember[];
-	direction?: MatchupDirection;
 	emptyMembersMessage?: string;
 	/**
 	 * カード選択時に不利なメンバーIDを通知する。null は選択解除を表す。
@@ -176,17 +181,14 @@ export interface MatchupPanelOptions {
 export interface MatchupPanel {
 	run(): Promise<void>;
 	schedule(delay?: number): void;
-	setDirection(direction: MatchupDirection): void;
-	getDirection(): MatchupDirection;
 }
 
 /** 相性結果の取得、計算、進捗表示、カード描画をまとめたクライアント用パネル。 */
 export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 	const { listElement, statusElement, getMembers, onMemberHighlight } = options;
-	let direction = options.direction ?? 'attack';
 	let requestId = 0;
 	let timer: number | undefined;
-	const scoreCache = new Map<string, (number | null)[]>();
+	const scoreCache = new Map<string, MatchupScoreCacheEntry>();
 	const memberRatioCache = new Map<string, MatchupMemberRatioCacheEntry>();
 	let cardElements: HTMLLIElement[] = [];
 	const clickableCards = new WeakSet<HTMLLIElement>();
@@ -236,37 +238,33 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 
 	function applyMatchupCardResult(
 		targetIndex: number,
-		score: number | null,
-		opacity: number | null,
+		attackOpacity: number | null,
+		defenseOpacity: number | null,
 		memberRatios: MatchupMemberRatioCacheEntry,
 	): void {
 		const card = cardElements[targetIndex];
 		if (!card) return;
-		card.classList.remove('is-disadvantageous');
-		card.style.removeProperty('--matchup-mix');
-		if (score === null || opacity === null) {
+		const setMix = (property: '--matchup-attack-mix' | '--matchup-defense-mix', opacity: number | null): void => {
+			if (opacity !== null && opacity >= 0.5) {
+				const mix = 28 + (opacity - 0.5) * 84;
+				card.style.setProperty(property, `${mix}%`);
+				return;
+			}
+			card.style.setProperty(property, '0%');
+		};
+		setMix('--matchup-attack-mix', attackOpacity);
+		setMix('--matchup-defense-mix', defenseOpacity);
+		if (attackOpacity === null && defenseOpacity === null) {
 			card.dataset.state = 'unknown';
-			card.querySelector('.team-matchup-score')?.remove();
-			return;
+		} else {
+			delete card.dataset.state;
 		}
-		delete card.dataset.state;
-		if (opacity >= 0.5) {
-			card.classList.add('is-disadvantageous');
-			const mix = 28 + (opacity - 0.5) * 84;
-			card.style.setProperty('--matchup-mix', `${mix}%`);
-		}
-		let scoreElement = card.querySelector<HTMLSpanElement>('.team-matchup-score');
-		if (!scoreElement) {
-			scoreElement = document.createElement('span');
-			scoreElement.className = 'team-matchup-score';
-			card.appendChild(scoreElement);
-		}
-		scoreElement.textContent = score.toFixed(2);
 		if (clickableCards.has(card)) return;
 		clickableCards.add(card);
 		card.addEventListener('click', () => {
-			const ratios = memberRatios.ratios[targetIndex];
-			if (!ratios) return;
+			const attackRatios = memberRatios.attackRatios[targetIndex];
+			const defenseRatios = memberRatios.defenseRatios[targetIndex];
+			if (!attackRatios && !defenseRatios) return;
 			if (selectedTargetIndex === targetIndex) {
 				clearMemberHighlights();
 				return;
@@ -275,7 +273,7 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 			selectedTargetIndex = targetIndex;
 			card.classList.add('is-selected');
 			const disadvantagedIds = memberRatios.memberIds.filter((_, i) =>
-				direction === 'defense' ? ratios[i] >= 0.5 : ratios[i] < 0.5,
+				(attackRatios?.[i] ?? Infinity) < 0.5 || (defenseRatios?.[i] ?? -Infinity) >= 0.5,
 			);
 			onMemberHighlight?.(disadvantagedIds);
 		});
@@ -283,18 +281,27 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 
 	function renderMatchupList(
 		targets: MatchupTarget[],
-		scores: (number | null)[] | null,
+		scores: MatchupScoreCacheEntry | null,
 		memberRatios: MatchupMemberRatioCacheEntry | null,
 		typesMap: Map<string, string[]>,
 	): void {
 		createMatchupCards(targets, typesMap);
 		if (!scores || !memberRatios) return;
-		const scored = scoreToOpacities(
-			targets.map((target, i) => ({ item: target, score: scores[i] ?? null })),
-			direction,
+		const attackScored = scoreToOpacities(
+			targets.map((target, i) => ({ item: target, score: scores.attack[i] ?? null })),
+			'attack',
 		);
-		for (let targetIndex = 0; targetIndex < scored.length; targetIndex += 1) {
-			applyMatchupCardResult(targetIndex, scored[targetIndex].score, scored[targetIndex].opacity, memberRatios);
+		const defenseScored = scoreToOpacities(
+			targets.map((target, i) => ({ item: target, score: scores.defense[i] ?? null })),
+			'defense',
+		);
+		for (let targetIndex = 0; targetIndex < targets.length; targetIndex += 1) {
+			applyMatchupCardResult(
+				targetIndex,
+				attackScored[targetIndex]?.opacity ?? null,
+				defenseScored[targetIndex]?.opacity ?? null,
+				memberRatios,
+			);
 		}
 	}
 
@@ -330,7 +337,7 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 			setStatus(options.emptyMembersMessage ?? 'チームにポケモンを入れると相性を計算します。');
 			return;
 		}
-		const cacheKey = `${direction}|${members.map((member) => member.id).sort().join(',')}`;
+		const cacheKey = members.map((member) => member.id).sort().join(',');
 		const cached = scoreCache.get(cacheKey);
 		const cachedMemberRatios = memberRatioCache.get(cacheKey);
 		if (cached && cachedMemberRatios) {
@@ -360,20 +367,38 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 			matchupTeamSpec(member, pickTeamAttackMoves(member.move_names ?? [], isAttackMove)),
 		);
 		const teamDefenseSpecs = members.map((member) => matchupTeamSpec(member, []));
-		const scores: (number | null)[] = new Array(targets.length).fill(null);
-		const memberRatios: (number[] | null)[] = new Array(targets.length).fill(null);
-		const memberRatioEntry = { memberIds: members.map((member) => member.id), ratios: memberRatios };
+		const scores: MatchupScoreCacheEntry = {
+			attack: new Array(targets.length).fill(null),
+			defense: new Array(targets.length).fill(null),
+		};
+		const memberRatioEntry: MatchupMemberRatioCacheEntry = {
+			memberIds: members.map((member) => member.id),
+			attackRatios: new Array(targets.length).fill(null),
+			defenseRatios: new Array(targets.length).fill(null),
+		};
 		let engineRestarted = false;
 		for (let i = 0; i < targets.length; i += 1) {
 			setStatus(`相性を計算中… (${i + 1}/${targets.length})`);
 			await new Promise((resolve) => window.setTimeout(resolve, 0));
 			if (currentRequestId !== requestId) return;
 			try {
-				const result = await computeMatchupScore(
-					targets[i], direction, teamAttackSpecs, teamDefenseSpecs, isAttackMove, moveHitCounts,
-				);
-				scores[i] = result?.score ?? null;
-				memberRatios[i] = result?.memberRatios ?? null;
+				const calculateDirection = async (direction: MatchupDirection): Promise<Awaited<ReturnType<typeof computeMatchupScore>>> => {
+					try {
+						return await computeMatchupScore(
+							targets[i], direction, teamAttackSpecs, teamDefenseSpecs, isAttackMove, moveHitCounts,
+						);
+					} catch (err) {
+						console.error(err);
+						if (isEngineFatal()) throw err;
+						return null;
+					}
+				};
+				const attackResult = await calculateDirection('attack');
+				scores.attack[i] = attackResult?.score ?? null;
+				memberRatioEntry.attackRatios[i] = attackResult?.memberRatios ?? null;
+				const defenseResult = await calculateDirection('defense');
+				scores.defense[i] = defenseResult?.score ?? null;
+				memberRatioEntry.defenseRatios[i] = defenseResult?.memberRatios ?? null;
 			} catch (err) {
 				console.error(err);
 				if (currentRequestId !== requestId) return;
@@ -391,22 +416,33 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 						return;
 					}
 				}
-				scores[i] = null;
+				scores.attack[i] = null;
+				scores.defense[i] = null;
+				memberRatioEntry.attackRatios[i] = null;
+				memberRatioEntry.defenseRatios[i] = null;
 			}
 			if (currentRequestId !== requestId) return;
-			const scoredSoFar = scoreToOpacities(
-				targets.slice(0, i + 1).map((target, targetIndex) => ({ item: target, score: scores[targetIndex] ?? null })),
-				direction,
+			const attackScoredSoFar = scoreToOpacities(
+				targets.slice(0, i + 1).map((target, targetIndex) => ({ item: target, score: scores.attack[targetIndex] ?? null })),
+				'attack',
 			);
-			for (let targetIndex = 0; targetIndex < scoredSoFar.length; targetIndex += 1) {
-				const entry = scoredSoFar[targetIndex];
-				applyMatchupCardResult(targetIndex, entry.score, entry.opacity, memberRatioEntry);
+			const defenseScoredSoFar = scoreToOpacities(
+				targets.slice(0, i + 1).map((target, targetIndex) => ({ item: target, score: scores.defense[targetIndex] ?? null })),
+				'defense',
+			);
+			for (let targetIndex = 0; targetIndex <= i; targetIndex += 1) {
+				applyMatchupCardResult(
+					targetIndex,
+					attackScoredSoFar[targetIndex]?.opacity ?? null,
+					defenseScoredSoFar[targetIndex]?.opacity ?? null,
+					memberRatioEntry,
+				);
 			}
 		}
 		if (currentRequestId !== requestId) return;
 		scoreCache.set(cacheKey, scores);
 		memberRatioCache.set(cacheKey, memberRatioEntry);
-		const unknownCount = scores.filter((score) => score === null).length;
+		const unknownCount = targets.filter((_, i) => scores.attack[i] === null && scores.defense[i] === null).length;
 		setStatus(unknownCount > 0 ? `${unknownCount}体は採用技のデータが無いため計算していません(破線の枠)。` : null);
 	}
 
@@ -416,11 +452,5 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 			window.clearTimeout(timer);
 			timer = window.setTimeout(() => void run(), delay);
 		},
-		setDirection(nextDirection) {
-			if (direction === nextDirection) return;
-			direction = nextDirection;
-			void run();
-		},
-		getDirection: () => direction,
 	};
 }
