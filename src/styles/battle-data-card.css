@@ -30,6 +30,9 @@
   ); /* 狭い画面の1段目に見出しとランキング3件を収める高さ */
 
   /* ── 2. 文字の太さ・行間 ──────────────────────────────── */
+  --battle-data-card-label-font-weight: 400; /* 各マスの見出しの太さ。太くすると項目名が目立つ */
+  --battle-data-card-value-font-weight: 400; /* ランキング値の太さ。太くすると内容が目立つ */
+  --battle-data-card-empty-font-weight: 700; /* 「データなし」表示の太さ。太くすると空状態が目立つ */
   --battle-data-card-value-line-height: 1.55; /* ランキング値の行間。大きくすると複数行の間隔が広がる */
 
   /* ── 3. 文字色 ────────────────────────────────────────── */
@@ -85,6 +88,7 @@
   flex: 0 0 auto;
   color: var(--battle-data-card-label-color);
   font-size: var(--battle-data-card-label-font-size);
+  font-weight: var(--battle-data-card-label-font-weight);
   line-height: var(--line-height-normal);
 }
 .trend-cell-body {
@@ -96,6 +100,7 @@
 .trend-detail-cell strong {
   margin-top: var(--battle-data-card-value-margin-top);
   font-size: var(--battle-data-card-value-font-size);
+  font-weight: var(--battle-data-card-empty-font-weight);
   line-height: var(--battle-data-card-value-line-height);
   overflow-wrap: anywhere;
 }
@@ -150,12 +155,14 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-weight: var(--battle-data-card-value-font-weight);
 }
 
 .trend-rank-rate {
   color: var(--battle-data-card-label-color);
   text-align: right;
   white-space: nowrap;
+  font-weight: var(--battle-data-card-value-font-weight);
 }
 
 @media (max-width: 420px) {
