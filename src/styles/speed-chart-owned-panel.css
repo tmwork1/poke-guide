@@ -154,6 +154,11 @@
 		align-items: center;
 		gap: var(--space-1);
 	}
+	#speed-chart-owned-summary-nature,
+	#speed-chart-owned-summary-evs {
+		background: transparent;
+		padding: 0;
+	}
 	/* この値を主役として見せるための font-size だけをページ固有に足す(装飾はテキストのため持たない)。 */
 	.speed-chart-owned-summary-value {
 		font-size: var(--speed-chart-owned-value-font-size);
@@ -168,8 +173,6 @@
 		padding: var(--speed-chart-owned-jump-padding);
 		font-size: var(--speed-chart-owned-jump-font-size);
 		font-weight: 500;
-		color: var(--color-text-muted);
-		border: 1px solid var(--color-border);
 	}
 	/* /box/[id]のランク入力と同じ密度・強調・端点状態を再現する。 */
 	.speed-chart-rank-field {
