@@ -353,6 +353,7 @@ body .move-picker-empty {
     overflow: hidden;
     font-size: var(--move-picker-title-size);
     font-weight: 400;
+    background: color-mix(in srgb, var(--color-surface) 88%, #000 12%);
     text-overflow: ellipsis;
     text-align: left;
     white-space: nowrap;
@@ -360,7 +361,7 @@ body .move-picker-empty {
   /* モバイルで現在編集中の技スロットを主色で示す */
   body .move-picker-slot-tab.is-selected {
     border-color: var(--color-primary);
-    background: transparent;
+    background: color-mix(in srgb, var(--color-surface) 88%, #000 12%);
     color: var(--color-primary);
   }
 }
