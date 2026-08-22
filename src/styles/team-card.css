@@ -291,9 +291,6 @@
   border-color: var(--color-primary);
   border-width: var(--team-card-similar-border-width);
 }
-.team-grid .card-team--top-build .card-nature-evs {
-  display: none;
-}
 .card-team-member-popover {
   position: fixed;
   z-index: 102;

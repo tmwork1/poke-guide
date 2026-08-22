@@ -217,16 +217,6 @@ export function renderBoxPokemonCard<T extends HTMLElement>(
 	nameRow.appendChild(nameEl);
 	body.appendChild(nameRow);
 
-	const nature = pokemon.nature?.trim() ?? "";
-	const evLabels = STAT_LABELS.filter((_, index) => (pokemon.evs[index] ?? 0) >= 7).join("");
-	const natureEvsText = [nature, evLabels].filter(Boolean).join(" ");
-	if (natureEvsText) {
-		const natureEvsEl = document.createElement("p");
-		natureEvsEl.className = "card-nature-evs";
-		natureEvsEl.textContent = natureEvsText;
-		body.appendChild(natureEvsEl);
-	}
-
 	// 下段は技の縦リスト。空文字の技スロットは描画せず、不明タイプのアイコンはhiddenのままにする。
 	const movesGrid = document.createElement("div");
 	movesGrid.className = "card-moves-grid";
