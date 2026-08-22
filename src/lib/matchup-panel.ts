@@ -215,10 +215,20 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 		}
 	}
 
+	/**
+	 * この値未満の相手は「苦手ではない」として色を付けない。しきい値以上のぶんだけ
+	 * 0〜100%へ写し直し、苦手な相手だけがハイライトされるようにする。
+	 */
+	const MATCHUP_HIGHLIGHT_THRESHOLD = 0.7;
+
 	function applyMatchupCardResult(targetIndex: number, opacity: number | null): void {
 		const card = cardElements[targetIndex];
 		if (!card) return;
-		card.style.setProperty('--matchup-mix', opacity !== null ? `${opacity * 100}%` : '0%');
+		const mix =
+			opacity !== null && opacity >= MATCHUP_HIGHLIGHT_THRESHOLD
+				? ((opacity - MATCHUP_HIGHLIGHT_THRESHOLD) / (1 - MATCHUP_HIGHLIGHT_THRESHOLD)) * 100
+				: 0;
+		card.style.setProperty('--matchup-mix', `${mix}%`);
 		if (opacity === null) {
 			card.dataset.state = 'unknown';
 		} else {
