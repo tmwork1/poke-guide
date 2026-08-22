@@ -61,6 +61,9 @@
 		border-radius: var(--speed-chart-owned-panel-radius);
 		font-size: var(--speed-chart-owned-panel-font-size);
 	}
+	.speed-chart-table[data-embedded='true'] .speed-chart-owned-panel-static {
+		border-radius: var(--radius-zero);
+	}
 	/* hasOwnedPanel=falseのときは子要素が一切描画されず空になる。空の背景ボックスだけが
 		サイドバーに残らないよう、空のときはこの要素自体を消す。 */
 	.speed-chart-owned-panel-static:empty {
