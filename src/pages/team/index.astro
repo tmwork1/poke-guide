@@ -53,7 +53,7 @@ const user = Astro.locals.user;
 									id="search-input"
 									type="search"
 									class="field-control"
-									placeholder="種族・NN・わざ"
+									placeholder="種族・NN・アイテム・わざ"
 									aria-label="検索"
 									autocomplete="off"
 								/>
@@ -63,11 +63,11 @@ const user = Astro.locals.user;
 							<button
 								type="button"
 								id="team-display-density-toggle"
-								class="density-toggle"
+								class="density-toggle btn-control"
 								data-mode="expanded"
 								aria-label="圧縮表示に切り替える"
 							>
-								<svg class="density-toggle-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+								<svg class="density-toggle-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 									<rect x="2" y="3" width="6" height="6" rx="1" />
 									<rect x="9" y="3" width="6" height="6" rx="1" />
 									<rect x="16" y="3" width="6" height="6" rx="1" />
@@ -228,8 +228,8 @@ const user = Astro.locals.user;
 			type TeamDisplayMode = "expanded" | "compressed";
 			let displayMode: TeamDisplayMode = "expanded";
 
-			const DENSITY_ICON_EXPANDED = `<svg class="density-toggle-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="3" width="6" height="6" rx="1"/><rect x="9" y="3" width="6" height="6" rx="1"/><rect x="16" y="3" width="6" height="6" rx="1"/><rect x="2" y="12" width="6" height="6" rx="1"/><rect x="9" y="12" width="6" height="6" rx="1"/><rect x="16" y="12" width="6" height="6" rx="1"/></svg>`;
-			const DENSITY_ICON_COMPRESSED = `<svg class="density-toggle-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/><rect x="16" y="9" width="6" height="6" rx="1"/></svg>`;
+			const DENSITY_ICON_EXPANDED = `<svg class="density-toggle-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="3" width="6" height="6" rx="1"/><rect x="9" y="3" width="6" height="6" rx="1"/><rect x="16" y="3" width="6" height="6" rx="1"/><rect x="2" y="12" width="6" height="6" rx="1"/><rect x="9" y="12" width="6" height="6" rx="1"/><rect x="16" y="12" width="6" height="6" rx="1"/></svg>`;
+			const DENSITY_ICON_COMPRESSED = `<svg class="density-toggle-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/><rect x="16" y="9" width="6" height="6" rx="1"/></svg>`;
 
 			function updateDensityToggleUi(): void {
 				densityToggle.dataset.mode = displayMode;
@@ -240,12 +240,13 @@ const user = Astro.locals.user;
 				);
 			}
 
-			// メンバーの種族名・NN・わざを対象にするAND部分一致検索。
+			// メンバーの種族名・NN・アイテム・わざを対象にするAND部分一致検索。
 			function matchesSearch(t: Team, term: string): boolean {
 				if (!term) return true;
 				const haystack = [
 					...t.members.map((m) => m.owned_pokemon.species_name ?? ""),
 					...t.members.map((m) => m.owned_pokemon.nickname ?? ""),
+					...t.members.map((m) => m.owned_pokemon.item_name ?? ""),
 					...t.members.flatMap((m) => m.owned_pokemon.move_names ?? []),
 				].join(" ");
 				return term

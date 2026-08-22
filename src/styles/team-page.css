@@ -36,18 +36,8 @@ body.team-page {
 }
 
 .second-header-density .density-toggle {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	padding: var(--space-1);
+	padding: var(--space-1) var(--space-2);
 	min-height: 0;
-	background: transparent;
-	border: 0;
-	color: var(--color-text-muted);
-}
-.second-header-density .density-toggle:hover:not(:disabled) {
-	background: transparent;
-	color: var(--color-primary);
 }
 
 /* JSがinnerHTMLを差し替えてもカードが .team-grid の直接の子として並ぶようにする

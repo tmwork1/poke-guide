@@ -14,9 +14,10 @@
 	padding: var(--space-1);
 	overflow: hidden;
 	color: var(--color-text);
-	background: var(--color-bg);
-	border: 1px solid var(--color-border);
-	border-radius: var(--radius-sm);
+	background: var(--color-surface);
+	border: 1px solid transparent;
+	border-radius: var(--radius-zero);
+	box-shadow: var(--shadow-sm);
 	cursor: pointer;
 }
 .team-mate-card:hover,
@@ -30,11 +31,11 @@
 	cursor: default;
 }
 .team-mate-card--readonly:hover {
-	border-color: var(--color-border);
+	border-color: transparent;
 	outline: none;
 }
 .team-mate-card--empty {
-	border-style: dashed;
+	border: 1px dashed var(--color-border);
 	color: var(--color-text-muted);
 	font-size: var(--font-size-sm2);
 	font-weight: 700;
