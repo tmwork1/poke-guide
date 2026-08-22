@@ -40,7 +40,7 @@ body.speed-chart-page {
 	flex-wrap: wrap;
 	padding: var(--speed-chart-embed-toolbar-padding);
 	border-bottom: 1px solid var(--color-border);
-	background: var(--color-surface);
+	background: var(--color-surface-raised);
 }
 .speed-chart-embed-title {
 	white-space: nowrap;
