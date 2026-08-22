@@ -195,6 +195,12 @@ body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-cont
   padding: var(--speed-adjust-content-padding);
 }
 
+/* 現在値の強調背景だけは、表の左右余白をまたいでモーダル幅いっぱいに表示する。 */
+body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-row.is-current-row {
+  margin-inline: calc(-1 * var(--space-4));
+  padding-inline: var(--space-4);
+}
+
 /* 要因チップは省略せず、この列だけ横スクロールで確認する。 */
 body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-chips-cell {
   min-width: 0;
@@ -216,7 +222,7 @@ body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-chip
 /* 表の右側または下部に出る、選択中個体の要約 */
 body.speed-chart-page .speed-chart-table[data-embedded='true'][data-has-owned-panel='true'] .speed-chart-side {
   padding: 0;
-  border-top: 2px solid var(--color-border);
+  border-top: 2px solid var(--color-text-muted);
 }
 
 body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-apply-button {
@@ -282,5 +288,10 @@ body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-rank
     --speed-adjust-content-padding: var(--space-2) var(--space-3);
     --speed-adjust-summary-gap: var(--space-1);
     --speed-adjust-control-gap: var(--space-2);
+  }
+
+  body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-row.is-current-row {
+    margin-inline: calc(-1 * var(--space-3));
+    padding-inline: var(--space-3);
   }
 }
