@@ -9,8 +9,7 @@
 // - 検索・並べ替えは box と同じくクライアント側で完結させる(初回取得後、追加のAPI呼び出しを
 //   発生させない設計を踏襲。GET /api/teams が受け付ける ?sort=/?search= はサーバー側の便宜のため
 //   用意されているが、このページは box と同じ「1回取得してクライアントでフィルタ」方式に揃える)。
-// - 絞り込みは「お気に入りのみ表示」の単一トグルのみ持つ(docs/plan/pages/team.md 参照。
-//   チームは他に絞り込める軸が無いため)。box/index.astroと同じトグルを踏襲する。
+// - 絞り込みはレギュレーションで行う。
 // - 一覧カードは体数バッジ(N/6)+メンバーの公式絵ミニサムネイル列を持つ(これが
 //   無いと「複数の構成案を並べて見比べる」というページの存在理由が果たせない)。
 export const prerender = false;
@@ -19,7 +18,9 @@ export const prerender = false;
 import AppLayout from '../../layouts/AppLayout.astro';
 import '../../styles/team-page.css';
 import '../../styles/app-header.css';
+import '../../styles/second-header.css';
 import AppHeader from '../../components/AppHeader.astro';
+import SecondHeader from '../../components/SecondHeader.astro';
 // 候補は jpoke 由来の一覧(src/lib/regulations.ts)。画面側でレギュレーション名を
 // ハードコードしない(ボックス画面 box/index.astro と同じ方針)。
 import { REGULATIONS } from '../../lib/regulations';
@@ -27,12 +28,6 @@ import { REGULATIONS } from '../../lib/regulations';
 const user = Astro.locals.user;
 ---
 <AppLayout title="チーム" description="登録したチーム編成の一覧・検索・並べ替え" current="team" bodyClass="team-page">
-	{/*
-	  件数バッジはこのページ自身のツールバー(.app-header--toolbar、
-	  #team-toolbar)内へ直接配置する(下記マークアップ、id="team-count-badge"・
-	  class="badge tnum"は変更しない、<script>がgetElementByIdで参照するため)。
-	*/}
-
 	{/*
 	  チームカード(.card-team)は下部の<script>がdocument.createElement()で生成するため、
 	  Astroのscoped style(data-astro-cid-*属性が付いた静的マークアップにしか当たらない)では
@@ -47,12 +42,12 @@ const user = Astro.locals.user;
 		{
 			user ? (
 				<Fragment>
-					<AppHeader toolbar class="panel floating-list-toolbar" id="team-toolbar">
-						<div class="toolbar-item toolbar-count">
-							<span class="badge tnum" id="team-count-badge" hidden>0</span>
-						</div>
+					<AppHeader>
+						<h1 class="app-header-title">チーム</h1>
+					</AppHeader>
 
-						<div class="toolbar-item toolbar-search">
+					<SecondHeader ariaLabel="検索・並べ替え" class="team-second-header">
+						<div class="second-header-search toolbar-item toolbar-search">
 							{/* 可視の「検索」<label>は置かず、box/index.astroと同じくaria-labelで維持する。 */}
 							<div class="search-input-wrap">
 								<svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -63,51 +58,40 @@ const user = Astro.locals.user;
 									id="search-input"
 									type="search"
 									class="field-control"
-									placeholder="チーム名"
+									placeholder=" "
 									aria-label="検索"
 									autocomplete="off"
 								/>
 							</div>
 						</div>
 
-						{/* box/index.astroの.toolbar-favorite/#favorite-filter-toggleと
-						    同じマークアップ・クラス名(下のCSS参照、値も同一)を踏襲する。 */}
-						<div class="toolbar-item toolbar-favorite">
-							<button
-								type="button"
-								id="favorite-filter-toggle"
-								class="favorite-filter-toggle"
-								data-active="false"
-								aria-pressed="false"
-							>
-								<span class="favorite-filter-star" aria-hidden="true">★</span> お気に入り
-							</button>
-						</div>
-
-						{/* 選択肢は既知のレギュレーションと「すべて」を使う
-						    (2画面で絞り込みの語彙を揃える)。取得済みの一覧をクライアント側で絞る点も同じ。 */}
-						<div class="toolbar-item toolbar-regulation">
-							<label class="field-label" for="regulation-filter">レギュレーション</label>
-							<select id="regulation-filter" class="field-control">
-								<option value="">すべて</option>
-								{REGULATIONS.map((r) => <option value={r}>{r}</option>)}
-							</select>
-						</div>
-
-						<div class="toolbar-item toolbar-sort">
-							{/* 可視の「並べ替え」<label>は置かず、⇅記号を重ねて表示する。 */}
+						<div class="second-header-sort toolbar-item toolbar-sort">
 							<div class="sort-select-wrap">
-								<span class="sort-icon" aria-hidden="true">⇅</span>
+								<svg class="sort-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+									<path d="M12 20V4" />
+									<path d="M6 10l6-6 6 6" />
+								</svg>
 								<select id="sort-select" class="field-control" aria-label="並べ替え">
-									{/* 「〜順」は付けない: /box の並べ替え(最終更新/最終使用/ニックネーム)に表記を揃える。 */}
 									<option value="updated_at">最終更新</option>
 									<option value="name">チーム名</option>
 								</select>
 							</div>
 						</div>
-					</AppHeader>
+					</SecondHeader>
 
 					<div class="team-content box-content">
+						<div class="team-filter-row" id="team-filter-row">
+							<div class="toolbar-item toolbar-count">
+								<span class="badge tnum" id="team-count-badge" hidden>0</span>
+							</div>
+							<div class="toolbar-item toolbar-regulation">
+								<label class="field-label" for="regulation-filter">レギュレーション</label>
+								<select id="regulation-filter" class="field-control">
+									<option value="">すべて</option>
+									{REGULATIONS.map((r) => <option value={r}>{r}</option>)}
+								</select>
+							</div>
+						</div>
 						<p id="loading-message">読み込み中…</p>
 						<p id="error-message" hidden></p>
 
@@ -194,13 +178,11 @@ const user = Astro.locals.user;
 			const countBadge = el<HTMLElement>("team-count-badge");
 			const sortSelect = el<HTMLSelectElement>("sort-select");
 			const searchInput = el<HTMLInputElement>("search-input");
-			const favoriteFilterToggle = el<HTMLButtonElement>("favorite-filter-toggle");
 			const regulationFilter = el<HTMLSelectElement>("regulation-filter");
 			const addButton = el<HTMLButtonElement>("add-team-button");
 			const ADD_BUTTON_DEFAULT_HTML = addButton.innerHTML;
 
 			let allTeams: Team[] = [];
-			let favoriteOnly = false;
 
 			// name(空/未設定)なら「無題のチーム」にフォールバック(docs/plan/pages/team.md確定仕様)。
 			function displayName(t: Team): string {
@@ -208,19 +190,19 @@ const user = Astro.locals.user;
 				return "無題のチーム";
 			}
 
-			// チーム名の部分一致(box/index.astroのmatchesSearchと同じAND部分一致方式)。
+			// チーム名・メンバーの種族名・NNを対象にするAND部分一致検索。
 			function matchesSearch(t: Team, term: string): boolean {
 				if (!term) return true;
-				const haystack = t.name ?? "";
+				const haystack = [
+					t.name ?? "",
+					...t.members.map((m) => m.owned_pokemon.species_name ?? ""),
+					...t.members.map((m) => m.owned_pokemon.nickname ?? ""),
+				].join(" ");
 				return term
 					.split(/\s+/)
 					.filter((tok) => tok.length > 0)
 					// 複数語ANDの仕様はそのまま、各語だけかな表記を揃えて比較する。
 					.every((tok) => kanaIncludes(haystack, tok));
-			}
-
-			function matchesFavorite(t: Team): boolean {
-				return !favoriteOnly || t.is_pinned;
 			}
 
 			// ""や廃止済み・未知の値は「すべて」と同じ扱いにする。クライアント側では
@@ -247,9 +229,6 @@ const user = Astro.locals.user;
 				} else {
 					sorted.sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
 				}
-				if (sort !== "updated_at") {
-					sorted.sort((a, b) => Number(b.is_pinned) - Number(a.is_pinned));
-				}
 				return sorted;
 			}
 
@@ -257,31 +236,18 @@ const user = Astro.locals.user;
 			// 丸ごとクリック可能な<a>になり、内部ボタンの遷移抑止もレンダラが担う。
 			function renderCard(t: Team): HTMLElement {
 				const name = displayName(t);
-				const pinLabel = t.is_pinned ? "お気に入りを解除する" : "お気に入りにする";
 				const memoText = (t.memo ?? "").trim();
-				const regulation = t.regulation?.trim() ?? "";
 				const membersBySlot = new Map(t.members.map((m) => [m.slot, m]));
 				return renderTeamCard({
 					href: `/team/${encodeURIComponent(t.id)}`,
 					ariaLabel: `${name} を編集`,
 					name,
-					cornerAction: {
-						type: "pin",
-						isPinned: t.is_pinned,
-						label: pinLabel,
-						onToggle: () => toggleTeamPin(t),
-					},
 					onDelete: () => deleteTeamCard(t),
 					// メモが空でも<p>を生成し、体数バッジ・削除ボタンとともに既存DOMを維持する。
 					memo: memoText
 						? { text: "📝", title: memoText, ariaLabel: `メモ: ${memoText}` }
 						: {},
-					badges: [
-						...(regulation
-							? [{ className: "badge card-team-regulation-badge", text: regulation }]
-							: []),
-						{ className: "badge tnum card-team-count-badge", text: `${t.members.length}/6` },
-					],
+					badges: [{ className: "badge tnum card-team-count-badge", text: `${t.members.length}/6` }],
 					membersBySlot,
 					toCardContent: (member) => {
 						const pokemonName = member.owned_pokemon.nickname?.trim()
@@ -299,7 +265,7 @@ const user = Astro.locals.user;
 
 			function renderList(): void {
 				const filtered = allTeams.filter(
-					(t) => matchesSearch(t, searchInput.value.trim()) && matchesFavorite(t) && matchesRegulation(t),
+					(t) => matchesSearch(t, searchInput.value.trim()) && matchesRegulation(t),
 				);
 				const sorted = sortTeams(filtered);
 				listRoot.innerHTML = "";
@@ -333,25 +299,6 @@ const user = Astro.locals.user;
 				} catch (err) {
 					console.error(err);
 					window.alert("ポケモンを削除できませんでした。時間をおいて再度お試しください。");
-				}
-			}
-
-			async function toggleTeamPin(t: Team): Promise<void> {
-				try {
-					const res = await fetch(`/api/teams/${encodeURIComponent(t.id)}`, {
-						method: "PATCH",
-						credentials: "same-origin",
-						headers: { "Content-Type": "application/json" },
-						body: JSON.stringify({ is_pinned: !t.is_pinned }),
-					});
-					if (!res.ok) throw new Error(`お気に入りの更新に失敗しました (status=${res.status})`);
-					const body = (await res.json()) as { team: Team };
-					const idx = allTeams.findIndex((x) => x.id === t.id);
-					if (idx !== -1) allTeams[idx] = body.team;
-					renderList();
-				} catch (err) {
-					console.error(err);
-					window.alert("お気に入りの更新に失敗しました。時間をおいて再度お試しください。");
 				}
 			}
 
@@ -419,12 +366,6 @@ const user = Astro.locals.user;
 			sortSelect.addEventListener("change", renderList);
 			searchInput.addEventListener("input", renderList);
 			regulationFilter.addEventListener("change", renderList);
-			favoriteFilterToggle.addEventListener("click", () => {
-				favoriteOnly = !favoriteOnly;
-				favoriteFilterToggle.dataset.active = String(favoriteOnly);
-				favoriteFilterToggle.setAttribute("aria-pressed", String(favoriteOnly));
-				renderList();
-			});
 			addButton.addEventListener("click", () => void createEmptyTeam());
 
 			void loadList();

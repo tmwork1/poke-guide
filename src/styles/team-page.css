@@ -37,48 +37,50 @@ body.team-page {
 	padding: var(--team-page-content-padding) !important;
 }
 
+/* 検索欄はSecondHeaderの汎用レイアウトを使い、チーム一覧だけ幅を調整する。 */
+.second-header.team-second-header {
+	--second-header-sort-select-width: 6.5em;
+}
+
+.team-second-header .second-header-search {
+	flex: 0 1 var(--team-page-toolbar-search-max-width);
+}
+
+.team-second-header .second-header-search input {
+	width: 100%;
+	min-width: var(--team-page-toolbar-search-min-width);
+}
+
+/* 件数とレギュレーションは一覧とともにスクロールする。 */
+.team-filter-row {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	margin-bottom: var(--space-3);
+}
+
+.team-filter-row .toolbar-count {
+	flex-shrink: 0;
+}
+
 /* JSがinnerHTMLを差し替えてもカードが .team-grid の直接の子として並ぶようにする
 	(追加タイルは #team-list の外側の兄弟なので再描画で触られない。box/index.astro と同じ戦略)。 */
 #team-list {
 	display: contents;
 }
 
-		/* --- ツールバー(検索+並べ替え。box/index.astroの.app-header--toolbarをそのまま流用。
-			「絞り込み」はこのページには置かない(docs/plan/pages/team.md参照)。 --- */
-		/* box/index.astroの.app-header--toolbarと同じ値をそのまま複製する。
-			sticky/z-index/background はapp-header.cssの.app-headerと同じ値
-			(新しい値は作らない)。 */
-		/* 件数バッジはツールバー先頭寄りに配置し、margin-left: autoは付けない
-			(pitfalls.md「flex: 1 1 0は余白を全部飲む」と同種の事故を避ける: auto marginを
-			残すと後続の検索ボックスが右端まで押し出されてしまう)。 */
-		.toolbar-count {
-			flex-shrink: 0;
-		}
-		.toolbar-search {
-			flex: 0 1 var(--team-page-toolbar-search-max-width);
-		}
-		.toolbar-search input {
-			width: 100%;
-			min-width: var(--team-page-toolbar-search-min-width);
-		}
+@media (max-width: 640px) {
+	.team-second-header .second-header-search {
+		flex-basis: auto;
+	}
 
-		/* お気に入りボタン(.favorite-filter-toggle)のスタイルはglobal.cssに集約されている
-			(Astroのscoped styleはページをまたがないため、一覧間で共有するにはglobal.cssに置く
-			必要がある)。 */
-
-		/* 「並べ替え」の<label>は表示せず、box/index.astroの.sort-select-wrap/.sort-icon
-			と同じ手法(検索欄の.search-input-wrap/.search-iconと同じ、position:absoluteのアイコン+
-			select側padding-left)でソートアイコンをselectの左側に重ねる。 */
-
-		@media (max-width: 640px) {
-			.toolbar-search { flex-basis: auto; }
-			.toolbar-search input,
-			.toolbar-regulation select,
-			.toolbar-sort select {
-				width: 100%;
-				min-width: 0;
-			}
-		}
+	.team-second-header .second-header-search input,
+	.team-filter-row .toolbar-regulation select,
+	.team-second-header .second-header-sort select {
+		width: 100%;
+		min-width: 0;
+	}
+}
 
 		/* --- カードグリッド(.team-grid)と #team-list の display:contents は
 			src/styles/team-card.css / team-page.css が持つ。/team/[id] の「類似構築」タブと

@@ -31,7 +31,6 @@
 .team-grid {
   /* ── 1. 文字サイズ ─────────────────────── */
   --team-card-empty-font-size: 1.5rem; /* 空き枠番号の大きさ */
-  --team-card-pin-font-size: var(--font-size-lg1); /* お気に入りの星の大きさ */
   --team-card-title-font-size: var(--font-size-base); /* チーム名の文字サイズ */
   --team-card-inline-name-font-size: var(--font-size-sm1); /* 上位構築カードのトレーナー名の文字サイズ */
   --team-card-badge-font-size: var(--font-size-sm3); /* バッジ文字の大きさ */
@@ -48,7 +47,6 @@
   --team-card-badge-color: var(--color-text-muted); /* バッジ文字の色 */
   --team-card-action-color: var(--color-text-muted); /* 通常時の星・記事アイコンの色 */
   --team-card-action-hover-color: var(--color-text); /* 操作に触れたときのアイコン色 */
-  --team-card-pin-active-color: #f2ce1b; /* お気に入り済みの星の色 */
   --team-card-empty-color: var(--color-text-muted); /* 空き枠番号の文字色 */
 
   /* ── 4. 背景色 ───────────────────────── */
@@ -205,9 +203,7 @@
   white-space: nowrap;
 }
 
-/* --- 右上のアイコンスロット(32px角)。/team はお気に入りの星(button)、
-   類似構築タブは構築記事へのリンク(a)。要素種別が違うだけで位置と寸法は同一。 --- */
-.team-grid .card-team .card-team-pin,
+/* --- 右上の構築記事リンク(32px角)。 --- */
 .team-grid .card-team .card-team-article-link {
   position: absolute;
   top: var(--team-card-action-top);
@@ -228,19 +224,6 @@
   color: var(--team-card-action-color);
   font-weight: var(--team-card-action-font-weight);
   line-height: 1;
-}
-.team-grid .card-team .card-team-pin {
-  font-size: var(--team-card-pin-font-size);
-  min-height: 0;
-}
-.team-grid .card-team .card-team-pin:hover {
-  background: transparent;
-  color: var(--team-card-action-hover-color);
-}
-.team-grid .card-team .card-team-pin[data-pinned="true"],
-.team-grid .card-team .card-team-pin[data-pinned="true"]:hover {
-  background: transparent;
-  color: var(--team-card-pin-active-color);
 }
 .team-grid .card-team .card-team-article-link:hover {
   color: var(--team-card-action-hover-color);

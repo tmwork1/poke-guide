@@ -33,20 +33,13 @@ export interface TeamCardMemoContent {
 	ariaLabel?: string;
 }
 
-export type TeamCardCornerAction =
-	| {
-			type: "pin";
-			isPinned: boolean;
-			label: string;
-			onToggle: () => void | Promise<void>;
-	  }
-	| {
+export type TeamCardCornerAction = {
 			type: "link";
 			href: string;
 			label: string;
 			title?: string;
 			content: Node;
-	  };
+	};
 
 export interface RenderTeamCardOptions<M> extends RenderTeamMemberGridOptions<M> {
 	href?: string;
@@ -98,26 +91,8 @@ export function renderTeamCard<M>(options: RenderTeamCardOptions<M>): HTMLElemen
 	if (options.href !== undefined) (card as HTMLAnchorElement).href = options.href;
 	if (options.ariaLabel !== undefined) card.setAttribute("aria-label", options.ariaLabel);
 
-	// 重なり順も既存DOMの一部なので、右上アクション → 削除 → メタ行の順を維持する。
-	if (options.cornerAction?.type === "pin") {
-		const action = options.cornerAction;
-		const pinButton = document.createElement("button");
-		pinButton.type = "button";
-		pinButton.className = "card-team-pin";
-		pinButton.dataset.pinned = String(action.isPinned);
-		const pinStar = document.createElement("span");
-		pinStar.className = "favorite-star-glyph";
-		pinStar.setAttribute("aria-hidden", "true");
-		pinButton.appendChild(pinStar);
-		pinButton.title = action.label;
-		pinButton.setAttribute("aria-label", action.label);
-		pinButton.addEventListener("click", (event) => {
-			event.preventDefault();
-			event.stopPropagation();
-			void action.onToggle();
-		});
-		card.appendChild(pinButton);
-	} else if (options.cornerAction?.type === "link" && options.headerVariant !== "inline") {
+	// 右上の外部記事リンクは通常カードだけに置く。inline見出しの場合は下で見出し内に置く。
+	if (options.cornerAction?.type === "link" && options.headerVariant !== "inline") {
 		const action = options.cornerAction;
 		const link = document.createElement("a");
 		link.className = "card-team-article-link";
