@@ -20,7 +20,6 @@ body.team-edit-page {
 	--team-pokemon-tab-mates-background: var(--color-surface); /* チームメイト枠の背景色 */
 	--team-pokemon-tab-suggest-background: var(--color-surface); /* おすすめ列の背景色 */
 	--team-pokemon-tab-overview-background: var(--color-bg); /* ポケモンタブ全体の背景色 */
-	--team-pokemon-tab-overview-card-background: var(--color-surface); /* ポケモンカードの背景色 */
 	--team-pokemon-tab-overview-input-background: var(--color-surface); /* 入力欄の背景色 */
 
 	/* ── 5. 枠線・角丸 ─────────────────────── */
@@ -37,6 +36,8 @@ body.team-edit-page {
 	--team-pokemon-tab-mates-padding: var(--space-2) var(--space-3); /* チームメイト枠の内側余白 */
 	--team-pokemon-tab-suggest-padding: var(--space-2) var(--space-3); /* おすすめ列の内側余白 */
 	--team-pokemon-tab-suggest-icons-gap: var(--space-1); /* おすすめアイコンどうしの間隔 */
+	--team-pokemon-tab-overview-edge-gap: var(--space-2); /* 画面端・カード間、およびヘッダー・カード間の余白 */
+	--team-pokemon-tab-overview-section-gap: var(--space-4); /* カード・メモ・削除ボタンの間隔 */
 
 	/* ── 8. 寸法 ────────────────────────── */
 	--team-pokemon-tab-slot-max-width: 34rem; /* 6枠全体の最大幅。大きくすると横に広がる */
@@ -63,6 +64,7 @@ body.team-edit-page {
 }
 .team-mobile-actions__controls {
 	width: 100%;
+	margin-top: var(--team-pokemon-tab-overview-section-gap);
 }
 .team-edit-shell[data-mobile-tab="pokemon"] .team-edit-layout,
 .team-edit-shell[data-mobile-tab="formation"] #team-overview-tab,
@@ -72,9 +74,7 @@ body.team-edit-page {
 
 .team-edit-shell[data-mobile-tab="pokemon"] #team-overview-tab {
 	background: var(--team-pokemon-tab-overview-background);
-}
-.team-edit-shell[data-mobile-tab="pokemon"] #team-overview-tab .box-card {
-	background: var(--team-pokemon-tab-overview-card-background);
+	padding-block-start: var(--team-pokemon-tab-overview-edge-gap);
 }
 .team-edit-shell[data-mobile-tab="pokemon"] #team-overview-tab .team-memo-input {
 	background: var(--team-pokemon-tab-overview-input-background);
@@ -160,9 +160,11 @@ body.team-edit-page {
 	width: 100%;
 	min-width: 0;
 }
-/* メモ欄は6枠の下に配置されるため、間隔はmargin-topではなく6枠側(team-slots)の
-	margin-bottomで確保する(このinput自体は他の場所にmarginを持たない)。 */
+/* カード・メモ・削除ボタンの縦の間隔は margin-top 側(このルールと
+	.team-mobile-actions__controls)で確保する。 */
 .team-memo-input {
 	width: 100%;
 	min-width: 0;
+	margin-top: var(--team-pokemon-tab-overview-section-gap);
+	resize: vertical;
 }

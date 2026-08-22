@@ -516,15 +516,13 @@ try {
 							    3列2行のグリッドで配置する(CSSは下の.team-slots参照)。 */}
 							<div id="team-slots" class="team-slots"></div>
 
-							<input
+							<textarea
 								id="team-memo"
 								class="field-control team-memo-input"
-								type="text"
 								placeholder="メモ"
 								aria-label="メモ"
 								autocomplete="off"
-								value={team.memo ?? ''}
-							/>
+								rows="3">{team.memo ?? ''}</textarea>
 						</div>
 					</div>
 
@@ -1867,7 +1865,7 @@ try {
 				return found as T;
 			}
 
-			const memoInput = el<HTMLInputElement>("team-memo");
+			const memoInput = el<HTMLTextAreaElement>("team-memo");
 			const overviewGrid = el<HTMLElement>("team-overview-grid");
 			overviewGrid.insertAdjacentElement("afterend", memoInput);
 			const dedupeToggle = el<HTMLInputElement>("team-select-dedupe-toggle");

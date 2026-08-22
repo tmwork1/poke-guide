@@ -6,7 +6,7 @@
 .team-overview-thumb-grid {
 	/* ── 7. 余白 ────────────────────────── */
 	--team-card-gap: var(--space-2);
-	--team-card-edge-gap: var(--space-2);
+	--team-card-edge-gap: var(--team-pokemon-tab-overview-edge-gap);
 	--team-card-padding: var(--space-1);
 
 	display: grid;
@@ -102,6 +102,7 @@
 	--team-card-moves-gap: calc(var(--space-1) / 2);
 	/* 名前・とくせい・わざ一覧の縦方向の間隔 */
 	--team-card-left-content-gap: calc(var(--space-1) / 2);
+	--team-card-moves-stats-gap: var(--space-1);
 	--team-card-stats-row-padding-block-start: calc(var(--space-1) / 4);
 
 	/* ── 8. 寸法 ────────────────────────── */
@@ -132,7 +133,7 @@
 	flex-direction: column;
 	min-height: 100%;
 	padding: var(--pokemon-preview-padding);
-	background: var(--color-bg);
+	background: var(--color-surface);
 }
 
 /* .pokemon-preview-left: 名前・とくせい・わざ・実数値を全幅で縦に並べるコンテンツ領域。 */
@@ -313,7 +314,7 @@
 	display: grid;
 	grid-template-columns: repeat(6, minmax(0, 1fr));
 	column-gap: var(--team-card-stats-column-gap);
-	margin: 0;
+	margin: var(--team-card-moves-stats-gap) 0 0;
 }
 
 .team-overview-preview-card .pokemon-preview-stats-line {
