@@ -170,9 +170,11 @@
 	}
 	.speed-chart-owned-raw-value { display: none; }
 	.speed-chart-owned-jump-button {
+		--control-button-background: var(--color-control-raised);
 		padding: var(--speed-chart-owned-jump-padding);
 		font-size: var(--speed-chart-owned-jump-font-size);
 		font-weight: 500;
+		box-shadow: var(--shadow-md);
 	}
 	/* /box/[id]のランク入力と同じ密度・強調・端点状態を再現する。 */
 	.speed-chart-rank-field {
