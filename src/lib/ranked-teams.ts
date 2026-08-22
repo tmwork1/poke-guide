@@ -7,6 +7,8 @@ export interface RankedTeamMember {
   formName: string | null;
   itemName: string | null;
   ability: string | null;
+  nature: string | null;
+  evs: number[] | null;
   moveNames: string[];
   type1: string | null;
   type2: string | null;
@@ -14,6 +16,7 @@ export interface RankedTeamMember {
 
 export interface RankedTeam {
   id: string;
+  season: string;
   rank: number;
   rating: number | null;
   rule: string;
@@ -36,6 +39,8 @@ interface RawMember {
   form_name: string | null;
   item_name: string | null;
   ability: string | null;
+  nature: string | null;
+  evs: number[] | null;
   move_names: string[] | null;
   type1: string | null;
   type2: string | null;
@@ -43,6 +48,7 @@ interface RawMember {
 
 interface RawTeam {
   id: string;
+  season: string;
   rank: number;
   rating: string | number | null;
   rule: string;
@@ -54,8 +60,8 @@ interface RawTeam {
 }
 
 const TEAM_SELECT = `
-  id, rank, rating, rule, trainer_name, article_url, article_title, article_host,
-  ranked_team_members (slot, species_key, species_name, form_name, item_name, ability, move_names, type1, type2)
+  id, season, rank, rating, rule, trainer_name, article_url, article_title, article_host,
+  ranked_team_members (slot, species_key, species_name, form_name, item_name, ability, nature, evs, move_names, type1, type2)
 `;
 
 export async function listRankedSeasons(supabase: SupabaseClient): Promise<RankedSeason[]> {
@@ -93,6 +99,7 @@ export async function listRankedTeamsBySeason(
     const numericRating = row.rating === null ? null : Number(row.rating);
     return {
       id: row.id,
+      season: row.season,
       rank: row.rank,
       rating: numericRating !== null && Number.isFinite(numericRating) ? numericRating : null,
       rule: row.rule,
@@ -108,6 +115,8 @@ export async function listRankedTeamsBySeason(
           formName: member.form_name,
           itemName: member.item_name,
           ability: member.ability,
+          nature: member.nature,
+          evs: member.evs,
           // 記事に技の記載がない NULL は、描画側で反復可能な空配列へ正規化する。
           moveNames: member.move_names ?? [],
           type1: member.type1,

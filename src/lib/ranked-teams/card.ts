@@ -165,11 +165,52 @@ export function renderRankedTeamCard(
   return card;
 }
 
-export function renderTopBuildCard(team: RankedTeam): HTMLElement {
+export interface RenderTopBuildCardOptions {
+  highlightSlot?: number;
+}
+
+const STAT_LABELS = ['H', 'A', 'B', 'C', 'D', 'S'] as const;
+const MEMBER_POPOVER_VIEWPORT_GUTTER = 8;
+const MEMBER_POPOVER_GAP = 4;
+let activeMemberPopover: HTMLElement | null = null;
+let activeMemberPopoverCard: HTMLElement | null = null;
+let isMemberPopoverDismissalBound = false;
+
+function closeActiveMemberPopover(): void {
+  activeMemberPopover?.remove();
+  activeMemberPopover = null;
+  activeMemberPopoverCard = null;
+}
+
+function bindMemberPopoverDismissal(): void {
+  if (isMemberPopoverDismissalBound) return;
+  isMemberPopoverDismissalBound = true;
+  document.addEventListener('click', (event) => {
+    const target = event.target;
+    if (!(target instanceof Element) || !target.closest('.card-team-member-popover')) {
+      closeActiveMemberPopover();
+    }
+  });
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') closeActiveMemberPopover();
+  });
+}
+
+function rankedMemberEvsLabel(evs: number[] | null): string {
+  if (!evs) return '不明';
+  return STAT_LABELS
+    .map((label, index) => [label, evs[index] ?? 0] as const)
+    .filter(([, value]) => value !== 0)
+    .map(([label, value]) => `${label}${value}`)
+    .join(' ') || '不明';
+}
+
+export function renderTopBuildCard(team: RankedTeam, options: RenderTopBuildCardOptions = {}): HTMLElement {
+  bindMemberPopoverDismissal();
   const membersBySlot = new Map(team.members.map((member) => [member.slot, member]));
   const trainerName = team.trainerName ?? team.articleHost ?? 'トレーナー不明';
   const articleLabel = team.articleTitle ?? team.articleHost ?? '構築記事';
-  return renderTeamCard({
+  const card = renderTeamCard({
     name: trainerName,
     nameTitle: trainerName,
     cornerAction: team.articleUrl
@@ -183,6 +224,7 @@ export function renderTopBuildCard(team: RankedTeam): HTMLElement {
         }
       : undefined,
     badges: [
+      { className: 'badge tnum', text: team.season },
       { className: 'badge card-team-rank-badge tnum', text: `${team.rank}位` },
       ...(team.rating !== null
         ? [{
@@ -192,6 +234,7 @@ export function renderTopBuildCard(team: RankedTeam): HTMLElement {
           }]
         : []),
     ],
+    headerVariant: 'inline',
     membersBySlot,
     toCardContent: (member) => {
       const displayName = member.speciesKey ?? member.speciesName;
@@ -199,11 +242,11 @@ export function renderTopBuildCard(team: RankedTeam): HTMLElement {
         pokemon: {
           species_name: displayName,
           level: 50,
-          nature: null,
+          nature: member.nature,
           ability_name: member.ability,
           item_name: member.itemName,
           tera_type: null,
-          evs: [0, 0, 0, 0, 0, 0],
+          evs: member.evs ?? [0, 0, 0, 0, 0, 0],
           ivs: [31, 31, 31, 31, 31, 31],
           move_names: member.moveNames,
           memo: null,
@@ -213,4 +256,46 @@ export function renderTopBuildCard(team: RankedTeam): HTMLElement {
       };
     },
   });
+
+  const memberCards = card.querySelectorAll<HTMLElement>('.card-pokemon');
+  const members = [...team.members].sort((a, b) => a.slot - b.slot);
+  memberCards.forEach((memberCard, index) => {
+    const member = members[index];
+    if (!member) return;
+    if (member.slot === options.highlightSlot) memberCard.classList.add('card-pokemon--similar');
+    memberCard.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      if (activeMemberPopoverCard === memberCard) {
+        closeActiveMemberPopover();
+        return;
+      }
+      closeActiveMemberPopover();
+      const popover = element('div', 'card-team-member-popover');
+      popover.setAttribute('role', 'dialog');
+      popover.setAttribute('aria-label', `${member.speciesName}の育成情報`);
+      for (const [label, value] of [
+        ['特性', member.ability || '不明'],
+        ['性格', member.nature || '不明'],
+        ['努力値', rankedMemberEvsLabel(member.evs)],
+      ]) {
+        const row = element('p', 'card-team-member-popover-row');
+        row.textContent = `${label}: ${value}`;
+        popover.append(row);
+      }
+      popover.style.position = 'fixed';
+      document.body.append(popover);
+
+      const memberCardRect = memberCard.getBoundingClientRect();
+      const popoverRect = popover.getBoundingClientRect();
+      const maxLeft = Math.max(MEMBER_POPOVER_VIEWPORT_GUTTER, window.innerWidth - popoverRect.width - MEMBER_POPOVER_VIEWPORT_GUTTER);
+      const maxTop = Math.max(MEMBER_POPOVER_VIEWPORT_GUTTER, window.innerHeight - popoverRect.height - MEMBER_POPOVER_VIEWPORT_GUTTER);
+      popover.style.left = `${Math.min(Math.max(memberCardRect.left, MEMBER_POPOVER_VIEWPORT_GUTTER), maxLeft)}px`;
+      popover.style.top = `${Math.min(Math.max(memberCardRect.bottom + MEMBER_POPOVER_GAP, MEMBER_POPOVER_VIEWPORT_GUTTER), maxTop)}px`;
+      activeMemberPopover = popover;
+      activeMemberPopoverCard = memberCard;
+    });
+  });
+
+  return card;
 }

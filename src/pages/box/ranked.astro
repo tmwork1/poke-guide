@@ -105,9 +105,9 @@ if (pokemon) {
       const scored = teams
         .map((team) => {
           const matched = team.members.find((member) => member.speciesName === pokemonBuild.species_name);
-          return matched ? { team, similarity: calculateBuildSimilarity(pokemonBuild, matched) } : null;
+          return matched ? { team, matched, similarity: calculateBuildSimilarity(pokemonBuild, matched) } : null;
         })
-        .filter((entry): entry is { team: RankedTeam; similarity: number } => entry !== null)
+        .filter((entry): entry is { team: RankedTeam; matched: RankedTeam['members'][number]; similarity: number } => entry !== null)
         .sort((a, b) => b.similarity - a.similarity || a.team.rank - b.team.rank);
 
       if (scored.length === 0) {
@@ -117,7 +117,12 @@ if (pokemon) {
 
       const list = document.createElement('div');
       list.className = 'team-grid';
-      for (const entry of scored) list.appendChild(renderTopBuildCard(entry.team));
+      for (const entry of scored) {
+        list.appendChild(renderTopBuildCard(
+          entry.team,
+          entry.similarity > 0 ? { highlightSlot: entry.matched.slot } : undefined,
+        ));
+      }
       panel.innerHTML = '<h2>上位チーム</h2>';
       panel.appendChild(list);
     } catch (error) {

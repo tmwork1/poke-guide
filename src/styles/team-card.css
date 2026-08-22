@@ -64,6 +64,12 @@
   --team-card-meta-gap: var(--space-2); /* バッジどうしの間隔 */
   --team-card-badge-padding: 0.3rem 0.55rem; /* バッジ内側の余白。大きくするとバッジが膨らむ */
   --team-card-member-grid-gap: var(--space-1); /* ヘッダ帯と6枠、および6枠どうしの間隔 */
+  --team-card-inline-gap: var(--space-2);
+  --team-card-popover-padding: var(--space-2);
+  --team-card-popover-border-radius: var(--radius-sm);
+  --team-card-popover-background: var(--color-surface);
+  --team-card-popover-border-color: var(--color-primary);
+  --team-card-similar-border-width: 2px;
 
   /* ── 8. 寸法 ────────────────────────── */
   --team-card-header-min-height: 38px; /* ヘッダ帯の最低の高さ。大きくすると帯が縦に広がる */
@@ -144,6 +150,46 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* 上位構築だけが使う、バッジ・名前・記事リンクを同じ行に置くヘッダー。 */
+.team-grid .card-team .card-team-header--inline {
+  gap: var(--team-card-inline-gap);
+  padding: var(--space-3);
+  min-width: 0;
+}
+.team-grid .card-team .card-team-meta-row--inline {
+  position: static;
+  flex: 0 0 auto;
+  min-width: 0;
+}
+.team-grid .card-team .card-team-header--inline .card-team-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: auto;
+}
+.team-grid .card-team .card-team-article-link--inline {
+  display: inline-flex;
+  flex: 0 1 auto;
+  min-width: 0;
+  align-items: center;
+  gap: var(--team-card-inline-gap);
+  color: var(--team-card-action-color);
+  font-size: var(--team-card-badge-font-size);
+  text-decoration: none;
+}
+.team-grid .card-team .card-team-article-link--inline:hover {
+  color: var(--team-card-action-hover-color);
+}
+.team-grid .card-team .card-team-article-label--inline {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.team-grid .card-team .card-team-article-link--inline svg {
+  flex: 0 0 auto;
+  width: var(--team-card-article-icon-size);
+  height: var(--team-card-article-icon-size);
 }
 
 /* --- ヘッダ帯の右側に重ねるバッジ列(/team はレギュレーション、
@@ -241,4 +287,23 @@
 }
 .team-grid .card-team .team-slot-number {
   opacity: var(--team-card-empty-number-opacity);
+}
+
+.team-grid .card-team .card-pokemon--similar {
+  border-color: var(--color-primary);
+  border-width: var(--team-card-similar-border-width);
+}
+.card-team-member-popover {
+  position: fixed;
+  z-index: 102;
+  padding: var(--team-card-popover-padding, var(--space-2));
+  border: 1px solid var(--team-card-popover-border-color, var(--color-primary));
+  border-radius: var(--team-card-popover-border-radius, var(--radius-sm));
+  background: var(--team-card-popover-background, var(--color-surface));
+  color: var(--color-text);
+  font-size: var(--team-card-badge-font-size, var(--font-size-sm3));
+  line-height: var(--team-card-title-line-height, var(--line-height-tight));
+}
+.card-team-member-popover-row {
+  margin: 0;
 }
