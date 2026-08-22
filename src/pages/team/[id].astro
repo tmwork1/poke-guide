@@ -24,10 +24,6 @@ import '../../styles/team-data-tab.css';
 import '../../styles/team-card.css';
 import '../../styles/app-header.css';
 import '../../styles/matchup-panel.css';
-// レギュレーション候補は jpoke 由来の一覧(src/lib/regulations.ts)。画面側でレギュレーション名を
-// ハードコードしない(box/[id].astro の左パネルと同じ方針)。選択肢は新しい順に並べるため、
-// REGULATIONS(定義順=古い順)ではなくREGULATIONS_NEWEST_FIRST(新しい順の配列)を使う。
-import { REGULATIONS_NEWEST_FIRST, REGULATION_PLACEHOLDER } from '../../lib/regulations';
 
 const user = Astro.locals.user;
 const id = Astro.params.id;
@@ -51,23 +47,6 @@ if (user && id) {
 const pageTitle = 'チーム編集';
 const bodyClass = team ? 'team-edit-page' : undefined;
 
-// 個体編集画面(box/[id].astro)のトグルはowned_pokemon.collection_opt_out_untilを個体単位で
-// 持つが、teamsテーブルにはチーム単位の対応する列が無い(migrations/007_teams.sqlに列なし)。
-// 新しい列は作らず、代わりに「このチームに入っている個体全員」に対して、既存の
-// PATCH /api/owned-pokemon/:id { collection_opt_out }(個体編集画面と全く同じエンドポイント、
-// box/[id].astro参照)を一括で呼ぶ「チーム一括トグル」として実装する(下の<script>参照)。
-// SSR時点ではlib/team.tsのSELECTがcollection_opt_out_untilを含まないため正確な初期状態が
-// 分からず、ここでは「未収集拒否(提供中)」を既定値としてSSRで仮置きし、クライアント側で
-// GET /api/owned-pokemon(既存の左パネル用フェッチ)の結果から実際の状態に補正する
-// (<script>のrefreshCollectionOptOutToggle参照)。メンバーが0人のときは対象が無いため無効化する。
-//
-// ラベルは「非公開」、既定OFF、ホバーテキストはOFF時「育成データを匿名で提供する」/ON時
-// 「30日間有効」。UI表示(ラベル・title・checkedの向き)は、DBの意味
-// (collection_opt_out_until)・保存されるペイロード(PATCH { collection_opt_out })に対して
-// 反転している: checked=true が「非公開」(collection_opt_out=true)を表す
-// (<script>のrefreshCollectionOptOutToggle/変更ハンドラ参照)。
-const teamMemberCount = team ? team.members.length : 0;
-
 // 初期メンバー(0〜6要素、SSR取得済み)をクライアント<script>へそのまま引き渡す。
 // Astroの属性値は自動でHTMLエスケープされるので、ニックネーム等に " や < が
 // 含まれていても壊れない(pokemon.tsの data-tags={JSON.stringify(...)} と同じ手法)。
@@ -75,10 +54,6 @@ const initialTeamJson = team
 	? JSON.stringify({
 			id: team.id,
 			memo: team.memo,
-			// <select id="team-regulation">の初期値はSSRのselected属性で足りるが、InitialTeam型の
-			// 他の項目と揃えて渡しておく(クライアント側から「保存済みの値」を参照したくなったときに
-			// SSR側の変更を要らなくする)。
-			regulation: team.regulation,
 			members: team.members,
 		})
 	: '';
@@ -111,16 +86,6 @@ try {
 				<button id="retry-button" type="button" title="保存に失敗しました。クリックして再試行" aria-label="保存に失敗しました。クリックして再試行">再試行</button>
 			</p>
 
-	{/* #delete-buttonと同じマークアップ・確認ダイアログ・アイコンにする(box/[id].astro)。
-	    .collection-opt-out-toggle一式(label > .toggle-switch + ラベルテキスト + ステータス欄)は
-	    box/[id].astroをそのまま踏襲する(上のフロントマターのコメント参照。マークアップ・
-	    aria-label・title文言は個体編集画面と同じ語彙で揃え、対象が「この個体」ではなく
-	    「チームの個体全員」である点だけtitleとaria-labelの文言に反映する)。
-	    初期checkedは付けない(既定OFF=非公開ではない=提供中、フロントマターのコメント参照)。
-	    titleもOFF/ONで文言が変わる仕様のため、ここに書くのはJS初期化前に一瞬だけ見える初期値
-	    (<script>のsyncCollectionOptOutTitleがページ読み込み直後に実際の状態へ即座に補正する)。
-	    メンバー0人のときはtitleに理由を明示した上でdisabledにする(対象が無いため、この場合の
-	    titleはJSでも変更しない)。 */}
 		</div>
 	)}
 	<style>
@@ -155,36 +120,9 @@ try {
 			display: none;
 		}
 
-		/* トグル本体の見た目(.toggle-switch一式)は複数ページで使うためglobal.cssの共通定義を
-		   参照する。 */
-		.collection-opt-out-toggle {
-			display: inline-flex;
-			align-items: center;
-			gap: 0.4em;
-			/* 戻るボタン(.app-topbar-back)と同じ文字規格に揃える。 */
-			font-size: var(--font-size-sm1);
-			font-weight: 500;
-			color: var(--color-text-muted);
-			white-space: nowrap;
-			cursor: pointer;
-		}
-		.collection-opt-out-toggle:has(.toggle-switch-input:disabled) {
-			cursor: not-allowed;
-			opacity: 0.7;
-		}
-		/* 非公開はlabel内のinputがdisabledになる構造なので、:has()で無効時を除外する。 */
-		.collection-opt-out-toggle:hover:not(:has(.toggle-switch-input:disabled)) {
-			color: var(--color-primary);
-		}
-		.collection-opt-out-status { color: var(--color-text-muted); }
-		.collection-opt-out-status[hidden] { display: none; }
-		.collection-opt-out-status[data-state="error"] { color: var(--color-danger); }
 		/* global.cssのbutton.btn-dangerが持つ太字指定を上書きし、
 		   戻るボタン(.app-header-back)と同じ文字サイズ・太さへ揃える。 */
-		#delete-team-button { font-size: var(--font-size-sm1); white-space: nowrap; font-weight: 500; }
-		/* 削除ボタンの margin-left は box/[id].astro の #delete-button と
-		   同じ間隔に揃える。 */
-		#delete-team-button { margin-left: var(--space-5); }
+		#delete-team-button { width: 100%; font-size: var(--font-size-sm1); white-space: nowrap; font-weight: 500; }
 		/* box/[id].astro の #delete-button と同じ配色に揃える。基底(global.css の
 		   button.btn-danger)は平常時=塗り(background:var(--color-danger-strong),
 		   color:var(--color-primary-contrast))、hover時=白地反転
@@ -298,10 +236,8 @@ try {
 			align-self: center;
 		}
 		.team-select-count[hidden] { display: none; }
-		/* ヘッダーの.collection-opt-out-toggle(「非公開」トグル、上のフロントマター直後の
-		   <style>参照)と全く同じ視覚言語(inline-flex + gap + 本文小さめの文字色)にする。
-		   トグル本体(.toggle-switch一式)は同じscoped<style>内で既に定義済みのものをそのまま
-		   使う(このページ内の別セクションなので複製不要)。 */
+		/* 選択バー内の表示条件トグルを共通の視覚言語(inline-flex + gap +
+		   本文小さめの文字色)にする。 */
 		.regulation-filter-toggle {
 			display: inline-flex;
 			align-items: center;
@@ -319,10 +255,8 @@ try {
 			min-width: 0;
 		}
 
-		/* 「メガシンカを含める」「育成済みのみ表示」の2トグル。視覚言語は上の
-		   .regulation-filter-toggleと同一だが、そちらはレギュレーション絞り込み専用の意味を
-		   持つクラス名のため、意味の異なるこちらのトグルには専用クラス名を用意し、同じ値を
-		   そのまま複製する(新しい値は作っていない)。
+		/* 「メガシンカを含める」「育成済みのみ表示」の2トグル。選択バーの表示条件トグルと
+		   同じ値を使うが、意味の異なるこちらには専用クラス名を用意する。
 		   #team-suggestはJS(renderSuggestions)がinnerHTMLで丸ごと書き換えるため、
 		   トグル自体はその外(兄弟要素)の静的マークアップに置く。 */
 		.team-suggest-toggles {
@@ -403,7 +337,7 @@ try {
 			   (754 = 230×3(カード) + 12×2(gap) + 20×2(このpadding))。 */
 			padding: 0 var(--space-5);
 		}
-		/* .team-edit-mainは横paddingのみで縦paddingが無く、ヘッダー直下にレギュレーション欄が密着する。
+		/* .team-edit-mainは横paddingのみで縦paddingが無く、ヘッダー直下に内容が密着する。
 		   .panel-content(max-width:1080pxのみを持つ共有クラス、global.css)には触れず、
 		   このページ限定でpadding-topを足す。 */
 		.team-edit-main .panel-content {
@@ -492,17 +426,8 @@ try {
 				<div class="team-edit-shell" id="team-edit-layout" data-team-id={team.id} data-initial-team={initialTeamJson} data-mobile-tab="pokemon" data-ranked-season={rankedSeason ?? ''}>
 					<section id="team-overview-tab" class="panel">
 						<div class="panel-content">
-							<div id="team-overview-fields"></div>
 							<div id="team-overview-grid" class="team-overview-thumb-grid" aria-label="チームメンバーのプレビュー"></div>
 							<div class="team-mobile-actions__controls">
-								<label class="collection-opt-out-toggle" for="team-collection-opt-out-toggle" title={teamMemberCount === 0 ? 'チームに個体を入れると、匿名集計への提供可否を切り替えられます' : '30日間有効'}>
-									<span class="toggle-switch">
-										<input id="team-collection-opt-out-toggle" type="checkbox" class="toggle-switch-input" disabled={teamMemberCount === 0} aria-label="非公開" />
-										<span class="toggle-switch-track" aria-hidden="true"><span class="toggle-switch-thumb"></span></span>
-									</span>
-									<span class="collection-opt-out-toggle-label">非公開</span>
-									<span id="team-collection-opt-out-status" class="collection-opt-out-status" hidden></span>
-								</label>
 								<button id="delete-team-button" class="btn-danger" type="button">
 									<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
 									削除
@@ -586,23 +511,6 @@ try {
 					{/* --- 中央: 6枠 + メモ。.panel-contentで可読幅1080pxに収める(R-11・基準23)。 --- */}
 					<div class="team-edit-main">
 						<div class="panel-content">
-							<div class="team-meta-fields">
-								{/* 個体編集側(LeftPanel.astroの#regulation)と同じく「なし」を先頭の
-								    value=""のoptionが担い、保存時はnullに正規化される
-								    (team-validation.tsのnormalizeOptionalString)。可視ラベル(<label>)は置かず、
-								    LeftPanel.astroの#regulationと同じくplaceholder + aria-labelの方式に揃える
-								    (アクセシビリティ上のaccessible nameはaria-labelが担う)。未選択時は
-								    LeftPanel.astroの#regulation[data-empty="true"]と同じCSS(破線・薄い
-								    文字色)を適用するためdata-emptyを付ける(<script>のsyncRegulationPlaceholder
-								    参照)。 */}
-								<div class="field team-regulation-field">
-									<select id="team-regulation" class="field-control" aria-label="レギュレーション" data-empty={team.regulation ? undefined : 'true'}>
-										<option value="">{REGULATION_PLACEHOLDER}</option>
-										{REGULATIONS_NEWEST_FIRST.map((r) => <option value={r} selected={team.regulation === r}>{r}</option>)}
-									</select>
-								</div>
-							</div>
-
 							{/* 6枠(基準3)。空き枠も枠として常に描く。中身はJS(renderSlots)が生成するため、
 							    子要素(.card-team-slot)のスタイルは下の<style is:global>側に置く。
 							    3列2行のグリッドで配置する(CSSは下の.team-slots参照)。 */}
@@ -1904,13 +1812,6 @@ try {
 			last_used_at: string | null;
 			is_pinned: boolean;
 			memo: string | null;
-			// 匿名でデータ提供するトグル用。GET
-			// /api/owned-pokemonのレスポンスには含まれるが、SSR(lib/team.tsのTEAM_MEMBER_SELECT)
-			// には含まれていない(このファイル単体の変更ではlib/team.tsを直せないため)。そのため
-			// SSR直後のmembersBySlot初期値ではundefinedになりうる値としてoptionalにし、GET
-			// /api/owned-pokemon完了後にallPokemonの同IDレコードで補う
-			// (refreshCollectionOptOutToggle参照)。
-			collection_opt_out_until?: string | null;
 		}
 
 		interface TeamMemberData {
@@ -1921,7 +1822,6 @@ try {
 		interface InitialTeam {
 			id: string;
 			memo: string | null;
-			regulation: string | null;
 			members: TeamMemberData[];
 		}
 
@@ -1968,12 +1868,8 @@ try {
 			}
 
 			const memoInput = el<HTMLInputElement>("team-memo");
-			const overviewFields = el<HTMLElement>("team-overview-fields");
 			const overviewGrid = el<HTMLElement>("team-overview-grid");
-			const metaFields = document.querySelector<HTMLElement>(".team-meta-fields");
-			if (metaFields) overviewFields.append(metaFields);
 			overviewGrid.insertAdjacentElement("afterend", memoInput);
-			const regulationSelect = el<HTMLSelectElement>("team-regulation");
 			const dedupeToggle = el<HTMLInputElement>("team-select-dedupe-toggle");
 			const favoriteFilterToggle = el<HTMLInputElement>("favorite-filter-toggle");
 			const slotsRoot = el<HTMLElement>("team-slots");
@@ -2000,8 +1896,6 @@ try {
 			const statusTextEl = el<HTMLElement>("autosave-status-text");
 			const retryButton = el<HTMLButtonElement>("retry-button");
 			const deleteTeamButton = el<HTMLButtonElement>("delete-team-button");
-			const collectionOptOutToggle = el<HTMLInputElement>("team-collection-opt-out-toggle");
-			const collectionOptOutStatusEl = el<HTMLElement>("team-collection-opt-out-status");
 
 			const previewEmptyEl = el<HTMLElement>("team-preview-empty");
 			const previewContentEl = el<HTMLElement>("team-preview-content");
@@ -2615,7 +2509,6 @@ try {
 							ability_name: suggestion.abilityName ?? "",
 							item_name: suggestion.itemName ?? "",
 							tera_type: "",
-							regulation: regulationSelect.value || "",
 							evs: [0, 0, 0, 0, 0, 0],
 							ivs: [31, 31, 31, 31, 31, 31],
 							move_names: [],
@@ -2841,6 +2734,10 @@ try {
 				filtered.forEach((s) => formationMobileSuggestIcons.appendChild(buildSuggestIcon(s)));
 			}
 
+			function currentMemberIds(): string[] {
+				return Array.from(membersBySlot.values()).map((p) => p.id);
+			}
+
 			async function loadSuggestions(): Promise<void> {
 				const memberIds = currentMemberIds();
 				const key = memberIds.slice().sort().join(",");
@@ -3008,7 +2905,6 @@ try {
 				renderSelectList();
 				renderFormationMobile();
 				scheduleSave();
-				refreshCollectionOptOutToggle();
 				// 編成が変わったのでサジェストを取り直す。
 				scheduleSuggestions();
 				scheduleSimilarBuilds();
@@ -3031,55 +2927,6 @@ try {
 				renderSelectList();
 				renderFormationMobile();
 				scheduleSave();
-			}
-
-			// 匿名でデータ提供するトグル用。現在のチームメンバー(owned_pokemon)のIDだけを返す
-			// (重複はteam-validationの選択ルールで既に防がれているため考慮不要)。
-			function currentMemberIds(): string[] {
-				return Array.from(membersBySlot.values()).map((p) => p.id);
-			}
-
-			// collection_opt_out_until(null/過去=提供中、未来=拒否中)から「提供中かどうか」を
-			// 判定する。box/[id].astroのformatOptOutRemaining(フロントマター側)と同じ判定式。
-			function isProviding(p: OwnedPokemonRecord): boolean {
-				if (!p.collection_opt_out_until) return true;
-				return new Date(p.collection_opt_out_until).getTime() <= Date.now();
-			}
-
-			// トグルの表示(checked/disabled)を現在のチームメンバーの実際の状態から再計算する。
-			// メンバーが1人もいなければ対象が無いためdisabled。allPokemon(GET /api/owned-pokemon、
-			// 下部の初期化処理で取得)が届く前はSSR由来のmembersBySlotの値(collection_opt_out_until
-			// を持たない)しか無いため、その場合は「全員提供中」を既定値として扱う(DBの既定値
-			// =NULL=提供中と一致するため、fetch完了までの一瞬だけ生じる楽観値。fetch完了後に
-			// このcronがもう一度呼ばれ正確な値に補正される→fetchハンドラ参照)。
-			// checkedの向きが反転している: 「メンバー全員が提供中」のときだけfalse(=非公開ではない)、
-			// 1人でも拒否中(非公開)ならtrueになる。DBを読む式(isProviding)自体とcheckedへの
-			// 反映方向は独立している。
-			function refreshCollectionOptOutToggle(): void {
-				const ids = currentMemberIds();
-				if (ids.length === 0) {
-					collectionOptOutToggle.checked = false;
-					collectionOptOutToggle.disabled = true;
-					syncCollectionOptOutTitle();
-					return;
-				}
-				collectionOptOutToggle.disabled = false;
-				const allProviding = Array.from(membersBySlot.values()).every((p) => {
-					const fresh = allPokemon.find((x) => x.id === p.id);
-					return isProviding(fresh ?? p);
-				});
-				collectionOptOutToggle.checked = !allProviding;
-				syncCollectionOptOutTitle();
-			}
-
-			// 個体編集画面(/box/[id])と共通化: ホバーテキストはON/OFFで文言を変えず常に固定
-			// 文字列「30日間有効」にする。
-			// メンバー0人時(disabled)のtitleはSSR側の固定文言のまま変えない(<AppLayout>の
-			// topbar-actionsスロット、上のフロントマター参照)。
-			const collectionOptOutLabel = document.querySelector<HTMLLabelElement>(".collection-opt-out-toggle");
-			function syncCollectionOptOutTitle(): void {
-				if (!collectionOptOutLabel || collectionOptOutToggle.disabled) return;
-				collectionOptOutLabel.title = "30日間有効";
 			}
 
 			// --- 6枠の描画(基準3: 常に6枠) ---
@@ -3116,7 +2963,6 @@ try {
 				renderSelectList();
 				renderFormationMobile();
 				scheduleSave();
-				refreshCollectionOptOutToggle();
 				// 編成が変わったのでサジェストを取り直す。
 				scheduleSuggestions();
 				scheduleSimilarBuilds();
@@ -3603,11 +3449,6 @@ try {
 					.every((token) => kanaIncludes(haystack, token));
 			}
 
-			function currentTeamRegulation(): string | null {
-				const value = regulationSelect.value.trim();
-				return value === "" ? null : value;
-			}
-
 			// 空のアイテムは重複扱いせず、編成済みの種族または実値のあるアイテムだけを除外する。
 			function matchesDedupe(p: OwnedPokemonRecord): boolean {
 				if (!dedupeToggle.checked) return true;
@@ -3621,11 +3462,6 @@ try {
 
 			function matchesFavorite(p: OwnedPokemonRecord): boolean {
 				return !favoriteFilterToggle.checked || p.is_pinned;
-			}
-
-			function syncRegulationPlaceholder(): void {
-				if (currentTeamRegulation() === null) regulationSelect.dataset.empty = "true";
-				else delete regulationSelect.dataset.empty;
 			}
 
 			function isCurrentMember(id: string): boolean {
@@ -3824,7 +3660,6 @@ try {
 			// --- 自動保存(box/[id].astroと同じデバウンス方式。保存ボタンは作らない) ---
 			function buildPayload(): {
 				memo: string | null;
-				regulation: string | null;
 				members: { slot: number; owned_pokemon_id: string }[];
 			} {
 				const members = Array.from(membersBySlot.entries())
@@ -3833,9 +3668,6 @@ try {
 				const memo = memoInput.value.trim();
 				return {
 					memo: memo === "" ? null : memo,
-					// PUT /api/teams/:id は全項目上書きの契約(team-validation.tsの
-					// REPLACE_REQUIRED_FIELDS)なので、未指定でもキー自体は必ず送る。
-					regulation: currentTeamRegulation(),
 					members,
 				};
 			}
@@ -3925,62 +3757,16 @@ try {
 			dedupeToggle.addEventListener("change", renderSelectList);
 			favoriteFilterToggle.addEventListener("change", renderSelectList);
 
-			regulationSelect.addEventListener("change", () => {
-				syncRegulationPlaceholder();
-				renderSelectList();
-				scheduleSave();
-			});
-			// 初期表示(SSRで選択済みのレギュレーション)にもプレースホルダー状態を合わせる。
-			syncRegulationPlaceholder();
-
 			includeMegaToggle.addEventListener("change", () => {
 				if (lastSuggestResponse) {
 					void renderSuggestions(lastSuggestResponse.suggestions, lastSuggestResponse.basis);
 				}
 			});
 
-			collectionOptOutToggle.addEventListener("change", () => {
-				void (async () => {
-					// checked_after(クリック直後の値)は「非公開かどうか」を表す。
-					// nextProviding は「提供中かどうか」(旧来の意味のまま)に変換する。
-					const nextProviding = !collectionOptOutToggle.checked;
-					syncCollectionOptOutTitle();
-					const ids = currentMemberIds();
-					collectionOptOutToggle.disabled = true;
-					try {
-						const results = await Promise.all(
-							ids.map((id) =>
-								fetch(`/api/owned-pokemon/${encodeURIComponent(id)}`, {
-									method: "PATCH",
-									credentials: "same-origin",
-									headers: { "Content-Type": "application/json" },
-									body: JSON.stringify({ collection_opt_out: !nextProviding }),
-								}),
-							),
-						);
-						if (results.some((res) => !res.ok)) throw new Error("更新に失敗しました");
-						collectionOptOutStatusEl.hidden = true;
-						delete collectionOptOutStatusEl.dataset.state;
-					} catch (err) {
-						console.error(err);
-						// クリック前の状態(checked)= nextProviding(「非公開」= !提供中 = nextProviding)。
-						collectionOptOutToggle.checked = nextProviding;
-						syncCollectionOptOutTitle();
-						collectionOptOutStatusEl.textContent = "更新に失敗しました";
-						collectionOptOutStatusEl.hidden = false;
-						collectionOptOutStatusEl.dataset.state = "error";
-					} finally {
-						collectionOptOutToggle.disabled = currentMemberIds().length === 0;
-						syncCollectionOptOutTitle();
-					}
-				})();
-			});
-
 			// --- 初期化 ---
 			// SSR取得済みのメンバーは fetch を待たずに即描画する(6枠が空でも一瞬も待たせない)。
 			renderSlots();
 			renderFormationMobile();
-			refreshCollectionOptOutToggle();
 			void loadSuggestions();
 			void loadSimilarBuilds();
 
@@ -3989,10 +3775,6 @@ try {
 					if (!res.ok) throw new Error(`個体一覧の取得に失敗しました (status=${res.status})`);
 					const body = (await res.json()) as { data: OwnedPokemonRecord[] };
 					allPokemon = body.data;
-					// SSR由来のmembersBySlotの値はcollection_opt_out_until等、GET専用の列を
-					// 持たないため、fetch完了後にallPokemonの同IDレコードへ差し替えて以後の計算
-					// (匿名トグルの状態など)を正確にする(表示中の6枠の見た目は変わらない列のみ
-					// なので再描画は不要)。
 					for (const [slot, p] of membersBySlot.entries()) {
 						const fresh = allPokemon.find((x) => x.id === p.id);
 						if (fresh) membersBySlot.set(slot, fresh);
@@ -4000,7 +3782,6 @@ try {
 					selectLoadingMessage.hidden = true;
 					renderSelectList();
 					renderFormationMobile();
-					refreshCollectionOptOutToggle();
 					// サジェストの操作ボタンは「手持ちに一致する個体があるか」で文言が変わる
 					// (findOwnedMatch)。その判定材料である allPokemon が今届いたので、
 					// 既に描画済みの結果があれば同じデータのまま描き直す(再fetchはしない)。

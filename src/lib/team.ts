@@ -31,8 +31,6 @@ export interface TeamRecord {
   id: string;
   user_id: string;
   memo: string | null;
-  // レギュレーション(migrations/013_regulation.sql)。'M-A' 等、未指定は null。
-  regulation: string | null;
   is_pinned: boolean;
   created_at: string;
   updated_at: string;
@@ -60,17 +58,16 @@ export type ReplaceTeamResult =
 
 export interface ReplaceTeamInput {
   memo: string | null;
-  regulation: string | null;
   members: TeamMemberInput[];
 }
 
-const TEAM_COLUMNS = 'id, user_id, memo, regulation, is_pinned, created_at, updated_at';
+const TEAM_COLUMNS = 'id, user_id, memo, is_pinned, created_at, updated_at';
 
 // nickname/species_name/level/nature/ability_name/item_name/tera_type/evs/ivs/move_names は
 // 6枠カードの表示(公式絵・ニックネーム・テラスタイプ・持ち物・技4つ)に必要な列。
 // memo/tags 等の owned_pokemon 側の個人的情報も、本人のチーム編集画面内でしか
 // 出さないため(公開共有はスコープ外)、PublicOwnedPokemonRecord ではなく通常の全列を使う。
-// regulation/is_pinned は owned_pokemon から廃止済みのため列挙しない
+// is_pinned は owned_pokemon から廃止済みのため列挙しない
 // (src/lib/owned-pokemon.ts の OWNED_POKEMON_COLUMNS 参照)。
 const TEAM_MEMBER_SELECT =
   `slot, owned_pokemon:owned_pokemon_id (
@@ -203,7 +200,7 @@ export async function deleteTeam(userId: string, id: string, supabase: SupabaseC
   return { ok: true, data: (data ?? []).length > 0 };
 }
 
-// PUT /api/teams/:id: memo/regulation/members の全項目上書き。
+// PUT /api/teams/:id: memo/members の全項目上書き。
 // メンバーの置換は supabase.rpc('replace_team_members', ...) で単一トランザクションとして行う
 // (素朴な「DELETE→INSERT」の2リクエストにすると、DELETE成功→INSERT失敗で
 // メンバーが全消失しうる)。
@@ -211,7 +208,7 @@ export async function deleteTeam(userId: string, id: string, supabase: SupabaseC
 // 処理順序:
 //   1. オーナーシップ検証: members[] の全 owned_pokemon_id が本人の owned_pokemon か確認。
 //      1件でも欠けていれば DB に一切書き込まず forbidden で拒否する。
-//   2. teams.memo/regulation を更新(対象が存在しない/他人の所有物なら data:null で即終了。
+//   2. teams.memo を更新(対象が存在しない/他人の所有物なら data:null で即終了。
 //      この場合 RPC は呼ばない = 404 相当のケースで無駄な書き込み試行をしない)。
 //   3. supabase.rpc('replace_team_members', ...) でメンバーを置換(RPC内部でも所有確認を
 //      行う。lib層の検証とは独立した「最後の砦」)。
@@ -250,7 +247,6 @@ export async function replaceTeam(
     .from('teams')
     .update({
       memo: input.memo,
-      regulation: input.regulation,
       updated_at: new Date().toISOString(),
     })
     .eq('id', id)
