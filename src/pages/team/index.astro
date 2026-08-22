@@ -14,6 +14,7 @@ export const prerender = false;
 
 import AppLayout from '../../layouts/AppLayout.astro';
 import '../../styles/team-page.css';
+import '../../styles/team-mate-card.css';
 import '../../styles/app-header.css';
 import '../../styles/second-header.css';
 import AppHeader from '../../components/AppHeader.astro';
@@ -58,6 +59,24 @@ const user = Astro.locals.user;
 								/>
 							</div>
 						</div>
+						<div class="second-header-density toolbar-item toolbar-density">
+							<button
+								type="button"
+								id="team-display-density-toggle"
+								class="density-toggle"
+								data-mode="expanded"
+								aria-label="圧縮表示に切り替える"
+							>
+								<svg class="density-toggle-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+									<rect x="2" y="3" width="6" height="6" rx="1" />
+									<rect x="9" y="3" width="6" height="6" rx="1" />
+									<rect x="16" y="3" width="6" height="6" rx="1" />
+									<rect x="2" y="12" width="6" height="6" rx="1" />
+									<rect x="9" y="12" width="6" height="6" rx="1" />
+									<rect x="16" y="12" width="6" height="6" rx="1" />
+								</svg>
+							</button>
+						</div>
 
 					</SecondHeader>
 
@@ -99,7 +118,10 @@ const user = Astro.locals.user;
 	<script>
 		// チームカードは外枠から6枠まで共用し、1枠の実体はその中から /box のカード描画へ委譲する。
 		import { kanaIncludes } from "../../lib/kana";
+		import { loadImageIdMap, officialArtworkUrl, championSpriteUrl } from "../../lib/pokemon-master-data";
+		import { itemIconUrl } from "../../lib/sprite-urls";
 		import { renderTeamCard } from "../../lib/team-card";
+		import { renderTeamMateSlots } from "../../lib/team-mate-card";
 
 		// GET /api/teams が返す1メンバーの owned_pokemon。表示に必要な列だけを持つ
 		// (src/lib/team.ts の TeamMember/OwnedPokemonRecord のサブセット)。
@@ -138,6 +160,59 @@ const user = Astro.locals.user;
 			return found as T;
 		}
 
+		const imageIdMapPromise = loadImageIdMap();
+
+		async function applySprite(
+			imgEl: HTMLImageElement,
+			fallbackEl: HTMLElement,
+			name: string,
+		): Promise<void> {
+			const imageId = name ? (await imageIdMapPromise).get(name) : undefined;
+			if (imageId == null) {
+				imgEl.style.display = "none";
+				fallbackEl.style.display = "flex";
+				fallbackEl.textContent = name ? name.charAt(0) : "?";
+				return;
+			}
+			let triedArtworkFallback = false;
+			imgEl.onerror = () => {
+				if (!triedArtworkFallback) {
+					triedArtworkFallback = true;
+					imgEl.src = officialArtworkUrl(imageId);
+					return;
+				}
+				imgEl.style.display = "none";
+				fallbackEl.style.display = "flex";
+				fallbackEl.textContent = name.charAt(0);
+			};
+			imgEl.onload = () => {
+				imgEl.style.display = "";
+				fallbackEl.style.display = "none";
+			};
+			imgEl.src = championSpriteUrl(imageId);
+		}
+
+		function applyItemIcon(
+			imgEl: HTMLImageElement,
+			itemName: string,
+			visibilityEl?: HTMLElement,
+		): void {
+			if (!itemName) {
+				imgEl.style.display = "none";
+				if (visibilityEl) visibilityEl.hidden = true;
+				return;
+			}
+			imgEl.onerror = () => {
+				imgEl.style.display = "none";
+				if (visibilityEl) visibilityEl.hidden = true;
+			};
+			imgEl.onload = () => {
+				imgEl.style.display = "";
+				if (visibilityEl) visibilityEl.hidden = false;
+			};
+			imgEl.src = itemIconUrl(itemName);
+		}
+
 		const listRoot = document.getElementById("team-list");
 		if (listRoot) {
 			const loadingMessage = el<HTMLElement>("loading-message");
@@ -146,9 +221,24 @@ const user = Astro.locals.user;
 			const noMatchMessage = el<HTMLElement>("no-match-message");
 			const searchInput = el<HTMLInputElement>("search-input");
 			const addButton = el<HTMLButtonElement>("add-team-button");
+			const densityToggle = el<HTMLButtonElement>("team-display-density-toggle");
 			const ADD_BUTTON_DEFAULT_HTML = addButton.innerHTML;
 
 			let allTeams: Team[] = [];
+			type TeamDisplayMode = "expanded" | "compressed";
+			let displayMode: TeamDisplayMode = "expanded";
+
+			const DENSITY_ICON_EXPANDED = `<svg class="density-toggle-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="3" width="6" height="6" rx="1"/><rect x="9" y="3" width="6" height="6" rx="1"/><rect x="16" y="3" width="6" height="6" rx="1"/><rect x="2" y="12" width="6" height="6" rx="1"/><rect x="9" y="12" width="6" height="6" rx="1"/><rect x="16" y="12" width="6" height="6" rx="1"/></svg>`;
+			const DENSITY_ICON_COMPRESSED = `<svg class="density-toggle-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/><rect x="16" y="9" width="6" height="6" rx="1"/></svg>`;
+
+			function updateDensityToggleUi(): void {
+				densityToggle.dataset.mode = displayMode;
+				densityToggle.innerHTML = displayMode === "expanded" ? DENSITY_ICON_EXPANDED : DENSITY_ICON_COMPRESSED;
+				densityToggle.setAttribute(
+					"aria-label",
+					displayMode === "expanded" ? "圧縮表示に切り替える" : "展開表示に切り替える",
+				);
+			}
 
 			// メンバーの種族名・NN・わざを対象にするAND部分一致検索。
 			function matchesSearch(t: Team, term: string): boolean {
@@ -192,6 +282,19 @@ const user = Astro.locals.user;
 							onDelete: () => deletePokemon(member.owned_pokemon),
 						};
 					},
+					renderMembers: displayMode === "compressed"
+						? (container) => {
+								container.className = "team-mate-grid";
+								const mateMembersBySlot = new Map(t.members.map((m) => [m.slot, m.owned_pokemon]));
+								renderTeamMateSlots({
+									root: container,
+									membersBySlot: mateMembersBySlot,
+									displayName: (p) => p.nickname?.trim() || p.species_name || "ポケモン",
+									applySprite,
+									applyItemIcon,
+								});
+							}
+						: undefined,
 				});
 			}
 
@@ -289,7 +392,13 @@ const user = Astro.locals.user;
 
 			searchInput.addEventListener("input", renderList);
 			addButton.addEventListener("click", () => void createEmptyTeam());
+			densityToggle.addEventListener("click", () => {
+				displayMode = displayMode === "expanded" ? "compressed" : "expanded";
+				updateDensityToggleUi();
+				renderList();
+			});
 
+			updateDensityToggleUi();
 			void loadList();
 		}
 	</script>
