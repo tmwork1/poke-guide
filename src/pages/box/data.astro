@@ -77,23 +77,23 @@ const hasData = hasSingleBattleData(opgg);
       <main class="box-data-main">
         {seasons.length > 0 && (
           <div class="data-view-controls">
-            <button
-              class="data-season-unavailable"
-              type="button"
-              disabled
-              title="シーズンを読み込み中"
-            >
-              シーズン
-            </button>
+            <div class="data-season-field">
+              <label for="box-data-season">シーズン</label>
+              <button
+                class="data-season-unavailable"
+                type="button"
+                disabled
+                title="シーズンを読み込み中"
+              >
+                シーズン
+              </button>
+            </div>
           </div>
         )}
 
-        <section class="data-panel">
+        <section class:list={{ 'data-panel': true, 'data-panel--has-data': hasData }}>
           {hasData ? (
-            <>
-              <h2 id="trend-title">トレンド</h2>
-              <BattleDataCard single={single} />
-            </>
+            <BattleDataCard single={single} />
           ) : (
             <section class="data-empty" aria-live="polite">
               <h2>バトルデータなし</h2>
@@ -110,6 +110,7 @@ const hasData = hasSingleBattleData(opgg);
   const unavailable = document.querySelector('.data-season-unavailable');
   if (unavailable && seasons.length) {
     const select = document.createElement('select');
+    select.id = 'box-data-season';
     select.className = 'data-season-select';
     for (const entry of seasons) {
       select.add(new Option(entry.label ?? entry.id, entry.id, entry.id === season, entry.id === season));

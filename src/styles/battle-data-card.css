@@ -12,6 +12,9 @@
   /* ── 1. 文字サイズ ────────────────────────────────────── */
   --battle-data-card-label-font-size: var(--font-size-sm2); /* 各マスの見出し。大きくすると項目名が目立つ */
   --battle-data-card-value-font-size: var(--font-size-sm3); /* 各マスのランキング値。大きくすると内容が読みやすくなる */
+  --battle-data-card-item-icon-size: 1.9em; /* アイテムアイコンの大きさ。行の文字サイズに追従する */
+  --battle-data-card-type-icon-size: 1.2em; /* わざタイプアイコンの大きさ。行の文字サイズに追従する */
+  --battle-data-card-pokemon-icon-size: 2.2em; /* 同時採用ポケモンのアイコンの大きさ。マス内に収まる範囲で少し大きくする */
 
   /* ── 2. 文字の太さ・行間 ──────────────────────────────── */
   --battle-data-card-value-line-height: 1.55; /* ランキング値の行間。大きくすると複数行の間隔が広がる */
@@ -56,18 +59,72 @@
 .trend-detail-cell:nth-last-child(-n+2) { border-bottom: 0; }
 
 /* 各マス内の項目名とランキング値 */
-.trend-detail-cell span,
+.trend-detail-cell > span,
 .trend-detail-cell strong { display: block; }
-.trend-detail-cell span {
+.trend-detail-cell > span {
   color: var(--battle-data-card-label-color);
   font-size: var(--battle-data-card-label-font-size);
 }
 .trend-detail-cell strong {
   margin-top: var(--battle-data-card-value-margin-top);
-  white-space: pre-line;
   font-size: var(--battle-data-card-value-font-size);
   line-height: var(--battle-data-card-value-line-height);
   overflow-wrap: anywhere;
+}
+
+/* 順位ごとの一覧。カテゴリに応じてアイコン・割合の列を切り替える。 */
+.trend-rank-list {
+  display: grid;
+  gap: var(--space-1);
+  margin: var(--battle-data-card-value-margin-top) 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--battle-data-card-value-font-size);
+  line-height: var(--battle-data-card-value-line-height);
+}
+
+.trend-rank-row {
+  display: grid;
+  align-items: center;
+  min-width: 0;
+  column-gap: var(--space-2);
+}
+
+.trend-rank-row--icon3 { grid-template-columns: var(--battle-data-card-item-icon-size) minmax(0, 1fr) auto; }
+.trend-rank-row--text2 { grid-template-columns: minmax(0, 1fr) auto; }
+.trend-rank-row--icon2 { grid-template-columns: var(--battle-data-card-pokemon-icon-size) minmax(0, 1fr); }
+.trend-rank-row--name1 { grid-template-columns: minmax(0, 1fr); }
+
+.trend-rank-icon,
+.trend-rank-icon img {
+  display: block;
+}
+
+.trend-rank-icon img {
+  width: var(--battle-data-card-item-icon-size);
+  height: var(--battle-data-card-item-icon-size);
+  object-fit: contain;
+}
+
+.trend-rank-icon .trend-rank-icon--type {
+  width: var(--battle-data-card-type-icon-size);
+  height: var(--battle-data-card-type-icon-size);
+}
+
+.trend-rank-icon .trend-rank-icon--pokemon {
+  width: var(--battle-data-card-pokemon-icon-size);
+  height: var(--battle-data-card-pokemon-icon-size);
+}
+
+.trend-rank-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.trend-rank-rate {
+  color: var(--battle-data-card-label-color);
+  text-align: right;
+  white-space: nowrap;
 }
 
 @media (max-width: 420px) {

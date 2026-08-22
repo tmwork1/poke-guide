@@ -36,23 +36,10 @@ export function hasSingleBattleData(value: { formats?: { single?: SingleFormatDa
   );
 }
 
-export function formatRanked(rows: RankedRow[] | undefined, teammate = false): string {
-  return (
-    rows
-      ?.slice(0, 4)
-      .map((row) => `${row.rank}. ${row.name} — ${teammate || row.usageRate === null ? '使用率非公開' : `${row.usageRate}%`}`)
-      .join('\n') || 'データなし'
-  );
+export function usageRateLabel(usageRate: number | null): string {
+  return usageRate === null ? '使用率非公開' : `${usageRate}%`;
 }
 
-export function formatEvRanked(rows: EvRankedRow[] | undefined): string {
-  return (
-    rows
-      ?.slice(0, 4)
-      .map(
-        (row) =>
-          `${row.rank}. H${row.values.hp}/A${row.values.attack}/B${row.values.defense}/C${row.values.specialAttack}/D${row.values.specialDefense}/S${row.values.speed} — ${row.usageRate}%`,
-      )
-      .join('\n') || 'データなし'
-  );
+export function evSpreadLabel(values: Record<string, number>): string {
+  return `H${values.hp}/A${values.attack}/B${values.defense}/C${values.specialAttack}/D${values.specialDefense}/S${values.speed}`;
 }

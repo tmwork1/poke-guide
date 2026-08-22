@@ -5,6 +5,7 @@ import pokemonMasterRaw from '../../../public/master-data/autocomplete/pokemon.j
 import pokemonDetailRaw from '../../../public/master-data/detail/pokemon.json';
 import { NATURE_STAT_MODIFIERS, calcHpStat, calcOtherStat, type StatKey } from '../../lib/stats';
 import { championSpriteUrl, officialArtworkUrl } from '../../lib/pokemon-master-data';
+import { itemIconUrl } from '../../lib/sprite-urls';
 import '../../styles/box-pokemon-preview.css';
 import '../../styles/app-header.css';
 
@@ -74,7 +75,7 @@ const previewStats = detail ? statKeys.map((key, index) => index === 0 ? calcHpS
     </div>
     <div class="pokemon-preview-right">
       <div class="pokemon-preview-item pokemon-preview-icon-text">
-        <img id="pokemon-preview-item-image" alt="" class="pokemon-preview-item-image-hidden" />
+        <img id="pokemon-preview-item-image" src={pokemon.item_name ? itemIconUrl(pokemon.item_name) : undefined} alt="" class={pokemon.item_name ? 'pokemon-preview-item-image' : 'pokemon-preview-item-image-hidden'} onerror="this.style.display='none'" />
         <span id="pokemon-preview-item">{pokemon.item_name || 'アイテムなし'}</span>
       </div>
       <table class="pokemon-preview-stats" aria-label="実数値と努力値">

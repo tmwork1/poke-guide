@@ -9,6 +9,7 @@
    チューニング変数
    =========================================================================== */
 body.data-page {
+  --data-page-bottom-nav-gap: var(--space-3);
   /* ── 1. 文字サイズ ────────────────────────────────────── */
   --data-page-preview-title-font-size: var(--font-size-lg2); /* ポケモン名の見出し。大きくするとページの主題が目立つ */
   --data-page-panel-title-font-size: var(--font-size-lg1); /* データ区画の見出し。大きくすると区画の区別が強まる */
@@ -63,6 +64,9 @@ body.data-page {
 .box-data-page {
   max-width: var(--data-page-max-width);
   padding-bottom: calc(64px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - var(--header-height));
 }
 /* ポケモン名と説明を表示する上部概要 */
 .pokemon-data-preview {
@@ -86,8 +90,13 @@ body.data-page {
   font-size: var(--data-page-kicker-font-size);
   font-weight: var(--data-page-kicker-font-weight);
 }
-.box-data-main { padding: var(--data-page-main-padding); }
-/* バトルデータ欄の「トレンド」または空表示の見出し */
+.box-data-main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  padding: var(--data-page-main-padding);
+}
+/* バトルデータなしの空表示見出し */
 .data-panel h2 {
   margin: var(--data-page-panel-title-margin);
   font-size: var(--data-page-panel-title-font-size);
@@ -105,8 +114,18 @@ body.data-page {
   gap: var(--data-page-view-controls-gap);
   margin-bottom: var(--data-page-view-controls-margin-bottom);
 }
+.data-season-field {
+  display: flex;
+  align-items: center;
+  gap: var(--data-page-view-controls-gap);
+}
+.data-season-field label {
+  color: var(--data-page-muted-color);
+  font-size: var(--data-page-controls-font-size);
+  white-space: nowrap;
+}
 /* シーズンを切り替える操作列のボタン */
-.data-view-controls button {
+.data-view-controls :is(button, .data-season-select) {
   padding: var(--data-page-view-button-padding);
   border: var(--data-page-border);
   background: var(--data-page-controls-background);
@@ -131,6 +150,18 @@ body.data-page {
   margin-bottom: var(--data-page-empty-title-margin-bottom);
 }
 .data-empty p { margin: 0; }
+
+.data-panel--has-data {
+  display: flex;
+  flex: 1;
+  margin-bottom: var(--data-page-bottom-nav-gap);
+}
+.data-panel--has-data .trend-detail-card {
+  flex: 1;
+}
+.data-panel--has-data .trend-detail-cell {
+  height: auto;
+}
 
 /* box/ranked.astro(上位チーム)は renderTopBuildCard + team-card.css で /team 一覧と
    カード本体を共用している。器の左右余白も同じ --list-grid-edge-gap に揃えないと
