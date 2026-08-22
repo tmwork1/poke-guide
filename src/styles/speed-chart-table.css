@@ -43,7 +43,7 @@
 	--speed-chart-chips-row-gap: 0.4rem; /* ポケモンチップどうしの間隔。大きくするとチップが離れる */
 	--speed-chart-chips-gap: var(--space-1); /* ポケモン行と補正要因の間隔。大きくすると縦に離れる */
 	--speed-chart-chip-unit-gap: 0.15rem; /* ポケモンチップと補正要因の間隔。大きくすると上下に離れる */
-	--speed-chart-chip-padding: 0.1rem 0.5rem 0.1rem 0.1rem; /* ポケモンチップの内側余白。大きくするとチップが大きくなる */
+	--speed-chart-chip-padding: var(--space-1) var(--space-2) var(--space-1) var(--space-3); /* ポケモンチップの内側余白。大きくするとチップが大きくなる */
 	--speed-chart-badge-padding: 0.05em 0.55em; /* 配分・倍率バッジの内側余白。大きくするとバッジが大きくなる */
 
 	/* ── 8. 寸法 ─────────────────────── */
@@ -546,8 +546,7 @@
 		align-items: center;
 		gap: var(--space-1);
 		font-size: var(--font-size-sm3);
-		background: var(--color-text-muted);
-		color: var(--color-surface);
+		background: var(--color-surface);
 		border-radius: var(--speed-chart-chip-radius);
 		padding: var(--speed-chart-chip-padding);
 	}
