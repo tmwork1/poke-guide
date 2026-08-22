@@ -16,6 +16,7 @@ import { getTeam, type Team } from '../../lib/team';
 import { listRankedSeasons } from '../../lib/ranked-teams';
 import { resolveDefaultSeason } from '../../lib/ranked-teams-validation';
 import '../../styles/team-pokemon-card.css';
+import '../../styles/team-mate-card.css';
 import '../../styles/team-pokemon-tab.css';
 import '../../styles/box-card.css';
 import '../../styles/floating-list-controls.css';
@@ -666,7 +667,7 @@ try {
 				</div>
 				<section id="team-formation-mobile" class="floating-list-page" aria-label="チーム編成">
 					<div class="team-formation-mobile__mates" aria-label="チームメイト">
-						<div id="team-formation-mobile-slots" class="team-formation-mobile__slot-grid"></div>
+						<div id="team-formation-mobile-slots" class="team-formation-mobile__slot-grid team-mate-grid"></div>
 					</div>
 					<div class="team-formation-mobile__suggest" aria-label="おすすめポケモン">
 						<span class="team-formation-mobile__suggest-label">おすすめ</span>
@@ -699,7 +700,7 @@ try {
 				</section>
 				<section id="team-matchup-mobile" class="floating-list-page" aria-label="チーム相性">
 					<div class="team-formation-mobile__mates" aria-label="チームメイト">
-						<div id="team-matchup-mobile-slots" class="team-formation-mobile__slot-grid"></div>
+						<div id="team-matchup-mobile-slots" class="team-formation-mobile__slot-grid team-mate-grid"></div>
 					</div>
 					<div class="team-matchup-mobile__results">
 						<p id="team-matchup-mobile-status" class="team-matchup-status" hidden></p>
@@ -708,7 +709,7 @@ try {
 				</section>
 				<section id="team-data-mobile" class="floating-list-page" aria-label="類似構築">
 					<div class="team-formation-mobile__mates" aria-label="チームメイト">
-						<div id="team-data-mobile-slots" class="team-formation-mobile__slot-grid"></div>
+						<div id="team-data-mobile-slots" class="team-formation-mobile__slot-grid team-mate-grid"></div>
 					</div>
 					<div id="team-data-mobile-similar" class="team-data-similar-panel" aria-label="類似構築"></div>
 				</section>

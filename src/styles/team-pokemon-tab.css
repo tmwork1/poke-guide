@@ -35,7 +35,6 @@ body.team-edit-page {
 	--team-pokemon-tab-matchup-results-padding: var(--space-3); /* 相性結果一覧の内側余白 */
 	--team-pokemon-tab-mates-padding: var(--space-2) var(--space-3); /* チームメイト枠の内側余白 */
 	--team-pokemon-tab-suggest-padding: var(--space-2) var(--space-3); /* おすすめ列の内側余白 */
-	--team-pokemon-tab-slot-gap: var(--space-1); /* 6つのチームメイト枠の間隔 */
 	--team-pokemon-tab-suggest-icons-gap: var(--space-1); /* おすすめアイコンどうしの間隔 */
 
 	/* ── 8. 寸法 ────────────────────────── */
@@ -94,9 +93,6 @@ body.team-edit-page {
 	border-bottom: var(--team-pokemon-tab-mates-border);
 }
 .team-formation-mobile__slot-grid {
-	display: grid;
-	grid-template-columns: repeat(6, minmax(0, 1fr));
-	gap: var(--team-pokemon-tab-slot-gap);
 	max-width: var(--team-pokemon-tab-slot-max-width);
 	margin-inline: auto;
 }

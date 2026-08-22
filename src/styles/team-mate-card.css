@@ -1,0 +1,85 @@
+/* チームメイト6枠を1行6列の小さい正方形アイコンで表示するカード(.team-mate-card)。
+   src/lib/team-mate-card.ts の renderTeamMateSlots() が生成するDOMに対応する。
+   /team/[id] の編成・相性・類似構築タブと、/team一覧ページ(チームカードの圧縮表示)で
+   共有するため、ページ固有CSSから独立したこのファイルに置く。 */
+
+/* モバイル編成タブのチームメイトカード。詳細プレビューとは分離し、公式絵と持ち物だけを表示する。 */
+.team-mate-card {
+	position: relative;
+	display: flex;
+	min-width: 0;
+	aspect-ratio: 1 / 1;
+	align-items: center;
+	justify-content: center;
+	padding: var(--space-1);
+	overflow: hidden;
+	color: var(--color-text);
+	background: var(--color-bg);
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius-sm);
+	cursor: pointer;
+}
+.team-mate-card:hover,
+.team-mate-card:focus-visible,
+.team-mate-card.is-selected {
+	border-color: var(--color-primary);
+	outline: 2px solid var(--color-primary);
+	outline-offset: -2px;
+}
+.team-mate-card--readonly {
+	cursor: default;
+}
+.team-mate-card--readonly:hover {
+	border-color: var(--color-border);
+	outline: none;
+}
+.team-mate-card--empty {
+	border-style: dashed;
+	color: var(--color-text-muted);
+	font-size: var(--font-size-sm2);
+	font-weight: 700;
+}
+.team-mate-card__art {
+	width: 100%;
+	height: 100%;
+	object-fit: contain;
+}
+.team-mate-card__fallback {
+	display: none;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+	height: 100%;
+	border-radius: 50%;
+	background: var(--color-primary-soft);
+	color: var(--color-primary);
+	font-size: var(--font-size-sm2);
+	font-weight: 700;
+}
+.team-mate-card__item {
+	position: absolute;
+	right: 0;
+	bottom: 0;
+	display: flex;
+	width: 36%;
+	aspect-ratio: 1;
+	align-items: center;
+	justify-content: center;
+	padding: 2px;
+	background: var(--color-surface);
+	border: 1px solid var(--color-border);
+	border-radius: 50%;
+}
+.team-mate-card__item img {
+	width: 100%;
+	height: 100%;
+	object-fit: contain;
+}
+
+.team-mate-grid {
+	--team-mate-grid-gap: var(--space-1); /* 6枠どうしの間隔 */
+
+	display: grid;
+	grid-template-columns: repeat(6, minmax(0, 1fr));
+	gap: var(--team-mate-grid-gap);
+}

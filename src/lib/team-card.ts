@@ -53,6 +53,9 @@ export interface RenderTeamCardOptions<M> extends RenderTeamMemberGridOptions<M>
 	badges?: readonly TeamCardBadgeContent[];
 	plainMeta?: readonly TeamCardPlainMetaContent[];
 	headerVariant?: "inline";
+	/** 指定時は既定の box-card グリッド(renderTeamMemberGrid)の代わりにこれを呼び、
+	    メンバー表示部分のDOMを呼び出し側に委ねる(例: /team一覧の圧縮表示)。 */
+	renderMembers?: (container: HTMLElement) => void;
 }
 
 /** チームカード(team/index.astro)と上位構築カード(ranked-teams/card.ts)で共有する6枠メンバーグリッド。 */
@@ -174,7 +177,11 @@ export function renderTeamCard<M>(options: RenderTeamCardOptions<M>): HTMLElemen
 	card.appendChild(header);
 
 	const memberGrid = document.createElement("div");
-	renderTeamMemberGrid(memberGrid, options);
+	if (options.renderMembers) {
+		options.renderMembers(memberGrid);
+	} else {
+		renderTeamMemberGrid(memberGrid, options);
+	}
 	card.appendChild(memberGrid);
 	return card;
 }
