@@ -26,6 +26,8 @@
 	--stat-nature-arrow-border-block: 10px;
 	--stat-nature-dot-size: 6px; /* 性格補正が未設定のときに表示する●の直径 */
 	--stat-label-font-weight: 400;
+	--stat-ev-remaining-font-size: var(--font-size-sm3); /* 「残りXX」「16n+X」の文字サイズ。大きくすると目立つ */
+	--stat-ev-remaining-color: var(--color-text-muted); /* 「残りXX」「16n+X」の文字色。濃くすると目立つ */
 	/* 5列構成: ラベル | 性格補正 | 種族値 | 努力値 | 実数値。 */
 	--stat-mobile-row-grid-template-columns: 1.4rem 2.8rem 2rem minmax(0, 1fr) 2.6rem;
 	--stat-mobile-row-gap: var(--space-1);

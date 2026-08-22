@@ -1,3 +1,11 @@
+/* ===========================================================================
+	チューニング変数
+	=========================================================================== */
+#stat-adjust-sheet {
+	--stat-adjust-sheet-remaining-font-size: var(--font-size-sm3); /* 「残りXX」の文字サイズ。大きくすると目立つ */
+	--stat-adjust-sheet-remaining-color: var(--color-text-muted); /* 「残りXX」の文字色。濃くすると目立つ */
+}
+
 #stat-adjust-sheet {
 	position: fixed;
 	left: var(--space-4);
@@ -32,8 +40,8 @@
 }
 
 .stat-adjust-sheet-remaining {
-	font-size: var(--font-size-sm3);
-	color: var(--color-text-muted);
+	font-size: var(--stat-adjust-sheet-remaining-font-size);
+	color: var(--stat-adjust-sheet-remaining-color);
 	white-space: nowrap;
 }
 

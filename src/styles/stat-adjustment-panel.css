@@ -29,6 +29,7 @@
 	/* ── 3. 文字色 ────────────────────────────────────────── */
 	--stat-value-color: var(--color-text); /* 通常の実数値の色 */
 	--stat-muted-color: var(--color-text-muted); /* 補助値と見出しの色。薄くすると主値との差が増す */
+	--stat-ev-remaining-color: var(--stat-muted-color); /* 残り努力値の色。濃くすると残数が目立つ */
 	--stat-up-color: var(--color-stat-up); /* 上昇補正の色。変えると上向き補正の印象が変わる */
 	--stat-down-color: var(--color-stat-down); /* 下降補正の色。変えると下向き補正の印象が変わる */
 
@@ -134,7 +135,7 @@
 .ev-remaining {
 	font-size: var(--stat-ev-remaining-font-size);
 	font-weight: var(--stat-value-font-weight);
-	color: var(--stat-muted-color);
+	color: var(--stat-ev-remaining-color, var(--stat-muted-color));
 }
 .ev-remaining[data-state="zero"] { color: var(--color-success); }
 .ev-remaining[data-state="over"] { color: var(--color-danger); }
