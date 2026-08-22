@@ -35,6 +35,7 @@ import '../../styles/speed-chart-owned-panel.css';
 			    src/hiddenを出し分けるため)。ラッパーはこの段専用(2段目以降には影響しない)。 */}
 			<div class="speed-chart-owned-summary-header">
 				<img id="speed-chart-owned-summary-sprite" class="sprite-icon speed-chart-owned-summary-sprite" alt="" hidden />
+				<span id="speed-chart-owned-summary-species" class="speed-chart-owned-summary-species"></span>
 				{ownedId && (
 					<a class="btn-ghost speed-chart-owned-edit-button" href={`/box/${ownedId}`} aria-label="個体を編集">
 						{/* pitfalls.md「配色」節: 新しい色は作らずfill="none" stroke="currentColor"で
@@ -48,7 +49,6 @@ import '../../styles/speed-chart-owned-panel.css';
 					</a>
 				)}
 			</div>
-			<span id="speed-chart-owned-summary-species" class="speed-chart-owned-summary-species"></span>
 			<span class="speed-chart-owned-summary-badges">
 				<span id="speed-chart-owned-summary-ability" class="badge badge-muted"></span>
 				<span id="speed-chart-owned-summary-item" class="badge badge-muted speed-chart-owned-summary-item"></span>

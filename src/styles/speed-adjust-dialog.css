@@ -81,7 +81,6 @@ body.box-edit-page {
 body.speed-chart-page:has(.speed-chart-embed-toolbar) {
   /* モーダル内はページ背景(--color-bg)ではなく、モーダル本体と同じ面色にする。 */
   background: var(--color-surface);
-  --speed-chart-owned-panel-background: var(--color-surface-raised);
 
   /* 余白: ツールバー / 表エリア / 下部個体サマリー / サマリー内 / 操作部内 */
   --speed-adjust-toolbar-padding: var(--space-3) var(--space-4);
@@ -158,6 +157,7 @@ body.speed-chart-page .speed-chart-embed-close {
 
 body.speed-chart-page .speed-chart-table[data-embedded='true'] {
   font-size: var(--speed-adjust-base-size);
+  --speed-chart-owned-panel-background: var(--color-surface-raised);
 }
 
 body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-status {

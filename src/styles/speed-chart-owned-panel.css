@@ -105,6 +105,9 @@
 		align-items: center;
 		gap: var(--space-2);
 		align-self: center;
+		padding: var(--space-1) var(--space-2);
+		background: var(--color-surface);
+		border-radius: var(--speed-chart-owned-profile-radius);
 	}
 	/* アイコン段(1段目)。48〜56pxの正方形。中央寄せは親の.speed-chart-owned-summary-header
 		側(align-self: center)で行うため、画像自体には左右位置の指定を持たせない。src/hiddenの
@@ -112,6 +115,7 @@
 	.speed-chart-owned-summary-sprite {
 		width: var(--speed-chart-owned-sprite-size);
 		height: var(--speed-chart-owned-sprite-size);
+		background: transparent;
 	}
 	/* 編集ボタン。global.cssの a.btn-ghost(枠なし・透明背景・ホバーでsurfaceとprimaryの混色)をそのまま
 		使い、新しい配色は作らない。260px幅のカード内でも詰まらないよう、既存のbutton基底より
@@ -130,8 +134,11 @@
 		併記することで、2行に折り返した場合も各行が中央揃えのまま崩れない。 */
 	.speed-chart-owned-summary-species {
 		font-weight: 700;
-		align-self: center;
-		text-align: center;
+		min-width: 0;
+	}
+	.speed-chart-table[data-embedded='true'] .speed-chart-owned-summary-header {
+		padding: 0;
+		background: transparent;
 	}
 	/* 特性/アイテム(3段目)・性格/努力値(4段目)の2項目バッジは、.badgeの左paddingぶん
 		単独で縦積みにするとニックネーム・実数値(いずれもpaddingなしの素のテキスト)と
