@@ -17,8 +17,7 @@
 }
 .team-matchup-card {
 	--matchup-card-border: 2px;
-	--matchup-attack-mix: 0%;
-	--matchup-defense-mix: 0%;
+	--matchup-mix: 0%;
 	position: relative;
 	display: flex;
 	align-items: center;
@@ -26,11 +25,7 @@
 	aspect-ratio: 1 / 1;
 	border: var(--matchup-card-border) solid transparent;
 	border-radius: var(--radius-sm);
-	background: linear-gradient(
-		135deg,
-		color-mix(in srgb, var(--color-surface) calc(100% - var(--matchup-attack-mix)), var(--color-danger-strong) var(--matchup-attack-mix)) 50%,
-		color-mix(in srgb, var(--color-surface) calc(100% - var(--matchup-defense-mix)), var(--color-primary-strong) var(--matchup-defense-mix)) 50%
-	);
+	background: color-mix(in srgb, var(--color-surface) calc(100% - var(--matchup-mix)), var(--color-risky) var(--matchup-mix));
 	transition: border-color 0.2s ease, background 0.2s ease;
 }
 .team-matchup-card[data-state="pending"],

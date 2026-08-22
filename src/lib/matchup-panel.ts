@@ -215,23 +215,21 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 		}
 	}
 
-	function applyMatchupCardResult(
-		targetIndex: number,
-		attackOpacity: number | null,
-		defenseOpacity: number | null,
-	): void {
+	function applyMatchupCardResult(targetIndex: number, opacity: number | null): void {
 		const card = cardElements[targetIndex];
 		if (!card) return;
-		const setMix = (property: '--matchup-attack-mix' | '--matchup-defense-mix', opacity: number | null): void => {
-			card.style.setProperty(property, opacity !== null ? `${opacity * 100}%` : '0%');
-		};
-		setMix('--matchup-attack-mix', attackOpacity);
-		setMix('--matchup-defense-mix', defenseOpacity);
-		if (attackOpacity === null && defenseOpacity === null) {
+		card.style.setProperty('--matchup-mix', opacity !== null ? `${opacity * 100}%` : '0%');
+		if (opacity === null) {
 			card.dataset.state = 'unknown';
 		} else {
 			delete card.dataset.state;
 		}
+	}
+
+	/** 攻撃・防御のうち悪いほう(値が大きいほう)を、そのポケモンのスコアとして採用する。 */
+	function worseScore(attack: number | null, defense: number | null): number | null {
+		if (attack === null && defense === null) return null;
+		return Math.max(attack ?? -Infinity, defense ?? -Infinity);
 	}
 
 	function renderMatchupList(
@@ -241,20 +239,12 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 	): void {
 		createMatchupCards(targets, typesMap);
 		if (!scores) return;
-		const attackScored = scoreToOpacities(
-			targets.map((target, i) => ({ item: target, score: scores.attack[i] ?? null })),
+		const scored = scoreToOpacities(
+			targets.map((target, i) => ({ item: target, score: worseScore(scores.attack[i] ?? null, scores.defense[i] ?? null) })),
 			'attack',
 		);
-		const defenseScored = scoreToOpacities(
-			targets.map((target, i) => ({ item: target, score: scores.defense[i] ?? null })),
-			'defense',
-		);
 		for (let targetIndex = 0; targetIndex < targets.length; targetIndex += 1) {
-			applyMatchupCardResult(
-				targetIndex,
-				attackScored[targetIndex]?.opacity ?? null,
-				defenseScored[targetIndex]?.opacity ?? null,
-			);
+			applyMatchupCardResult(targetIndex, scored[targetIndex]?.opacity ?? null);
 		}
 	}
 
@@ -364,20 +354,15 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 				scores.defense[i] = null;
 			}
 			if (currentRequestId !== requestId) return;
-			const attackScoredSoFar = scoreToOpacities(
-				targets.slice(0, i + 1).map((target, targetIndex) => ({ item: target, score: scores.attack[targetIndex] ?? null })),
+			const scoredSoFar = scoreToOpacities(
+				targets.slice(0, i + 1).map((target, targetIndex) => ({
+					item: target,
+					score: worseScore(scores.attack[targetIndex] ?? null, scores.defense[targetIndex] ?? null),
+				})),
 				'attack',
 			);
-			const defenseScoredSoFar = scoreToOpacities(
-				targets.slice(0, i + 1).map((target, targetIndex) => ({ item: target, score: scores.defense[targetIndex] ?? null })),
-				'defense',
-			);
 			for (let targetIndex = 0; targetIndex <= i; targetIndex += 1) {
-				applyMatchupCardResult(
-					targetIndex,
-					attackScoredSoFar[targetIndex]?.opacity ?? null,
-					defenseScoredSoFar[targetIndex]?.opacity ?? null,
-				);
+				applyMatchupCardResult(targetIndex, scoredSoFar[targetIndex]?.opacity ?? null);
 			}
 		}
 		if (currentRequestId !== requestId) return;
