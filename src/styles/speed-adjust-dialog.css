@@ -265,6 +265,16 @@ body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-owne
   font-size: var(--speed-adjust-toggle-size);
 }
 
+body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-owned-modifier-toggle .toggle-switch-track {
+  background: var(--color-text-muted);
+  border-color: var(--color-text-muted);
+}
+
+body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-owned-modifier-toggle .toggle-switch-input:checked + .toggle-switch-track {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
 body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-rank-field {
   font-size: var(--speed-adjust-rank-field-size);
 }
