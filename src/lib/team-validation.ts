@@ -20,7 +20,6 @@ export interface TeamMemberInput {
 }
 
 export interface TeamRequestBody {
-  name: string | null;
   memo: string | null;
   // レギュレーション(migrations/013_regulation.sql)。値は jpoke 由来の 'M-A' 等、未指定は null。
   // owned-pokemon-validation.ts の regulation と同じく「任意の文字列 or null」としてしか
@@ -30,7 +29,7 @@ export interface TeamRequestBody {
 }
 
 // validateOwnedPokemonRequestBody(body, { mode: 'replace' }) と同じ流儀のオプション引数。
-// PUT(全項目を毎回送る「置換」契約)のときだけ 'replace' を渡すと、name/memo/members が
+// PUT(全項目を毎回送る「置換」契約)のときだけ 'replace' を渡すと、memo/regulation/members が
 // payload に「存在すること」(undefined=未送信は拒否、nullは許容)を必須にする。
 //
 // 背景(owned-pokemon-validation.ts と同じ理由で必須): {} のようなpayloadは「全フィールド
@@ -41,7 +40,7 @@ export interface ValidateTeamRequestBodyOptions {
   mode?: 'replace';
 }
 
-const REPLACE_REQUIRED_FIELDS: Array<keyof TeamRequestBody> = ['name', 'memo', 'regulation', 'members'];
+const REPLACE_REQUIRED_FIELDS: Array<keyof TeamRequestBody> = ['memo', 'regulation', 'members'];
 
 const MIN_SLOT = 1;
 const MAX_SLOT = 6;
@@ -78,11 +77,7 @@ export function validateTeamRequestBody(
     }
   }
 
-  const { name, memo, regulation, members } = body as Record<string, unknown>;
-
-  if (name !== undefined && name !== null && typeof name !== 'string') {
-    return { ok: false, error: 'name must be a string' };
-  }
+  const { memo, regulation, members } = body as Record<string, unknown>;
   if (memo !== undefined && memo !== null && typeof memo !== 'string') {
     return { ok: false, error: 'memo must be a string' };
   }
@@ -129,7 +124,6 @@ export function validateTeamRequestBody(
   return {
     ok: true,
     value: {
-      name: typeof name === 'string' ? normalizeOptionalString(name) : null,
       memo: typeof memo === 'string' ? normalizeOptionalString(memo) : null,
       regulation: typeof regulation === 'string' ? normalizeOptionalString(regulation) : null,
       members: normalizedMembers,

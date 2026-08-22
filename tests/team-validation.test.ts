@@ -177,7 +177,6 @@ describe('validateTeamRequestBody', () => {
     const result = validateTeamRequestBody({});
     assert.equal(result.ok, true);
     if (result.ok) {
-      assert.equal(result.value.name, null);
       assert.equal(result.value.memo, null);
       assert.deepEqual(result.value.members, []);
     }
@@ -185,7 +184,6 @@ describe('validateTeamRequestBody', () => {
 
   it('全項目を指定したリクエストをそのまま受け入れる', () => {
     const result = validateTeamRequestBody({
-      name: 'いつもの並び',
       memo: '対面構成',
       members: [
         { slot: 1, owned_pokemon_id: '11111111-1111-1111-1111-111111111111' },
@@ -194,18 +192,16 @@ describe('validateTeamRequestBody', () => {
     });
     assert.equal(result.ok, true);
     if (result.ok) {
-      assert.equal(result.value.name, 'いつもの並び');
       assert.equal(result.value.memo, '対面構成');
       assert.equal(result.value.members.length, 2);
       assert.equal(result.value.members[0].slot, 1);
     }
   });
 
-  it('空文字のname/memoはnullに正規化される(クリア操作の表現)', () => {
-    const result = validateTeamRequestBody({ name: '', memo: '  ' });
+  it('空文字のmemoはnullに正規化される(クリア操作の表現)', () => {
+    const result = validateTeamRequestBody({ memo: '  ' });
     assert.equal(result.ok, true);
     if (result.ok) {
-      assert.equal(result.value.name, null);
       assert.equal(result.value.memo, null);
     }
   });
@@ -217,11 +213,6 @@ describe('validateTeamRequestBody', () => {
 
   it('bodyがnullの場合は拒否する', () => {
     const result = validateTeamRequestBody(null);
-    assert.equal(result.ok, false);
-  });
-
-  it('nameが文字列でない場合は拒否する', () => {
-    const result = validateTeamRequestBody({ name: 123 });
     assert.equal(result.ok, false);
   });
 
@@ -275,7 +266,6 @@ describe('validateTeamRequestBody', () => {
 
   describe('mode: "replace"', () => {
     const FULL_REPLACE_BODY = {
-      name: null,
       memo: null,
       // migrations/013_regulation.sql で追加した置換対象フィールド。
       regulation: null,
@@ -304,12 +294,12 @@ describe('validateTeamRequestBody', () => {
       }
     });
 
-    it('nameキー自体が無い(undefined)PUTは、値がnullでも拒否する(undefinedとnullを区別する)', () => {
-      const { name, ...withoutName } = FULL_REPLACE_BODY;
-      const result = validateTeamRequestBody(withoutName, { mode: 'replace' });
+    it('memoキー自体が無い(undefined)PUTは、値がnullでも拒否する(undefinedとnullを区別する)', () => {
+      const { memo, ...withoutMemo } = FULL_REPLACE_BODY;
+      const result = validateTeamRequestBody(withoutMemo, { mode: 'replace' });
       assert.equal(result.ok, false);
       if (!result.ok) {
-        assert.match(result.error, /name/);
+        assert.match(result.error, /memo/);
       }
     });
 

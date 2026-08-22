@@ -21,8 +21,6 @@ body.team-page {
 
 	/* ── 8. 寸法 ────────────────────────── */
 	--team-page-shell-min-height: 100dvh; /* 一覧ページの最低の高さ。大きくすると短い内容でも縦に伸びる */
-	--team-page-toolbar-search-max-width: 26rem; /* 検索欄の最大幅。大きくすると横長になる */
-	--team-page-toolbar-search-min-width: 12em; /* 検索欄の最小幅。小さくすると狭い画面で縮めやすい */
 }
 
 /* --------------------------------------------------------------------------
@@ -37,49 +35,10 @@ body.team-page {
 	padding: var(--team-page-content-padding) !important;
 }
 
-/* 検索欄はSecondHeaderの汎用レイアウトを使い、チーム一覧だけ幅を調整する。 */
-.second-header.team-second-header {
-	--second-header-sort-select-width: 6.5em;
-}
-
-.team-second-header .second-header-search {
-	flex: 0 1 var(--team-page-toolbar-search-max-width);
-}
-
-.team-second-header .second-header-search input {
-	width: 100%;
-	min-width: var(--team-page-toolbar-search-min-width);
-}
-
-/* 件数とレギュレーションは一覧とともにスクロールする。 */
-.team-filter-row {
-	display: flex;
-	align-items: center;
-	gap: var(--space-2);
-	margin-bottom: var(--space-3);
-}
-
-.team-filter-row .toolbar-count {
-	flex-shrink: 0;
-}
-
 /* JSがinnerHTMLを差し替えてもカードが .team-grid の直接の子として並ぶようにする
 	(追加タイルは #team-list の外側の兄弟なので再描画で触られない。box/index.astro と同じ戦略)。 */
 #team-list {
 	display: contents;
-}
-
-@media (max-width: 640px) {
-	.team-second-header .second-header-search {
-		flex-basis: auto;
-	}
-
-	.team-second-header .second-header-search input,
-	.team-filter-row .toolbar-regulation select,
-	.team-second-header .second-header-sort select {
-		width: 100%;
-		min-width: 0;
-	}
 }
 
 		/* --- カードグリッド(.team-grid)と #team-list の display:contents は
@@ -99,11 +58,4 @@ body.team-page {
 
 		#no-match-message.empty-state {
 			margin-top: var(--team-page-empty-margin-top);
-		}
-
-		/* .badge(global.css)は display:inline-flex を持つため、UAの[hidden]{display:none}に
-			author style(same-specificity/origin勝ち)として勝ってしまう(pitfalls.md「[hidden]は
-			詳細度で負ける」)。件数バッジをhidden属性で隠すこのページでは明示的に打ち消す。 */
-		#team-count-badge[hidden] {
-			display: none;
 		}

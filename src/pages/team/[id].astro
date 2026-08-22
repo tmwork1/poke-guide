@@ -47,12 +47,7 @@ if (user && id) {
 	}
 }
 
-// 一覧(/team)の「無題のチーム」表記(R-14)とトップバー見出しを揃える。
-function displayTeamName(t: Team): string {
-	return t.name && t.name.trim() !== '' ? t.name : '無題のチーム';
-}
-
-const pageTitle = team ? displayTeamName(team) : 'チーム編集';
+const pageTitle = 'チーム編集';
 const bodyClass = team ? 'team-edit-page' : undefined;
 
 // 個体編集画面(box/[id].astro)のトグルはowned_pokemon.collection_opt_out_untilを個体単位で
@@ -78,7 +73,6 @@ const teamMemberCount = team ? team.members.length : 0;
 const initialTeamJson = team
 	? JSON.stringify({
 			id: team.id,
-			name: team.name,
 			memo: team.memo,
 			// <select id="team-regulation">の初期値はSSRのselected属性で足りるが、InitialTeam型の
 			// 他の項目と揃えて渡しておく(クライアント側から「保存済みの値」を参照したくなったときに
@@ -209,7 +203,7 @@ try {
 		}
 
 
-		/* --- 全体レイアウト: 左=ポケモン選択バー(帯)/ 中央=チーム名・メモ・6枠(可読幅1080px) ---
+		/* --- 全体レイアウト: 左=ポケモン選択バー(帯)/ 中央=メモ・6枠(可読幅1080px) ---
 		   docs/plan/00-foundation.md「レイアウト原則」どおり、選択バーは画面端から
 		   画面端まで伸びる帯(.panel.panel-left)。中央は.panel-contentで1080pxに絞る(R-11)。
 		   閾値を900px未満にしないこと: サイドバー(256px)+選択バー(約380px)を引くと中央カラムが
@@ -392,7 +386,7 @@ try {
 
 		/* 選択バー内の空状態(0件/検索一致0件)。box/index.astroの.empty-stateと同じ語彙・見た目。 */
 
-		/* --- 中央カラム: チーム名・メモ + 6枠(.panel-contentで1080pxに収める) ---
+		/* --- 中央カラム: メモ + 6枠(.panel-contentで1080pxに収める) ---
 		   このカラム自体には幅を指定せず(.team-edit-layoutのgrid-template-columns側で
 		   754pxの固定トラックとして定義、上の.team-edit-layoutコメント参照)、グリッドトラック幅を
 		   そのまま受け取る。1300px未満(縦積み)では幅指定が効かないブロック要素に戻り、
@@ -408,7 +402,7 @@ try {
 			   (754 = 230×3(カード) + 12×2(gap) + 20×2(このpadding))。 */
 			padding: 0 var(--space-5);
 		}
-		/* .team-edit-mainは横paddingのみで縦paddingが無く、ヘッダー直下にチーム名欄が密着する。
+		/* .team-edit-mainは横paddingのみで縦paddingが無く、ヘッダー直下にレギュレーション欄が密着する。
 		   .panel-content(max-width:1080pxのみを持つ共有クラス、global.css)には触れず、
 		   このページ限定でpadding-topを足す。 */
 		.team-edit-main .panel-content {
@@ -588,24 +582,10 @@ try {
 						</div>
 					</section>
 
-					{/* --- 中央: チーム名 + 6枠 + メモ。.panel-contentで可読幅1080pxに収める(R-11・基準23)。 --- */}
+					{/* --- 中央: 6枠 + メモ。.panel-contentで可読幅1080pxに収める(R-11・基準23)。 --- */}
 					<div class="team-edit-main">
 						<div class="panel-content">
 							<div class="team-meta-fields">
-								{/* 可視ラベルは置かずplaceholder="チーム名"だけに委ねるため、アクセシビリティの
-								    ためinputへaria-labelを付ける(aria-labelが唯一のアクセシブルネームの
-								    提供元になる)。 */}
-								<div class="field field-stack">
-									<input
-										id="team-name"
-										class="field-control team-name-input"
-										type="text"
-										placeholder="チーム名"
-										aria-label="チーム名"
-										autocomplete="off"
-										value={team.name ?? ''}
-									/>
-								</div>
 								{/* 個体編集側(LeftPanel.astroの#regulation)と同じく「なし」を先頭の
 								    value=""のoptionが担い、保存時はnullに正規化される
 								    (team-validation.tsのnormalizeOptionalString)。可視ラベル(<label>)は置かず、
@@ -1939,7 +1919,6 @@ try {
 
 		interface InitialTeam {
 			id: string;
-			name: string | null;
 			memo: string | null;
 			regulation: string | null;
 			members: TeamMemberData[];
@@ -1987,7 +1966,6 @@ try {
 				return found as T;
 			}
 
-			const nameInput = el<HTMLInputElement>("team-name");
 			const memoInput = el<HTMLInputElement>("team-memo");
 			const overviewFields = el<HTMLElement>("team-overview-fields");
 			const overviewGrid = el<HTMLElement>("team-overview-grid");
@@ -3844,7 +3822,6 @@ try {
 
 			// --- 自動保存(box/[id].astroと同じデバウンス方式。保存ボタンは作らない) ---
 			function buildPayload(): {
-				name: string | null;
 				memo: string | null;
 				regulation: string | null;
 				members: { slot: number; owned_pokemon_id: string }[];
@@ -3852,10 +3829,8 @@ try {
 				const members = Array.from(membersBySlot.entries())
 					.sort((a, b) => a[0] - b[0])
 					.map(([slot, p]) => ({ slot, owned_pokemon_id: p.id }));
-				const name = nameInput.value.trim();
 				const memo = memoInput.value.trim();
 				return {
-					name: name === "" ? null : name,
 					memo: memo === "" ? null : memo,
 					// PUT /api/teams/:id は全項目上書きの契約(team-validation.tsの
 					// REPLACE_REQUIRED_FIELDS)なので、未指定でもキー自体は必ず送る。
@@ -3940,16 +3915,6 @@ try {
 				})();
 			});
 
-			// A-2(実バグ): トップバーはSSR時点のpageTitleで固定され、#team-nameのinputイベントで
-			// 追随する処理が存在しなかった(トップバーへの参照が本ファイルに0件だった)。
-			function updateHeaderIdentity(): void {
-				// header identity updates (if needed) would go here
-			}
-
-			nameInput.addEventListener("input", () => {
-				updateHeaderIdentity();
-				scheduleSave();
-			});
 			memoInput.addEventListener("input", scheduleSave);
 			searchInput.addEventListener("input", renderSelectList);
 			formationMobileSearchInput.addEventListener("input", renderFormationMobile);

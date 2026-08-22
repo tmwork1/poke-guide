@@ -6,10 +6,7 @@
 //
 // box/index.astro との違い:
 // - データ取得元は GET /api/teams(チーム一覧。メンバー込み、0〜6要素)。
-// - 検索・並べ替えは box と同じくクライアント側で完結させる(初回取得後、追加のAPI呼び出しを
-//   発生させない設計を踏襲。GET /api/teams が受け付ける ?sort=/?search= はサーバー側の便宜のため
-//   用意されているが、このページは box と同じ「1回取得してクライアントでフィルタ」方式に揃える)。
-// - 絞り込みはレギュレーションで行う。
+// - 検索は初回取得後にクライアント側で行い、追加のAPI呼び出しを発生させない。
 // - 一覧カードは体数バッジ(N/6)+メンバーの公式絵ミニサムネイル列を持つ(これが
 //   無いと「複数の構成案を並べて見比べる」というページの存在理由が果たせない)。
 export const prerender = false;
@@ -21,13 +18,10 @@ import '../../styles/app-header.css';
 import '../../styles/second-header.css';
 import AppHeader from '../../components/AppHeader.astro';
 import SecondHeader from '../../components/SecondHeader.astro';
-// 候補は jpoke 由来の一覧(src/lib/regulations.ts)。画面側でレギュレーション名を
-// ハードコードしない(ボックス画面 box/index.astro と同じ方針)。
-import { REGULATIONS } from '../../lib/regulations';
 
 const user = Astro.locals.user;
 ---
-<AppLayout title="チーム" description="登録したチーム編成の一覧・検索・並べ替え" current="team" bodyClass="team-page">
+<AppLayout title="チーム" description="登録したチーム編成の一覧・検索" current="team" bodyClass="team-page">
 	{/*
 	  チームカード(.card-team)は下部の<script>がdocument.createElement()で生成するため、
 	  Astroのscoped style(data-astro-cid-*属性が付いた静的マークアップにしか当たらない)では
@@ -46,7 +40,7 @@ const user = Astro.locals.user;
 						<h1 class="app-header-title">チーム</h1>
 					</AppHeader>
 
-					<SecondHeader ariaLabel="検索・並べ替え" class="team-second-header">
+					<SecondHeader ariaLabel="検索" class="team-second-header">
 						<div class="second-header-search toolbar-item toolbar-search">
 							{/* 可視の「検索」<label>は置かず、box/index.astroと同じくaria-labelで維持する。 */}
 							<div class="search-input-wrap">
@@ -58,40 +52,16 @@ const user = Astro.locals.user;
 									id="search-input"
 									type="search"
 									class="field-control"
-									placeholder=" "
+									placeholder="種族・NN・わざ"
 									aria-label="検索"
 									autocomplete="off"
 								/>
 							</div>
 						</div>
 
-						<div class="second-header-sort toolbar-item toolbar-sort">
-							<div class="sort-select-wrap">
-								<svg class="sort-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-									<path d="M12 20V4" />
-									<path d="M6 10l6-6 6 6" />
-								</svg>
-								<select id="sort-select" class="field-control" aria-label="並べ替え">
-									<option value="updated_at">最終更新</option>
-									<option value="name">チーム名</option>
-								</select>
-							</div>
-						</div>
 					</SecondHeader>
 
 					<div class="team-content box-content">
-						<div class="team-filter-row" id="team-filter-row">
-							<div class="toolbar-item toolbar-count">
-								<span class="badge tnum" id="team-count-badge" hidden>0</span>
-							</div>
-							<div class="toolbar-item toolbar-regulation">
-								<label class="field-label" for="regulation-filter">レギュレーション</label>
-								<select id="regulation-filter" class="field-control">
-									<option value="">すべて</option>
-									{REGULATIONS.map((r) => <option value={r}>{r}</option>)}
-								</select>
-							</div>
-						</div>
 						<p id="loading-message">読み込み中…</p>
 						<p id="error-message" hidden></p>
 
@@ -153,7 +123,6 @@ const user = Astro.locals.user;
 		}
 		interface Team {
 			id: string;
-			name: string | null;
 			memo: string | null;
 			// レギュレーション(migrations/013_regulation.sql)。未指定は null。
 			regulation: string | null;
@@ -175,28 +144,19 @@ const user = Astro.locals.user;
 			const errorMessage = el<HTMLElement>("error-message");
 			const emptyMessage = el<HTMLElement>("empty-message");
 			const noMatchMessage = el<HTMLElement>("no-match-message");
-			const countBadge = el<HTMLElement>("team-count-badge");
-			const sortSelect = el<HTMLSelectElement>("sort-select");
 			const searchInput = el<HTMLInputElement>("search-input");
-			const regulationFilter = el<HTMLSelectElement>("regulation-filter");
 			const addButton = el<HTMLButtonElement>("add-team-button");
 			const ADD_BUTTON_DEFAULT_HTML = addButton.innerHTML;
 
 			let allTeams: Team[] = [];
 
-			// name(空/未設定)なら「無題のチーム」にフォールバック(docs/plan/pages/team.md確定仕様)。
-			function displayName(t: Team): string {
-				if (t.name && t.name.trim() !== "") return t.name;
-				return "無題のチーム";
-			}
-
-			// チーム名・メンバーの種族名・NNを対象にするAND部分一致検索。
+			// メンバーの種族名・NN・わざを対象にするAND部分一致検索。
 			function matchesSearch(t: Team, term: string): boolean {
 				if (!term) return true;
 				const haystack = [
-					t.name ?? "",
 					...t.members.map((m) => m.owned_pokemon.species_name ?? ""),
 					...t.members.map((m) => m.owned_pokemon.nickname ?? ""),
+					...t.members.flatMap((m) => m.owned_pokemon.move_names ?? []),
 				].join(" ");
 				return term
 					.split(/\s+/)
@@ -205,43 +165,15 @@ const user = Astro.locals.user;
 					.every((tok) => kanaIncludes(haystack, tok));
 			}
 
-			// ""や廃止済み・未知の値は「すべて」と同じ扱いにする。クライアント側では
-			// フロントマターの定数を参照できないため、実際のselect選択肢を既知値の基準にする。
-			function matchesRegulation(t: Team): boolean {
-				const selected = regulationFilter.value;
-				const isKnownSelection = Array.from(regulationFilter.options).some((option) => option.value === selected);
-				if (selected === "" || !isKnownSelection) return true;
-				return t.regulation === selected;
-			}
-
-			// 設計レビューR-14: 名前順ソートでは無題チーム(name=null/空)を末尾にする。
-			function sortTeams(list: Team[]): Team[] {
-				const sort = sortSelect.value;
-				const sorted = [...list];
-				if (sort === "name") {
-					sorted.sort((a, b) => {
-						const aTitled = !!(a.name && a.name.trim() !== "");
-						const bTitled = !!(b.name && b.name.trim() !== "");
-						if (aTitled !== bTitled) return aTitled ? -1 : 1;
-						if (!aTitled && !bTitled) return 0;
-						return (a.name as string).localeCompare(b.name as string, "ja");
-					});
-				} else {
-					sorted.sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
-				}
-				return sorted;
-			}
-
 			// 共用レンダラへ一覧固有の操作とメタ情報を渡す。hrefを渡したカードは従来どおり
 			// 丸ごとクリック可能な<a>になり、内部ボタンの遷移抑止もレンダラが担う。
 			function renderCard(t: Team): HTMLElement {
-				const name = displayName(t);
 				const memoText = (t.memo ?? "").trim();
 				const membersBySlot = new Map(t.members.map((m) => [m.slot, m]));
 				return renderTeamCard({
 					href: `/team/${encodeURIComponent(t.id)}`,
-					ariaLabel: `${name} を編集`,
-					name,
+					ariaLabel: "チームを編集",
+					name: "",
 					onDelete: () => deleteTeamCard(t),
 					// メモが空でも<p>を生成し、体数バッジ・削除ボタンとともに既存DOMを維持する。
 					memo: memoText
@@ -265,27 +197,19 @@ const user = Astro.locals.user;
 
 			function renderList(): void {
 				const filtered = allTeams.filter(
-					(t) => matchesSearch(t, searchInput.value.trim()) && matchesRegulation(t),
+					(t) => matchesSearch(t, searchInput.value.trim()),
 				);
-				const sorted = sortTeams(filtered);
+				const sorted = [...filtered].sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
 				listRoot.innerHTML = "";
 				// 「本当に0件」(空状態)と「絞り込みで0件」(検索結果なし)を区別する
 				// (box/index.astroの#empty-message/#no-match-messageと同じ切り分け)。
 				const isTrulyEmpty = allTeams.length === 0;
 				emptyMessage.hidden = !isTrulyEmpty;
 				noMatchMessage.hidden = isTrulyEmpty || sorted.length > 0;
-				updateCountBadge(sorted.length);
 				if (isTrulyEmpty) return;
 				for (const t of sorted) {
 					listRoot.appendChild(renderCard(t));
 				}
-			}
-
-			function updateCountBadge(visibleCount: number): void {
-				// 単位「チーム」は付けない: /box の件数バッジ(#pokemon-count-badge)が素の数値で、
-				// 絞り込み中も現在の表示件数だけを示すため、/box と表記を揃える。
-				countBadge.textContent = String(visibleCount);
-				countBadge.hidden = false;
 			}
 
 			async function deletePokemon(p: TeamMemberPokemon): Promise<void> {
@@ -303,7 +227,7 @@ const user = Astro.locals.user;
 			}
 
 			async function deleteTeamCard(t: Team): Promise<void> {
-				if (!window.confirm(`「${displayName(t)}」を削除します。よろしいですか?`)) return;
+				if (!window.confirm("このチームを削除します。よろしいですか?")) return;
 				try {
 					const res = await fetch(`/api/teams/${encodeURIComponent(t.id)}`, {
 						method: "DELETE",
@@ -318,7 +242,7 @@ const user = Astro.locals.user;
 				}
 			}
 
-			// 「＋ チームを追加」: クリックした瞬間に空チーム(name/memoともnull、members空)を
+			// 「＋ チームを追加」: クリックした瞬間に空チーム(memo=null、members空)を
 			// 自動登録し、そのまま編集画面(/team/[id])へ遷移する。連打による二重登録を防ぐため、
 			// リクエスト中はボタンをdisabledにしてラベルを変更し、失敗時のみ復元する
 			// (成功時はページ遷移するため復元不要。box/index.astroのcreateEmptyPokemonと同じ方針)。
@@ -363,9 +287,7 @@ const user = Astro.locals.user;
 				}
 			}
 
-			sortSelect.addEventListener("change", renderList);
 			searchInput.addEventListener("input", renderList);
-			regulationFilter.addEventListener("change", renderList);
 			addButton.addEventListener("click", () => void createEmptyTeam());
 
 			void loadList();

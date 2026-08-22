@@ -33,7 +33,6 @@ body.team-edit-page {
 	--team-pokemon-tab-actions-gap: var(--space-3); /* 操作列の要素どうしの間隔 */
 	--team-pokemon-tab-suggest-gap: var(--space-3); /* 見出しとおすすめアイコンの間隔 */
 	--team-pokemon-tab-matchup-results-padding: var(--space-3); /* 相性結果一覧の内側余白 */
-	--team-pokemon-tab-meta-fields-gap: var(--space-3); /* チーム名とレギュレーションの間隔 */
 	--team-pokemon-tab-mates-padding: var(--space-2) var(--space-3); /* チームメイト枠の内側余白 */
 	--team-pokemon-tab-suggest-padding: var(--space-2) var(--space-3); /* おすすめ列の内側余白 */
 	--team-pokemon-tab-slot-gap: var(--space-1); /* 6つのチームメイト枠の間隔 */
@@ -166,13 +165,8 @@ body.team-edit-page {
 	}
 }
 
-/* チーム名の隣にレギュレーション選択を並べる。チーム名は可変幅(1fr)、
-	レギュレーションは表示内容に合う幅にする。 */
+/* レギュレーション選択欄。 */
 .team-meta-fields {
-	display: grid;
-	grid-template-columns: minmax(0, 1fr) auto;
-	gap: var(--team-pokemon-tab-meta-fields-gap);
-	align-items: end;
 	margin-bottom: var(--team-pokemon-tab-meta-fields-margin-bottom);
 }
 .team-meta-fields > .field { margin: 0; }
@@ -186,14 +180,6 @@ body.team-edit-page {
 	border-style: dashed;
 	background: transparent;
 	color: var(--team-pokemon-tab-regulation-empty-color);
-}
-.team-name-input {
-	width: 100%;
-	/* global.cssの input[type="text"] { min-width: 12em } は、900px幅(2カラム化する
-		最小幅)で横スクロールを引き起こす下限になりうるため明示的に打ち消す
-		(width:100%で親に追従させる)。フォントサイズ・太さは上書きしない
-		(隣の.team-regulation-field selectと同じ既定の.field-controlサイズに揃える)。 */
-	min-width: 0;
 }
 /* メモ欄は6枠の下に配置されるため、間隔はmargin-topではなく6枠側(team-slots)の
 	margin-bottomで確保する(このinput自体は他の場所にmarginを持たない)。 */

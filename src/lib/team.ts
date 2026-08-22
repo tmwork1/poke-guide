@@ -30,7 +30,6 @@ import type { TeamMemberInput } from './team-validation';
 export interface TeamRecord {
   id: string;
   user_id: string;
-  name: string | null;
   memo: string | null;
   // レギュレーション(migrations/013_regulation.sql)。'M-A' 等、未指定は null。
   regulation: string | null;
@@ -59,22 +58,13 @@ export type ReplaceTeamResult =
   | { ok: true; data: Team | null }
   | { ok: false; error: string; violation?: 'forbidden' };
 
-export type TeamSort = 'updated_at' | 'name';
-
-export interface ListTeamsOptions {
-  sort?: TeamSort;
-  // チーム名の部分一致(一覧の検索欄)。
-  search?: string;
-}
-
 export interface ReplaceTeamInput {
-  name: string | null;
   memo: string | null;
   regulation: string | null;
   members: TeamMemberInput[];
 }
 
-const TEAM_COLUMNS = 'id, user_id, name, memo, regulation, is_pinned, created_at, updated_at';
+const TEAM_COLUMNS = 'id, user_id, memo, regulation, is_pinned, created_at, updated_at';
 
 // nickname/species_name/level/nature/ability_name/item_name/tera_type/evs/ivs/move_names は
 // 6枠カードの表示(公式絵・ニックネーム・テラスタイプ・持ち物・技4つ)に必要な列。
@@ -113,32 +103,14 @@ function normalizeTeam(row: Record<string, unknown>): Team {
 
 export async function listTeams(
   userId: string,
-  options: ListTeamsOptions,
   supabase: SupabaseClient,
 ): Promise<TeamResult<Team[]>> {
   let query = supabase.from('teams').select(TEAM_SELECT_WITH_MEMBERS).eq('user_id', userId);
 
-  if (options.search && options.search.trim() !== '') {
-    // owned-pokemon.ts の listOwnedPokemon と同じ理由: PostgRESTの ilike パターンに使う
-    // ワイルドカード文字はエスケープする(検索語由来の予期しないマッチを防ぐ)。
-    const term = options.search.trim().replace(/[%_]/g, (m) => `\\${m}`);
-    query = query.ilike('name', `%${term}%`);
-  }
-
   // owned-pokemon.tsのlistOwnedPokemonと
   // 同じ方針: ピン留めは常に上部固定したうえで、そのうえで並び替えキーを適用する
   // (実際の一覧画面はクライアント側で再ソートするため、この並びはAPIの契約としての一貫性のため)。
-  query = query.order('is_pinned', { ascending: false });
-  switch (options.sort) {
-    case 'name':
-      // 無題チーム(name=null)は末尾(listOwnedPokemonのnicknameソートと同じ方針)。
-      query = query.order('name', { ascending: true, nullsFirst: false });
-      break;
-    case 'updated_at':
-    default:
-      query = query.order('updated_at', { ascending: false });
-      break;
-  }
+  query = query.order('is_pinned', { ascending: false }).order('updated_at', { ascending: false });
 
   query = query.order('slot', { foreignTable: 'team_members', ascending: true });
 
@@ -167,7 +139,7 @@ export async function getTeam(userId: string, id: string, supabase: SupabaseClie
   return { ok: true, data: data ? normalizeTeam(data as Record<string, unknown>) : null };
 }
 
-// 空チームを作成する(/team の追加カード用)。name/memoは未設定(null)、members は空。
+// 空チームを作成する(/team の追加カード用)。memoは未設定(null)、members は空。
 export async function createTeam(userId: string, supabase: SupabaseClient): Promise<TeamResult<Team>> {
   const { data, error } = await supabase
     .from('teams')
@@ -231,7 +203,7 @@ export async function deleteTeam(userId: string, id: string, supabase: SupabaseC
   return { ok: true, data: (data ?? []).length > 0 };
 }
 
-// PUT /api/teams/:id: name/memo/regulation/members の全項目上書き。
+// PUT /api/teams/:id: memo/regulation/members の全項目上書き。
 // メンバーの置換は supabase.rpc('replace_team_members', ...) で単一トランザクションとして行う
 // (素朴な「DELETE→INSERT」の2リクエストにすると、DELETE成功→INSERT失敗で
 // メンバーが全消失しうる)。
@@ -239,7 +211,7 @@ export async function deleteTeam(userId: string, id: string, supabase: SupabaseC
 // 処理順序:
 //   1. オーナーシップ検証: members[] の全 owned_pokemon_id が本人の owned_pokemon か確認。
 //      1件でも欠けていれば DB に一切書き込まず forbidden で拒否する。
-//   2. teams.name/memo/regulation を更新(対象が存在しない/他人の所有物なら data:null で即終了。
+//   2. teams.memo/regulation を更新(対象が存在しない/他人の所有物なら data:null で即終了。
 //      この場合 RPC は呼ばない = 404 相当のケースで無駄な書き込み試行をしない)。
 //   3. supabase.rpc('replace_team_members', ...) でメンバーを置換(RPC内部でも所有確認を
 //      行う。lib層の検証とは独立した「最後の砦」)。
@@ -277,7 +249,6 @@ export async function replaceTeam(
   const { data: updatedTeam, error: updateError } = await supabase
     .from('teams')
     .update({
-      name: input.name,
       memo: input.memo,
       regulation: input.regulation,
       updated_at: new Date().toISOString(),
