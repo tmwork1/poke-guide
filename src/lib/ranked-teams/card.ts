@@ -212,6 +212,15 @@ export function renderTopBuildCard(team: RankedTeam, options: RenderTopBuildCard
   const card = renderTeamCard({
     name: trainerName,
     nameTitle: trainerName,
+    cornerAction: team.articleUrl
+      ? {
+          type: 'link',
+          href: team.articleUrl,
+          label: team.articleTitle ?? team.articleHost ?? '構築記事',
+          title: team.articleTitle ?? team.articleHost ?? '構築記事',
+          content: createExternalLinkIcon(),
+        }
+      : undefined,
     badges: [
       { className: 'badge tnum', text: team.season },
     ],
@@ -265,13 +274,13 @@ export function renderTopBuildCard(team: RankedTeam, options: RenderTopBuildCard
       const popover = element('div', 'card-team-member-popover');
       popover.setAttribute('role', 'dialog');
       popover.setAttribute('aria-label', `${member.speciesName}の育成情報`);
-      for (const [label, value] of [
-        ['特性', member.ability || '不明'],
-        ['性格', member.nature || '不明'],
-        [null, rankedMemberEvsLabel(member.evs)],
+      for (const value of [
+        member.ability || '不明',
+        member.nature || '不明',
+        rankedMemberEvsLabel(member.evs),
       ]) {
         const row = element('p', 'card-team-member-popover-row');
-        row.textContent = label === null ? value : `${label} ${value}`;
+        row.textContent = value;
         popover.append(row);
       }
       popover.style.position = 'fixed';

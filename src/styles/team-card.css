@@ -33,6 +33,7 @@
   --team-card-empty-font-size: 1.5rem; /* 空き枠番号の大きさ */
   --team-card-pin-font-size: var(--font-size-lg1); /* お気に入りの星の大きさ */
   --team-card-title-font-size: var(--font-size-base); /* チーム名の文字サイズ */
+  --team-card-inline-name-font-size: var(--font-size-sm1); /* 上位構築カードのトレーナー名の文字サイズ */
   --team-card-badge-font-size: var(--font-size-sm3); /* バッジ文字の大きさ */
 
   /* ── 2. 文字の太さ・行間 ──────────────────── */
@@ -160,8 +161,9 @@
   min-width: 0;
 }
 .team-grid .card-team .card-team-header--inline .card-team-name {
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   min-width: 0;
+  font-size: var(--team-card-inline-name-font-size);
   width: auto;
   font-weight: var(--team-card-inline-name-font-weight);
 }
@@ -246,6 +248,17 @@
 .team-grid .card-team .card-team-article-link svg {
   width: var(--team-card-article-icon-size);
   height: var(--team-card-article-icon-size);
+}
+.team-grid .card-team .card-team-header--inline .card-team-article-link--inline {
+  position: static;
+  z-index: auto;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  color: var(--team-card-action-color);
+}
+.team-grid .card-team .card-team-header--inline .card-team-article-link--inline:hover {
+  color: var(--team-card-action-hover-color);
 }
 
 /* --- 見せない要素。DOM生成側(renderTeamCard)は触らず、CSSでのみ隠す

@@ -184,6 +184,18 @@ export function renderTeamCard<M>(options: RenderTeamCardOptions<M>): HTMLElemen
 	name.textContent = options.name;
 	name.title = options.nameTitle ?? options.name;
 	header.appendChild(name);
+	if (options.cornerAction?.type === "link" && options.headerVariant === "inline") {
+		const action = options.cornerAction;
+		const link = document.createElement("a");
+		link.className = "card-team-article-link card-team-article-link--inline";
+		link.href = action.href;
+		link.target = "_blank";
+		link.rel = "noopener noreferrer";
+		link.title = action.title ?? action.label;
+		link.setAttribute("aria-label", action.label);
+		link.appendChild(action.content);
+		header.appendChild(link);
+	}
 	card.appendChild(header);
 
 	const memberGrid = document.createElement("div");
