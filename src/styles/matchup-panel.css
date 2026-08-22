@@ -37,9 +37,6 @@
 .team-matchup-card[data-state="unknown"] {
 	background: var(--color-surface);
 }
-.team-matchup-card.is-selected {
-	border-color: var(--color-primary-strong);
-}
 .team-matchup-sprite-img {
 	max-width: 100%;
 	max-height: 100%;

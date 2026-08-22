@@ -1053,12 +1053,6 @@ try {
 			border-color: var(--color-primary);
 			background: color-mix(in srgb, var(--color-surface) 90%, var(--color-primary) 10%);
 		}
-		/* 相性チェックで不利と判定されたメンバー。選択状態とは独立させ、縁ではなく
-		   カード全体の背景だけを既存のリスク色で示す。 */
-		.team-slots .card-team-slot.is-disadvantaged {
-			/* 相手をクリックして初めて出る対応関係なので、既存リスク色の混合量を増やして明確にする。 */
-			background: color-mix(in srgb, var(--color-surface) 80%, var(--color-risky-strong) 20%);
-		}
 		.team-slots .card-team-slot.is-dragging {
 			opacity: 0.5;
 		}
@@ -3010,19 +3004,6 @@ try {
 				listElement: matchupMobileListEl,
 				statusElement: matchupMobileStatusEl,
 				getMembers: matchupTeamMembers,
-				onMemberHighlight(disadvantagedIds) {
-					for (const card of matchupMobileSlotsRoot.querySelectorAll("[data-slot]")) {
-						card.classList.remove("is-disadvantaged");
-					}
-					if (!disadvantagedIds) return;
-					const ids = new Set(disadvantagedIds);
-					for (const [slot, member] of membersBySlot) {
-						if (!ids.has(member.id)) continue;
-						matchupMobileSlotsRoot
-							.querySelector<HTMLElement>(`[data-slot="${slot}"]`)
-							?.classList.add("is-disadvantaged");
-					}
-				},
 			});
 
 			function runMatchup(): Promise<void> {

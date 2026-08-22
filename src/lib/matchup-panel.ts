@@ -55,12 +55,6 @@ interface MatchupScoreCacheEntry {
 	defense: (number | null)[];
 }
 
-interface MatchupMemberRatioCacheEntry {
-	memberIds: string[];
-	attackRatios: (number[] | null)[];
-	defenseRatios: (number[] | null)[];
-}
-
 let matchupTargetsPromise: Promise<MatchupTarget[]> | null = null;
 let imageIdMapPromise: Promise<Map<string, number>> | null = null;
 
@@ -171,11 +165,6 @@ export interface MatchupPanelOptions {
 	statusElement: HTMLElement;
 	getMembers: () => MatchupPanelMember[];
 	emptyMembersMessage?: string;
-	/**
-	 * カード選択時に不利なメンバーIDを通知する。null は選択解除を表す。
-	 * チーム編集ページは枠のハイライトに使い、個体ページは渡さない。
-	 */
-	onMemberHighlight?: (memberIds: readonly string[] | null) => void;
 }
 
 export interface MatchupPanel {
@@ -185,14 +174,11 @@ export interface MatchupPanel {
 
 /** 相性結果の取得、計算、進捗表示、カード描画をまとめたクライアント用パネル。 */
 export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
-	const { listElement, statusElement, getMembers, onMemberHighlight } = options;
+	const { listElement, statusElement, getMembers } = options;
 	let requestId = 0;
 	let timer: number | undefined;
 	const scoreCache = new Map<string, MatchupScoreCacheEntry>();
-	const memberRatioCache = new Map<string, MatchupMemberRatioCacheEntry>();
 	let cardElements: HTMLLIElement[] = [];
-	const clickableCards = new WeakSet<HTMLLIElement>();
-	let selectedTargetIndex: number | null = null;
 
 	function setStatus(message: string | null): void {
 		if (message === null) {
@@ -209,15 +195,8 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 		cardElements = [];
 	}
 
-	function clearMemberHighlights(): void {
-		selectedTargetIndex = null;
-		for (const card of listElement.querySelectorAll('.team-matchup-card')) card.classList.remove('is-selected');
-		onMemberHighlight?.(null);
-	}
-
 	function createMatchupCards(targets: MatchupTarget[], typesMap: Map<string, string[]>): void {
 		clearLists();
-		clearMemberHighlights();
 		for (const target of targets) {
 			const card = document.createElement('li');
 			card.className = 'team-matchup-card';
@@ -240,17 +219,11 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 		targetIndex: number,
 		attackOpacity: number | null,
 		defenseOpacity: number | null,
-		memberRatios: MatchupMemberRatioCacheEntry,
 	): void {
 		const card = cardElements[targetIndex];
 		if (!card) return;
 		const setMix = (property: '--matchup-attack-mix' | '--matchup-defense-mix', opacity: number | null): void => {
-			if (opacity !== null && opacity >= 0.5) {
-				const mix = 28 + (opacity - 0.5) * 84;
-				card.style.setProperty(property, `${mix}%`);
-				return;
-			}
-			card.style.setProperty(property, '0%');
+			card.style.setProperty(property, opacity !== null ? `${opacity * 100}%` : '0%');
 		};
 		setMix('--matchup-attack-mix', attackOpacity);
 		setMix('--matchup-defense-mix', defenseOpacity);
@@ -259,34 +232,15 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 		} else {
 			delete card.dataset.state;
 		}
-		if (clickableCards.has(card)) return;
-		clickableCards.add(card);
-		card.addEventListener('click', () => {
-			const attackRatios = memberRatios.attackRatios[targetIndex];
-			const defenseRatios = memberRatios.defenseRatios[targetIndex];
-			if (!attackRatios && !defenseRatios) return;
-			if (selectedTargetIndex === targetIndex) {
-				clearMemberHighlights();
-				return;
-			}
-			clearMemberHighlights();
-			selectedTargetIndex = targetIndex;
-			card.classList.add('is-selected');
-			const disadvantagedIds = memberRatios.memberIds.filter((_, i) =>
-				(attackRatios?.[i] ?? Infinity) < 0.5 || (defenseRatios?.[i] ?? -Infinity) >= 0.5,
-			);
-			onMemberHighlight?.(disadvantagedIds);
-		});
 	}
 
 	function renderMatchupList(
 		targets: MatchupTarget[],
 		scores: MatchupScoreCacheEntry | null,
-		memberRatios: MatchupMemberRatioCacheEntry | null,
 		typesMap: Map<string, string[]>,
 	): void {
 		createMatchupCards(targets, typesMap);
-		if (!scores || !memberRatios) return;
+		if (!scores) return;
 		const attackScored = scoreToOpacities(
 			targets.map((target, i) => ({ item: target, score: scores.attack[i] ?? null })),
 			'attack',
@@ -300,14 +254,12 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 				targetIndex,
 				attackScored[targetIndex]?.opacity ?? null,
 				defenseScored[targetIndex]?.opacity ?? null,
-				memberRatios,
 			);
 		}
 	}
 
 	async function run(): Promise<void> {
 		const currentRequestId = (requestId += 1);
-		clearMemberHighlights();
 		setStatus('上位ポケモンを読み込み中…');
 		let targets: MatchupTarget[];
 		try {
@@ -333,19 +285,18 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 		};
 		const members = getMembers().filter((member) => member.species_name?.trim() !== '');
 		if (members.length === 0) {
-			renderMatchupList(targets, null, null, typesMap);
+			renderMatchupList(targets, null, typesMap);
 			setStatus(options.emptyMembersMessage ?? 'チームにポケモンを入れると相性を計算します。');
 			return;
 		}
 		const cacheKey = members.map((member) => member.id).sort().join(',');
 		const cached = scoreCache.get(cacheKey);
-		const cachedMemberRatios = memberRatioCache.get(cacheKey);
-		if (cached && cachedMemberRatios) {
-			renderMatchupList(targets, cached, cachedMemberRatios, typesMap);
+		if (cached) {
+			renderMatchupList(targets, cached, typesMap);
 			setStatus(null);
 			return;
 		}
-		renderMatchupList(targets, null, null, typesMap);
+		renderMatchupList(targets, null, typesMap);
 		setStatus('相性チェックを準備中…');
 		registerOfflineCache();
 		try {
@@ -371,11 +322,6 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 			attack: new Array(targets.length).fill(null),
 			defense: new Array(targets.length).fill(null),
 		};
-		const memberRatioEntry: MatchupMemberRatioCacheEntry = {
-			memberIds: members.map((member) => member.id),
-			attackRatios: new Array(targets.length).fill(null),
-			defenseRatios: new Array(targets.length).fill(null),
-		};
 		let engineRestarted = false;
 		for (let i = 0; i < targets.length; i += 1) {
 			setStatus(`相性を計算中… (${i + 1}/${targets.length})`);
@@ -395,10 +341,8 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 				};
 				const attackResult = await calculateDirection('attack');
 				scores.attack[i] = attackResult?.score ?? null;
-				memberRatioEntry.attackRatios[i] = attackResult?.memberRatios ?? null;
 				const defenseResult = await calculateDirection('defense');
 				scores.defense[i] = defenseResult?.score ?? null;
-				memberRatioEntry.defenseRatios[i] = defenseResult?.memberRatios ?? null;
 			} catch (err) {
 				console.error(err);
 				if (currentRequestId !== requestId) return;
@@ -418,8 +362,6 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 				}
 				scores.attack[i] = null;
 				scores.defense[i] = null;
-				memberRatioEntry.attackRatios[i] = null;
-				memberRatioEntry.defenseRatios[i] = null;
 			}
 			if (currentRequestId !== requestId) return;
 			const attackScoredSoFar = scoreToOpacities(
@@ -435,13 +377,11 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 					targetIndex,
 					attackScoredSoFar[targetIndex]?.opacity ?? null,
 					defenseScoredSoFar[targetIndex]?.opacity ?? null,
-					memberRatioEntry,
 				);
 			}
 		}
 		if (currentRequestId !== requestId) return;
 		scoreCache.set(cacheKey, scores);
-		memberRatioCache.set(cacheKey, memberRatioEntry);
 		const unknownCount = targets.filter((_, i) => scores.attack[i] === null && scores.defense[i] === null).length;
 		setStatus(unknownCount > 0 ? `${unknownCount}体は採用技のデータが無いため計算していません(破線の枠)。` : null);
 	}
