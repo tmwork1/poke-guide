@@ -91,6 +91,7 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  scrollbar-gutter: stable;
 }
 .trend-detail-cell strong {
   margin-top: var(--battle-data-card-value-margin-top);

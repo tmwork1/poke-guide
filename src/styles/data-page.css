@@ -60,7 +60,7 @@ body.data-page {
   padding-bottom: calc(64px + env(safe-area-inset-bottom));
   display: flex;
   flex-direction: column;
-  height: calc(100vh - var(--header-height));
+  height: calc(100dvh - var(--header-height));
 }
 /* ポケモン名と説明を表示する上部概要 */
 .pokemon-data-preview {
