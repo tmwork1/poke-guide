@@ -33,10 +33,24 @@ describe('usageRateLabel', () => {
 });
 
 describe('evSpreadLabel', () => {
-  it('努力値配分をH/A/B/C/D/Sの表記にする', () => {
+  it('0以外の努力値配分をH/A/B/C/D/S順の表記にする', () => {
     assert.equal(
       evSpreadLabel({ hp: 252, attack: 252, defense: 0, specialAttack: 0, specialDefense: 0, speed: 4 }),
-      'H252/A252/B0/C0/D0/S4',
+      'H252/A252/S4',
+    );
+  });
+
+  it('0の努力値を表記から省略する', () => {
+    assert.equal(
+      evSpreadLabel({ hp: 32, attack: 0, defense: 32, specialAttack: 0, specialDefense: 2, speed: 0 }),
+      'H32/B32/D2',
+    );
+  });
+
+  it('全項目が0の場合は0を返す', () => {
+    assert.equal(
+      evSpreadLabel({ hp: 0, attack: 0, defense: 0, specialAttack: 0, specialDefense: 0, speed: 0 }),
+      '0',
     );
   });
 });

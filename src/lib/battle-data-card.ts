@@ -41,5 +41,14 @@ export function usageRateLabel(usageRate: number | null): string {
 }
 
 export function evSpreadLabel(values: Record<string, number>): string {
-  return `H${values.hp}/A${values.attack}/B${values.defense}/C${values.specialAttack}/D${values.specialDefense}/S${values.speed}`;
+  const stats = [
+    ['H', values.hp],
+    ['A', values.attack],
+    ['B', values.defense],
+    ['C', values.specialAttack],
+    ['D', values.specialDefense],
+    ['S', values.speed],
+  ] as const;
+
+  return stats.filter(([, value]) => value !== 0).map(([label, value]) => `${label}${value}`).join('/') || '0';
 }
