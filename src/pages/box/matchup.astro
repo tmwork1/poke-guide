@@ -1,0 +1,95 @@
+---
+export const prerender = false;
+
+import AppLayout from '../../layouts/AppLayout.astro';
+import MobileTrainingBar from '../../components/box-id/MobileTrainingBar.astro';
+import { getOwnedPokemon } from '../../lib/owned-pokemon';
+import { getSupabaseAdminClient } from '../../lib/supabase';
+import '../../styles/data-page.css';
+import '../../styles/matchup-panel.css';
+import '../../styles/box-matchup-page.css';
+
+const user = Astro.locals.user;
+const selectedId = Astro.url.searchParams.get('pokemon');
+const result = user && selectedId
+  ? await getOwnedPokemon(user.id, selectedId, await getSupabaseAdminClient())
+  : null;
+const pokemon = result?.ok ? result.data : null;
+---
+
+<AppLayout title="相性" description="使用率上位ポケモンとの攻守の相性" current="box" bodyClass="data-page">
+  <div class="page box-data-page box-matchup-page">
+    {pokemon ? (
+      <MobileTrainingBar pokemon={pokemon} activeTab="matchup" />
+    ) : (
+      <section class="pokemon-data-preview" aria-labelledby="matchup-preview-title">
+        <p class="data-kicker">相性チェック</p>
+        <h1 id="matchup-preview-title">ポケモンを選択してください</h1>
+        <p>ボックス詳細画面の「相性」から、選択中のポケモンと使用率上位ポケモンの攻守の相性を確認できます。</p>
+        <a class="btn-ghost" href="/box">ボックスを開く</a>
+      </section>
+    )}
+
+    {pokemon && (
+      <main
+        id="box-matchup-main"
+        class="box-data-main"
+        data-pokemon={JSON.stringify({
+          id: pokemon.id,
+          species_name: pokemon.species_name,
+          level: pokemon.level,
+          nature: pokemon.nature,
+          ability_name: pokemon.ability_name,
+          item_name: pokemon.item_name,
+          tera_type: pokemon.tera_type,
+          move_names: pokemon.move_names,
+          evs: pokemon.evs,
+          ivs: pokemon.ivs,
+        })}
+      >
+        <section class="box-matchup-panel" aria-label="相性チェック">
+          <div class="box-matchup-page__direction">
+            <div class="team-matchup-direction-toggle" role="radiogroup" aria-label="相性チェックの方向">
+              <button id="box-matchup-direction-attack" class="team-matchup-direction-option" type="button" role="radio" data-role="attack" aria-checked="true">攻撃</button>
+              <button id="box-matchup-direction-defense" class="team-matchup-direction-option" type="button" role="radio" data-role="defense" aria-checked="false">防御</button>
+            </div>
+          </div>
+          <div class="box-matchup-page__results">
+            <p id="box-matchup-status" class="team-matchup-status" hidden></p>
+            <ul id="box-matchup-list" class="team-matchup-list"></ul>
+          </div>
+        </section>
+      </main>
+    )}
+  </div>
+</AppLayout>
+
+<script>
+  import { createMatchupPanel, type MatchupPanelMember } from '../../lib/matchup-panel';
+
+  const main = document.querySelector<HTMLElement>('#box-matchup-main');
+  const listElement = document.querySelector<HTMLElement>('#box-matchup-list');
+  const statusElement = document.querySelector<HTMLElement>('#box-matchup-status');
+  const attackButton = document.querySelector<HTMLButtonElement>('#box-matchup-direction-attack');
+  const defenseButton = document.querySelector<HTMLButtonElement>('#box-matchup-direction-defense');
+  const pokemonJson = main?.dataset.pokemon;
+
+  if (listElement && statusElement && attackButton && defenseButton && pokemonJson) {
+    const pokemon = JSON.parse(pokemonJson) as MatchupPanelMember;
+    const matchupPanel = createMatchupPanel({
+      listElement,
+      statusElement,
+      getMembers: () => [pokemon],
+    });
+
+    function setDirection(direction: 'attack' | 'defense'): void {
+      attackButton.setAttribute('aria-checked', direction === 'attack' ? 'true' : 'false');
+      defenseButton.setAttribute('aria-checked', direction === 'defense' ? 'true' : 'false');
+      matchupPanel.setDirection(direction);
+    }
+
+    attackButton.addEventListener('click', () => setDirection('attack'));
+    defenseButton.addEventListener('click', () => setDirection('defense'));
+    void matchupPanel.run();
+  }
+</script>

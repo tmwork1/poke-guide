@@ -1,0 +1,20 @@
+/* 個体相性ページ(/box/matchup)固有のレイアウト。 */
+.box-matchup-page .box-data-main {
+	padding-bottom: calc(64px + env(safe-area-inset-bottom) + var(--space-3));
+}
+.box-matchup-panel {
+	display: flex;
+	flex: 1;
+	min-height: 0;
+	flex-direction: column;
+}
+.box-matchup-page__direction {
+	position: sticky;
+	top: 0;
+	z-index: 1;
+	padding-bottom: var(--space-3);
+	background: var(--color-bg);
+}
+.box-matchup-page__results {
+	flex: 1;
+}

@@ -11,7 +11,7 @@ import '../../styles/app-header.css';
 
 interface Props {
   pokemon: OwnedPokemonRecord;
-  activeTab?: 'training' | 'battle-data' | 'ranked-teams';
+  activeTab?: 'training' | 'battle-data' | 'ranked-teams' | 'matchup';
 }
 
 const { pokemon, activeTab = 'training' } = Astro.props;
@@ -42,9 +42,9 @@ const previewStats = detail ? statKeys.map((key, index) => index === 0 ? calcHpS
       <a class="app-header__item" href={`/box/ranked?pokemon=${encodeURIComponent(pokemon.id)}`} data-active={activeTab === 'ranked-teams' ? 'true' : undefined} aria-current={activeTab === 'ranked-teams' ? 'page' : undefined}>
         <span>上位チーム</span>
       </a>
-      <span class="app-header__item is-disabled" aria-disabled="true">
+      <a class="app-header__item" href={`/box/matchup?pokemon=${encodeURIComponent(pokemon.id)}`} data-active={activeTab === 'matchup' ? 'true' : undefined} aria-current={activeTab === 'matchup' ? 'page' : undefined}>
         <span>相性</span>
-      </span>
+      </a>
     </div>
   </AppHeader>
 

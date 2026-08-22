@@ -22,6 +22,7 @@ import '../../styles/floating-list-controls.css';
 import '../../styles/team-data-tab.css';
 import '../../styles/team-card.css';
 import '../../styles/app-header.css';
+import '../../styles/matchup-panel.css';
 // レギュレーション候補は jpoke 由来の一覧(src/lib/regulations.ts)。画面側でレギュレーション名を
 // ハードコードしない(box/[id].astro の左パネルと同じ方針)。選択肢は新しい順に並べるため、
 // REGULATIONS(定義順=古い順)ではなくREGULATIONS_NEWEST_FIRST(新しい順の配列)を使う。
@@ -207,59 +208,6 @@ try {
 			color: var(--color-primary-contrast);
 		}
 
-		/* 攻撃・防御の切り替え。個体編集画面のダメージ計算カードの攻守セグメント
-		   (src/components/box-id/DamageCalcSection.astro の
-		   .damage-row-direction-toggle / .damage-row-direction-option)と同じ意匠。
-		   あちらは #opponent-notes-section 配下に限定したセレクタで、このページには
-		   バンドルされない(Astroのscoped/is:globalスタイルは実際にそのコンポーネントを
-		   描画したページにしか入らない)ため、上の .toggle-switch 一式と同じ理由で
-		   同じ値をここへ複製する(新しい値は作っていない)。 */
-		.team-matchup-direction-toggle {
-			display: flex;
-			width: 100%;
-			border: 1px solid var(--color-border);
-			border-radius: var(--radius-md);
-			overflow: hidden;
-		}
-		.team-matchup-direction-option {
-			flex: 1 1 0;
-			min-width: 0;
-			border: none;
-			background: var(--color-surface);
-			color: var(--color-text-muted);
-			font-size: var(--font-size-sm3);
-			font-weight: 600;
-			padding: 0.25em 0.4em;
-			line-height: var(--line-height-tight);
-			cursor: pointer;
-			transition: background 0.15s, color 0.15s;
-		}
-		.team-matchup-direction-option + .team-matchup-direction-option {
-			border-left: 1px solid var(--color-border);
-		}
-		.team-matchup-direction-option:hover:not([aria-checked="true"]) {
-			color: var(--color-primary);
-			background: var(--color-primary-soft);
-		}
-		.team-matchup-direction-option:focus-visible {
-			outline: 2px solid var(--color-primary);
-			outline-offset: -2px;
-		}
-		.team-matchup-direction-option[data-role="attack"][aria-checked="true"] {
-			background: var(--color-danger-strong);
-			color: var(--color-primary-contrast);
-		}
-		.team-matchup-direction-option[data-role="defense"][aria-checked="true"] {
-			background: var(--color-primary-strong);
-			color: var(--color-primary-contrast);
-		}
-		.team-matchup-status {
-			font-size: var(--font-size-sm3);
-			color: var(--color-text-muted);
-			margin: var(--space-2) 0 0;
-			line-height: var(--line-height-snug);
-		}
-		.team-matchup-status[hidden] { display: none; }
 
 		/* --- 全体レイアウト: 左=ポケモン選択バー(帯)/ 中央=チーム名・メモ・6枠(可読幅1080px) ---
 		   docs/plan/00-foundation.md「レイアウト原則」どおり、選択バーは画面端から
@@ -1932,76 +1880,6 @@ try {
 			opacity: 0.6;
 		}
 
-		/* --- 相性チェックの相手カード一覧。JS(renderMatchupList)が生成する要素なので、
-		   このファイルの scoped <style> ではなくここ(is:global)に置く。カードの中身は
-		   アイコンのみ。数値(平均ダメージ割合)はtitle 属性にだけ入れ、一覧の見た目は
-		   「濃さ」だけで読ませる。 --- */
-		.team-matchup-list {
-			list-style: none;
-			margin: var(--space-3) 0 0;
-			padding: 0;
-			display: grid;
-			/* 右パネルの実効幅(1920px幅で実測 約566px)に対して1行4〜6枚。auto-fill にして
-			   幅が変わっても枚数だけが増減するようにする(カード自体の大きさは固定)。 */
-			grid-template-columns: repeat(auto-fill, minmax(77px, 1fr));
-			gap: var(--space-2);
-		}
-		.team-matchup-card {
-			/* スコア位置でも共有し、透明ボーダーの幅と打ち消し量を常に一致させる。 */
-			--matchup-card-border: 2px;
-			position: relative;
-			display: flex;
-			align-items: center;
-			justify-content: center;
-			aspect-ratio: 1 / 1;
-			/* 通常時は枠を見せず、透明枠でクリック選択時のレイアウト変化だけ防ぐ。 */
-			border: var(--matchup-card-border) solid transparent;
-			border-radius: var(--radius-sm);
-			background: var(--color-surface);
-			transition: border-color 0.2s ease, background 0.2s ease;
-		}
-		/* 既存トークンだけを混ぜ、ダークモードでも本文色とのコントラストを保つ。 */
-		.team-matchup-card.is-disadvantageous {
-			background: color-mix(in srgb, var(--color-surface) calc(100% - var(--matchup-mix, 28%)), var(--color-risky) var(--matchup-mix, 28%));
-		}
-		.team-matchup-card.is-disadvantageous .team-matchup-score {
-			/* 濃い側でもライト・ダーク双方の本文色でスコアを判読できるようにする。 */
-			color: var(--color-text);
-		}
-		.team-matchup-card[data-state="pending"],
-		.team-matchup-card[data-state="unknown"] {
-			background: var(--color-surface);
-		}
-		/* 枠はクリックした相手を示す選択状態にだけ使う。 */
-		.team-matchup-card.is-selected {
-			border-color: var(--color-primary-strong);
-		}
-		.team-matchup-score {
-			position: absolute;
-			/* 絶対配置の基準となるボーダー内側から枠幅だけ戻し、ボーダーボックス左上へ揃える。 */
-			top: var(--space-1);
-			left: var(--space-1);
-			font-size: calc(var(--font-size-sm3) * 0.85);
-			font-weight: 700;
-			font-variant-numeric: tabular-nums;
-			color: var(--color-text-muted);
-			line-height: 1;
-		}
-		.team-matchup-sprite-img {
-			max-width: 100%;
-			max-height: 100%;
-		}
-		.team-matchup-sprite-fallback {
-			display: none;
-			width: 32px;
-			height: 32px;
-			border-radius: 50%;
-			background: var(--color-bg);
-			color: var(--color-text-muted);
-			font-size: var(--font-size-sm3);
-			align-items: center;
-			justify-content: center;
-		}
 	</style>
 
 	<script>
@@ -2009,10 +1887,7 @@ try {
 		// 自動保存のデバウンス方式は box/[id].astro と同じ(700ms・保存ボタンは作らない・
 		// topbar-statusスロットで状態表示)。初期表示データ(SSR取得済みのチーム)は
 		// #team-edit-layout の data-initial-team から読む(fetch往復を待たずに6枠を描ける)。
-		// 連続技のヒット数が必要なため loadMultiHitMoveMap を追加importする
-		// (Battle.calc_damages() は連続技でも1ヒットぶんしか返さないため。
-		// src/lib/pyodide-engine.ts の calcMaxDamageMatrix のコメント参照)。
-		import { loadImageIdMap, officialArtworkUrl, championSpriteUrl, loadBaseStatsMap, loadMoveDetailMap, loadMultiHitMoveMap, loadTypesMap } from "../../lib/pokemon-master-data";
+		import { loadImageIdMap, officialArtworkUrl, championSpriteUrl, loadBaseStatsMap, loadMoveDetailMap } from "../../lib/pokemon-master-data";
 		// 技チップにタイプアイコンを追加するため、typeIconUrlを追加importする(box/index.astroの
 		// applyMoveChipTypeIconsと同じ用途)。
 		import { itemIconUrl, teraTypeIconUrl, typeIconUrl } from "../../lib/sprite-urls";
@@ -2046,31 +1921,7 @@ try {
 			type MoveCategory,
 			type OpponentNoteLike,
 		} from "../../lib/damage-summary";
-		// ブラウザ内 Pyodide + jpoke でダメージを計算する(このページで Pyodide を使うのは
-		// この機能だけなので、初期化はボタンを押したときの遅延初期化。box/[id].astro の
-		// 「表示直後にプリフェッチ」はあちらのページ限定の例外)。
-		import {
-			calcMaxDamageMatrix,
-			initEngine,
-			isEngineFatal,
-			registerOfflineCache,
-			resetEngine,
-			type PokemonSpec,
-		} from "../../lib/pyodide-engine";
-		// 判定・数式そのものは純粋関数として切り出してある(tests/team-matchup.test.ts で検証)。
-		import {
-			MATCHUP_TOP_N,
-			OPPONENT_EVS,
-			OPPONENT_NATURE,
-			averageRatio,
-			damageRatio,
-			matchupDisadvantageScore,
-			pickOpponentAttackMoves,
-			pickTeamAttackMoves,
-			scoreToOpacities,
-			type MatchupDirection,
-			type PopularMoveOption,
-		} from "../../lib/team-matchup";
+		import { createMatchupPanel } from "../../lib/matchup-panel";
 
 		interface OwnedPokemonRecord {
 			id: string;
@@ -3149,9 +3000,8 @@ try {
 			// 相性チェック
 			// 「使用率上位20体のポケモンとの攻守の相性を可視化する」。
 			//
-			// 相手の一覧と採用技は GET /api/matchup-targets、数式は src/lib/team-matchup.ts、
-			// ダメージ計算はブラウザ内 Pyodide + jpoke(calcMaxDamageMatrix)。ここは
-			// 「取得 → 計算の駆動 → 描画」の繋ぎだけを担う。
+			// 取得・計算の駆動・カード描画は src/lib/matchup-panel.ts に共通化し、このページは
+			// チーム枠への不利メンバーハイライトだけをコールバックで渡す。
 			//
 			// 相手の条件: 性格補正なし・努力値H32振り・Lv50・IV31。特性と持ち物は
 			// 付けない(jpoke は空文字を渡すと特性なし・持ち物なしの個体になる)。
@@ -3164,57 +3014,13 @@ try {
 			// のdocstring参照)。相手1体ぶんずつ Python を呼び、その間に進捗を描く。
 			// =================================================================================
 
-			interface MatchupTarget {
-				speciesName: string;
-				dexNo: number | null;
-				usageTeams: number;
-				totalTeams: number;
-				moves: PopularMoveOption[];
-			}
-
 			const matchupMobileSlotsRoot = el<HTMLElement>("team-matchup-mobile-slots");
 			const matchupMobileStatusEl = el<HTMLElement>("team-matchup-mobile-status");
 			const matchupMobileListEl = el<HTMLElement>("team-matchup-mobile-list");
 			const matchupMobileAttackButton = el<HTMLButtonElement>("matchup-mobile-direction-attack");
 			const matchupMobileDefenseButton = el<HTMLButtonElement>("matchup-mobile-direction-defense");
 
-			let matchupDirection: MatchupDirection = "attack";
-			// 上位20体の一覧は編成にも向きにも依存しないので、ページ内で1回だけ取得して使い回す。
-			let matchupTargetsPromise: Promise<MatchupTarget[]> | null = null;
-			// 「今どの条件に対する計算か」。編成や向きを続けて操作したときに、古い計算の結果が
-			// 後から届いて上書きするのを防ぐ(renderPreviewPanel の previewRequestId と同じ方式)。
-			let matchupRequestId = 0;
-			let matchupTimer: number | undefined;
-			// 計算済みスコア。キー = 向き + 編成(メンバーIDの並び)。攻撃/防御を往復しても
-			// 120組の計算をやり直さないためのもの。個体そのものの育成内容を別画面で変えた場合は
-			// ページ遷移(=このキャッシュの破棄)を伴うため、IDだけをキーにして問題ない。
-			const matchupScoreCache = new Map<string, (number | null)[]>();
-			interface MatchupMemberRatioCacheEntry {
-				memberIds: string[];
-				ratios: (number[] | null)[];
-			}
-			const matchupMemberRatioCache = new Map<string, MatchupMemberRatioCacheEntry>();
-			let matchupCardEls: HTMLLIElement[] = [];
-			const matchupClickableCards = new WeakSet<HTMLLIElement>();
-			let selectedMatchupTargetIndex: number | null = null;
-
-			function setMatchupStatus(message: string | null): void {
-				if (message === null) {
-					matchupMobileStatusEl.hidden = true;
-					matchupMobileStatusEl.textContent = "";
-				} else {
-					matchupMobileStatusEl.textContent = message;
-					matchupMobileStatusEl.hidden = false;
-				}
-			}
-
-			function clearMatchupLists(): void {
-				matchupMobileListEl.innerHTML = "";
-				matchupCardEls = [];
-			}
-
-			// 相性チェックの対象になるチームメンバー(種族名が入っているものだけ)。
-			// 枠順に並べるが、平均を採るだけなので順序自体は結果に影響しない。
+			let matchupDirection: "attack" | "defense" = "attack";
 			function matchupTeamMembers(): OwnedPokemonRecord[] {
 				const members: OwnedPokemonRecord[] = [];
 				for (let slot = 1; slot <= 6; slot += 1) {
@@ -3224,386 +3030,40 @@ try {
 				return members;
 			}
 
-			async function loadMatchupTargets(): Promise<MatchupTarget[]> {
-				if (!matchupTargetsPromise) {
-					matchupTargetsPromise = fetch(`/api/matchup-targets?limit=${MATCHUP_TOP_N}`, { credentials: "same-origin" })
-						.then(async (res) => {
-							if (!res.ok) throw new Error(`相性チェックの対象取得に失敗しました (status=${res.status})`);
-							const body = (await res.json()) as { data: MatchupTarget[] };
-							return body.data ?? [];
-						})
-						.catch((err) => {
-							// 失敗した Promise を握り続けると二度と再試行できなくなる(loadSuggestions が
-							// lastSuggestKey を戻すのと同じ考え方)。
-							matchupTargetsPromise = null;
-							throw err;
-						});
-				}
-				return matchupTargetsPromise;
-			}
-
-			/** 自チームの1体を jpoke に渡す仕様に変換する。moveNames は用途(攻撃側/防御側)で変える。 */
-			function matchupTeamSpec(p: OwnedPokemonRecord, moveNames: string[]): PokemonSpec {
-				return {
-					name: p.species_name,
-					level: p.level ?? 50,
-					nature: p.nature ?? "まじめ",
-					abilityName: p.ability_name ?? "",
-					itemName: p.item_name ?? "",
-					moveNames,
-					// テラスタイプは terastallized を立てない限りダメージ計算に影響しない
-					// (チャンピオンズルールにテラスタルは無い)。情報としてだけ渡す。
-					teraType: p.tera_type ?? null,
-					evs: p.evs,
-					ivs: p.ivs,
-				};
-			}
-
-			/** 相手ポケモンの基準個体(性格補正なし・H32振り)。 */
-			function matchupOpponentSpec(target: MatchupTarget, moveNames: string[]): PokemonSpec {
-				return {
-					name: target.speciesName,
-					level: 50,
-					nature: OPPONENT_NATURE,
-					moveNames,
-					evs: [...OPPONENT_EVS],
-					// チャンピオンズルールの個体値は31固定(.claude/skills/jpoke/references/ruleset.md)。
-					ivs: [31, 31, 31, 31, 31, 31],
-				};
-			}
-
-			function matchupUsagePercent(target: MatchupTarget): number {
-				return Math.round((target.usageTeams / Math.max(target.totalTeams, 1)) * 100);
-			}
-
-			function clearMatchupMemberHighlights(): void {
-				selectedMatchupTargetIndex = null;
-				for (const card of matchupMobileListEl.querySelectorAll(".team-matchup-card")) {
-					card.classList.remove("is-selected");
-				}
-				for (const card of matchupMobileSlotsRoot.querySelectorAll("[data-slot]")) {
-					card.classList.remove("is-disadvantaged");
-				}
-			}
-
-			/** pending 状態の相手カードを作り、相性タブの一覧へ追加する。 */
-			function createMatchupCards(targets: MatchupTarget[], typesMap: Map<string, string[]>): void {
-				clearMatchupLists();
-				clearMatchupMemberHighlights();
-
-				function createMatchupCard(target: MatchupTarget): HTMLLIElement {
-					const card = document.createElement("li");
-					card.className = "team-matchup-card";
-					card.dataset.state = "pending";
-
-					// カード表示はアイコンのみ。数値は title(ツールチップ)にだけ入れる。
-					const img = document.createElement("img");
-					img.className = "team-matchup-sprite-img";
-					img.alt = "";
-					const fallback = document.createElement("span");
-					fallback.className = "team-matchup-sprite-fallback";
-					card.append(img, fallback);
-					void applySprite(img, fallback, target.speciesName);
-
-					// ツールチップは識別に必要な種族名とタイプだけに限定する。
-					const typeNames = (typesMap.get(target.speciesName) ?? []).join("/");
-					card.title = typeNames ? `${target.speciesName}\n${typeNames}` : target.speciesName;
-					return card;
-				}
-
-				for (const target of targets) {
-					const card = createMatchupCard(target);
-					matchupCardEls.push(card);
-					matchupMobileListEl.appendChild(card);
-				}
-			}
-
-			/** 計算済みの1体について、既存カードのDOMを保ったまま結果を反映する。 */
-			function applyMatchupCardResult(
-				targetIndex: number,
-				score: number | null,
-				opacity: number | null,
-				memberRatios: MatchupMemberRatioCacheEntry,
-			): void {
-				const card = matchupCardEls[targetIndex];
-				if (!card) return;
-
-				card.classList.remove("is-disadvantageous");
-				card.style.removeProperty("--matchup-mix");
-
-				if (score === null || opacity === null) {
-					card.dataset.state = "unknown";
-					card.querySelector(".team-matchup-score")?.remove();
-					return;
-				}
-
-				delete card.dataset.state;
-				if (opacity >= 0.5) {
-					card.classList.add("is-disadvantageous");
-					// 下限28%を保ち、最大1.0では70%まで広げて不利度の差を明確にする。
-					const mix = 28 + (opacity - 0.5) * 84;
-					card.style.setProperty("--matchup-mix", `${mix}%`);
-				}
-
-				// 内部で保持している相性スコアを、比較しやすい固定2桁で左上に表示する。
-				let scoreEl = card.querySelector<HTMLSpanElement>(".team-matchup-score");
-				if (!scoreEl) {
-					scoreEl = document.createElement("span");
-					scoreEl.className = "team-matchup-score";
-					card.appendChild(scoreEl);
-				}
-				scoreEl.textContent = score.toFixed(2);
-
-				if (matchupClickableCards.has(card)) return;
-				matchupClickableCards.add(card);
-				card.addEventListener("click", () => {
-					const ratios = memberRatios.ratios[targetIndex];
-					if (!ratios) return;
-					if (selectedMatchupTargetIndex === targetIndex) {
-						clearMatchupMemberHighlights();
-						return;
+			const matchupPanel = createMatchupPanel({
+				listElement: matchupMobileListEl,
+				statusElement: matchupMobileStatusEl,
+				getMembers: matchupTeamMembers,
+				onMemberHighlight(disadvantagedIds) {
+					for (const card of matchupMobileSlotsRoot.querySelectorAll("[data-slot]")) {
+						card.classList.remove("is-disadvantaged");
 					}
-					clearMatchupMemberHighlights();
-					selectedMatchupTargetIndex = targetIndex;
-					card.classList.add("is-selected");
-					// 個別割合50%を境界にする。防御は被ダメージ50%以上、攻撃は与ダメージ50%未満を不利と判定。
-					const disadvantagedIds = new Set(
-						memberRatios.memberIds.filter((_, i) =>
-							matchupDirection === "defense" ? ratios[i] >= 0.5 : ratios[i] < 0.5,
-						),
-					);
+					if (!disadvantagedIds) return;
+					const ids = new Set(disadvantagedIds);
 					for (const [slot, member] of membersBySlot) {
-						if (!disadvantagedIds.has(member.id)) continue;
+						if (!ids.has(member.id)) continue;
 						matchupMobileSlotsRoot
 							.querySelector<HTMLElement>(`[data-slot="${slot}"]`)
 							?.classList.add("is-disadvantaged");
 					}
-				});
+				},
+			});
+
+			function runMatchup(): Promise<void> {
+				return matchupPanel.run();
 			}
 
-			/**
-			 * 相手カードの一覧を描く。scores が null のときは「まだ計算していない」状態
-			 * (相手の顔ぶれだけ先に見せる)。
-			 */
-			function renderMatchupList(
-				targets: MatchupTarget[],
-				scores: (number | null)[] | null,
-				memberRatios: MatchupMemberRatioCacheEntry | null,
-				typesMap: Map<string, string[]>,
-			): void {
-				createMatchupCards(targets, typesMap);
-				if (!scores || !memberRatios) return;
-				const scored = scoreToOpacities(
-					targets.map((target, i) => ({ item: target, score: scores[i] ?? null })),
-					matchupDirection,
-				);
-				for (let targetIndex = 0; targetIndex < scored.length; targetIndex += 1) {
-					applyMatchupCardResult(targetIndex, scored[targetIndex].score, scored[targetIndex].opacity, memberRatios);
-				}
-			}
-
-			/**
-			 * 相手1体に対するチーム全員の「最大ダメージ割合の平均」。
-			 * 計算できなかった場合(相手の種族名が jpoke に無い・採用技のデータが無い)は null。
-			 */
-			async function computeMatchupScore(
-				target: MatchupTarget,
-				teamAttackSpecs: PokemonSpec[],
-				teamDefenseSpecs: PokemonSpec[],
-				isAttackMove: (moveName: string) => boolean,
-				moveHitCounts: Record<string, number>,
-			): Promise<{ score: number; memberRatios: number[] } | null> {
-				if (matchupDirection === "attack") {
-					// 攻撃: チーム全員 → 相手1体。各メンバーの最大打点を相手のHPで割る。
-					const result = await calcMaxDamageMatrix(teamAttackSpecs, [matchupOpponentSpec(target, [])], {
-						moveHitCounts,
-					});
-					const hp = result.defenderMaxHp[0];
-					if (hp == null) return null;
-					// 個々のセルが null(その組だけ計算に失敗)のときは0として平均に含める
-					// ── 「そのメンバーはこの相手に何も通せない」と同じ扱いにするのが安全側。
-					const memberRatios = teamAttackSpecs.map((_, i) => damageRatio(result.maxDamage[i]?.[0] ?? 0, hp));
-					const rawScore = averageRatio(memberRatios);
-					// スコアは値が高いほど不利になるよう統一する(matchupDisadvantageScore参照)。
-					if (rawScore === null) return null;
-					return { score: matchupDisadvantageScore(rawScore, "attack"), memberRatios };
-				}
-
-				// 防御: 相手1体 → チーム全員。相手の技は攻撃技だけを採用率上位4つ。
-				const opponentMoves = pickOpponentAttackMoves(target.moves, isAttackMove);
-				// 採用技が集計されていない種族(母数が k-匿名性の閾値未満)は、技0本で計算すると
-				// 「一切ダメージを受けない最も安全な相手」に見えてしまう。計算せず「データなし」にする。
-				if (opponentMoves.length === 0) return null;
-				const result = await calcMaxDamageMatrix([matchupOpponentSpec(target, opponentMoves)], teamDefenseSpecs, {
-					moveHitCounts,
-				});
-				const memberRatios = teamDefenseSpecs.map((_, i) => {
-					const hp = result.defenderMaxHp[i];
-					if (hp == null) return 0;
-					return damageRatio(result.maxDamage[0]?.[i] ?? 0, hp);
-				});
-				return { score: averageRatio(memberRatios), memberRatios };
-			}
-
-			async function runMatchup(): Promise<void> {
-				const requestId = (matchupRequestId += 1);
-				clearMatchupMemberHighlights();
-
-				setMatchupStatus("上位ポケモンを読み込み中…");
-				let targets: MatchupTarget[];
-				try {
-					targets = await loadMatchupTargets();
-				} catch (err) {
-					console.error(err);
-					if (requestId !== matchupRequestId) return;
-					clearMatchupLists();
-					setMatchupStatus("上位ポケモンの一覧を読み込めませんでした。");
-					return;
-				}
-				if (requestId !== matchupRequestId) return;
-
-				if (targets.length === 0) {
-					clearMatchupLists();
-					setMatchupStatus("集計データがまだありません。");
-					return;
-				}
-				const [typesMap, moveDetails] = await Promise.all([loadTypesMap(), loadMoveDetailMap()]);
-				if (requestId !== matchupRequestId) return;
-				// マスターデータに無い技は判定材料が無いので攻撃技として扱わない(計算にも使えない)。
-				const isAttackMove = (moveName: string): boolean => {
-					const detail = moveDetails.get(moveName);
-					return !!detail && detail.category !== "status";
-				};
-
-				const members = matchupTeamMembers();
-				if (members.length === 0) {
-					renderMatchupList(targets, null, null, typesMap);
-					setMatchupStatus("チームにポケモンを入れると相性を計算します。");
-					return;
-				}
-
-				const cacheKey = `${matchupDirection}|${members.map((p) => p.id).sort().join(",")}`;
-				const cached = matchupScoreCache.get(cacheKey);
-				const cachedMemberRatios = matchupMemberRatioCache.get(cacheKey);
-				if (cached && cachedMemberRatios) {
-					renderMatchupList(targets, cached, cachedMemberRatios, typesMap);
-					setMatchupStatus(null);
-					return;
-				}
-
-				// 計算前でも顔ぶれは先に出す(Pyodideの初回ロードは十数秒かかることがあるため、
-				// 空のパネルのまま待たせない)。
-				renderMatchupList(targets, null, null, typesMap);
-
-				setMatchupStatus("相性チェックを準備中…");
-				// Pyodide本体・jpoke wheelのオフラインキャッシュ(2回目以降の再ダウンロード回避)。
-				// box/[id].astro と同じService Workerで、登録は何度呼んでも冪等。
-				registerOfflineCache();
-				try {
-					await initEngine((progress) => {
-						if (requestId === matchupRequestId && progress.status === "loading") setMatchupStatus(progress.message);
-					});
-				} catch (err) {
-					console.error(err);
-					if (requestId !== matchupRequestId) return;
-					setMatchupStatus("相性を計算できませんでした。再度お試しください。");
-					return;
-				}
-				if (requestId !== matchupRequestId) return;
-
-				const multiHitMoves = await loadMultiHitMoveMap();
-				if (requestId !== matchupRequestId) return;
-				const moveHitCounts: Record<string, number> = {};
-				for (const [moveName, hits] of multiHitMoves) moveHitCounts[moveName] = hits[1];
-
-				// 相手ごとに作り直す必要が無いものは先に一度だけ組み立てる。
-				const teamAttackSpecs = members.map((p) =>
-					matchupTeamSpec(p, pickTeamAttackMoves(p.move_names ?? [], isAttackMove)),
-				);
-				// 防御側は技を使わない(jpoke側は技が空なら「はねる」で補う)。
-				const teamDefenseSpecs = members.map((p) => matchupTeamSpec(p, []));
-
-				const scores: (number | null)[] = new Array(targets.length).fill(null);
-				const memberRatios: (number[] | null)[] = new Array(targets.length).fill(null);
-				const memberRatioEntry = { memberIds: members.map((p) => p.id), ratios: memberRatios };
-				let engineRestarted = false;
-				for (let i = 0; i < targets.length; i += 1) {
-					setMatchupStatus(`相性を計算中… (${i + 1}/${targets.length})`);
-					// Pyodideの呼び出しは同期でメインスレッドを止めるため、直前に一度制御を返して
-					// 上の進捗テキストを実際に描かせる(await が無いと最後の1回しか描かれない)。
-					await new Promise((resolve) => window.setTimeout(resolve, 0));
-					if (requestId !== matchupRequestId) return;
-					try {
-						const result = await computeMatchupScore(
-							targets[i],
-							teamAttackSpecs,
-							teamDefenseSpecs,
-							isAttackMove,
-							moveHitCounts,
-						);
-						scores[i] = result?.score ?? null;
-						memberRatios[i] = result?.memberRatios ?? null;
-					} catch (err) {
-						console.error(err);
-						if (requestId !== matchupRequestId) return;
-						// WASMヒープが壊れた場合(isEngineFatal)は、1回だけエンジンを作り直して
-						// 同じ相手からやり直す(src/lib/box-id/bulk-adjust-solver.ts と同じ方針)。
-						if (isEngineFatal() && !engineRestarted) {
-							engineRestarted = true;
-							setMatchupStatus("計算を再試行中…");
-							try {
-								await resetEngine();
-								if (requestId !== matchupRequestId) return;
-								i -= 1;
-								continue;
-							} catch (resetErr) {
-								console.error(resetErr);
-								setMatchupStatus("相性を計算できませんでした。ページを再読み込みしてください。");
-								return;
-							}
-						}
-						scores[i] = null;
-					}
-					if (requestId !== matchupRequestId) return;
-
-					// 未計算の相手は含めず、ここまでに判明したスコアだけで濃淡を正規化し直す。
-					const scoredSoFar = scoreToOpacities(
-						targets.slice(0, i + 1).map((target, targetIndex) => ({
-							item: target,
-							score: scores[targetIndex] ?? null,
-						})),
-						matchupDirection,
-					);
-					for (let targetIndex = 0; targetIndex < scoredSoFar.length; targetIndex += 1) {
-						const entry = scoredSoFar[targetIndex];
-						applyMatchupCardResult(targetIndex, entry.score, entry.opacity, memberRatioEntry);
-					}
-				}
-				if (requestId !== matchupRequestId) return;
-
-				matchupScoreCache.set(cacheKey, scores);
-				matchupMemberRatioCache.set(cacheKey, memberRatioEntry);
-				const unknownCount = scores.filter((s) => s === null).length;
-				setMatchupStatus(
-					unknownCount > 0 ? `${unknownCount}体は採用技のデータが無いため計算していません(破線の枠)。` : null,
-				);
-			}
-
-			// 編成が変わったら計算し直す。サジェスト(scheduleSuggestions)と同じ700msのデバウンス。
 			function scheduleMatchup(): void {
 				if (layoutRoot.dataset.mobileTab !== "matchup") return;
-				window.clearTimeout(matchupTimer);
-				matchupTimer = window.setTimeout(() => {
-					void runMatchup();
-				}, 700);
+				matchupPanel.schedule();
 			}
 
-			function setMatchupDirection(direction: MatchupDirection): void {
+			function setMatchupDirection(direction: "attack" | "defense"): void {
 				if (matchupDirection === direction) return;
 				matchupDirection = direction;
 				matchupMobileAttackButton.setAttribute("aria-checked", direction === "attack" ? "true" : "false");
 				matchupMobileDefenseButton.setAttribute("aria-checked", direction === "defense" ? "true" : "false");
-				void runMatchup();
+				matchupPanel.setDirection(direction);
 			}
 
 			matchupMobileAttackButton.addEventListener("click", () => setMatchupDirection("attack"));
