@@ -42,7 +42,7 @@
 	--speed-chart-meta-gap: 0.35em; /* 種族値・配分・倍率の間隔。大きくすると横に離れる */
 	--speed-chart-chips-row-gap: 0.4rem; /* ポケモンチップどうしの間隔。大きくするとチップが離れる */
 	--speed-chart-chips-gap: var(--space-1); /* ポケモン行と補正要因の間隔。大きくすると縦に離れる */
-	--speed-chart-chip-unit-gap: 0.15rem; /* ポケモンチップと補正要因の間隔。大きくすると上下に離れる */
+	--speed-chart-chip-unit-gap: 0.05rem; /* ポケモンチップと補正要因の間隔。大きくすると上下に離れる */
 	--speed-chart-chip-padding: var(--space-1) var(--space-2) var(--space-1) var(--space-3); /* ポケモンチップの内側余白。大きくするとチップが大きくなる */
 	--speed-chart-badge-padding: 0.05em 0.55em; /* 配分・倍率バッジの内側余白。大きくするとバッジが大きくなる */
 
@@ -457,51 +457,21 @@
 		font-size: inherit;
 		font-weight: 700;
 		vertical-align: middle;
-		border: 1px solid transparent;
 	}
-	/* max(最速): 既存のprimary系のまま(要件1「最速=既存のprimary系のまま」)。
-		実測(Playwright+getComputedStyleを実ページから取得し相対輝度式でコントラスト計算。
-		color-mixの結果はcomputed styleが`color(srgb r g b / a)`形式で返ることがあるため
-		注意して読む。alpha付き背景(ダークの--color-primary-softはrgba)は実際の祖先要素の
-		背景色に合成してから輝度計算する): primary-soft背景に対してprimary-strongの文字色は
-		ライトで4.17:1しかなく、この段のfont-size(12px相当)は太字でもWCAG AA大文字テキストの
-		閾値(18.7px相当)に届かないため4.5:1が必要。global.cssは変えずcolor-mixで10%黒を
-		混ぜてライト4.95:1に是正する。この同じ1本のCSSルールがダークにも適用され、
-		ダークは実測5.32:1(--color-primary-softがrgba(…, 0.16)のためページ背景
-		var(--color-bg)と合成された色で計算)。両テーマとも4.5:1を満たす。 */
+	/* 配分の状態は文字色だけで示す。 */
 	.speed-chart-table .speed-chart-spread-badge[data-spread='max'] {
-		background: var(--color-primary-soft);
 		color: color-mix(in srgb, var(--color-primary-strong) 90%, black 10%);
 	}
-	/* sub(準速): 「青とニュートラルの中間」を、背景はprimary-soft(青)とsurfaceを
-		55:45で、文字はprimary-strong(青)とtext-muted(グレー)を60:40でcolor-mixし、
-		maxよりも彩度・明度差を落とした中間段として作る(生hexは使わず両トークンの混色のみ)。
-		置き換え後のコントラスト値は未実測。CoordinatorがPlaywrightで実測して更新する。 */
 	.speed-chart-table .speed-chart-spread-badge[data-spread='sub'] {
-		background: color-mix(in srgb, var(--color-primary-soft) 55%, var(--color-surface) 45%);
 		color: color-mix(in srgb, var(--color-primary-strong) 60%, var(--color-text-muted) 40%);
 	}
-	/* none(無振り): グラデーションの終端として彩度ゼロのグレーにする。surface/text-muted
-		はこのファイル内の.speed-chart-chip-origin等でも使っている既存の「控えめな文字」の
-		定番ペアで新規の混色は不要。置き換え後のコントラスト値は未実測。
-		CoordinatorがPlaywrightで実測して更新する。 */
 	.speed-chart-table .speed-chart-spread-badge[data-spread='none'] {
-		background: var(--color-surface);
 		color: var(--color-text-muted);
 	}
-	/* min(最遅): 無振りよりさらに控えめな段階。既存トークンだけで連続感を保つ。 */
 	.speed-chart-table .speed-chart-spread-badge[data-spread='min'] {
-		background: var(--color-surface);
 		color: var(--color-text-muted);
-		border-color: var(--color-border);
 	}
-	/* 2列目の補正量(×1.5等、chart-table.ts側が.speed-chart-magnitude-badgeを付与)。
-		要件2: 配分バッジと並んだときに主従が分かるよう、配分バッジ(塗りのpill+太字)より
-		控えめな「枠線付きの薄いチップ」にする。背景・文字は上のnone(無振り)バッジと同じ
-		surface/text-mutedペアを使う。置き換え後のコントラスト値は未実測のため、
-		CoordinatorがPlaywrightで実測して更新する。既存トークン同士の組み合わせに
-		境界線var(--color-border)を足して配分バッジ(境界線なしの塗りpill)と形で
-		区別できるようにする。 */
+	/* 倍率は控えめな文字色で示す。 */
 	.speed-chart-table .speed-chart-magnitude-badge {
 		display: inline-flex;
 		align-items: center;
@@ -510,9 +480,7 @@
 		font-size: 0.9em;
 		font-weight: 500;
 		vertical-align: middle;
-		background: var(--color-surface);
 		color: var(--color-text-muted);
-		border: 1px solid var(--color-border);
 	}
 	/* ポケモンチップの並び(3列目の1段目)。chart-table.tsのbuildRowContentが
 		limitRowChipsByWidthで行の幅に収まる件数だけ残し、収まらない分は「+N件」バッジで示す。
