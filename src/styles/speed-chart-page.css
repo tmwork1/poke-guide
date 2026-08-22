@@ -17,7 +17,6 @@ body.speed-chart-page {
 	--speed-chart-reachable-font-size: var(--font-size-sm2); /* 絞り込みトグルの文字サイズ。大きくするとラベルが目立つ */
 
 	/* ── 7. 余白 ─────────────────────── */
-	--speed-chart-topbar-actions-gap: var(--space-5); /* トップバーの操作項目間隔。大きくすると項目が離れる */
 	--speed-chart-embed-toolbar-padding: var(--space-3) var(--space-4); /* 操作バーの内側余白。大きくするとバーが大きくなる */
 	--speed-chart-embed-toolbar-gap: var(--space-2); /* 操作バー内の項目間隔。大きくすると操作項目が離れる */
 	--speed-chart-reachable-gap: var(--space-2); /* 絞り込みトグルの部品間隔。大きくするとラベルとスイッチが離れる */
@@ -82,13 +81,14 @@ body.speed-chart-page {
 	}
 }
 
-body.speed-chart-page .app-header--toolbar {
-	gap: var(--speed-chart-topbar-actions-gap);
+/* SecondHeaderの外枠は共通コンポーネントを使い、内部だけをこの画面の小さな操作群用に組む。 */
+.speed-chart-second-header {
+	flex-wrap: wrap;
 }
-/* 操作バーは横幅が限られるため、レギュレーション選択・実数値ジャンプ入力は
-	中身(3桁の実数値・レギュレーション名)に対して過大にならない幅に絞る。
-	.app-header--toolbar 側で既に display:flex; gap; flex-wrap が効くため、
-	ここでは各要素の幅だけを調整すれば横並び・640px未満での折り返しの両方に対応できる。 */
+.speed-chart-second-header > * {
+	flex: 0 0 auto;
+	min-width: 0;
+}
 #speed-chart-regulation-select {
 	width: auto;
 	min-width: 0;
