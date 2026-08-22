@@ -356,6 +356,13 @@ export function initOwnedPanel(ctx: OwnedPanelContext): OwnedPanelController {
 
     // 状態3: 到達不可(R-7: −、muted)。
     if (rawSelections.length === 0) {
+      const reachableValues = combos.map((combo) => combo.value);
+      const isWithinReachableRange =
+        reachableValues.length === 0 ||
+        (rowValue >= Math.min(...reachableValues) && rowValue <= Math.max(...reachableValues));
+
+      if (!isWithinReachableRange) return;
+
       el.classList.add('is-unreachable');
       const dash = document.createElement('span');
       dash.className = 'speed-chart-owned-dash';
