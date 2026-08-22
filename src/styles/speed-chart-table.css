@@ -263,7 +263,7 @@
 		grid-column: 1 / -1;
 		grid-row: 2;
 		align-items: center;
-		justify-content: flex-start;
+		justify-content: space-between;
 		gap: var(--space-4);
 		width: 100%;
 		padding-top: var(--space-1);
