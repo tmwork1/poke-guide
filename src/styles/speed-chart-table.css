@@ -12,9 +12,9 @@
 	-------------------------------------------------------------------------- */
 .speed-chart-table {
 	/* ── 1. 文字サイズ ─────────────────────── */
-	--speed-chart-value-font-size: var(--font-size-lg1); /* 実数値の文字サイズ。大きくすると数値が目立つ */
-	--speed-chart-base-speed-font-size: var(--font-size-sm1); /* 種族値ラベルの文字サイズ。大きくすると補足情報が目立つ */
-	--speed-chart-meta-font-size: var(--font-size-sm2); /* 種族値などの文字サイズ。大きくすると補足情報が目立つ */
+	--speed-chart-value-font-size: var(--font-size-base); /* 実数値の文字サイズ。大きくすると数値が目立つ */
+	--speed-chart-base-speed-font-size: var(--font-size-sm2); /* 種族値ラベルの文字サイズ。大きくすると補足情報が目立つ */
+	--speed-chart-meta-font-size: var(--font-size-sm3); /* 最速などの文字サイズ。大きくすると補足情報が目立つ */
 	--speed-chart-origin-font-size: var(--font-size-sm3); /* 補正要因の文字サイズ。大きくすると要因が目立つ */
 
 	/* ── 3. 文字色 ─────────────────────── */
