@@ -555,6 +555,7 @@
 		width: var(--speed-chart-chip-icon-size);
 		height: var(--speed-chart-chip-icon-size);
 		background: transparent;
+		border-radius: var(--radius-zero);
 	}
 	.speed-chart-table .speed-chart-owned-cell {
 		min-width: 0;

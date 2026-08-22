@@ -116,6 +116,12 @@
 		width: var(--speed-chart-owned-sprite-size);
 		height: var(--speed-chart-owned-sprite-size);
 		background: transparent;
+		border-radius: var(--radius-zero);
+	}
+	@media (prefers-color-scheme: dark) {
+		.speed-chart-owned-summary-header {
+			background: color-mix(in srgb, var(--color-bg), black 12%);
+		}
 	}
 	/* 編集ボタン。global.cssの a.btn-ghost(枠なし・透明背景・ホバーでsurfaceとprimaryの混色)をそのまま
 		使い、新しい配色は作らない。260px幅のカード内でも詰まらないよう、既存のbutton基底より
