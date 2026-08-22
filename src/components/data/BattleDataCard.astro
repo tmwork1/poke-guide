@@ -22,12 +22,12 @@ const moveTypeByName = new Map(
 const imageIdByName = new Map(
   (pokemonMasterRaw as Array<{ name: string; imageId: number }>).map((pokemon) => [pokemon.name, pokemon.imageId]),
 );
-const abilities = single?.abilities?.slice(0, 4) ?? [];
-const natures = single?.natures?.slice(0, 4) ?? [];
-const items = single?.items?.slice(0, 4) ?? [];
-const moves = single?.moves?.slice(0, 4) ?? [];
-const evs = single?.evs?.slice(0, 4) ?? [];
-const teammates = single?.teammates?.slice(0, 4) ?? [];
+const abilities = single?.abilities ?? [];
+const natures = single?.natures ?? [];
+const items = single?.items ?? [];
+const moves = single?.moves ?? [];
+const evs = single?.evs ?? [];
+const teammates = single?.teammates ?? [];
 ---
 
 <div class="trend-detail-card">

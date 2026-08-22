@@ -15,6 +15,7 @@
   --battle-data-card-item-icon-size: 1.9em; /* アイテムアイコンの大きさ。行の文字サイズに追従する */
   --battle-data-card-type-icon-size: 1.2em; /* わざタイプアイコンの大きさ。行の文字サイズに追従する */
   --battle-data-card-pokemon-icon-size: 2.2em; /* 同時採用ポケモンのアイコンの大きさ。マス内に収まる範囲で少し大きくする */
+  --battle-data-card-row-height: 2.4em; /* 最大アイコンに少し余白を加えた、全ランキング行共通の高さ */
 
   /* ── 2. 文字の太さ・行間 ──────────────────────────────── */
   --battle-data-card-value-line-height: 1.55; /* ランキング値の行間。大きくすると複数行の間隔が広がる */
@@ -86,6 +87,7 @@
 .trend-rank-row {
   display: grid;
   align-items: center;
+  min-height: var(--battle-data-card-row-height);
   min-width: 0;
   column-gap: var(--space-2);
 }
