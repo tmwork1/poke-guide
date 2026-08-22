@@ -50,5 +50,5 @@ export function evSpreadLabel(values: Record<string, number>): string {
     ['S', values.speed],
   ] as const;
 
-  return stats.filter(([, value]) => value !== 0).map(([label, value]) => `${label}${value}`).join('/') || '0';
+  return stats.filter(([, value]) => value !== 0).map(([label, value]) => `${label}${value}`).join(' ') || '0';
 }

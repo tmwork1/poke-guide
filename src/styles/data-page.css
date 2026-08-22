@@ -129,7 +129,7 @@ body.data-page {
   flex: 1;
   min-height: 0;
 }
-.data-panel--has-data .trend-detail-cell {
+.data-panel--has-data .trend-detail-cell:nth-child(n+3) {
   height: 100%;
 }
 

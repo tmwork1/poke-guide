@@ -16,6 +16,18 @@
   --battle-data-card-type-icon-size: 1.2em; /* わざタイプアイコンの大きさ。行の文字サイズに追従する */
   --battle-data-card-pokemon-icon-size: 1.4em; /* 同時採用ポケモンのアイコンの大きさ。マス内に収まる範囲で少し大きくする */
   --battle-data-card-row-height: 1.6em; /* 最大アイコンに少し余白を加えた、全ランキング行共通の高さ */
+  --battle-data-card-row1-height: calc(
+    (var(--battle-data-card-label-font-size) * var(--line-height-normal)) +
+    var(--battle-data-card-value-margin-top) +
+    var(--battle-data-card-row-height) + var(--battle-data-card-row-height) + var(--battle-data-card-row-height) +
+    var(--space-1) + var(--space-1)
+  ); /* 1段目に見出しとランキング3件を収める高さ */
+  --battle-data-card-row1-height-mobile: calc(
+    (var(--battle-data-card-label-font-size) * var(--line-height-normal)) +
+    var(--battle-data-card-value-margin-top) +
+    var(--battle-data-card-row-height) + var(--battle-data-card-row-height) + var(--battle-data-card-row-height) +
+    var(--space-1) + var(--space-1)
+  ); /* 狭い画面の1段目に見出しとランキング3件を収める高さ */
 
   /* ── 2. 文字の太さ・行間 ──────────────────────────────── */
   --battle-data-card-value-line-height: 1.55; /* ランキング値の行間。大きくすると複数行の間隔が広がる */
@@ -44,21 +56,25 @@
 .trend-detail-card {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  grid-template-rows: repeat(3, minmax(0, 1fr));
+  grid-template-rows: var(--battle-data-card-row1-height) minmax(0, 1fr) minmax(0, 1fr);
   background: var(--color-bg);
   border: var(--battle-data-card-border);
 }
 
 /* 特性・性格など、カード内の1マス */
 .trend-detail-cell {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
   min-height: 0;
   height: var(--battle-data-card-cell-height);
   padding: var(--battle-data-card-cell-padding);
   border-right: var(--battle-data-card-border);
   border-bottom: var(--battle-data-card-border);
-  overflow: auto;
+  overflow: hidden;
 }
+.trend-detail-cell:nth-child(-n+2) { height: var(--battle-data-card-row1-height); }
+.trend-detail-cell:nth-child(n+3) { height: var(--battle-data-card-cell-height); }
 .trend-detail-cell:nth-child(2n) { border-right: 0; }
 .trend-detail-cell:nth-last-child(-n+2) { border-bottom: 0; }
 
@@ -66,8 +82,15 @@
 .trend-detail-cell > span,
 .trend-detail-cell strong { display: block; }
 .trend-detail-cell > span {
+  flex: 0 0 auto;
   color: var(--battle-data-card-label-color);
   font-size: var(--battle-data-card-label-font-size);
+  line-height: var(--line-height-normal);
+}
+.trend-cell-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
 }
 .trend-detail-cell strong {
   margin-top: var(--battle-data-card-value-margin-top);
@@ -136,8 +159,12 @@
 
 @media (max-width: 420px) {
   /* 狭い画面でのカード内マス */
+  .trend-detail-card {
+    grid-template-rows: var(--battle-data-card-row1-height-mobile) minmax(0, 1fr) minmax(0, 1fr);
+  }
   .trend-detail-cell {
-    height: var(--battle-data-card-cell-height-mobile);
     padding: var(--battle-data-card-cell-padding-mobile);
   }
+  .trend-detail-cell:nth-child(-n+2) { height: var(--battle-data-card-row1-height-mobile); }
+  .trend-detail-cell:nth-child(n+3) { height: var(--battle-data-card-cell-height-mobile); }
 }
