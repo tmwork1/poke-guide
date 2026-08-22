@@ -20,7 +20,7 @@ import '../../styles/speed-chart-page.css';
 import '../../styles/app-header.css';
 import '../../styles/second-header.css';
 // 既定値の解決は REGULATIONS の末尾が最新であることに依存するため、表示順だけ別配列を使う。
-import { REGULATIONS, REGULATIONS_NEWEST_FIRST } from '../../lib/regulations';
+import { REGULATIONS } from '../../lib/regulations';
 import { getSupabaseAdminClient, getSupabasePublicClient } from '../../lib/supabase';
 import { getOwnedPokemon, type OwnedPokemonRecord } from '../../lib/owned-pokemon';
 import { parseOwnedQueryParam, resolveSpeedChartRegulation } from '../../lib/speed-chart-validation';
@@ -59,6 +59,26 @@ const resolvedRegulation =
 		: (resolveSpeedChartRegulation(requestedRegulation, null, REGULATIONS) ??
 			REGULATIONS[REGULATIONS.length - 1] ??
 			'');
+
+// ハリボテUI(2026-08-22): シーズン別母集団の本実装はdocs/plan/すばやさ早見表_シーズン別集計調査.md
+// に切り出し済み(DBマイグレーション等バックエンド改修を要する別タスク)。ここでは見た目だけ
+// 「シーズン選択」に見せるため、実際の絞り込みは引き続きレギュレーション単位のまま、
+// 選択肢の表示ラベルだけをシーズン風にした静的テーブルを使う。値(value)は既存のレギュレーション
+// コードのままなので、既存のURLパラメータ・chart-table.ts側のロジックには一切影響しない。
+const SPEED_CHART_SEASON_FACADE: Array<{ season: string; regulation: string }> = [
+	{ season: 'M-5', regulation: 'M-B' },
+	{ season: 'M-4', regulation: 'M-B' },
+	{ season: 'M-3', regulation: 'M-B' },
+	{ season: 'M-2', regulation: 'M-A' },
+	{ season: 'M-1', regulation: 'M-A' },
+];
+
+let matchedSeasonFacade = false;
+const speedChartSeasonFacadeOptions = SPEED_CHART_SEASON_FACADE.map((entry) => {
+	const selected = !matchedSeasonFacade && entry.regulation === resolvedRegulation;
+	if (selected) matchedSeasonFacade = true;
+	return { ...entry, selected };
+});
 
 // U-2: 採用率データを1クエリで取得する(種族ごとにfetchしない)。suggestionsテーブルの
 // レギュレーション別の行(subject_key = "種族名|レギュレーション"、migrations/013由来)だけを
@@ -183,11 +203,11 @@ try {
 		<SecondHeader ariaLabel="すばやさ早見表の操作" class="speed-chart-second-header">
 			{/* 可視ラベルとselectをfor/idで結び、操作バー上でも選択対象を明確にする。 */}
 			<div class="toolbar-item">
-				<label class="speed-chart-regulation-label" for="speed-chart-regulation-select">レギュレーション</label>
-				<select id="speed-chart-regulation-select">
+				<label class="speed-chart-regulation-label" for="speed-chart-regulation-select">シーズン</label>
+				<select id="speed-chart-regulation-select" aria-label="シーズン">
 					<option value="all" selected={resolvedRegulation === 'all'}>すべて</option>
-					{REGULATIONS_NEWEST_FIRST.map((reg) => (
-						<option value={reg} selected={reg === resolvedRegulation}>{reg}</option>
+					{speedChartSeasonFacadeOptions.map((entry) => (
+						<option value={entry.regulation} selected={entry.selected}>{entry.season}</option>
 					))}
 				</select>
 			</div>

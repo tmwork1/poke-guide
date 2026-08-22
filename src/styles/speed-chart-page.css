@@ -22,7 +22,7 @@ body.speed-chart-page {
 	--speed-chart-reachable-gap: var(--space-2); /* 絞り込みトグルの部品間隔。大きくするとラベルとスイッチが離れる */
 
 	/* ── 8. 寸法 ─────────────────────── */
-	--speed-chart-embed-main-height: calc(100dvh - 57px); /* 埋め込み時の本文高。大きくすると表の表示領域が増える */
+	--speed-chart-embed-main-height: 100dvh; /* 埋め込み時の本文高。操作バーも .app-main の子要素なので、ビューポート全体の高さを使う */
 	--speed-chart-jump-input-width: 7rem; /* 実数値ジャンプ入力欄の幅。大きくすると多くの文字を表示できる */
 }
 
@@ -83,7 +83,8 @@ body.speed-chart-page {
 
 /* SecondHeaderの外枠は共通コンポーネントを使い、内部だけをこの画面の小さな操作群用に組む。 */
 .speed-chart-second-header {
-	flex-wrap: wrap;
+	flex-wrap: nowrap;
+	overflow-x: auto;
 }
 .speed-chart-second-header > * {
 	flex: 0 0 auto;
@@ -95,9 +96,7 @@ body.speed-chart-page {
 	flex: none;
 }
 .speed-chart-regulation-label {
-	font-size: var(--speed-chart-regulation-font-size);
-	color: var(--color-text-muted);
-	white-space: nowrap;
+	display: none;
 }
 
 #speed-chart-jump-input {
