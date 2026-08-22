@@ -209,27 +209,18 @@ export function renderTopBuildCard(team: RankedTeam, options: RenderTopBuildCard
   bindMemberPopoverDismissal();
   const membersBySlot = new Map(team.members.map((member) => [member.slot, member]));
   const trainerName = team.trainerName ?? team.articleHost ?? 'トレーナー不明';
-  const articleLabel = team.articleTitle ?? team.articleHost ?? '構築記事';
   const card = renderTeamCard({
     name: trainerName,
     nameTitle: trainerName,
-    cornerAction: team.articleUrl
-      ? {
-          type: 'link',
-          href: team.articleUrl,
-          label: articleLabel,
-          title: articleLabel,
-          // 18pxの寸法は共用カード側のアイコンスロットCSSで決める。
-          content: createExternalLinkIcon(),
-        }
-      : undefined,
     badges: [
       { className: 'badge tnum', text: team.season },
-      { className: 'badge card-team-rank-badge tnum', text: `${team.rank}位` },
+    ],
+    plainMeta: [
+      { className: 'card-team-rank-text tnum', text: `${team.rank}位` },
       ...(team.rating !== null
         ? [{
-            className: 'badge card-team-rating-badge tnum',
-            text: String(Math.round(team.rating)),
+            className: 'card-team-rating-text tnum',
+            text: `レート ${Math.round(team.rating)}`,
             title: `レート ${team.rating}`,
           }]
         : []),
@@ -277,10 +268,10 @@ export function renderTopBuildCard(team: RankedTeam, options: RenderTopBuildCard
       for (const [label, value] of [
         ['特性', member.ability || '不明'],
         ['性格', member.nature || '不明'],
-        ['努力値', rankedMemberEvsLabel(member.evs)],
+        [null, rankedMemberEvsLabel(member.evs)],
       ]) {
         const row = element('p', 'card-team-member-popover-row');
-        row.textContent = `${label}: ${value}`;
+        row.textContent = label === null ? value : `${label} ${value}`;
         popover.append(row);
       }
       popover.style.position = 'fixed';

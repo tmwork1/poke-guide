@@ -38,6 +38,7 @@
   /* ── 2. 文字の太さ・行間 ──────────────────── */
   --team-card-empty-font-weight: 700; /* 空き枠番号の太さ */
   --team-card-title-font-weight: 600; /* チーム名の太さ */
+  --team-card-inline-name-font-weight: 400; /* 上位構築カードのトレーナー名の太さ */
   --team-card-action-font-weight: 400; /* 星アイコンの太さ */
   --team-card-title-line-height: var(--line-height-tight); /* チーム名の行の高さ */
   --team-card-empty-line-height: 1; /* 空き枠番号の行の高さ */
@@ -162,29 +163,7 @@
   flex: 1 1 auto;
   min-width: 0;
   width: auto;
-}
-.team-grid .card-team .card-team-article-link--inline {
-  display: inline-flex;
-  flex: 0 1 auto;
-  min-width: 0;
-  align-items: center;
-  gap: var(--team-card-inline-gap);
-  color: var(--team-card-action-color);
-  font-size: var(--team-card-badge-font-size);
-  text-decoration: none;
-}
-.team-grid .card-team .card-team-article-link--inline:hover {
-  color: var(--team-card-action-hover-color);
-}
-.team-grid .card-team .card-team-article-label--inline {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.team-grid .card-team .card-team-article-link--inline svg {
-  flex: 0 0 auto;
-  width: var(--team-card-article-icon-size);
-  height: var(--team-card-article-icon-size);
+  font-weight: var(--team-card-inline-name-font-weight);
 }
 
 /* --- ヘッダ帯の右側に重ねるバッジ列(/team はレギュレーション、
@@ -203,6 +182,12 @@
   position: static;
   flex: 0 0 auto;
   min-width: 0;
+}
+.team-grid .card-team--top-build .card-team-rank-text,
+.team-grid .card-team--top-build .card-team-rating-text {
+  color: var(--color-text-muted);
+  font-size: var(--team-card-badge-font-size);
+  white-space: nowrap;
 }
 /* .badge(global.css)を土台に、帯の上で主張しすぎない控えめな見え方へ寄せる。
    レギュレーション/順位/レートで同じ見た目を使う。 */
@@ -292,6 +277,9 @@
 .team-grid .card-team .card-pokemon--similar {
   border-color: var(--color-primary);
   border-width: var(--team-card-similar-border-width);
+}
+.team-grid .card-team--top-build .card-nature-evs {
+  display: none;
 }
 .card-team-member-popover {
   position: fixed;

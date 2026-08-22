@@ -62,6 +62,13 @@ body.data-page {
   flex-direction: column;
   height: calc(100dvh - var(--header-height));
 }
+/* /box/ranked は長いカード一覧が親の固定高からオーバーフローすると、sticky の
+   包含ブロックが途中で終わる。ページ自身を内容高まで伸ばし、プレビューの sticky を
+   一覧の末尾まで有効にする。/box/data の固定高レイアウトには影響させない。 */
+.box-ranked-page {
+  height: auto;
+  min-height: calc(100dvh - var(--header-height));
+}
 /* ポケモン名と説明を表示する上部概要 */
 .pokemon-data-preview {
   min-height: var(--data-page-preview-min-height);

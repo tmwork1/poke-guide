@@ -21,6 +21,12 @@ export interface TeamCardBadgeContent {
 	title?: string;
 }
 
+export interface TeamCardPlainMetaContent {
+	className: string;
+	text: string;
+	title?: string;
+}
+
 export interface TeamCardMemoContent {
 	text?: string;
 	title?: string;
@@ -52,6 +58,7 @@ export interface RenderTeamCardOptions<M> extends RenderTeamMemberGridOptions<M>
 	/** 指定時は空でも要素を作る。非表示要素をDOMに残す /team の既存仕様を保つため。 */
 	memo?: TeamCardMemoContent;
 	badges?: readonly TeamCardBadgeContent[];
+	plainMeta?: readonly TeamCardPlainMetaContent[];
 	headerVariant?: "inline";
 }
 
@@ -87,6 +94,7 @@ export function renderTeamMemberGrid<M>(root: HTMLElement, options: RenderTeamMe
 export function renderTeamCard<M>(options: RenderTeamCardOptions<M>): HTMLElement {
 	const card = document.createElement(options.href === undefined ? "article" : "a");
 	card.className = "card-team";
+	if (options.headerVariant === "inline") card.classList.add("card-team--top-build");
 	if (options.href !== undefined) (card as HTMLAnchorElement).href = options.href;
 	if (options.ariaLabel !== undefined) card.setAttribute("aria-label", options.ariaLabel);
 
@@ -157,6 +165,13 @@ export function renderTeamCard<M>(options: RenderTeamCardOptions<M>): HTMLElemen
 		if (badgeContent.title !== undefined) badge.title = badgeContent.title;
 		metaRow.appendChild(badge);
 	}
+	for (const plainMetaContent of options.plainMeta ?? []) {
+		const plainMeta = document.createElement("span");
+		plainMeta.className = plainMetaContent.className;
+		plainMeta.textContent = plainMetaContent.text;
+		if (plainMetaContent.title !== undefined) plainMeta.title = plainMetaContent.title;
+		metaRow.appendChild(plainMeta);
+	}
 	if (options.headerVariant !== "inline") card.appendChild(metaRow);
 
 	const header = document.createElement("div");
@@ -169,21 +184,6 @@ export function renderTeamCard<M>(options: RenderTeamCardOptions<M>): HTMLElemen
 	name.textContent = options.name;
 	name.title = options.nameTitle ?? options.name;
 	header.appendChild(name);
-	if (options.headerVariant === "inline" && options.cornerAction?.type === "link") {
-		const action = options.cornerAction;
-		const link = document.createElement("a");
-		link.className = "card-team-article-link--inline";
-		link.href = action.href;
-		link.target = "_blank";
-		link.rel = "noopener noreferrer";
-		link.title = action.title ?? action.label;
-		link.setAttribute("aria-label", action.label);
-		const label = document.createElement("span");
-		label.className = "card-team-article-label--inline";
-		label.textContent = action.label;
-		link.append(label, action.content);
-		header.appendChild(link);
-	}
 	card.appendChild(header);
 
 	const memberGrid = document.createElement("div");
