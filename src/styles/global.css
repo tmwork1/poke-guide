@@ -980,11 +980,11 @@ dd {
 }
 
 .app-shell {
-  min-height: 100vh;
+  min-height: 100dvh;
 }
 
 .app-main {
-  min-height: calc(100vh - var(--header-height));
+  min-height: calc(100dvh - var(--header-height));
 }
 
 .app-shell:not(.is-public) .app-main {
