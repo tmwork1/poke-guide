@@ -106,7 +106,10 @@ function buildPyodideWheel() {
 
   const tmpOutDir = mkdtempSync(path.join(tmpdir(), 'jpoke-wheel-'));
   try {
-    run(jpokePython, ['-m', 'build', '--wheel', '--outdir', tmpOutDir], { cwd: jpokeDir });
+    // Cloudflare Pages の Python には `build` パッケージが入っていない。wheel は
+    // Python 標準ライブラリだけでも作れるため、外部パッケージに依存しないこのスクリプトを
+    // 使う。これにより `npm clean-install` 後のクリーンなビルド環境でも動作する。
+    run(jpokePython, [path.join(__dirname, 'build_wheel.py'), jpokeDir, tmpOutDir]);
 
     const wheels = readdirSync(tmpOutDir).filter((f) => f.endsWith('.whl'));
     if (wheels.length === 0) {
