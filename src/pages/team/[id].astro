@@ -575,10 +575,6 @@ try {
 					<div class="team-formation-mobile__mates" aria-label="チームメイト">
 						<div id="team-formation-mobile-slots" class="team-formation-mobile__slot-grid team-mate-grid"></div>
 					</div>
-					<div class="team-formation-mobile__suggest" aria-label="おすすめポケモン">
-						<span class="team-formation-mobile__suggest-label">おすすめ</span>
-						<div id="team-formation-mobile-suggest-icons" class="team-formation-mobile__suggest-icons"></div>
-					</div>
 					<div class="team-formation-mobile__box">
 						{/* 検索欄+追加ボタンは /box・/team(一覧) と同じ「下部固定の浮き型」UI
 						    (floating-list-controls.css)をそのまま再利用する。マークアップは
@@ -594,6 +590,25 @@ try {
 									<input id="team-formation-mobile-search" class="field-control" type="search" placeholder="ポケモンを検索" aria-label="ポケモンを検索" autocomplete="off" />
 								</div>
 							</div>
+							<div class="second-header-sort toolbar-item toolbar-sort">
+								<div class="sort-select-wrap" id="team-formation-mobile-sort-select-wrap" data-order="desc">
+									<svg class="sort-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+										<path d="M12 20V4" />
+										<path d="M6 10l6-6 6 6" />
+									</svg>
+									<select id="team-formation-mobile-sort-select" class="field-control" aria-label="並べ替え">
+										<option value="updated_at">更新</option>
+										<option value="dex_no">番号</option>
+										<option value="nickname">NN</option>
+									</select>
+								</div>
+								<button type="button" class="sort-dir-toggle" id="team-formation-mobile-sort-dir-toggle" data-order="desc" aria-label="並べ替えの向き: 降順">
+									<svg class="sort-dir-toggle-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+										<path d="M12 20V4" /><path d="M6 10l6-6 6 6" />
+									</svg>
+									<span class="sort-dir-toggle-label">Z→A</span>
+								</button>
+							</div>
 						</div>
 						<p id="team-formation-mobile-status" class="status-text" hidden></p>
 						<div id="team-formation-mobile-box-grid" class="box-grid">
@@ -602,6 +617,10 @@ try {
 								<span class="add-card-tile-label">個体を追加</span>
 							</button>
 						</div>
+					</div>
+					<div class="team-formation-mobile__suggest" aria-label="おすすめポケモン">
+						<span class="team-formation-mobile__suggest-label">おすすめ</span>
+						<div id="team-formation-mobile-suggest-icons" class="team-formation-mobile__suggest-icons"></div>
 					</div>
 				</section>
 				<section id="team-matchup-mobile" class="floating-list-page" aria-label="チーム相性">
@@ -1764,6 +1783,7 @@ try {
 		import { calculateTeamSimilarity } from "../../lib/build-similarity";
 		import type { RankedTeam } from "../../lib/ranked-teams";
 		import { kanaIncludes } from "../../lib/kana";
+		import { initializeSortDirectionToggle } from "../../lib/shared/sort-direction-toggle";
 		// 表示ロジックは純粋関数として切り出してある(renderPreviewPanel/buildDamageCard の実装
 		// コメント参照)。summarizeOpponentNoteが返すteraType/abilityName等
 		// (相手ビルド=OpponentNoteSummary)は「相手がテラスタルを持っているか」という静的な
@@ -1876,6 +1896,11 @@ try {
 			const teamDataMobileSlotsRoot = el<HTMLElement>("team-data-mobile-slots");
 			const teamDataMobileSimilarRoot = el<HTMLElement>("team-data-mobile-similar");
 			const formationMobileSearchInput = el<HTMLInputElement>("team-formation-mobile-search");
+			const formationMobileSortSelect = el<HTMLSelectElement>("team-formation-mobile-sort-select");
+			const formationMobileSortSelectWrap = el<HTMLElement>("team-formation-mobile-sort-select-wrap");
+			const formationMobileSortDirToggle = el<HTMLButtonElement>("team-formation-mobile-sort-dir-toggle");
+			const formationMobileSortDirToggleLabel = formationMobileSortDirToggle.querySelector<HTMLElement>(".sort-dir-toggle-label");
+			if (!formationMobileSortDirToggleLabel) throw new Error("要素が見つかりません: .sort-dir-toggle-label");
 			const formationMobileAddButton = el<HTMLButtonElement>("team-formation-mobile-add");
 			const formationMobileStatus = el<HTMLElement>("team-formation-mobile-status");
 			const formationMobileBoxGrid = el<HTMLElement>("team-formation-mobile-box-grid");
@@ -3313,7 +3338,7 @@ try {
 
 				formationMobileBoxGrid.replaceChildren(formationMobileAddButton);
 				const term = formationMobileSearchInput.value.trim();
-				for (const p of allPokemon.filter((candidate) => !isCurrentMember(candidate.id) && matchesSearch(candidate, term))) {
+				for (const p of sortFormationMobilePokemon(allPokemon.filter((candidate) => !isCurrentMember(candidate.id) && matchesSearch(candidate, term)))) {
 					const card = document.createElement("button");
 					card.type = "button";
 					card.addEventListener("click", () => {
@@ -3467,6 +3492,47 @@ try {
 					if (p.id === id) return true;
 				}
 				return false;
+			}
+
+			const formationMobileSortDirectionToggle = initializeSortDirectionToggle({
+				select: formationMobileSortSelect,
+				selectWrap: formationMobileSortSelectWrap,
+				directionToggle: formationMobileSortDirToggle,
+				directionLabel: formationMobileSortDirToggleLabel,
+				defaultOrders: {
+					updated_at: "desc",
+					dex_no: "asc",
+					nickname: "asc",
+				},
+				onChange: () => renderFormationMobile(),
+			});
+
+			function sortFormationMobilePokemon(list: OwnedPokemonRecord[]): OwnedPokemonRecord[] {
+				const sort = formationMobileSortSelect.value;
+				const compareAscending = (a: OwnedPokemonRecord, b: OwnedPokemonRecord): number => {
+					if (sort === "nickname") {
+						return displayName(a).localeCompare(displayName(b), "ja");
+					}
+					if (sort === "dex_no") {
+						const aDex = resolveDexNo(a.species_name);
+						const bDex = resolveDexNo(b.species_name);
+						if (aDex === null && bDex !== null) return 1;
+						if (aDex !== null && bDex === null) return -1;
+						if (aDex !== bDex) return (aDex ?? 0) - (bDex ?? 0);
+						return displayName(a).localeCompare(displayName(b), "ja");
+					}
+					return new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime();
+				};
+				return [...list].sort((a, b) => {
+					if (sort === "dex_no") {
+						const aDex = resolveDexNo(a.species_name);
+						const bDex = resolveDexNo(b.species_name);
+						if (aDex === null && bDex !== null) return 1;
+						if (aDex !== null && bDex === null) return -1;
+					}
+					const result = compareAscending(a, b);
+					return formationMobileSortDirectionToggle.getSortOrder() === "desc" ? -result : result;
+				});
 			}
 
 			function sortPokemon(list: OwnedPokemonRecord[]): OwnedPokemonRecord[] {

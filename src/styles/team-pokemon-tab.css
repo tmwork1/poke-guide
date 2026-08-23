@@ -150,6 +150,42 @@ body.team-edit-page {
 .team-formation-mobile__box {
 	padding: var(--team-pokemon-tab-formation-box-padding);
 }
+#team-formation-mobile-toolbar {
+	display: flex;
+	flex-flow: row nowrap;
+	align-items: center;
+	gap: var(--app-header-toolbar-gap);
+}
+#team-formation-mobile-toolbar .toolbar-search {
+	flex: 1 1 auto;
+	width: auto;
+}
+#team-formation-mobile-toolbar .toolbar-sort {
+	display: flex;
+	flex: 0 0 auto;
+	align-items: center;
+	width: auto;
+	gap: var(--space-1);
+}
+#team-formation-mobile-toolbar .sort-select-wrap {
+	flex: 0 0 auto;
+}
+#team-formation-mobile-toolbar .sort-icon,
+#team-formation-mobile-toolbar .sort-dir-toggle-label {
+	display: none;
+}
+#team-formation-mobile-toolbar .sort-select-wrap select {
+	width: 5em;
+	padding-left: var(--space-2);
+	padding-right: 1.3em;
+	text-align: center;
+}
+#team-formation-mobile-toolbar .sort-dir-toggle {
+	min-height: 0;
+	padding: var(--space-1);
+	background: transparent;
+	border: 0;
+}
 	/* box-card.cssの.box-card は元々<a>を前提に書かれている。<a>はグリッド項目として
 		既定で軌道(track)いっぱいにストレッチされるが、<button>はフォームコントロールの
 		固有サイズ計算により明示的にwidthを指定しないとストレッチされず、内容(技名テキスト等)
