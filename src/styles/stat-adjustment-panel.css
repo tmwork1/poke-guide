@@ -34,7 +34,7 @@
 	--stat-down-color: var(--color-stat-down); /* 下降補正の色。変えると下向き補正の印象が変わる */
 
 	/* ── 4. 背景色 ────────────────────────────────────────── */
-	--stat-button-background: var(--color-bg); /* 努力値・性格ボタンの下地。シート背景より一段暗くして操作部を区別する */
+	--stat-button-background: var(--color-surface); /* 努力値・性格ボタンの下地。わざ選択ボタンと同じ明るい操作面にする */
 	--stat-nature-up-background: var(--color-danger-soft); /* 上昇性格ボタンの選択時背景。濃くすると選択が目立つ */
 	--stat-nature-down-background: var(--color-primary-soft); /* 下降性格ボタンの選択時背景。濃くすると選択が目立つ */
 
@@ -65,7 +65,7 @@
 	--stat-endpoint-button-size: 36px; /* スライダー端へ移動するボタン。大きくすると押しやすくなる */
 	--stat-step-button-size: 24px; /* 努力値を増減するボタン。大きくすると押しやすくなる */
 	--stat-number-input-width: 3.4rem; /* モバイル操作列の入力欄幅。大きくすると桁に余裕が出る */
-	--stat-number-input-height: 30px; /* モバイル操作列の入力欄高さ。大きくすると行が高くなる */
+	--stat-number-input-height: var(--stat-ev-mobile-button-block-size); /* モバイル操作列の入力欄高さ。努力値操作ボタンと揃える */
 	--stat-nature-button-size: 32px; /* 性格補正の三角ボタン。大きくすると記号が押しやすくなる */
 	--stat-nature-arrow-border-inline: 6px; /* 性格補正三角形の左右幅 */
 	--stat-nature-arrow-border-block: 10px; /* 性格補正三角形の上下幅 */

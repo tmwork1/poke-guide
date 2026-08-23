@@ -36,11 +36,36 @@
   --color-stat-up: #c9432c; /* 能力上昇を示す文字・目印の色。変えると上昇表示の識別色が変わる。 */
   --color-stat-down: #1d6fd1; /* 能力下降を示す文字・目印の色。変えると下降表示の識別色が変わる。 */
 
+  /* ── タイプ色 ───────────────────────────────────────── */
+  /* public/type-icons の各アイコンから、透明・白の縁取りを除いた代表色を抽出した値。
+     ポケモンプレビューのタイプ背景と技タイプバーの色基準として使う。 */
+  --color-type-normal: #9fa19f;
+  --color-type-fighting: #ff8000;
+  --color-type-flying: #81b9ef;
+  --color-type-poison: #9040cc;
+  --color-type-ground: #915121;
+  --color-type-rock: #afa981;
+  --color-type-bug: #91a119;
+  --color-type-ghost: #704170;
+  --color-type-steel: #60a1b8;
+  --color-type-fire: #e62829;
+  --color-type-water: #2980ef;
+  --color-type-grass: #3fa129;
+  --color-type-electric: #fac000;
+  --color-type-psychic: #ef4179;
+  --color-type-ice: #3fd8ff;
+  --color-type-dragon: #5061e1;
+  --color-type-dark: #50413f;
+  --color-type-fairy: #ef71ef;
+  /* ステラは多色アイコンのため、全色の平均色を代表色にした。 */
+  --color-type-stellar: #5bafb1;
+
   /* ── 4. 背景色 ────────────────────────────────────────── */
-  --color-bg: #f3f4f8; /* ページ全体と控えめな面の背景色。変えるとアプリの下地が変わる。 */
-  --color-surface: #ffffff; /* カード・パネル・入力欄の背景色。変えると主要な面の色が変わる。 */
-  --color-surface-raised: #ffffff; /* トップバーや下部ナビの背景色。変えると固定された面の色が変わる。 */
-  --color-control-raised: #ffffff; /* パネル背景より明るい操作ボタン面。変えると小型操作部の立体感が変わる。 */
+  /* 通常面は「ページ背景 < ナビゲーション帯 < コンテンツ面」の3階層に固定する。
+     状態色・オーバーレイ・主操作色はこの中立面の序列に含めない。 */
+  --color-bg: #f3f4f8; /* ページ全体と凹んだ操作面の背景色。 */
+  --color-chrome: #f8f9fc; /* 固定ナビ・検索帯の背景色。コンテンツ面より控えめにする。 */
+  --color-surface: #ffffff; /* カード・パネル・入力欄の背景色。通常面で最も明るい。 */
   --color-primary-hover: #27acd9; /* 主要ボタンにポインターを重ねた背景色。変えるとホバー時の反応色が変わる。 */
   --color-primary-soft: #e6f6fb; /* 選択タブや補助強調の薄い背景色。濃くすると選択範囲が目立つ。 */
   --color-success-soft: #e6f4f1; /* 成功・安全状態の薄い背景色。濃くすると成功領域が目立つ。 */
@@ -111,10 +136,9 @@ select {
     --color-stat-down: #6fb6f7; /* ダーク画面の能力下降色。変えると下降表示の識別色が変わる。 */
 
     /* ── 4. 背景色(ダークテーマで上書き) ─────────────────── */
-    --color-bg: #14161d; /* ダーク画面全体の下地色。変えるとアプリ全体の暗さが変わる。 */
-    --color-surface: #20232d; /* ダーク画面のカード・入力欄背景色。変えると主要な面の色が変わる。 */
-    --color-surface-raised: #262b37; /* ダーク画面のトップバー・下部ナビ背景色。変えると固定面の色が変わる。 */
-    --color-control-raised: #303746; /* ダーク画面でパネルより明るい操作ボタン面。 */
+    --color-bg: #14161d; /* ダーク画面全体と凹んだ操作面の下地色。 */
+    --color-chrome: #1a1e27; /* ダーク画面の固定ナビ・検索帯。コンテンツ面より暗く保つ。 */
+    --color-surface: #20232d; /* ダーク画面のカード・パネル・入力欄。通常面で最も明るい。 */
     --color-primary-hover: #4dc3ea; /* ダーク画面の主要ボタンのホバー背景色。変えると反応色が変わる。 */
     --color-primary-soft: rgba(77, 195, 234, 0.16); /* ダーク画面の選択タブ背景色。濃くすると選択範囲が目立つ。 */
     --color-success-soft: rgba(85, 182, 160, 0.16); /* ダーク画面の成功状態背景色。濃くすると成功領域が目立つ。 */

@@ -27,6 +27,9 @@ interface PokemonDexEntry {
 const NAME_TO_DEX_NO: ReadonlyMap<string, number> = new Map(
   (pokemonList as PokemonDexEntry[]).map((entry) => [entry.name, entry.dexNo]),
 );
+const NAME_TO_TYPES: ReadonlyMap<string, readonly string[]> = new Map(
+  (pokemonList as PokemonDexEntry[]).map((entry) => [entry.name, entry.types]),
+);
 
 // 解決できない場合(空文字・マスターデータに無い名前)は null を返す(R-15)。
 // null は「G-2の判定対象外」として扱われることが呼び出し元(team-validation.ts の
@@ -36,4 +39,12 @@ export function resolveDexNo(speciesName: string | null | undefined): number | n
   const trimmed = speciesName.trim();
   if (trimmed === '') return null;
   return NAME_TO_DEX_NO.get(trimmed) ?? null;
+}
+
+/** ポケモン名から本来のタイプを返す。未登録・未入力は空配列として扱う。 */
+export function resolveSpeciesTypes(speciesName: string | null | undefined): readonly string[] {
+  if (!speciesName) return [];
+  const trimmed = speciesName.trim();
+  if (trimmed === '') return [];
+  return NAME_TO_TYPES.get(trimmed) ?? [];
 }

@@ -305,7 +305,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 			<button
 				type="button"
 				id="durability-index-button"
-				class="btn-ghost stat-adjust-action-button"
+				class="btn-control stat-adjust-action-button"
 				disabled
 				aria-label="耐久最大化の候補を表示する"
 				title="耐久最大化の候補を表示する"
@@ -313,12 +313,12 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 				<span class="stat-adjust-action-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-8 9-4.5-1.5-8-4-8-9V5l8-3 8 3z"/><path d="m9 12 2 2 4-4"/></svg></span>
 				<span class="stat-adjust-action-label">耐久最大化</span>
 			</button>
-			<button type="button" id="bulk-adjust-button" class="btn-ghost stat-adjust-action-button" disabled>
+			<button type="button" id="bulk-adjust-button" class="btn-control stat-adjust-action-button" disabled>
 				<span class="bulk-adjust-button-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 4h-7"/><path d="M10 4H3"/><path d="M21 12h-9"/><path d="M8 12H3"/><path d="M21 20h-5"/><path d="M12 20H3"/><circle cx="12" cy="4" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="14" cy="20" r="2"/></svg></span><span class="bulk-adjust-button-label">耐久調整</span>
 			</button>
 			<button
 				type="button"
-				class="btn-ghost stat-adjust-action-button"
+				class="btn-control stat-adjust-action-button"
 				data-speed-adjust-trigger
 				aria-label="すばやさ早見表を開く"
 				title="すばやさ早見表を開く"
@@ -335,7 +335,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		    ただし PUT /api/owned-pokemon/:id は全項目上書きの契約なので、送らないと
 		    既存の値が消える。そのためSSRで読んだ値を data 属性に持たせ、自動保存の
 		    ペイロードにそのまま載せ直す(下の <script> の buildPayload を参照)。 */}
-		<textarea id="memo" class="memo-input" placeholder="メモ" aria-label="メモ">{pokemon.memo ?? ""}</textarea>
+		<textarea id="memo" class="memo-input" rows="3" placeholder="メモ" aria-label="メモ">{pokemon.memo ?? ""}</textarea>
 
 		{/* 削除ボタン。以前はbox/[id].astro側でSSRし、mobile-edit-tabs.tsがJSで
 		    #mobile-edit-actionsへ移設していたが、移設が終わるまでの一瞬ヘッダーより上に表示される
@@ -357,14 +357,6 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	/* UI刷新: 実数値の常時表示。性格補正は文字色で表現する(旧battle-assistant-svの表現を
 	   踏襲。上昇=赤系、下降=青系、補正なしは既定色のまま)。--color-stat-up/--color-stat-downは
 	   global.cssで定義し、CSSカスタムプロパティはAstroのスコープ属性に影響されず参照できる。 */
-	#edit-form input:placeholder-shown:not(:focus) {
-		border-style: dashed;
-		background: transparent;
-	}
-	#edit-form input#nickname:placeholder-shown:not(:focus) {
-		border-style: solid;
-		background: var(--color-surface);
-	}
 	#edit-form .field-control:not(:disabled):not(:placeholder-shown),
 	#edit-form .field-control:not(:disabled):focus,
 	#edit-form .stat-row input[type="number"]:not(:disabled),
@@ -431,10 +423,21 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		align-items: center;
 		gap: var(--stat-column-gap);
 	}
-	/* display:contents でこのラッパー自身をレイアウトツリーから消し、中のスライダー/数値入力を
-	   .stat-row の直接の子(=グリッドアイテム)にする。こうしないと両方が3列目(1fr)に
-	   まとまってしまい、5列グリッドに分割した意味が無くなる。 */
-	.stat-row .stat-input-controls { display: contents; }
+	/* 努力値のスライダーと数値入力は1つの列に収める。これにより、ラベル・性格補正・
+	   種族値・努力値・実数値の5列が常に同じ間隔で並び、残り努力値も数値入力の直上に揃う。 */
+	.stat-row .stat-input-controls {
+		display: flex;
+		align-items: center;
+		justify-content: flex-end;
+		gap: var(--stat-control-gap);
+		min-width: 0;
+	}
+	.stat-row:not(.stat-row-remaining) .stat-row-real-wrap {
+		display: flex;
+		align-items: center;
+		justify-content: flex-end;
+		min-width: 0;
+	}
 	/* 36pxへ拡大した端点ボタン2個を380px程度の左パネル内へ収めるため、rangeの最小幅も
 	   5rem(80px)から3.5rem(56px)へ下げ、固定グリッドの3列目から溢れないようにする。 */
 	.stat-ev-range-controls { display: flex; align-items: center; gap: var(--stat-control-gap); min-width: 0; }
@@ -460,7 +463,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	   「0 / - / + / 32」のボタン操作を常時表示する。 */
 	.stat-row .stat-ev-range-controls input[type="range"] { display: none; }
 	.stat-row .stat-ev-step-button { display: inline-flex; }
-	.stat-row .stat-input-controls { display: flex; align-items: center; justify-content: flex-end; gap: var(--space-1); min-width: 0; grid-column: 4; }
+	.stat-row .stat-input-controls { display: flex; align-items: center; justify-content: flex-end; gap: calc(var(--space-1) + 1px); min-width: 0; grid-column: 4; }
 	.stat-row .stat-ev-range-controls { display: contents; }
 	.stat-row .stat-ev-step-button[data-ev-step="-1"] { order: 2; }
 	/* 基底の .stat-row input[type="number"] は width:100% なので、flex行に置くと
@@ -474,9 +477,16 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		padding: var(--stat-number-input-mobile-padding);
 		line-height: 1;
 	}
+	/* 残り努力値は、数値欄の右端(右側の+と端点ボタン2個ぶん手前)に揃える。 */
+	.stat-row-remaining .stat-row-remaining-value {
+		padding-inline-end: calc(
+			(var(--stat-ev-mobile-button-block-size) * 2) +
+			(var(--stat-control-gap) * 2)
+		);
+	}
 	.stat-row .stat-ev-step-button[data-ev-step="1"] { order: 4; }
 	.stat-row .stat-ev-endpoint-button[data-ev-toggle] { order: 5; }
-	/* 入力面より一段高いsurfaceと既存の小さい影で、端点・増減操作を控えめに浮かせる。
+	/* わざ選択と同じsurfaceを下地にし、端点・増減操作を控えめに浮かせる。
 	   端点ボタン(»アイコンのみ)と増減ボタン(-/+)は同じ役割の並びなので等幅の正方形にする。 */
 	.stat-row .stat-ev-endpoint-button,
 	.stat-row .stat-ev-step-button {
@@ -488,7 +498,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		min-height: var(--stat-ev-mobile-button-block-size);
 		padding: 0;
 		color: var(--color-text-muted);
-		background: var(--color-surface-raised);
+		background: var(--color-surface);
 		border: 1px solid var(--color-border);
 		border-radius: var(--radius-zero);
 		box-shadow: var(--shadow-sm);
@@ -545,6 +555,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	.stat-adjust-action-button {
 		flex: 1 1 auto;
 		justify-content: center;
+		min-height: 40px;
 		gap: 0.35em;
 		font-size: var(--font-size-sm1);
 		padding: var(--space-1) var(--space-2);
@@ -552,18 +563,8 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		/* 共通buttonの強めのウェイトを一段細くし、補助操作としての階層に合わせる。 */
 		font-weight: 400;
 	}
-	.stat-adjust-action-button {
-		background: var(--color-surface);
-		border-color: var(--color-border);
-		color: var(--color-text);
-	}
-	@media (hover: hover) and (pointer: fine) {
-		.stat-adjust-action-button:hover:not(:disabled) {
-			background: var(--color-bg);
-			border-color: var(--color-border);
-			color: var(--color-text);
-		}
-	}
+	/* わざ選択ボタンと同じ.btn-controlを付与しているため、背景・枠線・文字色・ホバー色は
+	   共通ルール(src/styles/buttons.css)から同じ算出値になる。 */
 	/* box/[id].astroのトップバーにあった#bulk-adjust-buttonが持っていた「アイコンspan+ラベルspanを
 	   inline-flexで縦位置中央揃えにする」パターン(インラインSVGは既定でbaseline基準の余白が乗り、
 	   隣のラベルテキストと縦位置がズレるための対策)を、新設の.stat-adjust-action-iconにも同じ
@@ -588,9 +589,12 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	@media (max-width: 460px) {
 		.stat-table-header { display: none; }
 		.stat-row { grid-template-columns: var(--stat-mobile-row-grid-template-columns); row-gap: var(--stat-mobile-row-gap); }
+		.stat-row-remaining .stat-row-remaining-value {
+			grid-column: var(--stat-mobile-input-grid-column);
+		}
 		/* 460px以下では努力値のボタン行(0/-/+/32)+数値入力を1つのflex行にまとめる
 		   (デスクトップの5列グリッドは幅が無いと成立しないため)。 */
-		.stat-row .stat-input-controls { display: flex; align-items: center; justify-content: flex-end; gap: var(--stat-control-gap); min-width: 0; grid-column: var(--stat-mobile-input-grid-column); }
+		.stat-row .stat-input-controls { display: flex; align-items: center; justify-content: flex-end; gap: calc(var(--stat-control-gap) + 1px); min-width: 0; grid-column: var(--stat-mobile-input-grid-column); }
 		/* 390px級の実機幅では 0/−/数値/+/32 の5要素が1行に収まりきらないため、
 		   ボタンの最小幅だけ 30px → 26px(WCAG 2.5.8の24px下限は満たす)へ詰める。 */
 		.stat-row .stat-ev-endpoint-button,
@@ -647,6 +651,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	#edit-form .top-block-fields .field > select.field-control {
 		min-width: 0;
 		width: 100%;
+		min-height: 2.35rem;
 		margin: 0;
 		font-size: var(--font-size-sm1);
 		padding: 0.42em 0.6em;
@@ -672,8 +677,8 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	}
 	#edit-form .field-grid > .field { margin: 0; }
 	#edit-form .field-grid.move-fields-grid {
-		margin-top: var(--space-6);
-		margin-bottom: var(--space-7);
+		margin-top: var(--space-3);
+		margin-bottom: var(--space-4);
 	}
 	/* 2列に詰めたぶん1つあたりの幅が狭いので、この左パネル内だけ文字と余白を少し詰めて
 	   「ブーストエナジー」「こだいかっせい」クラスの長さが枠内に収まるようにする。 */
@@ -736,10 +741,6 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		outline-offset: 1px;
 	}
 	#edit-form .tera-dropdown-image { width: 20px; height: 20px; object-fit: contain; flex-shrink: 0; }
-	#edit-form .tera-dropdown-button.is-tera-unselected {
-		border-style: dashed;
-		background: transparent;
-	}
 	#edit-form .tera-dropdown-placeholder {
 		overflow: hidden;
 		text-overflow: ellipsis;
@@ -811,10 +812,6 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	#edit-form .item-dropdown-button.is-autofilled {
 		border-color: var(--color-primary);
 		box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 30%, transparent);
-	}
-	#edit-form .item-dropdown-button.is-item-unselected {
-		border-style: dashed;
-		background: transparent;
 	}
 	#edit-form .item-dropdown-image { width: 20px; height: 20px; object-fit: contain; flex-shrink: 0; }
 	#edit-form .item-dropdown-placeholder {
@@ -904,7 +901,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 
 
 
-	#edit-form .memo-input { width: 100%; min-width: 0; min-height: 8em; max-height: 16em; margin: 1.75rem 0 var(--space-2); resize: vertical; }
+	#edit-form .memo-input { width: 100%; min-width: 0; min-height: calc(3 * 1.5em + 0.84em); max-height: 16em; margin: 1.75rem 0 var(--space-2); resize: vertical; }
 	@media (max-width: 520px) {
 		#edit-form .field-grid { grid-template-columns: 1fr; }
 	}
@@ -1016,7 +1013,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 			display: grid;
 			grid-template-columns: repeat(2, minmax(0, 1fr));
 			gap: var(--space-2);
-			margin-top: var(--space-6);
+			margin-top: var(--space-5);
 		}
 		.mobile-move-toggle {
 			display: flex;
@@ -1025,7 +1022,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 			width: 100%;
 			margin-top: 0;
 			font: inherit;
-			font-size: var(--font-size-sm2);
+			font-size: var(--font-size-base);
 			font-weight: 400;
 			line-height: 1;
 		}
@@ -1036,7 +1033,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 			width: 100%;
 			box-sizing: border-box;
 			font: inherit;
-			font-size: var(--font-size-sm2);
+			font-size: var(--font-size-base);
 			font-weight: 400;
 			line-height: 1;
 		}
@@ -1052,7 +1049,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		}
 		#edit-form .move-fields-grid.is-mobile-collapsed { display: none; }
 		#edit-form .move-fields-grid.is-mobile-collapsed + .stat-adjustment-section {
-			margin-top: var(--space-5);
+			margin-top: var(--space-4);
 		}
 </style>
 <style is:global>

@@ -17,7 +17,7 @@
 .app-header {
   /* ── 1. 文字サイズ ────────────────────────────────────── */
   --app-header-item-font-size: var(--font-size-sm2); /* 横タブの項目名。大きくすると各タブの文字が目立つ。 */
-  --app-header-title-font-size: var(--font-size-lg1); /* 画面タイトルの文字サイズ。大きくすると見出しが目立つ。 */
+  --app-header-title-font-size: var(--font-size-sm1); /* 画面タイトルの文字サイズ。戻るボタンとの視覚的な釣り合いを保つ。 */
 
   /* ── 2. 文字の太さ・行間 ──────────────────────────────── */
   --app-header-item-line-height: 1; /* 横タブの行間。大きくすると項目名の行が縦に広がる。 */
@@ -31,7 +31,7 @@
   --app-header-item-active-color: var(--color-primary); /* 選択中タブの文字色。変えると現在地の強調色が変わる。 */
 
   /* ── 4. 背景色 ────────────────────────────────────────── */
-  --app-header-background: var(--color-surface-raised); /* バー全体の背景色。変えるとトップバー直下の帯の色が変わる。 */
+  --app-header-background: var(--color-chrome); /* バー全体の背景色。コンテンツ面より控えめなナビ帯。 */
   --app-header-item-background: transparent; /* 未選択タブの背景色。色を付けると各タブの領域が塗られる。 */
   --app-header-item-active-background: var(--color-primary-soft); /* 選択中タブの背景色。濃くすると現在地が目立つ。 */
 

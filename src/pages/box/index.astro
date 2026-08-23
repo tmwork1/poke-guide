@@ -70,9 +70,10 @@ const user = Astro.locals.user;
 									<path d="M6 10l6-6 6 6" />
 								</svg>
 								<select id="sort-select" class="field-control" aria-label="並べ替え">
-									<option value="updated_at">更新</option>
-									<option value="dex_no">番号</option>
-									<option value="nickname">NN</option>
+									<option value="updated_at">⇅ 更新</option>
+									<option value="dex_no">⇅ 番号</option>
+									<option value="type">⇅ タイプ</option>
+									<option value="nickname">⇅ NN</option>
 								</select>
 							</div>
 							<button type="button" class="sort-dir-toggle" id="sort-dir-toggle" data-order="desc" aria-label="並べ替えの向き: 降順">
@@ -140,9 +141,32 @@ const user = Astro.locals.user;
 			renderBoxPokemonCard,
 		} from "../../lib/box-pokemon-card";
 		import { kanaIncludes } from "../../lib/kana";
-		import { resolveDexNo } from "../../lib/species-dex";
+		import { resolveDexNo, resolveSpeciesTypes } from "../../lib/species-dex";
 		import { initializeCardDeleteMode } from "../../lib/card-delete-mode";
 		import { initializeSortDirectionToggle } from "../../lib/shared/sort-direction-toggle";
+
+		const boxContent = document.querySelector<HTMLElement>(".box-content");
+		const boxSecondHeader = document.querySelector<HTMLElement>(".box-second-header");
+		const bottomNav = document.querySelector<HTMLElement>(".app-bottom-nav");
+
+		/* CSSトークンの想定高さではなく、実際に描画された固定UIの座標を使う。
+		   検索帯が内容で伸縮しても、一覧の上端/下端に左右余白と同じガード帯を残す。 */
+		function syncBoxScrollViewport(): void {
+			if (!boxContent || !boxSecondHeader) return;
+			boxContent.style.setProperty(
+				"--box-page-scroll-top",
+				`calc(${boxSecondHeader.getBoundingClientRect().bottom}px + var(--box-page-card-scroll-inset))`,
+			);
+			if (bottomNav) {
+				boxContent.style.setProperty(
+					"--box-page-scroll-bottom",
+					`calc(${window.innerHeight - bottomNav.getBoundingClientRect().top}px + var(--box-page-card-scroll-inset))`,
+				);
+			}
+		}
+
+		syncBoxScrollViewport();
+		window.addEventListener("resize", syncBoxScrollViewport);
 
 		interface OwnedPokemon {
 			id: string;
@@ -220,6 +244,7 @@ const user = Astro.locals.user;
 				defaultOrders: {
 					updated_at: "desc",
 					dex_no: "asc",
+					type: "asc",
 					nickname: "asc",
 				},
 				onChange: () => renderList(),
@@ -238,6 +263,14 @@ const user = Astro.locals.user;
 						if (ad !== null && bd === null) return -1;
 						if (ad !== bd) return (ad ?? 0) - (bd ?? 0);
 						return displayName(a).localeCompare(displayName(b), "ja");
+					}
+					if (sort === "type") {
+						const aTypes = resolveSpeciesTypes(a.species_name).join("/");
+						const bTypes = resolveSpeciesTypes(b.species_name).join("/");
+						if (!aTypes && bTypes) return 1;
+						if (aTypes && !bTypes) return -1;
+						const typeResult = aTypes.localeCompare(bTypes, "ja");
+						return typeResult || displayName(a).localeCompare(displayName(b), "ja");
 					}
 					return new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime();
 				};

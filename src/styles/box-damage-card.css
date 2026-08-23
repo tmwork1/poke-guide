@@ -225,11 +225,6 @@ body.box-edit-page {
 /* --------------------------------------------------------------------------
    カード外枠と基本入力欄
    -------------------------------------------------------------------------- */
-#opponent-notes-section input:placeholder-shown:not(:focus) {
-  background: none;
-  border-style: dashed;
-}
-
 #opponent-notes-section .card-damage {
   background: var(--damage-card-background);
   box-shadow: var(--damage-card-shadow);
@@ -549,11 +544,6 @@ body.box-edit-page {
 #opponent-notes-section .tera-dropdown-button:focus-visible {
   outline: var(--damage-card-control-focus-outline);
   outline-offset: 1px;
-}
-
-#opponent-notes-section .tera-dropdown-button.is-tera-unselected {
-  background: none;
-  border-style: dashed;
 }
 
 #opponent-notes-section .tera-dropdown-image {
@@ -1719,7 +1709,7 @@ body.box-edit-page {
   height: var(--damage-detail-rank-stepper-size);
   min-height: var(--damage-detail-rank-stepper-size);
   color: var(--color-text-muted);
-  background: var(--color-surface-raised);
+  background: var(--color-bg);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-zero);
   box-shadow: var(--shadow-sm);

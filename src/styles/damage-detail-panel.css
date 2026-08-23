@@ -728,10 +728,6 @@ body.box-edit-page {
 		border-color: var(--damage-detail-primary-color);
 		box-shadow: var(--damage-detail-autofill-shadow);
 	}
-	#damage-detail-panel-body .damage-build-detail-item-dropdown-button.is-item-unselected {
-		border-style: dashed;
-		background: none;
-	}
 	#damage-detail-panel-body .damage-build-detail-item-dropdown-image,
 	#damage-detail-panel-body .damage-build-detail-item-dropdown-option-image {
 		width: var(--damage-detail-item-dropdown-icon-size);
@@ -837,11 +833,6 @@ body.box-edit-page {
 		font-size: var(--damage-detail-font-size-sm);
 		text-align: left;
 		cursor: pointer;
-	}
-	#damage-detail-panel-body .tera-dropdown-button.is-tera-unselected {
-		background: none;
-		border-style: dashed;
-		color: var(--color-text-muted);
 	}
 	#damage-detail-panel-body .tera-dropdown-button:not(.is-tera-unselected) {
 		color: var(--color-primary-strong);

@@ -170,7 +170,7 @@
 	}
 	.speed-chart-owned-raw-value { display: none; }
 	.speed-chart-owned-jump-button {
-		--control-button-background: var(--color-control-raised);
+		--control-button-background: var(--color-bg);
 		padding: var(--speed-chart-owned-jump-padding);
 		font-size: var(--speed-chart-owned-jump-font-size);
 		font-weight: 500;

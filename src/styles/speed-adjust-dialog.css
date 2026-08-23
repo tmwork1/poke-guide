@@ -153,7 +153,7 @@ body.speed-chart-page .speed-chart-embed-close {
 
 body.speed-chart-page .speed-chart-table[data-embedded='true'] {
   font-size: var(--speed-adjust-base-size);
-  --speed-chart-owned-panel-background: var(--color-surface-raised);
+  --speed-chart-owned-panel-background: var(--color-surface);
   --speed-chart-chip-icon-size: 26px;
 }
 

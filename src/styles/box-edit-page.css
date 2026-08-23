@@ -16,12 +16,12 @@
 	--stat-header-margin-bottom: 0.15rem;
 	--stat-control-gap: var(--space-1);
 	--stat-range-min-width: 3.5rem;
-	--stat-endpoint-button-size: 36px;
-	--stat-step-button-size: 24px;
+	--stat-endpoint-button-size: 40px;
+	--stat-step-button-size: 40px;
 	--stat-number-input-width: 2.2rem; /* 努力値は最大2桁(0〜32)なので、その幅に狭める */
-	--stat-number-input-height: 30px;
+	--stat-number-input-height: var(--stat-ev-mobile-button-block-size); /* 努力値操作ボタンと同じ高さ */
 	--stat-number-input-mobile-padding: 0 var(--space-1);
-	--stat-nature-button-size: 32px;
+	--stat-nature-button-size: 40px;
 	--stat-nature-arrow-border-inline: 6px;
 	--stat-nature-arrow-border-block: 10px;
 	--stat-nature-dot-size: 6px; /* 性格補正が未設定のときに表示する●の直径 */
@@ -64,7 +64,8 @@
 	font-size: 0;
 	line-height: 0;
 	color: var(--color-text-muted);
-	background: var(--color-surface-raised);
+	/* わざ選択ボタンの実背景色と揃える。 */
+	background: var(--color-surface);
 	border: 1px solid var(--color-border);
 	border-radius: var(--radius-zero);
 	box-shadow: var(--shadow-sm);
@@ -162,7 +163,7 @@ body.box-edit-page {
 		minmax(2.5rem, 0.7fr)
 		minmax(9rem, 2.8fr)
 		minmax(3rem, 0.75fr); /* 各列の幅。値を変えると能力値表の列配分が変わる */
-	--stat-ev-mobile-button-block-size: 32px; /* モバイル時の努力値操作ボタンの高さ */
+	--stat-ev-mobile-button-block-size: 40px; /* 努力値操作ボタンの高さ */
 }
 
 /* --------------------------------------------------------------------------
@@ -335,13 +336,7 @@ body.box-edit-page {
 			selectルールに統合済みで、このページには重複定義しない。global.cssはAstroのスコープ
 			機構を経由しない素のスタイルシートなので、#edit-form内の静的<select>にも
 			#opponent-notes-section内でJSが動的生成する<select>にも同じ1つの定義で届く。 */
-		/* 未入力欄は「壊れたフォーム」に見えないよう、placeholderが表示されている(=空欄)間は
-			破線+透明背景にして「空きスロット」を能動的に表現する(入力中/フォーカス中は通常の
-			実線に戻す。:not(:focus)で除外)。input:placeholder-shownはtextarea/inputにのみ
-			有効(select非対応)。
-			#tera(<select>)自体は非表示になっており、同じ視覚言語(破線+透明背景+muted文字色)は
-			.tera-dropdown-button.is-tera-unselected(下の#edit-form .tera-dropdown-button定義参照)
-			が引き継ぐ。 */
+		/* 未入力欄も入力済みの欄と同じ通常のフォームUIで表示する。 */
 		/* 左サイド(.panel-left/#edit-form)専用のscoped style一式(.stat-*・.top-block-*・
 			.species-icon-box・.type-badge-*・.item-image-badge・.tera-dropdown-*・
 			.move-type-icon・.memo-input 等)は構造分割ラウンド(フェーズ1)により

@@ -31,7 +31,7 @@
   --pokemon-preview-stat-color: var(--color-text); /* 通常の能力値の文字色 */
   --pokemon-preview-stat-up-color: var(--color-stat-up); /* 性格で上がる能力値の文字色 */
   --pokemon-preview-stat-down-color: var(--color-stat-down); /* 性格で下がる能力値の文字色 */
-  --pokemon-preview-stat-label-color: var(--color-text-muted); /* 能力値名の文字色 */
+  --pokemon-preview-stat-label-color: var(--color-text); /* 性格無補正の能力値名は、ほかのラベルと同じ明るさにする */
   --pokemon-preview-sprite-fallback-color: var(--color-text-muted); /* 画像がないときの頭文字の色 */
   --pokemon-preview-species-name-color: var(--color-text);
   --pokemon-preview-ability-color: var(--color-text-muted);
@@ -59,7 +59,7 @@
   --pokemon-preview-sprite-bottom-gap: 0; /* ポケモン画像の下余白 */
 
   /* ── 8. 寸法 ────────────────────────── */
-  --pokemon-preview-sprite-size: calc((var(--space-8) + var(--space-6)) * 1.7); /* ポケモン画像の大きさ */
+  --pokemon-preview-sprite-size: calc((var(--space-8) + var(--space-6)) * 1.55); /* ポケモン画像の大きさ */
   --pokemon-preview-item-icon-size: 1.9em; /* 持ち物アイコンの大きさ */
   --pokemon-preview-type-icon-size: 1.2em; /* タイプアイコンの大きさ */
   --pokemon-preview-move-type-bar-height: 1em; /* 技タイプバーの高さ */
@@ -78,6 +78,18 @@
 
 .mobile-training-ui {
   display: contents;
+}
+
+@media (width <= 899px) {
+  /* 中央の編集領域だけをスクロールさせるため、ナビゲーションとプレビューはビューポートに固定する。 */
+  .mobile-training-ui {
+    position: fixed;
+    top: var(--header-height);
+    right: 0;
+    left: 0;
+    z-index: var(--pokemon-preview-z-index);
+    display: block;
+  }
 }
 
 /* 画面上部に固定するポケモンプレビュー */

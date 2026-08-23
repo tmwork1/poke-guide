@@ -22,7 +22,7 @@
   --app-bottom-nav-disabled-color: var(--color-text-muted); /* 利用不可項目の色。薄くすると無効状態がより控えめになる。 */
 
   /* ── 4. 背景色 ────────────────────────────────────────── */
-  --app-bottom-nav-background: var(--color-surface-raised); /* 下部ナビ全体の背景色。変えると画面下端の帯の色が変わる。 */
+  --app-bottom-nav-background: var(--color-chrome); /* 下部ナビ全体の背景色。コンテンツ面より控えめなナビ帯。 */
   --app-bottom-nav-item-background: transparent; /* 各項目の背景色。色を付けると項目ごとの領域が塗られる。 */
 
   /* ── 5. 枠線・角丸 ────────────────────────────────────── */

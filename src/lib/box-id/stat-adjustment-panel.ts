@@ -10,6 +10,7 @@ import {
 	normalizedNatureBoosts,
 	wrapToRange,
 } from "./shared-core";
+import { bindPressAndHold } from "../press-and-hold";
 
 export interface StatAdjustmentPanelOptions {
 	baseStats: number[];
@@ -202,8 +203,17 @@ export function buildStatAdjustmentPanel(options: StatAdjustmentPanelOptions): S
 			if (!Number.isFinite(parsed)) return;
 			setEv(index, wrapToRange(Math.round(parsed), EV_MIN, EV_MAX));
 		});
-		decrement.addEventListener("click", () => setEv(index, (options.evs[index] ?? 0) - 1));
-		increment.addEventListener("click", () => setEv(index, (options.evs[index] ?? 0) + 1));
+		const stepEv = (amount: number): boolean => {
+			const current = options.evs[index] ?? 0;
+			const next = wrapToRange(current + amount, EV_MIN, EV_MAX);
+			if (next === current) return false;
+			setEv(index, next);
+			return true;
+		};
+		bindPressAndHold(decrement, () => stepEv(-1));
+		bindPressAndHold(increment, () => stepEv(1));
+		decrement.addEventListener("click", () => stepEv(-1));
+		increment.addEventListener("click", () => stepEv(1));
 		endpoint.addEventListener("click", () => {
 			const endpointName = endpoint.dataset.evEndpoint === "min" ? "min" : "max";
 			setEv(index, endpointName === "max" ? EV_MAX : EV_MIN);

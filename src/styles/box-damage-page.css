@@ -85,9 +85,13 @@
 
 @media (width <= 899px) {
   .edit-shell {
+    /* 実測値を親のstyle属性へ設定するため、同じ共通余白トークンをここでも解決可能にする。 */
+    --box-damage-card-scroll-inset: var(--list-grid-edge-gap);
     display: flex;
     flex-direction: column;
-    height: calc(100dvh - var(--header-height));
+    position: fixed;
+    inset: var(--header-height) 0 0;
+    height: auto;
     overflow: hidden;
     background: var(--color-bg);
   }
@@ -97,11 +101,34 @@
     min-height: 0;
   }
   .edit-shell .edit-layout-right {
+    position: fixed;
+    top: var(--box-damage-scroll-top, calc(var(--app-header-height) + var(--box-damage-card-scroll-inset)));
+    right: 0;
+    bottom: var(--box-damage-scroll-bottom, calc(var(--bottom-nav-height) + env(safe-area-inset-bottom) + var(--box-damage-card-scroll-inset)));
+    left: 0;
     flex: 1;
     min-height: 0;
     overflow-y: auto;
     overscroll-behavior-y: contain;
-    -webkit-mask-image: linear-gradient(to bottom, transparent 0, transparent var(--box-damage-card-scroll-inset), #000 var(--box-damage-card-scroll-inset), #000 calc(100% - var(--box-damage-card-scroll-inset)), transparent calc(100% - var(--box-damage-card-scroll-inset)), transparent 100%);
-    mask-image: linear-gradient(to bottom, transparent 0, transparent var(--box-damage-card-scroll-inset), #000 var(--box-damage-card-scroll-inset), #000 calc(100% - var(--box-damage-card-scroll-inset)), transparent calc(100% - var(--box-damage-card-scroll-inset)), transparent 100%);
+    background: var(--color-bg);
+    scroll-padding-block: var(--box-damage-card-scroll-inset);
+  }
+
+  .edit-shell .edit-layout-left {
+    position: fixed;
+    top: var(--box-edit-scroll-top, calc(var(--app-header-height) + var(--box-damage-card-scroll-inset)));
+    right: 0;
+    bottom: var(--box-edit-scroll-bottom, calc(var(--bottom-nav-height) + env(safe-area-inset-bottom) + var(--box-damage-card-scroll-inset)));
+    left: 0;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    background: var(--color-bg);
+    scroll-padding-block: var(--box-damage-card-scroll-inset);
+  }
+
+  /* スクロール領域そのものを固定UIから離すため、内側に同じ余白を重ねない。 */
+  #opponent-notes-section {
+    padding-top: 0;
   }
 }

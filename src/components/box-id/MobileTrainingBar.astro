@@ -99,7 +99,7 @@ const previewStats = detail ? statKeys.map((key, index) => index === 0 ? calcHpS
   import '../../lib/box-id/mobile-edit-tabs';
   import { loadTypesMap } from '../../lib/pokemon-master-data';
   import { typeIconUrl } from '../../lib/sprite-urls';
-  import { DEFAULT_TYPE_COLOR, TYPE_COLORS } from '../../lib/type-colors';
+  import { DEFAULT_TYPE_COLOR, TYPE_COLOR_CSS_VARIABLES } from '../../lib/type-colors';
 
   const pokemonPreview = document.querySelector<HTMLElement>('.pokemon-preview');
   const speciesName = pokemonPreview?.dataset.speciesName;
@@ -113,8 +113,8 @@ const previewStats = detail ? statKeys.map((key, index) => index === 0 ? calcHpS
         if (!types || types.length === 0) return;
 
         const toMixedColor = (typeName: string): string => {
-          const hex = TYPE_COLORS[typeName] ?? DEFAULT_TYPE_COLOR;
-          return `color-mix(in srgb, ${hex} 26%, var(--color-bg))`;
+          const color = TYPE_COLOR_CSS_VARIABLES[typeName] ?? DEFAULT_TYPE_COLOR;
+          return `color-mix(in srgb, ${color} 26%, var(--color-bg))`;
         };
 
         const mainBackground =

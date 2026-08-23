@@ -25,6 +25,7 @@ import {
 } from "../pokemon-master-data";
 import { typeIconUrl, teraTypeIconUrl } from "../sprite-urls";
 import { TYPE_COLORS, DEFAULT_TYPE_COLOR } from "../type-colors";
+import { bindPressAndHold } from "../press-and-hold";
 import { type StatKey, STAT_KEYS, NATURE_STAT_MODIFIERS } from "../stats";
 import { kanaIncludes } from "../kana";
 import { classifyArchetype, type ArchetypeKey } from "../archetype";
@@ -1263,18 +1264,22 @@ if (form) {
 		});
 	}
 	for (const button of document.querySelectorAll<HTMLButtonElement>(".stat-ev-step-button")) {
-		button.addEventListener("click", () => {
+		const stepEv = (): boolean => {
 			const rangeInput = document.getElementById(button.dataset.evTarget ?? "") as HTMLInputElement | null;
-			if (!rangeInput) return;
+			if (!rangeInput) return false;
 			const step = Number(button.dataset.evStep);
-			if (!Number.isFinite(step)) return;
+			if (!Number.isFinite(step)) return false;
 			const min = Number(rangeInput.min) || 0;
 			const max = Number(rangeInput.max) || 32;
 			const current = Number(rangeInput.value) || 0;
 			const next = Math.min(max, Math.max(min, current + step));
+			if (next === current) return false;
 			rangeInput.value = String(next);
 			rangeInput.dispatchEvent(new Event("input", { bubbles: true }));
-		});
+			return true;
+		};
+		bindPressAndHold(button, stepEv);
+		button.addEventListener("click", stepEv);
 	}
 
 	deleteButton.addEventListener("click", () => {

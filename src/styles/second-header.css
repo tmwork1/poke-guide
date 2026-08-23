@@ -17,7 +17,7 @@
 
 .second-header {
 	/* ── 4. 背景色 ────────────────────────────────────────── */
-	--second-header-background: var(--color-surface); /* 帯全体の背景色。 */
+	--second-header-background: var(--color-chrome); /* 検索・並べ替え帯の背景色。コンテンツ面より控えめにする。 */
 
 	/* ── 5. 枠線 ──────────────────────────────────────────── */
 	--second-header-border-bottom: 1px solid var(--color-border); /* 帯下端の区切り線。 */
@@ -25,7 +25,7 @@
 	/* ── 7. 余白 ──────────────────────────────────────────── */
 	--second-header-padding: var(--space-2) var(--space-3); /* 帯の内側余白。大きくすると検索欄・並べ替えが帯の端から離れる。 */
 	--second-header-gap: var(--space-2); /* 検索欄と並べ替えの間隔。大きくすると両者が離れる。 */
-	--second-header-sort-select-width: 5em; /* 並べ替えセレクトの幅。ページごとのラベル長に合わせて上書きする。 */
+	--second-header-sort-select-width: 5.75em; /* 「⇅ タイプ」まで収める並べ替えセレクトの幅。 */
 }
 
 /* ===========================================================================
@@ -56,6 +56,12 @@
 	width: 100%;
 }
 
+/* セカンドヘッダー内の検索・選択欄は、最明のコンテンツ面として表示する。 */
+.second-header input,
+.second-header select {
+	background-color: var(--color-surface);
+}
+
 /* 並べ替えスロット: 内容幅のまま右側に置く */
 .second-header-sort {
 	display: flex;
@@ -74,8 +80,16 @@
 .second-header-sort #sort-select {
 	width: var(--second-header-sort-select-width);
 	padding-left: var(--space-2);
-	padding-right: 1.3em;
-	text-align: center;
+	padding-right: var(--space-2);
+	text-align: left;
+	background-image: none;
+}
+
+/* form-controls.css の共通ホバー矢印を、この一覧専用のソートセレクトには出さない。 */
+.second-header-sort #sort-select:hover,
+.second-header-sort #sort-select:focus,
+.second-header-sort #sort-select:focus-visible {
+	background-image: none;
 }
 
 /* 並べ替えの昇順/降順切り替えボタンは矢印アイコンのみで表示し、
