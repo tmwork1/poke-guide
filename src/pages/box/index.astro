@@ -142,6 +142,7 @@ const user = Astro.locals.user;
 		import { kanaIncludes } from "../../lib/kana";
 		import { resolveDexNo } from "../../lib/species-dex";
 		import { initializeCardDeleteMode } from "../../lib/card-delete-mode";
+		import { initializeSortDirectionToggle } from "../../lib/shared/sort-direction-toggle";
 
 		interface OwnedPokemon {
 			id: string;
@@ -190,7 +191,6 @@ const user = Astro.locals.user;
 			const ADD_BUTTON_DEFAULT_HTML = addButton.innerHTML;
 
 			let allPokemon: OwnedPokemon[] = [];
-			let sortOrder: "asc" | "desc" = "desc";
 
 			// カードの表示にはタイプ・特性・持ち物・テラスタイプ・技を出さないが、検索対象は
 			// それらすべてを引き続き含める(表示されない項目も検索できるようにする)。
@@ -211,6 +211,19 @@ const user = Astro.locals.user;
 					// AND条件は維持し、各語の比較だけかな表記に依存しないようにする。
 					.every((token) => kanaIncludes(haystack, token));
 			}
+
+			const sortDirectionToggle = initializeSortDirectionToggle({
+				select: sortSelect,
+				selectWrap: sortSelectWrap,
+				directionToggle: sortDirToggle,
+				directionLabel: sortDirToggleLabel,
+				defaultOrders: {
+					updated_at: "desc",
+					dex_no: "asc",
+					nickname: "asc",
+				},
+				onChange: () => renderList(),
+			});
 
 			function sortPokemon(list: OwnedPokemon[]): OwnedPokemon[] {
 				const sort = sortSelect.value;
@@ -236,7 +249,7 @@ const user = Astro.locals.user;
 						if (ad !== null && bd === null) return -1;
 					}
 					const result = compareAscending(a, b);
-					return sortOrder === "desc" ? -result : result;
+					return sortDirectionToggle.getSortOrder() === "desc" ? -result : result;
 				});
 			}
 
@@ -359,28 +372,6 @@ const user = Astro.locals.user;
 				}
 			}
 
-			sortSelect.addEventListener("change", () => {
-				const defaultOrders: Record<string, "asc" | "desc"> = {
-					updated_at: "desc",
-					dex_no: "asc",
-					nickname: "asc",
-				};
-				sortOrder = defaultOrders[sortSelect.value] ?? "asc";
-				updateSortOrderUi();
-				renderList();
-			});
-			function updateSortOrderUi(): void {
-				sortSelectWrap.dataset.order = sortOrder;
-				sortDirToggle.dataset.order = sortOrder;
-				const isAscending = sortOrder === "asc";
-				sortDirToggle.setAttribute("aria-label", `並べ替えの向き: ${isAscending ? "昇順" : "降順"}`);
-				sortDirToggleLabel.textContent = isAscending ? "A→Z" : "Z→A";
-			}
-			sortDirToggle.addEventListener("click", () => {
-				sortOrder = sortOrder === "asc" ? "desc" : "asc";
-				updateSortOrderUi();
-				renderList();
-			});
 			searchInput.addEventListener("input", renderList);
 			addButton.addEventListener("click", () => void createEmptyPokemon());
 
