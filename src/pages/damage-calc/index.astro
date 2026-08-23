@@ -1,5 +1,14 @@
 ---
-// ダメージ計算は /box (個体詳細) に統合したため /box へ転送する。
 export const prerender = false;
-return Astro.redirect("/box", 302);
+
+import AppLayout from '../../layouts/AppLayout.astro';
+import AppHeader from '../../components/AppHeader.astro';
+import '../../styles/damage-calc-page.css';
 ---
+
+<AppLayout title="ダメージ" current="damage-calc" bodyClass="damage-calc-page">
+	<AppHeader>
+		<h1 class="app-header-title">ダメージ</h1>
+	</AppHeader>
+	<p>準備中</p>
+</AppLayout>

@@ -1,7 +1,7 @@
 ---
 import '../styles/app-bottom-nav.css';
 interface Props {
-	current?: "home" | "box" | "team" | "dev" | "speed-chart" | "data";
+	current?: "home" | "box" | "team" | "dev" | "speed-chart" | "data" | "damage-calc";
 }
 
 const { current } = Astro.props;
@@ -25,7 +25,7 @@ const { current } = Astro.props;
 			<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.05" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></svg>
 			<span>データ</span>
 		</a>
-		<a class="app-bottom-nav-item" href="/box" data-active={current === "box" ? "true" : undefined} aria-current={current === "box" ? "page" : undefined}>
+		<a class="app-bottom-nav-item" href="/damage-calc" data-active={current === "damage-calc" ? "true" : undefined} aria-current={current === "damage-calc" ? "page" : undefined}>
 			<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.05" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 11h2m4 0h2M8 15h2m4 0h2M8 18h2m4 0h2"/></svg>
 			<span>ダメージ</span>
 		</a>
