@@ -37,6 +37,7 @@ export function hasSingleBattleData(value: { formats?: { single?: SingleFormatDa
 }
 
 export function usageRateLabel(usageRate: number | null): string {
+  if (usageRate !== null) return `${usageRate.toFixed(0)}%`;
   return usageRate === null ? '使用率非公開' : `${usageRate}%`;
 }
 

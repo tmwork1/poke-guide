@@ -1,6 +1,6 @@
 /* 個体相性ページ(/box/matchup)固有のレイアウト。 */
 .box-matchup-page .box-data-main {
-	padding-bottom: calc(64px + env(safe-area-inset-bottom) + var(--space-3));
+	padding: var(--box-data-card-viewport-inset);
 }
 .box-matchup-panel {
 	display: flex;

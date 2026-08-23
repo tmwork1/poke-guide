@@ -119,6 +119,7 @@
   gap: var(--box-card-gap);
   aspect-ratio: var(--box-card-aspect-ratio);
   overflow: hidden;
+  border: 1px solid var(--color-border);
   text-decoration: none;
   text-align: start;
   color: inherit;

@@ -23,10 +23,10 @@ body.data-hub-page {
   --data-hub-error-color: var(--color-danger-strong); /* 上位チーム取得エラーの色。変えると警告の強さが変わる */
 
   /* ── 4. 背景色 ────────────────────────────────────────── */
-  --data-hub-entry-header-background: var(--color-bg); /* ポケモン見出し行の背景。変えるとカード上端の区別が変わる */
-  --data-hub-rail-background: var(--color-bg); /* 右端のポケモンレール背景。変えると本文との区別が変わる */
+  --data-hub-entry-header-background: var(--color-surface); /* ポケモン見出し行の背景。カード本体と揃える */
+  --data-hub-rail-background: var(--color-bg); /* 左側のポケモンレール背景。変えると本文との区別が変わる */
   --data-hub-rail-item-background: var(--color-surface); /* レール内アイコンの背景。変えると各アイコンの区別が変わる */
-  --data-hub-controls-background: var(--color-surface); /* 画面下の検索・シーズン操作バー背景。変えると操作部が目立つ */
+  --data-hub-controls-background: var(--color-surface); /* 上位チームの検索・シーズン操作バー背景。変えると操作部が目立つ */
   --data-hub-top-builds-panel-background: transparent; /* 上位チームタブの背景。変えるとカード周辺の下地が変わる */
 
   /* ── 5. 枠線・角丸 ────────────────────────────────────── */
@@ -36,23 +36,24 @@ body.data-hub-page {
   /* ── 7. 余白 ──────────────────────────────────────────── */
   --data-hub-scroll-gap: var(--space-2); /* タブパネル間の横間隔。大きくするとスワイプ先との隙間が広がる */
   --data-hub-scroll-margin: 0 var(--space-2); /* 横スワイプ領域の左右余白。大きくするとカードが内側に寄る */
+  --data-hub-card-scroll-inset: var(--list-grid-edge-gap); /* カード一覧の左右余白と共通にする上下ガード帯 */
   --data-hub-panel-content-padding: var(--space-5); /* 通常タブ本文の内側余白。大きくすると内容が内側に寄る */
   --data-hub-list-gap: var(--space-4); /* ポケモンカードどうしの縦間隔。大きくすると一覧が縦に広がる */
   --data-hub-entry-header-gap: var(--space-2); /* 順位・アイコン・名前の間隔。大きくすると横に離れる */
   --data-hub-entry-header-padding: var(--space-2) var(--space-3); /* ポケモン見出し行の内側余白。大きくすると行が厚くなる */
-  --data-hub-rail-gap: var(--space-2); /* 右端レール内アイコンの間隔。大きくするとアイコンが離れる */
-  --data-hub-rail-padding: var(--space-2) 0; /* 右端レールの上下余白。大きくすると端からアイコンが離れる */
+  --data-hub-rail-gap: var(--space-1); /* 左アイコン列内のアイコン間隔。少し離して押しやすくする */
+  --data-hub-rail-padding: 0; /* レール内の先頭・末尾もカード一覧と同じ境界から並べる */
   --data-hub-controls-gap: var(--space-2); /* バトルデータ操作バー内の要素間隔。大きくすると入力欄が離れる */
   --data-hub-controls-padding: var(--space-3); /* バトルデータ操作バーの内側余白。大きくするとバーが厚くなる */
   --data-hub-season-field-gap: var(--space-2); /* シーズンラベルと選択欄の間隔。大きくすると横に離れる */
-  --data-hub-top-builds-list-padding: var(--space-3) 0 calc(76px + env(safe-area-inset-bottom)); /* 上位チーム一覧の余白。大きくすると一覧が内側に寄る */
+  --data-hub-top-builds-list-padding: 0; /* 上位チーム一覧の余白。スクロール領域外側の共通ガード帯で確保する */
   --data-hub-load-more-padding: var(--space-6) 0; /* 「もっと見る」周辺の上下余白。大きくすると一覧から離れる */
 
   /* ── 8. 寸法 ──────────────────────────────────────────── */
-  --data-hub-rail-width: 44px; /* 右端ポケモンレールの幅。大きくすると本文の横幅が狭くなる */
+  --data-hub-rail-width: 40px; /* 左側ポケモンレールの幅。小さくするとカードの横幅が広がる */
   --data-hub-entry-rank-min-width: 1.6em; /* 順位表示の最小幅。大きくするとポケモン名の開始位置が右へ寄る */
   --data-hub-entry-icon-size: 32px; /* 一覧見出しのポケモンアイコンサイズ。大きくするとアイコンが目立つ */
-  --data-hub-rail-item-size: 28px; /* 右端レールのアイコン枠サイズ。大きくすると一覧性が下がる */
+  --data-hub-rail-item-size: 36px; /* 左アイコン列のポケモン画像サイズ。大きくすると見やすくなる */
 }
 
 /* ===========================================================================
@@ -61,13 +62,20 @@ body.data-hub-page {
 
 /* 2つのタブパネルを横スワイプで切り替える領域 */
 .data-hub-scroll {
+  position: fixed;
+  top: var(--data-hub-scroll-top, calc(var(--header-height) + var(--app-header-height) + var(--second-header-height) + var(--data-hub-card-scroll-inset)));
+  right: var(--space-2);
+  bottom: var(--data-hub-scroll-bottom, calc(var(--bottom-nav-height) + env(safe-area-inset-bottom) + var(--data-hub-card-scroll-inset)));
+  left: var(--space-2);
   display: flex;
   gap: var(--data-hub-scroll-gap);
-  margin: var(--data-hub-scroll-margin);
-  overflow-x: auto;
+  margin: 0;
+  overflow: auto;
   overscroll-behavior-x: contain;
   scroll-snap-type: x mandatory;
-  touch-action: pan-x;
+  touch-action: pan-x pan-y;
+  background: var(--color-bg);
+  scroll-padding-block: var(--data-hub-card-scroll-inset);
 }
 /* 横スワイプで切り替える「バトルデータ」「上位チーム」各タブの1画面分の領域 */
 .data-hub-panel {
@@ -80,27 +88,44 @@ body.data-hub-page {
 .data-hub-panel[inert] { user-select: none; }
 
 /* --------------------------------------------------------------------------
-   バトルデータタブ(使用率ランキングと右端ジャンプレール)
+   バトルデータタブ(検索セカンドヘッダー + 左アイコン列 + カード一覧)
    -------------------------------------------------------------------------- */
-/* バトルデータタブ(docs/ui/mobile/30.png): 使用率ランキング一覧+アイコンレール+
-   検索/シーズン切替。カード本体(.trend-detail-card)は battle-data-card.css 側。
-   レールは本文の内側ではなく画面右端に張り付く独立の帯(縦スクロールバーの領域を
-   明示する指示図の意図)として実装し、本文・検索バーはその分だけ幅を譲る。 */
-/* 既存の公開変数名を維持し、右端レールの幅をページ用つまみへ接続する。 */
+/* 検索・シーズン選択は共通のセカンドヘッダーに置き、その下を左のポケモン
+   アイコン列と右のデータカード列に分ける。カード本体は battle-data-card.css 側。 */
 .data-hub-panel.battle-data-panel {
   --battle-data-rail-width: var(--data-hub-rail-width);
   padding: 0;
   background: var(--color-bg);
 }
 .battle-data-panel .panel-content { padding: 0; }
-.battle-data-body { padding: var(--space-3) var(--battle-data-rail-width) calc(76px + env(safe-area-inset-bottom)) 0; }
+.battle-data-second-header[hidden] { display: none; }
+.battle-data-second-header .battle-data-season-field {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: var(--data-hub-season-field-gap);
+}
+.battle-data-second-header .battle-data-season-field label {
+  color: var(--data-hub-muted-color);
+  font-size: var(--data-hub-season-label-font-size);
+  white-space: nowrap;
+}
+.battle-data-body {
+  display: grid;
+  grid-template-columns: var(--battle-data-rail-width) minmax(0, 1fr);
+  align-items: start;
+  gap: var(--space-1);
+  padding: 0;
+}
 /* 使用率順位ごとのポケモンカードを縦に並べる一覧 */
 .battle-data-list {
+  grid-column: 2;
   display: flex;
   flex-direction: column;
   gap: var(--data-hub-list-gap);
+  padding-top: 0;
 }
-.battle-data-entry { scroll-margin-top: calc(var(--header-height) + var(--app-header-height) + var(--space-3)); }
+.battle-data-entry { scroll-margin-top: calc(var(--header-height) + var(--app-header-height) + var(--second-header-height) + var(--space-3)); }
 .battle-data-entry[hidden] { display: none; }
 
 /* 順位・ポケモンアイコン・名前を並べるカード見出し */
@@ -137,14 +162,15 @@ body.data-hub-page {
   white-space: nowrap;
 }
 
-/* 画面右端に固定するポケモンへのジャンプレール */
+/* カード一覧の左に追従する、ポケモンへのジャンプアイコン列 */
 .battle-data-rail {
   position: fixed;
-  top: calc(var(--header-height) + var(--app-header-height));
-  right: 0;
-  bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom));
+  top: var(--data-hub-scroll-top, calc(var(--header-height) + var(--app-header-height) + var(--second-header-height) + var(--data-hub-card-scroll-inset)));
+  bottom: var(--data-hub-scroll-bottom, calc(var(--bottom-nav-height) + env(safe-area-inset-bottom) + var(--data-hub-card-scroll-inset)));
+  left: var(--space-2);
   z-index: 15;
   width: var(--battle-data-rail-width);
+  max-height: none;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -152,18 +178,19 @@ body.data-hub-page {
   overflow-y: auto;
   padding: var(--data-hub-rail-padding);
   background: var(--data-hub-rail-background);
-  border-left: var(--data-hub-border);
+  scrollbar-width: none;
 }
+.battle-data-rail::-webkit-scrollbar { display: none; }
+.data-hub-panel[inert] .battle-data-rail { display: none; }
 /* 右端のジャンプレールに並ぶ各ポケモンへのリンク枠 */
 .battle-data-rail-item {
   display: block;
   flex: 0 0 auto;
   width: var(--data-hub-rail-item-size);
   height: var(--data-hub-rail-item-size);
-  overflow: hidden;
-  border: var(--data-hub-border);
-  border-radius: var(--data-hub-rail-item-radius);
-  background: var(--data-hub-rail-item-background);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
 }
 /* ジャンプ先を示すリンク枠内のポケモン画像 */
 .battle-data-rail-item img {
@@ -172,45 +199,10 @@ body.data-hub-page {
   object-fit: contain;
 }
 .battle-data-rail-item[hidden] { display: none; }
-
-/* 画面下に固定するバトルデータの検索・シーズン操作バー */
-.battle-data-controls {
-  position: fixed;
-  right: var(--battle-data-rail-width);
-  bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom));
-  left: 0;
-  z-index: 16;
-  display: flex;
-  gap: var(--data-hub-controls-gap);
-  padding: var(--data-hub-controls-padding);
-  background: var(--data-hub-controls-background);
-  border-top: var(--data-hub-border);
-}
-/* 非アクティブ側パネル(タブ切替でinertが付く)ではfixed要素も隠す。
-   position:fixedはinert属性だけでは視覚的に隠れないため、CSSで明示的に消す。 */
-.data-hub-panel[inert] .battle-data-controls, .data-hub-panel[inert] .battle-data-rail { display: none; }
-/* バトルデータ下部バーのポケモン名検索欄。シーズン選択以外の横幅を使う */
-.battle-data-controls .search-input-wrap {
-  flex: 1;
-  min-width: 0;
-}
-/* バトルデータ下部バーのシーズンラベルと選択欄 */
-.battle-data-season-field {
-  display: flex;
-  flex: 0 0 auto;
-  align-items: center;
-  gap: var(--data-hub-season-field-gap);
-}
-/* バトルデータのシーズン選択欄に付く「シーズン」ラベル */
-.battle-data-season-field label {
-  color: var(--data-hub-muted-color);
-  font-size: var(--data-hub-season-label-font-size);
-  white-space: nowrap;
-}
-@media (max-width: 420px) { .battle-data-season-field label { display: none; } }
+@media (max-width: 420px) { .battle-data-second-header .battle-data-season-field label { display: none; } }
 
 /* --------------------------------------------------------------------------
-   上位チームタブ(チームカード一覧と検索・シーズン操作)
+   上位チームタブ(セカンドヘッダーの検索・シーズン操作 + チームカード一覧)
    -------------------------------------------------------------------------- */
 /* 隣接する2枚のパネルは横並び(タブ)なので、.panel + .panel(global.css)の
    区切り線はここでは意味を持たない(2枚目の上端に1本線が走るだけ)。 */
@@ -241,26 +233,20 @@ body.data-hub-page {
 }
 .top-builds-load-more-wrap[hidden], #top-builds-load-more[hidden], #top-builds-empty[hidden], .top-builds-list .ranked-team-status[hidden] { display: none; }
 
-/* 画面下に固定する上位チームの検索・シーズン操作バー */
-.top-builds-controls {
-  position: fixed;
-  right: 0;
-  bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom));
-  left: 0;
-  z-index: 16;
+/* メインヘッダー直下に固定する、上位チームの検索・シーズン操作バー */
+.top-builds-second-header {
   display: flex;
   gap: var(--data-hub-controls-gap);
   padding: var(--data-hub-controls-padding);
   background: var(--data-hub-controls-background);
-  border-top: var(--data-hub-border);
 }
-.data-hub-panel[inert] .top-builds-controls { display: none; }
-/* 上位チーム下部バーのポケモン名検索欄。シーズン選択以外の横幅を使う */
-.top-builds-controls .search-input-wrap {
+.top-builds-second-header[hidden] { display: none; }
+/* 上位チーム検索バーのポケモン名検索欄。シーズン選択以外の横幅を使う */
+.top-builds-second-header .search-input-wrap {
   flex: 1;
   min-width: 0;
 }
-/* 上位チーム下部バーのシーズンラベルと選択欄 */
+/* 上位チーム検索バーのシーズンラベルと選択欄 */
 .top-builds-season-field {
   display: flex;
   flex: 0 0 auto;

@@ -24,7 +24,7 @@ describe('hasSingleBattleData', () => {
 
 describe('usageRateLabel', () => {
   it('通常の使用率をパーセント表記にする', () => {
-    assert.equal(usageRateLabel(99.5), '99.5%');
+    assert.equal(usageRateLabel(99.5), '100%');
   });
 
   it('usageRateがnullなら「使用率非公開」にする', () => {

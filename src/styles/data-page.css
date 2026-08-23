@@ -32,7 +32,8 @@ body.data-page {
 
   /* ── 7. 余白 ──────────────────────────────────────────── */
   --data-page-preview-padding: var(--space-5); /* ポケモン概要の内側余白。大きくすると内容が内側に寄る */
-  --data-page-main-padding: var(--space-4); /* ページ本文の内側余白。大きくすると各区画が内側に寄る */
+  --data-page-card-scroll-inset: var(--space-3); /* 固定タブ・下部ナビとの間に残すカード一覧の上下余白 */
+  --data-page-main-padding: var(--data-page-card-scroll-inset) var(--space-4) calc(var(--bottom-nav-height) + env(safe-area-inset-bottom) + var(--data-page-card-scroll-inset)); /* ページ本文の内側余白。上下は固定UIと重ならない背景色の退避領域 */
   --data-page-empty-padding: var(--space-5); /* 空状態の案内枠内側余白。大きくすると案内がゆったりする */
   --data-page-ranked-status-padding: var(--space-4); /* 上位チーム状態枠の内側余白。大きくすると案内がゆったりする */
   --data-page-preview-description-margin: var(--space-2) 0; /* ポケモン説明の上下余白。大きくするとタイトルから離れる */
@@ -40,7 +41,7 @@ body.data-page {
   --data-page-empty-title-margin-bottom: var(--space-2); /* 空状態見出しの下余白。大きくすると説明から離れる */
   --data-page-ranked-status-margin: 0 auto; /* 上位チーム状態枠の外側余白。変えると横位置が変わる */
   --data-page-preview-padding-mobile: var(--space-4); /* 狭い画面の概要内側余白。大きくすると概要が厚くなる */
-  --data-page-main-padding-mobile: var(--space-3); /* 狭い画面の本文内側余白。大きくすると本文が内側に寄る */
+  --data-page-main-padding-mobile: var(--data-page-card-scroll-inset) var(--space-3) calc(var(--bottom-nav-height) + env(safe-area-inset-bottom) + var(--data-page-card-scroll-inset)); /* 狭い画面の本文内側余白。上下は固定UIと重ならない背景色の退避領域 */
 
   /* ── 8. 寸法 ──────────────────────────────────────────── */
   --data-page-max-width: 760px; /* ページ全体の最大幅。大きくすると広い画面で横に伸びる */
@@ -66,8 +67,35 @@ body.data-page {
    包含ブロックが途中で終わる。ページ自身を内容高まで伸ばし、プレビューの sticky を
    一覧の末尾まで有効にする。/box/data の固定高レイアウトには影響させない。 */
 .box-ranked-page {
-  height: auto;
-  min-height: calc(100dvh - var(--header-height));
+  min-height: 0;
+  overflow: hidden;
+}
+.box-ranked-page .box-data-main {
+  --box-ranked-card-viewport-inset: var(--list-grid-edge-gap);
+  padding: var(--box-ranked-card-viewport-inset);
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  /* スクロール途中でもカードがプレビュー／下部ナビの縁まで達しないよう、
+     スクロールポートの上下を常にページ背景として見せる。通常の padding は内容と一緒に
+     流れてしまうため、表示領域そのものをマスクして固定のガード帯にする。 */
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent var(--box-ranked-card-viewport-inset),
+    #000 var(--box-ranked-card-viewport-inset),
+    #000 calc(100% - var(--box-ranked-card-viewport-inset)),
+    transparent calc(100% - var(--box-ranked-card-viewport-inset)),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent var(--box-ranked-card-viewport-inset),
+    #000 var(--box-ranked-card-viewport-inset),
+    #000 calc(100% - var(--box-ranked-card-viewport-inset)),
+    transparent calc(100% - var(--box-ranked-card-viewport-inset)),
+    transparent 100%
+  );
 }
 /* ポケモン名と説明を表示する上部概要 */
 .pokemon-data-preview {
@@ -96,7 +124,14 @@ body.data-page {
   flex: 1;
   flex-direction: column;
   min-height: 0;
-  padding: var(--data-page-main-padding);
+  --box-data-card-viewport-inset: var(--list-grid-edge-gap);
+  padding: var(--box-data-card-viewport-inset);
+  background: var(--color-bg);
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  scroll-padding-block: var(--box-data-card-viewport-inset);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, transparent var(--box-data-card-viewport-inset), #000 var(--box-data-card-viewport-inset), #000 calc(100% - var(--box-data-card-viewport-inset)), transparent calc(100% - var(--box-data-card-viewport-inset)), transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0, transparent var(--box-data-card-viewport-inset), #000 var(--box-data-card-viewport-inset), #000 calc(100% - var(--box-data-card-viewport-inset)), transparent calc(100% - var(--box-data-card-viewport-inset)), transparent 100%);
 }
 .box-data-page:not(.box-ranked-page) .box-data-main {
   background: var(--color-bg);
@@ -109,7 +144,7 @@ body.data-page {
 @media (max-width: 420px) {
   /* 狭い画面の概要と本文 */
   .pokemon-data-preview { padding: var(--data-page-preview-padding-mobile); }
-  .box-data-main { padding: var(--data-page-main-padding-mobile); }
+  .box-data-main { padding: var(--box-data-card-viewport-inset); }
 }
 
 /* データが無いときの案内枠 */
@@ -145,7 +180,6 @@ body.data-page {
    カードだけ細くなるため、このページに限り .box-data-main の既定 padding を上書きする
    (@media 内の padding ショートハンドより詳細度が高いので、狭幅でも効く)。 */
 /* /box/ranked のカード一覧を /team と同じ左右余白にする */
-.box-ranked-page .box-data-main { padding-inline: var(--list-grid-edge-gap); }
 
 /* box/ranked.astro(上位チーム)のロード中/エラー/0件時のステータス文言。/team/[id] の
    .team-data-similar-status(team-data-tab.css)と同じ見た目にして、実カード一覧に

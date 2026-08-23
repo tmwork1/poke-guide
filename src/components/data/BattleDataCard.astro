@@ -5,7 +5,8 @@
 // スタイルは src/styles/battle-data-card.css(利用側ページが各自import)。
 import { evSpreadLabel, usageRateLabel, type SingleFormatData } from '../../lib/battle-data-card';
 import { championSpriteUrl, officialArtworkUrl } from '../../lib/pokemon-master-data';
-import { itemIconUrl, typeIconUrl } from '../../lib/sprite-urls';
+import { itemIconUrl } from '../../lib/sprite-urls';
+import { DEFAULT_TYPE_COLOR, TYPE_COLORS } from '../../lib/type-colors';
 import movesMasterRaw from '../../../public/master-data/autocomplete/moves.json';
 import pokemonMasterRaw from '../../../public/master-data/autocomplete/pokemon.json';
 
@@ -46,13 +47,13 @@ const teammates = single?.teammates ?? [];
   <div class="trend-detail-cell">
     <span>アイテム</span>
     <div class="trend-cell-body">
-      {items.length ? <ul class="trend-rank-list">{items.map((row) => <li class="trend-rank-row trend-rank-row--icon3"><span class="trend-rank-icon"><img src={itemIconUrl(row.name)} onerror="this.parentElement.hidden=true;this.closest('.trend-rank-row').classList.replace('trend-rank-row--icon3','trend-rank-row--text2')" alt="" loading="lazy" /></span><span class="trend-rank-name">{row.name}</span><span class="trend-rank-rate">{usageRateLabel(row.usageRate)}</span></li>)}</ul> : <strong>データなし</strong>}
+      {items.length ? <ul class="trend-rank-list">{items.map((row) => <li class="trend-rank-row trend-rank-row--icon3"><span class="trend-rank-icon"><img src={itemIconUrl(row.name)} onerror="this.closest('.trend-rank-row').classList.replace('trend-rank-row--icon3','trend-rank-row--text2');this.parentElement.remove()" alt="" loading="lazy" /></span><span class="trend-rank-name">{row.name}</span><span class="trend-rank-rate">{usageRateLabel(row.usageRate)}</span></li>)}</ul> : <strong>データなし</strong>}
     </div>
   </div>
   <div class="trend-detail-cell">
     <span>わざ</span>
     <div class="trend-cell-body">
-      {moves.length ? <ul class="trend-rank-list">{moves.map((row) => { const iconUrl = typeIconUrl(moveTypeByName.get(row.name) ?? ''); return <li class:list={['trend-rank-row', iconUrl ? 'trend-rank-row--icon3' : 'trend-rank-row--text2']}>{iconUrl && <span class="trend-rank-icon"><img class="trend-rank-icon--type" src={iconUrl} alt="" loading="lazy" /></span>}<span class="trend-rank-name">{row.name}</span><span class="trend-rank-rate">{usageRateLabel(row.usageRate)}</span></li>; })}</ul> : <strong>データなし</strong>}
+      {moves.length ? <ul class="trend-rank-list">{moves.map((row) => { const type = moveTypeByName.get(row.name) ?? null; return <li class:list={['trend-rank-row', type ? 'trend-rank-row--type3' : 'trend-rank-row--text2']}>{type && <span class="trend-rank-type-bar" style={`--trend-move-type-color: ${TYPE_COLORS[type] ?? DEFAULT_TYPE_COLOR};`} title={type} aria-label={`${type}タイプ`} />}<span class="trend-rank-name">{row.name}</span><span class="trend-rank-rate">{usageRateLabel(row.usageRate)}</span></li>; })}</ul> : <strong>データなし</strong>}
     </div>
   </div>
   <div class="trend-detail-cell">

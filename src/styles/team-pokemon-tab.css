@@ -17,22 +17,21 @@ body.team-edit-page {
 
 	/* ── 4. 背景色 ───────────────────────── */
 	--team-pokemon-tab-actions-background: var(--color-surface); /* 操作列の背景色 */
-	--team-pokemon-tab-mates-background: var(--color-surface); /* チームメイト枠の背景色 */
-	--team-pokemon-tab-suggest-background: var(--color-surface); /* おすすめ列の背景色 */
+	--team-pokemon-tab-mates-background: var(--color-bg); /* チームメイトカードを置く背景色 */
+	--team-pokemon-tab-suggest-background: var(--color-bg); /* おすすめ列の背景色 */
 	--team-pokemon-tab-overview-background: var(--color-bg); /* ポケモンタブ全体の背景色 */
 	--team-pokemon-tab-overview-input-background: var(--color-surface); /* 入力欄の背景色 */
 
 	/* ── 5. 枠線・角丸 ─────────────────────── */
 	--team-pokemon-tab-actions-border: 1px solid var(--color-border); /* 操作列下部の区切り線 */
 	--team-pokemon-tab-mates-border: 1px solid var(--color-border); /* チームメイト枠下部の区切り線 */
-	--team-pokemon-tab-suggest-border: 1px solid var(--color-border); /* 固定おすすめ列上端の区切り線 */
 
 	/* ── 7. 余白 ────────────────────────── */
-	--team-pokemon-tab-formation-box-padding: var(--space-4) var(--space-3) calc(var(--space-7) + var(--space-6) + var(--team-pokemon-tab-suggest-fixed-height) + var(--space-2)); /* ボックス一覧の外側余白。下側は固定ナビ・おすすめ表示・追加ボタンと重ならない余白 */
+	--team-pokemon-tab-card-scroll-inset: var(--list-grid-edge-gap); /* カード一覧の左右余白と共通にする上下ガード帯 */
+	--team-pokemon-tab-formation-box-padding: var(--team-pokemon-tab-card-scroll-inset); /* ボックス一覧の外側余白。四辺をカード一覧の共通余白で揃える */
 	--team-pokemon-tab-actions-padding: var(--space-3) var(--space-5); /* 操作列の内側余白 */
 	--team-pokemon-tab-actions-gap: var(--space-3); /* 操作列の要素どうしの間隔 */
 	--team-pokemon-tab-suggest-gap: var(--space-3); /* 見出しとおすすめアイコンの間隔 */
-	--team-pokemon-tab-matchup-results-padding: var(--space-3); /* 相性結果一覧の内側余白 */
 	--team-pokemon-tab-mates-padding: var(--space-2) var(--space-3); /* チームメイト枠の内側余白 */
 	--team-pokemon-tab-suggest-padding: var(--space-2) var(--space-3); /* おすすめ列の内側余白 */
 	--team-pokemon-tab-suggest-icons-gap: var(--space-1); /* おすすめアイコンどうしの間隔 */
@@ -43,7 +42,6 @@ body.team-edit-page {
 	--team-pokemon-tab-slot-max-width: 34rem; /* 6枠全体の最大幅。大きくすると横に広がる */
 	--team-pokemon-tab-suggest-min-height: calc(var(--space-7) + var(--space-2)); /* おすすめ列の最低の高さ */
 	--team-pokemon-tab-suggest-icon-size: calc(var(--space-7) + var(--space-2)); /* おすすめアイコンの正方形サイズ */
-	--team-pokemon-tab-suggest-fixed-height: max(var(--team-pokemon-tab-suggest-min-height), calc(max(var(--team-pokemon-tab-suggest-icon-size), var(--tap-target-min)) + var(--space-2) + var(--space-2))); /* 固定表示時に予約するおすすめ列の高さ。アイコンのタップ領域と上下paddingの大きい方に追従する */
 }
 
 /* --------------------------------------------------------------------------
@@ -92,6 +90,11 @@ body.team-edit-page {
 .team-edit-shell[data-mobile-tab="matchup"] #team-matchup-mobile {
 	display: block;
 }
+#team-matchup-mobile > .team-formation-mobile__mates {
+	position: sticky;
+	top: calc(var(--header-height) + var(--app-header-height));
+	z-index: 3;
+}
 .team-formation-mobile__sticky-header {
 	position: sticky;
 	top: calc(var(--header-height) + var(--app-header-height));
@@ -106,19 +109,18 @@ body.team-edit-page {
 	max-width: var(--team-pokemon-tab-slot-max-width);
 	margin-inline: auto;
 }
+/* おすすめ欄は自チーム表示の背景とつなげ、検索ヘッダーの上端で区切る。 */
+#team-formation-mobile .team-formation-mobile__mates,
+#team-matchup-mobile .team-formation-mobile__mates {
+	border-bottom: 0;
+}
 .team-formation-mobile__suggest {
 	display: flex;
 	align-items: center;
 	gap: var(--team-pokemon-tab-suggest-gap);
-	position: fixed;
-	right: 0;
-	bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom));
-	left: 0;
-	z-index: 15;
 	min-height: var(--team-pokemon-tab-suggest-min-height);
 	padding: var(--team-pokemon-tab-suggest-padding);
 	background: var(--team-pokemon-tab-suggest-background);
-	border-top: var(--team-pokemon-tab-suggest-border);
 }
 .team-formation-mobile__suggest-label {
 	flex-shrink: 0;
@@ -147,18 +149,65 @@ body.team-edit-page {
 	object-fit: contain;
 }
 .team-matchup-mobile__results {
-	padding: var(--team-pokemon-tab-matchup-results-padding);
+	padding: var(--team-pokemon-tab-card-scroll-inset);
+	background: var(--color-bg);
+	scroll-padding-block: var(--team-pokemon-tab-card-scroll-inset);
 }
 .team-edit-shell[data-mobile-tab="formation"] .team-edit-layout {
 	display: none;
 }
 .team-edit-shell[data-mobile-tab="formation"] #team-formation-mobile {
 	display: block;
-	/* 右下の固定追加ボタンを、おすすめ表示の高さと間隔ぶんだけ押し上げる。 */
-	--floating-list-controls-offset-y: calc(var(--team-pokemon-tab-suggest-fixed-height) + var(--space-2));
 }
 .team-formation-mobile__box {
 	padding: var(--team-pokemon-tab-formation-box-padding);
+	background: var(--color-bg);
+	scroll-padding-block: var(--team-pokemon-tab-card-scroll-inset);
+}
+
+@media (width <= 899px) {
+	.team-edit-shell {
+		display: flex;
+		flex-direction: column;
+		height: calc(100dvh - var(--header-height) - var(--app-header-height) - var(--bottom-nav-height) - env(safe-area-inset-bottom));
+		overflow: hidden;
+		background: var(--color-bg);
+	}
+	.team-edit-shell[data-mobile-tab="pokemon"] #team-overview-tab,
+	.team-edit-shell[data-mobile-tab="formation"] #team-formation-mobile,
+	.team-edit-shell[data-mobile-tab="matchup"] #team-matchup-mobile {
+		flex: 1 1 auto;
+		min-height: 0;
+	}
+	.team-edit-shell[data-mobile-tab="pokemon"] #team-overview-tab,
+	.team-formation-mobile__box,
+	.team-matchup-mobile__results {
+		overflow-y: auto;
+		overscroll-behavior-y: contain;
+		-webkit-mask-image: linear-gradient(to bottom, transparent 0, transparent var(--team-pokemon-tab-card-scroll-inset), #000 var(--team-pokemon-tab-card-scroll-inset), #000 calc(100% - var(--team-pokemon-tab-card-scroll-inset)), transparent calc(100% - var(--team-pokemon-tab-card-scroll-inset)), transparent 100%);
+		mask-image: linear-gradient(to bottom, transparent 0, transparent var(--team-pokemon-tab-card-scroll-inset), #000 var(--team-pokemon-tab-card-scroll-inset), #000 calc(100% - var(--team-pokemon-tab-card-scroll-inset)), transparent calc(100% - var(--team-pokemon-tab-card-scroll-inset)), transparent 100%);
+	}
+	.team-edit-shell[data-mobile-tab="formation"] #team-formation-mobile,
+	.team-edit-shell[data-mobile-tab="matchup"] #team-matchup-mobile {
+		display: flex;
+		flex-direction: column;
+		min-height: 0;
+	}
+	.team-edit-shell[data-mobile-tab="formation"] .team-formation-mobile__sticky-header,
+	.team-edit-shell[data-mobile-tab="matchup"] #team-matchup-mobile > .team-formation-mobile__mates {
+		position: static;
+		flex: 0 0 auto;
+	}
+	.team-edit-shell[data-mobile-tab="formation"] .team-formation-mobile__box,
+	.team-edit-shell[data-mobile-tab="matchup"] .team-matchup-mobile__results {
+		flex: 1 1 auto;
+		min-height: 0;
+	}
+}
+/* global.css の .status-text が display を指定しているため、hidden 属性だけでは
+	空の状態表示が消えず、段落の上下マージンがカード前の隙間として残る。 */
+#team-formation-mobile-status[hidden] {
+	display: none;
 }
 #team-formation-mobile-toolbar {
 	/* sticky領域は親ラッパーで担う。app-headerの独立sticky指定はここでは使わない。 */
@@ -169,6 +218,7 @@ body.team-edit-page {
 	align-items: center;
 	gap: var(--app-header-toolbar-gap);
 	background: var(--color-surface);
+	border-top: 1px solid var(--color-border);
 }
 #team-formation-mobile-toolbar .toolbar-search {
 	flex: 1 1 auto;

@@ -71,7 +71,7 @@ try {
 			<div class="app-header__list">
 				<button type="button" class="app-header__item" data-mobile-tab="pokemon" data-active="true" aria-current="page"><span>ポケモン</span></button>
 				<button type="button" class="app-header__item" data-mobile-tab="formation"><span>編成</span></button>
-				<button type="button" class="app-header__item" data-mobile-tab="data"><span>類似構築</span></button>
+				<button type="button" class="app-header__item" data-mobile-tab="data"><span>類似チーム</span></button>
 				<button type="button" class="app-header__item" data-mobile-tab="matchup"><span>相性</span></button>
 			</div>
 		</AppHeader>
@@ -576,6 +576,10 @@ try {
 						<div class="team-formation-mobile__mates" aria-label="チームメイト">
 							<div id="team-formation-mobile-slots" class="team-formation-mobile__slot-grid team-mate-grid"></div>
 						</div>
+						<div class="team-formation-mobile__suggest" aria-label="おすすめポケモン">
+							<span class="team-formation-mobile__suggest-label">おすすめ</span>
+							<div id="team-formation-mobile-suggest-icons" class="team-formation-mobile__suggest-icons"></div>
+						</div>
 						<div class="panel panel-top app-header app-header--toolbar" id="team-formation-mobile-toolbar">
 							<div class="toolbar-item toolbar-search">
 								<div class="search-input-wrap">
@@ -616,10 +620,6 @@ try {
 							</button>
 						</div>
 					</div>
-					<div class="team-formation-mobile__suggest" aria-label="おすすめポケモン">
-						<span class="team-formation-mobile__suggest-label">おすすめ</span>
-						<div id="team-formation-mobile-suggest-icons" class="team-formation-mobile__suggest-icons"></div>
-					</div>
 				</section>
 				<section id="team-matchup-mobile" class="floating-list-page" aria-label="チーム相性">
 					<div class="team-formation-mobile__mates" aria-label="チームメイト">
@@ -630,11 +630,11 @@ try {
 						<ul id="team-matchup-mobile-list" class="team-matchup-list"></ul>
 					</div>
 				</section>
-				<section id="team-data-mobile" class="floating-list-page" aria-label="類似構築">
+				<section id="team-data-mobile" class="floating-list-page" aria-label="類似チーム">
 					<div class="team-formation-mobile__mates" aria-label="チームメイト">
 						<div id="team-data-mobile-slots" class="team-formation-mobile__slot-grid team-mate-grid"></div>
 					</div>
-					<div id="team-data-mobile-similar" class="team-data-similar-panel" aria-label="類似構築"></div>
+					<div id="team-data-mobile-similar" class="team-data-similar-panel" aria-label="類似チーム"></div>
 				</section>
 				</div>
 			)
@@ -2869,7 +2869,7 @@ try {
 
 			// =================================================================================
 			// 相性チェック
-			// 「使用率上位20体のポケモンとの攻守の相性を可視化する」。
+			// 「使用率上位32体のポケモンとの攻守の相性を可視化する」。
 			//
 			// 取得・計算の駆動・カード描画は src/lib/matchup-panel.ts に共通化し、このページは
 			// チーム枠への不利メンバーハイライトだけをコールバックで渡す。

@@ -17,7 +17,8 @@ body.team-edit-page {
   --team-data-status-border-radius: var(--radius-md); /* 読み込み状態カードの角の丸み */
 
   /* ── 7. 余白 ────────────────────────── */
-  --team-data-similar-panel-padding: var(--space-2); /* 類似構築カード一覧の外側余白 */
+  --team-data-card-scroll-inset: var(--list-grid-edge-gap); /* カード一覧の左右余白と共通にする上下ガード帯 */
+  --team-data-similar-panel-padding: var(--team-data-card-scroll-inset); /* 類似構築カード一覧の外側余白 */
   --team-data-status-margin: 0 auto; /* 読み込み状態カードの外側余白。autoにより中央寄せになる */
   --team-data-status-padding: var(--space-4); /* 読み込み状態カード内側の余白 */
 
@@ -34,10 +35,20 @@ body.team-edit-page {
   display: none;
 }
 
+/* 自チームはページナビゲーション直下に固定し、類似チーム一覧だけをスクロールする。 */
+#team-data-mobile > .team-formation-mobile__mates {
+  position: sticky;
+  top: calc(var(--header-height) + var(--app-header-height));
+  z-index: 3;
+  border-bottom: 0;
+}
+
 /* /team 一覧の .team-content.box-content と同じ左右8pxを確保し、
   類似構築カードの幅をモバイルのチームカードと揃える。下余白は .app-main が持つ。 */
 .team-data-similar-panel {
   padding: var(--team-data-similar-panel-padding);
+  background: var(--color-bg);
+  scroll-padding-block: var(--team-data-card-scroll-inset);
 }
 
 .team-edit-shell[data-mobile-tab="data"] #team-overview-tab {
@@ -49,6 +60,27 @@ body.team-edit-page {
 }
 .team-edit-shell[data-mobile-tab="data"] #team-data-mobile {
   display: block;
+}
+
+@media (width <= 899px) {
+  .team-edit-shell[data-mobile-tab="data"] #team-data-mobile {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+  .team-edit-shell[data-mobile-tab="data"] #team-data-mobile > .team-formation-mobile__mates {
+    position: static;
+    flex: 0 0 auto;
+  }
+  .team-edit-shell[data-mobile-tab="data"] .team-data-similar-panel {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0, transparent var(--team-data-card-scroll-inset), #000 var(--team-data-card-scroll-inset), #000 calc(100% - var(--team-data-card-scroll-inset)), transparent calc(100% - var(--team-data-card-scroll-inset)), transparent 100%);
+    mask-image: linear-gradient(to bottom, transparent 0, transparent var(--team-data-card-scroll-inset), #000 var(--team-data-card-scroll-inset), #000 calc(100% - var(--team-data-card-scroll-inset)), transparent calc(100% - var(--team-data-card-scroll-inset)), transparent 100%);
+  }
 }
 .team-data-similar-status {
   max-width: var(--team-data-status-max-width);

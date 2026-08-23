@@ -15,8 +15,9 @@
   --box-damage-engine-status-font-size: var(--font-size-sm3); /* 計算エンジン状態文の文字の大きさ */
 
   /* ── 7. 余白 ────────────────────────── */
-  --box-damage-panel-padding: 0 var(--space-3); /* 画面端とダメージカードの間の余白。ダメージタブは常にタブ切替表示(data-mobile-tab="damage")のため画面幅を問わずこの値になる。 */
-  --box-damage-mobile-list-padding-bottom: calc(56px + var(--bottom-nav-height) + var(--space-4)); /* モバイル時に浮いた追加ボタンへ隠れない一覧下余白 */
+  --box-damage-card-scroll-inset: var(--list-grid-edge-gap); /* カード一覧の左右余白と共通にする上下ガード帯 */
+  --box-damage-panel-padding: var(--box-damage-card-scroll-inset) var(--space-3); /* 画面端とダメージカードの間の余白。ダメージタブは常にタブ切替表示(data-mobile-tab="damage")のため画面幅を問わずこの値になる。 */
+  --box-damage-mobile-list-padding-bottom: calc(56px + var(--bottom-nav-height) + var(--space-4) + var(--box-damage-card-scroll-inset)); /* モバイル時に浮いた追加ボタンへ隠れない一覧下余白 */
   --box-damage-rows-gap: var(--space-3); /* ダメージ計算カード同士の縦の間隔 */
   --box-damage-engine-status-margin: var(--space-3) 0 .4rem; /* 計算エンジン状態文の外側余白 */
   --box-damage-suggest-section-margin-top: var(--space-5); /* ダメージ計算カード一覧と「よく行われるダメージ計算」の間隔 */
@@ -31,7 +32,9 @@
 #opponent-notes-section {
   min-width: 0;
   padding: var(--box-damage-panel-padding);
+  background: var(--color-bg);
   container: damage-section / inline-size;
+  scroll-padding-block: var(--box-damage-card-scroll-inset);
 }
 
 #opponent-notes-section .damage-rows-list {
@@ -78,4 +81,27 @@
   font-size: var(--font-size-sm2);
   font-weight: 600;
   color: var(--color-text-muted);
+}
+
+@media (width <= 899px) {
+  .edit-shell {
+    display: flex;
+    flex-direction: column;
+    height: calc(100dvh - var(--header-height));
+    overflow: hidden;
+    background: var(--color-bg);
+  }
+  .edit-shell .edit-layout {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+  }
+  .edit-shell .edit-layout-right {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0, transparent var(--box-damage-card-scroll-inset), #000 var(--box-damage-card-scroll-inset), #000 calc(100% - var(--box-damage-card-scroll-inset)), transparent calc(100% - var(--box-damage-card-scroll-inset)), transparent 100%);
+    mask-image: linear-gradient(to bottom, transparent 0, transparent var(--box-damage-card-scroll-inset), #000 var(--box-damage-card-scroll-inset), #000 calc(100% - var(--box-damage-card-scroll-inset)), transparent calc(100% - var(--box-damage-card-scroll-inset)), transparent 100%);
+  }
 }

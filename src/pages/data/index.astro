@@ -16,7 +16,9 @@ import '../../styles/data-hub-page.css';
 import '../../styles/battle-data-card.css';
 import '../../styles/team-card.css';
 import '../../styles/app-header.css';
+import '../../styles/second-header.css';
 import AppHeader from '../../components/AppHeader.astro';
+import SecondHeader from '../../components/SecondHeader.astro';
 
 let rankedSeasons: Awaited<ReturnType<typeof listRankedSeasons>> = [];
 let rankedSeasonsError = '';
@@ -104,11 +106,56 @@ if (seasonEntry && seasonIndex?.pokemon) {
 		</div>
 	</AppHeader>
 
+	<SecondHeader ariaLabel="バトルデータを検索・切り替え" class="battle-data-second-header" data-battle-data-header hidden={initialTabIndex !== 0}>
+		<div class="second-header-search">
+			<div class="search-input-wrap">
+				<svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+					<circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+				</svg>
+				<input id="battle-data-search" type="search" class="field-control" placeholder="ポケモン名で検索" aria-label="ポケモン名で検索" autocomplete="off" disabled={entries.length === 0} />
+			</div>
+		</div>
+		{manifestSeasons.length > 0 && (
+			<div class="battle-data-season-field">
+				<label for="battle-data-season">シーズン</label>
+				<select id="battle-data-season" class="field-control">
+					{manifestSeasons.map((entry) => (
+						<option value={entry.id} selected={entry.id === season}>{entry.label ?? entry.id}</option>
+					))}
+				</select>
+			</div>
+		)}
+	</SecondHeader>
+
+	<SecondHeader ariaLabel="上位チームを検索・切り替え" class="top-builds-second-header" data-top-builds-header hidden={initialTabIndex !== 1}>
+		<div class="second-header-search">
+			<div class="search-input-wrap">
+				<svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+					<circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+				</svg>
+				<input id="top-builds-search" type="search" class="field-control" placeholder="ポケモン名で検索" aria-label="ポケモン名で検索" autocomplete="off" />
+			</div>
+		</div>
+		<div class="top-builds-season-field">
+			<label for="top-builds-season">シーズン</label>
+			<select id="top-builds-season" class="field-control" disabled={rankedSeasons.length === 0}>
+				{rankedSeasons.map((entry) => <option value={entry.season} selected={entry.season === defaultRankedSeason}>{entry.season}</option>)}
+			</select>
+		</div>
+	</SecondHeader>
+
 	<div class="data-hub-scroll" data-data-hub-scroll data-initial-tab-index={initialTabIndex}>
 		<section class="panel data-hub-panel battle-data-panel" data-tab="battle-data" inert={initialTabIndex !== 0} aria-hidden={initialTabIndex !== 0 ? 'true' : undefined}>
 			<div class="panel-content">
 				{entries.length > 0 ? (
 					<div class="battle-data-body">
+						<nav class="battle-data-rail" aria-label="ポケモン一覧へジャンプ">
+							{entries.map((entry) => (
+								<a class="battle-data-rail-item" href={`#${entry.elementId}`} data-battle-data-rail-item data-species-name={entry.name} aria-label={entry.name}>
+									{entry.imageId !== null && <img src={championSpriteUrl(entry.imageId)} onerror={`this.onerror=null;this.src='${officialArtworkUrl(entry.imageId)}';`} alt="" width="36" height="36" style="width:36px;height:36px;object-fit:contain;" loading="eager" />}
+								</a>
+							))}
+						</nav>
 						<div class="battle-data-list" id="battle-data-list">
 							{entries.map((entry) => (
 								<article class="battle-data-entry" id={entry.elementId} data-battle-data-entry data-species-name={entry.name}>
@@ -121,13 +168,6 @@ if (seasonEntry && seasonIndex?.pokemon) {
 								</article>
 							))}
 						</div>
-						<nav class="battle-data-rail" aria-label="ポケモン一覧へジャンプ">
-							{entries.map((entry) => (
-								<a class="battle-data-rail-item" href={`#${entry.elementId}`} data-battle-data-rail-item data-species-name={entry.name} aria-label={entry.name}>
-									{entry.imageId !== null && <img src={championSpriteUrl(entry.imageId)} onerror={`this.onerror=null;this.src='${officialArtworkUrl(entry.imageId)}';`} alt="" loading="lazy" />}
-								</a>
-							))}
-						</nav>
 					</div>
 				) : (
 					<div class="empty-state">
@@ -137,25 +177,6 @@ if (seasonEntry && seasonIndex?.pokemon) {
 					</div>
 				)}
 			</div>
-
-			{manifestSeasons.length > 0 && (
-				<div class="battle-data-controls">
-					<div class="search-input-wrap">
-						<svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-							<circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-						</svg>
-						<input id="battle-data-search" type="search" class="field-control" placeholder="ポケモン名で検索" aria-label="ポケモン名で検索" autocomplete="off" disabled={entries.length === 0} />
-					</div>
-					<div class="battle-data-season-field">
-						<label for="battle-data-season">シーズン</label>
-						<select id="battle-data-season" class="field-control">
-							{manifestSeasons.map((entry) => (
-								<option value={entry.id} selected={entry.id === season}>{entry.label ?? entry.id}</option>
-							))}
-						</select>
-					</div>
-				</div>
-			)}
 		</section>
 
 		<section class="panel data-hub-panel top-builds-panel" data-tab="top-builds" inert={initialTabIndex !== 1} aria-hidden={initialTabIndex !== 1 ? 'true' : undefined}>
@@ -174,21 +195,6 @@ if (seasonEntry && seasonIndex?.pokemon) {
 					</div>
 				</main>
 			</div>
-
-			<div class="top-builds-controls">
-				<div class="search-input-wrap">
-					<svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-						<circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-					</svg>
-					<input id="top-builds-search" type="search" class="field-control" placeholder="ポケモン名で検索" aria-label="ポケモン名で検索" autocomplete="off" />
-				</div>
-				<div class="top-builds-season-field">
-					<label for="top-builds-season">シーズン</label>
-					<select id="top-builds-season" class="field-control" disabled={rankedSeasons.length === 0}>
-						{rankedSeasons.map((entry) => <option value={entry.season} selected={entry.season === defaultRankedSeason}>{entry.season}</option>)}
-					</select>
-				</div>
-			</div>
 		</section>
 	</div>
 
@@ -198,8 +204,29 @@ if (seasonEntry && seasonIndex?.pokemon) {
 		const scrollContainer = document.querySelector('[data-data-hub-scroll]');
 		const tabButtons = document.querySelectorAll('[data-data-hub-tab]');
 		const panels = document.querySelectorAll('[data-tab]');
+		const battleDataHeader = document.querySelector<HTMLElement>('.battle-data-second-header');
+		const topBuildsHeader = document.querySelector<HTMLElement>('.top-builds-second-header');
+		const bottomNav = document.querySelector<HTMLElement>('.app-bottom-nav');
 
 		if (scrollContainer && tabButtons.length === DATA_HUB_TABS.length && panels.length === DATA_HUB_TABS.length) {
+			const syncScrollViewport = (activeIndex: number) => {
+				const activeHeader = activeIndex === 0 ? battleDataHeader : topBuildsHeader;
+				if (!activeHeader) return;
+
+				/* セカンドヘッダーは入力欄の実高さで伸びるため、CSSトークンの最小高さだけで
+				   コンテンツ開始位置を決めるとカードが重なる。実際の下端から共通余白を取る。 */
+				scrollContainer.style.setProperty(
+					'--data-hub-scroll-top',
+					`calc(${activeHeader.getBoundingClientRect().bottom}px + var(--data-hub-card-scroll-inset))`,
+				);
+				if (bottomNav) {
+					scrollContainer.style.setProperty(
+						'--data-hub-scroll-bottom',
+						`calc(${window.innerHeight - bottomNav.getBoundingClientRect().top}px + var(--data-hub-card-scroll-inset))`,
+					);
+				}
+			};
+
 			const syncActiveTab = () => {
 				const activeIndex = resolveActiveTabIndex(scrollContainer.scrollLeft, scrollContainer.clientWidth, DATA_HUB_TABS.length);
 
@@ -217,6 +244,9 @@ if (seasonEntry && seasonIndex?.pokemon) {
 					if (isActive) panel.removeAttribute('aria-hidden');
 					else panel.setAttribute('aria-hidden', 'true');
 				});
+				battleDataHeader?.toggleAttribute('hidden', activeIndex !== 0);
+				topBuildsHeader?.toggleAttribute('hidden', activeIndex !== 1);
+				syncScrollViewport(activeIndex);
 			};
 
 			tabButtons.forEach((tabButton, index) => {
@@ -238,6 +268,7 @@ if (seasonEntry && seasonIndex?.pokemon) {
 			const initialTabIndex = Number(scrollContainer.dataset.initialTabIndex ?? '0');
 			scrollContainer.scrollLeft = initialTabIndex * scrollContainer.clientWidth;
 			syncActiveTab();
+			window.addEventListener('resize', () => syncActiveTab());
 		}
 	</script>
 
@@ -247,8 +278,81 @@ if (seasonEntry && seasonIndex?.pokemon) {
 		const list = document.querySelector<HTMLElement>('#battle-data-list');
 		const entries = list ? Array.from(list.querySelectorAll<HTMLElement>('[data-battle-data-entry]')) : [];
 		const railItems = Array.from(document.querySelectorAll<HTMLAnchorElement>('[data-battle-data-rail-item]'));
+		const rail = document.querySelector<HTMLElement>('.battle-data-rail');
+		const battleDataHeader = document.querySelector<HTMLElement>('.battle-data-second-header');
 		const search = document.querySelector<HTMLInputElement>('#battle-data-search');
 		const seasonSelect = document.querySelector<HTMLSelectElement>('#battle-data-season');
+		const railBySpecies = new Map(railItems.map((item) => [item.dataset.speciesName ?? '', item]));
+		let activeRailItem: HTMLAnchorElement | null = null;
+		let syncFrame: number | undefined;
+		let railDrivenUntil = 0;
+
+		function markActiveRail(item: HTMLAnchorElement): void {
+			if (activeRailItem === item) return;
+			activeRailItem?.removeAttribute('aria-current');
+			item.setAttribute('aria-current', 'true');
+			activeRailItem = item;
+		}
+
+		function setActiveRail(speciesName: string): void {
+			const item = railBySpecies.get(speciesName);
+			if (!item || item.hidden) return;
+			markActiveRail(item);
+			if (!rail) return;
+			const topAligned = item.offsetTop;
+			railDrivenUntil = performance.now() + 100;
+			rail.scrollTo({ top: Math.max(0, topAligned), behavior: 'auto' });
+		}
+
+		function visiblePairs(): Array<{ entry: HTMLElement; railItem: HTMLAnchorElement }> {
+			return entries.flatMap((entry) => {
+				const railItem = railBySpecies.get(entry.dataset.speciesName ?? '');
+				return !entry.hidden && railItem && !railItem.hidden ? [{ entry, railItem }] : [];
+			});
+		}
+
+		function interpolateOffset(position: number, source: HTMLElement[], target: HTMLElement[]): { offset: number; index: number } | null {
+			if (source.length === 0 || source.length !== target.length) return null;
+			let index = 0;
+			while (index < source.length - 1 && source[index + 1].offsetTop <= position) index += 1;
+			const nextIndex = Math.min(index + 1, source.length - 1);
+			const sourceSpan = source[nextIndex].offsetTop - source[index].offsetTop;
+			const ratio = sourceSpan > 0 ? Math.min(1, Math.max(0, (position - source[index].offsetTop) / sourceSpan)) : 0;
+			return { offset: target[index].offsetTop + (target[nextIndex].offsetTop - target[index].offsetTop) * ratio, index };
+		}
+
+		function syncRailToCard(): void {
+			if (!rail || !list || battleDataHeader?.hidden || performance.now() < railDrivenUntil) return;
+			const pairs = visiblePairs();
+			const mapped = interpolateOffset(
+				window.scrollY + (battleDataHeader?.getBoundingClientRect().bottom ?? 0) - (window.scrollY + list.getBoundingClientRect().top),
+				pairs.map((pair) => pair.entry),
+				pairs.map((pair) => pair.railItem),
+			);
+			if (!mapped) return;
+			markActiveRail(pairs[mapped.index].railItem);
+			railDrivenUntil = performance.now() + 16;
+			rail.scrollTo({ top: Math.max(0, mapped.offset), behavior: 'auto' });
+		}
+
+		function syncCardToRail(): void {
+			if (!rail || !list || battleDataHeader?.hidden || performance.now() < railDrivenUntil) return;
+			const pairs = visiblePairs();
+			const mapped = interpolateOffset(rail.scrollTop, pairs.map((pair) => pair.railItem), pairs.map((pair) => pair.entry));
+			if (!mapped) return;
+			markActiveRail(pairs[mapped.index].railItem);
+			railDrivenUntil = performance.now() + 16;
+			const listDocumentTop = window.scrollY + list.getBoundingClientRect().top;
+			window.scrollTo({ top: Math.max(0, listDocumentTop + mapped.offset - (battleDataHeader?.getBoundingClientRect().bottom ?? 0)), behavior: 'auto' });
+		}
+
+		function requestRailSync(): void {
+			if (syncFrame !== undefined) return;
+			syncFrame = requestAnimationFrame(() => {
+				syncFrame = undefined;
+				syncRailToCard();
+			});
+		}
 
 		function applyFilter(): void {
 			const term = search?.value ?? '';
@@ -259,6 +363,7 @@ if (seasonEntry && seasonIndex?.pokemon) {
 				const rail = railItems.find((item) => item.dataset.speciesName === name);
 				if (rail) rail.hidden = !visible;
 			}
+			requestRailSync();
 		}
 
 		search?.addEventListener('input', applyFilter);
@@ -269,9 +374,14 @@ if (seasonEntry && seasonIndex?.pokemon) {
 				const target = targetId ? document.getElementById(targetId) : null;
 				if (!target) return;
 				event.preventDefault();
+				setActiveRail(item.dataset.speciesName ?? '');
 				target.scrollIntoView({ behavior: 'smooth', block: 'start' });
 			});
 		}
+
+		window.addEventListener('scroll', requestRailSync, { passive: true });
+		rail?.addEventListener('scroll', syncCardToRail, { passive: true });
+		requestRailSync();
 
 		seasonSelect?.addEventListener('change', () => {
 			const params = new URLSearchParams(window.location.search);

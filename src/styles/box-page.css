@@ -26,6 +26,7 @@
   --box-page-message-margin-top: var(--space-6); /* 読み込み・エラー文の上余白 */
   --box-page-empty-margin-top: var(--space-4); /* 検索結果なしの文の上余白 */
   --box-app-header-gap: var(--space-2); /* カード一覧の外側余白。大きくすると画面端から離れる */
+  --box-page-card-scroll-inset: var(--list-grid-edge-gap); /* カード一覧の左右余白と共通にする上下ガード帯 */
 
   /* ── 8. 寸法 ────────────────────────── */
   --box-page-min-height: 100dvh; /* ページの最低高さ。大きくすると短い一覧でも画面を埋める */
@@ -49,8 +50,11 @@
   left: 0;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  padding: var(--box-app-header-gap);
+  padding: var(--box-page-card-scroll-inset) var(--box-app-header-gap);
   background: var(--box-page-content-background);
+  scroll-padding-block: var(--box-page-card-scroll-inset);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, transparent var(--box-page-card-scroll-inset), #000 var(--box-page-card-scroll-inset), #000 calc(100% - var(--box-page-card-scroll-inset)), transparent calc(100% - var(--box-page-card-scroll-inset)), transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0, transparent var(--box-page-card-scroll-inset), #000 var(--box-page-card-scroll-inset), #000 calc(100% - var(--box-page-card-scroll-inset)), transparent calc(100% - var(--box-page-card-scroll-inset)), transparent 100%);
 }
 
 /* 件数バッジ・お気に入り・レギュレーションフィルタの行: #box-filter-row。

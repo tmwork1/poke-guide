@@ -14,7 +14,8 @@ body.team-page {
 	--team-page-error-color: var(--color-danger-strong); /* エラーメッセージの文字色 */
 
 	/* ── 7. 余白 ────────────────────────── */
-	--team-page-content-padding: var(--list-grid-edge-gap) var(--list-grid-edge-gap) calc(var(--bottom-nav-height) + 6rem); /* 一覧の外側余白。下側は固定ナビと重ならない余白 */
+	--team-page-card-scroll-inset: var(--list-grid-edge-gap); /* カード一覧の左右余白と共通にする上下ガード帯 */
+	--team-page-content-padding: var(--team-page-card-scroll-inset) var(--list-grid-edge-gap) calc(var(--bottom-nav-height) + 6rem + var(--team-page-card-scroll-inset)); /* 一覧の外側余白。上下は固定UIと重ならない背景色の退避領域 */
 	--team-page-status-margin-top: var(--space-6); /* 読み込み中・エラー表示の上側余白 */
 	--team-page-content-inline-padding: var(--space-5); /* ページ本文の左右余白 */
 	--team-page-empty-margin-top: var(--space-4); /* 検索結果なし表示の上側余白 */
@@ -33,6 +34,9 @@ body.team-page {
 
 .team-content.box-content {
 	padding: var(--team-page-content-padding) !important;
+	scroll-padding-block: var(--team-page-card-scroll-inset);
+	-webkit-mask-image: linear-gradient(to bottom, transparent 0, transparent var(--team-page-card-scroll-inset), #000 var(--team-page-card-scroll-inset), #000 calc(100% - var(--team-page-card-scroll-inset)), transparent calc(100% - var(--team-page-card-scroll-inset)), transparent 100%);
+	mask-image: linear-gradient(to bottom, transparent 0, transparent var(--team-page-card-scroll-inset), #000 var(--team-page-card-scroll-inset), #000 calc(100% - var(--team-page-card-scroll-inset)), transparent calc(100% - var(--team-page-card-scroll-inset)), transparent 100%);
 }
 
 .second-header-density .density-toggle {
