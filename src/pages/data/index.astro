@@ -160,7 +160,7 @@ if (seasonEntry && seasonIndex?.pokemon) {
 							{entries.map((entry) => (
 								<article class="battle-data-entry" id={entry.elementId} data-battle-data-entry data-species-name={entry.name}>
 									<header class="battle-data-entry-header">
-										<span class="battle-data-entry-rank">{entry.rank}</span>
+										<span class="badge battle-data-entry-rank" aria-label={`使用率順位 ${entry.rank}位`}>{entry.rank}</span>
 										{entry.imageId !== null && <img class="battle-data-entry-icon" src={championSpriteUrl(entry.imageId)} onerror={`this.onerror=null;this.src='${officialArtworkUrl(entry.imageId)}';`} alt="" loading="lazy" />}
 										<span class="battle-data-entry-name">{entry.name}</span>
 									</header>
@@ -276,6 +276,7 @@ if (seasonEntry && seasonIndex?.pokemon) {
 		import { kanaIncludes } from '../../lib/kana';
 
 		const list = document.querySelector<HTMLElement>('#battle-data-list');
+		const scrollContainer = document.querySelector<HTMLElement>('[data-data-hub-scroll]');
 		const entries = list ? Array.from(list.querySelectorAll<HTMLElement>('[data-battle-data-entry]')) : [];
 		const railItems = Array.from(document.querySelectorAll<HTMLAnchorElement>('[data-battle-data-rail-item]'));
 		const rail = document.querySelector<HTMLElement>('.battle-data-rail');
@@ -322,10 +323,12 @@ if (seasonEntry && seasonIndex?.pokemon) {
 		}
 
 		function syncRailToCard(): void {
-			if (!rail || !list || battleDataHeader?.hidden || performance.now() < railDrivenUntil) return;
+			if (!rail || !list || !scrollContainer || battleDataHeader?.hidden || performance.now() < railDrivenUntil) return;
 			const pairs = visiblePairs();
+			const scrollRect = scrollContainer.getBoundingClientRect();
+			const listTop = scrollContainer.scrollTop + list.getBoundingClientRect().top - scrollRect.top;
 			const mapped = interpolateOffset(
-				window.scrollY + (battleDataHeader?.getBoundingClientRect().bottom ?? 0) - (window.scrollY + list.getBoundingClientRect().top),
+				scrollContainer.scrollTop - listTop,
 				pairs.map((pair) => pair.entry),
 				pairs.map((pair) => pair.railItem),
 			);
@@ -336,14 +339,14 @@ if (seasonEntry && seasonIndex?.pokemon) {
 		}
 
 		function syncCardToRail(): void {
-			if (!rail || !list || battleDataHeader?.hidden || performance.now() < railDrivenUntil) return;
+			if (!rail || !list || !scrollContainer || battleDataHeader?.hidden || performance.now() < railDrivenUntil) return;
 			const pairs = visiblePairs();
 			const mapped = interpolateOffset(rail.scrollTop, pairs.map((pair) => pair.railItem), pairs.map((pair) => pair.entry));
 			if (!mapped) return;
 			markActiveRail(pairs[mapped.index].railItem);
 			railDrivenUntil = performance.now() + 16;
-			const listDocumentTop = window.scrollY + list.getBoundingClientRect().top;
-			window.scrollTo({ top: Math.max(0, listDocumentTop + mapped.offset - (battleDataHeader?.getBoundingClientRect().bottom ?? 0)), behavior: 'auto' });
+			const listTop = scrollContainer.scrollTop + list.getBoundingClientRect().top - scrollContainer.getBoundingClientRect().top;
+			scrollContainer.scrollTo({ top: Math.max(0, listTop + mapped.offset), behavior: 'auto' });
 		}
 
 		function requestRailSync(): void {
@@ -379,7 +382,7 @@ if (seasonEntry && seasonIndex?.pokemon) {
 			});
 		}
 
-		window.addEventListener('scroll', requestRailSync, { passive: true });
+		scrollContainer?.addEventListener('scroll', requestRailSync, { passive: true });
 		rail?.addEventListener('scroll', syncCardToRail, { passive: true });
 		requestRailSync();
 

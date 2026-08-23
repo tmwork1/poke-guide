@@ -159,6 +159,11 @@
   padding: var(--space-3);
   min-width: 0;
 }
+/* 上位チームの見出しだけは、順位・シーズン・名前・外部リンクの区切りを少しゆったりさせる。 */
+.team-grid .card-team--top-build {
+  --team-card-inline-gap: var(--space-3);
+  --team-card-meta-gap: var(--space-3);
+}
 .team-grid .card-team .card-team-header--inline .card-team-name {
   flex: 0 1 auto;
   min-width: 0;
@@ -235,6 +240,7 @@
 }
 .team-grid .card-team .card-team-header--inline .card-team-article-link--inline {
   position: static;
+  margin-left: auto;
   z-index: auto;
   flex: 0 0 auto;
   width: auto;

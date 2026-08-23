@@ -41,7 +41,7 @@ body.data-hub-page {
   --data-hub-list-gap: var(--space-4); /* ポケモンカードどうしの縦間隔。大きくすると一覧が縦に広がる */
   --data-hub-entry-header-gap: var(--space-2); /* 順位・アイコン・名前の間隔。大きくすると横に離れる */
   --data-hub-entry-header-padding: var(--space-2) var(--space-3); /* ポケモン見出し行の内側余白。大きくすると行が厚くなる */
-  --data-hub-rail-gap: var(--space-1); /* 左アイコン列内のアイコン間隔。少し離して押しやすくする */
+  --data-hub-rail-gap: var(--space-2); /* 左アイコン列内のアイコン間隔。少し離して押しやすくする */
   --data-hub-rail-padding: 0; /* レール内の先頭・末尾もカード一覧と同じ境界から並べる */
   --data-hub-controls-gap: var(--space-2); /* バトルデータ操作バー内の要素間隔。大きくすると入力欄が離れる */
   --data-hub-controls-padding: var(--space-3); /* バトルデータ操作バーの内側余白。大きくするとバーが厚くなる */
@@ -50,10 +50,10 @@ body.data-hub-page {
   --data-hub-load-more-padding: var(--space-6) 0; /* 「もっと見る」周辺の上下余白。大きくすると一覧から離れる */
 
   /* ── 8. 寸法 ──────────────────────────────────────────── */
-  --data-hub-rail-width: 40px; /* 左側ポケモンレールの幅。小さくするとカードの横幅が広がる */
+  --data-hub-rail-width: 48px; /* 左側ポケモンレールの幅。小さくするとカードの横幅が広がる */
   --data-hub-entry-rank-min-width: 1.6em; /* 順位表示の最小幅。大きくするとポケモン名の開始位置が右へ寄る */
   --data-hub-entry-icon-size: 32px; /* 一覧見出しのポケモンアイコンサイズ。大きくするとアイコンが目立つ */
-  --data-hub-rail-item-size: 36px; /* 左アイコン列のポケモン画像サイズ。大きくすると見やすくなる */
+  --data-hub-rail-item-size: 40px; /* 左アイコン列のポケモン画像サイズ。大きくすると見やすくなる */
 }
 
 /* ===========================================================================
@@ -142,9 +142,9 @@ body.data-hub-page {
 /* ポケモンカード見出しの使用率順位 */
 .battle-data-entry-rank {
   min-width: var(--data-hub-entry-rank-min-width);
-  color: var(--data-hub-muted-color);
+  justify-content: center;
   font-size: var(--data-hub-entry-rank-font-size);
-  text-align: right;
+  white-space: nowrap;
 }
 /* ポケモンカード見出しに表示するポケモン画像 */
 .battle-data-entry-icon {
