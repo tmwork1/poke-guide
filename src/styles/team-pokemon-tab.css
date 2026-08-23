@@ -25,10 +25,10 @@ body.team-edit-page {
 	/* ── 5. 枠線・角丸 ─────────────────────── */
 	--team-pokemon-tab-actions-border: 1px solid var(--color-border); /* 操作列下部の区切り線 */
 	--team-pokemon-tab-mates-border: 1px solid var(--color-border); /* チームメイト枠下部の区切り線 */
-	--team-pokemon-tab-suggest-border: 1px solid var(--color-border); /* おすすめ列下部の区切り線 */
+	--team-pokemon-tab-suggest-border: 1px solid var(--color-border); /* 固定おすすめ列上端の区切り線 */
 
 	/* ── 7. 余白 ────────────────────────── */
-	--team-pokemon-tab-formation-box-padding: var(--space-4) var(--space-3) calc(var(--space-7) + var(--space-6)); /* ボックス一覧の外側余白。下側は固定ナビと重ならない余白 */
+	--team-pokemon-tab-formation-box-padding: var(--space-4) var(--space-3) calc(var(--space-7) + var(--space-6) + var(--team-pokemon-tab-suggest-fixed-height) + var(--space-2)); /* ボックス一覧の外側余白。下側は固定ナビ・おすすめ表示・追加ボタンと重ならない余白 */
 	--team-pokemon-tab-actions-padding: var(--space-3) var(--space-5); /* 操作列の内側余白 */
 	--team-pokemon-tab-actions-gap: var(--space-3); /* 操作列の要素どうしの間隔 */
 	--team-pokemon-tab-suggest-gap: var(--space-3); /* 見出しとおすすめアイコンの間隔 */
@@ -43,6 +43,7 @@ body.team-edit-page {
 	--team-pokemon-tab-slot-max-width: 34rem; /* 6枠全体の最大幅。大きくすると横に広がる */
 	--team-pokemon-tab-suggest-min-height: calc(var(--space-7) + var(--space-2)); /* おすすめ列の最低の高さ */
 	--team-pokemon-tab-suggest-icon-size: calc(var(--space-7) + var(--space-2)); /* おすすめアイコンの正方形サイズ */
+	--team-pokemon-tab-suggest-fixed-height: max(var(--team-pokemon-tab-suggest-min-height), calc(max(var(--team-pokemon-tab-suggest-icon-size), var(--tap-target-min)) + var(--space-2) + var(--space-2))); /* 固定表示時に予約するおすすめ列の高さ。アイコンのタップ領域と上下paddingの大きい方に追従する */
 }
 
 /* --------------------------------------------------------------------------
@@ -91,10 +92,12 @@ body.team-edit-page {
 .team-edit-shell[data-mobile-tab="matchup"] #team-matchup-mobile {
 	display: block;
 }
-.team-formation-mobile__mates {
+.team-formation-mobile__sticky-header {
 	position: sticky;
 	top: calc(var(--header-height) + var(--app-header-height));
 	z-index: 3;
+}
+.team-formation-mobile__mates {
 	padding: var(--team-pokemon-tab-mates-padding);
 	background: var(--team-pokemon-tab-mates-background);
 	border-bottom: var(--team-pokemon-tab-mates-border);
@@ -107,10 +110,15 @@ body.team-edit-page {
 	display: flex;
 	align-items: center;
 	gap: var(--team-pokemon-tab-suggest-gap);
+	position: fixed;
+	right: 0;
+	bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom));
+	left: 0;
+	z-index: 15;
 	min-height: var(--team-pokemon-tab-suggest-min-height);
 	padding: var(--team-pokemon-tab-suggest-padding);
 	background: var(--team-pokemon-tab-suggest-background);
-	border-bottom: var(--team-pokemon-tab-suggest-border);
+	border-top: var(--team-pokemon-tab-suggest-border);
 }
 .team-formation-mobile__suggest-label {
 	flex-shrink: 0;
@@ -146,15 +154,21 @@ body.team-edit-page {
 }
 .team-edit-shell[data-mobile-tab="formation"] #team-formation-mobile {
 	display: block;
+	/* 右下の固定追加ボタンを、おすすめ表示の高さと間隔ぶんだけ押し上げる。 */
+	--floating-list-controls-offset-y: calc(var(--team-pokemon-tab-suggest-fixed-height) + var(--space-2));
 }
 .team-formation-mobile__box {
 	padding: var(--team-pokemon-tab-formation-box-padding);
 }
 #team-formation-mobile-toolbar {
+	/* sticky領域は親ラッパーで担う。app-headerの独立sticky指定はここでは使わない。 */
+	position: static;
+	z-index: auto;
 	display: flex;
 	flex-flow: row nowrap;
 	align-items: center;
 	gap: var(--app-header-toolbar-gap);
+	background: var(--color-surface);
 }
 #team-formation-mobile-toolbar .toolbar-search {
 	flex: 1 1 auto;

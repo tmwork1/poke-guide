@@ -572,15 +572,11 @@ try {
 					</aside>
 				</div>
 				<section id="team-formation-mobile" class="floating-list-page" aria-label="チーム編成">
-					<div class="team-formation-mobile__mates" aria-label="チームメイト">
-						<div id="team-formation-mobile-slots" class="team-formation-mobile__slot-grid team-mate-grid"></div>
-					</div>
-					<div class="team-formation-mobile__box">
-						{/* 検索欄+追加ボタンは /box・/team(一覧) と同じ「下部固定の浮き型」UI
-						    (floating-list-controls.css)をそのまま再利用する。マークアップは
-						    src/pages/team/index.astro の #team-toolbar / #add-team-button と
-						    同じクラス構成。 */}
-						<div class="panel panel-top app-header app-header--toolbar floating-list-toolbar" id="team-formation-mobile-toolbar">
+					<div class="team-formation-mobile__sticky-header">
+						<div class="team-formation-mobile__mates" aria-label="チームメイト">
+							<div id="team-formation-mobile-slots" class="team-formation-mobile__slot-grid team-mate-grid"></div>
+						</div>
+						<div class="panel panel-top app-header app-header--toolbar" id="team-formation-mobile-toolbar">
 							<div class="toolbar-item toolbar-search">
 								<div class="search-input-wrap">
 									<svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -610,6 +606,8 @@ try {
 								</button>
 							</div>
 						</div>
+					</div>
+					<div class="team-formation-mobile__box">
 						<p id="team-formation-mobile-status" class="status-text" hidden></p>
 						<div id="team-formation-mobile-box-grid" class="box-grid">
 							<button id="team-formation-mobile-add" class="add-card-tile floating-list-add-button" type="button" aria-label="個体を追加">
