@@ -27,6 +27,7 @@ import {
 	type MatchupDirection,
 	type PopularMoveOption,
 } from './team-matchup';
+import { DEFAULT_TYPE_COLOR, TYPE_COLORS } from './type-colors';
 
 /** 相性計算に必要な、所有ポケモンの最小限の情報。 */
 export interface MatchupPanelMember {
@@ -179,6 +180,71 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 	let timer: number | undefined;
 	const scoreCache = new Map<string, MatchupScoreCacheEntry>();
 	let cardElements: HTMLLIElement[] = [];
+	let activeMovePopover: HTMLElement | null = null;
+	let activeMovePopoverCard: HTMLElement | null = null;
+
+	function closeMovePopover(): void {
+		activeMovePopover?.remove();
+		activeMovePopoverCard?.setAttribute('aria-expanded', 'false');
+		activeMovePopover = null;
+		activeMovePopoverCard = null;
+	}
+
+	function openMovePopover(
+		card: HTMLLIElement,
+		target: MatchupTarget,
+		moveNames: readonly string[],
+		getMoveType: (moveName: string) => string | null,
+	): void {
+		if (activeMovePopoverCard === card) {
+			closeMovePopover();
+			return;
+		}
+		closeMovePopover();
+
+		const popover = document.createElement('div');
+		popover.className = 'team-matchup-move-popover';
+		popover.setAttribute('role', 'dialog');
+		popover.setAttribute('aria-label', `${target.speciesName}の相性計算で考慮した技`);
+		const moves = document.createElement('ul');
+		moves.className = 'team-matchup-move-popover__list';
+		if (moveNames.length === 0) {
+			const empty = document.createElement('li');
+			empty.textContent = '考慮できる攻撃技なし';
+			moves.append(empty);
+		} else {
+			for (const moveName of moveNames) {
+				const item = document.createElement('li');
+				const typeBar = document.createElement('span');
+				typeBar.className = 'team-matchup-move-popover__type-bar';
+				const moveType = getMoveType(moveName);
+				typeBar.style.backgroundColor = TYPE_COLORS[moveType ?? ''] ?? DEFAULT_TYPE_COLOR;
+				if (moveType) typeBar.title = moveType;
+				const name = document.createElement('span');
+				name.textContent = moveName;
+				item.append(typeBar, name);
+				moves.append(item);
+			}
+		}
+		popover.append(moves);
+		document.body.append(popover);
+
+		const cardRect = card.getBoundingClientRect();
+		const popoverRect = popover.getBoundingClientRect();
+		const viewportGutter = 8;
+		const showAbove = cardRect.top >= popoverRect.height + viewportGutter;
+		const top = showAbove ? cardRect.top - popoverRect.height - 8 : cardRect.bottom + 8;
+		const left = Math.min(
+			Math.max(viewportGutter, cardRect.left + cardRect.width / 2 - popoverRect.width / 2),
+			window.innerWidth - popoverRect.width - viewportGutter,
+		);
+		popover.style.top = `${top}px`;
+		popover.style.left = `${left}px`;
+		popover.dataset.placement = showAbove ? 'above' : 'below';
+		card.setAttribute('aria-expanded', 'true');
+		activeMovePopover = popover;
+		activeMovePopoverCard = card;
+	}
 
 	function setStatus(message: string | null): void {
 		if (message === null) {
@@ -191,16 +257,27 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 	}
 
 	function clearLists(): void {
+		closeMovePopover();
 		listElement.innerHTML = '';
 		cardElements = [];
 	}
 
-	function createMatchupCards(targets: MatchupTarget[], typesMap: Map<string, string[]>): void {
+	function createMatchupCards(
+		targets: MatchupTarget[],
+		typesMap: Map<string, string[]>,
+		isAttackMove: (moveName: string) => boolean,
+		getMoveType: (moveName: string) => string | null,
+	): void {
 		clearLists();
 		for (const target of targets) {
 			const card = document.createElement('li');
 			card.className = 'team-matchup-card';
 			card.dataset.state = 'pending';
+			card.tabIndex = 0;
+			card.setAttribute('role', 'button');
+			card.setAttribute('aria-haspopup', 'dialog');
+			card.setAttribute('aria-expanded', 'false');
+			card.setAttribute('aria-label', `${target.speciesName}の相性計算で考慮した技を表示`);
 			const img = document.createElement('img');
 			img.className = 'team-matchup-sprite-img';
 			img.alt = '';
@@ -210,6 +287,15 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 			void applySprite(img, fallback, target.speciesName);
 			const typeNames = (typesMap.get(target.speciesName) ?? []).join('/');
 			card.title = typeNames ? `${target.speciesName}\n${typeNames}` : target.speciesName;
+			card.addEventListener('click', (event) => {
+				event.stopPropagation();
+				openMovePopover(card, target, pickOpponentAttackMoves(target.moves, isAttackMove), getMoveType);
+			});
+			card.addEventListener('keydown', (event) => {
+				if (event.key !== 'Enter' && event.key !== ' ') return;
+				event.preventDefault();
+				openMovePopover(card, target, pickOpponentAttackMoves(target.moves, isAttackMove), getMoveType);
+			});
 			cardElements.push(card);
 			listElement.appendChild(card);
 		}
@@ -220,13 +306,14 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 	 * 0〜100%へ写し直し、苦手な相手だけがハイライトされるようにする。
 	 */
 	const MATCHUP_HIGHLIGHT_THRESHOLD = 0.7;
+	const MATCHUP_HIGHLIGHT_MAX_MIX = 60;
 
 	function applyMatchupCardResult(targetIndex: number, opacity: number | null): void {
 		const card = cardElements[targetIndex];
 		if (!card) return;
 		const mix =
 			opacity !== null && opacity >= MATCHUP_HIGHLIGHT_THRESHOLD
-				? ((opacity - MATCHUP_HIGHLIGHT_THRESHOLD) / (1 - MATCHUP_HIGHLIGHT_THRESHOLD)) * 100
+				? ((opacity - MATCHUP_HIGHLIGHT_THRESHOLD) / (1 - MATCHUP_HIGHLIGHT_THRESHOLD)) * MATCHUP_HIGHLIGHT_MAX_MIX
 				: 0;
 		card.style.setProperty('--matchup-mix', `${mix}%`);
 		if (opacity === null) {
@@ -246,8 +333,10 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 		targets: MatchupTarget[],
 		scores: MatchupScoreCacheEntry | null,
 		typesMap: Map<string, string[]>,
+		isAttackMove: (moveName: string) => boolean,
+		getMoveType: (moveName: string) => string | null,
 	): void {
-		createMatchupCards(targets, typesMap);
+		createMatchupCards(targets, typesMap, isAttackMove, getMoveType);
 		if (!scores) return;
 		const scored = scoreToOpacities(
 			targets.map((target, i) => ({ item: target, score: worseScore(scores.attack[i] ?? null, scores.defense[i] ?? null) })),
@@ -257,6 +346,11 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 			applyMatchupCardResult(targetIndex, scored[targetIndex]?.opacity ?? null);
 		}
 	}
+
+	document.addEventListener('click', closeMovePopover);
+	document.addEventListener('keydown', (event) => {
+		if (event.key === 'Escape') closeMovePopover();
+	});
 
 	async function run(): Promise<void> {
 		const currentRequestId = (requestId += 1);
@@ -283,20 +377,21 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 			const detail = moveDetails.get(moveName);
 			return !!detail && detail.category !== 'status';
 		};
+		const getMoveType = (moveName: string): string | null => moveDetails.get(moveName)?.type ?? null;
 		const members = getMembers().filter((member) => member.species_name?.trim() !== '');
 		if (members.length === 0) {
-			renderMatchupList(targets, null, typesMap);
+			renderMatchupList(targets, null, typesMap, isAttackMove, getMoveType);
 			setStatus(options.emptyMembersMessage ?? 'チームにポケモンを入れると相性を計算します。');
 			return;
 		}
 		const cacheKey = members.map((member) => member.id).sort().join(',');
 		const cached = scoreCache.get(cacheKey);
 		if (cached) {
-			renderMatchupList(targets, cached, typesMap);
+			renderMatchupList(targets, cached, typesMap, isAttackMove, getMoveType);
 			setStatus(null);
 			return;
 		}
-		renderMatchupList(targets, null, typesMap);
+		renderMatchupList(targets, null, typesMap, isAttackMove, getMoveType);
 		setStatus('相性チェックを準備中…');
 		registerOfflineCache();
 		try {

@@ -21,7 +21,7 @@
 //   5. 1〜4をすべての相手ポケモンに対して行う。
 // 防御:
 //   1. 相手ポケモンを1体選ぶ。性格補正なし、努力値はH32振り。技構成は攻撃技のみを
-//      採用率の上から順に最大4つ。
+//      採用率20%以上の技すべて。
 //   2〜4は相手からチームへの最大ダメージ割合を使う。大きいほど不利 = 濃く表示。
 
 /** 相手ポケモンの努力値(Champions形式 0〜32)。仕様どおりHのみ32、他は0。 */
@@ -31,7 +31,7 @@ export const OPPONENT_EVS: readonly number[] = [32, 0, 0, 0, 0, 0];
 export const OPPONENT_NATURE = 'まじめ';
 
 /** 防御側の相手が持つ技の最大数(実機の4枠に合わせる)。 */
-export const OPPONENT_MAX_MOVES = 4;
+export const OPPONENT_MIN_MOVE_RATIO = 0.2;
 
 /** 相性チェックの対象にする使用率上位の体数。 */
 export const MATCHUP_TOP_N = 32;
@@ -79,14 +79,12 @@ export interface PopularMoveOption {
 export function pickOpponentAttackMoves(
 	options: readonly PopularMoveOption[],
 	isAttackMove: (moveName: string) => boolean,
-	max: number = OPPONENT_MAX_MOVES,
 ): string[] {
-	const attacks = options.filter((o) => isAttackMove(o.value));
+	const attacks = options.filter((o) => o.ratio >= OPPONENT_MIN_MOVE_RATIO && isAttackMove(o.value));
 	// 安定ソート(Array.prototype.sort は ES2019 以降で安定)。
 	const sorted = [...attacks].sort((a, b) => b.ratio - a.ratio);
 	const picked: string[] = [];
 	for (const option of sorted) {
-		if (picked.length >= max) break;
 		// 同じ技が2行で届いても4枠を二重に食わないよう畳む(集計側では起きない想定の防御)。
 		if (picked.includes(option.value)) continue;
 		picked.push(option.value);

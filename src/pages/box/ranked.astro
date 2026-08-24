@@ -132,3 +132,23 @@ if (pokemon) {
 
   void loadRankedBuilds();
 </script>
+
+<script>
+  const rankedPage = document.querySelector<HTMLElement>('.box-ranked-page');
+  const trainingBar = document.querySelector<HTMLElement>('#mobile-training-ui');
+  const bottomNav = document.querySelector<HTMLElement>('.app-bottom-nav');
+
+  function syncRankedViewport(): void {
+    if (!rankedPage || !trainingBar) return;
+
+    rankedPage.style.setProperty('--box-data-scroll-top', `${trainingBar.getBoundingClientRect().bottom}px`);
+    if (bottomNav) {
+      rankedPage.style.setProperty('--box-data-scroll-bottom', `${window.innerHeight - bottomNav.getBoundingClientRect().top}px`);
+    }
+  }
+
+  syncRankedViewport();
+  window.addEventListener('resize', syncRankedViewport);
+  new ResizeObserver(syncRankedViewport).observe(trainingBar);
+  if (bottomNav) new ResizeObserver(syncRankedViewport).observe(bottomNav);
+</script>

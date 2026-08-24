@@ -163,6 +163,7 @@
 .team-grid .card-team--top-build {
   --team-card-inline-gap: var(--space-3);
   --team-card-meta-gap: var(--space-3);
+  --team-card-top-build-meta-font-size: calc(var(--team-card-badge-font-size) + 0.125rem);
 }
 .team-grid .card-team .card-team-header--inline .card-team-name {
   flex: 0 1 auto;
@@ -192,7 +193,7 @@
 .team-grid .card-team--top-build .card-team-rank-text,
 .team-grid .card-team--top-build .card-team-rating-text {
   color: var(--color-text-muted);
-  font-size: var(--team-card-badge-font-size);
+  font-size: var(--team-card-top-build-meta-font-size);
   white-space: nowrap;
 }
 /* .badge(global.css)を土台に、帯の上で主張しすぎない控えめな見え方へ寄せる。
@@ -284,6 +285,16 @@
 .team-grid .card-team .card-pokemon--similar {
   border-color: var(--color-primary);
   border-width: var(--team-card-similar-border-width);
+}
+
+/* /box の上位チームでは、該当ポケモンの種族名だけを強調する。 */
+.team-grid .card-team--top-build .card-pokemon--similar {
+  border-color: var(--color-border);
+  border-width: 1px;
+}
+.team-grid .card-team--top-build .card-pokemon--similar .card-name {
+  color: var(--color-primary);
+  font-weight: 600;
 }
 .card-team-member-popover {
   position: fixed;

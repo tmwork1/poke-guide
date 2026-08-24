@@ -6,7 +6,7 @@
 // 多い順に N 体。各体について、集計済みの採用技(suggestions.kind='popular_move'、009/014)を
 // 採用率つきでそのまま渡す。採用技(popular_move)も同じ合算プールから集計されている
 // (011)ため、採用数(usageTeams)の母集団と一致する。
-// 「攻撃技だけを上位4つ」に絞る判断はクライアント側(src/lib/team-matchup.ts の
+// 「攻撃技かつ採用率20%以上」に絞る判断はクライアント側(src/lib/team-matchup.ts の
 // pickOpponentAttackMoves)が行う ── 技が攻撃技かどうかの判定に必要な
 // public/master-data/detail/moves.json(103KB)はクライアントが既に読み込んでおり
 // (loadMoveDetailMap)、Worker 側へ持ち込む理由が無いため。

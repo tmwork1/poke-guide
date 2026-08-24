@@ -76,3 +76,23 @@ const pokemon = result?.ok ? result.data : null;
     void matchupPanel.run();
   }
 </script>
+
+<script>
+  const matchupPage = document.querySelector<HTMLElement>('.box-matchup-page');
+  const trainingBar = document.querySelector<HTMLElement>('#mobile-training-ui');
+  const bottomNav = document.querySelector<HTMLElement>('.app-bottom-nav');
+
+  function syncMatchupViewport(): void {
+    if (!matchupPage || !trainingBar) return;
+
+    matchupPage.style.setProperty('--box-data-scroll-top', `${trainingBar.getBoundingClientRect().bottom}px`);
+    if (bottomNav) {
+      matchupPage.style.setProperty('--box-data-scroll-bottom', `${window.innerHeight - bottomNav.getBoundingClientRect().top}px`);
+    }
+  }
+
+  syncMatchupViewport();
+  window.addEventListener('resize', syncMatchupViewport);
+  new ResizeObserver(syncMatchupViewport).observe(trainingBar);
+  if (bottomNav) new ResizeObserver(syncMatchupViewport).observe(bottomNav);
+</script>

@@ -9,7 +9,7 @@ import {
   MATCHUP_MIN_OPACITY,
   MATCHUP_SCORE_MIN_RANGE,
   OPPONENT_EVS,
-  OPPONENT_MAX_MOVES,
+  OPPONENT_MIN_MOVE_RATIO,
   averageRatio,
   damageRatio,
   matchupOpacity,
@@ -42,8 +42,10 @@ describe('OPPONENT_EVS', () => {
 });
 
 describe('pickOpponentAttackMoves', () => {
-  it('変化技を除き、採用率の高い順に最大4つ選ぶ', () => {
-    assert.deepEqual(pickOpponentAttackMoves(GARCHOMP_MOVES, isAttackMove), [
+  it('変化技を除き、採用率20%以上の技を高い順にすべて選ぶ', () => {
+    const selected = pickOpponentAttackMoves(GARCHOMP_MOVES, isAttackMove);
+    assert.equal(selected.length, 5);
+    assert.deepEqual(selected.slice(0, 4), [
       'じしん',
       'げきりん',
       'スケイルショット',
@@ -85,9 +87,18 @@ describe('pickOpponentAttackMoves', () => {
     assert.deepEqual(pickOpponentAttackMoves(dup, isAttackMove), ['じしん', 'げきりん']);
   });
 
-  it('上限は OPPONENT_MAX_MOVES(=実機の4枠)', () => {
+  it('4枠では打ち切らない', () => {
     const many = Array.from({ length: 10 }, (_, i) => ({ value: `技${i}`, ratio: 1 - i * 0.05 }));
-    assert.equal(pickOpponentAttackMoves(many, () => true).length, OPPONENT_MAX_MOVES);
+    assert.equal(pickOpponentAttackMoves(many, () => true).length, 10);
+    assert.equal(OPPONENT_MIN_MOVE_RATIO, 0.2);
+  });
+
+  it('採用率20%未満の攻撃技は選ばない', () => {
+    const moves = [
+      { value: 'high', ratio: 0.2 },
+      { value: 'low', ratio: 0.199 },
+    ];
+    assert.deepEqual(pickOpponentAttackMoves(moves, () => true), ['high']);
   });
 });
 

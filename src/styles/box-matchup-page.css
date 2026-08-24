@@ -1,6 +1,7 @@
 /* 個体相性ページ(/box/matchup)固有のレイアウト。 */
 .box-matchup-page .box-data-main {
-	padding: var(--box-data-card-viewport-inset);
+	/* 左右・下端の基準余白は保ち、プレビュー直下だけを詰める。 */
+	padding: 0 var(--box-data-card-viewport-inset) var(--box-data-card-viewport-inset);
 }
 .box-matchup-panel {
 	display: flex;
