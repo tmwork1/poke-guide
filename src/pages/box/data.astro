@@ -81,3 +81,24 @@ const hasData = hasSingleBattleData(opgg);
     )}
   </div>
 </AppLayout>
+
+<script>
+  const dataPage = document.querySelector<HTMLElement>('.box-data-page');
+  const trainingBar = document.querySelector<HTMLElement>('#mobile-training-ui');
+  const bottomNav = document.querySelector<HTMLElement>('.app-bottom-nav');
+
+  function syncBattleDataViewport(): void {
+    if (!dataPage || !trainingBar) return;
+
+    const top = trainingBar.getBoundingClientRect().bottom;
+    dataPage.style.setProperty('--box-data-scroll-top', `${top}px`);
+    if (bottomNav) {
+      const bottom = window.innerHeight - bottomNav.getBoundingClientRect().top;
+      dataPage.style.setProperty('--box-data-scroll-bottom', `${bottom}px`);
+    }
+  }
+
+  syncBattleDataViewport();
+  window.addEventListener('resize', syncBattleDataViewport);
+  new ResizeObserver(syncBattleDataViewport).observe(trainingBar);
+</script>

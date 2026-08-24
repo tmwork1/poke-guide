@@ -175,6 +175,37 @@ body.data-page {
   height: 100%;
 }
 
+/* /box/data はポケモン1体分だけを表示するため、一覧(/data)よりランキング行を大きくする。 */
+.box-data-page .data-panel--has-data .trend-detail-card {
+  --battle-data-card-label-font-size: var(--font-size-sm1);
+  --battle-data-card-value-font-size: var(--font-size-sm2);
+  --battle-data-card-item-icon-size: 1.4em;
+  --battle-data-card-pokemon-icon-size: 1.7em;
+  --battle-data-card-row-height: 1.8em;
+}
+
+@media (width <= 899px) {
+  /* MobileTrainingBar は固定配置のため通常フローの高さを持たない。実測した上下端を
+     使い、データだけをプレビューと下部ナビの間に固定する。 */
+  .box-data-page {
+    position: fixed;
+    inset: var(--header-height) 0 0;
+    height: auto;
+    padding-bottom: 0;
+    overflow: hidden;
+    background: var(--color-bg);
+  }
+
+  .box-data-page .box-data-main {
+    position: fixed;
+    top: var(--box-data-scroll-top, calc(var(--header-height) + var(--app-header-height) + var(--pokemon-preview-height) + 1px));
+    right: 0;
+    bottom: var(--box-data-scroll-bottom, calc(var(--bottom-nav-height) + env(safe-area-inset-bottom)));
+    left: 0;
+    flex: none;
+  }
+}
+
 /* box/ranked.astro(上位チーム)は renderTopBuildCard + team-card.css で /team 一覧と
    カード本体を共用している。器の左右余白も同じ --list-grid-edge-gap に揃えないと
    カードだけ細くなるため、このページに限り .box-data-main の既定 padding を上書きする
