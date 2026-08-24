@@ -290,6 +290,10 @@
   color: var(--pokemon-preview-item-color);
 }
 
+#pokemon-preview-item[data-empty="true"] {
+  color: var(--color-text-muted);
+}
+
 .pokemon-preview-stats {
   margin-top: var(--pokemon-preview-item-stats-gap);
   margin-left: auto;

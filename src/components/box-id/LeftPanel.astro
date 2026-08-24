@@ -344,10 +344,12 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		    向かない)。誤操作の抑止は色を抑える代わりに既存のwindow.confirm()
 		    (<script>のdeleteButtonクリックハンドラ)に委ねる。スタイルはsrc/styles/box-edit-page.cssの
 		    #delete-button参照。 */}
-		<button id="delete-button" class="btn-danger" type="button">
-			<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-			削除
-		</button>
+		<div class="training-delete-actions">
+			<button id="delete-button" class="btn-danger" type="button">
+				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+				削除
+			</button>
+		</div>
 
 		<SpeciesSelectDialog />
 

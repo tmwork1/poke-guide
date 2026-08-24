@@ -76,7 +76,7 @@ const previewStats = detail ? statKeys.map((key, index) => index === 0 ? calcHpS
     <div class="pokemon-preview-right">
       <div class="pokemon-preview-item pokemon-preview-icon-text">
         <img id="pokemon-preview-item-image" src={pokemon.item_name ? itemIconUrl(pokemon.item_name) : undefined} alt="" class={pokemon.item_name ? 'pokemon-preview-item-image' : 'pokemon-preview-item-image-hidden'} onerror="this.style.display='none'" />
-        <span id="pokemon-preview-item">{pokemon.item_name || 'アイテムなし'}</span>
+        <span id="pokemon-preview-item" data-empty={pokemon.item_name ? undefined : 'true'}>{pokemon.item_name || 'アイテムなし'}</span>
       </div>
       <table class="pokemon-preview-stats" aria-label="実数値と努力値">
         <tbody>

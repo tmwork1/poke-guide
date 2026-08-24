@@ -332,8 +332,17 @@
 	border-color: transparent;
 	box-shadow: none;
 }
-/* HP努力値の上に置く残数と右端の実数値 */
-.stat-ev-value .ev-remaining { text-align: center; white-space: nowrap; }
+/* 残り努力値はHP行の外に独立させ、能力値テーブルの行高へ影響させない。 */
+.stat-ev-remaining-row {
+	min-height: 36px;
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	/* 努力値の数値欄は操作列の右から2番目。終端ボタン1個ぶんを避けて、
+	   「残り」をその数値欄の真上へ揃える。 */
+	padding-inline-end: calc(var(--stat-ev-mobile-button-block-size) + var(--stat-control-gap));
+}
+.stat-ev-remaining-row .ev-remaining { white-space: nowrap; }
 .stat-row-real-wrap {
 	display: contents;
 	align-items: center;
@@ -351,6 +360,9 @@
 
 /* ダメージ詳細パネル内で使う列幅と操作ボタンの基準寸法 */
 #damage-detail-panel-body .stat-adjustment-section {
+	/* 育成タブと共有する表構造を保ちつつ、モーダル内では操作面だけを
+	   一段沈めて入力箇所を見分けやすくする。 */
+	--stat-button-background: var(--damage-detail-control-background);
 	--stat-grid-template-columns:
 		minmax(1.5rem, 0.4fr)
 		minmax(2.75rem, 0.6fr)
@@ -359,7 +371,13 @@
 	--stat-column-gap: var(--space-1);
 	--stat-table-inline-start-padding: var(--space-1);
 	--stat-table-inline-end-padding: var(--space-2);
-	--stat-ev-mobile-button-block-size: 32px;
+	--stat-ev-mobile-button-block-size: 36px;
+	--stat-nature-button-size: 36px;
+	--stat-number-input-height: 36px;
+	/* 実測: 数値欄は従来54.4px(3.4rem)、隣の操作ボタンは36pxだった。
+	   3桁の努力値は36px内に収まるため、ボタンと同じ正方形に揃える。 */
+	--stat-number-input-width: 36px;
+	--stat-number-input-padding: 0 2px;
 	/* H: buildStatAdjustmentPanel()(stat-adjustment-panel.ts)が生成するDOMを、
 		育成タブ(LeftPanel.astro)の静的マークアップと同じ構造(ラベルと性格補正
 		切替ボタンが.stat-row-label/.stat-row-natureの別セル)に揃えたため、
@@ -373,6 +391,19 @@
 	--stat-mobile-input-grid-column: 3;
 	--stat-mobile-real-grid-column: 4;
 	--stat-mobile-real-padding-inline-end: 0;
+}
+
+/* 相手ポケモンタブ内では、各能力値行も操作部と同じ36pxの縦リズムに揃える。 */
+#damage-detail-panel-body .stat-adjustment-section .stat-row {
+	min-height: 36px;
+}
+
+/* 狭い表示用の3.2em上書きも、相手ポケモンタブ内だけは36pxへ揃える。 */
+@media (max-width: 460px) {
+	#damage-detail-panel-body .stat-adjustment-section .stat-row .stat-ev-value > input[type="number"] {
+		flex-basis: 36px;
+		width: 36px;
+	}
 }
 
 @media (max-width: 460px) {

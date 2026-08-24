@@ -74,7 +74,8 @@ export function buildStatAdjustmentPanel(options: StatAdjustmentPanelOptions): S
 	root.className = "stat-adjustment-section";
 	const table = document.createElement("div");
 	table.className = "stat-table";
-	root.appendChild(table);
+	const remainingRow = document.createElement("div");
+	remainingRow.className = "stat-ev-remaining-row";
 
 	const header = document.createElement("div");
 	header.className = "stat-table-header";
@@ -88,7 +89,9 @@ export function buildStatAdjustmentPanel(options: StatAdjustmentPanelOptions): S
 	header.appendChild(natureHeader);
 	header.appendChild(makeSpan("stat-table-header-ev-label", "努力値"));
 	const remaining = makeSpan("ev-remaining tnum");
+	remainingRow.appendChild(remaining);
 	header.appendChild(makeSpan("stat-table-header-real-label", "実数値"));
+	root.append(remainingRow, table);
 	table.appendChild(header);
 
 	const natureButtons = new Map<StatKey, { button: HTMLButtonElement; label: HTMLElement }>();
@@ -189,7 +192,6 @@ export function buildStatAdjustmentPanel(options: StatAdjustmentPanelOptions): S
 		endpoint.appendChild(makeEndpointIcon());
 
 		const evValue = makeSpan("stat-ev-value");
-		if (key === "hp") evValue.appendChild(remaining);
 		const number = document.createElement("input");
 		number.type = "number";
 		number.step = "1";

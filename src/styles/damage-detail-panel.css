@@ -38,6 +38,9 @@ body.box-edit-page {
 	--damage-detail-backdrop-background: var(--color-overlay); /* パネル背後の暗幕。濃くすると背後の画面が見えにくくなる */
 	--damage-detail-surface-background: var(--color-surface); /* パネルや入力部品の背景色。変えると主要な面の色がまとめて変わる */
 	--damage-detail-page-background: var(--color-bg); /* 集計欄や候補カードの背景色。変えるとパネル本体との明暗差が変わる */
+	/* モーダル本体より一段明るい操作面。ライト・ダークの両方で入力箇所を
+	   判別しやすくするため、surfaceトークンを使う。 */
+	--damage-detail-control-background: var(--damage-detail-surface-background);
 	--damage-detail-primary-soft-color: var(--color-primary-soft); /* 選択中の薄い背景色。濃くすると選択面が目立つ */
 	--damage-detail-danger-soft-color: var(--color-danger-soft); /* 危険判定と攻撃チップの背景色。濃くすると危険側が目立つ */
 	--damage-detail-risky-soft-color: var(--color-risky-soft); /* 注意判定と省略通知の背景色。濃くすると注意領域が目立つ */
@@ -94,8 +97,10 @@ body.box-edit-page {
 	--damage-detail-tera-icon-size: 20px; /* テラタイプアイコン。大きくすると候補行が高くなる */
 	--damage-detail-direction-toggle-width: 6.4em; /* 攻守切り替えの最小横幅。「攻撃」「防御」が折り返さない幅が必要(Cの修正) */
 	--damage-detail-item-dropdown-button-min-height: 2.35rem; /* 持ち物ボタンの最小高さ(育成タブと同値)。大きくするとボタンが大きくなる */
+	--damage-detail-build-control-height: 2.5rem; /* 攻守・種族・特性・アイテム欄を揃える高さ */
 	--damage-detail-item-dropdown-icon-size: 20px; /* 持ち物アイコン(ボタン・候補共通、育成タブと同値)。大きくすると候補行が高くなる */
 	--damage-detail-item-dropdown-list-max-height: 14rem; /* 持ち物候補一覧の最大高さ(育成タブと同値)。大きくすると一度に見える件数が増える */
+	--damage-detail-selection-icon-size: 32px; /* 共通ヘッダーの対面ポケモンアイコン */
 
 	/* ── 9. その他 ─────────────────────── */
 	--damage-detail-panel-open-opacity: 1; /* 開いた状態の透明度。小さくすると背後が透ける */
@@ -178,29 +183,28 @@ body.box-edit-page {
 		/* 今回の指示で3モード共通のタイトル直下の区切り線を復活させる。
 			背景はモーダル本体(--color-surface)と同化させ、var(--damage-detail-page-background)(ページ背景、
 			ダークモードでは--color-surfaceより暗い)による帯を作らない。 */
-		border-bottom: var(--damage-detail-header-border);
 		flex-shrink: 0;
+		border-bottom: var(--damage-detail-header-border);
 	}
 	.damage-detail-panel-title {
 		min-width: 0;
 		flex: 1 1 auto;
 		font-weight: var(--damage-detail-title-font-weight);
 	}
-	.damage-detail-panel-title.is-tab-bar {
+	.damage-detail-panel-tabs {
 		display: flex;
 		align-items: stretch;
-		align-self: stretch;
+		min-height: var(--app-header-height);
 		/* app-header__listもタブ間にgapを持たない(隣接させ、選択ハイライトが
 			途切れなく見えるようにする)。 */
 		gap: 0;
 		overflow-x: auto;
 		scrollbar-width: none;
-		/* A-1: タブ自体をヘッダーの外枠(モーダル左右端)いっぱいまで広げる。ヘッダーの
-			横paddingを負のmarginで打ち消し、余白は各タブボタンの内側paddingだけで持たせる
-			(app-header__itemと同じ考え方)。 */
-		margin: 0 calc(var(--damage-detail-space-lg) * -1);
+		border-bottom: var(--damage-detail-header-border);
+		flex-shrink: 0;
 	}
-	.damage-detail-panel-title.is-tab-bar::-webkit-scrollbar { display: none; }
+	.damage-detail-panel-tabs[hidden] { display: none; }
+	.damage-detail-panel-tabs::-webkit-scrollbar { display: none; }
 	.damage-detail-panel-tab {
 		flex: 1 1 0;
 		min-width: max-content;
@@ -234,6 +238,7 @@ body.box-edit-page {
 	}
 	/* パネル右上の「×」ボタン */
 	.damage-detail-panel-close {
+		flex: none;
 		font-size: var(--damage-detail-font-size-lg);
 		padding: var(--damage-detail-close-padding);
 	}
@@ -270,6 +275,29 @@ body.box-edit-page {
 		background: var(--damage-detail-surface-background);
 	}
 	.damage-detail-panel-footer[hidden] { display: none; }
+	.damage-detail-panel-actions {
+		margin: var(--damage-detail-space-lg) calc(var(--damage-detail-space-lg) * -1) 0;
+		padding: var(--damage-detail-body-safe-area-padding-bottom) var(--damage-detail-space-lg) 0;
+		border-top: var(--damage-detail-footer-border);
+	}
+	.damage-detail-panel-actions[hidden] { display: none; }
+	button.damage-detail-panel-delete {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		gap: var(--damage-detail-space-xs);
+		width: 100%;
+		font-size: var(--box-edit-delete-font-size);
+		font-weight: var(--box-edit-delete-font-weight);
+		background: var(--box-edit-delete-background);
+		color: var(--color-danger-strong);
+	}
+	@media (hover: hover) and (pointer: fine) {
+		button.damage-detail-panel-delete:hover:not(:disabled) {
+			background: var(--box-edit-delete-hover-background);
+			color: var(--color-primary-contrast);
+		}
+	}
 	.damage-detail-panel-matchup {
 		display: flex;
 		justify-content: center;
@@ -281,7 +309,7 @@ body.box-edit-page {
 	.damage-detail-panel-move-names {
 		margin-bottom: var(--damage-detail-space-xs);
 		color: var(--damage-detail-muted-color);
-		font-size: var(--damage-detail-font-size-xs);
+		font-size: var(--damage-detail-font-size-sm);
 		text-align: center;
 		overflow-wrap: anywhere;
 	}
@@ -290,6 +318,9 @@ body.box-edit-page {
 		/* A-3: 「加算後（打点の合計）」ラベルを削除したため、ラベル+値の2列グリッドから
 			結果だけの1列に変える。 */
 		display: grid;
+		width: fit-content;
+		max-width: 100%;
+		margin-inline: auto;
 		grid-template-columns: minmax(0, 1fr);
 		align-items: baseline;
 		gap: var(--damage-detail-space-sm);
@@ -320,7 +351,8 @@ body.box-edit-page {
 		flex-wrap: wrap;
 		justify-content: center;
 		align-items: baseline;
-		gap: var(--damage-detail-space-sm);
+		/* 確定数・致死率・ダメージを独立して読み取れる間隔にする。 */
+		gap: var(--damage-detail-space-md);
 		min-width: 0;
 		margin: 0;
 		font-size: var(--damage-card-move-font-size);
@@ -331,6 +363,33 @@ body.box-edit-page {
 	.damage-detail-panel-total-result .damage-result-detail {
 		min-width: 0;
 		overflow-wrap: anywhere;
+		/* 「ダメージ (割合)」は結果の補足情報なので太字にしない。 */
+		font-weight: var(--damage-detail-font-weight-regular);
+	}
+	.damage-detail-panel-tab-wrap {
+		display: flex;
+		min-width: max-content;
+		flex: 1 1 0;
+		border-inline-start: 1px solid var(--damage-detail-border-color);
+	}
+	.damage-detail-panel-tab-wrap:first-child { border-inline-start: 0; }
+	.damage-detail-panel-tab-wrap .damage-detail-panel-tab { min-width: 0; }
+	.damage-detail-panel-tab-wrap:has(.damage-detail-panel-tab[aria-selected="true"]) {
+		background: var(--damage-detail-primary-soft-color);
+	}
+	.damage-detail-panel-tab-wrap:has(.damage-detail-panel-tab[aria-selected="true"]) .damage-detail-panel-tab {
+		background: transparent;
+	}
+	.damage-detail-panel-tab-wrap:has(.damage-detail-panel-tab[aria-selected="true"]) .damage-detail-panel-tab-delete {
+		color: var(--damage-detail-primary-strong-color);
+	}
+	.damage-detail-panel-tab-delete {
+		flex: 0 0 auto;
+		padding-inline: var(--damage-detail-space-sm);
+		color: var(--damage-detail-muted-color);
+	}
+	.damage-detail-panel-total-result .damage-result-probability {
+		margin-inline-start: 0.5em;
 	}
 	/* 未選択時のサジェスト一覧だけは、従来どおりカード一覧内へインライン配置する。 */
 		.damage-detail-panel.is-mobile-inline {
@@ -572,11 +631,12 @@ body.box-edit-page {
 			チューニング変数側で値を拡大済み)。 */
 		width: auto;
 		min-width: var(--damage-detail-direction-toggle-width);
-		min-height: var(--space-7);
+		height: var(--damage-detail-build-control-height);
+		min-height: var(--damage-detail-build-control-height);
 		margin-bottom: var(--damage-detail-direction-toggle-margin-bottom);
 	}
 	#damage-detail-panel-body .damage-build-detail-direction-toggle .damage-row-direction-option {
-		min-height: var(--space-7);
+		min-height: var(--damage-detail-build-control-height);
 		padding-inline: var(--damage-detail-space-sm);
 		/* 「攻撃」「防御」の2文字ラベルが折り返さないようにする(Cの不具合の直接原因)。 */
 		white-space: nowrap;
@@ -624,28 +684,38 @@ body.box-edit-page {
 		}
 	}
 	#damage-detail-panel-body .damage-detail-rank-ailment-row {
-		/* C-2: "ランク"ラベルを削除し、ランク・状態異常・テラスタイプを同じ段(3列)に配置する。
-			B-2: 状態異常列は内容量に合わせて縮めるため、2列目もautoにし、
-			余った幅はテラスタイプ列(3列目)だけが受け取るようにする。 */
+		/* ランクと状態異常を2列にし、テラスタイプは次行いっぱいに配置する。 */
 		display: grid;
-		grid-template-columns: auto auto minmax(0, 1fr);
+		grid-template-columns: repeat(2, minmax(0, 1fr));
 		align-items: center;
 		gap: var(--damage-detail-space-sm);
 		margin-bottom: var(--damage-detail-space-sm);
 	}
 	#damage-detail-panel-body .damage-detail-rank-ailment-row .damage-detail-rank-field {
 		margin-bottom: 0;
+		justify-self: start;
+	}
+	#damage-detail-panel-body .damage-detail-rank-field .damage-detail-rank-input {
+		box-sizing: border-box;
+		width: 36px;
+		min-width: 36px;
+		height: 36px;
+		min-height: 36px;
+		padding: 0;
+		field-sizing: fixed;
 	}
 	#damage-detail-panel-body .damage-detail-rank-ailment-row .damage-detail-ailment-select {
 		/* B-2: 列いっぱいに伸ばす(width:100%)のをやめ、内容量に合わせた
 			box-damage-card.css既定の幅(--damage-detail-ailment-width、7em)に戻す。 */
 		width: auto;
 		min-width: var(--damage-detail-ailment-width);
+		justify-self: start;
 	}
-	/* C-2: テラスタイプ欄(.damage-detail-tera-row)を3列目として同じ段に収める。 */
 	#damage-detail-panel-body .damage-detail-rank-ailment-row .damage-detail-tera-row {
+		grid-column: 1 / 2;
 		margin-bottom: 0;
-		min-width: 0;
+		width: 100%;
+		justify-self: start;
 	}
 	#damage-detail-panel-body .damage-detail-chip-row.damage-detail-state-grid {
 		display: grid;
@@ -663,15 +733,70 @@ body.box-edit-page {
 			文字サイズと内側paddingをこのグリッドの中だけ詰める(is-text-onlyの
 			font-size-sm1・text-button-paddingはbox-damage-card.css側の他の用途と共通のため、
 			直接編集せずここで上書きする)。 */
-		font-size: var(--damage-detail-font-size-sm);
+		font-size: var(--damage-detail-font-size-xs);
 		padding: var(--damage-detail-space-xs) var(--damage-detail-space-xs);
 		white-space: nowrap;
+	}
+	#damage-detail-panel-body .damage-detail-rank-stepper {
+		background: var(--damage-detail-control-background);
+	}
+	#damage-detail-panel-body .damage-detail-toggle-row.damage-detail-chip-row {
+		display: grid;
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+		gap: 2px;
+	}
+	#damage-detail-panel-body .damage-detail-toggle-row.damage-detail-chip-row > .damage-detail-icon-btn,
+	#damage-detail-panel-body .damage-detail-toggle-row.damage-detail-chip-row > .damage-detail-spikes-select {
+		width: 100%;
+		min-width: 0;
+	}
+	#damage-detail-panel-body .damage-detail-toggle-row.damage-detail-chip-row > .damage-detail-icon-btn,
+	#damage-detail-panel-body .damage-detail-toggle-row.damage-detail-chip-row > .damage-detail-spikes-select {
+		font-size: var(--damage-detail-font-size-xs);
+	}
+	#damage-detail-panel-body .damage-detail-move-controls {
+		display: grid;
+		grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+		align-items: center;
+		justify-items: start;
+	}
+	#damage-detail-panel-body .damage-detail-move-field {
+		width: 100%;
+	}
+	#damage-detail-panel-body .damage-detail-hitcount-row,
+	#damage-detail-panel-body .damage-detail-critical-field {
+		justify-self: start;
+	}
+	#damage-detail-panel-body .damage-detail-hitcount-row {
+		padding-inline-start: var(--damage-detail-space-sm);
 	}
 	#damage-detail-panel-body .damage-build-detail-field input,
 	#damage-detail-panel-body .damage-build-detail-field select,
 	#damage-detail-panel-body .damage-build-detail-field .damage-row-tera-field {
 		width: 100%;
 		min-width: 0;
+	}
+	#damage-detail-panel-body .damage-build-detail-field input,
+	#damage-detail-panel-body .damage-build-detail-field select {
+		box-sizing: border-box;
+		min-height: var(--damage-detail-build-control-height);
+		background: var(--damage-detail-control-background);
+	}
+	/* わざタブも含め、通常状態の操作面はモーダル本体より明るくする。 */
+	#damage-detail-panel-body {
+		--damage-detail-icon-button-background: var(--damage-detail-control-background);
+		--damage-card-dropdown-background: var(--damage-detail-control-background);
+		--damage-detail-control-min-height: 36px;
+		--damage-detail-rank-stepper-size: 36px;
+	}
+	#damage-detail-panel-body .damage-detail-icon-btn,
+	#damage-detail-panel-body .damage-detail-move-input,
+	#damage-detail-panel-body .damage-detail-rank-input,
+	#damage-detail-panel-body .damage-detail-ailment-select,
+	#damage-detail-panel-body .damage-detail-spikes-select {
+		box-sizing: border-box;
+		min-height: 36px;
+		background: var(--damage-detail-control-background);
 	}
 	#damage-detail-panel-body .damage-build-detail-form input.is-autofilled {
 		border-color: var(--damage-detail-primary-color);
@@ -692,11 +817,11 @@ body.box-edit-page {
 		justify-content: flex-start;
 		gap: var(--damage-detail-item-dropdown-button-gap);
 		width: 100%;
-		min-height: var(--damage-detail-item-dropdown-button-min-height);
+		min-height: var(--damage-detail-build-control-height);
 		padding: var(--damage-detail-item-dropdown-button-padding);
 		border: 1px solid var(--damage-detail-border-color);
 		border-radius: var(--damage-detail-radius-sm);
-		background: var(--damage-detail-surface-background);
+		background: var(--damage-detail-control-background);
 		cursor: pointer;
 		font-size: var(--damage-detail-font-size-md);
 		font-weight: var(--damage-detail-font-weight-regular);
@@ -820,7 +945,7 @@ body.box-edit-page {
 	}
 	#damage-detail-panel-body .tera-dropdown-button {
 		width: 100%;
-		min-height: 0;
+		min-height: 36px;
 		display: flex;
 		align-items: center;
 		justify-content: flex-start;
@@ -828,7 +953,7 @@ body.box-edit-page {
 		padding: var(--damage-detail-space-sm);
 		border: var(--damage-detail-tera-button-border);
 		border-radius: var(--damage-detail-radius-sm);
-		background: var(--damage-detail-surface-background);
+		background: var(--damage-detail-control-background);
 		color: var(--damage-detail-text-color);
 		font-size: var(--damage-detail-font-size-sm);
 		text-align: left;
@@ -868,7 +993,7 @@ body.box-edit-page {
 		margin: 0;
 		padding: var(--damage-detail-space-xs);
 		list-style: none;
-		background: var(--damage-detail-surface-background);
+		background: var(--damage-detail-control-background);
 		border: var(--damage-detail-tera-list-border);
 		border-radius: var(--damage-detail-radius-md);
 		box-shadow: var(--damage-detail-shadow-md);
@@ -909,9 +1034,18 @@ body.box-edit-page {
 		.damage-detail-move-fieldで一括管理する(ここでは重複定義しない)。ここでは
 		アイコン+入力欄を横並びにするレイアウトだけを担当する。 */
 	#damage-detail-panel-body .damage-detail-move-combo {
-		display: flex;
-		align-items: center;
-		gap: var(--damage-detail-space-xs);
+		display: block;
+	}
+	#damage-detail-panel-body .damage-detail-move-combo .damage-detail-move-type-icon {
+		position: absolute;
+		z-index: 1;
+		left: var(--damage-detail-space-sm);
+		top: 50%;
+		transform: translateY(-50%);
+		pointer-events: none;
+	}
+	#damage-detail-panel-body .damage-detail-move-combo .damage-detail-move-input {
+		padding-inline-start: calc(var(--damage-card-move-icon-size) + var(--damage-detail-space-md));
 	}
 	/* B-1: 技を選択した後もタイプアイコンを表示する(既存のdamage-detail-move-dropdown-option-icon
 		と同じ大きさ、--damage-card-move-icon-sizeはbox-damage-card.cssで定義済みのトークン)。 */
@@ -934,10 +1068,17 @@ body.box-edit-page {
 		width: auto;
 		min-width: var(--damage-detail-rank-input-width);
 		min-height: var(--damage-detail-control-min-height);
-		font-size: var(--font-size-sm2);
-		background: var(--color-bg);
+		font-size: var(--damage-detail-font-size-sm);
+		background: var(--damage-detail-control-background);
 		flex: none;
 		padding: var(--damage-detail-ailment-padding);
+		text-align: center;
+		text-align-last: center;
+	}
+	#damage-detail-panel-body .damage-detail-toggle-row.damage-detail-chip-row > .damage-detail-spikes-select {
+		font-size: var(--damage-detail-font-size-xs);
+		text-align: center;
+		text-align-last: center;
 	}
 	#damage-detail-panel-body .damage-build-detail-stats {
 		min-width: 0;

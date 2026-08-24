@@ -213,11 +213,12 @@ function describeSeriesVerdict(
 	noLethalLabel: string,
 ): { label: string; severity: DamageSeverity } {
 	if (!Array.isArray(series) || series.length === 0) return { label: '-', severity: 'none' };
-	const confirmed = series.find((l) => l.probability >= 0.9999);
-	if (!confirmed) return { label: noLethalLabel, severity: 'safe' };
+	const firstLethal = series.find((l) => l.probability > 0);
+	if (!firstLethal) return { label: noLethalLabel, severity: 'safe' };
 	const severity: DamageSeverity =
-		confirmed.attackCount === 1 ? 'lethal' : confirmed.attackCount === 2 ? 'risky' : 'safe';
-	return { label: `確${confirmed.attackCount}`, severity };
+		firstLethal.attackCount === 1 ? 'lethal' : firstLethal.attackCount === 2 ? 'risky' : 'safe';
+	if (firstLethal.probability >= 0.9999) return { label: `確${firstLethal.attackCount}`, severity };
+	return { label: `乱${firstLethal.attackCount} ${(firstLethal.probability * 100).toFixed(2)}%`, severity };
 }
 
 /**

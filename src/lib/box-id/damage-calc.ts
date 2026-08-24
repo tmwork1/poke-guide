@@ -869,6 +869,8 @@ if (opponentNotesSection) {
 			refreshMobileDetailPlacement();
 		},
 		getBuildDetailForm: (row) => rowBuildDetailForms.get(row) ?? null,
+		deleteRow: (row) => deleteRow(row),
+		deleteColumn: (row, column) => deleteAttackColumn(row, column),
 		openDetailPanelOverlayIfNarrow: () => {
 			refreshMobileDetailPlacement();
 			openRightPanelOverlayIfNarrow();
@@ -1302,11 +1304,12 @@ if (opponentNotesSection) {
 		noLethalLabel: string,
 	): { label: string; severity: "lethal" | "risky" | "safe" | "none" } {
 		if (!Array.isArray(series) || series.length === 0) return { label: "-", severity: "none" };
-		const confirmed = series.find((l) => l.probability >= 0.9999);
-		if (!confirmed) return { label: noLethalLabel, severity: "safe" };
+		const firstLethal = series.find((l) => l.probability > 0);
+		if (!firstLethal) return { label: noLethalLabel, severity: "safe" };
 		const severity: "lethal" | "risky" | "safe" =
-			confirmed.attackCount === 1 ? "lethal" : confirmed.attackCount === 2 ? "risky" : "safe";
-		return { label: `確${confirmed.attackCount}`, severity };
+			firstLethal.attackCount === 1 ? "lethal" : firstLethal.attackCount === 2 ? "risky" : "safe";
+		if (firstLethal.probability >= 0.9999) return { label: `確${firstLethal.attackCount}`, severity };
+		return { label: `乱${firstLethal.attackCount} ${(firstLethal.probability * 100).toFixed(2)}%`, severity };
 	}
 
 	// 「技ごとの致死率」のフォールバック実装。
@@ -1483,7 +1486,16 @@ if (opponentNotesSection) {
 		if (label !== TEN_OR_MORE_LABEL) {
 			const verdictSpan = document.createElement("span");
 			verdictSpan.className = "damage-result-verdict";
-			verdictSpan.textContent = label;
+			const randomKoParts = label.match(/^(乱\d+) (\d+\.\d+%)$/);
+			if (randomKoParts) {
+				verdictSpan.append(randomKoParts[1], " ");
+				const probabilitySpan = document.createElement("span");
+				probabilitySpan.className = "damage-result-probability";
+				probabilitySpan.textContent = randomKoParts[2];
+				verdictSpan.appendChild(probabilitySpan);
+			} else {
+				verdictSpan.textContent = label;
+			}
 			el.appendChild(verdictSpan);
 		}
 		if (detailText !== "") {
@@ -1512,13 +1524,8 @@ if (opponentNotesSection) {
 			const target = row.columnResultEls[index];
 			if (!target) return;
 			const colEl = target.closest<HTMLElement>(".damage-column");
-			const overkillNote = colEl?.querySelector<HTMLElement>(".damage-column-overkill-note");
 			const applyOverkill = (isOverkill: boolean): void => {
 				colEl?.classList.toggle("is-overkill", isOverkill);
-				if (overkillNote) {
-					overkillNote.hidden = !isOverkill;
-					if (isOverkill && confirmedKillAt != null) overkillNote.textContent = `${confirmedKillAt}発目で撃破済`;
-				}
 			};
 			const hasMove = attack.moveName.trim() !== "";
 			if (!hasMove) {
@@ -1528,8 +1535,7 @@ if (opponentNotesSection) {
 				return;
 			}
 			validPos += 1;
-			// 累計で既に確殺に到達した位置より後ろの列は「1発目で撃破済」のような撃破済み
-			// キャプションを添えて控えめにする(数値自体は変えない)。
+			// 累計で既に確殺に到達した位置より後ろの列は、数値を変えず暗転だけで控えめにする。
 			applyOverkill(confirmedKillAt != null && validPos > confirmedKillAt);
 			// 変化技(まもる等)は静的な技データの時点で判定できる(category==="status"は
 			// ゲーム仕様として常にダメージ0のため、エンジンの計算結果を待つ必要が無い)。
@@ -2148,6 +2154,15 @@ if (opponentNotesSection) {
 		scheduleRowSave(row);
 	}
 
+	function deleteAttackColumn(row: DamageRowState, column: DamageColumnState): void {
+		const index = row.attacks.indexOf(column);
+		if (index === -1 || row.attacks.length <= 1) return;
+		row.attacks.splice(index, 1);
+		renderColumns(row);
+		scheduleRowCalc(row);
+		scheduleRowSave(row);
+	}
+
 	const columnDisplayRefreshers = new WeakMap<DamageColumnState, () => void>();
 
 	function refreshColumnDisplay(_row: DamageRowState, column: DamageColumnState): void {
@@ -2224,10 +2239,7 @@ if (opponentNotesSection) {
 					columnEl.classList.remove("is-pressing");
 					return;
 				}
-				row.attacks.splice(index, 1);
-				renderColumns(row);
-				scheduleRowCalc(row);
-				scheduleRowSave(row);
+				deleteAttackColumn(row, column);
 			}, DAMAGE_COLUMN_LONG_PRESS_MS);
 		});
 		columnEl.addEventListener("pointerup", clearPress);
@@ -2325,14 +2337,6 @@ if (opponentNotesSection) {
 			conditions.appendChild(conditionChips);
 			moveRow.appendChild(conditions);
 
-			// 累計で既に撃破済みになった以降の列を控えめに示すキャプション
-			// (renderColumnDisplaysのcomputeConfirmedKillAttackCount参照。数値自体は
-			// 変えない=列は独立判定のまま)。
-			const overkillNote = document.createElement("p");
-			overkillNote.className = "damage-column-overkill-note";
-			overkillNote.hidden = true;
-			moveAndChips.appendChild(overkillNote);
-
 			attachColumnLongPressDelete(col, row, attack);
 
 			// 最下段(区切り線の下)に「技ごとのダメ・致死率」。margin-top:autoで
@@ -2371,7 +2375,7 @@ if (opponentNotesSection) {
 			addButton.title = `技列(加算条件)は最大${maxColumns}つまでしか追加できません`;
 		} else {
 			// DamageCard.pngの「加算条件追加ボタン」にあたる。
-			addButton.textContent = "＋ 技を追加";
+			addButton.textContent = "＋ わざを追加";
 			addButton.title = "加算する技を追加する(上から順に当てた加算ダメージ計算になります)";
 		}
 		// 実際に技を1つ追加する処理はaddAttackColumn(row)(fillFirstMoveCandidateの直後で定義)
@@ -2586,7 +2590,6 @@ if (opponentNotesSection) {
 		// 同じ関数スコープ内で宣言しており、名前が衝突するため)。
 		const buildItemField = document.createElement("span");
 		buildItemField.className = "damage-build-item-field";
-		buildItemField.hidden = true;
 		const itemBadge = document.createElement("span");
 		itemBadge.className = "damage-item-badge";
 		const itemBadgeImg = document.createElement("img");
@@ -2697,8 +2700,7 @@ if (opponentNotesSection) {
 			nameText.textContent = row.name.trim() || "相手ポケモン未設定";
 			abilityText.textContent = row.abilityName.trim() || "未設定";
 			const itemName = row.itemName.trim();
-			buildItemField.hidden = itemName === "";
-			itemNameText.textContent = itemName;
+			itemNameText.textContent = itemName || "(アイテムなし)";
 			void applyItemImage(itemBadgeImg, row.itemName);
 			refreshReadonlyEvs();
 		}

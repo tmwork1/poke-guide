@@ -15,7 +15,7 @@ function updateRemainingDisplay(): void {
 		const sourceRange = source.querySelector<HTMLInputElement>(`#ev-${key}-range`);
 		if (sourceRange) total += Number(sourceRange.value) || 0;
 	}
-	remainingDisplay.textContent = `残り${66 - total}`;
+	remainingDisplay.textContent = `残り\n${66 - total}`;
 }
 
 const remainingSource = document.getElementById("stat-adjustment-section");
@@ -71,12 +71,12 @@ function buildDamageStatAdjustmentSheet(): void {
 		}
 		const decrement = document.createElement("button");
 		decrement.type = "button";
-		decrement.className = "damage-stat-adjustment-step";
+		decrement.className = "damage-stat-adjustment-step is-decrement";
 		decrement.textContent = "−";
 		decrement.setAttribute("aria-label", `${STAT_LABELS[index]}の努力値を減らす`);
 		const increment = document.createElement("button");
 		increment.type = "button";
-		increment.className = "damage-stat-adjustment-step";
+		increment.className = "damage-stat-adjustment-step is-increment";
 		increment.textContent = "+";
 		increment.setAttribute("aria-label", `${STAT_LABELS[index]}の努力値を増やす`);
 		const value = document.createElement("span");
@@ -120,7 +120,11 @@ function buildDamageStatAdjustmentSheet(): void {
 			const ev = Number(sourceRange.value) || 0;
 			row.range.value = String(ev);
 			const progressPercent = Math.min(100, Math.max(0, (ev / 32) * 100));
-			row.wrap.style.setProperty("--slider-progress", `${progressPercent}%`);
+			row.range.style.setProperty("--slider-progress", `${progressPercent}%`);
+			const thumbDiameter = 16;
+			const usableTrackWidth = Math.max(0, row.range.clientWidth - thumbDiameter);
+			const labelPosition = (thumbDiameter / 2) + (usableTrackWidth * (ev / 32));
+			row.value.style.left = `${labelPosition}px`;
 			row.value.textContent = String(ev);
 			row.real.textContent = sourceReal?.textContent ?? "-";
 			if (sourceLabel?.dataset.mod) row.value.dataset.mod = sourceLabel.dataset.mod;
@@ -136,6 +140,8 @@ function buildDamageStatAdjustmentSheet(): void {
 	source.addEventListener("input", sync);
 	source.addEventListener("change", sync);
 	new MutationObserver(sync).observe(source, { subtree: true, childList: true, characterData: true, attributes: true });
+	const resizeObserver = new ResizeObserver(sync);
+	rows.forEach(({ range }) => resizeObserver.observe(range));
 	sync();
 	updateRemainingDisplay();
 }

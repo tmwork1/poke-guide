@@ -33,6 +33,8 @@ import {
 	configureDamageColumnMoveInput,
 	getDamageColumnMoveCandidates,
 	getDamageColumnMultiHitRange,
+	deleteDamageRow,
+	deleteDamageColumn,
 	refreshDamageColumnDisplay,
 	natureNameFromBoosts,
 	type DamageRowState,
@@ -58,9 +60,10 @@ import type { DurabilityIndexCandidate, DurabilityIndexKind, MaximizeResult } fr
 
 let detailPanelEl: HTMLElement;
 let detailPanelBodyEl: HTMLElement;
-let detailPanelTitleEl: HTMLElement;
+let detailPanelTabsEl: HTMLElement;
 let detailBackdropEl: HTMLElement;
 let detailPanelFooterEl: HTMLElement;
+let detailPanelActionsEl: HTMLElement;
 let detailPanelMatchupEl: HTMLElement;
 let detailPanelMoveNamesEl: HTMLElement;
 let detailPanelTotalEl: HTMLElement;
@@ -139,22 +142,21 @@ export function closeDetailPanelOverlay(): void {
 	detailBackdropEl.hidden = true;
 }
 
-/** 3モードで共用する帯を更新する。本文側に見出しを重複させないため描画入口で必ず呼ぶ。 */
-function setDetailPanelTitle(title: string | Node): void {
-	detailPanelTitleEl.classList.remove("is-tab-bar");
-	detailPanelTitleEl.removeAttribute("role");
-	detailPanelTitleEl.removeAttribute("aria-label");
-	detailPanelTitleEl.setAttribute("aria-live", "polite");
-	detailPanelTitleEl.replaceChildren(title);
+/** タブを使わない表示へ切り替える際に、タブ帯と計算結果を片付ける。 */
+function clearDetailPanelTabs(): void {
+	detailPanelTabsEl.replaceChildren();
+	detailPanelTabsEl.hidden = true;
 	detailPanelFooterEl.hidden = true;
+	detailPanelActionsEl.hidden = true;
+}
+
+function appendDetailPanelActions(): void {
+	detailPanelBodyEl.appendChild(detailPanelActionsEl);
 }
 
 function setSlideDetailPanelTitle(row: DamageRowState, positionIndex: number): void {
-	detailPanelTitleEl.replaceChildren();
-	detailPanelTitleEl.classList.add("is-tab-bar");
-	detailPanelTitleEl.setAttribute("role", "tablist");
-	detailPanelTitleEl.setAttribute("aria-label", "ダメージ詳細の表示切り替え");
-	detailPanelTitleEl.removeAttribute("aria-live");
+	detailPanelTabsEl.replaceChildren();
+	detailPanelTabsEl.hidden = false;
 	const tabs = ["相手ポケモン", ...row.attacks.map((_, index) => `わざ${index + 1}`)];
 	const selectTab = (index: number): void => {
 		if (index === 0) {
@@ -165,6 +167,8 @@ function setSlideDetailPanelTitle(row: DamageRowState, positionIndex: number): v
 		if (column) selectColumn(row, column);
 	};
 	tabs.forEach((label, index) => {
+		const tabWrap = document.createElement("div");
+		tabWrap.className = "damage-detail-panel-tab-wrap";
 		const button = document.createElement("button");
 		button.type = "button";
 		button.className = "damage-detail-panel-tab";
@@ -183,7 +187,21 @@ function setSlideDetailPanelTitle(row: DamageRowState, positionIndex: number): v
 			event.preventDefault();
 			selectTab(nextIndex);
 		});
-		detailPanelTitleEl.appendChild(button);
+		tabWrap.appendChild(button);
+		if (index > 0 && row.attacks.length > 1) {
+			const column = row.attacks[index - 1];
+			if (column) {
+				const deleteButton = document.createElement("button");
+				deleteButton.type = "button";
+				deleteButton.className = "btn-ghost damage-detail-panel-tab-delete";
+				deleteButton.textContent = "×";
+				deleteButton.title = `${label}を削除`;
+				deleteButton.setAttribute("aria-label", `${label}を削除`);
+				deleteButton.addEventListener("click", () => deleteDamageColumn(row, column));
+				tabWrap.appendChild(deleteButton);
+			}
+		}
+		detailPanelTabsEl.appendChild(tabWrap);
 	});
 }
 
@@ -250,6 +268,7 @@ function refreshDetailPanelFooter(row: DamageRowState): void {
 	detailPanelMatchupEl.replaceChildren(buildSelectionHeadingRow(row));
 	detailPanelMoveNamesEl.textContent = buildMoveNamesText(row);
 	detailPanelFooterEl.hidden = false;
+	detailPanelActionsEl.hidden = false;
 	syncDetailPanelTotal(row);
 }
 
@@ -345,7 +364,7 @@ export interface CandidateListView {
 // (このファイル自身は「何が適用中か」の判定方法を知らない。renderBulkAdjustResultsの
 // currentAppliedEvs参照)。
 export function renderCandidateList(view: CandidateListView): void {
-	detailPanelFooterEl.hidden = true;
+	clearDetailPanelTabs();
 	detailPanelBodyEl.innerHTML = "";
 	const inner = document.createElement("div");
 	inner.className = "damage-detail-panel-body-inner candidate-list-view";
@@ -596,11 +615,17 @@ function buildFilterToggleEl(toggle: NonNullable<StatCardListView["filterToggle"
     detailPanelBodyElへ直接描画するだけの「dumb」な関数。フィルタトグルの状態管理・
     「何が適用中か」の再計算は呼び出し元(redrawクロージャ)が担う。 */
 export function renderStatCardList(view: StatCardListView): void {
-	setDetailPanelTitle(view.heading);
+	clearDetailPanelTabs();
 	detailPanelBodyEl.innerHTML = "";
 	const inner = document.createElement("div");
 	inner.className = "damage-detail-panel-body-inner candidate-list-view";
 	detailPanelBodyEl.appendChild(inner);
+	appendDetailPanelActions();
+	appendDetailPanelActions();
+	const heading = document.createElement("p");
+	heading.className = "candidate-list-heading";
+	heading.textContent = view.heading;
+	inner.appendChild(heading);
 	// 依頼7ではトグルを一覧最上部に配置していたが、今回の要件で耐久調整の「調整結果」見出し行へ移す。
 
 	if (view.context) {
@@ -693,11 +718,12 @@ export function renderDetailPanelEmpty(): void {
 		lastCandidateListRedraw();
 		return;
 	}
-	setDetailPanelTitle("");
+	clearDetailPanelTabs();
 	detailPanelBodyEl.innerHTML = "";
 	const inner = document.createElement("div");
 	inner.className = "damage-detail-panel-body-inner";
 	detailPanelBodyEl.appendChild(inner);
+	appendDetailPanelActions();
 }
 
 function currentAppliedNatureBoosts(): { up: StatKey | null; down: StatKey | null } {
@@ -976,13 +1002,20 @@ export function buildToggleButton(
 	label: string,
 	pressed: boolean,
 	onChange: (pressed: boolean) => void,
-	options?: { title?: string; disabledTitle?: string },
+	options?: { title?: string; disabledTitle?: string; icon?: string },
 ): HTMLButtonElement {
 	const button = document.createElement("button");
 	button.type = "button";
-	button.className = "damage-detail-icon-btn is-text-only";
+	button.className = `damage-detail-icon-btn${options?.icon ? "" : " is-text-only"}`;
 	button.setAttribute("aria-pressed", String(pressed));
-	button.textContent = label;
+	if (options?.icon) {
+		button.innerHTML = options.icon;
+		const labelSpan = document.createElement("span");
+		labelSpan.textContent = label;
+		button.appendChild(labelSpan);
+	} else {
+		button.textContent = label;
+	}
 	if (options?.disabledTitle) {
 		button.disabled = true;
 		button.setAttribute("aria-disabled", "true");
@@ -1210,6 +1243,7 @@ export function buildSideSection(
 				{ title: opt.title },
 			);
 			optButton.dataset.volatileValue = opt.value;
+			optButton.dataset.volatileLabel = opt.label;
 			stateGrid.appendChild(optButton);
 		}
 	}
@@ -1228,6 +1262,7 @@ export function renderBuildDetailPanel(row: DamageRowState): void {
 	setSlideDetailPanelTitle(row, 0);
 	refreshDetailPanelFooter(row);
 	detailPanelBodyEl.appendChild(form);
+	appendDetailPanelActions();
 	detailPanelBodyEl.scrollTop = 0;
 }
 
@@ -1256,6 +1291,7 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 	const contentWrap = document.createElement("div");
 	contentWrap.className = "damage-detail-panel-body-inner";
 	detailPanelBodyEl.appendChild(contentWrap);
+	appendDetailPanelActions();
 	detailPanelBodyEl.scrollTop = 0;
 
 
@@ -1308,8 +1344,11 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 	}
 	function renderMoveDropdown(): void {
 		const query = moveSelectInput.value;
-		const candidates = getDamageColumnMoveCandidates(row, column)
-			.filter((candidateName) => query === "" || kanaIncludes(candidateName, query))
+		const candidates = [...getDamageColumnMoveCandidates(row, column)]
+			.sort((a, b) => {
+				const rank = (name: string): number => query === "" ? 0 : name === query ? 0 : name.startsWith(query) ? 1 : kanaIncludes(name, query) ? 2 : 3;
+				return rank(a) - rank(b);
+			})
 			.slice(0, 30);
 		moveDropdownList.replaceChildren();
 		if (candidates.length === 0) {
@@ -1596,7 +1635,7 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 			"アクアリング", "かべ", "しおづけ", "ちいさくなる", "ねをはる", "のろい", "バインド", "ばけのかわ", "やどりぎのタネ",
 		];
 		Array.from(defenderVolatileGroup.querySelectorAll<HTMLButtonElement>("button"))
-			.sort((a, b) => volatileGojuonOrder.indexOf(a.textContent ?? "") - volatileGojuonOrder.indexOf(b.textContent ?? ""))
+			.sort((a, b) => volatileGojuonOrder.indexOf(a.dataset.volatileLabel ?? a.textContent ?? "") - volatileGojuonOrder.indexOf(b.dataset.volatileLabel ?? b.textContent ?? ""))
 			.forEach((button) => defenderVolatileGroup.appendChild(button));
 	} else {
 		// DAMAGE_DEFENDER_VOLATILESは通常1件以上を持つためここには来ないが、
@@ -1629,14 +1668,14 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 	const spikes = clampInt(column.spikes, 0, 3);
 	const spikesPlaceholderOpt = document.createElement("option");
 	spikesPlaceholderOpt.value = "0";
-	spikesPlaceholderOpt.textContent = "まきびし";
+	spikesPlaceholderOpt.textContent = "まきびし x0";
 	spikesPlaceholderOpt.hidden = true;
 	spikesPlaceholderOpt.selected = spikes === 0;
 	spikesSelect.appendChild(spikesPlaceholderOpt);
 	for (let i = 0; i <= 3; i++) {
 		const opt = document.createElement("option");
 		opt.value = String(i);
-		opt.textContent = i === 0 ? "なし" : `まきびし${i}層`;
+		opt.textContent = `まきびし x${i}`;
 		if (spikes === i && i !== 0) opt.selected = true;
 		spikesSelect.appendChild(opt);
 	}
@@ -1733,13 +1772,19 @@ export function deselectRowIfCurrent(row: DamageRowState): void {
 export function initRightPanel(): void {
 	detailPanelEl = el<HTMLElement>("damage-detail-panel");
 	detailPanelBodyEl = el<HTMLElement>("damage-detail-panel-body");
-	detailPanelTitleEl = el<HTMLElement>("damage-detail-panel-title");
+	detailPanelTabsEl = el<HTMLElement>("damage-detail-panel-tabs");
 	detailBackdropEl = el<HTMLElement>("damage-detail-backdrop");
 	detailPanelFooterEl = el<HTMLElement>("damage-detail-panel-footer");
+	detailPanelActionsEl = el<HTMLElement>("damage-detail-panel-actions");
 	detailPanelMatchupEl = el<HTMLElement>("damage-detail-panel-matchup");
 	detailPanelMoveNamesEl = el<HTMLElement>("damage-detail-panel-move-names");
 	detailPanelTotalEl = el<HTMLElement>("damage-detail-panel-total");
 	detailPanelTotalResultEl = el<HTMLElement>("damage-detail-panel-total-result");
+	el<HTMLButtonElement>("damage-detail-panel-close").addEventListener("click", closeDetailPanelOverlay);
+	el<HTMLButtonElement>("damage-detail-panel-delete").addEventListener("click", () => {
+		const row = getSelectedRow();
+		if (row) void deleteDamageRow(row);
+	});
 	initDetailPanelSwipe();
 	bindModalDismissal({
 		backdrop: detailBackdropEl,

@@ -441,11 +441,21 @@ export interface DamageCalcBridge {
 	renderColumnLevelDetailPanel: (row: DamageRowState, column: DamageColumnState) => void;
 	renderBuildDetailPanel: (row: DamageRowState) => void;
 	getBuildDetailForm: (row: DamageRowState) => HTMLElement | null;
+	deleteRow: (row: DamageRowState) => Promise<void>;
+	deleteColumn: (row: DamageRowState, column: DamageColumnState) => void;
 	openDetailPanelOverlayIfNarrow: () => void;
 }
 let damageCalcBridge: DamageCalcBridge | null = null;
 export function registerDamageCalcBridge(bridge: DamageCalcBridge): void {
 	damageCalcBridge = bridge;
+}
+
+export function deleteDamageRow(row: DamageRowState): Promise<void> {
+	return damageCalcBridge!.deleteRow(row);
+}
+
+export function deleteDamageColumn(row: DamageRowState, column: DamageColumnState): void {
+	damageCalcBridge!.deleteColumn(row, column);
 }
 
 export function configureDamageColumnMoveInput(

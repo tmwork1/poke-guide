@@ -335,8 +335,7 @@ function applyNatureSuggestionOrdering(): void {
 }
 
 // --- 持ち物: #item-dropdown-list(カスタムドロップダウン、初回オープン時に遅延構築)。
-//     「持ち物なし」(value="")は常に先頭固定のまま、残りを人気順→元の順で並べ替え、
-//     .item-dropdown-option-textに"(NN%)"を追記する。 ---
+//     「持ち物なし」(value="")は常に先頭固定のまま、残りを人気順→元の順で並べ替える。 ---
 function applyItemSuggestionOrdering(): void {
 	const listEl = document.getElementById("item-dropdown-list") as HTMLUListElement | null;
 	if (!listEl) return;
@@ -348,9 +347,8 @@ function applyItemSuggestionOrdering(): void {
 	rest.sort((a, b) => suggestionCompare(ratioMap, a.dataset.value ?? "", b.dataset.value ?? ""));
 	for (const li of rest) {
 		const value = li.dataset.value ?? "";
-		const ratio = ratioMap.get(value);
 		const textEl = li.querySelector<HTMLElement>(".item-dropdown-option-text");
-		if (textEl) textEl.textContent = ratio != null ? `${value}(${suggestionRatioText(ratio)})` : value;
+		if (textEl) textEl.textContent = value;
 	}
 	const emptyLi = listEl.querySelector<HTMLLIElement>(".item-dropdown-empty");
 	if (noneLi) listEl.appendChild(noneLi);
@@ -371,9 +369,8 @@ function applyTeraSuggestionOrdering(): void {
 	rest.sort((a, b) => suggestionCompare(ratioMap, a.dataset.value ?? "", b.dataset.value ?? ""));
 	for (const li of rest) {
 		const value = li.dataset.value ?? "";
-		const ratio = ratioMap.get(value);
 		const textEl = li.querySelector<HTMLElement>(".tera-dropdown-option-text");
-		if (textEl) textEl.textContent = ratio != null ? `${value}(${suggestionRatioText(ratio)})` : value;
+		if (textEl) textEl.textContent = value;
 	}
 	if (noneLi) listEl.appendChild(noneLi);
 	for (const li of rest) listEl.appendChild(li);
@@ -455,7 +452,10 @@ if (form) {
 		const ability = document.getElementById("ability") as HTMLSelectElement | null;
 		setText("pokemon-preview-species-name", inputValue("species-name"));
 		setText("pokemon-preview-ability", ability?.selectedOptions[0]?.textContent?.trim() || ability?.value.trim() || "-");
-		setText("pokemon-preview-item", inputValue("item") || document.getElementById("item-dropdown-placeholder")?.textContent?.trim() || "アイテムなし");
+		const itemName = inputValue("item");
+		setText("pokemon-preview-item", itemName || document.getElementById("item-dropdown-placeholder")?.textContent?.trim() || "アイテムなし");
+		const previewItem = document.getElementById("pokemon-preview-item");
+		if (previewItem) previewItem.dataset.empty = String(itemName === "");
 		const mirrorImage = (sourceId: string, targetId: string): void => {
 			const source = document.getElementById(sourceId) as HTMLImageElement | null;
 			const target = document.getElementById(targetId) as HTMLImageElement | null;

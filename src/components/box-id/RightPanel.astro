@@ -23,11 +23,10 @@ import '../../styles/stat-adjustment-panel.css';
 <div class="edit-layout-detail">
 	<aside id="damage-detail-panel" class="damage-detail-panel panel-right" aria-label="ダメージ計算の詳細設定">
 		<div class="damage-detail-panel-header">
-			{/* 選択中はright-panel.tsが相手ポケモン/わざNのタブを差し込む。
-			    候補一覧では従来どおり通常のタイトル帯として再利用する。 */}
-			<div id="damage-detail-panel-title" class="damage-detail-panel-title" aria-live="polite"></div>
-			{/* 詳細パネルは常時オーバーレイのため、閉じるボタンを表示する。 */}
+			<div id="damage-detail-panel-title" class="damage-detail-panel-title">ダメージ計算設定</div>
+			<button id="damage-detail-panel-close" class="btn-ghost damage-detail-panel-close" type="button" aria-label="詳細設定を閉じる" title="閉じる">×</button>
 		</div>
+		<div id="damage-detail-panel-tabs" class="damage-detail-panel-tabs" role="tablist" aria-label="ダメージ詳細の表示切り替え" hidden></div>
 		<footer id="damage-detail-panel-footer" class="damage-detail-panel-footer" hidden>
 			<div id="damage-detail-panel-matchup" class="damage-detail-panel-matchup"></div>
 			{/* A-2: 対面アイコンと計算結果の間に、選択中の技カードの技名(複数なら「 + 」区切り)を
@@ -45,6 +44,12 @@ import '../../styles/stat-adjustment-panel.css';
 			    margin-block:autoの対象として維持する(DOM構造は残す)。 */}
 			<div class="damage-detail-panel-body-inner"></div>
 		</div>
+		<footer id="damage-detail-panel-actions" class="damage-detail-panel-actions" hidden>
+			<button id="damage-detail-panel-delete" class="btn-danger damage-detail-panel-delete" type="button">
+				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+				ダメージ計算を削除
+			</button>
+		</footer>
 	</aside>
 </div>
 {/* 詳細パネルをオーバーレイ表示する際の背景(クリックで閉じる)。 */}
