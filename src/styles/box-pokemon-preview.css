@@ -59,6 +59,7 @@
   --pokemon-preview-sprite-bottom-gap: 0; /* ポケモン画像の下余白 */
 
   /* ── 8. 寸法 ────────────────────────── */
+  --pokemon-preview-height: 176px; /* プレビューの高さ。全項目表示時の実測値で固定する */
   --pokemon-preview-sprite-size: calc((var(--space-8) + var(--space-6)) * 1.55); /* ポケモン画像の大きさ */
   --pokemon-preview-item-icon-size: 1.9em; /* 持ち物アイコンの大きさ */
   --pokemon-preview-type-icon-size: 1.2em; /* タイプアイコンの大きさ */
@@ -106,6 +107,7 @@
 .pokemon-preview-main {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  height: var(--pokemon-preview-height);
   gap: var(--pokemon-preview-column-gap);
   padding: var(--pokemon-preview-padding);
   background: var(--pokemon-preview-main-background);

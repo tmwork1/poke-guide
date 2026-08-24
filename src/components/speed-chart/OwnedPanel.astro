@@ -69,7 +69,13 @@ import '../../styles/speed-chart-owned-panel.css';
 			    title="現在地へ戻る"は静的(状態に依らず同じ文言)なのでここで固定する。 */}
 			<div class="speed-chart-owned-summary-value-row">
 				<span id="speed-chart-owned-summary-value" class="tnum speed-chart-owned-summary-value"></span>
-				<button type="button" id="speed-chart-owned-jump-button" class="btn-control speed-chart-owned-jump-button" title="現在地へ戻る">移動</button>
+				<button type="button" id="speed-chart-owned-jump-button" class="btn-control speed-chart-owned-jump-button" aria-label="現在地へ戻る" title="現在地へ戻る">
+					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+						<path d="M14 3h7v7" />
+						<path d="m10 14 11-11" />
+						<path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5" />
+					</svg>
+				</button>
 			</div>
 			{/* 保存対象に含めない表示専用のすばやさランク入力。 */}
 			<div class="speed-chart-owned-controls">

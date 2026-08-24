@@ -47,7 +47,10 @@ body.speed-chart-page {
 }
 .speed-chart-embed-close {
 	margin-left: auto;
-	min-height: 0;
+	align-self: center;
+	min-width: var(--modal-close-size);
+	min-height: var(--modal-close-size);
+	padding: 0.1em 0.45em;
 	font-size: var(--speed-chart-embed-close-font-size);
 	line-height: 1;
 }

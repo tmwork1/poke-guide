@@ -42,7 +42,7 @@
 	--speed-chart-meta-gap: 0.35em; /* 種族値・配分・倍率の間隔。大きくすると横に離れる */
 	--speed-chart-chips-row-gap: 0.4rem; /* ポケモンチップどうしの間隔。大きくするとチップが離れる */
 	--speed-chart-chips-gap: var(--space-1); /* ポケモン行と補正要因の間隔。大きくすると縦に離れる */
-	--speed-chart-chip-unit-gap: 0.05rem; /* ポケモンチップと補正要因の間隔。大きくすると上下に離れる */
+	--speed-chart-chip-unit-gap: 0; /* ポケモンチップと補正要因の間隔。大きくすると上下に離れる */
 	--speed-chart-chip-padding: var(--space-1) var(--space-2) var(--space-1) var(--space-3); /* ポケモンチップの内側余白。大きくするとチップが大きくなる */
 	--speed-chart-badge-padding: 0.05em 0.55em; /* 配分・倍率バッジの内側余白。大きくするとバッジが大きくなる */
 
@@ -193,7 +193,26 @@
 	.speed-chart-table[data-embedded='true'] .speed-chart-apply-label {
 		display: grid;
 		gap: 2px;
+		width: 100%;
+		min-width: 0;
+		justify-items: center;
 		white-space: nowrap;
+	}
+	.speed-chart-table[data-embedded='true'] .speed-chart-apply-label > * {
+		max-width: 100%;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+	/* 性格名だけは5文字まで収まるよう横方向を圧縮する。 */
+	.speed-chart-table[data-embedded='true'] .speed-chart-apply-label > :first-child {
+		width: 130%;
+		max-width: 130%;
+		letter-spacing: -0.05em;
+		transform: scaleX(0.77);
+	}
+	.speed-chart-table[data-embedded='true'] .speed-chart-apply-label > :nth-child(2) {
+		justify-self: center;
+		text-align: center;
 	}
 	.speed-chart-table[data-embedded='true'] .speed-chart-apply-label > :first-child {
 		font-size: 0.625rem;
@@ -290,7 +309,7 @@
 		grid-column: 3;
 		grid-row: 1;
 		display: grid;
-		grid-template-columns: var(--space-6) 3.4em var(--space-6);
+		grid-template-columns: 36px 36px 36px;
 		align-items: center;
 		gap: var(--space-1);
 		flex: 0 0 auto;
@@ -312,10 +331,10 @@
 	/* 個体編集の努力値調整と同じ、角張った枠付きの−/＋ボタンにそろえる。 */
 	.speed-chart-table[data-embedded='true'] .speed-chart-rank-field .rank-stepper {
 		box-sizing: border-box;
-		width: 30px;
-		min-width: 30px;
-		height: 30px;
-		min-height: 30px;
+		width: 36px;
+		min-width: 36px;
+		height: 36px;
+		min-height: 36px;
 		padding: 0;
 		color: var(--color-text-muted);
 		background: var(--color-surface);
@@ -329,8 +348,11 @@
 		color: var(--color-text);
 	}
 	.speed-chart-table[data-embedded='true'] .speed-chart-rank-field input[type='number'] {
-		height: 30px;
-		min-height: 30px;
+		box-sizing: border-box;
+		width: 36px;
+		min-width: 36px;
+		height: 36px;
+		min-height: 36px;
 		padding: 0 var(--space-1);
 		line-height: 1;
 		background: var(--color-surface);
@@ -401,6 +423,12 @@
 	.speed-chart-table .speed-chart-row.is-current-row {
 		background: var(--speed-chart-current-row-background);
 	}
+	/* すばやさ調整モーダルでは現在行をほかの行と同じ見た目にする。 */
+	.speed-chart-table[data-embedded='true'] .speed-chart-row.is-current-row {
+		margin-inline: 0;
+		padding-inline: 0;
+		background: transparent;
+	}
 	/* 実数値: 同じページ内に「ポケモン群」「この個体」という他の主コンテンツが並ぶ比較用の表
 		なので、00-foundation.mdの「脇役の数値グリッド」区分(16.8px=1.05em/700)を採用する
 		(/box/[id]の.stat-row-realと同じ階層)。列幅(80px)に対して数値だけが左寄りだと
@@ -457,6 +485,7 @@
 		して「ポケモンが主・要因が補足」という情報の主従を示す。補正なしグループ(素の実数値)には
 		要因が無いため、その場合はこの要素自体を出力しない(chart-table.ts参照)。 */
 	.speed-chart-table .speed-chart-chip-origin {
+		margin-top: -4px;
 		font-size: var(--speed-chart-origin-font-size);
 		font-weight: 500;
 		color: var(--speed-chart-origin-color);

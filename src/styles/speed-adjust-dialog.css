@@ -118,12 +118,12 @@ body.speed-chart-page:has(.speed-chart-embed-toolbar) {
   --speed-adjust-value-size: var(--font-size-sm2);
 
   /* 下部サマリー: 更新ボタン1行目の性格 / 性格・努力値バッジ / 「移動」 */
-  --speed-adjust-button-label-size: 0.625rem;
-  --speed-adjust-badge-size: 0.6875rem;
+  --speed-adjust-button-label-size: var(--font-size-sm3);
+  --speed-adjust-badge-size: var(--font-size-sm3);
   --speed-adjust-jump-size: var(--font-size-sm2);
 
   /* 下部サマリー: 「特性」「アイテム」 / ランク数値入力 / ランクの－・＋ */
-  --speed-adjust-toggle-size: var(--font-size-sm3);
+  --speed-adjust-toggle-size: var(--font-size-sm2);
   --speed-adjust-rank-field-size: var(--font-size-sm3);
   --speed-adjust-rank-input-size: var(--font-size-sm3);
   --speed-adjust-rank-stepper-size: var(--font-size-sm3);
@@ -141,6 +141,8 @@ body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-spre
 body.speed-chart-page .speed-chart-embed-toolbar {
   padding: var(--speed-adjust-toolbar-padding);
   font-size: var(--speed-adjust-toolbar-size);
+  /* 他モーダルのヘッダーと同じ面色にそろえる。 */
+  background: var(--color-surface);
 }
 
 body.speed-chart-page .speed-chart-embed-title {
@@ -149,12 +151,18 @@ body.speed-chart-page .speed-chart-embed-title {
 
 body.speed-chart-page .speed-chart-embed-close {
   font-size: var(--speed-adjust-toolbar-close-size);
+  align-self: center;
 }
 
 body.speed-chart-page .speed-chart-table[data-embedded='true'] {
   font-size: var(--speed-adjust-base-size);
   --speed-chart-owned-panel-background: var(--color-surface);
   --speed-chart-chip-icon-size: 26px;
+}
+
+/* 早見表はモーダルヘッダーより一段暗い操作面にする。 */
+body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-content {
+  background: var(--color-bg);
 }
 
 body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-status {
@@ -188,6 +196,9 @@ body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-chip
 
 body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-magnitude-badge {
   font-size: var(--speed-adjust-chip-modifier-size);
+  color: var(--color-text-muted);
+  background: color-mix(in srgb, var(--color-bg) 78%, var(--color-border));
+  border: 1px solid var(--color-border);
 }
 
 /* 表のスクロール領域 */
@@ -222,7 +233,7 @@ body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-chip
 /* 表の右側または下部に出る、選択中個体の要約 */
 body.speed-chart-page .speed-chart-table[data-embedded='true'][data-has-owned-panel='true'] .speed-chart-side {
   padding: 0;
-  border-top: 2px solid var(--color-text-muted);
+  border-top: 1px solid var(--color-border);
 }
 
 body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-apply-button {
@@ -256,12 +267,23 @@ body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-owne
   font-size: var(--speed-adjust-value-size);
 }
 
-body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-owned-controls,
+body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-owned-raw-value strong {
+  font-weight: 400;
+}
+
 body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-owned-modifier-toggles {
+  display: contents;
+}
+
+body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-owned-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   gap: var(--speed-adjust-control-gap);
 }
 
 body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-owned-modifier-toggle {
+  gap: calc(var(--space-2) + var(--space-1));
   font-size: var(--speed-adjust-toggle-size);
 }
 
@@ -279,8 +301,16 @@ body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-rank
   font-size: var(--speed-adjust-rank-field-size);
 }
 
-body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-owned-jump-button {
+body.speed-chart-page .speed-chart-table[data-embedded='true'] button.speed-chart-owned-jump-button.btn-control {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
   font-size: var(--speed-adjust-jump-size);
+}
+
+body.speed-chart-page .speed-chart-table[data-embedded='true'] button.speed-chart-owned-jump-button.btn-control:hover:not(:disabled) {
+  background: transparent;
+  border-color: transparent;
 }
 
 body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-rank-field input[type='number'] {
