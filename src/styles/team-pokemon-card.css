@@ -78,7 +78,7 @@
 	--team-card-sprite-fallback-line-height: 1.6;
 	--team-card-stats-value-line-height: 1.2;
 	--team-card-details-line-height: 1;
-	--team-card-moves-line-height: 1;
+	--team-card-moves-line-height: var(--line-height-tight);
 	--team-card-stats-label-line-height: 1;
 	--team-card-stats-ev-line-height: 1;
 
@@ -98,19 +98,22 @@
 	--team-card-stats-column-gap: var(--space-1);
 	--team-card-item-gap: calc(var(--space-1) / 2);
 	--team-card-details-gap: calc(var(--space-1) / 2);
-	--team-card-moves-icon-gap: calc(var(--space-1) / 2);
-	--team-card-moves-gap: calc(var(--space-1) / 2);
+	--team-card-moves-icon-gap: 3px;
+	--team-card-moves-gap: 0.05rem;
+	--team-card-moves-row-padding: 0.04rem 0;
+	--team-card-move-min-height: calc(1.2 * var(--team-card-moves-font-size) + 0.08rem);
 	/* 名前・とくせい・わざ一覧の縦方向の間隔 */
 	--team-card-left-content-gap: calc(var(--space-1) / 2);
 	--team-card-moves-stats-gap: var(--space-1);
 	--team-card-stats-row-padding-block-start: calc(var(--space-1) / 4);
 
 	/* ── 8. 寸法 ────────────────────────── */
-	--team-card-sprite-size: 8rem;
+	--team-card-sprite-size: 7rem;
 	--team-card-item-gutter: calc(var(--team-card-item-badge-size) + var(--team-card-item-gap));
 	--pokemon-preview-item-icon-size: 1.5em;
 	--team-card-item-badge-size: var(--pokemon-preview-item-icon-size);
-	--pokemon-preview-move-type-icon-size: 1.3em;
+	--pokemon-preview-move-type-bar-width: 3px;
+	--pokemon-preview-move-type-bar-height: var(--team-card-moves-font-size);
 
 	/* ── 9. その他 ───────────────────────── */
 	--team-card-sprite-opacity: 0.5;
@@ -211,26 +214,23 @@
 	align-items: center;
 	gap: var(--team-card-moves-icon-gap);
 	min-width: 0;
+	min-height: var(--team-card-move-min-height);
 	font-size: var(--team-card-moves-font-size);
 	font-weight: var(--team-card-moves-font-weight);
 	line-height: var(--team-card-moves-line-height);
 	color: var(--team-card-moves-color);
+	padding: var(--team-card-moves-row-padding);
 }
 
-/* わざ名の先頭に出すタイプアイコンのspan(タイプ判明までhiddenで非表示)。 */
+/* わざ名の先頭に出すタイプカラーの長方形(タイプ判明までhiddenで非表示)。 */
 
-.team-overview-preview-card .pokemon-preview-moves .move-type-icon {
-	flex-shrink: 0;
+.team-overview-preview-card .pokemon-preview-moves .move-type-color {
+	flex: 0 0 var(--pokemon-preview-move-type-bar-width);
+	width: var(--pokemon-preview-move-type-bar-width);
+	height: var(--pokemon-preview-move-type-bar-height);
 }
 
-.team-overview-preview-card .pokemon-preview-moves .move-type-icon img {
-	display: block;
-	width: var(--pokemon-preview-move-type-icon-size);
-	height: var(--pokemon-preview-move-type-icon-size);
-	object-fit: contain;
-}
-
-.team-overview-preview-card .pokemon-preview-moves .move-type-icon[hidden] {
+.team-overview-preview-card .pokemon-preview-moves .move-type-color[hidden] {
 	display: none;
 }
 

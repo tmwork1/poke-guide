@@ -87,7 +87,7 @@
   --box-card-artwork-inset-block-end: -0.1rem; /* 透かし画像をカード下端から持ち上げる距離 */
   --box-card-item-badge-offset: 3%; /* 持ち物アイコンを右端・下端から離す基準距離 */
   --box-card-item-badge-inset-inline-end: var(--box-card-item-badge-offset); /* 持ち物アイコンの右端側の配置位置。増やすと左へ移動する */
-  --box-card-item-badge-inset-block-end: var(--box-card-item-badge-offset); /* 持ち物アイコンの下端側の配置位置。増やすと上へ移動する */
+  --box-card-item-badge-inset-block-start: 29%; /* 持ち物アイコンの中心位置。名前と技一覧の間に置く */
   --box-card-action-inset-block-start: var(--box-card-action-offset); /* 操作ボタン群をカード上端から下げる位置 */
   --box-card-action-inset-inline-end: var(--box-card-action-offset); /* 操作ボタン群をカード右端から左へ入れる位置 */
 
@@ -311,11 +311,12 @@
 .box-grid .box-card .card-item-badge {
   position: absolute;
   inset-inline-end: var(--box-card-item-badge-inset-inline-end);
-  inset-block-end: var(--box-card-item-badge-inset-block-end);
+  inset-block-start: var(--box-card-item-badge-inset-block-start);
   display: block;
   width: var(--box-card-item-badge-size);
   height: var(--box-card-item-badge-size);
-  z-index: 1;
+  z-index: 2;
+  transform: translateY(-50%);
 }
 .box-grid .box-card .card-item-badge img {
   display: block;
@@ -362,11 +363,13 @@
   display: none;
 }
 .box-grid .box-card .card-move-chip-text {
-  display: block;
-  width: 100%;
-  min-width: 0;
-  text-shadow: var(--box-card-move-text-shadow);
-  white-space: nowrap;
-  overflow: hidden;
+	display: block;
+	width: 100%;
+	min-width: 0;
+	text-shadow: var(--box-card-move-text-shadow);
+	white-space: nowrap;
+	overflow: hidden;
+	transform: scaleX(1);
+	transform-origin: left center;
   text-overflow: ellipsis;
 }

@@ -53,7 +53,7 @@ const user = Astro.locals.user;
 									id="search-input"
 									type="search"
 									class="field-control"
-									placeholder="種族・NN・アイテム・わざ"
+									placeholder="ポケモン・NN・アイテム・わざ"
 									aria-label="検索"
 									autocomplete="off"
 								/>
@@ -67,13 +67,13 @@ const user = Astro.locals.user;
 								data-mode="expanded"
 								aria-label="圧縮表示に切り替える"
 							>
-								<svg class="density-toggle-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-									<rect x="2" y="3" width="6" height="6" rx="1" />
-									<rect x="9" y="3" width="6" height="6" rx="1" />
-									<rect x="16" y="3" width="6" height="6" rx="1" />
-									<rect x="2" y="12" width="6" height="6" rx="1" />
-									<rect x="9" y="12" width="6" height="6" rx="1" />
-									<rect x="16" y="12" width="6" height="6" rx="1" />
+								<svg class="density-toggle-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+									<rect x="2" y="4" width="5" height="5" rx="1" />
+									<rect x="10" y="4" width="5" height="5" rx="1" />
+									<rect x="18" y="4" width="5" height="5" rx="1" />
+									<rect x="2" y="12" width="5" height="5" rx="1" />
+									<rect x="10" y="12" width="5" height="5" rx="1" />
+									<rect x="18" y="12" width="5" height="5" rx="1" />
 								</svg>
 							</button>
 						</div>
@@ -85,10 +85,6 @@ const user = Astro.locals.user;
 						<p id="error-message" hidden></p>
 
 						<div class="team-grid">
-							<button type="button" class="add-card-tile floating-list-add-button" id="add-team-button" aria-label="チームを追加">
-								<span class="add-card-tile-icon" aria-hidden="true">＋</span>
-								<span class="add-card-tile-label">チームを追加</span>
-							</button>
 							<div id="team-list"></div>
 						</div>
 
@@ -103,6 +99,10 @@ const user = Astro.locals.user;
 							<p class="empty-state-hint">条件を変更してください。</p>
 						</div>
 					</div>
+					<button type="button" class="add-card-tile floating-list-add-button" id="add-team-button" aria-label="チームを追加">
+						<span class="add-card-tile-icon" aria-hidden="true">＋</span>
+						<span class="add-card-tile-label">チームを追加</span>
+					</button>
 				</Fragment>
 			) : (
 				<section class="panel">
@@ -228,8 +228,8 @@ const user = Astro.locals.user;
 			type TeamDisplayMode = "expanded" | "compressed";
 			let displayMode: TeamDisplayMode = "expanded";
 
-			const DENSITY_ICON_EXPANDED = `<svg class="density-toggle-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="3" width="6" height="6" rx="1"/><rect x="9" y="3" width="6" height="6" rx="1"/><rect x="16" y="3" width="6" height="6" rx="1"/><rect x="2" y="12" width="6" height="6" rx="1"/><rect x="9" y="12" width="6" height="6" rx="1"/><rect x="16" y="12" width="6" height="6" rx="1"/></svg>`;
-			const DENSITY_ICON_COMPRESSED = `<svg class="density-toggle-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/><rect x="16" y="9" width="6" height="6" rx="1"/></svg>`;
+			const DENSITY_ICON_EXPANDED = `<svg class="density-toggle-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="4" width="5" height="5" rx="1"/><rect x="10" y="4" width="5" height="5" rx="1"/><rect x="18" y="4" width="5" height="5" rx="1"/><rect x="2" y="12" width="5" height="5" rx="1"/><rect x="10" y="12" width="5" height="5" rx="1"/><rect x="18" y="12" width="5" height="5" rx="1"/></svg>`;
+			const DENSITY_ICON_COMPRESSED = `<svg class="density-toggle-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="10" width="5" height="5" rx="1"/><rect x="10" y="10" width="5" height="5" rx="1"/><rect x="18" y="10" width="5" height="5" rx="1"/></svg>`;
 
 			function updateDensityToggleUi(): void {
 				densityToggle.dataset.mode = displayMode;
@@ -363,7 +363,7 @@ const user = Astro.locals.user;
 					if (!res.ok || !body.team) {
 						throw new Error(body.error ?? `作成に失敗しました (status=${res.status})`);
 					}
-					window.location.href = `/team/${encodeURIComponent(body.team.id)}`;
+					window.location.href = `/team/${encodeURIComponent(body.team.id)}?tab=formation`;
 				} catch (err) {
 					console.error(err);
 					errorMessage.hidden = false;

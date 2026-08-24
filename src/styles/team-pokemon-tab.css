@@ -63,7 +63,9 @@ body.team-edit-page {
 }
 .team-mobile-actions__controls {
 	width: 100%;
+	padding-top: var(--team-pokemon-tab-overview-section-gap);
 	margin-top: var(--team-pokemon-tab-overview-section-gap);
+	border-top: var(--team-pokemon-tab-actions-border);
 }
 .team-edit-shell[data-mobile-tab="pokemon"] .team-edit-layout,
 .team-edit-shell[data-mobile-tab="formation"] #team-overview-tab,

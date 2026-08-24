@@ -40,8 +40,21 @@ body.team-page {
 }
 
 .second-header-density .density-toggle {
+	align-self: center;
 	padding: var(--space-1) var(--space-2);
 	min-height: 0;
+	background: transparent;
+	border: 0;
+	box-shadow: none;
+}
+
+.second-header-density .density-toggle-icon {
+	display: block;
+}
+
+.second-header-density .density-toggle:hover:not(:disabled) {
+	background: transparent;
+	border-color: transparent;
 }
 
 /* JSがinnerHTMLを差し替えてもカードが .team-grid の直接の子として並ぶようにする

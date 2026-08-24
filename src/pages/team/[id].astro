@@ -1769,6 +1769,7 @@ try {
 		// 技チップにタイプアイコンを追加するため、typeIconUrlを追加importする(box/index.astroの
 		// applyMoveChipTypeIconsと同じ用途)。
 		import { itemIconUrl, teraTypeIconUrl, typeIconUrl } from "../../lib/sprite-urls";
+		import { DEFAULT_TYPE_COLOR, TYPE_COLORS } from "../../lib/type-colors";
 		import { resolveDexNo } from "../../lib/species-dex";
 		import { selectionBlockReason, type SelectionCandidate, type SelectionBlockReason } from "../../lib/team-validation";
 		import { STAT_KEYS, NATURE_STAT_MODIFIERS, calcHpStat, calcOtherStat } from "../../lib/stats";
@@ -2111,6 +2112,19 @@ try {
 						visibilityEl.hidden = false;
 					};
 					iconEl.src = url;
+				}
+			}
+
+			async function applyOverviewMoveTypeColors(
+				entries: { colorEl: HTMLElement; moveName: string }[],
+			): Promise<void> {
+				if (entries.length === 0) return;
+				const detailMap = await loadMoveDetailMap();
+				for (const { colorEl, moveName } of entries) {
+					const type = detailMap.get(moveName)?.type;
+					if (!type) continue;
+					colorEl.style.backgroundColor = TYPE_COLORS[type] ?? DEFAULT_TYPE_COLOR;
+					colorEl.hidden = false;
 				}
 			}
 
@@ -3220,21 +3234,18 @@ try {
 					const moves = document.createElement("ol");
 					moves.className = "pokemon-preview-moves";
 					moves.setAttribute("aria-label", "技");
-					const moveIconEntries: { iconEl: HTMLImageElement; visibilityEl: HTMLElement; moveName: string }[] = [];
+					const moveColorEntries: { colorEl: HTMLElement; moveName: string }[] = [];
 					for (const moveName of p.move_names.slice(0, 4)) {
 						const move = document.createElement("li");
-						const typeIcon = document.createElement("span");
-						typeIcon.className = "move-type-icon";
-						typeIcon.hidden = true;
-						const typeIconImage = document.createElement("img");
-						typeIconImage.alt = "";
-						typeIcon.appendChild(typeIconImage);
+						const typeColor = document.createElement("span");
+						typeColor.className = "move-type-color";
+						typeColor.hidden = true;
 						const text = document.createElement("span");
 						text.textContent = moveName?.trim() || "-";
-						move.append(typeIcon, text);
+						move.append(typeColor, text);
 						moves.appendChild(move);
 						if (moveName?.trim()) {
-							moveIconEntries.push({ iconEl: typeIconImage, visibilityEl: typeIcon, moveName });
+							moveColorEntries.push({ colorEl: typeColor, moveName });
 						}
 					}
 					while (moves.children.length < 4) {
@@ -3284,7 +3295,7 @@ try {
 						void applyItemIcon(itemImage, itemName, item);
 					}
 					overviewGrid.appendChild(card);
-					void applySelectMoveChipTypeIcons(moveIconEntries);
+					void applyOverviewMoveTypeColors(moveColorEntries);
 					void computeStats(p).then((computed) => {
 						if (!card.isConnected || !computed) return;
 						for (const stat of computed) {
