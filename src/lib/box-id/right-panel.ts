@@ -1074,11 +1074,41 @@ export function buildSideSection(
 	// C-2: "ランク"の文字ラベルは削除し、ランク・状態異常・テラスタイプを同じ段に配置する
 	// (スピンボックス単体で意味が伝わるため、視覚的なラベルは持たせない)。
 	const rankInput = document.createElement("input");
-	rankInput.type = "text";
-	rankInput.inputMode = "numeric";
+	rankInput.type = "hidden";
 	rankInput.className = "damage-detail-rank-input";
 	const formatRank = (value: number): string => value > 0 ? `+${value}` : String(value);
 	rankInput.value = formatRank(rank);
+	const pickerButton = document.createElement("button");
+	pickerButton.type = "button";
+	pickerButton.className = "number-stepper-value tnum";
+	pickerButton.setAttribute("aria-haspopup", "dialog");
+	pickerButton.setAttribute("aria-expanded", "false");
+	const picker = document.createElement("div");
+	picker.className = "number-stepper-picker number-stepper-picker--rank";
+	picker.hidden = true;
+	picker.setAttribute("role", "dialog");
+	for (let value = -6; value <= 6; value += 1) {
+		const option = document.createElement("button");
+		option.type = "button";
+		option.className = "tnum";
+		option.dataset.rankValue = String(value);
+		option.textContent = formatRank(value);
+		picker.appendChild(option);
+	}
+	const closePicker = (): void => {
+		picker.hidden = true;
+		pickerButton.setAttribute("aria-expanded", "false");
+	};
+	const openPicker = (): void => {
+		document.body.appendChild(picker);
+		picker.hidden = false;
+		const anchor = pickerButton.getBoundingClientRect();
+		const pickerRect = picker.getBoundingClientRect();
+		picker.style.position = "fixed";
+		picker.style.top = `${Math.max(8, Math.min(window.innerHeight - pickerRect.height - 8, anchor.bottom + 4))}px`;
+		picker.style.left = `${Math.max(8, Math.min(window.innerWidth - pickerRect.width - 8, anchor.left + (anchor.width - pickerRect.width) / 2))}px`;
+		pickerButton.setAttribute("aria-expanded", "true");
+	};
 	rankInput.setAttribute("aria-label", `${ariaSideLabel}の能力ランク`);
 	const decrementButton = document.createElement("button");
 	decrementButton.type = "button";
@@ -1092,7 +1122,11 @@ export function buildSideSection(
 	incrementButton.setAttribute("aria-label", `${ariaSideLabel}の能力ランクを1上げる`);
 	const updateEmphasis = () => {
 		const n = Number(rankInput.value);
-		rankInput.classList.toggle("is-nonzero", Number.isFinite(n) && n !== 0);
+		pickerButton.classList.toggle("is-nonzero", Number.isFinite(n) && n !== 0);
+		pickerButton.textContent = formatRank(Number.isFinite(n) ? clampInt(n, -6, 6) : 0);
+		for (const option of picker.querySelectorAll<HTMLButtonElement>("[data-rank-value]")) {
+			option.setAttribute("aria-current", String(Number(option.dataset.rankValue) === n));
+		}
 	};
 	const updateStepperState = () => {
 		const n = Number(rankInput.value);
@@ -1118,9 +1152,22 @@ export function buildSideSection(
 		scheduleRowSave(row);
 		refreshRowConditionChips(row);
 	};
-	rankInput.addEventListener("input", () => commitRank(false));
-	rankInput.addEventListener("change", () => commitRank(true));
-	rankInput.addEventListener("blur", () => commitRank(true));
+	pickerButton.addEventListener("click", () => {
+		if (picker.hidden) openPicker();
+		else closePicker();
+	});
+	picker.addEventListener("click", (event) => {
+		const option = (event.target as Element).closest<HTMLButtonElement>("[data-rank-value]");
+		if (!option) return;
+		rankInput.value = option.dataset.rankValue ?? "0";
+		commitRank(true);
+		closePicker();
+		pickerButton.focus();
+	});
+	document.addEventListener("pointerdown", (event) => {
+		if (picker.hidden || picker.contains(event.target as Node) || pickerButton.contains(event.target as Node)) return;
+		closePicker();
+	});
 	const stepRank = (delta: -1 | 1): void => {
 		const n = Number(rankInput.value);
 		const current = Number.isFinite(n) ? n : 0;
@@ -1139,8 +1186,8 @@ export function buildSideSection(
 		{ passive: false },
 	);
 	const stepperGroup = document.createElement("span");
-	stepperGroup.className = "rank-stepper-group";
-	stepperGroup.append(decrementButton, rankInput, incrementButton);
+	stepperGroup.className = "rank-stepper-group number-stepper";
+	stepperGroup.append(decrementButton, pickerButton, rankInput, incrementButton, picker);
 	rankField.append(stepperGroup);
 	rankAilmentGroup.appendChild(headingRow);
 

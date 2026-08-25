@@ -267,9 +267,20 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 					{/* 努力値の入力欄には可視ラベルが無い(左端の .stat-row-label は入力と紐づいていない)ため、
 					    スライダー・数値入力の両方に aria-label で「どの能力の努力値か」を持たせる。 */}
 					<div class="stat-input-controls">
-						{/* 端点ボタンもrangeのinputイベントへ合流させ、再計算・残量更新・自動保存を共通化する。 */}
 						<div class="stat-ev-range-controls">
-							<button type="button" class="btn-ghost stat-ev-step-button" data-ev-target={`ev-${key}-range`} data-ev-step="-1" aria-label={`${statShort}の努力値を1減らす`}>−</button>
+							<span class="number-stepper stat-ev-stepper">
+								<button type="button" class="btn-ghost stat-ev-step-button" data-ev-target={`ev-${key}-range`} data-ev-step="-1" aria-label={`${statShort}の努力値を1減らす`}>−</button>
+								<button type="button" id={`ev-${key}-picker`} class="number-stepper-value tnum" aria-haspopup="dialog" aria-expanded="false" aria-controls={`ev-${key}-options`} aria-label={`${statLabel}の努力値を選ぶ`}>{statAt(pokemon.evs, i, 0)}</button>
+								<input
+									id={`ev-${key}`}
+									type="hidden"
+									value={statAt(pokemon.evs, i, 0)}
+								/>
+								<button type="button" class="btn-ghost stat-ev-step-button" data-ev-target={`ev-${key}-range`} data-ev-step="1" aria-label={`${statShort}の努力値を1増やす`}>+</button>
+								<div id={`ev-${key}-options`} class="number-stepper-picker" role="dialog" aria-label={`${statLabel}の努力値を選ぶ`} hidden>
+									{Array.from({ length: 33 }, (_, value) => <button type="button" class="tnum" data-ev-value={value} aria-current={value === statAt(pokemon.evs, i, 0) ? "true" : undefined}>{value}</button>)}
+								</div>
+							</span>
 							<input
 								type="range"
 								id={`ev-${key}-range`}
@@ -279,18 +290,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 								aria-label={`${statLabel}の努力値(スライダー)`}
 								value={statAt(pokemon.evs, i, 0)}
 							/>
-							<button type="button" class="btn-ghost stat-ev-step-button" data-ev-target={`ev-${key}-range`} data-ev-step="1" aria-label={`${statShort}の努力値を1増やす`}>+</button>
-							<button type="button" class="btn-ghost stat-ev-endpoint-button" data-ev-target={`ev-${key}-range`} data-ev-endpoint="max" data-ev-toggle aria-label={`${statShort}の努力値を最大にする`}>
-								<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m17 11-5-5-5 5"/><path d="m17 18-5-5-5 5"/></svg>
-							</button>
 						</div>
-						<input
-							id={`ev-${key}`}
-							type="number"
-							step="1"
-							aria-label={`${statLabel}の努力値`}
-							value={statAt(pokemon.evs, i, 0)}
-						/>
 					</div>
 					<span class="stat-row-real-wrap">
 						<span id={`stat-${key}`} class="stat-row-real stat-value tnum">-</span>
@@ -466,7 +466,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	.stat-row .stat-ev-range-controls input[type="range"] { display: none; }
 	.stat-row .stat-ev-step-button { display: inline-flex; }
 	.stat-row .stat-input-controls { display: flex; align-items: center; justify-content: flex-end; gap: calc(var(--space-1) + 1px); min-width: 0; grid-column: 4; }
-	.stat-row .stat-ev-range-controls { display: contents; }
+	.stat-row .stat-ev-range-controls { gap: var(--stat-control-gap); }
 	.stat-row .stat-ev-step-button[data-ev-step="-1"] { order: 2; }
 	/* 基底の .stat-row input[type="number"] は width:100% なので、flex行に置くと
 	   余った横幅を全部吸って左右のボタンが両端へ離れてしまう(実測、700px幅)。
@@ -1053,7 +1053,26 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		#edit-form .move-fields-grid.is-mobile-collapsed + .stat-adjustment-section {
 			margin-top: var(--space-4);
 		}
-</style>
+	/* 数値と増減ボタンをひとつのステッパーとして扱う。 */
+	.stat-ev-stepper {
+		--number-stepper-size: var(--stat-ev-mobile-button-block-size);
+		--number-stepper-input-width: var(--stat-number-input-width);
+		flex: 0 0 auto;
+	}
+	.stat-row .stat-ev-stepper { order: 0; }
+	.stat-row .stat-input-controls { justify-content: center; }
+	.stat-row .stat-ev-endpoint-button[data-ev-toggle] { order: 1; }
+	.stat-row .stat-ev-stepper > .stat-ev-step-button {
+		order: 0;
+		border: 0;
+		background: transparent;
+		box-shadow: none;
+	}
+	.stat-row .stat-ev-stepper > .number-stepper-value {
+		flex: 0 0 var(--stat-number-input-width);
+		width: var(--stat-number-input-width);
+	}
+	</style>
 <style is:global>
 	.move-picker-window {
 		position: fixed;

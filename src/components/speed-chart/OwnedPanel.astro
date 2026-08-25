@@ -80,11 +80,15 @@ import '../../styles/speed-chart-owned-panel.css';
 			{/* 保存対象に含めない表示専用のすばやさランク入力。 */}
 			<div class="speed-chart-owned-controls">
 			<div class="speed-chart-rank-field rank-field">
-				<label for="speed-chart-rank-input">ランク</label>
-				<input id="speed-chart-rank-input" type="number" min="-6" max="6" step="1" inputmode="numeric" value="0" />
-				<span class="rank-stepper-group">
-					<button type="button" id="speed-chart-rank-increment" class="speed-chart-rank-stepper rank-stepper" aria-label="すばやさランクを1上げる">＋</button>
+				<label for="speed-chart-rank-picker">ランク</label>
+				<span class="rank-stepper-group number-stepper">
 					<button type="button" id="speed-chart-rank-decrement" class="speed-chart-rank-stepper rank-stepper" aria-label="すばやさランクを1下げる">－</button>
+					<button type="button" id="speed-chart-rank-picker" class="number-stepper-value tnum" aria-haspopup="dialog" aria-expanded="false" aria-controls="speed-chart-rank-options">0</button>
+					<input id="speed-chart-rank-input" type="hidden" value="0" />
+					<button type="button" id="speed-chart-rank-increment" class="speed-chart-rank-stepper rank-stepper" aria-label="すばやさランクを1上げる">＋</button>
+					<div id="speed-chart-rank-options" class="number-stepper-picker number-stepper-picker--rank" role="dialog" aria-label="すばやさランクを選ぶ" hidden>
+						{Array.from({ length: 13 }, (_, i) => i - 6).map((value) => <button type="button" class="tnum" data-rank-value={value} aria-current={value === 0 ? "true" : undefined}>{value > 0 ? `+${value}` : value}</button>)}
+					</div>
 				</span>
 			</div>
 			<div class="speed-chart-owned-modifier-toggles">

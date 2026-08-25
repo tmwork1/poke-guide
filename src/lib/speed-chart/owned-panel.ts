@@ -189,9 +189,10 @@ export function initOwnedPanel(ctx: OwnedPanelContext): OwnedPanelController {
     const abilityAdjusted = ability?.kind === 'multiplier'
       ? applySpeedMultiplier(ranked, ability.numerator, ability.denominator)
       : ranked;
-    return usesScarfNow() && ctx.scarfModifier
+    const value = usesScarfNow() && ctx.scarfModifier
       ? applySpeedMultiplier(abilityAdjusted, ctx.scarfModifier.numerator, ctx.scarfModifier.denominator)
       : abilityAdjusted;
+    return Math.floor(value);
   }
 
   function updateSummary(): void {
@@ -253,6 +254,8 @@ export function initOwnedPanel(ctx: OwnedPanelContext): OwnedPanelController {
   }
 
   const rankInput = document.getElementById('speed-chart-rank-input') as HTMLInputElement | null;
+  const rankPicker = document.getElementById('speed-chart-rank-picker') as HTMLButtonElement | null;
+  const rankOptions = document.getElementById('speed-chart-rank-options');
   const rankIncrement = document.getElementById('speed-chart-rank-increment') as HTMLButtonElement | null;
   const rankDecrement = document.getElementById('speed-chart-rank-decrement') as HTMLButtonElement | null;
   const abilityToggle = document.getElementById('speed-chart-ability-toggle') as HTMLInputElement | null;
@@ -263,10 +266,30 @@ export function initOwnedPanel(ctx: OwnedPanelContext): OwnedPanelController {
   }
   const clampRank = (value: number): number => Math.max(-6, Math.min(6, Math.trunc(value)));
   const updateRankControls = (rank: number): void => {
-    rankInput?.classList.toggle('is-nonzero', rank !== 0);
+	 rankPicker?.classList.toggle('is-nonzero', rank !== 0);
+	 if (rankPicker) rankPicker.textContent = rank > 0 ? `+${rank}` : String(rank);
+	 if (rankOptions) for (const option of rankOptions.querySelectorAll<HTMLButtonElement>('[data-rank-value]')) {
+		option.setAttribute('aria-current', String(Number(option.dataset.rankValue) === rank));
+	 }
     if (rankIncrement) rankIncrement.disabled = rank >= 6;
     if (rankDecrement) rankDecrement.disabled = rank <= -6;
   };
+	 const closeRankPicker = (): void => {
+		if (!rankOptions || !rankPicker) return;
+		rankOptions.hidden = true;
+		rankPicker.setAttribute('aria-expanded', 'false');
+	 };
+	 const openRankPicker = (): void => {
+		if (!rankOptions || !rankPicker) return;
+		document.body.appendChild(rankOptions);
+		rankOptions.hidden = false;
+		const anchor = rankPicker.getBoundingClientRect();
+		const pickerRect = rankOptions.getBoundingClientRect();
+		rankOptions.style.position = 'fixed';
+		rankOptions.style.top = `${Math.max(8, Math.min(window.innerHeight - pickerRect.height - 8, anchor.bottom + 4))}px`;
+		rankOptions.style.left = `${Math.max(8, Math.min(window.innerWidth - pickerRect.width - 8, anchor.left + (anchor.width - pickerRect.width) / 2))}px`;
+		rankPicker.setAttribute('aria-expanded', 'true');
+	 };
   const commitRank = (fallbackToZeroIfEmpty: boolean): void => {
     if (!rankInput) return;
     const raw = rankInput.value.trim();
@@ -285,12 +308,19 @@ export function initOwnedPanel(ctx: OwnedPanelContext): OwnedPanelController {
     dispatchReachableValuesChanged();
     dispatchCurrentValueChanged(true);
   };
-  rankInput?.addEventListener('input', () => commitRank(false));
-  rankInput?.addEventListener('change', () => commitRank(true));
-  rankInput?.addEventListener('blur', () => commitRank(true));
-  rankInput?.addEventListener('wheel', (event) => {
-    if (document.activeElement === rankInput) event.preventDefault();
-  }, { passive: false });
+	 rankPicker?.addEventListener('click', () => rankOptions?.hidden ? openRankPicker() : closeRankPicker());
+	 rankOptions?.addEventListener('click', (event) => {
+		const option = (event.target as Element).closest<HTMLButtonElement>('[data-rank-value]');
+		if (!option || !rankInput) return;
+		rankInput.value = option.dataset.rankValue ?? '0';
+		commitRank(true);
+		closeRankPicker();
+		rankPicker?.focus();
+	 });
+	 document.addEventListener('pointerdown', (event) => {
+		if (!rankOptions || rankOptions.hidden || rankOptions.contains(event.target as Node) || rankPicker?.contains(event.target as Node)) return;
+		closeRankPicker();
+	 });
   rankIncrement?.addEventListener('click', () => {
     if (!rankInput) return;
     rankInput.value = String(clampRank((Number(rankInput.value) || 0) + 1));

@@ -122,11 +122,57 @@ function updateSliderProgress(rangeInput: HTMLInputElement): void {
 function pairEvSlider(numberId: string, rangeId: string, onSync: () => void): void {
 	const numberInput = el<HTMLInputElement>(numberId);
 	const rangeInput = el<HTMLInputElement>(rangeId);
+	const pickerButton = document.getElementById(`${numberId}-picker`) as HTMLButtonElement | null;
+	const picker = document.getElementById(`${numberId}-options`);
+	const syncPicker = (): void => {
+		if (!pickerButton || !picker) return;
+		pickerButton.textContent = rangeInput.value;
+		for (const option of picker.querySelectorAll<HTMLButtonElement>("[data-ev-value]")) {
+			option.setAttribute("aria-current", String(option.dataset.evValue === rangeInput.value));
+		}
+	};
+	const closePicker = (): void => {
+		if (!picker || !pickerButton) return;
+		picker.hidden = true;
+		pickerButton.setAttribute("aria-expanded", "false");
+	};
+	const openPicker = (): void => {
+		if (!picker || !pickerButton) return;
+		document.body.appendChild(picker);
+		picker.hidden = false;
+		const anchor = pickerButton.getBoundingClientRect();
+		const pickerWidth = picker.getBoundingClientRect().width;
+		picker.style.position = "fixed";
+		picker.style.top = `${Math.max(8, Math.min(window.innerHeight - picker.getBoundingClientRect().height - 8, anchor.bottom + 4))}px`;
+		picker.style.left = `${Math.max(8, Math.min(window.innerWidth - pickerWidth - 8, anchor.left + (anchor.width - pickerWidth) / 2))}px`;
+		pickerButton.setAttribute("aria-expanded", "true");
+	};
+	let holdTimer: number | undefined;
+	let held = false;
+	const stopHold = (): void => {
+		if (holdTimer !== undefined) window.clearTimeout(holdTimer);
+		holdTimer = undefined;
+	};
+	pickerButton?.addEventListener("pointerdown", (event) => {
+		if (event.button !== 0) return;
+		held = false;
+		holdTimer = window.setTimeout(() => {
+			held = true;
+			closePicker();
+			rangeInput.value = Number(rangeInput.value) > 0 ? rangeInput.min : rangeInput.max;
+			rangeInput.dispatchEvent(new Event("input", { bubbles: true }));
+		}, 500);
+	});
+	pickerButton?.addEventListener("pointerup", stopHold);
+	pickerButton?.addEventListener("pointercancel", stopHold);
+	pickerButton?.addEventListener("lostpointercapture", stopHold);
 	rangeInput.value = numberInput.value || "0";
 	updateSliderProgress(rangeInput);
+	syncPicker();
 	rangeInput.addEventListener("input", () => {
 		numberInput.value = rangeInput.value;
 		updateSliderProgress(rangeInput);
+		syncPicker();
 		onSync();
 	});
 	// 数値入力は範囲外の値を渡し得るため、循環後の値を両入力へ書き戻す。
@@ -138,6 +184,28 @@ function pairEvSlider(numberId: string, rangeId: string, onSync: () => void): vo
 			rangeInput.value = String(wrapped);
 		}
 		updateSliderProgress(rangeInput);
+		syncPicker();
+	});
+	pickerButton?.addEventListener("click", (event) => {
+		if (held) {
+			event.preventDefault();
+			event.stopImmediatePropagation();
+			held = false;
+			return;
+		}
+		picker?.hidden ? openPicker() : closePicker();
+	});
+	picker?.addEventListener("click", (event) => {
+		const option = (event.target as Element).closest<HTMLButtonElement>("[data-ev-value]");
+		if (!option) return;
+		rangeInput.value = option.dataset.evValue ?? rangeInput.value;
+		rangeInput.dispatchEvent(new Event("input", { bubbles: true }));
+		closePicker();
+		pickerButton?.focus();
+	});
+	document.addEventListener("pointerdown", (event) => {
+		if (!picker || picker.hidden || picker.contains(event.target as Node) || pickerButton?.contains(event.target as Node)) return;
+		closePicker();
 	});
 }
 
@@ -1246,21 +1314,6 @@ if (form) {
 			void recalcStats();
 			schedulePopularBuildSuggestionsReload();
 			scheduleAllRowsCalc();
-		});
-	}
-	// 端点ボタンは値を直接保存せず、既存rangeのinputハンドラへ流して全ての副作用を揃える。
-	for (const button of document.querySelectorAll<HTMLButtonElement>(".stat-ev-endpoint-button")) {
-		button.addEventListener("click", () => {
-			const rangeInput = document.getElementById(button.dataset.evTarget ?? "") as HTMLInputElement | null;
-			if (!rangeInput) return;
-			const endpoint = button.dataset.evEndpoint === "min" ? "min" : "max";
-			rangeInput.value = endpoint === "max" ? rangeInput.max : rangeInput.min;
-			rangeInput.dispatchEvent(new Event("input", { bubbles: true }));
-
-			if (!button.hasAttribute("data-ev-toggle")) return;
-			const nextEndpoint = endpoint === "max" ? "min" : "max";
-			button.dataset.evEndpoint = nextEndpoint;
-			button.setAttribute("aria-label", `努力値を${nextEndpoint === "max" ? "最大" : "最小"}にする`);
 		});
 	}
 	for (const button of document.querySelectorAll<HTMLButtonElement>(".stat-ev-step-button")) {

@@ -23,6 +23,7 @@ import {
   buildSpeedChartPopulation,
   buildSpeedChartRows,
   filterRowsByReachableValues,
+  includeReachableValuesInRows,
   getEffectiveSpeedModifiers,
   limitRowChipsByWidth,
   sortFormNamesByUsage,
@@ -447,7 +448,9 @@ export async function initSpeedChartPage(): Promise<void> {
   // currentRowsを絞り込んでから描画する。レギュレーション切替・トグル切替の両方から呼ばれる。
   function renderVisibleRows(): void {
     // すばやさ調整では候補を絞り込まず、常に全実数値を表示する。
-    const rows = currentRows;
+    const rows = lastKnownReachableValues
+      ? includeReachableValuesInRows(currentRows, lastKnownReachableValues)
+      : currentRows;
     renderRows(sortOrder === 'asc' ? [...rows].reverse() : rows);
   }
 
@@ -461,6 +464,8 @@ export async function initSpeedChartPage(): Promise<void> {
     // 同一フォルムの要因名を連結したラベルも、描画前の幅計測対象に含める。
     const rowGroupOriginNames = new Set(modifierNames);
     for (const row of rows) {
+      if (row.entries.length === 0) continue;
+
       for (const group of groupEntriesIntoRowGroups(row.entries, baseSpeedByName, undefined)) {
         for (const entry of group.entries) {
           if (entry.originName) rowGroupOriginNames.add(entry.originName);
@@ -485,6 +490,28 @@ export async function initSpeedChartPage(): Promise<void> {
         : usageByRegulation[currentRegulation];
 
     for (const row of rows) {
+      if (row.entries.length === 0) {
+        const rowEl = document.createElement('div');
+        rowEl.className = 'speed-chart-row speed-chart-row-owned-only speed-chart-row-single-group speed-chart-row-value-end';
+        rowEl.dataset.value = String(row.value);
+
+        const valueCell = document.createElement('div');
+        valueCell.className = 'speed-chart-value-cell tnum';
+        valueCell.textContent = String(row.value);
+        rowEl.appendChild(valueCell);
+
+        if (hasOwnedPanel) {
+          const ownedCell = document.createElement('div');
+          ownedCell.className = 'speed-chart-owned-cell';
+          ownedCell.appendChild(ownedController ? ownedController.renderCell(row.value) : buildDashCell());
+          rowEl.appendChild(ownedCell);
+        }
+
+        fragment.appendChild(rowEl);
+        rowElements.set(row.value, [rowEl]);
+        continue;
+      }
+
       // 実数値1件ぶんのentriesを「振り方+補正」のグループへ分け、族(baseSpeed)降順の
       // フラットな配列として、グループごとに独立した物理行を作る(要件2)。
       const groups = groupEntriesIntoRowGroups(row.entries, baseSpeedByName, usageCounts);
@@ -597,6 +624,7 @@ export async function initSpeedChartPage(): Promise<void> {
   document.addEventListener(OWNED_REACHABLE_VALUES_EVENT, (event) => {
     const detail = (event as CustomEvent<OwnedReachableValuesEventDetail>).detail;
     lastKnownReachableValues = new Set(detail.values);
+    renderVisibleRows();
   });
 
   reachableOnlyToggle?.addEventListener('change', () => {

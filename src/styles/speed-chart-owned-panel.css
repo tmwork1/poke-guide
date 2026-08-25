@@ -195,7 +195,7 @@
 	.speed-chart-rank-field {
 		align-self: flex-start;
 	}
-	.speed-chart-rank-field input[type='number'] {
+	.speed-chart-rank-field .number-stepper-value {
 		width: var(--speed-chart-rank-input-width);
 		min-height: 0;
 		padding: var(--speed-chart-rank-input-padding);
@@ -204,9 +204,7 @@
 		background: var(--color-surface);
 		appearance: textfield;
 	}
-	.speed-chart-rank-field input[type='number']::-webkit-inner-spin-button,
-	.speed-chart-rank-field input[type='number']::-webkit-outer-spin-button { appearance: none; }
-	.speed-chart-rank-field input.is-nonzero {
+	.speed-chart-rank-field .number-stepper-value.is-nonzero {
 		font-weight: 700;
 		color: var(--color-primary-strong);
 		border-color: var(--color-primary-strong);

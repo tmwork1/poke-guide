@@ -1706,37 +1706,28 @@ body.box-edit-page {
   flex: none;
 }
 
-#damage-detail-panel-body .damage-detail-rank-field .rank-stepper-group {
-  gap: var(--space-1);
+#damage-detail-panel-body .damage-detail-rank-field .number-stepper {
+  --number-stepper-size: var(--damage-detail-rank-stepper-size);
+  --number-stepper-input-width: var(--damage-detail-rank-input-width);
 }
 
 /* 能力ランクを上下させる＋－ボタン */
 #damage-detail-panel-body .damage-detail-rank-stepper {
-  width: var(--damage-detail-rank-stepper-size);
-  min-width: var(--damage-detail-rank-stepper-size);
-  height: var(--damage-detail-rank-stepper-size);
-  min-height: var(--damage-detail-rank-stepper-size);
   color: var(--color-text-muted);
-  background: var(--color-bg);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-zero);
-  box-shadow: var(--shadow-sm);
   font-size: var(--font-size-sm1);
   font-weight: 400;
 }
 
-#damage-detail-panel-body .damage-detail-rank-field .damage-detail-rank-input {
+#damage-detail-panel-body .damage-detail-rank-field .number-stepper-value {
   /* E: ランク(-6〜+6)・まきびし(0〜3)とも最大3文字のため、内容量に合わせて
      自動で幅が決まるようにする(既存の.damage-detail-rank-input-widthは
      窮屈にならないための下限値として使う)。 */
-  width: auto;
+  width: var(--damage-detail-rank-input-width);
   min-width: var(--damage-detail-rank-input-width);
   field-sizing: content;
-  min-height: var(--damage-detail-control-min-height);
+  min-height: var(--damage-detail-rank-stepper-size);
   font-size: var(--font-size-sm2);
   text-align: center;
-  background: var(--color-bg);
-  appearance: textfield;
   padding: var(--damage-detail-rank-input-padding);
 }
 
@@ -1745,7 +1736,7 @@ body.box-edit-page {
   margin: 0;
 }
 
-#damage-detail-panel-body .damage-detail-rank-field input.is-nonzero {
+#damage-detail-panel-body .damage-detail-rank-field .number-stepper-value.is-nonzero {
   color: var(--color-primary-strong);
   border-color: var(--color-primary-strong);
   font-weight: 700;

@@ -535,7 +535,8 @@ export function enumerateReachableSpeedValues(ctx: OwnedSpeedContext): Reachable
         const value = usesScarf && ctx.scarfModifier
           ? applySpeedMultiplier(abilityValue, ctx.scarfModifier.numerator, ctx.scarfModifier.denominator)
           : abilityValue;
-        combos.push({ value, evSpe, natureEffect: effect, usesScarf });
+        // 表示・調整候補の照合はゲーム内と同じ切り捨て後の実数値で行う。
+        combos.push({ value: Math.floor(value), evSpe, natureEffect: effect, usesScarf });
       }
     }
   }
@@ -741,4 +742,18 @@ export function filterRowsByReachableValues(
   reachableValues: ReadonlySet<number>,
 ): SpeedChartRow[] {
   return rows.filter((row) => reachableValues.has(row.value));
+}
+
+/** 仮想敵がいない到達可能値を、個体用の操作行として早見表に加える。 */
+export function includeReachableValuesInRows(
+  rows: SpeedChartRow[],
+  reachableValues: ReadonlySet<number>,
+): SpeedChartRow[] {
+  const values = new Set(rows.map((row) => row.value));
+  const result = [...rows];
+  for (const rawValue of reachableValues) {
+    const value = Math.floor(rawValue);
+    if (!values.has(value)) result.push({ value, entries: [] });
+  }
+  return result.sort((a, b) => b.value - a.value);
 }

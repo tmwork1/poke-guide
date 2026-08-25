@@ -14,10 +14,14 @@
 	// OP.GG使用率データ(scripts/opgg/fetch-champions-usage.mjs)の保存先。
 	// GitHub Actions (fetch-opgg-champions-usage.yml) が日次でここに書き込み、
 	// src/pages/data/index.astro・src/pages/box/data.astro がランタイムで読む。
+	// remote: true でローカル開発(astro dev)時も空のローカルエミュレーションではなく
+	// 本番KVを直接参照する(このデータは日次スクレイピングでしか作れず、ローカルで
+	// シードし直す運用は現実的ではないため)。
 	"kv_namespaces": [
 		{
 			"binding": "OPGG_USAGE",
-			"id": "f165418c82fa4eac9dff837ddaa8e4ab"
+			"id": "f165418c82fa4eac9dff837ddaa8e4ab",
+			"remote": true
 		}
 	],
 	// Phase 5-1 の集計バッチ(開発プラン §2.5, §3 Phase5-1)。集計ジョブが1種類のみのため

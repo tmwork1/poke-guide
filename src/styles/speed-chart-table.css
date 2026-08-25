@@ -308,54 +308,20 @@
 	.speed-chart-table[data-embedded='true'] .speed-chart-rank-field {
 		grid-column: 3;
 		grid-row: 1;
-		display: grid;
-		grid-template-columns: 36px 36px 36px;
+		display: flex;
 		align-items: center;
-		gap: var(--space-1);
 		flex: 0 0 auto;
 	}
 	.speed-chart-table[data-embedded='true'] .speed-chart-rank-field > label { display: none; }
 	.speed-chart-table[data-embedded='true'] .speed-chart-modifier-consider { display: none; }
-	.speed-chart-table[data-embedded='true'] .speed-chart-rank-field > input { grid-column: 2; }
-	.speed-chart-table[data-embedded='true'] .speed-chart-rank-field .rank-stepper-group { display: contents; }
-	/* 埋め込み表示のランク操作で、数値入力の左に置く下降ボタン */
-	.speed-chart-table[data-embedded='true'] #speed-chart-rank-decrement {
-		grid-column: 1;
-		grid-row: 1;
-	}
-	/* 埋め込み表示のランク操作で、数値入力の右に置く上昇ボタン */
-	.speed-chart-table[data-embedded='true'] #speed-chart-rank-increment {
-		grid-column: 3;
-		grid-row: 1;
-	}
-	/* 個体編集の努力値調整と同じ、角張った枠付きの−/＋ボタンにそろえる。 */
-	.speed-chart-table[data-embedded='true'] .speed-chart-rank-field .rank-stepper {
-		box-sizing: border-box;
-		width: 36px;
-		min-width: 36px;
-		height: 36px;
-		min-height: 36px;
-		padding: 0;
-		color: var(--color-text-muted);
-		background: var(--color-surface);
-		border: 1px solid var(--color-border);
-		border-radius: var(--radius-zero);
+	.speed-chart-table[data-embedded='true'] .speed-chart-rank-field .number-stepper {
+		--number-stepper-size: 36px;
+		--number-stepper-input-width: 36px;
 		font-size: var(--font-size-sm1);
 		font-weight: 400;
 	}
-	.speed-chart-table[data-embedded='true'] .speed-chart-rank-field .rank-stepper:hover:not(:disabled) {
-		background: var(--color-surface);
-		color: var(--color-text);
-	}
-	.speed-chart-table[data-embedded='true'] .speed-chart-rank-field input[type='number'] {
-		box-sizing: border-box;
-		width: 36px;
-		min-width: 36px;
-		height: 36px;
-		min-height: 36px;
+	.speed-chart-table[data-embedded='true'] .speed-chart-rank-field .number-stepper-value {
 		padding: 0 var(--space-1);
-		line-height: 1;
-		background: var(--color-surface);
 	}
 	@media (max-width: 699px) {
 		.speed-chart-table[data-embedded='true'] .speed-chart-owned-summary {

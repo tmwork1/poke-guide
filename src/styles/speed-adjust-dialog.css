@@ -240,6 +240,17 @@ body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-appl
   font-size: var(--speed-adjust-apply-size);
 }
 
+/* 同じすばやさに複数の性格候補がある場合も、各更新ボタンを一行ずつ表示する。 */
+body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-owned-option {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-items: stretch;
+}
+
+body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-owned-option .speed-chart-apply-button {
+  width: 100%;
+}
+
 body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-row {
   row-gap: var(--space-2);
 }

@@ -195,32 +195,19 @@
 .stat-row .stat-input-controls {
 	display: flex;
 	align-items: center;
-	justify-content: flex-end;
+	justify-content: center;
 	gap: var(--stat-control-gap);
 	min-width: 0;
 	grid-column: 3 / 4;
 }
-.stat-row .stat-ev-range-controls { display: contents; }
-.stat-row .stat-ev-step-button[data-ev-step="-1"] { order: 2; }
-.stat-row .stat-ev-step-button[data-ev-step="1"] { order: 3; }
-.stat-row .stat-ev-value {
-	order: 4;
-	display: flex;
-	flex: 0 0 var(--stat-number-input-width);
-	flex-direction: column;
-	align-items: stretch;
-	gap: 0.1rem;
-	width: var(--stat-number-input-width);
+.stat-ev-stepper {
+	--number-stepper-size: var(--stat-ev-mobile-button-block-size);
+	--number-stepper-input-width: var(--stat-number-input-width);
+	flex: 0 0 auto;
 }
-.stat-row .stat-ev-value > input[type="number"] {
-	flex: 0 0 var(--stat-number-input-width);
-	width: var(--stat-number-input-width);
-	height: var(--stat-number-input-height);
-	min-height: var(--stat-number-input-height);
-	padding: var(--stat-number-input-mobile-padding);
-	line-height: 1;
-}
-.stat-row .stat-ev-endpoint-button[data-ev-toggle] { order: 5; }
+.stat-row .stat-ev-range-controls { gap: var(--stat-control-gap); }
+.stat-row .stat-ev-stepper { order: 2; }
+.stat-row .stat-ev-endpoint-button[data-ev-toggle] { order: 3; }
 .stat-row .stat-ev-endpoint-button,
 .stat-row .stat-ev-step-button {
 	box-sizing: border-box;
@@ -232,7 +219,7 @@
 	padding: 0;
 	color: var(--stat-muted-color);
 	background: var(--stat-button-background);
-	border: var(--stat-button-border);
+	border: 0;
 	border-radius: var(--stat-button-radius);
 	box-shadow: var(--stat-button-shadow);
 	font-size: var(--stat-mobile-button-font-size);
@@ -240,11 +227,9 @@
 }
 .stat-ev-toggle-spacer { display: none; }
 /* 努力値を直接入力する数値欄と横長スライダー */
-.stat-row .stat-ev-value > input[type="number"] {
+.stat-row .stat-ev-stepper > .number-stepper-value {
 	font-size: var(--stat-number-input-font-size);
 	padding: var(--stat-number-input-padding);
-	width: 100%;
-	text-align: center;
 }
 .stat-row input[type="range"] { width: 100%; }
 .stat-row input[type="range"]:focus { outline: none; }
@@ -400,7 +385,7 @@
 
 /* 狭い表示用の3.2em上書きも、相手ポケモンタブ内だけは36pxへ揃える。 */
 @media (max-width: 460px) {
-	#damage-detail-panel-body .stat-adjustment-section .stat-row .stat-ev-value > input[type="number"] {
+	#damage-detail-panel-body .stat-adjustment-section .stat-row .stat-ev-stepper > .number-stepper-value {
 		flex-basis: 36px;
 		width: 36px;
 	}
@@ -424,7 +409,7 @@
 	.stat-row .stat-ev-endpoint-button,
 	.stat-row .stat-ev-step-button { min-width: var(--stat-ev-mobile-button-block-size); }
 	/* 狭い画面の努力値数値入力を増減ボタンと同じ行に収める */
-	.stat-row .stat-ev-value > input[type="number"] {
+	.stat-row .stat-ev-stepper > .number-stepper-value {
 		flex: 0 0 3.2em;
 		width: 3.2em;
 	}

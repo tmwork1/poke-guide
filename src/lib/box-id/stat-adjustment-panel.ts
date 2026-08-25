@@ -48,23 +48,6 @@ function makeSpan(className?: string, text?: string): HTMLSpanElement {
 	return span;
 }
 
-function makeEndpointIcon(): SVGSVGElement {
-	const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-	svg.setAttribute("viewBox", "0 0 24 24");
-	svg.setAttribute("fill", "none");
-	svg.setAttribute("stroke", "currentColor");
-	svg.setAttribute("stroke-width", "2");
-	svg.setAttribute("stroke-linecap", "round");
-	svg.setAttribute("stroke-linejoin", "round");
-	svg.setAttribute("aria-hidden", "true");
-	for (const d of ["m17 11-5-5-5 5", "m17 18-5-5-5 5"]) {
-		const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-		path.setAttribute("d", d);
-		svg.appendChild(path);
-	}
-	return svg;
-}
-
 /**
  * 育成タブのステータス表と同じDOM・操作を、ページ内IDに依存せず生成する。
  * optionsは状態コンテナも兼ね、性格操作時にはnature/natureUp/natureDownを書き換える。
@@ -96,6 +79,8 @@ export function buildStatAdjustmentPanel(options: StatAdjustmentPanelOptions): S
 
 	const natureButtons = new Map<StatKey, { button: HTMLButtonElement; label: HTMLElement }>();
 	const numberInputs = new Map<StatKey, HTMLInputElement>();
+	const pickerButtons = new Map<StatKey, HTMLButtonElement>();
+	const pickers = new Map<StatKey, HTMLElement>();
 	const rangeInputs = new Map<StatKey, HTMLInputElement>();
 	const realValueEls = new Map<StatKey, HTMLElement>();
 
@@ -112,6 +97,12 @@ export function buildStatAdjustmentPanel(options: StatAdjustmentPanelOptions): S
 		const numberInput = numberInputs.get(key);
 		const rangeInput = rangeInputs.get(key);
 		if (numberInput) numberInput.value = String(next);
+		const pickerButton = pickerButtons.get(key);
+		const picker = pickers.get(key);
+		if (pickerButton) pickerButton.textContent = String(next);
+		if (picker) for (const option of picker.querySelectorAll<HTMLButtonElement>("[data-ev-value]")) {
+			option.setAttribute("aria-current", String(Number(option.dataset.evValue) === next));
+		}
 		if (rangeInput) {
 			rangeInput.value = String(next);
 			updateSliderProgress(rangeInput);
@@ -160,6 +151,8 @@ export function buildStatAdjustmentPanel(options: StatAdjustmentPanelOptions): S
 		inputControls.className = "stat-input-controls";
 		const rangeControls = document.createElement("div");
 		rangeControls.className = "stat-ev-range-controls";
+		const stepper = document.createElement("span");
+		stepper.className = "number-stepper stat-ev-stepper";
 
 		const decrement = document.createElement("button");
 		decrement.type = "button";
@@ -183,27 +176,83 @@ export function buildStatAdjustmentPanel(options: StatAdjustmentPanelOptions): S
 		increment.setAttribute("aria-label", `${short}の努力値を1増やす`);
 		increment.textContent = "+";
 
-		const endpoint = document.createElement("button");
-		endpoint.type = "button";
-		endpoint.className = "btn-ghost stat-ev-endpoint-button";
-		endpoint.dataset.evEndpoint = "max";
-		endpoint.setAttribute("data-ev-toggle", "");
-		endpoint.setAttribute("aria-label", `${short}の努力値を最大にする`);
-		endpoint.appendChild(makeEndpointIcon());
-
-		const evValue = makeSpan("stat-ev-value");
 		const number = document.createElement("input");
-		number.type = "number";
-		number.step = "1";
-		number.className = "tnum";
+		number.type = "hidden";
 		number.setAttribute("aria-label", `${label}の努力値`);
 		numberInputs.set(key, number);
+		const pickerButton = document.createElement("button");
+		pickerButton.type = "button";
+		pickerButton.className = "number-stepper-value tnum";
+		pickerButton.setAttribute("aria-haspopup", "dialog");
+		pickerButton.setAttribute("aria-expanded", "false");
+		const picker = document.createElement("div");
+		picker.className = "number-stepper-picker";
+		picker.hidden = true;
+		picker.setAttribute("role", "dialog");
+		for (let value = EV_MIN; value <= EV_MAX; value += 1) {
+			const option = document.createElement("button");
+			option.type = "button";
+			option.className = "tnum";
+			option.dataset.evValue = String(value);
+			option.textContent = String(value);
+			picker.appendChild(option);
+		}
+		pickerButtons.set(key, pickerButton);
+		pickers.set(key, picker);
+		const closePicker = (): void => {
+			picker.hidden = true;
+			pickerButton.setAttribute("aria-expanded", "false");
+		};
+		const openPicker = (): void => {
+			document.body.appendChild(picker);
+			picker.hidden = false;
+			const anchor = pickerButton.getBoundingClientRect();
+			const pickerRect = picker.getBoundingClientRect();
+			picker.style.position = "fixed";
+			picker.style.top = `${Math.max(8, Math.min(window.innerHeight - pickerRect.height - 8, anchor.bottom + 4))}px`;
+			picker.style.left = `${Math.max(8, Math.min(window.innerWidth - pickerRect.width - 8, anchor.left + (anchor.width - pickerRect.width) / 2))}px`;
+			pickerButton.setAttribute("aria-expanded", "true");
+		};
+		let holdTimer: number | undefined;
+		let held = false;
+		const stopHold = (): void => {
+			if (holdTimer !== undefined) window.clearTimeout(holdTimer);
+			holdTimer = undefined;
+		};
+		pickerButton.addEventListener("pointerdown", (event) => {
+			if (event.button !== 0) return;
+			held = false;
+			holdTimer = window.setTimeout(() => {
+				held = true;
+				closePicker();
+				setEv(index, (options.evs[index] ?? 0) > 0 ? EV_MIN : EV_MAX);
+			}, 500);
+		});
+		pickerButton.addEventListener("pointerup", stopHold);
+		pickerButton.addEventListener("pointercancel", stopHold);
+		pickerButton.addEventListener("lostpointercapture", stopHold);
 
 		range.addEventListener("input", () => setEv(index, Number(range.value) || 0));
-		number.addEventListener("input", () => {
-			const parsed = Number(number.value);
-			if (!Number.isFinite(parsed)) return;
-			setEv(index, wrapToRange(Math.round(parsed), EV_MIN, EV_MAX));
+		pickerButton.addEventListener("click", (event) => {
+			if (held) {
+				event.preventDefault();
+				event.stopImmediatePropagation();
+				held = false;
+				return;
+			}
+			if (picker.hidden) openPicker();
+			else closePicker();
+		});
+		picker.addEventListener("click", (event) => {
+			const option = (event.target as Element).closest<HTMLButtonElement>("[data-ev-value]");
+			if (!option) return;
+			setEv(index, Number(option.dataset.evValue) || 0);
+			closePicker();
+			pickerButton.focus();
+		});
+		document.addEventListener("pointerdown", (event) => {
+			if (picker.hidden || picker.contains(event.target as Node) || pickerButton.contains(event.target as Node)) return;
+			closePicker();
 		});
 		const stepEv = (amount: number): boolean => {
 			const current = options.evs[index] ?? 0;
@@ -216,17 +265,9 @@ export function buildStatAdjustmentPanel(options: StatAdjustmentPanelOptions): S
 		bindPressAndHold(increment, () => stepEv(1));
 		decrement.addEventListener("click", () => stepEv(-1));
 		increment.addEventListener("click", () => stepEv(1));
-		endpoint.addEventListener("click", () => {
-			const endpointName = endpoint.dataset.evEndpoint === "min" ? "min" : "max";
-			setEv(index, endpointName === "max" ? EV_MAX : EV_MIN);
-			const nextEndpoint = endpointName === "max" ? "min" : "max";
-			endpoint.dataset.evEndpoint = nextEndpoint;
-			endpoint.setAttribute("aria-label", `${short}の努力値を${nextEndpoint === "max" ? "最大" : "最小"}にする`);
-		});
-
-		rangeControls.append(decrement, range, increment, endpoint);
-		evValue.appendChild(number);
-		inputControls.append(rangeControls, evValue);
+		stepper.append(decrement, pickerButton, number, increment, picker);
+		rangeControls.append(stepper, range);
+		inputControls.append(rangeControls);
 		row.appendChild(inputControls);
 
 		const realWrap = makeSpan("stat-row-real-wrap");
@@ -262,8 +303,14 @@ export function buildStatAdjustmentPanel(options: StatAdjustmentPanelOptions): S
 		STAT_KEYS.forEach((key, index) => {
 			const ev = options.evs[index] ?? 0;
 			const number = numberInputs.get(key);
+			const pickerButton = pickerButtons.get(key);
+			const picker = pickers.get(key);
 			const range = rangeInputs.get(key);
 			if (number && document.activeElement !== number) number.value = String(ev);
+			if (pickerButton) pickerButton.textContent = String(ev);
+			if (picker) for (const option of picker.querySelectorAll<HTMLButtonElement>("[data-ev-value]")) {
+				option.setAttribute("aria-current", String(Number(option.dataset.evValue) === ev));
+			}
 			if (range) {
 				range.value = String(ev);
 				updateSliderProgress(range);
