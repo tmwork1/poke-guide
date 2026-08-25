@@ -7,9 +7,14 @@ import BattleDataCard from '../../components/data/BattleDataCard.astro';
 import { getOwnedPokemon } from '../../lib/owned-pokemon';
 import { getSupabaseAdminClient } from '../../lib/supabase';
 import { hasSingleBattleData } from '../../lib/battle-data-card';
-import { getOpggUsageManifest, getOpggUsagePokemon, type OpggUsageSeason } from '../../lib/opgg-usage';
+import {
+  getOpggUsageManifest,
+  getOpggUsagePokemon,
+  resolveOpggSpeciesName,
+  sortOpggSeasons,
+  type OpggUsageSeason,
+} from '../../lib/opgg-usage';
 import { env } from 'cloudflare:workers';
-import pokemonMasterRaw from '../../../public/master-data/autocomplete/pokemon.json';
 import '../../styles/data-page.css';
 import '../../styles/battle-data-card.css';
 
@@ -20,26 +25,9 @@ const result = user && selectedId
   : null;
 const pokemon = result?.ok ? result.data : null;
 
-// OP.GGの使用率データはメガシンカ前のベースフォルムでしか集計されない
-// (メガシンカは対戦中の行動でチーム編成の選択肢ではないため)。
-// 個体の種族名がメガフォルムの場合は、同じdexNoのベースフォルム(forme: null)名で検索する。
-const masterList = pokemonMasterRaw as Array<{ name: string; dexNo: number; forme: string | null }>;
-function opggLookupName(speciesName: string): string {
-  const entry = masterList.find((item) => item.name === speciesName);
-  if (!entry?.forme?.startsWith('Mega')) return speciesName;
-  const base = masterList.find((item) => item.dexNo === entry.dexNo && item.forme === null);
-  return base?.name ?? speciesName;
-}
-const lookupName = pokemon ? opggLookupName(pokemon.species_name) : null;
+const lookupName = pokemon ? resolveOpggSpeciesName(pokemon.species_name) : null;
 const seasonManifest = await getOpggUsageManifest(env.OPGG_USAGE);
-const manifestSeasons = [...(seasonManifest?.seasons ?? [])].sort((a, b) => {
-	const currentSeasonId = seasonManifest?.currentSeasonId;
-  const aIsCurrent = a.isCurrent || a.id === currentSeasonId;
-  const bIsCurrent = b.isCurrent || b.id === currentSeasonId;
-  if (aIsCurrent && !bIsCurrent) return -1;
-  if (bIsCurrent && !aIsCurrent) return 1;
-  return String(b.fetchedAt ?? '').localeCompare(String(a.fetchedAt ?? ''));
-});
+const manifestSeasons = sortOpggSeasons(seasonManifest);
 // ボックスはマニフェストの小さな名称→slug索引で選択中の1体だけを読む。
 const seasonPokemon = pokemon && lookupName
   ? await Promise.all(manifestSeasons.map(async (entry) => {

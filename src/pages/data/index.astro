@@ -5,7 +5,7 @@ export const prerender = false;
 import AppLayout from '../../layouts/AppLayout.astro';
 import BattleDataCard from '../../components/data/BattleDataCard.astro';
 import { hasSingleBattleData, type SingleFormatData } from '../../lib/battle-data-card';
-import { getOpggUsageList, getOpggUsageManifest, type OpggUsageSeason } from '../../lib/opgg-usage';
+import { getOpggUsageList, getOpggUsageManifest, sortOpggSeasons, type OpggUsageSeason } from '../../lib/opgg-usage';
 import { listRankedSeasons } from '../../lib/ranked-teams';
 import { resolveDefaultSeason } from '../../lib/ranked-teams-validation';
 import { getSupabasePublicClient } from '../../lib/supabase';
@@ -37,15 +37,7 @@ if (!isTopBuilds && Astro.url.searchParams.get('tab') === 'top-builds') {
 
 const seasonManifest = await getOpggUsageManifest(env.OPGG_USAGE);
 
-// box/data.astro と同じ並び順ロジック(現在シーズンを先頭に、以降は取得日時の新しい順)。
-const manifestSeasons = [...(seasonManifest?.seasons ?? [])].sort((a, b) => {
-	const currentSeasonId = seasonManifest?.currentSeasonId;
-  const aIsCurrent = a.isCurrent || a.id === currentSeasonId;
-  const bIsCurrent = b.isCurrent || b.id === currentSeasonId;
-  if (aIsCurrent && !bIsCurrent) return -1;
-  if (bIsCurrent && !aIsCurrent) return 1;
-  return String(b.fetchedAt ?? '').localeCompare(String(a.fetchedAt ?? ''));
-});
+const manifestSeasons = sortOpggSeasons(seasonManifest);
 
 const requestedSeason = Astro.url.searchParams.get('season');
 const seasonIds = manifestSeasons.map((entry) => entry.id);

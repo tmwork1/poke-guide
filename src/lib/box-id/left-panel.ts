@@ -362,6 +362,26 @@ async function fetchPopularMovePayload(
 	return undefined;
 }
 
+type OpggMoveUsageResponse = { moves: { name: string; usageRate: number | null }[] };
+
+// バトルデータタブと同じOP.GG使用率データを、わざ選択モーダルの「人気」列にも使う。
+// popular_move系(ランクマ記事抽出由来)よりカバレッジが広いため優先し、
+// OP.GGにデータが無い種族だけ従来のfetchPopularMovePayloadへフォールバックする。
+async function fetchOpggMovePayload(speciesName: string): Promise<SuggestionPayload | undefined> {
+	if (!speciesName) return undefined;
+	try {
+		const res = await fetch(`/api/opgg-move-usage?species=${encodeURIComponent(speciesName)}`);
+		if (!res.ok) return undefined;
+		const json = (await res.json()) as OpggMoveUsageResponse;
+		const options: SuggestionOption[] = json.moves
+			.filter((move): move is { name: string; usageRate: number } => move.usageRate != null)
+			.map((move) => ({ value: move.name, count: 0, ratio: move.usageRate / 100 }));
+		return options.length > 0 ? { sample_size: 0, options } : undefined;
+	} catch {
+		return undefined;
+	}
+}
+
 // 種族が変わるたびに最新のペイロードで上書きするキャッシュ。#item-dropdown-list等は
 // 初回オープン時に遅延構築される(buildItemDropdownOptions参照)ため、構築がサジェスト取得
 // より後になるケースに備えて保持し、構築側(openItemDropdown)からも読みに来られるようにする。
@@ -479,7 +499,7 @@ export async function loadPopularBuildSuggestions(
 		fetchSuggestionPayload("popular_nature", name, regulation),
 		fetchSuggestionPayload("popular_item", name, regulation),
 		fetchSuggestionPayload("popular_tera", name, regulation),
-		fetchPopularMovePayload(name, regulation, archetype),
+		fetchOpggMovePayload(name).then((payload) => payload ?? fetchPopularMovePayload(name, regulation, archetype)),
 	]);
 	if (token !== popularBuildSuggestionsToken) return; // より新しい呼び出しに追い越された
 	lastNatureSuggestion = nature;
