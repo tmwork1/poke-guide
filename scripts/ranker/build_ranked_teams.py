@@ -267,17 +267,36 @@ def clean_evs(evs):
 
 
 def clean_llm_member(m, moves_master, abil_master, aliases, rej):
-    """LLMの1個体分の出力を検証して、採用できる値だけに絞る。"""
-    nature = norm(m.get('nature'))
+    """LLMの1個体分の出力を検証して、採用できる値だけに絞る。
+
+    戻り値に加えて、nature/ability/moves/evs それぞれの採否を field_status として返す
+    ({field: {'status': 'ok'|'rejected'|'absent', 'raw': 元の生値}})。
+    ranked_team_member_extraction_issues の reason_code 判定(validation_rejected か
+    extraction_incomplete か)に使う。既存の rej カウンタへの記録ロジックはそのまま維持し、
+    同じ判定に相乗りする形で field_status を組み立てる。
+    """
+    field_status = {}
+
+    raw_nature = m.get('nature')
+    nature = norm(raw_nature)
     nature = NATURE_ALIASES.get(nature, nature)
     if nature not in NATURES:
         if nature:
             rej['nature'][nature] += 1
         nature = None
+    field_status['nature'] = {
+        'status': 'absent' if not raw_nature else ('ok' if nature else 'rejected'),
+        'raw': raw_nature,
+    }
 
-    ability = resolve(m.get('ability'), abil_master, aliases)
-    if m.get('ability') and not ability:
-        rej['ability'][norm(m['ability'])] += 1
+    raw_ability = m.get('ability')
+    ability = resolve(raw_ability, abil_master, aliases)
+    if raw_ability and not ability:
+        rej['ability'][norm(raw_ability)] += 1
+    field_status['ability'] = {
+        'status': 'absent' if not raw_ability else ('ok' if ability else 'rejected'),
+        'raw': raw_ability,
+    }
 
     # チャンピオンズにテラスタルは無い(メガシンカ主体のルール)。公式ランキングの
     # テラスアイコン1800枠もpokesolの構造化カードも例外なく空なので、LLMが「テラスタイプ」
@@ -288,8 +307,9 @@ def clean_llm_member(m, moves_master, abil_master, aliases, rej):
         rej['tera'][tera] += 1
     tera = None
 
+    raw_moves = m.get('moves') or []
     moves = []
-    for mv in (m.get('moves') or []):
+    for mv in raw_moves:
         r = resolve(mv, moves_master, aliases)
         if r:
             if r not in moves:
@@ -297,15 +317,86 @@ def clean_llm_member(m, moves_master, abil_master, aliases, rej):
         elif mv:
             rej['move'][norm(mv) or str(mv)] += 1
     moves = moves[:4] or None
+    field_status['moves'] = {
+        'status': 'absent' if not raw_moves else ('ok' if moves else 'rejected'),
+        'raw': raw_moves or None,
+    }
 
-    evs = clean_evs(m.get('evs'))
-    if m.get('evs') is not None and evs is None:
-        rej['evs'][str(m['evs'])] += 1
+    raw_evs = m.get('evs')
+    evs = clean_evs(raw_evs)
+    if raw_evs is not None and evs is None:
+        rej['evs'][str(raw_evs)] += 1
+    field_status['evs'] = {
+        'status': 'absent' if raw_evs is None else ('ok' if evs is not None else 'rejected'),
+        'raw': raw_evs,
+    }
 
     conf = m.get('confidence')
     if conf not in ('high', 'medium', 'low'):
         conf = 'low'
-    return nature, ability, tera, moves, evs, conf
+    return nature, ability, tera, moves, evs, conf, field_status
+
+
+ISSUE_FIELDS = ('nature', 'ability', 'moves', 'evs')
+
+
+def issue_detail_of_raw(raw):
+    """validation_rejected の detail 用に元の生値を文字列化する。"""
+    if raw is None:
+        return None
+    if isinstance(raw, (list, dict)):
+        return json.dumps(raw, ensure_ascii=False)
+    return str(raw)
+
+
+def build_extraction_issues(member, k, a, ps, llm, manifest, field_status):
+    """メンバーの nature/ability/moves/evs のうちNULLのものについて reason_code を判定する。
+
+    上から順に該当するものを採る(詳細は scripts/ranker/EXTRACTION_SPEC.md ではなく、
+    パイプラインの各段階 download_articles.py → build_pokesol.py → html2text.py/make_tasks.py →
+    LLM抽出 → build_ranked_teams.py の検証、の順に対応する):
+      1. 記事自体が無い                             -> article_not_found
+      2. 記事取得(HTTP)に失敗した                    -> fetch_failed
+      3. pokesolの構造化データ(.data)の解析に失敗した  -> fetch_failed
+      4. pokesolカードで埋まったメンバーだがこの項目はカードに無かった -> extraction_incomplete
+      5. この記事はLLMタスク自体が無い(pokesol以外の理由で処理されていない) -> extraction_incomplete
+      6. LLMが「本文に個体情報が無い」と判定した        -> no_extractable_content
+      7. LLM候補はあったがこのメンバーには何も割り当たらなかった -> extraction_incomplete
+      8. 割り当たった値がバリデーションで不採用になった  -> validation_rejected
+      9. 上記以外(記載自体が無かった)                  -> extraction_incomplete
+    """
+    field_map = {'nature': member['nature'], 'ability': member['ability'],
+                 'moves': member['move_names'], 'evs': member['evs']}
+    rec = manifest.get(k)
+    llm_entry = llm.get(k)
+
+    issues = []
+    for field in ISSUE_FIELDS:
+        if field_map[field] is not None:
+            continue
+        if a is None:
+            reason, detail = 'article_not_found', None
+        elif rec is not None and rec.get('status') in ('http_error', 'error'):
+            reason = 'fetch_failed'
+            detail = f"http {rec['http_status']}" if rec.get('http_status') else rec.get('error')
+        elif ps is not None and not ps.get('ok'):
+            reason, detail = 'fetch_failed', ps.get('reason')
+        elif member['extraction_source'] == 'pokesol':
+            reason, detail = 'extraction_incomplete', 'pokesolカードに未記載'
+        elif k not in llm:
+            reason, detail = 'extraction_incomplete', 'LLM未処理'
+        elif llm_entry.get('has_content') is False:
+            reason, detail = 'no_extractable_content', llm_entry.get('note')
+        elif member['extraction_source'] is None:
+            reason, detail = 'extraction_incomplete', 'LLM候補との割当なし'
+        else:
+            status = (field_status or {}).get(field, {})
+            if status.get('status') == 'rejected':
+                reason, detail = 'validation_rejected', issue_detail_of_raw(status.get('raw'))
+            else:
+                reason, detail = 'extraction_incomplete', None
+        issues.append({'field': field, 'reason_code': reason, 'detail': detail})
+    return issues
 
 
 def main():
@@ -328,9 +419,17 @@ def main():
             llm[os.path.splitext(os.path.basename(p))[0]] = json.load(open(p, encoding='utf-8'))
         except Exception as e:
             print(f'  WARN unreadable llm output {p}: {e}', file=sys.stderr)
+    # 記事取得結果(download_articles.py の出力)。無くても fetch_failed 判定を諦めるだけで許容する。
+    manifest_path = os.path.join(cache, '_manifest.json')
+    manifest = {}
+    if os.path.exists(manifest_path):
+        manifest = {r['key']: r for r in json.load(open(manifest_path, encoding='utf-8'))}
+    else:
+        print(f'  WARN {manifest_path} not found: fetch_failed 判定はスキップされます', file=sys.stderr)
 
     rej = {k: Counter() for k in ('nature', 'ability', 'tera', 'move', 'evs')}
     stats = Counter()
+    issues_by_reason = Counter()
     unmatched = []
     out_teams = []
     seen = set()
@@ -372,6 +471,10 @@ def main():
             k = key_of(season, t['rank'])
             a = articles.get(k)
             ps = pokesol.get(k)
+            # LLM由来で埋まったメンバーの field_status を id(member) 越しに引き回す
+            # (extraction_issues の validation_rejected / extraction_incomplete 判定に使う。
+            # 出力JSONの members には漏らさない)。
+            field_status_by_member = {}
 
             # ① 構造化カード(pokesol)を先に反映する。6体そろっていない記事でも、
             #    取れているカードは常にLLMより正確なので必ず優先する。
@@ -402,13 +505,13 @@ def main():
             if open_slots and k in llm and llm[k].get('has_content'):
                 payloads = []
                 for c in (llm[k].get('members') or []):
-                    nature, ability, tera, mv, evs, conf = clean_llm_member(
+                    nature, ability, tera, mv, evs, conf, field_status = clean_llm_member(
                         c, moves_master, abil_master, aliases, rej)
                     if not any([nature, ability, tera, mv, evs]):
                         continue  # 全項目が検証で落ちたら「抽出できなかった」と同じ
                     payloads.append({'roster_index': c.get('roster_index'), 'nature': nature,
                                      'ability': ability, 'tera': tera, 'moves': mv,
-                                     'evs': evs, 'conf': conf})
+                                     'evs': evs, 'conf': conf, 'field_status': field_status})
                 # roster_index は全6スロット基準の番号なので、空きスロットだけに絞った
                 # 並びでの位置に読み替えてから割り当て直す
                 slot_pos = {m['slot']: i for i, m in enumerate(open_slots)}
@@ -438,6 +541,7 @@ def main():
                             'move_names': p['moves'], 'evs': p['evs'],
                             'extraction_source': 'llm', 'extraction_confidence': conf,
                         })
+                        field_status_by_member[id(tgt)] = p['field_status']
                         stats['members_from_llm'] += 1
                 stats['teams_from_llm'] += 1
 
@@ -445,6 +549,14 @@ def main():
                 # 構築記事はあるが、そこから1件も個体情報が取れなかったチーム
                 # (本文が画像だけ / Xのツイート / YouTube 等)
                 stats['teams_with_article_no_data'] += 1
+
+            # ③ nature/ability/moves/evs のうちNULLのものについて欠落理由を記録する
+            #    (ranked_team_member_extraction_issues。migrations/026)。
+            for m in members:
+                m['extraction_issues'] = build_extraction_issues(
+                    m, k, a, ps, llm, manifest, field_status_by_member.get(id(m)))
+                for iss in m['extraction_issues']:
+                    issues_by_reason[iss['reason_code']] += 1
 
             out_teams.append({
                 'season': season,
@@ -483,6 +595,7 @@ def main():
         'members_with_evs': sum(1 for t in out_teams for m in t['members'] if m['evs']),
         'members_with_nature': sum(1 for t in out_teams for m in t['members'] if m['nature']),
         'members_with_ability': sum(1 for t in out_teams for m in t['members'] if m['ability']),
+        'extraction_issues_by_reason': dict(issues_by_reason.most_common()),
         'rejected_by_validation': {k: v.most_common() for k, v in rej.items()},
         'unmatched': unmatched[:100],
         'unmatched_count': len(unmatched),

@@ -29,6 +29,7 @@ async function main() {
   try {
     await client.query('BEGIN');
     let memberCount = 0;
+    let issueCount = 0;
     for (const t of teams) {
       const { rows } = await client.query(
         `INSERT INTO ranked_teams
@@ -50,24 +51,38 @@ async function main() {
       );
       const teamId = rows[0].id;
 
-      // upsert 時に前回のメンバーが残らないよう、チーム単位で入れ替える
+      // upsert 時に前回のメンバーが残らないよう、チーム単位で入れ替える。
+      // ranked_team_member_extraction_issues (migrations/026) は
+      // ranked_team_member_id への ON DELETE CASCADE を持つので、ここで明示的に
+      // DELETE しなくても古いissue行は連動して消える。
       await client.query('DELETE FROM ranked_team_members WHERE ranked_team_id = $1', [teamId]);
       for (const m of t.members) {
-        await client.query(
+        const { rows: memberRows } = await client.query(
           `INSERT INTO ranked_team_members
              (ranked_team_id, slot, dex_no, form_no, species_name, form_name, species_key,
               type1, type2, category, item_name, tera_type, nature, ability,
               move_names, evs, extraction_source, extraction_confidence)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)`,
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
+           RETURNING id`,
           [teamId, m.slot, m.dex_no, m.form_no, m.species_name, m.form_name, m.species_key,
             m.type1, m.type2, m.category, m.item_name, m.tera_type, m.nature, m.ability,
             m.move_names, m.evs, m.extraction_source, m.extraction_confidence]
         );
         memberCount++;
+
+        for (const iss of m.extraction_issues ?? []) {
+          await client.query(
+            `INSERT INTO ranked_team_member_extraction_issues
+               (ranked_team_member_id, field, reason_code, detail)
+             VALUES ($1,$2,$3,$4)`,
+            [memberRows[0].id, iss.field, iss.reason_code, iss.detail]
+          );
+          issueCount++;
+        }
       }
     }
     await client.query('COMMIT');
-    console.log(`seeded ${teams.length} teams / ${memberCount} members`);
+    console.log(`seeded ${teams.length} teams / ${memberCount} members / ${issueCount} extraction issues`);
 
     const stats = await client.query(`
       SELECT
@@ -76,9 +91,18 @@ async function main() {
         (SELECT count(*) FROM ranked_team_members) AS members,
         (SELECT count(*) FROM ranked_team_members WHERE move_names IS NOT NULL) AS members_with_moves,
         (SELECT count(*) FROM ranked_team_members WHERE evs IS NOT NULL) AS members_with_evs,
-        (SELECT count(*) FROM ranked_team_members WHERE species_key IS NULL) AS members_without_species_key
+        (SELECT count(*) FROM ranked_team_members WHERE species_key IS NULL) AS members_without_species_key,
+        (SELECT count(*) FROM ranked_team_member_extraction_issues) AS extraction_issues
     `);
     console.table(stats.rows);
+
+    const issuesByReason = await client.query(`
+      SELECT reason_code, count(*) AS n
+      FROM ranked_team_member_extraction_issues
+      GROUP BY reason_code
+      ORDER BY n DESC
+    `);
+    console.table(issuesByReason.rows);
   } catch (e) {
     await client.query('ROLLBACK');
     throw e;

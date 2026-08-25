@@ -21,6 +21,12 @@
  "members_with_evs": 3382,
  "members_with_nature": 3800,
  "members_with_ability": 3666,
+ "extraction_issues_by_reason": {
+  "extraction_incomplete": 4979,
+  "no_extractable_content": 3892,
+  "validation_rejected": 348,
+  "fetch_failed": 144
+ },
  "rejected_by_validation": {
   "nature": [
    [
