@@ -576,10 +576,6 @@ try {
 						<div class="team-formation-mobile__mates" aria-label="チームメイト">
 							<div id="team-formation-mobile-slots" class="team-formation-mobile__slot-grid team-mate-grid"></div>
 						</div>
-						<div class="team-formation-mobile__suggest" aria-label="おすすめポケモン">
-							<span class="team-formation-mobile__suggest-label">おすすめ</span>
-							<div id="team-formation-mobile-suggest-icons" class="team-formation-mobile__suggest-icons"></div>
-						</div>
 						<div class="panel panel-top app-header app-header--toolbar" id="team-formation-mobile-toolbar">
 							<div class="toolbar-item toolbar-search">
 								<div class="search-input-wrap">
@@ -597,9 +593,10 @@ try {
 										<path d="M6 10l6-6 6 6" />
 									</svg>
 									<select id="team-formation-mobile-sort-select" class="field-control" aria-label="並べ替え">
-										<option value="updated_at">更新</option>
-										<option value="dex_no">番号</option>
-										<option value="nickname">NN</option>
+									<option value="updated_at">⇅ 更新</option>
+									<option value="dex_no">⇅ 番号</option>
+									<option value="type">⇅ タイプ</option>
+									<option value="nickname">⇅ NN</option>
 									</select>
 								</div>
 								<button type="button" class="sort-dir-toggle" id="team-formation-mobile-sort-dir-toggle" data-order="desc" aria-label="並べ替えの向き: 降順">
@@ -633,6 +630,10 @@ try {
 				<section id="team-data-mobile" class="floating-list-page" aria-label="類似チーム">
 					<div class="team-formation-mobile__mates" aria-label="チームメイト">
 						<div id="team-data-mobile-slots" class="team-formation-mobile__slot-grid team-mate-grid"></div>
+					</div>
+					<div id="team-formation-mobile-suggest" class="team-formation-mobile__suggest" aria-label="おすすめポケモン">
+						<span class="team-formation-mobile__suggest-label">おすすめ</span>
+						<div id="team-formation-mobile-suggest-icons" class="team-formation-mobile__suggest-icons"></div>
 					</div>
 					<div id="team-data-mobile-similar" class="team-data-similar-panel" aria-label="類似チーム"></div>
 				</section>
@@ -1770,7 +1771,7 @@ try {
 		// applyMoveChipTypeIconsと同じ用途)。
 		import { itemIconUrl, teraTypeIconUrl, typeIconUrl } from "../../lib/sprite-urls";
 		import { DEFAULT_TYPE_COLOR, TYPE_COLORS } from "../../lib/type-colors";
-		import { resolveDexNo } from "../../lib/species-dex";
+		import { resolveDexNo, resolveSpeciesTypes } from "../../lib/species-dex";
 		import { selectionBlockReason, type SelectionCandidate, type SelectionBlockReason } from "../../lib/team-validation";
 		import { STAT_KEYS, NATURE_STAT_MODIFIERS, calcHpStat, calcOtherStat } from "../../lib/stats";
 		import {
@@ -2729,11 +2730,7 @@ try {
 				const renderId = (suggestRenderId += 1);
 				lastSuggestResponse = { suggestions, basis };
 				suggestionSpeciesRanks = new Map<string, number>();
-				suggestions.forEach((suggestion, index) => {
-					if (!suggestionSpeciesRanks.has(suggestion.speciesName)) {
-						suggestionSpeciesRanks.set(suggestion.speciesName, index);
-					}
-				});
+				const shouldShowFormationSuggestions = membersBySlot.size >= 1 && membersBySlot.size <= 6;
 				renderSelectList();
 				suggestEl.innerHTML = "";
 				formationMobileSuggestIcons.replaceChildren();
@@ -2750,6 +2747,14 @@ try {
 
 				const filtered = await filterSuggestions(suggestions);
 				if (renderId !== suggestRenderId) return; // 途中でトグル操作等により新しい描画要求が来た
+				if (shouldShowFormationSuggestions) {
+					filtered.forEach((suggestion, index) => {
+						if (!suggestionSpeciesRanks.has(suggestion.speciesName)) {
+							suggestionSpeciesRanks.set(suggestion.speciesName, index);
+						}
+					});
+				}
+				renderFormationMobile();
 
 				if (filtered.length === 0) {
 					const empty = document.createElement("p");
@@ -2766,7 +2771,9 @@ try {
 				list.className = "team-suggest-list";
 				filtered.forEach((s, index) => list.appendChild(buildSuggestionCard(s, index + 1)));
 				suggestEl.appendChild(list);
-				filtered.forEach((s) => formationMobileSuggestIcons.appendChild(buildSuggestIcon(s)));
+				if (shouldShowFormationSuggestions) {
+					filtered.forEach((s) => formationMobileSuggestIcons.appendChild(buildSuggestIcon(s)));
+				}
 			}
 
 			function currentMemberIds(): string[] {
@@ -2994,6 +3001,7 @@ try {
 			// (挙動: membersBySlotから外す→再描画→自動保存)。
 			function removeMemberFromSlot(slot: number): void {
 				membersBySlot.delete(slot);
+				if (selectedFormationSlot === slot) selectedFormationSlot = null;
 				renderSlots();
 				renderSelectList();
 				renderFormationMobile();
@@ -3318,14 +3326,27 @@ try {
 			}
 
 			function renderFormationMobile(): void {
+				const shouldShowFormationSuggestions = membersBySlot.size >= 1 && membersBySlot.size <= 6;
+				if (!shouldShowFormationSuggestions) suggestionSpeciesRanks.clear();
 				renderTeamMateSlots({
 					root: formationMobileSlotsRoot,
 					membersBySlot,
 					displayName,
 					selectedSlot: selectedFormationSlot,
-					onSlotClick: (slot) => {
+					onSlotTap: (slot) => {
+						if (selectedFormationSlot !== null && selectedFormationSlot !== slot && membersBySlot.has(selectedFormationSlot) && membersBySlot.has(slot)) {
+							swapMembersBetweenSlots(selectedFormationSlot, slot);
+							selectedFormationSlot = null;
+							return;
+						}
 						selectedFormationSlot = selectedFormationSlot === slot ? null : slot;
 						renderFormationMobile();
+					},
+					onSlotDoubleTap: (slot) => {
+						if (membersBySlot.has(slot)) removeMemberFromSlot(slot);
+					},
+					onSlotLongPress: (slot) => {
+						if (membersBySlot.has(slot)) removeMemberFromSlot(slot);
 					},
 					applySprite,
 					applyItemIcon,
@@ -3367,6 +3388,14 @@ try {
 						displayName: name,
 						ariaLabel: `${name}を編成`,
 					});
+					if (suggestionSpeciesRanks.has(p.species_name)) {
+						const recommendationBadge = document.createElement("span");
+						recommendationBadge.className = "card-recommendation-badge";
+						recommendationBadge.textContent = "★";
+						recommendationBadge.title = "おすすめ";
+						recommendationBadge.setAttribute("aria-label", "おすすめ");
+						card.querySelector(".card-name-row")?.prepend(recommendationBadge);
+					}
 					formationMobileBoxGrid.appendChild(card);
 				}
 			}
@@ -3511,6 +3540,7 @@ try {
 				defaultOrders: {
 					updated_at: "desc",
 					dex_no: "asc",
+					type: "asc",
 					nickname: "asc",
 				},
 				onChange: () => renderFormationMobile(),
@@ -3530,9 +3560,23 @@ try {
 						if (aDex !== bDex) return (aDex ?? 0) - (bDex ?? 0);
 						return displayName(a).localeCompare(displayName(b), "ja");
 					}
+					if (sort === "type") {
+						const aTypes = resolveSpeciesTypes(a.species_name).join("/");
+						const bTypes = resolveSpeciesTypes(b.species_name).join("/");
+						if (!aTypes && bTypes) return 1;
+						if (aTypes && !bTypes) return -1;
+						const typeResult = aTypes.localeCompare(bTypes, "ja");
+						return typeResult || displayName(a).localeCompare(displayName(b), "ja");
+					}
 					return new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime();
 				};
 				return [...list].sort((a, b) => {
+					const aSuggestionRank = suggestionSpeciesRanks.get(a.species_name);
+					const bSuggestionRank = suggestionSpeciesRanks.get(b.species_name);
+					const aIsTopSuggestion = aSuggestionRank !== undefined && aSuggestionRank < 3;
+					const bIsTopSuggestion = bSuggestionRank !== undefined && bSuggestionRank < 3;
+					if (aIsTopSuggestion !== bIsTopSuggestion) return aIsTopSuggestion ? -1 : 1;
+					if (aIsTopSuggestion && bIsTopSuggestion) return aSuggestionRank! - bSuggestionRank!;
 					if (sort === "dex_no") {
 						const aDex = resolveDexNo(a.species_name);
 						const bDex = resolveDexNo(b.species_name);

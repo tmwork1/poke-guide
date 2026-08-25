@@ -39,7 +39,7 @@ body.home-page {
   --home-page-brand-gap: var(--space-3); /* ロゴとブランド名の間隔。大きくすると横に離れる */
   --home-page-brand-margin-bottom: var(--space-5); /* ブランド行の下余白。大きくするとアカウント情報から離れる */
   --home-page-account-gap: var(--space-2); /* アカウント情報パネル内の間隔。大きくすると項目が離れる */
-  --home-page-header-account-padding-right: var(--space-2); /* ヘッダー右端とアイコンの間隔。大きくするとアイコンが内側に寄る */
+  --home-page-header-account-padding-right: var(--space-3); /* ヘッダー右端とアイコンの間隔。戻るボタン側の余白と揃える */
   --home-page-card-grid-gap: var(--space-2); /* メニューカードどうしの間隔。大きくするとカードが離れる */
   --home-page-card-gap: var(--space-2); /* カード内のアイコンと名前の間隔。大きくすると縦に離れる */
   --home-page-contact-padding-top: var(--space-5); /* 問い合わせリンクと直上の区切り線の間隔。大きくすると離れる */
@@ -50,7 +50,7 @@ body.home-page {
   --home-page-max-width: 480px; /* ページの最大幅。大きくすると広い画面で内容が横に広がる */
   --home-page-logo-size: 40px; /* ブランドロゴの大きさ。大きくするとロゴが目立つ */
   --home-page-card-min-height: 7rem; /* メニューカードの最低高さ。大きくするとカードが縦に伸びる */
-  --home-page-card-icon-size: 2rem; /* メニューカードのアイコンサイズ。大きくすると機能の印象が強まる */
+  --home-page-card-icon-size: 32px; /* メニューカードのアイコンサイズ。大きくすると機能の印象が強まる */
 }
 
 /* ===========================================================================

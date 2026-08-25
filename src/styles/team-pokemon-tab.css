@@ -40,8 +40,8 @@ body.team-edit-page {
 
 	/* ── 8. 寸法 ────────────────────────── */
 	--team-pokemon-tab-slot-max-width: 34rem; /* 6枠全体の最大幅。大きくすると横に広がる */
-	--team-pokemon-tab-suggest-min-height: calc(var(--space-7) + var(--space-2)); /* おすすめ列の最低の高さ */
-	--team-pokemon-tab-suggest-icon-size: calc(var(--space-7) + var(--space-2)); /* おすすめアイコンの正方形サイズ */
+	--team-pokemon-tab-suggest-min-height: calc(var(--space-7) + var(--space-1)); /* おすすめ列の最低の高さ */
+	--team-pokemon-tab-suggest-icon-size: calc(var(--space-7) + var(--space-1)); /* おすすめアイコンの正方形サイズ */
 }
 
 /* --------------------------------------------------------------------------
@@ -140,6 +140,7 @@ body.team-edit-page {
 	flex: 0 0 var(--team-pokemon-tab-suggest-icon-size);
 	width: var(--team-pokemon-tab-suggest-icon-size);
 	height: var(--team-pokemon-tab-suggest-icon-size);
+	min-height: 0;
 	padding: 0;
 	border: 0;
 	background: transparent;
@@ -221,6 +222,9 @@ body.team-edit-page {
 	gap: var(--app-header-toolbar-gap);
 	background: var(--color-surface);
 	border-top: 1px solid var(--color-border);
+	/* /box の .second-header と同じ密度・横余白にそろえる。 */
+	--app-header-toolbar-padding: var(--space-2) var(--space-3);
+	--app-header-toolbar-gap: var(--space-2);
 }
 #team-formation-mobile-toolbar .toolbar-search {
 	flex: 1 1 auto;
@@ -241,10 +245,16 @@ body.team-edit-page {
 	display: none;
 }
 #team-formation-mobile-toolbar .sort-select-wrap select {
-	width: 5em;
+	width: 5.75em;
 	padding-left: var(--space-2);
-	padding-right: 1.3em;
-	text-align: center;
+	padding-right: var(--space-2);
+	text-align: left;
+	background-image: none;
+}
+#team-formation-mobile-toolbar .sort-select-wrap select:hover,
+#team-formation-mobile-toolbar .sort-select-wrap select:focus,
+#team-formation-mobile-toolbar .sort-select-wrap select:focus-visible {
+	background-image: none;
 }
 #team-formation-mobile-toolbar .sort-dir-toggle {
 	min-height: 0;

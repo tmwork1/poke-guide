@@ -9,7 +9,6 @@ import { listRankedSeasons } from '../../lib/ranked-teams';
 import { resolveDefaultSeason } from '../../lib/ranked-teams-validation';
 import { getSupabasePublicClient } from '../../lib/supabase';
 import { championSpriteUrl, officialArtworkUrl } from '../../lib/pokemon-master-data';
-import { DATA_HUB_TABS } from '../../lib/data-hub-tabs';
 import pokemonMasterRaw from '../../../public/master-data/autocomplete/pokemon.json';
 import seasonManifest from '../../../data/opgg-champions-usage/seasons.json';
 import '../../styles/data-hub-page.css';
@@ -29,9 +28,11 @@ try {
   rankedSeasonsError = 'シーズン一覧を読み込めませんでした。時間をおいて再度お試しください。';
 }
 const defaultRankedSeason = resolveDefaultSeason(rankedSeasons);
-const requestedTab = Astro.url.searchParams.get('tab');
-const requestedTabIndex = DATA_HUB_TABS.indexOf(requestedTab as typeof DATA_HUB_TABS[number]);
-const initialTabIndex = requestedTabIndex >= 0 ? requestedTabIndex : 0;
+const isTopBuilds = Astro.props.activeTab === 'top-builds';
+
+if (!isTopBuilds && Astro.url.searchParams.get('tab') === 'top-builds') {
+  return Astro.redirect('/data/top-builds');
+}
 
 // box/data.astro と同じ並び順ロジック(現在シーズンを先頭に、以降は取得日時の新しい順)。
 const manifestSeasons = [...(seasonManifest.seasons ?? [])].sort((a, b) => {
@@ -49,7 +50,7 @@ const season = seasonIds.includes(requestedSeason ?? '') ? requestedSeason! : ma
 
 // SSR出力・選択中オプション・共有URLを一致させる(box/data.astroと同じ理由)。
 if (requestedSeason && season && requestedSeason !== season) {
-  return Astro.redirect(`/data?season=${encodeURIComponent(season)}`);
+	return Astro.redirect(`/data?season=${encodeURIComponent(season)}`);
 }
 
 const seasonEntry = manifestSeasons.find((entry) => entry.id === season);
@@ -101,18 +102,19 @@ if (seasonEntry && seasonIndex?.pokemon) {
 <AppLayout title="データ" current="data" bodyClass="data-hub-page">
 	<AppHeader ariaLabel="データページの表示切り替え">
 		<div class="app-header__list">
-			<button type="button" class="app-header__item" data-data-hub-tab="battle-data" data-active={initialTabIndex === 0 ? 'true' : undefined} aria-current={initialTabIndex === 0 ? 'page' : undefined}>バトルデータ</button>
-			<button type="button" class="app-header__item" data-data-hub-tab="top-builds" data-active={initialTabIndex === 1 ? 'true' : undefined} aria-current={initialTabIndex === 1 ? 'page' : undefined}>上位チーム</button>
+			<a class="app-header__item" href="/data" data-active={!isTopBuilds ? 'true' : undefined} aria-current={!isTopBuilds ? 'page' : undefined}>バトルデータ</a>
+			<a class="app-header__item" href="/data/top-builds" data-active={isTopBuilds ? 'true' : undefined} aria-current={isTopBuilds ? 'page' : undefined}>上位チーム</a>
 		</div>
 	</AppHeader>
 
-	<SecondHeader ariaLabel="バトルデータを検索・切り替え" class="battle-data-second-header" data-battle-data-header hidden={initialTabIndex !== 0}>
+	{!isTopBuilds && (
+	<SecondHeader ariaLabel="バトルデータを検索・切り替え" class="battle-data-second-header" data-battle-data-header>
 		<div class="second-header-search">
 			<div class="search-input-wrap">
 				<svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 					<circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
 				</svg>
-				<input id="battle-data-search" type="search" class="field-control" placeholder="ポケモン名で検索" aria-label="ポケモン名で検索" autocomplete="off" disabled={entries.length === 0} />
+				<input id="battle-data-search" type="search" class="field-control" placeholder="ポケモン" aria-label="ポケモンを検索" autocomplete="off" disabled={entries.length === 0} />
 			</div>
 		</div>
 		{manifestSeasons.length > 0 && (
@@ -126,14 +128,16 @@ if (seasonEntry && seasonIndex?.pokemon) {
 			</div>
 		)}
 	</SecondHeader>
+	)}
 
-	<SecondHeader ariaLabel="上位チームを検索・切り替え" class="top-builds-second-header" data-top-builds-header hidden={initialTabIndex !== 1}>
+	{isTopBuilds && (
+	<SecondHeader ariaLabel="上位チームを検索・切り替え" class="top-builds-second-header" data-top-builds-header>
 		<div class="second-header-search">
 			<div class="search-input-wrap">
 				<svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 					<circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
 				</svg>
-				<input id="top-builds-search" type="search" class="field-control" placeholder="ポケモン名で検索" aria-label="ポケモン名で検索" autocomplete="off" />
+				<input id="top-builds-search" type="search" class="field-control" placeholder="ポケモン" aria-label="ポケモンを検索" autocomplete="off" />
 			</div>
 		</div>
 		<div class="top-builds-season-field">
@@ -143,9 +147,11 @@ if (seasonEntry && seasonIndex?.pokemon) {
 			</select>
 		</div>
 	</SecondHeader>
+	)}
 
-	<div class="data-hub-scroll" data-data-hub-scroll data-initial-tab-index={initialTabIndex}>
-		<section class="panel data-hub-panel battle-data-panel" data-tab="battle-data" inert={initialTabIndex !== 0} aria-hidden={initialTabIndex !== 0 ? 'true' : undefined}>
+	<div class="data-hub-scroll" data-data-hub-scroll>
+		{!isTopBuilds && (
+		<section class="panel data-hub-panel battle-data-panel" data-tab="battle-data">
 			<div class="panel-content">
 				{entries.length > 0 ? (
 					<div class="battle-data-body">
@@ -178,8 +184,10 @@ if (seasonEntry && seasonIndex?.pokemon) {
 				)}
 			</div>
 		</section>
+		)}
 
-		<section class="panel data-hub-panel top-builds-panel" data-tab="top-builds" inert={initialTabIndex !== 1} aria-hidden={initialTabIndex !== 1 ? 'true' : undefined}>
+		{isTopBuilds && (
+		<section class="panel data-hub-panel top-builds-panel" data-tab="top-builds">
 			<div class="panel-content">
 				<main class="top-builds-list" data-default-season={defaultRankedSeason ?? ''} data-initial-error={rankedSeasonsError}>
 					<p id="top-builds-loading" class="ranked-team-status">読み込み中…</p>
@@ -196,80 +204,21 @@ if (seasonEntry && seasonIndex?.pokemon) {
 				</main>
 			</div>
 		</section>
+		)}
 	</div>
 
 	<script>
-		import { DATA_HUB_TABS, resolveActiveTabIndex } from '../../lib/data-hub-tabs';
-
-		const scrollContainer = document.querySelector('[data-data-hub-scroll]');
-		const tabButtons = document.querySelectorAll('[data-data-hub-tab]');
-		const panels = document.querySelectorAll('[data-tab]');
-		const battleDataHeader = document.querySelector<HTMLElement>('.battle-data-second-header');
-		const topBuildsHeader = document.querySelector<HTMLElement>('.top-builds-second-header');
+		const scrollContainer = document.querySelector<HTMLElement>('[data-data-hub-scroll]');
+		const activeHeader = document.querySelector<HTMLElement>('.battle-data-second-header, .top-builds-second-header');
 		const bottomNav = document.querySelector<HTMLElement>('.app-bottom-nav');
-
-		if (scrollContainer && tabButtons.length === DATA_HUB_TABS.length && panels.length === DATA_HUB_TABS.length) {
-			const syncScrollViewport = (activeIndex: number) => {
-				const activeHeader = activeIndex === 0 ? battleDataHeader : topBuildsHeader;
-				if (!activeHeader) return;
-
-				/* セカンドヘッダーは入力欄の実高さで伸びるため、CSSトークンの最小高さだけで
-				   コンテンツ開始位置を決めるとカードが重なる。実際の下端から共通余白を取る。 */
-				scrollContainer.style.setProperty(
-					'--data-hub-scroll-top',
-					`calc(${activeHeader.getBoundingClientRect().bottom}px + var(--data-hub-card-scroll-inset))`,
-				);
-				if (bottomNav) {
-					scrollContainer.style.setProperty(
-						'--data-hub-scroll-bottom',
-						`calc(${window.innerHeight - bottomNav.getBoundingClientRect().top}px + var(--data-hub-card-scroll-inset))`,
-					);
-				}
-			};
-
-			const syncActiveTab = () => {
-				const activeIndex = resolveActiveTabIndex(scrollContainer.scrollLeft, scrollContainer.clientWidth, DATA_HUB_TABS.length);
-
-				tabButtons.forEach((tabButton, index) => {
-					const isActive = index === activeIndex;
-					if (isActive) tabButton.setAttribute('data-active', 'true');
-					else tabButton.removeAttribute('data-active');
-					if (isActive) tabButton.setAttribute('aria-current', 'page');
-					else tabButton.removeAttribute('aria-current');
-				});
-
-				panels.forEach((panel, index) => {
-					const isActive = index === activeIndex;
-					panel.toggleAttribute('inert', !isActive);
-					if (isActive) panel.removeAttribute('aria-hidden');
-					else panel.setAttribute('aria-hidden', 'true');
-				});
-				battleDataHeader?.toggleAttribute('hidden', activeIndex !== 0);
-				topBuildsHeader?.toggleAttribute('hidden', activeIndex !== 1);
-				syncScrollViewport(activeIndex);
-			};
-
-			tabButtons.forEach((tabButton, index) => {
-				tabButton.addEventListener('click', () => {
-					panels[index]?.scrollIntoView({ behavior: 'smooth', inline: 'start' });
-				});
-			});
-
-			if ('onscrollend' in window) {
-				scrollContainer.addEventListener('scrollend', syncActiveTab);
-			} else {
-				let debounceTimer;
-				scrollContainer.addEventListener('scroll', () => {
-					clearTimeout(debounceTimer);
-					debounceTimer = setTimeout(syncActiveTab, 150);
-				});
-			}
-
-			const initialTabIndex = Number(scrollContainer.dataset.initialTabIndex ?? '0');
-			scrollContainer.scrollLeft = initialTabIndex * scrollContainer.clientWidth;
-			syncActiveTab();
-			window.addEventListener('resize', () => syncActiveTab());
-		}
+		const syncScrollViewport = () => {
+			if (!scrollContainer || !activeHeader) return;
+			scrollContainer.style.setProperty('--data-hub-scroll-top', `calc(${activeHeader.getBoundingClientRect().bottom}px + var(--data-hub-card-scroll-inset))`);
+			if (bottomNav) scrollContainer.style.setProperty('--data-hub-scroll-bottom', `calc(${window.innerHeight - bottomNav.getBoundingClientRect().top}px + var(--data-hub-card-scroll-inset))`);
+		};
+		syncScrollViewport();
+		window.addEventListener('resize', syncScrollViewport);
+		new ResizeObserver(syncScrollViewport).observe(activeHeader);
 	</script>
 
 	<script>

@@ -266,7 +266,7 @@
   display: none;
 }
 
-/* --- 空き枠(renderTeamMemberGrid が6枠に足りない分を埋める)。破線枠は box-card.css の
+/* --- 空き枠(renderTeamMemberGrid が6枠に足りない分を埋める)。実線枠は box-card.css の
    .box-grid .card-team-empty-slot 側が持ち、ここでは何番目の枠かを示す数字の見え方だけを決める。 --- */
 .team-grid .card-team .card-team-empty-slot {
   display: flex;

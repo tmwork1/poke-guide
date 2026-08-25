@@ -87,7 +87,7 @@
   --box-card-artwork-inset-block-end: -0.1rem; /* 透かし画像をカード下端から持ち上げる距離 */
   --box-card-item-badge-offset: 3%; /* 持ち物アイコンを右端・下端から離す基準距離 */
   --box-card-item-badge-inset-inline-end: var(--box-card-item-badge-offset); /* 持ち物アイコンの右端側の配置位置。増やすと左へ移動する */
-  --box-card-item-badge-inset-block-start: 29%; /* 持ち物アイコンの中心位置。名前と技一覧の間に置く */
+  --box-card-item-badge-inset-block-end: var(--box-card-item-badge-offset); /* 持ち物アイコンの下端側の配置位置。増やすと上へ移動する */
   --box-card-action-inset-block-start: var(--box-card-action-offset); /* 操作ボタン群をカード上端から下げる位置 */
   --box-card-action-inset-inline-end: var(--box-card-action-offset); /* 操作ボタン群をカード右端から左へ入れる位置 */
 
@@ -128,7 +128,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px dashed var(--color-border);
+  border: 1px solid var(--color-border);
   color: var(--color-text-muted);
 }
 .box-grid .team-slot-number {
@@ -311,12 +311,11 @@
 .box-grid .box-card .card-item-badge {
   position: absolute;
   inset-inline-end: var(--box-card-item-badge-inset-inline-end);
-  inset-block-start: var(--box-card-item-badge-inset-block-start);
+  inset-block-end: var(--box-card-item-badge-inset-block-end);
   display: block;
   width: var(--box-card-item-badge-size);
   height: var(--box-card-item-badge-size);
-  z-index: 2;
-  transform: translateY(-50%);
+  z-index: 3;
 }
 .box-grid .box-card .card-item-badge img {
   display: block;
@@ -326,6 +325,16 @@
 }
 .box-grid .box-card .card-item-badge[hidden] {
   display: none;
+}
+
+.box-grid .box-card .card-recommendation-badge {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  color: #ffd400;
+  font-size: var(--font-size-sm2);
+  line-height: 1;
 }
 
 /* カード下部に4行並ぶ技一覧 */
@@ -369,7 +378,7 @@
 	text-shadow: var(--box-card-move-text-shadow);
 	white-space: nowrap;
 	overflow: hidden;
-	transform: scaleX(1);
+	transform: scaleX(0.9);
 	transform-origin: left center;
   text-overflow: ellipsis;
 }

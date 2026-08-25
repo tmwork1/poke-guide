@@ -13,23 +13,63 @@ export interface TeamMateSlotsOptions<T extends TeamMateCardPokemon> {
 	displayName: (member: T) => string;
 	selectedSlot?: number | null;
 	onSlotClick?: (slot: number) => void;
+	onSlotTap?: (slot: number) => void;
+	onSlotDoubleTap?: (slot: number) => void;
+	onSlotLongPress?: (slot: number) => void;
 	applySprite: (imgEl: HTMLImageElement, fallbackEl: HTMLElement, name: string) => void | Promise<void>;
 	applyItemIcon: (imgEl: HTMLImageElement, itemName: string, visibilityEl?: HTMLElement) => void | Promise<void>;
 }
 
 /** 編成タブと相性タブで共通のチームメイト6枠を描画する。 */
 export function renderTeamMateSlots<T extends TeamMateCardPokemon>(options: TeamMateSlotsOptions<T>): void {
-	const { root, membersBySlot, displayName, selectedSlot = null, onSlotClick, applySprite, applyItemIcon } = options;
+	const { root, membersBySlot, displayName, selectedSlot = null, onSlotClick, onSlotTap, onSlotDoubleTap, onSlotLongPress, applySprite, applyItemIcon } = options;
 	root.innerHTML = "";
 
 	for (let slot = 1; slot <= 6; slot += 1) {
 		const member = membersBySlot.get(slot);
 		let card: HTMLElement;
-		if (onSlotClick) {
+		if (onSlotClick || onSlotTap) {
 			const button = document.createElement("button");
 			button.type = "button";
 			button.setAttribute("aria-pressed", String(selectedSlot === slot));
-			button.addEventListener("click", () => onSlotClick(slot));
+			if (onSlotTap || onSlotDoubleTap || onSlotLongPress) {
+				let tapTimer: number | undefined;
+				let longPressTimer: number | undefined;
+				let longPressed = false;
+				const cancelLongPress = () => {
+					if (longPressTimer !== undefined) window.clearTimeout(longPressTimer);
+					longPressTimer = undefined;
+				};
+				button.addEventListener("pointerdown", () => {
+					if (!member || !onSlotLongPress) return;
+					longPressed = false;
+					longPressTimer = window.setTimeout(() => {
+						longPressed = true;
+						longPressTimer = undefined;
+						onSlotLongPress(slot);
+					}, 500);
+				});
+				button.addEventListener("pointerup", cancelLongPress);
+				button.addEventListener("pointercancel", cancelLongPress);
+				button.addEventListener("click", () => {
+					if (longPressed) {
+						longPressed = false;
+						return;
+					}
+					if (tapTimer !== undefined) {
+						window.clearTimeout(tapTimer);
+						tapTimer = undefined;
+						onSlotDoubleTap?.(slot);
+						return;
+					}
+					tapTimer = window.setTimeout(() => {
+						tapTimer = undefined;
+						(onSlotTap ?? onSlotClick)?.(slot);
+					}, 250);
+				});
+			} else {
+				button.addEventListener("click", () => onSlotClick?.(slot));
+			}
 			card = button;
 		} else {
 			card = document.createElement("div");
@@ -42,12 +82,12 @@ export function renderTeamMateSlots<T extends TeamMateCardPokemon>(options: Team
 
 		if (!member) {
 			card.classList.add("team-mate-card--empty");
-			card.setAttribute("aria-label", onSlotClick ? `${slot}番目の空き枠を選択` : `${slot}番目の空き枠`);
+			card.setAttribute("aria-label", (onSlotClick || onSlotTap) ? `${slot}番目の空き枠を選択` : `${slot}番目の空き枠`);
 			card.textContent = String(slot);
 		} else {
 			card.setAttribute(
 				"aria-label",
-				onSlotClick ? `${displayName(member)}、${slot}番目の枠を選択` : `${displayName(member)}、${slot}番目の枠`,
+				(onSlotClick || onSlotTap) ? `${displayName(member)}、${slot}番目の枠を選択` : `${displayName(member)}、${slot}番目の枠`,
 			);
 			const sprite = document.createElement("img");
 			sprite.className = "team-mate-card__art";

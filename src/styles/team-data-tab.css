@@ -19,6 +19,9 @@ body.team-edit-page {
   /* ── 7. 余白 ────────────────────────── */
   --team-data-card-scroll-inset: var(--list-grid-edge-gap); /* カード一覧の左右余白と共通にする上下ガード帯 */
   --team-data-similar-panel-padding: var(--team-data-card-scroll-inset); /* 類似構築カード一覧の外側余白 */
+  --team-data-suggest-height: calc(var(--team-pokemon-tab-suggest-icon-size) + var(--space-4)); /* おすすめアイコンと上下余白を収める高さ */
+  --team-data-suggest-before-gap: var(--space-1); /* 自チーム表示とおすすめ欄の間隔 */
+  --team-data-suggest-after-gap: var(--space-1); /* おすすめ欄とカード一覧の間隔（カード一覧の内側余白と合わせて12px） */
   --team-data-status-margin: 0 auto; /* 読み込み状態カードの外側余白。autoにより中央寄せになる */
   --team-data-status-padding: var(--space-4); /* 読み込み状態カード内側の余白 */
 
@@ -41,6 +44,23 @@ body.team-edit-page {
   top: calc(var(--header-height) + var(--app-header-height));
   z-index: 3;
   border-bottom: 0;
+}
+#team-data-mobile > .team-formation-mobile__suggest {
+  flex: 0 0 var(--team-data-suggest-height);
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  align-items: center;
+  padding-inline: var(--space-4);
+  column-gap: var(--space-5);
+  margin-block-start: var(--team-data-suggest-before-gap);
+  margin-block-end: var(--team-data-suggest-after-gap);
+  background: var(--color-surface);
+}
+#team-data-mobile > .team-formation-mobile__suggest .team-formation-mobile__suggest-label {
+  justify-self: start;
+}
+#team-data-mobile > .team-formation-mobile__suggest .team-formation-mobile__suggest-icons {
+  width: 100%;
 }
 
 /* /team 一覧の .team-content.box-content と同じ左右8pxを確保し、
@@ -72,6 +92,9 @@ body.team-edit-page {
   .team-edit-shell[data-mobile-tab="data"] #team-data-mobile > .team-formation-mobile__mates {
     position: static;
     flex: 0 0 auto;
+  }
+  .team-edit-shell[data-mobile-tab="data"] #team-data-mobile > .team-formation-mobile__suggest {
+    flex: 0 0 var(--team-data-suggest-height);
   }
   .team-edit-shell[data-mobile-tab="data"] .team-data-similar-panel {
     flex: 1 1 auto;
