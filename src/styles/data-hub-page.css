@@ -97,6 +97,10 @@ body.data-hub-page {
   padding: 0;
   background: var(--color-bg);
 }
+/* カード内のランキング項目は一覧でも読み取れる 0.875rem にする。 */
+.battle-data-panel .trend-detail-card {
+  --battle-data-card-value-font-size: 0.875rem;
+}
 .battle-data-panel .panel-content { padding: 0; }
 .battle-data-second-header[hidden] { display: none; }
 .battle-data-second-header .battle-data-season-field {
@@ -145,6 +149,9 @@ body.data-hub-page {
   justify-content: center;
   font-size: var(--data-hub-entry-rank-font-size);
   white-space: nowrap;
+  background: var(--color-bg);
+  color: var(--data-hub-muted-color);
+  border: var(--data-hub-border);
 }
 /* ポケモンカード見出しに表示するポケモン画像 */
 .battle-data-entry-icon {
@@ -199,6 +206,7 @@ body.data-hub-page {
   object-fit: contain;
 }
 .battle-data-rail-item[hidden] { display: none; }
+
 @media (max-width: 420px) { .battle-data-second-header .battle-data-season-field label { display: none; } }
 
 /* --------------------------------------------------------------------------

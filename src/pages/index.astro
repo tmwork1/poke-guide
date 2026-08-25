@@ -8,7 +8,7 @@ import '../styles/app-header.css';
 import AppHeader from '../components/AppHeader.astro';
 
 const user = Astro.locals.user;
-const userName = user?.displayName ?? user?.email;
+const userEmail = user?.email ?? '';
 ---
 
 <AppLayout title="ポケガイド" description="ポケモン育成を管理するためのホーム画面" current="home" bodyClass="home-page">
@@ -19,14 +19,14 @@ const userName = user?.displayName ?? user?.email;
 				{
 					user ? (
 						<details class="home-header-account-menu">
-							<summary class="home-header-account-icon home-header-account-icon--authenticated" aria-label={`ログイン中: ${userName}`}>
+							<summary class="home-header-account-icon home-header-account-icon--authenticated" aria-label={`ログイン中: ${userEmail}`}>
 								<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 									<circle cx="12" cy="8" r="4" />
 									<path d="M4 20c0-4 3.5-7 8-7s8 3 8 7" />
 								</svg>
 							</summary>
 							<div class="home-header-account-panel">
-								<p class="home-account-name">{userName}</p>
+								<p class="home-account-name">{userEmail}</p>
 								<form method="post" action="/api/auth/logout">
 									<button type="submit">ログアウト</button>
 								</form>
