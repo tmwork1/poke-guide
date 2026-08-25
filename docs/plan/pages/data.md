@@ -169,7 +169,7 @@ sonnetレビュアー1体(データモデル/API・情報設計/導線・プレ�
   - `src/lib/battle-data-card.ts`: 純粋関数(`hasSingleBattleData`/`formatRanked`/`formatEvRanked`)。`tests/battle-data-card.test.ts`でユニットテスト済み。
   - `src/components/data/BattleDataCard.astro`: `.trend-detail-card`のマークアップ本体。
   - `src/styles/battle-data-card.css`: `.trend-detail-card`/`.trend-detail-cell`のスタイル(旧`data-page.css`から移設)。
-- **`/data`バトルデータタブ**(`src/pages/data/index.astro`): `data/opgg-champions-usage/seasons/<dir>/index.json`の`pokemon`配列順(=OP.GGランキングページの掲載順=使用率順位、`scripts/opgg/fetch-champions-usage.mjs`の`slugs()`参照)で、シングルバトルデータを持つポケモンを「順位+アイコン+種族名」のヘッダー+`BattleDataCard`として縦に並べた。右端に全件分のポケモンアイコンレール(`position:sticky`、クリックで該当カードへスムーズスクロール、`<a href="#id">`によるJS無効時のフォールバック付き)、下部固定に検索欄(`kanaIncludes`でかな表記ゆれを吸収した部分一致フィルタ、レール側も連動して隠す)とシーズン切替`<select>`を実装。
+- **`/data`バトルデータタブ**(`src/pages/data/index.astro`): OP.GG使用率データはCloudflare KV(`OPGG_USAGE`バインディング)に保存され、`src/lib/opgg-usage.ts`の`getOpggUsageManifest`/`getOpggUsageList`経由でランタイム読み込みする(旧`data/opgg-champions-usage/`のビルド時静的インポートから移行済み、詳細は`scripts/opgg/fetch-champions-usage.mjs`と`.github/workflows/fetch-opgg-champions-usage.yml`)。`:list`キーの`pokemon`配列順(=OP.GGランキングページの掲載順=使用率順位)で、シングルバトルデータを持つポケモンを「順位+アイコン+種族名」のヘッダー+`BattleDataCard`として縦に並べた。右端に全件分のポケモンアイコンレール(`position:sticky`、クリックで該当カードへスムーズスクロール、`<a href="#id">`によるJS無効時のフォールバック付き)、下部固定に検索欄(`kanaIncludes`でかな表記ゆれを吸収した部分一致フィルタ、レール側も連動して隠す)とシーズン切替`<select>`を実装。
 - 固定表示の検索/シーズンバー(`.battle-data-controls`)は`position:fixed`のため、タブ切替で`inert`が付いた非アクティブパネル配下でも通常は消えない。`.data-hub-panel[inert] .battle-data-controls{display:none}`で明示的に隠した(実装中に気づいた点、下記「見つかった論点」参照)。
 
 ### 見つかった論点(このページ実装中に判明、他のfixedバー付きタブUIを作る際も注意)

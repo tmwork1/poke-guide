@@ -11,6 +11,15 @@
 	"observability": {
 		"enabled": true
 	},
+	// OP.GG使用率データ(scripts/opgg/fetch-champions-usage.mjs)の保存先。
+	// GitHub Actions (fetch-opgg-champions-usage.yml) が日次でここに書き込み、
+	// src/pages/data/index.astro・src/pages/box/data.astro がランタイムで読む。
+	"kv_namespaces": [
+		{
+			"binding": "OPGG_USAGE",
+			"id": "f165418c82fa4eac9dff837ddaa8e4ab"
+		}
+	],
 	// Phase 5-1 の集計バッチ(開発プラン §2.5, §3 Phase5-1)。集計ジョブが1種類のみのため
 	// 分スロット分岐(poke-research の DAILY_SLOT_JOBS パターン)は導入せず、cron 1件から
 	// src/worker.ts の scheduled ハンドラで refresh_popular_builds を直接呼ぶ。

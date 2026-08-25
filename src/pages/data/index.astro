@@ -5,12 +5,13 @@ export const prerender = false;
 import AppLayout from '../../layouts/AppLayout.astro';
 import BattleDataCard from '../../components/data/BattleDataCard.astro';
 import { hasSingleBattleData, type SingleFormatData } from '../../lib/battle-data-card';
+import { getOpggUsageList, getOpggUsageManifest, type OpggUsageSeason } from '../../lib/opgg-usage';
 import { listRankedSeasons } from '../../lib/ranked-teams';
 import { resolveDefaultSeason } from '../../lib/ranked-teams-validation';
 import { getSupabasePublicClient } from '../../lib/supabase';
 import { championSpriteUrl, officialArtworkUrl } from '../../lib/pokemon-master-data';
 import pokemonMasterRaw from '../../../public/master-data/autocomplete/pokemon.json';
-import seasonManifest from '../../../data/opgg-champions-usage/seasons.json';
+import { env } from 'cloudflare:workers';
 import '../../styles/data-hub-page.css';
 import '../../styles/battle-data-card.css';
 import '../../styles/team-card.css';
@@ -34,9 +35,11 @@ if (!isTopBuilds && Astro.url.searchParams.get('tab') === 'top-builds') {
   return Astro.redirect('/data/top-builds');
 }
 
+const seasonManifest = await getOpggUsageManifest(env.OPGG_USAGE);
+
 // box/data.astro と同じ並び順ロジック(現在シーズンを先頭に、以降は取得日時の新しい順)。
-const manifestSeasons = [...(seasonManifest.seasons ?? [])].sort((a, b) => {
-  const currentSeasonId = seasonManifest.currentSeasonId;
+const manifestSeasons = [...(seasonManifest?.seasons ?? [])].sort((a, b) => {
+	const currentSeasonId = seasonManifest?.currentSeasonId;
   const aIsCurrent = a.isCurrent || a.id === currentSeasonId;
   const bIsCurrent = b.isCurrent || b.id === currentSeasonId;
   if (aIsCurrent && !bIsCurrent) return -1;
@@ -55,18 +58,8 @@ if (requestedSeason && season && requestedSeason !== season) {
 
 const seasonEntry = manifestSeasons.find((entry) => entry.id === season);
 
-const dataFiles = import.meta.glob('../../../data/opgg-champions-usage/seasons/*/*.json', {
-  eager: true,
-  import: 'default',
-});
-
-// index.jsonのpokemon配列は取得元(OP.GGのランキングページ)に現れた順、つまり使用率順位の
-// 順番をそのまま保持している(scripts/opgg/fetch-champions-usage.mjsのslugs()参照)。
-const seasonIndex = seasonEntry
-  ? (Object.entries(dataFiles).find(([path]) => path.includes(`/${seasonEntry.directory}/index.json`))?.[1] as
-      | { pokemon?: Array<{ slug: string; name: string; file: string }> }
-      | undefined)
-  : undefined;
+// `:list` はsingleだけをランキング順に集約した /data 専用のキー。
+const seasonList = seasonEntry ? await getOpggUsageList(env.OPGG_USAGE, seasonEntry as OpggUsageSeason) : null;
 
 const masterByName = new Map(
   (pokemonMasterRaw as Array<{ name: string; imageId: number }>).map((entry) => [entry.name, entry.imageId]),
@@ -81,19 +74,16 @@ interface BattleDataEntry {
 }
 
 const entries: BattleDataEntry[] = [];
-if (seasonEntry && seasonIndex?.pokemon) {
-  for (const item of seasonIndex.pokemon) {
-    const opgg = Object.entries(dataFiles).find(
-      ([path, value]: any) => path.includes(`/${seasonEntry.directory}/`) && value?.name === item.name,
-    )?.[1] as any;
-    if (!hasSingleBattleData(opgg)) continue;
-    const rank = entries.length + 1;
-    entries.push({
+if (seasonList?.pokemon) {
+	for (const item of seasonList.pokemon) {
+		if (!hasSingleBattleData({ formats: { single: item.single } })) continue;
+		const rank = entries.length + 1;
+		entries.push({
       rank,
       name: item.name,
       imageId: masterByName.get(item.name) ?? null,
       elementId: `battle-data-entry-${rank}`,
-      single: opgg.formats.single,
+			single: item.single,
     });
   }
 }
@@ -327,7 +317,13 @@ if (seasonEntry && seasonIndex?.pokemon) {
 				if (!target) return;
 				event.preventDefault();
 				setActiveRail(item.dataset.speciesName ?? '');
-				target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+				// 横スワイプ用のスクロール領域へ、カードの座標を直接指定する。
+				// scrollIntoView() ではページ側へスクロールが逃げることがある。
+				if (!scrollContainer) return;
+				const targetTop = scrollContainer.scrollTop + target.getBoundingClientRect().top - scrollContainer.getBoundingClientRect().top;
+				// 一覧全体は長いため、smooth では遠い順位ほど到達まで時間が掛かる。
+				// レールはジャンプ操作なので即時移動する。
+				scrollContainer.scrollTo({ top: Math.max(0, targetTop), behavior: 'auto' });
 			});
 		}
 

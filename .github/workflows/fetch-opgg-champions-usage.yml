@@ -1,0 +1,23 @@
+name: Fetch OP.GG champions usage
+
+on:
+  schedule:
+    # 19:00 UTC = JST 4:00。wrangler.jsonc の Cloudflare Cron Trigger (18:00 UTC) と時間帯を分ける。
+    - cron: '0 19 * * *'
+  workflow_dispatch:
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - run: npm ci
+      - name: Fetch OP.GG champions usage
+        run: npm run fetch:opgg-champions-usage
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

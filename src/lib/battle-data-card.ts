@@ -1,5 +1,5 @@
 // バトルデータカード(特性/性格/アイテム/わざ/努力値/同時採用ポケモン)の表示用ロジック。
-// data/opgg-champions-usage の formats.single/double と同じ形の値を受け取る。
+// KVに保存するOP.GG使用率データの formats.single と同じ形の値を受け取る。
 // DOMに依存しない純粋関数のみをここに置き、マークアップは
 // src/components/data/BattleDataCard.astro 側に集約する。
 
@@ -24,7 +24,7 @@ export interface SingleFormatData {
   teammates?: RankedRow[];
 }
 
-// opgg-champions-usage の1件(formats.single/doubleを持つポケモン単位のレコード)が
+// OP.GG使用率データの1件(formats.singleを持つポケモン単位のレコード)が
 // シングルバトルの表示に足るデータを持っているかどうか。
 export function hasSingleBattleData(value: { formats?: { single?: SingleFormatData } } | null | undefined): boolean {
   const single = value?.formats?.single;

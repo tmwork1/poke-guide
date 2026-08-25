@@ -25,13 +25,13 @@
     var(--battle-data-card-value-margin-top) +
     var(--battle-data-card-row-height) + var(--battle-data-card-row-height) + var(--battle-data-card-row-height) +
     var(--space-1) + var(--space-1)
-  ); /* 1段目に見出しとランキング3件を収める高さ */
+  ); /* 1段目に見出しとランキング2件を収める高さ */
   --battle-data-card-row1-height-mobile: calc(
     (var(--battle-data-card-label-font-size) * var(--line-height-normal)) +
     var(--battle-data-card-value-margin-top) +
     var(--battle-data-card-row-height) + var(--battle-data-card-row-height) + var(--battle-data-card-row-height) +
     var(--space-1) + var(--space-1)
-  ); /* 狭い画面の1段目に見出しとランキング3件を収める高さ */
+  ); /* 狭い画面の1段目に見出しとランキング2件を収める高さ */
 
   /* ── 2. 文字の太さ・行間 ──────────────────────────────── */
   --battle-data-card-label-font-weight: 400; /* 各マスの見出しの太さ。太くすると項目名が目立つ */
@@ -52,8 +52,32 @@
   --battle-data-card-scrollbar-clearance: calc(var(--space-2) + 2px); /* スクロールバーと採用率の表示が重ならない右余白 */
 
   /* ── 8. 寸法 ──────────────────────────────────────────── */
-  --battle-data-card-cell-height: 145px; /* 通常画面の各マスの高さ。大きくすると内容を多く表示できる */
-  --battle-data-card-cell-height-mobile: 132px; /* 狭い画面の各マスの高さ。大きくすると縦の密度が下がる */
+  /* 下段はランキングを6件、スクロールせずに読める高さにする。 */
+  --battle-data-card-cell-height: calc(
+    (var(--battle-data-card-cell-padding) * 2) +
+    (var(--battle-data-card-label-font-size) * var(--line-height-normal)) + var(--space-1) +
+    var(--battle-data-card-value-margin-top) +
+    (var(--battle-data-card-row-height) * 6) + (var(--space-1) * 5)
+  );
+  --battle-data-card-cell-height-mobile: calc(
+    (var(--battle-data-card-cell-padding-mobile) * 2) +
+    (var(--battle-data-card-label-font-size) * var(--line-height-normal)) + var(--space-1) +
+    var(--battle-data-card-value-margin-top) +
+    (var(--battle-data-card-row-height) * 6) + (var(--space-1) * 5)
+  );
+  /* 努力値・同時採用は4件表示に留め、アイテム・わざより短くする。 */
+  --battle-data-card-short-cell-height: calc(
+    (var(--battle-data-card-cell-padding) * 2) +
+    (var(--battle-data-card-label-font-size) * var(--line-height-normal)) + var(--space-1) +
+    var(--battle-data-card-value-margin-top) +
+    (var(--battle-data-card-row-height) * 4) + (var(--space-1) * 3)
+  );
+  --battle-data-card-short-cell-height-mobile: calc(
+    (var(--battle-data-card-cell-padding-mobile) * 2) +
+    (var(--battle-data-card-label-font-size) * var(--line-height-normal)) + var(--space-1) +
+    var(--battle-data-card-value-margin-top) +
+    (var(--battle-data-card-row-height) * 4) + (var(--space-1) * 3)
+  );
 }
 
 /* ===========================================================================
@@ -64,7 +88,7 @@
 .trend-detail-card {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  grid-template-rows: var(--battle-data-card-row1-height) minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-rows: var(--battle-data-card-row1-height) var(--battle-data-card-cell-height) var(--battle-data-card-short-cell-height);
   background: var(--battle-data-card-background);
   border: var(--battle-data-card-border);
 }
@@ -84,6 +108,7 @@
 }
 .trend-detail-cell:nth-child(-n+2) { height: var(--battle-data-card-row1-height); }
 .trend-detail-cell:nth-child(n+3) { height: var(--battle-data-card-cell-height); }
+.trend-detail-cell:nth-child(n+5) { height: var(--battle-data-card-short-cell-height); }
 .trend-detail-cell:nth-child(2n) { border-right: 0; }
 .trend-detail-cell:nth-last-child(-n+2) { border-bottom: 0; }
 
@@ -110,6 +135,25 @@
   /* 右側のセル余白までスクロール領域を延長し、バーを端へ寄せる。 */
   margin-right: calc(var(--battle-data-card-cell-current-padding) * -1);
   padding-right: var(--battle-data-card-scrollbar-clearance);
+}
+/* 各段は指定件数で表示領域を打ち切り、次のランキング行を途中まで見せない。 */
+.trend-detail-cell:nth-child(-n+2) .trend-cell-body {
+  flex: 0 0 calc(
+    var(--battle-data-card-value-margin-top) +
+    (var(--battle-data-card-row-height) * 2) + var(--space-1)
+  );
+}
+.trend-detail-cell:nth-child(n+3):nth-child(-n+4) .trend-cell-body {
+  flex: 0 0 calc(
+    var(--battle-data-card-value-margin-top) +
+    (var(--battle-data-card-row-height) * 6) + (var(--space-1) * 5)
+  );
+}
+.trend-detail-cell:nth-child(n+5) .trend-cell-body {
+  flex: 0 0 calc(
+    var(--battle-data-card-value-margin-top) +
+    (var(--battle-data-card-row-height) * 4) + (var(--space-1) * 3)
+  );
 }
 .trend-detail-cell strong {
   margin-top: var(--battle-data-card-value-margin-top);
@@ -199,7 +243,7 @@
 @media (max-width: 420px) {
   /* 狭い画面でのカード内マス */
   .trend-detail-card {
-    grid-template-rows: var(--battle-data-card-row1-height-mobile) minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: var(--battle-data-card-row1-height-mobile) var(--battle-data-card-cell-height-mobile) var(--battle-data-card-short-cell-height-mobile);
   }
   .trend-detail-cell {
     --battle-data-card-cell-current-padding: var(--battle-data-card-cell-padding-mobile);
@@ -208,4 +252,5 @@
   }
   .trend-detail-cell:nth-child(-n+2) { height: var(--battle-data-card-row1-height-mobile); }
   .trend-detail-cell:nth-child(n+3) { height: var(--battle-data-card-cell-height-mobile); }
+  .trend-detail-cell:nth-child(n+5) { height: var(--battle-data-card-short-cell-height-mobile); }
 }

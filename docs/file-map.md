@@ -116,7 +116,7 @@
 
 - **ランクマ記事→チーム抽出**: `scripts/ranker/`(`download_articles.py` → `extract_articles.py` → `build_pokesol.py` / `build_ranked_teams.py`)。仕様は `scripts/ranker/EXTRACTION_SPEC.md`。出力は `docs/ranker/*.json` → DBへは `scripts/db/seed-ranked-teams.mjs` 等
 - **マスターデータ生成**: `scripts/build-master-data/build.mjs`, `extract_autocomplete.py` → `public/master-data/`, `src/lib/pokemon-master-data.ts`
-- **OPGG採用率取得**: `scripts/opgg/fetch-champions-usage.mjs` → `data/opgg-champions-usage.json`, `config/opgg-champions-pokemon-map.json`
+- **OPGG採用率取得**: `scripts/opgg/fetch-champions-usage.mjs`(GitHub Actions `fetch-opgg-champions-usage.yml` で日次実行)→ Cloudflare KV(`OPGG_USAGE`バインディング、読み取りは`src/lib/opgg-usage.ts`)、`config/opgg-champions-pokemon-map.json`
 - **画像アセット生成**: `scripts/pokemon-artwork/`, `scripts/pokemon-champion-sprites/`, `scripts/item-icons/`, `scripts/type-icons/` → `public/pokemon-artwork/`, `public/pokemon-champion-sprites/`, `public/item-icons/`, `public/type-icons/`
 - **DB運用**: `scripts/db/`(migration実行 `run-migrations.mjs`、開発用シード `seed-*.mjs`、集計バックフィル `backfill-*.mjs`, `refresh-suggestions.mjs`)。DBスキーマ本体は `migrations/*.sql`
 

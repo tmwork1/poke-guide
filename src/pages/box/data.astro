@@ -7,7 +7,8 @@ import BattleDataCard from '../../components/data/BattleDataCard.astro';
 import { getOwnedPokemon } from '../../lib/owned-pokemon';
 import { getSupabaseAdminClient } from '../../lib/supabase';
 import { hasSingleBattleData } from '../../lib/battle-data-card';
-import seasonManifest from '../../../data/opgg-champions-usage/seasons.json';
+import { getOpggUsageManifest, getOpggUsagePokemon, type OpggUsageSeason } from '../../lib/opgg-usage';
+import { env } from 'cloudflare:workers';
 import '../../styles/data-page.css';
 import '../../styles/battle-data-card.css';
 
@@ -17,37 +18,29 @@ const result = user && selectedId
   ? await getOwnedPokemon(user.id, selectedId, await getSupabaseAdminClient())
   : null;
 const pokemon = result?.ok ? result.data : null;
-const dataFiles = import.meta.glob('../../../data/opgg-champions-usage/seasons/*/*.json', {
-  eager: true,
-  import: 'default',
-});
-const manifestSeasons = [...(seasonManifest.seasons ?? [])].sort((a, b) => {
-  const currentSeasonId = seasonManifest.currentSeasonId;
+const seasonManifest = await getOpggUsageManifest(env.OPGG_USAGE);
+const manifestSeasons = [...(seasonManifest?.seasons ?? [])].sort((a, b) => {
+	const currentSeasonId = seasonManifest?.currentSeasonId;
   const aIsCurrent = a.isCurrent || a.id === currentSeasonId;
   const bIsCurrent = b.isCurrent || b.id === currentSeasonId;
   if (aIsCurrent && !bIsCurrent) return -1;
   if (bIsCurrent && !aIsCurrent) return 1;
   return String(b.fetchedAt ?? '').localeCompare(String(a.fetchedAt ?? ''));
 });
-const seasons = pokemon
-  ? manifestSeasons.filter((entry) =>
-      Object.entries(dataFiles).some(
-        ([path, value]: any) =>
-          path.includes(`/${entry.directory}/`) &&
-          value?.name === pokemon.species_name &&
-          hasSingleBattleData(value),
-      ),
-    )
+// ボックスはマニフェストの小さな名称→slug索引で選択中の1体だけを読む。
+const seasonPokemon = pokemon
+  ? await Promise.all(manifestSeasons.map(async (entry) => {
+      const season = entry as OpggUsageSeason;
+      const slug = season.pokemon?.find((entry) => entry.name === pokemon.species_name)?.slug;
+      return {
+        season,
+        data: slug ? await getOpggUsagePokemon(env.OPGG_USAGE, season, slug) : null,
+      };
+    }))
   : [];
-const season = seasons[0]?.id ?? null;
-
-const seasonDirectory = seasons.find((entry) => entry.id === season)?.directory;
-const opgg = pokemon && seasonDirectory
-  ? (Object.entries(dataFiles).find(
-      ([path, value]: any) =>
-        path.includes(`/${seasonDirectory}/`) && value?.name === pokemon.species_name,
-    )?.[1] as any)
-  : null;
+const selected = seasonPokemon.find(({ data }) => data?.name === pokemon?.species_name && hasSingleBattleData(data));
+const season = selected?.season.id ?? null;
+const opgg = selected?.data ?? null;
 const single = opgg?.formats?.single;
 const hasData = hasSingleBattleData(opgg);
 ---
