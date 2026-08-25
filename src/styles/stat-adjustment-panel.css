@@ -245,6 +245,10 @@
 }
 .stat-row-label[data-mod="up"] { color: var(--stat-up-color); }
 .stat-row-label[data-mod="down"] { color: var(--stat-down-color); }
+.stat-row-base {
+	color: var(--stat-muted-color);
+	text-align: right;
+}
 /* 性格補正の切替ボタン列。HP行は空(aria-hidden)のまま同じ列幅を占有し、
    他の行とラベルのX位置を揃える。 */
 .stat-row-nature {
@@ -351,17 +355,19 @@
 	--stat-grid-template-columns:
 		minmax(1.5rem, 0.4fr)
 		minmax(2.75rem, 0.6fr)
+		minmax(2.5rem, 0.7fr)
 		minmax(7rem, 2.5fr)
 		minmax(3rem, 0.75fr);
-	--stat-column-gap: var(--space-1);
+	--stat-column-gap: var(--space-2);
 	--stat-table-inline-start-padding: var(--space-1);
 	--stat-table-inline-end-padding: var(--space-2);
-	--stat-ev-mobile-button-block-size: 36px;
-	--stat-nature-button-size: 36px;
-	--stat-number-input-height: 36px;
-	/* 実測: 数値欄は従来54.4px(3.4rem)、隣の操作ボタンは36pxだった。
-	   3桁の努力値は36px内に収まるため、ボタンと同じ正方形に揃える。 */
-	--stat-number-input-width: 36px;
+	--stat-endpoint-button-size: 44px;
+	--stat-step-button-size: 44px;
+	--stat-ev-mobile-button-block-size: 44px;
+	--stat-nature-button-size: 44px;
+	--stat-number-input-height: 44px;
+	/* 中央の努力値ボタンも増減ボタンと同じ正方形に揃える。 */
+	--stat-number-input-width: var(--stat-ev-mobile-button-block-size);
 	--stat-number-input-padding: 0 2px;
 	/* H: buildStatAdjustmentPanel()(stat-adjustment-panel.ts)が生成するDOMを、
 		育成タブ(LeftPanel.astro)の静的マークアップと同じ構造(ラベルと性格補正
@@ -371,23 +377,23 @@
 		(box-edit-page.cssの.edit-layout-left .stat-adjustment-section)に合わせつつ、
 		このパネルは横幅が狭いため努力値・実数値列だけこのパネル従来の幅を維持する。
 		これによりHP行(性格補正ボタン無し)でもラベルのX位置が他の行とずれない。 */
-	--stat-mobile-row-grid-template-columns: 1.4rem 2.8rem minmax(0, 1fr) 2.6rem;
+	--stat-mobile-row-grid-template-columns: 1.4rem 2.8rem 2rem minmax(0, 1fr) 2.6rem;
 	--stat-mobile-row-gap: var(--space-1);
-	--stat-mobile-input-grid-column: 3;
-	--stat-mobile-real-grid-column: 4;
+	--stat-mobile-input-grid-column: 4;
+	--stat-mobile-real-grid-column: 5;
 	--stat-mobile-real-padding-inline-end: 0;
 }
 
-/* 相手ポケモンタブ内では、各能力値行も操作部と同じ36pxの縦リズムに揃える。 */
+/* 相手ポケモンタブ内では、各能力値行も操作部と同じ44pxの縦リズムに揃える。 */
 #damage-detail-panel-body .stat-adjustment-section .stat-row {
-	min-height: 36px;
+	min-height: 44px;
 }
 
-/* 狭い表示用の3.2em上書きも、相手ポケモンタブ内だけは36pxへ揃える。 */
+/* 狭い表示用の3.2em上書きも、相手ポケモンタブ内だけは44pxへ揃える。 */
 @media (max-width: 460px) {
 	#damage-detail-panel-body .stat-adjustment-section .stat-row .stat-ev-stepper > .number-stepper-value {
-		flex-basis: 36px;
-		width: 36px;
+		flex-basis: 44px;
+		width: 44px;
 	}
 }
 

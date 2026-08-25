@@ -37,7 +37,6 @@ const STAT_LABELS: Array<{ key: StatKey; label: string; short: string }> = [
 
 const EV_MIN = 0;
 const EV_MAX = 32;
-const EV_TOTAL_MAX = 66;
 const LEVEL = 50;
 const IV = 31;
 
@@ -57,8 +56,6 @@ export function buildStatAdjustmentPanel(options: StatAdjustmentPanelOptions): S
 	root.className = "stat-adjustment-section";
 	const table = document.createElement("div");
 	table.className = "stat-table";
-	const remainingRow = document.createElement("div");
-	remainingRow.className = "stat-ev-remaining-row";
 
 	const header = document.createElement("div");
 	header.className = "stat-table-header";
@@ -70,11 +67,10 @@ export function buildStatAdjustmentPanel(options: StatAdjustmentPanelOptions): S
 	natureReadout.setAttribute("aria-label", "性格");
 	natureHeader.appendChild(natureReadout);
 	header.appendChild(natureHeader);
+	header.appendChild(makeSpan("stat-table-header-base-label", "種族値"));
 	header.appendChild(makeSpan("stat-table-header-ev-label", "努力値"));
-	const remaining = makeSpan("ev-remaining tnum");
-	remainingRow.appendChild(remaining);
 	header.appendChild(makeSpan("stat-table-header-real-label", "実数値"));
-	root.append(remainingRow, table);
+	root.appendChild(table);
 	table.appendChild(header);
 
 	const natureButtons = new Map<StatKey, { button: HTMLButtonElement; label: HTMLElement }>();
@@ -82,6 +78,7 @@ export function buildStatAdjustmentPanel(options: StatAdjustmentPanelOptions): S
 	const pickerButtons = new Map<StatKey, HTMLButtonElement>();
 	const pickers = new Map<StatKey, HTMLElement>();
 	const rangeInputs = new Map<StatKey, HTMLInputElement>();
+	const baseValueEls = new Map<StatKey, HTMLElement>();
 	const realValueEls = new Map<StatKey, HTMLElement>();
 
 	function updateSliderProgress(rangeInput: HTMLInputElement): void {
@@ -146,6 +143,10 @@ export function buildStatAdjustmentPanel(options: StatAdjustmentPanelOptions): S
 			natureWrap.appendChild(button);
 		}
 		row.appendChild(natureWrap);
+
+		const baseValue = makeSpan("stat-row-base tnum", "-");
+		baseValueEls.set(key, baseValue);
+		row.appendChild(baseValue);
 
 		const inputControls = document.createElement("div");
 		inputControls.className = "stat-input-controls";
@@ -292,13 +293,6 @@ export function buildStatAdjustmentPanel(options: StatAdjustmentPanelOptions): S
 			else delete controls.label.dataset.mod;
 		}
 
-		const evTotal = STAT_KEYS.reduce((sum, _key, index) => sum + (options.evs[index] ?? 0), 0);
-		const evRemaining = EV_TOTAL_MAX - evTotal;
-		remaining.textContent = `残り${evRemaining}`;
-		if (evRemaining < 0) remaining.dataset.state = "over";
-		else if (evRemaining === 0) remaining.dataset.state = "zero";
-		else delete remaining.dataset.state;
-
 		const natureMod = normalizedNatureBoosts(options.natureUp, options.natureDown);
 		STAT_KEYS.forEach((key, index) => {
 			const ev = options.evs[index] ?? 0;
@@ -316,6 +310,8 @@ export function buildStatAdjustmentPanel(options: StatAdjustmentPanelOptions): S
 				updateSliderProgress(range);
 			}
 			const base = options.baseStats[index];
+			const baseValue = baseValueEls.get(key);
+			if (baseValue) baseValue.textContent = Number.isFinite(base) ? String(base) : "-";
 			const realValue = realValueEls.get(key);
 			if (!realValue) return;
 			if (!Number.isFinite(base)) {

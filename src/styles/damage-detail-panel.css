@@ -40,7 +40,7 @@ body.box-edit-page {
 	--damage-detail-page-background: var(--color-bg); /* 集計欄や候補カードの背景色。変えるとパネル本体との明暗差が変わる */
 	/* モーダル本体より一段明るい操作面。ライト・ダークの両方で入力箇所を
 	   判別しやすくするため、surfaceトークンを使う。 */
-	--damage-detail-control-background: var(--damage-detail-surface-background);
+	--damage-detail-control-background: color-mix(in srgb, var(--damage-detail-surface-background) 60%, var(--damage-detail-page-background) 40%);
 	--damage-detail-primary-soft-color: var(--color-primary-soft); /* 選択中の薄い背景色。濃くすると選択面が目立つ */
 	--damage-detail-danger-soft-color: var(--color-danger-soft); /* 危険判定と攻撃チップの背景色。濃くすると危険側が目立つ */
 	--damage-detail-risky-soft-color: var(--color-risky-soft); /* 注意判定と省略通知の背景色。濃くすると注意領域が目立つ */
@@ -82,7 +82,7 @@ body.box-edit-page {
 	--damage-detail-candidate-applied-padding: calc(var(--space-2) - 1px) calc(var(--space-3) - 1px); /* 太い枠を相殺する余白。大きくすると中身が内側へ寄る */
 	--damage-detail-candidate-segment-gap: 0.4em; /* 候補のラベルと値の間隔。大きくすると両者が離れる */
 	--damage-detail-candidate-item-gap: 0.2em; /* 候補カード内の行間。大きくすると数値や注意書きが離れる */
-	--damage-detail-direction-toggle-margin-bottom: 1px; /* 攻守切り替え下の微調整。大きくすると上へ寄って見える */
+	--damage-detail-direction-toggle-margin-bottom: 0; /* 種族入力欄と同じ外寸に揃える。 */
 	--damage-detail-item-dropdown-button-padding: 0.42em 0.6em; /* 持ち物ボタンの内側余白(育成タブと同値)。大きくするとボタンが大きくなる */
 	--damage-detail-item-dropdown-button-gap: 0.35rem; /* 持ち物ボタンのアイコンと文字の間隔(育成タブと同値)。大きくすると両者が離れる */
 	--damage-detail-item-dropdown-search-padding: 0.35em 0.5em; /* 持ち物候補の絞り込み欄の内側余白(育成タブと同値)。大きくすると入力欄が大きくなる */
@@ -128,6 +128,8 @@ body.box-edit-page {
 		width/transformによるスライドイン・box-shadowは.panel基底が持たない固有の
 		振る舞いのため、無理に.panel基底へ寄せずこのスコープドスタイルに残す。 */
 	.damage-detail-panel {
+		/* 攻防スイッチの未選択面も、モーダル内の他の操作面と揃える。 */
+		--damage-card-direction-background: var(--damage-detail-control-background);
 		position: fixed;
 		top: 50%;
 		left: 50%;
@@ -737,8 +739,18 @@ body.box-edit-page {
 		padding: var(--damage-detail-space-xs) var(--damage-detail-space-xs);
 		white-space: nowrap;
 	}
+	#damage-detail-panel-body .damage-detail-rank-field .number-stepper,
 	#damage-detail-panel-body .damage-detail-rank-stepper {
 		background: var(--damage-detail-control-background);
+	}
+	#damage-detail-panel-body .stat-adjustment-section .number-stepper {
+		background: var(--damage-detail-control-background);
+	}
+	#damage-detail-panel-body .stat-adjustment-section .stat-ev-stepper > .number-stepper-value {
+		background: var(--damage-detail-control-background) !important;
+	}
+	#damage-detail-panel-body .stat-adjustment-section .stat-ev-stepper > .stat-ev-step-button {
+		box-shadow: none;
 	}
 	#damage-detail-panel-body .damage-detail-toggle-row.damage-detail-chip-row {
 		display: grid;
