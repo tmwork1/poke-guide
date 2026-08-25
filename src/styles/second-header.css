@@ -25,7 +25,7 @@
 	/* ── 7. 余白 ──────────────────────────────────────────── */
 	--second-header-padding: var(--space-2) var(--space-3); /* 帯の内側余白。大きくすると検索欄・並べ替えが帯の端から離れる。 */
 	--second-header-gap: var(--space-2); /* 検索欄と並べ替えの間隔。大きくすると両者が離れる。 */
-	--second-header-sort-select-width: 5.75em; /* 「⇅ タイプ」まで収める並べ替えセレクトの幅。 */
+	--second-header-sort-select-width: 7.25em; /* 「図鑑番号順」まで収める並べ替えセレクトの幅。 */
 }
 
 /* ===========================================================================
@@ -70,16 +70,14 @@
 	gap: var(--space-1);
 }
 
-/* 並べ替え項目セレクトは「更新順/番号順/NN順」の短いラベルに絞ったため、
-   虫眼鏡的な並べ替えアイコン(.sort-icon)を置く余白が無い。ここでは非表示にし、
-   幅も選択肢の文字数に合わせて狭める(UI改修依頼)。 */
+/* ボックスの並べ替えは、昇降の切り替えを選択ボックスの左端に収める。 */
 .second-header-sort .sort-icon {
 	display: none;
 }
 
 .second-header-sort #sort-select {
 	width: var(--second-header-sort-select-width);
-	padding-left: var(--space-2);
+	padding-left: 2.4em;
 	padding-right: var(--space-2);
 	text-align: left;
 	background-image: none;
@@ -92,21 +90,21 @@
 	background-image: none;
 }
 
-/* 並べ替えの昇順/降順切り替えボタンは矢印アイコンのみで表示し、
-   「Z→A」等のテキストラベルは隠す(UI改修依頼。aria-labelには向きを残す)。 */
-.second-header-sort .sort-dir-toggle-label {
-	display: none;
-}
-
-/* 昇降切り替えボタンは枠線・背景を持たず、アイコンだけを表示する(UI改修依頼)。 */
-.second-header-sort .sort-dir-toggle {
-	padding: var(--space-1);
-	min-height: 0;
+/* 昇降切り替えは⇅のテキストだけを表示する。selectの上に重ね、選択操作を妨げない。 */
+.second-header-sort .box-sort-select-wrap .sort-dir-toggle {
+	position: absolute;
+	left: var(--space-1);
+	z-index: 1;
+	padding: var(--space-1) var(--space-2);
+	min-height: auto;
 	background: transparent;
 	border: 0;
+	color: var(--color-text-muted);
+	font: inherit;
+	line-height: 1;
 }
 
-.second-header-sort .sort-dir-toggle:hover:not(:disabled) {
+.second-header-sort .box-sort-select-wrap .sort-dir-toggle:hover:not(:disabled) {
 	background: transparent;
 	color: var(--color-primary);
 }

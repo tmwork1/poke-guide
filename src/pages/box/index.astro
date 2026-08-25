@@ -64,24 +64,15 @@ const user = Astro.locals.user;
 						</div>
 
 						<div class="second-header-sort toolbar-item toolbar-sort">
-							<div class="sort-select-wrap" id="sort-select-wrap" data-order="desc">
-								<svg class="sort-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-									<path d="M12 20V4" />
-									<path d="M6 10l6-6 6 6" />
-								</svg>
+							<div class="sort-select-wrap box-sort-select-wrap" id="sort-select-wrap" data-order="desc">
+								<button type="button" class="sort-dir-toggle" id="sort-dir-toggle" data-order="desc" aria-label="並べ替えの向き: 降順">⇅</button>
 								<select id="sort-select" class="field-control" aria-label="並べ替え">
-									<option value="updated_at">⇅ 更新</option>
-									<option value="dex_no">⇅ 番号</option>
-									<option value="type">⇅ タイプ</option>
-									<option value="nickname">⇅ NN</option>
+									<option value="updated_at">更新順</option>
+									<option value="dex_no">図鑑番号順</option>
+									<option value="type">タイプ順</option>
+									<option value="nickname">NN順</option>
 								</select>
 							</div>
-							<button type="button" class="sort-dir-toggle" id="sort-dir-toggle" data-order="desc" aria-label="並べ替えの向き: 降順">
-								<svg class="sort-dir-toggle-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-									<path d="M12 20V4" /><path d="M6 10l6-6 6 6" />
-								</svg>
-								<span class="sort-dir-toggle-label">Z→A</span>
-							</button>
 						</div>
 					</SecondHeader>
 
@@ -205,8 +196,6 @@ const user = Astro.locals.user;
 			const sortSelect = el<HTMLSelectElement>("sort-select");
 			const sortSelectWrap = el<HTMLElement>("sort-select-wrap");
 			const sortDirToggle = el<HTMLButtonElement>("sort-dir-toggle");
-			const sortDirToggleLabel = sortDirToggle.querySelector<HTMLElement>(".sort-dir-toggle-label");
-			if (!sortDirToggleLabel) throw new Error("要素が見つかりません: .sort-dir-toggle-label");
 			const searchInput = el<HTMLInputElement>("search-input");
 			const addButton = el<HTMLButtonElement>("add-pokemon-button");
 			// textContentではなくinnerHTMLで保存する。addButtonは「＋」の大きいアイコンと
@@ -240,7 +229,6 @@ const user = Astro.locals.user;
 				select: sortSelect,
 				selectWrap: sortSelectWrap,
 				directionToggle: sortDirToggle,
-				directionLabel: sortDirToggleLabel,
 				defaultOrders: {
 					updated_at: "desc",
 					dex_no: "asc",

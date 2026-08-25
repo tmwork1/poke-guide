@@ -4,7 +4,7 @@ interface SortDirectionToggleOptions {
 	select: HTMLSelectElement;
 	selectWrap: HTMLElement;
 	directionToggle: HTMLButtonElement;
-	directionLabel: HTMLElement;
+	directionLabel?: HTMLElement;
 	defaultOrders: Readonly<Record<string, SortOrder>>;
 	initialOrder?: SortOrder;
 	onChange: (sortOrder: SortOrder) => void;
@@ -34,7 +34,7 @@ export function initializeSortDirectionToggle({
 		directionToggle.dataset.order = sortOrder;
 		const isAscending = sortOrder === "asc";
 		directionToggle.setAttribute("aria-label", `並べ替えの向き: ${isAscending ? "昇順" : "降順"}`);
-		directionLabel.textContent = isAscending ? "A→Z" : "Z→A";
+		if (directionLabel) directionLabel.textContent = isAscending ? "A→Z" : "Z→A";
 	};
 
 	select.addEventListener("change", () => {
