@@ -99,7 +99,7 @@ export async function getOpggUsagePokemon(
 }
 
 // マニフェストのシーズン一覧を「現在シーズンを先頭に、以降は取得日時の新しい順」に並べる。
-// box/data.astro・data/index.astro・opgg-move-usage.ts で同じ並び順を使う(表示/検索の一貫性のため)。
+// box/data.astro・data/index.astro・api/opgg-usage.ts で同じ並び順を使う(表示/検索の一貫性のため)。
 export function sortOpggSeasons(manifest: OpggUsageSeasonManifest | null): OpggUsageSeason[] {
 	const seasons = manifest?.seasons ?? [];
 	return [...seasons].sort((a, b) => {
@@ -122,17 +122,23 @@ export function resolveOpggSpeciesName(speciesName: string): string {
 	return base?.name ?? speciesName;
 }
 
-// わざ選択モーダルの「人気」列用。種族名から、現在(なければ直近)シーズンの
-// シングルバトル使用わざ一覧を返す。見つからなければnull。
-export async function getOpggMoves(kv: KVNamespace, speciesName: string): Promise<RankedRow[] | null> {
+export type OpggUsageCategory = 'moves' | 'items' | 'abilities';
+
+// わざ/持ち物/特性選択UIの「人気」列用。種族名から、現在(なければ直近)シーズンの
+// シングルバトル使用率一覧(指定カテゴリ)を返す。見つからなければnull。
+export async function getOpggUsageCategory(
+	kv: KVNamespace,
+	speciesName: string,
+	category: OpggUsageCategory,
+): Promise<RankedRow[] | null> {
 	const manifest = await getOpggUsageManifest(kv);
 	const lookupName = resolveOpggSpeciesName(speciesName);
 	for (const season of sortOpggSeasons(manifest)) {
 		const slug = season.pokemon?.find((entry) => entry.name === lookupName)?.slug;
 		if (!slug) continue;
 		const pokemon = await getOpggUsagePokemon(kv, season, slug);
-		const moves = pokemon?.formats?.single?.moves;
-		if (moves && moves.length > 0) return moves;
+		const rows = pokemon?.formats?.single?.[category];
+		if (rows && rows.length > 0) return rows;
 	}
 	return null;
 }

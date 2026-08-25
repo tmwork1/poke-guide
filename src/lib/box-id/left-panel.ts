@@ -362,20 +362,21 @@ async function fetchPopularMovePayload(
 	return undefined;
 }
 
-type OpggMoveUsageResponse = { moves: { name: string; usageRate: number | null }[] };
+type OpggUsageResponse = { options: { name: string; usageRate: number | null }[] };
+type OpggUsageCategory = "moves" | "items" | "abilities";
 
-// バトルデータタブと同じOP.GG使用率データを、わざ選択モーダルの「人気」列にも使う。
-// popular_move系(ランクマ記事抽出由来)よりカバレッジが広いため優先し、
-// OP.GGにデータが無い種族だけ従来のfetchPopularMovePayloadへフォールバックする。
-async function fetchOpggMovePayload(speciesName: string): Promise<SuggestionPayload | undefined> {
+// バトルデータタブと同じOP.GG使用率データを、わざ/持ち物/特性の「人気」表示にも使う。
+// suggestionsテーブル(ランクマ記事抽出由来)よりカバレッジが広いため優先し、
+// OP.GGにデータが無い種族だけ従来のsuggestions取得へフォールバックする。
+async function fetchOpggUsagePayload(speciesName: string, category: OpggUsageCategory): Promise<SuggestionPayload | undefined> {
 	if (!speciesName) return undefined;
 	try {
-		const res = await fetch(`/api/opgg-move-usage?species=${encodeURIComponent(speciesName)}`);
+		const res = await fetch(`/api/opgg-usage?species=${encodeURIComponent(speciesName)}&category=${category}`);
 		if (!res.ok) return undefined;
-		const json = (await res.json()) as OpggMoveUsageResponse;
-		const options: SuggestionOption[] = json.moves
-			.filter((move): move is { name: string; usageRate: number } => move.usageRate != null)
-			.map((move) => ({ value: move.name, count: 0, ratio: move.usageRate / 100 }));
+		const json = (await res.json()) as OpggUsageResponse;
+		const options: SuggestionOption[] = json.options
+			.filter((row): row is { name: string; usageRate: number } => row.usageRate != null)
+			.map((row) => ({ value: row.name, count: 0, ratio: row.usageRate / 100 }));
 		return options.length > 0 ? { sample_size: 0, options } : undefined;
 	} catch {
 		return undefined;
@@ -389,6 +390,7 @@ let lastNatureSuggestion: SuggestionPayload | undefined;
 let lastItemSuggestion: SuggestionPayload | undefined;
 let lastTeraSuggestion: SuggestionPayload | undefined;
 let lastMoveSuggestion: SuggestionPayload | undefined;
+let lastAbilitySuggestion: SuggestionPayload | undefined;
 
 // value(候補のキー)→ratioのMapを使い、(a) 人気の高いものを先頭に、(b) データが無いものは
 // 元の並び順のまま残す、という候補リスト共通の並び替えを行う。Array.prototype.sortは
@@ -478,6 +480,10 @@ let popularBuildSuggestionsToken = 0;
 // setupMovePickerWindow()が自分自身をここへ登録する(ウィンドウ未生成/未オープン時はno-op)。
 let onMoveSuggestionUpdated: (() => void) | null = null;
 
+// 特性のサジェストが更新されたとき、#ability(select)の並びを最新化するためのフック。
+// rebuildAbilityOptionsが自分自身をここへ登録する(species未確定時はno-op)。
+let onAbilitySuggestionUpdated: (() => void) | null = null;
+
 // regulation: 編集中の個体のレギュレーション(#regulation の値。未指定は null)。
 // 種族が変わったときだけでなくレギュレーションが変わったときにも呼び直す必要がある。
 export async function loadPopularBuildSuggestions(
@@ -488,28 +494,32 @@ export async function loadPopularBuildSuggestions(
 	const name = speciesName.trim();
 	const token = ++popularBuildSuggestionsToken;
 	if (!name) {
-		lastNatureSuggestion = lastItemSuggestion = lastTeraSuggestion = lastMoveSuggestion = undefined;
+		lastNatureSuggestion = lastItemSuggestion = lastTeraSuggestion = lastMoveSuggestion = lastAbilitySuggestion = undefined;
 		applyNatureSuggestionOrdering();
 		applyItemSuggestionOrdering();
 		applyTeraSuggestionOrdering();
 		onMoveSuggestionUpdated?.();
+		onAbilitySuggestionUpdated?.();
 		return;
 	}
-	const [nature, item, tera, move] = await Promise.all([
+	const [nature, item, tera, move, ability] = await Promise.all([
 		fetchSuggestionPayload("popular_nature", name, regulation),
-		fetchSuggestionPayload("popular_item", name, regulation),
+		fetchOpggUsagePayload(name, "items").then((payload) => payload ?? fetchSuggestionPayload("popular_item", name, regulation)),
 		fetchSuggestionPayload("popular_tera", name, regulation),
-		fetchOpggMovePayload(name).then((payload) => payload ?? fetchPopularMovePayload(name, regulation, archetype)),
+		fetchOpggUsagePayload(name, "moves").then((payload) => payload ?? fetchPopularMovePayload(name, regulation, archetype)),
+		fetchOpggUsagePayload(name, "abilities"),
 	]);
 	if (token !== popularBuildSuggestionsToken) return; // より新しい呼び出しに追い越された
 	lastNatureSuggestion = nature;
 	lastItemSuggestion = item;
 	lastTeraSuggestion = tera;
 	lastMoveSuggestion = move;
+	lastAbilitySuggestion = ability;
 	applyNatureSuggestionOrdering();
 	applyItemSuggestionOrdering();
 	applyTeraSuggestionOrdering();
 	onMoveSuggestionUpdated?.();
+	onAbilitySuggestionUpdated?.();
 }
 
 let hasBaseStatsForDurabilityIndex = false;
@@ -901,7 +911,11 @@ if (form) {
 		const token = ++abilityRequestToken;
 		const abilitiesMap = await loadAbilitiesMap();
 		if (token !== abilityRequestToken) return; // より新しい呼び出しに追い越された
-		const abilities = name ? abilitiesMap.get(name) ?? [] : [];
+		// OP.GG使用率(lastAbilitySuggestion)の高い順に並べる。データが無い特性は元の順のまま残る。
+		const abilityRatioMap = new Map((lastAbilitySuggestion?.options ?? []).map((o) => [o.value, o.ratio] as const));
+		const abilities = name
+			? [...(abilitiesMap.get(name) ?? [])].sort((a, b) => suggestionCompare(abilityRatioMap, a, b))
+			: [];
 		const previousValue = abilitySelectEl.value;
 		abilitySelectEl.innerHTML = "";
 		if (abilities.length === 0) {
@@ -929,6 +943,10 @@ if (form) {
 	abilitySelectEl.addEventListener("change", () => {
 		abilitySelectEl.title = abilitySelectEl.value;
 	});
+	// OP.GG使用率サジェストがrebuildAbilityOptionsより後に届いた場合に、並び順を最新化する。
+	onAbilitySuggestionUpdated = () => {
+		void rebuildAbilityOptions(speciesInput.value.trim());
+	};
 	const megaStoneLockedTitle = "メガシンカ中はアイテムをメガストーンに固定します";
 	function setItemLocked(locked: boolean): void {
 		itemDropdownButton.disabled = locked;
@@ -1149,7 +1167,6 @@ if (form) {
 	})();
 	function buildPayload() {
 		return {
-			nickname: el<HTMLInputElement>("nickname").value.trim(),
 			species_name: speciesInput.value.trim(),
 			level: preservedLevel,
 			nature: currentLeftNature(),
@@ -1274,7 +1291,7 @@ if (form) {
 		void saveNow();
 	});
 
-	const textInputIds = ["nickname", "species-name", "item", "memo", ...STAT_KEYS.map((k) => `ev-${k}`), "move-1", "move-2", "move-3", "move-4"];
+	const textInputIds = ["species-name", "item", "memo", ...STAT_KEYS.map((k) => `ev-${k}`), "move-1", "move-2", "move-3", "move-4"];
 	for (const id of textInputIds) {
 		const target = document.getElementById(id);
 		if (!target) continue;
