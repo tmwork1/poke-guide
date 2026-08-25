@@ -9,6 +9,7 @@ import { getSupabaseAdminClient } from '../../lib/supabase';
 import { hasSingleBattleData } from '../../lib/battle-data-card';
 import { getOpggUsageManifest, getOpggUsagePokemon, type OpggUsageSeason } from '../../lib/opgg-usage';
 import { env } from 'cloudflare:workers';
+import pokemonMasterRaw from '../../../public/master-data/autocomplete/pokemon.json';
 import '../../styles/data-page.css';
 import '../../styles/battle-data-card.css';
 
@@ -18,6 +19,18 @@ const result = user && selectedId
   ? await getOwnedPokemon(user.id, selectedId, await getSupabaseAdminClient())
   : null;
 const pokemon = result?.ok ? result.data : null;
+
+// OP.GGの使用率データはメガシンカ前のベースフォルムでしか集計されない
+// (メガシンカは対戦中の行動でチーム編成の選択肢ではないため)。
+// 個体の種族名がメガフォルムの場合は、同じdexNoのベースフォルム(forme: null)名で検索する。
+const masterList = pokemonMasterRaw as Array<{ name: string; dexNo: number; forme: string | null }>;
+function opggLookupName(speciesName: string): string {
+  const entry = masterList.find((item) => item.name === speciesName);
+  if (!entry?.forme?.startsWith('Mega')) return speciesName;
+  const base = masterList.find((item) => item.dexNo === entry.dexNo && item.forme === null);
+  return base?.name ?? speciesName;
+}
+const lookupName = pokemon ? opggLookupName(pokemon.species_name) : null;
 const seasonManifest = await getOpggUsageManifest(env.OPGG_USAGE);
 const manifestSeasons = [...(seasonManifest?.seasons ?? [])].sort((a, b) => {
 	const currentSeasonId = seasonManifest?.currentSeasonId;
@@ -28,17 +41,17 @@ const manifestSeasons = [...(seasonManifest?.seasons ?? [])].sort((a, b) => {
   return String(b.fetchedAt ?? '').localeCompare(String(a.fetchedAt ?? ''));
 });
 // ボックスはマニフェストの小さな名称→slug索引で選択中の1体だけを読む。
-const seasonPokemon = pokemon
+const seasonPokemon = pokemon && lookupName
   ? await Promise.all(manifestSeasons.map(async (entry) => {
       const season = entry as OpggUsageSeason;
-      const slug = season.pokemon?.find((entry) => entry.name === pokemon.species_name)?.slug;
+      const slug = season.pokemon?.find((entry) => entry.name === lookupName)?.slug;
       return {
         season,
         data: slug ? await getOpggUsagePokemon(env.OPGG_USAGE, season, slug) : null,
       };
     }))
   : [];
-const selected = seasonPokemon.find(({ data }) => data?.name === pokemon?.species_name && hasSingleBattleData(data));
+const selected = seasonPokemon.find(({ data }) => data?.name === lookupName && hasSingleBattleData(data));
 const season = selected?.season.id ?? null;
 const opgg = selected?.data ?? null;
 const single = opgg?.formats?.single;
