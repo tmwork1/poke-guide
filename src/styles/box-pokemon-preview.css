@@ -256,16 +256,52 @@
   position: absolute;
   bottom: var(--pokemon-preview-sprite-bottom-gap);
   left: 50%;
-  z-index: 0;
+  /* 右側カラムの透明な領域にタップを奪われないよう、切替も含めて前面に置く。 */
+  z-index: 2;
   display: flex;
   align-items: center;
   justify-content: center;
   width: var(--pokemon-preview-sprite-size);
   height: var(--pokemon-preview-sprite-size);
-  pointer-events: none;
+  pointer-events: auto;
   background: transparent;
   border: 0;
   transform: translateX(-50%);
+}
+
+/* メガ前後をプレビューだけで見比べるための小さな切替ボタン。 */
+.pokemon-preview-mega-toggle {
+  position: absolute;
+  right: -3.4rem;
+  bottom: 0;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.05rem;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  color: var(--color-text);
+  font-size: 1.44rem;
+  line-height: 1;
+  cursor: pointer;
+  touch-action: manipulation;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.pokemon-preview-mega-toggle img {
+  display: block;
+  width: 2.7rem;
+  height: 2.7rem;
+  object-fit: contain;
+}
+
+.pokemon-preview-mega-toggle:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 #pokemon-preview-species-sprite {

@@ -48,7 +48,7 @@ const previewStats = detail ? statKeys.map((key, index) => index === 0 ? calcHpS
     </div>
   </AppHeader>
 
-  <section class="pokemon-preview" aria-label="ポケモンプレビュー" data-species-name={pokemon.species_name}>
+  <section class="pokemon-preview" aria-label="ポケモンプレビュー" data-species-name={pokemon.species_name} data-item-name={pokemon.item_name ?? ''}>
     <div class="pokemon-preview-main">
     <div class="pokemon-preview-left">
       <div class="pokemon-preview-details">
@@ -97,45 +97,7 @@ const previewStats = detail ? statKeys.map((key, index) => index === 0 ? calcHpS
 
 <script>
   import '../../lib/box-id/mobile-edit-tabs';
-  import { loadTypesMap } from '../../lib/pokemon-master-data';
-  import { typeIconUrl } from '../../lib/sprite-urls';
-  import { DEFAULT_TYPE_COLOR, TYPE_COLOR_CSS_VARIABLES } from '../../lib/type-colors';
+  import { setupMegaPreviewToggle } from '../../lib/box-id/mega-preview-toggle';
 
-  const pokemonPreview = document.querySelector<HTMLElement>('.pokemon-preview');
-  const speciesName = pokemonPreview?.dataset.speciesName;
-  const pokemonPreviewMain = pokemonPreview?.querySelector<HTMLElement>('.pokemon-preview-main');
-  const pokemonPreviewTypeIcons = pokemonPreview?.querySelector<HTMLElement>('.pokemon-preview-type-icons');
-
-  if (pokemonPreviewMain && speciesName) {
-    loadTypesMap()
-      .then((typesMap) => {
-        const types = typesMap.get(speciesName);
-        if (!types || types.length === 0) return;
-
-        const toMixedColor = (typeName: string): string => {
-          const color = TYPE_COLOR_CSS_VARIABLES[typeName] ?? DEFAULT_TYPE_COLOR;
-          return `color-mix(in srgb, ${color} 26%, var(--color-bg))`;
-        };
-
-        const mainBackground =
-          types.length >= 2
-            ? `linear-gradient(to right, ${toMixedColor(types[0])}, ${toMixedColor(types[1])})`
-            : toMixedColor(types[0]);
-        pokemonPreviewMain.style.background = mainBackground;
-        if (pokemonPreviewTypeIcons) {
-          pokemonPreviewTypeIcons.replaceChildren(
-            ...types.map((typeName) => {
-              const icon = document.createElement('img');
-              icon.src = typeIconUrl(typeName) ?? '';
-              icon.alt = typeName;
-              icon.title = typeName;
-              return icon;
-            }),
-          );
-        }
-      })
-      .catch((error) => {
-        console.warn('ポケモンプレビューのタイプ色取得に失敗しました', error);
-      });
-  }
+  setupMegaPreviewToggle();
 </script>
