@@ -121,6 +121,7 @@ body.box-edit-page {
   width: var(--move-picker-close-box-size);
   height: var(--move-picker-close-box-size);
   min-height: 0;
+  margin-right: calc(var(--modal-close-margin) - var(--modal-header-padding-x)); /* ヘッダー右端との余白を上下と揃える(モーダルヘッダー規格・global.css)。 */
   border: none;
   border-radius: var(--radius-sm);
   background: transparent;

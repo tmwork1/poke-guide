@@ -47,6 +47,7 @@ body.speed-chart-page {
 }
 .speed-chart-embed-close {
 	margin-left: auto;
+	margin-right: calc(var(--space-3) - var(--space-4)); /* 操作バーの上下余白(space-3)に右余白を揃える(モーダルヘッダー規格・global.css)。 */
 	align-self: center;
 	min-width: var(--modal-close-size);
 	min-height: var(--modal-close-size);
@@ -81,6 +82,7 @@ body.speed-chart-page {
 		position: absolute;
 		top: var(--space-2);
 		right: var(--space-2);
+		margin-right: 0; /* デスクトップ用の右余白調整を打ち消し、絶対配置のtop/rightだけで揃える */
 	}
 }
 

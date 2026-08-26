@@ -132,6 +132,7 @@ body.box-edit-page {
 		min-width: var(--bulk-adjust-dialog-close-size);
 		min-height: var(--bulk-adjust-dialog-close-size);
 		padding: 0.1em 0.45em;
+		margin-right: calc(var(--modal-close-margin) - var(--modal-header-padding-x)); /* ヘッダー右端との余白を上下と揃える(モーダルヘッダー規格・global.css)。 */
 		font-size: var(--bulk-adjust-close-font-size);
 		line-height: 1;
 	}
