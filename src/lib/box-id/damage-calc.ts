@@ -2133,12 +2133,14 @@ if (opponentNotesSection) {
 
 	// 新規カード・新規列と、空欄のまま攻守を切り替えた列だけ候補先頭を初期値にする。
 	// 復元処理では呼ばないため、保存済みの空欄を勝手に書き換えない。
-	function fillFirstMoveCandidate(row: DamageRowState, column: DamageColumnState): void {
-		if (column.moveName.trim() !== "") return;
+	function fillFirstMoveCandidate(row: DamageRowState, column: DamageColumnState, overwrite = false, candidateIndex = 0): void {
+		if (!overwrite && column.moveName.trim() !== "") return;
 		const list = row.direction === "defense"
 			? (refreshOpponentPopularityMoveDatalist(row.name), ensureOpponentPopularityMoveDatalist())
 			: (refreshSelfFirstMoveDatalist(), ensureSelfFirstMoveDatalist());
-		column.moveName = list.options[0]?.value ?? "";
+		// 複数のわざ列がある場合は、1列目=候補1位、2列目=候補2位…とする。
+		// 候補数が足りないときだけ先頭へフォールバックする。
+		column.moveName = list.options[candidateIndex]?.value ?? list.options[0]?.value ?? "";
 	}
 
 	// 技列(加算条件)を1つ追加する処理を共通関数にまとめる。
@@ -2671,20 +2673,77 @@ if (opponentNotesSection) {
 
 		const nameInput = document.createElement("input");
 		nameInput.type = "text";
-		nameInput.setAttribute("list", "pokemon-list");
 		nameInput.placeholder = "相手ポケモン";
 		nameInput.setAttribute("aria-label", "相手ポケモン名");
 		nameInput.autocomplete = "off";
 		nameInput.value = row.name;
-		// 相手側の動的入力にも左パネルと同じIME安全なdatalist補助を適用する。
-		attachKanaTypeAhead(nameInput, el<HTMLDataListElement>("pokemon-list"));
-		const nameField = makeDetailField("種族名", nameInput, true);
+		nameInput.setAttribute("aria-haspopup", "listbox");
+		nameInput.setAttribute("aria-expanded", "false");
+		const nameComboWrap = document.createElement("div");
+		nameComboWrap.className = "damage-build-detail-name-combo";
+		const nameDropdownList = document.createElement("ul");
+		nameDropdownList.className = "damage-build-detail-name-dropdown-list";
+		nameDropdownList.setAttribute("role", "listbox");
+		nameDropdownList.hidden = true;
+		nameComboWrap.append(nameInput, nameDropdownList);
+		const nameField = makeDetailField("種族名", nameComboWrap, true);
 		nameField.classList.add("damage-build-detail-name-field");
 		detailIdentityRow.appendChild(nameField);
 		nameInput.addEventListener("keydown", (event) => {
 			if (event.key !== "Enter") return;
 			event.preventDefault();
 			nameInput.blur();
+		});
+		const opponentNames = Array.from(el<HTMLDataListElement>("pokemon-list").options).map((option) => option.value);
+		function closeNameDropdown(): void {
+			nameDropdownList.hidden = true;
+			nameInput.setAttribute("aria-expanded", "false");
+		}
+		function renderNameDropdown(): void {
+			const query = nameInput.value.trim();
+			const candidates = [...opponentNames]
+				.sort((a, b) => {
+					const rank = (name: string): number => query === "" ? 0 : name === query ? 0 : name.startsWith(query) ? 1 : kanaIncludes(name, query) ? 2 : 3;
+					return rank(a) - rank(b);
+				});
+			// フィルタに一致しない候補も採用率順のまま表示する。件数で
+			// 打ち切ると、残りの候補を選べないためスクロール領域へ全件載せる。
+			nameDropdownList.replaceChildren();
+			const fragment = document.createDocumentFragment();
+			for (const candidateName of candidates) {
+				const option = document.createElement("li");
+				option.className = "damage-build-detail-name-dropdown-option";
+				option.setAttribute("role", "option");
+				option.setAttribute("aria-label", candidateName);
+				const icon = document.createElement("img");
+				icon.className = "damage-build-detail-name-dropdown-option-icon";
+				icon.alt = "";
+				const fallback = document.createElement("span");
+				fallback.className = "damage-build-detail-name-dropdown-option-fallback";
+				fallback.setAttribute("aria-hidden", "true");
+				void applySprite(icon, fallback, candidateName);
+				const text = document.createElement("span");
+				text.className = "damage-build-detail-name-dropdown-option-text";
+				text.textContent = candidateName;
+				option.append(icon, fallback, text);
+				option.addEventListener("mousedown", (event) => event.preventDefault());
+				option.addEventListener("click", (event) => {
+					event.stopPropagation();
+					nameInput.value = candidateName;
+					nameInput.dispatchEvent(new Event("input", { bubbles: true }));
+					nameInput.dispatchEvent(new Event("change", { bubbles: true }));
+					closeNameDropdown();
+				});
+				fragment.appendChild(option);
+			}
+			nameDropdownList.appendChild(fragment);
+			nameDropdownList.hidden = false;
+			nameInput.setAttribute("aria-expanded", "true");
+		}
+		nameInput.addEventListener("focus", renderNameDropdown);
+		nameInput.addEventListener("input", renderNameDropdown);
+		document.addEventListener("click", (event) => {
+			if (!nameComboWrap.contains(event.target as Node)) closeNameDropdown();
 		});
 
 		// モバイル専用UIでも相手ポケモンはドット絵で統一する。
@@ -2730,6 +2789,9 @@ if (opponentNotesSection) {
 		// 非空なら何もしない)の判定に、プリセットで設定した値がそのまま使われる
 		// (=プリセットの特性/持ち物が、既存の自動候補選定で上書きされない)。
 		nameInput.addEventListener("change", () => {
+			row.name = nameInput.value.trim();
+			refreshSprite();
+			onFieldInput();
 			void rebuildRowAbilityOptions(nameInput.value.trim()).then(() => {
 				// ユーザーの種族確定に伴うJS側の特性フォールバックも自動入力対象。
 				notifyDetailAbilityChanged(row, row.abilityName);
@@ -2772,10 +2834,10 @@ if (opponentNotesSection) {
 			detailDefenseOption.setAttribute("aria-label", `防御。${defenseDetail}`);
 		}
 		function setDirection(next: "attack" | "defense"): void {
-			if (row.direction === next) return;
 			row.direction = next;
-			// ユーザー入力済みの技は保ち、空欄だけ切替後の候補で補う。
-			for (const column of row.attacks) fillFirstMoveCandidate(row, column);
+			// 攻守を選ぶたびに、選択した攻撃側の先頭の攻撃技を初期値として反映する。
+			// 攻撃は自分の1つ目の攻撃技、防御は相手の採用率1位の攻撃技になる。
+			row.attacks.forEach((column, index) => fillFirstMoveCandidate(row, column, true, index));
 			refreshDirectionUi();
 			// 技列のplaceholder/aria-label(「技」⇄「相手の技」)も向きで変わるため作り直す。
 			// renderColumns()自身が末尾でselectedRow===rowなら
@@ -2786,8 +2848,8 @@ if (opponentNotesSection) {
 		}
 		// カード上のattackOption/defenseOptionは状態表示専用(クリックによる攻守反転は廃止)。
 		// 向きの変更は詳細設定パネル側のdetailAttackOption/detailDefenseOptionのみで行う。
-		detailAttackOption.addEventListener("click", () => setDirection(row.direction === "defense" ? "attack" : "defense"));
-		detailDefenseOption.addEventListener("click", () => setDirection(row.direction === "defense" ? "attack" : "defense"));
+		detailAttackOption.addEventListener("click", () => setDirection("attack"));
+		detailDefenseOption.addEventListener("click", () => setDirection("defense"));
 
 		const selectsRow = document.createElement("div");
 		selectsRow.className = "damage-build-detail-grid";
@@ -2908,6 +2970,13 @@ if (opponentNotesSection) {
 		});
 		const itemField = makeDetailField("アイテム", itemDropdown.wrap, true);
 		selectsRow.appendChild(itemField);
+		const teraDropdown = buildTeraDropdown(row.teraType, "相手のテラスタイプ", (value) => {
+			row.teraType = value;
+			onFieldInput();
+		});
+		const teraField = makeDetailField("テラスタル", teraDropdown.wrap, true);
+		teraField.classList.add("damage-build-detail-tera-field");
+		selectsRow.appendChild(teraField);
 
 		const megaStoneLockedTitle = "メガシンカ中はアイテムをメガストーンに固定します";
 		let rowMegaStoneAutofillToken = 0;
@@ -2934,6 +3003,7 @@ if (opponentNotesSection) {
 			// inputイベントを発火させず直接書き換えたので、ボタンのアイコン・表示名を手動で追随させる
 			// (左パネルのapplyLeftMegaStoneAutofillが updateItemImage() 等を手動で呼ぶのと同じ考え方)。
 			itemDropdown.refreshDisplay();
+			teraDropdown.setValue(row.teraType);
 			onFieldInput();
 			flashAutofillHint(itemInput, () => {
 				itemInput.title = megaStoneLockedTitle;
@@ -3308,6 +3378,9 @@ if (opponentNotesSection) {
 		rows.push(row);
 		rebuildRowsList();
 		row.root?.querySelector<HTMLInputElement>('input[aria-label="相手ポケモン名"]')?.focus();
+		// 追加ボタンのclickがdocumentまで伝播すると、カード外クリックとして選択解除される。
+		// その後に選択して、新しいカードの設定パネル(モバイルではモーダル)を開く。
+		queueMicrotask(() => selectBuild(row));
 	}
 
 	function addSuggestedRow(suggestion: DamageCalcSuggestion): void {

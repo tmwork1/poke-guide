@@ -1066,7 +1066,10 @@ export function buildSideSection(
 	const heading2 = document.createElement("p");
 	heading2.className = "damage-detail-section-heading";
 // 色だけに意味を依存させない。
-	heading2.append(document.createTextNode(title));
+	const sideBadge = document.createElement("span");
+	sideBadge.className = "damage-detail-side-badge";
+	sideBadge.textContent = ariaSideLabel.includes("自分") ? "自分" : "相手";
+	heading2.append(document.createTextNode(title), sideBadge);
 	headingRow.appendChild(heading2);
 
 	const rankField = document.createElement("div");
@@ -1261,7 +1264,39 @@ export function buildSideSection(
 			teraDropdown.wrap.title =
 				"この技カードだけの仮のテラスタイプです(育成タブで確定した本来のテラスタイプを上書きして試せます)";
 		}
+		// テラスタイプは相手ポケモンタブ(相手)または育成タブ(自分)で指定する。
+		// わざタブでは発動のON/OFFだけを操作する。
+		teraDropdown.wrap.hidden = true;
 		teraRow.appendChild(teraDropdown.wrap);
+		const hasTeraType = teraTypeValue.trim() !== "";
+		let teraActive = hasTeraType && terastallized;
+		const teraToggle = document.createElement("button");
+		teraToggle.type = "button";
+		teraToggle.className = "damage-detail-tera-toggle";
+		const teraIcon = document.createElement("img");
+		teraIcon.src = "https://img.gamewith.jp/article_tools/pokemon-sv/gacha/map_icon_terra2.png";
+		teraIcon.alt = "";
+		teraToggle.appendChild(teraIcon);
+		const syncTeraToggle = (): void => {
+			teraToggle.classList.toggle("is-active", teraActive);
+			teraToggle.setAttribute("aria-pressed", String(teraActive));
+			teraToggle.disabled = !hasTeraType;
+			teraToggle.setAttribute("aria-label", hasTeraType
+				? `${ariaSideLabel}のテラスタル: ${teraActive ? "ON" : "OFF"}`
+				: `${ariaSideLabel}のテラスタル: テラスタイプを設定してください`);
+			teraToggle.title = hasTeraType ? "テラスタルをON/OFFする" : "テラスタイプを設定するとONにできます";
+		};
+		syncTeraToggle();
+		teraToggle.addEventListener("click", () => {
+			if (!hasTeraType) return;
+			teraActive = !teraActive;
+			syncTeraToggle();
+			onTeraChange(teraActive);
+			scheduleRowCalc(row);
+			scheduleRowSave(row);
+			refreshRowConditionChips(row);
+		});
+		teraRow.appendChild(teraToggle);
 	} else {
 		teraRow.hidden = true;
 	}
@@ -1342,13 +1377,15 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 	detailPanelBodyEl.scrollTop = 0;
 
 
-	// D: 急所固定は、このアプリの標準チェックボックス(global.cssのinput[type="checkbox"])
-	// +ラベルに変更した(旧: ピル型トグルボタン)。
+	// 急所固定は、アプリ共通のトグルスイッチ規格を使う。
 	function buildCriticalField(): { field: HTMLLabelElement; checkbox: HTMLInputElement } {
 		const field = document.createElement("label");
 		field.className = "damage-detail-critical-field";
+		const switchWrap = document.createElement("span");
+		switchWrap.className = "toggle-switch";
 		const checkbox = document.createElement("input");
 		checkbox.type = "checkbox";
+		checkbox.className = "toggle-switch-input";
 		checkbox.checked = column.critical;
 		const title = "急所固定で計算する(攻撃側だけの設定です)";
 		checkbox.title = title;
@@ -1358,9 +1395,16 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 			autoInputLocks.set(column, { ...autoInputLocks.get(column), critical: true });
 			applyToColumnField(() => { column.critical = pressed; });
 		});
+		const track = document.createElement("span");
+		track.className = "toggle-switch-track";
+		track.setAttribute("aria-hidden", "true");
+		const thumb = document.createElement("span");
+		thumb.className = "toggle-switch-thumb";
+		track.appendChild(thumb);
+		switchWrap.append(checkbox, track);
 		const text = document.createElement("span");
 		text.textContent = "急所";
-		field.append(checkbox, text);
+		field.append(switchWrap, text);
 		return { field, checkbox };
 	}
 	setSlideDetailPanelTitle(row, idx + 1);

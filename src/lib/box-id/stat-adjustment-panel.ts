@@ -247,6 +247,9 @@ export function buildStatAdjustmentPanel(options: StatAdjustmentPanelOptions): S
 		picker.addEventListener("click", (event) => {
 			const option = (event.target as Element).closest<HTMLButtonElement>("[data-ev-value]");
 			if (!option) return;
+			// リストはbodyへ一時的に移動するため、このクリックが詳細モーダル外の
+			// クリックとして扱われないようにする。
+			event.stopPropagation();
 			setEv(index, Number(option.dataset.evValue) || 0);
 			closePicker();
 			pickerButton.focus();

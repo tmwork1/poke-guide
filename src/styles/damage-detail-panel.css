@@ -354,7 +354,7 @@ body.box-edit-page {
 		justify-content: center;
 		align-items: baseline;
 		/* 確定数・致死率・ダメージを独立して読み取れる間隔にする。 */
-		gap: var(--damage-detail-space-md);
+		gap: var(--damage-detail-space-sm);
 		min-width: 0;
 		margin: 0;
 		font-size: var(--damage-card-move-font-size);
@@ -616,6 +616,13 @@ body.box-edit-page {
 		grid-template-columns: repeat(2, minmax(0, 1fr));
 		gap: var(--damage-detail-space-md);
 	}
+	#damage-detail-panel-body .damage-build-detail-fields {
+		/* 攻防・種族名からテラスタルまでの各行を密にそろえる。 */
+		row-gap: var(--damage-detail-space-xs);
+	}
+	#damage-detail-panel-body .damage-build-detail-grid {
+		row-gap: var(--damage-detail-space-xs);
+	}
 	#damage-detail-panel-body .damage-build-detail-identity-row {
 		/* B: テラスタイプ欄を「わざ」タブへ移設したため、このグリッドは
 			攻守トグル+種族名入力の2列になった(以前は3列)。 */
@@ -644,7 +651,12 @@ body.box-edit-page {
 		white-space: nowrap;
 	}
 	#damage-detail-panel-body .damage-build-detail-grid {
+		/* 内側で特性・アイテムを2列に分けるため、親グリッドでは全幅を使う。 */
 		grid-column: 1 / -1;
+	}
+	#damage-detail-panel-body .damage-build-detail-tera-field {
+		/* 特性と同様に、2列グリッドの左半分へ置く。 */
+		grid-column: auto;
 	}
 	#damage-detail-panel-body .damage-build-detail-field {
 		min-width: 0;
@@ -686,9 +698,9 @@ body.box-edit-page {
 		}
 	}
 	#damage-detail-panel-body .damage-detail-rank-ailment-row {
-		/* ランクと状態異常を2列にし、テラスタイプは次行いっぱいに配置する。 */
+		/* 状態異常の直後へテラスタルを置き、余白は右端へ逃がす。 */
 		display: grid;
-		grid-template-columns: repeat(2, minmax(0, 1fr));
+		grid-template-columns: auto auto minmax(0, 1fr);
 		align-items: center;
 		gap: var(--damage-detail-space-sm);
 		margin-bottom: var(--damage-detail-space-sm);
@@ -699,10 +711,10 @@ body.box-edit-page {
 	}
 	#damage-detail-panel-body .damage-detail-rank-field .damage-detail-rank-input {
 		box-sizing: border-box;
-		width: 36px;
-		min-width: 36px;
-		height: 36px;
-		min-height: 36px;
+		width: 40px;
+		min-width: 40px;
+		height: 40px;
+		min-height: 40px;
 		padding: 0;
 		field-sizing: fixed;
 	}
@@ -714,10 +726,56 @@ body.box-edit-page {
 		justify-self: start;
 	}
 	#damage-detail-panel-body .damage-detail-rank-ailment-row .damage-detail-tera-row {
-		grid-column: 1 / 2;
 		margin-bottom: 0;
-		width: 100%;
 		justify-self: start;
+	}
+	#damage-detail-panel-body .damage-detail-tera-toggle {
+		inline-size: 40px;
+		block-size: 40px;
+		padding: 3px;
+		border: 0;
+		border-radius: 50%;
+		background: transparent;
+		cursor: pointer;
+	}
+	#damage-detail-panel-body .damage-detail-tera-toggle img {
+		display: block;
+		inline-size: 80%;
+		block-size: 80%;
+		margin: 10%;
+		object-fit: contain;
+		filter: grayscale(1) opacity(0.45);
+		transition: filter 0.15s ease, transform 0.15s ease;
+	}
+	#damage-detail-panel-body .damage-detail-tera-toggle.is-active img {
+		/* ボタン背景ではなく、透過画像の輪郭だけを発光させる。 */
+		filter: saturate(1.35) drop-shadow(0 0 3px var(--color-primary)) drop-shadow(0 0 7px color-mix(in srgb, var(--color-primary) 75%, transparent));
+	}
+	#damage-detail-panel-body .damage-detail-tera-toggle[aria-pressed="true"] {
+		background: transparent;
+	}
+	#damage-detail-panel-body .damage-detail-tera-toggle:disabled {
+		cursor: not-allowed;
+		opacity: 0.55;
+	}
+	#damage-detail-panel-body .damage-detail-tera-toggle:focus-visible {
+		outline: var(--damage-detail-focus-outline);
+		outline-offset: 2px;
+	}
+	/* 攻撃側・防御側の見出しに添える所属表示。見出しより控えめにする。 */
+	#damage-detail-panel-body .damage-detail-section-heading .damage-detail-side-badge {
+		display: inline-flex;
+		align-items: center;
+		min-height: 1.25rem;
+		margin-left: var(--damage-detail-space-xs);
+		padding: 0 var(--damage-detail-space-xs);
+		border: 1px solid color-mix(in srgb, var(--color-text-muted) 24%, transparent);
+		border-radius: 999px;
+		background: color-mix(in srgb, var(--color-text-muted) 8%, transparent);
+		color: var(--color-text-muted);
+		font-size: var(--damage-detail-font-size-xs);
+		font-weight: var(--damage-detail-font-weight-semibold);
+		line-height: 1;
 	}
 	#damage-detail-panel-body .damage-detail-chip-row.damage-detail-state-grid {
 		display: grid;
@@ -731,6 +789,8 @@ body.box-edit-page {
 	#damage-detail-panel-body .damage-detail-state-grid > .damage-detail-icon-btn {
 		width: 100%;
 		min-width: 0;
+		height: 30px;
+		min-height: 30px;
 		/* C-3: 「やどりぎのタネ」のような長いラベルが3列グリッド内で折り返さないよう、
 			文字サイズと内側paddingをこのグリッドの中だけ詰める(is-text-onlyの
 			font-size-sm1・text-button-paddingはbox-damage-card.css側の他の用途と共通のため、
@@ -761,10 +821,13 @@ body.box-edit-page {
 	#damage-detail-panel-body .damage-detail-toggle-row.damage-detail-chip-row > .damage-detail-spikes-select {
 		width: 100%;
 		min-width: 0;
+		height: 30px;
+		min-height: 30px;
 	}
 	#damage-detail-panel-body .damage-detail-toggle-row.damage-detail-chip-row > .damage-detail-icon-btn,
 	#damage-detail-panel-body .damage-detail-toggle-row.damage-detail-chip-row > .damage-detail-spikes-select {
 		font-size: var(--damage-detail-font-size-xs);
+		font-weight: var(--damage-detail-font-weight-semibold);
 	}
 	#damage-detail-panel-body .damage-detail-move-controls {
 		display: grid;
@@ -798,8 +861,8 @@ body.box-edit-page {
 	#damage-detail-panel-body {
 		--damage-detail-icon-button-background: var(--damage-detail-control-background);
 		--damage-card-dropdown-background: var(--damage-detail-control-background);
-		--damage-detail-control-min-height: 36px;
-		--damage-detail-rank-stepper-size: 36px;
+		--damage-detail-control-min-height: 40px;
+		--damage-detail-rank-stepper-size: 40px;
 	}
 	#damage-detail-panel-body .damage-detail-icon-btn,
 	#damage-detail-panel-body .damage-detail-move-input,
@@ -807,7 +870,7 @@ body.box-edit-page {
 	#damage-detail-panel-body .damage-detail-ailment-select,
 	#damage-detail-panel-body .damage-detail-spikes-select {
 		box-sizing: border-box;
-		min-height: 36px;
+		min-height: var(--damage-detail-control-min-height);
 		background: var(--damage-detail-control-background);
 	}
 	#damage-detail-panel-body .damage-build-detail-form input.is-autofilled {
@@ -957,7 +1020,8 @@ body.box-edit-page {
 	}
 	#damage-detail-panel-body .tera-dropdown-button {
 		width: 100%;
-		min-height: 36px;
+		height: var(--damage-detail-control-min-height);
+		min-height: var(--damage-detail-control-min-height);
 		display: flex;
 		align-items: center;
 		justify-content: flex-start;
@@ -1089,6 +1153,7 @@ body.box-edit-page {
 	}
 	#damage-detail-panel-body .damage-detail-toggle-row.damage-detail-chip-row > .damage-detail-spikes-select {
 		font-size: var(--damage-detail-font-size-xs);
+		font-weight: var(--damage-detail-font-weight-semibold);
 		text-align: center;
 		text-align-last: center;
 	}
@@ -1098,3 +1163,24 @@ body.box-edit-page {
 	#damage-detail-panel-body .damage-build-detail-stats-heading {
 		margin: 0 0 var(--damage-detail-space-sm);
 	}
+	#damage-detail-panel-body .damage-build-detail-name-combo { position: relative; width: 100%; }
+	#damage-detail-panel-body .damage-build-detail-name-combo > input { width: 100%; }
+	#damage-detail-panel-body .damage-build-detail-name-dropdown-list {
+		position: absolute; z-index: 6; top: calc(100% + var(--damage-detail-space-xs)); left: 0; right: 0;
+		max-height: 15rem; margin: 0; padding: var(--damage-detail-space-xs); overflow-y: auto; list-style: none;
+		background: var(--damage-detail-surface-background); border: var(--damage-detail-tera-list-border);
+		border-radius: var(--damage-detail-radius-sm); box-shadow: var(--damage-detail-shadow-md);
+	}
+	#damage-detail-panel-body .damage-build-detail-name-dropdown-list[hidden] { display: none; }
+	#damage-detail-panel-body .damage-build-detail-name-dropdown-option {
+		display: flex; align-items: center; gap: var(--damage-detail-space-sm); min-height: 2.35rem;
+		padding: var(--damage-detail-space-xs) var(--damage-detail-space-sm); border-radius: var(--damage-detail-radius-sm); cursor: pointer;
+	}
+	#damage-detail-panel-body .damage-build-detail-name-dropdown-option:hover { background: var(--damage-detail-primary-soft-color); }
+	#damage-detail-panel-body .damage-build-detail-name-dropdown-option-icon,
+	#damage-detail-panel-body .damage-build-detail-name-dropdown-option-fallback { width: 28px; height: 28px; flex: none; object-fit: contain; }
+	#damage-detail-panel-body .damage-build-detail-name-dropdown-option-fallback {
+		display: none; align-items: center; justify-content: center; border-radius: 50%; background: var(--damage-detail-primary-soft-color);
+		color: var(--damage-detail-primary-strong-color); font-size: var(--damage-detail-font-size-xs); font-weight: var(--damage-detail-font-weight-bold);
+	}
+	#damage-detail-panel-body .damage-build-detail-name-dropdown-option-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
