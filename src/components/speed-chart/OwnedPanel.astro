@@ -28,6 +28,7 @@ import '../../styles/speed-chart-owned-panel.css';
 ---
 <div class="speed-chart-owned-panel-static">
 	{hasOwnedPanel && (
+		<>
 		<div class="speed-chart-owned-summary" id="speed-chart-owned-summary">
 			<div class="speed-chart-owned-profile">
 			{/* アイコン(1段目)の右に個体編集(/box/<id>)への編集ボタンを並べる。
@@ -77,6 +78,7 @@ import '../../styles/speed-chart-owned-panel.css';
 					</svg>
 				</button>
 			</div>
+		</div>
 			{/* 保存対象に含めない表示専用のすばやさランク入力。 */}
 			<div class="speed-chart-owned-controls">
 			<div class="speed-chart-rank-field rank-field">
@@ -108,7 +110,7 @@ import '../../styles/speed-chart-owned-panel.css';
 				</label>
 			</div>
 			</div>
-		</div>
+		</>
 	)}
 	{/*
 		?owned=個体の種族が選択中レギュレーションの母集団に

@@ -143,11 +143,12 @@
 		display: grid;
 		height: 100%;
 		min-height: 0;
-		grid-template: minmax(0, 1fr) auto / minmax(0, 1fr);
+		/* 調整パネルはモーダルのヘッダー直下に固定し、一覧だけをスクロールする。 */
+		grid-template: auto minmax(0, 1fr) auto / minmax(0, 1fr);
 	}
 	.speed-chart-table[data-embedded='true'] .speed-chart-content {
 		grid-column: 1;
-		grid-row: 1;
+		grid-row: 2;
 		min-height: 0;
 		overflow-y: auto;
 		padding: var(--speed-chart-embedded-content-padding);
@@ -155,22 +156,22 @@
 	.speed-chart-table[data-embedded='true'] .speed-chart-minimap {
 		display: none;
 	}
-	.speed-chart-table[data-embedded='true'][data-has-owned-panel='true'] .speed-chart-side {
+	.speed-chart-table[data-embedded='true'][data-has-owned-panel='true'] .speed-chart-side,
+	.speed-chart-table[data-embedded='true'][data-has-owned-panel='true'] .speed-chart-owned-panel-static {
+		display: contents;
+	}
+	.speed-chart-table[data-embedded='true'][data-has-owned-panel='true'] .speed-chart-owned-summary {
 		grid-column: 1;
-		grid-row: 2;
-		position: static;
-		min-height: 0;
-		max-height: var(--speed-chart-embedded-side-max-height);
-		overflow: auto;
-		padding: var(--speed-chart-embedded-side-padding);
+		grid-row: 1;
+		padding: 2px var(--space-3);
 		border-top: 1px solid var(--color-border);
-		border-bottom: 0;
+		border-bottom: 1px solid var(--color-border);
 		background: var(--color-surface);
 	}
 	/* 個体の更新操作は、対象の実数値と対応づけて読めるよう実数値セルの直下へ置く。 */
 	.speed-chart-table[data-embedded='true'] .speed-chart-row {
 		grid-template-rows: auto auto;
-		row-gap: var(--space-2);
+		row-gap: 0;
 	}
 	.speed-chart-table[data-embedded='true'] .speed-chart-owned-cell {
 		grid-column: 1;
@@ -219,22 +220,20 @@
 	}
 	.speed-chart-table[data-embedded='true'] .speed-chart-owned-summary {
 		display: grid;
-		grid-template-columns: 56px minmax(105px, 1fr) minmax(72px, auto) minmax(72px, auto) minmax(72px, auto);
+		grid-template-columns: repeat(5, max-content);
+		grid-template-areas: 'nature evs speed adjusted jump';
 		grid-template-rows: auto auto;
 		align-items: center;
 		justify-items: center;
-		column-gap: var(--space-3);
+		justify-content: space-between;
+		column-gap: var(--space-2);
 		row-gap: var(--space-2);
 		width: 100%;
 	}
 	.speed-chart-table[data-embedded='true'] .speed-chart-owned-profile {
-		grid-column: 1;
-		grid-row: 1;
-		width: auto;
-		padding: 0;
-		background: transparent;
+		display: contents;
 	}
-	.speed-chart-table[data-embedded='true'] .speed-chart-owned-summary-header { align-self: auto; }
+	.speed-chart-table[data-embedded='true'] .speed-chart-owned-summary-header { display: none; }
 	/* 表内に埋め込んだ所持個体サマリーのポケモン画像 */
 	.speed-chart-table[data-embedded='true'] .speed-chart-owned-summary-sprite {
 		width: var(--speed-adjust-owned-sprite-size, 48px);
@@ -244,19 +243,23 @@
 	.speed-chart-table[data-embedded='true'] .speed-chart-owned-summary-species,
 	.speed-chart-table[data-embedded='true'] .speed-chart-owned-profile .speed-chart-owned-summary-badges { display: none; }
 	.speed-chart-table[data-embedded='true'] .speed-chart-owned-summary > .speed-chart-owned-summary-badges {
-		grid-column: 2;
-		grid-row: 1;
-		flex-direction: column;
-		align-items: center;
-		gap: 2px;
+		display: contents;
 		text-align: center;
 	}
-	.speed-chart-table[data-embedded='true'] .speed-chart-owned-raw-value {
+	.speed-chart-table[data-embedded='true'] #speed-chart-owned-summary-nature,
+	.speed-chart-table[data-embedded='true'] #speed-chart-owned-summary-evs {
 		display: grid;
-		grid-column: 3;
 		grid-row: 1;
-		gap: 2px;
 		justify-items: center;
+		white-space: nowrap;
+	}
+	.speed-chart-table[data-embedded='true'] #speed-chart-owned-summary-nature { grid-area: nature; }
+	.speed-chart-table[data-embedded='true'] #speed-chart-owned-summary-evs { grid-area: evs; }
+	.speed-chart-table[data-embedded='true'] .speed-chart-owned-raw-value {
+		display: inline-flex;
+		grid-area: speed;
+		align-items: baseline;
+		gap: var(--space-1);
 		font-size: var(--font-size-sm3);
 		white-space: nowrap;
 	}
@@ -266,33 +269,38 @@
 	}
 	.speed-chart-table[data-embedded='true'] .speed-chart-owned-summary-value::before {
 		content: '補正後';
-		display: block;
+		display: inline;
 		font-size: var(--font-size-sm3);
 	}
 	.speed-chart-table[data-embedded='true'] .speed-chart-owned-summary-value {
-		display: grid;
-		grid-column: 4;
-		grid-row: 1;
-		gap: 2px;
-		justify-items: center;
+		display: inline-flex;
+		grid-area: adjusted;
+		align-items: baseline;
+		gap: var(--space-1);
 		font-size: var(--font-size-sm1);
 	}
 	.speed-chart-table[data-embedded='true'] .speed-chart-owned-jump-button {
-		grid-column: 5;
-		grid-row: 1;
+		grid-area: jump;
 		justify-self: center;
 		align-self: center;
+		width: 32px;
+		height: 32px;
+		min-width: 32px;
+		min-height: 32px;
 	}
 	.speed-chart-table[data-embedded='true'] .speed-chart-owned-controls {
 		display: grid;
 		grid-template-columns: repeat(3, 1fr);
-		grid-column: 1 / -1;
-		grid-row: 2;
+		grid-column: 1;
+		grid-row: 3;
 		align-items: center;
 		justify-items: center;
 		gap: var(--space-4);
 		width: 100%;
-		padding-top: var(--space-1);
+		box-sizing: border-box;
+		padding: var(--speed-chart-embedded-side-padding);
+		border-top: 1px solid var(--color-border);
+		background: var(--color-surface);
 	}
 	.speed-chart-table[data-embedded='true'] .speed-chart-owned-modifier-toggles {
 		display: contents;
@@ -315,8 +323,8 @@
 	.speed-chart-table[data-embedded='true'] .speed-chart-rank-field > label { display: none; }
 	.speed-chart-table[data-embedded='true'] .speed-chart-modifier-consider { display: none; }
 	.speed-chart-table[data-embedded='true'] .speed-chart-rank-field .number-stepper {
-		--number-stepper-size: 36px;
-		--number-stepper-input-width: 36px;
+		--number-stepper-size: 40px;
+		--number-stepper-input-width: 40px;
 		font-size: var(--font-size-sm1);
 		font-weight: 400;
 	}
@@ -325,8 +333,8 @@
 	}
 	@media (max-width: 699px) {
 		.speed-chart-table[data-embedded='true'] .speed-chart-owned-summary {
-			grid-template-columns: 44px minmax(72px, 1fr) minmax(48px, auto) minmax(58px, auto) minmax(58px, auto);
-			column-gap: var(--space-1);
+			grid-template-columns: repeat(5, max-content);
+			column-gap: var(--space-2);
 		}
 		/* 699px以下では所持個体サマリーのポケモン画像を一回り小さくする */
 		.speed-chart-table[data-embedded='true'] .speed-chart-owned-summary-sprite {

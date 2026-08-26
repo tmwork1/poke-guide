@@ -1581,7 +1581,7 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 	// (このウィンドウはページ内で使い回されるシングルトンで、開閉のたびにリセットしない)。
 	let sortKey: SortKey = "popularity";
 	let sortDir: SortDir = "desc";
-	const filters = { name: "", type: "", category: "" };
+	const filters = { name: "" };
 
 	let allMoves: MoveDetail[] = [];
 	let allMovesReady = false;
@@ -1711,35 +1711,10 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 
 	const nameFilterInput = document.createElement("input");
 	nameFilterInput.type = "text";
-	nameFilterInput.placeholder = "わざ名";
+	nameFilterInput.placeholder = "";
 	nameFilterInput.setAttribute("aria-label", "わざ名で絞り込み");
 	nameFilterInput.addEventListener("input", () => {
 		filters.name = nameFilterInput.value.trim();
-		renderRows();
-	});
-
-	const typeFilterSelect = document.createElement("select");
-	typeFilterSelect.setAttribute("aria-label", "タイプで絞り込み");
-	typeFilterSelect.addEventListener("change", () => {
-		filters.type = typeFilterSelect.value;
-		renderRows();
-	});
-
-	const categoryFilterSelect = document.createElement("select");
-	categoryFilterSelect.setAttribute("aria-label", "分類で絞り込み");
-	for (const [value, label] of [
-		["", "-"],
-		["physical", "物理"],
-		["special", "特殊"],
-		["status", "変化"],
-	] as const) {
-		const opt = document.createElement("option");
-		opt.value = value;
-		opt.textContent = label;
-		categoryFilterSelect.appendChild(opt);
-	}
-	categoryFilterSelect.addEventListener("change", () => {
-		filters.category = categoryFilterSelect.value;
 		renderRows();
 	});
 
@@ -1747,8 +1722,29 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 	const nameHeader = document.createElement("div");
 	nameHeader.className = "move-picker-th";
 	const nameFilterWrap = document.createElement("div");
-	nameFilterWrap.className = "move-picker-th-filter";
-	nameFilterWrap.appendChild(nameFilterInput);
+	nameFilterWrap.className = "move-picker-th-filter search-input-wrap";
+	const searchIcon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+	searchIcon.classList.add("search-icon");
+	searchIcon.setAttribute("width", "15");
+	searchIcon.setAttribute("height", "15");
+	searchIcon.setAttribute("viewBox", "0 0 24 24");
+	searchIcon.setAttribute("fill", "none");
+	searchIcon.setAttribute("stroke", "currentColor");
+	searchIcon.setAttribute("stroke-width", "2.2");
+	searchIcon.setAttribute("stroke-linecap", "round");
+	searchIcon.setAttribute("stroke-linejoin", "round");
+	searchIcon.setAttribute("aria-hidden", "true");
+	const searchIconCircle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+	searchIconCircle.setAttribute("cx", "11");
+	searchIconCircle.setAttribute("cy", "11");
+	searchIconCircle.setAttribute("r", "7");
+	const searchIconLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
+	searchIconLine.setAttribute("x1", "21");
+	searchIconLine.setAttribute("y1", "21");
+	searchIconLine.setAttribute("x2", "16.65");
+	searchIconLine.setAttribute("y2", "16.65");
+	searchIcon.append(searchIconCircle, searchIconLine);
+	nameFilterWrap.append(searchIcon, nameFilterInput);
 	nameHeader.append(nameFilterWrap, makeSortButton("わざ名", "name", true));
 	nameHeaderCell.appendChild(nameHeader);
 	headerRow.appendChild(nameHeaderCell);
@@ -1759,8 +1755,8 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 	popularityHeader.appendChild(makeSortButton("人気", "popularity", true));
 	popularityHeaderCell.appendChild(popularityHeader);
 	headerRow.appendChild(popularityHeaderCell);
-	headerRow.appendChild(makeHeaderCell("タイプ", "type", typeFilterSelect));
-	headerRow.appendChild(makeHeaderCell("分類", "category", categoryFilterSelect));
+	headerRow.appendChild(makeHeaderCell("タイプ", "type", null));
+	headerRow.appendChild(makeHeaderCell("分類", "category", null));
 	headerRow.appendChild(makeHeaderCell("威力", "power", null));
 	headerRow.appendChild(makeHeaderCell("命中", "accuracy", null));
 	// PPは比較・並び替え用の列として残し、フィルタUIだけを削除する。
@@ -1824,31 +1820,11 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 		}
 	}
 
-	function populateTypeFilterOptions(): void {
-		const types = Array.from(new Set(allMoves.map((m) => m.type).filter((t): t is string => !!t))).sort((a, b) =>
-			a.localeCompare(b, "ja"),
-		);
-		const previousValue = typeFilterSelect.value;
-		typeFilterSelect.innerHTML = "";
-		const allOpt = document.createElement("option");
-		allOpt.value = "";
-		allOpt.textContent = "-";
-		typeFilterSelect.appendChild(allOpt);
-		for (const t of types) {
-			const opt = document.createElement("option");
-			opt.value = t;
-			opt.textContent = t;
-			typeFilterSelect.appendChild(opt);
-		}
-		if (types.includes(previousValue)) typeFilterSelect.value = previousValue;
-	}
-
 	async function ensureAllMovesLoaded(): Promise<void> {
 		if (allMovesReady) return;
 		const map = await loadMoveDetailMap();
 		allMoves = [...map.values()];
 		allMovesReady = true;
-		populateTypeFilterOptions();
 	}
 
 	function comparator(a: MoveDetail, b: MoveDetail): number {
@@ -1922,8 +1898,6 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 	function passesFilters(m: MoveDetail): boolean {
 		// 技名中のひらがな/カタカナ混在を保ったまま表記違いを吸収する。
 		if (filters.name && !kanaIncludes(m.name, filters.name)) return false;
-		if (filters.type && m.type !== filters.type) return false;
-		if (filters.category && m.category !== filters.category) return false;
 		return true;
 	}
 

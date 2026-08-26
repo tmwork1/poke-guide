@@ -240,7 +240,10 @@ export function initOwnedPanel(ctx: OwnedPanelContext): OwnedPanelController {
     const natureEl = document.getElementById(SUMMARY_NATURE_ID);
     if (natureEl) natureEl.textContent = currentNature ?? '性格未設定';
     const evsEl = document.getElementById(SUMMARY_EVS_ID);
-    if (evsEl) evsEl.textContent = `努力値 ${currentEvs[5] ?? 0}`;
+    if (evsEl) {
+      const embedded = document.querySelector<HTMLElement>('.speed-chart-table')?.dataset.embedded === 'true';
+      evsEl.textContent = embedded ? `+${currentEvs[5] ?? 0}` : `努力値 ${currentEvs[5] ?? 0}`;
+    }
     const valueEl = document.getElementById(SUMMARY_VALUE_ID);
     if (valueEl) {
       const embedded = document.querySelector<HTMLElement>('.speed-chart-table')?.dataset.embedded === 'true';

@@ -14,9 +14,9 @@ body.box-edit-page {
   /* ── 1. 文字サイズ ────────────────────────────────────── */
   --move-picker-close-size: var(--modal-close-font-size); /* 閉じるボタンの×。大きくすると記号が目立つ */
   --move-picker-header-title-size: var(--modal-title-font-size); /* ヘッダー見出し。モーダルヘッダー規格(global.css)に揃える */
-  --move-picker-title-size: var(--font-size-sm2); /* モバイルの技スロット名。大きくすると行が高くなる */
-  --move-picker-control-size: var(--font-size-sm2); /* 絞り込み・並べ替え操作。大きくすると操作文字が読みやすくなる */
-  --move-picker-table-size: var(--font-size-sm2); /* 技一覧の文字。大きくすると一覧の表示行数が減る */
+  --move-picker-title-size: var(--font-size-sm1); /* モバイルの技スロット名。大きくすると行が高くなる */
+  --move-picker-control-size: var(--font-size-sm1); /* 絞り込み・並べ替え操作。大きくすると操作文字が読みやすくなる */
+  --move-picker-table-size: var(--font-size-sm1); /* 技一覧の文字。大きくすると一覧の表示行数が減る */
   --move-picker-empty-size: var(--font-size-sm2); /* 技がないときの案内文。大きくすると案内が目立つ */
   --move-picker-type-icon-size: 20px; /* 技一覧のタイプアイコンの縦横サイズ */
   --move-picker-slot-type-icon-size: 20px; /* 選択済みスロット内のタイプアイコンの縦横サイズ */
@@ -26,22 +26,27 @@ body.box-edit-page {
   --move-picker-dialog-border: var(--modal-border); /* モーダルの外枠線。太くすると輪郭が目立つ */
 
   /* ── 7. 余白 ──────────────────────────────────────────── */
+  --move-picker-slot-type-icon-gap: 0; /* 技スロット内のタイプアイコンと技名の間隔 */
   --move-picker-header-gap: var(--modal-header-gap); /* ヘッダー内の要素間隔。大きくすると見出しと操作が離れる */
   --move-picker-close-box-size: var(--modal-close-size); /* 閉じるボタンの最小タップ域。モーダルヘッダー規格(global.css)に揃える */
   --move-picker-header-padding: var(--modal-header-padding); /* モーダル共通の見出し行余白。 */
   --move-picker-tabs-gap: var(--space-2); /* モバイルの技スロット間隔。大きくするとボタンが離れる */
   --move-picker-tabs-padding: var(--space-2) var(--space-3); /* 技スロット列の内側余白。大きくすると列が厚くなる */
   --move-picker-note-padding: var(--space-2) 0.8rem; /* 補足文の内側余白。大きくすると補足行が厚くなる */
-  --move-picker-table-header-padding: 0.35rem 0.4rem; /* 一覧見出しセルの余白。内容が見切れない高さを確保する */
+  --move-picker-table-header-padding-block: 0.35rem; /* 一覧見出しセルの上下余白 */
+  --move-picker-table-header-padding-inline: 0.4rem; /* 一覧見出しセルの左右余白 */
+  --move-picker-table-header-padding: var(--move-picker-table-header-padding-block) var(--move-picker-table-header-padding-inline); /* 一覧見出しセルの余白。内容が見切れない高さを確保する */
+  --move-picker-table-header-filter-inset: 3px; /* 見出し行の端と検索ボックスの間隔 */
   --move-picker-table-cell-padding: var(--space-1) 0.4rem; /* 技一覧セルの余白。大きくすると各行が高くなる */
   --move-picker-empty-padding: var(--space-4); /* 空一覧の内側余白。大きくすると案内の周囲が広がる */
 
   /* ── 8. 寸法 ──────────────────────────────────────────── */
+  --move-picker-slot-tab-min-height: 2.4rem; /* モバイルの技スロットの最小高さ */
   --move-picker-dialog-z-index: 100;
   --move-picker-backdrop-z-index: 99;
   --move-picker-dialog-inset: var(--space-3);
   --move-picker-dialog-max-width: 42rem;
-  --move-picker-dialog-max-height: min(78dvh, 32rem);
+  --move-picker-dialog-max-height: min(86dvh, 35.2rem); /* 従来値から約10%高くして一覧の表示行数を増やす */
 }
 
 /* ===========================================================================
@@ -71,7 +76,7 @@ body.box-edit-page {
   flex: 0 0 auto;
   width: var(--move-picker-slot-type-icon-size);
   height: var(--move-picker-slot-type-icon-size);
-  margin-right: var(--space-1);
+  margin-right: var(--move-picker-slot-type-icon-gap);
   vertical-align: middle;
 }
 
@@ -189,11 +194,14 @@ body.box-edit-page {
 .move-picker-th {
   display: flex;
   width: 100%;
-  align-items: center;
+  height: 100%;
+  align-items: stretch;
   gap: var(--space-1);
 }
 /* タイプ・分類などを列単位で絞り込む入力欄の枠 */
 .move-picker-th-filter {
+  display: flex;
+  align-self: stretch;
   flex: 1 1 auto;
   min-width: 0;
   margin-top: 0;
@@ -201,11 +209,14 @@ body.box-edit-page {
 .move-picker-th-filter input,
 .move-picker-th-filter select {
   box-sizing: border-box;
+  position: relative;
+  top: calc(-1 * var(--move-picker-table-header-padding-block) + var(--move-picker-table-header-filter-inset));
   width: auto;
+  height: calc(100% + (var(--move-picker-table-header-padding-block) * 2) - (var(--move-picker-table-header-filter-inset) * 2));
   min-width: 0;
   max-width: 100%;
-  min-height: calc(20px - var(--space-1));
-  height: calc(20px - var(--space-1));
+  min-height: 0;
+  align-self: stretch;
   padding: 0;
   font-size: var(--move-picker-control-size);
   font-weight: 400;
@@ -213,6 +224,28 @@ body.box-edit-page {
 }
 .move-picker-table thead th:first-child .move-picker-th-filter input {
   width: 100%;
+}
+.move-picker-th-filter.search-input-wrap input {
+  padding-left: 1.5em;
+}
+.move-picker-th-filter.search-input-wrap {
+  margin-left: calc(-1 * var(--move-picker-table-header-padding-inline));
+}
+.move-picker-th-filter.search-input-wrap input {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.move-picker-th-filter.search-input-wrap:focus-within {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+.move-picker-th-filter.search-input-wrap .search-icon {
+  z-index: 1;
+  left: var(--move-picker-table-header-padding-block);
+  top: 50%;
+  transform: translateY(-50%);
 }
 .move-picker-sort-btn {
   display: flex;
@@ -297,8 +330,36 @@ body .move-picker-note {
 body .move-picker-table-controls { padding: var(--space-2) 0.8rem; }
 body .move-picker-table { font-size: var(--move-picker-table-size); }
 body .move-picker-table thead th { padding: var(--move-picker-table-header-padding); }
+body .move-picker-th {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  align-items: stretch;
+  gap: var(--space-1);
+}
+body .move-picker-th-filter {
+  display: flex;
+  align-self: stretch;
+  flex: 1 1 auto;
+  min-width: 0;
+  margin-top: 0;
+}
 body .move-picker-th-filter input,
-body .move-picker-th-filter select,
+body .move-picker-th-filter select {
+  box-sizing: border-box;
+  position: relative;
+  top: calc(-1 * var(--move-picker-table-header-padding-block) + var(--move-picker-table-header-filter-inset));
+  width: auto;
+  height: calc(100% + (var(--move-picker-table-header-padding-block) * 2) - (var(--move-picker-table-header-filter-inset) * 2));
+  min-width: 0;
+  max-width: 100%;
+  min-height: 0;
+  align-self: stretch;
+  padding: 0;
+  font-size: var(--move-picker-control-size);
+  font-weight: 400;
+  field-sizing: content;
+}
 body .move-picker-sort-btn { font-size: var(--move-picker-control-size); }
 body .move-picker-table tbody td { padding: var(--move-picker-table-cell-padding); }
 /* 条件に一致する技がないときの案内文。旧来の指定より優先して大きさを調整する */
@@ -335,7 +396,7 @@ body .move-picker-empty {
     display: flex;
     align-items: center;
     justify-content: flex-start;
-    min-height: 2rem;
+    min-height: var(--move-picker-slot-tab-min-height);
     padding: 0 var(--space-2);
     overflow: hidden;
     font-size: var(--move-picker-title-size);
@@ -349,6 +410,6 @@ body .move-picker-empty {
   body .move-picker-slot-tab.is-selected {
     border-color: var(--color-primary);
     background: color-mix(in srgb, var(--color-surface) 88%, #000 12%);
-    color: var(--color-primary);
+    color: var(--color-text);
   }
 }
