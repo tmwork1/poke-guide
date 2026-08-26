@@ -1803,6 +1803,7 @@ try {
 			type OpponentNoteLike,
 		} from "../../lib/damage-summary";
 		import { createMatchupPanel } from "../../lib/matchup-panel";
+		import { setupAppHeaderSwipe } from "../../lib/app-header-swipe";
 
 		interface OwnedPokemonRecord {
 			id: string;
@@ -1875,6 +1876,7 @@ try {
 					setMobileTab(tab === "formation" || tab === "matchup" || tab === "data" ? tab : "pokemon");
 				});
 			}
+			setupAppHeaderSwipe(document.querySelector<HTMLElement>(".app-header"), layoutRoot);
 			const teamId = layoutRoot.dataset.teamId as string;
 			const initialTeam: InitialTeam = JSON.parse(layoutRoot.dataset.initialTeam || "{}");
 

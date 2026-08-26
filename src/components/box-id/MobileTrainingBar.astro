@@ -98,6 +98,12 @@ const previewStats = detail ? statKeys.map((key, index) => index === 0 ? calcHpS
 <script>
   import '../../lib/box-id/mobile-edit-tabs';
   import { setupMegaPreviewToggle } from '../../lib/box-id/mega-preview-toggle';
+  import { setupAppHeaderSwipe } from '../../lib/app-header-swipe';
 
   setupMegaPreviewToggle();
+
+  setupAppHeaderSwipe(
+    document.getElementById('mobile-training-bar'),
+    document.getElementById('mobile-training-ui')?.closest<HTMLElement>('.page') ?? null,
+  );
 </script>

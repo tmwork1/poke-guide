@@ -190,7 +190,10 @@ if (seasonList?.pokemon) {
 	</div>
 
 	<script>
+		import { setupAppHeaderSwipe } from '../../lib/app-header-swipe';
+
 		const scrollContainer = document.querySelector<HTMLElement>('[data-data-hub-scroll]');
+		setupAppHeaderSwipe(document.querySelector<HTMLElement>('.app-header'), scrollContainer);
 		const activeHeader = document.querySelector<HTMLElement>('.battle-data-second-header, .top-builds-second-header');
 		const bottomNav = document.querySelector<HTMLElement>('.app-bottom-nav');
 		const syncScrollViewport = () => {
