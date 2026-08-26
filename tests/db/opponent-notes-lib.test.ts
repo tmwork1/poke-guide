@@ -40,7 +40,6 @@ const shouldRun = RUN_DB_TESTS && !!DATABASE_URL && !!SUPABASE_URL && !!SUPABASE
 
 function makeOwnedPokemonInput(overrides: Partial<OwnedPokemonRequestBody> = {}): OwnedPokemonRequestBody {
   return {
-    nickname: null,
     species_name: 'ピカチュウ',
     level: 50,
     nature: null,
@@ -95,12 +94,12 @@ describe('src/lib/opponent-notes.ts のuserId分離・owned_pokemon所有権検�
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
-    const ownedA = await createOwnedPokemon(userA, makeOwnedPokemonInput({ nickname: 'userAの個体' }), supabase);
+    const ownedA = await createOwnedPokemon(userA, makeOwnedPokemonInput({ species_name: 'userAの個体' }), supabase);
     assert.equal(ownedA.ok, true);
     if (!ownedA.ok) throw new Error('setup failed');
     ownedPokemonIdA = ownedA.data.id;
 
-    const ownedB = await createOwnedPokemon(userB, makeOwnedPokemonInput({ nickname: 'userBの個体' }), supabase);
+    const ownedB = await createOwnedPokemon(userB, makeOwnedPokemonInput({ species_name: 'userBの個体' }), supabase);
     assert.equal(ownedB.ok, true);
     if (!ownedB.ok) throw new Error('setup failed');
     ownedPokemonIdB = ownedB.data.id;

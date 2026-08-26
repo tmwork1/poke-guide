@@ -142,7 +142,7 @@ describe('owned_pokemon / opponent_notes の RLS (本人限定ポリシー)', { 
   it('userBはuserAのowned_pokemonをUPDATEできない(0件更新)', async () => {
     const asB = await clientAs(userB);
     try {
-      const res = await asB.query('UPDATE owned_pokemon SET nickname = $1 WHERE id = $2', ['乗っ取り', ownedPokemonId]);
+      const res = await asB.query('UPDATE owned_pokemon SET species_name = $1 WHERE id = $2', ['乗っ取り', ownedPokemonId]);
       assert.equal(res.rowCount, 0);
     } finally {
       await asB.end();
@@ -151,8 +151,8 @@ describe('owned_pokemon / opponent_notes の RLS (本人限定ポリシー)', { 
     // 実際に更新されていないことをuserA視点でも確認する。
     const asA = await clientAs(userA);
     try {
-      const res = await asA.query('SELECT nickname FROM owned_pokemon WHERE id = $1', [ownedPokemonId]);
-      assert.equal(res.rows[0].nickname, null);
+      const res = await asA.query('SELECT species_name FROM owned_pokemon WHERE id = $1', [ownedPokemonId]);
+      assert.equal(res.rows[0].species_name, null);
     } finally {
       await asA.end();
     }

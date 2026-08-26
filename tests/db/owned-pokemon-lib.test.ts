@@ -51,7 +51,6 @@ const shouldRun = RUN_DB_TESTS && !!DATABASE_URL && !!SUPABASE_URL && !!SUPABASE
 
 function makeInput(overrides: Partial<OwnedPokemonRequestBody> = {}): OwnedPokemonRequestBody {
   return {
-    nickname: null,
     species_name: 'ピカチュウ',
     level: 50,
     nature: null,
@@ -100,12 +99,12 @@ describe('src/lib/owned-pokemon.ts のuserId分離(userIdフィルタが唯一�
   });
 
   it('userAはcreateOwnedPokemon/getOwnedPokemonで自分の個体を作成・取得できる', async () => {
-    const created = await createOwnedPokemon(userA, makeInput({ nickname: 'エース' }), supabase);
+    const created = await createOwnedPokemon(userA, makeInput({ species_name: 'エース' }), supabase);
     assert.equal(created.ok, true);
     if (!created.ok) return;
     ownedPokemonId = created.data.id;
     assert.equal(created.data.user_id, userA);
-    assert.equal(created.data.nickname, 'エース');
+    assert.equal(created.data.species_name, 'エース');
 
     const fetched = await getOwnedPokemon(userA, ownedPokemonId, supabase);
     assert.equal(fetched.ok, true);
@@ -144,7 +143,7 @@ describe('src/lib/owned-pokemon.ts のuserId分離(userIdフィルタが唯一�
     const result = await updateOwnedPokemon(
       userB,
       ownedPokemonId,
-      makeInput({ nickname: '乗っ取り' }),
+      makeInput({ species_name: '乗っ取り' }),
       supabase,
     );
     assert.equal(result.ok, true);
@@ -155,7 +154,7 @@ describe('src/lib/owned-pokemon.ts のuserId分離(userIdフィルタが唯一�
     const check = await getOwnedPokemon(userA, ownedPokemonId, supabase);
     assert.equal(check.ok, true);
     if (!check.ok) return;
-    assert.equal(check.data?.nickname, 'エース');
+    assert.equal(check.data?.species_name, 'エース');
   });
 
   it('userBはuserAの個体をdeleteOwnedPokemonで削除できない(false)', async () => {
@@ -175,11 +174,11 @@ describe('src/lib/owned-pokemon.ts のuserId分離(userIdフィルタが唯一�
     const updated = await updateOwnedPokemon(
       userA,
       ownedPokemonId,
-      makeInput({ nickname: '更新後' }),
+      makeInput({ species_name: '更新後' }),
       supabase,
     );
     assert.equal(updated.ok, true);
-    if (updated.ok) assert.equal(updated.data?.nickname, '更新後');
+    if (updated.ok) assert.equal(updated.data?.species_name, '更新後');
 
     const deleted = await deleteOwnedPokemon(userA, ownedPokemonId, supabase);
     assert.equal(deleted.ok, true);
@@ -203,7 +202,7 @@ describe('src/lib/owned-pokemon.ts のuserId分離(userIdフィルタが唯一�
   });
 
   it('非公開の個体をsetOwnedPokemonSharingで公開にするとshare_slugが新規発行される', async () => {
-    const created = await createOwnedPokemon(userA, makeInput({ nickname: '共有テスト' }), supabase);
+    const created = await createOwnedPokemon(userA, makeInput({ species_name: '共有テスト' }), supabase);
     assert.equal(created.ok, true);
     if (!created.ok) return;
     assert.equal(created.data.is_public, false);
@@ -219,7 +218,7 @@ describe('src/lib/owned-pokemon.ts のuserId分離(userIdフィルタが唯一�
   });
 
   it('一度公開にした個体を非公開→再度公開にすると同じshare_slugが再利用される', async () => {
-    const created = await createOwnedPokemon(userA, makeInput({ nickname: '再公開テスト' }), supabase);
+    const created = await createOwnedPokemon(userA, makeInput({ species_name: '再公開テスト' }), supabase);
     assert.equal(created.ok, true);
     if (!created.ok) return;
 
@@ -244,7 +243,7 @@ describe('src/lib/owned-pokemon.ts のuserId分離(userIdフィルタが唯一�
   });
 
   it('userBはuserAの個体をsetOwnedPokemonSharingで操作できない(0件更新でdata:null)', async () => {
-    const created = await createOwnedPokemon(userA, makeInput({ nickname: '他人共有テスト' }), supabase);
+    const created = await createOwnedPokemon(userA, makeInput({ species_name: '他人共有テスト' }), supabase);
     assert.equal(created.ok, true);
     if (!created.ok) return;
 
@@ -262,7 +261,7 @@ describe('src/lib/owned-pokemon.ts のuserId分離(userIdフィルタが唯一�
   });
 
   it('getPublicOwnedPokemonBySlugは公開済みslugなら取得でき、非公開/存在しないslugではnullが返る', async () => {
-    const created = await createOwnedPokemon(userA, makeInput({ nickname: '公開閲覧テスト' }), supabase);
+    const created = await createOwnedPokemon(userA, makeInput({ species_name: '公開閲覧テスト' }), supabase);
     assert.equal(created.ok, true);
     if (!created.ok) return;
 
@@ -278,7 +277,7 @@ describe('src/lib/owned-pokemon.ts のuserId分離(userIdフィルタが唯一�
     if (!publicResult.ok) return;
     assert.notEqual(publicResult.data, null);
     assert.equal(publicResult.data?.species_name, 'ピカチュウ');
-    assert.equal(publicResult.data?.nickname, '公開閲覧テスト');
+    assert.equal(publicResult.data?.species_name, '公開閲覧テスト');
     assert.equal(publicResult.data?.share_slug, slug);
 
     // 非公開に戻すとslugが同じでも取得できなくなる。

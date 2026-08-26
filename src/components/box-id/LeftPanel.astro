@@ -108,9 +108,6 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 						<span id="species-select-trigger-label" class="species-select-trigger-label">種族</span>
 					</button>
 				</div>
-				<div class="field">
-					<input id="nickname" class="field-control" type="text" autocomplete="off" placeholder="ニックネーム" aria-label="ニックネーム" value={pokemon.nickname ?? ""} />
-				</div>
 				<div class="field field-ability">
 					<select id="ability" class="field-control" aria-label="特性" title={pokemon.ability_name ?? ""}>
 						<option value={pokemon.ability_name ?? ""} selected>{pokemon.ability_name || "特性"}</option>
@@ -479,12 +476,10 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		padding: var(--stat-number-input-mobile-padding);
 		line-height: 1;
 	}
-	/* 残り努力値は、数値欄の右端(右側の+と端点ボタン2個ぶん手前)に揃える。 */
+	/* 残り努力値は、操作群の中央にある数値ボタンの真上へ揃える。 */
 	.stat-row-remaining .stat-row-remaining-value {
-		padding-inline-end: calc(
-			(var(--stat-ev-mobile-button-block-size) * 2) +
-			(var(--stat-control-gap) * 2)
-		);
+		justify-content: center;
+		padding-inline-end: 0;
 	}
 	.stat-row .stat-ev-step-button[data-ev-step="1"] { order: 4; }
 	.stat-row .stat-ev-endpoint-button[data-ev-toggle] { order: 5; }
@@ -643,7 +638,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 
 	#edit-form .top-block-fields .field { margin: 0; }
 
-	#edit-form .top-block-fields > .field-ability { grid-column: 1; }
+	/* 種族の右の空きも使い、種族・特性 / アイテム・テラスタルの2段に並べる。 */
 
 	/* [hidden] は display:flex を持つ .field(global.css)に詳細度で負けるため明示する
 	   (pitfalls.md「[hidden]が効かない」)。 */

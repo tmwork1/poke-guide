@@ -63,7 +63,7 @@ export interface ReplaceTeamInput {
 
 const TEAM_COLUMNS = 'id, user_id, memo, is_pinned, created_at, updated_at';
 
-// nickname/species_name/level/nature/ability_name/item_name/tera_type/evs/ivs/move_names は
+// species_name/level/nature/ability_name/item_name/tera_type/evs/ivs/move_names は
 // 6枠カードの表示(公式絵・ニックネーム・テラスタイプ・持ち物・技4つ)に必要な列。
 // memo/tags 等の owned_pokemon 側の個人的情報も、本人のチーム編集画面内でしか
 // 出さないため(公開共有はスコープ外)、PublicOwnedPokemonRecord ではなく通常の全列を使う。
@@ -71,7 +71,7 @@ const TEAM_COLUMNS = 'id, user_id, memo, is_pinned, created_at, updated_at';
 // (src/lib/owned-pokemon.ts の OWNED_POKEMON_COLUMNS 参照)。
 const TEAM_MEMBER_SELECT =
   `slot, owned_pokemon:owned_pokemon_id (
-    id, user_id, nickname, species_name, level, nature, ability_name, item_name, tera_type,
+    id, user_id, species_name, level, nature, ability_name, item_name, tera_type,
     evs, ivs, move_names, memo, tags, source_build_slug, share_slug, is_public,
     created_at, updated_at, last_used_at
   )`;

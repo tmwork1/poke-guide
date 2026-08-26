@@ -9,7 +9,6 @@
 import { isMoveNamesArray, isPlainObject, isStatArray, isStringArray } from './validation-primitives.ts';
 
 export interface OwnedPokemonRequestBody {
-  nickname: string | null;
   species_name: string;
   level: number | null;
   nature: string | null;
@@ -46,7 +45,6 @@ export interface ValidateOwnedPokemonOptions {
 // buildPayload() (src/pages/box/[id].astro) が実際に自動保存で送る全キー。
 // mode: 'replace' のときはこれら全キーの存在を必須にする。
 const REPLACE_REQUIRED_FIELDS: Array<keyof OwnedPokemonRequestBody> = [
-  'nickname',
   'species_name',
   'level',
   'nature',
@@ -89,7 +87,6 @@ export function validateOwnedPokemonRequestBody(
   }
 
   const {
-    nickname,
     species_name,
     level,
     nature,
@@ -110,9 +107,6 @@ export function validateOwnedPokemonRequestBody(
   // (nullを許容するとNOT NULL制約に反するDBエラーになるため)。
   if (species_name !== undefined && typeof species_name !== 'string') {
     return { ok: false, error: 'species_name must be a string' };
-  }
-  if (nickname !== undefined && nickname !== null && typeof nickname !== 'string') {
-    return { ok: false, error: 'nickname must be a string' };
   }
   if (level !== undefined && level !== null) {
     if (typeof level !== 'number' || !Number.isInteger(level) || level < MIN_LEVEL || level > MAX_LEVEL) {
@@ -150,7 +144,6 @@ export function validateOwnedPokemonRequestBody(
   return {
     ok: true,
     value: {
-      nickname: typeof nickname === 'string' ? normalizeOptionalString(nickname) : null,
       species_name: typeof species_name === 'string' ? species_name.trim() : '',
       level: (level as number | undefined) ?? null,
       nature: typeof nature === 'string' ? normalizeOptionalString(nature) : null,

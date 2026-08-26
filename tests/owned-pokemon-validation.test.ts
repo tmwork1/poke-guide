@@ -10,7 +10,6 @@ describe('validateOwnedPokemonRequestBody', () => {
     assert.equal(result.ok, true);
     if (result.ok) {
       assert.equal(result.value.species_name, 'ピカチュウ');
-      assert.equal(result.value.nickname, null);
       assert.equal(result.value.level, null);
       assert.deepEqual(result.value.evs, [0, 0, 0, 0, 0, 0]);
       assert.deepEqual(result.value.ivs, [31, 31, 31, 31, 31, 31]);
@@ -21,7 +20,6 @@ describe('validateOwnedPokemonRequestBody', () => {
 
   it('全項目を指定したリクエストをそのまま受け入れる', () => {
     const result = validateOwnedPokemonRequestBody({
-      nickname: 'エース',
       species_name: 'ピカチュウ',
       level: 50,
       nature: 'ようき',
@@ -36,7 +34,6 @@ describe('validateOwnedPokemonRequestBody', () => {
     });
     assert.equal(result.ok, true);
     if (result.ok) {
-      assert.equal(result.value.nickname, 'エース');
       assert.equal(result.value.level, 50);
       assert.equal(result.value.nature, 'ようき');
       assert.equal(result.value.ability_name, 'せいでんき');
@@ -52,14 +49,12 @@ describe('validateOwnedPokemonRequestBody', () => {
 
   it('空文字のオプション項目はnullに正規化される(クリア操作の表現)', () => {
     const result = validateOwnedPokemonRequestBody({
-      nickname: '',
       species_name: 'ピカチュウ',
       nature: '   ',
       memo: '',
     });
     assert.equal(result.ok, true);
     if (result.ok) {
-      assert.equal(result.value.nickname, null);
       assert.equal(result.value.nature, null);
       assert.equal(result.value.memo, null);
     }
@@ -152,6 +147,12 @@ describe('validateOwnedPokemonRequestBody', () => {
     const result = validateOwnedPokemonRequestBody(null);
     assert.equal(result.ok, false);
   });
+
+  it('廃止したnicknameは入力されても保存用データに含めない', () => {
+    const result = validateOwnedPokemonRequestBody({ species_name: 'ピカチュウ', nickname: 'エース' });
+    assert.equal(result.ok, true);
+    if (result.ok) assert.equal('nickname' in result.value, false);
+  });
 });
 
 // mode: 'replace' (PUT /api/owned-pokemon/:id 用) の回帰テスト。
@@ -163,7 +164,6 @@ describe('validateOwnedPokemonRequestBody', () => {
 // nullは許容)を検証することでこの穴を塞ぐ。
 describe('validateOwnedPokemonRequestBody(body, { mode: "replace" })', () => {
   const FULL_REPLACE_BODY = {
-    nickname: null,
     species_name: 'メガリザードンX',
     level: null,
     nature: 'いじっぱり',
@@ -227,21 +227,12 @@ describe('validateOwnedPokemonRequestBody(body, { mode: "replace" })', () => {
     const result = validateOwnedPokemonRequestBody(FULL_REPLACE_BODY, { mode: 'replace' });
     assert.equal(result.ok, true);
     if (result.ok) {
-      assert.equal(result.value.nickname, null);
       assert.equal(result.value.level, null);
       assert.equal(result.value.tera_type, null);
       assert.equal(result.value.memo, null);
     }
   });
 
-  it('nicknameキー自体が無い(undefined)PUTは、値がnullでも拒否する(undefinedとnullを区別する)', () => {
-    const { nickname, ...withoutNickname } = FULL_REPLACE_BODY;
-    const result = validateOwnedPokemonRequestBody(withoutNickname, { mode: 'replace' });
-    assert.equal(result.ok, false);
-    if (!result.ok) {
-      assert.match(result.error, /nickname/);
-    }
-  });
 
   it('mode指定なしの従来呼び出しは{}を引き続き受け入れる(POST/既存呼び出しへの非退行)', () => {
     const result = validateOwnedPokemonRequestBody({});

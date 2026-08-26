@@ -27,7 +27,6 @@ export interface BoxPokemonCardPokemon {
 }
 
 export interface OwnedPokemonDisplayNameSource {
-	nickname: string | null;
 	species_name: string;
 }
 
@@ -56,7 +55,6 @@ const moveTypeMapPromise = loadMoveTypeMap();
 // 空文字にならないよう "(未設定)" にフォールバックする。両画面の並べ替え・検索・確認
 // ダイアログでも同じ表示名を使えるよう、カード生成とは別に公開する。
 export function ownedPokemonDisplayName(pokemon: OwnedPokemonDisplayNameSource): string {
-	if (pokemon.nickname && pokemon.nickname.trim() !== "") return pokemon.nickname;
 	if (pokemon.species_name && pokemon.species_name.trim() !== "") return pokemon.species_name;
 	return "(未設定)";
 }

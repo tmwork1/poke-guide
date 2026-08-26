@@ -56,7 +56,7 @@ const user = Astro.locals.user;
 									id="search-input"
 									type="search"
 									class="field-control"
-									placeholder="ポケモン・NN・アイテム・わざ"
+									placeholder="ポケモン・アイテム・わざ"
 									aria-label="検索"
 									autocomplete="off"
 								/>
@@ -70,7 +70,7 @@ const user = Astro.locals.user;
 									<option value="updated_at">更新順</option>
 									<option value="dex_no">図鑑番号順</option>
 									<option value="type">タイプ順</option>
-									<option value="nickname">NN順</option>
+									<option value="species_name">名前順</option>
 								</select>
 							</div>
 						</div>
@@ -161,7 +161,6 @@ const user = Astro.locals.user;
 
 		interface OwnedPokemon {
 			id: string;
-			nickname: string | null;
 			species_name: string;
 			level: number | null;
 			nature: string | null;
@@ -210,7 +209,6 @@ const user = Astro.locals.user;
 			function matchesSearch(p: OwnedPokemon, term: string): boolean {
 				if (!term) return true;
 				const haystack = [
-					p.nickname ?? "",
 					p.species_name,
 					p.ability_name ?? "",
 					p.item_name ?? "",
@@ -233,7 +231,7 @@ const user = Astro.locals.user;
 					updated_at: "desc",
 					dex_no: "asc",
 					type: "asc",
-					nickname: "asc",
+					species_name: "asc",
 				},
 				onChange: () => renderList(),
 			});
@@ -241,7 +239,7 @@ const user = Astro.locals.user;
 			function sortPokemon(list: OwnedPokemon[]): OwnedPokemon[] {
 				const sort = sortSelect.value;
 				const compareAscending = (a: OwnedPokemon, b: OwnedPokemon): number => {
-					if (sort === "nickname") {
+					if (sort === "species_name") {
 						return displayName(a).localeCompare(displayName(b), "ja");
 					}
 					if (sort === "dex_no") {
@@ -347,7 +345,6 @@ const user = Astro.locals.user;
 						credentials: "same-origin",
 						headers: { "Content-Type": "application/json" },
 						body: JSON.stringify({
-							nickname: "",
 							species_name: "",
 							level: null,
 							nature: "",

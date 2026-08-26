@@ -30,7 +30,6 @@ import { findOrCreateArchetype } from './archetypes.ts';
 export interface OwnedPokemonRecord {
   id: string;
   user_id: string;
-  nickname: string | null;
   species_name: string;
   level: number | null;
   nature: string | null;
@@ -60,7 +59,6 @@ export interface OwnedPokemonRecord {
 // 公開共有(share.ts / owned-pokemon/[id]/share.ts)経由で第三者に見せてよい列のみを持つ型。
 // memo・tags・user_id・is_pinned 等の個人的/内部情報は含めない。
 export interface PublicOwnedPokemonRecord {
-  nickname: string | null;
   species_name: string;
   level: number | null;
   nature: string | null;
@@ -74,7 +72,7 @@ export interface PublicOwnedPokemonRecord {
   created_at: string;
 }
 
-export type OwnedPokemonSort = 'updated_at' | 'last_used_at' | 'nickname';
+export type OwnedPokemonSort = 'updated_at' | 'last_used_at';
 
 export interface ListOwnedPokemonOptions {
   sort?: OwnedPokemonSort;
@@ -89,11 +87,11 @@ export interface ListOwnedPokemonOptions {
 export type OwnedPokemonResult<T> = { ok: true; data: T } | { ok: false; error: string };
 
 const OWNED_POKEMON_COLUMNS =
-  'id, user_id, nickname, species_name, level, nature, ability_name, item_name, tera_type, evs, ivs, move_names, memo, tags, source_build_slug, share_slug, is_public, created_at, updated_at, last_used_at, collection_opt_out_until, archetype_id';
+  'id, user_id, species_name, level, nature, ability_name, item_name, tera_type, evs, ivs, move_names, memo, tags, source_build_slug, share_slug, is_public, created_at, updated_at, last_used_at, collection_opt_out_until, archetype_id';
 
 // 公開共有用に安全な列だけを取得する(memo・tags・user_id・is_pinned 等は含めない)。
 const PUBLIC_OWNED_POKEMON_COLUMNS =
-  'nickname, species_name, level, nature, ability_name, item_name, tera_type, evs, ivs, move_names, share_slug, created_at';
+  'species_name, level, nature, ability_name, item_name, tera_type, evs, ivs, move_names, share_slug, created_at';
 
 // share_slug 用の英数字ランダム文字列。crypto.randomUUID() のハイフンを除去して先頭Nを使う
 // (廃止済みの src/pages/api/builds.ts にあった generateShareSlug() と同じ方式を踏襲した
@@ -164,7 +162,6 @@ export async function listOwnedPokemon(
     const pattern = `%${term}%`;
     query = query.or(
       [
-        `nickname.ilike.${pattern}`,
         `species_name.ilike.${pattern}`,
         `ability_name.ilike.${pattern}`,
         `item_name.ilike.${pattern}`,
@@ -176,11 +173,6 @@ export async function listOwnedPokemon(
   switch (options.sort) {
     case 'last_used_at':
       query = query.order('last_used_at', { ascending: false, nullsFirst: false });
-      break;
-    case 'nickname':
-      query = query.order('nickname', { ascending: true, nullsFirst: false }).order('species_name', {
-        ascending: true,
-      });
       break;
     case 'updated_at':
     default:
@@ -252,7 +244,6 @@ export async function createOwnedPokemon(
     .from('owned_pokemon')
     .insert({
       user_id: userId, // リクエストボディ由来の値は一切使わない(なりすまし防止)
-      nickname: input.nickname,
       species_name: input.species_name,
       level: input.level,
       nature: input.nature,
@@ -290,7 +281,6 @@ export async function updateOwnedPokemon(
   const { data, error } = await supabase
     .from('owned_pokemon')
     .update({
-      nickname: input.nickname,
       species_name: input.species_name,
       level: input.level,
       nature: input.nature,

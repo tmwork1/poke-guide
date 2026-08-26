@@ -127,7 +127,6 @@ const user = Astro.locals.user;
 		// (src/lib/team.ts の TeamMember/OwnedPokemonRecord のサブセット)。
 		interface TeamMemberPokemon {
 			id: string;
-			nickname: string | null;
 			species_name: string;
 			level: number | null;
 			nature: string | null;
@@ -245,7 +244,6 @@ const user = Astro.locals.user;
 				if (!term) return true;
 				const haystack = [
 					...t.members.map((m) => m.owned_pokemon.species_name ?? ""),
-					...t.members.map((m) => m.owned_pokemon.nickname ?? ""),
 					...t.members.map((m) => m.owned_pokemon.item_name ?? ""),
 					...t.members.flatMap((m) => m.owned_pokemon.move_names ?? []),
 				].join(" ");
@@ -273,8 +271,7 @@ const user = Astro.locals.user;
 					badges: [{ className: "badge tnum card-team-count-badge", text: `${t.members.length}/6` }],
 					membersBySlot,
 					toCardContent: (member) => {
-						const pokemonName = member.owned_pokemon.nickname?.trim()
-							|| member.owned_pokemon.species_name?.trim()
+						const pokemonName = member.owned_pokemon.species_name?.trim()
 							|| "ポケモン";
 						return {
 							pokemon: member.owned_pokemon,
@@ -290,7 +287,7 @@ const user = Astro.locals.user;
 								renderTeamMateSlots({
 									root: container,
 									membersBySlot: mateMembersBySlot,
-									displayName: (p) => p.nickname?.trim() || p.species_name || "ポケモン",
+									displayName: (p) => p.species_name || "ポケモン",
 									applySprite,
 									applyItemIcon,
 								});
@@ -317,7 +314,7 @@ const user = Astro.locals.user;
 			}
 
 			async function deletePokemon(p: TeamMemberPokemon): Promise<void> {
-				const name = p.nickname?.trim() || p.species_name || "未設定";
+				const name = p.species_name || "未設定";
 				if (!window.confirm(`「${name}」を削除します。よろしいですか?`)) return;
 				try {
 					const res = await fetch(`/api/owned-pokemon/${encodeURIComponent(p.id)}`, { method: "DELETE", credentials: "same-origin" });

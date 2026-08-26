@@ -88,7 +88,6 @@ describe('PUT /api/owned-pokemon/:id (owned-pokemon/[id].ts) のボディ処理'
     const request = new Request('http://localhost/api/owned-pokemon/x', {
       method: 'PUT',
       body: JSON.stringify({
-        nickname: 'エース',
         species_name: 'リザードン',
         level: 50,
         nature: 'いじっぱり',
@@ -146,7 +145,6 @@ describe('PUT /api/owned-pokemon/:id (owned-pokemon/[id].ts) のボディ処理'
     const request = new Request('http://localhost/api/owned-pokemon/x', {
       method: 'PUT',
       body: JSON.stringify({
-        nickname: null,
         species_name: 'リザードン',
         level: null,
         nature: 'いじっぱり',
@@ -173,7 +171,6 @@ describe('PUT /api/owned-pokemon/:id (owned-pokemon/[id].ts) のボディ処理'
     const request = new Request('http://localhost/api/owned-pokemon/x', {
       method: 'PUT',
       body: JSON.stringify({
-        nickname: 'エース',
         species_name: 'リザードン',
         level: 50,
         nature: 'いじっぱり',
@@ -212,7 +209,6 @@ describe('POST /api/owned-pokemon (owned-pokemon.ts) のボディ処理', () => 
     const request = new Request('http://localhost/api/owned-pokemon', {
       method: 'POST',
       body: JSON.stringify({
-        nickname: '',
         species_name: '',
         level: null,
         nature: '',

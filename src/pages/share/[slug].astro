@@ -85,7 +85,7 @@ if (!pokemon) {
 	Astro.response.status = 404;
 }
 
-const displayName = pokemon ? (pokemon.nickname || pokemon.species_name) : '';
+const displayName = pokemon?.species_name ?? '';
 
 // (クライアントJS・Pyodideは一切使わない)。種族値が解決できない場合は value を null のまま
 // 残し、表示側で "-" にフォールバックする。

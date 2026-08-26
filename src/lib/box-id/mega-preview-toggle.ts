@@ -11,14 +11,11 @@ function isMegaForm(entry: PokemonMasterEntry): boolean {
   return entry.forme?.includes('Mega') ?? false;
 }
 
-/**
- * モバイルのポケモンプレビューだけで、メガ前後の種族表示を切り替える。
- * 編集フォームの種族・持ち物・保存データには一切書き込まない。
- */
+/** モバイルのメイン画像タップで、編集フォームの種族そのものをメガ前後で切り替える。 */
 export function setupMegaPreviewToggle(): void {
   const preview = document.querySelector<HTMLElement>('.pokemon-preview');
   const previewMain = preview?.querySelector<HTMLElement>('.pokemon-preview-main');
-  const spriteWrap = preview?.querySelector<HTMLElement>('.pokemon-preview-sprite-wrap');
+  const spriteWrap = preview?.querySelector<HTMLButtonElement>('.pokemon-preview-sprite-wrap');
   const nameEl = document.getElementById('pokemon-preview-species-name');
   const spriteEl = document.getElementById('pokemon-preview-species-sprite') as HTMLImageElement | null;
   const fallbackEl = document.getElementById('pokemon-preview-species-sprite-fallback');
@@ -28,13 +25,6 @@ export function setupMegaPreviewToggle(): void {
   const previewItemEl = document.getElementById('pokemon-preview-item');
   if (!preview || !previewMain || !spriteWrap || !nameEl || !spriteEl || !fallbackEl) return;
 
-  const button = document.createElement('button');
-  button.type = 'button';
-  button.className = 'pokemon-preview-mega-toggle';
-  button.hidden = true;
-  spriteWrap.append(button);
-
-  let shownSpecies = '';
   let sourceSpecies = sourceSpeciesInput?.value.trim() || preview.dataset.speciesName?.trim() || '';
   let sourceItem = sourceItemInput?.value.trim() || preview.dataset.itemName?.trim() || '';
 
@@ -46,7 +36,6 @@ export function setupMegaPreviewToggle(): void {
     const renderSpecies = (name: string): void => {
       const entry = byName.get(name);
       if (!entry) return;
-      shownSpecies = entry.name;
       preview.dataset.speciesName = entry.name;
       nameEl.textContent = entry.name;
       spriteEl.src = championSpriteUrl(entry.imageId);
@@ -92,21 +81,14 @@ export function setupMegaPreviewToggle(): void {
 
     const renderToggle = (target: PokemonMasterEntry | undefined): void => {
       if (!target) {
-        button.hidden = true;
+        spriteWrap.disabled = true;
+        spriteWrap.removeAttribute('title');
+        spriteWrap.setAttribute('aria-label', 'ポケモンプレビュー');
         return;
       }
-      button.hidden = false;
-      button.replaceChildren(document.createTextNode('↔'));
-      const icon = document.createElement('img');
-      icon.src = championSpriteUrl(target.imageId);
-      icon.alt = target.name;
-      icon.onerror = () => {
-        icon.onerror = null;
-        icon.src = officialArtworkUrl(target.imageId);
-      };
-      button.append(icon);
-      button.setAttribute('aria-label', `${target.name}のプレビューへ切り替え`);
-      button.title = `${target.name}のプレビューへ切り替え`;
+      spriteWrap.disabled = false;
+      spriteWrap.setAttribute('aria-label', `${target.name}のプレビューへ切り替え`);
+      spriteWrap.title = `${target.name}のプレビューへ切り替え`;
     };
 
     const sync = (): void => {
@@ -118,19 +100,22 @@ export function setupMegaPreviewToggle(): void {
 
     const toggleSpecies = (): void => {
       const target = targetFor(sourceSpecies, sourceItem);
-      if (!target) return;
-      renderSpecies(shownSpecies === sourceSpecies ? target.name : sourceSpecies);
-      renderToggle(shownSpecies === sourceSpecies ? target : byName.get(sourceSpecies));
+      if (!target || !sourceSpeciesInput || sourceSpeciesInput.value === target.name) return;
+      // 種族選択ダイアログと同じinput/changeイベントを発火することで、種族値・特性候補・
+      // メガストーン自動設定・実数値計算・自動保存を既存の通常の種族変更経路で更新する。
+      sourceSpeciesInput.value = target.name;
+      sourceSpeciesInput.dispatchEvent(new Event('input', { bubbles: true }));
+      sourceSpeciesInput.dispatchEvent(new Event('change', { bubbles: true }));
     };
     // モバイルではclickを待たず、最初に届くpointerdownで切り替える。
     // clickはキーボード操作のフォールバックとして残す。
     let handledByPointer = false;
-    button.addEventListener('pointerdown', (event) => {
+    spriteWrap.addEventListener('pointerdown', (event) => {
       event.preventDefault();
       handledByPointer = true;
       toggleSpecies();
     });
-    button.addEventListener('click', () => {
+    spriteWrap.addEventListener('click', () => {
       if (handledByPointer) {
         handledByPointer = false;
         return;

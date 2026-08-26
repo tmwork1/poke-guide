@@ -14,7 +14,7 @@ import { ownedPokemonRateLimiter } from '../../lib/rate-limit';
 
 export const prerender = false;
 
-const VALID_SORTS: OwnedPokemonSort[] = ['updated_at', 'last_used_at', 'nickname'];
+const VALID_SORTS: OwnedPokemonSort[] = ['updated_at', 'last_used_at'];
 
 function parseSort(value: string | null): OwnedPokemonSort | undefined {
   return VALID_SORTS.includes(value as OwnedPokemonSort) ? (value as OwnedPokemonSort) : undefined;

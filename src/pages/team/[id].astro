@@ -596,7 +596,7 @@ try {
 									<option value="updated_at">⇅ 更新</option>
 									<option value="dex_no">⇅ 番号</option>
 									<option value="type">⇅ タイプ</option>
-									<option value="nickname">⇅ NN</option>
+									<option value="species_name">⇅ 名前</option>
 									</select>
 								</div>
 								<button type="button" class="sort-dir-toggle" id="team-formation-mobile-sort-dir-toggle" data-order="desc" aria-label="並べ替えの向き: 降順">
@@ -1066,7 +1066,7 @@ try {
 			min-width: 0;
 			width: 100%;
 		}
-		.team-slots .slot-nickname {
+		.team-slots .slot-name {
 			min-width: 0;
 			font-size: var(--font-size-base);
 			font-weight: 700;
@@ -1138,7 +1138,7 @@ try {
 			text-align: center;
 		}
 		/* 特性/持ち物ラベルに1行ellipsis制御が無いと、幅が縮んだ場合に長い文字列が単語の途中で
-		   2行に折り返る(buildFilledSlotContentのコメント参照)。.slot-nicknameと同じ制御を
+		   2行に折り返る(buildFilledSlotContentのコメント参照)。.slot-nameと同じ制御を
 		   ability/itemラベルにも適用する。 */
 		.team-slots .slot-meta-text {
 			min-width: 0;
@@ -1806,7 +1806,6 @@ try {
 
 		interface OwnedPokemonRecord {
 			id: string;
-			nickname: string | null;
 			species_name: string;
 			// A-8: SSR(TEAM_MEMBER_SELECT)・GET /api/owned-pokemon(OWNED_POKEMON_COLUMNS)の
 			// 両方が既にability_nameを含んでいる。新規フェッチ・新規計算は不要で、この型に
@@ -2538,7 +2537,6 @@ try {
 						credentials: "same-origin",
 						headers: { "Content-Type": "application/json" },
 						body: JSON.stringify({
-							nickname: "",
 							species_name: suggestion.speciesName,
 							level: null,
 							nature: "",
@@ -2655,7 +2653,7 @@ try {
 				action.type = "button";
 				action.className = "team-suggest-action";
 				if (owned) {
-					const label = owned.nickname?.trim() || owned.species_name;
+					const label = owned.species_name;
 					action.textContent = "チームに追加";
 					action.title = `手持ちの${label}を入れる`;
 					action.disabled = firstEmptySlot() == null;
@@ -2703,7 +2701,7 @@ try {
 				button.appendChild(img);
 				void applySprite(img, fallback, suggestion.speciesName);
 				if (owned) {
-					const label = owned.nickname?.trim() || owned.species_name;
+					const label = owned.species_name;
 					button.title = `手持ちの${label}を入れる`;
 					button.setAttribute("aria-label", `${label}をチームに追加`);
 					button.disabled = firstEmptySlot() == null;
@@ -3046,10 +3044,10 @@ try {
 				nameRow.className = "slot-name-row";
 				const name = displayName(p);
 
-				const nicknameEl = document.createElement("span");
-				nicknameEl.className = "slot-nickname";
-				nicknameEl.textContent = name;
-				nameRow.appendChild(nicknameEl);
+				const nameEl = document.createElement("span");
+				nameEl.className = "slot-name";
+				nameEl.textContent = name;
+				nameRow.appendChild(nameEl);
 
 				// 値が無いときはteraItem自体を生成しない
 				// (pitfalls.mdの「DOMは残す」方針は要素の削除を指示されたケースには当たらない)。
@@ -3086,7 +3084,7 @@ try {
 				const abilityLabel = document.createElement("span");
 				// 幅が230pxしかなく、特性/持ち物のラベルにoverflow制御が無いと長い文字列が単語の
 				// 途中で2行に折り返る(例: メガリザードンXの持ち物名が「リザードナイ」「トX」の
-				// ように割れる)。nicknameEl(.slot-nickname)と同じ1行ellipsis制御をslot-meta-text
+				// ように割れる)。nameEl(.slot-name)と同じ1行ellipsis制御をslot-meta-text
 				// として共通化し、ability/itemの両ラベルに適用する(下のitemLabel参照)。
 				abilityLabel.className = "slot-meta-text";
 				// box/index.astroの.card-ability-nameはラベル無しの特性名だけを出すため、
@@ -3226,14 +3224,14 @@ try {
 					const card = document.createElement("a");
 					card.className = "card box-card card-pokemon pokemon-preview team-overview-preview-card";
 					card.href = `/box/${encodeURIComponent(p.id)}?fromTeam=${encodeURIComponent(teamId)}`;
-					card.setAttribute("aria-label", `${p.nickname?.trim() || p.species_name}を編集`);
+					card.setAttribute("aria-label", `${p.species_name}を編集`);
 					const main = document.createElement("div");
 					main.className = "pokemon-preview-main";
 					const left = document.createElement("div");
 					left.className = "pokemon-preview-left";
 					const nameEl = document.createElement("div");
 					nameEl.className = "pokemon-preview-name";
-					nameEl.textContent = p.nickname?.trim() || p.species_name;
+					nameEl.textContent = p.species_name;
 					const details = document.createElement("div");
 					details.className = "pokemon-preview-details";
 					const ability = document.createElement("div");
@@ -3408,7 +3406,7 @@ try {
 						method: "POST",
 						credentials: "same-origin",
 						headers: { "Content-Type": "application/json" },
-						body: JSON.stringify({ nickname: "", species_name: "", level: null, nature: "", ability_name: "", item_name: "", tera_type: "", regulation: "", evs: [0, 0, 0, 0, 0, 0], ivs: [31, 31, 31, 31, 31, 31], move_names: [], memo: "", tags: [], is_pinned: false }),
+						body: JSON.stringify({ species_name: "", level: null, nature: "", ability_name: "", item_name: "", tera_type: "", regulation: "", evs: [0, 0, 0, 0, 0, 0], ivs: [31, 31, 31, 31, 31, 31], move_names: [], memo: "", tags: [], is_pinned: false }),
 					});
 					const body = (await res.json().catch(() => ({}))) as { data?: OwnedPokemonRecord; error?: string };
 					if (!res.ok || !body.data) throw new Error(body.error ?? `個体を追加できませんでした (status=${res.status})`);
@@ -3502,7 +3500,7 @@ try {
 			function matchesSearch(p: OwnedPokemonRecord, term: string): boolean {
 				if (!term) return true;
 				// ボックス一覧と同じ対象を空白連結し、複数語ANDのかな部分一致で探す。
-				const haystack = [p.nickname ?? "", p.species_name, p.ability_name ?? "", p.item_name ?? "", p.tera_type ?? "", ...p.move_names].join(" ");
+				const haystack = [p.species_name, p.ability_name ?? "", p.item_name ?? "", p.tera_type ?? "", ...p.move_names].join(" ");
 				return term
 					.split(/\s+/)
 					.filter((t) => t.length > 0)
@@ -3541,7 +3539,7 @@ try {
 					updated_at: "desc",
 					dex_no: "asc",
 					type: "asc",
-					nickname: "asc",
+					species_name: "asc",
 				},
 				onChange: () => renderFormationMobile(),
 			});
@@ -3549,7 +3547,7 @@ try {
 			function sortFormationMobilePokemon(list: OwnedPokemonRecord[]): OwnedPokemonRecord[] {
 				const sort = formationMobileSortSelect.value;
 				const compareAscending = (a: OwnedPokemonRecord, b: OwnedPokemonRecord): number => {
-					if (sort === "nickname") {
+					if (sort === "species_name") {
 						return displayName(a).localeCompare(displayName(b), "ja");
 					}
 					if (sort === "dex_no") {

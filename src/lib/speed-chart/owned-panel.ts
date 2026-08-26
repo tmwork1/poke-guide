@@ -213,7 +213,7 @@ export function initOwnedPanel(ctx: OwnedPanelContext): OwnedPanelController {
     }
     // 2段目: ニックネーム(無ければ種族名)。
     const speciesEl = document.getElementById(SUMMARY_SPECIES_ID);
-    if (speciesEl) speciesEl.textContent = ctx.ownedRecord.nickname || ctx.ownedRecord.species_name;
+    if (speciesEl) speciesEl.textContent = ctx.ownedRecord.species_name;
     // 3段目: 特性・アイテム。
     const abilityEl = document.getElementById(SUMMARY_ABILITY_ID);
     if (abilityEl) abilityEl.textContent = ctx.ownedRecord.ability_name ?? '特性未設定';

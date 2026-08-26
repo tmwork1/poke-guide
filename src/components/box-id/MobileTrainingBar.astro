@@ -68,10 +68,10 @@ const previewStats = detail ? statKeys.map((key, index) => index === 0 ? calcHpS
       </ol>
     </div>
     <div class="pokemon-preview-identity">
-      <div class="pokemon-preview-sprite-wrap">
+      <button type="button" class="pokemon-preview-sprite-wrap" aria-label="ポケモンプレビュー">
         <img id="pokemon-preview-species-sprite" src={master ? championSpriteUrl(master.imageId) : undefined} onerror={master ? `this.onerror=null;this.src='${officialArtworkUrl(master.imageId)}';` : undefined} alt={pokemon.species_name} style={master ? undefined : 'display:none;'} />
         <span id="pokemon-preview-species-sprite-fallback" style={master ? 'display:none;' : undefined}>{pokemon.species_name.slice(0, 1)}</span>
-      </div>
+      </button>
     </div>
     <div class="pokemon-preview-right">
       <div class="pokemon-preview-item pokemon-preview-icon-text">
