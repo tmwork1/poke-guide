@@ -103,14 +103,12 @@ const user = Astro.locals.user;
 							<div id="owned-pokemon-list"></div>
 						</div>
 
-						<div id="empty-message" class="empty-state" hidden>
-							<p class="empty-state-icon" aria-hidden="true">📦</p>
-							<p class="empty-state-title">個体が登録されていません</p>
-							<p class="empty-state-hint" hidden></p>
+						<div id="empty-message" class="empty-state empty-state-plain" hidden>
+							<p class="empty-state-title">ポケモンが登録されていません</p>
 						</div>
 
 						{/* 検索/絞り込みの結果が0件のときの案内。登録自体はあるので空状態
-						    (#empty-message)とはメッセージを変え、見た目だけ揃える。 */}
+						    (#empty-message)とはメッセージを変え、こちらはカード見た目(アイコン付き)を維持する。 */}
 						<div id="no-match-message" class="empty-state" hidden>
 							<p class="empty-state-icon" aria-hidden="true">🔍</p>
 							<p class="empty-state-title">条件に一致する個体がありません</p>

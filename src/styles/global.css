@@ -660,6 +660,23 @@ input[type="range"]:focus-visible::-moz-range-thumb {
   margin-bottom: var(--space-3);
 }
 
+/* 初期表示(登録0件)専用: カード枠・アイコンを持たず、テキストのみを一覧領域の
+   縦方向中央に配置する。検索結果0件の案内(.empty-state本来の見た目)とは
+   意図的に別扱いにする。 */
+.empty-state-plain {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 50vh;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.empty-state-plain .empty-state-title {
+  margin: 0;
+}
+
 .sort-dir-toggle {
   display: inline-flex;
   align-items: center;
