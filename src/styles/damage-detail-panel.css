@@ -675,7 +675,8 @@ body.box-edit-page {
 		それぞれこのパネル内でより小さい既存spaceトークンへ差し替える
 		(視認性は区切り線・見出しが担うため密度を優先できる)。 */
 	#damage-detail-panel-body .damage-detail-sides {
-		margin-top: var(--damage-detail-space-md);
+		/* 急所チェック行との間隔が狭すぎたため、B-4当時のspace-mdより1段広いspace-lgにする。 */
+		margin-top: var(--damage-detail-space-lg);
 		padding-top: var(--damage-detail-space-xs);
 		gap: var(--damage-detail-space-md);
 	}
@@ -853,6 +854,8 @@ body.box-edit-page {
 		grid-column: 1 / -1;
 		justify-self: start;
 		gap: var(--damage-detail-space-sm);
+		/* 技選択ボックスの左端と完全に揃えず、少し内側から始める。 */
+		margin-inline-start: var(--damage-detail-space-sm);
 	}
 	#damage-detail-panel-body .damage-build-detail-field input,
 	#damage-detail-panel-body .damage-build-detail-field select,

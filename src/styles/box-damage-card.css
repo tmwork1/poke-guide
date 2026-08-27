@@ -473,7 +473,10 @@ body.box-edit-page {
 #damage-detail-panel .damage-build-detail-direction-toggle .damage-row-direction-option {
   background: var(--damage-card-direction-background);
   color: var(--damage-card-direction-color);
-  font-size: var(--damage-card-direction-font-size);
+  /* カード上のコンパクト表示用トークン(--damage-card-direction-font-size、カード内バッジと
+     同じ最小サイズ)ではなく、モーダル本文の操作部品サイズに合わせる(カードは密集表示、
+     モーダルは他の操作部品と並ぶため小さすぎて読みにくかった)。 */
+  font-size: var(--damage-detail-font-size-sm);
   font-weight: var(--damage-card-direction-font-weight);
   line-height: var(--damage-card-direction-line-height);
   cursor: pointer;
@@ -1549,7 +1552,9 @@ body.box-edit-page {
   min-width: 0;
   min-height: var(--damage-detail-control-min-height);
   padding: var(--damage-detail-move-input-padding);
-  font-size: var(--font-size-sm2);
+  /* 「相手ポケモン」タブのアイテム・テラスタイプ選択ボタン(damage-detail-panel.css、
+     どちらもfont-size-md)と文字サイズをそろえる。 */
+  font-size: var(--damage-detail-font-size-md);
 }
 
 /* 技名入力欄の候補リスト */
