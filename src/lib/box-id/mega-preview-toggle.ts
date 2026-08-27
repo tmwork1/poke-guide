@@ -11,7 +11,11 @@ function isMegaForm(entry: PokemonMasterEntry): boolean {
   return entry.forme?.includes('Mega') ?? false;
 }
 
-/** モバイルのメイン画像タップで、編集フォームの種族そのものをメガ前後で切り替える。 */
+/**
+ * モバイルのメイン画像タップでメガ前後を切り替える。
+ * 編集フォームがあるページでは種族入力を更新して通常の変更処理へ委ね、ないページでは
+ * プレビュー表示のみをローカルで更新する。
+ */
 export function setupMegaPreviewToggle(): void {
   const preview = document.querySelector<HTMLElement>('.pokemon-preview');
   const previewMain = preview?.querySelector<HTMLElement>('.pokemon-preview-main');
@@ -100,12 +104,19 @@ export function setupMegaPreviewToggle(): void {
 
     const toggleSpecies = (): void => {
       const target = targetFor(sourceSpecies, sourceItem);
-      if (!target || !sourceSpeciesInput || sourceSpeciesInput.value === target.name) return;
-      // 種族選択ダイアログと同じinput/changeイベントを発火することで、種族値・特性候補・
-      // メガストーン自動設定・実数値計算・自動保存を既存の通常の種族変更経路で更新する。
-      sourceSpeciesInput.value = target.name;
-      sourceSpeciesInput.dispatchEvent(new Event('input', { bubbles: true }));
-      sourceSpeciesInput.dispatchEvent(new Event('change', { bubbles: true }));
+      if (!target) return;
+      if (sourceSpeciesInput) {
+        if (sourceSpeciesInput.value === target.name) return;
+        // 種族選択ダイアログと同じinput/changeイベントを発火することで、種族値・特性候補・
+        // メガストーン自動設定・実数値計算・自動保存を既存の通常の種族変更経路で更新する。
+        sourceSpeciesInput.value = target.name;
+        sourceSpeciesInput.dispatchEvent(new Event('input', { bubbles: true }));
+        sourceSpeciesInput.dispatchEvent(new Event('change', { bubbles: true }));
+        return;
+      }
+      sourceSpecies = target.name;
+      renderSpecies(sourceSpecies);
+      renderToggle(targetFor(sourceSpecies, sourceItem));
     };
     // モバイルではclickを待たず、最初に届くpointerdownで切り替える。
     // clickはキーボード操作のフォールバックとして残す。
