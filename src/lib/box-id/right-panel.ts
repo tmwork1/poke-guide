@@ -1548,7 +1548,7 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 	hitCountUnit.className = "damage-column-hitcount-unit damage-detail-hitcount-unit";
 	hitCountUnit.textContent = "ヒット";
 	hitCountFields.append(hitCountInput, hitCountUnit);
-	hitRow.append(hitCountFields, criticalField);
+		hitRow.appendChild(hitCountFields);
 
 	let hitCountRange: [number, number] = [1, 10];
 	async function refreshHitCountVisibility(options?: { silent?: boolean; preferMax?: boolean }): Promise<void> {
@@ -1623,7 +1623,7 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 	const moveField = document.createElement("div");
 	moveField.className = "damage-detail-move-field";
 	moveField.appendChild(moveComboWrap);
-	moveControls.append(moveField, hitRow);
+		moveControls.append(moveField, hitRow, criticalField);
 	moveEditorGroup.append(moveControls);
 	contentWrap.appendChild(moveEditorGroup);
 
@@ -1759,14 +1759,14 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 	const spikes = clampInt(column.spikes, 0, 3);
 	const spikesPlaceholderOpt = document.createElement("option");
 	spikesPlaceholderOpt.value = "0";
-	spikesPlaceholderOpt.textContent = "まきびし x0";
+	spikesPlaceholderOpt.textContent = "まきびし ×0";
 	spikesPlaceholderOpt.hidden = true;
 	spikesPlaceholderOpt.selected = spikes === 0;
 	spikesSelect.appendChild(spikesPlaceholderOpt);
 	for (let i = 0; i <= 3; i++) {
 		const opt = document.createElement("option");
 		opt.value = String(i);
-		opt.textContent = `まきびし x${i}`;
+		opt.textContent = `まきびし ×${i}`;
 		if (spikes === i && i !== 0) opt.selected = true;
 		spikesSelect.appendChild(opt);
 	}

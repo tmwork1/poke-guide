@@ -831,19 +831,28 @@ body.box-edit-page {
 	}
 	#damage-detail-panel-body .damage-detail-move-controls {
 		display: grid;
-		grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+		grid-template-columns: minmax(0, 1fr) auto;
 		align-items: center;
-		justify-items: start;
+		gap: var(--damage-detail-space-sm);
 	}
 	#damage-detail-panel-body .damage-detail-move-field {
 		width: 100%;
+		min-width: 0;
 	}
 	#damage-detail-panel-body .damage-detail-hitcount-row,
 	#damage-detail-panel-body .damage-detail-critical-field {
 		justify-self: start;
 	}
 	#damage-detail-panel-body .damage-detail-hitcount-row {
-		padding-inline-start: var(--damage-detail-space-sm);
+		/* 単発技でも連続技と同じヒット数領域を確保し、わざ欄の幅を固定する。 */
+		min-width: 6.2rem;
+		padding-inline-start: 0;
+		white-space: nowrap;
+	}
+	#damage-detail-panel-body .damage-detail-move-controls > .damage-detail-critical-field {
+		grid-column: 1 / -1;
+		justify-self: start;
+		gap: var(--damage-detail-space-sm);
 	}
 	#damage-detail-panel-body .damage-build-detail-field input,
 	#damage-detail-panel-body .damage-build-detail-field select,
@@ -1034,11 +1043,6 @@ body.box-edit-page {
 		font-size: var(--damage-detail-font-size-sm);
 		text-align: left;
 		cursor: pointer;
-	}
-	#damage-detail-panel-body .tera-dropdown-button:not(.is-tera-unselected) {
-		color: var(--color-primary-strong);
-		border-color: var(--color-primary-strong);
-		font-weight: 700;
 	}
 	#damage-detail-panel-body .tera-dropdown-image,
 	#damage-detail-panel-body .tera-dropdown-option-image {
