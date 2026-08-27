@@ -56,12 +56,6 @@
 	width: 100%;
 }
 
-/* セカンドヘッダー内の検索・選択欄は、最明のコンテンツ面として表示する。 */
-.second-header input,
-.second-header select {
-	background-color: var(--color-surface);
-}
-
 /* 並べ替えスロット: 内容幅のまま右側に置く */
 .second-header-sort {
 	display: flex;
