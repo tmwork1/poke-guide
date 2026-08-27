@@ -194,11 +194,13 @@ body.data-page {
   );
   --box-battle-data-row1-extra-height: 4px;
   /* 1段目は特性・性格を3件だけ見せ、余った高さを2・3段目の一覧に配分する。
+     見出し(.trend-detail-cell > span)はマスの padding-top を打ち消して自立しているため
+     (battle-data-card.css 参照)、ここでの padding は下側の密度調整にしか影響しない。
      round()で整数pxに丸める: 端数pxのままだと1段目の高さがそのまま2段目の開始位置になり、
      小数px(サブピクセル)のズレで見出しの罫線・文字の描画位置が段によってわずかにずれて見える。 */
   --box-battle-data-row1-height: round(nearest,
-    (var(--box-battle-data-row1-padding) * 2) +
-    (var(--battle-data-card-label-font-size) * var(--line-height-normal)) + var(--space-1) +
+    var(--box-battle-data-row1-padding) +
+    var(--battle-data-card-label-row-height) +
     var(--box-battle-data-row1-value-margin-top) +
     (var(--box-battle-data-row1-row-height) * 3) + (var(--space-1) * 2) +
     var(--box-battle-data-row1-extra-height),
@@ -214,6 +216,7 @@ body.data-page {
   flex: 1 1 auto;
 }
 .box-data-page .data-panel--has-data .trend-detail-cell:nth-child(-n+2) {
+  --battle-data-card-cell-padding-top: var(--box-battle-data-row1-padding);
   padding-block: var(--box-battle-data-row1-padding);
 }
 .box-data-page .data-panel--has-data .trend-detail-cell:nth-child(-n+2) .trend-rank-list {
@@ -226,8 +229,8 @@ body.data-page {
 @media (max-width: 420px) {
   .box-data-page .data-panel--has-data .trend-detail-card {
     --box-battle-data-row1-height: round(nearest,
-      (var(--box-battle-data-row1-padding) * 2) +
-      (var(--battle-data-card-label-font-size) * var(--line-height-normal)) + var(--space-1) +
+      var(--box-battle-data-row1-padding) +
+      var(--battle-data-card-label-row-height) +
       var(--box-battle-data-row1-value-margin-top) +
       (var(--box-battle-data-row1-row-height) * 3) + (var(--space-1) * 2) +
       var(--box-battle-data-row1-extra-height),

@@ -112,15 +112,15 @@ body.data-hub-page {
   /* round()で整数pxに丸める: 端数pxのままだと2段目・3段目のマス開始位置が
      小数px(サブピクセル)になり、見出しの罫線・文字の描画位置が1段目とわずかにずれて見える。 */
   --battle-data-card-row1-height: round(nearest,
-    (var(--battle-data-card-cell-padding) * 2) +
-    (var(--battle-data-card-label-font-size) * var(--line-height-normal)) + var(--space-1) +
+    var(--battle-data-card-cell-padding) +
+    var(--battle-data-card-label-row-height) +
     var(--battle-data-card-value-margin-top) +
     (var(--data-battle-data-row-height) * 3) + (var(--space-1) * 2) +
     var(--data-battle-data-extra-height),
   1px);
   --battle-data-card-cell-height: round(nearest,
-    (var(--battle-data-card-cell-padding) * 2) +
-    (var(--battle-data-card-label-font-size) * var(--line-height-normal)) + var(--space-1) +
+    var(--battle-data-card-cell-padding) +
+    var(--battle-data-card-label-row-height) +
     var(--battle-data-card-value-margin-top) +
     (var(--data-battle-data-row-height) * 5) + (var(--space-1) * 4) +
     var(--data-battle-data-extra-height),
@@ -148,15 +148,15 @@ body.data-hub-page {
 @media (max-width: 420px) {
   .battle-data-panel .trend-detail-card {
     --battle-data-card-row1-height-mobile: round(nearest,
-      (var(--battle-data-card-cell-padding-mobile) * 2) +
-      (var(--battle-data-card-label-font-size) * var(--line-height-normal)) + var(--space-1) +
+      var(--battle-data-card-cell-padding-mobile) +
+      var(--battle-data-card-label-row-height) +
       var(--battle-data-card-value-margin-top) +
       (var(--data-battle-data-row-height) * 3) + (var(--space-1) * 2) +
       var(--data-battle-data-extra-height),
     1px);
     --battle-data-card-cell-height-mobile: round(nearest,
-      (var(--battle-data-card-cell-padding-mobile) * 2) +
-      (var(--battle-data-card-label-font-size) * var(--line-height-normal)) + var(--space-1) +
+      var(--battle-data-card-cell-padding-mobile) +
+      var(--battle-data-card-label-row-height) +
       var(--battle-data-card-value-margin-top) +
       (var(--data-battle-data-row-height) * 5) + (var(--space-1) * 4) +
       var(--data-battle-data-extra-height),
