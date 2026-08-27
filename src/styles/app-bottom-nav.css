@@ -18,7 +18,7 @@
 
   /* ── 3. 文字色 ────────────────────────────────────────── */
   --app-bottom-nav-item-color: var(--color-text-muted); /* 未選択項目のアイコンと文字色。薄くすると選択項目との差が広がる。 */
-  --app-bottom-nav-active-color: var(--color-primary); /* 現在地のアイコンと文字色。変えると選択中の強調色が変わる。 */
+  --app-bottom-nav-active-color: var(--color-primary-strong); /* 現在地のアイコンと文字色。変えると選択中の強調色が変わる。 */
   --app-bottom-nav-disabled-color: var(--color-text-muted); /* 利用不可項目の色。薄くすると無効状態がより控えめになる。 */
 
   /* ── 4. 背景色 ────────────────────────────────────────── */

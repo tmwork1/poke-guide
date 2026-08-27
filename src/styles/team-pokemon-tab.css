@@ -267,7 +267,7 @@ body.team-edit-page {
 }
 #team-formation-mobile-toolbar .sort-dir-toggle:hover:not(:disabled) {
 	background: transparent;
-	color: var(--color-primary);
+	color: var(--color-primary-strong);
 }
 	/* box-card.cssの.box-card は元々<a>を前提に書かれている。<a>はグリッド項目として
 		既定で軌道(track)いっぱいにストレッチされるが、<button>はフォームコントロールの

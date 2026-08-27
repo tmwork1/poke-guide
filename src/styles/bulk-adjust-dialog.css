@@ -147,7 +147,7 @@ body.box-edit-page {
 	button.bulk-adjust-dialog-compute-button {
 		font-weight: 500;
 		background: var(--color-surface);
-		color: var(--color-primary);
+		color: var(--color-primary-strong);
 		border: 2px solid var(--color-primary);
 		/* 操作の主目的だと分かる幅を確保するため、トークンにない必要最小限の幅だけ生値にする。 */
 		min-width: var(--bulk-adjust-compute-min-width);

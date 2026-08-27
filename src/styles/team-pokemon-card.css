@@ -62,7 +62,7 @@
 	/* スプライト画像を取得できないときだけ表示する種族名の代替文字 */
 	--team-card-sprite-fallback-font-size: var(--font-size-sm3);
 	/* 実数値表のラベルと数値 */
-	--team-card-stats-label-font-size: var(--font-size-sm4);
+	--team-card-stats-label-font-size: var(--font-size-sm3);
 	/* 努力値行(+32, 0なら-)。ラベルと同じグレー系だが実数値行との区別のため少し控えめにする。 */
 	--team-card-stats-ev-font-size: var(--team-card-stats-label-font-size);
 

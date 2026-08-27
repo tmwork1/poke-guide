@@ -306,7 +306,7 @@
 		/* 長いアイテム名でもパネル幅を越えず一段に収める。 */
 		max-width: 100%;
 		background: var(--color-surface);
-		color: var(--color-primary);
+		color: var(--color-primary-strong);
 		border: var(--speed-chart-owned-apply-border);
 	}
 	.speed-chart-owned .speed-chart-apply-button:hover:not(:disabled) {

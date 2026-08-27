@@ -216,7 +216,7 @@
 		text-align: center;
 	}
 	.speed-chart-table[data-embedded='true'] .speed-chart-apply-label > :first-child {
-		font-size: 0.625rem;
+		font-size: var(--font-size-sm4);
 	}
 	.speed-chart-table[data-embedded='true'] .speed-chart-owned-summary {
 		display: grid;
@@ -345,7 +345,7 @@
 		/* 699px以下では性格・特性・持ち物・努力値のバッジを詰めて表示する */
 		.speed-chart-table[data-embedded='true'] .speed-chart-owned-summary > .speed-chart-owned-summary-badges .badge {
 			padding: 0.15em 0.35em;
-			font-size: 0.6875rem;
+			font-size: var(--font-size-sm4);
 		}
 		.speed-chart-table[data-embedded='true'] .speed-chart-owned-jump-button {
 			padding: 0.15em 0.3em;

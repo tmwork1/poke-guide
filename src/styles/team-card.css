@@ -30,7 +30,7 @@
    -------------------------------------------------------------------------- */
 .team-grid {
   /* ── 1. 文字サイズ ─────────────────────── */
-  --team-card-empty-font-size: 1.5rem; /* 空き枠番号の大きさ */
+  --team-card-empty-font-size: var(--font-size-lg3); /* 空き枠番号の大きさ */
   --team-card-title-font-size: var(--font-size-base); /* チーム名の文字サイズ */
   --team-card-inline-name-font-size: var(--font-size-sm1); /* 上位構築カードのトレーナー名の文字サイズ */
   --team-card-badge-font-size: var(--font-size-sm3); /* バッジ文字の大きさ */

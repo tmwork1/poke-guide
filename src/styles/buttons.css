@@ -31,7 +31,7 @@ button:disabled { cursor: not-allowed; opacity: 0.55; }
   button:hover:not(:disabled) { background: color-mix(in srgb, var(--color-surface) 90%, var(--color-primary) 10%); }
 }
 button.btn-primary, a.btn-primary { background: var(--color-primary); border: 2px solid var(--color-primary); color: var(--color-primary-contrast); padding: calc(var(--space-2) - 1px) calc(1.1em - 1px); font-weight: 700; }
-button.btn-primary:hover:not(:disabled), a.btn-primary:hover { background: var(--color-surface); color: var(--color-primary); }
+button.btn-primary:hover:not(:disabled), a.btn-primary:hover { background: var(--color-surface); color: var(--color-primary-strong); }
 button.btn-danger, a.btn-danger, .delete-button { background: var(--color-danger-strong); border: 2px solid var(--color-danger-strong); color: var(--color-primary-contrast); padding: calc(var(--space-2) - 1px) calc(1.1em - 1px); font-weight: 700; }
 button.btn-danger:hover:not(:disabled), a.btn-danger:hover, .delete-button:hover:not(:disabled) { background: var(--color-surface); color: var(--color-danger-strong); }
 button.btn-ghost, a.btn-ghost { background: transparent; border-color: transparent; color: var(--color-text-muted); }

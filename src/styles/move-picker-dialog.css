@@ -270,7 +270,7 @@ body.box-edit-page {
 /* 現在の並べ替え列に付ける昇順記号。降順時は直後のルールで下矢印にする */
 .move-picker-sort-btn.is-active::after {
   content: "↑";
-  color: var(--color-primary);
+  color: var(--color-primary-strong);
 }
 .move-picker-sort-btn.is-active[data-sort-dir="desc"]::after { content: "↓"; }
 /* 技一覧の各データセル */

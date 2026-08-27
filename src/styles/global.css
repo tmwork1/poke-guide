@@ -33,6 +33,7 @@
   --color-success-strong: #2b6b5c; /* 安全度バーの文字色。濃さを変えると成功表示の文字コントラストが変わる。 */
   --color-danger-strong: #b23a26; /* 削除ボタンや危険度バーの文字色。濃さを変えると危険表示の強さが変わる。 */
   --color-risky-strong: #8a5806; /* 注意度バーの文字色。濃さを変えると注意表示の文字コントラストが変わる。 */
+  --color-warning-strong: #6b6f78; /* 保存中・読込中の文字色。--color-warning は面向けの淡い色でコントラスト比が足りないため、文字表示にはこちらを使う。 */
   --color-stat-up: #c9432c; /* 能力上昇を示す文字・目印の色。変えると上昇表示の識別色が変わる。 */
   --color-stat-down: #1d6fd1; /* 能力下降を示す文字・目印の色。変えると下降表示の識別色が変わる。 */
 
@@ -134,6 +135,7 @@ select {
     --color-success-strong: var(--color-success); /* ダーク画面の安全度バー文字色。変えると安全表示の文字色が変わる。 */
     --color-danger-strong: var(--color-danger); /* ダーク画面の削除・危険度バー文字色。変えると危険表示の文字色が変わる。 */
     --color-risky-strong: var(--color-risky); /* ダーク画面の注意度バー文字色。変えると注意表示の文字色が変わる。 */
+    --color-warning-strong: var(--color-warning); /* ダーク画面の保存中・読込中文字色。ダークの --color-warning は既に十分な濃さのため面色と同じでよい。 */
     --color-stat-up: var(--color-danger); /* ダーク画面の能力上昇色。変えると上昇表示の識別色が変わる。 */
     --color-stat-down: #6fb6f7; /* ダーク画面の能力下降色。変えると下降表示の識別色が変わる。 */
 
@@ -585,7 +587,7 @@ input[type="range"]:focus-visible::-moz-range-thumb {
   justify-content: center;
   border-radius: 50%;
   background: var(--color-primary-soft);
-  color: var(--color-primary);
+  color: var(--color-primary-strong);
   font-weight: 700;
   flex-shrink: 0;
 }
@@ -607,7 +609,7 @@ input[type="range"]:focus-visible::-moz-range-thumb {
 }
 .add-card-tile:hover {
   border-color: var(--color-primary);
-  color: var(--color-primary);
+  color: var(--color-primary-strong);
 }
 
 /* --- 空状態 --- */
@@ -917,7 +919,7 @@ input[type="checkbox"].toggle-switch-input {
   padding: 0.2em 0.7em;
   border-radius: 999px;
   background: var(--color-primary-soft);
-  color: var(--color-primary);
+  color: var(--color-primary-strong);
 
   font-size: var(--font-size-sm3);
   font-weight: 700;
@@ -939,18 +941,18 @@ input[type="checkbox"].toggle-switch-input {
 
 .status-text[data-state="saving"],
 .status-text[data-state="loading"] {
-  color: var(--color-warning);
+  color: var(--color-warning-strong);
 }
 
 .status-text[data-state="saved"],
 .status-text[data-state="ready"],
 .status-text[data-state="success"],
 .status-text[data-state="public"] {
-  color: var(--color-success);
+  color: var(--color-success-strong);
 }
 
 .status-text[data-state="error"] {
-  color: var(--color-danger);
+  color: var(--color-danger-strong);
 }
 
 .status-text[data-state="private"],

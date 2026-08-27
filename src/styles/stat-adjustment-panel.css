@@ -137,8 +137,8 @@
 	font-weight: var(--stat-value-font-weight);
 	color: var(--stat-ev-remaining-color, var(--stat-muted-color));
 }
-.ev-remaining[data-state="zero"] { color: var(--color-success); }
-.ev-remaining[data-state="over"] { color: var(--color-danger); }
+.ev-remaining[data-state="zero"] { color: var(--color-success-strong); }
+.ev-remaining[data-state="over"] { color: var(--color-danger-strong); }
 .ev-remaining:empty { display: none; }
 /* HP・こうげきなど能力値1つ分の行 */
 .stat-row {

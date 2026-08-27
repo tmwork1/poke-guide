@@ -43,6 +43,7 @@
   --box-card-action-color: var(--color-text-muted); /* 通常時の丸い操作アイコンを目立たせすぎない色 */
   --box-card-action-hover-color: var(--color-text); /* ポインターを載せた操作アイコンの文字色 */
   --box-card-delete-color: var(--color-danger-strong); /* 削除操作であることを示すアイコンの警告色 */
+  --box-card-recommendation-color: #ffd400; /* おすすめ★バッジの色。ライト/ダーク共通の金色固定 */
 
   /* ── 4. 背景色 ────────────────────────────────────────── */
   --box-card-move-type-bar-empty-color: #000; /* 技が空欄の行に表示するタイプバーの塗り色 */
@@ -336,7 +337,7 @@
   flex: 0 0 auto;
   align-items: center;
   justify-content: center;
-  color: #ffd400;
+  color: var(--box-card-recommendation-color);
   font-size: var(--font-size-sm2);
   line-height: 1;
 }

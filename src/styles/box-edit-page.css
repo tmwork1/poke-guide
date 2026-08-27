@@ -129,9 +129,9 @@ body.box-edit-page {
 	--box-edit-delete-color: var(--color-danger-strong); /* 通常時の削除ボタン文字色 */
 	--box-edit-delete-hover-color: var(--color-primary-contrast); /* ホバー時の削除ボタン文字色 */
 	--box-edit-collection-toggle-color: var(--color-text-muted); /* 通常時の収集拒否ラベルの文字色 */
-	--box-edit-collection-toggle-hover-color: var(--color-primary); /* ホバー時の収集拒否ラベルの文字色 */
+	--box-edit-collection-toggle-hover-color: var(--color-primary-strong); /* ホバー時の収集拒否ラベルの文字色 */
 	--box-edit-collection-status-color: var(--color-text-muted); /* 収集設定の状態文の文字色 */
-	--box-edit-error-color: var(--color-danger); /* 保存失敗などのエラー文の文字色 */
+	--box-edit-error-color: var(--color-danger-strong); /* 保存失敗などのエラー文の文字色 */
 
 	/* ── 4. 背景色 ───────────────────────── */
 	--box-edit-delete-background: var(--color-surface); /* 通常時の削除ボタン背景色 */

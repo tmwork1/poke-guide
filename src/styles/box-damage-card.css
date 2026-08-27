@@ -1281,7 +1281,7 @@ body.box-edit-page {
 
 @media (hover: hover) and (pointer: fine) {
   #opponent-notes-section .damage-add-column-button:hover:not(:disabled) {
-    color: var(--color-primary);
+    color: var(--color-primary-strong);
     background: var(--color-primary-soft);
   }
 }
@@ -1485,14 +1485,14 @@ body.box-edit-page {
 #damage-detail-panel-body .damage-detail-toggle-row .damage-detail-spikes-select:not(.is-spikes-unselected) {
   border-color: var(--color-primary);
   background: var(--color-primary-soft);
-  color: var(--color-primary);
+  color: var(--color-primary-strong);
   font-weight: 700;
 }
 
 @media (hover: hover) and (pointer: fine) {
   #damage-detail-panel-body .damage-detail-toggle-row .damage-detail-spikes-select:hover {
     border-color: var(--color-primary);
-    color: var(--color-primary);
+    color: var(--color-primary-strong);
   }
 }
 
@@ -1636,7 +1636,7 @@ body.box-edit-page {
 @media (hover: hover) and (pointer: fine) {
   #damage-detail-panel-body .damage-detail-icon-btn:hover {
     border-color: var(--color-primary);
-    color: var(--color-primary);
+    color: var(--color-primary-strong);
   }
 }
 
@@ -1648,7 +1648,7 @@ body.box-edit-page {
 #damage-detail-panel-body .damage-detail-icon-btn[aria-pressed="true"] {
   border-color: var(--color-primary);
   background: var(--color-primary-soft);
-  color: var(--color-primary);
+  color: var(--color-primary-strong);
   font-weight: 700;
 }
 

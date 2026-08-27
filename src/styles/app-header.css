@@ -27,8 +27,8 @@
   --app-header-item-color: var(--color-text-muted); /* 未選択タブの文字色。薄くすると選択中との差が広がる。 */
   --app-header-back-color: color-mix(in srgb, var(--color-text) 86%, #000); /* 戻るボタンの色。濃くすると矢印が目立つ。 */
   --app-header-title-color: var(--app-header-back-color); /* 画面タイトルの文字色。戻るボタンと同じ色にする。 */
-  --app-header-item-hover-color: var(--color-primary); /* タブに触れたときの文字色。変えると操作時の強調色が変わる。 */
-  --app-header-item-active-color: var(--color-primary); /* 選択中タブの文字色。変えると現在地の強調色が変わる。 */
+  --app-header-item-hover-color: var(--color-primary-strong); /* タブに触れたときの文字色。変えると操作時の強調色が変わる。 */
+  --app-header-item-active-color: var(--color-primary-strong); /* 選択中タブの文字色。変えると現在地の強調色が変わる。 */
 
   /* ── 4. 背景色 ────────────────────────────────────────── */
   --app-header-background: var(--color-chrome); /* バー全体の背景色。コンテンツ面より控えめなナビ帯。 */
