@@ -12,29 +12,27 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import {
-  spriteUrl,
+  championSpriteUrl,
   officialArtworkUrl,
   loadMultiHitMoveMap,
   loadMegaStoneMap,
 } from '../src/lib/pokemon-master-data.ts';
 
-describe('spriteUrl', () => {
-  // 2026-08-06: ドット絵は public/pokemon-sprites/ に事前ダウンロードした画像を同一オリジンから
-  // 配信する方式に変更した(生成: scripts/pokemon-sprites/generate_pokemon_sprites.py)。
-  // 上流の Cache-Control が max-age=300(5分)しかなく、300枚並ぶ /ranked-teams で再訪のたびに
-  // 大量の条件付きリクエストが出ていたのが理由。詳細は docs/plan/pokemon-sprites-localization.md。
-  it('imageIdからローカルのドット絵URLを組み立てる(通常種)', () => {
-    assert.equal(spriteUrl(1), '/pokemon-sprites/1.png');
+describe('championSpriteUrl', () => {
+  // Pokémon Champions公式のメニュー用アイコンを public/pokemon-champion-sprites/ から
+  // 同一オリジンで配信する(生成: scripts/pokemon-champion-sprites/generate_pokemon_champion_sprites.py)。
+  it('imageIdからローカルのアイコンURLを組み立てる(通常種)', () => {
+    assert.equal(championSpriteUrl(1), '/pokemon-champion-sprites/1.png');
   });
 
   it('10000番台のimageId(メガシンカ等の特殊フォルム専用ID)も同じ規則でURLを組み立てる', () => {
-    assert.equal(spriteUrl(10034), '/pokemon-sprites/10034.png');
+    assert.equal(championSpriteUrl(10034), '/pokemon-champion-sprites/10034.png');
   });
 
   it('外部ホストを参照しない(ローカル化の回帰テスト)', () => {
     assert.ok(
-      spriteUrl(25).startsWith('/'),
-      'ドット絵は同一オリジンのルート相対パスで配信する',
+      championSpriteUrl(25).startsWith('/'),
+      'アイコンは同一オリジンのルート相対パスで配信する',
     );
   });
 });
@@ -51,9 +49,9 @@ describe('officialArtworkUrl', () => {
     assert.equal(officialArtworkUrl(10034), '/pokemon-artwork/10034.webp');
   });
 
-  it('ドット絵とは拡張子が異なる(.webp / .png の取り違え防止)', () => {
+  it('championSpriteUrlとは拡張子が異なる(.webp / .png の取り違え防止)', () => {
     assert.ok(officialArtworkUrl(25).endsWith('.webp'));
-    assert.ok(spriteUrl(25).endsWith('.png'));
+    assert.ok(championSpriteUrl(25).endsWith('.png'));
   });
 });
 
@@ -90,7 +88,6 @@ describe('public/master-data/autocomplete/pokemon.json のimageId(回帰テス�
   // 参照先が同一オリジンになった今、取り残しは404=画像割れに直結する
   // (applySprite はonerrorで頭文字バッジに退避するが、ranked-teams/card.ts などは退避しない)。
   for (const target of [
-    { dir: 'pokemon-sprites', ext: 'png', label: 'ドット絵', cmd: 'npm run generate:pokemon-sprites' },
     { dir: 'pokemon-artwork', ext: 'webp', label: '公式絵', cmd: 'npm run generate:pokemon-artwork' },
   ]) {
     it(`全imageIdに対応する${target.label}が public/${target.dir}/ に存在する`, () => {

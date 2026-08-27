@@ -36,8 +36,6 @@ export function readMoveNames(): string[] {
 
 export type SpeciesUsageByRegulation = Record<string, Record<string, number>>;
 
-let pokemonNamesInPhysicalOrder: string[] | null = null;
-
 export function sortPokemonNamesByUsage(
   names: readonly string[],
   usage: Readonly<Record<string, number>>,
@@ -74,7 +72,6 @@ async function fillDatalist(res: Response, datalistId: string): Promise<void> {
   const datalist = el<HTMLDataListElement>(datalistId);
   const names = list.map(({ name }) => name);
   if (datalistId === 'pokemon-list') {
-    pokemonNamesInPhysicalOrder = names;
     const regulation = (document.getElementById('regulation') as HTMLSelectElement | null)?.value ?? '';
     const usageByRegulation = readSpeciesUsageData();
     replaceDatalistOptions(
@@ -112,7 +109,3 @@ export async function loadAutocomplete(): Promise<void> {
     console.warn('オートコンプリート用データの読み込みに失敗しました', err);
   }
 }
-
-// 種族名から図鑑ページへのリンク(pokemonDetailHref)は、個体編集画面の「図鑑で見る」を
-// 廃止したことで呼び出し元が無くなったため削除した。ポケモン名→URLパスセグメントの変換が
-// 再び必要になった場合は src/lib/pokemon-slug.ts の toPokemonPathSegment を使うこと。

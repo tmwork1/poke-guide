@@ -8,11 +8,11 @@ export default {
 		return handle(request, env, ctx);
 	},
 
-	async scheduled(event, env, ctx) {
+	async scheduled() {
 		// wrangler.jsonc の triggers.crons から呼ばれる。集計対象が1ジョブのみのため分スロット分岐は行わない。
 		// (ジョブが増えたら event.cron の値で分岐する)
 		// getSupabaseAdminClient は cloudflare:workers の env を直接読む (src/config/env.ts) ため、
-		// ここで受け取った env 引数を渡す必要はない (他の API ルートと同じ流儀)。
+		// ここで env 引数を受け取って渡す必要はない (他の API ルートと同じ流儀)。
 		const supabase = await getSupabaseAdminClient();
 		const { error } = await supabase.rpc('refresh_popular_builds');
 

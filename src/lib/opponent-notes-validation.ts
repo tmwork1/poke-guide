@@ -8,7 +8,7 @@
 // src/lib/opponent-note-anonymize.ts が別途、独立して保証する(このファイルの検証を素通りしても
 // 匿名化側は自前で許可フィールドのみコピーする)。
 
-import { isMoveNamesArray, isPlainObject, isStatArray, isStringArray, MAX_MOVE_COUNT, STAT_COUNT } from './validation-primitives.ts';
+import { isMoveNamesArray, isPlainObject, isStatArray, isStringArray, STAT_COUNT } from './validation-primitives.ts';
 
 export interface OpponentBuildInput {
   name: string;

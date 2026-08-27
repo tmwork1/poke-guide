@@ -38,7 +38,6 @@ import {
 	resolveMegaStoneItem,
 	flashAutofillHint,
 	natureNameFromBoosts,
-	normalizedNatureBoosts,
 	nextNatureBoosts,
 	recalcStats,
 	baseStatsMapPromise,
@@ -59,7 +58,6 @@ import {
 } from "./durability-index";
 // right-panel.ts と damage-calc.ts の初期化順を変えると循環参照で TDZ 例外になるため、
 // 実行時の参照はページ初期化後まで遅延読み込みする。
-import type { CandidateListItem } from "./right-panel";
 let rightPanelModulePromise: Promise<typeof import("./right-panel")> | null = null;
 function loadRightPanel(): Promise<typeof import("./right-panel")> {
 	if (!rightPanelModulePromise) rightPanelModulePromise = import("./right-panel");
@@ -1429,12 +1427,6 @@ if (form) {
 		applyDurabilityEvToLeftPanel("hp", candidate.evs.hp);
 		applyDurabilityEvToLeftPanel("def", candidate.evs.def);
 		applyDurabilityEvToLeftPanel("spd", candidate.evs.spd);
-	}
-
-	// 指数の値の表示桁: total(総合耐久指数)はH*B*D/(B+D)で割り切れないことが多いため
-	// 小数2桁に丸める。physical/special(H*B・H*D)は実数値同士の掛け算で必ず整数になる。
-	function formatDurabilityIndexValue(kind: DurabilityIndexKind, value: number): string {
-		return kind === "total" ? value.toFixed(2) : String(Math.round(value));
 	}
 
 	const DURABILITY_INDEX_KINDS: { kind: DurabilityIndexKind; heading: string; headingHelp: string }[] = [

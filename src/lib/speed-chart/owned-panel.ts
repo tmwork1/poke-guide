@@ -99,32 +99,6 @@ const NATURE_EFFECT_MODIFIER: Record<'up' | 'neutral' | 'down', number> = {
   down: 0.9,
 };
 
-function createRefreshIcon(): SVGElement {
-  const ns = 'http://www.w3.org/2000/svg';
-  const svg = document.createElementNS(ns, 'svg');
-  svg.setAttribute('class', 'speed-chart-apply-icon');
-  svg.setAttribute('viewBox', '0 0 24 24');
-  svg.setAttribute('width', '14');
-  svg.setAttribute('height', '14');
-  svg.setAttribute('fill', 'none');
-  svg.setAttribute('stroke', 'currentColor');
-  svg.setAttribute('stroke-width', '2');
-  svg.setAttribute('stroke-linecap', 'round');
-  svg.setAttribute('stroke-linejoin', 'round');
-  svg.setAttribute('aria-hidden', 'true');
-  svg.setAttribute('focusable', 'false');
-
-  const body = document.createElementNS(ns, 'path');
-  body.setAttribute('d', 'M21 12a9 9 0 1 1-2.64-6.36');
-  svg.appendChild(body);
-
-  const tip = document.createElementNS(ns, 'path');
-  tip.setAttribute('d', 'M21 3v6h-6');
-  svg.appendChild(tip);
-
-  return svg;
-}
-
 function pickReplacementNature(effect: 'up' | 'neutral' | 'down', currentNature: string, fallback: string): string {
   const currentModifier = NATURE_STAT_MODIFIERS[currentNature];
   const candidates = Object.entries(NATURE_STAT_MODIFIERS).filter(([, modifier]) => {

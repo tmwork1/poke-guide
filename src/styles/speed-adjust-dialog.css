@@ -103,11 +103,10 @@ body.speed-chart-page:has(.speed-chart-embed-toolbar) {
   --speed-adjust-table-meta-size: var(--font-size-sm2);
   --speed-adjust-table-base-speed-size: var(--font-size-sm2);
 
-  /* 表: 性格・努力値などのチップ / チップの出典文 / ×1.5など / 省略表示 */
+  /* 表: 性格・努力値などのチップ / チップの出典文 / ×1.5など */
   --speed-adjust-chip-size: var(--font-size-sm3);
   --speed-adjust-chip-origin-size: var(--font-size-sm3);
   --speed-adjust-chip-modifier-size: 0.9em;
-  --speed-adjust-chip-overflow-size: var(--font-size-sm3);
 
   /* 表: 個体へ更新するボタン（性格・努力値） */
   --speed-adjust-apply-size: var(--font-size-sm3);
@@ -181,13 +180,8 @@ body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-base
   font-size: var(--speed-adjust-table-base-speed-size);
 }
 
-body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-chip,
-body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-chip-overflow {
+body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-chip {
   font-size: var(--speed-adjust-chip-size);
-}
-
-body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-chip-overflow {
-  font-size: var(--speed-adjust-chip-overflow-size);
 }
 
 body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-chip-origin {

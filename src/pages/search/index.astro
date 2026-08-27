@@ -78,13 +78,12 @@ import '../../styles/search-page.css';
 
 			type SearchCategory = "pokemon" | "move" | "ability" | "item";
 
-			// linkBase が null のカテゴリ(特性・持ち物)は詳細ページを作らないため、
-			// 検索結果では名前のみを表示しリンクを張らない。
-			const CATEGORY_CONFIG: Array<{ key: SearchCategory; linkBase: string | null }> = [
-				{ key: "pokemon", linkBase: null },
-				{ key: "move", linkBase: null },
-				{ key: "ability", linkBase: null },
-				{ key: "item", linkBase: null },
+			// いずれのカテゴリも詳細ページを持たないため、検索結果では名前のみを表示しリンクは張らない。
+			const CATEGORY_CONFIG: Array<{ key: SearchCategory }> = [
+				{ key: "pokemon" },
+				{ key: "move" },
+				{ key: "ability" },
+				{ key: "item" },
 			];
 
 			const VALID_CATEGORIES = CATEGORY_CONFIG.map((c) => c.key);
@@ -129,8 +128,7 @@ import '../../styles/search-page.css';
 				history.replaceState(null, "", newUrl);
 			}
 
-			// /pokemon /moves は静的プリレンダリングのため backHref (常に "/search") に
-			// 検索語を焼き込めない。ブラウザバックでURLそのものが失われるケースの保険として、
+			// 下部ナビ等でクエリ無しの /search に戻ってきた場合の保険として、
 			// sessionStorage にも直近の検索状態を残す(復元優先度: URLクエリ > sessionStorage > 空)。
 			const STORAGE_KEY = "poke-commons:search-state";
 
@@ -168,7 +166,7 @@ import '../../styles/search-page.css';
 					return;
 				}
 				let anyVisible = false;
-				for (const { key, linkBase } of CATEGORY_CONFIG) {
+				for (const { key } of CATEGORY_CONFIG) {
 					const block = el<HTMLElement>(`result-${key}-block`);
 					const list = el<HTMLUListElement>(`result-${key}`);
 					const items = data.results[key] ?? [];
@@ -181,17 +179,7 @@ import '../../styles/search-page.css';
 					block.hidden = false;
 					for (const item of items) {
 						const li = document.createElement("li");
-						if (linkBase) {
-							const a = document.createElement("a");
-							// ポケモン名の一部("ジガルデ(50%)"等)はURLパスセグメントとして
-							// そのまま使えないため、詳細ページ側と同じ変換をここでも通す
-							// (src/lib/pokemon-slug.ts 参照)。技名には該当する例外は無い。
-							a.href = linkBase + encodeURIComponent(item.name);
-							a.textContent = item.name;
-							li.appendChild(a);
-						} else {
-							li.textContent = item.name;
-						}
+						li.textContent = item.name;
 						list.appendChild(li);
 					}
 				}
@@ -259,9 +247,7 @@ import '../../styles/search-page.css';
 			});
 
 			// --- A-6: 検索状態をURLに読み書きする ---
-			// /search は /pokemon /moves の唯一の入口であり、両詳細ページの backHref="/search" が
-			// 指す唯一の戻り先。URLクエリ優先 → sessionStorage → 空、の順で復元することで、
-			// 「検索 → 詳細を開く → 戻る」で検索語と結果が失われないようにする。
+			// URLクエリ優先 → sessionStorage → 空、の順で復元する。
 			function restoreSearchState(): void {
 				const params = new URLSearchParams(location.search);
 				let query = "";

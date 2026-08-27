@@ -22,10 +22,8 @@
 import {
   buildSpeedChartPopulation,
   buildSpeedChartRows,
-  filterRowsByReachableValues,
   includeReachableValuesInRows,
   getEffectiveSpeedModifiers,
-  limitRowChipsByWidth,
   sortFormNamesByUsage,
   SPEED_SPREADS,
   type AdoptionRateData,
@@ -230,7 +228,6 @@ export async function initSpeedChartPage(): Promise<void> {
   const scarfEntry = findScarfItemEntry(masterData.speedModifiers.items);
   const imageIdByName = new Map(masterData.pokemonAutocomplete.map((p) => [p.name, p.imageId]));
   const pokemonDetailByName = new Map(masterData.pokemonDetail.map((p) => [p.name, p]));
-  const modifierNames = new Set(effectiveModifiers.map((m) => m.name));
 
   // 1実数値に対して、その値を作るグループ(振り方+補正の組)の数だけ物理行(.speed-chart-row)が
   // 存在しうる。ハイライト・スクロールは実数値単位で行いたいので、値ごとに複数要素を保持する
@@ -246,13 +243,7 @@ export async function initSpeedChartPage(): Promise<void> {
   // R-12更新: 「個体が到達可能な実数値の集合」はowned-panel.tsが所有する。ここではCustomEvent
   // 経由で受け取った値をキャッシュするだけ(クロージャ共有はしない)。
   let lastKnownReachableValues: Set<number> | null = null;
-  let showReachableOnly = !(reachableOnlyToggle?.checked ?? false);
   let sortOrder: 'asc' | 'desc' = orderButton?.dataset.order === 'asc' ? 'asc' : 'desc';
-  const chipWidthByName = new Map<string, number>();
-  const chipOriginWidthByName = new Map<string, number>();
-  // 3列目セル幅・チップ間gap・「+N件」バッジ幅は行によらず一定(固定グリッド列幅のため)
-  // なので初回のみ実測してキャッシュする。
-  let chipLayoutMetrics: ChipLayoutMetrics | null = null;
   let minimapFrame: number | null = null;
 
   function getDocumentHeight(): number {
@@ -444,8 +435,7 @@ export async function initSpeedChartPage(): Promise<void> {
     }
   }
 
-  // 要件4: 現在のトグル状態(showReachableOnly)とlastKnownReachableValuesに基づき、
-  // currentRowsを絞り込んでから描画する。レギュレーション切替・トグル切替の両方から呼ばれる。
+  // レギュレーション切替・トグル切替の両方から呼ばれる。
   function renderVisibleRows(): void {
     // すばやさ調整では候補を絞り込まず、常に全実数値を表示する。
     const rows = lastKnownReachableValues
@@ -461,29 +451,6 @@ export async function initSpeedChartPage(): Promise<void> {
     const baseSpeedByName = new Map<string, number>();
     for (const [name, form] of formsByName) baseSpeedByName.set(name, form.baseSpeed);
 
-    // 同一フォルムの要因名を連結したラベルも、描画前の幅計測対象に含める。
-    const rowGroupOriginNames = new Set(modifierNames);
-    for (const row of rows) {
-      if (row.entries.length === 0) continue;
-
-      for (const group of groupEntriesIntoRowGroups(row.entries, baseSpeedByName, undefined)) {
-        for (const entry of group.entries) {
-          if (entry.originName) rowGroupOriginNames.add(entry.originName);
-        }
-      }
-    }
-
-    chipLayoutMetrics = ensureChipMetrics(
-      bodyEl!,
-      tableEl!,
-      formsByName.keys(),
-      rowGroupOriginNames,
-      imageIdByName,
-      chipWidthByName,
-      chipOriginWidthByName,
-      chipLayoutMetrics,
-      hasOwnedPanel,
-    );
     const usageCounts =
       currentRegulation === ALL_REGULATIONS_VALUE
         ? mergeSpeciesUsageCounts(usageByRegulation, knownRegulations)
@@ -536,18 +503,7 @@ export async function initSpeedChartPage(): Promise<void> {
         rowEl.appendChild(valueCell);
 
         rowEl.appendChild(buildMetaCell(group));
-        rowEl.appendChild(
-          buildChipsCell(
-            group,
-            imageIdByName,
-            usageCounts,
-            baseSpeedByName,
-            chipWidthByName,
-            chipOriginWidthByName,
-            chipLayoutMetrics,
-			tableEl?.dataset.embedded === 'true',
-          ),
-        );
+        rowEl.appendChild(buildChipsCell(group, imageIdByName));
 
         // 要件: 4列目(調整)は?owned=連携時だけ存在する(ChartTable.astro側もdata-has-owned-panel
         // で列数を切り替えている)。列数がズレないよう、無いときはセル自体を作らない。
@@ -628,8 +584,6 @@ export async function initSpeedChartPage(): Promise<void> {
   });
 
   reachableOnlyToggle?.addEventListener('change', () => {
-    // 要件2: 反転後の意味(checked=すべて表示)なので、絞り込みフラグには否定を入れる。
-    showReachableOnly = !reachableOnlyToggle.checked;
     renderVisibleRows();
     // トグル操作でも← 現在マーカーの位置は変わらないため、直前のハイライト値を再適用する。
     if (ownedController) applyHighlight(ownedController.getCurrentValue());
@@ -864,62 +818,17 @@ function buildMetaCell(group: RowGroup): HTMLElement {
   return cell;
 }
 
-function buildChipsCell(
-  group: RowGroup,
-  imageIdByName: Map<string, number>,
-  usageCounts: SpeciesUsageCounts | undefined,
-  baseSpeedByName: Map<string, number>,
-  chipWidthByName: Map<string, number>,
-  chipOriginWidthByName: Map<string, number>,
-  chipLayoutMetrics: ChipLayoutMetrics | null,
-  showAllChips: boolean,
-): HTMLElement {
+// チップは常に全件表示する(幅で足切りして「+N件」バッジを出す旧仕様は廃止済み)。
+// 収まらない場合は表示領域側で折り返す(speed-chart-table.cssのflex-wrap)。
+function buildChipsCell(group: RowGroup, imageIdByName: Map<string, number>): HTMLElement {
   const cell = document.createElement('div');
   cell.className = 'speed-chart-chips-cell';
 
   const chipsRow = document.createElement('div');
   chipsRow.className = 'speed-chart-chips-row';
 
-  const orderedFormNames = Array.from(new Set(group.entries.map((e) => e.formName)));
-
-  // 足切り(limitRowChipsByWidth)への対応: チップが縦積みユニット(チップ+要因ラベル)に
-  // なったため、ユニット1個の実効幅は「チップ幅」と「要因ラベル幅」の大きい方になる。
-  // limitRowChipsByWidthはフォルム名単位でしか足切りを判定できない純粋関数(編集禁止)なので、
-  // その行に出てくるエントリから「フォルム名 → 実効幅(同じ名前が複数回出るときは最大値)」の
-  // 一時Mapを作って渡す近似で対応する(同じフォルムが2つの異なる要因ラベルを持つ場合、
-  // 実際の各ユニットの幅は要因ラベルによって多少違いうるが、そこまでは追わない)。
-  const effectiveWidthByName = new Map<string, number>();
   for (const entry of group.entries) {
-    const chipWidth = chipWidthByName.get(entry.formName) ?? 0;
-    const originWidth = entry.originName ? (chipOriginWidthByName.get(entry.originName) ?? 0) : 0;
-    const effectiveWidth = Math.max(chipWidth, originWidth);
-    if (effectiveWidth > (effectiveWidthByName.get(entry.formName) ?? 0)) {
-      effectiveWidthByName.set(entry.formName, effectiveWidth);
-    }
-  }
-
-  // チップは常に全件表示する。収まらない場合は表示領域側で横スクロールさせる。
-  const keptSet = new Set(orderedFormNames);
-
-  // droppedCountはlimitRowChipsByWidthの戻り値(フォルム名基準の件数)をそのまま使わず、
-  // 「実際に描画しなかったエントリ数」で数え直す。上の近似により「名前が生き残る/落ちる」の
-  // 単位でしか判定できないため、同じポケモンが2つの要因で出る行では
-  // フォルム名基準の件数とエントリ基準の件数がズレる(名前が生き残ればその名前の
-  // 全エントリが描画される)。
-  let renderedCount = 0;
-  for (const entry of group.entries) {
-    if (!keptSet.has(entry.formName)) continue;
     chipsRow.appendChild(buildChipUnit(entry, imageIdByName));
-    renderedCount++;
-  }
-  const droppedCount = group.entries.length - renderedCount;
-  // 足切りが起きたグループには必ず可視で件数を示す(黙って切ると「そのポケモンは居ない」と
-  // 誤読されるため。stack.mdの「no silent caps」と同趣旨)。
-  if (!showAllChips && droppedCount > 0) {
-    const overflow = document.createElement('span');
-    overflow.className = 'speed-chart-chip-overflow';
-    overflow.textContent = `+${droppedCount}件`;
-    chipsRow.appendChild(overflow);
   }
   cell.appendChild(chipsRow);
 
@@ -950,106 +859,6 @@ function buildSpreadBadge(spreadKind: SpeedSpreadKind): HTMLElement {
   badge.dataset.spread = spreadKind;
   badge.textContent = SPEED_SPREADS[spreadKind].label;
   return badge;
-}
-
-/** 3列目セル幅・チップ間gap・「+N件」バッジ幅(行によらず一定。固定グリッド列幅のため)。 */
-interface ChipLayoutMetrics {
-  containerWidth: number;
-  gapWidth: number;
-  overflowBadgeWidth: number;
-}
-
-function ensureChipMetrics(
-  bodyEl: HTMLElement,
-  tableEl: HTMLElement,
-  formNames: Iterable<string>,
-  originNames: Iterable<string>,
-  imageIdByName: Map<string, number>,
-  chipWidthByName: Map<string, number>,
-  chipOriginWidthByName: Map<string, number>,
-  existing: ChipLayoutMetrics | null,
-  hasOwnedPanel: boolean,
-): ChipLayoutMetrics | null {
-  const missing = [...formNames].filter((name) => !chipWidthByName.has(name));
-  const missingOrigins = [...originNames].filter((name) => !chipOriginWidthByName.has(name));
-  if (missing.length === 0 && missingOrigins.length === 0 && existing !== null) return existing;
-
-  const wasHidden = tableEl.hidden;
-  tableEl.hidden = false; // 非表示中はgetBoundingClientRectが0になるため一時的に表示する
-
-  // ⚠ position:absoluteにすると、この時点でのcontainingBlock(このページに他の
-  // position指定祖先が無ければ初期containing block)に対するshrink-to-fit幅で
-  // グリッドの列幅が決まってしまい、.speed-chart-chips-cell(minmax(0,1fr)の可変列)の
-  // 実測幅が実際の行(bodyEl幅いっぱいに広がる通常フローの行)とズレる(実測して確認済み:
-  // absoluteだと0、通常フローだと実際の行と同じ748px)。そのためabsoluteにはせず、
-  // 通常フロー内に挿入する(bodyElは呼び出し時点で空 = replaceChildren直後なので、
-  // 同期的に追加→削除する間に他の内容へ影響しない)。
-  const probeRow = document.createElement('div');
-  probeRow.className = 'speed-chart-row';
-  probeRow.style.visibility = 'hidden';
-  probeRow.style.pointerEvents = 'none';
-
-  const valueCell = document.createElement('div');
-  valueCell.className = 'speed-chart-value-cell';
-  const metaCell = document.createElement('div');
-  metaCell.className = 'speed-chart-meta-cell';
-  const chipsCell = document.createElement('div');
-  chipsCell.className = 'speed-chart-chips-cell';
-  const chipsRow = document.createElement('div');
-  chipsRow.className = 'speed-chart-chips-row';
-  chipsCell.appendChild(chipsRow);
-  probeRow.append(valueCell, metaCell, chipsCell);
-  if (hasOwnedPanel) {
-    const ownedCell = document.createElement('div');
-    ownedCell.className = 'speed-chart-owned-cell';
-    probeRow.appendChild(ownedCell);
-  }
-  bodyEl.appendChild(probeRow);
-
-  // 書き込みフェーズ: 未計測分のチップ・要因ラベルを一括で作る(ここではgetBoundingClientRectを
-  // 呼ばない)。
-  const chipByName = new Map<string, HTMLElement>();
-  for (const name of missing) {
-    const chip = buildChip(name, imageIdByName);
-    chipsRow.appendChild(chip);
-    chipByName.set(name, chip);
-  }
-  const originByName = new Map<string, HTMLElement>();
-  for (const name of missingOrigins) {
-    const originEl = document.createElement('span');
-    originEl.className = 'speed-chart-chip-origin';
-    originEl.textContent = name;
-    chipsRow.appendChild(originEl);
-    originByName.set(name, originEl);
-  }
-  // レギュレーションあたりの母集団は最大308件(M-Bで実測)。「+N件」は3桁あれば十分な余裕。
-  let overflowProbe: HTMLElement | null = null;
-  if (existing === null) {
-    overflowProbe = document.createElement('span');
-    overflowProbe.className = 'speed-chart-chip-overflow';
-    overflowProbe.textContent = '+999件';
-    chipsRow.appendChild(overflowProbe);
-  }
-
-  // 読み取りフェーズ: ここで初めてまとめてgetBoundingClientRectを呼ぶ。
-  for (const [name, chip] of chipByName) {
-    chipWidthByName.set(name, chip.getBoundingClientRect().width);
-  }
-  for (const [name, originEl] of originByName) {
-    chipOriginWidthByName.set(name, originEl.getBoundingClientRect().width);
-  }
-  let metrics = existing;
-  if (metrics === null) {
-    const containerWidth = chipsCell.getBoundingClientRect().width;
-    const gap = Number.parseFloat(getComputedStyle(chipsRow).columnGap || getComputedStyle(chipsRow).gap || '0') || 0;
-    const overflowBadgeWidth = overflowProbe!.getBoundingClientRect().width;
-    metrics = { containerWidth, gapWidth: gap, overflowBadgeWidth };
-  }
-
-  bodyEl.removeChild(probeRow);
-  tableEl.hidden = wasHidden;
-
-  return metrics;
 }
 
 function formatModifierMagnitude(modifier: SpeedModifierEntry): string {

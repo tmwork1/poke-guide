@@ -89,7 +89,6 @@ import {
 	openDetailPanelOverlayIfNarrow as openRightPanelOverlayIfNarrow,
 	closeDetailPanelOverlay,
 	initRightPanel,
-	notifyDetailMoveChanged,
 	notifyDetailAbilityChanged,
 	syncDetailPanelTotal,
 } from "./right-panel";
@@ -99,8 +98,7 @@ import {
 import { initDamageSuggest, registerDamageSuggestBridge, type DamageCalcSuggestion } from "./damage-suggest";
 import { damageCalcSuggestionKey } from "../damage-calc-suggest";
 
-// public/master-data/detail/moves.json(src/pages/moves/[name].astroが表示に使っている
-// のと同じ静的データ)を技名でMap化するローダー。下のgetMoveCategory()
+// public/master-data/detail/moves.json を技名でMap化するローダー。下のgetMoveCategory()
 // (壁・ランク補正の自動判定に技の物理/特殊/変化区分を使う)が参照しているため、
 // ローダー自体とMoveDetailEntry型を保持している。
 interface MoveDetailEntry {

@@ -499,8 +499,8 @@
 		vertical-align: middle;
 		color: var(--color-text-muted);
 	}
-	/* ポケモンチップの並び(3列目の1段目)。chart-table.tsのbuildRowContentが
-		limitRowChipsByWidthで行の幅に収まる件数だけ残し、収まらない分は「+N件」バッジで示す。
+	/* ポケモンチップの並び(3列目の1段目)。チップは常に全件表示し、収まらない分は折り返す
+		(chart-table.tsのbuildChipsCell)。
 		要件E: 各チップは.speed-chart-chip-unit(チップ+補正要因を縦積み)単位になり、要因の
 		有無でユニットの高さが揃わないため、align-itemsをcenterからflex-startに変える
 		(中央だと要因付き/なしのチップの上端がバラつく)。 */
@@ -511,20 +511,6 @@
 		justify-content: flex-start;
 		gap: var(--speed-chart-chips-row-gap);
 		width: 100%;
-	}
-	.speed-chart-table .speed-chart-chip-overflow {
-		display: inline-flex;
-		align-items: center;
-		font-size: var(--font-size-sm3);
-		color: var(--color-text-muted);
-		white-space: nowrap;
-		padding: 0.1rem 0.4rem;
-		/* .speed-chart-chipはアイコン(22px)込みの高さを持つため、アイコンを持たないこの
-			バッジは同じpaddingでも本文の行の高さぶん低くなる。align-itemsがflex-startになった
-			(上のコメント参照)ことで.speed-chart-chip-unit(縦積み)と並んだときは
-			自然と上端が揃うため、line-heightでの高さ合わせは.speed-chart-chip単体との
-			比較用として残す(このバッジ自身の見た目は変えない)。 */
-		line-height: 22px;
 	}
 	.speed-chart-table .speed-chart-chip {
 		display: inline-flex;

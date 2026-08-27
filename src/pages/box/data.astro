@@ -40,7 +40,6 @@ const seasonPokemon = pokemon && lookupName
     }))
   : [];
 const selected = seasonPokemon.find(({ data }) => data?.name === lookupName && hasSingleBattleData(data));
-const season = selected?.season.id ?? null;
 const opgg = selected?.data ?? null;
 const single = opgg?.formats?.single;
 const hasData = hasSingleBattleData(opgg);

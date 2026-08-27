@@ -313,9 +313,6 @@
 		background: var(--color-primary);
 		color: var(--color-primary-contrast);
 	}
-	.speed-chart-owned .speed-chart-apply-icon {
-		flex: 0 0 auto;
-	}
 	/* flex直下のテキストでは省略記号が出ないため、
 		owned-panel.tsが生成するラベルspan側で一行省略する。 */
 	.speed-chart-owned .speed-chart-apply-label {

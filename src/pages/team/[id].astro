@@ -2442,12 +2442,6 @@ try {
 				} | null;
 			}
 
-			const ROLE_LABELS: Record<string, string> = {
-				physical_attacker: "物理",
-				special_attacker: "特殊",
-				bulky: "耐久",
-			};
-
 			// 「今どの編成に対する結果か」。メンバーを続けて操作したときに、古いリクエストの
 			// 応答が後から届いて上書きするのを防ぐ(renderPreviewPanel の previewRequestId と同じ方式)。
 			let suggestRequestId = 0;
