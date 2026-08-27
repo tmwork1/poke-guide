@@ -3,6 +3,19 @@
 // DOMに依存しない純粋関数のみをここに置き、マークアップは
 // src/components/data/BattleDataCard.astro 側に集約する。
 
+import movesMasterRaw from '../../public/master-data/autocomplete/moves.json' with { type: 'json' };
+import pokemonMasterRaw from '../../public/master-data/autocomplete/pokemon.json' with { type: 'json' };
+
+export const MOVE_TYPE_BY_NAME: ReadonlyMap<string, string> = new Map(
+  (movesMasterRaw as Array<{ name: string; type: string | null }>)
+    .filter((move) => move.type !== null)
+    .map((move) => [move.name, move.type!] as const),
+);
+
+export const IMAGE_ID_BY_NAME: ReadonlyMap<string, number> = new Map(
+  (pokemonMasterRaw as Array<{ name: string; imageId: number }>).map((pokemon) => [pokemon.name, pokemon.imageId]),
+);
+
 export interface RankedRow {
   rank: number;
   name: string;

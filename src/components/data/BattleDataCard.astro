@@ -3,26 +3,22 @@
 // docs/ui/mobile/7.png)。/box/data(個体ごと)と /data のバトルデータタブ(全体
 // ランキング)でマークアップを完全に一致させるため、実装をここへ一本化する。
 // スタイルは src/styles/battle-data-card.css(利用側ページが各自import)。
-import { evSpreadLabel, usageRateLabel, type SingleFormatData } from '../../lib/battle-data-card';
+import {
+  IMAGE_ID_BY_NAME as imageIdByName,
+  MOVE_TYPE_BY_NAME as moveTypeByName,
+  evSpreadLabel,
+  usageRateLabel,
+  type SingleFormatData,
+} from '../../lib/battle-data-card';
 import { championSpriteUrl, officialArtworkUrl } from '../../lib/pokemon-master-data';
 import { itemIconUrl } from '../../lib/sprite-urls';
 import { DEFAULT_TYPE_COLOR, TYPE_COLORS } from '../../lib/type-colors';
-import movesMasterRaw from '../../../public/master-data/autocomplete/moves.json';
-import pokemonMasterRaw from '../../../public/master-data/autocomplete/pokemon.json';
 
 interface Props {
   single: SingleFormatData | null | undefined;
 }
 
 const { single } = Astro.props;
-const moveTypeByName = new Map(
-  (movesMasterRaw as Array<{ name: string; type: string | null }>)
-    .filter((move) => move.type !== null)
-    .map((move) => [move.name, move.type!] as const),
-);
-const imageIdByName = new Map(
-  (pokemonMasterRaw as Array<{ name: string; imageId: number }>).map((pokemon) => [pokemon.name, pokemon.imageId]),
-);
 const abilities = single?.abilities ?? [];
 const natures = single?.natures ?? [];
 const items = single?.items ?? [];
