@@ -26,7 +26,7 @@
   --box-add-button-border-radius: 50%; /* 角の丸さ。50%で円形になる */
 
   /* ── 6. 影 ─────────────────────────── */
-  --box-add-button-shadow: 0 8px 18px rgba(0, 0, 0, 0.36), 0 2px 4px rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.28); /* 立体感を作る影。濃くするとボタンが浮いて見える */
+  --box-add-button-shadow: var(--button-fab-shadow); /* 立体感を作る影(buttons.cssのFAB共通トークン)。floating-list-add-buttonと共有 */
 }
 
 /* 直径だけはボタン自身ではなく、#opponent-notes-section(共通祖先)に置く。

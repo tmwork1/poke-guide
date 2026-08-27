@@ -38,7 +38,7 @@
 
   /* ── 6. 影 ────────────────────────────────────────────── */
   --floating-list-toolbar-shadow: none; /* 固定検索ツールバー全体の影。付けるとツールバー領域が浮いて見える。 */
-  --floating-list-add-shadow: var(--shadow-lg), inset 0 1px 0 rgba(255, 255, 255, 0.28); /* 追加ボタンの外側と上辺の影。強くするとボタンが浮いて見える。 */
+  --floating-list-add-shadow: var(--button-fab-shadow); /* 追加ボタンの外側と上辺の影(buttons.cssのFAB共通トークン)。box-add-buttonと共有。 */
   --floating-list-search-shadow: 0 3px 8px rgba(0, 0, 0, .2), 0 1px 2px rgba(0, 0, 0, .14); /* 固定検索欄の影。強くすると一覧より手前に浮いて見える。 */
 
   /* ── 7. 余白 ──────────────────────────────────────────── */

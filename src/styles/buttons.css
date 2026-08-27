@@ -5,6 +5,9 @@
   --control-button-border: 1px solid var(--color-border);
   --control-button-radius: var(--radius-zero);
   --control-button-shadow: var(--shadow-sm);
+
+  /* 円形FABボタン(box-add-button・floating-list-add-button)が共有する立体感。 */
+  --button-fab-shadow: 0 8px 18px rgba(0, 0, 0, 0.36), 0 2px 4px rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.28);
 }
 
 button, a.btn-primary, a.btn-danger, a.btn-ghost {
