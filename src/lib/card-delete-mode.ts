@@ -60,6 +60,10 @@ export function initializeCardDeleteMode(
 		const card = cardFor(event.target);
 		const isDeleteButton = event.target instanceof Element && event.target.closest(deleteButtonSelector);
 		if (isActive && card && !isDeleteButton) {
+			// 長押し解除で発生する合成clickをここで処理し終える。suppressNextClickを
+			// 残したままにすると、次に削除ボタンを押した時のclickまで誤って握りつぶしてしまう
+			// (1回目のタップが効かず2回タップしないと削除できない不具合の原因だった)。
+			suppressNextClick = false;
 			event.preventDefault();
 			event.stopPropagation();
 			return;

@@ -309,7 +309,6 @@ const user = Astro.locals.user;
 			}
 
 			async function deletePokemon(p: OwnedPokemon): Promise<void> {
-				if (!window.confirm(`「${displayName(p)}」を削除します。よろしいですか?`)) return;
 				try {
 					const res = await fetch(`/api/owned-pokemon/${encodeURIComponent(p.id)}`, {
 						method: "DELETE",
