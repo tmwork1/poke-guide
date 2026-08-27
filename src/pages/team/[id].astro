@@ -2765,7 +2765,7 @@ try {
 				filtered.forEach((s, index) => list.appendChild(buildSuggestionCard(s, index + 1)));
 				suggestEl.appendChild(list);
 				if (shouldShowFormationSuggestions) {
-					filtered.forEach((s) => formationMobileSuggestIcons.appendChild(buildSuggestIcon(s)));
+					filtered.slice(0, 6).forEach((s) => formationMobileSuggestIcons.appendChild(buildSuggestIcon(s)));
 				}
 			}
 
@@ -2851,9 +2851,15 @@ try {
 					setSimilarBuildsStatus("類似する上位構築がありません。");
 					return;
 				}
+				const currentSpecies = new Set(team.map((member) => member.species_name));
 				const list = document.createElement("div");
 				list.className = "team-grid";
-				for (const entry of scored) list.appendChild(renderTopBuildCard(entry.team));
+				for (const entry of scored) {
+					const highlightSlots = entry.team.members
+						.filter((member) => currentSpecies.has(member.speciesName))
+						.map((member) => member.slot);
+					list.appendChild(renderTopBuildCard(entry.team, { highlightSlots }));
+				}
 				teamDataMobileSimilarRoot.innerHTML = "";
 				teamDataMobileSimilarRoot.appendChild(list);
 			}

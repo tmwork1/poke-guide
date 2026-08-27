@@ -70,7 +70,7 @@
 	--team-card-name-font-weight: 600;
 	--team-card-stats-label-font-weight: 500;
 	--team-card-stats-value-font-weight: 500;
-	--team-card-details-font-weight: 400;
+	--team-card-details-font-weight: 500;
 	--team-card-moves-font-weight: 400;
 	--team-card-stats-ev-font-weight: 400;
 	--team-card-sprite-fallback-font-weight: 400;
@@ -85,10 +85,10 @@
 	/* ── 3. 文字色 ───────────────────────── */
 	--team-card-name-color: var(--color-text);
 	--team-card-details-color: var(--color-text-muted);
-	--team-card-moves-color: var(--color-text);
-	--team-card-stats-value-color: var(--color-text);
-	--team-card-stats-value-color-up: var(--color-stat-up);
-	--team-card-stats-value-color-down: var(--color-stat-down);
+	--team-card-moves-color: color-mix(in srgb, var(--color-text) 88%, black);
+	--team-card-stats-value-color: color-mix(in srgb, var(--color-text) 88%, black);
+	--team-card-stats-value-color-up: color-mix(in srgb, var(--color-stat-up) 88%, black);
+	--team-card-stats-value-color-down: color-mix(in srgb, var(--color-stat-down) 88%, black);
 	--team-card-stats-label-color: var(--color-text-muted);
 	--team-card-stats-ev-color: var(--color-text-muted);
 	--team-card-sprite-fallback-color: var(--color-text-muted);
@@ -114,9 +114,6 @@
 	--team-card-item-badge-size: var(--pokemon-preview-item-icon-size);
 	--pokemon-preview-move-type-bar-width: 3px;
 	--pokemon-preview-move-type-bar-height: var(--team-card-moves-font-size);
-
-	/* ── 9. その他 ───────────────────────── */
-	--team-card-sprite-opacity: 1;
 
 	display: block;
 	min-height: 0;
@@ -220,6 +217,7 @@
 	line-height: var(--team-card-moves-line-height);
 	color: var(--team-card-moves-color);
 	padding: var(--team-card-moves-row-padding);
+	text-shadow: 0 1px 1px rgb(0 0 0 / 0.45);
 }
 
 /* わざ名の先頭に出すタイプカラーの長方形(タイプ判明までhiddenで非表示)。 */
@@ -261,7 +259,6 @@
 	width: var(--team-card-sprite-size);
 	height: var(--team-card-sprite-size);
 	pointer-events: none;
-	opacity: var(--team-card-sprite-opacity);
 	/* 下部のステータス欄との重なりを避ける。 */
 	transform: translateY(-0.75rem);
 }
@@ -270,9 +267,9 @@
 	width: 100%;
 	height: 100%;
 	object-fit: contain;
-	/* 左側の技一覧に近づくほど透明にし、文字との干渉を抑える。 */
-	mask-image: linear-gradient(to right, rgb(0 0 0 / 0.1) 0%, rgb(0 0 0 / 0.55) 18%, rgb(0 0 0 / 0.85) 42%, #000 65%);
-	-webkit-mask-image: linear-gradient(to right, rgb(0 0 0 / 0.1) 0%, rgb(0 0 0 / 0.55) 18%, rgb(0 0 0 / 0.85) 42%, #000 65%);
+	/* カード中央から左端に向かって薄くし、文字との重なりを抑える。 */
+	mask-image: linear-gradient(to right, transparent 0%, rgb(0 0 0 / 0.45) 28%, #000 50%);
+	-webkit-mask-image: linear-gradient(to right, transparent 0%, rgb(0 0 0 / 0.45) 28%, #000 50%);
 }
 
 .team-overview-preview-card .pokemon-preview-sprite-wrap span {

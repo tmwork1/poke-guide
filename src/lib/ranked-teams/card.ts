@@ -167,6 +167,8 @@ export function renderRankedTeamCard(
 
 export interface RenderTopBuildCardOptions {
   highlightSlot?: number;
+  /** Highlight multiple members using the shared top-build match treatment. */
+  highlightSlots?: readonly number[];
 }
 
 const STAT_LABELS = ['H', 'A', 'B', 'C', 'D', 'S'] as const;
@@ -257,12 +259,14 @@ export function renderTopBuildCard(team: RankedTeam, options: RenderTopBuildCard
     },
   });
 
+  const highlightSlots = new Set(options.highlightSlots ?? []);
+  if (options.highlightSlot !== undefined) highlightSlots.add(options.highlightSlot);
   const memberCards = card.querySelectorAll<HTMLElement>('.card-pokemon');
   const members = [...team.members].sort((a, b) => a.slot - b.slot);
   memberCards.forEach((memberCard, index) => {
     const member = members[index];
     if (!member) return;
-    if (member.slot === options.highlightSlot) memberCard.classList.add('card-pokemon--similar');
+    if (highlightSlots.has(member.slot)) memberCard.classList.add('card-pokemon--similar');
     memberCard.addEventListener('click', (event) => {
       event.preventDefault();
       event.stopPropagation();

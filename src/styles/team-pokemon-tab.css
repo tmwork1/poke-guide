@@ -130,14 +130,13 @@ body.team-edit-page {
 	font-size: var(--team-pokemon-tab-suggest-label-font-size);
 }
 .team-formation-mobile__suggest-icons {
-	display: flex;
+	display: grid;
+	grid-template-columns: repeat(6, minmax(0, 1fr));
 	flex: 1;
 	min-width: 0;
-	gap: var(--team-pokemon-tab-suggest-icons-gap);
-	overflow-x: auto;
 }
 .team-formation-suggest-icon {
-	flex: 0 0 var(--team-pokemon-tab-suggest-icon-size);
+	justify-self: center;
 	width: var(--team-pokemon-tab-suggest-icon-size);
 	height: var(--team-pokemon-tab-suggest-icon-size);
 	min-height: 0;

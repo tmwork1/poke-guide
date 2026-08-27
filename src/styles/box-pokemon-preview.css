@@ -274,6 +274,13 @@
   touch-action: manipulation;
 }
 
+/* メガシンカ対象外ではボタンだけを無効化する。共通の button:disabled の不透明度を
+   スプライトまで継承させない。 */
+.pokemon-preview-sprite-wrap:disabled {
+  cursor: default;
+  opacity: 1;
+}
+
 .pokemon-preview-sprite-wrap:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
