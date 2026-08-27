@@ -868,6 +868,9 @@ body.box-edit-page {
 		box-sizing: border-box;
 		min-height: var(--damage-detail-build-control-height);
 		background: var(--damage-detail-control-background);
+		/* font-size未指定だとブラウザ既定サイズになり、同じ行のアイテム・テラスタイプ
+		   選択ボタン(font-size-md)より特性selectだけ大きく見えていた。明示してそろえる。 */
+		font-size: var(--damage-detail-font-size-md);
 	}
 	/* わざタブも含め、通常状態の操作面はモーダル本体より明るくする。 */
 	#damage-detail-panel-body {
