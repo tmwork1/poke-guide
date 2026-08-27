@@ -50,6 +50,7 @@ body.home-page {
   --home-page-max-width: 480px; /* ページの最大幅。大きくすると広い画面で内容が横に広がる */
   --home-page-card-min-height: 7rem; /* メニューカードの最低高さ。大きくするとカードが縦に伸びる */
   --home-page-card-icon-size: 32px; /* メニューカードのアイコンサイズ。大きくすると機能の印象が強まる */
+  --home-page-card-icon-reduced-scale: 0.9; /* 補助機能アイコンの縮小率。小さくすると基準アイコンとの差が縮む */
 }
 
 /* ===========================================================================
@@ -201,6 +202,10 @@ body.home-page {
   height: var(--home-page-card-icon-size);
   flex: none;
   color: var(--home-page-card-icon-color);
+}
+/* ダメージ計算・バトルデータ・すばやさは視覚重量を基準3枚へ揃える。枠・ラベル位置は維持する。 */
+.home-card-icon--reduced {
+  transform: scale(var(--home-page-card-icon-reduced-scale));
 }
 /* 各メニューカードの「ボックス」「チーム」などの機能名 */
 .home-card-label {
