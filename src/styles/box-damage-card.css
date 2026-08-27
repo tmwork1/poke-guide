@@ -24,7 +24,8 @@ body.box-edit-page {
   --damage-card-move-font-size: var(--font-size-sm2); /* 技名の文字サイズ */
   --damage-card-add-button-font-size: var(--font-size-sm2); /* 「技を追加」ボタンの文字サイズ */
   --damage-card-summary-label-font-size: var(--font-size-sm3); /* 「持ち物」など補助ラベルの文字サイズ */
-  --damage-card-direction-font-size: var(--font-size-sm3); /* 攻撃・防御スイッチの文字サイズ */
+  --damage-card-direction-font-size: var(--font-size-sm3); /* 攻撃・防御スイッチの文字サイズ(カード上のコンパクト表示用) */
+  --damage-detail-direction-font-size: 0.8rem; /* 「相手ポケモン」タブ(モーダル)の攻撃・防御スイッチの文字サイズ */
   --damage-card-condition-font-size: var(--font-size-sm3); /* 条件チップと見出しの文字サイズ */
   --damage-card-total-label-font-size: var(--font-size-sm3); /* 「累計結果」ラベルの文字サイズ */
   --damage-card-column-order-font-size: var(--font-size-sm3); /* ヒット数表示・撃破済みキャプション等の文字サイズ */
@@ -473,10 +474,7 @@ body.box-edit-page {
 #damage-detail-panel .damage-build-detail-direction-toggle .damage-row-direction-option {
   background: var(--damage-card-direction-background);
   color: var(--damage-card-direction-color);
-  /* カード上のコンパクト表示用トークン(--damage-card-direction-font-size、カード内バッジと
-     同じ最小サイズ)ではなく、モーダル本文の操作部品サイズに合わせる(カードは密集表示、
-     モーダルは他の操作部品と並ぶため小さすぎて読みにくかった)。 */
-  font-size: var(--damage-detail-font-size-sm);
+  font-size: var(--damage-detail-direction-font-size);
   font-weight: var(--damage-card-direction-font-weight);
   line-height: var(--damage-card-direction-line-height);
   cursor: pointer;
