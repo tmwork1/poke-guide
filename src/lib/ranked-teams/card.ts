@@ -229,7 +229,7 @@ export function renderTopBuildCard(team: RankedTeam, options: RenderTopBuildCard
       ...(team.rating !== null
         ? [{
             className: 'card-team-rating-text tnum',
-            text: `レート ${Math.round(team.rating)}`,
+            text: String(Math.round(team.rating)),
             title: `レート ${team.rating}`,
           }]
         : []),

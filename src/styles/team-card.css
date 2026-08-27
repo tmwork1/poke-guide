@@ -69,7 +69,6 @@
   --team-card-popover-border-radius: var(--radius-sm);
   --team-card-popover-background: var(--color-surface);
   --team-card-popover-border-color: var(--color-primary);
-  --team-card-similar-border-width: 2px;
 
   /* ── 8. 寸法 ────────────────────────── */
   --team-card-header-min-height: 38px; /* ヘッダ帯の最低の高さ。大きくすると帯が縦に広がる */
@@ -161,7 +160,7 @@
 }
 /* 上位チームの見出しだけは、順位・シーズン・名前・外部リンクの区切りを少しゆったりさせる。 */
 .team-grid .card-team--top-build {
-  --team-card-inline-gap: var(--space-3);
+  --team-card-inline-gap: calc(var(--space-3) * 2);
   --team-card-meta-gap: var(--space-3);
   --team-card-top-build-meta-font-size: calc(var(--team-card-badge-font-size) + 0.125rem);
 }
@@ -284,17 +283,13 @@
 
 .team-grid .card-team .card-pokemon--similar {
   border-color: var(--color-primary);
-  border-width: var(--team-card-similar-border-width);
+  border-width: 2px;
 }
 
-/* /box の上位チームでは、該当ポケモンの種族名だけを強調する。 */
+/* /box の上位チームでは、該当ポケモンのカード全体を淡い青白色でハイライトする。 */
 .team-grid .card-team--top-build .card-pokemon--similar {
-  border-color: var(--color-border);
-  border-width: 1px;
-}
-.team-grid .card-team--top-build .card-pokemon--similar .card-name {
-  color: var(--color-primary);
-  font-weight: 600;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 35%, var(--color-border));
+  background: var(--color-primary-soft);
 }
 .card-team-member-popover {
   position: fixed;
