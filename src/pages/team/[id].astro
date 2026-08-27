@@ -453,11 +453,10 @@ try {
 									id="pokemon-search-input"
 									type="search"
 									class="field-control"
-									{/* 虫眼鏡アイコンが既に「検索」の意味を担うため、placeholderは短縮し
-									   「で検索」を省く。aria-labelはスクリーンリーダー向けに情報量を落とさず
-									   全文のまま維持する。 */}
-									placeholder="ポケモンを検索"
-									aria-label="ポケモンを検索"
+									{/* box/index.astroと同じく検索対象(matchesSearch参照)をplaceholderで示す
+									   汎用表記にする。可視ラベルは置かず、aria-labelは他画面と揃えて短く保つ。 */}
+									placeholder="ポケモン・特性・アイテム・わざ"
+									aria-label="検索"
 									autocomplete="off"
 								/>
 							</div>
@@ -583,28 +582,21 @@ try {
 										<circle cx="11" cy="11" r="7" />
 										<line x1="21" y1="21" x2="16.65" y2="16.65" />
 									</svg>
-									<input id="team-formation-mobile-search" class="field-control" type="search" placeholder="ポケモンを検索" aria-label="ポケモンを検索" autocomplete="off" />
+									<input id="team-formation-mobile-search" class="field-control" type="search" placeholder="ポケモン・特性・アイテム・わざ" aria-label="検索" autocomplete="off" />
 								</div>
 							</div>
 							<div class="second-header-sort toolbar-item toolbar-sort">
-								<div class="sort-select-wrap" id="team-formation-mobile-sort-select-wrap" data-order="desc">
-									<svg class="sort-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-										<path d="M12 20V4" />
-										<path d="M6 10l6-6 6 6" />
-									</svg>
+								{/* box/index.astroの並べ替え(ボタン配置と仕組み)に共通化: 昇降切り替えは
+								    選択ボックス左端に重ねる⇅ボタン1つに集約し、右端の別ボタンは廃止する。 */}
+								<div class="sort-select-wrap box-sort-select-wrap" id="team-formation-mobile-sort-select-wrap" data-order="desc">
+									<button type="button" class="sort-dir-toggle" id="team-formation-mobile-sort-dir-toggle" data-order="desc" aria-label="並べ替えの向き: 降順">⇅</button>
 									<select id="team-formation-mobile-sort-select" class="field-control" aria-label="並べ替え">
-									<option value="updated_at">⇅ 更新</option>
-									<option value="dex_no">⇅ 番号</option>
-									<option value="type">⇅ タイプ</option>
-									<option value="species_name">⇅ 名前</option>
+									<option value="updated_at">更新順</option>
+									<option value="dex_no">図鑑番号順</option>
+									<option value="type">タイプ順</option>
+									<option value="species_name">名前順</option>
 									</select>
 								</div>
-								<button type="button" class="sort-dir-toggle" id="team-formation-mobile-sort-dir-toggle" data-order="desc" aria-label="並べ替えの向き: 降順">
-									<svg class="sort-dir-toggle-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-										<path d="M12 20V4" /><path d="M6 10l6-6 6 6" />
-									</svg>
-									<span class="sort-dir-toggle-label">Z→A</span>
-								</button>
 							</div>
 						</div>
 					</div>
@@ -1900,8 +1892,6 @@ try {
 			const formationMobileSortSelect = el<HTMLSelectElement>("team-formation-mobile-sort-select");
 			const formationMobileSortSelectWrap = el<HTMLElement>("team-formation-mobile-sort-select-wrap");
 			const formationMobileSortDirToggle = el<HTMLButtonElement>("team-formation-mobile-sort-dir-toggle");
-			const formationMobileSortDirToggleLabel = formationMobileSortDirToggle.querySelector<HTMLElement>(".sort-dir-toggle-label");
-			if (!formationMobileSortDirToggleLabel) throw new Error("要素が見つかりません: .sort-dir-toggle-label");
 			const formationMobileAddButton = el<HTMLButtonElement>("team-formation-mobile-add");
 			const formationMobileStatus = el<HTMLElement>("team-formation-mobile-status");
 			const formationMobileBoxGrid = el<HTMLElement>("team-formation-mobile-box-grid");
@@ -3536,7 +3526,6 @@ try {
 				select: formationMobileSortSelect,
 				selectWrap: formationMobileSortSelectWrap,
 				directionToggle: formationMobileSortDirToggle,
-				directionLabel: formationMobileSortDirToggleLabel,
 				defaultOrders: {
 					updated_at: "desc",
 					dex_no: "asc",

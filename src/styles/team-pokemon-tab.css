@@ -240,13 +240,11 @@ body.team-edit-page {
 #team-formation-mobile-toolbar .sort-select-wrap {
 	flex: 0 0 auto;
 }
-#team-formation-mobile-toolbar .sort-icon,
-#team-formation-mobile-toolbar .sort-dir-toggle-label {
-	display: none;
-}
+/* box/index.astroの.second-header-sort .box-sort-select-wrapと同じ仕組み: 昇降切り替えは
+   ⇅テキストだけのボタンを選択ボックス左端に重ね、selectにその分の左余白を空ける。 */
 #team-formation-mobile-toolbar .sort-select-wrap select {
-	width: 5.75em;
-	padding-left: var(--space-2);
+	width: 7.25em;
+	padding-left: 2.4em;
 	padding-right: var(--space-2);
 	text-align: left;
 	background-image: none;
@@ -257,10 +255,20 @@ body.team-edit-page {
 	background-image: none;
 }
 #team-formation-mobile-toolbar .sort-dir-toggle {
-	min-height: 0;
-	padding: var(--space-1);
+	position: absolute;
+	left: var(--space-1);
+	z-index: 1;
+	padding: var(--space-1) var(--space-2);
+	min-height: auto;
 	background: transparent;
 	border: 0;
+	color: var(--color-text-muted);
+	font: inherit;
+	line-height: 1;
+}
+#team-formation-mobile-toolbar .sort-dir-toggle:hover:not(:disabled) {
+	background: transparent;
+	color: var(--color-primary);
 }
 	/* box-card.cssの.box-card は元々<a>を前提に書かれている。<a>はグリッド項目として
 		既定で軌道(track)いっぱいにストレッチされるが、<button>はフォームコントロールの
