@@ -100,6 +100,7 @@ export function renderTeamMateSlots<T extends TeamMateCardPokemon>(options: Team
 
 			const itemName = member.item_name?.trim() ?? "";
 			if (itemName) {
+				card.classList.add("team-mate-card--has-item");
 				const item = document.createElement("span");
 				item.className = "team-mate-card__item";
 				const itemImg = document.createElement("img");

@@ -45,6 +45,11 @@
 	height: 100%;
 	object-fit: contain;
 }
+.team-mate-card--has-item .team-mate-card__art {
+	/* 右下のアイテム画像と重なる部分を、最低45%の不透明度まで滑らかに弱める。 */
+	mask-image: linear-gradient(to bottom right, #000 0%, rgb(0 0 0 / 0.45) 100%);
+	-webkit-mask-image: linear-gradient(to bottom right, #000 0%, rgb(0 0 0 / 0.45) 100%);
+}
 .team-mate-card__fallback {
 	display: none;
 	align-items: center;

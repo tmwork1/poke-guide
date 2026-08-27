@@ -99,7 +99,7 @@
 	--team-card-item-gap: calc(var(--space-1) / 2);
 	--team-card-details-gap: calc(var(--space-1) / 2);
 	--team-card-moves-icon-gap: 3px;
-	--team-card-moves-gap: 0.05rem;
+	--team-card-moves-gap: 0.12rem;
 	--team-card-moves-row-padding: 0.04rem 0;
 	--team-card-move-min-height: calc(1.2 * var(--team-card-moves-font-size) + 0.08rem);
 	/* 名前・とくせい・わざ一覧の縦方向の間隔 */
@@ -108,7 +108,7 @@
 	--team-card-stats-row-padding-block-start: calc(var(--space-1) / 4);
 
 	/* ── 8. 寸法 ────────────────────────── */
-	--team-card-sprite-size: 7rem;
+	--team-card-sprite-size: 6.5rem;
 	--team-card-item-gutter: calc(var(--team-card-item-badge-size) + var(--team-card-item-gap));
 	--pokemon-preview-item-icon-size: 1.5em;
 	--team-card-item-badge-size: var(--pokemon-preview-item-icon-size);
@@ -116,7 +116,7 @@
 	--pokemon-preview-move-type-bar-height: var(--team-card-moves-font-size);
 
 	/* ── 9. その他 ───────────────────────── */
-	--team-card-sprite-opacity: 0.5;
+	--team-card-sprite-opacity: 1;
 
 	display: block;
 	min-height: 0;
@@ -262,13 +262,17 @@
 	height: var(--team-card-sprite-size);
 	pointer-events: none;
 	opacity: var(--team-card-sprite-opacity);
-	transform: none;
+	/* 下部のステータス欄との重なりを避ける。 */
+	transform: translateY(-0.75rem);
 }
 
 .team-overview-preview-card .pokemon-preview-sprite-wrap img {
 	width: 100%;
 	height: 100%;
 	object-fit: contain;
+	/* 左側の技一覧に近づくほど透明にし、文字との干渉を抑える。 */
+	mask-image: linear-gradient(to right, rgb(0 0 0 / 0.1) 0%, rgb(0 0 0 / 0.55) 18%, rgb(0 0 0 / 0.85) 42%, #000 65%);
+	-webkit-mask-image: linear-gradient(to right, rgb(0 0 0 / 0.1) 0%, rgb(0 0 0 / 0.55) 18%, rgb(0 0 0 / 0.85) 42%, #000 65%);
 }
 
 .team-overview-preview-card .pokemon-preview-sprite-wrap span {
@@ -285,7 +289,8 @@
 
 .team-overview-preview-card .pokemon-preview-item {
 	position: absolute;
-	inset-block-start: var(--pokemon-preview-padding);
+	/* カード自身のpaddingも含め、種族名の開始位置とY座標を揃える。 */
+	inset-block-start: calc(var(--team-card-padding) + var(--pokemon-preview-padding));
 	inset-inline-end: calc(var(--team-card-padding) + var(--pokemon-preview-padding));
 	z-index: 2;
 	display: flex;
