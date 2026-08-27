@@ -61,15 +61,13 @@
   background: var(--box-add-button-hover-background);
 }
 
-/* 追加を表すアイコン */
+/* 追加を表すアイコン(文字の「＋」はグリフの重心がずれるため、線で描いたSVGに揃える) */
 .box-add-button .add-card-tile-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: auto;
-  height: auto;
+  display: block;
+  width: var(--box-add-button-icon-font-size);
+  height: var(--box-add-button-icon-font-size);
+  flex: none;
   border: 0;
-  font-size: var(--box-add-button-icon-font-size);
 }
 
 /* このボタンでは表示しない補助テキスト */

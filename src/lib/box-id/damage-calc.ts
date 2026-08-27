@@ -3438,10 +3438,20 @@ if (opponentNotesSection) {
 		// DamageCard.pngの「ダメージ計算追加ボタン」(カードの外・下側)にあたる。
 		// 1枚のカード = 相手1体分のダメージ計算なので、追加すると新しい相手の行が増える。
 		tile.setAttribute("aria-label", "ダメージ計算を追加");
-		const icon = document.createElement("span");
-		icon.className = "add-card-tile-icon";
+		const icon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+		icon.classList.add("add-card-tile-icon");
 		icon.setAttribute("aria-hidden", "true");
-		icon.textContent = "＋";
+		icon.setAttribute("viewBox", "0 0 24 24");
+		icon.setAttribute("fill", "none");
+		icon.setAttribute("stroke", "currentColor");
+		icon.setAttribute("stroke-width", "2.2");
+		icon.setAttribute("stroke-linecap", "round");
+		icon.setAttribute("stroke-linejoin", "round");
+		const iconVertical = document.createElementNS("http://www.w3.org/2000/svg", "path");
+		iconVertical.setAttribute("d", "M12 5v14");
+		const iconHorizontal = document.createElementNS("http://www.w3.org/2000/svg", "path");
+		iconHorizontal.setAttribute("d", "M5 12h14");
+		icon.append(iconVertical, iconHorizontal);
 		const label = document.createElement("span");
 		label.className = "add-card-tile-label";
 		label.textContent = "ダメージ計算を追加";

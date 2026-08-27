@@ -122,15 +122,13 @@
   background: var(--floating-list-add-hover-background);
 }
 
-/* 追加ボタン中央の「＋」記号 */
+/* 追加ボタン中央の「＋」記号(文字の「＋」はグリフの重心がずれるため、線で描いたSVGに揃える) */
 .floating-list-page .floating-list-add-button .add-card-tile-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: auto;
-  height: auto;
+  display: block;
+  width: var(--floating-list-add-icon-font-size);
+  height: var(--floating-list-add-icon-font-size);
+  flex: none;
   border: var(--floating-list-add-icon-border);
-  font-size: var(--floating-list-add-icon-font-size);
 }
 
 /* 固定表示ではカード型ボタン用の説明文を隠す */
