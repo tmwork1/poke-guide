@@ -377,7 +377,7 @@
 		(box-edit-page.cssの.edit-layout-left .stat-adjustment-section)に合わせつつ、
 		このパネルは横幅が狭いため努力値・実数値列だけこのパネル従来の幅を維持する。
 		これによりHP行(性格補正ボタン無し)でもラベルのX位置が他の行とずれない。 */
-	--stat-mobile-row-grid-template-columns: 1.4rem 2.8rem 2rem minmax(0, 1fr) 2.6rem;
+	--stat-mobile-row-grid-template-columns: 1.4rem 2.8rem 2rem minmax(max-content, 1fr) 2.6rem;
 	--stat-mobile-row-gap: var(--space-1);
 	--stat-mobile-input-grid-column: 4;
 	--stat-mobile-real-grid-column: 5;
@@ -400,9 +400,16 @@
 @media (max-width: 460px) {
 	/* 狭い画面では見出しを隠し、5列の操作しやすい並びに切り替える */
 	.stat-table-header { display: none; }
+	/* 努力値ボタンは常に固定サイズ(--stat-ev-mobile-button-block-size)を保つため、
+	   列幅がボタンの必要幅を下回る画面では行ごと実数値列へオーバーラップしていた
+	   (minmax(0, 1fr)が列を0まで潰せたため)。列の下限をボタンの実寸(max-content)に
+	   固定して重なりを止め、それでも収まらない極端な狭幅では行を横スクロールさせる
+	   (ボタンを縮めない)。 */
+	.stat-table { overflow-x: auto; }
 	.stat-row {
 		grid-template-columns: var(--stat-mobile-row-grid-template-columns);
 		row-gap: var(--stat-mobile-row-gap);
+		min-width: max-content;
 	}
 	.stat-row .stat-input-controls {
 		display: flex;
