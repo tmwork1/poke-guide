@@ -1040,7 +1040,8 @@ body.box-edit-page {
 		border-radius: var(--damage-detail-radius-sm);
 		background: var(--damage-detail-control-background);
 		color: var(--damage-detail-text-color);
-		font-size: var(--damage-detail-font-size-sm);
+		font-size: var(--damage-detail-font-size-md);
+		font-weight: var(--damage-detail-font-weight-regular);
 		text-align: left;
 		cursor: pointer;
 	}
@@ -1059,7 +1060,7 @@ body.box-edit-page {
 		color: var(--damage-detail-muted-color);
 	}
 	#damage-detail-panel-body .tera-dropdown-placeholder.is-tera-value-text {
-		color: var(--color-primary-strong);
+		color: var(--damage-detail-text-color);
 	}
 	/* ボタン直下に開くテラスタイプ候補一覧 */
 	#damage-detail-panel-body .tera-dropdown-list {

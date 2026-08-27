@@ -2016,7 +2016,6 @@ if (opponentNotesSection) {
 
 	async function deleteRow(row: DamageRowState): Promise<void> {
 		if (row.id) {
-			if (!window.confirm("この相手のダメージ計算カードを削除します。よろしいですか?")) return;
 			try {
 				const res = await fetch(`/api/opponent-notes/${encodeURIComponent(row.id)}`, {
 					method: "DELETE",
@@ -3362,6 +3361,15 @@ if (opponentNotesSection) {
 		if (path.includes(damageDetailPanelEl)) return;
 		if (path.some((entry) => entry instanceof Element && entry.matches(".damage-column"))) return;
 		if (path.some((entry) => entry instanceof Element && entry.matches(".card-damage"))) return;
+		// 追加ボタン(.add-card-tile)のクリックも「カード外クリック」として除外する。
+		// 除外しないと、実際のマウス操作(トラステッドイベント)ではリスナー呼び出しの
+		// 間に自動でマイクロタスクチェックポイントが入るため、addNewRowAndFocus内で
+		// queueMicrotaskしたselectBuild(row)がこのdocumentリスナーより先に実行されてしまい、
+		// 直後にここでのclearSelectionAndMarksが選択・パネルの開閉状態を打ち消してしまう
+		// (実測: page.click()等の実クリックでのみ再現し、element.click()の合成クリックでは
+		// 再現しない。実クリックはネストしないトップレベルのタスクとして扱われ、リスナーの
+		// 呼び出し1つごとにマイクロタスクキューが即座にフラッシュされるため)。
+		if (path.some((entry) => entry instanceof Element && entry.matches(".add-card-tile"))) return;
 		clearSelectionAndMarks();
 	});
 
@@ -3377,10 +3385,11 @@ if (opponentNotesSection) {
 		rowSortOrder.set(row, maxOrder + 1000);
 		rows.push(row);
 		rebuildRowsList();
-		row.root?.querySelector<HTMLInputElement>('input[aria-label="相手ポケモン名"]')?.focus();
-		// 追加ボタンのclickがdocumentまで伝播すると、カード外クリックとして選択解除される。
-		// その後に選択して、新しいカードの設定パネル(モバイルではモーダル)を開く。
-		queueMicrotask(() => selectBuild(row));
+		// 新しいカードの設定パネル(モバイルではモーダル)を選択して開く。documentの
+		// クリックリスナー側で.add-card-tileを「カード外クリック」の対象から除外している
+		// ため、ここは同期的に呼ぶだけでよい(queueMicrotaskで遅延させる必要はない。
+		// 詳細は除外側のコメント参照)。
+		selectBuild(row);
 	}
 
 	function addSuggestedRow(suggestion: DamageCalcSuggestion): void {
