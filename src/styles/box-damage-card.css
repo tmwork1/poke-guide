@@ -1174,10 +1174,16 @@ body.box-edit-page {
   font-weight: var(--damage-card-move-placeholder-weight);
 }
 
+/* 攻守バッジ(.damage-suggest-direction等)と同じピル形状で、複数回ヒットする技だと
+   ひと目で分かるよう強調する(単発技はhidden。ダメージが変わる重要情報のため色で明示)。 */
 #opponent-notes-section .damage-column-hitcount-text {
   flex: none;
-  color: var(--color-text-muted);
+  padding: 0 .35em;
+  border-radius: var(--damage-card-direction-badge-radius);
+  background: var(--color-primary-soft);
+  color: var(--color-primary-strong);
   font-size: var(--damage-card-column-order-font-size);
+  font-weight: 600;
   line-height: var(--line-height-tight);
 }
 
