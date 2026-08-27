@@ -89,8 +89,8 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   grid-template-rows: var(--battle-data-card-row1-height) var(--battle-data-card-cell-height) var(--battle-data-card-short-cell-height);
-  background: var(--battle-data-card-background);
-  border: var(--battle-data-card-border);
+  gap: 4px;
+  background: var(--color-bg);
 }
 
 /* 特性・性格など、カード内の1マス */
@@ -102,15 +102,13 @@
   min-height: 0;
   height: var(--battle-data-card-cell-height);
   padding: var(--battle-data-card-cell-padding);
-  border-right: var(--battle-data-card-border);
-  border-bottom: var(--battle-data-card-border);
+  background: var(--battle-data-card-background);
+  border: var(--battle-data-card-border);
   overflow: hidden;
 }
 .trend-detail-cell:nth-child(-n+2) { height: var(--battle-data-card-row1-height); }
 .trend-detail-cell:nth-child(n+3) { height: var(--battle-data-card-cell-height); }
 .trend-detail-cell:nth-child(n+5) { height: var(--battle-data-card-short-cell-height); }
-.trend-detail-cell:nth-child(2n) { border-right: 0; }
-.trend-detail-cell:nth-last-child(-n+2) { border-bottom: 0; }
 
 /* 各マス内の項目名とランキング値 */
 .trend-detail-cell > span,

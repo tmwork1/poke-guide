@@ -167,6 +167,10 @@ body.data-page {
   min-height: 0;
   margin-bottom: var(--data-page-bottom-nav-gap);
 }
+.box-data-page .data-panel--has-data {
+  /* カード領域の外周余白は .box-data-main の padding で統一する。 */
+  margin-bottom: 0;
+}
 .data-panel--has-data .trend-detail-card {
   flex: 1;
   min-height: 0;
@@ -182,6 +186,51 @@ body.data-page {
   --battle-data-card-item-icon-size: 1.4em;
   --battle-data-card-pokemon-icon-size: 1.7em;
   --battle-data-card-row-height: 1.8em;
+  /* 特性・性格はアイコンを使わないため、3件が読める最小限の密度にする。 */
+  --box-battle-data-row1-padding: var(--space-1);
+  --box-battle-data-row1-value-margin-top: var(--space-1);
+  --box-battle-data-row1-row-height: calc(
+    var(--battle-data-card-value-font-size) * var(--battle-data-card-value-line-height)
+  );
+  --box-battle-data-row1-extra-height: 4px;
+  /* 1段目は特性・性格を3件だけ見せ、余った高さを2・3段目の一覧に配分する。 */
+  --box-battle-data-row1-height: calc(
+    (var(--box-battle-data-row1-padding) * 2) +
+    (var(--battle-data-card-label-font-size) * var(--line-height-normal)) + var(--space-1) +
+    var(--box-battle-data-row1-value-margin-top) +
+    (var(--box-battle-data-row1-row-height) * 3) + (var(--space-1) * 2) +
+    var(--box-battle-data-row1-extra-height)
+  );
+  grid-template-rows: var(--box-battle-data-row1-height) repeat(2, minmax(0, 1fr));
+}
+.box-data-page .data-panel--has-data .trend-detail-cell,
+.box-data-page .data-panel--has-data .trend-detail-cell:nth-child(n) {
+  height: auto;
+}
+.box-data-page .data-panel--has-data .trend-cell-body,
+.box-data-page .data-panel--has-data .trend-detail-cell:nth-child(n) .trend-cell-body {
+  flex: 1 1 auto;
+}
+.box-data-page .data-panel--has-data .trend-detail-cell:nth-child(-n+2) {
+  padding-block: var(--box-battle-data-row1-padding);
+}
+.box-data-page .data-panel--has-data .trend-detail-cell:nth-child(-n+2) .trend-rank-list {
+  margin-top: var(--box-battle-data-row1-value-margin-top);
+}
+.box-data-page .data-panel--has-data .trend-detail-cell:nth-child(-n+2) .trend-rank-row {
+  min-height: var(--box-battle-data-row1-row-height);
+}
+
+@media (max-width: 420px) {
+  .box-data-page .data-panel--has-data .trend-detail-card {
+    --box-battle-data-row1-height: calc(
+      (var(--box-battle-data-row1-padding) * 2) +
+      (var(--battle-data-card-label-font-size) * var(--line-height-normal)) + var(--space-1) +
+      var(--box-battle-data-row1-value-margin-top) +
+      (var(--box-battle-data-row1-row-height) * 3) + (var(--space-1) * 2) +
+      var(--box-battle-data-row1-extra-height)
+    );
+  }
 }
 
 @media (width <= 899px) {

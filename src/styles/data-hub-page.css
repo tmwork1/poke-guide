@@ -24,6 +24,7 @@ body.data-hub-page {
 
   /* ── 4. 背景色 ────────────────────────────────────────── */
   --data-hub-entry-header-background: var(--color-surface); /* ポケモン見出し行の背景。カード本体と揃える */
+  --data-hub-entry-rank-background: var(--color-primary-soft); /* 順位バッジはカード面より明るいアクセント色にする */
   --data-hub-rail-background: var(--color-bg); /* 左側のポケモンレール背景。変えると本文との区別が変わる */
   --data-hub-rail-item-background: var(--color-surface); /* レール内アイコンの背景。変えると各アイコンの区別が変わる */
   --data-hub-controls-background: var(--color-surface); /* 上位チームの検索・シーズン操作バー背景。変えると操作部が目立つ */
@@ -39,6 +40,7 @@ body.data-hub-page {
   --data-hub-card-scroll-inset: var(--list-grid-edge-gap); /* カード一覧の左右余白と共通にする上下ガード帯 */
   --data-hub-panel-content-padding: var(--space-5); /* 通常タブ本文の内側余白。大きくすると内容が内側に寄る */
   --data-hub-list-gap: var(--space-4); /* ポケモンカードどうしの縦間隔。大きくすると一覧が縦に広がる */
+  --data-hub-entry-card-gap: 4px; /* ポケモン見出しとバトルデータカードの隙間。 */
   --data-hub-entry-header-gap: var(--space-2); /* 順位・アイコン・名前の間隔。大きくすると横に離れる */
   --data-hub-entry-header-padding: var(--space-2) var(--space-3); /* ポケモン見出し行の内側余白。大きくすると行が厚くなる */
   --data-hub-rail-gap: var(--space-2); /* 左アイコン列内のアイコン間隔。少し離して押しやすくする */
@@ -51,6 +53,7 @@ body.data-hub-page {
 
   /* ── 8. 寸法 ──────────────────────────────────────────── */
   --data-hub-rail-width: 48px; /* 左側ポケモンレールの幅。小さくするとカードの横幅が広がる */
+  --data-hub-entry-width: 360px; /* 1ポケモン分のバトルデータカード幅。広い画面ではこの幅のまま横に並べる */
   --data-hub-entry-rank-min-width: 1.6em; /* 順位表示の最小幅。大きくするとポケモン名の開始位置が右へ寄る */
   --data-hub-entry-icon-size: 32px; /* 一覧見出しのポケモンアイコンサイズ。大きくするとアイコンが目立つ */
   --data-hub-rail-item-size: 40px; /* 左アイコン列のポケモン画像サイズ。大きくすると見やすくなる */
@@ -100,6 +103,64 @@ body.data-hub-page {
 /* カード内のランキング項目は一覧でも読み取れる 0.875rem にする。 */
 .battle-data-panel .trend-detail-card {
   --battle-data-card-value-font-size: 0.875rem;
+  /* 各段は文字の実寸に4pxだけ余裕を加えた高さにする。 */
+  --data-battle-data-row-height: calc(
+    var(--battle-data-card-value-font-size) * var(--battle-data-card-value-line-height)
+  );
+  --data-battle-data-extra-height: 4px;
+  /* 1段目は3件、2・3段目は5件をスクロールなしで読める高さにする。 */
+  --battle-data-card-row1-height: calc(
+    (var(--battle-data-card-cell-padding) * 2) +
+    (var(--battle-data-card-label-font-size) * var(--line-height-normal)) + var(--space-1) +
+    var(--battle-data-card-value-margin-top) +
+    (var(--data-battle-data-row-height) * 3) + (var(--space-1) * 2) +
+    var(--data-battle-data-extra-height)
+  );
+  --battle-data-card-cell-height: calc(
+    (var(--battle-data-card-cell-padding) * 2) +
+    (var(--battle-data-card-label-font-size) * var(--line-height-normal)) + var(--space-1) +
+    var(--battle-data-card-value-margin-top) +
+    (var(--data-battle-data-row-height) * 5) + (var(--space-1) * 4) +
+    var(--data-battle-data-extra-height)
+  );
+  --battle-data-card-short-cell-height: var(--battle-data-card-cell-height);
+}
+/* 各段の表示件数に合わせて、次のランキング行が途中まで見えないようにする。 */
+.battle-data-panel .trend-detail-cell:nth-child(-n+2) .trend-cell-body {
+  flex-basis: calc(
+    var(--battle-data-card-value-margin-top) +
+    (var(--data-battle-data-row-height) * 3) + (var(--space-1) * 2) +
+    var(--data-battle-data-extra-height)
+  );
+}
+.battle-data-panel .trend-detail-cell:nth-child(n+3) .trend-cell-body {
+  flex-basis: calc(
+    var(--battle-data-card-value-margin-top) +
+    (var(--data-battle-data-row-height) * 5) + (var(--space-1) * 4) +
+    var(--data-battle-data-extra-height)
+  );
+}
+.battle-data-panel .trend-rank-row {
+  min-height: var(--data-battle-data-row-height);
+}
+@media (max-width: 420px) {
+  .battle-data-panel .trend-detail-card {
+    --battle-data-card-row1-height-mobile: calc(
+      (var(--battle-data-card-cell-padding-mobile) * 2) +
+      (var(--battle-data-card-label-font-size) * var(--line-height-normal)) + var(--space-1) +
+      var(--battle-data-card-value-margin-top) +
+      (var(--data-battle-data-row-height) * 3) + (var(--space-1) * 2) +
+      var(--data-battle-data-extra-height)
+    );
+    --battle-data-card-cell-height-mobile: calc(
+      (var(--battle-data-card-cell-padding-mobile) * 2) +
+      (var(--battle-data-card-label-font-size) * var(--line-height-normal)) + var(--space-1) +
+      var(--battle-data-card-value-margin-top) +
+      (var(--data-battle-data-row-height) * 5) + (var(--space-1) * 4) +
+      var(--data-battle-data-extra-height)
+    );
+    --battle-data-card-short-cell-height-mobile: var(--battle-data-card-cell-height-mobile);
+  }
 }
 .battle-data-panel .panel-content { padding: 0; }
 .battle-data-second-header[hidden] { display: none; }
@@ -121,15 +182,22 @@ body.data-hub-page {
   gap: var(--space-1);
   padding: 0;
 }
-/* 使用率順位ごとのポケモンカードを縦に並べる一覧 */
+/* 使用率順位ごとのポケモンカード。狭い画面では1列、広い画面ではカード幅を保って横に並べる。 */
 .battle-data-list {
   grid-column: 2;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--data-hub-entry-width)), var(--data-hub-entry-width)));
+  justify-content: start;
+  align-items: start;
   gap: var(--data-hub-list-gap);
   padding-top: 0;
 }
-.battle-data-entry { scroll-margin-top: calc(var(--header-height) + var(--app-header-height) + var(--second-header-height) + var(--space-3)); }
+.battle-data-entry {
+  display: flex;
+  flex-direction: column;
+  gap: var(--data-hub-entry-card-gap);
+  scroll-margin-top: calc(var(--header-height) + var(--app-header-height) + var(--second-header-height) + var(--space-3));
+}
 .battle-data-entry[hidden] { display: none; }
 
 /* 順位・ポケモンアイコン・名前を並べるカード見出し */
@@ -140,7 +208,6 @@ body.data-hub-page {
   padding: var(--data-hub-entry-header-padding);
   background: var(--data-hub-entry-header-background);
   border: var(--data-hub-border);
-  border-bottom: 0;
   font-weight: var(--data-hub-entry-header-font-weight);
 }
 /* ポケモンカード見出しの使用率順位 */
@@ -149,7 +216,7 @@ body.data-hub-page {
   justify-content: center;
   font-size: var(--data-hub-entry-rank-font-size);
   white-space: nowrap;
-  background: var(--color-bg);
+  background: var(--data-hub-entry-rank-background);
   color: var(--data-hub-muted-color);
   border: var(--data-hub-border);
 }
