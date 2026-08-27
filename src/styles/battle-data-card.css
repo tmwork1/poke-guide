@@ -12,6 +12,10 @@
   --battle-data-card-background: var(--color-surface);
   /* ── 1. 文字サイズ ────────────────────────────────────── */
   --battle-data-card-label-font-size: var(--font-size-sm2); /* 各マスの見出し。大きくすると項目名が目立つ */
+  /* 見出しの罫線と下余白まで含めた共通の行高。 */
+  --battle-data-card-label-row-height: calc(
+    (var(--battle-data-card-label-font-size) * var(--line-height-normal)) + var(--space-1) + 1px
+  );
   --battle-data-card-value-font-size: var(--font-size-sm3); /* 各マスのランキング値。大きくすると内容が読みやすくなる */
   --battle-data-card-item-icon-size: 1.3em; /* アイテムアイコンの大きさ。行の文字サイズに追従する */
   --battle-data-card-type-icon-size: 1.2em; /* わざタイプアイコンの大きさ。行の文字サイズに追従する */
@@ -114,7 +118,8 @@
 .trend-detail-cell > span,
 .trend-detail-cell strong { display: block; }
 .trend-detail-cell > span {
-  flex: 0 0 auto;
+  flex: 0 0 var(--battle-data-card-label-row-height);
+  height: var(--battle-data-card-label-row-height);
   width: calc(100% + (var(--battle-data-card-cell-current-padding) * 2));
   margin-inline: calc(var(--battle-data-card-cell-current-padding) * -1);
   padding-inline: var(--battle-data-card-cell-current-padding);
@@ -124,6 +129,9 @@
   font-weight: var(--battle-data-card-label-font-weight);
   line-height: var(--line-height-normal);
   border-bottom: var(--battle-data-card-border);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .trend-cell-body {
   flex: 1;
@@ -235,7 +243,9 @@
 .trend-rank-order {
   color: var(--battle-data-card-label-color);
   font-variant-numeric: tabular-nums;
-  text-align: right;
+  /* 順位列だけ右寄せにすると、一桁の順位の左に余白が生まれて
+     他の表示より左端が深く見える。 */
+  text-align: left;
 }
 
 @media (max-width: 420px) {
