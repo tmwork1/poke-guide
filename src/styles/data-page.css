@@ -193,14 +193,16 @@ body.data-page {
     var(--battle-data-card-value-font-size) * var(--battle-data-card-value-line-height)
   );
   --box-battle-data-row1-extra-height: 4px;
-  /* 1段目は特性・性格を3件だけ見せ、余った高さを2・3段目の一覧に配分する。 */
-  --box-battle-data-row1-height: calc(
+  /* 1段目は特性・性格を3件だけ見せ、余った高さを2・3段目の一覧に配分する。
+     round()で整数pxに丸める: 端数pxのままだと1段目の高さがそのまま2段目の開始位置になり、
+     小数px(サブピクセル)のズレで見出しの罫線・文字の描画位置が段によってわずかにずれて見える。 */
+  --box-battle-data-row1-height: round(nearest,
     (var(--box-battle-data-row1-padding) * 2) +
     (var(--battle-data-card-label-font-size) * var(--line-height-normal)) + var(--space-1) +
     var(--box-battle-data-row1-value-margin-top) +
     (var(--box-battle-data-row1-row-height) * 3) + (var(--space-1) * 2) +
-    var(--box-battle-data-row1-extra-height)
-  );
+    var(--box-battle-data-row1-extra-height),
+  1px);
   grid-template-rows: var(--box-battle-data-row1-height) repeat(2, minmax(0, 1fr));
 }
 .box-data-page .data-panel--has-data .trend-detail-cell,
@@ -223,13 +225,13 @@ body.data-page {
 
 @media (max-width: 420px) {
   .box-data-page .data-panel--has-data .trend-detail-card {
-    --box-battle-data-row1-height: calc(
+    --box-battle-data-row1-height: round(nearest,
       (var(--box-battle-data-row1-padding) * 2) +
       (var(--battle-data-card-label-font-size) * var(--line-height-normal)) + var(--space-1) +
       var(--box-battle-data-row1-value-margin-top) +
       (var(--box-battle-data-row1-row-height) * 3) + (var(--space-1) * 2) +
-      var(--box-battle-data-row1-extra-height)
-    );
+      var(--box-battle-data-row1-extra-height),
+    1px);
   }
 }
 

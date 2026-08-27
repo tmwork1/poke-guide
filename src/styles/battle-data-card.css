@@ -24,18 +24,20 @@
   --battle-data-card-move-type-bar-height: 1.3em; /* わざ名の左に置くタイプ色バーの高さ */
   --battle-data-card-pokemon-icon-size: 1.6em; /* 同時採用ポケモンのアイコンサイズ */
   --battle-data-card-row-height: 1.6em; /* 最大アイコンに少し余白を加えた、全ランキング行共通の高さ */
-  --battle-data-card-row1-height: calc(
+  /* round()で整数pxに丸める: 端数pxのままだと2段目・3段目のマス開始位置が
+     小数px(サブピクセル)になり、見出しの罫線・文字の描画位置が1段目とわずかにずれて見える。 */
+  --battle-data-card-row1-height: round(nearest,
     (var(--battle-data-card-label-font-size) * var(--line-height-normal)) +
     var(--battle-data-card-value-margin-top) +
     var(--battle-data-card-row-height) + var(--battle-data-card-row-height) + var(--battle-data-card-row-height) +
-    var(--space-1) + var(--space-1)
-  ); /* 1段目に見出しとランキング2件を収める高さ */
-  --battle-data-card-row1-height-mobile: calc(
+    var(--space-1) + var(--space-1),
+  1px); /* 1段目に見出しとランキング2件を収める高さ */
+  --battle-data-card-row1-height-mobile: round(nearest,
     (var(--battle-data-card-label-font-size) * var(--line-height-normal)) +
     var(--battle-data-card-value-margin-top) +
     var(--battle-data-card-row-height) + var(--battle-data-card-row-height) + var(--battle-data-card-row-height) +
-    var(--space-1) + var(--space-1)
-  ); /* 狭い画面の1段目に見出しとランキング2件を収める高さ */
+    var(--space-1) + var(--space-1),
+  1px); /* 狭い画面の1段目に見出しとランキング2件を収める高さ */
 
   /* ── 2. 文字の太さ・行間 ──────────────────────────────── */
   --battle-data-card-label-font-weight: 400; /* 各マスの見出しの太さ。太くすると項目名が目立つ */
@@ -57,31 +59,31 @@
 
   /* ── 8. 寸法 ──────────────────────────────────────────── */
   /* 下段はランキングを6件、スクロールせずに読める高さにする。 */
-  --battle-data-card-cell-height: calc(
+  --battle-data-card-cell-height: round(nearest,
     (var(--battle-data-card-cell-padding) * 2) +
     (var(--battle-data-card-label-font-size) * var(--line-height-normal)) + var(--space-1) +
     var(--battle-data-card-value-margin-top) +
-    (var(--battle-data-card-row-height) * 6) + (var(--space-1) * 5)
-  );
-  --battle-data-card-cell-height-mobile: calc(
+    (var(--battle-data-card-row-height) * 6) + (var(--space-1) * 5),
+  1px);
+  --battle-data-card-cell-height-mobile: round(nearest,
     (var(--battle-data-card-cell-padding-mobile) * 2) +
     (var(--battle-data-card-label-font-size) * var(--line-height-normal)) + var(--space-1) +
     var(--battle-data-card-value-margin-top) +
-    (var(--battle-data-card-row-height) * 6) + (var(--space-1) * 5)
-  );
+    (var(--battle-data-card-row-height) * 6) + (var(--space-1) * 5),
+  1px);
   /* 努力値・同時採用は4件表示に留め、アイテム・わざより短くする。 */
-  --battle-data-card-short-cell-height: calc(
+  --battle-data-card-short-cell-height: round(nearest,
     (var(--battle-data-card-cell-padding) * 2) +
     (var(--battle-data-card-label-font-size) * var(--line-height-normal)) + var(--space-1) +
     var(--battle-data-card-value-margin-top) +
-    (var(--battle-data-card-row-height) * 4) + (var(--space-1) * 3)
-  );
-  --battle-data-card-short-cell-height-mobile: calc(
+    (var(--battle-data-card-row-height) * 4) + (var(--space-1) * 3),
+  1px);
+  --battle-data-card-short-cell-height-mobile: round(nearest,
     (var(--battle-data-card-cell-padding-mobile) * 2) +
     (var(--battle-data-card-label-font-size) * var(--line-height-normal)) + var(--space-1) +
     var(--battle-data-card-value-margin-top) +
-    (var(--battle-data-card-row-height) * 4) + (var(--space-1) * 3)
-  );
+    (var(--battle-data-card-row-height) * 4) + (var(--space-1) * 3),
+  1px);
 }
 
 /* ===========================================================================
