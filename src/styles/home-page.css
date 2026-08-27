@@ -1,7 +1,7 @@
 ﻿/* ===========================================================================
    ホームページ(/)
 
-   画面のどこ: ロゴ、アカウント情報、主要ページへのカードを並べるトップ画面
+   画面のどこ: サービス名、アカウント情報、主要ページへのカードを並べるトップ画面
    見た目を変えたいとき: 下の「チューニング変数」だけ触ればよい。
    =========================================================================== */
 
@@ -10,7 +10,7 @@
    =========================================================================== */
 body.home-page {
   /* ── 1. 文字サイズ ────────────────────────────────────── */
-  --home-page-brand-title-font-size: 1.3rem; /* ロゴ横のページ名。大きくするとブランド名が目立つ */
+  --home-page-brand-title-font-size: 1.3rem; /* ページ名。大きくするとブランド名が目立つ */
   --home-page-account-font-size: var(--font-size-sm2); /* アカウント情報の文字。大きくするとユーザー情報が読みやすくなる */
   --home-page-header-account-icon-size: 22px; /* ヘッダー右端のログイン状態アイコンの大きさ。大きくするとアイコンが目立つ */
   --home-page-header-account-status-size: 8px; /* ログイン中を示す丸いハイライトの大きさ。大きくすると状態表示が目立つ */
@@ -36,7 +36,6 @@ body.home-page {
   /* ── 7. 余白 ──────────────────────────────────────────── */
   --home-page-padding: var(--space-5) var(--space-3) var(--space-7); /* ページ外周の余白。大きくすると内容が内側に寄る */
   --home-page-app-header-margin: calc(-1 * var(--space-5)) calc(-1 * var(--space-3)) var(--space-5); /* 上部バーをページ端まで広げる余白。変えるとバーの位置がずれる */
-  --home-page-brand-gap: var(--space-3); /* ロゴとブランド名の間隔。大きくすると横に離れる */
   --home-page-brand-margin-bottom: var(--space-5); /* ブランド行の下余白。大きくするとアカウント情報から離れる */
   --home-page-account-gap: var(--space-2); /* アカウント情報パネル内の間隔。大きくすると項目が離れる */
   --home-page-header-account-padding-right: var(--space-3); /* ヘッダー右端とアイコンの間隔。戻るボタン側の余白と揃える */
@@ -48,7 +47,6 @@ body.home-page {
 
   /* ── 8. 寸法 ──────────────────────────────────────────── */
   --home-page-max-width: 480px; /* ページの最大幅。大きくすると広い画面で内容が横に広がる */
-  --home-page-logo-size: 40px; /* ブランドロゴの大きさ。大きくするとロゴが目立つ */
   --home-page-card-min-height: 7rem; /* メニューカードの最低高さ。大きくするとカードが縦に伸びる */
   --home-page-card-icon-size: 32px; /* メニューカードのアイコンサイズ。大きくすると機能の印象が強まる */
 }
@@ -78,21 +76,14 @@ body.home-page {
   --app-header-margin: var(--home-page-app-header-margin);
 }
 
-/* ロゴとブランド名の行 */
+/* サービス名の行 */
 .home-brand {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--home-page-brand-gap);
   margin: 0 0 var(--home-page-brand-margin-bottom);
 }
-/* ホーム上部でサービス名の左に表示するロゴ画像 */
-.home-brand-logo {
-  width: var(--home-page-logo-size);
-  height: var(--home-page-logo-size);
-  object-fit: contain;
-}
-/* ロゴ横のサービス名「ポケガイド」 */
+/* サービス名「ポケガイド」 */
 .home-brand h1 {
   margin: 0;
   font-size: var(--home-page-brand-title-font-size);

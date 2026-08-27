@@ -149,3 +149,7 @@ codex(`--sandbox read-only`)によるレビューで、当初案の前提が崩�
 - チーム・バトルデータのアイコンをワイヤーフレームに近い形状(グリッド・オープンブック)に変更
 - お問い合わせリンクにXロゴを追加
 - 「上位チーム」カードのリンク先を `/ranked-teams` → `/data?tab=top-builds` に変更(旧`/ranked-teams`ページ廃止に伴う。詳細は`ranked-teams.md`「廃止」節)
+
+## 改修(2026-08-27)
+
+ユーザー指示でロゴイラストを廃止。`.home-brand` からロゴ`<img>`を削除しアプリ名テキストのみに変更、`public/logo.png`削除、関連CSS(`.home-brand-logo`・`--home-page-logo-size`・`--home-page-brand-gap`)を除去。
