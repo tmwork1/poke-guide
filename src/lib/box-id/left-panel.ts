@@ -25,6 +25,7 @@ import {
 } from "../pokemon-master-data";
 import { typeIconUrl, teraTypeIconUrl } from "../sprite-urls";
 import { TYPE_COLORS, DEFAULT_TYPE_COLOR } from "../type-colors";
+import { applyPreviewMoveTypeBar } from "./preview-move-type-bar";
 import { bindPressAndHold } from "../press-and-hold";
 import { type StatKey, STAT_KEYS, NATURE_STAT_MODIFIERS } from "../stats";
 import { kanaIncludes } from "../kana";
@@ -568,18 +569,7 @@ if (form) {
 		for (let slot = 1; slot <= 4; slot++) {
 			const moveName = inputValue(`move-${slot}`);
 			setText(`pokemon-preview-move-${slot}`, moveName);
-			const previewTypeBar = document.getElementById(`pokemon-preview-move-type-${slot}`);
-			if (!previewTypeBar) continue;
-			previewTypeBar.hidden = true;
-			previewTypeBar.style.removeProperty("background-color");
-			if (!moveName) continue;
-			void moveTypeMapPromise.then((moveTypeMap) => {
-				if (inputValue(`move-${slot}`) !== moveName) return;
-				const moveType = moveTypeMap.get(moveName);
-				if (!moveType) return;
-				previewTypeBar.style.backgroundColor = TYPE_COLORS[moveType] ?? DEFAULT_TYPE_COLOR;
-				previewTypeBar.hidden = false;
-			});
+			applyPreviewMoveTypeBar(slot, moveName, () => inputValue(`move-${slot}`) !== moveName);
 		}
 		for (const key of STAT_KEYS) {
 			const sourceStat = document.getElementById(`stat-${key}`);

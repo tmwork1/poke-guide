@@ -99,8 +99,13 @@ const previewStats = detail ? statKeys.map((key, index) => index === 0 ? calcHpS
   import '../../lib/box-id/mobile-edit-tabs';
   import { setupMegaPreviewToggle } from '../../lib/box-id/mega-preview-toggle';
   import { setupAppHeaderSwipe } from '../../lib/app-header-swipe';
+  import { applyPreviewMoveTypeBarsFromDom } from '../../lib/box-id/preview-move-type-bar';
 
   setupMegaPreviewToggle();
+  // 育成タブでは直後にleft-panel.tsのフォーム同期が上書きする(想定内・害はない)。
+  // バトルデータ/上位チーム/相性タブには編集フォームの同期処理が無いため、この初期化が
+  // 技名の左の色バーを塗る唯一の経路になる。
+  applyPreviewMoveTypeBarsFromDom();
 
   setupAppHeaderSwipe(
     document.getElementById('mobile-training-bar'),
