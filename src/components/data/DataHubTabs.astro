@@ -1,0 +1,14 @@
+---
+// データページ(/data)の表示切り替えタブ。3画面(バトルデータ/上位チーム/すばやさ)は
+// それぞれ別ルート(/data, /data/top-builds, /data/speed-chart)なので、タブ一覧自体を
+// ここに集約し、各ページ側は現在のタブ名を渡すだけにする。
+interface Props {
+	active: 'battle-data' | 'top-builds' | 'speed-chart';
+}
+const { active } = Astro.props;
+---
+<div class="app-header__list">
+	<a class="app-header__item" href="/data" data-active={active === 'battle-data' ? 'true' : undefined} aria-current={active === 'battle-data' ? 'page' : undefined}>バトルデータ</a>
+	<a class="app-header__item" href="/data/top-builds" data-active={active === 'top-builds' ? 'true' : undefined} aria-current={active === 'top-builds' ? 'page' : undefined}>上位チーム</a>
+	<a class="app-header__item" href="/data/speed-chart" data-active={active === 'speed-chart' ? 'true' : undefined} aria-current={active === 'speed-chart' ? 'page' : undefined}>すばやさ</a>
+</div>

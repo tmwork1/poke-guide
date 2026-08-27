@@ -19,6 +19,7 @@ import '../../styles/app-header.css';
 import '../../styles/second-header.css';
 import AppHeader from '../../components/AppHeader.astro';
 import SecondHeader from '../../components/SecondHeader.astro';
+import DataHubTabs from '../../components/data/DataHubTabs.astro';
 
 let rankedSeasons: Awaited<ReturnType<typeof listRankedSeasons>> = [];
 let rankedSeasonsError = '';
@@ -83,10 +84,7 @@ if (seasonList?.pokemon) {
 
 <AppLayout title="データ" current="data" bodyClass="data-hub-page">
 	<AppHeader ariaLabel="データページの表示切り替え">
-		<div class="app-header__list">
-			<a class="app-header__item" href="/data" data-active={!isTopBuilds ? 'true' : undefined} aria-current={!isTopBuilds ? 'page' : undefined}>バトルデータ</a>
-			<a class="app-header__item" href="/data/top-builds" data-active={isTopBuilds ? 'true' : undefined} aria-current={isTopBuilds ? 'page' : undefined}>上位チーム</a>
-		</div>
+		<DataHubTabs active={isTopBuilds ? 'top-builds' : 'battle-data'} />
 	</AppHeader>
 
 	{!isTopBuilds && (

@@ -1,0 +1,194 @@
+---
+// データページ(/data)の「すばやさ」タブ。/speed-chart(単体ページ、すばやさ調整モーダルの
+// iframe埋め込み元)とはSSRロジック・ChartTable本体を共有しつつ、ここでは埋め込みモード
+// (?embed=1)を持たず、常にデータページ共通のタブヘッダーを出す別ルートとして扱う。
+// SSRで行うことの詳細は src/pages/speed-chart/index.astro のコメントを参照。
+export const prerender = false;
+
+import AppLayout from '../../layouts/AppLayout.astro';
+import AppHeader from '../../components/AppHeader.astro';
+import SecondHeader from '../../components/SecondHeader.astro';
+import DataHubTabs from '../../components/data/DataHubTabs.astro';
+import ChartTable from '../../components/speed-chart/ChartTable.astro';
+import '../../styles/speed-adjust-dialog.css';
+import '../../styles/speed-chart-page.css';
+import '../../styles/app-header.css';
+import '../../styles/second-header.css';
+import { REGULATIONS } from '../../lib/regulations';
+import { getSupabaseAdminClient, getSupabasePublicClient } from '../../lib/supabase';
+import { getOwnedPokemon, type OwnedPokemonRecord } from '../../lib/owned-pokemon';
+import { parseOwnedQueryParam, resolveSpeedChartRegulation } from '../../lib/speed-chart-validation';
+import type { AdoptionRateBucket, AdoptionRateData } from '../../lib/speed-chart';
+import speedChartConfig from '../../config/speed-chart.json';
+
+const user = Astro.locals.user;
+
+const ownedId = parseOwnedQueryParam(Astro.url.searchParams.get('owned'));
+
+let ownedRecord: OwnedPokemonRecord | null = null;
+if (ownedId && user) {
+	const adminClient = await getSupabaseAdminClient();
+	const result = await getOwnedPokemon(user.id, ownedId, adminClient);
+	if (result.ok) ownedRecord = result.data;
+}
+
+const hasOwnedPanel = ownedRecord !== null;
+
+const requestedRegulation = Astro.url.searchParams.get('reg');
+const resolvedRegulation =
+	requestedRegulation === 'all'
+		? 'all'
+		: (resolveSpeedChartRegulation(requestedRegulation, null, REGULATIONS) ??
+			REGULATIONS[REGULATIONS.length - 1] ??
+			'');
+
+// ハリボテUI(2026-08-22): src/pages/speed-chart/index.astro と同じ経緯・同じ静的テーブル。
+const SPEED_CHART_SEASON_FACADE: Array<{ season: string; regulation: string }> = [
+	{ season: 'M-5', regulation: 'M-B' },
+	{ season: 'M-4', regulation: 'M-B' },
+	{ season: 'M-3', regulation: 'M-B' },
+	{ season: 'M-2', regulation: 'M-A' },
+	{ season: 'M-1', regulation: 'M-A' },
+];
+
+let matchedSeasonFacade = false;
+const speedChartSeasonFacadeOptions = SPEED_CHART_SEASON_FACADE.map((entry) => {
+	const selected = !matchedSeasonFacade && entry.regulation === resolvedRegulation;
+	if (selected) matchedSeasonFacade = true;
+	return { ...entry, selected };
+});
+
+interface SuggestionRow {
+	kind: string;
+	subject_key: string;
+	payload: { sample_size?: number; options?: Array<{ value: string; ratio: number }> } | null;
+}
+
+const adoptionByRegulation: Record<string, AdoptionRateData> = {};
+try {
+	const publicClient = await getSupabasePublicClient();
+	const { data, error } = await publicClient
+		.from('suggestions')
+		.select('kind, subject_key, payload')
+		.in('kind', ['popular_item', 'popular_move', 'popular_nature'])
+		.like('subject_key', '%|%');
+
+	if (error) {
+		// eslint-disable-next-line no-console
+		console.error('[data/speed-chart] failed to load adoption rate data', error);
+	} else if (data) {
+		for (const row of data as SuggestionRow[]) {
+			const sep = row.subject_key.lastIndexOf('|');
+			if (sep === -1) continue;
+			const species = row.subject_key.slice(0, sep);
+			const reg = row.subject_key.slice(sep + 1);
+			const category = row.kind === 'popular_item' ? 'items' : row.kind === 'popular_move' ? 'moves' : row.kind === 'popular_nature' ? 'natures' : null;
+			if (!category || !row.payload || !Array.isArray(row.payload.options)) continue;
+
+			const bucket: AdoptionRateBucket = {
+				sampleSize: row.payload.sample_size ?? 0,
+				options: Object.fromEntries(row.payload.options.map((o) => [o.value, o.ratio])),
+			};
+			const byReg = (adoptionByRegulation[reg] ??= {});
+			const bySpecies = (byReg[species] ??= {});
+			bySpecies[category] = bucket;
+		}
+	}
+} catch (err) {
+	// eslint-disable-next-line no-console
+	console.error('[data/speed-chart] failed to load adoption rate data', err);
+}
+
+interface CombinedSpeciesUsageRow {
+	regulation: string;
+	species_key: string;
+	pokemon: number;
+	total_pokemon: number;
+	team_equivalents: number;
+}
+
+const speciesUsageByRegulation: Record<string, Record<string, number>> = {};
+const teamCountByRegulation: Record<string, number> = {};
+try {
+	const publicClient = await getSupabasePublicClient();
+
+	const PAGE_SIZE = 1000;
+	const usageRows: CombinedSpeciesUsageRow[] = [];
+	const first = await publicClient
+		.rpc('combined_species_usage', {}, { count: 'exact' })
+		.range(0, PAGE_SIZE - 1);
+	if (first.error) throw first.error;
+	usageRows.push(...((first.data ?? []) as CombinedSpeciesUsageRow[]));
+	const total = first.count ?? usageRows.length;
+
+	if (total > PAGE_SIZE) {
+		const pageStarts: number[] = [];
+		for (let from = PAGE_SIZE; from < total; from += PAGE_SIZE) pageStarts.push(from);
+		const pages = await Promise.all(
+			pageStarts.map((from) =>
+				publicClient.rpc('combined_species_usage', {}).range(from, from + PAGE_SIZE - 1),
+			),
+		);
+		for (const page of pages) {
+			if (page.error) throw page.error;
+			usageRows.push(...((page.data ?? []) as CombinedSpeciesUsageRow[]));
+		}
+	}
+
+	for (const row of usageRows) {
+		const bucket = (speciesUsageByRegulation[row.regulation] ??= {});
+		bucket[row.species_key] = row.pokemon;
+		teamCountByRegulation[row.regulation] = row.team_equivalents;
+	}
+} catch (err) {
+	// eslint-disable-next-line no-console
+	console.error('[data/speed-chart] failed to load species usage data', err);
+}
+---
+<AppLayout title="データ" description="レギュレーション別のすばやさ実数値早見表" current="data" bodyClass="speed-chart-page">
+	<AppHeader ariaLabel="データページの表示切り替え">
+		<DataHubTabs active="speed-chart" />
+	</AppHeader>
+	<SecondHeader ariaLabel="すばやさ早見表の操作" class="speed-chart-second-header">
+		<div class="toolbar-item">
+			<label class="speed-chart-regulation-label" for="speed-chart-regulation-select">シーズン</label>
+			<select id="speed-chart-regulation-select" aria-label="シーズン">
+				<option value="all" selected={resolvedRegulation === 'all'}>すべて</option>
+				{speedChartSeasonFacadeOptions.map((entry) => (
+					<option value={entry.regulation} selected={entry.selected}>{entry.season}</option>
+				))}
+			</select>
+		</div>
+		<input type="number" id="speed-chart-jump-input" placeholder="実数値" aria-label="実数値" />
+		<div class="speed-chart-order-select-wrap">
+			<button id="speed-chart-order-select" class="sort-dir-toggle" type="button" data-order="desc" aria-label="実数値の並び順: 速い順" aria-pressed="false">
+				<svg class="sort-dir-toggle-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+					<path d="M12 20V4" />
+					<path d="M6 10l6-6 6 6" />
+				</svg>
+				<span class="sort-dir-toggle-label">速い順</span>
+			</button>
+		</div>
+		{hasOwnedPanel && <label class="speed-chart-reachable-toggle">
+			<span class="toggle-switch">
+				<input type="checkbox" id="speed-chart-reachable-only-toggle" class="toggle-switch-input" aria-label="すべて表示" />
+				<span class="toggle-switch-track" aria-hidden="true"><span class="toggle-switch-thumb"></span></span>
+			</span>
+			<span>すべて表示</span>
+		</label>}
+	</SecondHeader>
+	<ChartTable
+		regulation={resolvedRegulation}
+		ownedId={ownedId}
+		hasOwnedPanel={hasOwnedPanel}
+		embedded={false}
+	/>
+
+	<script type="application/json" id="speed-chart-config" set:html={JSON.stringify(speedChartConfig)} />
+	<script type="application/json" id="speed-chart-adoption-data" set:html={JSON.stringify(adoptionByRegulation)} />
+	<script type="application/json" id="speed-chart-usage-data" set:html={JSON.stringify(speciesUsageByRegulation)} />
+	<script type="application/json" id="speed-chart-team-count-data" set:html={JSON.stringify(teamCountByRegulation)} />
+	{hasOwnedPanel && (
+		<script type="application/json" id="speed-chart-owned-record" set:html={JSON.stringify(ownedRecord)} />
+	)}
+</AppLayout>
