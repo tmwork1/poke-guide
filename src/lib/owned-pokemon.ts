@@ -25,6 +25,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { OwnedPokemonRequestBody } from './owned-pokemon-validation';
 import { classifyArchetype } from './archetype.ts';
+import { SERVER_BASE_STATS_BY_SPECIES, serverGetMoveCategory } from './archetype-data.server.ts';
 import { findOrCreateArchetype } from './archetypes.ts';
 
 export interface OwnedPokemonRecord {
@@ -126,7 +127,7 @@ async function resolveArchetypeId(
     evs: input.evs,
     ivs: input.ivs,
     moveNames: input.move_names,
-  });
+  }, SERVER_BASE_STATS_BY_SPECIES, serverGetMoveCategory);
   if (!key) return null;
 
   const result = await findOrCreateArchetype(key, supabase);

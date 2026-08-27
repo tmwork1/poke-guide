@@ -9,34 +9,13 @@
 // 成立しないため。特性は識別子ではなく型ごとの最頻値(migrations/018 の
 // archetype_modal_ability ビュー)として推定・表示する。理由と実測値は 018 のコメント。
 //
-// src/lib/species-dex.ts と同じ「ビルド時JSON import」方式を踏襲する(Cloudflare Workers上の
-// SSR/APIルートでも動く実績あり。src/lib/pokemon-master-data.ts の fetch() ベースのローダーは
-// ブラウザ専用のためここでは使えない)。
+// baseStats/move category の取得元は呼び出し側に委ねる。サーバは静的 import したデータを、
+// ブラウザは fetch ベースでキャッシュ済みの Map を渡す。
 //
 // src/lib/stats.ts と同じ制約(DOM/Node APIに一切依存しない純粋関数のみで構成)に従う。
-import pokemonDetailList from '../../public/master-data/detail/pokemon.json' with { type: 'json' };
-import moveDetailList from '../../public/master-data/detail/moves.json' with { type: 'json' };
 import { STAT_KEYS, NATURE_STAT_MODIFIERS, calcHpStat, calcOtherStat, type StatKey } from './stats.ts';
 
-interface PokemonDetailEntry {
-  name: string;
-  baseStats: number[];
-}
-
-type MoveCategory = 'physical' | 'special' | 'status';
-
-interface MoveDetailEntry {
-  name: string;
-  category: MoveCategory;
-}
-
-const BASE_STATS_BY_SPECIES: ReadonlyMap<string, number[]> = new Map(
-  (pokemonDetailList as PokemonDetailEntry[]).map((p) => [p.name, p.baseStats]),
-);
-
-const MOVE_CATEGORY_BY_NAME: ReadonlyMap<string, MoveCategory> = new Map(
-  (moveDetailList as MoveDetailEntry[]).map((m) => [m.name, m.category]),
-);
+export type MoveCategory = 'physical' | 'special' | 'status';
 
 // チャンピオンズルール固定(src/lib/stats.tsのSPECIES_PAGE_LEVELと同値だが、
 // 「個体単位の実データ」を扱う本モジュール専用の定数として分離)。
@@ -80,14 +59,18 @@ export const ATTACKER_THRESHOLD_MULTIPLIER = 1.15;
  * 計算できないが、種族・持ち物までは確定しており、そこまでの情報を捨てないための分岐
  * (経緯と実測値は migrations/017_archetype_role_unknown.sql)。
  */
-export function classifyArchetype(input: ArchetypeClassificationInput): ArchetypeKey | null {
+export function classifyArchetype(
+  input: ArchetypeClassificationInput,
+  baseStatsBySpecies: ReadonlyMap<string, number[]>,
+  getMoveCategory: (moveName: string) => MoveCategory | undefined,
+): ArchetypeKey | null {
   const speciesName = input.speciesName?.trim();
   const itemName = input.itemName?.trim();
   if (!speciesName || !itemName) return null;
 
   // 種族がマスターデータに無い場合だけは型を作らない。role の計算に種族値が要るからではなく
   // (role: 'unknown' なら要らない)、archetypes に語彙外の種族名を作らせないための門番。
-  const baseStats = BASE_STATS_BY_SPECIES.get(speciesName);
+  const baseStats = baseStatsBySpecies.get(speciesName);
   if (!baseStats || baseStats.length !== 6) return null;
 
   const evs = input.evs ?? [];
@@ -107,7 +90,7 @@ export function classifyArchetype(input: ArchetypeClassificationInput): Archetyp
     }
   });
 
-  const axis = determinePhysicalOrSpecialAxis(input.moveNames ?? [], realStats.atk, realStats.spa);
+  const axis = determinePhysicalOrSpecialAxis(input.moveNames ?? [], realStats.atk, realStats.spa, getMoveCategory);
   const attackStat = axis === 'physical' ? realStats.atk : realStats.spa;
   const bulkAverage = (realStats.hp + realStats.def + realStats.spd) / 3;
   const role: ArchetypeRole =
@@ -126,11 +109,12 @@ function determinePhysicalOrSpecialAxis(
   moveNames: string[],
   atkStat: number,
   spaStat: number,
+  getMoveCategory: (moveName: string) => MoveCategory | undefined,
 ): 'physical' | 'special' {
   let physicalCount = 0;
   let specialCount = 0;
   for (const name of moveNames) {
-    const category = MOVE_CATEGORY_BY_NAME.get(name);
+    const category = getMoveCategory(name);
     if (category === 'physical') physicalCount += 1;
     else if (category === 'special') specialCount += 1;
   }

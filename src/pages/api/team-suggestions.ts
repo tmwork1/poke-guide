@@ -19,6 +19,7 @@ import { getSessionUser } from '../../lib/user-session';
 import { getSupabaseAdminClient, getSupabasePublicClient } from '../../lib/supabase';
 import { listOwnedPokemonByIds } from '../../lib/owned-pokemon';
 import { classifyArchetype, type ArchetypeKey, type ArchetypeRole } from '../../lib/archetype';
+import { SERVER_BASE_STATS_BY_SPECIES, serverGetMoveCategory } from '../../lib/archetype-data.server';
 import { resolveDexNo } from '../../lib/species-dex';
 import {
   chooseArchetypeForSpecies,
@@ -121,7 +122,7 @@ export async function GET({ request, cookies, url }: APIContext): Promise<Respon
       evs: m.evs,
       ivs: m.ivs,
       moveNames: m.move_names,
-    }),
+    }, SERVER_BASE_STATS_BY_SPECIES, serverGetMoveCategory),
   );
   // 持ち物の重複はルール違反(src/lib/team-validation.ts の duplicate-item)。
   const usedItems = new Set(

@@ -70,6 +70,7 @@ const autocompleteReadyPromise = typeof document === "undefined" ? Promise.resol
 
 const typesMapPromise = loadTypesMap();
 const moveTypeMapPromise = loadMoveTypeMap();
+const moveDetailMapPromise = loadMoveDetailMap();
 const learnsetMapPromise = loadLearnsetMap();
 
 // タイプ数は可変なのでバッジを動的に追加し、画像を取得できない場合は色表現へフォールバックする。
@@ -967,8 +968,9 @@ if (form) {
 		window.setTimeout(() => itemDropdownButton.classList.remove("is-autofilled"), 1400);
 		setItemLocked(true);
 	}
-	function currentArchetype(): ArchetypeKey | null {
+	async function currentArchetype(): Promise<ArchetypeKey | null> {
 		// IV=31・Lv50は本アプリの育成ルール。現在の編集値を分類器へそのまま渡す。
+		const [baseStatsMap, moveDetailMap] = await Promise.all([baseStatsMapPromise, moveDetailMapPromise]);
 		return classifyArchetype({
 			speciesName: speciesInput.value.trim(),
 			itemName: itemInput.value.trim(),
@@ -976,12 +978,12 @@ if (form) {
 			evs: STAT_KEYS.map((key) => readEv(key)),
 			ivs: STAT_KEYS.map(() => 31),
 			moveNames: readMoveNames(),
-		});
+		}, baseStatsMap, (name) => moveDetailMap.get(name)?.category);
 	}
 
-	function reloadPopularBuildSuggestions(): void {
+	async function reloadPopularBuildSuggestions(): Promise<void> {
 		// レギュレーション属性の廃止により母集団は常に横断(未指定)扱いになる。
-		void loadPopularBuildSuggestions(speciesInput.value.trim(), null, currentArchetype());
+		void loadPopularBuildSuggestions(speciesInput.value.trim(), null, await currentArchetype());
 	}
 	let suggestionReloadTimer: ReturnType<typeof setTimeout> | undefined;
 	function schedulePopularBuildSuggestionsReload(): void {

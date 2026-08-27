@@ -4,10 +4,36 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { classifyArchetype, ATTACKER_THRESHOLD_MULTIPLIER } from '../src/lib/archetype.ts';
+import {
+  classifyArchetype as classifyArchetypeWithData,
+  ATTACKER_THRESHOLD_MULTIPLIER,
+  type ArchetypeClassificationInput,
+  type MoveCategory,
+} from '../src/lib/archetype.ts';
 
 const ALL_31_IVS = [31, 31, 31, 31, 31, 31];
 const NO_EVS = [0, 0, 0, 0, 0, 0];
+const TEST_BASE_STATS_BY_SPECIES: ReadonlyMap<string, number[]> = new Map([
+  ['カイリキー', [90, 130, 80, 65, 85, 55]],
+  ['ガブリアス', [108, 130, 95, 80, 85, 102]],
+  ['フーディン', [55, 50, 45, 135, 95, 120]],
+  ['ハピナス', [255, 10, 10, 75, 135, 55]],
+  ['ハブネーク', [73, 100, 60, 100, 60, 65]],
+]);
+const TEST_MOVE_CATEGORY_BY_NAME: ReadonlyMap<string, MoveCategory> = new Map([
+  ['あくのはどう', 'special'],
+  ['ヘドロばくだん', 'special'],
+  ['どくづき', 'physical'],
+  ['かみくだく', 'physical'],
+]);
+
+function classifyArchetype(input: ArchetypeClassificationInput) {
+  return classifyArchetypeWithData(
+    input,
+    TEST_BASE_STATS_BY_SPECIES,
+    (moveName) => TEST_MOVE_CATEGORY_BY_NAME.get(moveName),
+  );
+}
 
 describe('classifyArchetype: 分類不能な入力', () => {
   it('種族名が空/nullなら null', () => {

@@ -23,6 +23,7 @@
 // サーバで引き直す方式にしないのは、持ち物や努力値を触っている最中の値にそのまま追随させる
 // ため(このページは自動保存だが、保存完了を待たずに型が変わって見えるほうが自然)。
 import { classifyArchetype, type ArchetypeKey } from "../archetype";
+import { loadMoveDetailMap } from "../pokemon-master-data";
 import {
 	DAMAGE_CALC_SUGGESTION_KINDS,
 	damageCalcSubjectKeys,
@@ -30,7 +31,7 @@ import {
 	parseDamageCalcSuggestionPayload,
 	type DamageCalcSuggestion,
 } from "../damage-calc-suggest";
-import { applySprite, applyItemImage, buildAttackerSpec } from "./shared-core";
+import { applySprite, applyItemImage, baseStatsMapPromise, buildAttackerSpec } from "./shared-core";
 import { DEFAULT_TYPE_COLOR, TYPE_COLORS } from "../type-colors";
 
 // 右パネルの高さに収まる件数。取得側(020のtop_n=12)より少なくし、押せる候補だけを見せる。
@@ -38,6 +39,7 @@ const VISIBLE_LIMIT = 6;
 // 左パネルの連続操作(スライダー・文字入力)のたびに叩かないためのデバウンス。
 // left-panel.ts の schedulePopularBuildSuggestionsReload と同じ意図・同じ桁の値にする。
 const RELOAD_DEBOUNCE_MS = 300;
+const moveDetailMapPromise = loadMoveDetailMap();
 
 /**
  * 中央パネル(ダメージ計算カード)側との橋渡し。カードの一覧も追加処理も damage-calc.ts の
@@ -83,10 +85,11 @@ const moveTypeDetailsPromise: Promise<Map<string, string | null>> = fetch("/mast
 	});
 
 /** いま編集中の値から型を判定する(left-panel.ts の currentArchetype と同じ入力・同じ分類器)。 */
-function currentArchetype(): { speciesName: string; archetype: ArchetypeKey | null } {
+async function currentArchetype(): Promise<{ speciesName: string; archetype: ArchetypeKey | null }> {
 	// buildAttackerSpec() は左パネルの現在値(性格・持ち物・テラス・努力値・技)を
 	// そのまま PokemonSpec にする共有コア関数。同じ値を2箇所で組み立てないために流用する。
 	const spec = buildAttackerSpec();
+	const [baseStatsMap, moveDetailMap] = await Promise.all([baseStatsMapPromise, moveDetailMapPromise]);
 	return {
 		speciesName: spec.name,
 		archetype: classifyArchetype({
@@ -96,7 +99,7 @@ function currentArchetype(): { speciesName: string; archetype: ArchetypeKey | nu
 			evs: spec.evs ?? null,
 			ivs: spec.ivs ?? null,
 			moveNames: spec.moveNames ?? null,
-		}),
+		}, baseStatsMap, (name) => moveDetailMap.get(name)?.category),
 	};
 }
 
@@ -127,7 +130,7 @@ async function fetchByKey(kind: string, subjectKey: string): Promise<DamageCalcS
  * 依頼の「型が判別できない場合は種族のみで集計したサジェスト」がそのまま実現される。
  */
 async function loadSuggestions(): Promise<void> {
-	const { speciesName, archetype } = currentArchetype();
+	const { speciesName, archetype } = await currentArchetype();
 	const keys = damageCalcSubjectKeys(speciesName, archetype);
 	const cacheKey = keys.map((k) => `${k.kind}:${k.subjectKey}`).join("\n");
 	if (cacheKey === loadedSubjectKey) return;
