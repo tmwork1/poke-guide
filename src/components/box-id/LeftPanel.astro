@@ -1058,6 +1058,9 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	.stat-ev-stepper {
 		--number-stepper-size: var(--stat-ev-mobile-button-block-size);
 		--number-stepper-input-width: var(--stat-number-input-width);
+		/* 共通.number-stepperの1px境界線を高さに含め、性格補正ボタンと外形も44pxで揃える。 */
+		box-sizing: border-box;
+		height: var(--stat-ev-mobile-button-block-size);
 		flex: 0 0 auto;
 	}
 	.stat-row .stat-ev-stepper { order: 0; }
