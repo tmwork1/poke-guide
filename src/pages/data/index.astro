@@ -94,12 +94,11 @@ if (seasonList?.pokemon) {
 				<svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 					<circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
 				</svg>
-				<input id="battle-data-search" type="search" class="field-control" placeholder="ポケモン" aria-label="ポケモンを検索" autocomplete="off" disabled={entries.length === 0} />
+				<input id="battle-data-search" type="search" class="field-control" placeholder="ポケモン・特性・もちもの・わざ" aria-label="ポケモン・特性・もちもの・わざを検索" autocomplete="off" disabled={entries.length === 0} />
 			</div>
 		</div>
 		{manifestSeasons.length > 0 && (
 			<div class="battle-data-season-field">
-				<label for="battle-data-season">シーズン</label>
 				<select id="battle-data-season" class="field-control">
 					{manifestSeasons.map((entry) => (
 						<option value={entry.id} selected={entry.id === season}>{entry.label ?? entry.id}</option>
@@ -129,7 +128,7 @@ if (seasonList?.pokemon) {
 	</SecondHeader>
 	)}
 
-	<div class="data-hub-scroll" data-data-hub-scroll>
+	<div class="data-hub-scroll" data-data-hub-scroll style="visibility: hidden">
 		{!isTopBuilds && (
 		<section class="panel data-hub-panel battle-data-panel" data-tab="battle-data">
 			<div class="panel-content">
@@ -144,7 +143,18 @@ if (seasonList?.pokemon) {
 						</nav>
 						<div class="battle-data-list" id="battle-data-list">
 							{entries.map((entry) => (
-								<article class="battle-data-entry" id={entry.elementId} data-battle-data-entry data-species-name={entry.name}>
+								<article
+									class="battle-data-entry"
+									id={entry.elementId}
+									data-battle-data-entry
+									data-species-name={entry.name}
+									data-search-text={[
+										entry.name,
+										...(entry.single.abilities ?? []).map((row) => row.name),
+										...(entry.single.items ?? []).map((row) => row.name),
+										...(entry.single.moves ?? []).map((row) => row.name),
+									].join(' ')}
+								>
 									<header class="battle-data-entry-header">
 										<span class="badge battle-data-entry-rank" aria-label={`使用率順位 ${entry.rank}位`}>{entry.rank}</span>
 										{entry.imageId !== null && <img class="battle-data-entry-icon" src={championSpriteUrl(entry.imageId)} onerror={`this.onerror=null;this.src='${officialArtworkUrl(entry.imageId)}';`} alt="" loading="lazy" />}
@@ -202,7 +212,13 @@ if (seasonList?.pokemon) {
 		syncScrollViewport();
 		window.addEventListener('resize', syncScrollViewport);
 		new ResizeObserver(syncScrollViewport).observe(activeHeader);
+		// ページ固有のスタイルと固定スクロール領域の計算が済む前に、カード内容だけが
+		// 一瞬未整形で見えるのを防ぐ。2フレーム待つことで、遷移直後も整った状態から表示する。
+		requestAnimationFrame(() => {
+			requestAnimationFrame(() => scrollContainer?.style.removeProperty('visibility'));
+		});
 	</script>
+	<noscript><style is:inline>[data-data-hub-scroll] { visibility: visible !important; }</style></noscript>
 
 	<script>
 		import { kanaIncludes } from '../../lib/kana';
@@ -293,7 +309,8 @@ if (seasonList?.pokemon) {
 			const term = search?.value ?? '';
 			for (const entry of entries) {
 				const name = entry.dataset.speciesName ?? '';
-				const visible = term.trim() === '' || kanaIncludes(name, term);
+				const searchableText = entry.dataset.searchText ?? name;
+				const visible = term.trim() === '' || kanaIncludes(searchableText, term);
 				entry.hidden = !visible;
 				const rail = railItems.find((item) => item.dataset.speciesName === name);
 				if (rail) rail.hidden = !visible;

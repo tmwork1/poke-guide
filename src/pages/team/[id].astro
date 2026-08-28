@@ -455,7 +455,7 @@ try {
 									class="field-control"
 									{/* box/index.astroと同じく検索対象(matchesSearch参照)をplaceholderで示す
 									   汎用表記にする。可視ラベルは置かず、aria-labelは他画面と揃えて短く保つ。 */}
-									placeholder="ポケモン・特性・アイテム・わざ"
+									placeholder="ポケモン・特性・もちもの・わざ"
 									aria-label="検索"
 									autocomplete="off"
 								/>
@@ -582,7 +582,7 @@ try {
 										<circle cx="11" cy="11" r="7" />
 										<line x1="21" y1="21" x2="16.65" y2="16.65" />
 									</svg>
-									<input id="team-formation-mobile-search" class="field-control" type="search" placeholder="ポケモン・特性・アイテム・わざ" aria-label="検索" autocomplete="off" />
+									<input id="team-formation-mobile-search" class="field-control" type="search" placeholder="ポケモン・特性・もちもの・わざ" aria-label="検索" autocomplete="off" />
 								</div>
 							</div>
 							<div class="second-header-sort toolbar-item toolbar-sort">
@@ -2011,7 +2011,7 @@ try {
 				"already-in-team": "編成済み",
 				"team-full": "6体編成済み",
 				"duplicate-species": "種族が重複",
-				"duplicate-item": "アイテムが重複",
+				"duplicate-item": "もちものが重複",
 			};
 
 			// 公式絵。取得できない場合は頭文字の丸バッジにフォールバックする
@@ -3288,7 +3288,7 @@ try {
 						item.className = "pokemon-preview-item pokemon-preview-icon-text";
 						item.hidden = true;
 						item.title = itemName;
-						item.setAttribute("aria-label", `アイテム: ${itemName}`);
+						item.setAttribute("aria-label", `もちもの: ${itemName}`);
 						const itemImage = document.createElement("img");
 						itemImage.alt = "";
 						item.appendChild(itemImage);
@@ -3641,7 +3641,7 @@ try {
 					// ダメージ計算カードと同様、持ち物名は出さず画像右下へアイコンを重ねる。
 					const itemBadge = document.createElement("span");
 					itemBadge.className = "select-row-item-badge";
-					itemBadge.title = `アイテム: ${itemName}`;
+					itemBadge.title = `もちもの: ${itemName}`;
 					const itemImg = document.createElement("img");
 					itemImg.alt = "";
 					void applyItemIcon(itemImg, itemName);

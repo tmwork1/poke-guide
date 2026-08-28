@@ -26,7 +26,7 @@ const COMPOSITION_VIOLATION_MESSAGES: Record<TeamCompositionViolation, string> =
   'over-capacity': 'チームには6体まで編成できます',
   'duplicate-species': '同じ種族の個体を複数編成することはできません',
   // 画面全体の用語を「アイテム」に統一する。
-  'duplicate-item': '同じアイテムの個体を複数編成することはできません',
+  'duplicate-item': '同じもちものの個体を複数編成することはできません',
 };
 
 export async function GET({ request, cookies, params }: APIContext): Promise<Response> {

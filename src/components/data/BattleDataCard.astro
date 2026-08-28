@@ -41,7 +41,7 @@ const teammates = single?.teammates ?? [];
     </div>
   </div>
   <div class="trend-detail-cell">
-    <span>アイテム</span>
+    <span>もちもの</span>
     <div class="trend-cell-body">
       {items.length ? <ul class="trend-rank-list">{items.map((row) => <li class="trend-rank-row trend-rank-row--icon3"><span class="trend-rank-icon"><img src={itemIconUrl(row.name)} onerror="this.closest('.trend-rank-row').classList.replace('trend-rank-row--icon3','trend-rank-row--text2');this.parentElement.remove()" alt="" loading="lazy" /></span><span class="trend-rank-name">{row.name}</span><span class="trend-rank-rate">{usageRateLabel(row.usageRate)}</span></li>)}</ul> : <strong>データなし</strong>}
     </div>

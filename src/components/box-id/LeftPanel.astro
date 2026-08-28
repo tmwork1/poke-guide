@@ -115,7 +115,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 				</div>
 				<div class="field">
 					<div class="field-with-image item-dropdown-wrap">
-						<input id="item" type="text" list="item-list" autocomplete="off" aria-label="アイテム" value={pokemon.item_name ?? ""} title={pokemon.item_name ?? ""} hidden />
+						<input id="item" type="text" list="item-list" autocomplete="off" aria-label="もちもの" value={pokemon.item_name ?? ""} title={pokemon.item_name ?? ""} hidden />
 						<button
 							type="button"
 							id="item-dropdown-button"
@@ -124,22 +124,22 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 							aria-expanded="false"
 						>
 							<img id="item-dropdown-image" class="item-dropdown-image" alt="" style="display:none;" />
-							<span id="item-dropdown-placeholder" class="item-dropdown-placeholder">アイテムなし</span>
+							<span id="item-dropdown-placeholder" class="item-dropdown-placeholder">もちものなし</span>
 						</button>
 						<div id="item-dropdown-panel" class="item-dropdown-panel" hidden>
 							<input
 								type="text"
 								id="item-dropdown-search"
 								class="item-dropdown-search"
-								placeholder="アイテム名で絞り込み"
-								aria-label="アイテム候補を絞り込み"
+								placeholder="もちもの名で絞り込み"
+								aria-label="もちもの候補を絞り込み"
 								autocomplete="off"
 							/>
 							<ul
 								id="item-dropdown-list"
 								class="item-dropdown-list"
 								role="listbox"
-								aria-label="アイテムを選択"
+								aria-label="もちものを選択"
 							>
 							</ul>
 						</div>

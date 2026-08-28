@@ -155,7 +155,7 @@
 /* 上位構築だけが使う、バッジ・名前・記事リンクを同じ行に置くヘッダー。 */
 .team-grid .card-team .card-team-header--inline {
   gap: var(--team-card-inline-gap);
-  padding: var(--space-3);
+  padding: 4px var(--space-3);
   min-width: 0;
 }
 /* 上位チームの見出しだけは、順位・シーズン・名前・外部リンクの区切りを少しゆったりさせる。 */

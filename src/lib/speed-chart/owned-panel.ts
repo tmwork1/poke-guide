@@ -206,7 +206,7 @@ export function initOwnedPanel(ctx: OwnedPanelContext): OwnedPanelController {
         itemEl.prepend(image);
       } else {
         itemEl.removeAttribute('title');
-        itemEl.textContent = 'アイテムなし';
+        itemEl.textContent = 'もちものなし';
       }
     }
     // 4段目: 性格・努力値。このページの主題がすばやさのため、努力値はS努力値
@@ -266,7 +266,7 @@ export function initOwnedPanel(ctx: OwnedPanelContext): OwnedPanelController {
 		rankOptions.style.top = `${Math.max(8, Math.min(window.innerHeight - pickerRect.height - 8, anchor.bottom + 4))}px`;
 		rankOptions.style.left = `${Math.max(8, Math.min(window.innerWidth - pickerRect.width - 8, anchor.left + (anchor.width - pickerRect.width) / 2))}px`;
 		rankPicker.setAttribute('aria-expanded', 'true');
-	 };
+	};
   const commitRank = (fallbackToZeroIfEmpty: boolean): void => {
     if (!rankInput) return;
     const raw = rankInput.value.trim();
@@ -404,7 +404,7 @@ export function initOwnedPanel(ctx: OwnedPanelContext): OwnedPanelController {
       label.append(natureLabel, evLabel);
       button.title = selection.usesScarf && ctx.scarfItemName
         ? `${buttonLabel} / ${ctx.scarfItemName}を使用`
-        : `${buttonLabel} / すばやさ補正アイテムなし`;
+        : `${buttonLabel} / すばやさ補正もちものなし`;
       button.append(label);
       button.addEventListener('click', () => {
         void handleApply(selection, button);

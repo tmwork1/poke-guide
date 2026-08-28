@@ -551,7 +551,7 @@ if (form) {
 		setText("pokemon-preview-species-name", inputValue("species-name"));
 		setText("pokemon-preview-ability", ability?.selectedOptions[0]?.textContent?.trim() || ability?.value.trim() || "-");
 		const itemName = inputValue("item");
-		setText("pokemon-preview-item", itemName || document.getElementById("item-dropdown-placeholder")?.textContent?.trim() || "アイテムなし");
+		setText("pokemon-preview-item", itemName || document.getElementById("item-dropdown-placeholder")?.textContent?.trim() || "もちものなし");
 		const previewItem = document.getElementById("pokemon-preview-item");
 		if (previewItem) previewItem.dataset.empty = String(itemName === "");
 		const mirrorImage = (sourceId: string, targetId: string): void => {
@@ -721,7 +721,7 @@ if (form) {
 	const itemNameDisplayEl = el<HTMLElement>("item-name-display");
 	function updateItemNameDisplay(): void {
 		const name = itemInput.value.trim();
-		itemNameDisplayEl.textContent = name || "アイテムなし";
+		itemNameDisplayEl.textContent = name || "もちものなし";
 		itemNameDisplayEl.title = name;
 		itemNameDisplayEl.classList.toggle("is-empty", name === "");
 	}
@@ -757,7 +757,7 @@ if (form) {
 	const itemDropdownEmptyEl = document.createElement("li");
 	itemDropdownEmptyEl.className = "item-dropdown-empty";
 	// 検索0件の共通表記に合わせ、対象名も画面内の「アイテム」に統一する。
-	itemDropdownEmptyEl.textContent = "条件に一致するアイテムがありません";
+	itemDropdownEmptyEl.textContent = "条件に一致するもちものがありません";
 	itemDropdownEmptyEl.setAttribute("aria-disabled", "true");
 	itemDropdownEmptyEl.hidden = true;
 
@@ -787,10 +787,10 @@ if (form) {
 			li.setAttribute("role", "option");
 			li.tabIndex = -1;
 			li.dataset.value = "";
-			li.setAttribute("aria-label", "アイテムなし");
+			li.setAttribute("aria-label", "もちものなし");
 			const textEl = document.createElement("span");
 			textEl.className = "item-dropdown-option-text";
-			textEl.textContent = "アイテムなし";
+			textEl.textContent = "もちものなし";
 			li.appendChild(textEl);
 			li.addEventListener("click", () => selectItem(""));
 			fragment.appendChild(li);
@@ -881,11 +881,11 @@ if (form) {
 		const isUnselected = value === "";
 		itemDropdownButton.classList.toggle("is-item-unselected", isUnselected);
 		// 読み上げ時も表示上の名称と同じ「アイテム」を使う。
-		itemDropdownButton.setAttribute("aria-label", value ? `アイテム: ${value}` : "アイテム: 未選択");
+		itemDropdownButton.setAttribute("aria-label", value ? `もちもの: ${value}` : "もちもの: 未選択");
 		itemDropdownPlaceholder.classList.toggle("is-item-value-text", !isUnselected);
 		if (isUnselected) {
 			itemDropdownImage.style.display = "none";
-			itemDropdownPlaceholder.textContent = "アイテムなし";
+			itemDropdownPlaceholder.textContent = "もちものなし";
 			return;
 		}
 		itemDropdownPlaceholder.textContent = value;
@@ -936,7 +936,7 @@ if (form) {
 	onAbilitySuggestionUpdated = () => {
 		void rebuildAbilityOptions(speciesInput.value.trim());
 	};
-	const megaStoneLockedTitle = "メガシンカ中はアイテムをメガストーンに固定します";
+	const megaStoneLockedTitle = "メガシンカ中はもちものをメガストーンに固定します";
 	function setItemLocked(locked: boolean): void {
 		itemDropdownButton.disabled = locked;
 		itemDropdownButton.title = locked ? megaStoneLockedTitle : "";

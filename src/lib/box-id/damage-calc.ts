@@ -583,7 +583,7 @@ function buildItemDropdown(initialValue: string): ItemDropdownHandle {
 
 	const input = document.createElement("input");
 	input.type = "text";
-	input.setAttribute("aria-label", "相手のアイテム");
+	input.setAttribute("aria-label", "相手のもちもの");
 	input.autocomplete = "off";
 	input.value = initialValue;
 	input.title = initialValue;
@@ -601,7 +601,7 @@ function buildItemDropdown(initialValue: string): ItemDropdownHandle {
 	image.style.display = "none";
 	const placeholder = document.createElement("span");
 	placeholder.className = "damage-build-detail-item-dropdown-placeholder";
-	placeholder.textContent = "アイテムなし";
+	placeholder.textContent = "もちものなし";
 	button.append(image, placeholder);
 
 	const panel = document.createElement("div");
@@ -611,21 +611,21 @@ function buildItemDropdown(initialValue: string): ItemDropdownHandle {
 	const search = document.createElement("input");
 	search.type = "text";
 	search.className = "damage-build-detail-item-dropdown-search";
-	search.placeholder = "アイテム名で絞り込み";
-	search.setAttribute("aria-label", "アイテム候補を絞り込み");
+	search.placeholder = "もちもの名で絞り込み";
+	search.setAttribute("aria-label", "もちもの候補を絞り込み");
 	search.autocomplete = "off";
 
 	const list = document.createElement("ul");
 	list.className = "damage-build-detail-item-dropdown-list";
 	list.setAttribute("role", "listbox");
-	list.setAttribute("aria-label", "アイテムを選択");
+	list.setAttribute("aria-label", "もちものを選択");
 
 	panel.append(search, list);
 	wrap.append(input, button, panel);
 
 	const emptyEl = document.createElement("li");
 	emptyEl.className = "damage-build-detail-item-dropdown-empty";
-	emptyEl.textContent = "条件に一致するアイテムがありません";
+	emptyEl.textContent = "条件に一致するもちものがありません";
 	emptyEl.setAttribute("aria-disabled", "true");
 	emptyEl.hidden = true;
 
@@ -637,11 +637,11 @@ function buildItemDropdown(initialValue: string): ItemDropdownHandle {
 		const value = input.value.trim();
 		const isUnselected = value === "";
 		button.classList.toggle("is-item-unselected", isUnselected);
-		button.setAttribute("aria-label", value ? `アイテム: ${value}` : "アイテム: 未選択");
+		button.setAttribute("aria-label", value ? `もちもの: ${value}` : "もちもの: 未選択");
 		placeholder.classList.toggle("is-item-value-text", !isUnselected);
 		if (isUnselected) {
 			image.style.display = "none";
-			placeholder.textContent = "アイテムなし";
+			placeholder.textContent = "もちものなし";
 			return;
 		}
 		placeholder.textContent = value;
@@ -675,10 +675,10 @@ function buildItemDropdown(initialValue: string): ItemDropdownHandle {
 			li.setAttribute("role", "option");
 			li.tabIndex = -1;
 			li.dataset.value = "";
-			li.setAttribute("aria-label", "アイテムなし");
+			li.setAttribute("aria-label", "もちものなし");
 			const textEl = document.createElement("span");
 			textEl.className = "damage-build-detail-item-dropdown-option-text";
-			textEl.textContent = "アイテムなし";
+			textEl.textContent = "もちものなし";
 			li.appendChild(textEl);
 			li.addEventListener("click", () => selectValue(""));
 			fragment.appendChild(li);
@@ -2756,7 +2756,7 @@ if (opponentNotesSection) {
 			nameText.textContent = row.name.trim() || "相手ポケモン未設定";
 			abilityText.textContent = row.abilityName.trim() || "未設定";
 			const itemName = row.itemName.trim();
-			itemNameText.textContent = itemName || "(アイテムなし)";
+			itemNameText.textContent = itemName || "(もちものなし)";
 			void applyItemImage(itemBadgeImg, row.itemName);
 			refreshReadonlyEvs();
 		}
@@ -2965,7 +2965,7 @@ if (opponentNotesSection) {
 			itemInput.title = row.itemName;
 			onFieldInput();
 		});
-		const itemField = makeDetailField("アイテム", itemDropdown.wrap, true);
+		const itemField = makeDetailField("もちもの", itemDropdown.wrap, true);
 		selectsRow.appendChild(itemField);
 		const teraDropdown = buildTeraDropdown(row.teraType, "相手のテラスタイプ", (value) => {
 			row.teraType = value;
@@ -2975,7 +2975,7 @@ if (opponentNotesSection) {
 		teraField.classList.add("damage-build-detail-tera-field");
 		selectsRow.appendChild(teraField);
 
-		const megaStoneLockedTitle = "メガシンカ中はアイテムをメガストーンに固定します";
+		const megaStoneLockedTitle = "メガシンカ中はもちものをメガストーンに固定します";
 		let rowMegaStoneAutofillToken = 0;
 		// メガストーン固定中はドロップダウンの選択操作自体を無効化する(旧itemInput.disabledの役割)。
 		function syncItemLock(locked: boolean): void {

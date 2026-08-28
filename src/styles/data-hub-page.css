@@ -38,6 +38,9 @@ body.data-hub-page {
   --data-hub-scroll-gap: var(--space-2); /* タブパネル間の横間隔。大きくするとスワイプ先との隙間が広がる */
   --data-hub-scroll-margin: 0 var(--space-2); /* 横スワイプ領域の左右余白。大きくするとカードが内側に寄る */
   --data-hub-card-scroll-inset: var(--list-grid-edge-gap); /* カード一覧の左右余白と共通にする上下ガード帯 */
+  --data-hub-second-header-rendered-height: 61px; /* 検索バーの実表示高。初期表示時の一覧位置をスクリプト補正後と揃える */
+  --data-hub-initial-scroll-top: calc(var(--header-height) + var(--app-header-height) + 1px + var(--data-hub-second-header-rendered-height) + var(--data-hub-card-scroll-inset)); /* 初期表示の一覧上端。ヘッダーの実寸に合わせ、表示直後のずれを防ぐ */
+  --data-hub-initial-scroll-bottom: calc(var(--bottom-nav-height) + 1px + env(safe-area-inset-bottom) + var(--data-hub-card-scroll-inset)); /* 初期表示の一覧下端。下部ナビの境界線ぶんも退避する */
   --data-hub-panel-content-padding: var(--space-5); /* 通常タブ本文の内側余白。大きくすると内容が内側に寄る */
   --data-hub-list-gap: var(--space-4); /* ポケモンカードどうしの縦間隔。大きくすると一覧が縦に広がる */
   --data-hub-entry-card-gap: 4px; /* ポケモン見出しとバトルデータカードの隙間。 */
@@ -66,9 +69,9 @@ body.data-hub-page {
 /* 2つのタブパネルを横スワイプで切り替える領域 */
 .data-hub-scroll {
   position: fixed;
-  top: var(--data-hub-scroll-top, calc(var(--header-height) + var(--app-header-height) + var(--second-header-height) + var(--data-hub-card-scroll-inset)));
+  top: var(--data-hub-scroll-top, var(--data-hub-initial-scroll-top));
   right: var(--space-2);
-  bottom: var(--data-hub-scroll-bottom, calc(var(--bottom-nav-height) + env(safe-area-inset-bottom) + var(--data-hub-card-scroll-inset)));
+  bottom: var(--data-hub-scroll-bottom, var(--data-hub-initial-scroll-bottom));
   left: var(--space-2);
   display: flex;
   gap: var(--data-hub-scroll-gap);
@@ -241,8 +244,8 @@ body.data-hub-page {
 /* カード一覧の左に追従する、ポケモンへのジャンプアイコン列 */
 .battle-data-rail {
   position: fixed;
-  top: var(--data-hub-scroll-top, calc(var(--header-height) + var(--app-header-height) + var(--second-header-height) + var(--data-hub-card-scroll-inset)));
-  bottom: var(--data-hub-scroll-bottom, calc(var(--bottom-nav-height) + env(safe-area-inset-bottom) + var(--data-hub-card-scroll-inset)));
+  top: var(--data-hub-scroll-top, var(--data-hub-initial-scroll-top));
+  bottom: var(--data-hub-scroll-bottom, var(--data-hub-initial-scroll-bottom));
   left: var(--space-2);
   z-index: 15;
   width: var(--battle-data-rail-width);
