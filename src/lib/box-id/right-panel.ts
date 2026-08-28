@@ -132,13 +132,17 @@ export function notifyDetailAbilityChanged(row: DamageRowState, abilityName: str
 	for (const column of row.attacks) applyAutomaticField(row, column, abilityName);
 }
 
-// 詳細パネルは常にオーバーレイとして開閉する。
+// 詳細パネルは常にオーバーレイとして開閉する。aria-modalも開閉に連動させ、
+// app-header-swipe.tsがこれを見て、パネル内で始まったフリックを背後ページの
+// タブ切り替えから除外できるようにする。
 export function openDetailPanelOverlayIfNarrow(): void {
 	detailPanelEl.classList.add("is-open");
+	detailPanelEl.setAttribute("aria-modal", "true");
 	detailBackdropEl.hidden = false;
 }
 export function closeDetailPanelOverlay(): void {
 	detailPanelEl.classList.remove("is-open");
+	detailPanelEl.setAttribute("aria-modal", "false");
 	detailBackdropEl.hidden = true;
 }
 

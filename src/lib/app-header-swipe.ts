@@ -29,6 +29,20 @@ function startsInsideHorizontalScroller(target: EventTarget | null, contentEl: H
 	return false;
 }
 
+// 開いているモーダル(aria-modal="true")の中で始まったタッチは、モーダル自身が
+// 独自のフリック操作(タブ切り替え等)を持ちうるため、背後のページのタブ切り替えには使わない。
+// 例: ダメージ計算の詳細設定パネル(#damage-detail-panel、モバイルでは中央に浮くモーダル)は
+// 本文を左右にフリックしてタブを切り替える独自ジェスチャーを持ち、フリック幅が大きいと
+// この関数が無いと同じジェスチャーが背後のbox編集ページのタブ切り替えとしても誤検知されていた。
+function startsInsideOpenModal(target: EventTarget | null, contentEl: HTMLElement): boolean {
+	let node: Element | null = target instanceof Element ? target : null;
+	while (node && node !== contentEl.parentElement) {
+		if (node instanceof HTMLElement && node.getAttribute("aria-modal") === "true") return true;
+		node = node.parentElement;
+	}
+	return false;
+}
+
 function tabItems(headerEl: HTMLElement): HTMLElement[] {
 	return Array.from(headerEl.querySelectorAll<HTMLElement>(".app-header__item"));
 }
@@ -59,7 +73,9 @@ export function setupAppHeaderSwipe(headerEl: HTMLElement | null, contentEl: HTM
 				startX: touch.clientX,
 				startY: touch.clientY,
 				startTime: event.timeStamp,
-				active: !startsInsideHorizontalScroller(event.target, contentEl),
+				active:
+					!startsInsideHorizontalScroller(event.target, contentEl) &&
+					!startsInsideOpenModal(event.target, contentEl),
 			};
 		},
 		{ passive: true },
