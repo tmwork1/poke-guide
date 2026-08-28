@@ -33,6 +33,8 @@ const previewStats = detail ? statKeys.map((key, index) => index === 0 ? calcHpS
       )}
       {activeTab === 'training' ? (
         <button type="button" class="app-header__item" data-mobile-tab="damage"><span>ダメージ</span></button>
+      ) : activeTab === 'damage' ? (
+        <button type="button" class="app-header__item" data-mobile-tab="damage" data-active="true" aria-current="page"><span>ダメージ</span></button>
       ) : (
         <a class="app-header__item" href={`/box/${encodeURIComponent(pokemon.id)}?tab=damage`}><span>ダメージ</span></a>
       )}

@@ -46,6 +46,10 @@ if (user && id) {
 
 const pageTitle = 'チーム編集';
 const bodyClass = team ? 'team-edit-page' : undefined;
+const requestedMobileTab = Astro.url.searchParams.get('tab');
+const initialMobileTab = requestedMobileTab === 'formation' || requestedMobileTab === 'matchup' || requestedMobileTab === 'data'
+	? requestedMobileTab
+	: 'pokemon';
 
 // 初期メンバー(0〜6要素、SSR取得済み)をクライアント<script>へそのまま引き渡す。
 // Astroの属性値は自動でHTMLエスケープされるので、メモ等に " や < が
@@ -69,10 +73,10 @@ try {
 	{team && (
 		<AppHeader ariaLabel="チーム編集メニュー">
 			<div class="app-header__list">
-				<button type="button" class="app-header__item" data-mobile-tab="pokemon" data-active="true" aria-current="page"><span>ポケモン</span></button>
-				<button type="button" class="app-header__item" data-mobile-tab="formation"><span>編成</span></button>
-				<button type="button" class="app-header__item" data-mobile-tab="data"><span>類似チーム</span></button>
-				<button type="button" class="app-header__item" data-mobile-tab="matchup"><span>相性</span></button>
+				<button type="button" class="app-header__item" data-mobile-tab="pokemon" data-active={initialMobileTab === 'pokemon' ? 'true' : undefined} aria-current={initialMobileTab === 'pokemon' ? 'page' : undefined}><span>ポケモン</span></button>
+				<button type="button" class="app-header__item" data-mobile-tab="formation" data-active={initialMobileTab === 'formation' ? 'true' : undefined} aria-current={initialMobileTab === 'formation' ? 'page' : undefined}><span>編成</span></button>
+				<button type="button" class="app-header__item" data-mobile-tab="data" data-active={initialMobileTab === 'data' ? 'true' : undefined} aria-current={initialMobileTab === 'data' ? 'page' : undefined}><span>類似チーム</span></button>
+				<button type="button" class="app-header__item" data-mobile-tab="matchup" data-active={initialMobileTab === 'matchup' ? 'true' : undefined} aria-current={initialMobileTab === 'matchup' ? 'page' : undefined}><span>相性</span></button>
 			</div>
 		</AppHeader>
 	)}
@@ -423,7 +427,7 @@ try {
 					</div>
 				</section>
 			) : (
-				<div class="team-edit-shell" id="team-edit-layout" data-team-id={team.id} data-initial-team={initialTeamJson} data-mobile-tab="pokemon" data-ranked-season={rankedSeason ?? ''}>
+				<div class="team-edit-shell" id="team-edit-layout" data-team-id={team.id} data-initial-team={initialTeamJson} data-mobile-tab={initialMobileTab} data-ranked-season={rankedSeason ?? ''}>
 					<section id="team-overview-tab" class="panel">
 						<div class="panel-content">
 							<div id="team-overview-grid" class="team-overview-thumb-grid" aria-label="チームメンバーのプレビュー"></div>

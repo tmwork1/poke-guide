@@ -148,6 +148,9 @@ if (pokemon) {
 // ヘッダー表示は種族名固定。
 const pageTitle = pokemon ? pokemon.species_name : "個体編集";
 const bodyClass = pokemon ? "box-edit-page" : undefined;
+// クエリ指定時も最初のHTMLからヘッダーと本文の表示状態をそろえる。
+// クライアント初期化まで待つと、特に復帰表示時に「育成」が一瞬選択されたままになる。
+const initialMobileTab = Astro.url.searchParams.get('tab') === 'damage' ? 'damage' : 'training';
 
 // 匿名集計サジェスト機能・第4段階(UI: 収集拒否トグル)。owned_pokemon.collection_opt_out_until
 // (null=収集対象、未来日時=拒否期間中)から、SSR時点での「拒否中かどうか」と「残り日数」を
@@ -189,7 +192,7 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 			    (window.confirm())は変更していない。 */}
 		</Fragment>
 	)}
-	<div class="page edit-shell" id="edit-shell" data-mobile-tab="training">
+	<div class="page edit-shell" id="edit-shell" data-mobile-tab={initialMobileTab}>
 	{
 		!user ? (
 			<section class="panel">
@@ -212,7 +215,7 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 			</section>
 		) : (
 			<>
-			<MobileTrainingBar pokemon={pokemon} />
+			<MobileTrainingBar pokemon={pokemon} activeTab={initialMobileTab} />
 			<div class="edit-layout">
 			<div class="edit-layout-left">
 			{/* 左サイド(ポケモン編集パネル、.panel-left)のテンプレート・scoped style・スクリプトは

@@ -37,7 +37,10 @@ if (mobileTrainingUi && mobileTrainingBar && editShell) {
 		editShell.dataset.mobileTab = activeTab;
 		for (const button of tabButtons) {
 			const isActive = button.dataset.mobileTab === activeTab;
-			button.toggleAttribute("data-active", isActive);
+			// app-header.css は `[data-active="true"]` を選択状態としている。
+			// toggleAttribute() は値なしの `data-active` にしてしまい、このセレクタから
+			// 外れるため、リロード直後に背景ハイライトだけが消えていた。
+			button.dataset.active = isActive ? "true" : "false";
 			if (isActive) button.setAttribute("aria-current", "page");
 			else button.removeAttribute("aria-current");
 		}
