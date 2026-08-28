@@ -1,11 +1,12 @@
 // API ルートで共通に使うレスポンス生成・入力検証ヘルパーをまとめる。
 // 各エンドポイントの本体を短く保つための基盤ファイル (poke-research の同名ファイルを移植)。
-export function jsonResponse(body: unknown, status = 200): Response {
+export function jsonResponse(body: unknown, status = 200, extraHeaders?: Record<string, string>): Response {
   // すべての API で JSON レスポンスのヘッダを揃える。
   return new Response(JSON.stringify(body), {
     status,
     headers: {
       'Content-Type': 'application/json; charset=utf-8',
+      ...extraHeaders,
     },
   });
 }

@@ -44,7 +44,9 @@ export async function GET({ request }: APIContext): Promise<Response> {
     return jsonResponse({ error: 'Failed to fetch suggestions' }, 500);
   }
 
-  return jsonResponse({ data: data ?? [] }, 200);
+  return jsonResponse({ data: data ?? [] }, 200, {
+    'Cache-Control': 'public, max-age=300, s-maxage=86400, stale-while-revalidate=86400',
+  });
 }
 
 export const POST = () => methodNotAllowed(['GET']);

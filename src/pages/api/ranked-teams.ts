@@ -17,7 +17,9 @@ export async function GET({ url }: APIContext): Promise<Response> {
       return badRequest('存在しないシーズンです');
     }
     const teams = await listRankedTeamsBySeason(season, supabase);
-    return jsonResponse({ season, teams });
+    return jsonResponse({ season, teams }, 200, {
+      'Cache-Control': 'public, max-age=300, s-maxage=86400, stale-while-revalidate=86400',
+    });
   } catch (error) {
     console.error('[api/ranked-teams] GET failed:', error);
     return jsonResponse({ error: '上位構築を取得できませんでした' }, 500);

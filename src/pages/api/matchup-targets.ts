@@ -88,7 +88,9 @@ export async function GET({ url }: APIContext): Promise<Response> {
 		.slice(0, limit);
 
 	if (usage.length === 0) {
-		return jsonResponse({ data: [], meta: { totalTeams: 0 } }, 200);
+		return jsonResponse({ data: [], meta: { totalTeams: 0 } }, 200, {
+			'Cache-Control': 'public, max-age=300, s-maxage=86400, stale-while-revalidate=86400',
+		});
 	}
 
 	const speciesKeys = usage.map((u) => u.species_key);
@@ -117,7 +119,9 @@ export async function GET({ url }: APIContext): Promise<Response> {
 		moves: movesBySpecies.get(u.species_key) ?? [],
 	}));
 
-	return jsonResponse({ data, meta: { totalTeams: usage[0]?.team_equivalents ?? 0 } }, 200);
+	return jsonResponse({ data, meta: { totalTeams: usage[0]?.team_equivalents ?? 0 } }, 200, {
+		'Cache-Control': 'public, max-age=300, s-maxage=86400, stale-while-revalidate=86400',
+	});
 }
 
 export const POST = () => methodNotAllowed(['GET']);

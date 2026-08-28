@@ -26,7 +26,9 @@ export async function GET({ request }: APIContext): Promise<Response> {
   }
 
   const options = await getOpggUsageCategory(env.OPGG_USAGE, species, category);
-  return jsonResponse({ options: options ?? [] }, 200);
+  return jsonResponse({ options: options ?? [] }, 200, {
+    'Cache-Control': 'public, max-age=300, s-maxage=86400, stale-while-revalidate=86400',
+  });
 }
 
 export const POST = () => methodNotAllowed(['GET']);
