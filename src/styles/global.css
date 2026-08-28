@@ -677,6 +677,13 @@ input[type="range"]:focus-visible::-moz-range-thumb {
   margin: 0;
 }
 
+/* .empty-state-plain は中央寄せのため display:flex を使う。
+   UA スタイルの [hidden] より著者スタイルが優先されるため、ここで明示的に
+   hidden を優先しないと、登録済みでも空状態が残ってしまう。 */
+.empty-state[hidden] {
+  display: none;
+}
+
 .sort-dir-toggle {
   display: inline-flex;
   align-items: center;
