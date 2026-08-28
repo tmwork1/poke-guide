@@ -64,7 +64,7 @@ export interface ReplaceTeamInput {
 const TEAM_COLUMNS = 'id, user_id, memo, is_pinned, created_at, updated_at';
 
 // species_name/level/nature/ability_name/item_name/tera_type/evs/ivs/move_names は
-// 6枠カードの表示(公式絵・ニックネーム・テラスタイプ・持ち物・技4つ)に必要な列。
+// 6枠カードの表示(公式絵・種族名・テラスタイプ・持ち物・技4つ)に必要な列。
 // memo/tags 等の owned_pokemon 側の個人的情報も、本人のチーム編集画面内でしか
 // 出さないため(公開共有はスコープ外)、PublicOwnedPokemonRecord ではなく通常の全列を使う。
 // is_pinned は owned_pokemon から廃止済みのため列挙しない

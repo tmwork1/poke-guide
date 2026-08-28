@@ -52,7 +52,7 @@
 
 .team-overview-thumb-grid .team-overview-preview-card {
 	/* ── 1. 文字サイズ ─────────────────────── */
-	/* 名前(ニックネーム、未設定時は種族名) */
+	/* 名前(種族名) */
 	--team-card-name-font-size: var(--font-size-sm2);
 	/* とくせいの行 */
 	--team-card-details-font-size: var(--font-size-sm3);
@@ -146,7 +146,7 @@
 	min-width: 0;
 }
 
-/* .pokemon-preview-name: ニックネーム(未設定時は種族名)。右上の持ち物バッジと重なる
+/* .pokemon-preview-name: 種族名。右上の持ち物バッジと重なる
 	行末部分だけ、余白を確保する。 */
 
 .team-overview-preview-card .pokemon-preview-name {

@@ -51,7 +51,7 @@ const imageIdMapPromise = loadImageIdMap();
 const baseStatsMapPromise = loadBaseStatsMap();
 const moveTypeMapPromise = loadMoveTypeMap();
 
-// nickname・species_nameのどちらも空(自動登録直後の空個体)の場合、カード見出しが
+// species_nameが空(自動登録直後の空個体)の場合、カード見出しが
 // 空文字にならないよう "(未設定)" にフォールバックする。両画面の並べ替え・検索・確認
 // ダイアログでも同じ表示名を使えるよう、カード生成とは別に公開する。
 export function ownedPokemonDisplayName(pokemon: OwnedPokemonDisplayNameSource): string {

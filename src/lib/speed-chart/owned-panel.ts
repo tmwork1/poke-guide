@@ -185,7 +185,7 @@ export function initOwnedPanel(ctx: OwnedPanelContext): OwnedPanelController {
         spriteEl.hidden = true;
       }
     }
-    // 2段目: ニックネーム(無ければ種族名)。
+    // 2段目: 種族名。
     const speciesEl = document.getElementById(SUMMARY_SPECIES_ID);
     if (speciesEl) speciesEl.textContent = ctx.ownedRecord.species_name;
     // 3段目: 特性・アイテム。

@@ -48,7 +48,7 @@ const pageTitle = 'チーム編集';
 const bodyClass = team ? 'team-edit-page' : undefined;
 
 // 初期メンバー(0〜6要素、SSR取得済み)をクライアント<script>へそのまま引き渡す。
-// Astroの属性値は自動でHTMLエスケープされるので、ニックネーム等に " や < が
+// Astroの属性値は自動でHTMLエスケープされるので、メモ等に " や < が
 // 含まれていても壊れない(pokemon.tsの data-tags={JSON.stringify(...)} と同じ手法)。
 const initialTeamJson = team
 	? JSON.stringify({
@@ -1049,8 +1049,8 @@ try {
 			align-items: center;
 			gap: var(--space-1);
 		}
-		/* NN・テラスアイコン・編集ボタンを1つの横並び(flex)にまとめ、その全体をカード幅の中で
-		   中央寄せする(=NNの右隣にテラスアイコン、さらにその右に編集ボタンが並ぶ)。
+		/* 名前・テラスアイコン・編集ボタンを1つの横並び(flex)にまとめ、その全体をカード幅の中で
+		   中央寄せする(=名前の右隣にテラスアイコン、さらにその右に編集ボタンが並ぶ)。
 		   テラスアイコンは後述のとおりテキストラベルを持たないアイコンのみのバッジにする。 */
 		.team-slots .slot-name-row {
 			display: flex;
@@ -3032,9 +3032,9 @@ try {
 				infoEl.className = "slot-info";
 				let teraItem: HTMLSpanElement | null = null;
 
-				// nameRowは横並びflex(CSS参照)で、NN→テラスアイコン→編集ボタンの順に並べ、
-				// 全体をカード幅の中で中央寄せする。種族名(R-8のspeciesEl)は表示しなくなったため、
-				// この画面では生成しない。
+				// nameRowは横並びflex(CSS参照)で、名前→テラスアイコン→編集ボタンの順に並べ、
+				// 全体をカード幅の中で中央寄せする。displayName(p)は種族名を返す
+				// (ニックネームは廃止済み)。
 				const nameRow = document.createElement("div");
 				nameRow.className = "slot-name-row";
 				const name = displayName(p);

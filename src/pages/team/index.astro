@@ -53,7 +53,7 @@ const user = Astro.locals.user;
 									id="search-input"
 									type="search"
 									class="field-control"
-									placeholder="ポケモン・NN・アイテム・わざ"
+									placeholder="ポケモン・もちもの・わざ"
 									aria-label="検索"
 									autocomplete="off"
 								/>
@@ -241,7 +241,7 @@ const user = Astro.locals.user;
 				);
 			}
 
-			// メンバーの種族名・NN・アイテム・わざを対象にするAND部分一致検索。
+			// メンバーの種族名・アイテム・わざを対象にするAND部分一致検索。
 			function matchesSearch(t: Team, term: string): boolean {
 				if (!term) return true;
 				const haystack = [

@@ -79,7 +79,7 @@ export interface ListOwnedPokemonOptions {
   sort?: OwnedPokemonSort;
   // 指定した全タグを含む個体のみ(AND)に絞り込む(計画書§6.1)。
   tags?: string[];
-  // ニックネーム/種族/特性/持ち物/テラスの部分一致(OR)によるサーバー側の簡易絞り込み。
+  // 種族/特性/持ち物/テラスの部分一致(OR)によるサーバー側の簡易絞り込み。
   // 技名(move_names)の部分一致や複数語のAND検索はPostgRESTの配列演算子では表現しづらいため、
   // 一覧ページ(C-2)側は取得した全件をクライアント側で再フィルタする(計画書§6.1が明示的に許容)。
   search?: string;
