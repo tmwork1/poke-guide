@@ -2,6 +2,7 @@ import {
 	renderBoxPokemonCard,
 	type BoxPokemonCardPokemon,
 } from "./box-pokemon-card";
+import { playCardDeleteExitEffect } from "./card-delete-mode";
 
 export interface TeamMemberCardContent {
 	pokemon: BoxPokemonCardPokemon;
@@ -119,7 +120,10 @@ export function renderTeamCard<M>(options: RenderTeamCardOptions<M>): HTMLElemen
 		deleteButton.addEventListener("click", (event) => {
 			event.preventDefault();
 			event.stopPropagation();
-			void options.onDelete?.();
+			void (async () => {
+				await playCardDeleteExitEffect(card, deleteButton);
+				await options.onDelete?.();
+			})();
 		});
 		card.appendChild(deleteButton);
 	}

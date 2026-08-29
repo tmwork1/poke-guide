@@ -6,6 +6,7 @@ import {
 	officialArtworkUrl,
 } from "./pokemon-master-data";
 import { itemIconUrl } from "./sprite-urls";
+import { playCardDeleteExitEffect } from "./card-delete-mode";
 import { NATURE_STAT_MODIFIERS, STAT_KEYS, calcHpStat, calcOtherStat } from "./stats";
 import { DEFAULT_TYPE_COLOR, TYPE_COLORS } from "./type-colors";
 
@@ -177,7 +178,10 @@ export function renderBoxPokemonCard<T extends HTMLElement>(
 		deleteButton.addEventListener("click", (event) => {
 			event.preventDefault();
 			event.stopPropagation();
-			void onDelete();
+			void (async () => {
+				await playCardDeleteExitEffect(card, deleteButton);
+				await onDelete();
+			})();
 		});
 		actions.appendChild(deleteButton);
 		card.appendChild(actions);

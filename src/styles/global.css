@@ -1104,10 +1104,12 @@ dd {
 :root {
   /* ── 3. 文字色 ────────────────────────────────────────── */
   --card-delete-button-color: var(--color-danger-strong); /* 削除操作であることを示すアイコンの警告色 */
+  --card-delete-button-active-color: var(--color-primary-contrast); /* 削除確定タップの瞬間、fill反転した背景の上に載るアイコン色 */
 
   /* ── 4. 背景色 ────────────────────────────────────────── */
   --card-delete-button-background: var(--color-surface); /* 削除ボタンをまだ選んでいないときの背景 */
   --card-delete-button-hover-background: var(--color-danger-soft); /* 削除ボタンを指したときに危険操作を伝える薄い背景色 */
+  --card-delete-button-active-background: var(--color-danger-strong); /* 削除確定タップの瞬間、ボタンをfill反転させる背景色 */
 
   /* ── 5. 枠線・角丸 ────────────────────────────────────── */
   --card-delete-button-border-radius: 999px; /* 削除ボタンの角丸。十分大きい値で正円の輪郭を保つ */
@@ -1123,4 +1125,13 @@ dd {
 
   /* ── 9. その他 ────────────────────────────────────────── */
   --card-delete-button-transition-duration: 0.15s; /* 削除ボタンの表示・配色が切り替わるアニメーション時間 */
+}
+
+/* --- 削除確定時にカードを萎ませる効果(card-delete-mode.tsのplayCardDeleteExitEffectが
+   is-card-removingを付与する)。box-card.css/team-card.css/box-damage-card.cssの
+   各カードのルート要素に紐付ける。 --- */
+:root {
+  --card-removing-scale: 0.85; /* 萎んだときの縮小率。小さくすると縮み幅が大きくなる */
+  --card-removing-opacity: 0; /* 萎み終わりの透明度 */
+  --card-removing-duration: 0.15s; /* 萎むアニメーションの時間 */
 }

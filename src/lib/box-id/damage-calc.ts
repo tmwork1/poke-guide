@@ -42,7 +42,7 @@ import { TERA_TYPES } from "../tera-types";
 // teraTypeIconUrlをimportしているが再exportしていないため、ここで直接importする。
 import { teraTypeIconUrl } from "../sprite-urls";
 import { DEFAULT_TYPE_COLOR, TYPE_COLORS } from "../type-colors";
-import { initializeCardDeleteMode } from "../card-delete-mode";
+import { initializeCardDeleteMode, playCardDeleteExitEffect } from "../card-delete-mode";
 // 相手ポケモンのアイテムドロップダウン(下のbuildItemDropdown参照)の検索欄で、育成タブの
 // 持ち物ドロップダウン(left-panel.ts)と同じかな・文字幅・英字大小を無視した絞り込みにする。
 import { kanaIncludes } from "../kana";
@@ -2774,7 +2774,12 @@ if (opponentNotesSection) {
 		deleteRowButton.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
 		deleteRowButton.title = "この相手を削除";
 		deleteRowButton.setAttribute("aria-label", "この相手を削除");
-		deleteRowButton.addEventListener("click", () => void deleteRow(row));
+		deleteRowButton.addEventListener("click", () => {
+			void (async () => {
+				await playCardDeleteExitEffect(root, deleteRowButton);
+				await deleteRow(row);
+			})();
+		});
 		root.appendChild(deleteRowButton);
 
 		// 攻守切り替え。「攻撃」「防御」どちらを押しても、押した側の値になる

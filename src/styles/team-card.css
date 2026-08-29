@@ -295,6 +295,20 @@
   pointer-events: auto;
   border: var(--card-delete-button-mode-border);
 }
+
+/* 削除確定タップの瞬間だけ、ボタンをfill反転しカードを萎ませる
+   (card-delete-mode.tsのplayCardDeleteExitEffectが付与)。 */
+.team-grid .card-team .card-team-delete.is-deleting {
+  background: var(--card-delete-button-active-background);
+  border-color: var(--card-delete-button-active-background);
+  color: var(--card-delete-button-active-color);
+}
+.team-grid .card-team.is-card-removing {
+  transform: scale(var(--card-removing-scale));
+  opacity: var(--card-removing-opacity);
+  transition: transform var(--card-removing-duration) ease-in, opacity var(--card-removing-duration) ease-in;
+}
+
 @media (prefers-reduced-motion: reduce) {
   #team-list.is-card-delete-mode .card-team {
     animation: none;
