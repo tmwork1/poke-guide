@@ -991,51 +991,12 @@ body.box-edit-page {
   outline-offset: 2px;
 }
 
-/* 技を1つだけ消す×ボタン(技カード=.damage-column右端)。相手ビルドカードの
-   削除ボタンと同じ見た目・操作性にする。 */
-#opponent-notes-section .damage-column-delete-button {
-  top: 50%;
-  right: var(--damage-card-delete-offset);
-  transform: translateY(-50%);
-  z-index: 2;
-  background: var(--damage-card-delete-background);
-  border: var(--damage-card-delete-border);
-  transition: background var(--damage-card-transition-duration), color var(--damage-card-transition-duration), border-color var(--damage-card-transition-duration);
-  display: none;
-  opacity: 0;
-  pointer-events: none;
-  position: absolute;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  #opponent-notes-section .damage-column-delete-button {
-    display: inline-flex;
-  }
-
-  #opponent-notes-section .damage-column:hover .damage-column-delete-button,
-  #opponent-notes-section .damage-column:focus-within .damage-column-delete-button {
-    opacity: 1;
-    pointer-events: auto;
-  }
-
-  #opponent-notes-section .damage-column-delete-button:hover:not(:disabled) {
-    background: var(--damage-card-delete-hover-background);
-    color: var(--damage-card-delete-hover-color);
-    border-color: var(--damage-card-delete-hover-background);
-  }
-}
-
-#opponent-notes-section .damage-column-delete-button:focus-visible {
-  outline: var(--damage-card-control-focus-outline);
-  outline-offset: 2px;
-}
-
-/* 長押しで入る削除モード中のみ、各カードの削除操作を常に表示する。 */
+/* 長押しで入る削除モード中のみ、各カードの削除操作を常に表示する。
+   削除モードの単位は「相手ビルド〜結果」の1セット(.card-damage)にひとつだけ。 */
 #opponent-notes-section .damage-rows-list.is-card-delete-mode .card-damage {
   animation: damage-card-delete-wiggle var(--damage-card-delete-animation-duration) ease-in-out infinite alternate;
 }
-#opponent-notes-section .damage-rows-list.is-card-delete-mode .damage-row-delete-button,
-#opponent-notes-section .damage-rows-list.is-card-delete-mode .damage-column-delete-button {
+#opponent-notes-section .damage-rows-list.is-card-delete-mode .damage-row-delete-button {
   display: inline-flex;
   opacity: 1;
   pointer-events: auto;
@@ -1051,8 +1012,7 @@ body.box-edit-page {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  #opponent-notes-section .damage-row-delete-button,
-  #opponent-notes-section .damage-column-delete-button {
+  #opponent-notes-section .damage-row-delete-button {
     transition: none;
   }
   #opponent-notes-section .damage-rows-list.is-card-delete-mode .card-damage {

@@ -2301,23 +2301,9 @@ if (opponentNotesSection) {
 			conditions.appendChild(conditionChips);
 			moveRow.appendChild(conditions);
 
-			// 技を1つだけ消す削除ボタン。相手ビルドカードの削除ボタン(damage-row-delete-button)
-			// と同じ「カード長押し→削除モード→×を押す」操作に統一する(技が1つしかない行では
-			// 消せない仕様を維持するため、その場合はボタン自体を作らない)。
-			if (row.attacks.length > 1) {
-				const deleteColumnButton = document.createElement("button");
-				deleteColumnButton.type = "button";
-				deleteColumnButton.className = "btn-ghost damage-row-icon-button damage-column-delete-button";
-				deleteColumnButton.textContent = "×";
-				deleteColumnButton.title = "この技を削除";
-				deleteColumnButton.setAttribute("aria-label", "この技を削除");
-				deleteColumnButton.addEventListener("click", (event) => {
-					event.preventDefault();
-					event.stopPropagation();
-					deleteAttackColumn(row, attack);
-				});
-				col.appendChild(deleteColumnButton);
-			}
+			// 技1つ単位の削除ボタンは置かない。削除モードの単位は「相手ビルド〜結果」の
+			// 1セット(.card-damage)にひとつだけ(damage-row-delete-button)。技1つだけを
+			// 消す操作は詳細パネル側(deleteColumn、right-panel.ts)に残す。
 
 			// 最下段(区切り線の下)に「技ごとのダメ・致死率」。margin-top:autoで
 			// 箱の下端に固定されるため、上の条件欄が増えても位置が変わらない。
@@ -2783,7 +2769,9 @@ if (opponentNotesSection) {
 		const deleteRowButton = document.createElement("button");
 		deleteRowButton.type = "button";
 		deleteRowButton.className = "btn-ghost damage-row-icon-button damage-row-delete-button";
-		deleteRowButton.textContent = "×";
+		// 全画面共通の×SVG(box-pokemon-card.ts/team-card.tsと同じ)。文字の"×"は
+		// フォントによって光学的な中心がずれるため使わない。
+		deleteRowButton.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
 		deleteRowButton.title = "この相手を削除";
 		deleteRowButton.setAttribute("aria-label", "この相手を削除");
 		deleteRowButton.addEventListener("click", () => void deleteRow(row));
@@ -3304,7 +3292,7 @@ if (opponentNotesSection) {
 	});
 
 	const damageRowsListEl = el<HTMLElement>("damage-rows-list");
-	initializeCardDeleteMode(damageRowsListEl, ".card-damage", ".damage-row-delete-button, .damage-column-delete-button");
+	initializeCardDeleteMode(damageRowsListEl, ".card-damage", ".damage-row-delete-button");
 	const engineStatusEl = el<HTMLElement>("damage-calc-engine-status");
 	const engineStatusTextEl = el<HTMLElement>("damage-calc-engine-status-text");
 	const engineReloadButton = el<HTMLButtonElement>("damage-calc-engine-reload-button");
