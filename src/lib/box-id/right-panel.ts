@@ -53,6 +53,7 @@ import {
 // あった旧テラスタイプ欄(rowTeraFieldWraps)と同じ判定を使う。判定は必ずこの関数を使い、
 // 自前ロジックを書かない(仕様: 未指定はtrue=表示・M-*はfalse=非表示・T-*はtrue=表示。
 // src/lib/regulations.ts参照)。
+import { playDetailPanelSlide } from "./detail-panel-slide";
 import { isTerastalRegulation } from "../regulations";
 import { STAT_KEYS, type StatKey } from "../stats";
 import type { SolveResult, DurabilityCandidate } from "./bulk-adjust-solver";
@@ -326,13 +327,14 @@ function initDetailPanelSwipe(): void {
 				? row.attacks.indexOf(column) + 1
 				: -1;
 		if (currentIndex < 0) return;
-		const nextIndex = deltaX < 0 ? currentIndex + 1 : currentIndex - 1;
+		const direction: 1 | -1 = deltaX < 0 ? 1 : -1;
+		const nextIndex = currentIndex + direction;
 		if (nextIndex === 0) {
-			selectBuild(row);
+			playDetailPanelSlide(detailPanelBodyEl, detailPanelActionsEl, direction, () => selectBuild(row));
 			return;
 		}
 		const nextColumn = row.attacks[nextIndex - 1];
-		if (nextColumn) selectColumn(row, nextColumn);
+		if (nextColumn) playDetailPanelSlide(detailPanelBodyEl, detailPanelActionsEl, direction, () => selectColumn(row, nextColumn));
 	};
 	detailPanelBodyEl.addEventListener("pointerup", (event) => finishGesture(event));
 	detailPanelBodyEl.addEventListener("pointercancel", (event) => finishGesture(event, true));

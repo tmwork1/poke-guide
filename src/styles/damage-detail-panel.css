@@ -268,6 +268,23 @@ body.box-edit-page {
 		padding-bottom: var(--damage-detail-body-safe-area-padding-bottom);
 		touch-action: pan-y;
 	}
+
+	/* フリックでの「相手ビルド」⇔「わざ」切り替え時、本文を一度だけ横スライドさせる演出
+	   (detail-panel-slide.tsがJSで生成・アニメーションさせる)。タップでの切り替えには使わない。
+	   trackの高さは切り替え開始時点のbodyの表示高さ(clientHeight)をJSがインラインで固定する。 */
+	.damage-detail-panel-slide-track {
+		position: relative;
+		overflow: hidden;
+		flex: 0 0 auto;
+		pointer-events: none;
+	}
+	.damage-detail-panel-slide-outgoing,
+	.damage-detail-panel-slide-incoming {
+		position: absolute;
+		left: 0;
+		right: 0;
+	}
+
 	.damage-detail-panel-footer {
 		flex: 0 0 auto;
 		padding: var(--damage-detail-space-sm) var(--damage-detail-space-lg);
