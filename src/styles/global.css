@@ -1096,3 +1096,31 @@ dd {
 .app-shell:not(.is-public) .app-main {
   padding-bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom));
 }
+
+/* --- カード長押し削除モードの削除ボタン(box-card.css の .box-card、
+   team-card.css の .card-team で共有)。/box と /team で見た目が食い違わないよう、
+   個別ファイルに配色・寸法を複製せずここへ集約する(card-delete-mode.ts が
+   付与する is-card-delete-mode との組み合わせ方は各カードのCSS側に残す)。 --- */
+:root {
+  /* ── 3. 文字色 ────────────────────────────────────────── */
+  --card-delete-button-color: var(--color-danger-strong); /* 削除操作であることを示すアイコンの警告色 */
+
+  /* ── 4. 背景色 ────────────────────────────────────────── */
+  --card-delete-button-background: var(--color-surface); /* 削除ボタンをまだ選んでいないときの背景 */
+  --card-delete-button-hover-background: var(--color-danger-soft); /* 削除ボタンを指したときに危険操作を伝える薄い背景色 */
+
+  /* ── 5. 枠線・角丸 ────────────────────────────────────── */
+  --card-delete-button-border-radius: 999px; /* 削除ボタンの角丸。十分大きい値で正円の輪郭を保つ */
+  --card-delete-button-border: 1px solid var(--color-border); /* 通常時の削除ボタンを囲む境界線 */
+  --card-delete-button-hover-border: var(--color-danger-strong); /* 削除ボタンへポインターを載せたときの枠線色 */
+  --card-delete-button-mode-border: 1px solid var(--color-danger-strong); /* 削除モード中は常時この輪郭で囲み、削除操作であることを強調する */
+
+  /* ── 6. 影 ────────────────────────────────────────────── */
+  --card-delete-button-shadow: var(--shadow-sm); /* 削除ボタンをカード面から少し浮かせて見せる影 */
+
+  /* ── 8. 寸法 ──────────────────────────────────────────── */
+  --card-delete-button-size: 28px; /* 削除ボタンの直径 */
+
+  /* ── 9. その他 ────────────────────────────────────────── */
+  --card-delete-button-transition-duration: 0.15s; /* 削除ボタンの表示・配色が切り替わるアニメーション時間 */
+}

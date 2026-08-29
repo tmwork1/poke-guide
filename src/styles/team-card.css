@@ -74,7 +74,6 @@
   --team-card-header-min-height: 38px; /* ヘッダ帯の最低の高さ。大きくすると帯が縦に広がる */
   --team-card-action-size: 32px; /* 星・記事リンクを押せる正方形の大きさ */
   --team-card-article-icon-size: 18px; /* 記事リンクのSVGアイコンの大きさ */
-  --team-card-delete-size: 28px; /* 削除ボタンの直径。/boxの削除ボタン(--box-card-action-size)と同じ大きさに揃える */
 
   /* ── 9. その他 ───────────────────────── */
   --team-card-meta-right: 48px; /* バッジ列の右端位置。右上ボタンとの間隔も変わる */
@@ -263,8 +262,9 @@
 }
 
 /* --- カード右上の削除ボタン(長押し削除モード)。/boxのカード削除モードと同じ
-   操作性(card-delete-mode.ts)・見た目(box-card.cssの.delete-buttonの配色トークン)
-   に揃える。/team一覧(#team-list)だけで有効にし、/team/[id]の類似構築カードには出さない。 --- */
+   操作性(card-delete-mode.ts)・見た目(global.cssの--card-delete-button-*。
+   /boxの.delete-buttonと値を共有し、配色・寸法が食い違わないようにする)に揃える。
+   /team一覧(#team-list)だけで有効にし、/team/[id]の類似構築カードには出さない。 --- */
 .team-grid .card-team .card-team-delete {
   display: none;
   position: absolute;
@@ -273,19 +273,19 @@
   z-index: 2;
   align-items: center;
   justify-content: center;
-  width: var(--team-card-delete-size);
-  height: var(--team-card-delete-size);
+  width: var(--card-delete-button-size);
+  height: var(--card-delete-button-size);
   min-height: 0;
   padding: 0;
-  border-radius: 999px;
-  border: 1px solid var(--color-border);
-  background: var(--color-surface);
-  color: var(--color-danger-strong);
-  box-shadow: var(--shadow-sm);
+  border-radius: var(--card-delete-button-border-radius);
+  border: var(--card-delete-button-border);
+  background: var(--card-delete-button-background);
+  color: var(--card-delete-button-color);
+  box-shadow: var(--card-delete-button-shadow);
 }
 .team-grid .card-team .card-team-delete:hover {
-  background: var(--color-danger-soft);
-  border-color: var(--color-danger-strong);
+  background: var(--card-delete-button-hover-background);
+  border-color: var(--card-delete-button-hover-border);
 }
 #team-list.is-card-delete-mode .card-team {
   animation: card-delete-wiggle .16s ease-in-out infinite alternate;
@@ -293,7 +293,7 @@
 #team-list.is-card-delete-mode .card-team .card-team-delete {
   display: inline-flex;
   pointer-events: auto;
-  border: var(--box-card-delete-mode-border);
+  border: var(--card-delete-button-mode-border);
 }
 @media (prefers-reduced-motion: reduce) {
   #team-list.is-card-delete-mode .card-team {
