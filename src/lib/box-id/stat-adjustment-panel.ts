@@ -80,6 +80,7 @@ export function buildStatAdjustmentPanel(options: StatAdjustmentPanelOptions): S
 	const rangeInputs = new Map<StatKey, HTMLInputElement>();
 	const baseValueEls = new Map<StatKey, HTMLElement>();
 	const realValueEls = new Map<StatKey, HTMLElement>();
+	let nextNeutralNatureAssignment: "up" | "down" = options.natureUp && options.natureDown ? "down" : "up";
 
 	function updateSliderProgress(rangeInput: HTMLInputElement): void {
 		const value = Number(rangeInput.value) || 0;
@@ -132,9 +133,14 @@ export function buildStatAdjustmentPanel(options: StatAdjustmentPanelOptions): S
 			button.setAttribute("aria-label", `${label}の性格補正を切り替える`);
 			button.title = `${label}の性格補正を切り替える`;
 			button.addEventListener("click", () => {
-				const next = nextNatureBoosts({ up: options.natureUp, down: options.natureDown }, key);
+				const next = nextNatureBoosts(
+					{ up: options.natureUp, down: options.natureDown },
+					key,
+					nextNeutralNatureAssignment,
+				);
 				options.natureUp = next.up;
 				options.natureDown = next.down;
+				nextNeutralNatureAssignment = next.nextNeutralAssignment;
 				options.nature = natureNameFromBoosts(options.natureUp, options.natureDown);
 				refresh();
 				options.onChange();

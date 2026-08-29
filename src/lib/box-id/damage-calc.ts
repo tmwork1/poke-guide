@@ -1435,9 +1435,11 @@ if (opponentNotesSection) {
 		}
 		const hp = result.defenderHp;
 		if (hp && hp > 0) {
-			const pctMin = Math.floor((min / hp) * 100);
-			const pctMax = Math.ceil((max / hp) * 100);
-			const pct = pctMin === pctMax ? `${pctMin}%` : `${pctMin}〜${pctMax}%`;
+			const pctMin = (min / hp) * 100;
+			const pctMax = (max / hp) * 100;
+			const pctMinText = pctMin.toFixed(1);
+			const pctMaxText = pctMax.toFixed(1);
+			const pct = pctMinText === pctMaxText ? `${pctMinText}%` : `${pctMinText}〜${pctMaxText}%`;
 			return { text: `${min}〜${max} (${pct})`, pctMin, pctMax };
 		}
 		return { text: `${min}〜${max}` };
@@ -1449,9 +1451,9 @@ if (opponentNotesSection) {
 		const max = Math.max(...damages);
 		const range = min === max ? `${min}` : `${min}〜${max}`;
 		if (defenderHp && defenderHp > 0) {
-			const pctMin = Math.floor((min / defenderHp) * 100);
-			const pctMax = Math.ceil((max / defenderHp) * 100);
-			const pct = pctMin === pctMax ? `${pctMin}%` : `${pctMin}〜${pctMax}%`;
+			const pctMinText = ((min / defenderHp) * 100).toFixed(1);
+			const pctMaxText = ((max / defenderHp) * 100).toFixed(1);
+			const pct = pctMinText === pctMaxText ? `${pctMinText}%` : `${pctMinText}〜${pctMaxText}%`;
 			return `${range} (${pct})`;
 		}
 		return range;

@@ -664,10 +664,14 @@ if (form) {
 
 	let leftNatureUp: StatKey | null = null;
 	let leftNatureDown: StatKey | null = null;
+	// 性格確定後に未選択能力を押したときの入れ替え先。無補正からの最初のタップは
+	// nextNatureBoosts側が常に上昇として扱うため、ここでは確定済みの場合だけ下降から始める。
+	let nextLeftNatureNeutralAssignment: "up" | "down" = "up";
 	{
 		const initial = NATURE_STAT_MODIFIERS[form.dataset.nature ?? ""] ?? { up: null, down: null };
 		leftNatureUp = initial.up;
 		leftNatureDown = initial.down;
+		nextLeftNatureNeutralAssignment = initial.up && initial.down ? "down" : "up";
 	}
 	// 性格補正ボタンの初期状態を反映する(refreshNatureButtonsは関数宣言でホイスト
 	// されているため、この時点で呼び出せる)。
@@ -1325,9 +1329,14 @@ if (form) {
 	for (const key of NATURE_TOGGLE_KEYS) {
 		const button = document.getElementById(`nature-toggle-${key}`);
 		button?.addEventListener("click", async () => {
-			const next = nextNatureBoosts({ up: leftNatureUp, down: leftNatureDown }, key);
+			const next = nextNatureBoosts(
+				{ up: leftNatureUp, down: leftNatureDown },
+				key,
+				nextLeftNatureNeutralAssignment,
+			);
 			leftNatureUp = next.up;
 			leftNatureDown = next.down;
+			nextLeftNatureNeutralAssignment = next.nextNeutralAssignment;
 			refreshNatureButtons();
 			await recalcStats();
 			scheduleSave();

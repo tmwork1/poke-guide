@@ -322,13 +322,13 @@ test('formatNoteConditionLine: 技が複数あるときは列番号を付けて 
 // --- 3段目: 累計計算結果 ---------------------------------------------------
 
 test('formatCumulativeDamage: cumulativeDamage があればそれを使いHP比を添える', () => {
-	assert.equal(formatCumulativeDamage(1, NOTE_KAMEX.client_result), '31〜37 (20〜25%)');
-	assert.equal(formatCumulativeDamage(2, NOTE_KAIRYU.client_result), '113〜138 (68〜84%)');
+	assert.equal(formatCumulativeDamage(1, NOTE_KAMEX.client_result), '31〜37 (20.1〜24.0%)');
+	assert.equal(formatCumulativeDamage(2, NOTE_KAIRYU.client_result), '113〜138 (68.1〜83.1%)');
 });
 
 test('formatCumulativeDamage: cumulativeDamage が無い古いスナップショットは単純加算で近似する', () => {
 	const result = { defenderHp: 100, perAttackDamages: [[10, 12], [20, 24]] };
-	assert.equal(formatCumulativeDamage(2, result), '30〜36 (30〜36%)');
+	assert.equal(formatCumulativeDamage(2, result), '30〜36 (30.0〜36.0%)');
 });
 
 test('describeNoteVerdict: 累計が確殺していれば確1(lethal)', () => {
@@ -336,7 +336,7 @@ test('describeNoteVerdict: 累計が確殺していれば確1(lethal)', () => {
 	const v = describeNoteVerdict(attacks, NOTE_HABATAKU.client_result, categoryOf);
 	assert.equal(v.label, '確1');
 	assert.equal(v.severity, 'lethal');
-	assert.equal(v.detail, '235〜277 (180〜214%)');
+	assert.equal(v.detail, '235〜277 (180.8〜213.1%)');
 	assert.equal(v.note, '');
 });
 
@@ -346,7 +346,7 @@ test('describeNoteVerdict: 攻撃列内で確殺しない単一技は perAttackL
 	// perAttackLethal[0] は4発目で probability=1 → 確4
 	assert.equal(v.label, '確4');
 	assert.equal(v.severity, 'safe');
-	assert.equal(v.detail, '31〜37 (20〜25%)');
+	assert.equal(v.detail, '31〜37 (20.1〜24.0%)');
 });
 
 test('describeNoteVerdict: 複数技で確殺しない場合は perAttackDamages を繰り返して延長見積りする', () => {
@@ -356,7 +356,7 @@ test('describeNoteVerdict: 複数技で確殺しない場合は perAttackDamages
 	// 残りHPは 73〜91 → 51〜72 と減り、3発目(スケイルショット75〜93)で全分岐が致死。
 	assert.equal(v.label, '確3');
 	assert.equal(v.severity, 'safe');
-	assert.equal(v.detail, '113〜138 (68〜84%)');
+	assert.equal(v.detail, '113〜138 (68.1〜83.1%)');
 });
 
 test('describeNoteVerdict: 10発当てても確殺しないときは確定数を出さない', () => {
@@ -369,7 +369,7 @@ test('describeNoteVerdict: 10発当てても確殺しないときは確定数を
 	};
 	const v = describeNoteVerdict(attacks, result, categoryOf);
 	assert.equal(v.label, '');
-	assert.equal(v.detail, '1〜2 (0〜1%)');
+	assert.equal(v.detail, '1〜2 (0.5〜1.0%)');
 	assert.equal(v.severity, 'safe');
 });
 

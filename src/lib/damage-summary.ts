@@ -283,8 +283,8 @@ export function formatCumulativeDamage(validAttackCount: number, result: Opponen
 	}
 	const hp = result.defenderHp;
 	if (hp && hp > 0) {
-		const pctMin = Math.floor((min / hp) * 100);
-		const pctMax = Math.ceil((max / hp) * 100);
+		const pctMin = ((min / hp) * 100).toFixed(1);
+		const pctMax = ((max / hp) * 100).toFixed(1);
 		const pct = pctMin === pctMax ? `${pctMin}%` : `${pctMin}〜${pctMax}%`;
 		return `${min}〜${max} (${pct})`;
 	}

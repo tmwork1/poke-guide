@@ -1,3 +1,5 @@
+import { bindPressAndHold } from "../press-and-hold";
+
 const sheet = document.getElementById("stat-adjust-sheet");
 const toggle = document.getElementById("stat-adjust-sheet-toggle") as HTMLButtonElement | null;
 const body = document.getElementById("stat-status-adjust-body");
@@ -95,12 +97,17 @@ function buildDamageStatAdjustmentSheet(): void {
 		real.className = "damage-stat-adjustment-real tnum";
 
 		const sourceRange = source.querySelector<HTMLInputElement>(`#ev-${key}-range`);
-		const setSourceValue = (delta: number | null): void => {
-			if (!sourceRange) return;
-			const next = delta === null ? Number(range.value) : Math.max(0, Math.min(32, Number(sourceRange.value) + delta));
+		const setSourceValue = (delta: number | null): boolean => {
+			if (!sourceRange) return false;
+			const current = Number(sourceRange.value) || 0;
+			const next = delta === null ? Number(range.value) : Math.max(0, Math.min(32, current + delta));
+			if (next === current) return false;
 			sourceRange.value = String(next);
 			sourceRange.dispatchEvent(new Event("input", { bubbles: true }));
+			return true;
 		};
+		bindPressAndHold(decrement, () => setSourceValue(-1));
+		bindPressAndHold(increment, () => setSourceValue(1));
 		decrement.addEventListener("click", () => setSourceValue(-1));
 		increment.addEventListener("click", () => setSourceValue(1));
 		range.addEventListener("input", () => setSourceValue(null));
