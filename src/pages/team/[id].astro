@@ -3332,8 +3332,9 @@ try {
 					selectedSlot: selectedFormationSlot,
 					onSlotTap: (slot) => {
 						if (selectedFormationSlot !== null && selectedFormationSlot !== slot && membersBySlot.has(selectedFormationSlot) && membersBySlot.has(slot)) {
-							swapMembersBetweenSlots(selectedFormationSlot, slot);
+							const fromSlot = selectedFormationSlot;
 							selectedFormationSlot = null;
+							swapMembersBetweenSlots(fromSlot, slot);
 							return;
 						}
 						selectedFormationSlot = selectedFormationSlot === slot ? null : slot;
@@ -3343,7 +3344,8 @@ try {
 						if (membersBySlot.has(slot)) removeMemberFromSlot(slot);
 					},
 					onSlotLongPress: (slot) => {
-						if (membersBySlot.has(slot)) removeMemberFromSlot(slot);
+						const pokemon = membersBySlot.get(slot);
+						if (pokemon) navigateToPokemonEdit(pokemon.id);
 					},
 					applySprite,
 					applyItemIcon,
@@ -3368,6 +3370,7 @@ try {
 				for (const p of sortFormationMobilePokemon(allPokemon.filter((candidate) => !isCurrentMember(candidate.id) && matchesSearch(candidate, term)))) {
 					const card = document.createElement("button");
 					card.type = "button";
+					attachLongPressNavigate(card, p.id);
 					card.addEventListener("click", () => {
 						if (selectedFormationSlot != null) {
 							const targetSlot = selectedFormationSlot;
@@ -3395,6 +3398,42 @@ try {
 					}
 					formationMobileBoxGrid.appendChild(card);
 				}
+			}
+
+			function navigateToPokemonEdit(pokemonId: string): void {
+				window.location.href = `/box/${encodeURIComponent(pokemonId)}?fromTeam=${encodeURIComponent(teamId)}`;
+			}
+
+			function attachLongPressNavigate(element: HTMLElement, pokemonId: string): void {
+				const LONG_PRESS_MS = 600;
+				let pressTimer: ReturnType<typeof window.setTimeout> | undefined;
+				let suppressNextClick = false;
+				const clearPress = (): void => {
+					if (pressTimer !== undefined) window.clearTimeout(pressTimer);
+					pressTimer = undefined;
+				};
+
+				element.addEventListener("pointerdown", (event) => {
+					suppressNextClick = false;
+					if (event.button !== 0) return;
+					pressTimer = window.setTimeout(() => {
+						pressTimer = undefined;
+						suppressNextClick = true;
+						navigateToPokemonEdit(pokemonId);
+					}, LONG_PRESS_MS);
+				});
+				element.addEventListener("pointerup", clearPress);
+				element.addEventListener("pointercancel", clearPress);
+				element.addEventListener("pointerleave", clearPress);
+				element.addEventListener("contextmenu", (event) => {
+					if (pressTimer !== undefined || suppressNextClick) event.preventDefault();
+				});
+				element.addEventListener("click", (event) => {
+					if (!suppressNextClick) return;
+					suppressNextClick = false;
+					event.preventDefault();
+					event.stopPropagation();
+				}, true);
 			}
 
 			async function createFormationMobilePokemon(): Promise<void> {
@@ -3493,6 +3532,16 @@ try {
 					card.classList.remove("is-selected");
 				}
 				closePreviewPanel();
+			});
+
+			// モバイル編成タブ: 自チームカード以外をタップしたら選択状態を解除する
+			// (カード自身のタップはonSlotTap側で選択/入れ替え/解除を処理済みのため対象外)。
+			document.addEventListener("click", (event) => {
+				if (selectedFormationSlot === null) return;
+				const target = event.target as Node;
+				if (formationMobileSlotsRoot.contains(target)) return;
+				selectedFormationSlot = null;
+				renderFormationMobile();
 			});
 
 			// --- 選択バーの描画(R-7・R-10) ---

@@ -236,6 +236,13 @@ body.team-edit-page {
 	width: auto;
 	gap: var(--space-1);
 }
+/* 375px未満では、検索欄の内容幅と並べ替えの既存幅を保ったまま次行へ送る。
+   どちらも縮めずに画面外へ出ないよう、横並びを維持できる幅だけに限定する。 */
+@media (max-width: 374px) {
+	#team-formation-mobile-toolbar {
+		flex-flow: row wrap;
+	}
+}
 #team-formation-mobile-toolbar .sort-select-wrap {
 	flex: 0 0 auto;
 }
