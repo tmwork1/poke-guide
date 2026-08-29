@@ -9,24 +9,14 @@
    チューニング変数
    -------------------------------------------------------------------------- */
 body.team-edit-page {
-  /* ── 4. 背景色 ───────────────────────── */
-  --team-data-status-background: var(--color-surface); /* 読み込み状態カードの背景色 */
-
-  /* ── 5. 枠線・角丸 ─────────────────────── */
-  --team-data-status-border: 1px solid var(--color-border); /* 読み込み状態カードの枠線 */
-  --team-data-status-border-radius: var(--radius-md); /* 読み込み状態カードの角の丸み */
-
   /* ── 7. 余白 ────────────────────────── */
   --team-data-card-scroll-inset: var(--list-grid-edge-gap); /* カード一覧の左右余白と共通にする上下ガード帯 */
   --team-data-similar-panel-padding: var(--team-data-card-scroll-inset); /* 類似構築カード一覧の外側余白 */
   --team-data-suggest-height: calc(var(--team-pokemon-tab-suggest-icon-size) + var(--space-4)); /* おすすめアイコンと上下余白を収める高さ */
   --team-data-suggest-before-gap: var(--space-1); /* 自チーム表示とおすすめ欄の間隔 */
   --team-data-suggest-after-gap: var(--space-1); /* おすすめ欄とカード一覧の間隔（カード一覧の内側余白と合わせて12px） */
-  --team-data-status-margin: 0 auto; /* 読み込み状態カードの外側余白。autoにより中央寄せになる */
-  --team-data-status-padding: var(--space-4); /* 読み込み状態カード内側の余白 */
-
   /* ── 8. 寸法 ────────────────────────── */
-  --team-data-status-max-width: 34rem; /* 読み込み状態カードの最大幅。大きくすると横に広がる */
+  --team-data-status-max-width: 34rem; /* 読み込み状態テキストの最大幅。大きくすると横に広がる */
 }
 
 /* --------------------------------------------------------------------------
@@ -105,12 +95,15 @@ body.team-edit-page {
     mask-image: linear-gradient(to bottom, transparent 0, transparent var(--team-data-card-scroll-inset), #000 var(--team-data-card-scroll-inset), #000 calc(100% - var(--team-data-card-scroll-inset)), transparent calc(100% - var(--team-data-card-scroll-inset)), transparent 100%);
   }
 }
+/* テキストだけを画面中央に表示する(カード枠は付けない)。 */
+.team-data-similar-panel:has(> .team-data-similar-status) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100%;
+}
 .team-data-similar-status {
   max-width: var(--team-data-status-max-width);
-  margin: var(--team-data-status-margin);
-  padding: var(--team-data-status-padding);
-  background: var(--team-data-status-background);
-  border: var(--team-data-status-border);
-  border-radius: var(--team-data-status-border-radius);
   text-align: center;
+  color: var(--color-text-muted);
 }

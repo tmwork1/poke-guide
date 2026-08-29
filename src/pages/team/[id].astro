@@ -1780,6 +1780,7 @@ try {
 		import { renderTeamMateSlots } from "../../lib/team-mate-card";
 		import { renderTopBuildCard } from "../../lib/ranked-teams/card";
 		import { calculateTeamSimilarity } from "../../lib/build-similarity";
+		import { autosizeTextarea } from "../../lib/shared/autosize-textarea";
 		import type { RankedTeam } from "../../lib/ranked-teams";
 		import { kanaIncludes } from "../../lib/kana";
 		import { initializeSortDirectionToggle } from "../../lib/shared/sort-direction-toggle";
@@ -1888,6 +1889,7 @@ try {
 			const memoInput = el<HTMLTextAreaElement>("team-memo");
 			const overviewGrid = el<HTMLElement>("team-overview-grid");
 			overviewGrid.insertAdjacentElement("afterend", memoInput);
+			autosizeTextarea(memoInput);
 			const dedupeToggle = el<HTMLInputElement>("team-select-dedupe-toggle");
 			const favoriteFilterToggle = el<HTMLInputElement>("favorite-filter-toggle");
 			const slotsRoot = el<HTMLElement>("team-slots");
@@ -2841,18 +2843,26 @@ try {
 
 			function renderSimilarBuilds(teams: RankedTeam[]): void {
 				const team = Array.from(membersBySlot.values());
+				const currentSpecies = new Set(team.map((member) => member.species_name));
 				const scored = teams
 					.map((t) => ({ team: t, similarity: calculateTeamSimilarity(team, t.members) }))
 					.filter((entry) => entry.similarity > 0)
 					.sort((a, b) => b.similarity - a.similarity || a.team.rank - b.team.rank);
-				if (scored.length === 0) {
-					setSimilarBuildsStatus("類似する上位構築がありません。");
+				// 型(特性・アイテム・技)まで加味した一致がゼロなら、同じポケモンがいるかだけに
+				// 緩めて検索し直す(box/ranked.astroの上位チーム検索と同じ二段構え)。
+				const results = scored.length > 0
+					? scored
+					: teams
+						.filter((t) => t.members.some((member) => currentSpecies.has(member.speciesName)))
+						.map((t) => ({ team: t, similarity: 0 }))
+						.sort((a, b) => a.team.rank - b.team.rank);
+				if (results.length === 0) {
+					setSimilarBuildsStatus("チームが見つかりません。");
 					return;
 				}
-				const currentSpecies = new Set(team.map((member) => member.species_name));
 				const list = document.createElement("div");
 				list.className = "team-grid";
-				for (const entry of scored) {
+				for (const entry of results) {
 					const highlightSlots = entry.team.members
 						.filter((member) => currentSpecies.has(member.speciesName))
 						.map((member) => member.slot);
@@ -3322,6 +3332,27 @@ try {
 				}
 			}
 
+			// 自チーム内の操作(相互入れ替え・空き枠への移動・解除)は編成タブに限らず、
+			// 相性・類似チームタブの自チーム表示でも同じに揃える(selectedFormationSlotは
+			// タブ共通の状態として扱う)。
+			function onFormationSlotTap(slot: number): void {
+				if (selectedFormationSlot !== null && selectedFormationSlot !== slot && membersBySlot.has(selectedFormationSlot)) {
+					const fromSlot = selectedFormationSlot;
+					selectedFormationSlot = null;
+					swapMembersBetweenSlots(fromSlot, slot);
+					return;
+				}
+				selectedFormationSlot = selectedFormationSlot === slot ? null : slot;
+				renderFormationMobile();
+			}
+			function onFormationSlotDoubleTap(slot: number): void {
+				if (membersBySlot.has(slot)) removeMemberFromSlot(slot);
+			}
+			function onFormationSlotLongPress(slot: number): void {
+				const pokemon = membersBySlot.get(slot);
+				if (pokemon) navigateToPokemonEdit(pokemon.id);
+			}
+
 			function renderFormationMobile(): void {
 				const shouldShowFormationSuggestions = membersBySlot.size >= 1 && membersBySlot.size <= 6;
 				if (!shouldShowFormationSuggestions) suggestionSpeciesRanks.clear();
@@ -3330,23 +3361,9 @@ try {
 					membersBySlot,
 					displayName,
 					selectedSlot: selectedFormationSlot,
-					onSlotTap: (slot) => {
-						if (selectedFormationSlot !== null && selectedFormationSlot !== slot && membersBySlot.has(selectedFormationSlot) && membersBySlot.has(slot)) {
-							const fromSlot = selectedFormationSlot;
-							selectedFormationSlot = null;
-							swapMembersBetweenSlots(fromSlot, slot);
-							return;
-						}
-						selectedFormationSlot = selectedFormationSlot === slot ? null : slot;
-						renderFormationMobile();
-					},
-					onSlotDoubleTap: (slot) => {
-						if (membersBySlot.has(slot)) removeMemberFromSlot(slot);
-					},
-					onSlotLongPress: (slot) => {
-						const pokemon = membersBySlot.get(slot);
-						if (pokemon) navigateToPokemonEdit(pokemon.id);
-					},
+					onSlotTap: onFormationSlotTap,
+					onSlotDoubleTap: onFormationSlotDoubleTap,
+					onSlotLongPress: onFormationSlotLongPress,
 					applySprite,
 					applyItemIcon,
 				});
@@ -3354,6 +3371,10 @@ try {
 					root: matchupMobileSlotsRoot,
 					membersBySlot,
 					displayName,
+					selectedSlot: selectedFormationSlot,
+					onSlotTap: onFormationSlotTap,
+					onSlotDoubleTap: onFormationSlotDoubleTap,
+					onSlotLongPress: onFormationSlotLongPress,
 					applySprite,
 					applyItemIcon,
 				});
@@ -3361,6 +3382,10 @@ try {
 					root: teamDataMobileSlotsRoot,
 					membersBySlot,
 					displayName,
+					selectedSlot: selectedFormationSlot,
+					onSlotTap: onFormationSlotTap,
+					onSlotDoubleTap: onFormationSlotDoubleTap,
+					onSlotLongPress: onFormationSlotLongPress,
 					applySprite,
 					applyItemIcon,
 				});
@@ -3543,12 +3568,15 @@ try {
 				closePreviewPanel();
 			});
 
-			// モバイル編成タブ: 自チームカード以外をタップしたら選択状態を解除する
-			// (カード自身のタップはonSlotTap側で選択/入れ替え/解除を処理済みのため対象外)。
+			// モバイル自チーム表示(編成・相性・類似チームの各タブで共通): 自チームカード以外を
+			// タップしたら選択状態を解除する(カード自身のタップはonFormationSlotTap側で
+			// 選択/入れ替え/解除を処理済みのため対象外)。
 			document.addEventListener("click", (event) => {
 				if (selectedFormationSlot === null) return;
 				const target = event.target as Node;
 				if (formationMobileSlotsRoot.contains(target)) return;
+				if (matchupMobileSlotsRoot.contains(target)) return;
+				if (teamDataMobileSlotsRoot.contains(target)) return;
 				selectedFormationSlot = null;
 				renderFormationMobile();
 			});
