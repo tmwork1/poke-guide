@@ -5,7 +5,17 @@
 
 import movesMasterRaw from '../../public/master-data/autocomplete/moves.json' with { type: 'json' };
 import pokemonMasterRaw from '../../public/master-data/autocomplete/pokemon.json' with { type: 'json' };
+import { NATURE_STAT_MODIFIERS, type StatKey } from './stats';
 import { normalizeDigits } from './text-normalize.ts';
+
+const STAT_SHORT_LABELS: Record<StatKey, string> = {
+  hp: 'H',
+  atk: 'A',
+  def: 'B',
+  spa: 'C',
+  spd: 'D',
+  spe: 'S',
+};
 
 export const MOVE_TYPE_BY_NAME: ReadonlyMap<string, string> = new Map(
   (movesMasterRaw as Array<{ name: string; type: string | null }>)
@@ -61,6 +71,13 @@ export function hasSingleBattleData(value: { formats?: { single?: SingleFormatDa
 export function usageRateLabel(usageRate: number | null): string {
   if (usageRate !== null) return `${usageRate.toFixed(0)}%`;
   return usageRate === null ? '使用率非公開' : `${usageRate}%`;
+}
+
+/** 性格名の能力補正を「A↑ C↓」形式で表示する。無補正・未知の性格は空文字列。 */
+export function natureModifierLabel(name: string): string {
+  const modifier = NATURE_STAT_MODIFIERS[name];
+  if (!modifier?.up || !modifier.down) return '';
+  return `${STAT_SHORT_LABELS[modifier.up]}↑ ${STAT_SHORT_LABELS[modifier.down]}↓`;
 }
 
 export function evSpreadLabel(values: Record<string, number>): string {
