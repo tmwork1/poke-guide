@@ -1632,13 +1632,38 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 
 	const slotTabsEl = document.createElement("div");
 	slotTabsEl.className = "move-picker-slot-tabs";
+	const LONG_PRESS_MS = 600;
 	for (const slot of [1, 2, 3, 4]) {
 		const slotButton = document.createElement("button");
 		slotButton.type = "button";
 		slotButton.className = "move-picker-slot-tab";
 		slotButton.dataset.slot = String(slot);
 		slotButton.textContent = `技${slot}`;
-		slotButton.addEventListener("click", () => {
+		let pressTimer: ReturnType<typeof window.setTimeout> | undefined;
+		let suppressNextClick = false;
+		const clearPress = (): void => {
+			if (pressTimer !== undefined) window.clearTimeout(pressTimer);
+			pressTimer = undefined;
+		};
+		slotButton.addEventListener("pointerdown", (event) => {
+			// 長押し後にclickが発火しなかった場合も、次の物理的なタップは通常どおり扱う。
+			suppressNextClick = false;
+			if (event.button !== 0) return;
+			pressTimer = window.setTimeout(() => {
+				pressTimer = undefined;
+				suppressNextClick = true;
+				clearMoveSlot(slot);
+			}, LONG_PRESS_MS);
+		});
+		slotButton.addEventListener("pointerup", clearPress);
+		slotButton.addEventListener("pointercancel", clearPress);
+		slotButton.addEventListener("click", (event) => {
+			if (suppressNextClick) {
+				suppressNextClick = false;
+				event.preventDefault();
+				event.stopPropagation();
+				return;
+			}
 			activeSlot = slot;
 			updateSlotTabs();
 			renderRows();
@@ -1910,6 +1935,17 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 			return !input?.value.trim();
 		});
 		if (nextEmptySlot != null) activeSlot = nextEmptySlot;
+		updateSlotTabs();
+		renderRows();
+	}
+
+	function clearMoveSlot(slot: number): void {
+		const targetInput = document.getElementById(`move-${slot}`) as HTMLInputElement | null;
+		if (!targetInput) return;
+		targetInput.value = "";
+		// choose()と同様に既存のアイコン更新・自動保存用リスナーへ通知する。
+		targetInput.dispatchEvent(new Event("input", { bubbles: true }));
+		targetInput.dispatchEvent(new Event("change", { bubbles: true }));
 		updateSlotTabs();
 		renderRows();
 	}
