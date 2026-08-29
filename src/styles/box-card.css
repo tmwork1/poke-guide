@@ -43,7 +43,6 @@
   --box-card-action-color: var(--color-text-muted); /* 通常時の丸い操作アイコンを目立たせすぎない色 */
   --box-card-action-hover-color: var(--color-text); /* ポインターを載せた操作アイコンの文字色 */
   --box-card-delete-color: var(--color-danger-strong); /* 削除操作であることを示すアイコンの警告色 */
-  --box-card-delete-mode-color: var(--color-primary-contrast); /* 削除モード中(背景を赤く塗った状態)の×アイコンの文字色 */
   --box-card-recommendation-color: #ffd400; /* おすすめ★バッジの色。ライト/ダーク共通の金色固定 */
 
   /* ── 4. 背景色 ────────────────────────────────────────── */
@@ -52,7 +51,6 @@
   --box-card-action-hover-background: var(--color-bg); /* 丸い操作ボタンへポインターを載せたときの下地色 */
   --box-card-delete-background: var(--color-surface); /* 削除ボタンをまだ選んでいないときの背景 */
   --box-card-delete-hover-background: var(--color-danger-soft); /* 削除ボタンを指したときに危険操作を伝える薄い背景色 */
-  --box-card-delete-mode-background: var(--color-danger-strong); /* 削除モード中は常時この色で塗り、削除操作であることを強調する */
 
   /* ── 5. 枠線・角丸 ────────────────────────────────────── */
   --box-card-focus-outline: 2px solid var(--color-primary); /* キーボード操作でカード自体を選んだときのフォーカス枠 */
@@ -63,6 +61,7 @@
   --box-card-action-focus-outline-offset: 2px; /* 操作ボタンと選択中の外枠との隙間。広げると輪がボタンから離れる */
   --box-card-delete-border: 1px solid var(--color-border); /* 通常時の削除ボタンを囲む境界線 */
   --box-card-delete-hover-border: var(--color-danger-strong); /* 削除ボタンへポインターを載せたときの枠線色 */
+  --box-card-delete-mode-border: 2px solid var(--color-danger-strong); /* 削除モード中は常時この輪郭で囲み、削除操作であることを強調する */
 
   /* ── 6. 影 ────────────────────────────────────────────── */
   --box-card-action-shadow: var(--shadow-sm); /* 操作ボタンをカード面から少し浮かせて見せる影 */
@@ -272,9 +271,7 @@
 #owned-pokemon-list.is-card-delete-mode .box-card .delete-button {
   display: inline-flex;
   pointer-events: auto;
-  background: var(--box-card-delete-mode-background);
-  border-color: var(--box-card-delete-mode-background);
-  color: var(--box-card-delete-mode-color);
+  border: var(--box-card-delete-mode-border);
 }
 
 @keyframes card-delete-wiggle {
