@@ -20,17 +20,11 @@ body.team-page {
 	--team-page-content-inline-padding: var(--space-5); /* ページ本文の左右余白 */
 	--team-page-empty-margin-top: var(--space-4); /* 検索結果なし表示の上側余白 */
 
-	/* ── 8. 寸法 ────────────────────────── */
-	--team-page-shell-min-height: 100dvh; /* 一覧ページの最低の高さ。大きくすると短い内容でも縦に伸びる */
 }
 
 /* --------------------------------------------------------------------------
 	ここから下は構造
 	-------------------------------------------------------------------------- */
-
-.team-shell {
-	min-height: var(--team-page-shell-min-height);
-}
 
 .team-content.box-content {
 	padding: var(--team-page-content-padding) !important;
