@@ -1,10 +1,40 @@
 import { championSpriteUrl, loadPokemonMasterList, officialArtworkUrl, type PokemonMasterEntry } from '../pokemon-master-data';
 import { typeIconUrl } from '../sprite-urls';
 import { DEFAULT_TYPE_COLOR, TYPE_COLOR_CSS_VARIABLES } from '../type-colors';
+import { calcHpStat, calcOtherStat, NATURE_STAT_MODIFIERS, type StatKey } from '../stats';
 
 interface MegaStoneEntry {
   species: string;
   item: string;
+}
+
+interface PokemonDetailEntry {
+  name: string;
+  baseStats: number[];
+  abilities: string[];
+}
+
+const statKeys: StatKey[] = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'];
+
+let pokemonDetailByNamePromise: Promise<Map<string, PokemonDetailEntry>> | undefined;
+
+function loadPokemonDetailByName(): Promise<Map<string, PokemonDetailEntry>> {
+  pokemonDetailByNamePromise ??= fetch('/master-data/detail/pokemon.json')
+    .then((response) => response.json() as Promise<PokemonDetailEntry[]>)
+    .then((details) => new Map(details.map((detail) => [detail.name, detail])));
+  return pokemonDetailByNamePromise;
+}
+
+function parseStatValues(value: string | undefined, fallback: number[]): number[] {
+  if (!value) return fallback;
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) && parsed.length === statKeys.length && parsed.every((stat) => typeof stat === 'number')
+      ? parsed
+      : fallback;
+  } catch {
+    return fallback;
+  }
 }
 
 function isMegaForm(entry: PokemonMasterEntry): boolean {
@@ -24,6 +54,7 @@ export function setupMegaPreviewToggle(): void {
   const spriteEl = document.getElementById('pokemon-preview-species-sprite') as HTMLImageElement | null;
   const fallbackEl = document.getElementById('pokemon-preview-species-sprite-fallback');
   const typeIconsEl = preview?.querySelector<HTMLElement>('.pokemon-preview-type-icons');
+  const abilityEl = document.getElementById('pokemon-preview-ability');
   const sourceSpeciesInput = document.getElementById('species-name') as HTMLInputElement | null;
   const sourceItemInput = document.getElementById('item') as HTMLInputElement | null;
   const previewItemEl = document.getElementById('pokemon-preview-item');
@@ -34,8 +65,9 @@ export function setupMegaPreviewToggle(): void {
 
   void Promise.all([
     loadPokemonMasterList(),
+    loadPokemonDetailByName(),
     fetch('/master-data/autocomplete/mega-stones.json').then((response) => response.json() as Promise<MegaStoneEntry[]>),
-  ]).then(([master, megaStones]) => {
+  ]).then(([master, detailByName, megaStones]) => {
     const byName = new Map(master.map((entry) => [entry.name, entry]));
     const renderSpecies = (name: string): void => {
       const entry = byName.get(name);
@@ -65,6 +97,31 @@ export function setupMegaPreviewToggle(): void {
         icon.title = typeName;
         return icon;
       }));
+
+      const detail = detailByName.get(entry.name);
+      if (abilityEl) abilityEl.textContent = detail?.abilities[0] ?? '-';
+
+      const displayedEvs = statKeys.map((key) => {
+        const value = preview.querySelector<HTMLElement>(`#pokemon-preview-ev-${key}`)?.textContent?.trim();
+        const ev = value && value !== '-' ? Number(value.replace(/^\+/, '')) : Number.NaN;
+        return Number.isFinite(ev) ? ev : undefined;
+      });
+      const fallbackEvs = parseStatValues(preview.dataset.evs, [0, 0, 0, 0, 0, 0]);
+      const evs = displayedEvs.map((ev, index) => ev ?? fallbackEvs[index]);
+      const ivs = parseStatValues(preview.dataset.ivs, [31, 31, 31, 31, 31, 31]);
+      const level = Number(preview.dataset.level) || 50;
+      const nature = NATURE_STAT_MODIFIERS[preview.dataset.nature ?? ''] ?? { up: null, down: null };
+
+      statKeys.forEach((key, index) => {
+        const statEl = document.getElementById(`pokemon-preview-stat-${key}`);
+        if (!statEl) return;
+        const baseStat = detail?.baseStats[index];
+        statEl.textContent = typeof baseStat !== 'number'
+          ? '-'
+          : index === 0
+            ? String(calcHpStat(level, baseStat, ivs[index], evs[index]))
+            : String(calcOtherStat(level, baseStat, ivs[index], evs[index], nature.up === key ? 1.1 : nature.down === key ? 0.9 : 1));
+      });
     };
 
     const baseForMega = (mega: PokemonMasterEntry): PokemonMasterEntry | undefined => {

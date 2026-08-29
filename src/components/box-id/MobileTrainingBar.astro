@@ -55,7 +55,16 @@ const previewStats = detail ? statKeys.map((key, index) => index === 0 ? calcHpS
     </div>
   </AppHeader>
 
-  <section class="pokemon-preview" aria-label="ポケモンプレビュー" data-species-name={pokemon.species_name} data-item-name={itemName}>
+  <section
+    class="pokemon-preview"
+    aria-label="ポケモンプレビュー"
+    data-species-name={pokemon.species_name}
+    data-item-name={itemName}
+    data-level={pokemon.level ?? 50}
+    data-nature={pokemon.nature ?? ''}
+    data-ivs={JSON.stringify(pokemon.ivs ?? [31, 31, 31, 31, 31, 31])}
+    data-evs={JSON.stringify(pokemon.evs ?? [0, 0, 0, 0, 0, 0])}
+  >
     <div class="pokemon-preview-main">
     <div class="pokemon-preview-left">
       <div class="pokemon-preview-details">
