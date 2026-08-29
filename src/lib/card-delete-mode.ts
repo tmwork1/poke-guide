@@ -27,7 +27,6 @@ export function initializeCardDeleteMode(
 	const enter = (): void => {
 		if (isActive) return;
 		isActive = true;
-		suppressNextClick = true;
 		container.classList.add("is-card-delete-mode");
 		cards().forEach((card) => card.classList.add("is-delete-mode"));
 	};
@@ -49,10 +48,15 @@ export function initializeCardDeleteMode(
 		// 新しい物理的なタップが始まった時点で、前回分の合成click待ちは打ち切る
 		// (合成clickが来ないままの残留を防ぐ。詳細はsuppressNextClickの宣言部を参照)。
 		suppressNextClick = false;
-		if (event.button !== 0 || isActive) return;
+		if (event.button !== 0) return;
 		const card = cardFor(event.target);
 		if (!card || !container.contains(card) || isControl(event.target, card)) return;
-		pressTimer = window.setTimeout(enter, LONG_PRESS_MS);
+		// 削除モード中にカードを再度長押しすると、そのままモードを解除する
+		// (共通仕様: 長押しでの開始/終了を対にする)。
+		pressTimer = window.setTimeout(() => {
+			suppressNextClick = true;
+			if (isActive) exit(); else enter();
+		}, LONG_PRESS_MS);
 	});
 	container.addEventListener("pointerup", clearPress);
 	container.addEventListener("pointercancel", clearPress);
