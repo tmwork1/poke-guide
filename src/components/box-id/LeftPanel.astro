@@ -904,7 +904,8 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 
 
 
-	#edit-form .memo-input { width: 100%; min-width: 0; min-height: calc(3 * 1.5em + 0.84em); max-height: 16em; margin: 1.75rem 0 var(--space-2); resize: vertical; }
+	/* 高さはJS(autosizeTextarea)が内容に追従させる。min-heightだけ3行分を下限として残す。 */
+	#edit-form .memo-input { width: 100%; min-width: 0; min-height: calc(3 * 1.5em + 0.84em); margin: 1.75rem 0 var(--space-2); overflow: hidden; resize: none; }
 	@media (max-width: 520px) {
 		#edit-form .field-grid { grid-template-columns: 1fr; }
 	}

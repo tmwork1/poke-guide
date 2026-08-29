@@ -27,6 +27,7 @@ import { typeIconUrl, teraTypeIconUrl } from "../sprite-urls";
 import { TYPE_COLORS, DEFAULT_TYPE_COLOR } from "../type-colors";
 import { applyPreviewMoveTypeBar } from "./preview-move-type-bar";
 import { bindPressAndHold } from "../press-and-hold";
+import { autosizeTextarea } from "../shared/autosize-textarea";
 import { type StatKey, STAT_KEYS, NATURE_STAT_MODIFIERS } from "../stats";
 import { kanaIncludes } from "../kana";
 import { classifyArchetype, type ArchetypeKey } from "../archetype";
@@ -1294,6 +1295,8 @@ if (form) {
 	for (const id of STAT_KEYS.map((key) => `ev-${key}`)) {
 		document.getElementById(id)?.addEventListener("input", scheduleAllRowsCalc);
 	}
+	const memoInput = document.getElementById("memo") as HTMLTextAreaElement | null;
+	if (memoInput) autosizeTextarea(memoInput);
 	// 型判定に使う持ち物・努力値・技が変わったら、技人気だけを新しい型で取り直す。
 	for (const id of ["item", ...STAT_KEYS.map((k) => `ev-${k}`), "move-1", "move-2", "move-3", "move-4"]) {
 		document.getElementById(id)?.addEventListener("input", schedulePopularBuildSuggestionsReload);
