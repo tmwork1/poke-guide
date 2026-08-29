@@ -111,13 +111,18 @@ if (pokemon) {
         .sort((a, b) => b.similarity - a.similarity || a.team.rank - b.team.rank);
 
       if (scored.length === 0) {
-        setRankedStatus('この個体を採用した上位構築がありません。');
+        setRankedStatus('上位チームが見つかりません。');
         return;
       }
 
+      // 型(特性・アイテム・技)も一致する構築を優先する。型一致がゼロなら、
+      // 単純に同じ種族で見つかった構築(scored全体)をそのまま使う。
+      const typeMatched = scored.filter((entry) => entry.similarity > 0);
+      const results = typeMatched.length > 0 ? typeMatched : scored;
+
       const list = document.createElement('div');
       list.className = 'team-grid';
-      for (const entry of scored) {
+      for (const entry of results) {
         list.appendChild(renderTopBuildCard(
           entry.team,
           entry.similarity > 0 ? { highlightSlot: entry.matched.slot } : undefined,
