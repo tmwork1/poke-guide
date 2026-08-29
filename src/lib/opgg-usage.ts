@@ -1,5 +1,6 @@
 import type { RankedRow, SingleFormatData } from './battle-data-card';
-import pokemonMasterRaw from '../../public/master-data/autocomplete/pokemon.json';
+import { normalizeDigits } from './text-normalize.ts';
+import pokemonMasterRaw from '../../public/master-data/autocomplete/pokemon.json' with { type: 'json' };
 
 export const OPGG_USAGE_CACHE_TTL = 60 * 60;
 
@@ -66,6 +67,24 @@ function isUsagePokemon(value: unknown): value is OpggUsagePokemon {
 	return isRecord(value) && value.schemaVersion === 3 && typeof value.name === 'string' && isRecord(value.formats);
 }
 
+// OP.GGは技名・種族名の数字を全角で表記するため(例:「１０まんボルト」)、
+// マスターデータ側の表記(半角)に揃えてから返す。本アプリ内で表示する名称は
+// すべてこの正規化を経由させ、半角/全角の表記揺れを作らない。
+function normalizeRankedRows(rows: RankedRow[] | undefined): RankedRow[] | undefined {
+	return rows?.map((row) => ({ ...row, name: normalizeDigits(row.name) }));
+}
+
+function normalizeSingleFormatData(single: SingleFormatData): SingleFormatData {
+	return {
+		...single,
+		abilities: normalizeRankedRows(single.abilities),
+		natures: normalizeRankedRows(single.natures),
+		items: normalizeRankedRows(single.items),
+		moves: normalizeRankedRows(single.moves),
+		teammates: normalizeRankedRows(single.teammates),
+	};
+}
+
 async function getJson(kv: KVNamespace, key: string): Promise<unknown | null> {
 	try {
 		return await kv.get(key, { type: 'json', cacheTtl: OPGG_USAGE_CACHE_TTL });
@@ -81,12 +100,27 @@ export async function getOpggUsageManifest(kv: KVNamespace): Promise<OpggUsageSe
 	if (!isCurrentPointer(pointer)) return null;
 
 	const manifest = await getJson(kv, `${pointer.manifestVersion}:seasons`);
-	return isSeasonManifest(manifest) ? manifest : null;
+	if (!isSeasonManifest(manifest)) return null;
+	return {
+		...manifest,
+		seasons: manifest.seasons.map((season) => ({
+			...season,
+			pokemon: season.pokemon?.map((entry) => ({ ...entry, name: normalizeDigits(entry.name) })),
+		})),
+	};
 }
 
 export async function getOpggUsageList(kv: KVNamespace, season: OpggUsageSeason): Promise<OpggUsageList | null> {
 	const list = await getJson(kv, `${season.version}:season:${season.directory}:list`);
-	return isUsageList(list) ? list : null;
+	if (!isUsageList(list)) return null;
+	return {
+		...list,
+		pokemon: list.pokemon.map((entry) => ({
+			...entry,
+			name: normalizeDigits(entry.name),
+			single: normalizeSingleFormatData(entry.single),
+		})),
+	};
 }
 
 export async function getOpggUsagePokemon(
@@ -95,7 +129,12 @@ export async function getOpggUsagePokemon(
 	slug: string,
 ): Promise<OpggUsagePokemon | null> {
 	const pokemon = await getJson(kv, `${season.version}:season:${season.directory}:pokemon:${slug}`);
-	return isUsagePokemon(pokemon) ? pokemon : null;
+	if (!isUsagePokemon(pokemon)) return null;
+	return {
+		...pokemon,
+		name: normalizeDigits(pokemon.name),
+		formats: { single: normalizeSingleFormatData(pokemon.formats.single) },
+	};
 }
 
 // マニフェストのシーズン一覧を「現在シーズンを先頭に、以降は取得日時の新しい順」に並べる。
