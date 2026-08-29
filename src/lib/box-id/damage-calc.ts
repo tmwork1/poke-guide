@@ -2214,43 +2214,6 @@ if (opponentNotesSection) {
 		return name === "" ? undefined : (await multiHitMapPromise()).get(name);
 	}
 
-	const DAMAGE_COLUMN_LONG_PRESS_MS = 600;
-	function attachColumnLongPressDelete(
-		columnEl: HTMLElement,
-		row: DamageRowState,
-		column: DamageColumnState,
-	): void {
-		let pressTimer: ReturnType<typeof window.setTimeout> | undefined;
-		const clearPress = (): void => {
-			if (pressTimer !== undefined) window.clearTimeout(pressTimer);
-			pressTimer = undefined;
-			columnEl.classList.remove("is-pressing");
-		};
-		columnEl.addEventListener("pointerdown", (event) => {
-			if (event.button !== 0) return;
-			if (event.target instanceof Element && event.target.closest("button, input, textarea, select, option, label, a, [contenteditable='true']")) return;
-			// 親のカード削除モードとは別操作なので、同じ長押しで両方が発火しないようにする。
-			event.stopPropagation();
-			if (row.attacks.length <= 1) return;
-			columnEl.classList.add("is-pressing");
-			pressTimer = window.setTimeout(() => {
-				pressTimer = undefined;
-				const index = row.attacks.indexOf(column);
-				if (index === -1 || row.attacks.length <= 1) {
-					columnEl.classList.remove("is-pressing");
-					return;
-				}
-				deleteAttackColumn(row, column);
-			}, DAMAGE_COLUMN_LONG_PRESS_MS);
-		});
-		columnEl.addEventListener("pointerup", clearPress);
-		columnEl.addEventListener("pointercancel", clearPress);
-		columnEl.addEventListener("pointerleave", clearPress);
-		columnEl.addEventListener("contextmenu", (event) => {
-			if (pressTimer !== undefined) event.preventDefault();
-		});
-	}
-
 	// --- 列(攻撃)のDOM構築 ---
 	function renderColumns(row: DamageRowState): void {
 		if (!row.columnsEl) return;
@@ -2338,7 +2301,23 @@ if (opponentNotesSection) {
 			conditions.appendChild(conditionChips);
 			moveRow.appendChild(conditions);
 
-			attachColumnLongPressDelete(col, row, attack);
+			// 技を1つだけ消す削除ボタン。相手ビルドカードの削除ボタン(damage-row-delete-button)
+			// と同じ「カード長押し→削除モード→×を押す」操作に統一する(技が1つしかない行では
+			// 消せない仕様を維持するため、その場合はボタン自体を作らない)。
+			if (row.attacks.length > 1) {
+				const deleteColumnButton = document.createElement("button");
+				deleteColumnButton.type = "button";
+				deleteColumnButton.className = "btn-ghost damage-row-icon-button damage-column-delete-button";
+				deleteColumnButton.textContent = "×";
+				deleteColumnButton.title = "この技を削除";
+				deleteColumnButton.setAttribute("aria-label", "この技を削除");
+				deleteColumnButton.addEventListener("click", (event) => {
+					event.preventDefault();
+					event.stopPropagation();
+					deleteAttackColumn(row, attack);
+				});
+				col.appendChild(deleteColumnButton);
+			}
 
 			// 最下段(区切り線の下)に「技ごとのダメ・致死率」。margin-top:autoで
 			// 箱の下端に固定されるため、上の条件欄が増えても位置が変わらない。
@@ -3325,7 +3304,7 @@ if (opponentNotesSection) {
 	});
 
 	const damageRowsListEl = el<HTMLElement>("damage-rows-list");
-	initializeCardDeleteMode(damageRowsListEl, ".card-damage", ".damage-row-delete-button");
+	initializeCardDeleteMode(damageRowsListEl, ".card-damage", ".damage-row-delete-button, .damage-column-delete-button");
 	const engineStatusEl = el<HTMLElement>("damage-calc-engine-status");
 	const engineStatusTextEl = el<HTMLElement>("damage-calc-engine-status-text");
 	const engineReloadButton = el<HTMLButtonElement>("damage-calc-engine-reload-button");
