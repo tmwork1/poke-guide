@@ -214,7 +214,9 @@ body.team-edit-page {
 	position: static;
 	z-index: auto;
 	display: flex;
-	flex-flow: row nowrap;
+	/* フォント差で375pxでも必要幅が変わるため、固定の幅閾値ではなく
+	   各コントロールの実際の幅に応じて次行へ送る。 */
+	flex-flow: row wrap;
 	align-items: center;
 	gap: var(--app-header-toolbar-gap);
 	background: var(--color-surface);
@@ -233,13 +235,6 @@ body.team-edit-page {
 	align-items: center;
 	width: auto;
 	gap: var(--space-1);
-}
-/* 375px未満では、検索欄の内容幅と並べ替えの既存幅を保ったまま次行へ送る。
-   どちらも縮めずに画面外へ出ないよう、横並びを維持できる幅だけに限定する。 */
-@media (max-width: 374px) {
-	#team-formation-mobile-toolbar {
-		flex-flow: row wrap;
-	}
 }
 #team-formation-mobile-toolbar .sort-select-wrap {
 	flex: 0 0 auto;
