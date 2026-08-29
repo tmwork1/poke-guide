@@ -1000,6 +1000,9 @@ body.box-edit-page {
   opacity: 1;
   pointer-events: auto;
   color: var(--damage-card-delete-mode-color);
+  /* /box・/teamのカード削除モードと同じ赤い輪郭で強調する(global.cssの
+     --card-delete-button-mode-borderを共有し、3画面で見た目が食い違わないようにする)。 */
+  border: var(--card-delete-button-mode-border);
 }
 
 @keyframes damage-card-delete-wiggle {
