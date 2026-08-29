@@ -61,7 +61,7 @@
   --box-card-action-focus-outline-offset: 2px; /* 操作ボタンと選択中の外枠との隙間。広げると輪がボタンから離れる */
   --box-card-delete-border: 1px solid var(--color-border); /* 通常時の削除ボタンを囲む境界線 */
   --box-card-delete-hover-border: var(--color-danger-strong); /* 削除ボタンへポインターを載せたときの枠線色 */
-  --box-card-delete-mode-border: 2px solid var(--color-danger-strong); /* 削除モード中は常時この輪郭で囲み、削除操作であることを強調する */
+  --box-card-delete-mode-border: 1px solid var(--color-danger-strong); /* 削除モード中は常時この輪郭で囲み、削除操作であることを強調する */
 
   /* ── 6. 影 ────────────────────────────────────────────── */
   --box-card-action-shadow: var(--shadow-sm); /* 操作ボタンをカード面から少し浮かせて見せる影 */
