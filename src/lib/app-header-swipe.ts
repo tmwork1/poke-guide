@@ -63,6 +63,10 @@ function tabItems(headerEl: HTMLElement): HTMLElement[] {
 	return Array.from(headerEl.querySelectorAll<HTMLElement>(".app-header__item"));
 }
 
+function backButton(headerEl: HTMLElement): HTMLElement | null {
+	return headerEl.querySelector<HTMLElement>(".app-header__back");
+}
+
 function activeTabIndex(items: HTMLElement[]): number {
 	return items.findIndex((item) => item.dataset.active === "true" || item.getAttribute("aria-current") === "page");
 }
@@ -219,7 +223,12 @@ export function setupAppHeaderSwipe(headerEl: HTMLElement | null, contentEl: HTM
 			while (nextIndex >= 0 && nextIndex < items.length && items[nextIndex].classList.contains("is-disabled")) {
 				nextIndex += step;
 			}
-			if (nextIndex < 0 || nextIndex >= items.length) return;
+			if (nextIndex < 0) {
+				// 最左タブでさらに右へフリックした場合は、戻るボタンを押したことにする。
+				backButton(headerEl)?.click();
+				return;
+			}
+			if (nextIndex >= items.length) return;
 
 			const fromItem = items[activeIndex];
 			const nextItem = items[nextIndex];

@@ -124,6 +124,11 @@
   text-decoration: none;
   text-align: start;
   color: inherit;
+  /* 長押しで削除モードに入るため、長押し中にテキスト選択や画像の保存メニュー
+     (iOSのコールアウト)が出ないようにする。 */
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
 .box-grid .card-team-empty-slot {
   display: flex;

@@ -233,6 +233,17 @@ body.box-edit-page {
   max-width: var(--damage-card-max-width);
   margin: var(--damage-card-margin);
   position: relative;
+  /* 長押しで削除モードに入るため、長押し中にテキスト選択や画像の保存メニュー
+     (iOSのコールアウト)が出ないようにする。入力欄・選択欄は個別に選択可能なまま。 */
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+#opponent-notes-section .card-damage input,
+#opponent-notes-section .card-damage textarea {
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 #opponent-notes-section .card-damage:focus-within {
