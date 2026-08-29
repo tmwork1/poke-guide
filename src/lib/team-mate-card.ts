@@ -92,6 +92,7 @@ export function renderTeamMateSlots<T extends TeamMateCardPokemon>(options: Team
 			const sprite = document.createElement("img");
 			sprite.className = "team-mate-card__art";
 			sprite.alt = "";
+			sprite.draggable = false;
 			sprite.style.display = "none";
 			const fallback = document.createElement("span");
 			fallback.className = "team-mate-card__fallback";
@@ -104,6 +105,7 @@ export function renderTeamMateSlots<T extends TeamMateCardPokemon>(options: Team
 				item.className = "team-mate-card__item";
 				const itemImg = document.createElement("img");
 				itemImg.alt = "";
+				itemImg.draggable = false;
 				itemImg.style.display = "none";
 				item.appendChild(itemImg);
 				card.appendChild(item);
