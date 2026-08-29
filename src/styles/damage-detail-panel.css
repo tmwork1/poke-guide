@@ -641,13 +641,80 @@ body.box-edit-page {
 		row-gap: var(--damage-detail-space-xs);
 	}
 	#damage-detail-panel-body .damage-build-detail-identity-row {
-		/* B: テラスタイプ欄を「わざ」タブへ移設したため、このグリッドは
-			攻守トグル+種族名入力の2列になった(以前は3列)。 */
 		grid-column: 1 / -1;
 		display: grid;
-		grid-template-columns: auto minmax(0, 1fr);
-		align-items: end;
+		grid-template-columns: minmax(0, auto) auto minmax(0, 1fr);
+		align-items: center;
 		gap: var(--damage-detail-space-sm);
+	}
+	#damage-detail-panel-body .damage-build-detail-identity-summary {
+		min-width: 0;
+		display: flex;
+		align-items: center;
+		gap: var(--damage-detail-space-sm);
+	}
+	#damage-detail-panel-body .damage-build-detail-sprite-box {
+		width: var(--damage-detail-selection-icon-size);
+		height: var(--damage-detail-selection-icon-size);
+		flex: none;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+	#damage-detail-panel-body .damage-build-detail-sprite-box .sprite-icon {
+		width: 100%;
+		height: 100%;
+		object-fit: contain;
+	}
+	#damage-detail-panel-body .damage-build-detail-sprite-box .sprite-fallback {
+		display: none;
+		align-items: center;
+		justify-content: center;
+		width: 100%;
+		height: 100%;
+		font-size: var(--damage-detail-font-size-xs);
+		color: var(--damage-detail-muted-color);
+	}
+	#damage-detail-panel-body .damage-build-detail-identity-summary .damage-ev-grid-readonly {
+		min-width: 0;
+		display: flex;
+		flex-wrap: wrap;
+		align-items: baseline;
+		gap: var(--damage-detail-space-xs);
+		font-size: var(--damage-detail-font-size-xs);
+		line-height: var(--damage-detail-line-height-tight);
+	}
+	#damage-detail-panel-body .damage-build-detail-identity-summary .damage-ev-readonly-stat {
+		display: inline-flex;
+		align-items: baseline;
+		color: var(--damage-detail-text-color);
+	}
+	#damage-detail-panel-body .damage-build-detail-identity-summary .damage-ev-readonly-stat[data-mod="up"] {
+		color: var(--color-stat-up);
+	}
+	#damage-detail-panel-body .damage-build-detail-identity-summary .damage-ev-readonly-stat[data-mod="down"] {
+		color: var(--color-stat-down);
+	}
+	#damage-detail-panel-body .damage-build-detail-identity-summary .damage-ev-col-label,
+	#damage-detail-panel-body .damage-build-detail-identity-summary .damage-stat-value,
+	#damage-detail-panel-body .damage-build-detail-identity-summary .damage-ev-value-readonly {
+		color: inherit;
+		font: inherit;
+		line-height: inherit;
+	}
+	#damage-detail-panel-body .damage-build-detail-identity-summary .damage-ev-col-label {
+		font-weight: var(--damage-detail-font-weight-semibold);
+	}
+	#damage-detail-panel-body .damage-build-detail-name-field {
+		min-width: 0;
+	}
+	@media (max-width: 420px) {
+		#damage-detail-panel-body .damage-build-detail-identity-row {
+			grid-template-columns: auto minmax(0, 1fr);
+		}
+		#damage-detail-panel-body .damage-build-detail-identity-summary {
+			grid-column: 1 / -1;
+		}
 	}
 	#damage-detail-panel-body .damage-build-detail-direction-toggle {
 		/* C: 旧来の固定幅(4.4em)は「攻撃」「防御」2文字ラベル2つ分には狭すぎ、
