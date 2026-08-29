@@ -108,6 +108,12 @@ function playIndicatorSlide(headerEl: HTMLElement, fromItem: HTMLElement, toItem
 	const toWidth = toItem.offsetWidth;
 	if (fromWidth <= 0 || toWidth <= 0) return;
 
+	// <a>(別ページ遷移)はtoItem自身のdata-activeが更新されないため、アニメーション終了後に
+	// is-tab-slidingを解除するとfromItem(旧タブ)の背景が復活し、ハイライトが一瞬旧位置へ
+	// 戻ってから遷移するように見える。実際にナビゲーションでDOMごと消えるまでは後片付けせず、
+	// インジケーターを目的地に留めたままにする。
+	const pinAtDestination = !(toItem instanceof HTMLButtonElement);
+
 	activeAnimation?.cancel();
 	headerEl.classList.add("is-tab-sliding");
 	indicator.style.top = "0";
@@ -135,6 +141,7 @@ function playIndicatorSlide(headerEl: HTMLElement, fromItem: HTMLElement, toItem
 
 	animation.finished
 		.then(() => {
+			if (pinAtDestination) return; // 別ページ遷移: ナビゲーションでDOMごと消えるまで留め置く。
 			// fill:"forwards"の間はアニメーション側が見た目を保持し続けるため、cancel()して
 			// 明け渡してから幅0に戻す(戻さないと、常設インジケーターの残骸が最後の位置に残る)。
 			animation.cancel();
