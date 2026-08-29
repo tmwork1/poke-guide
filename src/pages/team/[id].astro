@@ -3448,9 +3448,18 @@ try {
 					});
 					const body = (await res.json().catch(() => ({}))) as { data?: OwnedPokemonRecord; error?: string };
 					if (!res.ok || !body.data) throw new Error(body.error ?? `個体を追加できませんでした (status=${res.status})`);
-					allPokemon = [body.data, ...allPokemon];
+					const created = body.data;
+					allPokemon = [created, ...allPokemon];
 					renderSelectList();
 					renderFormationMobile();
+					// 空き枠があればそのまま編成に加える。入れた場合はナビゲーション前に確実に
+					// 保存を確定させる(scheduleSaveのdebounceだけだと画面遷移で保存が飛ぶため)。
+					if (membersBySlot.size < 6) {
+						assignToSlot(created);
+						await saveNow();
+					}
+					navigateToPokemonEdit(created.id);
+					return;
 				} catch (err) {
 					console.error(err);
 					formationMobileStatus.textContent = "個体を追加できませんでした。時間をおいて再度お試しください。";
