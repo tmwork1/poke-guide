@@ -1169,12 +1169,13 @@ body.box-edit-page {
   flex: none;
   max-width: 100%;
   min-width: 0;
+  font-size: var(--damage-card-move-font-size);
   display: flex;
 }
 
 #opponent-notes-section .damage-column-move-type-bar {
   width: var(--damage-card-move-type-bar-width);
-  height: var(--damage-card-move-icon-size);
+  height: 1em;
   flex: none;
 }
 
@@ -2000,6 +2001,7 @@ body.box-edit-page {
     gap: 0;
     min-height: 0;
     flex: none;
+    margin-inline-start: var(--space-1);
     border-radius: var(--damage-card-direction-badge-radius);
     flex-direction: row;
     display: flex;
@@ -2251,13 +2253,14 @@ body.box-edit-page {
   gap: .25em;
   max-width: 100%;
   min-width: 0;
+  font-size: var(--damage-card-move-font-size);
   line-height: var(--line-height-snug);
 }
 
 /* 技カードと同じ寸法のタイプ識別バー。 */
 #opponent-notes-section .damage-suggest-move-type-bar {
   width: var(--damage-card-move-type-bar-width);
-  height: var(--damage-card-move-icon-size);
+  height: 1em;
   flex: none;
 }
 
