@@ -253,12 +253,49 @@
 
 /* --- 見せない要素。DOM生成側(renderTeamCard)は触らず、CSSでのみ隠す
    (.claude/skills/ui/references/pitfalls.md「壊してはいけないもの」節)。
-   モバイルのチームカードはメモ・体数バッジ・削除ボタンを出さない
-   (メモはヘッダ帯に入らず、削除はチーム詳細側で行う)。 --- */
+   モバイルのチームカードはメモ・体数バッジを出さない(メモはヘッダ帯に入らない)。
+   削除ボタン(.card-team-delete)は長押し削除モード中だけ表示する
+   (下の「カード右上の削除ボタン(長押し削除モード)」節)。 --- */
 .team-grid .card-team .card-team-memo,
-.team-grid .card-team .card-team-count-badge,
+.team-grid .card-team .card-team-count-badge {
+  display: none;
+}
+
+/* --- カード右上の削除ボタン(長押し削除モード)。/boxのカード削除モードと同じ
+   操作性(card-delete-mode.ts)・見た目(box-card.cssの.delete-buttonの配色トークン)
+   に揃える。/team一覧(#team-list)だけで有効にし、/team/[id]の類似構築カードには出さない。 --- */
 .team-grid .card-team .card-team-delete {
   display: none;
+  position: absolute;
+  top: var(--team-card-action-top);
+  right: var(--team-card-action-right);
+  z-index: 2;
+  align-items: center;
+  justify-content: center;
+  width: var(--team-card-action-size);
+  height: var(--team-card-action-size);
+  min-height: 0;
+  padding: 0;
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-danger-strong);
+  box-shadow: var(--shadow-sm);
+}
+#team-list.is-card-delete-mode .card-team {
+  animation: card-delete-wiggle .16s ease-in-out infinite alternate;
+}
+#team-list.is-card-delete-mode .card-team .card-team-delete {
+  display: inline-flex;
+  pointer-events: auto;
+  border: var(--box-card-delete-mode-border);
+}
+@media (prefers-reduced-motion: reduce) {
+  #team-list.is-card-delete-mode .card-team {
+    animation: none;
+    outline: 2px solid var(--color-danger-strong);
+    outline-offset: 2px;
+  }
 }
 
 .team-grid .card-team:not(.card-team--top-build) .card-team-header {

@@ -124,6 +124,7 @@ const user = Astro.locals.user;
 		import { itemIconUrl } from "../../lib/sprite-urls";
 		import { renderTeamCard } from "../../lib/team-card";
 		import { renderTeamMateSlots } from "../../lib/team-mate-card";
+		import { initializeCardDeleteMode } from "../../lib/card-delete-mode";
 
 		// GET /api/teams が返す1メンバーの owned_pokemon。表示に必要な列だけを持つ
 		// (src/lib/team.ts の TeamMember/OwnedPokemonRecord のサブセット)。
@@ -215,6 +216,9 @@ const user = Astro.locals.user;
 		}
 
 		const listRoot = document.getElementById("team-list");
+		if (listRoot instanceof HTMLElement) {
+			initializeCardDeleteMode(listRoot, ".card-team", ".card-team-delete");
+		}
 		if (listRoot) {
 			const loadingMessage = el<HTMLElement>("loading-message");
 			const errorMessage = el<HTMLElement>("error-message");
@@ -330,7 +334,8 @@ const user = Astro.locals.user;
 			}
 
 			async function deleteTeamCard(t: Team): Promise<void> {
-				if (!window.confirm("このチームを削除します。よろしいですか?")) return;
+				// /boxのカード削除モードと同じくconfirm()は挟まない(長押しでモードに入り、
+				// 表示された削除ボタンを明示的に押す2段階の操作自体が確認の役割を兼ねる)。
 				try {
 					const res = await fetch(`/api/teams/${encodeURIComponent(t.id)}`, {
 						method: "DELETE",
