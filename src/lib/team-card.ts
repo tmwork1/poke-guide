@@ -121,7 +121,7 @@ export function renderTeamCard<M>(options: RenderTeamCardOptions<M>): HTMLElemen
 			event.preventDefault();
 			event.stopPropagation();
 			void (async () => {
-				await playCardDeleteExitEffect(card, deleteButton);
+				await playCardDeleteExitEffect(card);
 				await options.onDelete?.();
 			})();
 		});

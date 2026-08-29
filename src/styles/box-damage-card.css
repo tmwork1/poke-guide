@@ -1006,13 +1006,8 @@ body.box-edit-page {
   border: var(--card-delete-button-mode-border);
 }
 
-/* 削除確定タップの瞬間だけ、ボタンをfill反転しカードを萎ませる
+/* 削除確定タップの瞬間だけ、カードを萎ませる
    (card-delete-mode.tsのplayCardDeleteExitEffectが付与)。 */
-#opponent-notes-section .damage-row-delete-button.is-deleting {
-  background: var(--card-delete-button-active-background);
-  border-color: var(--card-delete-button-active-background);
-  color: var(--card-delete-button-active-color);
-}
 #opponent-notes-section .card-damage.is-card-removing {
   transform: scale(var(--card-removing-scale));
   opacity: var(--card-removing-opacity);

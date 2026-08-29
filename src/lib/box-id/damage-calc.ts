@@ -2776,7 +2776,7 @@ if (opponentNotesSection) {
 		deleteRowButton.setAttribute("aria-label", "この相手を削除");
 		deleteRowButton.addEventListener("click", () => {
 			void (async () => {
-				await playCardDeleteExitEffect(root, deleteRowButton);
+				await playCardDeleteExitEffect(root);
 				await deleteRow(row);
 			})();
 		});

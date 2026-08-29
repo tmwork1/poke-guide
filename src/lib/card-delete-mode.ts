@@ -1,11 +1,10 @@
 /**
- * 削除確定の一瞬(EXIT_EFFECT_MS)だけ、削除ボタンをfill反転しカードを萎ませる。
+ * 削除確定の一瞬(EXIT_EFFECT_MS)だけ、カードを萎ませる。
  * 実際の削除処理(fetch・状態更新・再描画)は待ち終わってから呼び出し側が行う
  * (transitionendを待つ非同期化より安く、setTimeoutで固定時間待つだけにしている)。
  */
 const EXIT_EFFECT_MS = 200;
-export function playCardDeleteExitEffect(card: HTMLElement, button: HTMLElement): Promise<void> {
-	button.classList.add("is-deleting");
+export function playCardDeleteExitEffect(card: HTMLElement): Promise<void> {
 	card.classList.add("is-card-removing");
 	return new Promise((resolve) => window.setTimeout(resolve, EXIT_EFFECT_MS));
 }

@@ -1104,12 +1104,10 @@ dd {
 :root {
   /* ── 3. 文字色 ────────────────────────────────────────── */
   --card-delete-button-color: var(--color-danger-strong); /* 削除操作であることを示すアイコンの警告色 */
-  --card-delete-button-active-color: var(--color-primary-contrast); /* 削除確定タップの瞬間、fill反転した背景の上に載るアイコン色 */
 
   /* ── 4. 背景色 ────────────────────────────────────────── */
   --card-delete-button-background: var(--color-surface); /* 削除ボタンをまだ選んでいないときの背景 */
   --card-delete-button-hover-background: var(--color-danger-soft); /* 削除ボタンを指したときに危険操作を伝える薄い背景色 */
-  --card-delete-button-active-background: var(--color-danger-strong); /* 削除確定タップの瞬間、ボタンをfill反転させる背景色 */
 
   /* ── 5. 枠線・角丸 ────────────────────────────────────── */
   --card-delete-button-border-radius: 999px; /* 削除ボタンの角丸。十分大きい値で正円の輪郭を保つ */

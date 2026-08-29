@@ -179,7 +179,7 @@ export function renderBoxPokemonCard<T extends HTMLElement>(
 			event.preventDefault();
 			event.stopPropagation();
 			void (async () => {
-				await playCardDeleteExitEffect(card, deleteButton);
+				await playCardDeleteExitEffect(card);
 				await onDelete();
 			})();
 		});
