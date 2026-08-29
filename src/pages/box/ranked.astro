@@ -68,6 +68,7 @@ if (pokemon) {
   import { calculateBuildSimilarity } from '../../lib/build-similarity';
   import { renderTopBuildCard } from '../../lib/ranked-teams/card';
   import type { RankedTeam } from '../../lib/ranked-teams';
+  import { reloadOnBfcacheRestore } from '../../lib/shared/reload-on-bfcache-restore';
 
   const main = document.querySelector<HTMLElement>('.box-data-main');
   const panel = document.querySelector<HTMLElement>('#ranked-data-panel');
@@ -131,6 +132,7 @@ if (pokemon) {
   }
 
   void loadRankedBuilds();
+  reloadOnBfcacheRestore(() => void loadRankedBuilds());
 </script>
 
 <script>

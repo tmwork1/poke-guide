@@ -135,6 +135,7 @@ const user = Astro.locals.user;
 		import { kanaIncludes } from "../../lib/kana";
 		import { resolveDexNo, resolveSpeciesTypes } from "../../lib/species-dex";
 		import { initializeCardDeleteMode } from "../../lib/card-delete-mode";
+		import { reloadOnBfcacheRestore } from "../../lib/shared/reload-on-bfcache-restore";
 		import { initializeSortDirectionToggle } from "../../lib/shared/sort-direction-toggle";
 
 		const boxContent = document.querySelector<HTMLElement>(".box-content");
@@ -394,6 +395,7 @@ const user = Astro.locals.user;
 			addButton.addEventListener("click", () => void createEmptyPokemon());
 
 			void loadList();
+			reloadOnBfcacheRestore(() => void loadList());
 		}
 	</script>
 </AppLayout>

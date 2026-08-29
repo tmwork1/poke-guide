@@ -125,6 +125,7 @@ const user = Astro.locals.user;
 		import { renderTeamCard } from "../../lib/team-card";
 		import { renderTeamMateSlots } from "../../lib/team-mate-card";
 		import { initializeCardDeleteMode } from "../../lib/card-delete-mode";
+		import { reloadOnBfcacheRestore } from "../../lib/shared/reload-on-bfcache-restore";
 
 		// GET /api/teams が返す1メンバーの owned_pokemon。表示に必要な列だけを持つ
 		// (src/lib/team.ts の TeamMember/OwnedPokemonRecord のサブセット)。
@@ -405,6 +406,7 @@ const user = Astro.locals.user;
 
 			updateDensityToggleUi();
 			void loadList();
+			reloadOnBfcacheRestore(() => void loadList());
 		}
 	</script>
 </AppLayout>
