@@ -9,6 +9,11 @@ export function initializeCardDeleteMode(
 ): void {
 	const LONG_PRESS_MS = 600;
 	let pressTimer: ReturnType<typeof window.setTimeout> | undefined;
+	// 長押し解除時に発生する合成clickを1回だけ握りつぶすためのフラグ。
+	// 端末によってはこの合成clickが発火しないことがあり、次のclickで必ずfalseに戻る
+	// 前提のままだとフラグが残り続けて、次に押した削除ボタンの1回目のタップまで
+	// 誤って握りつぶしてしまう(二回タップしないと削除できない不具合の原因だった)。
+	// clickではなく次のpointerdown(=次の物理的なタップの開始)で確実に解除する。
 	let suppressNextClick = false;
 	let isActive = false;
 
@@ -41,6 +46,9 @@ export function initializeCardDeleteMode(
 	};
 
 	container.addEventListener("pointerdown", (event) => {
+		// 新しい物理的なタップが始まった時点で、前回分の合成click待ちは打ち切る
+		// (合成clickが来ないままの残留を防ぐ。詳細はsuppressNextClickの宣言部を参照)。
+		suppressNextClick = false;
 		if (event.button !== 0 || isActive) return;
 		const card = cardFor(event.target);
 		if (!card || !container.contains(card) || isControl(event.target, card)) return;
@@ -60,9 +68,7 @@ export function initializeCardDeleteMode(
 		const card = cardFor(event.target);
 		const isDeleteButton = event.target instanceof Element && event.target.closest(deleteButtonSelector);
 		if (isActive && card && !isDeleteButton) {
-			// 長押し解除で発生する合成clickをここで処理し終える。suppressNextClickを
-			// 残したままにすると、次に削除ボタンを押した時のclickまで誤って握りつぶしてしまう
-			// (1回目のタップが効かず2回タップしないと削除できない不具合の原因だった)。
+			// 長押し解除で発生する合成clickをここで処理し終える。
 			suppressNextClick = false;
 			event.preventDefault();
 			event.stopPropagation();
