@@ -52,16 +52,21 @@ function cards(html) {
 }
 function rankRate(card) { const value = text(card); return { rank: Number(value.match(/^(\d+)\s/)?.[1]) || null, usageRate: Number(value.match(/(\d+(?:\.\d+)?)%/)?.[1]) || null }; }
 function label(card) { const match = card.match(/<span\b[^>]*class="[^"]*\btruncate\b[^"]*\bfont-semibold\b[^"]*"[^>]*>([^<]+)<\/span>/); return match ? text(match[1]) : null; }
-function entries(html, heading) { return cards(section(html, heading)).map((card) => ({ ...rankRate(card), name: label(card) })).filter((entry) => entry.name); }
+// 選出ポケモン(teammates)カードは対象の /pokedex/<slug> へのリンクを持つ。moves/items等のカードは持たないため slug は null になる。
+function cardSlug(card) { const match = card.match(new RegExp(BASE.replaceAll('/', '\\/') + '\\/pokedex\\/([^"?#/]+)')); return match ? match[1] : null; }
+// nameMap(opgg-champions-pokemon-map.json)は本来ページ自身の種族名にのみ適用していたが、
+// 選出ポケモン欄の種族名はカード内リンクの slug から同じ表記ゆれ(フォルム名の言い回し違い)を持つため、
+// ここでも同じ nameMap を適用してjpoke/マスターデータ側の短縮名に揃える。
+function entries(html, heading, nameMap) { return cards(section(html, heading)).map((card) => { const slug = cardSlug(card); return { ...rankRate(card), name: (slug && nameMap?.get(slug)) ?? label(card) }; }).filter((entry) => entry.name); }
 function evEntries(html) {
   return cards(section(html, LABEL.evs)).map((card) => {
     const values = Object.fromEntries(EVS.map(([key, japanese]) => { const found = card.match(new RegExp('>' + japanese + '</span><span[^>]*>(\\d+)</span>')); return [key, found ? Number(found[1]) : null]; }));
     return { ...rankRate(card), values };
   }).filter((entry) => Object.values(entry.values).some((value) => value !== null));
 }
-function parse(html) {
+function parse(html, nameMap) {
   const rendered = html.replace(/<!--.*?-->/gs, ' ');
-  return { updatedAt: text(rendered.match(/更新日\s*([^<]{1,80})/)?.[1] ?? '') || null, moves: entries(html, LABEL.moves), items: entries(html, LABEL.items), abilities: entries(html, LABEL.abilities), natures: entries(html, LABEL.natures), evs: evEntries(html), teammates: entries(html, LABEL.teammates) };
+  return { updatedAt: text(rendered.match(/更新日\s*([^<]{1,80})/)?.[1] ?? '') || null, moves: entries(html, LABEL.moves, nameMap), items: entries(html, LABEL.items, nameMap), abilities: entries(html, LABEL.abilities, nameMap), natures: entries(html, LABEL.natures, nameMap), evs: evEntries(html), teammates: entries(html, LABEL.teammates, nameMap) };
 }
 function name(html) { return text(html.match(/<h1\b[^>]*>([\s\S]*?)<\/h1>/)?.[1] ?? '').replace(/^#\d+\s*/, '') || null; }
 function slugs(html) { const re = new RegExp(BASE.replaceAll('/', '\\/') + '\\/pokedex\\/([^"?#/]+)', 'g'); return [...new Set([...html.matchAll(re)].map((match) => match[1]))]; }
@@ -109,7 +114,7 @@ async function main() {
       if (existing?.schemaVersion === 3 && existing?.formats?.single) { console.log('[' + (index + 1) + '/' + found.length + '] ' + slug + ' already staged'); continue; }
       const html = await get(ORIGIN + BASE + '/pokedex/' + slug); await sleep(config.delayMs);
       const sourceName = name(html); if (!sourceName) throw new Error('Pokemon name was not found in the page.');
-      const pokemon = { schemaVersion: 3, fetchedAt: new Date().toISOString(), name: nameMap.get(slug) ?? sourceName, formats: { single: parse(html) } };
+      const pokemon = { schemaVersion: 3, fetchedAt: new Date().toISOString(), name: nameMap.get(slug) ?? sourceName, formats: { single: parse(html, nameMap) } };
       await storage.putJson(key, pokemon); pending.completed[slug] = { name: pokemon.name, fetchedAt: pokemon.fetchedAt }; await storage.putJson(pendingKey, pending);
       console.log('[' + (index + 1) + '/' + found.length + '] ' + slug + ' staged');
     } catch (error) { failures.push({ slug, message: error.message }); console.error('[' + (index + 1) + '/' + found.length + '] ' + slug + ' failed: ' + error.message); }
