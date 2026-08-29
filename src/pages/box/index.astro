@@ -199,10 +199,6 @@ const user = Astro.locals.user;
 			const sortDirToggle = el<HTMLButtonElement>("sort-dir-toggle");
 			const searchInput = el<HTMLInputElement>("search-input");
 			const addButton = el<HTMLButtonElement>("add-pokemon-button");
-			// textContentではなくinnerHTMLで保存する。addButtonは「＋」の大きいアイコンと
-			// ラベルの2要素構成(見た目の要件2)なので、ローディング表示から復元する際に
-			// プレーンテキストへ潰さないため。
-			const ADD_BUTTON_DEFAULT_HTML = addButton.innerHTML;
 
 			let allPokemon: OwnedPokemon[] = [];
 
@@ -334,11 +330,9 @@ const user = Astro.locals.user;
 			// 「＋ 個体を追加」: クリックした瞬間に空個体(全項目未設定、ivsは
 			// チャンピオンズルールにより31固定、evsは0)を自動登録し、そのまま編集画面(/box/[id])へ
 			// 遷移する(/box/new の新規作成フォームは廃止)。連打による二重登録を防ぐため、
-			// リクエスト中はボタンをdisabledにしてラベルを変更し、失敗時のみ復元する
-			// (成功時はページ遷移するため復元不要)。
+			// リクエスト中はボタンをdisabledにする(成功時はページ遷移する)。
 			async function createEmptyPokemon(): Promise<void> {
 				addButton.disabled = true;
-				addButton.textContent = "登録中…";
 				errorMessage.hidden = true;
 				try {
 					const res = await fetch("/api/owned-pokemon", {
@@ -369,7 +363,6 @@ const user = Astro.locals.user;
 					errorMessage.hidden = false;
 					errorMessage.textContent = "個体を登録できませんでした。時間をおいて再度お試しください。";
 					addButton.disabled = false;
-					addButton.innerHTML = ADD_BUTTON_DEFAULT_HTML;
 				}
 			}
 

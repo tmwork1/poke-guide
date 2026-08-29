@@ -228,7 +228,6 @@ const user = Astro.locals.user;
 			const searchInput = el<HTMLInputElement>("search-input");
 			const addButton = el<HTMLButtonElement>("add-team-button");
 			const densityToggle = el<HTMLButtonElement>("team-display-density-toggle");
-			const ADD_BUTTON_DEFAULT_HTML = addButton.innerHTML;
 
 			let allTeams: Team[] = [];
 			type TeamDisplayMode = "expanded" | "compressed";
@@ -353,11 +352,9 @@ const user = Astro.locals.user;
 
 			// 「＋ チームを追加」: クリックした瞬間に空チーム(memo=null、members空)を
 			// 自動登録し、そのまま編集画面(/team/[id])へ遷移する。連打による二重登録を防ぐため、
-			// リクエスト中はボタンをdisabledにしてラベルを変更し、失敗時のみ復元する
-			// (成功時はページ遷移するため復元不要。box/index.astroのcreateEmptyPokemonと同じ方針)。
+			// リクエスト中はボタンをdisabledにする(成功時はページ遷移する)。
 			async function createEmptyTeam(): Promise<void> {
 				addButton.disabled = true;
-				addButton.textContent = "作成中…";
 				errorMessage.hidden = true;
 				try {
 					const res = await fetch("/api/teams", {
@@ -374,7 +371,6 @@ const user = Astro.locals.user;
 					errorMessage.hidden = false;
 					errorMessage.textContent = "チームの作成に失敗しました。時間をおいて再度お試しください。";
 					addButton.disabled = false;
-					addButton.innerHTML = ADD_BUTTON_DEFAULT_HTML;
 				}
 			}
 
