@@ -1,6 +1,12 @@
 // app-header(横タブ)の直下コンテンツ領域を左右にフリックしたとき、隣のタブへ切り替える。
 // タブ項目(.app-header__item)は<button>(同一ページ内切り替え)と<a>(別ページへの
 // リンク)の両方があり得るため、共通して.click()を呼ぶことで両方に対応する。
+//
+// 同一ページ内タブ(<button>)は、切り替え後にハイライト(インジケーター)を旧タブ位置→
+// 新タブ位置へ一度だけスライドさせる演出を付ける。別ページ遷移タブ(<a>)はフルページ
+// 遷移(Astro View Transitions未導入)のため、同じ演出を足しても遷移の暗転にほぼ飲まれて
+// 体感の遅延にしかならない(要検討なら別課題としてAstro ClientRouter導入を検討する)。
+// そのため<a>は従来どおり即座にクリックするのみで演出を行わない。
 
 interface SwipeState {
 	startX: number;
@@ -12,6 +18,8 @@ interface SwipeState {
 const SWIPE_MIN_DISTANCE = 48;
 const SWIPE_MAX_DURATION = 600;
 const SWIPE_DIRECTION_RATIO = 1.5;
+const INDICATOR_DURATION_MS = 150;
+const INDICATOR_EASING = "ease";
 
 function isHorizontallyScrollable(el: Element): boolean {
 	if (!(el instanceof HTMLElement)) return false;
@@ -49,6 +57,87 @@ function tabItems(headerEl: HTMLElement): HTMLElement[] {
 
 function activeTabIndex(items: HTMLElement[]): number {
 	return items.findIndex((item) => item.dataset.active === "true" || item.getAttribute("aria-current") === "page");
+}
+
+function prefersReducedMotion(): boolean {
+	return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+/** タブ一覧内のインジケーター要素を取得する。無ければ生成して挿入する(冪等)。
+ * .app-header__listが見つからない場合はnullを返し、呼び出し側は演出なしにフォールバックする
+ * (呼び出し元のheaderEl特定が将来ずれても、タブ切り替え自体は壊れないようにするため)。 */
+function getOrCreateIndicator(headerEl: HTMLElement): { list: HTMLElement; indicator: HTMLElement } | null {
+	const list = headerEl.querySelector<HTMLElement>(".app-header__list");
+	if (!list) return null;
+	let indicator = list.querySelector<HTMLElement>(":scope > .app-header__swipe-indicator");
+	if (!indicator) {
+		indicator = document.createElement("div");
+		indicator.className = "app-header__swipe-indicator";
+		indicator.setAttribute("aria-hidden", "true");
+		list.appendChild(indicator);
+	}
+	return { list, indicator };
+}
+
+// 直近のインジケーターアニメーション。連続スワイプで割り込まれたら前者をcancel()する
+// (Web Animations APIならバックグラウンドタブでの取りこぼしも無く、中断も素直に書ける)。
+let activeAnimation: Animation | null = null;
+
+/** fromItemの位置から、既にDOM上でアクティブになっているtoItemの位置へインジケーターを
+ * 一度だけスライドさせる。呼び出し時点でtoItemは既にdata-active="true"になっている
+ * (=クリックハンドラが同期的に切り替え済み)前提。 */
+function playIndicatorSlide(headerEl: HTMLElement, fromItem: HTMLElement, toItem: HTMLElement): void {
+	if (fromItem === toItem || prefersReducedMotion()) return;
+	const found = getOrCreateIndicator(headerEl);
+	if (!found) return;
+	const { list, indicator } = found;
+
+	const fromLeft = fromItem.offsetLeft;
+	const fromWidth = fromItem.offsetWidth;
+	const toLeft = toItem.offsetLeft;
+	const toWidth = toItem.offsetWidth;
+	if (fromWidth <= 0 || toWidth <= 0) return;
+
+	activeAnimation?.cancel();
+	headerEl.classList.add("is-tab-sliding");
+	indicator.style.top = "0";
+	indicator.style.height = "100%";
+
+	const animation = indicator.animate(
+		[
+			{ transform: `translateX(${fromLeft}px)`, width: `${fromWidth}px` },
+			{ transform: `translateX(${toLeft}px)`, width: `${toWidth}px` },
+		],
+		{ duration: INDICATOR_DURATION_MS, easing: INDICATOR_EASING, fill: "forwards" },
+	);
+	activeAnimation = animation;
+
+	// タブ一覧自体が横スクロールする(overflow-x: auto)環境では、遷移先タブが表示領域外に
+	// なり得るので可視域へ寄せる。sticky配下でページ全体のスクロールを誘発しうる
+	// scrollIntoViewは避け、リスト自身をスクロールする。
+	const visibleLeft = list.scrollLeft;
+	const visibleRight = visibleLeft + list.clientWidth;
+	if (toLeft < visibleLeft) {
+		list.scrollTo({ left: toLeft, behavior: "smooth" });
+	} else if (toLeft + toWidth > visibleRight) {
+		list.scrollTo({ left: toLeft + toWidth - list.clientWidth, behavior: "smooth" });
+	}
+
+	animation.finished
+		.then(() => {
+			// fill:"forwards"の間はアニメーション側が見た目を保持し続けるため、cancel()して
+			// 明け渡してから幅0に戻す(戻さないと、常設インジケーターの残骸が最後の位置に残る)。
+			animation.cancel();
+			indicator.style.width = "0";
+			headerEl.classList.remove("is-tab-sliding");
+		})
+		.catch(() => {
+			// 次のスワイプによるcancel()で棄却されたケース。ここでは何もしない
+			// (後発のアニメーション側のfinishedが後片付けを担当する)。
+		})
+		.finally(() => {
+			if (activeAnimation === animation) activeAnimation = null;
+		});
 }
 
 /**
@@ -113,7 +202,15 @@ export function setupAppHeaderSwipe(headerEl: HTMLElement | null, contentEl: HTM
 				nextIndex += step;
 			}
 			if (nextIndex < 0 || nextIndex >= items.length) return;
-			items[nextIndex].click();
+
+			const fromItem = items[activeIndex];
+			const nextItem = items[nextIndex];
+			nextItem.click();
+			// <button>(同一ページ内切り替え)だけ、切り替え後のハイライト移動を演出する。
+			// <a>(別ページ遷移)はここでナビゲーションが始まるだけなので演出は行わない。
+			if (nextItem instanceof HTMLButtonElement) {
+				playIndicatorSlide(headerEl, fromItem, nextItem);
+			}
 		},
 		{ passive: true },
 	);

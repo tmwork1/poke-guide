@@ -113,11 +113,33 @@
 
 /* 文字だけの横スクロール式タブ一覧 */
 .app-header__list {
+  position: relative; /* インジケーター(絶対配置)の基準にする */
   display: flex;
   flex: 1 1 auto;
   min-width: 0;
   overflow-x: auto;
   scrollbar-width: none;
+}
+
+/* フリックでのタブ切り替え時、選択ハイライトを旧タブ→新タブへ一度だけスライドさせる
+   演出用の要素(app-header-swipe.tsがJSで生成・アニメーションさせる)。
+   タップでの切り替えには使わない(即座に.app-header__item[data-active]の背景に任せる)。 */
+.app-header__swipe-indicator {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: 0;
+  border-radius: var(--app-header-item-border-radius);
+  background: var(--app-header-item-active-background);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* スライド中は選択タブ自身の背景を消し、インジケーターだけに色を持たせる
+   (どちらも同じ半透明トークンのため、重なると一瞬だけ色が濃くなって見えるちらつきを防ぐ)。 */
+.app-header.is-tab-sliding .app-header__item[data-active="true"] {
+  background: transparent;
 }
 
 /* 横タブ一覧のスクロールバーを隠す */
@@ -127,6 +149,8 @@
 
 /* 横タブ一覧の各項目 */
 .app-header__item {
+  position: relative; /* インジケーター(z-index:0)より前面に文字を出す */
+  z-index: 1;
   display: flex;
   flex: 0 0 auto;
   align-items: center;
@@ -147,6 +171,14 @@
   appearance: none;
   -webkit-appearance: none;
   text-decoration: none;
+  /* スライド演出中、インジケーターが背景を担う間も文字色だけは滑らかに追従させる。
+     所要時間はapp-header-swipe.tsのINDICATOR_DURATION_MSと合わせる。 */
+  transition: color .15s ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-header__item {
+    transition: none;
+  }
 }
 
 .app-header__item:hover:not(.is-disabled) {
