@@ -6,11 +6,22 @@
 import movesMasterRaw from '../../public/master-data/autocomplete/moves.json' with { type: 'json' };
 import pokemonMasterRaw from '../../public/master-data/autocomplete/pokemon.json' with { type: 'json' };
 
+// 技名の数字は、マスターデータ(vendor/jpoke由来)では半角、OP.GGの使用率データでは
+// 全角(例:「10まんボルト」/「１０まんボルト」)と表記が揺れているため、
+// 全角数字を半角に正規化したキーで引けるようにする。
+function normalizeDigits(name: string): string {
+  return name.replace(/[０-９]/g, (char) => String.fromCharCode(char.charCodeAt(0) - 0xfee0));
+}
+
 export const MOVE_TYPE_BY_NAME: ReadonlyMap<string, string> = new Map(
   (movesMasterRaw as Array<{ name: string; type: string | null }>)
     .filter((move) => move.type !== null)
-    .map((move) => [move.name, move.type!] as const),
+    .map((move) => [normalizeDigits(move.name), move.type!] as const),
 );
+
+export function moveTypeByName(name: string): string | null {
+  return MOVE_TYPE_BY_NAME.get(normalizeDigits(name)) ?? null;
+}
 
 export const IMAGE_ID_BY_NAME: ReadonlyMap<string, number> = new Map(
   (pokemonMasterRaw as Array<{ name: string; imageId: number }>).map((pokemon) => [pokemon.name, pokemon.imageId]),

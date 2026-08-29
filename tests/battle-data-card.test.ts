@@ -1,7 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { evSpreadLabel, hasSingleBattleData, usageRateLabel } from '../src/lib/battle-data-card.ts';
+import { evSpreadLabel, hasSingleBattleData, moveTypeByName, usageRateLabel } from '../src/lib/battle-data-card.ts';
 
 describe('hasSingleBattleData', () => {
   it('single.abilitiesなど何れかの配列に要素があればtrue', () => {
@@ -29,6 +29,22 @@ describe('usageRateLabel', () => {
 
   it('usageRateがnullなら「使用率非公開」にする', () => {
     assert.equal(usageRateLabel(null), '使用率非公開');
+  });
+});
+
+describe('moveTypeByName', () => {
+  it('マスターデータの半角数字表記でタイプを引ける', () => {
+    assert.equal(moveTypeByName('10まんボルト'), 'でんき');
+  });
+
+  it('OP.GG由来の全角数字表記でも同じタイプを引ける', () => {
+    assert.equal(moveTypeByName('１０まんボルト'), 'でんき');
+    assert.equal(moveTypeByName('１０まんばりき'), 'じめん');
+    assert.equal(moveTypeByName('３ぼんのや'), moveTypeByName('3ぼんのや'));
+  });
+
+  it('該当する技が無ければnull', () => {
+    assert.equal(moveTypeByName('存在しない技'), null);
   });
 });
 
