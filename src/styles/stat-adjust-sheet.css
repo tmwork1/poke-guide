@@ -5,6 +5,8 @@
 	--stat-adjust-sheet-background: color-mix(in srgb, var(--color-surface) 85%, var(--color-chrome) 15%);
 	--stat-adjust-sheet-button-background: color-mix(in srgb, var(--stat-adjust-sheet-background) 70%, var(--color-chrome) 30%);
 	--stat-adjust-sheet-border-color: var(--color-border);
+	--stat-adjust-sheet-toggle-width: 33.333%; /* 閉じたときに見せるつまみの幅。右下FABと重ならない左側1/3だけを操作面にする */
+	--stat-adjust-sheet-toggle-height: 42px; /* 旧28pxの約1.5倍。指でつかみやすい高さを確保する */
 	--stat-adjust-sheet-remaining-font-size: var(--font-size-sm3); /* 「残りXX」の文字サイズ。大きくすると目立つ */
 	--stat-adjust-sheet-remaining-color: var(--color-text-muted); /* 「残りXX」の文字色。濃くすると目立つ */
 }
@@ -38,8 +40,9 @@
 	align-items: center;
 	justify-content: center;
 	flex: none;
-	width: 100%;
-	height: 28px;
+	align-self: center;
+	width: var(--stat-adjust-sheet-toggle-width);
+	height: var(--stat-adjust-sheet-toggle-height);
 	min-height: 0;
 	padding: 0 var(--space-2);
 	line-height: 1;
@@ -48,6 +51,22 @@
 	color: var(--color-text-muted);
 	font: inherit;
 	cursor: pointer;
+}
+
+/* 閉じたシートはつまみ以外を透明かつ非ヒット対象にする。これにより右下のFABを
+   シート全幅の透明な当たり判定で塞がず、つまみの左側1/3だけを露出させる。 */
+#stat-adjust-sheet:not(.is-expanded) {
+	pointer-events: none;
+	border-color: transparent;
+	background: transparent;
+	box-shadow: none;
+}
+#stat-adjust-sheet:not(.is-expanded) .stat-adjust-sheet-toggle {
+	pointer-events: auto;
+	border: 1px solid var(--stat-adjust-sheet-border-color);
+	border-bottom: 0;
+	border-radius: var(--radius-md) var(--radius-md) 0 0;
+	box-shadow: var(--shadow-md);
 }
 
 .stat-adjust-sheet-remaining {

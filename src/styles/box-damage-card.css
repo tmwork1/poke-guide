@@ -1852,9 +1852,6 @@ body.box-edit-page {
   }
 
   /* 圧縮中はシートの低いヘッダーを避け、展開中はシートの背後へ送る。 */
-  body:has(#stat-adjust-sheet:not([hidden]):not(.is-expanded)) #opponent-notes-section .box-add-button {
-    bottom: calc(var(--bottom-nav-height) + var(--space-7) + var(--space-2) + env(safe-area-inset-bottom));
-  }
   body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .box-add-button {
     z-index: 19;
   }

@@ -37,6 +37,12 @@ function startsInsideHorizontalScroller(target: EventTarget | null, contentEl: H
 	return false;
 }
 
+/** input[type="range"] の横ドラッグは値の変更であり、画面タブを切り替える
+ * フリックとしては扱わない。range自体のネイティブ操作はブラウザに任せる。 */
+function startsInsideRangeInput(target: EventTarget | null): boolean {
+	return target instanceof Element && target.closest('input[type="range"]') !== null;
+}
+
 // 開いているモーダル(aria-modal="true")の中で始まったタッチは、モーダル自身が
 // 独自のフリック操作(タブ切り替え等)を持ちうるため、背後のページのタブ切り替えには使わない。
 // 例: ダメージ計算の詳細設定パネル(#damage-detail-panel、モバイルでは中央に浮くモーダル)は
@@ -164,6 +170,7 @@ export function setupAppHeaderSwipe(headerEl: HTMLElement | null, contentEl: HTM
 				startTime: event.timeStamp,
 				active:
 					!startsInsideHorizontalScroller(event.target, contentEl) &&
+					!startsInsideRangeInput(event.target) &&
 					!startsInsideOpenModal(event.target, contentEl),
 			};
 		},
