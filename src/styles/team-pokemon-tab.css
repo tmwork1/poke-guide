@@ -63,9 +63,7 @@ body.team-edit-page {
 }
 .team-mobile-actions__controls {
 	width: 100%;
-	padding-top: var(--team-pokemon-tab-overview-section-gap);
 	margin-top: var(--team-pokemon-tab-overview-section-gap);
-	border-top: var(--team-pokemon-tab-actions-border);
 }
 .team-edit-shell[data-mobile-tab="pokemon"] .team-edit-layout,
 .team-edit-shell[data-mobile-tab="formation"] #team-overview-tab,
@@ -291,6 +289,8 @@ body.team-edit-page {
 .team-memo-input {
 	width: 100%;
 	min-width: 0;
+	min-height: calc(3 * 1.5em + 0.84em);
 	margin-top: var(--team-pokemon-tab-overview-section-gap);
-	resize: vertical;
+	overflow: hidden;
+	resize: none;
 }
