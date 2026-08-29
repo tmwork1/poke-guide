@@ -45,7 +45,7 @@ let spriteObserver: IntersectionObserver | null = null;
 const sortLabels: Record<SortMode, string> = {
 	popularity: "人気",
 	dex: "番号",
-	kana: "種族",
+	kana: "ポケモン",
 };
 
 function getSpriteObserver(): IntersectionObserver {
@@ -73,7 +73,7 @@ function getSpriteObserver(): IntersectionObserver {
 function updateTriggerButton(): void {
 	const name = speciesInput.value.trim();
 	triggerButton.classList.toggle("is-empty", name === "");
-	triggerLabel.textContent = name || "種族";
+	triggerLabel.textContent = name || "ポケモン";
 }
 
 function updateSortButton(): void {
