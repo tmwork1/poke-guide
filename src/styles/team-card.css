@@ -74,6 +74,7 @@
   --team-card-header-min-height: 38px; /* ヘッダ帯の最低の高さ。大きくすると帯が縦に広がる */
   --team-card-action-size: 32px; /* 星・記事リンクを押せる正方形の大きさ */
   --team-card-article-icon-size: 18px; /* 記事リンクのSVGアイコンの大きさ */
+  --team-card-delete-size: 28px; /* 削除ボタンの直径。/boxの削除ボタン(--box-card-action-size)と同じ大きさに揃える */
 
   /* ── 9. その他 ───────────────────────── */
   --team-card-meta-right: 48px; /* バッジ列の右端位置。右上ボタンとの間隔も変わる */
@@ -272,8 +273,8 @@
   z-index: 2;
   align-items: center;
   justify-content: center;
-  width: var(--team-card-action-size);
-  height: var(--team-card-action-size);
+  width: var(--team-card-delete-size);
+  height: var(--team-card-delete-size);
   min-height: 0;
   padding: 0;
   border-radius: 999px;
@@ -281,6 +282,10 @@
   background: var(--color-surface);
   color: var(--color-danger-strong);
   box-shadow: var(--shadow-sm);
+}
+.team-grid .card-team .card-team-delete:hover {
+  background: var(--color-danger-soft);
+  border-color: var(--color-danger-strong);
 }
 #team-list.is-card-delete-mode .card-team {
   animation: card-delete-wiggle .16s ease-in-out infinite alternate;
