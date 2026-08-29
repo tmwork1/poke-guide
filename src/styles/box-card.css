@@ -263,8 +263,8 @@
 }
 
 @keyframes card-delete-wiggle {
-  from { transform: rotate(-.45deg); }
-  to { transform: rotate(.45deg); }
+  from { transform: rotate(-.7deg); }
+  to { transform: rotate(.7deg); }
 }
 
 @media (prefers-reduced-motion: reduce) {
