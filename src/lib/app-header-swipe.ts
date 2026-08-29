@@ -2,11 +2,13 @@
 // タブ項目(.app-header__item)は<button>(同一ページ内切り替え)と<a>(別ページへの
 // リンク)の両方があり得るため、共通して.click()を呼ぶことで両方に対応する。
 //
-// 同一ページ内タブ(<button>)は、切り替え後にハイライト(インジケーター)を旧タブ位置→
-// 新タブ位置へ一度だけスライドさせる演出を付ける。別ページ遷移タブ(<a>)はフルページ
-// 遷移(Astro View Transitions未導入)のため、同じ演出を足しても遷移の暗転にほぼ飲まれて
-// 体感の遅延にしかならない(要検討なら別課題としてAstro ClientRouter導入を検討する)。
-// そのため<a>は従来どおり即座にクリックするのみで演出を行わない。
+// ナビゲーション(nextItem.click())は同期的に即座に発火させ、一切遅延させない
+// (体感速度を落とさないため)。ハイライト(インジケーター)のスライド演出はそれと並行して
+// 追い討ちで走らせるだけの、成功すれば儲けものの装飾。<a>(別ページ遷移)の場合、実際に
+// ドキュメントが差し替わるまでは通信・描画のタイムラグが必ず入るため、その間だけ現在の
+// ヘッダーが表示され続け、演出が最後まで見えることが多い。差し替えが速い場合は演出が
+// 途中で切れるが、その時点で旧DOM自体が消えるため見た目には単なるハードカットに戻るだけで
+// 実害はない(Astro View Transitions未導入のため、遷移そのものの暗転は残る)。
 
 interface SwipeState {
 	startX: number;
@@ -89,9 +91,11 @@ function getOrCreateIndicator(headerEl: HTMLElement): { list: HTMLElement; indic
 // (Web Animations APIならバックグラウンドタブでの取りこぼしも無く、中断も素直に書ける)。
 let activeAnimation: Animation | null = null;
 
-/** fromItemの位置から、既にDOM上でアクティブになっているtoItemの位置へインジケーターを
- * 一度だけスライドさせる。呼び出し時点でtoItemは既にdata-active="true"になっている
- * (=クリックハンドラが同期的に切り替え済み)前提。 */
+/** fromItemの位置からtoItemの位置へインジケーターを一度だけスライドさせる。
+ * <button>(同一ページ内切り替え)の場合、呼び出し時点でtoItemは既に
+ * data-active="true"になっている(=クリックハンドラが同期的に切り替え済み)。
+ * <a>(別ページ遷移)の場合はtoItemのdata-activeは更新されない(遷移先ページの
+ * SSRで決まるため)が、offsetLeft/offsetWidthしか使わないのでどちらでも動く。 */
 function playIndicatorSlide(headerEl: HTMLElement, fromItem: HTMLElement, toItem: HTMLElement): void {
 	if (fromItem === toItem || prefersReducedMotion()) return;
 	const found = getOrCreateIndicator(headerEl);
@@ -213,11 +217,9 @@ export function setupAppHeaderSwipe(headerEl: HTMLElement | null, contentEl: HTM
 			const fromItem = items[activeIndex];
 			const nextItem = items[nextIndex];
 			nextItem.click();
-			// <button>(同一ページ内切り替え)だけ、切り替え後のハイライト移動を演出する。
-			// <a>(別ページ遷移)はここでナビゲーションが始まるだけなので演出は行わない。
-			if (nextItem instanceof HTMLButtonElement) {
-				playIndicatorSlide(headerEl, fromItem, nextItem);
-			}
+			// <button>/<a>問わず、ナビゲーションと並行してハイライト移動を演出する
+			// (上のコメント参照。<a>はナビゲーションを遅延させない範囲でのベストエフォート)。
+			playIndicatorSlide(headerEl, fromItem, nextItem);
 		},
 		{ passive: true },
 	);
