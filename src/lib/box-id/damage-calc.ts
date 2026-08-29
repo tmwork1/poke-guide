@@ -3297,7 +3297,9 @@ if (opponentNotesSection) {
 	});
 
 	const damageRowsListEl = el<HTMLElement>("damage-rows-list");
-	initializeCardDeleteMode(damageRowsListEl, ".card-damage", ".damage-row-delete-button");
+	// 「＋わざを追加」ボタンはbuttonだが、押下面積が広くよく長押しされる場所でもあるため
+	// 例外的に長押しでの削除モード起動を許可する(通常のbutton/inputは除外のまま)。
+	initializeCardDeleteMode(damageRowsListEl, ".card-damage", ".damage-row-delete-button", ".damage-add-column-button");
 	const engineStatusEl = el<HTMLElement>("damage-calc-engine-status");
 	const engineStatusTextEl = el<HTMLElement>("damage-calc-engine-status-text");
 	const engineReloadButton = el<HTMLButtonElement>("damage-calc-engine-reload-button");

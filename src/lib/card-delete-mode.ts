@@ -3,7 +3,7 @@
  * 実際の削除処理(fetch・状態更新・再描画)は待ち終わってから呼び出し側が行う
  * (transitionendを待つ非同期化より安く、setTimeoutで固定時間待つだけにしている)。
  */
-const EXIT_EFFECT_MS = 150;
+const EXIT_EFFECT_MS = 200;
 export function playCardDeleteExitEffect(card: HTMLElement, button: HTMLElement): Promise<void> {
 	button.classList.add("is-deleting");
 	card.classList.add("is-card-removing");
@@ -18,6 +18,10 @@ export function initializeCardDeleteMode(
 	container: HTMLElement,
 	cardSelector: string,
 	deleteButtonSelector: string,
+	// 通常はbutton等のコントロール上からの長押しではモードへ入らない(isControl参照)。
+	// この一覧内だけ「ボタンだが長押しでモードに入ってよい」要素を明示的に許可するための
+	// セレクタ(例: ダメージカードの「＋わざを追加」ボタン)。
+	longPressableControlSelector?: string,
 ): void {
 	const LONG_PRESS_MS = 600;
 	let pressTimer: ReturnType<typeof window.setTimeout> | undefined;
@@ -52,6 +56,7 @@ export function initializeCardDeleteMode(
 	};
 	const isControl = (target: EventTarget | null, card: HTMLElement): boolean => {
 		if (!(target instanceof Element)) return true;
+		if (longPressableControlSelector && target.closest(longPressableControlSelector)) return false;
 		const control = target.closest("button, input, textarea, select, option, label, [contenteditable='true']");
 		return control !== null && control !== card;
 	};

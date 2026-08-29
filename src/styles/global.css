@@ -1133,5 +1133,5 @@ dd {
 :root {
   --card-removing-scale: 0.85; /* 萎んだときの縮小率。小さくすると縮み幅が大きくなる */
   --card-removing-opacity: 0; /* 萎み終わりの透明度 */
-  --card-removing-duration: 0.15s; /* 萎むアニメーションの時間 */
+  --card-removing-duration: 0.2s; /* 萎むアニメーションの時間 */
 }
