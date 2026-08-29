@@ -3478,9 +3478,6 @@ if (opponentNotesSection) {
 
 	async function fetchAndRenderRows(): Promise<void> {
 		damageRowsListEl.innerHTML = "";
-		const loadingP = document.createElement("p");
-		loadingP.textContent = "読み込み中…";
-		damageRowsListEl.appendChild(loadingP);
 		try {
 			const res = await fetch(`/api/opponent-notes?owned_pokemon_id=${encodeURIComponent(ownedPokemonId)}`, {
 				credentials: "same-origin",
@@ -3498,9 +3495,17 @@ if (opponentNotesSection) {
 				.map((row, index) => ({ row, sortKey: rowSortOrder.has(row) ? (rowSortOrder.get(row) as number) : index }))
 				.sort((a, b) => a.sortKey - b.sortKey)
 				.map((entry) => entry.row);
-			for (const row of rows) renderRow(row);
 			for (const row of rowsNeedingResave) scheduleRowSave(row);
-			rebuildRowsList();
+			// 一覧全体を作り終えるまで待たず、追加ボタンの後に保存済みカードを1枚ずつ
+			// フレームごとに差し込む。ネットワーク待ち用の文言を出さずとも、内容が届いた
+			// 時点から段階的にページが埋まる。
+			damageRowsListEl.replaceChildren(buildAddRowTile());
+			for (const row of rows) {
+				renderRow(row);
+				if (row.root) damageRowsListEl.appendChild(row.root);
+				await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
+			}
+			refreshMobileDetailPlacement();
 			clearSelection();
 			renderDetailPanel();
 		} catch (err) {
@@ -3513,16 +3518,16 @@ if (opponentNotesSection) {
 		}
 	}
 
-	void fetchAndRenderRows();
-
-	initDamageSuggest();
+	// 人気の計算は、保存済みカードの段階表示が完了してから読み込む。
+	void fetchAndRenderRows().finally(initDamageSuggest);
 
 	function renderEngineStatus(progress: EngineProgress): void {
 		engineStatusEl.dataset.state = progress.status;
-		// 準備完了後は行そのものを隠す。カードを囲むパネルを廃した結果、この1行だけが
-		// カードの上に残ると「何のための文言か」が分からない浮いた表示になるため
-		// (初期化中・失敗時は待ち時間や原因を伝える必要があるので表示し続ける)。
-		engineStatusEl.hidden = progress.status === "ready";
+		// 通常の初期化ではカードと結果表示領域を先に描画するため、状態文は出さない。
+		// 初期化中の状態文は一覧を押し下げてから消えるため表示しない。カードは
+		// 先に描画し、エンジン完了時に combinedDamageEngineProgress() が結果だけを更新する。
+		// 復旧操作が必要な失敗時のみ、この領域を表示する。
+		engineStatusEl.hidden = progress.status !== "error";
 		if (progress.status === "ready") {
 			engineStatusTextEl.textContent = "計算エンジンの準備ができました。";
 			engineReloadButton.hidden = true;

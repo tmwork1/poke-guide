@@ -354,7 +354,9 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 
 	async function run(): Promise<void> {
 		const currentRequestId = (requestId += 1);
-		setStatus('上位ポケモンを読み込み中…');
+		// 対象カードを先に描画し、Pyodide の準備・計算結果は後追いで反映する。
+		// 進捗文が出入りすると一覧の開始位置が動くため、通常の処理中は表示しない。
+		setStatus(null);
 		let targets: MatchupTarget[];
 		try {
 			targets = await loadMatchupTargets();
@@ -392,12 +394,9 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 			return;
 		}
 		renderMatchupList(targets, null, typesMap, isAttackMove, getMoveType);
-		setStatus('相性チェックを準備中…');
 		registerOfflineCache();
 		try {
-			await initEngine((progress) => {
-				if (currentRequestId === requestId && progress.status === 'loading') setStatus(progress.message);
-			});
+			await initEngine();
 		} catch (err) {
 			console.error(err);
 			if (currentRequestId !== requestId) return;
@@ -419,7 +418,6 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 		};
 		let engineRestarted = false;
 		for (let i = 0; i < targets.length; i += 1) {
-			setStatus(`相性を計算中… (${i + 1}/${targets.length})`);
 			await new Promise((resolve) => window.setTimeout(resolve, 0));
 			if (currentRequestId !== requestId) return;
 			try {
@@ -443,7 +441,6 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 				if (currentRequestId !== requestId) return;
 				if (isEngineFatal() && !engineRestarted) {
 					engineRestarted = true;
-					setStatus('計算を再試行中…');
 					try {
 						await resetEngine();
 						if (currentRequestId !== requestId) return;

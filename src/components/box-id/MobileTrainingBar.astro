@@ -16,6 +16,11 @@ interface Props {
 
 const { pokemon, activeTab = 'training' } = Astro.props;
 const moves = pokemon.move_names ?? [];
+const itemName = pokemon.item_name?.trim() ?? '';
+// データ系タブのプレビューは編集フォームと同期しないため、持ち物がなければ
+// アイコン用の要素そのものを出さない。育成タブは入力中にアイコンを差し替えるので
+// 常に要素を保持する。
+const shouldRenderItemIcon = activeTab === 'training' || itemName !== '';
 const master = (pokemonMasterRaw as Array<{name:string;imageId:number}>).find((entry) => entry.name === pokemon.species_name);
 const detail = (pokemonDetailRaw as Array<{name:string;baseStats:number[]}>).find((entry) => entry.name === pokemon.species_name);
 const statKeys: StatKey[] = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'];
@@ -50,7 +55,7 @@ const previewStats = detail ? statKeys.map((key, index) => index === 0 ? calcHpS
     </div>
   </AppHeader>
 
-  <section class="pokemon-preview" aria-label="ポケモンプレビュー" data-species-name={pokemon.species_name} data-item-name={pokemon.item_name ?? ''}>
+  <section class="pokemon-preview" aria-label="ポケモンプレビュー" data-species-name={pokemon.species_name} data-item-name={itemName}>
     <div class="pokemon-preview-main">
     <div class="pokemon-preview-left">
       <div class="pokemon-preview-details">
@@ -77,8 +82,8 @@ const previewStats = detail ? statKeys.map((key, index) => index === 0 ? calcHpS
     </div>
     <div class="pokemon-preview-right">
       <div class="pokemon-preview-item pokemon-preview-icon-text">
-        <img id="pokemon-preview-item-image" src={pokemon.item_name ? itemIconUrl(pokemon.item_name) : undefined} alt="" class={pokemon.item_name ? 'pokemon-preview-item-image' : 'pokemon-preview-item-image-hidden'} onerror="this.style.display='none'" />
-        <span id="pokemon-preview-item" data-empty={pokemon.item_name ? undefined : 'true'}>{pokemon.item_name || 'もちものなし'}</span>
+        {shouldRenderItemIcon && <img id="pokemon-preview-item-image" src={itemName ? itemIconUrl(itemName) : undefined} alt="" class={itemName ? 'pokemon-preview-item-image' : 'pokemon-preview-item-image-hidden'} onerror="this.style.display='none'" />}
+        <span id="pokemon-preview-item" data-empty={itemName ? undefined : 'true'}>{itemName || 'もちものなし'}</span>
       </div>
       <table class="pokemon-preview-stats" aria-label="実数値と努力値">
         <tbody>

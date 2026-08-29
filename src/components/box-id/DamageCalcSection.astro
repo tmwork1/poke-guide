@@ -17,7 +17,9 @@ import '../../styles/box-damage-card.css';
 
 
 
-	<p id="damage-calc-engine-status" class="status-text damage-calc-engine-status" data-state="idle">
+	{/* エンジンの準備中はカードを先に表示し、計算結果だけ後から反映する。
+	    状態文が出入りするとカード一覧の開始位置が動くため、失敗時だけ表示する。 */}
+	<p id="damage-calc-engine-status" class="status-text damage-calc-engine-status" data-state="idle" hidden>
 
 		<span id="damage-calc-engine-status-text">準備中…</span>
 
@@ -26,9 +28,6 @@ import '../../styles/box-damage-card.css';
 	</p>
 
 	<div id="damage-rows-list" class="damage-rows-list">
-
-		<p>読み込み中…</p>
-
 	</div>
 
 	{/* よく行われるダメージ計算のサジェスト。以前は#damage-detail-panel-body(技の詳細設定

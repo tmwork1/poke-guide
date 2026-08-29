@@ -302,6 +302,9 @@
 /* 持ち物と能力値 */
 
 .pokemon-preview-item {
+  /* アイコンがない「もちものなし」でも、アイコン付きの行と同じ高さを確保する。
+     後続するステータス表の開始位置を常に固定する。 */
+  min-height: var(--pokemon-preview-item-icon-size);
   margin-bottom: 0;
   justify-content: flex-end;
 }
