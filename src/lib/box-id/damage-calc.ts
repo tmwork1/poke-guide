@@ -248,23 +248,27 @@ interface OpponentBuildPreset {
 	evs: number[];
 }
 
-function opponentBuildPresetKey(speciesName: string): string {
-	return `${OPPONENT_BUILD_PRESET_KEY_PREFIX}${speciesName}`;
+function opponentBuildPresetKey(speciesName: string, direction: "attack" | "defense"): string {
+	return `${OPPONENT_BUILD_PRESET_KEY_PREFIX}${speciesName}:${direction}`;
 }
 
 // localStorageが使用不可(プライベートブラウジング等で例外を投げる環境)でもページ全体が
 // 壊れないよう、読み書きは必ずtry/catchで包む。失敗時はこの機能が使えないだけにする。
-function saveOpponentBuildPreset(speciesName: string, preset: OpponentBuildPreset): void {
+function saveOpponentBuildPreset(
+	speciesName: string,
+	direction: "attack" | "defense",
+	preset: OpponentBuildPreset,
+): void {
 	try {
-		window.localStorage.setItem(opponentBuildPresetKey(speciesName), JSON.stringify(preset));
+		window.localStorage.setItem(opponentBuildPresetKey(speciesName, direction), JSON.stringify(preset));
 	} catch {
 		// 使用不可環境では何もしない(他の動作に影響させない)。
 	}
 }
 
-function loadOpponentBuildPreset(speciesName: string): OpponentBuildPreset | null {
+function loadOpponentBuildPreset(speciesName: string, direction: "attack" | "defense"): OpponentBuildPreset | null {
 	try {
-		const raw = window.localStorage.getItem(opponentBuildPresetKey(speciesName));
+		const raw = window.localStorage.getItem(opponentBuildPresetKey(speciesName, direction));
 		if (!raw) return null;
 		const parsed = JSON.parse(raw) as Partial<OpponentBuildPreset> | null;
 		if (!parsed || !Array.isArray(parsed.evs) || parsed.evs.length !== STAT_KEYS.length) return null;
@@ -1952,7 +1956,7 @@ if (opponentNotesSection) {
 		// 相手ポケモン名が非空で保存が起きるたびに、相手ビルド(性格・特性・持ち物・テラス・
 		// 努力値)を種族名キーでlocalStorageへ上書き記録する(「最後に使ったビルド」が
 		// その種族の既定値になる)。
-		saveOpponentBuildPreset(name, {
+		saveOpponentBuildPreset(name, row.direction, {
 			nature: row.nature,
 			natureUp: row.natureUp,
 			natureDown: row.natureDown,
@@ -3128,7 +3132,7 @@ if (opponentNotesSection) {
 			const trimmed = speciesName.trim();
 			if (trimmed === "") return;
 			if (!isOpponentBuildUnset(row)) return;
-			const preset = loadOpponentBuildPreset(trimmed);
+			const preset = loadOpponentBuildPreset(trimmed, row.direction);
 			if (!preset) return;
 
 			row.nature = preset.nature;
