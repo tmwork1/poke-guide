@@ -8,8 +8,6 @@ import {
 	loadPokemonMasterList,
 	type PokemonMasterEntry,
 } from "../pokemon-master-data";
-import { typeIconUrl } from "../sprite-urls";
-import { TERA_TYPES } from "../tera-types";
 import { kanaIncludes } from "../kana";
 import { bindModalDismissal } from "../modal-dismiss";
 import { applySprite } from "./shared-core";
@@ -28,11 +26,9 @@ const emptyEl = el<HTMLElement>("species-select-empty");
 const searchInput = el<HTMLInputElement>("species-select-search-input");
 const sortButton = el<HTMLButtonElement>("species-select-sort-button");
 const sortPanel = el<HTMLElement>("species-select-sort-panel");
-const typeRow = el<HTMLElement>("species-select-type-row");
 
 let sortMode: SortMode = "popularity";
 let searchQuery = "";
-const selectedTypes: string[] = [];
 
 let masterList: PokemonMasterEntry[] | null = null;
 let abilitiesMap: Map<string, string[]> | null = null;
@@ -149,18 +145,15 @@ async function ensureData(): Promise<void> {
 function matchesSearch(entry: PokemonMasterEntry): boolean {
 	if (searchQuery === "") return true;
 	if (kanaIncludes(entry.name, searchQuery)) return true;
+	if (entry.types.some((type) => kanaIncludes(type, searchQuery))) return true;
 	if ((abilitiesMap?.get(entry.name) ?? []).some((ability) => kanaIncludes(ability, searchQuery))) return true;
 	if ((learnsetMap?.get(entry.name) ?? []).some((move) => kanaIncludes(move, searchQuery))) return true;
 	return false;
 }
 
-function matchesType(entry: PokemonMasterEntry): boolean {
-	return selectedTypes.length === 0 || selectedTypes.every((type) => entry.types.includes(type));
-}
-
 function renderGrid(): void {
 	if (!masterList || !abilitiesMap || !learnsetMap) return;
-	const filtered = masterList.filter((entry) => matchesSearch(entry) && matchesType(entry));
+	const filtered = masterList.filter(matchesSearch);
 	const isMega = (entry: PokemonMasterEntry): boolean => entry.forme?.startsWith("Mega") ?? false;
 	const nonMegaEntries = filtered.filter((entry) => !isMega(entry));
 	const megaEntries = filtered.filter(isMega);
@@ -213,46 +206,11 @@ function renderGrid(): void {
 	if (orderedButtons.length > 0) gridEl.replaceChildren(...orderedButtons);
 }
 
-function buildTypeRow(): void {
-	for (const type of TERA_TYPES) {
-		if (type === "ステラ") continue;
-		const chip = document.createElement("button");
-		chip.type = "button";
-		chip.className = "species-select-type-chip";
-		chip.setAttribute("aria-label", type);
-		chip.setAttribute("aria-pressed", "false");
-		const icon = document.createElement("img");
-		icon.alt = "";
-		const url = typeIconUrl(type);
-		if (url) icon.src = url;
-		else icon.style.display = "none";
-		icon.onerror = () => { icon.style.display = "none"; };
-		chip.appendChild(icon);
-		chip.addEventListener("click", () => {
-			const index = selectedTypes.indexOf(type);
-			if (index >= 0) {
-				selectedTypes.splice(index, 1);
-			} else {
-				if (selectedTypes.length >= 2) selectedTypes.shift();
-				selectedTypes.push(type);
-			}
-			for (const typeChip of typeRow.querySelectorAll<HTMLButtonElement>(".species-select-type-chip")) {
-				const selected = selectedTypes.includes(typeChip.getAttribute("aria-label") ?? "");
-				typeChip.classList.toggle("is-selected", selected);
-				typeChip.setAttribute("aria-pressed", String(selected));
-			}
-			renderGrid();
-		});
-		typeRow.appendChild(chip);
-	}
-}
-
 async function openDialog(): Promise<void> {
 	await ensureData();
 	backdropEl.hidden = false;
 	dialogEl.hidden = false;
 	renderGrid();
-	searchInput.focus();
 }
 
 function closeDialog(): void {
@@ -284,4 +242,3 @@ searchInput.addEventListener("input", () => {
 	searchQuery = searchInput.value.trim();
 	renderGrid();
 });
-buildTypeRow();

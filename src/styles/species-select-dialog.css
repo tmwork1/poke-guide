@@ -4,7 +4,7 @@
 	=========================================================================== */
 body.box-edit-page {
 	--species-select-dialog-width: min(640px, 94vw);
-	--species-select-dialog-max-height: min(85vh, 720px);
+	--species-select-dialog-max-height: min(720px, calc(100dvh - var(--modal-top-offset) - var(--space-5)));
 	--species-select-dialog-background: var(--color-surface);
 	--species-select-dialog-border: var(--modal-border);
 	--species-select-dialog-radius: var(--radius-lg);
@@ -41,8 +41,7 @@ body.box-edit-page {
 .species-select-trigger:focus-visible,
 .species-select-cell:focus-visible,
 .species-select-sort-button:focus-visible,
-.species-select-sort-option:focus-visible,
-.species-select-type-chip:focus-visible {
+.species-select-sort-option:focus-visible {
 	outline: 2px solid var(--color-primary);
 	outline-offset: 1px;
 }
@@ -64,12 +63,12 @@ body.box-edit-page {
 
 .species-select-dialog {
 	position: fixed;
-	top: 50%;
+	top: var(--modal-top-offset);
 	left: 50%;
-	transform: translate(-50%, -50%);
+	transform: translateX(-50%);
 	z-index: 71;
 	width: var(--species-select-dialog-width);
-	max-height: var(--species-select-dialog-max-height);
+	height: var(--species-select-dialog-max-height);
 	display: flex;
 	flex-direction: column;
 	overflow: visible;
@@ -225,38 +224,9 @@ body.box-edit-page {
 	min-width: 0;
 	box-sizing: border-box;
 }
-.species-select-type-row {
-	display: grid;
-	grid-template-columns: repeat(9, 1fr);
-	gap: var(--space-1);
-	padding: var(--space-2) var(--space-5);
-	border-bottom: 1px solid var(--color-border);
-	flex-shrink: 0;
-}
-.species-select-type-chip {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	width: 32px;
-	height: 32px;
-	min-height: 0;
-	padding: 3px;
-	border: 1px solid transparent;
-	border-radius: var(--radius-sm);
-	background: transparent;
-	cursor: pointer;
-}
-.species-select-type-chip:hover,
-.species-select-type-chip.is-selected {
-	border-color: var(--color-primary);
-	background: color-mix(in srgb, var(--color-primary) 16%, transparent);
-}
-.species-select-type-chip img { width: 100%; height: 100%; object-fit: contain; }
-
 /* @media は基本定義より後ろに置く。狭幅時の上書きが先の定義に負けないため。 */
 @media (max-width: 480px) {
 	.species-select-dialog { width: 96vw; }
-	.species-select-search-sort-row,
-	.species-select-type-row { padding-inline: var(--space-3); }
+	.species-select-search-sort-row { padding-inline: var(--space-3); }
 	.species-select-grid-wrap { padding-inline: var(--space-3); }
 }
