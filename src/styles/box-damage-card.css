@@ -740,6 +740,8 @@ body.box-edit-page {
   font-size: inherit;
   line-height: var(--damage-card-stat-line-height);
   display: inline-flex;
+  transform: scale(.9);
+  transform-origin: left center;
 }
 
 #opponent-notes-section .damage-ev-readonly-stat[data-mod="up"] {
@@ -857,6 +859,64 @@ body.box-edit-page {
   padding: var(--damage-card-total-padding);
   background: var(--damage-card-total-background);
   margin-top: 0;
+  position: relative;
+}
+
+#opponent-notes-section .damage-row-total.is-breakdown-available {
+  cursor: pointer;
+}
+
+#opponent-notes-section .damage-row-total.is-breakdown-available .damage-row-total-result:focus-visible {
+  outline: 1px solid var(--color-primary);
+  outline-offset: 1px;
+}
+
+#opponent-notes-section .damage-row-total-breakdown {
+  position: absolute;
+  z-index: 2;
+  top: calc(100% + var(--space-1));
+  right: 0;
+  min-width: 100%;
+  padding: var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-md);
+  color: var(--color-text);
+}
+
+#opponent-notes-section .damage-row-total-breakdown[hidden] {
+  display: none;
+}
+
+#opponent-notes-section .damage-row-total-breakdown-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+#opponent-notes-section .damage-row-total-breakdown-item {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+  font-size: var(--damage-card-total-detail-font-size);
+  line-height: var(--line-height-tight);
+}
+
+#opponent-notes-section .damage-row-total-breakdown-item + .damage-row-total-breakdown-item {
+  margin-top: var(--space-1);
+}
+
+#opponent-notes-section .damage-row-total-breakdown-move {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#opponent-notes-section .damage-row-total-breakdown-value {
+  flex: none;
+  color: var(--color-text-muted);
 }
 
 /* 倒せる見込みが高い累計範囲 */

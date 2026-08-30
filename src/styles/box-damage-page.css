@@ -43,6 +43,12 @@
   display: flex;
 }
 
+#opponent-notes-section .damage-empty-add-tile {
+  width: 100%;
+  min-height: calc(100dvh - var(--header-height) - var(--bottom-nav-height));
+  flex: 1;
+}
+
 #opponent-notes-section .damage-calc-engine-status {
   font-size: var(--box-damage-engine-status-font-size);
   margin: var(--box-damage-engine-status-margin);

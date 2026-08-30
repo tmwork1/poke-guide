@@ -1578,6 +1578,42 @@ if (opponentNotesSection) {
 	function renderTotalDisplay(row: DamageRowState): void {
 		const target = row.totalResultEl;
 		if (!target) return;
+		const totalBlock = row.totalBlockEl;
+		const breakdown = totalBlock?.querySelector<HTMLElement>(".damage-row-total-breakdown");
+		const closeBreakdown = (): void => {
+			if (!breakdown || !totalBlock) return;
+			breakdown.hidden = true;
+			target.setAttribute("aria-expanded", "false");
+		};
+		const renderBreakdown = (validAttacks: DamageColumnState[], result: OpponentClientResultInput | null): void => {
+			if (!breakdown || !totalBlock) return;
+			breakdown.replaceChildren();
+			const damages = result?.perAttackDamages;
+			const canShow = validAttacks.length > 1
+				&& Array.isArray(damages)
+				&& validAttacks.every((_, index) => Array.isArray(damages[index]) && damages[index].length > 0);
+			totalBlock.classList.toggle("is-breakdown-available", canShow);
+			target.tabIndex = canShow ? 0 : -1;
+			if (!canShow) {
+				closeBreakdown();
+				return;
+			}
+			const list = document.createElement("ul");
+			list.className = "damage-row-total-breakdown-list";
+			validAttacks.forEach((attack, index) => {
+				const item = document.createElement("li");
+				item.className = "damage-row-total-breakdown-item tnum";
+				const move = document.createElement("span");
+				move.className = "damage-row-total-breakdown-move";
+				move.textContent = attack.moveName;
+				const value = document.createElement("span");
+				value.className = "damage-row-total-breakdown-value";
+				value.textContent = formatDamageRange(damages[index], result?.defenderHp);
+				item.append(move, value);
+				list.appendChild(item);
+			});
+			breakdown.appendChild(list);
+		};
 		const setSeverity = (value: string): void => {
 			target.dataset.severity = value;
 			if (!row.totalBlockEl) return;
@@ -1598,6 +1634,7 @@ if (opponentNotesSection) {
 		};
 		const result = row.clientResult;
 		const validAttacks = validAttacksOf(row);
+		renderBreakdown(validAttacks, result);
 		if (validAttacks.length === 0) {
 			setResultPlain(target, "");
 			setSeverity("none");
@@ -3183,7 +3220,35 @@ if (opponentNotesSection) {
 		totalResult.textContent = "(計算前)";
 		totalResult.dataset.severity = "none";
 		totalResult.title = TOTAL_RESULT_HINT;
-		totalBlock.append(totalLabel, totalResult);
+		totalResult.setAttribute("role", "button");
+		totalResult.tabIndex = -1;
+		totalResult.setAttribute("aria-expanded", "false");
+		const totalBreakdown = document.createElement("div");
+		totalBreakdown.className = "damage-row-total-breakdown";
+		totalBreakdown.hidden = true;
+		totalBreakdown.setAttribute("role", "dialog");
+		totalBreakdown.setAttribute("aria-label", "技ごとのダメージ内訳");
+		totalBlock.append(totalLabel, totalResult, totalBreakdown);
+		const toggleTotalBreakdown = (): void => {
+			if (!totalBlock.classList.contains("is-breakdown-available")) return;
+			totalBreakdown.hidden = !totalBreakdown.hidden;
+			totalResult.setAttribute("aria-expanded", String(!totalBreakdown.hidden));
+		};
+		totalBlock.addEventListener("click", (event) => {
+			event.stopPropagation();
+			toggleTotalBreakdown();
+		});
+		totalBreakdown.addEventListener("click", (event) => event.stopPropagation());
+		totalResult.addEventListener("keydown", (event) => {
+			if (event.key === "Escape") {
+				totalBreakdown.hidden = true;
+				totalResult.setAttribute("aria-expanded", "false");
+				return;
+			}
+			if (event.key !== "Enter" && event.key !== " ") return;
+			event.preventDefault();
+			toggleTotalBreakdown();
+		});
 		row.totalResultEl = totalResult;
 		row.totalBlockEl = totalBlock;
 
@@ -3238,6 +3303,10 @@ if (opponentNotesSection) {
 
 		root.addEventListener("click", (event) => {
 			const target = event.target as HTMLElement | null;
+			if (!totalBlock.contains(target)) {
+				totalBreakdown.hidden = true;
+				totalResult.setAttribute("aria-expanded", "false");
+			}
 			if (target?.closest("input, select, textarea, button, a, label")) return;
 			const columnEl = target?.closest<HTMLElement>(".damage-column");
 			if (columnEl) {
@@ -3469,7 +3538,9 @@ if (opponentNotesSection) {
 	function buildAddRowTile(): HTMLButtonElement {
 		const tile = document.createElement("button");
 		tile.type = "button";
-		tile.className = "add-card-tile box-add-button";
+		tile.className = rows.length === 0
+			? "add-card-tile damage-empty-add-tile"
+			: "add-card-tile box-add-button";
 		// DamageCard.pngの「ダメージ計算追加ボタン」(カードの外・下側)にあたる。
 		// 1枚のカード = 相手1体分のダメージ計算なので、追加すると新しい相手の行が増える。
 		tile.setAttribute("aria-label", "ダメージ計算を追加");
