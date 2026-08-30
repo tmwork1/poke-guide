@@ -75,3 +75,15 @@ body.team-page {
 		#no-match-message.empty-state {
 			margin-top: var(--team-page-empty-margin-top);
 		}
+
+		/* 登録0件時は、通常の追加導線と同じ操作を一覧領域中央の大きなタイルで示す。 */
+		#empty-message.empty-state-plain .team-empty-add-button {
+			width: 100%;
+			min-height: 8rem;
+			gap: var(--space-2);
+		}
+
+		#empty-message.empty-state-plain .team-empty-add-button .add-card-tile-icon {
+			width: var(--font-size-lg4);
+			height: var(--font-size-lg4);
+		}

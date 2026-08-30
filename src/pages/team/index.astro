@@ -89,7 +89,13 @@ const user = Astro.locals.user;
 						</div>
 
 						<div id="empty-message" class="empty-state empty-state-plain" hidden>
-							<p class="empty-state-title">チームが登録されていません</p>
+							<button type="button" class="add-card-tile team-empty-add-button" id="add-empty-team-button">
+								<svg class="add-card-tile-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+									<path d="M12 5v14" />
+									<path d="M5 12h14" />
+								</svg>
+								<span class="add-card-tile-label">チームを追加</span>
+							</button>
 						</div>
 
 						<div id="no-match-message" class="empty-state" hidden>
@@ -227,6 +233,7 @@ const user = Astro.locals.user;
 			const noMatchMessage = el<HTMLElement>("no-match-message");
 			const searchInput = el<HTMLInputElement>("search-input");
 			const addButton = el<HTMLButtonElement>("add-team-button");
+			const emptyAddButton = el<HTMLButtonElement>("add-empty-team-button");
 			const densityToggle = el<HTMLButtonElement>("team-display-density-toggle");
 
 			let allTeams: Team[] = [];
@@ -355,6 +362,7 @@ const user = Astro.locals.user;
 			// リクエスト中はボタンをdisabledにする(成功時はページ遷移する)。
 			async function createEmptyTeam(): Promise<void> {
 				addButton.disabled = true;
+				emptyAddButton.disabled = true;
 				errorMessage.hidden = true;
 				try {
 					const res = await fetch("/api/teams", {
@@ -371,6 +379,7 @@ const user = Astro.locals.user;
 					errorMessage.hidden = false;
 					errorMessage.textContent = "チームの作成に失敗しました。時間をおいて再度お試しください。";
 					addButton.disabled = false;
+					emptyAddButton.disabled = false;
 				}
 			}
 
@@ -394,6 +403,7 @@ const user = Astro.locals.user;
 
 			searchInput.addEventListener("input", renderList);
 			addButton.addEventListener("click", () => void createEmptyTeam());
+			emptyAddButton.addEventListener("click", () => void createEmptyTeam());
 			densityToggle.addEventListener("click", () => {
 				displayMode = displayMode === "expanded" ? "compressed" : "expanded";
 				updateDensityToggleUi();
