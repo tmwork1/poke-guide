@@ -27,20 +27,34 @@ import '../../styles/matchup-panel.css';
 
 const user = Astro.locals.user;
 const id = Astro.params.id;
+const isNewMode = id === 'new';
 
 let team: Team | null = null;
 let loadError = false;
 
 if (user && id) {
-	const supabase = await getSupabaseAdminClient();
-	const result = await getTeam(user.id, id, supabase);
-	if (result.ok) {
-		team = result.data;
+	if (isNewMode) {
+		const now = new Date().toISOString();
+		team = {
+			id: '',
+			user_id: user.id,
+			memo: null,
+			is_pinned: false,
+			created_at: now,
+			updated_at: now,
+			members: [],
+		};
 	} else {
-		loadError = true;
-	}
-	if (!team && !loadError) {
-		Astro.response.status = 404;
+		const supabase = await getSupabaseAdminClient();
+		const result = await getTeam(user.id, id, supabase);
+		if (result.ok) {
+			team = result.data;
+		} else {
+			loadError = true;
+		}
+		if (!team && !loadError) {
+			Astro.response.status = 404;
+		}
 	}
 }
 
@@ -431,12 +445,14 @@ try {
 					<section id="team-overview-tab" class="panel">
 						<div class="panel-content">
 							<div id="team-overview-grid" class="team-overview-thumb-grid" aria-label="チームメンバーのプレビュー"></div>
-							<div class="team-mobile-actions__controls">
-								<button id="delete-team-button" class="btn-danger" type="button">
-									<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-									削除
-								</button>
-							</div>
+							{!isNewMode && (
+								<div class="team-mobile-actions__controls">
+									<button id="delete-team-button" class="btn-danger" type="button">
+										<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+										削除
+									</button>
+								</div>
+							)}
 						</div>
 					</section>
 					<div class="team-edit-layout">
@@ -1877,7 +1893,7 @@ try {
 				});
 			}
 			setupAppHeaderSwipe(document.querySelector<HTMLElement>(".app-header"), layoutRoot);
-			const teamId = layoutRoot.dataset.teamId as string;
+			let teamId = layoutRoot.dataset.teamId as string;
 			const initialTeam: InitialTeam = JSON.parse(layoutRoot.dataset.initialTeam || "{}");
 
 			function el<T extends HTMLElement>(id: string): T {
@@ -1918,7 +1934,7 @@ try {
 			const statusEl = el<HTMLElement>("autosave-status");
 			const statusTextEl = el<HTMLElement>("autosave-status-text");
 			const retryButton = el<HTMLButtonElement>("retry-button");
-			const deleteTeamButton = el<HTMLButtonElement>("delete-team-button");
+			const deleteTeamButton = document.getElementById("delete-team-button") as HTMLButtonElement | null;
 
 			const previewEmptyEl = el<HTMLElement>("team-preview-empty");
 			const previewContentEl = el<HTMLElement>("team-preview-content");
@@ -3484,7 +3500,7 @@ try {
 					// 保存を確定させる(scheduleSaveのdebounceだけだと画面遷移で保存が飛ぶため)。
 					if (membersBySlot.size < 6) {
 						assignToSlot(created);
-						await saveNow();
+						if (await saveNow()) return;
 					}
 					navigateToPokemonEdit(created.id);
 					return;
@@ -3879,19 +3895,37 @@ try {
 			let saving = false;
 			let pendingRetry = false;
 
-			async function saveNow(): Promise<void> {
+			async function saveNow(): Promise<boolean> {
 				if (saving) {
 					pendingRetry = true;
-					return;
+					return false;
 				}
 				const payload = buildPayload();
+				if (!teamId && payload.members.length === 0) {
+					statusEl.dataset.state = "saved";
+					statusTextEl.textContent = "メンバーを追加すると保存されます";
+					retryButton.classList.remove("visible");
+					return false;
+				}
 				saving = true;
 				statusEl.dataset.state = "saving";
 				statusTextEl.textContent = "保存中…";
 				retryButton.classList.remove("visible");
 
 				try {
-					const res = await fetch(`/api/teams/${encodeURIComponent(teamId)}`, {
+					let saveTeamId = teamId;
+					if (!saveTeamId) {
+						const createRes = await fetch("/api/teams", {
+							method: "POST",
+							credentials: "same-origin",
+						});
+						const createBody = (await createRes.json().catch(() => ({}))) as { team?: { id?: string }; error?: string };
+						if (!createRes.ok || !createBody.team?.id) {
+							throw new Error(createBody.error ?? `作成に失敗しました (status=${createRes.status})`);
+						}
+						saveTeamId = createBody.team.id;
+					}
+					const res = await fetch(`/api/teams/${encodeURIComponent(saveTeamId)}`, {
 						method: "PUT",
 						credentials: "same-origin",
 						headers: { "Content-Type": "application/json" },
@@ -3900,6 +3934,12 @@ try {
 					if (!res.ok) {
 						const body = (await res.json().catch(() => ({}))) as { error?: string };
 						throw new Error(body.error ?? `保存に失敗しました (status=${res.status})`);
+					}
+					if (!teamId) {
+						teamId = saveTeamId;
+						const currentTab = layoutRoot.dataset.mobileTab || "formation";
+						window.location.href = `/team/${encodeURIComponent(teamId)}?tab=${encodeURIComponent(currentTab)}`;
+						return true;
 					}
 					statusEl.dataset.state = "saved";
 					statusTextEl.textContent = "保存済み";
@@ -3915,6 +3955,7 @@ try {
 						void saveNow();
 					}
 				}
+				return false;
 			}
 
 			function scheduleSave(): void {
@@ -3931,9 +3972,10 @@ try {
 				void saveNow();
 			});
 
-			deleteTeamButton.addEventListener("click", () => {
+			deleteTeamButton?.addEventListener("click", () => {
 				void (async () => {
 					if (!window.confirm("このチームを削除します。よろしいですか?")) return;
+					if (!deleteTeamButton) return;
 					deleteTeamButton.disabled = true;
 					try {
 						const res = await fetch(`/api/teams/${encodeURIComponent(teamId)}`, {
