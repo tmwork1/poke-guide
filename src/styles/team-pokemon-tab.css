@@ -229,6 +229,15 @@ body.team-edit-page {
 	flex: 1 1 0;
 	min-width: 0;
 	width: auto;
+	/* 並べ替え側と隙間なく詰まって見えないよう、検索欄の取り分に上限を設ける。 */
+	max-width: 60%;
+}
+/* .search-input-wrap/inputはflexアイテムとして最小内容幅(placeholderの実測幅)を
+   確保しようとするため、min-width:0が無いと親のmax-widthを突き破って並べ替え側と
+   重なる。ここで明示的に0にして、親の幅まで縮められるようにする。 */
+#team-formation-mobile-toolbar .toolbar-search .search-input-wrap,
+#team-formation-mobile-toolbar .toolbar-search .search-input-wrap input {
+	min-width: 0;
 }
 #team-formation-mobile-toolbar .toolbar-sort {
 	display: flex;
