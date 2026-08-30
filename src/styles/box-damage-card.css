@@ -727,7 +727,7 @@ body.box-edit-page {
   grid-column: 3;
   grid-row: 2;
   align-items: baseline;
-  gap: var(--space-1);
+  gap: calc(var(--space-1) / 2);
   white-space: nowrap;
   display: flex;
 }
@@ -740,8 +740,6 @@ body.box-edit-page {
   font-size: inherit;
   line-height: var(--damage-card-stat-line-height);
   display: inline-flex;
-  transform: scale(.9);
-  transform-origin: left center;
 }
 
 #opponent-notes-section .damage-ev-readonly-stat[data-mod="up"] {
