@@ -104,7 +104,13 @@ const user = Astro.locals.user;
 						</div>
 
 						<div id="empty-message" class="empty-state empty-state-plain" hidden>
-							<p class="empty-state-title">ポケモンが登録されていません</p>
+							<button type="button" class="add-card-tile empty-state-add-button" id="empty-add-pokemon-button">
+								<svg class="add-card-tile-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+									<path d="M12 5v14" />
+									<path d="M5 12h14" />
+								</svg>
+								<span class="add-card-tile-label">個体を追加</span>
+							</button>
 						</div>
 
 						{/* 検索/絞り込みの結果が0件のときの案内。登録自体はあるので空状態
@@ -199,6 +205,7 @@ const user = Astro.locals.user;
 			const sortDirToggle = el<HTMLButtonElement>("sort-dir-toggle");
 			const searchInput = el<HTMLInputElement>("search-input");
 			const addButton = el<HTMLButtonElement>("add-pokemon-button");
+			const emptyAddButton = el<HTMLButtonElement>("empty-add-pokemon-button");
 
 			let allPokemon: OwnedPokemon[] = [];
 
@@ -296,6 +303,7 @@ const user = Astro.locals.user;
 				// 置く(グリッド内だと縮んだ追加タイルの右横に宙に浮いて見えるため)。
 				// #empty-messageと同じ.empty-stateの見た目に揃える。
 				const isTrulyEmpty = allPokemon.length === 0;
+				boxContent?.classList.toggle("is-truly-empty", isTrulyEmpty);
 				emptyMessage.hidden = !isTrulyEmpty;
 				noMatchMessage.hidden = isTrulyEmpty || sorted.length > 0;
 				updateCountBadge(sorted.length);
@@ -347,9 +355,11 @@ const user = Astro.locals.user;
 
 			searchInput.addEventListener("input", renderList);
 			// 新規個体は種族を確定してから編集画面側で登録する。
-			addButton.addEventListener("click", () => {
+			function goToNewPokemon(): void {
 				window.location.href = "/box/new";
-			});
+			}
+			addButton.addEventListener("click", goToNewPokemon);
+			emptyAddButton.addEventListener("click", goToNewPokemon);
 
 			void loadList();
 			reloadOnBfcacheRestore(() => void loadList());

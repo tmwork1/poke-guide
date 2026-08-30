@@ -76,3 +76,17 @@
 #no-match-message.empty-state {
   margin-top: var(--box-page-empty-margin-top);
 }
+
+/* 登録がまだない場合は、共通の破線追加タイルを一覧領域の中央に配置する。
+   検索条件に一致しない場合の #no-match-message には適用しない。 */
+.box-content.is-truly-empty .floating-list-add-button {
+  display: none;
+}
+
+#empty-message.empty-state-plain {
+  min-height: 100%;
+}
+
+.empty-state-add-button {
+  width: 100%;
+}
