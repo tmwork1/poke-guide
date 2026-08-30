@@ -185,7 +185,10 @@ body.data-page {
   --battle-data-card-value-font-size: var(--font-size-sm2);
   --battle-data-card-item-icon-size: 1.4em;
   --battle-data-card-pokemon-icon-size: 1.7em;
-  --battle-data-card-row-height: 1.8em;
+  /* emのまま置くと.trend-cell-body側で祖先のfont-sizeを拾って値がずれる
+     (battle-data-card.cssの--battle-data-card-row-height参照)。value-font-sizeから
+     明示的に計算し、常に.trend-rank-rowと同じ値になるようにする。 */
+  --battle-data-card-row-height: calc(var(--battle-data-card-value-font-size) * 1.8);
   /* 特性・性格はアイコンを使わないため、3件が読める最小限の密度にする。 */
   --box-battle-data-row1-padding: var(--space-1);
   --box-battle-data-row1-value-margin-top: var(--space-1);

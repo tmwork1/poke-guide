@@ -130,7 +130,12 @@ body.data-hub-page {
   1px);
   --battle-data-card-short-cell-height: var(--battle-data-card-cell-height);
 }
-/* 各段の表示件数に合わせて、次のランキング行が途中まで見えないようにする。 */
+/* 各段の表示件数に合わせて、次のランキング行が途中まで見えないようにする。
+   battle-data-card.css側の基本セレクタ(.trend-detail-cell:nth-child(n+3):nth-child(-n+4)、
+   :nth-child(n+5))と詳細度が同点(クラス+疑似クラス2つ)になる組み合わせがあり、
+   同点だと読み込み順次第でどちらが勝つか不定になる。ここでは基本セレクタと同じ
+   nth-child の組み合わせを明示し、.battle-data-panel 分だけ詳細度を上げて常にこちらを
+   勝たせる(cells 3-4とcells 5-6のどちらも次の行を完全に隠す=5件ちょうどで打ち切る)。 */
 .battle-data-panel .trend-detail-cell:nth-child(-n+2) .trend-cell-body {
   flex-basis: calc(
     var(--battle-data-card-value-margin-top) +
@@ -138,7 +143,8 @@ body.data-hub-page {
     var(--data-battle-data-extra-height)
   );
 }
-.battle-data-panel .trend-detail-cell:nth-child(n+3) .trend-cell-body {
+.battle-data-panel .trend-detail-cell:nth-child(n+3):nth-child(-n+4) .trend-cell-body,
+.battle-data-panel .trend-detail-cell:nth-child(n+5) .trend-cell-body {
   flex-basis: calc(
     var(--battle-data-card-value-margin-top) +
     (var(--data-battle-data-row-height) * 5) + (var(--space-1) * 4) +

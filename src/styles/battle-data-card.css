@@ -25,7 +25,11 @@
   --battle-data-card-move-type-bar-width: 4px; /* わざ名の左に置くタイプ色バーの太さ */
   --battle-data-card-move-type-bar-height: 1.3em; /* わざ名の左に置くタイプ色バーの高さ */
   --battle-data-card-pokemon-icon-size: 1.6em; /* 同時採用ポケモンのアイコンサイズ */
-  --battle-data-card-row-height: 1.6em; /* 最大アイコンに少し余白を加えた、全ランキング行共通の高さ */
+  /* emではなくvalue-font-sizeからのcalcにする: このトークンは.trend-rank-row(font-size:
+     value-font-size)とマス側の.trend-cell-body/.trend-detail-card(祖先のfont-sizeをそのまま
+     継承)の両方で参照される。emのままだと後者が祖先のfont-size基準で解決され、実際の行の
+     高さより大きく計算されて次の順位が数px見切れて覗く(6件のはずが7件目の頭が見える等)。 */
+  --battle-data-card-row-height: calc(var(--battle-data-card-value-font-size) * 1.6); /* 最大アイコンに少し余白を加えた、全ランキング行共通の高さ */
   /* round()で整数pxに丸める: 端数pxのままだと2段目・3段目のマス開始位置が
      小数px(サブピクセル)になり、見出しの罫線・文字の描画位置が1段目とわずかにずれて見える。 */
   --battle-data-card-row1-height: round(nearest,
