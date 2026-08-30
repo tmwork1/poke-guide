@@ -232,14 +232,13 @@ if (seasonList?.pokemon) {
 		const scrollContainer = document.querySelector<HTMLElement>('[data-data-hub-scroll]');
 		const entries = list ? Array.from(list.querySelectorAll<HTMLElement>('[data-battle-data-entry]')) : [];
 		const railItems = Array.from(document.querySelectorAll<HTMLAnchorElement>('[data-battle-data-rail-item]'));
-		const rail = document.querySelector<HTMLElement>('.battle-data-rail');
 		const battleDataHeader = document.querySelector<HTMLElement>('.battle-data-second-header');
 		const search = document.querySelector<HTMLInputElement>('#battle-data-search');
 		const seasonSelect = document.querySelector<HTMLSelectElement>('#battle-data-season');
 		const railBySpecies = new Map(railItems.map((item) => [item.dataset.speciesName ?? '', item]));
 		let activeRailItem: HTMLAnchorElement | null = null;
 		let syncFrame: number | undefined;
-		let railDrivenUntil = 0;
+		let visibleEntries = entries;
 
 		function markActiveRail(item: HTMLAnchorElement): void {
 			if (activeRailItem === item) return;
@@ -252,61 +251,20 @@ if (seasonList?.pokemon) {
 			const item = railBySpecies.get(speciesName);
 			if (!item || item.hidden) return;
 			markActiveRail(item);
-			if (!rail) return;
-			const topAligned = item.offsetTop;
-			railDrivenUntil = performance.now() + 100;
-			rail.scrollTo({ top: Math.max(0, topAligned), behavior: 'auto' });
-		}
-
-		function visiblePairs(): Array<{ entry: HTMLElement; railItem: HTMLAnchorElement }> {
-			return entries.flatMap((entry) => {
-				const railItem = railBySpecies.get(entry.dataset.speciesName ?? '');
-				return !entry.hidden && railItem && !railItem.hidden ? [{ entry, railItem }] : [];
-			});
-		}
-
-		function interpolateOffset(position: number, source: HTMLElement[], target: HTMLElement[]): { offset: number; index: number } | null {
-			if (source.length === 0 || source.length !== target.length) return null;
-			let index = 0;
-			while (index < source.length - 1 && source[index + 1].offsetTop <= position) index += 1;
-			const nextIndex = Math.min(index + 1, source.length - 1);
-			const sourceSpan = source[nextIndex].offsetTop - source[index].offsetTop;
-			const ratio = sourceSpan > 0 ? Math.min(1, Math.max(0, (position - source[index].offsetTop) / sourceSpan)) : 0;
-			return { offset: target[index].offsetTop + (target[nextIndex].offsetTop - target[index].offsetTop) * ratio, index };
-		}
-
-		function syncRailToCard(): void {
-			if (!rail || !list || !scrollContainer || battleDataHeader?.hidden || performance.now() < railDrivenUntil) return;
-			const pairs = visiblePairs();
-			const scrollRect = scrollContainer.getBoundingClientRect();
-			const listTop = scrollContainer.scrollTop + list.getBoundingClientRect().top - scrollRect.top;
-			const mapped = interpolateOffset(
-				scrollContainer.scrollTop - listTop,
-				pairs.map((pair) => pair.entry),
-				pairs.map((pair) => pair.railItem),
-			);
-			if (!mapped) return;
-			markActiveRail(pairs[mapped.index].railItem);
-			railDrivenUntil = performance.now() + 16;
-			rail.scrollTo({ top: Math.max(0, mapped.offset), behavior: 'auto' });
-		}
-
-		function syncCardToRail(): void {
-			if (!rail || !list || !scrollContainer || battleDataHeader?.hidden || performance.now() < railDrivenUntil) return;
-			const pairs = visiblePairs();
-			const mapped = interpolateOffset(rail.scrollTop, pairs.map((pair) => pair.railItem), pairs.map((pair) => pair.entry));
-			if (!mapped) return;
-			markActiveRail(pairs[mapped.index].railItem);
-			railDrivenUntil = performance.now() + 16;
-			const listTop = scrollContainer.scrollTop + list.getBoundingClientRect().top - scrollContainer.getBoundingClientRect().top;
-			scrollContainer.scrollTo({ top: Math.max(0, listTop + mapped.offset), behavior: 'auto' });
 		}
 
 		function requestRailSync(): void {
 			if (syncFrame !== undefined) return;
 			syncFrame = requestAnimationFrame(() => {
 				syncFrame = undefined;
-				syncRailToCard();
+				if (!list || !scrollContainer || battleDataHeader?.hidden) return;
+				if (visibleEntries.length === 0) return;
+				const scrollRect = scrollContainer.getBoundingClientRect();
+				const listTop = scrollContainer.scrollTop + list.getBoundingClientRect().top - scrollRect.top;
+				const position = scrollContainer.scrollTop - listTop;
+				let index = 0;
+				while (index < visibleEntries.length - 1 && visibleEntries[index + 1].offsetTop <= position) index += 1;
+				setActiveRail(visibleEntries[index].dataset.speciesName ?? '');
 			});
 		}
 
@@ -320,6 +278,7 @@ if (seasonList?.pokemon) {
 				const rail = railItems.find((item) => item.dataset.speciesName === name);
 				if (rail) rail.hidden = !visible;
 			}
+			visibleEntries = entries.filter((entry) => !entry.hidden);
 			requestRailSync();
 		}
 
@@ -343,7 +302,6 @@ if (seasonList?.pokemon) {
 		}
 
 		scrollContainer?.addEventListener('scroll', requestRailSync, { passive: true });
-		rail?.addEventListener('scroll', syncCardToRail, { passive: true });
 		requestRailSync();
 
 		seasonSelect?.addEventListener('change', () => {
