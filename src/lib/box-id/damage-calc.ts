@@ -811,8 +811,6 @@ if (opponentNotesSection) {
 		options: StatAdjustmentPanelOptions;
 	}>();
 	const rowReadonlyNatureLabelEls = new WeakMap<DamageRowState, Partial<Record<string, HTMLElement>>>();
-	const rowDetailReadonlyNatureLabelEls = new WeakMap<DamageRowState, Partial<Record<string, HTMLElement>>>();
-	const rowDetailStatValueEls = new WeakMap<DamageRowState, Partial<Record<string, HTMLElement>>>();
 
 	// #regulation(LeftPanel.astro/left-panel.ts)はこのファイルからは値を読むだけに留め、
 	// left-panel.ts側の既存changeリスナー(syncRegulationPlaceholder等)は変更しない。
@@ -1715,7 +1713,6 @@ if (opponentNotesSection) {
 			const targets = [
 				row.natureColLabelEls[key],
 				rowReadonlyNatureLabelEls.get(row)?.[key],
-				rowDetailReadonlyNatureLabelEls.get(row)?.[key],
 			];
 			for (const target of targets) {
 				if (!target) continue;
@@ -1748,12 +1745,10 @@ if (opponentNotesSection) {
 		}
 		if (!base) {
 			for (const key of STAT_KEYS) {
-				const targets = [row.statValueEls[key], rowDetailStatValueEls.get(row)?.[key]];
-				for (const target of targets) {
-					if (!target) continue;
-					target.textContent = "-";
-					delete target.dataset.mod;
-				}
+				const target = row.statValueEls[key];
+				if (!target) continue;
+				target.textContent = "-";
+				delete target.dataset.mod;
 			}
 			return;
 		}
@@ -1763,15 +1758,14 @@ if (opponentNotesSection) {
 		// (保存されるnatureと表示を一致させるため)。
 		const natureMod = normalizedNatureBoosts(row.natureUp, row.natureDown);
 		STAT_KEYS.forEach((key, i) => {
-			const targets = [row.statValueEls[key], rowDetailStatValueEls.get(row)?.[key]];
+			const target = row.statValueEls[key];
 			const mod = natureMod.up === key ? "up" : natureMod.down === key ? "down" : null;
 			const iv = 31;
 			const ev = row.evs[i] ?? 0;
 			const value = key === "hp"
 				? calcHpStat(level, base[i], iv, ev)
 				: calcOtherStat(level, base[i], iv, ev, mod === "up" ? 1.1 : mod === "down" ? 0.9 : 1.0);
-			for (const target of targets) {
-				if (!target) continue;
+			if (target) {
 				target.textContent = String(value);
 				if (mod) target.dataset.mod = mod;
 				else delete target.dataset.mod;
@@ -2671,34 +2665,8 @@ if (opponentNotesSection) {
 		const detailSpriteFallback = document.createElement("span");
 		detailSpriteFallback.className = "sprite-fallback";
 		detailSpriteBox.append(detailSpriteImg, detailSpriteFallback);
-		const detailReadonlyEvGrid = document.createElement("div");
-		detailReadonlyEvGrid.className = "damage-ev-grid damage-ev-grid-readonly";
-		const detailReadonlyNatureLabels: Partial<Record<string, HTMLElement>> = {};
-		const detailStatValueEls: Partial<Record<string, HTMLElement>> = {};
-		const detailEvValueEls: HTMLElement[] = [];
-		STAT_KEYS.forEach((key, i) => {
-			const stat = document.createElement("span");
-			stat.className = "damage-ev-readonly-stat";
-			stat.dataset.stat = key;
-			const label = document.createElement("span");
-			label.className = "damage-ev-col-label";
-			label.textContent = STAT_KANJI[key];
-			if (key !== "hp") detailReadonlyNatureLabels[key] = stat;
-			const value = document.createElement("span");
-			value.className = "damage-stat-value tnum";
-			value.textContent = "-";
-			detailStatValueEls[key] = value;
-			const evValue = document.createElement("span");
-			evValue.className = "damage-ev-value-readonly tnum";
-			evValue.setAttribute("aria-label", `相手の${STAT_KANJI[key]}努力値`);
-			detailEvValueEls[i] = evValue;
-			stat.append(label, value, evValue);
-			detailReadonlyEvGrid.appendChild(stat);
-		});
-		detailIdentitySummary.append(detailSpriteBox, detailReadonlyEvGrid);
+		detailIdentitySummary.append(detailSpriteBox);
 		detailIdentityRow.appendChild(detailIdentitySummary);
-		rowDetailReadonlyNatureLabelEls.set(row, detailReadonlyNatureLabels);
-		rowDetailStatValueEls.set(row, detailStatValueEls);
 		const detailDirectionToggle = document.createElement("div");
 		detailDirectionToggle.className = "damage-row-direction-toggle damage-build-detail-direction-toggle";
 		detailDirectionToggle.setAttribute("role", "radiogroup");
@@ -3130,7 +3098,6 @@ if (opponentNotesSection) {
 			readonlyEvValueEls.forEach((value, i) => {
 				const ev = row.evs[i] ?? 0;
 				value.textContent = ev > 0 ? `(+${ev})` : "";
-				detailEvValueEls[i].textContent = ev > 0 ? `(+${ev})` : "";
 			});
 		};
 
