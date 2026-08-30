@@ -49,11 +49,11 @@ body.box-edit-page {
 .speed-adjust-dialog {
   position: fixed;
   z-index: 101;
-  top: 50%;
+  top: var(--modal-top-offset);
   left: 50%;
   width: var(--speed-adjust-dialog-width);
   height: var(--speed-adjust-dialog-height);
-  transform: translate(-50%, -50%);
+  transform: translateX(-50%);
   border: var(--speed-adjust-dialog-border);
   border-radius: var(--speed-adjust-dialog-radius);
   background: var(--color-surface);
