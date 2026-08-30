@@ -69,6 +69,7 @@ let detailPanelMatchupEl: HTMLElement;
 let detailPanelMoveNamesEl: HTMLElement;
 let detailPanelTotalEl: HTMLElement;
 let detailPanelTotalResultEl: HTMLElement;
+const opponentPreviewStatEls = new WeakMap<DamageRowState, Partial<Record<StatKey, HTMLElement>>>();
 let moveDropdownOutsideClickHandler: ((event: MouseEvent) => void) | null = null;
 const DETAIL_PANEL_SWIPE_THRESHOLD_PX = 64;
 const DETAIL_PANEL_SWIPE_AXIS_RATIO = 1.25;
@@ -208,6 +209,35 @@ function setSlideDetailPanelTitle(row: DamageRowState, positionIndex: number): v
 		}
 		detailPanelTabsEl.appendChild(tabWrap);
 	});
+	if (row.attacks.length === 1) {
+		const addTabWrap = document.createElement("div");
+		addTabWrap.className = "damage-detail-panel-tab-wrap damage-detail-panel-add-tab-wrap";
+		const addTab = document.createElement("button");
+		addTab.type = "button";
+		addTab.className = "damage-detail-panel-tab damage-detail-panel-add-tab";
+		addTab.textContent = "+";
+		addTab.title = "わざを追加";
+		addTab.setAttribute("aria-label", "わざを追加");
+		addTab.addEventListener("click", () => {
+			row.addColumnSlotEl
+				?.querySelector<HTMLButtonElement>(".damage-add-column-button:not(:disabled)")
+				?.click();
+		});
+		addTabWrap.appendChild(addTab);
+		detailPanelTabsEl.appendChild(addTabWrap);
+	}
+}
+
+function syncOpponentPreviewStats(row: DamageRowState): void {
+	const statEls = opponentPreviewStatEls.get(row);
+	if (!statEls) return;
+	for (const [key, target] of Object.entries(statEls) as Array<[StatKey, HTMLElement]>) {
+		const source = row.statValueEls[key];
+		const value = target.querySelector<HTMLElement>(".damage-detail-opponent-stat-value");
+		if (value) value.textContent = source?.textContent ?? "-";
+		if (source?.dataset.mod) target.dataset.mod = source.dataset.mod;
+		else delete target.dataset.mod;
+	}
 }
 
 function buildSelectionHeadingRow(row: DamageRowState): HTMLElement {
@@ -249,13 +279,33 @@ function buildSelectionHeadingRow(row: DamageRowState): HTMLElement {
 	const opponentIconFallback = document.createElement("span");
 	opponentIconFallback.className = "damage-detail-selection-icon-fallback";
 	void applySprite(opponentIcon, opponentIconFallback, row.name.trim());
+	const opponentStats = document.createElement("span");
+	opponentStats.className = "damage-detail-opponent-stats";
+	const statKeys: StatKey[] = isSelfAttacking ? ["hp", "def", "spd"] : ["atk", "spa"];
+	const statLabels: Record<StatKey, string> = { hp: "H", atk: "A", def: "B", spa: "C", spd: "D", spe: "S" };
+	const statEls: Partial<Record<StatKey, HTMLElement>> = {};
+	for (const key of statKeys) {
+		const stat = document.createElement("span");
+		stat.className = "damage-detail-opponent-stat";
+		stat.setAttribute("aria-label", `相手の${statLabels[key]}`);
+		const label = document.createElement("span");
+		label.className = "damage-detail-opponent-stat-label";
+		label.textContent = statLabels[key];
+		const value = document.createElement("span");
+		value.className = "damage-detail-opponent-stat-value tnum";
+		stat.append(label, value);
+		opponentStats.appendChild(stat);
+		statEls[key] = stat;
+	}
+	opponentPreviewStatEls.set(row, statEls);
+	syncOpponentPreviewStats(row);
 
 	const attackerLabel = isSelfAttacking ? selfName : opponentName;
 	const defenderLabel = isSelfAttacking ? opponentName : selfName;
 	const fullText = `${attackerLabel} → ${defenderLabel}`;
 	heading.title = fullText;
 	heading.setAttribute("aria-label", fullText);
-	heading.append(selfIcon, selfIconFallback, arrow, opponentIcon, opponentIconFallback);
+	heading.append(selfIcon, selfIconFallback, arrow, opponentIcon, opponentIconFallback, opponentStats);
 	return heading;
 }
 
@@ -283,6 +333,7 @@ function refreshDetailPanelFooter(row: DamageRowState): void {
 export function syncDetailPanelTotal(row: DamageRowState): void {
 	if (!detailPanelTotalResultEl || getSelectedRow() !== row || detailPanelFooterEl.hidden) return;
 	if (detailPanelMoveNamesEl) detailPanelMoveNamesEl.textContent = buildMoveNamesText(row);
+	syncOpponentPreviewStats(row);
 	const source = row.totalResultEl;
 	if (!source) return;
 	detailPanelTotalResultEl.replaceChildren(...Array.from(source.childNodes, (node) => node.cloneNode(true)));

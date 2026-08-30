@@ -131,7 +131,7 @@ body.box-edit-page {
 		/* 攻防スイッチの未選択面も、モーダル内の他の操作面と揃える。 */
 		--damage-card-direction-background: var(--damage-detail-control-background);
 		position: fixed;
-		top: 50%;
+		top: var(--modal-top-offset);
 		left: 50%;
 		right: auto;
 		bottom: auto;
@@ -154,13 +154,13 @@ body.box-edit-page {
 		border: var(--damage-detail-panel-border);
 		border-left: var(--damage-detail-panel-left-border);
 		border-radius: var(--damage-detail-panel-radius);
-		transform: translate(-50%, -50%) scale(0.96);
+		transform: translateX(-50%) scale(0.96);
 		opacity: var(--damage-detail-panel-closed-opacity);
 		pointer-events: none;
 		transition: transform var(--damage-detail-panel-transition-duration) ease, opacity var(--damage-detail-panel-transition-duration) ease;
 	}
 	.damage-detail-panel.is-open {
-		transform: translate(-50%, -50%) scale(1);
+		transform: translateX(-50%) scale(1);
 		opacity: var(--damage-detail-panel-open-opacity);
 		pointer-events: auto;
 	}
@@ -393,6 +393,13 @@ body.box-edit-page {
 	}
 	.damage-detail-panel-tab-wrap:first-child { border-inline-start: 0; }
 	.damage-detail-panel-tab-wrap .damage-detail-panel-tab { min-width: 0; }
+	.damage-detail-panel-add-tab-wrap {
+		flex: 0 0 auto;
+	}
+	.damage-detail-panel-add-tab {
+		min-width: var(--app-header-height);
+		padding-inline: var(--damage-detail-space-sm);
+	}
 	.damage-detail-panel-tab-wrap:has(.damage-detail-panel-tab[aria-selected="true"]) {
 		background: var(--damage-detail-primary-soft-color);
 	}
@@ -439,6 +446,28 @@ body.box-edit-page {
 		-------------------------------------------------------------------------- */
 	.damage-detail-panel .damage-detail-selection-heading {
 		gap: var(--damage-detail-space-md);
+	}
+	.damage-detail-panel .damage-detail-opponent-stats {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: baseline;
+		gap: var(--damage-detail-space-xs);
+		font-size: var(--damage-detail-font-size-xs);
+		line-height: var(--damage-detail-line-height-tight);
+	}
+	.damage-detail-panel .damage-detail-opponent-stat {
+		display: inline-flex;
+		align-items: baseline;
+		color: var(--damage-detail-text-color);
+	}
+	.damage-detail-panel .damage-detail-opponent-stat[data-mod="up"] {
+		color: var(--color-stat-up);
+	}
+	.damage-detail-panel .damage-detail-opponent-stat[data-mod="down"] {
+		color: var(--color-stat-down);
+	}
+	.damage-detail-panel .damage-detail-opponent-stat-label {
+		font-weight: var(--damage-detail-font-weight-semibold);
 	}
 	/* var(--damage-detail-font-size-xs)は両側の見出しと同じ値。行クラスも含めて詳細度を上げ、読み込み順に依存せず適用する。 */
 	#damage-detail-panel-body .damage-detail-field-row .damage-detail-field-row-label {
