@@ -491,7 +491,7 @@ export async function loadPopularBuildSuggestions(
 	speciesName: string,
 	regulation: string | null,
 	archetype: ArchetypeKey | null = null,
-): Promise<void> {
+): Promise<boolean> {
 	const name = speciesName.trim();
 	const token = ++popularBuildSuggestionsToken;
 	if (!name) {
@@ -501,7 +501,7 @@ export async function loadPopularBuildSuggestions(
 		applyTeraSuggestionOrdering();
 		onMoveSuggestionUpdated?.();
 		onAbilitySuggestionUpdated?.();
-		return;
+		return false;
 	}
 	const [nature, item, tera, move, ability] = await Promise.all([
 		fetchSuggestionPayload("popular_nature", name, regulation),
@@ -510,7 +510,7 @@ export async function loadPopularBuildSuggestions(
 		fetchOpggUsagePayload(name, "moves").then((payload) => payload ?? fetchPopularMovePayload(name, regulation, archetype)),
 		fetchOpggUsagePayload(name, "abilities"),
 	]);
-	if (token !== popularBuildSuggestionsToken) return; // より新しい呼び出しに追い越された
+	if (token !== popularBuildSuggestionsToken) return false; // より新しい呼び出しに追い越された
 	lastNatureSuggestion = nature;
 	lastItemSuggestion = item;
 	lastTeraSuggestion = tera;
@@ -521,6 +521,7 @@ export async function loadPopularBuildSuggestions(
 	applyTeraSuggestionOrdering();
 	onMoveSuggestionUpdated?.();
 	onAbilitySuggestionUpdated?.();
+	return true;
 }
 
 let hasBaseStatsForDurabilityIndex = false;
@@ -990,9 +991,55 @@ if (form) {
 		}, baseStatsMap, (name) => moveDetailMap.get(name)?.category);
 	}
 
-	async function reloadPopularBuildSuggestions(): Promise<void> {
+	function topSuggestedValue(suggestion: SuggestionPayload | undefined): string | undefined {
+		return suggestion?.options.reduce<SuggestionOption | undefined>((top, option) =>
+			!top || option.ratio > top.ratio ? option : top,
+		undefined,
+		)?.value;
+	}
+
+	function setSuggestedMoves(): void {
+		const moveNames = (lastMoveSuggestion?.options ?? [])
+			.toSorted((a, b) => b.ratio - a.ratio)
+			.map((option) => option.value)
+			.filter((name, index, names) => name !== "" && names.indexOf(name) === index)
+			.slice(0, 4);
+		for (let slot = 1; slot <= 4; slot++) {
+			const input = document.getElementById(`move-${slot}`) as HTMLInputElement | null;
+			if (!input) continue;
+			const value = moveNames[slot - 1] ?? "";
+			if (input.value === value) continue;
+			input.value = value;
+			input.dispatchEvent(new Event("input"));
+			input.dispatchEvent(new Event("change"));
+		}
+	}
+
+	async function applyTopOpggBuild(speciesName: string): Promise<void> {
+		// 特性は種族ごとの候補に再構築してから設定する。OP.GG側の表記ゆれなど、候補に
+		// 存在しない値は採用しない。
+		await rebuildAbilityOptions(speciesName);
+		if (speciesInput.value.trim() !== speciesName) return;
+		const ability = topSuggestedValue(lastAbilitySuggestion);
+		if (ability && Array.from(abilitySelectEl.options).some((option) => option.value === ability)) {
+			abilitySelectEl.value = ability;
+			abilitySelectEl.dispatchEvent(new Event("input"));
+			abilitySelectEl.dispatchEvent(new Event("change"));
+		}
+
+		const item = topSuggestedValue(lastItemSuggestion);
+		if (item) selectItem(item);
+		setSuggestedMoves();
+		await recalcStats();
+	}
+
+	async function reloadPopularBuildSuggestions(autoFill = false): Promise<void> {
+		const speciesName = speciesInput.value.trim();
 		// レギュレーション属性の廃止により母集団は常に横断(未指定)扱いになる。
-		void loadPopularBuildSuggestions(speciesInput.value.trim(), null, await currentArchetype());
+		const loaded = await loadPopularBuildSuggestions(speciesName, null, await currentArchetype());
+		if (autoFill && loaded && speciesName !== "" && speciesInput.value.trim() === speciesName) {
+			await applyTopOpggBuild(speciesName);
+		}
 	}
 	let suggestionReloadTimer: ReturnType<typeof setTimeout> | undefined;
 	function schedulePopularBuildSuggestionsReload(): void {
@@ -1002,10 +1049,11 @@ if (form) {
 	}
 
 	speciesInput.addEventListener("change", () => {
-		void rebuildAbilityOptions(speciesInput.value.trim());
-		void applyLeftMegaStoneAutofill(speciesInput.value.trim());
-		// 匿名集計サジェスト機能・第5段階: 種族確定時に人気の性格/アイテム/テラス/技を取り直す。
-		reloadPopularBuildSuggestions();
+		const speciesName = speciesInput.value.trim();
+		// 種族を確定したときだけ、OP.GG採用率の最上位構成を初期値として反映する。
+		void reloadPopularBuildSuggestions(true).then(() => {
+			if (speciesInput.value.trim() === speciesName) return applyLeftMegaStoneAutofill(speciesName);
+		});
 	});
 	void rebuildAbilityOptions(speciesInput.value.trim());
 	// ページ初期表示時点(SSRで埋め込まれた現在の種族名)で既にメガシンカ種族の場合、
