@@ -691,7 +691,7 @@ if (form) {
 		updateEvRemaining,
 	});
 
-	const ownedPokemonId = form.dataset.id ?? "";
+	let ownedPokemonId = form.dataset.id ?? "";
 	const speciesInput = el<HTMLInputElement>("species-name");
 	const statusEl = el<HTMLElement>("autosave-status");
 	const statusTextEl = el<HTMLElement>("autosave-status-text");
@@ -1237,6 +1237,13 @@ if (form) {
 			return;
 		}
 		const payload = buildPayload();
+		if (!ownedPokemonId && payload.species_name === "") {
+			statusEl.dataset.state = "empty";
+			statusTextEl.textContent = "種族を入力すると保存されます";
+			retryButton.classList.remove("visible");
+			pendingRetry = false;
+			return;
+		}
 		saving = true;
 		statusEl.dataset.state = "saving";
 		// 進行中表示は画面内で表記を揃えるため全角の三点リーダーを使う。
@@ -1244,6 +1251,20 @@ if (form) {
 		retryButton.classList.remove("visible");
 
 		try {
+			if (!ownedPokemonId) {
+				const res = await fetch("/api/owned-pokemon", {
+					method: "POST",
+					credentials: "same-origin",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify(payload),
+				});
+				const body = (await res.json().catch(() => ({}))) as { data?: { id?: string }; error?: string };
+				if (!res.ok || !body.data?.id) {
+					throw new Error(body.error ?? `登録に失敗しました (status=${res.status})`);
+				}
+				window.location.href = `/box/${encodeURIComponent(body.data.id)}`;
+				return;
+			}
 			const res = await fetch(`/api/owned-pokemon/${encodeURIComponent(ownedPokemonId)}`, {
 				method: "PUT",
 				credentials: "same-origin",
@@ -1376,6 +1397,7 @@ if (form) {
 
 	deleteButton.addEventListener("click", () => {
 		void (async () => {
+			if (!ownedPokemonId) return;
 			if (!window.confirm("この個体を削除します。よろしいですか?")) return;
 			deleteButton.disabled = true;
 			try {

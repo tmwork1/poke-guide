@@ -1,7 +1,8 @@
 ---
 // Phase C-3: 個体の編集フォーム (育成データ管理計画.md §6.2, §8 Phase C-3)。
-// デバウンス付き即時自動保存 + 楽観的UI更新: 入力のたびに数百ms待ってから
-// PUT /api/owned-pokemon/:id を呼ぶ。保存中も入力をブロックしない。失敗時のみエラー表示する。
+// デバウンス付き即時自動保存 + 楽観的UI更新: 入力のたびに数百ms待ってから、既存個体は
+// PUT /api/owned-pokemon/:id、新規個体は種族確定後に POST /api/owned-pokemon を呼ぶ。
+// 保存中も入力をブロックしない。失敗時のみエラー表示する。
 //
 // 初期表示データの取得は API 経由の fetch ではなく、Astro のフロントマター(SSR)で
 // src/lib/owned-pokemon.ts の getOwnedPokemon() を直接呼び出す(box/index.astro の一覧取得のような
@@ -26,11 +27,36 @@ import { getOwnedPokemon, type OwnedPokemonRecord } from '../../lib/owned-pokemo
 
 const user = Astro.locals.user;
 const id = Astro.params.id;
+const isNewMode = id === "new";
 
 let pokemon: OwnedPokemonRecord | null = null;
 let loadError = false;
 
-if (user && id) {
+if (user && isNewMode) {
+	pokemon = {
+		id: '',
+		user_id: user.id,
+		species_name: '',
+		level: null,
+		nature: null,
+		ability_name: null,
+		item_name: null,
+		tera_type: null,
+		evs: [0, 0, 0, 0, 0, 0],
+		ivs: [31, 31, 31, 31, 31, 31],
+		move_names: [],
+		memo: null,
+		tags: [],
+		source_build_slug: null,
+		share_slug: null,
+		is_public: false,
+		created_at: new Date().toISOString(),
+		updated_at: new Date().toISOString(),
+		last_used_at: null,
+		collection_opt_out_until: null,
+		archetype_id: null,
+	};
+} else if (user && id) {
 	const supabase = await getSupabaseAdminClient();
 	const result = await getOwnedPokemon(user.id, id, supabase);
 	if (result.ok) {
@@ -146,11 +172,11 @@ if (pokemon) {
 
 // pageTitleは<title>タグ(ブラウザタブ)に使われる。
 // ヘッダー表示は種族名固定。
-const pageTitle = pokemon ? pokemon.species_name : "個体編集";
+const pageTitle = pokemon && pokemon.species_name ? pokemon.species_name : "個体編集";
 const bodyClass = pokemon ? "box-edit-page" : undefined;
 // クエリ指定時も最初のHTMLからヘッダーと本文の表示状態をそろえる。
 // クライアント初期化まで待つと、特に復帰表示時に「育成」が一瞬選択されたままになる。
-const initialMobileTab = Astro.url.searchParams.get('tab') === 'damage' ? 'damage' : 'training';
+const initialMobileTab = !isNewMode && Astro.url.searchParams.get('tab') === 'damage' ? 'damage' : 'training';
 
 // 匿名集計サジェスト機能・第4段階(UI: 収集拒否トグル)。owned_pokemon.collection_opt_out_until
 // (null=収集対象、未来日時=拒否期間中)から、SSR時点での「拒否中かどうか」と「残り日数」を
@@ -235,8 +261,18 @@ const initialMobileTab = Astro.url.searchParams.get('tab') === 'damage' ? 'damag
 			{/* ダメージ計算カード(#opponent-notes-section)のテンプレート・is:globalスタイル・
 			    スクリプトは構造分割ラウンド(フェーズ2)により src/components/box-id/DamageCalcSection.astro +
 			    src/lib/box-id/damage-calc.ts へ切り出した(見た目・ロジックは一切変更していない)。 */}
-			<DamageCalcSection pokemonId={pokemon.id} moveAdoptionBySpecies={moveAdoptionBySpecies} />
-			<StatAdjustSheet />
+			{isNewMode ? (
+				<section class="panel">
+					<div class="panel-content">
+						<p>種族を入力して保存すると、ダメージ計算などの機能が使えるようになります。</p>
+					</div>
+				</section>
+			) : (
+				<>
+					<DamageCalcSection pokemonId={pokemon.id} moveAdoptionBySpecies={moveAdoptionBySpecies} />
+					<StatAdjustSheet />
+				</>
+			)}
 			</div>
 
 			{/* 右サイド(詳細設定サイドバー、#damage-detail-panel + #damage-detail-backdrop)の
@@ -244,15 +280,15 @@ const initialMobileTab = Astro.url.searchParams.get('tab') === 'damage' ? 'damag
 			    src/components/box-id/RightPanel.astro へ切り出した(見た目・ロジックは一切
 			    変更していない。.edit-layout-detail/#damage-detail-backdropの2要素をまとめて
 			    このコンポーネント自身が描画する)。 */}
-			<RightPanel />
+			{!isNewMode && <RightPanel />}
 			</div>
 
 			{/* 「耐久調整」機能のポップアップ本体。トップバーの#bulk-adjust-button
 			    (上のFragment slot="topbar-actions"参照)から開く。マークアップ・スタイルは
 			    BulkAdjustDialog.astro、ロジックはsrc/lib/box-id/bulk-adjust.tsに実装済み
 			    (このページ側はimportと配置のみ)。 */}
-			<BulkAdjustDialog />
-			<SpeedAdjustDialog pokemonId={pokemon.id} />
+			{!isNewMode && <BulkAdjustDialog />}
+			{!isNewMode && <SpeedAdjustDialog pokemonId={pokemon.id} />}
 			</>
 		)
 	}

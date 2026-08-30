@@ -15,6 +15,7 @@ interface Props {
 }
 
 const { pokemon, activeTab = 'training' } = Astro.props;
+const isNew = !pokemon.id;
 const moves = pokemon.move_names ?? [];
 const itemName = pokemon.item_name?.trim() ?? '';
 // データ系タブのプレビューは編集フォームと同期しないため、持ち物がなければ
@@ -36,22 +37,26 @@ const previewStats = detail ? statKeys.map((key, index) => index === 0 ? calcHpS
       ) : (
         <a class="app-header__item" href={`/box/${encodeURIComponent(pokemon.id)}`}><span>育成</span></a>
       )}
-      {activeTab === 'training' ? (
-        <button type="button" class="app-header__item" data-mobile-tab="damage"><span>ダメージ</span></button>
-      ) : activeTab === 'damage' ? (
-        <button type="button" class="app-header__item" data-mobile-tab="damage" data-active="true" aria-current="page"><span>ダメージ</span></button>
-      ) : (
-        <a class="app-header__item" href={`/box/${encodeURIComponent(pokemon.id)}?tab=damage`}><span>ダメージ</span></a>
-      )}
-      <a class="app-header__item" href={`/box/data?pokemon=${encodeURIComponent(pokemon.id)}`} data-active={activeTab === 'battle-data' ? 'true' : undefined} aria-current={activeTab === 'battle-data' ? 'page' : undefined}>
-        <span>バトルデータ</span>
-      </a>
-      <a class="app-header__item" href={`/box/ranked?pokemon=${encodeURIComponent(pokemon.id)}`} data-active={activeTab === 'ranked-teams' ? 'true' : undefined} aria-current={activeTab === 'ranked-teams' ? 'page' : undefined}>
-        <span>上位チーム</span>
-      </a>
-      <a class="app-header__item" href={`/box/matchup?pokemon=${encodeURIComponent(pokemon.id)}`} data-active={activeTab === 'matchup' ? 'true' : undefined} aria-current={activeTab === 'matchup' ? 'page' : undefined}>
-        <span>相性</span>
-      </a>
+		{!isNew && (
+			<>
+				{activeTab === 'training' ? (
+					<button type="button" class="app-header__item" data-mobile-tab="damage"><span>ダメージ</span></button>
+				) : activeTab === 'damage' ? (
+					<button type="button" class="app-header__item" data-mobile-tab="damage" data-active="true" aria-current="page"><span>ダメージ</span></button>
+				) : (
+					<a class="app-header__item" href={`/box/${encodeURIComponent(pokemon.id)}?tab=damage`}><span>ダメージ</span></a>
+				)}
+				<a class="app-header__item" href={`/box/data?pokemon=${encodeURIComponent(pokemon.id)}`} data-active={activeTab === 'battle-data' ? 'true' : undefined} aria-current={activeTab === 'battle-data' ? 'page' : undefined}>
+					<span>バトルデータ</span>
+				</a>
+				<a class="app-header__item" href={`/box/ranked?pokemon=${encodeURIComponent(pokemon.id)}`} data-active={activeTab === 'ranked-teams' ? 'true' : undefined} aria-current={activeTab === 'ranked-teams' ? 'page' : undefined}>
+					<span>上位チーム</span>
+				</a>
+				<a class="app-header__item" href={`/box/matchup?pokemon=${encodeURIComponent(pokemon.id)}`} data-active={activeTab === 'matchup' ? 'true' : undefined} aria-current={activeTab === 'matchup' ? 'page' : undefined}>
+					<span>相性</span>
+				</a>
+			</>
+		)}
     </div>
   </AppHeader>
 

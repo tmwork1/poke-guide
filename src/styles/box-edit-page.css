@@ -196,7 +196,7 @@ body.box-edit-page {
 	data-state="error"のときだけ、後者はhidden属性が外れたときだけ内容を持つ)。
 	この箱自体に常時余白を持たせると、削除ボタンの下と画面下部ナビの間に常に
 	意味のない帯(背景色の隙間)ができてしまうため、何か表示するときだけ内側余白を足す。 */
-.mobile-edit-actions:has(#autosave-status[data-state="error"], .opponent-notes-save-alert:not([hidden])) {
+.mobile-edit-actions:has(#autosave-status[data-state="error"], #autosave-status[data-state="empty"], .opponent-notes-save-alert:not([hidden])) {
 	padding: var(--box-edit-mobile-actions-padding);
 }
 
@@ -231,6 +231,10 @@ body.box-edit-page {
 		#autosave-status[data-state="error"] #autosave-status-text {
 			display: inline;
 			color: var(--box-edit-error-color);
+		}
+		#autosave-status[data-state="empty"] #autosave-status-text {
+			display: inline;
+			color: var(--color-text-muted);
 		}
 		#delete-button { font-size: var(--box-edit-delete-font-size); }
 		/* メモ欄の下に画面幅いっぱいの横長ボタンとして配置する(以前はヘッダー付近の狭い行に

@@ -327,45 +327,6 @@ const user = Astro.locals.user;
 				countBadge.hidden = false;
 			}
 
-			// 「＋ 個体を追加」: クリックした瞬間に空個体(全項目未設定、ivsは
-			// チャンピオンズルールにより31固定、evsは0)を自動登録し、そのまま編集画面(/box/[id])へ
-			// 遷移する(/box/new の新規作成フォームは廃止)。連打による二重登録を防ぐため、
-			// リクエスト中はボタンをdisabledにする(成功時はページ遷移する)。
-			async function createEmptyPokemon(): Promise<void> {
-				addButton.disabled = true;
-				errorMessage.hidden = true;
-				try {
-					const res = await fetch("/api/owned-pokemon", {
-						method: "POST",
-						credentials: "same-origin",
-						headers: { "Content-Type": "application/json" },
-						body: JSON.stringify({
-							species_name: "",
-							level: null,
-							nature: "",
-							ability_name: "",
-							item_name: "",
-							tera_type: "",
-							evs: [0, 0, 0, 0, 0, 0],
-							ivs: [31, 31, 31, 31, 31, 31],
-							move_names: [],
-							memo: "",
-							tags: [],
-						}),
-					});
-					const body = (await res.json().catch(() => ({}))) as { data?: { id: string }; error?: string };
-					if (!res.ok || !body.data) {
-						throw new Error(body.error ?? `登録に失敗しました (status=${res.status})`);
-					}
-					window.location.href = `/box/${encodeURIComponent(body.data.id)}`;
-				} catch (err) {
-					console.error(err);
-					errorMessage.hidden = false;
-					errorMessage.textContent = "個体を登録できませんでした。時間をおいて再度お試しください。";
-					addButton.disabled = false;
-				}
-			}
-
 			async function loadList(): Promise<void> {
 				loadingMessage.hidden = false;
 				errorMessage.hidden = true;
@@ -385,7 +346,10 @@ const user = Astro.locals.user;
 			}
 
 			searchInput.addEventListener("input", renderList);
-			addButton.addEventListener("click", () => void createEmptyPokemon());
+			// 新規個体は種族を確定してから編集画面側で登録する。
+			addButton.addEventListener("click", () => {
+				window.location.href = "/box/new";
+			});
 
 			void loadList();
 			reloadOnBfcacheRestore(() => void loadList());
