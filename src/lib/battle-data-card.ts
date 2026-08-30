@@ -75,9 +75,19 @@ export function usageRateLabel(usageRate: number | null): string {
 
 /** 性格名の能力補正を「A↑ C↓」形式で表示する。無補正・未知の性格は空文字列。 */
 export function natureModifierLabel(name: string): string {
+  const modifier = natureModifierStats(name);
+  if (!modifier) return '';
+  return `${modifier.up}↑ ${modifier.down}↓`;
+}
+
+/** 性格名から、補正対象の能力略称を取得する。無補正・未知の性格は null。 */
+export function natureModifierStats(name: string): { up: string; down: string } | null {
   const modifier = NATURE_STAT_MODIFIERS[name];
-  if (!modifier?.up || !modifier.down) return '';
-  return `${STAT_SHORT_LABELS[modifier.up]}↑ ${STAT_SHORT_LABELS[modifier.down]}↓`;
+  if (!modifier?.up || !modifier.down) return null;
+  return {
+    up: STAT_SHORT_LABELS[modifier.up],
+    down: STAT_SHORT_LABELS[modifier.down],
+  };
 }
 
 export function evSpreadLabel(values: Record<string, number>): string {

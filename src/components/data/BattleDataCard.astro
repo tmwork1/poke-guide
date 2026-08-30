@@ -7,6 +7,7 @@ import {
   imageIdByName,
   moveTypeByName,
   natureModifierLabel,
+  natureModifierStats,
   evSpreadLabel,
   usageRateLabel,
   type SingleFormatData,
@@ -38,7 +39,7 @@ const teammates = single?.teammates ?? [];
   <div class="trend-detail-cell">
     <span>性格</span>
     <div class="trend-cell-body">
-      {natures.length ? <ul class="trend-rank-list">{natures.map((row) => { const modifierLabel = natureModifierLabel(row.name); return <li class="trend-rank-row trend-rank-row--text2"><span class="trend-rank-name">{row.name}{modifierLabel && ` ${modifierLabel}`}</span><span class="trend-rank-rate">{usageRateLabel(row.usageRate)}</span></li>; })}</ul> : <strong>データなし</strong>}
+      {natures.length ? <ul class="trend-rank-list">{natures.map((row) => { const modifier = natureModifierStats(row.name); return <li class="trend-rank-row trend-rank-row--text2"><span class="trend-rank-name">{row.name}{modifier && <span class="trend-nature-modifier" aria-label={natureModifierLabel(row.name)}>{' ('}<span class="trend-nature-modifier-up">{modifier.up}↑</span>{' '}<span class="trend-nature-modifier-down">{modifier.down}↓</span>{')'}</span>}</span><span class="trend-rank-rate">{usageRateLabel(row.usageRate)}</span></li>; })}</ul> : <strong>データなし</strong>}
     </div>
   </div>
   <div class="trend-detail-cell">

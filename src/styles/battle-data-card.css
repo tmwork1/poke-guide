@@ -247,6 +247,18 @@
   font-weight: var(--battle-data-card-value-font-weight);
 }
 
+.trend-nature-modifier {
+  font-size: var(--font-size-sm2);
+}
+
+.trend-nature-modifier-up {
+  color: var(--color-stat-up);
+}
+
+.trend-nature-modifier-down {
+  color: var(--color-stat-down);
+}
+
 .trend-rank-rate {
   color: var(--battle-data-card-label-color);
   text-align: right;
