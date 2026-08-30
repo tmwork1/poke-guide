@@ -29,6 +29,11 @@ try {
   console.error('[data] ranked season loading failed:', error);
   rankedSeasonsError = 'シーズン一覧を読み込めませんでした。時間をおいて再度お試しください。';
 }
+// 上位チームのシーズン取得に一時的に失敗しても、そのエラー画面を CDN に残さない。
+// 成功時は従来どおりキャッシュ可能なレスポンスにする。
+if (rankedSeasonsError) {
+  Astro.response.headers.set('Cache-Control', 'no-store');
+}
 const defaultRankedSeason = resolveDefaultSeason(rankedSeasons);
 const isTopBuilds = Astro.props.activeTab === 'top-builds';
 
