@@ -20,6 +20,11 @@ body.team-page {
 	--team-page-content-inline-padding: var(--space-5); /* ページ本文の左右余白 */
 	--team-page-empty-margin-top: var(--space-4); /* 検索結果なし表示の上側余白 */
 
+	/* ── 8. 寸法 ──────────────────────────────────────────── */
+	/* 登録0件時の中央タイル用。.team-contentはbox-content(/box)と違いposition:fixedではなく
+	   通常のブロックなので、min-height:100%は親の高さが未確定で効かない(0扱いになる)。
+	   固定表示のヘッダー・下部ナビを除いた実際の可視領域の高さを直接計算する。 */
+	--team-page-empty-min-height: calc(100dvh - var(--header-height) - var(--app-header-height) - var(--second-header-height) - var(--bottom-nav-height) - env(safe-area-inset-bottom));
 }
 
 /* --------------------------------------------------------------------------
@@ -76,7 +81,12 @@ body.team-page {
 			margin-top: var(--team-page-empty-margin-top);
 		}
 
-		/* 登録0件時は、通常の追加導線と同じ操作を一覧領域中央の大きなタイルで示す。 */
+		/* 登録0件時は、通常の追加導線と同じ操作を一覧領域中央の大きなタイルで示す。
+		   .empty-state-plainの既定min-height(global.css、50vh)のままだと可視領域の
+		   実際の高さより低く、ボタンが画面中央より上に寄って見える。 */
+		#empty-message.empty-state-plain {
+			min-height: var(--team-page-empty-min-height);
+		}
 		#empty-message.empty-state-plain .team-empty-add-button {
 			width: 100%;
 			min-height: 8rem;
