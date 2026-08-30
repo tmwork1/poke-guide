@@ -17,5 +17,5 @@ export const onRequest = defineMiddleware(async (context, next) => {
 
   // CSPはHTML以外では実質的な効果を持たないが、JSON APIに付与してもクライアントに害はない。
   // APIを含めて一律適用することでルートごとの設定差を避けるため、4つのヘッダを全て付与する。
-  return applySecurityHeaders(response);
+  return applySecurityHeaders(response, context.url.pathname);
 });

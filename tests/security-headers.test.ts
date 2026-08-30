@@ -32,4 +32,20 @@ describe('applySecurityHeaders', () => {
 			assert.equal(updatedResponse.headers.get(name), value);
 		}
 	});
+
+	for (const pathname of ['/speed-chart', '/data/speed-chart']) {
+		it(`${pathname} は自オリジンのiframe埋め込み(すばやさ調整モーダル)を許可する`, () => {
+			const response = applySecurityHeaders(new Response('ok'), pathname);
+
+			assert.equal(response.headers.get('X-Frame-Options'), 'SAMEORIGIN');
+			assert.match(response.headers.get('Content-Security-Policy') ?? '', /frame-ancestors 'self'/);
+		});
+	}
+
+	it('対象外のパスは引き続きフレーム化を全面禁止する', () => {
+		const response = applySecurityHeaders(new Response('ok'), '/box/123');
+
+		assert.equal(response.headers.get('X-Frame-Options'), 'DENY');
+		assert.match(response.headers.get('Content-Security-Policy') ?? '', /frame-ancestors 'none'/);
+	});
 });
