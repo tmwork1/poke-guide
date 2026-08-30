@@ -937,6 +937,10 @@ if (form) {
 	abilitySelectEl.addEventListener("change", () => {
 		abilitySelectEl.title = abilitySelectEl.value;
 	});
+	// 特性の選択は、保存処理の完了を待たずにモバイル用プレビューへ反映する。
+	// select は操作中に input、確定時に change が発火するため、どちらからも同期する。
+	abilitySelectEl.addEventListener("input", syncPokemonPreview);
+	abilitySelectEl.addEventListener("change", syncPokemonPreview);
 	// OP.GG使用率サジェストがrebuildAbilityOptionsより後に届いた場合に、並び順を最新化する。
 	onAbilitySuggestionUpdated = () => {
 		void rebuildAbilityOptions(speciesInput.value.trim());
