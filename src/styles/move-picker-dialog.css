@@ -46,7 +46,7 @@ body.box-edit-page {
   --move-picker-backdrop-z-index: 99;
   --move-picker-dialog-inset: var(--space-3);
   --move-picker-dialog-max-width: 42rem;
-  --move-picker-dialog-max-height: min(86dvh, 35.2rem); /* 従来値から約10%高くして一覧の表示行数を増やす */
+  --move-picker-dialog-max-height: min(calc(100dvh - var(--modal-top-offset) - var(--move-picker-dialog-inset)), 35.2rem); /* 上寄せ時も画面下端からはみ出さない一覧の上限 */
 }
 
 /* ===========================================================================
@@ -378,12 +378,12 @@ body .move-picker-empty {
   }
   body .move-picker-window.is-mobile-modal {
     z-index: var(--move-picker-dialog-z-index);
-    left: var(--move-picker-dialog-inset) !important;
-    top: 50% !important;
+    left: 50% !important;
+    top: var(--modal-top-offset) !important;
     width: calc(100vw - (var(--move-picker-dialog-inset) * 2)) !important;
     max-width: var(--move-picker-dialog-max-width);
     max-height: var(--move-picker-dialog-max-height) !important;
-    transform: translateY(-50%);
+    transform: translateX(-50%);
     border-radius: var(--move-picker-dialog-radius);
   }
   body .move-picker-slot-tabs {

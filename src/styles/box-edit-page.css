@@ -241,7 +241,7 @@ body.box-edit-page {
 			収める都合で white-space: nowrap にしていたが、単独の全幅行になったため不要)。 */
 		#delete-button { width: 100%; margin-top: var(--space-3); }
 		.training-delete-actions {
-			margin-top: var(--space-4);
+			margin-top: var(--space-5);
 		}
 		.training-delete-actions #delete-button { margin-top: 0; }
 		/* 基底(global.css の button.btn-danger)の太字を、戻るリンクと同じ500に上書きする。 */

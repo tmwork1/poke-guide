@@ -1657,41 +1657,21 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 
 	const slotTabsEl = document.createElement("div");
 	slotTabsEl.className = "move-picker-slot-tabs";
-	const LONG_PRESS_MS = 600;
 	for (const slot of [1, 2, 3, 4]) {
 		const slotButton = document.createElement("button");
 		slotButton.type = "button";
 		slotButton.className = "move-picker-slot-tab";
 		slotButton.dataset.slot = String(slot);
 		slotButton.textContent = `技${slot}`;
-		let pressTimer: ReturnType<typeof window.setTimeout> | undefined;
-		let suppressNextClick = false;
-		const clearPress = (): void => {
-			if (pressTimer !== undefined) window.clearTimeout(pressTimer);
-			pressTimer = undefined;
-		};
-		slotButton.addEventListener("pointerdown", (event) => {
-			// 長押し後にclickが発火しなかった場合も、次の物理的なタップは通常どおり扱う。
-			suppressNextClick = false;
-			if (event.button !== 0) return;
-			pressTimer = window.setTimeout(() => {
-				pressTimer = undefined;
-				suppressNextClick = true;
-				clearMoveSlot(slot);
-			}, LONG_PRESS_MS);
-		});
-		slotButton.addEventListener("pointerup", clearPress);
-		slotButton.addEventListener("pointercancel", clearPress);
-		slotButton.addEventListener("click", (event) => {
-			if (suppressNextClick) {
-				suppressNextClick = false;
-				event.preventDefault();
-				event.stopPropagation();
-				return;
-			}
+		slotButton.addEventListener("click", () => {
 			activeSlot = slot;
 			updateSlotTabs();
 			renderRows();
+		});
+		// スロットを空にするのはダブルタップ／ダブルクリック時だけにする。
+		// clickでは選択を切り替えるだけで、技の内容は変更しない。
+		slotButton.addEventListener("dblclick", () => {
+			clearMoveSlot(slot);
 		});
 		slotTabsEl.appendChild(slotButton);
 	}
@@ -1721,6 +1701,13 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 		btn.textContent = iconOnly ? "" : label;
 		if (iconOnly) btn.setAttribute("aria-label", `${label}で並び替え`);
 		btn.addEventListener("click", () => {
+			if (key === "popularity") {
+				sortKey = "popularity";
+				sortDir = "desc";
+				updateSortButtonIndicators();
+				renderRows();
+				return;
+			}
 			if (sortKey === key) {
 				sortDir = sortDir === "asc" ? "desc" : "asc";
 			} else {

@@ -1102,12 +1102,12 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	}
 	.move-picker-window.is-mobile-modal {
 		z-index: 100;
-		left: var(--space-3) !important;
-		top: 50% !important;
+		left: 50% !important;
+		top: var(--modal-top-offset) !important;
 		width: calc(100vw - (var(--space-3) * 2)) !important;
 		max-width: 42rem;
-		max-height: min(78dvh, 42rem) !important;
-		transform: translateY(-50%);
+		max-height: min(calc(100dvh - var(--modal-top-offset) - var(--space-3)), 42rem) !important;
+		transform: translateX(-50%);
 		border-radius: var(--radius-lg);
 	}
 	.move-picker-slot-tabs {
