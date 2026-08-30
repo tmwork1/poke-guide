@@ -77,16 +77,20 @@
   margin-top: var(--box-page-empty-margin-top);
 }
 
-/* 登録がまだない場合は、共通の破線追加タイルを一覧領域の中央に配置する。
-   検索条件に一致しない場合の #no-match-message には適用しない。 */
-.box-content.is-truly-empty .floating-list-add-button {
-  display: none;
-}
-
 #empty-message.empty-state-plain {
   min-height: 100%;
 }
 
+/* 登録0件時の中央タイル(チーム一覧の#empty-message.empty-state-plain
+   .team-empty-add-buttonと同じ作り)。右下の固定追加ボタン(.floating-list-add-button)
+   は非表示にせず、team一覧と同様に両方を表示する。 */
 .empty-state-add-button {
   width: 100%;
+  min-height: 8rem;
+  gap: var(--space-2);
+}
+
+.empty-state-add-button .add-card-tile-icon {
+  width: var(--font-size-lg4);
+  height: var(--font-size-lg4);
 }
