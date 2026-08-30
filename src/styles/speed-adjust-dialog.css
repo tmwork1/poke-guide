@@ -23,9 +23,9 @@ body.box-edit-page {
 
   /* ── 8. 寸法 ──────────────────────────────────────────── */
   --speed-adjust-dialog-width: min(1200px, 84vw); /* ダイアログの横幅。大きくすると横に広がる */
-  --speed-adjust-dialog-height: var(--modal-height); /* ダイアログの高さ。画面高の約85%を表示領域に使う */
+  --speed-adjust-dialog-height: var(--modal-height); /* ダイアログの高さ。画面高の約75%を表示領域に使う */
   --speed-adjust-dialog-mobile-width: 92vw; /* 狭い画面での横幅。大きくすると左右の余白が減る */
-  --speed-adjust-dialog-mobile-height: var(--modal-height); /* 狭い画面でも画面高の約85%を表示領域に使う */
+  --speed-adjust-dialog-mobile-height: var(--modal-height); /* 狭い画面でも画面高の約75%を表示領域に使う */
 }
 
 /* ===========================================================================

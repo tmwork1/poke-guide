@@ -90,7 +90,7 @@ body.box-edit-page {
 
 	/* ── 8. 寸法 ─────────────────────── */
 	--damage-detail-panel-width: min(92vw, 480px); /* 横幅。大きくすると入力欄や候補カードが横に広がる */
-	--damage-detail-panel-height: var(--modal-height); /* タブごとの内容量にかかわらず、画面高の約85%を表示領域に使う */
+	--damage-detail-panel-height: var(--modal-height); /* タブごとの内容量にかかわらず、画面高の約75%を表示領域に使う */
 	--damage-detail-tera-list-max-height: 16rem; /* 候補一覧の最大高さ。大きくすると一度に見える件数が増える */
 	--stat-ev-mobile-button-block-size: 32px; /* 努力値編集ボタンの寸法。大きくするとタップ領域が広がる */
 	--damage-detail-tera-icon-size: 20px; /* テラタイプアイコン。大きくすると候補行が高くなる */
