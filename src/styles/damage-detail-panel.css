@@ -90,8 +90,7 @@ body.box-edit-page {
 
 	/* ── 8. 寸法 ─────────────────────── */
 	--damage-detail-panel-width: min(92vw, 480px); /* 横幅。大きくすると入力欄や候補カードが横に広がる */
-	--damage-detail-panel-max-height: 85vh; /* 最大高さ。大きくすると一度に見える行数が増える */
-	--damage-detail-panel-height: min(var(--damage-detail-panel-max-height), 34rem); /* A-4: タブ切替でモーダルの高さを変えないための固定値。「相手ポケモン」タブの自然な高さ(実測約30.5rem)を目安に少し余裕を持たせた。大きくすると内容が少ないタブの下部余白が増える一方、内容が多いタブでスクロールする分量が減る */
+	--damage-detail-panel-height: var(--modal-height); /* タブごとの内容量にかかわらず、画面高の約85%を表示領域に使う */
 	--damage-detail-tera-list-max-height: 16rem; /* 候補一覧の最大高さ。大きくすると一度に見える件数が増える */
 	--stat-ev-mobile-button-block-size: 32px; /* 努力値編集ボタンの寸法。大きくするとタップ領域が広がる */
 	--damage-detail-tera-icon-size: 20px; /* テラタイプアイコン。大きくすると候補行が高くなる */
@@ -136,15 +135,7 @@ body.box-edit-page {
 		right: auto;
 		bottom: auto;
 		width: var(--damage-detail-panel-width);
-		/* A-4: 「相手ポケモン」タブと「わざ」タブで表示量が大きく異なり、height:autoのままだと
-			タブ切り替えのたびにモーダル全体の高さが変わっていた。高さを固定値にして、
-			本文側(.damage-detail-panel-body、既存のoverflow-y:auto)でスクロールさせる。
-			固定値は--damage-detail-panel-max-height(85vh)そのままだと内容が少ない
-			「相手ポケモン」タブ(実測約30.5rem)の下部に大きな余白ができるため、
-			そちらに合わせた--damage-detail-panel-heightを使う(内容が多い「わざ」タブは
-			本文側のスクロールで補う)。 */
 		height: var(--damage-detail-panel-height);
-		max-height: var(--damage-detail-panel-max-height);
 		z-index: 60;
 		display: flex;
 		flex-direction: column;

@@ -47,7 +47,7 @@ body.box-edit-page {
 
 	/* ── 8. 寸法 ──────────────────────────────────────────── */
 	--bulk-adjust-dialog-width: min(720px, 94vw); /* ダイアログ横幅。大きくすると横に広がる */
-	--bulk-adjust-dialog-max-height: min(82vh, 900px); /* ダイアログ最大高さ。大きくすると本文の表示領域が増える */
+	--bulk-adjust-dialog-height: var(--modal-height); /* ダイアログの高さ。本文はこの領域内でスクロールする */
 	--bulk-adjust-compute-min-width: 12rem; /* 計算ボタンの最小幅。大きくすると主操作が目立つ */
 	--bulk-adjust-remove-size: 28px; /* 条件カードの削除ボタン。大きくすると押しやすくなる */
 }
@@ -88,7 +88,7 @@ body.box-edit-page {
 		transform: translateX(-50%);
 		z-index: 71;
 		width: var(--bulk-adjust-dialog-width);
-		max-height: var(--bulk-adjust-dialog-max-height);
+		height: var(--bulk-adjust-dialog-height);
 		display: flex;
 		flex-direction: column;
 		background: var(--bulk-adjust-dialog-background);

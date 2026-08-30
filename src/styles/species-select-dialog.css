@@ -4,7 +4,7 @@
 	=========================================================================== */
 body.box-edit-page {
 	--species-select-dialog-width: min(640px, 94vw);
-	--species-select-dialog-max-height: min(720px, calc(100dvh - var(--modal-top-offset) - var(--space-5)));
+	--species-select-dialog-height: var(--modal-height);
 	--species-select-dialog-background: var(--color-surface);
 	--species-select-dialog-border: var(--modal-border);
 	--species-select-dialog-radius: var(--radius-lg);
@@ -68,7 +68,7 @@ body.box-edit-page {
 	transform: translateX(-50%);
 	z-index: 71;
 	width: var(--species-select-dialog-width);
-	height: var(--species-select-dialog-max-height);
+	height: var(--species-select-dialog-height);
 	display: flex;
 	flex-direction: column;
 	overflow: visible;
