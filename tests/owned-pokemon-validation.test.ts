@@ -138,6 +138,42 @@ describe('validateOwnedPokemonRequestBody', () => {
     assert.equal(result.ok, false);
   });
 
+  it('各64文字の名称と2000文字のメモ、20件・各32文字のタグは受け入れる', () => {
+    const result = validateOwnedPokemonRequestBody({
+      species_name: '種'.repeat(64),
+      nature: '性'.repeat(64),
+      ability_name: '特'.repeat(64),
+      item_name: '持'.repeat(64),
+      tera_type: 'テ'.repeat(64),
+      move_names: ['技'.repeat(64)],
+      memo: 'メ'.repeat(2000),
+      tags: Array.from({ length: 20 }, () => 'タ'.repeat(32)),
+    });
+    assert.equal(result.ok, true);
+  });
+
+  it('trim後の文字数・タグ件数が上限を超える場合は拒否する', () => {
+    const cases = [
+      { species_name: '種'.repeat(65) },
+      { nature: '性'.repeat(65) },
+      { ability_name: '特'.repeat(65) },
+      { item_name: '持'.repeat(65) },
+      { tera_type: 'テ'.repeat(65) },
+      { move_names: ['技'.repeat(65)] },
+      { memo: 'メ'.repeat(2001) },
+      { tags: Array.from({ length: 21 }, () => 'タグ') },
+      { tags: ['タ'.repeat(33)] },
+    ];
+    for (const body of cases) {
+      assert.equal(validateOwnedPokemonRequestBody(body).ok, false);
+    }
+  });
+
+  it('上限判定は前後の空白を除いた文字数で行う', () => {
+    const result = validateOwnedPokemonRequestBody({ species_name: `  ${'種'.repeat(64)}  ` });
+    assert.equal(result.ok, true);
+  });
+
   it('bodyが配列の場合は拒否する', () => {
     const result = validateOwnedPokemonRequestBody([1, 2, 3]);
     assert.equal(result.ok, false);

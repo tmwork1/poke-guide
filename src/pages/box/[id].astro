@@ -24,6 +24,7 @@ import MobileTrainingBar from '../../components/box-id/MobileTrainingBar.astro';
 import '../../styles/box-edit-page.css';
 import { getSupabaseAdminClient, getSupabasePublicClient } from '../../lib/supabase';
 import { getOwnedPokemon, type OwnedPokemonRecord } from '../../lib/owned-pokemon';
+import { toJsonScriptContent } from '../../lib/json-script';
 
 const user = Astro.locals.user;
 const id = Astro.params.id;
@@ -298,7 +299,7 @@ const initialMobileTab = !isNewMode && Astro.url.searchParams.get('tab') === 'da
 	<datalist id="move-list"></datalist>
 	<datalist id="ability-list"></datalist>
 	<datalist id="item-list"></datalist>
-	<script type="application/json" id="box-species-usage-data" set:html={JSON.stringify(speciesUsageByRegulation)} />
+	<script type="application/json" id="box-species-usage-data" set:html={toJsonScriptContent(speciesUsageByRegulation)} />
 	<script>
 		const editShell = document.querySelector<HTMLElement>("#edit-shell");
 		const mobileTrainingBar = document.querySelector<HTMLElement>("#mobile-training-bar");

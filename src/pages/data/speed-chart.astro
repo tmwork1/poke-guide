@@ -17,6 +17,7 @@ import '../../styles/second-header.css';
 import { REGULATIONS } from '../../lib/regulations';
 import { getSupabaseAdminClient, getSupabasePublicClient } from '../../lib/supabase';
 import { getOwnedPokemon, type OwnedPokemonRecord } from '../../lib/owned-pokemon';
+import { toJsonScriptContent } from '../../lib/json-script';
 import { parseOwnedQueryParam, resolveSpeedChartRegulation } from '../../lib/speed-chart-validation';
 import type { AdoptionRateBucket, AdoptionRateData } from '../../lib/speed-chart';
 import speedChartConfig from '../../config/speed-chart.json';
@@ -184,11 +185,11 @@ try {
 		embedded={false}
 	/>
 
-	<script type="application/json" id="speed-chart-config" set:html={JSON.stringify(speedChartConfig)} />
-	<script type="application/json" id="speed-chart-adoption-data" set:html={JSON.stringify(adoptionByRegulation)} />
-	<script type="application/json" id="speed-chart-usage-data" set:html={JSON.stringify(speciesUsageByRegulation)} />
-	<script type="application/json" id="speed-chart-team-count-data" set:html={JSON.stringify(teamCountByRegulation)} />
+	<script type="application/json" id="speed-chart-config" set:html={toJsonScriptContent(speedChartConfig)} />
+	<script type="application/json" id="speed-chart-adoption-data" set:html={toJsonScriptContent(adoptionByRegulation)} />
+	<script type="application/json" id="speed-chart-usage-data" set:html={toJsonScriptContent(speciesUsageByRegulation)} />
+	<script type="application/json" id="speed-chart-team-count-data" set:html={toJsonScriptContent(teamCountByRegulation)} />
 	{hasOwnedPanel && (
-		<script type="application/json" id="speed-chart-owned-record" set:html={JSON.stringify(ownedRecord)} />
+		<script type="application/json" id="speed-chart-owned-record" set:html={toJsonScriptContent(ownedRecord)} />
 	)}
 </AppLayout>

@@ -62,6 +62,15 @@ const DEFAULT_EVS = [0, 0, 0, 0, 0, 0];
 const DEFAULT_IVS = [31, 31, 31, 31, 31, 31];
 const MIN_LEVEL = 1;
 const MAX_LEVEL = 100;
+// 実在する日本語名は最長でも十数文字だが、メガフォルム名など将来の表記ゆれにも十分余裕を持たせつつ、
+// 匿名集計へ流れる自由入力を肥大化させないため、種族・技・特性・持ち物・性格・テラスタイプは64文字までにする。
+const MAX_POKEMON_TEXT_LENGTH = 64;
+// メモは個人用の補足を保存できる量を確保しつつ、1レコードでリクエスト上限を消費し切らないよう2000文字までにする。
+const MAX_MEMO_LENGTH = 2000;
+// タグは絞り込み用途の短い分類だけを想定し、一覧・匿名集計の負荷を抑えるため20件までにする。
+const MAX_TAG_COUNT = 20;
+// タグは表示用の短い分類名として十分な余裕を持たせ、自由入力の肥大化を防ぐため32文字までにする。
+const MAX_TAG_LENGTH = 32;
 
 // 空文字は「未指定/クリア」として null に正規化する(フォームの自動保存が毎回全項目を
 // 送ってくる設計上、空欄に戻された項目を null として保存できるようにするため)。
@@ -139,6 +148,34 @@ export function validateOwnedPokemonRequestBody(
   }
   if (tags !== undefined && !isStringArray(tags)) {
     return { ok: false, error: 'tags must be an array of strings' };
+  }
+
+  if (typeof species_name === 'string' && species_name.trim().length > MAX_POKEMON_TEXT_LENGTH) {
+    return { ok: false, error: `species_name must be at most ${MAX_POKEMON_TEXT_LENGTH} characters` };
+  }
+  if (typeof nature === 'string' && nature.trim().length > MAX_POKEMON_TEXT_LENGTH) {
+    return { ok: false, error: `nature must be at most ${MAX_POKEMON_TEXT_LENGTH} characters` };
+  }
+  if (typeof ability_name === 'string' && ability_name.trim().length > MAX_POKEMON_TEXT_LENGTH) {
+    return { ok: false, error: `ability_name must be at most ${MAX_POKEMON_TEXT_LENGTH} characters` };
+  }
+  if (typeof item_name === 'string' && item_name.trim().length > MAX_POKEMON_TEXT_LENGTH) {
+    return { ok: false, error: `item_name must be at most ${MAX_POKEMON_TEXT_LENGTH} characters` };
+  }
+  if (typeof tera_type === 'string' && tera_type.trim().length > MAX_POKEMON_TEXT_LENGTH) {
+    return { ok: false, error: `tera_type must be at most ${MAX_POKEMON_TEXT_LENGTH} characters` };
+  }
+  if (Array.isArray(move_names) && move_names.some((move) => move.trim().length > MAX_POKEMON_TEXT_LENGTH)) {
+    return { ok: false, error: `move_names entries must be at most ${MAX_POKEMON_TEXT_LENGTH} characters` };
+  }
+  if (typeof memo === 'string' && memo.trim().length > MAX_MEMO_LENGTH) {
+    return { ok: false, error: `memo must be at most ${MAX_MEMO_LENGTH} characters` };
+  }
+  if (Array.isArray(tags) && tags.length > MAX_TAG_COUNT) {
+    return { ok: false, error: `tags must contain at most ${MAX_TAG_COUNT} entries` };
+  }
+  if (Array.isArray(tags) && tags.some((tag) => tag.trim().length > MAX_TAG_LENGTH)) {
+    return { ok: false, error: `tags entries must be at most ${MAX_TAG_LENGTH} characters` };
   }
 
   return {

@@ -50,7 +50,15 @@ export async function POST({ request, cookies }: APIContext): Promise<Response> 
   }
 
   const secret = readEnv('SESSION_HASH_SECRET');
-  const sessionHash = await computeSessionHash(sessionId, secret, getUtcDateString());
+  let sessionHash: string;
+  try {
+    sessionHash = await computeSessionHash(sessionId, secret, getUtcDateString());
+  } catch (error) {
+    // 計算ログの保存自体がこのAPIの主目的なので、匿名化を保証できない設定不備は成功として扱わず500にする。
+    // eslint-disable-next-line no-console
+    console.error('Failed to configure session hash for damage calc recording:', error);
+    return jsonResponse({ error: 'Failed to record damage calc' }, 500);
+  }
 
   const { attacker_name, defender_name, move_name, attacker_build, defender_build, field, client_result } =
     validation.value;

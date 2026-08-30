@@ -23,6 +23,7 @@ import '../../styles/second-header.css';
 import { REGULATIONS } from '../../lib/regulations';
 import { getSupabaseAdminClient, getSupabasePublicClient } from '../../lib/supabase';
 import { getOwnedPokemon, type OwnedPokemonRecord } from '../../lib/owned-pokemon';
+import { toJsonScriptContent } from '../../lib/json-script';
 import { parseOwnedQueryParam, resolveSpeedChartRegulation } from '../../lib/speed-chart-validation';
 import type { AdoptionRateBucket, AdoptionRateData } from '../../lib/speed-chart';
 // src/config/speed-chart.json はこのページが唯一importする「採否設定」(U-1)。手で編集する
@@ -241,12 +242,12 @@ try {
 	{/* R-1: 取得したOwnedPokemonRecord全体を<script type="application/json">で埋め込む
 	    (ivs/evs/move_names/tagsが配列のためdata-*属性化に向かない)。owned-panel.tsは
 	    このレコード全体をspreadしてからnature/evs/item_nameの3項目だけ上書きしてPUTする。 */}
-	<script type="application/json" id="speed-chart-config" set:html={JSON.stringify(speedChartConfig)} />
-	<script type="application/json" id="speed-chart-adoption-data" set:html={JSON.stringify(adoptionByRegulation)} />
-	<script type="application/json" id="speed-chart-usage-data" set:html={JSON.stringify(speciesUsageByRegulation)} />
-	<script type="application/json" id="speed-chart-team-count-data" set:html={JSON.stringify(teamCountByRegulation)} />
+	<script type="application/json" id="speed-chart-config" set:html={toJsonScriptContent(speedChartConfig)} />
+	<script type="application/json" id="speed-chart-adoption-data" set:html={toJsonScriptContent(adoptionByRegulation)} />
+	<script type="application/json" id="speed-chart-usage-data" set:html={toJsonScriptContent(speciesUsageByRegulation)} />
+	<script type="application/json" id="speed-chart-team-count-data" set:html={toJsonScriptContent(teamCountByRegulation)} />
 	{hasOwnedPanel && (
-		<script type="application/json" id="speed-chart-owned-record" set:html={JSON.stringify(ownedRecord)} />
+		<script type="application/json" id="speed-chart-owned-record" set:html={toJsonScriptContent(ownedRecord)} />
 	)}
 	{embedded && <script>
 		document.querySelector<HTMLButtonElement>(".speed-chart-embed-close")?.addEventListener("click", () => {

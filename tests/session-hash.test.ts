@@ -40,6 +40,13 @@ describe('computeSessionHash', () => {
     const implicit = await computeSessionHash('session-abc', 'secret-1');
     assert.equal(explicit, implicit);
   });
+
+  it('空文字または空白だけのシークレットは匿名化を保証できないため拒否する', () => {
+    assert.throws(
+      () => computeSessionHash('session-abc', '   ', '2026-07-23'),
+      /SESSION_HASH_SECRET is not configured/,
+    );
+  });
 });
 
 describe('getUtcDateString', () => {

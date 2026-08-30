@@ -10,6 +10,7 @@ const { pokemonId, moveAdoptionBySpecies } = Astro.props;
 import '../../styles/box-damage-page.css';
 import '../../styles/box-add-button.css';
 import '../../styles/box-damage-card.css';
+import { toJsonScriptContent } from '../../lib/json-script';
 ---
 
 
@@ -44,7 +45,7 @@ import '../../styles/box-damage-card.css';
 
 
 
-<script type="application/json" id="damage-calc-move-adoption-data" set:html={JSON.stringify(moveAdoptionBySpecies)} />
+<script type="application/json" id="damage-calc-move-adoption-data" set:html={toJsonScriptContent(moveAdoptionBySpecies)} />
 
 
 

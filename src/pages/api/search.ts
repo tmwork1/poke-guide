@@ -88,7 +88,6 @@ export async function POST({ request, cookies }: APIContext): Promise<Response> 
   }
 
   const secret = readEnv('SESSION_HASH_SECRET');
-  const sessionHash = await computeSessionHash(sessionId, secret, getUtcDateString());
 
   const results: Record<SearchCategory, NamedRecord[]> = { pokemon: [], move: [], ability: [], item: [] };
   let hitCount = 0;
@@ -96,6 +95,17 @@ export async function POST({ request, cookies }: APIContext): Promise<Response> 
     const { hits, hitCount: categoryHitCount } = searchCategory(c, query);
     results[c] = hits;
     hitCount += categoryHitCount;
+  }
+
+  let sessionHash: string;
+  try {
+    sessionHash = await computeSessionHash(sessionId, secret, getUtcDateString());
+  } catch (error) {
+    // 検索結果はバンドル済みマスタデータだけで既に算出済みであり、記録は副次的な処理に過ぎない。
+    // 匿名化を保証できない場合はログを書かず、検索という主目的の結果だけを200で返す。
+    // eslint-disable-next-line no-console
+    console.error('Skipping search logging because session hash is not configured:', error);
+    return jsonResponse({ data: { query, category: category ?? null, hitCount, results } }, 200);
   }
 
   const supabase = await getSupabaseAdminClient();

@@ -48,5 +48,10 @@ export function computeSessionHash(
 	secret: string,
 	dateStr: string = getUtcDateString(),
 ): Promise<string> {
+	// events/searchesは匿名ロールに公開されるため、空のHMAC鍵を許すと第三者がsession_hashを
+	// 再計算できて匿名化が成立しない。環境設定漏れをそのまま保存処理へ流さず明示的に停止する。
+	if (secret.trim() === '') {
+		throw new Error('SESSION_HASH_SECRET is not configured');
+	}
 	return hmacSha256Hex(secret, `${sessionId}:${dateStr}`);
 }

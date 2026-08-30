@@ -56,7 +56,15 @@ export async function POST({ request, cookies }: APIContext): Promise<Response> 
   }
 
   const secret = readEnv('SESSION_HASH_SECRET');
-  const sessionHash = await computeSessionHash(sessionId, secret, getUtcDateString());
+  let sessionHash: string;
+  try {
+    sessionHash = await computeSessionHash(sessionId, secret, getUtcDateString());
+  } catch (error) {
+    // イベント記録自体がこのAPIの主目的なので、匿名化を保証できない設定不備は成功として扱わず500にする。
+    // eslint-disable-next-line no-console
+    console.error('Failed to configure session hash for event recording:', error);
+    return jsonResponse({ error: 'Failed to record event' }, 500);
+  }
 
   const supabase = await getSupabaseAdminClient();
   const { data, error } = await supabase
