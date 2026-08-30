@@ -999,8 +999,8 @@ if (form) {
 	}
 
 	function setSuggestedMoves(): void {
-		const moveNames = (lastMoveSuggestion?.options ?? [])
-			.toSorted((a, b) => b.ratio - a.ratio)
+		const moveNames = [...(lastMoveSuggestion?.options ?? [])]
+			.sort((a, b) => b.ratio - a.ratio)
 			.map((option) => option.value)
 			.filter((name, index, names) => name !== "" && names.indexOf(name) === index)
 			.slice(0, 4);
