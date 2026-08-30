@@ -2506,15 +2506,18 @@ try {
 				return exact ?? usable[0];
 			}
 
-			// 表示条件トグル(「メガシンカを含める」トグル)。OFF時はメガシンカ種族を除外する。
-			// APIを叩き直さず、直近の応答に対してクライアント側でフィルタする。
+			// 表示条件トグル(「メガシンカを含める」トグル)。OFF時はメガシンカ種族を除外し、
+			// ON時もメガシンカ形態は最大2件にする。APIを叩き直さず、直近の応答に対して
+			// クライアント側でフィルタする。
 			async function filterSuggestions(suggestions: TeamSuggestion[]): Promise<TeamSuggestion[]> {
-				let result = suggestions;
-				if (!includeMegaToggle.checked) {
-					const megaSpecies = await loadMegaSpeciesSet();
-					result = result.filter((s) => !megaSpecies.has(s.speciesName));
-				}
-				return result;
+				const megaSpecies = await loadMegaSpeciesSet();
+				let megaCount = 0;
+				return suggestions.filter((suggestion) => {
+					if (!megaSpecies.has(suggestion.speciesName)) return true;
+					if (!includeMegaToggle.checked || megaCount >= 2) return false;
+					megaCount += 1;
+					return true;
+				});
 			}
 
 			// 「この型で個体を作る」: box/index.astro の createEmptyPokemon と同じ POST 経路で、

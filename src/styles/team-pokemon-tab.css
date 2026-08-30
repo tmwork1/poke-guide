@@ -36,7 +36,8 @@ body.team-edit-page {
 	--team-pokemon-tab-suggest-padding: var(--space-2) var(--space-3); /* おすすめ列の内側余白 */
 	--team-pokemon-tab-suggest-icons-gap: var(--space-1); /* おすすめアイコンどうしの間隔 */
 	--team-pokemon-tab-overview-edge-gap: var(--space-2); /* 画面端・カード間、およびヘッダー・カード間の余白 */
-	--team-pokemon-tab-overview-section-gap: var(--space-4); /* カード・メモ・削除ボタンの間隔 */
+	--team-pokemon-tab-overview-section-gap: var(--space-4); /* カードとメモの間隔 */
+	--team-pokemon-tab-delete-gap: var(--space-5); /* メモと削除ボタンの間隔 */
 
 	/* ── 8. 寸法 ────────────────────────── */
 	--team-pokemon-tab-slot-max-width: 34rem; /* 6枠全体の最大幅。大きくすると横に広がる */
@@ -63,7 +64,7 @@ body.team-edit-page {
 }
 .team-mobile-actions__controls {
 	width: 100%;
-	margin-top: var(--team-pokemon-tab-overview-section-gap);
+	margin-top: var(--team-pokemon-tab-delete-gap);
 }
 .team-edit-shell[data-mobile-tab="pokemon"] .team-edit-layout,
 .team-edit-shell[data-mobile-tab="formation"] #team-overview-tab,
@@ -214,9 +215,8 @@ body.team-edit-page {
 	position: static;
 	z-index: auto;
 	display: flex;
-	/* フォント差で375pxでも必要幅が変わるため、固定の幅閾値ではなく
-	   各コントロールの実際の幅に応じて次行へ送る。 */
-	flex-flow: row wrap;
+	/* 検索欄だけを縮め、並べ替え操作を含めて常に一段へ収める。 */
+	flex-flow: row nowrap;
 	align-items: center;
 	gap: var(--app-header-toolbar-gap);
 	background: var(--color-surface);
@@ -226,7 +226,8 @@ body.team-edit-page {
 	--app-header-toolbar-gap: var(--space-2);
 }
 #team-formation-mobile-toolbar .toolbar-search {
-	flex: 1 1 auto;
+	flex: 1 1 0;
+	min-width: 0;
 	width: auto;
 }
 #team-formation-mobile-toolbar .toolbar-sort {
