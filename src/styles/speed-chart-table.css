@@ -461,6 +461,8 @@
 		flex-direction: column;
 		align-items: center;
 		gap: var(--speed-chart-chip-unit-gap);
+		/* 横スクロール側(chips-row)でチップ名が縮んで折り返さないよう、幅を内容ぶんで固定する。 */
+		flex: none;
 	}
 	/* 補正要因(特性名/わざ名/持ち物名)。ポケモンより一段軽い扱い(色を薄く・太字にしない)に
 		して「ポケモンが主・要因が補足」という情報の主従を示す。補正なしグループ(素の実数値)には
@@ -506,18 +508,34 @@
 		vertical-align: middle;
 		color: var(--color-text-muted);
 	}
-	/* ポケモンチップの並び(3列目の1段目)。チップは常に全件表示し、収まらない分は折り返す
-		(chart-table.tsのbuildChipsCell)。
+	/* ポケモンチップの並び(3列目の1段目)。チップは常に全件表示するが、同じ族(実数値)の
+		グループが2行に分かれると「1族1行」が崩れて見えるため折り返さず、収まらない分は
+		横スクロールで見せる(chart-table.tsのbuildChipsCell)。
 		要件E: 各チップは.speed-chart-chip-unit(チップ+補正要因を縦積み)単位になり、要因の
 		有無でユニットの高さが揃わないため、align-itemsをcenterからflex-startに変える
 		(中央だと要因付き/なしのチップの上端がバラつく)。 */
 	.speed-chart-table .speed-chart-chips-row {
 		display: flex;
-		flex-wrap: wrap;
+		flex-wrap: nowrap;
 		align-items: flex-start;
 		justify-content: flex-start;
 		gap: var(--speed-chart-chips-row-gap);
 		width: 100%;
+		overflow-x: auto;
+		overscroll-behavior-x: contain;
+		/* 表内の1行だけに出るスクロールバーなので、既定の太さだと行の高さに対して目立ちすぎる。
+			隠さず(スクロール可能だと分かるようにする)、細く抑える。 */
+		scrollbar-width: thin;
+	}
+	.speed-chart-table .speed-chart-chips-row::-webkit-scrollbar {
+		height: 6px;
+	}
+	.speed-chart-table .speed-chart-chips-row::-webkit-scrollbar-thumb {
+		background: var(--color-border);
+		border-radius: var(--radius-sm);
+	}
+	.speed-chart-table .speed-chart-chips-row::-webkit-scrollbar-track {
+		background: transparent;
 	}
 	.speed-chart-table .speed-chart-chip {
 		display: inline-flex;
