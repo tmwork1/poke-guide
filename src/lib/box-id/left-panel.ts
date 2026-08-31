@@ -1107,14 +1107,21 @@ if (form) {
 
 	function updateEvRemaining(): void {
 		const remainEl = document.getElementById("ev-remaining");
+		const indicatorEl = document.getElementById("hp-16n-indicator");
 		const total = STAT_KEYS.reduce((sum, k) => sum + readEv(k), 0);
 		const remaining = 66 - total;
+		const state = remaining < 0 ? "over" : remaining === 0 ? "zero" : undefined;
 		updateDurabilityIndexButtonEnabled();
-		if (!remainEl) return;
-		remainEl.textContent = `残り${remaining}`;
-		if (remaining < 0) remainEl.dataset.state = "over";
-		else if (remaining === 0) remainEl.dataset.state = "zero";
-		else delete remainEl.dataset.state;
+		if (remainEl) {
+			remainEl.textContent = `残り${remaining}`;
+			if (state) remainEl.dataset.state = state;
+			else delete remainEl.dataset.state;
+		}
+		// 16n+mも同じ残数行の表示なので、非同期の実数値再計算を待たずに状態色を同期する。
+		if (indicatorEl) {
+			if (state) indicatorEl.dataset.state = state;
+			else delete indicatorEl.dataset.state;
+		}
 	}
 
 	// UI刷新: 実数値の常時表示(努力値・個体値・実数値グリッド)。
