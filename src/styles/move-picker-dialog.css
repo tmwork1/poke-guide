@@ -409,6 +409,11 @@ body .move-picker-empty {
     text-overflow: ellipsis;
     text-align: left;
     white-space: nowrap;
+    /* 長押しドラッグ(box-id/left-panel.tsのポインタイベント実装)がタッチのスクロール/
+       コールアウトに横取りされないようにする。 */
+    touch-action: none;
+    -webkit-touch-callout: none;
+    user-select: none;
   }
   /* モバイルで現在編集中の技スロットを主色で示す */
   body .move-picker-slot-tab.is-selected {

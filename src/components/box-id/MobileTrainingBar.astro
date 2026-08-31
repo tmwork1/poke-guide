@@ -33,9 +33,9 @@ const previewStats = detail ? statKeys.map((key, index) => index === 0 ? calcHpS
   <AppHeader id="mobile-training-bar" ariaLabel="個体編集メニュー">
     <div class="app-header__list">
       {activeTab === 'training' ? (
-        <button type="button" class="app-header__item" data-mobile-tab="training" data-active="true" aria-current="page"><span>育成</span></button>
+        <button type="button" class="app-header__item" data-mobile-tab="training" data-active="true" aria-current="page"><span>ポケモン</span></button>
       ) : (
-        <a class="app-header__item" href={`/box/${encodeURIComponent(pokemon.id)}`}><span>育成</span></a>
+        <a class="app-header__item" href={`/box/${encodeURIComponent(pokemon.id)}`}><span>ポケモン</span></a>
       )}
 		{!isNew && (
 			<>

@@ -31,6 +31,8 @@ import { autosizeTextarea } from "../shared/autosize-textarea";
 import { type StatKey, STAT_KEYS, NATURE_STAT_MODIFIERS } from "../stats";
 import { kanaIncludes } from "../kana";
 import { classifyArchetype, type ArchetypeKey } from "../archetype";
+import { renderTeamCard } from "../team-card";
+import type { Team } from "../team";
 import {
 	attachKanaTypeAhead,
 	applySprite,
@@ -1433,6 +1435,58 @@ if (form) {
 		}
 	}
 	syncPokemonPreview();
+
+	void loadOwnedPokemonTeams();
+}
+
+// メモ欄の下に、この個体が所属しているチーム一覧を表示する(読み取り専用。カードクリックで
+// /team/[id]へ遷移するだけで、このパネルからチーム編集はしない)。GET /api/teamsはログイン中
+// ユーザーの全チーム(members込み)を返すため、members[].owned_pokemon.id(TeamMemberの型、
+// src/lib/team.ts参照)がこの個体のidと一致するチームだけをクライアント側で抽出する。
+// 新規個体(保存前、ownedPokemonIdが空)はどのチームにも所属し得ないため呼ばない。
+async function loadOwnedPokemonTeams(): Promise<void> {
+	const listEl = document.getElementById("pokemon-team-list");
+	const ownedPokemonId = (document.getElementById("edit-form") as HTMLFormElement | null)?.dataset.id ?? "";
+	if (!listEl || !ownedPokemonId) return;
+	try {
+		const res = await fetch("/api/teams", { credentials: "same-origin" });
+		if (!res.ok) return;
+		const body = (await res.json().catch(() => ({}))) as { teams?: Team[] };
+		const teams = (body.teams ?? []).filter((t) =>
+			t.members.some((m) => m.owned_pokemon.id === ownedPokemonId),
+		);
+		listEl.replaceChildren();
+		if (teams.length === 0) {
+			listEl.hidden = true;
+			return;
+		}
+		for (const t of teams) {
+			const membersBySlot = new Map(t.members.map((m) => [m.slot, m]));
+			const memoText = (t.memo ?? "").trim();
+			// 表示内容はteam/index.astroのrenderCard()と同じ組み立て(体数バッジ・メモ絵文字・
+			// 標準6枠グリッド)だが、読み取り専用のためonDeleteは一切渡さない(削除ボタン無し)。
+			const card = renderTeamCard({
+				href: `/team/${encodeURIComponent(t.id)}`,
+				ariaLabel: "チームを見る",
+				name: "",
+				memo: memoText ? { text: "📝", title: memoText, ariaLabel: `メモ: ${memoText}` } : {},
+				badges: [{ className: "badge tnum card-team-count-badge", text: `${t.members.length}/6` }],
+				membersBySlot,
+				toCardContent: (member) => {
+					const pokemonName = member.owned_pokemon.species_name?.trim() || "ポケモン";
+					return {
+						pokemon: member.owned_pokemon,
+						displayName: pokemonName,
+						ariaLabel: pokemonName,
+					};
+				},
+			});
+			listEl.appendChild(card);
+		}
+		listEl.hidden = false;
+	} catch (err) {
+		console.error(err);
+	}
 }
 
 function setupMoveReorderDrag(): void {
@@ -1576,6 +1630,32 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 
 	const slotTabsEl = document.createElement("div");
 	slotTabsEl.className = "move-picker-slot-tabs";
+	// スロットの並べ替えは長押し+ドラッグで行う(team/[id].astroのrenderSlots()の
+	// カード並べ替えと同じ「持ち上げ中スロットを記録し、ドロップ先でswapする」考え方)。
+	// ネイティブHTML5 D&D(draggable属性)はタッチ操作時、ブラウザ既定の長押し判定
+	// (Android Chromeで概ね500ms前後、機種依存)に頼っておりJS側から短縮できないため、
+	// 判定時間を明示的に制御できるポインタイベントベースの実装にする(card-delete-mode.tsの
+	// LONG_PRESS_MS、team/[id].astroのLONG_PRESS_MSと同じ考え方。体感を優先し450msにする)。
+	const SLOT_DRAG_LONG_PRESS_MS = 450;
+	const SLOT_DRAG_MOVE_CANCEL_PX = 8; // 長押し確定前にこれ以上動いたらタップ/スクロールとみなし打ち切る
+	let slotPressTimer: ReturnType<typeof window.setTimeout> | undefined;
+	let slotDragActive = false;
+	let suppressSlotClick = false;
+	let slotDragStartX = 0;
+	let slotDragStartY = 0;
+	function clearSlotPressTimer(): void {
+		if (slotPressTimer !== undefined) window.clearTimeout(slotPressTimer);
+		slotPressTimer = undefined;
+	}
+	function findSlotButtonAt(x: number, y: number): HTMLButtonElement | null {
+		const target = document.elementFromPoint(x, y);
+		return (target as HTMLElement | null)?.closest<HTMLButtonElement>(".move-picker-slot-tab") ?? null;
+	}
+	function clearSlotDropTargets(): void {
+		for (const btn of slotTabsEl.querySelectorAll<HTMLButtonElement>(".move-picker-slot-tab")) {
+			btn.classList.remove("is-drop-target");
+		}
+	}
 	for (const slot of [1, 2, 3, 4]) {
 		const slotButton = document.createElement("button");
 		slotButton.type = "button";
@@ -1583,6 +1663,12 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 		slotButton.dataset.slot = String(slot);
 		slotButton.textContent = `技${slot}`;
 		slotButton.addEventListener("click", () => {
+			if (suppressSlotClick) {
+				// 長押しドラッグ確定後に発生する合成clickを1回だけ握りつぶす
+				// (card-delete-mode.tsのsuppressNextClickと同じ考え方)。
+				suppressSlotClick = false;
+				return;
+			}
 			activeSlot = slot;
 			updateSlotTabs();
 			renderRows();
@@ -1592,33 +1678,60 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 		slotButton.addEventListener("dblclick", () => {
 			clearMoveSlot(slot);
 		});
-		// ドラッグ&ドロップで2つのスロットの技を入れ替える(team/[id].astroのrenderSlots()の
-		// カード並べ替えと同じ考え方: dragstart側で持ち上げ中スロットを記録し、drop側で
-		// swapMoveSlots()を呼ぶ)。
-		slotButton.draggable = true;
-		slotButton.addEventListener("dragstart", () => {
-			draggedSlot = slot;
-			slotButton.classList.add("is-dragging");
-		});
-		slotButton.addEventListener("dragend", () => {
-			draggedSlot = null;
+		function onSlotDragMove(moveEvent: PointerEvent): void {
+			clearSlotDropTargets();
+			const hovered = findSlotButtonAt(moveEvent.clientX, moveEvent.clientY);
+			if (hovered && hovered !== slotButton) hovered.classList.add("is-drop-target");
+		}
+		function endSlotDrag(commitEvent: PointerEvent | null): void {
+			document.removeEventListener("pointermove", onSlotDragMove);
+			document.removeEventListener("pointerup", onSlotDragEnd);
+			document.removeEventListener("pointercancel", onSlotDragCancel);
+			slotDragActive = false;
 			slotButton.classList.remove("is-dragging");
-		});
-		slotButton.addEventListener("dragover", (event) => {
-			if (draggedSlot == null || draggedSlot === slot) return; // 自分自身へのドロップは無意味
-			event.preventDefault();
-			slotButton.classList.add("is-drop-target");
-		});
-		slotButton.addEventListener("dragleave", () => {
-			slotButton.classList.remove("is-drop-target");
-		});
-		slotButton.addEventListener("drop", (event) => {
-			event.preventDefault();
-			slotButton.classList.remove("is-drop-target");
+			clearSlotDropTargets();
 			const fromSlot = draggedSlot;
 			draggedSlot = null;
-			if (fromSlot == null || fromSlot === slot) return;
-			swapMoveSlots(fromSlot, slot);
+			if (!commitEvent || fromSlot == null) return;
+			const target = findSlotButtonAt(commitEvent.clientX, commitEvent.clientY);
+			const toSlot = target ? Number(target.dataset.slot) : NaN;
+			if (target && target !== slotButton && Number.isFinite(toSlot)) swapMoveSlots(fromSlot, toSlot);
+		}
+		function onSlotDragEnd(upEvent: PointerEvent): void {
+			endSlotDrag(upEvent);
+		}
+		function onSlotDragCancel(): void {
+			endSlotDrag(null);
+		}
+		slotButton.addEventListener("pointerdown", (event) => {
+			if (event.pointerType === "mouse" && event.button !== 0) return;
+			suppressSlotClick = false;
+			slotDragStartX = event.clientX;
+			slotDragStartY = event.clientY;
+			clearSlotPressTimer();
+			slotPressTimer = window.setTimeout(() => {
+				slotPressTimer = undefined;
+				slotDragActive = true;
+				suppressSlotClick = true;
+				draggedSlot = slot;
+				slotButton.classList.add("is-dragging");
+				document.addEventListener("pointermove", onSlotDragMove);
+				document.addEventListener("pointerup", onSlotDragEnd);
+				document.addEventListener("pointercancel", onSlotDragCancel);
+			}, SLOT_DRAG_LONG_PRESS_MS);
+		});
+		slotButton.addEventListener("pointermove", (event) => {
+			if (slotDragActive || slotPressTimer === undefined) return;
+			const dx = event.clientX - slotDragStartX;
+			const dy = event.clientY - slotDragStartY;
+			// 長押し確定前の移動はタップ/スクロールの意図とみなし、ドラッグ開始をキャンセルする。
+			if (Math.hypot(dx, dy) > SLOT_DRAG_MOVE_CANCEL_PX) clearSlotPressTimer();
+		});
+		slotButton.addEventListener("pointerup", () => {
+			clearSlotPressTimer();
+		});
+		slotButton.addEventListener("pointercancel", () => {
+			clearSlotPressTimer();
 		});
 		slotTabsEl.appendChild(slotButton);
 	}
@@ -2116,6 +2229,20 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 		if (activeInput) reposition(activeInput);
 	}
 
+	// モバイルモーダルの高さは--move-picker-dialog-height(既定75dvh、move-picker-dialog.css)。
+	// dvh(動的ビューポート高)はモーダルを開いたあとに技一覧テーブル内の絞り込み入力/セレクトへ
+	// フォーカスしてソフトキーボードが開くと、キーボード分だけ縮んだビューポート高に追随して
+	// しまい、モーダル自体が縮んで見えるバグの原因になっていた(Android Chrome等はフォーカス時に
+	// レイアウトビューポートをリサイズするため)。モーダルを開いた瞬間(キーボードが閉じている
+	// 状態)の高さをpxで一度だけ確定し、以後キーボードの開閉に関わらず維持する。
+	function lockMobileModalHeight(): void {
+		const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
+		windowEl.style.setProperty("--move-picker-dialog-height", `${Math.round(viewportHeight * 0.75)}px`);
+	}
+	function unlockMobileModalHeight(): void {
+		windowEl.style.removeProperty("--move-picker-dialog-height");
+	}
+
 	function openPicker(slot: number, inputEl: HTMLInputElement, mobileModal = false): void {
 		// 幅の狭い画面(デスクトップ2カラム構成が成立しない1200px未満相当)では
 		// 「左パネルの右側に外付け」という前提が成立しない。この場合は開かず、
@@ -2126,6 +2253,7 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 		windowEl.setAttribute("aria-modal", String(mobileModal));
 		backdropEl.hidden = !mobileModal;
 		updateSlotTabs();
+		lockMobileModalHeight();
 		windowEl.hidden = false;
 		if (!mobileModal) reposition(inputEl);
 		window.addEventListener("resize", onScrollOrResize);
@@ -2138,6 +2266,7 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 		windowEl.classList.remove("is-mobile-modal");
 		windowEl.setAttribute("aria-modal", "false");
 		backdropEl.hidden = true;
+		unlockMobileModalHeight();
 		window.removeEventListener("resize", onScrollOrResize);
 		window.removeEventListener("scroll", onScrollOrResize, true);
 	}
