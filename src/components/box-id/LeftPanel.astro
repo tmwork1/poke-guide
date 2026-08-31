@@ -206,10 +206,10 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 				<span class="stat-row-label" aria-hidden="true"></span>
 				<span class="stat-row-nature" aria-hidden="true"></span>
 				<span class="stat-row-base tnum" aria-hidden="true"></span>
-				<span class="stat-row-remaining-value">
+				<span class="stat-row-remaining-value stat-row-counter-cell">
 					<span id="ev-remaining" class="ev-remaining tnum"></span>
 				</span>
-				<span class="stat-row-real-wrap">
+				<span class="stat-row-real-wrap stat-row-counter-cell">
 					<span id="hp-16n-indicator" class="ev-remaining tnum"></span>
 				</span>
 			</div>
@@ -449,10 +449,18 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		padding: var(--stat-number-input-mobile-padding);
 		line-height: 1;
 	}
-	/* 残り努力値は、操作群の中央にある数値ボタンの真上へ揃える。 */
-	.stat-row-remaining .stat-row-remaining-value {
+	/* 残り努力値と16n+mは、残数行の2セルとして同じ書式・中央揃えにする。
+	   前者だけを指定すると、後者が.stat-row-real-wrapの通常行用レイアウトを継承し、
+	   育成タブとモーダルでずれて見える。 */
+	.stat-row-remaining .stat-row-counter-cell {
+		display: flex;
+		align-items: center;
 		justify-content: center;
+		min-width: 0;
 		padding-inline-end: 0;
+		font-size: var(--stat-ev-remaining-font-size);
+		line-height: 1;
+		white-space: nowrap;
 	}
 	.stat-row .stat-ev-step-button[data-ev-step="1"] { order: 4; }
 	.stat-row .stat-ev-endpoint-button[data-ev-toggle] { order: 5; }

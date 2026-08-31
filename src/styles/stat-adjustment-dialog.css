@@ -170,11 +170,15 @@ body.data-page {
 	align-items: center;
 	justify-content: center;
 }
-#stat-adjustment-dialog-body .stat-row-remaining-value {
+#stat-adjustment-dialog-body .stat-row-remaining .stat-row-counter-cell {
 	display: flex;
 	align-items: center;
 	justify-content: center;
 	min-width: 0;
+	padding-inline-end: 0;
+	font-size: var(--stat-ev-remaining-font-size);
+	line-height: 1;
+	white-space: nowrap;
 }
 #stat-adjustment-dialog-body .stat-nature-btn {
 	display: inline-grid;
