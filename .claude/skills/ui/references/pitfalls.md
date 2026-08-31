@@ -307,6 +307,11 @@ scoped style は `data-astro-cid-*` 属性が付いた**静的マークアップ
 - **実例2件**: 最初は `@container` で踏み、別の機会に**まったく同じことを `@media` で踏んだ**(狭幅用のグリッド組み替えを基本定義より前に書いてしまい、無効化されていた)。
 - **`@media` は「効かない理由」が見えにくい。** 幅を変えても何も起きないと「メディアクエリの条件が違うのでは」と疑いがちだが、**条件は合っていて後続ルールに負けているだけ**というケースがある。DevToolsで打ち消し線を確認するか、**まず基本定義より後ろに移して試す**のが速い。
 
+### 🔴 ページ側 `<link>` は AppLayout の `.card` バンドルより先に挿入される。同詳細度の上書きが常に負ける(2026-09-01)
+ページが `import stylesheet from '../styles/foo.css?url'` を `<link slot="head" href={stylesheet}>` で読み込む構成(`home-page.css` など)では、その `<link>` が **AppLayout側にバンドルされる `global.css`(`.card` の定義元)より前に `<head>` へ入る**。dev(`astro dev`)でも build(`astro preview`)でも同じ順序になる。「JSのimport順(AppLayoutが先にglobal.cssをimportしている)なら後から読むページ側が勝つはず」という直感は**逆**。
+- **実例**: `src/pages/index.astro` の `.home-card`(`class="card home-card"`)に `border: var(--home-page-card-border)` / `box-shadow: none` を`.home-card`セレクタ(詳細度 (0,1,0))で書いていたが、`global.css` の `.card { border: 0px …; box-shadow: var(--shadow-sm) }` も同じ (0,1,0) で**後に挿入されるため常に上書きされ、枠線も影の解除も一切効いていなかった**。`npx astro build` は通り、コード上は「直したはず」に見えるため、`getComputedStyle` で実測するまで誰も気づかなかった。
+- **対策**: `.card` の個別プロパティ(border/box-shadow/background/border-radius等)を上書きしたいときは、**`.home-card` 単独ではなく親要素込みの複合セレクタで詳細度を上げる**(例: `.home-card-grid .home-card { border: …; }`)。これは `box-card.css` が最初から `.box-grid .box-card` という複合セレクタを使っている理由でもある。単独クラスの上書きは書いた瞬間に成功したように見えるので、**`.card` 由来のプロパティを上書きしたら必ず `getComputedStyle` で実測して確認する**(スクショだけでは shadow の有無など気づきにくい)。
+
 ### 🔴 重複CSSを `global.css` へ集約するとき、置く「位置」で壊れる(2026-08-05)
 `global.css` は1ファイルの中で「ツールバー」「入力欄」「ボタン」…と節に分かれている。**節をまたいで同詳細度のルールがぶつかると、後ろの節が勝つ。**
 - **実例**: 一覧ツールバーを集約した際、`.search-input-wrap input { padding-left: 2.1em }`(アイコン領域の確保)をツールバー節=ファイル前方に置いた。ところが後方の入力欄節に `input[type="text"] { padding: var(--space-2) var(--space-3) }` という**ショートハンド**があり、詳細度が **どちらも (0,1,1) で同じ**なので後勝ちし、`padding-left` が潰れて**検索アイコンがプレースホルダに重なった**。
