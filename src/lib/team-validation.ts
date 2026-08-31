@@ -17,6 +17,7 @@ export type TeamValidationResult<T> = { ok: true; value: T } | { ok: false; erro
 export interface TeamMemberInput {
   slot: number;
   owned_pokemon_id: string;
+  item_override?: string | null;
 }
 
 export interface TeamRequestBody {
@@ -94,12 +95,15 @@ export function validateTeamRequestBody(
       if (!isPlainObject(raw)) {
         return { ok: false, error: 'each member must be a JSON object' };
       }
-      const { slot, owned_pokemon_id } = raw;
+      const { slot, owned_pokemon_id, item_override } = raw;
       if (typeof slot !== 'number' || !Number.isInteger(slot) || slot < MIN_SLOT || slot > MAX_SLOT) {
         return { ok: false, error: `slot must be an integer between ${MIN_SLOT} and ${MAX_SLOT}` };
       }
       if (!isValidUuidString(owned_pokemon_id)) {
         return { ok: false, error: 'owned_pokemon_id must be a valid uuid string' };
+      }
+      if (item_override !== undefined && item_override !== null && typeof item_override !== 'string') {
+        return { ok: false, error: 'item_override must be a string or null' };
       }
       if (seenSlots.has(slot)) {
         return { ok: false, error: `duplicate slot in members: ${slot}` };
@@ -109,7 +113,7 @@ export function validateTeamRequestBody(
       }
       seenSlots.add(slot);
       seenIds.add(owned_pokemon_id);
-      normalizedMembers.push({ slot, owned_pokemon_id });
+      normalizedMembers.push({ slot, owned_pokemon_id, item_override: typeof item_override === 'string' ? item_override : null });
     }
   }
 

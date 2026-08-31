@@ -24,6 +24,8 @@ import '../../styles/team-data-tab.css';
 import '../../styles/team-card.css';
 import '../../styles/app-header.css';
 import '../../styles/matchup-panel.css';
+import '../../styles/item-select-dialog.css';
+import '../../styles/team-item-redistribute-dialog.css';
 
 const user = Astro.locals.user;
 const id = Astro.params.id;
@@ -535,6 +537,10 @@ try {
 							    子要素(.card-team-slot)のスタイルは下の<style is:global>側に置く。
 							    3列2行のグリッドで配置する(CSSは下の.team-slots参照)。 */}
 							<div id="team-slots" class="team-slots"></div>
+							<button type="button" id="team-item-redistribute-button" class="btn-control team-item-redistribute-button" aria-haspopup="dialog">
+								<span class="team-item-redistribute-button-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 7h8"/><path d="M8 12h8"/><path d="M8 17h8"/><circle cx="5" cy="7" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="17" r="1"/></svg></span>
+								<span>もちもの再分配</span>
+							</button>
 
 							<textarea
 								id="team-memo"
@@ -545,6 +551,25 @@ try {
 								rows="3">{team.memo ?? ''}</textarea>
 						</div>
 					</div>
+
+					<div id="team-item-redistribute-backdrop" class="item-select-backdrop" hidden></div>
+					<section id="team-item-redistribute-dialog" class="item-select-dialog team-item-redistribute-dialog" role="dialog" aria-modal="true" aria-labelledby="team-item-redistribute-title" tabindex="-1" hidden>
+						<div class="item-select-header">
+							<h2 id="team-item-redistribute-title" class="item-select-title">もちもの再分配</h2>
+							<button type="button" id="team-item-redistribute-close" class="btn-ghost item-select-close" aria-label="閉じる">×</button>
+						</div>
+						<p class="team-item-redistribute-help">ポケモンを選んで持ち物を選択。別のポケモンを選ぶと持ち物を入れ替えます。長押し、または持ち物を押すと解除できます。</p>
+						<div id="team-item-redistribute-members" class="team-item-redistribute-members" aria-label="チームのポケモン"></div>
+						<div class="item-select-search-row">
+							<div class="search-input-wrap item-select-search-wrap">
+								<input type="text" id="team-item-redistribute-search" class="item-select-search-input field-control" placeholder="もちものを検索" aria-label="もちものを検索" autocomplete="off" />
+							</div>
+						</div>
+						<div class="item-select-grid-wrap">
+							<div id="team-item-redistribute-items" class="item-select-grid" role="listbox" aria-label="もちものを選択"></div>
+							<p id="team-item-redistribute-empty" class="item-select-empty" hidden>該当するもちものがありません</p>
+						</div>
+					</section>
 
 					{/* --- 右: 選択バーで1回クリックしたポケモンの詳細プレビュー。中身はJS
 					    (renderPreviewPanel)が生成する。box/[id].astroのRightPanelと同じく
@@ -1821,6 +1846,7 @@ try {
 		} from "../../lib/damage-summary";
 		import { createMatchupPanel } from "../../lib/matchup-panel";
 		import { setupAppHeaderSwipe } from "../../lib/app-header-swipe";
+		import { createItemSelectGrid } from "../../lib/box-id/item-select-dialog";
 
 		interface OwnedPokemonRecord {
 			id: string;
@@ -1851,6 +1877,7 @@ try {
 
 		interface TeamMemberData {
 			slot: number;
+			item_override: string | null;
 			owned_pokemon: OwnedPokemonRecord;
 		}
 
@@ -1910,6 +1937,14 @@ try {
 			const dedupeToggle = el<HTMLInputElement>("team-select-dedupe-toggle");
 			const favoriteFilterToggle = el<HTMLInputElement>("favorite-filter-toggle");
 			const slotsRoot = el<HTMLElement>("team-slots");
+			const itemRedistributeButton = el<HTMLButtonElement>("team-item-redistribute-button");
+			const itemRedistributeBackdrop = el<HTMLElement>("team-item-redistribute-backdrop");
+			const itemRedistributeDialog = el<HTMLElement>("team-item-redistribute-dialog");
+			const itemRedistributeClose = el<HTMLButtonElement>("team-item-redistribute-close");
+			const itemRedistributeMembers = el<HTMLElement>("team-item-redistribute-members");
+			const itemRedistributeSearch = el<HTMLInputElement>("team-item-redistribute-search");
+			const itemRedistributeItems = el<HTMLElement>("team-item-redistribute-items");
+			const itemRedistributeEmpty = el<HTMLElement>("team-item-redistribute-empty");
 			const formationMobileSlotsRoot = el<HTMLElement>("team-formation-mobile-slots");
 			const formationMobileSuggestIcons = el<HTMLElement>("team-formation-mobile-suggest-icons");
 			const teamDataMobileSlotsRoot = el<HTMLElement>("team-data-mobile-slots");
@@ -1996,9 +2031,180 @@ try {
 
 			// 6枠の現在状態(slot 1..6 -> 個体。無ければ空き)。
 			const membersBySlot = new Map<number, OwnedPokemonRecord>();
+			const itemOverridesBySlot = new Map<number, string | null>();
 			for (const m of initialTeam.members ?? []) {
 				membersBySlot.set(m.slot, m.owned_pokemon);
+				itemOverridesBySlot.set(m.slot, m.item_override ?? null);
 			}
+
+			function effectiveItemName(slot: number, p: OwnedPokemonRecord): string {
+				const override = itemOverridesBySlot.get(slot);
+				return (override ?? p.item_name ?? "").trim();
+			}
+
+			function effectiveMembersBySlot(): Map<number, OwnedPokemonRecord> {
+				return new Map(Array.from(membersBySlot, ([slot, p]) => [
+					slot,
+					{ ...p, item_name: effectiveItemName(slot, p) || null },
+				]));
+			}
+
+			let selectedRedistributionSlot: number | null = null;
+			let selectedRedistributionItem: string | null = null;
+			let redistributionSearchQuery = "";
+
+			function renderRedistributionItems(): void {
+				redistributionItemGrid.render(redistributionSearchQuery);
+			}
+
+			function renderRedistributionMembers(): void {
+				itemRedistributeMembers.replaceChildren();
+				for (let slot = 1; slot <= 6; slot += 1) {
+					const p = membersBySlot.get(slot);
+					if (!p) {
+						const empty = document.createElement("div");
+						empty.className = "team-item-redistribute-member is-empty";
+						empty.textContent = String(slot);
+						itemRedistributeMembers.appendChild(empty);
+						continue;
+					}
+					const member = document.createElement("div");
+					member.className = "team-item-redistribute-member";
+					member.tabIndex = 0;
+					member.setAttribute("role", "button");
+					member.setAttribute("aria-pressed", String(selectedRedistributionSlot === slot));
+					if (selectedRedistributionSlot === slot) member.classList.add("is-selected");
+					const sprite = document.createElement("img");
+					sprite.className = "team-item-redistribute-member-sprite";
+					sprite.alt = "";
+					sprite.style.display = "none";
+					const fallback = document.createElement("span");
+					fallback.className = "team-item-redistribute-member-fallback";
+					member.append(sprite, fallback);
+					void applySprite(sprite, fallback, p.species_name);
+					const name = document.createElement("span");
+					name.className = "team-item-redistribute-member-name";
+					name.textContent = displayName(p);
+					const itemButton = document.createElement("button");
+					itemButton.type = "button";
+					itemButton.className = "team-item-redistribute-member-item";
+					const itemName = effectiveItemName(slot, p);
+					itemButton.title = itemName ? `${itemName}を解除` : "もちものなし";
+					itemButton.setAttribute("aria-label", itemButton.title);
+					if (itemName) {
+						const itemImage = document.createElement("img");
+						itemImage.alt = "";
+						void applyItemIcon(itemImage, itemName);
+						itemButton.appendChild(itemImage);
+					}
+					const itemLabel = document.createElement("span");
+					itemLabel.textContent = itemName || "なし";
+					itemButton.appendChild(itemLabel);
+					itemButton.addEventListener("click", (event) => {
+						event.stopPropagation();
+						clearRedistributedItem(slot);
+					});
+					member.append(name, itemButton);
+					let longPressTimer: ReturnType<typeof window.setTimeout> | undefined;
+					let longPressed = false;
+					member.addEventListener("pointerdown", (event) => {
+						if (event.button !== 0) return;
+						longPressed = false;
+						longPressTimer = window.setTimeout(() => {
+							longPressed = true;
+							clearRedistributedItem(slot);
+						}, 500);
+					});
+					const cancelLongPress = () => {
+						if (longPressTimer !== undefined) window.clearTimeout(longPressTimer);
+						longPressTimer = undefined;
+					};
+					member.addEventListener("pointerup", cancelLongPress);
+					member.addEventListener("pointercancel", cancelLongPress);
+					member.addEventListener("pointerleave", cancelLongPress);
+					member.addEventListener("click", () => {
+						if (longPressed) { longPressed = false; return; }
+						onRedistributionMemberTap(slot);
+					});
+					member.addEventListener("keydown", (event) => {
+						if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onRedistributionMemberTap(slot); }
+					});
+					itemRedistributeMembers.appendChild(member);
+				}
+			}
+
+			function refreshEffectiveItemViews(): void {
+				renderSlots();
+				renderFormationMobile();
+				renderSelectList();
+				renderRedistributionMembers();
+				renderRedistributionItems();
+				scheduleSave();
+			}
+
+			function clearRedistributedItem(slot: number): void {
+				itemOverridesBySlot.set(slot, "");
+				selectedRedistributionSlot = null;
+				selectedRedistributionItem = null;
+				refreshEffectiveItemViews();
+			}
+
+			function setRedistributedItem(slot: number, itemName: string): void {
+				const p = membersBySlot.get(slot);
+				if (!p) return;
+				const normalized = itemName.trim();
+				itemOverridesBySlot.set(slot, normalized && normalized === (p.item_name ?? "").trim() ? null : normalized);
+				if (normalized) {
+					for (const [otherSlot, other] of membersBySlot) {
+						if (otherSlot !== slot && effectiveItemName(otherSlot, other) === normalized) itemOverridesBySlot.set(otherSlot, "");
+					}
+				}
+				refreshEffectiveItemViews();
+			}
+
+			function swapRedistributedItems(firstSlot: number, secondSlot: number): void {
+				const first = membersBySlot.get(firstSlot);
+				const second = membersBySlot.get(secondSlot);
+				if (!first || !second) return;
+				const firstItem = effectiveItemName(firstSlot, first);
+				const secondItem = effectiveItemName(secondSlot, second);
+				itemOverridesBySlot.set(firstSlot, secondItem && secondItem === (first.item_name ?? "").trim() ? null : secondItem);
+				itemOverridesBySlot.set(secondSlot, firstItem && firstItem === (second.item_name ?? "").trim() ? null : firstItem);
+				if (firstItem) for (const [slot, p] of membersBySlot) if (slot !== secondSlot && effectiveItemName(slot, p) === firstItem) itemOverridesBySlot.set(slot, "");
+				if (secondItem) for (const [slot, p] of membersBySlot) if (slot !== firstSlot && effectiveItemName(slot, p) === secondItem) itemOverridesBySlot.set(slot, "");
+				refreshEffectiveItemViews();
+			}
+
+			function onRedistributionMemberTap(slot: number): void {
+				if (selectedRedistributionItem !== null) {
+					setRedistributedItem(slot, selectedRedistributionItem);
+					selectedRedistributionItem = null;
+					renderRedistributionMembers();
+					renderRedistributionItems();
+					return;
+				}
+				if (selectedRedistributionSlot === slot) selectedRedistributionSlot = null;
+				else if (selectedRedistributionSlot !== null) {
+					swapRedistributedItems(selectedRedistributionSlot, slot);
+					selectedRedistributionSlot = null;
+				} else selectedRedistributionSlot = slot;
+				renderRedistributionMembers();
+				renderRedistributionItems();
+			}
+
+			const redistributionItemGrid = createItemSelectGrid({
+				gridEl: itemRedistributeItems,
+				emptyEl: itemRedistributeEmpty,
+				getActiveValue: () => selectedRedistributionSlot === null ? selectedRedistributionItem : null,
+				onSelect: (itemName) => {
+					if (selectedRedistributionSlot !== null) {
+						setRedistributedItem(selectedRedistributionSlot, itemName);
+						return;
+					}
+					selectedRedistributionItem = selectedRedistributionItem === itemName ? null : itemName;
+					renderRedistributionItems();
+				},
+			});
 
 			// ボックスの全個体(選択バーの中身)。GET /api/owned-pokemon から取得する。
 			let allPokemon: OwnedPokemonRecord[] = [];
@@ -2995,6 +3201,7 @@ try {
 				const reason = selectionBlockReason(candidateOf(p), candidates);
 				if (reason) return;
 				membersBySlot.set(slot, p);
+				itemOverridesBySlot.set(slot, null);
 				renderSlots();
 				renderSelectList();
 				renderFormationMobile();
@@ -3013,10 +3220,16 @@ try {
 			function swapMembersBetweenSlots(fromSlot: number, toSlot: number): void {
 				const fromMember = membersBySlot.get(fromSlot);
 				const toMember = membersBySlot.get(toSlot);
+				const fromOverride = itemOverridesBySlot.get(fromSlot) ?? null;
+				const toOverride = itemOverridesBySlot.get(toSlot) ?? null;
 				if (toMember) membersBySlot.set(fromSlot, toMember);
 				else membersBySlot.delete(fromSlot);
 				if (fromMember) membersBySlot.set(toSlot, fromMember);
 				else membersBySlot.delete(toSlot);
+				if (toMember) itemOverridesBySlot.set(fromSlot, toOverride);
+				else itemOverridesBySlot.delete(fromSlot);
+				if (fromMember) itemOverridesBySlot.set(toSlot, fromOverride);
+				else itemOverridesBySlot.delete(toSlot);
 				renderSlots();
 				renderSelectList();
 				renderFormationMobile();
@@ -3053,6 +3266,7 @@ try {
 			// (挙動: membersBySlotから外す→再描画→自動保存)。
 			function removeMemberFromSlot(slot: number): void {
 				membersBySlot.delete(slot);
+				itemOverridesBySlot.delete(slot);
 				if (selectedFormationSlot === slot) selectedFormationSlot = null;
 				renderSlots();
 				renderSelectList();
@@ -3159,7 +3373,7 @@ try {
 				// 崩れないようにする)。
 				const itemCell = document.createElement("div");
 				itemCell.className = "slot-meta-cell";
-				const itemName = p.item_name?.trim() ?? "";
+				const itemName = effectiveItemName(slot, p);
 				if (itemName) {
 					const itemImg = document.createElement("img");
 					itemImg.className = "slot-meta-icon";
@@ -3325,7 +3539,7 @@ try {
 					spriteWrap.append(img, fallback);
 					void applySprite(img, fallback, p.species_name);
 					identity.appendChild(spriteWrap);
-					const itemName = p.item_name?.trim() ?? "";
+					const itemName = effectiveItemName(slot, p);
 					// 右パネルのteam-damage-stats/team-damage-stats-line(display:contentsで6列
 					// グリッドの行を作る手法)と同じ考え方で、ラベル行・実数値行・努力値行の3段×6列に
 					// する(努力値は実数値の下)。
@@ -3402,7 +3616,7 @@ try {
 				if (!shouldShowFormationSuggestions) suggestionSpeciesRanks.clear();
 				renderTeamMateSlots({
 					root: formationMobileSlotsRoot,
-					membersBySlot,
+					membersBySlot: effectiveMembersBySlot(),
 					displayName,
 					selectedSlot: selectedFormationSlot,
 					onSlotTap: onFormationSlotTap,
@@ -3413,7 +3627,7 @@ try {
 				});
 				renderTeamMateSlots({
 					root: matchupMobileSlotsRoot,
-					membersBySlot,
+					membersBySlot: effectiveMembersBySlot(),
 					displayName,
 					selectedSlot: selectedFormationSlot,
 					onSlotTap: onFormationSlotTap,
@@ -3424,7 +3638,7 @@ try {
 				});
 				renderTeamMateSlots({
 					root: teamDataMobileSlotsRoot,
-					membersBySlot,
+					membersBySlot: effectiveMembersBySlot(),
 					displayName,
 					selectedSlot: selectedFormationSlot,
 					onSlotTap: onFormationSlotTap,
@@ -3644,9 +3858,9 @@ try {
 			function matchesDedupe(p: OwnedPokemonRecord): boolean {
 				if (!dedupeToggle.checked) return true;
 				const itemName = p.item_name?.trim() ?? "";
-				for (const member of membersBySlot.values()) {
+				for (const [slot, member] of membersBySlot) {
 					if (member.species_name === p.species_name) return false;
-					if (itemName && member.item_name?.trim() === itemName) return false;
+					if (itemName && effectiveItemName(slot, member) === itemName) return false;
 				}
 				return true;
 			}
@@ -3906,11 +4120,11 @@ try {
 			// --- 自動保存(box/[id].astroと同じデバウンス方式。保存ボタンは作らない) ---
 			function buildPayload(): {
 				memo: string | null;
-				members: { slot: number; owned_pokemon_id: string }[];
+				members: { slot: number; owned_pokemon_id: string; item_override: string | null }[];
 			} {
 				const members = Array.from(membersBySlot.entries())
 					.sort((a, b) => a[0] - b[0])
-					.map(([slot, p]) => ({ slot, owned_pokemon_id: p.id }));
+					.map(([slot, p]) => ({ slot, owned_pokemon_id: p.id, item_override: itemOverridesBySlot.get(slot) ?? null }));
 				const memo = memoInput.value.trim();
 				return {
 					memo: memo === "" ? null : memo,
@@ -4021,6 +4235,33 @@ try {
 			});
 
 			memoInput.addEventListener("input", scheduleSave);
+			function closeRedistributionDialog(): void {
+				itemRedistributeBackdrop.hidden = true;
+				itemRedistributeDialog.hidden = true;
+				selectedRedistributionSlot = null;
+				selectedRedistributionItem = null;
+				itemRedistributeButton.focus();
+			}
+			itemRedistributeButton.addEventListener("click", () => {
+				void redistributionItemGrid.ensureBuilt().then(() => {
+					redistributionSearchQuery = "";
+					itemRedistributeSearch.value = "";
+					renderRedistributionMembers();
+					renderRedistributionItems();
+					itemRedistributeBackdrop.hidden = false;
+					itemRedistributeDialog.hidden = false;
+					itemRedistributeDialog.focus();
+				});
+			});
+			itemRedistributeClose.addEventListener("click", closeRedistributionDialog);
+			itemRedistributeBackdrop.addEventListener("click", closeRedistributionDialog);
+			itemRedistributeSearch.addEventListener("input", () => {
+				redistributionSearchQuery = itemRedistributeSearch.value.trim();
+				renderRedistributionItems();
+			});
+			document.addEventListener("keydown", (event) => {
+				if (event.key === "Escape" && !itemRedistributeDialog.hidden) closeRedistributionDialog();
+			});
 			searchInput.addEventListener("input", renderSelectList);
 			formationMobileSearchInput.addEventListener("input", renderFormationMobile);
 			formationMobileAddButton.addEventListener("click", () => void createFormationMobilePokemon());
