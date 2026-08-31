@@ -198,13 +198,19 @@ body.home-page {
   justify-content: center;
   gap: var(--home-page-card-gap);
   color: var(--home-page-card-color);
-  border: var(--home-page-card-border);
-  box-shadow: none;
   text-align: center;
   text-decoration: none;
 }
-.home-card:hover,
-.home-card:focus-within {
+/* border/box-shadowは.cardの同詳細度ルールと衝突する。このページのCSSは
+   AppLayout側のバンドル(.cardの定義元)より<link>の挿入順が先に来るため、
+   同詳細度だと.card側に上書きされて何も起きない。.home-card-grid込みの
+   セレクタで詳細度を上げて確実に勝たせる(box-card.cssの.box-grid .box-cardと同じ手法)。 */
+.home-card-grid .home-card {
+  border: var(--home-page-card-border);
+  box-shadow: none;
+}
+.home-card-grid .home-card:hover,
+.home-card-grid .home-card:focus-within {
   box-shadow: none;
 }
 /* キーボード操作でメニューカードにフォーカスしたときの輪郭 */
