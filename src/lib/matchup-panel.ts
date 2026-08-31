@@ -259,6 +259,7 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 	function clearLists(): void {
 		closeMovePopover();
 		listElement.innerHTML = '';
+		listElement.removeAttribute('aria-busy');
 		cardElements = [];
 	}
 

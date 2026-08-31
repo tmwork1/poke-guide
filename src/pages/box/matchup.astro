@@ -52,7 +52,9 @@ const pokemon = result?.ok ? result.data : null;
         <section class="box-matchup-panel" aria-label="相性チェック">
           <div class="box-matchup-page__results">
             <p id="box-matchup-status" class="team-matchup-status" hidden></p>
-            <ul id="box-matchup-list" class="team-matchup-list"></ul>
+            <ul id="box-matchup-list" class="team-matchup-list" aria-busy="true">
+              {Array.from({ length: 32 }, () => <li class="team-matchup-card" data-state="pending" aria-hidden="true"></li>)}
+            </ul>
           </div>
         </section>
       </main>
