@@ -83,7 +83,6 @@ if (pokemon) {
   let rankedList: HTMLElement | null = null;
   let typeMatchedList: HTMLElement | null = null;
   let speciesMatchedList: HTMLElement | null = null;
-  let rankedLoadMore: HTMLButtonElement | null = null;
 
   function setRankedStatus(message: string, state?: 'loading' | 'error'): void {
     if (!panel) return;
@@ -105,12 +104,7 @@ if (pokemon) {
     speciesMatchedList = document.createElement('div');
     speciesMatchedList.className = 'team-grid';
     rankedList.append(typeMatchedList, speciesMatchedList);
-    rankedLoadMore = document.createElement('button');
-    rankedLoadMore.type = 'button';
-    rankedLoadMore.className = 'btn-ghost';
-    rankedLoadMore.textContent = 'さらに読み込む';
-    rankedLoadMore.addEventListener('click', () => void loadRankedBuilds());
-    panel.append(rankedList, rankedLoadMore);
+    panel.append(rankedList);
   }
 
   async function loadRankedBuilds(reset = false): Promise<void> {
@@ -118,14 +112,14 @@ if (pokemon) {
 
     if (rankedLoading) return;
     rankedLoading = true;
+    let loadedNextBatch = false;
     if (reset) {
       rankedOffset = 0;
       hasMoreRankedTeams = false;
       initializeRankedResults();
     }
-    if (!rankedList || !typeMatchedList || !speciesMatchedList || !rankedLoadMore) initializeRankedResults();
-    if (!rankedList || !typeMatchedList || !speciesMatchedList || !rankedLoadMore) return;
-    rankedLoadMore.disabled = true;
+    if (!rankedList || !typeMatchedList || !speciesMatchedList) initializeRankedResults();
+    if (!rankedList || !typeMatchedList || !speciesMatchedList) return;
 
     const pokemonBuild = JSON.parse(pokemonBuildJson) as {
       species_name: string;
@@ -149,6 +143,7 @@ if (pokemon) {
       const teams = body.teams ?? [];
       rankedOffset += teams.length;
       hasMoreRankedTeams = body.hasMore;
+      loadedNextBatch = teams.length > 0;
       const scored = teams
         .map((team) => {
           // 上位チームはメガ後の種族を speciesKey に、表示上のベース種族を speciesName に
@@ -174,7 +169,6 @@ if (pokemon) {
           entry.similarity > 0 ? { highlightSlot: entry.matched.slot } : undefined,
         ));
       }
-      rankedLoadMore.hidden = !hasMoreRankedTeams;
       if (requestedOffset === 0 && scored.length === 0 && !hasMoreRankedTeams) {
         setRankedStatus('上位チームが見つかりません。');
       }
@@ -183,7 +177,10 @@ if (pokemon) {
       setRankedStatus('上位チームを読み込めませんでした。', 'error');
     } finally {
       rankedLoading = false;
-      if (rankedLoadMore) rankedLoadMore.disabled = false;
+      if (hasMoreRankedTeams && loadedNextBatch) {
+        // 24件ごとに描画機会を作ってから、残りをユーザー操作なしで取得する。
+        window.requestAnimationFrame(() => void loadRankedBuilds());
+      }
     }
   }
 

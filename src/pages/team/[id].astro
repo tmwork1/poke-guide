@@ -2882,9 +2882,9 @@ try {
 					teamDataMobileSimilarRoot.innerHTML = "";
 					const empty = document.createElement("p");
 					empty.className = "team-data-similar-status status-text";
-					empty.textContent = rankedTeamsHasMore ? "このページには一致するチームがありません。続きも確認できます。" : "チームが見つかりません。";
+					empty.textContent = rankedTeamsHasMore ? "類似チームを続けて読み込んでいます…" : "チームが見つかりません。";
 					teamDataMobileSimilarRoot.appendChild(empty);
-					if (rankedTeamsHasMore) appendSimilarBuildsLoadMore();
+					if (rankedTeamsHasMore) scheduleMoreSimilarBuilds();
 					return;
 				}
 				const list = document.createElement("div");
@@ -2897,24 +2897,19 @@ try {
 				}
 				teamDataMobileSimilarRoot.innerHTML = "";
 				teamDataMobileSimilarRoot.appendChild(list);
-				if (rankedTeamsHasMore) appendSimilarBuildsLoadMore();
-			}
-
-			function appendSimilarBuildsLoadMore(): void {
-				const more = document.createElement("button");
-				more.type = "button";
-				more.className = "btn-ghost";
-				more.textContent = "もっと見る";
-				more.addEventListener("click", () => {
-					more.disabled = true;
-					void loadMoreSimilarBuilds();
-				});
-				teamDataMobileSimilarRoot.appendChild(more);
+				if (rankedTeamsHasMore) scheduleMoreSimilarBuilds();
 			}
 
 			let similarBuildsRequestId = 0;
+			let similarBuildsAutoLoadFrame: number | undefined;
+			function scheduleMoreSimilarBuilds(): void {
+				window.cancelAnimationFrame(similarBuildsAutoLoadFrame ?? 0);
+				// 24件を描画したあとに次の24件を続けて取得する。
+				similarBuildsAutoLoadFrame = window.requestAnimationFrame(() => void loadMoreSimilarBuilds());
+			}
 			async function loadSimilarBuilds(): Promise<void> {
 				const requestId = (similarBuildsRequestId += 1);
+				window.cancelAnimationFrame(similarBuildsAutoLoadFrame ?? 0);
 				setSimilarBuildsStatus("類似構築を計算中…", "loading");
 				try {
 					await loadRankedTeams(true);

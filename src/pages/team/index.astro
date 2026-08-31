@@ -87,9 +87,6 @@ const user = Astro.locals.user;
 						<div class="team-grid">
 							<div id="team-list"></div>
 						</div>
-						<div class="top-builds-load-more-wrap">
-							<button type="button" id="team-load-more" class="btn-ghost" hidden>もっと見る</button>
-						</div>
 
 						<div id="empty-message" class="empty-state empty-state-plain" hidden>
 							<button type="button" class="add-card-tile team-empty-add-button" id="add-empty-team-button">
@@ -238,7 +235,6 @@ const user = Astro.locals.user;
 			const addButton = el<HTMLButtonElement>("add-team-button");
 			const emptyAddButton = el<HTMLButtonElement>("add-empty-team-button");
 			const densityToggle = el<HTMLButtonElement>("team-display-density-toggle");
-			const loadMoreButton = el<HTMLButtonElement>("team-load-more");
 
 			let allTeams: Team[] = [];
 			const TEAM_PAGE_SIZE = 24;
@@ -327,7 +323,6 @@ const user = Astro.locals.user;
 				const isTrulyEmpty = allTeams.length === 0;
 				emptyMessage.hidden = !isTrulyEmpty;
 				noMatchMessage.hidden = isTrulyEmpty || sorted.length > 0;
-				loadMoreButton.hidden = !hasMoreTeams || isTrulyEmpty;
 				if (isTrulyEmpty) return;
 				for (const t of sorted) {
 					listRoot.appendChild(renderCard(t));
@@ -373,8 +368,8 @@ const user = Astro.locals.user;
 			async function loadList(reset = true): Promise<void> {
 				if (isLoadingMore) return;
 				isLoadingMore = true;
+				let loadedNextBatch = false;
 				if (reset) loadingMessage.hidden = false;
-				loadMoreButton.disabled = true;
 				errorMessage.hidden = true;
 				try {
 					const offset = reset ? 0 : allTeams.length;
@@ -383,6 +378,7 @@ const user = Astro.locals.user;
 					const body = (await res.json()) as { teams: Team[]; hasMore: boolean };
 					allTeams = reset ? body.teams : [...allTeams, ...body.teams];
 					hasMoreTeams = body.hasMore;
+					loadedNextBatch = body.teams.length > 0;
 					loadingMessage.hidden = true;
 					renderList();
 				} catch (err) {
@@ -392,7 +388,10 @@ const user = Astro.locals.user;
 					errorMessage.textContent = "チームを読み込めませんでした。時間をおいて再度お試しください。";
 				} finally {
 					isLoadingMore = false;
-					loadMoreButton.disabled = false;
+					if (hasMoreTeams && loadedNextBatch) {
+						// 24件を描画してから、次の24件を自動で取得する。
+						window.requestAnimationFrame(() => void loadList(false));
+					}
 				}
 			}
 
@@ -404,7 +403,6 @@ const user = Astro.locals.user;
 				updateDensityToggleUi();
 				renderList();
 			});
-			loadMoreButton.addEventListener("click", () => void loadList(false));
 
 			updateDensityToggleUi();
 			void loadList();

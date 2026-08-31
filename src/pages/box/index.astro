@@ -120,7 +120,6 @@ const user = Astro.locals.user;
 							<p class="empty-state-title">条件に一致する個体がありません</p>
 							<p class="empty-state-hint">条件を変更してください。</p>
 						</div>
-						<button type="button" id="owned-pokemon-load-more" class="btn-ghost" hidden>さらに読み込む</button>
 					</div>
 				</Fragment>
 			) : (
@@ -207,7 +206,6 @@ const user = Astro.locals.user;
 			const searchInput = el<HTMLInputElement>("search-input");
 			const addButton = el<HTMLButtonElement>("add-pokemon-button");
 			const emptyAddButton = el<HTMLButtonElement>("empty-add-pokemon-button");
-			const loadMoreButton = el<HTMLButtonElement>("owned-pokemon-load-more");
 
 			let allPokemon: OwnedPokemon[] = [];
 			let hasMorePokemon = false;
@@ -311,7 +309,6 @@ const user = Astro.locals.user;
 				boxContent?.classList.toggle("is-truly-empty", isTrulyEmpty);
 				emptyMessage.hidden = !isTrulyEmpty;
 				noMatchMessage.hidden = isTrulyEmpty || sorted.length > 0;
-				loadMoreButton.hidden = isTrulyEmpty || !hasMorePokemon;
 				updateCountBadge(sorted.length);
 				if (isTrulyEmpty) return;
 				for (const p of sorted) {
@@ -344,10 +341,10 @@ const user = Astro.locals.user;
 			async function loadList(reset = false): Promise<void> {
 				if (loadingMore) return;
 				loadingMore = true;
+				let loadedNextBatch = false;
 				if (reset) allPokemon = [];
 				loadingMessage.hidden = allPokemon.length === 0;
 				errorMessage.hidden = true;
-				loadMoreButton.disabled = true;
 				try {
 					const params = new URLSearchParams({
 						limit: String(POKEMON_PAGE_SIZE),
@@ -358,6 +355,7 @@ const user = Astro.locals.user;
 					const body = (await res.json()) as { data: OwnedPokemon[]; hasMore: boolean };
 					allPokemon.push(...body.data);
 					hasMorePokemon = body.hasMore;
+					loadedNextBatch = body.data.length > 0;
 					loadingMessage.hidden = true;
 					renderList();
 				} catch (err) {
@@ -367,7 +365,10 @@ const user = Astro.locals.user;
 					errorMessage.textContent = "個体一覧を読み込めませんでした。時間をおいて再度お試しください。";
 				} finally {
 					loadingMore = false;
-					loadMoreButton.disabled = false;
+					if (hasMorePokemon && loadedNextBatch) {
+						// 描画を1フレーム譲り、48件ずつ画面へ追加しながら次の取得を始める。
+						window.requestAnimationFrame(() => void loadList());
+					}
 				}
 			}
 
@@ -378,7 +379,6 @@ const user = Astro.locals.user;
 			}
 			addButton.addEventListener("click", goToNewPokemon);
 			emptyAddButton.addEventListener("click", goToNewPokemon);
-			loadMoreButton.addEventListener("click", () => void loadList());
 
 			void loadList(true);
 			reloadOnBfcacheRestore(() => void loadList(true));
