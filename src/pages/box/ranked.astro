@@ -56,7 +56,17 @@ if (pokemon) {
       >
         <section id="ranked-data-panel" class="data-panel">
           {rankedSeason ? (
-            <p id="ranked-data-status" class="box-ranked-status status-text" data-state="loading">上位チームを計算中…</p>
+            <>
+              <p id="ranked-data-status" class="box-ranked-status status-text" data-state="loading">上位チームを計算中…</p>
+              <div class="team-grid box-ranked-loading-grid" aria-hidden="true">
+                <article class="card-team card-team--top-build">
+                  <div class="card-team-header card-team-header--inline"></div>
+                  <div class="box-grid">
+                    {Array.from({ length: 6 }, () => <div class="card box-card"></div>)}
+                  </div>
+                </article>
+              </div>
+            </>
           ) : (
             <p id="ranked-data-status" class="box-ranked-status status-text">上位チームのデータはまだありません。</p>
           )}
@@ -116,10 +126,7 @@ if (pokemon) {
     if (reset) {
       rankedOffset = 0;
       hasMoreRankedTeams = false;
-      initializeRankedResults();
     }
-    if (!rankedList || !typeMatchedList || !speciesMatchedList) initializeRankedResults();
-    if (!rankedList || !typeMatchedList || !speciesMatchedList) return;
 
     const pokemonBuild = JSON.parse(pokemonBuildJson) as {
       species_name: string;
@@ -144,6 +151,10 @@ if (pokemon) {
       rankedOffset += teams.length;
       hasMoreRankedTeams = body.hasMore;
       loadedNextBatch = teams.length > 0;
+      if (reset || !rankedList || !typeMatchedList || !speciesMatchedList) initializeRankedResults();
+      if (!rankedList || !typeMatchedList || !speciesMatchedList) {
+        throw new Error('上位チームの表示領域を初期化できませんでした。');
+      }
       const scored = teams
         .map((team) => {
           // 上位チームはメガ後の種族を speciesKey に、表示上のベース種族を speciesName に

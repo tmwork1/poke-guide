@@ -282,3 +282,17 @@ body.data-page {
   border-radius: var(--data-page-ranked-status-radius);
   text-align: center;
 }
+
+/* 最初の取得中も、renderTopBuildCard() が出力する見出し＋6枠グリッドと同じ寸法を
+   確保する。取得結果への置換時に下の要素を押し下げないための骨組みで、表示文言は
+   .box-ranked-status に残す。 */
+.box-ranked-loading-grid {
+  margin-top: var(--team-card-list-gap);
+  pointer-events: none;
+}
+.box-ranked-loading-grid .card-team-header--inline {
+  visibility: hidden;
+}
+.box-ranked-loading-grid .box-card {
+  background: var(--color-surface);
+}
