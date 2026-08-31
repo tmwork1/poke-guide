@@ -103,7 +103,9 @@ import '../../styles/speed-chart-owned-panel.css';
 				</label>
 				<label class="speed-chart-owned-modifier-toggle">
 					<span class="toggle-switch">
-						<input type="checkbox" id="speed-chart-item-toggle" class="toggle-switch-input" aria-label="もちものを考慮" checked />
+						{/* 初期チェック状態はowned-panel.ts側でこの個体の現在の持ち物の有無に応じて設定する
+							(checked固定にしない。もちものなしの個体でも常にONになっていたバグの修正)。 */}
+						<input type="checkbox" id="speed-chart-item-toggle" class="toggle-switch-input" aria-label="もちものを考慮" />
 						<span class="toggle-switch-track" aria-hidden="true"><span class="toggle-switch-thumb"></span></span>
 					</span>
 					<span>もちもの<span class="speed-chart-modifier-consider">を考慮</span></span>

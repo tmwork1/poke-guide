@@ -131,7 +131,11 @@ export function initOwnedPanel(ctx: OwnedPanelContext): OwnedPanelController {
   // 再列挙は不要。
   let rankStages = 0;
   let considerAbility = false;
-  let considerItem = true;
+  // バグ修正: 以前は常にtrue固定だったため、もちものを持たない個体でも
+  // 「もちものを考慮」トグルがONで表示されてしまっていた。この個体が実際に
+  // 何らかのもちものを持っている場合だけ初期ONにする(スカーフが使えない種族なら
+  // どのみち効果が無いので、その場合も含めfalseにしておく)。
+  let considerItem = !!ctx.scarfModifier && !!currentItem;
   let combos = buildCombos();
   let currentValue = computeCurrentValue();
   const renderedCells = new Map<number, HTMLElement>();
@@ -240,6 +244,14 @@ export function initOwnedPanel(ctx: OwnedPanelContext): OwnedPanelController {
   if (abilityToggle) {
     abilityToggle.disabled = !ctx.abilityModifier;
     abilityToggle.title = ctx.abilityModifier ? '' : 'この特性にすばやさ補正はありません';
+  }
+  if (itemToggle) {
+    // メガシンカ等でこだわりスカーフを持てない個体はトグル自体を無効化する
+    // (abilityToggleが特性補正の無い特性のとき無効化するのと同じパターン)。
+    itemToggle.disabled = !ctx.scarfModifier;
+    itemToggle.title = ctx.scarfModifier ? '' : 'この個体はもちものによるすばやさ補正を持てません';
+    // 初期チェック状態はconsiderItemの初期値(この個体が実際にもちものを持っているか)に揃える。
+    itemToggle.checked = considerItem;
   }
   const clampRank = (value: number): number => Math.max(-6, Math.min(6, Math.trunc(value)));
   const updateRankControls = (rank: number): void => {
