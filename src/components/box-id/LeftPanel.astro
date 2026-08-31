@@ -1011,10 +1011,10 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		display: flex;
 		flex-direction: column;
 		overflow: hidden;
-		border: 1px solid var(--color-border);
-		border-radius: var(--radius-md);
+		border: var(--move-picker-dialog-border);
+		border-radius: var(--move-picker-dialog-radius);
 		background: var(--color-surface);
-		box-shadow: var(--shadow-md);
+		box-shadow: var(--move-picker-dialog-shadow);
 	}
 	.move-picker-window[hidden] { display: none; }
 	.move-picker-backdrop[hidden] { display: none; }
@@ -1024,17 +1024,17 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		position: fixed;
 		inset: 0;
 		z-index: 99;
-		background: rgb(0 0 0 / 42%);
+		background: var(--color-overlay);
 	}
 	.move-picker-window.is-mobile-modal {
 		z-index: 100;
 		left: 50% !important;
 		top: var(--modal-top-offset) !important;
-		width: calc(100vw - (var(--space-3) * 2)) !important;
-		max-width: 42rem;
-		max-height: min(calc(100dvh - var(--modal-top-offset) - var(--space-3)), 42rem) !important;
+		width: calc(100vw - (var(--move-picker-dialog-inset) * 2)) !important;
+		max-width: var(--move-picker-dialog-max-width);
+		height: var(--move-picker-dialog-height) !important;
 		transform: translateX(-50%);
-		border-radius: var(--radius-lg);
+		border-radius: var(--move-picker-dialog-radius);
 	}
 	.move-picker-slot-tabs {
 		display: grid;

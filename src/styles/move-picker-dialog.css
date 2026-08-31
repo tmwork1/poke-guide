@@ -25,6 +25,7 @@ body.data-page {
   /* ── 5. 枠線・角丸 ────────────────────────────────────── */
   --move-picker-dialog-radius: var(--modal-radius); /* モバイルモーダルの角丸。大きくすると角が丸くなる */
   --move-picker-dialog-border: var(--modal-border); /* モーダルの外枠線。太くすると輪郭が目立つ */
+  --move-picker-dialog-shadow: var(--shadow-lg); /* モーダル共通の浮遊感に揃える。 */
 
   /* ── 7. 余白 ──────────────────────────────────────────── */
   --move-picker-slot-type-icon-gap: 0; /* 技スロット内のタイプアイコンと技名の間隔 */
@@ -62,9 +63,9 @@ body.data-page {
   flex-direction: column;
   overflow: hidden;
   border: var(--move-picker-dialog-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--move-picker-dialog-radius);
   background: var(--color-surface);
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--move-picker-dialog-shadow);
 }
 
 .move-picker-window[hidden],
@@ -375,7 +376,7 @@ body .move-picker-empty {
     position: fixed;
     z-index: var(--move-picker-backdrop-z-index);
     inset: 0;
-    background: rgb(0 0 0 / 42%);
+    background: var(--color-overlay);
   }
   body .move-picker-window.is-mobile-modal {
     z-index: var(--move-picker-dialog-z-index);
