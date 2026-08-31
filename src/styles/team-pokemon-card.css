@@ -10,7 +10,8 @@
 	--team-card-padding: var(--space-1);
 
 	display: grid;
-	grid-template-columns: repeat(2, minmax(0, 1fr));
+	grid-template-columns: repeat(var(--team-overview-grid-columns), minmax(0, var(--team-overview-card-size-max)));
+	justify-content: center;
 	gap: var(--team-card-gap);
 	margin-inline: calc(var(--space-5) * -1);
 	padding-inline: var(--team-card-edge-gap);

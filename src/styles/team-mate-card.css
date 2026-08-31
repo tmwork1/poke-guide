@@ -96,8 +96,12 @@
 
 .team-mate-grid {
 	--team-mate-grid-gap: var(--space-1); /* 6枠どうしの間隔 */
+	/* 基準幅412pxで最も広い使用箇所は左右8px×2・列間4px×5を除いた376px÷6=62.67px。
+	   63pxを上限にして、広い画面では6枠全体を中央へ寄せる。 */
+	--team-mate-card-size-max: 63px;
 
 	display: grid;
-	grid-template-columns: repeat(6, minmax(0, 1fr));
+	grid-template-columns: repeat(6, minmax(0, var(--team-mate-card-size-max)));
+	justify-content: center;
 	gap: var(--team-mate-grid-gap);
 }

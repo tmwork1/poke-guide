@@ -19,7 +19,9 @@
 
 .box-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  /* auto-fill は402px端末で3列を2列に落とすため使わない。列数はglobal.cssのラダーで明示する。 */
+  grid-template-columns: repeat(var(--box-grid-columns), minmax(0, var(--box-card-size-max)));
+  justify-content: center;
   gap: var(--box-card-grid-gap);
   align-items: stretch;
 }

@@ -130,8 +130,42 @@
   /* ── 8. サイズ ────────────────────────────────────────── */
   --tap-target-min: 44px; /* 独立して配置される主要な操作要素(ボタン・テキスト入力・セレクト等)の推奨最小タップ領域。密集して並ぶ小型のアイコン操作(カード内の丸型ボタンやステッパー等)には適用しない。 */
 
+  /* モバイル基準幅412pxでの実効列幅を上限にする。カードの必要幅と列数が異なるため、
+     3列系と2列系で上限を共有せず、それぞれのグリッドに対応する値を持たせる。 */
+  --box-card-size-max: 130px;
+  --box-grid-columns: 3;
+  --team-overview-card-size-max: 194px;
+  --team-overview-grid-columns: 2;
+
+  /* auto-fill は利用可能幅から列数を再計算し、402px端末で3列が2列へ落ちるため使わない。
+     列数は下記ラダーで明示的に切り替え、カードが上限より小さい間だけ幅に追従させる。 */
+  --content-band-max-width: calc(
+    var(--box-grid-columns) * var(--box-card-size-max)
+    + (var(--box-grid-columns) - 1) * var(--space-1)
+  );
+  --precision-band-max-width: 412px; /* 基準幅の中身をそのまま中央配置するため、480pxには広げない。 */
+
   /* ── 9. その他 ────────────────────────────────────────── */
 }
+
+/* チーム編集ページのプレビュー帯は、2列系カードの列数と上限幅に合わせる。 */
+body.team-edit-page {
+  --content-band-max-width: calc(
+    var(--team-overview-grid-columns) * var(--team-overview-card-size-max)
+    + (var(--team-overview-grid-columns) - 1) * var(--space-2)
+  );
+}
+
+/* 3列系は8列・帯幅1068px、2列系は6列・帯幅1204pxで打ち止めにする。 */
+@media (min-width: 420px) { :root { --box-grid-columns: 4; } }
+@media (min-width: 560px) { :root { --box-grid-columns: 5; } }
+@media (min-width: 690px) { :root { --box-grid-columns: 6; } }
+@media (min-width: 820px) { :root { --box-grid-columns: 7; } }
+@media (min-width: 960px) { :root { --box-grid-columns: 8; } }
+
+/* 6枠は6の約数だけを用い、2→3→6列に切り替える。 */
+@media (min-width: 620px) { :root { --team-overview-grid-columns: 3; } }
+@media (min-width: 1220px) { :root { --team-overview-grid-columns: 6; } }
 
 select {
   --select-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1.5 2L6 6.2L10.5 2' fill='none' stroke='%236b7280' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); /* セレクト欄の矢印画像。差し替えると選択欄右端の記号が変わる。 */

@@ -43,6 +43,8 @@ body.team-edit-page {
 	--team-pokemon-tab-slot-max-width: 34rem; /* 6枠全体の最大幅。大きくすると横に広がる */
 	--team-pokemon-tab-suggest-min-height: calc(var(--space-7) + var(--space-1)); /* おすすめ列の最低の高さ */
 	--team-pokemon-tab-suggest-icon-size: calc(var(--space-7) + var(--space-1)); /* おすすめアイコンの正方形サイズ */
+	/* 基準幅412pxから親の左右padding 12px×2・ラベル(約54px)・間隔12pxを除いた約322px÷6。 */
+	--team-pokemon-tab-suggest-icon-cell-size-max: 54px;
 }
 
 /* --------------------------------------------------------------------------
@@ -130,7 +132,8 @@ body.team-edit-page {
 }
 .team-formation-mobile__suggest-icons {
 	display: grid;
-	grid-template-columns: repeat(6, minmax(0, 1fr));
+	grid-template-columns: repeat(6, minmax(0, var(--team-pokemon-tab-suggest-icon-cell-size-max)));
+	justify-content: center;
 	flex: 1;
 	min-width: 0;
 }

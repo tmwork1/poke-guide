@@ -99,6 +99,12 @@
   margin: 0;
 }
 
+/* チーム6枠はルートの3列系ラダーを継承せず、3列2段から820px以上で6列1段へ切り替える。 */
+.team-grid .card-team .box-grid { --box-grid-columns: 3; }
+@media (min-width: 820px) {
+  .team-grid .card-team .box-grid { --box-grid-columns: 6; }
+}
+
 /* --- カード本体。ヘッダ帯 + 6枠グリッドを縦に積むだけの透明な器で、
    枠線・背景・影は持たない(帯と各枠が自前の背景を持つ)。
    ヘッダ帯と6枠グリッドの間隔は枠どうしの間隔と同じ値にして、
