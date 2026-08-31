@@ -161,10 +161,12 @@ body.data-page {
    decorateIconオプション経由で付与)。アイコン右側の被らない位置に小さく添える。 */
 .item-select-cell-type-badge {
 	position: absolute;
-	right: -6px;
-	top: -4px;
-	width: 14px;
-	height: 14px;
+	left: 100%;
+	top: 50%;
+	margin-left: 2px;
+	transform: translateY(-50%);
+	width: 21px;
+	height: 21px;
 	padding: 1px;
 	object-fit: contain;
 	background: var(--color-surface);

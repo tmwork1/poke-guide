@@ -558,7 +558,7 @@ try {
 							<div class="team-item-redistribute-title-group">
 								<h2 id="team-item-redistribute-title" class="item-select-title">もちもの再分配</h2>
 								<button type="button" id="team-item-redistribute-help-button" class="team-item-redistribute-help-button" aria-expanded="false" aria-controls="team-item-redistribute-help-popover" aria-label="使い方を表示">?</button>
-								<p id="team-item-redistribute-help-popover" class="team-item-redistribute-help-popover" role="note" hidden>ポケモンを選んで持ち物を選択。別のポケモンを選ぶと持ち物を入れ替えます。長押しで解除できます。</p>
+								<p id="team-item-redistribute-help-popover" class="team-item-redistribute-help-popover" role="note" hidden>ここでの変更はこのチームの表示にのみ反映され、ポケモン本体のもちものは変わりません。</p>
 							</div>
 							<button type="button" id="team-item-redistribute-close" class="btn-ghost item-select-close" aria-label="閉じる">×</button>
 						</div>
@@ -2195,16 +2195,13 @@ try {
 				return /ナイト[XYZ]?$/.test(name);
 			}
 
-			// [採用率上位] -> [その他] -> [きのみ] -> [メガストーン] の順にする。
-			function sortRedistributionItems(values: string[]): string[] {
-				const ranked = values.filter((value) => (teamItemUsageTotals.get(value) ?? 0) > 0);
-				ranked.sort((a, b) => (teamItemUsageTotals.get(b) ?? 0) - (teamItemUsageTotals.get(a) ?? 0));
-				const rest = values.filter((value) => (teamItemUsageTotals.get(value) ?? 0) <= 0);
-				const megaStones = rest.filter((value) => isMegaStoneItemName(value));
-				const berries = rest.filter((value) => !isMegaStoneItemName(value) && isBerryItemName(value));
-				const others = rest.filter((value) => !isMegaStoneItemName(value) && !isBerryItemName(value));
-				return [...ranked, ...others, ...berries, ...megaStones];
-			}
+			// タイプ順(18タイプ)。タイプ強化アイテム・タイプ半減実の並べ替えに使う
+			// (type-colors.tsのTYPE_COLORSと同じ並び)。
+			const TYPE_ORDER = [
+				"ノーマル", "ほのお", "みず", "でんき", "くさ", "こおり", "かくとう", "どく",
+				"じめん", "ひこう", "エスパー", "むし", "いわ", "ゴースト", "ドラゴン", "あく",
+				"はがね", "フェアリー",
+			];
 
 			// タイプ強化アイテム・タイプ半減実は、アイコン右側に対応タイプのバッジを添える。
 			const ITEM_TYPE_BOOST: Record<string, string> = {
@@ -2250,6 +2247,35 @@ try {
 
 			function redistributionItemBadgeType(name: string): string | null {
 				return ITEM_TYPE_BOOST[name] ?? ITEM_TYPE_RESIST_BERRY[name] ?? null;
+			}
+
+			function sortByTypeOrder(values: string[], typeOf: Record<string, string>): string[] {
+				return [...values].sort((a, b) => TYPE_ORDER.indexOf(typeOf[a]) - TYPE_ORDER.indexOf(typeOf[b]));
+			}
+
+			// [採用率上位] -> [その他] -> [タイプ強化アイテム(タイプ順)] -> [きのみ] -> [タイプ半減実(タイプ順)] -> [メガストーン]
+			// の順にする。タイプ強化アイテムはきのみの直前に、タイプ半減実はきのみの最後にまとめる。
+			function sortRedistributionItems(values: string[]): string[] {
+				const ranked = values.filter((value) => (teamItemUsageTotals.get(value) ?? 0) > 0);
+				ranked.sort((a, b) => (teamItemUsageTotals.get(b) ?? 0) - (teamItemUsageTotals.get(a) ?? 0));
+				const rest = values.filter((value) => (teamItemUsageTotals.get(value) ?? 0) <= 0);
+				const megaStones = rest.filter((value) => isMegaStoneItemName(value));
+				const berries = rest.filter((value) => !isMegaStoneItemName(value) && isBerryItemName(value));
+				const others = rest.filter((value) => !isMegaStoneItemName(value) && !isBerryItemName(value));
+
+				const typeBoosts = others.filter((value) => ITEM_TYPE_BOOST[value] !== undefined);
+				const otherRest = others.filter((value) => ITEM_TYPE_BOOST[value] === undefined);
+				const resistBerries = berries.filter((value) => ITEM_TYPE_RESIST_BERRY[value] !== undefined);
+				const normalBerries = berries.filter((value) => ITEM_TYPE_RESIST_BERRY[value] === undefined);
+
+				return [
+					...ranked,
+					...otherRest,
+					...sortByTypeOrder(typeBoosts, ITEM_TYPE_BOOST),
+					...normalBerries,
+					...sortByTypeOrder(resistBerries, ITEM_TYPE_RESIST_BERRY),
+					...megaStones,
+				];
 			}
 
 			function decorateRedistributionItemIcon(iconWrap: HTMLElement, value: string): void {

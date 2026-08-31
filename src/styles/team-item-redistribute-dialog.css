@@ -51,8 +51,13 @@ body.team-edit-page {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	width: 22px;
-	height: 22px;
+	/* button共通ルール(buttons.css)のmin-height:var(--tap-target-min)(44px)を
+	   width/heightだけでは上書きできず縦長の楕円になっていたため、min-width/min-heightも
+	   明示する(--help-button-sizeの定義コメント参照、global.css)。 */
+	width: var(--help-button-size);
+	height: var(--help-button-size);
+	min-width: var(--help-button-size);
+	min-height: var(--help-button-size);
 	padding: 0;
 	font-size: var(--font-size-sm3);
 	font-weight: 700;
