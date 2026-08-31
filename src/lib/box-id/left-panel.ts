@@ -516,22 +516,48 @@ export async function loadPopularBuildSuggestions(
 		onAbilitySuggestionUpdated?.();
 		return false;
 	}
-	const [nature, item, tera, move, ability] = await Promise.all([
-		fetchSuggestionPayload("popular_nature", name, regulation),
-		fetchOpggUsagePayload(name, "items").then((payload) => payload ?? fetchSuggestionPayload("popular_item", name, regulation)),
-		fetchSuggestionPayload("popular_tera", name, regulation),
-		fetchOpggUsagePayload(name, "moves").then((payload) => payload ?? fetchPopularMovePayload(name, regulation, archetype)),
-		fetchOpggUsagePayload(name, "abilities"),
-	]);
+	// 5種類の候補取得は速度が大きく異なる(例: OP.GG使用率のKV lookupはmoves/abilitiesだけ
+	// 該当シーズンが見つかるまでの逐次フェッチが伸び、数秒〜規定タイムアウトまで詰まることが
+	// ある)。Promise.allでまとめて待つと、1つでも遅い候補が残りのlastXxxSuggestion反映まで
+	// 道連れにしてしまう(item-select-dialog.ts/tera-select-dialog.tsのgetter・
+	// もちもの選択モーダルの並び替えが、無関係なmoves/abilitiesの遅延で止まっていた実例あり)。
+	// 各fetchが届き次第、自分の担当分だけ即座に反映する(プル型のitem/teraはgetterが
+	// 次回参照時に最新値を返すだけで足りるため専用フックは無い。natureは開いたままの
+	// datalistを都度書き換える必要があるためapplyNatureSuggestionOrderingを個別に呼ぶ)。
+	const naturePromise = fetchSuggestionPayload("popular_nature", name, regulation).then((payload) => {
+		if (token !== popularBuildSuggestionsToken) return payload; // より新しい呼び出しに追い越された
+		lastNatureSuggestion = payload;
+		applyNatureSuggestionOrdering();
+		return payload;
+	});
+	const itemPromise = fetchOpggUsagePayload(name, "items")
+		.then((payload) => payload ?? fetchSuggestionPayload("popular_item", name, regulation))
+		.then((payload) => {
+			if (token !== popularBuildSuggestionsToken) return payload;
+			lastItemSuggestion = payload;
+			return payload;
+		});
+	const teraPromise = fetchSuggestionPayload("popular_tera", name, regulation).then((payload) => {
+		if (token !== popularBuildSuggestionsToken) return payload;
+		lastTeraSuggestion = payload;
+		return payload;
+	});
+	const movePromise = fetchOpggUsagePayload(name, "moves")
+		.then((payload) => payload ?? fetchPopularMovePayload(name, regulation, archetype))
+		.then((payload) => {
+			if (token !== popularBuildSuggestionsToken) return payload;
+			lastMoveSuggestion = payload;
+			onMoveSuggestionUpdated?.();
+			return payload;
+		});
+	const abilityPromise = fetchOpggUsagePayload(name, "abilities").then((payload) => {
+		if (token !== popularBuildSuggestionsToken) return payload;
+		lastAbilitySuggestion = payload;
+		onAbilitySuggestionUpdated?.();
+		return payload;
+	});
+	await Promise.all([naturePromise, itemPromise, teraPromise, movePromise, abilityPromise]);
 	if (token !== popularBuildSuggestionsToken) return false; // より新しい呼び出しに追い越された
-	lastNatureSuggestion = nature;
-	lastItemSuggestion = item;
-	lastTeraSuggestion = tera;
-	lastMoveSuggestion = move;
-	lastAbilitySuggestion = ability;
-	applyNatureSuggestionOrdering();
-	onMoveSuggestionUpdated?.();
-	onAbilitySuggestionUpdated?.();
 	return true;
 }
 
