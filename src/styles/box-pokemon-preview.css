@@ -81,6 +81,12 @@
   display: contents;
 }
 
+#mobile-training-ui.mobile-training-ui {
+  /* CSS適用前のSSRマークアップが一瞬だけプレーンテキストで描画されるのを防ぐ。
+     MobileTrainingBar.astroのインライン初期値を、この対象CSSの適用と同時に解除する。 */
+  visibility: visible;
+}
+
 @media (width <= 899px) {
   /* 中央の編集領域だけをスクロールさせるため、ナビゲーションとプレビューはビューポートに固定する。 */
   .mobile-training-ui {

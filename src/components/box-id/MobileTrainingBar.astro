@@ -29,6 +29,8 @@ const nature = NATURE_STAT_MODIFIERS[pokemon.nature ?? ''] ?? { up: null, down: 
 const previewStats = detail ? statKeys.map((key, index) => index === 0 ? calcHpStat(pokemon.level ?? 50, detail.baseStats[index], pokemon.ivs[index] ?? 31, pokemon.evs[index] ?? 0) : calcOtherStat(pokemon.level ?? 50, detail.baseStats[index], pokemon.ivs[index] ?? 31, pokemon.evs[index] ?? 0, nature.up === key ? 1.1 : nature.down === key ? 0.9 : 1)) : [];
 ---
 
+<style is:inline>#mobile-training-ui { visibility: hidden; }</style>
+
 <div class="mobile-training-ui" id="mobile-training-ui" data-mobile-tab={activeTab}>
   <AppHeader id="mobile-training-bar" ariaLabel="個体編集メニュー">
     <div class="app-header__list">
