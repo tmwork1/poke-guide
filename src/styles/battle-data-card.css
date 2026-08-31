@@ -24,6 +24,7 @@
   --battle-data-card-pokemon-icon-size: 1.4em; /* 同時採用ポケモンのアイコンの大きさ。マス内に収まる範囲で少し大きくする */
   --battle-data-card-move-type-bar-width: 4px; /* わざ名の左に置くタイプ色バーの太さ */
   --battle-data-card-move-type-bar-height: 1.3em; /* わざ名の左に置くタイプ色バーの高さ */
+  --battle-data-card-nature-name-width: 5.75em; /* 性格名の固定幅。名前の長さによらず補正情報の開始位置を揃える */
   --battle-data-card-pokemon-icon-size: 1.6em; /* 同時採用ポケモンのアイコンサイズ */
   /* emではなくvalue-font-sizeからのcalcにする: このトークンは.trend-rank-row(font-size:
      value-font-size)とマス側の.trend-cell-body/.trend-detail-card(祖先のfont-sizeをそのまま
@@ -207,6 +208,9 @@
 }
 
 .trend-rank-row--icon3 { grid-template-columns: var(--battle-data-card-item-icon-size) minmax(0, 1fr) auto; }
+/* 性格名(固定幅)・能力補正・使用率の3列。名前を固定幅にすることで、
+   名前の長さに関わらず補正情報の開始位置を全行で揃える。 */
+.trend-rank-row--nature3 { grid-template-columns: var(--battle-data-card-nature-name-width) auto minmax(0, 1fr); }
 .trend-rank-row--type3 { grid-template-columns: var(--battle-data-card-move-type-bar-width) minmax(0, 1fr) auto; }
 .trend-rank-row--text2 { grid-template-columns: minmax(0, 1fr) auto; }
 .trend-rank-row--icon2 { grid-template-columns: var(--battle-data-card-pokemon-icon-size) minmax(0, 1fr); }
@@ -253,6 +257,7 @@
 
 .trend-nature-modifier {
   font-size: var(--font-size-sm2);
+  white-space: nowrap;
 }
 
 .trend-nature-modifier-up {
