@@ -3,8 +3,8 @@ export const prerender = false;
 
 
 import AppLayout from '../layouts/AppLayout.astro';
-import '../styles/home-page.css';
-import '../styles/app-header.css';
+import homePageStylesheet from '../styles/home-page.css?url';
+import appHeaderStylesheet from '../styles/app-header.css?url';
 import AppHeader from '../components/AppHeader.astro';
 
 const user = Astro.locals.user;
@@ -12,6 +12,8 @@ const userEmail = user?.email ?? '';
 ---
 
 <AppLayout title="ポケガイド" description="ポケモン育成を管理するためのホーム画面" current="home" bodyClass="home-page">
+	<link slot="head" rel="stylesheet" href={homePageStylesheet} />
+	<link slot="head" rel="stylesheet" href={appHeaderStylesheet} />
 	<div class="page home-page">
 		<AppHeader>
 			<h1 class="app-header-title">ホーム</h1>
