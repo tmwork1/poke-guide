@@ -412,9 +412,9 @@ async function fetchOpggTopEvs(speciesName: string): Promise<Record<string, numb
 	}
 }
 
-// 種族が変わるたびに最新のペイロードで上書きするキャッシュ。#item-dropdown-list等は
-// 初回オープン時に遅延構築される(buildItemDropdownOptions参照)ため、構築がサジェスト取得
-// より後になるケースに備えて保持し、構築側(openItemDropdown)からも読みに来られるようにする。
+// 種族が変わるたびに最新のペイロードで上書きするキャッシュ。もちもの/テラスタイプ選択
+// モーダル(item-select-dialog.ts/tera-select-dialog.ts)は開く/再描画するたびに
+// getItemSuggestionRatio/getTeraSuggestionRatio(このファイルのexport)経由でプル型に読みに来る。
 let lastNatureSuggestion: SuggestionPayload | undefined;
 let lastItemSuggestion: SuggestionPayload | undefined;
 let lastTeraSuggestion: SuggestionPayload | undefined;
@@ -453,46 +453,31 @@ function applyNatureSuggestionOrdering(): void {
 	}
 }
 
-// --- 持ち物: #item-dropdown-list(カスタムドロップダウン、初回オープン時に遅延構築)。
-//     「持ち物なし」(value="")は常に先頭固定のまま、残りを人気順→元の順で並べ替える。 ---
-function applyItemSuggestionOrdering(): void {
-	const listEl = document.getElementById("item-dropdown-list") as HTMLUListElement | null;
-	if (!listEl) return;
-	const lis = Array.from(listEl.querySelectorAll<HTMLLIElement>(".item-dropdown-option"));
-	if (lis.length === 0) return; // 未構築(次回buildItemDropdownOptions/openItemDropdownで改めて適用される)
-	const ratioMap = new Map((lastItemSuggestion?.options ?? []).map((o) => [o.value, o.ratio] as const));
-	const noneLi = lis.find((li) => li.dataset.value === "");
-	const rest = lis.filter((li) => li.dataset.value !== "");
-	rest.sort((a, b) => suggestionCompare(ratioMap, a.dataset.value ?? "", b.dataset.value ?? ""));
-	for (const li of rest) {
-		const value = li.dataset.value ?? "";
-		const textEl = li.querySelector<HTMLElement>(".item-dropdown-option-text");
-		if (textEl) textEl.textContent = value;
-	}
-	const emptyLi = listEl.querySelector<HTMLLIElement>(".item-dropdown-empty");
-	if (noneLi) listEl.appendChild(noneLi);
-	for (const li of rest) listEl.appendChild(li);
-	if (emptyLi) listEl.appendChild(emptyLi); // 「該当する持ち物がありません」は常に末尾
+// --- 持ち物: もちもの選択モーダル(item-select-dialog.ts)がグリッドを開く/再描画する
+//     たびにこのgetterを引いて人気順に並べ替える(プル型。値の実体である#itemの変更を
+//     監視するプッシュ型は使わない)。「持ち物なし」(value="")は常にモーダル側で先頭固定。 ---
+export function getItemSuggestionRatio(value: string): number | undefined {
+	return lastItemSuggestion?.options.find((o) => o.value === value)?.ratio;
 }
 
-// --- テラスタイプ: #tera-dropdown-list(19件、初期化時に構築済み)。「テラスタルなし」
-//     (value="")は常に先頭固定。 ---
-function applyTeraSuggestionOrdering(): void {
-	const listEl = document.getElementById("tera-dropdown-list") as HTMLUListElement | null;
-	if (!listEl) return;
-	const lis = Array.from(listEl.querySelectorAll<HTMLLIElement>(".tera-dropdown-option"));
-	if (lis.length === 0) return;
-	const ratioMap = new Map((lastTeraSuggestion?.options ?? []).map((o) => [o.value, o.ratio] as const));
-	const noneLi = lis.find((li) => li.dataset.value === "");
-	const rest = lis.filter((li) => li.dataset.value !== "");
-	rest.sort((a, b) => suggestionCompare(ratioMap, a.dataset.value ?? "", b.dataset.value ?? ""));
-	for (const li of rest) {
-		const value = li.dataset.value ?? "";
-		const textEl = li.querySelector<HTMLElement>(".tera-dropdown-option-text");
-		if (textEl) textEl.textContent = value;
+// --- テラスタイプ: テラスタイプ選択モーダル(tera-select-dialog.ts)が同じくプル型で
+//     参照する。「テラスタルなし」(value="")は常にモーダル側で先頭固定。 ---
+export function getTeraSuggestionRatio(value: string): number | undefined {
+	return lastTeraSuggestion?.options.find((o) => o.value === value)?.ratio;
+}
+
+// --- 持ち物の全候補名(#item-listのdatalist)。loadAutocomplete()(autocompleteReadyPromise)
+//     が非同期でoptionを流し込むため一度だけ読み取ってキャッシュする。もちもの選択モーダル
+//     (item-select-dialog.ts)からも同じキャッシュを使うためexportする。 ---
+let itemOptionNamesCache: string[] | null = null;
+export async function getItemOptionNames(): Promise<string[]> {
+	await autocompleteReadyPromise;
+	if (!itemOptionNamesCache) {
+		itemOptionNamesCache = Array.from(
+			(document.getElementById("item-list") as HTMLDataListElement).options,
+		).map((o) => o.value);
 	}
-	if (noneLi) listEl.appendChild(noneLi);
-	for (const li of rest) listEl.appendChild(li);
+	return itemOptionNamesCache;
 }
 
 // --- 技: setupMovePickerWindow()内のテーブル(このファイル下部、別スコープ)が参照する。
@@ -525,8 +510,6 @@ export async function loadPopularBuildSuggestions(
 	if (!name) {
 		lastNatureSuggestion = lastItemSuggestion = lastTeraSuggestion = lastMoveSuggestion = lastAbilitySuggestion = undefined;
 		applyNatureSuggestionOrdering();
-		applyItemSuggestionOrdering();
-		applyTeraSuggestionOrdering();
 		onMoveSuggestionUpdated?.();
 		onAbilitySuggestionUpdated?.();
 		return false;
@@ -545,8 +528,6 @@ export async function loadPopularBuildSuggestions(
 	lastMoveSuggestion = move;
 	lastAbilitySuggestion = ability;
 	applyNatureSuggestionOrdering();
-	applyItemSuggestionOrdering();
-	applyTeraSuggestionOrdering();
 	onMoveSuggestionUpdated?.();
 	onAbilitySuggestionUpdated?.();
 	return true;
@@ -771,30 +752,11 @@ if (form) {
 	const itemDropdownButton = el<HTMLButtonElement>("item-dropdown-button");
 	const itemDropdownImage = el<HTMLImageElement>("item-dropdown-image");
 	const itemDropdownPlaceholder = el<HTMLElement>("item-dropdown-placeholder");
-	const itemDropdownPanel = el<HTMLElement>("item-dropdown-panel");
-	const itemDropdownSearch = el<HTMLInputElement>("item-dropdown-search");
-	const itemDropdownListEl = el<HTMLUListElement>("item-dropdown-list");
 
-	// #item-listはloadAutocomplete()(autocompleteReadyPromise)が非同期でoptionを流し込むため、
-	// getAllMoveNames()(上記rebuildMoveListForSpecies参照)と同じパターンで一度だけ読み取って
-	// キャッシュする。
-	let itemOptionNamesCache: string[] | null = null;
-	async function getItemOptionNames(): Promise<string[]> {
-		await autocompleteReadyPromise;
-		if (!itemOptionNamesCache) {
-			itemOptionNamesCache = Array.from(el<HTMLDataListElement>("item-list").options).map((o) => o.value);
-		}
-		return itemOptionNamesCache;
-	}
-
-	const itemDropdownOptionEls: { value: string; li: HTMLLIElement }[] = [];
-	const itemDropdownEmptyEl = document.createElement("li");
-	itemDropdownEmptyEl.className = "item-dropdown-empty";
-	// 検索0件の共通表記に合わせ、対象名も画面内の「アイテム」に統一する。
-	itemDropdownEmptyEl.textContent = "条件に一致するもちものがありません";
-	itemDropdownEmptyEl.setAttribute("aria-disabled", "true");
-	itemDropdownEmptyEl.hidden = true;
-
+	// 実際の選択操作(検索・候補一覧のクリック)はもちもの選択モーダル
+	// (item-select-dialog.ts、#item-dropdown-buttonのクリックで開く)へ切り出した。
+	// このselectItemは「人気順自動選択」(下記applyTopOpggBuild)専用に残す薄いヘルパーで、
+	// #itemの値を書き換えてinput/changeを発火するだけ(モーダル側のselectItemと同じ発火方式)。
 	function selectItem(value: string): void {
 		if (itemInput.value !== value) {
 			itemInput.value = value;
@@ -803,113 +765,11 @@ if (form) {
 			itemInput.dispatchEvent(new Event("input"));
 			itemInput.dispatchEvent(new Event("change"));
 		}
-		closeItemDropdown();
 	}
-
-	let itemDropdownBuilt = false;
-	async function buildItemDropdownOptions(): Promise<void> {
-		if (itemDropdownBuilt) return;
-		itemDropdownBuilt = true;
-		const names = await getItemOptionNames();
-		const fragment = document.createDocumentFragment();
-		// テラスの「テラスなし」(value="")と同じ扱いで、持ち物を外す選択肢を先頭に置く
-		// (ドロップダウン化に伴い、候補一覧から選ぶだけでは持ち物を空にする操作が失われて
-		// しまうため、テラス実装に倣い明示的な「持ち物なし」項目を追加する)。
-		{
-			const li = document.createElement("li");
-			li.className = "item-dropdown-option";
-			li.setAttribute("role", "option");
-			li.tabIndex = -1;
-			li.dataset.value = "";
-			li.setAttribute("aria-label", "もちものなし");
-			const textEl = document.createElement("span");
-			textEl.className = "item-dropdown-option-text";
-			textEl.textContent = "もちものなし";
-			li.appendChild(textEl);
-			li.addEventListener("click", () => selectItem(""));
-			fragment.appendChild(li);
-			itemDropdownOptionEls.push({ value: "", li });
-		}
-		for (const value of names) {
-			const li = document.createElement("li");
-			li.className = "item-dropdown-option";
-			li.setAttribute("role", "option");
-			li.tabIndex = -1;
-			li.dataset.value = value;
-			li.setAttribute("aria-label", value);
-			const imgEl = document.createElement("img");
-			imgEl.className = "item-dropdown-option-image";
-			imgEl.alt = "";
-			void applyItemImage(imgEl, value);
-			li.appendChild(imgEl);
-			const textEl = document.createElement("span");
-			textEl.className = "item-dropdown-option-text";
-			textEl.textContent = value;
-			li.appendChild(textEl);
-			li.addEventListener("click", () => selectItem(value));
-			fragment.appendChild(li);
-			itemDropdownOptionEls.push({ value, li });
-		}
-		itemDropdownListEl.appendChild(fragment);
-		itemDropdownListEl.appendChild(itemDropdownEmptyEl);
-	}
-
-	function filterItemDropdown(): void {
-		const query = itemDropdownSearch.value.trim();
-		let anyVisible = false;
-		for (const opt of itemDropdownOptionEls) {
-			// 表示値は変えず、比較だけかな・文字幅・英字大小を正規化する。
-			const match = query === "" || kanaIncludes(opt.value, query);
-			opt.li.hidden = !match;
-			if (match) anyVisible = true;
-		}
-		itemDropdownEmptyEl.hidden = anyVisible;
-	}
-	itemDropdownSearch.addEventListener("input", filterItemDropdown);
-
-	function closeItemDropdown(): void {
-		itemDropdownPanel.hidden = true;
-		itemDropdownButton.setAttribute("aria-expanded", "false");
-	}
-	async function openItemDropdown(): Promise<void> {
-		await buildItemDropdownOptions();
-		// 匿名集計サジェスト機能: 初回オープン時(遅延構築の直後)は、種族確定後に既に取得済みの
-		// サジェストがあれば人気順・作用率併記をここで初めて反映する(構築より先にサジェストが
-		// 届いていた場合、applyItemSuggestionOrdering自体は「未構築ならno-op」で戻っていたため)。
-		applyItemSuggestionOrdering();
-		itemDropdownSearch.value = "";
-		for (const opt of itemDropdownOptionEls) {
-			opt.li.classList.toggle("is-active", opt.value === itemInput.value);
-			opt.li.hidden = false;
-		}
-		itemDropdownEmptyEl.hidden = true;
-		itemDropdownPanel.hidden = false;
-		itemDropdownButton.setAttribute("aria-expanded", "true");
-		itemDropdownSearch.focus();
-	}
-	itemDropdownButton.addEventListener("click", () => {
-		if (itemDropdownPanel.hidden) void openItemDropdown();
-		else closeItemDropdown();
-	});
-	// リストの外側をクリックしたら閉じる(#tera-dropdown-listと同じ一般的な挙動)。
-	document.addEventListener("click", (e) => {
-		if (itemDropdownPanel.hidden) return;
-		const target = e.target as Node;
-		if (itemDropdownButton.contains(target) || itemDropdownPanel.contains(target)) return;
-		closeItemDropdown();
-	});
-	itemDropdownButton.addEventListener("keydown", (e) => {
-		if (e.key === "Escape") closeItemDropdown();
-	});
-	itemDropdownSearch.addEventListener("keydown", (e) => {
-		if (e.key === "Escape") {
-			closeItemDropdown();
-			itemDropdownButton.focus();
-		}
-	});
 
 	// ボタン(閉じた状態)に現在選択中の持ち物を表示する(テラスのupdateTeraDropdownButtonと
-	// 同じ役割)。
+	// 同じ役割)。クリック時にモーダルを開く処理自体はitem-select-dialog.tsが
+	// #item-dropdown-buttonへ直接バインドする(#species-select-trigger-buttonと同じパターン)。
 	function updateItemDropdownButton(): void {
 		const value = itemInput.value.trim();
 		const isUnselected = value === "";
@@ -1131,81 +991,15 @@ if (form) {
 	const teraDropdownButton = el<HTMLButtonElement>("tera-dropdown-button");
 	const teraDropdownImage = el<HTMLImageElement>("tera-dropdown-image");
 	const teraDropdownPlaceholder = el<HTMLElement>("tera-dropdown-placeholder");
-	const teraDropdownList = el<HTMLUListElement>("tera-dropdown-list");
 
-	// 選択肢は#tera(<select>)のoption一覧からそのまま生成する(値・順序の実体は
-	// <select>側にあるため二重管理を避ける。「テラスなし」はvalue=""のoptionとして
-	// 既に含まれている)。各optionにaria-labelを付け、スクリーンリーダー・ホバー
-	// 両方にタイプ名(日本語)を伝える(画像だけでは伝わらないため)。
-	const teraDropdownOptionEls: { value: string; li: HTMLLIElement }[] = [];
-	for (const optionEl of Array.from(teraSelect.options)) {
-		const value = optionEl.value;
-		const li = document.createElement("li");
-		li.className = "tera-dropdown-option";
-		li.setAttribute("role", "option");
-		li.tabIndex = -1;
-		li.dataset.value = value;
-		if (value === "") {
-			li.setAttribute("aria-label", "テラスタルなし");
-			const textEl = document.createElement("span");
-			textEl.className = "tera-dropdown-option-text";
-			textEl.textContent = "テラスタルなし";
-			li.appendChild(textEl);
-		} else {
-			li.setAttribute("aria-label", value);
-			const imgEl = document.createElement("img");
-			imgEl.className = "tera-dropdown-option-image";
-			imgEl.alt = value;
-			const url = teraTypeIconUrl(value);
-			if (url) imgEl.src = url;
-			li.appendChild(imgEl);
-			const textEl = document.createElement("span");
-			textEl.className = "tera-dropdown-option-text";
-			textEl.textContent = value;
-			li.appendChild(textEl);
-		}
-		li.addEventListener("click", () => {
-			if (teraSelect.value !== value) {
-				teraSelect.value = value;
-				teraSelect.dispatchEvent(new Event("change"));
-			}
-			closeTeraDropdown();
-		});
-		teraDropdownList.appendChild(li);
-		teraDropdownOptionEls.push({ value, li });
-	}
-	// 匿名集計サジェスト機能: このリストは(アイテムと違い)ページ初期化時に即座に構築される
-	// ため、初期表示のSSR種族名について既に取得済みのサジェストがあれば直後に反映する
-	// (以後の種族変更はloadPopularBuildSuggestions→applyTeraSuggestionOrderingが担う)。
-	applyTeraSuggestionOrdering();
+	// 候補一覧の構築・選択操作はテラスタイプ選択モーダル(tera-select-dialog.ts、
+	// #tera-dropdown-buttonのクリックで開く)へ切り出した。同モーダルも#tera(<select>)の
+	// option一覧からそのまま候補を作るため、値・順序の実体は引き続き<select>側にある
+	// (二重管理は発生しない)。
 
-	function closeTeraDropdown(): void {
-		teraDropdownList.hidden = true;
-		teraDropdownButton.setAttribute("aria-expanded", "false");
-	}
-	function openTeraDropdown(): void {
-		for (const opt of teraDropdownOptionEls) {
-			opt.li.classList.toggle("is-active", opt.value === teraSelect.value);
-		}
-		teraDropdownList.hidden = false;
-		teraDropdownButton.setAttribute("aria-expanded", "true");
-	}
-	teraDropdownButton.addEventListener("click", () => {
-		if (teraDropdownList.hidden) openTeraDropdown();
-		else closeTeraDropdown();
-	});
-	// リストの外側をクリックしたら閉じる(pitfalls.md想定の一般的なドロップダウン挙動)。
-	document.addEventListener("click", (e) => {
-		if (teraDropdownList.hidden) return;
-		const target = e.target as Node;
-		if (teraDropdownButton.contains(target) || teraDropdownList.contains(target)) return;
-		closeTeraDropdown();
-	});
-	teraDropdownButton.addEventListener("keydown", (e) => {
-		if (e.key === "Escape") closeTeraDropdown();
-	});
-
-	// ボタン(閉じた状態)に現在選択中のテラスタイプを表示する。
+	// ボタン(閉じた状態)に現在選択中のテラスタイプを表示する。クリック時にモーダルを開く
+	// 処理自体はtera-select-dialog.tsが#tera-dropdown-buttonへ直接バインドする
+	// (#species-select-trigger-buttonと同じパターン)。
 	function updateTeraDropdownButton(): void {
 		const value = teraSelect.value;
 		const isUnselected = value === "";
@@ -1234,11 +1028,6 @@ if (form) {
 		teraDropdownImage.src = url;
 	}
 	teraSelect.addEventListener("change", updateTeraDropdownButton);
-	teraSelect.addEventListener("change", () => {
-		for (const opt of teraDropdownOptionEls) {
-			opt.li.classList.toggle("is-active", opt.value === teraSelect.value);
-		}
-	});
 	updateTeraDropdownButton();
 
 	const topBlockTeraImage = el<HTMLImageElement>("top-block-tera-image");

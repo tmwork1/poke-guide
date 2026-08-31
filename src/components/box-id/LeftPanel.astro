@@ -8,6 +8,8 @@
 import type { OwnedPokemonRecord } from '../../lib/owned-pokemon';
 import { TERA_TYPES } from '../../lib/tera-types';
 import SpeciesSelectDialog from './SpeciesSelectDialog.astro';
+import ItemSelectDialog from './ItemSelectDialog.astro';
+import TeraSelectDialog from './TeraSelectDialog.astro';
 import '../../styles/move-picker-dialog.css';
 
 interface Props {
@@ -120,29 +122,11 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 							type="button"
 							id="item-dropdown-button"
 							class="item-dropdown-button"
-							aria-haspopup="listbox"
-							aria-expanded="false"
+							aria-haspopup="dialog"
 						>
 							<img id="item-dropdown-image" class="item-dropdown-image" alt="" style="display:none;" />
 							<span id="item-dropdown-placeholder" class="item-dropdown-placeholder">もちものなし</span>
 						</button>
-						<div id="item-dropdown-panel" class="item-dropdown-panel" hidden>
-							<input
-								type="text"
-								id="item-dropdown-search"
-								class="item-dropdown-search"
-								placeholder="もちもの名で絞り込み"
-								aria-label="もちもの候補を絞り込み"
-								autocomplete="off"
-							/>
-							<ul
-								id="item-dropdown-list"
-								class="item-dropdown-list"
-								role="listbox"
-								aria-label="もちものを選択"
-							>
-							</ul>
-						</div>
 					</div>
 				</div>
 				{/* テラスタルは特性の下に配置する(特性=行2左列のため、DOM順でここに置けば
@@ -158,20 +142,11 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 							type="button"
 							id="tera-dropdown-button"
 							class="tera-dropdown-button"
-							aria-haspopup="listbox"
-							aria-expanded="false"
+							aria-haspopup="dialog"
 						>
 							<img id="tera-dropdown-image" class="tera-dropdown-image" alt="" style="display:none;" />
 							<span id="tera-dropdown-placeholder" class="tera-dropdown-placeholder">テラスタルなし</span>
 						</button>
-						<ul
-							id="tera-dropdown-list"
-							class="tera-dropdown-list"
-							role="listbox"
-							aria-label="テラスタイプを選択"
-							hidden
-						>
-						</ul>
 					</div>
 				</div>
 			</div>
@@ -349,6 +324,8 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		</div>
 
 		<SpeciesSelectDialog />
+		<ItemSelectDialog />
+		<TeraSelectDialog />
 
 	</section>
 </form>
@@ -752,30 +729,9 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	}
 	#edit-form .tera-dropdown-placeholder.is-tera-value-text { color: var(--color-text); }
 	#edit-form .tera-dropdown-placeholder[hidden] { display: none; }
-	/* リストボックス: ボタン直下に開く。19タイプ+テラスなしの20項目を縦スクロールで収める。 */
-	#edit-form .tera-dropdown-list {
-		position: absolute;
-		top: calc(100% + 0.25rem);
-		left: 0;
-		right: 0;
-		z-index: 5;
-		margin: 0;
-		padding: var(--space-1);
-		list-style: none;
-		max-height: 16rem;
-		overflow-y: auto;
-		background: var(--color-surface);
-		border: 1px solid var(--color-border);
-		border-radius: var(--radius-md);
-		box-shadow: var(--shadow-md);
-	}
-	#edit-form .tera-dropdown-list[hidden] { display: none; }
-	/* ⚠️ .tera-dropdown-option/.tera-dropdown-option-image/.tera-dropdown-option-text は
-	   <script>のbuildTeraDropdownがdocument.createElement()で動的生成する要素(<li>/<img>/
-	   <span>)なので、このscoped <style>は一切効かない(pitfalls.md「Astroのscoped styleは
-	   JSで生成した要素に効かない」参照。data-astro-cid-*が付かないため)。実際のスタイルは
-	   box/[id].astro側の<style is:global>に定義する(#species-type-badge .type-badge-fallbackの
-	   直後)。 */
+	/* テラスタイプ選択の候補一覧(旧: ボタン直下に開くリストボックス)は
+	   TeraSelectDialog.astro/tera-select-dialog.ts/tera-select-dialog.cssへ切り出した
+	   専用モーダルに置き換えた。ここに残るのはトリガーボタン自体の見た目のみ。 */
 
 	#edit-form .item-dropdown-wrap { position: relative; width: 100%; }
 	#edit-form .item-dropdown-button {
@@ -824,35 +780,9 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		color: var(--color-text-muted);
 	}
 	#edit-form .item-dropdown-placeholder.is-item-value-text { color: var(--color-text); }
-	/* パネル(絞り込み入力+<ul>)。テラスの.tera-dropdown-listと同じ位置決め・枠・影。 */
-	#edit-form .item-dropdown-panel {
-		position: absolute;
-		top: calc(100% + 0.25rem);
-		left: 0;
-		right: 0;
-		z-index: 5;
-		padding: var(--space-1);
-		background: var(--color-surface);
-		border: 1px solid var(--color-border);
-		border-radius: var(--radius-md);
-		box-shadow: var(--shadow-md);
-	}
-	#edit-form .item-dropdown-panel[hidden] { display: none; }
-	#edit-form .item-dropdown-search {
-		display: block;
-		width: 100%;
-		box-sizing: border-box;
-		margin-bottom: var(--space-1);
-		padding: 0.35em 0.5em;
-		font-size: var(--font-size-sm2);
-	}
-	#edit-form .item-dropdown-list {
-		margin: 0;
-		padding: 0;
-		list-style: none;
-		max-height: 14rem;
-		overflow-y: auto;
-	}
+	/* もちもの選択の候補一覧(旧: 絞り込み入力+<ul>のインラインパネル)は
+	   ItemSelectDialog.astro/item-select-dialog.ts/item-select-dialog.cssへ切り出した
+	   専用モーダルに置き換えた。ここに残るのはトリガーボタン自体の見た目のみ。 */
 
 	#edit-form .move-input-group > input {
 		transition: border-color 0.15s ease;
@@ -1150,32 +1080,6 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		white-space: nowrap;
 		cursor: pointer;
 	}
-	.item-dropdown-option {
-		display: flex;
-		align-items: center;
-		gap: var(--space-2);
-		padding: 0.35rem var(--space-2);
-		border-radius: var(--radius-sm);
-		cursor: pointer;
-		font-size: var(--font-size-sm1);
-		color: var(--color-text);
-	}
-	@media (hover: hover) and (pointer: fine) {
-		.item-dropdown-option:hover {
-			background: color-mix(in srgb, var(--color-surface) 90%, var(--color-primary) 10%);
-		}
-	}
-	.item-dropdown-option.is-active { background: var(--color-bg); }
-	.item-dropdown-option-image { width: 20px; height: 20px; object-fit: contain; flex-shrink: 0; }
-	.item-dropdown-option-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-	.item-dropdown-option[hidden] { display: none; }
-	.item-dropdown-empty {
-		padding: var(--space-2);
-		font-size: var(--font-size-sm3);
-		color: var(--color-text-muted);
-		text-align: center;
-	}
-	.item-dropdown-empty[hidden] { display: none; }
 	.move-picker-close {
 		flex-shrink: 0;
 		width: 24px;

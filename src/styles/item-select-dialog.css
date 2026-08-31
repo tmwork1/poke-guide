@@ -1,0 +1,161 @@
+/* ===========================================================================
+	もちもの選択ダイアログ (/box/[id] の育成タブ)
+	見た目を変えたいときは、まず下のチューニング変数を調整する。
+	トークンはspecies-select-dialog.css(モーダルヘッダー規格の基準実装)と同じ値を
+	参照する。新しい配色・角丸・影・フォントサイズの値は作らない。
+	=========================================================================== */
+body.box-edit-page {
+	--item-select-dialog-width: min(640px, 94vw);
+	--item-select-dialog-height: var(--modal-height);
+	--item-select-dialog-background: var(--color-surface);
+	--item-select-dialog-border: var(--modal-border);
+	--item-select-dialog-radius: var(--radius-lg);
+	--item-select-dialog-shadow: var(--shadow-lg);
+	--item-select-backdrop-background: var(--color-overlay);
+	--item-select-header-padding: var(--modal-header-padding);
+	--item-select-header-gap: var(--modal-header-gap);
+	--item-select-title-font-size: var(--modal-title-font-size);
+	--item-select-title-font-weight: var(--modal-title-font-weight);
+	--item-select-close-font-size: var(--modal-close-font-size);
+	--item-select-close-size: var(--modal-close-size);
+	--item-select-content-padding: var(--space-3) var(--space-5);
+}
+
+.item-select-backdrop {
+	position: fixed;
+	inset: 0;
+	z-index: 70;
+	background: var(--item-select-backdrop-background);
+}
+.item-select-backdrop[hidden] { display: none; }
+
+.item-select-dialog {
+	position: fixed;
+	top: var(--modal-top-offset);
+	left: 50%;
+	transform: translateX(-50%);
+	z-index: 71;
+	width: var(--item-select-dialog-width);
+	height: var(--item-select-dialog-height);
+	display: flex;
+	flex-direction: column;
+	overflow: visible;
+	background: var(--item-select-dialog-background);
+	border: var(--item-select-dialog-border);
+	border-radius: var(--item-select-dialog-radius);
+	box-shadow: var(--item-select-dialog-shadow);
+}
+.item-select-dialog[hidden] { display: none; }
+
+.item-select-header {
+	display: flex;
+	align-items: center;
+	gap: var(--item-select-header-gap);
+	padding: var(--item-select-header-padding);
+	min-height: var(--modal-header-min-height);
+	border-bottom: 1px solid var(--color-border);
+	flex-shrink: 0;
+}
+.item-select-header .item-select-title {
+	flex: 1 1 auto;
+	min-width: 0;
+	margin: 0;
+	margin-bottom: 0;
+	padding-bottom: 0;
+	border-bottom: none;
+	font-size: var(--item-select-title-font-size);
+	font-weight: var(--item-select-title-font-weight);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.item-select-close {
+	flex-shrink: 0;
+	min-width: var(--item-select-close-size);
+	min-height: var(--item-select-close-size);
+	padding: 0.1em 0.45em;
+	margin-right: calc(var(--modal-close-margin) - var(--modal-header-padding-x)); /* ヘッダー右端との余白を上下と揃える(モーダルヘッダー規格・global.css)。 */
+	font-size: var(--item-select-close-font-size);
+	line-height: 1;
+}
+
+.item-select-search-row {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	padding: var(--space-3) var(--space-5);
+	border-bottom: 1px solid var(--color-border);
+	flex-shrink: 0;
+}
+.item-select-search-wrap {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+.item-select-search-input {
+	width: 100%;
+	min-width: 0;
+	box-sizing: border-box;
+}
+
+.item-select-grid-wrap {
+	flex: 1 1 auto;
+	min-height: 0;
+	overflow-y: auto;
+	padding: var(--item-select-content-padding);
+}
+.item-select-grid {
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	gap: var(--space-2);
+}
+.item-select-grid[hidden] { display: none; }
+.item-select-cell {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	min-width: 0;
+	min-height: 44px; /* タップ域を縮めない(WCAG 2.5.8の24px下限を余裕をもって満たす)。 */
+	padding: var(--space-1) var(--space-2);
+	border: 1px solid transparent;
+	border-radius: var(--radius-sm);
+	background: transparent;
+	color: var(--color-text);
+	cursor: pointer;
+	font: inherit;
+	text-align: left;
+}
+.item-select-cell:hover { border-color: var(--color-primary); }
+.item-select-cell.is-active { background: var(--color-bg); }
+.item-select-cell:focus-visible,
+.item-select-close:focus-visible {
+	outline: 2px solid var(--color-primary);
+	outline-offset: 1px;
+}
+.item-select-cell-image {
+	width: 28px;
+	height: 28px;
+	object-fit: contain;
+	flex-shrink: 0;
+}
+.item-select-cell-text {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-size: var(--font-size-sm1);
+}
+.item-select-empty {
+	margin: 0;
+	padding: var(--space-5);
+	color: var(--color-text-muted);
+	font-size: var(--font-size-sm2);
+	text-align: center;
+}
+.item-select-empty[hidden] { display: none; }
+
+/* @media は基本定義より後ろに置く。狭幅時の上書きが先の定義に負けないため。 */
+@media (max-width: 480px) {
+	.item-select-dialog { width: 96vw; }
+	.item-select-search-row { padding-inline: var(--space-3); }
+	.item-select-grid-wrap { padding-inline: var(--space-3); }
+}
