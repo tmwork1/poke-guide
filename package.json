@@ -12,6 +12,7 @@
 		"test": "node --test \"tests/**/*.test.ts\"",
 		"pretest:e2e": "npm run build",
 		"test:e2e": "playwright test",
+		"test:perf": "playwright test --config=playwright.perf.config.ts",
 		"test:e2e:update-fixtures": "python tests/e2e/fixtures/generate_expected.py",
 		"build:master-data": "node scripts/build-master-data/build.mjs",
 		"generate:type-icons": "python scripts/type-icons/generate_type_icons.py",

@@ -49,6 +49,10 @@ pnpm-debug.log*
 /blob-report/
 /playwright/.cache/
 
+# パフォーマンス計測の生データ(履歴)。実行のたびに増えるため生成物として除外し、
+# docs/perf/dashboard.md(npm run test:perf で自動更新される表)だけを恒久的な記録とする。
+/docs/perf/results/
+
 # Claude Code: skills/ はチーム共有のためコミットするが、ローカル状態は除外する
 .claude/settings.local.json
 .claude/scheduled_tasks.lock
