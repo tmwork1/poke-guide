@@ -64,6 +64,9 @@ body.data-page {
 	border: var(--stat-adjustment-dialog-border);
 	border-radius: var(--stat-adjustment-dialog-radius);
 	box-shadow: var(--stat-adjustment-dialog-shadow);
+	/* 開いた直後にdialog.focus()するため、ブラウザ既定の白いフォーカス輪郭を
+	   外枠として見せない。キーボード操作時の可視フォーカスは内部の操作要素で示す。 */
+	outline: none;
 }
 .stat-adjustment-dialog[hidden] { display: none; }
 
@@ -118,6 +121,9 @@ body.data-page {
 	を起点に追加するだけにとどめる。
 	=========================================================================== */
 #stat-adjustment-dialog-body .stat-adjustment-section {
+	/* このノードは育成タブからモーダルへ移動する。移動先の継承に左右されず、
+	   育成タブと同じ表の文字サイズを使う。 */
+	font-size: var(--stat-section-font-size);
 	--stat-table-gap: var(--space-2);
 	--stat-row-label-line-height: 1;
 	--stat-header-padding: 0 0 0.35rem;
