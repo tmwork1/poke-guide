@@ -558,7 +558,7 @@ try {
 							<div class="team-item-redistribute-title-group">
 								<h2 id="team-item-redistribute-title" class="item-select-title">もちもの表示</h2>
 								<button type="button" id="team-item-redistribute-help-button" class="team-item-redistribute-help-button" aria-expanded="false" aria-controls="team-item-redistribute-help-popover" aria-label="使い方を表示">?</button>
-								<p id="team-item-redistribute-help-popover" class="team-item-redistribute-help-popover" role="note" hidden>チーム画面のもちもの表示を変更します。<br />ポケモンに登録したもちものは変わりません。</p>
+								<p id="team-item-redistribute-help-popover" class="team-item-redistribute-help-popover" role="note" hidden>チーム画面のもちもの表示を変更できます。<br />ポケモンに登録したもちものは変わりません。</p>
 							</div>
 							<button type="button" id="team-item-redistribute-close" class="btn-ghost item-select-close" aria-label="閉じる">×</button>
 						</div>
@@ -1814,7 +1814,7 @@ try {
 		// 自動保存のデバウンス方式は box/[id].astro と同じ(700ms・保存ボタンは作らない・
 		// topbar-statusスロットで状態表示)。初期表示データ(SSR取得済みのチーム)は
 		// #team-edit-layout の data-initial-team から読む(fetch往復を待たずに6枠を描ける)。
-		import { loadImageIdMap, officialArtworkUrl, championSpriteUrl, loadBaseStatsMap, loadMoveDetailMap } from "../../lib/pokemon-master-data";
+		import { loadImageIdMap, officialArtworkUrl, championSpriteUrl, loadBaseStatsMap, loadMoveDetailMap, loadMegaStoneMap } from "../../lib/pokemon-master-data";
 		// 技チップにタイプアイコンを追加するため、typeIconUrlを追加importする(box/index.astroの
 		// applyMoveChipTypeIconsと同じ用途)。
 		import { itemIconUrl, teraTypeIconUrl, typeIconUrl } from "../../lib/sprite-urls";
@@ -2072,6 +2072,24 @@ try {
 			let selectedRedistributionItem: string | null = null;
 			let redistributionSearchQuery = "";
 
+			// メガシンカ後の種族(例: メガドラミドロ)は、対応するメガストーンを
+			// 手放すとメガシンカ表示自体が成立しなくなるため、再分配の対象から外す
+			// (タップでの選択・長押しでの解除いずれも受け付けない)。
+			let redistributionLockedSlots = new Set<number>();
+
+			async function loadRedistributionLocks(): Promise<void> {
+				const megaStones = await loadMegaStoneMap();
+				const locked = new Set<number>();
+				for (const [slot, p] of membersBySlot) {
+					if (megaStones.has(p.species_name)) locked.add(slot);
+				}
+				redistributionLockedSlots = locked;
+			}
+
+			function isRedistributionSlotLocked(slot: number): boolean {
+				return redistributionLockedSlots.has(slot);
+			}
+
 			function renderRedistributionItems(): void {
 				redistributionItemGrid.render(redistributionSearchQuery);
 			}
@@ -2087,6 +2105,20 @@ try {
 					applySprite,
 					applyItemIcon,
 				});
+				// renderTeamMateSlots自体は編成タブ等と共有のため「変更不可」概念を持たない。
+				// ここ(再分配モーダル固有)でだけDOMに後付けでロック表示を足す
+				// (renderTeamMateSlotsは毎回root.innerHTMLを作り直すため、常に未装飾のカードから始まる)。
+				for (const cardEl of Array.from(itemRedistributeMembers.children) as HTMLElement[]) {
+					const slot = Number(cardEl.dataset.slot);
+					if (!isRedistributionSlotLocked(slot)) continue;
+					cardEl.classList.add("is-locked");
+					cardEl.setAttribute("aria-disabled", "true");
+					const lock = document.createElement("span");
+					lock.className = "team-item-redistribute-lock-badge";
+					lock.setAttribute("aria-hidden", "true");
+					lock.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>';
+					cardEl.appendChild(lock);
+				}
 			}
 
 			function refreshEffectiveItemViews(): void {
@@ -2099,6 +2131,7 @@ try {
 			}
 
 			function clearRedistributedItem(slot: number): void {
+				if (isRedistributionSlotLocked(slot)) return;
 				itemOverridesBySlot.set(slot, "");
 				selectedRedistributionSlot = null;
 				selectedRedistributionItem = null;
@@ -2132,6 +2165,7 @@ try {
 			}
 
 			function onRedistributionMemberTap(slot: number): void {
+				if (isRedistributionSlotLocked(slot)) return;
 				if (selectedRedistributionItem !== null) {
 					setRedistributedItem(slot, selectedRedistributionItem);
 					selectedRedistributionItem = null;
@@ -4432,6 +4466,8 @@ try {
 					// チームの合計採用率はネットワーク取得を伴うため、ダイアログ表示自体は
 					// 待たせず、届き次第もちもの一覧の並び順だけ更新する。
 					void loadTeamItemUsageTotals().then(() => renderRedistributionItems());
+					// メガストーン対応表も同様に非同期取得し、届き次第ロック表示を反映する。
+					void loadRedistributionLocks().then(() => renderRedistributionMembers());
 				});
 			});
 			itemRedistributeClose.addEventListener("click", closeRedistributionDialog);
