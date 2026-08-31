@@ -117,5 +117,93 @@
     "seed": 5,
     "critical": true,
     "field": {}
+  },
+  {
+    "id": "lethal_seq_defender_stealth_rock",
+    "description": "防御側がステルスロックを踏んだ状態からの初期HP減算(defenderHpへの反映確認): ヒトカゲ「ひっかく」vs ゼニガメ",
+    "attacker": { "name": "ヒトカゲ", "moveNames": ["ひっかく"] },
+    "defender": { "name": "ゼニガメ" },
+    "attacks": [
+      { "moveName": "ひっかく", "stealthRock": true }
+    ],
+    "seed": 8,
+    "critical": false,
+    "field": {}
+  },
+  {
+    "id": "lethal_seq_defender_spikes",
+    "description": "防御側が踏んだまきびし2層ぶんの初期HP減算(defenderHpへの反映確認): ピカチュウ「たいあたり」vs カビゴン",
+    "attacker": { "name": "ピカチュウ", "moveNames": ["たいあたり"] },
+    "defender": { "name": "カビゴン" },
+    "attacks": [
+      { "moveName": "たいあたり", "spikes": 2 }
+    ],
+    "seed": 10,
+    "critical": false,
+    "field": {}
+  },
+  {
+    "id": "lethal_seq_defender_disguise_broken",
+    "description": "防御側の「ばけのかわ」等が最初の1発で消費済みという想定の初期HP減算(defenderHpへの反映確認): ピカチュウ「たいあたり」vs フシギダネ",
+    "attacker": { "name": "ピカチュウ", "moveNames": ["たいあたり"] },
+    "defender": { "name": "フシギダネ" },
+    "attacks": [
+      { "moveName": "たいあたり", "defenderDisguiseBroken": true }
+    ],
+    "seed": 11,
+    "critical": false,
+    "field": {}
+  },
+  {
+    "id": "lethal_seq_attacker_ailment_burn",
+    "description": "攻撃側状態異常(やけど)のper-attack上書き(物理技の攻撃実数値半減): ピカチュウ「たいあたり」vs カビゴン",
+    "attacker": { "name": "ピカチュウ", "moveNames": ["たいあたり"] },
+    "defender": { "name": "カビゴン" },
+    "attacks": [
+      { "moveName": "たいあたり", "attackerAilment": "やけど" },
+      { "moveName": "たいあたり" }
+    ],
+    "seed": 12,
+    "critical": false,
+    "field": {}
+  },
+  {
+    "id": "lethal_seq_attacker_volatile_charge",
+    "description": "攻撃側揮発性状態(じゅうでん)のper-attack上書き(次のでんきタイプ技の威力2倍、1回使うと解除): ピカチュウ「でんきショック」を2連続 vs フシギダネ",
+    "attacker": { "name": "ピカチュウ", "moveNames": ["でんきショック"] },
+    "defender": { "name": "フシギダネ" },
+    "attacks": [
+      { "moveName": "でんきショック", "attackerVolatiles": ["じゅうでん"] },
+      { "moveName": "でんきショック" }
+    ],
+    "seed": 13,
+    "critical": false,
+    "field": {}
+  },
+  {
+    "id": "lethal_seq_defender_boosts_override",
+    "description": "防御側ランク補正のper-attack上書きとカード共通値へのフォールバック(防御+2で物理技ダメージ軽減): ピカチュウ「たいあたり」(1発目のみ防御側の防御ランク+2)vs カビゴン",
+    "attacker": { "name": "ピカチュウ", "moveNames": ["たいあたり"] },
+    "defender": { "name": "カビゴン" },
+    "attacks": [
+      { "moveName": "たいあたり", "defenderBoosts": [0, 0, 2, 0, 0, 0] },
+      { "moveName": "たいあたり" }
+    ],
+    "seed": 14,
+    "critical": false,
+    "field": {}
+  },
+  {
+    "id": "lethal_seq_per_attack_defender_terastallize",
+    "description": "防御側テラスタル発動のper-attack上書き(1発目のみ発動、2発目は解除状態にフォールバック): ヒトカゲ「ひのこ」vs フシギダネ(テラスタイプみず)",
+    "attacker": { "name": "ヒトカゲ", "moveNames": ["ひのこ"] },
+    "defender": { "name": "フシギダネ", "teraType": "みず" },
+    "attacks": [
+      { "moveName": "ひのこ", "defenderTerastallized": true },
+      { "moveName": "ひのこ" }
+    ],
+    "seed": 15,
+    "critical": false,
+    "field": {}
   }
 ]
