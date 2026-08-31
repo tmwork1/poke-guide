@@ -311,7 +311,10 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		    カードクリックで/team/[id]へ遷移するだけ)。所属チームが無ければ何も表示しない
 		    (<script>のleft-panel.ts loadOwnedPokemonTeams参照)。既存のteam-card.cssの
 		    標準6枠チームカード(team/index.astroと同じrenderTeamCard)をそのまま使う。 */}
-		<div id="pokemon-team-list" class="team-grid pokemon-team-list" hidden></div>
+		<section id="pokemon-team-section" class="pokemon-team-section" hidden aria-labelledby="pokemon-team-heading">
+			<h2 id="pokemon-team-heading" class="pokemon-team-heading">チーム</h2>
+			<div id="pokemon-team-list" class="team-grid pokemon-team-list"></div>
+		</section>
 
 		{/* 削除ボタン。以前はbox/[id].astro側でSSRし、mobile-edit-tabs.tsがJSで
 		    #mobile-edit-actionsへ移設していたが、移設が終わるまでの一瞬ヘッダーより上に表示される
@@ -850,8 +853,10 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	/* 所属チーム一覧(team-card.cssの.team-grid/.card-teamをそのまま使う)。
 	   [hidden]はteam-card.cssの`.team-grid { display: grid; }`に詳細度で負けるため明示する
 	   (pitfalls.md「[hidden]が効かない」)。 */
-	.pokemon-team-list { margin: 0 0 var(--space-2); }
-	.pokemon-team-list[hidden] { display: none; }
+	.pokemon-team-section { margin: var(--space-5) 0; }
+	.pokemon-team-section[hidden] { display: none; }
+	.pokemon-team-heading { margin: 0 0 var(--space-2); font-size: var(--font-size-base); font-weight: 700; text-align: left; }
+	.pokemon-team-list { margin: 0; }
 	@media (max-width: 520px) {
 		#edit-form .field-grid { grid-template-columns: 1fr; }
 	}

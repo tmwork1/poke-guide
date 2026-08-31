@@ -3608,7 +3608,8 @@ try {
 				if (membersBySlot.has(slot)) removeMemberFromSlot(slot);
 			}
 			function onFormationSlotLongPress(slot: number): void {
-				if (membersBySlot.has(slot)) removeMemberFromSlot(slot);
+				const member = membersBySlot.get(slot);
+				if (member) navigateToPokemonEdit(member.id);
 			}
 
 			function renderFormationMobile(): void {

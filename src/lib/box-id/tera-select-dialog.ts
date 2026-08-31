@@ -45,12 +45,13 @@ function buildGridOnce(): void {
 		const value = optionEl.value;
 		const label = value === "" ? "テラスタルなし" : value;
 		const cell = document.createElement("button");
+		const modalLabel = value === "" ? "なし" : label;
 		cell.type = "button";
 		cell.className = "tera-select-cell";
 		cell.dataset.value = value;
 		cell.setAttribute("role", "option");
-		cell.setAttribute("aria-label", label);
-		cell.title = label;
+		cell.setAttribute("aria-label", modalLabel);
+		cell.title = modalLabel;
 		if (value !== "") {
 			const img = document.createElement("img");
 			img.className = "tera-select-cell-image";
@@ -66,14 +67,16 @@ function buildGridOnce(): void {
 		} else {
 			// 「テラスタルなし」にはアイコンが無いため、同じ幅の空要素で場所を確保し、
 			// 他セルとテキストの左端位置をそろえる。
-			const spacer = document.createElement("span");
-			spacer.className = "tera-select-cell-image-spacer";
-			spacer.setAttribute("aria-hidden", "true");
-			cell.appendChild(spacer);
+			const icon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+			icon.classList.add("tera-select-cell-none-icon");
+			icon.setAttribute("viewBox", "0 0 24 24");
+			icon.setAttribute("aria-hidden", "true");
+			icon.innerHTML = '<circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M6 6l12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>';
+			cell.appendChild(icon);
 		}
 		const textEl = document.createElement("span");
 		textEl.className = "tera-select-cell-text";
-		textEl.textContent = label;
+		textEl.textContent = modalLabel;
 		cell.appendChild(textEl);
 		cell.addEventListener("click", () => selectTera(value));
 		cellByValue.set(value, cell);

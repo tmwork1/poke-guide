@@ -118,7 +118,7 @@ body.data-page {
 	outline-offset: 1px;
 }
 .tera-select-cell-image,
-.tera-select-cell-image-spacer {
+.tera-select-cell-none-icon {
 	width: 28px;
 	height: 28px;
 	object-fit: contain;
@@ -126,9 +126,7 @@ body.data-page {
 }
 /* 「テラスタルなし」セルにはアイコン画像が無いため、同じ幅の空要素で場所を確保し、
    他セルとテキストの左端位置をそろえる。 */
-.tera-select-cell-image-spacer {
-	display: block;
-}
+.tera-select-cell-none-icon { color: var(--color-text-muted); }
 .tera-select-cell-text {
 	min-width: 0;
 	max-width: 100%;

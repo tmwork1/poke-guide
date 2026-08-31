@@ -1446,8 +1446,9 @@ if (form) {
 // 新規個体(保存前、ownedPokemonIdが空)はどのチームにも所属し得ないため呼ばない。
 async function loadOwnedPokemonTeams(): Promise<void> {
 	const listEl = document.getElementById("pokemon-team-list");
+	const sectionEl = document.getElementById("pokemon-team-section");
 	const ownedPokemonId = (document.getElementById("edit-form") as HTMLFormElement | null)?.dataset.id ?? "";
-	if (!listEl || !ownedPokemonId) return;
+	if (!listEl || !sectionEl || !ownedPokemonId) return;
 	try {
 		const res = await fetch("/api/teams", { credentials: "same-origin" });
 		if (!res.ok) return;
@@ -1457,7 +1458,7 @@ async function loadOwnedPokemonTeams(): Promise<void> {
 		);
 		listEl.replaceChildren();
 		if (teams.length === 0) {
-			listEl.hidden = true;
+			sectionEl.hidden = true;
 			return;
 		}
 		for (const t of teams) {
@@ -1483,7 +1484,7 @@ async function loadOwnedPokemonTeams(): Promise<void> {
 			});
 			listEl.appendChild(card);
 		}
-		listEl.hidden = false;
+		sectionEl.hidden = false;
 	} catch (err) {
 		console.error(err);
 	}

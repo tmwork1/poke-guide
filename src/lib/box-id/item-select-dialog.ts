@@ -3,6 +3,8 @@ import { kanaIncludes } from "../kana";
 import { bindModalDismissal } from "../modal-dismiss";
 import { applyItemImage } from "./shared-core";
 
+type ItemAutocompleteEntry = { name?: unknown; regulations?: unknown };
+
 let itemNamesPromise: Promise<string[]> | null = null;
 
 function getSharedItemNames(): Promise<string[]> {
@@ -10,8 +12,11 @@ function getSharedItemNames(): Promise<string[]> {
 		itemNamesPromise = fetch("/master-data/autocomplete/items.json")
 			.then(async (response) => {
 				if (!response.ok) throw new Error("Failed to load item autocomplete data");
-				const rows = await response.json() as Array<{ name?: unknown }>;
-				return rows.map((row) => typeof row.name === "string" ? row.name : "").filter(Boolean);
+				const rows = await response.json() as ItemAutocompleteEntry[];
+				return rows
+					.filter((row) => Array.isArray(row.regulations) && row.regulations.length > 0)
+					.map((row) => typeof row.name === "string" ? row.name : "")
+					.filter(Boolean);
 			});
 	}
 	return itemNamesPromise;
@@ -50,10 +55,12 @@ export function createItemSelectGrid(options: ItemSelectGridOptions): ItemSelect
 			void applyItemImage(img, value);
 			cell.appendChild(img);
 		} else {
-			const spacer = document.createElement("span");
-			spacer.className = "item-select-cell-image-spacer";
-			spacer.setAttribute("aria-hidden", "true");
-			cell.appendChild(spacer);
+			const icon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+			icon.classList.add("item-select-cell-none-icon");
+			icon.setAttribute("viewBox", "0 0 24 24");
+			icon.setAttribute("aria-hidden", "true");
+			icon.innerHTML = '<circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M6 6l12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>';
+			cell.appendChild(icon);
 		}
 		const textEl = document.createElement("span");
 		textEl.className = "item-select-cell-text";
@@ -68,7 +75,7 @@ export function createItemSelectGrid(options: ItemSelectGridOptions): ItemSelect
 		if (!buildPromise) {
 			buildPromise = getSharedItemNames().then((names) => {
 				gridBuilt = true;
-				cellByValue.set("", createCell("", "もちものなし"));
+				cellByValue.set("", createCell("", "なし"));
 				for (const name of names) cellByValue.set(name, createCell(name, name));
 			});
 		}
@@ -81,7 +88,7 @@ export function createItemSelectGrid(options: ItemSelectGridOptions): ItemSelect
 		const matches = (label: string) => !searchQuery || kanaIncludes(label, searchQuery);
 		const activeValue = options.getActiveValue() ?? "__none_selected__";
 		const visible: HTMLButtonElement[] = [];
-		if (noneCell && matches("もちものなし")) {
+		if (noneCell && (matches("なし") || matches("もちものなし"))) {
 			noneCell.classList.toggle("is-active", activeValue === "");
 			visible.push(noneCell);
 		}

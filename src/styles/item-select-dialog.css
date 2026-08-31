@@ -141,7 +141,7 @@ body.data-page {
 	outline-offset: 1px;
 }
 .item-select-cell-image,
-.item-select-cell-image-spacer {
+.item-select-cell-none-icon {
 	width: 28px;
 	height: 28px;
 	object-fit: contain;
@@ -149,18 +149,19 @@ body.data-page {
 }
 /* 「もちものなし」セルにはアイコン画像が無いため、同じ幅の空要素で場所を確保し、
    他セルとテキストの左端位置をそろえる。 */
-.item-select-cell-image-spacer {
-	display: block;
-}
+.item-select-cell-none-icon { color: var(--color-text-muted); }
 .item-select-cell-text {
 	min-width: 0;
 	max-width: 100%;
+	min-height: calc(2 * var(--line-height-snug));
 	overflow: hidden;
 	display: -webkit-box;
 	-webkit-box-orient: vertical;
 	-webkit-line-clamp: 2;
 	font-size: var(--font-size-sm3);
 	line-height: var(--line-height-snug);
+	word-break: normal;
+	overflow-wrap: anywhere;
 }
 .item-select-empty {
 	margin: 0;
