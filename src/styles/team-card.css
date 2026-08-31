@@ -131,7 +131,12 @@
   justify-content: flex-start;
   min-height: var(--team-card-header-min-height);
   padding: var(--team-card-header-padding);
-  background: var(--team-card-header-background);
+  background-color: var(--team-card-header-background);
+  background-image: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--team-card-header-background) 97.5%, white 2.5%) 0%,
+    color-mix(in srgb, var(--team-card-header-background) 97.5%, black 2.5%) 100%
+  );
   border: 1px solid var(--color-border);
   border-radius: 0;
   color: inherit;

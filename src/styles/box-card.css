@@ -81,6 +81,7 @@
   --box-card-item-badge-inset-block-end: var(--box-card-item-badge-offset); /* 持ち物アイコンを右下へ配置する */
   --box-card-action-inset-block-start: var(--box-card-action-offset); /* 操作ボタン群をカード上端から下げる位置 */
   --box-card-action-inset-inline-end: var(--box-card-action-offset); /* 操作ボタン群をカード右端から左へ入れる位置 */
+  --box-card-background: var(--color-surface); /* カード本体の下地。ホバー・フォーカス時も同じ縦方向の質感を保つ。 */
 
   /* ── 9. その他 ────────────────────────────────────────── */
   --box-card-aspect-ratio: 1 / 1; /* カード外形の縦横比。現在は一覧を正方形でそろえる */
@@ -113,6 +114,12 @@
   text-decoration: none;
   text-align: start;
   color: inherit;
+  background-color: var(--box-card-background);
+  background-image: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--box-card-background) 97.5%, white 2.5%) 0%,
+    color-mix(in srgb, var(--box-card-background) 97.5%, black 2.5%) 100%
+  );
   /* 長押しで削除モードに入るため、長押し中にテキスト選択や画像の保存メニュー
      (iOSのコールアウト)が出ないようにする。 */
   user-select: none;
@@ -132,7 +139,7 @@
 .box-grid .box-card:focus-within {
   /* global.css の button:hover:not(:disabled) は .card:hover より詳細度が高い。
      カード共通の hover/focus 背景をここで所有し、要素種別に依存させない。 */
-  background: color-mix(
+  --box-card-background: color-mix(
     in srgb,
     var(--color-surface) 90%,
     var(--color-primary) 10%
@@ -140,7 +147,7 @@
 }
 @media (hover: hover) and (pointer: fine) {
   .box-grid .box-card:hover {
-    background: color-mix(
+    --box-card-background: color-mix(
       in srgb,
       var(--color-surface) 90%,
       var(--color-primary) 10%

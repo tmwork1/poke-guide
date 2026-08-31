@@ -294,5 +294,6 @@ body.data-page {
   visibility: hidden;
 }
 .box-ranked-loading-grid .box-card {
-  background: var(--color-surface);
+  background-color: var(--color-surface);
+  background-image: var(--background-image-surface);
 }

@@ -121,7 +121,12 @@
   min-height: 0;
   height: var(--battle-data-card-cell-height);
   padding: var(--battle-data-card-cell-padding);
-  background: var(--battle-data-card-background);
+  background-color: var(--battle-data-card-background);
+  background-image: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--battle-data-card-background) 97.5%, white 2.5%) 0%,
+    color-mix(in srgb, var(--battle-data-card-background) 97.5%, black 2.5%) 100%
+  );
   border: var(--battle-data-card-border);
   overflow: hidden;
 }

@@ -227,7 +227,13 @@ body.box-edit-page {
    カード外枠と基本入力欄
    -------------------------------------------------------------------------- */
 #opponent-notes-section .card-damage {
-  background: var(--damage-card-background);
+  --damage-card-current-background: var(--damage-card-background);
+  background-color: var(--damage-card-current-background);
+  background-image: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--damage-card-current-background) 97.5%, white 2.5%) 0%,
+    color-mix(in srgb, var(--damage-card-current-background) 97.5%, black 2.5%) 100%
+  );
   box-shadow: var(--damage-card-shadow);
   padding: var(--damage-card-padding);
   max-width: var(--damage-card-max-width);
@@ -248,14 +254,14 @@ body.box-edit-page {
 
 #opponent-notes-section .card-damage:focus-within {
   box-shadow: var(--damage-card-active-shadow);
-  background: var(--damage-card-active-background);
+  --damage-card-current-background: var(--damage-card-active-background);
   border-color: var(--damage-card-active-border-color);
 }
 
 @media (hover: hover) and (pointer: fine) {
   #opponent-notes-section .card-damage:hover {
     box-shadow: var(--damage-card-active-shadow);
-    background: var(--damage-card-active-background);
+    --damage-card-current-background: var(--damage-card-active-background);
     border-color: var(--damage-card-active-border-color);
   }
 }
@@ -278,7 +284,12 @@ body.box-edit-page {
 #opponent-notes-section .damage-row-build {
   border-radius: var(--damage-card-build-border-radius);
   border: 1px solid var(--color-border);
-  background: var(--damage-card-build-background);
+  background-color: var(--damage-card-build-background);
+  background-image: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--damage-card-build-background) 97.5%, white 2.5%) 0%,
+    color-mix(in srgb, var(--damage-card-build-background) 97.5%, black 2.5%) 100%
+  );
   cursor: pointer;
   align-items: center;
   flex: 0 var(--damage-card-build-width);
@@ -1142,7 +1153,12 @@ body.box-edit-page {
   padding: var(--damage-card-column-padding);
   align-items: center;
   gap: var(--damage-card-column-gap);
-  background: var(--damage-card-column-background);
+  background-color: var(--damage-card-column-background);
+  background-image: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--damage-card-column-background) 97.5%, white 2.5%) 0%,
+    color-mix(in srgb, var(--damage-card-column-background) 97.5%, black 2.5%) 100%
+  );
   cursor: pointer;
   flex-direction: row;
   transition: box-shadow var(--damage-card-transition-duration);
@@ -2031,7 +2047,12 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .box-add-button
 
   #opponent-notes-section .damage-column:active {
     box-shadow: var(--shadow-md);
-    background: color-mix(in srgb, var(--color-surface) 90%, var(--color-primary) 10%);
+    background-color: color-mix(in srgb, var(--color-surface) 90%, var(--color-primary) 10%);
+    background-image: linear-gradient(
+      180deg,
+      color-mix(in srgb, color-mix(in srgb, var(--color-surface) 90%, var(--color-primary) 10%) 97.5%, white 2.5%) 0%,
+      color-mix(in srgb, color-mix(in srgb, var(--color-surface) 90%, var(--color-primary) 10%) 97.5%, black 2.5%) 100%
+    );
   }
 
   /* 技カードの直下へ差し込まれる詳細設定パネル */
@@ -2186,12 +2207,18 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .box-add-button
    (--damage-card-active-backgroundは--color-bg起点のため、surface背景から
    ホバーした際に色が不自然に飛んでしまう)。 */
 #opponent-notes-section .damage-suggest-card-button {
+  --damage-suggest-card-background: var(--damage-card-build-background);
   width: 100%;
   display: block;
   padding: var(--space-2);
   border: 0;
   border-radius: var(--radius-zero);
-  background: var(--damage-card-build-background);
+  background-color: var(--damage-suggest-card-background);
+  background-image: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--damage-suggest-card-background) 97.5%, white 2.5%) 0%,
+    color-mix(in srgb, var(--damage-suggest-card-background) 97.5%, black 2.5%) 100%
+  );
   box-shadow: var(--shadow-sm);
   text-align: left;
   cursor: pointer;
@@ -2202,13 +2229,13 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .box-add-button
 
 #opponent-notes-section .damage-suggest-card-button:focus-visible {
   box-shadow: var(--shadow-md);
-  background: color-mix(in srgb, var(--color-surface) 90%, var(--color-primary) 10%);
+  --damage-suggest-card-background: color-mix(in srgb, var(--color-surface) 90%, var(--color-primary) 10%);
 }
 
 @media (hover: hover) and (pointer: fine) {
   #opponent-notes-section .damage-suggest-card-button:hover {
     box-shadow: var(--shadow-md);
-    background: color-mix(in srgb, var(--color-surface) 90%, var(--color-primary) 10%);
+    --damage-suggest-card-background: color-mix(in srgb, var(--color-surface) 90%, var(--color-primary) 10%);
   }
 }
 
