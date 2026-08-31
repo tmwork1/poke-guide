@@ -8,10 +8,8 @@ import type { APIContext } from 'astro';
 import { badRequest, isSameOrigin, isValidUuid, jsonResponse, methodNotAllowed, readRequiredJsonBody } from '../_shared';
 import { getSessionUser } from '../../../lib/user-session';
 import { getSupabaseAdminClient } from '../../../lib/supabase';
-import { validateTeamRequestBody, validateTeamComposition, type TeamCompositionMember, type TeamCompositionViolation } from '../../../lib/team-validation';
+import { validateTeamRequestBody, validateTeamComposition, type TeamCompositionViolation } from '../../../lib/team-validation';
 import { deleteTeam, getTeam, replaceTeam, updateTeamPinStatus } from '../../../lib/team';
-import { getOwnedPokemon } from '../../../lib/owned-pokemon';
-import { resolveDexNo } from '../../../lib/species-dex';
 import { teamsRateLimiter } from '../../../lib/rate-limit';
 
 export const prerender = false;
@@ -24,9 +22,6 @@ function notFound(): Response {
 // 表示に使える文言にする。
 const COMPOSITION_VIOLATION_MESSAGES: Record<TeamCompositionViolation, string> = {
   'over-capacity': 'チームには6体まで編成できます',
-  'duplicate-species': '同じ種族の個体を複数編成することはできません',
-  // 画面全体の用語を「アイテム」に統一する。
-  'duplicate-item': '同じもちものの個体を複数編成することはできません',
 };
 
 export async function GET({ request, cookies, params }: APIContext): Promise<Response> {
@@ -72,24 +67,10 @@ export async function PUT({ request, cookies, params }: APIContext): Promise<Res
   const supabase = await getSupabaseAdminClient();
 
   // R-3: validateTeamComposition() を書き込み前に必ず通す(UIのdisabledはdevtoolsから
-  // 素通りできるため)。判定に必要な dexNo/itemName は members[] の owned_pokemon_id から
-  // 本人の個体を引いて解決する。他人のIDが混ざっていた場合はここでは取得できない
-  // (getOwnedPokemonはuser_idで絞るため)ため dexNo/itemName は null になるが、それは
-  // 後段の replaceTeam の所有権チェック(R-2)が forbidden として確実に弾く。
-  const compositionMembers: TeamCompositionMember[] = [];
-  for (const member of validation.value.members) {
-    const ownedResult = await getOwnedPokemon(user.id, member.owned_pokemon_id, supabase);
-    if (!ownedResult.ok) {
-      return jsonResponse({ error: ownedResult.error }, 500);
-    }
-    compositionMembers.push({
-      slot: member.slot,
-      dexNo: ownedResult.data ? resolveDexNo(ownedResult.data.species_name) : null,
-      itemName: ownedResult.data ? ownedResult.data.item_name : null,
-    });
-  }
-
-  const compositionResult = validateTeamComposition(compositionMembers);
+  // 素通りできるため)。現在はG-1(6体上限)のみの判定。
+  const compositionResult = validateTeamComposition(
+    validation.value.members.map((member) => ({ slot: member.slot })),
+  );
   if (!compositionResult.ok) {
     return badRequest(COMPOSITION_VIOLATION_MESSAGES[compositionResult.violation]);
   }

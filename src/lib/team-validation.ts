@@ -123,68 +123,29 @@ export function validateTeamRequestBody(
 }
 
 // ------------------------------------------------------------------------------------------
-// validateTeamComposition: 編成ルール G-1〜G-3(サーバー側強制。設計レビュー R-3)
+// validateTeamComposition: 編成ルール G-1(サーバー側強制。設計レビュー R-3)
+// 種族重複禁止(旧G-2)・持ち物重複禁止(旧G-3)は撤廃済み(2026-08、ユーザー指示により
+// 種族・持ち物とも重複を許可する仕様に変更)。
 // ------------------------------------------------------------------------------------------
 
-export type TeamCompositionViolation = 'over-capacity' | 'duplicate-species' | 'duplicate-item';
+export type TeamCompositionViolation = 'over-capacity';
 
 export interface TeamCompositionMember {
   slot: number;
-  // 呼び出し元(species-dex.ts の resolveDexNo)が解決済みの値を渡す。
-  // null = 解決不能(空個体・マスターデータに無い名前)→ G-2 の判定対象外(R-15)。
-  dexNo: number | null;
-  // null または空文字 = 「持ち物なし」→ G-3 の判定対象外。
-  itemName: string | null;
 }
 
 const MAX_TEAM_SIZE = 6;
 
-function hasItem(itemName: string | null): itemName is string {
-  return itemName !== null && itemName.trim() !== '';
-}
-
-// 判定順は G-1(6体上限)→ G-2(種族=dexNo重複)→ G-3(持ち物重複)。
-// 最初に該当した理由を1つだけ返す(設計レビュー R-10 / R-18。ニャオニクスのように
-// 種族・持ち物の両方が重複する組み合わせでも、常にG-2が先に検出されて理由が一意に決まる)。
+// G-1: 6体上限のみを判定する。
 export function validateTeamComposition(
   members: TeamCompositionMember[],
 ): { ok: true } | { ok: false; error: string; violation: TeamCompositionViolation } {
-  // G-1: 6体上限
   if (members.length > MAX_TEAM_SIZE) {
     return {
       ok: false,
       error: `A team can have at most ${MAX_TEAM_SIZE} members (got ${members.length})`,
       violation: 'over-capacity',
     };
-  }
-
-  // G-2: dexNoが重複する個体を禁止。dexNo=nullの個体はG-2の対象外(R-15)。
-  const seenDexNos = new Set<number>();
-  for (const member of members) {
-    if (member.dexNo === null) continue;
-    if (seenDexNos.has(member.dexNo)) {
-      return {
-        ok: false,
-        error: `duplicate species: dexNo=${member.dexNo} appears more than once`,
-        violation: 'duplicate-species',
-      };
-    }
-    seenDexNos.add(member.dexNo);
-  }
-
-  // G-3: itemNameが重複する個体を禁止。null/空文字(持ち物なし)は何体でも可。
-  const seenItems = new Set<string>();
-  for (const member of members) {
-    if (!hasItem(member.itemName)) continue;
-    const item = member.itemName.trim();
-    if (seenItems.has(item)) {
-      return {
-        ok: false,
-        error: `duplicate item: ${item} appears more than once`,
-        violation: 'duplicate-item',
-      };
-    }
-    seenItems.add(item);
   }
 
   return { ok: true };
@@ -195,15 +156,14 @@ export function validateTeamComposition(
 // ------------------------------------------------------------------------------------------
 
 export interface SelectionCandidate {
-  dexNo: number | null;
-  itemName: string | null;
   ownedPokemonId: string;
 }
 
-export type SelectionBlockReason = null | 'already-in-team' | 'team-full' | 'duplicate-species' | 'duplicate-item';
+export type SelectionBlockReason = null | 'already-in-team' | 'team-full';
 
-// 判定順: ①already-in-team(この枠に既に入っている個体そのもの)→ ②team-full(6体上限)→
-// ③duplicate-species(G-2)→ ④duplicate-item(G-3)。
+// 判定順: ①already-in-team(この枠に既に入っている個体そのもの)→ ②team-full(6体上限)。
+// 種族重複禁止(旧duplicate-species)・持ち物重複禁止(旧duplicate-item)は撤廃済み
+// (2026-08、ユーザー指示により種族・持ち物とも重複を許可する仕様に変更)。
 // already-in-team を team-full より先に見る理由: 6体埋まっている状態で「既に入っている
 // その個体自身」を選択バー上で再評価すると、current に候補自身が含まれているため
 // team-full の条件(current.length >= 6)も真になる。しかしこの場合の正しい理由は
@@ -219,18 +179,6 @@ export function selectionBlockReason(
 
   if (current.length >= MAX_TEAM_SIZE) {
     return 'team-full';
-  }
-
-  if (candidate.dexNo !== null && current.some((member) => member.dexNo === candidate.dexNo)) {
-    return 'duplicate-species';
-  }
-
-  if (hasItem(candidate.itemName)) {
-    const candidateItem = candidate.itemName.trim();
-    const duplicateItem = current.some((member) => hasItem(member.itemName) && member.itemName.trim() === candidateItem);
-    if (duplicateItem) {
-      return 'duplicate-item';
-    }
   }
 
   return null;

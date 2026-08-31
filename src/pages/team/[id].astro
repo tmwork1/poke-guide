@@ -888,12 +888,12 @@ try {
 		.team-select-bar .select-row-move-chip-unset {
 			min-height: 1.2em;
 		}
-		/* A-3(a): 「編成済み」(already-in-team、正常)と禁止3種(6体編成済み/種族が重複/
-		   持ち物が重複)が同じ危険色・同じ書式だったため、4/6のように複数体が既に編成済み
-		   だと選択バー全体が赤く見え「エラーが起きている」と誤読された。data-reasonで
-		   実質3値(選べる/もう入っている/禁止)を色で伝える。--color-danger-strongは
-		   自動保存失敗の表示(#autosave-status)と共有するトークンなので、正常状態からは
-		   外す。新色は作らない。 */
+		/* A-3(a): 「編成済み」(already-in-team、正常)と禁止(6体編成済み)が同じ危険色・
+		   同じ書式だったため、4/6のように複数体が既に編成済みだと選択バー全体が赤く見え
+		   「エラーが起きている」と誤読された。data-reasonで実質3値(選べる/もう入っている/
+		   禁止)を色で伝える。--color-danger-strongは自動保存失敗の表示(#autosave-status)
+		   と共有するトークンなので、正常状態からは外す。新色は作らない。
+		   (種族重複・持ち物重複の禁止は2026-08に撤廃済み。SelectionBlockReasonからも削除済み。) */
 		.team-select-bar .select-row-reason {
 			/* A-3(b): 0.74rem(11.84px)は12px下限を割っていたため、12pxのトークンに是正。 */
 			font-size: var(--font-size-sm3);
@@ -2004,8 +2004,6 @@ try {
 
 			function candidateOf(p: OwnedPokemonRecord): SelectionCandidate {
 				return {
-					dexNo: resolveDexNo(p.species_name),
-					itemName: p.item_name,
 					ownedPokemonId: p.id,
 				};
 			}
@@ -2032,8 +2030,6 @@ try {
 			const BLOCK_REASON_LABELS: Record<Exclude<SelectionBlockReason, null>, string> = {
 				"already-in-team": "編成済み",
 				"team-full": "6体編成済み",
-				"duplicate-species": "種族が重複",
-				"duplicate-item": "もちものが重複",
 			};
 
 			// 公式絵。取得できない場合は頭文字の丸バッジにフォールバックする
@@ -3368,8 +3364,7 @@ try {
 				if (membersBySlot.has(slot)) removeMemberFromSlot(slot);
 			}
 			function onFormationSlotLongPress(slot: number): void {
-				const pokemon = membersBySlot.get(slot);
-				if (pokemon) navigateToPokemonEdit(pokemon.id);
+				if (membersBySlot.has(slot)) removeMemberFromSlot(slot);
 			}
 
 			function renderFormationMobile(): void {
@@ -3810,7 +3805,7 @@ try {
 					mainButton.disabled = true;
 					const reasonEl = document.createElement("span");
 					reasonEl.className = "select-row-reason";
-					// A-3(a): 「編成済み」(already-in-team、正常)と禁止3種を色で書き分けるため、
+					// A-3(a): 「編成済み」(already-in-team、正常)と禁止(team-full)を色で書き分けるため、
 					// data-reasonをCSSセレクタのフックにする(is:globalスタイル側で参照)。
 					reasonEl.dataset.reason = reason;
 					reasonEl.textContent = BLOCK_REASON_LABELS[reason];
