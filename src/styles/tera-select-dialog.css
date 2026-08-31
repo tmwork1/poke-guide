@@ -111,7 +111,11 @@ body.data-page {
 	text-align: center;
 }
 .tera-select-cell:hover { border-color: var(--color-primary); }
-.tera-select-cell.is-active { background: var(--color-bg); }
+/* もちもの選択モーダル(item-select-dialog.css)と同じ、主色の淡い面で選択済みを示す。 */
+.tera-select-cell.is-active {
+	background: var(--color-primary-soft);
+	border-color: var(--color-primary);
+}
 .tera-select-cell:focus-visible,
 .tera-select-close:focus-visible {
 	outline: 2px solid var(--color-primary);

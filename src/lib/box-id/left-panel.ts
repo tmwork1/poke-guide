@@ -23,7 +23,8 @@ import {
 	type MoveDetail,
 	type MoveCategory,
 } from "../pokemon-master-data";
-import { typeIconUrl, teraTypeIconUrl } from "../sprite-urls";
+import { typeIconUrl, teraTypeIconUrl, itemIconUrl } from "../sprite-urls";
+import { renderTeamMateSlots } from "../team-mate-card";
 import { TYPE_COLORS, DEFAULT_TYPE_COLOR } from "../type-colors";
 import { applyPreviewMoveTypeBar } from "./preview-move-type-bar";
 import { bindPressAndHold } from "../press-and-hold";
@@ -1465,6 +1466,30 @@ if (form) {
 	void loadOwnedPokemonTeams();
 }
 
+// 持ち物アイコン(team/[id].astroのapplyItemIconと同じ実装)。renderTeamMateSlotsの
+// applyItemIconはvisibilityElのhidden切り替えを前提とするため、shared-core.tsの
+// applyItemImage(バッジをclosest()で探す実装)とは互換性が無く、ここで個別に持つ。
+function applyItemIcon(
+	imgEl: HTMLImageElement,
+	itemName: string,
+	visibilityEl?: HTMLElement,
+): void {
+	if (!itemName) {
+		imgEl.style.display = "none";
+		if (visibilityEl) visibilityEl.hidden = true;
+		return;
+	}
+	imgEl.onerror = () => {
+		imgEl.style.display = "none";
+		if (visibilityEl) visibilityEl.hidden = true;
+	};
+	imgEl.onload = () => {
+		imgEl.style.display = "";
+		if (visibilityEl) visibilityEl.hidden = false;
+	};
+	imgEl.src = itemIconUrl(itemName);
+}
+
 // メモ欄の下に、この個体が所属しているチーム一覧を表示する(読み取り専用。カードクリックで
 // /team/[id]へ遷移するだけで、このパネルからチーム編集はしない)。GET /api/teamsはログイン中
 // ユーザーの全チーム(members込み)を返すため、members[].owned_pokemon.id(TeamMemberの型、
@@ -1490,8 +1515,9 @@ async function loadOwnedPokemonTeams(): Promise<void> {
 		for (const t of teams) {
 			const membersBySlot = new Map(t.members.map((m) => [m.slot, m]));
 			const memoText = (t.memo ?? "").trim();
-			// 表示内容はteam/index.astroのrenderCard()と同じ組み立て(体数バッジ・メモ絵文字・
-			// 標準6枠グリッド)だが、読み取り専用のためonDeleteは一切渡さない(削除ボタン無し)。
+			// 表示内容はteam/index.astroのrenderCard()の圧縮表示(displayMode: "compressed")と
+			// 同じ組み立て(体数バッジ・メモ絵文字・team-mate-cardの6列簡易表示)だが、読み取り専用
+			// のためonDeleteは一切渡さない(削除ボタン無し)。
 			const card = renderTeamCard({
 				href: `/team/${encodeURIComponent(t.id)}`,
 				ariaLabel: "チームを見る",
@@ -1506,6 +1532,17 @@ async function loadOwnedPokemonTeams(): Promise<void> {
 						displayName: pokemonName,
 						ariaLabel: pokemonName,
 					};
+				},
+				renderMembers: (container) => {
+					container.className = "team-mate-grid";
+					const mateMembersBySlot = new Map(t.members.map((m) => [m.slot, m.owned_pokemon]));
+					renderTeamMateSlots({
+						root: container,
+						membersBySlot: mateMembersBySlot,
+						displayName: (p) => p.species_name || "ポケモン",
+						applySprite,
+						applyItemIcon,
+					});
 				},
 			});
 			listEl.appendChild(card);

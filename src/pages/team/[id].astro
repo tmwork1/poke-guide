@@ -1853,7 +1853,7 @@ try {
 		} from "../../lib/damage-summary";
 		import { createMatchupPanel } from "../../lib/matchup-panel";
 		import { setupAppHeaderSwipe } from "../../lib/app-header-swipe";
-		import { createItemSelectGrid, sortItemsByUsage } from "../../lib/box-id/item-select-dialog";
+		import { createItemSelectGrid, sortItemsByUsage, isMegaStoneItemName } from "../../lib/box-id/item-select-dialog";
 
 		interface OwnedPokemonRecord {
 			id: string;
@@ -2095,9 +2095,10 @@ try {
 			}
 
 			function renderRedistributionMembers(): void {
+				const effective = effectiveMembersBySlot();
 				renderTeamMateSlots({
 					root: itemRedistributeMembers,
-					membersBySlot: effectiveMembersBySlot(),
+					membersBySlot: effective,
 					displayName,
 					selectedSlot: selectedRedistributionSlot,
 					onSlotTap: onRedistributionMemberTap,
@@ -2105,11 +2106,20 @@ try {
 					applySprite,
 					applyItemIcon,
 				});
-				// renderTeamMateSlots自体は編成タブ等と共有のため「変更不可」概念を持たない。
-				// ここ(再分配モーダル固有)でだけDOMに後付けでロック表示を足す
+				// 表示中のもちもの("なし"を除く)が2枠以上で重複している個体を黄色くハイライトする。
+				const itemCounts = new Map<string, number>();
+				for (const p of effective.values()) {
+					const itemName = (p.item_name ?? "").trim();
+					if (!itemName) continue;
+					itemCounts.set(itemName, (itemCounts.get(itemName) ?? 0) + 1);
+				}
+				// renderTeamMateSlots自体は編成タブ等と共有のため「変更不可」概念・重複表示を持たない。
+				// ここ(再分配モーダル固有)でだけDOMに後付けでロック表示・重複ハイライトを足す
 				// (renderTeamMateSlotsは毎回root.innerHTMLを作り直すため、常に未装飾のカードから始まる)。
 				for (const cardEl of Array.from(itemRedistributeMembers.children) as HTMLElement[]) {
 					const slot = Number(cardEl.dataset.slot);
+					const itemName = (effective.get(slot)?.item_name ?? "").trim();
+					if (itemName && (itemCounts.get(itemName) ?? 0) >= 2) cardEl.classList.add("is-duplicate-item");
 					if (!isRedistributionSlotLocked(slot)) continue;
 					cardEl.classList.add("is-locked");
 					cardEl.setAttribute("aria-disabled", "true");
@@ -2230,6 +2240,9 @@ try {
 				emptyEl: itemRedistributeEmpty,
 				getActiveValue: () => selectedRedistributionSlot === null ? selectedRedistributionItem : null,
 				sortRest: sortRedistributionItems,
+				// メガストーンは対応するメガシンカ枠に必ず登録されており、表示設定側では
+				// 変更を許さない(redistributionLockedSlots参照)ため、そもそも候補にも出さない。
+				excludeValue: isMegaStoneItemName,
 				onSelect: (itemName) => {
 					if (selectedRedistributionSlot !== null) {
 						setRedistributedItem(selectedRedistributionSlot, itemName);

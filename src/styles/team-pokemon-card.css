@@ -110,7 +110,7 @@
 	/* ── 8. 寸法 ────────────────────────── */
 	--team-card-sprite-size: 6.5rem;
 	--team-card-item-gutter: calc(var(--team-card-item-badge-size) + var(--team-card-item-gap));
-	--pokemon-preview-item-icon-size: 1.5em;
+	--pokemon-preview-item-icon-size: 1.8em; /* 通常の1.5emから+20% */
 	--team-card-item-badge-size: var(--pokemon-preview-item-icon-size);
 	--pokemon-preview-move-type-bar-width: 3px;
 	--pokemon-preview-move-type-bar-height: var(--team-card-moves-font-size);

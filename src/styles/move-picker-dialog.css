@@ -466,7 +466,7 @@ body .move-picker-slot-tab {
 }
 body .move-picker-slot-tab.is-selected {
   background: transparent;
-  color: var(--color-primary);
+  color: var(--color-text);
 }
 body .move-picker-title { font-size: var(--font-size-sm2); }
 body .move-picker-toggle { font-size: var(--font-size-sm3); }

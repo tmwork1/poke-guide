@@ -299,7 +299,13 @@ const user = Astro.locals.user;
 					renderMembers: displayMode === "compressed"
 						? (container) => {
 								container.className = "team-mate-grid";
-								const mateMembersBySlot = new Map(t.members.map((m) => [m.slot, m.owned_pokemon]));
+								// もちもの表示モーダル(team-item-redistribute)で個体登録値と別に設定した
+								// item_overrideがあれば、そちらを優先して表示する([id].astroの
+								// effectiveMembersBySlot/effectiveItemNameと同じ考え方)。
+								const mateMembersBySlot = new Map(t.members.map((m) => {
+									const itemName = (m.item_override ?? m.owned_pokemon.item_name ?? "").trim();
+									return [m.slot, { ...m.owned_pokemon, item_name: itemName || null }];
+								}));
 								renderTeamMateSlots({
 									root: container,
 									membersBySlot: mateMembersBySlot,

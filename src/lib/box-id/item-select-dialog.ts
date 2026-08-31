@@ -30,7 +30,7 @@ function isBerryItemName(name: string): boolean {
 	return name.endsWith("のみ");
 }
 
-function isMegaStoneItemName(name: string): boolean {
+export function isMegaStoneItemName(name: string): boolean {
 	return /ナイト[XYZ]?$/.test(name);
 }
 
@@ -137,6 +137,8 @@ export interface ItemSelectGridOptions {
 	onSelect: (value: string) => void;
 	/** 未指定なら共有マスタの並び順(五十音順)のまま。指定時は""を除いた値配列を並べ替える。 */
 	sortRest?: (values: string[]) => string[];
+	/** trueを返した値は候補から除外する(「なし」は対象外)。例: もちもの表示モーダルのメガストーン除外。 */
+	excludeValue?: (value: string) => boolean;
 }
 
 export interface ItemSelectGrid {
@@ -190,7 +192,10 @@ export function createItemSelectGrid(options: ItemSelectGridOptions): ItemSelect
 			buildPromise = getSharedItemNames().then((names) => {
 				gridBuilt = true;
 				cellByValue.set("", createCell("", "なし"));
-				for (const name of names) cellByValue.set(name, createCell(name, name));
+				for (const name of names) {
+					if (options.excludeValue?.(name)) continue;
+					cellByValue.set(name, createCell(name, name));
+				}
 			});
 		}
 		return buildPromise;

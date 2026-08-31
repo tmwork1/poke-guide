@@ -16,7 +16,8 @@ body.team-edit-page {
 }
 
 .team-item-redistribute-button {
-	display: inline-flex;
+	display: flex;
+	width: 50%;
 	align-items: center;
 	justify-content: center;
 	gap: var(--space-2);
@@ -128,6 +129,12 @@ body.team-edit-page {
 .team-item-redistribute-members .team-mate-card.is-locked {
 	cursor: not-allowed;
 	opacity: 0.55;
+}
+/* もちもの("なし"を除く)が他の枠と重複している個体を黄色くハイライトする。
+   専用の警告色トークンが無いため、既存のタイプカラー(でんき)を淡く敷いて示す。 */
+.team-item-redistribute-members .team-mate-card.is-duplicate-item {
+	border-color: var(--color-type-electric);
+	background: color-mix(in srgb, var(--color-type-electric) 22%, var(--color-surface));
 }
 .team-item-redistribute-lock-badge {
 	position: absolute;
