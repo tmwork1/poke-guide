@@ -109,19 +109,17 @@ body.data-page {
 }
 .item-select-grid {
 	display: grid;
-	grid-template-columns: repeat(2, 1fr);
+	grid-template-columns: repeat(4, 1fr);
 	gap: var(--space-2);
 }
 .item-select-grid[hidden] { display: none; }
 .item-select-cell {
 	display: flex;
+	flex-direction: column;
 	align-items: center;
-	/* button既定のjustify-content:center(global.css)を上書きし、要素ごとに左寄せする。
-	   これが無いと、テキスト長がセルごとに異なるため左端位置がバラバラになる。 */
-	justify-content: flex-start;
-	gap: var(--space-2);
+	gap: var(--space-1);
 	min-width: 0;
-	min-height: 44px; /* タップ域を縮めない(WCAG 2.5.8の24px下限を余裕をもって満たす)。 */
+	min-height: 64px; /* タップ域を縮めない(WCAG 2.5.8の24px下限を余裕をもって満たす)。アイコン+2行テキストを収める高さ */
 	padding: var(--space-1) var(--space-2);
 	border: 1px solid transparent;
 	border-radius: var(--radius-sm);
@@ -129,7 +127,7 @@ body.data-page {
 	color: var(--color-text);
 	cursor: pointer;
 	font: inherit;
-	text-align: left;
+	text-align: center;
 }
 .item-select-cell:hover { border-color: var(--color-primary); }
 /* 選択済みは暗転ではなく主色の淡い面で示し、アイコン・文字の可読性を保つ。 */
@@ -156,10 +154,13 @@ body.data-page {
 }
 .item-select-cell-text {
 	min-width: 0;
+	max-width: 100%;
 	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-	font-size: var(--font-size-sm1);
+	display: -webkit-box;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 2;
+	font-size: var(--font-size-sm3);
+	line-height: var(--line-height-snug);
 }
 .item-select-empty {
 	margin: 0;

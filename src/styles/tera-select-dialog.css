@@ -91,18 +91,16 @@ body.data-page {
 }
 .tera-select-grid {
 	display: grid;
-	grid-template-columns: repeat(2, 1fr);
+	grid-template-columns: repeat(4, 1fr);
 	gap: var(--space-2);
 }
 .tera-select-cell {
 	display: flex;
+	flex-direction: column;
 	align-items: center;
-	/* button既定のjustify-content:center(global.css)を上書きし、要素ごとに左寄せする。
-	   これが無いと、テキスト長がセルごとに異なるため左端位置がバラバラになる。 */
-	justify-content: flex-start;
-	gap: var(--space-2);
+	gap: var(--space-1);
 	min-width: 0;
-	min-height: 44px; /* タップ域を縮めない(WCAG 2.5.8の24px下限を余裕をもって満たす)。 */
+	min-height: 64px; /* タップ域を縮めない(WCAG 2.5.8の24px下限を余裕をもって満たす)。アイコン+2行テキストを収める高さ */
 	padding: var(--space-1) var(--space-2);
 	border: 1px solid transparent;
 	border-radius: var(--radius-sm);
@@ -110,7 +108,7 @@ body.data-page {
 	color: var(--color-text);
 	cursor: pointer;
 	font: inherit;
-	text-align: left;
+	text-align: center;
 }
 .tera-select-cell:hover { border-color: var(--color-primary); }
 .tera-select-cell.is-active { background: var(--color-bg); }
@@ -133,10 +131,13 @@ body.data-page {
 }
 .tera-select-cell-text {
 	min-width: 0;
+	max-width: 100%;
 	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-	font-size: var(--font-size-sm1);
+	display: -webkit-box;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 2;
+	font-size: var(--font-size-sm3);
+	line-height: var(--line-height-snug);
 }
 
 /* @media は基本定義より後ろに置く。狭幅時の上書きが先の定義に負けないため。 */
