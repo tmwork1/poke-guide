@@ -3396,6 +3396,10 @@ if (opponentNotesSection) {
 	const engineStatusTextEl = el<HTMLElement>("damage-calc-engine-status-text");
 	const engineReloadButton = el<HTMLButtonElement>("damage-calc-engine-reload-button");
 	engineReloadButton.addEventListener("click", () => window.location.reload());
+	// 右下固定の追加ボタン(カード0枚・1枚以上どちらでも常時表示、DamageCalcSection.astro参照)。
+	// クリック処理は末尾の空状態タイルと同じaddNewRowAndFocusをそのまま呼ぶ。
+	const floatingAddButton = el<HTMLButtonElement>("damage-floating-add-button");
+	floatingAddButton.addEventListener("click", addNewRowAndFocus);
 
 	const damageDetailPanelEl = el<HTMLElement>("damage-detail-panel");
 	const damageDetailPanelOriginalParentEl = damageDetailPanelEl.parentElement;
@@ -3506,12 +3510,14 @@ if (opponentNotesSection) {
 		addSuggestion: (suggestion) => addSuggestedRow(suggestion),
 	});
 
+	// カードが0枚のときだけ一覧内に表示する大きな空状態タイル。1枚以上あるときの
+	// 追加操作は#damage-floating-add-button(右下固定、常時表示)に一本化しているため、
+	// このタイルはrows.length===0のときしかrebuildRowsList()から呼ばれない
+	// (box/index.astroの.empty-state-add-buttonと同じ役割分担)。
 	function buildAddRowTile(): HTMLButtonElement {
 		const tile = document.createElement("button");
 		tile.type = "button";
-		tile.className = rows.length === 0
-			? "add-card-tile damage-empty-add-tile"
-			: "add-card-tile box-add-button";
+		tile.className = "add-card-tile damage-empty-add-tile";
 		// DamageCard.pngの「ダメージ計算追加ボタン」(カードの外・下側)にあたる。
 		// 1枚のカード = 相手1体分のダメージ計算なので、追加すると新しい相手の行が増える。
 		tile.setAttribute("aria-label", "ダメージ計算を追加");
@@ -3539,7 +3545,9 @@ if (opponentNotesSection) {
 
 	function rebuildRowsList(): void {
 		damageRowsListEl.innerHTML = "";
-		damageRowsListEl.appendChild(buildAddRowTile());
+		// カードが0枚のときだけ大きな空状態タイルを一覧内に出す。1枚以上あるときは
+		// #damage-floating-add-button(右下固定、常時表示)だけで追加操作を提供する。
+		if (rows.length === 0) damageRowsListEl.appendChild(buildAddRowTile());
 		for (const row of rows) {
 			if (row.root) damageRowsListEl.appendChild(row.root);
 		}
@@ -3566,10 +3574,12 @@ if (opponentNotesSection) {
 				.sort((a, b) => a.sortKey - b.sortKey)
 				.map((entry) => entry.row);
 			for (const row of rowsNeedingResave) scheduleRowSave(row);
-			// 一覧全体を作り終えるまで待たず、追加ボタンの後に保存済みカードを1枚ずつ
-			// フレームごとに差し込む。ネットワーク待ち用の文言を出さずとも、内容が届いた
-			// 時点から段階的にページが埋まる。
-			damageRowsListEl.replaceChildren(buildAddRowTile());
+			// 一覧全体を作り終えるまで待たず、保存済みカードを1枚ずつフレームごとに差し込む。
+			// ネットワーク待ち用の文言を出さずとも、内容が届いた時点から段階的にページが埋まる。
+			// 空状態タイルはrows.length===0のときだけ先頭に置く(1枚以上あるときの追加操作は
+			// #damage-floating-add-buttonに一本化しているため、ここで挟むとカードの上に
+			// 大きなタイルが残ったままになってしまう)。
+			damageRowsListEl.replaceChildren(...(rows.length === 0 ? [buildAddRowTile()] : []));
 			for (const row of rows) {
 				renderRow(row);
 				if (row.root) damageRowsListEl.appendChild(row.root);

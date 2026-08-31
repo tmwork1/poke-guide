@@ -31,6 +31,23 @@ import { toJsonScriptContent } from '../../lib/json-script';
 	<div id="damage-rows-list" class="damage-rows-list">
 	</div>
 
+	{/* 右下固定の追加ボタン。box/index.astroの.floating-list-add-button(常設1つの丸い
+	    ボタンをCSSで画面に浮かせ、一覧の登録有無を問わず常時表示する)と同じ考え方だが、
+	    見た目・配置トークン(--damage-card-floating-add-right/-bottom、
+	    #stat-adjust-sheet展開時のz-index調整)はこのタブ専用に既存のbox-add-button.cssへ
+	    集約済みのため、そちらのbox-add-buttonクラスをそのまま再利用する
+	    (floating-list-controls.cssは導入しない)。カードが0枚のとき(damage-empty-add-tileと
+	    併存)・1枚以上のとき(technique一覧の末尾ではなく常時この1つのボタンだけで運用する)の
+	    どちらでも常に表示する。クリック処理はdamage-calc.tsのaddNewRowAndFocus
+	    (「カードを追加」処理そのもの)を直接呼ぶ。 */}
+	<button type="button" id="damage-floating-add-button" class="add-card-tile box-add-button" aria-label="ダメージ計算を追加">
+		<svg class="add-card-tile-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+			<path d="M12 5v14" />
+			<path d="M5 12h14" />
+		</svg>
+		<span class="add-card-tile-label">ダメージ計算を追加</span>
+	</button>
+
 	{/* よく行われるダメージ計算のサジェスト。以前は#damage-detail-panel-body(技の詳細設定
 	    モーダル)の「何も選択していない」状態としてだけ表示していたが、開閉しなくても常に
 	    見えるほうが便利という要望で、カード一覧の直下に常設表示する形へ変更した。中身は

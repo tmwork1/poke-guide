@@ -13,6 +13,7 @@
 #opponent-notes-section {
   /* ── 1. 文字サイズ ─────────────────────── */
   --box-damage-engine-status-font-size: var(--font-size-sm3); /* 計算エンジン状態文の文字の大きさ */
+  --box-damage-empty-add-icon-size: var(--font-size-lg4); /* カード0枚時の追加ボタンのアイコンの大きさ。box一覧の空状態タイル(.empty-state-add-button)と揃える */
 
   /* ── 7. 余白 ────────────────────────── */
   --box-damage-card-scroll-inset: var(--list-grid-edge-gap); /* カード一覧の左右余白と共通にする上下ガード帯 */
@@ -22,6 +23,10 @@
   --box-damage-engine-status-margin: var(--space-3) 0 .4rem; /* 計算エンジン状態文の外側余白 */
   --box-damage-suggest-section-margin-top: var(--space-5); /* ダメージ計算カード一覧と「よく行われるダメージ計算」の間隔 */
   --box-damage-suggest-heading-margin-bottom: var(--space-2); /* 「よく行われるダメージ計算」の見出しと一覧の間隔 */
+  --box-damage-empty-add-gap: var(--space-2); /* カード0枚時の追加ボタンのアイコンと文字の間隔 */
+
+  /* ── 8. 寸法 ─────────────────────── */
+  --box-damage-empty-add-min-height: 8rem; /* カード0枚時の追加ボタンの高さ下限。box一覧の空状態タイル(.empty-state-add-button)と揃える */
 }
 
 /* --------------------------------------------------------------------------
@@ -43,10 +48,20 @@
   display: flex;
 }
 
+/* カード0枚時に一覧へ表示する空状態タイル。以前はmin-heightがビューポート近くまで
+   広がる巨大タイルだった(実測で画面いっぱいになるバグが発覚)。box一覧の空状態タイル
+   (.empty-state-add-button、box-page.css)と同じ8rem相当まで縮める。 */
 #opponent-notes-section .damage-empty-add-tile {
   width: 100%;
-  min-height: calc(100dvh - var(--header-height) - var(--bottom-nav-height));
-  flex: 1;
+  min-height: var(--box-damage-empty-add-min-height);
+  gap: var(--box-damage-empty-add-gap);
+}
+
+/* アイコン(SVG)は幅・高さ未指定だとブラウザ既定の300×150で描画されてしまうため、
+   box一覧の空状態タイルと同じ大きさに明示する。 */
+#opponent-notes-section .damage-empty-add-tile .add-card-tile-icon {
+  width: var(--box-damage-empty-add-icon-size);
+  height: var(--box-damage-empty-add-icon-size);
 }
 
 #opponent-notes-section .damage-calc-engine-status {

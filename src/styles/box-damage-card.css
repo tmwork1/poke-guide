@@ -202,8 +202,8 @@ body.box-edit-page {
   --damage-card-column-overkill-opacity: .55; /* 不要になった後続技の濃さ。小さくすると薄くなる */
   --damage-card-result-detail-opacity: .85; /* 技ごとの詳細数値の濃さ */
   --damage-card-add-button-disabled-opacity: .4; /* 追加上限時のボタンの濃さ */
-  --damage-card-floating-add-right: var(--space-5); /* 狭い画面の追加ボタンと右端の間隔 */
-  --damage-card-floating-add-bottom: calc(var(--bottom-nav-height) + var(--space-4) + env(safe-area-inset-bottom)); /* 狭い画面の追加ボタンと下ナビの間隔 */
+  --damage-card-floating-add-right: var(--space-5); /* 右下固定の追加ボタンと右端の間隔 */
+  --damage-card-floating-add-bottom: calc(var(--bottom-nav-height) + var(--space-4) + env(safe-area-inset-bottom)); /* 右下固定の追加ボタンと下ナビの間隔 */
 }
 
 #opponent-notes-section .card-damage {
@@ -1923,20 +1923,27 @@ body.box-edit-page {
 }
 
 /* --------------------------------------------------------------------------
-   狭い画面の固定追加ボタン
+   右下固定の追加ボタン
    -------------------------------------------------------------------------- */
-@media (width <= 899px) {
-  #opponent-notes-section .box-add-button {
-    position: fixed;
-    right: var(--damage-card-floating-add-right);
-    bottom: var(--damage-card-floating-add-bottom);
-    z-index: 21;
-  }
+/* カードが増えるとページ最下部まで届かないと追加操作ができなくなるため、画面幅を問わず
+   常時右下に固定する(#damage-floating-add-button、DamageCalcSection.astro参照)。
+   #opponent-notes-sectionはcontainer: damage-section / inline-sizeでコンテインメントを
+   張っているが、実測(Playwrightでスクロール前後のgetBoundingClientRectを比較)で
+   position:fixedがビューポート基準のまま保たれることを確認済み(モバイル幅の
+   .edit-layout-right内スクロールでも、デスクトップ幅のページスクロールでも座標が
+   動かない)。以前はwidth<=899pxのみ、rows.length>0で末尾に挿入されるインラインの
+   .box-add-buttonタイル自身をfixed化する実装だったが、カード0枚時(damage-empty-add-tile)
+   には効かず、デスクトップ幅でも効かなかった。 */
+#opponent-notes-section .box-add-button {
+  position: fixed;
+  right: var(--damage-card-floating-add-right);
+  bottom: var(--damage-card-floating-add-bottom);
+  z-index: 21;
+}
 
-  /* 圧縮中はシートの低いヘッダーを避け、展開中はシートの背後へ送る。 */
-  body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .box-add-button {
-    z-index: 19;
-  }
+/* 圧縮中はシートの低いヘッダーを避け、展開中はシートの背後へ送る。 */
+body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .box-add-button {
+  z-index: 19;
 }
 
 /* --------------------------------------------------------------------------
