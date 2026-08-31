@@ -1,9 +1,76 @@
 import { el } from "../owned-pokemon-form";
 import { kanaIncludes } from "../kana";
 import { bindModalDismissal } from "../modal-dismiss";
+import { typeIconUrl } from "../sprite-urls";
 import { applyItemImage } from "./shared-core";
+import { requestSettingsModal } from "./settings-modal";
 
 type ItemAutocompleteEntry = { name?: unknown; regulations?: unknown };
+
+/** Items that boost attacks of the indicated type. */
+export const ITEM_TYPE_BOOST: Record<string, string> = {
+	"シルクのスカーフ": "ノーマル", "もくたん": "ほのお", "しんぴのしずく": "みず", "じしゃく": "でんき",
+	"きせきのタネ": "くさ", "とけないこおり": "こおり", "くろおび": "かくとう", "どくバリ": "どく",
+	"やわらかいすな": "じめん", "するどいくちばし": "ひこう", "まがったスプーン": "エスパー", "ぎんのこな": "むし",
+	"かたいいし": "いわ", "のろいのおふだ": "ゴースト", "りゅうのキバ": "ドラゴン", "くろいメガネ": "あく",
+	"メタルコート": "はがね", "ようせいのハネ": "フェアリー",
+};
+
+/** Type-resist berries and their indicated type. */
+export const ITEM_TYPE_RESIST_BERRY: Record<string, string> = {
+	"ホズのみ": "ノーマル", "オッカのみ": "ほのお", "イトケのみ": "みず", "ソクノのみ": "でんき",
+	"リンドのみ": "くさ", "ヤチェのみ": "こおり", "ヨプのみ": "かくとう", "ビアーのみ": "どく",
+	"シュカのみ": "じめん", "バコウのみ": "ひこう", "ウタンのみ": "エスパー", "タンガのみ": "むし",
+	"ヨロギのみ": "いわ", "カシブのみ": "ゴースト", "ハバンのみ": "ドラゴン", "ナモのみ": "あく",
+	"リリバのみ": "はがね", "ロゼルのみ": "フェアリー",
+};
+
+const ITEM_LABEL_BREAK_SUFFIXES = ["プレート", "メモリ", "レンズ", "ハーブ", "チョッキ", "ガード", "ジュエル", "エナジー", "グローブ", "ゴーグル", "マント", "コート", "サービス", "ダイス", "ブーツ", "チャーム", "メット", "バンド", "ほけん", "だま", "パック", "ボタン", "スカーフ", "ハチマキ", "メガネ"];
+const ITEM_LABEL_BREAK_PREFIXES = ["こだわり", "だっしゅつ", "くろい", "おおきな", "きれいな", "するどい", "とけない", "まがった", "やわらかい", "だい"];
+const ITEM_LABEL_OVERRIDES: Record<string, [string, string]> = {
+	"のろいのおふだ": ["のろいの", "おふだ"], "ひのたまプレート": ["ひのたま", "プレート"], "ものしりメガネ": ["ものしり", "メガネ"], "もののけプレート": ["もののけ", "プレート"], "ものまねハーブ": ["ものまね", "ハーブ"],
+};
+
+function itemTypeBadgeType(name: string): string | null {
+	return ITEM_TYPE_BOOST[name] ?? ITEM_TYPE_RESIST_BERRY[name] ?? null;
+}
+
+function decorateItemTypeBadge(iconWrap: HTMLElement, value: string): void {
+	const type = itemTypeBadgeType(value);
+	const url = type ? typeIconUrl(type) : null;
+	if (!url) return;
+	const badge = document.createElement("img");
+	badge.className = "item-select-cell-type-badge";
+	badge.src = url;
+	badge.alt = "";
+	iconWrap.appendChild(badge);
+}
+
+function splitItemLabel(name: string): [string, string] | null {
+	const override = ITEM_LABEL_OVERRIDES[name];
+	if (override) return override;
+	const megaMatch = name.match(/^(.+?)(ナイト[XYZ]?)$/);
+	if (megaMatch && megaMatch[1].length >= 1) return [megaMatch[1], megaMatch[2]];
+	if (name.length < 7) return null;
+	const noIndex = name.indexOf("の");
+	if (noIndex >= 0) return [name.slice(0, noIndex + 1), name.slice(noIndex + 1)];
+	for (const prefix of ITEM_LABEL_BREAK_PREFIXES) {
+		if (name.startsWith(prefix) && name.length > prefix.length) return [prefix, name.slice(prefix.length)];
+	}
+	for (const suffix of ITEM_LABEL_BREAK_SUFFIXES) {
+		if (name.endsWith(suffix) && name.length > suffix.length) return [name.slice(0, name.length - suffix.length), suffix];
+	}
+	return null;
+}
+
+function renderItemLabel(label: string, textEl: HTMLElement): void {
+	const split = splitItemLabel(label);
+	if (!split) {
+		textEl.textContent = label;
+		return;
+	}
+	textEl.replaceChildren(document.createTextNode(split[0]), document.createElement("br"), document.createTextNode(split[1]));
+}
 
 let itemNamesPromise: Promise<string[]> | null = null;
 
@@ -29,10 +96,6 @@ export interface ItemSelectGridOptions {
 	onSelect: (value: string) => void;
 	/** 未指定なら共有マスタの並び順(五十音順)のまま。指定時は""を除いた値配列を並べ替える。 */
 	sortRest?: (values: string[]) => string[];
-	/** 未指定ならlabelをそのままtextContentに設定する。指定時は名前表示セルへの描画を差し替える(改行位置の調整など)。 */
-	renderLabel?: (label: string, textEl: HTMLElement) => void;
-	/** 未指定なら何もしない。指定時はアイコンラッパー要素に対して追加描画を行う(タイプバッジ等)。valueが""(なし)のセルには呼ばれない。 */
-	decorateIcon?: (iconWrap: HTMLElement, value: string) => void;
 }
 
 export interface ItemSelectGrid {
@@ -62,7 +125,7 @@ export function createItemSelectGrid(options: ItemSelectGridOptions): ItemSelect
 			img.alt = "";
 			void applyItemImage(img, value);
 			iconWrap.appendChild(img);
-			options.decorateIcon?.(iconWrap, value);
+			decorateItemTypeBadge(iconWrap, value);
 			cell.appendChild(iconWrap);
 		} else {
 			const icon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
@@ -74,8 +137,7 @@ export function createItemSelectGrid(options: ItemSelectGridOptions): ItemSelect
 		}
 		const textEl = document.createElement("span");
 		textEl.className = "item-select-cell-text";
-		if (options.renderLabel) options.renderLabel(label, textEl);
-		else textEl.textContent = label;
+		renderItemLabel(label, textEl);
 		cell.appendChild(textEl);
 		cell.addEventListener("click", () => options.onSelect(value));
 		return cell;
@@ -158,6 +220,7 @@ function initializeItemSelectDialog(): void {
 	document.addEventListener("box-settings:open", (event) => {
 		if ((event as CustomEvent<{ kind?: string }>).detail?.kind === "item") void openDialog();
 	});
+	triggerButton.addEventListener("click", () => requestSettingsModal({ kind: "item" }));
 	closeButton.addEventListener("click", closeDialog);
 	bindModalDismissal({ backdrop: backdropEl, isOpen: () => !dialogEl.hidden, onDismiss: closeDialog });
 	searchInput.addEventListener("input", () => {
