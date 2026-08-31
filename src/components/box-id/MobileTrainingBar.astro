@@ -99,17 +99,34 @@ const previewStats = detail ? statKeys.map((key, index) => index === 0 ? calcHpS
         {shouldRenderItemIcon && <img id="pokemon-preview-item-image" src={itemName ? itemIconUrl(itemName) : undefined} alt="" class={itemName ? 'pokemon-preview-item-image' : 'pokemon-preview-item-image-hidden'} onerror="this.style.display='none'" />}
         <span id="pokemon-preview-item" data-empty={itemName ? undefined : 'true'}>{itemName || 'もちものなし'}</span>
       </div>
-      <table class="pokemon-preview-stats" aria-label="実数値と努力値">
-        <tbody>
-          {[['hp', 'H'], ['atk', 'A'], ['def', 'B'], ['spa', 'C'], ['spd', 'D'], ['spe', 'S']].map(([key, label], index) => (
-            <tr>
-              <th data-mod={nature.up === key ? 'up' : nature.down === key ? 'down' : undefined}>{label}</th>
-              <td id={`pokemon-preview-stat-${key}`} data-mod={nature.up === key ? 'up' : nature.down === key ? 'down' : undefined}>{previewStats[index] ?? '-'}</td>
-              <td id={`pokemon-preview-ev-${key}`}>{pokemon.evs[index] ? `+${pokemon.evs[index]}` : '-'}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      {/* この表をタップすると育成タブのステータス調整欄(#stat-adjustment-section、
+          LeftPanel.astro)をモーダルで開く(StatAdjustmentDialog.astro/
+          stat-adjustment-dialog.ts参照)。box/[id].astroでは育成・ダメージタブが
+          同一ページ内のCSS切り替えで、LeftPanel(モーダル本体を含む)はどちらのタブでも
+          常にDOMに存在するため、activeTabで対話属性を出し分けない(SSR時の
+          initialMobileTabに関わらず、タブを切り替えたあとも正しく開けるようにするため)。
+          battle-data/ranked-teams/matchupは別ページでモーダル本体が存在しないため、
+          要素の有無はstat-adjustment-dialog.ts側で確認し、安全にno-opにする。 */}
+      <div
+        class="pokemon-preview-stats-wrap"
+        id="pokemon-preview-stats-trigger"
+        role="button"
+        tabindex={0}
+        aria-haspopup="dialog"
+        aria-label="ステータス調整を開く"
+      >
+        <table class="pokemon-preview-stats" aria-label="実数値と努力値">
+          <tbody>
+            {[['hp', 'H'], ['atk', 'A'], ['def', 'B'], ['spa', 'C'], ['spd', 'D'], ['spe', 'S']].map(([key, label], index) => (
+              <tr>
+                <th data-mod={nature.up === key ? 'up' : nature.down === key ? 'down' : undefined}>{label}</th>
+                <td id={`pokemon-preview-stat-${key}`} data-mod={nature.up === key ? 'up' : nature.down === key ? 'down' : undefined}>{previewStats[index] ?? '-'}</td>
+                <td id={`pokemon-preview-ev-${key}`}>{pokemon.evs[index] ? `+${pokemon.evs[index]}` : '-'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
     </div>
   </section>
@@ -118,6 +135,7 @@ const previewStats = detail ? statKeys.map((key, index) => index === 0 ? calcHpS
 
 <script>
   import '../../lib/box-id/mobile-edit-tabs';
+  import '../../lib/box-id/stat-adjustment-dialog';
   import { setupMegaPreviewToggle } from '../../lib/box-id/mega-preview-toggle';
   import { setupAppHeaderSwipe } from '../../lib/app-header-swipe';
   import { applyPreviewMoveTypeBarsFromDom } from '../../lib/box-id/preview-move-type-bar';

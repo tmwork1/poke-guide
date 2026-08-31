@@ -318,10 +318,28 @@
   color: var(--color-text-muted);
 }
 
-.pokemon-preview-stats {
+/* ステータス調整モーダルのタップ対象(育成タブのみ、role="button"はMobileTrainingBar.astro
+   側で条件付与)。table要素はflexの伸縮対象になりにくく(display:tableの独自サイズ計算)
+   margin-left: autoでの右寄せが効いていたため、位置決めはそのままこのラッパーへ移し、
+   align-self: flex-endで同じ右寄せを明示する(divはtableと違い伸縮し得るため)。 */
+.pokemon-preview-stats-wrap {
+  align-self: flex-end;
   margin-top: var(--pokemon-preview-item-stats-gap);
-  margin-left: auto;
   margin-right: var(--pokemon-preview-stats-inline-end-gap);
+}
+
+.pokemon-preview-stats-wrap[role="button"] {
+  cursor: pointer;
+  touch-action: manipulation;
+  border-radius: var(--radius-sm);
+}
+
+.pokemon-preview-stats-wrap[role="button"]:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.pokemon-preview-stats {
   width: auto;
   border-collapse: collapse;
   border-spacing: 0;

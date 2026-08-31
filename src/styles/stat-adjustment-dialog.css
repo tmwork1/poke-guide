@@ -1,0 +1,216 @@
+/* ===========================================================================
+	ステータス調整モーダル(/box/[id] 育成タブ、プレビューの実数値表タップで開く)
+
+	画面のどこ: ボックス詳細 → 育成タブ → プレビューの能力値表タップ
+	見た目を変えたいときは、まず下のチューニング変数を調整する。
+
+	開閉のたびに、育成タブのステータス調整欄(#stat-adjustment-section、
+	src/components/box-id/LeftPanel.astro / src/lib/box-id/left-panel.ts が管理する
+	同一のDOMノード)をこのモーダルの本体(#stat-adjustment-dialog-body)へ移動して
+	表示する(クローンではなく実体を移動するため、既存のid参照・イベントリスナーは
+	一切変わらない=完全に共用)。詳細はsrc/lib/box-id/stat-adjustment-dialog.ts参照。
+	=========================================================================== */
+
+/* ===========================================================================
+	チューニング変数(モーダルの外枠)
+	=========================================================================== */
+body.box-edit-page {
+	--stat-adjustment-dialog-width: min(640px, 94vw);
+	--stat-adjustment-dialog-height: var(--modal-height);
+	--stat-adjustment-dialog-background: var(--color-surface);
+	--stat-adjustment-dialog-border: var(--modal-border);
+	--stat-adjustment-dialog-radius: var(--radius-lg);
+	--stat-adjustment-dialog-shadow: var(--shadow-lg);
+	--stat-adjustment-backdrop-background: var(--color-overlay);
+	--stat-adjustment-header-padding: var(--modal-header-padding);
+	--stat-adjustment-header-gap: var(--modal-header-gap);
+	--stat-adjustment-title-font-size: var(--modal-title-font-size);
+	--stat-adjustment-title-font-weight: var(--modal-title-font-weight);
+	--stat-adjustment-close-font-size: var(--modal-close-font-size);
+	--stat-adjustment-close-size: var(--modal-close-size);
+	--stat-adjustment-body-padding: var(--space-3) var(--space-5);
+}
+
+/* ===========================================================================
+	ここから下は構造(レイアウトの組み立て)。通常は触らない。
+	=========================================================================== */
+
+.stat-adjustment-dialog-backdrop {
+	position: fixed;
+	inset: 0;
+	/* 耐久調整(bulk-adjust-dialog: 70/71)・すばやさ調整(speed-adjust-dialog: 100/101)は
+	   このモーダル内のボタンから開く。それらが常に手前へ重なるよう、両者より低い値にする。 */
+	z-index: 65;
+	background: var(--stat-adjustment-backdrop-background);
+}
+.stat-adjustment-dialog-backdrop[hidden] { display: none; }
+
+.stat-adjustment-dialog {
+	position: fixed;
+	top: var(--modal-top-offset);
+	left: 50%;
+	transform: translateX(-50%);
+	z-index: 66;
+	width: var(--stat-adjustment-dialog-width);
+	height: var(--stat-adjustment-dialog-height);
+	display: flex;
+	flex-direction: column;
+	overflow: visible;
+	background: var(--stat-adjustment-dialog-background);
+	border: var(--stat-adjustment-dialog-border);
+	border-radius: var(--stat-adjustment-dialog-radius);
+	box-shadow: var(--stat-adjustment-dialog-shadow);
+}
+.stat-adjustment-dialog[hidden] { display: none; }
+
+.stat-adjustment-dialog-header {
+	display: flex;
+	align-items: center;
+	gap: var(--stat-adjustment-header-gap);
+	padding: var(--stat-adjustment-header-padding);
+	min-height: var(--modal-header-min-height);
+	border-bottom: 1px solid var(--color-border);
+	flex-shrink: 0;
+}
+.stat-adjustment-dialog-title {
+	flex: 1 1 auto;
+	min-width: 0;
+	margin: 0;
+	font-size: var(--stat-adjustment-title-font-size);
+	font-weight: var(--stat-adjustment-title-font-weight);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.stat-adjustment-dialog-close {
+	flex-shrink: 0;
+	min-width: var(--stat-adjustment-close-size);
+	min-height: var(--stat-adjustment-close-size);
+	padding: 0.1em 0.45em;
+	margin-right: calc(var(--modal-close-margin) - var(--modal-header-padding-x)); /* ヘッダー右端との余白を上下と揃える(モーダルヘッダー規格・global.css)。 */
+	font-size: var(--stat-adjustment-close-font-size);
+	line-height: 1;
+}
+
+.stat-adjustment-dialog-body {
+	flex: 1 1 auto;
+	min-height: 0;
+	overflow-y: auto;
+	padding: var(--stat-adjustment-body-padding);
+}
+
+@media (max-width: 480px) {
+	.stat-adjustment-dialog { width: 96vw; }
+	.stat-adjustment-dialog-body { padding-inline: var(--space-3); }
+}
+
+/* ===========================================================================
+	モーダル内へ移動した #stat-adjustment-section の見た目調整
+
+	.stat-adjustment-section自体の定義(src/styles/stat-adjustment-panel.css /
+	LeftPanel.astroのscoped style)は変更しない。ここは、フォーム内にあったときの
+	見た目(src/styles/box-edit-page.cssの.edit-layout-left .stat-adjustment-section
+	まわり)と揃えるための差分スタイルを、モーダル本体のid(#stat-adjustment-dialog-body)
+	を起点に追加するだけにとどめる。
+	=========================================================================== */
+#stat-adjustment-dialog-body .stat-adjustment-section {
+	--stat-table-gap: var(--space-2);
+	--stat-row-label-line-height: 1;
+	--stat-header-padding: 0 0 0.35rem;
+	--stat-header-margin-bottom: 0.15rem;
+	--stat-control-gap: var(--space-1);
+	--stat-range-min-width: 3.5rem;
+	--stat-endpoint-button-size: 44px;
+	--stat-step-button-size: 44px;
+	--stat-number-input-width: var(--stat-ev-mobile-button-block-size); /* 努力値入力の横幅。縦幅と揃えて正方形にする */
+	--stat-number-input-height: var(--stat-ev-mobile-button-block-size); /* 努力値操作ボタンと同じ高さ */
+	--stat-number-input-mobile-padding: 0 var(--space-1);
+	--stat-nature-button-size: 44px;
+	--stat-nature-arrow-border-inline: 6px;
+	--stat-nature-arrow-border-block: 10px;
+	--stat-nature-dot-size: 6px; /* 性格補正が未設定のときに表示する●の直径 */
+	--stat-label-font-weight: 400;
+	--stat-ev-remaining-font-size: var(--font-size-sm3); /* 「残りXX」「16n+X」の文字サイズ。大きくすると目立つ */
+	--stat-ev-remaining-color: var(--color-text-muted); /* 「残りXX」「16n+X」の文字色。濃くすると目立つ */
+	/* 5列構成: ラベル | 性格補正 | 種族値 | 努力値 | 実数値。 */
+	--stat-mobile-row-grid-template-columns: 1.4rem 2.8rem 2rem minmax(max-content, 1fr) 2.6rem;
+	--stat-mobile-row-gap: var(--space-1);
+	--stat-mobile-input-grid-column: 4;
+	--stat-mobile-real-grid-column: 5;
+	--stat-mobile-real-padding-inline-end: 0;
+
+	--stat-table-inline-end-padding: var(--space-2); /* 能力値表の右余白 */
+	--stat-table-inline-start-padding: var(--space-1); /* 能力値表の左余白 */
+	--stat-column-gap: var(--space-2); /* 能力値表の列間隔 */
+	/* 5列構成: ラベル | 性格補正 | 種族値 | 努力値 | 実数値。 */
+	--stat-grid-template-columns:
+		minmax(1.5rem, 0.4fr)
+		minmax(2.75rem, 0.6fr)
+		minmax(2.5rem, 0.7fr)
+		minmax(9rem, 2.8fr)
+		minmax(3rem, 0.75fr); /* 各列の幅。値を変えると能力値表の列配分が変わる */
+	--stat-ev-mobile-button-block-size: 44px; /* 努力値操作ボタンの高さ */
+}
+
+/* 育成タブの性格補正列。HP行は空のプレースホルダーセルのまま同じ列幅を占有し、
+   他の行とラベルのX位置を揃える(box-edit-page.cssの.edit-layout-left .stat-row-natureと同じ)。 */
+#stat-adjustment-dialog-body .stat-row-nature {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+#stat-adjustment-dialog-body .stat-row-remaining-value {
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	min-width: 0;
+}
+#stat-adjustment-dialog-body .stat-nature-btn {
+	display: inline-grid;
+	place-items: center;
+	align-content: center;
+	box-sizing: border-box;
+	width: var(--stat-nature-button-size);
+	height: var(--stat-nature-button-size);
+	min-height: 0;
+	padding: 0;
+	font-size: 0;
+	line-height: 0;
+	color: var(--color-text-muted);
+	/* わざ選択ボタンの実背景色と揃える(box-edit-page.cssの.edit-layout-left .stat-nature-btnと同じ)。 */
+	background: var(--color-surface);
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius-zero);
+	box-shadow: var(--shadow-sm);
+	cursor: pointer;
+	flex-shrink: 0;
+}
+#stat-adjustment-dialog-body .stat-nature-btn::before,
+#stat-adjustment-dialog-body .stat-nature-btn::after {
+	content: "";
+	grid-area: 1 / 1;
+	width: 0;
+	height: 0;
+}
+#stat-adjustment-dialog-body .stat-nature-btn[data-nature-state="none"]::before {
+	width: var(--stat-nature-dot-size);
+	height: var(--stat-nature-dot-size);
+	border-radius: 50%;
+	background: var(--color-text-muted);
+}
+#stat-adjustment-dialog-body .stat-nature-btn[data-nature-state="up"]::after {
+	border-left: var(--stat-nature-arrow-border-inline) solid transparent;
+	border-right: var(--stat-nature-arrow-border-inline) solid transparent;
+	border-bottom: var(--stat-nature-arrow-border-block) solid var(--color-stat-up);
+}
+#stat-adjustment-dialog-body .stat-nature-btn[data-nature-state="down"]::after {
+	border-left: var(--stat-nature-arrow-border-inline) solid transparent;
+	border-right: var(--stat-nature-arrow-border-inline) solid transparent;
+	border-top: var(--stat-nature-arrow-border-block) solid var(--color-stat-down);
+}
+#stat-adjustment-dialog-body .stat-nature-btn[data-nature-state="up"] { background: var(--color-danger-soft); }
+#stat-adjustment-dialog-body .stat-nature-btn[data-nature-state="down"] { background: var(--color-primary-soft); }
+@media (hover: hover) and (pointer: fine) {
+	#stat-adjustment-dialog-body .stat-nature-btn[data-nature-state="none"]:hover::before { background: var(--color-primary); }
+}
+#stat-adjustment-dialog-body .stat-nature-btn:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 1px; }

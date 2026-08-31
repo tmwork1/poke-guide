@@ -10,6 +10,7 @@ import { TERA_TYPES } from '../../lib/tera-types';
 import SpeciesSelectDialog from './SpeciesSelectDialog.astro';
 import ItemSelectDialog from './ItemSelectDialog.astro';
 import TeraSelectDialog from './TeraSelectDialog.astro';
+import StatAdjustmentDialog from './StatAdjustmentDialog.astro';
 import '../../styles/move-picker-dialog.css';
 
 interface Props {
@@ -326,6 +327,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		<SpeciesSelectDialog />
 		<ItemSelectDialog />
 		<TeraSelectDialog />
+		<StatAdjustmentDialog />
 
 	</section>
 </form>

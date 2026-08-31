@@ -1,0 +1,25 @@
+---
+// 育成タブのポケモンプレビュー(実数値・努力値の表)をタップして開くステータス調整モーダル。
+// 中身は空の入れ物で、開くたびに #stat-adjustment-section(このファイルの隣、
+// LeftPanel.astro が持つ既存のステータス調整欄)をそのままここへ移動して表示する
+// (クローンではなくDOMノードの移動=完全に共用。ロジックはsrc/lib/box-id/left-panel.tsの
+// ままいっさい変更しない)。開閉の配線はsrc/lib/box-id/stat-adjustment-dialog.ts参照。
+import '../../styles/stat-adjustment-dialog.css';
+---
+
+<div id="stat-adjustment-dialog-backdrop" class="stat-adjustment-dialog-backdrop" hidden></div>
+<div
+	id="stat-adjustment-dialog"
+	class="stat-adjustment-dialog"
+	role="dialog"
+	aria-modal="true"
+	aria-labelledby="stat-adjustment-dialog-title"
+	tabindex="-1"
+	hidden
+>
+	<div class="stat-adjustment-dialog-header">
+		<h2 id="stat-adjustment-dialog-title" class="stat-adjustment-dialog-title">ステータス調整</h2>
+		<button type="button" id="stat-adjustment-dialog-close-button" class="btn-ghost stat-adjustment-dialog-close" aria-label="閉じる">×</button>
+	</div>
+	<div id="stat-adjustment-dialog-body" class="stat-adjustment-dialog-body"></div>
+</div>
