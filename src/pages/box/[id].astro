@@ -248,6 +248,7 @@ const initialMobileTab = !isNewMode && Astro.url.searchParams.get('tab') === 'da
 			    構造分割ラウンド(フェーズ1)により src/components/box-id/LeftPanel.astro +
 			    src/lib/box-id/left-panel.ts へ切り出した(見た目・ロジックは一切変更していない)。
 			    SSRで取得済みのpokemon(この分岐では非null)だけをpropsで渡す。 */}
+			{/* 育成・閲覧タブで共有するポケモン設定モーダルホスト。ここでは編集フォームも表示する。 */}
 			<PokemonSettingsModalHost pokemon={pokemon} showForm={true} speciesUsageData={speciesUsageByRegulation} />
 			{/* 900px未満では共通トップバー(.app-topbar)を隠すため、そこに載っていた保存状態・
 			    非公開トグル・削除ボタンの移設先を育成タブ本文の最下部に用意する。実際に要素を
