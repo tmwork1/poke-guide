@@ -1,6 +1,8 @@
-import { expect, perfScenario, test, timeNav } from "../lib/perf";
+import { expect, perfScenario, test, timeAction, timeNav } from "../lib/perf";
 
 let ownedPokemonId: string;
+let dialogOwnedPokemonId: string;
+const disposableOwnedPokemonIds: string[] = [];
 
 test.beforeAll(async ({ request }) => {
   const response = await request.get("/api/owned-pokemon?limit=1&offset=0");
@@ -9,6 +11,26 @@ test.beforeAll(async ({ request }) => {
   const body = (await response.json()) as { data: Array<{ id: string }> };
   expect(body.data.length).toBeGreaterThan(0);
   ownedPokemonId = body.data[0].id;
+
+  const dialogResponse = await request.get("/api/owned-pokemon?limit=48&offset=0");
+  await expect(dialogResponse).toBeOK();
+  const dialogBody = (await dialogResponse.json()) as { data: Array<{ id: string; item_name: string | null }> };
+  // メガストーンで固定されている個体では持ち物ボタンがdisabledになるため、既存データを
+  // 変更せずに開閉だけ確認できる通常の個体を選ぶ。
+  const dialogSafePokemon = dialogBody.data.find((pokemon) => !/ナイト[XYZ]?$/.test(pokemon.item_name ?? ""));
+  expect(dialogSafePokemon).toBeDefined();
+  dialogOwnedPokemonId = dialogSafePokemon!.id;
+});
+
+test.afterAll(async ({ request }) => {
+  if (disposableOwnedPokemonIds.length === 0) return;
+
+  const response = await request.get("/api/owned-pokemon?limit=48&offset=0");
+  await expect(response).toBeOK();
+  const body = (await response.json()) as { data: Array<{ id: string }> };
+  const remainingDisposableIds = body.data.filter((pokemon) => disposableOwnedPokemonIds.includes(pokemon.id));
+  // DELETEの成功だけを信用せず、一覧GETで今回作成した個体が0件であることを確認する。
+  expect(remainingDisposableIds).toHaveLength(0);
 });
 
 test("ボックス一覧を表示", async ({ page }, testInfo) => {
@@ -86,4 +108,75 @@ test("上位チームを表示", async ({ page }, testInfo) => {
         "#ranked-data-panel .box-ranked-results, #ranked-data-status:not([data-state='loading'])",
       ),
   );
+});
+
+test("もちもの選択モーダルを閉じる", async ({ page }, testInfo) => {
+  await timeNav(page, `/box/${encodeURIComponent(dialogOwnedPokemonId)}`, "#edit-shell");
+
+  const trigger = page.locator("#item-dropdown-button");
+  const dialog = page.locator("#item-select-dialog");
+  await expect(trigger).toBeEnabled();
+  await trigger.click();
+  await expect(dialog).toBeVisible();
+
+  await perfScenario(
+    testInfo,
+    {
+      id: "box-item-dialog-close",
+      label: "もちもの選択モーダルを閉じる",
+      category: "close",
+      targetMs: 300,
+      note: "既存個体では候補を選ばず、表示のみのダイアログを閉じる操作に限定",
+    },
+    () =>
+      timeAction(async () => {
+        await page.locator("#item-select-close-button").click();
+        await expect(dialog).toBeHidden();
+      }),
+  );
+});
+
+test("使い捨て個体のもちものを選択して自動保存する", async ({ page, request }, testInfo) => {
+  const createResponse = await request.post("/api/owned-pokemon", {
+    headers: { Origin: "http://localhost:4321" },
+    data: {},
+  });
+  await expect(createResponse).toBeOK();
+  const createBody = (await createResponse.json()) as { data: { id: string } };
+  const disposableId = createBody.data.id;
+  disposableOwnedPokemonIds.push(disposableId);
+
+  try {
+    await timeNav(page, `/box/${encodeURIComponent(disposableId)}`, "#edit-shell");
+    await page.locator("#item-dropdown-button").click();
+    await expect(page.locator("#item-select-dialog")).toBeVisible();
+
+    await perfScenario(
+      testInfo,
+      {
+        id: "box-item-select-autosave",
+        label: "もちもの選択の自動保存",
+        category: "interaction",
+        targetMs: 800,
+        note: "使い捨ての空個体に限定。700msの保存デバウンスとPUT完了を含む",
+      },
+      () =>
+        timeAction(async () => {
+          await page.locator("#item-select-grid button[data-value]:not([data-value=''])").first().click();
+          const autosaveStatus = page.locator("#autosave-status");
+          await expect(autosaveStatus).toHaveAttribute("data-state", "saving");
+          await expect(autosaveStatus).toHaveAttribute("data-state", "saved");
+        }),
+    );
+  } finally {
+    const deleteResponse = await request.delete(`/api/owned-pokemon/${encodeURIComponent(disposableId)}`, {
+      headers: { Origin: "http://localhost:4321" },
+    });
+    await expect(deleteResponse).toBeOK();
+
+    const listResponse = await request.get("/api/owned-pokemon?limit=48&offset=0");
+    await expect(listResponse).toBeOK();
+    const listBody = (await listResponse.json()) as { data: Array<{ id: string }> };
+    expect(listBody.data.filter((pokemon) => pokemon.id === disposableId)).toHaveLength(0);
+  }
 });

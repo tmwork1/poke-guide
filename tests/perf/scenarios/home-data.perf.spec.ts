@@ -1,5 +1,29 @@
 import { expect, perfScenario, test, timeAction, timeNav } from "../lib/perf";
 
+test("executes a search and displays results", async ({ page }, testInfo) => {
+	await page.goto("/search", { waitUntil: "load" });
+	await page.waitForSelector("#query", { state: "visible" });
+
+	const query = page.locator("#query");
+	const resultsSection = page.locator("#results-section");
+	await perfScenario(
+		testInfo,
+		{
+			id: "search-execute",
+			label: "検索: 実行して結果を表示",
+			category: "interaction",
+			targetMs: 800,
+			note: "実行のたびに searches/events テーブルへログが1件追加される",
+		},
+		() =>
+			timeAction(async () => {
+				await query.fill("ピカチュウ");
+				await expect(resultsSection).toBeVisible();
+				await expect(page.locator("#result-pokemon li").first()).toBeVisible();
+			}),
+	);
+});
+
 test("ホームを表示する", async ({ page }, testInfo) => {
 	await perfScenario(
 		testInfo,
