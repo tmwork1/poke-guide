@@ -1932,14 +1932,24 @@ try {
 
 			const memoInput = el<HTMLTextAreaElement>("team-memo");
 			const overviewGrid = el<HTMLElement>("team-overview-grid");
-			overviewGrid.insertAdjacentElement("afterend", memoInput);
+			const itemRedistributeButton = el<HTMLButtonElement>("team-item-redistribute-button");
+			// #team-slots(実体は#team-overview-grid)の直後・メモ欄の直前に置くため、
+			// メモ欄と同じく overviewGrid の直後へ移動させる(このボタンは元々
+			// #team-slotsと#team-memoの間の静的マークアップだが、#team-memo自体が
+			// ここで#team-overview-tab側へ移動するため、一緒に動かさないと
+			// 移動元(表示されない.team-edit-layout側)に取り残されて見えなくなる)。
+			overviewGrid.insertAdjacentElement("afterend", itemRedistributeButton);
+			itemRedistributeButton.insertAdjacentElement("afterend", memoInput);
 			autosizeTextarea(memoInput);
 			const dedupeToggle = el<HTMLInputElement>("team-select-dedupe-toggle");
 			const favoriteFilterToggle = el<HTMLInputElement>("favorite-filter-toggle");
 			const slotsRoot = el<HTMLElement>("team-slots");
-			const itemRedistributeButton = el<HTMLButtonElement>("team-item-redistribute-button");
 			const itemRedistributeBackdrop = el<HTMLElement>("team-item-redistribute-backdrop");
 			const itemRedistributeDialog = el<HTMLElement>("team-item-redistribute-dialog");
+			// position:fixedのオーバーレイでも、祖先(.team-edit-layout)がdisplay:noneだと
+			// 描画自体が止まる。#team-memoと同じ理由でbody直下へ移し、どのタブ表示状態でも
+			// 開けるようにする。
+			document.body.append(itemRedistributeBackdrop, itemRedistributeDialog);
 			const itemRedistributeClose = el<HTMLButtonElement>("team-item-redistribute-close");
 			const itemRedistributeMembers = el<HTMLElement>("team-item-redistribute-members");
 			const itemRedistributeSearch = el<HTMLInputElement>("team-item-redistribute-search");
