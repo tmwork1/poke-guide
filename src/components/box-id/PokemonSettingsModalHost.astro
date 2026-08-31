@@ -1,25 +1,47 @@
 ---
 import type { OwnedPokemonRecord } from '../../lib/owned-pokemon';
+import { toJsonScriptContent } from '../../lib/json-script';
 import LeftPanel from './LeftPanel.astro';
+import SpeciesSelectDialog from './SpeciesSelectDialog.astro';
+import ItemSelectDialog from './ItemSelectDialog.astro';
+import TeraSelectDialog from './TeraSelectDialog.astro';
+import StatAdjustmentDialog from './StatAdjustmentDialog.astro';
 
 interface Props {
 	pokemon: OwnedPokemonRecord;
+	showForm?: boolean;
+	speciesUsageData?: Record<string, Record<string, number>>;
 }
 
-const { pokemon } = Astro.props;
+const { pokemon, showForm = false, speciesUsageData = {} } = Astro.props;
 ---
 
 {/* 閲覧タブでも編集フォームとモーダル実装を共用する。通常の編集パネルだけを隠す。 */}
-<div class="pokemon-settings-modal-host">
-	<p id="autosave-status" class="status-text" data-state="saved" hidden>
-		<span id="autosave-status-text">保存済み</span>
-		<button id="retry-button" type="button">再試行</button>
-	</p>
+<div class:list={{ 'pokemon-settings-modal-host': true, 'is-form-visible': showForm }}>
+	{!showForm && (
+		<p id="autosave-status" class="status-text" data-state="saved" hidden>
+			<span id="autosave-status-text">保存済み</span>
+			<button id="retry-button" type="button">再試行</button>
+		</p>
+	)}
 	<LeftPanel pokemon={pokemon} />
+	<SpeciesSelectDialog />
+	<ItemSelectDialog />
+	<TeraSelectDialog />
+	<StatAdjustmentDialog />
+	<datalist id="pokemon-list"></datalist>
+	<datalist id="move-list"></datalist>
+	<datalist id="ability-list"></datalist>
+	<datalist id="item-list"></datalist>
+	<script type="application/json" id="box-species-usage-data" set:html={toJsonScriptContent(speciesUsageData)} />
 </div>
 
 <style>
-	.pokemon-settings-modal-host > :global(#edit-form) {
+	.pokemon-settings-modal-host.is-form-visible {
+		display: contents;
+	}
+
+	.pokemon-settings-modal-host:not(.is-form-visible) > :global(#edit-form) {
 		display: none;
 	}
 </style>

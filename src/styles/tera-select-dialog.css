@@ -5,7 +5,8 @@
 	参照する。新しい配色・角丸・影・フォントサイズの値は作らない。検索欄は無いので
 	item-select-dialog.cssより一段シンプルな構成(ヘッダー+グリッドのみ)。
 	=========================================================================== */
-body.box-edit-page {
+body.box-edit-page,
+body.data-page {
 	--tera-select-dialog-width: min(640px, 94vw);
 	--tera-select-dialog-height: auto; /* 20項目程度で収まるため、他モーダルと違い内容に合わせた高さにする */
 	--tera-select-dialog-max-height: var(--modal-height); /* 低い画面高でも画面からはみ出さないための上限 */

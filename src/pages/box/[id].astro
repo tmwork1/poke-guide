@@ -14,7 +14,7 @@
 export const prerender = false;
 
 import AppLayout from '../../layouts/AppLayout.astro';
-import LeftPanel from '../../components/box-id/LeftPanel.astro';
+import PokemonSettingsModalHost from '../../components/box-id/PokemonSettingsModalHost.astro';
 import DamageCalcSection from '../../components/box-id/DamageCalcSection.astro';
 import RightPanel from '../../components/box-id/RightPanel.astro';
 import StatAdjustSheet from '../../components/box-id/StatAdjustSheet.astro';
@@ -24,7 +24,6 @@ import MobileTrainingBar from '../../components/box-id/MobileTrainingBar.astro';
 import '../../styles/box-edit-page.css';
 import { getSupabaseAdminClient, getSupabasePublicClient } from '../../lib/supabase';
 import { getOwnedPokemon, type OwnedPokemonRecord } from '../../lib/owned-pokemon';
-import { toJsonScriptContent } from '../../lib/json-script';
 
 const user = Astro.locals.user;
 const id = Astro.params.id;
@@ -249,7 +248,7 @@ const initialMobileTab = !isNewMode && Astro.url.searchParams.get('tab') === 'da
 			    構造分割ラウンド(フェーズ1)により src/components/box-id/LeftPanel.astro +
 			    src/lib/box-id/left-panel.ts へ切り出した(見た目・ロジックは一切変更していない)。
 			    SSRで取得済みのpokemon(この分岐では非null)だけをpropsで渡す。 */}
-			<LeftPanel pokemon={pokemon} />
+			<PokemonSettingsModalHost pokemon={pokemon} showForm={true} speciesUsageData={speciesUsageByRegulation} />
 			{/* 900px未満では共通トップバー(.app-topbar)を隠すため、そこに載っていた保存状態・
 			    非公開トグル・削除ボタンの移設先を育成タブ本文の最下部に用意する。実際に要素を
 			    差し込むのは src/lib/box-id/mobile-edit-tabs.ts(DOMごと移動させるのでイベントは
@@ -295,11 +294,6 @@ const initialMobileTab = !isNewMode && Astro.url.searchParams.get('tab') === 'da
 	}
 	</div>
 
-	<datalist id="pokemon-list"></datalist>
-	<datalist id="move-list"></datalist>
-	<datalist id="ability-list"></datalist>
-	<datalist id="item-list"></datalist>
-	<script type="application/json" id="box-species-usage-data" set:html={toJsonScriptContent(speciesUsageByRegulation)} />
 	<script>
 		const editShell = document.querySelector<HTMLElement>("#edit-shell");
 		const mobileTrainingBar = document.querySelector<HTMLElement>("#mobile-training-bar");

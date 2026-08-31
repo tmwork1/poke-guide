@@ -2,7 +2,8 @@
 	ポケモン選択ダイアログ (/box/[id] の種族選択)
 	見た目を変えたいときは、まず下のチューニング変数を調整する。
 	=========================================================================== */
-body.box-edit-page {
+body.box-edit-page,
+body.data-page {
 	--species-select-dialog-width: min(640px, 94vw);
 	--species-select-dialog-height: var(--modal-height);
 	--species-select-dialog-background: var(--color-surface);

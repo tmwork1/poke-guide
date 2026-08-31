@@ -4,7 +4,8 @@
 	トークンはspecies-select-dialog.css(モーダルヘッダー規格の基準実装)と同じ値を
 	参照する。新しい配色・角丸・影・フォントサイズの値は作らない。
 	=========================================================================== */
-body.box-edit-page {
+body.box-edit-page,
+body.data-page {
 	--item-select-dialog-width: min(640px, 94vw);
 	--item-select-dialog-height: var(--modal-height);
 	--item-select-dialog-background: var(--color-surface);

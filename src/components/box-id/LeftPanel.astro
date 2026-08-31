@@ -7,10 +7,6 @@
 // 副作用importする(共有コア関数は src/lib/box-id/shared-core.ts 経由で left-panel.ts が使う)。
 import type { OwnedPokemonRecord } from '../../lib/owned-pokemon';
 import { TERA_TYPES } from '../../lib/tera-types';
-import SpeciesSelectDialog from './SpeciesSelectDialog.astro';
-import ItemSelectDialog from './ItemSelectDialog.astro';
-import TeraSelectDialog from './TeraSelectDialog.astro';
-import StatAdjustmentDialog from './StatAdjustmentDialog.astro';
 import '../../styles/move-picker-dialog.css';
 
 interface Props {
@@ -329,10 +325,6 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 
 {/* 選択モーダルは編集フォームの外に置く。閲覧ページでフォーム本体だけを非表示にしても、
     プレビューから同じモーダルをその場で開ける。 */}
-<SpeciesSelectDialog />
-<ItemSelectDialog />
-<TeraSelectDialog />
-<StatAdjustmentDialog />
 <style>
 	/* UI刷新: 実数値の常時表示。性格補正は文字色で表現する(旧battle-assistant-svの表現を
 	   踏襲。上昇=赤系、下降=青系、補正なしは既定色のまま)。--color-stat-up/--color-stat-downは

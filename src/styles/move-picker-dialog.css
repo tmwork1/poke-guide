@@ -10,7 +10,8 @@
    チューニング変数
    JavaScript が body 直下に生成するモーダルでも読めるよう、body.box-edit-page に置く。
    =========================================================================== */
-body.box-edit-page {
+body.box-edit-page,
+body.data-page {
   /* ── 1. 文字サイズ ────────────────────────────────────── */
   --move-picker-close-size: var(--modal-close-font-size); /* 閉じるボタンの×。大きくすると記号が目立つ */
   --move-picker-header-title-size: var(--modal-title-font-size); /* ヘッダー見出し。モーダルヘッダー規格(global.css)に揃える */
