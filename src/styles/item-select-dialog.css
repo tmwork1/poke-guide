@@ -45,6 +45,9 @@ body.data-page {
 	border: var(--item-select-dialog-border);
 	border-radius: var(--item-select-dialog-radius);
 	box-shadow: var(--item-select-dialog-shadow);
+	/* 開いた直後に dialog.focus() する際のブラウザ既定の白い輪郭を、
+	   モーダルの枠線として見せない。 */
+	outline: none;
 }
 .item-select-dialog[hidden] { display: none; }
 
