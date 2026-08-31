@@ -134,6 +134,7 @@ body.data-page {
 	--stat-nature-arrow-border-block: 10px;
 	--stat-nature-dot-size: 6px; /* 性格補正が未設定のときに表示する●の直径 */
 	--stat-label-font-weight: 400;
+	--stat-section-font-size: var(--font-size-sm1); /* 育成タブ内の調整表と同じ基準文字サイズ。 */
 	--stat-ev-remaining-font-size: var(--font-size-sm3); /* 「残りXX」「16n+X」の文字サイズ。大きくすると目立つ */
 	--stat-ev-remaining-color: var(--color-text-muted); /* 「残りXX」「16n+X」の文字色。濃くすると目立つ */
 	/* 5列構成: ラベル | 性格補正 | 種族値 | 努力値 | 実数値。 */
@@ -166,7 +167,7 @@ body.data-page {
 #stat-adjustment-dialog-body .stat-row-remaining-value {
 	display: flex;
 	align-items: center;
-	justify-content: flex-end;
+	justify-content: center;
 	min-width: 0;
 }
 #stat-adjustment-dialog-body .stat-nature-btn {
