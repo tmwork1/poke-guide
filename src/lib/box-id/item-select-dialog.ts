@@ -29,6 +29,8 @@ export interface ItemSelectGridOptions {
 	onSelect: (value: string) => void;
 	/** 未指定なら共有マスタの並び順(五十音順)のまま。指定時は""を除いた値配列を並べ替える。 */
 	sortRest?: (values: string[]) => string[];
+	/** 未指定ならlabelをそのままtextContentに設定する。指定時は名前表示セルへの描画を差し替える(改行位置の調整など)。 */
+	renderLabel?: (label: string, textEl: HTMLElement) => void;
 }
 
 export interface ItemSelectGrid {
@@ -66,7 +68,8 @@ export function createItemSelectGrid(options: ItemSelectGridOptions): ItemSelect
 		}
 		const textEl = document.createElement("span");
 		textEl.className = "item-select-cell-text";
-		textEl.textContent = label;
+		if (options.renderLabel) options.renderLabel(label, textEl);
+		else textEl.textContent = label;
 		cell.appendChild(textEl);
 		cell.addEventListener("click", () => options.onSelect(value));
 		return cell;

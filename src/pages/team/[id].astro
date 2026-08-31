@@ -2194,11 +2194,61 @@ try {
 				return [...ranked, ...nonBerries, ...berries];
 			}
 
+			// もちもの再分配ダイアログの一覧だけ、名前を自然な日本語の位置で改行する
+			// (通常のもちもの選択ダイアログは対象外=従来どおりCSSのoverflow-wrap任せ)。
+			// メガストーン接尾辞「ナイト(X/Y/Z)」を最優先で切る。次に「の」を含む
+			// 7文字以上の名前はその直後で切る(例: きあいのタスキ)。それ以外の
+			// 7文字以上の名前は、既知の接頭辞(形容詞)・接尾辞(道具の種別語)の
+			// 語境界で切る。どれにも当てはまらなければ改行位置を指定しない
+			// (従来どおりCSSの2行クランプ+overflow-wrap:anywhereに委ねる)。
+			const ITEM_LABEL_BREAK_SUFFIXES = [
+				"プレート", "メモリ", "レンズ", "ハーブ", "チョッキ", "ガード", "ジュエル",
+				"エナジー", "グローブ", "ゴーグル", "マント", "コート", "サービス", "ダイス",
+				"ブーツ", "チャーム", "メット", "バンド", "ほけん", "だま", "パック", "ボタン",
+				"スカーフ", "ハチマキ", "メガネ",
+			];
+			const ITEM_LABEL_BREAK_PREFIXES = [
+				"こだわり", "だっしゅつ", "くろい", "おおきな", "きれいな", "するどい",
+				"とけない", "まがった", "やわらかい", "だい",
+			];
+
+			function splitRedistributionItemLabel(name: string): [string, string] | null {
+				const megaMatch = name.match(/^(.+?)(ナイト[XYZ]?)$/);
+				if (megaMatch && megaMatch[1].length >= 1) return [megaMatch[1], megaMatch[2]];
+				if (name.length < 7) return null;
+				const noIndex = name.indexOf("の");
+				if (noIndex >= 0) return [name.slice(0, noIndex + 1), name.slice(noIndex + 1)];
+				// 接頭辞(だい+こんごうだま等、既存アイテム名を単位にした自然な区切り)を
+				// 接尾辞より先に見る。だいこんごうだま/だいはっきんだまは接尾辞「だま」でも
+				// 切れてしまうが、「だい/こんごうだま」の方が意味の区切りとして自然なため。
+				for (const prefix of ITEM_LABEL_BREAK_PREFIXES) {
+					if (name.startsWith(prefix) && name.length > prefix.length) {
+						return [prefix, name.slice(prefix.length)];
+					}
+				}
+				for (const suffix of ITEM_LABEL_BREAK_SUFFIXES) {
+					if (name.endsWith(suffix) && name.length > suffix.length) {
+						return [name.slice(0, name.length - suffix.length), suffix];
+					}
+				}
+				return null;
+			}
+
+			function renderRedistributionItemLabel(label: string, textEl: HTMLElement): void {
+				const split = splitRedistributionItemLabel(label);
+				if (!split) {
+					textEl.textContent = label;
+					return;
+				}
+				textEl.replaceChildren(document.createTextNode(split[0]), document.createElement("br"), document.createTextNode(split[1]));
+			}
+
 			const redistributionItemGrid = createItemSelectGrid({
 				gridEl: itemRedistributeItems,
 				emptyEl: itemRedistributeEmpty,
 				getActiveValue: () => selectedRedistributionSlot === null ? selectedRedistributionItem : null,
 				sortRest: sortRedistributionItems,
+				renderLabel: renderRedistributionItemLabel,
 				onSelect: (itemName) => {
 					if (selectedRedistributionSlot !== null) {
 						setRedistributedItem(selectedRedistributionSlot, itemName);
