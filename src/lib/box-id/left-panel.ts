@@ -2169,7 +2169,7 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 	// detail.slotが指定されていれば(preview-quick-open.tsがプレビューの技タップから
 	// そのスロットを指定する)そのスロットを直接開く。未指定時(.mobile-move-toggle)は
 	// 従来どおり最初の空きスロットを開く。
-	document.addEventListener("move-picker:open", (event) => {
+	const openRequestedMovePicker = (event: Event): void => {
 		const requestedSlot = (event as CustomEvent<{ slot?: number }>).detail?.slot;
 		const targetSlot = requestedSlot && [1, 2, 3, 4].includes(requestedSlot)
 			? requestedSlot
@@ -2179,6 +2179,11 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 			}) ?? 1;
 		const input = document.getElementById(`move-${targetSlot}`) as HTMLInputElement | null;
 		if (input) openPicker(targetSlot, input, true);
+	};
+	document.addEventListener("move-picker:open", openRequestedMovePicker);
+	document.addEventListener("box-settings:open", (event) => {
+		const detail = (event as CustomEvent<{ kind?: string; slot?: number }>).detail;
+		if (detail?.kind === "move") openRequestedMovePicker(event);
 	});
 
 	// 匿名集計サジェスト機能: 種族変更に伴いloadPopularBuildSuggestionsがlastMoveSuggestionを

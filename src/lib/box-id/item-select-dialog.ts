@@ -8,6 +8,7 @@ import { kanaIncludes } from "../kana";
 import { bindModalDismissal } from "../modal-dismiss";
 import { applyItemImage } from "./shared-core";
 import { getItemOptionNames, getItemSuggestionRatio } from "./left-panel";
+import { requestSettingsModal } from "./settings-modal";
 
 const itemInput = el<HTMLInputElement>("item");
 const triggerButton = el<HTMLButtonElement>("item-dropdown-button");
@@ -141,7 +142,10 @@ async function openDialog(): Promise<void> {
 // triggerButton.addEventListener("click", …)と同じパターン)。メガストーン確定時は
 // left-panel.tsのsetItemLockedがこのボタン自体をdisabledにするため、ここで個別に
 // ロック状態を意識する必要はない(disabledボタンはclickイベントを発火しない)。
-triggerButton.addEventListener("click", () => { void openDialog(); });
+triggerButton.addEventListener("click", () => requestSettingsModal({ kind: "item" }));
+document.addEventListener("box-settings:open", (event) => {
+	if ((event as CustomEvent<{ kind?: string }>).detail?.kind === "item") void openDialog();
+});
 closeButton.addEventListener("click", closeDialog);
 bindModalDismissal({ backdrop: backdropEl, isOpen: () => !dialogEl.hidden, onDismiss: closeDialog });
 

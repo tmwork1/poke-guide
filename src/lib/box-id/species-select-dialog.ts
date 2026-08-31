@@ -11,6 +11,7 @@ import {
 import { kanaIncludes } from "../kana";
 import { bindModalDismissal } from "../modal-dismiss";
 import { applySprite } from "./shared-core";
+import { requestSettingsModal } from "./settings-modal";
 
 type SortMode = "popularity" | "dex" | "kana";
 
@@ -222,7 +223,10 @@ function closeDialog(): void {
 
 speciesInput.addEventListener("input", updateTriggerButton);
 updateTriggerButton();
-triggerButton.addEventListener("click", () => { void openDialog(); });
+triggerButton.addEventListener("click", () => requestSettingsModal({ kind: "species" }));
+document.addEventListener("box-settings:open", (event) => {
+	if ((event as CustomEvent<{ kind?: string }>).detail?.kind === "species") void openDialog();
+});
 closeButton.addEventListener("click", closeDialog);
 bindModalDismissal({ backdrop: backdropEl, isOpen: () => !dialogEl.hidden, onDismiss: closeDialog });
 

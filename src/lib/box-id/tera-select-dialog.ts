@@ -8,6 +8,7 @@ import { el } from "../owned-pokemon-form";
 import { bindModalDismissal } from "../modal-dismiss";
 import { teraTypeIconUrl } from "../sprite-urls";
 import { getTeraSuggestionRatio } from "./left-panel";
+import { requestSettingsModal } from "./settings-modal";
 
 const teraSelect = el<HTMLSelectElement>("tera");
 const triggerButton = el<HTMLButtonElement>("tera-dropdown-button");
@@ -111,6 +112,9 @@ function openDialog(): void {
 
 // クリック時にモーダルを開く処理は、このファイルが#tera-dropdown-button(LeftPanel.astro側の
 // トリガーボタン)へ直接バインドする(species-select-dialog.tsのtriggerButtonと同じパターン)。
-triggerButton.addEventListener("click", () => openDialog());
+triggerButton.addEventListener("click", () => requestSettingsModal({ kind: "tera" }));
+document.addEventListener("box-settings:open", (event) => {
+	if ((event as CustomEvent<{ kind?: string }>).detail?.kind === "tera") openDialog();
+});
 closeButton.addEventListener("click", closeDialog);
 bindModalDismissal({ backdrop: backdropEl, isOpen: () => !dialogEl.hidden, onDismiss: closeDialog });

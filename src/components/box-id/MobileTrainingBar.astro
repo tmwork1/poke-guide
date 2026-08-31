@@ -69,6 +69,7 @@ const previewStats = detail ? statKeys.map((key, index) => index === 0 ? calcHpS
     data-nature={pokemon.nature ?? ''}
     data-ivs={JSON.stringify(pokemon.ivs ?? [31, 31, 31, 31, 31, 31])}
     data-evs={JSON.stringify(pokemon.evs ?? [0, 0, 0, 0, 0, 0])}
+    data-settings-url={pokemon.id ? `/box/${encodeURIComponent(pokemon.id)}` : undefined}
   >
     <div class="pokemon-preview-main">
     <div class="pokemon-preview-left">
@@ -143,6 +144,7 @@ const previewStats = detail ? statKeys.map((key, index) => index === 0 ? calcHpS
   import '../../lib/box-id/mobile-edit-tabs';
   import '../../lib/box-id/stat-adjustment-dialog';
   import '../../lib/box-id/preview-quick-open';
+  import '../../lib/box-id/settings-modal-from-query';
   import { setupMegaPreviewToggle } from '../../lib/box-id/mega-preview-toggle';
   import { setupAppHeaderSwipe } from '../../lib/app-header-swipe';
   import { applyPreviewMoveTypeBarsFromDom } from '../../lib/box-id/preview-move-type-bar';

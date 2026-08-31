@@ -11,6 +11,7 @@
 // 閉じるときに #stat-adjustment-home の直前へ戻す。既存のid参照・イベントリスナー
 // (src/lib/box-id/left-panel.ts)は一切変更しないため、そのまま引き続き機能する。
 import { bindModalDismissal } from "../modal-dismiss";
+import { bindSettingsModalTrigger } from "./settings-modal";
 
 const trigger = document.getElementById("pokemon-preview-stats-trigger");
 const backdrop = document.getElementById("stat-adjustment-dialog-backdrop");
@@ -40,25 +41,11 @@ if (trigger && backdrop && dialog && body && closeButton && section && home) {
 	// モバイルではclickを待たず、最初に届くpointerdownで開く
 	// (.pokemon-preview-sprite-wrap/mega-preview-toggle.tsと同じ方針)。
 	// clickはキーボード操作(Enter/Space)のフォールバックとして残す。
-	let handledByPointer = false;
-	trigger.addEventListener("pointerdown", (event) => {
-		event.preventDefault();
-		handledByPointer = true;
-		openDialog();
-	});
-	trigger.addEventListener("click", () => {
-		if (handledByPointer) {
-			handledByPointer = false;
-			return;
-		}
-		openDialog();
+	bindSettingsModalTrigger(trigger, { kind: "stats" });
+	document.addEventListener("box-settings:open", (event) => {
+		if ((event as CustomEvent<{ kind?: string }>).detail?.kind === "stats") openDialog();
 	});
 	// role="button"のdivはEnter/Spaceを自動では発火しないため、キーボード操作を明示的に配線する。
-	trigger.addEventListener("keydown", (event) => {
-		if (event.key !== "Enter" && event.key !== " ") return;
-		event.preventDefault();
-		openDialog();
-	});
 
 	closeButton.addEventListener("click", closeDialog);
 	bindModalDismissal({ backdrop, isOpen: () => !dialog.hidden, onDismiss: closeDialog });

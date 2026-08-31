@@ -12,33 +12,13 @@
 // モバイルではclickを待たず、最初に届くpointerdownで実行する。clickはキーボード操作
 // (Enter/Space)のフォールバックとして残す(.pokemon-preview-sprite-wrap/
 // mega-preview-toggle.ts、#pokemon-preview-stats-trigger/stat-adjustment-dialog.tsと同じ方針)。
-function bindPreviewTap(el: HTMLElement, action: () => void): void {
-  let handledByPointer = false;
-  el.addEventListener("pointerdown", (event) => {
-    event.preventDefault();
-    handledByPointer = true;
-    action();
-  });
-  el.addEventListener("click", () => {
-    if (handledByPointer) {
-      handledByPointer = false;
-      return;
-    }
-    action();
-  });
-  el.addEventListener("keydown", (event) => {
-    if (event.key !== "Enter" && event.key !== " ") return;
-    event.preventDefault();
-    action();
-  });
-}
+import { bindSettingsModalTrigger } from "./settings-modal";
 
 // 種族名・タイプ → 種族選択モーダル(#species-select-trigger-button、
 // SpeciesSelectDialog.astro/species-select-dialog.ts)をそのまま開く。
 const speciesTrigger = document.getElementById("pokemon-preview-species-trigger");
-const speciesSelectButton = document.getElementById("species-select-trigger-button") as HTMLButtonElement | null;
-if (speciesTrigger && speciesSelectButton) {
-  bindPreviewTap(speciesTrigger, () => speciesSelectButton.click());
+if (speciesTrigger) {
+  bindSettingsModalTrigger(speciesTrigger, { kind: "species" });
 }
 
 // 技(各行)→ left-panel.tsの"move-picker:open"イベント(.mobile-move-toggleと同じ入口、
@@ -47,17 +27,13 @@ if (speciesTrigger && speciesSelectButton) {
 const moveTriggers = document.querySelectorAll<HTMLElement>(".pokemon-preview-move-trigger");
 for (const trigger of moveTriggers) {
   const slot = Number(trigger.dataset.moveSlot);
-  const moveInput = document.getElementById(`move-${slot}`);
-  if (!moveInput) continue;
-  bindPreviewTap(trigger, () => {
-    document.dispatchEvent(new CustomEvent("move-picker:open", { detail: { slot } }));
-  });
+  if (![1, 2, 3, 4].includes(slot)) continue;
+  bindSettingsModalTrigger(trigger, { kind: "move", slot });
 }
 
 // もちもの → もちもの選択モーダル(#item-dropdown-button、ItemSelectDialog.astro/
 // item-select-dialog.ts)をそのまま開く。
 const itemTrigger = document.getElementById("pokemon-preview-item-trigger");
-const itemSelectButton = document.getElementById("item-dropdown-button") as HTMLButtonElement | null;
-if (itemTrigger && itemSelectButton) {
-  bindPreviewTap(itemTrigger, () => itemSelectButton.click());
+if (itemTrigger) {
+  bindSettingsModalTrigger(itemTrigger, { kind: "item" });
 }

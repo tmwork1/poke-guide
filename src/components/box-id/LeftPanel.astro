@@ -1215,9 +1215,10 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 </style>
 <script>
 	import "../../lib/box-id/left-panel";
+	import { requestSettingsModal } from "../../lib/box-id/settings-modal";
 
 	const moveToggle = document.querySelector<HTMLButtonElement>(".mobile-move-toggle");
 	moveToggle?.addEventListener("click", () => {
-		document.dispatchEvent(new CustomEvent("move-picker:open"));
+		requestSettingsModal({ kind: "move" });
 	});
 </script>
