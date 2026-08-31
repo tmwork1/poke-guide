@@ -162,11 +162,10 @@ body.data-page {
 .item-select-cell-type-badge {
 	position: absolute;
 	left: 100%;
-	top: 50%;
+	top: 0;
 	margin-left: 2px;
-	transform: translateY(-50%);
-	width: 21px;
-	height: 21px;
+	width: 17px;
+	height: 17px;
 	padding: 1px;
 	object-fit: contain;
 	background: var(--color-surface);

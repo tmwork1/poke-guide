@@ -45,6 +45,14 @@ body.team-edit-page {
 	flex: 1 1 auto;
 	min-width: 0;
 }
+/* 共有の.item-select-title(item-select-dialog.css)はflex:1 1 autoのため、
+   このグループの中に入れるとタイトル文字列が余白を独占し、ヘルプボタンが
+   閉じるボタンの隣まで押し出されてしまう。ここではタイトル自身を伸ばさず、
+   グループ側のflex:1でヘッダー内の余白を引き受ける(ヘルプボタンはタイトル
+   文字列のすぐ右に置く)。 */
+.team-item-redistribute-title-group .item-select-title {
+	flex: 0 1 auto;
+}
 
 .team-item-redistribute-help-button {
 	flex-shrink: 0;
