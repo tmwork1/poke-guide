@@ -83,89 +83,138 @@
 
 ## 3. 設計
 
-### 3.1 基準寸法(6.3インチ)
+### 3.1 基準寸法(6.3インチ)— カードの最大サイズはグリッドごとに別
 
 6.3インチ級のCSS論理幅は **402〜412px**(iPhone 16 Pro = 402、Pixel 9/10 Pro = 412)。**設計基準幅を 412px** とし、402 / 390(小型端末)でも破綻しないことを条件にする。
 
-基準幅における `/box` カードの実効サイズ:
+**単一の `--card-size-max` を全グリッドで共有してはいけない。** 基準列数も列間も1枚あたりの情報量も違うため、基準幅412pxでの実効サイズがそもそも別の値になる。
 
-```
-(412 − 左右余白 8×2 − 列間 4×2) ÷ 3 = 129.33px
-```
+| グリッド | 基準列数 | 左右余白 | 列間 | 412pxでの一辺 | 採用する上限トークン |
+|---|---|---|---|---|---|
+| `.box-grid`(`/box` 一覧、チームカードの6枠) | 3 | 8px×2 | `--space-1` 4px | `(412−16−8)/3` = **129.33px** | `--box-card-size-max: 130px` |
+| `.team-overview-thumb-grid`(`/team/[id]` ポケモンタブ) | 2 | 8px×2 | `--space-2` 8px | `(412−16−8)/2` = **194px** | `--team-overview-card-size-max: 194px` |
 
-→ **`--card-size-max: 130px`**(これが正方形カードの一辺の上限)。
+- 3列カード(`.box-card`)は名前・性格/努力値1行・技4行・持ち物バッジ。
+- 2列カード(`.team-overview-preview-card`)は名前・タイプ・持ち物・技4行に加えて **6列×3段の実数値表**(`team-pokemon-card.css:316-320`)まで載る。**130pxでは実数値表が成立しない**し、逆に3列カードを194pxにすると基準幅で1.5列分になって破綻する。
+
+つまり「カードサイズの最大値」は**グリッドの系統ごとに1つずつ**持つ。以下ではこの2つを「3列系」「2列系」と呼ぶ。
 
 ### 3.2 導入するトークン(`global.css` の `:root`)
 
 ```css
 :root {
-  --card-size-max: 130px;      /* 正方形カードの一辺の上限。6.3インチ(412px)で3列に並べたときの実測値 */
-  --card-grid-columns: 3;      /* カードグリッドの列数。下の @media ラダーだけが書き換える */
+  /* ── 3列系: /box 一覧、チームカードの6枠 ── */
+  --box-card-size-max: 130px;   /* 6.3インチ(412px)で3列に並べたときの実測値 */
+  --box-grid-columns: 3;        /* §3.3 の @media ラダーだけが書き換える */
+
+  /* ── 2列系: /team/[id] ポケモンタブ ── */
+  --team-overview-card-size-max: 194px; /* 同じく412pxで2列に並べたときの実測値 */
+  --team-overview-grid-columns: 2;      /* §3.4 の @media ラダーだけが書き換える */
+
+  /* 全幅chromeの中身を合わせる「本文帯」。既定は3列系の帯 */
   --content-band-max-width: calc(
-    var(--card-grid-columns) * var(--card-size-max)
-    + (var(--card-grid-columns) - 1) * var(--space-1)
-  );                           /* 列数に対応する「本文帯」の幅。全幅chromeの中身をこれに合わせる */
+    var(--box-grid-columns) * var(--box-card-size-max)
+    + (var(--box-grid-columns) - 1) * var(--space-1)
+  );
+
   --precision-band-max-width: 480px; /* 内部レイアウトを伸ばしてはいけない要素(ポケモンプレビュー等)の上限 */
+}
+
+/* 主グリッドが2列系のページは、chromeの帯もそちらに合わせる */
+body.team-edit-page {
+  --content-band-max-width: calc(
+    var(--team-overview-grid-columns) * var(--team-overview-card-size-max)
+    + (var(--team-overview-grid-columns) - 1) * var(--space-2)
+  );
 }
 ```
 
-### 3.3 列数ラダー(唯一の定義箇所)
+### 3.3 3列系の列数ラダー
 
 列数 N でカードがちょうど上限130pxになる幅は `N×130 + (N−1)×4 + 16`。その値**以上**で N に上げる(手前で上げるとカードが上限より小さく縮む)。
 
-| 列数 | 上限到達幅 | 採用ブレークポイント |
-|---|---|---|
-| 3 | 414px | (既定) |
-| 4 | 548px | `min-width: 420px` |
-| 5 | 682px | `min-width: 560px` |
-| 6 | 816px | `min-width: 690px` |
-| 7 | 950px | `min-width: 820px` |
-| 8 | 1084px | `min-width: 960px` |
-| 8(据え置き) | — | 1090px 以上は増やさず中央寄せ |
+| 列数 | 上限到達幅 | 採用ブレークポイント | 帯幅 |
+|---|---|---|---|
+| 3 | 414px | (既定) | 398px |
+| 4 | 548px | `min-width: 420px` | 532px |
+| 5 | 682px | `min-width: 560px` | 666px |
+| 6 | 816px | `min-width: 690px` | 800px |
+| 7 | 950px | `min-width: 820px` | 934px |
+| 8 | 1084px | `min-width: 960px` | 1068px |
+| 8(据え置き) | — | 1090px 以上は増やさず中央寄せ | 1068px |
 
 ```css
-@media (min-width: 420px) { :root { --card-grid-columns: 4; } }
-@media (min-width: 560px) { :root { --card-grid-columns: 5; } }
-@media (min-width: 690px) { :root { --card-grid-columns: 6; } }
-@media (min-width: 820px) { :root { --card-grid-columns: 7; } }
-@media (min-width: 960px) { :root { --card-grid-columns: 8; } }
+@media (min-width: 420px) { :root { --box-grid-columns: 4; } }
+@media (min-width: 560px) { :root { --box-grid-columns: 5; } }
+@media (min-width: 690px) { :root { --box-grid-columns: 6; } }
+@media (min-width: 820px) { :root { --box-grid-columns: 7; } }
+@media (min-width: 960px) { :root { --box-grid-columns: 8; } }
 ```
 
 上限は8列(帯幅1068px)。それ以上の幅では帯を中央に置き、左右は背景のままにする(→ §6-1 で要確認)。
 
-### 3.4 グリッド本体の書き換え
+### 3.4 2列系の列数ラダー
+
+同じ考え方を上限194px・列間8pxで解く。上限到達幅は `N×194 + (N−1)×8 + 16`。
+
+| 列数 | 上限到達幅 | 採用ブレークポイント | 帯幅 |
+|---|---|---|---|
+| 2 | 412px(= 基準幅そのもの) | (既定) | 396px |
+| 3 | 614px | `min-width: 620px` | 594px |
+| 4 | 816px | `min-width: 820px` | 792px |
+| 5 | 1018px | `min-width: 1020px` | 990px |
+| 5(据え置き) | — | 1020px 以上は増やさず中央寄せ | 990px |
 
 ```css
+@media (min-width: 620px)  { :root { --team-overview-grid-columns: 3; } }
+@media (min-width: 820px)  { :root { --team-overview-grid-columns: 4; } }
+@media (min-width: 1020px) { :root { --team-overview-grid-columns: 5; } }
+```
+
+- 6枠しかないグリッドなので、列数は **3(2行) / 4(2行) / 5(2行) / 6(1行)** と進む。6列(1行)になるのは `6×194+5×8+16 = 1220px` からだが、そこまで広げるとカードが横一列に伸びて `/team` 一覧のチームカード(§3.5、820pxで1×6)と挙動が食い違う。**2列系は5列で打ち止め**にし、1行化はしない(→ §6-4 で要確認)。
+- 3列や5列だと6枠が「3+3」「5+1」に割れる。3+3は許容(2行で均等)、**5+1は見た目が悪い**ため、5列のブレークポイントを採用しない選択肢もある(→ §6-4)。
+
+### 3.5 グリッド本体の書き換え
+
+```css
+/* 3列系 */
 .box-grid {
   display: grid;
-  grid-template-columns: repeat(var(--card-grid-columns), minmax(0, var(--card-size-max)));
+  grid-template-columns: repeat(var(--box-grid-columns), minmax(0, var(--box-card-size-max)));
   justify-content: center;   /* 上限に張り付いたときの余りを左右へ均等に逃がす */
   gap: var(--box-card-grid-gap);
   align-items: stretch;
 }
+
+/* 2列系 */
+.team-overview-thumb-grid {
+  grid-template-columns: repeat(var(--team-overview-grid-columns), minmax(0, var(--team-overview-card-size-max)));
+  justify-content: center;
+}
 ```
 
-- `minmax(0, var(--card-size-max))` は「空きがあれば最大130pxまで伸び、足りなければ0まで縮む」。基準幅412pxでは3トラックが129.33pxになり、はみ出さない。
-- **`repeat(auto-fill, ...)` を使ってはいけない。** `auto-fill` は列数をトラックの max(固定値)から逆算するため、幅402pxの端末で `floor((386+4)/134) = 2列` になり、**基準より狭い端末で3列が2列に落ちる**。基準幅より下を壊さない書き方は「列数を明示する @media ラダー」しかない。この理由をCSSのコメントに残すこと(将来 auto-fill へ「簡素化」されるのを防ぐため)。
+- `minmax(0, <上限>)` は「空きがあれば上限まで伸び、足りなければ0まで縮む」。基準幅412pxでは3列系が129.33px、2列系が194pxになり、どちらもはみ出さない。
+- **`repeat(auto-fill, ...)` を使ってはいけない。** `auto-fill` は列数をトラックの max(固定値)から逆算するため、幅402pxの端末で3列系が `floor((386+4)/134) = 2列` になり、**基準より狭い端末で3列が2列に落ちる**。基準幅より下を壊さない書き方は「列数を明示する @media ラダー」しかない。この理由をCSSのコメントに残すこと(将来 auto-fill へ「簡素化」されるのを防ぐため)。
+- `.team-overview-thumb-grid` の `margin-inline: calc(var(--space-5) * -1)` と `padding-inline` は現状のまま残す(親の余白を打ち消して画面端まで使うための既存実装)。`justify-content: center` はその内側で効く。
 
-### 3.5 チームカードの 2×3 → 1×6
+### 3.6 チームカードの 2×3 → 1×6
 
-チームカードの6枠は `.box-grid` を再利用しているので、**ルートのラダーを継承させず、そのスコープで `--card-grid-columns` を上書きする**。
+チームカードの6枠は `.box-grid` を再利用している(`src/lib/team-card.ts:64`)ので、**ルートのラダーを継承させず、そのスコープで `--box-grid-columns` を上書きする**。
 
 ```css
 /* チームカードの6枠は3列(2行×3列)で固定し、6枠が上限サイズのまま1行に収まる幅で6列(1行)へ切り替える */
-.team-grid .card-team .box-grid { --card-grid-columns: 3; }
+.team-grid .card-team .box-grid { --box-grid-columns: 3; }
 @media (min-width: 820px) {
-  .team-grid .card-team .box-grid { --card-grid-columns: 6; }
+  .team-grid .card-team .box-grid { --box-grid-columns: 6; }
 }
 ```
 
 - 閾値 **820px** の根拠: `6×130 + 5×4 + 16 = 816px`。この幅以上なら6枚を最大サイズのまま1行に置ける。手前で切り替えるとカードが130pxより縮む。
 - `.team-grid` 自体は1列のまま(1チーム=1行)。カード内容が中央の帯に収まり、左右は背景になる。
-- DOM(`src/lib/team-card.ts` の `renderTeamMemberGrid`)は変更しない。CSSだけで切り替える。
+- DOM(`renderTeamMemberGrid`)は変更しない。CSSだけで切り替える。
 - 同種の扱いが要る6枠系: `.team-mate-grid`(`team-mate-card.css:96`)、`.team-formation-mobile__suggest-icons`(`team-pokemon-tab.css:132`)。これらは6枠固定なのでセル上限サイズを別途決め、`justify-content: center` で余りを逃がす。
 
-### 3.6 「背景だけ伸ばす」パターン
+### 3.7 「背景だけ伸ばす」パターン
 
 全幅で固定/stickyされる要素は **外枠 = 全幅の背景・境界線 / 内側 = 帯幅で中央寄せ** の2層に分ける。
 
@@ -198,12 +247,12 @@
    ```
 6. **モーダル / ボトムシート** — `move-picker-dialog.css` 等はすでに `max-width` を持つ(例: `--move-picker-dialog-max-width: 42rem`)。**今回は触らない。** ただし `stat-adjust-sheet.css`(`position: fixed` のボトムシート)を帯幅に合わせるかは実装時に確認する。
 
-### 3.7 基準幅より狭い側(< 402px)
+### 3.8 基準幅より狭い側(< 402px)
 
 本計画は上方向の設計だが、下方向の既存方針を壊さないこと。
 
 - **タップ対象を縮めて幅に合わせない。** ボタン・ステッパーは `max-content` を下限にし、あふれる場合は横スクロールで逃がす(既存の合意事項)。
-- `--card-size-max` は上限であって下限ではないので、360px幅では3列のままカードが113pxまで縮む。これは既存挙動と同じ。
+- 上限トークンは上限であって下限ではないので、360px幅では3列系が113px・2列系が168pxまで縮む。これは既存挙動と同じ。2列系はここで実数値表(6列)が最も詰まるので、360pxでの可読性を検証対象に含める(§5)。
 
 ---
 
@@ -212,12 +261,13 @@
 | # | 作業 | 対象 | 備考 |
 |---|---|---|---|
 | 1 | `@media (width <= 899px)` の上限撤廃 | `box-pokemon-preview.css:84`, `box-damage-page.css:76,107`, `box-damage-card.css:2148`, `data-page.css:244`, `team-pokemon-tab.css:169`, `team-data-tab.css:75` | ブロックを外して無条件ルールにする。**ダイアログ2件(`move-picker-dialog.css:375`, `speed-adjust-dialog.css:73`)は対の広幅定義があるか個別確認**してから判断 |
-| 2 | トークン + ラダーの追加 | `global.css`(`:root` の「8. サイズ」節と共通レイアウト節) | §3.2 / §3.3。コメントで基準412px・auto-fill禁止理由を明記 |
-| 3 | `.box-grid` の列数可変化 | `box-card.css:20-26` | §3.4 |
-| 4 | チーム6枠の 2×3 → 1×6 | `team-card.css`(`.team-grid .card-team .box-grid`) | §3.5 |
-| 5 | その他の固定列グリッド | `home-page.css:184`, `team-mate-card.css:96`, `team-pokemon-tab.css:132`, `matchup-panel.css:15` | セル上限 + 中央寄せ |
-| 6 | 背景だけ伸ばす対応 | `box-pokemon-preview.css`, `app-bottom-nav.css`, `app-header.css`, `second-header.css`, `floating-list-controls.css` | §3.6。プレビューの背景持ち替えは単独コミットに切ると差し戻しやすい |
-| 7 | 検証 | — | §5 |
+| 2 | トークン + 2本のラダーの追加 | `global.css`(`:root` の「8. サイズ」節と共通レイアウト節) | §3.2 / §3.3 / §3.4。コメントで基準412px・**上限をグリッドごとに分ける理由**・auto-fill禁止理由を明記 |
+| 3 | 3列系の列数可変化 | `box-card.css:20-26` | §3.5 |
+| 4 | 2列系の列数可変化 | `team-pokemon-card.css:6-17` | §3.5。`margin-inline`/`padding-inline` は現状維持 |
+| 5 | チーム6枠の 2×3 → 1×6 | `team-card.css`(`.team-grid .card-team .box-grid`) | §3.6 |
+| 6 | その他の固定列グリッド | `home-page.css:184`, `team-mate-card.css:96`, `team-pokemon-tab.css:132`, `matchup-panel.css:15` | セル上限 + 中央寄せ |
+| 7 | 背景だけ伸ばす対応 | `box-pokemon-preview.css`, `app-bottom-nav.css`, `app-header.css`, `second-header.css`, `floating-list-controls.css` | §3.7。プレビューの背景持ち替えは単独コミットに切ると差し戻しやすい |
+| 8 | 検証 | — | §5 |
 
 **スタイルはすべて対象ごとのCSSファイルに置く**(ルート `CLAUDE.md`「スタイル定義」)。共通トークンとラダーだけ `global.css`。テンプレートの `style` 属性・新規の分散 `<style>` は追加しない。
 
@@ -229,15 +279,16 @@
 
 `npm run shot` でライト/ダーク両方を撮る(`--out .tmp-shots-responsive`)。
 
-対象幅: **360 / 390 / 412(基準) / 430 / 560 / 690 / 820 / 960 / 1280 / 1920**
+対象幅: **360 / 390 / 412(基準) / 430 / 560 / 620 / 690 / 820 / 960 / 1020 / 1280 / 1920**
+(2本のラダーの境界 420/560/690/820/960 と 620/820/1020 の**両方**を跨ぐように取る。境界の直前・直後の1px違いも1組は撮る)
 
 対象ページ: `/`(ホーム)、`/box`、`/box/<id>`(育成・ダメージ・データの各タブ)、`/team`、`/team/<id>`(ポケモン・編成・データ)、`/data`、`/search`
 
 合格条件:
 
 1. **412px の見た目が現状と1pxも変わらない**(既存のモバイル表示を回帰させない)。これが最優先。
-2. どの幅でも `.box-card` の一辺が **130px を超えない**(`getBoundingClientRect()` の実測で確認。目視では判定しない)。
-3. 360px で3列を維持し、横スクロール(`document.scrollingElement.scrollWidth > clientWidth`)が発生しない。
+2. どの幅でも `.box-grid .box-card` の一辺が **130px を超えない**、かつ `.team-overview-thumb-grid` のカードの一辺が **194px を超えない**(`getBoundingClientRect()` の実測で確認。目視では判定しない)。**2つのグリッドを別々に測ること**(片方だけ測ると上限の取り違えに気づけない)。
+3. 360px で3列系は3列・2列系は2列を維持し、横スクロール(`document.scrollingElement.scrollWidth > clientWidth`)が発生しない。2列系カードの6列実数値表が欠落・重なりを起こさない。
 4. 820px 以上でチームカードの6枠が1行に並ぶ。819px では2行3列。
 5. 900px 前後で**レイアウト構造が変化しない**(§2.3 の破綻が解消されている)。
 6. ポケモンプレビューの内部レイアウトがどの幅でも同一(高さ176px、3カラムの比率が変わらない)。背景は画面端まで届いている。
@@ -252,3 +303,5 @@
 1. **最大列数を8(帯幅1068px)で止めるか。** それ以上の幅では左右が背景になる。「PCでも画面いっぱいにカードを並べたい」ならラダーを延長して上限を外す。
 2. **ポケモンプレビューの上限 `--precision-band-max-width: 480px` の妥当性。** 基準412pxより少し余裕を持たせる想定。「基準幅から一切広げない」なら412pxにする。
 3. **`/data` の使用率一覧・すばやさ早見表**(`speed-chart-table.css` が独自に 1199px / 767px のブレークポイントを持つ)を本ラダーへ統合するか、独自のまま残すか。表形式でカードグリッドとは性質が違うため、**本計画では対象外**としている。
+4. **2列系(`/team/[id]` ポケモンタブ)の打ち止め列数。** 案では5列(1020px)まで。ただし6枠なので3列=3+3、4列=4+2、5列=5+1 と割れ方が変わり、**5+1 は見た目が悪い**。選択肢は (a) 案どおり5列まで、(b) 4列(820px)で打ち止め、(c) 3列(620px)で打ち止めて以降は帯を中央寄せ。**(b) を推奨**(割れ方が 2+2+2 → 3+3 → 4+2 と常に許容範囲に収まり、閾値も 820px でチームカードの 1×6 と揃う)。
+5. **2列系カードの上限194pxの妥当性。** 基準幅412pxの実測値をそのまま採ったが、実数値表が載る密度の高いカードなので「もう少し大きくしたい」余地はある。上げると `/team/[id]` だけカードが目立って大きくなるため、まず194pxで撮ってから判断したい。
