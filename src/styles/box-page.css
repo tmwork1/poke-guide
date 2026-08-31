@@ -68,6 +68,10 @@
   color: var(--box-page-message-color);
 }
 
+#loading-message.loading-center {
+  margin: 0;
+}
+
 #error-message {
   color: var(--box-page-error-color);
 }

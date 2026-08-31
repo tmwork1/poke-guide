@@ -296,8 +296,14 @@ body.data-hub-page {
 /* /team のカード一覧は .panel の中ではなくページ地色(--color-bg)の上に並ぶ。
    同じ見た目にするため、このタブでは .panel の白い面(--color-surface)を出さない。 */
 .top-builds-panel {
+  position: relative;
   padding: 0;
   background: var(--data-hub-top-builds-panel-background);
+}
+/* ロード文は絶対配置で一覧の中央に重ねるため、カードがまだ無い間も
+   ヘッダーと下部ナビの間を表示領域として確保する。 */
+.top-builds-panel:has(#top-builds-loading:not([hidden])) {
+  min-height: calc(100dvh - var(--header-height) - var(--app-header-height) - var(--second-header-height) - var(--bottom-nav-height));
 }
 /* .panel-content の既定 max-width: 1080px(global.css)は読み物向けの制約で、
    /team・/box/ranked と同一の見た目にすべきチームカードグリッドには不要。
@@ -308,6 +314,7 @@ body.data-hub-page {
 }
 .top-builds-list { padding: var(--data-hub-top-builds-list-padding); }
 .top-builds-list .ranked-team-status { color: var(--data-hub-muted-color); }
+.top-builds-list #top-builds-loading.loading-center { margin: 0; }
 .top-builds-list #top-builds-error { color: var(--data-hub-error-color); }
 /* カードの左右余白は /team(.team-content.box-content = --list-grid-edge-gap)と一致させる。
    .data-hub-scroll の margin-inline が同じ --space-2 をすでに確保しているため、

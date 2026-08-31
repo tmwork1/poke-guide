@@ -118,9 +118,16 @@
 	.speed-chart-table[data-has-owned-panel='true'] {
 		--speed-chart-columns: 80px 168px minmax(0, 1fr) 200px;
 	}
+	.speed-chart-table:has(.speed-chart-status:not([hidden])) {
+		position: relative;
+		min-height: calc(100dvh - var(--header-height) - var(--app-header-height) - var(--second-header-height) - var(--bottom-nav-height));
+	}
 	.speed-chart-status {
 		color: var(--color-text-muted);
 		margin: var(--speed-chart-status-margin);
+	}
+	.speed-chart-status.loading-center {
+		margin: 0;
 	}
 	/* サイドバーと表の間に余白。列見出し廃止に伴い、上方向にも余白を確保。 */
 	.speed-chart-content {

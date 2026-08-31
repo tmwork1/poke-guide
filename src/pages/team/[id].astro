@@ -315,6 +315,7 @@ try {
 		.team-select-list-wrap {
 			flex: 1 1 auto;
 			min-height: 0;
+			position: relative;
 			overflow-y: auto;
 			/* カード右端とスクロールバーが接触しないよう最小限の余白を確保する。 */
 			padding-right: var(--space-2);
@@ -510,7 +511,7 @@ try {
 							</div>
 						</div>
 						<div class="team-select-list-wrap">
-							<p id="select-loading-message" class="status-text" data-state="loading">読み込み中…</p>
+							<p id="select-loading-message" class="status-text loading-center" data-state="loading">読み込み中…</p>
 							<p id="select-error-message" class="status-text" data-state="error" hidden>個体一覧を読み込めませんでした。時間をおいて再度お試しください。</p>
 							<div id="pokemon-select-list"></div>
 							{/* R-9: ボックス0件のときの空状態。/boxの.empty-stateと同じ語彙 + /boxへのリンク。 */}

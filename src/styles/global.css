@@ -991,6 +991,20 @@ input[type="checkbox"].toggle-switch-input {
   font-weight: 500;
 }
 
+/* ロード中の一覧・表を、その表示領域の中央に重ねて示す。親要素が配置基準を持つ。 */
+.loading-center {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  text-align: center;
+}
+
+.loading-center[hidden] {
+  display: none;
+}
+
 .severity-bar {
   border-radius: var(--radius-sm);
   padding: var(--space-2) var(--space-3);

@@ -75,6 +75,9 @@ body.team-page {
 			color: var(--team-page-status-color);
 			margin-top: var(--team-page-status-margin-top);
 		}
+		#loading-message.loading-center {
+			margin: 0;
+		}
 		#error-message { color: var(--team-page-error-color); }
 
 		#no-match-message.empty-state {
