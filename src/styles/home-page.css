@@ -30,10 +30,17 @@ body.home-page {
   --home-page-link-hover-color: var(--color-primary); /* 補助リンクのホバー色。変えると操作時の強調色が変わる */
   --home-page-card-icon-color: var(--color-primary); /* メニューカードのアイコン色。変えると各機能の印象が変わる */
 
+  /* ── 4. 背景色 ────────────────────────────────────────── */
+  --home-page-menu-panel-background: var(--color-surface); /* 機能メニュー全体を囲むパネルの背景。カードらしい面を作る */
+
   /* ── 5. 枠線・角丸 ────────────────────────────────────── */
   --home-page-card-border: 1px solid var(--color-border); /* メニューカードの枠線。太くするとカードの輪郭が目立つ */
   --home-page-card-focus-outline: 2px solid var(--color-primary); /* メニューカードのキーボード選択枠。太さや色で選択状態が変わる */
   --home-page-card-focus-outline-offset: 2px; /* 選択枠とカードの間隔。大きくすると枠が外側へ離れる */
+  --home-page-menu-panel-radius: var(--radius-md); /* 機能メニュー全体パネルの角丸。大きくするとパネルの角が丸くなる */
+
+  /* ── 6. 影 ────────────────────────────────────────────── */
+  --home-page-menu-panel-shadow: var(--shadow-sm); /* 機能メニュー全体パネルの浮き感。強くするとパネルが背景から浮いて見える */
 
   /* ── 7. 余白 ──────────────────────────────────────────── */
   --home-page-padding: var(--space-5) var(--space-3) var(--space-7); /* ページ外周の余白。大きくすると内容が内側に寄る */
@@ -44,6 +51,7 @@ body.home-page {
   --home-page-account-gap: var(--space-2); /* アカウント情報パネル内の間隔。大きくすると項目が離れる */
   --home-page-header-account-padding-right: var(--space-3); /* ヘッダー右端とアイコンの間隔。戻るボタン側の余白と揃える */
   --home-page-card-grid-gap: var(--space-2); /* メニューカードどうしの間隔。大きくするとカードが離れる */
+  --home-page-menu-panel-padding: var(--space-4); /* 機能メニュー全体パネルの内側余白。大きくするとカード列が内側に寄る */
   --home-page-card-gap: var(--space-2); /* カード内のアイコンと名前の間隔。大きくすると縦に離れる */
   --home-page-contact-padding-top: var(--space-5); /* 問い合わせリンクと直上の区切り線の間隔。大きくすると離れる */
   --home-page-contact-padding-bottom: var(--space-1); /* 問い合わせリンク下の余白。大きくすると画面下端から離れる */
@@ -180,14 +188,19 @@ body.home-page {
 }
 .home-header-account-panel form button:hover { color: var(--home-page-link-hover-color); }
 
-/* 主要機能へ移動する3列のメニューカード */
+/* 主要機能へ移動する3列のメニューカードを内包する、カードらしい1枚のパネル */
 .home-card-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--home-page-card-grid-gap);
   margin: auto 0;
+  padding: var(--home-page-menu-panel-padding);
+  background: var(--home-page-menu-panel-background);
+  border-radius: var(--home-page-menu-panel-radius);
+  box-shadow: var(--home-page-menu-panel-shadow);
 }
-/* ボックス・チームなど主要機能へ移動するメニューカード */
+/* ボックス・チームなど主要機能へ移動するメニューカード。
+   外枠はパネル側の影が兼ねるため、ここでは枠線のみでセルを区切る。 */
 .home-card {
   display: flex;
   min-width: 0;
@@ -198,6 +211,7 @@ body.home-page {
   gap: var(--home-page-card-gap);
   color: var(--home-page-card-color);
   border: var(--home-page-card-border);
+  box-shadow: none;
   text-align: center;
   text-decoration: none;
 }
