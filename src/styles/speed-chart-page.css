@@ -43,6 +43,7 @@ body.speed-chart-page {
 	background: var(--color-chrome);
 }
 .speed-chart-embed-title {
+	font-weight: var(--modal-title-font-weight);
 	white-space: nowrap;
 }
 .speed-chart-embed-close {

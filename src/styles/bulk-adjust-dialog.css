@@ -115,7 +115,7 @@ body.box-edit-page {
 		margin: 0;
 		overflow: hidden;
 		font-size: var(--bulk-adjust-title-font-size);
-		font-weight: 700;
+		font-weight: var(--modal-title-font-weight);
 		text-overflow: ellipsis;
 		white-space: nowrap;
 	}

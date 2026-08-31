@@ -97,7 +97,7 @@ body.data-page {
   flex: 1 1 auto;
   color: var(--color-text);
   font-size: var(--move-picker-header-title-size);
-  font-weight: 700;
+  font-weight: var(--modal-title-font-weight);
   white-space: nowrap;
 }
 
@@ -268,6 +268,8 @@ body.data-page {
   content: "↕";
   color: var(--color-text-muted);
   font-size: var(--font-size-sm2);
+  /* このフォントでは↕が上下の矢印間に余白を含んで描画されるため、字間を詰めて狭める。 */
+  letter-spacing: -0.2em;
 }
 /* 現在の並べ替え列に付ける昇順記号。降順時は直後のルールで下矢印にする */
 .move-picker-sort-btn.is-active::after {
@@ -472,7 +474,7 @@ body .move-picker-note {
   padding: var(--space-2) 0.8rem;
   font-size: var(--font-size-sm3);
 }
-body .move-picker-table { font-size: var(--font-size-sm3); }
+body .move-picker-table { font-size: var(--font-size-sm2); }
 body .move-picker-table thead th {
   padding: 0 0.4rem 0.35rem;
   vertical-align: top;

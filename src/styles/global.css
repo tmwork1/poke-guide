@@ -84,7 +84,7 @@
   --modal-header-min-height: 2.5rem; /* モーダル見出し行の最小高さ。全モーダル共通の基準値。 */
   --modal-header-gap: var(--space-3); /* モーダル見出し行の要素間隔。全モーダル共通。 */
   --modal-title-font-size: var(--font-size-base); /* モーダル見出しの文字サイズ。全モーダル共通の基準値(基準実装: species-select-dialog.css)。 */
-  --modal-title-font-weight: 700; /* モーダル見出しの太さ。全モーダル共通の基準値。 */
+  --modal-title-font-weight: 400; /* モーダル見出しの太さ。全モーダル共通の基準値。 */
   --modal-close-font-size: var(--font-size-lg1); /* モーダル閉じるボタン(×)の文字サイズ。全モーダル共通の基準値。 */
   --modal-close-size: 28px; /* モーダル閉じるボタンの最小タップ域(幅・高さ)。全モーダル共通の基準値。 */
   --modal-close-margin: calc((var(--modal-header-min-height) - var(--modal-close-size)) / 2); /* 閉じるボタンとヘッダー上下端の間隔(中央寄せで生じる余白)。右端の間隔をこれに合わせて揃える。全モーダル共通の基準値。 */
