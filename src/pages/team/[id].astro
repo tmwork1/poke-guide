@@ -2211,8 +2211,20 @@ try {
 				"こだわり", "だっしゅつ", "くろい", "おおきな", "きれいな", "するどい",
 				"とけない", "まがった", "やわらかい", "だい",
 			];
+			// 「の」の機械的な最初の出現位置での分割は、その「の」が名詞+の+名詞の
+			// 格助詞ではなく単語内部の一部(のろい/ひのたま/ものしり/もののけ/ものまね)
+			// のときに不自然になる(全30件を目視点検して発見した5件)。個別に上書きする。
+			const ITEM_LABEL_OVERRIDES: Record<string, [string, string]> = {
+				"のろいのおふだ": ["のろいの", "おふだ"],
+				"ひのたまプレート": ["ひのたま", "プレート"],
+				"ものしりメガネ": ["ものしり", "メガネ"],
+				"もののけプレート": ["もののけ", "プレート"],
+				"ものまねハーブ": ["ものまね", "ハーブ"],
+			};
 
 			function splitRedistributionItemLabel(name: string): [string, string] | null {
+				const override = ITEM_LABEL_OVERRIDES[name];
+				if (override) return override;
 				const megaMatch = name.match(/^(.+?)(ナイト[XYZ]?)$/);
 				if (megaMatch && megaMatch[1].length >= 1) return [megaMatch[1], megaMatch[2]];
 				if (name.length < 7) return null;
