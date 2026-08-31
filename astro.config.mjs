@@ -6,6 +6,9 @@ import cloudflare from '@astrojs/cloudflare';
 // https://astro.build/config
 export default defineConfig({
   adapter: cloudflare(),
+  devToolbar: {
+    enabled: false,
+  },
   // dev serverはWSL内で動くが、ファイルはWindows側(/mnt/c配下)で編集されるため、
   // デフォルトのfs.watch(inotify)だとWindows側の保存イベントを検知できずHMRが効かないことがある。
   // ポーリング監視に切り替えて確実に変更を拾う。
