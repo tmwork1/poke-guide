@@ -77,6 +77,21 @@ export function chmpToLegacyEffort(evChamp: number): number {
 }
 
 /**
+ * chmpToLegacyEffort() の逆関数。素の努力値(0〜252)をChampions形式(0〜32)へ変換する。
+ * legacy=0のときだけ0(通常の逆算式 (n+4)/8 でも0になるが、0〜32へのクランプも含めて明示する)。
+ *
+ * 注意: OP.GG使用率データ(/api/opgg-usage-evs)のEVスプレッドは、取得元が
+ * 「ポケモンチャンピオンズ」専用ページ(op.gg/ja/pokemon-champions)であるため、既に
+ * 本アプリと同じ0〜32スケールで返ってくる(実データで確認済み)。そちらの変換にはこの
+ * 関数を使わないこと(box-id/left-panel.ts の applyTopOpggBuild 参照)。標準の0〜252
+ * スケールの値を変換する必要が生じたときのための汎用ユーティリティとして用意する。
+ */
+export function legacyToChmpEffort(legacyEffort: number): number {
+	if (legacyEffort <= 0) return 0;
+	return Math.min(32, Math.max(0, Math.round((legacyEffort + 4) / 8)));
+}
+
+/**
  * HPの実数値を計算する。
  * 出典: vendor/jpoke/src/jpoke/model/stats.py:7-22 (calc_hp)。
  * ヌケニン特例: 種族値HP=1のポケモンは個体値・努力値・レベルによらず常に1固定。

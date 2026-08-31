@@ -1,4 +1,4 @@
-import type { RankedRow, SingleFormatData } from './battle-data-card';
+import type { EvRankedRow, RankedRow, SingleFormatData } from './battle-data-card';
 import { normalizeDigits } from './text-normalize.ts';
 import pokemonMasterRaw from '../../public/master-data/autocomplete/pokemon.json' with { type: 'json' };
 
@@ -161,15 +161,27 @@ export function resolveOpggSpeciesName(speciesName: string): string {
 	return base?.name ?? speciesName;
 }
 
-export type OpggUsageCategory = 'moves' | 'items' | 'abilities';
+export type OpggUsageCategory = 'moves' | 'items' | 'abilities' | 'natures' | 'evs';
 
-// わざ/持ち物/特性選択UIの「人気」列用。種族名から、現在(なければ直近)シーズンの
+// わざ/持ち物/特性/性格選択UIの「人気」列用。種族名から、現在(なければ直近)シーズンの
 // シングルバトル使用率一覧(指定カテゴリ)を返す。見つからなければnull。
+// evsだけ他カテゴリと戻り値の形が異なる(RankedRowではなくEvRankedRow)ため、オーバーロードで
+// カテゴリごとに戻り値の型を絞る。
+export async function getOpggUsageCategory(
+	kv: KVNamespace,
+	speciesName: string,
+	category: 'evs',
+): Promise<EvRankedRow[] | null>;
+export async function getOpggUsageCategory(
+	kv: KVNamespace,
+	speciesName: string,
+	category: Exclude<OpggUsageCategory, 'evs'>,
+): Promise<RankedRow[] | null>;
 export async function getOpggUsageCategory(
 	kv: KVNamespace,
 	speciesName: string,
 	category: OpggUsageCategory,
-): Promise<RankedRow[] | null> {
+): Promise<RankedRow[] | EvRankedRow[] | null> {
 	const manifest = await getOpggUsageManifest(kv);
 	const lookupName = resolveOpggSpeciesName(speciesName);
 	for (const season of sortOpggSeasons(manifest)) {

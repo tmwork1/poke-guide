@@ -1,7 +1,9 @@
-// GET /api/opgg-usage: box/[id].astro のわざ/持ち物/特性選択UIの「人気」列用。
+// GET /api/opgg-usage: box/[id].astro のわざ/持ち物/特性/性格選択UIの「人気」列用。
 // Cloudflare KV(OPGG_USAGE)に保存されたOP.GG使用率データから、指定種族の
-// シングルバトル使用率一覧(category=moves|items|abilities)を返す(メガフォルムは
+// シングルバトル使用率一覧(category=moves|items|abilities|natures)を返す(メガフォルムは
 // ベースフォルム名で検索する。src/lib/opgg-usage.ts の resolveOpggSpeciesName参照)。
+// 努力値(evs)だけ戻り値の形が異なる(名前ごとではなくステータスごとの値を持つ)ため
+// このエンドポイントの対象外。/api/opgg-usage-evs を使うこと。
 import type { APIContext } from 'astro';
 import { env } from 'cloudflare:workers';
 import { badRequest, jsonResponse, methodNotAllowed } from './_shared';
@@ -9,10 +11,12 @@ import { getOpggUsageCategory, type OpggUsageCategory } from '../../lib/opgg-usa
 
 export const prerender = false;
 
-const CATEGORIES: readonly OpggUsageCategory[] = ['moves', 'items', 'abilities'];
+type NamedOpggUsageCategory = Exclude<OpggUsageCategory, 'evs'>;
 
-function isOpggUsageCategory(value: string | null): value is OpggUsageCategory {
-  return CATEGORIES.includes(value as OpggUsageCategory);
+const CATEGORIES: readonly NamedOpggUsageCategory[] = ['moves', 'items', 'abilities', 'natures'];
+
+function isOpggUsageCategory(value: string | null): value is NamedOpggUsageCategory {
+  return CATEGORIES.includes(value as NamedOpggUsageCategory);
 }
 
 export async function GET({ request }: APIContext): Promise<Response> {

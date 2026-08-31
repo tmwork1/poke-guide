@@ -412,4 +412,15 @@ body .move-picker-empty {
     background: color-mix(in srgb, var(--color-surface) 88%, #000 12%);
     color: var(--color-text);
   }
+  /* 技スロットタブのドラッグ&ドロップ入れ替え(box-id/left-panel.tsのswapMoveSlots・
+     dragstart/dragend/dragover/drop参照)。ドラッグ中のタブ自身は半透明にして
+     「持ち上げている」感を出し(is-dragging)、ドロップ先候補は主色で縁取る
+     (is-drop-target)。team/[id].astroの.card-team-slotと同じ考え方。 */
+  body .move-picker-slot-tab.is-dragging {
+    opacity: 0.5;
+  }
+  body .move-picker-slot-tab.is-drop-target {
+    border-color: var(--color-primary);
+    background: color-mix(in srgb, var(--color-surface) 90%, var(--color-primary) 10%);
+  }
 }

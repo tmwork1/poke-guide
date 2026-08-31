@@ -364,9 +364,9 @@ async function fetchPopularMovePayload(
 }
 
 type OpggUsageResponse = { options: { name: string; usageRate: number | null }[] };
-type OpggUsageCategory = "moves" | "items" | "abilities";
+type OpggUsageCategory = "moves" | "items" | "abilities" | "natures";
 
-// バトルデータタブと同じOP.GG使用率データを、わざ/持ち物/特性の「人気」表示にも使う。
+// バトルデータタブと同じOP.GG使用率データを、わざ/持ち物/特性/性格の「人気」表示にも使う。
 // suggestionsテーブル(ランクマ記事抽出由来)よりカバレッジが広いため優先し、
 // OP.GGにデータが無い種族だけ従来のsuggestions取得へフォールバックする。
 async function fetchOpggUsagePayload(speciesName: string, category: OpggUsageCategory): Promise<SuggestionPayload | undefined> {
@@ -379,6 +379,34 @@ async function fetchOpggUsagePayload(speciesName: string, category: OpggUsageCat
 			.filter((row): row is { name: string; usageRate: number } => row.usageRate != null)
 			.map((row) => ({ value: row.name, count: 0, ratio: row.usageRate / 100 }));
 		return options.length > 0 ? { sample_size: 0, options } : undefined;
+	} catch {
+		return undefined;
+	}
+}
+
+// OP.GG使用率1位の努力値スプレッド専用API(/api/opgg-usage-evs)。EvRankedRow.valuesは
+// RankedRowと形が違う(nameベースの配列ではなくステータス名→値のレコード)ため、
+// fetchOpggUsagePayload/SuggestionPayloadの型には乗せず専用の戻り値で返す。
+// キーはOP.GG側の英語フルネーム、値は標準スケール(0〜252)のまま。
+type OpggUsageEvsResponse = { values: Record<string, number> | null };
+
+// STAT_KEYS(hp/atk/def/spa/spd/spe)とOP.GGのEVスプレッドのキー(英語フルネーム)の対応。
+const OPGG_EV_KEY_BY_STAT_KEY: Record<StatKey, string> = {
+	hp: "hp",
+	atk: "attack",
+	def: "defense",
+	spa: "specialAttack",
+	spd: "specialDefense",
+	spe: "speed",
+};
+
+async function fetchOpggTopEvs(speciesName: string): Promise<Record<string, number> | undefined> {
+	if (!speciesName) return undefined;
+	try {
+		const res = await fetch(`/api/opgg-usage-evs?species=${encodeURIComponent(speciesName)}`);
+		if (!res.ok) return undefined;
+		const json = (await res.json()) as OpggUsageEvsResponse;
+		return json.values ?? undefined;
 	} catch {
 		return undefined;
 	}
@@ -1030,6 +1058,42 @@ if (form) {
 		const item = topSuggestedValue(lastItemSuggestion);
 		if (item) selectItem(item);
 		setSuggestedMoves();
+
+		// 性格・努力値もOP.GG採用率1位を初期値として反映する。
+		const [natureSuggestion, evValues] = await Promise.all([
+			fetchOpggUsagePayload(speciesName, "natures"),
+			fetchOpggTopEvs(speciesName),
+		]);
+		if (speciesInput.value.trim() !== speciesName) return;
+
+		const natureName = topSuggestedValue(natureSuggestion);
+		const natureModifier = natureName ? NATURE_STAT_MODIFIERS[natureName] : undefined;
+		if (natureModifier) {
+			leftNatureUp = natureModifier.up;
+			leftNatureDown = natureModifier.down;
+			refreshNatureButtons();
+		}
+
+		if (evValues) {
+			for (const key of STAT_KEYS) {
+				const rawValue = evValues[OPGG_EV_KEY_BY_STAT_KEY[key]];
+				if (rawValue == null) continue;
+				const input = document.getElementById(`ev-${key}`) as HTMLInputElement | null;
+				if (!input) continue;
+				// 実データ確認済み: このAPIの取得元(scripts/opgg/fetch-champions-usage.mjs、
+				// op.gg/ja/pokemon-champions)は「ポケモンチャンピオンズ」専用ページで、
+				// 表示される努力値は同ゲーム本来の0〜32スケールで既に本アプリと同じ形式
+				// (0〜252スケールではない。ローカルKVの実データで複数種族分を確認し、値が
+				// 常に0〜32に収まることを確認済み)。そのためlegacyToChmpEffort()による
+				// 変換はせず、範囲外値だけ安全のためクランプしてそのまま使う。
+				const value = String(Math.min(32, Math.max(0, Math.round(rawValue))));
+				if (input.value === value) continue;
+				input.value = value;
+				input.dispatchEvent(new Event("input"));
+				input.dispatchEvent(new Event("change"));
+			}
+		}
+
 		await recalcStats();
 	}
 
@@ -1645,6 +1709,10 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 	const CATEGORY_RANK: Record<MoveCategory, number> = { physical: 0, special: 1, status: 2 };
 
 	let activeSlot: number | null = null;
+	// 技スロットタブのドラッグ&ドロップ入れ替え用(team/[id].astroのrenderSlots()の
+	// draggedMemberSlotと同じ考え方)。dragstart側で持ち上げ中のスロット番号を記録し、
+	// drop側でswapMoveSlots()を呼んで2つのスロットの技を入れ替える。
+	let draggedSlot: number | null = null;
 	let learnsetOnly = true; // 37-2: 既定ON
 	// 初期表示は人気順(sortDir="desc"=ratio降順)。ユーザーがどれかの列ヘッダを1回でも
 	// クリックした時点でこの初期値は上書きされ、以後はユーザーの選択がそのまま残り続ける
@@ -1724,6 +1792,34 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 		// clickでは選択を切り替えるだけで、技の内容は変更しない。
 		slotButton.addEventListener("dblclick", () => {
 			clearMoveSlot(slot);
+		});
+		// ドラッグ&ドロップで2つのスロットの技を入れ替える(team/[id].astroのrenderSlots()の
+		// カード並べ替えと同じ考え方: dragstart側で持ち上げ中スロットを記録し、drop側で
+		// swapMoveSlots()を呼ぶ)。
+		slotButton.draggable = true;
+		slotButton.addEventListener("dragstart", () => {
+			draggedSlot = slot;
+			slotButton.classList.add("is-dragging");
+		});
+		slotButton.addEventListener("dragend", () => {
+			draggedSlot = null;
+			slotButton.classList.remove("is-dragging");
+		});
+		slotButton.addEventListener("dragover", (event) => {
+			if (draggedSlot == null || draggedSlot === slot) return; // 自分自身へのドロップは無意味
+			event.preventDefault();
+			slotButton.classList.add("is-drop-target");
+		});
+		slotButton.addEventListener("dragleave", () => {
+			slotButton.classList.remove("is-drop-target");
+		});
+		slotButton.addEventListener("drop", (event) => {
+			event.preventDefault();
+			slotButton.classList.remove("is-drop-target");
+			const fromSlot = draggedSlot;
+			draggedSlot = null;
+			if (fromSlot == null || fromSlot === slot) return;
+			swapMoveSlots(fromSlot, slot);
 		});
 		slotTabsEl.appendChild(slotButton);
 	}
@@ -2010,6 +2106,26 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 		// choose()と同様に既存のアイコン更新・自動保存用リスナーへ通知する。
 		targetInput.dispatchEvent(new Event("input", { bubbles: true }));
 		targetInput.dispatchEvent(new Event("change", { bubbles: true }));
+		updateSlotTabs();
+		renderRows();
+	}
+
+	// 技スロットタブのドラッグ&ドロップ用: fromSlot/toSlotの技を入れ替える。
+	function swapMoveSlots(fromSlot: number, toSlot: number): void {
+		const fromInput = document.getElementById(`move-${fromSlot}`) as HTMLInputElement | null;
+		const toInput = document.getElementById(`move-${toSlot}`) as HTMLInputElement | null;
+		if (!fromInput || !toInput) return;
+		const fromValue = fromInput.value;
+		const toValue = toInput.value;
+		if (fromValue === toValue) return;
+		fromInput.value = toValue;
+		toInput.value = fromValue;
+		// choose()/clearMoveSlot()と同様に既存のアイコン更新・自動保存用リスナーへ通知する。
+		for (const input of [fromInput, toInput]) {
+			input.dispatchEvent(new Event("input", { bubbles: true }));
+			input.dispatchEvent(new Event("change", { bubbles: true }));
+		}
+		activeSlot = toSlot;
 		updateSlotTabs();
 		renderRows();
 	}
