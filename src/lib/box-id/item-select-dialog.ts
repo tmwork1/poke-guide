@@ -31,6 +31,8 @@ export interface ItemSelectGridOptions {
 	sortRest?: (values: string[]) => string[];
 	/** 未指定ならlabelをそのままtextContentに設定する。指定時は名前表示セルへの描画を差し替える(改行位置の調整など)。 */
 	renderLabel?: (label: string, textEl: HTMLElement) => void;
+	/** 未指定なら何もしない。指定時はアイコンラッパー要素に対して追加描画を行う(タイプバッジ等)。valueが""(なし)のセルには呼ばれない。 */
+	decorateIcon?: (iconWrap: HTMLElement, value: string) => void;
 }
 
 export interface ItemSelectGrid {
@@ -53,11 +55,15 @@ export function createItemSelectGrid(options: ItemSelectGridOptions): ItemSelect
 		cell.setAttribute("aria-label", label);
 		cell.title = label;
 		if (value) {
+			const iconWrap = document.createElement("span");
+			iconWrap.className = "item-select-cell-icon-wrap";
 			const img = document.createElement("img");
 			img.className = "item-select-cell-image";
 			img.alt = "";
 			void applyItemImage(img, value);
-			cell.appendChild(img);
+			iconWrap.appendChild(img);
+			options.decorateIcon?.(iconWrap, value);
+			cell.appendChild(iconWrap);
 		} else {
 			const icon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
 			icon.classList.add("item-select-cell-none-icon");

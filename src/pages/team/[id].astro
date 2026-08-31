@@ -555,7 +555,11 @@ try {
 					<div id="team-item-redistribute-backdrop" class="item-select-backdrop" hidden></div>
 					<section id="team-item-redistribute-dialog" class="item-select-dialog team-item-redistribute-dialog" role="dialog" aria-modal="true" aria-labelledby="team-item-redistribute-title" tabindex="-1" hidden>
 						<div class="item-select-header">
-							<h2 id="team-item-redistribute-title" class="item-select-title">もちもの再分配</h2>
+							<div class="team-item-redistribute-title-group">
+								<h2 id="team-item-redistribute-title" class="item-select-title">もちもの再分配</h2>
+								<button type="button" id="team-item-redistribute-help-button" class="team-item-redistribute-help-button" aria-expanded="false" aria-controls="team-item-redistribute-help-popover" aria-label="使い方を表示">?</button>
+								<p id="team-item-redistribute-help-popover" class="team-item-redistribute-help-popover" role="note" hidden>ポケモンを選んで持ち物を選択。別のポケモンを選ぶと持ち物を入れ替えます。長押しで解除できます。</p>
+							</div>
 							<button type="button" id="team-item-redistribute-close" class="btn-ghost item-select-close" aria-label="閉じる">×</button>
 						</div>
 						<div id="team-item-redistribute-members" class="team-item-redistribute-members team-mate-grid" aria-label="チームのポケモン"></div>
@@ -565,7 +569,7 @@ try {
 									<circle cx="11" cy="11" r="7" />
 									<line x1="21" y1="21" x2="16.65" y2="16.65" />
 								</svg>
-								<input type="text" id="team-item-redistribute-search" class="item-select-search-input field-control" placeholder="もちものを検索" aria-label="もちものを検索" autocomplete="off" />
+								<input type="text" id="team-item-redistribute-search" class="item-select-search-input field-control" placeholder="もちもの" aria-label="もちものを検索" autocomplete="off" />
 							</div>
 						</div>
 						<div class="item-select-grid-wrap">
@@ -1954,6 +1958,8 @@ try {
 			// 開けるようにする。
 			document.body.append(itemRedistributeBackdrop, itemRedistributeDialog);
 			const itemRedistributeClose = el<HTMLButtonElement>("team-item-redistribute-close");
+			const itemRedistributeHelpButton = el<HTMLButtonElement>("team-item-redistribute-help-button");
+			const itemRedistributeHelpPopover = el<HTMLElement>("team-item-redistribute-help-popover");
 			const itemRedistributeMembers = el<HTMLElement>("team-item-redistribute-members");
 			const itemRedistributeSearch = el<HTMLInputElement>("team-item-redistribute-search");
 			const itemRedistributeItems = el<HTMLElement>("team-item-redistribute-items");
@@ -2185,13 +2191,76 @@ try {
 				return name.endsWith("のみ");
 			}
 
+			function isMegaStoneItemName(name: string): boolean {
+				return /ナイト[XYZ]?$/.test(name);
+			}
+
+			// [採用率上位] -> [その他] -> [きのみ] -> [メガストーン] の順にする。
 			function sortRedistributionItems(values: string[]): string[] {
 				const ranked = values.filter((value) => (teamItemUsageTotals.get(value) ?? 0) > 0);
 				ranked.sort((a, b) => (teamItemUsageTotals.get(b) ?? 0) - (teamItemUsageTotals.get(a) ?? 0));
 				const rest = values.filter((value) => (teamItemUsageTotals.get(value) ?? 0) <= 0);
-				const nonBerries = rest.filter((value) => !isBerryItemName(value));
-				const berries = rest.filter((value) => isBerryItemName(value));
-				return [...ranked, ...nonBerries, ...berries];
+				const megaStones = rest.filter((value) => isMegaStoneItemName(value));
+				const berries = rest.filter((value) => !isMegaStoneItemName(value) && isBerryItemName(value));
+				const others = rest.filter((value) => !isMegaStoneItemName(value) && !isBerryItemName(value));
+				return [...ranked, ...others, ...berries, ...megaStones];
+			}
+
+			// タイプ強化アイテム・タイプ半減実は、アイコン右側に対応タイプのバッジを添える。
+			const ITEM_TYPE_BOOST: Record<string, string> = {
+				"シルクのスカーフ": "ノーマル",
+				"もくたん": "ほのお",
+				"しんぴのしずく": "みず",
+				"じしゃく": "でんき",
+				"きせきのタネ": "くさ",
+				"とけないこおり": "こおり",
+				"くろおび": "かくとう",
+				"どくバリ": "どく",
+				"やわらかいすな": "じめん",
+				"するどいくちばし": "ひこう",
+				"まがったスプーン": "エスパー",
+				"ぎんのこな": "むし",
+				"かたいいし": "いわ",
+				"のろいのおふだ": "ゴースト",
+				"りゅうのキバ": "ドラゴン",
+				"くろいメガネ": "あく",
+				"メタルコート": "はがね",
+				"ようせいのハネ": "フェアリー",
+			};
+			const ITEM_TYPE_RESIST_BERRY: Record<string, string> = {
+				"ホズのみ": "ノーマル",
+				"オッカのみ": "ほのお",
+				"イトケのみ": "みず",
+				"ソクノのみ": "でんき",
+				"リンドのみ": "くさ",
+				"ヤチェのみ": "こおり",
+				"ヨプのみ": "かくとう",
+				"ビアーのみ": "どく",
+				"シュカのみ": "じめん",
+				"バコウのみ": "ひこう",
+				"ウタンのみ": "エスパー",
+				"タンガのみ": "むし",
+				"ヨロギのみ": "いわ",
+				"カシブのみ": "ゴースト",
+				"ハバンのみ": "ドラゴン",
+				"ナモのみ": "あく",
+				"リリバのみ": "はがね",
+				"ロゼルのみ": "フェアリー",
+			};
+
+			function redistributionItemBadgeType(name: string): string | null {
+				return ITEM_TYPE_BOOST[name] ?? ITEM_TYPE_RESIST_BERRY[name] ?? null;
+			}
+
+			function decorateRedistributionItemIcon(iconWrap: HTMLElement, value: string): void {
+				const type = redistributionItemBadgeType(value);
+				const url = type ? typeIconUrl(type) : null;
+				if (!url) return;
+				const badge = document.createElement("img");
+				badge.className = "item-select-cell-type-badge";
+				badge.src = url;
+				badge.alt = "";
+				iconWrap.appendChild(badge);
 			}
 
 			// もちもの再分配ダイアログの一覧だけ、名前を自然な日本語の位置で改行する
@@ -2261,6 +2330,7 @@ try {
 				getActiveValue: () => selectedRedistributionSlot === null ? selectedRedistributionItem : null,
 				sortRest: sortRedistributionItems,
 				renderLabel: renderRedistributionItemLabel,
+				decorateIcon: decorateRedistributionItemIcon,
 				onSelect: (itemName) => {
 					if (selectedRedistributionSlot !== null) {
 						setRedistributedItem(selectedRedistributionSlot, itemName);
@@ -4301,9 +4371,25 @@ try {
 			});
 
 			memoInput.addEventListener("input", scheduleSave);
+			function closeRedistributionHelp(): void {
+				itemRedistributeHelpPopover.hidden = true;
+				itemRedistributeHelpButton.setAttribute("aria-expanded", "false");
+			}
+			itemRedistributeHelpButton.addEventListener("click", (event) => {
+				event.stopPropagation();
+				const willOpen = itemRedistributeHelpPopover.hidden;
+				itemRedistributeHelpPopover.hidden = !willOpen;
+				itemRedistributeHelpButton.setAttribute("aria-expanded", String(willOpen));
+			});
+			document.addEventListener("click", (event) => {
+				if (itemRedistributeHelpPopover.hidden) return;
+				if (event.target instanceof Node && (itemRedistributeHelpPopover.contains(event.target) || itemRedistributeHelpButton.contains(event.target))) return;
+				closeRedistributionHelp();
+			});
 			function closeRedistributionDialog(): void {
 				itemRedistributeBackdrop.hidden = true;
 				itemRedistributeDialog.hidden = true;
+				closeRedistributionHelp();
 				selectedRedistributionSlot = null;
 				selectedRedistributionItem = null;
 				itemRedistributeButton.focus();

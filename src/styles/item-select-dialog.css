@@ -140,6 +140,13 @@ body.data-page {
 	outline: 2px solid var(--color-primary);
 	outline-offset: 1px;
 }
+.item-select-cell-icon-wrap {
+	position: relative;
+	display: inline-flex;
+	width: 28px;
+	height: 28px;
+	flex-shrink: 0;
+}
 .item-select-cell-image,
 .item-select-cell-none-icon {
 	width: 28px;
@@ -150,6 +157,21 @@ body.data-page {
 /* 「もちものなし」セルにはアイコン画像が無いため、同じ幅の空要素で場所を確保し、
    他セルとテキストの左端位置をそろえる。 */
 .item-select-cell-none-icon { color: var(--color-text-muted); }
+/* タイプ強化アイテム・タイプ半減実用のタイプバッジ(もちもの再分配ダイアログのみ、
+   decorateIconオプション経由で付与)。アイコン右側の被らない位置に小さく添える。 */
+.item-select-cell-type-badge {
+	position: absolute;
+	right: -6px;
+	top: -4px;
+	width: 14px;
+	height: 14px;
+	padding: 1px;
+	object-fit: contain;
+	background: var(--color-surface);
+	border-radius: 50%;
+	box-shadow: var(--shadow-sm);
+	pointer-events: none;
+}
 .item-select-cell-text {
 	min-width: 0;
 	max-width: 100%;

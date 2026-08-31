@@ -37,6 +37,58 @@ body.team-edit-page {
 	overflow: hidden;
 }
 
+.team-item-redistribute-title-group {
+	position: relative;
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.team-item-redistribute-help-button {
+	flex-shrink: 0;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 22px;
+	height: 22px;
+	padding: 0;
+	font-size: var(--font-size-sm3);
+	font-weight: 700;
+	line-height: 1;
+	color: var(--color-text-muted);
+	background: transparent;
+	border: 1px solid var(--color-border);
+	border-radius: 50%;
+	cursor: pointer;
+}
+.team-item-redistribute-help-button:hover,
+.team-item-redistribute-help-button[aria-expanded="true"] {
+	color: var(--color-primary);
+	border-color: var(--color-primary);
+}
+
+.team-item-redistribute-help-popover {
+	position: absolute;
+	top: calc(100% + var(--space-2));
+	left: 0;
+	z-index: 1;
+	width: max-content;
+	max-width: min(320px, 80vw);
+	margin: 0;
+	padding: var(--space-3);
+	background: var(--color-surface);
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius-sm);
+	box-shadow: var(--shadow-md);
+	font-size: var(--font-size-sm2);
+	font-weight: 400;
+	line-height: var(--line-height-snug);
+	color: var(--color-text);
+}
+.team-item-redistribute-help-popover[hidden] { display: none; }
+
 .team-item-redistribute-members {
 	padding: var(--space-3) var(--space-5);
 	border-bottom: 1px solid var(--color-border);
@@ -47,6 +99,18 @@ body.team-edit-page {
    この再分配モーダルの中だけ少し大きく見せる。 */
 .team-item-redistribute-members .team-mate-card__item {
 	width: 50%;
+}
+
+/* カードの配色を検索ボックス(input[type=text]等)と揃える。 */
+.team-item-redistribute-members .team-mate-card {
+	background: var(--color-surface-sunken);
+	box-shadow: var(--shadow-inset-sunken);
+}
+
+/* ポケモンアイコンは右下ほど透明にする(左上=不透明、右下=半透明)。 */
+.team-item-redistribute-members .team-mate-card__art {
+	-webkit-mask-image: linear-gradient(135deg, rgb(0 0 0 / 1) 40%, rgb(0 0 0 / 0.35) 100%);
+	mask-image: linear-gradient(135deg, rgb(0 0 0 / 1) 40%, rgb(0 0 0 / 0.35) 100%);
 }
 
 @media (max-width: 640px) {
