@@ -108,13 +108,23 @@
 /* --- カード本体。ヘッダ帯 + 6枠グリッドを縦に積むだけの透明な器で、
    枠線・背景・影は持たない(帯と各枠が自前の背景を持つ)。
    ヘッダ帯と6枠グリッドの間隔は枠どうしの間隔と同じ値にして、
-   カード内のリズムを6枠グリッドと一致させる。 --- */
+   カード内のリズムを6枠グリッドと一致させる。
+   幅は6枠グリッドの実効幅(上のcolumns×--box-card-size-max+gap)に
+   合わせて上限を付ける。ここを付けないと、ヘッダ帯(自前の背景・枠線を持つ
+   flex子要素で既定でカード幅いっぱいに伸びる)だけが画面幅に比例して
+   際限なく広がり、130px上限で止まる6枠グリッドと幅が食い違って見える。 */
 .team-grid .card-team {
   position: relative;
   display: flex;
   flex-direction: column;
   gap: var(--team-card-member-grid-gap);
   padding: 0;
+  width: 100%;
+  /* --box-card-grid-gapは.box-grid自身にしか定義されておらず、親の.card-teamからは
+     見えない(カスタムプロパティは子孫方向にのみ継承される)ため、実体のvar(--space-1)を
+     直接参照する(.box-gridの--box-card-grid-gapと同じ値)。 */
+  max-width: calc(3 * var(--box-card-size-max) + 2 * var(--space-1));
+  margin-inline: auto;
   overflow: hidden;
   border: 0;
   border-radius: 0;
@@ -122,6 +132,11 @@
   box-shadow: none;
   color: inherit;
   text-decoration: none;
+}
+@media (min-width: 820px) {
+  .team-grid .card-team {
+    max-width: calc(6 * var(--box-card-size-max) + 5 * var(--space-1));
+  }
 }
 .team-grid .card-team:focus-visible {
   outline: var(--team-card-focus-outline);
