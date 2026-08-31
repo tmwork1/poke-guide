@@ -1,0 +1,25 @@
+---
+import type { OwnedPokemonRecord } from '../../lib/owned-pokemon';
+import LeftPanel from './LeftPanel.astro';
+
+interface Props {
+	pokemon: OwnedPokemonRecord;
+}
+
+const { pokemon } = Astro.props;
+---
+
+{/* 閲覧タブでも編集フォームとモーダル実装を共用する。通常の編集パネルだけを隠す。 */}
+<div class="pokemon-settings-modal-host">
+	<p id="autosave-status" class="status-text" data-state="saved" hidden>
+		<span id="autosave-status-text">保存済み</span>
+		<button id="retry-button" type="button">再試行</button>
+	</p>
+	<LeftPanel pokemon={pokemon} />
+</div>
+
+<style>
+	.pokemon-settings-modal-host > :global(#edit-form) {
+		display: none;
+	}
+</style>

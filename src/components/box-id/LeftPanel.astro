@@ -324,13 +324,15 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 			</button>
 		</div>
 
-		<SpeciesSelectDialog />
-		<ItemSelectDialog />
-		<TeraSelectDialog />
-		<StatAdjustmentDialog />
-
 	</section>
 </form>
+
+{/* 選択モーダルは編集フォームの外に置く。閲覧ページでフォーム本体だけを非表示にしても、
+    プレビューから同じモーダルをその場で開ける。 */}
+<SpeciesSelectDialog />
+<ItemSelectDialog />
+<TeraSelectDialog />
+<StatAdjustmentDialog />
 <style>
 	/* UI刷新: 実数値の常時表示。性格補正は文字色で表現する(旧battle-assistant-svの表現を
 	   踏襲。上昇=赤系、下降=青系、補正なしは既定色のまま)。--color-stat-up/--color-stat-downは

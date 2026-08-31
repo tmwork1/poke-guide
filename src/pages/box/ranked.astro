@@ -3,6 +3,7 @@ export const prerender = false;
 
 import AppLayout from '../../layouts/AppLayout.astro';
 import MobileTrainingBar from '../../components/box-id/MobileTrainingBar.astro';
+import PokemonSettingsModalHost from '../../components/box-id/PokemonSettingsModalHost.astro';
 import { getOwnedPokemon } from '../../lib/owned-pokemon';
 import { getSupabaseAdminClient, getSupabasePublicClient } from '../../lib/supabase';
 import { listRankedSeasons } from '../../lib/ranked-teams';
@@ -32,6 +33,7 @@ if (pokemon) {
   <div class="page box-data-page box-ranked-page">
     {pokemon ? (
       <MobileTrainingBar pokemon={pokemon} activeTab="ranked-teams" />
+		  <PokemonSettingsModalHost pokemon={pokemon} />
     ) : (
       <section class="pokemon-data-preview" aria-labelledby="ranked-preview-title">
         <p class="data-kicker">育成データレビュー</p>

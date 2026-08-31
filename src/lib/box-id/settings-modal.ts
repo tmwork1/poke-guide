@@ -7,16 +7,6 @@ export interface SettingsModalRequest {
 
 /** 育成フォームとプレビューから設定モーダルを開く共通入口。 */
 export function requestSettingsModal(request: SettingsModalRequest): void {
-	if (!document.getElementById("edit-form")) {
-		const settingsUrl = document.querySelector<HTMLElement>(".pokemon-preview")?.dataset.settingsUrl;
-		if (settingsUrl) {
-			const url = new URL(settingsUrl, window.location.origin);
-			url.searchParams.set("openSettings", request.kind);
-			if (request.slot) url.searchParams.set("slot", String(request.slot));
-			window.location.assign(`${url.pathname}${url.search}${url.hash}`);
-		}
-		return;
-	}
 	document.dispatchEvent(new CustomEvent<SettingsModalRequest>("box-settings:open", { detail: request }));
 }
 
