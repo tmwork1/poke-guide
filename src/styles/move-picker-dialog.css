@@ -426,3 +426,68 @@ body .move-picker-empty {
     background: color-mix(in srgb, var(--color-surface) 90%, var(--color-primary) 10%);
   }
 }
+
+/*
+  LeftPanel.astro にあった後勝ちの定義をここへ集約する。プレビューから開いた
+  ときも従来と同じ外観になるよう、モバイルモーダルの実効値を維持している。
+*/
+.move-picker-backdrop {
+  position: fixed;
+  z-index: 99;
+  inset: 0;
+  background: var(--color-overlay);
+}
+body .move-picker-window.is-mobile-modal {
+  z-index: 100;
+  left: 50% !important;
+  top: var(--modal-top-offset) !important;
+  width: calc(100vw - (var(--move-picker-dialog-inset) * 2)) !important;
+  max-width: var(--move-picker-dialog-max-width);
+  height: var(--move-picker-dialog-height) !important;
+  transform: translateX(-50%);
+}
+body .move-picker-slot-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+}
+body .move-picker-slot-tab {
+  min-height: 2rem;
+  font-size: var(--font-size-sm2);
+  background: transparent;
+}
+body .move-picker-slot-tab.is-selected {
+  background: transparent;
+  color: var(--color-primary);
+}
+body .move-picker-title { font-size: var(--font-size-sm2); }
+body .move-picker-toggle { font-size: var(--font-size-sm3); }
+body .move-picker-close {
+  width: 24px;
+  height: 24px;
+  font-size: var(--font-size-lg1);
+}
+body .move-picker-note {
+  padding: var(--space-2) 0.8rem;
+  font-size: var(--font-size-sm3);
+}
+body .move-picker-table { font-size: var(--font-size-sm3); }
+body .move-picker-table thead th {
+  padding: 0 0.4rem 0.35rem;
+  vertical-align: top;
+}
+body .move-picker-th { align-items: center; }
+body .move-picker-th-filter input,
+body .move-picker-th-filter select {
+  height: calc(20px - var(--space-1));
+  min-height: calc(20px - var(--space-1));
+  font-size: var(--font-size-sm3);
+}
+body .move-picker-sort-btn { font-size: var(--font-size-sm3); }
+body .move-picker-sort-btn.is-active::after { color: var(--color-primary); }
+body .move-picker-table tbody td { padding: var(--space-1) 0.4rem; }
+body .move-picker-empty {
+  padding: var(--space-4);
+  font-size: var(--font-size-sm2);
+}

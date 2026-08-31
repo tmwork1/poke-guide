@@ -1012,7 +1012,8 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		width: var(--stat-number-input-width);
 	}
 	</style>
-<style is:global>
+<!-- 技選択モーダルのスタイルは move-picker-dialog.css に集約済み。 -->
+<style is:global media="not all">
 	.move-picker-window {
 		position: fixed;
 		z-index: 10;
