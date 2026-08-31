@@ -1853,7 +1853,7 @@ try {
 		} from "../../lib/damage-summary";
 		import { createMatchupPanel } from "../../lib/matchup-panel";
 		import { setupAppHeaderSwipe } from "../../lib/app-header-swipe";
-		import { createItemSelectGrid, ITEM_TYPE_BOOST, ITEM_TYPE_RESIST_BERRY } from "../../lib/box-id/item-select-dialog";
+		import { createItemSelectGrid, sortItemsByUsage } from "../../lib/box-id/item-select-dialog";
 
 		interface OwnedPokemonRecord {
 			id: string;
@@ -2221,49 +2221,8 @@ try {
 				teamItemUsageTotals = totals;
 			}
 
-			function isBerryItemName(name: string): boolean {
-				return name.endsWith("のみ");
-			}
-
-			function isMegaStoneItemName(name: string): boolean {
-				return /ナイト[XYZ]?$/.test(name);
-			}
-
-			// タイプ順(18タイプ)。タイプ強化アイテム・タイプ半減実の並べ替えに使う
-			// (type-colors.tsのTYPE_COLORSと同じ並び)。
-			const TYPE_ORDER = [
-				"ノーマル", "ほのお", "みず", "でんき", "くさ", "こおり", "かくとう", "どく",
-				"じめん", "ひこう", "エスパー", "むし", "いわ", "ゴースト", "ドラゴン", "あく",
-				"はがね", "フェアリー",
-			];
-
-			function sortByTypeOrder(values: string[], typeOf: Record<string, string>): string[] {
-				return [...values].sort((a, b) => TYPE_ORDER.indexOf(typeOf[a]) - TYPE_ORDER.indexOf(typeOf[b]));
-			}
-
-			// [採用率上位] -> [その他] -> [タイプ強化アイテム(タイプ順)] -> [きのみ] -> [タイプ半減実(タイプ順)] -> [メガストーン]
-			// の順にする。タイプ強化アイテムはきのみの直前に、タイプ半減実はきのみの最後にまとめる。
 			function sortRedistributionItems(values: string[]): string[] {
-				const ranked = values.filter((value) => (teamItemUsageTotals.get(value) ?? 0) > 0);
-				ranked.sort((a, b) => (teamItemUsageTotals.get(b) ?? 0) - (teamItemUsageTotals.get(a) ?? 0));
-				const rest = values.filter((value) => (teamItemUsageTotals.get(value) ?? 0) <= 0);
-				const megaStones = rest.filter((value) => isMegaStoneItemName(value));
-				const berries = rest.filter((value) => !isMegaStoneItemName(value) && isBerryItemName(value));
-				const others = rest.filter((value) => !isMegaStoneItemName(value) && !isBerryItemName(value));
-
-				const typeBoosts = others.filter((value) => ITEM_TYPE_BOOST[value] !== undefined);
-				const otherRest = others.filter((value) => ITEM_TYPE_BOOST[value] === undefined);
-				const resistBerries = berries.filter((value) => ITEM_TYPE_RESIST_BERRY[value] !== undefined);
-				const normalBerries = berries.filter((value) => ITEM_TYPE_RESIST_BERRY[value] === undefined);
-
-				return [
-					...ranked,
-					...otherRest,
-					...sortByTypeOrder(typeBoosts, ITEM_TYPE_BOOST),
-					...normalBerries,
-					...sortByTypeOrder(resistBerries, ITEM_TYPE_RESIST_BERRY),
-					...megaStones,
-				];
+				return sortItemsByUsage(values, (value) => teamItemUsageTotals.get(value));
 			}
 
 			const redistributionItemGrid = createItemSelectGrid({

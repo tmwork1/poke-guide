@@ -199,5 +199,11 @@ body.data-page {
 @media (max-width: 480px) {
 	.item-select-dialog { width: 96vw; }
 	.item-select-search-row { padding-inline: var(--space-3); }
-	.item-select-grid-wrap { padding-inline: var(--space-3); }
+	/* 4列グリッドは1列あたりの余白(グリッド周囲・セル間・セル内側)が積み重なると、
+	   主流のスマホ幅(390〜412px程度)で6文字のアイテム名(例: いのちのたま)すら
+	   1行に収まらず不自然な位置で改行されてしまう(実測で発覚)。タップ域(セル自体の
+	   幅)は変えず、周囲の余白だけを詰めて文字の実効幅を稼ぐ。 */
+	.item-select-grid-wrap { padding-inline: var(--space-2); }
+	.item-select-grid { gap: var(--space-1); }
+	.item-select-cell { padding-inline: var(--space-1); }
 }

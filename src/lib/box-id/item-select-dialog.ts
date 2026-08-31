@@ -4,6 +4,7 @@ import { bindModalDismissal } from "../modal-dismiss";
 import { typeIconUrl } from "../sprite-urls";
 import { applyItemImage } from "./shared-core";
 import { requestSettingsModal } from "./settings-modal";
+import { getItemSuggestionRatio } from "./left-panel";
 
 type ItemAutocompleteEntry = { name?: unknown; regulations?: unknown };
 
@@ -24,6 +25,46 @@ export const ITEM_TYPE_RESIST_BERRY: Record<string, string> = {
 	"ヨロギのみ": "いわ", "カシブのみ": "ゴースト", "ハバンのみ": "ドラゴン", "ナモのみ": "あく",
 	"リリバのみ": "はがね", "ロゼルのみ": "フェアリー",
 };
+
+function isBerryItemName(name: string): boolean {
+	return name.endsWith("のみ");
+}
+
+function isMegaStoneItemName(name: string): boolean {
+	return /ナイト[XYZ]?$/.test(name);
+}
+
+const TYPE_ORDER = [
+	"ノーマル", "ほのお", "みず", "でんき", "くさ", "こおり", "かくとう", "どく",
+	"じめん", "ひこう", "エスパー", "むし", "いわ", "ゴースト", "ドラゴン", "あく",
+	"はがね", "フェアリー",
+];
+
+function sortByTypeOrder(values: string[], typeOf: Record<string, string>): string[] {
+	return [...values].sort((a, b) => TYPE_ORDER.indexOf(typeOf[a]) - TYPE_ORDER.indexOf(typeOf[b]));
+}
+
+// [採用率上位] -> [その他] -> [タイプ強化アイテム(タイプ順)] -> [きのみ] -> [タイプ半減実(タイプ順)] -> [メガストーン]
+export function sortItemsByUsage(values: string[], ratioOf: (value: string) => number | undefined): string[] {
+	const ranked = values.filter((value) => (ratioOf(value) ?? 0) > 0);
+	ranked.sort((a, b) => (ratioOf(b) ?? 0) - (ratioOf(a) ?? 0));
+	const rest = values.filter((value) => (ratioOf(value) ?? 0) <= 0);
+	const megaStones = rest.filter((value) => isMegaStoneItemName(value));
+	const berries = rest.filter((value) => !isMegaStoneItemName(value) && isBerryItemName(value));
+	const others = rest.filter((value) => !isMegaStoneItemName(value) && !isBerryItemName(value));
+	const typeBoosts = others.filter((value) => ITEM_TYPE_BOOST[value] !== undefined);
+	const otherRest = others.filter((value) => ITEM_TYPE_BOOST[value] === undefined);
+	const resistBerries = berries.filter((value) => ITEM_TYPE_RESIST_BERRY[value] !== undefined);
+	const normalBerries = berries.filter((value) => ITEM_TYPE_RESIST_BERRY[value] === undefined);
+	return [
+		...ranked,
+		...otherRest,
+		...sortByTypeOrder(typeBoosts, ITEM_TYPE_BOOST),
+		...normalBerries,
+		...sortByTypeOrder(resistBerries, ITEM_TYPE_RESIST_BERRY),
+		...megaStones,
+	];
+}
 
 const ITEM_LABEL_BREAK_SUFFIXES = ["プレート", "メモリ", "レンズ", "ハーブ", "チョッキ", "ガード", "ジュエル", "エナジー", "グローブ", "ゴーグル", "マント", "コート", "サービス", "ダイス", "ブーツ", "チャーム", "メット", "バンド", "ほけん", "だま", "パック", "ボタン", "スカーフ", "ハチマキ", "メガネ"];
 const ITEM_LABEL_BREAK_PREFIXES = ["こだわり", "だっしゅつ", "くろい", "おおきな", "きれいな", "するどい", "とけない", "まがった", "やわらかい", "だい"];
@@ -199,6 +240,7 @@ function initializeItemSelectDialog(): void {
 		gridEl,
 		emptyEl,
 		getActiveValue: () => itemInput.value.trim(),
+		sortRest: (values) => sortItemsByUsage(values, getItemSuggestionRatio),
 		onSelect: (value) => {
 			if (itemInput.value !== value) {
 				itemInput.value = value;
