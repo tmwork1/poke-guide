@@ -120,6 +120,7 @@ const user = Astro.locals.user;
 							<p class="empty-state-title">条件に一致する個体がありません</p>
 							<p class="empty-state-hint">条件を変更してください。</p>
 						</div>
+						<button type="button" id="owned-pokemon-load-more" class="btn-ghost" hidden>さらに読み込む</button>
 					</div>
 				</Fragment>
 			) : (
@@ -206,8 +207,12 @@ const user = Astro.locals.user;
 			const searchInput = el<HTMLInputElement>("search-input");
 			const addButton = el<HTMLButtonElement>("add-pokemon-button");
 			const emptyAddButton = el<HTMLButtonElement>("empty-add-pokemon-button");
+			const loadMoreButton = el<HTMLButtonElement>("owned-pokemon-load-more");
 
 			let allPokemon: OwnedPokemon[] = [];
+			let hasMorePokemon = false;
+			let loadingMore = false;
+			const POKEMON_PAGE_SIZE = 48;
 
 			// カードの表示にはタイプ・特性・持ち物・テラスタイプ・技を出さないが、検索対象は
 			// それらすべてを引き続き含める(表示されない項目も検索できるようにする)。
@@ -306,6 +311,7 @@ const user = Astro.locals.user;
 				boxContent?.classList.toggle("is-truly-empty", isTrulyEmpty);
 				emptyMessage.hidden = !isTrulyEmpty;
 				noMatchMessage.hidden = isTrulyEmpty || sorted.length > 0;
+				loadMoreButton.hidden = isTrulyEmpty || !hasMorePokemon;
 				updateCountBadge(sorted.length);
 				if (isTrulyEmpty) return;
 				for (const p of sorted) {
@@ -335,14 +341,23 @@ const user = Astro.locals.user;
 				countBadge.hidden = false;
 			}
 
-			async function loadList(): Promise<void> {
-				loadingMessage.hidden = false;
+			async function loadList(reset = false): Promise<void> {
+				if (loadingMore) return;
+				loadingMore = true;
+				if (reset) allPokemon = [];
+				loadingMessage.hidden = allPokemon.length === 0;
 				errorMessage.hidden = true;
+				loadMoreButton.disabled = true;
 				try {
-					const res = await fetch("/api/owned-pokemon", { credentials: "same-origin" });
+					const params = new URLSearchParams({
+						limit: String(POKEMON_PAGE_SIZE),
+						offset: String(allPokemon.length),
+					});
+					const res = await fetch(`/api/owned-pokemon?${params}`, { credentials: "same-origin" });
 					if (!res.ok) throw new Error(`一覧の取得に失敗しました (status=${res.status})`);
-					const body = (await res.json()) as { data: OwnedPokemon[] };
-					allPokemon = body.data;
+					const body = (await res.json()) as { data: OwnedPokemon[]; hasMore: boolean };
+					allPokemon.push(...body.data);
+					hasMorePokemon = body.hasMore;
 					loadingMessage.hidden = true;
 					renderList();
 				} catch (err) {
@@ -350,6 +365,9 @@ const user = Astro.locals.user;
 					loadingMessage.hidden = true;
 					errorMessage.hidden = false;
 					errorMessage.textContent = "個体一覧を読み込めませんでした。時間をおいて再度お試しください。";
+				} finally {
+					loadingMore = false;
+					loadMoreButton.disabled = false;
 				}
 			}
 
@@ -360,9 +378,10 @@ const user = Astro.locals.user;
 			}
 			addButton.addEventListener("click", goToNewPokemon);
 			emptyAddButton.addEventListener("click", goToNewPokemon);
+			loadMoreButton.addEventListener("click", () => void loadList());
 
-			void loadList();
-			reloadOnBfcacheRestore(() => void loadList());
+			void loadList(true);
+			reloadOnBfcacheRestore(() => void loadList(true));
 		}
 	</script>
 </AppLayout>

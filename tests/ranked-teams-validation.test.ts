@@ -55,4 +55,4 @@ describe('matchesSpeciesSearch', () => {
   });
 });
 
-it('1ページの表示件数は50件', () => assert.equal(RANKED_TEAMS_PAGE_SIZE, 50));
+it('1ページの表示件数は24件', () => assert.equal(RANKED_TEAMS_PAGE_SIZE, 24));

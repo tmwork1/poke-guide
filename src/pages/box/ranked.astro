@@ -74,6 +74,14 @@ if (pokemon) {
   const panel = document.querySelector<HTMLElement>('#ranked-data-panel');
   const rankedSeason = main?.dataset.rankedSeason || null;
   const pokemonBuildJson = main?.dataset.pokemonBuild;
+  const RANKED_TEAMS_PAGE_SIZE = 24;
+  let rankedOffset = 0;
+  let hasMoreRankedTeams = false;
+  let rankedLoading = false;
+  let rankedList: HTMLElement | null = null;
+  let typeMatchedList: HTMLElement | null = null;
+  let speciesMatchedList: HTMLElement | null = null;
+  let rankedLoadMore: HTMLButtonElement | null = null;
 
   function setRankedStatus(message: string, state?: 'loading' | 'error'): void {
     if (!panel) return;
@@ -85,8 +93,37 @@ if (pokemon) {
     panel.appendChild(status);
   }
 
-  async function loadRankedBuilds(): Promise<void> {
+  function initializeRankedResults(): void {
+    if (!panel) return;
+    panel.replaceChildren();
+    rankedList = document.createElement('div');
+    rankedList.className = 'box-ranked-results';
+    typeMatchedList = document.createElement('div');
+    typeMatchedList.className = 'team-grid';
+    speciesMatchedList = document.createElement('div');
+    speciesMatchedList.className = 'team-grid';
+    rankedList.append(typeMatchedList, speciesMatchedList);
+    rankedLoadMore = document.createElement('button');
+    rankedLoadMore.type = 'button';
+    rankedLoadMore.className = 'btn-ghost';
+    rankedLoadMore.textContent = 'さらに読み込む';
+    rankedLoadMore.addEventListener('click', () => void loadRankedBuilds());
+    panel.append(rankedList, rankedLoadMore);
+  }
+
+  async function loadRankedBuilds(reset = false): Promise<void> {
     if (!panel || !rankedSeason || !pokemonBuildJson) return;
+
+    if (rankedLoading) return;
+    rankedLoading = true;
+    if (reset) {
+      rankedOffset = 0;
+      hasMoreRankedTeams = false;
+      initializeRankedResults();
+    }
+    if (!rankedList || !typeMatchedList || !speciesMatchedList || !rankedLoadMore) initializeRankedResults();
+    if (!rankedList || !typeMatchedList || !speciesMatchedList || !rankedLoadMore) return;
+    rankedLoadMore.disabled = true;
 
     const pokemonBuild = JSON.parse(pokemonBuildJson) as {
       species_name: string;
@@ -96,12 +133,20 @@ if (pokemon) {
     };
 
     try {
-      const response = await fetch(`/api/ranked-teams?season=${encodeURIComponent(rankedSeason)}`, {
+      const requestedOffset = rankedOffset;
+      const params = new URLSearchParams({
+        season: rankedSeason,
+        limit: String(RANKED_TEAMS_PAGE_SIZE),
+        offset: String(requestedOffset),
+      });
+      const response = await fetch(`/api/ranked-teams?${params}`, {
         credentials: 'same-origin',
       });
       if (!response.ok) throw new Error(`上位チームの取得に失敗しました (status=${response.status})`);
-      const body = (await response.json()) as { teams: RankedTeam[] };
+      const body = (await response.json()) as { teams: RankedTeam[]; hasMore: boolean };
       const teams = body.teams ?? [];
+      rankedOffset += teams.length;
+      hasMoreRankedTeams = body.hasMore;
       const scored = teams
         .map((team) => {
           // 上位チームはメガ後の種族を speciesKey に、表示上のベース種族を speciesName に
@@ -118,34 +163,30 @@ if (pokemon) {
         .filter((entry): entry is { team: RankedTeam; matched: RankedTeam['members'][number]; similarity: number } => entry !== null)
         .sort((a, b) => b.similarity - a.similarity || a.team.rank - b.team.rank);
 
-      if (scored.length === 0) {
-        setRankedStatus('上位チームが見つかりません。');
-        return;
-      }
-
-      // 型(特性・アイテム・技)も一致する構築を優先する。型一致がゼロなら、
-      // 単純に同じ種族で見つかった構築(scored全体)をそのまま使う。
-      const typeMatched = scored.filter((entry) => entry.similarity > 0);
-      const results = typeMatched.length > 0 ? typeMatched : scored;
-
-      const list = document.createElement('div');
-      list.className = 'team-grid';
-      for (const entry of results) {
-        list.appendChild(renderTopBuildCard(
+      // 型(特性・アイテム・技)が一致する構築を先に並べ、その下へ種族だけが
+      // 一致する構築も常に追加する。以前は型一致が一件でもあると後者を捨てていた。
+      for (const entry of scored) {
+        const destination = entry.similarity > 0 ? typeMatchedList : speciesMatchedList;
+        destination.appendChild(renderTopBuildCard(
           entry.team,
           entry.similarity > 0 ? { highlightSlot: entry.matched.slot } : undefined,
         ));
       }
-      panel.innerHTML = '';
-      panel.appendChild(list);
+      rankedLoadMore.hidden = !hasMoreRankedTeams;
+      if (requestedOffset === 0 && scored.length === 0 && !hasMoreRankedTeams) {
+        setRankedStatus('上位チームが見つかりません。');
+      }
     } catch (error) {
       console.error(error);
       setRankedStatus('上位チームを読み込めませんでした。', 'error');
+    } finally {
+      rankedLoading = false;
+      if (rankedLoadMore) rankedLoadMore.disabled = false;
     }
   }
 
-  void loadRankedBuilds();
-  reloadOnBfcacheRestore(() => void loadRankedBuilds());
+  void loadRankedBuilds(true);
+  reloadOnBfcacheRestore(() => void loadRankedBuilds(true));
 </script>
 
 <script>

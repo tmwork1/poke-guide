@@ -15,9 +15,16 @@ import { ownedPokemonRateLimiter } from '../../lib/rate-limit';
 export const prerender = false;
 
 const VALID_SORTS: OwnedPokemonSort[] = ['updated_at', 'last_used_at'];
+const MAX_PAGE_SIZE = 48;
 
 function parseSort(value: string | null): OwnedPokemonSort | undefined {
   return VALID_SORTS.includes(value as OwnedPokemonSort) ? (value as OwnedPokemonSort) : undefined;
+}
+
+function parseNonNegativeInteger(value: string | null): number | undefined | null {
+  if (value === null) return undefined;
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed >= 0 ? parsed : null;
 }
 
 export async function GET({ request, cookies, url }: APIContext): Promise<Response> {
@@ -33,13 +40,18 @@ export async function GET({ request, cookies, url }: APIContext): Promise<Respon
         .filter((t) => t.length > 0)
     : undefined;
   const search = url.searchParams.get('search')?.trim() || undefined;
+  const limit = parseNonNegativeInteger(url.searchParams.get('limit'));
+  const offset = parseNonNegativeInteger(url.searchParams.get('offset'));
+  if (limit === null || offset === null || (limit !== undefined && (limit < 1 || limit > MAX_PAGE_SIZE))) {
+    return badRequest(`limit must be between 1 and ${MAX_PAGE_SIZE}; offset must be a non-negative integer`);
+  }
 
   const supabase = await getSupabaseAdminClient();
-  const result = await listOwnedPokemon(user.id, { sort, tags, search }, supabase);
+  const result = await listOwnedPokemon(user.id, { sort, tags, search, limit, offset }, supabase);
   if (!result.ok) {
     return jsonResponse({ error: result.error }, 500);
   }
-  return jsonResponse({ data: result.data }, 200);
+  return jsonResponse({ data: result.data, hasMore: result.hasMore ?? false }, 200);
 }
 
 export async function POST({ request, cookies }: APIContext): Promise<Response> {

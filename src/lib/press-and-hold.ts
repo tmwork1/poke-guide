@@ -5,7 +5,7 @@
 export function bindPressAndHold(
 	button: HTMLButtonElement,
 	activate: () => boolean,
-	{ delay = 350, interval = 75 }: { delay?: number; interval?: number } = {},
+	{ delay = 300, interval = 75 }: { delay?: number; interval?: number } = {},
 ): void {
 	let delayTimer: number | undefined;
 	let repeatTimer: number | undefined;

@@ -32,6 +32,11 @@ export interface RankedSeason {
   seasonNumber: number;
 }
 
+export interface RankedTeamsPage {
+  teams: RankedTeam[];
+  hasMore: boolean;
+}
+
 interface RawMember {
   slot: number;
   species_key: string | null;
@@ -82,20 +87,37 @@ export async function listRankedSeasons(supabase: SupabaseClient): Promise<Ranke
   return [...bySeason.values()].sort((a, b) => b.seasonNumber - a.seasonNumber);
 }
 
+export function listRankedTeamsBySeason(
+  season: string,
+  supabase: SupabaseClient,
+): Promise<RankedTeam[]>;
+export function listRankedTeamsBySeason(
+  season: string,
+  supabase: SupabaseClient,
+  options: { limit: number; offset?: number },
+): Promise<RankedTeamsPage>;
 export async function listRankedTeamsBySeason(
   season: string,
   supabase: SupabaseClient,
-): Promise<RankedTeam[]> {
-  const { data, error } = await supabase
+  options?: { limit?: number; offset?: number },
+): Promise<RankedTeam[] | RankedTeamsPage> {
+  let query = supabase
     .from('ranked_teams')
     .select(TEAM_SELECT)
     .eq('season', season)
     .order('rank', { ascending: true })
     .order('slot', { foreignTable: 'ranked_team_members', ascending: true });
 
+  if (options?.limit !== undefined) {
+    const offset = options.offset ?? 0;
+    query = query.range(offset, offset + options.limit);
+  }
+
+  const { data, error } = await query;
+
   if (error) throw new Error('上位構築を取得できませんでした', { cause: error });
 
-  return ((data ?? []) as unknown as RawTeam[]).map((row) => {
+  const teams = ((data ?? []) as unknown as RawTeam[]).map((row) => {
     const numericRating = row.rating === null ? null : Number(row.rating);
     return {
       id: row.id,
@@ -125,4 +147,9 @@ export async function listRankedTeamsBySeason(
         .sort((a, b) => a.slot - b.slot),
     };
   });
+  if (options?.limit === undefined) return teams;
+  return {
+    teams: teams.slice(0, options.limit),
+    hasMore: teams.length > options.limit,
+  };
 }

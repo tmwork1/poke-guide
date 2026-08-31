@@ -131,7 +131,9 @@ async function openDialog(): Promise<void> {
 	renderGrid();
 	backdropEl.hidden = false;
 	dialogEl.hidden = false;
-	searchInput.focus();
+	// 開いた直後に検索欄へキャレットを置かない。検索を始めたい場合だけ利用者が
+	// 明示的にフォーカスすることで、現在の選択項目をまず確認できるようにする。
+	dialogEl.focus();
 }
 
 // クリック時にモーダルを開く処理は、このファイルが#item-dropdown-button(LeftPanel.astro側の

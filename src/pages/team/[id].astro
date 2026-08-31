@@ -1796,7 +1796,7 @@ try {
 		} from "../../lib/box-pokemon-card";
 		import { renderTeamMateSlots } from "../../lib/team-mate-card";
 		import { renderTopBuildCard } from "../../lib/ranked-teams/card";
-		import { calculateTeamSimilarity } from "../../lib/build-similarity";
+		import { calculateBuildSimilarity, calculateTeamSimilarity } from "../../lib/build-similarity";
 		import { autosizeTextarea } from "../../lib/shared/autosize-textarea";
 		import type { RankedTeam } from "../../lib/ranked-teams";
 		import { kanaIncludes } from "../../lib/kana";
@@ -2830,22 +2830,26 @@ try {
 			// =================================================================================
 
 			const rankedSeason = layoutRoot.dataset.rankedSeason || null;
-			let rankedTeamsPromise: Promise<RankedTeam[]> | null = null;
-			function loadRankedTeams(): Promise<RankedTeam[]> {
-				if (!rankedSeason) return Promise.resolve([]);
-				if (!rankedTeamsPromise) {
-					rankedTeamsPromise = fetch(`/api/ranked-teams?season=${encodeURIComponent(rankedSeason)}`, { credentials: "same-origin" })
-						.then(async (res) => {
-							if (!res.ok) throw new Error(`類似構築の取得に失敗しました (status=${res.status})`);
-							const body = (await res.json()) as { teams: RankedTeam[] };
-							return body.teams ?? [];
-						})
-						.catch((err) => {
-							rankedTeamsPromise = null;
-							throw err;
-						});
+			const SIMILAR_BUILDS_PAGE_SIZE = 24;
+			let rankedTeams: RankedTeam[] = [];
+			let rankedTeamsHasMore = false;
+			let rankedTeamsRequest: Promise<void> | null = null;
+			async function loadRankedTeams(reset = false): Promise<void> {
+				if (!rankedSeason || rankedTeamsRequest) return rankedTeamsRequest ?? Promise.resolve();
+				if (reset) {
+					rankedTeams = [];
+					rankedTeamsHasMore = false;
 				}
-				return rankedTeamsPromise;
+				const offset = rankedTeams.length;
+				rankedTeamsRequest = fetch(`/api/ranked-teams?season=${encodeURIComponent(rankedSeason)}&limit=${SIMILAR_BUILDS_PAGE_SIZE}&offset=${offset}`, { credentials: "same-origin" })
+					.then(async (res) => {
+						if (!res.ok) throw new Error(`類似構築の取得に失敗しました (status=${res.status})`);
+						const body = (await res.json()) as { teams: RankedTeam[]; hasMore: boolean };
+						rankedTeams = [...rankedTeams, ...(body.teams ?? [])];
+						rankedTeamsHasMore = body.hasMore;
+					})
+					.finally(() => { rankedTeamsRequest = null; });
+				return rankedTeamsRequest;
 			}
 
 			function setSimilarBuildsStatus(message: string, state?: "loading" | "error"): void {
@@ -2860,20 +2864,27 @@ try {
 			function renderSimilarBuilds(teams: RankedTeam[]): void {
 				const team = Array.from(membersBySlot.values());
 				const currentSpecies = new Set(team.map((member) => member.species_name));
+				const hasBuildMatch = (ranked: RankedTeam): boolean => ranked.members.some((rankedMember) =>
+					team.some((member) => rankedMember.speciesName === member.species_name
+						&& calculateBuildSimilarity(member, rankedMember) > 0),
+				);
 				const scored = teams
 					.map((t) => ({ team: t, similarity: calculateTeamSimilarity(team, t.members) }))
 					.filter((entry) => entry.similarity > 0)
 					.sort((a, b) => b.similarity - a.similarity || a.team.rank - b.team.rank);
-				// 型(特性・アイテム・技)まで加味した一致がゼロなら、同じポケモンがいるかだけに
-				// 緩めて検索し直す(box/ranked.astroの上位チーム検索と同じ二段構え)。
-				const results = scored.length > 0
-					? scored
-					: teams
-						.filter((t) => t.members.some((member) => currentSpecies.has(member.speciesName)))
-						.map((t) => ({ team: t, similarity: 0 }))
-						.sort((a, b) => a.team.rank - b.team.rank);
+				// 型一致を先に並べ、その後にも種族だけ一致する構築を省かずに続ける。
+				const exactBuilds = scored.filter((entry) => hasBuildMatch(entry.team));
+				const speciesOnlyBuilds = scored
+					.filter((entry) => !hasBuildMatch(entry.team))
+					.sort((a, b) => a.team.rank - b.team.rank);
+				const results = [...exactBuilds, ...speciesOnlyBuilds];
 				if (results.length === 0) {
-					setSimilarBuildsStatus("チームが見つかりません。");
+					teamDataMobileSimilarRoot.innerHTML = "";
+					const empty = document.createElement("p");
+					empty.className = "team-data-similar-status status-text";
+					empty.textContent = rankedTeamsHasMore ? "このページには一致するチームがありません。続きも確認できます。" : "チームが見つかりません。";
+					teamDataMobileSimilarRoot.appendChild(empty);
+					if (rankedTeamsHasMore) appendSimilarBuildsLoadMore();
 					return;
 				}
 				const list = document.createElement("div");
@@ -2886,6 +2897,19 @@ try {
 				}
 				teamDataMobileSimilarRoot.innerHTML = "";
 				teamDataMobileSimilarRoot.appendChild(list);
+				if (rankedTeamsHasMore) appendSimilarBuildsLoadMore();
+			}
+
+			function appendSimilarBuildsLoadMore(): void {
+				const more = document.createElement("button");
+				more.type = "button";
+				more.className = "btn-ghost";
+				more.textContent = "もっと見る";
+				more.addEventListener("click", () => {
+					more.disabled = true;
+					void loadMoreSimilarBuilds();
+				});
+				teamDataMobileSimilarRoot.appendChild(more);
 			}
 
 			let similarBuildsRequestId = 0;
@@ -2893,12 +2917,22 @@ try {
 				const requestId = (similarBuildsRequestId += 1);
 				setSimilarBuildsStatus("類似構築を計算中…", "loading");
 				try {
-					const teams = await loadRankedTeams();
+					await loadRankedTeams(true);
 					if (requestId !== similarBuildsRequestId) return;
-					renderSimilarBuilds(teams);
+					renderSimilarBuilds(rankedTeams);
 				} catch (err) {
 					console.error(err);
 					if (requestId !== similarBuildsRequestId) return;
+					setSimilarBuildsStatus("類似構築を読み込めませんでした。", "error");
+				}
+			}
+
+			async function loadMoreSimilarBuilds(): Promise<void> {
+				try {
+					await loadRankedTeams();
+					renderSimilarBuilds(rankedTeams);
+				} catch (err) {
+					console.error(err);
 					setSimilarBuildsStatus("類似構築を読み込めませんでした。", "error");
 				}
 			}
@@ -3405,9 +3439,11 @@ try {
 					applyItemIcon,
 				});
 
-				formationMobileBoxGrid.replaceChildren(formationMobileAddButton);
+				formationMobileBoxGrid.replaceChildren();
 				const term = formationMobileSearchInput.value.trim();
-				for (const p of sortFormationMobilePokemon(allPokemon.filter((candidate) => !isCurrentMember(candidate.id) && matchesSearch(candidate, term)))) {
+				const candidates = sortFormationMobilePokemon(allPokemon.filter((candidate) => !isCurrentMember(candidate.id) && matchesSearch(candidate, term)));
+				candidates.sort((a, b) => Number(suggestionSpeciesRanks.has(b.species_name)) - Number(suggestionSpeciesRanks.has(a.species_name)));
+				for (const p of candidates) {
 					const card = document.createElement("button");
 					card.type = "button";
 					attachLongPressNavigate(card, p.id);
@@ -3438,6 +3474,7 @@ try {
 					}
 					formationMobileBoxGrid.appendChild(card);
 				}
+				formationMobileBoxGrid.appendChild(formationMobileAddButton);
 			}
 
 			function navigateToPokemonEdit(pokemonId: string): void {

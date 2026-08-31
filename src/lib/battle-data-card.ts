@@ -5,7 +5,7 @@
 
 import movesMasterRaw from '../../public/master-data/autocomplete/moves.json' with { type: 'json' };
 import pokemonMasterRaw from '../../public/master-data/autocomplete/pokemon.json' with { type: 'json' };
-import { NATURE_STAT_MODIFIERS, type StatKey } from './stats';
+import { NATURE_STAT_MODIFIERS, type StatKey } from './stats.ts';
 import { normalizeDigits } from './text-normalize.ts';
 
 const STAT_SHORT_LABELS: Record<StatKey, string> = {

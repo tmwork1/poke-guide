@@ -32,6 +32,14 @@ export interface TeamSimilaritySource extends BuildSimilaritySource {
 
 export interface TeamSimilarityTarget extends BuildSimilarityTarget {
 	speciesName: string;
+	/** ランク構築側のフォルム名。メガシンカの一致を強く評価するために使う。 */
+	formName?: string | null;
+}
+
+const MEGA_EVOLUTION_BONUS = 3;
+
+function isMegaEvolution(target: TeamSimilarityTarget): boolean {
+	return target.formName?.startsWith("Mega") ?? false;
 }
 
 export function calculateTeamSimilarity(
@@ -40,6 +48,8 @@ export function calculateTeamSimilarity(
 ): number {
 	return team.reduce((score, member) => {
 		const matched = rankedMembers.find((rankedMember) => rankedMember.speciesName === member.species_name);
-		return matched ? score + 1 + calculateBuildSimilarity(member, matched) : score;
+		return matched
+			? score + 1 + calculateBuildSimilarity(member, matched) + (isMegaEvolution(matched) ? MEGA_EVOLUTION_BONUS : 0)
+			: score;
 	}, 0);
 }

@@ -369,7 +369,8 @@ if (seasonList?.pokemon) {
 		import { matchesSpeciesSearch, RANKED_TEAMS_PAGE_SIZE } from '../../lib/ranked-teams-validation';
 		import { renderTopBuildCard } from '../../lib/ranked-teams/card';
 
-		interface RankedTeamsResponse { season: string; teams: RankedTeam[]; }
+		interface RankedTeamsResponse { season: string; teams: RankedTeam[]; hasMore: boolean; }
+		interface RankedTeamsCache { teams: RankedTeam[]; hasMore: boolean; }
 
 		const root = document.querySelector<HTMLElement>('.top-builds-list');
 		if (root) {
@@ -380,9 +381,10 @@ if (seasonList?.pokemon) {
 			const loadMore = document.querySelector<HTMLButtonElement>('#top-builds-load-more')!;
 			const search = document.querySelector<HTMLInputElement>('#top-builds-search')!;
 			const seasonSelect = document.querySelector<HTMLSelectElement>('#top-builds-season')!;
-			const cache = new Map<string, RankedTeam[]>();
-			let visibleCount = RANKED_TEAMS_PAGE_SIZE;
+			const cache = new Map<string, RankedTeamsCache>();
 			let currentTeams: RankedTeam[] = [];
+			let hasMore = false;
+			let isLoadingMore = false;
 			let debounceTimer: ReturnType<typeof setTimeout> | undefined;
 
 			function filteredTeams(): RankedTeam[] {
@@ -391,10 +393,32 @@ if (seasonList?.pokemon) {
 
 			function render(): void {
 				const filtered = filteredTeams();
-				const visible = filtered.slice(0, visibleCount);
-				cards.replaceChildren(...visible.map((team) => renderTopBuildCard(team)));
+				cards.replaceChildren(...filtered.map((team) => renderTopBuildCard(team)));
 				empty.hidden = filtered.length !== 0;
-				loadMore.hidden = visible.length >= filtered.length;
+				loadMore.hidden = !hasMore;
+			}
+
+			async function loadPage(season: string, reset = false): Promise<void> {
+				if (isLoadingMore) return;
+				isLoadingMore = true;
+				if (reset) {
+					currentTeams = [];
+					hasMore = false;
+				}
+				loadMore.disabled = true;
+				try {
+					const response = await fetch(
+						`/api/ranked-teams?season=${encodeURIComponent(season)}&limit=${RANKED_TEAMS_PAGE_SIZE}&offset=${currentTeams.length}`,
+					);
+					if (!response.ok) throw new Error('上位チームを取得できませんでした');
+					const payload = await response.json() as RankedTeamsResponse;
+					currentTeams = [...currentTeams, ...payload.teams];
+					hasMore = payload.hasMore;
+					cache.set(season, { teams: currentTeams, hasMore });
+				} finally {
+					isLoadingMore = false;
+					loadMore.disabled = false;
+				}
 			}
 
 			async function selectSeason(season: string): Promise<void> {
@@ -403,15 +427,14 @@ if (seasonList?.pokemon) {
 				cards.replaceChildren();
 				empty.hidden = true;
 				loadMore.hidden = true;
-				visibleCount = RANKED_TEAMS_PAGE_SIZE;
 				try {
-					if (!cache.has(season)) {
-						const response = await fetch(`/api/ranked-teams?season=${encodeURIComponent(season)}`);
-						if (!response.ok) throw new Error('上位チームを取得できませんでした');
-						const payload = await response.json() as RankedTeamsResponse;
-						cache.set(season, payload.teams);
+					const cached = cache.get(season);
+					if (cached) {
+						currentTeams = cached.teams;
+						hasMore = cached.hasMore;
+					} else {
+						await loadPage(season, true);
 					}
-					currentTeams = cache.get(season) ?? [];
 					render();
 				} catch (cause) {
 					currentTeams = [];
@@ -425,14 +448,15 @@ if (seasonList?.pokemon) {
 			search.addEventListener('input', () => {
 				if (debounceTimer !== undefined) clearTimeout(debounceTimer);
 				debounceTimer = setTimeout(() => {
-					visibleCount = RANKED_TEAMS_PAGE_SIZE;
 					render();
 				}, 150);
 			});
 			seasonSelect.addEventListener('change', () => void selectSeason(seasonSelect.value));
 			loadMore.addEventListener('click', () => {
-				visibleCount += RANKED_TEAMS_PAGE_SIZE;
-				render();
+				void loadPage(seasonSelect.value).then(render).catch((cause) => {
+					error.textContent = cause instanceof Error ? cause.message : '上位チームを取得できませんでした';
+					error.hidden = false;
+				});
 			});
 
 			const initialError = root.dataset.initialError ?? '';

@@ -87,6 +87,9 @@ const user = Astro.locals.user;
 						<div class="team-grid">
 							<div id="team-list"></div>
 						</div>
+						<div class="top-builds-load-more-wrap">
+							<button type="button" id="team-load-more" class="btn-ghost" hidden>もっと見る</button>
+						</div>
 
 						<div id="empty-message" class="empty-state empty-state-plain" hidden>
 							<button type="button" class="add-card-tile team-empty-add-button" id="add-empty-team-button">
@@ -235,8 +238,12 @@ const user = Astro.locals.user;
 			const addButton = el<HTMLButtonElement>("add-team-button");
 			const emptyAddButton = el<HTMLButtonElement>("add-empty-team-button");
 			const densityToggle = el<HTMLButtonElement>("team-display-density-toggle");
+			const loadMoreButton = el<HTMLButtonElement>("team-load-more");
 
 			let allTeams: Team[] = [];
+			const TEAM_PAGE_SIZE = 24;
+			let hasMoreTeams = false;
+			let isLoadingMore = false;
 			type TeamDisplayMode = "expanded" | "compressed";
 			let displayMode: TeamDisplayMode = "expanded";
 
@@ -320,6 +327,7 @@ const user = Astro.locals.user;
 				const isTrulyEmpty = allTeams.length === 0;
 				emptyMessage.hidden = !isTrulyEmpty;
 				noMatchMessage.hidden = isTrulyEmpty || sorted.length > 0;
+				loadMoreButton.hidden = !hasMoreTeams || isTrulyEmpty;
 				if (isTrulyEmpty) return;
 				for (const t of sorted) {
 					listRoot.appendChild(renderCard(t));
@@ -362,14 +370,19 @@ const user = Astro.locals.user;
 				window.location.href = "/team/new?tab=formation";
 			}
 
-			async function loadList(): Promise<void> {
-				loadingMessage.hidden = false;
+			async function loadList(reset = true): Promise<void> {
+				if (isLoadingMore) return;
+				isLoadingMore = true;
+				if (reset) loadingMessage.hidden = false;
+				loadMoreButton.disabled = true;
 				errorMessage.hidden = true;
 				try {
-					const res = await fetch("/api/teams", { credentials: "same-origin" });
+					const offset = reset ? 0 : allTeams.length;
+					const res = await fetch(`/api/teams?offset=${offset}&limit=${TEAM_PAGE_SIZE}`, { credentials: "same-origin" });
 					if (!res.ok) throw new Error(`一覧の取得に失敗しました (status=${res.status})`);
-					const body = (await res.json()) as { teams: Team[] };
-					allTeams = body.teams;
+					const body = (await res.json()) as { teams: Team[]; hasMore: boolean };
+					allTeams = reset ? body.teams : [...allTeams, ...body.teams];
+					hasMoreTeams = body.hasMore;
 					loadingMessage.hidden = true;
 					renderList();
 				} catch (err) {
@@ -377,6 +390,9 @@ const user = Astro.locals.user;
 					loadingMessage.hidden = true;
 					errorMessage.hidden = false;
 					errorMessage.textContent = "チームを読み込めませんでした。時間をおいて再度お試しください。";
+				} finally {
+					isLoadingMore = false;
+					loadMoreButton.disabled = false;
 				}
 			}
 
@@ -388,6 +404,7 @@ const user = Astro.locals.user;
 				updateDensityToggleUi();
 				renderList();
 			});
+			loadMoreButton.addEventListener("click", () => void loadList(false));
 
 			updateDensityToggleUi();
 			void loadList();

@@ -49,6 +49,11 @@ export interface Team extends TeamRecord {
 
 export type TeamResult<T> = { ok: true; data: T } | { ok: false; error: string };
 
+export interface TeamListPage {
+  teams: Team[];
+  hasMore: boolean;
+}
+
 // replaceTeamMembers専用の結果型。violation: 'forbidden' はオーナーシップ検証で
 // 弾かれたことを示し、呼び出し元(APIルート)がこれを 400 にマッピングできるようにする
 // (それ以外の ok:false は DB エラー等の 500 相当として扱う想定)。
@@ -117,6 +122,25 @@ export async function listTeams(
     return { ok: false, error: 'Failed to list teams' };
   }
   return { ok: true, data: (data ?? []).map((row) => normalizeTeam(row as Record<string, unknown>)) };
+}
+
+/** 一覧画面用のページング取得。limit + 1件で次ページの有無を判断する。 */
+export async function listTeamsPage(
+  userId: string,
+  supabase: SupabaseClient,
+  offset: number,
+  limit: number,
+): Promise<TeamResult<TeamListPage>> {
+  let query = supabase.from('teams').select(TEAM_SELECT_WITH_MEMBERS).eq('user_id', userId);
+  query = query.order('is_pinned', { ascending: false }).order('updated_at', { ascending: false });
+  query = query.order('slot', { foreignTable: 'team_members', ascending: true });
+  const { data, error } = await query.range(offset, offset + limit);
+  if (error) {
+    logError('listTeamsPage failed', error);
+    return { ok: false, error: 'Failed to list teams' };
+  }
+  const rows = (data ?? []).map((row) => normalizeTeam(row as Record<string, unknown>));
+  return { ok: true, data: { teams: rows.slice(0, limit), hasMore: rows.length > limit } };
 }
 
 // 見つからない場合と他人の所有物である場合を区別せず null を返す(存在漏洩防止。GET /api/teams/:id は404)。

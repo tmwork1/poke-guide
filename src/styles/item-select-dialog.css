@@ -128,7 +128,11 @@ body.box-edit-page {
 	text-align: left;
 }
 .item-select-cell:hover { border-color: var(--color-primary); }
-.item-select-cell.is-active { background: var(--color-bg); }
+/* 選択済みは暗転ではなく主色の淡い面で示し、アイコン・文字の可読性を保つ。 */
+.item-select-cell.is-active {
+	background: var(--color-primary-soft);
+	border-color: var(--color-primary);
+}
 .item-select-cell:focus-visible,
 .item-select-close:focus-visible {
 	outline: 2px solid var(--color-primary);

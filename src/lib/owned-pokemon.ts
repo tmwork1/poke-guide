@@ -83,9 +83,12 @@ export interface ListOwnedPokemonOptions {
   // 技名(move_names)の部分一致や複数語のAND検索はPostgRESTの配列演算子では表現しづらいため、
   // 一覧ページ(C-2)側は取得した全件をクライアント側で再フィルタする(計画書§6.1が明示的に許容)。
   search?: string;
+  // 一覧の段階読み込み用。limit を指定した場合は、次のページの有無も返す。
+  limit?: number;
+  offset?: number;
 }
 
-export type OwnedPokemonResult<T> = { ok: true; data: T } | { ok: false; error: string };
+export type OwnedPokemonResult<T> = { ok: true; data: T; hasMore?: boolean } | { ok: false; error: string };
 
 const OWNED_POKEMON_COLUMNS =
   'id, user_id, species_name, level, nature, ability_name, item_name, tera_type, evs, ivs, move_names, memo, tags, source_build_slug, share_slug, is_public, created_at, updated_at, last_used_at, collection_opt_out_until, archetype_id';
@@ -181,12 +184,25 @@ export async function listOwnedPokemon(
       break;
   }
 
+  // 次ページの有無を追加の COUNT クエリなしで判定するため、要求件数より1件多く読む。
+  // limit 未指定の既存呼び出しは従来どおり全件を返す。
+  if (options.limit !== undefined) {
+    const offset = options.offset ?? 0;
+    query = query.range(offset, offset + options.limit);
+  }
+
   const { data, error } = await query;
   if (error) {
     logError('listOwnedPokemon failed', error);
     return { ok: false, error: 'Failed to list owned pokemon' };
   }
-  return { ok: true, data: (data ?? []) as OwnedPokemonRecord[] };
+  const rows = (data ?? []) as OwnedPokemonRecord[];
+  if (options.limit === undefined) return { ok: true, data: rows };
+  return {
+    ok: true,
+    data: rows.slice(0, options.limit),
+    hasMore: rows.length > options.limit,
+  };
 }
 
 // 指定したidの個体をまとめて取得する(チームサジェスト src/pages/api/team-suggestions.ts 用)。

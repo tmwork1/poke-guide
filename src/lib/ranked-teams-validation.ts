@@ -1,7 +1,8 @@
 import { kanaIncludes } from './kana.ts';
 import type { RankedSeason } from './ranked-teams.ts';
 
-export const RANKED_TEAMS_PAGE_SIZE = 50;
+/** 上位チーム一覧・類似チームで共通の段階読み込み単位。 */
+export const RANKED_TEAMS_PAGE_SIZE = 24;
 
 export function normalizeSeasonParam(value: unknown): string | null {
   if (typeof value !== 'string') return null;

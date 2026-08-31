@@ -16,7 +16,9 @@
 	=========================================================================== */
 body.box-edit-page {
 	--stat-adjustment-dialog-width: min(640px, 94vw);
-	--stat-adjustment-dialog-height: var(--modal-height);
+	/* 調整項目だけのときは内容量に合わせ、低い画面では共通モーダル高を上限にする。 */
+	--stat-adjustment-dialog-height: auto;
+	--stat-adjustment-dialog-max-height: var(--modal-height);
 	--stat-adjustment-dialog-background: var(--color-surface);
 	--stat-adjustment-dialog-border: var(--modal-border);
 	--stat-adjustment-dialog-radius: var(--radius-lg);
@@ -53,6 +55,7 @@ body.box-edit-page {
 	z-index: 66;
 	width: var(--stat-adjustment-dialog-width);
 	height: var(--stat-adjustment-dialog-height);
+	max-height: var(--stat-adjustment-dialog-max-height);
 	display: flex;
 	flex-direction: column;
 	overflow: visible;
