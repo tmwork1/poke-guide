@@ -2166,12 +2166,10 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .box-add-button
     display: none;
   }
 
-@media (width <= 899px) {
-  #opponent-notes-section .card-damage .damage-build-matchup .damage-row-direction-toggle {
-    flex: 0 0 auto;
-    width: auto;
-    min-width: 0;
-  }
+#opponent-notes-section .card-damage .damage-build-matchup .damage-row-direction-toggle {
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 0;
 }
 
 /* --------------------------------------------------------------------------

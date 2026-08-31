@@ -241,26 +241,24 @@ body.data-page {
   }
 }
 
-@media (width <= 899px) {
-  /* MobileTrainingBar は固定配置のため通常フローの高さを持たない。実測した上下端を
+/* MobileTrainingBar は固定配置のため通常フローの高さを持たない。実測した上下端を
      使い、データだけをプレビューと下部ナビの間に固定する。 */
-  .box-data-page {
-    position: fixed;
-    inset: var(--header-height) 0 0;
-    height: auto;
-    padding-bottom: 0;
-    overflow: hidden;
-    background: var(--color-bg);
-  }
+.box-data-page {
+  position: fixed;
+  inset: var(--header-height) 0 0;
+  height: auto;
+  padding-bottom: 0;
+  overflow: hidden;
+  background: var(--color-bg);
+}
 
-  .box-data-page .box-data-main {
-    position: fixed;
-    top: var(--box-data-scroll-top, calc(var(--header-height) + var(--app-header-height) + var(--pokemon-preview-height) + 1px));
-    right: 0;
-    bottom: var(--box-data-scroll-bottom, calc(var(--bottom-nav-height) + env(safe-area-inset-bottom)));
-    left: 0;
-    flex: none;
-  }
+.box-data-page .box-data-main {
+  position: fixed;
+  top: var(--box-data-scroll-top, calc(var(--header-height) + var(--app-header-height) + var(--pokemon-preview-height) + 1px));
+  right: 0;
+  bottom: var(--box-data-scroll-bottom, calc(var(--bottom-nav-height) + env(safe-area-inset-bottom)));
+  left: 0;
+  flex: none;
 }
 
 /* box/ranked.astro(上位チーム)は renderTopBuildCard + team-card.css で /team 一覧と

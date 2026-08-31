@@ -166,44 +166,42 @@ body.team-edit-page {
 	scroll-padding-block: var(--team-pokemon-tab-card-scroll-inset);
 }
 
-@media (width <= 899px) {
-	.team-edit-shell {
-		display: flex;
-		flex-direction: column;
-		height: calc(100dvh - var(--header-height) - var(--app-header-height) - var(--bottom-nav-height) - env(safe-area-inset-bottom));
-		overflow: hidden;
-		background: var(--color-bg);
-	}
-	.team-edit-shell[data-mobile-tab="pokemon"] #team-overview-tab,
-	.team-edit-shell[data-mobile-tab="formation"] #team-formation-mobile,
-	.team-edit-shell[data-mobile-tab="matchup"] #team-matchup-mobile {
-		flex: 1 1 auto;
-		min-height: 0;
-	}
-	.team-edit-shell[data-mobile-tab="pokemon"] #team-overview-tab,
-	.team-formation-mobile__box,
-	.team-matchup-mobile__results {
-		overflow-y: auto;
-		overscroll-behavior-y: contain;
-		-webkit-mask-image: linear-gradient(to bottom, transparent 0, transparent var(--team-pokemon-tab-card-scroll-inset), #000 var(--team-pokemon-tab-card-scroll-inset), #000 calc(100% - var(--team-pokemon-tab-card-scroll-inset)), transparent calc(100% - var(--team-pokemon-tab-card-scroll-inset)), transparent 100%);
-		mask-image: linear-gradient(to bottom, transparent 0, transparent var(--team-pokemon-tab-card-scroll-inset), #000 var(--team-pokemon-tab-card-scroll-inset), #000 calc(100% - var(--team-pokemon-tab-card-scroll-inset)), transparent calc(100% - var(--team-pokemon-tab-card-scroll-inset)), transparent 100%);
-	}
-	.team-edit-shell[data-mobile-tab="formation"] #team-formation-mobile,
-	.team-edit-shell[data-mobile-tab="matchup"] #team-matchup-mobile {
-		display: flex;
-		flex-direction: column;
-		min-height: 0;
-	}
-	.team-edit-shell[data-mobile-tab="formation"] .team-formation-mobile__sticky-header,
-	.team-edit-shell[data-mobile-tab="matchup"] #team-matchup-mobile > .team-formation-mobile__mates {
-		position: static;
-		flex: 0 0 auto;
-	}
-	.team-edit-shell[data-mobile-tab="formation"] .team-formation-mobile__box,
-	.team-edit-shell[data-mobile-tab="matchup"] .team-matchup-mobile__results {
-		flex: 1 1 auto;
-		min-height: 0;
-	}
+.team-edit-shell {
+	display: flex;
+	flex-direction: column;
+	height: calc(100dvh - var(--header-height) - var(--app-header-height) - var(--bottom-nav-height) - env(safe-area-inset-bottom));
+	overflow: hidden;
+	background: var(--color-bg);
+}
+.team-edit-shell[data-mobile-tab="pokemon"] #team-overview-tab,
+.team-edit-shell[data-mobile-tab="formation"] #team-formation-mobile,
+.team-edit-shell[data-mobile-tab="matchup"] #team-matchup-mobile {
+	flex: 1 1 auto;
+	min-height: 0;
+}
+.team-edit-shell[data-mobile-tab="pokemon"] #team-overview-tab,
+.team-formation-mobile__box,
+.team-matchup-mobile__results {
+	overflow-y: auto;
+	overscroll-behavior-y: contain;
+	-webkit-mask-image: linear-gradient(to bottom, transparent 0, transparent var(--team-pokemon-tab-card-scroll-inset), #000 var(--team-pokemon-tab-card-scroll-inset), #000 calc(100% - var(--team-pokemon-tab-card-scroll-inset)), transparent calc(100% - var(--team-pokemon-tab-card-scroll-inset)), transparent 100%);
+	mask-image: linear-gradient(to bottom, transparent 0, transparent var(--team-pokemon-tab-card-scroll-inset), #000 var(--team-pokemon-tab-card-scroll-inset), #000 calc(100% - var(--team-pokemon-tab-card-scroll-inset)), transparent calc(100% - var(--team-pokemon-tab-card-scroll-inset)), transparent 100%);
+}
+.team-edit-shell[data-mobile-tab="formation"] #team-formation-mobile,
+.team-edit-shell[data-mobile-tab="matchup"] #team-matchup-mobile {
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+}
+.team-edit-shell[data-mobile-tab="formation"] .team-formation-mobile__sticky-header,
+.team-edit-shell[data-mobile-tab="matchup"] #team-matchup-mobile > .team-formation-mobile__mates {
+	position: static;
+	flex: 0 0 auto;
+}
+.team-edit-shell[data-mobile-tab="formation"] .team-formation-mobile__box,
+.team-edit-shell[data-mobile-tab="matchup"] .team-matchup-mobile__results {
+	flex: 1 1 auto;
+	min-height: 0;
 }
 /* global.css の .status-text が display を指定しているため、hidden 属性だけでは
 	空の状態表示が消えず、段落の上下マージンがカード前の隙間として残る。 */

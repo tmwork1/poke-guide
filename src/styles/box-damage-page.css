@@ -73,16 +73,14 @@
   display: none;
 }
 
-@media (width <= 899px) {
   /* 浮いた追加ボタンへの隠れ避けは、以前は.damage-rows-list自身が持っていたが、
      「よく行われるダメージ計算」を一覧の下に常設する形に変えたことで、一覧側に付けたままだと
      一覧とサジェストの間に不自然な大きい空白ができてしまう(実機確認で発覚)。ボタンの
      クリアランスは本来「ページ最下部と浮いたボタンの間隔」なので、#opponent-notes-section
      自身(一覧+サジェストをまとめて包む器)に持たせ、サジェストの有無に関わらず
      常に最下部だけに空くようにする。 */
-  #opponent-notes-section {
-    padding-bottom: var(--box-damage-mobile-list-padding-bottom);
-  }
+#opponent-notes-section {
+  padding-bottom: var(--box-damage-mobile-list-padding-bottom);
 }
 
 /* 「よく行われるダメージ計算」。#damage-rows-listの下に常設する枠(中身のカード一覧
@@ -104,52 +102,51 @@
   color: var(--color-text-muted);
 }
 
-@media (width <= 899px) {
-  .edit-shell {
-    /* 実測値を親のstyle属性へ設定するため、同じ共通余白トークンをここでも解決可能にする。 */
-    --box-damage-card-scroll-inset: var(--list-grid-edge-gap);
-    display: flex;
-    flex-direction: column;
-    position: fixed;
-    inset: var(--header-height) 0 0;
-    height: auto;
-    overflow: hidden;
-    background: var(--color-bg);
-  }
-  .edit-shell .edit-layout {
-    display: flex;
-    flex: 1;
-    min-height: 0;
-  }
-  .edit-shell .edit-layout-right {
-    position: fixed;
-    top: var(--box-damage-scroll-top, calc(var(--app-header-height) + var(--box-damage-card-scroll-inset)));
-    right: 0;
-    bottom: var(--box-damage-scroll-bottom, calc(var(--bottom-nav-height) + env(safe-area-inset-bottom) + var(--box-damage-card-scroll-inset)));
-    left: 0;
-    flex: 1;
-    min-height: 0;
-    overflow-y: auto;
-    overscroll-behavior-y: contain;
-    background: var(--color-bg);
-    scroll-padding-block: var(--box-damage-card-scroll-inset);
-  }
 
-  .edit-shell .edit-layout-left {
-    position: fixed;
-    top: var(--box-edit-scroll-top, calc(var(--app-header-height) + var(--box-damage-card-scroll-inset)));
-    right: 0;
-    bottom: var(--box-edit-scroll-bottom, calc(var(--bottom-nav-height) + env(safe-area-inset-bottom) + var(--box-damage-card-scroll-inset)));
-    left: 0;
-    min-height: 0;
-    overflow-y: auto;
-    overscroll-behavior-y: contain;
-    background: var(--color-bg);
-    scroll-padding-block: var(--box-damage-card-scroll-inset);
-  }
+.edit-shell {
+    /* 実測値を親のstyle属性へ設定するため、同じ共通余白トークンをここでも解決可能にする。 */
+  --box-damage-card-scroll-inset: var(--list-grid-edge-gap);
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  inset: var(--header-height) 0 0;
+  height: auto;
+  overflow: hidden;
+  background: var(--color-bg);
+}
+.edit-shell .edit-layout {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+.edit-shell .edit-layout-right {
+  position: fixed;
+  top: var(--box-damage-scroll-top, calc(var(--app-header-height) + var(--box-damage-card-scroll-inset)));
+  right: 0;
+  bottom: var(--box-damage-scroll-bottom, calc(var(--bottom-nav-height) + env(safe-area-inset-bottom) + var(--box-damage-card-scroll-inset)));
+  left: 0;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  background: var(--color-bg);
+  scroll-padding-block: var(--box-damage-card-scroll-inset);
+}
+
+.edit-shell .edit-layout-left {
+  position: fixed;
+  top: var(--box-edit-scroll-top, calc(var(--app-header-height) + var(--box-damage-card-scroll-inset)));
+  right: 0;
+  bottom: var(--box-edit-scroll-bottom, calc(var(--bottom-nav-height) + env(safe-area-inset-bottom) + var(--box-damage-card-scroll-inset)));
+  left: 0;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  background: var(--color-bg);
+  scroll-padding-block: var(--box-damage-card-scroll-inset);
+}
 
   /* スクロール領域そのものを固定UIから離すため、内側に同じ余白を重ねない。 */
-  #opponent-notes-section {
-    padding-top: 0;
-  }
+#opponent-notes-section {
+  padding-top: 0;
 }

@@ -87,16 +87,14 @@
   visibility: visible;
 }
 
-@media (width <= 899px) {
-  /* 中央の編集領域だけをスクロールさせるため、ナビゲーションとプレビューはビューポートに固定する。 */
-  .mobile-training-ui {
-    position: fixed;
-    top: var(--header-height);
-    right: 0;
-    left: 0;
-    z-index: var(--pokemon-preview-z-index);
-    display: block;
-  }
+/* 中央の編集領域だけをスクロールさせるため、ナビゲーションとプレビューはビューポートに固定する。 */
+.mobile-training-ui {
+  position: fixed;
+  top: var(--header-height);
+  right: 0;
+  left: 0;
+  z-index: var(--pokemon-preview-z-index);
+  display: block;
 }
 
 /* 画面上部に固定するポケモンプレビュー */

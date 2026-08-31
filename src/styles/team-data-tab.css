@@ -72,28 +72,26 @@ body.team-edit-page {
   display: block;
 }
 
-@media (width <= 899px) {
-  .team-edit-shell[data-mobile-tab="data"] #team-data-mobile {
-    display: flex;
-    flex-direction: column;
-    flex: 1 1 auto;
-    min-height: 0;
-  }
-  .team-edit-shell[data-mobile-tab="data"] #team-data-mobile > .team-formation-mobile__mates {
-    position: static;
-    flex: 0 0 auto;
-  }
-  .team-edit-shell[data-mobile-tab="data"] #team-data-mobile > .team-formation-mobile__suggest {
-    flex: 0 0 var(--team-data-suggest-height);
-  }
-  .team-edit-shell[data-mobile-tab="data"] .team-data-similar-panel {
-    flex: 1 1 auto;
-    min-height: 0;
-    overflow-y: auto;
-    overscroll-behavior-y: contain;
-    -webkit-mask-image: linear-gradient(to bottom, transparent 0, transparent var(--team-data-card-scroll-inset), #000 var(--team-data-card-scroll-inset), #000 calc(100% - var(--team-data-card-scroll-inset)), transparent calc(100% - var(--team-data-card-scroll-inset)), transparent 100%);
-    mask-image: linear-gradient(to bottom, transparent 0, transparent var(--team-data-card-scroll-inset), #000 var(--team-data-card-scroll-inset), #000 calc(100% - var(--team-data-card-scroll-inset)), transparent calc(100% - var(--team-data-card-scroll-inset)), transparent 100%);
-  }
+.team-edit-shell[data-mobile-tab="data"] #team-data-mobile {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.team-edit-shell[data-mobile-tab="data"] #team-data-mobile > .team-formation-mobile__mates {
+  position: static;
+  flex: 0 0 auto;
+}
+.team-edit-shell[data-mobile-tab="data"] #team-data-mobile > .team-formation-mobile__suggest {
+  flex: 0 0 var(--team-data-suggest-height);
+}
+.team-edit-shell[data-mobile-tab="data"] .team-data-similar-panel {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, transparent var(--team-data-card-scroll-inset), #000 var(--team-data-card-scroll-inset), #000 calc(100% - var(--team-data-card-scroll-inset)), transparent calc(100% - var(--team-data-card-scroll-inset)), transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0, transparent var(--team-data-card-scroll-inset), #000 var(--team-data-card-scroll-inset), #000 calc(100% - var(--team-data-card-scroll-inset)), transparent calc(100% - var(--team-data-card-scroll-inset)), transparent 100%);
 }
 /* テキストだけを画面中央に表示する(カード枠は付けない)。 */
 .team-data-similar-panel:has(> .team-data-similar-status) {
