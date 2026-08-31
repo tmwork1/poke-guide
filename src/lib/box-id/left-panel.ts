@@ -2166,13 +2166,19 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 		input.addEventListener("mousedown", () => openPicker(slot, input));
 	}
 
-	document.addEventListener("move-picker:open", () => {
-		const firstEmptySlot = [1, 2, 3, 4].find((slot) => {
-			const input = document.getElementById(`move-${slot}`) as HTMLInputElement | null;
-			return !input?.value.trim();
-		}) ?? 1;
-		const input = document.getElementById(`move-${firstEmptySlot}`) as HTMLInputElement | null;
-		if (input) openPicker(firstEmptySlot, input, true);
+	// detail.slotが指定されていれば(preview-quick-open.tsがプレビューの技タップから
+	// そのスロットを指定する)そのスロットを直接開く。未指定時(.mobile-move-toggle)は
+	// 従来どおり最初の空きスロットを開く。
+	document.addEventListener("move-picker:open", (event) => {
+		const requestedSlot = (event as CustomEvent<{ slot?: number }>).detail?.slot;
+		const targetSlot = requestedSlot && [1, 2, 3, 4].includes(requestedSlot)
+			? requestedSlot
+			: [1, 2, 3, 4].find((slot) => {
+				const input = document.getElementById(`move-${slot}`) as HTMLInputElement | null;
+				return !input?.value.trim();
+			}) ?? 1;
+		const input = document.getElementById(`move-${targetSlot}`) as HTMLInputElement | null;
+		if (input) openPicker(targetSlot, input, true);
 	});
 
 	// 匿名集計サジェスト機能: 種族変更に伴いloadPopularBuildSuggestionsがlastMoveSuggestionを

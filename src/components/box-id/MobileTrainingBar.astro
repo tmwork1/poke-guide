@@ -73,15 +73,20 @@ const previewStats = detail ? statKeys.map((key, index) => index === 0 ? calcHpS
     <div class="pokemon-preview-main">
     <div class="pokemon-preview-left">
       <div class="pokemon-preview-details">
-        <div class="pokemon-preview-species-line">
+        {/* タップで種族選択モーダル(#species-select-trigger-button、LeftPanel.astro)を開く。
+            他のタップ起点(ステータス調整・もちもの)と同じくpreview-quick-open.tsが配線し、
+            対象ボタンが存在しない他ページ(battle-data/ranked-teams/matchup)では安全にno-opにする。 */}
+        <div class="pokemon-preview-species-line" id="pokemon-preview-species-trigger" role="button" tabindex="0" aria-haspopup="dialog" aria-label="ポケモンを選択">
           <div id="pokemon-preview-species-name">{pokemon.species_name || '-'}</div>
           <span class="pokemon-preview-type-icons" id="pokemon-preview-type-icons" aria-label="タイプ"></span>
         </div>
         <div id="pokemon-preview-ability">{pokemon.ability_name || '-'}</div>
       </div>
+      {/* 各行タップで、その技スロットのわざ選択(#move-${slot}へのfocusで開く、
+          left-panel.tsのopenPicker参照)を開く。preview-quick-open.tsが配線する。 */}
       <ol class="pokemon-preview-moves" aria-label="技">
         {[0, 1, 2, 3].map((index) => (
-          <li>
+          <li class="pokemon-preview-move-trigger" data-move-slot={index + 1} role="button" tabindex="0" aria-label={`技${index + 1}を選択`}>
             <span class="pokemon-preview-move-type-bar" id={`pokemon-preview-move-type-${index + 1}`} hidden></span>
             <span id={`pokemon-preview-move-${index + 1}`}>{moves[index] || '-'}</span>
           </li>
@@ -95,7 +100,8 @@ const previewStats = detail ? statKeys.map((key, index) => index === 0 ? calcHpS
       </button>
     </div>
     <div class="pokemon-preview-right">
-      <div class="pokemon-preview-item pokemon-preview-icon-text">
+      {/* タップでもちもの選択モーダル(#item-dropdown-button、LeftPanel.astro)を開く。 */}
+      <div class="pokemon-preview-item pokemon-preview-icon-text" id="pokemon-preview-item-trigger" role="button" tabindex="0" aria-haspopup="dialog" aria-label="もちものを選択">
         {shouldRenderItemIcon && <img id="pokemon-preview-item-image" src={itemName ? itemIconUrl(itemName) : undefined} alt="" class={itemName ? 'pokemon-preview-item-image' : 'pokemon-preview-item-image-hidden'} onerror="this.style.display='none'" />}
         <span id="pokemon-preview-item" data-empty={itemName ? undefined : 'true'}>{itemName || 'もちものなし'}</span>
       </div>
@@ -136,6 +142,7 @@ const previewStats = detail ? statKeys.map((key, index) => index === 0 ? calcHpS
 <script>
   import '../../lib/box-id/mobile-edit-tabs';
   import '../../lib/box-id/stat-adjustment-dialog';
+  import '../../lib/box-id/preview-quick-open';
   import { setupMegaPreviewToggle } from '../../lib/box-id/mega-preview-toggle';
   import { setupAppHeaderSwipe } from '../../lib/app-header-swipe';
   import { applyPreviewMoveTypeBarsFromDom } from '../../lib/box-id/preview-move-type-bar';
