@@ -105,13 +105,16 @@ body.box-edit-page {
 }
 .item-select-grid {
 	display: grid;
-	grid-template-columns: repeat(3, 1fr);
+	grid-template-columns: repeat(2, 1fr);
 	gap: var(--space-2);
 }
 .item-select-grid[hidden] { display: none; }
 .item-select-cell {
 	display: flex;
 	align-items: center;
+	/* button既定のjustify-content:center(global.css)を上書きし、要素ごとに左寄せする。
+	   これが無いと、テキスト長がセルごとに異なるため左端位置がバラバラになる。 */
+	justify-content: flex-start;
 	gap: var(--space-2);
 	min-width: 0;
 	min-height: 44px; /* タップ域を縮めない(WCAG 2.5.8の24px下限を余裕をもって満たす)。 */
@@ -131,11 +134,17 @@ body.box-edit-page {
 	outline: 2px solid var(--color-primary);
 	outline-offset: 1px;
 }
-.item-select-cell-image {
+.item-select-cell-image,
+.item-select-cell-image-spacer {
 	width: 28px;
 	height: 28px;
 	object-fit: contain;
 	flex-shrink: 0;
+}
+/* 「もちものなし」セルにはアイコン画像が無いため、同じ幅の空要素で場所を確保し、
+   他セルとテキストの左端位置をそろえる。 */
+.item-select-cell-image-spacer {
+	display: block;
 }
 .item-select-cell-text {
 	min-width: 0;

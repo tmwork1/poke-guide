@@ -62,6 +62,13 @@ function buildGridOnce(): void {
 				img.style.display = "none";
 			}
 			cell.appendChild(img);
+		} else {
+			// 「テラスタルなし」にはアイコンが無いため、同じ幅の空要素で場所を確保し、
+			// 他セルとテキストの左端位置をそろえる。
+			const spacer = document.createElement("span");
+			spacer.className = "tera-select-cell-image-spacer";
+			spacer.setAttribute("aria-hidden", "true");
+			cell.appendChild(spacer);
 		}
 		const textEl = document.createElement("span");
 		textEl.className = "tera-select-cell-text";

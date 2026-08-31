@@ -56,6 +56,13 @@ function createCell(value: string, label: string): HTMLButtonElement {
 		img.alt = "";
 		void applyItemImage(img, value);
 		cell.appendChild(img);
+	} else {
+		// 「もちものなし」にはアイコンが無いため、同じ幅の空要素で場所を確保し、
+		// 他セルとテキストの左端位置をそろえる。
+		const spacer = document.createElement("span");
+		spacer.className = "item-select-cell-image-spacer";
+		spacer.setAttribute("aria-hidden", "true");
+		cell.appendChild(spacer);
 	}
 	const textEl = document.createElement("span");
 	textEl.className = "item-select-cell-text";
