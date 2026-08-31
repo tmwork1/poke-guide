@@ -18,6 +18,7 @@ interface Props {
 
 const { title, description, current, bodyClass, chrome = "app" } = Astro.props;
 const isPublicChrome = chrome === "public";
+const isGuestMode = !Astro.locals.user;
 
 const pageTitle = title === "ポケガイド" ? title : `${title} | ポケガイド`;
 
@@ -38,7 +39,7 @@ const pageTitle = title === "ポケガイド" ? title : `${title} | ポケガイ
 		{description && <meta name="description" content={description} />}
 		<slot name="head" />
 	</head>
-	<body class={bodyClass}>
+	<body class={bodyClass} data-guest-mode={isGuestMode ? "true" : undefined}>
 		<div class={`app-shell${isPublicChrome ? " is-public" : ""}`}>
 			{!isPublicChrome && <AppBottomNav current={current} />}
 
