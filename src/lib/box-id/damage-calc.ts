@@ -2656,21 +2656,9 @@ if (opponentNotesSection) {
 		const detailIdentityRow = document.createElement("div");
 		detailIdentityRow.className = "damage-build-detail-identity-row";
 		detailFields.appendChild(detailIdentityRow);
-		const detailIdentitySummary = document.createElement("div");
-		detailIdentitySummary.className = "damage-build-detail-identity-summary";
-		const detailSpriteBox = document.createElement("div");
-		detailSpriteBox.className = "damage-build-detail-sprite-box";
-		const detailSpriteImg = document.createElement("img");
-		detailSpriteImg.className = "sprite-icon";
-		detailSpriteImg.width = 104;
-		detailSpriteImg.height = 104;
-		detailSpriteImg.alt = "";
-		detailSpriteImg.style.display = "none";
-		const detailSpriteFallback = document.createElement("span");
-		detailSpriteFallback.className = "sprite-fallback";
-		detailSpriteBox.append(detailSpriteImg, detailSpriteFallback);
-		detailIdentitySummary.append(detailSpriteBox);
-		detailIdentityRow.appendChild(detailIdentitySummary);
+		// 攻防スイッチ直上の相手アイコン(旧detailSpriteBox)は撤去した。行カード側の
+		// spriteBox(上のmatchup内、削除対象外)で既にアイコンを表示しているため、詳細
+		// パネル側は攻守トグルと種族名入力の2つだけで構成する。
 		const detailDirectionToggle = document.createElement("div");
 		detailDirectionToggle.className = "damage-row-direction-toggle damage-build-detail-direction-toggle";
 		detailDirectionToggle.setAttribute("role", "radiogroup");
@@ -2737,6 +2725,14 @@ if (opponentNotesSection) {
 				const icon = document.createElement("img");
 				icon.className = "damage-build-detail-name-dropdown-option-icon";
 				icon.alt = "";
+				// 候補は全件(1000件超)描画するため、素朴にapplySpriteへ渡すと
+				// キー入力のたびに画面外の候補も含めて一斉に画像取得が走り、
+				// 同時多発するリクエストの渋滞で肝心の入力欄自身のアイコン
+				// (spriteImg/detailSpriteImg)の読み込みまで割を食って遅延する
+				// (=種族名を確定してもアイコンがすぐ反映されないバグの原因)。
+				// loading="lazy"でスクロールに入るまで取得を遅らせ、渋滞そのものを避ける。
+				icon.loading = "lazy";
+				icon.decoding = "async";
 				const fallback = document.createElement("span");
 				fallback.className = "damage-build-detail-name-dropdown-option-fallback";
 				fallback.setAttribute("aria-hidden", "true");
@@ -2766,15 +2762,12 @@ if (opponentNotesSection) {
 		});
 
 		// モバイル専用UIでも相手ポケモンはドット絵で統一する。
+		// 詳細パネル側のアイコン(旧detailSpriteImg)は撤去済みのため、行カード側の
+		// spriteImg/spriteFallbackだけを更新する。
 		function refreshSprite(): void {
 			void applySprite(
 				spriteImg,
 				spriteFallback,
-				row.name.trim(),
-			);
-			void applySprite(
-				detailSpriteImg,
-				detailSpriteFallback,
 				row.name.trim(),
 			);
 		}

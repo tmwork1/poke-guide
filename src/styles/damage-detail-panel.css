@@ -661,50 +661,16 @@ body.box-edit-page {
 		row-gap: var(--damage-detail-space-xs);
 	}
 	#damage-detail-panel-body .damage-build-detail-identity-row {
+		/* 旧detailSpriteBox(相手アイコン)撤去に伴い、攻守トグル・種族名入力の
+			2列だけになった(以前は3列目に相手アイコンを置いていた)。 */
 		grid-column: 1 / -1;
 		display: grid;
-		grid-template-columns: minmax(0, auto) auto minmax(0, 1fr);
+		grid-template-columns: auto minmax(0, 1fr);
 		align-items: center;
 		gap: var(--damage-detail-space-sm);
-	}
-	#damage-detail-panel-body .damage-build-detail-identity-summary {
-		min-width: 0;
-		display: flex;
-		align-items: center;
-		gap: var(--damage-detail-space-sm);
-	}
-	#damage-detail-panel-body .damage-build-detail-sprite-box {
-		width: var(--damage-detail-selection-icon-size);
-		height: var(--damage-detail-selection-icon-size);
-		flex: none;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-	}
-	#damage-detail-panel-body .damage-build-detail-sprite-box .sprite-icon {
-		width: 100%;
-		height: 100%;
-		object-fit: contain;
-	}
-	#damage-detail-panel-body .damage-build-detail-sprite-box .sprite-fallback {
-		display: none;
-		align-items: center;
-		justify-content: center;
-		width: 100%;
-		height: 100%;
-		font-size: var(--damage-detail-font-size-xs);
-		color: var(--damage-detail-muted-color);
 	}
 	#damage-detail-panel-body .damage-build-detail-name-field {
 		min-width: 0;
-	}
-	@media (max-width: 420px) {
-		#damage-detail-panel-body .damage-build-detail-identity-row {
-			grid-template-columns: auto minmax(0, 1fr);
-		}
-		#damage-detail-panel-body .damage-build-detail-identity-summary {
-			grid-column: 1 / -1;
-		}
 	}
 	#damage-detail-panel-body .damage-build-detail-direction-toggle {
 		/* C: 旧来の固定幅(4.4em)は「攻撃」「防御」2文字ラベル2つ分には狭すぎ、
