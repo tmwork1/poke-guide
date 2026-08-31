@@ -27,6 +27,8 @@ export interface ItemSelectGridOptions {
 	emptyEl: HTMLElement;
 	getActiveValue: () => string | null;
 	onSelect: (value: string) => void;
+	/** 未指定なら共有マスタの並び順(五十音順)のまま。指定時は""を除いた値配列を並べ替える。 */
+	sortRest?: (values: string[]) => string[];
 }
 
 export interface ItemSelectGrid {
@@ -84,7 +86,9 @@ export function createItemSelectGrid(options: ItemSelectGridOptions): ItemSelect
 
 	function render(searchQuery: string): void {
 		const noneCell = cellByValue.get("");
-		const rest = Array.from(cellByValue.entries()).filter(([value]) => value !== "");
+		let restValues = Array.from(cellByValue.keys()).filter((value) => value !== "");
+		if (options.sortRest) restValues = options.sortRest(restValues);
+		const rest = restValues.map((value) => [value, cellByValue.get(value)!] as const);
 		const matches = (label: string) => !searchQuery || kanaIncludes(label, searchQuery);
 		const activeValue = options.getActiveValue() ?? "__none_selected__";
 		const visible: HTMLButtonElement[] = [];

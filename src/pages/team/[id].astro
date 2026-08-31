@@ -558,10 +558,13 @@ try {
 							<h2 id="team-item-redistribute-title" class="item-select-title">もちもの再分配</h2>
 							<button type="button" id="team-item-redistribute-close" class="btn-ghost item-select-close" aria-label="閉じる">×</button>
 						</div>
-						<p class="team-item-redistribute-help">ポケモンを選んで持ち物を選択。別のポケモンを選ぶと持ち物を入れ替えます。長押し、または持ち物を押すと解除できます。</p>
-						<div id="team-item-redistribute-members" class="team-item-redistribute-members" aria-label="チームのポケモン"></div>
+						<div id="team-item-redistribute-members" class="team-item-redistribute-members team-mate-grid" aria-label="チームのポケモン"></div>
 						<div class="item-select-search-row">
 							<div class="search-input-wrap item-select-search-wrap">
+								<svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+									<circle cx="11" cy="11" r="7" />
+									<line x1="21" y1="21" x2="16.65" y2="16.65" />
+								</svg>
 								<input type="text" id="team-item-redistribute-search" class="item-select-search-input field-control" placeholder="もちものを検索" aria-label="もちものを検索" autocomplete="off" />
 							</div>
 						</div>
@@ -2068,79 +2071,16 @@ try {
 			}
 
 			function renderRedistributionMembers(): void {
-				itemRedistributeMembers.replaceChildren();
-				for (let slot = 1; slot <= 6; slot += 1) {
-					const p = membersBySlot.get(slot);
-					if (!p) {
-						const empty = document.createElement("div");
-						empty.className = "team-item-redistribute-member is-empty";
-						empty.textContent = String(slot);
-						itemRedistributeMembers.appendChild(empty);
-						continue;
-					}
-					const member = document.createElement("div");
-					member.className = "team-item-redistribute-member";
-					member.tabIndex = 0;
-					member.setAttribute("role", "button");
-					member.setAttribute("aria-pressed", String(selectedRedistributionSlot === slot));
-					if (selectedRedistributionSlot === slot) member.classList.add("is-selected");
-					const sprite = document.createElement("img");
-					sprite.className = "team-item-redistribute-member-sprite";
-					sprite.alt = "";
-					sprite.style.display = "none";
-					const fallback = document.createElement("span");
-					fallback.className = "team-item-redistribute-member-fallback";
-					member.append(sprite, fallback);
-					void applySprite(sprite, fallback, p.species_name);
-					const name = document.createElement("span");
-					name.className = "team-item-redistribute-member-name";
-					name.textContent = displayName(p);
-					const itemButton = document.createElement("button");
-					itemButton.type = "button";
-					itemButton.className = "team-item-redistribute-member-item";
-					const itemName = effectiveItemName(slot, p);
-					itemButton.title = itemName ? `${itemName}を解除` : "もちものなし";
-					itemButton.setAttribute("aria-label", itemButton.title);
-					if (itemName) {
-						const itemImage = document.createElement("img");
-						itemImage.alt = "";
-						void applyItemIcon(itemImage, itemName);
-						itemButton.appendChild(itemImage);
-					}
-					const itemLabel = document.createElement("span");
-					itemLabel.textContent = itemName || "なし";
-					itemButton.appendChild(itemLabel);
-					itemButton.addEventListener("click", (event) => {
-						event.stopPropagation();
-						clearRedistributedItem(slot);
-					});
-					member.append(name, itemButton);
-					let longPressTimer: ReturnType<typeof window.setTimeout> | undefined;
-					let longPressed = false;
-					member.addEventListener("pointerdown", (event) => {
-						if (event.button !== 0) return;
-						longPressed = false;
-						longPressTimer = window.setTimeout(() => {
-							longPressed = true;
-							clearRedistributedItem(slot);
-						}, 500);
-					});
-					const cancelLongPress = () => {
-						if (longPressTimer !== undefined) window.clearTimeout(longPressTimer);
-						longPressTimer = undefined;
-					};
-					member.addEventListener("pointerup", cancelLongPress);
-					member.addEventListener("pointercancel", cancelLongPress);
-					member.addEventListener("pointerleave", cancelLongPress);
-					member.addEventListener("click", () => {
-						if (longPressed) { longPressed = false; return; }
-						onRedistributionMemberTap(slot);
-					});
-					member.addEventListener("keydown", (event) => {
-						if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onRedistributionMemberTap(slot); }
-					});
-					itemRedistributeMembers.appendChild(member);
-				}
+				renderTeamMateSlots({
+					root: itemRedistributeMembers,
+					membersBySlot: effectiveMembersBySlot(),
+					displayName,
+					selectedSlot: selectedRedistributionSlot,
+					onSlotTap: onRedistributionMemberTap,
+					onSlotLongPress: clearRedistributedItem,
+					applySprite,
+					applyItemIcon,
+				});
 			}
 
 			function refreshEffectiveItemViews(): void {
@@ -2202,10 +2142,63 @@ try {
 				renderRedistributionItems();
 			}
 
+			// もちもの再分配ダイアログの一覧だけ、[チームの合計採用率順]→[きのみ以外・五十音順]→[きのみ・五十音順]で
+			// 並べる(通常のもちもの選択ダイアログはgetSharedItemNames()由来の五十音順のまま=対象外)。
+			const speciesItemUsageCache = new Map<string, Map<string, number>>();
+
+			async function fetchSpeciesItemUsage(speciesName: string): Promise<Map<string, number>> {
+				const cached = speciesItemUsageCache.get(speciesName);
+				if (cached) return cached;
+				const usage = new Map<string, number>();
+				try {
+					const res = await fetch(`/api/opgg-usage?species=${encodeURIComponent(speciesName)}&category=items`);
+					if (res.ok) {
+						const json = await res.json() as { options: { name: string; usageRate: number | null }[] };
+						for (const row of json.options) {
+							if (row.usageRate != null) usage.set(row.name, row.usageRate);
+						}
+					}
+				} catch {
+					// 並び順の付加機能のため、取得失敗時は寄与0として扱う。
+				}
+				speciesItemUsageCache.set(speciesName, usage);
+				return usage;
+			}
+
+			let teamItemUsageTotals: Map<string, number> = new Map();
+
+			async function loadTeamItemUsageTotals(): Promise<void> {
+				const speciesNames = Array.from(new Set(
+					Array.from(membersBySlot.values())
+						.map((p) => p.species_name)
+						.filter((name): name is string => !!name),
+				));
+				const usages = await Promise.all(speciesNames.map(fetchSpeciesItemUsage));
+				const totals = new Map<string, number>();
+				for (const usage of usages) {
+					for (const [itemName, rate] of usage) totals.set(itemName, (totals.get(itemName) ?? 0) + rate);
+				}
+				teamItemUsageTotals = totals;
+			}
+
+			function isBerryItemName(name: string): boolean {
+				return name.endsWith("のみ");
+			}
+
+			function sortRedistributionItems(values: string[]): string[] {
+				const ranked = values.filter((value) => (teamItemUsageTotals.get(value) ?? 0) > 0);
+				ranked.sort((a, b) => (teamItemUsageTotals.get(b) ?? 0) - (teamItemUsageTotals.get(a) ?? 0));
+				const rest = values.filter((value) => (teamItemUsageTotals.get(value) ?? 0) <= 0);
+				const nonBerries = rest.filter((value) => !isBerryItemName(value));
+				const berries = rest.filter((value) => isBerryItemName(value));
+				return [...ranked, ...nonBerries, ...berries];
+			}
+
 			const redistributionItemGrid = createItemSelectGrid({
 				gridEl: itemRedistributeItems,
 				emptyEl: itemRedistributeEmpty,
 				getActiveValue: () => selectedRedistributionSlot === null ? selectedRedistributionItem : null,
+				sortRest: sortRedistributionItems,
 				onSelect: (itemName) => {
 					if (selectedRedistributionSlot !== null) {
 						setRedistributedItem(selectedRedistributionSlot, itemName);
@@ -4262,6 +4255,9 @@ try {
 					itemRedistributeBackdrop.hidden = false;
 					itemRedistributeDialog.hidden = false;
 					itemRedistributeDialog.focus();
+					// チームの合計採用率はネットワーク取得を伴うため、ダイアログ表示自体は
+					// 待たせず、届き次第もちもの一覧の並び順だけ更新する。
+					void loadTeamItemUsageTotals().then(() => renderRedistributionItems());
 				});
 			});
 			itemRedistributeClose.addEventListener("click", closeRedistributionDialog);

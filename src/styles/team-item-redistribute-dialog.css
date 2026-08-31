@@ -37,114 +37,20 @@ body.team-edit-page {
 	overflow: hidden;
 }
 
-.team-item-redistribute-help {
-	margin: 0;
-	padding: var(--space-2) var(--space-5);
-	color: var(--color-text-muted);
-	font-size: var(--font-size-sm2);
-	line-height: var(--line-height-snug);
-	border-bottom: 1px solid var(--color-border);
-}
-
 .team-item-redistribute-members {
-	display: grid;
-	grid-template-columns: repeat(6, minmax(0, 1fr));
-	gap: var(--space-2);
 	padding: var(--space-3) var(--space-5);
 	border-bottom: 1px solid var(--color-border);
 	flex: 0 0 auto;
 }
 
-.team-item-redistribute-member {
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	justify-content: center;
-	gap: var(--space-1);
-	min-width: 0;
-	min-height: 112px;
-	padding: var(--space-2);
-	border: 1px solid var(--color-border);
-	border-radius: var(--radius-sm);
-	background: var(--color-surface);
-	cursor: pointer;
-	text-align: center;
-}
-
-.team-item-redistribute-member:hover,
-.team-item-redistribute-member:focus-visible,
-.team-item-redistribute-member.is-selected {
-	border-color: var(--color-primary);
-	background: var(--color-primary-soft);
-	outline: none;
-}
-
-.team-item-redistribute-member.is-empty {
-	color: var(--color-text-muted);
-	cursor: default;
-}
-
-.team-item-redistribute-member-sprite,
-.team-item-redistribute-member-fallback {
-	width: 44px;
-	height: 44px;
-	object-fit: contain;
-}
-
-.team-item-redistribute-member-fallback {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	font-weight: 700;
-}
-
-.team-item-redistribute-member-name,
-.team-item-redistribute-member-item {
-	min-width: 0;
-	max-width: 100%;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-
-.team-item-redistribute-member-name {
-	font-size: var(--font-size-sm2);
-	font-weight: 700;
-}
-
-.team-item-redistribute-member-item {
-	display: inline-flex;
-	align-items: center;
-	gap: var(--space-1);
-	max-width: 100%;
-	padding: 0;
-	border: 0;
-	background: transparent;
-	color: var(--color-text-muted);
-	font: inherit;
-	font-size: var(--font-size-sm3);
-	cursor: pointer;
-}
-
-.team-item-redistribute-member-item:hover,
-.team-item-redistribute-member-item:focus-visible {
-	color: var(--color-danger-strong);
-	outline: none;
-	text-decoration: underline;
-}
-
-.team-item-redistribute-member-item img {
-	width: 18px;
-	height: 18px;
-	object-fit: contain;
-	flex: 0 0 auto;
+/* 編成タブの.team-mate-card__item(コーナーアイコン)は他画面と共有のため、
+   この再分配モーダルの中だけ少し大きく見せる。 */
+.team-item-redistribute-members .team-mate-card__item {
+	width: 50%;
 }
 
 @media (max-width: 640px) {
 	.team-item-redistribute-members {
-		grid-template-columns: repeat(3, minmax(0, 1fr));
 		padding-inline: var(--space-3);
 	}
-	.team-item-redistribute-member { min-height: 96px; }
-	.team-item-redistribute-help { padding-inline: var(--space-3); }
 }
