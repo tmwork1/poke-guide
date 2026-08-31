@@ -175,7 +175,7 @@ body.data-page {
 .item-select-cell-text {
 	min-width: 0;
 	max-width: 100%;
-	min-height: calc(2 * var(--line-height-snug));
+	min-height: calc(2em * var(--line-height-snug)); /* --line-height-snugは単位無しの倍率のため、2 * var(...)単独ではlengthにならず無効な宣言になる(実測で発覚)。1emを掛けて長さにする。 */
 	overflow: hidden;
 	display: -webkit-box;
 	-webkit-box-orient: vertical;
