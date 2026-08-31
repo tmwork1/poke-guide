@@ -50,7 +50,10 @@
 /* 右下に固定する丸い追加ボタン */
 .floating-list-page .floating-list-add-button {
   position: fixed;
-  right: var(--floating-list-controls-edge-offset);
+  right: max(
+    var(--floating-list-controls-edge-offset),
+    calc((100vw - var(--content-band-max-width)) / 2 + var(--floating-list-controls-edge-offset))
+  );
   bottom: calc(var(--bottom-nav-height) + var(--floating-list-controls-bottom-gap) + env(safe-area-inset-bottom) + var(--floating-list-controls-offset-y) + (var(--floating-list-search-control-size) - var(--floating-list-add-control-size)) * 0.5);
   z-index: 17;
   width: var(--floating-list-add-control-size);

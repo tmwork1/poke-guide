@@ -121,6 +121,14 @@
   scrollbar-width: none;
 }
 
+/* 基準幅412pxでは既存のタブ幅を保ち、それより広い画面だけを本文帯に揃える。 */
+@media (width > 412px) {
+  .app-header__list {
+    max-width: var(--content-band-max-width);
+    margin-inline: auto;
+  }
+}
+
 /* フリックでのタブ切り替え時、選択ハイライトを旧タブ→新タブへ一度だけスライドさせる
    演出用の要素(app-header-swipe.tsがJSで生成・アニメーションさせる)。
    タップでの切り替えには使わない(即座に.app-header__item[data-active]の背景に任せる)。 */

@@ -11,5 +11,7 @@ const { ariaLabel, class: className } = Astro.props;
 ---
 
 <div class={`second-header${className ? ` ${className}` : ''}`} aria-label={ariaLabel}>
-	<slot />
+	<div class="second-header__content">
+		<slot />
+	</div>
 </div>

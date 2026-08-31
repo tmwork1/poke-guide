@@ -59,6 +59,14 @@
   height: var(--bottom-nav-height);
 }
 
+/* 基準幅412pxでは従来の5等分を保ち、それより広い画面だけを本文帯に揃える。 */
+@media (width > 412px) {
+  .app-bottom-nav-list {
+    max-width: var(--content-band-max-width);
+    margin-inline: auto;
+  }
+}
+
 /* アイコンと項目名を縦に並べる各リンク */
 .app-bottom-nav-item {
   flex: 1 1 0;

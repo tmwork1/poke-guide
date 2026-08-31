@@ -48,7 +48,6 @@ function isMegaForm(entry: PokemonMasterEntry): boolean {
  */
 export function setupMegaPreviewToggle(): void {
   const preview = document.querySelector<HTMLElement>('.pokemon-preview');
-  const previewMain = preview?.querySelector<HTMLElement>('.pokemon-preview-main');
   const spriteWrap = preview?.querySelector<HTMLButtonElement>('.pokemon-preview-sprite-wrap');
   const nameEl = document.getElementById('pokemon-preview-species-name');
   const spriteEl = document.getElementById('pokemon-preview-species-sprite') as HTMLImageElement | null;
@@ -58,7 +57,7 @@ export function setupMegaPreviewToggle(): void {
   const sourceSpeciesInput = document.getElementById('species-name') as HTMLInputElement | null;
   const sourceItemInput = document.getElementById('item') as HTMLInputElement | null;
   const previewItemEl = document.getElementById('pokemon-preview-item');
-  if (!preview || !previewMain || !spriteWrap || !nameEl || !spriteEl || !fallbackEl) return;
+  if (!preview || !spriteWrap || !nameEl || !spriteEl || !fallbackEl) return;
 
   let sourceSpecies = sourceSpeciesInput?.value.trim() || preview.dataset.speciesName?.trim() || '';
   let sourceItem = sourceItemInput?.value.trim() || preview.dataset.itemName?.trim() || '';
@@ -87,7 +86,7 @@ export function setupMegaPreviewToggle(): void {
         const color = TYPE_COLOR_CSS_VARIABLES[typeName] ?? DEFAULT_TYPE_COLOR;
         return `color-mix(in srgb, ${color} 26%, var(--color-bg))`;
       };
-      previewMain.style.background = entry.types.length >= 2
+      preview.style.background = entry.types.length >= 2
         ? `linear-gradient(to right, ${toMixedColor(entry.types[0])}, ${toMixedColor(entry.types[1])})`
         : toMixedColor(entry.types[0] ?? '');
       typeIconsEl?.replaceChildren(...entry.types.map((typeName) => {
