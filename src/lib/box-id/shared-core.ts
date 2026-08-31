@@ -393,7 +393,14 @@ export async function recalcStats(): Promise<void> {
 		valueEl.textContent = String(value);
 		if (key === "hp") {
 			const indicatorEl = document.getElementById("hp-16n-indicator");
-			if (indicatorEl) indicatorEl.textContent = hpBracketLabel(value);
+			if (indicatorEl) {
+				indicatorEl.textContent = hpBracketLabel(value);
+				// 「残りXX」と16n+mは同じ残数行に並ぶ補助表示。努力値の残数が0/超過の
+				// ときは、片方だけが状態色になると見た目が分裂するため状態を共有する。
+				const remainingState = document.getElementById("ev-remaining")?.dataset.state;
+				if (remainingState) indicatorEl.dataset.state = remainingState;
+				else delete indicatorEl.dataset.state;
+			}
 		}
 		if (natureMod.up === key) {
 			valueEl.dataset.mod = "up";

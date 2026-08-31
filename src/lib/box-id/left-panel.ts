@@ -1127,7 +1127,10 @@ if (form) {
 			delete valueEl.dataset.mod;
 		}
 		const indicatorEl = document.getElementById("hp-16n-indicator");
-		if (indicatorEl) indicatorEl.textContent = "";
+		if (indicatorEl) {
+			indicatorEl.textContent = "";
+			delete indicatorEl.dataset.state;
+		}
 	}
 
 	// デバウンス付き即時自動保存 + 楽観的UI更新(計画書§6.2)。
