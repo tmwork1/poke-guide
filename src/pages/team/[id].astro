@@ -26,15 +26,17 @@ import '../../styles/app-header.css';
 import '../../styles/matchup-panel.css';
 import '../../styles/item-select-dialog.css';
 import '../../styles/team-item-redistribute-dialog.css';
+import '../../styles/guest-login-dialog.css';
 
 const user = Astro.locals.user;
 const id = Astro.params.id;
 const isNewMode = id === 'new';
+const isGuestNewMode = isNewMode && !user;
 
 let team: Team | null = null;
 let loadError = false;
 
-if (!user) {
+if (!user && !isNewMode) {
 	const now = new Date().toISOString();
 	team = {
 		id: isNewMode ? '' : (id ?? ''),
@@ -88,10 +90,12 @@ const initialTeamJson = team
 	: '';
 
 let rankedSeason: string | null = null;
-try {
-	rankedSeason = resolveDefaultSeason(await listRankedSeasons(await getSupabasePublicClient()));
-} catch (error) {
-	console.error('[team/[id]] 類似構築のシーズン取得に失敗しました:', error);
+if (!isGuestNewMode) {
+	try {
+		rankedSeason = resolveDefaultSeason(await listRankedSeasons(await getSupabasePublicClient()));
+	} catch (error) {
+		console.error('[team/[id]] 類似構築のシーズン取得に失敗しました:', error);
+	}
 }
 ---
 <AppLayout title={pageTitle} current="team" bodyClass={bodyClass}>
@@ -433,7 +437,14 @@ try {
 
 	<div class="page">
 		{
-			loadError ? (
+			isGuestNewMode ? (
+				<section class="panel">
+					<div class="panel-content">
+						<p>ログインすると、新しいチームを作成できます。</p>
+						<a href="/api/auth/login">Googleでログイン</a>
+					</div>
+				</section>
+			) : loadError ? (
 				<section class="panel">
 					<div class="panel-content">
 						<p>チーム情報を読み込めませんでした。時間をおいて再度お試しください。</p>
@@ -1811,6 +1822,17 @@ try {
 
 	</style>
 
+	<dialog id="guest-login-dialog" class="guest-login-dialog" aria-labelledby="guest-login-title">
+		<div class="guest-login-dialog__content">
+			<h2 id="guest-login-title">新しいポケモンを作成</h2>
+			<p>ログインすると、新しいポケモンを作成できます。</p>
+			<div class="guest-login-dialog__actions">
+				<a class="btn-primary" href="/api/auth/login">Googleでログイン</a>
+				<button type="button" id="guest-login-close">閉じる</button>
+			</div>
+		</div>
+	</dialog>
+
 	<script>
 		// チーム編集: ポケモン選択バー(左)と6枠(中央)を描画し、自動保存する。
 		// 自動保存のデバウンス方式は box/[id].astro と同じ(700ms・保存ボタンは作らない・
@@ -1948,6 +1970,13 @@ try {
 				const found = document.getElementById(id);
 				if (!found) throw new Error(`要素が見つかりません: #${id}`);
 				return found as T;
+			}
+
+			const guestLoginDialog = el<HTMLDialogElement>("guest-login-dialog");
+			const guestLoginClose = el<HTMLButtonElement>("guest-login-close");
+			guestLoginClose.addEventListener("click", () => guestLoginDialog.close());
+			function showGuestLoginDialog(): void {
+				guestLoginDialog.showModal();
 			}
 
 			const memoInput = el<HTMLTextAreaElement>("team-memo");
@@ -2804,6 +2833,10 @@ try {
 			// 編集画面へ送る。努力値・技・性格は提案の識別キーに含まれない(型は
 			// 種族・特性・持ち物・role の4つで決まる、migrations/015)ため空のままにする。
 			async function createPokemonFromSuggestion(suggestion: TeamSuggestion, button: HTMLButtonElement): Promise<void> {
+				if (isGuestMode()) {
+					showGuestLoginDialog();
+					return;
+				}
 				button.disabled = true;
 				// 登録失敗時に鉛筆アイコンを含む元の表示を復元する。
 				const originalContent = Array.from(button.childNodes, (node) => node.cloneNode(true));
@@ -3781,6 +3814,10 @@ try {
 			}
 
 			async function createFormationMobilePokemon(): Promise<void> {
+				if (isGuestMode()) {
+					showGuestLoginDialog();
+					return;
+				}
 				formationMobileAddButton.disabled = true;
 				formationMobileStatus.hidden = true;
 				try {

@@ -4,15 +4,12 @@
 import type { Team } from '../team';
 import type { TeamRequestBody } from '../team-validation';
 import {
-  createGuestTeam,
   deleteGuestTeam,
   getGuestTeam,
-  listGuestPokemon,
   listGuestTeams,
   updateGuestTeam,
 } from './guest-store';
 import { isGuestMode } from './guest-mode';
-import { ensureGuestSamples, GUEST_SAMPLE_POKEMON } from './pokemon-repo';
 
 export interface ListTeamsPageOptions {
   limit: number;
@@ -24,26 +21,8 @@ export interface TeamsPage {
   hasMore: boolean;
 }
 
-function ensureGuestSampleTeam(): void {
-  ensureGuestSamples();
-  if (listGuestTeams().length > 0) return;
-
-  const pokemon = listGuestPokemon();
-  const members = GUEST_SAMPLE_POKEMON.slice(0, 2).flatMap((sample, index) => {
-    const entry = pokemon.find((candidate) => candidate.species_name === sample.species_name);
-    return entry
-      ? [{ slot: index + 1, owned_pokemon_id: entry.id, item_override: null }]
-      : [];
-  });
-  if (members.length === 2) createGuestTeam({ members });
-}
-
 export async function listTeamsPage(options: ListTeamsPageOptions): Promise<TeamsPage> {
   if (isGuestMode()) {
-    // This is intentionally done before reading teams so /team can bootstrap
-    // both sample Pokemon and the sample team, including after /box was opened
-    // first and seeded the shared guest store.
-    ensureGuestSampleTeam();
     const allTeams = listGuestTeams();
     const teams = allTeams.slice(options.offset, options.offset + options.limit);
     return { teams, hasMore: options.offset + teams.length < allTeams.length };
@@ -77,7 +56,7 @@ export async function deleteTeam(id: string): Promise<void> {
 
 export async function createTeam(): Promise<{ id: string }> {
   if (isGuestMode()) {
-    return { id: createGuestTeam().id };
+    throw new Error('ログインすると、新しいチームを作成できます。');
   }
 
   const response = await fetch('/api/teams', {

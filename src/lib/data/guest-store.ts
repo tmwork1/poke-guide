@@ -33,11 +33,6 @@ export interface GuestTeamInput {
   is_pinned?: boolean;
 }
 
-export interface GuestDataExport {
-  pokemon: GuestPokemonData[];
-  teams: GuestTeamData[];
-}
-
 interface GuestStoreState {
   version: 1;
   initialized: boolean;
@@ -221,11 +216,6 @@ function resolveTeam(team: GuestTeamData, pokemon: readonly GuestPokemonData[]):
   return { ...cloneTeam(team), user_id: '', members };
 }
 
-/** Whether this browser has ever created, updated, or deleted guest data. */
-export function isGuestStoreInitialized(): boolean {
-  return readState().initialized;
-}
-
 /** List guest Pokémon in the same newest-first order as the server store. */
 export function listGuestPokemon(): OwnedPokemonRecord[] {
   return readState()
@@ -332,22 +322,6 @@ export function getGuestTeam(id: string): Team | null {
   return team ? resolveTeam(team, state.pokemon) : null;
 }
 
-export function createGuestTeam(input: GuestTeamInput = {}): Team {
-  return mutateState((state) => {
-    const now = new Date().toISOString();
-    const team: GuestTeamData = {
-      id: guestId(),
-      memo: input.memo ?? null,
-      is_pinned: input.is_pinned ?? false,
-      created_at: now,
-      updated_at: now,
-      members: normalizeMembers(input.members ?? [], state.pokemon),
-    };
-    state.teams.push(team);
-    return resolveTeam(team, state.pokemon);
-  });
-}
-
 /** Replaces supplied memo and/or members; omitted properties retain their current value. */
 export function updateGuestTeam(id: string, input: GuestTeamInput): Team | null {
   return mutateState((state) => {
@@ -375,28 +349,3 @@ export function deleteGuestTeam(id: string): boolean {
     return state.teams.length !== before;
   });
 }
-
-/** A migration-safe export: all local IDs and team member references are retained. */
-export function getAllGuestData(): GuestDataExport {
-  const state = readState();
-  return {
-    pokemon: state.pokemon.map(clonePokemon),
-    teams: state.teams.map(cloneTeam),
-  };
-}
-
-/**
- * Clear data that has been successfully migrated to an account.
- *
- * `initialized` intentionally stays true so a later guest session in this
- * browser starts empty instead of recreating the one-time sample data.
- */
-export function clearMigratedGuestData(): void {
-  mutateState((state) => {
-    state.pokemon = [];
-    state.teams = [];
-  });
-}
-
-/** Alias that makes the P4 account-migration call site self-documenting. */
-export const getGuestDataForMigration = getAllGuestData;

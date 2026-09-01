@@ -28,11 +28,12 @@ import { getOwnedPokemon, type OwnedPokemonRecord } from '../../lib/owned-pokemo
 const user = Astro.locals.user;
 const id = Astro.params.id;
 const isNewMode = id === "new";
+const isGuestNewMode = isNewMode && !user;
 
 let pokemon: OwnedPokemonRecord | null = null;
 let loadError = false;
 
-if (!user) {
+if (!user && !isNewMode) {
 	pokemon = {
 		id: isNewMode ? '' : (id ?? ''),
 		user_id: '',
@@ -244,7 +245,14 @@ const initialMobileTab = !isNewMode && Astro.url.searchParams.get('tab') === 'da
 	)}
 	<div class="page edit-shell" id="edit-shell" data-mobile-tab={initialMobileTab}>
 	{
-		loadError ? (
+		isGuestNewMode ? (
+			<section class="panel">
+				<div class="panel-content">
+					<p>ログインすると、新しいポケモンを作成できます。</p>
+					<a href="/api/auth/login">Googleでログイン</a>
+				</div>
+			</section>
+		) : loadError ? (
 			<section class="panel">
 				<div class="panel-content">
 					<p>個体情報を読み込めませんでした。時間をおいて再度お試しください。</p>

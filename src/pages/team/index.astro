@@ -17,6 +17,7 @@ import '../../styles/team-page.css';
 import '../../styles/team-mate-card.css';
 import '../../styles/app-header.css';
 import '../../styles/second-header.css';
+import '../../styles/guest-login-dialog.css';
 import AppHeader from '../../components/AppHeader.astro';
 import SecondHeader from '../../components/SecondHeader.astro';
 ---
@@ -108,6 +109,17 @@ import SecondHeader from '../../components/SecondHeader.astro';
 					</button>
 	</div>
 
+	<dialog id="guest-login-dialog" class="guest-login-dialog" aria-labelledby="guest-login-title">
+		<div class="guest-login-dialog__content">
+			<h2 id="guest-login-title">新しいチームを作成</h2>
+			<p>ログインすると、新しいチームを作成できます。</p>
+			<div class="guest-login-dialog__actions">
+				<a class="btn-primary" href="/api/auth/login">Googleでログイン</a>
+				<button type="button" id="guest-login-close">閉じる</button>
+			</div>
+		</div>
+	</dialog>
+
 	<script>
 		// チームカードは外枠から6枠まで共用し、1枠の実体はその中から /box のカード描画へ委譲する。
 		import { kanaIncludes } from "../../lib/kana";
@@ -120,6 +132,7 @@ import SecondHeader from '../../components/SecondHeader.astro';
 		import { deleteOwnedPokemon } from "../../lib/data/pokemon-repo";
 		import { deleteTeam, listTeamsPage } from "../../lib/data/team-repo";
 		import { reloadOnBfcacheRestore } from "../../lib/shared/reload-on-bfcache-restore";
+		import { isGuestMode } from "../../lib/data/guest-mode";
 
 		// GET /api/teams が返す1メンバーの owned_pokemon。表示に必要な列だけを持つ
 		// (src/lib/team.ts の TeamMember/OwnedPokemonRecord のサブセット)。
@@ -208,6 +221,8 @@ import SecondHeader from '../../components/SecondHeader.astro';
 			const addButton = el<HTMLButtonElement>("add-team-button");
 			const emptyAddButton = el<HTMLButtonElement>("add-empty-team-button");
 			const densityToggle = el<HTMLButtonElement>("team-display-density-toggle");
+			const guestLoginDialog = el<HTMLDialogElement>("guest-login-dialog");
+			const guestLoginClose = el<HTMLButtonElement>("guest-login-close");
 
 			let allTeams: Team[] = [];
 			const TEAM_PAGE_SIZE = 24;
@@ -336,6 +351,10 @@ import SecondHeader from '../../components/SecondHeader.astro';
 
 			// 「＋ チームを追加」: この時点ではDBに作成せず、まず新規編集画面へ遷移する。
 			function goToNewTeam(): void {
+				if (isGuestMode()) {
+					guestLoginDialog.showModal();
+					return;
+				}
 				window.location.href = "/team/new?tab=formation";
 			}
 
@@ -375,6 +394,7 @@ import SecondHeader from '../../components/SecondHeader.astro';
 				updateDensityToggleUi();
 				renderList();
 			});
+			guestLoginClose.addEventListener("click", () => guestLoginDialog.close());
 
 			updateDensityToggleUi();
 			void loadList();

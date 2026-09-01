@@ -1,0 +1,33 @@
+/* ゲストが新規作成(ポケモン/チーム)を試みたときに表示するログイン誘導ダイアログ。
+   box/index.astro・team/index.astro・team/[id].astro で共用する。 */
+.guest-login-dialog {
+  width: min(calc(100% - var(--space-8)), 26rem);
+  padding: 0;
+  color: var(--color-text);
+  background: var(--color-bg);
+  border: 0;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+}
+
+.guest-login-dialog::backdrop {
+  background: rgb(0 0 0 / 45%);
+}
+
+.guest-login-dialog__content {
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-6);
+}
+
+.guest-login-dialog__content h2,
+.guest-login-dialog__content p {
+  margin: 0;
+}
+
+.guest-login-dialog__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+}
