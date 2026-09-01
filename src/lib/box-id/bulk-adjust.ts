@@ -27,6 +27,7 @@ import {
 import {
 	isEngineReady,
 	initEngine,
+	scheduleEnginePrefetch,
 	calcLethalSequence,
 	isEngineFatal,
 	resetEngine,
@@ -117,18 +118,11 @@ function updateBulkAdjustButtonReadyState(): void {
 	const ready = isEngineReady() && !!bridge && bridge.getDefenseRows().length > 0;
 	bulkAdjustButton.disabled = !ready;
 }
-// damage-calc.ts の schedulePrefetchEngine と同じく、ページ表示直後の即時呼び出しは
-// メインスレッドを塞ぎ自動保存等の処理と競合する(perf計測で確認)。initEngine()は
-// シングルトンで最初の呼び出しが実際のロードを開始してしまうため、こちらも
-// アイドル時間まで開始を遅らせ、damage-calc.ts側の遅延プリフェッチ方針を無効化しないようにする。
-function scheduleBulkAdjustEngineInit(): void {
-	if (typeof window.requestIdleCallback === "function") {
-		window.requestIdleCallback(() => initEngine(() => updateBulkAdjustButtonReadyState()));
-	} else {
-		setTimeout(() => initEngine(() => updateBulkAdjustButtonReadyState()), 0);
-	}
-}
-scheduleBulkAdjustEngineInit();
+// damage-calc.ts と同じscheduleEnginePrefetch()を使う。initEngine()はシングルトンで
+// 最初の呼び出しが実際のロードを開始してしまうため、ここも即時呼び出しにすると
+// damage-calc.ts側の遅延プリフェッチ方針(表示直後の操作と衝突しないタイミング)を
+// 無効化してしまう(perf計測で確認)。
+scheduleEnginePrefetch(() => initEngine(() => updateBulkAdjustButtonReadyState()));
 updateBulkAdjustButtonReadyState();
 window.setInterval(updateBulkAdjustButtonReadyState, 600);
 
