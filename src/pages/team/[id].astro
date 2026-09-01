@@ -169,6 +169,7 @@ if (!isGuestNewMode) {
 			background: var(--color-surface);
 			color: var(--color-danger-strong);
 		}
+		#delete-team-button:disabled { opacity: 0.4; cursor: not-allowed; }
 		#delete-team-button:hover:not(:disabled) {
 			background: var(--color-danger-strong);
 			color: var(--color-primary-contrast);
@@ -463,7 +464,7 @@ if (!isGuestNewMode) {
 							<div id="team-overview-grid" class="team-overview-thumb-grid" aria-label="チームメンバーのプレビュー"></div>
 							{!isNewMode && (
 								<div class="team-mobile-actions__controls">
-									<button id="delete-team-button" class="btn-danger" type="button">
+									<button id="delete-team-button" class="btn-danger" type="button" disabled={!user} title={!user ? "ログインすると削除できます" : undefined}>
 										<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
 										削除
 									</button>

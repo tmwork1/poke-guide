@@ -4,11 +4,14 @@
 import type { OwnedPokemonRecord } from '../owned-pokemon';
 import type { OwnedPokemonRequestBody } from '../owned-pokemon-validation';
 import {
+  createGuestPokemonWithId,
   deleteGuestPokemon,
   listGuestPokemon,
   updateGuestPokemon,
+  type GuestPokemonInput,
 } from './guest-store';
 import { isGuestMode } from './guest-mode';
+import { ensureFixedGuestTeam } from './team-repo';
 
 export interface ListOwnedPokemonPageOptions {
   limit: number;
@@ -20,10 +23,59 @@ export interface OwnedPokemonPage {
   hasMore: boolean;
 }
 
+/** The six deterministic records available to every guest visitor. */
+export const GUEST_FIXED_POKEMON: Array<{ id: string } & GuestPokemonInput> = [
+  {
+    id: 'guest-fixed-フシギバナ',
+    species_name: 'フシギバナ', level: 50, nature: 'ずぶとい', ability_name: 'しんりょく',
+    item_name: 'たべのこし', tera_type: 'みず', evs: [32, 0, 32, 0, 0, 2],
+    move_names: ['ギガドレイン', 'ヘドロばくだん', 'やどりぎのタネ', 'こうごうせい'],
+  },
+  {
+    id: 'guest-fixed-リザードン',
+    species_name: 'リザードン', level: 50, nature: 'おくびょう', ability_name: 'もうか',
+    item_name: 'あつぞこブーツ', tera_type: 'はがね', evs: [2, 0, 0, 32, 0, 32],
+    move_names: ['かえんほうしゃ', 'エアスラッシュ', 'りゅうのはどう', 'おにび'],
+  },
+  {
+    id: 'guest-fixed-カメックス',
+    species_name: 'カメックス', level: 50, nature: 'ひかえめ', ability_name: 'げきりゅう',
+    item_name: 'オボンのみ', tera_type: 'フェアリー', evs: [2, 0, 0, 32, 0, 32],
+    move_names: ['ハイドロポンプ', 'れいとうビーム', 'あくのはどう', 'からをやぶる'],
+  },
+  {
+    id: 'guest-fixed-ジュカイン',
+    species_name: 'ジュカイン', level: 50, nature: 'おくびょう', ability_name: 'しんりょく',
+    item_name: 'きあいのタスキ', tera_type: 'くさ', evs: [2, 0, 0, 32, 0, 32],
+    move_names: ['リーフストーム', 'りゅうのはどう', 'きあいだま', 'みがわり'],
+  },
+  {
+    id: 'guest-fixed-バシャーモ',
+    species_name: 'バシャーモ', level: 50, nature: 'いじっぱり', ability_name: 'かそく',
+    item_name: 'いのちのたま', tera_type: 'ほのお', evs: [2, 32, 0, 0, 0, 32],
+    move_names: ['フレアドライブ', 'インファイト', 'まもる', 'つるぎのまい'],
+  },
+  {
+    id: 'guest-fixed-ラグラージ',
+    species_name: 'ラグラージ', level: 50, nature: 'いじっぱり', ability_name: 'げきりゅう',
+    item_name: 'とつげきチョッキ', tera_type: 'はがね', evs: [32, 32, 0, 0, 0, 2],
+    move_names: ['じしん', 'たきのぼり', 'れいとうパンチ', 'クイックターン'],
+  },
+];
+
+/** Create any missing fixed guest records without replacing guest edits. */
+export function ensureFixedGuestPokemon(): void {
+  const existingIds = new Set(listGuestPokemon().map((pokemon) => pokemon.id));
+  for (const { id, ...pokemon } of GUEST_FIXED_POKEMON) {
+    if (!existingIds.has(id)) createGuestPokemonWithId(id, pokemon);
+  }
+}
+
 export async function listOwnedPokemonPage(
   options: ListOwnedPokemonPageOptions,
 ): Promise<OwnedPokemonPage> {
   if (isGuestMode()) {
+    ensureFixedGuestTeam();
     const allPokemon = listGuestPokemon();
     const data = allPokemon.slice(options.offset, options.offset + options.limit);
     return { data, hasMore: options.offset + data.length < allPokemon.length };

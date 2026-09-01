@@ -260,6 +260,7 @@ body.box-edit-page {
 			background: var(--box-edit-delete-background);
 			color: var(--box-edit-delete-color);
 		}
+		#delete-button:disabled { opacity: 0.4; cursor: not-allowed; }
 		@media (hover: hover) and (pointer: fine) {
 			#delete-button:hover:not(:disabled) {
 				background: var(--box-edit-delete-hover-background);

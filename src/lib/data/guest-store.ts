@@ -6,7 +6,8 @@
 import type { OwnedPokemonRecord } from '../owned-pokemon';
 import type { Team, TeamMember, TeamRecord } from '../team';
 
-const STORAGE_KEY = 'pokeguide.guest.v1';
+const STORAGE_KEY = 'pokeguide.guest.v2';
+const LEGACY_STORAGE_KEY = 'pokeguide.guest.v1';
 const GUEST_ID_PREFIX = 'guest-';
 
 /** The persisted form omits server-only account and migration columns. */
@@ -34,7 +35,7 @@ export interface GuestTeamInput {
 }
 
 interface GuestStoreState {
-  version: 1;
+  version: 2;
   initialized: boolean;
   pokemon: GuestPokemonData[];
   teams: GuestTeamData[];
@@ -42,9 +43,10 @@ interface GuestStoreState {
 
 let memoryState: GuestStoreState = emptyState();
 let storageUnavailable = false;
+let legacyStorageChecked = false;
 
 function emptyState(): GuestStoreState {
-  return { version: 1, initialized: false, pokemon: [], teams: [] };
+  return { version: 2, initialized: false, pokemon: [], teams: [] };
 }
 
 function isGuestId(value: unknown): value is string {
@@ -71,7 +73,7 @@ function cloneTeam(team: GuestTeamData): GuestTeamData {
 
 function cloneState(state: GuestStoreState): GuestStoreState {
   return {
-    version: 1,
+    version: 2,
     initialized: state.initialized,
     pokemon: state.pokemon.map(clonePokemon),
     teams: state.teams.map(cloneTeam),
@@ -91,7 +93,7 @@ function warnInvalidStoredData(error: unknown): void {
 function isStoredState(value: unknown): value is GuestStoreState {
   if (!value || typeof value !== 'object') return false;
   const state = value as Partial<GuestStoreState>;
-  return state.version === 1
+  return state.version === 2
     && typeof state.initialized === 'boolean'
     && Array.isArray(state.pokemon)
     && Array.isArray(state.teams);
@@ -107,6 +109,12 @@ function readState(): GuestStoreState {
 
   let raw: string | null;
   try {
+    // v1 contains the retired guest samples and any old user-created records.
+    // This is intentionally a discard rather than a migration.
+    if (!legacyStorageChecked) {
+      globalThis.localStorage.removeItem(LEGACY_STORAGE_KEY);
+      legacyStorageChecked = true;
+    }
     raw = globalThis.localStorage.getItem(STORAGE_KEY);
   } catch (error) {
     storageUnavailable = true;
@@ -231,10 +239,19 @@ export function getGuestPokemon(id: string): OwnedPokemonRecord | null {
 }
 
 export function createGuestPokemon(input: GuestPokemonInput = {}): OwnedPokemonRecord {
+  return createGuestPokemonWithId(guestId(), input);
+}
+
+/** Insert a deterministic record used by the fixed guest starter data. */
+export function createGuestPokemonWithId(id: string, input: GuestPokemonInput = {}): OwnedPokemonRecord {
+  if (!isGuestId(id)) throw new Error('Guest Pokémon IDs must start with guest-');
   return mutateState((state) => {
+    const existing = state.pokemon.find((pokemon) => pokemon.id === id);
+    if (existing) return toOwnedPokemonRecord(existing);
+
     const now = new Date().toISOString();
     const pokemon: GuestPokemonData = {
-      id: guestId(),
+      id,
       species_name: input.species_name ?? '',
       level: input.level ?? null,
       nature: input.nature ?? null,
@@ -297,13 +314,6 @@ export function deleteGuestPokemon(id: string): boolean {
   });
 }
 
-export function duplicateGuestPokemon(id: string): OwnedPokemonRecord | null {
-  const source = getGuestPokemon(id);
-  if (!source) return null;
-  const { id: _id, user_id: _userId, created_at: _createdAt, updated_at: _updatedAt, ...input } = source;
-  return createGuestPokemon(input);
-}
-
 /** List teams with local owned_pokemon_id references resolved into full records. */
 export function listGuestTeams(): Team[] {
   const state = readState();
@@ -320,6 +330,27 @@ export function getGuestTeam(id: string): Team | null {
   const state = readState();
   const team = state.teams.find((entry) => entry.id === id);
   return team ? resolveTeam(team, state.pokemon) : null;
+}
+
+/** Insert a deterministic team used by the fixed guest starter data. */
+export function createGuestTeamWithId(id: string, input: GuestTeamInput): Team {
+  if (!isGuestId(id)) throw new Error('Guest team IDs must start with guest-');
+  return mutateState((state) => {
+    const existing = state.teams.find((team) => team.id === id);
+    if (existing) return resolveTeam(existing, state.pokemon);
+
+    const now = new Date().toISOString();
+    const team: GuestTeamData = {
+      id,
+      memo: input.memo ?? null,
+      is_pinned: input.is_pinned ?? false,
+      created_at: now,
+      updated_at: now,
+      members: normalizeMembers(input.members ?? [], state.pokemon),
+    };
+    state.teams.push(team);
+    return resolveTeam(team, state.pokemon);
+  });
 }
 
 /** Replaces supplied memo and/or members; omitted properties retain their current value. */
@@ -348,4 +379,9 @@ export function deleteGuestTeam(id: string): boolean {
     state.teams = state.teams.filter((entry) => entry.id !== id);
     return state.teams.length !== before;
   });
+}
+
+/** Whether the v2 guest store has ever been written. */
+export function isGuestStoreInitialized(): boolean {
+  return readState().initialized;
 }

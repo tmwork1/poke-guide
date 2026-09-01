@@ -7,6 +7,13 @@ import homePageStylesheet from '../styles/home-page.css?url';
 import appHeaderStylesheet from '../styles/app-header.css?url';
 import AppHeader from '../components/AppHeader.astro';
 
+// Keep the debug-only component out of the production module graph as well as
+// out of the rendered page. A static import would leave its server chunk in
+// the build even when the JSX condition is false.
+const OptionalHomeComponent = import.meta.env.DEV
+	? (await import('../components/DebugAuthToggle.astro')).default
+	: null;
+
 const user = Astro.locals.user;
 const userEmail = user?.email ?? '';
 ---
@@ -35,13 +42,7 @@ const userEmail = user?.email ?? '';
 							</div>
 						</details>
 					) : (
-						<a class="home-header-account-icon" href="/api/auth/login" aria-label="Googleでログイン">
-							<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-								<path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
-								<path d="M10 17l5-5-5-5" />
-								<path d="M15 12H3" />
-							</svg>
-						</a>
+						<a class="home-header-login" href="/api/auth/login">ログイン</a>
 					)
 				}
 			</div>
@@ -49,8 +50,8 @@ const userEmail = user?.email ?? '';
 		<header class="home-brand">
 			<h1>ポケガイド</h1>
 			<p>ポケモン管理を、もっとシンプルに</p>
-			{!user && <a class="home-try-button" href="/box">試してみる</a>}
 		</header>
+		{!user && <a class="home-try-button" href="/api/auth/login">ログインして始める</a>}
 
 		<nav class="home-card-grid" aria-label="機能一覧">
 			<a class="card home-card" href="/box">
@@ -78,6 +79,7 @@ const userEmail = user?.email ?? '';
 				<span class="home-card-label">すばやさ</span>
 			</a>
 		</nav>
+		{OptionalHomeComponent && <OptionalHomeComponent currentUser={!!user} />}
 
 		<p class="home-contact"><a href="https://x.com/ml7ddw0" target="_blank" rel="noopener noreferrer"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>お問い合わせ</a></p>
 	</div>

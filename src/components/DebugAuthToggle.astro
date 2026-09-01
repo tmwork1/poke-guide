@@ -1,0 +1,51 @@
+---
+interface Props {
+  currentUser: boolean;
+}
+
+const { currentUser } = Astro.props;
+---
+
+<section class="debug-auth-toggle" aria-label="開発用認証切り替え">
+  <span class="debug-auth-toggle__label">DEV ONLY</span>
+  <label class="debug-auth-toggle__control">
+    <input id="debug-auth-toggle-input" type="checkbox" checked={currentUser} />
+    <span>ログイン状態</span>
+  </label>
+</section>
+
+<script>
+  const toggle = document.getElementById('debug-auth-toggle-input') as HTMLInputElement | null;
+  toggle?.addEventListener('change', () => {
+    if (toggle.checked) {
+      window.location.assign('/api/auth/login');
+      return;
+    }
+
+    const form = document.createElement('form');
+    form.method = 'post';
+    form.action = '/api/auth/logout';
+    document.body.appendChild(form);
+    form.submit();
+  });
+</script>
+
+<style>
+  .debug-auth-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.65rem;
+    margin: 1rem auto 0;
+    padding: 0.55rem 0.75rem;
+    width: fit-content;
+    color: #7f1d1d;
+    background: #fef2f2;
+    border: 1px dashed #dc2626;
+    border-radius: 0.5rem;
+    font-size: 0.8rem;
+  }
+  .debug-auth-toggle__label { font-weight: 800; letter-spacing: 0.08em; }
+  .debug-auth-toggle__control { display: inline-flex; align-items: center; gap: 0.35rem; cursor: pointer; }
+  .debug-auth-toggle__control input { accent-color: #dc2626; }
+</style>

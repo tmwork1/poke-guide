@@ -270,6 +270,11 @@
   pointer-events: auto;
   border: var(--card-delete-button-mode-border);
 }
+#owned-pokemon-list.is-card-delete-mode .box-card .delete-button:disabled {
+  opacity: 0.4;
+  pointer-events: none;
+  cursor: not-allowed;
+}
 
 /* 削除確定タップの瞬間だけ、カードを萎ませる
    (card-delete-mode.tsのplayCardDeleteExitEffectが付与)。 */

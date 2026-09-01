@@ -151,6 +151,22 @@
   outline-offset: 1px;
 }
 
+/* 一覧画面のゲスト用ログイン導線。ホーム画面と同じく文字だけで控えめに置く。 */
+.app-header__guest-login {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+  padding-right: var(--space-3);
+  color: var(--color-primary-strong);
+  font-size: var(--font-size-sm2);
+  text-decoration: none;
+}
+.app-header__guest-login:hover { color: var(--app-header-item-hover-color); }
+.app-header__guest-login:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
 /* 文字だけの横スクロール式タブ一覧 */
 .app-header__list {
   position: relative; /* インジケーター(絶対配置)の基準にする */

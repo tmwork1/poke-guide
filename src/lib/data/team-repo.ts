@@ -4,12 +4,14 @@
 import type { Team } from '../team';
 import type { TeamRequestBody } from '../team-validation';
 import {
+  createGuestTeamWithId,
   deleteGuestTeam,
   getGuestTeam,
   listGuestTeams,
   updateGuestTeam,
 } from './guest-store';
 import { isGuestMode } from './guest-mode';
+import { ensureFixedGuestPokemon, GUEST_FIXED_POKEMON } from './pokemon-repo';
 
 export interface ListTeamsPageOptions {
   limit: number;
@@ -21,8 +23,25 @@ export interface TeamsPage {
   hasMore: boolean;
 }
 
+export const GUEST_FIXED_TEAM_ID = 'guest-fixed-team';
+
+/** Create the one fixed six-slot team after its fixed Pokémon are available. */
+export function ensureFixedGuestTeam(): void {
+  ensureFixedGuestPokemon();
+  if (getGuestTeam(GUEST_FIXED_TEAM_ID)) return;
+
+  createGuestTeamWithId(GUEST_FIXED_TEAM_ID, {
+    memo: 'ゲスト用サンプルチーム',
+    members: GUEST_FIXED_POKEMON.map((pokemon, index) => ({
+      slot: index + 1,
+      owned_pokemon_id: pokemon.id,
+    })),
+  });
+}
+
 export async function listTeamsPage(options: ListTeamsPageOptions): Promise<TeamsPage> {
   if (isGuestMode()) {
+    ensureFixedGuestTeam();
     const allTeams = listGuestTeams();
     const teams = allTeams.slice(options.offset, options.offset + options.limit);
     return { teams, hasMore: options.offset + teams.length < allTeams.length };

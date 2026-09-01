@@ -325,7 +325,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		    (<script>のdeleteButtonクリックハンドラ)に委ねる。スタイルはsrc/styles/box-edit-page.cssの
 		    #delete-button参照。 */}
 		<div class="training-delete-actions">
-			<button id="delete-button" class="btn-danger" type="button" hidden={!pokemon.id}>
+			<button id="delete-button" class="btn-danger" type="button" hidden={!pokemon.id} disabled={!Astro.locals.user && !!pokemon.id} title={!Astro.locals.user && pokemon.id ? "ログインすると削除できます" : undefined}>
 				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
 				削除
 			</button>

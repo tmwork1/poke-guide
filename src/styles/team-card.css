@@ -321,6 +321,11 @@
   pointer-events: auto;
   border: var(--card-delete-button-mode-border);
 }
+#team-list.is-card-delete-mode .card-team .card-team-delete:disabled {
+  opacity: 0.4;
+  pointer-events: none;
+  cursor: not-allowed;
+}
 
 /* 削除確定タップの瞬間だけ、カードを萎ませる
    (card-delete-mode.tsのplayCardDeleteExitEffectが付与)。 */

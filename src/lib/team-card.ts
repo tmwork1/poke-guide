@@ -3,6 +3,7 @@ import {
 	type BoxPokemonCardPokemon,
 } from "./box-pokemon-card";
 import { playCardDeleteExitEffect } from "./card-delete-mode";
+import { isGuestMode } from "./data/guest-mode";
 
 export interface TeamMemberCardContent {
 	pokemon: BoxPokemonCardPokemon;
@@ -115,8 +116,10 @@ export function renderTeamCard<M>(options: RenderTeamCardOptions<M>): HTMLElemen
 		deleteButton.className = "card-team-delete";
 		// 全画面で使う×アイコンと同じSVG。非表示でもDOMは従来どおり残す。
 		deleteButton.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
-		deleteButton.title = "削除";
-		deleteButton.setAttribute("aria-label", "削除");
+		const guestMode = isGuestMode();
+		deleteButton.disabled = guestMode;
+		deleteButton.title = guestMode ? "ログインすると削除できます" : "削除";
+		deleteButton.setAttribute("aria-label", guestMode ? "ログインすると削除できます" : "削除");
 		deleteButton.addEventListener("click", (event) => {
 			event.preventDefault();
 			event.stopPropagation();

@@ -106,9 +106,11 @@ body.home-page {
   font-size: var(--home-page-brand-tagline-font-size);
 }
 
-/* 未ログイン時に、ゲストモードでボックスをすぐ試せるようにする導線。 */
+/* 未ログイン時に、ログインへ進む主導線。ブランドと機能メニューの間に置く。 */
 .home-try-button {
-  margin-top: var(--home-page-try-button-margin-top);
+  display: inline-flex;
+  align-self: center;
+  margin: var(--home-page-try-button-margin-top) auto var(--home-page-brand-margin-bottom);
   padding: var(--home-page-try-button-padding);
   color: var(--color-primary-contrast);
   font-size: var(--home-page-try-button-font-size);
@@ -147,6 +149,16 @@ body.home-page {
   cursor: pointer;
 }
 .home-header-account-icon:hover { color: var(--home-page-link-hover-color); }
+.home-header-login {
+  color: var(--color-primary-strong);
+  font-size: var(--home-page-account-font-size);
+  text-decoration: none;
+}
+.home-header-login:hover { color: var(--home-page-link-hover-color); }
+.home-header-login:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
 .home-header-account-icon--authenticated {
   position: relative;
 }
