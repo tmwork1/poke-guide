@@ -77,7 +77,7 @@ const TEAM_COLUMNS = 'id, user_id, memo, is_pinned, created_at, updated_at';
 // (src/lib/owned-pokemon.ts の OWNED_POKEMON_COLUMNS 参照)。
 const TEAM_MEMBER_SELECT =
   `slot, item_override, owned_pokemon:owned_pokemon_id (
-    id, user_id, species_name, level, nature, ability_name, item_name, tera_type,
+    id, user_id, guest_local_id, species_name, level, nature, ability_name, item_name, tera_type,
     evs, ivs, move_names, memo, tags, source_build_slug, share_slug, is_public,
     created_at, updated_at, last_used_at
   )`;

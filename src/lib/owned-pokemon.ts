@@ -31,6 +31,10 @@ import { findOrCreateArchetype } from './archetypes.ts';
 export interface OwnedPokemonRecord {
   id: string;
   user_id: string;
+  // ゲストモードからアカウントへ移行した個体だけが持つローカルID。通常作成の個体はnull。
+  // migrations/029_owned_pokemon_guest_migration.sql の部分ユニークインデックスと組にして、
+  // 移行リクエストの再送時に同じ個体を重複作成しないために使う。
+  guest_local_id: string | null;
   species_name: string;
   level: number | null;
   nature: string | null;
@@ -91,7 +95,7 @@ export interface ListOwnedPokemonOptions {
 export type OwnedPokemonResult<T> = { ok: true; data: T; hasMore?: boolean } | { ok: false; error: string };
 
 const OWNED_POKEMON_COLUMNS =
-  'id, user_id, species_name, level, nature, ability_name, item_name, tera_type, evs, ivs, move_names, memo, tags, source_build_slug, share_slug, is_public, created_at, updated_at, last_used_at, collection_opt_out_until, archetype_id';
+  'id, user_id, guest_local_id, species_name, level, nature, ability_name, item_name, tera_type, evs, ivs, move_names, memo, tags, source_build_slug, share_slug, is_public, created_at, updated_at, last_used_at, collection_opt_out_until, archetype_id';
 
 // 公開共有用に安全な列だけを取得する(memo・tags・user_id・is_pinned 等は含めない)。
 const PUBLIC_OWNED_POKEMON_COLUMNS =
@@ -230,6 +234,28 @@ export async function listOwnedPokemonByIds(
   return { ok: true, data: (data ?? []) as OwnedPokemonRecord[] };
 }
 
+// ゲストモードのローカルIDに対応する、既に移行済みの個体を取得する。
+// 他の公開関数と同じく user_id を必ず併用し、別ユーザーの移行済み個体は返さない。
+export async function findOwnedPokemonByGuestLocalIds(
+  userId: string,
+  guestLocalIds: string[],
+  supabase: SupabaseClient,
+): Promise<OwnedPokemonResult<OwnedPokemonRecord[]>> {
+  if (guestLocalIds.length === 0) return { ok: true, data: [] };
+
+  const { data, error } = await supabase
+    .from('owned_pokemon')
+    .select(OWNED_POKEMON_COLUMNS)
+    .eq('user_id', userId)
+    .in('guest_local_id', guestLocalIds);
+
+  if (error) {
+    logError('findOwnedPokemonByGuestLocalIds failed', error);
+    return { ok: false, error: 'Failed to find migrated owned pokemon' };
+  }
+  return { ok: true, data: (data ?? []) as OwnedPokemonRecord[] };
+}
+
 // 見つからない場合と他人の所有物である場合を区別せず null を返す(存在漏洩防止)。
 export async function getOwnedPokemon(
   userId: string,
@@ -252,7 +278,7 @@ export async function getOwnedPokemon(
 
 export async function createOwnedPokemon(
   userId: string,
-  input: OwnedPokemonRequestBody,
+  input: OwnedPokemonRequestBody & { guest_local_id?: string | null },
   supabase: SupabaseClient,
 ): Promise<OwnedPokemonResult<OwnedPokemonRecord>> {
   const archetypeId = await resolveArchetypeId(input, supabase);
@@ -261,6 +287,7 @@ export async function createOwnedPokemon(
     .from('owned_pokemon')
     .insert({
       user_id: userId, // リクエストボディ由来の値は一切使わない(なりすまし防止)
+      guest_local_id: input.guest_local_id ?? null,
       species_name: input.species_name,
       level: input.level,
       nature: input.nature,

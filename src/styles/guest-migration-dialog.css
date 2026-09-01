@@ -1,0 +1,55 @@
+/* /box のログイン直後にだけ表示する、ゲストデータ移行確認ダイアログ。 */
+.guest-migration-dialog {
+  width: min(24rem, calc(100vw - 2rem));
+  margin: auto;
+  padding: 0;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+}
+
+.guest-migration-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.48);
+}
+
+.guest-migration-dialog__content {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-5);
+}
+
+.guest-migration-dialog__content h2,
+.guest-migration-dialog__content p {
+  margin: 0;
+}
+
+.guest-migration-dialog__content h2 {
+  font-size: var(--font-size-lg);
+  line-height: var(--line-height-snug);
+}
+
+.guest-migration-dialog__error {
+  color: var(--color-danger-strong);
+  font-size: var(--font-size-sm);
+}
+
+.guest-migration-dialog__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.guest-migration-result {
+  margin: var(--space-3) 0;
+  padding: var(--space-3);
+  color: var(--color-text);
+  background: color-mix(in srgb, var(--color-primary) 12%, var(--color-surface));
+  border: 1px solid color-mix(in srgb, var(--color-primary) 38%, var(--color-border));
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-normal);
+}

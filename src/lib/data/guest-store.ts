@@ -9,8 +9,8 @@ import type { Team, TeamMember, TeamRecord } from '../team';
 const STORAGE_KEY = 'pokeguide.guest.v1';
 const GUEST_ID_PREFIX = 'guest-';
 
-/** The persisted form omits the server-only user_id column. */
-export type GuestPokemonData = Omit<OwnedPokemonRecord, 'user_id'>;
+/** The persisted form omits server-only account and migration columns. */
+export type GuestPokemonData = Omit<OwnedPokemonRecord, 'user_id' | 'guest_local_id'>;
 
 /** The persisted form keeps the local Pokémon reference, just like team_members. */
 export interface GuestTeamMemberInput {
@@ -167,7 +167,7 @@ function guestId(): string {
 function toOwnedPokemonRecord(pokemon: GuestPokemonData): OwnedPokemonRecord {
   // Existing client rendering code expects the authenticated record shape. The
   // empty value is only a type-compatibility placeholder and is never persisted.
-  return { ...clonePokemon(pokemon), user_id: '' };
+  return { ...clonePokemon(pokemon), user_id: '', guest_local_id: null };
 }
 
 function normalizeMembers(
@@ -383,6 +383,19 @@ export function getAllGuestData(): GuestDataExport {
     pokemon: state.pokemon.map(clonePokemon),
     teams: state.teams.map(cloneTeam),
   };
+}
+
+/**
+ * Clear data that has been successfully migrated to an account.
+ *
+ * `initialized` intentionally stays true so a later guest session in this
+ * browser starts empty instead of recreating the one-time sample data.
+ */
+export function clearMigratedGuestData(): void {
+  mutateState((state) => {
+    state.pokemon = [];
+    state.teams = [];
+  });
 }
 
 /** Alias that makes the P4 account-migration call site self-documenting. */

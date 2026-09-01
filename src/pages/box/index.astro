@@ -27,6 +27,9 @@ import SecondHeader from '../../components/SecondHeader.astro';
 import '../../styles/box-page.css';
 import '../../styles/app-header.css';
 import '../../styles/second-header.css';
+import '../../styles/guest-migration-dialog.css';
+
+const user = Astro.locals.user;
 
 ---
 <AppLayout title="ボックス" description="所持しているポケモンの一覧・検索・並べ替え" current="box">
@@ -73,6 +76,7 @@ import '../../styles/second-header.css';
 					</SecondHeader>
 
 					<div class="box-content">
+						<p id="guest-migration-result" class="guest-migration-result" role="status" hidden></p>
 						{/* 検索・並べ替え以外の絞り込み(件数バッジ)。
 						    second-header(検索・並べ替えのみ)とは切り離し、一覧グリッドと一緒に
 						    スクロールする行として持つ。 */}
@@ -119,6 +123,20 @@ import '../../styles/second-header.css';
 					</div>
 	</div>
 
+	{user && (
+		<dialog id="guest-migration-dialog" class="guest-migration-dialog" aria-labelledby="guest-migration-title">
+			<div class="guest-migration-dialog__content">
+				<h2 id="guest-migration-title">お試し中に作成したデータがあります。</h2>
+				<p>アカウントに保存しますか?</p>
+				<p id="guest-migration-error" class="guest-migration-dialog__error" role="alert" hidden></p>
+				<div class="guest-migration-dialog__actions">
+					<button type="button" class="btn-primary" id="guest-migration-save">保存する</button>
+					<button type="button" id="guest-migration-dismiss">保存しない</button>
+				</div>
+			</div>
+		</dialog>
+	)}
+
 	<script>
 		import {
 			ownedPokemonDisplayName as displayName,
@@ -128,6 +146,7 @@ import '../../styles/second-header.css';
 		import { resolveDexNo, resolveSpeciesTypes } from "../../lib/species-dex";
 		import { initializeCardDeleteMode } from "../../lib/card-delete-mode";
 		import { deleteOwnedPokemon, listOwnedPokemonPage } from "../../lib/data/pokemon-repo";
+		import { clearMigratedGuestData, getAllGuestData } from "../../lib/data/guest-store";
 		import { reloadOnBfcacheRestore } from "../../lib/shared/reload-on-bfcache-restore";
 		import { initializeSortDirectionToggle } from "../../lib/shared/sort-direction-toggle";
 
@@ -362,6 +381,71 @@ import '../../styles/second-header.css';
 
 			void loadList(true);
 			reloadOnBfcacheRestore(() => void loadList(true));
+
+			const guestMigrationDialog = document.getElementById("guest-migration-dialog");
+			const guestMigrationSave = document.getElementById("guest-migration-save");
+			const guestMigrationDismiss = document.getElementById("guest-migration-dismiss");
+			const guestMigrationError = document.getElementById("guest-migration-error");
+			const guestMigrationResult = document.getElementById("guest-migration-result");
+
+			if (
+				guestMigrationDialog instanceof HTMLDialogElement
+				&& guestMigrationSave instanceof HTMLButtonElement
+				&& guestMigrationDismiss instanceof HTMLButtonElement
+				&& guestMigrationError instanceof HTMLElement
+				&& guestMigrationResult instanceof HTMLElement
+			) {
+				const guestData = getAllGuestData();
+				if (guestData.pokemon.length > 0 || guestData.teams.length > 0) {
+					guestMigrationDialog.showModal();
+				}
+
+				guestMigrationDismiss.addEventListener("click", () => guestMigrationDialog.close());
+				guestMigrationSave.addEventListener("click", async () => {
+					guestMigrationSave.disabled = true;
+					guestMigrationDismiss.disabled = true;
+					guestMigrationError.hidden = true;
+
+					try {
+						// 送信時に再取得し、ダイアログ表示後に別タブ等で更新されたデータも
+						// できる限り取りこぼさないようにする。
+						const response = await fetch("/api/guest-migration", {
+							method: "POST",
+							credentials: "same-origin",
+							headers: { "Content-Type": "application/json" },
+							body: JSON.stringify(getAllGuestData()),
+						});
+						const result = await response.json().catch(() => ({})) as {
+							pokemonMigrated?: number;
+							pokemonSkipped?: number;
+							teamsMigrated?: number;
+							teamsSkipped?: number;
+							teamsSkippedMembers?: number;
+							error?: string;
+						};
+						if (!response.ok) {
+							throw new Error(result.error ?? `保存に失敗しました (status=${response.status})`);
+						}
+
+						clearMigratedGuestData();
+						guestMigrationResult.textContent = [
+							`ポケモン ${result.pokemonMigrated ?? 0}件を保存しました（スキップ ${result.pokemonSkipped ?? 0}件）。`,
+							`チーム ${result.teamsMigrated ?? 0}件を保存しました（スキップしたメンバー ${result.teamsSkippedMembers ?? 0}件${(result.teamsSkipped ?? 0) > 0 ? `、保存できなかったチーム ${result.teamsSkipped}件` : ""}）。`,
+						].join(" ");
+						guestMigrationResult.hidden = false;
+						guestMigrationDialog.close();
+						void loadList(true);
+					} catch (error) {
+						console.error(error);
+						guestMigrationError.textContent = error instanceof Error
+							? `${error.message}。ローカルのデータはそのまま残っています。`
+							: "保存に失敗しました。ローカルのデータはそのまま残っています。";
+						guestMigrationError.hidden = false;
+						guestMigrationSave.disabled = false;
+						guestMigrationDismiss.disabled = false;
+					}
+				});
+			}
 		}
 	</script>
 </AppLayout>

@@ -78,3 +78,9 @@ export const opponentNotesRateLimiter = createFixedWindowRateLimiter(EVENTS_RATE
 // 同じ設定値・同じく user.id をキーにするが、Mapを共有しない独立したインスタンスにしている
 // (別エンドポイント・別軸で計測するため)。
 export const teamsRateLimiter = createFixedWindowRateLimiter(EVENTS_RATE_LIMIT);
+
+// POST /api/guest-migration に適用する専用インスタンス。ログイン直後の明示操作でしか
+// 呼ばれない一括書き込みなので、通常の編集APIより低い上限にしている。ユーザーごとに
+// 独立して計測し、他のエンドポイントのレートリミットMapとは共有しない。
+export const GUEST_MIGRATION_RATE_LIMIT: RateLimitOptions = { windowMs: 60_000, max: 5 };
+export const guestMigrationRateLimiter = createFixedWindowRateLimiter(GUEST_MIGRATION_RATE_LIMIT);
