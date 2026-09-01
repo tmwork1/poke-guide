@@ -156,12 +156,14 @@ body.team-edit-page {
   );
 }
 
-/* 3列系は8列・帯幅1068px、2列系は6列・帯幅1204pxで打ち止めにする。 */
-@media (min-width: 420px) { :root { --box-grid-columns: 4; } }
-@media (min-width: 560px) { :root { --box-grid-columns: 5; } }
-@media (min-width: 690px) { :root { --box-grid-columns: 6; } }
-@media (min-width: 820px) { :root { --box-grid-columns: 7; } }
-@media (min-width: 960px) { :root { --box-grid-columns: 8; } }
+/* 3列系は8列・帯幅1068px、2列系は6列・帯幅1204pxで打ち止めにする。
+   各しきい値は「N枚目のカードが130px満杯で収まる幅」(N*130px + (N-1)*space-1 + 左右space-2*2)。
+   これより手前で列数を増やすと、130px未満にカードが圧縮されて縮んで見える。 */
+@media (min-width: 548px) { :root { --box-grid-columns: 4; } }
+@media (min-width: 682px) { :root { --box-grid-columns: 5; } }
+@media (min-width: 816px) { :root { --box-grid-columns: 6; } }
+@media (min-width: 950px) { :root { --box-grid-columns: 7; } }
+@media (min-width: 1084px) { :root { --box-grid-columns: 8; } }
 
 /* 6枠は6の約数だけを用い、2→3→6列に切り替える。 */
 @media (min-width: 620px) { :root { --team-overview-grid-columns: 3; } }
