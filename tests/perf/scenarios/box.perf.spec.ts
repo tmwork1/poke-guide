@@ -158,7 +158,7 @@ test("使い捨て個体のもちものを選択して自動保存する", async
         label: "もちもの選択の自動保存",
         category: "interaction",
         targetMs: 800,
-        note: "使い捨ての空個体に限定。700msの保存デバウンスとPUT完了を含む",
+        note: "使い捨ての空個体に限定。700msの保存デバウンスとPUT完了を含む。主因はopgg-usage同時リクエストではなく、ページ表示直後に開始するPyodide/jpokeエンジンのバックグラウンド初期化がメインスレッドを塞ぎ保存処理と競合すること(2026-09-01調査)。bulk-adjust.tsの即時initEngine()呼び出しをアイドルコールバック遅延に統一する修正で2255ms→2100ms前後まで改善したが未達。根本対応にはPyodide初期化のWorker化等が必要(follow-up)",
       },
       () =>
         timeAction(async () => {
