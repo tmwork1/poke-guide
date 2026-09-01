@@ -49,6 +49,7 @@ const userEmail = user?.email ?? '';
 		<header class="home-brand">
 			<h1>ポケガイド</h1>
 			<p>ポケモン管理を、もっとシンプルに</p>
+			{!user && <a class="home-try-button" href="/box">試してみる</a>}
 		</header>
 
 		<nav class="home-card-grid" aria-label="機能一覧">

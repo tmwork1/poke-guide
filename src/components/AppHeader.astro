@@ -3,10 +3,12 @@ interface Props {
   id?: string;
   ariaLabel?: string;
   toolbar?: boolean;
+  showGuestBadge?: boolean;
   class?: string;
 }
 
-const { id, ariaLabel, toolbar = false, class: className } = Astro.props;
+const { id, ariaLabel, toolbar = false, showGuestBadge = false, class: className } = Astro.props;
+const showGuestModeBadge = showGuestBadge && !Astro.locals.user;
 ---
 
 <nav id={id} class={`app-header${toolbar ? ' app-header--toolbar' : ''}${className ? ` ${className}` : ''}`} {ariaLabel}>
@@ -17,4 +19,11 @@ const { id, ariaLabel, toolbar = false, class: className } = Astro.props;
     </svg>
   </button>
   <slot />
+  {showGuestModeBadge && (
+    <div class="app-header__guest-badge">
+      <span class="app-header__guest-badge-label">お試しモード</span>
+      <span class="app-header__guest-badge-message">ログインするとデータをアカウントに保存できます。</span>
+      <a class="app-header__guest-badge-login" href="/api/auth/login" aria-label="ログインするとデータをアカウントに保存できます。">ログイン</a>
+    </div>
+  )}
 </nav>

@@ -12,6 +12,7 @@ body.home-page {
   /* ── 1. 文字サイズ ────────────────────────────────────── */
   --home-page-brand-title-font-size: 1.3rem; /* ページ名。大きくするとブランド名が目立つ */
   --home-page-brand-tagline-font-size: var(--font-size-sm2); /* ブランドのキャッチコピー。大きくすると補足が目立つ */
+  --home-page-try-button-font-size: var(--font-size-sm2); /* 「試してみる」ボタンの文字。大きくすると導線が目立つ */
   --home-page-account-font-size: var(--font-size-sm2); /* アカウント情報の文字。大きくするとユーザー情報が読みやすくなる */
   --home-page-contact-font-size: var(--font-size-sm2); /* お問い合わせリンクの文字。大きくすると目立つ */
   --home-page-header-account-icon-size: 22px; /* ヘッダー右端のログイン状態アイコンの大きさ。大きくするとアイコンが目立つ */
@@ -41,6 +42,8 @@ body.home-page {
   --home-page-brand-margin-top: var(--space-5); /* ブランド行の上余白。大きくするとロゴが下がる */
   --home-page-brand-margin-bottom: var(--space-5); /* ブランド行の下余白。大きくするとアカウント情報から離れる */
   --home-page-brand-gap: var(--space-1); /* ロゴとキャッチコピーの間隔。大きくすると離れる */
+  --home-page-try-button-margin-top: var(--space-2); /* 「試してみる」ボタンの上余白。大きくするとキャッチコピーから離れる */
+  --home-page-try-button-padding: var(--space-2) var(--space-4); /* 「試してみる」ボタンの内側余白。大きくすると押しやすくなる */
   --home-page-account-gap: var(--space-2); /* アカウント情報パネル内の間隔。大きくすると項目が離れる */
   --home-page-header-account-padding-right: var(--space-3); /* ヘッダー右端とアイコンの間隔。戻るボタン側の余白と揃える */
   --home-page-card-grid-gap: var(--space-2); /* メニューカードどうしの間隔。大きくするとカードが離れる */
@@ -101,6 +104,26 @@ body.home-page {
   margin: 0;
   color: var(--home-page-muted-color);
   font-size: var(--home-page-brand-tagline-font-size);
+}
+
+/* 未ログイン時に、ゲストモードでボックスをすぐ試せるようにする導線。 */
+.home-try-button {
+  margin-top: var(--home-page-try-button-margin-top);
+  padding: var(--home-page-try-button-padding);
+  color: var(--color-primary-contrast);
+  font-size: var(--home-page-try-button-font-size);
+  text-decoration: none;
+  background: var(--color-primary);
+  border-radius: var(--radius-sm);
+}
+
+.home-try-button:hover {
+  background: var(--color-primary-hover);
+}
+
+.home-try-button:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 /* ヘッダー右端に表示するログイン状態アイコン。AppHeaderがflexのため
