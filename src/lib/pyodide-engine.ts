@@ -1163,7 +1163,9 @@ def calc_max_damage_matrix_json(attacker_specs, defender_specs, move_hit_counts,
 // 数秒単位で遅延する不具合をperf計測(box-item-select-autosaveシナリオ)で確認した。
 // 「ユーザー操作をブロックしない」という元々の意図を保つため、アイドル時間まで
 // 待つだけでなく、最低でもこのぶんはページ表示直後の操作と重ならないよう間を空ける。
-const ENGINE_PREFETCH_FLOOR_MS = 1500;
+// アイテム選択から自動保存完了まではページ表示後およそ2秒かかるため、余裕を持たせて
+// 3秒待ってからプリフェッチを開始する。
+const ENGINE_PREFETCH_FLOOR_MS = 3000;
 
 /**
  * initEngine()のバックグラウンドプリフェッチを、ページ表示直後の操作と衝突しない
