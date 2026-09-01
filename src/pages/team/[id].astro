@@ -34,8 +34,18 @@ const isNewMode = id === 'new';
 let team: Team | null = null;
 let loadError = false;
 
-if (user && id) {
-	if (isNewMode) {
+if (!user) {
+	const now = new Date().toISOString();
+	team = {
+		id: isNewMode ? '' : (id ?? ''),
+		user_id: '',
+		memo: null,
+		is_pinned: false,
+		created_at: now,
+		updated_at: now,
+		members: [],
+	};
+} else if (isNewMode) {
 		const now = new Date().toISOString();
 		team = {
 			id: '',
@@ -46,7 +56,7 @@ if (user && id) {
 			updated_at: now,
 			members: [],
 		};
-	} else {
+	} else if (id) {
 		const supabase = await getSupabaseAdminClient();
 		const result = await getTeam(user.id, id, supabase);
 		if (result.ok) {
@@ -58,7 +68,6 @@ if (user && id) {
 			Astro.response.status = 404;
 		}
 	}
-}
 
 const pageTitle = 'チーム編集';
 const bodyClass = team ? 'team-edit-page' : undefined;
@@ -424,14 +433,7 @@ try {
 
 	<div class="page">
 		{
-			!user ? (
-				<section class="panel">
-					<div class="panel-content">
-						<p>チームを編集するにはログインが必要です。</p>
-						<a class="btn-primary" href="/api/auth/login">Googleでログイン</a>
-					</div>
-				</section>
-			) : loadError ? (
+			loadError ? (
 				<section class="panel">
 					<div class="panel-content">
 						<p>チーム情報を読み込めませんでした。時間をおいて再度お試しください。</p>
@@ -1820,7 +1822,10 @@ try {
 		import { itemIconUrl, teraTypeIconUrl, typeIconUrl } from "../../lib/sprite-urls";
 		import { DEFAULT_TYPE_COLOR, TYPE_COLORS } from "../../lib/type-colors";
 		import { resolveDexNo, resolveSpeciesTypes } from "../../lib/species-dex";
-		import { selectionBlockReason, type SelectionCandidate, type SelectionBlockReason } from "../../lib/team-validation";
+		import { selectionBlockReason, type SelectionCandidate, type SelectionBlockReason, type TeamRequestBody } from "../../lib/team-validation";
+		import { createOwnedPokemon, listOwnedPokemonPage } from "../../lib/data/pokemon-repo";
+		import { createTeam, deleteTeam, getTeamForGuest, updateTeam } from "../../lib/data/team-repo";
+		import { isGuestMode } from "../../lib/data/guest-mode";
 		import { STAT_KEYS, NATURE_STAT_MODIFIERS, calcHpStat, calcOtherStat } from "../../lib/stats";
 		import {
 			ownedPokemonDisplayName as displayName,
@@ -1929,7 +1934,15 @@ try {
 			}
 			setupAppHeaderSwipe(document.querySelector<HTMLElement>(".app-header"), layoutRoot);
 			let teamId = layoutRoot.dataset.teamId as string;
-			const initialTeam: InitialTeam = JSON.parse(layoutRoot.dataset.initialTeam || "{}");
+			let initialTeam: InitialTeam = JSON.parse(layoutRoot.dataset.initialTeam || "{}");
+			if (isGuestMode() && teamId) {
+				const guestTeam = getTeamForGuest(teamId);
+				if (!guestTeam) {
+					window.location.href = "/team";
+					throw new Error("Guest team not found");
+				}
+				initialTeam = guestTeam;
+			}
 
 			function el<T extends HTMLElement>(id: string): T {
 				const found = document.getElementById(id);
@@ -2796,28 +2809,20 @@ try {
 				const originalContent = Array.from(button.childNodes, (node) => node.cloneNode(true));
 				button.textContent = "登録中…";
 				try {
-					const res = await fetch("/api/owned-pokemon", {
-						method: "POST",
-						credentials: "same-origin",
-						headers: { "Content-Type": "application/json" },
-						body: JSON.stringify({
-							species_name: suggestion.speciesName,
-							level: null,
-							nature: "",
-							ability_name: suggestion.abilityName ?? "",
-							item_name: suggestion.itemName ?? "",
-							tera_type: "",
-							evs: [0, 0, 0, 0, 0, 0],
-							ivs: [31, 31, 31, 31, 31, 31],
-							move_names: [],
-							memo: "",
-							tags: [],
-							is_pinned: false,
-						}),
+					const { id } = await createOwnedPokemon({
+						species_name: suggestion.speciesName,
+						level: null,
+						nature: null,
+						ability_name: suggestion.abilityName,
+						item_name: suggestion.itemName,
+						tera_type: null,
+						evs: [0, 0, 0, 0, 0, 0],
+						ivs: [31, 31, 31, 31, 31, 31],
+						move_names: [],
+						memo: null,
+						tags: [],
 					});
-					const body = (await res.json().catch(() => ({}))) as { data?: { id: string }; error?: string };
-					if (!res.ok || !body.data) throw new Error(body.error ?? `登録に失敗しました (status=${res.status})`);
-					window.location.href = `/box/${encodeURIComponent(body.data.id)}`;
+					window.location.href = `/box/${encodeURIComponent(id)}`;
 				} catch (err) {
 					console.error(err);
 					button.disabled = false;
@@ -3053,6 +3058,11 @@ try {
 				try {
 					const query = memberIds.length > 0 ? `?member_ids=${encodeURIComponent(memberIds.join(","))}` : "";
 					const res = await fetch(`/api/team-suggestions${query}`, { credentials: "same-origin" });
+					if (isGuestMode() && res.status === 401) {
+						if (requestId !== suggestRequestId) return;
+						setSuggestStatus("ログインするとおすすめポケモンが使えます。");
+						return;
+					}
 					if (!res.ok) throw new Error(`サジェストの取得に失敗しました (status=${res.status})`);
 					const body = (await res.json()) as { data: TeamSuggestion[]; meta?: { basis?: string } };
 					if (requestId !== suggestRequestId) return; // 編成が変わった。この結果は捨てる
@@ -3774,15 +3784,37 @@ try {
 				formationMobileAddButton.disabled = true;
 				formationMobileStatus.hidden = true;
 				try {
-					const res = await fetch("/api/owned-pokemon", {
-						method: "POST",
-						credentials: "same-origin",
-						headers: { "Content-Type": "application/json" },
-						body: JSON.stringify({ species_name: "", level: null, nature: "", ability_name: "", item_name: "", tera_type: "", regulation: "", evs: [0, 0, 0, 0, 0, 0], ivs: [31, 31, 31, 31, 31, 31], move_names: [], memo: "", tags: [], is_pinned: false }),
+					const { id } = await createOwnedPokemon({
+						species_name: "",
+						level: null,
+						nature: null,
+						ability_name: null,
+						item_name: null,
+						tera_type: null,
+						evs: [0, 0, 0, 0, 0, 0],
+						ivs: [31, 31, 31, 31, 31, 31],
+						move_names: [],
+						memo: null,
+						tags: [],
 					});
-					const body = (await res.json().catch(() => ({}))) as { data?: OwnedPokemonRecord; error?: string };
-					if (!res.ok || !body.data) throw new Error(body.error ?? `個体を追加できませんでした (status=${res.status})`);
-					const created = body.data;
+					const now = new Date().toISOString();
+					const created: OwnedPokemonRecord = {
+						id,
+						species_name: "",
+						ability_name: null,
+						item_name: null,
+						tera_type: null,
+						move_names: [],
+						level: null,
+						nature: null,
+						evs: [0, 0, 0, 0, 0, 0],
+						ivs: [31, 31, 31, 31, 31, 31],
+						created_at: now,
+						updated_at: now,
+						last_used_at: null,
+						is_pinned: false,
+						memo: null,
+					};
 					allPokemon = [created, ...allPokemon];
 					renderSelectList();
 					renderFormationMobile();
@@ -4166,10 +4198,7 @@ try {
 			}
 
 			// --- 自動保存(box/[id].astroと同じデバウンス方式。保存ボタンは作らない) ---
-			function buildPayload(): {
-				memo: string | null;
-				members: { slot: number; owned_pokemon_id: string; item_override: string | null }[];
-			} {
+			function buildPayload(): TeamRequestBody {
 				const members = Array.from(membersBySlot.entries())
 					.sort((a, b) => a[0] - b[0])
 					.map(([slot, p]) => ({ slot, owned_pokemon_id: p.id, item_override: itemOverridesBySlot.get(slot) ?? null }));
@@ -4205,26 +4234,9 @@ try {
 				try {
 					let saveTeamId = teamId;
 					if (!saveTeamId) {
-						const createRes = await fetch("/api/teams", {
-							method: "POST",
-							credentials: "same-origin",
-						});
-						const createBody = (await createRes.json().catch(() => ({}))) as { team?: { id?: string }; error?: string };
-						if (!createRes.ok || !createBody.team?.id) {
-							throw new Error(createBody.error ?? `作成に失敗しました (status=${createRes.status})`);
-						}
-						saveTeamId = createBody.team.id;
+						saveTeamId = (await createTeam()).id;
 					}
-					const res = await fetch(`/api/teams/${encodeURIComponent(saveTeamId)}`, {
-						method: "PUT",
-						credentials: "same-origin",
-						headers: { "Content-Type": "application/json" },
-						body: JSON.stringify(payload),
-					});
-					if (!res.ok) {
-						const body = (await res.json().catch(() => ({}))) as { error?: string };
-						throw new Error(body.error ?? `保存に失敗しました (status=${res.status})`);
-					}
+					await updateTeam(saveTeamId, payload);
 					if (!teamId) {
 						teamId = saveTeamId;
 						const currentTab = layoutRoot.dataset.mobileTab || "formation";
@@ -4268,11 +4280,7 @@ try {
 					if (!deleteTeamButton) return;
 					deleteTeamButton.disabled = true;
 					try {
-						const res = await fetch(`/api/teams/${encodeURIComponent(teamId)}`, {
-							method: "DELETE",
-							credentials: "same-origin",
-						});
-						if (!res.ok) throw new Error(`削除に失敗しました (status=${res.status})`);
+						await deleteTeam(teamId);
 						window.location.href = "/team";
 					} catch (err) {
 						console.error(err);
@@ -4352,29 +4360,35 @@ try {
 			void loadSuggestions();
 			void loadSimilarBuilds();
 
-			fetch("/api/owned-pokemon", { credentials: "same-origin" })
-				.then(async (res) => {
-					if (!res.ok) throw new Error(`個体一覧の取得に失敗しました (status=${res.status})`);
-					const body = (await res.json()) as { data: OwnedPokemonRecord[] };
-					allPokemon = body.data;
-					for (const [slot, p] of membersBySlot.entries()) {
-						const fresh = allPokemon.find((x) => x.id === p.id);
-						if (fresh) membersBySlot.set(slot, fresh);
-					}
-					selectLoadingMessage.hidden = true;
-					renderSelectList();
-					renderFormationMobile();
-					// サジェストの操作ボタンは「手持ちに一致する個体があるか」で文言が変わる
-					// (findOwnedMatch)。その判定材料である allPokemon が今届いたので、
-					// 既に描画済みの結果があれば同じデータのまま描き直す(再fetchはしない)。
-					if (lastSuggestResponse) {
-						void renderSuggestions(lastSuggestResponse.suggestions, lastSuggestResponse.basis);
-					}
-				})
-				.catch((err) => {
-					console.error(err);
-					selectLoadingMessage.hidden = true;
-					selectErrorMessage.hidden = false;
+			async function loadAllOwnedPokemon(): Promise<void> {
+				let offset = 0;
+				const pokemon: OwnedPokemonRecord[] = [];
+				while (true) {
+					const page = await listOwnedPokemonPage({ limit: 48, offset });
+					pokemon.push(...page.data as OwnedPokemonRecord[]);
+					offset += page.data.length;
+					if (!page.hasMore || page.data.length === 0) break;
+				}
+				allPokemon = pokemon;
+				for (const [slot, p] of membersBySlot.entries()) {
+					const fresh = allPokemon.find((x) => x.id === p.id);
+					if (fresh) membersBySlot.set(slot, fresh);
+				}
+				selectLoadingMessage.hidden = true;
+				renderSelectList();
+				renderFormationMobile();
+				// サジェストの操作ボタンは「手持ちに一致する個体があるか」で文言が変わる
+				// (findOwnedMatch)。その判定材料である allPokemon が今届いたので、
+				// 既に描画済みの結果があれば同じデータのまま描き直す(再fetchはしない)。
+				if (lastSuggestResponse) {
+					void renderSuggestions(lastSuggestResponse.suggestions, lastSuggestResponse.basis);
+				}
+			}
+
+			void loadAllOwnedPokemon().catch((err) => {
+				console.error(err);
+				selectLoadingMessage.hidden = true;
+				selectErrorMessage.hidden = false;
 				});
 		}
 	</script>

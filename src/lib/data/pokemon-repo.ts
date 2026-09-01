@@ -28,7 +28,7 @@ export interface OwnedPokemonPage {
 // (0-32 per stat, 66 total budget — see owned-pokemon-validation.ts and
 // LeftPanel.astro's `66 - total` remaining-EV calculation), not the
 // standard 0-252/510 scale.
-const GUEST_SAMPLE_POKEMON = [
+export const GUEST_SAMPLE_POKEMON = [
   {
     species_name: 'カイリュー',
     level: 50,
@@ -61,7 +61,7 @@ const GUEST_SAMPLE_POKEMON = [
   },
 ];
 
-function ensureGuestSamples(): void {
+export function ensureGuestSamples(): void {
   if (isGuestStoreInitialized()) return;
 
   for (const pokemon of GUEST_SAMPLE_POKEMON) {

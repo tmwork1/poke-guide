@@ -19,8 +19,6 @@ import '../../styles/app-header.css';
 import '../../styles/second-header.css';
 import AppHeader from '../../components/AppHeader.astro';
 import SecondHeader from '../../components/SecondHeader.astro';
-
-const user = Astro.locals.user;
 ---
 <AppLayout title="チーム" description="登録したチーム編成の一覧・検索" current="team" bodyClass="team-page">
 	{/*
@@ -34,9 +32,6 @@ const user = Astro.locals.user;
 	*/}
 
 	<div class="page team-shell floating-list-page">
-		{
-			user ? (
-				<Fragment>
 					<AppHeader>
 						<h1 class="app-header-title">チーム</h1>
 					</AppHeader>
@@ -111,16 +106,6 @@ const user = Astro.locals.user;
 						</svg>
 						<span class="add-card-tile-label">チームを登録</span>
 					</button>
-				</Fragment>
-			) : (
-				<section class="panel">
-					<div class="panel-content">
-						<p>チームを管理するにはログインが必要です。</p>
-						<a class="btn-primary" href="/api/auth/login">Googleでログイン</a>
-					</div>
-				</section>
-			)
-		}
 	</div>
 
 	<script>
@@ -131,6 +116,9 @@ const user = Astro.locals.user;
 		import { renderTeamCard } from "../../lib/team-card";
 		import { renderTeamMateSlots } from "../../lib/team-mate-card";
 		import { initializeCardDeleteMode } from "../../lib/card-delete-mode";
+		import type { Team } from "../../lib/team";
+		import { deleteOwnedPokemon } from "../../lib/data/pokemon-repo";
+		import { deleteTeam, listTeamsPage } from "../../lib/data/team-repo";
 		import { reloadOnBfcacheRestore } from "../../lib/shared/reload-on-bfcache-restore";
 
 		// GET /api/teams が返す1メンバーの owned_pokemon。表示に必要な列だけを持つ
@@ -148,21 +136,6 @@ const user = Astro.locals.user;
 			move_names: string[];
 			memo: string | null;
 		}
-		interface TeamMemberEntry {
-			slot: number;
-			owned_pokemon: TeamMemberPokemon;
-		}
-		interface Team {
-			id: string;
-			memo: string | null;
-			// レギュレーション(migrations/013_regulation.sql)。未指定は null。
-			regulation: string | null;
-			is_pinned: boolean;
-			created_at: string;
-			updated_at: string;
-			members: TeamMemberEntry[];
-		}
-
 		function el<T extends HTMLElement>(id: string): T {
 			const found = document.getElementById(id);
 			if (!found) throw new Error(`要素が見つかりません: #${id}`);
@@ -339,8 +312,7 @@ const user = Astro.locals.user;
 				const name = p.species_name || "未設定";
 				if (!window.confirm(`「${name}」を削除します。よろしいですか?`)) return;
 				try {
-					const res = await fetch(`/api/owned-pokemon/${encodeURIComponent(p.id)}`, { method: "DELETE", credentials: "same-origin" });
-					if (!res.ok) throw new Error(`削除失敗: ${res.status}`);
+					await deleteOwnedPokemon(p.id);
 					for (const team of allTeams) team.members = team.members.filter((member) => member.owned_pokemon.id !== p.id);
 					renderList();
 				} catch (err) {
@@ -353,11 +325,7 @@ const user = Astro.locals.user;
 				// /boxのカード削除モードと同じくconfirm()は挟まない(長押しでモードに入り、
 				// 表示された削除ボタンを明示的に押す2段階の操作自体が確認の役割を兼ねる)。
 				try {
-					const res = await fetch(`/api/teams/${encodeURIComponent(t.id)}`, {
-						method: "DELETE",
-						credentials: "same-origin",
-					});
-					if (!res.ok) throw new Error(`削除に失敗しました (status=${res.status})`);
+					await deleteTeam(t.id);
 					allTeams = allTeams.filter((x) => x.id !== t.id);
 					renderList();
 				} catch (err) {
@@ -379,9 +347,7 @@ const user = Astro.locals.user;
 				errorMessage.hidden = true;
 				try {
 					const offset = reset ? 0 : allTeams.length;
-					const res = await fetch(`/api/teams?offset=${offset}&limit=${TEAM_PAGE_SIZE}`, { credentials: "same-origin" });
-					if (!res.ok) throw new Error(`一覧の取得に失敗しました (status=${res.status})`);
-					const body = (await res.json()) as { teams: Team[]; hasMore: boolean };
+					const body = await listTeamsPage({ limit: TEAM_PAGE_SIZE, offset });
 					allTeams = reset ? body.teams : [...allTeams, ...body.teams];
 					hasMoreTeams = body.hasMore;
 					loadedNextBatch = body.teams.length > 0;
