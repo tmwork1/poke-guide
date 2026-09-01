@@ -524,6 +524,9 @@ export function scheduleRowCalc(row: DamageRowState): void {
 }
 
 export function scheduleAllRowsCalc(): void {
+	// 左パネル(左パネルは常時マウントされる)からも呼ばれるが、ダメージ計算カード
+	// (DamageCalcSection、isNewMode/ゲストでは非表示)が無い画面ではブリッジ未登録のためno-opにする。
+	if (!damageCalcBridge) return;
 	if (allRowsCalcTimer) clearTimeout(allRowsCalcTimer);
 	allRowsCalcTimer = setTimeout(() => {
 		allRowsCalcTimer = null;

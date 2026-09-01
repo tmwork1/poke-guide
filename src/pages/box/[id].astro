@@ -32,7 +32,31 @@ const isNewMode = id === "new";
 let pokemon: OwnedPokemonRecord | null = null;
 let loadError = false;
 
-if (user && isNewMode) {
+if (!user) {
+	pokemon = {
+		id: isNewMode ? '' : (id ?? ''),
+		user_id: '',
+		species_name: '',
+		level: null,
+		nature: null,
+		ability_name: null,
+		item_name: null,
+		tera_type: null,
+		evs: [0, 0, 0, 0, 0, 0],
+		ivs: [31, 31, 31, 31, 31, 31],
+		move_names: [],
+		memo: null,
+		tags: [],
+		source_build_slug: null,
+		share_slug: null,
+		is_public: false,
+		created_at: new Date().toISOString(),
+		updated_at: new Date().toISOString(),
+		last_used_at: null,
+		collection_opt_out_until: null,
+		archetype_id: null,
+	};
+} else if (user && isNewMode) {
 	pokemon = {
 		id: '',
 		user_id: user.id,
@@ -220,14 +244,7 @@ const initialMobileTab = !isNewMode && Astro.url.searchParams.get('tab') === 'da
 	)}
 	<div class="page edit-shell" id="edit-shell" data-mobile-tab={initialMobileTab}>
 	{
-		!user ? (
-			<section class="panel">
-				<div class="panel-content">
-					<p>個体を編集するにはログインが必要です。</p>
-					<a class="btn-primary" href="/api/auth/login">Googleでログイン</a>
-				</div>
-			</section>
-		) : loadError ? (
+		loadError ? (
 			<section class="panel">
 				<div class="panel-content">
 					<p>個体情報を読み込めませんでした。時間をおいて再度お試しください。</p>
@@ -262,10 +279,17 @@ const initialMobileTab = !isNewMode && Astro.url.searchParams.get('tab') === 'da
 			{/* ダメージ計算カード(#opponent-notes-section)のテンプレート・is:globalスタイル・
 			    スクリプトは構造分割ラウンド(フェーズ2)により src/components/box-id/DamageCalcSection.astro +
 			    src/lib/box-id/damage-calc.ts へ切り出した(見た目・ロジックは一切変更していない)。 */}
-			{isNewMode ? (
+			{isNewMode || !user ? (
 				<section class="panel">
 					<div class="panel-content">
-						<p>種族を入力して保存すると、ダメージ計算などの機能が使えるようになります。</p>
+						{isNewMode ? (
+							<p>種族を入力して保存すると、ダメージ計算などの機能が使えるようになります。</p>
+						) : (
+							<>
+								<p>ログインすると、ダメージ計算などの機能が使えるようになります。</p>
+								<a href="/api/auth/login">Googleでログイン</a>
+							</>
+						)}
 					</div>
 				</section>
 			) : (
@@ -281,15 +305,15 @@ const initialMobileTab = !isNewMode && Astro.url.searchParams.get('tab') === 'da
 			    src/components/box-id/RightPanel.astro へ切り出した(見た目・ロジックは一切
 			    変更していない。.edit-layout-detail/#damage-detail-backdropの2要素をまとめて
 			    このコンポーネント自身が描画する)。 */}
-			{!isNewMode && <RightPanel />}
+			{!isNewMode && user && <RightPanel />}
 			</div>
 
 			{/* 「耐久調整」機能のポップアップ本体。トップバーの#bulk-adjust-button
 			    (上のFragment slot="topbar-actions"参照)から開く。マークアップ・スタイルは
 			    BulkAdjustDialog.astro、ロジックはsrc/lib/box-id/bulk-adjust.tsに実装済み
 			    (このページ側はimportと配置のみ)。 */}
-			{!isNewMode && <BulkAdjustDialog />}
-			{!isNewMode && <SpeedAdjustDialog pokemonId={pokemon.id} />}
+			{!isNewMode && user && <BulkAdjustDialog />}
+			{!isNewMode && user && <SpeedAdjustDialog pokemonId={pokemon.id} />}
 			</>
 		)
 	}

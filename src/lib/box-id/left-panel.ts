@@ -34,6 +34,9 @@ import { kanaIncludes } from "../kana";
 import { classifyArchetype, type ArchetypeKey } from "../archetype";
 import { renderTeamCard } from "../team-card";
 import type { Team } from "../team";
+import { getGuestPokemon, listGuestTeams } from "../data/guest-store";
+import { isGuestMode } from "../data/guest-mode";
+import { createOwnedPokemon, deleteOwnedPokemon, updateOwnedPokemon } from "../data/pokemon-repo";
 import {
 	attachKanaTypeAhead,
 	applySprite,
@@ -565,6 +568,21 @@ export async function loadPopularBuildSuggestions(
 let hasBaseStatsForDurabilityIndex = false;
 const form = typeof document === "undefined" ? null : document.getElementById("edit-form") as HTMLFormElement | null;
 if (form) {
+	const guestPokemonIdForHydration = form.dataset.id ?? "";
+	const shouldHydrateGuestPokemon = isGuestMode() && guestPokemonIdForHydration !== "";
+	if (shouldHydrateGuestPokemon) {
+		const guestPokemon = getGuestPokemon(guestPokemonIdForHydration);
+		if (!guestPokemon) {
+			window.location.href = "/box";
+		} else {
+			// レベル・タグ・性格は直接の入力UIが無いため、buildPayload()/性格初期化より先に
+			// SSR用data属性を実データへ差し替える。
+			form.dataset.level = guestPokemon.level == null ? "" : String(guestPokemon.level);
+			form.dataset.tags = JSON.stringify(guestPokemon.tags);
+			form.dataset.nature = guestPokemon.nature ?? "";
+		}
+	}
+	let isGuestHydrating = false;
 	/** Keep the mobile training preview synchronized with the training form. */
 	function syncPokemonPreview(): void {
 		const setText = (targetId: string, value: string): void => {
@@ -1003,9 +1021,12 @@ if (form) {
 
 	speciesInput.addEventListener("change", () => {
 		const speciesName = speciesInput.value.trim();
+		// ゲスト個体のhydrationでは保存済みの構成を復元するため、種族選択時の
+		// 人気構成による自動入力を行わない。通常のユーザー操作は従来どおり自動入力する。
+		const shouldAutoFill = !isGuestHydrating;
 		// 種族を確定したときだけ、OP.GG採用率の最上位構成を初期値として反映する。
-		void reloadPopularBuildSuggestions(true).then(() => {
-			if (speciesInput.value.trim() === speciesName) return applyLeftMegaStoneAutofill(speciesName);
+		void reloadPopularBuildSuggestions(shouldAutoFill).then(() => {
+			if (shouldAutoFill && speciesInput.value.trim() === speciesName) return applyLeftMegaStoneAutofill(speciesName);
 		});
 	});
 	void rebuildAbilityOptions(speciesInput.value.trim());
@@ -1176,6 +1197,7 @@ if (form) {
 	let pendingRetry = false;
 
 	async function saveNow(): Promise<void> {
+		if (isGuestHydrating) return;
 		if (saving) {
 			pendingRetry = true;
 			return;
@@ -1196,29 +1218,11 @@ if (form) {
 
 		try {
 			if (!ownedPokemonId) {
-				const res = await fetch("/api/owned-pokemon", {
-					method: "POST",
-					credentials: "same-origin",
-					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify(payload),
-				});
-				const body = (await res.json().catch(() => ({}))) as { data?: { id?: string }; error?: string };
-				if (!res.ok || !body.data?.id) {
-					throw new Error(body.error ?? `登録に失敗しました (status=${res.status})`);
-				}
-				window.location.href = `/box/${encodeURIComponent(body.data.id)}`;
+				const { id } = await createOwnedPokemon(payload);
+				window.location.href = `/box/${encodeURIComponent(id)}`;
 				return;
 			}
-			const res = await fetch(`/api/owned-pokemon/${encodeURIComponent(ownedPokemonId)}`, {
-				method: "PUT",
-				credentials: "same-origin",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify(payload),
-			});
-			if (!res.ok) {
-				const body = (await res.json().catch(() => ({}))) as { error?: string };
-				throw new Error(body.error ?? `保存に失敗しました (status=${res.status})`);
-			}
+			await updateOwnedPokemon(ownedPokemonId, payload);
 			statusEl.dataset.state = "saved";
 			statusTextEl.textContent = "保存済み";
 		} catch (err) {
@@ -1237,6 +1241,7 @@ if (form) {
 
 	function scheduleSave(): void {
 		syncPokemonPreview();
+		if (isGuestHydrating) return;
 		statusEl.dataset.state = "saving";
 		// 進行中表示は画面内で表記を揃えるため全角の三点リーダーを使う。
 		statusTextEl.textContent = "編集中…";
@@ -1345,11 +1350,7 @@ if (form) {
 			if (!window.confirm("この個体を削除します。よろしいですか?")) return;
 			deleteButton.disabled = true;
 			try {
-				const res = await fetch(`/api/owned-pokemon/${encodeURIComponent(ownedPokemonId)}`, {
-					method: "DELETE",
-					credentials: "same-origin",
-				});
-				if (!res.ok) throw new Error(`削除に失敗しました (status=${res.status})`);
+				await deleteOwnedPokemon(ownedPokemonId);
 				window.location.href = "/box";
 			} catch (err) {
 				console.error(err);
@@ -1464,6 +1465,90 @@ if (form) {
 	syncPokemonPreview();
 
 	void loadOwnedPokemonTeams();
+
+	async function hydrateGuestPokemon(): Promise<void> {
+		if (!shouldHydrateGuestPokemon) return;
+		const guestPokemon = getGuestPokemon(guestPokemonIdForHydration);
+		if (!guestPokemon) {
+			window.location.href = "/box";
+			return;
+		}
+
+		isGuestHydrating = true;
+		try {
+			// 保存経路にある既存リスナーへ通知して、候補再構築・画像・実数値・プレビュー更新を
+			// 通常の種族選択と同じ順路で動かす。hydration中のscheduleSaveは上で抑止する。
+			form.dataset.level = guestPokemon.level == null ? "" : String(guestPokemon.level);
+			form.dataset.tags = JSON.stringify(guestPokemon.tags);
+			form.dataset.nature = guestPokemon.nature ?? "";
+			speciesInput.value = guestPokemon.species_name;
+			speciesInput.dispatchEvent(new Event("input", { bubbles: true }));
+			speciesInput.dispatchEvent(new Event("change", { bubbles: true }));
+
+			// 種族に応じた候補が非同期で作られるため、完了後に保存済み特性を戻す。マスターに
+			// 無い表記でも、SSR時の既存個体と同様に選択肢を1件足して値を失わせない。
+			await rebuildAbilityOptions(guestPokemon.species_name);
+			const abilityValue = guestPokemon.ability_name ?? "";
+			if (!Array.from(abilitySelectEl.options).some((option) => option.value === abilityValue)) {
+				const option = document.createElement("option");
+				option.value = abilityValue;
+				option.textContent = abilityValue || "特性";
+				abilitySelectEl.appendChild(option);
+			}
+			abilitySelectEl.value = abilityValue;
+			abilitySelectEl.dispatchEvent(new Event("input", { bubbles: true }));
+			abilitySelectEl.dispatchEvent(new Event("change", { bubbles: true }));
+
+			itemInput.value = guestPokemon.item_name ?? "";
+			itemInput.dispatchEvent(new Event("input", { bubbles: true }));
+			itemInput.dispatchEvent(new Event("change", { bubbles: true }));
+
+			teraSelect.value = guestPokemon.tera_type ?? "";
+			teraSelect.dispatchEvent(new Event("change", { bubbles: true }));
+
+			for (let slot = 1; slot <= 4; slot++) {
+				const input = document.getElementById(`move-${slot}`) as HTMLInputElement | null;
+				if (!input) continue;
+				input.value = guestPokemon.move_names[slot - 1] ?? "";
+				input.dispatchEvent(new Event("input", { bubbles: true }));
+			}
+
+			const memoInput = el<HTMLTextAreaElement>("memo");
+			memoInput.value = guestPokemon.memo ?? "";
+			memoInput.dispatchEvent(new Event("input", { bubbles: true }));
+
+			const natureModifier = NATURE_STAT_MODIFIERS[guestPokemon.nature ?? ""] ?? { up: null, down: null };
+			leftNatureUp = natureModifier.up;
+			leftNatureDown = natureModifier.down;
+			nextLeftNatureNeutralAssignment = natureModifier.up && natureModifier.down ? "down" : "up";
+			refreshNatureButtons();
+
+			for (let index = 0; index < STAT_KEYS.length; index++) {
+				const key = STAT_KEYS[index];
+				const rawValue = guestPokemon.evs[index];
+				const value = Number.isFinite(rawValue) ? Math.min(32, Math.max(0, Math.round(rawValue))) : 0;
+				const input = el<HTMLInputElement>(`ev-${key}`);
+				const range = el<HTMLInputElement>(`ev-${key}-range`);
+				input.value = String(value);
+				range.value = String(value);
+				input.dispatchEvent(new Event("input", { bubbles: true }));
+			}
+
+			await recalcStats();
+	} finally {
+		isGuestHydrating = false;
+		if (debounceTimer) {
+			clearTimeout(debounceTimer);
+			debounceTimer = undefined;
+		}
+		pendingRetry = false;
+		statusEl.dataset.state = "saved";
+		statusTextEl.textContent = "保存済み";
+		retryButton.classList.remove("visible");
+	}
+	}
+
+	void hydrateGuestPokemon();
 }
 
 // 持ち物アイコン(team/[id].astroのapplyItemIconと同じ実装)。renderTeamMateSlotsの
@@ -1501,10 +1586,15 @@ async function loadOwnedPokemonTeams(): Promise<void> {
 	const ownedPokemonId = (document.getElementById("edit-form") as HTMLFormElement | null)?.dataset.id ?? "";
 	if (!listEl || !sectionEl || !ownedPokemonId) return;
 	try {
-		const res = await fetch("/api/teams", { credentials: "same-origin" });
-		if (!res.ok) return;
-		const body = (await res.json().catch(() => ({}))) as { teams?: Team[] };
-		const teams = (body.teams ?? []).filter((t) =>
+		const allTeams: Team[] = isGuestMode()
+			? listGuestTeams()
+			: await (async () => {
+				const res = await fetch("/api/teams", { credentials: "same-origin" });
+				if (!res.ok) return [];
+				const body = (await res.json().catch(() => ({}))) as { teams?: Team[] };
+				return body.teams ?? [];
+			})();
+		const teams = allTeams.filter((t) =>
 			t.members.some((m) => m.owned_pokemon.id === ownedPokemonId),
 		);
 		listEl.replaceChildren();
