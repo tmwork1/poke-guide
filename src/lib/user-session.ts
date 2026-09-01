@@ -56,8 +56,18 @@ export const DEV_SESSION_USER: SessionUser = {
   displayName: 'ローカル開発ユーザー',
 };
 
+// devモードのみ参照するゲスト強制cookie。`/api/auth/login`・`/api/auth/logout` は
+// このDEVショートカットの手前で素通りしてしまい効果が無い(実測済み)ため、
+// `src/components/DebugAuthToggle.astro` はSupabaseの実セッションではなくこのcookieを
+// 直接書き換えてゲスト/ログイン表示を切り替える。本番では import.meta.env.DEV が false に
+// なり、この分岐自体に到達しない。
+const DEV_FORCE_GUEST_COOKIE = 'poke-dev-force-guest';
+
 export async function getSessionUser(request: Request, cookies: AstroCookies): Promise<SessionUser | null> {
-  if (import.meta.env.DEV) return DEV_SESSION_USER;
+  if (import.meta.env.DEV) {
+    if (cookies.get(DEV_FORCE_GUEST_COOKIE)?.value === '1') return null;
+    return DEV_SESSION_USER;
+  }
 
   const supabase = createUserSupabaseClient(request, cookies);
   const { data, error } = await supabase.auth.getUser();

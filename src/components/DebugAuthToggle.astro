@@ -15,18 +15,18 @@ const { currentUser } = Astro.props;
 </section>
 
 <script>
+  // `npm run dev` はセッションを見ずに常にダミーのログイン済みユーザーを返す
+  // (src/lib/user-session.ts の DEV_SESSION_USER)。そのため /api/auth/login・
+  // /api/auth/logout を実際に呼んでも次のリクエストで即座に上書きされてしまい、
+  // このトグルの見た目が常にONへ戻る不具合が実測で確認された。
+  // 代わりに同ファイルが読む dev 専用cookieを直接書き換えて表示を切り替える。
+  const COOKIE_NAME = 'poke-dev-force-guest';
   const toggle = document.getElementById('debug-auth-toggle-input') as HTMLInputElement | null;
   toggle?.addEventListener('change', () => {
-    if (toggle.checked) {
-      window.location.assign('/api/auth/login');
-      return;
-    }
-
-    const form = document.createElement('form');
-    form.method = 'post';
-    form.action = '/api/auth/logout';
-    document.body.appendChild(form);
-    form.submit();
+    document.cookie = toggle.checked
+      ? `${COOKIE_NAME}=; path=/; max-age=0`
+      : `${COOKIE_NAME}=1; path=/`;
+    window.location.reload();
   });
 </script>
 
