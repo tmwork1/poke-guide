@@ -1,20 +1,19 @@
-"""PokeAPI のアイテム画像(各アイテムごとに独立したPNG。透明背景+中央に絵柄)から、
-絵柄部分(透明ではないピクセル)のバウンディングボックスを実測し、それが出力キャンバスに
-対して常に一定の比率を占めるよう拡大縮小・中央配置し直した画像を public/item-icons/ に
-事前生成して置くスクリプト(scripts/type-icons/generate_type_icons.py のアイテム版)。
+"""serebii.net の高解像度アイテム画像を面積基準で正規化して public/item-icons/ に生成する。
 
-## 出力ファイル名(2026-08-12変更)
-出力ファイル名は items.json の spritePath(PokeAPI固有のスラッグ、例 "choice-band" /
-"gen9/booster-energy")ではなく、アイテムの和名(items.json の name、例
-"こだわりハチマキ")を使う。spritePath はあくまで PokeAPI から画像を取得するための
-ソースURL組み立てにのみ使い、リポジトリ内のファイル名・参照コード(sprite-urls.ts の
-itemIconUrl())は和名で統一する。理由は、spritePath が存在しないアイテム(items.json で
-spritePath: null、こんごうだま系の一部やチャンピオンズ限定アイテム等)にも将来
-generate_item_icons_serebii.py 等の別ソースから和名ベースでアイコンを追加できるように
-するため(spritePath という PokeAPI 由来の識別子にファイル名を縛られない)。
+PokeAPI 原画は素朴なアイテムで 30x30 と低解像度であり、96px 出力に拡大するとぼやけることが
+2026-08-12 の調査で判明した。そのため画像取得元は serebii.net に一本化している。160x160 の
+``itemdex/sprites/za/`` と ``itemdex/sprites/sv/`` を優先し、両方にない旧世代アイテムのみ
+40x40 の ``itemdex/sprites/`` をフォールバックとして使う。Serebii の一覧ページから構築した
+ファイル名索引を使い、spritePath の末尾スラッグを実画像名へ解決する。
 
-## 背景
-src/lib/sprite-urls.ts の itemImageUrl() が返す画像は
+## 出力ファイル名
+出力ファイル名は items.json の spritePath ではなく、アイテムの和名(items.json の name、例
+"こだわりハチマキ")を使う。リポジトリ内のファイル名・参照コード(sprite-urls.ts の
+itemIconUrl())を和名で統一することで、spritePath がないアイテムも
+MANUAL_ENGLISH_SLUG の英語識別子から同じパイプラインで追加できる。
+
+## 正規化設計の背景
+この正規化方針の実測時、src/lib/sprite-urls.ts の itemImageUrl() が返す画像は
 https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/{spritePath}.png
 で、アイテムごとに完全に独立したPNG(透明背景、絵柄はほぼ中央寄せ)。タイプ画像(1本の
 横長リボンから位置がずれた同じ絵柄を切り出す問題)とは違い、こちらは「絵柄自体の見かけの
@@ -94,19 +93,18 @@ scripts/item-icons/measure 相当の使い捨てコードで実行。再現手�
    狭幅時)〜36px(box一覧の.card-item-badge)なので、96pxは最大表示サイズの2.7倍以上を
    確保できている。
 
-原画キャンバスサイズが30x30の場合、クロップ後(概ね26〜35px四方程度)から96pxへの
-拡大が主なので多少ぼやけるが、これは正規化前から existing の itemImageUrl() でも起きて
-いた劣化(30x30を16〜36pxのCSSボックスへブラウザが拡大表示していた)と同程度であり、
-新たに悪化するものではない。160x160群はむしろ高精細のまま縮小されるため改善する。
+当時の 30x30 原画ではクロップ後の 96px への拡大でぼやけたため、現在はこの正規化ロジックを
+維持したまま、Serebii の高解像度画像を入力に使う。これにより一回の LANCZOS リサイズという
+方針は保ちつつ、入力解像度に起因する劣化を避ける。
 
 ## 使い方
     python scripts/item-icons/generate_item_icons.py
 
     public/master-data/autocomplete/items.json の(name, spritePath)一覧を読み、既知の
-    spritePath欠損はPokeAPIの公開slugで補完して、全アイテムのアイコンを public/item-icons/{name}.png に
-    生成する(サブディレクトリは持たない。取得元URLの gen8/gen9 はソース側のみ)。
+    spritePath欠損はMANUAL_ENGLISH_SLUGで補完して、全アイテムのアイコンを
+    public/item-icons/{name}.png に生成する(サブディレクトリは持たない)。
     再実行可能(既存ファイルは上書き)。ネットワークアクセスが必要
-    (raw.githubusercontent.com から都度取得、ローカルキャッシュは持たない)。
+    (serebii.net のカテゴリ一覧ページと画像を都度取得、ローカルキャッシュは持たない)。
 
 ## 依存
     Pillow (pip install Pillow)。scripts/type-icons/generate_type_icons.py と同様。
@@ -116,6 +114,7 @@ from __future__ import annotations
 import io
 import json
 import math
+import re
 import sys
 import urllib.error
 import urllib.request
@@ -135,7 +134,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 OUT_DIR = REPO_ROOT / "public" / "item-icons"
 ITEMS_JSON = REPO_ROOT / "public" / "master-data" / "autocomplete" / "items.json"
 
-SPRITES_BASE = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items"
+SPRITES_BASE = "https://www.serebii.net/itemdex/sprites"
 
 # 最終出力の一辺(px)。scripts/type-icons/generate_type_icons.py のOUTPUT_SIZEと同じ値を
 # 踏襲する(新しい規格を作らない)。画面上の最大表示サイズ(.card-item-badge、36px)の
@@ -162,10 +161,33 @@ MAX_LONG_SIDE_FRACTION = 0.94
 # 端まで広げるのを防ぐ。
 OUTPUT_ALPHA_MIN = 16
 
-# items.jsonにspritePathがないが、PokeAPIで公開済みのファイル名が判明している持ち物。
-# マスターデータの表記とPokeAPIの英語slugの差をここだけで吸収し、全アイコンを同じ
-# 正規化パイプラインで生成する。
-MANUAL_SPRITE_PATHS = {
+# serebii.net の itemdex カテゴリ一覧ページ。メガストーンはどのカテゴリページにも
+# 一覧されないが、画像自体は itemdex/sprites/za/ 等に単独で存在するため、
+# ハイフン除去した spritePath そのものを候補1として直接試すことでカバーする。
+LIST_PAGES = [
+    "pokeball",
+    "recovery",
+    "holditem",
+    "evolutionary",
+    "berry",
+    "gsberry",
+    "battleeffect",
+    "vitamins",
+    "fossil",
+    "mail",
+    "miscellaneous",
+    "keyitem",
+    "eventitem",
+    "decorations",
+]
+
+# 160x160 の高解像度画像を持つバージョン別ディレクトリ。za を先に試すのは、
+# メガストーン等 sv 側に存在しないアイテムを za が補完しているため。
+# "" はバージョンなしの itemdex/sprites/ 直下（40x40、フォールバック用）を表す。
+IMAGE_DIRS = ["za", "sv", ""]
+
+# spritePath が null のアイテムのうち、英語識別子が判明しているものの手動対応表。
+MANUAL_ENGLISH_SLUG: dict[str, str] = {
     "ウォーターメモリ": "water-memory",
     "ファイアーメモリ": "fire-memory",
     "こうてつのプレート": "iron-plate",
@@ -175,15 +197,7 @@ MANUAL_SPRITE_PATHS = {
     "ガブリアスナイトZ": "garchompite",
 }
 
-
-def fetch_image(url: str) -> Image.Image:
-    req = urllib.request.Request(url, headers={"User-Agent": "poke-commons-item-icon-generator"})
-    try:
-        with urllib.request.urlopen(req, timeout=20) as resp:
-            data = resp.read()
-    except urllib.error.URLError as exc:
-        raise RuntimeError(f"画像の取得に失敗しました: {url}\n{exc}") from exc
-    return Image.open(io.BytesIO(data)).convert("RGBA")
+STEM_IMG_RE = re.compile(r"/itemdex/sprites/([a-zA-Z0-9\-]+)\.png")
 
 
 def detect_alpha_bbox(im: Image.Image) -> tuple[int, int, int, int]:
@@ -229,58 +243,111 @@ def build_normalized_icon(im: Image.Image) -> Image.Image:
     return result
 
 
-def load_items() -> list[tuple[str, str]]:
-    """(name, spritePath)の一覧を返す。既知の欠損spritePathも補完する。"""
+def fetch_url(url: str) -> bytes | None:
+    req = urllib.request.Request(url, headers={"User-Agent": "poke-commons-item-icon-collector"})
+    try:
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            return resp.read()
+    except urllib.error.URLError:
+        return None
+
+
+def build_stem_index() -> dict[str, str]:
+    """一覧ページから「ハイフン除去キー→実ファイル名」の索引を作る。"""
+    index: dict[str, str] = {}
+    for page in LIST_PAGES:
+        url = f"https://www.serebii.net/itemdex/list/{page}.shtml"
+        data = fetch_url(url)
+        if data is None:
+            print(f"  [警告] 一覧ページの取得に失敗: {url}")
+            continue
+        html = data.decode("utf-8", errors="ignore")
+        for stem in STEM_IMG_RE.findall(html):
+            key = stem.replace("-", "").lower()
+            index.setdefault(key, stem)
+    return index
+
+
+def resolve_image(spritePath_or_slug: str, stem_index: dict[str, str]) -> tuple[bytes, str] | None:
+    """spritePath末尾セグメントまたは手動スラッグから実画像を解決する。"""
+    base = spritePath_or_slug.split("/")[-1]
+    stripped = base.replace("-", "").lower()
+
+    candidates = [stripped]
+    looked_up = stem_index.get(stripped)
+    if looked_up and looked_up != stripped:
+        candidates.append(looked_up)
+    if base != stripped:
+        candidates.append(base)
+
+    for candidate in dict.fromkeys(candidates):
+        for image_dir in IMAGE_DIRS:
+            prefix = f"{image_dir}/" if image_dir else ""
+            url = f"{SPRITES_BASE}/{prefix}{candidate}.png"
+            data = fetch_url(url)
+            if data is not None:
+                return data, url
+    return None
+
+
+def load_targets() -> list[tuple[str, str]]:
+    """(アイテム和名, spritePath末尾セグメント/手動スラッグ) の一覧を返す。"""
     data = json.loads(ITEMS_JSON.read_text(encoding="utf-8"))
-    items = []
-    seen = set()
+    targets: list[tuple[str, str]] = []
+    seen: set[str] = set()
     for entry in data:
         name = entry.get("name")
-        sprite_path = entry.get("spritePath") or MANUAL_SPRITE_PATHS.get(name)
-        if not name or not sprite_path or name in seen:
+        if not name or name in seen:
+            continue
+        sprite_path = entry.get("spritePath") or MANUAL_ENGLISH_SLUG.get(name)
+        if not sprite_path:
             continue
         seen.add(name)
-        items.append((name, sprite_path))
-    return items
-
-
-def generate_one(name: str, sprite_path: str) -> Path:
-    url = f"{SPRITES_BASE}/{sprite_path}.png"
-    im = fetch_image(url)
-    result = build_normalized_icon(im)
-
-    out_path = OUT_DIR / f"{name}.png"
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    result.save(out_path)
-    return out_path
+        targets.append((name, sprite_path))
+    return targets
 
 
 def main() -> None:
-    OUT_DIR.mkdir(parents=True, exist_ok=True)
-    items = load_items()
+    print("serebii.net のカテゴリ一覧ページを取得中...")
+    stem_index = build_stem_index()
+    print(f"  索引エントリ数: {len(stem_index)}")
+
+    targets = load_targets()
+    print(f"対象: {len(targets)} 件")
 
     total_bytes = 0
     failures: list[tuple[str, str]] = []
-    print(f"出力先: {OUT_DIR}")
-    print(f"対象: {len(items)} 件")
-    for i, (name, sprite_path) in enumerate(items, 1):
+    for i, (name, sprite_path) in enumerate(targets, 1):
+        resolved = resolve_image(sprite_path, stem_index)
+        if resolved is None:
+            failures.append((name, sprite_path))
+            print(f"[{i}/{len(targets)}] {name} ({sprite_path}): FAILED - 画像が見つかりませんでした")
+            continue
+        image_bytes, source_url = resolved
         try:
-            out_path = generate_one(name, sprite_path)
+            im = Image.open(io.BytesIO(image_bytes)).convert("RGBA")
+            result = build_normalized_icon(im)
+            out_path = OUT_DIR / f"{name}.png"
+            out_path.parent.mkdir(parents=True, exist_ok=True)
+            result.save(out_path)
         except Exception as exc:  # noqa: BLE001 - 1件失敗しても残りを続ける
-            failures.append((name, str(exc)))
-            print(f"[{i}/{len(items)}] {name} ({sprite_path}): FAILED - {exc}")
+            failures.append((name, sprite_path))
+            print(f"[{i}/{len(targets)}] {name} ({sprite_path}): FAILED - {exc}")
             continue
         size = out_path.stat().st_size
         total_bytes += size
         rel = out_path.relative_to(REPO_ROOT)
-        print(f"[{i}/{len(items)}] {name} ({sprite_path}) -> {rel} ({size}B)")
+        print(f"[{i}/{len(targets)}] {name} -> {rel} ({size}B, source: {source_url})")
 
-    ok = len(items) - len(failures)
-    print(f"\n完了: {ok}/{len(items)} 枚生成。合計サイズ: {total_bytes:,} バイト ({total_bytes / 1024:.1f} KiB)")
+    ok = len(targets) - len(failures)
+    print(
+        f"\n完了: {ok}/{len(targets)} 枚生成。合計サイズ: {total_bytes:,} バイト "
+        f"({total_bytes / 1024:.1f} KiB)"
+    )
     if failures:
         print(f"\n失敗 {len(failures)} 件:")
-        for name, reason in failures:
-            print(f"  - {name}: {reason}")
+        for name, sprite_path in failures:
+            print(f"  - {name} ({sprite_path})")
 
 
 if __name__ == "__main__":
