@@ -60,3 +60,7 @@ pnpm-debug.log*
 # UI検証で一時的に作る Playwright スクリプト (作った本人が消す運用)
 /.tmp-*
 
+# scripts/pokemon-champion-sprites/realesrgan_tool.py が初回実行時にダウンロードする
+# Real-ESRGAN実行ファイル(OSごとに再取得可能なため恒久的にコミットしない)
+/scripts/pokemon-champion-sprites/.cache/
+

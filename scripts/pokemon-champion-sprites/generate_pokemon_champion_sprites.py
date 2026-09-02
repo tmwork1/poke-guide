@@ -42,7 +42,12 @@ generator=categorymembers + prop=imageinfo で1回のAPIリクエストにまと
     npm run generate:pokemon-champion-sprites            # 未取得のぶんだけ落とす
     npm run generate:pokemon-champion-sprites -- --force  # 全部落とし直す
 
-標準ライブラリのみで動く(Pillow不要)。画像は128x128 PNGで加工不要なためそのまま保存する。
+bulbagardenの原画は128x128だが、そのままCSSで拡大表示すると160px前後の表示箇所
+(share/[slug]・pokemon/[name])でぼやける。realesrgan_tool.py(同ディレクトリ)経由で
+Real-ESRGAN(x4plus-anime, 4倍)にかけた後、実測最大表示160pxのRetina(2倍)を見込んだ
+320pxへLANCZOSで1回だけ縮小し直してから保存する
+(縮小1回のみの方針はscripts/pokemon-artwork/generate_pokemon_artwork.pyと同じ)。
+Pillowと、初回実行時にRealESRGAN実行ファイルを取得するためのネットワーク接続が必要。
 """
 
 from __future__ import annotations
@@ -51,15 +56,24 @@ import argparse
 import json
 import re
 import sys
+import tempfile
 import urllib.error
 import urllib.parse
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
+from PIL import Image
+
+from realesrgan_tool import upscale_dir
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
 MASTER_JSON = REPO_ROOT / "public" / "master-data" / "autocomplete" / "pokemon.json"
 OUT_DIR = REPO_ROOT / "public" / "pokemon-champion-sprites"
+
+# 実測最大表示は/share/[slug]・/pokemon/[name]の160px。Retina(2倍)を見込んで320pxで保存する
+# (generate_pokemon_artwork.pyのOUTPUT_SIZEと同じ方針・同じ値)。
+OUTPUT_SIZE = 320
 
 API_URL = "https://archives.bulbagarden.net/w/api.php"
 CATEGORY_TITLE = "Category:Champions_menu_sprites"
@@ -205,21 +219,41 @@ def main() -> None:
 
     failed: list[int] = []
 
-    def work(item: tuple[int, dict]) -> None:
-        image_id, hit = item
-        try:
-            data = fetch_image(hit["url"])
-        except Exception as err:  # noqa: BLE001
-            print(f"⚠️ imageId={image_id} ({hit['title']}) の取得に失敗: {err}")
-            failed.append(image_id)
-            return
-        (OUT_DIR / f"{image_id}.png").write_bytes(data)
+    with tempfile.TemporaryDirectory(prefix="champion-sprites-raw-") as raw_dir_s, \
+         tempfile.TemporaryDirectory(prefix="champion-sprites-upscaled-") as upscaled_dir_s:
+        raw_dir = Path(raw_dir_s)
+        upscaled_dir = Path(upscaled_dir_s)
 
-    if targets:
-        with ThreadPoolExecutor(max_workers=MAX_WORKERS) as pool:
-            for done, _ in enumerate(pool.map(work, targets.items()), start=1):
+        def work(item: tuple[int, dict]) -> None:
+            image_id, hit = item
+            try:
+                data = fetch_image(hit["url"])
+            except Exception as err:  # noqa: BLE001
+                print(f"⚠️ imageId={image_id} ({hit['title']}) の取得に失敗: {err}")
+                failed.append(image_id)
+                return
+            (raw_dir / f"{image_id}.png").write_bytes(data)
+
+        if targets:
+            with ThreadPoolExecutor(max_workers=MAX_WORKERS) as pool:
+                for done, _ in enumerate(pool.map(work, targets.items()), start=1):
+                    if done % 50 == 0:
+                        print(f"  取得 {done}/{len(targets)}")
+
+        fetched_ids = [image_id for image_id in targets if image_id not in failed]
+        if fetched_ids:
+            print(f"Real-ESRGANでアップスケール中: {len(fetched_ids)}件(初回はツールのダウンロードが入る)")
+            upscale_dir(raw_dir, upscaled_dir)
+            for done, image_id in enumerate(fetched_ids, start=1):
+                upscaled_path = upscaled_dir / f"{image_id}.png"
+                src_path = upscaled_path if upscaled_path.exists() else raw_dir / f"{image_id}.png"
+                if not upscaled_path.exists():
+                    print(f"⚠️ imageId={image_id} のアップスケールに失敗(原寸のまま縮小して保存)")
+                im = Image.open(src_path).convert("RGBA")
+                resized = im.resize((OUTPUT_SIZE, OUTPUT_SIZE), Image.LANCZOS)
+                resized.save(OUT_DIR / f"{image_id}.png", "PNG", optimize=True)
                 if done % 50 == 0:
-                    print(f"  {done}/{len(targets)}")
+                    print(f"  保存 {done}/{len(fetched_ids)}")
 
     saved = sorted(OUT_DIR.glob("*.png"))
     total_bytes = sum(p.stat().st_size for p in saved)
