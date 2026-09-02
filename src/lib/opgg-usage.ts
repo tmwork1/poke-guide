@@ -193,3 +193,19 @@ export async function getOpggUsageCategory(
 	}
 	return null;
 }
+
+/** バトルデータカード用に、現在(なければ直近)シーズンの全カテゴリをまとめて返す。 */
+export async function getOpggUsageSingle(
+	kv: KVNamespace,
+	speciesName: string,
+): Promise<SingleFormatData | null> {
+	const manifest = await getOpggUsageManifest(kv);
+	const lookupName = resolveOpggSpeciesName(speciesName);
+	for (const season of sortOpggSeasons(manifest)) {
+		const slug = season.pokemon?.find((entry) => entry.name === lookupName)?.slug;
+		if (!slug) continue;
+		const single = (await getOpggUsagePokemon(kv, season, slug))?.formats?.single;
+		if (single) return single;
+	}
+	return null;
+}

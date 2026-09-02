@@ -10,23 +10,31 @@ import '../../styles/box-pokemon-preview.css';
 import '../../styles/app-header.css';
 
 interface Props {
-  pokemon: OwnedPokemonRecord;
-  activeTab?: 'training' | 'battle-data' | 'ranked-teams' | 'matchup';
+  pokemon: OwnedPokemonRecord | null;
+  activeTab?: 'training' | 'damage' | 'battle-data' | 'ranked-teams' | 'matchup';
 }
 
 const { pokemon, activeTab = 'training' } = Astro.props;
-const isNew = !pokemon.id;
-const moves = pokemon.move_names ?? [];
-const itemName = pokemon.item_name?.trim() ?? '';
+const hasPokemon = pokemon !== null;
+const previewPokemon: OwnedPokemonRecord = pokemon ?? {
+  id: '', user_id: '', guest_local_id: null, species_name: '', level: null, nature: null,
+  ability_name: null, item_name: null, tera_type: null, evs: [0, 0, 0, 0, 0, 0],
+  ivs: [31, 31, 31, 31, 31, 31], move_names: [], memo: null, tags: [], source_build_slug: null,
+  share_slug: null, is_public: false, created_at: '', updated_at: '', last_used_at: null,
+  collection_opt_out_until: null, archetype_id: null,
+};
+const isNew = !previewPokemon.id;
+const moves = previewPokemon.move_names ?? [];
+const itemName = previewPokemon.item_name?.trim() ?? '';
 // データ系タブのプレビューは編集フォームと同期しないため、持ち物がなければ
 // アイコン用の要素そのものを出さない。育成タブは入力中にアイコンを差し替えるので
 // 常に要素を保持する。
 const shouldRenderItemIcon = activeTab === 'training' || itemName !== '';
-const master = (pokemonMasterRaw as Array<{name:string;imageId:number}>).find((entry) => entry.name === pokemon.species_name);
-const detail = (pokemonDetailRaw as Array<{name:string;baseStats:number[]}>).find((entry) => entry.name === pokemon.species_name);
+const master = (pokemonMasterRaw as Array<{name:string;imageId:number}>).find((entry) => entry.name === previewPokemon.species_name);
+const detail = (pokemonDetailRaw as Array<{name:string;baseStats:number[]}>).find((entry) => entry.name === previewPokemon.species_name);
 const statKeys: StatKey[] = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'];
-const nature = NATURE_STAT_MODIFIERS[pokemon.nature ?? ''] ?? { up: null, down: null };
-const previewStats = detail ? statKeys.map((key, index) => index === 0 ? calcHpStat(pokemon.level ?? 50, detail.baseStats[index], pokemon.ivs[index] ?? 31, pokemon.evs[index] ?? 0) : calcOtherStat(pokemon.level ?? 50, detail.baseStats[index], pokemon.ivs[index] ?? 31, pokemon.evs[index] ?? 0, nature.up === key ? 1.1 : nature.down === key ? 0.9 : 1)) : [];
+const nature = NATURE_STAT_MODIFIERS[previewPokemon.nature ?? ''] ?? { up: null, down: null };
+const previewStats = detail ? statKeys.map((key, index) => index === 0 ? calcHpStat(previewPokemon.level ?? 50, detail.baseStats[index], previewPokemon.ivs[index] ?? 31, previewPokemon.evs[index] ?? 0) : calcOtherStat(previewPokemon.level ?? 50, detail.baseStats[index], previewPokemon.ivs[index] ?? 31, previewPokemon.evs[index] ?? 0, nature.up === key ? 1.1 : nature.down === key ? 0.9 : 1)) : [];
 ---
 
 <style is:inline>#mobile-training-ui { visibility: hidden; }</style>
@@ -34,27 +42,36 @@ const previewStats = detail ? statKeys.map((key, index) => index === 0 ? calcHpS
 <div class="mobile-training-ui" id="mobile-training-ui" data-mobile-tab={activeTab}>
   <AppHeader id="mobile-training-bar" ariaLabel="個体編集メニュー">
     <div class="app-header__list">
-      {activeTab === 'training' ? (
+      {!hasPokemon ? (
+        <a class="app-header__item" href="/box"><span>ポケモン</span></a>
+      ) : activeTab === 'training' ? (
         <button type="button" class="app-header__item" data-mobile-tab="training" data-active="true" aria-current="page"><span>ポケモン</span></button>
       ) : (
-        <a class="app-header__item" href={`/box/${encodeURIComponent(pokemon.id)}`}><span>ポケモン</span></a>
+        <a class="app-header__item" href={`/box/${encodeURIComponent(previewPokemon.id)}`}><span>ポケモン</span></a>
       )}
-		{!isNew && (
+		{!hasPokemon ? (
+			<>
+				<span class="app-header__item" aria-disabled="true"><span>ダメージ</span></span>
+				{activeTab === 'battle-data' ? <button type="button" class="app-header__item" data-active="true" aria-current="page"><span>バトルデータ</span></button> : <span class="app-header__item" aria-disabled="true"><span>バトルデータ</span></span>}
+				{activeTab === 'ranked-teams' ? <button type="button" class="app-header__item" data-active="true" aria-current="page"><span>上位チーム</span></button> : <span class="app-header__item" aria-disabled="true"><span>上位チーム</span></span>}
+				{activeTab === 'matchup' ? <button type="button" class="app-header__item" data-active="true" aria-current="page"><span>相性</span></button> : <span class="app-header__item" aria-disabled="true"><span>相性</span></span>}
+			</>
+		) : !isNew && (
 			<>
 				{activeTab === 'training' ? (
 					<button type="button" class="app-header__item" data-mobile-tab="damage"><span>ダメージ</span></button>
 				) : activeTab === 'damage' ? (
 					<button type="button" class="app-header__item" data-mobile-tab="damage" data-active="true" aria-current="page"><span>ダメージ</span></button>
 				) : (
-					<a class="app-header__item" href={`/box/${encodeURIComponent(pokemon.id)}?tab=damage`}><span>ダメージ</span></a>
+					<a class="app-header__item" href={`/box/${encodeURIComponent(previewPokemon.id)}?tab=damage`}><span>ダメージ</span></a>
 				)}
-				<a class="app-header__item" href={`/box/data?pokemon=${encodeURIComponent(pokemon.id)}`} data-active={activeTab === 'battle-data' ? 'true' : undefined} aria-current={activeTab === 'battle-data' ? 'page' : undefined}>
+				<a class="app-header__item" href={`/box/data?pokemon=${encodeURIComponent(previewPokemon.id)}`} data-active={activeTab === 'battle-data' ? 'true' : undefined} aria-current={activeTab === 'battle-data' ? 'page' : undefined}>
 					<span>バトルデータ</span>
 				</a>
-				<a class="app-header__item" href={`/box/ranked?pokemon=${encodeURIComponent(pokemon.id)}`} data-active={activeTab === 'ranked-teams' ? 'true' : undefined} aria-current={activeTab === 'ranked-teams' ? 'page' : undefined}>
+				<a class="app-header__item" href={`/box/ranked?pokemon=${encodeURIComponent(previewPokemon.id)}`} data-active={activeTab === 'ranked-teams' ? 'true' : undefined} aria-current={activeTab === 'ranked-teams' ? 'page' : undefined}>
 					<span>上位チーム</span>
 				</a>
-				<a class="app-header__item" href={`/box/matchup?pokemon=${encodeURIComponent(pokemon.id)}`} data-active={activeTab === 'matchup' ? 'true' : undefined} aria-current={activeTab === 'matchup' ? 'page' : undefined}>
+				<a class="app-header__item" href={`/box/matchup?pokemon=${encodeURIComponent(previewPokemon.id)}`} data-active={activeTab === 'matchup' ? 'true' : undefined} aria-current={activeTab === 'matchup' ? 'page' : undefined}>
 					<span>相性</span>
 				</a>
 			</>
@@ -62,15 +79,15 @@ const previewStats = detail ? statKeys.map((key, index) => index === 0 ? calcHpS
     </div>
   </AppHeader>
 
-  <section
+  {hasPokemon && <section
     class="pokemon-preview"
     aria-label="ポケモンプレビュー"
-    data-species-name={pokemon.species_name}
+    data-species-name={previewPokemon.species_name}
     data-item-name={itemName}
-    data-level={pokemon.level ?? 50}
-    data-nature={pokemon.nature ?? ''}
-    data-ivs={JSON.stringify(pokemon.ivs ?? [31, 31, 31, 31, 31, 31])}
-    data-evs={JSON.stringify(pokemon.evs ?? [0, 0, 0, 0, 0, 0])}
+    data-level={previewPokemon.level ?? 50}
+    data-nature={previewPokemon.nature ?? ''}
+    data-ivs={JSON.stringify(previewPokemon.ivs ?? [31, 31, 31, 31, 31, 31])}
+    data-evs={JSON.stringify(previewPokemon.evs ?? [0, 0, 0, 0, 0, 0])}
   >
     <div class="pokemon-preview-main">
     <div class="pokemon-preview-left">
@@ -79,10 +96,10 @@ const previewStats = detail ? statKeys.map((key, index) => index === 0 ? calcHpS
             他のタップ起点(ステータス調整・もちもの)と同じくpreview-quick-open.tsが配線し、
             対象ボタンが存在しない他ページ(battle-data/ranked-teams/matchup)では安全にno-opにする。 */}
         <div class="pokemon-preview-species-line" id="pokemon-preview-species-trigger" role="button" tabindex="0" aria-haspopup="dialog" aria-label="ポケモンを選択">
-          <div id="pokemon-preview-species-name">{pokemon.species_name || '-'}</div>
+          <div id="pokemon-preview-species-name">{previewPokemon.species_name || '-'}</div>
           <span class="pokemon-preview-type-icons" id="pokemon-preview-type-icons" aria-label="タイプ"></span>
         </div>
-        <div id="pokemon-preview-ability">{pokemon.ability_name || '-'}</div>
+        <div id="pokemon-preview-ability">{previewPokemon.ability_name || '-'}</div>
       </div>
       {/* 各行タップで、その技スロットのわざ選択(#move-${slot}へのfocusで開く、
           left-panel.tsのopenPicker参照)を開く。preview-quick-open.tsが配線する。 */}
@@ -97,8 +114,8 @@ const previewStats = detail ? statKeys.map((key, index) => index === 0 ? calcHpS
     </div>
     <div class="pokemon-preview-identity">
       <button type="button" class="pokemon-preview-sprite-wrap" aria-label="ポケモンプレビュー">
-        <img id="pokemon-preview-species-sprite" src={master ? championSpriteUrl(master.imageId) : undefined} onerror={master ? `this.onerror=null;this.src='${officialArtworkUrl(master.imageId)}';` : undefined} alt={pokemon.species_name} style={master ? undefined : 'display:none;'} />
-        <span id="pokemon-preview-species-sprite-fallback" style={master ? 'display:none;' : undefined}>{pokemon.species_name.slice(0, 1)}</span>
+        <img id="pokemon-preview-species-sprite" src={master ? championSpriteUrl(master.imageId) : undefined} onerror={master ? `this.onerror=null;this.src='${officialArtworkUrl(master.imageId)}';` : undefined} alt={previewPokemon.species_name} style={master ? undefined : 'display:none;'} />
+        <span id="pokemon-preview-species-sprite-fallback" style={master ? 'display:none;' : undefined}>{previewPokemon.species_name.slice(0, 1)}</span>
       </button>
     </div>
     <div class="pokemon-preview-right">
@@ -129,7 +146,7 @@ const previewStats = detail ? statKeys.map((key, index) => index === 0 ? calcHpS
               <tr>
                 <th data-mod={nature.up === key ? 'up' : nature.down === key ? 'down' : undefined}>{label}</th>
                 <td id={`pokemon-preview-stat-${key}`} data-mod={nature.up === key ? 'up' : nature.down === key ? 'down' : undefined}>{previewStats[index] ?? '-'}</td>
-                <td id={`pokemon-preview-ev-${key}`}>{pokemon.evs[index] ? `+${pokemon.evs[index]}` : '-'}</td>
+                <td id={`pokemon-preview-ev-${key}`}>{previewPokemon.evs[index] ? `+${previewPokemon.evs[index]}` : '-'}</td>
               </tr>
             ))}
           </tbody>
@@ -137,7 +154,7 @@ const previewStats = detail ? statKeys.map((key, index) => index === 0 ? calcHpS
       </div>
     </div>
     </div>
-  </section>
+  </section>}
 
 </div>
 

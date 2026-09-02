@@ -5,6 +5,7 @@ import AppLayout from '../../layouts/AppLayout.astro';
 import MobileTrainingBar from '../../components/box-id/MobileTrainingBar.astro';
 import PokemonSettingsModalHost from '../../components/box-id/PokemonSettingsModalHost.astro';
 import { getOwnedPokemon } from '../../lib/owned-pokemon';
+import { createMobilePreviewPlaceholder } from '../../lib/box-id/mobile-preview-placeholder';
 import { getSupabaseAdminClient } from '../../lib/supabase';
 import '../../styles/data-page.css';
 import '../../styles/matchup-panel.css';
@@ -15,15 +16,14 @@ const selectedId = Astro.url.searchParams.get('pokemon');
 const result = user && selectedId
   ? await getOwnedPokemon(user.id, selectedId, await getSupabaseAdminClient())
   : null;
-const pokemon = result?.ok ? result.data : null;
+const pokemon = result?.ok ? result.data : (selectedId ? createMobilePreviewPlaceholder(selectedId) : null);
+const canRenderSelectedPokemon = result?.ok || (!user && selectedId !== null);
 ---
 
 <AppLayout title="相性" description="使用率上位ポケモンとの攻守の相性" current="box" bodyClass="data-page">
   <div class="page box-data-page box-matchup-page">
-    {pokemon ? (
-      <MobileTrainingBar pokemon={pokemon} activeTab="matchup" />
-		  <PokemonSettingsModalHost pokemon={pokemon} />
-    ) : (
+    <MobileTrainingBar pokemon={canRenderSelectedPokemon ? pokemon : null} activeTab="matchup" />
+    {canRenderSelectedPokemon && pokemon ? <PokemonSettingsModalHost pokemon={pokemon} /> : (
       <section class="pokemon-data-preview" aria-labelledby="matchup-preview-title">
         <p class="data-kicker">相性チェック</p>
         <h1 id="matchup-preview-title">ポケモンを選択してください</h1>
@@ -32,10 +32,11 @@ const pokemon = result?.ok ? result.data : null;
       </section>
     )}
 
-    {pokemon && (
+    {canRenderSelectedPokemon && pokemon && (
       <main
         id="box-matchup-main"
         class="box-data-main"
+        data-guest-pokemon-id={!user ? selectedId ?? '' : undefined}
         data-pokemon={JSON.stringify({
           id: pokemon.id,
           species_name: pokemon.species_name,
@@ -64,6 +65,8 @@ const pokemon = result?.ok ? result.data : null;
 
 <script>
   import { createMatchupPanel, type MatchupPanelMember } from '../../lib/matchup-panel';
+  import { hydrateGuestMobilePreview } from '../../lib/box-id/mobile-preview-hydrate';
+  import { isGuestMode } from '../../lib/data/guest-mode';
 
   const main = document.querySelector<HTMLElement>('#box-matchup-main');
   const listElement = document.querySelector<HTMLElement>('#box-matchup-list');
@@ -71,7 +74,15 @@ const pokemon = result?.ok ? result.data : null;
   const pokemonJson = main?.dataset.pokemon;
 
   if (listElement && statusElement && pokemonJson) {
-    const pokemon = JSON.parse(pokemonJson) as MatchupPanelMember;
+    let pokemon = JSON.parse(pokemonJson) as MatchupPanelMember;
+    if (isGuestMode() && main?.dataset.guestPokemonId) {
+      const guestPokemon = await hydrateGuestMobilePreview(main.dataset.guestPokemonId);
+      if (!guestPokemon) {
+        window.location.replace('/box');
+      } else {
+        pokemon = guestPokemon;
+      }
+    }
     const matchupPanel = createMatchupPanel({
       listElement,
       statusElement,
@@ -97,6 +108,6 @@ const pokemon = result?.ok ? result.data : null;
 
   syncMatchupViewport();
   window.addEventListener('resize', syncMatchupViewport);
-  new ResizeObserver(syncMatchupViewport).observe(trainingBar);
+  if (trainingBar) new ResizeObserver(syncMatchupViewport).observe(trainingBar);
   if (bottomNav) new ResizeObserver(syncMatchupViewport).observe(bottomNav);
 </script>

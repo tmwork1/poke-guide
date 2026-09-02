@@ -6,6 +6,7 @@ import MobileTrainingBar from '../../components/box-id/MobileTrainingBar.astro';
 import PokemonSettingsModalHost from '../../components/box-id/PokemonSettingsModalHost.astro';
 import BattleDataCard from '../../components/data/BattleDataCard.astro';
 import { getOwnedPokemon } from '../../lib/owned-pokemon';
+import { createMobilePreviewPlaceholder } from '../../lib/box-id/mobile-preview-placeholder';
 import { getSupabaseAdminClient } from '../../lib/supabase';
 import { hasSingleBattleData } from '../../lib/battle-data-card';
 import {
@@ -24,7 +25,9 @@ const selectedId = Astro.url.searchParams.get('pokemon');
 const result = user && selectedId
   ? await getOwnedPokemon(user.id, selectedId, await getSupabaseAdminClient())
   : null;
-const pokemon = result?.ok ? result.data : null;
+// ゲスト個体はlocalStorageにしかないため、SSRではIDだけの枠を描いてクライアントで反映する。
+const pokemon = result?.ok ? result.data : (selectedId ? createMobilePreviewPlaceholder(selectedId) : null);
+const canRenderSelectedPokemon = result?.ok || (!user && selectedId !== null);
 
 const lookupName = pokemon ? resolveOpggSpeciesName(pokemon.species_name) : null;
 const seasonManifest = await getOpggUsageManifest(env.OPGG_USAGE);
@@ -48,10 +51,8 @@ const hasData = hasSingleBattleData(opgg);
 
 <AppLayout title="バトルデータ" description="OP.GG使用率データ" current="box" bodyClass="data-page">
   <div class="page box-data-page">
-    {pokemon ? (
-      <MobileTrainingBar pokemon={pokemon} activeTab="battle-data" />
-		  <PokemonSettingsModalHost pokemon={pokemon} />
-    ) : (
+    <MobileTrainingBar pokemon={canRenderSelectedPokemon ? pokemon : null} activeTab="battle-data" />
+    {canRenderSelectedPokemon && pokemon ? <PokemonSettingsModalHost pokemon={pokemon} /> : (
       <section class="pokemon-data-preview" aria-labelledby="data-preview-title">
         <p class="data-kicker">育成データレビュー</p>
         <h1 id="data-preview-title">ポケモンを選択してください</h1>
@@ -60,10 +61,10 @@ const hasData = hasSingleBattleData(opgg);
       </section>
     )}
 
-    {pokemon && (
-      <main class="box-data-main">
+    {canRenderSelectedPokemon && pokemon && (
+      <main class="box-data-main" data-guest-pokemon-id={!user ? selectedId ?? '' : undefined}>
         <section class:list={{ 'data-panel': true, 'data-panel--has-data': hasData }}>
-          {hasData ? (
+          {hasData || !user ? (
             <BattleDataCard single={single} />
           ) : (
             <section class="data-empty" aria-live="polite">
@@ -78,7 +79,23 @@ const hasData = hasSingleBattleData(opgg);
 </AppLayout>
 
 <script>
+  import { hydrateGuestMobilePreview } from '../../lib/box-id/mobile-preview-hydrate';
+  import { isGuestMode } from '../../lib/data/guest-mode';
+  import {
+    evSpreadLabel,
+    imageIdByName,
+    moveTypeByName,
+    natureModifierStats,
+    usageRateLabel,
+    type RankedRow,
+    type EvRankedRow,
+    type SingleFormatData,
+  } from '../../lib/battle-data-card';
+  import { championSpriteUrl, officialArtworkUrl } from '../../lib/pokemon-master-data';
+  import { itemIconUrl } from '../../lib/sprite-urls';
+  import { DEFAULT_TYPE_COLOR, TYPE_COLORS } from '../../lib/type-colors';
   const dataPage = document.querySelector<HTMLElement>('.box-data-page');
+  const main = document.querySelector<HTMLElement>('.box-data-main');
   const trainingBar = document.querySelector<HTMLElement>('#mobile-training-ui');
   const bottomNav = document.querySelector<HTMLElement>('.app-bottom-nav');
 
@@ -93,7 +110,123 @@ const hasData = hasSingleBattleData(opgg);
     }
   }
 
+  function setEmpty(cell: Element): void {
+    const body = cell.querySelector<HTMLElement>('.trend-cell-body');
+    if (body) body.replaceChildren(Object.assign(document.createElement('strong'), { textContent: 'データなし' }));
+  }
+
+  function renderRows(cell: Element, rows: RankedRow[] | undefined, render: (row: RankedRow, index: number) => HTMLElement): void {
+    const body = cell.querySelector<HTMLElement>('.trend-cell-body');
+    if (!body) return;
+    if (!rows?.length) return setEmpty(cell);
+    const list = document.createElement('ul');
+    list.className = 'trend-rank-list';
+    rows.forEach((row, index) => list.appendChild(render(row, index)));
+    body.replaceChildren(list);
+  }
+
+  function baseRow(row: RankedRow, className: string): HTMLLIElement {
+    const item = document.createElement('li');
+    item.className = `trend-rank-row ${className}`;
+    return item;
+  }
+
+  function renderBattleDataCard(single: SingleFormatData): void {
+    const card = document.querySelector<HTMLElement>('[data-battle-data-card]');
+    if (!card) return;
+    const cells = Array.from(card.children);
+    renderRows(cells[0], single.abilities, (row) => {
+      const item = baseRow(row, 'trend-rank-row--text2');
+      item.append(Object.assign(document.createElement('span'), { className: 'trend-rank-name', textContent: row.name }), Object.assign(document.createElement('span'), { className: 'trend-rank-rate', textContent: usageRateLabel(row.usageRate) }));
+      return item;
+    });
+    renderRows(cells[1], single.natures, (row) => {
+      const item = baseRow(row, 'trend-rank-row--nature3');
+      const modifier = natureModifierStats(row.name);
+      const modifierEl = document.createElement('span');
+      modifierEl.className = 'trend-nature-modifier';
+      if (modifier) {
+        modifierEl.setAttribute('aria-label', `${modifier.up}↑ ${modifier.down}↓`);
+        modifierEl.append(Object.assign(document.createElement('span'), { className: 'trend-nature-modifier-up', textContent: `${modifier.up}↑` }), document.createTextNode(' '), Object.assign(document.createElement('span'), { className: 'trend-nature-modifier-down', textContent: `${modifier.down}↓` }));
+      }
+      item.append(Object.assign(document.createElement('span'), { className: 'trend-rank-name', textContent: row.name }), modifierEl, Object.assign(document.createElement('span'), { className: 'trend-rank-rate', textContent: usageRateLabel(row.usageRate) }));
+      return item;
+    });
+    renderRows(cells[2], single.items, (row) => {
+      const item = baseRow(row, 'trend-rank-row--icon3');
+      const icon = document.createElement('img');
+      icon.src = itemIconUrl(row.name);
+      icon.alt = '';
+      icon.loading = 'lazy';
+      icon.onerror = () => item.classList.replace('trend-rank-row--icon3', 'trend-rank-row--text2');
+      const iconWrap = Object.assign(document.createElement('span'), { className: 'trend-rank-icon' });
+      iconWrap.appendChild(icon);
+      item.append(iconWrap, Object.assign(document.createElement('span'), { className: 'trend-rank-name', textContent: row.name }), Object.assign(document.createElement('span'), { className: 'trend-rank-rate', textContent: usageRateLabel(row.usageRate) }));
+      return item;
+    });
+    renderRows(cells[3], single.moves, (row) => {
+      const type = moveTypeByName(row.name);
+      const item = baseRow(row, type ? 'trend-rank-row--type3' : 'trend-rank-row--text2');
+      if (type) item.appendChild(Object.assign(document.createElement('span'), { className: 'trend-rank-type-bar', title: type, ariaLabel: `${type}タイプ` }, { style: `--trend-move-type-color: ${TYPE_COLORS[type] ?? DEFAULT_TYPE_COLOR}` }));
+      item.append(Object.assign(document.createElement('span'), { className: 'trend-rank-name', textContent: row.name }), Object.assign(document.createElement('span'), { className: 'trend-rank-rate', textContent: usageRateLabel(row.usageRate) }));
+      return item;
+    });
+    const evRows = single.evs;
+    const evBody = cells[4]?.querySelector<HTMLElement>('.trend-cell-body');
+    if (!evRows?.length) setEmpty(cells[4]);
+    else if (evBody) {
+      const list = document.createElement('ul');
+      list.className = 'trend-rank-list';
+      evRows.forEach((row: EvRankedRow) => list.append(Object.assign(document.createElement('li'), { className: 'trend-rank-row trend-rank-row--text2' }, { innerHTML: `<span class="trend-rank-name"></span><span class="trend-rank-rate"></span>` })));
+      Array.from(list.children).forEach((item, index) => {
+        const row = evRows[index];
+        item.querySelector('.trend-rank-name')!.textContent = evSpreadLabel(row.values);
+        item.querySelector('.trend-rank-rate')!.textContent = usageRateLabel(row.usageRate);
+      });
+      evBody.replaceChildren(list);
+    }
+    renderRows(cells[5], single.teammates, (row, index) => {
+      const imageId = imageIdByName(row.name);
+      const item = baseRow(row, imageId === null ? 'trend-rank-row--rank-name2' : 'trend-rank-row--rank-icon3');
+      item.appendChild(Object.assign(document.createElement('span'), { className: 'trend-rank-order', textContent: String(index + 1), ariaLabel: `${index + 1}位` }));
+      if (imageId !== null) {
+        const image = document.createElement('img');
+        image.className = 'trend-rank-icon--pokemon';
+        image.src = championSpriteUrl(imageId);
+        image.alt = '';
+        image.loading = 'lazy';
+        image.onerror = () => { image.onerror = null; image.src = officialArtworkUrl(imageId); };
+        item.appendChild(Object.assign(document.createElement('span'), { className: 'trend-rank-icon' }));
+        item.lastElementChild!.appendChild(image);
+      }
+      item.appendChild(Object.assign(document.createElement('span'), { className: 'trend-rank-name', textContent: row.name }));
+      return item;
+    });
+  }
+
+  // SSRの空プレビューをlocalStorageの個体で置き換え、種族名だけを使う公開APIから
+  // バトルデータを読む。個体の育成内容はサーバーへ送らない。
+  if (isGuestMode() && main?.dataset.guestPokemonId) {
+    const guestPokemon = await hydrateGuestMobilePreview(main.dataset.guestPokemonId);
+    if (!guestPokemon) window.location.replace('/box');
+    else {
+      const response = await fetch(`/api/opgg-usage?species=${encodeURIComponent(guestPokemon.species_name)}&category=all`);
+      const body = await response.json().catch(() => ({})) as { single?: SingleFormatData | null };
+      const single = body.single;
+      const hasData = Boolean(single && (['abilities', 'natures', 'items', 'moves', 'evs', 'teammates'] as const).some(
+        (key) => Array.isArray(single[key]) && single[key]!.length > 0,
+      ));
+      // SSRはゲストの種族名を知らないため .data-panel--has-data(カード拡大用、data-page.css参照)を
+      // 付けられない。実データが揃ったここで、ログイン時と同じ判定基準(hasSingleBattleData)で
+      // 付け直す(サイズが縮んだままになる不具合の実測修正)。
+      if (response.ok && hasData && single) {
+        document.querySelector('.data-panel')?.classList.add('data-panel--has-data');
+        renderBattleDataCard(single);
+      }
+    }
+  }
+
   syncBattleDataViewport();
   window.addEventListener('resize', syncBattleDataViewport);
-  new ResizeObserver(syncBattleDataViewport).observe(trainingBar);
+  if (trainingBar) new ResizeObserver(syncBattleDataViewport).observe(trainingBar);
 </script>

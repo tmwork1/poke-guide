@@ -7,7 +7,7 @@
 import type { APIContext } from 'astro';
 import { env } from 'cloudflare:workers';
 import { badRequest, jsonResponse, methodNotAllowed } from './_shared';
-import { getOpggUsageCategory, type OpggUsageCategory } from '../../lib/opgg-usage';
+import { getOpggUsageCategory, getOpggUsageSingle, type OpggUsageCategory } from '../../lib/opgg-usage';
 
 export const prerender = false;
 
@@ -25,6 +25,13 @@ export async function GET({ request }: APIContext): Promise<Response> {
   if (!species) return badRequest('species is required');
 
   const category = url.searchParams.get('category');
+  // /box/data のゲスト表示はSSRでlocalStorageを読めないため、種族名が判明した後に
+  // この読み取り専用APIからカード全体を取得する。個体情報は送らない。
+  if (category === 'all') {
+    return jsonResponse({ single: await getOpggUsageSingle(env.OPGG_USAGE, species) }, 200, {
+      'Cache-Control': 'public, max-age=300, s-maxage=86400, stale-while-revalidate=86400',
+    });
+  }
   if (!isOpggUsageCategory(category)) {
     return badRequest(`category must be one of: ${CATEGORIES.join(', ')}`);
   }

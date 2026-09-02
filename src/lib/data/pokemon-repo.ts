@@ -23,7 +23,7 @@ export interface OwnedPokemonPage {
   hasMore: boolean;
 }
 
-/** The six deterministic records available to every guest visitor. */
+/** Deterministic records available to every guest visitor. */
 export const GUEST_FIXED_POKEMON: Array<{ id: string } & GuestPokemonInput> = [
   {
     id: 'guest-fixed-フシギバナ',
@@ -60,6 +60,24 @@ export const GUEST_FIXED_POKEMON: Array<{ id: string } & GuestPokemonInput> = [
     species_name: 'ラグラージ', level: 50, nature: 'いじっぱり', ability_name: 'げきりゅう',
     item_name: 'とつげきチョッキ', tera_type: 'はがね', evs: [32, 32, 0, 0, 0, 2],
     move_names: ['じしん', 'たきのぼり', 'れいとうパンチ', 'クイックターン'],
+  },
+  {
+    id: 'guest-fixed-メガニウム',
+    species_name: 'メガニウム', level: 50, nature: 'ずぶとい', ability_name: 'しんりょく',
+    item_name: 'ゴツゴツメット', tera_type: '水', evs: [32, 0, 32, 0, 0, 2],
+    move_names: ['やどりぎのタネ', 'リフレクター', 'ちょうはつ', 'タネマシンガン'],
+  },
+  {
+    id: 'guest-fixed-バクフーン',
+    species_name: 'バクフーン', level: 50, nature: 'おくびょう', ability_name: 'もうか',
+    item_name: 'こだわりメガネ', tera_type: '草', evs: [2, 0, 0, 32, 0, 32],
+    move_names: ['かえんほうしゃ', 'だいちのちから', 'きあいだま', 'れいとうビーム'],
+  },
+  {
+    id: 'guest-fixed-オーダイル',
+    species_name: 'オーダイル', level: 50, nature: 'いじっぱり', ability_name: 'げきりゅう',
+    item_name: 'こだわりハチマキ', tera_type: 'ノーマル', evs: [2, 32, 0, 0, 0, 32],
+    move_names: ['じしん', 'たきのぼり', 'しんそく', 'アイアンテール'],
   },
 ];
 

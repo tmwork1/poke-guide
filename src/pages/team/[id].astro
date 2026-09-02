@@ -100,7 +100,7 @@ if (!isGuestNewMode) {
 ---
 <AppLayout title={pageTitle} current="team" bodyClass={bodyClass}>
 	{team && (
-		<AppHeader ariaLabel="チーム編集メニュー" showGuestBadge={true}>
+		<AppHeader ariaLabel="チーム編集メニュー">
 			<div class="app-header__list">
 				<button type="button" class="app-header__item" data-mobile-tab="pokemon" data-active={initialMobileTab === 'pokemon' ? 'true' : undefined} aria-current={initialMobileTab === 'pokemon' ? 'page' : undefined}><span>ポケモン</span></button>
 				<button type="button" class="app-header__item" data-mobile-tab="formation" data-active={initialMobileTab === 'formation' ? 'true' : undefined} aria-current={initialMobileTab === 'formation' ? 'page' : undefined}><span>編成</span></button>

@@ -6,13 +6,13 @@ interface Props {
 const { currentUser } = Astro.props;
 ---
 
-<section class="debug-auth-toggle" aria-label="開発用認証切り替え">
-  <span class="debug-auth-toggle__label">DEV ONLY</span>
-  <label class="debug-auth-toggle__control">
-    <input id="debug-auth-toggle-input" type="checkbox" checked={currentUser} />
-    <span>ログイン状態</span>
-  </label>
-</section>
+<label class="debug-auth-toggle" aria-label="開発用ゲストモード切り替え">
+  <input id="debug-auth-toggle-input" type="checkbox" checked={!currentUser} />
+  <span class="debug-auth-toggle__track" aria-hidden="true">
+    <span class="debug-auth-toggle__thumb"></span>
+  </span>
+  <span class="debug-auth-toggle__state">ゲストモード</span>
+</label>
 
 <script>
   // `npm run dev` はセッションを見ずに常にダミーのログイン済みユーザーを返す
@@ -24,28 +24,48 @@ const { currentUser } = Astro.props;
   const toggle = document.getElementById('debug-auth-toggle-input') as HTMLInputElement | null;
   toggle?.addEventListener('change', () => {
     document.cookie = toggle.checked
-      ? `${COOKIE_NAME}=; path=/; max-age=0`
-      : `${COOKIE_NAME}=1; path=/`;
+      ? `${COOKIE_NAME}=1; path=/`
+      : `${COOKIE_NAME}=; path=/; max-age=0`;
     window.location.reload();
   });
 </script>
 
 <style>
   .debug-auth-toggle {
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    justify-content: center;
-    gap: 0.65rem;
+    gap: 0.5rem;
     margin: 1rem auto 0;
-    padding: 0.55rem 0.75rem;
     width: fit-content;
-    color: #7f1d1d;
-    background: #fef2f2;
-    border: 1px dashed #dc2626;
-    border-radius: 0.5rem;
-    font-size: 0.8rem;
+    cursor: pointer;
+    font-size: 0.85rem;
   }
-  .debug-auth-toggle__label { font-weight: 800; letter-spacing: 0.08em; }
-  .debug-auth-toggle__control { display: inline-flex; align-items: center; gap: 0.35rem; cursor: pointer; }
-  .debug-auth-toggle__control input { accent-color: #dc2626; }
+  .debug-auth-toggle input {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    opacity: 0;
+  }
+  .debug-auth-toggle__track {
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+    inline-size: 2.2rem;
+    block-size: 1.2rem;
+    padding: 0.12rem;
+    background: #9ca3af;
+    border-radius: 999px;
+    transition: background-color 160ms ease;
+  }
+  .debug-auth-toggle__thumb {
+    inline-size: 0.96rem;
+    block-size: 0.96rem;
+    background: #fff;
+    border-radius: 50%;
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.25);
+    transition: transform 160ms ease;
+  }
+  .debug-auth-toggle input:checked + .debug-auth-toggle__track { background: #dc2626; }
+  .debug-auth-toggle input:checked + .debug-auth-toggle__track .debug-auth-toggle__thumb { transform: translateX(1rem); }
+  .debug-auth-toggle input:focus-visible + .debug-auth-toggle__track { outline: 2px solid #991b1b; outline-offset: 2px; }
 </style>

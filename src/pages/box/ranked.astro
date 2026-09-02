@@ -5,6 +5,7 @@ import AppLayout from '../../layouts/AppLayout.astro';
 import MobileTrainingBar from '../../components/box-id/MobileTrainingBar.astro';
 import PokemonSettingsModalHost from '../../components/box-id/PokemonSettingsModalHost.astro';
 import { getOwnedPokemon } from '../../lib/owned-pokemon';
+import { createMobilePreviewPlaceholder } from '../../lib/box-id/mobile-preview-placeholder';
 import { getSupabaseAdminClient, getSupabasePublicClient } from '../../lib/supabase';
 import { listRankedSeasons } from '../../lib/ranked-teams';
 import { resolveDefaultSeason } from '../../lib/ranked-teams-validation';
@@ -18,7 +19,8 @@ const selectedId = Astro.url.searchParams.get('pokemon');
 const result = user && selectedId
   ? await getOwnedPokemon(user.id, selectedId, await getSupabaseAdminClient())
   : null;
-const pokemon = result?.ok ? result.data : null;
+const pokemon = result?.ok ? result.data : (selectedId ? createMobilePreviewPlaceholder(selectedId) : null);
+const canRenderSelectedPokemon = result?.ok || (!user && selectedId !== null);
 let rankedSeason: string | null = null;
 if (pokemon) {
   try {
@@ -31,10 +33,8 @@ if (pokemon) {
 
 <AppLayout title="上位チーム" description="この個体を採用した上位構築" current="box" bodyClass="data-page">
   <div class="page box-data-page box-ranked-page">
-    {pokemon ? (
-      <MobileTrainingBar pokemon={pokemon} activeTab="ranked-teams" />
-		  <PokemonSettingsModalHost pokemon={pokemon} />
-    ) : (
+    <MobileTrainingBar pokemon={canRenderSelectedPokemon ? pokemon : null} activeTab="ranked-teams" />
+    {canRenderSelectedPokemon && pokemon ? <PokemonSettingsModalHost pokemon={pokemon} /> : (
       <section class="pokemon-data-preview" aria-labelledby="ranked-preview-title">
         <p class="data-kicker">育成データレビュー</p>
         <h1 id="ranked-preview-title">ポケモンを選択してください</h1>
@@ -43,10 +43,11 @@ if (pokemon) {
       </section>
     )}
 
-    {pokemon && (
+    {canRenderSelectedPokemon && pokemon && (
       <main
         class="box-data-main"
         data-ranked-season={rankedSeason ?? ''}
+        data-guest-pokemon-id={!user ? selectedId ?? '' : undefined}
         data-pokemon-build={JSON.stringify({
           species_name: pokemon.species_name,
           ability_name: pokemon.ability_name,
@@ -81,11 +82,13 @@ if (pokemon) {
   import { renderTopBuildCard } from '../../lib/ranked-teams/card';
   import type { RankedTeam } from '../../lib/ranked-teams';
   import { reloadOnBfcacheRestore } from '../../lib/shared/reload-on-bfcache-restore';
+  import { hydrateGuestMobilePreview } from '../../lib/box-id/mobile-preview-hydrate';
+  import { isGuestMode } from '../../lib/data/guest-mode';
 
   const main = document.querySelector<HTMLElement>('.box-data-main');
   const panel = document.querySelector<HTMLElement>('#ranked-data-panel');
   const rankedSeason = main?.dataset.rankedSeason || null;
-  const pokemonBuildJson = main?.dataset.pokemonBuild;
+  let pokemonBuildJson = main?.dataset.pokemonBuild;
   const RANKED_TEAMS_PAGE_SIZE = 24;
   let rankedOffset = 0;
   let hasMoreRankedTeams = false;
@@ -195,7 +198,22 @@ if (pokemon) {
     }
   }
 
-  void loadRankedBuilds(true);
+  async function hydrateGuestRankedPokemon(): Promise<void> {
+    if (!isGuestMode() || !main?.dataset.guestPokemonId) return;
+    const pokemon = await hydrateGuestMobilePreview(main.dataset.guestPokemonId);
+    if (!pokemon) {
+      window.location.replace('/box');
+      return;
+    }
+    pokemonBuildJson = JSON.stringify({
+      species_name: pokemon.species_name,
+      ability_name: pokemon.ability_name,
+      item_name: pokemon.item_name,
+      move_names: pokemon.move_names,
+    });
+  }
+
+  void hydrateGuestRankedPokemon().then(() => void loadRankedBuilds(true));
   reloadOnBfcacheRestore(() => void loadRankedBuilds(true));
 </script>
 
@@ -215,6 +233,6 @@ if (pokemon) {
 
   syncRankedViewport();
   window.addEventListener('resize', syncRankedViewport);
-  new ResizeObserver(syncRankedViewport).observe(trainingBar);
+  if (trainingBar) new ResizeObserver(syncRankedViewport).observe(trainingBar);
   if (bottomNav) new ResizeObserver(syncRankedViewport).observe(bottomNav);
 </script>

@@ -287,7 +287,7 @@ const initialMobileTab = !isNewMode && Astro.url.searchParams.get('tab') === 'da
 			{/* ダメージ計算カード(#opponent-notes-section)のテンプレート・is:globalスタイル・
 			    スクリプトは構造分割ラウンド(フェーズ2)により src/components/box-id/DamageCalcSection.astro +
 			    src/lib/box-id/damage-calc.ts へ切り出した(見た目・ロジックは一切変更していない)。 */}
-			{isNewMode || !user ? (
+			{isNewMode ? (
 				<section class="panel">
 					<div class="panel-content">
 						{isNewMode ? (
@@ -313,7 +313,7 @@ const initialMobileTab = !isNewMode && Astro.url.searchParams.get('tab') === 'da
 			    src/components/box-id/RightPanel.astro へ切り出した(見た目・ロジックは一切
 			    変更していない。.edit-layout-detail/#damage-detail-backdropの2要素をまとめて
 			    このコンポーネント自身が描画する)。 */}
-			{!isNewMode && user && <RightPanel />}
+			{!isNewMode && <RightPanel />}
 			</div>
 
 			{/* 「耐久調整」機能のポップアップ本体。トップバーの#bulk-adjust-button

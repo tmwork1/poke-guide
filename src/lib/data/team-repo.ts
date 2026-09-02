@@ -32,7 +32,8 @@ export function ensureFixedGuestTeam(): void {
 
   createGuestTeamWithId(GUEST_FIXED_TEAM_ID, {
     memo: 'ゲスト用サンプルチーム',
-    members: GUEST_FIXED_POKEMON.map((pokemon, index) => ({
+    // 箱の固定サンプルは増えても、常設チームは6枠の従来編成を維持する。
+    members: GUEST_FIXED_POKEMON.slice(0, 6).map((pokemon, index) => ({
       slot: index + 1,
       owned_pokemon_id: pokemon.id,
     })),
