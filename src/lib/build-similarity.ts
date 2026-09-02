@@ -31,15 +31,20 @@ export interface TeamSimilaritySource extends BuildSimilaritySource {
 }
 
 export interface TeamSimilarityTarget extends BuildSimilarityTarget {
+	/** ランキング表記の種族名(メガシンカは進化前+メガストーンのまま)。突き合わせには使わない。 */
 	speciesName: string;
-	/** ランク構築側のフォルム名。メガシンカの一致を強く評価するために使う。 */
-	formName?: string | null;
+	/**
+	 * アプリ内語彙の種族名(owned_pokemon.species_name と同じ、migrations/011)。
+	 * メガシンカ個体は「メガ」+進化前名になり、進化前とは別種族として扱われる。
+	 * 種族の同定・メガ判定は必ずこちらを使う(speciesName はメガと進化前が同名に潰れている)。
+	 */
+	speciesKey?: string | null;
 }
 
 const MEGA_EVOLUTION_BONUS = 3;
 
 function isMegaEvolution(target: TeamSimilarityTarget): boolean {
-	return target.formName?.startsWith("Mega") ?? false;
+	return target.speciesKey?.startsWith("メガ") ?? false;
 }
 
 export function calculateTeamSimilarity(
@@ -47,7 +52,7 @@ export function calculateTeamSimilarity(
 	rankedMembers: readonly TeamSimilarityTarget[],
 ): number {
 	return team.reduce((score, member) => {
-		const matched = rankedMembers.find((rankedMember) => rankedMember.speciesName === member.species_name);
+		const matched = rankedMembers.find((rankedMember) => !!rankedMember.speciesKey && rankedMember.speciesKey === member.species_name);
 		return matched
 			? score + 1 + calculateBuildSimilarity(member, matched) + (isMegaEvolution(matched) ? MEGA_EVOLUTION_BONUS : 0)
 			: score;

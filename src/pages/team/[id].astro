@@ -3162,7 +3162,7 @@ if (!isGuestNewMode) {
 				const team = Array.from(membersBySlot.values());
 				const currentSpecies = new Set(team.map((member) => member.species_name));
 				const hasBuildMatch = (ranked: RankedTeam): boolean => ranked.members.some((rankedMember) =>
-					team.some((member) => rankedMember.speciesName === member.species_name
+					team.some((member) => !!rankedMember.speciesKey && rankedMember.speciesKey === member.species_name
 						&& calculateBuildSimilarity(member, rankedMember) > 0),
 				);
 				const scored = teams
@@ -3188,7 +3188,7 @@ if (!isGuestNewMode) {
 				list.className = "team-grid";
 				for (const entry of results) {
 					const highlightSlots = entry.team.members
-						.filter((member) => currentSpecies.has(member.speciesName))
+						.filter((member) => !!member.speciesKey && currentSpecies.has(member.speciesKey))
 						.map((member) => member.slot);
 					list.appendChild(renderTopBuildCard(entry.team, { highlightSlots }));
 				}
