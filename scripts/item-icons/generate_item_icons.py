@@ -76,22 +76,19 @@ scripts/item-icons/measure 相当の使い捨てコードで実行。再現手�
 
 ## 採用した正規化方針
 1. 各アイテム画像をalpha>=ALPHA_MIN(8)のピクセルでバウンディングボックス検出する。
-2. バウンディングボックスの長辺(bbox_w, bbox_h の大きい方)が出力キャンバスに対して
-   TARGET_FRACTION(0.8)を占めるよう、クロップする正方形の一辺
-   `crop_side = bbox長辺 / TARGET_FRACTION` を求める。
+2. バウンディングボックスの幅・高さの幾何平均が出力キャンバスに対して
+   TARGET_AREA_SIDE_FRACTION(0.8)を占めるよう、クロップする正方形の一辺
+   `crop_side = sqrt(bbox幅 * bbox高さ) / TARGET_AREA_SIDE_FRACTION` を求める。
+   ただし長辺がMAX_LONG_SIDE_FRACTION(0.94)を超えないようにして、細長い絵柄を
+   キャンバス外へ切り落とさない。
 3. バウンディングボックスの中心を基準に、一辺 crop_side の正方形をクロップする
    (Image.crop()の自動パディングにより、キャンバス外にはみ出しても透明で埋まる)。
 4. クロップした正方形をOUTPUT_SIZE(96px)にLANCZOSで1回だけリサイズする(縮小・拡大を
    2回に分けない。type-icons生成スクリプトで「2回リサンプルするとボケる」ことが実測で
    判明した教訓を踏襲)。
-   TARGET_FRACTION=0.8とすることで、絵柄の長辺は常にキャンバスの80%(=76.8px/96px)を
-   占めるようになり、短辺側は元のアスペクト比のまま(絵柄の形は歪めない)。これにより
-   「見た目の大きさ」(=長辺の占有率)が全アイテムで揃う。
-   0.8という比率は、実測で最も余白が少なかったgen9/punching-glove(面積比0.701、
-   長辺比0.863)より確実に小さく、かつ最も余白が多かったメガストーン群(長辺比0.467)
-   を目立って拡大しすぎない中間値として選んだ(タイプアイコン生成スクリプトの
-   MARK_SCALE=0.84などと同様、余白を残しつつアンチエイリアス縁が出力キャンバス端で
-   欠けないよう10%ずつのマージンを両側に確保する設計)。
+   TARGET_AREA_SIDE_FRACTION=0.8とすることで、正方形に近い絵柄は従来どおり
+   80%四方(面積64%)を占める。細長い絵柄は見た目の面積を補うために拡大するが、
+   長辺は94%で止めて約3pxの安全余白を残す。
 5. OUTPUT_SIZE=96は scripts/type-icons/generate_type_icons.py のOUTPUT_SIZE(96)と
    同じ値を踏襲した(新しい規格を作らない)。実際の画面上の表示サイズは16px(box一覧の
    狭幅時)〜36px(box一覧の.card-item-badge)なので、96pxは最大表示サイズの2.7倍以上を
@@ -105,8 +102,8 @@ scripts/item-icons/measure 相当の使い捨てコードで実行。再現手�
 ## 使い方
     python scripts/item-icons/generate_item_icons.py
 
-    public/master-data/autocomplete/items.json の(name, spritePath)一覧(spritePathが
-    nullの項目は除外)を読み、全アイテムのアイコンを public/item-icons/{name}.png に
+    public/master-data/autocomplete/items.json の(name, spritePath)一覧を読み、既知の
+    spritePath欠損はPokeAPIの公開slugで補完して、全アイテムのアイコンを public/item-icons/{name}.png に
     生成する(サブディレクトリは持たない。取得元URLの gen8/gen9 はソース側のみ)。
     再実行可能(既存ファイルは上書き)。ネットワークアクセスが必要
     (raw.githubusercontent.com から都度取得、ローカルキャッシュは持たない)。
@@ -118,6 +115,7 @@ from __future__ import annotations
 
 import io
 import json
+import math
 import sys
 import urllib.error
 import urllib.request
@@ -150,9 +148,32 @@ OUTPUT_SIZE = 96
 # 取って8とする(冒頭docstring「実測」参照)。
 ALPHA_MIN = 8
 
-# バウンディングボックスの長辺が出力キャンバスに占める比率。0.8を採用した根拠は
-# 冒頭docstring「採用した正規化方針」参照。
-TARGET_FRACTION = 0.8
+# 絵柄の面積を揃える基準。bboxの幾何平均を出力キャンバスの80%にそろえるので、
+# 正方形に近い絵柄の占有面積は従来と同じ64%になる。
+TARGET_AREA_SIDE_FRACTION = 0.8
+
+# 面積基準だけでは横長・縦長の絵柄がキャンバス外へ出るため、長辺は94%までに制限する。
+# 約3pxの余白を残せる値で、こだわりメガネ程度（約1.5:1）でも面積は正方形に近い絵柄へ
+# 十分に近づく。一方で極端な細長い絵柄を無理に拡大して切り落とすことを防ぐ。
+MAX_LONG_SIDE_FRACTION = 0.94
+
+# LANCZOS拡大時に透明縁へ生じるごく薄いリンギングを除去するしきい値。元画像の検出
+# しきい値より高くすることで、実体の輪郭ではない1〜15/255のアルファがbboxをキャンバス
+# 端まで広げるのを防ぐ。
+OUTPUT_ALPHA_MIN = 16
+
+# items.jsonにspritePathがないが、PokeAPIで公開済みのファイル名が判明している持ち物。
+# マスターデータの表記とPokeAPIの英語slugの差をここだけで吸収し、全アイコンを同じ
+# 正規化パイプラインで生成する。
+MANUAL_SPRITE_PATHS = {
+    "ウォーターメモリ": "water-memory",
+    "ファイアーメモリ": "fire-memory",
+    "こうてつのプレート": "iron-plate",
+    "たまむしのプレート": "insect-plate",
+    "もりのプレート": "meadow-plate",
+    "アブソルナイトZ": "absolite",
+    "ガブリアスナイトZ": "garchompite",
+}
 
 
 def fetch_image(url: str) -> Image.Image:
@@ -177,8 +198,11 @@ def detect_alpha_bbox(im: Image.Image) -> tuple[int, int, int, int]:
 
 
 def build_normalized_icon(im: Image.Image) -> Image.Image:
-    """絵柄のバウンディングボックスの長辺がOUTPUT_SIZEに対してTARGET_FRACTIONを
-    占めるよう、中心基準で正方形にクロップしてから1回だけリサイズする。
+    """絵柄の面積を基準に、中心基準で正方形にクロップしてから1回だけリサイズする。
+
+    bboxの幅・高さの幾何平均を基準にすることで、細長い絵柄も正方形に近い絵柄と
+    同程度の占有面積になる。ただし長辺をMAX_LONG_SIDE_FRACTION以下に保つため、
+    極端なアスペクト比でも絵柄をクロップしない。
     """
     x0, y0, x1, y1 = detect_alpha_bbox(im)
     bbox_w = x1 - x0
@@ -186,7 +210,9 @@ def build_normalized_icon(im: Image.Image) -> Image.Image:
     cx = (x0 + x1) / 2
     cy = (y0 + y1) / 2
 
-    crop_side = max(bbox_w, bbox_h) / TARGET_FRACTION
+    area_based_side = math.sqrt(bbox_w * bbox_h) / TARGET_AREA_SIDE_FRACTION
+    containment_side = max(bbox_w, bbox_h) / MAX_LONG_SIDE_FRACTION
+    crop_side = max(area_based_side, containment_side)
     half = crop_side / 2
     # Image.crop()はキャンバス範囲外を自動的に透明パディングするため、クランプ不要
     # (冒頭docstring「実測」4.参照)。
@@ -197,17 +223,20 @@ def build_normalized_icon(im: Image.Image) -> Image.Image:
         round(cy + half),
     )
     cropped = im.crop(box)
-    return cropped.resize((OUTPUT_SIZE, OUTPUT_SIZE), Image.LANCZOS)
+    result = cropped.resize((OUTPUT_SIZE, OUTPUT_SIZE), Image.LANCZOS)
+    alpha = result.getchannel("A")
+    result.putalpha(alpha.point(lambda value: 0 if value < OUTPUT_ALPHA_MIN else value))
+    return result
 
 
 def load_items() -> list[tuple[str, str]]:
-    """(name, spritePath)の一覧を返す。spritePathがnullの項目は除外する。"""
+    """(name, spritePath)の一覧を返す。既知の欠損spritePathも補完する。"""
     data = json.loads(ITEMS_JSON.read_text(encoding="utf-8"))
     items = []
     seen = set()
     for entry in data:
         name = entry.get("name")
-        sprite_path = entry.get("spritePath")
+        sprite_path = entry.get("spritePath") or MANUAL_SPRITE_PATHS.get(name)
         if not name or not sprite_path or name in seen:
             continue
         seen.add(name)
