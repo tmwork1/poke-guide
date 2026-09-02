@@ -23,8 +23,11 @@ body.team-page {
 	/* ── 8. 寸法 ──────────────────────────────────────────── */
 	/* 登録0件時の中央タイル用。.team-contentはbox-content(/box)と違いposition:fixedではなく
 	   通常のブロックなので、min-height:100%は親の高さが未確定で効かない(0扱いになる)。
-	   固定表示のヘッダー・下部ナビを除いた実際の可視領域の高さを直接計算する。 */
-	--team-page-empty-min-height: calc(100dvh - var(--header-height) - var(--app-header-height) - var(--second-header-height) - var(--bottom-nav-height) - env(safe-area-inset-bottom));
+	   固定表示のヘッダー・下部ナビを除いた実際の可視領域の高さを直接計算する。
+	   /box の .box-content は position:fixed の top/bottom で上下とも
+	   --box-page-card-scroll-inset ぶん狭めているため、ここでも同じ inset を上下2回分
+	   差し引く(片方だけだと中央タイルのY位置が /box とわずかにずれる)。 */
+	--team-page-empty-min-height: calc(100dvh - var(--header-height) - var(--app-header-height) - var(--second-header-height) - var(--team-page-card-scroll-inset) - var(--bottom-nav-height) - env(safe-area-inset-bottom) - var(--team-page-card-scroll-inset));
 }
 
 /* --------------------------------------------------------------------------

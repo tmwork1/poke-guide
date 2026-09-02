@@ -18,11 +18,13 @@ export interface TeamMateSlotsOptions<T extends TeamMateCardPokemon> {
 	onSlotLongPress?: (slot: number) => void;
 	applySprite: (imgEl: HTMLImageElement, fallbackEl: HTMLElement, name: string) => void | Promise<void>;
 	applyItemIcon: (imgEl: HTMLImageElement, itemName: string, visibilityEl?: HTMLElement) => void | Promise<void>;
+	/** falseならアイコン右下の持ち物オーバーレイを描かない(もちもの入替モーダルは別行でアイテムを表示するため)。省略時true。 */
+	showItem?: boolean;
 }
 
 /** 編成タブと相性タブで共通のチームメイト6枠を描画する。 */
 export function renderTeamMateSlots<T extends TeamMateCardPokemon>(options: TeamMateSlotsOptions<T>): void {
-	const { root, membersBySlot, displayName, selectedSlot = null, onSlotClick, onSlotTap, onSlotDoubleTap, onSlotLongPress, applySprite, applyItemIcon } = options;
+	const { root, membersBySlot, displayName, selectedSlot = null, onSlotClick, onSlotTap, onSlotDoubleTap, onSlotLongPress, applySprite, applyItemIcon, showItem = true } = options;
 	root.innerHTML = "";
 
 	for (let slot = 1; slot <= 6; slot += 1) {
@@ -100,7 +102,7 @@ export function renderTeamMateSlots<T extends TeamMateCardPokemon>(options: Team
 			void applySprite(sprite, fallback, member.species_name);
 
 			const itemName = member.item_name?.trim() ?? "";
-			if (itemName) {
+			if (showItem && itemName) {
 				const item = document.createElement("span");
 				item.className = "team-mate-card__item";
 				const itemImg = document.createElement("img");

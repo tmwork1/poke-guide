@@ -100,28 +100,16 @@ body.team-edit-page {
 }
 .team-item-redistribute-help-popover[hidden] { display: none; }
 
-.team-item-redistribute-members {
+.team-item-redistribute-members-wrap {
 	padding: var(--space-3) var(--space-5);
 	border-bottom: 1px solid var(--color-border);
 	flex: 0 0 auto;
-}
-
-/* 編成タブの.team-mate-card__item(コーナーアイコン)は他画面と共有のため、
-   この再分配モーダルの中だけ少し大きく見せる。 */
-.team-item-redistribute-members .team-mate-card__item {
-	width: 50%;
 }
 
 /* カードの配色を検索ボックス(input[type=text]等)と揃える。 */
 .team-item-redistribute-members .team-mate-card {
 	background: var(--color-surface-sunken);
 	box-shadow: var(--shadow-inset-sunken);
-}
-
-/* ポケモンアイコンは右下ほど透明にする(左上=不透明、右下=半透明)。 */
-.team-item-redistribute-members .team-mate-card__art {
-	-webkit-mask-image: linear-gradient(135deg, rgb(0 0 0 / 1) 40%, rgb(0 0 0 / 0.35) 100%);
-	mask-image: linear-gradient(135deg, rgb(0 0 0 / 1) 40%, rgb(0 0 0 / 0.35) 100%);
 }
 
 /* メガシンカ後の種族は対応するメガストーンを手放せない(タップ・長押しともJS側で
@@ -154,8 +142,73 @@ body.team-edit-page {
 	height: 10px;
 }
 
+/* ポケモン行の直下に並べる、各枠のもちものカード行。列位置はteam-mate-gridで
+   ポケモン行と揃える(renderRedistributionItemRow参照)。 */
+.team-item-redistribute-item-row {
+	margin-top: var(--space-2);
+}
+.team-item-redistribute-item-card {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 2px;
+	min-width: 0;
+	aspect-ratio: 1 / 1;
+	padding: var(--space-1);
+	color: var(--color-text);
+	background: var(--color-surface-sunken);
+	box-shadow: var(--shadow-inset-sunken);
+	border: 1px solid transparent;
+	border-radius: var(--radius-zero);
+	cursor: pointer;
+	font: inherit;
+}
+.team-item-redistribute-item-card:hover,
+.team-item-redistribute-item-card:focus-visible,
+.team-item-redistribute-item-card.is-selected {
+	border-color: var(--color-primary);
+	outline: 2px solid var(--color-primary);
+	outline-offset: -2px;
+}
+.team-item-redistribute-item-card.is-locked {
+	cursor: not-allowed;
+	opacity: 0.55;
+}
+/* 空き枠(個体が無い)は6列の位置ぞろえのためだけの透明プレースホルダー。 */
+.team-item-redistribute-item-card--empty {
+	cursor: default;
+	background: transparent;
+	box-shadow: none;
+	border-color: transparent;
+}
+.team-item-redistribute-item-card__icon-wrap {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 44%;
+	aspect-ratio: 1;
+}
+.team-item-redistribute-item-card__icon {
+	width: 100%;
+	height: 100%;
+	object-fit: contain;
+	pointer-events: none;
+	-webkit-user-drag: none;
+}
+.team-item-redistribute-item-card__name {
+	max-width: 100%;
+	overflow: hidden;
+	color: var(--color-text-muted);
+	font-size: var(--font-size-sm4);
+	line-height: var(--line-height-snug);
+	text-align: center;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
 @media (max-width: 640px) {
-	.team-item-redistribute-members {
+	.team-item-redistribute-members-wrap {
 		padding-inline: var(--space-3);
 	}
 }
