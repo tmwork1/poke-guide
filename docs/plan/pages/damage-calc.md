@@ -10,6 +10,13 @@
 | P5 受け入れ検証 | ✅ |
 | P6 引き渡し | ✅ |
 
+## 追記(2026-09-03、ユーザー指示「1vs1はまだ実装しない」)
+
+mainマージ後、ユーザー指示により「1 vs 1」タブを一時的に無効化した。実装コード自体(詳細カード・engine-bridge・spec-builder)は削除せず残し、有効化を最小差分で戻せるようにしてある:
+- `src/pages/damage-calc/index.astro`: 「1 vs 1」タブボタンに `disabled` / `aria-disabled="true"` / `title="準備中"` を付与。
+- `src/lib/damage-calc-page/matchup-card.ts`: `setTab()` の先頭で `if (tab === "1v1") return;` を追加(タブクリック・矢印キー・カードタップのどの経路からも1vs1へ遷移しなくなる、単一箇所のガード)。「6 vs 1」の要約カードは押しても何も起きないため `<button>` から `<div>` に変更し、「タップして詳細なダメージを見る」の案内文を削除。
+- **再有効化する場合**: 上記2ファイルの変更を戻す(disabled属性を外す・ガード節を削除・カードをbuttonに戻す)だけでよい。spec-builder/engine-bridge/コントロールパネル側の変更は不要。
+
 ## 経緯
 
 ユーザー指示(2026-09-02、Coordinatorが完走): `docs/ui/33.png`〜`36.png` の指示図をもとに、未実装の `src/pages/damage-calc/`(現在ディレクトリのみ存在・中身空)を実装する。`AppBottomNav.astro` に「ダメージ」が `is-disabled` で置かれている。**ユーザーに確認せず完走する指示のため、本ページのP1では `AskUserQuestion` を使わず、Coordinatorが判断して根拠を明記する。**

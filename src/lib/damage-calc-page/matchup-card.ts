@@ -21,6 +21,9 @@ function updateSelectedMember(member: TeamMemberSpecInput): void {
   setSelectedTeam({ ...team, selectedMemberId: member.ownedPokemon.id });
 }
 function setTab(tab: ActiveTab): void {
+  // 1 vs 1 はまだ実装しない(ユーザー指示)。タブボタン・矢印キー・カードタップの
+  // どの経路から呼ばれても、ここで一括して無効化する。
+  if (tab === "1v1") return;
   setActiveTab(tab); render(); document.dispatchEvent(new CustomEvent("damage-calc:change", { detail: { reason: "tab" } }));
 }
 function renderTabs(): void {
@@ -37,14 +40,13 @@ function renderSummary(): void {
   const team = getSelectedTeam();
   if (!team?.members.length) { placeholder.textContent = "チームを選択してください。"; placeholder.hidden = false; return; }
   placeholder.hidden = true;
+  // 1 vs 1(詳細表示)はまだ実装しないため、カードはタップ不可の要約表示に留める。
   team.members.forEach((member) => {
-    const card = document.createElement("button"); card.type = "button"; card.className = "card damage-calc-summary-card";
+    const card = document.createElement("div"); card.className = "card damage-calc-summary-card";
     const name = document.createElement("strong"); name.textContent = member.ownedPokemon.species_name;
     const item = document.createElement("span"); item.textContent = member.ownedPokemon.item_name || "もちものなし";
     const versus = document.createElement("span"); versus.textContent = `vs ${opponent.speciesName}`;
-    const hint = document.createElement("small"); hint.textContent = "タップして詳細なダメージを見る";
-    card.append(name, item, versus, hint);
-    card.addEventListener("click", () => { updateSelectedMember(member); setTab("1v1"); }); list.append(card);
+    card.append(name, item, versus); list.append(card);
   });
 }
 function image(member: TeamMemberSpecInput, imageIds: Map<string, number>): HTMLButtonElement {
