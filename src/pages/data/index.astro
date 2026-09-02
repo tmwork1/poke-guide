@@ -15,6 +15,7 @@ import { env } from 'cloudflare:workers';
 import '../../styles/data-hub-page.css';
 import '../../styles/battle-data-card.css';
 import '../../styles/team-card.css';
+import '../../styles/team-mate-card.css';
 import '../../styles/app-header.css';
 import '../../styles/second-header.css';
 import AppHeader from '../../components/AppHeader.astro';
@@ -129,6 +130,24 @@ if (seasonList?.pokemon) {
 			<select id="top-builds-season" class="field-control" disabled={rankedSeasons.length === 0}>
 				{rankedSeasons.map((entry) => <option value={entry.season} selected={entry.season === defaultRankedSeason}>{entry.season}</option>)}
 			</select>
+		</div>
+		<div class="second-header-density toolbar-item toolbar-density">
+			<button
+				type="button"
+				id="top-builds-display-density-toggle"
+				class="density-toggle btn-control"
+				data-mode="expanded"
+				aria-label="圧縮表示に切り替える"
+			>
+				<svg class="density-toggle-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+					<rect x="2" y="4" width="5" height="5" rx="1" />
+					<rect x="10" y="4" width="5" height="5" rx="1" />
+					<rect x="18" y="4" width="5" height="5" rx="1" />
+					<rect x="2" y="12" width="5" height="5" rx="1" />
+					<rect x="10" y="12" width="5" height="5" rx="1" />
+					<rect x="18" y="12" width="5" height="5" rx="1" />
+				</svg>
+			</button>
 		</div>
 	</SecondHeader>
 	)}
@@ -368,6 +387,9 @@ if (seasonList?.pokemon) {
 		import type { RankedTeam } from '../../lib/ranked-teams';
 		import { matchesSpeciesSearch, RANKED_TEAMS_PAGE_SIZE } from '../../lib/ranked-teams-validation';
 		import { renderTopBuildCard } from '../../lib/ranked-teams/card';
+		import { loadImageIdMap, officialArtworkUrl, championSpriteUrl } from '../../lib/pokemon-master-data';
+		import { itemIconUrl } from '../../lib/sprite-urls';
+		import { renderTeamMateSlots, type TeamMateCardPokemon } from '../../lib/team-mate-card';
 
 		interface RankedTeamsResponse { season: string; teams: RankedTeam[]; hasMore: boolean; }
 		interface RankedTeamsCache { teams: RankedTeam[]; hasMore: boolean; }
@@ -381,22 +403,122 @@ if (seasonList?.pokemon) {
 			const loadMore = document.querySelector<HTMLButtonElement>('#top-builds-load-more')!;
 			const search = document.querySelector<HTMLInputElement>('#top-builds-search')!;
 			const seasonSelect = document.querySelector<HTMLSelectElement>('#top-builds-season')!;
+			const densityToggle = document.querySelector<HTMLButtonElement>('#top-builds-display-density-toggle')!;
 			const cache = new Map<string, RankedTeamsCache>();
 			let currentTeams: RankedTeam[] = [];
 			let hasMore = false;
 			let isLoadingMore = false;
 			let debounceTimer: ReturnType<typeof setTimeout> | undefined;
+			type TopBuildsDisplayMode = 'expanded' | 'compressed';
+			let displayMode: TopBuildsDisplayMode = 'expanded';
+
+			const imageIdMapPromise = loadImageIdMap();
+
+			// team/index.astro の圧縮表示と同じ、championSpriteUrl→officialArtworkUrl→頭文字の
+			// フォールバック順で描画する(/team一覧の compressed 表示と統一)。
+			async function applySprite(
+				imgEl: HTMLImageElement,
+				fallbackEl: HTMLElement,
+				name: string,
+			): Promise<void> {
+				const imageId = name ? (await imageIdMapPromise).get(name) : undefined;
+				if (imageId == null) {
+					imgEl.style.display = 'none';
+					fallbackEl.style.display = 'flex';
+					fallbackEl.textContent = name ? name.charAt(0) : '?';
+					return;
+				}
+				let triedArtworkFallback = false;
+				imgEl.onerror = () => {
+					if (!triedArtworkFallback) {
+						triedArtworkFallback = true;
+						imgEl.src = officialArtworkUrl(imageId);
+						return;
+					}
+					imgEl.style.display = 'none';
+					fallbackEl.style.display = 'flex';
+					fallbackEl.textContent = name.charAt(0);
+				};
+				imgEl.onload = () => {
+					imgEl.style.display = '';
+					fallbackEl.style.display = 'none';
+				};
+				imgEl.src = championSpriteUrl(imageId);
+			}
+
+			function applyItemIcon(
+				imgEl: HTMLImageElement,
+				itemName: string,
+				visibilityEl?: HTMLElement,
+			): void {
+				if (!itemName) {
+					imgEl.style.display = 'none';
+					if (visibilityEl) visibilityEl.hidden = true;
+					return;
+				}
+				imgEl.onerror = () => {
+					imgEl.style.display = 'none';
+					if (visibilityEl) visibilityEl.hidden = true;
+				};
+				imgEl.onload = () => {
+					imgEl.style.display = '';
+					if (visibilityEl) visibilityEl.hidden = false;
+				};
+				imgEl.src = itemIconUrl(itemName);
+			}
+
+			const DENSITY_ICON_EXPANDED = `<svg class="density-toggle-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="4" width="5" height="5" rx="1"/><rect x="10" y="4" width="5" height="5" rx="1"/><rect x="18" y="4" width="5" height="5" rx="1"/><rect x="2" y="12" width="5" height="5" rx="1"/><rect x="10" y="12" width="5" height="5" rx="1"/><rect x="18" y="12" width="5" height="5" rx="1"/></svg>`;
+			const DENSITY_ICON_COMPRESSED = `<svg class="density-toggle-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="10" width="5" height="5" rx="1"/><rect x="10" y="10" width="5" height="5" rx="1"/><rect x="18" y="10" width="5" height="5" rx="1"/></svg>`;
+
+			function updateDensityToggleUi(): void {
+				densityToggle.dataset.mode = displayMode;
+				densityToggle.innerHTML = displayMode === 'expanded' ? DENSITY_ICON_EXPANDED : DENSITY_ICON_COMPRESSED;
+				densityToggle.setAttribute(
+					'aria-label',
+					displayMode === 'expanded' ? '圧縮表示に切り替える' : '展開表示に切り替える',
+				);
+			}
 
 			function filteredTeams(): RankedTeam[] {
 				return currentTeams.filter((team) => matchesSpeciesSearch(team.members, search.value));
 			}
 
+			function renderCard(team: RankedTeam): HTMLElement {
+				return renderTopBuildCard(team, {
+					renderMembers: displayMode === 'compressed'
+						? (container) => {
+								container.className = 'team-mate-grid';
+								const mateMembersBySlot = new Map<number, TeamMateCardPokemon>(
+									team.members.map((member) => [
+										member.slot,
+										{ species_name: member.speciesKey ?? member.speciesName, item_name: member.itemName },
+									]),
+								);
+								renderTeamMateSlots({
+									root: container,
+									membersBySlot: mateMembersBySlot,
+									displayName: (p) => p.species_name || 'ポケモン',
+									applySprite,
+									applyItemIcon,
+								});
+							}
+						: undefined,
+				});
+			}
+
 			function render(): void {
 				const filtered = filteredTeams();
-				cards.replaceChildren(...filtered.map((team) => renderTopBuildCard(team)));
+				cards.replaceChildren(...filtered.map((team) => renderCard(team)));
 				empty.hidden = filtered.length !== 0;
 				loadMore.hidden = !hasMore;
 			}
+
+			densityToggle.addEventListener('click', () => {
+				displayMode = displayMode === 'expanded' ? 'compressed' : 'expanded';
+				updateDensityToggleUi();
+				render();
+			});
+			updateDensityToggleUi();
 
 			async function loadPage(season: string, reset = false): Promise<void> {
 				if (isLoadingMore) return;

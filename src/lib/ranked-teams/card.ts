@@ -169,6 +169,8 @@ export interface RenderTopBuildCardOptions {
   highlightSlot?: number;
   /** Highlight multiple members using the shared top-build match treatment. */
   highlightSlots?: readonly number[];
+  /** 指定時は既定のbox-cardグリッドの代わりにこれを呼ぶ(/data 上位チームの圧縮表示)。 */
+  renderMembers?: (container: HTMLElement) => void;
 }
 
 const STAT_LABELS = ['H', 'A', 'B', 'C', 'D', 'S'] as const;
@@ -238,6 +240,7 @@ export function renderTopBuildCard(team: RankedTeam, options: RenderTopBuildCard
     ],
     headerVariant: 'inline',
     membersBySlot,
+    renderMembers: options.renderMembers,
     toCardContent: (member) => {
       const displayName = member.speciesKey ?? member.speciesName;
       return {

@@ -114,3 +114,23 @@
 	background: transparent;
 	color: var(--color-primary-strong);
 }
+
+/* 表示密度スロット: 並べ替え・シーズン選択と同じく内容幅のまま右側に置く。
+   /team一覧と/data(上位チーム)で共有する(元は team-page.css にのみ定義されていた)。 */
+.second-header-density .density-toggle {
+	align-self: center;
+	padding: var(--space-1) var(--space-2);
+	min-height: 0;
+	background: transparent;
+	border: 0;
+	box-shadow: none;
+}
+
+.second-header-density .density-toggle-icon {
+	display: block;
+}
+
+.second-header-density .density-toggle:hover:not(:disabled) {
+	background: transparent;
+	border-color: transparent;
+}

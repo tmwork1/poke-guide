@@ -67,7 +67,7 @@
   --team-card-inline-gap: var(--space-2);
   --team-card-popover-padding: var(--space-2);
   --team-card-popover-border-radius: var(--radius-sm);
-  --team-card-popover-background: var(--color-surface);
+  --team-card-popover-background: color-mix(in srgb, var(--color-surface) 90%, white 10%); /* カード本体より明るくして重なりを区別する */
   --team-card-popover-border-color: var(--color-primary);
 
   /* ── 8. 寸法 ────────────────────────── */
@@ -380,6 +380,7 @@
   border: 1px solid var(--team-card-popover-border-color, var(--color-primary));
   border-radius: var(--team-card-popover-border-radius, var(--radius-sm));
   background: var(--team-card-popover-background, var(--color-surface));
+  box-shadow: var(--shadow-md);
   color: var(--color-text);
   font-size: var(--team-card-badge-font-size, var(--font-size-sm3));
   line-height: var(--team-card-title-line-height, var(--line-height-tight));
