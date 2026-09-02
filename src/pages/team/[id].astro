@@ -552,8 +552,8 @@ if (!isGuestNewMode) {
 							    3列2行のグリッドで配置する(CSSは下の.team-slots参照)。 */}
 							<div id="team-slots" class="team-slots"></div>
 							<button type="button" id="team-item-redistribute-button" class="btn-control team-item-redistribute-button" aria-haspopup="dialog">
-								<span class="team-item-redistribute-button-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 7h8"/><path d="M8 12h8"/><path d="M8 17h8"/><circle cx="5" cy="7" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="17" r="1"/></svg></span>
-								<span>もちもの表示</span>
+								<span class="team-item-redistribute-button-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg></span>
+								<span>もちもの入替</span>
 							</button>
 
 							<textarea
@@ -570,13 +570,16 @@ if (!isGuestNewMode) {
 					<section id="team-item-redistribute-dialog" class="item-select-dialog team-item-redistribute-dialog" role="dialog" aria-modal="true" aria-labelledby="team-item-redistribute-title" tabindex="-1" hidden>
 						<div class="item-select-header">
 							<div class="team-item-redistribute-title-group">
-								<h2 id="team-item-redistribute-title" class="item-select-title">もちもの表示</h2>
+								<h2 id="team-item-redistribute-title" class="item-select-title">もちもの入替</h2>
 								<button type="button" id="team-item-redistribute-help-button" class="team-item-redistribute-help-button" aria-expanded="false" aria-controls="team-item-redistribute-help-popover" aria-label="使い方を表示">?</button>
 								<p id="team-item-redistribute-help-popover" class="team-item-redistribute-help-popover" role="note" hidden>チーム画面のもちもの表示を変更できます。<br />ポケモンに登録したもちものは変わりません。</p>
 							</div>
 							<button type="button" id="team-item-redistribute-close" class="btn-ghost item-select-close" aria-label="閉じる">×</button>
 						</div>
-						<div id="team-item-redistribute-members" class="team-item-redistribute-members team-mate-grid" aria-label="チームのポケモン"></div>
+						<div class="team-item-redistribute-members-wrap">
+							<div id="team-item-redistribute-members" class="team-item-redistribute-members team-mate-grid" aria-label="チームのポケモン"></div>
+							<div id="team-item-redistribute-item-row" class="team-item-redistribute-item-row team-mate-grid" aria-label="表示中のもちもの"></div>
+						</div>
 						<div class="item-select-search-row">
 							<div class="search-input-wrap item-select-search-wrap">
 								<svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -2004,6 +2007,7 @@ if (!isGuestNewMode) {
 			const itemRedistributeHelpButton = el<HTMLButtonElement>("team-item-redistribute-help-button");
 			const itemRedistributeHelpPopover = el<HTMLElement>("team-item-redistribute-help-popover");
 			const itemRedistributeMembers = el<HTMLElement>("team-item-redistribute-members");
+			const itemRedistributeItemRow = el<HTMLElement>("team-item-redistribute-item-row");
 			const itemRedistributeSearch = el<HTMLInputElement>("team-item-redistribute-search");
 			const itemRedistributeItems = el<HTMLElement>("team-item-redistribute-items");
 			const itemRedistributeEmpty = el<HTMLElement>("team-item-redistribute-empty");
@@ -2137,6 +2141,60 @@ if (!isGuestNewMode) {
 				redistributionItemGrid.render(redistributionSearchQuery);
 			}
 
+			// ポケモン行の直下に、各枠が今表示しているもちものをカードで並べる専用行(R-新規)。
+			// アイコンをポケモンアイコンへ重ねる旧方式(.team-mate-card__item)は編成タブ等の
+			// 共有カード用に残し、この行はこのモーダル専用に別描画する。タップは対応する枠の
+			// 選択/入替(onRedistributionMemberTap)へそのままつなぐ。空き枠(個体が無い)は
+			// 6列の位置ぞろえのためだけに空のプレースホルダーを置く。
+			function renderRedistributionItemRow(effective: Map<number, OwnedPokemonRecord>): void {
+				itemRedistributeItemRow.replaceChildren();
+				for (let slot = 1; slot <= 6; slot += 1) {
+					const member = effective.get(slot);
+					if (!member) {
+						const placeholder = document.createElement("div");
+						placeholder.className = "team-item-redistribute-item-card team-item-redistribute-item-card--empty";
+						itemRedistributeItemRow.appendChild(placeholder);
+						continue;
+					}
+					const itemName = (member.item_name ?? "").trim();
+					const locked = isRedistributionSlotLocked(slot);
+					const card = document.createElement("button");
+					card.type = "button";
+					card.className = "team-item-redistribute-item-card";
+					card.dataset.slot = String(slot);
+					card.setAttribute(
+						"aria-label",
+						itemName ? `${itemName}、${slot}番目の枠のもちもの` : `もちものなし、${slot}番目の枠`,
+					);
+					if (selectedRedistributionSlot === slot) card.classList.add("is-selected");
+					if (locked) {
+						card.classList.add("is-locked");
+						card.disabled = true;
+						card.setAttribute("aria-disabled", "true");
+					} else {
+						card.addEventListener("click", () => onRedistributionMemberTap(slot));
+					}
+					const iconWrap = document.createElement("span");
+					iconWrap.className = "team-item-redistribute-item-card__icon-wrap";
+					if (itemName) {
+						const img = document.createElement("img");
+						img.className = "team-item-redistribute-item-card__icon";
+						img.alt = "";
+						img.draggable = false;
+						img.style.display = "none";
+						iconWrap.appendChild(img);
+						void applyItemIcon(img, itemName, iconWrap);
+					} else {
+						iconWrap.classList.add("is-none");
+					}
+					const nameEl = document.createElement("span");
+					nameEl.className = "team-item-redistribute-item-card__name";
+					nameEl.textContent = itemName || "なし";
+					card.append(iconWrap, nameEl);
+					itemRedistributeItemRow.appendChild(card);
+				}
+			}
+
 			function renderRedistributionMembers(): void {
 				const effective = effectiveMembersBySlot();
 				renderTeamMateSlots({
@@ -2148,7 +2206,9 @@ if (!isGuestNewMode) {
 					onSlotLongPress: clearRedistributedItem,
 					applySprite,
 					applyItemIcon,
+					showItem: false,
 				});
+				renderRedistributionItemRow(effective);
 				// 表示中のもちもの("なし"を除く)が2枠以上で重複している個体を黄色くハイライトする。
 				const itemCounts = new Map<string, number>();
 				for (const p of effective.values()) {
