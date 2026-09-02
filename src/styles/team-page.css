@@ -38,24 +38,6 @@ body.team-page {
 	mask-image: linear-gradient(to bottom, transparent 0, transparent var(--team-page-card-scroll-inset), #000 var(--team-page-card-scroll-inset), #000 calc(100% - var(--team-page-card-scroll-inset)), transparent calc(100% - var(--team-page-card-scroll-inset)), transparent 100%);
 }
 
-.second-header-density .density-toggle {
-	align-self: center;
-	padding: var(--space-1) var(--space-2);
-	min-height: 0;
-	background: transparent;
-	border: 0;
-	box-shadow: none;
-}
-
-.second-header-density .density-toggle-icon {
-	display: block;
-}
-
-.second-header-density .density-toggle:hover:not(:disabled) {
-	background: transparent;
-	border-color: transparent;
-}
-
 /* JSがinnerHTMLを差し替えてもカードが .team-grid の直接の子として並ぶようにする
 	(追加タイルは #team-list の外側の兄弟なので再描画で触られない。box/index.astro と同じ戦略)。 */
 #team-list {
