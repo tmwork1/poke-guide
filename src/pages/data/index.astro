@@ -483,9 +483,15 @@ if (seasonList?.pokemon) {
 				return currentTeams.filter((team) => matchesSpeciesSearch(team.members, search.value));
 			}
 
+			// 圧縮表示のカードをタップすると、そのカードだけ展開表示に切り替える
+			// (記事リンクのタップは通常どおり遷移させ、展開はしない)。全体トグルを
+			// 押すとリセットする(トグルが「全カードをこの表示にする」操作として機能するように)。
+			const tapExpandedTeamIds = new Set<string>();
+
 			function renderCard(team: RankedTeam): HTMLElement {
-				return renderTopBuildCard(team, {
-					renderMembers: displayMode === 'compressed'
+				const isCompressed = displayMode === 'compressed' && !tapExpandedTeamIds.has(team.id);
+				const card = renderTopBuildCard(team, {
+					renderMembers: isCompressed
 						? (container) => {
 								container.className = 'team-mate-grid';
 								const mateMembersBySlot = new Map<number, TeamMateCardPokemon>(
@@ -504,6 +510,14 @@ if (seasonList?.pokemon) {
 							}
 						: undefined,
 				});
+				if (isCompressed) {
+					card.addEventListener('click', (event) => {
+						if (event.target instanceof Element && event.target.closest('.card-team-article-link')) return;
+						tapExpandedTeamIds.add(team.id);
+						render();
+					});
+				}
+				return card;
 			}
 
 			function render(): void {
@@ -515,6 +529,7 @@ if (seasonList?.pokemon) {
 
 			densityToggle.addEventListener('click', () => {
 				displayMode = displayMode === 'expanded' ? 'compressed' : 'expanded';
+				tapExpandedTeamIds.clear();
 				updateDensityToggleUi();
 				render();
 			});
