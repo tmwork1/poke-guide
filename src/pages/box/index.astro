@@ -70,6 +70,24 @@ import '../../styles/guest-login-dialog.css';
 								</select>
 							</div>
 						</div>
+						<div class="second-header-density toolbar-item toolbar-density">
+							<button
+								type="button"
+								id="box-display-density-toggle"
+								class="density-toggle btn-control"
+								data-mode="expanded"
+								aria-label="圧縮表示に切り替える"
+							>
+								<svg class="density-toggle-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+									<rect x="2" y="4" width="5" height="5" rx="1" />
+									<rect x="10" y="4" width="5" height="5" rx="1" />
+									<rect x="18" y="4" width="5" height="5" rx="1" />
+									<rect x="2" y="12" width="5" height="5" rx="1" />
+									<rect x="10" y="12" width="5" height="5" rx="1" />
+									<rect x="18" y="12" width="5" height="5" rx="1" />
+								</svg>
+							</button>
+						</div>
 					</SecondHeader>
 
 					<div class="box-content">
@@ -207,11 +225,26 @@ import '../../styles/guest-login-dialog.css';
 			const searchInput = el<HTMLInputElement>("search-input");
 			const addButton = el<HTMLButtonElement>("add-pokemon-button");
 			const emptyAddButton = el<HTMLButtonElement>("empty-add-pokemon-button");
+			const densityToggle = el<HTMLButtonElement>("box-display-density-toggle");
 
 			let allPokemon: OwnedPokemon[] = [];
 			let hasMorePokemon = false;
 			let loadingMore = false;
 			const POKEMON_PAGE_SIZE = 48;
+			type BoxDisplayMode = "expanded" | "compressed";
+			let displayMode: BoxDisplayMode = "expanded";
+
+			const DENSITY_ICON_EXPANDED = `<svg class="density-toggle-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="4" width="5" height="5" rx="1"/><rect x="10" y="4" width="5" height="5" rx="1"/><rect x="18" y="4" width="5" height="5" rx="1"/><rect x="2" y="12" width="5" height="5" rx="1"/><rect x="10" y="12" width="5" height="5" rx="1"/><rect x="18" y="12" width="5" height="5" rx="1"/></svg>`;
+			const DENSITY_ICON_COMPRESSED = `<svg class="density-toggle-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="10" width="5" height="5" rx="1"/><rect x="10" y="10" width="5" height="5" rx="1"/><rect x="18" y="10" width="5" height="5" rx="1"/></svg>`;
+
+			function updateDensityToggleUi(): void {
+				densityToggle.dataset.mode = displayMode;
+				densityToggle.innerHTML = displayMode === "expanded" ? DENSITY_ICON_EXPANDED : DENSITY_ICON_COMPRESSED;
+				densityToggle.setAttribute(
+					"aria-label",
+					displayMode === "expanded" ? "圧縮表示に切り替える" : "展開表示に切り替える",
+				);
+			}
 
 			// カードの表示にはタイプ・特性・持ち物・テラスタイプ・技を出さないが、検索対象は
 			// それらすべてを引き続き含める(表示されない項目も検索できるようにする)。
@@ -367,6 +400,12 @@ import '../../styles/guest-login-dialog.css';
 			}
 
 			searchInput.addEventListener("input", renderList);
+			densityToggle.addEventListener("click", () => {
+				displayMode = displayMode === "expanded" ? "compressed" : "expanded";
+				boxContent?.classList.toggle("is-compact", displayMode === "compressed");
+				updateDensityToggleUi();
+				renderList();
+			});
 			// 新規個体は種族を確定してから編集画面側で登録する。
 			function goToNewPokemon(): void {
 				if (isGuestMode()) {
@@ -378,6 +417,7 @@ import '../../styles/guest-login-dialog.css';
 			addButton.addEventListener("click", goToNewPokemon);
 			emptyAddButton.addEventListener("click", goToNewPokemon);
 
+			updateDensityToggleUi();
 			void loadList(true);
 			reloadOnBfcacheRestore(() => void loadList(true));
 
