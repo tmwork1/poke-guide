@@ -52,7 +52,7 @@
   --pokemon-preview-stats-column-gap: 15px; /* 能力値表の列間隔。大きくすると数値の列が離れる */
   --pokemon-preview-column-gap: var(--space-2); /* 左右の情報欄と中央画像の間隔。大きくすると各欄が離れる */
   --pokemon-preview-content-gap: var(--space-1); /* 文字やアイコンの間隔。大きくすると各項目が離れる */
-  --pokemon-preview-species-type-gap: 0.5rem; /* 種族名とタイプアイコンの間隔 */
+  --pokemon-preview-species-type-gap: var(--space-1); /* 種族名とタイプアイコンの間隔。0.5remだと種族名の表示幅を1px前後圧迫し、ヒスイダイケンキ等の長い名前が不要に省略されていたため詰める */
   --pokemon-preview-item-stats-gap: var(--space-2); /* 持ち物と能力値表の縦の間隔 */
   --pokemon-preview-stats-inline-end-gap: var(--pokemon-preview-content-gap); /* 能力値表の右端余白 */
   --pokemon-preview-move-row-gap: 0px; /* 技の行間。大きくすると技一覧が縦に広がる */
