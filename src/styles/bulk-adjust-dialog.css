@@ -143,9 +143,12 @@ body.box-edit-page {
 		flex-shrink: 0;
 		min-width: 0;
 	}
-	/* button.btn-primary(詳細度0,1,1)に勝つため要素セレクタを付け、削除ボタンと同じ太さを維持する。 */
+	/* button.btn-primary(詳細度0,1,1)に勝つため要素セレクタを付け、削除ボタン(.bulk-adjust-row-remove、
+		btn-ghost経由でbuttonの既定semibold)と同じ太さを維持する。以前はvar(--font-weight-medium)
+		だったが、これだとダイアログ内で最も目立つはずの主操作が既定semibold(600)の削除ボタンより
+		軽い(500)ままになり、コメントが述べる「同じ太さ」に反していた。 */
 	button.bulk-adjust-dialog-compute-button {
-		font-weight: var(--font-weight-medium);
+		font-weight: var(--font-weight-semibold);
 		background: var(--color-surface);
 		color: var(--color-primary-strong);
 		border: 2px solid var(--color-primary);

@@ -2381,7 +2381,10 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .box-add-button
 }
 
 #opponent-notes-section .damage-suggest-item-name {
-  font-weight: var(--font-weight-semibold);
+  /* 相手ビルドカードのアイテム名(.damage-build-item-name、normal)・同じサジェストカード内の
+     特性(.damage-suggest-ability、normal)と役割が同じ「控えめな補助情報」のため、
+     太さも揃える(以前はsemiboldで1段だけ強調されていた)。 */
+  font-weight: var(--font-weight-normal);
   font-size: var(--font-size-sm3);
   color: var(--color-text-muted);
 }

@@ -69,8 +69,8 @@
 
 	/* ── 2. 文字の太さ・行間 ──────────────────── */
 	--team-card-name-font-weight: var(--font-weight-medium);
-	--team-card-stats-label-font-weight: var(--font-weight-medium);
-	--team-card-stats-value-font-weight: var(--font-weight-medium);
+	--team-card-stats-label-font-weight: var(--font-weight-normal);
+	--team-card-stats-value-font-weight: var(--font-weight-normal);
 	--team-card-details-font-weight: var(--font-weight-medium);
 	--team-card-moves-font-weight: var(--font-weight-normal);
 	--team-card-stats-ev-font-weight: var(--font-weight-normal);

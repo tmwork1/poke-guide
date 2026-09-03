@@ -15,7 +15,7 @@ body.search-page {
 
   /* ── 2. 文字の太さ・行間 ──────────────────────────────── */
   --search-page-field-label-font-weight: var(--font-weight-semibold); /* キーワード欄ラベルの太さ。太くすると入力項目が目立つ */
-  --search-page-radio-label-font-weight: normal; /* カテゴリ選択ラベルの太さ。太くすると選択肢が強調される */
+  --search-page-radio-label-font-weight: var(--font-weight-normal); /* カテゴリ選択ラベルの太さ。太くすると選択肢が強調される */
 
   /* ── 3. 文字色 ────────────────────────────────────────── */
   --search-page-field-label-color: var(--color-text-muted); /* キーワード欄ラベルの色。薄くすると入力欄が主役になる */
