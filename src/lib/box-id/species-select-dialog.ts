@@ -1,7 +1,7 @@
 // /box/[id] の種族選択モーダル。種族値・特性候補・保存など既存の処理は
 // #species-name の input/change イベントに集約されているため、このファイルは選択値を
 // 書き換えて両イベントを発火するだけにとどめる。
-import { el, readSpeciesUsageData, sortPokemonNamesByUsage } from "../owned-pokemon-form";
+import { el } from "../owned-pokemon-form";
 import {
 	loadAbilitiesMap,
 	loadLearnsetMap,
@@ -44,6 +44,17 @@ const sortLabels: Record<SortMode, string> = {
 	dex: "番号",
 	kana: "名前",
 };
+
+function readOpggRankedSpeciesNames(): string[] {
+	const script = document.getElementById("box-opgg-ranked-species");
+	if (!script) return [];
+	try {
+		const parsed: unknown = JSON.parse(script.textContent ?? "");
+		return Array.isArray(parsed) ? parsed.filter((name): name is string => typeof name === "string") : [];
+	} catch {
+		return [];
+	}
+}
 
 function getSpriteObserver(): IntersectionObserver {
 	if (!spriteObserver) {
@@ -163,23 +174,17 @@ function renderGrid(): void {
 	if (sortMode === "kana") {
 		sortedNonMega = [...nonMegaEntries].sort((a, b) => a.name.localeCompare(b.name, "ja"));
 	} else if (sortMode === "popularity") {
-		const usageByRegulation = readSpeciesUsageData();
-		if (usageByRegulation !== null) {
-			const regulation = (document.getElementById("regulation") as HTMLSelectElement | null)?.value ?? "";
-			const usage = usageByRegulation[regulation.trim()] ?? {};
-			const byName = new Map(nonMegaEntries.map((entry) => [entry.name, entry]));
-			const rankedNames = nonMegaEntries
-				.filter((entry) => Object.hasOwn(usage, entry.name))
-				.map((entry) => entry.name);
-			const rankedEntries = sortPokemonNamesByUsage(rankedNames, usage).flatMap((name) => {
-				const entry = byName.get(name);
-				return entry ? [entry] : [];
-			});
-			const unrankedEntries = nonMegaEntries
-				.filter((entry) => !Object.hasOwn(usage, entry.name))
-				.sort((a, b) => a.dexNo - b.dexNo);
-			sortedNonMega = [...rankedEntries, ...unrankedEntries];
+		const rankByName = new Map<string, number>();
+		for (const [index, name] of readOpggRankedSpeciesNames().entries()) {
+			if (!rankByName.has(name)) rankByName.set(name, index);
 		}
+		const rankedEntries = nonMegaEntries
+			.filter((entry) => rankByName.has(entry.name))
+			.sort((a, b) => rankByName.get(a.name)! - rankByName.get(b.name)!);
+		const unrankedEntries = nonMegaEntries
+			.filter((entry) => !rankByName.has(entry.name))
+			.sort((a, b) => a.dexNo - b.dexNo);
+		sortedNonMega = [...rankedEntries, ...unrankedEntries];
 	}
 
 	const megaByDex = new Map<number, PokemonMasterEntry[]>();
