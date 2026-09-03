@@ -753,6 +753,7 @@ if (form) {
 	const statusEl = el<HTMLElement>("autosave-status");
 	const statusTextEl = el<HTMLElement>("autosave-status-text");
 	const retryButton = el<HTMLButtonElement>("retry-button");
+	const copyButton = el<HTMLButtonElement>("copy-button");
 	const deleteButton = el<HTMLButtonElement>("delete-button");
 
 	const speciesSpriteImg = el<HTMLImageElement>("species-sprite");
@@ -1124,6 +1125,7 @@ if (form) {
 			item_name: el<HTMLInputElement>("item").value.trim(),
 			tera_type: el<HTMLSelectElement>("tera").value,
 			evs: STAT_KEYS.map((k) => readEv(k)),
+			// IVは「チャンピオンズ」ルールで常に31固定(コピー時も同じ)。
 			ivs: STAT_KEYS.map(() => 31),
 			move_names: readMoveNames(),
 			memo: el<HTMLTextAreaElement>("memo").value.trim(),
@@ -1343,6 +1345,22 @@ if (form) {
 		bindPressAndHold(button, stepEv);
 		button.addEventListener("click", stepEv);
 	}
+
+	copyButton.addEventListener("click", () => {
+		void (async () => {
+			if (!ownedPokemonId) return;
+			if (!window.confirm("この個体を複製します。よろしいですか?")) return;
+			copyButton.disabled = true;
+			try {
+				const { id } = await createOwnedPokemon(buildPayload());
+				window.location.href = `/box/${encodeURIComponent(id)}`;
+			} catch (err) {
+				console.error(err);
+				window.alert("個体を複製できませんでした。時間をおいて再度お試しください。");
+				copyButton.disabled = false;
+			}
+		})();
+	});
 
 	deleteButton.addEventListener("click", () => {
 		void (async () => {
