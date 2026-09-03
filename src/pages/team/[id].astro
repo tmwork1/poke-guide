@@ -1387,14 +1387,6 @@ if (!isGuestNewMode) {
 			gap: var(--space-2);
 			min-width: 0;
 		}
-		.team-preview-panel .team-damage-owner {
-			margin: 0;
-			font-size: var(--font-size-sm2);
-			font-weight: var(--font-weight-heavy);
-			overflow: hidden;
-			text-overflow: ellipsis;
-			white-space: nowrap;
-		}
 		.team-preview-panel .team-damage-status {
 			margin: 0;
 			font-size: var(--font-size-sm3);
@@ -2771,8 +2763,7 @@ if (!isGuestNewMode) {
 				suggestEl.hidden = true;
 				suggestTogglesEl.hidden = true;
 
-				// 見出しは右パネル共通のタイトル帯(#team-panel-header-title)へ表示する
-				// (このページ内で.team-damage-ownerクラス自体は削除していない)。
+				// 見出しは右パネル共通のタイトル帯(#team-panel-header-title)へ表示する。
 				setPanelHeaderTitle("ダメージ計算");
 				const titleSprite = document.createElement("span");
 				titleSprite.className = "team-damage-title-sprite";
