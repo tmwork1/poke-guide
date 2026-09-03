@@ -67,6 +67,14 @@
   --box-grid-columns: 6;
 }
 
+/* 圧縮表示はチーム一覧・チーム編成タブと同じ「ポケモンとアイテムだけ」にする。
+   名前・技(.card-body、display:contentsで子がグリッド行を占有)を隠しても、
+   公式絵(.card-artwork)・持ち物バッジ(.card-item-badge)はposition:absoluteで
+   独立しているため表示され続ける。 */
+.box-content.is-compact .box-grid .box-card .card-body {
+  display: none;
+}
+
 /* 一覧の読み込み・エラー表示: #loading-message / #error-message */
 #loading-message,
 #error-message {
