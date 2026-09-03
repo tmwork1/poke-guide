@@ -1017,7 +1017,7 @@ export function renderDurabilityIndexResults(
 }
 
 export function buildIconToggleGroup(
-	options: Array<{ value: string; label: string; icon: string }>,
+	options: Array<{ value: string; label: string; icon?: string }>,
 	current: string,
 	onChange: (value: string) => void,
 	ariaLabel?: string,
@@ -1029,10 +1029,10 @@ export function buildIconToggleGroup(
 	for (const opt of options) {
 		const button = document.createElement("button");
 		button.type = "button";
-		button.className = "damage-detail-icon-btn";
+		button.className = `damage-detail-icon-btn${opt.icon ? "" : " is-text-only"}`;
 		button.setAttribute("aria-pressed", String(opt.value === current));
 		button.title = opt.label;
-		button.innerHTML = opt.icon;
+		if (opt.icon) button.innerHTML = opt.icon;
 		const labelSpan = document.createElement("span");
 		labelSpan.textContent = opt.label;
 		button.appendChild(labelSpan);
@@ -1252,6 +1252,9 @@ export function buildSideSection(
 	rankAilmentGroup.appendChild(headingRow);
 
 	const ailmentSelect = document.createElement("select");
+	// 状態異常は天候直下のセグメントコントロールで操作する。ここで生成する
+	// 旧selectは既存の初期化手順を保つため非表示にし、サイド欄へは挿入しない。
+	ailmentSelect.hidden = true;
 	ailmentSelect.className = "damage-detail-ailment-select";
 	ailmentSelect.setAttribute("aria-label", `${ariaSideLabel}の状態異常`);
 	ailmentSelect.title = "状態異常";
@@ -1292,7 +1295,7 @@ export function buildSideSection(
 	// (damage-detail-panel.cssの.damage-detail-rank-ailment-rowを3列グリッドに変更済み)。
 	const rankAilmentRow = document.createElement("div");
 	rankAilmentRow.className = "damage-detail-rank-ailment-row";
-	rankAilmentRow.append(rankField, ailmentSelect);
+	rankAilmentRow.append(rankField);
 	rankAilmentGroup.appendChild(rankAilmentRow);
 
 	// F: テラスタルは揮発状態(stateGrid)と別行にする。C-2でランク・状態異常と同じ段の
@@ -1873,6 +1876,33 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 	weatherGroup.classList.add("is-row4");
 	weatherRow.appendChild(weatherGroup);
 	fieldEffectsGroup.appendChild(weatherRow);
+
+	const appendAilmentRow = (
+		label: string,
+		current: string,
+		onChange: (value: string) => void,
+	): void => {
+		const ailmentRow = document.createElement("div");
+		ailmentRow.className = "damage-detail-field-row";
+		const ailmentLabel = document.createElement("span");
+		ailmentLabel.className = "damage-detail-field-row-label";
+		ailmentLabel.textContent = label;
+		const ailmentGroup = buildIconToggleGroup(DAMAGE_AILMENTS, current, (value) => {
+			onChange(value);
+			scheduleRowCalc(row);
+			scheduleRowSave(row);
+			refreshRowConditionChips(row);
+		}, label);
+		ailmentGroup.classList.add("is-row4");
+		ailmentRow.append(ailmentLabel, ailmentGroup);
+		fieldEffectsGroup.appendChild(ailmentRow);
+	};
+	appendAilmentRow("攻撃側の状態異常", column.attackerAilment, (value) => {
+		column.attackerAilment = value;
+	});
+	appendAilmentRow("防御側の状態異常", column.defenderAilment, (value) => {
+		column.defenderAilment = value;
+	});
 
 	const terrainRow = document.createElement("div");
 	terrainRow.className = "damage-detail-field-row";
