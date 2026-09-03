@@ -156,7 +156,7 @@ if (!isGuestNewMode) {
 		/* global.cssのbutton.btn-dangerが持つ太字指定を上書きし、
 		   戻るボタン(.app-header-back)と同じ文字サイズ・太さへ揃える。 */
 		#copy-button,
-		#delete-team-button { width: 100%; font-size: var(--font-size-sm1); white-space: nowrap; font-weight: 500; }
+		#delete-team-button { width: 100%; font-size: var(--font-size-sm1); white-space: nowrap; font-weight: var(--font-weight-medium); }
 		.training-delete-actions {
 			display: grid;
 			gap: var(--space-3);
@@ -436,7 +436,7 @@ if (!isGuestNewMode) {
 		.team-panel-header-title {
 			margin: 0;
 			font-size: var(--font-size-sm2);
-			font-weight: 700;
+			font-weight: var(--font-weight-bold);
 			overflow: hidden;
 			text-overflow: ellipsis;
 			white-space: nowrap;
@@ -810,7 +810,7 @@ if (!isGuestNewMode) {
 			border-radius: 50%;
 			background: var(--color-primary-soft);
 			color: var(--color-primary);
-			font-weight: 700;
+			font-weight: var(--font-weight-bold);
 			font-size: 1.2rem;
 		}
 		.team-select-bar .select-row-body {
@@ -836,7 +836,7 @@ if (!isGuestNewMode) {
 			min-width: 0;
 			/* 2行目のNNは中央配置を保ち、既存の小サイズトークンへ縮める。 */
 			font-size: var(--font-size-sm2);
-			font-weight: 700;
+			font-weight: var(--font-weight-bold);
 			white-space: nowrap;
 			overflow: hidden;
 			text-overflow: ellipsis;
@@ -883,7 +883,7 @@ if (!isGuestNewMode) {
 		.team-select-bar .select-row-ability-name {
 			font-size: var(--font-size-sm3);
 			line-height: var(--line-height-tight);
-			font-weight: 600;
+			font-weight: var(--font-weight-semibold);
 			color: var(--color-text-muted);
 			max-width: 100%;
 			white-space: nowrap;
@@ -906,7 +906,7 @@ if (!isGuestNewMode) {
 		.team-select-bar .select-row-item-name {
 			font-size: var(--font-size-sm3);
 			line-height: var(--line-height-tight);
-			font-weight: 600;
+			font-weight: var(--font-weight-semibold);
 			color: var(--color-text-muted);
 			max-width: 100%;
 			min-width: 0;
@@ -930,7 +930,7 @@ if (!isGuestNewMode) {
 			min-width: 0;
 			font-size: var(--font-size-sm3);
 			line-height: var(--line-height-tight);
-			font-weight: 600;
+			font-weight: var(--font-weight-semibold);
 			color: var(--color-text-muted);
 			text-align: left;
 		}
@@ -959,12 +959,12 @@ if (!isGuestNewMode) {
 		.team-select-bar .select-row-reason {
 			/* A-3(b): 0.74rem(11.84px)は12px下限を割っていたため、12pxのトークンに是正。 */
 			font-size: var(--font-size-sm3);
-			font-weight: 700;
+			font-weight: var(--font-weight-bold);
 			width: 100%;
 		}
 		.team-select-bar .select-row-reason[data-reason="already-in-team"] {
 			color: var(--color-text-muted);
-			font-weight: 600;
+			font-weight: var(--font-weight-semibold);
 		}
 		.team-select-bar .select-row-reason:not([data-reason="already-in-team"]) {
 			color: var(--color-danger-strong);
@@ -1056,9 +1056,9 @@ if (!isGuestNewMode) {
 			padding: 0;
 			color: var(--color-text-muted);
 			opacity: 0.55;
-			/* font-weight:600(太字)は他画面の検索欄placeholder等より主張が強すぎるため、通常の
+			/* font-weight: var(--font-weight-semibold)(太字)は他画面の検索欄placeholder等より主張が強すぎるため、通常の
 			   太さにする(色は既存のvar(--color-text-muted)のまま、両テーマ対応を崩さない)。 */
-			font-weight: 400;
+			font-weight: var(--font-weight-normal);
 			font-size: var(--font-size-sm1);
 			cursor: default;
 			text-align: center;
@@ -1078,7 +1078,7 @@ if (!isGuestNewMode) {
 			left: var(--space-2);
 			z-index: 0;
 			font-size: 2.75rem;
-			font-weight: 800;
+			font-weight: var(--font-weight-heavy);
 			line-height: 1;
 			color: var(--color-text-muted);
 			opacity: 0.14;
@@ -1119,7 +1119,7 @@ if (!isGuestNewMode) {
 			border-radius: 50%;
 			background: var(--color-primary-soft);
 			color: var(--color-primary);
-			font-weight: 700;
+			font-weight: var(--font-weight-bold);
 			font-size: 1.4rem;
 		}
 		.team-slots .slot-info {
@@ -1146,7 +1146,7 @@ if (!isGuestNewMode) {
 		.team-slots .slot-name {
 			min-width: 0;
 			font-size: var(--font-size-base);
-			font-weight: 700;
+			font-weight: var(--font-weight-bold);
 			overflow: hidden;
 			text-overflow: ellipsis;
 			white-space: nowrap;
@@ -1230,7 +1230,7 @@ if (!isGuestNewMode) {
 		   (buildFilledSlotContent参照。クラス自体は特性向けに引き続き使う)。 */
 		.team-slots .slot-meta-unset {
 			color: var(--color-danger-strong);
-			font-weight: 700;
+			font-weight: var(--font-weight-bold);
 		}
 		/* 右パネルのbuildDamageCard内.team-damage-stats/.team-damage-stats-line
 		   (6列ラベル行+実数値行)と同じ考え方をこのカードにも適用する。 */
@@ -1249,7 +1249,7 @@ if (!isGuestNewMode) {
 		   解消に充てる。 */
 		.team-slots .slot-stat-key {
 			font-size: var(--font-size-sm3);
-			font-weight: 700;
+			font-weight: var(--font-weight-bold);
 			color: var(--color-text-muted);
 			text-align: center;
 			line-height: var(--line-height-tight);
@@ -1258,7 +1258,7 @@ if (!isGuestNewMode) {
 		.team-slots .slot-stat-key[data-mod="down"] { color: var(--color-primary); }
 		.team-slots .slot-stat-value {
 			font-size: var(--font-size-sm3);
-			font-weight: 700;
+			font-weight: var(--font-weight-bold);
 			text-align: center;
 			line-height: var(--line-height-tight);
 		}
@@ -1278,7 +1278,7 @@ if (!isGuestNewMode) {
 			gap: var(--space-1);
 			min-width: 0;
 			font-size: var(--font-size-sm3);
-			font-weight: 600;
+			font-weight: var(--font-weight-semibold);
 			color: var(--color-text-muted);
 			padding: calc(var(--space-1) * 0.32) 0;
 			text-align: left;
@@ -1302,13 +1302,13 @@ if (!isGuestNewMode) {
 		.team-slots .slot-move-chip-unset {
 			color: var(--color-danger-strong);
 			border-color: var(--color-danger-strong);
-			font-weight: 700;
+			font-weight: var(--font-weight-bold);
 		}
 		/* 削除ボタンはカード(.card-team-slot、position:relative)自身の右上端に絶対配置する
 		   (box/index.astroの.card-pokemon .card-actions=28px円形アイコンボタン規格を踏襲、
 		   新しい値は作らない)。box/index.astroの.card-pokemon .delete-button
 		   (src/pages/box/index.astro、読むだけで編集はしない)の配色・font-weightに合わせる:
-		   background/borderは.icon-button共通のまま、font-weight: 400(box側は「global.cssの
+		   background/borderは.icon-button共通のまま、font-weight: var(--font-weight-normal)(box側は「global.cssの
 		   .delete-buttonは太字パディングでアイコン専用ボタンには大きすぎる」という理由で明示的に
 		   上書きしている)。ホバーはbackground: var(--color-danger-soft) +
 		   border-color: var(--color-danger-strong)で危険操作であることを示す。
@@ -1328,7 +1328,7 @@ if (!isGuestNewMode) {
 			border: 1px solid var(--color-border);
 			background: var(--color-surface);
 			color: var(--color-danger-strong);
-			font-weight: 400;
+			font-weight: var(--font-weight-normal);
 			box-shadow: var(--shadow-sm);
 			opacity: 0;
 			pointer-events: none;
@@ -1390,7 +1390,7 @@ if (!isGuestNewMode) {
 		.team-preview-panel .team-damage-owner {
 			margin: 0;
 			font-size: var(--font-size-sm2);
-			font-weight: 800;
+			font-weight: var(--font-weight-heavy);
 			overflow: hidden;
 			text-overflow: ellipsis;
 			white-space: nowrap;
@@ -1453,7 +1453,7 @@ if (!isGuestNewMode) {
 			border-radius: 50%;
 			background: var(--color-primary-soft);
 			color: var(--color-primary);
-			font-weight: 700;
+			font-weight: var(--font-weight-bold);
 			font-size: 1.2rem;
 		}
 		.team-preview-panel .team-damage-build-text {
@@ -1476,7 +1476,7 @@ if (!isGuestNewMode) {
 			flex: 0 0 auto;
 			display: inline-flex;
 			font-size: var(--font-size-sm3);
-			font-weight: 600;
+			font-weight: var(--font-weight-semibold);
 			line-height: var(--line-height-tight);
 			padding: 0.1em 0.55em;
 			border-radius: var(--radius-sm);
@@ -1492,7 +1492,7 @@ if (!isGuestNewMode) {
 			flex: 1 1 auto;
 			min-width: 0;
 			font-size: var(--font-size-sm2);
-			font-weight: 700;
+			font-weight: var(--font-weight-bold);
 			overflow: hidden;
 			text-overflow: ellipsis;
 			white-space: nowrap;
@@ -1558,7 +1558,7 @@ if (!isGuestNewMode) {
 		}
 		.team-preview-panel .team-damage-stat-key {
 			font-size: var(--font-size-sm3);
-			font-weight: 700;
+			font-weight: var(--font-weight-bold);
 			color: var(--color-text-muted);
 			text-align: center;
 		}
@@ -1566,7 +1566,7 @@ if (!isGuestNewMode) {
 		.team-preview-panel .team-damage-stat-key[data-mod="down"] { color: var(--color-primary); }
 		.team-preview-panel .team-damage-stat-value {
 			font-size: var(--font-size-sm3);
-			font-weight: 700;
+			font-weight: var(--font-weight-bold);
 			text-align: center;
 		}
 
@@ -1576,7 +1576,7 @@ if (!isGuestNewMode) {
 		.team-preview-panel .team-damage-move-line {
 			margin: var(--space-1) 0 0;
 			font-size: var(--font-size-sm3);
-			font-weight: 700;
+			font-weight: var(--font-weight-bold);
 			overflow: hidden;
 			text-overflow: ellipsis;
 			white-space: nowrap;
@@ -1613,7 +1613,7 @@ if (!isGuestNewMode) {
 		}
 		.team-preview-panel .team-damage-result-verdict {
 			font-size: var(--font-size-sm1);
-			font-weight: 800;
+			font-weight: var(--font-weight-heavy);
 		}
 		.team-preview-panel .team-damage-result-detail {
 			font-variant-numeric: tabular-nums;
@@ -1621,7 +1621,7 @@ if (!isGuestNewMode) {
 		.team-preview-panel .team-damage-result-note {
 			flex: 1 0 100%;
 			font-size: var(--font-size-sm3);
-			font-weight: 500;
+			font-weight: var(--font-weight-medium);
 			white-space: normal;
 		}
 		.team-preview-panel .team-damage-memo {
@@ -1643,7 +1643,7 @@ if (!isGuestNewMode) {
 		}
 		.team-suggest-heading {
 			font-size: var(--font-size-sm2);
-			font-weight: 600;
+			font-weight: var(--font-weight-semibold);
 			margin: 0 0 var(--space-1);
 		}
 		.team-suggest-status {
@@ -1677,7 +1677,7 @@ if (!isGuestNewMode) {
 		.team-suggest-rank {
 			/* 順位を一覧の視覚的な起点にするため、従来値の1.5倍にする。 */
 			font-size: calc(var(--font-size-sm3) * 1.5);
-			font-weight: 700;
+			font-weight: var(--font-weight-bold);
 			color: var(--color-text-muted);
 			min-width: 1.2em;
 			text-align: right;
@@ -1718,7 +1718,7 @@ if (!isGuestNewMode) {
 		}
 		.team-suggest-name {
 			font-size: var(--font-size-sm2);
-			font-weight: 600;
+			font-weight: var(--font-weight-semibold);
 			white-space: nowrap;
 			overflow: hidden;
 			text-overflow: ellipsis;
@@ -1746,7 +1746,7 @@ if (!isGuestNewMode) {
 			flex: none;
 		}
 		.team-suggest-item-name {
-			font-weight: 600;
+			font-weight: var(--font-weight-semibold);
 			font-size: var(--font-size-sm3);
 			color: var(--color-text-muted);
 			min-width: 0;

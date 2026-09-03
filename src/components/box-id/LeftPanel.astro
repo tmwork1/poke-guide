@@ -354,7 +354,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		background: var(--color-surface);
 	}
 	/* 薄い文字色でも判別しやすくするため、既存ウェイトの次段階へ上げる。 */
-	.stat-value { display: inline-block; margin-top: 0.15em; font-size: var(--font-size-base); font-weight: 400; color: var(--color-text); }
+	.stat-value { display: inline-block; margin-top: 0.15em; font-size: var(--font-size-base); font-weight: var(--font-weight-normal); color: var(--color-text); }
 	.stat-value[data-mod="up"] { color: var(--color-stat-up); }
 	.stat-value[data-mod="down"] { color: var(--color-stat-down); }
 
@@ -373,7 +373,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		   共通トークンvar(--font-size-sm3)(12px)に対し、ここだけ直値0.78rem(12.48px)
 		   だった。共通トークンを持つ側を基準に寄せる(太さ600/700の差は階層差として維持)。 */
 		font-size: var(--font-size-sm3);
-		font-weight: 600;
+		font-weight: var(--font-weight-semibold);
 		color: var(--color-text-muted);
 		padding: var(--stat-header-padding);
 		margin-bottom: var(--stat-header-margin-bottom);
@@ -442,7 +442,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		min-height: var(--stat-step-button-size);
 		padding: 0;
 		font-size: var(--font-size-sm2);
-		font-weight: 700;
+		font-weight: var(--font-weight-bold);
 		line-height: 1;
 	}
 	/* モバイル専用の努力値操作。スライダーは値保持・同期用のDOMとして残しつつ非表示にし、
@@ -496,7 +496,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		border-radius: var(--radius-zero);
 		box-shadow: var(--shadow-sm);
 		font-size: var(--font-size-sm1);
-		font-weight: 400;
+		font-weight: var(--font-weight-normal);
 	}
 	.stat-ev-toggle-spacer { display: none; }
 	/* 努力値の数値入力も左パネル用の詰めた寸法に揃える(6行あるので効き方が大きい)。 */
@@ -554,7 +554,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		padding: var(--space-1) var(--space-2);
 		white-space: nowrap;
 		/* 共通buttonの強めのウェイトを一段細くし、補助操作としての階層に合わせる。 */
-		font-weight: 400;
+		font-weight: var(--font-weight-normal);
 	}
 	/* わざ選択ボタンと同じ.btn-controlを付与しているため、背景・枠線・文字色・ホバー色は
 	   共通ルール(src/styles/buttons.css)から同じ算出値になる。 */
@@ -601,7 +601,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		.stat-row .stat-input-controls input[type="number"] { flex: 0 0 var(--stat-number-input-width); width: var(--stat-number-input-width); }
 	.stat-row-real-wrap { display: flex; grid-column: var(--stat-mobile-real-grid-column); justify-content: flex-end; min-width: 0; }
 		.stat-row-base,
-		.stat-row-real { padding-inline-end: 0; text-align: right; font-weight: 400; }
+		.stat-row-real { padding-inline-end: 0; text-align: right; font-weight: var(--font-weight-normal); }
 	}
 
 
@@ -727,7 +727,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		background: var(--color-surface);
 		cursor: pointer;
 		font-size: var(--font-size-sm1);
-		font-weight: 400;
+		font-weight: var(--font-weight-normal);
 		line-height: var(--line-height-snug);
 		color: var(--color-text);
 		text-align: left;
@@ -766,7 +766,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		background: var(--color-surface);
 		cursor: pointer;
 		font-size: var(--font-size-sm1);
-		font-weight: 400;
+		font-weight: var(--font-weight-normal);
 		line-height: var(--line-height-snug);
 		color: var(--color-text);
 		text-align: left;
@@ -860,7 +860,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	   (pitfalls.md「[hidden]が効かない」)。 */
 	.pokemon-team-section { margin: var(--space-5) 0; }
 	.pokemon-team-section[hidden] { display: none; }
-	.pokemon-team-heading { margin: 0 0 var(--space-2); font-size: var(--font-size-base); font-weight: 700; text-align: left; border-bottom: 0; }
+	.pokemon-team-heading { margin: 0 0 var(--space-2); font-size: var(--font-size-base); font-weight: var(--font-weight-bold); text-align: left; border-bottom: 0; }
 	.pokemon-team-list { margin: 0; }
 	@media (max-width: 520px) {
 		#edit-form .field-grid { grid-template-columns: 1fr; }
@@ -896,7 +896,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		.top-block-item-display { display: flex; align-items: center; gap: 0.15rem; min-width: 0; }
 		.item-name-display {
 			font-size: var(--font-size-sm1);
-			font-weight: 400;
+			font-weight: var(--font-weight-normal);
 			color: var(--color-text);
 			max-width: 8.05em;
 			overflow: hidden;
@@ -983,7 +983,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 			margin-top: 0;
 			font: inherit;
 			font-size: var(--font-size-base);
-			font-weight: 400;
+			font-weight: var(--font-weight-normal);
 			line-height: 1;
 		}
 		.mobile-speed-adjust-button {
@@ -994,7 +994,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 			box-sizing: border-box;
 			font: inherit;
 			font-size: var(--font-size-base);
-			font-weight: 400;
+			font-weight: var(--font-weight-normal);
 			line-height: 1;
 		}
 		.mobile-move-toggle,
@@ -1080,7 +1080,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		min-height: 2rem;
 		padding: 0 var(--space-2);
 		font-size: var(--font-size-sm2);
-		font-weight: 400;
+		font-weight: var(--font-weight-normal);
 		overflow: hidden;
 		text-overflow: ellipsis;
 		text-align: left;
@@ -1092,7 +1092,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		color: var(--color-primary);
 	}
 	.move-picker-title {
-		font-weight: 700;
+		font-weight: var(--font-weight-bold);
 		font-size: var(--font-size-sm2);
 		color: var(--color-text);
 		flex: 1 1 auto;
@@ -1175,7 +1175,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		max-width: 100%;
 		min-width: 0;
 		font-size: var(--font-size-sm3);
-		font-weight: 400;
+		font-weight: var(--font-weight-normal);
 		field-sizing: content;
 		/* 見出しの16.8px line-heightを越えないよう、20pxとスペーストークンの差で16px高にする。 */
 		height: calc(20px - var(--space-1));
@@ -1191,7 +1191,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		border: none;
 		background: transparent;
 		color: var(--color-text);
-		font-weight: 400;
+		font-weight: var(--font-weight-normal);
 		font-size: var(--font-size-sm3);
 		padding: 0;
 		cursor: pointer;

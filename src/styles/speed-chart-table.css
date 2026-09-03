@@ -333,7 +333,7 @@
 		--number-stepper-size: 40px;
 		--number-stepper-input-width: 40px;
 		font-size: var(--font-size-sm1);
-		font-weight: 400;
+		font-weight: var(--font-weight-normal);
 	}
 	.speed-chart-table[data-embedded='true'] .speed-chart-rank-field .number-stepper-value {
 		padding: 0 var(--space-1);
@@ -416,7 +416,7 @@
 		詰まって見えるため中央寄せにする。 */
 	.speed-chart-table .speed-chart-value-cell {
 		font-size: var(--speed-chart-value-font-size);
-		font-weight: 700;
+		font-weight: var(--font-weight-bold);
 		padding-top: 0;
 		text-align: center;
 		padding-left: var(--speed-chart-value-padding-inline);
@@ -435,13 +435,13 @@
 		min-width: 0;
 		padding-top: 0;
 		font-size: var(--speed-chart-meta-font-size);
-		font-weight: 500;
+		font-weight: var(--font-weight-medium);
 		color: var(--color-text);
 		line-height: var(--line-height-snug);
 	}
 	.speed-chart-table .speed-chart-base-speed-label {
 		color: var(--color-text-muted);
-		font-weight: 500;
+		font-weight: var(--font-weight-medium);
 		font-size: var(--speed-chart-base-speed-font-size);
 	}
 	/* 3列目: ポケモンを1段目、その補正要因を2段目・左寄せ(チップの並び自体は左寄せのまま)。 */
@@ -470,7 +470,7 @@
 	.speed-chart-table .speed-chart-chip-origin {
 		margin-top: -4px;
 		font-size: var(--speed-chart-origin-font-size);
-		font-weight: 500;
+		font-weight: var(--font-weight-medium);
 		color: var(--speed-chart-origin-color);
 		line-height: var(--line-height-snug);
 		text-align: center;
@@ -481,7 +481,7 @@
 		padding: var(--speed-chart-badge-padding);
 		border-radius: var(--speed-chart-badge-radius);
 		font-size: inherit;
-		font-weight: 700;
+		font-weight: var(--font-weight-bold);
 		vertical-align: middle;
 	}
 	/* 配分の状態は文字色だけで示す。 */
@@ -504,7 +504,7 @@
 		padding: var(--speed-chart-badge-padding);
 		border-radius: var(--speed-chart-badge-radius);
 		font-size: 0.9em;
-		font-weight: 500;
+		font-weight: var(--font-weight-medium);
 		vertical-align: middle;
 		color: var(--color-text-muted);
 	}

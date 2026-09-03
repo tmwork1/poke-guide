@@ -221,7 +221,7 @@ body.data-page {
   align-self: stretch;
   padding: 0;
   font-size: var(--move-picker-control-size);
-  font-weight: 400;
+  font-weight: var(--font-weight-normal);
   field-sizing: content;
 }
 .move-picker-table thead th:first-child .move-picker-th-filter input {
@@ -259,7 +259,7 @@ body.data-page {
   background: transparent;
   color: var(--color-text);
   font-size: var(--move-picker-control-size);
-  font-weight: 400;
+  font-weight: var(--font-weight-normal);
   white-space: nowrap;
   cursor: pointer;
 }
@@ -361,7 +361,7 @@ body .move-picker-th-filter select {
   align-self: stretch;
   padding: 0;
   font-size: var(--move-picker-control-size);
-  font-weight: 400;
+  font-weight: var(--font-weight-normal);
   field-sizing: content;
 }
 body .move-picker-sort-btn { font-size: var(--move-picker-control-size); }
@@ -404,7 +404,7 @@ body .move-picker-empty {
     padding: 0 var(--space-2);
     overflow: hidden;
     font-size: var(--move-picker-title-size);
-    font-weight: 400;
+    font-weight: var(--font-weight-normal);
     background: color-mix(in srgb, var(--color-surface) 88%, #000 12%);
     text-overflow: ellipsis;
     text-align: left;

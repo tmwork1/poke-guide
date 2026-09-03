@@ -21,10 +21,10 @@
 	--stat-mobile-button-font-size: var(--font-size-sm1); /* モバイルの努力値操作ボタン。大きくすると記号が目立つ */
 
 	/* ── 2. 文字の太さ・行間 ──────────────────────────────── */
-	--stat-value-font-weight: 400; /* 実数値の太さ。大きくすると数値が強調される */
-	--stat-header-font-weight: 600; /* 列見出しの太さ。大きくすると見出しが強調される */
-	--stat-label-font-weight: 400; /* ステータス名の太さ。大きくすると行名が強調される */
-	--stat-step-button-font-weight: 700; /* 増減記号の太さ。大きくすると記号が濃くなる */
+	--stat-value-font-weight: var(--font-weight-normal); /* 実数値の太さ。大きくすると数値が強調される */
+	--stat-header-font-weight: var(--font-weight-semibold); /* 列見出しの太さ。大きくすると見出しが強調される */
+	--stat-label-font-weight: var(--font-weight-normal); /* ステータス名の太さ。大きくすると行名が強調される */
+	--stat-step-button-font-weight: var(--font-weight-bold); /* 増減記号の太さ。大きくすると記号が濃くなる */
 
 	/* ── 3. 文字色 ────────────────────────────────────────── */
 	--stat-value-color: var(--color-text); /* 通常の実数値の色 */
@@ -198,7 +198,6 @@
 	justify-content: center;
 	gap: var(--stat-control-gap);
 	min-width: 0;
-	grid-column: 3 / 4;
 }
 .stat-ev-stepper {
 	--number-stepper-size: var(--stat-ev-mobile-button-block-size);
@@ -436,6 +435,6 @@
 	.stat-row-real {
 		padding-inline-end: var(--stat-mobile-real-padding-inline-end);
 		text-align: center;
-		font-weight: 400;
+		font-weight: var(--font-weight-normal);
 	}
 }

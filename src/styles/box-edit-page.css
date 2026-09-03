@@ -25,7 +25,7 @@
 	--stat-nature-arrow-border-inline: 6px;
 	--stat-nature-arrow-border-block: 10px;
 	--stat-nature-dot-size: 6px; /* 性格補正が未設定のときに表示する●の直径 */
-	--stat-label-font-weight: 400;
+	--stat-label-font-weight: var(--font-weight-normal);
 	--stat-section-font-size: var(--font-size-sm1); /* 調整表全体の基準文字サイズ。モーダル表示時も同じ値を使う。 */
 	--stat-ev-remaining-font-size: var(--font-size-sm3); /* 「残りXX」「16n+X」の文字サイズ。大きくすると目立つ */
 	--stat-ev-remaining-color: var(--color-text-muted); /* 「残りXX」「16n+X」の文字色。濃くすると目立つ */
@@ -122,9 +122,9 @@ body.box-edit-page {
 	--box-edit-collection-toggle-font-size: var(--font-size-sm1); /* 収集拒否ラベルの文字の大きさ */
 
 	/* ── 2. 文字の太さ・行間 ──────────────────── */
-	--box-edit-opponent-alert-font-weight: 700; /* ダメージ計算の保存失敗件数の文字の太さ */
-	--box-edit-delete-font-weight: 500; /* コピー・削除ボタンの文字の太さ */
-	--box-edit-collection-toggle-font-weight: 500; /* 収集拒否ラベルの文字の太さ */
+	--box-edit-opponent-alert-font-weight: var(--font-weight-bold); /* ダメージ計算の保存失敗件数の文字の太さ */
+	--box-edit-delete-font-weight: var(--font-weight-medium); /* コピー・削除ボタンの文字の太さ */
+	--box-edit-collection-toggle-font-weight: var(--font-weight-medium); /* 収集拒否ラベルの文字の太さ */
 
 	/* ── 3. 文字色 ───────────────────────── */
 	--box-edit-delete-color: var(--color-danger-strong); /* 通常時の削除ボタン文字色 */

@@ -145,7 +145,7 @@ body.box-edit-page {
 	}
 	/* button.btn-primary(詳細度0,1,1)に勝つため要素セレクタを付け、削除ボタンと同じ太さを維持する。 */
 	button.bulk-adjust-dialog-compute-button {
-		font-weight: 500;
+		font-weight: var(--font-weight-medium);
 		background: var(--color-surface);
 		color: var(--color-primary-strong);
 		border: 2px solid var(--color-primary);

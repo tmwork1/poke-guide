@@ -33,8 +33,8 @@
   --box-card-action-font-size: var(--font-size-sm2); /* 右上の丸い操作ボタン内のアイコン。変更するとボタン内での占有率が変わる */
 
   /* ── 2. 文字の太さ・行間 ──────────────────────────────── */
-  --box-card-name-font-weight: 500; /* ポケモン名の太さ。数値を上げるほど名前が強調される */
-  --box-card-move-font-weight: 400; /* 技名4行の文字の太さ。増やすと一覧の文字密度が高く見える */
+  --box-card-name-font-weight: var(--font-weight-medium); /* ポケモン名の太さ。数値を上げるほど名前が強調される */
+  --box-card-move-font-weight: var(--font-weight-normal); /* 技名4行の文字の太さ。増やすと一覧の文字密度が高く見える */
   --box-card-name-line-height: var(--line-height-tight); /* ポケモン名1行の行高。広げると名前の上下に使う領域が増える */
   --box-card-move-line-height: var(--line-height-tight); /* 各技名の行高。値を上げると技一覧全体が縦へ広がる */
   --box-card-action-line-height: 1; /* 操作アイコンの行ボックス高。ボタン中央での上下位置に影響する */

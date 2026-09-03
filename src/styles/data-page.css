@@ -16,7 +16,7 @@ body.data-page {
   --data-page-kicker-font-size: var(--font-size-sm2); /* ポケモン名の前の補足文字。大きくすると補足が目立つ */
 
   /* ── 2. 文字の太さ・行間 ──────────────────────────────── */
-  --data-page-kicker-font-weight: 700; /* ポケモン名の前の補足文字。太くすると見出しらしくなる */
+  --data-page-kicker-font-weight: var(--font-weight-bold); /* ポケモン名の前の補足文字。太くすると見出しらしくなる */
 
   /* ── 3. 文字色 ────────────────────────────────────────── */
   --data-page-muted-color: var(--color-text-muted); /* 説明・出典・未利用表示の色。薄くすると主情報が際立つ */

@@ -98,7 +98,7 @@
 #opponent-notes-section .damage-suggest-section-heading {
   margin: 0 0 var(--box-damage-suggest-heading-margin-bottom);
   font-size: var(--font-size-sm2);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   color: var(--color-text-muted);
 }
 

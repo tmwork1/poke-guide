@@ -15,9 +15,9 @@ body.share-page {
   --share-page-stat-real-font-size: 1.1em; /* 補正後の実数値。大きくすると通常値との差が分かりやすくなる */
 
   /* ── 2. 文字の太さ・行間 ──────────────────────────────── */
-  --share-page-type-chip-font-weight: 600; /* タイプ名の太さ。太くするとタイプ表示が目立つ */
-  --share-page-stat-label-font-weight: 700; /* 能力値表の見出し太さ。太くすると数値との区別が強まる */
-  --share-page-stat-real-font-weight: 700; /* 補正後の実数値の太さ。太くすると重要な数値が目立つ */
+  --share-page-type-chip-font-weight: var(--font-weight-semibold); /* タイプ名の太さ。太くするとタイプ表示が目立つ */
+  --share-page-stat-label-font-weight: var(--font-weight-bold); /* 能力値表の見出し太さ。太くすると数値との区別が強まる */
+  --share-page-stat-real-font-weight: var(--font-weight-bold); /* 補正後の実数値の太さ。太くすると重要な数値が目立つ */
 
   /* ── 3. 文字色 ────────────────────────────────────────── */
   --share-page-stat-label-color: var(--color-text-muted); /* 能力値表の見出し色。薄くすると数値が際立つ */

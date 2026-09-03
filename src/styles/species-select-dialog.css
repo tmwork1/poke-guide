@@ -34,7 +34,7 @@ body.data-page {
 	color: var(--color-text);
 	cursor: pointer;
 	font-size: var(--font-size-sm1);
-	font-weight: 400;
+	font-weight: var(--font-weight-normal);
 	line-height: var(--line-height-snug);
 	text-align: left;
 }

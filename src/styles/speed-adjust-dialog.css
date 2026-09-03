@@ -130,7 +130,7 @@ body.speed-chart-page:has(.speed-chart-embed-toolbar) {
 
 /* モーダル内では数値・バッジ・ボタンを含め、強調の太字を使わない。 */
 body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-spread-badge {
-  font-weight: 400;
+  font-weight: var(--font-weight-normal);
 }
 
 /* --------------------------------------------------------------------------
@@ -273,7 +273,7 @@ body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-owne
 }
 
 body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-owned-raw-value strong {
-  font-weight: 400;
+  font-weight: var(--font-weight-normal);
 }
 
 body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-owned-modifier-toggles {

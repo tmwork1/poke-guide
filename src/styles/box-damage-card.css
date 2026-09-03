@@ -25,7 +25,7 @@ body.box-edit-page {
   --damage-card-add-button-font-size: var(--font-size-sm2); /* 「技を追加」ボタンの文字サイズ */
   --damage-card-summary-label-font-size: var(--font-size-sm3); /* 「持ち物」など補助ラベルの文字サイズ */
   --damage-card-direction-font-size: var(--font-size-sm3); /* 攻撃・防御スイッチの文字サイズ(カード上のコンパクト表示用) */
-  --damage-detail-direction-font-size: 0.8rem; /* 「相手ポケモン」タブ(モーダル)の攻撃・防御スイッチの文字サイズ */
+  --damage-detail-direction-font-size: var(--font-size-sm1); /* 「相手ポケモン」タブ(モーダル)の攻撃・防御スイッチの文字サイズ。同じ行の種族名入力・アイテムボタンと揃える */
   --damage-card-condition-font-size: var(--font-size-sm3); /* 条件チップと見出しの文字サイズ */
   --damage-card-total-label-font-size: var(--font-size-sm3); /* 「累計結果」ラベルの文字サイズ */
   --damage-card-column-order-font-size: var(--font-size-sm3); /* ヒット数表示・撃破済みキャプション等の文字サイズ */
@@ -33,12 +33,12 @@ body.box-edit-page {
   --damage-card-build-detail-font-size: var(--font-size-sm3); /* 相手情報2段目(特性・テラス・アイテム・実数値)の文字サイズ */
 
   /* ── 2. 文字の太さ・行間 ─────────────────────── */
-  --damage-card-total-verdict-font-weight: 800; /* 判定部分の文字の太さ */
-  --damage-card-move-font-weight: 700; /* 技名の文字の太さ */
-  --damage-card-direction-font-weight: 600; /* 攻撃・防御スイッチの文字の太さ */
-  --damage-card-total-detail-font-weight: 500; /* 詳細部分の文字の太さ */
+  --damage-card-total-verdict-font-weight: var(--font-weight-heavy); /* 判定部分の文字の太さ */
+  --damage-card-move-font-weight: var(--font-weight-bold); /* 技名の文字の太さ */
+  --damage-card-direction-font-weight: var(--font-weight-semibold); /* 攻撃・防御スイッチの文字の太さ */
+  --damage-card-total-detail-font-weight: var(--font-weight-medium); /* 詳細部分の文字の太さ */
   --damage-card-move-placeholder-weight: 500; /* 未選択の技名表示の文字の太さ */
-  --damage-card-summary-font-weight: 400; /* 相手の名前・特性・持ち物の文字の太さ */
+  --damage-card-summary-font-weight: var(--font-weight-normal); /* 相手の名前・特性・持ち物の文字の太さ */
   --damage-card-direction-line-height: var(--line-height-tight); /* 攻撃・防御スイッチ内の行の高さ */
   --damage-card-stat-line-height: var(--line-height-tight); /* 実数値・努力値の行の高さ */
   --damage-card-form-control-line-height: 1.15; /* 相手情報の選択欄・入力欄の行の高さ */
@@ -399,7 +399,7 @@ body.box-edit-page {
   white-space: nowrap;
   color: inherit;
   font-size: inherit;
-  font-weight: 400;
+  font-weight: var(--font-weight-normal);
 }
 
 #opponent-notes-section .damage-build-readonly-label {
@@ -550,7 +550,7 @@ body.box-edit-page {
   width: 100%;
   color: var(--damage-card-tera-button-color);
   text-align: left;
-  font-weight: 400;
+  font-weight: var(--font-weight-normal);
   font-size: var(--damage-card-form-control-font-size);
   justify-content: flex-start;
   align-items: center;
@@ -766,7 +766,7 @@ body.box-edit-page {
 #opponent-notes-section .damage-ev-readonly-stat > .damage-ev-value-readonly {
   color: inherit;
   font-size: inherit;
-  font-weight: 400;
+  font-weight: var(--font-weight-normal);
   line-height: inherit;
   text-align: start;
   display: inline;
@@ -774,7 +774,7 @@ body.box-edit-page {
 
 #opponent-notes-section .damage-ev-col-label {
   font-size: inherit;
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   line-height: var(--damage-card-stat-line-height);
   text-align: center;
   color: var(--damage-card-stat-label-color);
@@ -807,7 +807,7 @@ body.box-edit-page {
   line-height: var(--damage-card-stat-line-height);
   text-align: center;
   color: var(--damage-card-stat-value-color);
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
   display: block;
 }
 
@@ -963,7 +963,7 @@ body.box-edit-page {
 
 #opponent-notes-section .damage-row-total-label {
   font-size: var(--damage-card-total-label-font-size);
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
   line-height: var(--line-height-tight);
   color: var(--damage-card-total-label-color);
   margin-bottom: var(--damage-card-total-label-bottom-margin);
@@ -995,7 +995,7 @@ body.box-edit-page {
 
 #opponent-notes-section .damage-result-probability {
   margin-inline-start: .25em;
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
 }
 
 #opponent-notes-section .damage-row-total-result .damage-result-detail {
@@ -1282,7 +1282,7 @@ body.box-edit-page {
   background: var(--color-primary-soft);
   color: var(--color-primary-strong);
   font-size: var(--damage-card-column-order-font-size);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   line-height: var(--line-height-tight);
 }
 
@@ -1379,7 +1379,7 @@ body.box-edit-page {
   align-items: center;
   text-align: center;
   gap: var(--damage-card-add-button-gap);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   transition: background var(--damage-card-transition-duration), color var(--damage-card-transition-duration);
   display: flex;
 }
@@ -1451,7 +1451,7 @@ body.box-edit-page {
   color: var(--color-text);
   margin: var(--damage-detail-section-heading-margin);
   padding-top: var(--damage-detail-section-heading-padding);
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
 }
 
 /* 攻撃側・防御側それぞれの詳細見出し */
@@ -1472,7 +1472,7 @@ body.box-edit-page {
   gap: .35rem;
   margin-bottom: .6rem;
   padding-top: 0;
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   display: flex;
 }
 
@@ -1591,7 +1591,7 @@ body.box-edit-page {
   border-color: var(--color-primary);
   background: var(--color-primary-soft);
   color: var(--color-primary-strong);
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -1756,7 +1756,7 @@ body.box-edit-page {
   border-color: var(--color-primary);
   background: var(--color-primary-soft);
   color: var(--color-primary-strong);
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
 }
 
 #damage-detail-panel-body .damage-detail-icon-btn:disabled {
@@ -1782,7 +1782,7 @@ body.box-edit-page {
 #damage-detail-panel-body .damage-detail-field-row-label {
   font-size: var(--font-size-sm3);
   color: var(--color-text-muted);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
 }
 
 /* チェック操作と補足説明を横に並べる行 */
@@ -1822,7 +1822,7 @@ body.box-edit-page {
 #damage-detail-panel-body .damage-detail-rank-stepper {
   color: var(--color-text-muted);
   font-size: var(--font-size-sm1);
-  font-weight: 400;
+  font-weight: var(--font-weight-normal);
 }
 
 #damage-detail-panel-body .damage-detail-rank-field .number-stepper-value {
@@ -1846,7 +1846,7 @@ body.box-edit-page {
 #damage-detail-panel-body .damage-detail-rank-field .number-stepper-value.is-nonzero {
   color: var(--color-primary-strong);
   border-color: var(--color-primary-strong);
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
 }
 
 #damage-detail-panel-body .damage-detail-chip-row {
@@ -1874,7 +1874,7 @@ body.box-edit-page {
 #damage-detail-panel-body .damage-detail-ailment-select:not(.is-ailment-unselected) {
   color: var(--color-primary-strong);
   border-color: var(--color-primary-strong);
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
 }
 
 #damage-detail-panel-body .damage-detail-volatile-group {
@@ -2295,7 +2295,7 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .box-add-button
   padding: 0 .35em;
   border-radius: var(--damage-card-direction-badge-radius);
   font-size: var(--font-size-sm3);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
 }
 
 #opponent-notes-section .damage-suggest-direction[data-direction="attack"] {
@@ -2360,7 +2360,7 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .box-add-button
 
 #opponent-notes-section .damage-suggest-move {
   font-size: var(--damage-card-move-font-size);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   min-width: 0;
 }
 
@@ -2381,7 +2381,7 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .box-add-button
 }
 
 #opponent-notes-section .damage-suggest-item-name {
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   font-size: var(--font-size-sm3);
   color: var(--color-text-muted);
 }

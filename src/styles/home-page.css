@@ -21,8 +21,8 @@ body.home-page {
 
   /* ── 2. 文字の太さ・行間 ──────────────────────────────── */
   --home-page-brand-title-line-height: var(--line-height-tight); /* ブランド名の行間。大きくすると複数行時の間隔が広がる */
-  --home-page-account-name-font-weight: 500; /* アカウント名の太さ。太くすると名前が目立つ */
-  --home-page-card-label-font-weight: 500; /* メニューカード名の太さ。太くするとリンク先が目立つ */
+  --home-page-account-name-font-weight: var(--font-weight-medium); /* アカウント名の太さ。太くすると名前が目立つ */
+  --home-page-card-label-font-weight: var(--font-weight-medium); /* メニューカード名の太さ。太くするとリンク先が目立つ */
   --home-page-card-label-line-height: var(--line-height-snug); /* メニューカード名の行間。大きくすると複数行表示が広がる */
 
   /* ── 3. 文字色 ────────────────────────────────────────── */

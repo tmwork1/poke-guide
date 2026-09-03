@@ -51,7 +51,7 @@
 .damage-calc-pattern-note { margin: var(--space-3) 0 0; }
 .damage-calc-controls-grid { display: grid; grid-template-columns: minmax(16rem, 1fr) minmax(14rem, .8fr) minmax(16rem, 1fr); gap: var(--space-4); margin-top: var(--space-3); }
 .damage-calc-controls-grid fieldset { min-width: 0; margin: 0; padding: var(--space-3); border: 1px solid var(--color-border); }
-.damage-calc-controls-grid legend { padding: 0 var(--space-1); font-weight: 700; }
+.damage-calc-controls-grid legend { padding: 0 var(--space-1); font-weight: var(--font-weight-bold); }
 .damage-calc-ranks { display: grid; gap: var(--space-1); margin-bottom: var(--space-3); }
 .damage-calc-rank-row { display: grid; grid-template-columns: 3.5em 2rem 3em 2rem; align-items: center; gap: var(--space-1); color: var(--color-text-muted); font-size: var(--font-size-sm2); }
 .damage-calc-rank-row button { min-height: 2rem; padding: 0; }

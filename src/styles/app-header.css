@@ -21,7 +21,7 @@
 
   /* ── 2. 文字の太さ・行間 ──────────────────────────────── */
   --app-header-item-line-height: var(--line-height-tight); /* 横タブの行間。大きくすると項目名の行が縦に広がる。 */
-  --app-header-title-font-weight: 400; /* 画面タイトルの太さ。大きくすると見出しがより強調される。 */
+  --app-header-title-font-weight: var(--font-weight-normal); /* 画面タイトルの太さ。大きくすると見出しがより強調される。 */
 
   /* ── 3. 文字色 ────────────────────────────────────────── */
   --app-header-item-color: var(--color-text-muted); /* 未選択タブの文字色。薄くすると選択中との差が広がる。 */

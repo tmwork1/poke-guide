@@ -16,7 +16,7 @@ body.data-hub-page {
   --data-hub-season-label-font-size: var(--font-size-sm2); /* シーズン選択ラベル。大きくすると操作内容が分かりやすい */
 
   /* ── 2. 文字の太さ・行間 ──────────────────────────────── */
-  --data-hub-entry-header-font-weight: 700; /* ポケモン見出し行の太さ。太くすると各カードの区切りが強まる */
+  --data-hub-entry-header-font-weight: var(--font-weight-bold); /* ポケモン見出し行の太さ。太くすると各カードの区切りが強まる */
 
   /* ── 3. 文字色 ────────────────────────────────────────── */
   --data-hub-muted-color: var(--color-text-muted); /* 順位・シーズン名・状態文の色。薄くすると主情報が際立つ */

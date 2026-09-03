@@ -24,7 +24,7 @@
   --pokemon-preview-sprite-fallback-font-size: var(--font-size-sm2);
 
   /* ── 2. 文字の太さ・行間 ──────────────────── */
-  --pokemon-preview-stats-font-weight: 400; /* 能力値表の文字の太さ */
+  --pokemon-preview-stats-font-weight: var(--font-weight-normal); /* 能力値表の文字の太さ */
   --pokemon-preview-stats-line-height: 1; /* 能力値表の行の詰まり具合。大きくすると行間が広がる */
 
   /* ── 3. 文字色 ───────────────────────── */

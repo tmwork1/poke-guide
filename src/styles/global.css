@@ -15,6 +15,11 @@
   --font-size-sm4: 0.675rem; /* 最小の注釈。大きくすると最も控えめな文字が拡大する。 */
 
   /* ── 2. 文字の太さ・行間 ──────────────────────────────── */
+  --font-weight-normal: 400; /* 本文・注記の標準の太さ。 */
+  --font-weight-medium: 500; /* ラベルや軽い強調。標準よりわずかに強く見せたい表示。 */
+  --font-weight-semibold: 600; /* パネル見出しや準強調。本文と主見出しの中間の強さ。 */
+  --font-weight-bold: 700; /* 見出し・カード名・数値強調など、最も強く見せたい表示。 */
+  --font-weight-heavy: 800; /* ごく一部の最重量表示(大きな数値等)専用。多用しない。 */
   --line-height-normal: 1.6; /* 本文の標準行間。大きくすると複数行の間隔が広がる。 */
   --line-height-snug: 1.4; /* 入力欄やボタンの行間。大きくすると各コントロールが縦に広がる。 */
   --line-height-tight: 1.25; /* 見出しやカード内文字の詰めた行間。大きくすると行同士が離れる。 */
@@ -96,7 +101,7 @@
   --modal-header-min-height: 2.5rem; /* モーダル見出し行の最小高さ。全モーダル共通の基準値。 */
   --modal-header-gap: var(--space-3); /* モーダル見出し行の要素間隔。全モーダル共通。 */
   --modal-title-font-size: var(--font-size-base); /* モーダル見出しの文字サイズ。全モーダル共通の基準値(基準実装: species-select-dialog.css)。 */
-  --modal-title-font-weight: 400; /* モーダル見出しの太さ。全モーダル共通の基準値。 */
+  --modal-title-font-weight: var(--font-weight-normal); /* モーダル見出しの太さ。全モーダル共通の基準値。 */
   --modal-close-font-size: var(--font-size-lg1); /* モーダル閉じるボタン(×)の文字サイズ。全モーダル共通の基準値。 */
   --modal-close-size: 28px; /* モーダル閉じるボタンの最小タップ域(幅・高さ)。全モーダル共通の基準値。 */
   --modal-close-margin: calc((var(--modal-header-min-height) - var(--modal-close-size)) / 2); /* 閉じるボタンとヘッダー上下端の間隔(中央寄せで生じる余白)。右端の間隔をこれに合わせて揃える。全モーダル共通の基準値。 */
@@ -256,7 +261,7 @@ a {
 .page-title {
   font-size: var(--font-size-lg3);
   line-height: var(--line-height-tight);
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
   margin: 0 0 var(--space-2);
   letter-spacing: -0.01em;
 }
@@ -354,7 +359,7 @@ a {
 .panel h2 {
   font-size: var(--font-size-lg1);
   line-height: var(--line-height-snug);
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
   margin: 0 0 var(--space-4);
   padding-bottom: var(--space-3);
   border-bottom: 1px solid var(--color-border);
@@ -438,7 +443,7 @@ fieldset {
 
 legend {
   font-size: var(--font-size-sm2);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   color: var(--color-text-muted);
   padding: 0 0.4em;
 }
@@ -476,7 +481,7 @@ label {
   flex-shrink: 0;
   min-width: var(--field-label-width, auto);
   font-size: var(--font-size-sm2);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   color: var(--color-text-muted);
 }
 
@@ -655,7 +660,7 @@ input[type="range"]:focus-visible::-moz-range-thumb {
   border-radius: 50%;
   background: var(--color-primary-soft);
   color: var(--color-primary-strong);
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
   flex-shrink: 0;
 }
 
@@ -668,7 +673,7 @@ input[type="range"]:focus-visible::-moz-range-thumb {
   border-radius: var(--radius-lg);
   background: transparent;
   color: var(--color-text-muted);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   cursor: pointer;
   transition:
     border-color 0.15s,
@@ -697,7 +702,7 @@ input[type="range"]:focus-visible::-moz-range-thumb {
 .empty-state-title {
   margin: 0 0 var(--space-1);
   font-size: var(--font-size-lg1);
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
   color: var(--color-text);
 }
 
@@ -754,7 +759,7 @@ input[type="range"]:focus-visible::-moz-range-thumb {
   gap: var(--space-1);
   flex: none;
   font: inherit;
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   line-height: var(--line-height-snug);
   color: var(--color-text-muted);
   background: var(--color-surface);
@@ -1013,7 +1018,7 @@ input[type="checkbox"].toggle-switch-input {
   color: var(--color-primary-strong);
 
   font-size: var(--font-size-sm3);
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
 }
 
 .badge.badge-muted {
@@ -1023,7 +1028,7 @@ input[type="checkbox"].toggle-switch-input {
 
 /* --- ステータステキスト(自動保存・エンジン読み込み等の状態表示で共通利用) --- */
 .status-text {
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   font-size: var(--font-size-sm1);
   display: inline-flex;
   align-items: center;
@@ -1049,7 +1054,7 @@ input[type="checkbox"].toggle-switch-input {
 .status-text[data-state="private"],
 .status-text[data-state="idle"] {
   color: var(--color-text-muted);
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
 }
 
 /* ロード中の一覧・表を、その表示領域の中央に重ねて示す。親要素が配置基準を持つ。 */
@@ -1070,7 +1075,7 @@ input[type="checkbox"].toggle-switch-input {
   border-radius: var(--radius-sm);
   padding: var(--space-2) var(--space-3);
   margin: var(--space-3) 0;
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
   font-variant-numeric: tabular-nums;
   border-left: 4px solid transparent;
 }
@@ -1093,7 +1098,7 @@ input[type="checkbox"].toggle-switch-input {
   background: var(--color-bg);
   border-left-color: var(--color-border);
   color: var(--color-text-muted);
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
 }
 
 .spinner {
@@ -1133,7 +1138,7 @@ td:first-child {
 
 th {
   background: var(--color-bg);
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
   font-size: var(--font-size-sm2);
   color: var(--color-text-muted);
 }
@@ -1146,7 +1151,7 @@ dl {
 }
 
 dt {
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   color: var(--color-text-muted);
 }
 

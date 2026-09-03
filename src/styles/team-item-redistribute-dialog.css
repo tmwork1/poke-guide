@@ -23,7 +23,7 @@ body.team-edit-page {
 	gap: var(--space-2);
 	margin: var(--space-3) 0;
 	padding: 0.42em 0.6em;
-	font-weight: 400;
+	font-weight: var(--font-weight-normal);
 }
 
 .team-item-redistribute-button-icon {
@@ -69,11 +69,11 @@ body.team-edit-page {
 	min-height: var(--help-button-size);
 	padding: 0;
 	font-size: var(--font-size-sm3);
-	font-weight: 700;
+	font-weight: var(--font-weight-bold);
 	line-height: 1;
 	color: var(--color-text-muted);
 	background: transparent;
-	/* 文字(font-weight:700)と同程度の太さに見えるよう、枠線もやや太くし、
+	/* 文字(font-weight: var(--font-weight-bold))と同程度の太さに見えるよう、枠線もやや太くし、
 	   色も文字と同じ--color-text-mutedに揃える(標準の--color-borderより濃い)。 */
 	border: 2px solid var(--color-text-muted);
 	border-radius: 50%;
@@ -94,7 +94,7 @@ body.team-edit-page {
 	border-radius: var(--radius-sm);
 	box-shadow: var(--shadow-md);
 	font-size: var(--font-size-sm2);
-	font-weight: 400;
+	font-weight: var(--font-weight-normal);
 	line-height: var(--line-height-snug);
 	color: var(--color-text);
 }

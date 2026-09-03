@@ -139,7 +139,7 @@ body.data-page {
 	--stat-nature-arrow-border-inline: 6px;
 	--stat-nature-arrow-border-block: 10px;
 	--stat-nature-dot-size: 6px; /* 性格補正が未設定のときに表示する●の直径 */
-	--stat-label-font-weight: 400;
+	--stat-label-font-weight: var(--font-weight-normal);
 	--stat-section-font-size: var(--font-size-sm1); /* 育成タブ内の調整表と同じ基準文字サイズ。 */
 	--stat-ev-remaining-font-size: var(--font-size-sm3); /* 「残りXX」「16n+X」の文字サイズ。大きくすると目立つ */
 	--stat-ev-remaining-color: var(--color-text-muted); /* 「残りXX」「16n+X」の文字色。濃くすると目立つ */

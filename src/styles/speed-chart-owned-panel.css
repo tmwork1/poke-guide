@@ -125,7 +125,7 @@
 	.speed-chart-owned-edit-button {
 		padding: var(--speed-chart-owned-edit-padding);
 		font-size: var(--speed-chart-owned-edit-font-size);
-		font-weight: 600;
+		font-weight: var(--font-weight-semibold);
 		flex-shrink: 0;
 	}
 	/* 種族名(2段目)も1段目と同じ理由で中央配置。
@@ -134,7 +134,7 @@
 		ズレが起きる(flexアイテムの自動幅がfit-contentのため)。text-align: centerを
 		併記することで、2行に折り返した場合も各行が中央揃えのまま崩れない。 */
 	.speed-chart-owned-summary-species {
-		font-weight: 700;
+		font-weight: var(--font-weight-bold);
 		min-width: 0;
 	}
 	.speed-chart-table[data-embedded='true'] .speed-chart-owned-summary-header {
@@ -178,7 +178,7 @@
 		place-items: center;
 		padding: 0;
 		font-size: var(--speed-chart-owned-jump-font-size);
-		font-weight: 500;
+		font-weight: var(--font-weight-medium);
 		background: transparent;
 		border-color: transparent;
 		box-shadow: none;
@@ -205,7 +205,7 @@
 		appearance: textfield;
 	}
 	.speed-chart-rank-field .number-stepper-value.is-nonzero {
-		font-weight: 700;
+		font-weight: var(--font-weight-bold);
 		color: var(--color-primary-strong);
 		border-color: var(--color-primary-strong);
 	}
@@ -277,7 +277,7 @@
 	.speed-chart-owned .speed-chart-owned-current {
 		background: var(--color-success-soft);
 		color: var(--color-success-strong);
-		font-weight: 700;
+		font-weight: var(--font-weight-bold);
 	}
 	.speed-chart-owned .speed-chart-owned-dash {
 		color: var(--color-text-muted);
@@ -300,9 +300,9 @@
 		min-width: 0;
 		font-size: var(--font-size-sm3);
 		padding: var(--speed-chart-owned-apply-padding);
-		/* global.css の button.btn-primary { font-weight: 700 } は(0,1,1)、こちらは
+		/* global.css の button.btn-primary { font-weight: var(--font-weight-bold) } は(0,1,1)、こちらは
 			.speed-chart-owned(領域ルート)経由の(0,2,0)で詳細度が上回るため確実に上書きできる。 */
-		font-weight: 500;
+		font-weight: var(--font-weight-medium);
 		/* 長いアイテム名でもパネル幅を越えず一段に収める。 */
 		max-width: 100%;
 		background: var(--color-surface);
