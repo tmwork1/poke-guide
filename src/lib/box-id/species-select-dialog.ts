@@ -214,6 +214,10 @@ function renderGrid(): void {
 
 async function openDialog(): Promise<void> {
 	await ensureData();
+	// 開くたびに前回の検索語を持ち越さない(モーダルを閉じてもDOM上の<input>値は
+	// 残るため、明示的にクリアしてからrenderGridする)。
+	searchQuery = "";
+	searchInput.value = "";
 	backdropEl.hidden = false;
 	dialogEl.hidden = false;
 	renderGrid();
