@@ -220,6 +220,16 @@ export const DAMAGE_AILMENTS = [
 	{ value: "ねむり", label: "ねむり" },
 	{ value: "こおり", label: "こおり" },
 ];
+// UI改修: わざタブの状態異常トグルは、ダメージ計算に関係する組み合わせだけに絞った
+// 候補を出す(まひ・ねむり・こおりはダメージ倍率に直接効かないため対象外)。
+// 検証(damage-calc.ts側のattackerAilment/defenderAilment)は引き続き上のDAMAGE_AILMENTS
+// (全候補)を基準にする。過去データが持つ値を誤って「不正な値」としてリセットしないため。
+export const DAMAGE_ATTACKER_AILMENTS = DAMAGE_AILMENTS.filter((a) =>
+	["", "どく", "やけど"].includes(a.value),
+);
+export const DAMAGE_DEFENDER_AILMENTS = DAMAGE_AILMENTS.filter((a) =>
+	["", "どく", "もうどく", "やけど"].includes(a.value),
+);
 // 各項目のtitleはvendor/jpoke実装(src/jpoke/data/volatile.py・src/jpoke/handlers/volatile.py)
 // を確認して書いた説明文。数値(割合・倍率)を変更する場合は必ずjpoke skill(.claude/skills/jpoke)
 // 経由で実装を確認し直すこと(ダメージ計算に影響する数値のため誤記厳禁)。

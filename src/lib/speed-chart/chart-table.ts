@@ -38,6 +38,7 @@ import {
   type SpeedSpreadKind,
 } from '../speed-chart';
 import { championSpriteUrl, officialArtworkUrl } from '../pokemon-master-data';
+import { kanaIncludes } from '../kana';
 import {
   initOwnedPanel,
   OWNED_CURRENT_VALUE_EVENT,
@@ -597,11 +598,26 @@ export async function initSpeedChartPage(): Promise<void> {
     window.history.replaceState(null, '', url);
   });
 
+  // UI改修: 実数値専用だった検索欄を「ポケモン・すばやさ実数値」の汎用検索にする。
+  // 全角数字だけの入力は半角に正規化した上で従来どおり実数値ジャンプとして扱い、
+  // それ以外(ポケモン名を含む文字列)は現在のレギュレーションの行から種族名一致を探す。
+  function normalizeFullWidthDigits(input: string): string {
+    return input.replace(/[０-９]/g, (ch) => String.fromCharCode(ch.charCodeAt(0) - 0xfee0));
+  }
+
   function jumpToInputValue(): void {
     if (!jumpInput) return;
-    const value = Number.parseInt(jumpInput.value, 10);
-    if (!Number.isFinite(value)) return;
-    scrollToValue(value);
+    const raw = jumpInput.value.trim();
+    if (!raw) return;
+    const normalized = normalizeFullWidthDigits(raw);
+    if (/^[0-9]+$/.test(normalized)) {
+      scrollToValue(Number.parseInt(normalized, 10));
+      return;
+    }
+    const matchedRow = currentRows.find((row) =>
+      row.entries.some((entry) => kanaIncludes(entry.formName, raw)),
+    );
+    if (matchedRow) scrollToValue(matchedRow.value);
   }
 
   jumpInput?.addEventListener('keydown', (event) => {

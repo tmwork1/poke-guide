@@ -123,7 +123,7 @@ body.box-edit-page {
 
 	/* ── 2. 文字の太さ・行間 ──────────────────── */
 	--box-edit-opponent-alert-font-weight: 700; /* ダメージ計算の保存失敗件数の文字の太さ */
-	--box-edit-delete-font-weight: 500; /* 削除ボタンの文字の太さ */
+	--box-edit-delete-font-weight: 500; /* コピー・削除ボタンの文字の太さ */
 	--box-edit-collection-toggle-font-weight: 500; /* 収集拒否ラベルの文字の太さ */
 
 	/* ── 3. 文字色 ───────────────────────── */
@@ -249,7 +249,8 @@ body.box-edit-page {
 		}
 		.training-delete-actions #copy-button,
 		.training-delete-actions #delete-button { margin-top: 0; }
-		/* 基底(global.css の button.btn-danger)の太字を、戻るリンクと同じ500に上書きする。 */
+		/* 基底(global.css の button/button.btn-danger)の太字を、戻るリンクと同じ500に上書きする。 */
+		#copy-button,
 		#delete-button { font-weight: var(--box-edit-delete-font-weight); }
 		/* 基底(global.css の button.btn-danger)は 平常時=塗り
 			(background:var(--color-danger-strong), color:var(--color-primary-contrast))、

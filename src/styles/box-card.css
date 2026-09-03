@@ -402,3 +402,13 @@
 	overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* タップ選択状態(チーム編成タブの候補カード等がis-selectedを付与する)。
+   global.cssの.card.is-selectedは詳細度が同点のためこのファイル側の枠線指定に
+   後勝ちで負けて効かない。ファイル末尾でteam-mate-card.css等と同じ枠線色+
+   内側アウトラインの選択表現を明示する。 */
+.box-grid .box-card.is-selected {
+  border-color: var(--color-primary-strong);
+  outline: 2px solid var(--color-primary-strong);
+  outline-offset: -2px;
+}

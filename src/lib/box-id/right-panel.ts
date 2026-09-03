@@ -44,6 +44,8 @@ import {
 	DAMAGE_WEATHERS,
 	DAMAGE_TERRAINS,
 	DAMAGE_AILMENTS,
+	DAMAGE_ATTACKER_AILMENTS,
+	DAMAGE_DEFENDER_AILMENTS,
 	DAMAGE_ATTACKER_VOLATILES,
 	DAMAGE_DEFENDER_VOLATILES,
 	clampInt,
@@ -1096,6 +1098,7 @@ export function buildSideSection(
 	ariaSideLabel: string,
 	rank: number,
 	ailment: string,
+	ailmentOptions: { value: string; label: string }[],
 	terastallized: boolean,
 	teraTypeValue: string,
 	onRankChange: (value: number) => void,
@@ -1291,12 +1294,22 @@ export function buildSideSection(
 		scheduleRowSave(row);
 		refreshRowConditionChips(row);
 	});
-	// C-2: ランク・状態異常・テラスタイプを同じ段(3列)に配置する
-	// (damage-detail-panel.cssの.damage-detail-rank-ailment-rowを3列グリッドに変更済み)。
 	const rankAilmentRow = document.createElement("div");
 	rankAilmentRow.className = "damage-detail-rank-ailment-row";
 	rankAilmentRow.append(rankField);
 	rankAilmentGroup.appendChild(rankAilmentRow);
+
+	// UI改修: 状態異常はランクの一段下に、天候・フィールドと同じ4列固定の
+	// セグメントコントロール(is-row4)で置く(以前は天候直下の共有欄にまとめていたが、
+	// 「自分/相手」どちらの状態異常か分かりにくかったため側ごとのランク直下へ移設した)。
+	const ailmentGroup = buildIconToggleGroup(ailmentOptions, ailment, (value) => {
+		onAilmentChange(value);
+		scheduleRowCalc(row);
+		scheduleRowSave(row);
+		refreshRowConditionChips(row);
+	}, `${ariaSideLabel}の状態異常`);
+	ailmentGroup.classList.add("is-row4");
+	rankAilmentGroup.appendChild(ailmentGroup);
 
 	// F: テラスタルは揮発状態(stateGrid)と別行にする。C-2でランク・状態異常と同じ段の
 	// 3列目にするため、rankAilmentGroupではなくrankAilmentRow自体に追加する。
@@ -1707,6 +1720,7 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 		selfIsAttackerForDialog ? "攻撃側(自分)" : "攻撃側(相手)",
 		column.attackerRank,
 		column.attackerAilment,
+		DAMAGE_ATTACKER_AILMENTS,
 		column.attackerTerastallized,
 		selfIsAttackerForDialog
 			? (column.attackerTeraType || (column.attackerTerastallized ? selfTeraTypeValue : ""))
@@ -1731,6 +1745,7 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 		selfIsAttackerForDialog ? "防御側(相手)" : "防御側(自分)",
 		column.defenderRank,
 		column.defenderAilment,
+		DAMAGE_DEFENDER_AILMENTS,
 		column.defenderTerastallized,
 		!selfIsAttackerForDialog
 			? (column.defenderTeraType || (column.defenderTerastallized ? selfTeraTypeValue : ""))
@@ -1877,32 +1892,8 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 	weatherRow.appendChild(weatherGroup);
 	fieldEffectsGroup.appendChild(weatherRow);
 
-	const appendAilmentRow = (
-		label: string,
-		current: string,
-		onChange: (value: string) => void,
-	): void => {
-		const ailmentRow = document.createElement("div");
-		ailmentRow.className = "damage-detail-field-row";
-		const ailmentLabel = document.createElement("span");
-		ailmentLabel.className = "damage-detail-field-row-label";
-		ailmentLabel.textContent = label;
-		const ailmentGroup = buildIconToggleGroup(DAMAGE_AILMENTS, current, (value) => {
-			onChange(value);
-			scheduleRowCalc(row);
-			scheduleRowSave(row);
-			refreshRowConditionChips(row);
-		}, label);
-		ailmentGroup.classList.add("is-row4");
-		ailmentRow.append(ailmentLabel, ailmentGroup);
-		fieldEffectsGroup.appendChild(ailmentRow);
-	};
-	appendAilmentRow("攻撃側の状態異常", column.attackerAilment, (value) => {
-		column.attackerAilment = value;
-	});
-	appendAilmentRow("防御側の状態異常", column.defenderAilment, (value) => {
-		column.defenderAilment = value;
-	});
+	// UI改修: 状態異常は各側の「ランク」直下(buildSideSection内)へ移設したため、
+	// ここ(天候直下の共有欄)には置かない。
 
 	const terrainRow = document.createElement("div");
 	terrainRow.className = "damage-detail-field-row";

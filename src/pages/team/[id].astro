@@ -2210,12 +2210,17 @@ if (!isGuestNewMode) {
 						iconWrap.appendChild(img);
 						void applyItemIcon(img, itemName, iconWrap);
 					} else {
+						// もちものが無い枠は、box/[id]のもちもの選択モーダルと同じ「なし」アイコン
+						// (丸に斜線)を出す(item-select-dialog.tsのitem-select-cell-none-iconと同じSVG)。
 						iconWrap.classList.add("is-none");
+						const noneIcon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+						noneIcon.setAttribute("viewBox", "0 0 24 24");
+						noneIcon.setAttribute("aria-hidden", "true");
+						noneIcon.innerHTML = '<circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M6 6l12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>';
+						iconWrap.appendChild(noneIcon);
 					}
-					const nameEl = document.createElement("span");
-					nameEl.className = "team-item-redistribute-item-card__name";
-					nameEl.textContent = itemName || "なし";
-					card.append(iconWrap, nameEl);
+					// UI改修: アイテムスロットはアイコンのみ表示する(名前テキストはaria-labelに残す)。
+					card.append(iconWrap);
 					itemRedistributeItemRow.appendChild(card);
 				}
 			}
@@ -2234,20 +2239,18 @@ if (!isGuestNewMode) {
 					showItem: false,
 				});
 				renderRedistributionItemRow(effective);
-				// 表示中のもちもの("なし"を除く)が2枠以上で重複している個体を黄色くハイライトする。
+				// 表示中のもちもの("なし"を除く)が2枠以上で重複している。
 				const itemCounts = new Map<string, number>();
 				for (const p of effective.values()) {
 					const itemName = (p.item_name ?? "").trim();
 					if (!itemName) continue;
 					itemCounts.set(itemName, (itemCounts.get(itemName) ?? 0) + 1);
 				}
-				// renderTeamMateSlots自体は編成タブ等と共有のため「変更不可」概念・重複表示を持たない。
-				// ここ(再分配モーダル固有)でだけDOMに後付けでロック表示・重複ハイライトを足す
+				// renderTeamMateSlots自体は編成タブ等と共有のため「変更不可」概念を持たない。
+				// ここ(再分配モーダル固有)でだけDOMに後付けでロック表示を足す
 				// (renderTeamMateSlotsは毎回root.innerHTMLを作り直すため、常に未装飾のカードから始まる)。
 				for (const cardEl of Array.from(itemRedistributeMembers.children) as HTMLElement[]) {
 					const slot = Number(cardEl.dataset.slot);
-					const itemName = (effective.get(slot)?.item_name ?? "").trim();
-					if (itemName && (itemCounts.get(itemName) ?? 0) >= 2) cardEl.classList.add("is-duplicate-item");
 					if (!isRedistributionSlotLocked(slot)) continue;
 					cardEl.classList.add("is-locked");
 					cardEl.setAttribute("aria-disabled", "true");
@@ -2256,6 +2259,13 @@ if (!isGuestNewMode) {
 					lock.setAttribute("aria-hidden", "true");
 					lock.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>';
 					cardEl.appendChild(lock);
+				}
+				// UI改修: 重複ハイライトはポケモンカードではなくアイテムカードに付ける(枠=outlineは
+				// 付けず、背景のみで示す)。
+				for (const cardEl of Array.from(itemRedistributeItemRow.children) as HTMLElement[]) {
+					const slot = Number(cardEl.dataset.slot);
+					const itemName = (effective.get(slot)?.item_name ?? "").trim();
+					if (itemName && (itemCounts.get(itemName) ?? 0) >= 2) cardEl.classList.add("is-duplicate-item");
 				}
 			}
 
@@ -2363,6 +2373,14 @@ if (!isGuestNewMode) {
 				return sortItemsByUsage(values, (value) => teamItemUsageTotals.get(value));
 			}
 
+			// UI改修: 表示中(effective)のもちものは、既にどこかの枠が使用中のため候補には出さない。
+			function isRedistributionItemInUse(itemName: string): boolean {
+				for (const p of effectiveMembersBySlot().values()) {
+					if ((p.item_name ?? "").trim() === itemName) return true;
+				}
+				return false;
+			}
+
 			const redistributionItemGrid = createItemSelectGrid({
 				gridEl: itemRedistributeItems,
 				emptyEl: itemRedistributeEmpty,
@@ -2370,7 +2388,8 @@ if (!isGuestNewMode) {
 				sortRest: sortRedistributionItems,
 				// メガストーンは対応するメガシンカ枠に必ず登録されており、表示設定側では
 				// 変更を許さない(redistributionLockedSlots参照)ため、そもそも候補にも出さない。
-				excludeValue: isMegaStoneItemName,
+				// 使用中のもちものも同様に、候補として選び直す意味が無いため出さない。
+				excludeValue: (itemName) => isMegaStoneItemName(itemName) || isRedistributionItemInUse(itemName),
 				onSelect: (itemName) => {
 					if (selectedRedistributionSlot !== null) {
 						setRedistributedItem(selectedRedistributionSlot, itemName);
