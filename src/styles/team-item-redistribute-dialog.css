@@ -106,10 +106,12 @@ body.team-edit-page {
 	flex: 0 0 auto;
 }
 
-/* カードの配色を検索ボックス(input[type=text]等)と揃える。 */
+/* UI改修: 枠・背景を廃止し、ポケモンのアイコンだけを直接置く(選択中のリングは
+	base(.team-mate-card:hover/.is-selected)のoutlineが引き続き効くので枠削除でも消えない)。 */
 .team-item-redistribute-members .team-mate-card {
-	background: var(--color-surface-sunken);
-	box-shadow: var(--shadow-inset-sunken);
+	background: none;
+	box-shadow: none;
+	border: none;
 }
 
 /* メガシンカ後の種族は対応するメガストーンを手放せない(タップ・長押しともJS側で
@@ -117,12 +119,6 @@ body.team-edit-page {
 .team-item-redistribute-members .team-mate-card.is-locked {
 	cursor: not-allowed;
 	opacity: 0.55;
-}
-/* もちもの("なし"を除く)が他の枠と重複している個体を黄色くハイライトする。
-   専用の警告色トークンが無いため、既存のタイプカラー(でんき)を淡く敷いて示す。 */
-.team-item-redistribute-members .team-mate-card.is-duplicate-item {
-	border-color: var(--color-type-electric);
-	background: color-mix(in srgb, var(--color-type-electric) 22%, var(--color-surface));
 }
 .team-item-redistribute-lock-badge {
 	position: absolute;
@@ -175,6 +171,13 @@ body.team-edit-page {
 	cursor: not-allowed;
 	opacity: 0.55;
 }
+/* もちもの("なし"を除く)が他の枠と重複している。専用の警告色トークンが無いため、
+   既存のタイプカラー(でんき)を淡く敷いて示す。UI改修: ハイライトはポケモンカードでは
+   なくアイテムカードに付け、枠(border/outline)は変えず背景だけで示す
+   (:hover/:focus-visible/.is-selectedの選択リングと混同しないため)。 */
+.team-item-redistribute-item-card.is-duplicate-item {
+	background: color-mix(in srgb, var(--color-type-electric) 22%, var(--color-surface-sunken));
+}
 /* 空き枠(個体が無い)は6列の位置ぞろえのためだけの透明プレースホルダー。 */
 .team-item-redistribute-item-card--empty {
 	cursor: default;
@@ -186,7 +189,9 @@ body.team-edit-page {
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	width: 44%;
+	/* UI改修: アイコンのみ表示になり下の名前テキスト分の余白が要らなくなったため、
+	   カード内で目立つ大きさまで広げる。 */
+	width: 70%;
 	aspect-ratio: 1;
 }
 .team-item-redistribute-item-card__icon {
@@ -196,15 +201,11 @@ body.team-edit-page {
 	pointer-events: none;
 	-webkit-user-drag: none;
 }
-.team-item-redistribute-item-card__name {
-	max-width: 100%;
-	overflow: hidden;
+/* もちもの無し枠の「丸に斜線」アイコン(item-select-dialog.cssの.item-select-cell-none-iconと同じ配色)。 */
+.team-item-redistribute-item-card__icon-wrap.is-none svg {
+	width: 100%;
+	height: 100%;
 	color: var(--color-text-muted);
-	font-size: var(--font-size-sm4);
-	line-height: var(--line-height-snug);
-	text-align: center;
-	text-overflow: ellipsis;
-	white-space: nowrap;
 }
 
 @media (max-width: 640px) {

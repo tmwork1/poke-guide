@@ -100,7 +100,7 @@
   --modal-close-font-size: var(--font-size-lg1); /* モーダル閉じるボタン(×)の文字サイズ。全モーダル共通の基準値。 */
   --modal-close-size: 28px; /* モーダル閉じるボタンの最小タップ域(幅・高さ)。全モーダル共通の基準値。 */
   --modal-close-margin: calc((var(--modal-header-min-height) - var(--modal-close-size)) / 2); /* 閉じるボタンとヘッダー上下端の間隔(中央寄せで生じる余白)。右端の間隔をこれに合わせて揃える。全モーダル共通の基準値。 */
-  --help-button-size: 22px; /* 見出し横に置く丸型ヘルプ(?)ボタンの直径。全画面共通の基準値。button共通ルール(buttons.css)のmin-height:var(--tap-target-min)を上書きするため、使用側でmin-width/min-heightにも同じ値を指定すること(でないと縦長の楕円になる)。 */
+  --help-button-size: 18px; /* 見出し横に置く丸型ヘルプ(?)ボタンの直径。見出し文字と並べたときに文字より太って見えないよう、タイトル文字サイズ(--modal-title-font-size)に近い寸法にする。全画面共通の基準値。button共通ルール(buttons.css)のmin-height:var(--tap-target-min)を上書きするため、使用側でmin-width/min-heightにも同じ値を指定すること(でないと縦長の楕円になる)。 */
   --modal-top-offset: 6vh; /* モーダルの上端位置。画面中央(top:50%)ではなくこの値で上寄せし、スマホのソフトキーボード表示時にモーダルがキーボードと重ならないようにする。全モーダル共通の基準値。 */
   --modal-height: 75dvh; /* モーダル本体の高さ。画面高の約75%を使い、残りを上端・下端の余白にする。 */
   --radius-lg: 16px; /* ダイアログや大きな空状態の角丸。大きくすると大型要素の角が丸くなる。 */
