@@ -24,8 +24,7 @@ body.box-edit-page {
 	--damage-detail-font-size-xs: var(--font-size-sm3); /* 補足と小ラベルの文字サイズ。大きくすると細かな説明が読みやすくなる */
 
 	/* ── 2. 文字の太さ・行間 ─────────────────────── */
-	--damage-detail-font-weight-heavy: 800; /* 合計ダメージ判定の太さ。大きくすると結論が強調される */
-	--damage-detail-font-weight-bold: 700; /* 見出しと候補値の太さ。大きくすると重要情報が強く見える */
+	--damage-detail-font-weight-bold: 700; /* 見出しと候補値・合計ダメージ判定の太さ(上限)。大きくすると重要情報が強く見える */
 	--damage-detail-title-font-weight: var(--modal-title-font-weight); /* モーダルヘッダー規格(global.css)のタイトルの太さ。 */
 	--damage-detail-font-weight-semibold: 600; /* 小見出しの太さ。大きくすると項目名が強く見える */
 	--damage-detail-font-weight-regular: 400; /* 通常文字の太さ。大きくすると入力値などが太く見える */

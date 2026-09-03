@@ -33,7 +33,7 @@ body.box-edit-page {
   --damage-card-build-detail-font-size: var(--font-size-sm3); /* 相手情報2段目(特性・テラス・アイテム・実数値)の文字サイズ */
 
   /* ── 2. 文字の太さ・行間 ─────────────────────── */
-  --damage-card-total-verdict-font-weight: var(--font-weight-heavy); /* 判定部分の文字の太さ */
+  --damage-card-total-verdict-font-weight: var(--font-weight-bold); /* 判定部分の文字の太さ */
   --damage-card-move-font-weight: var(--font-weight-bold); /* 技名の文字の太さ */
   --damage-card-direction-font-weight: var(--font-weight-semibold); /* 攻撃・防御スイッチの文字の太さ */
   --damage-card-total-detail-font-weight: var(--font-weight-medium); /* 詳細部分の文字の太さ */
