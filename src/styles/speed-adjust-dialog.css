@@ -83,7 +83,7 @@ body.speed-chart-page:has(.speed-chart-embed-toolbar) {
   background: var(--color-surface);
 
   /* 余白: ツールバー / 表エリア / 下部個体サマリー / サマリー内 / 操作部内 */
-  --speed-adjust-toolbar-padding: var(--space-3) var(--space-4);
+  --speed-adjust-toolbar-padding: var(--modal-header-padding); /* モーダルヘッダー規格(global.css)に揃える */
   --speed-adjust-content-padding: var(--space-3) var(--space-4);
   --speed-adjust-summary-padding: var(--space-2) var(--space-3);
   --speed-adjust-summary-gap: var(--space-3);
