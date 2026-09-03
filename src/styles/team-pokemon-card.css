@@ -313,8 +313,8 @@
 }
 
 /* .pokemon-preview-stats: カード最下部(.pokemon-preview-leftの末尾、moves直後)に横積みで
-	置く実数値。ラベル行・実数値行・努力値行の3段×6列を、右パネルのteam-damage-stats/
-	team-damage-stats-line(display:contentsで行を作る手法)と同じ考え方でグリッド化する。 */
+	置く実数値。ラベル行・実数値行・努力値行の3段×6列を、display:contentsで行を作る
+	手法でグリッド化する。 */
 
 .team-overview-preview-card .pokemon-preview-stats {
 	display: grid;

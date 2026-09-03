@@ -65,9 +65,6 @@ body.team-edit-page {
   display: none;
 }
 
-.team-edit-shell[data-mobile-tab="data"] .team-edit-layout {
-  display: none;
-}
 .team-edit-shell[data-mobile-tab="data"] #team-data-mobile {
   display: block;
 }

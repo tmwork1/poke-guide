@@ -68,7 +68,6 @@ body.team-edit-page {
 	width: 100%;
 	margin-top: var(--team-pokemon-tab-delete-gap);
 }
-.team-edit-shell[data-mobile-tab="pokemon"] .team-edit-layout,
 .team-edit-shell[data-mobile-tab="formation"] #team-overview-tab,
 .team-edit-shell[data-mobile-tab="matchup"] #team-overview-tab {
 	display: none;
@@ -87,9 +86,6 @@ body.team-edit-page {
 	display: none;
 }
 
-.team-edit-shell[data-mobile-tab="matchup"] .team-edit-layout {
-	display: none;
-}
 .team-edit-shell[data-mobile-tab="matchup"] #team-matchup-mobile {
 	display: block;
 }
@@ -156,9 +152,6 @@ body.team-edit-page {
 	padding: var(--team-pokemon-tab-card-scroll-inset);
 	background: var(--color-bg);
 	scroll-padding-block: var(--team-pokemon-tab-card-scroll-inset);
-}
-.team-edit-shell[data-mobile-tab="formation"] .team-edit-layout {
-	display: none;
 }
 .team-edit-shell[data-mobile-tab="formation"] #team-formation-mobile {
 	display: block;
