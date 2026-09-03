@@ -37,7 +37,7 @@ body.box-edit-page {
   --damage-card-move-font-weight: var(--font-weight-bold); /* 技名の文字の太さ */
   --damage-card-direction-font-weight: var(--font-weight-semibold); /* 攻撃・防御スイッチの文字の太さ */
   --damage-card-total-detail-font-weight: var(--font-weight-medium); /* 詳細部分の文字の太さ */
-  --damage-card-move-placeholder-weight: 500; /* 未選択の技名表示の文字の太さ */
+  --damage-card-move-placeholder-weight: var(--font-weight-medium); /* 未選択の技名表示の文字の太さ */
   --damage-card-summary-font-weight: var(--font-weight-normal); /* 相手の名前・特性・持ち物の文字の太さ */
   --damage-card-direction-line-height: var(--line-height-tight); /* 攻撃・防御スイッチ内の行の高さ */
   --damage-card-stat-line-height: var(--line-height-tight); /* 実数値・努力値の行の高さ */
