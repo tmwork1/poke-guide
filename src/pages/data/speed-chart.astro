@@ -151,6 +151,22 @@ try {
 		<DataHubTabs active="speed-chart" />
 	</AppHeader>
 	<SecondHeader ariaLabel="すばやさ早見表の操作" class="speed-chart-second-header">
+		<div class="second-header-search toolbar-item toolbar-search">
+			<div class="search-input-wrap">
+				<svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+					<circle cx="11" cy="11" r="7" />
+					<line x1="21" y1="21" x2="16.65" y2="16.65" />
+				</svg>
+				<input
+					id="speed-chart-jump-input"
+					type="text"
+					class="field-control"
+					placeholder="ポケモン・すばやさ実数値"
+					aria-label="ポケモン・すばやさ実数値"
+					autocomplete="off"
+				/>
+			</div>
+		</div>
 		<div class="toolbar-item">
 			<label class="speed-chart-regulation-label" for="speed-chart-regulation-select">シーズン</label>
 			<select id="speed-chart-regulation-select" aria-label="シーズン">
@@ -160,7 +176,6 @@ try {
 				))}
 			</select>
 		</div>
-		<input type="number" id="speed-chart-jump-input" placeholder="実数値" aria-label="実数値" />
 		{hasOwnedPanel && <label class="speed-chart-reachable-toggle">
 			<span class="toggle-switch">
 				<input type="checkbox" id="speed-chart-reachable-only-toggle" class="toggle-switch-input" aria-label="すべて表示" />

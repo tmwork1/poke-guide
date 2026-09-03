@@ -23,7 +23,6 @@ body.speed-chart-page {
 
 	/* ── 8. 寸法 ─────────────────────── */
 	--speed-chart-embed-main-height: 100dvh; /* 埋め込み時の本文高。操作バーも .app-main の子要素なので、ビューポート全体の高さを使う */
-	--speed-chart-jump-input-width: 7rem; /* 実数値ジャンプ入力欄の幅。大きくすると多くの文字を表示できる */
 }
 
 /* --------------------------------------------------------------------------
@@ -103,10 +102,6 @@ body.speed-chart-page {
 }
 .speed-chart-regulation-label {
 	display: none;
-}
-
-#speed-chart-jump-input {
-	width: var(--speed-chart-jump-input-width);
 }
 
 .speed-chart-reachable-toggle {
