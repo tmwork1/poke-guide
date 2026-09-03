@@ -768,6 +768,7 @@ body.box-edit-page {
 	}
 	#damage-detail-panel-body .damage-detail-rank-ailment-row .damage-detail-tera-row {
 		margin-bottom: 0;
+		grid-column: 3;
 		justify-self: start;
 	}
 	#damage-detail-panel-body .damage-detail-tera-toggle {

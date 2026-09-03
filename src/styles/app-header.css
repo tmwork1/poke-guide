@@ -20,7 +20,7 @@
   --app-header-title-font-size: var(--font-size-sm1); /* 画面タイトルの文字サイズ。戻るボタンとの視覚的な釣り合いを保つ。 */
 
   /* ── 2. 文字の太さ・行間 ──────────────────────────────── */
-  --app-header-item-line-height: 1; /* 横タブの行間。大きくすると項目名の行が縦に広がる。 */
+  --app-header-item-line-height: var(--line-height-tight); /* 横タブの行間。大きくすると項目名の行が縦に広がる。 */
   --app-header-title-font-weight: 400; /* 画面タイトルの太さ。大きくすると見出しがより強調される。 */
 
   /* ── 3. 文字色 ────────────────────────────────────────── */
@@ -108,7 +108,7 @@
   color: var(--app-header-title-color);
   font-size: var(--app-header-title-font-size);
   font-weight: var(--app-header-title-font-weight);
-  line-height: 1;
+  line-height: var(--app-header-item-line-height);
 }
 
 /* ゲストモードであることと、ログインするとデータを保存できることを控えめに案内する。 */
@@ -121,7 +121,7 @@
   padding-right: var(--space-3);
   color: var(--color-text-muted);
   font-size: var(--font-size-sm2);
-  line-height: 1;
+  line-height: var(--app-header-item-line-height);
   white-space: nowrap;
 }
 
@@ -159,6 +159,7 @@
   padding-right: var(--space-3);
   color: var(--color-primary-strong);
   font-size: var(--font-size-sm2);
+  line-height: var(--app-header-item-line-height);
   text-decoration: none;
 }
 .app-header__guest-login:hover { color: var(--app-header-item-hover-color); }

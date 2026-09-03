@@ -1,0 +1,37 @@
+---
+import type { Team } from "../../lib/team";
+import { toJsonScriptContent } from "../../lib/json-script";
+
+interface Props { teams: Team[]; }
+const { teams } = Astro.props;
+---
+
+<section class="panel damage-calc-secondary-bar" aria-label="対面の選択">
+  <div class="panel-content damage-calc-secondary-content">
+    <div class="damage-calc-secondary-actions">
+      <button id="damage-calc-team-button" type="button" class="btn-control">チーム選択</button>
+      <button id="damage-calc-opponent-button" type="button" class="btn-primary">相手検索</button>
+      <p id="damage-calc-selection-summary" class="damage-calc-selection-summary" aria-live="polite"></p>
+    </div>
+    <section id="damage-calc-opponent-panel" class="damage-calc-opponent-panel" hidden aria-labelledby="damage-calc-opponent-title">
+      <div class="damage-calc-opponent-heading">
+        <h2 id="damage-calc-opponent-title">相手ポケモンを選択</h2>
+        <p>相手は1体ずつ指定します。</p>
+      </div>
+      <div class="damage-calc-opponent-fields">
+        <label>ポケモン名<input id="damage-calc-opponent-species" type="search" list="damage-calc-pokemon-list" placeholder="相手ポケモンを選択" autocomplete="off" /></label>
+        <label>特性<select id="damage-calc-opponent-ability" disabled><option value="">特性を選択</option></select></label>
+        <label>もちもの<input id="damage-calc-opponent-item" type="text" placeholder="もちもの（任意）" /></label>
+        <label>テラスタイプ<select id="damage-calc-opponent-tera"><option value="">未設定</option><option>ノーマル</option><option>ほのお</option><option>みず</option><option>でんき</option><option>くさ</option><option>こおり</option><option>かくとう</option><option>どく</option><option>じめん</option><option>ひこう</option><option>エスパー</option><option>むし</option><option>いわ</option><option>ゴースト</option><option>ドラゴン</option><option>あく</option><option>はがね</option><option>フェアリー</option></select></label>
+      </div>
+      <fieldset class="damage-calc-move-fields"><legend>相手のわざ（最大4つ）</legend>{[0, 1, 2, 3].map((index) => <label>わざ{index + 1}<input class="damage-calc-opponent-move" type="search" list="damage-calc-move-list" placeholder="わざを選択" autocomplete="off" /></label>)}</fieldset>
+      <datalist id="damage-calc-pokemon-list"></datalist><datalist id="damage-calc-move-list"></datalist>
+      <p id="damage-calc-opponent-validation" class="damage-calc-validation" role="status"></p>
+    </section>
+  </div>
+</section>
+
+<dialog id="damage-calc-team-dialog" class="damage-calc-team-dialog" aria-labelledby="damage-calc-team-dialog-title">
+  <div class="damage-calc-dialog-content"><h2 id="damage-calc-team-dialog-title">チームを選択</h2><div id="damage-calc-team-list"></div><button id="damage-calc-team-dialog-close" type="button" class="btn-ghost">閉じる</button></div>
+</dialog>
+<script id="damage-calc-teams-data" type="application/json" set:html={toJsonScriptContent(teams)}></script>

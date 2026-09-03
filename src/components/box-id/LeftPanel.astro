@@ -325,6 +325,10 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		    (<script>のdeleteButtonクリックハンドラ)に委ねる。スタイルはsrc/styles/box-edit-page.cssの
 		    #delete-button参照。 */}
 		<div class="training-delete-actions">
+			<button id="copy-button" class="btn-control" type="button" hidden={!pokemon.id} disabled={!Astro.locals.user && !!pokemon.id} title={!Astro.locals.user && pokemon.id ? "ログインするとコピーできます" : undefined}>
+				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="1"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+				コピー
+			</button>
 			<button id="delete-button" class="btn-danger" type="button" hidden={!pokemon.id} disabled={!Astro.locals.user && !!pokemon.id} title={!Astro.locals.user && pokemon.id ? "ログインすると削除できます" : undefined}>
 				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
 				削除
@@ -856,7 +860,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	   (pitfalls.md「[hidden]が効かない」)。 */
 	.pokemon-team-section { margin: var(--space-5) 0; }
 	.pokemon-team-section[hidden] { display: none; }
-	.pokemon-team-heading { margin: 0 0 var(--space-2); font-size: var(--font-size-base); font-weight: 700; text-align: left; }
+	.pokemon-team-heading { margin: 0 0 var(--space-2); font-size: var(--font-size-base); font-weight: 700; text-align: left; border-bottom: 0; }
 	.pokemon-team-list { margin: 0; }
 	@media (max-width: 520px) {
 		#edit-form .field-grid { grid-template-columns: 1fr; }

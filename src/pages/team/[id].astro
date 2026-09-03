@@ -155,7 +155,15 @@ if (!isGuestNewMode) {
 
 		/* global.cssのbutton.btn-dangerが持つ太字指定を上書きし、
 		   戻るボタン(.app-header-back)と同じ文字サイズ・太さへ揃える。 */
+		#copy-button,
 		#delete-team-button { width: 100%; font-size: var(--font-size-sm1); white-space: nowrap; font-weight: 500; }
+		.training-delete-actions {
+			display: grid;
+			gap: var(--space-3);
+			margin-top: var(--space-8);
+		}
+		.training-delete-actions #copy-button,
+		.training-delete-actions #delete-team-button { margin-top: 0; }
 		/* box/[id].astro の #delete-button と同じ配色に揃える。基底(global.css の
 		   button.btn-danger)は平常時=塗り(background:var(--color-danger-strong),
 		   color:var(--color-primary-contrast))、hover時=白地反転
@@ -463,7 +471,11 @@ if (!isGuestNewMode) {
 						<div class="panel-content">
 							<div id="team-overview-grid" class="team-overview-thumb-grid" aria-label="チームメンバーのプレビュー"></div>
 							{!isNewMode && (
-								<div class="team-mobile-actions__controls">
+								<div class="team-mobile-actions__controls training-delete-actions">
+									<button id="copy-button" class="btn-control" type="button" disabled={!user} title={!user ? "ログインするとコピーできます" : undefined}>
+										<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="1"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+										コピー
+									</button>
 									<button id="delete-team-button" class="btn-danger" type="button" disabled={!user} title={!user ? "ログインすると削除できます" : undefined}>
 										<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
 										削除
@@ -1911,6 +1923,7 @@ if (!isGuestNewMode) {
 			last_used_at: string | null;
 			is_pinned: boolean;
 			memo: string | null;
+			tags: string[];
 		}
 
 		interface TeamMemberData {
@@ -1927,10 +1940,19 @@ if (!isGuestNewMode) {
 
 		const layoutRoot = document.getElementById("team-edit-layout");
 		if (layoutRoot) {
+			let selectedOverviewSlot: number | null = null;
+			let selectedFormationSlot: number | null = null;
+			let selectedCandidatePokemon: OwnedPokemonRecord | null = null;
+			let mobileTabsInitialized = false;
 			const mobileTabButtons = Array.from(document.querySelectorAll<HTMLButtonElement>(".app-header [data-mobile-tab]"));
 			type MobileTab = "pokemon" | "formation" | "matchup" | "data";
 			const setMobileTab = (tab: MobileTab) => {
 				const tabChanged = layoutRoot.dataset.mobileTab !== tab;
+				if (tabChanged) {
+					selectedOverviewSlot = null;
+					selectedFormationSlot = null;
+					selectedCandidatePokemon = null;
+				}
 				layoutRoot.dataset.mobileTab = tab;
 				for (const button of mobileTabButtons) {
 					const active = button.dataset.mobileTab === tab;
@@ -1944,6 +1966,10 @@ if (!isGuestNewMode) {
 					queueMicrotask(() => {
 						if (layoutRoot.dataset.mobileTab === "matchup") void runMatchup();
 					});
+				}
+				if (tabChanged && mobileTabsInitialized) {
+					renderOverviewGrid();
+					renderFormationMobile();
 				}
 			};
 			const requestedMobileTab = new URLSearchParams(window.location.search).get("tab");
@@ -2022,8 +2048,6 @@ if (!isGuestNewMode) {
 			const formationMobileAddButton = el<HTMLButtonElement>("team-formation-mobile-add");
 			const formationMobileStatus = el<HTMLElement>("team-formation-mobile-status");
 			const formationMobileBoxGrid = el<HTMLElement>("team-formation-mobile-box-grid");
-			let selectedFormationSlot: number | null = null;
-
 			const searchInput = el<HTMLInputElement>("pokemon-search-input");
 			const sortSelect = el<HTMLSelectElement>("pokemon-sort-select");
 			const selectListRoot = el<HTMLElement>("pokemon-select-list");
@@ -2036,6 +2060,7 @@ if (!isGuestNewMode) {
 			const statusEl = el<HTMLElement>("autosave-status");
 			const statusTextEl = el<HTMLElement>("autosave-status-text");
 			const retryButton = el<HTMLButtonElement>("retry-button");
+			const copyTeamButton = document.getElementById("copy-button") as HTMLButtonElement | null;
 			const deleteTeamButton = document.getElementById("delete-team-button") as HTMLButtonElement | null;
 
 			const previewEmptyEl = el<HTMLElement>("team-preview-empty");
@@ -3351,6 +3376,9 @@ if (!isGuestNewMode) {
 				const candidates = currentCandidatesExcludingSlot(slot);
 				const reason = selectionBlockReason(candidateOf(p), candidates);
 				if (reason) return;
+				selectedOverviewSlot = null;
+				selectedFormationSlot = null;
+				selectedCandidatePokemon = null;
 				membersBySlot.set(slot, p);
 				itemOverridesBySlot.set(slot, null);
 				renderSlots();
@@ -3369,6 +3397,9 @@ if (!isGuestNewMode) {
 			// (在籍総数は変わらない)操作には不適切(移動先に既にいる個体を「重複」と誤検知しうる)。
 			// membersBySlotの中身を直接swapするだけの専用関数にする。片方が空きでもよい(=移動)。
 			function swapMembersBetweenSlots(fromSlot: number, toSlot: number): void {
+				selectedOverviewSlot = null;
+				selectedFormationSlot = null;
+				selectedCandidatePokemon = null;
 				const fromMember = membersBySlot.get(fromSlot);
 				const toMember = membersBySlot.get(toSlot);
 				const fromOverride = itemOverridesBySlot.get(fromSlot) ?? null;
@@ -3416,9 +3447,11 @@ if (!isGuestNewMode) {
 			// カード自体のdblclickハンドラ(renderSlots参照)と削除ボタンで共有する
 			// (挙動: membersBySlotから外す→再描画→自動保存)。
 			function removeMemberFromSlot(slot: number): void {
+				selectedOverviewSlot = null;
+				selectedFormationSlot = null;
+				selectedCandidatePokemon = null;
 				membersBySlot.delete(slot);
 				itemOverridesBySlot.delete(slot);
-				if (selectedFormationSlot === slot) selectedFormationSlot = null;
 				renderSlots();
 				renderSelectList();
 				renderFormationMobile();
@@ -3629,9 +3662,16 @@ if (!isGuestNewMode) {
 				for (let slot = 1; slot <= 6; slot += 1) {
 					const p = membersBySlot.get(slot);
 					if (!p) {
-						const empty = document.createElement("div");
+						const empty = document.createElement("button");
+						empty.type = "button";
 						empty.className = "card box-card card-team-empty-slot";
-						empty.setAttribute("aria-hidden", "true");
+						empty.setAttribute("aria-label", `${slot}番目の空き枠を選択`);
+						empty.setAttribute("aria-pressed", String(selectedOverviewSlot === slot));
+						if (selectedOverviewSlot === slot) empty.classList.add("is-selected");
+						empty.addEventListener("click", (event) => {
+							event.stopPropagation();
+							onOverviewSlotTap(slot);
+						});
 						const slotNumber = document.createElement("span");
 						slotNumber.className = "team-slot-number";
 						slotNumber.textContent = String(slot);
@@ -3640,10 +3680,17 @@ if (!isGuestNewMode) {
 						continue;
 					}
 
-					const card = document.createElement("a");
+					const card = document.createElement("button");
+					card.type = "button";
 					card.className = "card box-card card-pokemon pokemon-preview team-overview-preview-card";
-					card.href = `/box/${encodeURIComponent(p.id)}?fromTeam=${encodeURIComponent(teamId)}`;
-					card.setAttribute("aria-label", `${p.species_name}を編集`);
+					card.setAttribute("aria-label", `${p.species_name}、${slot}番目の枠を選択`);
+					card.setAttribute("aria-pressed", String(selectedOverviewSlot === slot));
+					if (selectedOverviewSlot === slot) card.classList.add("is-selected");
+					attachLongPressNavigate(card, p.id);
+					card.addEventListener("click", (event) => {
+						event.stopPropagation();
+						onOverviewSlotTap(slot);
+					});
 					const main = document.createElement("div");
 					main.className = "pokemon-preview-main";
 					const left = document.createElement("div");
@@ -3742,10 +3789,32 @@ if (!isGuestNewMode) {
 				}
 			}
 
+			function onOverviewSlotTap(slot: number): void {
+				if (selectedOverviewSlot !== null && selectedOverviewSlot !== slot) {
+					const fromSlot = selectedOverviewSlot;
+					selectedOverviewSlot = null;
+					if (membersBySlot.has(fromSlot) || membersBySlot.has(slot)) {
+						swapMembersBetweenSlots(fromSlot, slot);
+					} else {
+						renderOverviewGrid();
+					}
+					return;
+				}
+				selectedOverviewSlot = selectedOverviewSlot === slot ? null : slot;
+				renderOverviewGrid();
+			}
+
 			// 自チーム内の操作(相互入れ替え・空き枠への移動・解除)は編成タブに限らず、
 			// 相性・類似チームタブの自チーム表示でも同じに揃える(selectedFormationSlotは
 			// タブ共通の状態として扱う)。
 			function onFormationSlotTap(slot: number): void {
+				if (selectedCandidatePokemon !== null) {
+					const candidate = selectedCandidatePokemon;
+					selectedCandidatePokemon = null;
+					selectedFormationSlot = null;
+					assignToSlot(candidate, slot);
+					return;
+				}
 				if (selectedFormationSlot !== null && selectedFormationSlot !== slot && membersBySlot.has(selectedFormationSlot)) {
 					const fromSlot = selectedFormationSlot;
 					selectedFormationSlot = null;
@@ -3753,6 +3822,7 @@ if (!isGuestNewMode) {
 					return;
 				}
 				selectedFormationSlot = selectedFormationSlot === slot ? null : slot;
+				selectedCandidatePokemon = null;
 				renderFormationMobile();
 			}
 			function onFormationSlotDoubleTap(slot: number): void {
@@ -3808,14 +3878,28 @@ if (!isGuestNewMode) {
 					const card = document.createElement("button");
 					card.type = "button";
 					attachLongPressNavigate(card, p.id);
-					card.addEventListener("click", () => {
+					card.addEventListener("click", (event) => {
+						event.stopPropagation();
 						if (selectedFormationSlot != null) {
 							const targetSlot = selectedFormationSlot;
 							selectedFormationSlot = null;
+							selectedCandidatePokemon = null;
 							renderFormationMobile();
 							assignToSlot(p, targetSlot);
-						} else {
+						} else if (selectedCandidatePokemon?.id === p.id) {
+							selectedCandidatePokemon = null;
+							renderFormationMobile();
+						} else if (firstEmptySlot() != null) {
+							// 空き枠がある間は、既存どおり1タップで次の空き枠へ即配置する
+							// (選択待ちにすると、空きから組み立てる通常操作が2タップになってしまう)。
 							assignToSlot(p);
+						} else {
+							// 空き枠が無い(6枠すべて埋まっている)ときだけ、候補を選択状態にして
+							// 後続のチーム枠タップで入れ替え先を選べるようにする(要件: ボックス
+							// カード→チームの順のタップでも入れ替えを行う)。
+							selectedCandidatePokemon = p;
+							selectedFormationSlot = null;
+							renderFormationMobile();
 						}
 					});
 					const name = displayName(p);
@@ -3825,6 +3909,7 @@ if (!isGuestNewMode) {
 						displayName: name,
 						ariaLabel: `${name}を編成`,
 					});
+					if (selectedCandidatePokemon?.id === p.id) card.classList.add("is-selected");
 					if (suggestionSpeciesRanks.has(p.species_name)) {
 						const recommendationBadge = document.createElement("span");
 						recommendationBadge.className = "card-recommendation-badge";
@@ -3912,6 +3997,7 @@ if (!isGuestNewMode) {
 						last_used_at: null,
 						is_pinned: false,
 						memo: null,
+						tags: [],
 					};
 					allPokemon = [created, ...allPokemon];
 					renderSelectList();
@@ -4011,13 +4097,22 @@ if (!isGuestNewMode) {
 			// タップしたら選択状態を解除する(カード自身のタップはonFormationSlotTap側で
 			// 選択/入れ替え/解除を処理済みのため対象外)。
 			document.addEventListener("click", (event) => {
-				if (selectedFormationSlot === null) return;
+				if (selectedFormationSlot === null && selectedCandidatePokemon === null) return;
 				const target = event.target as Node;
 				if (formationMobileSlotsRoot.contains(target)) return;
 				if (matchupMobileSlotsRoot.contains(target)) return;
 				if (teamDataMobileSlotsRoot.contains(target)) return;
+				if (formationMobileBoxGrid.contains(target)) return;
 				selectedFormationSlot = null;
+				selectedCandidatePokemon = null;
 				renderFormationMobile();
+			});
+
+			document.addEventListener("click", (event) => {
+				if (selectedOverviewSlot === null) return;
+				if (overviewGrid.contains(event.target as Node)) return;
+				selectedOverviewSlot = null;
+				renderOverviewGrid();
 			});
 
 			// --- 選択バーの描画(R-7・R-10) ---
@@ -4372,6 +4467,43 @@ if (!isGuestNewMode) {
 				void saveNow();
 			});
 
+			copyTeamButton?.addEventListener("click", () => {
+				void (async () => {
+					if (!window.confirm("このチームを複製します。よろしいですか?")) return;
+					if (!copyTeamButton) return;
+					copyTeamButton.disabled = true;
+					try {
+						const members = [] as TeamRequestBody["members"];
+						for (const [slot, pokemon] of Array.from(membersBySlot.entries()).sort((a, b) => a[0] - b[0])) {
+							const { id } = await createOwnedPokemon({
+								species_name: pokemon.species_name,
+								level: pokemon.level,
+								nature: pokemon.nature,
+								ability_name: pokemon.ability_name,
+								item_name: pokemon.item_name,
+								tera_type: pokemon.tera_type,
+								evs: [...pokemon.evs],
+								ivs: [...pokemon.ivs],
+								move_names: [...pokemon.move_names],
+								memo: pokemon.memo,
+								tags: [...pokemon.tags],
+							});
+							members.push({ slot, owned_pokemon_id: id, item_override: itemOverridesBySlot.get(slot) ?? null });
+						}
+						const { id } = await createTeam();
+						await updateTeam(id, {
+							memo: memoInput.value.trim() || null,
+							members,
+						});
+						window.location.href = `/team/${encodeURIComponent(id)}`;
+					} catch (err) {
+						console.error(err);
+						window.alert("コピーできませんでした。時間をおいて再度お試しください。");
+						copyTeamButton.disabled = false;
+					}
+				})();
+			});
+
 			deleteTeamButton?.addEventListener("click", () => {
 				void (async () => {
 					if (!window.confirm("このチームを削除します。よろしいですか?")) return;
@@ -4453,6 +4585,7 @@ if (!isGuestNewMode) {
 
 			// --- 初期化 ---
 			// SSR取得済みのメンバーは fetch を待たずに即描画する(6枠が空でも一瞬も待たせない)。
+			mobileTabsInitialized = true;
 			renderSlots();
 			renderFormationMobile();
 			void loadSuggestions();

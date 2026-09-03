@@ -42,7 +42,7 @@ let spriteObserver: IntersectionObserver | null = null;
 const sortLabels: Record<SortMode, string> = {
 	popularity: "人気",
 	dex: "番号",
-	kana: "ポケモン",
+	kana: "名前",
 };
 
 function getSpriteObserver(): IntersectionObserver {
@@ -166,14 +166,19 @@ function renderGrid(): void {
 		const usageByRegulation = readSpeciesUsageData();
 		if (usageByRegulation !== null) {
 			const regulation = (document.getElementById("regulation") as HTMLSelectElement | null)?.value ?? "";
+			const usage = usageByRegulation[regulation.trim()] ?? {};
 			const byName = new Map(nonMegaEntries.map((entry) => [entry.name, entry]));
-			sortedNonMega = sortPokemonNamesByUsage(
-				nonMegaEntries.map((entry) => entry.name),
-				usageByRegulation[regulation.trim()] ?? {},
-			).flatMap((name) => {
+			const rankedNames = nonMegaEntries
+				.filter((entry) => Object.hasOwn(usage, entry.name))
+				.map((entry) => entry.name);
+			const rankedEntries = sortPokemonNamesByUsage(rankedNames, usage).flatMap((name) => {
 				const entry = byName.get(name);
 				return entry ? [entry] : [];
 			});
+			const unrankedEntries = nonMegaEntries
+				.filter((entry) => !Object.hasOwn(usage, entry.name))
+				.sort((a, b) => a.dexNo - b.dexNo);
+			sortedNonMega = [...rankedEntries, ...unrankedEntries];
 		}
 	}
 

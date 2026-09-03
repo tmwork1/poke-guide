@@ -82,14 +82,13 @@ export function itemImageUrl(spritePath: string): string {
 // それが出力キャンバスに対して常に同じ比率を占めるよう拡大縮小・中央配置し直した画像を
 // public/item-icons/ 配下にビルド時ではなく事前生成し、リポジトリにコミットしている
 // (type-icons/typeIconUrl()と同じ「生成済み画像を事前コミットする」方式)。ぼやけの解消策
-// として scripts/item-icons/generate_item_icons_serebii.py が大半のアイテムを高解像度な
-// 別ソース(serebii.net)へ差し替えている。
+// として、取得元を高解像度な別ソース(serebii.net)へ一本化している。
 // 以下はその生成済み画像のURL(ルート相対パス)を返す。
 
 // アイテム和名(items.json の name。例 "こだわりハチマキ")から、見た目の大きさを
 // 正規化したアイテムアイコン画像のURLを返す。画像本体は
-// public/item-icons/{アイテム和名}.png (生成: scripts/item-icons/generate_item_icons.py /
-// generate_item_icons_serebii.py)。ファイル名は和名で統一しており、items.json の
+// public/item-icons/{アイテム和名}.png (生成: scripts/item-icons/generate_item_icons.py)。
+// ファイル名は和名で統一しており、items.json の
 // spritePath(PokeAPI固有のスラッグ)には依存しない(spritePathが存在しないアイテムにも
 // 別ソースからアイコンを追加できるようにするため)。ファイルが存在しない場合の判定は
 // 呼び出し側の<img>のonerrorに委ねる(事前のexistsチェックは行わない)。

@@ -171,6 +171,7 @@ body.data-page {
 	background: var(--color-surface);
 	border-radius: 50%;
 	box-shadow: var(--shadow-sm);
+	opacity: .7;
 	pointer-events: none;
 }
 .item-select-cell-text {

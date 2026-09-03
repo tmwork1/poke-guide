@@ -240,10 +240,14 @@ body.box-edit-page {
 		#delete-button { font-size: var(--box-edit-delete-font-size); }
 		/* メモ欄の下に画面幅いっぱいの横長ボタンとして配置する(以前はヘッダー付近の狭い行に
 			収める都合で white-space: nowrap にしていたが、単独の全幅行になったため不要)。 */
+		#copy-button,
 		#delete-button { width: 100%; margin-top: var(--space-3); }
 		.training-delete-actions {
-			margin-top: var(--space-5);
+			display: grid;
+			gap: var(--space-3);
+			margin-top: var(--space-8);
 		}
+		.training-delete-actions #copy-button,
 		.training-delete-actions #delete-button { margin-top: 0; }
 		/* 基底(global.css の button.btn-danger)の太字を、戻るリンクと同じ500に上書きする。 */
 		#delete-button { font-weight: var(--box-edit-delete-font-weight); }

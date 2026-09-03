@@ -1,0 +1,49 @@
+---
+export const prerender = false;
+
+import AppLayout from "../../layouts/AppLayout.astro";
+import AppHeader from "../../components/AppHeader.astro";
+import SecondaryBar from "../../components/damage-calc/SecondaryBar.astro";
+import MatchupCardList from "../../components/damage-calc/MatchupCardList.astro";
+import ControlPanel from "../../components/damage-calc/ControlPanel.astro";
+import { getSupabaseAdminClient } from "../../lib/supabase";
+import { listTeams, type Team } from "../../lib/team";
+import "../../styles/app-header.css";
+import "../../styles/damage-calc-page.css";
+
+const user = Astro.locals.user;
+let teams: Team[] = [];
+if (user) {
+  try {
+    const result = await listTeams(user.id, await getSupabaseAdminClient());
+    if (result.ok) teams = result.data;
+    else console.error("[damage-calc] failed to load teams", result.error);
+  } catch (error) {
+    console.error("[damage-calc] failed to load teams", error);
+  }
+}
+---
+
+<AppLayout title="ダメージ" current="damage-calc" bodyClass="damage-calc-page">
+  <AppHeader showGuestLogin={true} ariaLabel="ダメージ計算の操作">
+    <h1 class="app-header-title">ダメージ</h1>
+    <div class="damage-calc-tabs" role="tablist" aria-label="表示モード">
+      <button id="damage-calc-tab-6v1" type="button" role="tab" aria-controls="damage-calc-tabpanel-6v1" aria-selected="true">6 vs 1</button>
+      <button id="damage-calc-tab-1v1" type="button" role="tab" aria-controls="damage-calc-tabpanel-1v1" aria-selected="false" tabindex="-1" disabled aria-disabled="true" title="準備中">1 vs 1</button>
+    </div>
+  </AppHeader>
+  <main class="damage-calc-shell">
+    {!user && <p class="damage-calc-login-guide">チームを使うには <a href="/team">ログインしてチームを登録</a>してください。</p>}
+    <SecondaryBar teams={teams} />
+    <MatchupCardList />
+    <ControlPanel />
+  </main>
+  <script>
+    import { initSecondaryBar } from "../../lib/damage-calc-page/secondary-bar";
+    import { initMatchupCardList } from "../../lib/damage-calc-page/matchup-card";
+    import { initControlPanel } from "../../lib/damage-calc-page/control-panel";
+    initSecondaryBar();
+    initMatchupCardList();
+    initControlPanel();
+  </script>
+</AppLayout>

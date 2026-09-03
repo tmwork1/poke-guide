@@ -88,6 +88,17 @@
 }
 
 /* 現在開いているページの項目 */
+.app-bottom-nav {
+  --app-bottom-nav-item-line-height: var(--line-height-tight);
+}
+
+/* SVG の属性寸法が異なっても、アイコン列の高さを固定してラベルを同じ位置に置く。 */
+.app-bottom-nav-item > svg {
+  flex: 0 0 var(--space-5);
+  inline-size: var(--space-5);
+  block-size: var(--space-5);
+}
+
 .app-bottom-nav-item[data-active="true"] {
   color: var(--app-bottom-nav-active-color);
 }

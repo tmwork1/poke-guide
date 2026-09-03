@@ -61,6 +61,12 @@
   display: contents;
 }
 
+/* 圧縮表示では画面幅にかかわらず6列へ固定する。通常表示時のglobal.cssの
+   レスポンシブ列数トークンは、この状態クラスがない限り従来どおり利用する。 */
+.box-content.is-compact .box-grid {
+  --box-grid-columns: 6;
+}
+
 /* 一覧の読み込み・エラー表示: #loading-message / #error-message */
 #loading-message,
 #error-message {

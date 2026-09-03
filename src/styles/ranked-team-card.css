@@ -1,0 +1,18 @@
+/* レガシーの ranked-team card（renderRankedTeamCard）専用スタイル。 */
+.ranked-team-item-badge {
+  position: absolute;
+  right: 0;
+  bottom: var(--space-1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+}
+
+.ranked-team-item-badge img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
