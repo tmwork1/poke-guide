@@ -46,8 +46,6 @@ export interface MatchupPanelMember {
 export interface MatchupTarget {
 	speciesName: string;
 	dexNo: number | null;
-	usageTeams: number;
-	totalTeams: number;
 	moves: PopularMoveOption[];
 }
 

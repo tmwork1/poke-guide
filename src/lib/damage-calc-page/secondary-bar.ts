@@ -6,6 +6,24 @@ const CHANGE_EVENT = "damage-calc:change";
 const emitChange = (reason: string) => document.dispatchEvent(new CustomEvent(CHANGE_EVENT, { detail: { reason } }));
 
 function byId<T extends HTMLElement>(id: string): T { return document.getElementById(id) as T; }
+function readOpggRankedSpeciesNames(): string[] {
+  const raw = byId<HTMLScriptElement>("damage-calc-opgg-ranked-species").textContent ?? "[]";
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) && parsed.every((name) => typeof name === "string") ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function sortPokemonByOpggRanking<T extends { name: string }>(pokemon: readonly T[], rankedNames: readonly string[]): T[] {
+  const ranks = new Map(rankedNames.map((name, index) => [name, index]));
+  return pokemon
+    .map((entry, index) => ({ entry, index, rank: ranks.get(entry.name) }))
+    .sort((a, b) => (a.rank ?? Infinity) - (b.rank ?? Infinity) || a.index - b.index)
+    .map(({ entry }) => entry);
+}
+
 function toSelectedTeam(team: Team): SelectedTeam {
   const members: TeamMemberSpecInput[] = team.members.map((member) => ({
     slot: member.slot, itemOverride: member.item_override, ownedPokemon: member.owned_pokemon,
@@ -29,6 +47,7 @@ export function initSecondaryBar(): void {
   const validation = byId<HTMLElement>("damage-calc-opponent-validation");
   const moveInputs = Array.from(document.querySelectorAll<HTMLInputElement>(".damage-calc-opponent-move"));
   const pokemonList = byId<HTMLDataListElement>("damage-calc-pokemon-list");
+  const opggRankedSpeciesNames = readOpggRankedSpeciesNames();
   const moveList = byId<HTMLDataListElement>("damage-calc-move-list");
   let pokemonNames = new Set<string>();
   let abilitiesBySpecies = new Map<string, string[]>();
@@ -91,7 +110,7 @@ export function initSecondaryBar(): void {
   renderTeamChoices(); renderSummary();
   Promise.all([loadPokemonMasterList(), loadAbilitiesMap(), loadMoveDetailMap()]).then(([pokemon, abilities, moves]) => {
     pokemonNames = new Set(pokemon.map((entry) => entry.name)); abilitiesBySpecies = abilities; moveNames = new Set(moves.keys());
-    pokemonList.replaceChildren(...pokemon.map((entry) => new Option(entry.name)));
+    pokemonList.replaceChildren(...sortPokemonByOpggRanking(pokemon, opggRankedSpeciesNames).map((entry) => new Option(entry.name)));
     moveList.replaceChildren(...Array.from(moves.keys(), (name) => new Option(name)));
     const build = getOpponentBuild(); speciesInput.value = build.speciesName; itemInput.value = build.itemName; teraSelect.value = build.teraType;
     moveSlots = [...build.moveNames, "", "", "", ""].slice(0, 4); moveInputs.forEach((input, index) => { input.value = moveSlots[index]; }); setAbilityOptions();

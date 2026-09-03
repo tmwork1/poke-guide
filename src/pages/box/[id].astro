@@ -22,7 +22,7 @@ import BulkAdjustDialog from '../../components/box-id/BulkAdjustDialog.astro';
 import SpeedAdjustDialog from '../../components/box-id/SpeedAdjustDialog.astro';
 import MobileTrainingBar from '../../components/box-id/MobileTrainingBar.astro';
 import '../../styles/box-edit-page.css';
-import { getSupabaseAdminClient, getSupabasePublicClient } from '../../lib/supabase';
+import { getSupabaseAdminClient } from '../../lib/supabase';
 import { getOwnedPokemon, type OwnedPokemonRecord } from '../../lib/owned-pokemon';
 import { getOpggUsageList, getOpggUsageManifest, sortOpggSeasons } from '../../lib/opgg-usage';
 import { env } from 'cloudflare:workers';
@@ -132,49 +132,6 @@ if (pokemon) {
 	} catch (err) {
 		// eslint-disable-next-line no-console
 		console.error('[box/[id]] failed to load move adoption data', err);
-	}
-}
-
-interface CombinedSpeciesUsageRow {
-	regulation: string;
-	species_key: string;
-	pokemon: number;
-}
-
-const speciesUsageByRegulation: Record<string, Record<string, number>> = {};
-if (pokemon) {
-	try {
-		const usageClient = await getSupabasePublicClient();
-		const PAGE_SIZE = 1000;
-		const usageRows: CombinedSpeciesUsageRow[] = [];
-		const first = await usageClient
-			.rpc('combined_species_usage', {}, { count: 'exact' })
-			.range(0, PAGE_SIZE - 1);
-		if (first.error) throw first.error;
-		usageRows.push(...((first.data ?? []) as CombinedSpeciesUsageRow[]));
-		const total = first.count ?? usageRows.length;
-
-		if (total > PAGE_SIZE) {
-			const pageStarts: number[] = [];
-			for (let from = PAGE_SIZE; from < total; from += PAGE_SIZE) pageStarts.push(from);
-			const pages = await Promise.all(
-				pageStarts.map((from) =>
-					usageClient.rpc('combined_species_usage', {}).range(from, from + PAGE_SIZE - 1),
-				),
-			);
-			for (const page of pages) {
-				if (page.error) throw page.error;
-				usageRows.push(...((page.data ?? []) as CombinedSpeciesUsageRow[]));
-			}
-		}
-
-		for (const row of usageRows) {
-			const bucket = (speciesUsageByRegulation[row.regulation] ??= {});
-			bucket[row.species_key] = row.pokemon;
-		}
-	} catch (err) {
-		// eslint-disable-next-line no-console
-		console.error('[box/[id]] failed to load species usage data', err);
 	}
 }
 
@@ -291,7 +248,7 @@ const initialMobileTab = !isNewMode && Astro.url.searchParams.get('tab') === 'da
 			    src/lib/box-id/left-panel.ts へ切り出した(見た目・ロジックは一切変更していない)。
 			    SSRで取得済みのpokemon(この分岐では非null)だけをpropsで渡す。 */}
 			{/* 育成・閲覧タブで共有するポケモン設定モーダルホスト。ここでは編集フォームも表示する。 */}
-			<PokemonSettingsModalHost pokemon={pokemon} showForm={true} speciesUsageData={speciesUsageByRegulation} opggRankedSpeciesNames={opggRankedSpeciesNames} />
+			<PokemonSettingsModalHost pokemon={pokemon} showForm={true} opggRankedSpeciesNames={opggRankedSpeciesNames} />
 			{/* 900px未満では共通トップバー(.app-topbar)を隠すため、そこに載っていた保存状態・
 			    非公開トグル・削除ボタンの移設先を育成タブ本文の最下部に用意する。実際に要素を
 			    差し込むのは src/lib/box-id/mobile-edit-tabs.ts(DOMごと移動させるのでイベントは

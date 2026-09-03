@@ -34,26 +34,26 @@ export function readMoveNames(): string[] {
 // 個体編集画面から「その他の設定(レベル・タグ・ピン留め・共有)」を廃止して呼び出し元が
 // 無くなったため削除した。タグ自体はDBに残り、ボックス一覧の絞り込みは引き続き機能する。
 
-export type SpeciesUsageByRegulation = Record<string, Record<string, number>>;
-
-export function sortPokemonNamesByUsage(
+export function sortPokemonNamesByOpggRanking(
   names: readonly string[],
-  usage: Readonly<Record<string, number>>,
+  rankedNames: readonly string[],
 ): string[] {
+  const ranks = new Map(rankedNames.map((name, index) => [name, index]));
   return names
-    .map((name, index) => ({ name, index }))
-    .sort((a, b) => (usage[b.name] ?? 0) - (usage[a.name] ?? 0) || a.index - b.index)
+    .map((name, index) => ({ name, index, rank: ranks.get(name) }))
+    .sort((a, b) => (a.rank ?? Infinity) - (b.rank ?? Infinity) || a.index - b.index)
     .map(({ name }) => name);
 }
 
-export function readSpeciesUsageData(): SpeciesUsageByRegulation | null {
-  const embedded = document.getElementById('box-species-usage-data');
+function readOpggRankedSpeciesNames(): string[] | null {
+  const embedded = document.getElementById('box-opgg-ranked-species');
   if (!embedded) return null;
   try {
-    return JSON.parse(embedded.textContent ?? '{}') as SpeciesUsageByRegulation;
+    const parsed = JSON.parse(embedded.textContent ?? '[]');
+    return Array.isArray(parsed) && parsed.every((name) => typeof name === 'string') ? parsed : [];
   } catch (err) {
-    console.warn('種族使用率データの読み込みに失敗しました', err);
-    return {};
+    console.warn('OP.GG ranking data could not be parsed', err);
+    return [];
   }
 }
 
@@ -72,11 +72,10 @@ async function fillDatalist(res: Response, datalistId: string): Promise<void> {
   const datalist = el<HTMLDataListElement>(datalistId);
   const names = list.map(({ name }) => name);
   if (datalistId === 'pokemon-list') {
-    const regulation = (document.getElementById('regulation') as HTMLSelectElement | null)?.value ?? '';
-    const usageByRegulation = readSpeciesUsageData();
+    const rankedNames = readOpggRankedSpeciesNames();
     replaceDatalistOptions(
       datalist,
-      usageByRegulation === null ? names : sortPokemonNamesByUsage(names, usageByRegulation[regulation.trim()] ?? {}),
+      rankedNames === null ? names : sortPokemonNamesByOpggRanking(names, rankedNames),
     );
     return;
   }

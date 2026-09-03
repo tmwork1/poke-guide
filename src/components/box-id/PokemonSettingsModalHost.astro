@@ -10,11 +10,10 @@ import StatAdjustmentDialog from './StatAdjustmentDialog.astro';
 interface Props {
 	pokemon: OwnedPokemonRecord;
 	showForm?: boolean;
-	speciesUsageData?: Record<string, Record<string, number>>;
 	opggRankedSpeciesNames?: string[];
 }
 
-const { pokemon, showForm = false, speciesUsageData = {}, opggRankedSpeciesNames = [] } = Astro.props;
+const { pokemon, showForm = false, opggRankedSpeciesNames = [] } = Astro.props;
 ---
 
 {/* 閲覧タブでも編集フォームとモーダル実装を共用する。通常の編集パネルだけを隠す。 */}
@@ -34,7 +33,6 @@ const { pokemon, showForm = false, speciesUsageData = {}, opggRankedSpeciesNames
 	<datalist id="move-list"></datalist>
 	<datalist id="ability-list"></datalist>
 	<datalist id="item-list"></datalist>
-	<script type="application/json" id="box-species-usage-data" set:html={toJsonScriptContent(speciesUsageData)} />
 	<script type="application/json" id="box-opgg-ranked-species" set:html={toJsonScriptContent(opggRankedSpeciesNames)} />
 </div>
 

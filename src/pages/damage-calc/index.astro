@@ -8,6 +8,9 @@ import MatchupCardList from "../../components/damage-calc/MatchupCardList.astro"
 import ControlPanel from "../../components/damage-calc/ControlPanel.astro";
 import { getSupabaseAdminClient } from "../../lib/supabase";
 import { listTeams, type Team } from "../../lib/team";
+import { toJsonScriptContent } from "../../lib/json-script";
+import { getOpggUsageList, getOpggUsageManifest, sortOpggSeasons } from "../../lib/opgg-usage";
+import { env } from "cloudflare:workers";
 import "../../styles/app-header.css";
 import "../../styles/damage-calc-page.css";
 
@@ -21,6 +24,16 @@ if (user) {
   } catch (error) {
     console.error("[damage-calc] failed to load teams", error);
   }
+}
+
+let opggRankedSpeciesNames: string[] = [];
+try {
+  const manifest = await getOpggUsageManifest(env.OPGG_USAGE);
+  const currentSeason = sortOpggSeasons(manifest)[0];
+  const seasonList = currentSeason ? await getOpggUsageList(env.OPGG_USAGE, currentSeason) : null;
+  opggRankedSpeciesNames = seasonList?.pokemon.map((entry) => entry.name) ?? [];
+} catch (error) {
+  console.error("[damage-calc] failed to load OP.GG species ranking", error);
 }
 ---
 
@@ -38,6 +51,7 @@ if (user) {
     <MatchupCardList />
     <ControlPanel />
   </main>
+  <script type="application/json" id="damage-calc-opgg-ranked-species" set:html={toJsonScriptContent(opggRankedSpeciesNames)}></script>
   <script>
     import { initSecondaryBar } from "../../lib/damage-calc-page/secondary-bar";
     import { initMatchupCardList } from "../../lib/damage-calc-page/matchup-card";
