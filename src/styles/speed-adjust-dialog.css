@@ -337,9 +337,9 @@ body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-rank
 }
 
 @media (max-width: 699px) {
-  /* 狭い iframe では余白と操作間隔だけを縮める */
+  /* 狭い iframe でも見出し行の余白(--speed-adjust-toolbar-padding)はモーダルヘッダー規格のまま変えない(他モーダルに合わせる)。
+     縮めるのは表エリア・下部サマリーの余白と操作間隔だけ。 */
   body.speed-chart-page:has(.speed-chart-embed-toolbar) {
-    --speed-adjust-toolbar-padding: var(--space-2);
     --speed-adjust-content-padding: var(--space-2) var(--space-3);
     --speed-adjust-summary-gap: var(--space-1);
     --speed-adjust-control-gap: var(--space-2);

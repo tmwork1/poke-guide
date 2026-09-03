@@ -76,7 +76,6 @@ body.speed-chart-page {
 }
 @media (max-width: 699px) {
 	.speed-chart-embed-toolbar {
-		padding: var(--space-2);
 		gap: var(--space-1);
 	}
 	.speed-chart-embed-toolbar .speed-chart-regulation-label { display: none; }
