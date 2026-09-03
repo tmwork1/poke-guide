@@ -161,15 +161,6 @@ try {
 			</select>
 		</div>
 		<input type="number" id="speed-chart-jump-input" placeholder="実数値" aria-label="実数値" />
-		<div class="speed-chart-order-select-wrap">
-			<button id="speed-chart-order-select" class="sort-dir-toggle" type="button" data-order="desc" aria-label="実数値の並び順: 速い順" aria-pressed="false">
-				<svg class="sort-dir-toggle-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-					<path d="M12 20V4" />
-					<path d="M6 10l6-6 6 6" />
-				</svg>
-				<span class="sort-dir-toggle-label">速い順</span>
-			</button>
-		</div>
 		{hasOwnedPanel && <label class="speed-chart-reachable-toggle">
 			<span class="toggle-switch">
 				<input type="checkbox" id="speed-chart-reachable-only-toggle" class="toggle-switch-input" aria-label="すべて表示" />

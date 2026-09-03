@@ -204,7 +204,6 @@ export async function initSpeedChartPage(): Promise<void> {
   const backButton = document.getElementById('speed-chart-owned-jump-button');
   // 要件4: ?owned=があるときだけ存在するトグル(ChartTable.astro側もhasOwnedPanelで条件付け済み)。
   const reachableOnlyToggle = document.getElementById('speed-chart-reachable-only-toggle') as HTMLInputElement | null;
-  const orderButton = document.getElementById('speed-chart-order-select') as HTMLButtonElement | null;
   const minimapEl = document.getElementById('speed-chart-minimap');
   const minimapTrack = minimapEl?.querySelector<HTMLElement>('.speed-chart-minimap-track') ?? null;
   const minimapViewport = minimapEl?.querySelector<HTMLElement>('.speed-chart-minimap-viewport') ?? null;
@@ -243,7 +242,6 @@ export async function initSpeedChartPage(): Promise<void> {
   // R-12更新: 「個体が到達可能な実数値の集合」はowned-panel.tsが所有する。ここではCustomEvent
   // 経由で受け取った値をキャッシュするだけ(クロージャ共有はしない)。
   let lastKnownReachableValues: Set<number> | null = null;
-  let sortOrder: 'asc' | 'desc' = orderButton?.dataset.order === 'asc' ? 'asc' : 'desc';
   let minimapFrame: number | null = null;
 
   function getDocumentHeight(): number {
@@ -441,7 +439,7 @@ export async function initSpeedChartPage(): Promise<void> {
     const rows = lastKnownReachableValues
       ? includeReachableValuesInRows(currentRows, lastKnownReachableValues)
       : currentRows;
-    renderRows(sortOrder === 'asc' ? [...rows].reverse() : rows);
+    renderRows(rows);
   }
 
   function renderRows(rows: SpeedChartRow[]): void {
@@ -588,43 +586,6 @@ export async function initSpeedChartPage(): Promise<void> {
     // トグル操作でも← 現在マーカーの位置は変わらないため、直前のハイライト値を再適用する。
     if (ownedController) applyHighlight(ownedController.getCurrentValue());
   });
-
-  orderButton?.addEventListener('click', () => {
-    const nextOrder: 'asc' | 'desc' = sortOrder === 'desc' ? 'asc' : 'desc';
-    const anchorValue = findAnchorRowValue();
-    sortOrder = nextOrder;
-    updateOrderButton();
-    renderVisibleRows();
-    if (anchorValue !== null) {
-      findNearestRowElement(anchorValue)?.scrollIntoView({ block: 'center', behavior: 'auto' });
-    }
-  });
-
-  function updateOrderButton(): void {
-    if (!orderButton) return;
-    const label = sortOrder === 'asc' ? '遅い順' : '速い順';
-    orderButton.dataset.order = sortOrder;
-    orderButton.setAttribute('aria-label', `実数値の並び順: ${label}`);
-    orderButton.setAttribute('aria-pressed', String(sortOrder === 'asc'));
-    const labelEl = orderButton.querySelector<HTMLElement>('.sort-dir-toggle-label');
-    if (labelEl) labelEl.textContent = label;
-  }
-
-  function findAnchorRowValue(): number | null {
-    if (currentHighlightValue !== null) return currentHighlightValue;
-    let closestValue: number | null = null;
-    let closestDistance = Infinity;
-    for (const [value, elements] of rowElements) {
-      const el = elements[0];
-      if (!el) continue;
-      const distance = Math.abs(el.getBoundingClientRect().top);
-      if (distance < closestDistance) {
-        closestDistance = distance;
-        closestValue = value;
-      }
-    }
-    return closestValue;
-  }
 
   regSelect?.addEventListener('change', () => {
     const next = regSelect.value;
