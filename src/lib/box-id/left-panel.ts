@@ -2292,115 +2292,6 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 		emptyMessageEl.hidden = !isEmpty;
 	}
 
-	// .panel-leftの右端に外付けする配置は、.edit-layout-right(ダメージカード列)の
-	// 真上に重なる位置になり得る。実測したジオメトリ:
-	//   .panel-left        x: 256.0 〜 696.0  (position:static、レイヤー3)
-	//   .edit-layout-right x: 718.4 〜 1537.6 (position:static、レイヤー3。ただしこの中の
-	//                                          .card-damage自体はposition:relativeでレイヤー6)
-	//   .card-damage       x: 738.4 〜 1517.6 (position:relative、レイヤー6。z-index:auto)
-	//   .edit-layout-detail(#damage-detail-panel) x: 1560 〜 1920
-	//                      (1600px以上でposition:sticky、z-index:60=レイヤー7、常に最前面)
-	//   .app-sidebar       x: 0 〜 256 (position:fixed、z-index:30=レイヤー7、常に最前面)
-	// このウィンドウ自身はposition:fixed・z-index:auto(レイヤー6)。CSS2.1 Appendix Eの
-	// スタッキング順では「レイヤー3(position指定なし)」は「レイヤー6(position指定+
-	// z-index:auto)」より必ず背面になるため、.panel-left自体や.edit-layout-right自身の
-	// 余白部分(グリッドgap・padding、position指定なし)は、このウィンドウと重なっても
-	// **常にこのウィンドウの背面**になる(=重なってもウィンドウが操作可能)。
-	// 一方.card-damage(レイヤー6)とはDOM順のタイブレークになるため、
-	// このウィンドウをdocument.bodyの先頭子として挿入していることで、重なる部分は
-	// 引き続きカードが前面になる。.damage-detail-panel/.app-sidebarはレイヤー7(正のz-index)
-	// で常に最前面のため、この2つの矩形とだけは重ねてはいけない(重ねてもウィンドウ側が
-	// 常に埋もれて一切操作できなくなるだけで、「一部は操作できる」にすらならない)。
-	//
-	// 幅が確保できない場合は、.panel-left自身の列
-	// (position:staticなので重ねてもこのウィンドウが前面になる)に重ねる。
-	// 具体的には、left = anchorRect.left(.panel-leftの左端に揃える。.app-sidebarの右端と
-	// 一致するため.app-sidebarへの食い込みも起きない)。右端は「実在する.card-damageの中で
-	// 最も左の座標」の直前までに制限する(.edit-layout-right自身の左paddingぶんの余白
-	// (.panel-left右端〜カード左端、実測で約42px)まではレイヤー3同士なので安全に使える)。
-	// .card-damageが1つも無いフィクスチャ、または(900〜1199px幅の縦積みレイアウトのように)
-	// カードがこのウィンドウの左位置とほぼ同じx(=真下にあるだけで隣り合っていない)の場合は、
-	// この制限を適用せず画面右端近くまで幅を確保してよい(「隣り合っていないカード」に
-	// 合わせて幅を潰してしまう回帰を防ぐガード。 left + 200 未満のカードは「隣ではなく下」と
-	// みなす)。
-	//
-	// 縦位置(top)は「今フォーカスしている技入力欄の上端」ではなく、以下の実測に基づく
-	// 下限を使う。.panel-leftへ重ねる方式には次の罠がある: .panel-left内は
-	// 全体がposition:staticではなく、アイコン画像を添える入力欄だけ`.field-with-image`系の
-	// ラッパー(.species-icon-box/.tera-dropdown-wrap/.move-input-group、いずれも
-	// position:relative・z-index:auto)がある。これらはこのウィンドウと同じレイヤー6のため、
-	// DOM順のタイブレークで(このウィンドウがbody先頭子=DOM順で先=背面のため)これらの
-	// ラッパーがこのウィンドウより前面になり、重なるとクリックを奪われる
-	// (実測: #move-1をクリックして開いたウィンドウの先頭行(トグル)が、隣の#move-2の
-	// `.move-input-group`(同じ行の別スロット)に重なりクリック不能だった)。
-	// .panel-left内でposition:relative/absoluteなのはこの少数の「アイコン付き入力欄」
-	// ラッパー群だけで、いずれも上部(種族名・テラス・技1〜4の行)に集中しており、その他大部分
-	// (能力値テーブル・メモ欄等)はposition:staticであることを実測(全descendantsの
-	// computedStyleを走査)で確認済み。そのため、ウィンドウのtopをこれらポジション付き
-	// ラッパー群の最下端より下に固定できれば、ウィンドウの全域(ヘッダー行含む)がその後
-	// 一切衝突しなくなる。特定のピクセル値を決め打ちにせず、実行時に
-	// `.panel-left`配下のposition!=staticな要素をすべて洗い出し、その最下端(bottom)の
-	// 最大値をtopの下限にする(将来.panel-left側にアイコン付き入力欄が増減しても
-	// 追随できるようにするため)。
-	// 技選択テーブルは既定では左パネルの右側に外付けする。「.panel-left自体に重ねる」設計に
-	// 戻す際に問題だった「ダメージカード列に重なると背面に埋もれて操作不能になる」点は、
-	// `.move-picker-window`にz-index:10を明示指定したことで解消している(このファイル
-	// 冒頭のCSSコメント参照。`.card-damage`(position:relative・z-index:auto)に確実に勝つ)。
-	// ただし900〜1199px幅(1200px未満)は.edit-layoutが2カラムグリッド化されず.panel-leftが
-	// 全幅ブロックになるため、右側に外付けする余地(最低320px)が無い。この場合は
-	// 「.panel-left自体に重ねる」動作にフォールバックする(z-index:10が.move-input-group等の
-	// レイヤー6ラッパーには引き続き確実に勝つため、重ねても操作不能にはならない)。
-	function reposition(inputEl: HTMLInputElement): void {
-		const anchor = document.querySelector<HTMLElement>(".panel-left") ?? document.getElementById("edit-form");
-		if (!anchor) return;
-		const anchorRect = anchor.getBoundingClientRect();
-		const inputRect = inputEl.getBoundingClientRect();
-		const gap = 8;
-		const rightEdge = window.innerWidth - gap;
-		const dockedLeft = anchorRect.right + gap;
-		const canDockRight = dockedLeft + 320 <= rightEdge;
-		const left = canDockRight ? dockedLeft : Math.max(gap, anchorRect.left);
-		const width = Math.max(320, Math.min(640, rightEdge - left));
-
-		// .panel-left配下でposition:static以外の要素を避けてtopを下げる以下の座標回避は、
-		// 「.panel-left自体に重ねる」(canDockRight===false のフォールバック時)にのみ意味がある。
-		// 右へ外付けする(canDockRight===true)場合はそもそも.panel-leftと水平に重ならないため、
-		// この回避は不要かつ有害(隣接表示のはずがinputの行より大きく下にずれてしまう)。
-		let positionedBottom = 0;
-		if (!canDockRight) {
-			// .panel-left配下でposition:static以外(=このウィンドウと同じレイヤー6でDOM順が
-			// このウィンドウより後になり得る)要素の最下端を求め、そこより下にウィンドウ全体を
-			// 逃がす。該当が無ければ0(=inputRect.top基準のみで決まる)。
-			for (const el of Array.from(anchor.querySelectorAll<HTMLElement>("*"))) {
-				const pos = getComputedStyle(el).position;
-				if (pos === "static") continue;
-				const r = el.getBoundingClientRect();
-				if (r.width <= 0 || r.height <= 0) continue;
-				if (r.bottom > positionedBottom) positionedBottom = r.bottom;
-			}
-		}
-		if (!canDockRight) {
-			for (const el of Array.from(anchor.querySelectorAll<HTMLElement>(".stat-nature-btn"))) {
-				const r = el.getBoundingClientRect();
-				if (r.width <= 0 || r.height <= 0) continue;
-				if (r.bottom > positionedBottom) positionedBottom = r.bottom;
-			}
-		}
-		const desiredTop = Math.max(inputRect.top, positionedBottom > 0 ? positionedBottom + gap : 0);
-		const top = Math.max(8, Math.min(desiredTop, window.innerHeight - 240));
-		windowEl.style.left = `${left}px`;
-		windowEl.style.top = `${top}px`;
-		windowEl.style.width = `${width}px`;
-		const maxHeight = window.innerHeight - top - 16;
-		windowEl.style.maxHeight = `${Math.max(240, maxHeight)}px`;
-	}
-
-	function onScrollOrResize(): void {
-		if (activeSlot == null) return;
-		const activeInput = document.getElementById(`move-${activeSlot}`) as HTMLInputElement | null;
-		if (activeInput) reposition(activeInput);
-	}
-
 	// モバイルモーダルの高さは--move-picker-dialog-height(既定75dvh、move-picker-dialog.css)。
 	// dvh(動的ビューポート高)はモーダルを開いたあとに技一覧テーブル内の絞り込み入力/セレクトへ
 	// フォーカスしてソフトキーボードが開くと、キーボード分だけ縮んだビューポート高に追随して
@@ -2415,21 +2306,14 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 		windowEl.style.removeProperty("--move-picker-dialog-height");
 	}
 
-	function openPicker(slot: number, inputEl: HTMLInputElement, mobileModal = false): void {
-		// 幅の狭い画面(デスクトップ2カラム構成が成立しない1200px未満相当)では
-		// 「左パネルの右側に外付け」という前提が成立しない。この場合は開かず、
-		// 既存のdatalist(直接タイプ)による絞り込みだけを使ってもらう(壊さない)。
-		if (!mobileModal) return;
+	function openPicker(slot: number): void {
 		activeSlot = slot;
-		windowEl.classList.toggle("is-mobile-modal", mobileModal);
-		windowEl.setAttribute("aria-modal", String(mobileModal));
-		backdropEl.hidden = !mobileModal;
+		windowEl.classList.add("is-mobile-modal");
+		windowEl.setAttribute("aria-modal", "true");
+		backdropEl.hidden = false;
 		updateSlotTabs();
 		lockMobileModalHeight();
 		windowEl.hidden = false;
-		if (!mobileModal) reposition(inputEl);
-		window.addEventListener("resize", onScrollOrResize);
-		window.addEventListener("scroll", onScrollOrResize, true);
 		void refreshPool();
 	}
 
@@ -2439,8 +2323,6 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 		windowEl.setAttribute("aria-modal", "false");
 		backdropEl.hidden = true;
 		unlockMobileModalHeight();
-		window.removeEventListener("resize", onScrollOrResize);
-		window.removeEventListener("scroll", onScrollOrResize, true);
 	}
 	closeButton.addEventListener("click", closePicker);
 	bindModalDismissal({
@@ -2471,12 +2353,6 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 		if (!windowEl.hidden) void refreshPool();
 	});
 
-	for (const input of moveInputEls) {
-		const slot = Number(input.id.replace("move-", ""));
-		input.addEventListener("focus", () => openPicker(slot, input));
-		input.addEventListener("mousedown", () => openPicker(slot, input));
-	}
-
 	// detail.slotが指定されていれば(preview-quick-open.tsがプレビューの技タップから
 	// そのスロットを指定する)そのスロットを直接開く。未指定時(.mobile-move-toggle)は
 	// 従来どおり最初の空きスロットを開く。
@@ -2489,7 +2365,7 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 				return !input?.value.trim();
 			}) ?? 1;
 		const input = document.getElementById(`move-${targetSlot}`) as HTMLInputElement | null;
-		if (input) openPicker(targetSlot, input, true);
+		if (input) openPicker(targetSlot);
 	};
 	document.addEventListener("move-picker:open", openRequestedMovePicker);
 	document.addEventListener("box-settings:open", (event) => {
