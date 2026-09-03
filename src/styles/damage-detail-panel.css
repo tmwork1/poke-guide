@@ -11,6 +11,12 @@
 	ここの値を書き換えると、詳細パネル・候補一覧・相手ビルド編集の見た目が変わる。
 	-------------------------------------------------------------------------- */
 body.box-edit-page {
+	--damage-detail-modal-title-font-size: var(--modal-title-font-size);
+	--damage-detail-modal-close-font-size: var(--modal-close-font-size);
+	--damage-detail-modal-header-padding: var(--modal-header-padding);
+	--damage-detail-modal-header-min-height: var(--modal-header-min-height);
+	--damage-detail-modal-header-gap: var(--modal-header-gap);
+	--damage-detail-modal-close-size: var(--modal-close-size);
 	/* ── 1. 文字サイズ ─────────────────────── */
 	--damage-detail-font-size-lg: var(--font-size-lg1); /* 閉じるボタンと強調結果の文字サイズ。大きくすると目立つ */
 	--damage-detail-font-size-md: var(--font-size-sm1); /* テラスタイプ候補の文字サイズ。大きくすると候補名が読みやすくなる */
@@ -20,7 +26,7 @@ body.box-edit-page {
 	/* ── 2. 文字の太さ・行間 ─────────────────────── */
 	--damage-detail-font-weight-heavy: 800; /* 合計ダメージ判定の太さ。大きくすると結論が強調される */
 	--damage-detail-font-weight-bold: 700; /* 見出しと候補値の太さ。大きくすると重要情報が強く見える */
-	--damage-detail-title-font-weight: 700; /* 通常タイトルの太さ。大きくすると見出しが強く見える */
+	--damage-detail-title-font-weight: var(--modal-title-font-weight); /* モーダルヘッダー規格(global.css)のタイトルの太さ。 */
 	--damage-detail-font-weight-semibold: 600; /* 小見出しの太さ。大きくすると項目名が強く見える */
 	--damage-detail-font-weight-regular: 400; /* 通常文字の太さ。大きくすると入力値などが太く見える */
 	--damage-detail-line-height-snug: var(--line-height-snug); /* サジェスト説明の行間。大きくすると複数行が読みやすくなる */
@@ -166,13 +172,10 @@ body.box-edit-page {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		gap: var(--damage-detail-space-sm);
-		/* A-1: アプリ共通のapp-header(src/styles/app-header.css)と同じ考え方に揃える。
-			app-headerは縦paddingを持たず、高さは--app-header-height(36px)のmin-heightだけで
-			決めている。タブバー表示時に選択中ハイライトがモーダル左右端まで届くよう、
-			ヘッダー自体は横paddingのみ持ち、縦paddingは持たない(高さはmin-heightで確保する)。 */
-		padding: 0 var(--damage-detail-space-lg);
-		min-height: var(--app-header-height);
+		gap: var(--damage-detail-modal-header-gap);
+		/* モーダルヘッダー規格(global.css)の共通余白・最小高さを使う。 */
+		padding: var(--damage-detail-modal-header-padding);
+		min-height: var(--damage-detail-modal-header-min-height);
 		/* 今回の指示で3モード共通のタイトル直下の区切り線を復活させる。
 			背景はモーダル本体(--color-surface)と同化させ、var(--damage-detail-page-background)(ページ背景、
 			ダークモードでは--color-surfaceより暗い)による帯を作らない。 */
@@ -182,6 +185,7 @@ body.box-edit-page {
 	.damage-detail-panel-title {
 		min-width: 0;
 		flex: 1 1 auto;
+		font-size: var(--damage-detail-modal-title-font-size);
 		font-weight: var(--damage-detail-title-font-weight);
 	}
 	.damage-detail-panel-tabs {
@@ -231,9 +235,12 @@ body.box-edit-page {
 	}
 	/* パネル右上の「×」ボタン */
 	.damage-detail-panel-close {
-		flex: none;
-		font-size: var(--damage-detail-font-size-lg);
+		flex-shrink: 0;
+		min-width: var(--damage-detail-modal-close-size);
+		min-height: var(--damage-detail-modal-close-size);
 		padding: var(--damage-detail-close-padding);
+		margin-right: calc(var(--modal-close-margin) - var(--modal-header-padding-x));
+		font-size: var(--damage-detail-modal-close-font-size);
 	}
 	/* #damage-detail-panel-body自体をflex column化し、中身(JS生成の
 		.damage-detail-panel-body-inner、is:global側で定義)にmargin-block:autoを持たせる
