@@ -67,12 +67,32 @@
   --box-grid-columns: 6;
 }
 
-/* 圧縮表示はチーム一覧・チーム編成タブと同じ「ポケモンとアイテムだけ」にする。
+/* 圧縮表示はチーム一覧(/team、カード圧縮表示時の.team-mate-grid/.team-mate-card。
+   src/styles/team-mate-card.css)と同じ「公式絵を正方形いっぱいに中央表示+持ち物バッジを
+   右下44%」の見た目に揃える。DOM構造(box-card、削除ボタン・aタグでのリンク遷移・
+   長押し削除モード)はそのまま流用し、position:absoluteの寸法だけ上書きする
+   (renderTeamMateSlotsは6枠固定・スロット番号ベースの設計で、ページングされる可変長の
+   /box一覧にはそのまま使えないため、DOM生成ロジック自体は共用せず見た目だけ揃える)。
    名前・技(.card-body、display:contentsで子がグリッド行を占有)を隠しても、
    公式絵(.card-artwork)・持ち物バッジ(.card-item-badge)はposition:absoluteで
    独立しているため表示され続ける。 */
 .box-content.is-compact .box-grid .box-card .card-body {
   display: none;
+}
+.box-content.is-compact .box-grid .box-card .card-artwork {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.box-content.is-compact .box-grid .box-card .card-artwork img {
+  mask-image: none;
+  -webkit-mask-image: none;
+}
+.box-content.is-compact .box-grid .box-card .card-item-badge {
+  width: 44%;
+  height: 44%;
+  inset-inline-end: 0;
+  inset-block-end: 0;
 }
 
 /* 一覧の読み込み・エラー表示: #loading-message / #error-message */
