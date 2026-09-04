@@ -10,6 +10,7 @@ import { playCardDeleteExitEffect } from "./card-delete-mode";
 import { isGuestMode } from "./data/guest-mode";
 import { NATURE_STAT_MODIFIERS, STAT_KEYS, calcHpStat, calcOtherStat } from "./stats";
 import { DEFAULT_TYPE_COLOR, TYPE_COLORS } from "./type-colors";
+import { splitBoxCardDisplayName } from "./box-card-display-name";
 
 // このカードは /box と team編成タブで共有している。片方だけ直すと表示が食い違うので、
 // カード内部のDOM・ツールチップ・付属ボタンを変更するときは必ずこのファイルで行う。
@@ -218,7 +219,17 @@ export function renderBoxPokemonCard<T extends HTMLElement>(
 	nameRow.className = "card-name-row";
 	const nameEl = document.createElement("p");
 	nameEl.className = "card-name";
-	nameEl.textContent = displayName;
+	const { name, suffix } = splitBoxCardDisplayName(displayName);
+	const nameMainEl = document.createElement("span");
+	nameMainEl.className = "card-name-main";
+	nameMainEl.textContent = name;
+	nameEl.appendChild(nameMainEl);
+	if (suffix) {
+		const nameSuffixEl = document.createElement("span");
+		nameSuffixEl.className = "card-name-suffix";
+		nameSuffixEl.textContent = suffix;
+		nameEl.appendChild(nameSuffixEl);
+	}
 	nameRow.appendChild(nameEl);
 	body.appendChild(nameRow);
 

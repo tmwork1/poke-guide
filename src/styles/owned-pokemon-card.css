@@ -276,9 +276,18 @@
   font-weight: var(--box-card-name-font-weight);
   line-height: var(--line-height-tight); /* ポケモン名1行の行高。広げると名前の上下に使う領域が増える */
   text-align: left; /* 長さの異なるポケモン名の文字開始位置を左にそろえる */
-  white-space: nowrap;
+}
+
+.box-grid .box-card .card-name-main,
+.box-grid .box-card .card-name-suffix {
+  display: block;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.box-grid .box-card .card-name-suffix {
+  font-size: 0.75em;
 }
 
 .box-grid .box-card .card-item-badge {
