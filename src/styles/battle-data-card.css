@@ -18,7 +18,7 @@
   --battle-data-card-label-row-height: round(nearest,
     (var(--battle-data-card-label-font-size) * var(--line-height-normal)) + (var(--space-1) * 2) + 1px,
   1px);
-  --battle-data-card-value-font-size: var(--font-size-sm3); /* 各マスのランキング値。大きくすると内容が読みやすくなる */
+  --battle-data-card-value-font-size: var(--font-size-sm2); /* 各マスのランキング値。見出し・補正表示と同じ大きさに統一する */
   --battle-data-card-item-icon-size: 1.3em; /* アイテムアイコンの大きさ。行の文字サイズに追従する */
   --battle-data-card-type-icon-size: 1.2em; /* わざタイプアイコンの大きさ。行の文字サイズに追従する */
   --battle-data-card-pokemon-icon-size: 1.4em; /* 同時採用ポケモンのアイコンの大きさ。マス内に収まる範囲で少し大きくする */

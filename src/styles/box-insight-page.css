@@ -158,10 +158,9 @@ body.data-page {
   height: 100%;
 }
 
-/* /box/data はポケモン1体分だけを表示するため、一覧(/data)よりランキング行を大きくする。 */
+/* /box/data はポケモン1体分だけを表示するため、アイコンと行高を個別に調整する。
+   文字サイズは共通カードの0.85remをそのまま使う。 */
 .box-data-page .data-panel--has-data .trend-detail-card {
-  --battle-data-card-label-font-size: var(--font-size-sm1);
-  --battle-data-card-value-font-size: var(--font-size-sm2);
   --battle-data-card-item-icon-size: 1.4em;
   --battle-data-card-pokemon-icon-size: 1.7em;
   /* emのまま置くと.trend-cell-body側で祖先のfont-sizeを拾って値がずれる

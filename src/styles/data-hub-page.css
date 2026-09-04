@@ -75,9 +75,8 @@ body.data-hub-page {
   padding: 0;
   background: var(--color-bg);
 }
-/* カード内のランキング項目は一覧でも読み取れる 0.875rem にする。 */
+/* カード内の文字は共通の0.85remを使い、表示件数に合わせて行高だけを調整する。 */
 .battle-data-panel .trend-detail-card {
-  --battle-data-card-value-font-size: 0.875rem;
   /* 各段は文字の実寸に4pxだけ余裕を加えた高さにする。 */
   --data-battle-data-row-height: calc(
     var(--battle-data-card-value-font-size) * var(--battle-data-card-value-line-height)
