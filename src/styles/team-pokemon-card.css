@@ -45,8 +45,8 @@
 
 /* プレビューカード */
 
-/* データ枠本体(<a>)。src/components/box-id/MobileTrainingBar.astroの育成プレビューバー
-	(.pokemon-preview、src/styles/box-pokemon-preview.css参照)と同じクラス構成を、
+/* データ枠本体(<a>)。src/components/box-id/MobilePokemonPreview.astroの育成プレビューバー
+	(.pokemon-preview、src/styles/mobile-pokemon-preview.css参照)と同じクラス構成を、
 	--pokemon-preview-*でおよそ半分のスケールに縮小して再現するカード。 */
 
 .team-overview-thumb-grid .team-overview-preview-card {

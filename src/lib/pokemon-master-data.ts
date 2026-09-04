@@ -64,7 +64,7 @@ export function officialArtworkUrl(imageId: number): string {
 // bulbagarden側はChampionsに現在実装済みのポケモン/フォルムしか提供していないため、
 // 存在しないimageIdがある(2026-08時点で1284件中316件のみ)。呼び出し側はこの画像が
 // 取得できない場合、officialArtworkUrl() → 頭文字バッジの順にフォールバックすること
-// (shared-core.tsのapplySprite・box-pokemon-card.tsのapplyCardArtwork参照)。
+// (shared-core.tsのapplySprite・owned-pokemon-card.tsのapplyCardArtwork参照)。
 export function championSpriteUrl(imageId: number): string {
   return `/pokemon-champion-sprites/${imageId}.png`;
 }

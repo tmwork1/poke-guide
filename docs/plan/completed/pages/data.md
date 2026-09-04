@@ -36,7 +36,7 @@
 - `src/components/AppSidebar.astro` L66: `{ key: "trend", label: "トレンド", icon: "trending-up", disabled: true }`(「データ」見出しセクション内、L63-69)。アイコン定義は L34 `ICONS["trending-up"]`(既存、追加不要)。
 - `src/layouts/AppLayout.astro` L9: `interface Props { current?: "box" | "team" | "dev" | "speed-chart" | "ranked-teams" }`。**"data" が無いので追加が必要**(`AppBottomNav.astro` L4、`AppSidebar.astro` L4 も同様に union 型を広げる。3ファイル同時に直さないと型エラーになる)。
 - `src/styles/second-bar.css`: 「セカンドバー」概念は**既存の共通コンポーネント**。`.second-bar`(sticky、`top: var(--topbar-height)`、z-index 20)+ `.second-bar__list`(横スクロール、スクロールバー非表示)+ `.second-bar__item`(タブ風ボタン/リンク、`data-active="true"` で `--color-primary`)。トグル用途の `.second-bar--toolbar` もあるが、今回はタブ切替なので `__list`/`__item` の方(nav構造)を使う。
-- `src/components/box-id/MobileTrainingBar.astro` L24-48: `.second-bar` を使ったタブUIの実例。`activeTab` によって `<button data-mobile-tab>`(同一ページ内切替)と `<a href>`(別ページへの遷移)を出し分けている。
+- `src/components/box-id/MobilePokemonPreview.astro` L24-48: `.second-bar` を使ったタブUIの実例。`activeTab` によって `<button data-mobile-tab>`(同一ページ内切替)と `<a href>`(別ページへの遷移)を出し分けている。
 - `src/lib/box-id/mobile-edit-tabs.ts`: `data-mobile-tab` ボタンのクリックで `dataset.mobileTab` を切り替える実装パターン(タップ切替の手本)。**スワイプ(左右フリック)の実装はプロジェクト内に前例なし**(grep確認済み、`second-bar`関連16ファイルのいずれにもtouch/swipeイベント無し)。今回が最初の実装になる。
 - `src/pages/ranked-teams/index.astro` L21: `hideTopbar={true}` を使い、`AppLayout` 標準の `<header class="app-topbar">` を描画させず、ページ自身の `.second-bar` を最上部にしている。`src/pages/team/index.astro`・`src/pages/box/index.astro`・`src/pages/box/data.astro` も同様に**全ページ `hideTopbar={true}` が既定**(2026-08-13時点、PC幅レイアウト分岐撤去に伴いモバイル専用UIへ統一済み。[[project_pc_layout_removed]])。29.png のワイヤーフレームにも独立した「トップバー」枠は描かれておらず、セカンドバーが最上部という構図と一致する。
 - `src/styles/global.css` L1175/1182: `.app-shell.no-topbar { --topbar-height: 0px }`。`hideTopbar={true}` のとき `--topbar-height` が0になるため、`.second-bar { top: var(--topbar-height) }` は自動的に画面最上部(0px)に貼り付く。
@@ -64,8 +64,8 @@ sonnetレビュアー1体(データモデル/API・情報設計/導線・プレ�
 - なし(優先度A/Bはすべて採用。優先度Cは下記のとおり記録のみで対応不要と判断)。
 
 ### 記録のみ(今回は対応しない。将来の論点として残す)
-- `aria-current="page"`を同一ページ内タブ切替に使う設計は、`MobileTrainingBar.astro`の既存踏襲であり厳密なARIA意味論とはズレるが、プロジェクト全体の一貫性を優先し今回はそのまま踏襲する。プロジェクト全体でタブUIを整理する将来のタイミングで見直す。
-- アプリ内で類義語ラベルが「バトルデータ」「上位構築」「上位チーム」の3系統に散っている実態がある(`MobileTrainingBar.astro`の「上位チーム」等)。今回のスコープでは統一しない。
+- `aria-current="page"`を同一ページ内タブ切替に使う設計は、`MobilePokemonPreview.astro`の既存踏襲であり厳密なARIA意味論とはズレるが、プロジェクト全体の一貫性を優先し今回はそのまま踏襲する。プロジェクト全体でタブUIを整理する将来のタイミングで見直す。
+- アプリ内で類義語ラベルが「バトルデータ」「上位構築」「上位チーム」の3系統に散っている実態がある(`MobilePokemonPreview.astro`の「上位チーム」等)。今回のスコープでは統一しない。
 - 30.png/31.pngの将来像(ランキング一覧+アイコンレール、構築カード一覧)は独立した機能クラスタで、将来`stack.md`の分割基準に該当しうる。今回は「準備中」文字のみなので分割は不要だが、パネルのクラス名を`.data-hub-panel[data-tab="battle-data"]`のように将来コンポーネント分割しやすい形にしておく(下記「実装方針」に反映)。
 
 ## このページが答える問い
@@ -92,7 +92,7 @@ sonnetレビュアー1体(データモデル/API・情報設計/導線・プレ�
 - シーズン切替・検索などの操作UI。
 
 ## ファイル分割案
-1画面・1タブ切替コンポーネントのみで、独立した複数領域(カード/パネル)は無い。**分割不要**、単一ファイル `src/pages/data/index.astro` + 専用CSS `src/styles/data-hub-page.css`(既存の `src/styles/data-page.css` は `/box/data` が使用中のため名前を分ける)で完結させる。
+1画面・1タブ切替コンポーネントのみで、独立した複数領域(カード/パネル)は無い。**分割不要**、単一ファイル `src/pages/data/index.astro` + 専用CSS `src/styles/data-hub-page.css`(既存の `src/styles/box-insight-page.css` は `/box/data` が使用中のため名前を分ける)で完結させる。
 
 タブ切替のスワイプ判定だけは**純粋関数として切り出し、ユニットテストを付ける**(新規ページのテスト増加要件を満たすため。P5参照):
 - `src/lib/data-hub-tabs.ts`: `export const DATA_HUB_TABS = ['battle-data', 'top-builds'] as const;`(R-7。`current` propの値`"ranked-teams"`と紛らわしいため内部タブIDには`'top-builds'`を使う。`current`の語彙とは別名前空間)と `export function resolveActiveTabIndex(scrollLeft: number, panelWidth: number, tabCount: number): number`(`Math.round(scrollLeft / panelWidth)` を `[0, tabCount-1]` にクランプ。`panelWidth <= 0` は 0 を返す)。
@@ -106,7 +106,7 @@ sonnetレビュアー1体(データモデル/API・情報設計/導線・プレ�
 - スクロールコンテナの位置同期(R-4): `'onscrollend' in window` が真なら `scrollend` イベントで、偽なら `scroll` イベントを150msデバウンスして、`resolveActiveTabIndex()` で現在位置を判定し、セカンドバーの `data-active` を同期する(フリックでタブ側の表示も追従させる)。
 - **非アクティブパネルの到達性**(R-5): タブ切替と同期して、非アクティブ側パネルに `inert` 属性を付与し、`inert` 未対応ブラウザ向けに `aria-hidden="true"` も併記する。
 - **「準備中」プレースホルダーの見た目**(R-6): 独自デザインを作らず、既存の `.empty-state`(`global.css`。`ranked-teams/index.astro` の「検索結果0件」と同じコンポーネント)を流用する。
-- アクセシビリティ: タブ項目は `role` 相当に `aria-current="page"` を使う(既存 `second-bar__item` の慣例に合わせる。`MobileTrainingBar.astro` L38 と同じ書式)。
+- アクセシビリティ: タブ項目は `role` 相当に `aria-current="page"` を使う(既存 `second-bar__item` の慣例に合わせる。`MobilePokemonPreview.astro` L38 と同じ書式)。
 
 ## 受け入れ基準
 1. `/data` にアクセスすると `AppLayout` の `hideTopbar={true}` 構成でページが表示され、`<title>` が「データ | Poke-Commons」になる。
@@ -168,7 +168,7 @@ sonnetレビュアー1体(データモデル/API・情報設計/導線・プレ�
 - **カード共通化**: `/box/data` に個体ごとインラインで実装されていたバトルデータカード(特性/性格/アイテム/わざ/努力値/同時採用ポケモンの2x3グリッド)を、以下3ファイルへ切り出した。`/box/data`・`/data`のバトルデータタブの両方がこれを呼び出すため、マークアップは完全に同一。
   - `src/lib/battle-data-card.ts`: 純粋関数(`hasSingleBattleData`/`formatRanked`/`formatEvRanked`)。`tests/battle-data-card.test.ts`でユニットテスト済み。
   - `src/components/data/BattleDataCard.astro`: `.trend-detail-card`のマークアップ本体。
-  - `src/styles/battle-data-card.css`: `.trend-detail-card`/`.trend-detail-cell`のスタイル(旧`data-page.css`から移設)。
+  - `src/styles/battle-data-card.css`: `.trend-detail-card`/`.trend-detail-cell`のスタイル(旧`box-insight-page.css`から移設)。
 - **`/data`バトルデータタブ**(`src/pages/data/index.astro`): OP.GG使用率データはCloudflare KV(`OPGG_USAGE`バインディング)に保存され、`src/lib/opgg-usage.ts`の`getOpggUsageManifest`/`getOpggUsageList`経由でランタイム読み込みする(旧`data/opgg-champions-usage/`のビルド時静的インポートから移行済み、詳細は`scripts/opgg/fetch-champions-usage.mjs`と`.github/workflows/fetch-opgg-champions-usage.yml`)。`:list`キーの`pokemon`配列順(=OP.GGランキングページの掲載順=使用率順位)で、シングルバトルデータを持つポケモンを「順位+アイコン+種族名」のヘッダー+`BattleDataCard`として縦に並べた。右端に全件分のポケモンアイコンレール(`position:sticky`、クリックで該当カードへスムーズスクロール、`<a href="#id">`によるJS無効時のフォールバック付き)、下部固定に検索欄(`kanaIncludes`でかな表記ゆれを吸収した部分一致フィルタ、レール側も連動して隠す)とシーズン切替`<select>`を実装。
 - 固定表示の検索/シーズンバー(`.battle-data-controls`)は`position:fixed`のため、タブ切替で`inert`が付いた非アクティブパネル配下でも通常は消えない。`.data-hub-panel[inert] .battle-data-controls{display:none}`で明示的に隠した(実装中に気づいた点、下記「見つかった論点」参照)。
 
@@ -198,7 +198,7 @@ Playwrightで実測すると、カード右端(x=310)とレール左端(x=346)�
 - `docs/ui/mobile/29.png` / `30.png` / `31.png` / `7.png`(バトルデータカード)
 - `docs/plan/00-foundation.md`(レイアウト原則)
 - `.claude/skills/new-page/references/stack.md`
-- `src/components/box-id/MobileTrainingBar.astro`, `src/lib/box-id/mobile-edit-tabs.ts`(タブ切替の手本)
+- `src/components/box-id/MobilePokemonPreview.astro`, `src/lib/box-id/mobile-edit-tabs.ts`(タブ切替の手本)
 - `src/styles/second-bar.css`
 - `src/lib/battle-data-card.ts`, `src/components/data/BattleDataCard.astro`, `src/styles/battle-data-card.css`(バトルデータカードの共通実装)
 - `src/pages/box/data.astro`(バトルデータカードのもう一方の利用元)

@@ -220,7 +220,7 @@ body.data-page {
   }
 }
 
-/* MobileTrainingBar は固定配置のため通常フローの高さを持たない。実測した上下端を
+/* MobilePokemonPreview は固定配置のため通常フローの高さを持たない。実測した上下端を
      使い、データだけをプレビューと下部ナビの間に固定する。 */
 .box-data-page {
   position: fixed;

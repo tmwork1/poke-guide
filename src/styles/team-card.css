@@ -22,7 +22,7 @@
    CSSファイルへ集約する)にも、この統合で合致する。
    ============================================================================ */
 
-@import "./box-card.css";
+@import "./owned-pokemon-card.css";
 @import "./ranked-team-card.css";
 
 /* --------------------------------------------------------------------------
@@ -321,7 +321,7 @@
   display: none;
 }
 
-/* --- 空き枠(renderTeamMemberGrid が6枠に足りない分を埋める)。実線枠は box-card.css の
+/* --- 空き枠(renderTeamMemberGrid が6枠に足りない分を埋める)。実線枠は owned-pokemon-card.css の
    .box-grid .card-team-empty-slot 側が持ち、ここでは何番目の枠かを示す数字の見え方だけを決める。 --- */
 .team-grid .card-team .card-team-empty-slot {
   display: flex;

@@ -18,7 +18,7 @@ import { resolveDefaultSeason } from '../../lib/ranked-teams-validation';
 import '../../styles/team-pokemon-card.css';
 import '../../styles/team-mate-card.css';
 import '../../styles/team-pokemon-tab.css';
-import '../../styles/box-card.css';
+import '../../styles/owned-pokemon-card.css';
 import '../../styles/floating-list-controls.css';
 import '../../styles/team-data-tab.css';
 import '../../styles/team-card.css';
@@ -353,7 +353,7 @@ if (!isGuestNewMode) {
 		import {
 			ownedPokemonDisplayName as displayName,
 			renderBoxPokemonCard,
-		} from "../../lib/box-pokemon-card";
+		} from "../../lib/owned-pokemon-card";
 		import { renderTeamMateSlots } from "../../lib/team-mate-card";
 		import { renderTopBuildCard } from "../../lib/ranked-teams/card";
 		import { calculateBuildSimilarity, calculateTeamSimilarity } from "../../lib/build-similarity";

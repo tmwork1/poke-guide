@@ -1,4 +1,4 @@
-// 育成タブのポケモンプレビュー(MobileTrainingBar.astro)の各項目をタップして、
+// 育成タブのポケモンプレビュー(MobilePokemonPreview.astro)の各項目をタップして、
 // 対応する既存の選択UIをそのまま開く配線。新しいモーダルは作らず、LeftPanel.astro
 // (left-panel.ts)側に既にある入口(トリガーボタンのクリック/入力のfocus)を
 // そのまま呼ぶだけにとどめる。

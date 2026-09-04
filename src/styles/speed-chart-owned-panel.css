@@ -115,7 +115,7 @@
 		ズレが起きる(flexアイテムの自動幅がfit-contentのため)。text-align: centerを
 		併記することで、2行に折り返した場合も各行が中央揃えのまま崩れない。 */
 	.speed-chart-owned-summary-species {
-		/* /box/[id] のポケモン名(box-card.cssの--box-card-name-font-weight)と役割・
+		/* /box/[id] のポケモン名(owned-pokemon-card.cssの--box-card-name-font-weight)と役割・
 			扱いが同じ「種族名」のため、太さも揃える(以前はboldで他画面より1段強調されていた)。 */
 		font-weight: var(--font-weight-medium);
 		min-width: 0;

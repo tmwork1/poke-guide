@@ -1,5 +1,5 @@
-﻿/* /box: モバイル用のポケモン一覧画面。カード本体の見た目は box-card.css に分離する。 */
-@import "./box-card.css";
+﻿/* /box: モバイル用のポケモン一覧画面。カード本体の見た目は owned-pokemon-card.css に分離する。 */
+@import "./owned-pokemon-card.css";
 @import "./floating-list-controls.css";
 
 /* ===========================================================================

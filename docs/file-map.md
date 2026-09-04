@@ -10,24 +10,24 @@
 
 ### box/[id].astro — ボックス個体編集画面
 - page: `src/pages/box/[id].astro`
-- components: `src/components/box-id/LeftPanel.astro`, `RightPanel.astro`, `DamageCalcSection.astro`, `BulkAdjustDialog.astro`, `SpeedAdjustDialog.astro`, `MobileTrainingBar.astro`
+- components: `src/components/box-id/LeftPanel.astro`, `RightPanel.astro`, `DamageCalcSection.astro`, `BulkAdjustDialog.astro`, `SpeedAdjustDialog.astro`, `MobilePokemonPreview.astro`
 - lib: `src/lib/box-id/*`(`left-panel.ts` `right-panel.ts` `damage-calc.ts` `damage-suggest.ts` `bulk-adjust.ts` `bulk-adjust-solver.ts` `durability-index.ts` `stat-adjustment-panel.ts` `mobile-edit-tabs.ts` `shared-core.ts`)、`src/lib/owned-pokemon.ts`, `owned-pokemon-form.ts`, `owned-pokemon-validation.ts`
-- styles: `box-edit-page.css`, `box-card.css`, `box-damage-card.css`, `box-damage-page.css`, `bulk-adjust-dialog.css`, `speed-adjust-dialog.css`, `stat-adjustment-panel.css`, `move-picker-dialog.css`, `damage-detail-panel.css`
+- styles: `box-edit-page.css`, `owned-pokemon-card.css`, `box-damage-card.css`, `box-damage-page.css`, `bulk-adjust-dialog.css`, `speed-adjust-dialog.css`, `stat-adjustment-panel.css`, `move-picker-dialog.css`, `damage-detail-panel.css`
 - tests: `tests/bulk-adjust-solver.test.ts`, `tests/damage-calc-suggest.test.ts`, `tests/damage-calc-validation.test.ts`, `tests/damage-summary.test.ts`, `tests/owned-pokemon-validation.test.ts`, `tests/e2e/damage-calc.spec.ts`, `tests/e2e/stats-lethal-sequence.spec.ts`
 - 関連API: `src/pages/api/owned-pokemon.ts`, `owned-pokemon/[id].ts`, `owned-pokemon/[id]/share.ts`, `damage-calcs.ts`, `suggestions.ts`
 - ダメージ計算の仕様は `jpoke` skill を参照(`vendor/jpoke` を直接読む前に)
 
 ### box/data.astro — 個体の対戦データ入力画面
 - page: `src/pages/box/data.astro`
-- components: `src/components/data/BattleDataCard.astro`, `src/components/box-id/MobileTrainingBar.astro`
+- components: `src/components/data/BattleDataCard.astro`, `src/components/box-id/MobilePokemonPreview.astro`
 - lib: `src/lib/battle-data-card.ts`, `owned-pokemon.ts`
-- styles: `data-page.css`, `battle-data-card.css`
+- styles: `box-insight-page.css`, `battle-data-card.css`
 - tests: `tests/battle-data-card.test.ts`
 
 ### box/ranked.astro — 個体のランクマ戦績タブ
 - page: `src/pages/box/ranked.astro`
 - lib: `src/lib/ranked-teams.ts`, `ranked-teams-validation.ts`, `owned-pokemon.ts`
-- styles: `data-page.css`, `team-card.css`
+- styles: `box-insight-page.css`, `team-card.css`
 - 関連API: `src/pages/api/ranked-teams.ts`
 - tests: `tests/ranked-teams-validation.test.ts`
 
@@ -35,7 +35,7 @@
 - page: `src/pages/box/index.astro`
 - components: `AppHeader.astro`, `SecondHeader.astro`
 - styles: `box-page.css`, `app-header.css`, `second-header.css`
-- lib: `src/lib/box-pokemon-card.ts`, `card-delete-mode.ts`
+- lib: `src/lib/owned-pokemon-card.ts`, `card-delete-mode.ts`
 
 ### damage-calc/index.astro, damage-calc-poc/index.astro — ダメージ計算単体ページ
 - page: `src/pages/damage-calc/index.astro`(本番), `src/pages/damage-calc-poc/index.astro`(PoC)
@@ -61,7 +61,7 @@
 ### team/[id].astro, team/index.astro — チーム編集/一覧
 - page: `src/pages/team/[id].astro`, `src/pages/team/index.astro`
 - lib: `src/lib/team.ts`, `team-validation.ts`, `team-matchup.ts`, `team-suggest.ts`, `team-card.ts`, `team-mate-card.ts`, `archetype.ts`, `archetypes.ts`, `build-similarity.ts`, `regulations.ts`, `ranked-teams.ts`
-- styles: `team-page.css`, `team-pokemon-card.css`, `team-pokemon-tab.css`, `team-data-tab.css`, `team-card.css`, `box-card.css`, `floating-list-controls.css`
+- styles: `team-page.css`, `team-pokemon-card.css`, `team-pokemon-tab.css`, `team-data-tab.css`, `team-card.css`, `owned-pokemon-card.css`, `floating-list-controls.css`
 - 関連API: `src/pages/api/teams.ts`, `teams/[id].ts`, `team-suggestions.ts`, `matchup-targets.ts`
 - tests: `tests/team-validation.test.ts`, `team-matchup.test.ts`, `team-suggest.test.ts`, `build-similarity.test.ts`, `archetype.test.ts`
 
@@ -94,7 +94,7 @@
 - `src/components/AppHeader.astro`(styles: `app-header.css`)
 - `src/components/SecondHeader.astro`(styles: `second-header.css`)
 - `src/components/AppBottomNav.astro`(styles: `app-bottom-nav.css`)
-- 共通フォーム部品/ボタン: `form-controls.css`, `buttons.css`, `box-add-button.css`, `box-pokemon-preview.css`
+- 共通フォーム部品/ボタン: `form-controls.css`, `buttons.css`, `box-add-button.css`, `mobile-pokemon-preview.css`
 - 全体共通: `src/styles/global.css`(スタイル配置ルールは `CLAUDE.md` 参照)
 
 ## API(`src/pages/api/`)

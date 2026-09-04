@@ -2831,7 +2831,7 @@ if (opponentNotesSection) {
 		const deleteRowButton = document.createElement("button");
 		deleteRowButton.type = "button";
 		deleteRowButton.className = "btn-ghost damage-row-icon-button damage-row-delete-button";
-		// 全画面共通の×SVG(box-pokemon-card.ts/team-card.tsと同じ)。文字の"×"は
+		// 全画面共通の×SVG(owned-pokemon-card.ts/team-card.tsと同じ)。文字の"×"は
 		// フォントによって光学的な中心がずれるため使わない。
 		deleteRowButton.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
 		deleteRowButton.title = "この相手を削除";

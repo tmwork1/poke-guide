@@ -42,7 +42,7 @@
 
 | グリッド | 定義箇所 | 現状 | 問題 |
 |---|---|---|---|
-| `/box` ポケモン一覧 `.box-grid` | `box-card.css:20-26` | `repeat(3, minmax(0,1fr))` 固定・`aspect-ratio: 1/1` | 幅に比例して正方形カードが無限に拡大 |
+| `/box` ポケモン一覧 `.box-grid` | `owned-pokemon-card.css:20-26` | `repeat(3, minmax(0,1fr))` 固定・`aspect-ratio: 1/1` | 幅に比例して正方形カードが無限に拡大 |
 | チームカードの6枠 | 同じ `.box-grid` を再利用(`src/lib/team-card.ts:64` が `className = "box-grid"`) | 3列 → 6枠が2行3列 | 広幅でも 2×3 のまま。カードも無限拡大 |
 | チームカード一覧 `.team-grid` | `team-card.css:94-96` | `minmax(0,1fr)` の1列 | 妥当(変更不要) |
 | ホームのメニュー `.home-card-grid` | `home-page.css:184-188` | `repeat(3, minmax(0,1fr))` | 幅に比例して拡大 |
@@ -57,10 +57,10 @@
 
 | ファイル:行 | `<=899px` の中身 | 900px以上での実害 |
 |---|---|---|
-| `box-pokemon-preview.css:84` | `.mobile-training-ui` を `position: fixed` にする | プレビュー+ナビの固定が外れる |
+| `mobile-pokemon-preview.css:84` | `.mobile-training-ui` を `position: fixed` にする | プレビュー+ナビの固定が外れる |
 | `box-damage-page.css:76,107` | `.edit-shell` / `.edit-layout-left` / `.edit-layout-right` の固定スクロール領域 | ダメージ計算画面のスクロール構造が消える |
 | `box-damage-card.css:2148` | ダメージカードの狭幅調整 | — |
-| `data-page.css:244` | `.box-data-page` の固定配置 | データタブの固定が外れる |
+| `box-insight-page.css:244` | `.box-data-page` の固定配置 | データタブの固定が外れる |
 | `team-pokemon-tab.css:169` | `.team-edit-shell` の flex + スクロール構造 | チーム編集画面のスクロール構造が消える |
 | `team-data-tab.css:75` | 同上(データタブ) | 同上 |
 | `move-picker-dialog.css:375`, `speed-adjust-dialog.css:73` | モーダルの狭幅表示 | **広幅側に対の定義がある可能性が高い。実装時に個別確認する**(一括で外さない) |
@@ -69,7 +69,7 @@
 
 ### 2.4 緻密に組まれていて「伸ばしてはいけない」要素
 
-- `.pokemon-preview` / `.pokemon-preview-main`(`box-pokemon-preview.css:99-114`)
+- `.pokemon-preview` / `.pokemon-preview-main`(`mobile-pokemon-preview.css:99-114`)
   - `grid-template-columns: minmax(0,1fr) auto minmax(0,1fr)`(左情報・スプライト・右情報)
   - `height: var(--pokemon-preview-height)` = **176px 固定**(「全項目表示時の実測値で固定」とコメントあり)
   - 背景が2枚重ね: 外枠 `.pokemon-preview` = `--color-surface`、内側 `.pokemon-preview-main` = `--color-bg`。**中身に max-width を掛けるだけだと内側の背景色が中央だけ帯状に残る**ので、背景の持ち替えが要る。
@@ -262,13 +262,13 @@ body.team-edit-page {
 
 | # | 作業 | 対象 | 備考 |
 |---|---|---|---|
-| 1 | `@media (width <= 899px)` の上限撤廃 | `box-pokemon-preview.css:84`, `box-damage-page.css:76,107`, `box-damage-card.css:2148`, `data-page.css:244`, `team-pokemon-tab.css:169`, `team-data-tab.css:75` | ブロックを外して無条件ルールにする。**ダイアログ2件(`move-picker-dialog.css:375`, `speed-adjust-dialog.css:73`)は対の広幅定義があるか個別確認**してから判断 |
+| 1 | `@media (width <= 899px)` の上限撤廃 | `mobile-pokemon-preview.css:84`, `box-damage-page.css:76,107`, `box-damage-card.css:2148`, `box-insight-page.css:244`, `team-pokemon-tab.css:169`, `team-data-tab.css:75` | ブロックを外して無条件ルールにする。**ダイアログ2件(`move-picker-dialog.css:375`, `speed-adjust-dialog.css:73`)は対の広幅定義があるか個別確認**してから判断 |
 | 2 | トークン + 2本のラダーの追加 | `global.css`(`:root` の「8. サイズ」節と共通レイアウト節) | §3.2 / §3.3 / §3.4。コメントで基準412px・**上限をグリッドごとに分ける理由**・auto-fill禁止理由を明記 |
-| 3 | 3列系の列数可変化 | `box-card.css:20-26` | §3.5 |
+| 3 | 3列系の列数可変化 | `owned-pokemon-card.css:20-26` | §3.5 |
 | 4 | 2列系の列数可変化 | `team-pokemon-card.css:6-17` | §3.5。`margin-inline`/`padding-inline` は現状維持 |
 | 5 | チーム6枠の 2×3 → 1×6 | `team-card.css`(`.team-grid .card-team .box-grid`) | §3.6 |
 | 6 | その他の固定列グリッド | `home-page.css:184`, `team-mate-card.css:96`, `team-pokemon-tab.css:132`, `matchup-panel.css:15` | セル上限 + 中央寄せ |
-| 7 | 背景だけ伸ばす対応 | `box-pokemon-preview.css`, `app-bottom-nav.css`, `app-header.css`, `second-header.css`, `floating-list-controls.css` | §3.7。プレビューの背景持ち替えは単独コミットに切ると差し戻しやすい |
+| 7 | 背景だけ伸ばす対応 | `mobile-pokemon-preview.css`, `app-bottom-nav.css`, `app-header.css`, `second-header.css`, `floating-list-controls.css` | §3.7。プレビューの背景持ち替えは単独コミットに切ると差し戻しやすい |
 | 8 | 検証 | — | §5 |
 
 **スタイルはすべて対象ごとのCSSファイルに置く**(ルート `CLAUDE.md`「スタイル定義」)。共通トークンとラダーだけ `global.css`。テンプレートの `style` 属性・新規の分散 `<style>` は追加しない。

@@ -1,4 +1,4 @@
-// 育成タブのポケモンプレビュー(実数値・努力値の表、MobileTrainingBar.astroの
+// 育成タブのポケモンプレビュー(実数値・努力値の表、MobilePokemonPreview.astroの
 // .pokemon-preview-stats-wrap)をタップして開くステータス調整モーダルの開閉。
 //
 // StatAdjustmentDialog.astro(モーダルの外枠)とLeftPanel.astro(既存のステータス

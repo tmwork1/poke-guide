@@ -20,7 +20,7 @@ import RightPanel from '../../components/box-id/RightPanel.astro';
 import StatAdjustSheet from '../../components/box-id/StatAdjustSheet.astro';
 import BulkAdjustDialog from '../../components/box-id/BulkAdjustDialog.astro';
 import SpeedAdjustDialog from '../../components/box-id/SpeedAdjustDialog.astro';
-import MobileTrainingBar from '../../components/box-id/MobileTrainingBar.astro';
+import MobilePokemonPreview from '../../components/box-id/MobilePokemonPreview.astro';
 import '../../styles/box-edit-page.css';
 import { getSupabaseAdminClient } from '../../lib/supabase';
 import { getOwnedPokemon, type OwnedPokemonRecord } from '../../lib/owned-pokemon';
@@ -240,7 +240,7 @@ const initialMobileTab = !isNewMode && Astro.url.searchParams.get('tab') === 'da
 			</section>
 		) : (
 			<>
-			<MobileTrainingBar pokemon={pokemon} activeTab={initialMobileTab} />
+			<MobilePokemonPreview pokemon={pokemon} activeTab={initialMobileTab} />
 			<div class="edit-layout">
 			<div class="edit-layout-left">
 			{/* 左サイド(ポケモン編集パネル、.panel-left)のテンプレート・scoped style・スクリプトは
@@ -337,7 +337,7 @@ const initialMobileTab = !isNewMode && Astro.url.searchParams.get('tab') === 'da
 	</script>
 
 	{/* 提案図(docs/ui_proposal/mobile/ の ui_mobile_box_個体編集_*.png)はどれも画面上端が
-	    セカンドバー(MobileTrainingBarの.second-bar)で、共通ヘッダー(アプリロゴ)も独立した
+	    セカンドバー(MobilePokemonPreviewの.second-bar)で、共通ヘッダー(アプリロゴ)も独立した
 	    「← 戻る」も描かれていない。戻るボタンはページナビゲーション側のアイコンボタンとして表示する。
 	    ⚠️ ページナビゲーションに載っていた操作系(保存状態・耐久調整・すべて折りたたむ・非公開・削除)は
 	    このCSSで一緒に消える。消えたままだとモバイルから削除も非公開切り替えもできなくなるため、

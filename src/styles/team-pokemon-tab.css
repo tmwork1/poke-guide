@@ -242,11 +242,11 @@ body.team-edit-page {
 	background: transparent;
 	color: var(--color-primary-strong);
 }
-	/* box-card.cssの.box-card は元々<a>を前提に書かれている。<a>はグリッド項目として
+	/* owned-pokemon-card.cssの.box-card は元々<a>を前提に書かれている。<a>はグリッド項目として
 		既定で軌道(track)いっぱいにストレッチされるが、<button>はフォームコントロールの
 		固有サイズ計算により明示的にwidthを指定しないとストレッチされず、内容(技名テキスト等)
 		に応じた幅のまま軌道からはみ出す(実測: min-width:0だけでは直らず、width:100%を
-		足して初めて軌道幅(約119px)に一致した)。この差がbox-card.cssの技名省略(ellipsis)を
+		足して初めて軌道幅(約119px)に一致した)。この差がowned-pokemon-card.cssの技名省略(ellipsis)を
 		box画面(<a>版)とteam画面(<button>版)で食い違わせていた原因。 */
 #team-formation-mobile button.box-card {
 	width: 100%;

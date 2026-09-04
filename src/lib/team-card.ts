@@ -1,7 +1,7 @@
 import {
 	renderBoxPokemonCard,
 	type BoxPokemonCardPokemon,
-} from "./box-pokemon-card";
+} from "./owned-pokemon-card";
 import { playCardDeleteExitEffect } from "./card-delete-mode";
 import { isGuestMode } from "./data/guest-mode";
 

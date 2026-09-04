@@ -1,5 +1,5 @@
 // データ系の個体ページではSSRからゲストのlocalStorageを読めないため、
-// MobileTrainingBar.astroが出力した空のプレビューをクライアントで実データへ置き換える。
+// MobilePokemonPreview.astroが出力した空のプレビューをクライアントで実データへ置き換える。
 import type { OwnedPokemonRecord } from '../owned-pokemon';
 import { getGuestPokemon } from '../data/guest-store';
 import { isGuestMode } from '../data/guest-mode';

@@ -160,7 +160,7 @@ body.box-edit-page {
 
 	/* --header-height はglobal.cssの:rootで既定0pxのCSS変数(共通トップバーはどのページにも
 		存在しない)。ポケモンプレビュー(.pokemon-preview の position:sticky; top、
-		box-pokemon-preview.css参照)がこれとページナビゲーション(.app-header、
+		mobile-pokemon-preview.css参照)がこれとページナビゲーション(.app-header、
 		app-header.css)の高さを合わせてsticky配置に使う。 */
 .edit-layout-left,
 .edit-layout-right {

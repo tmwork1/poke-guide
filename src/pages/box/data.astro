@@ -2,7 +2,7 @@
 export const prerender = false;
 
 import AppLayout from '../../layouts/AppLayout.astro';
-import MobileTrainingBar from '../../components/box-id/MobileTrainingBar.astro';
+import MobilePokemonPreview from '../../components/box-id/MobilePokemonPreview.astro';
 import PokemonSettingsModalHost from '../../components/box-id/PokemonSettingsModalHost.astro';
 import BattleDataCard from '../../components/data/BattleDataCard.astro';
 import { getOwnedPokemon } from '../../lib/owned-pokemon';
@@ -17,7 +17,7 @@ import {
   type OpggUsageSeason,
 } from '../../lib/opgg-usage';
 import { env } from 'cloudflare:workers';
-import '../../styles/data-page.css';
+import '../../styles/box-insight-page.css';
 import '../../styles/battle-data-card.css';
 
 const user = Astro.locals.user;
@@ -51,7 +51,7 @@ const hasData = hasSingleBattleData(opgg);
 
 <AppLayout title="バトルデータ" description="OP.GG使用率データ" current="box" bodyClass="data-page">
   <div class="page box-data-page">
-    <MobileTrainingBar pokemon={canRenderSelectedPokemon ? pokemon : null} activeTab="battle-data" />
+    <MobilePokemonPreview pokemon={canRenderSelectedPokemon ? pokemon : null} activeTab="battle-data" />
     {canRenderSelectedPokemon && pokemon ? <PokemonSettingsModalHost pokemon={pokemon} /> : (
       <section class="pokemon-data-preview" aria-labelledby="data-preview-title">
         <p class="data-kicker">育成データレビュー</p>
@@ -216,7 +216,7 @@ const hasData = hasSingleBattleData(opgg);
       const hasData = Boolean(single && (['abilities', 'natures', 'items', 'moves', 'evs', 'teammates'] as const).some(
         (key) => Array.isArray(single[key]) && single[key]!.length > 0,
       ));
-      // SSRはゲストの種族名を知らないため .data-panel--has-data(カード拡大用、data-page.css参照)を
+      // SSRはゲストの種族名を知らないため .data-panel--has-data(カード拡大用、box-insight-page.css参照)を
       // 付けられない。実データが揃ったここで、ログイン時と同じ判定基準(hasSingleBattleData)で
       // 付け直す(サイズが縮んだままになる不具合の実測修正)。
       if (response.ok && hasData && single) {

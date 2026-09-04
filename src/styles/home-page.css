@@ -216,7 +216,7 @@ body.home-page {
 /* border/box-shadowは.cardの同詳細度ルールと衝突する。このページのCSSは
    AppLayout側のバンドル(.cardの定義元)より<link>の挿入順が先に来るため、
    同詳細度だと.card側に上書きされて何も起きない。.home-card-grid込みの
-   セレクタで詳細度を上げて確実に勝たせる(box-card.cssの.box-grid .box-cardと同じ手法)。 */
+   セレクタで詳細度を上げて確実に勝たせる(owned-pokemon-card.cssの.box-grid .box-cardと同じ手法)。 */
 .home-card-grid .home-card {
   border: 1px solid var(--color-border);
   box-shadow: none;

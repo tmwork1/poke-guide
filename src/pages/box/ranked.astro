@@ -2,16 +2,16 @@
 export const prerender = false;
 
 import AppLayout from '../../layouts/AppLayout.astro';
-import MobileTrainingBar from '../../components/box-id/MobileTrainingBar.astro';
+import MobilePokemonPreview from '../../components/box-id/MobilePokemonPreview.astro';
 import PokemonSettingsModalHost from '../../components/box-id/PokemonSettingsModalHost.astro';
 import { getOwnedPokemon } from '../../lib/owned-pokemon';
 import { createMobilePreviewPlaceholder } from '../../lib/box-id/mobile-preview-placeholder';
 import { getSupabaseAdminClient, getSupabasePublicClient } from '../../lib/supabase';
 import { listRankedSeasons } from '../../lib/ranked-teams';
 import { resolveDefaultSeason } from '../../lib/ranked-teams-validation';
-import '../../styles/data-page.css';
+import '../../styles/box-insight-page.css';
 // 上位チームのカードは /team 一覧・/team/[id] の類似構築タブと共用の renderTopBuildCard() を
-// そのまま使うため、そのスタイル定義元(box-card.cssを@importしている)も読み込む。
+// そのまま使うため、そのスタイル定義元(owned-pokemon-card.cssを@importしている)も読み込む。
 import '../../styles/team-card.css';
 
 const user = Astro.locals.user;
@@ -33,7 +33,7 @@ if (pokemon) {
 
 <AppLayout title="上位チーム" description="この個体を採用した上位構築" current="box" bodyClass="data-page">
   <div class="page box-data-page box-ranked-page">
-    <MobileTrainingBar pokemon={canRenderSelectedPokemon ? pokemon : null} activeTab="ranked-teams" />
+    <MobilePokemonPreview pokemon={canRenderSelectedPokemon ? pokemon : null} activeTab="ranked-teams" />
     {canRenderSelectedPokemon && pokemon ? <PokemonSettingsModalHost pokemon={pokemon} /> : (
       <section class="pokemon-data-preview" aria-labelledby="ranked-preview-title">
         <p class="data-kicker">育成データレビュー</p>

@@ -408,7 +408,7 @@ export function selectionBlockReason(
 
 - `.team-mate-card`(仮称、新規クラス): 6.png準拠。アートワーク(スプライト)+ 右下にアイテムアイコンを重畳。埋まっている枠は選択状態(タップでハイライト)を持てる。空き枠は番号のみの破線プレースホルダー(既存 `.card-team-empty-slot` の意匠を踏襲してよいが、6.pngのシンプルな正方形サイズに合わせる)。
 - チームメイトパネル(6枠)は `position: sticky` でセカンドバー直下に**固定表示**(ワイヤーフレーム「チームメイト固定表示」)。
-- ボックスカードグリッド領域: `/box`(`src/pages/box/index.astro` の `#search-input` / `.add-card-tile` / `.box-grid` / `.card.box-card.card-pokemon`)と**同じ見た目**を複製する(box-card.css を直接importせず値を複製する、既存の `.pokemon-select-row` が同じ方針で box の値を複製済み、その前例に倣う)。カードは**遷移リンクにしない**(`/box` の `<a href>` と違い、クリックでタップ操作 1〜4 を行うため `<button>`)。
+- ボックスカードグリッド領域: `/box`(`src/pages/box/index.astro` の `#search-input` / `.add-card-tile` / `.box-grid` / `.card.box-card.card-pokemon`)と**同じ見た目**を複製する(owned-pokemon-card.css を直接importせず値を複製する、既存の `.pokemon-select-row` が同じ方針で box の値を複製済み、その前例に倣う)。カードは**遷移リンクにしない**(`/box` の `<a href>` と違い、クリックでタップ操作 1〜4 を行うため `<button>`)。
 - 検索欄・追加ボタンの挙動は `/box` と同じ(追加ボタンは空個体を作成してボックスに追加。新しいAPIは不要、既存の個体追加APIを再利用)。
 
 ### 再利用するもの(新規実装しないもの)
@@ -438,7 +438,7 @@ export function selectionBlockReason(
 
 ### 実施結果(2026-08-11)
 
-実装はCodex(`codex exec`)に2回に分けて委任した: 1回目は上記の仕様一式(表示条件・タップ操作・チームメイトパネル・ボックスカードグリッド)、2回目はユーザーからの追加指示「ボックスのポケモン表示・検索・追加ボタン等はboxページを丸ごと再利用する」を受けた修正(独自CSSで作っていたボックスカードグリッドを、`/box`(`src/pages/box/index.astro`)が実際に使っている `box-card.css` のクラス(`.box-grid` / `.card.box-card.card-pokemon` / `.card-artwork` / `.card-item-badge` / `.card-body` / `.card-moves-grid` 等)にそのまま差し替え)。Coordinatorが両方の差分を確認し、実ブラウザ(`npm run shot`)で検証した。
+実装はCodex(`codex exec`)に2回に分けて委任した: 1回目は上記の仕様一式(表示条件・タップ操作・チームメイトパネル・ボックスカードグリッド)、2回目はユーザーからの追加指示「ボックスのポケモン表示・検索・追加ボタン等はboxページを丸ごと再利用する」を受けた修正(独自CSSで作っていたボックスカードグリッドを、`/box`(`src/pages/box/index.astro`)が実際に使っている `owned-pokemon-card.css` のクラス(`.box-grid` / `.card.box-card.card-pokemon` / `.card-artwork` / `.card-item-badge` / `.card-body` / `.card-moves-grid` 等)にそのまま差し替え)。Coordinatorが両方の差分を確認し、実ブラウザ(`npm run shot`)で検証した。
 
 - チームメイトパネル(`.team-mate-card`、6.png準拠)は新規実装。ボックスカードグリッドは `/box` と完全共通のCSS/DOM構造を再利用(独自CSSは削除済み)。検索欄も既存の `.search-input-wrap` パターンを流用、追加ボタンも `/box` と同じ `.add-card-tile` + 同一APIペイロードを再利用。
 - タップ操作(単独タップで追加/解除、枠選択→ボックスカードタップで差し替え)は実ブラウザの `npm run shot --click` で動作確認: 枠6を選択→ピカチュウをタップ→`firstEmptySlot`(枠5)を無視して枠6に直接入ることを実測(`assignToSlot(p, targetSlot)` の枠指定が機能している証拠)。

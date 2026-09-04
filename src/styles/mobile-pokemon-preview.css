@@ -51,7 +51,7 @@
 
 #mobile-training-ui.mobile-training-ui {
   /* CSS適用前のSSRマークアップが一瞬だけプレーンテキストで描画されるのを防ぐ。
-     MobileTrainingBar.astroのインライン初期値を、この対象CSSの適用と同時に解除する。 */
+     MobilePokemonPreview.astroのインライン初期値を、この対象CSSの適用と同時に解除する。 */
   visibility: visible;
 }
 
