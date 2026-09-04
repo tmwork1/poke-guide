@@ -31,7 +31,7 @@
   --box-card-move-font-size: var(--font-size-sm3); /* カード下部に並ぶ技名。上げると4行分の必要な高さも増える */
 
   /* ── 2. 文字の太さ・行間 ──────────────────────────────── */
-  --box-card-name-font-weight: var(--font-weight-medium); /* ポケモン名の太さ。数値を上げるほど名前が強調される */
+  --box-card-name-font-weight: var(--font-weight-normal); /* ポケモン名の太さ。数値を上げるほど名前が強調される */
 
   /* ── 7. 余白 ──────────────────────────────────────────── */
   --box-card-gap: var(--space-1); /* カード内の主要な行同士と操作ボタン同士の間隔 */
@@ -272,7 +272,7 @@
   margin: 0;
   flex: 1 1 auto;
   min-width: 0;
-  font-size: var(--font-size-sm3); /* ポケモンの名前。カード左上に出る主要な文字の大きさ */
+  font-size: var(--font-size-sm2); /* ポケモンの名前。カード左上に出る主要な文字の大きさ */
   font-weight: var(--box-card-name-font-weight);
   line-height: var(--line-height-tight); /* ポケモン名1行の行高。広げると名前の上下に使う領域が増える */
   text-align: left; /* 長さの異なるポケモン名の文字開始位置を左にそろえる */
