@@ -294,7 +294,7 @@
 
 .team-overview-preview-card .pokemon-preview-stat-key {
 	font-size: var(--team-card-stats-label-font-size);
-	font-weight: var(--font-weight-normal);
+	font-weight: var(--font-weight-medium);
 	line-height: 1;
 	color: var(--color-text-muted);
 }
@@ -303,14 +303,14 @@
 
 .team-overview-preview-card .pokemon-preview-stat-ev {
 	font-size: var(--font-size-sm3);
-	font-weight: var(--font-weight-normal);
+	font-weight: var(--font-weight-medium);
 	line-height: 1;
 	color: var(--color-text-muted);
 }
 
 .team-overview-preview-card .pokemon-preview-stat-value {
 	font-size: var(--font-size-sm3);
-	font-weight: var(--font-weight-normal);
+	font-weight: var(--font-weight-medium);
 	line-height: 1.2;
 	color: color-mix(in srgb, var(--color-text) 88%, black);
 }
