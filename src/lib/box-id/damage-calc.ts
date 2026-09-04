@@ -216,10 +216,10 @@ export const DAMAGE_TERRAINS = [
 ];
 export const DAMAGE_AILMENTS = [
 	{ value: "", label: "なし" },
-	{ value: "どく", label: "どく", icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2C12 2 5.5 10.5 5.5 15.5a6.5 6.5 0 0 0 13 0C18.5 10.5 12 2 12 2Z"/></svg>` },
-	{ value: "もうどく", label: "もうどく", icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4C9 4 4 10.5 4 14.5a5 5 0 0 0 10 0C14 10.5 9 4 9 4Z"/><path d="M17 11C17 11 14 14.8 14 17a3 3 0 0 0 6 0c0-2.2-3-6-3-6Z"/></svg>` },
+	{ value: "どく", label: "どく" },
+	{ value: "もうどく", label: "もうどく" },
 	{ value: "まひ", label: "まひ" },
-	{ value: "やけど", label: "やけど", icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2c1.2 3.3-1.8 4.6-1.8 8a3.8 3.8 0 0 0 7.6 0c0-1.8-.8-3-1.3-3.6.2 2-1.5 3-2.6 2-1-1 .3-2.8-.4-5-.5-1.5-1.5-1.4-1.5-1.4Z"/></svg>` },
+	{ value: "やけど", label: "やけど" },
 	{ value: "ねむり", label: "ねむり" },
 	{ value: "こおり", label: "こおり" },
 ];

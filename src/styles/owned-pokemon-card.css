@@ -301,14 +301,9 @@
   display: none;
 }
 
-.box-grid .box-card .card-recommendation-badge {
-  display: inline-flex;
-  flex: 0 0 auto;
-  align-items: center;
-  justify-content: center;
-  color: #ffd400; /* おすすめ★バッジの色。ライト/ダーク共通の金色固定 */
-  font-size: var(--font-size-sm2);
-  line-height: 1;
+/* おすすめ種族: バッジは付けず、種族名の文字色で示す。 */
+.box-grid .box-card .card-name.is-recommended {
+  color: var(--color-primary-strong);
 }
 
 /* カード下部に4行並ぶ技一覧 */

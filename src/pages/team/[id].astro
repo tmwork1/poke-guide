@@ -1471,7 +1471,13 @@ if (!isGuestNewMode) {
 						item.className = "pokemon-preview-item pokemon-preview-icon-text";
 						item.hidden = true;
 						item.title = itemName;
-						item.setAttribute("aria-label", `もちもの: ${itemName}`);
+						item.setAttribute("role", "button");
+						item.tabIndex = 0;
+						item.setAttribute("aria-label", `もちもの入替を開く(現在: ${itemName})`);
+						item.addEventListener("click", (event) => {
+							event.stopPropagation();
+							openItemRedistributeDialog();
+						});
 						const itemImage = document.createElement("img");
 						itemImage.alt = "";
 						item.appendChild(itemImage);
@@ -1636,12 +1642,11 @@ if (!isGuestNewMode) {
 					});
 					if (selectedCandidatePokemon?.id === p.id) card.classList.add("is-selected");
 					if (suggestionSpeciesRanks.has(p.species_name)) {
-						const recommendationBadge = document.createElement("span");
-						recommendationBadge.className = "card-recommendation-badge";
-						recommendationBadge.textContent = "★";
-						recommendationBadge.title = "おすすめ";
-						recommendationBadge.setAttribute("aria-label", "おすすめ");
-						card.querySelector(".card-name-row")?.prepend(recommendationBadge);
+						const nameEl = card.querySelector<HTMLElement>(".card-name");
+						if (nameEl) {
+							nameEl.classList.add("is-recommended");
+							nameEl.title = "おすすめ";
+						}
 					}
 					formationMobileBoxGrid.appendChild(card);
 				}
@@ -1993,7 +1998,7 @@ if (!isGuestNewMode) {
 				selectedRedistributionItem = null;
 				itemRedistributeButton.focus();
 			}
-			itemRedistributeButton.addEventListener("click", () => {
+			function openItemRedistributeDialog(): void {
 				void redistributionItemGrid.ensureBuilt().then(() => {
 					redistributionSearchQuery = "";
 					itemRedistributeSearch.value = "";
@@ -2008,6 +2013,9 @@ if (!isGuestNewMode) {
 					// メガストーン対応表も同様に非同期取得し、届き次第ロック表示を反映する。
 					void loadRedistributionLocks().then(() => renderRedistributionMembers());
 				});
+			}
+			itemRedistributeButton.addEventListener("click", () => {
+				openItemRedistributeDialog();
 			});
 			itemRedistributeClose.addEventListener("click", closeRedistributionDialog);
 			itemRedistributeBackdrop.addEventListener("click", closeRedistributionDialog);

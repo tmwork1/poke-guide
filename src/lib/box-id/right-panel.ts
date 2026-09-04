@@ -1133,8 +1133,8 @@ export function buildSideSection(
 
 	const rankField = document.createElement("div");
 	rankField.className = "rank-field damage-detail-rank-field";
-	// C-2: "ランク"の文字ラベルは削除し、ランク・状態異常・テラスタイプを同じ段に配置する
-	// (スピンボックス単体で意味が伝わるため、視覚的なラベルは持たせない)。
+	const rankLabel = document.createElement("label");
+	rankLabel.textContent = "ランク";
 	const rankInput = document.createElement("input");
 	rankInput.type = "hidden";
 	rankInput.className = "damage-detail-rank-input";
@@ -1250,7 +1250,7 @@ export function buildSideSection(
 	const stepperGroup = document.createElement("span");
 	stepperGroup.className = "rank-stepper-group number-stepper";
 	stepperGroup.append(decrementButton, pickerButton, rankInput, incrementButton, picker);
-	rankField.append(stepperGroup);
+	rankField.append(rankLabel, stepperGroup);
 	rankAilmentGroup.appendChild(headingRow);
 
 	const ailmentSelect = document.createElement("select");

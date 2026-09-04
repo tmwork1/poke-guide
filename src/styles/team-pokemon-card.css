@@ -260,6 +260,17 @@
 	display: none;
 }
 
+.team-overview-preview-card .pokemon-preview-item[role="button"] {
+	cursor: pointer;
+	touch-action: manipulation;
+	border-radius: var(--radius-sm);
+}
+
+.team-overview-preview-card .pokemon-preview-item[role="button"]:focus-visible {
+	outline: 2px solid var(--color-primary);
+	outline-offset: 2px;
+}
+
 .team-overview-preview-card .pokemon-preview-item img {
 	display: block;
 	width: 100%;

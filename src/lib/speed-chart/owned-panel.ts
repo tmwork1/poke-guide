@@ -135,7 +135,8 @@ export function initOwnedPanel(ctx: OwnedPanelContext): OwnedPanelController {
   // 「もちものを考慮」トグルがONで表示されてしまっていた。この個体が実際に
   // すばやさ補正のある持ち物を持っている場合だけ初期ONにする(スカーフが使えない
   // 種族なら、どのみち効果が無いのでfalseにしておく)。
-  let considerItem = !!ctx.scarfModifier && !!ctx.scarfItemName && currentItem === ctx.scarfItemName;
+  const itemHasSpeedContribution = !!ctx.scarfModifier && !!ctx.scarfItemName && currentItem === ctx.scarfItemName;
+  let considerItem = itemHasSpeedContribution;
   let combos = buildCombos();
   let currentValue = computeCurrentValue();
   const renderedCells = new Map<number, HTMLElement>();
@@ -248,12 +249,12 @@ export function initOwnedPanel(ctx: OwnedPanelContext): OwnedPanelController {
     abilityToggle.title = ctx.abilityModifier ? '' : 'この特性にすばやさ補正はありません';
   }
   if (itemToggle) {
-    // メガシンカ等でこだわりスカーフを持てない個体はトグル自体を無効化する
+    // 現在の持ち物がすばやさに寄与しない(スカーフを持てない、またはスカーフ以外を
+    // 装備している)個体はトグル自体を無効化する
     // (abilityToggleが特性補正の無い特性のとき無効化するのと同じパターン)。
-    itemToggle.disabled = !ctx.scarfModifier;
-    itemToggle.title = ctx.scarfModifier ? '' : 'この個体はもちものによるすばやさ補正を持てません';
-    // 初期チェック状態はconsiderItemの初期値(持ち物がすばやさ補正に寄与するか)に揃える。
-    itemToggle.checked = !!ctx.scarfModifier && !!ctx.scarfItemName && currentItem === ctx.scarfItemName;
+    itemToggle.disabled = !itemHasSpeedContribution;
+    itemToggle.title = itemHasSpeedContribution ? '' : 'この個体の持ち物にすばやさ補正はありません';
+    itemToggle.checked = itemHasSpeedContribution;
   }
   const clampRank = (value: number): number => Math.max(-6, Math.min(6, Math.trunc(value)));
   const updateRankControls = (rank: number): void => {
