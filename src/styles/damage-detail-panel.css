@@ -394,8 +394,9 @@ body.box-edit-page {
 		flex: 0 0 auto;
 	}
 	.damage-detail-panel-add-tab {
+		width: var(--app-header-height);
 		min-width: var(--app-header-height);
-		padding-inline: var(--damage-detail-space-sm);
+		padding-inline: 0;
 	}
 	.damage-detail-panel-tab-wrap:has(.damage-detail-panel-tab[aria-selected="true"]) {
 		background: var(--damage-detail-primary-soft-color);

@@ -216,10 +216,10 @@ export const DAMAGE_TERRAINS = [
 ];
 export const DAMAGE_AILMENTS = [
 	{ value: "", label: "なし" },
-	{ value: "どく", label: "どく" },
-	{ value: "もうどく", label: "もうどく" },
+	{ value: "どく", label: "どく", icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2C12 2 5.5 10.5 5.5 15.5a6.5 6.5 0 0 0 13 0C18.5 10.5 12 2 12 2Z"/></svg>` },
+	{ value: "もうどく", label: "もうどく", icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4C9 4 4 10.5 4 14.5a5 5 0 0 0 10 0C14 10.5 9 4 9 4Z"/><path d="M17 11C17 11 14 14.8 14 17a3 3 0 0 0 6 0c0-2.2-3-6-3-6Z"/></svg>` },
 	{ value: "まひ", label: "まひ" },
-	{ value: "やけど", label: "やけど" },
+	{ value: "やけど", label: "やけど", icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2c1.2 3.3-1.8 4.6-1.8 8a3.8 3.8 0 0 0 7.6 0c0-1.8-.8-3-1.3-3.6.2 2-1.5 3-2.6 2-1-1 .3-2.8-.4-5-.5-1.5-1.5-1.4-1.5-1.4Z"/></svg>` },
 	{ value: "ねむり", label: "ねむり" },
 	{ value: "こおり", label: "こおり" },
 ];
@@ -823,6 +823,12 @@ function buildItemDropdown(initialValue: string): ItemDropdownHandle {
 	}
 
 	return { wrap, input, refreshDisplay: updateButton, setDisabled, setPopularity, flashAutofill };
+}
+
+let addAttackColumnForRow: ((row: DamageRowState) => void) | null = null;
+
+export function addAttackColumn(row: DamageRowState): void {
+	addAttackColumnForRow?.(row);
 }
 
 const opponentNotesSection = document.getElementById("opponent-notes-section");
@@ -2215,7 +2221,7 @@ if (opponentNotesSection) {
 	}
 
 	// 技列(加算条件)を1つ追加する処理を共通関数にまとめる。
-	function addAttackColumn(row: DamageRowState): void {
+	function addAttackColumnForCurrentCard(row: DamageRowState): void {
 		if (row.attacks.length >= currentMaxColumnsToAdd()) return;
 		// 直前のカラム(row.attacks末尾)があれば、その詳細設定を引き継ぐ。
 		const previousColumn = row.attacks[row.attacks.length - 1];
@@ -2226,6 +2232,7 @@ if (opponentNotesSection) {
 		scheduleRowCalc(row);
 		scheduleRowSave(row);
 	}
+	addAttackColumnForRow = addAttackColumnForCurrentCard;
 
 	function deleteAttackColumn(row: DamageRowState, column: DamageColumnState): void {
 		const index = row.attacks.indexOf(column);
@@ -2290,7 +2297,6 @@ if (opponentNotesSection) {
 	function renderColumns(row: DamageRowState): void {
 		if (!row.columnsEl) return;
 		row.columnsEl.innerHTML = "";
-		if (row.addColumnSlotEl) row.addColumnSlotEl.innerHTML = "";
 		row.columnResultEls = [];
 		row.columnChipEls = [];
 		row.attacks.forEach((attack, index) => {
@@ -2392,34 +2398,6 @@ if (opponentNotesSection) {
 
 			row.columnsEl!.appendChild(col);
 		});
-
-		// 「加算条件追加ボタン」(DamageCard.pngの右下)。
-		// 技列は最大3つまで。3つに達したら押せなくするだけでなく、ラベル文言そのものを
-		// 理由の説明に差し替える(titleのhoverだけに頼らない = 見ただけで「なぜ押せないか」が
-		// 分かる状態にする)。
-		const addButton = document.createElement("button");
-		addButton.type = "button";
-		addButton.className = "damage-add-column-button";
-		// 上限はレイアウト幅で変わる(モバイルは2、デスクトップは3。currentMaxColumnsToAdd参照)。
-		const maxColumns = currentMaxColumnsToAdd();
-		const isAtMax = row.attacks.length >= maxColumns;
-		// 上限到達時の説明文はホバー用title向けに残しつつ、スロット自体を
-		// data-max="true"でCSS側から隠す(DOMは残す。下のCSS
-		// .damage-add-column-slot[data-max="true"]参照)。
-		if (row.addColumnSlotEl) row.addColumnSlotEl.dataset.max = String(isAtMax);
-		if (isAtMax) {
-			addButton.disabled = true;
-			addButton.textContent = `技列は最大${maxColumns}つまでです`;
-			addButton.title = `技列(加算条件)は最大${maxColumns}つまでしか追加できません`;
-		} else {
-			// DamageCard.pngの「加算条件追加ボタン」にあたる。
-			addButton.textContent = "＋ わざを追加";
-			addButton.title = "加算する技を追加する(上から順に当てた加算ダメージ計算になります)";
-		}
-		// 実際に技を1つ追加する処理はaddAttackColumn(row)(fillFirstMoveCandidateの直後で定義)
-		// へ切り出している。
-		addButton.addEventListener("click", () => addAttackColumn(row));
-		(row.addColumnSlotEl ?? row.columnsEl).appendChild(addButton);
 
 		renderColumnDisplays(row);
 		// 列を作り直すと条件チップの器(.damage-row-condition-chips)も作り直されるため、
@@ -3257,10 +3235,6 @@ if (opponentNotesSection) {
 		columnsEl.className = "damage-row-columns";
 		row.columnsEl = columnsEl;
 		columnsWrap.appendChild(columnsEl);
-		const addColumnSlot = document.createElement("div");
-		addColumnSlot.className = "damage-add-column-slot";
-		techniquesRow.appendChild(addColumnSlot);
-		row.addColumnSlotEl = addColumnSlot;
 		renderColumns(row);
 
 		// 24-D1(訂正後): totalBlockはbuildElでもrootでもなく、techniquesRow
@@ -3413,9 +3387,7 @@ if (opponentNotesSection) {
 	});
 
 	const damageRowsListEl = el<HTMLElement>("damage-rows-list");
-	// 「＋わざを追加」ボタンはbuttonだが、押下面積が広くよく長押しされる場所でもあるため
-	// 例外的に長押しでの削除モード起動を許可する(通常のbutton/inputは除外のまま)。
-	initializeCardDeleteMode(damageRowsListEl, ".card-damage", ".damage-row-delete-button", ".damage-add-column-button");
+	initializeCardDeleteMode(damageRowsListEl, ".card-damage", ".damage-row-delete-button");
 	const engineStatusEl = el<HTMLElement>("damage-calc-engine-status");
 	const engineStatusTextEl = el<HTMLElement>("damage-calc-engine-status-text");
 	const engineReloadButton = el<HTMLButtonElement>("damage-calc-engine-reload-button");

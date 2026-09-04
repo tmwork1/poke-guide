@@ -49,6 +49,7 @@ import {
 	DAMAGE_ATTACKER_VOLATILES,
 	DAMAGE_DEFENDER_VOLATILES,
 	clampInt,
+	addAttackColumn,
 	buildTeraDropdown,
 } from "./damage-calc";
 // F: 「わざ」タブの相手側テラスタル欄の表示可否は、「相手ポケモン」タブに
@@ -221,9 +222,7 @@ function setSlideDetailPanelTitle(row: DamageRowState, positionIndex: number): v
 		addTab.title = "わざを追加";
 		addTab.setAttribute("aria-label", "わざを追加");
 		addTab.addEventListener("click", () => {
-			row.addColumnSlotEl
-				?.querySelector<HTMLButtonElement>(".damage-add-column-button:not(:disabled)")
-				?.click();
+			addAttackColumn(row);
 		});
 		addTabWrap.appendChild(addTab);
 		detailPanelTabsEl.appendChild(addTabWrap);

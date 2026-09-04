@@ -167,7 +167,7 @@ body.box-edit-page {
   --damage-card-mobile-build-padding: .25rem .4rem; /* コンパクト表示の相手情報欄の内側余白 */
 
   /* ── 8. 寸法 ─────────────────────── */
-  --damage-card-max-width: 100%; /* カードの最大幅。小さくすると親要素より細くなる */
+  --damage-card-max-width: var(--content-band-max-width); /* カードの最大幅。小さくすると親要素より細くなる */
   --damage-card-build-width: 340px; /* 広い画面での相手情報欄の幅。大きくすると技欄が狭くなる */
   --damage-card-build-detail-col-width: 7.5em; /* 相手情報2列グリッドの特性・アイテム列幅。短い補助情報を右列へまとめ、左列の種族名・実数値表示を広く確保する */
   --damage-card-tera-summary-icon-size: 20px; /* テラスタイプの小アイコン。大きくすると名前横の印が大きくなる */
@@ -1127,21 +1127,6 @@ body.box-edit-page {
   display: flex;
 }
 
-/* 技一覧の末尾にある「技を追加」ボタンの枠 */
-#opponent-notes-section .damage-add-column-slot {
-  flex: auto;
-  align-items: center;
-  height: var(--damage-card-compact-row-height);
-  min-height: var(--damage-card-compact-row-height);
-  max-height: var(--damage-card-compact-row-height);
-  max-width: var(--damage-card-total-result-max-width);
-  display: flex;
-}
-
-#opponent-notes-section .damage-add-column-slot[data-max="true"] {
-  display: none;
-}
-
 /* 技1つと計算結果を表示する横長カード */
 #opponent-notes-section .damage-column {
   border-radius: var(--damage-card-column-radius);
@@ -1361,38 +1346,6 @@ body.box-edit-page {
   overflow-wrap: anywhere;
   min-width: 0;
   font-weight: var(--damage-card-total-detail-font-weight);
-}
-
-/* 技一覧末尾の「技を追加」ボタン */
-#opponent-notes-section .damage-add-column-button {
-  width: 100%;
-  height: 100%;
-  padding: var(--damage-card-add-button-padding);
-  line-height: var(--line-height-snug);
-  min-height: 0;
-  font-size: var(--damage-card-add-button-font-size);
-  background: var(--damage-card-add-button-background);
-  border: var(--damage-card-add-button-border);
-  color: var(--damage-card-add-button-color);
-  border-radius: var(--damage-card-add-button-radius);
-  justify-content: center;
-  align-items: center;
-  text-align: center;
-  gap: var(--damage-card-add-button-gap);
-  font-weight: var(--font-weight-semibold);
-  transition: background var(--damage-card-transition-duration), color var(--damage-card-transition-duration);
-  display: flex;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  #opponent-notes-section .damage-add-column-button:hover:not(:disabled) {
-    color: var(--color-primary-strong);
-    background: var(--color-primary-soft);
-  }
-}
-
-#opponent-notes-section .damage-add-column-button:disabled {
-  opacity: var(--damage-card-add-button-disabled-opacity);
 }
 
 /* --------------------------------------------------------------------------
@@ -2002,15 +1955,6 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .box-add-button
     min-height: var(--damage-card-compact-row-height);
     min-width: 0;
     align-self: start;
-  }
-
-  #opponent-notes-section .damage-add-column-slot {
-    align-self: stretch;
-    height: var(--damage-card-compact-row-height);
-    min-height: var(--damage-card-compact-row-height);
-    max-height: var(--damage-card-compact-row-height);
-    min-width: 0;
-    max-width: none;
   }
 
   #opponent-notes-section .damage-row-total {
