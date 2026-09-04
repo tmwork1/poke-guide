@@ -99,7 +99,7 @@ body.box-edit-page {
 	--damage-detail-tera-list-max-height: 16rem; /* 候補一覧の最大高さ。大きくすると一度に見える件数が増える */
 	--stat-ev-mobile-button-block-size: 32px; /* 努力値編集ボタンの寸法。大きくするとタップ領域が広がる */
 	--damage-detail-tera-icon-size: 20px; /* テラタイプアイコン。大きくすると候補行が高くなる */
-	--damage-detail-direction-toggle-width: 6.4em; /* 攻守切り替えの最小横幅。「攻撃」「防御」が折り返さない幅が必要(Cの修正) */
+	--damage-detail-direction-toggle-width: 7.4em; /* 攻守切り替えの最小横幅。「攻撃」「防御」が折り返さない幅が必要(Cの修正)。文字サイズを周辺欄と揃えたぶん少し広げてある */
 	--damage-detail-item-dropdown-button-min-height: 2.35rem; /* 持ち物ボタンの最小高さ(育成タブと同値)。大きくするとボタンが大きくなる */
 	--damage-detail-build-control-height: 2.5rem; /* 攻守・種族・特性・アイテム欄を揃える高さ */
 	--damage-detail-item-dropdown-icon-size: 20px; /* 持ち物アイコン(ボタン・候補共通、育成タブと同値)。大きくすると候補行が高くなる */

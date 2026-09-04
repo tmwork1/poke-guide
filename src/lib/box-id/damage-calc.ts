@@ -54,6 +54,9 @@ import { initializeCardDeleteMode, playCardDeleteExitEffect } from "../card-dele
 // 相手ポケモンのアイテムドロップダウン(下のbuildItemDropdown参照)の検索欄で、育成タブの
 // 持ち物ドロップダウン(left-panel.ts)と同じかな・文字幅・英字大小を無視した絞り込みにする。
 import { kanaIncludes } from "../kana";
+// もちもの候補の並び順(box/のもちもの選択モーダルと同じ、使用率降順+タイプ強化/きのみ/
+// メガストーンのグルーピング)を共有するため、item-select-dialog.tsのsortItemsByUsageを使う。
+import { sortItemsByUsage } from "./item-select-dialog";
 import {
 	attachKanaTypeAhead,
 	applySprite,
@@ -726,20 +729,18 @@ function buildItemDropdown(initialValue: string): ItemDropdownHandle {
 		list.appendChild(emptyEl);
 	}
 
-	// 「アイテムなし」は先頭固定のまま、残りを使用率順(データが無いものは元の順序のまま)に
-	// 並べ替え、テキストへ"(NN%)"を追記する(left-panel.tsのapplyItemSuggestionOrderingと同じ)。
+	// 「アイテムなし」は先頭固定のまま、残りを並べ替える。ポケモンが選択されて使用率データ
+	// (ratioMap)が取れている場合は、box/のもちもの選択モーダル(item-select-dialog.ts)と
+	// 同じsortItemsByUsage(使用率降順 → タイプ強化アイテム/きのみ/メガストーンのグルーピング)
+	// を使う。データが無い場合は元の順序(item-list datalistの並び)のまま。
 	function applyOrdering(): void {
 		if (!built) return; // 未構築(次回buildOptions/openPanelで改めて適用される)
 		const noneEntry = optionEls.find((o) => o.value === "");
-		const rest = optionEls.filter((o) => o.value !== "");
-		rest.sort((a, b) => {
-			const ra = ratioMap?.get(a.value);
-			const rb = ratioMap?.get(b.value);
-			if (ra != null && rb != null) return rb - ra;
-			if (ra != null) return -1;
-			if (rb != null) return 1;
-			return 0;
-		});
+		const restEntries = optionEls.filter((o) => o.value !== "");
+		const rest = ratioMap
+			? sortItemsByUsage(restEntries.map((o) => o.value), (value) => ratioMap?.get(value))
+				.map((value) => restEntries.find((o) => o.value === value)!)
+			: restEntries;
 		for (const entry of rest) {
 			const textEl = entry.li.querySelector<HTMLElement>(".damage-build-detail-item-dropdown-option-text");
 			if (textEl) textEl.textContent = entry.value;
@@ -2739,13 +2740,12 @@ if (opponentNotesSection) {
 		}
 		function renderNameDropdown(): void {
 			const query = nameInput.value.trim();
-			const candidates = [...opponentNames]
-				.sort((a, b) => {
-					const rank = (name: string): number => query === "" ? 0 : name === query ? 0 : name.startsWith(query) ? 1 : kanaIncludes(name, query) ? 2 : 3;
-					return rank(a) - rank(b);
-				});
-			// フィルタに一致しない候補も採用率順のまま表示する。件数で
-			// 打ち切ると、残りの候補を選べないためスクロール領域へ全件載せる。
+			// 種族選択モーダル(SpeciesSelectDialog)と同じ考え方: 絞り込みだけを行い、
+			// opponentNames自体の並び順(pokemon-listのopgg順位+図鑑番号順、
+			// owned-pokemon-form.tsのsortPokemonNamesByOpggRanking)はそのまま保つ。
+			// 以前は一致度(完全一致→前方一致→かな部分一致)で候補全体を再ソートしていたが、
+			// 検索時にopgg順が崩れてしまっていた。
+			const candidates = query === "" ? opponentNames : opponentNames.filter((name) => kanaIncludes(name, query));
 			nameDropdownList.replaceChildren();
 			const fragment = document.createDocumentFragment();
 			for (const candidateName of candidates) {
