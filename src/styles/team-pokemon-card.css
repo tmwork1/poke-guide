@@ -52,7 +52,7 @@
 .team-overview-thumb-grid .team-overview-preview-card {
 	/* ── 1. 文字サイズ ─────────────────────── */
 	/* わざ一覧と各行 */
-	--team-card-moves-font-size: var(--font-size-sm2);
+	--team-card-moves-font-size: var(--font-size-sm3);
 	/* 実数値表のラベルと数値 */
 	--team-card-stats-label-font-size: var(--font-size-sm3);
 
@@ -172,7 +172,7 @@
 	min-width: 0;
 	min-height: calc(1.2 * var(--team-card-moves-font-size) + 0.08rem);
 	font-size: var(--team-card-moves-font-size);
-	font-weight: var(--font-weight-normal);
+	font-weight: var(--font-weight-medium);
 	line-height: var(--line-height-tight);
 	color: color-mix(in srgb, var(--color-text) 88%, black);
 	padding: 0.04rem 0;
