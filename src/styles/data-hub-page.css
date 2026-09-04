@@ -213,7 +213,8 @@ body.data-hub-page {
   flex: 1;
   min-width: 0;
   overflow: hidden;
-  font-size: var(--font-size-sm2); /* ポケモン名の文字。大きくすると名前が読みやすくなる */
+  font-size: var(--font-size-sm1); /* ポケモン名は順位より一段大きくして読み取りやすくする */
+  font-weight: var(--font-weight-normal); /* 見出し行の太字を継承させず、名前だけを自然な太さにする */
   text-overflow: ellipsis;
   white-space: nowrap;
 }
