@@ -272,7 +272,7 @@
   margin: 0;
   flex: 1 1 auto;
   min-width: 0;
-  font-size: var(--font-size-sm2); /* ポケモンの名前。カード左上に出る主要な文字の大きさ */
+  font-size: 0.8rem; /* ポケモンの名前。カード左上に出る主要な文字の大きさ */
   font-weight: var(--box-card-name-font-weight);
   line-height: var(--line-height-tight); /* ポケモン名1行の行高。広げると名前の上下に使う領域が増える */
   text-align: left; /* 長さの異なるポケモン名の文字開始位置を左にそろえる */
