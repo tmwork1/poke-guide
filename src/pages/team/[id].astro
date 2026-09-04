@@ -1486,6 +1486,7 @@ if (!isGuestNewMode) {
 							const label = document.createElement("span");
 							label.className = "pokemon-preview-stat-key";
 							label.textContent = stat.label;
+							if (stat.mod) label.dataset.mod = stat.mod;
 							const ev = document.createElement("span");
 							ev.className = "pokemon-preview-stat-ev";
 							ev.textContent = stat.ev > 0 ? `+${stat.ev}` : "";

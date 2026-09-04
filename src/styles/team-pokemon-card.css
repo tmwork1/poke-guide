@@ -317,10 +317,12 @@
 
 /* 実数値: 性格補正で上昇/下降しているステータスの色分け(data-mod属性)。 */
 
+.team-overview-preview-card .pokemon-preview-stat-key[data-mod="up"],
 .team-overview-preview-card .pokemon-preview-stat-value[data-mod="up"] {
 	color: color-mix(in srgb, var(--color-stat-up) 88%, black);
 }
 
+.team-overview-preview-card .pokemon-preview-stat-key[data-mod="down"],
 .team-overview-preview-card .pokemon-preview-stat-value[data-mod="down"] {
 	color: color-mix(in srgb, var(--color-stat-down) 88%, black);
 }
