@@ -45,6 +45,52 @@ export function sortPokemonNamesByOpggRanking(
     .map(({ name }) => name);
 }
 
+export interface DatalistPokemonEntry {
+  name: string;
+  dexNo: number;
+  forme: string | null;
+}
+
+// pokemon-list datalistの並び順を種族選択モーダル(species-select-dialog.tsのrenderGrid)と
+// 揃える: 通常種はopgg順に並べ、メガシンカは通常フォルムの直後に挿入する。opgg順位はメガ
+// シンカ自体をほぼランキングしないため、sortPokemonNamesByOpggRankingに全種族名をそのまま
+// 渡すとメガシンカだけ末尾側の未ランク集団に紛れて本来の位置(通常フォルム直後)から離れる。
+// damage-calc-page/secondary-bar.tsの相手ポケモン候補(/damage-calc単独ページ)からも使う。
+export function orderPokemonEntriesForDatalist(
+  entries: readonly DatalistPokemonEntry[],
+  rankedNames: readonly string[],
+): string[] {
+  const isMega = (entry: DatalistPokemonEntry): boolean => entry.forme?.startsWith('Mega') ?? false;
+  const nonMegaEntries = entries.filter((entry) => !isMega(entry));
+  const megaEntries = entries.filter(isMega);
+  const nonMegaByName = new Map(nonMegaEntries.map((entry) => [entry.name, entry]));
+  const sortedNonMega = sortPokemonNamesByOpggRanking(nonMegaEntries.map((entry) => entry.name), rankedNames)
+    .map((name) => nonMegaByName.get(name)!);
+
+  const megaByDex = new Map<number, DatalistPokemonEntry[]>();
+  for (const mega of megaEntries) {
+    const megas = megaByDex.get(mega.dexNo) ?? [];
+    megas.push(mega);
+    megaByDex.set(mega.dexNo, megas);
+  }
+
+  const ordered: DatalistPokemonEntry[] = [];
+  const usedDex = new Set<number>();
+  for (const entry of sortedNonMega) {
+    ordered.push(entry);
+    const megas = megaByDex.get(entry.dexNo);
+    if (megas && !usedDex.has(entry.dexNo)) {
+      ordered.push(...megas);
+      usedDex.add(entry.dexNo);
+    }
+  }
+  for (const [dexNo, megas] of megaByDex) {
+    if (!usedDex.has(dexNo)) ordered.push(...megas);
+  }
+
+  return ordered.map((entry) => entry.name);
+}
+
 function readOpggRankedSpeciesNames(): string[] | null {
   const embedded = document.getElementById('box-opgg-ranked-species');
   if (!embedded) return null;
@@ -68,17 +114,16 @@ function replaceDatalistOptions(datalist: HTMLDataListElement, names: readonly s
 }
 
 async function fillDatalist(res: Response, datalistId: string): Promise<void> {
-  const list = (await res.json()) as Array<{ name: string }>;
   const datalist = el<HTMLDataListElement>(datalistId);
-  const names = list.map(({ name }) => name);
   if (datalistId === 'pokemon-list') {
-    const rankedNames = readOpggRankedSpeciesNames();
-    replaceDatalistOptions(
-      datalist,
-      rankedNames === null ? names : sortPokemonNamesByOpggRanking(names, rankedNames),
-    );
+    const list = (await res.json()) as Array<{ name: string; dexNo?: number; forme?: string | null }>;
+    const entries = list.map(({ name, dexNo, forme }) => ({ name, dexNo: dexNo ?? 0, forme: forme ?? null }));
+    const rankedNames = readOpggRankedSpeciesNames() ?? [];
+    replaceDatalistOptions(datalist, orderPokemonEntriesForDatalist(entries, rankedNames));
     return;
   }
+  const list = (await res.json()) as Array<{ name: string }>;
+  const names = list.map(({ name }) => name);
   const fragment = document.createDocumentFragment();
   for (const name of names) {
     const option = document.createElement('option');

@@ -1,6 +1,9 @@
 import { loadAbilitiesMap, loadMoveDetailMap, loadPokemonMasterList } from "../pokemon-master-data";
 import { getOpponentBuild, getSelectedTeam, setOpponentBuild, setSelectedTeam, type SelectedTeam, type TeamMemberSpecInput } from "./shared-core";
 import type { Team } from "../team";
+// 相手ポケモン候補の並び順(opgg順+メガシンカを通常フォルムの直後に挿入)を、
+// box/[id]側(owned-pokemon-form.ts)のpokemon-list datalistと揃えるために共有する。
+import { orderPokemonEntriesForDatalist } from "../owned-pokemon-form";
 
 const CHANGE_EVENT = "damage-calc:change";
 const emitChange = (reason: string) => document.dispatchEvent(new CustomEvent(CHANGE_EVENT, { detail: { reason } }));
@@ -14,14 +17,6 @@ function readOpggRankedSpeciesNames(): string[] {
   } catch {
     return [];
   }
-}
-
-function sortPokemonByOpggRanking<T extends { name: string }>(pokemon: readonly T[], rankedNames: readonly string[]): T[] {
-  const ranks = new Map(rankedNames.map((name, index) => [name, index]));
-  return pokemon
-    .map((entry, index) => ({ entry, index, rank: ranks.get(entry.name) }))
-    .sort((a, b) => (a.rank ?? Infinity) - (b.rank ?? Infinity) || a.index - b.index)
-    .map(({ entry }) => entry);
 }
 
 function toSelectedTeam(team: Team): SelectedTeam {
@@ -110,7 +105,7 @@ export function initSecondaryBar(): void {
   renderTeamChoices(); renderSummary();
   Promise.all([loadPokemonMasterList(), loadAbilitiesMap(), loadMoveDetailMap()]).then(([pokemon, abilities, moves]) => {
     pokemonNames = new Set(pokemon.map((entry) => entry.name)); abilitiesBySpecies = abilities; moveNames = new Set(moves.keys());
-    pokemonList.replaceChildren(...sortPokemonByOpggRanking(pokemon, opggRankedSpeciesNames).map((entry) => new Option(entry.name)));
+    pokemonList.replaceChildren(...orderPokemonEntriesForDatalist(pokemon, opggRankedSpeciesNames).map((name) => new Option(name)));
     moveList.replaceChildren(...Array.from(moves.keys(), (name) => new Option(name)));
     const build = getOpponentBuild(); speciesInput.value = build.speciesName; itemInput.value = build.itemName; teraSelect.value = build.teraType;
     moveSlots = [...build.moveNames, "", "", "", ""].slice(0, 4); moveInputs.forEach((input, index) => { input.value = moveSlots[index]; }); setAbilityOptions();
