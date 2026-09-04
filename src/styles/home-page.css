@@ -128,6 +128,12 @@ body.home-page {
   outline-offset: 2px;
 }
 
+/* ログイン中は見た目だけ消し、領域はゲスト時と同じ高さのまま確保する
+   (ゲストモードon/offで.home-card-gridの位置が動かないようにするため)。 */
+.home-try-button[aria-hidden="true"] {
+  visibility: hidden;
+}
+
 /* ヘッダー右端に表示するログイン状態アイコン。AppHeaderがflexのため
    margin-left: auto で右端へ寄せる。 */
 .home-header-account {

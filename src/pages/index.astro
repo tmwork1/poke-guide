@@ -51,7 +51,10 @@ const userEmail = user?.email ?? '';
 			<h1>ポケガイド</h1>
 			<p>ポケモン管理を、もっとシンプルに</p>
 		</header>
-		{!user && <a class="home-try-button" href="/api/auth/login">ログインして始める</a>}
+		{/* ログイン状態にかかわらず要素自体は常に描画し、visibility:hiddenで見た目だけ切り替える。
+		    条件付きレンダリングでDOMごと消すと、下の.home-card-grid(margin: auto 0で中央寄せ)の
+		    位置がゲストモードon/offで上下にずれてしまう(UI改修依頼)。 */}
+		<a class="home-try-button" href="/api/auth/login" aria-hidden={user ? "true" : undefined} tabindex={user ? -1 : undefined}>ログインして始める</a>
 
 		<nav class="home-card-grid" aria-label="機能一覧">
 			<a class="card home-card" href="/box">
