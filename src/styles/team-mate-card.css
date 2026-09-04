@@ -40,6 +40,20 @@
 	border-color: transparent;
 	outline: none;
 }
+.team-mate-card.is-select-pulse {
+	animation: team-mate-card-select-pulse .16s ease-in-out;
+}
+@keyframes team-mate-card-select-pulse {
+	0%, 100% { transform: translateX(0); }
+	25% { transform: translateX(-2px); }
+	50% { transform: translateX(2px); }
+	75% { transform: translateX(-1px); }
+}
+@media (prefers-reduced-motion: reduce) {
+	.team-mate-card.is-select-pulse {
+		animation: none;
+	}
+}
 .team-mate-card--empty {
 	border: 1px solid var(--color-border);
 	color: var(--color-text-muted);

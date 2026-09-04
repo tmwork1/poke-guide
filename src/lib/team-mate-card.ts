@@ -20,11 +20,19 @@ export interface TeamMateSlotsOptions<T extends TeamMateCardPokemon> {
 	applyItemIcon: (imgEl: HTMLImageElement, itemName: string, visibilityEl?: HTMLElement) => void | Promise<void>;
 	/** falseならアイコン右下の持ち物オーバーレイを描かない(もちもの入替モーダルは別行でアイテムを表示するため)。省略時true。 */
 	showItem?: boolean;
+	/** 新しく選択したカードだけに一回限りの選択アニメーションを付ける。省略時false。 */
+	animateSelectedSlot?: boolean;
 }
+
+const previousSelectedSlotByRoot = new WeakMap<HTMLElement, number | null>();
 
 /** 編成タブと相性タブで共通のチームメイト6枠を描画する。 */
 export function renderTeamMateSlots<T extends TeamMateCardPokemon>(options: TeamMateSlotsOptions<T>): void {
-	const { root, membersBySlot, displayName, selectedSlot = null, onSlotClick, onSlotTap, onSlotDoubleTap, onSlotLongPress, applySprite, applyItemIcon, showItem = true } = options;
+	const { root, membersBySlot, displayName, selectedSlot = null, onSlotClick, onSlotTap, onSlotDoubleTap, onSlotLongPress, applySprite, applyItemIcon, showItem = true, animateSelectedSlot = false } = options;
+	const isNewlySelected = animateSelectedSlot
+		&& !window.matchMedia("(prefers-reduced-motion: reduce)").matches
+		&& selectedSlot !== null
+		&& selectedSlot !== previousSelectedSlotByRoot.get(root);
 	root.innerHTML = "";
 
 	for (let slot = 1; slot <= 6; slot += 1) {
@@ -80,7 +88,13 @@ export function renderTeamMateSlots<T extends TeamMateCardPokemon>(options: Team
 
 		card.classList.add("team-mate-card");
 		card.dataset.slot = String(slot);
-		if (selectedSlot === slot) card.classList.add("is-selected");
+		if (selectedSlot === slot) {
+			card.classList.add("is-selected");
+			if (isNewlySelected && member) {
+				card.classList.add("is-select-pulse");
+				card.addEventListener("animationend", () => card.classList.remove("is-select-pulse"), { once: true });
+			}
+		}
 
 		if (!member) {
 			card.classList.add("team-mate-card--empty");
@@ -117,4 +131,5 @@ export function renderTeamMateSlots<T extends TeamMateCardPokemon>(options: Team
 
 		root.appendChild(card);
 	}
+	previousSelectedSlotByRoot.set(root, selectedSlot);
 }

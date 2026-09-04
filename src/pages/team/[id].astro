@@ -644,7 +644,7 @@ if (!isGuestNewMode) {
 					root: itemRedistributeMembers,
 					membersBySlot: effective,
 					displayName,
-					selectedSlot: selectedRedistributionSlot,
+					selectedSlot: null,
 					onSlotTap: onRedistributionMemberTap,
 					onSlotLongPress: clearRedistributedItem,
 					applySprite,
@@ -804,7 +804,9 @@ if (!isGuestNewMode) {
 				excludeValue: (itemName) => isMegaStoneItemName(itemName) || isRedistributionItemInUse(itemName),
 				onSelect: (itemName) => {
 					if (selectedRedistributionSlot !== null) {
-						setRedistributedItem(selectedRedistributionSlot, itemName);
+						const slot = selectedRedistributionSlot;
+						selectedRedistributionSlot = null;
+						setRedistributedItem(slot, itemName);
 						return;
 					}
 					selectedRedistributionItem = selectedRedistributionItem === itemName ? null : itemName;
@@ -1552,6 +1554,7 @@ if (!isGuestNewMode) {
 					onSlotLongPress: onFormationSlotLongPress,
 					applySprite,
 					applyItemIcon,
+					animateSelectedSlot: true,
 				});
 				renderTeamMateSlots({
 					root: matchupMobileSlotsRoot,
