@@ -272,6 +272,10 @@ body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-owne
   font-size: var(--speed-adjust-value-size);
 }
 
+body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-owned-summary-value.is-adjusted {
+  color: var(--color-primary-strong);
+}
+
 body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-owned-raw-value strong {
   font-weight: var(--font-weight-normal);
 }

@@ -133,9 +133,9 @@ export function initOwnedPanel(ctx: OwnedPanelContext): OwnedPanelController {
   let considerAbility = false;
   // バグ修正: 以前は常にtrue固定だったため、もちものを持たない個体でも
   // 「もちものを考慮」トグルがONで表示されてしまっていた。この個体が実際に
-  // 何らかのもちものを持っている場合だけ初期ONにする(スカーフが使えない種族なら
-  // どのみち効果が無いので、その場合も含めfalseにしておく)。
-  let considerItem = !!ctx.scarfModifier && !!currentItem;
+  // すばやさ補正のある持ち物を持っている場合だけ初期ONにする(スカーフが使えない
+  // 種族なら、どのみち効果が無いのでfalseにしておく)。
+  let considerItem = !!ctx.scarfModifier && !!ctx.scarfItemName && currentItem === ctx.scarfItemName;
   let combos = buildCombos();
   let currentValue = computeCurrentValue();
   const renderedCells = new Map<number, HTMLElement>();
@@ -222,15 +222,17 @@ export function initOwnedPanel(ctx: OwnedPanelContext): OwnedPanelController {
       const embedded = document.querySelector<HTMLElement>('.speed-chart-table')?.dataset.embedded === 'true';
       evsEl.textContent = embedded ? `+${currentEvs[5] ?? 0}` : `努力値 ${currentEvs[5] ?? 0}`;
     }
+    const effect = getNatureSpeedEffect(currentNature);
+    const rawValue = calcOtherStat(50, ctx.baseSpeed, 31, currentEvs[5] ?? 0, NATURE_EFFECT_MODIFIER[effect]);
     const valueEl = document.getElementById(SUMMARY_VALUE_ID);
     if (valueEl) {
       const embedded = document.querySelector<HTMLElement>('.speed-chart-table')?.dataset.embedded === 'true';
       valueEl.textContent = embedded ? String(currentValue) : `すばやさ ${currentValue}`;
+      valueEl.classList.toggle('is-adjusted', currentValue !== rawValue);
     }
     const rawValueEl = document.getElementById(SUMMARY_RAW_VALUE_ID);
     if (rawValueEl) {
-      const effect = getNatureSpeedEffect(currentNature);
-      rawValueEl.textContent = String(calcOtherStat(50, ctx.baseSpeed, 31, currentEvs[5] ?? 0, NATURE_EFFECT_MODIFIER[effect]));
+      rawValueEl.textContent = String(rawValue);
     }
   }
 
@@ -250,8 +252,8 @@ export function initOwnedPanel(ctx: OwnedPanelContext): OwnedPanelController {
     // (abilityToggleが特性補正の無い特性のとき無効化するのと同じパターン)。
     itemToggle.disabled = !ctx.scarfModifier;
     itemToggle.title = ctx.scarfModifier ? '' : 'この個体はもちものによるすばやさ補正を持てません';
-    // 初期チェック状態はconsiderItemの初期値(この個体が実際にもちものを持っているか)に揃える。
-    itemToggle.checked = considerItem;
+    // 初期チェック状態はconsiderItemの初期値(持ち物がすばやさ補正に寄与するか)に揃える。
+    itemToggle.checked = !!ctx.scarfModifier && !!ctx.scarfItemName && currentItem === ctx.scarfItemName;
   }
   const clampRank = (value: number): number => Math.max(-6, Math.min(6, Math.trunc(value)));
   const updateRankControls = (rank: number): void => {
