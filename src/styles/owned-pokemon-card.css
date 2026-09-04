@@ -270,6 +270,9 @@
 
 .box-grid .box-card .card-name {
   margin: 0;
+  display: flex;
+  align-items: flex-end;
+  gap: 0.2rem;
   flex: 1 1 auto;
   min-width: 0;
   font-size: 0.8rem; /* ポケモンの名前。カード左上に出る主要な文字の大きさ */
@@ -280,13 +283,17 @@
 
 .box-grid .box-card .card-name-main,
 .box-grid .box-card .card-name-suffix {
-  display: block;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+.box-grid .box-card .card-name-main {
+  min-width: 0;
+}
+
 .box-grid .box-card .card-name-suffix {
+  flex: 0 1 auto;
   font-size: 0.75em;
 }
 
