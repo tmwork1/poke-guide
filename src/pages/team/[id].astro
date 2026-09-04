@@ -850,6 +850,10 @@ if (!isGuestNewMode) {
 				fallbackEl: HTMLElement,
 				name: string,
 			): Promise<void> {
+				// 画像の可否が決まるまでフォールバック文字(種族名の先頭)を出さない。
+				// 出したままにすると、カード再描画のたびに文字が一瞬見え、
+				// 画像と横並びになってスプライトが左右にずれて見える。
+				fallbackEl.style.display = "none";
 				const imageId = name ? (await imageIdMapPromise).get(name) : undefined;
 				if (imageId == null) {
 					imgEl.style.display = "none";
@@ -1497,6 +1501,18 @@ if (!isGuestNewMode) {
 				}
 			}
 
+			// 選択状態だけが変わったときは、カードを作り直さずクラスとaria-pressedだけ更新する
+			// (作り直すとスプライトを読み込み直すため、アイコンが一瞬ちらついてずれる)。
+			// 子要素は常に枠1〜6の順で6つ並ぶ前提。
+			function updateOverviewSelection(): void {
+				Array.from(overviewGrid.children).forEach((node, index) => {
+					const card = node as HTMLElement;
+					const selected = selectedOverviewSlot === index + 1;
+					card.classList.toggle("is-selected", selected);
+					card.setAttribute("aria-pressed", String(selected));
+				});
+			}
+
 			function onOverviewSlotTap(slot: number): void {
 				if (selectedOverviewSlot !== null && selectedOverviewSlot !== slot) {
 					const fromSlot = selectedOverviewSlot;
@@ -1504,12 +1520,12 @@ if (!isGuestNewMode) {
 					if (membersBySlot.has(fromSlot) || membersBySlot.has(slot)) {
 						swapMembersBetweenSlots(fromSlot, slot);
 					} else {
-						renderOverviewGrid();
+						updateOverviewSelection();
 					}
 					return;
 				}
 				selectedOverviewSlot = selectedOverviewSlot === slot ? null : slot;
-				renderOverviewGrid();
+				updateOverviewSelection();
 			}
 
 			// 自チーム内の操作(相互入れ替え・空き枠への移動・解除)は編成タブに限らず、
@@ -1745,7 +1761,7 @@ if (!isGuestNewMode) {
 				if (selectedOverviewSlot === null) return;
 				if (overviewGrid.contains(event.target as Node)) return;
 				selectedOverviewSlot = null;
-				renderOverviewGrid();
+				updateOverviewSelection();
 			});
 
 			// --- 選択バーの描画(R-7・R-10) ---
