@@ -12,8 +12,9 @@
 	margin: var(--space-3) 0 0;
 	padding: 0;
 	display: grid;
-	/* 基準幅412pxから左右8px×2を除く396pxでは、4列・間隔8px×3で(396-24)÷4=93px。 */
-	grid-template-columns: repeat(auto-fill, minmax(77px, 93px));
+	/* 相性一覧は常に4列。狭幅ではカード幅を縮め、実効幅の変化で3列へ落ちないようにする。
+	   基準幅396pxでは、間隔8px×3を除いた93pxずつになる。 */
+	grid-template-columns: repeat(4, minmax(0, 93px));
 	justify-content: center;
 	gap: var(--space-2);
 }
