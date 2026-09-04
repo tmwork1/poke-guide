@@ -354,6 +354,7 @@ if (!isGuestNewMode) {
 			ownedPokemonDisplayName as displayName,
 			renderBoxPokemonCard,
 		} from "../../lib/owned-pokemon-card";
+		import { splitBoxCardDisplayName } from "../../lib/box-card-display-name";
 		import { renderTeamMateSlots } from "../../lib/team-mate-card";
 		import { renderTopBuildCard } from "../../lib/ranked-teams/card";
 		import { calculateBuildSimilarity, calculateTeamSimilarity } from "../../lib/build-similarity";
@@ -1409,7 +1410,17 @@ if (!isGuestNewMode) {
 					left.className = "pokemon-preview-left";
 					const nameEl = document.createElement("div");
 					nameEl.className = "pokemon-preview-name";
-					nameEl.textContent = p.species_name;
+					const { name, suffix } = splitBoxCardDisplayName(p.species_name);
+					const nameMainEl = document.createElement("span");
+					nameMainEl.className = "pokemon-preview-name-main";
+					nameMainEl.textContent = name;
+					nameEl.appendChild(nameMainEl);
+					if (suffix) {
+						const nameSuffixEl = document.createElement("span");
+						nameSuffixEl.className = "pokemon-preview-name-suffix";
+						nameSuffixEl.textContent = suffix;
+						nameEl.appendChild(nameSuffixEl);
+					}
 					const details = document.createElement("div");
 					details.className = "pokemon-preview-details";
 					const ability = document.createElement("div");

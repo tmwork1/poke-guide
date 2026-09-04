@@ -108,15 +108,32 @@
 	行末部分だけ、余白を確保する。 */
 
 .team-overview-preview-card .pokemon-preview-name {
+	display: flex;
+	align-items: flex-end;
+	gap: 0.2rem;
 	overflow: hidden;
 	padding-inline-end: calc(var(--team-card-item-badge-size) + var(--team-card-item-gap));
 	font-size: var(--font-size-sm2);
-	font-weight: var(--font-weight-medium);
+	font-weight: var(--font-weight-normal);
 	line-height: 1.6;
 	color: var(--color-text);
 	text-align: left;
+}
+
+.team-overview-preview-card .pokemon-preview-name-main,
+.team-overview-preview-card .pokemon-preview-name-suffix {
+	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
+}
+
+.team-overview-preview-card .pokemon-preview-name-main {
+	min-width: 0;
+}
+
+.team-overview-preview-card .pokemon-preview-name-suffix {
+	flex: 0 1 auto;
+	font-size: 0.75em;
 }
 
 /* とくせいとわざ */
