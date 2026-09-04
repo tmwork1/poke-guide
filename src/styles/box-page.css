@@ -51,10 +51,12 @@
   display: contents;
 }
 
-/* 圧縮表示では画面幅にかかわらず6列へ固定する。通常表示時のglobal.cssの
+/* 圧縮表示では画面幅にかかわらず6列へ固定し、カード上限サイズも
+   チーム編成のメイト枠(.team-mate-grid)と同じ値に揃える。通常表示時のglobal.cssの
    レスポンシブ列数トークンは、この状態クラスがない限り従来どおり利用する。 */
 .box-content.is-compact .box-grid {
   --box-grid-columns: 6;
+  --box-card-size-max: var(--compact-thumb-card-size-max);
 }
 
 /* 圧縮表示はチーム一覧(/team、カード圧縮表示時の.team-mate-grid/.team-mate-card。
@@ -66,6 +68,9 @@
    名前・技(.card-body、display:contentsで子がグリッド行を占有)を隠しても、
    公式絵(.card-artwork)・持ち物バッジ(.card-item-badge)はposition:absoluteで
    独立しているため表示され続ける。 */
+.box-content.is-compact .box-grid .box-card {
+  padding: var(--space-1); /* .team-mate-cardと同じ内側余白にする(画像サイズの見た目を揃える) */
+}
 .box-content.is-compact .box-grid .box-card .card-body {
   display: none;
 }

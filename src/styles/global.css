@@ -140,6 +140,9 @@
   --box-grid-columns: 3;
   --team-overview-card-size-max: 194px;
   --team-overview-grid-columns: 2;
+  /* 6枠固定で1行に並べる小さい正方形サムネイル(チーム編成のメイト枠=.team-mate-grid、
+     box一覧の圧縮表示)で共有する上限サイズ。 */
+  --compact-thumb-card-size-max: 63px;
 
   /* auto-fill は利用可能幅から列数を再計算し、402px端末で3列が2列へ落ちるため使わない。
      列数は下記ラダーで明示的に切り替え、カードが上限より小さい間だけ幅に追従させる。 */

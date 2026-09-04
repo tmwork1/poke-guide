@@ -96,7 +96,7 @@
 
 .team-mate-grid {
 	display: grid;
-	grid-template-columns: repeat(6, minmax(0, 63px));
+	grid-template-columns: repeat(6, minmax(0, var(--compact-thumb-card-size-max)));
 	justify-content: center;
 	gap: var(--space-1); /* 6枠どうしの間隔 */
 }
