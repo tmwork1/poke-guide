@@ -244,8 +244,8 @@
 	height: 100%;
 	object-fit: contain;
 	/* カード中央から左端に向かって薄くし、文字との重なりを抑える。 */
-	mask-image: linear-gradient(to right, transparent 0%, rgb(0 0 0 / 0.45) 28%, #000 50%);
-	-webkit-mask-image: linear-gradient(to right, transparent 0%, rgb(0 0 0 / 0.45) 28%, #000 50%);
+	mask-image: linear-gradient(to right, transparent 0%, rgb(0 0 0 / 0.6) 28%, #000 50%);
+	-webkit-mask-image: linear-gradient(to right, transparent 0%, rgb(0 0 0 / 0.6) 28%, #000 50%);
 }
 
 .team-overview-preview-card .pokemon-preview-sprite-wrap span {
