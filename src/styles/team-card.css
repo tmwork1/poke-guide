@@ -31,57 +31,31 @@
    -------------------------------------------------------------------------- */
 .team-grid {
   /* ── 1. 文字サイズ ─────────────────────── */
-  --team-card-empty-font-size: var(--font-size-lg3); /* 空き枠番号の大きさ */
-  --team-card-title-font-size: var(--font-size-base); /* チーム名の文字サイズ */
-  --team-card-inline-name-font-size: var(--font-size-sm1); /* 上位構築カードのトレーナー名の文字サイズ */
   --team-card-badge-font-size: var(--font-size-sm3); /* バッジ文字の大きさ */
 
   /* ── 2. 文字の太さ・行間 ──────────────────── */
-  --team-card-empty-font-weight: var(--font-weight-bold); /* 空き枠番号の太さ */
-  --team-card-title-font-weight: var(--font-weight-semibold); /* チーム名の太さ */
-  --team-card-inline-name-font-weight: var(--font-weight-normal); /* 上位構築カードのトレーナー名の太さ */
-  --team-card-action-font-weight: var(--font-weight-normal); /* 星アイコンの太さ */
-  --team-card-title-line-height: var(--line-height-tight); /* チーム名の行の高さ */
-  --team-card-empty-line-height: 1; /* 空き枠番号の行の高さ */
 
   /* ── 3. 文字色 ───────────────────────── */
-  --team-card-badge-color: var(--color-text-muted); /* バッジ文字の色 */
   --team-card-action-color: var(--color-text-muted); /* 通常時の星・記事アイコンの色 */
   --team-card-action-hover-color: var(--color-text); /* 操作に触れたときのアイコン色 */
-  --team-card-empty-color: var(--color-text-muted); /* 空き枠番号の文字色 */
 
   /* ── 4. 背景色 ───────────────────────── */
   --team-card-header-background: var(--color-surface); /* チーム名を置く帯の背景色 */
-  --team-card-badge-background: var(--color-bg); /* バッジの背景色 */
 
   /* ── 5. 枠線・角丸 ─────────────────────── */
-  --team-card-focus-outline: 2px solid var(--color-primary); /* キーボードで選んだカードの外枠 */
-  --team-card-focus-outline-offset: 2px; /* 選択時の外枠をカードから離す距離 */
-  --team-card-badge-border-radius: var(--radius-sm); /* バッジの角の丸み */
 
   /* ── 7. 余白 ────────────────────────── */
-  --team-card-header-padding: var(--space-3) 8rem var(--space-3) var(--space-3); /* タイトル周囲の余白。右側はバッジ・ボタンとの重なりを防ぐ */
   --team-card-list-gap: var(--space-4); /* カードどうしの縦の間隔。大きくすると一覧が広がる */
   --team-card-meta-gap: var(--space-2); /* バッジどうしの間隔 */
-  --team-card-badge-padding: 0.3rem 0.55rem; /* バッジ内側の余白。大きくするとバッジが膨らむ */
-  --team-card-member-grid-gap: var(--space-1); /* ヘッダ帯と6枠、および6枠どうしの間隔 */
   --team-card-inline-gap: var(--space-2);
-  --team-card-popover-padding: var(--space-2);
-  --team-card-popover-border-radius: var(--radius-sm);
-  --team-card-popover-background: color-mix(in srgb, var(--color-surface) 90%, white 10%); /* カード本体より明るくして重なりを区別する */
-  --team-card-popover-border-color: var(--color-primary);
 
   /* ── 8. 寸法 ────────────────────────── */
-  --team-card-header-min-height: 38px; /* ヘッダ帯の最低の高さ。大きくすると帯が縦に広がる */
   --team-card-action-size: 32px; /* 星・記事リンクを押せる正方形の大きさ */
   --team-card-article-icon-size: 18px; /* 記事リンクのSVGアイコンの大きさ */
 
   /* ── 9. その他 ───────────────────────── */
-  --team-card-meta-right: 48px; /* バッジ列の右端位置。右上ボタンとの間隔も変わる */
-  --team-card-meta-top: 9px; /* バッジ列の上端位置 */
   --team-card-action-top: 8px; /* 星・記事リンクの上端位置 */
   --team-card-action-right: var(--space-2); /* 星・記事リンクの右端位置 */
-  --team-card-empty-number-opacity: 0.58; /* 空き枠番号の薄さ。小さくすると目立たなくなる */
 }
 
 /* --------------------------------------------------------------------------
@@ -118,7 +92,7 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: var(--team-card-member-grid-gap);
+  gap: var(--space-1);
   padding: 0;
   width: 100%;
   /* --box-card-grid-gapは.box-grid自身にしか定義されておらず、親の.card-teamからは
@@ -140,8 +114,8 @@
   }
 }
 .team-grid .card-team:focus-visible {
-  outline: var(--team-card-focus-outline);
-  outline-offset: var(--team-card-focus-outline-offset);
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 /* --- ヘッダ帯: タイトル1行を左寄せで置く。
@@ -151,8 +125,8 @@
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  min-height: var(--team-card-header-min-height);
-  padding: var(--team-card-header-padding);
+  min-height: 38px;
+  padding: var(--space-3) 8rem var(--space-3) var(--space-3);
   background-color: var(--team-card-header-background);
   background-image: linear-gradient(
     180deg,
@@ -167,9 +141,9 @@
 .team-grid .card-team .card-team-name {
   width: 100%;
   margin: 0;
-  font-size: var(--team-card-title-font-size);
-  font-weight: var(--team-card-title-font-weight);
-  line-height: var(--team-card-title-line-height);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
   text-align: left;
   white-space: normal;
   display: -webkit-box;
@@ -189,14 +163,13 @@
 .team-grid .card-team--top-build {
   --team-card-inline-gap: calc(var(--space-3) * 2);
   --team-card-meta-gap: var(--space-3);
-  --team-card-top-build-meta-font-size: calc(var(--team-card-badge-font-size) + 0.125rem);
 }
 .team-grid .card-team .card-team-header--inline .card-team-name {
   flex: 0 1 auto;
   min-width: 0;
-  font-size: var(--team-card-inline-name-font-size);
+  font-size: var(--font-size-sm1);
   width: auto;
-  font-weight: var(--team-card-inline-name-font-weight);
+  font-weight: var(--font-weight-normal);
 }
 
 /* --- ヘッダ帯の右側に重ねるバッジ列(/team はレギュレーション、
@@ -204,8 +177,8 @@
    左隣に来るよう right: 48px。 --- */
 .team-grid .card-team .card-team-meta-row {
   position: absolute;
-  top: var(--team-card-meta-top);
-  right: var(--team-card-meta-right);
+  top: 9px;
+  right: 48px;
   display: flex;
   align-items: center;
   gap: var(--team-card-meta-gap);
@@ -219,7 +192,7 @@
 .team-grid .card-team--top-build .card-team-rank-text,
 .team-grid .card-team--top-build .card-team-rating-text {
   color: var(--color-text-muted);
-  font-size: var(--team-card-top-build-meta-font-size);
+  font-size: calc(var(--team-card-badge-font-size) + 0.125rem);
   white-space: nowrap;
 }
 /* .badge(global.css)を土台に、帯の上で主張しすぎない控えめな見え方へ寄せる。
@@ -228,10 +201,10 @@
 .team-grid .card-team .card-team-rank-badge,
 .team-grid .card-team .card-team-rating-badge {
   flex-shrink: 0;
-  padding: var(--team-card-badge-padding);
-  border-radius: var(--team-card-badge-border-radius);
-  background: var(--team-card-badge-background);
-  color: var(--team-card-badge-color);
+  padding: 0.3rem 0.55rem;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  color: var(--color-text-muted);
   font-size: var(--team-card-badge-font-size);
   white-space: nowrap;
 }
@@ -239,8 +212,8 @@
 /* --- 右上の構築記事リンク(32px角)。 --- */
 .team-grid .card-team .card-team-article-link {
   position: absolute;
-  top: var(--team-card-action-top);
-  right: var(--team-card-action-right);
+  top: 8px;
+  right: var(--space-2);
   left: auto;
   z-index: 2;
   display: inline-flex;
@@ -255,7 +228,7 @@
   clip-path: none;
   background: transparent;
   color: var(--team-card-action-color);
-  font-weight: var(--team-card-action-font-weight);
+  font-weight: var(--font-weight-normal);
   line-height: 1;
 }
 .team-grid .card-team .card-team-article-link:hover {
@@ -354,14 +327,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--team-card-empty-color);
-  font-size: var(--team-card-empty-font-size);
-  font-weight: var(--team-card-empty-font-weight);
-  line-height: var(--team-card-empty-line-height);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-lg3);
+  font-weight: var(--font-weight-bold);
+  line-height: 1;
   user-select: none;
 }
 .team-grid .card-team .team-slot-number {
-  opacity: var(--team-card-empty-number-opacity);
+  opacity: 0.58;
 }
 
 .team-grid .card-team .card-pokemon--similar {
@@ -377,10 +350,10 @@
 .card-team-member-popover {
   position: fixed;
   z-index: 102;
-  padding: var(--team-card-popover-padding, var(--space-2));
-  border: 1px solid var(--team-card-popover-border-color, var(--color-primary));
-  border-radius: var(--team-card-popover-border-radius, var(--radius-sm));
-  background: var(--team-card-popover-background, var(--color-surface));
+  padding: var(--space-2);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--color-surface) 90%, white 10%);
   box-shadow: var(--shadow-md);
   color: var(--color-text);
   font-size: var(--team-card-badge-font-size, var(--font-size-sm3));

@@ -15,17 +15,7 @@
    ここの値を書き換えると一覧ページの見た目が変わる。
    -------------------------------------------------------------------------- */
 .box-shell {
-  /* ── 3. 文字色 ───────────────────────── */
-  --box-page-message-color: var(--color-text-muted); /* 読み込み文の文字色 */
-  --box-page-error-color: var(--color-danger-strong); /* エラー文の文字色 */
-
-  /* ── 4. 背景色 ───────────────────────── */
-  --box-page-content-background: var(--color-bg); /* カード一覧の背景色 */
-
   /* ── 7. 余白 ────────────────────────── */
-  --box-page-message-margin-top: var(--space-6); /* 読み込み・エラー文の上余白 */
-  --box-page-empty-margin-top: var(--space-4); /* 検索結果なしの文の上余白 */
-  --box-app-header-gap: var(--space-2); /* カード一覧の外側余白。大きくすると画面端から離れる */
   --box-page-card-scroll-inset: var(--list-grid-edge-gap); /* カード一覧の左右余白と共通にする上下ガード帯 */
 
 }
@@ -44,8 +34,8 @@
   left: 0;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  padding: 0 var(--box-app-header-gap);
-  background: var(--box-page-content-background);
+  padding: 0 var(--space-2); /* カード一覧の外側余白。大きくすると画面端から離れる */
+  background: var(--color-bg); /* カード一覧の背景色 */
   scroll-padding-block: var(--box-page-card-scroll-inset);
 }
 
@@ -98,8 +88,8 @@
 /* 一覧の読み込み・エラー表示: #loading-message / #error-message */
 #loading-message,
 #error-message {
-  margin-top: var(--box-page-message-margin-top);
-  color: var(--box-page-message-color);
+  margin-top: var(--space-6); /* 読み込み・エラー文の上余白 */
+  color: var(--color-text-muted); /* 読み込み文の文字色 */
 }
 
 #loading-message.loading-center {
@@ -107,12 +97,12 @@
 }
 
 #error-message {
-  color: var(--box-page-error-color);
+  color: var(--color-danger-strong); /* エラー文の文字色 */
 }
 
 /* 検索結果が0件の場合の空状態: #no-match-message */
 #no-match-message.empty-state {
-  margin-top: var(--box-page-empty-margin-top);
+  margin-top: var(--space-4); /* 検索結果なしの文の上余白 */
 }
 
 #empty-message.empty-state-plain {

@@ -12,45 +12,19 @@
 	-------------------------------------------------------------------------- */
 .speed-chart-table {
 	/* ── 1. 文字サイズ ─────────────────────── */
-	--speed-chart-value-font-size: var(--font-size-base); /* 実数値の文字サイズ。大きくすると数値が目立つ */
-	--speed-chart-base-speed-font-size: var(--font-size-sm2); /* 種族値ラベルの文字サイズ。大きくすると補足情報が目立つ */
-	--speed-chart-meta-font-size: var(--font-size-sm3); /* 最速などの文字サイズ。大きくすると補足情報が目立つ */
-	--speed-chart-origin-font-size: var(--font-size-sm3); /* 補正要因の文字サイズ。大きくすると要因が目立つ */
 
 	/* ── 3. 文字色 ─────────────────────── */
-	--speed-chart-origin-color: var(--color-text-muted); /* 補正要因の文字色。変えると要因の控えめさが変わる */
 
 	/* ── 4. 背景色 ─────────────────────── */
-	--speed-chart-current-row-background: var(--color-success-soft); /* 現在地の行の背景色。変えると現在地の強調色が変わる */
 
 	/* ── 5. 枠線・角丸 ─────────────────────── */
-	--speed-chart-row-border: 1px solid var(--color-border); /* 実数値グループ末尾の区切り線。太くすると行の境目が目立つ */
 	--speed-chart-badge-radius: 999px; /* 配分・倍率バッジの角丸。小さくすると角張る */
-	--speed-chart-chip-radius: 999px; /* ポケモンチップの角丸。小さくすると角張る */
 
 	/* ── 7. 余白 ─────────────────────── */
-	--speed-chart-side-padding: var(--space-4) var(--space-5); /* 右パネルの内側余白。大きくすると内容が内側に寄る */
-	--speed-chart-side-gap: var(--space-4); /* 右パネル内の項目間隔。大きくすると縦方向に離れる */
-	--speed-chart-content-padding: var(--space-4) var(--space-5) 0; /* 表の周囲の余白。大きくすると表が内側に寄る */
-	--speed-chart-row-gap: var(--space-4); /* 表の列どうしの間隔。大きくすると列が離れる */
-	--speed-chart-row-padding: var(--space-2) 0; /* 各行の上下余白。大きくすると行の高さが増す */
-	--speed-chart-embedded-content-padding: var(--space-3) var(--space-4); /* 埋め込み時の表の余白。大きくすると表示領域が狭まる */
-	--speed-chart-embedded-side-padding: var(--space-2) var(--space-3); /* 埋め込み時の下部パネル余白。大きくすると内容が内側に寄る */
-	--speed-chart-embedded-apply-padding: var(--space-1) var(--space-2); /* 適用ボタンの内側余白。大きくするとボタンが大きくなる */
-	--speed-chart-status-margin: var(--space-4) 0; /* 読み込み状態表示の上下余白。大きくすると表から離れる */
 	--speed-chart-value-padding-inline: var(--space-2); /* 実数値セルの左右余白。大きくすると数値の周囲が広がる */
-	--speed-chart-meta-gap: 0.35em; /* 種族値・配分・倍率の間隔。大きくすると横に離れる */
-	--speed-chart-chips-row-gap: 0.4rem; /* ポケモンチップどうしの間隔。大きくするとチップが離れる */
-	--speed-chart-chips-gap: var(--space-1); /* ポケモン行と補正要因の間隔。大きくすると縦に離れる */
-	--speed-chart-chip-unit-gap: 0; /* ポケモンチップと補正要因の間隔。大きくすると上下に離れる */
-	--speed-chart-chip-padding: var(--space-1) var(--space-2) var(--space-1) var(--space-3); /* ポケモンチップの内側余白。大きくするとチップが大きくなる */
 	--speed-chart-badge-padding: 0.05em 0.55em; /* 配分・倍率バッジの内側余白。大きくするとバッジが大きくなる */
 
 	/* ── 8. 寸法 ─────────────────────── */
-	--speed-chart-embedded-side-max-height: 172px; /* 埋め込み時の下部パネル最大高。大きくするとパネルを多く表示する */
-	--speed-chart-embedded-apply-min-width: 64px; /* 適用ボタンの最小幅。大きくするとボタンが横に広がる */
-	--speed-chart-embedded-apply-min-height: 38px; /* 適用ボタンの最小高。大きくするとボタンが縦に大きくなる */
-	--speed-chart-embedded-owned-min-height: 30px; /* 埋め込み時の個体操作欄の最小高。大きくすると操作欄が高くなる */
 	--speed-chart-chip-icon-size: 22px; /* ポケモンチップのアイコン寸法。大きくするとアイコンが大きくなる */
 }
 
@@ -97,8 +71,8 @@
 	.speed-chart-side {
 		display: flex;
 		flex-direction: column;
-		gap: var(--speed-chart-side-gap);
-		padding: var(--speed-chart-side-padding);
+		gap: var(--space-4); /* 右パネル内の項目間隔。大きくすると縦方向に離れる */
+		padding: var(--space-4) var(--space-5); /* 右パネルの内側余白。大きくすると内容が内側に寄る */
 	}
 	/* 狭幅(1カラム時)は下辺で表と区切る(.panel-rightの左罫線は縦並びでは意味を持たない)。 */
 	@media (max-width: 1199px) {
@@ -124,14 +98,14 @@
 	}
 	.speed-chart-status {
 		color: var(--color-text-muted);
-		margin: var(--speed-chart-status-margin);
+		margin: var(--space-4) 0; /* 読み込み状態表示の上下余白。大きくすると表から離れる */
 	}
 	.speed-chart-status.loading-center {
 		margin: 0;
 	}
 	/* サイドバーと表の間に余白。列見出し廃止に伴い、上方向にも余白を確保。 */
 	.speed-chart-content {
-		padding: var(--speed-chart-content-padding);
+		padding: var(--space-4) var(--space-5) 0; /* 表の周囲の余白。大きくすると表が内側に寄る */
 	}
 	/* 本文の可読幅制限を打ち消す(.panel-contentの1080pxを解除)。
 		表は「横に広いほど良い」ため。 */
@@ -158,7 +132,7 @@
 		grid-row: 2;
 		min-height: 0;
 		overflow-y: auto;
-		padding: var(--speed-chart-embedded-content-padding);
+		padding: var(--space-3) var(--space-4); /* 埋め込み時の表の余白。大きくすると表示領域が狭まる */
 	}
 	.speed-chart-table[data-embedded='true'] .speed-chart-minimap {
 		display: none;
@@ -188,14 +162,14 @@
 	}
 	.speed-chart-table[data-embedded='true'] .speed-chart-owned {
 		align-items: center;
-		min-height: var(--speed-chart-embedded-owned-min-height);
+		min-height: 30px; /* 埋め込み時の個体操作欄の最小高。大きくすると操作欄が高くなる */
 	}
 	.speed-chart-table[data-embedded='true'] .speed-chart-apply-button {
 		box-sizing: border-box;
 		display: grid;
-		min-width: var(--speed-chart-embedded-apply-min-width);
-		min-height: var(--speed-chart-embedded-apply-min-height);
-		padding: var(--speed-chart-embedded-apply-padding);
+		min-width: 64px; /* 適用ボタンの最小幅。大きくするとボタンが横に広がる */
+		min-height: 38px; /* 適用ボタンの最小高。大きくするとボタンが縦に大きくなる */
+		padding: var(--space-1) var(--space-2); /* 適用ボタンの内側余白。大きくするとボタンが大きくなる */
 		line-height: 1.15;
 	}
 	.speed-chart-table[data-embedded='true'] .speed-chart-apply-label {
@@ -305,7 +279,7 @@
 		gap: var(--space-4);
 		width: 100%;
 		box-sizing: border-box;
-		padding: var(--speed-chart-embedded-side-padding);
+		padding: var(--space-2) var(--space-3); /* 埋め込み時の下部パネル余白。大きくすると内容が内側に寄る */
 		border-top: 1px solid var(--color-border);
 		background: var(--color-surface);
 	}
@@ -386,8 +360,8 @@
 	.speed-chart-table .speed-chart-row {
 		display: grid;
 		grid-template-columns: var(--speed-chart-columns);
-		gap: var(--speed-chart-row-gap);
-		padding: var(--speed-chart-row-padding);
+		gap: var(--space-4); /* 表の列どうしの間隔。大きくすると列が離れる */
+		padding: var(--space-2) 0; /* 各行の上下余白。大きくすると行の高さが増す */
 		align-items: center;
 	}
 	/* 補正要因が2段目にある行だけは、数値・メタ情報をチップの上端に揃える。 */
@@ -399,10 +373,10 @@
 		align-items: center;
 	}
 	.speed-chart-table .speed-chart-row.speed-chart-row-value-end {
-		border-bottom: var(--speed-chart-row-border);
+		border-bottom: 1px solid var(--color-border); /* 実数値グループ末尾の区切り線。太くすると行の境目が目立つ */
 	}
 	.speed-chart-table .speed-chart-row.is-current-row {
-		background: var(--speed-chart-current-row-background);
+		background: var(--color-success-soft); /* 現在地の行の背景色。変えると現在地の強調色が変わる */
 	}
 	/* すばやさ調整モーダルでは現在行をほかの行と同じ見た目にする。 */
 	.speed-chart-table[data-embedded='true'] .speed-chart-row.is-current-row {
@@ -415,7 +389,7 @@
 		(/box/[id]の.stat-row-realと同じ階層)。列幅(80px)に対して数値だけが左寄りだと
 		詰まって見えるため中央寄せにする。 */
 	.speed-chart-table .speed-chart-value-cell {
-		font-size: var(--speed-chart-value-font-size);
+		font-size: var(--font-size-base); /* 実数値の文字サイズ。大きくすると数値が目立つ */
 		font-weight: var(--font-weight-bold);
 		padding-top: 0;
 		text-align: center;
@@ -431,10 +405,10 @@
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
-		gap: var(--speed-chart-meta-gap);
+		gap: 0.35em; /* 種族値・配分・倍率の間隔。大きくすると横に離れる */
 		min-width: 0;
 		padding-top: 0;
-		font-size: var(--speed-chart-meta-font-size);
+		font-size: var(--font-size-sm3); /* 最速などの文字サイズ。大きくすると補足情報が目立つ */
 		font-weight: var(--font-weight-medium);
 		color: var(--color-text);
 		line-height: var(--line-height-snug);
@@ -442,14 +416,14 @@
 	.speed-chart-table .speed-chart-base-speed-label {
 		color: var(--color-text-muted);
 		font-weight: var(--font-weight-medium);
-		font-size: var(--speed-chart-base-speed-font-size);
+		font-size: var(--font-size-sm2); /* 種族値ラベルの文字サイズ。大きくすると補足情報が目立つ */
 	}
 	/* 3列目: ポケモンを1段目、その補正要因を2段目・左寄せ(チップの並び自体は左寄せのまま)。 */
 	.speed-chart-table .speed-chart-chips-cell {
 		display: flex;
 		flex-direction: column;
 		align-items: flex-start;
-		gap: var(--speed-chart-chips-gap);
+		gap: var(--space-1); /* ポケモン行と補正要因の間隔。大きくすると縦に離れる */
 		min-width: 0;
 	}
 	/* 要件E: 補正要因は「グループに1つ」ではなく「チップ(=ポケモン)ごとに1つ」表示する
@@ -460,7 +434,7 @@
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		gap: var(--speed-chart-chip-unit-gap);
+		gap: 0; /* ポケモンチップと補正要因の間隔。大きくすると上下に離れる */
 		/* 横スクロール側(chips-row)でチップ名が縮んで折り返さないよう、幅を内容ぶんで固定する。 */
 		flex: none;
 	}
@@ -469,9 +443,9 @@
 		要因が無いため、その場合はこの要素自体を出力しない(chart-table.ts参照)。 */
 	.speed-chart-table .speed-chart-chip-origin {
 		margin-top: -4px;
-		font-size: var(--speed-chart-origin-font-size);
+		font-size: var(--font-size-sm3); /* 補正要因の文字サイズ。大きくすると要因が目立つ */
 		font-weight: var(--font-weight-medium);
-		color: var(--speed-chart-origin-color);
+		color: var(--color-text-muted); /* 補正要因の文字色。変えると要因の控えめさが変わる */
 		line-height: var(--line-height-snug);
 		text-align: center;
 	}
@@ -519,7 +493,7 @@
 		flex-wrap: nowrap;
 		align-items: flex-start;
 		justify-content: flex-start;
-		gap: var(--speed-chart-chips-row-gap);
+		gap: 0.4rem; /* ポケモンチップどうしの間隔。大きくするとチップが離れる */
 		width: 100%;
 		overflow-x: auto;
 		overscroll-behavior-x: contain;
@@ -542,8 +516,8 @@
 		align-items: center;
 		gap: var(--space-1);
 		font-size: var(--font-size-sm3);
-		border-radius: var(--speed-chart-chip-radius);
-		padding: var(--speed-chart-chip-padding);
+		border-radius: 999px; /* ポケモンチップの角丸。小さくすると角張る */
+		padding: var(--space-1) var(--space-2) var(--space-1) var(--space-3); /* ポケモンチップの内側余白。大きくするとチップが大きくなる */
 	}
 	.speed-chart-table .speed-chart-chip-icon {
 		width: var(--speed-chart-chip-icon-size);

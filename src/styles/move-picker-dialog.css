@@ -15,7 +15,7 @@ body.data-page {
   /* ── 1. 文字サイズ ────────────────────────────────────── */
   --move-picker-close-size: var(--modal-close-font-size); /* 閉じるボタンの×。大きくすると記号が目立つ */
   --move-picker-header-title-size: var(--modal-title-font-size); /* ヘッダー見出し。モーダルヘッダー規格(global.css)に揃える */
-  --move-picker-title-size: var(--font-size-sm1); /* モバイルの技スロット名。大きくすると行が高くなる */
+
   --move-picker-control-size: var(--font-size-sm1); /* 絞り込み・並べ替え操作。大きくすると操作文字が読みやすくなる */
   --move-picker-table-size: var(--font-size-sm1); /* 技一覧の文字。大きくすると一覧の表示行数が減る */
   --move-picker-empty-size: var(--font-size-sm2); /* 技がないときの案内文。大きくすると案内が目立つ */
@@ -24,16 +24,11 @@ body.data-page {
 
   /* ── 5. 枠線・角丸 ────────────────────────────────────── */
   --move-picker-dialog-radius: var(--modal-radius); /* モバイルモーダルの角丸。大きくすると角が丸くなる */
-  --move-picker-dialog-border: var(--modal-border); /* モーダルの外枠線。太くすると輪郭が目立つ */
-  --move-picker-dialog-shadow: var(--shadow-lg); /* モーダル共通の浮遊感に揃える。 */
 
   /* ── 7. 余白 ──────────────────────────────────────────── */
-  --move-picker-slot-type-icon-gap: 0; /* 技スロット内のタイプアイコンと技名の間隔 */
-  --move-picker-header-gap: var(--modal-header-gap); /* ヘッダー内の要素間隔。大きくすると見出しと操作が離れる */
+
   --move-picker-close-box-size: var(--modal-close-size); /* 閉じるボタンの最小タップ域。モーダルヘッダー規格(global.css)に揃える */
-  --move-picker-header-padding: var(--modal-header-padding); /* モーダル共通の見出し行余白。 */
-  --move-picker-tabs-gap: var(--space-2); /* モバイルの技スロット間隔。大きくするとボタンが離れる */
-  --move-picker-tabs-padding: var(--space-2) var(--space-3); /* 技スロット列の内側余白。大きくすると列が厚くなる */
+
   --move-picker-note-padding: var(--space-2) 0.8rem; /* 補足文の内側余白。大きくすると補足行が厚くなる */
   --move-picker-table-header-padding-block: 0.35rem; /* 一覧見出しセルの上下余白 */
   --move-picker-table-header-padding-inline: 0.4rem; /* 一覧見出しセルの左右余白 */
@@ -43,9 +38,7 @@ body.data-page {
   --move-picker-empty-padding: var(--space-4); /* 空一覧の内側余白。大きくすると案内の周囲が広がる */
 
   /* ── 8. 寸法 ──────────────────────────────────────────── */
-  --move-picker-slot-tab-min-height: 2.4rem; /* モバイルの技スロットの最小高さ */
-  --move-picker-dialog-z-index: 100;
-  --move-picker-backdrop-z-index: 99;
+
   --move-picker-dialog-inset: var(--space-3);
   --move-picker-dialog-max-width: 42rem;
   --move-picker-dialog-height: var(--modal-height); /* モバイルモーダルの高さ。技一覧は内部でスクロールする */
@@ -62,10 +55,10 @@ body.data-page {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  border: var(--move-picker-dialog-border);
+  border: var(--modal-border); /* モーダルの外枠線。太くすると輪郭が目立つ */
   border-radius: var(--move-picker-dialog-radius);
   background: var(--color-surface);
-  box-shadow: var(--move-picker-dialog-shadow);
+  box-shadow: var(--shadow-lg); /* モーダル共通の浮遊感に揃える。 */
 }
 
 .move-picker-window[hidden],
@@ -78,7 +71,7 @@ body.data-page {
   flex: 0 0 auto;
   width: var(--move-picker-slot-type-icon-size);
   height: var(--move-picker-slot-type-icon-size);
-  margin-right: var(--move-picker-slot-type-icon-gap);
+  margin-right: 0; /* 技スロット内のタイプアイコンと技名の間隔 */
   vertical-align: middle;
 }
 
@@ -87,8 +80,8 @@ body.data-page {
   display: flex;
   flex-shrink: 0;
   align-items: center;
-  gap: var(--move-picker-header-gap);
-  padding: var(--move-picker-header-padding);
+  gap: var(--modal-header-gap); /* ヘッダー内の要素間隔。大きくすると見出しと操作が離れる */
+  padding: var(--modal-header-padding); /* モーダル共通の見出し行余白。 */
   min-height: var(--modal-header-min-height);
   border-bottom: 1px solid var(--color-border);
 }
@@ -376,12 +369,12 @@ body .move-picker-empty {
   /* 狭い画面では一覧を画面中央のモーダルとして表示する */
   .move-picker-backdrop {
     position: fixed;
-    z-index: var(--move-picker-backdrop-z-index);
+    z-index: 99;
     inset: 0;
     background: var(--color-overlay);
   }
   body .move-picker-window.is-mobile-modal {
-    z-index: var(--move-picker-dialog-z-index);
+    z-index: 100;
     left: 50% !important;
     top: var(--modal-top-offset) !important;
     width: calc(100vw - (var(--move-picker-dialog-inset) * 2)) !important;
@@ -393,17 +386,17 @@ body .move-picker-empty {
   body .move-picker-slot-tabs {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: var(--move-picker-tabs-gap);
-    padding: var(--move-picker-tabs-padding);
+    gap: var(--space-2); /* モバイルの技スロット間隔。大きくするとボタンが離れる */
+    padding: var(--space-2) var(--space-3); /* 技スロット列の内側余白。大きくすると列が厚くなる */
   }
   body .move-picker-slot-tab {
     display: flex;
     align-items: center;
     justify-content: flex-start;
-    min-height: var(--move-picker-slot-tab-min-height);
+    min-height: 2.4rem; /* モバイルの技スロットの最小高さ */
     padding: 0 var(--space-2);
     overflow: hidden;
-    font-size: var(--move-picker-title-size);
+    font-size: var(--font-size-sm1); /* モバイルの技スロット名。大きくすると行が高くなる */
     font-weight: var(--font-weight-normal);
     background: color-mix(in srgb, var(--color-surface) 88%, #000 12%);
     text-overflow: ellipsis;

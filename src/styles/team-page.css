@@ -9,25 +9,8 @@
 	/team 一覧ページで使う余白と状態メッセージの見た目を調整する。
 	-------------------------------------------------------------------------- */
 body.team-page {
-	/* ── 3. 文字色 ───────────────────────── */
-	--team-page-status-color: var(--color-text-muted); /* 読み込み中・空状態メッセージの文字色 */
-	--team-page-error-color: var(--color-danger-strong); /* エラーメッセージの文字色 */
-
 	/* ── 7. 余白 ────────────────────────── */
 	--team-page-card-scroll-inset: var(--list-grid-edge-gap); /* カード一覧の左右余白と共通にする上下ガード帯 */
-	--team-page-content-padding: var(--team-page-card-scroll-inset) var(--list-grid-edge-gap) calc(var(--bottom-nav-height) + 6rem + var(--team-page-card-scroll-inset)); /* 一覧の外側余白。上下は固定UIと重ならない背景色の退避領域 */
-	--team-page-status-margin-top: var(--space-6); /* 読み込み中・エラー表示の上側余白 */
-	--team-page-content-inline-padding: var(--space-5); /* ページ本文の左右余白 */
-	--team-page-empty-margin-top: var(--space-4); /* 検索結果なし表示の上側余白 */
-
-	/* ── 8. 寸法 ──────────────────────────────────────────── */
-	/* 登録0件時の中央タイル用。.team-contentはbox-content(/box)と違いposition:fixedではなく
-	   通常のブロックなので、min-height:100%は親の高さが未確定で効かない(0扱いになる)。
-	   固定表示のヘッダー・下部ナビを除いた実際の可視領域の高さを直接計算する。
-	   /box の .box-content は position:fixed の top/bottom で上下とも
-	   --box-page-card-scroll-inset ぶん狭めているため、ここでも同じ inset を上下2回分
-	   差し引く(片方だけだと中央タイルのY位置が /box とわずかにずれる)。 */
-	--team-page-empty-min-height: calc(100dvh - var(--header-height) - var(--app-header-height) - var(--second-header-height) - var(--team-page-card-scroll-inset) - var(--bottom-nav-height) - env(safe-area-inset-bottom) - var(--team-page-card-scroll-inset));
 }
 
 /* --------------------------------------------------------------------------
@@ -35,7 +18,7 @@ body.team-page {
 	-------------------------------------------------------------------------- */
 
 .team-content.box-content {
-	padding: var(--team-page-content-padding) !important;
+	padding: var(--team-page-card-scroll-inset) var(--list-grid-edge-gap) calc(var(--bottom-nav-height) + 6rem + var(--team-page-card-scroll-inset)) !important; /* 一覧の外側余白。上下は固定UIと重ならない背景色の退避領域 */
 	scroll-padding-block: var(--team-page-card-scroll-inset);
 	-webkit-mask-image: linear-gradient(to bottom, transparent 0, transparent var(--team-page-card-scroll-inset), #000 var(--team-page-card-scroll-inset), #000 calc(100% - var(--team-page-card-scroll-inset)), transparent calc(100% - var(--team-page-card-scroll-inset)), transparent 100%);
 	mask-image: linear-gradient(to bottom, transparent 0, transparent var(--team-page-card-scroll-inset), #000 var(--team-page-card-scroll-inset), #000 calc(100% - var(--team-page-card-scroll-inset)), transparent calc(100% - var(--team-page-card-scroll-inset)), transparent 100%);
@@ -52,28 +35,33 @@ body.team-page {
 			カードの見た目・間隔を1つの定義元から共有するため、このscoped styleには置かない
 			(ルートCLAUDE.md「スタイル定義」)。 --- */
 		.team-content {
-			padding: 0 var(--team-page-content-inline-padding);
+			padding: 0 var(--space-5); /* ページ本文の左右余白 */
 		}
 		/* --- 状態メッセージ(読み込み中・エラー・空状態2種。box/index.astroと同じ作り) --- */
 		#loading-message,
 		#error-message {
-			color: var(--team-page-status-color);
-			margin-top: var(--team-page-status-margin-top);
+			color: var(--color-text-muted); /* 読み込み中・空状態メッセージの文字色 */
+			margin-top: var(--space-6); /* 読み込み中・エラー表示の上側余白 */
 		}
 		#loading-message.loading-center {
 			margin: 0;
 		}
-		#error-message { color: var(--team-page-error-color); }
+		#error-message { color: var(--color-danger-strong); /* エラーメッセージの文字色 */ }
 
 		#no-match-message.empty-state {
-			margin-top: var(--team-page-empty-margin-top);
+			margin-top: var(--space-4); /* 検索結果なし表示の上側余白 */
 		}
 
 		/* 登録0件時は、通常の追加導線と同じ操作を一覧領域中央の大きなタイルで示す。
 		   .empty-state-plainの既定min-height(global.css、50vh)のままだと可視領域の
 		   実際の高さより低く、ボタンが画面中央より上に寄って見える。 */
 		#empty-message.empty-state-plain {
-			min-height: var(--team-page-empty-min-height);
+			min-height: calc(100dvh - var(--header-height) - var(--app-header-height) - var(--second-header-height) - var(--team-page-card-scroll-inset) - var(--bottom-nav-height) - env(safe-area-inset-bottom) - var(--team-page-card-scroll-inset)); /* 登録0件時の中央タイル用。.team-contentはbox-content(/box)と違いposition:fixedではなく
+		   通常のブロックなので、min-height:100%は親の高さが未確定で効かない(0扱いになる)。
+		   固定表示のヘッダー・下部ナビを除いた実際の可視領域の高さを直接計算する。
+		   /box の .box-content は position:fixed の top/bottom で上下とも
+		   --box-page-card-scroll-inset ぶん狭めているため、ここでも同じ inset を上下2回分
+		   差し引く(片方だけだと中央タイルのY位置が /box とわずかにずれる)。 */
 		}
 		#empty-message.empty-state-plain .team-empty-add-button {
 			width: 100%;

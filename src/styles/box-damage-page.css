@@ -12,21 +12,10 @@
    -------------------------------------------------------------------------- */
 #opponent-notes-section {
   /* ── 1. 文字サイズ ─────────────────────── */
-  --box-damage-engine-status-font-size: var(--font-size-sm3); /* 計算エンジン状態文の文字の大きさ */
   --box-damage-empty-add-icon-size: var(--font-size-lg4); /* カード0枚時の追加ボタンのアイコンの大きさ。box一覧の空状態タイル(.empty-state-add-button)と揃える */
 
   /* ── 7. 余白 ────────────────────────── */
   --box-damage-card-scroll-inset: var(--list-grid-edge-gap); /* カード一覧の左右余白と共通にする上下ガード帯 */
-  --box-damage-panel-padding: var(--box-damage-card-scroll-inset) var(--space-3); /* 画面端とダメージカードの間の余白。ダメージタブは常にタブ切替表示(data-mobile-tab="damage")のため画面幅を問わずこの値になる。 */
-  --box-damage-mobile-list-padding-bottom: calc(56px + var(--bottom-nav-height) + var(--space-4) + var(--box-damage-card-scroll-inset)); /* モバイル時に浮いた追加ボタンへ隠れない一覧下余白 */
-  --box-damage-rows-gap: var(--space-3); /* ダメージ計算カード同士の縦の間隔 */
-  --box-damage-engine-status-margin: var(--space-3) 0 .4rem; /* 計算エンジン状態文の外側余白 */
-  --box-damage-suggest-section-margin-top: var(--space-5); /* ダメージ計算カード一覧と「よく行われるダメージ計算」の間隔 */
-  --box-damage-suggest-heading-margin-bottom: var(--space-2); /* 「よく行われるダメージ計算」の見出しと一覧の間隔 */
-  --box-damage-empty-add-gap: var(--space-2); /* カード0枚時の追加ボタンのアイコンと文字の間隔 */
-
-  /* ── 8. 寸法 ─────────────────────── */
-  --box-damage-empty-add-min-height: 8rem; /* カード0枚時の追加ボタンの高さ下限。box一覧の空状態タイル(.empty-state-add-button)と揃える */
 }
 
 /* --------------------------------------------------------------------------
@@ -36,14 +25,14 @@
 
 #opponent-notes-section {
   min-width: 0;
-  padding: var(--box-damage-panel-padding);
+  padding: var(--box-damage-card-scroll-inset) var(--space-3); /* 画面端とダメージカードの間の余白。ダメージタブは常にタブ切替表示(data-mobile-tab="damage")のため画面幅を問わずこの値になる。 */
   background: var(--color-bg);
   container: damage-section / inline-size;
   scroll-padding-block: var(--box-damage-card-scroll-inset);
 }
 
 #opponent-notes-section .damage-rows-list {
-  gap: var(--box-damage-rows-gap);
+  gap: var(--space-3); /* ダメージ計算カード同士の縦の間隔 */
   flex-direction: column;
   display: flex;
 }
@@ -53,8 +42,8 @@
    (.empty-state-add-button、box-page.css)と同じ8rem相当まで縮める。 */
 #opponent-notes-section .damage-empty-add-tile {
   width: 100%;
-  min-height: var(--box-damage-empty-add-min-height);
-  gap: var(--box-damage-empty-add-gap);
+  min-height: 8rem; /* カード0枚時の追加ボタンの高さ下限。box一覧の空状態タイル(.empty-state-add-button)と揃える */
+  gap: var(--space-2); /* カード0枚時の追加ボタンのアイコンと文字の間隔 */
 }
 
 /* アイコン(SVG)は幅・高さ未指定だとブラウザ既定の300×150で描画されてしまうため、
@@ -65,8 +54,8 @@
 }
 
 #opponent-notes-section .damage-calc-engine-status {
-  font-size: var(--box-damage-engine-status-font-size);
-  margin: var(--box-damage-engine-status-margin);
+  font-size: var(--font-size-sm3); /* 計算エンジン状態文の文字の大きさ */
+  margin: var(--space-3) 0 .4rem; /* 計算エンジン状態文の外側余白 */
 }
 
 #opponent-notes-section .damage-calc-engine-status[hidden] {
@@ -80,7 +69,7 @@
      自身(一覧+サジェストをまとめて包む器)に持たせ、サジェストの有無に関わらず
      常に最下部だけに空くようにする。 */
 #opponent-notes-section {
-  padding-bottom: var(--box-damage-mobile-list-padding-bottom);
+  padding-bottom: calc(56px + var(--bottom-nav-height) + var(--space-4) + var(--box-damage-card-scroll-inset)); /* モバイル時に浮いた追加ボタンへ隠れない一覧下余白 */
 }
 
 /* 「よく行われるダメージ計算」。#damage-rows-listの下に常設する枠(中身のカード一覧
@@ -88,7 +77,7 @@
    border/box-shadow/backgroundを付けない(個々のサジェストカードだけがカードとして
    枠を持つ)。見出しもタイトルバーではなく、背景の上に置くただのテキストとして扱う。 */
 #opponent-notes-section .damage-suggest-section {
-  margin-top: var(--box-damage-suggest-section-margin-top);
+  margin-top: var(--space-5); /* ダメージ計算カード一覧と「よく行われるダメージ計算」の間隔 */
 }
 
 #opponent-notes-section .damage-suggest-section[hidden] {
@@ -96,7 +85,7 @@
 }
 
 #opponent-notes-section .damage-suggest-section-heading {
-  margin: 0 0 var(--box-damage-suggest-heading-margin-bottom);
+  margin: 0 0 var(--space-2); /* 「よく行われるダメージ計算」の見出しと一覧の間隔 */
   font-size: var(--font-size-sm2);
   font-weight: var(--font-weight-semibold);
   color: var(--color-text-muted);

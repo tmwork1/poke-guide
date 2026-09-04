@@ -28,78 +28,30 @@
 
 .box-grid .box-card {
   /* ── 1. 文字サイズ ────────────────────────────────────── */
-  --box-card-name-font-size: var(--font-size-sm3); /* ポケモンの名前。カード左上に出る主要な文字の大きさ */
   --box-card-move-font-size: var(--font-size-sm3); /* カード下部に並ぶ技名。上げると4行分の必要な高さも増える */
-  --box-card-action-font-size: var(--font-size-sm2); /* 右上の丸い操作ボタン内のアイコン。変更するとボタン内での占有率が変わる */
 
   /* ── 2. 文字の太さ・行間 ──────────────────────────────── */
   --box-card-name-font-weight: var(--font-weight-medium); /* ポケモン名の太さ。数値を上げるほど名前が強調される */
-  --box-card-move-font-weight: var(--font-weight-normal); /* 技名4行の文字の太さ。増やすと一覧の文字密度が高く見える */
-  --box-card-name-line-height: var(--line-height-tight); /* ポケモン名1行の行高。広げると名前の上下に使う領域が増える */
-  --box-card-move-line-height: var(--line-height-tight); /* 各技名の行高。値を上げると技一覧全体が縦へ広がる */
-  --box-card-action-line-height: 1; /* 操作アイコンの行ボックス高。ボタン中央での上下位置に影響する */
-
-  /* ── 3. 文字色 ────────────────────────────────────────── */
-  --box-card-move-color: color-mix(in srgb, var(--color-text) 88%, #000); /* 技名をわずかに暗くする */
-  --box-card-action-color: var(--color-text-muted); /* 通常時の丸い操作アイコンを目立たせすぎない色 */
-  --box-card-action-hover-color: var(--color-text); /* ポインターを載せた操作アイコンの文字色 */
-  --box-card-recommendation-color: #ffd400; /* おすすめ★バッジの色。ライト/ダーク共通の金色固定 */
-
-  /* ── 4. 背景色 ────────────────────────────────────────── */
-  --box-card-move-type-bar-empty-color: #000; /* 技が空欄の行に表示するタイプバーの塗り色 */
-  --box-card-action-background: var(--color-surface); /* 右上に並ぶ丸い操作ボタンの通常時の下地 */
-  --box-card-action-hover-background: var(--color-bg); /* 丸い操作ボタンへポインターを載せたときの下地色 */
-
-  /* ── 5. 枠線・角丸 ────────────────────────────────────── */
-  --box-card-focus-outline: 2px solid var(--color-primary); /* キーボード操作でカード自体を選んだときのフォーカス枠 */
-  --box-card-focus-outline-offset: 2px; /* カード外周とフォーカス枠の距離。増やすと枠が外側へ離れる */
-  --box-card-action-focus-outline: 2px solid var(--color-primary); /* キーボードで操作ボタンを選択した位置を示す外枠 */
-  --box-card-action-focus-outline-offset: 2px; /* 操作ボタンと選択中の外枠との隙間。広げると輪がボタンから離れる */
-
-  /* ── 6. 影 ────────────────────────────────────────────── */
-  --box-card-move-text-shadow: 0 1px 2px rgb(0 0 0 / 0.65); /* 技名用の控えめな影 */
 
   /* ── 7. 余白 ──────────────────────────────────────────── */
-  --box-card-padding: var(--space-2); /* カード外枠から名前や技までの内側余白。増やすと内容領域が小さくなる */
   --box-card-gap: var(--space-1); /* カード内の主要な行同士と操作ボタン同士の間隔 */
   --box-card-action-offset: var(--space-2); /* 右上の操作ボタン群をカードの上端・右端から離す共通距離 */
   --box-card-move-gap: 0.05rem; /* 上下に連続する技の行間。広げると技一覧の総高も増す */
-  --box-card-move-row-padding: 0.04rem 0; /* 技1行の上下に足す余白。増やすと各行の高さがそろって広がる */
-  --box-card-move-icon-gap: 3px; /* 技タイプの細いバーと技名との横方向の隙間 */
 
   /* ── 8. 寸法 ──────────────────────────────────────────── */
-  --box-card-artwork-width: 75%; /* 右下に透かすポケモン画像の横幅。大きくするとカードを覆う範囲が広がる */
   --box-card-item-badge-size: 20%; /* 右下に重ねる持ち物アイコンの一辺。カード幅に対する比率 */
-  --box-card-move-icon-size: var(--font-size-sm3); /* 技タイプバーの高さ。技名の文字サイズに合わせた寸法 */
   --box-card-move-type-bar-width: 3px; /* 技名の左に立つタイプ識別バーの太さ */
-  --box-card-move-min-height: calc(
-    4 * (1.2 * var(--box-card-move-font-size) + 0.08rem) + 3 *
-      var(--box-card-move-gap)
-  ); /* 技が少ないカードでも4行分の領域を確保する最小の高さ */
-  --box-card-artwork-inset-inline-end: -0.1rem; /* 透かし画像をカード右端から内側へ寄せる距離 */
-  --box-card-artwork-inset-block-end: 0.05rem; /* 種族名と干渉しない範囲で、ポケモン画像をカード下端から持ち上げる距離 */
   --box-card-item-badge-offset: 3%; /* 持ち物アイコンを右端・下端から離す基準距離 */
-  --box-card-item-badge-inset-inline-end: var(--box-card-item-badge-offset); /* 持ち物アイコンの右端側の配置位置。増やすと左へ移動する */
-  --box-card-item-badge-inset-block-end: var(--box-card-item-badge-offset); /* 持ち物アイコンを右下へ配置する */
-  --box-card-action-inset-block-start: var(--box-card-action-offset); /* 操作ボタン群をカード上端から下げる位置 */
-  --box-card-action-inset-inline-end: var(--box-card-action-offset); /* 操作ボタン群をカード右端から左へ入れる位置 */
-  --box-card-background: var(--color-surface); /* カード本体の下地。ホバー・フォーカス時も同じ縦方向の質感を保つ。 */
 
-  /* ── 9. その他 ────────────────────────────────────────── */
-  --box-card-aspect-ratio: 1 / 1; /* カード外形の縦横比。現在は一覧を正方形でそろえる */
-  --box-card-artwork-aspect-ratio: 1 / 1; /* 透かし画像の表示枠の縦横比。元画像を正方形の領域に収める */
-  --box-card-name-row-justify-content: flex-start; /* 名前行の内容を横方向の先頭へ寄せる配置方式 */
-  --box-card-name-text-align: left; /* 長さの異なるポケモン名の文字開始位置を左にそろえる */
-  --box-card-content-justify-content: flex-start; /* 性格・努力値などの内容行を横方向の先頭から配置する */
-  --box-card-content-align-items: flex-end; /* 内容行を縦方向の末尾に合わせ、カード下側へ寄せる */
-  --box-card-artwork-opacity: 1; /* ポケモン画像を透過させずに表示する */
+  /* ── 4. 背景色 ────────────────────────────────────────── */
+  --box-card-background: var(--color-surface); /* カード本体の下地。ホバー・フォーカス時も同じ縦方向の質感を保つ。 */
 
 }
 
 /* カードの外枠と基本レイアウト */
 
 .box-grid .box-card {
-  padding: var(--box-card-padding);
+  padding: var(--space-2); /* カード外枠から名前や技までの内側余白。増やすと内容領域が小さくなる */
   position: relative;
   display: grid;
   grid-template-rows: auto 1fr;
@@ -110,7 +62,7 @@
   align-items: stretch;
   justify-content: normal;
   gap: var(--box-card-gap);
-  aspect-ratio: var(--box-card-aspect-ratio);
+  aspect-ratio: 1 / 1; /* カード外形の縦横比。現在は一覧を正方形でそろえる */
   overflow: hidden;
   border: 1px solid var(--color-border);
   text-decoration: none;
@@ -157,17 +109,17 @@
   }
 }
 .box-grid .box-card:focus-visible {
-  outline: var(--box-card-focus-outline);
-  outline-offset: var(--box-card-focus-outline-offset);
+  outline: 2px solid var(--color-primary); /* キーボード操作でカード自体を選んだときのフォーカス枠 */
+  outline-offset: 2px; /* カード外周とフォーカス枠の距離。増やすと枠が外側へ離れる */
 }
 
 /* カード右下に透かして重ねるポケモン画像 */
 .box-grid .box-card .card-artwork {
   position: absolute;
-  inset-inline-end: var(--box-card-artwork-inset-inline-end);
-  inset-block-end: var(--box-card-artwork-inset-block-end);
-  width: var(--box-card-artwork-width);
-  aspect-ratio: var(--box-card-artwork-aspect-ratio);
+  inset-inline-end: -0.1rem; /* 透かし画像をカード右端から内側へ寄せる距離 */
+  inset-block-end: 0.05rem; /* 種族名と干渉しない範囲で、ポケモン画像をカード下端から持ち上げる距離 */
+  width: 75%; /* 右下に透かすポケモン画像の横幅。大きくするとカードを覆う範囲が広がる */
+  aspect-ratio: 1 / 1; /* 透かし画像の表示枠の縦横比。元画像を正方形の領域に収める */
   z-index: 0;
   pointer-events: none;
 }
@@ -175,7 +127,7 @@
 	width: 100%;
 	height: 100%;
 	object-fit: contain;
-	opacity: var(--box-card-artwork-opacity);
+	opacity: 1; /* ポケモン画像を透過させずに表示する */
 	/* 左側の技名に近い部分ほど透明にして、文字との干渉を抑える。 */
 	mask-image: linear-gradient(to right, rgb(0 0 0 / 0.1) 0%, #000 100%);
 	-webkit-mask-image: linear-gradient(to right, rgb(0 0 0 / 0.1) 0%, #000 100%);
@@ -184,8 +136,8 @@
 /* カード右上に縦並びする操作ボタン */
 .box-grid .box-card .card-actions {
   position: absolute;
-  inset-block-start: var(--box-card-action-inset-block-start);
-  inset-inline-end: var(--box-card-action-inset-inline-end);
+  inset-block-start: var(--box-card-action-offset); /* 操作ボタン群をカード上端から下げる位置 */
+  inset-inline-end: var(--box-card-action-offset); /* 操作ボタン群をカード右端から左へ入れる位置 */
   display: flex;
   flex-direction: column;
   gap: var(--box-card-gap);
@@ -201,19 +153,19 @@
   padding: 0;
   border-radius: var(--card-delete-button-border-radius);
   border: var(--card-delete-button-border);
-  background: var(--box-card-action-background);
-  color: var(--box-card-action-color);
-  font-size: var(--box-card-action-font-size);
-  line-height: var(--box-card-action-line-height);
+  background: var(--color-surface); /* 右上に並ぶ丸い操作ボタンの通常時の下地 */
+  color: var(--color-text-muted); /* 通常時の丸い操作アイコンを目立たせすぎない色 */
+  font-size: var(--font-size-sm2); /* 右上の丸い操作ボタン内のアイコン。変更するとボタン内での占有率が変わる */
+  line-height: 1; /* 操作アイコンの行ボックス高。ボタン中央での上下位置に影響する */
   box-shadow: var(--card-delete-button-shadow);
 }
 .box-grid .box-card .icon-button:hover {
-  background: var(--box-card-action-hover-background);
-  color: var(--box-card-action-hover-color);
+  background: var(--color-bg); /* 丸い操作ボタンへポインターを載せたときの下地色 */
+  color: var(--color-text); /* ポインターを載せた操作アイコンの文字色 */
 }
 .box-grid .box-card .icon-button:focus-visible {
-  outline: var(--box-card-action-focus-outline);
-  outline-offset: var(--box-card-action-focus-outline-offset);
+  outline: 2px solid var(--color-primary); /* キーボードで操作ボタンを選択した位置を示す外枠 */
+  outline-offset: 2px; /* 操作ボタンと選択中の外枠との隙間。広げると輪がボタンから離れる */
 }
 
 /* 削除モードでカード右上に表示する削除ボタン。配色・寸法はglobal.cssの
@@ -298,8 +250,8 @@
 }
 .box-grid .box-card .card-content-row {
   display: flex;
-  align-items: var(--box-card-content-align-items);
-  justify-content: var(--box-card-content-justify-content);
+  align-items: flex-end; /* 内容行を縦方向の末尾に合わせ、カード下側へ寄せる */
+  justify-content: flex-start; /* 性格・努力値などの内容行を横方向の先頭から配置する */
   width: 100%;
   min-width: 0;
   position: relative;
@@ -308,7 +260,7 @@
 .box-grid .box-card .card-name-row {
   display: flex;
   align-items: center;
-  justify-content: var(--box-card-name-row-justify-content);
+  justify-content: flex-start; /* 名前行の内容を横方向の先頭へ寄せる配置方式 */
   gap: var(--box-card-gap);
   width: 100%;
   min-width: 0;
@@ -320,10 +272,10 @@
   margin: 0;
   flex: 1 1 auto;
   min-width: 0;
-  font-size: var(--box-card-name-font-size);
+  font-size: var(--font-size-sm3); /* ポケモンの名前。カード左上に出る主要な文字の大きさ */
   font-weight: var(--box-card-name-font-weight);
-  line-height: var(--box-card-name-line-height);
-  text-align: var(--box-card-name-text-align);
+  line-height: var(--line-height-tight); /* ポケモン名1行の行高。広げると名前の上下に使う領域が増える */
+  text-align: left; /* 長さの異なるポケモン名の文字開始位置を左にそろえる */
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -331,8 +283,8 @@
 
 .box-grid .box-card .card-item-badge {
   position: absolute;
-  inset-inline-end: var(--box-card-item-badge-inset-inline-end);
-  inset-block-end: var(--box-card-item-badge-inset-block-end);
+  inset-inline-end: var(--box-card-item-badge-offset); /* 持ち物アイコンの右端側の配置位置。増やすと左へ移動する */
+  inset-block-end: var(--box-card-item-badge-offset); /* 持ち物アイコンを右下へ配置する */
   display: block;
   width: var(--box-card-item-badge-size);
   height: var(--box-card-item-badge-size);
@@ -354,7 +306,7 @@
   flex: 0 0 auto;
   align-items: center;
   justify-content: center;
-  color: var(--box-card-recommendation-color);
+  color: #ffd400; /* おすすめ★バッジの色。ライト/ダーク共通の金色固定 */
   font-size: var(--font-size-sm2);
   line-height: 1;
 }
@@ -368,27 +320,30 @@
   gap: var(--box-card-move-gap);
   min-width: 0;
   margin-top: 0;
-  min-height: var(--box-card-move-min-height);
+  min-height: calc(
+    4 * (1.2 * var(--box-card-move-font-size) + 0.08rem) + 3 *
+      var(--box-card-move-gap)
+  ); /* 技が少ないカードでも4行分の領域を確保する最小の高さ */
 }
 .box-grid .box-card .card-move-chip {
   display: flex;
   align-items: center;
-  gap: var(--box-card-move-icon-gap);
+  gap: 3px; /* 技タイプの細いバーと技名との横方向の隙間 */
   min-width: 0;
   min-height: calc(1.2 * var(--box-card-move-font-size) + 0.08rem);
   font-size: var(--box-card-move-font-size);
-  line-height: var(--box-card-move-line-height);
-  font-weight: var(--box-card-move-font-weight);
-  color: var(--box-card-move-color);
-  padding: var(--box-card-move-row-padding);
+  line-height: var(--line-height-tight); /* 各技名の行高。値を上げると技一覧全体が縦へ広がる */
+  font-weight: var(--font-weight-normal); /* 技名4行の文字の太さ。増やすと一覧の文字密度が高く見える */
+  color: color-mix(in srgb, var(--color-text) 88%, #000); /* 技名をわずかに暗くする */
+  padding: 0.04rem 0; /* 技1行の上下に足す余白。増やすと各行の高さがそろって広がる */
 }
 .box-grid .box-card .card-move-type-bar {
   flex: 0 0 var(--box-card-move-type-bar-width);
   width: var(--box-card-move-type-bar-width);
-  height: var(--box-card-move-icon-size);
+  height: var(--font-size-sm3); /* 技タイプバーの高さ。技名の文字サイズに合わせた寸法 */
 }
 .box-grid .box-card .card-move-type-bar--empty {
-  background-color: var(--box-card-move-type-bar-empty-color);
+  background-color: #000; /* 技が空欄の行に表示するタイプバーの塗り色 */
 }
 .box-grid .box-card .card-move-type-bar[hidden] {
   display: none;
@@ -397,7 +352,7 @@
 	display: block;
 	width: 100%;
 	min-width: 0;
-	text-shadow: var(--box-card-move-text-shadow);
+	text-shadow: 0 1px 2px rgb(0 0 0 / 0.65); /* 技名用の控えめな影 */
 	white-space: nowrap;
 	overflow: hidden;
   text-overflow: ellipsis;

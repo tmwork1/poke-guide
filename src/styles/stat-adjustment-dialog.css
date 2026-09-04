@@ -16,22 +16,9 @@
 	=========================================================================== */
 body.box-edit-page,
 body.data-page {
-	--stat-adjustment-dialog-width: min(640px, 94vw);
-	/* 調整項目だけのときは内容量に合わせ、低い画面では共通モーダル高を上限にする。 */
-	--stat-adjustment-dialog-height: auto;
-	--stat-adjustment-dialog-max-height: var(--modal-height);
-	--stat-adjustment-dialog-background: var(--color-surface);
-	--stat-adjustment-dialog-border: var(--modal-border);
-	--stat-adjustment-dialog-radius: var(--radius-lg);
-	--stat-adjustment-dialog-shadow: var(--shadow-lg);
-	--stat-adjustment-backdrop-background: var(--color-overlay);
-	--stat-adjustment-header-padding: var(--modal-header-padding);
-	--stat-adjustment-header-gap: var(--modal-header-gap);
-	--stat-adjustment-title-font-size: var(--modal-title-font-size);
-	--stat-adjustment-title-font-weight: var(--modal-title-font-weight);
-	--stat-adjustment-close-font-size: var(--modal-close-font-size);
+
 	--stat-adjustment-close-size: var(--modal-close-size);
-	--stat-adjustment-body-padding: var(--space-3) var(--space-5);
+
 }
 
 /* ===========================================================================
@@ -44,7 +31,7 @@ body.data-page {
 	/* 耐久調整(bulk-adjust-dialog: 70/71)・すばやさ調整(speed-adjust-dialog: 100/101)は
 	   このモーダル内のボタンから開く。それらが常に手前へ重なるよう、両者より低い値にする。 */
 	z-index: 65;
-	background: var(--stat-adjustment-backdrop-background);
+	background: var(--color-overlay);
 }
 .stat-adjustment-dialog-backdrop[hidden] { display: none; }
 
@@ -54,16 +41,17 @@ body.data-page {
 	left: 50%;
 	transform: translateX(-50%);
 	z-index: 66;
-	width: var(--stat-adjustment-dialog-width);
-	height: var(--stat-adjustment-dialog-height);
-	max-height: var(--stat-adjustment-dialog-max-height);
+	width: min(640px, 94vw);
+	/* 調整項目だけのときは内容量に合わせ、低い画面では共通モーダル高を上限にする。 */
+	height: auto;
+	max-height: var(--modal-height);
 	display: flex;
 	flex-direction: column;
 	overflow: visible;
-	background: var(--stat-adjustment-dialog-background);
-	border: var(--stat-adjustment-dialog-border);
-	border-radius: var(--stat-adjustment-dialog-radius);
-	box-shadow: var(--stat-adjustment-dialog-shadow);
+	background: var(--color-surface);
+	border: var(--modal-border);
+	border-radius: var(--radius-lg);
+	box-shadow: var(--shadow-lg);
 	/* 開いた直後にdialog.focus()するため、ブラウザ既定の白いフォーカス輪郭を
 	   外枠として見せない。キーボード操作時の可視フォーカスは内部の操作要素で示す。 */
 	outline: none;
@@ -73,8 +61,8 @@ body.data-page {
 .stat-adjustment-dialog-header {
 	display: flex;
 	align-items: center;
-	gap: var(--stat-adjustment-header-gap);
-	padding: var(--stat-adjustment-header-padding);
+	gap: var(--modal-header-gap);
+	padding: var(--modal-header-padding);
 	min-height: var(--modal-header-min-height);
 	border-bottom: 1px solid var(--color-border);
 	flex-shrink: 0;
@@ -83,8 +71,8 @@ body.data-page {
 	flex: 1 1 auto;
 	min-width: 0;
 	margin: 0;
-	font-size: var(--stat-adjustment-title-font-size);
-	font-weight: var(--stat-adjustment-title-font-weight);
+	font-size: var(--modal-title-font-size);
+	font-weight: var(--modal-title-font-weight);
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
@@ -95,7 +83,7 @@ body.data-page {
 	min-height: var(--stat-adjustment-close-size);
 	padding: 0.1em 0.45em;
 	margin-right: calc(var(--modal-close-margin) - var(--modal-header-padding-x)); /* ヘッダー右端との余白を上下と揃える(モーダルヘッダー規格・global.css)。 */
-	font-size: var(--stat-adjustment-close-font-size);
+	font-size: var(--modal-close-font-size);
 	line-height: 1;
 }
 
@@ -103,7 +91,7 @@ body.data-page {
 	flex: 1 1 auto;
 	min-height: 0;
 	overflow-y: auto;
-	padding: var(--stat-adjustment-body-padding);
+	padding: var(--space-3) var(--space-5);
 }
 
 @media (max-width: 480px) {
@@ -133,8 +121,7 @@ body.data-page {
 	--stat-endpoint-button-size: 44px;
 	--stat-step-button-size: 44px;
 	--stat-number-input-width: var(--stat-ev-mobile-button-block-size); /* 努力値入力の横幅。縦幅と揃えて正方形にする */
-	--stat-number-input-height: var(--stat-ev-mobile-button-block-size); /* 努力値操作ボタンと同じ高さ */
-	--stat-number-input-mobile-padding: 0 var(--space-1);
+
 	--stat-nature-button-size: 44px;
 	--stat-nature-arrow-border-inline: 6px;
 	--stat-nature-arrow-border-block: 10px;

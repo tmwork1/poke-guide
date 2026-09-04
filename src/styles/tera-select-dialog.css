@@ -7,28 +7,14 @@
 	=========================================================================== */
 body.box-edit-page,
 body.data-page {
-	--tera-select-dialog-width: min(640px, 94vw);
-	--tera-select-dialog-height: auto; /* 20項目程度で収まるため、他モーダルと違い内容に合わせた高さにする */
-	--tera-select-dialog-max-height: var(--modal-height); /* 低い画面高でも画面からはみ出さないための上限 */
-	--tera-select-dialog-background: var(--color-surface);
-	--tera-select-dialog-border: var(--modal-border);
-	--tera-select-dialog-radius: var(--radius-lg);
-	--tera-select-dialog-shadow: var(--shadow-lg);
-	--tera-select-backdrop-background: var(--color-overlay);
-	--tera-select-header-padding: var(--modal-header-padding);
-	--tera-select-header-gap: var(--modal-header-gap);
-	--tera-select-title-font-size: var(--modal-title-font-size);
-	--tera-select-title-font-weight: var(--modal-title-font-weight);
-	--tera-select-close-font-size: var(--modal-close-font-size);
 	--tera-select-close-size: var(--modal-close-size);
-	--tera-select-content-padding: var(--space-3) var(--space-5);
 }
 
 .tera-select-backdrop {
 	position: fixed;
 	inset: 0;
 	z-index: 70;
-	background: var(--tera-select-backdrop-background);
+	background: var(--color-overlay); /* */
 }
 .tera-select-backdrop[hidden] { display: none; }
 
@@ -38,24 +24,24 @@ body.data-page {
 	left: 50%;
 	transform: translateX(-50%);
 	z-index: 71;
-	width: var(--tera-select-dialog-width);
-	height: var(--tera-select-dialog-height);
-	max-height: var(--tera-select-dialog-max-height);
+	width: min(640px, 94vw); /* */
+	height: auto; /* 20項目程度で収まるため、他モーダルと違い内容に合わせた高さにする */
+	max-height: var(--modal-height); /* 低い画面高でも画面からはみ出さないための上限 */
 	display: flex;
 	flex-direction: column;
 	overflow: visible;
-	background: var(--tera-select-dialog-background);
-	border: var(--tera-select-dialog-border);
-	border-radius: var(--tera-select-dialog-radius);
-	box-shadow: var(--tera-select-dialog-shadow);
+	background: var(--color-surface); /* */
+	border: var(--modal-border); /* */
+	border-radius: var(--radius-lg); /* */
+	box-shadow: var(--shadow-lg); /* */
 }
 .tera-select-dialog[hidden] { display: none; }
 
 .tera-select-header {
 	display: flex;
 	align-items: center;
-	gap: var(--tera-select-header-gap);
-	padding: var(--tera-select-header-padding);
+	gap: var(--modal-header-gap); /* */
+	padding: var(--modal-header-padding); /* */
 	min-height: var(--modal-header-min-height);
 	border-bottom: 1px solid var(--color-border);
 	flex-shrink: 0;
@@ -67,8 +53,8 @@ body.data-page {
 	margin-bottom: 0;
 	padding-bottom: 0;
 	border-bottom: none;
-	font-size: var(--tera-select-title-font-size);
-	font-weight: var(--tera-select-title-font-weight);
+	font-size: var(--modal-title-font-size); /* */
+	font-weight: var(--modal-title-font-weight); /* */
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
@@ -79,7 +65,7 @@ body.data-page {
 	min-height: var(--tera-select-close-size);
 	padding: 0.1em 0.45em;
 	margin-right: calc(var(--modal-close-margin) - var(--modal-header-padding-x)); /* ヘッダー右端との余白を上下と揃える(モーダルヘッダー規格・global.css)。 */
-	font-size: var(--tera-select-close-font-size);
+	font-size: var(--modal-close-font-size); /* */
 	line-height: 1;
 }
 
@@ -87,7 +73,7 @@ body.data-page {
 	flex: 1 1 auto;
 	min-height: 0;
 	overflow-y: auto;
-	padding: var(--tera-select-content-padding);
+	padding: var(--space-3) var(--space-5); /* */
 }
 .tera-select-grid {
 	display: grid;

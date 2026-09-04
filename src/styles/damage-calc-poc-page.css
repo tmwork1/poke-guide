@@ -10,42 +10,21 @@
    =========================================================================== */
 body.damage-calc-poc-page {
   /* ── 1. 文字サイズ ────────────────────────────────────── */
-  --damage-calc-poc-button-font-size: 1rem; /* 操作ボタンの文字。大きくすると押す操作が目立つ */
-  --damage-calc-poc-log-font-size: 0.85em; /* 実行ログの文字。大きくすると補足結果が読みやすくなる */
 
   /* ── 2. 文字の太さ・行間 ──────────────────────────────── */
-  --damage-calc-poc-status-font-weight: bold; /* エンジン状態の太さ。太くすると状態が目立つ */
 
   /* ── 3. 文字色 ────────────────────────────────────────── */
-  --damage-calc-poc-status-loading-color: var(--color-warning); /* 読み込み中の状態色。変えると注意表示の印象が変わる */
-  --damage-calc-poc-status-ready-color: var(--color-success); /* 準備完了の状態色。変えると成功表示の印象が変わる */
-  --damage-calc-poc-status-error-color: var(--color-danger); /* エラー時の状態色。変えると警告の強さが変わる */
-  --damage-calc-poc-log-color: var(--color-text-muted); /* 実行ログの色。薄くすると主結果より控えめになる */
 
   /* ── 4. 背景色 ────────────────────────────────────────── */
-  --damage-calc-poc-result-background: var(--color-bg); /* 計算結果欄の背景。変えると結果エリアの区別が変わる */
 
   /* ── 5. 枠線・角丸 ────────────────────────────────────── */
-  --damage-calc-poc-spinner-border: 2px solid var(--color-border); /* 読み込みマークの輪郭。太さや色で存在感が変わる */
-  --damage-calc-poc-spinner-border-top-color: var(--color-warning); /* 読み込みマーク上側の色。変えると回転の見え方が変わる */
-  --damage-calc-poc-spinner-border-radius: 50%; /* 読み込みマークの丸さ。変えると形が変わる */
 
   /* ── 7. 余白 ──────────────────────────────────────────── */
-  --damage-calc-poc-row-margin: 0.4rem 0; /* 入力行どうしの間隔。大きくするとフォームが縦に広がる */
-  --damage-calc-poc-input-padding: 0.3em 0.5em; /* 入力欄の内側余白。大きくすると入力欄がゆったりする */
-  --damage-calc-poc-button-padding: 0.5em 1.2em; /* 操作ボタンの内側余白。大きくすると押せる面積が広がる */
-  --damage-calc-poc-spinner-margin-right: 0.5em; /* 読み込みマークと状態文の間隔。大きくすると離れる */
-  --damage-calc-poc-result-padding: 1rem; /* 計算結果欄の内側余白。大きくすると結果が内側に寄る */
 
   /* ── 8. 寸法 ──────────────────────────────────────────── */
-  --damage-calc-poc-label-min-width: 8em; /* 入力ラベルの最小幅。大きくすると入力欄の開始位置が右へ寄る */
-  --damage-calc-poc-input-min-width: 12em; /* 入力欄の最小幅。大きくすると文字を多く表示できる */
   --damage-calc-poc-spinner-size: 1em; /* 読み込みマークの大きさ。大きくすると状態表示が目立つ */
 
   /* ── 9. その他 ────────────────────────────────────────── */
-  --damage-calc-poc-disabled-opacity: 0.6; /* 無効ボタンの透明度。小さくすると操作不可が分かりやすい */
-  --damage-calc-poc-spinner-duration: 0.8s; /* 読み込みマークの回転時間。小さくすると速く回る */
-  --damage-calc-poc-spinner-vertical-align: -0.15em; /* 読み込みマークの縦位置。変えると文字との高さが揃う */
 }
 
 /* ===========================================================================
@@ -55,50 +34,50 @@ body.damage-calc-poc-page {
 /* 計算条件のラベルと入力行 */
 label {
   display: inline-block;
-  min-width: var(--damage-calc-poc-label-min-width);
+  min-width: 8em; /* 入力ラベルの最小幅。大きくすると入力欄の開始位置が右へ寄る */
 }
-.row { margin: var(--damage-calc-poc-row-margin); }
+.row { margin: 0.4rem 0; /* 入力行どうしの間隔。大きくするとフォームが縦に広がる */ }
 /* 攻撃側・技・防御側の名前と乱数seedを入力する欄 */
 input[type="text"], input[type="number"] {
-  padding: var(--damage-calc-poc-input-padding);
-  min-width: var(--damage-calc-poc-input-min-width);
+  padding: 0.3em 0.5em; /* 入力欄の内側余白。大きくすると入力欄がゆったりする */
+  min-width: 12em; /* 入力欄の最小幅。大きくすると文字を多く表示できる */
 }
 
 /* 計算開始・実行ボタン */
 button {
-  padding: var(--damage-calc-poc-button-padding);
-  font-size: var(--damage-calc-poc-button-font-size);
+  padding: 0.5em 1.2em; /* 操作ボタンの内側余白。大きくすると押せる面積が広がる */
+  font-size: 1rem; /* 操作ボタンの文字。大きくすると押す操作が目立つ */
   cursor: pointer;
 }
 /* エンジン準備中や計算中で操作できないボタン */
 button:disabled {
   cursor: not-allowed;
-  opacity: var(--damage-calc-poc-disabled-opacity);
+  opacity: 0.6; /* 無効ボタンの透明度。小さくすると操作不可が分かりやすい */
 }
 
 /* エンジンの読み込み状態 */
-#engine-status { font-weight: var(--damage-calc-poc-status-font-weight); }
-#engine-status[data-state="loading"] { color: var(--damage-calc-poc-status-loading-color); }
-#engine-status[data-state="ready"] { color: var(--damage-calc-poc-status-ready-color); }
-#engine-status[data-state="error"] { color: var(--damage-calc-poc-status-error-color); }
+#engine-status { font-weight: bold; /* エンジン状態の太さ。太くすると状態が目立つ */ }
+#engine-status[data-state="loading"] { color: var(--color-warning); /* 読み込み中の状態色。変えると注意表示の印象が変わる */ }
+#engine-status[data-state="ready"] { color: var(--color-success); /* 準備完了の状態色。変えると成功表示の印象が変わる */ }
+#engine-status[data-state="error"] { color: var(--color-danger); /* エラー時の状態色。変えると警告の強さが変わる */ }
 .spinner {
   display: inline-block; width: var(--damage-calc-poc-spinner-size); height: var(--damage-calc-poc-spinner-size);
-  border: var(--damage-calc-poc-spinner-border); border-top-color: var(--damage-calc-poc-spinner-border-top-color);
-  border-radius: var(--damage-calc-poc-spinner-border-radius); animation: spin var(--damage-calc-poc-spinner-duration) linear infinite;
-  margin-right: var(--damage-calc-poc-spinner-margin-right); vertical-align: var(--damage-calc-poc-spinner-vertical-align);
+  border: 2px solid var(--color-border); /* 読み込みマークの輪郭。太さや色で存在感が変わる */ border-top-color: var(--color-warning); /* 読み込みマーク上側の色。変えると回転の見え方が変わる */
+  border-radius: 50%; /* 読み込みマークの丸さ。変えると形が変わる */ animation: spin 0.8s /* 読み込みマークの回転時間。小さくすると速く回る */ linear infinite;
+  margin-right: 0.5em; /* 読み込みマークと状態文の間隔。大きくすると離れる */ vertical-align: -0.15em; /* 読み込みマークの縦位置。変えると文字との高さが揃う */
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* 計算結果と実行ログ */
 pre {
-  background: var(--damage-calc-poc-result-background);
-  padding: var(--damage-calc-poc-result-padding);
+  background: var(--color-bg); /* 計算結果欄の背景。変えると結果エリアの区別が変わる */
+  padding: 1rem; /* 計算結果欄の内側余白。大きくすると結果が内側に寄る */
   overflow-x: auto;
   white-space: pre-wrap;
   word-break: break-all;
 }
 /* 最終計算の所要時間と再初期化確認を表示する実行ログ */
 #calc-log {
-  font-size: var(--damage-calc-poc-log-font-size);
-  color: var(--damage-calc-poc-log-color);
+  font-size: 0.85em; /* 実行ログの文字。大きくすると補足結果が読みやすくなる */
+  color: var(--color-text-muted); /* 実行ログの色。薄くすると主結果より控えめになる */
 }

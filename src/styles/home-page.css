@@ -10,54 +10,23 @@
    =========================================================================== */
 body.home-page {
   /* ── 1. 文字サイズ ────────────────────────────────────── */
-  --home-page-brand-title-font-size: 1.3rem; /* ページ名。大きくするとブランド名が目立つ */
-  --home-page-brand-tagline-font-size: var(--font-size-sm2); /* ブランドのキャッチコピー。大きくすると補足が目立つ */
-  --home-page-try-button-font-size: var(--font-size-sm2); /* 「試してみる」ボタンの文字。大きくすると導線が目立つ */
   --home-page-account-font-size: var(--font-size-sm2); /* アカウント情報の文字。大きくするとユーザー情報が読みやすくなる */
-  --home-page-contact-font-size: var(--font-size-sm2); /* お問い合わせリンクの文字。大きくすると目立つ */
   --home-page-header-account-icon-size: 22px; /* ヘッダー右端のログイン状態アイコンの大きさ。大きくするとアイコンが目立つ */
   --home-page-header-account-status-size: 8px; /* ログイン中を示す丸いハイライトの大きさ。大きくすると状態表示が目立つ */
-  --home-page-card-label-font-size: clamp(0.75rem, 3.35vw, var(--font-size-sm1)); /* メニューカード名。大きくするとリンク先が読みやすくなる */
 
   /* ── 2. 文字の太さ・行間 ──────────────────────────────── */
-  --home-page-brand-title-line-height: var(--line-height-tight); /* ブランド名の行間。大きくすると複数行時の間隔が広がる */
-  --home-page-account-name-font-weight: var(--font-weight-medium); /* アカウント名の太さ。太くすると名前が目立つ */
-  --home-page-card-label-font-weight: var(--font-weight-medium); /* メニューカード名の太さ。太くするとリンク先が目立つ */
-  --home-page-card-label-line-height: var(--line-height-snug); /* メニューカード名の行間。大きくすると複数行表示が広がる */
 
   /* ── 3. 文字色 ────────────────────────────────────────── */
-  --home-page-card-color: var(--color-text); /* メニューカード名の色。変えるとリンク全体の印象が変わる */
   --home-page-muted-color: var(--color-text-muted); /* ログアウト・問い合わせリンクの色。薄くすると補助操作らしくなる */
   --home-page-link-hover-color: var(--color-primary); /* 補助リンクのホバー色。変えると操作時の強調色が変わる */
-  --home-page-card-icon-color: var(--color-primary); /* メニューカードのアイコン色。変えると各機能の印象が変わる */
 
   /* ── 5. 枠線・角丸 ────────────────────────────────────── */
-  --home-page-card-border: 1px solid var(--color-border); /* メニューカードの枠線。太くするとカードの輪郭が目立つ */
-  --home-page-card-focus-outline: 2px solid var(--color-primary); /* メニューカードのキーボード選択枠。太さや色で選択状態が変わる */
-  --home-page-card-focus-outline-offset: 2px; /* 選択枠とカードの間隔。大きくすると枠が外側へ離れる */
 
   /* ── 7. 余白 ──────────────────────────────────────────── */
-  --home-page-padding: var(--space-5) var(--space-3) var(--space-7); /* ページ外周の余白。大きくすると内容が内側に寄る */
-  --home-page-app-header-margin: calc(-1 * var(--space-5)) calc(-1 * var(--space-3)) var(--space-5); /* 上部バーをページ端まで広げる余白。変えるとバーの位置がずれる */
-  --home-page-brand-margin-top: var(--space-5); /* ブランド行の上余白。大きくするとロゴが下がる */
   --home-page-brand-margin-bottom: var(--space-5); /* ブランド行の下余白。大きくするとアカウント情報から離れる */
-  --home-page-brand-gap: var(--space-1); /* ロゴとキャッチコピーの間隔。大きくすると離れる */
-  --home-page-try-button-margin-top: var(--space-2); /* 「試してみる」ボタンの上余白。大きくするとキャッチコピーから離れる */
-  --home-page-try-button-padding: var(--space-2) var(--space-4); /* 「試してみる」ボタンの内側余白。大きくすると押しやすくなる */
-  --home-page-account-gap: var(--space-2); /* アカウント情報パネル内の間隔。大きくすると項目が離れる */
-  --home-page-header-account-padding-right: var(--space-3); /* ヘッダー右端とアイコンの間隔。戻るボタン側の余白と揃える */
-  --home-page-card-grid-gap: var(--space-2); /* メニューカードどうしの間隔。大きくするとカードが離れる */
-  --home-page-card-gap: var(--space-2); /* カード内のアイコンと名前の間隔。大きくすると縦に離れる */
-  --home-page-contact-padding-top: var(--space-5); /* 問い合わせリンクと直上の区切り線の間隔。大きくすると離れる */
-  --home-page-contact-padding-bottom: var(--space-1); /* 問い合わせリンク下の余白。大きくすると画面下端から離れる */
-  --home-page-contact-link-gap: 0.35em; /* 問い合わせリンク内のアイコンと文字の間隔。大きくすると離れる */
 
   /* ── 8. 寸法 ──────────────────────────────────────────── */
-  --home-page-max-width: 480px; /* ページの最大幅。大きくすると広い画面で内容が横に広がる */
-  --home-page-card-size-max: 124px; /* 基準幅412pxから左右padding 12px×2・列間8px×2を除いた372px÷3。 */
-  --home-page-card-min-height: 7rem; /* メニューカードの最低高さ。大きくするとカードが縦に伸びる */
   --home-page-card-icon-size: 32px; /* メニューカードのアイコンサイズ。大きくすると機能の印象が強まる */
-  --home-page-card-icon-reduced-scale: 0.9; /* 補助機能アイコンの縮小率。小さくすると基準アイコンとの差が縮む */
 }
 
 /* ===========================================================================
@@ -72,9 +41,9 @@ body.home-page {
   display: flex;
   min-height: calc(100dvh - var(--bottom-nav-height) - env(safe-area-inset-bottom));
   flex-direction: column;
-  max-width: var(--home-page-max-width);
+  max-width: 480px;
   margin: 0 auto;
-  padding: var(--home-page-padding);
+  padding: var(--space-5) var(--space-3) var(--space-7);
 }
 
 /* ページナビゲーション自体のスタイルは app-header.css に集約し、ここではページ端まで
@@ -82,7 +51,7 @@ body.home-page {
    ルール自身が同じ要素に既定値を宣言しているため、継承させるだけでは上書きできない。
    nav.app-header要素自身をセレクタで直接指定する必要がある。 */
 .page.home-page .app-header {
-  --app-header-margin: var(--home-page-app-header-margin);
+  --app-header-margin: calc(-1 * var(--space-5)) calc(-1 * var(--space-3)) var(--space-5);
 }
 
 /* サービス名の行 */
@@ -91,29 +60,29 @@ body.home-page {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: var(--home-page-brand-gap);
-  margin: var(--home-page-brand-margin-top) 0 var(--home-page-brand-margin-bottom);
+  gap: var(--space-1);
+  margin: var(--space-5) 0 var(--space-5);
 }
 /* サービス名「ポケガイド」 */
 .home-brand h1 {
   margin: 0;
-  font-size: var(--home-page-brand-title-font-size);
-  line-height: var(--home-page-brand-title-line-height);
+  font-size: 1.3rem;
+  line-height: var(--line-height-tight);
 }
 .home-brand p {
   margin: 0;
   color: var(--home-page-muted-color);
-  font-size: var(--home-page-brand-tagline-font-size);
+  font-size: var(--font-size-sm2);
 }
 
 /* 未ログイン時に、ログインへ進む主導線。ブランドと機能メニューの間に置く。 */
 .home-try-button {
   display: inline-flex;
   align-self: center;
-  margin: var(--home-page-try-button-margin-top) auto var(--home-page-brand-margin-bottom);
-  padding: var(--home-page-try-button-padding);
+  margin: var(--space-2) auto var(--space-5);
+  padding: var(--space-2) var(--space-4);
   color: var(--color-primary-contrast);
-  font-size: var(--home-page-try-button-font-size);
+  font-size: var(--font-size-sm2);
   text-decoration: none;
   background: var(--color-primary);
   border-radius: var(--radius-sm);
@@ -140,7 +109,7 @@ body.home-page {
   display: flex;
   align-items: center;
   margin-left: auto;
-  padding-right: var(--home-page-header-account-padding-right);
+  padding-right: var(--space-3);
 }
 /* ログイン中/未ログインの小さいアイコンボタン
    (ログイン中はdetailsのsummary、未ログインはログインページへの直リンク) */
@@ -157,7 +126,7 @@ body.home-page {
 .home-header-account-icon:hover { color: var(--home-page-link-hover-color); }
 .home-header-login {
   color: var(--color-primary-strong);
-  font-size: var(--home-page-account-font-size);
+  font-size: var(--font-size-sm2);
   text-decoration: none;
 }
 .home-header-login:hover { color: var(--home-page-link-hover-color); }
@@ -193,10 +162,10 @@ body.home-page {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: var(--home-page-account-gap);
+  gap: var(--space-2);
   margin-top: var(--space-2);
   padding: var(--space-3);
-  font-size: var(--home-page-account-font-size);
+  font-size: var(--font-size-sm2);
   white-space: nowrap;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
@@ -206,8 +175,8 @@ body.home-page {
 .home-header-account-panel p, .home-header-account-panel form { margin: 0; }
 /* ログイン中のユーザー名。長い名前は途中でも折り返す */
 .home-account-name {
-  font-size: var(--home-page-account-font-size);
-  font-weight: var(--home-page-account-name-font-weight);
+  font-size: var(--font-size-sm2);
+  font-weight: var(--font-weight-medium);
   overflow-wrap: anywhere;
 }
 /* パネル内に置くログアウトボタン */
@@ -225,9 +194,9 @@ body.home-page {
 /* 主要機能へ移動する3列のメニューカード */
 .home-card-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, var(--home-page-card-size-max)));
+  grid-template-columns: repeat(3, minmax(0, 124px));
   justify-content: center;
-  gap: var(--home-page-card-grid-gap);
+  gap: var(--space-2);
   margin: auto 0;
 }
 /* ボックス・チームなど主要機能へ移動するメニューカード。
@@ -235,12 +204,12 @@ body.home-page {
 .home-card {
   display: flex;
   min-width: 0;
-  min-height: var(--home-page-card-min-height);
+  min-height: 7rem;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: var(--home-page-card-gap);
-  color: var(--home-page-card-color);
+  gap: var(--space-2);
+  color: var(--color-text);
   text-align: center;
   text-decoration: none;
 }
@@ -249,7 +218,7 @@ body.home-page {
    同詳細度だと.card側に上書きされて何も起きない。.home-card-grid込みの
    セレクタで詳細度を上げて確実に勝たせる(box-card.cssの.box-grid .box-cardと同じ手法)。 */
 .home-card-grid .home-card {
-  border: var(--home-page-card-border);
+  border: 1px solid var(--color-border);
   box-shadow: none;
 }
 .home-card-grid .home-card:hover,
@@ -258,25 +227,25 @@ body.home-page {
 }
 /* キーボード操作でメニューカードにフォーカスしたときの輪郭 */
 .home-card:focus-visible {
-  outline: var(--home-page-card-focus-outline);
-  outline-offset: var(--home-page-card-focus-outline-offset);
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 /* 各メニューカードの機能を表すアイコン */
 .home-card-icon {
   width: var(--home-page-card-icon-size);
   height: var(--home-page-card-icon-size);
   flex: none;
-  color: var(--home-page-card-icon-color);
+  color: var(--color-primary);
 }
 /* ダメージ計算・バトルデータ・すばやさは視覚重量を基準3枚へ揃える。枠・ラベル位置は維持する。 */
 .home-card-icon--reduced {
-  transform: scale(var(--home-page-card-icon-reduced-scale));
+  transform: scale(0.9);
 }
 /* 各メニューカードの「ボックス」「チーム」などの機能名 */
 .home-card-label {
-  font-size: var(--home-page-card-label-font-size);
-  font-weight: var(--home-page-card-label-font-weight);
-  line-height: var(--home-page-card-label-line-height);
+  font-size: clamp(0.75rem, 3.35vw, var(--font-size-sm1));
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-snug);
   white-space: nowrap;
 }
 
@@ -293,8 +262,8 @@ body.home-page {
 /* 画面下部の問い合わせリンク */
 .home-contact {
   margin: auto 0 0;
-  padding: var(--home-page-contact-padding-top) 0 var(--home-page-contact-padding-bottom);
-  font-size: var(--home-page-contact-font-size);
+  padding: var(--space-5) 0 var(--space-1);
+  font-size: var(--font-size-sm2);
   border-top: 1px solid var(--color-border);
   text-align: center;
 }
@@ -302,6 +271,6 @@ body.home-page {
 .home-contact a {
   display: inline-flex;
   align-items: center;
-  gap: var(--home-page-contact-link-gap);
+  gap: 0.35em;
   color: var(--home-page-muted-color);
 }

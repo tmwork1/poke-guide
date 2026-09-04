@@ -9,42 +9,12 @@
 	チューニング変数
 	-------------------------------------------------------------------------- */
 body.team-edit-page {
-	/* ── 1. 文字サイズ ─────────────────────── */
-	--team-pokemon-tab-suggest-label-font-size: var(--font-size-sm2); /* 「おすすめ」見出しの文字サイズ */
-
-	/* ── 3. 文字色 ───────────────────────── */
-	--team-pokemon-tab-suggest-label-color: var(--color-text-muted); /* 「おすすめ」見出しの文字色 */
-
-	/* ── 4. 背景色 ───────────────────────── */
-	--team-pokemon-tab-actions-background: var(--color-surface); /* 操作列の背景色 */
-	--team-pokemon-tab-mates-background: var(--color-bg); /* チームメイトカードを置く背景色 */
-	--team-pokemon-tab-suggest-background: var(--color-bg); /* おすすめ列の背景色 */
-	--team-pokemon-tab-overview-background: var(--color-bg); /* ポケモンタブ全体の背景色 */
-	--team-pokemon-tab-overview-input-background: var(--color-surface); /* 入力欄の背景色 */
-
-	/* ── 5. 枠線・角丸 ─────────────────────── */
-	--team-pokemon-tab-actions-border: 1px solid var(--color-border); /* 操作列下部の区切り線 */
-	--team-pokemon-tab-mates-border: 1px solid var(--color-border); /* チームメイト枠下部の区切り線 */
-
 	/* ── 7. 余白 ────────────────────────── */
 	--team-pokemon-tab-card-scroll-inset: var(--list-grid-edge-gap); /* カード一覧の左右余白と共通にする上下ガード帯 */
-	--team-pokemon-tab-formation-box-padding: var(--team-pokemon-tab-card-scroll-inset); /* ボックス一覧の外側余白。四辺をカード一覧の共通余白で揃える */
-	--team-pokemon-tab-actions-padding: var(--space-3) var(--space-5); /* 操作列の内側余白 */
-	--team-pokemon-tab-actions-gap: var(--space-3); /* 操作列の要素どうしの間隔 */
-	--team-pokemon-tab-suggest-gap: var(--space-3); /* 見出しとおすすめアイコンの間隔 */
-	--team-pokemon-tab-mates-padding: var(--space-2) var(--space-3); /* チームメイト枠の内側余白 */
-	--team-pokemon-tab-suggest-padding: var(--space-2) var(--space-3); /* おすすめ列の内側余白 */
-	--team-pokemon-tab-suggest-icons-gap: var(--space-1); /* おすすめアイコンどうしの間隔 */
 	--team-pokemon-tab-overview-edge-gap: var(--space-2); /* 画面端・カード間、およびヘッダー・カード間の余白 */
-	--team-pokemon-tab-overview-section-gap: var(--space-4); /* カードとメモの間隔 */
-	--team-pokemon-tab-delete-gap: var(--space-5); /* メモと削除ボタンの間隔 */
 
 	/* ── 8. 寸法 ────────────────────────── */
-	--team-pokemon-tab-slot-max-width: 34rem; /* 6枠全体の最大幅。大きくすると横に広がる */
-	--team-pokemon-tab-suggest-min-height: calc(var(--space-7) + var(--space-1)); /* おすすめ列の最低の高さ */
 	--team-pokemon-tab-suggest-icon-size: calc(var(--space-7) + var(--space-1)); /* おすすめアイコンの正方形サイズ */
-	/* 基準幅412pxから親の左右padding 12px×2・ラベル(約54px)・間隔12pxを除いた約322px÷6。 */
-	--team-pokemon-tab-suggest-icon-cell-size-max: 54px;
 }
 
 /* --------------------------------------------------------------------------
@@ -56,17 +26,17 @@ body.team-edit-page {
 	display: none;
 	align-items: center;
 	justify-content: space-between;
-	gap: var(--team-pokemon-tab-actions-gap);
-	padding: var(--team-pokemon-tab-actions-padding);
-	background: var(--team-pokemon-tab-actions-background);
-	border-bottom: var(--team-pokemon-tab-actions-border);
+	gap: var(--space-3); /* 操作列の要素どうしの間隔 */
+	padding: var(--space-3) var(--space-5); /* 操作列の内側余白 */
+	background: var(--color-surface); /* 操作列の背景色 */
+	border-bottom: 1px solid var(--color-border); /* 操作列下部の区切り線 */
 }
 .team-mobile-actions:has(#autosave-status[data-state="error"]) {
 	display: flex;
 }
 .team-mobile-actions__controls {
 	width: 100%;
-	margin-top: var(--team-pokemon-tab-delete-gap);
+	margin-top: var(--space-5); /* メモと削除ボタンの間隔 */
 }
 .team-edit-shell[data-mobile-tab="formation"] #team-overview-tab,
 .team-edit-shell[data-mobile-tab="matchup"] #team-overview-tab {
@@ -74,11 +44,11 @@ body.team-edit-page {
 }
 
 .team-edit-shell[data-mobile-tab="pokemon"] #team-overview-tab {
-	background: var(--team-pokemon-tab-overview-background);
+	background: var(--color-bg); /* ポケモンタブ全体の背景色 */
 	padding-block-start: var(--team-pokemon-tab-overview-edge-gap);
 }
 .team-edit-shell[data-mobile-tab="pokemon"] #team-overview-tab .team-memo-input {
-	background: var(--team-pokemon-tab-overview-input-background);
+	background: var(--color-surface); /* 入力欄の背景色 */
 }
 
 #team-formation-mobile,
@@ -100,12 +70,12 @@ body.team-edit-page {
 	z-index: 3;
 }
 .team-formation-mobile__mates {
-	padding: var(--team-pokemon-tab-mates-padding);
-	background: var(--team-pokemon-tab-mates-background);
-	border-bottom: var(--team-pokemon-tab-mates-border);
+	padding: var(--space-2) var(--space-3); /* チームメイト枠の内側余白 */
+	background: var(--color-bg); /* チームメイトカードを置く背景色 */
+	border-bottom: 1px solid var(--color-border); /* チームメイト枠下部の区切り線 */
 }
 .team-formation-mobile__slot-grid {
-	max-width: var(--team-pokemon-tab-slot-max-width);
+	max-width: 34rem; /* 6枠全体の最大幅。大きくすると横に広がる */
 	margin-inline: auto;
 }
 /* おすすめ欄は自チーム表示の背景とつなげ、検索ヘッダーの上端で区切る。 */
@@ -116,19 +86,19 @@ body.team-edit-page {
 .team-formation-mobile__suggest {
 	display: flex;
 	align-items: center;
-	gap: var(--team-pokemon-tab-suggest-gap);
-	min-height: var(--team-pokemon-tab-suggest-min-height);
-	padding: var(--team-pokemon-tab-suggest-padding);
-	background: var(--team-pokemon-tab-suggest-background);
+	gap: var(--space-3); /* 見出しとおすすめアイコンの間隔 */
+	min-height: calc(var(--space-7) + var(--space-1)); /* おすすめ列の最低の高さ */
+	padding: var(--space-2) var(--space-3); /* おすすめ列の内側余白 */
+	background: var(--color-bg); /* おすすめ列の背景色 */
 }
 .team-formation-mobile__suggest-label {
 	flex-shrink: 0;
-	color: var(--team-pokemon-tab-suggest-label-color);
-	font-size: var(--team-pokemon-tab-suggest-label-font-size);
+	color: var(--color-text-muted); /* 「おすすめ」見出しの文字色 */
+	font-size: var(--font-size-sm2); /* 「おすすめ」見出しの文字サイズ */
 }
 .team-formation-mobile__suggest-icons {
 	display: grid;
-	grid-template-columns: repeat(6, minmax(0, var(--team-pokemon-tab-suggest-icon-cell-size-max)));
+	grid-template-columns: repeat(6, minmax(0, 54px)); /* 基準幅412pxから親の左右padding 12px×2・ラベル(約54px)・間隔12pxを除いた約322px÷6。 */
 	justify-content: center;
 	flex: 1;
 	min-width: 0;
@@ -157,7 +127,7 @@ body.team-edit-page {
 	display: block;
 }
 .team-formation-mobile__box {
-	padding: var(--team-pokemon-tab-formation-box-padding);
+	padding: var(--team-pokemon-tab-card-scroll-inset); /* ボックス一覧の外側余白。四辺をカード一覧の共通余白で揃える */
 	background: var(--color-bg);
 	scroll-padding-block: var(--team-pokemon-tab-card-scroll-inset);
 }
@@ -288,7 +258,7 @@ body.team-edit-page {
 	width: 100%;
 	min-width: 0;
 	min-height: calc(3 * 1.5em + 0.84em);
-	margin-top: var(--team-pokemon-tab-overview-section-gap);
+	margin-top: var(--space-4); /* カードとメモの間隔 */
 	overflow: hidden;
 	resize: none;
 }

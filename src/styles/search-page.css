@@ -5,34 +5,6 @@
    見た目を変えたいとき: 下の「チューニング変数」だけ触ればよい。
    =========================================================================== */
 
-/* ===========================================================================
-   チューニング変数
-   =========================================================================== */
-body.search-page {
-  /* ── 1. 文字サイズ ────────────────────────────────────── */
-  --search-page-result-heading-font-size: var(--font-size-base); /* 結果カテゴリ見出し。大きくすると区分が目立つ */
-  --search-page-field-label-font-size: var(--font-size-sm2); /* キーワード欄ラベルの文字。大きくすると項目名が読みやすくなる */
-
-  /* ── 2. 文字の太さ・行間 ──────────────────────────────── */
-  --search-page-field-label-font-weight: var(--font-weight-semibold); /* キーワード欄ラベルの太さ。太くすると入力項目が目立つ */
-  --search-page-radio-label-font-weight: var(--font-weight-normal); /* カテゴリ選択ラベルの太さ。太くすると選択肢が強調される */
-
-  /* ── 3. 文字色 ────────────────────────────────────────── */
-  --search-page-field-label-color: var(--color-text-muted); /* キーワード欄ラベルの色。薄くすると入力欄が主役になる */
-
-  /* ── 7. 余白 ──────────────────────────────────────────── */
-  --search-page-result-heading-margin-bottom: var(--space-1); /* 結果カテゴリ見出しの下余白。大きくすると一覧から離れる */
-  --search-page-radio-label-margin-right: var(--space-4); /* カテゴリ選択肢どうしの間隔。大きくすると横に離れる */
-  --search-page-result-block-margin: var(--space-3) 0; /* 結果カテゴリごとの上下余白。大きくするとカテゴリが離れる */
-  --search-page-result-list-padding-left: 1.2em; /* 結果リストの左余白。大きくすると行頭記号が左へ離れる */
-  --search-page-result-column-gap: var(--space-6); /* 複数列の結果一覧の列間隔。大きくすると列が離れる */
-
-  /* ── 8. 寸法 ──────────────────────────────────────────── */
-  --search-page-field-label-min-width: 6.5em; /* キーワード欄ラベルの最小幅。大きくすると入力欄の開始位置が右へ寄る */
-  --search-page-result-column-width: 220px; /* 結果一覧の列幅。大きくすると1列に必要な横幅が増える */
-  --search-page-query-basis: 320px; /* キーワード入力欄の基準幅。大きくすると広い画面で入力欄が伸びる */
-  --search-page-query-max-width: 36rem; /* キーワード入力欄の最大幅。大きくすると入力欄をより広げられる */
-}
 
 /* ===========================================================================
    ここから下は構造(レイアウトの組み立て)。通常は触らない。
@@ -40,25 +12,25 @@ body.search-page {
 
 /* 検索結果カテゴリの見出し */
 h3 {
-  font-size: var(--search-page-result-heading-font-size);
-  margin-bottom: var(--search-page-result-heading-margin-bottom);
+  font-size: var(--font-size-base); /* 結果カテゴリ見出し。大きくすると区分が目立つ */
+  margin-bottom: var(--space-1); /* 結果カテゴリ見出しの下余白。大きくすると一覧から離れる */
 }
 
 /* global.css の `label { min-width: 6.5em }` 撤廃(UI品質改善タスクA)に伴い、
    キーワード欄のラベル幅をこのページ側で維持する(.radio-labelは対象外)。 */
 /* キーワード入力欄のラベル(カテゴリのラジオ選択肢を除く) */
 .row > label:not(.radio-label) {
-  min-width: var(--search-page-field-label-min-width);
-  font-size: var(--search-page-field-label-font-size);
-  font-weight: var(--search-page-field-label-font-weight);
-  color: var(--search-page-field-label-color);
+  min-width: 6.5em; /* キーワード欄ラベルの最小幅。大きくすると入力欄の開始位置が右へ寄る */
+  font-size: var(--font-size-sm2); /* キーワード欄ラベルの文字。大きくすると項目名が読みやすくなる */
+  font-weight: var(--font-weight-semibold); /* キーワード欄ラベルの太さ。太くすると入力項目が目立つ */
+  color: var(--color-text-muted); /* キーワード欄ラベルの色。薄くすると入力欄が主役になる */
 }
 
 /* カテゴリを選ぶラジオボタンのラベル */
 .radio-label {
   min-width: auto;
-  font-weight: var(--search-page-radio-label-font-weight);
-  margin-right: var(--search-page-radio-label-margin-right);
+  font-weight: var(--font-weight-normal); /* カテゴリ選択ラベルの太さ。太くすると選択肢が強調される */
+  margin-right: var(--space-4); /* カテゴリ選択肢どうしの間隔。大きくすると横に離れる */
 }
 
 /* B-2: 結果リストの実コンテンツ幅は最長「リザードン(キョダイ)」でも171pxしかないのに
@@ -68,12 +40,12 @@ h3 {
    (中身の<li>/<a>のみJSで動的生成)、data-astro-cid-*が付与されるためscoped styleで
    問題なく効く(A-7で対処した「JS生成要素にscopedが効かない」問題とは別レイヤー)。 */
 /* 各カテゴリの検索結果一覧 */
-.result-block { margin: var(--search-page-result-block-margin); }
+.result-block { margin: var(--space-3) 0; /* 結果カテゴリごとの上下余白。大きくするとカテゴリが離れる */ }
 /* ポケモン・技・特性・持ち物ごとの検索結果を複数列に流し込む一覧 */
 .result-block ul {
-  padding-left: var(--search-page-result-list-padding-left);
-  column-width: var(--search-page-result-column-width);
-  column-gap: var(--search-page-result-column-gap);
+  padding-left: 1.2em; /* 結果リストの左余白。大きくすると行頭記号が左へ離れる */
+  column-width: 220px; /* 結果一覧の列幅。大きくすると1列に必要な横幅が増える */
+  column-gap: var(--space-6); /* 複数列の結果一覧の列間隔。大きくすると列が離れる */
 }
 .result-block li { break-inside: avoid; }
 
@@ -82,8 +54,8 @@ h3 {
    flex-directionをcolumnに切り替えないため、#queryの伸長がそのまま横幅に反映される。 */
 /* キーワード入力欄 */
 #query {
-  flex: 1 1 var(--search-page-query-basis);
-  max-width: var(--search-page-query-max-width);
+  flex: 1 1 320px; /* キーワード入力欄の基準幅。大きくすると広い画面で入力欄が伸びる */
+  max-width: 36rem; /* キーワード入力欄の最大幅。大きくすると入力欄をより広げられる */
 }
 /* pitfalls.md: `flex: 1 1 320px` は縦積み(flex-direction: column)に切り替わる
    ブレークポイントでflex-basisが主軸=高さの基準として解釈され、入力欄が320pxまで

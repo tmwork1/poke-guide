@@ -1,4 +1,4 @@
-﻿/* ===========================================================================
+/* ===========================================================================
 	ボックス編集ページ
 
 	画面のどこ: ボックス詳細 → ポケモンの育成編集・ダメージ計算
@@ -19,8 +19,7 @@
 	--stat-endpoint-button-size: 44px;
 	--stat-step-button-size: 44px;
 	--stat-number-input-width: var(--stat-ev-mobile-button-block-size); /* 努力値入力の横幅。縦幅と揃えて正方形にする */
-	--stat-number-input-height: var(--stat-ev-mobile-button-block-size); /* 努力値操作ボタンと同じ高さ */
-	--stat-number-input-mobile-padding: 0 var(--space-1);
+
 	--stat-nature-button-size: 44px;
 	--stat-nature-arrow-border-inline: 6px;
 	--stat-nature-arrow-border-block: 10px;
@@ -119,19 +118,13 @@
 body.box-edit-page {
 	/* ── 1. 文字サイズ ─────────────────────── */
 	--box-edit-delete-font-size: var(--font-size-sm1); /* 削除ボタンの文字の大きさ */
-	--box-edit-collection-toggle-font-size: var(--font-size-sm1); /* 収集拒否ラベルの文字の大きさ */
 
 	/* ── 2. 文字の太さ・行間 ──────────────────── */
-	--box-edit-opponent-alert-font-weight: var(--font-weight-bold); /* ダメージ計算の保存失敗件数の文字の太さ */
+
 	--box-edit-delete-font-weight: var(--font-weight-medium); /* コピー・削除ボタンの文字の太さ */
-	--box-edit-collection-toggle-font-weight: var(--font-weight-medium); /* 収集拒否ラベルの文字の太さ */
 
 	/* ── 3. 文字色 ───────────────────────── */
-	--box-edit-delete-color: var(--color-danger-strong); /* 通常時の削除ボタン文字色 */
-	--box-edit-delete-hover-color: var(--color-primary-contrast); /* ホバー時の削除ボタン文字色 */
-	--box-edit-collection-toggle-color: var(--color-text-muted); /* 通常時の収集拒否ラベルの文字色 */
-	--box-edit-collection-toggle-hover-color: var(--color-primary-strong); /* ホバー時の収集拒否ラベルの文字色 */
-	--box-edit-collection-status-color: var(--color-text-muted); /* 収集設定の状態文の文字色 */
+
 	--box-edit-error-color: var(--color-danger-strong); /* 保存失敗などのエラー文の文字色 */
 
 	/* ── 4. 背景色 ───────────────────────── */
@@ -139,12 +132,6 @@ body.box-edit-page {
 	--box-edit-delete-hover-background: var(--color-danger-strong); /* ホバー時の削除ボタン背景色 */
 
 	/* ── 7. 余白 ────────────────────────── */
-	--box-edit-mobile-actions-padding: var(--space-4) var(--space-5) var(--space-5); /* モバイル操作列の内側余白 */
-	--box-edit-mobile-actions-gap: var(--space-3); /* モバイル操作ボタン同士の間隔 */
-	--box-edit-opponent-alert-margin-inline-start: 0.6em; /* ダメージ計算の保存失敗件数の左余白 */
-	--box-edit-retry-margin-inline-start: 0.4em; /* 再試行ボタンの左余白 */
-	--box-edit-collection-toggle-gap: 0.4em; /* 収集拒否ラベルとスイッチの間隔 */
-	--box-edit-autosave-status-margin: 0; /* 保存状態文の外側余白。0にすると上部バーの高さが増えない */
 
 }
 
@@ -190,7 +177,7 @@ body.box-edit-page {
 	flex-wrap: wrap;
 	align-items: center;
 	justify-content: flex-end;
-	gap: var(--box-edit-mobile-actions-gap);
+	gap: var(--space-3); /* モバイル操作ボタン同士の間隔 */
 }
 
 /* #autosave-status/#opponent-notes-save-alertは通常時どちらも見た目上は空(前者は
@@ -198,14 +185,14 @@ body.box-edit-page {
 	この箱自体に常時余白を持たせると、削除ボタンの下と画面下部ナビの間に常に
 	意味のない帯(背景色の隙間)ができてしまうため、何か表示するときだけ内側余白を足す。 */
 .mobile-edit-actions:has(#autosave-status[data-state="error"], #autosave-status[data-state="empty"], .opponent-notes-save-alert:not([hidden])) {
-	padding: var(--box-edit-mobile-actions-padding);
+	padding: var(--space-4) var(--space-5) var(--space-5); /* モバイル操作列の内側余白 */
 }
 
 		/* 基本のトークン・カード・ボタン・フォーム部品は src/styles/global.css に集約済み。
 			ここにはこのページ固有のレイアウト・状態表現だけを残す。 */
 		#retry-button {
 			display: none;
-			margin-left: var(--box-edit-retry-margin-inline-start);
+			margin-left: 0.4em; /* 再試行ボタンの左余白 */
 		}
 		#retry-button.visible { display: inline-flex; }
 		/* #autosave-statusは<p>要素で、global.cssに全要素共通のmarginリセットが無いため
@@ -214,7 +201,7 @@ body.box-edit-page {
 			使われるため、<p>の既定marginぶん(実測で往復約16px)だけトップバーの実高さが
 			--header-heightからずれ、ページ全体に余計な縦スクロールが出る(実測で発覚)。
 			marginを0にしてトップバーの実測高さを--header-heightに一致させる。 */
-		#autosave-status { margin: var(--box-edit-autosave-status-margin); }
+		#autosave-status { margin: 0; } /* 保存状態文の外側余白。0にすると上部バーの高さが増えない */
 		/* ヘッダーには通常「保存済み」等の保存状態テキストを表示しない。#autosave-status/
 			#autosave-status-textはid/DOMごと残す(<script>のel("autosave-status")/
 			el("autosave-status-text")が参照しており、要素そのものを削除するとel()がthrowして
@@ -263,13 +250,13 @@ body.box-edit-page {
 			文字色=背景色になって見えなくなる事故があるため)。 */
 		#delete-button {
 			background: var(--box-edit-delete-background);
-			color: var(--box-edit-delete-color);
+			color: var(--color-danger-strong); /* 通常時の削除ボタン文字色 */
 		}
 		#delete-button:disabled { opacity: 0.4; cursor: not-allowed; }
 		@media (hover: hover) and (pointer: fine) {
 			#delete-button:hover:not(:disabled) {
 				background: var(--box-edit-delete-hover-background);
-				color: var(--box-edit-delete-hover-color);
+				color: var(--color-primary-contrast); /* ホバー時の削除ボタン文字色 */
 			}
 		}
 		/* 匿名集計サジェスト機能・第4段階(UI: 収集拒否トグル)。.toggle-switch本体のCSSは
@@ -281,21 +268,21 @@ body.box-edit-page {
 		.collection-opt-out-toggle {
 			display: inline-flex;
 			align-items: center;
-			gap: var(--box-edit-collection-toggle-gap);
-			font-size: var(--box-edit-collection-toggle-font-size);
-			font-weight: var(--box-edit-collection-toggle-font-weight);
-			color: var(--box-edit-collection-toggle-color);
+			gap: 0.4em; /* 収集拒否ラベルとスイッチの間隔 */
+			font-size: var(--font-size-sm1); /* 収集拒否ラベルの文字の大きさ */
+			font-weight: var(--font-weight-medium); /* 収集拒否ラベルの文字の太さ */
+			color: var(--color-text-muted); /* 通常時の収集拒否ラベルの文字色 */
 			white-space: nowrap;
 			cursor: pointer;
 		}
 		/* font-familyとletter-spacingは明示せず、戻るボタンと同様にbodyから継承する。 */
 		@media (hover: hover) and (pointer: fine) {
 			.collection-opt-out-toggle:hover:not(:has(.toggle-switch-input:disabled)) {
-				color: var(--box-edit-collection-toggle-hover-color);
+				color: var(--color-primary-strong); /* ホバー時の収集拒否ラベルの文字色 */
 			}
 		}
 		.collection-opt-out-status {
-			color: var(--box-edit-collection-status-color);
+			color: var(--color-text-muted); /* 収集設定の状態文の文字色 */
 		}
 		.collection-opt-out-status[hidden] { display: none; }
 		/* PATCH失敗時のみ(<script>側がdata-state="error"を付与)最小限のエラー色を出す。
@@ -313,9 +300,9 @@ body.box-edit-page {
 			広げないようにする(#autosave-statusの<p>まわりのコメント参照)。 */
 		.opponent-notes-save-alert {
 			display: inline;
-			margin-left: var(--box-edit-opponent-alert-margin-inline-start);
+			margin-left: 0.6em; /* ダメージ計算の保存失敗件数の左余白 */
 			color: var(--box-edit-error-color);
-			font-weight: var(--box-edit-opponent-alert-font-weight);
+			font-weight: var(--font-weight-bold); /* ダメージ計算の保存失敗件数の文字の太さ */
 		}
 		.opponent-notes-save-alert[hidden] { display: none; }
 

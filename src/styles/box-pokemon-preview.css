@@ -12,51 +12,20 @@
    -------------------------------------------------------------------------- */
 .pokemon-preview {
   /* ── 1. 文字サイズ ─────────────────────── */
-  --pokemon-preview-font-size: var(--font-size-sm2); /* 基本文字の大きさ。大きくすると全体の文字が読みやすくなる */
-  --pokemon-preview-stats-font-size: var(--font-size-sm3); /* 能力値表の文字の大きさ */
-  --pokemon-preview-species-name-font-size: var(--font-size-sm1);
-  --pokemon-preview-ability-font-size: var(--font-size-sm2);
-  --pokemon-preview-move-font-size: var(--font-size-sm2);
-  --pokemon-preview-item-font-size: var(--font-size-sm2);
-  --pokemon-preview-stat-label-font-size: var(--font-size-sm2);
-  --pokemon-preview-stat-value-font-size: var(--font-size-sm2);
-  --pokemon-preview-ev-font-size: var(--font-size-sm2);
-  --pokemon-preview-sprite-fallback-font-size: var(--font-size-sm2);
 
   /* ── 2. 文字の太さ・行間 ──────────────────── */
-  --pokemon-preview-stats-font-weight: var(--font-weight-normal); /* 能力値表の文字の太さ */
-  --pokemon-preview-stats-line-height: 1; /* 能力値表の行の詰まり具合。大きくすると行間が広がる */
 
   /* ── 3. 文字色 ───────────────────────── */
-  --pokemon-preview-stat-color: var(--color-text); /* 通常の能力値の文字色 */
   --pokemon-preview-stat-up-color: var(--color-stat-up); /* 性格で上がる能力値の文字色 */
   --pokemon-preview-stat-down-color: var(--color-stat-down); /* 性格で下がる能力値の文字色 */
-  --pokemon-preview-stat-label-color: var(--color-text); /* 性格無補正の能力値名は、ほかのラベルと同じ明るさにする */
-  --pokemon-preview-sprite-fallback-color: var(--color-text-muted); /* 画像がないときの頭文字の色 */
-  --pokemon-preview-species-name-color: var(--color-text);
-  --pokemon-preview-ability-color: var(--color-text-muted);
-  --pokemon-preview-move-color: var(--color-text);
-  --pokemon-preview-item-color: var(--color-text);
-  --pokemon-preview-stat-value-color: var(--color-text);
-  --pokemon-preview-ev-color: var(--color-text-muted);
 
   /* ── 4. 背景色 ───────────────────────── */
-  --pokemon-preview-background: var(--color-surface); /* プレビュー外枠の背景色 */
-  --pokemon-preview-main-background: var(--color-bg); /* 情報欄の背景色 */
 
   /* ── 5. 枠線・角丸 ─────────────────────── */
-  --pokemon-preview-border: 1px solid var(--color-border); /* 下端の区切り線。太さや色を変えると境界が目立つ */
 
   /* ── 7. 余白 ────────────────────────── */
-  --pokemon-preview-padding: var(--space-4); /* プレビュー内側の余白。大きくすると情報が内側に寄る */
   --pokemon-preview-stats-column-gap: 15px; /* 能力値表の列間隔。大きくすると数値の列が離れる */
-  --pokemon-preview-column-gap: var(--space-2); /* 左右の情報欄と中央画像の間隔。大きくすると各欄が離れる */
   --pokemon-preview-content-gap: var(--space-1); /* 文字やアイコンの間隔。大きくすると各項目が離れる */
-  --pokemon-preview-species-type-gap: var(--space-1); /* 種族名とタイプアイコンの間隔。0.5remだと種族名の表示幅を1px前後圧迫し、ヒスイダイケンキ等の長い名前が不要に省略されていたため詰める */
-  --pokemon-preview-item-stats-gap: var(--space-2); /* 持ち物と能力値表の縦の間隔 */
-  --pokemon-preview-stats-inline-end-gap: var(--pokemon-preview-content-gap); /* 能力値表の右端余白 */
-  --pokemon-preview-move-row-gap: 0px; /* 技の行間。大きくすると技一覧が縦に広がる */
-  --pokemon-preview-sprite-bottom-gap: 0; /* ポケモン画像の下余白 */
 
   /* ── 8. 寸法 ────────────────────────── */
   --pokemon-preview-height: 176px; /* プレビューの高さ。全項目表示時の実測値で固定する */
@@ -68,7 +37,6 @@
 
   /* ── 9. その他 ───────────────────────── */
   --pokemon-preview-z-index: 15; /* スクロール時に前面に保つ順番。大きくすると他の要素より前に出る */
-  --pokemon-preview-sprite-shadow: var(--shadow-sm); /* ポケモン画像の影。浮いて見える強さを変えたいときはglobal.cssの--shadow-sm/--shadow-mdを差し替える */
 }
 
 /* --------------------------------------------------------------------------
@@ -104,16 +72,16 @@
   top: calc(var(--header-height) + var(--app-header-height));
   z-index: var(--pokemon-preview-z-index);
   overflow: hidden;
-  background: var(--pokemon-preview-main-background);
-  border-bottom: var(--pokemon-preview-border);
+  background: var(--color-bg);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .pokemon-preview-main {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   height: var(--pokemon-preview-height);
-  gap: var(--pokemon-preview-column-gap);
-  padding: var(--pokemon-preview-padding);
+  gap: var(--space-2);
+  padding: var(--space-4);
   background: transparent;
 }
 
@@ -153,7 +121,7 @@
 .pokemon-preview-species-line {
   display: flex;
   align-items: center;
-  gap: var(--pokemon-preview-species-type-gap);
+  gap: var(--space-1);
   min-width: 0;
 }
 
@@ -164,13 +132,13 @@
 
 #pokemon-preview-species-name {
   flex: 0 1 auto;
-  font-size: var(--pokemon-preview-species-name-font-size);
-  color: var(--pokemon-preview-species-name-color);
+  font-size: var(--font-size-sm1);
+  color: var(--color-text);
 }
 
 #pokemon-preview-ability {
-  font-size: var(--pokemon-preview-ability-font-size);
-  color: var(--pokemon-preview-ability-color);
+  font-size: var(--font-size-sm2);
+  color: var(--color-text-muted);
 }
 
 .pokemon-preview-type-icons {
@@ -199,7 +167,7 @@
 .pokemon-preview-moves {
   display: flex;
   flex-direction: column;
-  gap: var(--pokemon-preview-move-row-gap);
+  gap: 0px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -219,13 +187,13 @@
 }
 
 .pokemon-preview-moves li > span:last-child {
-  font-size: var(--pokemon-preview-move-font-size);
-  color: var(--pokemon-preview-move-color);
+  font-size: var(--font-size-sm2);
+  color: var(--color-text);
 }
 
 .pokemon-preview-move-type-bar {
-  flex: 0 0 var(--pokemon-preview-move-type-bar-width);
-  width: var(--pokemon-preview-move-type-bar-width);
+  flex: 0 0 var(--space-1);
+  width: var(--space-1);
   height: var(--pokemon-preview-move-type-bar-height);
 }
 
@@ -267,7 +235,7 @@
 .pokemon-preview-sprite-wrap {
   position: absolute;
   /* 中央へ重ねて置き、左右の種族名・アイテム名の表示幅を確保する。 */
-  bottom: var(--pokemon-preview-sprite-bottom-gap);
+  bottom: 0;
   left: 50%;
   z-index: 2;
   display: flex;
@@ -303,12 +271,12 @@
   width: var(--pokemon-preview-sprite-size);
   height: var(--pokemon-preview-sprite-size);
   object-fit: contain;
-  filter: drop-shadow(var(--pokemon-preview-sprite-shadow));
+  filter: drop-shadow(var(--shadow-sm));
 }
 
 #pokemon-preview-species-sprite-fallback {
-  font-size: var(--pokemon-preview-sprite-fallback-font-size);
-  color: var(--pokemon-preview-sprite-fallback-color);
+  font-size: var(--font-size-sm2);
+  color: var(--color-text-muted);
 }
 
 /* 持ち物と能力値 */
@@ -322,8 +290,8 @@
 }
 
 #pokemon-preview-item {
-  font-size: var(--pokemon-preview-item-font-size);
-  color: var(--pokemon-preview-item-color);
+  font-size: var(--font-size-sm2);
+  color: var(--color-text);
 }
 
 #pokemon-preview-item[data-empty="true"] {
@@ -350,46 +318,46 @@
    同じ右寄せを明示する(divはtableと違い伸縮し得るため)。 */
 .pokemon-preview-stats-wrap {
   align-self: flex-end;
-  margin-top: var(--pokemon-preview-item-stats-gap);
-  margin-right: var(--pokemon-preview-stats-inline-end-gap);
+  margin-top: var(--space-2);
+  margin-right: var(--space-1);
 }
 
 .pokemon-preview-stats {
   width: auto;
   border-collapse: collapse;
   border-spacing: 0;
-  line-height: var(--pokemon-preview-stats-line-height);
+  line-height: 1;
 }
 
 .pokemon-preview-stats th,
 .pokemon-preview-stats td {
   padding: var(--pokemon-preview-content-gap) 0 0;
-  color: var(--pokemon-preview-stat-color);
-  font-weight: var(--pokemon-preview-stats-font-weight);
+  color: var(--color-text);
+  font-weight: var(--font-weight-normal);
   text-align: right;
   background: transparent;
   border: 0;
 }
 
 .pokemon-preview-stats th:first-child {
-  padding-right: var(--pokemon-preview-stats-column-gap);
-  color: var(--pokemon-preview-stat-label-color);
-  font-size: var(--pokemon-preview-stat-label-font-size);
+  padding-right: 15px;
+  color: var(--color-text);
+  font-size: var(--font-size-sm2);
   text-align: left;
 }
 
 .pokemon-preview-stats td {
-  color: var(--pokemon-preview-stat-value-color);
-  font-size: var(--pokemon-preview-stat-value-font-size);
+  color: var(--color-text);
+  font-size: var(--font-size-sm2);
 }
 
 .pokemon-preview-stats td:last-child {
-  color: var(--pokemon-preview-ev-color);
-  font-size: var(--pokemon-preview-ev-font-size);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm2);
 }
 
 .pokemon-preview-stats td + td {
-  padding-left: var(--pokemon-preview-stats-column-gap);
+  padding-left: 15px;
 }
 
 .pokemon-preview-stats td[data-mod="up"] {

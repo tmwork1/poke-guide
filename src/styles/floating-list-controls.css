@@ -20,27 +20,11 @@
   /* ── 3. 文字色 ────────────────────────────────────────── */
   --floating-list-add-color: var(--color-primary-contrast); /* 追加ボタンの「＋」の色。背景との読みやすさを左右する。 */
 
-  /* ── 4. 背景色 ────────────────────────────────────────── */
-  --floating-list-add-background: var(--color-primary); /* 丸い追加ボタンの背景色。変えると右下の主操作色が変わる。 */
-  --floating-list-add-hover-background: var(--color-primary-hover); /* 追加ボタンに触れたときの背景色。変えると操作時の反応色が変わる。 */
-
-  /* ── 5. 枠線・角丸 ────────────────────────────────────── */
-  --floating-list-add-border: 0; /* 丸い追加ボタンの枠線。太くするとボタン外周に枠が付く。 */
-  --floating-list-add-border-radius: 50%; /* 追加ボタンの丸み。小さくすると円形から角のある形へ近づく。 */
-  --floating-list-add-icon-border: 0; /* 「＋」アイコン領域の枠線。太くすると記号の周囲に枠が付く。 */
-
-  /* ── 6. 影 ────────────────────────────────────────────── */
-  --floating-list-add-shadow: var(--button-fab-shadow); /* 追加ボタンの外側と上辺の影(buttons.cssのFAB共通トークン)。box-add-buttonと共有。 */
-
   /* ── 7. 余白 ──────────────────────────────────────────── */
-  --floating-list-controls-offset-y: 24px; /* 追加ボタンとボトムナビの間隔。大きくすると上へ移動する。 */
   --floating-list-controls-edge-offset: var(--space-5); /* 追加ボタン右端の画面端余白。大きくすると内側へ寄る。 */
-  --floating-list-controls-bottom-gap: var(--space-2); /* 追加ボタンとボトムナビの基本間隔。大きくすると上へ移動する。 */
-  --floating-list-add-padding: 0; /* 追加ボタン内の余白。大きくすると「＋」の使える領域が狭くなる。 */
 
   /* ── 8. 寸法 ──────────────────────────────────────────── */
   --floating-list-add-control-size: 60px; /* 丸い追加ボタンの直径。box-add-button.cssの追加ボタンと同じ直径にそろえる。大きくすると右下ボタンが拡大する。 */
-  --floating-list-search-control-size: 40px; /* 追加ボタンの縦位置を、旧・下部固定検索欄の高さと揃えるための基準値(検索欄自体は現存しない)。変えると追加ボタンの上下位置が動く。 */
 }
 
 /* ===========================================================================
@@ -54,23 +38,23 @@
     var(--floating-list-controls-edge-offset),
     calc((100vw - var(--content-band-max-width)) / 2 + var(--floating-list-controls-edge-offset))
   );
-  bottom: calc(var(--bottom-nav-height) + var(--floating-list-controls-bottom-gap) + env(safe-area-inset-bottom) + var(--floating-list-controls-offset-y) + (var(--floating-list-search-control-size) - var(--floating-list-add-control-size)) * 0.5);
+  bottom: calc(var(--bottom-nav-height) + var(--space-2) + env(safe-area-inset-bottom) + 24px + (40px - var(--floating-list-add-control-size)) * 0.5); /* 追加ボタンとボトムナビの基本間隔。大きくすると上へ移動する。追加ボタンとボトムナビの間隔。大きくすると上へ移動する。追加ボタンの縦位置を、旧・下部固定検索欄の高さと揃えるための基準値(検索欄自体は現存しない)。変えると追加ボタンの上下位置が動く。 */
   z-index: 17;
   width: var(--floating-list-add-control-size);
   height: var(--floating-list-add-control-size);
   min-height: var(--floating-list-add-control-size);
-  padding: var(--floating-list-add-padding);
+  padding: 0; /* 追加ボタン内の余白。大きくすると「＋」の使える領域が狭くなる。 */
   aspect-ratio: 1 / 1;
   color: var(--floating-list-add-color);
-  background: var(--floating-list-add-background);
-  border: var(--floating-list-add-border);
-  border-radius: var(--floating-list-add-border-radius);
-  box-shadow: var(--floating-list-add-shadow);
+  background: var(--color-primary); /* 丸い追加ボタンの背景色。変えると右下の主操作色が変わる。 */
+  border: 0; /* 丸い追加ボタンの枠線。太くするとボタン外周に枠が付く。 */
+  border-radius: 50%; /* 追加ボタンの丸み。小さくすると円形から角のある形へ近づく。 */
+  box-shadow: var(--button-fab-shadow); /* 追加ボタンの外側と上辺の影(buttons.cssのFAB共通トークン)。box-add-buttonと共有。 */
 }
 
 .floating-list-page .floating-list-add-button:hover {
   color: var(--floating-list-add-color);
-  background: var(--floating-list-add-hover-background);
+  background: var(--color-primary-hover); /* 追加ボタンに触れたときの背景色。変えると操作時の反応色が変わる。 */
 }
 
 /* 追加ボタン中央の「＋」記号(文字の「＋」はグリフの重心がずれるため、線で描いたSVGに揃える) */
@@ -79,7 +63,7 @@
   width: var(--floating-list-add-icon-font-size);
   height: var(--floating-list-add-icon-font-size);
   flex: none;
-  border: var(--floating-list-add-icon-border);
+  border: 0; /* 「＋」アイコン領域の枠線。太くすると記号の周囲に枠が付く。 */
 }
 
 /* 固定表示ではカード型ボタン用の説明文を隠す */

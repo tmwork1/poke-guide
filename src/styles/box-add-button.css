@@ -13,20 +13,6 @@
 .box-add-button {
   /* ── 1. 文字サイズ ─────────────────────── */
   --box-add-button-icon-font-size: var(--font-size-lg4); /* 追加アイコンの大きさ */
-
-  /* ── 3. 文字色 ───────────────────────── */
-  --box-add-button-color: var(--color-primary-contrast); /* ボタン内の文字・アイコンの色 */
-  --box-add-button-hover-color: var(--color-primary-contrast); /* ホバー時の文字・アイコンの色 */
-
-  /* ── 4. 背景色 ───────────────────────── */
-  --box-add-button-background: var(--color-primary); /* 通常時の背景色 */
-  --box-add-button-hover-background: var(--color-primary-hover); /* ホバー時の背景色 */
-
-  /* ── 5. 枠線・角丸 ─────────────────────── */
-  --box-add-button-border-radius: 50%; /* 角の丸さ。50%で円形になる */
-
-  /* ── 6. 影 ─────────────────────────── */
-  --box-add-button-shadow: var(--button-fab-shadow); /* 立体感を作る影(buttons.cssのFAB共通トークン)。floating-list-add-buttonと共有 */
 }
 
 /* 直径だけはボタン自身ではなく、#opponent-notes-section(共通祖先)に置く。
@@ -48,17 +34,17 @@
   min-height: var(--box-add-button-size, 60px);
   padding: 0;
   aspect-ratio: 1 / 1;
-  color: var(--box-add-button-color);
-  background: var(--box-add-button-background);
+  color: var(--color-primary-contrast); /* ボタン内の文字・アイコンの色 */
+  background: var(--color-primary); /* 通常時の背景色 */
   border: 0;
-  border-radius: var(--box-add-button-border-radius);
-  box-shadow: var(--box-add-button-shadow);
+  border-radius: 50%; /* 角の丸さ。50%で円形になる */
+  box-shadow: var(--button-fab-shadow); /* 立体感を作る影(buttons.cssのFAB共通トークン)。floating-list-add-buttonと共有 */
 }
 
 /* 追加ボタンにポインターを重ねたとき */
 .box-add-button:hover {
-  color: var(--box-add-button-hover-color);
-  background: var(--box-add-button-hover-background);
+  color: var(--color-primary-contrast); /* ホバー時の文字・アイコンの色 */
+  background: var(--color-primary-hover); /* ホバー時の背景色 */
 }
 
 /* 追加を表すアイコン(文字の「＋」はグリフの重心がずれるため、線で描いたSVGに揃える) */

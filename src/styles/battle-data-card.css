@@ -23,8 +23,7 @@
   --battle-data-card-type-icon-size: 1.2em; /* わざタイプアイコンの大きさ。行の文字サイズに追従する */
   --battle-data-card-pokemon-icon-size: 1.4em; /* 同時採用ポケモンのアイコンの大きさ。マス内に収まる範囲で少し大きくする */
   --battle-data-card-move-type-bar-width: 4px; /* わざ名の左に置くタイプ色バーの太さ */
-  --battle-data-card-move-type-bar-height: 1.3em; /* わざ名の左に置くタイプ色バーの高さ */
-  --battle-data-card-nature-name-width: 5.75em; /* 性格名の固定幅。名前の長さによらず補正情報の開始位置を揃える */
+
   --battle-data-card-pokemon-icon-size: 1.6em; /* 同時採用ポケモンのアイコンサイズ */
   /* emではなくvalue-font-sizeからのcalcにする: このトークンは.trend-rank-row(font-size:
      value-font-size)とマス側の.trend-cell-body/.trend-detail-card(祖先のfont-sizeをそのまま
@@ -49,9 +48,9 @@
   1px); /* 狭い画面の1段目に見出しとランキング2件を収める高さ */
 
   /* ── 2. 文字の太さ・行間 ──────────────────────────────── */
-  --battle-data-card-label-font-weight: var(--font-weight-normal); /* 各マスの見出しの太さ。太くすると項目名が目立つ */
+
   --battle-data-card-value-font-weight: var(--font-weight-normal); /* ランキング値の太さ。太くすると内容が目立つ */
-  --battle-data-card-empty-font-weight: var(--font-weight-bold); /* 「データなし」表示の太さ。太くすると空状態が目立つ */
+
   --battle-data-card-value-line-height: 1.55; /* ランキング値の行間。大きくすると複数行の間隔が広がる */
 
   /* ── 3. 文字色 ────────────────────────────────────────── */
@@ -114,7 +113,7 @@
   /* 見出しが打ち消す実際の padding-top。--cell-current-padding は見出しの左右の
      全面表示にも使う共有値なので、上側だけ密度調整で変わる段(1段目など)は
      ここだけを個別に上書きする(左右の計算を巻き込まないため)。 */
-  --battle-data-card-cell-padding-top: var(--battle-data-card-cell-current-padding);
+
   display: flex;
   flex-direction: column;
   min-width: 0;
@@ -145,12 +144,12 @@
   /* マスの padding-top を打ち消し、見出しをマス上端に直付けする。
      こうすることで見出し自身の padding-block(上下とも --space-1)だけで
      文字が縦中央になり、マス側の padding-top が段によって違っても影響しない。 */
-  margin-top: calc(var(--battle-data-card-cell-padding-top) * -1);
+  margin-top: calc(var(--battle-data-card-cell-current-padding) * -1);
   padding-inline: var(--battle-data-card-cell-current-padding);
   padding-block: var(--space-1);
   color: var(--battle-data-card-label-color);
   font-size: var(--battle-data-card-label-font-size);
-  font-weight: var(--battle-data-card-label-font-weight);
+  font-weight: var(--font-weight-normal); /* 各マスの見出しの太さ。太くすると項目名が目立つ */
   line-height: var(--line-height-normal);
   border-bottom: var(--battle-data-card-border);
   overflow: hidden;
@@ -188,7 +187,7 @@
 .trend-detail-cell strong {
   margin-top: var(--battle-data-card-value-margin-top);
   font-size: var(--battle-data-card-value-font-size);
-  font-weight: var(--battle-data-card-empty-font-weight);
+  font-weight: var(--font-weight-bold); /* 「データなし」表示の太さ。太くすると空状態が目立つ */
   line-height: var(--battle-data-card-value-line-height);
   overflow-wrap: anywhere;
 }
@@ -215,7 +214,7 @@
 .trend-rank-row--icon3 { grid-template-columns: var(--battle-data-card-item-icon-size) minmax(0, 1fr) auto; }
 /* 性格名(固定幅)・能力補正・使用率の3列。名前を固定幅にすることで、
    名前の長さに関わらず補正情報の開始位置を全行で揃える。 */
-.trend-rank-row--nature3 { grid-template-columns: var(--battle-data-card-nature-name-width) auto minmax(0, 1fr); }
+.trend-rank-row--nature3 { grid-template-columns: 5.75em auto minmax(0, 1fr); } /* 性格名の固定幅。名前の長さによらず補正情報の開始位置を揃える */
 .trend-rank-row--type3 { grid-template-columns: var(--battle-data-card-move-type-bar-width) minmax(0, 1fr) auto; }
 .trend-rank-row--text2 { grid-template-columns: minmax(0, 1fr) auto; }
 .trend-rank-row--icon2 { grid-template-columns: var(--battle-data-card-pokemon-icon-size) minmax(0, 1fr); }
@@ -248,7 +247,7 @@
 .trend-rank-type-bar {
   display: block;
   width: var(--battle-data-card-move-type-bar-width);
-  height: var(--battle-data-card-move-type-bar-height);
+  height: 1.3em; /* わざ名の左に置くタイプ色バーの高さ */
   background: var(--trend-move-type-color);
 }
 

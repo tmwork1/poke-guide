@@ -11,40 +11,16 @@
 body.share-page {
   /* ── 1. 文字サイズ ────────────────────────────────────── */
   --share-page-stat-label-font-size: var(--font-size-sm2); /* 能力値表の行・列見出し。大きくすると項目名が読みやすくなる */
-  --share-page-stat-value-font-size: var(--font-size-sm1); /* 能力値表の数値。大きくすると数値が目立つ */
-  --share-page-stat-real-font-size: 1.1em; /* 補正後の実数値。大きくすると通常値との差が分かりやすくなる */
 
   /* ── 2. 文字の太さ・行間 ──────────────────────────────── */
-  --share-page-type-chip-font-weight: var(--font-weight-semibold); /* タイプ名の太さ。太くするとタイプ表示が目立つ */
   --share-page-stat-label-font-weight: var(--font-weight-bold); /* 能力値表の見出し太さ。太くすると数値との区別が強まる */
-  --share-page-stat-real-font-weight: var(--font-weight-bold); /* 補正後の実数値の太さ。太くすると重要な数値が目立つ */
 
   /* ── 3. 文字色 ────────────────────────────────────────── */
   --share-page-stat-label-color: var(--color-text-muted); /* 能力値表の見出し色。薄くすると数値が際立つ */
-  --share-page-stat-up-color: var(--color-stat-up); /* 上昇補正の実数値色。変えると上昇表示の印象が変わる */
-  --share-page-stat-down-color: var(--color-stat-down); /* 下降補正の実数値色。変えると下降表示の印象が変わる */
-
-  /* ── 4. 背景色 ────────────────────────────────────────── */
-  --share-page-type-chip-background: var(--color-bg); /* タイプ表示チップの背景。変えるとタイプ表示の区別が変わる */
-
-  /* ── 5. 枠線・角丸 ────────────────────────────────────── */
-  --share-page-type-chip-radius: 999px; /* タイプ表示チップの角丸。小さくすると角張った形になる */
-  --share-page-type-icon-radius: 50%; /* タイプアイコンの角丸。変えるとアイコンの形が変わる */
-
-  /* ── 7. 余白 ──────────────────────────────────────────── */
-  --share-page-identity-gap: var(--space-6); /* ポケモン情報と画像の間隔。大きくすると横に離れる */
-  --share-page-media-gap: var(--space-3); /* 画像とタイプ一覧の間隔。大きくすると縦に離れる */
-  --share-page-type-list-gap: var(--space-2); /* タイプチップどうしの間隔。大きくするとチップが離れる */
-  --share-page-type-chip-gap: 0.4em; /* タイプチップ内のアイコンと名前の間隔。大きくすると離れる */
-  --share-page-type-chip-padding: 0.2em 0.7em 0.2em 0.3em; /* タイプチップの内側余白。大きくするとチップが大きくなる */
-  --share-page-stat-grid-gap: var(--space-1) 0.4rem; /* 能力値表の行・列間隔。大きくすると数値が離れる */
-  --share-page-stat-hint-margin-top: var(--space-3); /* 能力値表と補足の間隔。大きくすると注記が下へ離れる */
 
   /* ── 8. 寸法 ──────────────────────────────────────────── */
-  --share-page-identity-detail-basis: 320px; /* ポケモン詳細欄の基準幅。大きくすると画像が折り返しやすくなる */
   --share-page-image-size: 160px; /* ポケモン画像の大きさ。大きくすると画像が目立つ */
   --share-page-type-icon-size: 28px; /* タイプチップ内アイコンの大きさ。大きくするとタイプが目立つ */
-  --share-page-stat-label-column-width: 4.5rem; /* 能力値表の左見出し列幅。大きくすると数値列が狭くなる */
 }
 
 /* ===========================================================================
@@ -56,11 +32,11 @@ body.share-page {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-start;
-  gap: var(--share-page-identity-gap);
+  gap: var(--space-6); /* ポケモン情報と画像の間隔。大きくすると横に離れる */
 }
 /* 公開個体のポケモン名・性格・特性・持ち物・テラスタイプ・技構成 */
 .share-identity dl {
-  flex: 1 1 var(--share-page-identity-detail-basis);
+  flex: 1 1 320px; /* ポケモン詳細欄の基準幅。大きくすると画像が折り返しやすくなる */
   min-width: 0;
 }
 /* 基本情報の右側に置く公式画像とタイプ一覧のまとまり */
@@ -70,7 +46,7 @@ body.share-page {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--share-page-media-gap);
+  gap: var(--space-3); /* 画像とタイプ一覧の間隔。大きくすると縦に離れる */
 }
 /* 公開個体の公式イラスト。画像枠内に全体が収まるよう表示する */
 .share-identity-media img {
@@ -87,7 +63,7 @@ body.share-page {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: var(--share-page-type-list-gap);
+  gap: var(--space-2); /* タイプチップどうしの間隔。大きくするとチップが離れる */
   list-style: none;
   margin: 0;
   padding: 0;
@@ -96,18 +72,18 @@ body.share-page {
 .share-identity-type-chip {
   display: inline-flex;
   align-items: center;
-  gap: var(--share-page-type-chip-gap);
-  padding: var(--share-page-type-chip-padding);
-  border-radius: var(--share-page-type-chip-radius);
-  background: var(--share-page-type-chip-background);
-  font-weight: var(--share-page-type-chip-font-weight);
+  gap: 0.4em; /* タイプチップ内のアイコンと名前の間隔。大きくすると離れる */
+  padding: 0.2em 0.7em 0.2em 0.3em; /* タイプチップの内側余白。大きくするとチップが大きくなる */
+  border-radius: 999px; /* タイプ表示チップの角丸。小さくすると角張った形になる */
+  background: var(--color-bg); /* タイプ表示チップの背景。変えるとタイプ表示の区別が変わる */
+  font-weight: var(--font-weight-semibold); /* タイプ名の太さ。太くするとタイプ表示が目立つ */
 }
 /* タイプ表示の左側に置く丸いタイプアイコン */
 .share-identity-type-chip img {
   display: block;
   width: var(--share-page-type-icon-size);
   height: var(--share-page-type-icon-size);
-  border-radius: var(--share-page-type-icon-radius);
+  border-radius: 50%; /* タイプアイコンの角丸。変えるとアイコンの形が変わる */
 }
 
 @media (max-width: 640px) {
@@ -118,8 +94,8 @@ body.share-page {
 /* 能力値を横6列で表示する表 */
 .share-stat-grid {
   display: grid;
-  grid-template-columns: var(--share-page-stat-label-column-width) repeat(6, minmax(0, 1fr));
-  gap: var(--share-page-stat-grid-gap);
+  grid-template-columns: 4.5rem repeat(6, minmax(0, 1fr)); /* 能力値表の左見出し列幅。大きくすると数値列が狭くなる */
+  gap: var(--space-1) 0.4rem; /* 能力値表の行・列間隔。大きくすると数値が離れる */
   align-items: center;
 }
 /* グローバルの.card-hintが持つ margin-top: calc(var(--space-2) * -1) を打ち消す
@@ -129,7 +105,7 @@ body.share-page {
    .card-hintクラス自体は他画面(box/[id].astro・pokemon/[name].astro・search/index.astro)
    でも見出し直下の詰め配置に使われているため、グローバル側は変更せずこのページ専用の
    .share-stat-hintをscoped styleで足して打ち消す(scoped属性2つぶんの詳細度で確実に勝つ)。 */
-.share-stat-hint { margin-top: var(--share-page-stat-hint-margin-top); }
+.share-stat-hint { margin-top: var(--space-3); /* 能力値表と補足の間隔。大きくすると注記が下へ離れる */ }
 /* 能力値表の左端に置く「努力値」「実数値」の行見出し */
 .share-stat-row-label {
   font-size: var(--share-page-stat-label-font-size);
@@ -147,13 +123,13 @@ body.share-page {
 /* 能力値表に並ぶ各能力の努力値と実数値 */
 .share-stat-cell {
   text-align: center;
-  font-size: var(--share-page-stat-value-font-size);
+  font-size: var(--font-size-sm1); /* 能力値表の数値。大きくすると数値が目立つ */
 }
 /* 能力値表の実数値。努力値より大きく太い文字で示す */
 .share-stat-cell-real {
-  font-size: var(--share-page-stat-real-font-size);
-  font-weight: var(--share-page-stat-real-font-weight);
+  font-size: 1.1em; /* 補正後の実数値。大きくすると通常値との差が分かりやすくなる */
+  font-weight: var(--font-weight-bold); /* 補正後の実数値の太さ。太くすると重要な数値が目立つ */
 }
 /* box/[id].astroと同じ共通トークン(上昇=赤系/下降=青系)を参照する。 */
-.share-stat-cell-real[data-mod='up'] { color: var(--share-page-stat-up-color); }
-.share-stat-cell-real[data-mod='down'] { color: var(--share-page-stat-down-color); }
+.share-stat-cell-real[data-mod='up'] { color: var(--color-stat-up); /* 上昇補正の実数値色。変えると上昇表示の印象が変わる */ }
+.share-stat-cell-real[data-mod='down'] { color: var(--color-stat-down); /* 下降補正の実数値色。変えると下降表示の印象が変わる */ }

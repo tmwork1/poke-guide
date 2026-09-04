@@ -11,21 +11,6 @@
    固定ダイアログ用は body.box-edit-page、iframe 内用は body.speed-chart-page に置く。
    =========================================================================== */
 body.box-edit-page {
-  /* ── 4. 背景色 ────────────────────────────────────────── */
-  --speed-adjust-backdrop-background: var(--color-overlay); /* 背景オーバーレイ。共通モーダルの暗幕色に合わせる */
-
-  /* ── 5. 枠線・角丸 ────────────────────────────────────── */
-  --speed-adjust-dialog-border: var(--modal-border); /* ダイアログの外枠。太くすると枠が目立つ */
-  --speed-adjust-dialog-radius: var(--radius-lg); /* ダイアログの角丸。大きくすると角が丸くなる */
-
-  /* ── 6. 影 ────────────────────────────────────────────── */
-  --speed-adjust-dialog-shadow: var(--shadow-lg); /* ダイアログの影。強くすると前面に浮いて見える */
-
-  /* ── 8. 寸法 ──────────────────────────────────────────── */
-  --speed-adjust-dialog-width: min(1200px, 84vw); /* ダイアログの横幅。大きくすると横に広がる */
-  --speed-adjust-dialog-height: var(--modal-height); /* ダイアログの高さ。画面高の約75%を表示領域に使う */
-  --speed-adjust-dialog-mobile-width: 92vw; /* 狭い画面での横幅。大きくすると左右の余白が減る */
-  --speed-adjust-dialog-mobile-height: var(--modal-height); /* 狭い画面でも画面高の約75%を表示領域に使う */
 }
 
 /* ===========================================================================
@@ -37,7 +22,7 @@ body.box-edit-page {
   position: fixed;
   inset: 0;
   z-index: 100;
-  background: var(--speed-adjust-backdrop-background);
+  background: var(--color-overlay);
 }
 
 .speed-adjust-backdrop[hidden],
@@ -51,13 +36,13 @@ body.box-edit-page {
   z-index: 101;
   top: var(--modal-top-offset);
   left: 50%;
-  width: var(--speed-adjust-dialog-width);
-  height: var(--speed-adjust-dialog-height);
+  width: min(1200px, 84vw);
+  height: var(--modal-height);
   transform: translateX(-50%);
-  border: var(--speed-adjust-dialog-border);
-  border-radius: var(--speed-adjust-dialog-radius);
+  border: var(--modal-border);
+  border-radius: var(--radius-lg);
   background: var(--color-surface);
-  box-shadow: var(--speed-adjust-dialog-shadow);
+  box-shadow: var(--shadow-lg);
   overflow: hidden;
 }
 
@@ -72,8 +57,8 @@ body.box-edit-page {
 
 @media (max-width: 899px) {
   .speed-adjust-dialog {
-    width: var(--speed-adjust-dialog-mobile-width);
-    height: var(--speed-adjust-dialog-mobile-height);
+    width: 92vw;
+    height: var(--modal-height);
   }
 }
 
@@ -83,49 +68,26 @@ body.speed-chart-page:has(.speed-chart-embed-toolbar) {
   background: var(--color-surface);
 
   /* 余白: ツールバー / 表エリア / 下部個体サマリー / サマリー内 / 操作部内 */
-  --speed-adjust-toolbar-padding: var(--modal-header-padding); /* モーダルヘッダー規格(global.css)に揃える */
   --speed-adjust-content-padding: var(--space-3) var(--space-4);
-  --speed-adjust-summary-padding: var(--space-2) var(--space-3);
   --speed-adjust-summary-gap: var(--space-3);
   --speed-adjust-control-gap: var(--space-4);
 
   /* 共通: 個別指定のない表内テキスト */
-  --speed-adjust-base-size: var(--font-size-sm2);
 
   /* ヘッダー: 「すばやさ調整」見出し / 閉じる（×）。モーダルヘッダー規格(global.css)に揃える */
-  --speed-adjust-toolbar-size: var(--font-size-sm2);
-  --speed-adjust-toolbar-title-size: var(--modal-title-font-size);
-  --speed-adjust-toolbar-close-size: var(--modal-close-font-size);
 
   /* 表: 読み込み・エラー文 / 左端の実数値 / 補正量・種族値 */
-  --speed-adjust-status-size: var(--font-size-sm2);
-  --speed-adjust-table-value-size: var(--font-size-sm1);
-  --speed-adjust-table-meta-size: var(--font-size-sm2);
-  --speed-adjust-table-base-speed-size: var(--font-size-sm2);
 
   /* 表: 性格・努力値などのチップ / チップの出典文 / ×1.5など */
-  --speed-adjust-chip-size: var(--font-size-sm3);
-  --speed-adjust-chip-origin-size: var(--font-size-sm3);
-  --speed-adjust-chip-modifier-size: 0.9em;
 
   /* 表: 個体へ更新するボタン（性格・努力値） */
-  --speed-adjust-apply-size: var(--font-size-sm3);
   --speed-adjust-owned-sprite-size: 48px;
 
   /* 下部サマリー: 「すばやさ」「補正後」のラベル / 数値 */
-  --speed-adjust-label-size: var(--font-size-sm3);
-  --speed-adjust-value-size: var(--font-size-sm2);
 
   /* 下部サマリー: 更新ボタン1行目の性格 / 性格・努力値バッジ / 「移動」 */
-  --speed-adjust-button-label-size: var(--font-size-sm3);
-  --speed-adjust-badge-size: var(--font-size-sm3);
-  --speed-adjust-jump-size: var(--font-size-sm2);
 
   /* 下部サマリー: 「特性」「アイテム」 / ランク数値入力 / ランクの－・＋ */
-  --speed-adjust-toggle-size: var(--font-size-sm2);
-  --speed-adjust-rank-field-size: var(--font-size-sm3);
-  --speed-adjust-rank-input-size: var(--font-size-sm3);
-  --speed-adjust-rank-stepper-size: var(--font-size-sm3);
 }
 
 /* モーダル内では数値・バッジ・ボタンを含め、強調の太字を使わない。 */
@@ -138,23 +100,23 @@ body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-spre
    -------------------------------------------------------------------------- */
 /* 表の上部にある「すばやさ調整」見出しと閉じる操作 */
 body.speed-chart-page .speed-chart-embed-toolbar {
-  padding: var(--speed-adjust-toolbar-padding);
-  font-size: var(--speed-adjust-toolbar-size);
+  padding: var(--modal-header-padding);
+  font-size: var(--font-size-sm2);
   /* 他モーダルのヘッダーと同じ面色にそろえる。 */
   background: var(--color-surface);
 }
 
 body.speed-chart-page .speed-chart-embed-title {
-  font-size: var(--speed-adjust-toolbar-title-size);
+  font-size: var(--modal-title-font-size);
 }
 
 body.speed-chart-page .speed-chart-embed-close {
-  font-size: var(--speed-adjust-toolbar-close-size);
+  font-size: var(--modal-close-font-size);
   align-self: center;
 }
 
 body.speed-chart-page .speed-chart-table[data-embedded='true'] {
-  font-size: var(--speed-adjust-base-size);
+  font-size: var(--font-size-sm2);
   --speed-chart-owned-panel-background: var(--color-surface);
   --speed-chart-chip-icon-size: 26px;
 }
@@ -165,31 +127,31 @@ body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-cont
 }
 
 body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-status {
-  font-size: var(--speed-adjust-status-size);
+  font-size: var(--font-size-sm2);
 }
 
 body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-value-cell {
-  font-size: var(--speed-adjust-table-value-size);
+  font-size: var(--font-size-sm1);
 }
 
 body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-meta-cell {
-  font-size: var(--speed-adjust-table-meta-size);
+  font-size: var(--font-size-sm2);
 }
 
 body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-base-speed-label {
-  font-size: var(--speed-adjust-table-base-speed-size);
+  font-size: var(--font-size-sm2);
 }
 
 body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-chip {
-  font-size: var(--speed-adjust-chip-size);
+  font-size: var(--font-size-sm3);
 }
 
 body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-chip-origin {
-  font-size: var(--speed-adjust-chip-origin-size);
+  font-size: var(--font-size-sm3);
 }
 
 body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-magnitude-badge {
-  font-size: var(--speed-adjust-chip-modifier-size);
+  font-size: 0.9em;
   color: var(--color-text-muted);
   background: color-mix(in srgb, var(--color-bg) 78%, var(--color-border));
   border: 1px solid var(--color-border);
@@ -231,7 +193,7 @@ body.speed-chart-page .speed-chart-table[data-embedded='true'][data-has-owned-pa
 }
 
 body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-apply-button {
-  font-size: var(--speed-adjust-apply-size);
+  font-size: var(--font-size-sm3);
 }
 
 /* 同じすばやさに複数の性格候補がある場合も、各更新ボタンを一行ずつ表示する。 */
@@ -250,7 +212,7 @@ body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-row 
 }
 
 body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-apply-label > :first-child {
-  font-size: var(--speed-adjust-button-label-size);
+  font-size: var(--font-size-sm3);
 }
 
 body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-owned-summary {
@@ -259,17 +221,17 @@ body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-owne
 }
 
 body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-owned-summary .badge {
-  font-size: var(--speed-adjust-badge-size);
+  font-size: var(--font-size-sm3);
 }
 
 body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-owned-raw-value,
 body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-owned-summary-value::before {
-  font-size: var(--speed-adjust-label-size);
+  font-size: var(--font-size-sm3);
 }
 
 body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-owned-raw-value strong,
 body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-owned-summary-value {
-  font-size: var(--speed-adjust-value-size);
+  font-size: var(--font-size-sm2);
 }
 
 body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-owned-summary-value.is-adjusted {
@@ -293,7 +255,7 @@ body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-owne
 
 body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-owned-modifier-toggle {
   gap: calc(var(--space-2) + var(--space-1));
-  font-size: var(--speed-adjust-toggle-size);
+  font-size: var(--font-size-sm2);
 }
 
 body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-owned-modifier-toggle .toggle-switch-track {
@@ -309,7 +271,7 @@ body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-owne
 body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-rank-field {
   order: 3;
   margin-left: auto;
-  font-size: var(--speed-adjust-rank-field-size);
+  font-size: var(--font-size-sm3);
 }
 
 body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-owned-modifier-toggle:has(#speed-chart-ability-toggle) {
@@ -324,7 +286,7 @@ body.speed-chart-page .speed-chart-table[data-embedded='true'] button.speed-char
   background: transparent;
   border-color: transparent;
   box-shadow: none;
-  font-size: var(--speed-adjust-jump-size);
+  font-size: var(--font-size-sm2);
 }
 
 body.speed-chart-page .speed-chart-table[data-embedded='true'] button.speed-chart-owned-jump-button.btn-control:hover:not(:disabled) {
@@ -333,11 +295,11 @@ body.speed-chart-page .speed-chart-table[data-embedded='true'] button.speed-char
 }
 
 body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-rank-field input[type='number'] {
-  font-size: var(--speed-adjust-rank-input-size);
+  font-size: var(--font-size-sm3);
 }
 
 body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-rank-field .rank-stepper {
-  font-size: var(--speed-adjust-rank-stepper-size);
+  font-size: var(--font-size-sm3);
 }
 
 @media (max-width: 699px) {

@@ -11,18 +11,6 @@
 	ページ本体とトップバーの両方から使うため、body.speed-chart-page に置く。
 	-------------------------------------------------------------------------- */
 body.speed-chart-page {
-	/* ── 1. 文字サイズ ─────────────────────── */
-	--speed-chart-embed-close-font-size: var(--modal-close-font-size); /* 閉じるボタンの文字サイズ。大きくすると×が目立つ */
-	--speed-chart-regulation-font-size: var(--font-size-sm2); /* レギュレーション表示の文字サイズ。大きくするとラベルが目立つ */
-	--speed-chart-reachable-font-size: var(--font-size-sm2); /* 絞り込みトグルの文字サイズ。大きくするとラベルが目立つ */
-
-	/* ── 7. 余白 ─────────────────────── */
-	--speed-chart-embed-toolbar-padding: var(--modal-header-padding); /* 操作バーの内側余白。モーダルヘッダー規格(global.css)に揃える */
-	--speed-chart-embed-toolbar-gap: var(--modal-header-gap); /* 操作バー内の項目間隔。モーダルヘッダー規格(global.css)に揃える */
-	--speed-chart-reachable-gap: var(--space-2); /* 絞り込みトグルの部品間隔。大きくするとラベルとスイッチが離れる */
-
-	/* ── 8. 寸法 ─────────────────────── */
-	--speed-chart-embed-main-height: 100dvh; /* 埋め込み時の本文高。操作バーも .app-main の子要素なので、ビューポート全体の高さを使う */
 }
 
 /* --------------------------------------------------------------------------
@@ -35,10 +23,10 @@ body.speed-chart-page {
 	position: relative;
 	display: flex;
 	align-items: center;
-	gap: var(--speed-chart-embed-toolbar-gap);
+	gap: var(--modal-header-gap); /* 操作バー内の項目間隔。モーダルヘッダー規格(global.css)に揃える */
 	flex-wrap: wrap;
 	min-height: var(--modal-header-min-height);
-	padding: var(--speed-chart-embed-toolbar-padding);
+	padding: var(--modal-header-padding); /* 操作バーの内側余白。モーダルヘッダー規格(global.css)に揃える */
 	border-bottom: 1px solid var(--color-border);
 	background: var(--color-chrome);
 }
@@ -55,7 +43,7 @@ body.speed-chart-page {
 	min-width: var(--modal-close-size);
 	min-height: var(--modal-close-size);
 	padding: 0.1em 0.45em;
-	font-size: var(--speed-chart-embed-close-font-size);
+	font-size: var(--modal-close-font-size); /* 閉じるボタンの文字サイズ。大きくすると×が目立つ */
 	line-height: 1;
 }
 .speed-chart-page:has(.speed-chart-embed-toolbar) {
@@ -65,7 +53,7 @@ body.speed-chart-page {
 .speed-chart-page:has(.speed-chart-embed-toolbar) .app-main {
 	display: flex;
 	flex-direction: column;
-	height: var(--speed-chart-embed-main-height);
+	height: 100dvh; /* 埋め込み時の本文高。操作バーも .app-main の子要素なので、ビューポート全体の高さを使う */
 	min-height: 0;
 	padding: 0;
 }
@@ -109,7 +97,7 @@ body.speed-chart-page {
 .speed-chart-reachable-toggle {
 	display: inline-flex;
 	align-items: center;
-	gap: var(--speed-chart-reachable-gap);
-	font-size: var(--speed-chart-reachable-font-size);
+	gap: var(--space-2); /* 絞り込みトグルの部品間隔。大きくするとラベルとスイッチが離れる */
+	font-size: var(--font-size-sm2); /* 絞り込みトグルの文字サイズ。大きくするとラベルが目立つ */
 	white-space: nowrap;
 }

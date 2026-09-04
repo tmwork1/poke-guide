@@ -5,10 +5,6 @@
 	--stat-adjust-sheet-background: color-mix(in srgb, var(--color-surface) 85%, var(--color-chrome) 15%);
 	--stat-adjust-sheet-button-background: color-mix(in srgb, var(--stat-adjust-sheet-background) 70%, var(--color-chrome) 30%);
 	--stat-adjust-sheet-border-color: var(--color-border);
-	--stat-adjust-sheet-toggle-width: 33.333%; /* 閉じたときに見せるつまみの幅。右下FABと重ならない左側1/3だけを操作面にする */
-	--stat-adjust-sheet-toggle-height: 42px; /* 旧28pxの約1.5倍。指でつかみやすい高さを確保する */
-	--stat-adjust-sheet-remaining-font-size: var(--font-size-sm3); /* 「残りXX」の文字サイズ。大きくすると目立つ */
-	--stat-adjust-sheet-remaining-color: var(--color-text-muted); /* 「残りXX」の文字色。濃くすると目立つ */
 }
 
 #stat-adjust-sheet {
@@ -41,8 +37,8 @@
 	justify-content: center;
 	flex: none;
 	align-self: center;
-	width: var(--stat-adjust-sheet-toggle-width);
-	height: var(--stat-adjust-sheet-toggle-height);
+	width: 33.333%; /* 閉じたときに見せるつまみの幅。右下FABと重ならない左側1/3だけを操作面にする */
+	height: 42px; /* 旧28pxの約1.5倍。指でつかみやすい高さを確保する */
 	min-height: 0;
 	padding: 0 var(--space-2);
 	line-height: 1;
@@ -72,8 +68,8 @@
 .stat-adjust-sheet-remaining {
 	display: block;
 	width: 100%;
-	font-size: var(--stat-adjust-sheet-remaining-font-size);
-	color: var(--stat-adjust-sheet-remaining-color);
+	font-size: var(--font-size-sm3); /* 「残りXX」の文字サイズ。大きくすると目立つ */
+	color: var(--color-text-muted); /* 「残りXX」の文字色。濃くすると目立つ */
 	line-height: 1.25;
 	text-align: center;
 	white-space: pre-line;

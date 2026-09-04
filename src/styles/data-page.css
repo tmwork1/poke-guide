@@ -9,44 +9,23 @@
    チューニング変数
    =========================================================================== */
 body.data-page {
-  --data-page-bottom-nav-gap: var(--space-3);
   /* ── 1. 文字サイズ ────────────────────────────────────── */
-  --data-page-preview-title-font-size: var(--font-size-lg2); /* ポケモン名の見出し。大きくするとページの主題が目立つ */
-  --data-page-panel-title-font-size: var(--font-size-lg1); /* データ区画の見出し。大きくすると区画の区別が強まる */
-  --data-page-kicker-font-size: var(--font-size-sm2); /* ポケモン名の前の補足文字。大きくすると補足が目立つ */
 
   /* ── 2. 文字の太さ・行間 ──────────────────────────────── */
-  --data-page-kicker-font-weight: var(--font-weight-bold); /* ポケモン名の前の補足文字。太くすると見出しらしくなる */
 
   /* ── 3. 文字色 ────────────────────────────────────────── */
   --data-page-muted-color: var(--color-text-muted); /* 説明・出典・未利用表示の色。薄くすると主情報が際立つ */
-  --data-page-empty-title-color: var(--color-text); /* 空状態の見出し色。変えると案内の強さが変わる */
 
   /* ── 4. 背景色 ────────────────────────────────────────── */
-  --data-page-preview-background: var(--color-surface); /* ポケモン概要エリアの背景。変えると上部の区切りが変わる */
-  --data-page-empty-background: var(--color-surface); /* 空状態の案内枠背景。変えると案内の存在感が変わる */
 
   /* ── 5. 枠線・角丸 ────────────────────────────────────── */
   --data-page-border: 1px solid var(--color-border); /* 概要・操作バー・案内枠の境界線。太さや色で区切りが変わる */
-  --data-page-ranked-status-radius: var(--radius-md); /* 上位チーム状態枠の角丸。大きくすると柔らかい印象になる */
 
   /* ── 7. 余白 ──────────────────────────────────────────── */
-  --data-page-preview-padding: var(--space-5); /* ポケモン概要の内側余白。大きくすると内容が内側に寄る */
   --data-page-card-scroll-inset: var(--space-3); /* 固定タブ・下部ナビとの間に残すカード一覧の上下余白 */
   --data-page-main-padding: var(--data-page-card-scroll-inset) var(--space-4) calc(var(--bottom-nav-height) + env(safe-area-inset-bottom) + var(--data-page-card-scroll-inset)); /* ページ本文の内側余白。上下は固定UIと重ならない背景色の退避領域 */
-  --data-page-empty-padding: var(--space-5); /* 空状態の案内枠内側余白。大きくすると案内がゆったりする */
-  --data-page-ranked-status-padding: var(--space-4); /* 上位チーム状態枠の内側余白。大きくすると案内がゆったりする */
-  --data-page-preview-description-margin: var(--space-2) 0; /* ポケモン説明の上下余白。大きくするとタイトルから離れる */
-  --data-page-panel-title-margin: 0 0 var(--space-3); /* 区画見出しの下余白。大きくすると内容との間が開く */
-  --data-page-empty-title-margin-bottom: var(--space-2); /* 空状態見出しの下余白。大きくすると説明から離れる */
-  --data-page-ranked-status-margin: 0 auto; /* 上位チーム状態枠の外側余白。変えると横位置が変わる */
-  --data-page-preview-padding-mobile: var(--space-4); /* 狭い画面の概要内側余白。大きくすると概要が厚くなる */
-  --data-page-main-padding-mobile: var(--data-page-card-scroll-inset) var(--space-3) calc(var(--bottom-nav-height) + env(safe-area-inset-bottom) + var(--data-page-card-scroll-inset)); /* 狭い画面の本文内側余白。上下は固定UIと重ならない背景色の退避領域 */
 
   /* ── 8. 寸法 ──────────────────────────────────────────── */
-  --data-page-max-width: 760px; /* ページ全体の最大幅。大きくすると広い画面で横に伸びる */
-  --data-page-preview-min-height: 170px; /* ポケモン概要の最低高さ。大きくすると上部に余白が増える */
-  --data-page-ranked-status-max-width: 34rem; /* 上位チーム状態枠の最大幅。大きくすると案内枠が横に広がる */
 
   /* ── 9. その他 ────────────────────────────────────────── */
 }
@@ -57,7 +36,7 @@ body.data-page {
 
 /* 個別データ・上位チームページの外枠 */
 .box-data-page {
-  max-width: var(--data-page-max-width);
+  max-width: 760px; /* ページ全体の最大幅。大きくすると広い画面で横に伸びる */
   padding-bottom: calc(64px + env(safe-area-inset-bottom));
   display: flex;
   flex-direction: column;
@@ -99,25 +78,25 @@ body.data-page {
 }
 /* ポケモン名と説明を表示する上部概要 */
 .pokemon-data-preview {
-  min-height: var(--data-page-preview-min-height);
-  padding: var(--data-page-preview-padding);
-  background: var(--data-page-preview-background);
+  min-height: 170px; /* ポケモン概要の最低高さ。大きくすると上部に余白が増える */
+  padding: var(--space-5); /* ポケモン概要の内側余白。大きくすると内容が内側に寄る */
+  background: var(--color-surface); /* ポケモン概要エリアの背景。変えると上部の区切りが変わる */
   border-bottom: var(--data-page-border);
 }
 /* ポケモン未選択時に表示する「ポケモンを選択してください」の見出し */
 .pokemon-data-preview h1 {
   margin: 0;
-  font-size: var(--data-page-preview-title-font-size);
+  font-size: var(--font-size-lg2); /* ポケモン名の見出し。大きくするとページの主題が目立つ */
 }
 /* ポケモン未選択時の案内文と、その上に付く短い分類名 */
 .pokemon-data-preview p {
-  margin: var(--data-page-preview-description-margin);
+  margin: var(--space-2) 0; /* ポケモン説明の上下余白。大きくするとタイトルから離れる */
   color: var(--data-page-muted-color);
 }
 /* 未選択案内の上に表示する「育成データレビュー」の分類名 */
 .data-kicker {
-  font-size: var(--data-page-kicker-font-size);
-  font-weight: var(--data-page-kicker-font-weight);
+  font-size: var(--font-size-sm2); /* ポケモン名の前の補足文字。大きくすると補足が目立つ */
+  font-weight: var(--font-weight-bold); /* ポケモン名の前の補足文字。太くすると見出しらしくなる */
 }
 .box-data-main {
   display: flex;
@@ -138,26 +117,26 @@ body.data-page {
 }
 /* バトルデータなしの空表示見出し */
 .data-panel h2 {
-  margin: var(--data-page-panel-title-margin);
-  font-size: var(--data-page-panel-title-font-size);
+  margin: 0 0 var(--space-3); /* 区画見出しの下余白。大きくすると内容との間が開く */
+  font-size: var(--font-size-lg1); /* データ区画の見出し。大きくすると区画の区別が強まる */
 }
 @media (max-width: 420px) {
   /* 狭い画面の概要と本文 */
-  .pokemon-data-preview { padding: var(--data-page-preview-padding-mobile); }
+  .pokemon-data-preview { padding: var(--space-4); /* 狭い画面の概要内側余白。大きくすると概要が厚くなる */ }
   .box-data-main { padding: var(--box-data-card-viewport-inset); }
 }
 
 /* データが無いときの案内枠 */
 .data-empty {
-  padding: var(--data-page-empty-padding);
+  padding: var(--space-5); /* 空状態の案内枠内側余白。大きくすると案内がゆったりする */
   border: var(--data-page-border);
-  background: var(--data-page-empty-background);
+  background: var(--color-surface); /* 空状態の案内枠背景。変えると案内の存在感が変わる */
   color: var(--data-page-muted-color);
 }
 /* バトルデータが無いことを伝える案内枠の見出し */
 .data-empty h2 {
-  color: var(--data-page-empty-title-color);
-  margin-bottom: var(--data-page-empty-title-margin-bottom);
+  color: var(--color-text); /* 空状態の見出し色。変えると案内の強さが変わる */
+  margin-bottom: var(--space-2); /* 空状態見出しの下余白。大きくすると説明から離れる */
 }
 .data-empty p { margin: 0; }
 
@@ -165,7 +144,7 @@ body.data-page {
   display: flex;
   flex: 1;
   min-height: 0;
-  margin-bottom: var(--data-page-bottom-nav-gap);
+  margin-bottom: var(--space-3);
 }
 .box-data-page .data-panel--has-data {
   /* カード領域の外周余白は .box-data-main の padding で統一する。 */
@@ -272,12 +251,12 @@ body.data-page {
    差し替わる前の枠を揃える。 */
 /* /box/ranked の読み込み・エラー・0件時の状態枠 */
 .box-ranked-status {
-  max-width: var(--data-page-ranked-status-max-width);
-  margin: var(--data-page-ranked-status-margin);
-  padding: var(--data-page-ranked-status-padding);
-  background: var(--data-page-empty-background);
+  max-width: 34rem; /* 上位チーム状態枠の最大幅。大きくすると案内枠が横に広がる */
+  margin: 0 auto; /* 上位チーム状態枠の外側余白。変えると横位置が変わる */
+  padding: var(--space-4); /* 上位チーム状態枠の内側余白。大きくすると案内がゆったりする */
+  background: var(--color-surface); /* 空状態の案内枠背景。変えると案内の存在感が変わる */
   border: var(--data-page-border);
-  border-radius: var(--data-page-ranked-status-radius);
+  border-radius: var(--radius-md); /* 上位チーム状態枠の角丸。大きくすると柔らかい印象になる */
   text-align: center;
 }
 

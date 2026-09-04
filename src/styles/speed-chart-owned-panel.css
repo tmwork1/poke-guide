@@ -11,34 +11,15 @@
 	動的に生成される行内セルからも参照するため、.speed-chart-table に置く。
 	-------------------------------------------------------------------------- */
 .speed-chart-table {
-	/* ── 1. 文字サイズ ─────────────────────── */
-	--speed-chart-owned-value-font-size: var(--font-size-sm1); /* 実数値の文字サイズ。大きくすると数値が目立つ */
-	--speed-chart-owned-panel-font-size: var(--font-size-sm2); /* サマリ全体の文字サイズ。大きくすると情報が読みやすくなる */
-	--speed-chart-owned-edit-font-size: var(--font-size-sm3); /* 編集ボタンの文字サイズ。大きくするとラベルが目立つ */
-	--speed-chart-owned-jump-font-size: var(--font-size-sm3); /* 移動ボタンの文字サイズ。大きくするとラベルが目立つ */
-
-	/* ── 4. 背景色 ─────────────────────── */
-	--speed-chart-owned-panel-background: var(--color-bg); /* サマリカードの背景色。変えると右パネルとのコントラストが変わる */
-
 	/* ── 5. 枠線・角丸 ─────────────────────── */
-	--speed-chart-owned-panel-radius: var(--radius-md); /* サマリカードの角丸。大きくすると角が丸くなる */
 	--speed-chart-owned-profile-radius: var(--radius-sm); /* プロフィール枠の角丸。大きくすると角が丸くなる */
-	--speed-chart-owned-apply-border: 2px solid var(--color-primary); /* 個体候補ボタンの枠線。太くすると輪郭が目立つ */
 
 	/* ── 7. 余白 ─────────────────────── */
-	--speed-chart-owned-panel-padding: var(--space-3); /* サマリカードの内側余白。大きくすると内容が内側に寄る */
-	--speed-chart-owned-panel-gap: var(--space-2); /* サマリカード内の項目間隔。大きくすると縦に離れる */
-	--speed-chart-owned-profile-padding: var(--space-2); /* プロフィール枠の内側余白。大きくすると内容が内側に寄る */
 	--speed-chart-owned-profile-gap: var(--space-1); /* プロフィール内の項目間隔。大きくすると縦に離れる */
-	--speed-chart-owned-edit-padding: 0.2em 0.6em; /* 編集ボタンの内側余白。大きくするとボタンが大きくなる */
-	--speed-chart-owned-jump-padding: 0.2em 0.5em; /* 移動ボタンの内側余白。大きくするとボタンが大きくなる */
-	--speed-chart-rank-input-padding: 0.3em; /* ランク入力欄の内側余白。大きくすると入力欄が大きくなる */
 	--speed-chart-owned-option-gap: var(--space-1); /* 行内の個体候補どうしの間隔。大きくすると候補が離れる */
-	--speed-chart-owned-apply-padding: 0.2em 0.8em; /* 個体候補ボタンの内側余白。大きくするとボタンが大きくなる */
 
 	/* ── 8. 寸法 ─────────────────────── */
 	--speed-chart-owned-sprite-size: 52px; /* 個体アイコンの寸法。大きくするとアイコンが目立つ */
-	--speed-chart-rank-input-width: 3.4em; /* ランク入力欄の幅。大きくすると数値の周囲が広がる */
 }
 
 /* --------------------------------------------------------------------------
@@ -55,11 +36,11 @@
 	.speed-chart-owned-panel-static {
 		display: flex;
 		flex-direction: column;
-		gap: var(--speed-chart-owned-panel-gap);
-		padding: var(--speed-chart-owned-panel-padding);
-		background: var(--speed-chart-owned-panel-background);
-		border-radius: var(--speed-chart-owned-panel-radius);
-		font-size: var(--speed-chart-owned-panel-font-size);
+		gap: var(--space-2); /* サマリカード内の項目間隔。大きくすると縦に離れる */
+		padding: var(--space-3); /* サマリカードの内側余白。大きくすると内容が内側に寄る */
+		background: var(--color-bg); /* サマリカードの背景色。変えると右パネルとのコントラストが変わる */
+		border-radius: var(--radius-md); /* サマリカードの角丸。大きくすると角が丸くなる */
+		font-size: var(--font-size-sm2); /* サマリ全体の文字サイズ。大きくすると情報が読みやすくなる */
 	}
 	.speed-chart-table[data-embedded='true'] .speed-chart-owned-panel-static {
 		border-radius: var(--radius-zero);
@@ -84,7 +65,7 @@
 		align-items: flex-start;
 		gap: var(--speed-chart-owned-profile-gap);
 		width: 100%;
-		padding: var(--speed-chart-owned-profile-padding);
+		padding: var(--space-2); /* プロフィール枠の内側余白。大きくすると内容が内側に寄る */
 		background: var(--color-surface);
 		border-radius: var(--speed-chart-owned-profile-radius);
 	}
@@ -123,8 +104,8 @@
 		ひとまわり小さいpaddingにページ限定で調整する(a.btn-ghost自体はglobal.css編集禁止のため
 		触らない)。 */
 	.speed-chart-owned-edit-button {
-		padding: var(--speed-chart-owned-edit-padding);
-		font-size: var(--speed-chart-owned-edit-font-size);
+		padding: 0.2em 0.6em; /* 編集ボタンの内側余白。大きくするとボタンが大きくなる */
+		font-size: var(--font-size-sm3); /* 編集ボタンの文字サイズ。大きくするとラベルが目立つ */
 		font-weight: var(--font-weight-semibold);
 		flex-shrink: 0;
 	}
@@ -163,7 +144,7 @@
 	}
 	/* この値を主役として見せるための font-size だけをページ固有に足す(装飾はテキストのため持たない)。 */
 	.speed-chart-owned-summary-value {
-		font-size: var(--speed-chart-owned-value-font-size);
+		font-size: var(--font-size-sm1); /* 実数値の文字サイズ。大きくすると数値が目立つ */
 	}
 	.speed-chart-owned-summary-value-row {
 		display: flex;
@@ -179,7 +160,7 @@
 		min-height: 36px;
 		place-items: center;
 		padding: 0;
-		font-size: var(--speed-chart-owned-jump-font-size);
+		font-size: var(--font-size-sm3); /* 移動ボタンの文字サイズ。大きくするとラベルが目立つ */
 		font-weight: var(--font-weight-medium);
 		background: transparent;
 		border-color: transparent;
@@ -198,9 +179,9 @@
 		align-self: flex-start;
 	}
 	.speed-chart-rank-field .number-stepper-value {
-		width: var(--speed-chart-rank-input-width);
+		width: 3.4em; /* ランク入力欄の幅。大きくすると数値の周囲が広がる */
 		min-height: 0;
-		padding: var(--speed-chart-rank-input-padding);
+		padding: 0.3em; /* ランク入力欄の内側余白。大きくすると入力欄が大きくなる */
 		font-size: var(--font-size-sm3);
 		text-align: center;
 		background: var(--color-surface);
@@ -301,7 +282,7 @@
 		gap: var(--space-1);
 		min-width: 0;
 		font-size: var(--font-size-sm3);
-		padding: var(--speed-chart-owned-apply-padding);
+		padding: 0.2em 0.8em; /* 個体候補ボタンの内側余白。大きくするとボタンが大きくなる */
 		/* global.css の button.btn-primary { font-weight: var(--font-weight-bold) } は(0,1,1)、こちらは
 			.speed-chart-owned(領域ルート)経由の(0,2,0)で詳細度が上回るため確実に上書きできる。 */
 		font-weight: var(--font-weight-medium);
@@ -309,7 +290,7 @@
 		max-width: 100%;
 		background: var(--color-surface);
 		color: var(--color-primary-strong);
-		border: var(--speed-chart-owned-apply-border);
+		border: 2px solid var(--color-primary); /* 個体候補ボタンの枠線。太くすると輪郭が目立つ */
 	}
 	.speed-chart-owned .speed-chart-apply-button:hover:not(:disabled) {
 		background: var(--color-primary);

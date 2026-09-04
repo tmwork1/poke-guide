@@ -18,14 +18,13 @@
 	gap: var(--space-2);
 }
 .team-matchup-card {
-	--matchup-card-border: 2px;
 	--matchup-mix: 0%;
 	position: relative;
 	display: flex;
 	align-items: center;
 	justify-content: center;
 	aspect-ratio: 1 / 1;
-	border: var(--matchup-card-border) solid transparent;
+	border: 2px solid transparent;
 	border-radius: var(--radius-zero);
 	background: color-mix(in srgb, var(--color-surface) calc(100% - var(--matchup-mix)), var(--color-primary-strong) var(--matchup-mix));
 	transition: border-color 0.2s ease, background 0.2s ease;

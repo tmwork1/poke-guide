@@ -4,20 +4,7 @@
 	=========================================================================== */
 body.box-edit-page,
 body.data-page {
-	--species-select-dialog-width: min(640px, 94vw);
-	--species-select-dialog-height: var(--modal-height);
-	--species-select-dialog-background: var(--color-surface);
-	--species-select-dialog-border: var(--modal-border);
-	--species-select-dialog-radius: var(--radius-lg);
-	--species-select-dialog-shadow: var(--shadow-lg);
-	--species-select-backdrop-background: var(--color-overlay);
-	--species-select-header-padding: var(--modal-header-padding);
-	--species-select-header-gap: var(--modal-header-gap);
-	--species-select-title-font-size: var(--modal-title-font-size);
-	--species-select-title-font-weight: var(--modal-title-font-weight);
-	--species-select-close-font-size: var(--modal-close-font-size);
 	--species-select-close-size: var(--modal-close-size);
-	--species-select-content-padding: var(--space-3) var(--space-5);
 }
 
 /* 種族欄は既存のアイテム・テラス選択ボタンと同じ寸法にそろえる。 */
@@ -58,7 +45,7 @@ body.data-page {
 	position: fixed;
 	inset: 0;
 	z-index: 70;
-	background: var(--species-select-backdrop-background);
+	background: var(--color-overlay); /* */
 }
 .species-select-backdrop[hidden] { display: none; }
 
@@ -68,23 +55,23 @@ body.data-page {
 	left: 50%;
 	transform: translateX(-50%);
 	z-index: 71;
-	width: var(--species-select-dialog-width);
-	height: var(--species-select-dialog-height);
+	width: min(640px, 94vw); /* */
+	height: var(--modal-height); /* */
 	display: flex;
 	flex-direction: column;
 	overflow: visible;
-	background: var(--species-select-dialog-background);
-	border: var(--species-select-dialog-border);
-	border-radius: var(--species-select-dialog-radius);
-	box-shadow: var(--species-select-dialog-shadow);
+	background: var(--color-surface); /* */
+	border: var(--modal-border); /* */
+	border-radius: var(--radius-lg); /* */
+	box-shadow: var(--shadow-lg); /* */
 }
 .species-select-dialog[hidden] { display: none; }
 
 .species-select-header {
 	display: flex;
 	align-items: center;
-	gap: var(--species-select-header-gap);
-	padding: var(--species-select-header-padding);
+	gap: var(--modal-header-gap); /* */
+	padding: var(--modal-header-padding); /* */
 	min-height: var(--modal-header-min-height);
 	border-bottom: 1px solid var(--color-border);
 	flex-shrink: 0;
@@ -96,8 +83,8 @@ body.data-page {
 	margin-bottom: 0;
 	padding-bottom: 0;
 	border-bottom: none;
-	font-size: var(--species-select-title-font-size);
-	font-weight: var(--species-select-title-font-weight);
+	font-size: var(--modal-title-font-size); /* */
+	font-weight: var(--modal-title-font-weight); /* */
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
@@ -108,7 +95,7 @@ body.data-page {
 	min-height: var(--species-select-close-size);
 	padding: 0.1em 0.45em;
 	margin-right: calc(var(--modal-close-margin) - var(--modal-header-padding-x)); /* ヘッダー右端との余白を上下と揃える(モーダルヘッダー規格・global.css)。 */
-	font-size: var(--species-select-close-font-size);
+	font-size: var(--modal-close-font-size); /* */
 	line-height: 1;
 }
 
@@ -167,7 +154,7 @@ body.data-page {
 	flex: 1 1 auto;
 	min-height: 0;
 	overflow-y: auto;
-	padding: var(--species-select-content-padding);
+	padding: var(--space-3) var(--space-5); /* */
 }
 .species-select-grid {
 	display: grid;

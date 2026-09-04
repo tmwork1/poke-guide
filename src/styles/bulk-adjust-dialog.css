@@ -12,43 +12,20 @@
 	=========================================================================== */
 body.box-edit-page {
 	/* ── 1. 文字サイズ ────────────────────────────────────── */
-	--bulk-adjust-title-font-size: var(--font-size-base); /* ダイアログ見出し。大きくするとタイトルが目立つ */
-	--bulk-adjust-status-font-size: var(--font-size-sm2); /* 計算状況の文。大きくすると状態が読みやすくなる */
-	--bulk-adjust-close-font-size: var(--modal-close-font-size); /* 閉じるボタンの×。大きくすると記号が目立つ */
-	--bulk-adjust-inputs-font-size: var(--font-size-sm2); /* N発・確率の入力行。大きくすると入力説明が読みやすくなる */
 
 	/* ── 3. 文字色 ────────────────────────────────────────── */
 	--bulk-adjust-muted-color: var(--color-text-muted); /* 状態文と補足文の色。薄くすると主操作との差が増す */
-	--bulk-adjust-remove-hover-color: var(--color-danger-strong); /* 削除ボタンに触れたときの色。濃くすると危険操作が目立つ */
 
 	/* ── 4. 背景色 ────────────────────────────────────────── */
-	--bulk-adjust-backdrop-background: var(--color-overlay); /* 背景オーバーレイ。濃くすると背後の画面が暗くなる */
-	--bulk-adjust-dialog-background: var(--color-surface); /* ダイアログの下地。変えると全体の面色が変わる */
-	--bulk-adjust-row-background: var(--color-bg); /* 条件カードの下地。変えると各カードの面色が変わる */
 
 	/* ── 5. 枠線・角丸 ────────────────────────────────────── */
-	--bulk-adjust-dialog-border: var(--modal-border); /* ダイアログ外枠。太くすると輪郭が目立つ */
-	--bulk-adjust-dialog-radius: var(--radius-lg); /* ダイアログの角丸。大きくすると角が丸くなる */
-	--bulk-adjust-row-border: 1px solid var(--color-border); /* 条件カードの枠線。濃くするとカードの区切りが強くなる */
-	--bulk-adjust-row-radius: var(--radius-md); /* 条件カードの角丸。大きくすると各カードが丸くなる */
 
 	/* ── 6. 影 ────────────────────────────────────────────── */
-	--bulk-adjust-dialog-shadow: var(--shadow-lg); /* ダイアログの影。強くすると画面手前に浮いて見える */
 
 	/* ── 7. 余白 ──────────────────────────────────────────── */
-	--bulk-adjust-header-gap: var(--modal-header-gap); /* ヘッダー内の要素間隔。大きくすると操作が離れる */
-	--bulk-adjust-header-padding: var(--modal-header-padding); /* モーダル共通の見出し行余白。 */
 	--bulk-adjust-dialog-close-size: var(--modal-close-size); /* 閉じるボタンの最小タップ域。モーダルヘッダー規格(global.css)に揃える */
-	--bulk-adjust-body-padding: var(--space-4) var(--space-5); /* 本文内側の余白。大きくすると内容が内側に寄る */
-	--bulk-adjust-body-gap: var(--space-4); /* 条件カードどうしの間隔。大きくするとカードが離れる */
-	--bulk-adjust-footer-padding: var(--space-3) var(--space-5); /* フッター内側の余白。大きくすると下部が厚くなる */
-	--bulk-adjust-row-gap: var(--space-2); /* 条件カード内の行間。大きくすると入力欄とプレビューが離れる */
-	--bulk-adjust-row-padding: var(--space-3); /* 条件カード内側の余白。大きくするとカードが大きくなる */
 
 	/* ── 8. 寸法 ──────────────────────────────────────────── */
-	--bulk-adjust-dialog-width: min(720px, 94vw); /* ダイアログ横幅。大きくすると横に広がる */
-	--bulk-adjust-dialog-height: var(--modal-height); /* ダイアログの高さ。本文はこの領域内でスクロールする */
-	--bulk-adjust-compute-min-width: 12rem; /* 計算ボタンの最小幅。大きくすると主操作が目立つ */
 	--bulk-adjust-remove-size: 28px; /* 条件カードの削除ボタン。大きくすると押しやすくなる */
 }
 
@@ -75,7 +52,7 @@ body.box-edit-page {
 		right: 0;
 		bottom: 0;
 		z-index: 70;
-		background: var(--bulk-adjust-backdrop-background);
+		background: var(--color-overlay); /* 背景オーバーレイ。濃くすると背後の画面が暗くなる */
 	}
 	/* ⚠️ [hidden]は詳細度で負ける既知の罠(このリポジトリで4件実例あり)。
 		display:flexを持つクラスには必ず対応する[hidden]規則を併記すること。 */
@@ -87,22 +64,22 @@ body.box-edit-page {
 		left: 50%;
 		transform: translateX(-50%);
 		z-index: 71;
-		width: var(--bulk-adjust-dialog-width);
-		height: var(--bulk-adjust-dialog-height);
+		width: min(720px, 94vw); /* ダイアログ横幅。大きくすると横に広がる */
+		height: var(--modal-height); /* ダイアログの高さ。本文はこの領域内でスクロールする */
 		display: flex;
 		flex-direction: column;
-		background: var(--bulk-adjust-dialog-background);
-		border: var(--bulk-adjust-dialog-border);
-		border-radius: var(--bulk-adjust-dialog-radius);
-		box-shadow: var(--bulk-adjust-dialog-shadow);
+		background: var(--color-surface); /* ダイアログの下地。変えると全体の面色が変わる */
+		border: var(--modal-border); /* ダイアログ外枠。太くすると輪郭が目立つ */
+		border-radius: var(--radius-lg); /* ダイアログの角丸。大きくすると角が丸くなる */
+		box-shadow: var(--shadow-lg); /* ダイアログの影。強くすると画面手前に浮いて見える */
 	}
 	.bulk-adjust-dialog[hidden] { display: none; }
 
 	.bulk-adjust-dialog-header {
 		display: flex;
 		align-items: center;
-		gap: var(--bulk-adjust-header-gap);
-		padding: var(--bulk-adjust-header-padding);
+		gap: var(--modal-header-gap); /* ヘッダー内の要素間隔。大きくすると操作が離れる */
+		padding: var(--modal-header-padding); /* モーダル共通の見出し行余白。 */
 		min-height: var(--modal-header-min-height);
 		border-bottom: 1px solid var(--color-border);
 		flex-shrink: 0;
@@ -114,7 +91,7 @@ body.box-edit-page {
 		min-width: 0;
 		margin: 0;
 		overflow: hidden;
-		font-size: var(--bulk-adjust-title-font-size);
+		font-size: var(--font-size-base); /* ダイアログ見出し。大きくするとタイトルが目立つ */
 		font-weight: var(--modal-title-font-weight);
 		text-overflow: ellipsis;
 		white-space: nowrap;
@@ -123,7 +100,7 @@ body.box-edit-page {
 	.bulk-adjust-dialog-status {
 		flex-shrink: 0;
 		color: var(--bulk-adjust-muted-color);
-		font-size: var(--bulk-adjust-status-font-size);
+		font-size: var(--font-size-sm2); /* 計算状況の文。大きくすると状態が読みやすくなる */
 		min-width: 0;
 	}
 	/* ダイアログ右端の閉じるボタン(×)。モーダルヘッダー規格(global.css)に揃える。 */
@@ -133,7 +110,7 @@ body.box-edit-page {
 		min-height: var(--bulk-adjust-dialog-close-size);
 		padding: 0.1em 0.45em;
 		margin-right: calc(var(--modal-close-margin) - var(--modal-header-padding-x)); /* ヘッダー右端との余白を上下と揃える(モーダルヘッダー規格・global.css)。 */
-		font-size: var(--bulk-adjust-close-font-size);
+		font-size: var(--modal-close-font-size); /* 閉じるボタンの×。大きくすると記号が目立つ */
 		line-height: 1;
 	}
 
@@ -153,7 +130,7 @@ body.box-edit-page {
 		color: var(--color-primary-strong);
 		border: 2px solid var(--color-primary);
 		/* 操作の主目的だと分かる幅を確保するため、トークンにない必要最小限の幅だけ生値にする。 */
-		min-width: var(--bulk-adjust-compute-min-width);
+		min-width: 12rem; /* 計算ボタンの最小幅。大きくすると主操作が目立つ */
 		max-width: 100%;
 	}
 	button.bulk-adjust-dialog-compute-button:hover:not(:disabled) {
@@ -165,19 +142,19 @@ body.box-edit-page {
 		flex: 1 1 auto;
 		min-height: 0;
 		overflow-y: auto;
-		padding: var(--bulk-adjust-body-padding);
+		padding: var(--space-4) var(--space-5); /* 本文内側の余白。大きくすると内容が内側に寄る */
 	}
 	.bulk-adjust-dialog-body-inner {
 		display: flex;
 		flex-direction: column;
-		gap: var(--bulk-adjust-body-gap);
+		gap: var(--space-4); /* 条件カードどうしの間隔。大きくするとカードが離れる */
 	}
 
 	.bulk-adjust-dialog-footer {
 		display: flex;
 		align-items: center;
 		gap: var(--space-3);
-		padding: var(--bulk-adjust-footer-padding);
+		padding: var(--space-3) var(--space-5); /* フッター内側の余白。大きくすると下部が厚くなる */
 		border-top: 1px solid var(--color-border);
 		flex-shrink: 0;
 	}
@@ -185,7 +162,7 @@ body.box-edit-page {
 	/* 計算中にフッターへ表示する進捗件数 */
 	.bulk-adjust-progress-text {
 		color: var(--bulk-adjust-muted-color);
-		font-size: var(--bulk-adjust-status-font-size);
+		font-size: var(--font-size-sm2); /* 計算状況の文。大きくすると状態が読みやすくなる */
 	}
 
 
@@ -195,11 +172,11 @@ body.box-edit-page {
 		position: relative;
 		display: flex;
 		flex-direction: column;
-		gap: var(--bulk-adjust-row-gap);
-		border: var(--bulk-adjust-row-border);
-		border-radius: var(--bulk-adjust-row-radius);
-		padding: var(--bulk-adjust-row-padding);
-		background: var(--bulk-adjust-row-background);
+		gap: var(--space-2); /* 条件カード内の行間。大きくすると入力欄とプレビューが離れる */
+		border: 1px solid var(--color-border); /* 条件カードの枠線。濃くするとカードの区切りが強くなる */
+		border-radius: var(--radius-md); /* 条件カードの角丸。大きくすると各カードが丸くなる */
+		padding: var(--space-3); /* 条件カード内側の余白。大きくするとカードが大きくなる */
+		background: var(--color-bg); /* 条件カードの下地。変えると各カードの面色が変わる */
 	}
 	/* 削除ボタン(×)。ダメージカード側の削除ボタン(.damage-row-delete-button)と同じ
 		「カード右上・×・btn-ghost」の流儀に揃える。タップ対象28px以上を満たす大きさにする。
@@ -213,12 +190,12 @@ body.box-edit-page {
 		height: var(--bulk-adjust-remove-size);
 		min-height: var(--bulk-adjust-remove-size);
 		padding: 0;
-		font-size: var(--bulk-adjust-close-font-size);
+		font-size: var(--modal-close-font-size); /* 閉じるボタンの×。大きくすると記号が目立つ */
 		line-height: 1;
 		color: var(--bulk-adjust-muted-color);
 	}
 	.bulk-adjust-row-remove:hover:not(:disabled) {
-		color: var(--bulk-adjust-remove-hover-color);
+		color: var(--color-danger-strong); /* 削除ボタンに触れたときの色。濃くすると危険操作が目立つ */
 	}
 	/* 複製カード(.card-damage)は本来カード一覧の中で使う前提の幅・余白を持つため、
 		ダイアログの中でも横幅いっぱいに広がるようにする(親側の追加のmax-width指定は
@@ -234,7 +211,7 @@ body.box-edit-page {
 		flex-wrap: wrap;
 		align-items: center;
 		gap: var(--space-2) var(--space-3);
-		font-size: var(--bulk-adjust-inputs-font-size);
+		font-size: var(--font-size-sm2); /* N発・確率の入力行。大きくすると入力説明が読みやすくなる */
 	}
 	.bulk-adjust-row-inputs label {
 		display: inline-flex;

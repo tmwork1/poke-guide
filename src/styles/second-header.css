@@ -16,16 +16,6 @@
 }
 
 .second-header {
-	/* ── 4. 背景色 ────────────────────────────────────────── */
-	--second-header-background: var(--color-chrome); /* 検索・並べ替え帯の背景色。コンテンツ面より控えめにする。 */
-
-	/* ── 5. 枠線 ──────────────────────────────────────────── */
-	--second-header-border-bottom: 1px solid var(--color-border); /* 帯下端の区切り線。 */
-
-	/* ── 7. 余白 ──────────────────────────────────────────── */
-	--second-header-padding: var(--space-2) var(--space-3); /* 帯の内側余白。大きくすると検索欄・並べ替えが帯の端から離れる。 */
-	--second-header-gap: var(--space-2); /* 検索欄と並べ替えの間隔。大きくすると両者が離れる。 */
-	--second-header-sort-select-width: 7.25em; /* 「図鑑番号順」まで収める並べ替えセレクトの幅。 */
 }
 
 /* ===========================================================================
@@ -37,8 +27,8 @@
 	position: sticky;
 	top: calc(var(--header-height) + var(--app-header-height));
 	z-index: 19;
-	background: var(--second-header-background);
-	border-bottom: var(--second-header-border-bottom);
+	background: var(--color-chrome); /* 検索・並べ替え帯の背景色。コンテンツ面より控えめにする。 */
+	border-bottom: 1px solid var(--color-border); /* 帯下端の区切り線。 */
 }
 
 /* 全幅の背景の中で、検索・並べ替えの操作列だけを本文帯に揃える。 */
@@ -46,8 +36,8 @@
 	display: flex;
 	align-items: center;
 	min-height: var(--second-header-height);
-	gap: var(--second-header-gap);
-	padding: var(--second-header-padding);
+	gap: var(--space-2); /* 検索欄と並べ替えの間隔。大きくすると両者が離れる。 */
+	padding: var(--space-2) var(--space-3); /* 帯の内側余白。大きくすると検索欄・並べ替えが帯の端から離れる。 */
 }
 
 /* 基準幅412pxでは既存の操作幅を保ち、それより広い画面だけを本文帯に揃える。 */
@@ -82,7 +72,7 @@
 }
 
 .second-header-sort #sort-select {
-	width: var(--second-header-sort-select-width);
+	width: 7.25em; /* 「図鑑番号順」まで収める並べ替えセレクトの幅。 */
 	padding-left: 2.4em;
 	padding-right: var(--space-2);
 	text-align: left;

@@ -6,27 +6,14 @@
 	=========================================================================== */
 body.box-edit-page,
 body.data-page {
-	--item-select-dialog-width: min(640px, 94vw);
-	--item-select-dialog-height: var(--modal-height);
-	--item-select-dialog-background: var(--color-surface);
-	--item-select-dialog-border: var(--modal-border);
-	--item-select-dialog-radius: var(--radius-lg);
-	--item-select-dialog-shadow: var(--shadow-lg);
-	--item-select-backdrop-background: var(--color-overlay);
-	--item-select-header-padding: var(--modal-header-padding);
-	--item-select-header-gap: var(--modal-header-gap);
-	--item-select-title-font-size: var(--modal-title-font-size);
-	--item-select-title-font-weight: var(--modal-title-font-weight);
-	--item-select-close-font-size: var(--modal-close-font-size);
 	--item-select-close-size: var(--modal-close-size);
-	--item-select-content-padding: var(--space-3) var(--space-5);
 }
 
 .item-select-backdrop {
 	position: fixed;
 	inset: 0;
 	z-index: 70;
-	background: var(--item-select-backdrop-background);
+	background: var(--color-overlay); /* */
 }
 .item-select-backdrop[hidden] { display: none; }
 
@@ -36,15 +23,15 @@ body.data-page {
 	left: 50%;
 	transform: translateX(-50%);
 	z-index: 71;
-	width: var(--item-select-dialog-width);
-	height: var(--item-select-dialog-height);
+	width: min(640px, 94vw); /* */
+	height: var(--modal-height); /* */
 	display: flex;
 	flex-direction: column;
 	overflow: visible;
-	background: var(--item-select-dialog-background);
-	border: var(--item-select-dialog-border);
-	border-radius: var(--item-select-dialog-radius);
-	box-shadow: var(--item-select-dialog-shadow);
+	background: var(--color-surface); /* */
+	border: var(--modal-border); /* */
+	border-radius: var(--radius-lg); /* */
+	box-shadow: var(--shadow-lg); /* */
 	/* 開いた直後に dialog.focus() する際のブラウザ既定の白い輪郭を、
 	   モーダルの枠線として見せない。 */
 	outline: none;
@@ -54,8 +41,8 @@ body.data-page {
 .item-select-header {
 	display: flex;
 	align-items: center;
-	gap: var(--item-select-header-gap);
-	padding: var(--item-select-header-padding);
+	gap: var(--modal-header-gap); /* */
+	padding: var(--modal-header-padding); /* */
 	min-height: var(--modal-header-min-height);
 	border-bottom: 1px solid var(--color-border);
 	flex-shrink: 0;
@@ -67,8 +54,8 @@ body.data-page {
 	margin-bottom: 0;
 	padding-bottom: 0;
 	border-bottom: none;
-	font-size: var(--item-select-title-font-size);
-	font-weight: var(--item-select-title-font-weight);
+	font-size: var(--modal-title-font-size); /* */
+	font-weight: var(--modal-title-font-weight); /* */
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
@@ -79,7 +66,7 @@ body.data-page {
 	min-height: var(--item-select-close-size);
 	padding: 0.1em 0.45em;
 	margin-right: calc(var(--modal-close-margin) - var(--modal-header-padding-x)); /* ヘッダー右端との余白を上下と揃える(モーダルヘッダー規格・global.css)。 */
-	font-size: var(--item-select-close-font-size);
+	font-size: var(--modal-close-font-size); /* */
 	line-height: 1;
 }
 
@@ -105,7 +92,7 @@ body.data-page {
 	flex: 1 1 auto;
 	min-height: 0;
 	overflow-y: auto;
-	padding: var(--item-select-content-padding);
+	padding: var(--space-3) var(--space-5); /* */
 }
 .item-select-grid {
 	display: grid;

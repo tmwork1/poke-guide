@@ -11,68 +11,56 @@
 	ここの値を書き換えると、詳細パネル・候補一覧・相手ビルド編集の見た目が変わる。
 	-------------------------------------------------------------------------- */
 body.box-edit-page {
-	--damage-detail-modal-title-font-size: var(--modal-title-font-size);
-	--damage-detail-modal-close-font-size: var(--modal-close-font-size);
-	--damage-detail-modal-header-padding: var(--modal-header-padding);
-	--damage-detail-modal-header-min-height: var(--modal-header-min-height);
-	--damage-detail-modal-header-gap: var(--modal-header-gap);
+
 	--damage-detail-modal-close-size: var(--modal-close-size);
 	/* ── 1. 文字サイズ ─────────────────────── */
-	--damage-detail-font-size-lg: var(--font-size-lg1); /* 閉じるボタンと強調結果の文字サイズ。大きくすると目立つ */
+
 	--damage-detail-font-size-md: var(--font-size-sm1); /* テラスタイプ候補の文字サイズ。大きくすると候補名が読みやすくなる */
 	--damage-detail-font-size-sm: var(--font-size-sm2); /* 本文と操作部品の文字サイズ。大きくするとパネル全体の文字が大きくなる */
 	--damage-detail-font-size-xs: var(--font-size-sm3); /* 補足と小ラベルの文字サイズ。大きくすると細かな説明が読みやすくなる */
 
 	/* ── 2. 文字の太さ・行間 ─────────────────────── */
 	--damage-detail-font-weight-bold: 700; /* 見出しと候補値・合計ダメージ判定の太さ(上限)。大きくすると重要情報が強く見える */
-	--damage-detail-title-font-weight: var(--modal-title-font-weight); /* モーダルヘッダー規格(global.css)のタイトルの太さ。 */
+
 	--damage-detail-font-weight-semibold: 600; /* 小見出しの太さ。大きくすると項目名が強く見える */
 	--damage-detail-font-weight-regular: 400; /* 通常文字の太さ。大きくすると入力値などが太く見える */
-	--damage-detail-line-height-snug: var(--line-height-snug); /* サジェスト説明の行間。大きくすると複数行が読みやすくなる */
+
 	--damage-detail-line-height-tight: var(--line-height-tight); /* 数値やボタンの行間。大きくすると上下にゆとりが出る */
 
 	/* ── 3. 文字色 ─────────────────────── */
 	--damage-detail-text-color: var(--color-text); /* 本文と入力値の文字色。濃くすると主要情報が強く見える */
 	--damage-detail-muted-color: var(--color-text-muted); /* 補足・未選択値の文字色。濃くすると補助情報が読みやすくなる */
 	--damage-detail-primary-strong-color: var(--color-primary-strong); /* 選択中タブの文字色。濃くすると選択状態が強く見える */
-	--damage-detail-danger-strong-color: var(--color-danger-strong); /* 危険判定と攻撃チップの文字色。濃くすると警告が強く見える */
+
 	--damage-detail-risky-strong-color: var(--color-risky-strong); /* 注意判定と警告文の文字色。濃くすると注意情報が強く見える */
-	--damage-detail-success-strong-color: var(--color-success-strong); /* 安全判定の文字色。濃くすると判定結果が強く見える */
 
 	/* ── 4. 背景色 ─────────────────────── */
-	--damage-detail-backdrop-background: var(--color-overlay); /* パネル背後の暗幕。濃くすると背後の画面が見えにくくなる */
+
 	--damage-detail-surface-background: var(--color-surface); /* パネルや入力部品の背景色。変えると主要な面の色がまとめて変わる */
 	--damage-detail-page-background: var(--color-bg); /* 集計欄や候補カードの背景色。変えるとパネル本体との明暗差が変わる */
 	/* モーダル本体より一段明るい操作面。ライト・ダークの両方で入力箇所を
 	   判別しやすくするため、surfaceトークンを使う。 */
 	--damage-detail-control-background: color-mix(in srgb, var(--damage-detail-surface-background) 60%, var(--damage-detail-page-background) 40%);
 	--damage-detail-primary-soft-color: var(--color-primary-soft); /* 選択中の薄い背景色。濃くすると選択面が目立つ */
-	--damage-detail-danger-soft-color: var(--color-danger-soft); /* 危険判定と攻撃チップの背景色。濃くすると危険側が目立つ */
+
 	--damage-detail-risky-soft-color: var(--color-risky-soft); /* 注意判定と省略通知の背景色。濃くすると注意領域が目立つ */
-	--damage-detail-success-soft-color: var(--color-success-soft); /* 安全判定の背景色。濃くすると安全側の判定帯が目立つ */
 
 	/* ── 5. 枠線・角丸 ─────────────────────── */
-	--damage-detail-panel-left-border: 0; /* 左端の枠線。太くすると左境界が見える */
-	--damage-detail-panel-border: var(--modal-border); /* パネル外枠の線。太くすると輪郭が目立つ */
-	--damage-detail-panel-radius: var(--modal-radius); /* 外枠の角丸。大きくするとパネルが丸くなる */
+
 	--damage-detail-border-color: var(--color-border); /* 区切り線と通常枠の色。濃くすると各領域の境界が目立つ */
 	--damage-detail-primary-color: var(--color-primary); /* 選択・フォーカスの強調色。変えると操作中の目印が変わる */
-	--damage-detail-risky-color: var(--color-risky); /* 注意付き候補の枠色。濃くすると注意候補が目立つ */
+
 	--damage-detail-radius-md: var(--radius-md); /* 候補カードと一覧の角丸。大きくすると丸みが増す */
 	--damage-detail-radius-sm: var(--radius-sm); /* 小ボタンや小カードの角丸。大きくすると丸みが増す */
 	--damage-detail-header-border: 1px solid var(--color-border); /* ヘッダー下線。太くすると本文との境界が強くなる */
 	--damage-detail-footer-border: 1px solid var(--color-border); /* フッター上線。太くすると集計欄との境界が強くなる */
-	--damage-detail-inline-border: 1px solid var(--color-border); /* カード列内表示の外枠。太くすると一覧内で目立つ */
-	--damage-detail-tab-border: 2px solid transparent; /* タブ下線の太さ。太くすると選択位置が目立つ */
+
 	--damage-detail-focus-outline: 2px solid var(--color-primary); /* キーボード選択枠。太くすると見つけやすい */
-	--damage-detail-tab-focus-outline-offset: -2px; /* 選択枠の位置。小さくするとタブ内側へ入る */
-	--damage-detail-candidate-item-border: 1px solid var(--color-border); /* 候補カードの枠。太くすると境界が強くなる */
-	--damage-detail-candidate-applied-border-width: 2px; /* 適用中カードの枠幅。大きくすると選択中が目立つ */
+
 	--damage-detail-tera-list-border: 1px solid var(--color-border); /* 候補一覧の外枠。太くすると境界が強くなる */
-	--damage-detail-tera-button-border: 1px solid var(--color-border); /* テラ選択ボタンの枠。太くすると入力欄が目立つ */
 
 	/* ── 6. 影 ─────────────────────── */
-	--damage-detail-panel-shadow: var(--shadow-lg); /* 外側の影。強くすると背景から浮いて見える */
+
 	--damage-detail-shadow-md: var(--shadow-md); /* テラスタイプ候補一覧の影。強くすると手前に浮いて見える */
 	--damage-detail-autofill-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 30%, transparent); /* 自動入力欄の強調輪。太くすると目立つ */
 
@@ -81,34 +69,22 @@ body.box-edit-page {
 	--damage-detail-space-md: var(--space-3); /* 標準の間隔。大きくするとカード内や入力欄同士が離れる */
 	--damage-detail-space-sm: var(--space-2); /* 小さめの間隔。大きくするとボタンや行の密度が下がる */
 	--damage-detail-space-xs: var(--space-1); /* 最小の間隔。大きくすると細かな項目間が広がる */
-	--damage-detail-body-padding: 0.9rem var(--space-4) 1.4rem; /* 本文の内側余白。大きくすると内容が外枠から離れる */
+
 	--damage-detail-body-safe-area-padding-bottom: calc(1.4rem + env(safe-area-inset-bottom)); /* 本文最下部(モーダル最下部)の安全領域込み下余白。大きくすると画面下端の切り欠けから離れる */
-	--damage-detail-close-padding: 0.2em 0.55em; /* 閉じるボタンの余白。大きくすると押せる範囲が広がる */
-	--damage-detail-candidate-applied-padding: calc(var(--space-2) - 1px) calc(var(--space-3) - 1px); /* 太い枠を相殺する余白。大きくすると中身が内側へ寄る */
-	--damage-detail-candidate-segment-gap: 0.4em; /* 候補のラベルと値の間隔。大きくすると両者が離れる */
-	--damage-detail-candidate-item-gap: 0.2em; /* 候補カード内の行間。大きくすると数値や注意書きが離れる */
-	--damage-detail-direction-toggle-margin-bottom: 0; /* 種族入力欄と同じ外寸に揃える。 */
-	--damage-detail-item-dropdown-button-padding: 0.42em 0.6em; /* 持ち物ボタンの内側余白(育成タブと同値)。大きくするとボタンが大きくなる */
-	--damage-detail-item-dropdown-button-gap: 0.35rem; /* 持ち物ボタンのアイコンと文字の間隔(育成タブと同値)。大きくすると両者が離れる */
-	--damage-detail-item-dropdown-search-padding: 0.35em 0.5em; /* 持ち物候補の絞り込み欄の内側余白(育成タブと同値)。大きくすると入力欄が大きくなる */
-	--damage-detail-item-dropdown-option-padding: 0.35rem var(--space-2); /* 持ち物候補1件の内側余白(育成タブと同値)。大きくすると候補行が高くなる */
 
 	/* ── 8. 寸法 ─────────────────────── */
-	--damage-detail-panel-width: min(92vw, 480px); /* 横幅。大きくすると入力欄や候補カードが横に広がる */
-	--damage-detail-panel-height: var(--modal-height); /* タブごとの内容量にかかわらず、画面高の約75%を表示領域に使う */
-	--damage-detail-tera-list-max-height: 16rem; /* 候補一覧の最大高さ。大きくすると一度に見える件数が増える */
+
 	--stat-ev-mobile-button-block-size: 32px; /* 努力値編集ボタンの寸法。大きくするとタップ領域が広がる */
 	--damage-detail-tera-icon-size: 20px; /* テラタイプアイコン。大きくすると候補行が高くなる */
-	--damage-detail-direction-toggle-width: 7.4em; /* 攻守切り替えの最小横幅。「攻撃」「防御」が折り返さない幅が必要(Cの修正)。文字サイズを周辺欄と揃えたぶん少し広げてある */
-	--damage-detail-item-dropdown-button-min-height: 2.35rem; /* 持ち物ボタンの最小高さ(育成タブと同値)。大きくするとボタンが大きくなる */
+
 	--damage-detail-build-control-height: 2.5rem; /* 攻守・種族・特性・アイテム欄を揃える高さ */
 	--damage-detail-item-dropdown-icon-size: 20px; /* 持ち物アイコン(ボタン・候補共通、育成タブと同値)。大きくすると候補行が高くなる */
-	--damage-detail-item-dropdown-list-max-height: 14rem; /* 持ち物候補一覧の最大高さ(育成タブと同値)。大きくすると一度に見える件数が増える */
+
 	--damage-detail-selection-icon-size: 32px; /* 共通ヘッダーの対面ポケモンアイコン */
 
 	/* ── 9. その他 ─────────────────────── */
 	--damage-detail-panel-open-opacity: 1; /* 開いた状態の透明度。小さくすると背後が透ける */
-	--damage-detail-panel-closed-opacity: 0; /* 閉じた状態の透明度。大きくすると閉じる途中も見えやすい */
+
 	--damage-detail-panel-transition-duration: 0.2s; /* 開閉時間。大きくすると動きがゆっくりになる */
 }
 
@@ -139,19 +115,19 @@ body.box-edit-page {
 		left: 50%;
 		right: auto;
 		bottom: auto;
-		width: var(--damage-detail-panel-width);
-		height: var(--damage-detail-panel-height);
+		width: min(92vw, 480px); /* 横幅。大きくすると入力欄や候補カードが横に広がる */
+		height: var(--modal-height); /* タブごとの内容量にかかわらず、画面高の約75%を表示領域に使う */
 		z-index: 60;
 		display: flex;
 		flex-direction: column;
 		overflow: hidden;
 		background: var(--damage-detail-surface-background);
-		box-shadow: var(--damage-detail-panel-shadow);
-		border: var(--damage-detail-panel-border);
-		border-left: var(--damage-detail-panel-left-border);
-		border-radius: var(--damage-detail-panel-radius);
+		box-shadow: var(--shadow-lg); /* 外側の影。強くすると背景から浮いて見える */
+		border: var(--modal-border); /* パネル外枠の線。太くすると輪郭が目立つ */
+		border-left: 0; /* 左端の枠線。太くすると左境界が見える */
+		border-radius: var(--modal-radius); /* 外枠の角丸。大きくするとパネルが丸くなる */
 		transform: translateX(-50%) scale(0.96);
-		opacity: var(--damage-detail-panel-closed-opacity);
+		opacity: 0; /* 閉じた状態の透明度。大きくすると閉じる途中も見えやすい */
 		pointer-events: none;
 		transition: transform var(--damage-detail-panel-transition-duration) ease, opacity var(--damage-detail-panel-transition-duration) ease;
 	}
@@ -164,17 +140,17 @@ body.box-edit-page {
 		position: fixed;
 		inset: 0;
 		z-index: 55;
-		background: var(--damage-detail-backdrop-background);
+		background: var(--color-overlay); /* パネル背後の暗幕。濃くすると背後の画面が見えにくくなる */
 	}
 	.damage-detail-backdrop[hidden] { display: none; }
 	.damage-detail-panel-header {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		gap: var(--damage-detail-modal-header-gap);
+		gap: var(--modal-header-gap);
 		/* モーダルヘッダー規格(global.css)の共通余白・最小高さを使う。 */
-		padding: var(--damage-detail-modal-header-padding);
-		min-height: var(--damage-detail-modal-header-min-height);
+		padding: var(--modal-header-padding);
+		min-height: var(--modal-header-min-height);
 		/* 今回の指示で3モード共通のタイトル直下の区切り線を復活させる。
 			背景はモーダル本体(--color-surface)と同化させ、var(--damage-detail-page-background)(ページ背景、
 			ダークモードでは--color-surfaceより暗い)による帯を作らない。 */
@@ -184,8 +160,8 @@ body.box-edit-page {
 	.damage-detail-panel-title {
 		min-width: 0;
 		flex: 1 1 auto;
-		font-size: var(--damage-detail-modal-title-font-size);
-		font-weight: var(--damage-detail-title-font-weight);
+		font-size: var(--modal-title-font-size);
+		font-weight: var(--modal-title-font-weight); /* モーダルヘッダー規格(global.css)のタイトルの太さ。 */
 	}
 	.damage-detail-panel-tabs {
 		display: flex;
@@ -208,7 +184,7 @@ body.box-edit-page {
 		min-height: var(--app-header-height);
 		padding: 0 var(--damage-detail-space-md);
 		border: 0;
-		border-bottom: var(--damage-detail-tab-border);
+		border-bottom: 2px solid transparent; /* タブ下線の太さ。太くすると選択位置が目立つ */
 		/* A-1: button要素のネイティブappearanceが角丸を持つ環境(Windows版Chromium等)があり、
 			選択中の背景塗り(aria-selected="true")が丸角ハイライトに見える不具合があった。
 			app-header__item(app-header.css)と同じ考え方で、角丸を明示的に0にし、
@@ -230,16 +206,16 @@ body.box-edit-page {
 	}
 	.damage-detail-panel-tab:focus-visible {
 		outline: var(--damage-detail-focus-outline);
-		outline-offset: var(--damage-detail-tab-focus-outline-offset);
+		outline-offset: -2px; /* 選択枠の位置。小さくするとタブ内側へ入る */
 	}
 	/* パネル右上の「×」ボタン */
 	.damage-detail-panel-close {
 		flex-shrink: 0;
 		min-width: var(--damage-detail-modal-close-size);
 		min-height: var(--damage-detail-modal-close-size);
-		padding: var(--damage-detail-close-padding);
+		padding: 0.2em 0.55em; /* 閉じるボタンの余白。大きくすると押せる範囲が広がる */
 		margin-right: calc(var(--modal-close-margin) - var(--modal-header-padding-x));
-		font-size: var(--damage-detail-modal-close-font-size);
+		font-size: var(--modal-close-font-size);
 	}
 	/* #damage-detail-panel-body自体をflex column化し、中身(JS生成の
 		.damage-detail-panel-body-inner、is:global側で定義)にmargin-block:autoを持たせる
@@ -259,7 +235,7 @@ body.box-edit-page {
 		display: flex;
 		flex-direction: column;
 		overflow-y: auto;
-		padding: var(--damage-detail-body-padding);
+		padding: 0.9rem var(--space-4) 1.4rem; /* 本文の内側余白。大きくすると内容が外枠から離れる */
 		/* footerの移動でこのbodyがモーダル最下部の要素になったため、画面下端の
 			安全領域(env(safe-area-inset-bottom))を避ける下パディングをここで持つ。 */
 		padding-bottom: var(--damage-detail-body-safe-area-padding-bottom);
@@ -348,16 +324,16 @@ body.box-edit-page {
 		color: var(--damage-detail-muted-color);
 	}
 	.damage-detail-panel-total[data-severity="lethal"] {
-		background: var(--damage-detail-danger-soft-color);
-		color: var(--damage-detail-danger-strong-color);
+		background: var(--color-danger-soft); /* 危険判定と攻撃チップの背景色。濃くすると危険側が目立つ */
+		color: var(--color-danger-strong); /* 危険判定と攻撃チップの文字色。濃くすると警告が強く見える */
 	}
 	.damage-detail-panel-total[data-severity="risky"] {
 		background: var(--damage-detail-risky-soft-color);
 		color: var(--damage-detail-risky-strong-color);
 	}
 	.damage-detail-panel-total[data-severity="safe"] {
-		background: var(--damage-detail-success-soft-color);
-		color: var(--damage-detail-success-strong-color);
+		background: var(--color-success-soft); /* 安全判定の背景色。濃くすると安全側の判定帯が目立つ */
+		color: var(--color-success-strong); /* 安全判定の文字色。濃くすると判定結果が強く見える */
 	}
 	/* UI改修: 判定(damage-result-verdict)と詳細(damage-result-detail)を特別扱いせず、
 		技テキスト(.damage-column-move-text、box-damage-card.css)と同じフォントで中央配置する
@@ -428,7 +404,7 @@ body.box-edit-page {
 			pointer-events: auto;
 			box-shadow: none;
 			z-index: auto;
-			border: var(--damage-detail-inline-border);
+			border: 1px solid var(--color-border); /* カード列内表示の外枠。太くすると一覧内で目立つ */
 			border-radius: var(--damage-detail-radius-md);
 		}
 		.damage-detail-panel.is-mobile-inline .damage-detail-panel-body {
@@ -523,8 +499,8 @@ body.box-edit-page {
 		display: flex;
 		flex-direction: column;
 		align-items: flex-start;
-		gap: var(--damage-detail-candidate-item-gap);
-		border: var(--damage-detail-candidate-item-border);
+		gap: 0.2em; /* 候補カード内の行間。大きくすると数値や注意書きが離れる */
+		border: 1px solid var(--color-border); /* 候補カードの枠。太くすると境界が強くなる */
 		border-radius: var(--damage-detail-radius-md);
 		padding: var(--damage-detail-space-sm) var(--damage-detail-space-md);
 		background: var(--damage-detail-page-background);
@@ -543,14 +519,14 @@ body.box-edit-page {
 	/* 支援技術向けの状態は動的要素のaria-currentで示す。 */
 	#damage-detail-panel-body .candidate-list-item.is-applied {
 		border-color: var(--damage-detail-primary-color);
-		border-width: var(--damage-detail-candidate-applied-border-width);
-		padding: var(--damage-detail-candidate-applied-padding);
+		border-width: 2px; /* 適用中カードの枠幅。大きくすると選択中が目立つ */
+		padding: calc(var(--space-2) - 1px) calc(var(--space-3) - 1px); /* 太い枠を相殺する余白。大きくすると中身が内側へ寄る */
 		background: var(--damage-detail-primary-soft-color);
 	}
 	#damage-detail-panel-body .candidate-list-item-segment {
 		display: flex;
 		align-items: baseline;
-		gap: var(--damage-detail-candidate-segment-gap);
+		gap: 0.4em; /* 候補のラベルと値の間隔。大きくすると両者が離れる */
 	}
 	#damage-detail-panel-body .candidate-list-item-segment-label {
 		color: var(--damage-detail-muted-color);
@@ -561,7 +537,7 @@ body.box-edit-page {
 		font-weight: var(--damage-detail-font-weight-bold);
 	}
 	#damage-detail-panel-body .candidate-list-item.has-warn-flag {
-		border-color: var(--damage-detail-risky-color);
+		border-color: var(--color-risky); /* 注意付き候補の枠色。濃くすると注意候補が目立つ */
 	}
 	#damage-detail-panel-body .candidate-list-item-flag {
 		font-weight: var(--damage-detail-font-weight-bold);
@@ -686,10 +662,10 @@ body.box-edit-page {
 			1行に収まる最小幅だけを保証する(--damage-detail-direction-toggle-width、
 			チューニング変数側で値を拡大済み)。 */
 		width: auto;
-		min-width: var(--damage-detail-direction-toggle-width);
+		min-width: 7.4em; /* 攻守切り替えの最小横幅。「攻撃」「防御」が折り返さない幅が必要(Cの修正)。文字サイズを周辺欄と揃えたぶん少し広げてある */
 		height: var(--damage-detail-build-control-height);
 		min-height: var(--damage-detail-build-control-height);
-		margin-bottom: var(--damage-detail-direction-toggle-margin-bottom);
+		margin-bottom: 0; /* 種族入力欄と同じ外寸に揃える。 */
 	}
 	#damage-detail-panel-body .damage-build-detail-direction-toggle .damage-row-direction-option {
 		min-height: var(--damage-detail-build-control-height);
@@ -953,17 +929,17 @@ body.box-edit-page {
 		display: flex;
 		align-items: center;
 		justify-content: flex-start;
-		gap: var(--damage-detail-item-dropdown-button-gap);
+		gap: 0.35rem; /* 持ち物ボタンのアイコンと文字の間隔(育成タブと同値)。大きくすると両者が離れる */
 		width: 100%;
 		min-height: var(--damage-detail-build-control-height);
-		padding: var(--damage-detail-item-dropdown-button-padding);
+		padding: 0.42em 0.6em; /* 持ち物ボタンの内側余白(育成タブと同値)。大きくするとボタンが大きくなる */
 		border: 1px solid var(--damage-detail-border-color);
 		border-radius: var(--damage-detail-radius-sm);
 		background: var(--damage-detail-control-background);
 		cursor: pointer;
 		font-size: var(--damage-detail-font-size-md);
 		font-weight: var(--damage-detail-font-weight-regular);
-		line-height: var(--damage-detail-line-height-snug);
+		line-height: var(--line-height-snug); /* サジェスト説明の行間。大きくすると複数行が読みやすくなる */
 		color: var(--damage-detail-text-color);
 		text-align: left;
 	}
@@ -1028,21 +1004,21 @@ body.box-edit-page {
 		width: 100%;
 		box-sizing: border-box;
 		margin-bottom: var(--damage-detail-space-xs);
-		padding: var(--damage-detail-item-dropdown-search-padding);
+		padding: 0.35em 0.5em; /* 持ち物候補の絞り込み欄の内側余白(育成タブと同値)。大きくすると入力欄が大きくなる */
 		font-size: var(--damage-detail-font-size-sm);
 	}
 	#damage-detail-panel-body .damage-build-detail-item-dropdown-list {
 		margin: 0;
 		padding: 0;
 		list-style: none;
-		max-height: var(--damage-detail-item-dropdown-list-max-height);
+		max-height: 14rem; /* 持ち物候補一覧の最大高さ(育成タブと同値)。大きくすると一度に見える件数が増える */
 		overflow-y: auto;
 	}
 	#damage-detail-panel-body .damage-build-detail-item-dropdown-option {
 		display: flex;
 		align-items: center;
 		gap: var(--damage-detail-space-sm);
-		padding: var(--damage-detail-item-dropdown-option-padding);
+		padding: 0.35rem var(--space-2); /* 持ち物候補1件の内側余白(育成タブと同値)。大きくすると候補行が高くなる */
 		border-radius: var(--damage-detail-radius-sm);
 		cursor: pointer;
 		font-size: var(--damage-detail-font-size-md);
@@ -1090,7 +1066,7 @@ body.box-edit-page {
 		justify-content: flex-start;
 		gap: var(--damage-detail-space-xs);
 		padding: var(--damage-detail-space-sm);
-		border: var(--damage-detail-tera-button-border);
+		border: 1px solid var(--color-border); /* テラ選択ボタンの枠。太くすると入力欄が目立つ */
 		border-radius: var(--damage-detail-radius-sm);
 		background: var(--damage-detail-control-background);
 		color: var(--damage-detail-text-color);
@@ -1123,7 +1099,7 @@ body.box-edit-page {
 		top: calc(100% + var(--damage-detail-space-xs));
 		left: 0;
 		right: 0;
-		max-height: var(--damage-detail-tera-list-max-height);
+		max-height: 16rem; /* 候補一覧の最大高さ。大きくすると一度に見える件数が増える */
 		overflow-y: auto;
 		margin: 0;
 		padding: var(--damage-detail-space-xs);

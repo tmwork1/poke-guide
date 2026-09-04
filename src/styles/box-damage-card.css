@@ -12,22 +12,10 @@
    -------------------------------------------------------------------------- */
 body.box-edit-page {
   /* ── 1. 文字サイズ ─────────────────────── */
-  --damage-card-sprite-fallback-font-size: 1.1rem; /* 画像がないときの代替文字サイズ */
-  --damage-card-total-verdict-font-size: var(--font-size-lg1); /* 「確定1発」など判定部分の文字サイズ */
   --damage-card-dropdown-option-font-size: var(--font-size-sm1); /* 候補名の文字サイズ */
-  --damage-card-total-result-font-size: var(--font-size-sm1); /* 累計結果全体の文字サイズ */
-  --damage-card-action-font-size: var(--font-size-sm1); /* 削除ボタン内の記号の大きさ */
-  --damage-card-summary-font-size: var(--font-size-sm2); /* 相手の名前・特性・持ち物の文字サイズ */
-  --damage-card-form-control-font-size: var(--font-size-sm2); /* 相手情報の選択欄・入力欄の文字サイズ */
-  --damage-card-stat-font-size: var(--font-size-sm2); /* 実数値・努力値の文字サイズ */
   --damage-card-total-detail-font-size: var(--font-size-sm2); /* ダメージ割合など詳細部分の文字サイズ */
   --damage-card-move-font-size: var(--font-size-sm2); /* 技名の文字サイズ */
-  --damage-card-add-button-font-size: var(--font-size-sm2); /* 「技を追加」ボタンの文字サイズ */
-  --damage-card-summary-label-font-size: var(--font-size-sm3); /* 「持ち物」など補助ラベルの文字サイズ */
-  --damage-card-direction-font-size: var(--font-size-sm3); /* 攻撃・防御スイッチの文字サイズ(カード上のコンパクト表示用) */
-  --damage-detail-direction-font-size: var(--font-size-sm1); /* 「相手ポケモン」タブ(モーダル)の攻撃・防御スイッチの文字サイズ。同じ行の種族名入力・アイテムボタンと揃える */
   --damage-card-condition-font-size: var(--font-size-sm3); /* 条件チップと見出しの文字サイズ */
-  --damage-card-total-label-font-size: var(--font-size-sm3); /* 「累計結果」ラベルの文字サイズ */
   --damage-card-column-order-font-size: var(--font-size-sm3); /* ヒット数表示・撃破済みキャプション等の文字サイズ */
   --damage-card-save-font-size: var(--font-size-sm3); /* 保存状態の文字サイズ */
   --damage-card-build-detail-font-size: var(--font-size-sm3); /* 相手情報2段目(特性・テラス・アイテム・実数値)の文字サイズ */
@@ -37,186 +25,92 @@ body.box-edit-page {
   --damage-card-move-font-weight: var(--font-weight-bold); /* 技名の文字の太さ */
   --damage-card-direction-font-weight: var(--font-weight-semibold); /* 攻撃・防御スイッチの文字の太さ */
   --damage-card-total-detail-font-weight: var(--font-weight-medium); /* 詳細部分の文字の太さ */
-  --damage-card-move-placeholder-weight: var(--font-weight-medium); /* 未選択の技名表示の文字の太さ */
-  --damage-card-summary-font-weight: var(--font-weight-normal); /* 相手の名前・特性・持ち物の文字の太さ */
   --damage-card-direction-line-height: var(--line-height-tight); /* 攻撃・防御スイッチ内の行の高さ */
   --damage-card-stat-line-height: var(--line-height-tight); /* 実数値・努力値の行の高さ */
-  --damage-card-form-control-line-height: 1.15; /* 相手情報の選択欄・入力欄の行の高さ */
 
   /* ── 3. 文字色 ─────────────────────── */
-  --damage-card-summary-color: var(--color-text); /* 相手情報の主要文字色 */
-  --damage-card-summary-label-color: var(--color-text-muted); /* 相手情報の補助ラベル色 */
   --damage-card-direction-color: var(--color-text-muted); /* 未選択側の文字色 */
-  --damage-card-direction-hover-color: var(--color-primary); /* 未選択側へマウスを載せたときの文字色 */
   --damage-card-direction-selected-color: var(--color-primary-contrast); /* 選択中スイッチの文字色 */
-  --damage-card-tera-button-color: var(--color-text); /* 選択済みテラスタイプの文字色 */
   --damage-card-stat-label-color: var(--color-text-muted); /* 能力名と努力値の補助文字色 */
-  --damage-card-stat-value-color: var(--color-text); /* 実数値の通常色 */
   --damage-card-stat-up-color: var(--color-stat-up); /* 性格補正で上がる能力の色 */
   --damage-card-stat-down-color: var(--color-stat-down); /* 性格補正で下がる能力の色 */
-  --damage-card-total-label-color: var(--color-text-muted); /* 「累計結果」ラベルの文字色 */
-  --damage-card-delete-hover-color: var(--color-primary-contrast); /* 削除ボタンへマウスを載せたときの記号色 */
   --damage-card-delete-mode-color: var(--color-danger-strong); /* 長押し削除モード中の削除記号色 */
-  --damage-card-add-button-color: var(--color-text-muted); /* 「技を追加」ボタンの文字色 */
   --damage-card-build-detail-color: var(--color-text-muted); /* 相手情報2段目(特性・テラス・アイテム・実数値)の文字色 */
   --damage-card-attack-badge-color: var(--color-danger-strong); /* 相手ビルドカードの攻撃バッジの文字色(よく行われるダメージ計算の攻守チップと同じ配色) */
   --damage-card-defense-badge-color: var(--color-primary); /* 相手ビルドカードの防御バッジの文字色 */
 
   /* ── 4. 背景色 ─────────────────────── */
-  --damage-card-background: var(--color-bg); /* カードの通常時の背景色 */
   --damage-card-active-background: color-mix(in srgb, var(--color-bg) 90%, var(--color-primary) 10%); /* hover・フォーカス時の背景色 */
   --damage-card-build-background: var(--color-surface); /* 相手情報欄の背景色 */
   --damage-card-direction-background: var(--color-surface); /* 未選択側の背景色 */
-  --damage-card-direction-hover-background: var(--color-primary-soft); /* 未選択側へマウスを載せたときの背景色 */
   --damage-card-attack-background: var(--color-danger-strong); /* 攻撃側を選んだときの背景色 */
   --damage-card-defense-background: var(--color-primary-strong); /* 防御側を選んだときの背景色 */
-  --damage-card-tera-button-background: var(--color-surface); /* テラスタイプ選択ボタンの背景色 */
   --damage-card-dropdown-background: var(--color-surface); /* 候補リストの背景色 */
-  --damage-card-dropdown-option-active-background: var(--color-primary-soft); /* 現在選択中の候補の背景色 */
-  --damage-card-total-background: var(--color-surface); /* 累計ゲージの通常背景色 */
-  --damage-card-delete-background: var(--color-surface); /* 削除ボタンの通常背景色 */
   --damage-card-delete-hover-background: var(--color-danger-strong); /* 削除ボタンへマウスを載せたときの背景色 */
   --damage-card-column-background: var(--color-surface); /* 技カードの背景色 */
-  --damage-card-add-button-background: var(--color-surface); /* 「わざを追加」ボタンの背景色 */
   --damage-detail-icon-button-background: var(--color-bg); /* アイコンボタンの通常背景色 */
   --damage-card-attack-badge-background: var(--color-danger-soft); /* 相手ビルドカードの攻撃バッジの背景色 */
   --damage-card-defense-badge-background: var(--color-primary-soft); /* 相手ビルドカードの防御バッジの背景色 */
 
   /* ── 5. 枠線・角丸 ─────────────────────── */
   --damage-card-active-border-color: var(--color-border); /* hover・フォーカス時の枠線色 */
-  --damage-card-build-border-radius: var(--radius-zero); /* 相手情報欄の角丸。大きくすると角が丸くなる */
   --damage-card-direction-border: 1px solid var(--color-border); /* 攻撃・防御スイッチの外枠 */
   --damage-card-direction-border-radius: var(--radius-md); /* 攻撃・防御スイッチの角丸 */
   --damage-card-control-focus-outline: 2px solid var(--color-primary); /* キーボード操作時に出るフォーカス枠 */
   --damage-card-direction-focus-offset: -2px; /* スイッチのフォーカス枠位置。負方向で枠が内側へ入る */
-  --damage-card-tera-button-border: 1px solid var(--color-border); /* テラスタイプ選択ボタンの枠線 */
-  --damage-card-tera-button-radius: var(--radius-sm); /* テラスタイプ選択ボタンの角丸 */
-  --damage-card-tera-button-hover-border-color: var(--color-primary); /* ボタンへマウスを載せたときの枠線色 */
   --damage-card-dropdown-border: 1px solid var(--color-border); /* 候補リストの枠線 */
   --damage-card-dropdown-radius: var(--radius-md); /* 候補リストの角丸 */
   --damage-card-dropdown-option-radius: var(--radius-sm); /* 候補1行の角丸 */
-  --damage-card-sprite-radius: var(--radius-md); /* 相手ポケモン画像枠の角丸 */
-  --damage-card-total-radius: var(--radius-zero); /* 累計ゲージの角丸 */
-  --damage-card-action-radius: 50%; /* 削除ボタンの角丸。50%で円になる */
-  --damage-card-delete-border: 1px solid var(--color-border); /* 削除ボタンの通常枠線 */
-  --damage-card-column-radius: var(--radius-zero); /* 技カードの角丸 */
-  --damage-card-add-button-border: 1px solid var(--color-border); /* 「技を追加」ボタンの枠線 */
-  --damage-card-add-button-radius: var(--radius-zero); /* 「技を追加」ボタンの角丸 */
-  --damage-card-footer-border: 1px solid var(--color-border); /* 保存状態欄の上線 */
   --damage-detail-icon-button-border: 1px solid var(--color-border); /* アイコンボタンの通常枠線 */
   --damage-detail-icon-button-radius: var(--radius-sm); /* アイコンボタンの角丸 */
   --damage-card-direction-badge-radius: var(--radius-sm); /* 攻守バッジ(単一ピル表示)の角丸。damage-suggest-directionチップと同じ角丸 */
 
   /* ── 6. 影 ─────────────────────── */
-  --damage-card-shadow: none; /* カードの通常時の影。強くするとカードが手前に浮いて見える */
   --damage-card-active-shadow: var(--shadow-sm); /* hover・フォーカス時の影。強くすると浮き上がりが目立つ */
-  --damage-card-build-selected-shadow: 0 0 0 1px var(--color-primary), var(--shadow-sm); /* 選択中の相手情報欄を囲む影 */
   --damage-card-dropdown-shadow: var(--shadow-md); /* 候補リストの影 */
-  --damage-card-type-badge-filter: drop-shadow(0 0 1px var(--color-surface)); /* タイプバッジの縁取り影 */
-  --damage-card-action-shadow: var(--shadow-sm); /* 削除ボタンの影 */
-  --damage-card-column-selected-shadow: 0 0 0 1px var(--color-primary); /* 選択中の技カードを囲む線 */
 
   /* ── 7. 余白 ─────────────────────── */
-  --damage-card-margin: 0; /* カード外側の余白。大きくすると隣のカードから離れる */
-  --damage-card-padding: 0; /* カード内側の余白。大きくすると内容が中央へ寄る */
-  --damage-card-body-gap: var(--space-1); /* 相手情報と技一覧の間隔。大きくすると左右の領域が離れる */
-  --damage-card-body-bottom-padding: var(--space-1); /* カード本文の下余白。大きくすると下端との間が広がる */
-  --damage-card-build-gap: .15rem; /* 相手情報の各行の間隔。大きくすると縦に広がる */
-  --damage-card-readonly-field-gap: var(--space-3); /* 名前・特性表示の間隔 */
   --damage-card-direction-padding: .25em .4em; /* 攻撃・防御スイッチの内側余白 */
   --damage-card-tera-button-gap: .35rem; /* テラスタイプの画像と名前の間隔 */
-  --damage-card-tera-button-padding: .22em .38em; /* テラスタイプ選択ボタンの内側余白 */
   --damage-card-dropdown-padding: var(--space-1); /* 候補リスト内側の余白 */
   --damage-card-dropdown-option-gap: .35rem; /* 候補内の画像と文字の間隔 */
   --damage-card-dropdown-option-padding: .25em .4em; /* 候補1行の内側余白 */
-  --damage-card-stat-input-padding: .08em .1em; /* 努力値入力欄の内側余白 */
-  --damage-card-condition-gap: var(--space-1); /* 条件チップ同士の間隔 */
-  --damage-card-condition-padding: .1em .5em; /* 条件チップの内側余白 */
-  --damage-card-total-padding: var(--space-1); /* 累計ゲージの内側余白 */
-  --damage-card-total-label-bottom-margin: .15rem; /* ラベルと結果の間隔 */
   --damage-card-total-result-gap: .85em; /* 判定と詳細数値の横間隔 */
-  --damage-card-total-result-padding: .18rem .45rem; /* 累計結果の内側余白 */
-  --damage-card-techniques-gap: var(--space-2); /* 技一覧と累計結果などの間隔 */
   --damage-card-columns-gap: var(--space-1); /* 技カード同士の間隔 */
-  --damage-card-column-padding: .16rem var(--space-2); /* 技カード内側の余白 */
-  --damage-card-column-gap: var(--space-2); /* 技カード内の番号・技名・結果の間隔 */
-  --damage-card-column-input-padding: .28em .35em; /* 技名・回数入力欄の内側余白 */
   --damage-card-column-inner-gap: .15rem; /* 技名と補助情報の縦間隔 */
-  --damage-card-add-button-padding: .16rem var(--space-2); /* 「技を追加」ボタンの内側余白 */
-  --damage-card-add-button-gap: .35em; /* 「技を追加」ボタン内の記号と文字の間隔 */
-  --damage-card-footer-top-margin: var(--space-1); /* 保存状態欄とカード本文の間隔 */
-  --damage-card-footer-top-padding: var(--space-1); /* 保存状態欄の上側内余白 */
-  --damage-card-footer-gap: .4rem; /* 保存状態と再試行ボタンの間隔 */
-  --damage-card-retry-padding: .2em .5em; /* 再試行ボタンの内側余白 */
-  --damage-detail-section-heading-margin: var(--space-4) 0 .4rem; /* 詳細セクション見出しの外側余白 */
-  --damage-detail-section-heading-padding: .6rem; /* 詳細セクション見出しの上側余白 */
-  --damage-detail-side-gap: 1.05rem; /* 攻撃側と防御側の設定ブロックの間隔 */
   --damage-detail-side-padding: .7rem; /* 2つ目の攻守ブロック上側の余白 */
-  --damage-detail-icon-grid-gap: .35rem; /* 天候などのアイコンボタン同士の間隔 */
-  --damage-detail-icon-button-padding: .35em .15em; /* アイコンボタンの内側余白 */
-  --damage-detail-text-button-padding: .4em .75em; /* 文字だけの条件ボタンの内側余白 */
-  --damage-detail-move-input-padding: .35em .55em; /* 技名入力欄の内側余白 */
-  --damage-detail-hitcount-padding: .35em; /* 連続技の回数入力欄の内側余白 */
-  --damage-detail-field-bottom-margin: .45rem; /* 詳細設定の各入力行の下間隔 */
-  --damage-detail-toggle-gap: .6rem; /* トグルと説明の横間隔 */
-  --damage-detail-rank-input-padding: .3em; /* ランク補正の数値入力欄の内側余白 */
   --damage-detail-chip-gap: .35rem; /* 詳細パネル内の条件チップ同士の間隔 */
   --damage-detail-ailment-padding: .35em 1.4em .35em .5em; /* 状態異常の選択欄の内側余白 */
-  --damage-detail-selection-gap: .4rem; /* 選択中の自分・相手アイコンと矢印の間隔 */
-  --damage-card-mobile-build-gap: .15rem .4rem; /* コンパクト表示の相手情報内の縦横間隔 */
-  --damage-card-mobile-build-padding: .25rem .4rem; /* コンパクト表示の相手情報欄の内側余白 */
 
   /* ── 8. 寸法 ─────────────────────── */
-  --damage-card-max-width: var(--content-band-max-width); /* カードの最大幅。小さくすると親要素より細くなる */
   --damage-card-build-width: 340px; /* 広い画面での相手情報欄の幅。大きくすると技欄が狭くなる */
-  --damage-card-build-detail-col-width: 7.5em; /* 相手情報2列グリッドの特性・アイテム列幅。短い補助情報を右列へまとめ、左列の種族名・実数値表示を広く確保する */
   --damage-card-tera-summary-icon-size: 20px; /* テラスタイプの小アイコン。大きくすると名前横の印が大きくなる */
   --damage-card-dropdown-max-height: 16rem; /* 候補リストの最大高さ。小さくすると早くスクロール表示になる */
   --damage-card-sprite-size: 40px; /* 自分・相手ポケモン画像の表示サイズ(共通) */
   --damage-card-type-badge-size: 20px; /* タイプバッジの大きさ */
-  --damage-card-stat-grid-label-width: 3.4em; /* 努力値表の左端ラベル幅。大きくすると数値列が右へ寄る */
   --damage-card-total-result-max-width: calc(100% - 40px); /* 累計結果の最大幅。小さくすると右側の空きが広がる */
   --damage-card-action-size: 28px; /* カード右上の丸い削除ボタンの大きさ */
-  --damage-card-techniques-min-width: 140px; /* 技一覧領域の最小幅 */
   --damage-card-compact-row-height: 35px; /* 技カード1行の高さの下限。多段ヒット技のヒット数表示などで内容が増えるとこれより高くなる */
   --damage-card-move-icon-size: 20px; /* 技タイプバーの高さ */
   --damage-card-move-type-bar-width: 3px; /* 技名の左に立つタイプ識別バーの太さ */
   --damage-detail-control-min-height: var(--space-7); /* 詳細パネルの入力欄とボタンの最小高さ */
-  --damage-detail-move-field-width: 10em; /* 技名入力欄の固定幅。マスターデータ最長の技名(全角8文字、実測content-fit幅は約9.3em)に安全マージンを足した値 */
-  --damage-detail-hitcount-width: 4em; /* 連続技の回数入力欄の幅 */
   --damage-detail-rank-stepper-size: 30px; /* ランク補正の＋－ボタンの大きさ */
   --damage-detail-rank-input-width: 2.4em; /* ランク補正・まきびし入力欄の最小幅(E: field-sizingで内容量に合わせて広がる)。小さくすると窮屈になりやすい */
   --damage-detail-ailment-width: 7em; /* 状態異常の選択欄の幅 */
   --damage-detail-selection-icon-size: 28px; /* 選択中ポケモンのアイコンサイズ */
-  --damage-detail-selection-arrow-width: 27px; /* 対面表示の矢印の幅 */
-  --damage-detail-selection-arrow-height: 18px; /* 対面表示の矢印の高さ */
-  --damage-card-mobile-control-height: 28px; /* 特性・テラスタイプ操作の最小高さ */
   --damage-card-item-badge-size: 18px; /* アイテムアイコンの一辺 */
 
   /* ── 9. その他 ─────────────────────── */
   --damage-card-transition-duration: .15s; /* hover色や影が切り替わる時間。大きくすると変化がゆっくりになる */
   --damage-card-dropdown-offset: .25rem; /* 選択ボタンと候補リストの間隔 */
-  --damage-card-total-detail-opacity: .85; /* 詳細部分の濃さ。小さくすると薄くなる */
   --damage-card-delete-offset: var(--space-2); /* 削除ボタンとカード右上端の間隔 */
-  --damage-card-delete-animation-duration: .16s; /* 長押し削除モードでカードが揺れる速さ */
-  --damage-card-column-overkill-opacity: .55; /* 不要になった後続技の濃さ。小さくすると薄くなる */
-  --damage-card-result-detail-opacity: .85; /* 技ごとの詳細数値の濃さ */
-  --damage-card-add-button-disabled-opacity: .4; /* 追加上限時のボタンの濃さ */
-  --damage-card-floating-add-right: var(--space-5); /* 右下固定の追加ボタンと右端の間隔 */
-  --damage-card-floating-add-bottom: calc(var(--bottom-nav-height) + var(--space-4) + env(safe-area-inset-bottom)); /* 右下固定の追加ボタンと下ナビの間隔 */
 }
 
 #opponent-notes-section .card-damage {
   /* ── 4. 背景色 ─────────────────────── */
-  --damage-gauge-lethal-fill: color-mix(in srgb, var(--color-danger-strong) 35%, var(--color-danger-soft) 65%); /* 倒し切る範囲のゲージ色 */
-  --damage-gauge-risky-fill: color-mix(in srgb, var(--color-risky-strong) 35%, var(--color-risky-soft) 65%); /* 乱数圏内のゲージ色 */
-  --damage-gauge-safe-fill: color-mix(in srgb, var(--color-success-strong) 35%, var(--color-success-soft) 65%); /* 耐える範囲のゲージ色 */
 
   /* ── 7. 余白 ─────────────────────── */
-  --damage-column-detail-gap: var(--space-4); /* 技名と補助情報の間隔 */
   --damage-build-area-gap: .4rem; /* 相手画像と文字情報の間隔 */
-  --damage-build-icon-gap: var(--space-1); /* 自分・相手アイコンと攻守矢印の間隔 */
-  --damage-build-text-gap: var(--space-1); /* 相手名・特性・テラスタイプの間隔 */
 }
 
 /* --------------------------------------------------------------------------
@@ -227,17 +121,17 @@ body.box-edit-page {
    カード外枠と基本入力欄
    -------------------------------------------------------------------------- */
 #opponent-notes-section .card-damage {
-  --damage-card-current-background: var(--damage-card-background);
+  --damage-card-current-background: var(--color-bg); /* カードの通常時の背景色 */
   background-color: var(--damage-card-current-background);
   background-image: linear-gradient(
     180deg,
     color-mix(in srgb, var(--damage-card-current-background) 97.5%, white 2.5%) 0%,
     color-mix(in srgb, var(--damage-card-current-background) 97.5%, black 2.5%) 100%
   );
-  box-shadow: var(--damage-card-shadow);
-  padding: var(--damage-card-padding);
-  max-width: var(--damage-card-max-width);
-  margin: var(--damage-card-margin);
+  box-shadow: none; /* カードの通常時の影。強くするとカードが手前に浮いて見える */
+  padding: 0; /* カード内側の余白。大きくすると内容が中央へ寄る */
+  max-width: var(--content-band-max-width); /* カードの最大幅。小さくすると親要素より細くなる */
+  margin: 0; /* カード外側の余白。大きくすると隣のカードから離れる */
   position: relative;
   /* 長押しで削除モードに入るため、長押し中にテキスト選択や画像の保存メニュー
      (iOSのコールアウト)が出ないようにする。入力欄・選択欄は個別に選択可能なまま。 */
@@ -271,10 +165,10 @@ body.box-edit-page {
    -------------------------------------------------------------------------- */
 /* カード本文: 相手情報と技一覧を並べる領域 */
 #opponent-notes-section .damage-row-body {
-  padding-bottom: var(--damage-card-body-bottom-padding);
+  padding-bottom: var(--space-1); /* カード本文の下余白。大きくすると下端との間が広がる */
   flex-flow: wrap;
   align-items: stretch;
-  gap: var(--damage-card-body-gap);
+  gap: var(--space-1); /* 相手情報と技一覧の間隔。大きくすると左右の領域が離れる */
   display: flex;
 }
 
@@ -282,7 +176,7 @@ body.box-edit-page {
    右列(.damage-row-build-right)=種族名・特性(上段、.damage-row-build-main)+
    アイテム・実数値(下段、.damage-row-build-fields)の2列構成にする。 */
 #opponent-notes-section .damage-row-build {
-  border-radius: var(--damage-card-build-border-radius);
+  border-radius: var(--radius-zero); /* 相手情報欄の角丸。大きくすると角が丸くなる */
   border: 1px solid var(--color-border);
   background-color: var(--damage-card-build-background);
   background-image: linear-gradient(
@@ -303,7 +197,7 @@ body.box-edit-page {
 
 /* 選択中の相手情報欄 */
 #opponent-notes-section .damage-row-build.is-selected {
-  box-shadow: var(--damage-card-build-selected-shadow);
+  box-shadow: 0 0 0 1px var(--color-primary), var(--shadow-sm); /* 選択中の相手情報欄を囲む影 */
 }
 
 /* 左列: 攻守バッジ・相手アイコン(中身は.damage-build-matchup) */
@@ -344,9 +238,9 @@ body.box-edit-page {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: var(--damage-card-summary-font-size);
-  font-weight: var(--damage-card-summary-font-weight);
-  color: var(--damage-card-summary-color);
+  font-size: var(--font-size-sm2); /* 相手の名前・特性・持ち物の文字サイズ */
+  font-weight: var(--font-weight-normal); /* 相手の名前・特性・持ち物の文字の太さ */
+  color: var(--color-text); /* 相手情報の主要文字色 */
 }
 
 /* アイテム欄(アイコン+名前)。短い補助情報として特性の下に置き、名前が固定列幅を
@@ -384,7 +278,7 @@ body.box-edit-page {
   max-width: 100%;
   display: flex;
   align-items: baseline;
-  gap: calc(var(--damage-card-readonly-field-gap) / 2);
+  gap: calc(var(--space-3) / 2); /* 名前・特性表示の間隔 */
 }
 
 /* 値がない項目は行ごと隠す */
@@ -404,7 +298,7 @@ body.box-edit-page {
 
 #opponent-notes-section .damage-build-readonly-label {
   flex: none;
-  color: var(--damage-card-summary-label-color);
+  color: var(--color-text-muted); /* 相手情報の補助ラベル色 */
   font-size: inherit;
 }
 
@@ -439,7 +333,7 @@ body.box-edit-page {
   background: var(--damage-card-direction-background);
   min-width: 0;
   color: var(--damage-card-direction-color);
-  font-size: var(--damage-card-direction-font-size);
+  font-size: var(--font-size-sm3); /* 攻撃・防御スイッチの文字サイズ(カード上のコンパクト表示用) */
   font-weight: var(--damage-card-direction-font-weight);
   line-height: var(--damage-card-direction-line-height);
   cursor: default;
@@ -496,7 +390,7 @@ body.box-edit-page {
 #damage-detail-panel .damage-build-detail-direction-toggle .damage-row-direction-option {
   background: var(--damage-card-direction-background);
   color: var(--damage-card-direction-color);
-  font-size: var(--damage-detail-direction-font-size);
+  font-size: var(--font-size-sm1); /* 「相手ポケモン」タブ(モーダル)の攻撃・防御スイッチの文字サイズ。同じ行の種族名入力・アイテムボタンと揃える */
   font-weight: var(--damage-card-direction-font-weight);
   line-height: var(--damage-card-direction-line-height);
   cursor: pointer;
@@ -513,8 +407,8 @@ body.box-edit-page {
 
 @media (hover: hover) and (pointer: fine) {
   #damage-detail-panel .damage-build-detail-direction-toggle .damage-row-direction-option:hover:not([aria-checked="true"]) {
-    color: var(--damage-card-direction-hover-color);
-    background: var(--damage-card-direction-hover-background);
+    color: var(--color-primary); /* 未選択側へマウスを載せたときの文字色 */
+    background: var(--color-primary-soft); /* 未選択側へマウスを載せたときの背景色 */
   }
 }
 
@@ -543,27 +437,27 @@ body.box-edit-page {
    -------------------------------------------------------------------------- */
 /* テラスタイプ選択ボタン */
 #opponent-notes-section .tera-dropdown-button {
-  border: var(--damage-card-tera-button-border);
-  border-radius: var(--damage-card-tera-button-radius);
-  background: var(--damage-card-tera-button-background);
+  border: 1px solid var(--color-border); /* テラスタイプ選択ボタンの枠線 */
+  border-radius: var(--radius-sm); /* テラスタイプ選択ボタンの角丸 */
+  background: var(--color-surface); /* テラスタイプ選択ボタンの背景色 */
   cursor: pointer;
   width: 100%;
-  color: var(--damage-card-tera-button-color);
+  color: var(--color-text); /* 選択済みテラスタイプの文字色 */
   text-align: left;
   font-weight: var(--font-weight-normal);
-  font-size: var(--damage-card-form-control-font-size);
+  font-size: var(--font-size-sm2); /* 相手情報の選択欄・入力欄の文字サイズ */
   justify-content: flex-start;
   align-items: center;
   gap: var(--damage-card-tera-button-gap);
   min-height: 0;
-  padding: var(--damage-card-tera-button-padding);
-  line-height: var(--damage-card-form-control-line-height);
+  padding: .22em .38em; /* テラスタイプ選択ボタンの内側余白 */
+  line-height: 1.15; /* 相手情報の選択欄・入力欄の行の高さ */
   display: flex;
 }
 
 @media (hover: hover) and (pointer: fine) {
   #opponent-notes-section .tera-dropdown-button:hover {
-    border-color: var(--damage-card-tera-button-hover-border-color);
+    border-color: var(--color-primary); /* ボタンへマウスを載せたときの枠線色 */
   }
 }
 
@@ -614,7 +508,7 @@ body.box-edit-page {
 
 /* 相手ポケモンのアイコン画像を置く正方形 */
 #opponent-notes-section .damage-sprite-box {
-  border-radius: var(--damage-card-sprite-radius);
+  border-radius: var(--radius-md); /* 相手ポケモン画像枠の角丸 */
   background: none;
   flex-shrink: 0;
   justify-content: center;
@@ -636,7 +530,7 @@ body.box-edit-page {
 #opponent-notes-section .damage-sprite-box .sprite-fallback {
   background: none;
   border-radius: 0;
-  font-size: var(--damage-card-sprite-fallback-font-size);
+  font-size: 1.1rem; /* 画像がないときの代替文字サイズ */
 }
 
 /* アイテムアイコン。applyItemImage(shared-core.ts)がアイテム名の有無・画像読み込み結果に
@@ -665,7 +559,7 @@ body.box-edit-page {
 #species-type-badge .type-badge-img {
   height: var(--damage-card-type-badge-size);
   width: var(--damage-card-type-badge-size);
-  filter: var(--damage-card-type-badge-filter);
+  filter: drop-shadow(0 0 1px var(--color-surface)); /* タイプバッジの縁取り影 */
   border-radius: 50%;
 }
 
@@ -700,7 +594,7 @@ body.box-edit-page {
 }
 
 #edit-form .tera-dropdown-option.is-active, #opponent-notes-section .tera-dropdown-option.is-active {
-  background: var(--damage-card-dropdown-option-active-background);
+  background: var(--color-primary-soft); /* 現在選択中の候補の背景色 */
 }
 
 #edit-form .tera-dropdown-option-image, #opponent-notes-section .tera-dropdown-option-image {
@@ -728,7 +622,7 @@ body.box-edit-page {
    -------------------------------------------------------------------------- */
 /* 相手ポケモンの6能力を並べる表 */
 #opponent-notes-section .damage-ev-grid {
-  grid-template-columns: var(--damage-card-stat-grid-label-width) repeat(6, minmax(0, 1fr));
+  grid-template-columns: 3.4em repeat(6, minmax(0, 1fr)); /* 努力値表の左端ラベル幅。大きくすると数値列が右へ寄る */
   align-items: center;
   display: grid;
 }
@@ -795,18 +689,18 @@ body.box-edit-page {
 #opponent-notes-section .damage-ev-grid input[type="number"] {
   width: 100%;
   min-width: 0;
-  font-size: var(--damage-card-stat-font-size);
+  font-size: var(--font-size-sm2); /* 実数値・努力値の文字サイズ */
   line-height: var(--damage-card-stat-line-height);
   text-align: center;
   min-height: 0;
-  padding: var(--damage-card-stat-input-padding);
+  padding: .08em .1em; /* 努力値入力欄の内側余白 */
 }
 
 #opponent-notes-section .damage-stat-value {
   font-size: inherit;
   line-height: var(--damage-card-stat-line-height);
   text-align: center;
-  color: var(--damage-card-stat-value-color);
+  color: var(--color-text); /* 実数値の通常色 */
   font-weight: var(--font-weight-bold);
   display: block;
 }
@@ -832,7 +726,7 @@ body.box-edit-page {
    .damage-column-conditions側のoverflow-x: autoが効かず縦に伸びてしまうため、
    折り返さず横スクロールに任せる(.damage-column-conditions参照)。 */
 #opponent-notes-section .damage-row-condition-chips {
-  gap: var(--damage-card-condition-gap);
+  gap: var(--space-1); /* 条件チップ同士の間隔 */
   flex-wrap: nowrap;
   align-items: center;
   display: flex;
@@ -844,7 +738,7 @@ body.box-edit-page {
 
 #opponent-notes-section .damage-condition-chip {
   font-size: var(--damage-card-condition-font-size);
-  padding: var(--damage-card-condition-padding);
+  padding: .1em .5em; /* 条件チップの内側余白 */
   background: color-mix(in srgb, var(--color-surface) 96%, white 4%);
   color: var(--color-text-muted);
   border: 1px solid color-mix(in srgb, var(--color-border) 88%, var(--color-surface) 12%);
@@ -863,10 +757,10 @@ body.box-edit-page {
    -------------------------------------------------------------------------- */
 /* 技を順に当てたときの累計結果 */
 #opponent-notes-section .damage-row-total {
-  border-radius: var(--damage-card-total-radius);
+  border-radius: var(--radius-zero); /* 累計ゲージの角丸 */
   border: 1px solid var(--color-border);
-  padding: var(--damage-card-total-padding);
-  background: var(--damage-card-total-background);
+  padding: var(--space-1); /* 累計ゲージの内側余白 */
+  background: var(--color-surface); /* 累計ゲージの通常背景色 */
   margin-top: 0;
   position: relative;
 }
@@ -932,7 +826,7 @@ body.box-edit-page {
 #opponent-notes-section .damage-row-total[data-severity="lethal"] {
   background: linear-gradient(to right,
     var(--color-danger-soft) 0 var(--gauge-min),
-    var(--damage-gauge-lethal-fill) var(--gauge-min) var(--gauge-max),
+    color-mix(in srgb, var(--color-danger-strong) 35%, var(--color-danger-soft) 65%) var(--gauge-min) var(--gauge-max), /* 倒し切る範囲のゲージ色 */
     var(--color-surface) var(--gauge-max) 100%);
   color: var(--color-danger-strong);
 }
@@ -941,7 +835,7 @@ body.box-edit-page {
 #opponent-notes-section .damage-row-total[data-severity="risky"] {
   background: linear-gradient(to right,
     var(--color-risky-soft) 0 var(--gauge-min),
-    var(--damage-gauge-risky-fill) var(--gauge-min) var(--gauge-max),
+    color-mix(in srgb, var(--color-risky-strong) 35%, var(--color-risky-soft) 65%) var(--gauge-min) var(--gauge-max), /* 乱数圏内のゲージ色 */
     var(--color-surface) var(--gauge-max) 100%);
   color: var(--color-risky-strong);
 }
@@ -950,7 +844,7 @@ body.box-edit-page {
 #opponent-notes-section .damage-row-total[data-severity="safe"] {
   background: linear-gradient(to right,
     var(--color-success-soft) 0 var(--gauge-min),
-    var(--damage-gauge-safe-fill) var(--gauge-min) var(--gauge-max),
+    color-mix(in srgb, var(--color-success-strong) 35%, var(--color-success-soft) 65%) var(--gauge-min) var(--gauge-max), /* 耐える範囲のゲージ色 */
     var(--color-surface) var(--gauge-max) 100%);
   color: var(--color-success-strong);
 }
@@ -962,24 +856,24 @@ body.box-edit-page {
 }
 
 #opponent-notes-section .damage-row-total-label {
-  font-size: var(--damage-card-total-label-font-size);
+  font-size: var(--font-size-sm3); /* 「累計結果」ラベルの文字サイズ */
   font-weight: var(--font-weight-bold);
   line-height: var(--line-height-tight);
-  color: var(--damage-card-total-label-color);
-  margin-bottom: var(--damage-card-total-label-bottom-margin);
+  color: var(--color-text-muted); /* 「累計結果」ラベルの文字色 */
+  margin-bottom: .15rem; /* ラベルと結果の間隔 */
   display: none;
 }
 
 /* 累計結果の「判定」とダメージ割合 */
 #opponent-notes-section .damage-row-total-result {
   max-width: var(--damage-card-total-result-max-width);
-  font-size: var(--damage-card-total-result-font-size);
+  font-size: var(--font-size-sm1); /* 累計結果全体の文字サイズ */
   line-height: var(--line-height-tight);
   grid-template-columns: auto 1fr;
   align-items: baseline;
   column-gap: var(--damage-card-total-result-gap);
   margin: 0;
-  padding: var(--damage-card-total-result-padding);
+  padding: .18rem .45rem; /* 累計結果の内側余白 */
   text-shadow:
     -1px -1px 0 var(--color-surface),
     1px -1px 0 var(--color-surface),
@@ -989,7 +883,7 @@ body.box-edit-page {
 }
 
 #opponent-notes-section .damage-row-total-result .damage-result-verdict {
-  font-size: var(--damage-card-total-verdict-font-size);
+  font-size: var(--font-size-lg1); /* 「確定1発」など判定部分の文字サイズ */
   font-weight: var(--damage-card-total-verdict-font-weight);
 }
 
@@ -1000,7 +894,7 @@ body.box-edit-page {
 
 #opponent-notes-section .damage-row-total-result .damage-result-detail {
   font-size: var(--damage-card-total-detail-font-size);
-  opacity: var(--damage-card-total-detail-opacity);
+  opacity: .85; /* 詳細部分の濃さ。小さくすると薄くなる */
   text-align: left;
   font-weight: var(--damage-card-total-detail-font-weight);
 }
@@ -1013,9 +907,9 @@ body.box-edit-page {
   width: var(--damage-card-action-size);
   height: var(--damage-card-action-size);
   min-height: 0;
-  font-size: var(--damage-card-action-font-size);
-  box-shadow: var(--damage-card-action-shadow);
-  border-radius: var(--damage-card-action-radius);
+  font-size: var(--font-size-sm1); /* 削除ボタン内の記号の大きさ */
+  box-shadow: var(--shadow-sm); /* 削除ボタンの影 */
+  border-radius: 50%; /* 削除ボタンの角丸。50%で円になる */
   flex-shrink: 0;
   padding: 0;
   line-height: 1;
@@ -1026,8 +920,8 @@ body.box-edit-page {
   top: var(--damage-card-delete-offset);
   right: var(--damage-card-delete-offset);
   z-index: 2;
-  background: var(--damage-card-delete-background);
-  border: var(--damage-card-delete-border);
+  background: var(--color-surface); /* 削除ボタンの通常背景色 */
+  border: 1px solid var(--color-border); /* 削除ボタンの通常枠線 */
   transition: background var(--damage-card-transition-duration), color var(--damage-card-transition-duration), border-color var(--damage-card-transition-duration);
   display: none;
   opacity: 0;
@@ -1050,7 +944,7 @@ body.box-edit-page {
 @media (hover: hover) and (pointer: fine) {
   #opponent-notes-section .damage-row-delete-button:hover:not(:disabled) {
     background: var(--damage-card-delete-hover-background);
-    color: var(--damage-card-delete-hover-color);
+    color: var(--color-primary-contrast); /* 削除ボタンへマウスを載せたときの記号色 */
     border-color: var(--damage-card-delete-hover-background);
   }
 }
@@ -1063,7 +957,7 @@ body.box-edit-page {
 /* 長押しで入る削除モード中のみ、各カードの削除操作を常に表示する。
    削除モードの単位は「相手ビルド〜結果」の1セット(.card-damage)にひとつだけ。 */
 #opponent-notes-section .damage-rows-list.is-card-delete-mode .card-damage {
-  animation: damage-card-delete-wiggle var(--damage-card-delete-animation-duration) ease-in-out infinite alternate;
+  animation: damage-card-delete-wiggle .16s ease-in-out infinite alternate; /* 長押し削除モードでカードが揺れる速さ */
 }
 #opponent-notes-section .damage-rows-list.is-card-delete-mode .damage-row-delete-button {
   display: inline-flex;
@@ -1101,10 +995,10 @@ body.box-edit-page {
 
 /* 技一覧・追加ボタン・累計結果をまとめる領域 */
 #opponent-notes-section .damage-row-techniques-row {
-  gap: var(--damage-card-techniques-gap);
+  gap: var(--space-2); /* 技一覧と累計結果などの間隔 */
   flex-direction: column;
   flex: 1 1 0;
-  min-width: var(--damage-card-techniques-min-width);
+  min-width: 140px; /* 技一覧領域の最小幅 */
   display: flex;
 }
 
@@ -1129,15 +1023,15 @@ body.box-edit-page {
 
 /* 技1つと計算結果を表示する横長カード */
 #opponent-notes-section .damage-column {
-  border-radius: var(--damage-card-column-radius);
+  border-radius: var(--radius-zero); /* 技カードの角丸 */
   border: 1px solid var(--color-border);
   width: 100%;
   height: var(--damage-card-compact-row-height);
   min-height: var(--damage-card-compact-row-height);
   max-height: var(--damage-card-compact-row-height);
-  padding: var(--damage-card-column-padding);
+  padding: .16rem var(--space-2); /* 技カード内側の余白 */
   align-items: center;
-  gap: var(--damage-card-column-gap);
+  gap: var(--space-2); /* 技カード内の番号・技名・結果の間隔 */
   background-color: var(--damage-card-column-background);
   background-image: linear-gradient(
     180deg,
@@ -1152,7 +1046,7 @@ body.box-edit-page {
 }
 
 #opponent-notes-section .damage-column.is-selected {
-  box-shadow: var(--damage-card-column-selected-shadow);
+  box-shadow: 0 0 0 1px var(--color-primary); /* 選択中の技カードを囲む線 */
 }
 
 #opponent-notes-section .damage-column input[type="text"], #opponent-notes-section .damage-column input[type="number"] {
@@ -1161,7 +1055,7 @@ body.box-edit-page {
   font-size: var(--damage-card-move-font-size);
   line-height: var(--line-height-tight);
   min-height: 0;
-  padding: var(--damage-card-column-input-padding);
+  padding: .28em .35em; /* 技名・回数入力欄の内側余白 */
 }
 
 #opponent-notes-section .damage-column-body {
@@ -1182,7 +1076,7 @@ body.box-edit-page {
 
 /* 倒し切った後に不要になった後続技 */
 #opponent-notes-section .damage-column.is-overkill {
-  opacity: var(--damage-card-column-overkill-opacity);
+  opacity: .55; /* 不要になった後続技の濃さ。小さくすると薄くなる */
 }
 
 /* 技カード内の条件チップ領域。.damage-columnは高さが--damage-card-compact-row-heightに
@@ -1214,7 +1108,7 @@ body.box-edit-page {
   flex-wrap: nowrap;
   align-items: center;
   justify-content: flex-start;
-  gap: var(--damage-column-detail-gap);
+  gap: var(--space-4); /* 技名と補助情報の間隔 */
   min-width: 0;
   display: flex;
 }
@@ -1255,7 +1149,7 @@ body.box-edit-page {
 
 #opponent-notes-section .damage-column-move-text.is-placeholder {
   color: var(--color-text-muted);
-  font-weight: var(--damage-card-move-placeholder-weight);
+  font-weight: var(--font-weight-medium); /* 未選択の技名表示の文字の太さ */
 }
 
 /* 攻守バッジ(.damage-suggest-direction等)と同じピル形状で、複数回ヒットする技だと
@@ -1342,7 +1236,7 @@ body.box-edit-page {
 
 #opponent-notes-section .damage-column-result .damage-result-detail {
   font-size: var(--damage-card-move-font-size);
-  opacity: var(--damage-card-result-detail-opacity);
+  opacity: .85; /* 技ごとの詳細数値の濃さ */
   overflow-wrap: anywhere;
   min-width: 0;
   font-weight: var(--damage-card-total-detail-font-weight);
@@ -1352,13 +1246,13 @@ body.box-edit-page {
    カード下部の保存状態
    -------------------------------------------------------------------------- */
 #opponent-notes-section .damage-row-footer {
-  margin-top: var(--damage-card-footer-top-margin);
-  padding-top: var(--damage-card-footer-top-padding);
-  border-top: var(--damage-card-footer-border);
+  margin-top: var(--space-1); /* 保存状態欄とカード本文の間隔 */
+  padding-top: var(--space-1); /* 保存状態欄の上側内余白 */
+  border-top: 1px solid var(--color-border); /* 保存状態欄の上線 */
   flex-wrap: wrap;
   justify-content: flex-end;
   align-items: center;
-  gap: var(--damage-card-footer-gap);
+  gap: .4rem; /* 保存状態と再試行ボタンの間隔 */
   display: flex;
 }
 
@@ -1375,7 +1269,7 @@ body.box-edit-page {
 
 #opponent-notes-section .damage-row-retry-button {
   font-size: var(--damage-card-save-font-size);
-  padding: var(--damage-card-retry-padding);
+  padding: .2em .5em; /* 再試行ボタンの内側余白 */
   display: none;
 }
 
@@ -1402,8 +1296,8 @@ body.box-edit-page {
 #damage-detail-panel-body .damage-detail-section-heading {
   font-size: var(--font-size-sm2);
   color: var(--color-text);
-  margin: var(--damage-detail-section-heading-margin);
-  padding-top: var(--damage-detail-section-heading-padding);
+  margin: var(--space-4) 0 .4rem; /* 詳細セクション見出しの外側余白 */
+  padding-top: .6rem; /* 詳細セクション見出しの上側余白 */
   font-weight: var(--font-weight-bold);
 }
 
@@ -1442,7 +1336,7 @@ body.box-edit-page {
   margin-top: var(--space-3);
   padding-top: var(--space-2);
   flex-direction: column;
-  gap: var(--damage-detail-side-gap);
+  gap: 1.05rem; /* 攻撃側と防御側の設定ブロックの間隔 */
   display: flex;
 }
 
@@ -1463,7 +1357,7 @@ body.box-edit-page {
 #damage-detail-panel-body .damage-detail-icon-group {
   margin-bottom: var(--space-2);
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: var(--damage-detail-icon-grid-gap);
+  gap: .35rem; /* 天候などのアイコンボタン同士の間隔 */
   display: grid;
 }
 
@@ -1507,7 +1401,7 @@ body.box-edit-page {
   border-radius: var(--damage-detail-icon-button-radius);
   cursor: pointer;
   flex-direction: column;
-  padding: var(--damage-detail-icon-button-padding);
+  padding: .35em .15em; /* アイコンボタンの内側余白 */
   display: flex;
 }
 
@@ -1515,7 +1409,7 @@ body.box-edit-page {
   min-height: var(--damage-detail-control-min-height);
   font-size: var(--font-size-sm1);
   flex-direction: row;
-  padding: var(--damage-detail-text-button-padding);
+  padding: .4em .75em; /* 文字だけの条件ボタンの内側余白 */
 }
 
 /* まきびしの層数selectを、同じ行の揮発状態トグルと同じピル型に見せる。 */
@@ -1577,7 +1471,7 @@ body.box-edit-page {
    画面幅に応じて伸縮させない(隣の急所チェックの位置がぶれないようにするため)。 */
 #damage-detail-panel-body .damage-detail-move-field {
   flex: none;
-  width: var(--damage-detail-move-field-width);
+  width: 10em; /* 技名入力欄の固定幅。マスターデータ最長の技名(全角8文字、実測content-fit幅は約9.3em)に安全マージンを足した値 */
 }
 
 /* D: 急所固定は、このアプリの標準チェックボックス(global.cssのinput[type="checkbox"])
@@ -1600,7 +1494,7 @@ body.box-edit-page {
   width: 100%;
   min-width: 0;
   min-height: var(--damage-detail-control-min-height);
-  padding: var(--damage-detail-move-input-padding);
+  padding: .35em .55em; /* 技名入力欄の内側余白 */
   /* 「相手ポケモン」タブのアイテム・テラスタイプ選択ボタン(damage-detail-panel.css、
      どちらもfont-size-md)と文字サイズをそろえる。 */
   font-size: var(--damage-detail-font-size-md);
@@ -1681,9 +1575,9 @@ body.box-edit-page {
 }
 
 #damage-detail-panel-body .damage-detail-hitcount-input {
-  width: var(--damage-detail-hitcount-width);
+  width: 4em; /* 連続技の回数入力欄の幅 */
   min-height: var(--damage-detail-control-min-height);
-  padding: var(--damage-detail-hitcount-padding);
+  padding: .35em; /* 連続技の回数入力欄の内側余白 */
   text-align: center;
   font-size: var(--font-size-sm2);
 }
@@ -1728,7 +1622,7 @@ body.box-edit-page {
 #damage-detail-panel-body .damage-detail-field-row {
   gap: var(--space-1);
   flex-direction: column;
-  margin-bottom: var(--damage-detail-field-bottom-margin);
+  margin-bottom: .45rem; /* 詳細設定の各入力行の下間隔 */
   display: flex;
 }
 
@@ -1742,7 +1636,7 @@ body.box-edit-page {
 #damage-detail-panel-body .damage-detail-toggle-row {
   margin-bottom: var(--space-1);
   align-items: center;
-  gap: var(--damage-detail-toggle-gap);
+  gap: .6rem; /* トグルと説明の横間隔 */
   display: flex;
 }
 
@@ -1788,7 +1682,7 @@ body.box-edit-page {
   min-height: var(--damage-detail-rank-stepper-size);
   font-size: var(--font-size-sm2);
   text-align: center;
-  padding: var(--damage-detail-rank-input-padding);
+  padding: .3em; /* ランク補正の数値入力欄の内側余白 */
 }
 
 #damage-detail-panel-body .damage-detail-rank-field input[type="number"]::-webkit-inner-spin-button, #damage-detail-panel-body .damage-detail-rank-field input[type="number"]::-webkit-outer-spin-button {
@@ -1852,7 +1746,7 @@ body.box-edit-page {
 .damage-detail-panel .damage-detail-selection-heading {
   align-items: center;
   justify-content: center;
-  gap: var(--damage-detail-selection-gap);
+  gap: .4rem; /* 選択中の自分・相手アイコンと矢印の間隔 */
   min-width: 0;
   margin: 0;
   display: flex;
@@ -1880,8 +1774,8 @@ body.box-edit-page {
 }
 
 .damage-detail-panel .damage-detail-selection-arrow {
-  width: var(--damage-detail-selection-arrow-width);
-  height: var(--damage-detail-selection-arrow-height);
+  width: 27px; /* 対面表示の矢印の幅 */
+  height: 18px; /* 対面表示の矢印の高さ */
   color: var(--color-text-muted);
   flex-shrink: 0;
 }
@@ -1905,8 +1799,8 @@ body.box-edit-page {
    には効かず、デスクトップ幅でも効かなかった。 */
 #opponent-notes-section .box-add-button {
   position: fixed;
-  right: var(--damage-card-floating-add-right);
-  bottom: var(--damage-card-floating-add-bottom);
+  right: var(--space-5); /* 右下固定の追加ボタンと右端の間隔 */
+  bottom: calc(var(--bottom-nav-height) + var(--space-4) + env(safe-area-inset-bottom)); /* 右下固定の追加ボタンと下ナビの間隔 */
   z-index: 21;
 }
 
@@ -2011,8 +1905,8 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .box-add-button
 
   /* 相手情報欄は左列と、種族名・特性・アイテム・実数値の2列×2行グリッドで構成する。 */
   #opponent-notes-section .card-damage .damage-row-build {
-    gap: var(--damage-card-mobile-build-gap);
-    padding: var(--damage-card-mobile-build-padding);
+    gap: .15rem .4rem; /* コンパクト表示の相手情報内の縦横間隔 */
+    padding: .25rem .4rem; /* コンパクト表示の相手情報欄の内側余白 */
   }
 
   /* 攻守は「現在の向きを示す単一のピルバッジ」として見せる(.damage-suggest-direction=
@@ -2064,7 +1958,7 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .box-add-button
   }
 
   #opponent-notes-section .card-damage .tera-dropdown-button {
-    min-height: var(--damage-card-mobile-control-height);
+    min-height: 28px; /* 特性・テラスタイプ操作の最小高さ */
   }
 
   #opponent-notes-section .card-damage .damage-ev-grid {
@@ -2195,7 +2089,7 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .box-add-button
 #opponent-notes-section .damage-suggest-left {
   display: flex;
   align-items: center;
-  gap: var(--damage-build-icon-gap);
+  gap: var(--space-1); /* 自分・相手アイコンと攻守矢印の間隔 */
   flex: none;
 }
 
@@ -2204,9 +2098,9 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .box-add-button
 #opponent-notes-section .damage-suggest-right {
   flex: 1 1 auto;
   min-width: 0;
-  grid-template-columns: minmax(0, 1fr) minmax(0, var(--damage-card-build-detail-col-width));
-  column-gap: var(--damage-build-text-gap);
-  row-gap: var(--damage-card-build-gap);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 7.5em); /* 相手情報2列グリッドの特性・アイテム列幅。短い補助情報を右列へまとめ、左列の種族名・実数値表示を広く確保する */
+  column-gap: var(--space-1); /* 相手名・特性・テラスタイプの間隔 */
+  row-gap: .15rem; /* 相手情報の各行の間隔。大きくすると縦に広がる */
   align-items: center;
   justify-items: start;
   display: grid;

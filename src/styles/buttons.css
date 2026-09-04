@@ -1,7 +1,6 @@
 /* Shared action controls. Text-entry controls live in form-controls.css. */
 :root {
   /* Secondary controls share this treatment with the EV +/- buttons. */
-  --control-button-background: var(--color-bg);
   --control-button-border: 1px solid var(--color-border);
   --control-button-radius: var(--radius-zero);
   --control-button-shadow: var(--shadow-sm);
@@ -41,7 +40,7 @@ button.btn-ghost, a.btn-ghost { background: transparent; border-color: transpare
 
 /* Compact secondary actions: visibly interactive without adopting input styling. */
 button.btn-control {
-  background: var(--control-button-background);
+  background: var(--color-bg);
   border: var(--control-button-border);
   border-radius: var(--control-button-radius);
   box-shadow: var(--control-button-shadow);
