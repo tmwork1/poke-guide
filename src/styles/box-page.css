@@ -68,16 +68,21 @@
    名前・技(.card-body、display:contentsで子がグリッド行を占有)を隠しても、
    公式絵(.card-artwork)・持ち物バッジ(.card-item-badge)はposition:absoluteで
    独立しているため表示され続ける。 */
-.box-content.is-compact .box-grid .box-card {
-  padding: var(--space-1); /* .team-mate-cardと同じ内側余白にする(画像サイズの見た目を揃える) */
-}
 .box-content.is-compact .box-grid .box-card .card-body {
   display: none;
 }
+/* card-artworkはposition:absoluteのため、box-card自身のpaddingは効かない
+   (containing blockがpadding boxになるだけで、paddingの内側に収まる保証はない)。
+   .team-mate-cardの画像は通常のflow配置でpadding(--space-1)の内側に収まるため、
+   ここでは同じ見た目にするためinset自体をpadding相当の値にする
+   (width/height:100%は指定せず、insetとaspect-ratio: 1/1に正方形を任せる)。 */
 .box-content.is-compact .box-grid .box-card .card-artwork {
-  inset: 0;
-  width: 100%;
-  height: 100%;
+  inset-inline-start: var(--space-1);
+  inset-block-start: var(--space-1);
+  inset-inline-end: auto;
+  inset-block-end: auto;
+  width: calc(100% - 2 * var(--space-1));
+  height: calc(100% - 2 * var(--space-1));
 }
 .box-content.is-compact .box-grid .box-card .card-artwork img {
   mask-image: none;
