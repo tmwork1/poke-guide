@@ -1,16 +1,16 @@
 // ダメージ計算(#opponent-notes-section)専用のロジック一式。
 //
-// 右サイド(詳細設定サイドバー)専用のロジックは right-panel.ts に分離している。
-// このファイルと right-panel.ts は import/export で相互依存している(deselectRowIfCurrent/
-// renderDetailPanelEmpty/renderColumnLevelDetailPanel/openDetailPanelOverlayIfNarrow は
-// right-panel.tsからimportし、DAMAGE_WEATHERS等の選択肢配列・clampIntは逆にright-panel.ts
+// ダメージ詳細パネル(詳細設定サイドバー)専用のロジックは damage-detail-panel.ts に分離している。
+// このファイルと damage-detail-panel.ts は import/export で相互依存している(deselectRowIfCurrent/
+// renderDetailPanelEmpty/renderColumnLevelDetailPanel/openDetailPanelOverlay は
+// damage-detail-panel.tsからimportし、DAMAGE_WEATHERS等の選択肢配列・clampIntは逆にdamage-detail-panel.ts
 // がこのファイルからimportする)。いずれも関数宣言(hoistされるため循環import下でも安全)、
 // または実際に使われるのが両モジュールの評価が完了した後(ユーザー操作時)のみの値なので、
 // 初期化順序の問題は無い。
 //
 // DAMAGE_WEATHERS/DAMAGE_TERRAINS/DAMAGE_AILMENTS/DAMAGE_ATTACKER_VOLATILES/
 // DAMAGE_DEFENDER_VOLATILES/clampIntの6つはトップレベル(#opponent-notes-sectionのガードの
-// 外)で定義してexportしている。right-panel.tsから参照する必要があり、どちらも
+// 外)で定義してexportしている。damage-detail-panel.tsから参照する必要があり、どちらも
 // #opponent-notes-sectionの有無に依存しない純粋なデータ/ユーティリティのため。
 import { el } from "../owned-pokemon-form";
 import {
@@ -46,13 +46,13 @@ import {
 } from "../pokemon-master-data";
 import { type StatKey, STAT_KEYS, NATURE_STAT_MODIFIERS, calcHpStat, calcOtherStat } from "../stats";
 import { TERA_TYPES } from "../tera-types";
-// テラス選択ボックスを左パネルと共通化するために使う。shared-core.tsは"../sprite-urls"から
+// テラス選択ボックスを育成パネルと共通化するために使う。shared-core.tsは"../sprite-urls"から
 // teraTypeIconUrlをimportしているが再exportしていないため、ここで直接importする。
 import { teraTypeIconUrl } from "../sprite-urls";
 import { DEFAULT_TYPE_COLOR, TYPE_COLORS } from "../type-colors";
 import { initializeCardDeleteMode, playCardDeleteExitEffect } from "../card-delete-mode";
 // 相手ポケモンのアイテムドロップダウン(下のbuildItemDropdown参照)の検索欄で、育成タブの
-// 持ち物ドロップダウン(left-panel.ts)と同じかな・文字幅・英字大小を無視した絞り込みにする。
+// 持ち物ドロップダウン(pokemon-edit-panel.ts)と同じかな・文字幅・英字大小を無視した絞り込みにする。
 import { kanaIncludes } from "../kana";
 // もちもの候補の並び順(box/のもちもの選択モーダルと同じ、使用率降順+タイプ強化/きのみ/
 // メガストーンのグルーピング)を共有するため、item-select-dialog.tsのsortItemsByUsageを使う。
@@ -97,13 +97,13 @@ import {
 	renderDetailPanelEmpty,
 	renderColumnLevelDetailPanel,
 	renderBuildDetailPanel,
-	openDetailPanelOverlayIfNarrow as openRightPanelOverlayIfNarrow,
+	openDetailPanelOverlay as openDamageDetailPanelOverlay,
 	closeDetailPanelOverlay,
-	initRightPanel,
+	initDamageDetailPanel,
 	notifyDetailAbilityChanged,
 	syncDetailPanelTotal,
-} from "./right-panel";
-// ダメージ計算のサジェスト。描画は右パネル側(damage-suggest.ts)に
+} from "./damage-detail-panel";
+// ダメージ計算のサジェスト。描画はダメージ詳細パネル側(damage-suggest.ts)に
 // あり、このファイルは「いま画面にどんな計算があるか」と「1件を新しいカードにする」の
 // 2つだけをブリッジとして提供する(shared-core.tsのregisterDamageCalcBridgeと同じ登録パターン)。
 import { initDamageSuggest, registerDamageSuggestBridge, type DamageCalcSuggestion } from "./damage-suggest";
@@ -200,7 +200,7 @@ const STATUS_MOVE_TOTAL_NOTE_ALL = "技列がすべて変化技のため、合�
 const STATUS_AND_UNSUPPORTED_TOTAL_NOTE_ALL =
 	"技列がすべて変化技または「はきだす」のため、合計のダメージを算出できません。";
 
-// 構造分割ラウンド(フェーズ2)でこのファイル先頭へ引き上げた6つ(right-panel.tsへexportするため。
+// 構造分割ラウンド(フェーズ2)でこのファイル先頭へ引き上げた6つ(damage-detail-panel.tsへexportするため。
 // 上のファイル冒頭コメント参照)。
 export const DAMAGE_WEATHERS = [
 	{ value: "はれ", label: "はれ", icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4.5"/><line x1="12" y1="1.5" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22.5"/><line x1="4" y1="4" x2="5.8" y2="5.8"/><line x1="18.2" y1="18.2" x2="20" y2="20"/><line x1="1.5" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22.5" y2="12"/><line x1="4" y1="20" x2="5.8" y2="18.2"/><line x1="18.2" y1="5.8" x2="20" y2="4"/></svg>` },
@@ -340,17 +340,17 @@ function readEmbeddedJson<T>(elementId: string): T | null {
 const moveAdoptionBySpecies =
 	readEmbeddedJson<Record<string, Record<string, Record<string, number>>>>("damage-calc-move-adoption-data") ?? {};
 
-// テラスタイプ選択ボックスはLeftPanel.astro
-// 226〜249行目・left-panel.ts 500〜613行目の#tera-dropdown-button/#tera-dropdown-list
-// (ボタン+リストボックスのカスタムドロップダウン)と同じ見た目・挙動を持つが、左パネル側は
+// テラスタイプ選択ボックスはPokemonEditPanel.astro
+// 226〜249行目・pokemon-edit-panel.ts 500〜613行目の#tera-dropdown-button/#tera-dropdown-list
+// (ボタン+リストボックスのカスタムドロップダウン)と同じ見た目・挙動を持つが、育成パネル側は
 // ページに1個しか無い前提でid固定のgetElementById()を使っているのに対し、ダメージカードは
 // 1枚につき1個・複数枚同時に存在しうるため、idを一切使わずクロージャで状態を閉じ込める
 // ファクトリ関数として書き直した(コピーではなく複数インスタンス生成できる形に再実装)。
 // CSSは#opponent-notes-section .tera-dropdown-button/.tera-dropdown-list/
 // .tera-dropdown-image/.tera-dropdown-placeholder/.tera-dropdown-option等
-// (DamageCalcSection.astroの<style is:global>、左パネルの#edit-form接頭辞ルールと
+// (DamageCalcSection.astroの<style is:global>、育成パネルの#edit-form接頭辞ルールと
 // 値を共有)を参照する。
-// 「相手ポケモン」タブのテラスタイプ欄廃止(わざタブへ移設)に伴い、right-panel.tsの
+// 「相手ポケモン」タブのテラスタイプ欄廃止(わざタブへ移設)に伴い、damage-detail-panel.tsの
 // buildSideSection()からも呼べるようモジュール top-level へ移設してexportした
 // (元は#opponent-notes-sectionガード内のprivate関数だった。TERA_TYPES/teraTypeIconUrlは
 // どちらもファイル冒頭のモジュールimportのため、この位置でも参照可能)。
@@ -425,7 +425,7 @@ export function buildTeraDropdown(
 		if (list.hidden) openList();
 		else closeList();
 	});
-	// リストの外側をクリックしたら閉じる(左パネル側と同じ一般的な挙動。pitfalls.md参照)。
+	// リストの外側をクリックしたら閉じる(育成パネル側と同じ一般的な挙動。pitfalls.md参照)。
 	document.addEventListener("click", (e) => {
 		if (list.hidden) return;
 		const target = e.target as Node;
@@ -492,13 +492,13 @@ export function buildTeraDropdown(
 	return { wrap, setValue };
 }
 
-// 「相手ポケモン」タブのアイテム欄は、育成タブ(LeftPanel.astro 116-146行目・left-panel.ts
+// 「相手ポケモン」タブのアイテム欄は、育成タブ(PokemonEditPanel.astro 116-146行目・pokemon-edit-panel.ts
 // 626-809行目付近)の持ち物カスタムドロップダウン(アイコン表示・使用率順の並び・検索フィルタ付き
-// 開閉パネル)と同じ見た目・操作性に揃える。left-panel.ts側はページに1個しか無い前提でid直書きの
+// 開閉パネル)と同じ見た目・操作性に揃える。pokemon-edit-panel.ts側はページに1個しか無い前提でid直書きの
 // 実装のため、上のbuildTeraDropdownと同じ「idを一切使わずクロージャで状態を閉じ込めるファクトリ
 // 関数」として複数インスタンス生成できる形に書き直す(コピーではなく再実装)。
 // CSSは#damage-detail-panel-body .damage-build-detail-item-dropdown-*(damage-detail-panel.css、
-// LeftPanel.astro側の#edit-form .item-dropdown-*と同じ値を使う別ルールとして新設)を参照する。
+// PokemonEditPanel.astro側の#edit-form .item-dropdown-*と同じ値を使う別ルールとして新設)を参照する。
 type ItemSuggestionOption = { value: string; ratio: number };
 type ItemSuggestionPayload = { options: ItemSuggestionOption[] };
 type ItemSuggestionApiRow = { payload?: { options?: ItemSuggestionOption[] } };
@@ -506,9 +506,9 @@ type ItemSuggestionApiResponse = { data?: ItemSuggestionApiRow[] };
 
 // 相手の持ち物ドロップダウンの使用率順(kind="popular_item")。技の使用率(moveAdoptionBySpecies、
 // box/[id].astroがSSRで埋め込み済み)と違いアイテムには埋め込みデータが無いため、種族名が
-// 確定するたびlive fetchする。left-panel.tsのfetchSuggestionPayload("popular_item", ...)と
+// 確定するたびlive fetchする。pokemon-edit-panel.tsのfetchSuggestionPayload("popular_item", ...)と
 // 同じAPI・同じkind文字列・同じ「レギュレーション別が空なら横断集計へフォールバック」ロジックだが、
-// 左パネル側の実装は非exportかつ編集禁止(left-panel.ts)のため、このファイル側に複製する。
+// 育成パネル側の実装は非exportかつ編集禁止(pokemon-edit-panel.ts)のため、このファイル側に複製する。
 async function fetchPopularItemSuggestion(
 	speciesName: string,
 	regulation: string | null,
@@ -562,11 +562,11 @@ async function fetchPopularAbilitySuggestion(
 	return fetchBySubjectKey(speciesName);
 }
 
-// #item-list(datalist、box/[id].astroにSSR描画済み、left-panel.tsのloadAutocomplete()が
-// 非同期に候補を流し込む)から全アイテム名を読む。left-panel.tsのgetItemOptionNames()と
+// #item-list(datalist、box/[id].astroにSSR描画済み、pokemon-edit-panel.tsのloadAutocomplete()が
+// 非同期に候補を流し込む)から全アイテム名を読む。pokemon-edit-panel.tsのgetItemOptionNames()と
 // 同じ「一度読めたら以降はキャッシュする」考え方だが、初回オープンの時点でまだ流し込みが
 // 終わっていない(=0件で読めてしまう)ケースがあるため、0件だったキャッシュは採用せず
-// 次回オープン時に読み直す(left-panel.ts側はページ初期化時にawait autocompleteReadyPromiseで
+// 次回オープン時に読み直す(pokemon-edit-panel.ts側はページ初期化時にawait autocompleteReadyPromiseで
 // 読み込み完了を待てるが、autocompleteReadyPromiseは非exportのためこのファイルからは
 // 参照できず、この待機なしの遅延読み直し方式で妥当に対処する)。
 let itemDropdownNameCache: string[] | null = null;
@@ -581,7 +581,7 @@ function getItemDropdownOptionNames(): string[] {
 interface ItemDropdownHandle {
 	/** ボタン+検索パネル一式のラッパー。makeDetailFieldの control としてそのまま渡す。 */
 	wrap: HTMLElement;
-	/** 値の実体(hidden)。左パネルと同じく、既存のflashAutofillHint(HTMLInputElementを要求する
+	/** 値の実体(hidden)。育成パネルと同じく、既存のflashAutofillHint(HTMLInputElementを要求する
 	 * shared-core.tsの共通関数、担当外ファイル)や、呼び出し元のrow.itemName書き込み・
 	 * onFieldInput呼び出しといった既存の値保存経路をそのまま使えるようにするための実入力要素。 */
 	input: HTMLInputElement;
@@ -590,10 +590,10 @@ interface ItemDropdownHandle {
 	refreshDisplay: () => void;
 	/** メガストーン固定中の選択操作無効化(旧itemInput.disabledの役割)。 */
 	setDisabled: (disabled: boolean) => void;
-	/** 使用率順の並べ替え・"(NN%)"付記(left-panel.tsのapplyItemSuggestionOrderingと同じロジック)。
+	/** 使用率順の並べ替え・"(NN%)"付記(pokemon-edit-panel.tsのapplyItemSuggestionOrderingと同じロジック)。
 	 * データが無い/未取得なら元の順序のまま(no-op寄り)。 */
 	setPopularity: (payload: ItemSuggestionPayload | undefined) => void;
-	/** メガストーン自動設定時の強調表示(left-panel.tsのitemDropdownButton.classList.add
+	/** メガストーン自動設定時の強調表示(pokemon-edit-panel.tsのitemDropdownButton.classList.add
 	 * ("is-autofilled")と同じ、1.4秒だけボタンを強調する)。 */
 	flashAutofill: () => void;
 }
@@ -678,7 +678,7 @@ function buildItemDropdown(initialValue: string): ItemDropdownHandle {
 		if (input.value !== value) {
 			input.value = value;
 			// row.itemNameの書き込みなど既存の値保存経路はinput/changeの両方をリッスンしている
-			// 前提のため(旧itemInput、左パネルのselectItemと同じ)、両方発火させる。
+			// 前提のため(旧itemInput、育成パネルのselectItemと同じ)、両方発火させる。
 			input.dispatchEvent(new Event("input"));
 			input.dispatchEvent(new Event("change"));
 		}
@@ -780,7 +780,7 @@ function buildItemDropdown(initialValue: string): ItemDropdownHandle {
 		if (panel.hidden) openPanel();
 		else closePanel();
 	});
-	// リストの外側をクリックしたら閉じる(左パネル・buildTeraDropdownと同じ一般的な挙動)。
+	// リストの外側をクリックしたら閉じる(育成パネル・buildTeraDropdownと同じ一般的な挙動)。
 	document.addEventListener("click", (e) => {
 		if (panel.hidden) return;
 		const target = e.target as Node;
@@ -841,8 +841,8 @@ if (opponentNotesSection) {
 	}>();
 	const rowReadonlyNatureLabelEls = new WeakMap<DamageRowState, Partial<Record<string, HTMLElement>>>();
 
-	// #regulation(LeftPanel.astro/left-panel.ts)はこのファイルからは値を読むだけに留め、
-	// left-panel.ts側の既存changeリスナー(syncRegulationPlaceholder等)は変更しない。
+	// #regulation(PokemonEditPanel.astro/pokemon-edit-panel.ts)はこのファイルからは値を読むだけに留め、
+	// pokemon-edit-panel.ts側の既存changeリスナー(syncRegulationPlaceholder等)は変更しない。
 	// 同じ要素へ別のリスナーを追加するだけ(DOM標準のイベント購読は同一要素に
 	// 何個でも独立して登録できる)で追随できる。
 	const regulationSelectEl = document.getElementById("regulation") as HTMLSelectElement | null;
@@ -852,7 +852,7 @@ if (opponentNotesSection) {
 		return value === "" ? null : value;
 	}
 	// 旧: 「相手ポケモン」タブのテラスタイプ欄(rowTeraFieldWraps/syncTeraFieldVisibility)は
-	// テラスタイプ欄を「わざ」タブへ移設したことに伴い廃止した。移設先(right-panel.tsの
+	// テラスタイプ欄を「わざ」タブへ移設したことに伴い廃止した。移設先(damage-detail-panel.tsの
 	// buildSideSection)では、モーダルが開くたび(=毎回作り直すたび)にレギュレーションを
 	// 読み直して表示可否を決めるため、レギュレーション変更を追随させる持ち回りのMap・
 	// changeリスナーは不要になった。
@@ -860,7 +860,7 @@ if (opponentNotesSection) {
 	// shared-core.tsのscheduleRowSave/scheduleRowCalc/refreshRowConditionChips/renderDetailPanel/
 	// selectColumnは、このブロック内で下に定義するsetRowSaveStatus/saveRow/recalcRow/
 	// renderConditionChipsInto/renderDetailPanelEmpty/renderColumnLevelDetailPanel/
-	// openDetailPanelOverlayIfNarrowを呼ぶ。関数宣言はこのブロック内でホイストされるため、
+	// openDetailPanelOverlayを呼ぶ。関数宣言はこのブロック内でホイストされるため、
 	// 実際に定義される行より前のこの位置で登録しても問題ない(呼び出しは実際にユーザー操作等が
 	// 起きた後になる)。
 	registerDamageCalcBridge({
@@ -893,17 +893,17 @@ if (opponentNotesSection) {
 		getBuildDetailForm: (row) => rowBuildDetailForms.get(row) ?? null,
 		deleteRow: (row) => deleteRow(row),
 		deleteColumn: (row, column) => deleteAttackColumn(row, column),
-		openDetailPanelOverlayIfNarrow: () => {
+		openDetailPanelOverlay: () => {
 			refreshMobileDetailPlacement();
-			openRightPanelOverlayIfNarrow();
+			openDamageDetailPanelOverlay();
 		},
 	});
-	// 右サイド(詳細設定サイドバー)専用のDOM参照・イベント登録・初期空状態描画は
-	// right-panel.ts へ分離している。right-panel.ts側は#damage-detail-panel等が必ず存在する
-	// (=opponentNotesSectionが存在する)ことを保証できないため、initRightPanel()という
+	// ダメージ詳細パネル(詳細設定サイドバー)専用のDOM参照・イベント登録・初期空状態描画は
+	// damage-detail-panel.ts へ分離している。damage-detail-panel.ts側は#damage-detail-panel等が必ず存在する
+	// (=opponentNotesSectionが存在する)ことを保証できないため、initDamageDetailPanel()という
 	// 明示的な初期化関数に包み、ここ(#opponent-notes-sectionが存在すると判明した直後)から
 	// 1回だけ呼ぶ。
-	initRightPanel();
+	initDamageDetailPanel();
 
 	// ダメージ計算カードは行(相手)ごとに独立して自動保存されるため、カード自身のfooter
 	// (失敗時のみ表示)は画面外にスクロールすると見えなくなる。AppLayoutのトップバー
@@ -927,7 +927,7 @@ if (opponentNotesSection) {
 
 	// 相手ビルドselect用のTERA_TYPESはこの<script>タグ冒頭でsrc/lib/tera-types.tsからimportした
 	// ものをそのまま使う。性格の<select>(NATURES一覧)は廃止しており、努力値/実数値グリッドの
-	// H/A/B/C/D/S見出しクリックで性格を決める(左パネルと同じnatureNameFromBoosts/
+	// H/A/B/C/D/S見出しクリックで性格を決める(育成パネルと同じnatureNameFromBoosts/
 	// NATURE_STAT_MODIFIERSを使う)。
 	// 天候/地形の選択肢はsrc/pages/damage-calc/index.astro の WEATHERS/TERRAINSと同じ選択肢で
 	// 同期させること(jpoke側の定義が正)。ただし、個体編集の詳細設定パネルのみ強天候3種
@@ -1429,7 +1429,7 @@ if (opponentNotesSection) {
 		return describeSeriesVerdict(extendedSeries, `${MAX_STANDALONE_ATTACKS}発以上`).label;
 	}
 
-	// 「加算後のダメ・致死率」(DamageCard.pngの左パネル最下段)の累計ダメージ。
+	// 「加算後のダメ・致死率」(DamageCard.pngの育成パネル最下段)の累計ダメージ。
 	// 通常はエンジンが返す cumulativeDamage(LethalHitResult.__add__ による分布合成から
 	// 求めた厳密な最小/最大)を使う。この関数は、cumulativeDamage が無い時代の
 	// client_result スナップショットを表示するときのフォールバック
@@ -1537,7 +1537,7 @@ if (opponentNotesSection) {
 
 	// DamageCard.pngの結果表示は2箇所に分かれている。
 	//  - 各技列の最下段 = 「技ごとのダメ・致死率」(その技だけを繰り返した場合の独立した判定)
-	//  - 左パネルの最下段 = 「加算後のダメ・致死率」(全ての技列を順に当てた合計)
+	//  - 育成パネルの最下段 = 「加算後のダメ・致死率」(全ての技列を順に当てた合計)
 	// row.clientResultのperAttackDamagesは「有効な攻撃列(validAttacksOf)」の順に並んで
 	// いるため、技名が空の列を飛ばしながら1始まりの位置を数えて対応させる。
 	function renderColumnDisplays(row: DamageRowState): void {
@@ -1600,7 +1600,7 @@ if (opponentNotesSection) {
 		syncDetailPanelTotal(row);
 	}
 
-	// 左パネル最下段の「加算後のダメ・致死率」を更新する。技列が1つだけのときは
+	// 育成パネル最下段の「加算後のダメ・致死率」を更新する。技列が1つだけのときは
 	// 加算する意味が無いので、その旨だけを出して数字は技列側に任せる。
 	function renderTotalDisplay(row: DamageRowState): void {
 		const target = row.totalResultEl;
@@ -1757,7 +1757,7 @@ if (opponentNotesSection) {
 
 	// 実数値グリッド(H/A/B/C/D/S)のみを更新する。ダメージ計算(攻撃列)とは独立に、
 	// 相手ビルドの入力(性格・特性・持ち物・テラスタイプ・努力値)が変わるたびに呼ぶ。
-	// 左パネルのrecalcStats()と同様、エンジン非依存の純JS計算に切り替える
+	// 育成パネルのrecalcStats()と同様、エンジン非依存の純JS計算に切り替える
 	// (calcHpStat/calcOtherStatはモジュールスコープで定義済み)。ダメージ計算(recalcRow内の
 	// この先の処理)は引き続きisEngineReady()待ちのまま。
 	async function recalcRowStatsOnly(row: DamageRowState): Promise<void> {
@@ -1970,7 +1970,7 @@ if (opponentNotesSection) {
 		updateOpponentNotesFailureAlert();
 	}
 
-	// デバウンス付き即時自動保存(左パネルのsaveNow()と同じ流儀)。
+	// デバウンス付き即時自動保存(育成パネルのsaveNow()と同じ流儀)。
 	// 相手ポケモン名が空のうちはPOSTしない(サーバ検証でopponent_build.nameが必須のため)。
 	async function saveRow(row: DamageRowState): Promise<void> {
 		const name = row.name.trim();
@@ -2115,11 +2115,11 @@ if (opponentNotesSection) {
 	}
 
 	// 攻撃側(row.direction === "attack"、このポケモン自身が攻撃する行)の技候補は、種族の
-	// 覚え技全体(#move-listの並び、left-panel.tsのrebuildMoveListForSpeciesが管理)ではなく、
-	// 左パネルの技1〜4欄に現在入力されている値(=このポケモン固有の実際の選択)を最上位に
-	// 表示する。共有<datalist id="move-list">自体を書き換えると左パネル本体・受け(defense)側の
+	// 覚え技全体(#move-listの並び、pokemon-edit-panel.tsのrebuildMoveListForSpeciesが管理)ではなく、
+	// 育成パネルの技1〜4欄に現在入力されている値(=このポケモン固有の実際の選択)を最上位に
+	// 表示する。共有<datalist id="move-list">自体を書き換えると育成パネル本体・受け(defense)側の
 	// 技候補まで巻き込むため、この専用の<datalist id="move-list-self-first">を新設し、
-	// 攻撃側のmoveInputだけlist属性をこちらに向ける(left-panel.ts/LeftPanel.astroは
+	// 攻撃側のmoveInputだけlist属性をこちらに向ける(pokemon-edit-panel.ts/PokemonEditPanel.astroは
 	// 一切編集しない。#move-1〜#move-4のvalueをDOM経由で読むだけ)。
 	// 変化技(category === "status")は仕様上ダメージを一切発生させず、選んでも
 	// 「変化技のため、ダメージは発生しません。」(STATUS_MOVE_NOTE)が出るだけなので、
@@ -2381,7 +2381,7 @@ if (opponentNotesSection) {
 
 			// 技1つ単位の削除ボタンは置かない。削除モードの単位は「相手ビルド〜結果」の
 			// 1セット(.card-damage)にひとつだけ(damage-row-delete-button)。技1つだけを
-			// 消す操作は詳細パネル側(deleteColumn、right-panel.ts)に残す。
+			// 消す操作は詳細パネル側(deleteColumn、damage-detail-panel.ts)に残す。
 
 			// 最下段(区切り線の下)に「技ごとのダメ・致死率」。margin-top:autoで
 			// 箱の下端に固定されるため、上の条件欄が増えても位置が変わらない。
@@ -2512,7 +2512,7 @@ if (opponentNotesSection) {
 
 
 	// buildTeraDropdownはモジュール冒頭(このif文より前)へ移設・exportした
-	// (相手ポケモンタブ廃止に伴い、わざタブ側=right-panel.tsからも同じ実装を使うため。
+	// (相手ポケモンタブ廃止に伴い、わざタブ側=damage-detail-panel.tsからも同じ実装を使うため。
 	// 詳細は移設先のコメント参照)。
 
 	// --- 行(相手1体)のDOM構築 ---
@@ -2896,7 +2896,7 @@ if (opponentNotesSection) {
 		}
 		{
 			// rebuildRowAbilityOptions()の初回解決(loadAbilitiesMap()のfetch完了)までの
-			// 仮表示。保存済みの値をそのまま1件だけ置く(左パネルのSSR初期値と同じ考え方)。
+			// 仮表示。保存済みの値をそのまま1件だけ置く(育成パネルのSSR初期値と同じ考え方)。
 			const placeholderOpt = document.createElement("option");
 			placeholderOpt.value = row.abilityName;
 			placeholderOpt.textContent = row.abilityName || "特性なし";
@@ -2916,7 +2916,7 @@ if (opponentNotesSection) {
 			abilitySelect.innerHTML = "";
 			if (abilities.length === 0) {
 				// 種族名が空、または候補が引けない(未知の種族名・入力途中)場合は
-				// 左パネルと同じくdisabled+プレースホルダにする。
+				// 育成パネルと同じくdisabled+プレースホルダにする。
 				abilitySelect.disabled = true;
 				const emptyOpt = document.createElement("option");
 				emptyOpt.value = "";
@@ -2985,11 +2985,11 @@ if (opponentNotesSection) {
 		}
 		refreshAbilityCycleButton();
 		// 初期描画時点(保存済みメモの復元・新規行の生成いずれも)で、既にrow.nameが
-		// 入っていれば候補を組み立てておく(左パネルのvoid rebuildAbilityOptions(...)と
+		// 入っていれば候補を組み立てておく(育成パネルのvoid rebuildAbilityOptions(...)と
 		// 同じ考え方)。
 		void rebuildRowAbilityOptions(row.name);
 
-		// アイテム欄は育成タブ(LeftPanel.astro+left-panel.ts)の持ち物カスタムドロップダウンと
+		// アイテム欄は育成タブ(PokemonEditPanel.astro+pokemon-edit-panel.ts)の持ち物カスタムドロップダウンと
 		// 同じ見た目・操作性(アイコン表示・使用率順の並び・検索フィルタ)に揃える
 		// (buildItemDropdown、上のbuildTeraDropdownと同じくidを使わないクロージャ式ファクトリ)。
 		// 値の実体はitemDropdown.input(hidden)が持ち、以降は従来のitemInputという名前・従来通りの
@@ -3034,7 +3034,7 @@ if (opponentNotesSection) {
 			row.itemName = stoneName;
 			itemInput.value = stoneName;
 			// inputイベントを発火させず直接書き換えたので、ボタンのアイコン・表示名を手動で追随させる
-			// (左パネルのapplyLeftMegaStoneAutofillが updateItemImage() 等を手動で呼ぶのと同じ考え方)。
+			// (育成パネルのapplyLeftMegaStoneAutofillが updateItemImage() 等を手動で呼ぶのと同じ考え方)。
 			itemDropdown.refreshDisplay();
 			teraDropdown.setValue(row.teraType);
 			onFieldInput();
@@ -3065,7 +3065,7 @@ if (opponentNotesSection) {
 		}
 		void refreshRowItemPopularity(row.name);
 
-		// B: テラスタイプ欄は「わざ」タブへ移設した(right-panel.tsのbuildSideSection、
+		// B: テラスタイプ欄は「わざ」タブへ移設した(damage-detail-panel.tsのbuildSideSection、
 		// exportされたbuildTeraDropdownを再利用)。row.teraType自体は編成データとして
 		// 引き続きここで保持し、このタブでは編集しない(値の受け皿のみ)。
 
@@ -3293,12 +3293,12 @@ if (opponentNotesSection) {
 	// --- 行一覧の状態・取得・追加 ---
 	let rows: DamageRowState[] = [];
 	// 今回の要件: 自分の特性変更時は全カードの全技列を対象にする。rowsを所有するこの層で
-	// 配線し、右パネル側には特性名と対象行だけを渡して状態管理の二重化を避ける。
+	// 配線し、ダメージ詳細パネル側には特性名と対象行だけを渡して状態管理の二重化を避ける。
 	el<HTMLSelectElement>("ability").addEventListener("change", (event) => {
 		const abilityName = (event.currentTarget as HTMLSelectElement).value;
 		for (const row of rows) notifyDetailAbilityChanged(row, abilityName);
 	});
-	// 左パネルの種族確定で #ability の候補・値がJSから再構築される経路。
+	// 育成パネルの種族確定で #ability の候補・値がJSから再構築される経路。
 	// 初期復元では監視を開始せず、ユーザーの species change 後の最初の再構築だけを見るため、
 	// 保存済みカードを開いただけで自動入力が走ることはない。
 	const selfSpeciesInput = document.getElementById("species-name") as HTMLInputElement | null;
@@ -3644,7 +3644,7 @@ if (opponentNotesSection) {
 		});
 	});
 
-	// loadAutocomplete()の呼び出しは11-4対応で左サイド(left-panel.ts)の
+	// loadAutocomplete()の呼び出しは11-4対応で育成パネル(pokemon-edit-panel.ts)の
 	// autocompleteReadyPromiseへ移動した(二重に呼ぶとdatalistの候補が重複するため
 	// 呼び出し箇所は1箇所のみ)。
 	// Pyodide本体・jpoke wheelのオフラインキャッシュ登録(SW登録のみで、初期化トリガーとは

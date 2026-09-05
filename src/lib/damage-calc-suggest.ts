@@ -1,5 +1,5 @@
 // ダメージ計算のサジェストの純粋ロジック。
-// 個体育成画面の右パネルに「そのポケモンの型でよく行われているダメージ計算」を出すために、
+// 個体育成画面のダメージ詳細パネルに「そのポケモンの型でよく行われているダメージ計算」を出すために、
 // suggestions テーブル(migrations/020_damage_calc_suggestions.sql が書き込む
 // kind='popular_damage_calc_archetype' / 'popular_damage_calc_species')の payload を
 // 読み取り可能な形へ正規化する。
@@ -10,8 +10,8 @@
 //
 // ■ 新しいAPIルートを作らない理由
 // 集計結果は既存の suggestions テーブルに入り、GET /api/suggestions は kind + subject_key を
-// そのまま引ける汎用の読み出し口として既にある(左パネルの人気度サジェストが同じ経路を
-// 使っている。src/lib/box-id/left-panel.ts の fetchSuggestionPayload)。型の判定も
+// そのまま引ける汎用の読み出し口として既にある(育成パネルの人気度サジェストが同じ経路を
+// 使っている。src/lib/box-id/pokemon-edit-panel.ts の fetchSuggestionPayload)。型の判定も
 // classifyArchetype がブラウザ側で動く(同ファイルの currentArchetype)ため、サーバに
 // 個体IDを渡して分類し直させる必要が無い。むしろクライアントで分類するほうが、
 // 保存前の編集中の値(持ち物や努力値を触っている最中)にそのまま追随できる。
@@ -65,7 +65,7 @@ export const DAMAGE_CALC_SUGGESTION_KINDS = {
  * 型キーが空振りしたときも同じ経路で種族キーへ落ちる)。
  *
  * 型キーの連結順(種族名|持ち物名|role)は migrations/020 の subject_key 生成と、
- * 既存の popular_move_archetype(019 / left-panel.ts の popularMoveSubjectKeys)に揃える。
+ * 既存の popular_move_archetype(019 / pokemon-edit-panel.ts の popularMoveSubjectKeys)に揃える。
  * レギュレーション別スコープは作らない(020 のコメント参照)。
  */
 export function damageCalcSubjectKeys(

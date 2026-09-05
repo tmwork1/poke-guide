@@ -4,11 +4,11 @@
 // ダメージ計算カードの複製・N/M入力欄・進捗表示)はすべて src/lib/box-id/bulk-adjust.ts が
 // document.createElement()で動的生成する。
 //
-// このリポジトリには過去に<dialog>要素をやめた経緯があるため(RightPanel.astro:21、
-// left-panel.ts:45、DamageCalcSection.astro:1817のコメント参照)、<dialog>は使わず、
+// このリポジトリには過去に<dialog>要素をやめた経緯があるため(DamageDetailPanel.astro:21、
+// pokemon-edit-panel.ts:45、DamageCalcSection.astro:1817のコメント参照)、<dialog>は使わず、
 // 「背景オーバーレイ(#bulk-adjust-backdrop) + position:fixedパネル(#bulk-adjust-dialog) +
 // hidden属性トグル + Escキー/オーバーレイクリックで閉じる」という自前実装パターン
-// (AppLayout.astroのサイドバードロワー・RightPanel.astroの#damage-detail-panelと同じ流儀)を
+// (AppLayout.astroのサイドバードロワー・DamageDetailPanel.astroの#damage-detail-panelと同じ流儀)を
 // 踏襲する。
 //
 // ⚠️ 重要な設計上の注意(bulk-adjust.ts側の実装者・将来の変更者向け):
@@ -60,7 +60,7 @@ import '../../styles/bulk-adjust-dialog.css';
 
 <script>
 	// スクリプト本体は src/lib/box-id/bulk-adjust.ts に切り出してあり、ここから副作用import
-	// する(LeftPanel.astro + left-panel.ts、DamageCalcSection.astro + damage-calc.tsと
+	// する(PokemonEditPanel.astro + pokemon-edit-panel.ts、DamageCalcSection.astro + damage-calc.tsと
 	// 同じ構成)。モジュール読み込み時に自身で#bulk-adjust-button等を取得し初期化する。
 	import "../../lib/box-id/bulk-adjust";
 </script>

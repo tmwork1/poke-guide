@@ -113,7 +113,7 @@ export function buildStatAdjustmentPanel(options: StatAdjustmentPanelOptions): S
 		const row = document.createElement("div");
 		row.className = "stat-row";
 
-		// 育成タブ(LeftPanel.astro)と同じく、短縮ラベル(.stat-row-label)と性格補正の
+		// 育成タブ(PokemonEditPanel.astro)と同じく、短縮ラベル(.stat-row-label)と性格補正の
 		// 切替ボタン(.stat-row-nature)を別セルに分ける。同じ構造にすることで
 		// stat-adjustment-panel.cssの列幅(--stat-grid-template-columns等)を両タブで
 		// 共通にでき、HP行(ボタン無し)だけラベルのX位置がずれる問題を解消する。

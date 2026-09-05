@@ -1,7 +1,7 @@
 // 個体編集画面(/box/[id])のステータス表 H・B・D 行に付く「調整」ボタンの計算ロジック(純粋関数)。
 //
 // ⚠️ このファイルはDOMに一切触れない(documentを使わない)。UI(ボタンの表示・クリック・
-// 一覧の表示・適用)は別エージェントが LeftPanel.astro / left-panel.ts / right-panel.ts で
+// 一覧の表示・適用)は別エージェントが PokemonEditPanel.astro / pokemon-edit-panel.ts / damage-detail-panel.ts で
 // 実装する。ここは「残りの努力値をH/B/Dに配って、指定の耐久指数を最大化する候補を
 // 求める」計算だけを担当する。Pyodide/jpokeは使わない(実数値だけで計算できるため)。
 //

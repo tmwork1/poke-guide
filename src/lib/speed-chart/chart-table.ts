@@ -13,7 +13,7 @@
 // document 上の CustomEvent(OWNED_CURRENT_VALUE_EVENT)を購読するだけで、owned-panel.ts の
 // 内部変数を直接参照しない(クロージャ共有はしない)。逆方向(レギュレーション変更)は
 // このファイルが initOwnedPanel() を import 経由で都度呼び直す(登録パターン。
-// box-id/shared-core.ts の registerLeftPanelBridge と同じ「明示的な関数呼び出し」方式)。
+// box-id/shared-core.ts の registerPokemonEditPanelBridge と同じ「明示的な関数呼び出し」方式)。
 //
 // マスターデータのJSON importではなくfetchを使う理由: src/lib/pokemon-master-data.ts や
 // src/lib/sprite-urls.ts など既存のブラウザ専用モジュールと同じ流儀(public/master-data/ 配下は

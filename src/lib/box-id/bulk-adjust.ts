@@ -3,17 +3,17 @@
 // ポップアップ(src/components/box-id/BulkAdjustDialog.astro)を開く。カードごとに
 // 「N発をM%以上の確率で耐える」の N・M を入力し、同じボタン(このとき「ステータスを計算」に
 // ラベルが変わる)を押すと src/lib/box-id/bulk-adjust-solver.ts の solveDurability() で
-// 条件を満たす性格・努力値(H/B/D)の組み合わせを探索する。結果は右パネル
-// (src/lib/box-id/right-panel.ts の renderBulkAdjustResults)に一覧表示し、一覧をクリックすると
-// 左パネルの性格・努力値を実際に書き換える。
+// 条件を満たす性格・努力値(H/B/D)の組み合わせを探索する。結果はダメージ詳細パネル
+// (src/lib/box-id/damage-detail-panel.ts の renderBulkAdjustResults)に一覧表示し、一覧をクリックすると
+// 育成パネルの性格・努力値を実際に書き換える。
 //
 // このファイルは src/components/box-id/BulkAdjustDialog.astro の <script> から
-// 副作用importされ、モジュール読み込み時に自身で初期化する(LeftPanel.astro/left-panel.ts、
+// 副作用importされ、モジュール読み込み時に自身で初期化する(PokemonEditPanel.astro/pokemon-edit-panel.ts、
 // DamageCalcSection.astro/damage-calc.tsと同じ構成)。BulkAdjustDialog.astroは
-// box/[id].astro側で LeftPanel/DamageCalcSection/RightPanel と同じ「pokemonが存在する
+// box/[id].astro側で PokemonEditPanel/DamageCalcSection/DamageDetailPanel と同じ「pokemonが存在する
 // ときだけ描画される」分岐の中に置かれているため、#bulk-adjust-button・
 // #opponent-notes-section・#damage-detail-panel等はこのファイルの実行時に必ず存在する
-// (存在しない場合はel()がthrowする。left-panel.ts/damage-calc.tsと同じ前提)。
+// (存在しない場合はel()がthrowする。pokemon-edit-panel.ts/damage-calc.tsと同じ前提)。
 import { el, readEv } from "../owned-pokemon-form";
 import { bindModalDismissal } from "../modal-dismiss";
 import {
@@ -41,7 +41,7 @@ import {
 	type DurabilityCandidate,
 	type SolveResult,
 } from "./bulk-adjust-solver";
-import { renderBulkAdjustResults, openDetailPanelOverlayIfNarrow } from "./right-panel";
+import { renderBulkAdjustResults, openDetailPanelOverlay } from "./damage-detail-panel";
 
 const bulkAdjustButton = el<HTMLButtonElement>("bulk-adjust-button");
 const bulkAdjustButtonLabelEl = bulkAdjustButton.querySelector<HTMLElement>(".bulk-adjust-button-label");
@@ -359,7 +359,7 @@ async function runCompute(): Promise<void> {
 		return;
 	}
 	const fixedEvs = { atk: readEv("atk"), spa: readEv("spa"), spe: readEv("spe") };
-	const currentBoosts = currentLeftNatureBoosts();
+	const currentBoosts = currentEditNatureBoosts();
 	const currentNature = natureNameFromBoosts(currentBoosts.up, currentBoosts.down);
 
 	const controller = new AbortController();
@@ -386,8 +386,8 @@ async function runCompute(): Promise<void> {
 		}
 		dialogStatusEl.textContent = "";
 		closeDialog();
-		renderBulkAdjustResults(result, (candidate) => applyCandidateToLeftPanel(candidate));
-		openDetailPanelOverlayIfNarrow();
+		renderBulkAdjustResults(result, (candidate) => applyCandidateToPokemonEditPanel(candidate));
+		openDetailPanelOverlay();
 	} catch (err) {
 		if (err instanceof DOMException && err.name === "AbortError") {
 			// ユーザーによる中断。ダイアログは開いたままにする(条件を直してやり直せるように)。
@@ -409,14 +409,14 @@ async function runCompute(): Promise<void> {
 	}
 }
 
-// --- 結果クリック時: 左パネルの性格・努力値(H/B/D)を実際に更新する ---
+// --- 結果クリック時: 育成パネルの性格・努力値(H/B/D)を実際に更新する ---
 // ⚠️ 最も壊しやすい箇所。#ev-hp/#ev-def/#ev-spd は.valueへの代入だけではinput/change
 // どちらのイベントも発火せず、再計算(recalcStats)も自動保存(scheduleSave)も走らない
-// (left-panel.ts:224のコメントに明記)。値を代入したうえで input/change 両方を
+// (pokemon-edit-panel.ts:224のコメントに明記)。値を代入したうえで input/change 両方を
 // bubbles:true で発火させる。性格は<select>ではなく#nature-toggle-{key}の単一ボタンを
 // クリックする方式(nextNatureBoosts、shared-core.ts)。遷移規則そのものを使って、現在と
 // 目的の状態の間のクリック順を探索してclick()する。
-function currentLeftNatureBoosts(): { up: StatKey | null; down: StatKey | null } {
+function currentEditNatureBoosts(): { up: StatKey | null; down: StatKey | null } {
 	let up: StatKey | null = null;
 	let down: StatKey | null = null;
 	for (const key of STAT_KEYS) {
@@ -459,16 +459,16 @@ function planNatureClicks(current: Boosts, target: Boosts): StatKey[] {
 	return [];
 }
 
-function applyNatureToLeftPanel(natureName: string): void {
+function applyNatureToPokemonEditPanel(natureName: string): void {
 	const target = NATURE_STAT_MODIFIERS[natureName] ?? { up: null, down: null };
-	const current = currentLeftNatureBoosts();
+	const current = currentEditNatureBoosts();
 	const clicks = planNatureClicks(current, target);
 	for (const key of clicks) {
 		(document.getElementById(`nature-toggle-${key}`) as HTMLButtonElement | null)?.click();
 	}
 }
 
-function applyEvToLeftPanel(key: "hp" | "def" | "spd", value: number): void {
+function applyEvToPokemonEditPanel(key: "hp" | "def" | "spd", value: number): void {
 	const input = document.getElementById(`ev-${key}`) as HTMLInputElement | null;
 	if (!input) return;
 	input.value = String(value);
@@ -476,9 +476,9 @@ function applyEvToLeftPanel(key: "hp" | "def" | "spd", value: number): void {
 	input.dispatchEvent(new Event("change", { bubbles: true }));
 }
 
-function applyCandidateToLeftPanel(candidate: DurabilityCandidate): void {
-	applyNatureToLeftPanel(candidate.nature);
-	applyEvToLeftPanel("hp", candidate.evs.hp);
-	applyEvToLeftPanel("def", candidate.evs.def);
-	applyEvToLeftPanel("spd", candidate.evs.spd);
+function applyCandidateToPokemonEditPanel(candidate: DurabilityCandidate): void {
+	applyNatureToPokemonEditPanel(candidate.nature);
+	applyEvToPokemonEditPanel("hp", candidate.evs.hp);
+	applyEvToPokemonEditPanel("def", candidate.evs.def);
+	applyEvToPokemonEditPanel("spd", candidate.evs.spd);
 }

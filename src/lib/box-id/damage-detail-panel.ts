@@ -1,17 +1,17 @@
-// 右サイド(詳細設定サイドバー、#damage-detail-panel)専用のロジック一式。
+// ダメージ詳細パネル(詳細設定サイドバー、#damage-detail-panel)専用のロジック一式。
 //
 // ダメージ計算(damage-calc.ts)とは scheduleRowSave/scheduleRowCalc/refreshRowConditionChips/
 // selectColumn/renderDetailPanel/getSelectedRow/getSelectedColumn/clearSelection(いずれも
 // shared-core.ts経由)に加え、DAMAGE_WEATHERS/DAMAGE_TERRAINS/DAMAGE_AILMENTS/
 // DAMAGE_ATTACKER_VOLATILES/DAMAGE_DEFENDER_VOLATILES/clampInt(damage-calc.tsからexport、
 // 後述)・deselectRowIfCurrent/renderDetailPanelEmpty/renderColumnLevelDetailPanel/
-// openDetailPanelOverlayIfNarrow(このファイルからdamage-calc.tsへexport)という2方向の
-// 依存がある(damage-calc.ts⇄right-panel.tsは相互import。いずれも関数宣言(hoistされ、
+// openDetailPanelOverlay(このファイルからdamage-calc.tsへexport)という2方向の
+// 依存がある(damage-calc.ts⇄damage-detail-panel.tsは相互import。いずれも関数宣言(hoistされ、
 // 循環import下でも安全)またはモジュール top-level で即時評価されない値のみを跨いでいる
 // ため、実行時の初期化順序に問題は無い)。
 //
 // このファイルは damage-calc.ts の #opponent-notes-section ガード内から
-// `initRightPanel()` を1回呼ばれることで初期化される(#damage-detail-panel 等は
+// `initDamageDetailPanel()` を1回呼ばれることで初期化される(#damage-detail-panel 等は
 // #opponent-notes-section と常に同時にSSR描画されるため、ガードの共有は安全)。
 import { el, readEv } from "../owned-pokemon-form";
 import { bindModalDismissal } from "../modal-dismiss";
@@ -141,7 +141,7 @@ export function notifyDetailAbilityChanged(row: DamageRowState, abilityName: str
 // 詳細パネルは常にオーバーレイとして開閉する。aria-modalも開閉に連動させ、
 // app-header-swipe.tsがこれを見て、パネル内で始まったフリックを背後ページの
 // タブ切り替えから除外できるようにする。
-export function openDetailPanelOverlayIfNarrow(): void {
+export function openDetailPanelOverlay(): void {
 	detailPanelEl.classList.add("is-open");
 	detailPanelEl.setAttribute("aria-modal", "true");
 	detailBackdropEl.hidden = false;
@@ -563,9 +563,9 @@ export interface StatCardListView {
 	emptyMessage?: string;
 }
 
-/** 現在左パネルに表示されている実数値(H/B/D)を、表示中のテキストからそのまま読む。
+/** 現在育成パネルに表示されている実数値(H/B/D)を、表示中のテキストからそのまま読む。
     calcHpStat/calcOtherStatで再計算すると性格補正等の取り違えで表示とズレる事故が
-    起こり得るため、常に「今画面に出ている値」を正とする(#stat-{key}、left-panel.tsの
+    起こり得るため、常に「今画面に出ている値」を正とする(#stat-{key}、pokemon-edit-panel.tsの
     renderStatsUnavailable/recalcStats参照。未計算時は"(未計算)"が入るためnullを返す)。 */
 function readCurrentRealStat(key: "hp" | "def" | "spd"): number | null {
 	const statEl = document.getElementById(`stat-${key}`);
@@ -643,7 +643,7 @@ function buildStatCardEl(spec: StatCardSpec): HTMLElement {
 }
 
 /** 依頼7: 「残り努力値以下のみ表示」等のトグルスイッチ。既存の.toggle-switch規格
-    (LeftPanel.astroのis:global側で定義済み、box/[id].astro等で使用中の角丸トラック+
+    (PokemonEditPanel.astroのis:global側で定義済み、box/[id].astro等で使用中の角丸トラック+
     丸いつまみ)をそのまま流用する(新色・新規格は作らない)。 */
 function buildFilterToggleEl(toggle: NonNullable<StatCardListView["filterToggle"]>): HTMLElement {
 	const row = document.createElement("label");
@@ -887,8 +887,8 @@ function buildBulkAdjustStatCardView(
 				candidate.evs.spd === applied.spd,
 			onSelect: () => {
 				onSelectCandidate(candidate);
-				// クリック直後、左パネルの値は同期的に書き換わる(applyEvToLeftPanel/
-				// applyNatureToLeftPanelがinput.valueへの代入→dispatchEventを同期実行する、
+				// クリック直後、育成パネルの値は同期的に書き換わる(applyEvToPokemonEditPanel/
+				// applyNatureToPokemonEditPanelがinput.valueへの代入→dispatchEventを同期実行する、
 				// bulk-adjust.ts参照)ため、ここで再描画すればisApplied(適用中マーク)が
 				// 直ちに正しい候補へ移る。
 				redraw();
@@ -977,10 +977,10 @@ function buildDurabilityIndexStatCardView(
 	};
 }
 
-/** 耐久指数最大化(durability-index.tsのmaximizeDurabilityIndex())の結果を右パネルへ
+/** 耐久指数最大化(durability-index.tsのmaximizeDurabilityIndex())の結果をダメージ詳細パネルへ
     統一カードで表示する(依頼4〜6)。buildGroups/getCurrentEvsはredrawのたびに(候補クリック
     後の再描画を含め)呼び直されるため、呼び出し元は「今の状態」を計算し直す関数を渡す
-    (呼び出し元=left-panel.tsのrunDurabilityIndexMaximize参照)。 */
+    (呼び出し元=pokemon-edit-panel.tsのrunDurabilityIndexMaximize参照)。 */
 export function renderDurabilityIndexResults(
 	buildGroups: () => DurabilityIndexResultGroup[],
 	getCurrentEvs: () => { hp: number; def: number; spd: number },
@@ -1855,8 +1855,8 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 // renderDetailPanel/clearSelectionMarks/applySelectionMarks/selectColumnは
 // 構造分割ラウンド(フェーズ1)でshared-core.tsへ移設した(ロジックは一切
 // 変更していない。renderDetailPanelがrenderDetailPanelEmpty/
-// renderColumnLevelDetailPanelを呼ぶ処理・selectColumnがopenDetailPanelOverlay
-// IfNarrowを呼ぶ処理はregisterDamageCalcBridge経由になる。上のimport参照)。
+// renderColumnLevelDetailPanelを呼ぶ処理・selectColumnが詳細パネルを開く処理は
+// registerDamageCalcBridge経由になる。上のimport参照)。
 
 // 行が削除されたときに選択状態を解除する(削除された行の設定が
 // サイドバーに残り続けるのを防ぐ)。selectedRow/selectedColumnはshared-core.tsへ
@@ -1874,7 +1874,7 @@ export function deselectRowIfCurrent(row: DamageRowState): void {
 // 空パネル描画)。damage-calc.ts側の#opponent-notes-sectionガードが真になった直後に
 // 1回だけ呼ぶ形にする(damage-calc.tsのif (opponentNotesSection) { ... }内、
 // registerDamageCalcBridge呼び出しの直後を参照)。実行内容・順序は変えていない。
-export function initRightPanel(): void {
+export function initDamageDetailPanel(): void {
 	detailPanelEl = el<HTMLElement>("damage-detail-panel");
 	detailPanelBodyEl = el<HTMLElement>("damage-detail-panel-body");
 	detailPanelTabsEl = el<HTMLElement>("damage-detail-panel-tabs");

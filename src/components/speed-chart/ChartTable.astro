@@ -23,10 +23,10 @@ import '../../styles/speed-chart-table.css';
 	data-embedded={String(embedded)}
 >
 	<div class="speed-chart-layout">
-		{/* 右パネルは個体調整専用のUI。hasOwnedPanelがfalseのときはレンダリングしない。
+		{/* ダメージ詳細パネルは個体調整専用のUI。hasOwnedPanelがfalseのときはレンダリングしない。
 		    1200px以上で表の右に常設(sticky)、それ未満では表の上に積む。 */}
 		{hasOwnedPanel && (
-			<aside class="speed-chart-side panel panel-right">
+			<aside class="speed-chart-side panel panel-border-start">
 				<OwnedPanel hasOwnedPanel={hasOwnedPanel} ownedId={ownedId} />
 				{/* 「とりうるすばやさのみ」トグル。checked/uncheckedの解釈は
 				    chart-table.ts側で行う。 */}

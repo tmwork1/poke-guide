@@ -2,7 +2,7 @@
 // フリックで切り替えたとき、本文(#damage-detail-panel-body)を一度だけ横スライドさせる演出。
 // タップでの切り替え(selectColumn/selectBuildへの直接呼び出し)は対象外(即座にハードカットのまま)。
 //
-// 本文の描画(renderBuildDetailPanel/renderColumnLevelDetailPanel、right-panel.ts)は毎回
+// 本文の描画(renderBuildDetailPanel/renderColumnLevelDetailPanel、damage-detail-panel.ts)は毎回
 // detailPanelBodyEl.innerHTML = "" で直前の中身を破棄してから作り直す設計になっている。
 // そのため「旧パネルを残したまま新パネルを追加する」ことはできず、代わりに次の手順を踏む:
 //   1. 切り替え前に、現在の中身(detailPanelActionsElを除く)を検知不可能な位置へ退避する

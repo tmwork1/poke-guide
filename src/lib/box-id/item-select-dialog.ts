@@ -4,7 +4,7 @@ import { bindModalDismissal } from "../modal-dismiss";
 import { typeIconUrl } from "../sprite-urls";
 import { applyItemImage } from "./shared-core";
 import { requestSettingsModal } from "./settings-modal";
-import { getItemSuggestionRatio } from "./left-panel";
+import { getItemSuggestionRatio } from "./pokemon-edit-panel";
 
 type ItemAutocompleteEntry = { name?: unknown; regulations?: unknown };
 

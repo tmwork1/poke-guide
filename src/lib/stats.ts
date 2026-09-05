@@ -83,7 +83,7 @@ export function chmpToLegacyEffort(evChamp: number): number {
  * 注意: OP.GG使用率データ(/api/opgg-usage-evs)のEVスプレッドは、取得元が
  * 「ポケモンチャンピオンズ」専用ページ(op.gg/ja/pokemon-champions)であるため、既に
  * 本アプリと同じ0〜32スケールで返ってくる(実データで確認済み)。そちらの変換にはこの
- * 関数を使わないこと(box-id/left-panel.ts の applyTopOpggBuild 参照)。標準の0〜252
+ * 関数を使わないこと(box-id/pokemon-edit-panel.ts の applyTopOpggBuild 参照)。標準の0〜252
  * スケールの値を変換する必要が生じたときのための汎用ユーティリティとして用意する。
  */
 export function legacyToChmpEffort(legacyEffort: number): number {

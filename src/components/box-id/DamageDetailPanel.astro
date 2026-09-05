@@ -1,11 +1,11 @@
 ---
 import '../../styles/damage-detail-panel.css';
 import '../../styles/stat-adjustment-panel.css';
-// 右サイド(詳細設定サイドバー、#damage-detail-panel + #damage-detail-backdrop)専用の
+// ダメージ詳細パネル(詳細設定サイドバー、#damage-detail-panel + #damage-detail-backdrop)専用の
 // テンプレート・scoped styleを切り出したコンポーネント。ロジック(スクリプト)は
-// src/lib/box-id/right-panel.ts へ切り出し済みで、そちらは damage-calc.ts の
+// src/lib/box-id/damage-detail-panel.ts へ切り出し済みで、そちらは damage-calc.ts の
 // <script>タグ(DamageCalcSection.astro)から副作用importされる(このコンポーネント自身は
-// <script>タグを持たない。damage-calc.tsがright-panel.tsをimportするため、バンドルには
+// <script>タグを持たない。damage-calc.tsがdamage-detail-panel.tsをimportするため、バンドルには
 // 自動的に含まれる)。
 //
 // props不要(SSRデータに依存しない静的な空状態マークアップのみで、実際の中身はJSの
@@ -13,15 +13,15 @@ import '../../styles/stat-adjustment-panel.css';
 //
 // .edit-layout-detail と #damage-detail-backdrop は、常時オーバーレイで表示する
 // 詳細パネルの一部として扱う(対応するCSSも同じコンポーネントに属するため)。
-// box/[id].astro側は <div class="edit-layout">...<RightPanel /></div> の形で、
-// 他の2カラム(.edit-layout-left/.edit-layout-right)と同じ並びに呼び出すだけでよい。
+// box/[id].astro側は <div class="edit-layout">...<DamageDetailPanel /></div> の形で、
+// 他の2カラム(.edit-layout-training/.edit-layout-damage)と同じ並びに呼び出すだけでよい。
 ---
 {/* モバイル専用UIの詳細設定パネル。常にオーバーレイとして表示する。<script>のCSS・JS両方参照)。
     #damage-detail-panel自体はどの行も選択されていないときも常に存在し、空状態を表示する
     (JSのrenderDetailPanel参照)。相手ビルドの箱のクリックは無反応で、選択トリガーは
     技列の箱のクリックのみ。 */}
 <div class="edit-layout-detail">
-	<aside id="damage-detail-panel" class="damage-detail-panel panel-right" role="dialog" aria-modal="false" aria-label="ダメージ計算の詳細設定">
+	<aside id="damage-detail-panel" class="damage-detail-panel panel-border-start" role="dialog" aria-modal="false" aria-label="ダメージ計算の詳細設定">
 		<div class="damage-detail-panel-header">
 			<div id="damage-detail-panel-title" class="damage-detail-panel-title">ダメージ計算</div>
 			<button id="damage-detail-panel-close" class="btn-ghost damage-detail-panel-close" type="button" aria-label="詳細設定を閉じる" title="閉じる">×</button>
@@ -30,7 +30,7 @@ import '../../styles/stat-adjustment-panel.css';
 		<footer id="damage-detail-panel-footer" class="damage-detail-panel-footer" hidden>
 			<div id="damage-detail-panel-matchup" class="damage-detail-panel-matchup"></div>
 			{/* A-2: 対面アイコンと計算結果の間に、選択中の技カードの技名(複数なら「 + 」区切り)を
-			    表示する受け皿。中身はright-panel.tsのrefreshDetailPanelFooterが書き換える。 */}
+			    表示する受け皿。中身はdamage-detail-panel.tsのrefreshDetailPanelFooterが書き換える。 */}
 			<div id="damage-detail-panel-move-names" class="damage-detail-panel-move-names"></div>
 			<div id="damage-detail-panel-total" class="damage-detail-panel-total" data-severity="none">
 				<p id="damage-detail-panel-total-result" class="damage-detail-panel-total-result tnum" data-severity="none"></p>
@@ -39,7 +39,7 @@ import '../../styles/stat-adjustment-panel.css';
 		<div id="damage-detail-panel-body" class="damage-detail-panel-body">
 			{/* JS初期化前・失敗時のフォールバックもJS生成側(renderDetailPanelEmpty)と同じ
 			    .damage-detail-panel-body-innerでラップし、margin-block:autoの対象にする。
-			    空状態のヒント文は持たない(right-panel.tsのrenderDetailPanelEmptyも同時に
+			    空状態のヒント文は持たない(damage-detail-panel.tsのrenderDetailPanelEmptyも同時に
 			    空にしてあり、JS初期化前後で表示が食い違わないようにしている)。ラッパー自体は
 			    margin-block:autoの対象として維持する(DOM構造は残す)。 */}
 			<div class="damage-detail-panel-body-inner"></div>

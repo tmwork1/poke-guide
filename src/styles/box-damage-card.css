@@ -394,7 +394,7 @@ body.box-edit-page {
 }
 
 /* 「相手ポケモン」タブの攻撃/防御切り替え(.damage-build-detail-direction-toggle)は
-   #damage-detail-panel(RightPanel.astro)側に描画され、#opponent-notes-sectionの外に
+   #damage-detail-panel(DamageDetailPanel.astro)側に描画され、#opponent-notes-sectionの外に
    あるため、上の#opponent-notes-section配下ルールが一切当たらない(枠・角丸・区切り線・
    選択色すべて未適用のまま素のボタンとして見えていた)。同じ見た目を独立して与える。 */
 #damage-detail-panel .damage-build-detail-direction-toggle {
@@ -1870,7 +1870,7 @@ body.box-edit-page {
    #opponent-notes-sectionはcontainer: damage-section / inline-sizeでコンテインメントを
    張っているが、実測(Playwrightでスクロール前後のgetBoundingClientRectを比較)で
    position:fixedがビューポート基準のまま保たれることを確認済み(モバイル幅の
-   .edit-layout-right内スクロールでも、デスクトップ幅のページスクロールでも座標が
+   .edit-layout-damage内スクロールでも、デスクトップ幅のページスクロールでも座標が
    動かない)。以前はwidth<=899pxのみ、rows.length>0で末尾に挿入されるインラインの
    .box-add-buttonタイル自身をfixed化する実装だったが、カード0枚時(damage-empty-add-tile)
    には効かず、デスクトップ幅でも効かなかった。 */

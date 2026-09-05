@@ -8,7 +8,7 @@
 
 
 /* ステータス調整テーブルのレイアウト調整用変数 */
-.edit-layout-left .stat-adjustment-section,
+.edit-layout-training .stat-adjustment-section,
 #stat-status-adjust-body .stat-adjustment-section {
 	--stat-table-gap: var(--space-2);
 	--stat-row-label-line-height: 1;
@@ -38,20 +38,20 @@
 
 /* 育成タブの性格補正列。HP行は空のプレースホルダーセルのまま同じ列幅を占有し、
    他の行とラベルのX位置を揃える。 */
-.edit-layout-left .stat-row-nature,
+.edit-layout-training .stat-row-nature,
 #stat-status-adjust-body .stat-row-nature {
 	display: flex;
 	align-items: center;
 	justify-content: center;
 }
-.edit-layout-left .stat-row-remaining-value,
+.edit-layout-training .stat-row-remaining-value,
 #stat-status-adjust-body .stat-row-remaining-value {
 	display: flex;
 	align-items: center;
 	justify-content: flex-end;
 	min-width: 0;
 }
-.edit-layout-left .stat-nature-btn,
+.edit-layout-training .stat-nature-btn,
 #stat-status-adjust-body .stat-nature-btn {
 	display: inline-grid;
 	place-items: center;
@@ -72,8 +72,8 @@
 	cursor: pointer;
 	flex-shrink: 0;
 }
-.edit-layout-left .stat-nature-btn::before,
-.edit-layout-left .stat-nature-btn::after,
+.edit-layout-training .stat-nature-btn::before,
+.edit-layout-training .stat-nature-btn::after,
 #stat-status-adjust-body .stat-nature-btn::before,
 #stat-status-adjust-body .stat-nature-btn::after {
 	content: "";
@@ -81,34 +81,34 @@
 	width: 0;
 	height: 0;
 }
-.edit-layout-left .stat-nature-btn[data-nature-state="none"]::before,
+.edit-layout-training .stat-nature-btn[data-nature-state="none"]::before,
 #stat-status-adjust-body .stat-nature-btn[data-nature-state="none"]::before {
 	width: var(--stat-nature-dot-size);
 	height: var(--stat-nature-dot-size);
 	border-radius: 50%;
 	background: var(--color-text-muted);
 }
-.edit-layout-left .stat-nature-btn[data-nature-state="up"]::after,
+.edit-layout-training .stat-nature-btn[data-nature-state="up"]::after,
 #stat-status-adjust-body .stat-nature-btn[data-nature-state="up"]::after {
 	border-left: var(--stat-nature-arrow-border-inline) solid transparent;
 	border-right: var(--stat-nature-arrow-border-inline) solid transparent;
 	border-bottom: var(--stat-nature-arrow-border-block) solid var(--color-stat-up);
 }
-.edit-layout-left .stat-nature-btn[data-nature-state="down"]::after,
+.edit-layout-training .stat-nature-btn[data-nature-state="down"]::after,
 #stat-status-adjust-body .stat-nature-btn[data-nature-state="down"]::after {
 	border-left: var(--stat-nature-arrow-border-inline) solid transparent;
 	border-right: var(--stat-nature-arrow-border-inline) solid transparent;
 	border-top: var(--stat-nature-arrow-border-block) solid var(--color-stat-down);
 }
-.edit-layout-left .stat-nature-btn[data-nature-state="up"],
+.edit-layout-training .stat-nature-btn[data-nature-state="up"],
 #stat-status-adjust-body .stat-nature-btn[data-nature-state="up"] { background: var(--color-danger-soft); }
-.edit-layout-left .stat-nature-btn[data-nature-state="down"],
+.edit-layout-training .stat-nature-btn[data-nature-state="down"],
 #stat-status-adjust-body .stat-nature-btn[data-nature-state="down"] { background: var(--color-primary-soft); }
 @media (hover: hover) and (pointer: fine) {
-	.edit-layout-left .stat-nature-btn[data-nature-state="none"]:hover::before,
+	.edit-layout-training .stat-nature-btn[data-nature-state="none"]:hover::before,
 	#stat-status-adjust-body .stat-nature-btn[data-nature-state="none"]:hover::before { background: var(--color-primary); }
 }
-.edit-layout-left .stat-nature-btn:focus-visible,
+.edit-layout-training .stat-nature-btn:focus-visible,
 #stat-status-adjust-body .stat-nature-btn:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 1px; }
 
 /* --------------------------------------------------------------------------
@@ -136,7 +136,7 @@ body.box-edit-page {
 }
 
 /* 能力値調整表の列幅 */
-.edit-layout-left .stat-adjustment-section,
+.edit-layout-training .stat-adjustment-section,
 #stat-status-adjust-body .stat-adjustment-section {
 	/* ── 7. 余白 ────────────────────────── */
 	--stat-table-inline-end-padding: var(--space-2); /* 能力値表の右余白 */
@@ -162,13 +162,13 @@ body.box-edit-page {
 		存在しない)。ポケモンプレビュー(.pokemon-preview の position:sticky; top、
 		mobile-pokemon-preview.css参照)がこれとページナビゲーション(.app-header、
 		app-header.css)の高さを合わせてsticky配置に使う。 */
-.edit-layout-left,
-.edit-layout-right {
+.edit-layout-training,
+.edit-layout-damage {
 	min-width: 0;
 }
 
-.edit-shell:not([data-mobile-tab="damage"]) .edit-layout-right,
-.edit-shell[data-mobile-tab="damage"] .edit-layout-left {
+.edit-shell:not([data-mobile-tab="damage"]) .edit-layout-damage,
+.edit-shell[data-mobile-tab="damage"] .edit-layout-training {
 	display: none;
 }
 
@@ -260,7 +260,7 @@ body.box-edit-page {
 			}
 		}
 		/* 匿名集計サジェスト機能・第4段階(UI: 収集拒否トグル)。.toggle-switch本体のCSSは
-			src/components/box-id/LeftPanel.astro の is:global <style> 側に既にあるためここでは
+			src/components/box-id/PokemonEditPanel.astro の is:global <style> 側に既にあるためここでは
 			重複定義しない。ここはラベル・状態テキストのレイアウトだけを追加する。
 			戻るリンク(.app-header-back)と同じfont-size/font-weightを明示する。
 			font-familyとletter-spacingは、戻るリンクと同様にbodyからの継承値を使う。
@@ -306,19 +306,12 @@ body.box-edit-page {
 		}
 		.opponent-notes-save-alert[hidden] { display: none; }
 
-		/* ダメージ計算カード化(UI刷新): 右カラム(#opponent-notes-section)の内容は
+		/* ダメージ計算カード化(UI刷新): ダメージタブ(#opponent-notes-section)の内容は
 			「対戦相手メモ」から「ダメージ計算」カードに全面刷新した。行・列・詳細設定ダイアログは
-			すべて<script>がdocument.createElement()で動的生成するため、この節にスタイルは置かず、
-			下の<style is:global>側に #opponent-notes-section 限定のセレクタとしてまとめて定義する
-			(scoped <style> は data-astro-cid-* が付かない動的生成要素には効かないため。要件参照)。 */
-
-		/* UI品質改善(帯構成への刷新): .page-wide の max-width 上書きは「浮いた囲み箱を中央寄せ
-			する」設計の名残で、帯(.panel系)が画面端まで伸びる設計とは相容れないため撤廃した。
-			左右カラムは.panel-left/.panel-right(画面端固定の帯)になった一方、中央カラムの
-			ダメージ計算カード(.card-damage)自体は「浮いた箱」のまま変えない。ただし.pageの
-			左右paddingが消えたことで、カードが左右の帯に直接貼り付いてしまうため、
-			画面端とカードの間の余白は#opponent-notes-section自身に持たせている
-			(値・コメントはsrc/styles/box-damage-page.cssの--box-damage-panel-padding参照)。 */
+			すべて<script>がdocument.createElement()で動的生成するため、スタイルは
+			src/styles/box-damage-card.css 等に #opponent-notes-section 限定のセレクタとして
+			まとめて定義する(Astroのscoped <style> は data-astro-cid-* が付かない
+			動的生成要素には効かないため。要件参照)。 */
 
 			/* 共通トップバーから降りてきた 保存状態 / 非公開 の受け皿(上のマークアップと
 				src/lib/box-id/mobile-edit-tabs.ts 参照)。育成タブ本文の末尾に、削除ボタンの下の
@@ -339,10 +332,10 @@ body.box-edit-page {
 			機構を経由しない素のスタイルシートなので、#edit-form内の静的<select>にも
 			#opponent-notes-section内でJSが動的生成する<select>にも同じ1つの定義で届く。 */
 		/* 未入力欄も入力済みの欄と同じ通常のフォームUIで表示する。 */
-		/* 左サイド(.panel-left/#edit-form)専用のscoped style一式(.stat-*・.top-block-*・
+		/* 育成パネル(.panel-edit/#edit-form)専用のscoped style一式(.stat-*・.top-block-*・
 			.species-icon-box・.type-badge-*・.item-image-badge・.tera-dropdown-*・
 			.move-type-icon・.memo-input 等)は構造分割ラウンド(フェーズ1)により
-			src/components/box-id/LeftPanel.astro へ移設した(見た目は一切変更していない)。 */
+			src/components/box-id/PokemonEditPanel.astro へ移設した(見た目は一切変更していない)。 */
 
-		/* .top-block-icon 以下、.tuning-button までの左サイド専用scoped styleは構造分割ラウンド
-			(フェーズ1)で src/components/box-id/LeftPanel.astro へ移設した(見た目は一切変更していない)。 */
+		/* .top-block-icon 以下、.tuning-button までの育成パネル専用scoped styleは構造分割ラウンド
+			(フェーズ1)で src/components/box-id/PokemonEditPanel.astro へ移設した(見た目は一切変更していない)。 */

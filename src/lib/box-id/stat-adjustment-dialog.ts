@@ -1,7 +1,7 @@
 // 育成タブのポケモンプレビュー(実数値・努力値の表、MobilePokemonPreview.astroの
 // .pokemon-preview-stats-wrap)をタップして開くステータス調整モーダルの開閉。
 //
-// StatAdjustmentDialog.astro(モーダルの外枠)とLeftPanel.astro(既存のステータス
+// StatAdjustmentDialog.astro(モーダルの外枠)とPokemonEditPanel.astro(既存のステータス
 // 調整欄 #stat-adjustment-section・その復帰位置の目印 #stat-adjustment-home)は
 // どちらも育成タブでしか描画されないため、この1ファイルからdocument.getElementById
 // で両者にまたがってアクセスする(このプロジェクトの既存の流儀)。
@@ -9,7 +9,7 @@
 // 「完全に共用」の実現方法: #stat-adjustment-section を複製・同期するのではなく、
 // 開くときにDOMノードそのものをモーダル本体(#stat-adjustment-dialog-body)へ移動し、
 // 閉じるときに #stat-adjustment-home の直前へ戻す。既存のid参照・イベントリスナー
-// (src/lib/box-id/left-panel.ts)は一切変更しないため、そのまま引き続き機能する。
+// (src/lib/box-id/pokemon-edit-panel.ts)は一切変更しないため、そのまま引き続き機能する。
 import { bindModalDismissal } from "../modal-dismiss";
 import { bindSettingsModalTrigger } from "./settings-modal";
 
@@ -21,7 +21,7 @@ const closeButton = document.getElementById("stat-adjustment-dialog-close-button
 const section = document.getElementById("stat-adjustment-section");
 const home = document.getElementById("stat-adjustment-home");
 
-// ダメージ/バトルデータ/上位チーム/相性タブにはモーダル本体(LeftPanel.astro側)が
+// ダメージ/バトルデータ/上位チーム/相性タブにはモーダル本体(PokemonEditPanel.astro側)が
 // 存在しないため、要素が揃わない場合は安全にno-opにする。
 if (trigger && backdrop && dialog && body && closeButton && section && home) {
 	function openDialog(): void {

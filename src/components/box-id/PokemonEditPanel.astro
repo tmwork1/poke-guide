@@ -1,16 +1,16 @@
 ---
-// 左サイド(ポケモン編集パネル、.panel-left)のテンプレート・scoped style・スクリプトを持つ
+// 育成パネル(ポケモン編集パネル、.panel-edit)のテンプレート・scoped style・スクリプトを持つ
 // コンポーネント。呼び出し元(box/[id].astro)は pokemon(SSRで取得済み、存在確認済み=非null)
 // だけをpropsで渡す。
 //
-// スクリプト本体は src/lib/box-id/left-panel.ts に切り出してあり、下の<script>から
-// 副作用importする(共有コア関数は src/lib/box-id/shared-core.ts 経由で left-panel.ts が使う)。
+// スクリプト本体は src/lib/box-id/pokemon-edit-panel.ts に切り出してあり、下の<script>から
+// 副作用importする(共有コア関数は src/lib/box-id/shared-core.ts 経由で pokemon-edit-panel.ts が使う)。
 import type { OwnedPokemonRecord } from '../../lib/owned-pokemon';
 import { TERA_TYPES } from '../../lib/tera-types';
 import '../../styles/move-picker-dialog.css';
 import '../../styles/team-card.css';
 import '../../styles/team-mate-card.css';
-import '../../styles/box-left-panel.css';
+import '../../styles/box-pokemon-edit-panel.css';
 
 interface Props {
 	pokemon: OwnedPokemonRecord;
@@ -43,7 +43,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	data-tags={JSON.stringify(pokemon.tags)}
 	data-nature={pokemon.nature ?? ""}
 >
-	<section class="panel panel-left">
+	<section class="panel panel-edit panel-border-end">
 		<div class="top-block">
 			{/* 画像はいずれも初期状態が display:none で、読み込み成功時(onload)に表示する方式。
 			    そのため loading="lazy" を付けてはいけない — display:none の画像は遅延読み込みの
@@ -311,7 +311,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 
 		{/* メモ欄の下に、この個体が所属しているチームの一覧を表示する(読み取り専用、
 		    カードクリックで/team/[id]へ遷移するだけ)。所属チームが無ければ何も表示しない
-		    (<script>のleft-panel.ts loadOwnedPokemonTeams参照)。既存のteam-card.cssの
+		    (<script>のpokemon-edit-panel.ts loadOwnedPokemonTeams参照)。既存のteam-card.cssの
 		    標準6枠チームカード(team/index.astroと同じrenderTeamCard)をそのまま使う。 */}
 		<section id="pokemon-team-section" class="pokemon-team-section" hidden aria-labelledby="pokemon-team-heading">
 			<h2 id="pokemon-team-heading" class="pokemon-team-heading">チーム</h2>
@@ -342,7 +342,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 {/* 選択モーダルは編集フォームの外に置く。閲覧ページでフォーム本体だけを非表示にしても、
     プレビューから同じモーダルをその場で開ける。 */}
 <script>
-	import "../../lib/box-id/left-panel";
+	import "../../lib/box-id/pokemon-edit-panel";
 	import { requestSettingsModal } from "../../lib/box-id/settings-modal";
 
 	const moveToggle = document.querySelector<HTMLButtonElement>(".mobile-move-toggle");

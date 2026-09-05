@@ -1,9 +1,9 @@
 // ポケモンプレビュー(.pokemon-preview、MobilePokemonPreview.astro)の技タイプバー
 // (#pokemon-preview-move-type-{slot})を塗る共通ロジック。
 //
-// 編集フォームがある育成タブ(left-panel.ts)と、フォームを持たない読み取り専用タブ
+// 編集フォームがある育成タブ(pokemon-edit-panel.ts)と、フォームを持たない読み取り専用タブ
 // (バトルデータ/上位チーム/相性、MobilePokemonPreview.astroの<script>から直接呼ぶ)の両方から
-// 共有する。以前は左パネル側にだけこの処理があり、読み取り専用タブでは技名の左のバーが
+// 共有する。以前は育成パネル側にだけこの処理があり、読み取り専用タブでは技名の左のバーが
 // 常にhiddenのまま塗られなかった。
 import { loadMoveTypeMap } from "../pokemon-master-data";
 import { TYPE_COLORS, DEFAULT_TYPE_COLOR } from "../type-colors";

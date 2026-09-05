@@ -315,7 +315,7 @@ body.data-page {
   text-align: center;
 }
 
-/* LeftPanel.astro の旧来のグローバル指定より優先し、上の変数を唯一の調整窓口にする。 */
+/* PokemonEditPanel.astro の旧来のグローバル指定より優先し、上の変数を唯一の調整窓口にする。 */
 body .move-picker-title { font-size: var(--move-picker-header-title-size); }
 body .move-picker-toggle { font-size: var(--move-picker-control-size); }
 body .move-picker-close { font-size: var(--move-picker-close-size); }
@@ -402,7 +402,7 @@ body .move-picker-empty {
     text-overflow: ellipsis;
     text-align: left;
     white-space: nowrap;
-    /* 長押しドラッグ(box-id/left-panel.tsのポインタイベント実装)がタッチのスクロール/
+    /* 長押しドラッグ(box-id/pokemon-edit-panel.tsのポインタイベント実装)がタッチのスクロール/
        コールアウトに横取りされないようにする。 */
     touch-action: none;
     -webkit-touch-callout: none;
@@ -414,7 +414,7 @@ body .move-picker-empty {
     background: color-mix(in srgb, var(--color-surface) 88%, #000 12%);
     color: var(--color-text);
   }
-  /* 技スロットタブのドラッグ&ドロップ入れ替え(box-id/left-panel.tsのswapMoveSlots・
+  /* 技スロットタブのドラッグ&ドロップ入れ替え(box-id/pokemon-edit-panel.tsのswapMoveSlots・
      dragstart/dragend/dragover/drop参照)。ドラッグ中のタブ自身は半透明にして
      「持ち上げている」感を出し(is-dragging)、ドロップ先候補は主色で縁取る
      (is-drop-target)。team/[id].astroの.card-team-slotと同じ考え方。 */
@@ -428,7 +428,7 @@ body .move-picker-empty {
 }
 
 /*
-  LeftPanel.astro にあった後勝ちの定義をここへ集約する。プレビューから開いた
+  PokemonEditPanel.astro にあった後勝ちの定義をここへ集約する。プレビューから開いた
   ときも従来と同じ外観になるよう、モバイルモーダルの実効値を維持している。
 */
 .move-picker-backdrop {

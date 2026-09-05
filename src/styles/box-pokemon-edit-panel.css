@@ -1,4 +1,4 @@
-/* /box/[id] 編集画面の左パネル(基本情報フォーム・能力値調整表)。 */
+/* /box/[id] 編集画面の育成パネル(基本情報フォーム・能力値調整表)。 */
 	/* UI刷新: 実数値の常時表示。性格補正は文字色で表現する(旧battle-assistant-svの表現を
 	   踏襲。上昇=赤系、下降=青系、補正なしは既定色のまま)。--color-stat-up/--color-stat-downは
 	   global.cssで定義し、CSSカスタムプロパティはAstroのスコープ属性に影響されず参照できる。 */
@@ -83,7 +83,7 @@
 		justify-content: flex-end;
 		min-width: 0;
 	}
-	/* 36pxへ拡大した端点ボタン2個を380px程度の左パネル内へ収めるため、rangeの最小幅も
+	/* 36pxへ拡大した端点ボタン2個を380px程度の育成パネル内へ収めるため、rangeの最小幅も
 	   5rem(80px)から3.5rem(56px)へ下げ、固定グリッドの3列目から溢れないようにする。 */
 	#stat-adjustment-section .stat-ev-range-controls { display: flex; align-items: center; gap: var(--stat-control-gap); min-width: 0; }
 	#stat-adjustment-section .stat-ev-range-controls input[type="range"] { flex: 1 1 var(--stat-range-min-width); min-width: var(--stat-range-min-width); }
@@ -104,7 +104,7 @@
 		line-height: 1;
 	}
 	/* モバイル専用の努力値操作。スライダーは値保持・同期用のDOMとして残しつつ非表示にし、
-	   DOM順(0ボタン→-→スライダー→+→32ボタン、LeftPanel.astro本体側コメント参照)を使って
+	   DOM順(0ボタン→-→スライダー→+→32ボタン、PokemonEditPanel.astro本体側コメント参照)を使って
 	   「0 / - / + / 32」のボタン操作を常時表示する。 */
 	#stat-adjustment-section .stat-row .stat-ev-range-controls input[type="range"] { display: none; }
 	#stat-adjustment-section .stat-row .stat-ev-step-button { display: inline-flex; }
@@ -157,7 +157,7 @@
 		font-weight: var(--font-weight-normal);
 	}
 	#stat-adjustment-section .stat-ev-toggle-spacer { display: none; }
-	/* 努力値の数値入力も左パネル用の詰めた寸法に揃える(6行あるので効き方が大きい)。 */
+	/* 努力値の数値入力も育成パネル用の詰めた寸法に揃える(6行あるので効き方が大きい)。 */
 	.stat-row input[type="number"] { font-size: var(--font-size-sm1); padding: 0.3em 0.5em; width: 100%; text-align: center; }
 	#stat-adjustment-section .stat-row input[type="range"] { width: 100%; }
 	#stat-adjustment-section .stat-row input[type="range"]:focus {
@@ -265,7 +265,7 @@
 	}
 
 
-	.panel-left {
+	.panel-edit {
 		background: var(--color-bg);
 		padding-top: 1rem;
 	}
@@ -339,7 +339,7 @@
 		margin-top: var(--space-3);
 		margin-bottom: var(--space-4);
 	}
-	/* 2列に詰めたぶん1つあたりの幅が狭いので、この左パネル内だけ文字と余白を少し詰めて
+	/* 2列に詰めたぶん1つあたりの幅が狭いので、この育成パネル内だけ文字と余白を少し詰めて
 	   「ブーストエナジー」「こだいかっせい」クラスの長さが枠内に収まるようにする。 */
 	#edit-form .field-grid .field-with-image > input,
 	#edit-form .field-grid .field-with-image > select,

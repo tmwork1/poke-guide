@@ -1,12 +1,12 @@
-﻿// 左サイド(ポケモン編集パネル、.panel-left)専用のロジック一式。
+﻿// 育成パネル(ポケモン編集パネル、.panel-border-end)専用のロジック一式。
 //
-// このファイルは src/components/box-id/LeftPanel.astro の <script> から
-// `import "../../lib/box-id/left-panel";` の形で副作用importされ、モジュール読み込み時に
+// このファイルは src/components/box-id/PokemonEditPanel.astro の <script> から
+// `import "../../lib/box-id/pokemon-edit-panel";` の形で副作用importされ、モジュール読み込み時に
 // 即座に自身を初期化する。
 //
-// 共有コア(shared-core.ts)の buildAttackerSpec/recalcStats はこの左パネルの
-// leftNatureUp/leftNatureDown・renderStatsUnavailable・updateEvRemaining を必要とするため、
-// 起動時に registerLeftPanelBridge() で1回だけ登録する(shared-core.tsの設計メモ参照)。
+// 共有コア(shared-core.ts)の buildAttackerSpec/recalcStats はこの育成パネルの
+// editNatureUp/editNatureDown・renderStatsUnavailable・updateEvRemaining を必要とするため、
+// 起動時に registerPokemonEditPanelBridge() で1回だけ登録する(shared-core.tsの設計メモ参照)。
 import {
 	el,
 	loadAutocomplete,
@@ -48,27 +48,27 @@ import {
 	nextNatureBoosts,
 	recalcStats,
 	baseStatsMapPromise,
-	registerLeftPanelBridge,
+	registerPokemonEditPanelBridge,
 	scheduleAllRowsCalc,
 	wrapToRange,
 } from "./shared-core";
 // 「耐久指数最大化」ボタン(ステータス表の下、#durability-index-button)の配線。
-// 計算(純JS、Pyodide不要)はdurability-index.ts、一覧表示はright-panel.tsの
+// 計算(純JS、Pyodide不要)はdurability-index.ts、一覧表示はdamage-detail-panel.tsの
 // renderCandidateList()(耐久調整ポップアップと共用の汎用レンダラ)に委譲し、このファイルは
-// 「現在の種族値・努力値・性格を渡して総合/物理/特殊の3指数を計算する」「3件を右パネルへ
-// 一覧表示する」「クリックされた候補を左パネルへ反映する」の橋渡しだけを担う。押下時は
-// 表示のみで、左パネルへの適用は一覧クリック時のみ行う。
+// 「現在の種族値・努力値・性格を渡して総合/物理/特殊の3指数を計算する」「3件をダメージ詳細パネルへ
+// 一覧表示する」「クリックされた候補を育成パネルへ反映する」の橋渡しだけを担う。押下時は
+// 表示のみで、育成パネルへの適用は一覧クリック時のみ行う。
 import {
 	maximizeDurabilityIndex,
 	type DurabilityIndexKind,
 	type DurabilityIndexCandidate,
 } from "./durability-index";
-// right-panel.ts と damage-calc.ts の初期化順を変えると循環参照で TDZ 例外になるため、
+// damage-detail-panel.ts と damage-calc.ts の初期化順を変えると循環参照で TDZ 例外になるため、
 // 実行時の参照はページ初期化後まで遅延読み込みする。
-let rightPanelModulePromise: Promise<typeof import("./right-panel")> | null = null;
-function loadRightPanel(): Promise<typeof import("./right-panel")> {
-	if (!rightPanelModulePromise) rightPanelModulePromise = import("./right-panel");
-	return rightPanelModulePromise;
+let damageDetailPanelModulePromise: Promise<typeof import("./damage-detail-panel")> | null = null;
+function loadDamageDetailPanel(): Promise<typeof import("./damage-detail-panel")> {
+	if (!damageDetailPanelModulePromise) damageDetailPanelModulePromise = import("./damage-detail-panel");
+	return damageDetailPanelModulePromise;
 }
 
 // 候補の並び替えはリスト構築後に行う必要があり、候補の二重追加も避けるため読み込み Promise を共有する。
@@ -720,30 +720,30 @@ if (form) {
 		iconWrap.hidden = false;
 	}
 
-	let leftNatureUp: StatKey | null = null;
-	let leftNatureDown: StatKey | null = null;
+	let editNatureUp: StatKey | null = null;
+	let editNatureDown: StatKey | null = null;
 	// 性格確定後に未選択能力を押したときの入れ替え先。無補正からの最初のタップは
 	// nextNatureBoosts側が常に上昇として扱うため、ここでは確定済みの場合だけ下降から始める。
-	let nextLeftNatureNeutralAssignment: "up" | "down" = "up";
+	let nextEditNatureNeutralAssignment: "up" | "down" = "up";
 	{
 		const initial = NATURE_STAT_MODIFIERS[form.dataset.nature ?? ""] ?? { up: null, down: null };
-		leftNatureUp = initial.up;
-		leftNatureDown = initial.down;
-		nextLeftNatureNeutralAssignment = initial.up && initial.down ? "down" : "up";
+		editNatureUp = initial.up;
+		editNatureDown = initial.down;
+		nextEditNatureNeutralAssignment = initial.up && initial.down ? "down" : "up";
 	}
 	// 性格補正ボタンの初期状態を反映する(refreshNatureButtonsは関数宣言でホイスト
 	// されているため、この時点で呼び出せる)。
 	refreshNatureButtons();
 	// 保存データ・pyodideエンジンに渡す性格名はこの関数で都度導出する
 	// (buildPayload/buildAttackerSpecの両方から参照)。
-	function currentLeftNature(): string {
-		return natureNameFromBoosts(leftNatureUp, leftNatureDown);
+	function currentEditNature(): string {
+		return natureNameFromBoosts(editNatureUp, editNatureDown);
 	}
 
-	// shared-core.ts の buildAttackerSpec/recalcStats がこの左パネルの状態・関数を
+	// shared-core.ts の buildAttackerSpec/recalcStats がこの育成パネルの状態・関数を
 	// 呼べるようにする(shared-core.tsの設計メモ参照)。
-	registerLeftPanelBridge({
-		getLeftNatureBoosts: () => ({ up: leftNatureUp, down: leftNatureDown }),
+	registerPokemonEditPanelBridge({
+		getEditNatureBoosts: () => ({ up: editNatureUp, down: editNatureDown }),
 		renderStatsUnavailable,
 		updateEvRemaining,
 	});
@@ -920,7 +920,7 @@ if (form) {
 		return classifyArchetype({
 			speciesName: speciesInput.value.trim(),
 			itemName: itemInput.value.trim(),
-			nature: currentLeftNature(),
+			nature: currentEditNature(),
 			evs: STAT_KEYS.map((key) => readEv(key)),
 			ivs: STAT_KEYS.map(() => 31),
 			moveNames: readMoveNames(),
@@ -977,8 +977,8 @@ if (form) {
 		const natureName = topSuggestedValue(natureSuggestion);
 		const natureModifier = natureName ? NATURE_STAT_MODIFIERS[natureName] : undefined;
 		if (natureModifier) {
-			leftNatureUp = natureModifier.up;
-			leftNatureDown = natureModifier.down;
+			editNatureUp = natureModifier.up;
+			editNatureDown = natureModifier.down;
 			refreshNatureButtons();
 		}
 
@@ -1120,7 +1120,7 @@ if (form) {
 		return {
 			species_name: speciesInput.value.trim(),
 			level: preservedLevel,
-			nature: currentLeftNature(),
+			nature: currentEditNature(),
 			ability_name: el<HTMLSelectElement>("ability").value.trim(),
 			item_name: el<HTMLInputElement>("item").value.trim(),
 			tera_type: el<HTMLSelectElement>("tera").value,
@@ -1141,20 +1141,20 @@ if (form) {
 			const button = document.getElementById(`nature-toggle-${key}`);
 			const labelEl = document.getElementById(`nature-label-${key}`);
 			const statLabel = labelEl?.getAttribute("aria-label") ?? key;
-			const state = leftNatureUp === key ? "up" : leftNatureDown === key ? "down" : "none";
+			const state = editNatureUp === key ? "up" : editNatureDown === key ? "down" : "none";
 			if (button) {
 				button.dataset.natureState = state;
 				button.setAttribute("aria-label", `${statLabel}の性格補正: ${state === "up" ? "上昇" : state === "down" ? "下降" : "未設定"}`);
 				button.setAttribute("title", `クリックで性格補正を切り替える (現在: ${state === "up" ? "上昇" : state === "down" ? "下降" : "未設定"})`);
 			}
 			if (labelEl) {
-				if (leftNatureUp === key) labelEl.dataset.mod = "up";
-				else if (leftNatureDown === key) labelEl.dataset.mod = "down";
+				if (editNatureUp === key) labelEl.dataset.mod = "up";
+				else if (editNatureDown === key) labelEl.dataset.mod = "down";
 				else delete labelEl.dataset.mod;
 			}
 		}
 		const natureReadoutEl = document.getElementById("nature-readout-value");
-		if (natureReadoutEl) natureReadoutEl.textContent = currentLeftNature();
+		if (natureReadoutEl) natureReadoutEl.textContent = currentEditNature();
 	}
 
 	function updateEvRemaining(): void {
@@ -1305,13 +1305,13 @@ if (form) {
 		const button = document.getElementById(`nature-toggle-${key}`);
 		button?.addEventListener("click", async () => {
 			const next = nextNatureBoosts(
-				{ up: leftNatureUp, down: leftNatureDown },
+				{ up: editNatureUp, down: editNatureDown },
 				key,
-				nextLeftNatureNeutralAssignment,
+				nextEditNatureNeutralAssignment,
 			);
-			leftNatureUp = next.up;
-			leftNatureDown = next.down;
-			nextLeftNatureNeutralAssignment = next.nextNeutralAssignment;
+			editNatureUp = next.up;
+			editNatureDown = next.down;
+			nextEditNatureNeutralAssignment = next.nextNeutralAssignment;
 			refreshNatureButtons();
 			await recalcStats();
 			scheduleSave();
@@ -1415,17 +1415,17 @@ if (form) {
 		});
 	}
 
-	function applyDurabilityEvToLeftPanel(key: "hp" | "def" | "spd", value: number): void {
+	function applyDurabilityEvToPokemonEditPanel(key: "hp" | "def" | "spd", value: number): void {
 		const input = document.getElementById(`ev-${key}`) as HTMLInputElement | null;
 		if (!input) return;
 		input.value = String(value);
 		input.dispatchEvent(new Event("input", { bubbles: true }));
 		input.dispatchEvent(new Event("change", { bubbles: true }));
 	}
-	function applyDurabilityCandidateToLeftPanel(candidate: DurabilityIndexCandidate): void {
-		applyDurabilityEvToLeftPanel("hp", candidate.evs.hp);
-		applyDurabilityEvToLeftPanel("def", candidate.evs.def);
-		applyDurabilityEvToLeftPanel("spd", candidate.evs.spd);
+	function applyDurabilityCandidateToPokemonEditPanel(candidate: DurabilityIndexCandidate): void {
+		applyDurabilityEvToPokemonEditPanel("hp", candidate.evs.hp);
+		applyDurabilityEvToPokemonEditPanel("def", candidate.evs.def);
+		applyDurabilityEvToPokemonEditPanel("spd", candidate.evs.spd);
 	}
 
 	const DURABILITY_INDEX_KINDS: { kind: DurabilityIndexKind; heading: string; headingHelp: string }[] = [
@@ -1440,8 +1440,8 @@ if (form) {
 		if (66 - STAT_KEYS.reduce((sum, k) => sum + readEv(k), 0) <= 0) return;
 		const base = (await baseStatsMapPromise).get(name);
 		if (!base) return;
-		const { renderDurabilityIndexResults, openDetailPanelOverlayIfNarrow } = await loadRightPanel();
-		const nature = currentLeftNature();
+		const { renderDurabilityIndexResults, openDetailPanelOverlay } = await loadDamageDetailPanel();
+		const nature = currentEditNature();
 
 		renderDurabilityIndexResults(
 			() =>
@@ -1452,9 +1452,9 @@ if (form) {
 					result: maximizeDurabilityIndex({ kind, baseStats: base, currentEvs: STAT_KEYS.map((k) => readEv(k)), nature }),
 				})),
 			() => ({ hp: readEv("hp"), def: readEv("def"), spd: readEv("spd") }),
-			(candidate) => applyDurabilityCandidateToLeftPanel(candidate),
+			(candidate) => applyDurabilityCandidateToPokemonEditPanel(candidate),
 		);
-		openDetailPanelOverlayIfNarrow();
+		openDetailPanelOverlay();
 	}
 
 	durabilityIndexButton.addEventListener("click", () => {
@@ -1536,9 +1536,9 @@ if (form) {
 			memoInput.dispatchEvent(new Event("input", { bubbles: true }));
 
 			const natureModifier = NATURE_STAT_MODIFIERS[guestPokemon.nature ?? ""] ?? { up: null, down: null };
-			leftNatureUp = natureModifier.up;
-			leftNatureDown = natureModifier.down;
-			nextLeftNatureNeutralAssignment = natureModifier.up && natureModifier.down ? "down" : "up";
+			editNatureUp = natureModifier.up;
+			editNatureDown = natureModifier.down;
+			nextEditNatureNeutralAssignment = natureModifier.up && natureModifier.down ? "down" : "up";
 			refreshNatureButtons();
 
 			for (let index = 0; index < STAT_KEYS.length; index++) {
@@ -1752,7 +1752,7 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 	let moveTypesByName: Map<string, string> | null = null;
 
 	// --- DOM構築(1回だけ。document.body直下にappendする理由は
-	//     LeftPanel.astro側の<style is:global>直前コメント参照) ---
+	//     PokemonEditPanel.astro側の<style is:global>直前コメント参照) ---
 	const windowEl = document.createElement("div");
 	windowEl.id = "move-picker-window";
 	windowEl.className = "move-picker-window";
@@ -2039,7 +2039,7 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 	// 直下にメッセージを出せる。入力DOMを作り直さないため、0件になってもフォーカスを保てる。
 	tableWrap.appendChild(emptyMessageEl);
 
-	// 37-1: LeftPanel.astro側の<style is:global>直前コメントで詳述した実測結果により、
+	// 37-1: PokemonEditPanel.astro側の<style is:global>直前コメントで詳述した実測結果により、
 	// z-index:-1ではなくauto(position:fixedのみ)を使う。このウィンドウをbodyの
 	// 「先頭の子」として挿入することで、box/[id].astroがSSRで描画する`.card-damage`
 	// (position:relative、同じCSS区分(6))よりも必ずDOM順で先(=同区分内比較で背面)になる。
@@ -2093,7 +2093,7 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 		let result = 0;
 		switch (sortKey) {
 			case "popularity": {
-				// getMovePopularityRatio(left-panel.ts上部、モジュールスコープ)は種族確定時に
+				// getMovePopularityRatio(pokemon-edit-panel.ts上部、モジュールスコープ)は種族確定時に
 				// loadPopularBuildSuggestionsが更新するlastMoveSuggestionを直接読む。データが
 				// 無い技はpower/accuracyと同じ慣習(?? -1)で扱う——asc(小さい順)なら先頭、
 				// desc(大きい順、既定)なら末尾に集まる。
@@ -2170,7 +2170,7 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 		targetInput.value = move.name;
 		// プログラムでの.value代入はinput/changeイベントを発火させないため明示的にdispatchする。
 		// これで既存のupdateMoveTypeIcon(input/changeリスナー)・scheduleSave(textInputIdsの
-		// inputリスナー、buildPayload経由の自動保存)がそのまま動く(左パネル側のコードは
+		// inputリスナー、buildPayload経由の自動保存)がそのまま動く(育成パネル側のコードは
 		// 一切変更していない)。
 		targetInput.dispatchEvent(new Event("input", { bubbles: true }));
 		targetInput.dispatchEvent(new Event("change", { bubbles: true }));

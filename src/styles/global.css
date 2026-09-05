@@ -318,15 +318,15 @@ a {
   padding: var(--space-6) var(--space-5);
 }
 
-.panel-left {
+.panel-border-end {
   border-right: 1px solid var(--color-border);
 }
 
-.panel-right {
+.panel-border-start {
   border-left: 1px solid var(--color-border);
 }
 
-.panel-top {
+.panel-border-bottom {
   border-bottom: 1px solid var(--color-border);
 }
 

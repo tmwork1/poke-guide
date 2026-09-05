@@ -1,6 +1,6 @@
 import { el } from "../owned-pokemon-form";
 import { createTeraSelectDialog } from "../tera-select-dialog";
-import { getTeraSuggestionRatio } from "./left-panel";
+import { getTeraSuggestionRatio } from "./pokemon-edit-panel";
 import { requestSettingsModal } from "./settings-modal";
 
 const teraSelect = el<HTMLSelectElement>("tera");

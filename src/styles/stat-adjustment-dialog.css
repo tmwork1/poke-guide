@@ -5,7 +5,7 @@
 	見た目を変えたいときは、まず下のチューニング変数を調整する。
 
 	開閉のたびに、育成タブのステータス調整欄(#stat-adjustment-section、
-	src/components/box-id/LeftPanel.astro / src/lib/box-id/left-panel.ts が管理する
+	src/components/box-id/PokemonEditPanel.astro / src/lib/box-id/pokemon-edit-panel.ts が管理する
 	同一のDOMノード)をこのモーダルの本体(#stat-adjustment-dialog-body)へ移動して
 	表示する(クローンではなく実体を移動するため、既存のid参照・イベントリスナーは
 	一切変わらない=完全に共用)。詳細はsrc/lib/box-id/stat-adjustment-dialog.ts参照。
@@ -103,8 +103,8 @@ body.data-page {
 	モーダル内へ移動した #stat-adjustment-section の見た目調整
 
 	.stat-adjustment-section自体の定義(src/styles/stat-adjustment-panel.css /
-	LeftPanel.astroのscoped style)は変更しない。ここは、フォーム内にあったときの
-	見た目(src/styles/box-edit-page.cssの.edit-layout-left .stat-adjustment-section
+	PokemonEditPanel.astroのscoped style)は変更しない。ここは、フォーム内にあったときの
+	見た目(src/styles/box-edit-page.cssの.edit-layout-training .stat-adjustment-section
 	まわり)と揃えるための差分スタイルを、モーダル本体のid(#stat-adjustment-dialog-body)
 	を起点に追加するだけにとどめる。
 	=========================================================================== */
@@ -151,7 +151,7 @@ body.data-page {
 }
 
 /* 育成タブの性格補正列。HP行は空のプレースホルダーセルのまま同じ列幅を占有し、
-   他の行とラベルのX位置を揃える(box-edit-page.cssの.edit-layout-left .stat-row-natureと同じ)。 */
+   他の行とラベルのX位置を揃える(box-edit-page.cssの.edit-layout-training .stat-row-natureと同じ)。 */
 #stat-adjustment-dialog-body .stat-row-nature {
 	display: flex;
 	align-items: center;
@@ -179,7 +179,7 @@ body.data-page {
 	font-size: 0;
 	line-height: 0;
 	color: var(--color-text-muted);
-	/* わざ選択ボタンの実背景色と揃える(box-edit-page.cssの.edit-layout-left .stat-nature-btnと同じ)。 */
+	/* わざ選択ボタンの実背景色と揃える(box-edit-page.cssの.edit-layout-training .stat-nature-btnと同じ)。 */
 	background: var(--color-surface);
 	border: 1px solid var(--color-border);
 	border-radius: var(--radius-zero);

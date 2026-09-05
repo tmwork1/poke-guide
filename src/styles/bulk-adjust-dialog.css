@@ -38,7 +38,7 @@ body.box-edit-page {
 
 	/* 背景オーバーレイ・ダイアログ本体とも、既存の#damage-detail-panel/backdropより手前
 		(z-index:60/55)に出す必要があるため70/71を使う(このページで確認できる最大値は60)。
-		モーダルなので、RightPanel.astroのスライドイン(transform)ではなく画面中央に固定する。
+		モーダルなので、DamageDetailPanel.astroのスライドイン(transform)ではなく画面中央に固定する。
 		⚠️ 実装時に踏んだ罠: inset:0にすると、ダイアログを開いている間ずっと画面全体
 		(トップバーの上まで)を覆ってしまい、このダイアログを開閉する当のトリガーボタン
 		(#bulk-adjust-button、トップバー内。ダイアログを開いている間は「ステータスを計算」に

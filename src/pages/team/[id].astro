@@ -208,7 +208,7 @@ if (!isGuestNewMode) {
 						<div class="team-formation-mobile__mates" aria-label="チームメイト">
 							<div id="team-formation-mobile-slots" class="team-formation-mobile__slot-grid team-mate-grid"></div>
 						</div>
-						<div class="panel panel-top app-header app-header--toolbar" id="team-formation-mobile-toolbar">
+						<div class="panel panel-border-bottom app-header app-header--toolbar" id="team-formation-mobile-toolbar">
 							<div class="toolbar-item toolbar-search">
 								<div class="search-input-wrap">
 									<svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -331,7 +331,7 @@ if (!isGuestNewMode) {
 			// (OWNED_POKEMON_COLUMNS)の両方に既にcreated_atを含んでいるため、この型に足すだけで
 			// 読める(新規フェッチ不要)。
 			created_at: string;
-			// 一覧APIに既存の日時を、左パネルの利用目的別ソートに使う。
+			// 一覧APIに既存の日時を、育成パネルの利用目的別ソートに使う。
 			updated_at: string;
 			last_used_at: string | null;
 			is_pinned: boolean;
@@ -1406,7 +1406,7 @@ if (!isGuestNewMode) {
 					void applySprite(img, fallback, p.species_name);
 					identity.appendChild(spriteWrap);
 					const itemName = effectiveItemName(slot, p);
-					// 右パネルのteam-damage-stats/team-damage-stats-line(display:contentsで6列
+					// ダメージ詳細パネルのteam-damage-stats/team-damage-stats-line(display:contentsで6列
 					// グリッドの行を作る手法)と同じ考え方で、ラベル行・実数値行・努力値行の3段×6列に
 					// する(努力値は実数値の下)。
 					const stats = document.createElement("div");

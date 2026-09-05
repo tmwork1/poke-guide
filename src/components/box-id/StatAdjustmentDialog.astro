@@ -1,8 +1,8 @@
 ---
 // 育成タブのポケモンプレビュー(実数値・努力値の表)をタップして開くステータス調整モーダル。
 // 中身は空の入れ物で、開くたびに #stat-adjustment-section(このファイルの隣、
-// LeftPanel.astro が持つ既存のステータス調整欄)をそのままここへ移動して表示する
-// (クローンではなくDOMノードの移動=完全に共用。ロジックはsrc/lib/box-id/left-panel.tsの
+// PokemonEditPanel.astro が持つ既存のステータス調整欄)をそのままここへ移動して表示する
+// (クローンではなくDOMノードの移動=完全に共用。ロジックはsrc/lib/box-id/pokemon-edit-panel.tsの
 // ままいっさい変更しない)。開閉の配線はsrc/lib/box-id/stat-adjustment-dialog.ts参照。
 // モーダルは /box/[id] 以外（バトルデータ等）にも配置される。親ページが
 // stat-adjustment-panel.css を読み込んでいない場合でも、残り努力値・16n+mを含む

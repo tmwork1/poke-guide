@@ -2,7 +2,7 @@
 //
 // このファイルは docs/plan/ui_parallelization.md 4.2節が「共有コア(2領域以上から呼ばれる)」と
 // 分類した17関数を、元の box/[id].astro の <script> から定義位置のまま(ロジックは一切変更せず)
-// 集約して export したものです。左サイド(left-panel.ts)・ダメージ計算/右サイド(box/[id].astro に
+// 集約して export したものです。育成パネル(pokemon-edit-panel.ts)・ダメージ計算/ダメージ詳細パネル(box/[id].astro に
 // 残置)の両方からこのファイルを import して呼び出します。
 //
 // 17関数: scheduleRowSave / scheduleRowCalc / refreshRowConditionChips / renderDetailPanel /
@@ -11,20 +11,20 @@
 // nextNatureBoosts / buildAttackerSpec / recalcStats
 //
 // ⚠️ 設計メモ(状態の所有権について、コーディネーターへの報告事項):
-// 元のコードでは3領域(左サイド/ダメージ計算/右サイド)が1つのクロージャスコープを共有していた
+// 元のコードでは3領域(育成パネル/ダメージ計算/ダメージ詳細パネル)が1つのクロージャスコープを共有していた
 // ため、上記17関数の中には「同じスコープの兄弟関数」を直接呼んでいるものがある
 // (例: scheduleRowSave → setRowSaveStatus/saveRow、renderDetailPanel → renderDetailPanelEmpty/
-// renderColumnLevelDetailPanel、selectColumn → openDetailPanelOverlayIfNarrow、buildAttackerSpec/
-// recalcStats → 左パネルの leftNatureUp/leftNatureDown・renderStatsUnavailable・updateEvRemaining)。
-// これらの兄弟関数は「ダメージ計算専用54個」「右サイド専用16個」「左サイド専用22個」のいずれかに
-// 分類され、今回のスコープ(左サイド+共有コアのみ)では移動しない(box/[id].astro に残る)。
+// renderColumnLevelDetailPanel、selectColumn → openDetailPanelOverlay、buildAttackerSpec/
+// recalcStats → 育成パネルの editNatureUp/editNatureDown・renderStatsUnavailable・updateEvRemaining)。
+// これらの兄弟関数は「ダメージ計算専用54個」「ダメージ詳細パネル専用16個」「育成パネル専用22個」のいずれかに
+// 分類され、今回のスコープ(育成パネル+共有コアのみ)では移動しない(box/[id].astro に残る)。
 // そのため、このファイル単体では兄弟関数を直接 import できない(box/[id].astro のインライン
 // <script> は他ファイルから import 可能なモジュールではないため)。
 //
 // これを解決するため、「登録(register)」パターンを採用した:
-// - 左サイド(left-panel.ts)は起動時に registerLeftPanelBridge() を1回呼び、
-//   buildAttackerSpec/recalcStats が必要とする左パネル側の値・関数を渡す。
-// - ダメージ計算/右サイド(box/[id].astro)は #opponent-notes-section の初期化直後に
+// - 育成パネル(pokemon-edit-panel.ts)は起動時に registerPokemonEditPanelBridge() を1回呼び、
+//   buildAttackerSpec/recalcStats が必要とする育成パネル側の値・関数を渡す。
+// - ダメージ計算/ダメージ詳細パネル(box/[id].astro)は #opponent-notes-section の初期化直後に
 //   registerDamageCalcBridge() を1回呼び、scheduleRowSave/scheduleRowCalc/refreshRowConditionChips/
 //   renderDetailPanel/selectColumn が必要とする関数を渡す。
 // 呼び出し側(scheduleRowSave(row) 等)の呼び方は一切変えていない。ブリッジ経由になったのは
@@ -32,10 +32,10 @@
 // 必要最小限の機械的な変更(ロジックの変更ではなく、クロージャ参照→ブリッジ参照への置換)。
 //
 // selectedRow/selectedColumn(現在選択中の技列を指すポインタ)も同じ理由でこのファイルに
-// 移した。ダメージ計算側の renderColumns/renderColumnLevelDetailPanel、右サイドの
+// 移した。ダメージ計算側の renderColumns/renderColumnLevelDetailPanel、ダメージ詳細パネルの
 // deselectRowIfCurrent がこの状態を直接読み書きしていたため、box/[id].astro 側では
 // getSelectedRow/getSelectedColumn/clearSelection という3つの小さなアクセサ経由に書き換えている
-// (この3箇所は「今回は触らない」ダメージ計算/右サイドへの必要最小限の機械的な例外。
+// (この3箇所は「今回は触らない」ダメージ計算/ダメージ詳細パネルへの必要最小限の機械的な例外。
 // 詳細はコーディネーターへの報告を参照)。
 
 import { el, readEv, readMoveNames } from "../owned-pokemon-form";
@@ -56,7 +56,7 @@ import { kanaIncludes } from "../kana";
 // [min, max]の範囲外の値を、範囲の反対側から続くように循環(モジュロ演算)させる。
 // 例: min=0,max=32のとき 33→0、-1→32、50→17(50 mod 33)。育成ルールの範囲自体
 // (min/max引数)は呼び出し側がそのまま渡すだけで、この関数は「範囲を超えたときの
-// 挙動」だけを変える(上下限の値自体は変更しない)。左パネル・ダメージ計算カード双方の
+// 挙動」だけを変える(上下限の値自体は変更しない)。育成パネル・ダメージ計算カード双方の
 // 努力値スピンボックスから共有して使う。
 export function wrapToRange(value: number, min: number, max: number): number {
 	const size = max - min + 1;
@@ -65,7 +65,7 @@ export function wrapToRange(value: number, min: number, max: number): number {
 
 // --- ダメージ計算の行/列の状態(元は #opponent-notes-section ブロック内で定義されていた
 //     DamageColumnState/DamageRowState インターフェース。共有コア関数の引数・戻り値の型として
-//     必要なため、このファイルへ移し左サイド/box側の双方から type import する)。
+//     必要なため、このファイルへ移し育成パネル/box側の双方から type import する)。
 //     フィールドの中身は一切変更していない。 ---
 
 export interface DamageColumnState {
@@ -154,7 +154,7 @@ export function attachKanaTypeAhead(input: HTMLInputElement, datalist: HTMLDataL
 //     画像用データの一覧はページ表示直後に一度だけfetchしておき、以後は同じPromiseを使い回す。
 //     imageIdMapPromise/itemSpriteMapPromise/megaStoneMapPromiseは共有コア関数(applySprite/
 //     applyItemImage/resolveMegaStoneItem)だけが使うためこのファイルに集約する。
-//     baseStatsMapPromiseは左サイド(applyBaseStats)・共有コア(recalcStats)・ダメージ計算
+//     baseStatsMapPromiseは育成パネル(applyBaseStats)・共有コア(recalcStats)・ダメージ計算
 //     (recalcRowStatsOnly)の3箇所から使われるため、同じくここに集約し全箇所からimportする。 ---
 
 export const imageIdMapPromise = loadImageIdMap();
@@ -225,8 +225,8 @@ export async function applySprite(
 	imgEl.src = championSpriteUrl(imageId);
 }
 
-// UI刷新(Pokemon.png): テラスタイプ画像(select横)。呼び出し元は左パネルの読み取り専用画像
-// (#top-block-tera-image)と右パネル相手ビルド行のrefreshTypeBadge()の2つで、どちらもこの
+// UI刷新(Pokemon.png): テラスタイプ画像(select横)。呼び出し元は育成パネルの読み取り専用画像
+// (#top-block-tera-image)とダメージ詳細パネル相手ビルド行のrefreshTypeBadge()の2つで、どちらもこの
 // 関数を経由するため、ここを直すだけで両方切り替わる。取得できない場合はTYPE_COLORSの
 // 色ボックスにフォールバックする(「ステラ」も含めて既存のTYPE_COLORSに定義済み)。
 // テラスタイプ未選択時は両方隠す。
@@ -266,8 +266,8 @@ export function applyItemImage(imgEl: HTMLImageElement, name: string): void {
 	// バッジ(.damage-item-badge)が白丸+枠+影を持つように
 	// なったため、画像だけを隠すと「空の白丸」が残る。画像の表示可否に合わせて
 	// バッジごと隠す(/boxの.card-item-badgeと同じ方針)。
-	// 左パネルの持ち物バッジは別クラス名(.item-image-badge、種族アイコンへ重ねる専用スタイル)
-	// にしたため、この共通関数の closest() にも併記する(この関数は左パネル/相手ビルド両方から
+	// 育成パネルの持ち物バッジは別クラス名(.item-image-badge、種族アイコンへ重ねる専用スタイル)
+	// にしたため、この共通関数の closest() にも併記する(この関数は育成パネル/相手ビルド両方から
 	// 呼ばれる共有処理のため、新規に別関数を作らずセレクタを1つ足すだけにとどめる)。
 	const badgeEl = imgEl.closest<HTMLElement>(".damage-item-badge, .item-image-badge");
 	const hideBadge = (): void => {
@@ -328,24 +328,24 @@ export function normalizedNatureBoosts(up: StatKey | null, down: StatKey | null)
 
 export { nextNatureBoosts, type NatureNeutralAssignment } from "../nature-toggle";
 
-// --- 左パネル向けブリッジ(shared-core.ts → left-panel.ts の逆方向の依存を避けるため、
-//     left-panel.ts が起動時にこの関数を1回呼び、buildAttackerSpec/recalcStatsが必要とする
+// --- 育成パネル向けブリッジ(shared-core.ts → pokemon-edit-panel.ts の逆方向の依存を避けるため、
+//     pokemon-edit-panel.ts が起動時にこの関数を1回呼び、buildAttackerSpec/recalcStatsが必要とする
 //     値・関数を登録する)。 ---
-export interface LeftPanelBridge {
-	getLeftNatureBoosts: () => { up: StatKey | null; down: StatKey | null };
+export interface PokemonEditPanelBridge {
+	getEditNatureBoosts: () => { up: StatKey | null; down: StatKey | null };
 	renderStatsUnavailable: () => void;
 	updateEvRemaining: () => void;
 }
-let leftPanelBridge: LeftPanelBridge | null = null;
-export function registerLeftPanelBridge(bridge: LeftPanelBridge): void {
-	leftPanelBridge = bridge;
+let pokemonEditPanelBridge: PokemonEditPanelBridge | null = null;
+export function registerPokemonEditPanelBridge(bridge: PokemonEditPanelBridge): void {
+	pokemonEditPanelBridge = bridge;
 }
 
 // UI刷新: この個体の現在のフォーム入力値からPokemonSpecを組み立てる。実数値の常時表示
 // (recalcStats)と、ダメージ計算カードの両方から参照する共通処理。
 // extra: 呼び出し側の都合による拡張(ダメージ計算カードのランク補正/状態異常/テラスタル発動)。
 export function buildAttackerSpec(extra?: Partial<PokemonSpec>): PokemonSpec {
-	const { up, down } = leftPanelBridge!.getLeftNatureBoosts();
+	const { up, down } = pokemonEditPanelBridge!.getEditNatureBoosts();
 	return {
 		name: el<HTMLInputElement>("species-name").value.trim(),
 		nature: natureNameFromBoosts(up, down),
@@ -367,27 +367,27 @@ export function hpBracketLabel(hp: number): string {
 }
 
 // 実数値の常時表示をPyodide(jpoke)の初期化完了に依存させると、CDNが不通のときに
-// 左パネル・ダメージカードの実数値6個すべてが「(未計算)」のままになる。チャンピオンズ
+// 育成パネル・ダメージカードの実数値6個すべてが「(未計算)」のままになる。チャンピオンズ
 // ルールはIV=31固定・レベル常時50なので、種族値データだけで実数値が出せる純JS計算
 // (calcHpStat/calcOtherStat)を使う。
 export async function recalcStats(): Promise<void> {
-	leftPanelBridge!.updateEvRemaining();
+	pokemonEditPanelBridge!.updateEvRemaining();
 	const name = el<HTMLInputElement>("species-name").value.trim();
 	if (name === "") {
-		leftPanelBridge!.renderStatsUnavailable();
+		pokemonEditPanelBridge!.renderStatsUnavailable();
 		return;
 	}
 	const base = (await baseStatsMapPromise).get(name);
 	if (!base) {
-		leftPanelBridge!.renderStatsUnavailable();
+		pokemonEditPanelBridge!.renderStatsUnavailable();
 		return;
 	}
 	const level = 50;
 	// 性格<select>ではなく、クリックで選んだ
-	// leftNatureUp/leftNatureDownを使う。ただし片方だけ選択中の不完全な状態は
+	// editNatureUp/editNatureDownを使う。ただし片方だけ選択中の不完全な状態は
 	// normalizedNatureBoostsで「まじめ」(無補正)に正規化してから使う
 	// (保存されるnatureと表示を一致させるため)。
-	const { up, down } = leftPanelBridge!.getLeftNatureBoosts();
+	const { up, down } = pokemonEditPanelBridge!.getEditNatureBoosts();
 	const natureMod = normalizedNatureBoosts(up, down);
 	STAT_KEYS.forEach((key, i) => {
 		const valueEl = document.getElementById(`stat-${key}`);
@@ -414,7 +414,7 @@ export async function recalcStats(): Promise<void> {
 	});
 }
 
-// --- ダメージ計算/右サイド向けブリッジ(box/[id].astro が #opponent-notes-section の
+// --- ダメージ計算/ダメージ詳細パネル向けブリッジ(box/[id].astro が #opponent-notes-section の
 //     初期化直後に1回呼び、scheduleRowSave/scheduleRowCalc/refreshRowConditionChips/
 //     renderDetailPanel/selectColumn が必要とする関数を登録する)。 ---
 export interface DamageCalcBridge {
@@ -433,7 +433,7 @@ export interface DamageCalcBridge {
 	getBuildDetailForm: (row: DamageRowState) => HTMLElement | null;
 	deleteRow: (row: DamageRowState) => Promise<void>;
 	deleteColumn: (row: DamageRowState, column: DamageColumnState) => void;
-	openDetailPanelOverlayIfNarrow: () => void;
+	openDetailPanelOverlay: () => void;
 }
 let damageCalcBridge: DamageCalcBridge | null = null;
 export function registerDamageCalcBridge(bridge: DamageCalcBridge): void {
@@ -509,7 +509,7 @@ export interface BulkAdjustBridge {
 	 */
 	buildCardPreview: (rowId: string) => HTMLElement | null;
 }
-// getBulkAdjustBridge()は既存のleftPanelBridge!/damageCalcBridge!のような非nullアサーションを
+// getBulkAdjustBridge()は既存のpokemonEditPanelBridge!/damageCalcBridge!のような非nullアサーションを
 // 使わない(後続実装がボタンの有効/無効判定に使うため、未登録の可能性を型で表現する)。
 let bulkAdjustBridge: BulkAdjustBridge | null = null;
 export function registerBulkAdjustBridge(bridge: BulkAdjustBridge): void {
@@ -531,7 +531,7 @@ export function scheduleRowCalc(row: DamageRowState): void {
 }
 
 export function scheduleAllRowsCalc(): void {
-	// 左パネル(左パネルは常時マウントされる)からも呼ばれるが、ダメージ計算カード
+	// 育成パネル(育成パネルは常時マウントされる)からも呼ばれるが、ダメージ計算カード
 	// (DamageCalcSection、isNewMode/ゲストでは非表示)が無い画面ではブリッジ未登録のためno-opにする。
 	if (!damageCalcBridge) return;
 	if (allRowsCalcTimer) clearTimeout(allRowsCalcTimer);
@@ -567,7 +567,7 @@ export function refreshRowConditionChips(row: DamageRowState): void {
 // --- 詳細設定サイドバー ---
 // 「特定の技列」の選択状態。selectedRow/selectedColumnは元は #opponent-notes-section ブロック
 // 内のモジュールスコープ変数だったが、selectColumn/applySelectionMarks/renderDetailPanelが
-// このファイルへ移ったため、この状態もここへ移す(ダメージ計算/右サイドの一部関数
+// このファイルへ移ったため、この状態もここへ移す(ダメージ計算/ダメージ詳細パネルの一部関数
 // (renderColumns/renderColumnLevelDetailPanel/deselectRowIfCurrent)がこの状態を直接読み書き
 // していたため、box/[id].astro側は下のgetSelectedRow/getSelectedColumn/clearSelectionを
 // 経由するよう書き換えている)。
@@ -609,7 +609,7 @@ export function renderDetailPanel(): void {
 // 選択状態は「どの技列か」の1階層だけを扱う(.damage-column単位。相手ビルドの箱側の
 // マーカーは持たない)。clearSelectionMarksはselectColumnからしか呼ばれない内部ヘルパーの
 // ため非exportのままこのファイルに置く(単体でDOM操作するだけの自己完結した処理で、
-// ダメージ計算/右サイドの他の関数への依存が無いため、ブリッジ経由にせずそのまま移設できた)。
+// ダメージ計算/ダメージ詳細パネルの他の関数への依存が無いため、ブリッジ経由にせずそのまま移設できた)。
 function clearSelectionMarks(row: DamageRowState): void {
 	row.root?.querySelectorAll<HTMLElement>(".damage-column.is-selected, .damage-row-build.is-selected").forEach((selectedEl) => {
 		selectedEl.classList.remove("is-selected");
@@ -633,7 +633,7 @@ export function selectColumn(row: DamageRowState, column: DamageColumnState): vo
 	selectedIsBuild = false;
 	applySelectionMarks(row, column);
 	renderDetailPanel();
-	damageCalcBridge!.openDetailPanelOverlayIfNarrow();
+	damageCalcBridge!.openDetailPanelOverlay();
 }
 
 export function applyBuildSelectionMark(row: DamageRowState): void {
@@ -648,12 +648,12 @@ export function selectBuild(row: DamageRowState): void {
 	selectedIsBuild = true;
 	applyBuildSelectionMark(row);
 	renderDetailPanel();
-	damageCalcBridge!.openDetailPanelOverlayIfNarrow();
+	damageCalcBridge!.openDetailPanelOverlay();
 }
 
-// カード外(ページの余白・左パネル等)をクリックしたときに、選択中の技列があればその
+// カード外(ページの余白・育成パネル等)をクリックしたときに、選択中の技列があればその
 // 見た目のマーク(.is-selected)を消し、
-// 選択状態(selectedRow/selectedColumn)をクリアし、右パネルを空表示に戻す。呼び出し元
+// 選択状態(selectedRow/selectedColumn)をクリアし、ダメージ詳細パネルを空表示に戻す。呼び出し元
 // (damage-calc.ts側のdocument全体のクリック監視)は「クリック位置がどのrow.rootにも
 // #damage-detail-panelにも含まれない」ことだけを判定し、実際の解除処理はここへ委譲する。
 export function clearSelectionAndMarks(): void {

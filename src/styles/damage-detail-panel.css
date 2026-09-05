@@ -92,7 +92,7 @@ body.box-edit-page {
 	ここから下は構造。レイアウトの組み立てなので通常は触らない。
 	-------------------------------------------------------------------------- */
 
-/* モバイル専用の詳細設定オーバーレイ。中身は right-panel.ts が動的に書き換える。
+/* モバイル専用の詳細設定オーバーレイ。中身は damage-detail-panel.ts が動的に書き換える。
 		選択トリガーは「技列の箱のクリック(フォーム要素の外側)→その技だけの設定」の1種類のみ。
 		カード内の入力欄クリックで意図せず選択が走らないようにしている
 		(<script>のselectColumn/renderRow末尾のroot.addEventListener参照)。 */
@@ -102,8 +102,8 @@ body.box-edit-page {
 	/* --------------------------------------------------------------------------
 		パネル外枠と背景
 		-------------------------------------------------------------------------- */
-	/* UI品質改善(帯構成への刷新): 右端に接する罫線(border-left)は.panel-right修飾子
-		(global.css)と役割が完全に一致するため、マークアップ側に panel-right クラスを
+	/* UI品質改善(帯構成への刷新): 右端に接する罫線(border-left)は.panel-border-start修飾子
+		(global.css)と役割が完全に一致するため、マークアップ側に panel-border-start クラスを
 		追加してそちらに委ねる(下のmarkup、#damage-detail-panel参照)。position:fixed/
 		width/transformによるスライドイン・box-shadowは.panel基底が持たない固有の
 		振る舞いのため、無理に.panel基底へ寄せずこのスコープドスタイルに残す。 */
@@ -450,9 +450,9 @@ body.box-edit-page {
 		color: var(--damage-detail-text-color);
 	}
 
-	/* 右パネルの3用途(A:技カード選択時の詳細設定/B:耐久調整の候補一覧/C:耐久指数の候補一覧)の
-		うちB・Cは「候補ボタンの縦リスト、クリックで左パネルに適用」という同一の
-		インタラクションのため、src/lib/box-id/right-panel.ts の renderCandidateList()
+	/* ダメージ詳細パネルの3用途(A:技カード選択時の詳細設定/B:耐久調整の候補一覧/C:耐久指数の候補一覧)の
+		うちB・Cは「候補ボタンの縦リスト、クリックで育成パネルに適用」という同一の
+		インタラクションのため、src/lib/box-id/damage-detail-panel.ts の renderCandidateList()
 		1つで両方を描画する(クラス名は機能非依存の candidate-list-* に統一しており、Cが固有の
 		「指数」表示を必要とする場合も、このクラス構成のitem/segmentへ渡すデータを
 		変えるだけで済み、CSSの2系統目を複製する必要はない)。
@@ -548,7 +548,7 @@ body.box-edit-page {
 	/* 両モードとも「<ラベル>実数値(努力値)」形式(例: H180(27) B131(0) D105(0))をH/B/Dで
 		1行に収めた統一カードにする。外枠は既存の.candidate-list-item(ボーダー・背景・
 		is-applied等)をそのまま流用し(新色は作らない)、中身だけをこのカード専用の構造
-		(right-panel.tsのbuildStatCardEl参照)に足す。 */
+		(damage-detail-panel.tsのbuildStatCardEl参照)に足す。 */
 	#damage-detail-panel-body .candidate-list-item-statline {
 		display: flex;
 		flex-wrap: wrap;
@@ -583,7 +583,7 @@ body.box-edit-page {
 		font-weight: var(--damage-detail-font-weight-semibold);
 	}
 	/* 依頼6: 指数名の見出し(サブタイトルフォント)。色・太さ・サイズは既存の.field-labelを
-		そのまま流用し(right-panel.ts側でclass="field-label candidate-list-group-title"を
+		そのまま流用し(damage-detail-panel.ts側でclass="field-label candidate-list-group-title"を
 		付与)、このページ固有の間隔・ホバーヘルプ(title属性、依頼6の計算式)だけをここに足す。 */
 	#damage-detail-panel-body .candidate-list-group-title {
 		margin: var(--damage-detail-space-md) 0 0;
@@ -604,7 +604,7 @@ body.box-edit-page {
 	#damage-detail-panel-body .candidate-list-result-heading-row .candidate-list-group-title,
 	#damage-detail-panel-body .candidate-list-result-heading-row .candidate-list-filter-row { margin: 0; }
 	/* 依頼7: 「残り努力値以下のみ表示」トグル。トグル自体の見た目
-		(.toggle-switch/.toggle-switch-track/.toggle-switch-thumb)はLeftPanel.astroの
+		(.toggle-switch/.toggle-switch-track/.toggle-switch-thumb)はPokemonEditPanel.astroの
 		is:global側で定義済みの規格をそのまま使う(新規CSSはこの行の配置のみ)。 */
 	#damage-detail-panel-body .candidate-list-filter-row {
 		display: flex;
@@ -912,11 +912,11 @@ body.box-edit-page {
 		border-color: var(--damage-detail-primary-color);
 		box-shadow: var(--damage-detail-autofill-shadow);
 	}
-	/* G: アイテム選択(buildItemDropdown、damage-calc.ts)は育成タブ(LeftPanel.astro
-		116-146行目・left-panel.ts 626-809行目付近)の持ち物カスタムドロップダウンと同じ見た目・
+	/* G: アイテム選択(buildItemDropdown、damage-calc.ts)は育成タブ(PokemonEditPanel.astro
+		116-146行目・pokemon-edit-panel.ts 626-809行目付近)の持ち物カスタムドロップダウンと同じ見た目・
 		操作性(アイコン表示・使用率順の並び・検索フィルタ付き開閉パネル)にするための新設ルール。
-		値は#edit-form .item-dropdown-*(LeftPanel.astro側の<style>ブロック)と同じものを使い、
-		LeftPanel.astro側のCSSは変更せず、このパネル専用の別クラス名で複製する。 */
+		値は#edit-form .item-dropdown-*(PokemonEditPanel.astro側の<style>ブロック)と同じものを使い、
+		PokemonEditPanel.astro側のCSSは変更せず、このパネル専用の別クラス名で複製する。 */
 	#damage-detail-panel-body .damage-build-detail-item-dropdown-wrap {
 		position: relative;
 		width: 100%;

@@ -16,7 +16,7 @@ export const prerender = false;
 import AppLayout from '../../layouts/AppLayout.astro';
 import PokemonSettingsModalHost from '../../components/box-id/PokemonSettingsModalHost.astro';
 import DamageCalcSection from '../../components/box-id/DamageCalcSection.astro';
-import RightPanel from '../../components/box-id/RightPanel.astro';
+import DamageDetailPanel from '../../components/box-id/DamageDetailPanel.astro';
 import StatAdjustSheet from '../../components/box-id/StatAdjustSheet.astro';
 import BulkAdjustDialog from '../../components/box-id/BulkAdjustDialog.astro';
 import SpeedAdjustDialog from '../../components/box-id/SpeedAdjustDialog.astro';
@@ -156,7 +156,7 @@ if (pokemon) {
 // 選択肢一覧)はもうフロントマターで使わない。対応表(NATURE_STAT_MODIFIERS)は<script>側に
 // 定義しており、vendor/jpoke/src/jpoke/data/nature.py の NATURE_MODIFIER と一致させている。
 
-// TERA_TYPES(19タイプの選択肢一覧)は src/lib/tera-types.ts へ切り出し済み(左パネル用<script>と
+// TERA_TYPES(19タイプの選択肢一覧)は src/lib/tera-types.ts へ切り出し済み(育成パネル用<script>と
 // #opponent-notes-section用<script>にも同じ配列が複製されていたため、3箇所重複を解消した)。
 // 値・順序は不変。
 
@@ -166,7 +166,7 @@ if (pokemon) {
 // ブラウザ側の<script>から参照できないため。src/pages/damage-calc/index.astro のWEATHERS/TERRAINS/
 // SIDE_FIELDSと同じ選択肢で同期させること)。
 
-// STAT_LABELS/MOVE_SLOTS/statAt は左パネル専用のためLeftPanel.astroへ移設した
+// STAT_LABELS/MOVE_SLOTS/statAt は育成パネル専用のためPokemonEditPanel.astroへ移設した
 // (構造分割ラウンド、フェーズ1)。
 
 // pageTitleは<title>タグ(ブラウザタブ)に使われる。
@@ -180,7 +180,7 @@ const initialMobileTab = !isNewMode && Astro.url.searchParams.get('tab') === 'da
 // 匿名集計サジェスト機能・第4段階(UI: 収集拒否トグル)。owned_pokemon.collection_opt_out_until
 // (null=収集対象、未来日時=拒否期間中)から、SSR時点での「拒否中かどうか」と「残り日数」を
 // 算出する。過去日時(期限切れ)はnullと同じ扱い(=収集対象。拒否中の表示は出さない)にする。
-// このロジックは<script>側(src/lib/box-id/left-panel.ts)のPATCH成功時レスポンス反映でも
+// このロジックは<script>側(src/lib/box-id/pokemon-edit-panel.ts)のPATCH成功時レスポンス反映でも
 // 同じ計算式(ミリ秒差をceilして日数化)を使うので、変更する場合は両方揃えること。
 ---
 <AppLayout title={pageTitle} current="box" bodyClass={bodyClass}>
@@ -199,17 +199,17 @@ const initialMobileTab = !isNewMode && Astro.url.searchParams.get('tab') === 'da
 			    テラス/技の匿名集計対象から除外するトグル。マークアップは
 			    src/styles/global.css に既にある
 			    .toggle-switch一式(.toggle-switch-input/.toggle-switch-track/.toggle-switch-thumb、
-			    実際の使用例は src/lib/box-id/left-panel.ts の setupMovePickerWindow が動的生成する
+			    実際の使用例は src/lib/box-id/pokemon-edit-panel.ts の setupMovePickerWindow が動的生成する
 			    マークアップ)をそのまま流用する(素のグローバルCSSなのでコンポーネント境界を
 			    またいで効く。CSSの重複定義はしない)。
 			    checked=true は「非公開」(=収集拒否、isOptedOut)を表す。DBの意味
 			    (owned_pokemon.collection_opt_out_until: NULLまたは過去=収集対象、未来=拒否期間中)
-			    とcheckedの向きが一致しないため、送信側(left-panel.ts)はcheckedの値をそのまま
+			    とcheckedの向きが一致しないため、送信側(pokemon-edit-panel.ts)はcheckedの値をそのまま
 			    collection_opt_outとして送る(否定しない)。
 			    ホバーテキストはOFF/ONで変える(下の<script>参照、初期値はSSRで出し分け済み)。
 			    状態テキスト(#collection-opt-out-status)は「残り日数」表示ではなくPATCH失敗時の
-			    エラーメッセージ専用(left-panel.ts側で実装済み)。 */}
-			{/* 削除ボタン(#delete-button)は src/components/box-id/LeftPanel.astro のメモ欄の下に
+			    エラーメッセージ専用(pokemon-edit-panel.ts側で実装済み)。 */}
+			{/* 削除ボタン(#delete-button)は src/components/box-id/PokemonEditPanel.astro のメモ欄の下に
 			    画面幅いっぱいのボタンとして配置している(かつてはここでSSRし、
 			    src/lib/box-id/mobile-edit-tabs.ts がJSで#mobile-edit-actionsへ移設していたが、
 			    移設が終わるまでの一瞬ヘッダーより上に表示されるバグがあったため、最終位置に
@@ -242,10 +242,10 @@ const initialMobileTab = !isNewMode && Astro.url.searchParams.get('tab') === 'da
 			<>
 			<MobilePokemonPreview pokemon={pokemon} activeTab={initialMobileTab} />
 			<div class="edit-layout">
-			<div class="edit-layout-left">
-			{/* 左サイド(ポケモン編集パネル、.panel-left)のテンプレート・scoped style・スクリプトは
-			    構造分割ラウンド(フェーズ1)により src/components/box-id/LeftPanel.astro +
-			    src/lib/box-id/left-panel.ts へ切り出した(見た目・ロジックは一切変更していない)。
+			<div class="edit-layout-training">
+			{/* 育成パネル(ポケモン編集パネル、.panel-edit)のテンプレート・scoped style・スクリプトは
+			    構造分割ラウンド(フェーズ1)により src/components/box-id/PokemonEditPanel.astro +
+			    src/lib/box-id/pokemon-edit-panel.ts へ切り出した(見た目・ロジックは一切変更していない)。
 			    SSRで取得済みのpokemon(この分岐では非null)だけをpropsで渡す。 */}
 			{/* 育成・閲覧タブで共有するポケモン設定モーダルホスト。ここでは編集フォームも表示する。 */}
 			<PokemonSettingsModalHost pokemon={pokemon} showForm={true} opggRankedSpeciesNames={opggRankedSpeciesNames} />
@@ -256,7 +256,7 @@ const initialMobileTab = !isNewMode && Astro.url.searchParams.get('tab') === 'da
 			<div class="mobile-edit-actions" id="mobile-edit-actions"></div>
 			</div>
 
-			<div class="edit-layout-right">
+			<div class="edit-layout-damage">
 
 			{/* ダメージ計算カード(#opponent-notes-section)のテンプレート・is:globalスタイル・
 			    スクリプトは構造分割ラウンド(フェーズ2)により src/components/box-id/DamageCalcSection.astro +
@@ -282,12 +282,12 @@ const initialMobileTab = !isNewMode && Astro.url.searchParams.get('tab') === 'da
 			)}
 			</div>
 
-			{/* 右サイド(詳細設定サイドバー、#damage-detail-panel + #damage-detail-backdrop)の
+			{/* ダメージ詳細パネル(詳細設定サイドバー、#damage-detail-panel + #damage-detail-backdrop)の
 			    テンプレート・scoped styleは構造分割ラウンド(フェーズ2)により
-			    src/components/box-id/RightPanel.astro へ切り出した(見た目・ロジックは一切
+			    src/components/box-id/DamageDetailPanel.astro へ切り出した(見た目・ロジックは一切
 			    変更していない。.edit-layout-detail/#damage-detail-backdropの2要素をまとめて
 			    このコンポーネント自身が描画する)。 */}
-			{!isNewMode && <RightPanel />}
+			{!isNewMode && <DamageDetailPanel />}
 			</div>
 
 			{/* 「耐久調整」機能のポップアップ本体。トップバーの#bulk-adjust-button

@@ -12,7 +12,7 @@ const RANK_GROUPS: { label: string; indices: readonly [number, number] }[] = [
   { label: "BD", indices: [2, 4] },
 ];
 const emit = () => document.dispatchEvent(new CustomEvent("damage-calc:change", { detail: { reason: "controls" } }));
-// ダメージ計算詳細設定モーダル(box-id/right-panel.ts)と同じ汎用テラスタルアイコン。
+// ダメージ計算詳細設定モーダル(box-id/damage-detail-panel.ts)と同じ汎用テラスタルアイコン。
 // タイプ別アイコン(teraTypeIconUrl)が引けない(チーム/相手未選択でタイプ不明)間も
 // ボタンを空にせず、この汎用アイコンを薄く表示してテラスタルボタンだと分かるようにする。
 const GENERIC_TERA_ICON_URL = "https://img.gamewith.jp/article_tools/pokemon-sv/gacha/map_icon_terra2.png";
@@ -20,7 +20,7 @@ const formatRank = (value: number): string => (value > 0 ? `+${value}` : String(
 
 interface RankStepper { row: HTMLElement; setValue: (value: number) => void; }
 
-// ダメージ計算詳細設定モーダル(src/lib/box-id/right-panel.ts の buildSideSection)と同じ
+// ダメージ計算詳細設定モーダル(src/lib/box-id/damage-detail-panel.ts の buildSideSection)と同じ
 // 「±ボタン + ワンタップで-6〜+6を選べるポップアップ」構成を流用する。
 function createRankStepper(label: string, ariaSideLabel: string, onChange: (value: number) => void): RankStepper {
   const row = document.createElement("div"); row.className = "damage-calc-rank-row";
@@ -107,7 +107,7 @@ export function initControlPanel(): void {
   // このページの表示だけ「状態異常」に差し替える(プレースホルダーとして何のセレクトか分かるように)。
   const ailmentOptions = DAMAGE_AILMENTS.map((option) => (option.value === "" ? { ...option, label: "状態異常" } : option));
   fillSelect(selfAilmentSelect, ailmentOptions); fillSelect(opponentAilmentSelect, ailmentOptions);
-  // ダメージ計算詳細設定モーダル(box-id/right-panel.ts の buildIconToggleGroup)とは異なり、
+  // ダメージ計算詳細設定モーダル(box-id/damage-detail-panel.ts の buildIconToggleGroup)とは異なり、
   // このパネルはアイコン+ラベルの2段組にする(「なし」用のボタンは置かず、選択中のボタンを
   // 再度押すと解除する)。ラベルはボタンの可視テキストになるので、冗長なtitle/ariaLabelは付けない。
   const renderChoiceGroup = (

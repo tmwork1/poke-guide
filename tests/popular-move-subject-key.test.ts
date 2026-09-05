@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { describe, it } from 'node:test';
 
-const clientSource = await readFile(new URL('../src/lib/box-id/left-panel.ts', import.meta.url), 'utf8');
+const clientSource = await readFile(new URL('../src/lib/box-id/pokemon-edit-panel.ts', import.meta.url), 'utf8');
 const migrationSource = await readFile(new URL('../migrations/019_archetype_popular_move.sql', import.meta.url), 'utf8');
 
 describe('型レベル技人気のsubject_key契約', () => {

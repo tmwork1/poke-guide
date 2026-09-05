@@ -9,16 +9,16 @@
 //   - このファイル … 取得の駆動・描画・クリック時のカード追加の橋渡し
 //
 // ■ 表示位置
-// 以前は右パネル(#damage-detail-panel、技カード編集・耐久調整候補・耐久指数候補と取り合いに
+// 以前はダメージ詳細パネル(#damage-detail-panel、技カード編集・耐久調整候補・耐久指数候補と取り合いに
 // なるモーダル)の「ニュートラル状態」としてだけ表示していたが、開閉しなくても常に見える方が
 // 便利という要望により、ダメージ計算カード一覧(#damage-rows-list)の直下に常設表示する
 // #damage-suggest-section/#damage-suggest-list(DamageCalcSection.astro)へ直接描画する形に
-// 変更した。右パネル側の優先順位(A:技カード編集 > B/C:耐久調整・耐久指数の候補一覧 > 空)には
-// もう関与しない(renderDamageSuggestSectionは右パネルの状態と無関係に、値の変更のたびに
+// 変更した。ダメージ詳細パネル側の優先順位(A:技カード編集 > B/C:耐久調整・耐久指数の候補一覧 > 空)には
+// もう関与しない(renderDamageSuggestSectionはダメージ詳細パネルの状態と無関係に、値の変更のたびに
 // 独立して呼ばれる)。
 //
 // ■ 型はサーバではなくクライアントで判定する
-// 左パネルの人気度サジェスト(left-panel.ts の currentArchetype)と同じく、いま編集中の値から
+// 育成パネルの人気度サジェスト(pokemon-edit-panel.ts の currentArchetype)と同じく、いま編集中の値から
 // classifyArchetype() でその場で型を決める。保存済みのレコード(owned_pokemon.archetype_id)を
 // サーバで引き直す方式にしないのは、持ち物や努力値を触っている最中の値にそのまま追随させる
 // ため(このページは自動保存だが、保存完了を待たずに型が変わって見えるほうが自然)。
@@ -34,10 +34,10 @@ import {
 import { applySprite, applyItemImage, baseStatsMapPromise, buildAttackerSpec } from "./shared-core";
 import { DEFAULT_TYPE_COLOR, TYPE_COLORS } from "../type-colors";
 
-// 右パネルの高さに収まる件数。取得側(020のtop_n=12)より少なくし、押せる候補だけを見せる。
+// ダメージ詳細パネルの高さに収まる件数。取得側(020のtop_n=12)より少なくし、押せる候補だけを見せる。
 const VISIBLE_LIMIT = 6;
-// 左パネルの連続操作(スライダー・文字入力)のたびに叩かないためのデバウンス。
-// left-panel.ts の schedulePopularBuildSuggestionsReload と同じ意図・同じ桁の値にする。
+// 育成パネルの連続操作(スライダー・文字入力)のたびに叩かないためのデバウンス。
+// pokemon-edit-panel.ts の schedulePopularBuildSuggestionsReload と同じ意図・同じ桁の値にする。
 const RELOAD_DEBOUNCE_MS = 300;
 const moveDetailMapPromise = loadMoveDetailMap();
 
@@ -58,7 +58,7 @@ export function registerDamageSuggestBridge(value: DamageSuggestBridge): void {
 }
 
 // 直近の取得結果。パネルは選択状態が変わるたびに何度も再描画されるため、描画のたびに
-// 取りに行かず、ここに持っている結果を使い回す(再取得は左パネルの変更が駆動する)。
+// 取りに行かず、ここに持っている結果を使い回す(再取得は育成パネルの変更が駆動する)。
 let currentSuggestions: DamageCalcSuggestion[] = [];
 /**
  * 採用したキーの粒度。カードの根拠テキストの主語がこれで変わる。
@@ -69,11 +69,11 @@ let currentBasis: "archetype" | "species" = "species";
 // 直近に取得したキー。同じ型のまま他の項目を編集しただけのときに再取得しないための番人。
 let loadedSubjectKey: string | null = null;
 // より新しい呼び出しに古いレスポンスが追い越して上書きしないようにするトークン
-// (left-panel.ts の popularBuildSuggestionsToken と同じパターン)。
+// (pokemon-edit-panel.ts の popularBuildSuggestionsToken と同じパターン)。
 let loadToken = 0;
 let reloadTimer: ReturnType<typeof setTimeout> | undefined;
 
-// C-4: 技のタイプアイコン用に技名→タイプを引く。right-panel.ts(moveAutoInputDetailsPromise)と
+// C-4: 技のタイプアイコン用に技名→タイプを引く。damage-detail-panel.ts(moveAutoInputDetailsPromise)と
 // 同じ考え方だが、このファイルからあちらへの依存を増やさないため(相互import増加を避ける
 // 既存方針)、独自に同じ /master-data/detail/moves.json を取得してキャッシュする。
 const moveTypeDetailsPromise: Promise<Map<string, string | null>> = fetch("/master-data/detail/moves.json")
@@ -84,9 +84,9 @@ const moveTypeDetailsPromise: Promise<Map<string, string | null>> = fetch("/mast
 		return new Map<string, string | null>();
 	});
 
-/** いま編集中の値から型を判定する(left-panel.ts の currentArchetype と同じ入力・同じ分類器)。 */
+/** いま編集中の値から型を判定する(pokemon-edit-panel.ts の currentArchetype と同じ入力・同じ分類器)。 */
 async function currentArchetype(): Promise<{ speciesName: string; archetype: ArchetypeKey | null }> {
-	// buildAttackerSpec() は左パネルの現在値(性格・持ち物・テラス・努力値・技)を
+	// buildAttackerSpec() は育成パネルの現在値(性格・持ち物・テラス・努力値・技)を
 	// そのまま PokemonSpec にする共有コア関数。同じ値を2箇所で組み立てないために流用する。
 	const spec = buildAttackerSpec();
 	const [baseStatsMap, moveDetailMap] = await Promise.all([baseStatsMapPromise, moveDetailMapPromise]);
@@ -161,7 +161,7 @@ async function loadSuggestions(): Promise<void> {
 	renderDamageSuggestSection();
 }
 
-/** 左パネルの編集・カードの増減など、サジェストの前提が変わったときに呼ぶ。 */
+/** 育成パネルの編集・カードの増減など、サジェストの前提が変わったときに呼ぶ。 */
 export function scheduleDamageSuggestReload(): void {
 	if (reloadTimer) clearTimeout(reloadTimer);
 	reloadTimer = setTimeout(() => {
@@ -333,9 +333,9 @@ export function renderDamageSuggestSection(): void {
 
 /** damage-calc.ts の #opponent-notes-section ガード内から1回だけ呼ばれる。 */
 export function initDamageSuggest(): void {
-	// 左パネルの編集(種族・持ち物・性格・努力値・技)は型を変えうるので取り直す。
-	// left-panel.ts 側にフックを増やさず、#edit-form のイベントをこのファイルだけで拾う
-	// (left-panel.ts は左サイド専用の担当ファイルで、こちらの都合で export を増やしたくない)。
+	// 育成パネルの編集(種族・持ち物・性格・努力値・技)は型を変えうるので取り直す。
+	// pokemon-edit-panel.ts 側にフックを増やさず、#edit-form のイベントをこのファイルだけで拾う
+	// (pokemon-edit-panel.ts は育成パネル専用の担当ファイルで、こちらの都合で export を増やしたくない)。
 	const form = document.getElementById("edit-form");
 	if (form) {
 		form.addEventListener("input", scheduleDamageSuggestReload);

@@ -352,11 +352,11 @@
 	--stat-number-input-width: var(--stat-ev-mobile-button-block-size);
 	--stat-number-input-padding: 0 2px;
 	/* H: buildStatAdjustmentPanel()(stat-adjustment-panel.ts)が生成するDOMを、
-		育成タブ(LeftPanel.astro)の静的マークアップと同じ構造(ラベルと性格補正
+		育成タブ(PokemonEditPanel.astro)の静的マークアップと同じ構造(ラベルと性格補正
 		切替ボタンが.stat-row-label/.stat-row-natureの別セル)に揃えたため、
 		5列構成(ラベル|性格補正|種族値|努力値|実数値)がどちらのタブでも同じ列の
 		役割・並び順になった。列幅の値も育成タブ側
-		(box-edit-page.cssの.edit-layout-left .stat-adjustment-section)に合わせつつ、
+		(box-edit-page.cssの.edit-layout-training .stat-adjustment-section)に合わせつつ、
 		このパネルは横幅が狭いため努力値・実数値列だけこのパネル従来の幅を維持する。
 		これによりHP行(性格補正ボタン無し)でもラベルのX位置が他の行とずれない。 */
 

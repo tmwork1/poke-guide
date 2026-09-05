@@ -1,9 +1,9 @@
 // 育成タブのポケモンプレビュー(MobilePokemonPreview.astro)の各項目をタップして、
-// 対応する既存の選択UIをそのまま開く配線。新しいモーダルは作らず、LeftPanel.astro
-// (left-panel.ts)側に既にある入口(トリガーボタンのクリック/入力のfocus)を
+// 対応する既存の選択UIをそのまま開く配線。新しいモーダルは作らず、PokemonEditPanel.astro
+// (pokemon-edit-panel.ts)側に既にある入口(トリガーボタンのクリック/入力のfocus)を
 // そのまま呼ぶだけにとどめる。
 //
-// LeftPanel(トリガーボタン・#move-*入力)は育成タブ・ダメージタブのどちらでも
+// PokemonEditPanel(トリガーボタン・#move-*入力)は育成タブ・ダメージタブのどちらでも
 // DOMに存在するため(box/[id].astro参照)、activeTabによる出し分けはしない。
 // バトルデータ/上位チーム/相性タブ(別ページ)には対象が存在しないため、
 // 各項目ごとに要素の有無を確認し、無ければ安全にno-opにする
@@ -21,8 +21,8 @@ if (speciesTrigger) {
   bindSettingsModalTrigger(speciesTrigger, { kind: "species" });
 }
 
-// 技(各行)→ left-panel.tsの"move-picker:open"イベント(.mobile-move-toggleと同じ入口、
-// LeftPanel.astro参照)にタップしたスロット番号をdetailで渡し、そのスロットのわざ選択
+// 技(各行)→ pokemon-edit-panel.tsの"move-picker:open"イベント(.mobile-move-toggleと同じ入口、
+// PokemonEditPanel.astro参照)にタップしたスロット番号をdetailで渡し、そのスロットのわざ選択
 // モーダルを開く。モーダル自体は複製しない。
 const moveTriggers = document.querySelectorAll<HTMLElement>(".pokemon-preview-move-trigger");
 for (const trigger of moveTriggers) {
