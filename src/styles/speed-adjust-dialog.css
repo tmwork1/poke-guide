@@ -70,7 +70,7 @@ body.speed-chart-page:has(.speed-chart-embed-toolbar) {
   /* 余白: ツールバー / 表エリア / 下部個体サマリー / サマリー内 / 操作部内 */
   --speed-adjust-content-padding: var(--space-3) var(--space-4);
   --speed-adjust-summary-gap: var(--space-3);
-  --speed-adjust-control-gap: var(--space-5);
+  --speed-adjust-control-gap: var(--space-6);
 
   /* 共通: 個別指定のない表内テキスト */
 
@@ -307,7 +307,7 @@ body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-rank
   body.speed-chart-page:has(.speed-chart-embed-toolbar) {
     --speed-adjust-content-padding: var(--space-2) var(--space-3);
     --speed-adjust-summary-gap: var(--space-1);
-    --speed-adjust-control-gap: var(--space-3);
+    --speed-adjust-control-gap: var(--space-4);
   }
 
   body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-row.is-current-row {
