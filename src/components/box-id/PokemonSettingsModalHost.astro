@@ -6,6 +6,7 @@ import SpeciesSelectDialog from './SpeciesSelectDialog.astro';
 import ItemSelectDialog from './ItemSelectDialog.astro';
 import TeraSelectDialog from './TeraSelectDialog.astro';
 import StatAdjustmentDialog from './StatAdjustmentDialog.astro';
+import '../../styles/pokemon-settings-modal-host.css';
 
 interface Props {
 	pokemon: OwnedPokemonRecord;
@@ -39,13 +40,3 @@ const { pokemon, showForm = false, opggRankedSpeciesNames = [] } = Astro.props;
 <script>
 	import '../../lib/box-id/tera-select-dialog';
 </script>
-
-<style>
-	.pokemon-settings-modal-host.is-form-visible {
-		display: contents;
-	}
-
-	.pokemon-settings-modal-host:not(.is-form-visible) > :global(#edit-form) {
-		display: none;
-	}
-</style>

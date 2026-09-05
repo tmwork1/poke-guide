@@ -1,0 +1,38 @@
+/* 開発用ゲストモード切り替えトグル固有。 */
+.debug-auth-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 1rem auto 0;
+  width: fit-content;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+.debug-auth-toggle input {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  opacity: 0;
+}
+.debug-auth-toggle__track {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  inline-size: 2.2rem;
+  block-size: 1.2rem;
+  padding: 0.12rem;
+  background: #9ca3af;
+  border-radius: 999px;
+  transition: background-color 160ms ease;
+}
+.debug-auth-toggle__thumb {
+  inline-size: 0.96rem;
+  block-size: 0.96rem;
+  background: #fff;
+  border-radius: 50%;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.25);
+  transition: transform 160ms ease;
+}
+.debug-auth-toggle input:checked + .debug-auth-toggle__track { background: #dc2626; }
+.debug-auth-toggle input:checked + .debug-auth-toggle__track .debug-auth-toggle__thumb { transform: translateX(1rem); }
+.debug-auth-toggle input:focus-visible + .debug-auth-toggle__track { outline: 2px solid #991b1b; outline-offset: 2px; }

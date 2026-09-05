@@ -1,0 +1,53 @@
+/* /team/[id] 編集画面固有。自動保存ステータスと削除・コピー操作。 */
+/* 基本のトークン・カード・ボタン・フォーム部品は src/styles/global.css に集約済み。
+   ここにはこのページ固有のレイアウト・状態表現だけを残す。 */
+#retry-button {
+	display: none;
+	margin-left: 0.4em;
+}
+#retry-button.visible {
+	display: inline-flex;
+}
+#autosave-status {
+	margin: 0;
+}
+/* #autosave-status-text自体はDOM/idごと残し(<script>のel("autosave-status-text")が
+   throwするのを避けるため)、テキストだけを常時非表示にする。保存失敗
+   (data-state="error")のときだけ、唯一のリカバリ手段である#retry-buttonに気づけるよう
+   理由テキストを見せる(box/[id].astroと同じ判断)。 */
+#autosave-status-text {
+	display: none;
+}
+#autosave-status[data-state="error"] #autosave-status-text {
+	display: inline;
+	color: var(--color-danger);
+}
+/* global.cssのbutton.btn-dangerが持つ太字指定を上書きし、
+   戻るボタン(.app-header-back)と同じ文字サイズ・太さへ揃える。 */
+#copy-button,
+#delete-team-button { width: 100%; font-size: var(--font-size-sm1); white-space: nowrap; font-weight: var(--font-weight-medium); }
+.training-delete-actions {
+	display: grid;
+	gap: var(--space-3);
+	margin-top: var(--space-8);
+}
+.training-delete-actions #copy-button,
+.training-delete-actions #delete-team-button { margin-top: 0; }
+/* box/[id].astro の #delete-button と同じ配色に揃える。基底(global.css の
+   button.btn-danger)は平常時=塗り(background:var(--color-danger-strong),
+   color:var(--color-primary-contrast))、hover時=白地反転
+   (background:var(--color-surface), color:var(--color-danger-strong))。
+   #delete-team-buttonはIDセレクタで button.btn-danger より詳細度が高いため、
+   global.css自体は変更せずに上書きできる(他画面の.btn-danger既定配色は維持される)。
+   border(2px solid var(--color-danger-strong))は基底のまま変えない。
+   background/colorは平常時・hover時の両方で必ずセットで書く(片方だけ上書きすると
+   文字色=背景色になって見えなくなるため)。 */
+#delete-team-button {
+	background: var(--color-surface);
+	color: var(--color-danger-strong);
+}
+#delete-team-button:disabled { opacity: 0.4; cursor: not-allowed; }
+#delete-team-button:hover:not(:disabled) {
+	background: var(--color-danger-strong);
+	color: var(--color-primary-contrast);
+}

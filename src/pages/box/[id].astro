@@ -197,11 +197,11 @@ const initialMobileTab = !isNewMode && Astro.url.searchParams.get('tab') === 'da
 			<span id="opponent-notes-save-alert" class="opponent-notes-save-alert" hidden></span>
 			{/* 匿名集計サジェスト機能・第4段階(UI: 収集拒否トグル)。この個体を性格/アイテム/
 			    テラス/技の匿名集計対象から除外するトグル。マークアップは
-			    src/components/box-id/LeftPanel.astro の is:global <style> に既にある
+			    src/styles/global.css に既にある
 			    .toggle-switch一式(.toggle-switch-input/.toggle-switch-track/.toggle-switch-thumb、
 			    実際の使用例は src/lib/box-id/left-panel.ts の setupMovePickerWindow が動的生成する
-			    マークアップ)をそのまま流用する(is:globalのためコンポーネント境界をまたいで効く。
-			    CSSの重複定義はしない)。
+			    マークアップ)をそのまま流用する(素のグローバルCSSなのでコンポーネント境界を
+			    またいで効く。CSSの重複定義はしない)。
 			    checked=true は「非公開」(=収集拒否、isOptedOut)を表す。DBの意味
 			    (owned_pokemon.collection_opt_out_until: NULLまたは過去=収集対象、未来=拒否期間中)
 			    とcheckedの向きが一致しないため、送信側(left-panel.ts)はcheckedの値をそのまま

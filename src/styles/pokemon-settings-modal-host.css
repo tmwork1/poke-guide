@@ -1,0 +1,11 @@
+/* ポケモン設定モーダルホスト固有。編集フォームの表示制御。 */
+.pokemon-settings-modal-host.is-form-visible {
+	display: contents;
+}
+
+/* 外部CSSは元から素のグローバルCSSなので、Astroのscoped style用構文だった
+   :global(#edit-form) は #edit-form でよい(:global()はCSSとしては無効で、
+   そのまま残すとルールごと落ちる)。 */
+.pokemon-settings-modal-host:not(.is-form-visible) > #edit-form {
+	display: none;
+}
