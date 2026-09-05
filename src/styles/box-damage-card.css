@@ -175,6 +175,7 @@ body.box-edit-page {
   --damage-card-current-background: var(--color-bg);
   --damage-card-build-background: var(--damage-card-face-background);
   --damage-card-column-background: var(--damage-card-face-background);
+  --damage-card-total-background: color-mix(in srgb, var(--damage-card-face-background) 84%, var(--damage-card-result-meter-color) 16%);
 }
 
 /* --------------------------------------------------------------------------
@@ -887,21 +888,21 @@ body.box-edit-page {
 
 /* The direction-tinted card is the color cue; the cumulative result uses one meter treatment. */
 #opponent-notes-section .damage-row-total {
-  background: var(--damage-card-face-background, var(--damage-card-current-background));
+  background: var(--damage-card-total-background, var(--damage-card-face-background, var(--damage-card-current-background)));
 }
 
 #opponent-notes-section .damage-row-total[data-severity="lethal"],
 #opponent-notes-section .damage-row-total[data-severity="risky"],
 #opponent-notes-section .damage-row-total[data-severity="safe"] {
   background: linear-gradient(to right,
-    var(--damage-card-face-background, var(--damage-card-current-background)) 0 var(--gauge-min),
-    color-mix(in srgb, var(--damage-card-face-background, var(--damage-card-current-background)) 55%, var(--damage-card-result-meter-color, var(--color-primary)) 45%) var(--gauge-min) var(--gauge-max),
-    var(--damage-card-face-background, var(--damage-card-current-background)) var(--gauge-max) 100%);
+    var(--damage-card-total-background, var(--damage-card-face-background, var(--damage-card-current-background))) 0 var(--gauge-min),
+    color-mix(in srgb, var(--damage-card-total-background, var(--damage-card-face-background, var(--damage-card-current-background))) 55%, var(--damage-card-result-meter-color, var(--color-primary)) 45%) var(--gauge-min) var(--gauge-max),
+    var(--damage-card-total-background, var(--damage-card-face-background, var(--damage-card-current-background))) var(--gauge-max) 100%);
   color: var(--color-text);
 }
 
 #opponent-notes-section .damage-row-total[data-severity="none"] {
-  background: var(--damage-card-face-background, var(--damage-card-current-background));
+  background: var(--damage-card-total-background, var(--damage-card-face-background, var(--damage-card-current-background)));
 }
 
 #opponent-notes-section .damage-row-total-label {
