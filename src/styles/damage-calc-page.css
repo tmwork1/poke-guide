@@ -1,7 +1,17 @@
 /* /damage-calc 専用。動的に生成するカードにも適用されるよう scoped style は使わない。 */
 .damage-calc-page { --header-height: 0px; --damage-calc-control-bar-height: 0px; }
-.damage-calc-shell { min-width: 0; padding-bottom: calc(var(--damage-calc-control-bar-height) + var(--space-3)); }
+/* box-content(box-page.css)と同じ「セカンドヘッダー〜下部固定パネルの間だけを
+   position:fixedの領域にしてoverflow-y:autoで自前スクロールさせる」パターン。
+   .damage-calc-shell自体をこの領域にすることで、ページ全体(document)側は
+   一切スクロールしなくなり、ブラウザの全画面スクロールつまみと相手選択レールの
+   スクロールが競合しなくなる。SecondaryBar/MatchupCardList/ControlPanelは
+   従来どおりこの内側の子要素のまま(DOM構造は変えない)。 */
+.damage-calc-shell { position: fixed; top: calc(var(--header-height) + var(--app-header-height)); right: 0; bottom: calc(var(--damage-calc-control-bar-height) + var(--bottom-nav-height) + env(safe-area-inset-bottom)); left: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; min-width: 0; background: var(--color-bg); }
 .damage-calc-login-guide { max-width: 1080px; margin: var(--space-3) auto; padding: 0 var(--space-3); color: var(--color-text-muted); }
+/* .damage-calc-shellが独自のスクロールコンテナになったため、SecondaryBar(.second-header)の
+   sticky基準もshell自身のスクロール領域内のローカル座標(0=shellの上端=app-headerの直下)に
+   合わせる。共通コンポーネント側のtop(document全体スクロール前提の値)は上書きする。 */
+.damage-calc-secondary-bar { top: 0; }
 .damage-calc-secondary-bar .second-header__content { flex-wrap: wrap; }
 .damage-calc-secondary-actions { display: flex; align-items: center; gap: var(--space-2); flex: 0 1 auto; flex-wrap: wrap; }
 .damage-calc-secondary-button { display: inline-flex; align-items: center; min-height: 2.35rem; padding: 0.42em 0.9em; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-surface); color: var(--color-text); font-size: var(--font-size-sm1); font-weight: var(--font-weight-normal); line-height: var(--line-height-snug); }
@@ -12,8 +22,11 @@
 .damage-calc-summary-list { display: grid; grid-column: 1; gap: var(--space-3); }
 /* セカンドヘッダー〜コントロールパネル間の縦距離を丸ごとスクロール領域にする。上下の
    隙間は position/max-height の計算では削らず、padding-block(見えないgap)で確保する
-   ことで、スクロールしたアイコンがヘッダー/パネルへ直接重ならないようにする。 */
-.damage-calc-summary-rail { position: sticky; top: calc(var(--header-height) + var(--app-header-height) + var(--second-header-height)); align-self: start; display: flex; grid-column: 2; flex-direction: column; align-items: center; gap: var(--space-2); max-height: calc(100vh - var(--app-header-height) - var(--second-header-height) - var(--damage-calc-control-bar-height) - var(--bottom-nav-height)); padding-block: var(--space-3); overflow-y: auto; scrollbar-width: none; background: var(--color-bg); }
+   ことで、スクロールしたアイコンがヘッダー/パネルへ直接重ならないようにする。
+   topは.damage-calc-shell自身のスクロール領域内のローカル座標なので、
+   (shellの上端からの)SecondaryBarの高さ分だけでよい(header/app-header分は
+   shellのtopで既に除外済み)。 */
+.damage-calc-summary-rail { position: sticky; top: var(--second-header-height); align-self: start; display: flex; grid-column: 2; flex-direction: column; align-items: center; gap: var(--space-2); max-height: calc(100vh - var(--app-header-height) - var(--second-header-height) - var(--damage-calc-control-bar-height) - var(--bottom-nav-height)); padding-block: var(--space-3); overflow-y: auto; scrollbar-width: none; background: var(--color-bg); }
 .damage-calc-summary-rail::-webkit-scrollbar { display: none; }
 .damage-calc-summary-rail-item { flex: 0 0 auto; width: 2.5rem; height: 2.5rem; min-height: 2.5rem; padding: 0; overflow: hidden; border: 0; border-radius: 50%; background: transparent; font-size: var(--font-size-sm2); }
 .damage-calc-summary-rail-item img { display: block; width: 100%; height: 100%; object-fit: contain; }
