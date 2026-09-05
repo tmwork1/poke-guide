@@ -64,7 +64,11 @@ function createRankStepper(label: string, ariaSideLabel: string, onChange: (valu
 function syncControlBarHeight(): void {
   const bar = document.querySelector<HTMLElement>(".damage-calc-control-bar");
   if (!bar) return;
-  const update = () => document.documentElement.style.setProperty("--damage-calc-control-bar-height", `${bar.offsetHeight}px`);
+  // body.damage-calc-page 側のスタイルシートで --damage-calc-control-bar-height: 0px が
+  // 宣言されているため、:root(documentElement)へ書き込んでも同じ要素での宣言に負けて
+  // 子孫からは常に0pxに見えてしまう(相手選択レールの高さ計算などが壊れる)。
+  // 同じbody要素へ直接書き込み、インラインstyleでスタイルシート側の宣言を上書きする。
+  const update = () => document.body.style.setProperty("--damage-calc-control-bar-height", `${bar.offsetHeight}px`);
   new ResizeObserver(update).observe(bar);
   update();
 }
