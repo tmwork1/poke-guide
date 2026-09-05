@@ -2040,7 +2040,7 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .box-add-button
   #opponent-notes-section .card-damage[data-direction="defense"] .damage-ev-readonly-stat[data-stat="spa"]::before {
     content: " ";
     color: var(--color-text-muted);
-    margin-right: var(--space-1);
+    margin-right: calc(var(--space-1) / 2);
   }
 
   #opponent-notes-section .card-damage .damage-row-total-label {
