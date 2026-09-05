@@ -2333,10 +2333,10 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .box-add-button
 }
 
 #opponent-notes-section .damage-suggest-move {
-  font-size: var(--damage-card-move-font-size);
+  font-size: var(--font-size-sm2);
   font-weight: var(--font-weight-medium);
   min-width: 0;
-  color: var(--color-on-primary);
+  color: var(--color-text);
 }
 
 /* アイコンと名前は不可分の1塊にする(バラで並べると折り返しで分断される)。 */
