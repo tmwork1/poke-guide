@@ -943,7 +943,7 @@ body.box-edit-page {
 }
 
 #opponent-notes-section .damage-row-total-result .damage-result-detail {
-  font-size: var(--font-size-sm1);
+  font-size: var(--damage-card-total-detail-font-size);
   opacity: .85; /* 詳細部分の濃さ。小さくすると薄くなる */
   text-align: left;
   font-weight: var(--font-weight-medium);
