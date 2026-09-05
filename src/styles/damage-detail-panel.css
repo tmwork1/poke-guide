@@ -802,13 +802,20 @@ body.box-edit-page {
 		font-weight: var(--damage-detail-font-weight-semibold);
 		line-height: 1;
 	}
+	/* 状態異常(is-row4、margin-bottom:0)の直後に来る区画との間隔を確保する。
+		防御側は状態異常のすぐ下に設置物(.damage-detail-toggle-row、ステルスロック等)が
+		挟まるため、揮発状態グリッド(.damage-detail-state-grid)だけでなくこちらにも要る。 */
+	#damage-detail-panel-body .damage-detail-icon-group.is-row4 + .damage-detail-toggle-row,
+	#damage-detail-panel-body .damage-detail-icon-group.is-row4 + .damage-detail-state-grid {
+		margin-top: var(--damage-detail-chip-gap);
+	}
 	#damage-detail-panel-body .damage-detail-chip-row.damage-detail-state-grid {
 		display: grid;
 		grid-template-columns: repeat(3, minmax(0, 1fr));
 		gap: var(--damage-detail-space-xs);
-		/* 直上の状態異常(is-row4、margin-bottom:0)・直下の次区画との間隔を対称にする。
-			防御側は項目数が多く複数行になるため、下側が詰まって見えやすい。 */
-		margin: var(--damage-detail-chip-gap) 0;
+		/* 直下の次区画との間隔も上と対称にする。防御側は項目数が多く複数行になるため、
+			下側が詰まって見えやすい。 */
+		margin-bottom: var(--damage-detail-chip-gap);
 	}
 	#damage-detail-panel-body .damage-detail-state-grid > .damage-detail-icon-btn {
 		width: 100%;
