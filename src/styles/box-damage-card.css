@@ -14,7 +14,7 @@ body.box-edit-page {
   /* ── 1. 文字サイズ ─────────────────────── */
   --damage-card-dropdown-option-font-size: var(--font-size-sm1); /* 候補名の文字サイズ */
   --damage-card-total-detail-font-size: var(--font-size-sm2); /* ダメージ割合など詳細部分の文字サイズ */
-  --damage-card-move-font-size: var(--font-size-sm2); /* 技名の文字サイズ */
+  --damage-card-move-font-size: var(--font-size-sm1); /* 技名・確定数の文字サイズ */
   --damage-card-condition-font-size: var(--font-size-sm3); /* 条件チップと見出しの文字サイズ */
   --damage-card-column-order-font-size: var(--font-size-sm3); /* ヒット数表示・撃破済みキャプション等の文字サイズ */
   --damage-card-save-font-size: var(--font-size-sm3); /* 保存状態の文字サイズ */
@@ -943,7 +943,7 @@ body.box-edit-page {
 }
 
 #opponent-notes-section .damage-row-total-result .damage-result-detail {
-  font-size: var(--font-size-sm3);
+  font-size: var(--damage-card-total-detail-font-size);
   opacity: .85; /* 詳細部分の濃さ。小さくすると薄くなる */
   text-align: left;
   font-weight: var(--font-weight-medium);
@@ -1285,7 +1285,7 @@ body.box-edit-page {
 }
 
 #opponent-notes-section .damage-column-result .damage-result-detail {
-  font-size: var(--font-size-sm3);
+  font-size: var(--damage-card-total-detail-font-size);
   opacity: .85; /* 技ごとの詳細数値の濃さ */
   overflow-wrap: anywhere;
   min-width: 0;
