@@ -649,7 +649,7 @@ body.box-edit-page {
   grid-column: 3;
   grid-row: 2;
   align-items: baseline;
-  gap: calc(var(--space-1) / 2);
+  gap: calc(var(--space-1) / 4);
   white-space: nowrap;
   display: flex;
 }
