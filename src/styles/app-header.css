@@ -46,7 +46,7 @@
   min-height: var(--app-header-height);
   align-items: stretch;
   gap: var(--space-5); /* 戻るボタンと横タブ一覧の間隔。大きくすると両者が離れる。 */
-  margin: 0; /* バー外側の余白。ページ端まで広げる場合はページ側で上書きする。 */
+  margin: var(--app-header-margin, 0); /* バー外側の余白。ページ端まで広げる場合はページ側で --app-header-margin を上書きする。 */
   padding-left: var(--space-3); /* バー左端の内側余白。大きくすると戻るボタンやタブが右へ寄る。 */
   background: var(--app-header-background);
   border-bottom: 1px solid var(--color-border);

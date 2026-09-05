@@ -805,10 +805,8 @@ body.box-edit-page {
 	#damage-detail-panel-body .damage-detail-chip-row.damage-detail-state-grid {
 		display: grid;
 		grid-template-columns: repeat(3, minmax(0, 1fr));
-		/* C-3: 天候ボタン(.damage-detail-icon-group.is-row4、box-damage-card.css)と同じ
-			「隣接して詰まった」密度に近づける。天候側はgap:0(境界線で隣接)なので、
-			揮発状態チップ側もチューニング変数のうち最小のxsよりさらに詰める。 */
-		gap: 2px;
+		gap: var(--damage-detail-space-xs);
+		margin-top: var(--damage-detail-chip-gap); /* 直上の状態異常(is-row4、margin-bottom:0)との間隔 */
 		margin-bottom: var(--damage-detail-space-xs);
 	}
 	#damage-detail-panel-body .damage-detail-state-grid > .damage-detail-icon-btn {

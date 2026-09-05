@@ -317,9 +317,10 @@
   display: none;
 }
 
-/* おすすめ種族: バッジは付けず、種族名の文字色で示す。 */
+/* おすすめ種族: バッジは付けず、種族名の文字色と太さで示す。 */
 .box-grid .box-card .card-name.is-recommended {
   color: var(--color-primary-strong);
+  font-weight: var(--font-weight-medium);
 }
 
 /* カード下部に4行並ぶ技一覧 */

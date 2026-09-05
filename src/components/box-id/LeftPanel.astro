@@ -515,6 +515,8 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	   ラベル列は5列構成(ラベル|性格補正|種族値|努力値|実数値)の1列目単独になったため、
 	   性格補正ボタンを収めていた頃のgap/margin-inlineは不要になった。 */
 	.stat-row-label { font-weight: var(--stat-label-font-weight); white-space: nowrap; display: flex; align-items: center; justify-content: center; line-height: var(--stat-row-label-line-height); }
+	.stat-row-label[data-mod="up"],
+	.stat-row-label[data-mod="down"] { font-weight: var(--font-weight-medium); }
 	.stat-row-label[data-mod="up"] { color: var(--color-stat-up); }
 	.stat-row-label[data-mod="down"] { color: var(--color-stat-down); }
 	.stat-row-base { color: var(--color-text-muted); text-align: right; }
