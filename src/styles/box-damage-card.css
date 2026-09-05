@@ -916,7 +916,7 @@ body.box-edit-page {
 /* 累計結果の「判定」とダメージ割合 */
 #opponent-notes-section .damage-row-total-result {
   max-width: var(--damage-card-total-result-max-width);
-  font-size: var(--damage-card-move-font-size); /* 技カードと同じ文字サイズ */
+  font-size: var(--font-size-sm1);
   line-height: var(--line-height-tight);
   grid-template-columns: auto 1fr;
   align-items: baseline;
@@ -933,8 +933,8 @@ body.box-edit-page {
 
 /* Slightly reduce the visual weight of the KO-count verdict. */
 #opponent-notes-section .damage-row-total-result .damage-result-verdict {
-  font-size: var(--damage-card-move-font-size);
-  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-sm1);
+  font-weight: var(--font-weight-medium);
 }
 
 #opponent-notes-section .damage-result-probability {
@@ -943,10 +943,10 @@ body.box-edit-page {
 }
 
 #opponent-notes-section .damage-row-total-result .damage-result-detail {
-  font-size: var(--damage-card-move-font-size);
+  font-size: var(--font-size-sm1);
   opacity: .85; /* 詳細部分の濃さ。小さくすると薄くなる */
   text-align: left;
-  font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-medium);
 }
 
 /* --------------------------------------------------------------------------
