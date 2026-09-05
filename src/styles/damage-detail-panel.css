@@ -733,15 +733,6 @@ body.box-edit-page {
 		margin-bottom: 0;
 		justify-self: start;
 	}
-	#damage-detail-panel-body .damage-detail-rank-field .damage-detail-rank-input {
-		box-sizing: border-box;
-		width: 40px;
-		min-width: 40px;
-		height: 40px;
-		min-height: 40px;
-		padding: 0;
-		field-sizing: fixed;
-	}
 	#damage-detail-panel-body .damage-detail-rank-ailment-row .damage-detail-ailment-select {
 		/* B-2: 列いっぱいに伸ばす(width:100%)のをやめ、内容量に合わせた
 			box-damage-card.css既定の幅(--damage-detail-ailment-width、7em)に戻す。 */
@@ -911,7 +902,6 @@ body.box-edit-page {
 	}
 	#damage-detail-panel-body .damage-detail-icon-btn,
 	#damage-detail-panel-body .damage-detail-move-input,
-	#damage-detail-panel-body .damage-detail-rank-input,
 	#damage-detail-panel-body .damage-detail-ailment-select,
 	#damage-detail-panel-body .damage-detail-spikes-select {
 		box-sizing: border-box;

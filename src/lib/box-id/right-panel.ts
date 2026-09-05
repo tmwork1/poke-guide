@@ -16,6 +16,7 @@
 import { el, readEv } from "../owned-pokemon-form";
 import { bindModalDismissal } from "../modal-dismiss";
 import { typeIconUrl } from "../sprite-urls";
+import { createRankPicker } from "../shared/rank-picker";
 import { kanaIncludes } from "../kana";
 import {
 	applySprite,
@@ -1135,43 +1136,14 @@ export function buildSideSection(
 	rankField.className = "rank-field damage-detail-rank-field";
 	const rankLabel = document.createElement("label");
 	rankLabel.textContent = "ランク";
-	const rankInput = document.createElement("input");
-	rankInput.type = "hidden";
-	rankInput.className = "damage-detail-rank-input";
 	const formatRank = (value: number): string => value > 0 ? `+${value}` : String(value);
-	rankInput.value = formatRank(rank);
+	let currentRank = rank;
 	const pickerButton = document.createElement("button");
 	pickerButton.type = "button";
 	pickerButton.className = "number-stepper-value tnum";
 	pickerButton.setAttribute("aria-haspopup", "dialog");
 	pickerButton.setAttribute("aria-expanded", "false");
-	const picker = document.createElement("div");
-	picker.className = "number-stepper-picker number-stepper-picker--rank";
-	picker.hidden = true;
-	picker.setAttribute("role", "dialog");
-	for (let value = -6; value <= 6; value += 1) {
-		const option = document.createElement("button");
-		option.type = "button";
-		option.className = "tnum";
-		option.dataset.rankValue = String(value);
-		option.textContent = formatRank(value);
-		picker.appendChild(option);
-	}
-	const closePicker = (): void => {
-		picker.hidden = true;
-		pickerButton.setAttribute("aria-expanded", "false");
-	};
-	const openPicker = (): void => {
-		document.body.appendChild(picker);
-		picker.hidden = false;
-		const anchor = pickerButton.getBoundingClientRect();
-		const pickerRect = picker.getBoundingClientRect();
-		picker.style.position = "fixed";
-		picker.style.top = `${Math.max(8, Math.min(window.innerHeight - pickerRect.height - 8, anchor.bottom + 4))}px`;
-		picker.style.left = `${Math.max(8, Math.min(window.innerWidth - pickerRect.width - 8, anchor.left + (anchor.width - pickerRect.width) / 2))}px`;
-		pickerButton.setAttribute("aria-expanded", "true");
-	};
-	rankInput.setAttribute("aria-label", `${ariaSideLabel}の能力ランク`);
+	const rankPicker = createRankPicker({ pickerButton, placement: "below", formatValue: formatRank, onSelect: (value) => commitRank(value) });
 	const decrementButton = document.createElement("button");
 	decrementButton.type = "button";
 	decrementButton.className = "rank-stepper damage-detail-rank-stepper";
@@ -1183,30 +1155,22 @@ export function buildSideSection(
 	incrementButton.textContent = "＋";
 	incrementButton.setAttribute("aria-label", `${ariaSideLabel}の能力ランクを1上げる`);
 	const updateEmphasis = () => {
-		const n = Number(rankInput.value);
+		const n = currentRank;
 		pickerButton.classList.toggle("is-nonzero", Number.isFinite(n) && n !== 0);
 		pickerButton.textContent = formatRank(Number.isFinite(n) ? clampInt(n, -6, 6) : 0);
-		for (const option of picker.querySelectorAll<HTMLButtonElement>("[data-rank-value]")) {
-			option.setAttribute("aria-current", String(Number(option.dataset.rankValue) === n));
-		}
+		rankPicker.setSelectedValue(n);
 	};
 	const updateStepperState = () => {
-		const n = Number(rankInput.value);
+		const n = currentRank;
 		const current = Number.isFinite(n) ? clampInt(n, -6, 6) : 0;
 		decrementButton.disabled = current <= -6;
 		incrementButton.disabled = current >= 6;
 	};
 	updateEmphasis();
 	updateStepperState();
-	// 矢印クリック・キーボード編集どちらもcommitへ集約する。空欄・"-"単体(入力途中)は
-	// まだ矯正しない(毎キー入力で値を書き戻すとユーザーが"-6"を打てなくなるため)。
-	const commitRank = (fallbackToZeroIfEmpty: boolean): void => {
-		const raw = rankInput.value.trim();
-		if (!fallbackToZeroIfEmpty && (raw === "" || raw === "-" || raw === "+")) return;
-		const n = raw === "" || raw === "-" || raw === "+" || !Number.isFinite(Number(raw)) ? 0 : Number(raw);
-		const clamped = clampInt(n, -6, 6);
-		const displayValue = formatRank(clamped);
-		if (rankInput.value !== displayValue) rankInput.value = displayValue;
+	const commitRank = (value: number): void => {
+		const clamped = clampInt(value, -6, 6);
+		currentRank = clamped;
 		onRankChange(clamped);
 		updateEmphasis();
 		updateStepperState();
@@ -1214,42 +1178,15 @@ export function buildSideSection(
 		scheduleRowSave(row);
 		refreshRowConditionChips(row);
 	};
-	pickerButton.addEventListener("click", () => {
-		if (picker.hidden) openPicker();
-		else closePicker();
-	});
-	picker.addEventListener("click", (event) => {
-		const option = (event.target as Element).closest<HTMLButtonElement>("[data-rank-value]");
-		if (!option) return;
-		rankInput.value = option.dataset.rankValue ?? "0";
-		commitRank(true);
-		closePicker();
-		pickerButton.focus();
-	});
-	document.addEventListener("pointerdown", (event) => {
-		if (picker.hidden || picker.contains(event.target as Node) || pickerButton.contains(event.target as Node)) return;
-		closePicker();
-	});
 	const stepRank = (delta: -1 | 1): void => {
-		const n = Number(rankInput.value);
-		const current = Number.isFinite(n) ? n : 0;
-		rankInput.value = formatRank(clampInt(current + delta, -6, 6));
-		commitRank(true);
+		const current = Number.isFinite(currentRank) ? currentRank : 0;
+		commitRank(current + delta);
 	};
 	decrementButton.addEventListener("click", () => stepRank(-1));
 	incrementButton.addEventListener("click", () => stepRank(1));
-	// フォーカス中にホイールを回すと値が変わる事故を防ぐ(passiveだと
-	// preventDefaultが効かないため { passive: false } で明示登録する)。
-	rankInput.addEventListener(
-		"wheel",
-		(e) => {
-			if (document.activeElement === rankInput) e.preventDefault();
-		},
-		{ passive: false },
-	);
 	const stepperGroup = document.createElement("span");
 	stepperGroup.className = "rank-stepper-group number-stepper";
-	stepperGroup.append(decrementButton, pickerButton, rankInput, incrementButton, picker);
+	stepperGroup.append(decrementButton, pickerButton, incrementButton, rankPicker.picker);
 	rankField.append(rankLabel, stepperGroup);
 	rankAilmentGroup.appendChild(headingRow);
 

@@ -2,6 +2,7 @@ import { DAMAGE_AILMENTS, DAMAGE_TERRAINS, DAMAGE_WEATHERS, clampInt } from "../
 import { getFieldState, getOpponentState, getSelfState, setFieldState, setOpponentState, setSelfState } from "./shared-core";
 import { teraTypeIconUrl } from "../sprite-urls";
 import { createTeraSelectDialog } from "../tera-select-dialog";
+import { createRankPicker } from "../shared/rank-picker";
 
 // 攻撃時に参照される能力(物理ならA/特殊ならC)と、被弾時に参照される能力(物理ならB/特殊ならD)を
 // それぞれ1本のランクにまとめる。どちらの技を撃つ/受けるかは技側のカテゴリで決まるため、
@@ -26,37 +27,20 @@ function createRankStepper(label: string, ariaSideLabel: string, onChange: (valu
   const decrementButton = document.createElement("button"); decrementButton.type = "button"; decrementButton.textContent = "−"; decrementButton.ariaLabel = `${ariaSideLabel}の${label}ランクを下げる`;
   const incrementButton = document.createElement("button"); incrementButton.type = "button"; incrementButton.textContent = "+"; incrementButton.ariaLabel = `${ariaSideLabel}の${label}ランクを上げる`;
   const pickerButton = document.createElement("button"); pickerButton.type = "button"; pickerButton.className = "number-stepper-value tnum"; pickerButton.setAttribute("aria-haspopup", "dialog"); pickerButton.setAttribute("aria-expanded", "false"); pickerButton.ariaLabel = `${ariaSideLabel}の${label}ランク`;
-  const picker = document.createElement("div"); picker.className = "number-stepper-picker number-stepper-picker--rank"; picker.hidden = true; picker.setAttribute("role", "dialog");
-  for (let value = -6; value <= 6; value += 1) {
-    const option = document.createElement("button"); option.type = "button"; option.className = "tnum"; option.dataset.rankValue = String(value); option.textContent = formatRank(value);
-    picker.append(option);
-  }
   let current = 0;
-  const closePicker = () => { picker.hidden = true; pickerButton.setAttribute("aria-expanded", "false"); };
-  const openPicker = () => {
-    document.body.append(picker); picker.hidden = false;
-    const anchor = pickerButton.getBoundingClientRect(), pickerRect = picker.getBoundingClientRect();
-    // 固定表示バーは画面下端にあるため、詳細設定モーダル版(下に開く)と異なりボタンの上に開く。
-    picker.style.position = "fixed";
-    picker.style.top = `${Math.max(8, Math.min(window.innerHeight - pickerRect.height - 8, anchor.top - pickerRect.height - 4))}px`;
-    picker.style.left = `${Math.max(8, Math.min(window.innerWidth - pickerRect.width - 8, anchor.left + (anchor.width - pickerRect.width) / 2))}px`;
-    pickerButton.setAttribute("aria-expanded", "true");
-  };
+  const rankPicker = createRankPicker({ pickerButton, placement: "above", formatValue: formatRank, onSelect: (value) => commit(value) });
   const refresh = () => {
     pickerButton.textContent = formatRank(current);
     pickerButton.classList.toggle("is-nonzero", current !== 0);
     decrementButton.disabled = current <= -6; incrementButton.disabled = current >= 6;
-    picker.querySelectorAll<HTMLButtonElement>("[data-rank-value]").forEach((option) => option.setAttribute("aria-current", String(Number(option.dataset.rankValue) === current)));
+    rankPicker.setSelectedValue(current);
   };
   const commit = (value: number) => { current = clampInt(value, -6, 6); refresh(); onChange(current); };
-  pickerButton.addEventListener("click", () => { if (picker.hidden) openPicker(); else closePicker(); });
-  picker.addEventListener("click", (event) => { const option = (event.target as Element).closest<HTMLButtonElement>("[data-rank-value]"); if (!option) return; commit(Number(option.dataset.rankValue)); closePicker(); pickerButton.focus(); });
-  document.addEventListener("pointerdown", (event) => { if (picker.hidden || picker.contains(event.target as Node) || pickerButton.contains(event.target as Node)) return; closePicker(); });
   decrementButton.addEventListener("click", () => commit(current - 1));
   incrementButton.addEventListener("click", () => commit(current + 1));
   refresh();
   const stepperGroup = document.createElement("span"); stepperGroup.className = "rank-stepper-group number-stepper";
-  stepperGroup.append(decrementButton, pickerButton, incrementButton, picker);
+  stepperGroup.append(decrementButton, pickerButton, incrementButton, rankPicker.picker);
   row.append(stepperGroup);
   return { row, setValue: (value: number) => { current = value; refresh(); } };
 }
@@ -80,13 +64,25 @@ function syncContentTop(): void {
   const secondaryBar = document.querySelector<HTMLElement>(".damage-calc-secondary-bar");
   if (!secondaryBar) return;
   const update = () => document.body.style.setProperty("--damage-calc-content-top", `${secondaryBar.getBoundingClientRect().bottom}px`);
-  window.addEventListener("resize", update);
+  new ResizeObserver(update).observe(secondaryBar);
   update();
 }
 
 export function initControlPanel(): void {
   syncControlBarHeight();
   syncContentTop();
+  const selfAilmentSelect = document.getElementById("damage-calc-self-ailment") as HTMLSelectElement;
+  const opponentAilmentSelect = document.getElementById("damage-calc-opponent-ailment") as HTMLSelectElement;
+  const weatherButtons = document.getElementById("damage-calc-weather-buttons") as HTMLElement;
+  const terrainButtons = document.getElementById("damage-calc-terrain-buttons") as HTMLElement;
+  const teraButtons = {
+    self: document.getElementById("damage-calc-self-tera-button") as HTMLButtonElement,
+    opponent: document.getElementById("damage-calc-opponent-tera-button") as HTMLButtonElement,
+  };
+  const teraIcons = {
+    self: teraButtons.self.querySelector<HTMLImageElement>(".damage-calc-tera-icon"),
+    opponent: teraButtons.opponent.querySelector<HTMLImageElement>(".damage-calc-tera-icon"),
+  };
   const rankRoots = Array.from(document.querySelectorAll<HTMLElement>(".damage-calc-ranks"));
   const rankControlBySide = new Map<"self" | "opponent", { stepper: RankStepper; statIndex: number }>();
   rankRoots.forEach((root) => {
@@ -104,27 +100,29 @@ export function initControlPanel(): void {
     root.replaceChildren(stepper.row);
     rankControlBySide.set(side, { stepper, statIndex: group.indices[0] });
   });
-  const fillSelect = (id: string, options: readonly { value: string; label: string }[]) => {
-    const select = document.getElementById(id) as HTMLSelectElement;
+  const fillSelect = (select: HTMLSelectElement, options: readonly { value: string; label: string }[]) => {
     select.replaceChildren(...options.map((option) => new Option(option.label, option.value)));
   };
   // 共有配列DAMAGE_AILMENTSの空値ラベルは他画面向けの「なし」のまま保ち、
   // このページの表示だけ「状態異常」に差し替える(プレースホルダーとして何のセレクトか分かるように)。
   const ailmentOptions = DAMAGE_AILMENTS.map((option) => (option.value === "" ? { ...option, label: "状態異常" } : option));
-  fillSelect("damage-calc-self-ailment", ailmentOptions); fillSelect("damage-calc-opponent-ailment", ailmentOptions);
-  fillSelect("damage-calc-weather", [{ value: "", label: "なし" }, ...DAMAGE_WEATHERS]); fillSelect("damage-calc-terrain", [{ value: "", label: "なし" }, ...DAMAGE_TERRAINS]);
+  fillSelect(selfAilmentSelect, ailmentOptions); fillSelect(opponentAilmentSelect, ailmentOptions);
   // ダメージ計算詳細設定モーダル(box-id/right-panel.ts の buildIconToggleGroup)とは異なり、
   // このパネルはアイコン+ラベルの2段組にする(「なし」用のボタンは置かず、選択中のボタンを
   // 再度押すと解除する)。ラベルはボタンの可視テキストになるので、冗長なtitle/ariaLabelは付けない。
-  const renderChoiceGroup = (rootId: string, selectId: string, options: readonly { value: string; label: string; icon: string }[]) => {
-    const root = document.getElementById(rootId) as HTMLElement, select = document.getElementById(selectId) as HTMLSelectElement;
+  const renderChoiceGroup = (
+    root: HTMLElement,
+    options: readonly { value: string; label: string; icon: string }[],
+    getValue: () => string,
+    setValue: (value: string) => void,
+  ) => {
     root.replaceChildren(...options.map((option) => {
       const button = document.createElement("button"); button.type = "button"; button.className = "damage-calc-icon-btn"; button.dataset.value = option.value;
       const label = document.createElement("span"); label.className = "damage-calc-icon-btn-label"; label.textContent = option.label;
       button.innerHTML = option.icon; button.append(label);
       button.addEventListener("click", () => {
-        select.value = select.value === option.value ? "" : option.value;
-        select.dispatchEvent(new Event("change", { bubbles: true }));
+        setValue(getValue() === option.value ? "" : option.value);
+        emit();
       });
       return button;
     }));
@@ -132,11 +130,17 @@ export function initControlPanel(): void {
   // 共有配列DAMAGE_WEATHERSの「すなあらし」は他画面向けの表記のまま保ち、
   // このパネルの4つ横並びボタンだけ幅に収まる「すな」に短縮する。
   const weatherIconOptions = DAMAGE_WEATHERS.map((option) => (option.value === "すなあらし" ? { ...option, label: "すな" } : option));
-  renderChoiceGroup("damage-calc-weather-buttons", "damage-calc-weather", weatherIconOptions);
-  renderChoiceGroup("damage-calc-terrain-buttons", "damage-calc-terrain", DAMAGE_TERRAINS);
+  renderChoiceGroup(weatherButtons, weatherIconOptions,
+    () => getFieldState().weather,
+    (weather) => setFieldState({ ...getFieldState(), weather }),
+  );
+  renderChoiceGroup(terrainButtons, DAMAGE_TERRAINS,
+    () => getFieldState().terrain,
+    (terrain) => setFieldState({ ...getFieldState(), terrain }),
+  );
   const teraDialogs = (['self', 'opponent'] as const).map((side) => {
     const prefix = `damage-calc-${side}-tera-select-`;
-    const triggerButton = document.getElementById(`damage-calc-${side}-tera-button`) as HTMLButtonElement;
+    const triggerButton = teraButtons[side];
     return createTeraSelectDialog({
       backdrop: document.getElementById(`${prefix}backdrop`) as HTMLElement,
       dialog: document.getElementById(`${prefix}dialog`) as HTMLElement,
@@ -157,27 +161,27 @@ export function initControlPanel(): void {
       const control = rankControlBySide.get(side);
       control?.stepper.setValue(state.boosts[control.statIndex]);
     });
-    (document.getElementById("damage-calc-self-ailment") as HTMLSelectElement).value = self.ailment;
-    (document.getElementById("damage-calc-opponent-ailment") as HTMLSelectElement).value = opponent.ailment;
-    (document.getElementById("damage-calc-weather") as HTMLSelectElement).value = field.weather;
-    (document.getElementById("damage-calc-terrain") as HTMLSelectElement).value = field.terrain;
-    (["weather", "terrain"] as const).forEach((kind) => { const select = document.getElementById(`damage-calc-${kind}`) as HTMLSelectElement; document.querySelectorAll<HTMLButtonElement>(`#damage-calc-${kind}-buttons button`).forEach((button) => button.setAttribute("aria-pressed", String(button.dataset.value === select.value))); });
+    selfAilmentSelect.value = self.ailment;
+    opponentAilmentSelect.value = opponent.ailment;
+    (["weather", "terrain"] as const).forEach((kind) => {
+      const value = kind === "weather" ? field.weather : field.terrain;
+      const root = kind === "weather" ? weatherButtons : terrainButtons;
+      root.querySelectorAll<HTMLButtonElement>("button").forEach((button) => button.setAttribute("aria-pressed", String(button.dataset.value === value)));
+    });
     (["self", "opponent"] as const).forEach((side) => {
-      const button = document.getElementById(`damage-calc-${side}-tera-button`) as HTMLButtonElement;
+      const button = teraButtons[side];
       const teraType = side === "self" ? self.teraType : opponent.teraType;
-      button.disabled = false; button.classList.toggle("is-active", teraType !== ""); button.setAttribute("aria-pressed", String(teraType !== ""));
-      const icon = button.querySelector<HTMLImageElement>(".damage-calc-tera-icon");
+      button.classList.toggle("is-active", teraType !== ""); button.setAttribute("aria-pressed", String(teraType !== ""));
+      const icon = teraIcons[side];
       const iconUrl = teraTypeIconUrl(teraType);
       if (icon) { icon.hidden = false; icon.src = iconUrl ?? GENERIC_TERA_ICON_URL; }
     });
   };
-  (document.getElementById("damage-calc-self-ailment") as HTMLSelectElement).addEventListener("change", (event) => { setSelfState({ ...getSelfState(), ailment: (event.target as HTMLSelectElement).value }); emit(); });
-  (document.getElementById("damage-calc-opponent-ailment") as HTMLSelectElement).addEventListener("change", (event) => { setOpponentState({ ...getOpponentState(), ailment: (event.target as HTMLSelectElement).value }); emit(); });
-  (document.getElementById("damage-calc-weather") as HTMLSelectElement).addEventListener("change", (event) => { setFieldState({ ...getFieldState(), weather: (event.target as HTMLSelectElement).value }); emit(); });
-  (document.getElementById("damage-calc-terrain") as HTMLSelectElement).addEventListener("change", (event) => { setFieldState({ ...getFieldState(), terrain: (event.target as HTMLSelectElement).value }); emit(); });
+  selfAilmentSelect.addEventListener("change", (event) => { setSelfState({ ...getSelfState(), ailment: (event.target as HTMLSelectElement).value }); emit(); });
+  opponentAilmentSelect.addEventListener("change", (event) => { setOpponentState({ ...getOpponentState(), ailment: (event.target as HTMLSelectElement).value }); emit(); });
   teraDialogs.forEach((dialog, index) => {
     const side = index === 0 ? "self" : "opponent";
-    (document.getElementById(`damage-calc-${side}-tera-button`) as HTMLButtonElement).addEventListener("click", dialog.open);
+    teraButtons[side].addEventListener("click", dialog.open);
   });
   document.addEventListener("damage-calc:change", render); render();
 }
