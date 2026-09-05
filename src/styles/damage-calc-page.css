@@ -2,13 +2,11 @@
 .damage-calc-page { --header-height: 0px; }
 .damage-calc-shell { min-width: 0; }
 .damage-calc-login-guide { max-width: 1080px; margin: var(--space-3) auto; padding: 0 var(--space-3); color: var(--color-text-muted); }
-.damage-calc-tabs { display: flex; align-items: stretch; margin-left: auto; }
-.damage-calc-tabs button { min-height: var(--app-header-height); border: 0; border-radius: 0; box-shadow: none; color: var(--color-text-muted); background: transparent; }
-.damage-calc-tabs button[aria-selected="true"] { color: var(--color-primary-strong); background: var(--color-primary-soft); }
-.damage-calc-secondary-content, .damage-calc-control-content { padding: var(--space-4) var(--space-3); }
-.damage-calc-secondary-actions { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+.damage-calc-control-content { padding: var(--space-4) var(--space-3); }
+.damage-calc-secondary-bar .second-header__content { flex-wrap: wrap; }
+.damage-calc-secondary-actions { display: flex; align-items: center; gap: var(--space-2); flex: 0 1 auto; flex-wrap: wrap; }
 .damage-calc-selection-summary { margin: 0; color: var(--color-text-muted); font-size: var(--font-size-sm2); }
-.damage-calc-opponent-panel { margin-top: var(--space-4); padding-top: var(--space-4); border-top: 1px solid var(--color-border); }
+.damage-calc-opponent-panel { flex: 1 0 100%; margin-top: var(--space-2); padding-top: var(--space-3); border-top: 1px solid var(--color-border); }
 .damage-calc-opponent-panel[hidden] { display: none; }
 .damage-calc-opponent-heading h2, .damage-calc-control-content h2 { margin: 0; font-size: var(--font-size-lg1); }
 .damage-calc-opponent-heading p { margin: var(--space-1) 0 var(--space-3); color: var(--color-text-muted); font-size: var(--font-size-sm2); }
@@ -25,7 +23,13 @@
 .damage-calc-team-choice { width: 100%; justify-content: flex-start; margin-bottom: var(--space-2); }
 .damage-calc-matchups { min-height: 28rem; padding: var(--space-5) var(--space-3); }
 .damage-calc-matchups > .panel-content { min-width: 0; }
-.damage-calc-summary-list { display: grid; gap: var(--space-3); }
+.damage-calc-summary-layout { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) 3rem; gap: var(--space-3); }
+.damage-calc-summary-layout > .empty-state { grid-column: 1 / -1; }
+.damage-calc-summary-list { display: grid; grid-column: 1; gap: var(--space-3); }
+.damage-calc-summary-rail { position: sticky; top: calc(var(--header-height) + var(--app-header-height) + var(--second-header-height) + var(--space-3)); align-self: start; display: flex; grid-column: 2; flex-direction: column; align-items: center; gap: var(--space-2); max-height: calc(100vh - var(--app-header-height) - var(--second-header-height) - var(--space-6)); overflow-y: auto; scrollbar-width: none; }
+.damage-calc-summary-rail::-webkit-scrollbar { display: none; }
+.damage-calc-summary-rail-item { flex: 0 0 auto; width: 2.5rem; height: 2.5rem; min-height: 2.5rem; padding: 0; overflow: hidden; border: 0; border-radius: 50%; background: var(--color-surface-sunken); font-size: var(--font-size-sm2); }
+.damage-calc-summary-rail-item img { display: block; width: 100%; height: 100%; object-fit: contain; }
 .damage-calc-summary-list .damage-calc-summary-card { display: grid; grid-template-columns: minmax(9rem, 1fr) minmax(9rem, 1fr) minmax(9rem, 1fr) auto; align-items: center; gap: var(--space-3); width: 100%; text-align: left; }
 .damage-calc-summary-card strong { font-size: var(--font-size-lg1); }
 .damage-calc-summary-card span, .damage-calc-summary-card small { color: var(--color-text-muted); }
@@ -53,10 +57,22 @@
 .damage-calc-controls-grid fieldset { min-width: 0; margin: 0; padding: var(--space-3); border: 1px solid var(--color-border); }
 .damage-calc-controls-grid legend { padding: 0 var(--space-1); font-weight: var(--font-weight-bold); }
 .damage-calc-ranks { display: grid; gap: var(--space-1); margin-bottom: var(--space-3); }
-.damage-calc-rank-row { display: grid; grid-template-columns: 3.5em 2rem 3em 2rem; align-items: center; gap: var(--space-1); color: var(--color-text-muted); font-size: var(--font-size-sm2); }
-.damage-calc-rank-row button { min-height: 2rem; padding: 0; }
+.damage-calc-rank-row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); color: var(--color-text-muted); font-size: var(--font-size-sm2); }
+.damage-calc-rank-row .number-stepper { --number-stepper-size: 2rem; --number-stepper-input-width: 2.5rem; }
 .damage-calc-rank-row output { text-align: center; font-variant-numeric: tabular-nums; }
 .damage-calc-side-controls, .damage-calc-field-controls { display: grid; align-content: start; gap: var(--space-3); }
-.damage-calc-tera-toggle { display: flex !important; align-items: center; grid-template-columns: auto 1fr; }
+.damage-calc-choice-field { display: grid; gap: var(--space-1); color: var(--color-text-muted); font-size: var(--font-size-sm2); }
+.damage-calc-native-control, .damage-calc-tera-toggle input[type="checkbox"] { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; border: 0; }
+.damage-calc-icon-group { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); overflow: hidden; border: 1px solid var(--color-border); border-radius: var(--radius-md); }
+.damage-calc-icon-btn { min-height: 2rem; padding: var(--space-1); color: var(--color-text-muted); background: var(--color-surface); border: 0; border-radius: 0; font: inherit; font-size: var(--font-size-sm1); }
+.damage-calc-icon-btn + .damage-calc-icon-btn { border-left: 1px solid var(--color-border); }
+.damage-calc-icon-btn[aria-pressed="true"] { color: var(--color-primary-strong); background: var(--color-primary-soft); }
+.damage-calc-tera-toggle { inline-size: 2.5rem; block-size: 2.5rem; padding: 3px; border: 0; border-radius: 50%; background: transparent; color: var(--color-text-muted); cursor: pointer; font: inherit; font-weight: var(--font-weight-bold); appearance: none; -webkit-appearance: none; }
+.damage-calc-tera-icon-wrap { display: grid; inline-size: 100%; block-size: 100%; place-items: center; border-radius: 50%; }
+.damage-calc-tera-icon { display: block; inline-size: 80%; block-size: 80%; object-fit: contain; filter: grayscale(1) opacity(.45); transition: filter .15s ease; }
+.damage-calc-tera-icon[hidden] { display: none; }
+.damage-calc-tera-toggle.is-active .damage-calc-tera-icon { filter: saturate(1.35) drop-shadow(0 0 3px var(--color-primary)) drop-shadow(0 0 7px color-mix(in srgb, var(--color-primary) 75%, transparent)); }
+.damage-calc-tera-toggle:disabled { cursor: not-allowed; opacity: .55; }
+.damage-calc-tera-toggle:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
 @media (max-width: 900px) { .damage-calc-opponent-fields, .damage-calc-move-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); } .damage-calc-controls-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .damage-calc-field-controls { grid-column: 1 / -1; } }
-@media (max-width: 600px) { .damage-calc-tabs button { padding-inline: var(--space-2); font-size: var(--font-size-sm2); } .damage-calc-opponent-fields, .damage-calc-move-fields, .damage-calc-controls-grid { grid-template-columns: 1fr; } .damage-calc-field-controls { grid-column: auto; } .damage-calc-detail-layout { grid-template-columns: 1fr; gap: var(--space-3); } .damage-calc-member-rail { flex-direction: row; justify-content: flex-start; overflow-x: auto; padding-bottom: var(--space-1); } .damage-calc-summary-list .damage-calc-summary-card { grid-template-columns: 1fr; gap: var(--space-1); } }
+@media (max-width: 600px) { .damage-calc-opponent-fields, .damage-calc-move-fields, .damage-calc-controls-grid { grid-template-columns: 1fr; } .damage-calc-field-controls { grid-column: auto; } .damage-calc-detail-layout { grid-template-columns: 1fr; gap: var(--space-3); } .damage-calc-member-rail { flex-direction: row; justify-content: flex-start; overflow-x: auto; padding-bottom: var(--space-1); } .damage-calc-summary-layout { grid-template-columns: minmax(0, 1fr) 2.5rem; gap: var(--space-2); } .damage-calc-summary-list .damage-calc-summary-card { grid-template-columns: 1fr; gap: var(--space-1); } }

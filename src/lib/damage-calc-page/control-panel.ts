@@ -1,5 +1,6 @@
 import { DAMAGE_AILMENTS, DAMAGE_TERRAINS, DAMAGE_WEATHERS, clampInt } from "../box-id/damage-calc";
 import { getFieldState, getOpponentBuild, getOpponentState, getSelectedTeam, getSelfState, setFieldState, setOpponentState, setSelfState } from "./shared-core";
+import { teraTypeIconUrl } from "../sprite-urls";
 
 const labels = ["攻撃", "防御", "特攻", "特防", "素早さ"];
 const emit = () => document.dispatchEvent(new CustomEvent("damage-calc:change", { detail: { reason: "controls" } }));
@@ -12,6 +13,15 @@ export function initControlPanel(): void {
   };
   fillSelect("damage-calc-self-ailment", DAMAGE_AILMENTS); fillSelect("damage-calc-opponent-ailment", DAMAGE_AILMENTS);
   fillSelect("damage-calc-weather", [{ value: "", label: "なし" }, ...DAMAGE_WEATHERS]); fillSelect("damage-calc-terrain", [{ value: "", label: "なし" }, ...DAMAGE_TERRAINS]);
+  const renderChoiceGroup = (rootId: string, selectId: string) => {
+    const root = document.getElementById(rootId) as HTMLElement, select = document.getElementById(selectId) as HTMLSelectElement;
+    root.replaceChildren(...Array.from(select.options).map((option) => {
+      const button = document.createElement("button"); button.type = "button"; button.className = "damage-calc-icon-btn is-text-only"; button.dataset.value = option.value; button.textContent = option.text;
+      button.addEventListener("click", () => { select.value = option.value; select.dispatchEvent(new Event("change", { bubbles: true })); }); return button;
+    }));
+  };
+  renderChoiceGroup("damage-calc-weather-buttons", "damage-calc-weather");
+  renderChoiceGroup("damage-calc-terrain-buttons", "damage-calc-terrain");
   const render = () => {
     const self = getSelfState(), opponent = getOpponentState(), field = getFieldState();
     rankRoots.forEach((root) => {
@@ -19,19 +29,29 @@ export function initControlPanel(): void {
       root.replaceChildren(...labels.map((label, index) => {
         const row = document.createElement("div"); row.className = "damage-calc-rank-row";
         const minus = document.createElement("button"); minus.type = "button"; minus.textContent = "−"; minus.ariaLabel = `${label}を下げる`;
-        const value = document.createElement("output"); value.textContent = `${state.boosts[index + 1] >= 0 ? "+" : ""}${state.boosts[index + 1]}`;
+        const value = document.createElement("output"); value.className = "number-stepper-value damage-calc-rank-input"; value.textContent = `${state.boosts[index + 1] >= 0 ? "+" : ""}${state.boosts[index + 1]}`;
         const plus = document.createElement("button"); plus.type = "button"; plus.textContent = "+"; plus.ariaLabel = `${label}を上げる`;
         const change = (delta: number) => { const current = root.dataset.side === "self" ? getSelfState() : getOpponentState(); const boosts = [...current.boosts] as typeof current.boosts; boosts[index + 1] = clampInt(boosts[index + 1] + delta, -6, 6); if (root.dataset.side === "self") setSelfState({ ...current, boosts }); else setOpponentState({ ...current, boosts }); render(); emit(); };
-        minus.addEventListener("click", () => change(-1)); plus.addEventListener("click", () => change(1)); row.append(label, minus, value, plus); return row;
+        const stepper = document.createElement("span"); stepper.className = "number-stepper"; minus.addEventListener("click", () => change(-1)); plus.addEventListener("click", () => change(1)); stepper.append(minus, value, plus); row.append(Object.assign(document.createElement("span"), { textContent: label }), stepper); return row;
       }));
     });
     (document.getElementById("damage-calc-self-ailment") as HTMLSelectElement).value = self.ailment;
     (document.getElementById("damage-calc-opponent-ailment") as HTMLSelectElement).value = opponent.ailment;
     (document.getElementById("damage-calc-weather") as HTMLSelectElement).value = field.weather;
     (document.getElementById("damage-calc-terrain") as HTMLSelectElement).value = field.terrain;
+    (["weather", "terrain"] as const).forEach((kind) => { const select = document.getElementById(`damage-calc-${kind}`) as HTMLSelectElement; document.querySelectorAll<HTMLButtonElement>(`#damage-calc-${kind}-buttons button`).forEach((button) => button.setAttribute("aria-pressed", String(button.dataset.value === select.value))); });
     const ownTera = getSelectedTeam()?.members.find((member) => member.ownedPokemon.id === getSelectedTeam()?.selectedMemberId)?.ownedPokemon.tera_type;
     const selfToggle = document.getElementById("damage-calc-self-tera") as HTMLInputElement, opponentToggle = document.getElementById("damage-calc-opponent-tera-toggle") as HTMLInputElement;
     selfToggle.disabled = !ownTera; selfToggle.checked = self.terastallized; opponentToggle.disabled = !getOpponentBuild().teraType; opponentToggle.checked = opponent.terastallized;
+    (["self", "opponent"] as const).forEach((side) => {
+      const toggle = document.getElementById(`damage-calc-${side === "self" ? "self-tera" : "opponent-tera-toggle"}`) as HTMLInputElement;
+      const button = document.getElementById(`damage-calc-${side}-tera-button`) as HTMLButtonElement;
+      button.disabled = toggle.disabled; button.classList.toggle("is-active", toggle.checked); button.setAttribute("aria-pressed", String(toggle.checked));
+      const teraTypeName = side === "self" ? ownTera : getOpponentBuild().teraType;
+      const icon = button.querySelector<HTMLImageElement>(".damage-calc-tera-icon");
+      const iconUrl = teraTypeName ? teraTypeIconUrl(teraTypeName) : null;
+      if (icon) { icon.hidden = !iconUrl; if (iconUrl) icon.src = iconUrl; }
+    });
   };
   (document.getElementById("damage-calc-self-ailment") as HTMLSelectElement).addEventListener("change", (event) => { setSelfState({ ...getSelfState(), ailment: (event.target as HTMLSelectElement).value }); emit(); });
   (document.getElementById("damage-calc-opponent-ailment") as HTMLSelectElement).addEventListener("change", (event) => { setOpponentState({ ...getOpponentState(), ailment: (event.target as HTMLSelectElement).value }); emit(); });
@@ -39,5 +59,6 @@ export function initControlPanel(): void {
   (document.getElementById("damage-calc-terrain") as HTMLSelectElement).addEventListener("change", (event) => { setFieldState({ ...getFieldState(), terrain: (event.target as HTMLSelectElement).value }); emit(); });
   (document.getElementById("damage-calc-self-tera") as HTMLInputElement).addEventListener("change", (event) => { setSelfState({ ...getSelfState(), terastallized: (event.target as HTMLInputElement).checked }); emit(); });
   (document.getElementById("damage-calc-opponent-tera-toggle") as HTMLInputElement).addEventListener("change", (event) => { setOpponentState({ ...getOpponentState(), terastallized: (event.target as HTMLInputElement).checked }); emit(); });
+  (["self", "opponent"] as const).forEach((side) => { const button = document.getElementById(`damage-calc-${side}-tera-button`) as HTMLButtonElement; const input = document.getElementById(side === "self" ? "damage-calc-self-tera" : "damage-calc-opponent-tera-toggle") as HTMLInputElement; button.addEventListener("click", () => { if (input.disabled) return; input.checked = !input.checked; input.dispatchEvent(new Event("change", { bubbles: true })); }); });
   document.addEventListener("damage-calc:change", render); render();
 }

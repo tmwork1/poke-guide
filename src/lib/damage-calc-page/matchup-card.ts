@@ -1,4 +1,4 @@
-import { loadMoveDetailMap, loadPokemonMasterList, officialArtworkUrl, type MoveCategory } from "../pokemon-master-data";
+import { championSpriteUrl, loadMoveDetailMap, loadPokemonMasterList, officialArtworkUrl, type MoveCategory } from "../pokemon-master-data";
 import { registerOfflineCache } from "../pyodide-engine";
 import { calculateMemberDamage, type DamageCalcDirectionResult, type DamageCalcMemberResult } from "./engine-bridge";
 import { getActiveTab, getOpponentBuild, getSelectedTeam, setActiveTab, setSelectedTeam, type ActiveTab, type TeamMemberSpecInput } from "./shared-core";
@@ -30,28 +30,40 @@ function renderTabs(): void {
   const active = getActiveTab();
   (["6v1", "1v1"] as ActiveTab[]).forEach((tab) => {
     const button = byId<HTMLButtonElement>(`damage-calc-tab-${tab}`); const panel = byId<HTMLElement>(`damage-calc-tabpanel-${tab}`);
-    button.setAttribute("aria-selected", String(tab === active)); button.tabIndex = tab === active ? 0 : -1; panel.hidden = tab !== active;
+    button.setAttribute("aria-selected", String(tab === active)); button.dataset.active = String(tab === active); button.tabIndex = tab === active ? 0 : -1; panel.hidden = tab !== active;
   });
 }
 function renderSummary(): void {
   const opponent = getOpponentBuild(); const list = byId<HTMLElement>("damage-calc-summary-list"), placeholder = byId<HTMLElement>("damage-calc-placeholder");
-  list.replaceChildren();
+  const rail = byId<HTMLElement>("damage-calc-summary-rail");
+  list.replaceChildren(); rail.replaceChildren();
   if (!opponent.speciesName) { placeholder.hidden = false; return; }
   const team = getSelectedTeam();
   if (!team?.members.length) { placeholder.textContent = "チームを選択してください。"; placeholder.hidden = false; return; }
   placeholder.hidden = true;
   // 1 vs 1(詳細表示)はまだ実装しないため、カードはタップ不可の要約表示に留める。
-  team.members.forEach((member) => {
-    const card = document.createElement("div"); card.className = "card damage-calc-summary-card";
+  team.members.forEach((member, index) => {
+    const card = document.createElement("div"); card.className = "card damage-calc-summary-card"; card.id = `damage-calc-summary-card-${index}`;
     const name = document.createElement("strong"); name.textContent = member.ownedPokemon.species_name;
     const item = document.createElement("span"); item.textContent = member.ownedPokemon.item_name || "もちものなし";
     const versus = document.createElement("span"); versus.textContent = `vs ${opponent.speciesName}`;
     card.append(name, item, versus); list.append(card);
   });
+  void loadPokemonMasterList().then((entries) => {
+    if (getSelectedTeam()?.id !== team.id || getOpponentBuild().speciesName !== opponent.speciesName) return;
+    const imageIds = new Map(entries.map((entry) => [entry.name, entry.imageId]));
+    team.members.forEach((member, index) => {
+      const item = document.createElement("button"); item.type = "button"; item.className = "damage-calc-summary-rail-item"; item.ariaLabel = member.ownedPokemon.species_name;
+      const imageId = imageIds.get(member.ownedPokemon.species_name);
+      if (imageId != null) { const img = document.createElement("img"); img.src = championSpriteUrl(imageId); img.alt = ""; img.onerror = () => { img.onerror = null; img.src = officialArtworkUrl(imageId); }; item.append(img); }
+      else item.textContent = member.ownedPokemon.species_name.slice(0, 1);
+      item.addEventListener("click", () => byId<HTMLElement>(`damage-calc-summary-card-${index}`).scrollIntoView({ behavior: "smooth", block: "nearest" })); rail.append(item);
+    });
+  }).catch(() => undefined);
 }
 function image(member: TeamMemberSpecInput, imageIds: Map<string, number>): HTMLButtonElement {
   const button = document.createElement("button"); button.type = "button"; button.className = "damage-calc-member-button"; button.title = member.ownedPokemon.species_name;
-  const id = imageIds.get(member.ownedPokemon.species_name); if (id != null) { const img = document.createElement("img"); img.src = officialArtworkUrl(id); img.alt = member.ownedPokemon.species_name; button.append(img); } else button.textContent = member.ownedPokemon.species_name.slice(0, 1);
+  const id = imageIds.get(member.ownedPokemon.species_name); if (id != null) { const img = document.createElement("img"); img.src = championSpriteUrl(id); img.alt = member.ownedPokemon.species_name; img.onerror = () => { img.onerror = null; img.src = officialArtworkUrl(id); }; button.append(img); } else button.textContent = member.ownedPokemon.species_name.slice(0, 1);
   button.dataset.selected = String(member.ownedPokemon.id === getSelectedTeam()?.selectedMemberId);
   button.addEventListener("click", () => { updateSelectedMember(member); resultCache.delete(member.ownedPokemon.id); render(); document.dispatchEvent(new CustomEvent("damage-calc:change", { detail: { reason: "member" } })); }); return button;
 }

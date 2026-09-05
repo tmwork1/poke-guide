@@ -1,16 +1,16 @@
 ---
 import type { Team } from "../../lib/team";
 import { toJsonScriptContent } from "../../lib/json-script";
+import SecondHeader from "../SecondHeader.astro";
 
 interface Props { teams: Team[]; }
 const { teams } = Astro.props;
 ---
 
-<section class="panel damage-calc-secondary-bar" aria-label="対面の選択">
-  <div class="panel-content damage-calc-secondary-content">
-    <div class="damage-calc-secondary-actions">
+<SecondHeader ariaLabel="対面の選択" class="damage-calc-secondary-bar">
+    <div class="toolbar-item damage-calc-secondary-actions">
       <button id="damage-calc-team-button" type="button" class="btn-control">チーム選択</button>
-      <button id="damage-calc-opponent-button" type="button" class="btn-primary">相手検索</button>
+      <button id="damage-calc-opponent-button" type="button" class="btn-control">相手検索</button>
       <p id="damage-calc-selection-summary" class="damage-calc-selection-summary" aria-live="polite"></p>
     </div>
     <section id="damage-calc-opponent-panel" class="damage-calc-opponent-panel" hidden aria-labelledby="damage-calc-opponent-title">
@@ -28,8 +28,7 @@ const { teams } = Astro.props;
       <datalist id="damage-calc-pokemon-list"></datalist><datalist id="damage-calc-move-list"></datalist>
       <p id="damage-calc-opponent-validation" class="damage-calc-validation" role="status"></p>
     </section>
-  </div>
-</section>
+</SecondHeader>
 
 <dialog id="damage-calc-team-dialog" class="damage-calc-team-dialog" aria-labelledby="damage-calc-team-dialog-title">
   <div class="damage-calc-dialog-content"><h2 id="damage-calc-team-dialog-title">チームを選択</h2><div id="damage-calc-team-list"></div><button id="damage-calc-team-dialog-close" type="button" class="btn-ghost">閉じる</button></div>
