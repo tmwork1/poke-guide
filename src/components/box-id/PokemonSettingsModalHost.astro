@@ -36,6 +36,10 @@ const { pokemon, showForm = false, opggRankedSpeciesNames = [] } = Astro.props;
 	<script type="application/json" id="box-opgg-ranked-species" set:html={toJsonScriptContent(opggRankedSpeciesNames)} />
 </div>
 
+<script>
+	import '../../lib/box-id/tera-select-dialog';
+</script>
+
 <style>
 	.pokemon-settings-modal-host.is-form-visible {
 		display: contents;

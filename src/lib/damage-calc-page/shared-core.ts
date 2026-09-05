@@ -7,13 +7,13 @@ export type DamageCalcBoosts = [number, number, number, number, number, number];
 export interface SelfState {
   boosts: DamageCalcBoosts;
   ailment: string;
-  terastallized: boolean;
+  teraType: string;
 }
 
 export interface OpponentState {
   boosts: DamageCalcBoosts;
   ailment: string;
-  terastallized: boolean;
+  teraType: string;
 }
 
 /** 壁はその壁を受けている陣営ごとに保持し、計算時に defenderSideFields へ写す。 */
@@ -63,13 +63,13 @@ export const DEFAULT_DAMAGE_CALC_BOOSTS: DamageCalcBoosts = [0, 0, 0, 0, 0, 0];
 export const DEFAULT_SELF_STATE: SelfState = {
   boosts: [...DEFAULT_DAMAGE_CALC_BOOSTS],
   ailment: "",
-  terastallized: false,
+  teraType: "",
 };
 
 export const DEFAULT_OPPONENT_STATE: OpponentState = {
   boosts: [...DEFAULT_DAMAGE_CALC_BOOSTS],
   ailment: "",
-  terastallized: false,
+  teraType: "",
 };
 
 export const DEFAULT_FIELD_STATE: FieldState = {

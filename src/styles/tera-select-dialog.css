@@ -6,7 +6,8 @@
 	item-select-dialog.cssより一段シンプルな構成(ヘッダー+グリッドのみ)。
 	=========================================================================== */
 body.box-edit-page,
-body.data-page {
+body.data-page,
+body.damage-calc-page {
 	--tera-select-close-size: var(--modal-close-size);
 }
 

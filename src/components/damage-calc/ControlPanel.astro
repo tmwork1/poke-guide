@@ -1,4 +1,5 @@
 ---
+import TeraSelectDialog from '../box-id/TeraSelectDialog.astro';
 ---
 <section class="damage-calc-control-bar" aria-label="コントロールパネル">
   <div class="damage-calc-control-inner">
@@ -16,10 +17,10 @@
 
       <div class="damage-calc-control-cell damage-calc-control-row-2" data-side="self">
         <div class="damage-calc-ailment-field"><select id="damage-calc-self-ailment" aria-label="状態異常"></select></div>
-        <button id="damage-calc-self-tera-button" class="damage-calc-tera-toggle" type="button" aria-pressed="false" aria-label="テラスタル"><span class="damage-calc-tera-icon-wrap" aria-hidden="true"><img class="damage-calc-tera-icon" alt="" hidden /></span><input id="damage-calc-self-tera" type="checkbox" tabindex="-1" /></button>
+        <button id="damage-calc-self-tera-button" class="damage-calc-tera-toggle" type="button" aria-pressed="false" aria-label="テラスタル"><span class="damage-calc-tera-icon-wrap" aria-hidden="true"><img class="damage-calc-tera-icon" alt="" hidden /></span></button>
       </div>
       <div class="damage-calc-control-cell damage-calc-control-row-2" data-side="opponent">
-        <button id="damage-calc-opponent-tera-button" class="damage-calc-tera-toggle" type="button" aria-pressed="false" aria-label="テラスタル"><span class="damage-calc-tera-icon-wrap" aria-hidden="true"><img class="damage-calc-tera-icon" alt="" hidden /></span><input id="damage-calc-opponent-tera-toggle" type="checkbox" tabindex="-1" /></button>
+        <button id="damage-calc-opponent-tera-button" class="damage-calc-tera-toggle" type="button" aria-pressed="false" aria-label="テラスタル"><span class="damage-calc-tera-icon-wrap" aria-hidden="true"><img class="damage-calc-tera-icon" alt="" hidden /></span></button>
         <div class="damage-calc-ailment-field"><select id="damage-calc-opponent-ailment" aria-label="状態異常"></select></div>
       </div>
 
@@ -34,3 +35,5 @@
     </div>
   </div>
 </section>
+<TeraSelectDialog idPrefix="damage-calc-self-" />
+<TeraSelectDialog idPrefix="damage-calc-opponent-" />

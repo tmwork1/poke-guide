@@ -1,26 +1,25 @@
 ---
 import '../../styles/tera-select-dialog.css';
+interface Props { idPrefix?: string; }
+const { idPrefix = '' } = Astro.props;
+const id = (name: string) => `${idPrefix}${name}`;
 ---
 
-<div id="tera-select-backdrop" class="tera-select-backdrop" hidden></div>
+<div id={id('tera-select-backdrop')} class="tera-select-backdrop" hidden></div>
 <div
-	id="tera-select-dialog"
+	id={id('tera-select-dialog')}
 	class="tera-select-dialog"
 	role="dialog"
 	aria-modal="true"
-	aria-labelledby="tera-select-dialog-title"
+	aria-labelledby={id('tera-select-dialog-title')}
 	tabindex="-1"
 	hidden
 >
 	<div class="tera-select-header">
-		<h2 id="tera-select-dialog-title" class="tera-select-title">テラスタル選択</h2>
-		<button type="button" id="tera-select-close-button" class="btn-ghost tera-select-close" aria-label="閉じる">×</button>
+		<h2 id={id('tera-select-dialog-title')} class="tera-select-title">テラスタル選択</h2>
+		<button type="button" id={id('tera-select-close-button')} class="btn-ghost tera-select-close" aria-label="閉じる">×</button>
 	</div>
-	<div id="tera-select-grid-wrap" class="tera-select-grid-wrap">
-		<div id="tera-select-grid" class="tera-select-grid" role="listbox" aria-label="テラスタイプを選択"></div>
+	<div id={id('tera-select-grid-wrap')} class="tera-select-grid-wrap">
+		<div id={id('tera-select-grid')} class="tera-select-grid" role="listbox" aria-label="テラスタイプを選択"></div>
 	</div>
 </div>
-
-<script>
-	import '../../lib/box-id/tera-select-dialog';
-</script>
