@@ -4,13 +4,15 @@
 .damage-calc-login-guide { max-width: 1080px; margin: var(--space-3) auto; padding: 0 var(--space-3); color: var(--color-text-muted); }
 .damage-calc-secondary-bar .second-header__content { flex-wrap: wrap; }
 .damage-calc-secondary-actions { display: flex; align-items: center; gap: var(--space-2); flex: 0 1 auto; flex-wrap: wrap; }
+.damage-calc-secondary-button { display: inline-flex; align-items: center; min-height: 2.35rem; padding: 0.42em 0.9em; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-surface); color: var(--color-text); font-size: var(--font-size-sm1); font-weight: var(--font-weight-normal); line-height: var(--line-height-snug); }
+.damage-calc-secondary-button:hover:not(:disabled) { border-color: var(--color-primary); background: var(--color-surface); color: var(--color-text); }
 .damage-calc-matchups { min-height: 28rem; padding: var(--space-5) var(--space-3); }
 .damage-calc-matchups > .panel-content { min-width: 0; }
 .damage-calc-summary-layout { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) 3rem; gap: var(--space-3); }
 .damage-calc-summary-list { display: grid; grid-column: 1; gap: var(--space-3); }
 .damage-calc-summary-rail { position: sticky; top: calc(var(--header-height) + var(--app-header-height) + var(--second-header-height) + var(--space-3)); align-self: start; display: flex; grid-column: 2; flex-direction: column; align-items: center; gap: var(--space-2); max-height: calc(100vh - var(--app-header-height) - var(--second-header-height) - var(--damage-calc-control-bar-height) - var(--bottom-nav-height) - var(--space-6)); overflow-y: auto; scrollbar-width: none; }
 .damage-calc-summary-rail::-webkit-scrollbar { display: none; }
-.damage-calc-summary-rail-item { flex: 0 0 auto; width: 2.5rem; height: 2.5rem; min-height: 2.5rem; padding: 0; overflow: hidden; border: 0; border-radius: 50%; background: var(--color-surface-sunken); font-size: var(--font-size-sm2); }
+.damage-calc-summary-rail-item { flex: 0 0 auto; width: 2.5rem; height: 2.5rem; min-height: 2.5rem; padding: 0; overflow: hidden; border: 0; border-radius: 50%; background: transparent; font-size: var(--font-size-sm2); }
 .damage-calc-summary-rail-item img { display: block; width: 100%; height: 100%; object-fit: contain; }
 .damage-calc-summary-list .damage-calc-summary-card { display: grid; grid-template-columns: minmax(9rem, 1fr) minmax(9rem, 1fr) minmax(9rem, 1fr) auto; align-items: center; gap: var(--space-3); width: 100%; text-align: left; }
 .damage-calc-summary-card strong { font-size: var(--font-size-lg1); }
@@ -21,15 +23,17 @@
 .damage-calc-control-header { display: flex; justify-content: space-between; padding: 0 var(--space-1); color: var(--color-text-muted); font-size: var(--font-size-sm3); }
 .damage-calc-control-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-2); margin-top: var(--space-2); }
 .damage-calc-control-cell { display: flex; align-items: center; justify-content: space-between; gap: var(--space-1); min-width: 0; }
+.damage-calc-control-cell:not(:first-child) { padding-left: var(--space-2); border-left: 1px solid var(--color-border); }
 .damage-calc-control-cell--field { flex-direction: column; align-items: stretch; gap: var(--space-1); }
 .damage-calc-ailment-field { width: 100%; }
+.damage-calc-ailment-field select { font-size: var(--font-size-sm2); min-height: 2.5rem; }
 .damage-calc-ranks { display: grid; gap: var(--space-1); min-width: 0; }
 .damage-calc-rank-row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); color: var(--color-text-muted); font-size: var(--font-size-sm3); }
-.damage-calc-rank-row .number-stepper { --number-stepper-size: 30px; --number-stepper-input-width: 2.4em; }
+.damage-calc-rank-row .number-stepper { --number-stepper-size: 2.5rem; --number-stepper-input-width: 2.4em; }
 .damage-calc-rank-row output { text-align: center; font-variant-numeric: tabular-nums; }
 .damage-calc-native-control, .damage-calc-tera-toggle input[type="checkbox"] { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; border: 0; }
 .damage-calc-icon-group { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); overflow: hidden; border: 1px solid var(--color-border); border-radius: var(--radius-md); }
-.damage-calc-icon-btn { display: flex; align-items: center; justify-content: center; min-height: 2rem; padding: var(--space-1); color: var(--color-text-muted); background: var(--color-surface); border: 0; border-radius: 0; font: inherit; font-size: var(--font-size-sm1); }
+.damage-calc-icon-btn { display: flex; align-items: center; justify-content: center; min-height: 2.5rem; padding: var(--space-1); color: var(--color-text-muted); background: var(--color-surface); border: 0; border-radius: 0; font: inherit; font-size: var(--font-size-sm1); }
 .damage-calc-icon-btn svg { flex: none; }
 .damage-calc-icon-btn:nth-child(2n) { border-left: 1px solid var(--color-border); }
 .damage-calc-icon-btn:nth-child(n+3) { border-top: 1px solid var(--color-border); }

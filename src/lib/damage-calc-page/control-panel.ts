@@ -87,7 +87,10 @@ export function initControlPanel(): void {
     const select = document.getElementById(id) as HTMLSelectElement;
     select.replaceChildren(...options.map((option) => new Option(option.label, option.value)));
   };
-  fillSelect("damage-calc-self-ailment", DAMAGE_AILMENTS); fillSelect("damage-calc-opponent-ailment", DAMAGE_AILMENTS);
+  // 共有配列DAMAGE_AILMENTSの空値ラベルは他画面向けの「なし」のまま保ち、
+  // このページの表示だけ「状態異常」に差し替える(プレースホルダーとして何のセレクトか分かるように)。
+  const ailmentOptions = DAMAGE_AILMENTS.map((option) => (option.value === "" ? { ...option, label: "状態異常" } : option));
+  fillSelect("damage-calc-self-ailment", ailmentOptions); fillSelect("damage-calc-opponent-ailment", ailmentOptions);
   fillSelect("damage-calc-weather", [{ value: "", label: "なし" }, ...DAMAGE_WEATHERS]); fillSelect("damage-calc-terrain", [{ value: "", label: "なし" }, ...DAMAGE_TERRAINS]);
   // ダメージ計算詳細設定モーダル(box-id/right-panel.ts の buildIconToggleGroup)と同じく、
   // アイコンのみのボタンにする(「なし」用のボタンは置かず、選択中のボタンを再度押すと解除する)。
