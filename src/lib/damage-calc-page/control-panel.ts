@@ -4,9 +4,78 @@ import { teraTypeIconUrl } from "../sprite-urls";
 
 const labels = ["攻撃", "防御", "特攻", "特防", "素早さ"];
 const emit = () => document.dispatchEvent(new CustomEvent("damage-calc:change", { detail: { reason: "controls" } }));
+const formatRank = (value: number): string => (value > 0 ? `+${value}` : String(value));
+
+interface RankStepper { row: HTMLElement; setValue: (value: number) => void; }
+
+// ダメージ計算詳細設定モーダル(src/lib/box-id/right-panel.ts の buildSideSection)と同じ
+// 「±ボタン + ワンタップで-6〜+6を選べるポップアップ」構成を流用する。
+function createRankStepper(label: string, ariaSideLabel: string, onChange: (value: number) => void): RankStepper {
+  const row = document.createElement("div"); row.className = "damage-calc-rank-row";
+  const labelSpan = document.createElement("span"); labelSpan.textContent = label;
+  const decrementButton = document.createElement("button"); decrementButton.type = "button"; decrementButton.textContent = "−"; decrementButton.ariaLabel = `${ariaSideLabel}の${label}ランクを下げる`;
+  const incrementButton = document.createElement("button"); incrementButton.type = "button"; incrementButton.textContent = "+"; incrementButton.ariaLabel = `${ariaSideLabel}の${label}ランクを上げる`;
+  const pickerButton = document.createElement("button"); pickerButton.type = "button"; pickerButton.className = "number-stepper-value tnum"; pickerButton.setAttribute("aria-haspopup", "dialog"); pickerButton.setAttribute("aria-expanded", "false"); pickerButton.ariaLabel = `${ariaSideLabel}の${label}ランク`;
+  const picker = document.createElement("div"); picker.className = "number-stepper-picker number-stepper-picker--rank"; picker.hidden = true; picker.setAttribute("role", "dialog");
+  for (let value = -6; value <= 6; value += 1) {
+    const option = document.createElement("button"); option.type = "button"; option.className = "tnum"; option.dataset.rankValue = String(value); option.textContent = formatRank(value);
+    picker.append(option);
+  }
+  let current = 0;
+  const closePicker = () => { picker.hidden = true; pickerButton.setAttribute("aria-expanded", "false"); };
+  const openPicker = () => {
+    document.body.append(picker); picker.hidden = false;
+    const anchor = pickerButton.getBoundingClientRect(), pickerRect = picker.getBoundingClientRect();
+    // 固定表示バーは画面下端にあるため、詳細設定モーダル版(下に開く)と異なりボタンの上に開く。
+    picker.style.position = "fixed";
+    picker.style.top = `${Math.max(8, Math.min(window.innerHeight - pickerRect.height - 8, anchor.top - pickerRect.height - 4))}px`;
+    picker.style.left = `${Math.max(8, Math.min(window.innerWidth - pickerRect.width - 8, anchor.left + (anchor.width - pickerRect.width) / 2))}px`;
+    pickerButton.setAttribute("aria-expanded", "true");
+  };
+  const refresh = () => {
+    pickerButton.textContent = formatRank(current);
+    pickerButton.classList.toggle("is-nonzero", current !== 0);
+    decrementButton.disabled = current <= -6; incrementButton.disabled = current >= 6;
+    picker.querySelectorAll<HTMLButtonElement>("[data-rank-value]").forEach((option) => option.setAttribute("aria-current", String(Number(option.dataset.rankValue) === current)));
+  };
+  const commit = (value: number) => { current = clampInt(value, -6, 6); refresh(); onChange(current); };
+  pickerButton.addEventListener("click", () => { if (picker.hidden) openPicker(); else closePicker(); });
+  picker.addEventListener("click", (event) => { const option = (event.target as Element).closest<HTMLButtonElement>("[data-rank-value]"); if (!option) return; commit(Number(option.dataset.rankValue)); closePicker(); pickerButton.focus(); });
+  document.addEventListener("pointerdown", (event) => { if (picker.hidden || picker.contains(event.target as Node) || pickerButton.contains(event.target as Node)) return; closePicker(); });
+  decrementButton.addEventListener("click", () => commit(current - 1));
+  incrementButton.addEventListener("click", () => commit(current + 1));
+  refresh();
+  const stepperGroup = document.createElement("span"); stepperGroup.className = "rank-stepper-group number-stepper";
+  stepperGroup.append(decrementButton, pickerButton, incrementButton, picker);
+  row.append(labelSpan, stepperGroup);
+  return { row, setValue: (value: number) => { current = value; refresh(); } };
+}
+
+function syncControlBarHeight(): void {
+  const bar = document.querySelector<HTMLElement>(".damage-calc-control-bar");
+  if (!bar) return;
+  const update = () => document.documentElement.style.setProperty("--damage-calc-control-bar-height", `${bar.offsetHeight}px`);
+  new ResizeObserver(update).observe(bar);
+  update();
+}
 
 export function initControlPanel(): void {
+  syncControlBarHeight();
   const rankRoots = Array.from(document.querySelectorAll<HTMLElement>(".damage-calc-ranks"));
+  const rankSteppersBySide = new Map<"self" | "opponent", RankStepper[]>();
+  rankRoots.forEach((root) => {
+    const side: "self" | "opponent" = root.dataset.side === "self" ? "self" : "opponent";
+    const ariaSideLabel = side === "self" ? "自分" : "相手";
+    const steppers = labels.map((label, index) => createRankStepper(label, ariaSideLabel, (value) => {
+      const state = side === "self" ? getSelfState() : getOpponentState();
+      const boosts = [...state.boosts] as typeof state.boosts;
+      boosts[index + 1] = value;
+      if (side === "self") setSelfState({ ...state, boosts }); else setOpponentState({ ...state, boosts });
+      emit();
+    }));
+    root.replaceChildren(...steppers.map((stepper) => stepper.row));
+    rankSteppersBySide.set(side, steppers);
+  });
   const fillSelect = (id: string, options: readonly { value: string; label: string }[]) => {
     const select = document.getElementById(id) as HTMLSelectElement;
     select.replaceChildren(...options.map((option) => new Option(option.label, option.value)));
@@ -24,16 +93,9 @@ export function initControlPanel(): void {
   renderChoiceGroup("damage-calc-terrain-buttons", "damage-calc-terrain");
   const render = () => {
     const self = getSelfState(), opponent = getOpponentState(), field = getFieldState();
-    rankRoots.forEach((root) => {
-      const state = root.dataset.side === "self" ? self : opponent;
-      root.replaceChildren(...labels.map((label, index) => {
-        const row = document.createElement("div"); row.className = "damage-calc-rank-row";
-        const minus = document.createElement("button"); minus.type = "button"; minus.textContent = "−"; minus.ariaLabel = `${label}を下げる`;
-        const value = document.createElement("output"); value.className = "number-stepper-value damage-calc-rank-input"; value.textContent = `${state.boosts[index + 1] >= 0 ? "+" : ""}${state.boosts[index + 1]}`;
-        const plus = document.createElement("button"); plus.type = "button"; plus.textContent = "+"; plus.ariaLabel = `${label}を上げる`;
-        const change = (delta: number) => { const current = root.dataset.side === "self" ? getSelfState() : getOpponentState(); const boosts = [...current.boosts] as typeof current.boosts; boosts[index + 1] = clampInt(boosts[index + 1] + delta, -6, 6); if (root.dataset.side === "self") setSelfState({ ...current, boosts }); else setOpponentState({ ...current, boosts }); render(); emit(); };
-        const stepper = document.createElement("span"); stepper.className = "number-stepper"; minus.addEventListener("click", () => change(-1)); plus.addEventListener("click", () => change(1)); stepper.append(minus, value, plus); row.append(Object.assign(document.createElement("span"), { textContent: label }), stepper); return row;
-      }));
+    (["self", "opponent"] as const).forEach((side) => {
+      const state = side === "self" ? self : opponent;
+      rankSteppersBySide.get(side)?.forEach((stepper, index) => stepper.setValue(state.boosts[index + 1]));
     });
     (document.getElementById("damage-calc-self-ailment") as HTMLSelectElement).value = self.ailment;
     (document.getElementById("damage-calc-opponent-ailment") as HTMLSelectElement).value = opponent.ailment;
