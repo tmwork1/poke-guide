@@ -1428,12 +1428,27 @@ body.box-edit-page {
 #damage-detail-panel-body .damage-detail-icon-group.is-row4 .damage-detail-icon-btn {
   border: none;
   border-radius: 0;
-  /* 直下の揮発状態(.damage-detail-state-grid > .damage-detail-icon-btn)と
-     同じフォント・ボタン高さに揃える。 */
-  height: 30px;
-  min-height: 30px;
   font-size: var(--damage-detail-font-size-xs);
   padding: var(--damage-detail-space-xs) var(--damage-detail-space-xs);
+}
+
+/* テキストのみ(状態異常)は、直下の揮発状態(.damage-detail-state-grid >
+   .damage-detail-icon-btn)と同じフォント・ボタン高さに揃える。 */
+#damage-detail-panel-body .damage-detail-icon-group.is-row4 .damage-detail-icon-btn.is-text-only {
+  height: 30px;
+  min-height: 30px;
+}
+
+/* アイコン付き(天候・フィールド)はアイコン+ラベルの縦積みを保つ(内部レイアウトは
+   変えない、上記コメント参照)。30px固定だとアイコンがflex-shrinkでほぼ0pxまで
+   縮んで消えてしまっていたため、縦積みが収まる高さに広げる。 */
+#damage-detail-panel-body .damage-detail-icon-group.is-row4 .damage-detail-icon-btn:not(.is-text-only) {
+  height: 44px;
+  min-height: 44px;
+}
+
+#damage-detail-panel-body .damage-detail-icon-group.is-row4 .damage-detail-icon-btn svg {
+  flex: none;
 }
 
 #damage-detail-panel-body .damage-detail-icon-group.is-row4 .damage-detail-icon-btn + .damage-detail-icon-btn {
