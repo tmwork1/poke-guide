@@ -2225,7 +2225,7 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .box-add-button
 }
 
 /* Direction is conveyed by the card face and badge text; no extra pill highlight. */
-#opponent-notes-section .card-damage .damage-build-matchup .damage-row-direction-option[aria-checked="true"],
+#opponent-notes-section .card-damage .damage-build-matchup .damage-row-direction-option[data-role][aria-checked="true"],
 #opponent-notes-section .damage-suggest-direction[data-direction] {
   background: transparent;
 }
