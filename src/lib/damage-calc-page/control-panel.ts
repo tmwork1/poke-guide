@@ -18,7 +18,6 @@ interface RankStepper { row: HTMLElement; setValue: (value: number) => void; }
 // 「±ボタン + ワンタップで-6〜+6を選べるポップアップ」構成を流用する。
 function createRankStepper(label: string, ariaSideLabel: string, onChange: (value: number) => void): RankStepper {
   const row = document.createElement("div"); row.className = "damage-calc-rank-row";
-  const labelSpan = document.createElement("span"); labelSpan.textContent = label;
   const decrementButton = document.createElement("button"); decrementButton.type = "button"; decrementButton.textContent = "−"; decrementButton.ariaLabel = `${ariaSideLabel}の${label}ランクを下げる`;
   const incrementButton = document.createElement("button"); incrementButton.type = "button"; incrementButton.textContent = "+"; incrementButton.ariaLabel = `${ariaSideLabel}の${label}ランクを上げる`;
   const pickerButton = document.createElement("button"); pickerButton.type = "button"; pickerButton.className = "number-stepper-value tnum"; pickerButton.setAttribute("aria-haspopup", "dialog"); pickerButton.setAttribute("aria-expanded", "false"); pickerButton.ariaLabel = `${ariaSideLabel}の${label}ランク`;
@@ -53,7 +52,7 @@ function createRankStepper(label: string, ariaSideLabel: string, onChange: (valu
   refresh();
   const stepperGroup = document.createElement("span"); stepperGroup.className = "rank-stepper-group number-stepper";
   stepperGroup.append(decrementButton, pickerButton, incrementButton, picker);
-  row.append(labelSpan, stepperGroup);
+  row.append(stepperGroup);
   return { row, setValue: (value: number) => { current = value; refresh(); } };
 }
 

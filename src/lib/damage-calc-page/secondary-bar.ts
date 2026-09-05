@@ -52,7 +52,7 @@ export function initSecondaryBar(): void {
 
   const renderSummary = () => {
     const selected = getSelectedTeam();
-    summary.textContent = selected ? `選択中: ${teams.find((team) => team.id === selected.id)?.memo || `チーム（${selected.members.length}体）`}` : "チームを選択してください";
+    summary.textContent = selected ? `選択中: ${teams.find((team) => team.id === selected.id)?.memo || `チーム（${selected.members.length}体）`}` : "";
   };
   const renderTeamChoices = () => {
     teamList.replaceChildren();

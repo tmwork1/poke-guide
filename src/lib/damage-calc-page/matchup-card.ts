@@ -34,12 +34,11 @@ function renderTabs(): void {
   });
 }
 function renderSummary(): void {
-  const opponent = getOpponentBuild(); const list = byId<HTMLElement>("damage-calc-summary-list"), placeholder = byId<HTMLElement>("damage-calc-placeholder");
+  const opponent = getOpponentBuild(); const list = byId<HTMLElement>("damage-calc-summary-list");
   list.replaceChildren();
-  if (!opponent.speciesName) { placeholder.hidden = false; return; }
+  if (!opponent.speciesName) return;
   const team = getSelectedTeam();
-  if (!team?.members.length) { placeholder.textContent = "チームを選択してください。"; placeholder.hidden = false; return; }
-  placeholder.hidden = true;
+  if (!team?.members.length) return;
   // 1 vs 1(詳細表示)はまだ実装しないため、カードはタップ不可の要約表示に留める。
   team.members.forEach((member, index) => {
     const card = document.createElement("div"); card.className = "card damage-calc-summary-card"; card.id = `damage-calc-summary-card-${index}`;
