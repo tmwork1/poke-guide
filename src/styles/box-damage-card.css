@@ -934,12 +934,12 @@ body.box-edit-page {
 /* Slightly reduce the visual weight of the KO-count verdict. */
 #opponent-notes-section .damage-row-total-result .damage-result-verdict {
   font-size: var(--font-size-sm1);
-  font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-normal);
 }
 
 #opponent-notes-section .damage-result-probability {
   margin-inline-start: .25em;
-  font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-normal);
 }
 
 #opponent-notes-section .damage-row-total-result .damage-result-detail {
