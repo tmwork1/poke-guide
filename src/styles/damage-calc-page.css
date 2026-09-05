@@ -7,7 +7,7 @@
    スクロールコンテナの子孫にならず、他ページのAppHeader/SecondHeaderと同じ
    「documentが動かないので実質固定表示」になる(sticky計算がshellのスクロールと
    絡んで見た目上スクロール領域に含まれてしまう不具合を避ける)。 */
-.damage-calc-shell { position: fixed; top: var(--damage-calc-content-top, calc(var(--header-height) + var(--app-header-height) + var(--second-header-height))); right: 0; bottom: calc(var(--damage-calc-control-bar-height) + var(--bottom-nav-height) + env(safe-area-inset-bottom)); left: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; min-width: 0; background: var(--color-bg); }
+.damage-calc-shell { position: fixed; top: var(--damage-calc-content-top, calc(var(--header-height) + var(--app-header-height) + var(--second-header-height))); right: 0; bottom: calc(var(--damage-calc-control-bar-height) + var(--bottom-nav-height) + env(safe-area-inset-bottom)); left: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; min-width: 0; background: var(--color-bg); }
 .damage-calc-login-guide { max-width: 1080px; margin: var(--space-3) auto; padding: 0 var(--space-3); color: var(--color-text-muted); }
 .damage-calc-secondary-bar .second-header__content { flex-wrap: wrap; }
 .damage-calc-secondary-actions { display: flex; align-items: center; gap: var(--space-2); flex: 0 1 auto; flex-wrap: wrap; }
@@ -25,9 +25,15 @@
    (.damage-calc-summary-list)の内容が短い/空だと行の高さがレール自身の高さと
    一致してしまい、stickyが機能する「余白」が無くなって効かない(スクロール量が
    ゼロでも上端/下端をはみ出す)問題があった。top/bottomを直接指定すれば行の高さに
-   一切依存せず、常にこの領域ちょうどの高さになる。上下のpadding-blockは
-   見えないgap(スクロールしたアイコンがヘッダー/パネルへ重ならないようにする)。 */
-.damage-calc-summary-rail { position: fixed; top: var(--damage-calc-content-top, calc(var(--header-height) + var(--app-header-height) + var(--second-header-height))); bottom: calc(var(--damage-calc-control-bar-height) + var(--bottom-nav-height) + env(safe-area-inset-bottom)); right: var(--space-3); width: 2.5rem; z-index: 5; display: flex; flex-direction: column; align-items: center; gap: var(--space-2); padding-block: var(--space-3); overflow-y: auto; scrollbar-width: none; background: var(--color-bg); }
+   一切依存せず、常にこの領域ちょうどの高さになる。
+   上下の見えないgap(--damage-calc-rail-gap)は padding-block では作れない。
+   overflowのクリップ領域はパディングボックスなので、スクロールしたアイコンは
+   パディング部分にそのまま描画されてしまい、セカンドヘッダー/コントロールパネルに
+   接して見える。gapぶんだけtop/bottomを内側にずらして要素自体を縮め、
+   クリップ境界の外側に余白を確保する。
+   -webkit-overflow-scrolling/overscroll-behaviorは、モバイルでの慣性スクロール中に
+   レール内アイコンがoverflowの境界をはみ出して見える描画の乱れを防ぐ。 */
+.damage-calc-summary-rail { --damage-calc-rail-gap: var(--space-3); position: fixed; top: calc(var(--damage-calc-content-top, calc(var(--header-height) + var(--app-header-height) + var(--second-header-height))) + var(--damage-calc-rail-gap)); bottom: calc(var(--damage-calc-control-bar-height) + var(--bottom-nav-height) + env(safe-area-inset-bottom) + var(--damage-calc-rail-gap)); right: var(--space-3); width: 2.5rem; z-index: 5; display: flex; flex-direction: column; align-items: center; gap: var(--space-2); overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; scrollbar-width: none; background: var(--color-bg); }
 .damage-calc-summary-rail::-webkit-scrollbar { display: none; }
 .damage-calc-summary-rail-item { flex: 0 0 auto; width: 2.5rem; height: 2.5rem; min-height: 2.5rem; padding: 0; overflow: hidden; border: 0; border-radius: 50%; background: transparent; font-size: var(--font-size-sm2); }
 .damage-calc-summary-rail-item img { display: block; width: 100%; height: 100%; object-fit: contain; }
