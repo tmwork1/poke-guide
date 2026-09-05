@@ -1,4 +1,4 @@
-import { loadAbilitiesMap, loadMoveDetailMap, loadPokemonMasterList } from "../pokemon-master-data";
+import { championSpriteUrl, loadAbilitiesMap, loadMoveDetailMap, loadPokemonMasterList, officialArtworkUrl } from "../pokemon-master-data";
 import { getOpponentBuild, getSelectedTeam, setOpponentBuild, setSelectedTeam, type SelectedTeam, type TeamMemberSpecInput } from "./shared-core";
 import type { Team } from "../team";
 // 相手ポケモン候補の並び順(opgg順+メガシンカを通常フォルムの直後に挿入)を、
@@ -44,6 +44,7 @@ export function initSecondaryBar(): void {
   const pokemonList = byId<HTMLDataListElement>("damage-calc-pokemon-list");
   const opggRankedSpeciesNames = readOpggRankedSpeciesNames();
   const moveList = byId<HTMLDataListElement>("damage-calc-move-list");
+  const rail = byId<HTMLElement>("damage-calc-summary-rail");
   let pokemonNames = new Set<string>();
   let abilitiesBySpecies = new Map<string, string[]>();
   let moveNames = new Set<string>();
@@ -107,6 +108,17 @@ export function initSecondaryBar(): void {
     pokemonNames = new Set(pokemon.map((entry) => entry.name)); abilitiesBySpecies = abilities; moveNames = new Set(moves.keys());
     pokemonList.replaceChildren(...orderPokemonEntriesForDatalist(pokemon, opggRankedSpeciesNames).map((name) => new Option(name)));
     moveList.replaceChildren(...Array.from(moves.keys(), (name) => new Option(name)));
+    // 相手ポケモンをタップだけで選べるよう、opgg使用率上位の候補をアイコンレールに並べる
+    // (/data のbattle-data-railと同じ「候補をアイコン一列に並べる」考え方の流用)。
+    const imageIds = new Map(pokemon.map((entry) => [entry.name, entry.imageId]));
+    rail.replaceChildren(...opggRankedSpeciesNames.slice(0, 24).map((name) => {
+      const item = document.createElement("button"); item.type = "button"; item.className = "damage-calc-summary-rail-item"; item.ariaLabel = name;
+      const imageId = imageIds.get(name);
+      if (imageId != null) { const img = document.createElement("img"); img.src = championSpriteUrl(imageId); img.alt = ""; img.onerror = () => { img.onerror = null; img.src = officialArtworkUrl(imageId); }; item.append(img); }
+      else item.textContent = name.slice(0, 1);
+      item.addEventListener("click", () => { opponentPanel.hidden = false; speciesInput.value = name; commitSpecies(); });
+      return item;
+    }));
     const build = getOpponentBuild(); speciesInput.value = build.speciesName; itemInput.value = build.itemName; teraSelect.value = build.teraType;
     moveSlots = [...build.moveNames, "", "", "", ""].slice(0, 4); moveInputs.forEach((input, index) => { input.value = moveSlots[index]; }); setAbilityOptions();
   }).catch(() => { validation.textContent = "候補データの読み込みに失敗しました。再読み込みしてください。"; });

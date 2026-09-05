@@ -35,8 +35,7 @@ function renderTabs(): void {
 }
 function renderSummary(): void {
   const opponent = getOpponentBuild(); const list = byId<HTMLElement>("damage-calc-summary-list"), placeholder = byId<HTMLElement>("damage-calc-placeholder");
-  const rail = byId<HTMLElement>("damage-calc-summary-rail");
-  list.replaceChildren(); rail.replaceChildren();
+  list.replaceChildren();
   if (!opponent.speciesName) { placeholder.hidden = false; return; }
   const team = getSelectedTeam();
   if (!team?.members.length) { placeholder.textContent = "チームを選択してください。"; placeholder.hidden = false; return; }
@@ -49,17 +48,6 @@ function renderSummary(): void {
     const versus = document.createElement("span"); versus.textContent = `vs ${opponent.speciesName}`;
     card.append(name, item, versus); list.append(card);
   });
-  void loadPokemonMasterList().then((entries) => {
-    if (getSelectedTeam()?.id !== team.id || getOpponentBuild().speciesName !== opponent.speciesName) return;
-    const imageIds = new Map(entries.map((entry) => [entry.name, entry.imageId]));
-    team.members.forEach((member, index) => {
-      const item = document.createElement("button"); item.type = "button"; item.className = "damage-calc-summary-rail-item"; item.ariaLabel = member.ownedPokemon.species_name;
-      const imageId = imageIds.get(member.ownedPokemon.species_name);
-      if (imageId != null) { const img = document.createElement("img"); img.src = championSpriteUrl(imageId); img.alt = ""; img.onerror = () => { img.onerror = null; img.src = officialArtworkUrl(imageId); }; item.append(img); }
-      else item.textContent = member.ownedPokemon.species_name.slice(0, 1);
-      item.addEventListener("click", () => byId<HTMLElement>(`damage-calc-summary-card-${index}`).scrollIntoView({ behavior: "smooth", block: "nearest" })); rail.append(item);
-    });
-  }).catch(() => undefined);
 }
 function image(member: TeamMemberSpecInput, imageIds: Map<string, number>): HTMLButtonElement {
   const button = document.createElement("button"); button.type = "button"; button.className = "damage-calc-member-button"; button.title = member.ownedPokemon.species_name;
