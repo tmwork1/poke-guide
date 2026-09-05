@@ -92,13 +92,15 @@ export function initControlPanel(): void {
   const ailmentOptions = DAMAGE_AILMENTS.map((option) => (option.value === "" ? { ...option, label: "状態異常" } : option));
   fillSelect("damage-calc-self-ailment", ailmentOptions); fillSelect("damage-calc-opponent-ailment", ailmentOptions);
   fillSelect("damage-calc-weather", [{ value: "", label: "なし" }, ...DAMAGE_WEATHERS]); fillSelect("damage-calc-terrain", [{ value: "", label: "なし" }, ...DAMAGE_TERRAINS]);
-  // ダメージ計算詳細設定モーダル(box-id/right-panel.ts の buildIconToggleGroup)と同じく、
-  // アイコンのみのボタンにする(「なし」用のボタンは置かず、選択中のボタンを再度押すと解除する)。
+  // ダメージ計算詳細設定モーダル(box-id/right-panel.ts の buildIconToggleGroup)とは異なり、
+  // このパネルはアイコン+ラベルの2段組にする(「なし」用のボタンは置かず、選択中のボタンを
+  // 再度押すと解除する)。ラベルはボタンの可視テキストになるので、冗長なtitle/ariaLabelは付けない。
   const renderChoiceGroup = (rootId: string, selectId: string, options: readonly { value: string; label: string; icon: string }[]) => {
     const root = document.getElementById(rootId) as HTMLElement, select = document.getElementById(selectId) as HTMLSelectElement;
     root.replaceChildren(...options.map((option) => {
       const button = document.createElement("button"); button.type = "button"; button.className = "damage-calc-icon-btn"; button.dataset.value = option.value;
-      button.innerHTML = option.icon; button.title = option.label; button.ariaLabel = option.label;
+      const label = document.createElement("span"); label.className = "damage-calc-icon-btn-label"; label.textContent = option.label;
+      button.innerHTML = option.icon; button.append(label);
       button.addEventListener("click", () => {
         select.value = select.value === option.value ? "" : option.value;
         select.dispatchEvent(new Event("change", { bubbles: true }));

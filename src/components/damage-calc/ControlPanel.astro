@@ -2,28 +2,33 @@
 ---
 <section class="damage-calc-control-bar" aria-label="コントロールパネル">
   <div class="damage-calc-control-inner">
-    <div class="damage-calc-control-header"><span>自分</span><span>相手</span></div>
-    <div class="damage-calc-control-row">
-      <div class="damage-calc-control-cell" data-side="self">
+    {/* 自分/中央(フィールド)/相手の3列グリッド。中央列の凹みパネル(装飾のみ・
+        グリッド上は中央列に2〜3行目をまたいで重ね、DOM順を先頭にして背後に描画する)は
+        auto幅の中央列に合わせて自動でサイズが揃う(calcでの手動計算をしない)。 */}
+    <div class="damage-calc-control-grid">
+      <div class="damage-calc-control-field-panel" aria-hidden="true"></div>
+      <div class="damage-calc-control-label" data-side="self">自分</div>
+      <div class="damage-calc-control-label" data-side="opponent">相手</div>
+
+      <div class="damage-calc-control-cell damage-calc-control-row-2" data-side="self">
         <div class="damage-calc-ranks" data-side="self"></div>
         <button id="damage-calc-self-tera-button" class="damage-calc-tera-toggle" type="button" aria-pressed="false" aria-label="テラスタル"><span class="damage-calc-tera-icon-wrap" aria-hidden="true"><img class="damage-calc-tera-icon" alt="" hidden /></span><input id="damage-calc-self-tera" type="checkbox" tabindex="-1" /></button>
       </div>
-      <div class="damage-calc-control-cell damage-calc-control-cell--field">
+      <div class="damage-calc-control-cell damage-calc-control-cell--field damage-calc-control-row-2">
         <div id="damage-calc-weather-buttons" class="damage-calc-icon-group" role="radiogroup" aria-label="天候"></div>
         <select id="damage-calc-weather" class="damage-calc-native-control"></select>
       </div>
-      <div class="damage-calc-control-cell" data-side="opponent">
+      <div class="damage-calc-control-cell damage-calc-control-row-2" data-side="opponent">
         <div class="damage-calc-ranks" data-side="opponent"></div>
         <button id="damage-calc-opponent-tera-button" class="damage-calc-tera-toggle" type="button" aria-pressed="false" aria-label="テラスタル"><span class="damage-calc-tera-icon-wrap" aria-hidden="true"><img class="damage-calc-tera-icon" alt="" hidden /></span><input id="damage-calc-opponent-tera-toggle" type="checkbox" tabindex="-1" /></button>
       </div>
-    </div>
-    <div class="damage-calc-control-row">
-      <div class="damage-calc-control-cell"><div class="damage-calc-ailment-field"><select id="damage-calc-self-ailment" aria-label="状態異常"></select></div></div>
-      <div class="damage-calc-control-cell damage-calc-control-cell--field">
+
+      <div class="damage-calc-control-cell damage-calc-control-row-3" data-side="self"><div class="damage-calc-ailment-field"><select id="damage-calc-self-ailment" aria-label="状態異常"></select></div></div>
+      <div class="damage-calc-control-cell damage-calc-control-cell--field damage-calc-control-row-3">
         <div id="damage-calc-terrain-buttons" class="damage-calc-icon-group" role="radiogroup" aria-label="フィールド"></div>
         <select id="damage-calc-terrain" class="damage-calc-native-control"></select>
       </div>
-      <div class="damage-calc-control-cell"><div class="damage-calc-ailment-field"><select id="damage-calc-opponent-ailment" aria-label="状態異常"></select></div></div>
+      <div class="damage-calc-control-cell damage-calc-control-row-3" data-side="opponent"><div class="damage-calc-ailment-field"><select id="damage-calc-opponent-ailment" aria-label="状態異常"></select></div></div>
     </div>
   </div>
 </section>
