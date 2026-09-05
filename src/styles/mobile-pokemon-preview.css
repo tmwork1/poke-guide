@@ -372,6 +372,11 @@
 
 /* ステータスラベル(H/A/B/C/D/S)にも性格補正の色を適用する。
    .pokemon-preview-stats th:first-child より詳細度を上げて確実に上書きする。 */
+.pokemon-preview-stats th:first-child[data-mod="up"],
+.pokemon-preview-stats th:first-child[data-mod="down"] {
+  font-weight: var(--font-weight-medium);
+}
+
 .pokemon-preview-stats th:first-child[data-mod="up"] {
   color: var(--pokemon-preview-stat-up-color);
 }

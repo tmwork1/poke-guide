@@ -254,7 +254,7 @@ body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-owne
 }
 
 body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-owned-modifier-toggle {
-  gap: calc(var(--space-2) + var(--space-1));
+  gap: var(--space-1);
   font-size: var(--font-size-sm2);
 }
 

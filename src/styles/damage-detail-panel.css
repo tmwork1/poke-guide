@@ -806,8 +806,9 @@ body.box-edit-page {
 		display: grid;
 		grid-template-columns: repeat(3, minmax(0, 1fr));
 		gap: var(--damage-detail-space-xs);
-		margin-top: var(--damage-detail-chip-gap); /* 直上の状態異常(is-row4、margin-bottom:0)との間隔 */
-		margin-bottom: var(--damage-detail-space-xs);
+		/* 直上の状態異常(is-row4、margin-bottom:0)・直下の次区画との間隔を対称にする。
+			防御側は項目数が多く複数行になるため、下側が詰まって見えやすい。 */
+		margin: var(--damage-detail-chip-gap) 0;
 	}
 	#damage-detail-panel-body .damage-detail-state-grid > .damage-detail-icon-btn {
 		width: 100%;
