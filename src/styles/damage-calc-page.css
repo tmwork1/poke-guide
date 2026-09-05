@@ -18,12 +18,16 @@
 .damage-calc-summary-card strong { font-size: var(--font-size-lg1); }
 .damage-calc-summary-card span, .damage-calc-summary-card small { color: var(--color-text-muted); }
 .damage-calc-control-bar { position: fixed; left: 0; right: 0; bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom)); z-index: 18; background: var(--color-surface); border-top: 1px solid var(--color-border); box-shadow: var(--shadow-md); }
-.damage-calc-control-inner { padding: var(--space-2) var(--space-3); }
+.damage-calc-control-inner { position: relative; z-index: 0; padding: var(--space-2) var(--space-3); }
 @media (width > 412px) { .damage-calc-control-inner { max-width: var(--content-band-max-width); margin-inline: auto; } }
+/* 中央列(フィールド設定)だけをパネルの上端から下端まで凹ませ、自分/相手と
+   視覚的に区切る。行単位のborderだと行間の余白で途切れるため、inner全体に対する
+   絶対配置の背景板1枚にまとめる。位置・幅はgridの列(gapを含む3等分)の
+   中央列の実際の範囲から算出する。 */
+.damage-calc-control-inner::before { content: ""; position: absolute; z-index: -1; top: 0; bottom: 0; left: calc(var(--space-3) + (100% - 2 * var(--space-3) - 2 * var(--space-2)) / 3 + var(--space-2)); width: calc((100% - 2 * var(--space-3) - 2 * var(--space-2)) / 3); background: var(--color-surface-sunken); box-shadow: var(--shadow-inset-sunken); border-radius: var(--radius-md); pointer-events: none; }
 .damage-calc-control-header { display: flex; justify-content: space-between; padding: 0 var(--space-1); color: var(--color-text-muted); font-size: var(--font-size-sm3); }
 .damage-calc-control-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-2); margin-top: var(--space-2); }
 .damage-calc-control-cell { display: flex; align-items: center; justify-content: space-between; gap: var(--space-1); min-width: 0; }
-.damage-calc-control-cell:not(:first-child) { padding-left: var(--space-2); border-left: 1px solid var(--color-border); }
 .damage-calc-control-cell--field { flex-direction: column; align-items: stretch; gap: var(--space-1); }
 .damage-calc-ailment-field { width: 100%; }
 .damage-calc-ailment-field select { font-size: var(--font-size-sm2); min-height: 2.5rem; }
