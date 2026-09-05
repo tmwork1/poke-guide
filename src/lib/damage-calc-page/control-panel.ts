@@ -10,6 +10,10 @@ const RANK_GROUPS: { label: string; indices: readonly [number, number] }[] = [
   { label: "BD", indices: [2, 4] },
 ];
 const emit = () => document.dispatchEvent(new CustomEvent("damage-calc:change", { detail: { reason: "controls" } }));
+// ダメージ計算詳細設定モーダル(box-id/right-panel.ts)と同じ汎用テラスタルアイコン。
+// タイプ別アイコン(teraTypeIconUrl)が引けない(チーム/相手未選択でタイプ不明)間も
+// ボタンを空にせず、この汎用アイコンを薄く表示してテラスタルボタンだと分かるようにする。
+const GENERIC_TERA_ICON_URL = "https://img.gamewith.jp/article_tools/pokemon-sv/gacha/map_icon_terra2.png";
 const formatRank = (value: number): string => (value > 0 ? `+${value}` : String(value));
 
 interface RankStepper { row: HTMLElement; setValue: (value: number) => void; }
@@ -135,7 +139,7 @@ export function initControlPanel(): void {
       const teraTypeName = side === "self" ? ownTera : getOpponentBuild().teraType;
       const icon = button.querySelector<HTMLImageElement>(".damage-calc-tera-icon");
       const iconUrl = teraTypeName ? teraTypeIconUrl(teraTypeName) : null;
-      if (icon) { icon.hidden = !iconUrl; if (iconUrl) icon.src = iconUrl; }
+      if (icon) { icon.hidden = false; icon.src = iconUrl ?? GENERIC_TERA_ICON_URL; }
     });
   };
   (document.getElementById("damage-calc-self-ailment") as HTMLSelectElement).addEventListener("change", (event) => { setSelfState({ ...getSelfState(), ailment: (event.target as HTMLSelectElement).value }); emit(); });
