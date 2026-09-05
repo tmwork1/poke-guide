@@ -22,7 +22,7 @@ body.box-edit-page {
 
   /* ── 2. 文字の太さ・行間 ─────────────────────── */
   --damage-card-total-verdict-font-weight: var(--font-weight-semibold); /* 判定部分の文字の太さ */
-  --damage-card-move-font-weight: var(--font-weight-normal); /* 技名の文字の太さ */
+  --damage-card-move-font-weight: var(--font-weight-medium); /* 技名の文字の太さ */
   --damage-card-direction-font-weight: var(--font-weight-semibold); /* 攻撃・防御スイッチの文字の太さ */
   --damage-card-total-detail-font-weight: var(--font-weight-medium); /* 詳細部分の文字の太さ */
   --damage-card-direction-line-height: var(--line-height-tight); /* 攻撃・防御スイッチ内の行の高さ */
@@ -256,7 +256,7 @@ body.box-edit-page {
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: var(--font-size-sm2); /* 相手の名前・特性・持ち物の文字サイズ */
-  font-weight: var(--font-weight-normal); /* 相手の名前・特性・持ち物の文字の太さ */
+  font-weight: var(--font-weight-medium); /* 相手の名前の文字の太さ */
   color: var(--color-text); /* 相手情報の主要文字色 */
 }
 
@@ -2248,6 +2248,7 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .box-add-button
   grid-column: 1;
   grid-row: 1;
   min-width: 0;
+  font-weight: var(--font-weight-medium);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -2333,7 +2334,7 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .box-add-button
 
 #opponent-notes-section .damage-suggest-move {
   font-size: var(--damage-card-move-font-size);
-  font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-medium);
   min-width: 0;
   color: var(--color-primary-contrast);
 }
