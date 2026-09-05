@@ -195,6 +195,7 @@ function buildSuggestionCard(suggestion: DamageCalcSuggestion): HTMLElement {
 	const button = document.createElement("button");
 	button.type = "button";
 	button.className = "damage-suggest-card-button";
+	button.dataset.direction = suggestion.direction;
 	button.setAttribute("aria-label", `${suggestion.opponentName}の${suggestion.moveName}を追加`);
 
 	const body = document.createElement("span");
@@ -230,6 +231,11 @@ function buildSuggestionCard(suggestion: DamageCalcSuggestion): HTMLElement {
 	// 自分が使う技(direction='attack'のとき下段に出る)と混ざらないよう上段にまとめる。
 	const main = document.createElement("span");
 	main.className = "damage-suggest-right-main";
+	const nameEl = document.createElement("span");
+	nameEl.className = "damage-suggest-name";
+	nameEl.textContent = suggestion.opponentName;
+	nameEl.title = suggestion.opponentName;
+	main.appendChild(nameEl);
 	// 特性は値があるときだけ要素を作る(itemGroupと同じ流儀)。相手ビルドカードの
 	// 特性欄(.damage-build-readonly-ability-line)と同じ控えめな見た目にする。
 	if (suggestion.opponentBuild.abilityName) {

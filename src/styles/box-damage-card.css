@@ -148,16 +148,26 @@ body.box-edit-page {
 
 #opponent-notes-section .card-damage:focus-within {
   box-shadow: var(--damage-card-active-shadow);
-  --damage-card-current-background: var(--damage-card-active-background);
+  --damage-card-current-background: color-mix(in srgb, var(--damage-card-base-background) 90%, var(--color-primary) 10%);
   border-color: var(--damage-card-active-border-color);
 }
 
 @media (hover: hover) and (pointer: fine) {
   #opponent-notes-section .card-damage:hover {
     box-shadow: var(--damage-card-active-shadow);
-    --damage-card-current-background: var(--damage-card-active-background);
+    --damage-card-current-background: color-mix(in srgb, var(--damage-card-base-background) 90%, var(--color-primary) 10%);
     border-color: var(--damage-card-active-border-color);
   }
+}
+
+#opponent-notes-section .card-damage[data-direction="attack"] {
+  --damage-card-base-background: var(--damage-card-attack-badge-background);
+  --damage-card-current-background: var(--damage-card-base-background);
+}
+
+#opponent-notes-section .card-damage[data-direction="defense"] {
+  --damage-card-base-background: var(--damage-card-defense-badge-background);
+  --damage-card-current-background: var(--damage-card-base-background);
 }
 
 /* --------------------------------------------------------------------------
@@ -637,6 +647,15 @@ body.box-edit-page {
   display: flex;
 }
 
+#opponent-notes-section .damage-row-build {
+  --damage-card-build-content-column: 3;
+}
+
+#opponent-notes-section .damage-build-readonly-name,
+#opponent-notes-section .damage-ev-grid-readonly {
+  grid-column: var(--damage-card-build-content-column);
+}
+
 #opponent-notes-section .damage-ev-readonly-stat {
   align-items: baseline;
   /* 相手情報2段目(.damage-row-build-fields)の一部なので、文字サイズ・色は
@@ -855,6 +874,25 @@ body.box-edit-page {
   color: var(--color-text-muted);
 }
 
+/* The direction-tinted card is the color cue; the cumulative result uses one meter treatment. */
+#opponent-notes-section .damage-row-total {
+  background: var(--damage-card-current-background);
+}
+
+#opponent-notes-section .damage-row-total[data-severity="lethal"],
+#opponent-notes-section .damage-row-total[data-severity="risky"],
+#opponent-notes-section .damage-row-total[data-severity="safe"] {
+  background: linear-gradient(to right,
+    var(--damage-card-current-background) 0 var(--gauge-min),
+    color-mix(in srgb, var(--damage-card-current-background) 60%, var(--color-primary) 40%) var(--gauge-min) var(--gauge-max),
+    var(--damage-card-current-background) var(--gauge-max) 100%);
+  color: var(--color-text);
+}
+
+#opponent-notes-section .damage-row-total[data-severity="none"] {
+  background: var(--damage-card-current-background);
+}
+
 #opponent-notes-section .damage-row-total-label {
   font-size: var(--font-size-sm3); /* 「累計結果」ラベルの文字サイズ */
   font-weight: var(--font-weight-bold);
@@ -885,6 +923,12 @@ body.box-edit-page {
 #opponent-notes-section .damage-row-total-result .damage-result-verdict {
   font-size: var(--font-size-lg1); /* 「確定1発」など判定部分の文字サイズ */
   font-weight: var(--damage-card-total-verdict-font-weight);
+}
+
+/* Slightly reduce the visual weight of the KO-count verdict. */
+#opponent-notes-section .damage-row-total-result .damage-result-verdict {
+  font-size: var(--font-size-sm1);
+  font-weight: var(--font-weight-medium);
 }
 
 #opponent-notes-section .damage-result-probability {
@@ -2074,6 +2118,14 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .box-add-button
   --damage-suggest-card-background: color-mix(in srgb, var(--color-surface) 90%, var(--color-primary) 10%);
 }
 
+#opponent-notes-section .damage-suggest-card-button[data-direction="attack"] {
+  --damage-suggest-card-background: var(--damage-card-attack-badge-background);
+}
+
+#opponent-notes-section .damage-suggest-card-button[data-direction="defense"] {
+  --damage-suggest-card-background: var(--damage-card-defense-badge-background);
+}
+
 @media (hover: hover) and (pointer: fine) {
   #opponent-notes-section .damage-suggest-card-button:hover {
     box-shadow: var(--shadow-md);
@@ -2130,6 +2182,24 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .box-add-button
   max-width: 100%;
   color: var(--damage-card-build-detail-color);
   font-size: var(--damage-card-build-detail-font-size);
+}
+
+#opponent-notes-section .damage-suggest-name {
+  grid-column: 1;
+  grid-row: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+  color: var(--color-text);
+  font-size: var(--font-size-sm2);
+}
+
+/* Suggestions replace the secondary stat line with the move, so omit ability and ratio. */
+#opponent-notes-section .damage-suggest-ability,
+#opponent-notes-section .damage-suggest-reason {
+  display: none;
 }
 
 /* 攻守チップは相手ビルドカードの攻守バッジ(.card-damage .damage-build-matchup
@@ -2206,12 +2276,14 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .box-add-button
   font-size: var(--damage-card-move-font-size);
   font-weight: var(--font-weight-semibold);
   min-width: 0;
+  color: var(--color-primary-contrast);
+  text-shadow: 0 1px 1px color-mix(in srgb, var(--color-text) 45%, transparent);
 }
 
 /* アイコンと名前は不可分の1塊にする(バラで並べると折り返しで分断される)。 */
 #opponent-notes-section .damage-suggest-item {
   grid-column: 2;
-  grid-row: 1;
+  grid-row: 2;
   display: inline-flex;
   align-items: center;
   gap: .25em;
