@@ -2,7 +2,13 @@ import { DAMAGE_AILMENTS, DAMAGE_TERRAINS, DAMAGE_WEATHERS, clampInt } from "../
 import { getFieldState, getOpponentBuild, getOpponentState, getSelectedTeam, getSelfState, setFieldState, setOpponentState, setSelfState } from "./shared-core";
 import { teraTypeIconUrl } from "../sprite-urls";
 
-const labels = ["攻撃", "防御", "特攻", "特防", "素早さ"];
+// 攻撃時に参照される能力(物理ならA/特殊ならC)と、被弾時に参照される能力(物理ならB/特殊ならD)を
+// それぞれ1本のランクにまとめる。どちらの技を撃つ/受けるかは技側のカテゴリで決まるため、
+// A/Cを常に同じ値にそろえておけば個別に持つ場合と同じ計算結果になる(B/Dも同様)。
+const RANK_GROUPS: { label: string; indices: readonly [number, number] }[] = [
+  { label: "AC", indices: [1, 3] },
+  { label: "BD", indices: [2, 4] },
+];
 const emit = () => document.dispatchEvent(new CustomEvent("damage-calc:change", { detail: { reason: "controls" } }));
 const formatRank = (value: number): string => (value > 0 ? `+${value}` : String(value));
 
@@ -66,10 +72,10 @@ export function initControlPanel(): void {
   rankRoots.forEach((root) => {
     const side: "self" | "opponent" = root.dataset.side === "self" ? "self" : "opponent";
     const ariaSideLabel = side === "self" ? "自分" : "相手";
-    const steppers = labels.map((label, index) => createRankStepper(label, ariaSideLabel, (value) => {
+    const steppers = RANK_GROUPS.map(({ label, indices }) => createRankStepper(label, ariaSideLabel, (value) => {
       const state = side === "self" ? getSelfState() : getOpponentState();
       const boosts = [...state.boosts] as typeof state.boosts;
-      boosts[index + 1] = value;
+      indices.forEach((statIndex) => { boosts[statIndex] = value; });
       if (side === "self") setSelfState({ ...state, boosts }); else setOpponentState({ ...state, boosts });
       emit();
     }));
@@ -95,7 +101,7 @@ export function initControlPanel(): void {
     const self = getSelfState(), opponent = getOpponentState(), field = getFieldState();
     (["self", "opponent"] as const).forEach((side) => {
       const state = side === "self" ? self : opponent;
-      rankSteppersBySide.get(side)?.forEach((stepper, index) => stepper.setValue(state.boosts[index + 1]));
+      rankSteppersBySide.get(side)?.forEach((stepper, index) => stepper.setValue(state.boosts[RANK_GROUPS[index].indices[0]]));
     });
     (document.getElementById("damage-calc-self-ailment") as HTMLSelectElement).value = self.ailment;
     (document.getElementById("damage-calc-opponent-ailment") as HTMLSelectElement).value = opponent.ailment;
