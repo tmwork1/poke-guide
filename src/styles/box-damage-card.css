@@ -1450,6 +1450,7 @@ body.box-edit-page {
   padding-top: 8px;
   padding-bottom: 6px;
   font-size: var(--font-size-sm4); /* ラベルを一段階縮小 */
+  gap: 1px; /* アイコンとラベルの間隔を基本の--space-1(4px)より詰める */
 }
 
 #damage-detail-panel-body .damage-detail-icon-group.is-row4 .damage-detail-icon-btn svg {
