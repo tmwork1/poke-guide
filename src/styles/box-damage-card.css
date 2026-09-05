@@ -946,7 +946,7 @@ body.box-edit-page {
   font-size: var(--font-size-sm3);
   opacity: .85; /* 詳細部分の濃さ。小さくすると薄くなる */
   text-align: left;
-  font-weight: var(--font-weight-normal);
+  font-weight: var(--font-weight-medium);
 }
 
 /* --------------------------------------------------------------------------
@@ -1289,7 +1289,7 @@ body.box-edit-page {
   opacity: .85; /* 技ごとの詳細数値の濃さ */
   overflow-wrap: anywhere;
   min-width: 0;
-  font-weight: var(--font-weight-normal);
+  font-weight: var(--font-weight-medium);
 }
 
 /* --------------------------------------------------------------------------
@@ -2336,7 +2336,7 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .box-add-button
   font-size: var(--damage-card-move-font-size);
   font-weight: var(--font-weight-medium);
   min-width: 0;
-  color: var(--color-primary-contrast);
+  color: var(--color-on-primary);
 }
 
 /* アイコンと名前は不可分の1塊にする(バラで並べると折り返しで分断される)。 */
