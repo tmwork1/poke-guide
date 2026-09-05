@@ -161,11 +161,13 @@ body.box-edit-page {
 }
 
 #opponent-notes-section .card-damage[data-direction="attack"] {
-  --damage-card-face-background: var(--damage-card-attack-badge-background);
+  --damage-card-face-background: color-mix(in srgb, var(--color-bg) 84%, var(--color-danger) 16%);
+  --damage-card-result-meter-color: var(--color-danger-strong);
 }
 
 #opponent-notes-section .card-damage[data-direction="defense"] {
-  --damage-card-face-background: var(--damage-card-defense-badge-background);
+  --damage-card-face-background: color-mix(in srgb, var(--color-bg) 84%, var(--color-primary) 16%);
+  --damage-card-result-meter-color: var(--color-primary-strong);
 }
 
 /* The outer shell stays neutral; apply the direction highlight to the visible card faces. */
@@ -893,7 +895,7 @@ body.box-edit-page {
 #opponent-notes-section .damage-row-total[data-severity="safe"] {
   background: linear-gradient(to right,
     var(--damage-card-face-background, var(--damage-card-current-background)) 0 var(--gauge-min),
-    color-mix(in srgb, var(--damage-card-face-background, var(--damage-card-current-background)) 60%, var(--color-primary) 40%) var(--gauge-min) var(--gauge-max),
+    color-mix(in srgb, var(--damage-card-face-background, var(--damage-card-current-background)) 55%, var(--damage-card-result-meter-color, var(--color-primary)) 45%) var(--gauge-min) var(--gauge-max),
     var(--damage-card-face-background, var(--damage-card-current-background)) var(--gauge-max) 100%);
   color: var(--color-text);
 }
@@ -2128,11 +2130,11 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .box-add-button
 }
 
 #opponent-notes-section .damage-suggest-card-button[data-direction="attack"] {
-  --damage-suggest-card-background: var(--damage-card-attack-badge-background);
+  --damage-suggest-card-background: color-mix(in srgb, var(--color-bg) 84%, var(--color-danger) 16%);
 }
 
 #opponent-notes-section .damage-suggest-card-button[data-direction="defense"] {
-  --damage-suggest-card-background: var(--damage-card-defense-badge-background);
+  --damage-suggest-card-background: color-mix(in srgb, var(--color-bg) 84%, var(--color-primary) 16%);
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -2225,6 +2227,12 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .box-add-button
 #opponent-notes-section .damage-suggest-item {
   grid-column: 4;
   grid-row: 2;
+}
+
+/* Direction is conveyed by the card face and badge text; no extra pill highlight. */
+#opponent-notes-section .card-damage .damage-build-matchup .damage-row-direction-option[aria-checked="true"],
+#opponent-notes-section .damage-suggest-direction[data-direction] {
+  background: transparent;
 }
 
 /* 特性は相手ビルドカードの特性欄(.damage-build-readonly-ability-line)と同じ、
@@ -2386,4 +2394,8 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .box-add-button
 #opponent-notes-section .damage-suggest-item {
   grid-column: 4;
   grid-row: 2;
+}
+
+#opponent-notes-section .damage-suggest-direction[data-direction] {
+  background: transparent;
 }
