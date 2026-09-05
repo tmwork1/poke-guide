@@ -50,10 +50,7 @@ export interface OpponentBuild {
   moveNames: string[];
 }
 
-export type ActiveTab = "6v1" | "1v1";
-
 export interface DamageCalcPageState {
-  activeTab: ActiveTab;
   selectedTeam: SelectedTeam | null;
   opponentBuild: OpponentBuild;
   selfState: SelfState;
@@ -91,7 +88,6 @@ export const DEFAULT_OPPONENT_BUILD: OpponentBuild = {
 };
 
 let state: DamageCalcPageState = {
-  activeTab: "6v1",
   selectedTeam: null,
   opponentBuild: { ...DEFAULT_OPPONENT_BUILD },
   selfState: { ...DEFAULT_SELF_STATE, boosts: [...DEFAULT_SELF_STATE.boosts] },
@@ -107,8 +103,6 @@ export function setDamageCalcPageState(next: DamageCalcPageState): void {
   state = next;
 }
 
-export function getActiveTab(): ActiveTab { return state.activeTab; }
-export function setActiveTab(activeTab: ActiveTab): void { state = { ...state, activeTab }; }
 export function getSelectedTeam(): SelectedTeam | null { return state.selectedTeam; }
 export function setSelectedTeam(selectedTeam: SelectedTeam | null): void { state = { ...state, selectedTeam }; }
 export function getOpponentBuild(): OpponentBuild { return state.opponentBuild; }
