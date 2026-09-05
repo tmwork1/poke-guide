@@ -108,7 +108,10 @@ export function initControlPanel(): void {
       return button;
     }));
   };
-  renderChoiceGroup("damage-calc-weather-buttons", "damage-calc-weather", DAMAGE_WEATHERS);
+  // 共有配列DAMAGE_WEATHERSの「すなあらし」は他画面向けの表記のまま保ち、
+  // このパネルの4つ横並びボタンだけ幅に収まる「すな」に短縮する。
+  const weatherIconOptions = DAMAGE_WEATHERS.map((option) => (option.value === "すなあらし" ? { ...option, label: "すな" } : option));
+  renderChoiceGroup("damage-calc-weather-buttons", "damage-calc-weather", weatherIconOptions);
   renderChoiceGroup("damage-calc-terrain-buttons", "damage-calc-terrain", DAMAGE_TERRAINS);
   const render = () => {
     const self = getSelfState(), opponent = getOpponentState(), field = getFieldState();

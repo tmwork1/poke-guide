@@ -20,19 +20,20 @@
 .damage-calc-control-bar { position: fixed; left: 0; right: 0; bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom)); z-index: 18; background: var(--color-surface); border-top: 1px solid var(--color-border); box-shadow: var(--shadow-md); }
 .damage-calc-control-inner { padding: var(--space-2) var(--space-3); }
 @media (width > 412px) { .damage-calc-control-inner { max-width: var(--content-band-max-width); margin-inline: auto; } }
-/* 自分/相手の2列グリッド。下段だけ天候(左列)・フィールド(右列)を4つ横並びボタンで表示する。 */
+/* 自分/相手の2列グリッド。「自分」「相手」はランクステッパーと同じ段(1行目)のセル内に
+   ラベルとして置き、テラスタルボタンは状態異常と同じ段(2行目)に移す。3行目だけ
+   天候(左列)・フィールド(右列)を4つ横並びボタンで表示する。 */
 .damage-calc-control-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: var(--space-3); row-gap: var(--space-2); align-items: center; }
-.damage-calc-control-label { grid-row: 1; padding: 0 var(--space-1); color: var(--color-text-muted); font-size: var(--font-size-sm3); }
-.damage-calc-control-label[data-side="self"], .damage-calc-control-cell[data-side="self"] { grid-column: 1; }
-.damage-calc-control-label[data-side="opponent"], .damage-calc-control-cell[data-side="opponent"] { grid-column: 2; }
-.damage-calc-control-label[data-side="opponent"] { text-align: right; }
+.damage-calc-control-label { flex: none; color: var(--color-text-muted); font-size: var(--font-size-sm3); }
+.damage-calc-control-cell[data-side="self"] { grid-column: 1; }
+.damage-calc-control-cell[data-side="opponent"] { grid-column: 2; }
+.damage-calc-control-row-1 { grid-row: 1; }
 .damage-calc-control-row-2 { grid-row: 2; }
 .damage-calc-control-row-3 { grid-row: 3; }
-.damage-calc-control-row-4 { grid-row: 4; }
 .damage-calc-control-cell { display: flex; align-items: center; justify-content: space-between; gap: var(--space-1); min-width: 0; }
 .damage-calc-control-cell--field { flex-direction: column; align-items: stretch; gap: var(--space-1); }
-.damage-calc-ailment-field { width: 100%; }
-.damage-calc-ailment-field select { font-size: var(--font-size-sm2); min-height: var(--tap-target-min); }
+.damage-calc-ailment-field { flex: 1; min-width: 0; }
+.damage-calc-ailment-field select { width: 100%; font-size: var(--font-size-sm2); min-height: var(--tap-target-min); }
 .damage-calc-ranks { display: grid; gap: var(--space-1); min-width: 0; }
 .damage-calc-rank-row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); color: var(--color-text-muted); font-size: var(--font-size-sm3); }
 .damage-calc-rank-row .number-stepper { --number-stepper-size: var(--tap-target-min); --number-stepper-input-width: 2.4em; }
