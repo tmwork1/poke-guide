@@ -4,22 +4,6 @@
 .damage-calc-login-guide { max-width: 1080px; margin: var(--space-3) auto; padding: 0 var(--space-3); color: var(--color-text-muted); }
 .damage-calc-secondary-bar .second-header__content { flex-wrap: wrap; }
 .damage-calc-secondary-actions { display: flex; align-items: center; gap: var(--space-2); flex: 0 1 auto; flex-wrap: wrap; }
-.damage-calc-selection-summary { margin: 0; color: var(--color-text-muted); font-size: var(--font-size-sm2); }
-.damage-calc-opponent-panel { flex: 1 0 100%; margin-top: var(--space-2); padding-top: var(--space-3); border-top: 1px solid var(--color-border); }
-.damage-calc-opponent-panel[hidden] { display: none; }
-.damage-calc-opponent-heading h2 { margin: 0; font-size: var(--font-size-lg1); }
-.damage-calc-opponent-heading p { margin: var(--space-1) 0 var(--space-3); color: var(--color-text-muted); font-size: var(--font-size-sm2); }
-.damage-calc-opponent-fields, .damage-calc-move-fields { display: grid; grid-template-columns: repeat(4, minmax(12rem, 1fr)); gap: var(--space-3); }
-.damage-calc-opponent-fields label, .damage-calc-move-fields label { display: grid; gap: var(--space-1); color: var(--color-text-muted); font-size: var(--font-size-sm2); }
-.damage-calc-opponent-fields input, .damage-calc-opponent-fields select, .damage-calc-move-fields input { width: 100%; min-width: 0; box-sizing: border-box; }
-.damage-calc-move-fields { margin: var(--space-4) 0 0; padding: var(--space-3); border: 1px solid var(--color-border); }
-.damage-calc-move-fields legend { padding: 0 var(--space-1); color: var(--color-text-muted); font-size: var(--font-size-sm2); }
-.damage-calc-validation { min-height: 1.4em; margin: var(--space-2) 0 0; color: var(--color-danger-strong); font-size: var(--font-size-sm2); }
-.damage-calc-team-dialog { width: min(34rem, calc(100vw - var(--space-5))); border: 0; padding: 0; background: var(--color-surface); box-shadow: var(--shadow-lg); }
-.damage-calc-team-dialog::backdrop { background: color-mix(in srgb, var(--color-text) 35%, transparent); }
-.damage-calc-dialog-content { padding: var(--space-5); }
-.damage-calc-dialog-content h2 { margin-top: 0; }
-.damage-calc-team-choice { width: 100%; justify-content: flex-start; margin-bottom: var(--space-2); }
 .damage-calc-matchups { min-height: 28rem; padding: var(--space-5) var(--space-3); }
 .damage-calc-matchups > .panel-content { min-width: 0; }
 .damage-calc-summary-layout { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) 3rem; gap: var(--space-3); }
@@ -77,5 +61,4 @@
 .damage-calc-tera-toggle.is-active .damage-calc-tera-icon { filter: saturate(1.35) drop-shadow(0 0 3px var(--color-primary)) drop-shadow(0 0 7px color-mix(in srgb, var(--color-primary) 75%, transparent)); }
 .damage-calc-tera-toggle:disabled { cursor: not-allowed; opacity: .55; }
 .damage-calc-tera-toggle:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
-@media (max-width: 900px) { .damage-calc-opponent-fields, .damage-calc-move-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (max-width: 600px) { .damage-calc-opponent-fields, .damage-calc-move-fields { grid-template-columns: 1fr; } .damage-calc-detail-layout { grid-template-columns: 1fr; gap: var(--space-3); } .damage-calc-member-rail { flex-direction: row; justify-content: flex-start; overflow-x: auto; padding-bottom: var(--space-1); } .damage-calc-summary-layout { grid-template-columns: minmax(0, 1fr) 2.5rem; gap: var(--space-2); } .damage-calc-summary-list .damage-calc-summary-card { grid-template-columns: 1fr; gap: var(--space-1); } }
+@media (max-width: 600px) { .damage-calc-detail-layout { grid-template-columns: 1fr; gap: var(--space-3); } .damage-calc-member-rail { flex-direction: row; justify-content: flex-start; overflow-x: auto; padding-bottom: var(--space-1); } .damage-calc-summary-layout { grid-template-columns: minmax(0, 1fr) 2.5rem; gap: var(--space-2); } .damage-calc-summary-list .damage-calc-summary-card { grid-template-columns: 1fr; gap: var(--space-1); } }

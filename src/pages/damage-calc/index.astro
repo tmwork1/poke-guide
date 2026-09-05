@@ -6,8 +6,6 @@ import AppHeader from "../../components/AppHeader.astro";
 import SecondaryBar from "../../components/damage-calc/SecondaryBar.astro";
 import MatchupCardList from "../../components/damage-calc/MatchupCardList.astro";
 import ControlPanel from "../../components/damage-calc/ControlPanel.astro";
-import { getSupabaseAdminClient } from "../../lib/supabase";
-import { listTeams, type Team } from "../../lib/team";
 import { toJsonScriptContent } from "../../lib/json-script";
 import { getOpggUsageList, getOpggUsageManifest, sortOpggSeasons } from "../../lib/opgg-usage";
 import { env } from "cloudflare:workers";
@@ -16,16 +14,6 @@ import "../../styles/second-header.css";
 import "../../styles/damage-calc-page.css";
 
 const user = Astro.locals.user;
-let teams: Team[] = [];
-if (user) {
-  try {
-    const result = await listTeams(user.id, await getSupabaseAdminClient());
-    if (result.ok) teams = result.data;
-    else console.error("[damage-calc] failed to load teams", result.error);
-  } catch (error) {
-    console.error("[damage-calc] failed to load teams", error);
-  }
-}
 
 let opggRankedSpeciesNames: string[] = [];
 try {
@@ -47,7 +35,7 @@ try {
   </AppHeader>
   <main class="damage-calc-shell">
     {!user && <p class="damage-calc-login-guide">チームを使うには <a href="/team">ログインしてチームを登録</a>してください。</p>}
-    <SecondaryBar teams={teams} />
+    <SecondaryBar />
     <MatchupCardList />
     <ControlPanel />
   </main>
