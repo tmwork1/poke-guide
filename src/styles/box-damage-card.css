@@ -161,13 +161,18 @@ body.box-edit-page {
 }
 
 #opponent-notes-section .card-damage[data-direction="attack"] {
-  --damage-card-base-background: var(--damage-card-attack-badge-background);
-  --damage-card-current-background: var(--damage-card-base-background);
+  --damage-card-face-background: var(--damage-card-attack-badge-background);
 }
 
 #opponent-notes-section .card-damage[data-direction="defense"] {
-  --damage-card-base-background: var(--damage-card-defense-badge-background);
-  --damage-card-current-background: var(--damage-card-base-background);
+  --damage-card-face-background: var(--damage-card-defense-badge-background);
+}
+
+/* The outer shell stays neutral; apply the direction highlight to the visible card faces. */
+#opponent-notes-section .card-damage[data-direction] {
+  --damage-card-current-background: var(--color-bg);
+  --damage-card-build-background: var(--damage-card-face-background);
+  --damage-card-column-background: var(--damage-card-face-background);
 }
 
 /* --------------------------------------------------------------------------
@@ -656,6 +661,10 @@ body.box-edit-page {
   grid-column: var(--damage-card-build-content-column);
 }
 
+#opponent-notes-section .damage-ev-grid-readonly {
+  padding-inline-start: .35rem;
+}
+
 #opponent-notes-section .damage-ev-readonly-stat {
   align-items: baseline;
   /* 相手情報2段目(.damage-row-build-fields)の一部なので、文字サイズ・色は
@@ -876,21 +885,21 @@ body.box-edit-page {
 
 /* The direction-tinted card is the color cue; the cumulative result uses one meter treatment. */
 #opponent-notes-section .damage-row-total {
-  background: var(--damage-card-current-background);
+  background: var(--damage-card-face-background, var(--damage-card-current-background));
 }
 
 #opponent-notes-section .damage-row-total[data-severity="lethal"],
 #opponent-notes-section .damage-row-total[data-severity="risky"],
 #opponent-notes-section .damage-row-total[data-severity="safe"] {
   background: linear-gradient(to right,
-    var(--damage-card-current-background) 0 var(--gauge-min),
-    color-mix(in srgb, var(--damage-card-current-background) 60%, var(--color-primary) 40%) var(--gauge-min) var(--gauge-max),
-    var(--damage-card-current-background) var(--gauge-max) 100%);
+    var(--damage-card-face-background, var(--damage-card-current-background)) 0 var(--gauge-min),
+    color-mix(in srgb, var(--damage-card-face-background, var(--damage-card-current-background)) 60%, var(--color-primary) 40%) var(--gauge-min) var(--gauge-max),
+    var(--damage-card-face-background, var(--damage-card-current-background)) var(--gauge-max) 100%);
   color: var(--color-text);
 }
 
 #opponent-notes-section .damage-row-total[data-severity="none"] {
-  background: var(--damage-card-current-background);
+  background: var(--damage-card-face-background, var(--damage-card-current-background));
 }
 
 #opponent-notes-section .damage-row-total-label {
@@ -2170,6 +2179,51 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .box-add-button
   display: contents;
 }
 
+/* Match the opponent block used by a damage card: badge, sprite, name/ability, move/item. */
+#opponent-notes-section .damage-suggest-body {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1.25fr) minmax(0, 1fr);
+  grid-template-rows: repeat(2, minmax(0, auto));
+  align-items: center;
+}
+
+#opponent-notes-section .damage-suggest-left,
+#opponent-notes-section .damage-suggest-right {
+  display: contents;
+}
+
+#opponent-notes-section .damage-suggest-direction {
+  grid-column: 1;
+  grid-row: 1 / -1;
+}
+
+#opponent-notes-section .damage-suggest-sprite {
+  grid-column: 2;
+  grid-row: 1 / -1;
+  width: var(--damage-card-sprite-size);
+  height: var(--damage-card-sprite-size);
+}
+
+#opponent-notes-section .damage-suggest-name {
+  grid-column: 3;
+  grid-row: 1;
+}
+
+#opponent-notes-section .damage-suggest-ability {
+  grid-column: 4;
+  grid-row: 1;
+}
+
+#opponent-notes-section .damage-suggest-move-identity {
+  grid-column: 3;
+  grid-row: 2;
+}
+
+#opponent-notes-section .damage-suggest-item {
+  grid-column: 4;
+  grid-row: 2;
+}
+
 /* 特性は相手ビルドカードの特性欄(.damage-build-readonly-ability-line)と同じ、
    控えめな文字色・サイズにする(--damage-card-build-detail-*系トークンを共有)。 */
 #opponent-notes-section .damage-suggest-ability {
@@ -2196,8 +2250,7 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .box-add-button
   font-size: var(--font-size-sm2);
 }
 
-/* Suggestions replace the secondary stat line with the move, so omit ability and ratio. */
-#opponent-notes-section .damage-suggest-ability,
+/* The move replaces the stat row. The ability remains beside the species name. */
 #opponent-notes-section .damage-suggest-reason {
   display: none;
 }
@@ -2314,4 +2367,20 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .box-add-button
   color: var(--color-text-muted);
   line-height: var(--line-height-snug);
   white-space: nowrap;
+}
+
+/* Keep the suggestion's final grid placement identical to a damage card. */
+#opponent-notes-section .damage-suggest-ability {
+  grid-column: 4;
+  grid-row: 1;
+}
+
+#opponent-notes-section .damage-suggest-name,
+#opponent-notes-section .damage-suggest-move-identity {
+  grid-column: 3;
+}
+
+#opponent-notes-section .damage-suggest-item {
+  grid-column: 4;
+  grid-row: 2;
 }
