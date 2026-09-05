@@ -21,7 +21,7 @@ body.box-edit-page {
   --damage-card-build-detail-font-size: var(--font-size-sm3); /* 相手情報2段目(特性・テラス・アイテム・実数値)の文字サイズ */
 
   /* ── 2. 文字の太さ・行間 ─────────────────────── */
-  --damage-card-total-verdict-font-weight: var(--font-weight-semibold); /* 判定部分の文字の太さ */
+  --damage-card-total-verdict-font-weight: var(--font-weight-medium); /* 判定部分の文字の太さ */
   --damage-card-move-font-weight: var(--font-weight-medium); /* 技名の文字の太さ */
   --damage-card-direction-font-weight: var(--font-weight-semibold); /* 攻撃・防御スイッチの文字の太さ */
   --damage-card-total-detail-font-weight: var(--font-weight-medium); /* 詳細部分の文字の太さ */
@@ -933,8 +933,8 @@ body.box-edit-page {
 
 /* Slightly reduce the visual weight of the KO-count verdict. */
 #opponent-notes-section .damage-row-total-result .damage-result-verdict {
-  font-size: var(--font-size-sm1);
-  font-weight: var(--font-weight-normal);
+  font-size: var(--damage-card-move-font-size);
+  font-weight: var(--damage-card-total-verdict-font-weight);
 }
 
 #opponent-notes-section .damage-result-probability {
@@ -943,10 +943,10 @@ body.box-edit-page {
 }
 
 #opponent-notes-section .damage-row-total-result .damage-result-detail {
-  font-size: var(--damage-card-total-detail-font-size);
+  font-size: var(--font-size-sm3);
   opacity: .85; /* 詳細部分の濃さ。小さくすると薄くなる */
   text-align: left;
-  font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-normal);
 }
 
 /* --------------------------------------------------------------------------
@@ -1285,11 +1285,11 @@ body.box-edit-page {
 }
 
 #opponent-notes-section .damage-column-result .damage-result-detail {
-  font-size: var(--damage-card-move-font-size);
+  font-size: var(--font-size-sm3);
   opacity: .85; /* 技ごとの詳細数値の濃さ */
   overflow-wrap: anywhere;
   min-width: 0;
-  font-weight: var(--damage-card-total-detail-font-weight);
+  font-weight: var(--font-weight-normal);
 }
 
 /* --------------------------------------------------------------------------
