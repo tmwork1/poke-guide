@@ -108,6 +108,26 @@ import {
 // 2つだけをブリッジとして提供する(shared-core.tsのregisterDamageCalcBridgeと同じ登録パターン)。
 import { initDamageSuggest, registerDamageSuggestBridge, type DamageCalcSuggestion } from "./damage-suggest";
 import { damageCalcSuggestionKey } from "../damage-calc-suggest";
+// 表示語彙(断り書きの文面・確定数の上限)は src/lib/damage-summary.ts と共有する。
+// 以前はこのファイルと damage-summary.ts の双方に同じ定数・判定が写しで置かれ、
+// 「文面を変えるときは両方揃えること」という手作業の同期に頼っていた(=ドリフト源。
+// しかもテストが見ていたのは写しの damage-summary.ts 側だけだった)。
+// 依存の向きをこちら→damage-summary.ts にすれば重複が消え、テストが本番の値を覆う。
+// 逆向き(damage-summary.ts がこのファイルをimportする)は、このファイルが
+// pyodide-engine.ts を静的importしている都合で不可(damage-summary.ts 冒頭コメント参照)。
+import {
+	MAX_STANDALONE_ATTACKS,
+	OHKO_MOVE_NAMES,
+	OHKO_NOTE,
+	STATUS_AND_UNSUPPORTED_TOTAL_NOTE_ALL,
+	STATUS_MOVE_TOTAL_NOTE_ALL,
+	TEN_OR_MORE_LABEL,
+	UNSUPPORTED_LETHAL_TOTAL_NOTE_ALL,
+	UNSUPPORTED_LETHAL_TOTAL_NOTE_SOME,
+	computeCumulativeDamage,
+	isUnsupportedLethalMove,
+	type CumulativeDamage,
+} from "../damage-summary";
 
 // public/master-data/detail/moves.json を技名でMap化するローダー。下のgetMoveCategory()
 // (壁・ランク補正の自動判定に技の物理/特殊/変化区分を使う)が参照しているため、
@@ -158,9 +178,7 @@ function getMoveCategory(name: string): MoveDetailEntry["category"] | null {
 // Event.ON_TRY_MOVE_1(実戦の技実行フロー)でのみ行われるため、そのフローを通らない
 // calc_lethalでは対象外(handlers/lethal.pyのはきだす_reset_stockpileは使用後のランク
 // 巻き戻しのみを担当し、ダメージ自体を設定するハンドラが無い)。
-function isUnsupportedLethalMove(name: string): boolean {
-	return name.trim() === "はきだす";
-}
+// (判定本体は damage-summary.ts の isUnsupportedLethalMove。上のimport参照)
 const UNSUPPORTED_LETHAL_NOTE =
 	"この技は威力が「ためこむ」を使った回数によって変わる特殊な計算式のため、ダメージを算出できません。";
 
@@ -183,22 +201,16 @@ const STATUS_MOVE_NOTE = "変化技のため、ダメージは発生しません
 // ため、「確定1発」という表示だけでは実際の命中率30%が伝わらない。この性質自体は
 // 全ての技に共通するlethal計算の仕様だが、多くの技は命中率85〜100%で表示との
 // ギャップが小さいのに対し、OHKO技は30%と際立って低いためここだけ補足を添える。
-const OHKO_MOVE_NAMES = new Set(["じわれ", "ハサミギロチン", "ぜったいれいど", "つのドリル"]);
-const OHKO_NOTE = "一撃必殺技のため、命中すれば相手の残りHPに関わらず倒します(命中率30%。この計算は命中を前提にしています)。";
+// (OHKO_MOVE_NAMES / OHKO_NOTE の実体は damage-summary.ts。上のimport参照)
 function ohkoNoteSuffixFor(name: string): string {
 	return OHKO_MOVE_NAMES.has(name.trim()) ? ` ${OHKO_NOTE}` : "";
 }
-const UNSUPPORTED_LETHAL_TOTAL_NOTE_SOME =
-	"技列に「はきだす」を含むため、算出できる技だけを合算した参考値です(はきだすは0ダメージとして計算されています)。";
-const UNSUPPORTED_LETHAL_TOTAL_NOTE_ALL =
-	"技列がすべて「はきだす」のため、合計のダメージを算出できません。";
 // 変化技は0ダメージが「近似値」ではなく仕様として確定した値なので(はきだすのような
 // 「未知の値を0扱いしている」ケースとは異なる)、一部だけ変化技を含む場合の断り書きは
 // 不要(他の技の実ダメージがそのまま正しく合算される)。「全技列が変化技(または
 // 変化技+はきだすの組み合わせ)」のときだけ理由を示す。
-const STATUS_MOVE_TOTAL_NOTE_ALL = "技列がすべて変化技のため、合計のダメージを算出できません。";
-const STATUS_AND_UNSUPPORTED_TOTAL_NOTE_ALL =
-	"技列がすべて変化技または「はきだす」のため、合計のダメージを算出できません。";
+// (UNSUPPORTED_LETHAL_TOTAL_NOTE_SOME / _ALL・STATUS_MOVE_TOTAL_NOTE_ALL・
+//  STATUS_AND_UNSUPPORTED_TOTAL_NOTE_ALL の文面は damage-summary.ts。上のimport参照)
 
 // 構造分割ラウンド(フェーズ2)でこのファイル先頭へ引き上げた6つ(damage-detail-panel.tsへexportするため。
 // 上のファイル冒頭コメント参照)。
@@ -1348,7 +1360,6 @@ if (opponentNotesSection) {
 	// describeSeriesVerdictと同じく、「一部の乱数分岐だけが致死する(zero > 0だが
 	// zero !== total)」段階では確定と言えないため、全分岐が致死(zero === total)に
 	// なるまで確定数として採用しない。
-	const MAX_STANDALONE_ATTACKS = 10;
 	function describeStandaloneLethal(
 		damages: number[] | undefined,
 		defenderHp: number | undefined,
@@ -1376,7 +1387,7 @@ if (opponentNotesSection) {
 			}
 		}
 		// 10発当てても全分岐が致死に至らない = 実質的に倒せない組み合わせ。
-		return { label: `${MAX_STANDALONE_ATTACKS}発以上`, severity: "safe" };
+		return { label: TEN_OR_MORE_LABEL, severity: "safe" };
 	}
 
 	// describeSeriesVerdict(result.lethal, ...)は、設定済みの攻撃列(最大3枚)の範囲内で
@@ -1401,12 +1412,12 @@ if (opponentNotesSection) {
 		// 下の近似計算より優先して使う(技列側の表示と数値が食い違わないようにする)。
 		const validAttacks = validAttacksOf(row);
 		if (validAttacks.length === 1 && Array.isArray(result.perAttackLethal?.[0])) {
-			return describeSeriesVerdict(result.perAttackLethal[0], `${MAX_STANDALONE_ATTACKS}発以上`).label;
+			return describeSeriesVerdict(result.perAttackLethal[0], TEN_OR_MORE_LABEL).label;
 		}
 		const per = result.perAttackDamages;
 		const hp = result.defenderHp;
 		if (!Array.isArray(per) || per.length === 0 || !hp || hp <= 0) {
-			return `${MAX_STANDALONE_ATTACKS}発以上`;
+			return TEN_OR_MORE_LABEL;
 		}
 		const extendedSeries: LethalResult[] = [];
 		let dist = new Map<number, number>([[hp, 1]]);
@@ -1426,7 +1437,7 @@ if (opponentNotesSection) {
 			const zero = dist.get(0) ?? 0;
 			extendedSeries.push({ attackCount: attack, probability: total > 0 ? zero / total : 0 });
 		}
-		return describeSeriesVerdict(extendedSeries, `${MAX_STANDALONE_ATTACKS}発以上`).label;
+		return describeSeriesVerdict(extendedSeries, TEN_OR_MORE_LABEL).label;
 	}
 
 	// 「加算後のダメ・致死率」(DamageCard.pngの育成パネル最下段)の累計ダメージ。
@@ -1434,39 +1445,13 @@ if (opponentNotesSection) {
 	// 求めた厳密な最小/最大)を使う。この関数は、cumulativeDamage が無い時代の
 	// client_result スナップショットを表示するときのフォールバック
 	// (各攻撃の最小同士・最大同士を単純加算した近似値)。
+	// 本体は damage-summary.ts の computeCumulativeDamage(圧縮表示と共有。上のimport参照)。
+	// ここは「行から有効な技列の件数を数える」ぶんだけを足す薄い層。
 	function formatCumulativeDamage(
 		row: DamageRowState,
 		result: OpponentClientResultInput,
-	): { text: string; pctMin?: number; pctMax?: number } {
-		const valid = validAttacksOf(row);
-		const per = result.perAttackDamages;
-		const exact = result.cumulativeDamage;
-		let min: number;
-		let max: number;
-		if (exact && Number.isFinite(exact.min) && Number.isFinite(exact.max)) {
-			min = exact.min;
-			max = exact.max;
-		} else {
-			if (!Array.isArray(per) || valid.length === 0) return { text: "" };
-			min = 0;
-			max = 0;
-			for (let i = 0; i < valid.length; i += 1) {
-				const damages = per[i];
-				if (!Array.isArray(damages) || damages.length === 0) return { text: "" };
-				min += Math.min(...damages);
-				max += Math.max(...damages);
-			}
-		}
-		const hp = result.defenderHp;
-		if (hp && hp > 0) {
-			const pctMin = (min / hp) * 100;
-			const pctMax = (max / hp) * 100;
-			const pctMinText = pctMin.toFixed(1);
-			const pctMaxText = pctMax.toFixed(1);
-			const pct = pctMinText === pctMaxText ? `${pctMinText}%` : `${pctMinText}〜${pctMaxText}%`;
-			return { text: `${min}〜${max} (${pct})`, pctMin, pctMax };
-		}
-		return { text: `${min}〜${max}` };
+	): CumulativeDamage {
+		return computeCumulativeDamage(validAttacksOf(row).length, result);
 	}
 
 	function formatDamageRange(damages: number[] | undefined, defenderHp: number | undefined): string {
@@ -1499,12 +1484,11 @@ if (opponentNotesSection) {
 	// 引き続き.severity-bar[data-severity]が要素全体に適用するため、ここでは中身のDOM構造
 	// だけを変える。
 	// describeStandaloneLethal/describeSeriesVerdictが10発当てても確殺に至らないケースで
-	// 返すラベルは`${MAX_STANDALONE_ATTACKS}発以上`(="10発以上")の1種類だけ(上の
-	// MAX_STANDALONE_ATTACKS定義・両関数参照)。この値と一致するときだけverdictSpan
+	// 返すラベルはTEN_OR_MORE_LABEL(="10発以上")の1種類だけ(上の
+	// damage-summary.tsのMAX_STANDALONE_ATTACKS定義・両関数参照)。この値と一致するときだけverdictSpan
 	// (太字の確定数ラベル)自体を生成・appendしない(detailSpanのみ残す)。呼び出し元
 	// (renderColumnDisplays=個別技カード側/renderTotalDisplay=累計結果側、いずれもこの関数を
 	// 経由する)を区別する必要はなく、この1関数を直せば両方に適用される。
-	const TEN_OR_MORE_LABEL = `${MAX_STANDALONE_ATTACKS}発以上`;
 	function setResultVerdict(el: HTMLElement, detailText: string, label: string): void {
 		el.innerHTML = "";
 		if (label !== TEN_OR_MORE_LABEL) {
@@ -1591,7 +1575,7 @@ if (opponentNotesSection) {
 			// 確定数系列)を使う。無い場合(古いスナップショット)だけTS側で概算する。
 			const series = result.perAttackLethal?.[validPos - 1];
 			const { label, severity } = Array.isArray(series)
-				? describeSeriesVerdict(series, `${MAX_STANDALONE_ATTACKS}発以上`)
+				? describeSeriesVerdict(series, TEN_OR_MORE_LABEL)
 				: describeStandaloneLethal(damages, result.defenderHp);
 			setResultVerdict(target, rangeText, label);
 			target.dataset.severity = severity;

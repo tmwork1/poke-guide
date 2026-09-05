@@ -21,12 +21,21 @@
 // OpponentFieldInput / OpponentClientResultInput)だけを入力に取る」純粋関数として
 // ここに独立実装した。DOM・fetch・Node API に依存しないこと(src/lib/stats.ts と同じ制約)。
 //
-// 表示語彙(「確N」「10発以上」「攻撃側どく」「急所」「壁」など)は個体編集画面の
-// 圧縮表示と一致させてある。damage-calc.ts 側の語彙を変えるときはこちらも合わせること
-// (対応する実装: damage-calc.ts の describeSeriesVerdict / describeStandaloneLethal /
-// describeExtendedTotalNoLethalLabel / formatCumulativeDamage /
-// collectConditionChipsForCollapsed)。両者が食い違っていないことは
-// tests/damage-summary.test.ts が実データ相当のケースで固定している。
+// 【依存の向きは damage-calc.ts → このファイル】
+// 上記の理由で逆向き(このファイルが damage-calc.ts をimportする)は取れないが、
+// このファイル自身は stats.ts と型しか使わない純粋モジュールなので、damage-calc.ts から
+// import するのは何の問題も無い。かつては断り書きの文面・確定数の上限・
+// isUnsupportedLethalMove・累計ダメージの整形が両側に写しで置かれ、「文面を変えるときは
+// 両方揃えること」という手作業の同期に頼っていた(=ドリフト源。しかもテストが見ていたのは
+// 写しであるこちら側だけで、本番の値は覆われていなかった)。現在は damage-calc.ts が
+// MAX_STANDALONE_ATTACKS / TEN_OR_MORE_LABEL / OHKO_* / *_TOTAL_NOTE_* /
+// isUnsupportedLethalMove / computeCumulativeDamage をここからimportするため重複は無い。
+//
+// 一方、確N判定そのもの(describeSeriesVerdict / describeStandaloneLethal /
+// describeExtendedTotalNoLethalLabel)と条件チップの組み立ては、damage-calc.ts 側が
+// クロージャ内に持ったままで、まだ写しが残っている。語彙を変えるときは両方を合わせること。
+// 両者が食い違っていないことは tests/damage-summary.test.ts が実データ相当のケースで
+// 固定している。
 
 import type {
 	OpponentAttackInput,
@@ -52,12 +61,12 @@ export type MoveCategoryResolver = (moveName: string) => MoveCategory | null;
 /** .severity-bar[data-severity] に渡す値(src/styles/global.css)。 */
 export type DamageSeverity = 'lethal' | 'risky' | 'safe' | 'none';
 
-// damage-calc.ts の MAX_STANDALONE_ATTACKS / TEN_OR_MORE_LABEL と同じ値。
+// 確定数を出す上限。damage-calc.ts もこの2つをimportして使う(写しは持たない)。
 // 10発当てても全乱数分岐が致死に至らない場合は確定数を出さない(42-D3)。
 export const MAX_STANDALONE_ATTACKS = 10;
 export const TEN_OR_MORE_LABEL = `${MAX_STANDALONE_ATTACKS}発以上`;
 
-// 一撃必殺技・はきだす・変化技の断り書き。damage-calc.ts の同名定数と同じ文面。
+// 一撃必殺技・はきだす・変化技の断り書き。damage-calc.ts もここからimportして使う。
 export const OHKO_MOVE_NAMES: ReadonlySet<string> = new Set(['じわれ', 'ハサミギロチン', 'ぜったいれいど', 'つのドリル']);
 export const OHKO_NOTE =
 	'一撃必殺技のため、命中すれば相手の残りHPに関わらず倒します(命中率30%。この計算は命中を前提にしています)。';
@@ -68,7 +77,7 @@ export const STATUS_AND_UNSUPPORTED_TOTAL_NOTE_ALL =
 export const UNSUPPORTED_LETHAL_TOTAL_NOTE_SOME =
 	'技列に「はきだす」を含むため、算出できる技だけを合算した参考値です(はきだすは0ダメージとして計算されています)。';
 
-/** 「はきだす」だけは calc_lethal 経路でダメージを算出できない(damage-calc.ts と同じ判定)。 */
+/** 「はきだす」だけは calc_lethal 経路でダメージを算出できない(damage-calc.ts もこれをimportする)。 */
 export function isUnsupportedLethalMove(name: string): boolean {
 	return name.trim() === 'はきだす';
 }
@@ -262,7 +271,19 @@ function describeExtendedNoLethalLabel(
  * 累計ダメージ「31〜37 (20〜25%)」。cumulativeDamage(エンジンの厳密値)があればそれを使い、
  * 無い古いスナップショットだけ perAttackDamages の最小同士・最大同士の単純加算で近似する。
  */
-export function formatCumulativeDamage(validAttackCount: number, result: OpponentClientResultInput): string {
+/** 累計ダメージの表示文字列と、HP比(%)の生の数値。 */
+export interface CumulativeDamage {
+	text: string;
+	pctMin?: number;
+	pctMax?: number;
+}
+
+/**
+ * 累計ダメージの本体。個体編集画面(damage-calc.ts)はHP比の数値も使う(severity barの
+ * 描画に生の%が要る)ため、文字列だけでなく pctMin/pctMax も返す形をこちらに置き、
+ * 圧縮表示用の formatCumulativeDamage はその text を取り出すだけの薄い層にしている。
+ */
+export function computeCumulativeDamage(validAttackCount: number, result: OpponentClientResultInput): CumulativeDamage {
 	const exact = result.cumulativeDamage;
 	let min: number;
 	let max: number;
@@ -271,24 +292,30 @@ export function formatCumulativeDamage(validAttackCount: number, result: Opponen
 		max = exact.max;
 	} else {
 		const per = result.perAttackDamages;
-		if (!Array.isArray(per) || validAttackCount === 0) return '';
+		if (!Array.isArray(per) || validAttackCount === 0) return { text: '' };
 		min = 0;
 		max = 0;
 		for (let i = 0; i < validAttackCount; i += 1) {
 			const damages = per[i];
-			if (!Array.isArray(damages) || damages.length === 0) return '';
+			if (!Array.isArray(damages) || damages.length === 0) return { text: '' };
 			min += Math.min(...damages);
 			max += Math.max(...damages);
 		}
 	}
 	const hp = result.defenderHp;
 	if (hp && hp > 0) {
-		const pctMin = ((min / hp) * 100).toFixed(1);
-		const pctMax = ((max / hp) * 100).toFixed(1);
-		const pct = pctMin === pctMax ? `${pctMin}%` : `${pctMin}〜${pctMax}%`;
-		return `${min}〜${max} (${pct})`;
+		const pctMin = (min / hp) * 100;
+		const pctMax = (max / hp) * 100;
+		const pctMinText = pctMin.toFixed(1);
+		const pctMaxText = pctMax.toFixed(1);
+		const pct = pctMinText === pctMaxText ? `${pctMinText}%` : `${pctMinText}〜${pctMaxText}%`;
+		return { text: `${min}〜${max} (${pct})`, pctMin, pctMax };
 	}
-	return `${min}〜${max}`;
+	return { text: `${min}〜${max}` };
+}
+
+export function formatCumulativeDamage(validAttackCount: number, result: OpponentClientResultInput): string {
+	return computeCumulativeDamage(validAttackCount, result).text;
 }
 
 /**
