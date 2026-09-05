@@ -68,19 +68,21 @@ function syncControlBarHeight(): void {
 export function initControlPanel(): void {
   syncControlBarHeight();
   const rankRoots = Array.from(document.querySelectorAll<HTMLElement>(".damage-calc-ranks"));
-  const rankSteppersBySide = new Map<"self" | "opponent", RankStepper[]>();
+  const rankControlBySide = new Map<"self" | "opponent", { stepper: RankStepper; statIndex: number }>();
   rankRoots.forEach((root) => {
     const side: "self" | "opponent" = root.dataset.side === "self" ? "self" : "opponent";
     const ariaSideLabel = side === "self" ? "自分" : "相手";
-    const steppers = RANK_GROUPS.map(({ label, indices }) => createRankStepper(label, ariaSideLabel, (value) => {
+    // 自分は攻撃側(AC)、相手は防御側(BD)のランクのみ調整できればよい。
+    const group = side === "self" ? RANK_GROUPS[0] : RANK_GROUPS[1];
+    const stepper = createRankStepper(group.label, ariaSideLabel, (value) => {
       const state = side === "self" ? getSelfState() : getOpponentState();
       const boosts = [...state.boosts] as typeof state.boosts;
-      indices.forEach((statIndex) => { boosts[statIndex] = value; });
+      group.indices.forEach((statIndex) => { boosts[statIndex] = value; });
       if (side === "self") setSelfState({ ...state, boosts }); else setOpponentState({ ...state, boosts });
       emit();
-    }));
-    root.replaceChildren(...steppers.map((stepper) => stepper.row));
-    rankSteppersBySide.set(side, steppers);
+    });
+    root.replaceChildren(stepper.row);
+    rankControlBySide.set(side, { stepper, statIndex: group.indices[0] });
   });
   const fillSelect = (id: string, options: readonly { value: string; label: string }[]) => {
     const select = document.getElementById(id) as HTMLSelectElement;
@@ -88,20 +90,28 @@ export function initControlPanel(): void {
   };
   fillSelect("damage-calc-self-ailment", DAMAGE_AILMENTS); fillSelect("damage-calc-opponent-ailment", DAMAGE_AILMENTS);
   fillSelect("damage-calc-weather", [{ value: "", label: "なし" }, ...DAMAGE_WEATHERS]); fillSelect("damage-calc-terrain", [{ value: "", label: "なし" }, ...DAMAGE_TERRAINS]);
-  const renderChoiceGroup = (rootId: string, selectId: string) => {
+  // ダメージ計算詳細設定モーダル(box-id/right-panel.ts の buildIconToggleGroup)と同じく、
+  // アイコンのみのボタンにする(「なし」用のボタンは置かず、選択中のボタンを再度押すと解除する)。
+  const renderChoiceGroup = (rootId: string, selectId: string, options: readonly { value: string; label: string; icon: string }[]) => {
     const root = document.getElementById(rootId) as HTMLElement, select = document.getElementById(selectId) as HTMLSelectElement;
-    root.replaceChildren(...Array.from(select.options).map((option) => {
-      const button = document.createElement("button"); button.type = "button"; button.className = "damage-calc-icon-btn is-text-only"; button.dataset.value = option.value; button.textContent = option.text;
-      button.addEventListener("click", () => { select.value = option.value; select.dispatchEvent(new Event("change", { bubbles: true })); }); return button;
+    root.replaceChildren(...options.map((option) => {
+      const button = document.createElement("button"); button.type = "button"; button.className = "damage-calc-icon-btn"; button.dataset.value = option.value;
+      button.innerHTML = option.icon; button.title = option.label; button.ariaLabel = option.label;
+      button.addEventListener("click", () => {
+        select.value = select.value === option.value ? "" : option.value;
+        select.dispatchEvent(new Event("change", { bubbles: true }));
+      });
+      return button;
     }));
   };
-  renderChoiceGroup("damage-calc-weather-buttons", "damage-calc-weather");
-  renderChoiceGroup("damage-calc-terrain-buttons", "damage-calc-terrain");
+  renderChoiceGroup("damage-calc-weather-buttons", "damage-calc-weather", DAMAGE_WEATHERS);
+  renderChoiceGroup("damage-calc-terrain-buttons", "damage-calc-terrain", DAMAGE_TERRAINS);
   const render = () => {
     const self = getSelfState(), opponent = getOpponentState(), field = getFieldState();
     (["self", "opponent"] as const).forEach((side) => {
       const state = side === "self" ? self : opponent;
-      rankSteppersBySide.get(side)?.forEach((stepper, index) => stepper.setValue(state.boosts[RANK_GROUPS[index].indices[0]]));
+      const control = rankControlBySide.get(side);
+      control?.stepper.setValue(state.boosts[control.statIndex]);
     });
     (document.getElementById("damage-calc-self-ailment") as HTMLSelectElement).value = self.ailment;
     (document.getElementById("damage-calc-opponent-ailment") as HTMLSelectElement).value = opponent.ailment;
