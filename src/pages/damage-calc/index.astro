@@ -30,12 +30,17 @@ try {
   <AppHeader showGuestLogin={true} ariaLabel="ダメージ計算の操作">
     <h1 class="app-header-title">ダメージ計算</h1>
   </AppHeader>
+  {/* SecondaryBar/ControlPanelは.damage-calc-shell(スクロール領域)の外側の兄弟要素にする。
+      shellの内側に置くと(sticky/fixedであっても)スクロールコンテナの子孫になり、
+      grid内でのsticky計算が絡んで見た目上スクロール領域に含まれているように見える
+      不具合が起きたため、box一覧ページ(AppHeader/SecondHeader→.box-content)と同じ
+      構成に揃える。 */}
+  <SecondaryBar />
   <main class="damage-calc-shell">
     {!user && <p class="damage-calc-login-guide">チームを使うには <a href="/team">ログインしてチームを登録</a>してください。</p>}
-    <SecondaryBar />
     <MatchupCardList />
-    <ControlPanel />
   </main>
+  <ControlPanel />
   <script type="application/json" id="damage-calc-opgg-ranked-species" set:html={toJsonScriptContent(opggRankedSpeciesNames)}></script>
   <script>
     import { initSecondaryBar } from "../../lib/damage-calc-page/secondary-bar";

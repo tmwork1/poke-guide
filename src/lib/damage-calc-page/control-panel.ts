@@ -73,8 +73,20 @@ function syncControlBarHeight(): void {
   update();
 }
 
+// box一覧ページ(box/index.astro の syncBoxScrollViewport)と同じく、--app-header-height等の
+// 想定トークン値ではなく実際に描画されたSecondaryBarの下端座標を使う。ボーダー等を含む
+// 実測値を使うことで、.damage-calc-shell/相手選択レールの上端が数px単位でズレるのを防ぐ。
+function syncContentTop(): void {
+  const secondaryBar = document.querySelector<HTMLElement>(".damage-calc-secondary-bar");
+  if (!secondaryBar) return;
+  const update = () => document.body.style.setProperty("--damage-calc-content-top", `${secondaryBar.getBoundingClientRect().bottom}px`);
+  window.addEventListener("resize", update);
+  update();
+}
+
 export function initControlPanel(): void {
   syncControlBarHeight();
+  syncContentTop();
   const rankRoots = Array.from(document.querySelectorAll<HTMLElement>(".damage-calc-ranks"));
   const rankControlBySide = new Map<"self" | "opponent", { stepper: RankStepper; statIndex: number }>();
   rankRoots.forEach((root) => {
