@@ -27,6 +27,7 @@ import type { OwnedPokemonRequestBody } from './owned-pokemon-validation';
 import { classifyArchetype } from './archetype.ts';
 import { SERVER_BASE_STATS_BY_SPECIES, serverGetMoveCategory } from './archetype-data.server.ts';
 import { findOrCreateArchetype } from './archetypes.ts';
+import { createLogError } from './log.ts';
 
 export interface OwnedPokemonRecord {
   id: string;
@@ -111,10 +112,7 @@ function generateShareSlug(): string {
   return crypto.randomUUID().replace(/-/g, '').slice(0, SHARE_SLUG_LENGTH);
 }
 
-function logError(context: string, error: unknown): void {
-  // eslint-disable-next-line no-console
-  console.error(`[owned-pokemon] ${context}:`, error);
-}
+const logError = createLogError('owned-pokemon');
 
 // 型(アーキタイプ)分類(src/lib/archetype.ts)+ archetypesへのfind-or-create
 // (src/lib/archetypes.ts)をまとめて行い、archetype_idを算出する。分類不能(種族/持ち物

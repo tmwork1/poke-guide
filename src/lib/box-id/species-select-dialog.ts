@@ -12,6 +12,7 @@ import { kanaIncludes } from "../kana";
 import { bindModalDismissal } from "../modal-dismiss";
 import { applySprite } from "./shared-core";
 import { requestSettingsModal } from "./settings-modal";
+import { readJsonScriptStringArray } from "../json-script";
 
 type SortMode = "popularity" | "dex" | "kana";
 
@@ -44,17 +45,6 @@ const sortLabels: Record<SortMode, string> = {
 	dex: "番号",
 	kana: "名前",
 };
-
-function readOpggRankedSpeciesNames(): string[] {
-	const script = document.getElementById("box-opgg-ranked-species");
-	if (!script) return [];
-	try {
-		const parsed: unknown = JSON.parse(script.textContent ?? "");
-		return Array.isArray(parsed) ? parsed.filter((name): name is string => typeof name === "string") : [];
-	} catch {
-		return [];
-	}
-}
 
 function getSpriteObserver(): IntersectionObserver {
 	if (!spriteObserver) {
@@ -175,7 +165,7 @@ function renderGrid(): void {
 		sortedNonMega = [...nonMegaEntries].sort((a, b) => a.name.localeCompare(b.name, "ja"));
 	} else if (sortMode === "popularity") {
 		const rankByName = new Map<string, number>();
-		for (const [index, name] of readOpggRankedSpeciesNames().entries()) {
+		for (const [index, name] of readJsonScriptStringArray("box-opgg-ranked-species").entries()) {
 			if (!rankByName.has(name)) rankByName.set(name, index);
 		}
 		const rankedEntries = nonMegaEntries

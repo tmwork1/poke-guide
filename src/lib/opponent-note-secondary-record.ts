@@ -14,6 +14,7 @@ import { computeSessionHash, getUtcDateString } from './session-hash';
 import { readEnv } from '../config/env';
 import type { OwnedPokemonRecord } from './owned-pokemon';
 import type { OpponentNoteRecord } from './opponent-notes';
+import { createLogError } from './log.ts';
 
 // session_hash の扱い(計画書§4.4、実装時に確定)。
 // - user_id そのもの・user_id から逆算可能な値は使わない
@@ -22,10 +23,7 @@ import type { OpponentNoteRecord } from './opponent-notes';
 //   日次ローテーションもされ、user_id との対応関係は一切残らない。
 const ANONYMIZED_SESSION_ID = 'owned-pokemon-anonymized';
 
-function logError(context: string, error: unknown): void {
-  // eslint-disable-next-line no-console
-  console.error(`[opponent-note-secondary-record] ${context}:`, error);
-}
+const logError = createLogError('opponent-note-secondary-record');
 
 export async function recordOpponentNoteAnonymized(
   supabase: SupabaseClient,

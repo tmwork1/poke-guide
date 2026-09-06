@@ -26,6 +26,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { OwnedPokemonRecord } from './owned-pokemon';
 import type { TeamMemberInput } from './team-validation';
+import { createLogError } from './log.ts';
 
 export interface TeamRecord {
   id: string;
@@ -84,10 +85,7 @@ const TEAM_MEMBER_SELECT =
 
 const TEAM_SELECT_WITH_MEMBERS = `${TEAM_COLUMNS}, team_members ( ${TEAM_MEMBER_SELECT} )`;
 
-function logError(context: string, error: unknown): void {
-  // eslint-disable-next-line no-console
-  console.error(`[team] ${context}:`, error);
-}
+const logError = createLogError('team');
 
 interface RawTeamRow extends TeamRecord {
   team_members: TeamMember[] | null;

@@ -9,16 +9,14 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { ArchetypeKey } from './archetype.ts';
+import { createLogError } from './log.ts';
 
 export type ArchetypeResult<T> = { ok: true; data: T } | { ok: false; error: string };
 
 // PostgreSQL の unique_violation エラーコード(owned-pokemon.tsのSHARE_SLUG生成と同じ定数)。
 const UNIQUE_VIOLATION_CODE = '23505';
 
-function logError(context: string, error: unknown): void {
-  // eslint-disable-next-line no-console
-  console.error(`[archetypes] ${context}:`, error);
-}
+const logError = createLogError('archetypes');
 
 // supabase-jsのクエリビルダーはメソッドチェーンのたびに型が変わるため、
 // select()直後のフィルタ共通化はanyで受ける。

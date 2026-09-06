@@ -30,6 +30,7 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { OpponentNoteRequestBody } from './opponent-notes-validation';
+import { createLogError } from './log.ts';
 
 // UI層(対戦相手メモの入力フォーム)がインポートして使うための型。実体は
 // opponent-notes-validation.ts で定義している(バリデーションロジックと乖離させないため、
@@ -65,10 +66,7 @@ export type CreateOpponentNoteResult =
 const OPPONENT_NOTE_COLUMNS =
   'id, owned_pokemon_id, user_id, opponent_build, field, move_name, client_result, memo, created_at, updated_at';
 
-function logError(context: string, error: unknown): void {
-  // eslint-disable-next-line no-console
-  console.error(`[opponent-notes] ${context}:`, error);
-}
+const logError = createLogError('opponent-notes');
 
 // 指定した owned_pokemon_id が userId の所有物として実在するかを確認する。
 async function isOwnedPokemonOwnedByUser(

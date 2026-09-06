@@ -1,20 +1,11 @@
 import { championSpriteUrl, loadPokemonMasterList, officialArtworkUrl } from "../pokemon-master-data";
 import { getOpponentBuild, setOpponentBuild } from "./shared-core";
+import { readJsonScriptStringArray } from "../json-script";
 
 const CHANGE_EVENT = "damage-calc:change";
 const emitChange = (reason: string) => document.dispatchEvent(new CustomEvent(CHANGE_EVENT, { detail: { reason } }));
 
 function byId<T extends HTMLElement>(id: string): T { return document.getElementById(id) as T; }
-function readOpggRankedSpeciesNames(): string[] {
-  const raw = byId<HTMLScriptElement>("damage-calc-opgg-ranked-species").textContent ?? "[]";
-  try {
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.every((name) => typeof name === "string") ? parsed : [];
-  } catch {
-    return [];
-  }
-}
-
 function commitOpponentSpecies(speciesName: string): void {
   const previous = getOpponentBuild();
   if (previous.speciesName === speciesName) return;
@@ -24,7 +15,7 @@ function commitOpponentSpecies(speciesName: string): void {
 
 export function initSecondaryBar(): void {
   const rail = byId<HTMLElement>("damage-calc-summary-rail");
-  const opggRankedSpeciesNames = readOpggRankedSpeciesNames();
+  const opggRankedSpeciesNames = readJsonScriptStringArray("damage-calc-opgg-ranked-species");
   // 相手ポケモンをタップだけで選べるよう、opgg使用率上位の候補をアイコンレールに並べる
   // (/data のbattle-data-railと同じ「候補をアイコン一列に並べる」考え方の流用)。
   loadPokemonMasterList().then((pokemon) => {

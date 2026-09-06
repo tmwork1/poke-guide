@@ -5,6 +5,8 @@
 // IVは「チャンピオンズ」ルールで常に31固定のため readIv は廃止済み(呼び出し元は常に31を直接送る)。
 // SSR環境(Astroのフロントマター)からは呼び出さないこと(document/fetchに依存する)。
 
+import { readJsonScriptStringArray } from './json-script.ts';
+
 export const STAT_KEYS = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'] as const;
 export const MOVE_SLOTS = [1, 2, 3, 4];
 
@@ -91,18 +93,6 @@ export function orderPokemonEntriesForDatalist(
   return ordered.map((entry) => entry.name);
 }
 
-function readOpggRankedSpeciesNames(): string[] | null {
-  const embedded = document.getElementById('box-opgg-ranked-species');
-  if (!embedded) return null;
-  try {
-    const parsed = JSON.parse(embedded.textContent ?? '[]');
-    return Array.isArray(parsed) && parsed.every((name) => typeof name === 'string') ? parsed : [];
-  } catch (err) {
-    console.warn('OP.GG ranking data could not be parsed', err);
-    return [];
-  }
-}
-
 function replaceDatalistOptions(datalist: HTMLDataListElement, names: readonly string[]): void {
   const fragment = document.createDocumentFragment();
   for (const name of names) {
@@ -118,7 +108,7 @@ async function fillDatalist(res: Response, datalistId: string): Promise<void> {
   if (datalistId === 'pokemon-list') {
     const list = (await res.json()) as Array<{ name: string; dexNo?: number; forme?: string | null }>;
     const entries = list.map(({ name, dexNo, forme }) => ({ name, dexNo: dexNo ?? 0, forme: forme ?? null }));
-    const rankedNames = readOpggRankedSpeciesNames() ?? [];
+    const rankedNames = readJsonScriptStringArray('box-opgg-ranked-species');
     replaceDatalistOptions(datalist, orderPokemonEntriesForDatalist(entries, rankedNames));
     return;
   }
