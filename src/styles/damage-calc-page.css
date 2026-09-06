@@ -21,14 +21,14 @@
    下でposition:fixedの独立オーバーレイになるため)。 */
 .damage-calc-summary-list { display: grid; gap: var(--space-3); padding-right: calc(2.5rem + var(--space-3)); }
 .damage-calc-matchup-card { overflow: hidden; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface); box-shadow: var(--shadow-sm); }
-.damage-calc-matchup-card__header { position: relative; min-height: 8rem; overflow: hidden; background: var(--color-surface-sunken); border-bottom: 1px solid var(--color-border); }
+.damage-calc-matchup-card__header { position: relative; min-height: 6rem; overflow: hidden; background: var(--color-surface-sunken); border-bottom: 1px solid var(--color-border); }
 .damage-calc-matchup-card__pokemon { position: absolute; z-index: 1; }
 .damage-calc-matchup-card__pokemon--self { bottom: -.25rem; left: 0; }
 .damage-calc-matchup-card__pokemon--opponent { top: -.25rem; right: 0; }
-.damage-calc-matchup-card__artwork { display: block; width: 6.5rem; height: 6.5rem; object-fit: contain; }
+.damage-calc-matchup-card__artwork { display: block; width: 5rem; height: 5rem; object-fit: contain; }
 .damage-calc-matchup-card__pokemon-meta { position: absolute; z-index: 2; display: flex; align-items: center; gap: var(--space-1); white-space: nowrap; }
-.damage-calc-matchup-card__pokemon--self .damage-calc-matchup-card__pokemon-meta { bottom: .7rem; left: calc(100% + var(--space-1)); flex-direction: row-reverse; }
-.damage-calc-matchup-card__pokemon--opponent .damage-calc-matchup-card__pokemon-meta { top: .7rem; right: calc(100% + var(--space-1)); }
+.damage-calc-matchup-card__pokemon--self .damage-calc-matchup-card__pokemon-meta { bottom: .7rem; left: calc(100% + var(--space-1)); }
+.damage-calc-matchup-card__pokemon--opponent .damage-calc-matchup-card__pokemon-meta { top: .7rem; right: calc(100% + var(--space-1)); flex-direction: row-reverse; }
 .damage-calc-matchup-card__pokemon h2 { margin: 0; font-size: var(--font-size-lg1); line-height: var(--line-height-tight); }
 .damage-calc-matchup-card__item-icon { width: 1.25rem; height: 1.25rem; object-fit: contain; }
 .damage-calc-matchup-card__versus { position: absolute; z-index: 3; top: 50%; left: 50%; transform: translate(-50%, -50%); color: var(--color-text-muted); font-size: var(--font-size-sm2); font-weight: var(--font-weight-bold); letter-spacing: .08em; }
