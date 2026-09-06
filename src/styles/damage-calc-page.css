@@ -37,6 +37,8 @@
 .damage-calc-matchup-card__pokemon--self { left: 0; }
 .damage-calc-matchup-card__pokemon--opponent { right: 0; }
 .damage-calc-matchup-card__artwork { position: absolute; top: 50%; display: block; width: var(--damage-calc-card-artwork-size); height: var(--damage-calc-card-artwork-size); object-fit: contain; transform: translateY(-50%); }
+.damage-calc-matchup-card__artwork img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.damage-calc-matchup-card__artwork--placeholder { display: grid; place-items: center; color: var(--color-text-muted); font-size: var(--font-size-lg1); font-weight: var(--font-weight-bold); }
 .damage-calc-matchup-card__pokemon--self .damage-calc-matchup-card__artwork { left: var(--damage-calc-card-artwork-inset); }
 .damage-calc-matchup-card__pokemon--opponent .damage-calc-matchup-card__artwork { right: var(--damage-calc-card-artwork-inset); }
 .damage-calc-matchup-card__pokemon-meta { position: absolute; z-index: 2; display: flex; align-items: center; max-width: calc(100% - var(--damage-calc-card-artwork-size) - var(--damage-calc-card-artwork-inset) - 2px); white-space: nowrap; }
@@ -53,6 +55,8 @@
 .damage-calc-matchup-card__pokemon--self .damage-calc-matchup-card__item-button { top: 1rem; left: calc(var(--damage-calc-card-artwork-inset) + var(--damage-calc-card-artwork-size) + 2px); }
 .damage-calc-matchup-card__pokemon--opponent .damage-calc-matchup-card__item-button { right: calc(var(--damage-calc-card-artwork-inset) + var(--damage-calc-card-artwork-size) + 2px); bottom: 1rem; }
 .damage-calc-matchup-card__versus { position: absolute; z-index: 3; top: 50%; left: 50%; transform: translate(-50%, -50%); color: var(--color-text-muted); font-size: var(--font-size-sm2); font-weight: var(--font-weight-bold); letter-spacing: .08em; }
+.damage-calc-matchup-card__status { margin: var(--space-2); color: var(--color-text-muted); font-size: var(--font-size-sm3); text-align: center; }
+.damage-calc-matchup-card__status[data-state="error"] { color: var(--color-danger-strong); }
 /* ポケモン表示領域と攻撃テーブルの間のすばやさ表示。自分側は実数値1つ、相手側は
    無振り/準速/最速の3水準を、それぞれ左右のポケモンの下に揃えて並べる。 */
 .damage-calc-matchup-card__speed { display: grid; grid-template-columns: 1fr 1fr; align-items: flex-start; gap: var(--space-3); padding: 0 var(--space-2) var(--space-2); }

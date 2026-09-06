@@ -1,14 +1,11 @@
 import { createItemSelectGrid, sortItemsByUsage } from "../box-id/item-select-dialog";
 import { bindModalDismissal } from "../modal-dismiss";
 import { itemIconUrl } from "../sprite-urls";
-import { getOpponentBuild, setOpponentBuild } from "./shared-core";
+import { getOpponentBuild, getSelfBuild, setOpponentBuild, setSelfBuild } from "./shared-core";
 
 type Side = "self" | "opponent";
 
 const CHANGE_EVENT = "damage-calc:change";
-const SELF_INITIAL_ITEM = "こだわりハチマキ";
-const OPPONENT_INITIAL_ITEM = "たべのこし";
-
 function byId<T extends HTMLElement>(id: string): T { return document.getElementById(id) as T; }
 
 type OpggUsageResponse = { options: { name: string; usageRate: number | null }[] };
@@ -54,18 +51,17 @@ export function initItemSelectDialog(): void {
   const triggers = Array.from(document.querySelectorAll<HTMLButtonElement>("[data-damage-calc-item-side]"));
   let activeSide: Side = "self";
   let activeTrigger: HTMLButtonElement | null = null;
-  let selfItemName = SELF_INITIAL_ITEM;
   let searchQuery = "";
 
   function speciesNameFor(side: Side): string {
     if (side === "opponent") {
       return getOpponentBuild().speciesName || byId<HTMLElement>("damage-calc-opponent-name").textContent?.trim() || "";
     }
-    return byId<HTMLElement>("damage-calc-matchup-title").textContent?.trim() || "";
+    return getSelfBuild().species_name;
   }
 
   function itemNameFor(side: Side): string {
-    return side === "self" ? selfItemName : (getOpponentBuild().itemName || OPPONENT_INITIAL_ITEM);
+    return side === "self" ? (getSelfBuild().item_name || "") : (getOpponentBuild().itemName || "");
   }
 
   function syncCardItem(side: Side, itemName: string): void {
@@ -92,7 +88,7 @@ export function initItemSelectDialog(): void {
     getActiveValue: () => itemNameFor(activeSide),
     sortRest: (values) => sortItemsByUsage(values, (value) => usageRatiosBySpecies.get(speciesNameFor(activeSide))?.get(value)),
     onSelect: (itemName) => {
-      if (activeSide === "self") selfItemName = itemName;
+      if (activeSide === "self") setSelfBuild({ ...getSelfBuild(), item_name: itemName });
       else setOpponentBuild({ ...getOpponentBuild(), itemName });
       syncCardItem(activeSide, itemName);
       document.dispatchEvent(new CustomEvent(CHANGE_EVENT, { detail: { reason: `${activeSide}-item` } }));
@@ -102,8 +98,13 @@ export function initItemSelectDialog(): void {
 
   // 相手ビルドは別の初期化処理で候補値を持つ場合があるため、カードの初期アイコンも
   // 実際にモーダルで選択中として扱う値へそろえる。
-  syncCardItem("self", selfItemName);
+  syncCardItem("self", itemNameFor("self"));
   syncCardItem("opponent", itemNameFor("opponent"));
+
+  document.addEventListener(CHANGE_EVENT, (event) => {
+    const reason = (event as CustomEvent<{ reason?: string }>).detail?.reason;
+    if (reason === "self") syncCardItem("self", itemNameFor("self"));
+  });
 
   async function openDialog(trigger: HTMLButtonElement, side: Side): Promise<void> {
     activeSide = side;

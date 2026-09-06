@@ -4,60 +4,27 @@
       <article class="damage-calc-matchup-card" aria-labelledby="damage-calc-matchup-title">
         <header class="damage-calc-matchup-card__header">
           <div class="damage-calc-matchup-card__pokemon damage-calc-matchup-card__pokemon--self">
-            <img id="damage-calc-self-artwork" src="/pokemon-champion-sprites/149.png" alt="カイリュー" class="damage-calc-matchup-card__artwork" />
-            <div class="damage-calc-matchup-card__pokemon-meta"><h2 id="damage-calc-matchup-title">カイリュー</h2></div>
-            <button type="button" class="damage-calc-matchup-card__item-button" data-damage-calc-item-side="self" aria-haspopup="dialog" aria-label="カイリューのもちものを選択">
-              <img id="damage-calc-self-item-icon" src="/item-icons/こだわりハチマキ.png" alt="こだわりハチマキ" class="damage-calc-matchup-card__item-icon" />
+            <div id="damage-calc-self-artwork" class="damage-calc-matchup-card__artwork damage-calc-matchup-card__artwork--placeholder" aria-label="?"><span>?</span></div>
+            <div class="damage-calc-matchup-card__pokemon-meta"><h2 id="damage-calc-matchup-title">?</h2></div>
+            <button type="button" class="damage-calc-matchup-card__item-button" data-damage-calc-item-side="self" aria-haspopup="dialog" aria-label="自分のもちものを選択">
+              <img id="damage-calc-self-item-icon" alt="" class="damage-calc-matchup-card__item-icon" hidden />
               <svg id="damage-calc-self-item-none-icon" class="damage-calc-matchup-card__item-none-icon" viewBox="0 0 24 24" aria-hidden="true" hidden><circle cx="12" cy="12" r="8.5" stroke-linecap="round" /><path d="M6 6l12 12" stroke-linecap="round" /></svg>
             </button>
           </div>
           <span class="damage-calc-matchup-card__versus" aria-label="対">VS</span>
           <div class="damage-calc-matchup-card__pokemon damage-calc-matchup-card__pokemon--opponent">
-            <img id="damage-calc-opponent-artwork" src="/pokemon-champion-sprites/1000.png" alt="サーフゴー" class="damage-calc-matchup-card__artwork" />
+            <div id="damage-calc-opponent-artwork" class="damage-calc-matchup-card__artwork damage-calc-matchup-card__artwork--placeholder" aria-label="サーフゴー"><span>?</span></div>
             <div class="damage-calc-matchup-card__pokemon-meta"><h2 id="damage-calc-opponent-name">サーフゴー</h2></div>
             <button type="button" class="damage-calc-matchup-card__item-button" data-damage-calc-item-side="opponent" aria-haspopup="dialog" aria-label="サーフゴーのもちものを選択">
-              <img id="damage-calc-opponent-item-icon" src="/item-icons/たべのこし.png" alt="たべのこし" class="damage-calc-matchup-card__item-icon" />
+              <img id="damage-calc-opponent-item-icon" alt="" class="damage-calc-matchup-card__item-icon" hidden />
               <svg id="damage-calc-opponent-item-none-icon" class="damage-calc-matchup-card__item-none-icon" viewBox="0 0 24 24" aria-hidden="true" hidden><circle cx="12" cy="12" r="8.5" stroke-linecap="round" /><path d="M6 6l12 12" stroke-linecap="round" /></svg>
             </button>
           </div>
         </header>
-        <div class="damage-calc-matchup-card__speed">
-          <div class="damage-calc-matchup-card__speed-group damage-calc-matchup-card__speed-group--self">
-            <div class="damage-calc-matchup-card__speed-item">
-              <span class="damage-calc-matchup-card__speed-label">すばやさ</span>
-              <span class="damage-calc-matchup-card__speed-value tnum">145</span>
-            </div>
-          </div>
-          <div class="damage-calc-matchup-card__speed-group damage-calc-matchup-card__speed-group--opponent">
-            <div class="damage-calc-matchup-card__speed-item">
-              <span class="damage-calc-matchup-card__speed-label">無振り</span>
-              <span class="damage-calc-matchup-card__speed-value tnum">104</span>
-            </div>
-            <div class="damage-calc-matchup-card__speed-item">
-              <span class="damage-calc-matchup-card__speed-label">準速</span>
-              <span class="damage-calc-matchup-card__speed-value tnum">136</span>
-            </div>
-            <div class="damage-calc-matchup-card__speed-item">
-              <span class="damage-calc-matchup-card__speed-label">最速</span>
-              <span class="damage-calc-matchup-card__speed-value tnum">149</span>
-            </div>
-          </div>
-        </div>
-        <section class="damage-calc-matchup-card__section" aria-label="攻撃">
-          <div class="damage-calc-matchup-card__table-wrap"><table class="damage-calc-matchup-card__table"><colgroup><col class="damage-calc-matchup-card__move-column" /><col /><col /><col /></colgroup><thead><tr><th scope="col" aria-label="攻撃"><span class="damage-calc-matchup-card__table-label damage-calc-matchup-card__table-label--attack">攻</span></th><th scope="col">無振り</th><th scope="col">32振り</th><th scope="col">特化</th></tr></thead><tbody>
-            <tr><th scope="row">しんそく</th><td><strong>39〜46%</strong><small>確3</small></td><td><strong>36〜43%</strong><small>確3</small></td><td><strong>31〜37%</strong><small>乱3 (92%)</small></td></tr>
-            <tr><th scope="row">じしん</th><td><strong>75〜89%</strong><small>確2</small></td><td><strong>70〜83%</strong><small>確2</small></td><td><strong>60〜71%</strong><small>確2</small></td></tr>
-            <tr><th scope="row">げきりん</th><td><strong>61〜73%</strong><small>確2</small></td><td><strong>57〜68%</strong><small>確2</small></td><td><strong>48〜57%</strong><small>確2</small></td></tr>
-            <tr><th scope="row">ほのおのパンチ</th><td><strong>44〜52%</strong><small>乱2 (21%)</small></td><td><strong>41〜49%</strong><small>確3</small></td><td><strong>35〜42%</strong><small>確3</small></td></tr>
-          </tbody></table></div>
-        </section>
-        <section class="damage-calc-matchup-card__section" aria-label="防御">
-          <div class="damage-calc-matchup-card__table-wrap"><table class="damage-calc-matchup-card__table"><colgroup><col class="damage-calc-matchup-card__move-column" /><col /><col /><col /></colgroup><thead><tr><th scope="col" aria-label="防御"><span class="damage-calc-matchup-card__table-label damage-calc-matchup-card__table-label--defense">守</span></th><th scope="col" aria-label="相手の攻撃・特攻 無振り">無振り</th><th scope="col" aria-label="相手の攻撃・特攻 32振り">32振り</th><th scope="col" aria-label="相手の攻撃・特攻 特化">特化</th></tr></thead><tbody>
-            <tr><th scope="row">ゴールドラッシュ</th><td><strong>42〜50%</strong><small>乱2 (1%)</small></td><td><strong>38〜45%</strong><small>確3</small></td><td><strong>33〜39%</strong><small>確3</small></td></tr>
-            <tr><th scope="row">シャドーボール</th><td><strong>32〜38%</strong><small>確3</small></td><td><strong>29〜35%</strong><small>確3</small></td><td><strong>25〜30%</strong><small>確4</small></td></tr>
-            <tr><th scope="row">きあいだま</th><td><strong>67〜80%</strong><small>確2</small></td><td><strong>60〜71%</strong><small>確2</small></td><td><strong>52〜62%</strong><small>確2</small></td></tr>
-          </tbody></table></div>
-        </section>
+        <p id="damage-calc-matchup-status" class="damage-calc-matchup-card__status" aria-live="polite" hidden></p>
+        <div id="damage-calc-matchup-speed"></div>
+        <section class="damage-calc-matchup-card__section" aria-label="攻撃"><div id="damage-calc-matchup-attack-table"></div></section>
+        <section class="damage-calc-matchup-card__section" aria-label="防御"><div id="damage-calc-matchup-defense-table"></div></section>
       </article>
     </div>
     <nav id="damage-calc-summary-rail" class="damage-calc-summary-rail" aria-label="相手ポケモンを選択"></nav>

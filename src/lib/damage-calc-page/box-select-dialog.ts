@@ -1,7 +1,6 @@
 import { listOwnedPokemonPage } from "../data/pokemon-repo";
 import { ownedPokemonDisplayName, renderBoxPokemonCard } from "../owned-pokemon-card";
 import { bindModalDismissal } from "../modal-dismiss";
-import { championSpriteUrl, loadImageIdMap, officialArtworkUrl } from "../pokemon-master-data";
 import type { OwnedPokemonRecord } from "../owned-pokemon";
 import { setSelfBuild } from "./shared-core";
 
@@ -44,24 +43,8 @@ export function initBoxSelectDialog(): void {
     trigger.focus();
   }
 
-  function syncSelfCard(pokemon: OwnedPokemonRecord, imageId: number | undefined): void {
-    const name = byId<HTMLElement>("damage-calc-matchup-title");
-    const artwork = byId<HTMLImageElement>("damage-calc-self-artwork");
-    name.textContent = pokemon.species_name;
-    artwork.alt = pokemon.species_name;
-    if (imageId != null) {
-      artwork.src = championSpriteUrl(imageId);
-      artwork.onerror = () => {
-        artwork.onerror = null;
-        artwork.src = officialArtworkUrl(imageId);
-      };
-    }
-  }
-
   async function selectPokemon(pokemon: OwnedPokemonRecord): Promise<void> {
     setSelfBuild(toSelfBuild(pokemon));
-    const imageId = (await loadImageIdMap()).get(pokemon.species_name);
-    syncSelfCard(pokemon, imageId);
     document.dispatchEvent(new CustomEvent("damage-calc:change", { detail: { reason: "self" } }));
     closeDialog();
   }

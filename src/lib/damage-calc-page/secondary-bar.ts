@@ -13,17 +13,6 @@ function commitOpponentSpecies(speciesName: string): void {
   emitChange("opponent");
 }
 
-function syncOpponentCard(speciesName: string, imageId: number | undefined): void {
-  const name = byId<HTMLElement>("damage-calc-opponent-name");
-  const artwork = byId<HTMLImageElement>("damage-calc-opponent-artwork");
-  name.textContent = speciesName;
-  artwork.alt = speciesName;
-  if (imageId != null) {
-    artwork.src = championSpriteUrl(imageId);
-    artwork.onerror = () => { artwork.onerror = null; artwork.src = officialArtworkUrl(imageId); };
-  }
-}
-
 export function initSecondaryBar(): void {
   const rail = byId<HTMLElement>("damage-calc-summary-rail");
   const opponentSelect = byId<HTMLSelectElement>("damage-calc-opponent-select");
@@ -39,7 +28,6 @@ export function initSecondaryBar(): void {
     const selectOpponent = (name: string) => {
       opponentSelect.value = name;
       commitOpponentSpecies(name);
-      syncOpponentCard(name, imageIds.get(name));
     };
     selectOpponent(getOpponentBuild().speciesName || "サーフゴー");
     opponentSelect.addEventListener("change", () => selectOpponent(opponentSelect.value));
