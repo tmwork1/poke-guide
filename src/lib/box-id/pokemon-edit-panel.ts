@@ -857,7 +857,10 @@ if (form) {
 			abilitySelectEl.appendChild(emptyOpt);
 			abilitySelectEl.value = "";
 			abilitySelectEl.title = "";
-			if (previousValue !== "") scheduleSave();
+			if (previousValue !== "") {
+				scheduleSave();
+				syncPokemonPreview();
+			}
 			return;
 		}
 		abilitySelectEl.disabled = false;
@@ -869,7 +872,13 @@ if (form) {
 		}
 		abilitySelectEl.value = abilities.includes(previousValue) ? previousValue : abilities[0];
 		abilitySelectEl.title = abilitySelectEl.value;
-		if (abilitySelectEl.value !== previousValue) scheduleSave();
+		// 候補リストの再構築で値がフォールバックした場合、change/inputは発火しないため
+		// ここで明示的にプレビュー(#pokemon-preview-ability)を同期する。これを怠ると
+		// 選択ボックスの値とプレビュー表示がずれたままになる(実例: ヤドキング)。
+		if (abilitySelectEl.value !== previousValue) {
+			scheduleSave();
+			syncPokemonPreview();
+		}
 	}
 	abilitySelectEl.addEventListener("change", () => {
 		abilitySelectEl.title = abilitySelectEl.value;

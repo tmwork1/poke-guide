@@ -390,4 +390,6 @@
   display: none;
 }
 
+.pokemon-preview-item-image { filter: drop-shadow(var(--shadow-sm)); }
+
 .pokemon-preview-item-image-hidden { display: none; }

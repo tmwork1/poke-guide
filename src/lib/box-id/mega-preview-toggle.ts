@@ -54,6 +54,7 @@ export function setupMegaPreviewToggle(): void {
   const fallbackEl = document.getElementById('pokemon-preview-species-sprite-fallback');
   const typeIconsEl = preview?.querySelector<HTMLElement>('.pokemon-preview-type-icons');
   const abilityEl = document.getElementById('pokemon-preview-ability');
+  const abilitySelectEl = document.getElementById('ability') as HTMLSelectElement | null;
   const sourceSpeciesInput = document.getElementById('species-name') as HTMLInputElement | null;
   const sourceItemInput = document.getElementById('item') as HTMLInputElement | null;
   const previewItemEl = document.getElementById('pokemon-preview-item');
@@ -98,7 +99,16 @@ export function setupMegaPreviewToggle(): void {
       }));
 
       const detail = detailByName.get(entry.name);
-      if (abilityEl) abilityEl.textContent = detail?.abilities[0] ?? '-';
+      // 編集フォームがあるページ(#ability select)では、実際に選択中の特性を優先する。
+      // 種族一覧のabilities[0]で無条件に上書きすると、ユーザーが2番目以降の特性を
+      // 選んでいる個体でプレビューと選択ボックスの表示がずれる(実例: ヤドキング)。
+      // 編集フォームが無いページ(battle-data等)ではselectが存在しないのでフォールバックする。
+      if (abilityEl) {
+        abilityEl.textContent = abilitySelectEl?.selectedOptions[0]?.textContent?.trim()
+          || abilitySelectEl?.value.trim()
+          || detail?.abilities[0]
+          || '-';
+      }
 
       const displayedEvs = statKeys.map((key) => {
         const value = preview.querySelector<HTMLElement>(`#pokemon-preview-ev-${key}`)?.textContent?.trim();
