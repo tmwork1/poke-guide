@@ -6,13 +6,17 @@
           <div class="damage-calc-matchup-card__pokemon damage-calc-matchup-card__pokemon--self">
             <img src="/pokemon-champion-sprites/149.png" alt="カイリュー" class="damage-calc-matchup-card__artwork" />
             <div class="damage-calc-matchup-card__pokemon-meta"><h2 id="damage-calc-matchup-title">カイリュー</h2></div>
-            <img src="/item-icons/こだわりハチマキ.png" alt="こだわりハチマキ" class="damage-calc-matchup-card__item-icon" />
+            <button type="button" class="damage-calc-matchup-card__item-button" data-damage-calc-item-side="self" aria-haspopup="dialog" aria-label="カイリューのもちものを選択">
+              <img id="damage-calc-self-item-icon" src="/item-icons/こだわりハチマキ.png" alt="こだわりハチマキ" class="damage-calc-matchup-card__item-icon" />
+            </button>
           </div>
           <span class="damage-calc-matchup-card__versus" aria-label="対">VS</span>
           <div class="damage-calc-matchup-card__pokemon damage-calc-matchup-card__pokemon--opponent">
             <img id="damage-calc-opponent-artwork" src="/pokemon-champion-sprites/1000.png" alt="サーフゴー" class="damage-calc-matchup-card__artwork" />
             <div class="damage-calc-matchup-card__pokemon-meta"><h2 id="damage-calc-opponent-name">サーフゴー</h2></div>
-            <img src="/item-icons/たべのこし.png" alt="たべのこし" class="damage-calc-matchup-card__item-icon" />
+            <button type="button" class="damage-calc-matchup-card__item-button" data-damage-calc-item-side="opponent" aria-haspopup="dialog" aria-label="サーフゴーのもちものを選択">
+              <img id="damage-calc-opponent-item-icon" src="/item-icons/たべのこし.png" alt="たべのこし" class="damage-calc-matchup-card__item-icon" />
+            </button>
           </div>
         </header>
         <section class="damage-calc-matchup-card__section" aria-label="攻撃">

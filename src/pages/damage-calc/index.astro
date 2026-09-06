@@ -5,6 +5,7 @@ import AppLayout from "../../layouts/AppLayout.astro";
 import AppHeader from "../../components/AppHeader.astro";
 import SecondaryBar from "../../components/damage-calc/SecondaryBar.astro";
 import MatchupCardList from "../../components/damage-calc/MatchupCardList.astro";
+import ItemSelectDialog from "../../components/damage-calc/ItemSelectDialog.astro";
 import ControlPanel from "../../components/damage-calc/ControlPanel.astro";
 import { toJsonScriptContent } from "../../lib/json-script";
 import { getOpggUsageList, getOpggUsageManifest, sortOpggSeasons } from "../../lib/opgg-usage";
@@ -41,11 +42,14 @@ try {
     <MatchupCardList />
   </main>
   <ControlPanel />
+  <ItemSelectDialog />
   <script type="application/json" id="damage-calc-opgg-ranked-species" set:html={toJsonScriptContent(opggRankedSpeciesNames)}></script>
   <script>
     import { initSecondaryBar } from "../../lib/damage-calc-page/secondary-bar";
     import { initControlPanel } from "../../lib/damage-calc-page/control-panel";
+    import { initItemSelectDialog } from "../../lib/damage-calc-page/item-select-dialog";
     initSecondaryBar();
     initControlPanel();
+    initItemSelectDialog();
   </script>
 </AppLayout>
