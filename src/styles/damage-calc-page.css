@@ -24,7 +24,7 @@
    下でposition:fixedの独立オーバーレイになるため)。 */
 .damage-calc-summary-list { display: grid; gap: var(--space-3); padding-right: calc(2.5rem + var(--space-3)); }
 .damage-calc-matchup-card { overflow: hidden; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface); box-shadow: var(--shadow-sm); }
-.damage-calc-matchup-card__header { position: relative; min-height: 6rem; overflow: hidden; background: var(--color-surface); border-bottom: 1px solid var(--color-border); }
+.damage-calc-matchup-card__header { position: relative; min-height: 6rem; overflow: hidden; background: var(--color-surface); }
 .damage-calc-matchup-card__pokemon { position: absolute; z-index: 1; }
 .damage-calc-matchup-card__pokemon--self, .damage-calc-matchup-card__pokemon--opponent { top: 0; width: 50%; height: 100%; }
 .damage-calc-matchup-card__pokemon--self { left: 0; }
@@ -41,7 +41,6 @@
 .damage-calc-matchup-card__pokemon--opponent .damage-calc-matchup-card__item-icon { right: calc(4rem + 2px); bottom: 1rem; }
 .damage-calc-matchup-card__versus { position: absolute; z-index: 3; top: 50%; left: 50%; transform: translate(-50%, -50%); color: var(--color-text-muted); font-size: var(--font-size-sm2); font-weight: var(--font-weight-bold); letter-spacing: .08em; }
 .damage-calc-matchup-card__section { display: grid; padding: var(--space-2) 0; }
-.damage-calc-matchup-card__section + .damage-calc-matchup-card__section { border-top: 1px solid var(--color-border); }
 .damage-calc-matchup-card__table-wrap { overflow-x: auto; }
 .damage-calc-matchup-card__table { width: 100%; min-width: 31rem; border-collapse: collapse; font-size: var(--font-size-sm2); }
 .damage-calc-matchup-card__move-column { width: 7rem; }
