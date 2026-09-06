@@ -86,8 +86,8 @@
 .damage-calc-control-row-3 { grid-row: 3; }
 .damage-calc-control-reset { grid-column: 1 / -1; grid-row: 4; }
 .damage-calc-control-cell { display: flex; align-items: center; justify-content: space-between; gap: var(--space-1); min-width: 0; }
-.damage-calc-control-cell[data-side="self"] .damage-calc-control-label { order: 2; }
-.damage-calc-control-cell[data-side="opponent"] .damage-calc-control-label { order: -1; }
+.damage-calc-control-cell[data-side="self"] .damage-calc-control-label { margin-left: var(--space-2); }
+.damage-calc-control-cell[data-side="opponent"] .damage-calc-control-label { margin-right: var(--space-2); }
 .damage-calc-control-cell--field { flex-direction: column; align-items: stretch; gap: var(--space-1); }
 .damage-calc-ailment-field { flex: 1; min-width: 0; }
 .damage-calc-ailment-field select { width: 100%; font-size: var(--font-size-sm2); min-height: var(--tap-target-min); }
