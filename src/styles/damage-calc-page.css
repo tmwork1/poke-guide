@@ -31,12 +31,13 @@
 .damage-calc-matchup-card__section { display: grid; gap: var(--space-2); padding: var(--space-3) 0; }
 .damage-calc-matchup-card__section + .damage-calc-matchup-card__section { border-top: 1px solid var(--color-border); }
 .damage-calc-matchup-card__section-title { align-self: start; justify-self: start; min-width: 4.5rem; margin: 0 var(--space-3); padding: .32em .45em; border-radius: 999px; font-size: var(--font-size-sm2); line-height: var(--line-height-snug); text-align: center; }
-.damage-calc-matchup-card__section-title--attack { color: var(--color-danger-strong); background: var(--color-danger-soft); }
-.damage-calc-matchup-card__section-title--defense { color: var(--color-primary-strong); background: var(--color-primary-soft); }
+.damage-calc-matchup-card__section-title--attack { color: var(--color-danger-strong); background: transparent; }
+.damage-calc-matchup-card__section-title--defense { color: var(--color-primary-strong); background: transparent; }
 .damage-calc-matchup-card__table-wrap { overflow-x: auto; }
 .damage-calc-matchup-card__table { width: 100%; min-width: 31rem; border-collapse: collapse; font-size: var(--font-size-sm2); }
 .damage-calc-matchup-card__move-column { width: 7rem; }
 .damage-calc-matchup-card__table th, .damage-calc-matchup-card__table td { padding: .32rem .4rem; border: 0; text-align: center; vertical-align: middle; white-space: nowrap; }
+.damage-calc-matchup-card__table th { background: transparent; }
 .damage-calc-matchup-card__table tbody tr { border-top: 1px solid var(--color-border); }
 .damage-calc-matchup-card__table thead th { color: var(--color-text-muted); font-size: var(--font-size-sm3); font-weight: var(--font-weight-medium); }
 .damage-calc-matchup-card__table th:first-child { text-align: left; }
