@@ -21,13 +21,16 @@
 /* 一覧の外周余白。/data のバトルデータタブ(.data-hub-scroll の左右 --space-2)と同程度に詰める。 */
 .damage-calc-matchups { min-height: 28rem; padding: var(--space-2); background-color: var(--color-bg); background-image: none; }
 .damage-calc-matchups > .panel-content { min-width: 0; }
-/* --damage-calc-rail-gutter: レール(2.5rem)の左右にとる余白。右側は実際のレールと
-   重ならないための必須スペース、左側は見た目の左右対称のために同じ幅を確保する。
-   画面が狭く対面カードの面積が不足するときは、タップ対象であるレール自体(2.5rem)は
-   縮めず、この余白だけを縮めて対面カードの領域を優先する(下の @media を参照)。 */
+/* --damage-calc-rail-gutter: レール(2.5rem)の右側(画面端との間)と左側(対面カード
+   領域との間)に同じ幅で確保する余白。画面が狭く対面カードの面積が不足するときは、
+   タップ対象であるレール自体(2.5rem)は縮めず、この余白だけを縮めて対面カードの
+   領域を優先する(下の @media を参照)。対面カード側の左端(画面左端からの余白)は
+   このレール専用の余白と無関係なので変更しない。 */
 .damage-calc-summary-layout { position: relative; --damage-calc-rail-gutter: var(--space-3); }
 @media (width <= 400px) { .damage-calc-summary-layout { --damage-calc-rail-gutter: 2px; } }
-.damage-calc-summary-list { display: grid; gap: var(--space-3); padding-inline: calc(2.5rem + var(--damage-calc-rail-gutter)); }
+/* 相手選択レール分の右側スペースをここで確保する(レール自体はgridから外れ、
+   下でposition:fixedの独立オーバーレイになるため)。 */
+.damage-calc-summary-list { display: grid; gap: var(--space-3); padding-right: calc(2.5rem + var(--damage-calc-rail-gutter)); }
 /* 対面カード本体。角は丸めない(バトルデータカードと同じ直角の枠に揃える)。 */
 .damage-calc-matchup-card {
   --damage-calc-card-artwork-size: 4.25rem; /* 立ち絵の一辺。小さくすると名前・もちもの側の余地が広がる */
