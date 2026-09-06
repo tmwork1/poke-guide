@@ -949,6 +949,23 @@ body.box-edit-page {
   font-weight: var(--damage-card-total-verdict-font-weight);
 }
 
+/* 累計結果の文字色: 確定数1発は黄色、2発はその薄い色、3発以上・不明は通常の文字色にする
+   (背景のメーターは.damage-row-total側の既存の表現のまま変えない。文字色だけ
+   .damage-row-total-result側で上書きし、継承元の.damage-row-total[data-severity]の
+   color: var(--color-text)より優先させる)。 */
+#opponent-notes-section .damage-row-total-result[data-severity="lethal"] {
+  color: var(--damage-card-result-confirm1-color);
+}
+
+#opponent-notes-section .damage-row-total-result[data-severity="risky"] {
+  color: var(--damage-card-result-confirm2-color);
+  opacity: .6;
+}
+
+#opponent-notes-section .damage-row-total-result[data-severity="safe"] {
+  color: var(--damage-card-result-confirm3plus-color);
+}
+
 /* Slightly reduce the visual weight of the KO-count verdict. */
 #opponent-notes-section .damage-row-total-result .damage-result-verdict {
   font-size: var(--damage-card-move-font-size);
@@ -1284,19 +1301,16 @@ body.box-edit-page {
   border-left: none;
 }
 
-/* 確定数1発(最も倒しやすい)は黄色、2発はその薄い色、3発以上・不明は通常の文字色にする
-   (以前は1発=危険色の赤、2発=注意色、3発以上=リンク色の青だった)。 */
 #opponent-notes-section .damage-column-result[data-severity="lethal"] {
-  color: var(--damage-card-result-confirm1-color);
+  color: var(--color-danger-strong);
 }
 
 #opponent-notes-section .damage-column-result[data-severity="risky"] {
-  color: var(--damage-card-result-confirm2-color);
-  opacity: .6;
+  color: var(--color-risky-strong);
 }
 
 #opponent-notes-section .damage-column-result[data-severity="safe"] {
-  color: var(--damage-card-result-confirm3plus-color);
+  color: var(--color-primary-strong);
 }
 
 #opponent-notes-section .damage-column-result .damage-result-verdict {
