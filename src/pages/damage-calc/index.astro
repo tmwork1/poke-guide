@@ -44,10 +44,8 @@ try {
   <script type="application/json" id="damage-calc-opgg-ranked-species" set:html={toJsonScriptContent(opggRankedSpeciesNames)}></script>
   <script>
     import { initSecondaryBar } from "../../lib/damage-calc-page/secondary-bar";
-    import { initMatchupCardList } from "../../lib/damage-calc-page/matchup-card";
     import { initControlPanel } from "../../lib/damage-calc-page/control-panel";
     initSecondaryBar();
-    initMatchupCardList();
     initControlPanel();
   </script>
 </AppLayout>
