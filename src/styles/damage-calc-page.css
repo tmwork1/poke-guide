@@ -35,6 +35,7 @@
 .damage-calc-matchup-card__section-title--defense { color: var(--color-primary-strong); background: var(--color-primary-soft); }
 .damage-calc-matchup-card__table-wrap { overflow-x: auto; }
 .damage-calc-matchup-card__table { width: 100%; min-width: 31rem; border-collapse: collapse; font-size: var(--font-size-sm2); }
+.damage-calc-matchup-card__move-column { width: 7rem; }
 .damage-calc-matchup-card__table th, .damage-calc-matchup-card__table td { padding: .32rem .4rem; border-bottom: 1px solid var(--color-border); text-align: center; vertical-align: middle; white-space: nowrap; }
 .damage-calc-matchup-card__table thead th { color: var(--color-text-muted); font-size: var(--font-size-sm3); font-weight: var(--font-weight-medium); }
 .damage-calc-matchup-card__table th:first-child { text-align: left; }
@@ -109,8 +110,10 @@
 @media (max-width: 600px) {
   .damage-calc-matchup-card__table-wrap { overflow: visible; }
   .damage-calc-matchup-card__table { min-width: 0; table-layout: fixed; font-size: var(--font-size-sm3); }
-  .damage-calc-matchup-card__move-column { width: 37%; }
+  .damage-calc-matchup-card__move-column { width: 5.9rem; }
   .damage-calc-matchup-card__table th, .damage-calc-matchup-card__table td { padding: .28rem .16rem; }
+  .damage-calc-matchup-card__table th:not(:first-child), .damage-calc-matchup-card__table td { padding-inline: .3rem; }
+  .damage-calc-matchup-card__table tbody th { font-size: var(--font-size-sm4); }
   .damage-calc-matchup-card__table th:first-child { white-space: nowrap; }
   .damage-calc-matchup-card__table td { font-variant-numeric: tabular-nums; }
 }
