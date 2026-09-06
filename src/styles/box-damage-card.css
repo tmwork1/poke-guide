@@ -40,7 +40,7 @@ body.box-edit-page {
   --damage-card-defense-badge-color: var(--color-primary); /* 相手ビルドカードの防御バッジの文字色 */
   --damage-card-result-confirm1-color: var(--color-text); /* 累計結果: 確定数1発の文字色。最も明るい本文色にする */
   --damage-card-result-confirm2-color: var(--color-text); /* 累計結果: 確定数2発の文字色。下のopacityで少しグレーにする */
-  --damage-card-result-confirm3plus-color: var(--color-text-muted); /* 累計結果: 確定数3発以上・不明の文字色。控えめなグレーにする */
+  --damage-card-result-confirm3plus-color: color-mix(in srgb, var(--color-text) 88%, var(--color-text-muted)); /* 累計結果: 確定数3発以上・不明の文字色。本文色を少しだけグレーにする */
 
   /* ── 4. 背景色 ─────────────────────── */
   --damage-card-active-background: color-mix(in srgb, var(--color-bg) 90%, var(--color-primary) 10%); /* hover・フォーカス時の背景色 */
