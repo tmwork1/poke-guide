@@ -21,14 +21,14 @@
    下でposition:fixedの独立オーバーレイになるため)。 */
 .damage-calc-summary-list { display: grid; gap: var(--space-3); padding-right: calc(2.5rem + var(--space-3)); }
 .damage-calc-matchup-card { overflow: hidden; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface); box-shadow: var(--shadow-sm); }
-.damage-calc-matchup-card__header { position: relative; min-height: 9rem; overflow: hidden; background: var(--color-surface-sunken); border-bottom: 1px solid var(--color-border); }
+.damage-calc-matchup-card__header { position: relative; min-height: 8rem; overflow: hidden; background: var(--color-surface-sunken); border-bottom: 1px solid var(--color-border); }
 .damage-calc-matchup-card__pokemon { position: absolute; z-index: 1; }
-.damage-calc-matchup-card__pokemon--self { bottom: -.3rem; left: .5rem; }
-.damage-calc-matchup-card__pokemon--opponent { top: -.3rem; right: .5rem; }
-.damage-calc-matchup-card__artwork { display: block; width: 7.25rem; height: 7.25rem; object-fit: contain; }
+.damage-calc-matchup-card__pokemon--self { bottom: -.25rem; left: 0; }
+.damage-calc-matchup-card__pokemon--opponent { top: -.25rem; right: 0; }
+.damage-calc-matchup-card__artwork { display: block; width: 6.5rem; height: 6.5rem; object-fit: contain; }
 .damage-calc-matchup-card__pokemon-meta { position: absolute; z-index: 2; display: flex; align-items: center; gap: var(--space-1); white-space: nowrap; }
-.damage-calc-matchup-card__pokemon--self .damage-calc-matchup-card__pokemon-meta { bottom: .55rem; left: .1rem; }
-.damage-calc-matchup-card__pokemon--opponent .damage-calc-matchup-card__pokemon-meta { top: .55rem; right: .1rem; flex-direction: row-reverse; }
+.damage-calc-matchup-card__pokemon--self .damage-calc-matchup-card__pokemon-meta { bottom: .7rem; left: calc(100% + var(--space-1)); flex-direction: row-reverse; }
+.damage-calc-matchup-card__pokemon--opponent .damage-calc-matchup-card__pokemon-meta { top: .7rem; right: calc(100% + var(--space-1)); }
 .damage-calc-matchup-card__pokemon h2 { margin: 0; font-size: var(--font-size-lg1); line-height: var(--line-height-tight); }
 .damage-calc-matchup-card__item-icon { width: 1.25rem; height: 1.25rem; object-fit: contain; }
 .damage-calc-matchup-card__versus { position: absolute; z-index: 3; top: 50%; left: 50%; transform: translate(-50%, -50%); color: var(--color-text-muted); font-size: var(--font-size-sm2); font-weight: var(--font-weight-bold); letter-spacing: .08em; }
@@ -42,13 +42,16 @@
 .damage-calc-matchup-card__table tbody tr { border-top: 1px solid var(--color-border); }
 .damage-calc-matchup-card__table thead th { color: var(--color-text-muted); font-size: var(--font-size-sm3); font-weight: var(--font-weight-medium); }
 .damage-calc-matchup-card__table th:first-child { text-align: left; }
+.damage-calc-matchup-card__table-label { display: inline-block; padding-left: .35rem; font-weight: var(--font-weight-bold); }
+.damage-calc-matchup-card__table-label--attack { color: var(--color-danger-strong); }
+.damage-calc-matchup-card__table-label--defense { color: var(--color-primary-strong); }
 .damage-calc-matchup-card__table tbody th { font-size: var(--font-size-sm3); font-weight: var(--font-weight-medium); }
 .damage-calc-matchup-card__table strong, .damage-calc-matchup-card__table small { display: block; font-size: inherit; line-height: var(--line-height-tight); }
 .damage-calc-matchup-card__table td strong, .damage-calc-matchup-card__defense-list strong { font-size: var(--font-size-sm1); font-weight: var(--font-weight-normal); }
 .damage-calc-matchup-card__table small, .damage-calc-matchup-card__defense-list small { color: var(--color-text-muted); font-size: var(--font-size-sm3); }
 .damage-calc-matchup-card__defense-list { display: grid; margin: 0; padding: 0; list-style: none; font-size: var(--font-size-sm2); }
 .damage-calc-matchup-card__defense-list li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: var(--space-2); align-items: baseline; padding: .48rem .4rem; border-top: 1px solid var(--color-border); }
-.damage-calc-matchup-card__defense-list .damage-calc-matchup-card__defense-header { padding-top: 0; border-top: 0; color: var(--color-primary-strong); font-size: var(--font-size-sm3); font-weight: var(--font-weight-medium); }
+.damage-calc-matchup-card__defense-list .damage-calc-matchup-card__defense-header { padding-top: 0; border-top: 0; font-size: var(--font-size-sm3); }
 .damage-calc-matchup-card__defense-list strong { white-space: nowrap; }
 /* 相手選択レールは、セカンドヘッダー〜コントロールパネルの間にtop/bottomを直接
    固定するposition:fixedの独立オーバーレイにする(box-content/.damage-calc-shellと
@@ -92,7 +95,7 @@
 .damage-calc-ailment-field { flex: 1; min-width: 0; }
 .damage-calc-ailment-field select { width: 100%; font-size: var(--font-size-sm2); min-height: var(--tap-target-min); }
 .damage-calc-ailment-field select.is-placeholder { color: var(--color-text-muted); }
-.damage-calc-reset-button { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2); width: 100%; min-height: 2.25rem; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-surface); color: var(--color-text-muted); box-shadow: var(--shadow-sm); font: inherit; font-size: var(--font-size-sm2); }
+.damage-calc-reset-button { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2); width: 100%; min-height: 2.25rem; border: 1px solid var(--color-border); border-radius: 0; background: var(--color-surface); color: var(--color-text-muted); box-shadow: var(--shadow-sm); font: inherit; font-size: var(--font-size-sm2); }
 .damage-calc-reset-button:hover { border-color: var(--color-primary); color: var(--color-primary-strong); }
 .damage-calc-reset-button svg { width: 1.1em; height: 1.1em; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .damage-calc-ranks { display: grid; gap: var(--space-1); min-width: 0; }
