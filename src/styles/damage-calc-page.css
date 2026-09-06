@@ -118,3 +118,7 @@
   .damage-calc-matchup-card__table th:first-child { white-space: nowrap; }
   .damage-calc-matchup-card__table td { font-variant-numeric: tabular-nums; }
 }
+@media (min-width: 375px) and (max-width: 600px) {
+  .damage-calc-matchup-card__move-column { width: 7.5rem; }
+  .damage-calc-matchup-card__table tbody th { font-size: var(--font-size-sm2); }
+}
