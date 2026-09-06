@@ -48,7 +48,7 @@ const speedChartSrc = `/speed-chart?owned=${encodeURIComponent(pokemonId)}&embed
 	}
 
 	triggers.forEach((trigger) => trigger.addEventListener("click", () => openDialog(trigger)));
-	if (backdrop) bindModalDismissal({ backdrop, isOpen: () => !!dialog && !dialog.hidden, onDismiss: closeDialog });
+	if (backdrop && dialog) bindModalDismissal({ backdrop, dialog, isOpen: () => !dialog.hidden, onDismiss: closeDialog });
 	window.addEventListener("message", (event) => {
 		if (event.origin !== window.location.origin) return;
 		const data = event.data as { type?: string } | null;

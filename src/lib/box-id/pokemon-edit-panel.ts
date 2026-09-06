@@ -1837,6 +1837,13 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 			btn.classList.remove("is-drop-target");
 		}
 	}
+	// 長押し中にブラウザがポインタのヒットテストをやり直した場合でも、背面の
+	// ポケモンプレビューなどへイベントを渡さない。スロット内で開始した操作は
+	// pointer capture と組み合わせて、モーダル内で完結させる。
+	windowEl.addEventListener("contextmenu", (event) => {
+		event.preventDefault();
+		event.stopPropagation();
+	});
 	for (const slot of [1, 2, 3, 4]) {
 		const slotButton = document.createElement("button");
 		slotButton.type = "button";
@@ -1868,6 +1875,9 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 			document.removeEventListener("pointermove", onSlotDragMove);
 			document.removeEventListener("pointerup", onSlotDragEnd);
 			document.removeEventListener("pointercancel", onSlotDragCancel);
+			if (commitEvent && slotButton.hasPointerCapture(commitEvent.pointerId)) {
+				slotButton.releasePointerCapture(commitEvent.pointerId);
+			}
 			slotDragActive = false;
 			slotButton.classList.remove("is-dragging");
 			clearSlotDropTargets();
@@ -1886,6 +1896,8 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 		}
 		slotButton.addEventListener("pointerdown", (event) => {
 			if (event.pointerType === "mouse" && event.button !== 0) return;
+			event.stopPropagation();
+			slotButton.setPointerCapture?.(event.pointerId);
 			suppressSlotClick = false;
 			slotDragStartX = event.clientX;
 			slotDragStartY = event.clientY;
@@ -1908,8 +1920,11 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 			// 長押し確定前の移動はタップ/スクロールの意図とみなし、ドラッグ開始をキャンセルする。
 			if (Math.hypot(dx, dy) > SLOT_DRAG_MOVE_CANCEL_PX) clearSlotPressTimer();
 		});
-		slotButton.addEventListener("pointerup", () => {
+		slotButton.addEventListener("pointerup", (event) => {
 			clearSlotPressTimer();
+			if (!slotDragActive && slotButton.hasPointerCapture(event.pointerId)) {
+				slotButton.releasePointerCapture(event.pointerId);
+			}
 		});
 		slotButton.addEventListener("pointercancel", () => {
 			clearSlotPressTimer();
@@ -2341,6 +2356,7 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 	closeButton.addEventListener("click", closePicker);
 	bindModalDismissal({
 		backdrop: backdropEl,
+		dialog: windowEl,
 		isOpen: () => !windowEl.hidden && windowEl.getAttribute("aria-modal") === "true",
 		onDismiss: closePicker,
 	});

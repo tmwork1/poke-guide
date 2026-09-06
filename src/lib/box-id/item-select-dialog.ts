@@ -269,7 +269,7 @@ function initializeItemSelectDialog(): void {
 	});
 	triggerButton.addEventListener("click", () => requestSettingsModal({ kind: "item" }));
 	closeButton.addEventListener("click", closeDialog);
-	bindModalDismissal({ backdrop: backdropEl, isOpen: () => !dialogEl.hidden, onDismiss: closeDialog });
+	bindModalDismissal({ backdrop: backdropEl, dialog: dialogEl, isOpen: () => !dialogEl.hidden, onDismiss: closeDialog });
 	searchInput.addEventListener("input", () => {
 		searchQuery = searchInput.value.trim();
 		grid.render(searchQuery);

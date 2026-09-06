@@ -232,7 +232,7 @@ document.addEventListener("box-settings:open", (event) => {
 	if ((event as CustomEvent<{ kind?: string }>).detail?.kind === "species") void openDialog();
 });
 closeButton.addEventListener("click", closeDialog);
-bindModalDismissal({ backdrop: backdropEl, isOpen: () => !dialogEl.hidden, onDismiss: closeDialog });
+bindModalDismissal({ backdrop: backdropEl, dialog: dialogEl, isOpen: () => !dialogEl.hidden, onDismiss: closeDialog });
 
 sortButton.addEventListener("click", () => togglePopover(sortPanel, sortButton));
 for (const option of document.querySelectorAll<HTMLButtonElement>(".species-select-sort-option")) {

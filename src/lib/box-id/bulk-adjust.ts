@@ -281,7 +281,7 @@ dialogComputeButton.addEventListener("click", () => {
 	void runCompute();
 });
 dialogCloseButton.addEventListener("click", closeDialog);
-bindModalDismissal({ backdrop: backdropEl, isOpen: () => isDialogOpen, onDismiss: closeDialog });
+bindModalDismissal({ backdrop: backdropEl, dialog: dialogEl, isOpen: () => isDialogOpen, onDismiss: closeDialog });
 cancelButton.addEventListener("click", () => {
 	activeAbortController?.abort();
 });

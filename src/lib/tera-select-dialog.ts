@@ -58,6 +58,6 @@ export function createTeraSelectDialog(elements: TeraSelectDialogElements, trigg
 	};
 	const open = () => { buildGridOnce(); render(); backdrop.hidden = false; dialog.hidden = false; };
 	closeButton.addEventListener("click", close);
-	bindModalDismissal({ backdrop, isOpen: () => !dialog.hidden, onDismiss: close });
+	bindModalDismissal({ backdrop, dialog, isOpen: () => !dialog.hidden, onDismiss: close });
 	return { open };
 }

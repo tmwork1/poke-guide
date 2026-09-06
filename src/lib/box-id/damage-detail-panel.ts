@@ -1906,6 +1906,7 @@ export function initDamageDetailPanel(): void {
 	initDetailPanelSwipe();
 	bindModalDismissal({
 		backdrop: detailBackdropEl,
+		dialog: detailPanelEl,
 		isOpen: () => !detailBackdropEl.hidden,
 		onDismiss: closeDetailPanelOverlay,
 	});

@@ -48,5 +48,5 @@ if (trigger && backdrop && dialog && body && closeButton && section && home) {
 	// role="button"のdivはEnter/Spaceを自動では発火しないため、キーボード操作を明示的に配線する。
 
 	closeButton.addEventListener("click", closeDialog);
-	bindModalDismissal({ backdrop, isOpen: () => !dialog.hidden, onDismiss: closeDialog });
+	bindModalDismissal({ backdrop, dialog, isOpen: () => !dialog.hidden, onDismiss: closeDialog });
 }
