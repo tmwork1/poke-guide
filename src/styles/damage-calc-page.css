@@ -110,10 +110,10 @@
 @media (max-width: 600px) {
   .damage-calc-matchup-card__table-wrap { overflow: visible; }
   .damage-calc-matchup-card__table { min-width: 0; table-layout: fixed; font-size: var(--font-size-sm3); }
-  .damage-calc-matchup-card__move-column { width: 5.9rem; }
+  .damage-calc-matchup-card__move-column { width: 6.5rem; }
   .damage-calc-matchup-card__table th, .damage-calc-matchup-card__table td { padding: .28rem .16rem; }
   .damage-calc-matchup-card__table th:not(:first-child), .damage-calc-matchup-card__table td { padding-inline: .3rem; }
-  .damage-calc-matchup-card__table tbody th { font-size: var(--font-size-sm4); }
+  .damage-calc-matchup-card__table tbody th { font-size: var(--font-size-sm3); }
   .damage-calc-matchup-card__table th:first-child { white-space: nowrap; }
   .damage-calc-matchup-card__table td { font-variant-numeric: tabular-nums; }
 }
