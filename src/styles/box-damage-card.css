@@ -58,7 +58,7 @@ body.box-edit-page {
   /* ── 5. 枠線・角丸 ─────────────────────── */
   --damage-card-active-border-color: var(--color-border); /* hover・フォーカス時の枠線色 */
   --damage-card-direction-border: 1px solid var(--color-border); /* 攻撃・防御スイッチの外枠 */
-  --damage-card-direction-border-radius: var(--radius-md); /* 攻撃・防御スイッチの角丸 */
+  --damage-card-direction-border-radius: var(--radius-zero); /* 攻撃・防御スイッチの角丸(カード内の他の枠と揃え、角丸にしない) */
   --damage-card-control-focus-outline: 2px solid var(--color-primary); /* キーボード操作時に出るフォーカス枠 */
   --damage-card-direction-focus-offset: -2px; /* スイッチのフォーカス枠位置。負方向で枠が内側へ入る */
   --damage-card-dropdown-border: 1px solid var(--color-border); /* 候補リストの枠線 */
@@ -437,14 +437,18 @@ body.box-edit-page {
   outline-offset: var(--damage-card-direction-focus-offset);
 }
 
+/* 選択側は濃色の全面塗りつぶしにせず、薄い背景+内側の枠線で示す
+   (全面塗りつぶし・枠線なしだと選択側だけ膨らんで見えるため)。 */
 #damage-detail-panel .damage-build-detail-direction-toggle .damage-row-direction-option[data-role="attack"][aria-checked="true"] {
-  background: var(--damage-card-attack-background);
-  color: var(--damage-card-direction-selected-color);
+  background: var(--color-danger-soft);
+  color: var(--color-danger-strong);
+  box-shadow: inset 0 0 0 1px var(--color-danger-strong);
 }
 
 #damage-detail-panel .damage-build-detail-direction-toggle .damage-row-direction-option[data-role="defense"][aria-checked="true"] {
-  background: var(--damage-card-defense-background);
-  color: var(--damage-card-direction-selected-color);
+  background: var(--color-primary-soft);
+  color: var(--color-primary-strong);
+  box-shadow: inset 0 0 0 1px var(--color-primary-strong);
 }
 
 #opponent-notes-section .damage-row-tera-field {
