@@ -1174,7 +1174,7 @@ if (form) {
 		const state = remaining < 0 ? "over" : remaining === 0 ? "zero" : undefined;
 		updateDurabilityIndexButtonEnabled();
 		if (remainEl) {
-			remainEl.textContent = `残り${remaining}`;
+			remainEl.textContent = remaining < 0 ? `不足${Math.abs(remaining)}` : `残り${remaining}`;
 			if (state) remainEl.dataset.state = state;
 			else delete remainEl.dataset.state;
 		}
@@ -2072,6 +2072,11 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 				tab.appendChild(icon);
 			}
 			tab.append(moveName || `技${slot}`);
+			const dragHint = document.createElement("span");
+			dragHint.className = "move-picker-slot-drag-hint";
+			dragHint.setAttribute("aria-hidden", "true");
+			dragHint.textContent = "⠿";
+			tab.appendChild(dragHint);
 			tab.setAttribute("aria-label", `技${slot}: ${moveName || "未選択"}`);
 			tab.classList.toggle("is-selected", selected);
 			tab.setAttribute("aria-pressed", String(selected));

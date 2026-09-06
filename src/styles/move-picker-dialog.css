@@ -453,9 +453,17 @@ body .move-picker-slot-tabs {
   padding: var(--space-2) var(--space-3);
 }
 body .move-picker-slot-tab {
-  min-height: 2rem;
+  min-height: 2.75rem;
   font-size: var(--font-size-sm2);
   background: transparent;
+}
+body .move-picker-slot-drag-hint {
+  margin-left: auto;
+  padding-left: var(--space-2);
+  color: var(--color-text-muted);
+  font-size: 1.25em;
+  line-height: 1;
+  cursor: grab;
 }
 body .move-picker-slot-tab.is-selected {
   background: transparent;

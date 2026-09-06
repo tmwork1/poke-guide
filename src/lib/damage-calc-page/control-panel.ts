@@ -1,5 +1,5 @@
 import { DAMAGE_AILMENTS, DAMAGE_TERRAINS, DAMAGE_WEATHERS, clampInt } from "../box-id/damage-calc";
-import { getFieldState, getOpponentState, getSelfState, setFieldState, setOpponentState, setSelfState } from "./shared-core";
+import { DEFAULT_FIELD_STATE, DEFAULT_OPPONENT_STATE, DEFAULT_SELF_STATE, getFieldState, getOpponentState, getSelfState, setFieldState, setOpponentState, setSelfState } from "./shared-core";
 import { teraTypeIconUrl } from "../sprite-urls";
 import { createTeraSelectDialog } from "../tera-select-dialog";
 import { createRankPicker } from "../shared/rank-picker";
@@ -75,6 +75,7 @@ export function initControlPanel(): void {
   const opponentAilmentSelect = document.getElementById("damage-calc-opponent-ailment") as HTMLSelectElement;
   const weatherButtons = document.getElementById("damage-calc-weather-buttons") as HTMLElement;
   const terrainButtons = document.getElementById("damage-calc-terrain-buttons") as HTMLElement;
+  const resetButton = document.getElementById("damage-calc-reset-button") as HTMLButtonElement | null;
   const teraButtons = {
     self: document.getElementById("damage-calc-self-tera-button") as HTMLButtonElement,
     opponent: document.getElementById("damage-calc-opponent-tera-button") as HTMLButtonElement,
@@ -163,6 +164,8 @@ export function initControlPanel(): void {
     });
     selfAilmentSelect.value = self.ailment;
     opponentAilmentSelect.value = opponent.ailment;
+    selfAilmentSelect.classList.toggle("is-placeholder", self.ailment === "");
+    opponentAilmentSelect.classList.toggle("is-placeholder", opponent.ailment === "");
     (["weather", "terrain"] as const).forEach((kind) => {
       const value = kind === "weather" ? field.weather : field.terrain;
       const root = kind === "weather" ? weatherButtons : terrainButtons;
@@ -179,6 +182,12 @@ export function initControlPanel(): void {
   };
   selfAilmentSelect.addEventListener("change", (event) => { setSelfState({ ...getSelfState(), ailment: (event.target as HTMLSelectElement).value }); emit(); });
   opponentAilmentSelect.addEventListener("change", (event) => { setOpponentState({ ...getOpponentState(), ailment: (event.target as HTMLSelectElement).value }); emit(); });
+  resetButton?.addEventListener("click", () => {
+    setSelfState({ ...DEFAULT_SELF_STATE, boosts: [...DEFAULT_SELF_STATE.boosts] });
+    setOpponentState({ ...DEFAULT_OPPONENT_STATE, boosts: [...DEFAULT_OPPONENT_STATE.boosts] });
+    setFieldState({ ...DEFAULT_FIELD_STATE, selfSideFields: [], opponentSideFields: [] });
+    emit();
+  });
   teraDialogs.forEach((dialog, index) => {
     const side = index === 0 ? "self" : "opponent";
     teraButtons[side].addEventListener("click", dialog.open);

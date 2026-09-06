@@ -1589,7 +1589,7 @@ body.box-edit-page {
    画面幅に応じて伸縮させない(隣の急所チェックの位置がぶれないようにするため)。 */
 #damage-detail-panel-body .damage-detail-move-field {
   flex: none;
-  width: 10em; /* 技名入力欄の固定幅。マスターデータ最長の技名(全角8文字、実測content-fit幅は約9.3em)に安全マージンを足した値 */
+  width: 11em; /* 技名入力欄の固定幅。マスターデータ最長の技名(全角8文字、実測content-fit幅は約9.3em)に安全マージンを足した値 */
 }
 
 /* D: 急所固定は、このアプリの標準チェックボックス(global.cssのinput[type="checkbox"])

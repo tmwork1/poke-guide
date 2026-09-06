@@ -10,7 +10,8 @@
 .damage-calc-shell { position: fixed; top: var(--damage-calc-content-top, calc(var(--header-height) + var(--app-header-height) + var(--second-header-height))); right: 0; bottom: calc(var(--damage-calc-control-bar-height) + var(--bottom-nav-height) + env(safe-area-inset-bottom)); left: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; min-width: 0; background: var(--color-bg); }
 .damage-calc-login-guide { max-width: 1080px; margin: var(--space-3) auto; padding: 0 var(--space-3); color: var(--color-text-muted); }
 .damage-calc-secondary-bar .second-header__content { flex-wrap: wrap; }
-.damage-calc-secondary-actions { display: flex; align-items: center; gap: var(--space-2); flex: 0 1 auto; flex-wrap: wrap; }
+.damage-calc-secondary-actions { display: flex; align-items: center; gap: var(--space-2); flex: 0 1 auto; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+.damage-calc-secondary-actions::-webkit-scrollbar { display: none; }
 .damage-calc-secondary-button { display: inline-flex; align-items: center; min-height: 2.35rem; padding: 0.42em 0.9em; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-surface); color: var(--color-text); font-size: var(--font-size-sm1); font-weight: var(--font-weight-normal); line-height: var(--line-height-snug); }
 .damage-calc-secondary-button:hover:not(:disabled) { border-color: var(--color-primary); background: var(--color-surface); color: var(--color-text); }
 .damage-calc-matchups { min-height: 28rem; padding: var(--space-5) var(--space-3); background-color: var(--color-bg); background-image: none; }
@@ -53,10 +54,15 @@
 .damage-calc-control-row-1 { grid-row: 1; }
 .damage-calc-control-row-2 { grid-row: 2; }
 .damage-calc-control-row-3 { grid-row: 3; }
+.damage-calc-control-reset { grid-column: 1 / -1; grid-row: 4; }
 .damage-calc-control-cell { display: flex; align-items: center; justify-content: space-between; gap: var(--space-1); min-width: 0; }
 .damage-calc-control-cell--field { flex-direction: column; align-items: stretch; gap: var(--space-1); }
 .damage-calc-ailment-field { flex: 1; min-width: 0; }
 .damage-calc-ailment-field select { width: 100%; font-size: var(--font-size-sm2); min-height: var(--tap-target-min); }
+.damage-calc-ailment-field select.is-placeholder { color: var(--color-text-muted); }
+.damage-calc-reset-button { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2); width: 100%; min-height: var(--tap-target-min); border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-surface); color: var(--color-text-muted); font: inherit; font-size: var(--font-size-sm2); }
+.damage-calc-reset-button:hover { border-color: var(--color-primary); color: var(--color-primary-strong); }
+.damage-calc-reset-button svg { width: 1.1em; height: 1.1em; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .damage-calc-ranks { display: grid; gap: var(--space-1); min-width: 0; }
 .damage-calc-rank-row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); color: var(--color-text-muted); font-size: var(--font-size-sm3); }
 .damage-calc-rank-row .number-stepper { --number-stepper-size: var(--tap-target-min); --number-stepper-input-width: 2.4em; }
