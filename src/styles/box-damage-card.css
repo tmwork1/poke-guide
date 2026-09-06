@@ -58,7 +58,7 @@ body.box-edit-page {
   /* ── 5. 枠線・角丸 ─────────────────────── */
   --damage-card-active-border-color: var(--color-border); /* hover・フォーカス時の枠線色 */
   --damage-card-direction-border: 1px solid var(--color-border); /* 攻撃・防御スイッチの外枠 */
-  --damage-card-direction-border-radius: var(--radius-zero); /* 攻撃・防御スイッチの角丸(カード内の他の枠と揃え、角丸にしない) */
+  --damage-card-direction-border-radius: var(--radius-md); /* 攻撃・防御スイッチの角丸 */
   --damage-card-control-focus-outline: 2px solid var(--color-primary); /* キーボード操作時に出るフォーカス枠 */
   --damage-card-direction-focus-offset: -2px; /* スイッチのフォーカス枠位置。負方向で枠が内側へ入る */
   --damage-card-dropdown-border: 1px solid var(--color-border); /* 候補リストの枠線 */
@@ -423,6 +423,17 @@ body.box-edit-page {
 
 #damage-detail-panel .damage-build-detail-direction-toggle .damage-row-direction-option + .damage-row-direction-option {
   border-left: 1px solid var(--color-border);
+}
+
+/* 選択側の枠線(box-shadow)はこの要素自身の角丸に沿って描かれるため、外枠と接する
+   側の角だけ丸めておく(border-radius: 0のままだと、コンテナの角丸でクリップされる
+   位置で枠線が直角のまま欠けて見える)。内側(区切り線側)の角は直角のままでよい。 */
+#damage-detail-panel .damage-build-detail-direction-toggle .damage-row-direction-option[data-role="attack"] {
+  border-radius: var(--damage-card-direction-border-radius) 0 0 var(--damage-card-direction-border-radius);
+}
+
+#damage-detail-panel .damage-build-detail-direction-toggle .damage-row-direction-option[data-role="defense"] {
+  border-radius: 0 var(--damage-card-direction-border-radius) var(--damage-card-direction-border-radius) 0;
 }
 
 @media (hover: hover) and (pointer: fine) {
