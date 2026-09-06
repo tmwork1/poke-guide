@@ -52,6 +52,7 @@
 .damage-calc-matchup-card__defense-list { display: grid; margin: 0; padding: 0; list-style: none; font-size: var(--font-size-sm2); }
 .damage-calc-matchup-card__defense-list li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: var(--space-2); align-items: baseline; padding: .48rem .4rem; border-top: 1px solid var(--color-border); }
 .damage-calc-matchup-card__defense-list .damage-calc-matchup-card__defense-header { padding-top: 0; border-top: 0; font-size: var(--font-size-sm3); }
+.damage-calc-matchup-card__defense-header .damage-calc-matchup-card__table-label { justify-self: start; }
 .damage-calc-matchup-card__defense-list strong { white-space: nowrap; }
 /* 相手選択レールは、セカンドヘッダー〜コントロールパネルの間にtop/bottomを直接
    固定するposition:fixedの独立オーバーレイにする(box-content/.damage-calc-shellと
