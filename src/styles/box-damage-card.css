@@ -38,9 +38,9 @@ body.box-edit-page {
   --damage-card-build-detail-color: var(--color-text-muted); /* 相手情報2段目(特性・テラス・アイテム・実数値)の文字色 */
   --damage-card-attack-badge-color: var(--color-danger-strong); /* 相手ビルドカードの攻撃バッジの文字色(よく行われるダメージ計算の攻守チップと同じ配色) */
   --damage-card-defense-badge-color: var(--color-primary); /* 相手ビルドカードの防御バッジの文字色 */
-  --damage-card-result-confirm1-color: var(--color-risky-strong); /* 技ごとの結果表示: 確定数1発の文字色 */
-  --damage-card-result-confirm2-color: var(--color-risky-strong); /* 技ごとの結果表示: 確定数2発の文字色(1発より薄くするためopacityを併用) */
-  --damage-card-result-confirm3plus-color: var(--color-text); /* 技ごとの結果表示: 確定数3発以上・不明の文字色(強調しない) */
+  --damage-card-result-confirm1-color: var(--color-risky); /* 累計結果: 確定数1発の文字色。--color-risky-strong(暗い黄土色)だと薄めた2発との差が読み取りにくいため、明るい黄色を基準にする */
+  --damage-card-result-confirm2-color: var(--color-risky); /* 累計結果: 確定数2発の文字色(1発と同じ黄色を、下のopacityで薄くして段階を付ける) */
+  --damage-card-result-confirm3plus-color: var(--color-text-muted); /* 累計結果: 確定数3発以上・不明の文字色。本文色(ダークでは白)だと黄色の1発・2発より目立ってしまうため、注記色まで落として控えめにする */
 
   /* ── 4. 背景色 ─────────────────────── */
   --damage-card-active-background: color-mix(in srgb, var(--color-bg) 90%, var(--color-primary) 10%); /* hover・フォーカス時の背景色 */
@@ -959,9 +959,9 @@ body.box-edit-page {
 
 #opponent-notes-section .damage-row-total-result[data-severity="risky"] {
   color: var(--damage-card-result-confirm2-color);
-  /* opacity: .6 だと明るい背景(--damage-card-face-background)に対してほぼ白飛びし、
-     黄色だと判別できなかったため、判別できる濃さまで戻す。 */
-  opacity: .75;
+  /* 1発(opacityなし)との段階を付けるための薄さ。明るい黄色が基準なので下げすぎると
+     背景に溶けて読めなくなる(以前 .6 で白飛びした)。 */
+  opacity: .7;
 }
 
 #opponent-notes-section .damage-row-total-result[data-severity="safe"] {

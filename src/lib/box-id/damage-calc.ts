@@ -133,7 +133,7 @@ import {
 	STAT_KANJI,
 	canonicalStringify,
 	computeConfirmedKillAttackCount,
-	describeExtendedTotalNoLethalLabel,
+	describeExtendedTotalVerdict,
 	describeNatureCycleState,
 	describeSeriesVerdict,
 	describeStandaloneLethal,
@@ -1517,10 +1517,15 @@ if (opponentNotesSection) {
 		const hasOhko = validAttacks.some((a) => OHKO_MOVE_NAMES.has(a.moveName.trim()));
 		const cumulativeDamage = formatCumulativeDamage(row, result);
 		const damageText = cumulativeDamage.text + (hasOhko ? ` ${OHKO_NOTE}` : "");
-		const { label, severity } = describeSeriesVerdict(
-			result.lethal,
-			describeExtendedTotalNoLethalLabel(validAttacksOf(row).length, result),
-		);
+		// result.lethal(技列を1巡させた範囲の確定数系列)で落ちない行では、
+		// describeSeriesVerdictはラベルだけfallback(extended)のものを返し、severityは
+		// "safe"固定になる。技が1枚だけの行の「確2」などがこの経路に入るため、
+		// fallbackのラベルを採用したときはextended側で算出したseverityを使う
+		// (そうしないと確2が3発以上と同じ通常文字色になり、ダークテーマでほぼ白く見える)。
+		const extended = describeExtendedTotalVerdict(validAttacksOf(row).length, result);
+		const primary = describeSeriesVerdict(result.lethal, extended.label);
+		const label = primary.label;
+		const severity = label === extended.label ? extended.severity : primary.severity;
 		if (hasUnsupported) {
 			// 数値自体は「算出できる技だけを合算した値」として意味があるため隠さず表示し、
 			// 断り書きを添えて過信(色による確定的な印象)を防ぐ(severityは中立のnoneに)。

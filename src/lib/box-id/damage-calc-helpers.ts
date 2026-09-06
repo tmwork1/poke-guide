@@ -125,24 +125,29 @@ export function describeStandaloneLethal(damages: number[] | undefined, defender
 }
 
 /**
- * 技列を繰り返し当て続けた場合の確定数ラベル。
+ * 技列を繰り返し当て続けた場合の確定数ラベルとseverity。
  * validAttackCount は技名が設定済みの攻撃列の件数(呼び出し側が数えて渡す)。
+ *
+ * severityも返すのは、これがdescribeSeriesVerdictのnoLethalLabel(=技列1巡では
+ * 落ちなかったときのラベル)として使われるため。呼び出し側のdescribeSeriesVerdictは
+ * その場合severityを"safe"固定で返すので、ここで算出した確定数に対応するseverityを
+ * 使わないと「確2なのに3発以上と同じ色」になる。
  */
-export function describeExtendedTotalNoLethalLabel(
+export function describeExtendedTotalVerdict(
 	validAttackCount: number,
 	result: OpponentClientResultInput,
-): string {
+): DamageVerdict {
 	// 有効な攻撃列が1件だけの行は、エンジンが返す perAttackLethal[0](その技を
 	// 最大10回連発した場合の厳密な確定数系列。たべのこし等のターン終了時処理も
 	// 反映済み)がそのまま「攻撃列を繰り返し当て続けた場合」と一致するため、
 	// 下の近似計算より優先して使う(技列側の表示と数値が食い違わないようにする)。
 	if (validAttackCount === 1 && Array.isArray(result.perAttackLethal?.[0])) {
-		return describeSeriesVerdict(result.perAttackLethal[0], TEN_OR_MORE_LABEL).label;
+		return describeSeriesVerdict(result.perAttackLethal[0], TEN_OR_MORE_LABEL);
 	}
 	const per = result.perAttackDamages;
 	const hp = result.defenderHp;
 	if (!Array.isArray(per) || per.length === 0 || !hp || hp <= 0) {
-		return TEN_OR_MORE_LABEL;
+		return { label: TEN_OR_MORE_LABEL, severity: "safe" };
 	}
 	const extendedSeries: LethalResult[] = [];
 	let dist = new Map<number, number>([[hp, 1]]);
@@ -162,7 +167,7 @@ export function describeExtendedTotalNoLethalLabel(
 		const zero = dist.get(0) ?? 0;
 		extendedSeries.push({ attackCount: attack, probability: total > 0 ? zero / total : 0 });
 	}
-	return describeSeriesVerdict(extendedSeries, TEN_OR_MORE_LABEL).label;
+	return describeSeriesVerdict(extendedSeries, TEN_OR_MORE_LABEL);
 }
 
 /** 能力値見出しのクリックで巡回する性格補正の、表示記号と読み上げ文。 */
