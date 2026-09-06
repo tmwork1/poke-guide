@@ -105,13 +105,17 @@
 	#stat-adjustment-section .stat-row .stat-ev-step-button { display: inline-flex; }
 	#stat-adjustment-section .stat-row .stat-input-controls { display: flex; align-items: center; justify-content: flex-end; gap: calc(var(--space-1) + 1px); min-width: 0; grid-column: 4; }
 	#stat-adjustment-section .stat-row .stat-ev-range-controls { gap: var(--stat-control-gap); }
-	.stat-row .stat-ev-step-button[data-ev-step="-1"] { order: 2; }
+	/* #stat-adjustment-section を付け忘れると、同じ.stat-row/.stat-ev-step-button構造を
+	   共有するダメージ計算モーダルの相手ビルド欄(#damage-detail-panel-body)にまで
+	   このorder指定が漏れてしまう(実際に「数値→−→+」の順に化けるバグがあった)。
+	   このファイルの他のルールと同じくID配下に限定する。 */
+	#stat-adjustment-section .stat-row .stat-ev-step-button[data-ev-step="-1"] { order: 2; }
 	/* 基底の .stat-row input[type="number"] は width:100% なので、flex行に置くと
 	   余った横幅を全部吸って左右のボタンが両端へ離れてしまう(実測、700px幅)。
 	   4ボタンと1つのまとまりに見えるよう固定幅にして、行ごと中央へ寄せる
 	   (.stat-input-controls の justify-content: center)。 */
-	.stat-row .stat-input-controls > input[type="number"] { order: 3; flex: 0 0 var(--stat-number-input-width); width: var(--stat-number-input-width); }
-	.stat-row .stat-input-controls > input[type="number"] {
+	#stat-adjustment-section .stat-row .stat-input-controls > input[type="number"] { order: 3; flex: 0 0 var(--stat-number-input-width); width: var(--stat-number-input-width); }
+	#stat-adjustment-section .stat-row .stat-input-controls > input[type="number"] {
 		height: var(--stat-number-input-height);
 		min-height: var(--stat-number-input-height);
 		padding: var(--stat-number-input-mobile-padding);
@@ -130,7 +134,7 @@
 		line-height: 1;
 		white-space: nowrap;
 	}
-	.stat-row .stat-ev-step-button[data-ev-step="1"] { order: 4; }
+	#stat-adjustment-section .stat-row .stat-ev-step-button[data-ev-step="1"] { order: 4; }
 	/* わざ選択と同じsurfaceを下地にし、増減操作を控えめに浮かせる。 */
 	#stat-adjustment-section .stat-row .stat-ev-step-button {
 		box-sizing: border-box;

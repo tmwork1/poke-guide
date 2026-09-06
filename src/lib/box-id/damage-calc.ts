@@ -2353,13 +2353,13 @@ if (opponentNotesSection) {
 		attackOption.dataset.role = "attack";
 		// カード上のこのボタンはクリック不可の状態表示専用のため、タブ移動の対象からも外す。
 		attackOption.tabIndex = -1;
-		attackOption.textContent = "攻撃";
+		attackOption.textContent = "攻";
 		const defenseOption = document.createElement("button");
 		defenseOption.type = "button";
 		defenseOption.className = "damage-row-direction-option";
 		defenseOption.dataset.role = "defense";
 		defenseOption.tabIndex = -1;
-		defenseOption.textContent = "防御";
+		defenseOption.textContent = "守";
 		directionToggle.append(attackOption, defenseOption);
 		matchup.appendChild(directionToggle);
 
@@ -2464,13 +2464,13 @@ if (opponentNotesSection) {
 		detailAttackOption.className = "damage-row-direction-option";
 		detailAttackOption.dataset.role = "attack";
 		detailAttackOption.setAttribute("role", "radio");
-		detailAttackOption.textContent = "攻撃";
+		detailAttackOption.textContent = "攻";
 		const detailDefenseOption = document.createElement("button");
 		detailDefenseOption.type = "button";
 		detailDefenseOption.className = "damage-row-direction-option";
 		detailDefenseOption.dataset.role = "defense";
 		detailDefenseOption.setAttribute("role", "radio");
-		detailDefenseOption.textContent = "防御";
+		detailDefenseOption.textContent = "守";
 		detailDirectionToggle.append(detailAttackOption, detailDefenseOption);
 		detailIdentityRow.appendChild(detailDirectionToggle);
 
@@ -2509,7 +2509,15 @@ if (opponentNotesSection) {
 			// owned-pokemon-form.tsのsortPokemonNamesByOpggRanking)はそのまま保つ。
 			// 以前は一致度(完全一致→前方一致→かな部分一致)で候補全体を再ソートしていたが、
 			// 検索時にopgg順が崩れてしまっていた。
-			const candidates = query === "" ? opponentNames : opponentNames.filter((name) => kanaIncludes(name, query));
+			// 一致しない候補も末尾に残す(絞り込んで消してしまうと、変換ミス等でうまく
+			// 一致しなかったときに目的の種族へ辿り着けなくなるため)。一致/不一致それぞれの
+			// 中ではopgg順を保つ。
+			const candidates = query === ""
+				? opponentNames
+				: [
+					...opponentNames.filter((name) => kanaIncludes(name, query)),
+					...opponentNames.filter((name) => !kanaIncludes(name, query)),
+				];
 			nameDropdownList.replaceChildren();
 			const fragment = document.createDocumentFragment();
 			for (const candidateName of candidates) {

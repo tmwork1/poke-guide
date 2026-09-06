@@ -365,7 +365,7 @@ body.box-edit-page {
   background: var(--damage-card-direction-background);
   min-width: 0;
   color: var(--damage-card-direction-color);
-  font-size: var(--font-size-sm3); /* 攻撃・防御スイッチの文字サイズ(カード上のコンパクト表示用) */
+  font-size: var(--font-size-sm2); /* 攻・守スイッチの文字サイズ(カード上のコンパクト表示用。「攻」「守」1文字表記のため読みやすさ優先で1段階拡大) */
   font-weight: var(--damage-card-direction-font-weight);
   line-height: var(--damage-card-direction-line-height);
   cursor: default;
@@ -989,6 +989,13 @@ body.box-edit-page {
 #opponent-notes-section .damage-result-probability {
   margin-inline-start: .25em;
   font-weight: var(--font-weight-normal);
+}
+
+/* 累計結果の致死率(乱N xx.xx%の%部分)は、直前の確定数ラベルと同じ太さ・大きさに揃える
+   (上の共通ルールのfont-weight-normalのままだと、確定数だけ太く見えて浮いていた)。 */
+#opponent-notes-section .damage-row-total-result .damage-result-probability {
+  font-size: inherit;
+  font-weight: inherit;
 }
 
 #opponent-notes-section .damage-row-total-result .damage-result-detail {
