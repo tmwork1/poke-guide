@@ -106,4 +106,13 @@
 .damage-calc-tera-icon[hidden] { display: none; }
 .damage-calc-tera-toggle.is-active .damage-calc-tera-icon { filter: none; }
 .damage-calc-tera-toggle:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
-@media (max-width: 600px) { .damage-calc-matchup-card__section { grid-template-columns: 1fr; } .damage-calc-matchup-card__section-title { justify-self: start; min-width: 4.5rem; } }
+@media (max-width: 600px) {
+  .damage-calc-matchup-card__section { grid-template-columns: 1fr; }
+  .damage-calc-matchup-card__section-title { justify-self: start; min-width: 4.5rem; }
+  .damage-calc-matchup-card__table-wrap { overflow: visible; }
+  .damage-calc-matchup-card__table { min-width: 0; table-layout: fixed; font-size: var(--font-size-sm3); }
+  .damage-calc-matchup-card__move-column { width: 30%; }
+  .damage-calc-matchup-card__table th, .damage-calc-matchup-card__table td { padding: .28rem .16rem; }
+  .damage-calc-matchup-card__table th:first-child { white-space: normal; overflow-wrap: anywhere; }
+  .damage-calc-matchup-card__table td { font-variant-numeric: tabular-nums; }
+}
