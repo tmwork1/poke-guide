@@ -35,10 +35,10 @@
 .damage-calc-matchup-card__section-title--defense { color: var(--color-primary-strong); background: var(--color-primary-soft); }
 .damage-calc-matchup-card__table-wrap { overflow-x: auto; }
 .damage-calc-matchup-card__table { width: 100%; min-width: 31rem; border-collapse: collapse; font-size: var(--font-size-sm2); }
-.damage-calc-matchup-card__table th, .damage-calc-matchup-card__table td { padding: .32rem .4rem; border-bottom: 1px solid var(--color-border); text-align: right; vertical-align: middle; white-space: nowrap; }
+.damage-calc-matchup-card__table th, .damage-calc-matchup-card__table td { padding: .32rem .4rem; border-bottom: 1px solid var(--color-border); text-align: center; vertical-align: middle; white-space: nowrap; }
 .damage-calc-matchup-card__table thead th { color: var(--color-text-muted); font-size: var(--font-size-sm3); font-weight: var(--font-weight-medium); }
 .damage-calc-matchup-card__table th:first-child { text-align: left; }
-.damage-calc-matchup-card__table tbody th { font-weight: var(--font-weight-medium); }
+.damage-calc-matchup-card__table tbody th { font-size: var(--font-size-sm3); font-weight: var(--font-weight-medium); }
 .damage-calc-matchup-card__table tbody tr:last-child > * { border-bottom: 0; }
 .damage-calc-matchup-card__table strong, .damage-calc-matchup-card__table small { display: block; font-size: inherit; line-height: var(--line-height-tight); }
 .damage-calc-matchup-card__table small, .damage-calc-matchup-card__defense-list small { color: var(--color-text-muted); font-size: var(--font-size-sm3); }
@@ -109,8 +109,8 @@
 @media (max-width: 600px) {
   .damage-calc-matchup-card__table-wrap { overflow: visible; }
   .damage-calc-matchup-card__table { min-width: 0; table-layout: fixed; font-size: var(--font-size-sm3); }
-  .damage-calc-matchup-card__move-column { width: 30%; }
+  .damage-calc-matchup-card__move-column { width: 37%; }
   .damage-calc-matchup-card__table th, .damage-calc-matchup-card__table td { padding: .28rem .16rem; }
-  .damage-calc-matchup-card__table th:first-child { white-space: normal; overflow-wrap: anywhere; }
+  .damage-calc-matchup-card__table th:first-child { white-space: nowrap; }
   .damage-calc-matchup-card__table td { font-variant-numeric: tabular-nums; }
 }
