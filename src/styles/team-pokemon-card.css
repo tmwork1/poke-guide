@@ -26,6 +26,11 @@
 	padding: var(--team-card-padding);
 	overflow: hidden;
 	text-decoration: none;
+	/* カード長押しで個体編集へ移動するため、長押し中にテキスト選択や画像の保存メニュー
+	   (iOSのコールアウト)が出ないようにする(owned-pokemon-card.cssの.box-cardと同じ扱い)。 */
+	user-select: none;
+	-webkit-user-select: none;
+	-webkit-touch-callout: none;
 }
 
 /* 空き枠を実線枠と枠番号(1〜6、.team-slot-number)で示すプレースホルダー。 */

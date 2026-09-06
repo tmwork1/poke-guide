@@ -294,6 +294,7 @@ if (!isGuestNewMode) {
 		import { createOwnedPokemon, listOwnedPokemonPage } from "../../lib/data/pokemon-repo";
 		import { createTeam, deleteTeam, getTeamForGuest, updateTeam } from "../../lib/data/team-repo";
 		import { isGuestMode } from "../../lib/data/guest-mode";
+		import { reloadOnBfcacheRestore } from "../../lib/shared/reload-on-bfcache-restore";
 		import { STAT_KEYS, NATURE_STAT_MODIFIERS, calcHpStat, calcOtherStat } from "../../lib/stats";
 		import {
 			ownedPokemonDisplayName as displayName,
@@ -2007,6 +2008,9 @@ if (!isGuestNewMode) {
 					const fresh = allPokemon.find((x) => x.id === p.id);
 					if (fresh) membersBySlot.set(slot, fresh);
 				}
+				// 個体編集画面から戻ったときの再取得でも使うため、編成6枠を表示している
+				// ポケモンタブ側も必ず描き直す(もちもの・技などの変更を取りこぼさない)。
+				renderOverviewGrid();
 				renderFormationMobile();
 				// サジェストの操作ボタンは「手持ちに一致する個体があるか」で文言が変わる
 				// (findOwnedMatch)。その判定材料である allPokemon が今届いたので、
@@ -2018,6 +2022,22 @@ if (!isGuestNewMode) {
 
 			void loadAllOwnedPokemon().catch((err) => {
 				console.error(err);
+			});
+
+			// カード長押し→個体編集(/box/[id])から「戻る」で復帰したとき、bfcacheの
+			// DOMは編集前のままなので、個体データを取り直して各タブを更新する。
+			reloadOnBfcacheRestore(() => {
+				void loadAllOwnedPokemon()
+					.then(() => {
+						// 種族・技・持ち物が変わっている可能性があるため、それらに依存する
+						// 計算(相性・サジェスト・似た構築)も取り直す。
+						scheduleSuggestions();
+						scheduleSimilarBuilds();
+						scheduleMatchup();
+					})
+					.catch((err) => {
+						console.error(err);
+					});
 			});
 		}
 	</script>
