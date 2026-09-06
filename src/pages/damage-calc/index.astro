@@ -7,6 +7,7 @@ import SecondaryBar from "../../components/damage-calc/SecondaryBar.astro";
 import MatchupCardList from "../../components/damage-calc/MatchupCardList.astro";
 import ItemSelectDialog from "../../components/damage-calc/ItemSelectDialog.astro";
 import BoxSelectDialog from "../../components/damage-calc/BoxSelectDialog.astro";
+import TeamSelectDialog from "../../components/damage-calc/TeamSelectDialog.astro";
 import ControlPanel from "../../components/damage-calc/ControlPanel.astro";
 import { toJsonScriptContent } from "../../lib/json-script";
 import { getOpggUsageList, getOpggUsageManifest, sortOpggSeasons } from "../../lib/opgg-usage";
@@ -15,6 +16,7 @@ import "../../styles/app-header.css";
 import "../../styles/second-header.css";
 import "../../styles/damage-calc-page.css";
 import "../../styles/box-select-dialog.css";
+import "../../styles/team-select-dialog.css";
 
 const user = Astro.locals.user;
 
@@ -46,18 +48,20 @@ try {
   <ControlPanel />
   <ItemSelectDialog />
   <BoxSelectDialog />
+  <TeamSelectDialog />
   <script type="application/json" id="damage-calc-opgg-ranked-species" set:html={toJsonScriptContent(opggRankedSpeciesNames)}></script>
   <script>
     import { initSecondaryBar } from "../../lib/damage-calc-page/secondary-bar";
     import { initControlPanel } from "../../lib/damage-calc-page/control-panel";
     import { initItemSelectDialog } from "../../lib/damage-calc-page/item-select-dialog";
-    import { initBoxSelectDialog, openBoxSelectDialog } from "../../lib/damage-calc-page/box-select-dialog";
+    import { initBoxSelectDialog } from "../../lib/damage-calc-page/box-select-dialog";
+    import { initTeamSelectDialog } from "../../lib/damage-calc-page/team-select-dialog";
     import { initMatchupCardList } from "../../lib/damage-calc-page/matchup-card";
     initSecondaryBar();
     initControlPanel();
     initItemSelectDialog();
     initBoxSelectDialog();
+    initTeamSelectDialog();
     initMatchupCardList();
-    document.getElementById("damage-calc-self-artwork")?.addEventListener("click", () => openBoxSelectDialog());
   </script>
 </AppLayout>

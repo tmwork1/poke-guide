@@ -1,32 +1,34 @@
 <section class="damage-calc-matchups panel">
   <div class="panel-content damage-calc-summary-layout">
-    <div id="damage-calc-summary-list" class="damage-calc-summary-list">
-      <article class="damage-calc-matchup-card" aria-labelledby="damage-calc-matchup-title">
-        <header class="damage-calc-matchup-card__header">
-          <div class="damage-calc-matchup-card__pokemon damage-calc-matchup-card__pokemon--self">
-            <button type="button" id="damage-calc-self-artwork" class="damage-calc-matchup-card__artwork damage-calc-matchup-card__artwork--placeholder" aria-label="ボックスから選択"><span>?</span></button>
-            <div class="damage-calc-matchup-card__pokemon-meta"><h2 id="damage-calc-matchup-title">?</h2></div>
-            <button type="button" class="damage-calc-matchup-card__item-button" data-damage-calc-item-side="self" aria-haspopup="dialog" aria-label="自分のもちものを選択">
-              <img id="damage-calc-self-item-icon" alt="" class="damage-calc-matchup-card__item-icon" hidden />
-              <svg id="damage-calc-self-item-none-icon" class="damage-calc-matchup-card__item-none-icon" viewBox="0 0 24 24" aria-hidden="true" hidden><circle cx="12" cy="12" r="8.5" stroke-linecap="round" /><path d="M6 6l12 12" stroke-linecap="round" /></svg>
-            </button>
-          </div>
-          <span class="damage-calc-matchup-card__versus" aria-label="対">VS</span>
-          <div class="damage-calc-matchup-card__pokemon damage-calc-matchup-card__pokemon--opponent">
-            <div id="damage-calc-opponent-artwork" class="damage-calc-matchup-card__artwork damage-calc-matchup-card__artwork--placeholder" aria-label="サーフゴー"><span>?</span></div>
-            <div class="damage-calc-matchup-card__pokemon-meta"><h2 id="damage-calc-opponent-name">サーフゴー</h2></div>
-            <button type="button" class="damage-calc-matchup-card__item-button" data-damage-calc-item-side="opponent" aria-haspopup="dialog" aria-label="サーフゴーのもちものを選択">
-              <img id="damage-calc-opponent-item-icon" alt="" class="damage-calc-matchup-card__item-icon" hidden />
-              <svg id="damage-calc-opponent-item-none-icon" class="damage-calc-matchup-card__item-none-icon" viewBox="0 0 24 24" aria-hidden="true" hidden><circle cx="12" cy="12" r="8.5" stroke-linecap="round" /><path d="M6 6l12 12" stroke-linecap="round" /></svg>
-            </button>
-          </div>
-        </header>
-        <p id="damage-calc-matchup-status" class="damage-calc-matchup-card__status" aria-live="polite" hidden></p>
-        <div id="damage-calc-matchup-speed"></div>
-        <section class="damage-calc-matchup-card__section" aria-label="攻撃"><div id="damage-calc-matchup-attack-table"></div></section>
-        <section class="damage-calc-matchup-card__section" aria-label="防御"><div id="damage-calc-matchup-defense-table"></div></section>
-      </article>
-    </div>
-    <nav id="damage-calc-summary-rail" class="damage-calc-summary-rail" aria-label="相手ポケモンを選択"></nav>
+    <div id="damage-calc-summary-list" class="damage-calc-summary-list"></div>
+    <nav id="damage-calc-summary-rail" class="damage-calc-summary-rail" aria-label="相手のポケモンを選択"></nav>
   </div>
 </section>
+
+<template id="damage-calc-matchup-card-template">
+  <article class="damage-calc-matchup-card">
+    <header class="damage-calc-matchup-card__header">
+      <div class="damage-calc-matchup-card__pokemon damage-calc-matchup-card__pokemon--self">
+        <button type="button" data-role="self-artwork" class="damage-calc-matchup-card__artwork damage-calc-matchup-card__artwork--placeholder" aria-label="ボックスから選択"><span>?</span></button>
+        <div class="damage-calc-matchup-card__pokemon-meta"><h2 data-role="matchup-title">?</h2></div>
+        <button type="button" class="damage-calc-matchup-card__item-button" data-damage-calc-item-side="self" aria-haspopup="dialog" aria-label="自分のもちものを選択">
+          <img data-role="self-item-icon" alt="" class="damage-calc-matchup-card__item-icon" hidden />
+          <svg data-role="self-item-none-icon" class="damage-calc-matchup-card__item-none-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5" stroke-linecap="round" /><path d="M6 6l12 12" stroke-linecap="round" /></svg>
+        </button>
+      </div>
+      <span class="damage-calc-matchup-card__versus" aria-label="対">VS</span>
+      <div class="damage-calc-matchup-card__pokemon damage-calc-matchup-card__pokemon--opponent">
+        <div data-role="opponent-artwork" class="damage-calc-matchup-card__artwork damage-calc-matchup-card__artwork--placeholder" aria-label="サーフゴー"><span>?</span></div>
+        <div class="damage-calc-matchup-card__pokemon-meta"><h2 data-role="opponent-name">サーフゴー</h2></div>
+        <button type="button" class="damage-calc-matchup-card__item-button" data-damage-calc-item-side="opponent" aria-haspopup="dialog" aria-label="相手のもちものを選択">
+          <img data-role="opponent-item-icon" alt="" class="damage-calc-matchup-card__item-icon" hidden />
+          <svg data-role="opponent-item-none-icon" class="damage-calc-matchup-card__item-none-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5" stroke-linecap="round" /><path d="M6 6l12 12" stroke-linecap="round" /></svg>
+        </button>
+      </div>
+    </header>
+    <p data-role="matchup-status" class="damage-calc-matchup-card__status" aria-live="polite" hidden></p>
+    <div data-role="matchup-speed"></div>
+    <section class="damage-calc-matchup-card__section" aria-label="攻撃"><div data-role="matchup-attack-table"></div></section>
+    <section class="damage-calc-matchup-card__section" aria-label="防御"><div data-role="matchup-defense-table"></div></section>
+  </article>
+</template>

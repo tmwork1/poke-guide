@@ -4,10 +4,30 @@ import { championSpriteUrl, loadImageIdMap, loadMoveDetailMap, officialArtworkUr
 import { calcDamages, calcStats, initEngine, registerOfflineCache, type PokemonSpec } from "../pyodide-engine";
 import { NATURE_STAT_MODIFIERS, STAT_KEYS, type StatKey } from "../stats";
 import type { PopularMoveOption } from "../team-matchup";
-import { getFieldState, getOpponentBuild, getOpponentState, getSelfBuild, getSelfState, type OpponentBuild, type SelfBuild } from "./shared-core";
+import { openBoxSelectDialog } from "./box-select-dialog";
+import { renderItemIcon } from "./item-select-dialog";
+import { getFieldState, getOpponentBuild, getOpponentState, getSelfBuilds, getSelfState, type OpponentBuild, type SelfBuild } from "./shared-core";
 
 type DamageCell = { range: string; lethal: string };
 type DamageRow = { moveName: string; cells: DamageCell[] };
+/** 1枚の対面カード(自分側1体ぶん)のDOM参照。テンプレートを複製するたびにこの形で1組作る。 */
+type CardRefs = {
+  selfArtwork: HTMLElement;
+  matchupTitle: HTMLElement;
+  selfItemButton: HTMLButtonElement;
+  selfItemIcon: HTMLImageElement;
+  selfItemNoneIcon: Element;
+  opponentArtwork: HTMLElement;
+  opponentName: HTMLElement;
+  opponentItemIcon: HTMLImageElement;
+  opponentItemNoneIcon: Element;
+  status: HTMLElement;
+  speed: HTMLElement;
+  attackTable: HTMLElement;
+  defenseTable: HTMLElement;
+};
+/** 自分側1体ぶんのカードDOMと、その計算対象のビルド。 */
+type Card = { build: SelfBuild; root: HTMLElement; refs: CardRefs };
 
 const CHANGE_EVENT = "damage-calc:change";
 const DEFAULT_OPPONENT = "サーフゴー";
@@ -36,6 +56,12 @@ let opponentMovesCache = new Map<string, Promise<PopularMoveOption[]>>();
 
 function byId<T extends HTMLElement>(id: string): T {
   return document.getElementById(id) as T;
+}
+
+/** テンプレート(MatchupCardList.astro)から`data-role`要素を1つ引く。カードのルート単位で
+ * スコープするため、`byId`と違って同じ`data-role`がカードの枚数ぶんあっても衝突しない。 */
+function role<T extends HTMLElement>(root: HTMLElement, name: string): T {
+  return root.querySelector<T>(`[data-role="${name}"]`) as T;
 }
 
 function isSelectedSelf(build: SelfBuild): boolean {
@@ -135,15 +161,13 @@ async function fetchOpponentMoveOptions(speciesName: string): Promise<PopularMov
   return cached;
 }
 
-function setStatus(message: string | null, isError = false): void {
-  const status = byId<HTMLElement>("damage-calc-matchup-status");
+function setStatus(status: HTMLElement, message: string | null, isError = false): void {
   status.hidden = message === null;
   status.textContent = message ?? "";
   status.dataset.state = isError ? "error" : "loading";
 }
 
-function renderArtwork(id: string, name: string, imageId: number | undefined): void {
-  const root = byId<HTMLElement>(id);
+function renderArtwork(root: HTMLElement, name: string, imageId: number | undefined): void {
   root.replaceChildren();
   root.setAttribute("aria-label", name || "?");
   if (!name || imageId == null) {
@@ -164,8 +188,7 @@ function renderArtwork(id: string, name: string, imageId: number | undefined): v
   root.append(image);
 }
 
-function renderName(id: string, name: string): void {
-  const h2 = byId<HTMLElement>(id);
+function renderName(h2: HTMLElement, name: string): void {
   h2.replaceChildren();
   if (!name) return;
   const { name: mainName, suffix } = splitBoxCardDisplayName(name);
@@ -181,25 +204,56 @@ function renderName(id: string, name: string): void {
   }
 }
 
-function renderIdentity(self: SelfBuild, opponent: OpponentBuild, currentRequestId: number): void {
+/** テンプレートを複製して1枚ぶんのカードDOMを組み立てる。`index`は`getSelfBuilds()`配列の
+ * 添字で、もちもの選択(item-select-dialog.ts)がどのカードのクリックかを判定するために
+ * トリガー要素の`data-damage-calc-card-index`へも書き込む。 */
+function createCard(index: number): { root: HTMLElement; refs: CardRefs } {
+  const template = byId<HTMLTemplateElement>("damage-calc-matchup-card-template");
+  const fragment = template.content.cloneNode(true) as DocumentFragment;
+  const root = fragment.firstElementChild as HTMLElement;
+  root.dataset.damageCalcCardIndex = String(index);
+  const selfItemButton = root.querySelector<HTMLButtonElement>('[data-damage-calc-item-side="self"]') as HTMLButtonElement;
+  selfItemButton.dataset.damageCalcCardIndex = String(index);
+  const refs: CardRefs = {
+    selfArtwork: role(root, "self-artwork"),
+    matchupTitle: role(root, "matchup-title"),
+    selfItemButton,
+    selfItemIcon: role(root, "self-item-icon"),
+    selfItemNoneIcon: role(root, "self-item-none-icon"),
+    opponentArtwork: role(root, "opponent-artwork"),
+    opponentName: role(root, "opponent-name"),
+    opponentItemIcon: role(root, "opponent-item-icon"),
+    opponentItemNoneIcon: role(root, "opponent-item-none-icon"),
+    status: role(root, "matchup-status"),
+    speed: role(root, "matchup-speed"),
+    attackTable: role(root, "matchup-attack-table"),
+    defenseTable: role(root, "matchup-defense-table"),
+  };
+  // 自分側の立ち絵タップでボックス選択モーダルを開く導線は、カードが何枚あっても共通
+  // (選ぶと box-select-dialog.ts 側で自分側カードは常に1枚へ戻る)。
+  refs.selfArtwork.addEventListener("click", () => openBoxSelectDialog());
+  return { root, refs };
+}
+
+function renderIdentity(refs: CardRefs, self: SelfBuild, opponent: OpponentBuild, currentRequestId: number): void {
   const selfSelected = isSelectedSelf(self);
   const selfName = self.species_name.trim();
   const opponentName = opponent.speciesName || DEFAULT_OPPONENT;
-  renderName("damage-calc-matchup-title", selfSelected ? selfName : "");
-  renderName("damage-calc-opponent-name", opponentName);
-  const selfItemButton = document.querySelector<HTMLButtonElement>('[data-damage-calc-item-side="self"]');
-  if (selfItemButton) selfItemButton.hidden = !selfSelected;
-  const selfArtwork = byId<HTMLElement>("damage-calc-self-artwork");
+  renderName(refs.matchupTitle, selfSelected ? selfName : "");
+  renderName(refs.opponentName, opponentName);
+  refs.selfItemButton.hidden = !selfSelected;
+  renderItemIcon(refs.selfItemIcon, refs.selfItemNoneIcon, self.item_name ?? "");
+  renderItemIcon(refs.opponentItemIcon, refs.opponentItemNoneIcon, opponent.itemName ?? "");
   void loadImageIdMap().then((imageIds) => {
     if (currentRequestId !== requestId) return;
-    renderArtwork("damage-calc-self-artwork", selfSelected ? selfName : "", selfSelected ? imageIds.get(selfName) : undefined);
-    renderArtwork("damage-calc-opponent-artwork", opponentName, imageIds.get(opponentName));
-    selfArtwork.setAttribute("aria-label", selfSelected ? `${selfName}をボックスから変更` : "ボックスから選択");
+    renderArtwork(refs.selfArtwork, selfSelected ? selfName : "", selfSelected ? imageIds.get(selfName) : undefined);
+    renderArtwork(refs.opponentArtwork, opponentName, imageIds.get(opponentName));
+    refs.selfArtwork.setAttribute("aria-label", selfSelected ? `${selfName}をボックスから変更` : "ボックスから選択");
   }).catch(() => {
     if (currentRequestId !== requestId) return;
-    renderArtwork("damage-calc-self-artwork", selfSelected ? selfName : "", undefined);
-    renderArtwork("damage-calc-opponent-artwork", opponentName, undefined);
-    selfArtwork.setAttribute("aria-label", selfSelected ? `${selfName}をボックスから変更` : "ボックスから選択");
+    renderArtwork(refs.selfArtwork, selfSelected ? selfName : "", undefined);
+    renderArtwork(refs.opponentArtwork, opponentName, undefined);
+    refs.selfArtwork.setAttribute("aria-label", selfSelected ? `${selfName}をボックスから変更` : "ボックスから選択");
   });
 }
 
@@ -213,7 +267,7 @@ function makeCell(range: string, lethal: string): HTMLTableCellElement {
   return cell;
 }
 
-function renderTable(containerId: string, label: "攻" | "守", rows: DamageRow[]): void {
+function renderTable(container: HTMLElement, label: "攻" | "守", rows: DamageRow[]): void {
   const wrap = document.createElement("div");
   wrap.className = "damage-calc-matchup-card__table-wrap";
   const table = document.createElement("table");
@@ -257,10 +311,10 @@ function renderTable(containerId: string, label: "攻" | "守", rows: DamageRow[
   }
   table.append(colgroup, thead, tbody);
   wrap.append(table);
-  byId<HTMLElement>(containerId).replaceChildren(wrap);
+  container.replaceChildren(wrap);
 }
 
-function renderSpeed(selfSpeed: number | null, opponentSpeeds: number[]): void {
+function renderSpeed(container: HTMLElement, selfSpeed: number | null, opponentSpeeds: number[]): void {
   const root = document.createElement("div");
   root.className = "damage-calc-matchup-card__speed";
   const selfGroup = document.createElement("div");
@@ -282,7 +336,7 @@ function renderSpeed(selfSpeed: number | null, opponentSpeeds: number[]): void {
   selfGroup.append(makeItem("すばやさ", selfSpeed));
   opponentGroup.append(...["無振り", "準速", "最速"].map((label, index) => makeItem(label, opponentSpeeds[index] ?? null)));
   root.append(selfGroup, opponentGroup);
-  byId<HTMLElement>("damage-calc-matchup-speed").replaceChildren(root);
+  container.replaceChildren(root);
 }
 
 /** ダメージ割合は整数表示にする(共有の`formatDamageRange`は小数第1位まで出すため、
@@ -341,20 +395,27 @@ async function calculateDefenseRows(self: PokemonSpec, opponent: OpponentBuild, 
 
 async function run(): Promise<void> {
   const currentRequestId = ++requestId;
-  const selfBuild = getSelfBuild();
+  const selfBuilds = getSelfBuilds();
   const currentOpponent = getOpponentBuild();
   const opponent: OpponentBuild = { ...currentOpponent, speciesName: currentOpponent.speciesName || DEFAULT_OPPONENT };
-  renderIdentity(selfBuild, opponent, currentRequestId);
-  setStatus("ダメージを計算中…");
-  renderSpeed(null, []);
-  renderTable("damage-calc-matchup-attack-table", "攻", []);
-  renderTable("damage-calc-matchup-defense-table", "守", []);
+  // 相手側は全カード共通なので、相手に依存する取得・計算(技の使用率・すばやさ3水準)は
+  // このrun()呼び出しにつき1回だけ行い、カードの枚数ぶん繰り返さない。
+  const cards: Card[] = selfBuilds.map((build, index) => ({ build, ...createCard(index) }));
+  for (const card of cards) {
+    renderIdentity(card.refs, card.build, opponent, currentRequestId);
+    setStatus(card.refs.status, "ダメージを計算中…");
+    renderSpeed(card.refs.speed, null, []);
+    renderTable(card.refs.attackTable, "攻", []);
+    renderTable(card.refs.defenseTable, "守", []);
+  }
+  // 計算が終わるまで待たず、まずローディング状態のカードN枚を一括で差し込む
+  // (1枚だった頃と同じ「即座に計算中表示になる」体験を保つ)。
+  byId<HTMLElement>("damage-calc-summary-list").replaceChildren(...cards.map((card) => card.root));
   try {
     const [moveDetails, usageOptions] = await Promise.all([loadMoveDetailMap(), fetchOpponentMoveOptions(opponent.speciesName)]);
     if (currentRequestId !== requestId) return;
     const categoryOf = (moveName: string): MoveCategory => moveDetails.get(moveName)?.category ?? "status";
     const isAttackMove = (moveName: string): boolean => categoryOf(moveName) !== "status";
-    const selfMoveNames = selfBuild.move_names.map((name) => name.trim()).filter(Boolean).slice(0, 4).filter(isAttackMove);
     const opponentMoveNames = pickOpponentDefenseMoves(usageOptions, isAttackMove);
     registerOfflineCache();
     await initEngine();
@@ -362,22 +423,25 @@ async function run(): Promise<void> {
     const speedSpecs = opponentPatterns(opponent, [], "spe");
     const opponentSpeeds: number[] = [];
     for (const spec of speedSpecs) opponentSpeeds.push((await calcStats(spec)).stats.spe);
-    const self = isSelectedSelf(selfBuild) ? selfSpec(selfBuild) : null;
-    const selfSpeed = self ? (await calcStats(self)).stats.spe : null;
-    const displayedSelfSpeed = selfSpeed != null ? applySpeedItemModifier(selfSpeed, selfBuild.item_name) : null;
-    if (currentRequestId !== requestId) return;
-    renderSpeed(displayedSelfSpeed, opponentSpeeds);
-    const categories = new Map<string, MoveCategory>([...selfMoveNames, ...opponentMoveNames].map((name) => [name, categoryOf(name)]));
-    const attackRows = self ? await calculateAttackRows(self, opponent, selfMoveNames, categories) : [];
-    const defenseRows = self ? await calculateDefenseRows(self, opponent, opponentMoveNames, categories) : opponentMoveNames.map((moveName) => ({ moveName, cells: PATTERN_LABELS.map(() => ({ range: "-", lethal: "" })) }));
-    if (currentRequestId !== requestId) return;
-    renderTable("damage-calc-matchup-attack-table", "攻", attackRows);
-    renderTable("damage-calc-matchup-defense-table", "守", defenseRows);
-    setStatus(null);
+    await Promise.all(cards.map(async (card) => {
+      const selfMoveNames = card.build.move_names.map((name) => name.trim()).filter(Boolean).slice(0, 4).filter(isAttackMove);
+      const self = isSelectedSelf(card.build) ? selfSpec(card.build) : null;
+      const selfSpeed = self ? (await calcStats(self)).stats.spe : null;
+      const displayedSelfSpeed = selfSpeed != null ? applySpeedItemModifier(selfSpeed, card.build.item_name) : null;
+      if (currentRequestId !== requestId) return;
+      renderSpeed(card.refs.speed, displayedSelfSpeed, opponentSpeeds);
+      const categories = new Map<string, MoveCategory>([...selfMoveNames, ...opponentMoveNames].map((name) => [name, categoryOf(name)]));
+      const attackRows = self ? await calculateAttackRows(self, opponent, selfMoveNames, categories) : [];
+      const defenseRows = self ? await calculateDefenseRows(self, opponent, opponentMoveNames, categories) : opponentMoveNames.map((moveName) => ({ moveName, cells: PATTERN_LABELS.map(() => ({ range: "-", lethal: "" })) }));
+      if (currentRequestId !== requestId) return;
+      renderTable(card.refs.attackTable, "攻", attackRows);
+      renderTable(card.refs.defenseTable, "守", defenseRows);
+      setStatus(card.refs.status, null);
+    }));
   } catch (error) {
     console.error(error);
     if (currentRequestId !== requestId) return;
-    setStatus("ダメージを計算できませんでした。再度お試しください。", true);
+    for (const card of cards) setStatus(card.refs.status, "ダメージを計算できませんでした。再度お試しください。", true);
   }
 }
 

@@ -45,8 +45,8 @@
 .damage-calc-matchup-card__artwork { position: absolute; top: 50%; display: block; width: var(--damage-calc-card-artwork-size); height: var(--damage-calc-card-artwork-size); padding: 0; border: 0; background: transparent; object-fit: contain; transform: translateY(-50%); font: inherit; }
 .damage-calc-matchup-card__artwork img { display: block; width: 100%; height: 100%; object-fit: contain; }
 /* 自分側は立ち絵タップでボックス選択モーダルを開けるbutton要素。 */
-#damage-calc-self-artwork { cursor: pointer; appearance: none; -webkit-appearance: none; }
-#damage-calc-self-artwork:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+[data-role="self-artwork"] { cursor: pointer; appearance: none; -webkit-appearance: none; }
+[data-role="self-artwork"]:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
 /* 未選択時は？を丸いアイコンとして表示する。 */
 .damage-calc-matchup-card__artwork--placeholder { display: grid; place-items: center; border: 1px solid var(--color-border); border-radius: 50%; background: var(--color-bg); color: var(--color-text-muted); font-size: var(--font-size-lg1); font-weight: var(--font-weight-bold); }
 .damage-calc-matchup-card__pokemon--self .damage-calc-matchup-card__artwork { left: var(--damage-calc-card-artwork-inset); }

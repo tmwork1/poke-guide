@@ -1,5 +1,4 @@
 import type { OwnedPokemonRecord } from "../owned-pokemon";
-import type { Team, TeamMember } from "../team";
 
 /** ランク補正の並び。HP は PokemonSpec.boosts と揃えるためだけのプレースホルダー。 */
 export type DamageCalcBoosts = [number, number, number, number, number, number];
@@ -25,21 +24,8 @@ export interface FieldState {
 }
 
 /** TeamMember のうち、ダメージページが保持する最小の選択情報。 */
-export interface TeamMemberSpecInput {
-  slot: TeamMember["slot"];
-  itemOverride: TeamMember["item_override"];
-  ownedPokemon: Pick<
-    OwnedPokemonRecord,
-    "id" | "species_name" | "level" | "nature" | "ability_name" | "item_name" | "tera_type" | "evs" | "ivs" | "move_names"
-  >;
-}
 
 /** SSR で取得した Team から、クライアント状態へ渡す選択済みチーム。 */
-export interface SelectedTeam {
-  id: Team["id"];
-  members: TeamMemberSpecInput[];
-  selectedMemberId: OwnedPokemonRecord["id"] | null;
-}
 
 /** 相手の手動入力。努力値・性格は3パターン計算側が一貫して決定する。 */
 export interface OpponentBuild {
@@ -51,11 +37,22 @@ export interface OpponentBuild {
 }
 
 /** 自分側に選択したボックス個体の、ダメージ計算に必要な育成情報。 */
-export type SelfBuild = TeamMemberSpecInput["ownedPokemon"];
+export interface SelfBuild extends Pick<
+  OwnedPokemonRecord,
+  | "id"
+  | "species_name"
+  | "level"
+  | "nature"
+  | "ability_name"
+  | "item_name"
+  | "tera_type"
+  | "evs"
+  | "ivs"
+  | "move_names"
+> {}
 
 export interface DamageCalcPageState {
-  selectedTeam: SelectedTeam | null;
-  selfBuild: SelfBuild;
+  selfBuilds: SelfBuild[];
   opponentBuild: OpponentBuild;
   selfState: SelfState;
   opponentState: OpponentState;
@@ -105,12 +102,18 @@ export const DEFAULT_SELF_BUILD: SelfBuild = {
 };
 
 let state: DamageCalcPageState = {
-  selectedTeam: null,
-  selfBuild: { ...DEFAULT_SELF_BUILD, evs: [], ivs: [], move_names: [] },
+  selfBuilds: [{ ...DEFAULT_SELF_BUILD, evs: [], ivs: [], move_names: [] }],
   opponentBuild: { ...DEFAULT_OPPONENT_BUILD },
   selfState: { ...DEFAULT_SELF_STATE, boosts: [...DEFAULT_SELF_STATE.boosts] },
-  opponentState: { ...DEFAULT_OPPONENT_STATE, boosts: [...DEFAULT_OPPONENT_STATE.boosts] },
-  fieldState: { ...DEFAULT_FIELD_STATE, selfSideFields: [], opponentSideFields: [] },
+  opponentState: {
+    ...DEFAULT_OPPONENT_STATE,
+    boosts: [...DEFAULT_OPPONENT_STATE.boosts],
+  },
+  fieldState: {
+    ...DEFAULT_FIELD_STATE,
+    selfSideFields: [],
+    opponentSideFields: [],
+  },
 };
 
 export function getDamageCalcPageState(): DamageCalcPageState {
@@ -121,15 +124,44 @@ export function setDamageCalcPageState(next: DamageCalcPageState): void {
   state = next;
 }
 
-export function getSelectedTeam(): SelectedTeam | null { return state.selectedTeam; }
-export function setSelectedTeam(selectedTeam: SelectedTeam | null): void { state = { ...state, selectedTeam }; }
-export function getSelfBuild(): SelfBuild { return state.selfBuild; }
-export function setSelfBuild(selfBuild: SelfBuild): void { state = { ...state, selfBuild }; }
-export function getOpponentBuild(): OpponentBuild { return state.opponentBuild; }
-export function setOpponentBuild(opponentBuild: OpponentBuild): void { state = { ...state, opponentBuild }; }
-export function getSelfState(): SelfState { return state.selfState; }
-export function setSelfState(selfState: SelfState): void { state = { ...state, selfState }; }
-export function getOpponentState(): OpponentState { return state.opponentState; }
-export function setOpponentState(opponentState: OpponentState): void { state = { ...state, opponentState }; }
-export function getFieldState(): FieldState { return state.fieldState; }
-export function setFieldState(fieldState: FieldState): void { state = { ...state, fieldState }; }
+export function getSelfBuilds(): SelfBuild[] {
+  return state.selfBuilds;
+}
+export function setSelfBuilds(selfBuilds: SelfBuild[]): void {
+  state = {
+    ...state,
+    selfBuilds:
+      selfBuilds.length > 0
+        ? selfBuilds
+        : [{ ...DEFAULT_SELF_BUILD, evs: [], ivs: [], move_names: [] }],
+  };
+}
+export function setSelfBuildAt(index: number, selfBuild: SelfBuild): void {
+  const selfBuilds = [...state.selfBuilds];
+  selfBuilds[index] = selfBuild;
+  setSelfBuilds(selfBuilds);
+}
+export function getOpponentBuild(): OpponentBuild {
+  return state.opponentBuild;
+}
+export function setOpponentBuild(opponentBuild: OpponentBuild): void {
+  state = { ...state, opponentBuild };
+}
+export function getSelfState(): SelfState {
+  return state.selfState;
+}
+export function setSelfState(selfState: SelfState): void {
+  state = { ...state, selfState };
+}
+export function getOpponentState(): OpponentState {
+  return state.opponentState;
+}
+export function setOpponentState(opponentState: OpponentState): void {
+  state = { ...state, opponentState };
+}
+export function getFieldState(): FieldState {
+  return state.fieldState;
+}
+export function setFieldState(fieldState: FieldState): void {
+  state = { ...state, fieldState };
+}

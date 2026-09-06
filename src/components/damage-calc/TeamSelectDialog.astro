@@ -1,0 +1,21 @@
+<div id="damage-calc-team-select-backdrop" class="team-select-backdrop" hidden></div>
+<div
+  id="damage-calc-team-select-dialog"
+  class="team-select-dialog"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="damage-calc-team-select-dialog-title"
+  tabindex="-1"
+  hidden
+>
+  <div class="team-select-header">
+    <h2 id="damage-calc-team-select-dialog-title" class="team-select-title">チームから選択</h2>
+    <button type="button" id="damage-calc-team-select-close-button" class="btn-ghost team-select-close" aria-label="閉じる">×</button>
+  </div>
+  <div class="team-select-content">
+    <p id="damage-calc-team-select-loading" class="team-select-message">読み込み中…</p>
+    <p id="damage-calc-team-select-error" class="team-select-message team-select-message--error" hidden></p>
+    <p id="damage-calc-team-select-empty" class="team-select-message" hidden>登録済みのチームがありません。</p>
+    <div id="damage-calc-team-select-grid" class="team-grid" aria-label="登録済みチーム一覧"></div>
+  </div>
+</div>

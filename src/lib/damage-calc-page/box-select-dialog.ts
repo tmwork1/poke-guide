@@ -1,8 +1,11 @@
 import { listOwnedPokemonPage } from "../data/pokemon-repo";
-import { ownedPokemonDisplayName, renderBoxPokemonCard } from "../owned-pokemon-card";
+import {
+  ownedPokemonDisplayName,
+  renderBoxPokemonCard,
+} from "../owned-pokemon-card";
 import { bindModalDismissal } from "../modal-dismiss";
 import type { OwnedPokemonRecord } from "../owned-pokemon";
-import { setSelfBuild } from "./shared-core";
+import { setSelfBuilds } from "./shared-core";
 
 const PAGE_SIZE = 48;
 
@@ -36,7 +39,9 @@ export function initBoxSelectDialog(): void {
   const trigger = byId<HTMLButtonElement>("damage-calc-pokemon-button");
   const backdrop = byId<HTMLElement>("damage-calc-box-select-backdrop");
   const dialog = byId<HTMLElement>("damage-calc-box-select-dialog");
-  const closeButton = byId<HTMLButtonElement>("damage-calc-box-select-close-button");
+  const closeButton = byId<HTMLButtonElement>(
+    "damage-calc-box-select-close-button",
+  );
   const grid = byId<HTMLElement>("damage-calc-box-select-grid");
   const loading = byId<HTMLElement>("damage-calc-box-select-loading");
   const error = byId<HTMLElement>("damage-calc-box-select-error");
@@ -51,25 +56,29 @@ export function initBoxSelectDialog(): void {
   }
 
   async function selectPokemon(pokemon: OwnedPokemonRecord): Promise<void> {
-    setSelfBuild(toSelfBuild(pokemon));
-    document.dispatchEvent(new CustomEvent("damage-calc:change", { detail: { reason: "self" } }));
+    setSelfBuilds([toSelfBuild(pokemon)]);
+    document.dispatchEvent(
+      new CustomEvent("damage-calc:change", { detail: { reason: "self" } }),
+    );
     closeDialog();
   }
 
   function renderList(pokemon: OwnedPokemonRecord[]): void {
-    grid.replaceChildren(...pokemon.map((entry) => {
-      const card = document.createElement("button");
-      card.type = "button";
-      const displayName = ownedPokemonDisplayName(entry);
-      renderBoxPokemonCard({
-        root: card,
-        pokemon: entry,
-        displayName,
-        ariaLabel: `${displayName}を自分側に設定`,
-      });
-      card.addEventListener("click", () => void selectPokemon(entry));
-      return card;
-    }));
+    grid.replaceChildren(
+      ...pokemon.map((entry) => {
+        const card = document.createElement("button");
+        card.type = "button";
+        const displayName = ownedPokemonDisplayName(entry);
+        renderBoxPokemonCard({
+          root: card,
+          pokemon: entry,
+          displayName,
+          ariaLabel: `${displayName}を自分側に設定`,
+        });
+        card.addEventListener("click", () => void selectPokemon(entry));
+        return card;
+      }),
+    );
     empty.hidden = pokemon.length !== 0;
   }
 
@@ -86,21 +95,30 @@ export function initBoxSelectDialog(): void {
       const pokemon: OwnedPokemonRecord[] = [];
       let hasMore = true;
       while (hasMore) {
-        const page = await listOwnedPokemonPage({ limit: PAGE_SIZE, offset: pokemon.length });
+        const page = await listOwnedPokemonPage({
+          limit: PAGE_SIZE,
+          offset: pokemon.length,
+        });
         pokemon.push(...page.data);
         hasMore = page.hasMore && page.data.length > 0;
-        if (hasMore && page.data.length > 0) await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
+        if (hasMore && page.data.length > 0)
+          await new Promise<void>((resolve) =>
+            window.requestAnimationFrame(() => resolve()),
+          );
       }
       cachedPokemon = pokemon;
       renderList(pokemon);
-    })().catch((cause: unknown) => {
-      console.error(cause);
-      error.textContent = "個体一覧を読み込めませんでした。時間をおいて再度お試しください。";
-      error.hidden = false;
-    }).finally(() => {
-      loading.hidden = true;
-      loadingPromise = null;
-    });
+    })()
+      .catch((cause: unknown) => {
+        console.error(cause);
+        error.textContent =
+          "個体一覧を読み込めませんでした。時間をおいて再度お試しください。";
+        error.hidden = false;
+      })
+      .finally(() => {
+        loading.hidden = true;
+        loadingPromise = null;
+      });
     return loadingPromise;
   }
 
@@ -113,6 +131,11 @@ export function initBoxSelectDialog(): void {
 
   trigger.addEventListener("click", () => void openDialog());
   closeButton.addEventListener("click", closeDialog);
-  bindModalDismissal({ backdrop, dialog, isOpen: () => !dialog.hidden, onDismiss: closeDialog });
+  bindModalDismissal({
+    backdrop,
+    dialog,
+    isOpen: () => !dialog.hidden,
+    onDismiss: closeDialog,
+  });
   openDialogFn = openDialog;
 }
