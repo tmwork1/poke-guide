@@ -38,9 +38,9 @@ body.box-edit-page {
   --damage-card-build-detail-color: var(--color-text-muted); /* 相手情報2段目(特性・テラス・アイテム・実数値)の文字色 */
   --damage-card-attack-badge-color: var(--color-danger-strong); /* 相手ビルドカードの攻撃バッジの文字色(よく行われるダメージ計算の攻守チップと同じ配色) */
   --damage-card-defense-badge-color: var(--color-primary); /* 相手ビルドカードの防御バッジの文字色 */
-  --damage-card-result-confirm1-color: var(--color-risky); /* 累計結果: 確定数1発の文字色。--color-risky-strong(暗い黄土色)だと薄めた2発との差が読み取りにくいため、明るい黄色を基準にする(ダークテーマでは下の@mediaでさらに明るくする) */
-  --damage-card-result-confirm2-color: var(--color-risky); /* 累計結果: 確定数2発の文字色(1発と同じ黄色を、下のopacityで薄くして段階を付ける) */
-  --damage-card-result-confirm3plus-color: var(--color-text); /* 累計結果: 確定数3発以上・不明の文字色(通常の本文色。強調しない) */
+  --damage-card-result-confirm1-color: var(--color-text); /* 累計結果: 確定数1発の文字色。最も明るい本文色にする */
+  --damage-card-result-confirm2-color: var(--color-text); /* 累計結果: 確定数2発の文字色。下のopacityで少しグレーにする */
+  --damage-card-result-confirm3plus-color: var(--color-text-muted); /* 累計結果: 確定数3発以上・不明の文字色。控えめなグレーにする */
 
   /* ── 4. 背景色 ─────────────────────── */
   --damage-card-active-background: color-mix(in srgb, var(--color-bg) 90%, var(--color-primary) 10%); /* hover・フォーカス時の背景色 */
@@ -107,18 +107,6 @@ body.box-edit-page {
   --damage-card-transition-duration: .15s; /* hover色や影が切り替わる時間。大きくすると変化がゆっくりになる */
   --damage-card-dropdown-offset: .25rem; /* 選択ボタンと候補リストの間隔 */
   --damage-card-delete-offset: var(--space-2); /* 削除ボタンとカード右上端の間隔 */
-}
-
-/* ダークテーマの本文色(#e7e9ee)は--color-riskyの黄色(#e0a940)より明るいため、
-   そのままだと確定数3発以上の白のほうが1発・2発の黄色より目立ってしまう。
-   3発以上を暗くして目立たなくするのではなく、黄色側を白より明るい黄色まで
-   引き上げて、確定数が少ない行が最も目立つ状態にする(ライトテーマは背景が
-   明るく、これ以上明るい黄色は読めなくなるため--color-riskyのまま)。 */
-@media (prefers-color-scheme: dark) {
-  body.box-edit-page {
-    --damage-card-result-confirm1-color: #ffd75e; /* ダーク: 確定数1発の文字色 */
-    --damage-card-result-confirm2-color: #ffd75e; /* ダーク: 確定数2発の文字色(opacityで薄める) */
-  }
 }
 
 #opponent-notes-section .card-damage {
@@ -961,7 +949,7 @@ body.box-edit-page {
   font-weight: var(--damage-card-total-verdict-font-weight);
 }
 
-/* 累計結果の文字色: 確定数1発は黄色、2発はその薄い色、3発以上・不明は通常の文字色にする
+/* 累計結果の文字色: 確定数1発は本文色、以降は少しずつグレーにする
    (背景のメーターは.damage-row-total側の既存の表現のまま変えない。文字色だけ
    .damage-row-total-result側で上書きし、継承元の.damage-row-total[data-severity]の
    color: var(--color-text)より優先させる)。 */
@@ -971,8 +959,7 @@ body.box-edit-page {
 
 #opponent-notes-section .damage-row-total-result[data-severity="risky"] {
   color: var(--damage-card-result-confirm2-color);
-  /* 1発(opacityなし)との段階を付けるための薄さ。明るい黄色が基準なので下げすぎると
-     背景に溶けて読めなくなる(以前 .6 で白飛びした)。 */
+  /* 1発より少し控えめなグレーにして、確定数の段階を示す。 */
   opacity: .8;
 }
 
