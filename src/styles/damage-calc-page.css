@@ -27,7 +27,7 @@
 .damage-calc-summary-list { display: grid; gap: var(--space-3); padding-right: calc(2.5rem + var(--space-2)); }
 /* 対面カード本体。角は丸めない(バトルデータカードと同じ直角の枠に揃える)。 */
 .damage-calc-matchup-card {
-  --damage-calc-card-artwork-size: 3.5rem; /* 立ち絵の一辺。小さくすると名前・もちもの側の余地が広がる */
+  --damage-calc-card-artwork-size: 4.25rem; /* 立ち絵の一辺。小さくすると名前・もちもの側の余地が広がる */
   --damage-calc-card-artwork-inset: var(--space-3); /* 立ち絵をカード左右端から内側へ寄せる距離 */
   overflow: hidden; border: 1px solid var(--color-border); border-radius: 0; background: var(--color-surface); box-shadow: var(--shadow-sm);
 }
@@ -42,9 +42,12 @@
 .damage-calc-matchup-card__pokemon--self .damage-calc-matchup-card__artwork { left: var(--damage-calc-card-artwork-inset); }
 .damage-calc-matchup-card__pokemon--opponent .damage-calc-matchup-card__artwork { right: var(--damage-calc-card-artwork-inset); }
 .damage-calc-matchup-card__pokemon-meta { position: absolute; z-index: 2; display: flex; align-items: center; max-width: calc(100% - var(--damage-calc-card-artwork-size) - var(--damage-calc-card-artwork-inset) - 2px); white-space: nowrap; }
-.damage-calc-matchup-card__pokemon--self .damage-calc-matchup-card__pokemon-meta { bottom: 1rem; left: calc(var(--damage-calc-card-artwork-inset) + var(--damage-calc-card-artwork-size) + 2px); }
+.damage-calc-matchup-card__pokemon--self .damage-calc-matchup-card__pokemon-meta { top: 1rem; left: calc(var(--damage-calc-card-artwork-inset) + var(--damage-calc-card-artwork-size) + 2px); }
 .damage-calc-matchup-card__pokemon--opponent .damage-calc-matchup-card__pokemon-meta { top: 1rem; right: calc(var(--damage-calc-card-artwork-inset) + var(--damage-calc-card-artwork-size) + 2px); flex-direction: row-reverse; }
-.damage-calc-matchup-card .damage-calc-matchup-card__pokemon h2 { min-width: 0; margin: 0; padding: 0 0 1px; overflow: hidden; border: 0; border-bottom: 1px solid var(--color-text-muted); text-overflow: ellipsis; font-size: var(--font-size-sm2); font-weight: var(--font-weight-normal); line-height: var(--line-height-tight); }
+.damage-calc-matchup-card .damage-calc-matchup-card__pokemon h2 { display: flex; flex-direction: column; min-width: 0; margin: 0; padding: 0; overflow: hidden; font-size: var(--font-size-sm2); font-weight: var(--font-weight-normal); line-height: var(--line-height-tight); }
+.damage-calc-matchup-card__pokemon--opponent h2 { align-items: flex-end; text-align: right; }
+.damage-calc-matchup-card__pokemon-name-main, .damage-calc-matchup-card__pokemon-name-suffix { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.damage-calc-matchup-card__pokemon-name-suffix { color: var(--color-text-muted); font-size: 0.75em; }
 .damage-calc-matchup-card__item-button { position: absolute; z-index: 2; width: 1.75rem; height: 1.75rem; padding: 0; border: 0; background: transparent; cursor: pointer; }
 .damage-calc-matchup-card__item-icon { display: block; width: 100%; height: 100%; object-fit: contain; }
 .damage-calc-matchup-card__item-icon[hidden] { display: none; }
@@ -52,7 +55,7 @@
 .damage-calc-matchup-card__item-none-icon { display: block; width: 100%; height: 100%; color: var(--color-text-muted); fill: none; stroke: currentColor; stroke-width: 2; }
 .damage-calc-matchup-card__item-none-icon[hidden] { display: none; }
 .damage-calc-matchup-card__item-button:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
-.damage-calc-matchup-card__pokemon--self .damage-calc-matchup-card__item-button { top: 1rem; left: calc(var(--damage-calc-card-artwork-inset) + var(--damage-calc-card-artwork-size) + 2px); }
+.damage-calc-matchup-card__pokemon--self .damage-calc-matchup-card__item-button { bottom: 1rem; left: calc(var(--damage-calc-card-artwork-inset) + var(--damage-calc-card-artwork-size) + 2px); }
 .damage-calc-matchup-card__pokemon--opponent .damage-calc-matchup-card__item-button { right: calc(var(--damage-calc-card-artwork-inset) + var(--damage-calc-card-artwork-size) + 2px); bottom: 1rem; }
 .damage-calc-matchup-card__versus { position: absolute; z-index: 3; top: 50%; left: 50%; transform: translate(-50%, -50%); color: var(--color-text-muted); font-size: var(--font-size-sm2); font-weight: var(--font-weight-bold); letter-spacing: .08em; }
 .damage-calc-matchup-card__status { margin: var(--space-2); color: var(--color-text-muted); font-size: var(--font-size-sm3); text-align: center; }

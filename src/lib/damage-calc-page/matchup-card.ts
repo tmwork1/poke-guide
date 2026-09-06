@@ -1,4 +1,5 @@
 import { describeStandaloneLethal, formatDamageRange } from "../box-id/damage-calc-helpers";
+import { splitBoxCardDisplayName } from "../box-card-display-name";
 import { championSpriteUrl, loadImageIdMap, loadMoveDetailMap, officialArtworkUrl, type MoveCategory } from "../pokemon-master-data";
 import { calcDamages, calcStats, initEngine, registerOfflineCache, type PokemonSpec } from "../pyodide-engine";
 import { NATURE_STAT_MODIFIERS, STAT_KEYS, type StatKey } from "../stats";
@@ -133,11 +134,27 @@ function renderArtwork(id: string, name: string, imageId: number | undefined): v
   root.append(image);
 }
 
+function renderName(id: string, name: string): void {
+  const h2 = byId<HTMLElement>(id);
+  h2.replaceChildren();
+  const { name: mainName, suffix } = splitBoxCardDisplayName(name || "?");
+  const mainEl = document.createElement("span");
+  mainEl.className = "damage-calc-matchup-card__pokemon-name-main";
+  mainEl.textContent = mainName;
+  h2.append(mainEl);
+  if (suffix) {
+    const suffixEl = document.createElement("span");
+    suffixEl.className = "damage-calc-matchup-card__pokemon-name-suffix";
+    suffixEl.textContent = suffix;
+    h2.append(suffixEl);
+  }
+}
+
 function renderIdentity(self: SelfBuild, opponent: OpponentBuild, currentRequestId: number): void {
   const selfName = self.species_name.trim();
   const opponentName = opponent.speciesName || DEFAULT_OPPONENT;
-  byId<HTMLElement>("damage-calc-matchup-title").textContent = selfName || "?";
-  byId<HTMLElement>("damage-calc-opponent-name").textContent = opponentName;
+  renderName("damage-calc-matchup-title", selfName);
+  renderName("damage-calc-opponent-name", opponentName);
   void loadImageIdMap().then((imageIds) => {
     if (currentRequestId !== requestId) return;
     renderArtwork("damage-calc-self-artwork", selfName, imageIds.get(selfName));
