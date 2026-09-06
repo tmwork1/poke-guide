@@ -12,7 +12,8 @@
 .damage-calc-secondary-bar .second-header__content { flex-wrap: wrap; }
 .damage-calc-secondary-actions { display: flex; align-items: center; gap: var(--space-2); flex: 0 1 auto; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
 .damage-calc-secondary-actions::-webkit-scrollbar { display: none; }
-.damage-calc-secondary-button { display: inline-flex; align-items: center; min-height: 2.35rem; padding: 0.42em 0.9em; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-surface); color: var(--color-text); font-size: var(--font-size-sm1); font-weight: var(--font-weight-normal); line-height: var(--line-height-snug); }
+.damage-calc-secondary-button { display: inline-flex; flex: none; align-items: center; gap: .4em; min-height: 2.35rem; padding: 0.42em 0.65em; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-surface); color: var(--color-text); font-size: var(--font-size-sm1); font-weight: var(--font-weight-normal); line-height: var(--line-height-snug); white-space: nowrap; }
+.damage-calc-secondary-button svg { width: 1.1em; height: 1.1em; }
 .damage-calc-secondary-button:hover:not(:disabled) { border-color: var(--color-primary); background: var(--color-surface); color: var(--color-text); }
 .damage-calc-opponent-select-wrap { position: relative; flex: 0 1 11rem; min-width: 0; }
 .damage-calc-opponent-select { width: 100%; min-width: 0; min-height: 2.35rem; padding: .42em 2em .42em 2.25em; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background-color: var(--color-surface); color: var(--color-text); font: inherit; font-size: var(--font-size-sm1); }
