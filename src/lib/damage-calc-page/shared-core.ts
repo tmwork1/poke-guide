@@ -50,8 +50,12 @@ export interface OpponentBuild {
   moveNames: string[];
 }
 
+/** 自分側に選択したボックス個体の、ダメージ計算に必要な育成情報。 */
+export type SelfBuild = TeamMemberSpecInput["ownedPokemon"];
+
 export interface DamageCalcPageState {
   selectedTeam: SelectedTeam | null;
+  selfBuild: SelfBuild;
   opponentBuild: OpponentBuild;
   selfState: SelfState;
   opponentState: OpponentState;
@@ -87,8 +91,22 @@ export const DEFAULT_OPPONENT_BUILD: OpponentBuild = {
   moveNames: [],
 };
 
+export const DEFAULT_SELF_BUILD: SelfBuild = {
+  id: "",
+  species_name: "",
+  level: null,
+  nature: null,
+  ability_name: null,
+  item_name: null,
+  tera_type: null,
+  evs: [],
+  ivs: [],
+  move_names: [],
+};
+
 let state: DamageCalcPageState = {
   selectedTeam: null,
+  selfBuild: { ...DEFAULT_SELF_BUILD, evs: [], ivs: [], move_names: [] },
   opponentBuild: { ...DEFAULT_OPPONENT_BUILD },
   selfState: { ...DEFAULT_SELF_STATE, boosts: [...DEFAULT_SELF_STATE.boosts] },
   opponentState: { ...DEFAULT_OPPONENT_STATE, boosts: [...DEFAULT_OPPONENT_STATE.boosts] },
@@ -105,6 +123,8 @@ export function setDamageCalcPageState(next: DamageCalcPageState): void {
 
 export function getSelectedTeam(): SelectedTeam | null { return state.selectedTeam; }
 export function setSelectedTeam(selectedTeam: SelectedTeam | null): void { state = { ...state, selectedTeam }; }
+export function getSelfBuild(): SelfBuild { return state.selfBuild; }
+export function setSelfBuild(selfBuild: SelfBuild): void { state = { ...state, selfBuild }; }
 export function getOpponentBuild(): OpponentBuild { return state.opponentBuild; }
 export function setOpponentBuild(opponentBuild: OpponentBuild): void { state = { ...state, opponentBuild }; }
 export function getSelfState(): SelfState { return state.selfState; }

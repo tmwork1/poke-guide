@@ -6,6 +6,7 @@ import AppHeader from "../../components/AppHeader.astro";
 import SecondaryBar from "../../components/damage-calc/SecondaryBar.astro";
 import MatchupCardList from "../../components/damage-calc/MatchupCardList.astro";
 import ItemSelectDialog from "../../components/damage-calc/ItemSelectDialog.astro";
+import BoxSelectDialog from "../../components/damage-calc/BoxSelectDialog.astro";
 import ControlPanel from "../../components/damage-calc/ControlPanel.astro";
 import { toJsonScriptContent } from "../../lib/json-script";
 import { getOpggUsageList, getOpggUsageManifest, sortOpggSeasons } from "../../lib/opgg-usage";
@@ -13,6 +14,7 @@ import { env } from "cloudflare:workers";
 import "../../styles/app-header.css";
 import "../../styles/second-header.css";
 import "../../styles/damage-calc-page.css";
+import "../../styles/box-select-dialog.css";
 
 const user = Astro.locals.user;
 
@@ -43,13 +45,16 @@ try {
   </main>
   <ControlPanel />
   <ItemSelectDialog />
+  <BoxSelectDialog />
   <script type="application/json" id="damage-calc-opgg-ranked-species" set:html={toJsonScriptContent(opggRankedSpeciesNames)}></script>
   <script>
     import { initSecondaryBar } from "../../lib/damage-calc-page/secondary-bar";
     import { initControlPanel } from "../../lib/damage-calc-page/control-panel";
     import { initItemSelectDialog } from "../../lib/damage-calc-page/item-select-dialog";
+    import { initBoxSelectDialog } from "../../lib/damage-calc-page/box-select-dialog";
     initSecondaryBar();
     initControlPanel();
     initItemSelectDialog();
+    initBoxSelectDialog();
   </script>
 </AppLayout>

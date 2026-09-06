@@ -1,0 +1,21 @@
+<div id="damage-calc-box-select-backdrop" class="box-select-backdrop" hidden></div>
+<div
+  id="damage-calc-box-select-dialog"
+  class="box-select-dialog"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="damage-calc-box-select-dialog-title"
+  tabindex="-1"
+  hidden
+>
+  <div class="box-select-header">
+    <h2 id="damage-calc-box-select-dialog-title" class="box-select-title">ボックスから選択</h2>
+    <button type="button" id="damage-calc-box-select-close-button" class="btn-ghost box-select-close" aria-label="閉じる">×</button>
+  </div>
+  <div class="box-select-content">
+    <p id="damage-calc-box-select-loading" class="box-select-message">読み込み中…</p>
+    <p id="damage-calc-box-select-error" class="box-select-message box-select-message--error" hidden></p>
+    <p id="damage-calc-box-select-empty" class="box-select-message" hidden>登録済みのポケモンがありません。</p>
+    <div id="damage-calc-box-select-grid" class="box-grid" aria-label="登録済みポケモン一覧"></div>
+  </div>
+</div>
