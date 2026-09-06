@@ -39,7 +39,7 @@ body.box-edit-page {
   --damage-card-attack-badge-color: var(--color-danger-strong); /* 相手ビルドカードの攻撃バッジの文字色(よく行われるダメージ計算の攻守チップと同じ配色) */
   --damage-card-defense-badge-color: var(--color-primary); /* 相手ビルドカードの防御バッジの文字色 */
   --damage-card-result-confirm1-color: var(--color-text); /* 累計結果: 確定数1発の文字色。最も明るい本文色にする */
-  --damage-card-result-confirm2-color: var(--color-text); /* 累計結果: 確定数2発の文字色。下のopacityで少しグレーにする */
+  --damage-card-result-confirm2-color: color-mix(in srgb, var(--color-text) 94%, var(--color-text-muted)); /* 累計結果: 確定数2発の文字色。本文色からごく薄くグレーにする */
   --damage-card-result-confirm3plus-color: color-mix(in srgb, var(--color-text) 88%, var(--color-text-muted)); /* 累計結果: 確定数3発以上・不明の文字色。本文色を少しだけグレーにする */
 
   /* ── 4. 背景色 ─────────────────────── */
@@ -959,8 +959,6 @@ body.box-edit-page {
 
 #opponent-notes-section .damage-row-total-result[data-severity="risky"] {
   color: var(--damage-card-result-confirm2-color);
-  /* 1発より少し控えめなグレーにして、確定数の段階を示す。 */
-  opacity: .8;
 }
 
 #opponent-notes-section .damage-row-total-result[data-severity="safe"] {
