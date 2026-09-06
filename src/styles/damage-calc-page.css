@@ -32,10 +32,10 @@
 .damage-calc-matchup-card__artwork { position: absolute; top: 50%; display: block; width: 4rem; height: 4rem; object-fit: contain; transform: translateY(-50%); }
 .damage-calc-matchup-card__pokemon--self .damage-calc-matchup-card__artwork { left: 0; }
 .damage-calc-matchup-card__pokemon--opponent .damage-calc-matchup-card__artwork { right: 0; }
-.damage-calc-matchup-card__pokemon-meta { position: absolute; z-index: 2; display: flex; align-items: center; justify-content: center; width: 4rem; max-width: 4rem; white-space: nowrap; }
-.damage-calc-matchup-card__pokemon--self .damage-calc-matchup-card__pokemon-meta { bottom: .3rem; left: 0; }
-.damage-calc-matchup-card__pokemon--opponent .damage-calc-matchup-card__pokemon-meta { top: .3rem; right: 0; flex-direction: row-reverse; }
-.damage-calc-matchup-card .damage-calc-matchup-card__pokemon h2 { min-width: 0; margin: 0; padding: 0; overflow: hidden; border: 0; text-align: center; text-overflow: ellipsis; font-size: var(--font-size-sm3); line-height: var(--line-height-tight); }
+.damage-calc-matchup-card__pokemon-meta { position: absolute; z-index: 2; display: flex; align-items: center; max-width: calc(100% - 5rem); white-space: nowrap; }
+.damage-calc-matchup-card__pokemon--self .damage-calc-matchup-card__pokemon-meta { bottom: 1rem; left: calc(4rem + var(--space-1)); }
+.damage-calc-matchup-card__pokemon--opponent .damage-calc-matchup-card__pokemon-meta { top: 1rem; right: calc(4rem + var(--space-1)); flex-direction: row-reverse; }
+.damage-calc-matchup-card .damage-calc-matchup-card__pokemon h2 { min-width: 0; margin: 0; padding: 0; overflow: hidden; border: 0; text-overflow: ellipsis; font-size: var(--font-size-sm3); line-height: var(--line-height-tight); }
 .damage-calc-matchup-card__item-icon { position: absolute; z-index: 2; width: 1.75rem; height: 1.75rem; object-fit: contain; }
 .damage-calc-matchup-card__pokemon--self .damage-calc-matchup-card__item-icon { top: 1rem; left: calc(4rem + var(--space-1)); }
 .damage-calc-matchup-card__pokemon--opponent .damage-calc-matchup-card__item-icon { right: calc(4rem + var(--space-1)); bottom: 1rem; }
