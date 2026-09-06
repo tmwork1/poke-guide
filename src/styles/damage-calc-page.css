@@ -44,8 +44,9 @@
 .damage-calc-matchup-card__pokemon--self .damage-calc-matchup-card__item-button { top: 1rem; left: calc(4rem + 2px); }
 .damage-calc-matchup-card__pokemon--opponent .damage-calc-matchup-card__item-button { right: calc(4rem + 2px); bottom: 1rem; }
 .damage-calc-matchup-card__versus { position: absolute; z-index: 3; top: 50%; left: 50%; transform: translate(-50%, -50%); color: var(--color-text-muted); font-size: var(--font-size-sm2); font-weight: var(--font-weight-bold); letter-spacing: .08em; }
-/* カードを構成する4領域(ポケモン表示・すばやさ・攻撃・防御)の間に区切り線を引く。 */
-.damage-calc-matchup-card > * + * { border-top: 1px solid var(--color-border); }
+/* カードを構成する4領域(ポケモン表示・すばやさ・攻撃・防御)の間に区切り線を引く。
+   表内の行罫線(1px)と同じ見た目にならないよう、領域の区切りは2pxで太くして格を分ける。 */
+.damage-calc-matchup-card > * + * { border-top: 2px solid var(--color-border); }
 /* ポケモン表示領域と攻撃テーブルの間のすばやさ表示。自分側は実数値1つ、相手側は
    無振り/準速/最速の3水準を、それぞれ左右のポケモンの下に揃えて並べる。 */
 .damage-calc-matchup-card__speed { display: grid; grid-template-columns: 1fr 1fr; align-items: flex-start; gap: var(--space-3); padding: var(--space-2); }
