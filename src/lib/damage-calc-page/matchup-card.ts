@@ -3,7 +3,7 @@ import { splitBoxCardDisplayName } from "../box-card-display-name";
 import { championSpriteUrl, loadImageIdMap, loadMoveDetailMap, officialArtworkUrl, type MoveCategory } from "../pokemon-master-data";
 import { calcDamages, calcStats, initEngine, registerOfflineCache, type PokemonSpec } from "../pyodide-engine";
 import { NATURE_STAT_MODIFIERS, STAT_KEYS, type StatKey } from "../stats";
-import { pickOpponentAttackMoves, type PopularMoveOption } from "../team-matchup";
+import type { PopularMoveOption } from "../team-matchup";
 import { getFieldState, getOpponentBuild, getOpponentState, getSelfBuild, getSelfState, type OpponentBuild, type SelfBuild } from "./shared-core";
 
 type DamageCell = { range: string; lethal: string };
@@ -12,6 +12,14 @@ type DamageRow = { moveName: string; cells: DamageCell[] };
 const CHANGE_EVENT = "damage-calc:change";
 const DEFAULT_OPPONENT = "サーフゴー";
 const PATTERN_LABELS = ["無振り", "32振り", "特化"];
+/** 対面カードの防御表に載せる相手技の採用率しきい値(このカード専用。team-matchup.tsの
+ * OPPONENT_MIN_MOVE_RATIO(20%・上限4本)とは別軸の要件のため、共有定数は変更しない)。 */
+const OPPONENT_DEFENSE_MOVE_MIN_RATIO = 0.1;
+/** こだわりスカーフの素早さ補正(4096基準の固定小数点、6144/4096=1.5倍)。
+ * jpokeの`vendor/jpoke/src/jpoke/handlers/item.py`のこだわりスカーフ_boost_speedと同じ計算。
+ * calcStats()の実数値は持ち物補正を含まないため、表示用にここで別途掛け合わせる。 */
+const CHOICE_SCARF_SPEED_MODIFIER = 6144;
+const FIXED_POINT_BASE = 4096;
 let timer: number | undefined;
 let requestId = 0;
 let opponentMovesCache = new Map<string, Promise<PopularMoveOption[]>>();
@@ -85,6 +93,18 @@ function statForCategory(category: MoveCategory, direction: "attack" | "defense"
   return category === "physical" ? "atk" : "spa";
 }
 
+/** 防御表(相手のわざ)に載せる技名を、OP.GG採用率10%以上のものすべて(上限なし)から選ぶ。 */
+function pickOpponentDefenseMoves(options: readonly PopularMoveOption[], isAttackMove: (moveName: string) => boolean): string[] {
+  const attacks = options.filter((option) => option.ratio >= OPPONENT_DEFENSE_MOVE_MIN_RATIO && isAttackMove(option.value));
+  const sorted = [...attacks].sort((a, b) => b.ratio - a.ratio);
+  const picked: string[] = [];
+  for (const option of sorted) {
+    if (picked.includes(option.value)) continue;
+    picked.push(option.value);
+  }
+  return picked;
+}
+
 async function fetchOpponentMoveOptions(speciesName: string): Promise<PopularMoveOption[]> {
   let cached = opponentMovesCache.get(speciesName);
   if (!cached) {
@@ -137,7 +157,8 @@ function renderArtwork(id: string, name: string, imageId: number | undefined): v
 function renderName(id: string, name: string): void {
   const h2 = byId<HTMLElement>(id);
   h2.replaceChildren();
-  const { name: mainName, suffix } = splitBoxCardDisplayName(name || "?");
+  if (!name) return;
+  const { name: mainName, suffix } = splitBoxCardDisplayName(name);
   const mainEl = document.createElement("span");
   mainEl.className = "damage-calc-matchup-card__pokemon-name-main";
   mainEl.textContent = mainName;
@@ -151,18 +172,24 @@ function renderName(id: string, name: string): void {
 }
 
 function renderIdentity(self: SelfBuild, opponent: OpponentBuild, currentRequestId: number): void {
+  const selfSelected = isSelectedSelf(self);
   const selfName = self.species_name.trim();
   const opponentName = opponent.speciesName || DEFAULT_OPPONENT;
-  renderName("damage-calc-matchup-title", selfName);
+  renderName("damage-calc-matchup-title", selfSelected ? selfName : "");
   renderName("damage-calc-opponent-name", opponentName);
+  const selfItemButton = document.querySelector<HTMLButtonElement>('[data-damage-calc-item-side="self"]');
+  if (selfItemButton) selfItemButton.hidden = !selfSelected;
+  const selfArtwork = byId<HTMLElement>("damage-calc-self-artwork");
   void loadImageIdMap().then((imageIds) => {
     if (currentRequestId !== requestId) return;
-    renderArtwork("damage-calc-self-artwork", selfName, imageIds.get(selfName));
+    renderArtwork("damage-calc-self-artwork", selfSelected ? selfName : "", selfSelected ? imageIds.get(selfName) : undefined);
     renderArtwork("damage-calc-opponent-artwork", opponentName, imageIds.get(opponentName));
+    selfArtwork.setAttribute("aria-label", selfSelected ? `${selfName}をボックスから変更` : "ボックスから選択");
   }).catch(() => {
     if (currentRequestId !== requestId) return;
-    renderArtwork("damage-calc-self-artwork", selfName, undefined);
+    renderArtwork("damage-calc-self-artwork", selfSelected ? selfName : "", undefined);
     renderArtwork("damage-calc-opponent-artwork", opponentName, undefined);
+    selfArtwork.setAttribute("aria-label", selfSelected ? `${selfName}をボックスから変更` : "ボックスから選択");
   });
 }
 
@@ -223,7 +250,7 @@ function renderTable(containerId: string, label: "攻" | "守", rows: DamageRow[
   byId<HTMLElement>(containerId).replaceChildren(wrap);
 }
 
-function renderSpeed(selfSpeed: number | null, opponentSpeeds: number[]): void {
+function renderSpeed(selfSpeed: number | null, selfBoostedSpeed: number | null, opponentSpeeds: number[]): void {
   const root = document.createElement("div");
   root.className = "damage-calc-matchup-card__speed";
   const selfGroup = document.createElement("div");
@@ -242,7 +269,7 @@ function renderSpeed(selfSpeed: number | null, opponentSpeeds: number[]): void {
     item.append(itemLabel, itemValue);
     return item;
   };
-  selfGroup.append(makeItem("すばやさ", selfSpeed));
+  selfGroup.append(makeItem("すばやさ", selfSpeed), makeItem("補正後", selfBoostedSpeed));
   opponentGroup.append(...["無振り", "準速", "最速"].map((label, index) => makeItem(label, opponentSpeeds[index] ?? null)));
   root.append(selfGroup, opponentGroup);
   byId<HTMLElement>("damage-calc-matchup-speed").replaceChildren(root);
@@ -305,7 +332,7 @@ async function run(): Promise<void> {
   const opponent: OpponentBuild = { ...currentOpponent, speciesName: currentOpponent.speciesName || DEFAULT_OPPONENT };
   renderIdentity(selfBuild, opponent, currentRequestId);
   setStatus("ダメージを計算中…");
-  renderSpeed(null, []);
+  renderSpeed(null, null, []);
   renderTable("damage-calc-matchup-attack-table", "攻", []);
   renderTable("damage-calc-matchup-defense-table", "守", []);
   try {
@@ -314,8 +341,7 @@ async function run(): Promise<void> {
     const categoryOf = (moveName: string): MoveCategory => moveDetails.get(moveName)?.category ?? "status";
     const isAttackMove = (moveName: string): boolean => categoryOf(moveName) !== "status";
     const selfMoveNames = selfBuild.move_names.map((name) => name.trim()).filter(Boolean).slice(0, 4).filter(isAttackMove);
-    // 相性チェック側の共有ヘルパーは全候補を返すため、実機の4技枠に合わせる表示側で上限を適用する。
-    const opponentMoveNames = pickOpponentAttackMoves(usageOptions, isAttackMove).slice(0, 4);
+    const opponentMoveNames = pickOpponentDefenseMoves(usageOptions, isAttackMove);
     registerOfflineCache();
     await initEngine();
     if (currentRequestId !== requestId) return;
@@ -324,8 +350,11 @@ async function run(): Promise<void> {
     for (const spec of speedSpecs) opponentSpeeds.push((await calcStats(spec)).stats.spe);
     const self = isSelectedSelf(selfBuild) ? selfSpec(selfBuild) : null;
     const selfSpeed = self ? (await calcStats(self)).stats.spe : null;
+    const selfBoostedSpeed = selfSpeed != null && selfBuild.item_name === "こだわりスカーフ"
+      ? Math.floor((selfSpeed * CHOICE_SCARF_SPEED_MODIFIER) / FIXED_POINT_BASE)
+      : null;
     if (currentRequestId !== requestId) return;
-    renderSpeed(selfSpeed, opponentSpeeds);
+    renderSpeed(selfSpeed, selfBoostedSpeed, opponentSpeeds);
     const categories = new Map<string, MoveCategory>([...selfMoveNames, ...opponentMoveNames].map((name) => [name, categoryOf(name)]));
     const attackRows = self ? await calculateAttackRows(self, opponent, selfMoveNames, categories) : [];
     const defenseRows = self ? await calculateDefenseRows(self, opponent, opponentMoveNames, categories) : opponentMoveNames.map((moveName) => ({ moveName, cells: PATTERN_LABELS.map(() => ({ range: "-", lethal: "" })) }));

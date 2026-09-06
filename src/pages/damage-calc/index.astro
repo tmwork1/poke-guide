@@ -51,12 +51,13 @@ try {
     import { initSecondaryBar } from "../../lib/damage-calc-page/secondary-bar";
     import { initControlPanel } from "../../lib/damage-calc-page/control-panel";
     import { initItemSelectDialog } from "../../lib/damage-calc-page/item-select-dialog";
-    import { initBoxSelectDialog } from "../../lib/damage-calc-page/box-select-dialog";
+    import { initBoxSelectDialog, openBoxSelectDialog } from "../../lib/damage-calc-page/box-select-dialog";
     import { initMatchupCardList } from "../../lib/damage-calc-page/matchup-card";
     initSecondaryBar();
     initControlPanel();
     initItemSelectDialog();
     initBoxSelectDialog();
     initMatchupCardList();
+    document.getElementById("damage-calc-self-artwork")?.addEventListener("click", () => openBoxSelectDialog());
   </script>
 </AppLayout>

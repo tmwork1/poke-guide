@@ -25,6 +25,13 @@ function toSelfBuild(pokemon: OwnedPokemonRecord) {
   };
 }
 
+let openDialogFn: (() => Promise<void>) | null = null;
+
+/** 対面カードの自分側立ち絵タップなど、トリガーボタン以外からモーダルを開くための入口。 */
+export function openBoxSelectDialog(): void {
+  void openDialogFn?.();
+}
+
 export function initBoxSelectDialog(): void {
   const trigger = byId<HTMLButtonElement>("damage-calc-pokemon-button");
   const backdrop = byId<HTMLElement>("damage-calc-box-select-backdrop");
@@ -107,4 +114,5 @@ export function initBoxSelectDialog(): void {
   trigger.addEventListener("click", () => void openDialog());
   closeButton.addEventListener("click", closeDialog);
   bindModalDismissal({ backdrop, dialog, isOpen: () => !dialog.hidden, onDismiss: closeDialog });
+  openDialogFn = openDialog;
 }

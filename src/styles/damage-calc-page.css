@@ -36,9 +36,13 @@
 .damage-calc-matchup-card__pokemon--self, .damage-calc-matchup-card__pokemon--opponent { top: 0; width: 50%; height: 100%; }
 .damage-calc-matchup-card__pokemon--self { left: 0; }
 .damage-calc-matchup-card__pokemon--opponent { right: 0; }
-.damage-calc-matchup-card__artwork { position: absolute; top: 50%; display: block; width: var(--damage-calc-card-artwork-size); height: var(--damage-calc-card-artwork-size); object-fit: contain; transform: translateY(-50%); }
+.damage-calc-matchup-card__artwork { position: absolute; top: 50%; display: block; width: var(--damage-calc-card-artwork-size); height: var(--damage-calc-card-artwork-size); padding: 0; border: 0; background: transparent; object-fit: contain; transform: translateY(-50%); font: inherit; }
 .damage-calc-matchup-card__artwork img { display: block; width: 100%; height: 100%; object-fit: contain; }
-.damage-calc-matchup-card__artwork--placeholder { display: grid; place-items: center; color: var(--color-text-muted); font-size: var(--font-size-lg1); font-weight: var(--font-weight-bold); }
+/* 自分側は立ち絵タップでボックス選択モーダルを開けるbutton要素。 */
+#damage-calc-self-artwork { cursor: pointer; appearance: none; -webkit-appearance: none; }
+#damage-calc-self-artwork:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+/* 未選択時は？を丸いアイコンとして表示する。 */
+.damage-calc-matchup-card__artwork--placeholder { display: grid; place-items: center; border: 1px solid var(--color-border); border-radius: 50%; background: var(--color-bg); color: var(--color-text-muted); font-size: var(--font-size-lg1); font-weight: var(--font-weight-bold); }
 .damage-calc-matchup-card__pokemon--self .damage-calc-matchup-card__artwork { left: var(--damage-calc-card-artwork-inset); }
 .damage-calc-matchup-card__pokemon--opponent .damage-calc-matchup-card__artwork { right: var(--damage-calc-card-artwork-inset); }
 .damage-calc-matchup-card__pokemon-meta { position: absolute; z-index: 2; display: flex; align-items: center; max-width: calc(100% - var(--damage-calc-card-artwork-size) - var(--damage-calc-card-artwork-inset) - 2px); white-space: nowrap; }
@@ -48,6 +52,9 @@
 .damage-calc-matchup-card__pokemon--opponent h2 { align-items: flex-end; text-align: right; }
 .damage-calc-matchup-card__pokemon-name-main, .damage-calc-matchup-card__pokemon-name-suffix { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
 .damage-calc-matchup-card__pokemon-name-suffix { color: var(--color-text-muted); font-size: 0.75em; }
+/* 括弧書きの注釈(2行目)だけは、名前本体と逆向き(カード中央のVS側)に寄せる。 */
+.damage-calc-matchup-card__pokemon--self .damage-calc-matchup-card__pokemon-name-suffix { text-align: right; }
+.damage-calc-matchup-card__pokemon--opponent .damage-calc-matchup-card__pokemon-name-suffix { align-self: stretch; text-align: left; }
 .damage-calc-matchup-card__item-button { position: absolute; z-index: 2; width: 1.75rem; height: 1.75rem; padding: 0; border: 0; background: transparent; cursor: pointer; }
 .damage-calc-matchup-card__item-icon { display: block; width: 100%; height: 100%; object-fit: contain; }
 .damage-calc-matchup-card__item-icon[hidden] { display: none; }
