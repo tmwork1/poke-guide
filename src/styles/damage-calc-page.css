@@ -14,7 +14,9 @@
 .damage-calc-secondary-actions::-webkit-scrollbar { display: none; }
 .damage-calc-secondary-button { display: inline-flex; align-items: center; min-height: 2.35rem; padding: 0.42em 0.9em; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-surface); color: var(--color-text); font-size: var(--font-size-sm1); font-weight: var(--font-weight-normal); line-height: var(--line-height-snug); }
 .damage-calc-secondary-button:hover:not(:disabled) { border-color: var(--color-primary); background: var(--color-surface); color: var(--color-text); }
-.damage-calc-opponent-select { min-width: 0; max-width: 11rem; min-height: 2.35rem; padding: .42em 2em .42em .7em; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background-color: var(--color-surface); color: var(--color-text); font: inherit; font-size: var(--font-size-sm1); }
+.damage-calc-opponent-select-wrap { position: relative; flex: 0 1 11rem; min-width: 0; }
+.damage-calc-opponent-select { width: 100%; min-width: 0; min-height: 2.35rem; padding: .42em 2em .42em 2.25em; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background-color: var(--color-surface); color: var(--color-text); font: inherit; font-size: var(--font-size-sm1); }
+.damage-calc-opponent-select-icon { position: absolute; z-index: 1; top: 50%; left: .7rem; width: 1em; height: 1em; transform: translateY(-50%); pointer-events: none; fill: none; stroke: var(--color-text-muted); stroke-width: 2; stroke-linecap: round; }
 .damage-calc-matchups { min-height: 28rem; padding: var(--space-5) var(--space-3); background-color: var(--color-bg); background-image: none; }
 .damage-calc-matchups > .panel-content { min-width: 0; }
 .damage-calc-summary-layout { position: relative; }
@@ -24,16 +26,16 @@
 .damage-calc-matchup-card { overflow: hidden; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface); box-shadow: var(--shadow-sm); }
 .damage-calc-matchup-card__header { position: relative; min-height: 5rem; overflow: hidden; background: var(--color-surface-sunken); border-bottom: 1px solid var(--color-border); }
 .damage-calc-matchup-card__pokemon { position: absolute; z-index: 1; }
-.damage-calc-matchup-card__pokemon--self, .damage-calc-matchup-card__pokemon--opponent { top: 50%; transform: translateY(-50%); }
 .damage-calc-matchup-card__pokemon--self { left: 0; }
 .damage-calc-matchup-card__pokemon--opponent { right: 0; }
 .damage-calc-matchup-card__artwork { display: block; width: 4rem; height: 4rem; object-fit: contain; }
 .damage-calc-matchup-card__pokemon-meta { position: absolute; z-index: 2; display: flex; align-items: center; gap: var(--space-1); white-space: nowrap; }
-.damage-calc-matchup-card__pokemon--self .damage-calc-matchup-card__pokemon-meta, .damage-calc-matchup-card__pokemon--opponent .damage-calc-matchup-card__pokemon-meta { top: 50%; transform: translateY(-50%); }
-.damage-calc-matchup-card__pokemon--self .damage-calc-matchup-card__pokemon-meta { left: calc(100% + var(--space-1)); }
-.damage-calc-matchup-card__pokemon--opponent .damage-calc-matchup-card__pokemon-meta { right: calc(100% + var(--space-1)); flex-direction: row-reverse; }
-.damage-calc-matchup-card__pokemon h2 { margin: 0; font-size: var(--font-size-lg1); line-height: var(--line-height-tight); }
-.damage-calc-matchup-card__item-icon { width: 1.25rem; height: 1.25rem; object-fit: contain; }
+.damage-calc-matchup-card__pokemon--self { top: 50%; transform: translateY(-50%); }
+.damage-calc-matchup-card__pokemon--opponent { top: 50%; transform: translateY(-50%); }
+.damage-calc-matchup-card__pokemon--self .damage-calc-matchup-card__pokemon-meta { bottom: .7rem; left: calc(100% + var(--space-1)); }
+.damage-calc-matchup-card__pokemon--opponent .damage-calc-matchup-card__pokemon-meta { top: .7rem; right: calc(100% + var(--space-1)); flex-direction: row-reverse; }
+.damage-calc-matchup-card__pokemon h2 { margin: 0; font-size: var(--font-size-sm1); line-height: var(--line-height-tight); }
+.damage-calc-matchup-card__item-icon { width: 1rem; height: 1rem; object-fit: contain; }
 .damage-calc-matchup-card__versus { position: absolute; z-index: 3; top: 50%; left: 50%; transform: translate(-50%, -50%); color: var(--color-text-muted); font-size: var(--font-size-sm2); font-weight: var(--font-weight-bold); letter-spacing: .08em; }
 .damage-calc-matchup-card__section { display: grid; padding: var(--space-2) 0; }
 .damage-calc-matchup-card__section + .damage-calc-matchup-card__section { border-top: 1px solid var(--color-border); }

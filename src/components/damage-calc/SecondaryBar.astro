@@ -4,8 +4,11 @@ import SecondHeader from "../SecondHeader.astro";
 
 <SecondHeader ariaLabel="対面の選択" class="damage-calc-secondary-bar">
     <div class="toolbar-item damage-calc-secondary-actions">
-      <button id="damage-calc-pokemon-button" type="button" class="damage-calc-secondary-button">ポケモン選択</button>
+      <button id="damage-calc-pokemon-button" type="button" class="damage-calc-secondary-button">ボックス選択</button>
       <button id="damage-calc-team-button" type="button" class="damage-calc-secondary-button">チーム選択</button>
-      <select id="damage-calc-opponent-select" class="damage-calc-opponent-select" aria-label="相手ポケモンを選択"></select>
+      <div class="damage-calc-opponent-select-wrap">
+        <svg class="damage-calc-opponent-select-icon" aria-hidden="true" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="5.5"></circle><path d="m15 15 5 5"></path></svg>
+        <select id="damage-calc-opponent-select" class="damage-calc-opponent-select" aria-label="相手ポケモンを選択"></select>
+      </div>
     </div>
 </SecondHeader>
