@@ -42,9 +42,9 @@
 .damage-calc-matchup-card__table tbody tr { border-top: 1px solid var(--color-border); }
 .damage-calc-matchup-card__table thead th { color: var(--color-text-muted); font-size: var(--font-size-sm3); font-weight: var(--font-weight-medium); }
 .damage-calc-matchup-card__table th:first-child { text-align: left; }
-.damage-calc-matchup-card__table-label { display: inline-block; padding-left: .35rem; font-weight: var(--font-weight-bold); }
-.damage-calc-matchup-card__table-label--attack { color: var(--color-danger-strong); }
-.damage-calc-matchup-card__table-label--defense { color: var(--color-primary-strong); }
+.damage-calc-matchup-card__table-label { display: inline-block; padding: .16rem .45rem; transform: translateX(.35rem); font-weight: var(--font-weight-bold); }
+.damage-calc-matchup-card__table-label--attack { color: var(--color-danger-strong); background: var(--color-danger-soft); }
+.damage-calc-matchup-card__table-label--defense { color: var(--color-primary-strong); background: var(--color-primary-soft); }
 .damage-calc-matchup-card__table tbody th { font-size: var(--font-size-sm3); font-weight: var(--font-weight-medium); }
 .damage-calc-matchup-card__table strong, .damage-calc-matchup-card__table small { display: block; font-size: inherit; line-height: var(--line-height-tight); }
 .damage-calc-matchup-card__table td strong, .damage-calc-matchup-card__defense-list strong { font-size: var(--font-size-sm1); font-weight: var(--font-weight-normal); }
