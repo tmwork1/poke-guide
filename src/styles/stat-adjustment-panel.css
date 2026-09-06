@@ -144,22 +144,6 @@
 	flex: 1 1 var(--stat-range-min-width);
 	min-width: var(--stat-range-min-width);
 }
-.stat-ev-endpoint-button {
-	flex: 0 0 var(--stat-endpoint-button-size);
-	width: var(--stat-endpoint-button-size);
-	height: var(--stat-endpoint-button-size);
-	min-height: var(--stat-endpoint-button-size);
-	padding: 0;
-	border-color: transparent;
-	color: var(--stat-muted-color);
-}
-/* 努力値を最小・最大へ移す端点ボタンの二重山形アイコン */
-.stat-ev-endpoint-button svg {
-	width: var(--stat-icon-size);
-	height: var(--stat-icon-size);
-	transition: transform 0.2s; /* 端点ボタン矢印の回転時間。長くすると動きがゆっくりになる */
-}
-.stat-ev-endpoint-button[data-ev-endpoint="min"] svg { transform: rotate(180deg); }
 /* 努力値を1段階ずつ増減するボタン */
 .stat-ev-step-button {
 	display: none;
@@ -190,8 +174,6 @@
 }
 .stat-row .stat-ev-range-controls { gap: var(--stat-control-gap); }
 .stat-row .stat-ev-stepper { order: 2; }
-.stat-row .stat-ev-endpoint-button[data-ev-toggle] { order: 3; }
-.stat-row .stat-ev-endpoint-button,
 .stat-row .stat-ev-step-button {
 	box-sizing: border-box;
 	flex: 0 0 var(--stat-ev-mobile-button-block-size);
@@ -208,7 +190,6 @@
 	font-size: var(--font-size-sm1); /* モバイルの努力値操作ボタン。大きくすると記号が目立つ */
 	font-weight: var(--stat-value-font-weight);
 }
-.stat-ev-toggle-spacer { display: none; }
 /* 努力値を直接入力する数値欄と横長スライダー */
 .stat-row .stat-ev-stepper > .number-stepper-value {
 	font-size: var(--font-size-sm1); /* 努力値の数値入力。大きくすると数字が読みやすくなる */
@@ -298,23 +279,6 @@
 	background: var(--color-primary-soft); /* 下降性格ボタンの選択時背景。濃くすると選択が目立つ */
 	border-color: var(--stat-down-color);
 }
-.stat-nature-placeholder {
-	cursor: default;
-	background: transparent;
-	border-color: transparent;
-	box-shadow: none;
-}
-/* 残り努力値はHP行の外に独立させ、能力値テーブルの行高へ影響させない。 */
-.stat-ev-remaining-row {
-	min-height: 36px;
-	display: flex;
-	align-items: center;
-	justify-content: flex-end;
-	/* 努力値の数値欄は操作列の右から2番目。終端ボタン1個ぶんを避けて、
-	   「残り」をその数値欄の真上へ揃える。 */
-	padding-inline-end: calc(var(--stat-ev-mobile-button-block-size) + var(--stat-control-gap));
-}
-.stat-ev-remaining-row .ev-remaining { white-space: nowrap; }
 .stat-row-real-wrap {
 	display: contents;
 	align-items: center;
@@ -397,7 +361,6 @@
 		min-width: 0;
 		grid-column: 4;
 	}
-	.stat-row .stat-ev-endpoint-button,
 	.stat-row .stat-ev-step-button { min-width: var(--stat-ev-mobile-button-block-size); }
 	/* 狭い画面の努力値数値入力を増減ボタンと同じ行に収める */
 	.stat-row .stat-ev-stepper > .number-stepper-value {

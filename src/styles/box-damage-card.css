@@ -1725,13 +1725,6 @@ body.box-edit-page {
   display: none;
 }
 
-/* テラスタルに関する補足文。必要な状態だけ表示する */
-#damage-detail-panel-body .damage-detail-tera-note {
-  font-size: var(--font-size-sm3);
-  color: var(--color-text-muted);
-  display: none;
-}
-
 #damage-detail-panel-body .damage-detail-rank-field {
   margin-bottom: var(--space-2);
   flex: none;

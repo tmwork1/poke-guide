@@ -542,9 +542,6 @@ body.box-edit-page {
 	#damage-detail-panel-body .candidate-list-item-flag {
 		font-weight: var(--damage-detail-font-weight-bold);
 	}
-	#damage-detail-panel-body .candidate-list-item-flag.is-warn {
-		color: var(--damage-detail-risky-strong-color);
-	}
 	/* 両モードとも「<ラベル>実数値(努力値)」形式(例: H180(27) B131(0) D105(0))をH/B/Dで
 		1行に収めた統一カードにする。外枠は既存の.candidate-list-item(ボーダー・背景・
 		is-applied等)をそのまま流用し(新色は作らない)、中身だけをこのカード専用の構造
@@ -1190,9 +1187,6 @@ body.box-edit-page {
 	}
 	#damage-detail-panel-body .damage-build-detail-stats {
 		min-width: 0;
-	}
-	#damage-detail-panel-body .damage-build-detail-stats-heading {
-		margin: 0 0 var(--damage-detail-space-sm);
 	}
 	#damage-detail-panel-body .damage-build-detail-name-combo { position: relative; width: 100%; }
 	#damage-detail-panel-body .damage-build-detail-name-combo > input { width: 100%; }

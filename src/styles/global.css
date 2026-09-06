@@ -268,25 +268,6 @@ a {
   letter-spacing: -0.01em;
 }
 
-.page-header {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--space-3);
-  margin-bottom: var(--space-5);
-}
-
-.page-header .page-title {
-  margin: 0;
-}
-
-@media (max-width: 640px) {
-  .page-header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-}
 
 /* ===========================================================================
    モーダルヘッダー規格
@@ -348,8 +329,7 @@ a {
   flex: 1;
 }
 
-.search-input-wrap .search-icon,
-.sort-select-wrap .sort-icon {
+.search-input-wrap .search-icon {
   position: absolute;
   left: 0.7em;
   font-size: 15px;
@@ -473,22 +453,12 @@ label {
   margin: var(--space-2) 0;
 }
 
-.field.field-stack {
-  flex-direction: column;
-  align-items: stretch;
-  gap: var(--space-1);
-}
-
 .field-label {
   flex-shrink: 0;
   min-width: var(--field-label-width, auto);
   font-size: var(--font-size-sm2);
   font-weight: var(--font-weight-semibold);
   color: var(--color-text-muted);
-}
-
-.field-stack > .field-label {
-  color: var(--color-text);
 }
 
 .field-control {

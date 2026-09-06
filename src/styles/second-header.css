@@ -66,10 +66,6 @@
 	gap: var(--space-1);
 }
 
-/* ボックスの並べ替えは、昇降の切り替えを選択ボックスの左端に収める。 */
-.second-header-sort .sort-icon {
-	display: none;
-}
 
 .second-header-sort #sort-select {
 	width: 7.25em; /* 「図鑑番号順」まで収める並べ替えセレクトの幅。 */

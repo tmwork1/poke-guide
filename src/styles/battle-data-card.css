@@ -217,8 +217,6 @@
 .trend-rank-row--nature3 { grid-template-columns: 5.75em auto minmax(0, 1fr); } /* 性格名の固定幅。名前の長さによらず補正情報の開始位置を揃える */
 .trend-rank-row--type3 { grid-template-columns: var(--battle-data-card-move-type-bar-width) minmax(0, 1fr) auto; }
 .trend-rank-row--text2 { grid-template-columns: minmax(0, 1fr) auto; }
-.trend-rank-row--icon2 { grid-template-columns: var(--battle-data-card-pokemon-icon-size) minmax(0, 1fr); }
-.trend-rank-row--name1 { grid-template-columns: minmax(0, 1fr); }
 .trend-rank-row--rank-icon3 { grid-template-columns: 1.4em var(--battle-data-card-pokemon-icon-size) minmax(0, 1fr); }
 .trend-rank-row--rank-name2 { grid-template-columns: 1.4em minmax(0, 1fr); }
 
@@ -231,11 +229,6 @@
   width: var(--battle-data-card-item-icon-size);
   height: var(--battle-data-card-item-icon-size);
   object-fit: contain;
-}
-
-.trend-rank-icon .trend-rank-icon--type {
-  width: var(--battle-data-card-type-icon-size);
-  height: var(--battle-data-card-type-icon-size);
 }
 
 .trend-rank-icon .trend-rank-icon--pokemon {

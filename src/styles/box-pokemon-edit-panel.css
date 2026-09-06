@@ -87,11 +87,6 @@
 	   5rem(80px)から3.5rem(56px)へ下げ、固定グリッドの3列目から溢れないようにする。 */
 	#stat-adjustment-section .stat-ev-range-controls { display: flex; align-items: center; gap: var(--stat-control-gap); min-width: 0; }
 	#stat-adjustment-section .stat-ev-range-controls input[type="range"] { flex: 1 1 var(--stat-range-min-width); min-width: var(--stat-range-min-width); }
-	#stat-adjustment-section .stat-ev-endpoint-button { flex: 0 0 var(--stat-endpoint-button-size); width: var(--stat-endpoint-button-size); height: var(--stat-endpoint-button-size); min-height: var(--stat-endpoint-button-size); padding: 0; border-color: transparent; }
-	/* 端点操作は性格補正色と競合させず、淡色トークンの二重山形で示す。 */
-	#stat-adjustment-section .stat-ev-endpoint-button { color: var(--color-text-muted); }
-	#stat-adjustment-section .stat-ev-endpoint-button svg { width: 1.25em; height: 1.25em; transition: transform 0.2s; }
-	#stat-adjustment-section .stat-ev-endpoint-button[data-ev-endpoint="min"] svg { transform: rotate(180deg); }
 	#stat-adjustment-section .stat-ev-step-button {
 		display: none;
 		flex: 0 0 var(--stat-step-button-size);
@@ -136,10 +131,7 @@
 		white-space: nowrap;
 	}
 	.stat-row .stat-ev-step-button[data-ev-step="1"] { order: 4; }
-	#stat-adjustment-section .stat-row .stat-ev-endpoint-button[data-ev-toggle] { order: 5; }
-	/* わざ選択と同じsurfaceを下地にし、端点・増減操作を控えめに浮かせる。
-	   端点ボタン(»アイコンのみ)と増減ボタン(-/+)は同じ役割の並びなので等幅の正方形にする。 */
-	#stat-adjustment-section .stat-row .stat-ev-endpoint-button,
+	/* わざ選択と同じsurfaceを下地にし、増減操作を控えめに浮かせる。 */
 	#stat-adjustment-section .stat-row .stat-ev-step-button {
 		box-sizing: border-box;
 		flex: 0 0 var(--stat-ev-mobile-button-block-size);
@@ -156,7 +148,6 @@
 		font-size: var(--font-size-sm1);
 		font-weight: var(--font-weight-normal);
 	}
-	#stat-adjustment-section .stat-ev-toggle-spacer { display: none; }
 	/* 努力値の数値入力も育成パネル用の詰めた寸法に揃える(6行あるので効き方が大きい)。 */
 	.stat-row input[type="number"] { font-size: var(--font-size-sm1); padding: 0.3em 0.5em; width: 100%; text-align: center; }
 	#stat-adjustment-section .stat-row input[type="range"] { width: 100%; }
@@ -254,9 +245,8 @@
 		/* 460px以下では努力値のボタン行(0/-/+/32)+数値入力を1つのflex行にまとめる
 		   (デスクトップの5列グリッドは幅が無いと成立しないため)。 */
 		#stat-adjustment-section .stat-row .stat-input-controls { display: flex; align-items: center; justify-content: flex-end; gap: calc(var(--stat-control-gap) + 1px); min-width: 0; grid-column: var(--stat-mobile-input-grid-column); }
-		/* 390px級の実機幅では 0/−/数値/+/32 の5要素が1行に収まりきらないため、
-		   ボタンの最小幅だけ 30px → 26px(WCAG 2.5.8の24px下限は満たす)へ詰める。 */
-		#stat-adjustment-section .stat-row .stat-ev-endpoint-button,
+		/* 390px級の実機幅では −/数値/+ が1行に収まりきらないため、ボタンの最小幅だけ
+		   30px → 26px(WCAG 2.5.8の24px下限は満たす)へ詰める。 */
 		#stat-adjustment-section .stat-row .stat-ev-step-button { min-width: var(--stat-ev-mobile-button-block-size); }
 		.stat-row .stat-input-controls input[type="number"] { flex: 0 0 var(--stat-number-input-width); width: var(--stat-number-input-width); }
 	#stat-adjustment-section .stat-row-real-wrap { display: flex; grid-column: var(--stat-mobile-real-grid-column); justify-content: flex-end; min-width: 0; }
@@ -682,7 +672,6 @@
 	}
 	#stat-adjustment-section .stat-row .stat-ev-stepper { order: 0; }
 	#stat-adjustment-section .stat-row .stat-input-controls { justify-content: center; }
-	#stat-adjustment-section .stat-row .stat-ev-endpoint-button[data-ev-toggle] { order: 1; }
 	#stat-adjustment-section .stat-row .stat-ev-stepper > .stat-ev-step-button {
 		order: 0;
 		border: 0;

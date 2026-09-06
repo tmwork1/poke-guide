@@ -195,19 +195,6 @@
   font-size: calc(var(--team-card-badge-font-size) + 0.125rem);
   white-space: nowrap;
 }
-/* .badge(global.css)を土台に、帯の上で主張しすぎない控えめな見え方へ寄せる。
-   レギュレーション/順位/レートで同じ見た目を使う。 */
-.team-grid .card-team .card-team-regulation-badge,
-.team-grid .card-team .card-team-rank-badge,
-.team-grid .card-team .card-team-rating-badge {
-  flex-shrink: 0;
-  padding: 0.3rem 0.55rem;
-  border-radius: var(--radius-sm);
-  background: var(--color-bg);
-  color: var(--color-text-muted);
-  font-size: var(--team-card-badge-font-size);
-  white-space: nowrap;
-}
 
 /* --- 右上の構築記事リンク(32px角)。 --- */
 .team-grid .card-team .card-team-article-link {
