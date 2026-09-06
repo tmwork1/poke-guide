@@ -21,22 +21,23 @@
    下でposition:fixedの独立オーバーレイになるため)。 */
 .damage-calc-summary-list { display: grid; gap: var(--space-3); padding-right: calc(2.5rem + var(--space-3)); }
 .damage-calc-matchup-card { overflow: hidden; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface); box-shadow: var(--shadow-sm); }
-.damage-calc-matchup-card__header { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: var(--space-2); padding: var(--space-3); background: var(--color-surface-sunken); border-bottom: 1px solid var(--color-border); }
-.damage-calc-matchup-card__pokemon { display: flex; align-items: center; gap: var(--space-2); min-width: 0; }
-.damage-calc-matchup-card__pokemon--opponent { justify-content: flex-end; text-align: right; }
-.damage-calc-matchup-card__artwork { flex: none; width: 3.8rem; height: 3.8rem; object-fit: contain; }
-.damage-calc-matchup-card__side, .damage-calc-matchup-card__item { margin: 0; color: var(--color-text-muted); font-size: var(--font-size-sm3); line-height: var(--line-height-snug); }
-.damage-calc-matchup-card__pokemon h2 { margin: 0; font-size: var(--font-size-lg1); line-height: var(--line-height-tight); white-space: nowrap; }
-.damage-calc-matchup-card__versus { color: var(--color-text-muted); font-size: var(--font-size-sm2); font-weight: var(--font-weight-bold); letter-spacing: .08em; }
-.damage-calc-matchup-card__section { display: grid; gap: var(--space-2); padding: var(--space-3) 0; }
+.damage-calc-matchup-card__header { position: relative; min-height: 9rem; overflow: hidden; background: var(--color-surface-sunken); border-bottom: 1px solid var(--color-border); }
+.damage-calc-matchup-card__pokemon { position: absolute; z-index: 1; }
+.damage-calc-matchup-card__pokemon--self { bottom: -.3rem; left: .5rem; }
+.damage-calc-matchup-card__pokemon--opponent { top: -.3rem; right: .5rem; }
+.damage-calc-matchup-card__artwork { display: block; width: 7.25rem; height: 7.25rem; object-fit: contain; }
+.damage-calc-matchup-card__pokemon-meta { position: absolute; z-index: 2; display: flex; align-items: center; gap: var(--space-1); white-space: nowrap; }
+.damage-calc-matchup-card__pokemon--self .damage-calc-matchup-card__pokemon-meta { bottom: .55rem; left: .1rem; }
+.damage-calc-matchup-card__pokemon--opponent .damage-calc-matchup-card__pokemon-meta { top: .55rem; right: .1rem; flex-direction: row-reverse; }
+.damage-calc-matchup-card__pokemon h2 { margin: 0; font-size: var(--font-size-lg1); line-height: var(--line-height-tight); }
+.damage-calc-matchup-card__item-icon { width: 1.25rem; height: 1.25rem; object-fit: contain; }
+.damage-calc-matchup-card__versus { position: absolute; z-index: 3; top: 50%; left: 50%; transform: translate(-50%, -50%); color: var(--color-text-muted); font-size: var(--font-size-sm2); font-weight: var(--font-weight-bold); letter-spacing: .08em; }
+.damage-calc-matchup-card__section { display: grid; padding: var(--space-2) 0; }
 .damage-calc-matchup-card__section + .damage-calc-matchup-card__section { border-top: 1px solid var(--color-border); }
-.damage-calc-matchup-card__section-title { align-self: start; justify-self: start; min-width: 4.5rem; margin: 0 var(--space-3); padding: .32em .45em; border-radius: 999px; font-size: var(--font-size-sm2); line-height: var(--line-height-snug); text-align: center; }
-.damage-calc-matchup-card__section-title--attack { color: var(--color-danger-strong); background: transparent; }
-.damage-calc-matchup-card__section-title--defense { color: var(--color-primary-strong); background: transparent; }
 .damage-calc-matchup-card__table-wrap { overflow-x: auto; }
 .damage-calc-matchup-card__table { width: 100%; min-width: 31rem; border-collapse: collapse; font-size: var(--font-size-sm2); }
 .damage-calc-matchup-card__move-column { width: 7rem; }
-.damage-calc-matchup-card__table th, .damage-calc-matchup-card__table td { padding: .32rem .4rem; border: 0; text-align: center; vertical-align: middle; white-space: nowrap; }
+.damage-calc-matchup-card__table th, .damage-calc-matchup-card__table td { padding: .48rem .4rem; border: 0; text-align: center; vertical-align: middle; white-space: nowrap; }
 .damage-calc-matchup-card__table th { background: transparent; }
 .damage-calc-matchup-card__table tbody tr { border-top: 1px solid var(--color-border); }
 .damage-calc-matchup-card__table thead th { color: var(--color-text-muted); font-size: var(--font-size-sm3); font-weight: var(--font-weight-medium); }
@@ -45,9 +46,9 @@
 .damage-calc-matchup-card__table strong, .damage-calc-matchup-card__table small { display: block; font-size: inherit; line-height: var(--line-height-tight); }
 .damage-calc-matchup-card__table td strong, .damage-calc-matchup-card__defense-list strong { font-size: var(--font-size-sm1); font-weight: var(--font-weight-normal); }
 .damage-calc-matchup-card__table small, .damage-calc-matchup-card__defense-list small { color: var(--color-text-muted); font-size: var(--font-size-sm3); }
-.damage-calc-matchup-card__defense-list { display: grid; gap: var(--space-1); margin: 0; padding: 0; list-style: none; font-size: var(--font-size-sm2); }
-.damage-calc-matchup-card__defense-list li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: var(--space-2); align-items: baseline; padding-bottom: var(--space-1); border-bottom: 1px solid var(--color-border); }
-.damage-calc-matchup-card__defense-list li:last-child { padding-bottom: 0; border-bottom: 0; }
+.damage-calc-matchup-card__defense-list { display: grid; margin: 0; padding: 0; list-style: none; font-size: var(--font-size-sm2); }
+.damage-calc-matchup-card__defense-list li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: var(--space-2); align-items: baseline; padding: .48rem .4rem; border-top: 1px solid var(--color-border); }
+.damage-calc-matchup-card__defense-list .damage-calc-matchup-card__defense-header { padding-top: 0; border-top: 0; color: var(--color-primary-strong); font-size: var(--font-size-sm3); font-weight: var(--font-weight-medium); }
 .damage-calc-matchup-card__defense-list strong { white-space: nowrap; }
 /* 相手選択レールは、セカンドヘッダー〜コントロールパネルの間にtop/bottomを直接
    固定するposition:fixedの独立オーバーレイにする(box-content/.damage-calc-shellと
@@ -85,11 +86,13 @@
 .damage-calc-control-row-3 { grid-row: 3; }
 .damage-calc-control-reset { grid-column: 1 / -1; grid-row: 4; }
 .damage-calc-control-cell { display: flex; align-items: center; justify-content: space-between; gap: var(--space-1); min-width: 0; }
+.damage-calc-control-cell[data-side="self"] .damage-calc-control-label { order: 2; }
+.damage-calc-control-cell[data-side="opponent"] .damage-calc-control-label { order: -1; }
 .damage-calc-control-cell--field { flex-direction: column; align-items: stretch; gap: var(--space-1); }
 .damage-calc-ailment-field { flex: 1; min-width: 0; }
 .damage-calc-ailment-field select { width: 100%; font-size: var(--font-size-sm2); min-height: var(--tap-target-min); }
 .damage-calc-ailment-field select.is-placeholder { color: var(--color-text-muted); }
-.damage-calc-reset-button { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2); width: 100%; min-height: var(--tap-target-min); border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-surface); color: var(--color-text-muted); font: inherit; font-size: var(--font-size-sm2); }
+.damage-calc-reset-button { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2); width: 100%; min-height: 2.25rem; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-surface); color: var(--color-text-muted); box-shadow: var(--shadow-sm); font: inherit; font-size: var(--font-size-sm2); }
 .damage-calc-reset-button:hover { border-color: var(--color-primary); color: var(--color-primary-strong); }
 .damage-calc-reset-button svg { width: 1.1em; height: 1.1em; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .damage-calc-ranks { display: grid; gap: var(--space-1); min-width: 0; }
@@ -113,9 +116,7 @@
   .damage-calc-matchup-card__table-wrap { overflow: visible; }
   .damage-calc-matchup-card__table { min-width: 0; table-layout: fixed; font-size: var(--font-size-sm3); }
   .damage-calc-matchup-card__move-column { width: 7rem; }
-  .damage-calc-matchup-card__table th, .damage-calc-matchup-card__table td { padding: .28rem .16rem; }
-  .damage-calc-matchup-card__table th:not(:first-child), .damage-calc-matchup-card__table td { padding-inline: .3rem; }
-  .damage-calc-matchup-card__table th:first-child { padding-left: 8px; }
+  .damage-calc-matchup-card__table th, .damage-calc-matchup-card__table td { padding: .42rem .375rem; }
   .damage-calc-matchup-card__table tbody th { font-size: var(--font-size-sm3); }
   .damage-calc-matchup-card__table th:first-child { white-space: nowrap; }
   .damage-calc-matchup-card__table td { font-variant-numeric: tabular-nums; }
