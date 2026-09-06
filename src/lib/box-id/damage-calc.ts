@@ -336,20 +336,6 @@ function loadOpponentBuildPreset(speciesName: string, direction: "attack" | "def
 	}
 }
 
-// 「相手ビルド5項目がすべて未設定」の判定(A-4の適用条件)。DBから読み込んだ既存カードは
-// 通常これらのどれかが埋まっているため、この判定を通らずプリセット適用の対象外になる
-// (=既存の値を勝手に上書きしない)。
-function isOpponentBuildUnset(row: DamageRowState): boolean {
-	return (
-		row.natureUp === null &&
-		row.natureDown === null &&
-		row.abilityName.trim() === "" &&
-		row.itemName.trim() === "" &&
-		row.teraType.trim() === "" &&
-		row.evs.every((v) => v === 0)
-	);
-}
-
 // box/[id].astro(SSR)がDamageCalcSection.astro経由で埋め込んだJSON
 // (<script type="application/json" id="damage-calc-move-adoption-data">)を読むヘルパー。
 // src/lib/speed-chart/chart-table.tsのreadEmbeddedJson(小さな汎用ヘルパー)と同じロジックだが、
@@ -1766,15 +1752,9 @@ if (opponentNotesSection) {
 
 	// デバウンス付き即時自動保存(育成パネルのsaveNow()と同じ流儀)。
 	// 相手ポケモン名が空のうちはPOSTしない(サーバ検証でopponent_build.nameが必須のため)。
-	async function saveRow(row: DamageRowState): Promise<void> {
-		const name = row.name.trim();
-		if (name === "") {
-			setRowSaveStatus(row, "idle", "未保存(相手ポケモン名を入力すると保存されます)");
-			return;
-		}
-		// 相手ポケモン名が非空で保存が起きるたびに、相手ビルド(性格・特性・持ち物・テラス・
-		// 努力値)を種族名キーでlocalStorageへ上書き記録する(「最後に使ったビルド」が
-		// その種族の既定値になる)。
+	function saveCurrentOpponentBuildPreset(row: DamageRowState, speciesName = row.name): void {
+		const name = speciesName.trim();
+		if (name === "") return;
 		saveOpponentBuildPreset(name, row.direction, {
 			nature: row.nature,
 			natureUp: row.natureUp,
@@ -1784,6 +1764,18 @@ if (opponentNotesSection) {
 			teraType: row.teraType,
 			evs: [...row.evs],
 		});
+	}
+
+	async function saveRow(row: DamageRowState): Promise<void> {
+		const name = row.name.trim();
+		if (name === "") {
+			setRowSaveStatus(row, "idle", "未保存(相手ポケモン名を入力すると保存されます)");
+			return;
+		}
+		// 相手ポケモン名が非空で保存が起きるたびに、相手ビルド(性格・特性・持ち物・テラス・
+		// 努力値)を種族名キーでlocalStorageへ上書き記録する(「最後に使ったビルド」が
+		// その種族の既定値になる)。
+		saveCurrentOpponentBuildPreset(row, name);
 		if (row.saving) {
 			row.pendingSave = true;
 			return;
@@ -2589,6 +2581,9 @@ if (opponentNotesSection) {
 			scheduleRowCalc(row);
 			scheduleRowSave(row);
 		}
+		// input中はrow.nameを追随させるが、種族を確定した時点では直前の種族名を
+		// 保持しておく。これにより種族変更時にも、変更前のビルドを正しいキーへ退避できる。
+		let presetSpeciesName = row.name.trim();
 
 		nameInput.addEventListener("input", () => {
 			row.name = nameInput.value.trim();
@@ -2609,16 +2604,20 @@ if (opponentNotesSection) {
 		// 非空なら何もしない)の判定に、プリセットで設定した値がそのまま使われる
 		// (=プリセットの特性/持ち物が、既存の自動候補選定で上書きされない)。
 		nameInput.addEventListener("change", () => {
-			row.name = nameInput.value.trim();
+			const nextSpeciesName = nameInput.value.trim();
+			const speciesChanged = nextSpeciesName !== presetSpeciesName;
+			if (speciesChanged) saveCurrentOpponentBuildPreset(row, presetSpeciesName);
+			row.name = nextSpeciesName;
+			presetSpeciesName = nextSpeciesName;
 			refreshSprite();
-			onFieldInput();
 			void rebuildRowAbilityOptions(nameInput.value.trim()).then(() => {
 				// ユーザーの種族確定に伴うJS側の特性フォールバックも自動入力対象。
 				notifyDetailAbilityChanged(row, row.abilityName);
 			});
 			void applyRowMegaStoneAutofill(nameInput.value.trim());
 			void refreshRowItemPopularity(nameInput.value.trim());
-			applyOpponentBuildPreset(nameInput.value.trim());
+			if (speciesChanged) applyOpponentBuildPreset(nextSpeciesName);
+			else onFieldInput();
 		});
 
 
@@ -2661,6 +2660,9 @@ if (opponentNotesSection) {
 			detailDefenseOption.setAttribute("aria-label", `防御。${defenseDetail}`);
 		}
 		function setDirection(next: "attack" | "defense"): void {
+			// 切替先を読み込む前に、表示中の向きの値を同期保存する。自動保存の
+			// デバウンスを待つとrow.directionが既に変わり、逆側のキーを上書きしてしまう。
+			saveCurrentOpponentBuildPreset(row);
 			row.direction = next;
 			// 攻守を選ぶたびに、選択した攻撃側の先頭の攻撃技を初期値として反映する。
 			// 攻撃は自分の1つ目の攻撃技、防御は相手の採用率1位の攻撃技になる。
@@ -2671,12 +2673,9 @@ if (opponentNotesSection) {
 			// renderDetailPanel()を呼ぶため、サイドバー側の向き別ラベル
 			// (「攻撃(自分)」⇄「攻撃(相手)」、壁のラベル)もここで自動的に追随する。
 			renderColumns(row);
-			onFieldInput();
 			// 相手ビルド(性格・特性・持ち物・テラス・努力値)は攻撃/防御で別々に
-			// localStorageへ保存している(saveOpponentBuildPreset参照)。種族名を
-			// 変えずに攻守だけ切り替えた場合も、まだビルドを何も入力していない
-			// (isOpponentBuildUnset)行に限りその向き用のプリセットを反映する
-			// (既に入力済みの値は上書きしない)。
+			// localStorageへ保存している。切替先の値は、入力済みかどうかに関わらず
+			// 必ずその向き用のプリセットへ入れ替える。
 			applyOpponentBuildPreset(row.name);
 		}
 		// カード上のattackOption/defenseOptionは状態表示専用(クリックによる攻守反転は廃止)。
@@ -2930,20 +2929,29 @@ if (opponentNotesSection) {
 		detailForm.appendChild(detailStats);
 
 		// 相手ビルドのプリセット適用は、このパネルの同一インスタンスへ同期する。
+		// 種族または攻守を切り替えたときは、現在の入力値ではなく必ず対応する
+		// ローカル保存値を表示する。保存値がなければ空のビルドに戻し、別の種族・向きの
+		// 値が残ることを防ぐ。
 		function applyOpponentBuildPreset(speciesName: string): void {
 			const trimmed = speciesName.trim();
-			if (trimmed === "") return;
-			if (!isOpponentBuildUnset(row)) return;
-			const preset = loadOpponentBuildPreset(trimmed, row.direction);
-			if (!preset) return;
+			const preset = trimmed === "" ? null : loadOpponentBuildPreset(trimmed, row.direction);
+			const build = preset ?? {
+				nature: "まじめ",
+				natureUp: null,
+				natureDown: null,
+				abilityName: "",
+				itemName: "",
+				teraType: "",
+				evs: STAT_KEYS.map(() => 0),
+			};
 
-			row.nature = preset.nature;
-			row.natureUp = preset.natureUp;
-			row.natureDown = preset.natureDown;
-			row.abilityName = preset.abilityName;
-			row.itemName = preset.itemName;
-			row.teraType = preset.teraType;
-			row.evs.splice(0, row.evs.length, ...preset.evs);
+			row.nature = build.nature;
+			row.natureUp = build.natureUp;
+			row.natureDown = build.natureDown;
+			row.abilityName = build.abilityName;
+			row.itemName = build.itemName;
+			row.teraType = build.teraType;
+			row.evs.splice(0, row.evs.length, ...build.evs);
 			statPanelOptions.evs = row.evs;
 			statPanelOptions.nature = row.nature;
 			statPanelOptions.natureUp = row.natureUp;
