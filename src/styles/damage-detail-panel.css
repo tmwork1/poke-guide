@@ -873,11 +873,16 @@ body.box-edit-page {
 	}
 	#damage-detail-panel-body .damage-detail-move-controls {
 		display: grid;
-		/* わざ選択欄はモーダル幅いっぱいまで伸ばさず、半分弱の固定幅にとどめる
-		   (技名は長くても全角10文字程度で、伸ばしても読みやすさが上がらない)。 */
-		grid-template-columns: 45% auto;
+		/* わざ選択欄はモーダル幅いっぱいまで伸ばさず、半分弱の幅にとどめる
+		   (技名は長くても全角10文字程度で、伸ばしても読みやすさが上がらない)。
+		   45%固定だと狭い画面で「とびだすハバネロ」のような長い技名が見切れて
+		   いたため、下限(11rem)を設けて読める幅を確保する。
+		   2列目はautoのままにすると、コンテナの余り幅がこの列へ配分されてしまい
+		   (autoトラックはコンテナ幅に余裕があると伸びる仕様)急所が右端まで
+		   押し出されるため、max-contentにして中身の幅だけを取らせる。 */
+		grid-template-columns: minmax(11rem, 45%) max-content;
 		align-items: center;
-		gap: var(--damage-detail-space-sm);
+		gap: var(--damage-detail-space-md); /* わざ選択欄と急所の間隔。詰めすぎない程度に離す */
 	}
 	#damage-detail-panel-body .damage-detail-move-field {
 		width: 100%;
@@ -895,7 +900,7 @@ body.box-edit-page {
 	}
 	#damage-detail-panel-body .damage-detail-move-controls > .damage-detail-critical-field {
 		grid-column: 2;
-		justify-self: end;
+		justify-self: start;
 		gap: var(--damage-detail-space-sm);
 		margin-inline-start: 0;
 	}
