@@ -50,7 +50,7 @@
 .damage-calc-matchup-card > * + * + * { border-top: 2px solid var(--color-border); }
 /* ポケモン表示領域と攻撃テーブルの間のすばやさ表示。自分側は実数値1つ、相手側は
    無振り/準速/最速の3水準を、それぞれ左右のポケモンの下に揃えて並べる。 */
-.damage-calc-matchup-card__speed { display: grid; grid-template-columns: 1fr 1fr; align-items: flex-start; gap: var(--space-3); padding: var(--space-2); }
+.damage-calc-matchup-card__speed { display: grid; grid-template-columns: 1fr 1fr; align-items: flex-start; gap: var(--space-3); padding: 0 var(--space-2) var(--space-2); }
 .damage-calc-matchup-card__speed-group { display: flex; justify-content: center; gap: var(--space-3); }
 .damage-calc-matchup-card__speed-item { display: grid; gap: 1px; text-align: center; }
 .damage-calc-matchup-card__speed-label { color: var(--color-text-muted); font-size: var(--font-size-sm3); line-height: var(--line-height-tight); }
