@@ -729,13 +729,17 @@ body.box-edit-page {
 		}
 	}
 	/* 状態異常は天候・フィールドと同じセグメントの見た目を保ちつつ、
-		攻撃側・防御側それぞれの選択肢数だけを並べる。 */
+		攻撃側・防御側それぞれの選択肢数だけを並べる。列の幅自体は天候・フィールドの
+		4列グリッド(1列=全幅の1/4)と揃え、行全体の幅だけを列数に応じて縮める
+		(grid-template-columnsをautoにすると、ボタン数が少ないときラベルの文字幅まで
+		縮んでしまい、天候・フィールドの列とサイズが揃わなかった)。 */
 	#damage-detail-panel-body .damage-detail-icon-group.is-row4.damage-detail-ailment-group {
-		width: fit-content;
-		grid-template-columns: repeat(2, auto);
+		width: 50%;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
 	}
 	#damage-detail-panel-body .damage-detail-icon-group.is-row4.damage-detail-ailment-group.is-ailment-count-3 {
-		grid-template-columns: repeat(3, auto);
+		width: 75%;
+		grid-template-columns: repeat(3, minmax(0, 1fr));
 	}
 	#damage-detail-panel-body .damage-detail-rank-ailment-row {
 		/* 状態異常の直後へテラスタルを置き、余白は右端へ逃がす。 */
@@ -869,7 +873,9 @@ body.box-edit-page {
 	}
 	#damage-detail-panel-body .damage-detail-move-controls {
 		display: grid;
-		grid-template-columns: minmax(0, 1fr) auto;
+		/* わざ選択欄はモーダル幅いっぱいまで伸ばさず、半分弱の固定幅にとどめる
+		   (技名は長くても全角10文字程度で、伸ばしても読みやすさが上がらない)。 */
+		grid-template-columns: 45% auto;
 		align-items: center;
 		gap: var(--damage-detail-space-sm);
 	}
