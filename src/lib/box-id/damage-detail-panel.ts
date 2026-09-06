@@ -1248,8 +1248,8 @@ export function buildSideSection(
 	rankAilmentRow.append(rankField);
 	rankAilmentGroup.appendChild(rankAilmentRow);
 
-	// UI改修: 状態異常はランクの一段下に、天候・フィールドと同じ4列固定の
-	// セグメントコントロール(is-row4)で置く(以前は天候直下の共有欄にまとめていたが、
+	// UI改修: 状態異常はランクの一段下へ置く。天候・フィールドと同じセグメント
+	// コントロールの見た目を使いつつ、列数だけは選択肢数に合わせる(以前は天候直下の共有欄にまとめていたが、
 	// 「自分/相手」どちらの状態異常か分かりにくかったため側ごとのランク直下へ移設した)。
 	const ailmentGroup = buildIconToggleGroup(ailmentOptions, ailment, (value) => {
 		onAilmentChange(value);
@@ -1257,7 +1257,7 @@ export function buildSideSection(
 		scheduleRowSave(row);
 		refreshRowConditionChips(row);
 	}, `${ariaSideLabel}の状態異常`);
-	ailmentGroup.classList.add("is-row4");
+	ailmentGroup.classList.add("is-row4", "damage-detail-ailment-group", `is-ailment-count-${ailmentOptions.length}`);
 	rankAilmentGroup.appendChild(ailmentGroup);
 
 	// F: テラスタルは揮発状態(stateGrid)と別行にする。C-2でランク・状態異常と同じ段の
@@ -1645,7 +1645,7 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 	const moveField = document.createElement("div");
 	moveField.className = "damage-detail-move-field";
 	moveField.appendChild(moveComboWrap);
-		moveControls.append(moveField, hitRow, criticalField);
+	moveControls.append(moveField, criticalField, hitRow);
 	moveEditorGroup.append(moveControls);
 	contentWrap.appendChild(moveEditorGroup);
 

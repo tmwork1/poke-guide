@@ -728,6 +728,15 @@ body.box-edit-page {
 			border-left-color: var(--damage-detail-border-color);
 		}
 	}
+	/* 状態異常は天候・フィールドと同じセグメントの見た目を保ちつつ、
+		攻撃側・防御側それぞれの選択肢数だけを並べる。 */
+	#damage-detail-panel-body .damage-detail-icon-group.is-row4.damage-detail-ailment-group {
+		width: fit-content;
+		grid-template-columns: repeat(2, auto);
+	}
+	#damage-detail-panel-body .damage-detail-icon-group.is-row4.damage-detail-ailment-group.is-ailment-count-3 {
+		grid-template-columns: repeat(3, auto);
+	}
 	#damage-detail-panel-body .damage-detail-rank-ailment-row {
 		/* 状態異常の直後へテラスタルを置き、余白は右端へ逃がす。 */
 		display: grid;
@@ -873,17 +882,16 @@ body.box-edit-page {
 		justify-self: start;
 	}
 	#damage-detail-panel-body .damage-detail-hitcount-row {
-		/* 単発技でも連続技と同じヒット数領域を確保し、わざ欄の幅を固定する。 */
-		min-width: 6.2rem;
+		/* 連続技だけ、技選択欄の直下に表示する。 */
+		grid-column: 1;
 		padding-inline-start: 0;
 		white-space: nowrap;
 	}
 	#damage-detail-panel-body .damage-detail-move-controls > .damage-detail-critical-field {
-		grid-column: 1 / -1;
-		justify-self: start;
+		grid-column: 2;
+		justify-self: end;
 		gap: var(--damage-detail-space-sm);
-		/* 技選択ボックスの左端と完全に揃えず、少し内側から始める。 */
-		margin-inline-start: var(--damage-detail-space-sm);
+		margin-inline-start: 0;
 	}
 	#damage-detail-panel-body .damage-build-detail-field input,
 	#damage-detail-panel-body .damage-build-detail-field select,
