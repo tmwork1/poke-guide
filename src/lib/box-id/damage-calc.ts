@@ -1496,7 +1496,18 @@ if (opponentNotesSection) {
 			setSeverity("none");
 			return;
 		}
-		if (!result || !Array.isArray(result.perAttackDamages)) {
+		// result(row.clientResult)は技列(row.attacks)を書き換えた直後、recalcRow()の
+		// エンジン呼び出しが返るまでの間は「変更前の技列に対する計算結果」のまま古くなる
+		// (recalcRowはattacks.length>0のときclientResultを先にnullへリセットしない設計。
+		// 直前の値を保ったまま再描画→再計算後にもう一度描画、の2段階更新のため)。
+		// perAttackDamages/perAttackLethalはvalidAttacksOf(row)の並びと1:1対応する契約
+		// (buildSequenceInputsが渡すattacksがそのままvalidAttacksOf(row)のため)なので、
+		// 件数が一致しない=古いresultだと判定できる。ここで弾かず
+		// describeExtendedTotalNoLethalLabelへ渡すと、古い1件ぶんのperAttackDamagesを
+		// 新しい件数ぶん使い回す近似計算が走り、たべのこし等の回復を無視した誤った
+		// 確率が一瞬表示されてしまう(実例: ヤドキング(たべのこし)へガブリアスの
+		// じしんを2枚目として追加した直後、正しい1.95%の前に42.36%が一瞬出る)。
+		if (!result || !Array.isArray(result.perAttackDamages) || result.perAttackDamages.length !== validAttacks.length) {
 			setResultPlain(target, isEngineReady() ? "(計算前)" : "(計算エンジンの初期化待ち)");
 			setSeverity("none");
 			return;
