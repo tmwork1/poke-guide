@@ -24,7 +24,6 @@ import {
 	type PokemonSpec,
 	type CalcDamagesOptions,
 	type SequenceAttack,
-	type LethalResult,
 } from "../pyodide-engine";
 import type { OpponentNoteRecord } from "../opponent-notes";
 import {
@@ -116,7 +115,6 @@ import { damageCalcSuggestionKey } from "../damage-calc-suggest";
 // 逆向き(damage-summary.ts がこのファイルをimportする)は、このファイルが
 // pyodide-engine.ts を静的importしている都合で不可(damage-summary.ts 冒頭コメント参照)。
 import {
-	MAX_STANDALONE_ATTACKS,
 	OHKO_MOVE_NAMES,
 	OHKO_NOTE,
 	STATUS_AND_UNSUPPORTED_TOTAL_NOTE_ALL,
@@ -128,6 +126,23 @@ import {
 	isUnsupportedLethalMove,
 	type CumulativeDamage,
 } from "../damage-summary";
+// #opponent-notes-sectionのブロック内クロージャに閉じていた純粋関数を切り出したもの。
+// クロージャの状態を参照していなかったぶんだけをここへ出してある(damage-calc-helpers.ts
+// 冒頭コメント参照)。
+import {
+	STAT_KANJI,
+	canonicalStringify,
+	computeConfirmedKillAttackCount,
+	describeExtendedTotalNoLethalLabel,
+	describeNatureCycleState,
+	describeSeriesVerdict,
+	describeStandaloneLethal,
+	formatDamageRange,
+	parseSeed,
+	rankFromLegacyBoosts,
+	setResultPlain,
+	setResultVerdict,
+} from "./damage-calc-helpers";
 
 // public/master-data/detail/moves.json を技名でMap化するローダー。下のgetMoveCategory()
 // (壁・ランク補正の自動判定に技の物理/特殊/変化区分を使う)が参照しているため、
@@ -953,7 +968,6 @@ if (opponentNotesSection) {
 	// 技の物理/特殊分類から自動判定する。状態異常の選択肢はjpokeのAilmentNameと一致させる
 	// (空は「状態異常なし」)。ゆめうつつは選択肢から除外している(6種+なし)。
 
-	const STAT_KANJI: Record<string, string> = { hp: "H", atk: "A", def: "B", spa: "C", spd: "D", spe: "S" };
 	// 連続技(1ターンに複数回ヒットする技)の技名 -> [最小ヒット数, 最大ヒット数]。
 	// 要件「連続回数の指定は連続技のときだけ表示する」の判定に使う。
 	// loadMultiHitMoveMap()自身がモジュールスコープでPromiseをキャッシュし、失敗時は
@@ -1075,17 +1089,6 @@ if (opponentNotesSection) {
 		}
 	}
 
-	// 後方互換: 既存メモに保存されていた能力ごとのランク配列(attackerBoosts/
-	// defenderBoosts)から、UI上のスカラー値(attackerRank/defenderRank)を復元する。
-	// 「どれか1つでも立っていればON」の考え方と同様に、攻撃側はatk→spaの順、
-	// 防御側はdef→spdの順で最初に非ゼロの値を採用する(両方非ゼロという通常は
-	// 起こらない組み合わせのときはatk/defを優先する、という決め打ちの解釈)。
-	function rankFromLegacyBoosts(boosts: number[] | undefined, primaryKey: StatKey, secondaryKey: StatKey): number {
-		if (!Array.isArray(boosts)) return 0;
-		const primary = boosts[STAT_KEYS.indexOf(primaryKey)] ?? 0;
-		if (primary !== 0) return primary;
-		return boosts[STAT_KEYS.indexOf(secondaryKey)] ?? 0;
-	}
 	// 後方互換: 個別の壁(リフレクター/ひかりのかべ/オーロラベール)のうち
 	// 「どれか1つでも立っていればON」と解釈する。
 
@@ -1273,12 +1276,6 @@ if (opponentNotesSection) {
 		return { row, needsResave, order };
 	}
 
-	function parseSeed(raw: string): number | undefined {
-		const trimmed = raw.trim();
-		if (trimmed === "") return undefined;
-		const n = Number(trimmed);
-		return Number.isFinite(n) ? Math.round(n) : undefined;
-	}
 
 	// 保存対象/計算対象となる有効な攻撃列(技名が空の列は除く)。
 	// field.attacks(サーバ保存)とcalcLethalSequence()への引き渡しの両方でこれを使うことで、
@@ -1325,120 +1322,8 @@ if (opponentNotesSection) {
 		};
 	}
 
-	// 判定は「確実に倒せるのは何発目か」の1つだけを返す。10発以内に確殺
-	// (probability>=0.9999、浮動小数の誤差込み)に到達する最初の位置があれば「確N」のみを返し、
-	// そこへ至る前段の乱数確率は一切表示しない。10発以内に到達しなければ、呼び出し元から
-	// 渡されたnoLethalLabel(技列側/加算後側のいずれも「10発以上」相当の文字列を渡す。
-	// describeExtendedTotalNoLethalLabel参照)を返す。severityは.severity-barの色分け
-	// (lethal=確1/risky=確2/safe=確3以降・10発以上)に使う。
-	// 技列側(.damage-column-result)と加算後側(renderTotalDisplay)の両方がこの共有関数を
-	// 経由するため、ここを直せば両方に反映される。
-	function describeSeriesVerdict(
-		series: LethalResult[] | undefined,
-		noLethalLabel: string,
-	): { label: string; severity: "lethal" | "risky" | "safe" | "none" } {
-		if (!Array.isArray(series) || series.length === 0) return { label: "-", severity: "none" };
-		const firstLethal = series.find((l) => l.probability > 0);
-		if (!firstLethal) return { label: noLethalLabel, severity: "safe" };
-		const severity: "lethal" | "risky" | "safe" =
-			firstLethal.attackCount === 1 ? "lethal" : firstLethal.attackCount === 2 ? "risky" : "safe";
-		if (firstLethal.probability >= 0.9999) return { label: `確${firstLethal.attackCount}`, severity };
-		return { label: `乱${firstLethal.attackCount} ${(firstLethal.probability * 100).toFixed(2)}%`, severity };
-	}
 
-	// 「技ごとの致死率」のフォールバック実装。
-	// 通常はエンジンが返す perAttackLethal(jpokeのLethalHitResult.__add__による分布合成。
-	// たべのこし回復・きあいのタスキ等も反映済み)を使う。この関数は、エンジンを積む前に
-	// 保存された古い client_result スナップショットを表示するときだけ使われる
-	// (perAttackLethal が無い時代のレコード)。エンジン初期化後の再計算で上書きされる。
-	//
-	// 計算はHP分布(残りHP -> 頻度カウント)を保持し、ダメージ値それぞれで分岐させながら
-	// 0で下限クリップする(jpokeのsubtract_dist(minimum=0)と同じ)。頻度は確率ではなく
-	// 整数カウントなので、最後に必ず合計で割って正規化する。
-	// hitCountは掛けない: perAttackDamagesは「その攻撃1回ぶん(全ヒット合計)」に
-	// 意味が変わっている(pyodide-engine.tsのCalcLethalSequenceResult参照)。
-	// describeSeriesVerdictと同じく、「一部の乱数分岐だけが致死する(zero > 0だが
-	// zero !== total)」段階では確定と言えないため、全分岐が致死(zero === total)に
-	// なるまで確定数として採用しない。
-	function describeStandaloneLethal(
-		damages: number[] | undefined,
-		defenderHp: number | undefined,
-	): { label: string; severity: "lethal" | "risky" | "safe" | "none" } {
-		if (!damages || damages.length === 0 || !defenderHp || defenderHp <= 0) {
-			return { label: "-", severity: "none" };
-		}
-		let dist = new Map<number, number>([[defenderHp, 1]]);
-		for (let attack = 1; attack <= MAX_STANDALONE_ATTACKS; attack += 1) {
-			const next = new Map<number, number>();
-			for (const [remain, freq] of dist) {
-				for (const d of damages) {
-					const value = Math.max(0, remain - d);
-					next.set(value, (next.get(value) ?? 0) + freq);
-				}
-			}
-			dist = next;
-			let total = 0;
-			for (const freq of dist.values()) total += freq;
-			const zero = dist.get(0) ?? 0;
-			if (total > 0 && zero === total) {
-				const severity: "lethal" | "risky" | "safe" =
-					attack === 1 ? "lethal" : attack === 2 ? "risky" : "safe";
-				return { label: `確${attack}`, severity };
-			}
-		}
-		// 10発当てても全分岐が致死に至らない = 実質的に倒せない組み合わせ。
-		return { label: TEN_OR_MORE_LABEL, severity: "safe" };
-	}
 
-	// describeSeriesVerdict(result.lethal, ...)は、設定済みの攻撃列(最大3枚)の範囲内で
-	// 一度も確殺(致死率100%)に到達しなかったときにこの第2引数(noLethalLabel)をそのまま
-	// 表示する。この関数は「設定済みの攻撃列を先頭から繰り返し当て続けたら何発で倒せるか」を、
-	// 技列側(describeStandaloneLethal)と同じ分布演算(1発ごとにHP分布から差し引き0で
-	// クリップする)で見積もり、その結果をdescribeSeriesVerdict自身にもう一度通したlabelを
-	// 返す。実際の攻撃列の範囲内(result.lethalが担保する区間)はエンジンの厳密な値
-	// (たべのこし等のターン終了時処理を含む)をそのまま使い、この関数が呼ばれるのは範囲内で
-	// 確殺に未到達のときだけなので、精度が落ちるのは「まだ確認できていない延長部分」に
-	// 限られる(describeStandaloneLethalと同じ精度レベルで、ターン終了時処理を含まない
-	// 近似値)。ただし有効な攻撃列が1件だけの行では、技列側と同じperAttackLethal[0]
-	// (エンジンの厳密値)をそのまま使うため近似は発生しない(技列側の「確N」と加算後側の
-	// 数値が食い違わない)。
-	function describeExtendedTotalNoLethalLabel(
-		row: DamageRowState,
-		result: OpponentClientResultInput,
-	): string {
-		// 有効な攻撃列が1件だけの行は、エンジンが返す perAttackLethal[0](その技を
-		// 最大10回連発した場合の厳密な確定数系列。たべのこし等のターン終了時処理も
-		// 反映済み)がそのまま「攻撃列を繰り返し当て続けた場合」と一致するため、
-		// 下の近似計算より優先して使う(技列側の表示と数値が食い違わないようにする)。
-		const validAttacks = validAttacksOf(row);
-		if (validAttacks.length === 1 && Array.isArray(result.perAttackLethal?.[0])) {
-			return describeSeriesVerdict(result.perAttackLethal[0], TEN_OR_MORE_LABEL).label;
-		}
-		const per = result.perAttackDamages;
-		const hp = result.defenderHp;
-		if (!Array.isArray(per) || per.length === 0 || !hp || hp <= 0) {
-			return TEN_OR_MORE_LABEL;
-		}
-		const extendedSeries: LethalResult[] = [];
-		let dist = new Map<number, number>([[hp, 1]]);
-		for (let attack = 1; attack <= MAX_STANDALONE_ATTACKS; attack += 1) {
-			const damages = per[(attack - 1) % per.length];
-			if (!Array.isArray(damages) || damages.length === 0) continue;
-			const next = new Map<number, number>();
-			for (const [remain, freq] of dist) {
-				for (const d of damages) {
-					const value = Math.max(0, remain - d);
-					next.set(value, (next.get(value) ?? 0) + freq);
-				}
-			}
-			dist = next;
-			let total = 0;
-			for (const freq of dist.values()) total += freq;
-			const zero = dist.get(0) ?? 0;
-			extendedSeries.push({ attackCount: attack, probability: total > 0 ? zero / total : 0 });
-		}
-		return describeSeriesVerdict(extendedSeries, TEN_OR_MORE_LABEL).label;
-	}
 
 	// 「加算後のダメ・致死率」(DamageCard.pngの育成パネル最下段)の累計ダメージ。
 	// 通常はエンジンが返す cumulativeDamage(LethalHitResult.__add__ による分布合成から
@@ -1454,70 +1339,8 @@ if (opponentNotesSection) {
 		return computeCumulativeDamage(validAttacksOf(row).length, result);
 	}
 
-	function formatDamageRange(damages: number[] | undefined, defenderHp: number | undefined): string {
-		if (!damages || damages.length === 0) return "";
-		const min = Math.min(...damages);
-		const max = Math.max(...damages);
-		const range = min === max ? `${min}` : `${min}〜${max}`;
-		if (defenderHp && defenderHp > 0) {
-			const pctMinText = ((min / defenderHp) * 100).toFixed(1);
-			const pctMaxText = ((max / defenderHp) * 100).toFixed(1);
-			const pct = pctMinText === pctMaxText ? `${pctMinText}%` : `${pctMinText}〜${pctMaxText}%`;
-			return `${range} (${pct})`;
-		}
-		return range;
-	}
 
-	// 累計(加算後)で既に確殺に到達している位置(=それ以降の技は撃つ前提が崩れている)を
-	// 求める。result.lethalはcalcLethalSequenceの累計致死率
-	// 系列で、probability>=0.9999になった最初のattackCountが「そこで確実に倒せる」
-	// 位置。数値自体(技ごとの独立判定)は変えず、視覚的に控えめにする材料としてのみ使う。
-	function computeConfirmedKillAttackCount(result: OpponentClientResultInput | null): number | null {
-		if (!result || !Array.isArray(result.lethal)) return null;
-		const confirmed = result.lethal.find((l) => l.probability >= 0.9999);
-		return confirmed ? confirmed.attackCount : null;
-	}
 
-	// 判定(確N/乱N等)を大きく太字で左に、ダメージ量の詳細を小さく右に配置する2分割構造。
-	// is:global側の.damage-row-total-result(grid auto 1fr)/.damage-column-result
-	// (横並びflex-direction:row)と組み合わせて使う。severity(背景色・左罫線の色)は
-	// 引き続き.severity-bar[data-severity]が要素全体に適用するため、ここでは中身のDOM構造
-	// だけを変える。
-	// describeStandaloneLethal/describeSeriesVerdictが10発当てても確殺に至らないケースで
-	// 返すラベルはTEN_OR_MORE_LABEL(="10発以上")の1種類だけ(上の
-	// damage-summary.tsのMAX_STANDALONE_ATTACKS定義・両関数参照)。この値と一致するときだけverdictSpan
-	// (太字の確定数ラベル)自体を生成・appendしない(detailSpanのみ残す)。呼び出し元
-	// (renderColumnDisplays=個別技カード側/renderTotalDisplay=累計結果側、いずれもこの関数を
-	// 経由する)を区別する必要はなく、この1関数を直せば両方に適用される。
-	function setResultVerdict(el: HTMLElement, detailText: string, label: string): void {
-		el.innerHTML = "";
-		if (label !== TEN_OR_MORE_LABEL) {
-			const verdictSpan = document.createElement("span");
-			verdictSpan.className = "damage-result-verdict";
-			const randomKoParts = label.match(/^(乱\d+) (\d+\.\d+%)$/);
-			if (randomKoParts) {
-				verdictSpan.append(randomKoParts[1], " ");
-				const probabilitySpan = document.createElement("span");
-				probabilitySpan.className = "damage-result-probability";
-				probabilitySpan.textContent = randomKoParts[2];
-				verdictSpan.appendChild(probabilitySpan);
-			} else {
-				verdictSpan.textContent = label;
-			}
-			el.appendChild(verdictSpan);
-		}
-		if (detailText !== "") {
-			const detailSpan = document.createElement("span");
-			detailSpan.className = "damage-result-detail";
-			detailSpan.textContent = detailText;
-			el.appendChild(detailSpan);
-		}
-	}
-	// 「(計算前)」「技名を入力」のような単一メッセージ用(2分割にしない)。
-	function setResultPlain(el: HTMLElement, text: string): void {
-		el.innerHTML = "";
-		el.textContent = text;
-	}
 
 	// DamageCard.pngの結果表示は2箇所に分かれている。
 	//  - 各技列の最下段 = 「技ごとのダメ・致死率」(その技だけを繰り返した場合の独立した判定)
@@ -1683,7 +1506,7 @@ if (opponentNotesSection) {
 		const damageText = cumulativeDamage.text + (hasOhko ? ` ${OHKO_NOTE}` : "");
 		const { label, severity } = describeSeriesVerdict(
 			result.lethal,
-			describeExtendedTotalNoLethalLabel(row, result),
+			describeExtendedTotalNoLethalLabel(validAttacksOf(row).length, result),
 		);
 		if (hasUnsupported) {
 			// 数値自体は「算出できる技だけを合算した値」として意味があるため隠さず表示し、
@@ -1699,25 +1522,6 @@ if (opponentNotesSection) {
 		else setGauge(cumulativeDamage.pctMin, cumulativeDamage.pctMax);
 	}
 
-	// H/A/B/C/D/S見出し自体が「無補正→上昇→下降→無補正」を巡回する1個のボタンになっている。
-	// 状態を反映する対象はキーごとの1ボタン(row.natureColLabelEls[key])だけなので、
-	// 「実際にクリックして選ばれている生の状態」(row.natureUp/row.natureDown)をもとに
-	// data-mod(色分け。既存の.damage-ev-col-label[data-mod]と共有) / 小さな▲▼インジケータ
-	// (.damage-ev-nature-indicator、色だけに頼らないWCAG 1.4.1対応) / aria-label・titleの
-	// 3つをこの1関数でまとめて書き戻す(片方だけ更新すると表示と状態がズレるため)。
-	function describeNatureCycleState(
-		key: StatKey,
-		mod: "up" | "down" | null,
-	): { indicator: string; description: string } {
-		const kanji = STAT_KANJI[key];
-		if (mod === "up") {
-			return { indicator: "▲", description: `相手の${kanji}は性格補正で上昇中です(クリックで下降に切り替え)` };
-		}
-		if (mod === "down") {
-			return { indicator: "▼", description: `相手の${kanji}は性格補正で下降中です(クリックで無補正に戻します)` };
-		}
-		return { indicator: "", description: `相手の${kanji}は性格補正なしです(クリックで上昇に設定します)` };
-	}
 	function refreshRowNatureButtons(row: DamageRowState): void {
 		for (const key of STAT_KEYS) {
 			if (key === "hp") continue;
@@ -1793,18 +1597,6 @@ if (opponentNotesSection) {
 		});
 	}
 
-	// キー順に依存しない構造比較用の正規化文字列化。
-	// オブジェクトのキーをソートしてから再帰的にJSON化するため、Postgres jsonbのキー
-	// 並び替え(実測で確認: サーバから返るclient_resultはJS側の挿入順と異なる順で
-	// 返ってくる)があっても値が同じなら同じ文字列になる。null/数値/文字列/配列/
-	// プレーンオブジェクトだけを想定(client_resultの構造で十分)。
-	function canonicalStringify(value: unknown): string {
-		if (value === null || typeof value !== "object") return JSON.stringify(value);
-		if (Array.isArray(value)) return `[${value.map(canonicalStringify).join(",")}]`;
-		const record = value as Record<string, unknown>;
-		const keys = Object.keys(record).sort();
-		return `{${keys.map((k) => `${JSON.stringify(k)}:${canonicalStringify(record[k])}`).join(",")}}`;
-	}
 
 	// recalcRow() がcalcLethalSequence()/calcStats() を呼ぶ直前に組み立てている値
 	// (攻守切り替え・テラスタルのクランプ・乱数シード)は、耐久調整ブリッジ
