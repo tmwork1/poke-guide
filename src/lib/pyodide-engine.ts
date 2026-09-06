@@ -448,7 +448,7 @@ from jpoke.core import EventContext
 from jpoke.enums import Event
 from jpoke.handlers.field import ステルスロック_damage, まきびし_damage
 from jpoke.utils.constants import STATS, STAT_RANK_MIN, STAT_RANK_MAX
-from jpoke.utils.lethal_dist import State, add_dist
+from jpoke.utils.lethal_dist import add_dist
 
 
 # WASM(Pyodide)ヒープが "memory access out of bounds" で致命的に
@@ -703,31 +703,6 @@ def calc_stats_json(spec):
         gc.collect()
 
 
-def _clamp_hp_dist_min0(hp_dist):
-    """hp_distの各枝のHP値を0未満にならないようクランプする(戻り値は新しいdict)。
-
-    'jpoke.core.lethal.LethalHitResult.__add__'内部の'subtract_dist'呼び出しは
-    minimumを指定していない(クランプなし)。そのため、既にHP=0(致死済み)の枝を
-    含む結果に対してさらに'__add__'で後続の攻撃を合成すると、その枝のHPが
-    負の値になり得る。'lethal_probability'は'state.value == 0'の頻度でしか
-    致死を数えないため、負のHPは「致死していない」ものとして扱われてしまい、
-    見かけ上「後続の攻撃で致死率が下がる(一度死んだはずが生き返る)」という
-    非単調な不具合が生じる(実測で確認済み: 3割の乱数で7発目に部分致死した後、
-    8発目を合成すると確率が0%に戻ってしまう)。本関数を合成のたびに適用し、
-    「一度致死した枝は致死したまま」という単調性を保証する。
-    """
-    result = {}
-    for state, freq in hp_dist.items():
-        if state.value < 0:
-            state = State(
-                value=0,
-                ability_enabled=state.ability_enabled,
-                item_enabled=state.item_enabled,
-            )
-        result[state] = result.get(state, 0) + freq
-    return result
-
-
 def _dist_values_sorted(dist):
     """StateDist(状態→頻度)から出現するHP/ダメージ値だけを取り出し、重複を除いて
     昇順に並べた配列を返す(頻度そのものは呼び出し側では使わないため捨てる)。
@@ -844,15 +819,20 @@ def calc_lethal_sequence_json(attacker_spec, defender_spec, attacks, seed, criti
     制約。ただし本関数はそれらを毎攻撃'_build_per_attack_spec'で明示的に組み立て直す
     ため、この制約と衝突しない)。
 
-    重要(4・単調性クランプはisolated側にのみ必要): 'jpoke/core/lethal.py'内部の
-    'subtract_dist'呼び出しは全て'minimum=0'を指定しており('_apply_damage'/
-    '_apply_damage_by_branch'参照)、'calc_lethal()'(resume_from経由の合成も含む)が
-    返す'hp_dist'は常に0未満にならない。そのため'sequential'側(lethal/
-    cumulativeDamageの元になる'sequential_result')はクランプ不要になった
-    '_clamp_hp_dist_min0'は、'minimum'を指定しない'__add__'経由の自己合成でのみ必要になる。
-    一方'perAttackLethal'の「同じ技を自分自身に'__add__'で繰り返し加算する」自己合成
-    (下記'repeat_acc')は引き続き'__add__'経由のため、'_clamp_hp_dist_min0'を
-    そのまま維持する。
+    重要(4・perAttackLethalも'__add__'ではなく'resume_from'で継続する): かつて
+    'perAttackLethal'は「同じ技の'isolated_result'(1発だけの結果)を自分自身に
+    'LethalHitResult.__add__'で繰り返し加算する」自己合成で実装していたが、これは
+    バグだった。'__add__'は「otherの初期HPからotherのhp_distを引いた分」を新たな
+    ダメージとしてselfから差し引く実装('jpoke/core/lethal.py:89-108')のため、
+    self・other双方に独立して含まれるターン終了時効果(たべのこし等の回復)が
+    合成のたびに重複計上される(2発合成すると回復が2回分効いた計算になる)。
+    実測(2026-09-06、ガブリアスのじしん vs たべのこし持ちヤドキング、H201・被弾91〜108・
+    回復12): 正しい'resume_from'継続では2発目の致死率が1.95%(乱数2発)になるのに対し、
+    '__add__'自己合成では常に0%(確定3発)になり、たべのこし1回分(12)が過剰に効く。
+    'sequential'側(下記)と同じ'resume_from'継続に統一したことでこのバグは解消し、
+    'subtract_dist'が常に'minimum=0'を指定する('_apply_damage'/'_apply_damage_by_branch'
+    参照)おかげでhp_distが0未満にならない性質にも素直に乗れるため、クランプ処理
+    (旧'_clamp_hp_dist_min0')も不要になった。
 
     重要(5・打点(damage)とHP(hp_dist)は別系統で扱う): 'LethalHitResult.damage_dist'は
     「そのヒット1発分」の打点分布であり、n_hits回のヒットをまたいで累積されない
@@ -877,9 +857,10 @@ def calc_lethal_sequence_json(attacker_spec, defender_spec, attacks, seed, criti
         重複を除いて昇順に並べた配列('_dist_values_sorted'参照)。連続技
         (hitCount>1)は全ヒット合計のダメージに意味が変わっている点に注意
         (1発分の乱数16段階ではない)。
-      - perAttackLethal[i]: 攻撃iの'isolated_result'(HP分布ベース)を最大10回、
-        自分自身に'__add__'で繰り返し加算した場合の確定数系列
-        (「この技だけを連発したら何発で倒れるか」)。確率100%に達したらそこで打ち切る。
+      - perAttackLethal[i]: 攻撃iの技を最大10回連発したら何発で倒れるかの確定数系列
+        (「この技だけを連発したら」)。'isolated_result'を起点に、同じ'attack_battle'へ
+        'resume_from'で1発ずつ継続する(重要4参照。'sequential'側と同じ継続方法)。
+        確率100%に達したらそこで打ち切る。
 
     lethal/cumulativeDamageは、attacksを先頭から'resume_from'で実際に繋いだ累計であり、
     途中で確率100%(全ての乱数分岐で確実に致死)に達した場合はそこで打ち切られ、
@@ -958,6 +939,7 @@ def calc_lethal_sequence_json(attacker_spec, defender_spec, attacks, seed, criti
             # なる。docstringの'sequential_only'説明参照)。
             if sequential_only:
                 isolated_hits = None
+                per_attack_lethal_series = None
             else:
                 isolated_hits = attack_battle.calc_lethal(
                     active_att, move_arg, critical=critical_for_attack, max_attack=1
@@ -967,10 +949,31 @@ def calc_lethal_sequence_json(attacker_spec, defender_spec, attacks, seed, criti
                     # 1回の呼び出しで必ず1件以上返す)が、万一の安全策としてNoneを返し、
                     # 呼び出し側で「この攻撃は計算不能だった」ことが分かる形にする。
                     return None
-    
+
+                # perAttackLethal(「この技だけを連発したら何発で倒れるか」): isolated_hits[-1]
+                # を起点に、同じattack_battleへresume_fromで1発ずつ継続する(重要(4)参照。
+                # 'sequential'側と同じ継続方法。かつての'__add__'自己合成はターン終了時効果
+                # を二重計上するバグがあったため廃止した)。
+                per_attack_lethal_series = [
+                    {"attackCount": 1, "probability": isolated_hits[-1].lethal_probability}
+                ]
+                extend_from = isolated_hits[-1]
+                for k in range(2, 11):
+                    if per_attack_lethal_series[-1]["probability"] >= 1.0:
+                        break
+                    extend_hits = attack_battle.calc_lethal(
+                        active_att, move_arg, critical=critical_for_attack, max_attack=1,
+                        resume_from=extend_from,
+                    )
+                    if not extend_hits:
+                        break
+                    extend_from = extend_hits[-1]
+                    per_attack_lethal_series.append({"attackCount": k, "probability": extend_from.lethal_probability})
+
             result = {
                 "isolated_result": isolated_hits[-1] if isolated_hits else None,
                 "isolated_damage_dist": fold_damage_dist(isolated_hits) if isolated_hits else None,
+                "per_attack_lethal_series": per_attack_lethal_series,
                 "sequential_result": None,
                 "sequential_damage_dist": None,
                 "initial_defender_hp": initial_defender_hp,
@@ -1020,18 +1023,7 @@ def calc_lethal_sequence_json(attacker_spec, defender_spec, attacks, seed, criti
             else:
                 # 全ヒット分を畳み込んだ打点分布のキーを昇順に並べる。
                 per_attack_damages.append(_dist_values_sorted(computed["isolated_damage_dist"]))
-    
-                repeat_acc = isolated_result
-                this_attack_lethal = [{"attackCount": 1, "probability": repeat_acc.lethal_probability}]
-                for k in range(2, 11):
-                    if this_attack_lethal[-1]["probability"] >= 1.0:
-                        break
-                    repeat_acc = repeat_acc + isolated_result
-                    # 一度致死した枝が後続の合成で「生き返る」ことがないようクランプする
-                    # (重要(4)参照。'__add__'経由の自己合成にのみ必要)。
-                    repeat_acc.hp_dist = _clamp_hp_dist_min0(repeat_acc.hp_dist)
-                    this_attack_lethal.append({"attackCount": k, "probability": repeat_acc.lethal_probability})
-                per_attack_lethal.append(this_attack_lethal)
+                per_attack_lethal.append(computed["per_attack_lethal_series"])
     
             if sequence_resolved:
                 continue
