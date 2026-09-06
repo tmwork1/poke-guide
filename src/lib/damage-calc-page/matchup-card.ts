@@ -1,4 +1,4 @@
-import { describeStandaloneLethal, formatDamageRange } from "../box-id/damage-calc-helpers";
+import { describeStandaloneLethal } from "../box-id/damage-calc-helpers";
 import { splitBoxCardDisplayName } from "../box-card-display-name";
 import { championSpriteUrl, loadImageIdMap, loadMoveDetailMap, officialArtworkUrl, type MoveCategory } from "../pokemon-master-data";
 import { calcDamages, calcStats, initEngine, registerOfflineCache, type PokemonSpec } from "../pyodide-engine";
@@ -15,11 +15,21 @@ const PATTERN_LABELS = ["無振り", "32振り", "特化"];
 /** 対面カードの防御表に載せる相手技の採用率しきい値(このカード専用。team-matchup.tsの
  * OPPONENT_MIN_MOVE_RATIO(20%・上限4本)とは別軸の要件のため、共有定数は変更しない)。 */
 const OPPONENT_DEFENSE_MOVE_MIN_RATIO = 0.1;
-/** こだわりスカーフの素早さ補正(4096基準の固定小数点、6144/4096=1.5倍)。
- * jpokeの`vendor/jpoke/src/jpoke/handlers/item.py`のこだわりスカーフ_boost_speedと同じ計算。
- * calcStats()の実数値は持ち物補正を含まないため、表示用にここで別途掛け合わせる。 */
-const CHOICE_SCARF_SPEED_MODIFIER = 6144;
+/** すばやさを常時・無条件に固定倍率で変動させる持ち物(4096基準の固定小数点)。
+ * jpokeの`vendor/jpoke/src/jpoke/handlers/item.py`準拠(こだわりスカーフ_boost_speed / くろいてっきゅう_halve_speed)。
+ * カムラのみ・からぶりほけん等、HP残量や特定の行動が条件の発動アイテムはここに含めない
+ * (対面カードは常在効果のみを表示用に補正する)。calcStats()の実数値は持ち物補正を
+ * 含まないため、表示用にここで別途掛け合わせる。 */
+const SPEED_MODIFIER_ITEMS: Record<string, number> = {
+  "こだわりスカーフ": 6144,
+  "くろいてっきゅう": 2048,
+};
 const FIXED_POINT_BASE = 4096;
+
+function applySpeedItemModifier(speed: number, itemName: string | null | undefined): number {
+  const modifier = itemName ? SPEED_MODIFIER_ITEMS[itemName] : undefined;
+  return modifier ? Math.floor((speed * modifier) / FIXED_POINT_BASE) : speed;
+}
 let timer: number | undefined;
 let requestId = 0;
 let opponentMovesCache = new Map<string, Promise<PopularMoveOption[]>>();
@@ -250,7 +260,7 @@ function renderTable(containerId: string, label: "攻" | "守", rows: DamageRow[
   byId<HTMLElement>(containerId).replaceChildren(wrap);
 }
 
-function renderSpeed(selfSpeed: number | null, selfBoostedSpeed: number | null, opponentSpeeds: number[]): void {
+function renderSpeed(selfSpeed: number | null, opponentSpeeds: number[]): void {
   const root = document.createElement("div");
   root.className = "damage-calc-matchup-card__speed";
   const selfGroup = document.createElement("div");
@@ -269,15 +279,19 @@ function renderSpeed(selfSpeed: number | null, selfBoostedSpeed: number | null, 
     item.append(itemLabel, itemValue);
     return item;
   };
-  selfGroup.append(makeItem("すばやさ", selfSpeed), makeItem("補正後", selfBoostedSpeed));
+  selfGroup.append(makeItem("すばやさ", selfSpeed));
   opponentGroup.append(...["無振り", "準速", "最速"].map((label, index) => makeItem(label, opponentSpeeds[index] ?? null)));
   root.append(selfGroup, opponentGroup);
   byId<HTMLElement>("damage-calc-matchup-speed").replaceChildren(root);
 }
 
+/** ダメージ割合は整数表示にする(共有の`formatDamageRange`は小数第1位まで出すため、
+ * このカードでは使わずここで四捨五入して独自にフォーマットする)。 */
 function percentageOnly(damages: number[], hp: number): string {
-  const formatted = formatDamageRange(damages, hp);
-  return formatted.match(/\((.+)\)$/)?.[1] ?? "-";
+  if (!hp || hp <= 0 || damages.length === 0) return "-";
+  const min = Math.round((Math.min(...damages) / hp) * 100);
+  const max = Math.round((Math.max(...damages) / hp) * 100);
+  return min === max ? `${min}%` : `${min}〜${max}%`;
 }
 
 async function calculateAttackRows(self: PokemonSpec, opponent: OpponentBuild, moveNames: string[], categories: Map<string, MoveCategory>): Promise<DamageRow[]> {
@@ -332,7 +346,7 @@ async function run(): Promise<void> {
   const opponent: OpponentBuild = { ...currentOpponent, speciesName: currentOpponent.speciesName || DEFAULT_OPPONENT };
   renderIdentity(selfBuild, opponent, currentRequestId);
   setStatus("ダメージを計算中…");
-  renderSpeed(null, null, []);
+  renderSpeed(null, []);
   renderTable("damage-calc-matchup-attack-table", "攻", []);
   renderTable("damage-calc-matchup-defense-table", "守", []);
   try {
@@ -350,11 +364,9 @@ async function run(): Promise<void> {
     for (const spec of speedSpecs) opponentSpeeds.push((await calcStats(spec)).stats.spe);
     const self = isSelectedSelf(selfBuild) ? selfSpec(selfBuild) : null;
     const selfSpeed = self ? (await calcStats(self)).stats.spe : null;
-    const selfBoostedSpeed = selfSpeed != null && selfBuild.item_name === "こだわりスカーフ"
-      ? Math.floor((selfSpeed * CHOICE_SCARF_SPEED_MODIFIER) / FIXED_POINT_BASE)
-      : null;
+    const displayedSelfSpeed = selfSpeed != null ? applySpeedItemModifier(selfSpeed, selfBuild.item_name) : null;
     if (currentRequestId !== requestId) return;
-    renderSpeed(selfSpeed, selfBoostedSpeed, opponentSpeeds);
+    renderSpeed(displayedSelfSpeed, opponentSpeeds);
     const categories = new Map<string, MoveCategory>([...selfMoveNames, ...opponentMoveNames].map((name) => [name, categoryOf(name)]));
     const attackRows = self ? await calculateAttackRows(self, opponent, selfMoveNames, categories) : [];
     const defenseRows = self ? await calculateDefenseRows(self, opponent, opponentMoveNames, categories) : opponentMoveNames.map((moveName) => ({ moveName, cells: PATTERN_LABELS.map(() => ({ range: "-", lethal: "" })) }));

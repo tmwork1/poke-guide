@@ -21,10 +21,13 @@
 /* 一覧の外周余白。/data のバトルデータタブ(.data-hub-scroll の左右 --space-2)と同程度に詰める。 */
 .damage-calc-matchups { min-height: 28rem; padding: var(--space-2); background-color: var(--color-bg); background-image: none; }
 .damage-calc-matchups > .panel-content { min-width: 0; }
-.damage-calc-summary-layout { position: relative; }
-/* 相手選択レール分の右側スペースをここで確保する(レール自体はgridから外れ、
-   下でposition:fixedの独立オーバーレイになるため)。 */
-.damage-calc-summary-list { display: grid; gap: var(--space-3); padding-right: calc(2.5rem + var(--space-2)); }
+/* --damage-calc-rail-gutter: レール(2.5rem)の左右にとる余白。右側は実際のレールと
+   重ならないための必須スペース、左側は見た目の左右対称のために同じ幅を確保する。
+   画面が狭く対面カードの面積が不足するときは、タップ対象であるレール自体(2.5rem)は
+   縮めず、この余白だけを縮めて対面カードの領域を優先する(下の @media を参照)。 */
+.damage-calc-summary-layout { position: relative; --damage-calc-rail-gutter: var(--space-3); }
+@media (width <= 400px) { .damage-calc-summary-layout { --damage-calc-rail-gutter: 2px; } }
+.damage-calc-summary-list { display: grid; gap: var(--space-3); padding-inline: calc(2.5rem + var(--damage-calc-rail-gutter)); }
 /* 対面カード本体。角は丸めない(バトルデータカードと同じ直角の枠に揃える)。 */
 .damage-calc-matchup-card {
   --damage-calc-card-artwork-size: 4.25rem; /* 立ち絵の一辺。小さくすると名前・もちもの側の余地が広がる */
@@ -52,9 +55,11 @@
 .damage-calc-matchup-card__pokemon--opponent h2 { align-items: flex-end; text-align: right; }
 .damage-calc-matchup-card__pokemon-name-main, .damage-calc-matchup-card__pokemon-name-suffix { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
 .damage-calc-matchup-card__pokemon-name-suffix { color: var(--color-text-muted); font-size: 0.75em; }
-/* 括弧書きの注釈(2行目)だけは、名前本体と逆向き(カード中央のVS側)に寄せる。 */
-.damage-calc-matchup-card__pokemon--self .damage-calc-matchup-card__pokemon-name-suffix { text-align: right; }
-.damage-calc-matchup-card__pokemon--opponent .damage-calc-matchup-card__pokemon-name-suffix { align-self: stretch; text-align: left; }
+/* 括弧書きの注釈(2行目)だけは、名前本体と逆向き(カード中央のVS側)に寄せる。
+ * さらに、名前本体の外縁より少し外側(カードの外周方向)へずらして、名前の直下に
+ * 埋もれず注釈だと分かるようにする。 */
+.damage-calc-matchup-card__pokemon--self .damage-calc-matchup-card__pokemon-name-suffix { text-align: right; transform: translateX(-0.3em); }
+.damage-calc-matchup-card__pokemon--opponent .damage-calc-matchup-card__pokemon-name-suffix { align-self: stretch; text-align: left; transform: translateX(0.3em); }
 .damage-calc-matchup-card__item-button { position: absolute; z-index: 2; width: 1.75rem; height: 1.75rem; padding: 0; border: 0; background: transparent; cursor: pointer; }
 .damage-calc-matchup-card__item-icon { display: block; width: 100%; height: 100%; object-fit: contain; }
 .damage-calc-matchup-card__item-icon[hidden] { display: none; }
@@ -104,7 +109,7 @@
    クリップ境界の外側に余白を確保する。
    -webkit-overflow-scrolling/overscroll-behaviorは、モバイルでの慣性スクロール中に
    レール内アイコンがoverflowの境界をはみ出して見える描画の乱れを防ぐ。 */
-.damage-calc-summary-rail { --damage-calc-rail-gap: var(--space-3); position: fixed; top: calc(var(--damage-calc-content-top, calc(var(--header-height) + var(--app-header-height) + var(--second-header-height))) + var(--damage-calc-rail-gap)); bottom: calc(var(--damage-calc-control-bar-height) + var(--bottom-nav-height) + env(safe-area-inset-bottom) + var(--damage-calc-rail-gap)); right: var(--space-3); width: 2.5rem; z-index: 5; display: flex; flex-direction: column; align-items: center; gap: var(--space-2); overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; scrollbar-width: none; background: var(--color-bg); }
+.damage-calc-summary-rail { --damage-calc-rail-gap: var(--space-3); position: fixed; top: calc(var(--damage-calc-content-top, calc(var(--header-height) + var(--app-header-height) + var(--second-header-height))) + var(--damage-calc-rail-gap)); bottom: calc(var(--damage-calc-control-bar-height) + var(--bottom-nav-height) + env(safe-area-inset-bottom) + var(--damage-calc-rail-gap)); right: var(--damage-calc-rail-gutter, var(--space-3)); width: 2.5rem; z-index: 5; display: flex; flex-direction: column; align-items: center; gap: var(--space-2); overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; scrollbar-width: none; background: var(--color-bg); }
 .damage-calc-summary-rail::-webkit-scrollbar { display: none; }
 .damage-calc-summary-rail-item { flex: 0 0 auto; width: 2.5rem; height: 2.5rem; min-height: 2.5rem; padding: 0; overflow: hidden; border: 0; border-radius: 50%; background: transparent; font-size: var(--font-size-sm2); }
 .damage-calc-summary-rail-item img { display: block; width: 100%; height: 100%; object-fit: contain; }
