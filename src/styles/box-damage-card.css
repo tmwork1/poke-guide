@@ -959,7 +959,9 @@ body.box-edit-page {
 
 #opponent-notes-section .damage-row-total-result[data-severity="risky"] {
   color: var(--damage-card-result-confirm2-color);
-  opacity: .6;
+  /* opacity: .6 だと明るい背景(--damage-card-face-background)に対してほぼ白飛びし、
+     黄色だと判別できなかったため、判別できる濃さまで戻す。 */
+  opacity: .75;
 }
 
 #opponent-notes-section .damage-row-total-result[data-severity="safe"] {
