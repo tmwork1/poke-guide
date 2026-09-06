@@ -254,11 +254,13 @@ export const DAMAGE_AILMENTS = [
 // 候補を出す(まひ・ねむり・こおりはダメージ倍率に直接効かないため対象外)。
 // 検証(damage-calc.ts側のattackerAilment/defenderAilment)は引き続き上のDAMAGE_AILMENTS
 // (全候補)を基準にする。過去データが持つ値を誤って「不正な値」としてリセットしないため。
+// 「なし」(value: "")はボタンとして置かない。buildIconToggleGroupは選択中のボタンを
+// 再度押すと未選択(="")に戻る仕様のため、天候・フィールドと同じく専用ボタンは不要。
 export const DAMAGE_ATTACKER_AILMENTS = DAMAGE_AILMENTS.filter((a) =>
-	["", "どく", "やけど"].includes(a.value),
+	["どく", "やけど"].includes(a.value),
 );
 export const DAMAGE_DEFENDER_AILMENTS = DAMAGE_AILMENTS.filter((a) =>
-	["", "どく", "もうどく", "やけど"].includes(a.value),
+	["どく", "もうどく", "やけど"].includes(a.value),
 );
 // 各項目のtitleはvendor/jpoke実装(src/jpoke/data/volatile.py・src/jpoke/handlers/volatile.py)
 // を確認して書いた説明文。数値(割合・倍率)を変更する場合は必ずjpoke skill(.claude/skills/jpoke)
@@ -2665,6 +2667,12 @@ if (opponentNotesSection) {
 			// (「攻撃(自分)」⇄「攻撃(相手)」、壁のラベル)もここで自動的に追随する。
 			renderColumns(row);
 			onFieldInput();
+			// 相手ビルド(性格・特性・持ち物・テラス・努力値)は攻撃/防御で別々に
+			// localStorageへ保存している(saveOpponentBuildPreset参照)。種族名を
+			// 変えずに攻守だけ切り替えた場合も、まだビルドを何も入力していない
+			// (isOpponentBuildUnset)行に限りその向き用のプリセットを反映する
+			// (既に入力済みの値は上書きしない)。
+			applyOpponentBuildPreset(row.name);
 		}
 		// カード上のattackOption/defenseOptionは状態表示専用(クリックによる攻守反転は廃止)。
 		// 向きの変更は詳細設定パネル側のdetailAttackOption/detailDefenseOptionのみで行う。

@@ -38,6 +38,9 @@ body.box-edit-page {
   --damage-card-build-detail-color: var(--color-text-muted); /* 相手情報2段目(特性・テラス・アイテム・実数値)の文字色 */
   --damage-card-attack-badge-color: var(--color-danger-strong); /* 相手ビルドカードの攻撃バッジの文字色(よく行われるダメージ計算の攻守チップと同じ配色) */
   --damage-card-defense-badge-color: var(--color-primary); /* 相手ビルドカードの防御バッジの文字色 */
+  --damage-card-result-confirm1-color: var(--color-risky-strong); /* 技ごとの結果表示: 確定数1発の文字色 */
+  --damage-card-result-confirm2-color: var(--color-risky-strong); /* 技ごとの結果表示: 確定数2発の文字色(1発より薄くするためopacityを併用) */
+  --damage-card-result-confirm3plus-color: var(--color-text); /* 技ごとの結果表示: 確定数3発以上・不明の文字色(強調しない) */
 
   /* ── 4. 背景色 ─────────────────────── */
   --damage-card-active-background: color-mix(in srgb, var(--color-bg) 90%, var(--color-primary) 10%); /* hover・フォーカス時の背景色 */
@@ -1266,16 +1269,19 @@ body.box-edit-page {
   border-left: none;
 }
 
+/* 確定数1発(最も倒しやすい)は黄色、2発はその薄い色、3発以上・不明は通常の文字色にする
+   (以前は1発=危険色の赤、2発=注意色、3発以上=リンク色の青だった)。 */
 #opponent-notes-section .damage-column-result[data-severity="lethal"] {
-  color: var(--color-danger-strong);
+  color: var(--damage-card-result-confirm1-color);
 }
 
 #opponent-notes-section .damage-column-result[data-severity="risky"] {
-  color: var(--color-risky-strong);
+  color: var(--damage-card-result-confirm2-color);
+  opacity: .6;
 }
 
 #opponent-notes-section .damage-column-result[data-severity="safe"] {
-  color: var(--color-primary-strong);
+  color: var(--damage-card-result-confirm3plus-color);
 }
 
 #opponent-notes-section .damage-column-result .damage-result-verdict {

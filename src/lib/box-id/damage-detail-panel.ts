@@ -74,6 +74,7 @@ let detailPanelMoveNamesEl: HTMLElement;
 let detailPanelTotalEl: HTMLElement;
 let detailPanelTotalResultEl: HTMLElement;
 const opponentPreviewStatEls = new WeakMap<DamageRowState, Partial<Record<StatKey, HTMLElement>>>();
+const opponentPreviewIconEls = new WeakMap<DamageRowState, { icon: HTMLImageElement; fallback: HTMLElement }>();
 let moveDropdownOutsideClickHandler: ((event: MouseEvent) => void) | null = null;
 const DETAIL_PANEL_SWIPE_THRESHOLD_PX = 64;
 const DETAIL_PANEL_SWIPE_AXIS_RATIO = 1.25;
@@ -242,6 +243,16 @@ function syncOpponentPreviewStats(row: DamageRowState): void {
 	}
 }
 
+// 共通プレビュー(buildSelectionHeadingRow)のアイコンは選択時に1度だけ描画されるため、
+// 相手種族名を入力し直しても再描画のタイミング(refreshDetailPanelFooter)までは
+// 古いアイコンのままだった。syncDetailPanelTotal(名前変更後の再計算のたびに呼ばれる)
+// からも追従できるよう、既存のicon/fallback要素へ再度applySpriteするだけの薄い関数にする。
+function syncOpponentPreviewIcon(row: DamageRowState): void {
+	const iconEls = opponentPreviewIconEls.get(row);
+	if (!iconEls) return;
+	void applySprite(iconEls.icon, iconEls.fallback, row.name.trim());
+}
+
 function buildSelectionHeadingRow(row: DamageRowState): HTMLElement {
 	const heading = document.createElement("div");
 	heading.className = "damage-detail-selection-heading";
@@ -301,6 +312,7 @@ function buildSelectionHeadingRow(row: DamageRowState): HTMLElement {
 	}
 	opponentPreviewStatEls.set(row, statEls);
 	syncOpponentPreviewStats(row);
+	opponentPreviewIconEls.set(row, { icon: opponentIcon, fallback: opponentIconFallback });
 
 	const attackerLabel = isSelfAttacking ? selfName : opponentName;
 	const defenderLabel = isSelfAttacking ? opponentName : selfName;
@@ -336,6 +348,7 @@ export function syncDetailPanelTotal(row: DamageRowState): void {
 	if (!detailPanelTotalResultEl || getSelectedRow() !== row || detailPanelFooterEl.hidden) return;
 	if (detailPanelMoveNamesEl) detailPanelMoveNamesEl.textContent = buildMoveNamesText(row);
 	syncOpponentPreviewStats(row);
+	syncOpponentPreviewIcon(row);
 	const source = row.totalResultEl;
 	if (!source) return;
 	detailPanelTotalResultEl.replaceChildren(...Array.from(source.childNodes, (node) => node.cloneNode(true)));

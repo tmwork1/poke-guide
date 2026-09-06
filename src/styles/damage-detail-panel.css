@@ -443,6 +443,10 @@ body.box-edit-page {
 	.damage-detail-panel .damage-detail-opponent-stat-label {
 		font-weight: var(--damage-detail-font-weight-semibold);
 	}
+	/* 性格補正の色(--color-stat-up/down)が既に補正の有無を示すため、太字は重ねない。 */
+	.damage-detail-panel .damage-detail-opponent-stat[data-mod] .damage-detail-opponent-stat-label {
+		font-weight: var(--damage-detail-font-weight-regular);
+	}
 	/* var(--damage-detail-font-size-xs)は両側の見出しと同じ値。行クラスも含めて詳細度を上げ、読み込み順に依存せず適用する。 */
 	#damage-detail-panel-body .damage-detail-field-row .damage-detail-field-row-label {
 		font-size: var(--damage-detail-font-size-xs);
