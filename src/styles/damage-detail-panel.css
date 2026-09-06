@@ -669,7 +669,13 @@ body.box-edit-page {
 		margin-bottom: 0; /* 種族入力欄と同じ外寸に揃える。 */
 	}
 	#damage-detail-panel-body .damage-build-detail-direction-toggle .damage-row-direction-option {
-		min-height: var(--damage-detail-build-control-height);
+		/* buttons.css共通ルールのmin-height:var(--tap-target-min)(44px)を、周辺欄と揃えた
+			高さ(--damage-detail-build-control-height、border-box基準)へ上書きする。ここを
+			コンテナの外寸と同じ値にすると、コンテナのborder分(2px)だけ中身がコンテナの
+			content-boxより高くなり、overflow: hiddenで下辺の選択枠線(box-shadow)が
+			見切れていたため、コンテナの枠線幅(--damage-card-direction-border=1px×2辺)を
+			差し引いておく。 */
+		min-height: calc(var(--damage-detail-build-control-height) - 2px);
 		padding-inline: var(--damage-detail-space-sm);
 		/* 「攻撃」「防御」の2文字ラベルが折り返さないようにする(Cの不具合の直接原因)。 */
 		white-space: nowrap;
