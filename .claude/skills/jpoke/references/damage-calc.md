@@ -181,6 +181,17 @@
 - `vendor/jpoke/src` と `../jpoke/src` を `diff -rq` で比較した結果、ビルド生成物(`__pycache__`/`*.egg-info`)を除き**一致**。両方とも `version = "0.2.0"`(2026-07-27時点から据え置きのまま、`resume_from`含め機能追加された。上流CHANGELOG.mdは`[Unreleased]`扱い)。
 - 上流 `docs/quick_reference.md` には丸め順序・`round_half_down`の定義・急所率テーブルなど本ファイルの核心部分の記載が見当たらず、突き合わせによる差分検出はできなかった。
 
+## 11. `LethalHitResult.__add__`は「同じ技の繰り返し」の自己合成には使えない(2026-09-06、poke-guide側バグ調査で追記)
+
+**背景**: poke-guideの`perAttackLethal`(「この技だけを連発したら何発で倒れるか」表示)は、かつて`isolated_result`(1発だけの結果)を自分自身に`LethalHitResult.__add__`で繰り返し加算する実装だった。ガブリアスのじしん(91〜108)vsたべのこし持ちヤドキング(H201、回復12)の実例で、正しくは2発目に乱数KO(約1.95%)が起こり得るのに、常に「確定3発」と表示されるバグが発覚した。
+
+- `LethalHitResult.__add__`の実装(出典: `vendor/jpoke/src/jpoke/core/lethal.py:89-108`): `hp_dist = subtract_dist(self.hp_dist, subtract_dist(other.initial_hp, other.hp_dist))`。`other.initial_hp - other.hp_dist`で「otherの1発ぶんの正味HP減少(ターン終了時回復込み)」を導出し、それをselfから引く。
+- **selfとotherが同一の`isolated_result`(=同じ1ターンの効果を2回分)の場合、たべのこし等のターン終了時回復が実質2回分適用された計算になる**(1発目のisolated_resultにも2発目のisolated_resultにも独立に「回復込みの正味減少」が含まれるため)。実測: ヤドキングの例で2発合成後のHPは`225 - d1 - d2`(回復24分)になり、正しい`213 - d1 - d2`(回復12分、1発目と2発目の間の1回のみ)より9多く残ってしまい、2発目の致死確率が常に0%になっていた。
+- `subtract_dist`は`minimum`未指定だと0未満をクランプしないため、`__add__`を自己合成に使うと「一度致死した枝が後続の合成で生き返る」非単調バグも別途生じる(poke-guide側はこれを`_clamp_hp_dist_min0`という後処理で回避していたが、根本原因の二重計上は直らない)。
+- **正しい継続方法**: `Battle.calc_lethal(..., resume_from=前回の結果)`を1発ずつ繰り返す(`sequential`側と同じ方法)。`resume_from`経由の`hp_dist`は`_apply_damage`/`_apply_damage_by_branch`が常に`minimum=0`でクランプするため(出典: `lethal.py:442,484,490`)、二重計上・非単調バグのどちらも起きない。実測でこの方法は`Battle.calc_lethal(max_attack=N)`を1回で呼んだ場合(ground truth)と完全に一致することを確認済み。
+- **`calc_lethal(max_attack=N)`を1回で呼ぶだけでは複数ターン分の系列を取り切れない場合がある**: `_lethal_loop`は「HP分布中に1つでもHP=0の分岐が現れたら、他の分岐が生存中でもそこで打ち切る」仕様(§6参照)のため、例えば2発目で一部の乱数だけがKOに達するケースでは、`max_attack=10`と指定しても結果配列が2件で止まり、3発目以降(確率100%に達する地点)が返らない。`max_attack=1`を`resume_from`で1発ずつ繋げば、この早期打ち切りの影響を受けずに最後まで系列を取れる(実測で確認済み: ガブリアスvsヤドキングの例で`max_attack=3`一括呼び出しは2発目で打ち切られ3発目の100%が取れないが、`max_attack=1`×3回のresume_from連鎖なら1→2→3発目まで正しく取れる)。
+- 修正はpoke-guide側(`src/lib/pyodide-engine.ts`の`calc_lethal_sequence_json`内`per_attack_lethal_series`)で行った。jpoke自体に修正は不要(`__add__`はドキュメント通りの実装であり、「同じ技の繰り返し」という用途にはそもそも向かない汎用コンビネータ)。
+
 ## 未確認(コードで確認できなかった項目)
 
 - (未確認) `ON_CALC_PROTECT_MODIFIER`(まもる貫通系)がこのプロジェクトの対戦フォーマット(ダイマックス・Z技なし想定)で実際に非4096の値を返すケースが存在するか。
