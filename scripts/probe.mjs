@@ -34,6 +34,9 @@
  *
  * 操作(**指定した順に**実行される。DBを汚しうる。上記の注意を読むこと):
  *   --click <sel>       クリック。`text=xxx` で完全一致テキスト
+ *   --drag <sel=dx,dy>  マウスでドラッグ(スクロールバーを掴めるかの検証)。
+ *                       `sel@x,y=dx,dy` で要素内の開始点を指定(負値は右/下端からの相対)
+ *   --swipe <sel=dx,dy> 指(タッチ)でフリック。横スクロールが指で動くかの検証
  *   --fill <sel=value>  入力欄を埋める
  *   --press <sel=Key>   キー送出(例 `input.search=Enter`)。`sel=` を省くとページ全体へ
  *   --hover <sel>       ホバー
@@ -68,7 +71,8 @@ const USAGE = [
 	"使い方: npm run probe -- --page <path> [操作] [実測]",
 	"",
 	"  対象  --page box/<id> [--theme dark] [--size 390x844]",
-	"  操作  --click <sel> / --fill <sel=値> / --press <sel=Key> / --hover <sel>",
+	"  操作  --click <sel> / --drag <sel=dx,dy> / --swipe <sel=dx,dy>",
+	"        --fill <sel=値> / --press <sel=Key> / --hover <sel>",
 	"        --scroll <sel|px> / --wait <sel> / --wait-ms <n>   ※指定順に実行",
 	"  実測  --rect <sel> / --style <sel:prop,...> / --text <sel> / --html <sel>",
 	"        --count <sel> / --overflow / --eval <js> / --limit <n> / --json",
@@ -128,6 +132,8 @@ function parseArgs(argv) {
 				opts.json = true;
 				break;
 			case "--click":
+			case "--drag":
+			case "--swipe":
 			case "--fill":
 			case "--press":
 			case "--hover":
@@ -189,6 +195,43 @@ async function runAction(page, action) {
 		case "hover":
 			await resolveLocator(page, value).first().hover({ timeout: 30_000 });
 			break;
+		// マウス/指のドラッグ。スクロールバーを掴めるか、フリックでスクロールするかの検証用。
+		// `--drag ".sel=-120,0"` は要素中央から左へ120px。`@x,y` を足すと要素内の開始点を
+		// 左上からの相対px(負値は右/下端からの相対)で指定できる: `".sel@-4,-3=-120,0"`。
+		case "drag":
+		case "swipe": {
+			const [selWithPoint, delta] = splitPair(value, `--${kind}`);
+			const atIndex = selWithPoint.lastIndexOf("@");
+			const sel = atIndex === -1 ? selWithPoint : selWithPoint.slice(0, atIndex);
+			const point = atIndex === -1 ? null : selWithPoint.slice(atIndex + 1).split(",").map(Number);
+			const [dx, dy] = delta.split(",").map(Number);
+			const box = await resolveLocator(page, sel).first().boundingBox({ timeout: 30_000 });
+			if (!box) throw new Error(`--${kind}: 要素の位置を取得できません: ${sel}`);
+			const startX = point ? box.x + (point[0] < 0 ? box.width + point[0] : point[0]) : box.x + box.width / 2;
+			const startY = point ? box.y + (point[1] < 0 ? box.height + point[1] : point[1]) : box.y + box.height / 2;
+			if (kind === "drag") {
+				await page.mouse.move(startX, startY);
+				await page.mouse.down();
+				for (let step = 1; step <= 10; step += 1) {
+					await page.mouse.move(startX + (dx * step) / 10, startY + (dy * step) / 10);
+				}
+				await page.mouse.up();
+			} else {
+				// CDPのタッチ入力。フリック(慣性なし)で横スクロールが動くかを見る。
+				const client = await page.context().newCDPSession(page);
+				const touch = (x, y) => [{ x, y, radiusX: 5, radiusY: 5, force: 1 }];
+				await client.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: touch(startX, startY) });
+				for (let step = 1; step <= 10; step += 1) {
+					await client.send("Input.dispatchTouchEvent", {
+						type: "touchMove",
+						touchPoints: touch(startX + (dx * step) / 10, startY + (dy * step) / 10),
+					});
+				}
+				await client.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+				await client.detach();
+			}
+			break;
+		}
 		case "fill": {
 			const [sel, text] = splitPair(value, "--fill");
 			await resolveLocator(page, sel).first().fill(text, { timeout: 30_000 });
@@ -367,7 +410,8 @@ async function main() {
 	if (opts.probes.length === 0) opts.probes.push({ kind: "overflow", value: null });
 
 	const browser = await chromium.launch();
-	const context = await browser.newContext({ viewport });
+	// --swipe(タッチ)を使えるよう、コンテキストは常にタッチ有効で作る。
+		const context = await browser.newContext({ viewport, hasTouch: true });
 	const page = await context.newPage();
 	const consoleErrors = [];
 	const pageErrors = [];
