@@ -242,7 +242,11 @@ function renderIdentity(refs: CardRefs, self: SelfBuild, opponent: OpponentBuild
   renderName(refs.matchupTitle, selfSelected ? selfName : "");
   renderName(refs.opponentName, opponentName);
   refs.selfItemButton.hidden = !selfSelected;
-  renderItemIcon(refs.selfItemIcon, refs.selfItemNoneIcon, self.item_name ?? "");
+  if (selfSelected) renderItemIcon(refs.selfItemIcon, refs.selfItemNoneIcon, self.item_name ?? "");
+  else {
+    refs.selfItemIcon.hidden = true;
+    refs.selfItemNoneIcon.setAttribute("hidden", "");
+  }
   renderItemIcon(refs.opponentItemIcon, refs.opponentItemNoneIcon, opponent.itemName ?? "");
   void loadImageIdMap().then((imageIds) => {
     if (currentRequestId !== requestId) return;
