@@ -35,6 +35,8 @@
 .damage-calc-matchup-card {
   --damage-calc-card-artwork-size: 4.25rem; /* 立ち絵の一辺。小さくすると名前・もちもの側の余地が広がる */
   --damage-calc-card-artwork-inset: var(--space-3); /* 立ち絵をカード左右端から内側へ寄せる距離 */
+  --damage-calc-card-item-gap: -2px; /* 立ち絵ともちものアイコンの間隔(名前非表示化に伴い立ち絵へ寄せるため僅かに重ねる) */
+  --damage-calc-card-item-size: 1.75rem; /* もちものアイコンの一辺(.damage-calc-matchup-card__item-buttonのwidth/heightと同じ値) */
   overflow: hidden; border: 1px solid var(--color-border); border-radius: 0; background: var(--color-surface); box-shadow: var(--shadow-sm);
 }
 .damage-calc-matchup-card__header { position: relative; min-height: 6rem; overflow: hidden; background: var(--color-surface); }
@@ -52,9 +54,11 @@
 [data-role="self-artwork"]:focus-visible, [data-role="opponent-artwork"]:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
 /* 未選択時は？を丸いアイコンとして表示する。 */
 .damage-calc-matchup-card__artwork--placeholder { display: grid; place-items: center; border: 1px solid var(--color-border); border-radius: 50%; background: var(--color-bg); color: var(--color-text-muted); font-size: var(--font-size-lg1); font-weight: var(--font-weight-bold); }
-.damage-calc-matchup-card__pokemon--self .damage-calc-matchup-card__artwork { left: var(--damage-calc-card-artwork-inset); }
-.damage-calc-matchup-card__pokemon--opponent .damage-calc-matchup-card__artwork { right: var(--damage-calc-card-artwork-inset); }
-.damage-calc-matchup-card__pokemon-meta { position: absolute; z-index: 2; display: flex; align-items: center; max-width: calc(100% - var(--damage-calc-card-artwork-size) - var(--damage-calc-card-artwork-inset) - 2px); white-space: nowrap; }
+/* 立ち絵ともちものアイコンを1組として、それぞれのカラム(50%幅)の中央に寄せる。 */
+.damage-calc-matchup-card__pokemon--self .damage-calc-matchup-card__artwork { left: calc(50% - (var(--damage-calc-card-artwork-size) + var(--damage-calc-card-item-gap) + var(--damage-calc-card-item-size)) / 2); }
+.damage-calc-matchup-card__pokemon--opponent .damage-calc-matchup-card__artwork { right: calc(50% - (var(--damage-calc-card-artwork-size) + var(--damage-calc-card-item-gap) + var(--damage-calc-card-item-size)) / 2); }
+/* 名前は非表示(下のh2ルールはそのまま残すが表示しない)。 */
+.damage-calc-matchup-card__pokemon-meta { position: absolute; z-index: 2; display: none; align-items: center; max-width: calc(100% - var(--damage-calc-card-artwork-size) - var(--damage-calc-card-artwork-inset) - 2px); white-space: nowrap; }
 .damage-calc-matchup-card__pokemon--self .damage-calc-matchup-card__pokemon-meta { top: 1rem; left: calc(var(--damage-calc-card-artwork-inset) + var(--damage-calc-card-artwork-size) + 2px); }
 .damage-calc-matchup-card__pokemon--opponent .damage-calc-matchup-card__pokemon-meta { top: 1rem; right: calc(var(--damage-calc-card-artwork-inset) + var(--damage-calc-card-artwork-size) + 2px); flex-direction: row-reverse; }
 .damage-calc-matchup-card .damage-calc-matchup-card__pokemon h2 { display: flex; flex-direction: column; min-width: 0; margin: 0; padding: 0; overflow: hidden; font-size: var(--font-size-sm2); font-weight: var(--font-weight-normal); line-height: var(--line-height-tight); }
@@ -66,16 +70,21 @@
  * 埋もれず注釈だと分かるようにする。 */
 .damage-calc-matchup-card__pokemon--self .damage-calc-matchup-card__pokemon-name-suffix { text-align: right; transform: translateX(-0.3em); }
 .damage-calc-matchup-card__pokemon--opponent .damage-calc-matchup-card__pokemon-name-suffix { align-self: stretch; text-align: left; transform: translateX(0.3em); }
-.damage-calc-matchup-card__item-button { position: absolute; z-index: 2; width: 1.75rem; height: 1.75rem; padding: 0; border: 0; background: transparent; cursor: pointer; }
+/* min-height:44pxのタップ領域確保(global.css)でボタンの実際の高さが
+ * --damage-calc-card-item-size より大きくなることがあるため、中のアイコンは
+ * 固定サイズにしflex+align-items:flex-endで箱の下端(=立ち絵の下端)に揃える。 */
+.damage-calc-matchup-card__item-button { display: flex; align-items: flex-end; justify-content: center; position: absolute; z-index: 2; width: var(--damage-calc-card-item-size); height: var(--damage-calc-card-item-size); padding: 0; border: 0; background: transparent; cursor: pointer; }
 .damage-calc-matchup-card__item-button[hidden] { display: none; }
-.damage-calc-matchup-card__item-icon { display: block; width: 100%; height: 100%; object-fit: contain; }
+.damage-calc-matchup-card__item-icon { display: block; flex: none; width: var(--damage-calc-card-item-size); height: var(--damage-calc-card-item-size); object-fit: contain; }
 .damage-calc-matchup-card__item-icon[hidden] { display: none; }
 /* もちものなしのときに出す○＋斜線アイコン(もちもの選択モーダルの「なし」と同じ形)。 */
-.damage-calc-matchup-card__item-none-icon { display: block; width: 100%; height: 100%; color: var(--color-text-muted); fill: none; stroke: currentColor; stroke-width: 2; }
+.damage-calc-matchup-card__item-none-icon { display: block; flex: none; width: var(--damage-calc-card-item-size); height: var(--damage-calc-card-item-size); color: var(--color-text-muted); fill: none; stroke: currentColor; stroke-width: 2; }
 .damage-calc-matchup-card__item-none-icon[hidden] { display: none; }
 .damage-calc-matchup-card__item-button:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
-.damage-calc-matchup-card__pokemon--self .damage-calc-matchup-card__item-button { bottom: 1rem; left: calc(var(--damage-calc-card-artwork-inset) + var(--damage-calc-card-artwork-size) + 2px); }
-.damage-calc-matchup-card__pokemon--opponent .damage-calc-matchup-card__item-button { right: calc(var(--damage-calc-card-artwork-inset) + var(--damage-calc-card-artwork-size) + 2px); bottom: 1rem; }
+/* もちものは立ち絵と下端を揃え(下端からの距離を立ち絵と同じ式で揃える)、
+ * 立ち絵のすぐ隣(--damage-calc-card-item-gap ぶん)に寄せる。 */
+.damage-calc-matchup-card__pokemon--self .damage-calc-matchup-card__item-button { bottom: calc(50% - var(--damage-calc-card-artwork-size) / 2); left: calc(50% - (var(--damage-calc-card-artwork-size) + var(--damage-calc-card-item-gap) + var(--damage-calc-card-item-size)) / 2 + var(--damage-calc-card-artwork-size) + var(--damage-calc-card-item-gap)); }
+.damage-calc-matchup-card__pokemon--opponent .damage-calc-matchup-card__item-button { bottom: calc(50% - var(--damage-calc-card-artwork-size) / 2); right: calc(50% - (var(--damage-calc-card-artwork-size) + var(--damage-calc-card-item-gap) + var(--damage-calc-card-item-size)) / 2 + var(--damage-calc-card-artwork-size) + var(--damage-calc-card-item-gap)); }
 .damage-calc-matchup-card__versus { position: absolute; z-index: 3; top: 50%; left: 50%; transform: translate(-50%, -50%); color: var(--color-text-muted); font-size: var(--font-size-sm2); font-weight: var(--font-weight-bold); letter-spacing: .08em; }
 .damage-calc-matchup-card__status { margin: var(--space-2); color: var(--color-text-muted); font-size: var(--font-size-sm3); text-align: center; }
 .damage-calc-matchup-card__status[data-state="error"] { color: var(--color-danger-strong); }
@@ -89,7 +98,7 @@
 .damage-calc-matchup-card__section { display: grid; padding: var(--space-2) 0; }
 .damage-calc-matchup-card__table-wrap { overflow-x: auto; }
 .damage-calc-matchup-card__table { width: 100%; min-width: 31rem; border-collapse: collapse; font-size: var(--font-size-sm2); }
-.damage-calc-matchup-card__move-column { width: 6.5rem; }
+.damage-calc-matchup-card__move-column { width: 7rem; }
 .damage-calc-matchup-card__table th, .damage-calc-matchup-card__table td { padding: .48rem .4rem; border: 0; text-align: center; vertical-align: middle; white-space: nowrap; }
 .damage-calc-matchup-card__table th { background: transparent; }
 .damage-calc-matchup-card__table tbody tr { border-top: 1px solid var(--color-border); }
@@ -189,7 +198,7 @@
 @media (max-width: 600px) {
   .damage-calc-matchup-card__table-wrap { overflow: visible; }
   .damage-calc-matchup-card__table { min-width: 0; table-layout: fixed; font-size: var(--font-size-sm3); }
-  .damage-calc-matchup-card__move-column { width: 6.5rem; }
+  .damage-calc-matchup-card__move-column { width: 7rem; }
   .damage-calc-matchup-card__table th, .damage-calc-matchup-card__table td { padding: .42rem .375rem; }
   .damage-calc-matchup-card__table tbody th { font-size: var(--font-size-sm3); }
   .damage-calc-matchup-card__table th:first-child { white-space: nowrap; }
@@ -197,6 +206,6 @@
   .damage-calc-matchup-card__table td strong { font-size: var(--font-size-sm2); }
 }
 @media (min-width: 375px) and (max-width: 600px) {
-  .damage-calc-matchup-card__move-column { width: 6.5rem; }
+  .damage-calc-matchup-card__move-column { width: 7rem; }
   .damage-calc-matchup-card__table tbody th { font-size: var(--font-size-sm2); }
 }
