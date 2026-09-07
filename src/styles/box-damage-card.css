@@ -102,6 +102,9 @@ body.box-edit-page {
   --damage-detail-ailment-width: 7em; /* 状態異常の選択欄の幅 */
   --damage-detail-selection-icon-size: 28px; /* 選択中ポケモンのアイコンサイズ */
   --damage-card-item-badge-size: 18px; /* アイテムアイコンの一辺 */
+  --damage-card-compact-height: 64px; /* 調整シート展開中に、ダメージカードを2行表示へ圧縮する高さ */
+  --damage-card-compact-build-width: 72px; /* 圧縮カード左列(攻守・立ち絵・持ち物)の幅 */
+  --damage-card-compact-sheet-row-height: 28px; /* 調整シート中の圧縮カードで、わざ名・累計結果それぞれに割り当てる行高 */
 
   /* ── 9. その他 ─────────────────────── */
   --damage-card-transition-duration: .15s; /* hover色や影が切り替わる時間。大きくすると変化がゆっくりになる */
@@ -2283,6 +2286,187 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .box-add-button
 #opponent-notes-section .card-damage .damage-build-matchup .damage-row-direction-option[data-role][aria-checked="true"],
 #opponent-notes-section .damage-suggest-direction[data-direction] {
   background: transparent;
+}
+
+/* --------------------------------------------------------------------------
+   ステータス調整シート展開中のダメージカード圧縮表示
+
+   調整シートが画面下半分を占める間も、努力値変更による複数のダメージ結果を
+   同時に見比べられるよう、カードを操作不可の2行表示へ一時的に圧縮する。
+   シートを閉じた瞬間にこの条件は外れ、通常のカード表示へ完全に戻る。
+   -------------------------------------------------------------------------- */
+body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage {
+  pointer-events: none;
+}
+
+body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-row-body {
+  display: grid;
+  grid-template-columns: var(--damage-card-compact-build-width) minmax(0, 1fr);
+  grid-template-rows: repeat(2, var(--damage-card-compact-sheet-row-height));
+  gap: 0 var(--space-1);
+  min-height: var(--damage-card-compact-height);
+  padding: var(--space-1);
+}
+
+/* 左列は攻守バッジと立ち絵を縦に置き、持ち物は立ち絵の横にアイコンだけ添える。 */
+body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-row-build {
+  display: grid;
+  grid-column: 1;
+  grid-row: 1 / -1;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: repeat(2, var(--damage-card-compact-sheet-row-height));
+  gap: 0 var(--space-1);
+  width: auto;
+  max-width: none;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+
+body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-row-build-left,
+body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-row-build-right,
+body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-build-matchup,
+body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-row-build-main,
+body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-row-build-fields {
+  display: contents;
+}
+
+body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-row-direction-toggle {
+  grid-column: 1;
+  grid-row: 1;
+  align-self: center;
+}
+
+body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-sprite-box {
+  grid-column: 1;
+  grid-row: 2;
+  width: var(--damage-card-compact-sheet-row-height);
+  height: var(--damage-card-compact-sheet-row-height);
+}
+
+body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-item-badge {
+  width: var(--damage-card-compact-sheet-row-height);
+  height: var(--damage-card-compact-sheet-row-height);
+}
+
+body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-build-item-field {
+  grid-column: 2;
+  grid-row: 2;
+  gap: 0;
+}
+
+/* 圧縮時は対面の識別に不要な型詳細を外し、残すのは持ち物アイコンだけにする。 */
+body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-build-readonly-name,
+body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-build-readonly-ability-line,
+body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-row-build-fields .damage-build-readonly-field,
+body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-ev-grid-readonly,
+body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-build-item-name,
+body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-row-condition-chips,
+body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-column-conditions,
+body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-column-hitcount-text,
+body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-column-footer,
+body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-column-result,
+body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-column-hitcount-row,
+body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-row-footer,
+body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-row-icon-button,
+body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-detail-panel.is-mobile-inline {
+  display: none;
+}
+
+/* 右列は1行目を全技名の連結、2行目を累計結果だけにし、個別の技カード枠は外す。 */
+body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-row-techniques-row {
+  display: grid;
+  grid-column: 2;
+  grid-row: 1 / -1;
+  grid-template-rows: repeat(2, var(--damage-card-compact-sheet-row-height));
+  gap: 0;
+  width: auto;
+  min-width: 0;
+}
+
+body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-row-columns-wrap {
+  display: contents;
+}
+
+/* 技名は「A + B」の1行に必ず収める。折り返すと2行目が累計結果の行に重なるため
+   nowrap固定にし、はみ出しは技名側のtext-overflowで切る。下の累計結果と頭を
+   揃えるため左寄せにする(通常表示の中央寄せをここで打ち消す)。 */
+body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-row-columns {
+  display: flex;
+  /* 通常表示のこの器はflex-flow:columnで技カードを縦に積む。圧縮中は技名を
+     横一列に連結するので、方向をrowへ明示的に戻す(rowを書かないと技が縦に
+     積まれ、2つ目の技名が累計結果の行に重なる)。 */
+  flex-flow: row nowrap;
+  justify-content: flex-start;
+  grid-row: 1;
+  align-items: center;
+  min-width: 0;
+  overflow: hidden;
+}
+
+body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-column,
+body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-column-body,
+body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-column-move-and-chips,
+body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-column-move-row {
+  display: contents;
+}
+
+body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-column-move-identity {
+  display: flex;
+  align-items: center;
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-column:not([hidden]) ~ .damage-column:not([hidden]) .damage-column-move-type-bar {
+  display: none;
+}
+
+/* hidden列をまたいで余分な「+」を出さないため、後続の可視列がある技名だけをつなぐ。 */
+body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-column:not([hidden]):has(~ .damage-column:not([hidden])) .damage-column-move-text::after {
+  content: " + ";
+}
+
+body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-column-move-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-row-total {
+  grid-column: 1;
+  grid-row: 2;
+  align-self: stretch;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border-width: 0;
+}
+
+body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-row-total-result {
+  max-width: none;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  font-size: var(--font-size-sm3);
+  line-height: var(--damage-card-compact-sheet-row-height);
+  white-space: nowrap;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: var(--space-1);
+  display: grid;
+}
+
+/* カード内の追加スロットが将来復活しても、圧縮中は操作対象として見せない
+   (右下固定の「ダメージ計算を追加」ボタン#opponent-notes-section .box-add-buttonは
+   圧縮中も残す。シート背後へ送るz-index調整だけを上方のルールで行っている)。 */
+body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .add-card-tile {
+  display: none;
+}
+
+/* 「人気の計算」サジェストは、努力値をいじりながらダメージを見比べる作業には
+   使わないうえ縦を大きく食うため、圧縮中はまとめて畳む。 */
+body:has(#stat-adjust-sheet.is-expanded) #damage-suggest-section {
+  display: none;
 }
 
 /* 特性は相手ビルドカードの特性欄(.damage-build-readonly-ability-line)と同じ、
