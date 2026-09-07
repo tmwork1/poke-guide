@@ -115,7 +115,7 @@
 /* 展開後だけ、反転した山形をつまみの内側へ補正する。 */
 #stat-adjust-sheet.is-expanded .stat-adjust-sheet-toggle-icon::before,
 #stat-adjust-sheet.is-expanded .stat-adjust-sheet-toggle-icon::after {
-	top: 10px;
+	top: -10px;
 }
 
 /* 展開中は開閉だけを担うため、閉じたときの大きなつまみ高さを引き継がない。 */
