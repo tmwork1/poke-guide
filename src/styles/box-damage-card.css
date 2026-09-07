@@ -2391,7 +2391,8 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .d
   display: grid;
   grid-column: 2;
   /* 技は上段、フル表記の累計結果は下段に分け、右列の横幅を結果へ全て使えるようにする。 */
-  grid-row: 1;
+  grid-row: 1 / -1;
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: repeat(2, var(--damage-card-compact-sheet-row-height));
   gap: 0;
   width: 100%;
@@ -2412,6 +2413,7 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .d
      積まれ、2つ目の技名が累計結果の行に重なる)。 */
   flex-flow: row nowrap;
   justify-content: flex-start;
+  grid-column: 1;
   grid-row: 1;
   align-items: center;
   min-width: 0;
@@ -2479,7 +2481,7 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .d
 
 body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-row-total {
   /* ダメージ結果は右列の下段に置き、左列の対面情報と対応させる。 */
-  grid-column: 2;
+  grid-column: 1;
   grid-row: 2;
   align-self: stretch;
   min-width: 0;
