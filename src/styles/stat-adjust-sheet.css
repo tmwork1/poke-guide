@@ -93,7 +93,7 @@
 	position: absolute;
 	width: 7px;
 	height: 2px;
-	top: 2px;
+	top: 3px;
 	background: currentColor;
 	border-radius: 999px;
 }
@@ -114,7 +114,7 @@
 
 /* 展開中は開閉だけを担うため、閉じたときの大きなつまみ高さを引き継がない。 */
 #stat-adjust-sheet.is-expanded .stat-adjust-sheet-toggle {
-	height: 24px;
+	height: 26px;
 }
 
 #stat-status-adjust-body {
