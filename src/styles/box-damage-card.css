@@ -2309,9 +2309,9 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .d
   grid-template-columns: var(--damage-card-compact-build-width) minmax(0, 1fr);
   /* 左列は相手、右列は上段の技・下段のダメージに固定する。 */
   grid-template-rows: repeat(2, var(--damage-card-compact-sheet-row-height));
-  gap: 0 2px;
+  gap: 0;
   min-height: var(--damage-card-compact-height);
-  padding: var(--space-1) 2px;
+  padding: 0;
 }
 
 /* 左列は攻守バッジ・立ち絵・持ち物アイコンを、通常表示と同じ横並びのまま1行に置く
@@ -2467,8 +2467,13 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .d
 body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-column-hitcount-text {
   flex: none;
   margin-inline-start: var(--space-1);
-  /* 40px立ち絵と通常のビルド枠を優先し、技名と同じ最小限の縮小率に揃える。 */
-  font-size: var(--damage-card-compact-move-font-size);
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm3);
+  font-weight: var(--font-weight-medium);
+  opacity: .8;
 }
 
 body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-column-move-text {
@@ -2510,6 +2515,13 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .d
 body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-row-total-result .damage-result-verdict,
 body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-row-total-result .damage-result-detail {
   font-size: inherit;
+}
+
+/* 結果の判定を先に読ませ、実ダメージ量・割合は補助情報として一段軽くする。 */
+body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-result-probability,
+body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-row-total-result .damage-result-detail {
+  font-weight: var(--font-weight-normal);
+  opacity: .78;
 }
 
 /* カード内の追加スロットが将来復活しても、圧縮中は操作対象として見せない

@@ -37,6 +37,11 @@
   display: flex;
 }
 
+/* 努力値調整中はカードを比較表として密に並べる。 */
+body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .damage-rows-list {
+  gap: 2px;
+}
+
 /* カード0枚時に一覧へ表示する空状態タイル。以前はmin-heightがビューポート近くまで
    広がる巨大タイルだった(実測で画面いっぱいになるバグが発覚)。box一覧の空状態タイル
    (.empty-state-add-button、box-page.css)と同じ8rem相当まで縮める。 */
