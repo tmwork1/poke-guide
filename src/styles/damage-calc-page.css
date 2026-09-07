@@ -137,7 +137,7 @@
    レイアウトに影響しないtransformでずらす(アイコンは高さ26pxの中央=約7px下に
    描画されるため、この程度の上方向シフトでもアイコン自体は overflow:hidden に
    切り取られず、上に空く余白だけが詰まる)。 */
-.damage-calc-control-bar.is-expanded .damage-calc-control-panel-toggle { height: 26px; transform: translateY(-6px); }
+.damage-calc-control-bar.is-expanded .damage-calc-control-panel-toggle { height: 26px; transform: translateY(-8px); }
 .damage-calc-control-panel-toggle-icon { display: inline-flex; position: relative; width: 12px; height: 12px; align-items: center; justify-content: center; font-size: 0; transform-origin: center; transition: transform 0.2s ease; }
 .damage-calc-control-panel-toggle-icon::before, .damage-calc-control-panel-toggle-icon::after { content: ""; position: absolute; width: 8px; height: 2px; top: 2px; background: currentColor; border-radius: 999px; }
 .damage-calc-control-panel-toggle-icon::before { left: -1px; transform: rotate(-35deg); transform-origin: calc(100% - 1px) center; }
