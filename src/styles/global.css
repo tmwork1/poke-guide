@@ -256,6 +256,29 @@ a {
   color: var(--color-primary-strong);
 }
 
+/* ボタン類の長押しでラベル文字が選択される(モバイルでは選択ハンドル/虫眼鏡が出る)のを防ぐ。
+   タップ対象のみが対象で、本文や入力欄のテキスト選択は従来どおり残す。 */
+button,
+[role="button"],
+input[type="button"],
+input[type="submit"],
+input[type="reset"],
+summary,
+label {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* 入力欄はボタン/ラベルの内側にあっても選択・編集できるままにする。 */
+input:not([type="button"]):not([type="submit"]):not([type="reset"]),
+textarea,
+[contenteditable="true"] {
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
+}
+
 /* --- ページ共通コンテナ --- */
 .page {
 }
