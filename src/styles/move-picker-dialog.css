@@ -193,55 +193,6 @@ body.data-page {
   align-items: stretch;
   gap: var(--space-1);
 }
-/* タイプ・分類などを列単位で絞り込む入力欄の枠 */
-.move-picker-th-filter {
-  display: flex;
-  align-self: stretch;
-  flex: 1 1 auto;
-  min-width: 0;
-  margin-top: 0;
-}
-.move-picker-th-filter input,
-.move-picker-th-filter select {
-  box-sizing: border-box;
-  position: relative;
-  top: calc(-1 * var(--move-picker-table-header-padding-block) + var(--move-picker-table-header-filter-inset));
-  width: auto;
-  height: calc(100% + (var(--move-picker-table-header-padding-block) * 2) - (var(--move-picker-table-header-filter-inset) * 2));
-  min-width: 0;
-  max-width: 100%;
-  min-height: 0;
-  align-self: stretch;
-  padding: 0;
-  font-size: var(--move-picker-control-size);
-  font-weight: var(--font-weight-normal);
-  field-sizing: content;
-}
-.move-picker-table thead th:first-child .move-picker-th-filter input {
-  width: 100%;
-}
-.move-picker-th-filter.search-input-wrap input {
-  padding-left: 1.5em;
-}
-.move-picker-th-filter.search-input-wrap {
-  margin-left: calc(-1 * var(--move-picker-table-header-padding-inline));
-}
-.move-picker-th-filter.search-input-wrap input {
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  box-shadow: none;
-}
-.move-picker-th-filter.search-input-wrap:focus-within {
-  outline: 2px solid var(--color-primary);
-  outline-offset: -2px;
-}
-.move-picker-th-filter.search-input-wrap .search-icon {
-  z-index: 1;
-  left: var(--move-picker-table-header-padding-block);
-  top: 50%;
-  transform: translateY(-50%);
-}
 .move-picker-sort-btn {
   display: flex;
   align-items: center;
@@ -334,29 +285,6 @@ body .move-picker-th {
   align-items: stretch;
   gap: var(--space-1);
 }
-body .move-picker-th-filter {
-  display: flex;
-  align-self: stretch;
-  flex: 1 1 auto;
-  min-width: 0;
-  margin-top: 0;
-}
-body .move-picker-th-filter input,
-body .move-picker-th-filter select {
-  box-sizing: border-box;
-  position: relative;
-  top: calc(-1 * var(--move-picker-table-header-padding-block) + var(--move-picker-table-header-filter-inset));
-  width: auto;
-  height: calc(100% + (var(--move-picker-table-header-padding-block) * 2) - (var(--move-picker-table-header-filter-inset) * 2));
-  min-width: 0;
-  max-width: 100%;
-  min-height: 0;
-  align-self: stretch;
-  padding: 0;
-  font-size: var(--move-picker-control-size);
-  font-weight: var(--font-weight-normal);
-  field-sizing: content;
-}
 body .move-picker-sort-btn { font-size: var(--move-picker-control-size); }
 body .move-picker-table tbody td { padding: var(--move-picker-table-cell-padding); }
 /* 条件に一致する技がないときの案内文。旧来の指定より優先して大きさを調整する */
@@ -408,22 +336,18 @@ body .move-picker-empty {
     -webkit-touch-callout: none;
     user-select: none;
   }
+  body .move-picker-slot-input {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    font-size: max(16px, var(--font-size-sm1));
+    text-overflow: ellipsis;
+  }
   /* モバイルで現在編集中の技スロットを主色で示す */
   body .move-picker-slot-tab.is-selected {
     border-color: var(--color-primary);
     background: color-mix(in srgb, var(--color-surface) 88%, #000 12%);
     color: var(--color-text);
-  }
-  /* 技スロットタブのドラッグ&ドロップ入れ替え(box-id/pokemon-edit-panel.tsのswapMoveSlots・
-     dragstart/dragend/dragover/drop参照)。ドラッグ中のタブ自身は半透明にして
-     「持ち上げている」感を出し(is-dragging)、ドロップ先候補は主色で縁取る
-     (is-drop-target)。team/[id].astroの.card-team-slotと同じ考え方。 */
-  body .move-picker-slot-tab.is-dragging {
-    opacity: 0.5;
-  }
-  body .move-picker-slot-tab.is-drop-target {
-    border-color: var(--color-primary);
-    background: color-mix(in srgb, var(--color-surface) 90%, var(--color-primary) 10%);
   }
 }
 
@@ -457,13 +381,8 @@ body .move-picker-slot-tab {
   font-size: var(--font-size-sm2);
   background: transparent;
 }
-body .move-picker-slot-drag-hint {
-  margin-left: auto;
-  padding-left: var(--space-2);
-  color: var(--color-text-muted);
-  font-size: 1.25em;
-  line-height: 1;
-  cursor: grab;
+body .move-picker-slot-input {
+  font-size: max(16px, var(--font-size-sm2));
 }
 body .move-picker-slot-tab.is-selected {
   background: transparent;
@@ -486,12 +405,6 @@ body .move-picker-table thead th {
   vertical-align: top;
 }
 body .move-picker-th { align-items: center; }
-body .move-picker-th-filter input,
-body .move-picker-th-filter select {
-  height: calc(20px - var(--space-1));
-  min-height: calc(20px - var(--space-1));
-  font-size: var(--font-size-sm3);
-}
 body .move-picker-sort-btn { font-size: var(--font-size-sm3); }
 body .move-picker-sort-btn.is-active::after { color: var(--color-primary); }
 body .move-picker-table tbody td { padding: var(--space-1) 0.4rem; }

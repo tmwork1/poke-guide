@@ -1743,10 +1743,6 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 	const CATEGORY_RANK: Record<MoveCategory, number> = { physical: 0, special: 1, status: 2 };
 
 	let activeSlot: number | null = null;
-	// 技スロットタブのドラッグ&ドロップ入れ替え用(team/[id].astroのrenderSlots()の
-	// draggedMemberSlotと同じ考え方)。dragstart側で持ち上げ中のスロット番号を記録し、
-	// drop側でswapMoveSlots()を呼んで2つのスロットの技を入れ替える。
-	let draggedSlot: number | null = null;
 	let learnsetOnly = true; // 37-2: 既定ON
 	// 初期表示は人気順(sortDir="desc"=ratio降順)。ユーザーがどれかの列ヘッダを1回でも
 	// クリックした時点でこの初期値は上書きされ、以後はユーザーの選択がそのまま残り続ける
@@ -1811,126 +1807,10 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 
 	const slotTabsEl = document.createElement("div");
 	slotTabsEl.className = "move-picker-slot-tabs";
-	// スロットの並べ替えは長押し+ドラッグで行う(team/[id].astroのrenderSlots()の
-	// カード並べ替えと同じ「持ち上げ中スロットを記録し、ドロップ先でswapする」考え方)。
-	// ネイティブHTML5 D&D(draggable属性)はタッチ操作時、ブラウザ既定の長押し判定
-	// (Android Chromeで概ね500ms前後、機種依存)に頼っておりJS側から短縮できないため、
-	// 判定時間を明示的に制御できるポインタイベントベースの実装にする(card-delete-mode.tsの
-	// LONG_PRESS_MS、team/[id].astroのLONG_PRESS_MSと同じ考え方。体感を優先し450msにする)。
-	const SLOT_DRAG_LONG_PRESS_MS = 450;
-	const SLOT_DRAG_MOVE_CANCEL_PX = 8; // 長押し確定前にこれ以上動いたらタップ/スクロールとみなし打ち切る
-	let slotPressTimer: ReturnType<typeof window.setTimeout> | undefined;
-	let slotDragActive = false;
-	let suppressSlotClick = false;
-	let slotDragStartX = 0;
-	let slotDragStartY = 0;
-	function clearSlotPressTimer(): void {
-		if (slotPressTimer !== undefined) window.clearTimeout(slotPressTimer);
-		slotPressTimer = undefined;
-	}
-	function findSlotButtonAt(x: number, y: number): HTMLButtonElement | null {
-		const target = document.elementFromPoint(x, y);
-		return (target as HTMLElement | null)?.closest<HTMLButtonElement>(".move-picker-slot-tab") ?? null;
-	}
-	function clearSlotDropTargets(): void {
-		for (const btn of slotTabsEl.querySelectorAll<HTMLButtonElement>(".move-picker-slot-tab")) {
-			btn.classList.remove("is-drop-target");
-		}
-	}
-	// 長押し中にブラウザがポインタのヒットテストをやり直した場合でも、背面の
-	// ポケモンプレビューなどへイベントを渡さない。スロット内で開始した操作は
-	// pointer capture と組み合わせて、モーダル内で完結させる。
 	windowEl.addEventListener("contextmenu", (event) => {
 		event.preventDefault();
 		event.stopPropagation();
 	});
-	for (const slot of [1, 2, 3, 4]) {
-		const slotButton = document.createElement("button");
-		slotButton.type = "button";
-		slotButton.className = "move-picker-slot-tab";
-		slotButton.dataset.slot = String(slot);
-		slotButton.textContent = `技${slot}`;
-		slotButton.addEventListener("click", () => {
-			if (suppressSlotClick) {
-				// 長押しドラッグ確定後に発生する合成clickを1回だけ握りつぶす
-				// (card-delete-mode.tsのsuppressNextClickと同じ考え方)。
-				suppressSlotClick = false;
-				return;
-			}
-			activeSlot = slot;
-			updateSlotTabs();
-			renderRows();
-		});
-		// スロットを空にするのはダブルタップ／ダブルクリック時だけにする。
-		// clickでは選択を切り替えるだけで、技の内容は変更しない。
-		slotButton.addEventListener("dblclick", () => {
-			clearMoveSlot(slot);
-		});
-		function onSlotDragMove(moveEvent: PointerEvent): void {
-			clearSlotDropTargets();
-			const hovered = findSlotButtonAt(moveEvent.clientX, moveEvent.clientY);
-			if (hovered && hovered !== slotButton) hovered.classList.add("is-drop-target");
-		}
-		function endSlotDrag(commitEvent: PointerEvent | null): void {
-			document.removeEventListener("pointermove", onSlotDragMove);
-			document.removeEventListener("pointerup", onSlotDragEnd);
-			document.removeEventListener("pointercancel", onSlotDragCancel);
-			if (commitEvent && slotButton.hasPointerCapture(commitEvent.pointerId)) {
-				slotButton.releasePointerCapture(commitEvent.pointerId);
-			}
-			slotDragActive = false;
-			slotButton.classList.remove("is-dragging");
-			clearSlotDropTargets();
-			const fromSlot = draggedSlot;
-			draggedSlot = null;
-			if (!commitEvent || fromSlot == null) return;
-			const target = findSlotButtonAt(commitEvent.clientX, commitEvent.clientY);
-			const toSlot = target ? Number(target.dataset.slot) : NaN;
-			if (target && target !== slotButton && Number.isFinite(toSlot)) swapMoveSlots(fromSlot, toSlot);
-		}
-		function onSlotDragEnd(upEvent: PointerEvent): void {
-			endSlotDrag(upEvent);
-		}
-		function onSlotDragCancel(): void {
-			endSlotDrag(null);
-		}
-		slotButton.addEventListener("pointerdown", (event) => {
-			if (event.pointerType === "mouse" && event.button !== 0) return;
-			event.stopPropagation();
-			slotButton.setPointerCapture?.(event.pointerId);
-			suppressSlotClick = false;
-			slotDragStartX = event.clientX;
-			slotDragStartY = event.clientY;
-			clearSlotPressTimer();
-			slotPressTimer = window.setTimeout(() => {
-				slotPressTimer = undefined;
-				slotDragActive = true;
-				suppressSlotClick = true;
-				draggedSlot = slot;
-				slotButton.classList.add("is-dragging");
-				document.addEventListener("pointermove", onSlotDragMove);
-				document.addEventListener("pointerup", onSlotDragEnd);
-				document.addEventListener("pointercancel", onSlotDragCancel);
-			}, SLOT_DRAG_LONG_PRESS_MS);
-		});
-		slotButton.addEventListener("pointermove", (event) => {
-			if (slotDragActive || slotPressTimer === undefined) return;
-			const dx = event.clientX - slotDragStartX;
-			const dy = event.clientY - slotDragStartY;
-			// 長押し確定前の移動はタップ/スクロールの意図とみなし、ドラッグ開始をキャンセルする。
-			if (Math.hypot(dx, dy) > SLOT_DRAG_MOVE_CANCEL_PX) clearSlotPressTimer();
-		});
-		slotButton.addEventListener("pointerup", (event) => {
-			clearSlotPressTimer();
-			if (!slotDragActive && slotButton.hasPointerCapture(event.pointerId)) {
-				slotButton.releasePointerCapture(event.pointerId);
-			}
-		});
-		slotButton.addEventListener("pointercancel", () => {
-			clearSlotPressTimer();
-		});
-		slotTabsEl.appendChild(slotButton);
-	}
 	windowEl.appendChild(slotTabsEl);
 
 	const noteEl = document.createElement("p");
@@ -1995,43 +1875,10 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 		return th;
 	}
 
-	const nameFilterInput = document.createElement("input");
-	nameFilterInput.type = "text";
-	nameFilterInput.placeholder = "";
-	nameFilterInput.setAttribute("aria-label", "わざ名で絞り込み");
-	nameFilterInput.addEventListener("input", () => {
-		filters.name = nameFilterInput.value.trim();
-		renderRows();
-	});
-
 	const nameHeaderCell = document.createElement("th");
 	const nameHeader = document.createElement("div");
 	nameHeader.className = "move-picker-th";
-	const nameFilterWrap = document.createElement("div");
-	nameFilterWrap.className = "move-picker-th-filter search-input-wrap";
-	const searchIcon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-	searchIcon.classList.add("search-icon");
-	searchIcon.setAttribute("width", "15");
-	searchIcon.setAttribute("height", "15");
-	searchIcon.setAttribute("viewBox", "0 0 24 24");
-	searchIcon.setAttribute("fill", "none");
-	searchIcon.setAttribute("stroke", "currentColor");
-	searchIcon.setAttribute("stroke-width", "2.2");
-	searchIcon.setAttribute("stroke-linecap", "round");
-	searchIcon.setAttribute("stroke-linejoin", "round");
-	searchIcon.setAttribute("aria-hidden", "true");
-	const searchIconCircle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-	searchIconCircle.setAttribute("cx", "11");
-	searchIconCircle.setAttribute("cy", "11");
-	searchIconCircle.setAttribute("r", "7");
-	const searchIconLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
-	searchIconLine.setAttribute("x1", "21");
-	searchIconLine.setAttribute("y1", "21");
-	searchIconLine.setAttribute("x2", "16.65");
-	searchIconLine.setAttribute("y2", "16.65");
-	searchIcon.append(searchIconCircle, searchIconLine);
-	nameFilterWrap.append(searchIcon, nameFilterInput);
-	nameHeader.append(nameFilterWrap, makeSortButton("わざ名", "name", true));
+	nameHeader.appendChild(makeSortButton("わざ名", "name", true));
 	nameHeaderCell.appendChild(nameHeader);
 	headerRow.appendChild(nameHeaderCell);
 	// 人気列は値の意味が自明なので、見出しラベルを出さず並べ替えボタンだけを置く。
@@ -2070,31 +1917,79 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 	document.body.insertBefore(backdropEl, document.body.firstChild);
 	document.body.insertBefore(windowEl, backdropEl.nextSibling);
 
-	function updateSlotTabs(): void {
-		for (const tab of Array.from(slotTabsEl.querySelectorAll<HTMLButtonElement>(".move-picker-slot-tab"))) {
-			const slot = Number(tab.dataset.slot);
-			const selected = slot === activeSlot;
-			const moveName = (document.getElementById(`move-${slot}`) as HTMLInputElement | null)?.value.trim();
-			tab.replaceChildren();
+	// 通常の再描画では編集中のinputを保持し、スロット切替・技確定時だけ保存値から作り直す。
+	function updateSlotTabs(resetActiveInput = false): void {
+		for (const slot of [1, 2, 3, 4]) {
+			const moveName = (document.getElementById(`move-${slot}`) as HTMLInputElement | null)?.value.trim() ?? "";
+			const current = slotTabsEl.querySelector<HTMLElement>(`[data-slot="${slot}"]`);
+			if (slot === activeSlot) {
+				if (current instanceof HTMLInputElement && !resetActiveInput) continue;
+				const input = document.createElement("input");
+				input.type = "text";
+				input.className = "move-picker-slot-tab move-picker-slot-input is-selected";
+				input.dataset.slot = String(slot);
+				input.value = moveName;
+				input.setAttribute("aria-label", `技${slot}を検索`);
+				input.addEventListener("click", () => input.select());
+				input.addEventListener("input", () => {
+					const value = input.value.trim();
+					filters.name = value;
+					// 全消しはそのスロットのクリア操作として扱う(旧ダブルタップ削除の代替)。
+					// 判定には作成時のmoveNameではなく、保存先inputの現在値を使う。
+					const stored = (document.getElementById(`move-${slot}`) as HTMLInputElement | null)?.value.trim();
+					if (!value && stored) clearMoveSlot(slot);
+					else renderRows();
+				});
+				input.addEventListener("keydown", (event) => {
+					if (event.key !== "Enter") return;
+					event.preventDefault();
+					input.blur();
+				});
+				current?.replaceWith(input);
+				if (!current) slotTabsEl.appendChild(input);
+				continue;
+			}
+			if (current instanceof HTMLButtonElement) {
+				current.replaceChildren();
+				const type = moveName ? moveTypesByName?.get(moveName) : undefined;
+				const iconUrl = type ? typeIconUrl(type) : undefined;
+				if (type && iconUrl) {
+					const icon = document.createElement("img");
+					icon.className = "move-picker-slot-type-icon";
+					icon.src = iconUrl;
+					icon.alt = "";
+					icon.title = type;
+					current.appendChild(icon);
+				}
+				current.append(moveName || `技${slot}`);
+				current.setAttribute("aria-label", `技${slot}: ${moveName || "未選択"}`);
+				continue;
+			}
+			const button = document.createElement("button");
+			button.type = "button";
+			button.className = "move-picker-slot-tab";
+			button.dataset.slot = String(slot);
+			button.addEventListener("click", () => {
+				activeSlot = slot;
+				filters.name = "";
+				updateSlotTabs(true);
+				renderRows();
+			});
+			current?.replaceWith(button);
+			if (!current) slotTabsEl.appendChild(button);
+			// 作成直後に内容を反映するため、次の呼び出しを待たずここで描画する。
 			const type = moveName ? moveTypesByName?.get(moveName) : undefined;
 			const iconUrl = type ? typeIconUrl(type) : undefined;
-			if (iconUrl) {
+			if (type && iconUrl) {
 				const icon = document.createElement("img");
 				icon.className = "move-picker-slot-type-icon";
 				icon.src = iconUrl;
 				icon.alt = "";
 				icon.title = type;
-				tab.appendChild(icon);
+				button.appendChild(icon);
 			}
-			tab.append(moveName || `技${slot}`);
-			const dragHint = document.createElement("span");
-			dragHint.className = "move-picker-slot-drag-hint";
-			dragHint.setAttribute("aria-hidden", "true");
-			dragHint.textContent = "⠿";
-			tab.appendChild(dragHint);
-			tab.setAttribute("aria-label", `技${slot}: ${moveName || "未選択"}`);
-			tab.classList.toggle("is-selected", selected);
-			tab.setAttribute("aria-pressed", String(selected));
+			button.append(moveName || `技${slot}`);
+			button.setAttribute("aria-label", `技${slot}: ${moveName || "未選択"}`);
 		}
 	}
 
@@ -2208,7 +2103,8 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 			return !input?.value.trim();
 		});
 		if (nextEmptySlot != null) activeSlot = nextEmptySlot;
-		updateSlotTabs();
+		filters.name = "";
+		updateSlotTabs(true);
 		renderRows();
 	}
 
@@ -2219,26 +2115,6 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 		// choose()と同様に既存のアイコン更新・自動保存用リスナーへ通知する。
 		targetInput.dispatchEvent(new Event("input", { bubbles: true }));
 		targetInput.dispatchEvent(new Event("change", { bubbles: true }));
-		updateSlotTabs();
-		renderRows();
-	}
-
-	// 技スロットタブのドラッグ&ドロップ用: fromSlot/toSlotの技を入れ替える。
-	function swapMoveSlots(fromSlot: number, toSlot: number): void {
-		const fromInput = document.getElementById(`move-${fromSlot}`) as HTMLInputElement | null;
-		const toInput = document.getElementById(`move-${toSlot}`) as HTMLInputElement | null;
-		if (!fromInput || !toInput) return;
-		const fromValue = fromInput.value;
-		const toValue = toInput.value;
-		if (fromValue === toValue) return;
-		fromInput.value = toValue;
-		toInput.value = fromValue;
-		// choose()/clearMoveSlot()と同様に既存のアイコン更新・自動保存用リスナーへ通知する。
-		for (const input of [fromInput, toInput]) {
-			input.dispatchEvent(new Event("input", { bubbles: true }));
-			input.dispatchEvent(new Event("change", { bubbles: true }));
-		}
-		activeSlot = toSlot;
 		updateSlotTabs();
 		renderRows();
 	}
@@ -2337,16 +2213,18 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 
 	function openPicker(slot: number): void {
 		activeSlot = slot;
+		filters.name = "";
 		windowEl.classList.add("is-mobile-modal");
 		windowEl.setAttribute("aria-modal", "true");
 		backdropEl.hidden = false;
-		updateSlotTabs();
+		updateSlotTabs(true);
 		lockMobileModalHeight();
 		windowEl.hidden = false;
 		void refreshPool();
 	}
 
 	function closePicker(): void {
+		filters.name = "";
 		windowEl.hidden = true;
 		windowEl.classList.remove("is-mobile-modal");
 		windowEl.setAttribute("aria-modal", "false");
