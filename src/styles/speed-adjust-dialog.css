@@ -168,33 +168,15 @@ body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-row.
   padding-inline: var(--space-4);
 }
 
-/* 要因チップは省略せず、この列だけ横スクロールで確認する。
-   スクロールバーの見せ方は早見表本体(speed-chart-table.css の .speed-chart-chips-row)と同じ方針。
-   scrollbar-width を指定すると Chrome が ::-webkit-scrollbar を無視してオーバーレイ表示になり、
-   スマホ実機で指でバーを掴めなくなるため、ここでも併記しない。 */
+/* 要因チップは省略せず、この列だけ横スクロールで確認する。 */
 body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-chips-cell {
   min-width: 0;
   overflow-x: auto;
   overflow-y: hidden;
-}
-
-body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-chips-cell::-webkit-scrollbar {
-  height: 8px; /* スクロールバーの太さ。小さくすると指で掴みにくくなる */
-}
-
-body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-chips-cell::-webkit-scrollbar-thumb {
-  background: var(--color-border);
-  border-radius: 999px;
-}
-
-body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-chips-cell::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-@supports not selector(::-webkit-scrollbar) {
-  body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-chips-cell {
-    scrollbar-width: thin;
-  }
+  scrollbar-width: thin;
+  /* 早見表本体と同じく、チップ表示領域のどこをスライドしても横スクロールできるようにする
+     (chart-table.tsのドラッグスクロール。モーダルではこのセル側がスクロール実体)。 */
+  touch-action: pan-y;
 }
 
 body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-chips-row {

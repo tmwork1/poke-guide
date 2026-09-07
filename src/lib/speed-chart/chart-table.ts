@@ -245,6 +245,77 @@ export async function initSpeedChartPage(): Promise<void> {
   let lastKnownReachableValues: Set<number> | null = null;
   let minimapFrame: number | null = null;
 
+  // --------------------------------------------------------------------------
+  // ポケモンチップ列の「どこを掴んでもスライドできる」横スクロール
+  // --------------------------------------------------------------------------
+  // ネイティブのスクロールバーはスマホ実機ではオーバーレイ表示になり、見えていても
+  // 指で掴めない。掴めるのはチップの並びそのものなので、チップ表示領域のどこを
+  // スライドしても横スクロールできるようにする(マウスのドラッグでも同じ操作にする)。
+  // スクロール実体は表示形態で変わる(通常の早見表は .speed-chart-chips-row、
+  // すばやさ調整モーダルは .speed-chart-chips-cell)ため、要素名を決め打ちせず
+  // 「実際に横へはみ出しているスクロール可能な祖先」を探す。
+  // CSS側は .speed-chart-chips-cell / -row に touch-action: pan-y を与え、縦のページ
+  // スクロールはブラウザに、横のジェスチャーはこちらに渡るようにしてある。
+  const DRAG_START_THRESHOLD = 6; // これ以上横に動いたらスクロール操作と見なす(px)
+
+  function findHorizontalScroller(target: EventTarget | null): HTMLElement | null {
+    let node = target instanceof Element ? target : null;
+    while (node && node !== bodyEl) {
+      if (node instanceof HTMLElement && node.scrollWidth > node.clientWidth + 1) {
+        const overflowX = getComputedStyle(node).overflowX;
+        if (overflowX === 'auto' || overflowX === 'scroll') return node;
+      }
+      node = node.parentElement;
+    }
+    return null;
+  }
+
+  bodyEl.addEventListener('pointerdown', (event) => {
+    // 右クリック・副ボタンは選択やコンテキストメニューのための操作なので触らない。
+    if (event.button !== 0) return;
+    const found = findHorizontalScroller(event.target);
+    if (!found) return;
+    const scroller: HTMLElement = found;
+
+    const startX = event.clientX;
+    const startY = event.clientY;
+    const startScrollLeft = scroller.scrollLeft;
+    let dragging = false;
+
+    function onMove(moveEvent: PointerEvent): void {
+      if (moveEvent.pointerId !== event.pointerId) return;
+      const dx = moveEvent.clientX - startX;
+      if (!dragging) {
+        // 縦方向の意図(ページスクロール)が勝っているうちは何もしない。
+        if (Math.abs(dx) < DRAG_START_THRESHOLD || Math.abs(dx) <= Math.abs(moveEvent.clientY - startY)) return;
+        dragging = true;
+        scroller.setPointerCapture(moveEvent.pointerId);
+        scroller.classList.add('is-drag-scrolling');
+      }
+      scroller.scrollLeft = startScrollLeft - dx;
+      // マウスでのテキスト選択・画像ドラッグを抑える(タッチはtouch-action側で制御済み)。
+      moveEvent.preventDefault();
+    }
+
+    function onEnd(endEvent: PointerEvent): void {
+      if (endEvent.pointerId !== event.pointerId) return;
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onEnd);
+      window.removeEventListener('pointercancel', onEnd);
+      if (!dragging) return;
+      scroller.classList.remove('is-drag-scrolling');
+      // スライドし終えた指/マウスが離れた先のチップをクリック扱いにしない。
+      window.addEventListener('click', (clickEvent) => clickEvent.stopPropagation(), {
+        capture: true,
+        once: true,
+      });
+    }
+
+    window.addEventListener('pointermove', onMove, { passive: false });
+    window.addEventListener('pointerup', onEnd);
+    window.addEventListener('pointercancel', onEnd);
+  });
+
   function getDocumentHeight(): number {
     return Math.max(document.documentElement.scrollHeight, document.body.scrollHeight);
   }

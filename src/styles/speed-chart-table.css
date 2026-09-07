@@ -489,29 +489,33 @@
 		width: 100%;
 		overflow-x: auto;
 		overscroll-behavior-x: contain;
+		/* 表内の1行だけに出るスクロールバーなので、既定の太さだと行の高さに対して目立ちすぎる。
+			隠さず(スクロール可能だと分かるようにする)、細く抑える。 */
+		scrollbar-width: thin;
+		/* スマホ実機ではスクロールバーがオーバーレイ表示になり、見えていても指で掴めない。
+			掴めるのはチップの並び自体なので、チップ表示領域のどこをスライドしても横スクロール
+			できるようにする(chart-table.tsのpointerdownによるドラッグスクロール)。
+			縦(ページスクロール)はブラウザに任せ、横のジェスチャーだけこちらへ渡す。 */
+		touch-action: pan-y;
 	}
-	/* 表内の1行だけに出るスクロールバーなので、既定の太さだと行の高さに対して目立ちすぎる。
-		隠さず(スクロール可能だと分かるようにする)、細く抑える。
-		【scrollbar-widthを併記しないこと】Chrome 121以降は scrollbar-width が指定されていると
-		::-webkit-scrollbar 系を丸ごと無視し、OS標準のオーバーレイ・スクロールバーになる。
-		オーバーレイのバーはスマホ実機では「見えるだけで指で掴めない」ため、
-		「スクロールバーが反応しない」という不具合になっていた。
-		::-webkit-scrollbar を効かせると場所を取る実体のあるバーになり、指でドラッグできる。 */
+	/* ドラッグスクロール中。チップの文字やアイコンが選択・ドラッグされないようにする。 */
+	.speed-chart-table .is-drag-scrolling {
+		cursor: grabbing;
+		user-select: none;
+		scroll-behavior: auto;
+	}
+	.speed-chart-table .speed-chart-chip-icon {
+		-webkit-user-drag: none;
+	}
 	.speed-chart-table .speed-chart-chips-row::-webkit-scrollbar {
-		height: 8px; /* スクロールバーの太さ。小さくすると指で掴みにくくなる */
+		height: 6px;
 	}
 	.speed-chart-table .speed-chart-chips-row::-webkit-scrollbar-thumb {
 		background: var(--color-border);
-		border-radius: 999px;
+		border-radius: var(--radius-sm);
 	}
 	.speed-chart-table .speed-chart-chips-row::-webkit-scrollbar-track {
 		background: transparent;
-	}
-	/* Firefox 等、::-webkit-scrollbar を持たないブラウザ向けのフォールバック。 */
-	@supports not selector(::-webkit-scrollbar) {
-		.speed-chart-table .speed-chart-chips-row {
-			scrollbar-width: thin;
-		}
 	}
 	.speed-chart-table .speed-chart-chip {
 		display: inline-flex;
