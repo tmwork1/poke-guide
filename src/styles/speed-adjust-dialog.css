@@ -146,8 +146,9 @@ body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-chip
   font-size: var(--font-size-sm3);
 }
 
+/* 早見表本体(--font-size-sm4基準)よりさらに少し縮小するのと同じ意図で、モーダルの既定sm3から縮小する。 */
 body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-chip-origin {
-  font-size: var(--font-size-sm3);
+  font-size: var(--font-size-sm4);
 }
 
 body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-magnitude-badge {

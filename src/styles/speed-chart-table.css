@@ -435,7 +435,7 @@
 		要因が無いため、その場合はこの要素自体を出力しない(chart-table.ts参照)。 */
 	.speed-chart-table .speed-chart-chip-origin {
 		margin-top: -4px;
-		font-size: var(--font-size-sm4); /* 補正要因の文字サイズ。大きくすると要因が目立つ */
+		font-size: calc(var(--font-size-sm4) * .9); /* 補正要因の文字サイズ。最小トークンからさらに少し縮小。大きくすると要因が目立つ */
 		font-weight: var(--font-weight-medium);
 		color: var(--color-text-muted); /* 補正要因の文字色。変えると要因の控えめさが変わる */
 		line-height: var(--line-height-snug);
