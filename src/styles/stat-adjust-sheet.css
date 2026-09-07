@@ -35,7 +35,6 @@
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	gap: var(--space-2); /* つまみアイコンと「残りXX」の間隔 */
 	flex: none;
 	align-self: center;
 	width: 33.333%; /* 閉じたときに見せるつまみの幅。右下FABと重ならない左側1/3だけを操作面にする */
@@ -68,6 +67,8 @@
 
 /* つまみに並べる「残りXX」。シートを閉じている間も残数が見えるようにここへ置く。 */
 .stat-adjust-sheet-remaining {
+	display: block;
+	margin: var(--space-2) 0 var(--space-1);
 	font-size: var(--font-size-sm3); /* 「残りXX」の文字サイズ。大きくすると目立つ */
 	color: var(--color-text-muted); /* 「残りXX」の文字色。濃くすると目立つ */
 	line-height: 1;
@@ -112,6 +113,7 @@
 }
 
 #stat-status-adjust-body {
+	display: flow-root;
 	max-height: 0;
 	overflow-y: auto;
 	/* 3行2列を375px前後の画面へ収めるための余白。広げると2列が入らなくなる。 */

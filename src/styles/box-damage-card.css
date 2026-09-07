@@ -11,6 +11,8 @@
    ここの値を書き換えると、カードと詳細設定パネルの見た目が変わる。
    -------------------------------------------------------------------------- */
 body.box-edit-page {
+  --damage-card-compact-move-font-size: 14px; /* 左列を通常寸法へ戻した分だけ、技名とヒット数を通常の16pxから最小限縮めて1行に収める */
+  --damage-card-compact-total-font-size: 14px; /* フル表記の累計結果を省略せず390px幅に収めるため、通常の15.2pxから最小限縮める */
   /* ── 1. 文字サイズ ─────────────────────── */
   --damage-card-dropdown-option-font-size: var(--font-size-sm1); /* 候補名の文字サイズ */
   --damage-card-total-detail-font-size: var(--font-size-sm2); /* ダメージ割合など詳細部分の文字サイズ */
@@ -2319,12 +2321,19 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .d
   align-items: center;
   grid-column: 1;
   grid-row: 1 / -1;
+  /* 通常表示の枠・面・余白を残しつつ、内部の間隔だけは2pxにして390pxで結果欄を確保する。 */
   gap: 2px;
   width: auto;
   max-width: none;
-  padding: 0;
-  border: 0;
-  background: none;
+  padding: .25rem .4rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-zero);
+  background-color: var(--damage-card-build-background);
+  background-image: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--damage-card-build-background) 97.5%, white 2.5%) 0%,
+    color-mix(in srgb, var(--damage-card-build-background) 97.5%, black 2.5%) 100%
+  );
 }
 
 body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-row-build-left,
@@ -2341,13 +2350,15 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .d
 
 body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-sprite-box {
   flex: none;
-  width: var(--damage-card-compact-sprite-size);
-  height: var(--damage-card-compact-sprite-size);
+  /* 通常表示と同じ40px・角丸を維持し、シート開閉で立ち絵だけが縮小しないようにする。 */
+  width: var(--damage-card-sprite-size);
+  height: var(--damage-card-sprite-size);
 }
 
 body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-item-badge {
-  width: 22px;
-  height: 22px;
+  /* 通常表示と同じ持ち物アイコン寸法に戻し、立ち絵とバッジだけが揃う状態を避ける。 */
+  width: var(--damage-card-item-badge-size);
+  height: var(--damage-card-item-badge-size);
 }
 
 body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-build-item-field {
@@ -2376,7 +2387,8 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .d
 body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-row-techniques-row {
   display: grid;
   grid-column: 2;
-  grid-row: 1 / -1;
+  /* 技は上段、フル表記の累計結果は下段に分け、右列の横幅を結果へ全て使えるようにする。 */
+  grid-row: 1;
   grid-template-rows: repeat(2, var(--damage-card-compact-sheet-row-height));
   gap: 0;
   width: auto;
@@ -2401,6 +2413,16 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .d
   align-items: center;
   min-width: 0;
   overflow: hidden;
+  /* 通常表示の技カードと同じ枠・背景・角丸を持たせ、情報だけを畳んだ状態に見せる。 */
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-zero);
+  background-color: var(--damage-card-column-background);
+  background-image: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--damage-card-column-background) 97.5%, white 2.5%) 0%,
+    color-mix(in srgb, var(--damage-card-column-background) 97.5%, black 2.5%) 100%
+  );
+  padding: .16rem .5rem;
 }
 
 body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-column,
@@ -2421,6 +2443,11 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .d
   display: none;
 }
 
+/* 圧縮中は型色の長方形を表示せず、技名とダメージ結果に視線を絞る。 */
+body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-column-move-type-bar {
+  display: none;
+}
+
 /* 「+」は2枚目以降の技の頭に置く(技名の直後に置くと、技名とヒット数の間に
    割り込んで「スケイルショット + 5ヒット はどうだん」の並びになってしまう)。
    前に可視列がある列だけが対象なので、hidden列をまたいでも余分な「+」は出ない。 */
@@ -2433,35 +2460,49 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .d
 body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-column-hitcount-text {
   flex: none;
   margin-inline-start: var(--space-1);
+  /* 40px立ち絵と通常のビルド枠を優先し、技名と同じ最小限の縮小率に揃える。 */
+  font-size: var(--damage-card-compact-move-font-size);
 }
 
 body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-column-move-text {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  /* 左列を通常寸法に復元しても複数技を1行に保つため、文字だけを最小限縮める。 */
+  font-size: var(--damage-card-compact-move-font-size);
 }
 
 body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-row-total {
-  grid-column: 1;
+  /* 左の相手ビルド欄ではなく右列へ置き、長い確定数・実ダメージ・割合を切らずに残す。 */
+  grid-column: 2;
   grid-row: 2;
   align-self: stretch;
   min-width: 0;
   margin: 0;
-  padding: 0;
-  border-width: 0;
+  /* 通常表示の累計ゲージと同じ枠・角丸・内側余白を残し、severityの面を途切れさせない。 */
+  padding: 1px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-zero);
 }
 
 body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-row-total-result {
   max-width: none;
   min-width: 0;
   height: 100%;
-  padding: 0;
-  font-size: var(--font-size-sm3);
-  line-height: var(--damage-card-compact-sheet-row-height);
+  /* フル表記を保つため、通常の余白を少しだけ詰め、文字を14pxへ縮小する。 */
+  padding: 0 .25rem;
+  font-size: var(--damage-card-compact-total-font-size);
+  line-height: 20px;
   white-space: nowrap;
   grid-template-columns: auto minmax(0, 1fr);
   column-gap: var(--space-1);
   display: grid;
+}
+
+/* 判定ラベルと詳細値にも親の14pxを継承させ、片方だけ通常サイズで横幅を消費しないようにする。 */
+body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-row-total-result .damage-result-verdict,
+body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-row-total-result .damage-result-detail {
+  font-size: inherit;
 }
 
 /* カード内の追加スロットが将来復活しても、圧縮中は操作対象として見せない
