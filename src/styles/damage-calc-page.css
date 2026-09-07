@@ -106,7 +106,7 @@
 .damage-calc-matchup-card__table tbody tr { border-top: 1px solid var(--color-border); }
 .damage-calc-matchup-card__table thead th { color: var(--color-text-muted); font-size: var(--font-size-sm3); font-weight: var(--font-weight-medium); }
 .damage-calc-matchup-card__table th:first-child { text-align: left; }
-.damage-calc-matchup-card__table-label { display: inline-block; min-width: 2.4em; padding: .16rem .3rem; text-align: center; transform: translateX(.35rem); font-weight: var(--font-weight-bold); }
+.damage-calc-matchup-card__table-label { display: block; width: 100%; padding: .16rem .3rem; text-align: center; font-weight: var(--font-weight-bold); }
 .damage-calc-matchup-card__table-label--attack { color: var(--color-danger-strong); background: var(--color-danger-soft); }
 .damage-calc-matchup-card__table-label--defense { color: var(--color-primary-strong); background: var(--color-primary-soft); }
 .damage-calc-matchup-card__table tbody th { font-size: var(--font-size-sm3); font-weight: var(--font-weight-medium); }
