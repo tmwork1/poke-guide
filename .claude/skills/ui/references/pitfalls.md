@@ -323,6 +323,12 @@ scoped style は `data-astro-cid-*` 属性が付いた**静的マークアップ
 - **実例2件**: 最初は `@container` で踏み、別の機会に**まったく同じことを `@media` で踏んだ**(狭幅用のグリッド組み替えを基本定義より前に書いてしまい、無効化されていた)。
 - **`@media` は「効かない理由」が見えにくい。** 幅を変えても何も起きないと「メディアクエリの条件が違うのでは」と疑いがちだが、**条件は合っていて後続ルールに負けているだけ**というケースがある。DevToolsで打ち消し線を確認するか、**まず基本定義より後ろに移して試す**のが速い。
 
+### 🔴 下端固定・上方向に伸びるバー内の要素を `margin-top` で上へずらすと、バーの縮んだ高さ分だけ上端が下がって画面上の移動量が相殺される(2026-09-07)
+`position: fixed; bottom: X` かつ中身の高さぶんだけ上端が伸縮するバー(`ControlPanel.astro`の`.damage-calc-control-bar`、`StatAdjustSheet.astro`の`#stat-adjust-sheet`など、下端固定の引き出しパターン全般)の**先頭の子要素**を「もう少し上に見せたい」として `margin-top: -Npx` を足しても、**画面上の位置は一切変わらない**。負の`margin-top`はフレックスの流れ上の占有高さを`N`px縮めるため、bottom固定のバー自体の全体高さも`N`px縮み、**上端がちょうど`N`px下がる**。子要素は「バー内でN px上に」動くが「バーの上端がN px下がる」ことと相殺し、絶対座標では移動量ゼロになる。
+- **実例**: `damage-calc-control-bar.is-expanded .damage-calc-control-panel-toggle`(展開中のつまみ)の位置を上へずらす指示に対し `margin-top: -4px` を追加、`npx astro build`は通り「直したはず」に見えたが、**ユーザーから全く同じ指摘が再度来た**。`npm run probe --rect`で実測して初めて、座標が変更前と一致していることに気づいた。
+- **対策**: このレイアウト構成(bottom固定+中身に応じて上端が伸縮)で子要素だけを画面上で動かしたいときは、**流れの高さに影響しない `transform: translateY()` を使う**(`margin`/`padding`/`height`など、flexの占有量に効くプロパティは避ける)。祖先に`overflow: hidden`がある場合、シフト量がその要素の内側の余白(アイコンと外枠の間)に収まっているか確認する(はみ出た分は切り取られる)。
+- **検証**: `npm run probe -- --style "<セレクタ>:transform"` で実際に`matrix(...)`が付いているか、`--rect`で移動前後の絶対座標を比較する。スクショだけでの目視確認は、数px単位のズレでは見落としやすい。
+
 ### 🔴 ページ側 `<link>` は AppLayout の `.card` バンドルより先に挿入される。同詳細度の上書きが常に負ける(2026-09-01)
 ページが `import stylesheet from '../styles/foo.css?url'` を `<link slot="head" href={stylesheet}>` で読み込む構成(`home-page.css` など)では、その `<link>` が **AppLayout側にバンドルされる `global.css`(`.card` の定義元)より前に `<head>` へ入る**。dev(`astro dev`)でも build(`astro preview`)でも同じ順序になる。「JSのimport順(AppLayoutが先にglobal.cssをimportしている)なら後から読むページ側が勝つはず」という直感は**逆**。
 - **実例**: `src/pages/index.astro` の `.home-card`(`class="card home-card"`)に `border: var(--home-page-card-border)` / `box-shadow: none` を`.home-card`セレクタ(詳細度 (0,1,0))で書いていたが、`global.css` の `.card { border: 0px …; box-shadow: var(--shadow-sm) }` も同じ (0,1,0) で**後に挿入されるため常に上書きされ、枠線も影の解除も一切効いていなかった**。`npx astro build` は通り、コード上は「直したはず」に見えるため、`getComputedStyle` で実測するまで誰も気づかなかった。
