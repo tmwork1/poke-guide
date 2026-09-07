@@ -7,6 +7,7 @@ import { NATURE_STAT_MODIFIERS, STAT_KEYS, type StatKey } from "../stats";
 import type { PopularMoveOption } from "../team-matchup";
 import { openBoxSelectDialog } from "./box-select-dialog";
 import { renderItemIcon } from "./item-select-dialog";
+import { readJsonScriptStringArray } from "../json-script";
 import { getFieldState, getOpponentBuild, getOpponentState, getSelfBuilds, getSelfState, setOpponentBuild, type OpponentBuild, type SelfBuild } from "./shared-core";
 
 type DamageCell = { range: string; lethal: string };
@@ -32,11 +33,18 @@ type Card = { build: SelfBuild; root: HTMLElement; refs: CardRefs };
 
 const CHANGE_EVENT = "damage-calc:change";
 const emitChange = (reason: string) => document.dispatchEvent(new CustomEvent(CHANGE_EVENT, { detail: { reason } }));
-const DEFAULT_OPPONENT = "サーフゴー";
+/** デフォルトの相手はopgg採用率1位のポケモン(index.astroが埋め込むJSONの先頭)。
+ * データが読めない場合のみ固定名にフォールバックする。 */
+let defaultOpponentCache: string | null = null;
+function getDefaultOpponentName(): string {
+  if (defaultOpponentCache === null) defaultOpponentCache = readJsonScriptStringArray("damage-calc-opgg-ranked-species")[0] ?? "サーフゴー";
+  return defaultOpponentCache;
+}
 const PATTERN_LABELS = ["無振り", "32振り", "特化"];
 /** 対面カードの防御表に載せる相手技の採用率しきい値(このカード専用。team-matchup.tsの
- * OPPONENT_MIN_MOVE_RATIO(20%・上限4本)とは別軸の要件のため、共有定数は変更しない)。 */
-const OPPONENT_DEFENSE_MOVE_MIN_RATIO = 0.1;
+ * OPPONENT_MIN_MOVE_RATIO(20%)と閾値は同じだが、あちらの上限4本は適用しない要件のため
+ * 共有定数は変更せずここで別途定義する)。 */
+const OPPONENT_DEFENSE_MOVE_MIN_RATIO = 0.2;
 /** すばやさを常時・無条件に固定倍率で変動させる持ち物(4096基準の固定小数点)。
  * jpokeの`vendor/jpoke/src/jpoke/handlers/item.py`準拠(こだわりスカーフ_boost_speed / くろいてっきゅう_halve_speed)。
  * カムラのみ・からぶりほけん等、HP残量や特定の行動が条件の発動アイテムはここに含めない
@@ -91,7 +99,7 @@ async function resolveOpponentMegaStoneItem(speciesName: string): Promise<string
 async function cycleOpponentForm(): Promise<void> {
   const master = await loadPokemonMasterList();
   const current = getOpponentBuild();
-  const currentName = current.speciesName || DEFAULT_OPPONENT;
+  const currentName = current.speciesName || getDefaultOpponentName();
   const currentEntry = master.find((entry) => entry.name === currentName);
   if (!currentEntry) return;
   const forms = master.filter((entry) => entry.dexNo === currentEntry.dexNo && (entry.forme === null || isMegaEntry(entry)));
@@ -135,7 +143,7 @@ function selfSpec(build: SelfBuild): PokemonSpec {
 function opponentSpec(build: OpponentBuild, moveNames: string[], nature: string, evs: number[]): PokemonSpec {
   const state = getOpponentState();
   return {
-    name: build.speciesName || DEFAULT_OPPONENT,
+    name: build.speciesName || getDefaultOpponentName(),
     level: 50,
     nature,
     abilityName: "",
@@ -164,7 +172,7 @@ function statForCategory(category: MoveCategory, direction: "attack" | "defense"
   return category === "physical" ? "atk" : "spa";
 }
 
-/** 防御表(相手のわざ)に載せる技名を、OP.GG採用率10%以上のものすべて(上限なし)から選ぶ。 */
+/** 防御表(相手のわざ)に載せる技名を、OP.GG採用率20%以上のものすべて(上限なし)から選ぶ。 */
 function pickOpponentDefenseMoves(options: readonly PopularMoveOption[], isAttackMove: (moveName: string) => boolean): string[] {
   const attacks = options.filter((option) => option.ratio >= OPPONENT_DEFENSE_MOVE_MIN_RATIO && isAttackMove(option.value));
   const sorted = [...attacks].sort((a, b) => b.ratio - a.ratio);
@@ -275,7 +283,7 @@ function createCard(index: number): { root: HTMLElement; refs: CardRefs } {
 function renderIdentity(refs: CardRefs, self: SelfBuild, opponent: OpponentBuild, currentRequestId: number): void {
   const selfSelected = isSelectedSelf(self);
   const selfName = self.species_name.trim();
-  const opponentName = opponent.speciesName || DEFAULT_OPPONENT;
+  const opponentName = opponent.speciesName || getDefaultOpponentName();
   renderName(refs.matchupTitle, selfSelected ? selfName : "");
   renderName(refs.opponentName, opponentName);
   refs.selfItemButton.hidden = !selfSelected;
@@ -438,19 +446,18 @@ async function run(): Promise<void> {
   const currentRequestId = ++requestId;
   const selfBuilds = getSelfBuilds();
   const currentOpponent = getOpponentBuild();
-  const opponent: OpponentBuild = { ...currentOpponent, speciesName: currentOpponent.speciesName || DEFAULT_OPPONENT };
+  const opponent: OpponentBuild = { ...currentOpponent, speciesName: currentOpponent.speciesName || getDefaultOpponentName() };
   // 相手側は全カード共通なので、相手に依存する取得・計算(技の使用率・すばやさ3水準)は
   // このrun()呼び出しにつき1回だけ行い、カードの枚数ぶん繰り返さない。
   const cards: Card[] = selfBuilds.map((build, index) => ({ build, ...createCard(index) }));
   for (const card of cards) {
     renderIdentity(card.refs, card.build, opponent, currentRequestId);
-    setStatus(card.refs.status, "ダメージを計算中…");
     renderSpeed(card.refs.speed, null, []);
     renderTable(card.refs.attackTable, "攻", []);
     renderTable(card.refs.defenseTable, "守", []);
   }
   // 計算が終わるまで待たず、まずローディング状態のカードN枚を一括で差し込む
-  // (1枚だった頃と同じ「即座に計算中表示になる」体験を保つ)。
+  // (1枚だった頃と同じ「即座にカードが差し込まれる」体験を保つ。計算中である旨のテキストは出さない)。
   byId<HTMLElement>("damage-calc-summary-list").replaceChildren(...cards.map((card) => card.root));
   try {
     const [moveDetails, usageOptions] = await Promise.all([loadMoveDetailMap(), fetchOpponentMoveOptions(opponent.speciesName)]);

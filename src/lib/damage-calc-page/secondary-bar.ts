@@ -30,7 +30,7 @@ export function initSecondaryBar(): void {
     const selectOpponent = (name: string) => {
       commitOpponentSpecies(name);
     };
-    selectOpponent(getOpponentBuild().speciesName || "サーフゴー");
+    selectOpponent(getOpponentBuild().speciesName || opggRankedSpeciesNames[0] || "サーフゴー");
     const renderRail = () => {
       const query = normalizeForSearch(opponentSearch.value);
       const matchingNames = orderedNames.filter((name) => normalizeForSearch(name).includes(query)).slice(0, 24);

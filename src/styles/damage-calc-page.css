@@ -44,6 +44,8 @@
 .damage-calc-matchup-card__pokemon--opponent { right: 0; }
 .damage-calc-matchup-card__artwork { position: absolute; top: 50%; display: block; width: var(--damage-calc-card-artwork-size); height: var(--damage-calc-card-artwork-size); padding: 0; border: 0; background: transparent; object-fit: contain; transform: translateY(-50%); font: inherit; }
 .damage-calc-matchup-card__artwork img { display: block; width: 100%; height: 100%; object-fit: contain; }
+/* 自分側の立ち絵だけ左右反転し、相手と向き合っているように見せる。 */
+.damage-calc-matchup-card__pokemon--self .damage-calc-matchup-card__artwork img { transform: scaleX(-1); }
 /* 自分側は立ち絵タップでボックス選択モーダルを開き、相手側は立ち絵タップでメガシンカフォルムを
    循環させるbutton要素。どちらもリセットしたbutton見た目にする。 */
 [data-role="self-artwork"], [data-role="opponent-artwork"] { cursor: pointer; appearance: none; -webkit-appearance: none; }
@@ -100,21 +102,24 @@
 .damage-calc-matchup-card__table strong, .damage-calc-matchup-card__table small { display: block; font-size: inherit; line-height: var(--line-height-tight); }
 .damage-calc-matchup-card__table td strong { font-size: var(--font-size-sm1); font-weight: var(--font-weight-normal); transform: scaleX(.9); }
 .damage-calc-matchup-card__table small { color: var(--color-text-muted); font-size: var(--font-size-sm3); }
-/* 相手選択レールは、セカンドヘッダー〜コントロールパネルの間にtop/bottomを直接
+/* 相手選択レールは、セカンドヘッダー〜ナビゲーションバーの間にtop/bottomを直接
    固定するposition:fixedの独立オーバーレイにする(box-content/.damage-calc-shellと
    同じ考え方)。以前はCSS Gridの列内でposition:stickyにしていたが、隣列
    (.damage-calc-summary-list)の内容が短い/空だと行の高さがレール自身の高さと
    一致してしまい、stickyが機能する「余白」が無くなって効かない(スクロール量が
    ゼロでも上端/下端をはみ出す)問題があった。top/bottomを直接指定すれば行の高さに
    一切依存せず、常にこの領域ちょうどの高さになる。
+   bottomはナビゲーションバーぶんだけ(コントロールパネルの高さは含めない)。
+   コントロールパネルは閉時は透明・pointer-events:noneで実体がなく(z-indexで
+   レールより上に来るのはつまみだけ)、その裏までレールを伸ばして全幅(全域)を使う。
    上下の見えないgap(--damage-calc-rail-gap)は padding-block では作れない。
    overflowのクリップ領域はパディングボックスなので、スクロールしたアイコンは
-   パディング部分にそのまま描画されてしまい、セカンドヘッダー/コントロールパネルに
+   パディング部分にそのまま描画されてしまい、セカンドヘッダー/ナビゲーションバーに
    接して見える。gapぶんだけtop/bottomを内側にずらして要素自体を縮め、
    クリップ境界の外側に余白を確保する。
    -webkit-overflow-scrolling/overscroll-behaviorは、モバイルでの慣性スクロール中に
    レール内アイコンがoverflowの境界をはみ出して見える描画の乱れを防ぐ。 */
-.damage-calc-summary-rail { --damage-calc-rail-gap: var(--space-3); position: fixed; top: calc(var(--damage-calc-content-top, calc(var(--header-height) + var(--app-header-height) + var(--second-header-height))) + var(--damage-calc-rail-gap)); bottom: calc(var(--damage-calc-control-bar-height) + var(--bottom-nav-height) + env(safe-area-inset-bottom) + var(--damage-calc-rail-gap)); right: var(--damage-calc-rail-gutter, var(--space-3)); width: 2.5rem; z-index: 5; display: flex; flex-direction: column; align-items: center; gap: var(--space-2); overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; scrollbar-width: none; background: var(--color-bg); }
+.damage-calc-summary-rail { --damage-calc-rail-gap: var(--space-3); position: fixed; top: calc(var(--damage-calc-content-top, calc(var(--header-height) + var(--app-header-height) + var(--second-header-height))) + var(--damage-calc-rail-gap)); bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom) + var(--damage-calc-rail-gap)); right: var(--damage-calc-rail-gutter, var(--space-3)); width: 2.5rem; z-index: 5; display: flex; flex-direction: column; align-items: center; gap: var(--space-2); overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; scrollbar-width: none; background: var(--color-bg); }
 .damage-calc-summary-rail::-webkit-scrollbar { display: none; }
 .damage-calc-summary-rail-item { flex: 0 0 auto; width: 2.5rem; height: 2.5rem; min-height: 2.5rem; padding: 0; overflow: hidden; border: 0; border-radius: 50%; background: transparent; font-size: var(--font-size-sm2); }
 .damage-calc-summary-rail-item img { display: block; width: 100%; height: 100%; object-fit: contain; }
@@ -127,7 +132,10 @@
 .damage-calc-control-bar:not(.is-expanded) { pointer-events: none; border-color: transparent; background: transparent; box-shadow: none; }
 .damage-calc-control-panel-toggle { display: flex; align-items: center; justify-content: center; flex: none; align-self: center; width: 33.333%; height: 42px; min-height: 0; padding: 0 var(--space-2); line-height: 1; border: 0; background: var(--color-surface); color: var(--color-text-muted); font: inherit; cursor: pointer; }
 .damage-calc-control-bar:not(.is-expanded) .damage-calc-control-panel-toggle { pointer-events: auto; border: 1px solid var(--color-border); border-bottom: 0; border-radius: var(--radius-md) var(--radius-md) 0 0; box-shadow: var(--shadow-md); }
-.damage-calc-control-bar.is-expanded .damage-calc-control-panel-toggle { height: 26px; }
+/* 展開中はつまみの表示位置を少し上へずらし、開閉の境目だとわかりやすくする
+   (アイコンは高さ26pxの中央=約7px下に描画されるため、この程度の負のmargin-topでも
+   アイコン自体は overflow:hidden に切り取られず、上に空く余白だけが詰まる)。 */
+.damage-calc-control-bar.is-expanded .damage-calc-control-panel-toggle { height: 26px; margin-top: -4px; }
 .damage-calc-control-panel-toggle-icon { display: inline-flex; position: relative; width: 12px; height: 12px; align-items: center; justify-content: center; font-size: 0; transform-origin: center; transition: transform 0.2s ease; }
 .damage-calc-control-panel-toggle-icon::before, .damage-calc-control-panel-toggle-icon::after { content: ""; position: absolute; width: 8px; height: 2px; top: 2px; background: currentColor; border-radius: 999px; }
 .damage-calc-control-panel-toggle-icon::before { left: -1px; transform: rotate(-35deg); transform-origin: calc(100% - 1px) center; }
