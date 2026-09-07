@@ -103,7 +103,7 @@ body.box-edit-page {
   --damage-detail-selection-icon-size: 28px; /* 選択中ポケモンのアイコンサイズ */
   --damage-card-item-badge-size: 18px; /* アイテムアイコンの一辺 */
   --damage-card-compact-height: 64px; /* 調整シート展開中に、ダメージカードを2行表示へ圧縮する高さ */
-  --damage-card-compact-build-width: 72px; /* 圧縮カード左列(攻守・立ち絵・持ち物)の幅 */
+  --damage-card-compact-sprite-size: 32px; /* 圧縮カード左列に横並びで置く立ち絵の一辺 */
   --damage-card-compact-sheet-row-height: 28px; /* 調整シート中の圧縮カードで、わざ名・累計結果それぞれに割り当てる行高 */
 
   /* ── 9. その他 ─────────────────────── */
@@ -2301,21 +2301,25 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage {
 
 body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-row-body {
   display: grid;
-  grid-template-columns: var(--damage-card-compact-build-width) minmax(0, 1fr);
+  grid-template-columns: auto minmax(0, 1fr);
   grid-template-rows: repeat(2, var(--damage-card-compact-sheet-row-height));
-  gap: 0 var(--space-1);
+  /* 左右の余白と列間は、フル表記のダメージ(例「乱1 31.25% 567〜668 (298.4〜351.6%)」)が
+     390px幅で切れないところまで詰める。 */
+  gap: 0 2px;
   min-height: var(--damage-card-compact-height);
-  padding: var(--space-1);
+  padding: var(--space-1) 2px;
 }
 
-/* 左列は攻守バッジと立ち絵を縦に置き、持ち物は立ち絵の横にアイコンだけ添える。 */
+/* 左列は攻守バッジ・立ち絵・持ち物アイコンを、通常表示と同じ横並びのまま1行に置く
+   (縦積みにすると通常表示との対応が取れなくなるため、並びは圧縮前から変えない)。
+   持ち物はアイコンだけを立ち絵の右に添える。 */
 body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-row-build {
-  display: grid;
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: center;
   grid-column: 1;
   grid-row: 1 / -1;
-  grid-template-columns: minmax(0, 1fr) auto;
-  grid-template-rows: repeat(2, var(--damage-card-compact-sheet-row-height));
-  gap: 0 var(--space-1);
+  gap: 2px;
   width: auto;
   max-width: none;
   padding: 0;
@@ -2332,26 +2336,22 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .d
 }
 
 body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-row-direction-toggle {
-  grid-column: 1;
-  grid-row: 1;
-  align-self: center;
+  flex: none;
 }
 
 body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-sprite-box {
-  grid-column: 1;
-  grid-row: 2;
-  width: var(--damage-card-compact-sheet-row-height);
-  height: var(--damage-card-compact-sheet-row-height);
+  flex: none;
+  width: var(--damage-card-compact-sprite-size);
+  height: var(--damage-card-compact-sprite-size);
 }
 
 body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-item-badge {
-  width: var(--damage-card-compact-sheet-row-height);
-  height: var(--damage-card-compact-sheet-row-height);
+  width: 22px;
+  height: 22px;
 }
 
 body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-build-item-field {
-  grid-column: 2;
-  grid-row: 2;
+  flex: none;
   gap: 0;
 }
 
@@ -2363,7 +2363,6 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .d
 body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-build-item-name,
 body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-row-condition-chips,
 body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-column-conditions,
-body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-column-hitcount-text,
 body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-column-footer,
 body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-column-result,
 body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-column-hitcount-row,
@@ -2422,9 +2421,18 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .d
   display: none;
 }
 
-/* hidden列をまたいで余分な「+」を出さないため、後続の可視列がある技名だけをつなぐ。 */
-body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-column:not([hidden]):has(~ .damage-column:not([hidden])) .damage-column-move-text::after {
-  content: " + ";
+/* 「+」は2枚目以降の技の頭に置く(技名の直後に置くと、技名とヒット数の間に
+   割り込んで「スケイルショット + 5ヒット はどうだん」の並びになってしまう)。
+   前に可視列がある列だけが対象なので、hidden列をまたいでも余分な「+」は出ない。 */
+body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-column:not([hidden]) ~ .damage-column:not([hidden]) .damage-column-move-identity::before {
+  content: "+ ";
+  margin-inline-start: var(--space-1);
+}
+
+/* ヒット数(「5ヒット」)は技名の直後に添える。 */
+body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-column-hitcount-text {
+  flex: none;
+  margin-inline-start: var(--space-1);
 }
 
 body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-column-move-text {
