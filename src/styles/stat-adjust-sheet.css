@@ -115,7 +115,7 @@
 	max-height: 0;
 	overflow-y: auto;
 	/* 3行2列を375px前後の画面へ収めるための余白。広げると2列が入らなくなる。 */
-	padding-inline: var(--space-2);
+	padding-inline: var(--space-1);
 	transition: max-height 0.2s ease;
 }
 
@@ -131,33 +131,38 @@
 	左列 H/B/D、右列 A/C/S。各セルはラベルが外側・ステッパーが内側の鏡写し。
 	=========================================================================== */
 .damage-stat-adjustment {
-	/* 375px幅でも2列が横スクロールせずに収まるよう、−/+ のタップターゲット(44px)は
-	   保ったまま、ラベル幅・値ボタン幅・列間だけを詰めた値にしてある。
-	   1セル = ラベル38.4 + 4 + (44 + 35.2 + 44) = 165.6px、2列 + 列間4 = 約335px。 */
-	--damage-stat-cell-gap: var(--space-1); /* ラベルとステッパーの間隔 */
-	--damage-stat-label-width: 2.4rem; /* ラベル(性格切替ボタンを兼ねる)の幅 */
-	--damage-stat-button-size: 44px; /* −/+ ボタンの一辺。タップターゲットなので縮めない */
-	--damage-stat-value-width: 2.2rem; /* ステッパー中央の努力値ボタンの幅 */
+	/* ステッパーは育成タブ(box-edit-page.css の --stat-ev-mobile-button-block-size)と同じ
+	   44px正方形×3。これを2列ぶん並べても375px幅に収まるよう、ラベル幅・セル内間隔・
+	   シート左右の余白のほうを詰めてある。
+	   1セル = ラベル33.6 + 2 + (44×3 + 枠2) = 169.6px、2列 + 中央8 = 約347px。 */
+	--damage-stat-cell-gap: 2px; /* ラベルとステッパーの間隔 */
+	--damage-stat-label-width: 2.1rem; /* ラベル(性格切替ボタンを兼ねる)の幅 */
+	--damage-stat-button-size: 44px; /* ステッパー各ボタンの一辺。育成タブと同じタップターゲット */
+
+	--damage-stat-center-gap: var(--space-2); /* 左右のステッパーの間隔。画面幅によらず一定 */
 
 	display: grid;
 	grid-template-columns: 1fr 1fr;
-	gap: var(--space-1);
+	gap: var(--space-1) var(--damage-stat-center-gap);
 	/* ボタンを縮めずに2列を保つため、入り切らない狭幅では横スクロールへ逃がす。 */
 	overflow-x: auto;
 	color: var(--color-text);
 }
 
+/* 列幅の余りはラベルとステッパーの間へ送る(space-between)。こうするとラベルは常に
+   シートの外端、ステッパーは常に中央寄りに来るので、画面幅が変わっても
+   「ラベル外側・ステッパー内側」の関係と中央の間隔(--damage-stat-center-gap)が
+   一定に保たれる。余りを中央へ送ると、広い画面ほど左右が分断して見える。 */
 .damage-stat-adjustment-cell {
 	display: flex;
 	align-items: center;
-	justify-content: flex-start;
+	justify-content: space-between;
 	gap: var(--damage-stat-cell-gap);
 	min-width: max-content;
 }
 /* 右列(A/C/S)はラベルを右端へ回して鏡写しにする。ステッパー内部の −/値/+ は反転しない。 */
 .damage-stat-adjustment-cell:nth-child(even) {
 	flex-direction: row-reverse;
-	justify-content: flex-start;
 }
 
 /* ラベル。性格補正の切替ボタンを兼ね、実数値をその直下に添える。
@@ -223,8 +228,9 @@
 
 /* 努力値ステッパー。育成タブと同じ .number-stepper をシート用の寸法・下地で使う。 */
 .damage-stat-adjustment-stepper {
+	/* 育成タブと同じく、中央の努力値ボタンも増減ボタンと同じ正方形に揃える。 */
 	--number-stepper-size: var(--damage-stat-button-size);
-	--number-stepper-input-width: var(--damage-stat-value-width);
+	--number-stepper-input-width: var(--damage-stat-button-size);
 	flex: none;
 	background: var(--stat-adjust-sheet-button-background);
 	box-shadow: none;
