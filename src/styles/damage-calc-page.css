@@ -17,6 +17,7 @@
 .damage-calc-secondary-button:hover:not(:disabled) { border-color: var(--color-primary); background: var(--color-surface); color: var(--color-text); }
 .damage-calc-opponent-search-wrap { position: relative; flex: 0 1 11rem; min-width: 0; }
 #damage-calc-opponent-search { width: 100%; min-width: 0; min-height: 2.35rem; padding: .42em .7rem; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background-color: var(--color-surface); color: var(--color-text); font: inherit; font-size: var(--font-size-sm1); }
+#damage-calc-opponent-search:focus { outline: none; border-color: var(--color-border); }
 /* 一覧の外周余白。/data のバトルデータタブ(.data-hub-scroll の左右 --space-2)と同程度に詰める。 */
 .damage-calc-matchups { min-height: 28rem; padding: var(--space-2); background-color: var(--color-bg); background-image: none; }
 .damage-calc-matchups > .panel-content { min-width: 0; }
