@@ -91,8 +91,8 @@
 .stat-adjust-sheet-toggle-icon::after {
 	content: "";
 	position: absolute;
-	width: 7px;
-	height: 3px;
+	width: 8px;
+	height: 2px;
 	top: 2px;
 	background: currentColor;
 	border-radius: 999px;
@@ -100,12 +100,13 @@
 .stat-adjust-sheet-toggle-icon::before {
 	left: -1px;
 	transform: rotate(-35deg);
-	transform-origin: right center;
+	/* 接点を1px越えて描き、回転時のV字の継ぎ目を埋める。 */
+	transform-origin: calc(100% - 1px) center;
 }
 .stat-adjust-sheet-toggle-icon::after {
-	left: 6px;
+	left: 5px;
 	transform: rotate(35deg);
-	transform-origin: left center;
+	transform-origin: 1px center;
 }
 
 #stat-adjust-sheet.is-expanded .stat-adjust-sheet-toggle-icon {
