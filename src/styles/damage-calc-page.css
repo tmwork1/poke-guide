@@ -44,9 +44,10 @@
 .damage-calc-matchup-card__pokemon--opponent { right: 0; }
 .damage-calc-matchup-card__artwork { position: absolute; top: 50%; display: block; width: var(--damage-calc-card-artwork-size); height: var(--damage-calc-card-artwork-size); padding: 0; border: 0; background: transparent; object-fit: contain; transform: translateY(-50%); font: inherit; }
 .damage-calc-matchup-card__artwork img { display: block; width: 100%; height: 100%; object-fit: contain; }
-/* 自分側は立ち絵タップでボックス選択モーダルを開けるbutton要素。 */
-[data-role="self-artwork"] { cursor: pointer; appearance: none; -webkit-appearance: none; }
-[data-role="self-artwork"]:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+/* 自分側は立ち絵タップでボックス選択モーダルを開き、相手側は立ち絵タップでメガシンカフォルムを
+   循環させるbutton要素。どちらもリセットしたbutton見た目にする。 */
+[data-role="self-artwork"], [data-role="opponent-artwork"] { cursor: pointer; appearance: none; -webkit-appearance: none; }
+[data-role="self-artwork"]:focus-visible, [data-role="opponent-artwork"]:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
 /* 未選択時は？を丸いアイコンとして表示する。 */
 .damage-calc-matchup-card__artwork--placeholder { display: grid; place-items: center; border: 1px solid var(--color-border); border-radius: 50%; background: var(--color-bg); color: var(--color-text-muted); font-size: var(--font-size-lg1); font-weight: var(--font-weight-bold); }
 .damage-calc-matchup-card__pokemon--self .damage-calc-matchup-card__artwork { left: var(--damage-calc-card-artwork-inset); }
@@ -95,7 +96,7 @@
 .damage-calc-matchup-card__table-label { display: inline-block; padding: .16rem .45rem; transform: translateX(.35rem); font-weight: var(--font-weight-bold); }
 .damage-calc-matchup-card__table-label--attack { color: var(--color-danger-strong); background: var(--color-danger-soft); }
 .damage-calc-matchup-card__table-label--defense { color: var(--color-primary-strong); background: var(--color-primary-soft); }
-.damage-calc-matchup-card__table tbody th { font-size: var(--font-size-sm3); font-weight: var(--font-weight-medium); transform: scaleX(.9); transform-origin: left center; }
+.damage-calc-matchup-card__table tbody th { font-size: var(--font-size-sm3); font-weight: var(--font-weight-medium); }
 .damage-calc-matchup-card__table strong, .damage-calc-matchup-card__table small { display: block; font-size: inherit; line-height: var(--line-height-tight); }
 .damage-calc-matchup-card__table td strong { font-size: var(--font-size-sm1); font-weight: var(--font-weight-normal); transform: scaleX(.9); }
 .damage-calc-matchup-card__table small { color: var(--color-text-muted); font-size: var(--font-size-sm3); }
@@ -120,7 +121,21 @@
 .damage-calc-summary-list .damage-calc-summary-card { display: grid; grid-template-columns: minmax(9rem, 1fr) minmax(9rem, 1fr) minmax(9rem, 1fr) auto; align-items: center; gap: var(--space-3); width: 100%; text-align: left; }
 .damage-calc-summary-card strong { font-size: var(--font-size-lg1); }
 .damage-calc-summary-card span, .damage-calc-summary-card small { color: var(--color-text-muted); }
-.damage-calc-control-bar { position: fixed; left: 0; right: 0; bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom)); z-index: 18; background: var(--color-surface); border-top: 1px solid var(--color-border); box-shadow: var(--shadow-md); }
+/* コントロールパネルは引き出しウィンドウ(box/ダメージタブのステータス調整シート
+   =stat-adjust-sheet.cssと同じ「閉時はつまみだけを残し他は透明」パターン)。 */
+.damage-calc-control-bar { position: fixed; left: 0; right: 0; bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom)); z-index: 18; display: flex; flex-direction: column; overflow: hidden; border-radius: var(--radius-md) var(--radius-md) 0 0; border: 1px solid var(--color-border); border-bottom: 0; background: var(--color-surface); box-shadow: var(--shadow-md); }
+.damage-calc-control-bar:not(.is-expanded) { pointer-events: none; border-color: transparent; background: transparent; box-shadow: none; }
+.damage-calc-control-panel-toggle { display: flex; align-items: center; justify-content: center; flex: none; align-self: center; width: 33.333%; height: 42px; min-height: 0; padding: 0 var(--space-2); line-height: 1; border: 0; background: var(--color-surface); color: var(--color-text-muted); font: inherit; cursor: pointer; }
+.damage-calc-control-bar:not(.is-expanded) .damage-calc-control-panel-toggle { pointer-events: auto; border: 1px solid var(--color-border); border-bottom: 0; border-radius: var(--radius-md) var(--radius-md) 0 0; box-shadow: var(--shadow-md); }
+.damage-calc-control-bar.is-expanded .damage-calc-control-panel-toggle { height: 26px; }
+.damage-calc-control-panel-toggle-icon { display: inline-flex; position: relative; width: 12px; height: 12px; align-items: center; justify-content: center; font-size: 0; transform-origin: center; transition: transform 0.2s ease; }
+.damage-calc-control-panel-toggle-icon::before, .damage-calc-control-panel-toggle-icon::after { content: ""; position: absolute; width: 8px; height: 2px; top: 2px; background: currentColor; border-radius: 999px; }
+.damage-calc-control-panel-toggle-icon::before { left: -1px; transform: rotate(-35deg); transform-origin: calc(100% - 1px) center; }
+.damage-calc-control-panel-toggle-icon::after { left: 5px; transform: rotate(35deg); transform-origin: 1px center; }
+.damage-calc-control-bar.is-expanded .damage-calc-control-panel-toggle-icon { transform: rotate(180deg); }
+.damage-calc-control-bar.is-expanded .damage-calc-control-panel-toggle-icon::before, .damage-calc-control-bar.is-expanded .damage-calc-control-panel-toggle-icon::after { top: -5px; }
+.damage-calc-control-panel-body { display: flow-root; max-height: 0; overflow-y: auto; transition: max-height 0.2s ease; }
+.damage-calc-control-bar.is-expanded .damage-calc-control-panel-body { max-height: 24rem; }
 .damage-calc-control-inner { padding: var(--space-2) var(--space-3); }
 @media (width > 412px) { .damage-calc-control-inner { max-width: var(--content-band-max-width); margin-inline: auto; } }
 /* 自分/相手の2列グリッド。「自分」「相手」はランクステッパーと同じ段(1行目)のセル内に

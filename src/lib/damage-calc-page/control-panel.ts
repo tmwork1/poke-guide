@@ -45,6 +45,18 @@ function createRankStepper(label: string, ariaSideLabel: string, onChange: (valu
   return { row, setValue: (value: number) => { current = value; refresh(); } };
 }
 
+// box/ダメージタブのステータス調整シート(box-id/stat-adjust-sheet.ts)と同じ、
+// つまみタップで開閉する引き出し。中身は静的マークアップのまま(遅延生成は不要)。
+function initControlPanelToggle(): void {
+  const bar = document.querySelector<HTMLElement>(".damage-calc-control-bar");
+  const toggle = document.getElementById("damage-calc-control-panel-toggle") as HTMLButtonElement | null;
+  if (!bar || !toggle) return;
+  toggle.addEventListener("click", () => {
+    const isExpanded = bar.classList.toggle("is-expanded");
+    toggle.setAttribute("aria-expanded", String(isExpanded));
+  });
+}
+
 function syncControlBarHeight(): void {
   const bar = document.querySelector<HTMLElement>(".damage-calc-control-bar");
   if (!bar) return;
@@ -69,6 +81,7 @@ function syncContentTop(): void {
 }
 
 export function initControlPanel(): void {
+  initControlPanelToggle();
   syncControlBarHeight();
   syncContentTop();
   const selfAilmentSelect = document.getElementById("damage-calc-self-ailment") as HTMLSelectElement;

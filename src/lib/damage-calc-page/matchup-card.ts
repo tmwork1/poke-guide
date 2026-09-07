@@ -1,12 +1,13 @@
 import { describeStandaloneLethal } from "../box-id/damage-calc-helpers";
 import { splitBoxCardDisplayName } from "../box-card-display-name";
-import { championSpriteUrl, loadImageIdMap, loadMoveDetailMap, officialArtworkUrl, type MoveCategory } from "../pokemon-master-data";
+import { championSpriteUrl, loadImageIdMap, loadMegaStoneMap, loadMoveDetailMap, loadPokemonMasterList, officialArtworkUrl, type MoveCategory, type PokemonMasterEntry } from "../pokemon-master-data";
 import { calcDamages, calcStats, initEngine, registerOfflineCache, type PokemonSpec } from "../pyodide-engine";
+import { loadItemSpriteMap } from "../sprite-urls";
 import { NATURE_STAT_MODIFIERS, STAT_KEYS, type StatKey } from "../stats";
 import type { PopularMoveOption } from "../team-matchup";
 import { openBoxSelectDialog } from "./box-select-dialog";
 import { renderItemIcon } from "./item-select-dialog";
-import { getFieldState, getOpponentBuild, getOpponentState, getSelfBuilds, getSelfState, type OpponentBuild, type SelfBuild } from "./shared-core";
+import { getFieldState, getOpponentBuild, getOpponentState, getSelfBuilds, getSelfState, setOpponentBuild, type OpponentBuild, type SelfBuild } from "./shared-core";
 
 type DamageCell = { range: string; lethal: string };
 type DamageRow = { moveName: string; cells: DamageCell[] };
@@ -30,6 +31,7 @@ type CardRefs = {
 type Card = { build: SelfBuild; root: HTMLElement; refs: CardRefs };
 
 const CHANGE_EVENT = "damage-calc:change";
+const emitChange = (reason: string) => document.dispatchEvent(new CustomEvent(CHANGE_EVENT, { detail: { reason } }));
 const DEFAULT_OPPONENT = "サーフゴー";
 const PATTERN_LABELS = ["無振り", "32振り", "特化"];
 /** 対面カードの防御表に載せる相手技の採用率しきい値(このカード専用。team-matchup.tsの
@@ -66,6 +68,39 @@ function role<T extends HTMLElement>(root: HTMLElement, name: string): T {
 
 function isSelectedSelf(build: SelfBuild): boolean {
   return build.species_name.trim() !== "";
+}
+
+const isMegaEntry = (entry: PokemonMasterEntry): boolean => entry.forme?.startsWith("Mega") ?? false;
+
+/** メガシンカ後の種族に対応するメガストーン名を返す(該当しない/items.jsonに実在しないアイテムは
+ * null)。box-id/shared-core.tsのresolveMegaStoneItemと同じロジックだが、あちらはbox/[id].astro
+ * 専用のDOM前提を持つモジュールのためここでは使わず、pokemon-master-data.ts/sprite-urls.tsから
+ * 直接組み立てる(loadMegaStoneMapのコメントにある「items.jsonに存在しないメガストーン名」の
+ * 既知の不整合を弾く)。 */
+async function resolveOpponentMegaStoneItem(speciesName: string): Promise<string | null> {
+  const [megaStoneMap, itemSpriteMap] = await Promise.all([loadMegaStoneMap(), loadItemSpriteMap()]);
+  const stoneName = megaStoneMap.get(speciesName);
+  if (!stoneName || !itemSpriteMap.has(stoneName)) return null;
+  return stoneName;
+}
+
+/** 相手の立ち絵タップ: そのポケモンがメガシンカ可能・済みなら、同じ図鑑番号内の
+ * 「通常→メガ→(メガX/Yなど複数あれば続けて)…→通常」の順で次のフォルムへ循環させる。
+ * メガシンカ不可の種族はタップしても何も起きない。メガへ切り替えた場合は、もちものを
+ * 対応するメガストーンに固定する(通常フォルムへ戻すときはもちものを変更しない)。 */
+async function cycleOpponentForm(): Promise<void> {
+  const master = await loadPokemonMasterList();
+  const current = getOpponentBuild();
+  const currentName = current.speciesName || DEFAULT_OPPONENT;
+  const currentEntry = master.find((entry) => entry.name === currentName);
+  if (!currentEntry) return;
+  const forms = master.filter((entry) => entry.dexNo === currentEntry.dexNo && (entry.forme === null || isMegaEntry(entry)));
+  if (forms.length <= 1) return;
+  const currentIndex = forms.findIndex((entry) => entry.name === currentName);
+  const next = forms[(currentIndex + 1) % forms.length];
+  const nextItemName = isMegaEntry(next) ? (await resolveOpponentMegaStoneItem(next.name)) ?? current.itemName : current.itemName;
+  setOpponentBuild({ ...current, speciesName: next.name, abilityName: "", itemName: nextItemName });
+  emitChange("opponent");
 }
 
 function natureWithRaisedStat(stat: StatKey): string {
@@ -232,6 +267,8 @@ function createCard(index: number): { root: HTMLElement; refs: CardRefs } {
   // 自分側の立ち絵タップでボックス選択モーダルを開く導線は、カードが何枚あっても共通
   // (選ぶと box-select-dialog.ts 側で自分側カードは常に1枚へ戻る)。
   refs.selfArtwork.addEventListener("click", () => openBoxSelectDialog());
+  // 相手側の立ち絵タップはメガシンカフォルムの循環切り替え(カードが何枚あっても相手は共通)。
+  refs.opponentArtwork.addEventListener("click", () => void cycleOpponentForm());
   return { root, refs };
 }
 
