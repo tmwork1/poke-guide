@@ -11,6 +11,7 @@ import {
 	wrapToRange,
 } from "./shared-core";
 import { bindPressAndHold } from "../press-and-hold";
+import { markModalPortal } from "../modal-dismiss";
 
 export interface StatAdjustmentPanelOptions {
 	baseStats: number[];
@@ -196,6 +197,9 @@ export function buildStatAdjustmentPanel(options: StatAdjustmentPanelOptions): S
 		picker.className = "number-stepper-picker";
 		picker.hidden = true;
 		picker.setAttribute("role", "dialog");
+		// openPicker()でdocument.body直下へ移すため、モーダル(詳細パネル等)の
+		// 背景クリック遮断に「外側」と誤判定されないよう印を付ける。
+		markModalPortal(picker);
 		for (let value = EV_MIN; value <= EV_MAX; value += 1) {
 			const option = document.createElement("button");
 			option.type = "button";

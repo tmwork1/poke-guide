@@ -1,3 +1,5 @@
+import { markModalPortal } from "../modal-dismiss";
+
 export type RankPickerPlacement = "above" | "below";
 
 export interface RankPicker {
@@ -18,6 +20,9 @@ export function createRankPicker({ pickerButton, placement, onSelect, formatValu
 	picker.className = "number-stepper-picker number-stepper-picker--rank";
 	picker.hidden = true;
 	picker.setAttribute("role", "dialog");
+	// openPicker()でdocument.body直下へ移すため、モーダルの背景クリック遮断に
+	// 「外側」と誤判定されないよう印を付ける。
+	markModalPortal(picker);
 	for (let value = -6; value <= 6; value += 1) {
 		const option = document.createElement("button");
 		option.type = "button";

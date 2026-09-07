@@ -179,7 +179,7 @@ function buildDirectionChip(direction: DamageCalcSuggestion["direction"]): HTMLE
 	chip.className = "damage-suggest-direction";
 	chip.dataset.direction = direction;
 	// 中央パネルの攻守トグル(damage-calc.ts の directionToggle)と同じ語彙にする。
-	chip.textContent = direction === "defense" ? "防御" : "攻撃";
+	chip.textContent = direction === "defense" ? "守" : "攻";
 	return chip;
 }
 

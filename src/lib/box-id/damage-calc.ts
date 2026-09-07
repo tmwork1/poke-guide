@@ -53,6 +53,7 @@ import { initializeCardDeleteMode, playCardDeleteExitEffect } from "../card-dele
 // 相手ポケモンのアイテムドロップダウン(下のbuildItemDropdown参照)の検索欄で、育成タブの
 // 持ち物ドロップダウン(pokemon-edit-panel.ts)と同じかな・文字幅・英字大小を無視した絞り込みにする。
 import { kanaIncludes } from "../kana";
+import { MODAL_PORTAL_SELECTOR } from "../modal-dismiss";
 // もちもの候補の並び順(box/のもちもの選択モーダルと同じ、使用率降順+タイプ強化/きのみ/
 // メガストーンのグルーピング)を共有するため、item-select-dialog.tsのsortItemsByUsageを使う。
 import { sortItemsByUsage } from "./item-select-dialog";
@@ -3243,6 +3244,10 @@ if (opponentNotesSection) {
 		if (path.includes(damageDetailPanelEl)) return;
 		if (path.some((entry) => entry instanceof Element && entry.matches(".damage-column"))) return;
 		if (path.some((entry) => entry instanceof Element && entry.matches(".card-damage"))) return;
+		// 努力値・ランクのピッカーは表示位置の都合でdocument.body直下へ逃がしている
+		// (modal-dismiss.tsのmarkModalPortal参照)。DOM上はパネルの外にあるが
+		// パネル自身のUIなので、「カード外クリック」として選択を解除しない。
+		if (path.some((entry) => entry instanceof Element && entry.matches(MODAL_PORTAL_SELECTOR))) return;
 		// 追加ボタン(.add-card-tile)のクリックも「カード外クリック」として除外する。
 		// 除外しないと、実際のマウス操作(トラステッドイベント)ではリスナー呼び出しの
 		// 間に自動でマイクロタスクチェックポイントが入るため、addNewRowAndFocus内で

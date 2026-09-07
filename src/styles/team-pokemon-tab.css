@@ -185,8 +185,10 @@ body.team-edit-page {
 	gap: var(--app-header-toolbar-gap);
 	background: var(--color-surface);
 	border-top: 1px solid var(--color-border);
-	/* /box の .second-header と同じ密度・横余白にそろえる。 */
-	--app-header-toolbar-padding: var(--space-2) var(--space-3);
+	/* /box の .second-header と同じ密度・横余白にそろえる。
+	   .app-header--toolbar のデフォルトpadding(space-3 space-5)は
+	   カスタムプロパティ経由ではなく直書きのため、ここでも直接上書きする。 */
+	padding: var(--space-2) var(--space-3);
 	--app-header-toolbar-gap: var(--space-2);
 }
 #team-formation-mobile-toolbar .toolbar-search {

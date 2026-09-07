@@ -49,7 +49,6 @@ function buildDamageStatAdjustmentSheet(): void {
 	const rows = new Map<string, { range: HTMLInputElement; value: HTMLElement; real: HTMLElement; wrap: HTMLElement }>();
 
 	for (const [index, key] of STAT_KEYS.entries()) {
-		if (key === "spe") continue;
 		const row = document.createElement("div");
 		row.className = "damage-stat-adjustment-row";
 		const label = document.createElement("span");
