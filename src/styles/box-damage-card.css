@@ -2432,8 +2432,6 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .d
   );
   /* 下段のダメージ結果と文字の開始位置をそろえる。 */
   padding: .16rem .25rem;
-  /* 左列と同じだけカード外周から離し、上下の見え方をそろえる。 */
-  margin-block: 4px 0;
 }
 
 body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-column,
@@ -2489,6 +2487,7 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .d
   white-space: nowrap;
   /* 左列を通常寸法に復元しても複数技を1行に保つため、文字だけを最小限縮める。 */
   font-size: var(--damage-card-compact-move-font-size);
+  transform: translateY(2px);
 }
 
 body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-row-total {
@@ -2497,7 +2496,7 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .d
   grid-row: 2;
   align-self: stretch;
   min-width: 0;
-  margin: 0 0 4px;
+  margin: 0;
   /* 通常表示の累計ゲージと同じ枠・角丸・内側余白を残し、severityの面を途切れさせない。 */
   padding: 1px;
   border: 0;
@@ -2524,6 +2523,7 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .d
   column-gap: var(--space-1);
   display: grid;
   align-items: center;
+  transform: translateY(-2px);
 }
 
 /* 判定ラベルと詳細値にも親の14pxを継承させ、片方だけ通常サイズで横幅を消費しないようにする。 */
