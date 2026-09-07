@@ -54,6 +54,8 @@
 [data-role="self-artwork"]:focus-visible, [data-role="opponent-artwork"]:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
 /* 未選択時は？を丸いアイコンとして表示する。 */
 .damage-calc-matchup-card__artwork--placeholder { display: grid; place-items: center; border: 1px solid var(--color-border); border-radius: 50%; background: var(--color-bg); color: var(--color-text-muted); font-size: var(--font-size-lg1); font-weight: var(--font-weight-bold); }
+/* 自分側は常にボックス選択を促す操作対象のため、相手側より明るいトーンにして目を引く。 */
+.damage-calc-matchup-card__pokemon--self .damage-calc-matchup-card__artwork--placeholder { background: var(--color-surface); border-color: color-mix(in srgb, var(--color-border) 60%, var(--color-surface) 40%); color: var(--color-text); }
 /* 立ち絵ともちものアイコンを1組として、それぞれのカラム(50%幅)の中央に寄せる。 */
 .damage-calc-matchup-card__pokemon--self .damage-calc-matchup-card__artwork { left: calc(50% - (var(--damage-calc-card-artwork-size) + var(--damage-calc-card-item-gap) + var(--damage-calc-card-item-size)) / 2); }
 .damage-calc-matchup-card__pokemon--opponent .damage-calc-matchup-card__artwork { right: calc(50% - (var(--damage-calc-card-artwork-size) + var(--damage-calc-card-item-gap) + var(--damage-calc-card-item-size)) / 2); }
@@ -104,7 +106,7 @@
 .damage-calc-matchup-card__table tbody tr { border-top: 1px solid var(--color-border); }
 .damage-calc-matchup-card__table thead th { color: var(--color-text-muted); font-size: var(--font-size-sm3); font-weight: var(--font-weight-medium); }
 .damage-calc-matchup-card__table th:first-child { text-align: left; }
-.damage-calc-matchup-card__table-label { display: inline-block; padding: .16rem .45rem; transform: translateX(.35rem); font-weight: var(--font-weight-bold); }
+.damage-calc-matchup-card__table-label { display: inline-block; min-width: 2.4em; padding: .16rem .3rem; text-align: center; transform: translateX(.35rem); font-weight: var(--font-weight-bold); }
 .damage-calc-matchup-card__table-label--attack { color: var(--color-danger-strong); background: var(--color-danger-soft); }
 .damage-calc-matchup-card__table-label--defense { color: var(--color-primary-strong); background: var(--color-primary-soft); }
 .damage-calc-matchup-card__table tbody th { font-size: var(--font-size-sm3); font-weight: var(--font-weight-medium); }
