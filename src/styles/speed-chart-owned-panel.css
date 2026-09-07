@@ -261,6 +261,7 @@
 		background: var(--color-success-soft);
 		color: var(--color-success-strong);
 		font-weight: var(--font-weight-bold);
+		border: 1px solid var(--color-success-strong); /* 現在地バッジの強調枠。太くすると強調が増す */
 	}
 	.speed-chart-owned .speed-chart-owned-dash {
 		color: var(--color-text-muted);
