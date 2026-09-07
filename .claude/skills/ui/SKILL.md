@@ -113,7 +113,7 @@ grep -rhA3 "focus-visible" src --include=*.astro --include=*.css | grep -oE "out
 
 - **撮影・実測の直前にdev serverを再起動する**(→ `references/pitfalls.md`「Windows側から編集した直後のスクリーンショットは『前のコード』を写している」)。これを怠ると、直っているのに直っていないと誤診して余計な修正を重ねる。
 - **共通化したら、その重複が存在していた全画面を確認する**(1画面だけ見て判断しない)。
-- **はみ出しは目視で探さず `getBoundingClientRect()` で犯人を特定する**(同上「はみ出しは目視で探さず、要素を実測して特定する」)。
+- **はみ出しは目視で探さず `npm run probe -- --page <path> --size <幅x高> --overflow` で犯人を特定する**(同上「はみ出しは目視で探さず、要素を実測して特定する」)。
 - **委任先のdiffは必ずCoordinatorが読む。** 実際に、ダークモードの上書きを落としかけた回帰をこの確認で捕まえた(報告書には「判断に迷った箇所はありません」と書かれていた)。
 
 ## 手順
@@ -126,11 +126,13 @@ grep -rhA3 "focus-visible" src --include=*.astro --include=*.css | grep -oE "out
 
 対象要素・現在の値(余白・色・サイズ等)は、**デフォルトではRead/Grepでコードを読んで確認する。** スクリーンショットは撮らない。
 
-**実測モード**(「実行モード」節を参照)のときだけ、必要に応じてスクリーンショットで確認する。**撮影は `npm run shot` を使う**(`scripts/shot.mjs`。Playwrightスクリプトを毎回書き起こさない)。
+**実測モード**(「実行モード」節を参照)のときだけ、必要に応じてスクリーンショット・実測で確認する。**Playwrightスクリプトを毎回書き起こさない。撮るのは `npm run shot`(`scripts/shot.mjs`)、測る・触るのは `npm run probe`(`scripts/probe.mjs`)を使う。** 足りない観点が出たら使い捨てスクリプトではなくこの2本にオプションを足す。
 
 ```bash
 npm run dev            # 別ターミナルで先に起動しておく
 npm run shot -- --page box/<id> --clip .card-damage --clip-pad 12 --scale 3
+npm run probe -- --page box/<id> --size 390x844 --rect .card-damage --overflow
+npm run probe -- --page box --click "text=編集" --style ".card-pokemon:padding,gap"
 ```
 
 **複数画面/複数ファイルにまたがるまとめ依頼、または対象コードに土地勘が無い場合**(実測モード相当の規模)は、下調べもサブエージェントに委託してよい。**codexが使えるなら`codex exec --sandbox read-only`を優先し**、疎通不良のときだけExploreエージェント(sonnet)にフォールバックする。画面・観点ごとに独立した調査なら並列で投げる(例:「画面Aの対象クラスと現在値」「画面Bの対象クラスと現在値」を別々のエージェントに)。分担の考え方は手順3「ファイル単位で分担する」と同じ(担当範囲が重ならないよう仕分ける)。
@@ -167,7 +169,7 @@ npm run shot -- --page box/<id> --clip .card-damage --clip-pad 12 --scale 3
 
 **実測モード**のときだけ、追加で次を行う:
 - `npm run shot` で撮り直し、Read tool で自分の目で見る(ライト・ダーク両方)
-- 数値目標があれば `getBoundingClientRect()` 等で実測
+- 数値目標があれば `npm run probe`(`--rect` / `--style` / `--overflow`)で実測
 - **同じ指摘の再発が理由で実測モードに入った場合は、修正前(現状再現)と修正後の両方をスクショで撮り、見比べて実際に直ったことを確認してから完了報告する。** 撮影直前は`references/pitfalls.md`の「Windows側から編集した直後のスクリーンショットは『前のコード』を写している」対策としてdev serverを再起動する
 - 検証が終わったら、撮影に使った `.tmp-shots*` ディレクトリを削除する(`--out` で指定した出力先。gitignore対象で放置すると蓄積する)
 

@@ -13,6 +13,15 @@
 
 画面・コンポーネント固有のスタイルは、`owned-pokemon-card.css` や `box-page.css` のように対象ごとの CSS ファイルへ集約することを必須とする。開発者が見た目を調整しやすいよう、テンプレート内の `style` 属性、コンポーネント内の分散した `<style>`、および同一対象のスタイルを複数ファイルへ無秩序に分ける実装は行わない。共有スタイルのみ `global.css` 等の共通スタイルシートに置く。
 
+## UIの確認・検証
+
+**ブラウザでの確認は既存のCLIを使い、検証用のPlaywrightスクリプトを毎回書き起こさない。**
+
+- `npm run shot` (`scripts/shot.mjs`) — 撮る。スクリーンショット・拡大クロップ・密度検証
+- `npm run probe` (`scripts/probe.mjs`) — 測る・触る。`--rect`(位置/サイズ)・`--style`(computed style)・`--overflow`(はみ出しの犯人)・`--text`/`--html`/`--count`・`--eval`、および `--click`/`--fill`/`--press`/`--hover`/`--scroll` で操作してからの実測
+
+どちらも `npm run dev` が起動していることが前提で、dev serverのURL検出・Pyodide初期化待ち・dev toolbar非表示・console error収集は実装済み。**足りない観点が出たら使い捨てスクリプトを書かず、この2本にオプションを足す**(共通処理は `scripts/lib/page-session.mjs`)。詳細は各ファイル冒頭のコメントと `.claude/skills/ui/references/pitfalls.md` の「Playwright」節。
+
 ## 一時ファイルの運用
 
 デバッグ・検証用の一時ファイル(スクレイピングHTML・検証用スクリーンショット・使い捨てスクリプト等)は、ルート直下に `.tmp-` prefixで作成する(`.gitignore` の `/.tmp-*` で除外済み)。**commit前に、Coordinatorは `.tmp-*` の消し忘れがないか確認し削除する**(「作った本人が消す」運用は過去に徹底されず肥大化した実績があるため、個人の裁量に委ねない)。

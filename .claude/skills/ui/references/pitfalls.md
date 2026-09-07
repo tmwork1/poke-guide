@@ -189,7 +189,23 @@ npm run shot -- --page box --size 1280x900                         # ブレー�
 - 撮影結果に HTTP status・**リダイレクト先**・Pyodide待ちの有無・横スクロール・console error が併記される。まずそこを読んでから画像を見る。
 - **クリック・入力を一切しないので `/box/[id]` の自動保存が走らない。** データ事故を構造的に避けられるのがこのスクリプトの一番の価値。
 - **足りない撮り方が出てきたら `scripts/shot.mjs` にオプションを足す。** `.tmp-*.mjs` を書き捨てると次に同じものを書くことになる。
-- 実測(`getBoundingClientRect()`)や機能確認のように「触る」必要がある検証は、従来どおり**プロジェクトルートに `.tmp-<接頭辞>-*.mjs`** を置く(スクラッチパッド配下だと `import { chromium } from '@playwright/test'` がモジュール解決に失敗する)。`playwright` ではなく **`@playwright/test`** からimportする。使い終わったら消す。**他のエージェントの一時ファイル(`.tmp-final.*` など)は消さない。**
+- 実測(`getBoundingClientRect()`)や、クリック・入力を伴う機能確認は **`npm run probe`**(次節)。ここでも `.tmp-*.mjs` は書き起こさない。
+
+### 実測・操作は `npm run probe`。検証スクリプトを書き起こさない
+`getBoundingClientRect()` の実測・`getComputedStyle` の確認・クリック/入力してからの状態確認は、**`scripts/probe.mjs` に固定した**(`npm run shot` の相棒。shot が「撮る」、probe が「測る・触る」)。dev serverのURL検出・Pyodide初期化待ち・dev toolbar非表示・console error / pageerror / 失敗リクエストの収集・リダイレクト検出は**すべてスクリプト側で処理済み**。
+
+```bash
+npm run probe -- --page box --overflow                       # 横スクロールの犯人を列挙
+npm run probe -- --page box --size 390x844 --rect .card-pokemon
+npm run probe -- --page box/<id> --style ".card-damage:padding,font-size,color"
+npm run probe -- --page box --fill 'input[type="search"]=ピカ' --wait-ms 400 --count .card-pokemon
+npm run probe -- --page team --click "text=編成" --rect .team-slot   # 操作してから実測
+npm run probe -- --page box --eval "document.title"          # 任意の式を1発だけ評価
+```
+- 出力は JSON(stdout)+ 警告サマリ(stderr)。`--json` でJSONだけにできる。件数は `--limit`(既定10)で絞る。
+- **操作系(`--click` / `--fill` / `--press` / `--hover` / `--scroll`)を使うと `/box/[id]` の自動保存が走りうる**(→「自動保存があるので、検証クリックがデータを壊す」)。操作系を指定しなければ読むだけでDBを触らない。
+- **足りない観点が出たら `scripts/probe.mjs` にオプションを足す。** `.tmp-*.mjs` を書き捨てると次に同じものを書くことになる。
+- 撮影・実測の共通処理(URL検出・Pyodide待ち等)は `scripts/lib/page-session.mjs` にまとまっている。shot と probe の両方に効く修正はここに入れる。
 
 ### 🔴 `--clip` 対象がビューポート高さ(既定1080px)を超えると、ビューポート外の中身が「消えて」写る(2026-08-11)
 `--size` を指定しない既定の `1920x1080` で `--clip <セレクタ>` を撮ると、**クリップ対象要素が縦にビューポートより長いとき、ビューポート初期表示範囲より下の子要素(テキストを含む)が画像上で丸ごと欠落する**ことがある(スクロールで実際に見れば描画されており、`getBoundingClientRect()` で測ってもジオメトリは正常。あくまで撮影時の1枚絵に写らないだけ)。
@@ -254,7 +270,7 @@ dev serverはWSL上で動き、ソースは `/mnt/c/...`(9p)越しに見えて�
   .map(({ el, r }) => `${el.tagName}#${el.id}.${el.className} left=${r.left} right=${r.right}`);
 ```
 - **実例(2026-08-05)**: `/box` の390px幅で `document.scrollWidth === 486`。この実測で犯人が `select#regulation-filter`(left=136, right=486, width=350)1つだと即座に分かり、「ツールバー内容幅350px + ラベル116px」という内訳まで計算で追えた。
-- **`npm run shot` は「横スクロールあり」の警告までは出す**が、犯人は教えてくれない。警告が出たらこの実測に進む。
+- **`npm run shot` は「横スクロールあり」の警告までは出すが、犯人は教えてくれない。警告が出たら `npm run probe -- --page <path> --size <幅x高> --overflow` に進む**(上のクエリと同じことをして、はみ出し量の大きい順に列挙する)。手でスクリプトを書く必要はない。
 
 ### 「エラーなし」は品質の証明にならない
 `pageerror` / `console.error` / 横スクロールの有無は**最低ライン**。必ず画像を Read tool で見る。
