@@ -104,7 +104,7 @@ body.box-edit-page {
   --damage-detail-ailment-width: 7em; /* 状態異常の選択欄の幅 */
   --damage-detail-selection-icon-size: 28px; /* 選択中ポケモンのアイコンサイズ */
   --damage-card-item-badge-size: 18px; /* アイテムアイコンの一辺 */
-  --damage-card-compact-height: 64px; /* 調整シート展開中に、ダメージカードを2行表示へ圧縮する高さ */
+  --damage-card-compact-height: 64px; /* 調整シート展開中に、左列と右2行を収める高さ */
   --damage-card-compact-sprite-size: 32px; /* 圧縮カード左列に横並びで置く立ち絵の一辺 */
   --damage-card-compact-sheet-row-height: 28px; /* 調整シート中の圧縮カードで、わざ名・累計結果それぞれに割り当てる行高 */
 
@@ -2304,9 +2304,8 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage {
 body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-row-body {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
+  /* 左列は相手、右列は上段の技・下段のダメージに固定する。 */
   grid-template-rows: repeat(2, var(--damage-card-compact-sheet-row-height));
-  /* 左右の余白と列間は、フル表記のダメージ(例「乱1 31.25% 567〜668 (298.4〜351.6%)」)が
-     390px幅で切れないところまで詰める。 */
   gap: 0 2px;
   min-height: var(--damage-card-compact-height);
   padding: var(--space-1) 2px;
@@ -2412,6 +2411,7 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .d
   grid-row: 1;
   align-items: center;
   min-width: 0;
+  width: 100%;
   overflow: hidden;
   /* 通常表示の技カードと同じ枠・背景・角丸を持たせ、情報だけを畳んだ状態に見せる。 */
   border: 1px solid var(--color-border);
@@ -2474,7 +2474,7 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .d
 }
 
 body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-row-total {
-  /* 左の相手ビルド欄ではなく右列へ置き、長い確定数・実ダメージ・割合を切らずに残す。 */
+  /* ダメージ結果は右列の下段に置き、左列の対面情報と対応させる。 */
   grid-column: 2;
   grid-row: 2;
   align-self: stretch;
