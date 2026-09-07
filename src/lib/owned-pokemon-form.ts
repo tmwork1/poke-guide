@@ -65,9 +65,17 @@ export function orderPokemonEntriesForDatalist(
   const isMega = (entry: DatalistPokemonEntry): boolean => entry.forme?.startsWith('Mega') ?? false;
   const nonMegaEntries = entries.filter((entry) => !isMega(entry));
   const megaEntries = entries.filter(isMega);
-  const nonMegaByName = new Map(nonMegaEntries.map((entry) => [entry.name, entry]));
-  const sortedNonMega = sortPokemonNamesByOpggRanking(nonMegaEntries.map((entry) => entry.name), rankedNames)
-    .map((name) => nonMegaByName.get(name)!);
+  const rankByName = new Map<string, number>();
+  for (const [index, name] of rankedNames.entries()) {
+    if (!rankByName.has(name)) rankByName.set(name, index);
+  }
+  // SpeciesSelectDialog の「使用率順」と同じく、ランク外は図鑑番号順にする。
+  // autocomplete JSON の物理的な並びに依存させず、ダメージ計算の候補とも
+  // 常に同じ種類・順番になるようここを唯一の並び順定義にする。
+  const sortedNonMega = [...nonMegaEntries].sort(
+    (a, b) => (rankByName.get(a.name) ?? Infinity) - (rankByName.get(b.name) ?? Infinity)
+      || a.dexNo - b.dexNo,
+  );
 
   const megaByDex = new Map<number, DatalistPokemonEntry[]>();
   for (const mega of megaEntries) {

@@ -1,7 +1,7 @@
 // /box/[id] の種族選択モーダル。種族値・特性候補・保存など既存の処理は
 // #species-name の input/change イベントに集約されているため、このファイルは選択値を
 // 書き換えて両イベントを発火するだけにとどめる。
-import { el } from "../owned-pokemon-form";
+import { el, orderPokemonEntriesForDatalist } from "../owned-pokemon-form";
 import {
 	loadAbilitiesMap,
 	loadLearnsetMap,
@@ -164,17 +164,20 @@ function renderGrid(): void {
 	if (sortMode === "kana") {
 		sortedNonMega = [...nonMegaEntries].sort((a, b) => a.name.localeCompare(b.name, "ja"));
 	} else if (sortMode === "popularity") {
-		const rankByName = new Map<string, number>();
-		for (const [index, name] of readJsonScriptStringArray("box-opgg-ranked-species").entries()) {
-			if (!rankByName.has(name)) rankByName.set(name, index);
-		}
-		const rankedEntries = nonMegaEntries
-			.filter((entry) => rankByName.has(entry.name))
-			.sort((a, b) => rankByName.get(a.name)! - rankByName.get(b.name)!);
-		const unrankedEntries = nonMegaEntries
-			.filter((entry) => !rankByName.has(entry.name))
-			.sort((a, b) => a.dexNo - b.dexNo);
-		sortedNonMega = [...rankedEntries, ...unrankedEntries];
+		const orderedNames = orderPokemonEntriesForDatalist(filtered, readJsonScriptStringArray("box-opgg-ranked-species"));
+		const entryByName = new Map(filtered.map((entry) => [entry.name, entry]));
+		const orderedButtons = orderedNames.flatMap((name) => {
+			const entry = entryByName.get(name);
+			return entry ? [entry] : [];
+		});
+		const buttons = orderedButtons.flatMap((entry) => {
+			const cell = cellByName.get(entry.name);
+			return cell ? [cell] : [];
+		});
+		gridEl.hidden = buttons.length === 0;
+		emptyEl.hidden = buttons.length !== 0;
+		if (buttons.length > 0) gridEl.replaceChildren(...buttons);
+		return;
 	}
 
 	const megaByDex = new Map<number, PokemonMasterEntry[]>();
