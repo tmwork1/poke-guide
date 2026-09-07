@@ -93,8 +93,8 @@
 	position: absolute;
 	width: 7px;
 	height: 2px;
-	/* 展開時の180度回転後も、山形の見た目の中心をつまみの中心へ保つ。 */
-	top: 5px;
+	/* 180度回転後の線分の見た目の中心を、つまみの中心へ合わせる。 */
+	top: 3px;
 	background: currentColor;
 	border-radius: 999px;
 }
