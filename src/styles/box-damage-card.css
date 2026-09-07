@@ -2359,16 +2359,16 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .d
 }
 
 body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-item-badge {
-  /* 圧縮中もアイテムを識別しやすくし、左セルの下端へ添える。 */
-  align-self: flex-end;
-  width: calc(var(--damage-card-item-badge-size) * 1.5);
-  height: calc(var(--damage-card-item-badge-size) * 1.5);
-  margin-block-end: 1px;
+  /* 左セルの下端に寄せ、立ち絵より控えめな大きさにする。 */
+  width: calc(var(--damage-card-item-badge-size) * 1.2);
+  height: calc(var(--damage-card-item-badge-size) * 1.2);
 }
 
 body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-build-item-field {
   flex: none;
   gap: 0;
+  align-self: flex-end;
+  margin-block-end: 1px;
 }
 
 /* 圧縮時は対面の識別に不要な型詳細を外し、残すのは持ち物アイコンだけにする。 */
@@ -2430,7 +2430,8 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .d
     color-mix(in srgb, var(--damage-card-column-background) 97.5%, white 2.5%) 0%,
     color-mix(in srgb, var(--damage-card-column-background) 97.5%, black 2.5%) 100%
   );
-  padding: .16rem .5rem;
+  /* 下段のダメージ結果と文字の開始位置をそろえる。 */
+  padding: .16rem .25rem;
 }
 
 body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-column,
@@ -2444,7 +2445,8 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .d
   display: flex;
   align-items: center;
   /* 単独の技は右列の余白まで使い、複数技なら等分して省略位置を安定させる。 */
-  flex: 1 1 0;
+  /* ヒット数を対象技名の直後に置くため、技名だけで行の余りを埋めない。 */
+  flex: 0 1 auto;
   min-width: 0;
 }
 
@@ -2461,8 +2463,8 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .d
    割り込んで「スケイルショット + 5ヒット はどうだん」の並びになってしまう)。
    前に可視列がある列だけが対象なので、hidden列をまたいでも余分な「+」は出ない。 */
 body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-column:not([hidden]) ~ .damage-column:not([hidden]) .damage-column-move-identity::before {
-  content: "+ ";
-  margin-inline-start: var(--space-1);
+  content: "+";
+  margin-inline: var(--space-1);
 }
 
 /* ヒット数(「5ヒット」)は技名の直後に添える。 */
@@ -2518,6 +2520,7 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .d
   grid-template-columns: auto minmax(0, 1fr);
   column-gap: var(--space-1);
   display: grid;
+  align-items: center;
 }
 
 /* 判定ラベルと詳細値にも親の14pxを継承させ、片方だけ通常サイズで横幅を消費しないようにする。 */
@@ -2526,11 +2529,17 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .d
   font-size: inherit;
 }
 
-/* 結果の判定を先に読ませ、実ダメージ量・割合は補助情報として一段軽くする。 */
-body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-result-probability,
+/* 結果の判定を先に読ませ、実ダメージ量は補助情報として一段軽くする。 */
 body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-row-total-result .damage-result-detail {
   font-weight: var(--font-weight-normal);
   opacity: .78;
+}
+
+/* 致死率(乱N xx%)は確定数ラベルと同じフォントで読み取れるようにする。 */
+body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-row-total-result .damage-result-probability {
+  font-size: inherit;
+  font-weight: var(--damage-card-total-verdict-font-weight);
+  opacity: 1;
 }
 
 /* カード内の追加スロットが将来復活しても、圧縮中は操作対象として見せない

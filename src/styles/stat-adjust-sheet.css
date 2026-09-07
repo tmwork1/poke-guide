@@ -114,7 +114,7 @@
 
 /* 展開中は開閉だけを担うため、閉じたときの大きなつまみ高さを引き継がない。 */
 #stat-adjust-sheet.is-expanded .stat-adjust-sheet-toggle {
-	height: 20px;
+	height: 24px;
 }
 
 #stat-status-adjust-body {
@@ -191,6 +191,7 @@
 	color: var(--color-text);
 	font: inherit;
 	line-height: 1;
+	text-align: center;
 	cursor: pointer;
 }
 .damage-stat-adjustment-label.is-static { cursor: default; }
@@ -226,9 +227,12 @@
 }
 
 .damage-stat-adjustment-real {
+	display: block;
+	width: 100%;
 	font-size: var(--font-size-sm3); /* 実数値。大きくすると数値が読みやすくなる */
 	line-height: 1;
 	color: var(--color-text-muted);
+	text-align: center;
 }
 .damage-stat-adjustment-real[data-mod="up"] { color: var(--color-stat-up); }
 .damage-stat-adjustment-real[data-mod="down"] { color: var(--color-stat-down); }
