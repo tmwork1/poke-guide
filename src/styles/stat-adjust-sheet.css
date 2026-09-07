@@ -93,8 +93,7 @@
 	position: absolute;
 	width: 7px;
 	height: 2px;
-	/* 180度回転後の線分の見た目の中心を、つまみの中心へ合わせる。 */
-	top: 3px;
+	top: 10px;
 	background: currentColor;
 	border-radius: 999px;
 }
