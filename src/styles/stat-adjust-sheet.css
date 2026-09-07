@@ -68,7 +68,7 @@
 /* つまみに並べる「残りXX」。シートを閉じている間も残数が見えるようにここへ置く。 */
 .stat-adjust-sheet-remaining {
 	display: block;
-	margin: var(--space-1) 0 var(--space-1) var(--space-2);
+	margin: 0 0 var(--space-1) var(--space-2);
 	font-size: var(--font-size-sm3); /* 「残りXX」の文字サイズ。大きくすると目立つ */
 	color: var(--color-text-muted); /* 「残りXX」の文字色。濃くすると目立つ */
 	line-height: 1;
@@ -114,7 +114,7 @@
 
 /* 展開中は開閉だけを担うため、閉じたときの大きなつまみ高さを引き継がない。 */
 #stat-adjust-sheet.is-expanded .stat-adjust-sheet-toggle {
-	height: 26px;
+	height: 20px;
 }
 
 #stat-status-adjust-body {

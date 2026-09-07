@@ -2329,7 +2329,7 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .d
   width: 100%;
   max-width: none;
   padding: .25rem .4rem;
-  border: 1px solid var(--color-border);
+  border: 0;
   border-radius: var(--radius-zero);
   background-color: var(--damage-card-build-background);
   background-image: linear-gradient(
@@ -2359,9 +2359,11 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .d
 }
 
 body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-item-badge {
-  /* 通常表示と同じ持ち物アイコン寸法に戻し、立ち絵とバッジだけが揃う状態を避ける。 */
-  width: var(--damage-card-item-badge-size);
-  height: var(--damage-card-item-badge-size);
+  /* 圧縮中もアイテムを識別しやすくし、左セルの下端へ添える。 */
+  align-self: flex-end;
+  width: calc(var(--damage-card-item-badge-size) * 1.5);
+  height: calc(var(--damage-card-item-badge-size) * 1.5);
+  margin-block-end: 1px;
 }
 
 body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-build-item-field {
@@ -2420,7 +2422,7 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .d
   width: 100%;
   overflow: hidden;
   /* 通常表示の技カードと同じ枠・背景・角丸を持たせ、情報だけを畳んだ状態に見せる。 */
-  border: 1px solid var(--color-border);
+  border: 0;
   border-radius: var(--radius-zero);
   background-color: var(--damage-card-column-background);
   background-image: linear-gradient(
@@ -2493,8 +2495,15 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .d
   margin: 0;
   /* 通常表示の累計ゲージと同じ枠・角丸・内側余白を残し、severityの面を途切れさせない。 */
   padding: 1px;
-  border: 1px solid var(--color-border);
+  border: 0;
   border-radius: var(--radius-zero);
+}
+
+/* 圧縮中はメーターを使わず、判定と数値をフラットに比較する。 */
+body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-row-total[data-severity="lethal"],
+body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-row-total[data-severity="risky"],
+body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-row-total[data-severity="safe"] {
+  background: var(--damage-card-face-background, var(--damage-card-current-background));
 }
 
 body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-row-total-result {
