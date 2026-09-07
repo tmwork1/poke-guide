@@ -3,6 +3,9 @@ import '../../styles/stat-adjust-sheet.css';
 ---
 
 <div id="stat-adjust-sheet" class="stat-adjust-sheet">
+	{/* つまみ。開閉に加えて「残りXX」(努力値の残数)の常設表示を兼ねる。シートを閉じている
+	    間も残数が見えるよう、中身(3行2列の調整表)ではなくここに置く。値の更新は
+	    src/lib/box-id/stat-adjust-sheet.ts の updateRemainingDisplay()。 */}
 	<button
 		type="button"
 		id="stat-adjust-sheet-toggle"
@@ -12,6 +15,7 @@ import '../../styles/stat-adjust-sheet.css';
 		aria-controls="stat-status-adjust-body"
 	>
 		<span class="stat-adjust-sheet-toggle-icon" aria-hidden="true">︿</span>
+		<span id="stat-adjust-sheet-remaining" class="stat-adjust-sheet-remaining tnum"></span>
 	</button>
 	<div id="stat-status-adjust-body" class="stat-adjust-sheet-body"></div>
 </div>

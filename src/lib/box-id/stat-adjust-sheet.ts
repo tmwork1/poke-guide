@@ -1,4 +1,14 @@
-import { bindPressAndHold } from "../press-and-hold";
+// ダメージタブ下部の引き出し「ステータス調整」。育成タブの #stat-adjustment-section を
+// 正とし、そこへ値を書き戻す/そこから値を読むミラーとして動く。
+//
+// レイアウト: 3行2列。左列 H/B/D、右列 A/C/S(STAT_KEYS の並びのまま2列グリッドに流す)。
+// 各セルはラベルが外側・ステッパーが内側の鏡写し配置で、左右の親指どちらでも
+// ステッパーへ届くようにする(右列は CSS の row-reverse)。
+//
+// ラベルは性格補正の切替ボタンを兼ねる(タップで未設定→上昇→下降を循環し、文字色と▲▼で
+// 状態を示す)。性格補正だけの列を持つと2列がシート幅に収まらないため、育成タブのように
+// 独立した三角ボタンは置かない。実数値はラベルの直下に小さく添える。
+import { createEvStepper } from "./ev-stepper";
 
 const sheet = document.getElementById("stat-adjust-sheet");
 const toggle = document.getElementById("stat-adjust-sheet-toggle") as HTMLButtonElement | null;
@@ -6,8 +16,12 @@ const body = document.getElementById("stat-status-adjust-body");
 
 const STAT_KEYS = ["hp", "atk", "def", "spa", "spd", "spe"] as const;
 const STAT_LABELS = ["H", "A", "B", "C", "D", "S"] as const;
+const EV_MIN = 0;
+const EV_MAX = 32;
+const EV_TOTAL = 66;
 
 function updateRemainingDisplay(): void {
+	// 「残り」はシートのつまみ側に出すため、シートを開く前(=中身を組み立てる前)から更新する。
 	const remainingDisplay = document.getElementById("stat-adjust-sheet-remaining");
 	if (!remainingDisplay) return;
 	const source = document.getElementById("stat-adjustment-section");
@@ -17,7 +31,7 @@ function updateRemainingDisplay(): void {
 		const sourceRange = source.querySelector<HTMLInputElement>(`#ev-${key}-range`);
 		if (sourceRange) total += Number(sourceRange.value) || 0;
 	}
-	remainingDisplay.textContent = `残り\n${66 - total}`;
+	remainingDisplay.textContent = `残り ${EV_TOTAL - total}`;
 }
 
 const remainingSource = document.getElementById("stat-adjustment-section");
@@ -46,108 +60,74 @@ function buildDamageStatAdjustmentSheet(): void {
 
 	const root = document.createElement("div");
 	root.className = "damage-stat-adjustment";
-	const rows = new Map<string, { range: HTMLInputElement; value: HTMLElement; real: HTMLElement; wrap: HTMLElement }>();
+	const cells = new Map<string, { label: HTMLElement; name: HTMLElement; real: HTMLElement; sync: () => void }>();
 
 	for (const [index, key] of STAT_KEYS.entries()) {
-		const row = document.createElement("div");
-		row.className = "damage-stat-adjustment-row";
-		const label = document.createElement("span");
+		const shortLabel = STAT_LABELS[index];
+		const sourceRange = source.querySelector<HTMLInputElement>(`#ev-${key}-range`);
+
+		const cell = document.createElement("div");
+		cell.className = "damage-stat-adjustment-cell";
+
+		// HPには性格補正が無いので、ラベルはボタンにせず同じ見た目の静的セルにする。
+		const label = document.createElement(key === "hp" ? "span" : "button") as HTMLElement;
 		label.className = "damage-stat-adjustment-label";
-		label.textContent = STAT_LABELS[index];
-		const nature = document.createElement("span");
-		nature.className = "damage-stat-adjustment-nature";
-		if (key !== "hp") {
-			const button = document.createElement("button");
-			button.type = "button";
-			button.className = "damage-stat-adjustment-nature-btn";
-			button.dataset.statKey = key;
-			button.setAttribute("aria-label", `${STAT_LABELS[index]}の性格補正を切り替える`);
-			button.addEventListener("click", () => source.querySelector<HTMLButtonElement>(`#nature-toggle-${key}`)?.click());
-			nature.appendChild(button);
+		if (key === "hp") {
+			label.classList.add("is-static");
 		} else {
-			const remainingSpan = document.createElement("span");
-			remainingSpan.id = "stat-adjust-sheet-remaining";
-			remainingSpan.className = "stat-adjust-sheet-remaining tnum";
-			nature.appendChild(remainingSpan);
+			const button = label as HTMLButtonElement;
+			button.type = "button";
+			button.dataset.statKey = key;
+			button.dataset.natureState = "none";
+			button.setAttribute("aria-label", `${shortLabel}の性格補正を切り替える`);
+			button.addEventListener("click", () => source.querySelector<HTMLButtonElement>(`#nature-toggle-${key}`)?.click());
 		}
-		const decrement = document.createElement("button");
-		decrement.type = "button";
-		decrement.className = "damage-stat-adjustment-step is-decrement";
-		decrement.textContent = "−";
-		decrement.setAttribute("aria-label", `${STAT_LABELS[index]}の努力値を減らす`);
-		const increment = document.createElement("button");
-		increment.type = "button";
-		increment.className = "damage-stat-adjustment-step is-increment";
-		increment.textContent = "+";
-		increment.setAttribute("aria-label", `${STAT_LABELS[index]}の努力値を増やす`);
-		const value = document.createElement("span");
-		value.className = "damage-stat-adjustment-value tnum";
-		const range = document.createElement("input");
-		range.type = "range";
-		range.min = "0";
-		range.max = "32";
-		range.step = "1";
-		range.className = "damage-stat-adjustment-slider";
-		range.setAttribute("aria-label", `${STAT_LABELS[index]}の努力値`);
-		const sliderWrap = document.createElement("div");
-		sliderWrap.className = "damage-stat-adjustment-slider-wrap";
-		sliderWrap.append(value, range);
+		const name = document.createElement("span");
+		name.className = "damage-stat-adjustment-label-name";
+		name.textContent = shortLabel;
 		const real = document.createElement("span");
 		real.className = "damage-stat-adjustment-real tnum";
+		real.textContent = "-";
+		label.append(name, real);
 
-		const sourceRange = source.querySelector<HTMLInputElement>(`#ev-${key}-range`);
-		const setSourceValue = (delta: number | null): boolean => {
-			if (!sourceRange) return false;
-			const current = Number(sourceRange.value) || 0;
-			const next = delta === null ? Number(range.value) : Math.max(0, Math.min(32, current + delta));
-			if (next === current) return false;
-			sourceRange.value = String(next);
-			sourceRange.dispatchEvent(new Event("input", { bubbles: true }));
-			return true;
-		};
-		bindPressAndHold(decrement, () => setSourceValue(-1));
-		bindPressAndHold(increment, () => setSourceValue(1));
-		decrement.addEventListener("click", () => setSourceValue(-1));
-		increment.addEventListener("click", () => setSourceValue(1));
-		range.addEventListener("input", () => setSourceValue(null));
-		row.append(label, nature, decrement, sliderWrap, increment, real);
-		root.appendChild(row);
-		rows.set(key, { range, value, real, wrap: sliderWrap });
+		const stepper = createEvStepper({
+			label: shortLabel,
+			min: EV_MIN,
+			max: EV_MAX,
+			getValue: () => Number(sourceRange?.value) || 0,
+			setValue: (next) => {
+				if (!sourceRange) return;
+				if (String(next) === sourceRange.value) return;
+				sourceRange.value = String(next);
+				sourceRange.dispatchEvent(new Event("input", { bubbles: true }));
+			},
+		});
+		stepper.root.classList.add("damage-stat-adjustment-stepper");
+
+		cell.append(label, stepper.root);
+		root.appendChild(cell);
+		cells.set(key, { label, name, real, sync: stepper.sync });
 	}
 	body.appendChild(root);
 
 	const sync = (): void => {
 		for (const key of STAT_KEYS) {
-			const sourceRange = source.querySelector<HTMLInputElement>(`#ev-${key}-range`);
-			const row = rows.get(key);
-			if (!sourceRange || !row) continue;
+			const cell = cells.get(key);
+			if (!cell) continue;
+			cell.sync();
 			const sourceReal = source.querySelector<HTMLElement>(`#stat-${key}`);
-			const sourceLabel = source.querySelector<HTMLElement>(`#nature-label-${key}`);
-			const ev = Number(sourceRange.value) || 0;
-			row.range.value = String(ev);
-			const progressPercent = Math.min(100, Math.max(0, (ev / 32) * 100));
-			row.range.style.setProperty("--slider-progress", `${progressPercent}%`);
-			const thumbDiameter = 16;
-			const usableTrackWidth = Math.max(0, row.range.clientWidth - thumbDiameter);
-			const labelPosition = (thumbDiameter / 2) + (usableTrackWidth * (ev / 32));
-			row.value.style.left = `${labelPosition}px`;
-			row.value.textContent = String(ev);
-			row.real.textContent = sourceReal?.textContent ?? "-";
-			if (sourceLabel?.dataset.mod) row.value.dataset.mod = sourceLabel.dataset.mod;
-			else delete row.value.dataset.mod;
-			if (sourceReal?.dataset.mod) row.real.dataset.mod = sourceReal.dataset.mod;
-			else delete row.real.dataset.mod;
+			cell.real.textContent = sourceReal?.textContent ?? "-";
+			if (sourceReal?.dataset.mod) cell.real.dataset.mod = sourceReal.dataset.mod;
+			else delete cell.real.dataset.mod;
+			if (key === "hp") continue;
 			const sourceButton = source.querySelector<HTMLButtonElement>(`#nature-toggle-${key}`);
-			const sheetButton = root.querySelector<HTMLButtonElement>(`.damage-stat-adjustment-nature-btn[data-stat-key="${key}"]`);
-			if (sheetButton) sheetButton.dataset.natureState = sourceButton?.dataset.natureState ?? "none";
+			cell.label.dataset.natureState = sourceButton?.dataset.natureState ?? "none";
 		}
 	};
 
 	source.addEventListener("input", sync);
 	source.addEventListener("change", sync);
 	new MutationObserver(sync).observe(source, { subtree: true, childList: true, characterData: true, attributes: true });
-	const resizeObserver = new ResizeObserver(sync);
-	rows.forEach(({ range }) => resizeObserver.observe(range));
 	sync();
 	updateRemainingDisplay();
 }

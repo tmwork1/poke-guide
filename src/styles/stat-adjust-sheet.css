@@ -35,6 +35,7 @@
 	display: flex;
 	align-items: center;
 	justify-content: center;
+	gap: var(--space-2); /* つまみアイコンと「残りXX」の間隔 */
 	flex: none;
 	align-self: center;
 	width: 33.333%; /* 閉じたときに見せるつまみの幅。右下FABと重ならない左側1/3だけを操作面にする */
@@ -65,15 +66,14 @@
 	box-shadow: var(--shadow-md);
 }
 
+/* つまみに並べる「残りXX」。シートを閉じている間も残数が見えるようにここへ置く。 */
 .stat-adjust-sheet-remaining {
-	display: block;
-	width: 100%;
 	font-size: var(--font-size-sm3); /* 「残りXX」の文字サイズ。大きくすると目立つ */
 	color: var(--color-text-muted); /* 「残りXX」の文字色。濃くすると目立つ */
-	line-height: 1.25;
-	text-align: center;
-	white-space: pre-line;
+	line-height: 1;
+	white-space: nowrap;
 }
+.stat-adjust-sheet-remaining:empty { display: none; }
 
 .stat-adjust-sheet-toggle-icon {
 	display: inline-flex;
@@ -114,148 +114,125 @@
 #stat-status-adjust-body {
 	max-height: 0;
 	overflow-y: auto;
-	padding-inline: var(--space-3);
+	/* 3行2列を375px前後の画面へ収めるための余白。広げると2列が入らなくなる。 */
+	padding-inline: var(--space-2);
 	transition: max-height 0.2s ease;
 }
 
+/* 中身は3行分の実寸(約3×44px+行間)で頭打ちになるため、max-height は余裕を持った上限
+   として置くだけでよい(max-height は高さを生まないので下に余白はできない)。 */
 #stat-adjust-sheet.is-expanded #stat-status-adjust-body {
-	max-height: min(50vh, 26rem);
+	max-height: 20rem;
 	padding-bottom: var(--space-2);
 }
 
-.damage-stat-adjustment { display: grid; gap: var(--space-1); color: var(--color-text); }
-.damage-stat-adjustment-row {
+/* ===========================================================================
+	3行2列のステータス調整表
+	左列 H/B/D、右列 A/C/S。各セルはラベルが外側・ステッパーが内側の鏡写し。
+	=========================================================================== */
+.damage-stat-adjustment {
+	/* 375px幅でも2列が横スクロールせずに収まるよう、−/+ のタップターゲット(44px)は
+	   保ったまま、ラベル幅・値ボタン幅・列間だけを詰めた値にしてある。
+	   1セル = ラベル38.4 + 4 + (44 + 35.2 + 44) = 165.6px、2列 + 列間4 = 約335px。 */
+	--damage-stat-cell-gap: var(--space-1); /* ラベルとステッパーの間隔 */
+	--damage-stat-label-width: 2.4rem; /* ラベル(性格切替ボタンを兼ねる)の幅 */
+	--damage-stat-button-size: 44px; /* −/+ ボタンの一辺。タップターゲットなので縮めない */
+	--damage-stat-value-width: 2.2rem; /* ステッパー中央の努力値ボタンの幅 */
+
 	display: grid;
-	grid-template-columns: 1.5rem 28px 28px minmax(4rem, 1fr) 28px 2.5rem;
-	align-items: center;
-	row-gap: var(--space-1);
-	column-gap: var(--space-2);
+	grid-template-columns: 1fr 1fr;
+	gap: var(--space-1);
+	/* ボタンを縮めずに2列を保つため、入り切らない狭幅では横スクロールへ逃がす。 */
+	overflow-x: auto;
+	color: var(--color-text);
 }
-.damage-stat-adjustment-step {
-	width: 28px;
-	height: 32px;
+
+.damage-stat-adjustment-cell {
+	display: flex;
+	align-items: center;
+	justify-content: flex-start;
+	gap: var(--damage-stat-cell-gap);
+	min-width: max-content;
+}
+/* 右列(A/C/S)はラベルを右端へ回して鏡写しにする。ステッパー内部の −/値/+ は反転しない。 */
+.damage-stat-adjustment-cell:nth-child(even) {
+	flex-direction: row-reverse;
+	justify-content: flex-start;
+}
+
+/* ラベル。性格補正の切替ボタンを兼ね、実数値をその直下に添える。
+   HP行(.is-static)は切替を持たないが、同じ幅・高さを占有して左右の列を揃える。 */
+.damage-stat-adjustment-label {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 1px;
+	box-sizing: border-box;
+	flex: none;
+	width: var(--damage-stat-label-width);
+	min-height: var(--damage-stat-button-size);
 	padding: 0;
-	border: 1px solid var(--color-border);
-	border-radius: var(--radius-zero);
-	background: var(--stat-adjust-sheet-button-background);
+	border: 0;
+	background: transparent;
 	box-shadow: none;
-	color: var(--color-text-muted);
-	font-size: 0;
+	color: var(--color-text);
+	font: inherit;
+	line-height: 1;
 	cursor: pointer;
 }
-.damage-stat-adjustment-step::before {
+.damage-stat-adjustment-label.is-static { cursor: default; }
+.damage-stat-adjustment-label:focus-visible {
+	outline: 2px solid var(--color-primary);
+	outline-offset: 1px;
+}
+
+.damage-stat-adjustment-label-name {
+	display: inline-flex;
+	align-items: center;
+	gap: 2px;
+	font-size: var(--font-size-sm1); /* 能力値名。大きくすると行の見出しが目立つ */
+	line-height: 1;
+}
+/* 性格補正の向きを示す▲▼。未設定のときは何も出さない。 */
+.damage-stat-adjustment-label-name::after {
 	content: "";
 	width: 0;
 	height: 0;
-	border-top: 6px solid transparent;
-	border-bottom: 6px solid transparent;
-	border-right: 9px solid currentColor;
 }
-.damage-stat-adjustment-step.is-increment::before { transform: rotate(180deg); }
+.damage-stat-adjustment-label[data-nature-state="up"] { color: var(--color-stat-up); }
+.damage-stat-adjustment-label[data-nature-state="down"] { color: var(--color-stat-down); }
+.damage-stat-adjustment-label[data-nature-state="up"] .damage-stat-adjustment-label-name::after {
+	border-left: 4px solid transparent;
+	border-right: 4px solid transparent;
+	border-bottom: 6px solid currentColor;
+}
+.damage-stat-adjustment-label[data-nature-state="down"] .damage-stat-adjustment-label-name::after {
+	border-left: 4px solid transparent;
+	border-right: 4px solid transparent;
+	border-top: 6px solid currentColor;
+}
+
 .damage-stat-adjustment-real {
-	margin-left: -6px;
-	text-align: center;
+	font-size: var(--font-size-sm3); /* 実数値。大きくすると数値が読みやすくなる */
+	line-height: 1;
 	color: var(--color-text-muted);
 }
 .damage-stat-adjustment-real[data-mod="up"] { color: var(--color-stat-up); }
 .damage-stat-adjustment-real[data-mod="down"] { color: var(--color-stat-down); }
-.damage-stat-adjustment-slider-wrap {
-	position: relative;
-	min-width: 0;
-	height: 40px;
-	padding-top: 0;
-	align-items: center;
-	display: flex;
-}
-.damage-stat-adjustment-value {
-	position: absolute;
-	top: -4px;
-	left: var(--slider-label-position, 50%);
-	transform: translateX(-50%);
-	font-size: var(--font-size-sm2);
-	line-height: 1;
-	color: var(--color-text-muted);
-	white-space: nowrap;
-	pointer-events: none;
-}
-.damage-stat-adjustment-slider {
-	--stat-slider-track: color-mix(in srgb, var(--color-primary) 32%, var(--color-surface) 68%);
-	appearance: none;
-	width: 100%;
-	min-width: 0;
-	height: 6px;
-	border-radius: 999px;
-	background: linear-gradient(
-		to right,
-		var(--stat-slider-track) 0%,
-		var(--stat-slider-track) var(--slider-progress, 0%),
-		var(--color-bg) var(--slider-progress, 0%),
-		var(--color-bg) 100%
-	);
-	cursor: pointer;
-}
-.damage-stat-adjustment-slider::-webkit-slider-thumb {
-	appearance: none;
-	width: 16px;
-	height: 16px;
-	border: 2px solid var(--color-primary);
-	border-radius: 50%;
-	background: var(--color-surface);
-}
-.damage-stat-adjustment-slider::-moz-range-track {
-	height: 6px;
-	border-radius: 999px;
-	background: var(--color-bg);
-}
-.damage-stat-adjustment-slider::-moz-range-progress {
-	height: 6px;
-	border-radius: 999px;
-	background: var(--stat-slider-track);
-}
-.damage-stat-adjustment-slider::-moz-range-thumb {
-	width: 12px;
-	height: 12px;
-	border: 2px solid var(--color-primary);
-	border-radius: 50%;
-	background: var(--color-surface);
-}
-.damage-stat-adjustment-nature {
-	margin-left: -6px;
-	display: flex;
-	justify-content: center;
-}
-.damage-stat-adjustment-nature-btn {
-	display: inline-grid;
-	place-items: center;
-	box-sizing: border-box;
-	width: 28px;
-	height: 32px;
-	padding: 0;
-	border: 1px solid var(--color-border);
-	border-radius: var(--radius-zero);
-	box-shadow: none;
+
+/* 努力値ステッパー。育成タブと同じ .number-stepper をシート用の寸法・下地で使う。 */
+.damage-stat-adjustment-stepper {
+	--number-stepper-size: var(--damage-stat-button-size);
+	--number-stepper-input-width: var(--damage-stat-value-width);
+	flex: none;
 	background: var(--stat-adjust-sheet-button-background);
-	color: var(--color-text-muted);
-	font: inherit;
-	cursor: pointer;
+	box-shadow: none;
 }
-.damage-stat-adjustment-nature-btn::before,
-.damage-stat-adjustment-nature-btn::after { content: ""; grid-area: 1 / 1; width: 0; height: 0; }
-.damage-stat-adjustment-nature-btn[data-nature-state="none"]::before {
-	width: 6px;
-	height: 6px;
-	border-radius: 50%;
-	background: var(--color-text-muted);
+.damage-stat-adjustment-stepper > button {
+	font-size: var(--font-size-sm1); /* −/+ の記号。大きくすると押す場所が目立つ */
+	font-weight: var(--font-weight-bold);
 }
-.damage-stat-adjustment-nature-btn[data-nature-state="up"] { background: var(--color-danger-soft); }
-.damage-stat-adjustment-nature-btn[data-nature-state="up"]::after {
-	border-left: 6px solid transparent;
-	border-right: 6px solid transparent;
-	border-bottom: 10px solid var(--color-stat-up);
-}
-.damage-stat-adjustment-nature-btn[data-nature-state="down"] { background: var(--color-primary-soft); }
-.damage-stat-adjustment-nature-btn[data-nature-state="down"]::after {
-	border-left: 6px solid transparent;
-	border-right: 6px solid transparent;
-	border-top: 10px solid var(--color-stat-down);
+.damage-stat-adjustment-stepper > .number-stepper-value {
+	font-size: var(--font-size-sm1); /* 努力値の数字。大きくすると値が読みやすくなる */
 }
