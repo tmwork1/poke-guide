@@ -2,6 +2,7 @@ import { championSpriteUrl, loadPokemonMasterList, officialArtworkUrl } from "..
 import { normalizeForSearch } from "../kana";
 import { getOpponentBuild, setOpponentBuild } from "./shared-core";
 import { readJsonScriptStringArray } from "../json-script";
+import { orderPokemonEntriesForDatalist } from "../owned-pokemon-form";
 
 const CHANGE_EVENT = "damage-calc:change";
 const emitChange = (reason: string) => document.dispatchEvent(new CustomEvent(CHANGE_EVENT, { detail: { reason } }));
@@ -22,13 +23,17 @@ export function initSecondaryBar(): void {
   // (/data のbattle-data-railと同じ「候補をアイコン一列に並べる」考え方の流用)。
   loadPokemonMasterList().then((pokemon) => {
     const imageIds = new Map(pokemon.map((entry) => [entry.name, entry.imageId]));
+    // 種族選択モーダル(species-select-dialog.ts)と同じ並び順・候補集合にする
+    // (orderPokemonEntriesForDatalistのコメント参照)。メガシンカは元々opgg順位が
+    // 付かないため、検索前にtop24へ絞る旧実装では検索してもヒットしなかった。
+    const orderedNames = orderPokemonEntriesForDatalist(pokemon, opggRankedSpeciesNames);
     const selectOpponent = (name: string) => {
       commitOpponentSpecies(name);
     };
     selectOpponent(getOpponentBuild().speciesName || "サーフゴー");
     const renderRail = () => {
       const query = normalizeForSearch(opponentSearch.value);
-      const matchingNames = opggRankedSpeciesNames.slice(0, 24).filter((name) => normalizeForSearch(name).includes(query));
+      const matchingNames = orderedNames.filter((name) => normalizeForSearch(name).includes(query)).slice(0, 24);
       rail.replaceChildren(...matchingNames.map((name) => {
         const item = document.createElement("button"); item.type = "button"; item.className = "damage-calc-summary-rail-item"; item.ariaLabel = name;
         const imageId = imageIds.get(name);
