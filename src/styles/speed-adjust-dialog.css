@@ -168,11 +168,12 @@ body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-row.
   padding-inline: var(--space-4);
 }
 
-/* 要因チップは省略せず、内側の.speed-chart-chips-row(既存の横スクロール)で確認する。
-   ここに重ねてoverflow-x:autoを付けると、スクロール可能領域が親子で二重になり
-   ポインタ操作でのスクロールが反応しなくなるため付けない。 */
+/* 要因チップは省略せず、この列だけ横スクロールで確認する。 */
 body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-chips-cell {
   min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
 }
 
 body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-chips-row {
