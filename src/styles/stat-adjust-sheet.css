@@ -93,7 +93,8 @@
 	position: absolute;
 	width: 7px;
 	height: 2px;
-	top: 3px;
+	/* 展開時の180度回転後も、山形の見た目の中心をつまみの中心へ保つ。 */
+	top: 5px;
 	background: currentColor;
 	border-radius: 999px;
 }
