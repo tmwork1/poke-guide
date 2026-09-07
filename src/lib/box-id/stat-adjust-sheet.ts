@@ -54,7 +54,9 @@ export function resetStatAdjustSheet(): void {
 }
 
 function buildDamageStatAdjustmentSheet(): void {
-	if (!body || body.childElementCount > 0) return;
+	// 残り努力値は常設の子要素としてbody内に置く。子要素の有無で判定すると
+	// 初回展開時にも既に生成済みと誤認するため、調整表そのものだけを確認する。
+	if (!body || body.querySelector(".damage-stat-adjustment")) return;
 	const source = document.getElementById("stat-adjustment-section");
 	if (!source) return;
 

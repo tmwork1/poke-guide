@@ -2435,7 +2435,8 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .d
 body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-column-move-identity {
   display: flex;
   align-items: center;
-  flex: 0 1 auto;
+  /* 単独の技は右列の余白まで使い、複数技なら等分して省略位置を安定させる。 */
+  flex: 1 1 0;
   min-width: 0;
 }
 
