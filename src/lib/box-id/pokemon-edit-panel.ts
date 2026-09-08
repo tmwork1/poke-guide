@@ -597,12 +597,17 @@ if (form) {
 		const sourceFallback = document.getElementById("species-sprite-fallback");
 		const previewFallback = document.getElementById("pokemon-preview-species-sprite-fallback");
 		if (sourceSprite && previewSprite && previewFallback) {
+			const speciesName = inputValue("species-name");
 			const sourceVisible = sourceSprite.style.display !== "none" && sourceSprite.src !== "";
 			previewSprite.src = sourceSprite.src;
 			previewSprite.alt = sourceSprite.alt;
 			previewSprite.hidden = !sourceVisible;
-			previewFallback.hidden = sourceVisible;
-			previewFallback.textContent = sourceFallback?.textContent?.trim() || inputValue("species-name").slice(0, 1) || "-";
+			// 種族未指定時は、編集元が共通処理で表示する「?」をプレビューへ転記しない。
+			// 種族名があり画像だけ未登録の場合は、従来どおり頭文字を表示する。
+			previewFallback.hidden = sourceVisible || speciesName === "";
+			previewFallback.textContent = speciesName === ""
+				? ""
+				: sourceFallback?.textContent?.trim() || speciesName.slice(0, 1);
 		}
 
 		const ability = document.getElementById("ability") as HTMLSelectElement | null;

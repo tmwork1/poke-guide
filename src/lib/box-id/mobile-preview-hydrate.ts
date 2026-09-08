@@ -84,8 +84,8 @@ export async function applyPokemonToMobilePreview(pokemon: OwnedPokemonRecord): 
     sprite.alt = pokemon.species_name;
     if (imageId === undefined) {
       sprite.hidden = true;
-      fallback.hidden = false;
-      fallback.textContent = pokemon.species_name.slice(0, 1) || '-';
+      fallback.hidden = pokemon.species_name === '';
+      fallback.textContent = pokemon.species_name.slice(0, 1);
     } else {
       sprite.src = championSpriteUrl(imageId);
       sprite.onerror = () => { sprite.onerror = null; sprite.src = officialArtworkUrl(imageId); };

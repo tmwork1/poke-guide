@@ -1825,7 +1825,7 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 		column.wallEnabled,
 		(pressed) => {
 			applyToColumnField(() => { column.wallEnabled = pressed; });
-			if (pressed) showDetailHint(defenderHintSlot, "リフレクター/ひかりのかべを張る");
+			if (pressed) showDetailHint(defenderHintSlot, "リフレクター/ひかりのかべを適用");
 			else clearDetailHint();
 		},
 		// 32-R5「title属性の説明文は残すこと」により、可視ラベルが「かべ」1語まで
@@ -1885,7 +1885,7 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 		(pressed) => {
 			applyToColumnField(() => { column.stealthRock = pressed; });
 			// 割合はjpokeのステルスロック_damage(最大HPの1/8×いわタイプ相性)に合わせている。
-			if (pressed) showDetailHint(defenderHintSlot, "初期状態で最大HPの1/8ダメージ");
+			if (pressed) showDetailHint(defenderHintSlot, "初期状態で最大HPの1/8ダメージ（岩相性で変化）");
 			else clearDetailHint();
 		},
 		{ title: "ステルスロックを1回踏んだ状態で計算する" },

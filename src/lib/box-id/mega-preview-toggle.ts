@@ -71,7 +71,15 @@ export function setupMegaPreviewToggle(): void {
     const byName = new Map(master.map((entry) => [entry.name, entry]));
     const renderSpecies = (name: string): void => {
       const entry = byName.get(name);
-      if (!entry) return;
+      if (!entry) {
+        preview.dataset.speciesName = name;
+        nameEl.textContent = name || '-';
+        spriteEl.hidden = true;
+        fallbackEl.hidden = name === '';
+        fallbackEl.textContent = name.slice(0, 1);
+        typeIconsEl?.replaceChildren();
+        return;
+      }
       preview.dataset.speciesName = entry.name;
       nameEl.textContent = entry.name;
       spriteEl.src = championSpriteUrl(entry.imageId);
@@ -162,7 +170,9 @@ export function setupMegaPreviewToggle(): void {
     };
 
     const sync = (): void => {
-      sourceSpecies = sourceSpeciesInput?.value.trim() || preview.dataset.speciesName?.trim() || sourceSpecies;
+      sourceSpecies = sourceSpeciesInput
+        ? sourceSpeciesInput.value.trim()
+        : preview.dataset.speciesName?.trim() || sourceSpecies;
       sourceItem = sourceItemInput?.value.trim() || preview.dataset.itemName?.trim() || '';
       renderSpecies(sourceSpecies);
       renderToggle(targetFor(sourceSpecies, sourceItem));

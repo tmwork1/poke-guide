@@ -277,8 +277,8 @@
 }
 
 #pokemon-preview-species-sprite-fallback {
-  /* スプライト枠と同程度の視認性を確保する。種族未指定時の「?」は画像の代わりに
-     単独で表示されるため、通常の補助テキストサイズにはしない。 */
+  /* 画像未登録時に表示する種族名の頭文字は、スプライト枠の中でも識別できる大きさにする。
+     種族未指定時は要素をhiddenにして何も表示しない。 */
   font-size: calc(var(--pokemon-preview-sprite-size) * 0.65);
   line-height: 1;
   color: var(--color-text-muted);

@@ -5,11 +5,37 @@ import { readJsonScriptStringArray } from "../json-script";
 import { orderPokemonEntriesForDatalist } from "../owned-pokemon-form";
 
 const CHANGE_EVENT = "damage-calc:change";
+const OPPONENT_HISTORY_STORAGE_KEY = "poke-commons:damage-calc:opponent-history";
+const OPPONENT_HISTORY_LIMIT = 5;
 const emitChange = (reason: string) => document.dispatchEvent(new CustomEvent(CHANGE_EVENT, { detail: { reason } }));
 
 function byId<T extends HTMLElement>(id: string): T { return document.getElementById(id) as T; }
+function loadOpponentHistory(): string[] {
+  try {
+    const raw = window.localStorage.getItem(OPPONENT_HISTORY_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return [...new Set(parsed.filter((name): name is string => typeof name === "string" && name.trim() !== ""))]
+      .slice(0, OPPONENT_HISTORY_LIMIT);
+  } catch {
+    return [];
+  }
+}
+
+function recordOpponentSpecies(speciesName: string): void {
+  const history = loadOpponentHistory().filter((name) => name !== speciesName);
+  history.unshift(speciesName);
+  try {
+    window.localStorage.setItem(OPPONENT_HISTORY_STORAGE_KEY, JSON.stringify(history.slice(0, OPPONENT_HISTORY_LIMIT)));
+  } catch {
+    // localStorage may be unavailable, so leave the rail's default ordering intact.
+  }
+}
+
 function commitOpponentSpecies(speciesName: string): void {
   const previous = getOpponentBuild();
+  recordOpponentSpecies(speciesName);
   if (previous.speciesName === speciesName) return;
   setOpponentBuild({ ...previous, speciesName, abilityName: "" });
   emitChange("opponent");
@@ -29,12 +55,19 @@ export function initSecondaryBar(): void {
     const orderedNames = orderPokemonEntriesForDatalist(pokemon, opggRankedSpeciesNames);
     const selectOpponent = (name: string) => {
       commitOpponentSpecies(name);
+      renderRail();
     };
     selectOpponent(getOpponentBuild().speciesName || opggRankedSpeciesNames[0] || "サーフゴー");
-    const renderRail = () => {
+    function renderRail(): void {
       const query = normalizeForSearch(opponentSearch.value);
-      const matchingNames = orderedNames.filter((name) => normalizeForSearch(name).includes(query)).slice(0, 24);
-      rail.replaceChildren(...matchingNames.map((name) => {
+      const matchingNames = query
+        ? orderedNames.filter((name) => normalizeForSearch(name).includes(query))
+        : [
+          ...loadOpponentHistory().filter((name) => orderedNames.includes(name)),
+          ...orderedNames,
+        ];
+      const visibleNames = [...new Set(matchingNames)].slice(0, 24);
+      rail.replaceChildren(...visibleNames.map((name) => {
         const item = document.createElement("button"); item.type = "button"; item.className = "damage-calc-summary-rail-item"; item.ariaLabel = name;
         const imageId = imageIds.get(name);
         if (imageId != null) { const img = document.createElement("img"); img.src = championSpriteUrl(imageId); img.alt = ""; img.onerror = () => { img.onerror = null; img.src = officialArtworkUrl(imageId); }; item.append(img); }
@@ -42,7 +75,7 @@ export function initSecondaryBar(): void {
         item.addEventListener("click", () => selectOpponent(name));
         return item;
       }));
-    };
+    }
     opponentSearch.addEventListener("input", renderRail);
     renderRail();
   }).catch(() => undefined);
