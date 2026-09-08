@@ -1,23 +1,30 @@
 #!/usr/bin/env node
-// OP.GG single-battle usage tables -> Cloudflare KV. No filesystem output.
-import { readFile } from 'node:fs/promises';
+// OP.GG single-battle usage tables -> Cloudflare KV. Use --local for Miniflare's local KV.
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { execFile as execFileCallback } from 'node:child_process';
+import { promisify } from 'node:util';
 
 const ORIGIN = 'https://op.gg';
 const BASE = '/ja/pokemon-champions';
 const MAP = new URL('../../config/opgg-champions-pokemon-map.json', import.meta.url);
 const NAMESPACE = process.env.OPGG_USAGE_NAMESPACE_ID ?? 'f165418c82fa4eac9dff837ddaa8e4ab';
+const execFile = promisify(execFileCallback);
 const LABEL = { moves: 'わざ', items: '持ち物', abilities: '特性', natures: '性格補正', evs: '努力値', teammates: '選出ポケモン' };
 const EVS = [['hp', 'HP'], ['attack', 'こうげき'], ['defense', 'ぼうぎょ'], ['specialAttack', 'とくこう'], ['specialDefense', 'とくぼう'], ['speed', 'すばやさ']];
 
 function options(argv) {
-  const result = { limit: Infinity, delayMs: 350, season: null };
+  const result = { limit: Infinity, delayMs: 350, season: null, local: false };
   for (let i = 0; i < argv.length; i += 1) {
     const flag = argv[i];
     if (flag === '--help' || flag === '-h') {
-      console.log('Usage: npm run fetch:opgg-champions-usage -- [--season id] [--limit n] [--delay-ms n]');
-      console.log('Requires CLOUDFLARE_API_TOKEN (Workers KV Storage:Edit) and CLOUDFLARE_ACCOUNT_ID.');
+      console.log('Usage: npm run fetch:opgg-champions-usage -- [--local] [--season id] [--limit n] [--delay-ms n]');
+      console.log('--local uses Miniflare local KV (OPGG_USAGE) and does not require Cloudflare credentials.');
+      console.log('Without --local, requires CLOUDFLARE_API_TOKEN (Workers KV Storage:Edit) and CLOUDFLARE_ACCOUNT_ID.');
       process.exit(0);
     }
+    if (flag === '--local') { result.local = true; continue; }
     const key = { '--season': 'season', '--limit': 'limit', '--delay-ms': 'delayMs' }[flag];
     const value = argv[++i];
     if (!key || !value) throw new Error('Invalid option: ' + flag);
@@ -93,8 +100,31 @@ function kv() {
   }
   return { getJson: async (key) => { const res = await request(key); return res ? res.json() : null; }, putJson: (key, value) => request(key, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(value) }), delete: (key) => request(key, { method: 'DELETE' }) };
 }
+function localKv() {
+  async function wrangler(args) {
+    return execFile('npx', ['wrangler', ...args], { cwd: process.cwd(), encoding: 'utf8', maxBuffer: 10 * 1024 * 1024, shell: process.platform === 'win32' });
+  }
+  return {
+    getJson: async (key) => {
+      const { stdout } = await wrangler(['kv', 'key', 'get', '--binding', 'OPGG_USAGE', '--local', '--text', key]);
+      const value = stdout.trim();
+      return value === 'Value not found' ? null : JSON.parse(value);
+    },
+    putJson: async (key, value) => {
+      const directory = await mkdtemp(join(tmpdir(), 'opgg-usage-'));
+      const path = join(directory, 'value.json');
+      try {
+        await writeFile(path, JSON.stringify(value), 'utf8');
+        await wrangler(['kv', 'key', 'put', '--binding', 'OPGG_USAGE', '--local', '--path', path, key]);
+      } finally {
+        await rm(directory, { recursive: true, force: true });
+      }
+    },
+    delete: (key) => wrangler(['kv', 'key', 'delete', '--binding', 'OPGG_USAGE', '--local', key]),
+  };
+}
 async function main() {
-  const config = options(process.argv.slice(2)); const storage = kv();
+  const config = options(process.argv.slice(2)); const storage = config.local ? localKv() : kv();
   const tier = await get(ORIGIN + BASE + '/tier'); const available = seasons(tier);
   config.season ??= available.currentId;
   if (!available.ids.includes(config.season)) throw new Error('--season must be an OP.GG season id from the current tier payload.');
