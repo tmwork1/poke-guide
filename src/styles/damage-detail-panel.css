@@ -888,42 +888,25 @@ body.box-edit-page {
 		padding: var(--damage-detail-space-xs) var(--damage-detail-space-xs);
 		white-space: nowrap;
 	}
-	/* 揮発状態の説明は状態グリッドを基準に表示する。グリッド幅の内側に収めることで、
-		モバイル幅でも横方向にはみ出さず、対象トグルのすぐ上で読める。 */
-	#damage-detail-panel-body .damage-detail-state-grid {
-		position: relative;
-	}
-	/* 揮発状態を選んだ直後だけ、その効果を揮発状態セクションの直上へ短時間うっすら出す
-		(damage-detail-panel.ts の showVolatileHint)。押した直後にチップが動かないよう
-		フローには入れず絶対配置で重ね、グリッド幅の内側に収めてモバイル幅でもはみ出さない。 */
-	#damage-detail-panel-body .damage-detail-state-grid {
-		position: relative;
-	}
-	#damage-detail-panel-body .damage-detail-volatile-hint {
-		position: absolute;
-		z-index: 8;
-		left: 0;
-		right: 0;
-		bottom: calc(100% + var(--damage-detail-space-xs));
-		padding: var(--damage-detail-space-xs) var(--damage-detail-space-sm);
-		border-radius: var(--damage-detail-radius-sm);
-		background: var(--damage-detail-surface-background);
+	/* 状態異常の直下に常設する説明欄(damage-detail-panel.ts の showDetailHint)。
+		揮発状態・かべ・設置物を選んだときだけ数秒表示する。空でも1行ぶんの高さを保つので、
+		表示・消去で下の項目が動かない(押した直後にチップが動くと押し間違えるため)。
+		背景・枠・影は付けず、本文より一段淡い文字色だけの補助表示にする。 */
+	#damage-detail-panel-body .damage-detail-hint-slot {
+		margin: var(--damage-detail-chip-gap) 0 var(--damage-detail-space-xs);
+		min-height: calc(var(--damage-detail-font-size-xs) * var(--damage-detail-line-height-tight));
 		color: var(--damage-detail-muted-color);
 		font-size: var(--damage-detail-font-size-xs);
 		line-height: var(--damage-detail-line-height-tight);
-		/* 「薄く」出す補助表示。枠線・影は付けず、本文より一段淡い文字色だけで
-			主役(チップの選択状態)より前に出ないようにする。表示中の不透明度は1にする
-			(半透明のままだと真下に重なる状態異常チップが透けて、どちらも読めなくなる)。
-			フェードはopacityの遷移で行う。 */
 		opacity: 0;
 		transition: opacity 180ms ease;
 		pointer-events: none;
 	}
-	#damage-detail-panel-body .damage-detail-volatile-hint.is-visible {
+	#damage-detail-panel-body .damage-detail-hint-slot.is-visible {
 		opacity: 1;
 	}
 	@media (prefers-reduced-motion: reduce) {
-		#damage-detail-panel-body .damage-detail-volatile-hint {
+		#damage-detail-panel-body .damage-detail-hint-slot {
 			transition: none;
 		}
 	}

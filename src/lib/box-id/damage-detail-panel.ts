@@ -78,8 +78,9 @@ const opponentPreviewStatEls = new WeakMap<DamageRowState, Partial<Record<StatKe
 const opponentPreviewIconEls = new WeakMap<DamageRowState, { icon: HTMLImageElement; fallback: HTMLElement }>();
 const previewItemIconEls = new WeakMap<DamageRowState, { self: HTMLImageElement; opponent: HTMLImageElement }>();
 let moveDropdownOutsideClickHandler: ((event: MouseEvent) => void) | null = null;
-let volatileHintEl: HTMLElement | null = null;
-let volatileHintTimer: number | null = null;
+let detailHintSlotEl: HTMLElement | null = null;
+let detailHintTimer: number | null = null;
+let detailHintSeq = 0;
 const DETAIL_PANEL_SWIPE_THRESHOLD_PX = 64;
 const DETAIL_PANEL_SWIPE_AXIS_RATIO = 1.25;
 
@@ -152,46 +153,48 @@ export function openDetailPanelOverlay(): void {
 	detailBackdropEl.hidden = false;
 }
 export function closeDetailPanelOverlay(): void {
-	clearVolatileHint();
+	clearDetailHint();
 	detailPanelEl.classList.remove("is-open");
 	detailPanelEl.setAttribute("aria-modal", "false");
 	detailBackdropEl.hidden = true;
 }
 
-/** 揮発状態の説明は一度に一つだけ表示する。再描画・モーダル閉鎖のどちらからでも安全に
- * 片付けられるよう、表示中の要素と自動消去タイマーをモジュール内でまとめて保持する。 */
-function clearVolatileHint(): void {
-	if (volatileHintTimer != null) window.clearTimeout(volatileHintTimer);
-	volatileHintTimer = null;
-	volatileHintEl?.remove();
-	volatileHintEl = null;
+/** 説明テキストは一度に一つだけ表示する。再描画・モーダル閉鎖のどちらからでも安全に
+ * 片付けられるよう、表示中のスロットと自動消去タイマーをモジュール内でまとめて保持する。 */
+function clearDetailHint(): void {
+	if (detailHintTimer != null) window.clearTimeout(detailHintTimer);
+	detailHintTimer = null;
+	detailHintSeq++;
+	if (detailHintSlotEl) {
+		detailHintSlotEl.classList.remove("is-visible");
+		detailHintSlotEl.textContent = "";
+	}
+	detailHintSlotEl = null;
 }
 
-/** 揮発状態を選んだ直後だけ、その効果を揮発状態セクションの直上へ短時間表示する。
- * 押した直後にチップの位置が動くと次の操作を誤るため、フローには入れず絶対配置で重ねる
- * (stateGrid側の position: relative が基準)。読み終わる程度の時間で自動的に消す。 */
-function showVolatileHint(stateGrid: HTMLElement, title: string): void {
-	clearVolatileHint();
-	const hint = document.createElement("div");
-	hint.className = "damage-detail-volatile-hint";
-	// 操作の結果として出る補助表示なので、読み上げは邪魔しない範囲(polite)で伝える。
-	hint.setAttribute("role", "status");
-	hint.textContent = title;
-	stateGrid.appendChild(hint);
+/** 状態異常の下に常設した説明欄(.damage-detail-hint-slot)へ、選んだ項目の効果を約2秒だけ表示する。
+ * 欄そのものは空でも高さを確保してあるので、表示・消去でその下の項目が動くことはない
+ * (押した直後にチップが動くと次の操作を押し間違えるため)。 */
+function showDetailHint(slot: HTMLElement | null, text: string): void {
+	clearDetailHint();
+	if (!slot || text === "") return;
+	const seq = ++detailHintSeq;
+	slot.textContent = text;
+	detailHintSlotEl = slot;
 	// 挿入直後に is-visible を付けてCSSトランジションでフェードインさせる
 	// (同フレームで付けると初期状態が描画されず、透明からの変化にならない)。
-	requestAnimationFrame(() => hint.classList.add("is-visible"));
-	volatileHintEl = hint;
-	volatileHintTimer = window.setTimeout(() => {
-		volatileHintTimer = null;
-		hint.classList.remove("is-visible");
-		// フェードアウトが終わってから取り除く。途中で別の揮発状態を選んだ場合は
-		// clearVolatileHint が先に消すため、ここで古い要素を消し直さないよう確認する。
+	requestAnimationFrame(() => {
+		if (detailHintSeq === seq) slot.classList.add("is-visible");
+	});
+	detailHintTimer = window.setTimeout(() => {
+		detailHintTimer = null;
+		slot.classList.remove("is-visible");
+		// フェードアウトが終わってから文字を消す。途中で別の説明に切り替わった場合は
+		// seqが進むので、新しい表示を消してしまわないようここで確認する。
 		window.setTimeout(() => {
-			if (volatileHintEl === hint) clearVolatileHint();
-			else hint.remove();
+			if (detailHintSeq === seq) clearDetailHint();
 		}, 200);
-	}, 2400);
+	}, 2000);
 }
 
 /** タブを使わない表示へ切り替える際に、タブ帯と計算結果を片付ける。 */
@@ -869,7 +872,7 @@ export function renderStatCardList(view: StatCardListView): void {
 let lastCandidateListRedraw: (() => void) | null = null;
 
 export function renderDetailPanelEmpty(): void {
-	clearVolatileHint();
+	clearDetailHint();
 	if (lastCandidateListRedraw) {
 		lastCandidateListRedraw();
 		return;
@@ -1344,6 +1347,15 @@ export function buildSideSection(
 	ailmentGroup.classList.add("is-row4", "damage-detail-ailment-group", `is-ailment-count-${ailmentOptions.length}`);
 	rankAilmentGroup.appendChild(ailmentGroup);
 
+	// 状態異常の直下に説明テキスト用の行を常に確保する。ここへ、揮発状態や設置物を
+	// タップしたときだけその効果を数秒表示する(空のときも高さを保つので、表示・消去で
+	// 下の項目が動かない)。背景・枠は付けず、淡い文字色だけの補助表示にする。
+	const hintSlot = document.createElement("div");
+	hintSlot.className = "damage-detail-hint-slot";
+	// 操作の結果として出る補助表示なので、読み上げは邪魔しない範囲(polite)で伝える。
+	hintSlot.setAttribute("role", "status");
+	rankAilmentGroup.appendChild(hintSlot);
+
 	// F: テラスタルは揮発状態(stateGrid)と別行にする。C-2でランク・状態異常と同じ段の
 	// 3列目にするため、rankAilmentGroupではなくrankAilmentRow自体に追加する。
 	const teraRow = document.createElement("div");
@@ -1429,8 +1441,8 @@ export function buildSideSection(
 					refreshRowConditionChips(row);
 					// 効果の説明は「選んだとき」だけ出す。解除したときに出しても、
 					// 今なくなった効果の説明になってしまい意味が逆に読めるため。
-					if (pressed && opt.title) showVolatileHint(stateGrid, opt.title);
-					else clearVolatileHint();
+					if (pressed && opt.title) showDetailHint(hintSlot, opt.title);
+					else clearDetailHint();
 				},
 				{ title: opt.title },
 			);
@@ -1443,7 +1455,7 @@ export function buildSideSection(
 }
 
 export function renderBuildDetailPanel(row: DamageRowState): void {
-	clearVolatileHint();
+	clearDetailHint();
 	detailPanelBodyEl.innerHTML = "";
 	const form = getDamageBuildDetailForm(row);
 	if (!form) {
@@ -1461,7 +1473,7 @@ export function renderBuildDetailPanel(row: DamageRowState): void {
 
 export function renderColumnLevelDetailPanel(row: DamageRowState, column: DamageColumnState): void {
 // 選択中の技がない場合は、表示できる技を優先順位どおりに選ぶ。
-	clearVolatileHint();
+	clearDetailHint();
 	detailPanelBodyEl.innerHTML = "";
 	const idx = row.attacks.indexOf(column);
 	if (idx === -1) {
@@ -1803,12 +1815,18 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 			: (value) => { row.teraType = value; },
 	);
 
+	// 揮発状態・設置物の説明は、防御側セクションの状態異常直下に常設した欄へ出す
+	// (buildSideSectionが作る .damage-detail-hint-slot)。
+	const defenderHintSlot = defenderSide.querySelector<HTMLElement>(".damage-detail-hint-slot");
+
 	const wallText = "かべ";
 	const wallButton = buildToggleButton(
 		wallText,
 		column.wallEnabled,
 		(pressed) => {
 			applyToColumnField(() => { column.wallEnabled = pressed; });
+			if (pressed) showDetailHint(defenderHintSlot, "技の分類に応じてリフレクター/ひかりのかべを張る");
+			else clearDetailHint();
 		},
 		// 32-R5「title属性の説明文は残すこと」により、可視ラベルが「かべ」1語まで
 		// 短くなってもtitleの説明文は変更しない。
@@ -1827,28 +1845,32 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 		column.defenderDisguiseBroken,
 		(pressed) => {
 			applyToColumnField(() => { column.defenderDisguiseBroken = pressed; });
+			if (pressed) showDetailHint(defenderHintSlot, "最大HPの1/8を失った状態で計算する");
+			else clearDetailHint();
 		},
 		{ title: "「ばけのかわ」が最初の1発で消費済みという想定で、防御側の初期HPを最大HPの1/8減らして計算する" },
 	);
 
 	const defenderVolatileGroup = defenderSide.querySelector<HTMLElement>(".damage-detail-volatile-group");
 	if (defenderVolatileGroup) {
-		defenderVolatileGroup.append(wallButton, disguiseBrokenButton);
+		// 「かべ」は揮発状態ではなく場に張るものなので、設置物(ステルスロック/まきびし)と
+		// 同じ行へ移した(下のhazardsControlsで先頭に足す)。ここには足さない。
+		defenderVolatileGroup.append(disguiseBrokenButton);
 		// C-3: DAMAGE_DEFENDER_VOLATILES(damage-calc.ts、担当外)自体の並び順は五十音順ではない
 		// ため、配列は変えずDOM上の見た目の並びだけを五十音順(「ばけのかわ」を含む)に揃える。
 		const volatileGojuonOrder = [
-			"アクアリング", "かべ", "しおづけ", "ちいさくなる", "ねをはる", "のろい", "バインド", "ばけのかわ", "やどりぎのタネ",
+			"アクアリング", "しおづけ", "ちいさくなる", "ねをはる", "のろい", "バインド", "ばけのかわ", "やどりぎのタネ",
 		];
 		Array.from(defenderVolatileGroup.querySelectorAll<HTMLButtonElement>("button"))
 			.sort((a, b) => volatileGojuonOrder.indexOf(a.dataset.volatileLabel ?? a.textContent ?? "") - volatileGojuonOrder.indexOf(b.dataset.volatileLabel ?? b.textContent ?? ""))
 			.forEach((button) => defenderVolatileGroup.appendChild(button));
 	} else {
 		// DAMAGE_DEFENDER_VOLATILESは通常1件以上を持つためここには来ないが、
-		// 将来の変更に備えてフォールバックを用意する(かべ・ばけのかわチップ自体は必ず
-		// 防御側に出す)。
+		// 将来の変更に備えてフォールバックを用意する(ばけのかわチップ自体は必ず
+		// 防御側に出す。かべはhazardsControls側に入る)。
 		const fallbackRow = document.createElement("div");
 		fallbackRow.className = "damage-detail-toggle-row";
-		fallbackRow.append(wallButton, disguiseBrokenButton);
+		fallbackRow.append(disguiseBrokenButton);
 		defenderSide.appendChild(fallbackRow);
 	}
 
@@ -1860,9 +1882,21 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 	const stealthRockButton = buildToggleButton(
 		"ステルスロック",
 		column.stealthRock,
-		(pressed) => applyToColumnField(() => { column.stealthRock = pressed; }),
+		(pressed) => {
+			applyToColumnField(() => { column.stealthRock = pressed; });
+			// 割合はjpokeのステルスロック_damage(最大HPの1/8×いわタイプ相性)に合わせている。
+			if (pressed) showDetailHint(defenderHintSlot, "登場時に最大HPの1/8(いわ相性で変動)のダメージ");
+			else clearDetailHint();
+		},
 		{ title: "ステルスロックを1回踏んだ状態で計算する" },
 	);
+
+	// 層数ごとの割合はjpokeのまきびし_damage(1層1/8・2層1/6・3層1/4)に合わせている。
+	const spikesHintByLayer: Record<number, string> = {
+		1: "登場時に最大HPの1/8のダメージ",
+		2: "登場時に最大HPの1/6のダメージ",
+		3: "登場時に最大HPの1/4のダメージ",
+	};
 
 	// 0〜3層の4択はselectのまま維持し、閉じた状態の表示と選択色を状態異常selectと
 	// 同じプレースホルダパターンにそろえる。
@@ -1893,8 +1927,11 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 		if (clamped === 0) spikesSelect.selectedIndex = 0;
 		updateSpikesPlaceholderState();
 		applyToColumnField(() => { column.spikes = clamped; });
+		if (clamped === 0) clearDetailHint();
+		else showDetailHint(defenderHintSlot, spikesHintByLayer[clamped] ?? "");
 	});
-	hazardsControls.append(stealthRockButton, spikesSelect);
+	// 「かべ」はステルスロックの左に置く(いずれも場に対する設定で、揮発状態とは別物)。
+	hazardsControls.append(wallButton, stealthRockButton, spikesSelect);
 	// B-3: 「設置物」(ステルスロック/まきびし)は、sidesWrap直下の独立区画ではなく、
 	// 防御側セクション内・揮発状態グループ(defenderVolatileGroup)の直前に移動する
 	// (相手の設置物依存の状況を「防御側」の設定としてまとめて見せるため)。

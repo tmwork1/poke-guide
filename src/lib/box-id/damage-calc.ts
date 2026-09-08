@@ -270,14 +270,17 @@ export const DAMAGE_DEFENDER_AILMENTS = DAMAGE_AILMENTS.filter((a) =>
 export const DAMAGE_ATTACKER_VOLATILES = [
 	{ value: "じゅうでん", label: "じゅうでん", title: "次に出すでんきタイプの技の威力が2倍になる(技を1回使うと解除される)" },
 ];
+// 説明文は「その状態のポケモンのHPがどう増減するか/受けるダメージがどう変わるか」だけを書く。
+// 命中率や相手側のHP回復のように、この画面のダメージ計算結果に現れない効果は書かない
+// (説明が長くなるほど、1行に収めた表示欄で読み切れなくなるため)。
 export const DAMAGE_DEFENDER_VOLATILES = [
 	{ value: "のろい", label: "のろい", title: "毎ターン最大HPの1/4のダメージを受ける" },
-	{ value: "やどりぎのタネ", label: "やどりぎのタネ", title: "毎ターン最大HPの1/8のダメージを受け、そのぶん相手のHPが回復する" },
-	{ value: "しおづけ", label: "しおづけ", title: "毎ターン最大HPの1/16(みず・はがねタイプは1/8)のダメージを受ける" },
+	{ value: "やどりぎのタネ", label: "やどりぎのタネ", title: "毎ターン最大HPの1/8のダメージを受ける" },
+	{ value: "しおづけ", label: "しおづけ", title: "毎ターン最大HPの1/16(みず・はがねは1/8)のダメージ" },
 	{ value: "バインド", label: "バインド", title: "毎ターン最大HPの1/8のダメージを受ける" },
-	{ value: "アクアリング", label: "アクアリング", title: "毎ターン最大HPの1/16のHPが回復する" },
-	{ value: "ねをはる", label: "ねをはる", title: "毎ターン最大HPの1/16のHPが回復する" },
-	{ value: "ちいさくなる", label: "ちいさくなる", title: "ふみつけ等の一部の技が必ず命中し、威力が2倍になる" },
+	{ value: "アクアリング", label: "アクアリング", title: "毎ターン最大HPの1/16回復" },
+	{ value: "ねをはる", label: "ねをはる", title: "毎ターン最大HPの1/16回復" },
+	{ value: "ちいさくなる", label: "ちいさくなる", title: "ふみつけ等の一部の技の威力が2倍になる" },
 ];
 export function clampInt(n: number, min: number, max: number): number {
 	return Math.min(max, Math.max(min, Math.round(n)));
