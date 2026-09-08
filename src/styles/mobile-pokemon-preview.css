@@ -393,18 +393,3 @@
 .pokemon-preview-item-image { filter: drop-shadow(var(--shadow-sm)); }
 
 .pokemon-preview-item-image-hidden { display: none; }
-
-/* ポケモン未指定のあいだは、プレビュー全体が「ポケモンを選ぶ」1枚のボタンとして働く
-   (preview-quick-open.ts が .is-species-unset を付け外しする)。押せることを見た目でも
-   示すが、レイアウトは変えない(枠線で高さが動くと種族確定の前後でガタつくため、
-   寸法に影響しない outline を内側に引く)。 */
-.pokemon-preview.is-species-unset {
-  cursor: pointer;
-  outline: 2px dashed var(--color-border-strong, var(--color-border));
-  outline-offset: -4px;
-}
-/* 全体が1つの入口になるので、項目ごとの疑似ボタンの押下感は消しておく
-   (別々に押せるように見えると、どこを押しても同じモーダルが出るのが不自然に見える)。 */
-.pokemon-preview.is-species-unset [role="button"] {
-  cursor: inherit;
-}

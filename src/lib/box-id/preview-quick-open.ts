@@ -45,6 +45,9 @@ if (itemTrigger) {
 //
 // 判定は#species-name(育成フォームの実体。プレビューの表示テキストはこれのミラー)を
 // 都度読む。種族選択後に配線し直す必要がないよう、状態は保持せずイベントのたびに評価する。
+//
+// 受付中であることを見た目で示す装飾(枠線・カーソル)は付けない。種族の有無で
+// プレビューの見た目が変わらないこと自体が要件のため、CSSも状態クラスも足さない。
 const previewRoot = document.querySelector<HTMLElement>(".pokemon-preview");
 if (previewRoot) {
   const speciesNameInput = document.getElementById("species-name") as HTMLInputElement | null;
@@ -81,11 +84,4 @@ if (previewRoot) {
     },
     { capture: true },
   );
-  // 未指定のあいだは「プレビュー全体が押せる」ことを見た目でも示す。
-  const syncUnsetState = (): void => {
-    previewRoot.classList.toggle("is-species-unset", isSpeciesUnset());
-  };
-  syncUnsetState();
-  speciesNameInput?.addEventListener("input", syncUnsetState);
-  speciesNameInput?.addEventListener("change", syncUnsetState);
 }
