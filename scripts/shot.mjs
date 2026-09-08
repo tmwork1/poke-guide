@@ -48,6 +48,8 @@
  *   --tag <str>         ファイル名の末尾に付ける識別子
  *   --keep-toolbar      Astro開発ツールバーを消さずに撮る(既定は消す)
  *   --timeout <ms>      Pyodide待ちのタイムアウト。既定 300000
+ *
+ * 主な追加オプション: --guest はページを開く前に開発用ゲストCookieを入れ、出力名にも -guest を付ける。
  */
 
 import { chromium } from "@playwright/test";
@@ -55,6 +57,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import {
 	REPO_ROOT,
+	applyGuestCookie,
 	assertServerUp,
 	detectBaseUrl,
 	hideDevToolbar,
@@ -83,6 +86,7 @@ function parseArgs(argv) {
 		tag: null,
 		keepToolbar: false,
 		timeout: 300_000,
+		guest: false,
 	};
 	for (let i = 0; i < argv.length; i += 1) {
 		const arg = argv[i];
@@ -142,6 +146,9 @@ function parseArgs(argv) {
 				break;
 			case "--timeout":
 				opts.timeout = Number(next());
+				break;
+			case "--guest":
+				opts.guest = true;
 				break;
 			case "--help":
 			case "-h":
@@ -227,6 +234,8 @@ async function shootOne(context, opts, pagePath, theme, viewport) {
 	);
 
 	const parts = [slugForPath(pagePath), theme];
+	// --tag の値を変えずに、同じ条件の通常撮影とゲスト撮影を共存させる。
+	if (opts.guest) parts.push("guest");
 	if (opts.tag) parts.push(opts.tag);
 	const file = path.resolve(REPO_ROOT, opts.out, `${parts.join("-")}.png`);
 
@@ -290,7 +299,7 @@ async function main() {
 				"  --clip <selector> [--clip-pad 24]   その要素だけを撮る",
 				"  --clone <selector> --clone-count 40 密度検証用にDOMを複製(DBは汚さない)",
 				"  --click <selector>   安全と確認済みの要素をクリックしてから撮る(複数指定可)",
-				"  --full / --wait <sel> / --tag <str> / --out <dir> / --keep-toolbar",
+				"  --full / --wait <sel> / --tag <str> / --out <dir> / --keep-toolbar / --guest",
 				"",
 				"詳細はこのファイル冒頭のコメントを参照。",
 			].join("\n") + "\n",
@@ -319,6 +328,7 @@ async function main() {
 	const context = await browser.newContext({ viewport, deviceScaleFactor: opts.scale });
 	const results = [];
 	try {
+		if (opts.guest) await applyGuestCookie(context, opts.base);
 		for (const pagePath of pages) {
 			for (const theme of themes) {
 				process.stderr.write(`撮影中: ${pagePath} (${theme}) ...\n`);

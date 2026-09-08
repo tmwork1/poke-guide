@@ -100,6 +100,15 @@ export async function assertServerUp(base) {
 }
 
 /**
+ * dev server は通常ログイン済みを返すため、遷移前に context へ明示的にゲスト用 cookie を入れる。
+ * page.goto 後に入れると最初の SSR 応答だけ通常ユーザーになるため、ページ生成より前に呼び出す。
+ */
+export async function applyGuestCookie(context, baseUrl) {
+	const url = new URL("/", baseUrl).toString();
+	await context.addCookies([{ name: "poke-dev-force-guest", value: "1", url }]);
+}
+
+/**
  * ダメージ計算の結果セルが出そろうまで待つ。
  * Pyodideを積んでいない画面では何もしない(→ pitfalls.md「Pyodideの初期化を待つ」)。
  */
