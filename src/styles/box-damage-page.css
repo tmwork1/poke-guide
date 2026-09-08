@@ -37,6 +37,21 @@
   display: flex;
 }
 
+/* カードがないときだけ、固定のダメージ表示領域を一覧まで広げて追加タイルを上下中央に置く。
+   通常時の一覧は従来どおり内容の高さだけを使い、上から詰めて並ぶ。 */
+#opponent-notes-section:has(.damage-empty-add-tile) {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  padding-bottom: 0;
+}
+
+#opponent-notes-section:has(.damage-empty-add-tile) .damage-rows-list {
+  flex: 1;
+  min-height: 0;
+  justify-content: center;
+}
+
 /* 努力値調整中はカードを比較表として密に並べる。 */
 body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .damage-rows-list {
   gap: 2px;
@@ -46,7 +61,8 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .damage-rows-li
    広がる巨大タイルだった(実測で画面いっぱいになるバグが発覚)。box一覧の空状態タイル
    (.empty-state-add-button、box-page.css)と同じ8rem相当まで縮める。 */
 #opponent-notes-section .damage-empty-add-tile {
-  width: 100%;
+  width: min(100%, 24rem);
+  align-self: center; /* カード表示領域の水平方向中央に配置する */
   min-height: 8rem; /* カード0枚時の追加ボタンの高さ下限。box一覧の空状態タイル(.empty-state-add-button)と揃える */
   gap: var(--space-2); /* カード0枚時の追加ボタンのアイコンと文字の間隔 */
 }

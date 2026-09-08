@@ -23,7 +23,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 20;
+  z-index: var(--z-index-app-bottom-nav);
   border-top: 1px solid var(--color-border);
   background: var(--color-chrome); /* 下部ナビ全体の背景色。コンテンツ面より控えめなナビ帯。 */
   padding-bottom: env(safe-area-inset-bottom); /* 端末下端の安全領域。大きくするとナビが下端から離れる。 */

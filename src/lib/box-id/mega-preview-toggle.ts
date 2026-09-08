@@ -76,12 +76,12 @@ export function setupMegaPreviewToggle(): void {
       nameEl.textContent = entry.name;
       spriteEl.src = championSpriteUrl(entry.imageId);
       spriteEl.alt = entry.name;
-      spriteEl.style.display = '';
+      spriteEl.hidden = false;
       spriteEl.onerror = () => {
         spriteEl.onerror = null;
         spriteEl.src = officialArtworkUrl(entry.imageId);
       };
-      fallbackEl.style.display = 'none';
+      fallbackEl.hidden = true;
 
       const toMixedColor = (typeName: string): string => {
         const color = TYPE_COLOR_CSS_VARIABLES[typeName] ?? DEFAULT_TYPE_COLOR;

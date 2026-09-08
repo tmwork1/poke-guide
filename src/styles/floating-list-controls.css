@@ -32,13 +32,17 @@
    =========================================================================== */
 
 /* 右下に固定する丸い追加ボタン */
+.floating-list-page {
+  --floating-list-add-bottom: calc(var(--bottom-nav-height) + var(--space-2) + env(safe-area-inset-bottom) + 24px + (40px - var(--floating-list-add-control-size)) * 0.5); /* 下部ナビからの通常時のFAB下端位置。画面固有の固定帯がある場合だけ上書きする。 */
+}
+
 .floating-list-page .floating-list-add-button {
   position: fixed;
   right: max(
     var(--floating-list-controls-edge-offset),
     calc((100vw - var(--content-band-max-width)) / 2 + var(--floating-list-controls-edge-offset))
   );
-  bottom: calc(var(--bottom-nav-height) + var(--space-2) + env(safe-area-inset-bottom) + 24px + (40px - var(--floating-list-add-control-size)) * 0.5); /* 追加ボタンとボトムナビの基本間隔。大きくすると上へ移動する。追加ボタンとボトムナビの間隔。大きくすると上へ移動する。追加ボタンの縦位置を、旧・下部固定検索欄の高さと揃えるための基準値(検索欄自体は現存しない)。変えると追加ボタンの上下位置が動く。 */
+  bottom: var(--floating-list-add-bottom); /* 下部ナビからの通常時のFAB下端位置。 */
   z-index: 17;
   width: var(--floating-list-add-control-size);
   height: var(--floating-list-add-control-size);

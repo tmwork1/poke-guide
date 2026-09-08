@@ -20,6 +20,11 @@ function isModalPortalTarget(target: Node | null): boolean {
 	return !!element?.closest(MODAL_PORTAL_SELECTOR);
 }
 
+function isAppBottomNavTarget(target: Node | null): boolean {
+	const element = target instanceof Element ? target : target?.parentElement ?? null;
+	return !!element?.closest(".app-bottom-nav");
+}
+
 export function bindModalDismissal({
 	backdrop,
 	dialog,
@@ -45,6 +50,8 @@ export function bindModalDismissal({
 		const target = event.target as Node | null;
 		if (target && (dialog.contains(target) || backdrop.contains(target))) return;
 		if (isModalPortalTarget(target)) return;
+		// 下部ナビはモーダルより前面に表示しているため、リンク遷移を妨げない。
+		if (isAppBottomNavTarget(target)) return;
 		event.preventDefault();
 		event.stopImmediatePropagation();
 	};

@@ -272,7 +272,7 @@ body.box-edit-page {
 
 	.damage-detail-panel-footer {
 		flex: 0 0 auto;
-		padding: var(--damage-detail-space-sm) var(--damage-detail-space-lg);
+		padding: var(--damage-detail-space-md) var(--damage-detail-space-lg) var(--damage-detail-space-sm);
 		padding-bottom: calc(var(--damage-detail-space-sm) + env(safe-area-inset-bottom));
 		/* 本文の下端を常時示す固定プレビューなので、区切り線は上側に置く。 */
 		border-top: var(--damage-detail-footer-border);
@@ -282,7 +282,6 @@ body.box-edit-page {
 	.damage-detail-panel-actions {
 		margin: var(--damage-detail-space-lg) calc(var(--damage-detail-space-lg) * -1) 0;
 		padding: var(--damage-detail-space-lg) var(--damage-detail-space-lg) 0;
-		border-top: var(--damage-detail-footer-border);
 	}
 	.damage-detail-panel-actions[hidden] { display: none; }
 	button.damage-detail-panel-delete {
@@ -389,6 +388,7 @@ body.box-edit-page {
 		width: var(--app-header-height);
 		min-width: var(--app-header-height);
 		padding-inline: 0;
+		font-size: calc(var(--damage-detail-font-size-md) * 1.2);
 	}
 	.damage-detail-panel-tab-wrap:has(.damage-detail-panel-tab[aria-selected="true"]) {
 		background: var(--damage-detail-primary-soft-color);
@@ -403,6 +403,10 @@ body.box-edit-page {
 		flex: 0 0 auto;
 		padding-inline: var(--damage-detail-space-sm);
 		color: var(--damage-detail-muted-color);
+	}
+	/* 相手未指定時の「?」は共通プレビュー内では明るい面にして識別しやすくする。 */
+	.damage-detail-panel .damage-detail-selection-icon-fallback {
+		background: color-mix(in srgb, var(--damage-detail-surface-background) 88%, white);
 	}
 	.damage-detail-panel-total-result .damage-result-probability {
 		margin-inline-start: 0.5em;
@@ -898,6 +902,7 @@ body.box-edit-page {
 		color: var(--damage-detail-muted-color);
 		font-size: var(--damage-detail-font-size-xs);
 		line-height: var(--damage-detail-line-height-tight);
+		white-space: nowrap;
 		opacity: 0;
 		transition: opacity 180ms ease;
 		pointer-events: none;

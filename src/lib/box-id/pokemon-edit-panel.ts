@@ -600,8 +600,8 @@ if (form) {
 			const sourceVisible = sourceSprite.style.display !== "none" && sourceSprite.src !== "";
 			previewSprite.src = sourceSprite.src;
 			previewSprite.alt = sourceSprite.alt;
-			previewSprite.style.display = sourceVisible ? "" : "none";
-			previewFallback.style.display = sourceVisible ? "none" : "";
+			previewSprite.hidden = !sourceVisible;
+			previewFallback.hidden = sourceVisible;
 			previewFallback.textContent = sourceFallback?.textContent?.trim() || inputValue("species-name").slice(0, 1) || "-";
 		}
 

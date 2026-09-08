@@ -83,14 +83,14 @@ export async function applyPokemonToMobilePreview(pokemon: OwnedPokemonRecord): 
   if (sprite && fallback) {
     sprite.alt = pokemon.species_name;
     if (imageId === undefined) {
-      sprite.style.display = 'none';
-      fallback.style.display = '';
+      sprite.hidden = true;
+      fallback.hidden = false;
       fallback.textContent = pokemon.species_name.slice(0, 1) || '-';
     } else {
       sprite.src = championSpriteUrl(imageId);
       sprite.onerror = () => { sprite.onerror = null; sprite.src = officialArtworkUrl(imageId); };
-      sprite.style.display = '';
-      fallback.style.display = 'none';
+      sprite.hidden = false;
+      fallback.hidden = true;
     }
   }
 

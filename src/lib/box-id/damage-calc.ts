@@ -268,19 +268,19 @@ export const DAMAGE_DEFENDER_AILMENTS = DAMAGE_AILMENTS.filter((a) =>
 // を確認して書いた説明文。数値(割合・倍率)を変更する場合は必ずjpoke skill(.claude/skills/jpoke)
 // 経由で実装を確認し直すこと(ダメージ計算に影響する数値のため誤記厳禁)。
 export const DAMAGE_ATTACKER_VOLATILES = [
-	{ value: "じゅうでん", label: "じゅうでん", title: "次に出すでんきタイプの技の威力が2倍になる(技を1回使うと解除される)" },
+	{ value: "じゅうでん", label: "じゅうでん", title: "次のでんき技の威力2倍(1回で解除)" },
 ];
 // 説明文は「その状態のポケモンのHPがどう増減するか/受けるダメージがどう変わるか」だけを書く。
 // 命中率や相手側のHP回復のように、この画面のダメージ計算結果に現れない効果は書かない
 // (説明が長くなるほど、1行に収めた表示欄で読み切れなくなるため)。
 export const DAMAGE_DEFENDER_VOLATILES = [
-	{ value: "のろい", label: "のろい", title: "毎ターン最大HPの1/4のダメージを受ける" },
-	{ value: "やどりぎのタネ", label: "やどりぎのタネ", title: "毎ターン最大HPの1/8のダメージを受ける" },
-	{ value: "しおづけ", label: "しおづけ", title: "毎ターン最大HPの1/16(みず・はがねは1/8)のダメージ" },
-	{ value: "バインド", label: "バインド", title: "毎ターン最大HPの1/8のダメージを受ける" },
+	{ value: "のろい", label: "のろい", title: "毎ターン最大HPの1/4ダメージ" },
+	{ value: "やどりぎのタネ", label: "やどりぎのタネ", title: "毎ターン最大HPの1/8ダメージ" },
+	{ value: "しおづけ", label: "しおづけ", title: "毎ターンHP1/16ダメージ(みず・はがねは1/8)" },
+	{ value: "バインド", label: "バインド", title: "毎ターン最大HPの1/8ダメージ" },
 	{ value: "アクアリング", label: "アクアリング", title: "毎ターン最大HPの1/16回復" },
 	{ value: "ねをはる", label: "ねをはる", title: "毎ターン最大HPの1/16回復" },
-	{ value: "ちいさくなる", label: "ちいさくなる", title: "ふみつけ等の一部の技の威力が2倍になる" },
+	{ value: "ちいさくなる", label: "ちいさくなる", title: "ふみつけ等の技の威力2倍" },
 ];
 export function clampInt(n: number, min: number, max: number): number {
 	return Math.min(max, Math.max(min, Math.round(n)));
@@ -2036,6 +2036,13 @@ if (opponentNotesSection) {
 		const index = row.attacks.indexOf(column);
 		if (index === -1 || row.attacks.length <= 1) return;
 		row.attacks.splice(index, 1);
+		// 選択中の技を消す場合は、列を再描画する前に隣の残存列へ選択を移す。
+		// これをしないとrenderColumnsが削除済みのselectedColumnを検出してclearSelection()
+		// → renderDetailPanelEmpty()へ進み、ブリッジが詳細モーダルを閉じてしまう。
+		if (getSelectedRow() === row && !getSelectedIsBuild() && getSelectedColumn() === column) {
+			const replacementColumn = row.attacks[Math.min(index, row.attacks.length - 1)];
+			if (replacementColumn) selectColumn(row, replacementColumn);
+		}
 		renderColumns(row);
 		scheduleRowCalc(row);
 		scheduleRowSave(row);

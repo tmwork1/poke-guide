@@ -177,8 +177,8 @@ body.box-edit-page {
    閉じ込める。outlineと疑似要素のオーバーレイはレイアウト寸法を変えないので、6枠の
    グリッドが強調の有無で揺れない。 */
 #pokemon-team-list .team-mate-card.is-current {
-	outline: 2px solid var(--color-primary);
-	outline-offset: -2px;
+	outline: 1px solid var(--color-primary);
+	outline-offset: -1px;
 }
 
 #pokemon-team-list .team-mate-card.is-current::after {

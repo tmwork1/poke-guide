@@ -1825,7 +1825,7 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 		column.wallEnabled,
 		(pressed) => {
 			applyToColumnField(() => { column.wallEnabled = pressed; });
-			if (pressed) showDetailHint(defenderHintSlot, "技の分類に応じてリフレクター/ひかりのかべを張る");
+			if (pressed) showDetailHint(defenderHintSlot, "リフレクター/ひかりのかべを張る");
 			else clearDetailHint();
 		},
 		// 32-R5「title属性の説明文は残すこと」により、可視ラベルが「かべ」1語まで
@@ -1845,7 +1845,7 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 		column.defenderDisguiseBroken,
 		(pressed) => {
 			applyToColumnField(() => { column.defenderDisguiseBroken = pressed; });
-			if (pressed) showDetailHint(defenderHintSlot, "最大HPの1/8を失った状態で計算する");
+			if (pressed) showDetailHint(defenderHintSlot, "初期状態で最大HPの1/8ダメージ");
 			else clearDetailHint();
 		},
 		{ title: "「ばけのかわ」が最初の1発で消費済みという想定で、防御側の初期HPを最大HPの1/8減らして計算する" },
@@ -1885,7 +1885,7 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 		(pressed) => {
 			applyToColumnField(() => { column.stealthRock = pressed; });
 			// 割合はjpokeのステルスロック_damage(最大HPの1/8×いわタイプ相性)に合わせている。
-			if (pressed) showDetailHint(defenderHintSlot, "登場時に最大HPの1/8(いわ相性で変動)のダメージ");
+			if (pressed) showDetailHint(defenderHintSlot, "初期状態で最大HPの1/8ダメージ");
 			else clearDetailHint();
 		},
 		{ title: "ステルスロックを1回踏んだ状態で計算する" },
@@ -1893,9 +1893,9 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 
 	// 層数ごとの割合はjpokeのまきびし_damage(1層1/8・2層1/6・3層1/4)に合わせている。
 	const spikesHintByLayer: Record<number, string> = {
-		1: "登場時に最大HPの1/8のダメージ",
-		2: "登場時に最大HPの1/6のダメージ",
-		3: "登場時に最大HPの1/4のダメージ",
+		1: "初期状態で最大HPの1/8ダメージ",
+		2: "初期状態で最大HPの1/6ダメージ",
+		3: "初期状態で最大HPの1/4ダメージ",
 	};
 
 	// 0〜3層の4択はselectのまま維持し、閉じた状態の表示と選択色を状態異常selectと

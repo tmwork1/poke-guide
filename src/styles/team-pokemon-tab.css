@@ -203,6 +203,14 @@ body.team-edit-page {
 	border-top: 1px solid var(--color-border);
 	box-shadow: var(--shadow-md);
 }
+/* 編成タブだけは下部固定のおすすめ帯がFABの通常位置を占めるため、その高さぶん上へ退避する。
+	他の .floating-list-add-button は共有の通常位置を維持する。 */
+.team-edit-shell[data-mobile-tab="formation"] #team-formation-mobile {
+	--floating-list-add-bottom: calc(
+		var(--bottom-nav-height) + var(--team-formation-mobile-suggest-height) + var(--space-2)
+		+ env(safe-area-inset-bottom) + 24px + (40px - var(--floating-list-add-control-size)) * 0.5
+	);
+}
 /* 固定帯は通常フローから外れるので、一覧末尾のカードが帯の裏へ隠れない分だけ
    スクロール領域の終端とスクロール先の余白を追加する。 */
 .team-edit-shell[data-mobile-tab="formation"] .team-formation-mobile__box {
