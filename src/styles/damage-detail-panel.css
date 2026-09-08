@@ -893,30 +893,39 @@ body.box-edit-page {
 	#damage-detail-panel-body .damage-detail-state-grid {
 		position: relative;
 	}
-	/* 揮発状態は長押しで説明を出す。実機のネイティブ長押し(テキスト選択・コンテキストメニュー)
-		が先に走るとpointercancelで説明が出ないため、チップ側でそれを無効にする。
-		touch-action: manipulationはダブルタップズームだけを外し、縦スクロールは残す。 */
-	#damage-detail-panel-body .damage-detail-state-grid button[data-volatile-value] {
-		user-select: none;
-		-webkit-user-select: none;
-		-webkit-touch-callout: none;
-		touch-action: manipulation;
+	/* 揮発状態を選んだ直後だけ、その効果を揮発状態セクションの直上へ短時間うっすら出す
+		(damage-detail-panel.ts の showVolatileHint)。押した直後にチップが動かないよう
+		フローには入れず絶対配置で重ね、グリッド幅の内側に収めてモバイル幅でもはみ出さない。 */
+	#damage-detail-panel-body .damage-detail-state-grid {
+		position: relative;
 	}
-	#damage-detail-panel-body .damage-detail-volatile-help-popover {
+	#damage-detail-panel-body .damage-detail-volatile-hint {
 		position: absolute;
 		z-index: 8;
 		left: 0;
 		right: 0;
 		bottom: calc(100% + var(--damage-detail-space-xs));
-		padding: var(--damage-detail-space-sm) var(--damage-detail-space-md);
-		border: 1px solid var(--damage-detail-border-color);
+		padding: var(--damage-detail-space-xs) var(--damage-detail-space-sm);
 		border-radius: var(--damage-detail-radius-sm);
 		background: var(--damage-detail-surface-background);
-		box-shadow: var(--damage-detail-shadow-md);
-		color: var(--damage-detail-text-color);
+		color: var(--damage-detail-muted-color);
 		font-size: var(--damage-detail-font-size-xs);
 		line-height: var(--damage-detail-line-height-tight);
+		/* 「薄く」出す補助表示。枠線・影は付けず、本文より一段淡い文字色だけで
+			主役(チップの選択状態)より前に出ないようにする。表示中の不透明度は1にする
+			(半透明のままだと真下に重なる状態異常チップが透けて、どちらも読めなくなる)。
+			フェードはopacityの遷移で行う。 */
+		opacity: 0;
+		transition: opacity 180ms ease;
 		pointer-events: none;
+	}
+	#damage-detail-panel-body .damage-detail-volatile-hint.is-visible {
+		opacity: 1;
+	}
+	@media (prefers-reduced-motion: reduce) {
+		#damage-detail-panel-body .damage-detail-volatile-hint {
+			transition: none;
+		}
 	}
 	#damage-detail-panel-body .damage-detail-rank-field .number-stepper,
 	#damage-detail-panel-body .damage-detail-rank-stepper {

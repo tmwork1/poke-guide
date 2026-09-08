@@ -78,8 +78,8 @@ const opponentPreviewStatEls = new WeakMap<DamageRowState, Partial<Record<StatKe
 const opponentPreviewIconEls = new WeakMap<DamageRowState, { icon: HTMLImageElement; fallback: HTMLElement }>();
 const previewItemIconEls = new WeakMap<DamageRowState, { self: HTMLImageElement; opponent: HTMLImageElement }>();
 let moveDropdownOutsideClickHandler: ((event: MouseEvent) => void) | null = null;
-let volatileHelpPopoverEl: HTMLElement | null = null;
-let volatileHelpTriggerEl: HTMLButtonElement | null = null;
+let volatileHintEl: HTMLElement | null = null;
+let volatileHintTimer: number | null = null;
 const DETAIL_PANEL_SWIPE_THRESHOLD_PX = 64;
 const DETAIL_PANEL_SWIPE_AXIS_RATIO = 1.25;
 
@@ -152,33 +152,46 @@ export function openDetailPanelOverlay(): void {
 	detailBackdropEl.hidden = false;
 }
 export function closeDetailPanelOverlay(): void {
-	closeVolatileHelpPopover();
+	clearVolatileHint();
 	detailPanelEl.classList.remove("is-open");
 	detailPanelEl.setAttribute("aria-modal", "false");
 	detailBackdropEl.hidden = true;
 }
 
-/** 揮発状態の説明は一度に一つだけ表示する。再描画・モーダル閉鎖のどちらからでも安全に片付けられるよう、
- * ポップオーバー本体とトリガーをモジュール内でまとめて保持する。 */
-function closeVolatileHelpPopover(): void {
-	if (volatileHelpTriggerEl) volatileHelpTriggerEl.removeAttribute("aria-describedby");
-	volatileHelpPopoverEl?.remove();
-	volatileHelpPopoverEl = null;
-	volatileHelpTriggerEl = null;
+/** 揮発状態の説明は一度に一つだけ表示する。再描画・モーダル閉鎖のどちらからでも安全に
+ * 片付けられるよう、表示中の要素と自動消去タイマーをモジュール内でまとめて保持する。 */
+function clearVolatileHint(): void {
+	if (volatileHintTimer != null) window.clearTimeout(volatileHintTimer);
+	volatileHintTimer = null;
+	volatileHintEl?.remove();
+	volatileHintEl = null;
 }
 
-/** 狭いモーダルでも画面外へ出ないよう、押したボタン単体ではなく同じ状態グリッド内に収める。 */
-function openVolatileHelpPopover(stateGrid: HTMLElement, trigger: HTMLButtonElement, title: string): void {
-	closeVolatileHelpPopover();
-	const popover = document.createElement("div");
-	popover.id = "damage-detail-volatile-help";
-	popover.className = "damage-detail-volatile-help-popover";
-	popover.setAttribute("role", "tooltip");
-	popover.textContent = title;
-	stateGrid.appendChild(popover);
-	trigger.setAttribute("aria-describedby", popover.id);
-	volatileHelpPopoverEl = popover;
-	volatileHelpTriggerEl = trigger;
+/** 揮発状態を選んだ直後だけ、その効果を揮発状態セクションの直上へ短時間表示する。
+ * 押した直後にチップの位置が動くと次の操作を誤るため、フローには入れず絶対配置で重ねる
+ * (stateGrid側の position: relative が基準)。読み終わる程度の時間で自動的に消す。 */
+function showVolatileHint(stateGrid: HTMLElement, title: string): void {
+	clearVolatileHint();
+	const hint = document.createElement("div");
+	hint.className = "damage-detail-volatile-hint";
+	// 操作の結果として出る補助表示なので、読み上げは邪魔しない範囲(polite)で伝える。
+	hint.setAttribute("role", "status");
+	hint.textContent = title;
+	stateGrid.appendChild(hint);
+	// 挿入直後に is-visible を付けてCSSトランジションでフェードインさせる
+	// (同フレームで付けると初期状態が描画されず、透明からの変化にならない)。
+	requestAnimationFrame(() => hint.classList.add("is-visible"));
+	volatileHintEl = hint;
+	volatileHintTimer = window.setTimeout(() => {
+		volatileHintTimer = null;
+		hint.classList.remove("is-visible");
+		// フェードアウトが終わってから取り除く。途中で別の揮発状態を選んだ場合は
+		// clearVolatileHint が先に消すため、ここで古い要素を消し直さないよう確認する。
+		window.setTimeout(() => {
+			if (volatileHintEl === hint) clearVolatileHint();
+			else hint.remove();
+		}, 200);
+	}, 2400);
 }
 
 /** タブを使わない表示へ切り替える際に、タブ帯と計算結果を片付ける。 */
@@ -856,7 +869,7 @@ export function renderStatCardList(view: StatCardListView): void {
 let lastCandidateListRedraw: (() => void) | null = null;
 
 export function renderDetailPanelEmpty(): void {
-	closeVolatileHelpPopover();
+	clearVolatileHint();
 	if (lastCandidateListRedraw) {
 		lastCandidateListRedraw();
 		return;
@@ -1406,7 +1419,7 @@ export function buildSideSection(
 			const optButton = buildToggleButton(
 				opt.label,
 				volatilesValue.includes(opt.value),
-				() => {
+				(pressed) => {
 					const next = Array.from(
 						stateGrid.querySelectorAll<HTMLButtonElement>('button[data-volatile-value][aria-pressed="true"]'),
 					).map((btn) => btn.dataset.volatileValue ?? "");
@@ -1414,64 +1427,15 @@ export function buildSideSection(
 					scheduleRowCalc(row);
 					scheduleRowSave(row);
 					refreshRowConditionChips(row);
+					// 効果の説明は「選んだとき」だけ出す。解除したときに出しても、
+					// 今なくなった効果の説明になってしまい意味が逆に読めるため。
+					if (pressed && opt.title) showVolatileHint(stateGrid, opt.title);
+					else clearVolatileHint();
 				},
 				{ title: opt.title },
 			);
 			optButton.dataset.volatileValue = opt.value;
 			optButton.dataset.volatileLabel = opt.label;
-			if (opt.title) {
-				// press-and-hold.tsはステッパー用の「長押し中に繰り返す」実装であり、
-				// 今回必要な「一度だけ表示して直後のclickを抑止する」操作とは異なる。
-				// そのため、トグルの既存clickを壊さない最小限の専用処理をここに置く。
-				let holdTimer: number | null = null;
-				let suppressNextClick = false;
-				let holdOrigin: { x: number; y: number } | null = null;
-				const cancelHold = (): void => {
-					if (holdTimer != null) window.clearTimeout(holdTimer);
-					holdTimer = null;
-					holdOrigin = null;
-				};
-				optButton.addEventListener("pointerdown", (event) => {
-					if (!event.isPrimary || event.button !== 0) return;
-					cancelHold();
-					// 抑止フラグの解除はここ(次の押下)だけで行う。pointerupで解除すると、
-					// タッチ操作ではブラウザのclickがpointerupより後に来るため解除が先に走り、
-					// 長押しで説明を出したのにトグルまでONになる(実測)。
-					suppressNextClick = false;
-					holdOrigin = { x: event.clientX, y: event.clientY };
-					// 指を置いたままにする操作なので、押している間はポインタをこのボタンに固定する。
-					// 捕捉しないと、実機のわずかな指の揺れでpointerleaveが飛んで長押しが途切れる。
-					optButton.setPointerCapture?.(event.pointerId);
-					holdTimer = window.setTimeout(() => {
-						holdTimer = null;
-						suppressNextClick = true;
-						openVolatileHelpPopover(stateGrid, optButton, opt.title!);
-					}, 500);
-				});
-				// 実機の指は完全に静止しないため、pointerleaveでの取り消しはやめ、
-				// 「スクロールするつもりだった」と分かる距離(10px)を超えたときだけ取り消す。
-				optButton.addEventListener("pointermove", (event) => {
-					if (!holdOrigin || holdTimer == null) return;
-					if (Math.hypot(event.clientX - holdOrigin.x, event.clientY - holdOrigin.y) <= 10) return;
-					cancelHold();
-				});
-				optButton.addEventListener("pointerup", cancelHold);
-				optButton.addEventListener("pointercancel", () => {
-					cancelHold();
-					suppressNextClick = false;
-				});
-				optButton.addEventListener("lostpointercapture", cancelHold);
-				// 実機(Android Chrome / iOS Safari)は長押しでテキスト選択・コンテキストメニューを
-				// 出そうとし、その時点でpointercancelが飛んで説明が一度も出ない。CSS側の
-				// user-select/-webkit-touch-calloutと合わせて、ここでもネイティブの長押しを止める。
-				optButton.addEventListener("contextmenu", (event) => event.preventDefault());
-				optButton.addEventListener("click", (event) => {
-					if (!suppressNextClick) return;
-					suppressNextClick = false;
-					event.preventDefault();
-					event.stopImmediatePropagation();
-				}, true);
-			}
 			stateGrid.appendChild(optButton);
 		}
 	}
@@ -1479,7 +1443,7 @@ export function buildSideSection(
 }
 
 export function renderBuildDetailPanel(row: DamageRowState): void {
-	closeVolatileHelpPopover();
+	clearVolatileHint();
 	detailPanelBodyEl.innerHTML = "";
 	const form = getDamageBuildDetailForm(row);
 	if (!form) {
@@ -1497,7 +1461,7 @@ export function renderBuildDetailPanel(row: DamageRowState): void {
 
 export function renderColumnLevelDetailPanel(row: DamageRowState, column: DamageColumnState): void {
 // 選択中の技がない場合は、表示できる技を優先順位どおりに選ぶ。
-	closeVolatileHelpPopover();
+	clearVolatileHint();
 	detailPanelBodyEl.innerHTML = "";
 	const idx = row.attacks.indexOf(column);
 	if (idx === -1) {
@@ -2040,14 +2004,6 @@ export function initDamageDetailPanel(): void {
 	el<HTMLInputElement>("item").addEventListener("input", () => {
 		const row = getSelectedRow();
 		if (row) syncPreviewItemIcons(row);
-	});
-	document.addEventListener("pointerdown", (event) => {
-		if (!volatileHelpPopoverEl || !(event.target instanceof Node)) return;
-		if (volatileHelpPopoverEl.contains(event.target) || volatileHelpTriggerEl?.contains(event.target)) return;
-		closeVolatileHelpPopover();
-	});
-	document.addEventListener("keydown", (event) => {
-		if (event.key === "Escape") closeVolatileHelpPopover();
 	});
 	el<HTMLButtonElement>("damage-detail-panel-close").addEventListener("click", closeDetailPanelOverlay);
 	el<HTMLButtonElement>("damage-detail-panel-delete").addEventListener("click", () => {
