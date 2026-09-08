@@ -202,6 +202,7 @@ export async function initSpeedChartPage(): Promise<void> {
   const regSelect = document.getElementById('speed-chart-regulation-select') as HTMLSelectElement | null;
   const knownRegulations = getKnownRegulations(regSelect);
   const jumpInput = document.getElementById('speed-chart-jump-input') as HTMLInputElement | null;
+  const orderToggle = document.getElementById('speed-chart-order-select') as HTMLButtonElement | null;
   const backButton = document.getElementById('speed-chart-owned-jump-button');
   // 要件4: ?owned=があるときだけ存在するトグル(ChartTable.astro側もhasOwnedPanelで条件付け済み)。
   const reachableOnlyToggle = document.getElementById('speed-chart-reachable-only-toggle') as HTMLInputElement | null;
@@ -240,6 +241,7 @@ export async function initSpeedChartPage(): Promise<void> {
   let lastKnownOwnedValue: number | null = null;
   let hasScrolledInitially = false;
   let currentRows: SpeedChartRow[] = [];
+  let sortOrder: 'asc' | 'desc' = orderToggle?.dataset.order === 'asc' ? 'asc' : 'desc';
   // R-12更新: 「個体が到達可能な実数値の集合」はowned-panel.tsが所有する。ここではCustomEvent
   // 経由で受け取った値をキャッシュするだけ(クロージャ共有はしない)。
   let lastKnownReachableValues: Set<number> | null = null;
@@ -511,7 +513,17 @@ export async function initSpeedChartPage(): Promise<void> {
     const rows = lastKnownReachableValues
       ? includeReachableValuesInRows(currentRows, lastKnownReachableValues)
       : currentRows;
-    renderRows(rows);
+    renderRows(sortOrder === 'desc' ? rows : [...rows].reverse());
+  }
+
+  function updateOrderToggle(): void {
+    if (!orderToggle) return;
+    const isAscending = sortOrder === 'asc';
+    orderToggle.dataset.order = sortOrder;
+    orderToggle.setAttribute('aria-pressed', String(isAscending));
+    orderToggle.setAttribute('aria-label', `実数値の並び順: ${isAscending ? '遅い順' : '速い順'}`);
+    const label = orderToggle.querySelector<HTMLElement>('.sort-dir-toggle-label');
+    if (label) label.textContent = isAscending ? '遅い順' : '速い順';
   }
 
   function renderRows(rows: SpeedChartRow[]): void {
@@ -657,6 +669,13 @@ export async function initSpeedChartPage(): Promise<void> {
     renderVisibleRows();
     // トグル操作でも← 現在マーカーの位置は変わらないため、直前のハイライト値を再適用する。
     if (ownedController) applyHighlight(ownedController.getCurrentValue());
+  });
+
+  updateOrderToggle();
+  orderToggle?.addEventListener('click', () => {
+    sortOrder = sortOrder === 'desc' ? 'asc' : 'desc';
+    updateOrderToggle();
+    renderVisibleRows();
   });
 
   regSelect?.addEventListener('change', () => {

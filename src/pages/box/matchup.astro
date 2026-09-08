@@ -66,6 +66,7 @@ const canRenderSelectedPokemon = result?.ok || (!user && selectedId !== null);
 <script>
   import { createMatchupPanel, type MatchupPanelMember } from '../../lib/matchup-panel';
   import { hydrateGuestMobilePreview } from '../../lib/box-id/mobile-preview-hydrate';
+  import { getGuestPokemon } from '../../lib/data/guest-store';
   import { isGuestMode } from '../../lib/data/guest-mode';
 
   const main = document.querySelector<HTMLElement>('#box-matchup-main');
@@ -76,11 +77,13 @@ const canRenderSelectedPokemon = result?.ok || (!user && selectedId !== null);
   if (listElement && statusElement && pokemonJson) {
     let pokemon = JSON.parse(pokemonJson) as MatchupPanelMember;
     if (isGuestMode() && main?.dataset.guestPokemonId) {
-      const guestPokemon = await hydrateGuestMobilePreview(main.dataset.guestPokemonId);
+      const guestPokemon = getGuestPokemon(main.dataset.guestPokemonId);
       if (!guestPokemon) {
         window.location.replace('/box');
       } else {
         pokemon = guestPokemon;
+        // プレビュー用マスターデータの読み込みに失敗しても、公開の相性計算は継続する。
+        void hydrateGuestMobilePreview(main.dataset.guestPokemonId).catch((error) => console.error(error));
       }
     }
     const matchupPanel = createMatchupPanel({
@@ -88,7 +91,22 @@ const canRenderSelectedPokemon = result?.ok || (!user && selectedId !== null);
       statusElement,
       getMembers: () => [pokemon],
     });
-    void matchupPanel.run();
+    const loadingTimeout = window.setTimeout(() => {
+      if (!listElement.hasAttribute('aria-busy')) return;
+      listElement.replaceChildren();
+      listElement.removeAttribute('aria-busy');
+      statusElement.textContent = '相性チェック用のデータを読み込めませんでした。';
+      statusElement.hidden = false;
+    }, 8_000);
+    void matchupPanel.run()
+      .catch((error) => {
+        console.error(error);
+        listElement.replaceChildren();
+        listElement.removeAttribute('aria-busy');
+        statusElement.textContent = '相性を計算できませんでした。ページを再読み込みしてください。';
+        statusElement.hidden = false;
+      })
+      .finally(() => window.clearTimeout(loadingTimeout));
   }
 </script>
 

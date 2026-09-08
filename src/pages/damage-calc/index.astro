@@ -18,8 +18,6 @@ import "../../styles/damage-calc-page.css";
 import "../../styles/box-select-dialog.css";
 import "../../styles/team-select-dialog.css";
 
-const user = Astro.locals.user;
-
 let opggRankedSpeciesNames: string[] = [];
 try {
   const manifest = await getOpggUsageManifest(env.OPGG_USAGE);
@@ -42,7 +40,6 @@ try {
       構成に揃える。 */}
   <SecondaryBar />
   <main class="damage-calc-shell">
-    {!user && <p class="damage-calc-login-guide">チームを使うには <a href="/team">ログインしてチームを登録</a>してください。</p>}
     <MatchupCardList />
   </main>
   <ControlPanel />

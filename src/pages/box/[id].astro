@@ -295,7 +295,7 @@ const initialMobileTab = !isNewMode && Astro.url.searchParams.get('tab') === 'da
 			    BulkAdjustDialog.astro、ロジックはsrc/lib/box-id/bulk-adjust.tsに実装済み
 			    (このページ側はimportと配置のみ)。 */}
 			{!isNewMode && user && <BulkAdjustDialog />}
-			{!isNewMode && user && <SpeedAdjustDialog pokemonId={pokemon.id} />}
+			{!isNewMode && <SpeedAdjustDialog pokemonId={pokemon.id} />}
 			</>
 		)
 	}
