@@ -1660,6 +1660,15 @@ async function loadOwnedPokemonTeams(): Promise<void> {
 						applySprite,
 						applyItemIcon,
 					});
+					// renderTeamMateSlotsは編集・閲覧画面で共有しているため、現在の個体を
+					// 示す文脈依存の見た目を共通コンポーネントへ持ち込まない。描画済みの
+					// 6枠から一致する全スロットへ印を付け、万一重複登録されたデータでも
+					// どの該当枠かを取りこぼさないようにする。
+					for (const member of t.members) {
+						if (member.owned_pokemon.id !== ownedPokemonId) continue;
+						container.querySelector<HTMLElement>(`.team-mate-card[data-slot="${member.slot}"]`)
+							?.classList.add("is-current");
+					}
 				},
 			});
 			listEl.appendChild(card);

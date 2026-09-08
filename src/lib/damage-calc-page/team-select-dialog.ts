@@ -26,6 +26,31 @@ function toSelfBuild(member: TeamMember): SelfBuild {
   };
 }
 
+// チーム選択ダイアログとURL引き継ぎのどちらから選んでも、個体→計算用ビルドの
+// 変換・状態更新・再計算通知が完全に同じ順序になるよう、選択結果の適用はここに集約する。
+export function selectTeam(team: Team): void {
+  setSelfBuilds(team.members.map(toSelfBuild));
+  document.dispatchEvent(
+    new CustomEvent("damage-calc:change", { detail: { reason: "self" } }),
+  );
+}
+
+// ゲスト時もlistTeamsPage()がlocalStorageのチームを返すため、URLからの復元でも
+// ダイアログと同じ取得経路を通す。個別APIを使わず全ページをたどることで、
+// ページ境界より後にあるチームIDも取りこぼさない。
+export async function findTeamById(teamId: string): Promise<Team | null> {
+  let offset = 0;
+  let hasMore = true;
+  while (hasMore) {
+    const page = await listTeamsPage({ limit: PAGE_SIZE, offset });
+    const team = page.teams.find((candidate) => candidate.id === teamId);
+    if (team) return team;
+    hasMore = page.hasMore && page.teams.length > 0;
+    offset += page.teams.length;
+  }
+  return null;
+}
+
 export function initTeamSelectDialog(): void {
   const trigger = byId<HTMLButtonElement>("damage-calc-team-button");
   const backdrop = byId<HTMLElement>("damage-calc-team-select-backdrop");
@@ -44,14 +69,6 @@ export function initTeamSelectDialog(): void {
     backdrop.hidden = true;
     dialog.hidden = true;
     trigger.focus();
-  }
-
-  function selectTeam(team: Team): void {
-    setSelfBuilds(team.members.map(toSelfBuild));
-    document.dispatchEvent(
-      new CustomEvent("damage-calc:change", { detail: { reason: "self" } }),
-    );
-    closeDialog();
   }
 
   function renderList(teams: Team[]): void {
@@ -88,7 +105,10 @@ export function initTeamSelectDialog(): void {
             },
           }),
         );
-        button.addEventListener("click", () => selectTeam(team));
+        button.addEventListener("click", () => {
+          selectTeam(team);
+          closeDialog();
+        });
         return button;
       }),
     );

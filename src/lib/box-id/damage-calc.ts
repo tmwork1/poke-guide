@@ -50,6 +50,7 @@ import { TERA_TYPES } from "../tera-types";
 import { teraTypeIconUrl } from "../sprite-urls";
 import { DEFAULT_TYPE_COLOR, TYPE_COLORS } from "../type-colors";
 import { initializeCardDeleteMode, playCardDeleteExitEffect } from "../card-delete-mode";
+import { loadMatchupTargets } from "../matchup-panel";
 // 相手ポケモンのアイテムドロップダウン(下のbuildItemDropdown参照)の検索欄で、育成タブの
 // 持ち物ドロップダウン(pokemon-edit-panel.ts)と同じかな・文字幅・英字大小を無視した絞り込みにする。
 import { kanaIncludes } from "../kana";
@@ -855,7 +856,14 @@ if (opponentNotesSection) {
 		panel: StatAdjustmentPanel;
 		options: StatAdjustmentPanelOptions;
 	}>();
+	// 通常追加したカードへ使用率1位を後から入れる際も、現在描画中の入力欄を経由して
+	// 種族確定時の既存イベントを動かす。行の再描画で入力欄が差し替わるため、DOM検索結果を
+	// 持ち続けず WeakMap を更新することで、遅いレスポンスでも古い入力欄を書き換えない。
+	const rowOpponentNameInputs = new WeakMap<DamageRowState, HTMLInputElement>();
 	const rowReadonlyNatureLabelEls = new WeakMap<DamageRowState, Partial<Record<string, HTMLElement>>>();
+	// 相性パネルと同じページ内キャッシュを先に温める。失敗はカード追加の可否に影響させず、
+	// addNewRowAndFocus 側で従来どおり空のカードを残すため、ここでは表示を伴わず握りつぶす。
+	void loadMatchupTargets().catch(() => undefined);
 
 	// #regulation(PokemonEditPanel.astro/pokemon-edit-panel.ts)はこのファイルからは値を読むだけに留め、
 	// pokemon-edit-panel.ts側の既存changeリスナー(syncRegulationPlaceholder等)は変更しない。
@@ -2481,6 +2489,7 @@ if (opponentNotesSection) {
 		nameInput.setAttribute("aria-label", "相手ポケモン名");
 		nameInput.autocomplete = "off";
 		nameInput.value = row.name;
+		rowOpponentNameInputs.set(row, nameInput);
 		nameInput.setAttribute("aria-haspopup", "listbox");
 		nameInput.setAttribute("aria-expanded", "false");
 		const nameComboWrap = document.createElement("div");
@@ -3262,7 +3271,7 @@ if (opponentNotesSection) {
 
 	function addNewRowAndFocus(): void {
 		const row = createEmptyRow();
-		// 通常の新規カードだけ初期技を補う。サジェスト・既存メモの復元経路には適用しない。
+		// 通常の新規カードだけ初期値を補う。サジェスト・既存メモの復元経路には適用しない。
 		fillFirstMoveCandidate(row, row.attacks[0]);
 		renderRow(row);
 		const existingOrders = rows
@@ -3277,6 +3286,28 @@ if (opponentNotesSection) {
 		// ため、ここは同期的に呼ぶだけでよい(queueMicrotaskで遅延させる必要はない。
 		// 詳細は除外側のコメント参照)。
 		selectBuild(row);
+		fillNewRowOpponentFromUsage(row);
+	}
+
+	function fillNewRowOpponentFromUsage(row: DamageRowState): void {
+		// カード追加自体を待たせない。loadMatchupTargets は相性パネルと共有する Promise を返すため、
+		// 初期化時の先読みが完了済みなら次のマイクロタスクで、未完了なら取得完了後にだけ補完される。
+		void loadMatchupTargets()
+			.then((targets) => {
+				const speciesName = targets[0]?.speciesName?.trim();
+				const nameInput = rowOpponentNameInputs.get(row);
+				// 非同期中に削除された行、またはユーザーが入力を始めた行は触らない。row.name と
+				// 実入力の両方を見ることで、inputイベント処理の途中や再描画直後にも上書きを防ぐ。
+				if (!speciesName || !rows.includes(row) || row.name.trim() !== "" || !nameInput || nameInput.value.trim() !== "") return;
+
+				nameInput.value = speciesName;
+				// 値だけを直接同期すると種族確定に紐づく特性・持ち物・テラス・実数値のプリセット復元、
+				// 再計算/保存予約が抜け落ちる。手入力時と同じ input → change の経路を必ず通す。
+				nameInput.dispatchEvent(new Event("input", { bubbles: true }));
+				nameInput.dispatchEvent(new Event("change", { bubbles: true }));
+			})
+			// 使用率取得が失敗・空配列なら従来の空カードをそのまま残す。通知も出さない。
+			.catch(() => undefined);
 	}
 
 	function addSuggestedRow(suggestion: DamageCalcSuggestion): void {

@@ -52,7 +52,7 @@ try {
     import { initControlPanel } from "../../lib/damage-calc-page/control-panel";
     import { initItemSelectDialog } from "../../lib/damage-calc-page/item-select-dialog";
     import { initBoxSelectDialog } from "../../lib/damage-calc-page/box-select-dialog";
-    import { initTeamSelectDialog } from "../../lib/damage-calc-page/team-select-dialog";
+    import { findTeamById, initTeamSelectDialog, selectTeam } from "../../lib/damage-calc-page/team-select-dialog";
     import { initMatchupCardList } from "../../lib/damage-calc-page/matchup-card";
     initSecondaryBar();
     initControlPanel();
@@ -60,5 +60,19 @@ try {
     initBoxSelectDialog();
     initTeamSelectDialog();
     initMatchupCardList();
+
+    const requestedTeamId = new URLSearchParams(window.location.search).get("team");
+    if (requestedTeamId) {
+      // チーム詳細からの遷移でも、選択ダイアログと同じゲスト対応の取得経路を使う。
+      // 初期化をすべて済ませてから通知するため、damage-calc:changeを受ける各UIが
+      // 自チームの読み込み結果を取りこぼさず描画できる。
+      void findTeamById(requestedTeamId)
+        .then((team) => {
+          if (team) selectTeam(team);
+        })
+        // 存在しないIDや一時的な読み込み失敗は通常の空状態のまま扱う。URL起点の
+        // 補助機能が計算画面そのものを壊さないよう、画面内のエラー表示は増やさない。
+        .catch((error) => console.error("[damage-calc] failed to restore requested team", error));
+    }
   </script>
 </AppLayout>

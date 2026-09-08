@@ -70,7 +70,6 @@ body.box-edit-page {
 	--damage-detail-space-sm: var(--space-2); /* 小さめの間隔。大きくするとボタンや行の密度が下がる */
 	--damage-detail-space-xs: var(--space-1); /* 最小の間隔。大きくすると細かな項目間が広がる */
 
-	--damage-detail-body-safe-area-padding-bottom: calc(1.4rem + env(safe-area-inset-bottom)); /* 本文最下部(モーダル最下部)の安全領域込み下余白。大きくすると画面下端の切り欠けから離れる */
 
 	/* ── 8. 寸法 ─────────────────────── */
 
@@ -115,19 +114,26 @@ body.box-edit-page {
 		left: 50%;
 		right: auto;
 		bottom: auto;
-		width: min(92vw, 480px); /* 横幅。大きくすると入力欄や候補カードが横に広がる */
-		height: var(--modal-height); /* タブごとの内容量にかかわらず、画面高の約75%を表示領域に使う */
+		width: min(92vw, 480px);
+ /* 横幅。大きくすると入力欄や候補カードが横に広がる */
+		height: var(--modal-height);
+ /* タブごとの内容量にかかわらず、画面高の約75%を表示領域に使う */
 		z-index: 60;
 		display: flex;
 		flex-direction: column;
 		overflow: hidden;
 		background: var(--damage-detail-surface-background);
-		box-shadow: var(--shadow-lg); /* 外側の影。強くすると背景から浮いて見える */
-		border: var(--modal-border); /* パネル外枠の線。太くすると輪郭が目立つ */
-		border-left: 0; /* 左端の枠線。太くすると左境界が見える */
-		border-radius: var(--modal-radius); /* 外枠の角丸。大きくするとパネルが丸くなる */
+		box-shadow: var(--shadow-lg);
+ /* 外側の影。強くすると背景から浮いて見える */
+		border: var(--modal-border);
+ /* パネル外枠の線。太くすると輪郭が目立つ */
+		border-left: 0;
+ /* 左端の枠線。太くすると左境界が見える */
+		border-radius: var(--modal-radius);
+ /* 外枠の角丸。大きくするとパネルが丸くなる */
 		transform: translateX(-50%) scale(0.96);
-		opacity: 0; /* 閉じた状態の透明度。大きくすると閉じる途中も見えやすい */
+		opacity: 0;
+ /* 閉じた状態の透明度。大きくすると閉じる途中も見えやすい */
 		pointer-events: none;
 		transition: transform var(--damage-detail-panel-transition-duration) ease, opacity var(--damage-detail-panel-transition-duration) ease;
 	}
@@ -140,7 +146,8 @@ body.box-edit-page {
 		position: fixed;
 		inset: 0;
 		z-index: 55;
-		background: var(--color-overlay); /* パネル背後の暗幕。濃くすると背後の画面が見えにくくなる */
+		background: var(--color-overlay);
+ /* パネル背後の暗幕。濃くすると背後の画面が見えにくくなる */
 	}
 	.damage-detail-backdrop[hidden] { display: none; }
 	.damage-detail-panel-header {
@@ -161,7 +168,8 @@ body.box-edit-page {
 		min-width: 0;
 		flex: 1 1 auto;
 		font-size: var(--modal-title-font-size);
-		font-weight: var(--modal-title-font-weight); /* モーダルヘッダー規格(global.css)のタイトルの太さ。 */
+		font-weight: var(--modal-title-font-weight);
+ /* モーダルヘッダー規格(global.css)のタイトルの太さ。 */
 	}
 	.damage-detail-panel-tabs {
 		display: flex;
@@ -184,7 +192,8 @@ body.box-edit-page {
 		min-height: var(--app-header-height);
 		padding: 0 var(--damage-detail-space-md);
 		border: 0;
-		border-bottom: 2px solid transparent; /* タブ下線の太さ。太くすると選択位置が目立つ */
+		border-bottom: 2px solid transparent;
+ /* タブ下線の太さ。太くすると選択位置が目立つ */
 		/* A-1: button要素のネイティブappearanceが角丸を持つ環境(Windows版Chromium等)があり、
 			選択中の背景塗り(aria-selected="true")が丸角ハイライトに見える不具合があった。
 			app-header__item(app-header.css)と同じ考え方で、角丸を明示的に0にし、
@@ -206,14 +215,16 @@ body.box-edit-page {
 	}
 	.damage-detail-panel-tab:focus-visible {
 		outline: var(--damage-detail-focus-outline);
-		outline-offset: -2px; /* 選択枠の位置。小さくするとタブ内側へ入る */
+		outline-offset: -2px;
+ /* 選択枠の位置。小さくするとタブ内側へ入る */
 	}
 	/* パネル右上の「×」ボタン */
 	.damage-detail-panel-close {
 		flex-shrink: 0;
 		min-width: var(--damage-detail-modal-close-size);
 		min-height: var(--damage-detail-modal-close-size);
-		padding: 0.2em 0.55em; /* 閉じるボタンの余白。大きくすると押せる範囲が広がる */
+		padding: 0.2em 0.55em;
+ /* 閉じるボタンの余白。大きくすると押せる範囲が広がる */
 		margin-right: calc(var(--modal-close-margin) - var(--modal-header-padding-x));
 		font-size: var(--modal-close-font-size);
 	}
@@ -235,10 +246,11 @@ body.box-edit-page {
 		display: flex;
 		flex-direction: column;
 		overflow-y: auto;
-		padding: 0.9rem var(--space-4) 1.4rem; /* 本文の内側余白。大きくすると内容が外枠から離れる */
-		/* footerの移動でこのbodyがモーダル最下部の要素になったため、画面下端の
-			安全領域(env(safe-area-inset-bottom))を避ける下パディングをここで持つ。 */
-		padding-bottom: var(--damage-detail-body-safe-area-padding-bottom);
+		padding: 0.9rem var(--space-4) 1.4rem;
+ /* 本文の内側余白。大きくすると内容が外枠から離れる */
+		/* 共通プレビューはbodyの外にあるflex末尾なので、本文のスクロール末尾は
+			その直前で止まり、削除ボタンを含め固定領域の下へ潜り込まない。 */
+		padding-bottom: var(--damage-detail-space-lg);
 		touch-action: pan-y;
 	}
 
@@ -261,15 +273,15 @@ body.box-edit-page {
 	.damage-detail-panel-footer {
 		flex: 0 0 auto;
 		padding: var(--damage-detail-space-sm) var(--damage-detail-space-lg);
-		/* タブ直下(header直後)に移動したため、直下にあるbodyとの区切り線を
-			border-topではなくborder-bottomにする。 */
-		border-bottom: var(--damage-detail-footer-border);
+		padding-bottom: calc(var(--damage-detail-space-sm) + env(safe-area-inset-bottom));
+		/* 本文の下端を常時示す固定プレビューなので、区切り線は上側に置く。 */
+		border-top: var(--damage-detail-footer-border);
 		background: var(--damage-detail-surface-background);
 	}
 	.damage-detail-panel-footer[hidden] { display: none; }
 	.damage-detail-panel-actions {
 		margin: var(--damage-detail-space-lg) calc(var(--damage-detail-space-lg) * -1) 0;
-		padding: var(--damage-detail-body-safe-area-padding-bottom) var(--damage-detail-space-lg) 0;
+		padding: var(--damage-detail-space-lg) var(--damage-detail-space-lg) 0;
 		border-top: var(--damage-detail-footer-border);
 	}
 	.damage-detail-panel-actions[hidden] { display: none; }
@@ -324,16 +336,20 @@ body.box-edit-page {
 		color: var(--damage-detail-muted-color);
 	}
 	.damage-detail-panel-total[data-severity="lethal"] {
-		background: var(--color-danger-soft); /* 危険判定と攻撃チップの背景色。濃くすると危険側が目立つ */
-		color: var(--color-danger-strong); /* 危険判定と攻撃チップの文字色。濃くすると警告が強く見える */
+		background: var(--color-danger-soft);
+ /* 危険判定と攻撃チップの背景色。濃くすると危険側が目立つ */
+		color: var(--color-danger-strong);
+ /* 危険判定と攻撃チップの文字色。濃くすると警告が強く見える */
 	}
 	.damage-detail-panel-total[data-severity="risky"] {
 		background: var(--damage-detail-risky-soft-color);
 		color: var(--damage-detail-risky-strong-color);
 	}
 	.damage-detail-panel-total[data-severity="safe"] {
-		background: var(--color-success-soft); /* 安全判定の背景色。濃くすると安全側の判定帯が目立つ */
-		color: var(--color-success-strong); /* 安全判定の文字色。濃くすると判定結果が強く見える */
+		background: var(--color-success-soft);
+ /* 安全判定の背景色。濃くすると安全側の判定帯が目立つ */
+		color: var(--color-success-strong);
+ /* 安全判定の文字色。濃くすると判定結果が強く見える */
 	}
 	/* UI改修: 判定(damage-result-verdict)と詳細(damage-result-detail)を特別扱いせず、
 		技テキスト(.damage-column-move-text、box-damage-card.css)と同じフォントで中央配置する
@@ -404,7 +420,8 @@ body.box-edit-page {
 			pointer-events: auto;
 			box-shadow: none;
 			z-index: auto;
-			border: 1px solid var(--color-border); /* カード列内表示の外枠。太くすると一覧内で目立つ */
+			border: 1px solid var(--color-border);
+ /* カード列内表示の外枠。太くすると一覧内で目立つ */
 			border-radius: var(--damage-detail-radius-md);
 		}
 		.damage-detail-panel.is-mobile-inline .damage-detail-panel-body {
@@ -420,6 +437,28 @@ body.box-edit-page {
 		-------------------------------------------------------------------------- */
 	.damage-detail-panel .damage-detail-selection-heading {
 		gap: var(--damage-detail-space-md);
+	}
+	/* ポケモン+もちものを一つの同幅グループにする。アイテム未設定時も空のスロットを
+		維持するため、片側だけのアイテム有無で対面アイコンや矢印が横にずれない。 */
+	.damage-detail-panel .damage-detail-selection-creature {
+		display: inline-flex;
+		align-items: flex-end;
+		gap: var(--damage-detail-space-xs);
+		min-width: calc(var(--damage-detail-selection-icon-size) + var(--damage-detail-item-dropdown-icon-size) + var(--damage-detail-space-xs));
+	}
+	.damage-detail-panel .damage-detail-selection-item-slot {
+		display: inline-flex;
+		align-items: flex-end;
+		justify-content: center;
+		width: var(--damage-detail-item-dropdown-icon-size);
+		height: var(--damage-detail-selection-icon-size);
+		flex: 0 0 var(--damage-detail-item-dropdown-icon-size);
+	}
+	.damage-detail-panel .damage-detail-selection-item-icon {
+		display: block;
+		width: var(--damage-detail-item-dropdown-icon-size);
+		height: var(--damage-detail-item-dropdown-icon-size);
+		object-fit: contain;
 	}
 	.damage-detail-panel .damage-detail-opponent-stats {
 		display: flex;
@@ -503,8 +542,10 @@ body.box-edit-page {
 		display: flex;
 		flex-direction: column;
 		align-items: flex-start;
-		gap: 0.2em; /* 候補カード内の行間。大きくすると数値や注意書きが離れる */
-		border: 1px solid var(--color-border); /* 候補カードの枠。太くすると境界が強くなる */
+		gap: 0.2em;
+ /* 候補カード内の行間。大きくすると数値や注意書きが離れる */
+		border: 1px solid var(--color-border);
+ /* 候補カードの枠。太くすると境界が強くなる */
 		border-radius: var(--damage-detail-radius-md);
 		padding: var(--damage-detail-space-sm) var(--damage-detail-space-md);
 		background: var(--damage-detail-page-background);
@@ -523,14 +564,17 @@ body.box-edit-page {
 	/* 支援技術向けの状態は動的要素のaria-currentで示す。 */
 	#damage-detail-panel-body .candidate-list-item.is-applied {
 		border-color: var(--damage-detail-primary-color);
-		border-width: 2px; /* 適用中カードの枠幅。大きくすると選択中が目立つ */
-		padding: calc(var(--space-2) - 1px) calc(var(--space-3) - 1px); /* 太い枠を相殺する余白。大きくすると中身が内側へ寄る */
+		border-width: 2px;
+ /* 適用中カードの枠幅。大きくすると選択中が目立つ */
+		padding: calc(var(--space-2) - 1px) calc(var(--space-3) - 1px);
+ /* 太い枠を相殺する余白。大きくすると中身が内側へ寄る */
 		background: var(--damage-detail-primary-soft-color);
 	}
 	#damage-detail-panel-body .candidate-list-item-segment {
 		display: flex;
 		align-items: baseline;
-		gap: 0.4em; /* 候補のラベルと値の間隔。大きくすると両者が離れる */
+		gap: 0.4em;
+ /* 候補のラベルと値の間隔。大きくすると両者が離れる */
 	}
 	#damage-detail-panel-body .candidate-list-item-segment-label {
 		color: var(--damage-detail-muted-color);
@@ -541,7 +585,8 @@ body.box-edit-page {
 		font-weight: var(--damage-detail-font-weight-bold);
 	}
 	#damage-detail-panel-body .candidate-list-item.has-warn-flag {
-		border-color: var(--color-risky); /* 注意付き候補の枠色。濃くすると注意候補が目立つ */
+		border-color: var(--color-risky);
+ /* 注意付き候補の枠色。濃くすると注意候補が目立つ */
 	}
 	#damage-detail-panel-body .candidate-list-item-flag {
 		font-weight: var(--damage-detail-font-weight-bold);
@@ -663,10 +708,12 @@ body.box-edit-page {
 			1行に収まる最小幅だけを保証する(--damage-detail-direction-toggle-width、
 			チューニング変数側で値を拡大済み)。 */
 		width: auto;
-		min-width: 7.4em; /* 攻守切り替えの最小横幅。「攻撃」「防御」が折り返さない幅が必要(Cの修正)。文字サイズを周辺欄と揃えたぶん少し広げてある */
+		min-width: 7.4em;
+ /* 攻守切り替えの最小横幅。「攻撃」「防御」が折り返さない幅が必要(Cの修正)。文字サイズを周辺欄と揃えたぶん少し広げてある */
 		height: var(--damage-detail-build-control-height);
 		min-height: var(--damage-detail-build-control-height);
-		margin-bottom: 0; /* 種族入力欄と同じ外寸に揃える。 */
+		margin-bottom: 0;
+ /* 種族入力欄と同じ外寸に揃える。 */
 	}
 	#damage-detail-panel-body .damage-build-detail-direction-toggle .damage-row-direction-option {
 		/* buttons.css共通ルールのmin-height:var(--tap-target-min)(44px)を、周辺欄と揃えた
@@ -841,6 +888,27 @@ body.box-edit-page {
 		padding: var(--damage-detail-space-xs) var(--damage-detail-space-xs);
 		white-space: nowrap;
 	}
+	/* 揮発状態の説明は状態グリッドを基準に表示する。グリッド幅の内側に収めることで、
+		モバイル幅でも横方向にはみ出さず、対象トグルのすぐ上で読める。 */
+	#damage-detail-panel-body .damage-detail-state-grid {
+		position: relative;
+	}
+	#damage-detail-panel-body .damage-detail-volatile-help-popover {
+		position: absolute;
+		z-index: 8;
+		left: 0;
+		right: 0;
+		bottom: calc(100% + var(--damage-detail-space-xs));
+		padding: var(--damage-detail-space-sm) var(--damage-detail-space-md);
+		border: 1px solid var(--damage-detail-border-color);
+		border-radius: var(--damage-detail-radius-sm);
+		background: var(--damage-detail-surface-background);
+		box-shadow: var(--damage-detail-shadow-md);
+		color: var(--damage-detail-text-color);
+		font-size: var(--damage-detail-font-size-xs);
+		line-height: var(--damage-detail-line-height-tight);
+		pointer-events: none;
+	}
 	#damage-detail-panel-body .damage-detail-rank-field .number-stepper,
 	#damage-detail-panel-body .damage-detail-rank-stepper {
 		background: var(--damage-detail-control-background);
@@ -951,17 +1019,20 @@ body.box-edit-page {
 		display: flex;
 		align-items: center;
 		justify-content: flex-start;
-		gap: 0.35rem; /* 持ち物ボタンのアイコンと文字の間隔(育成タブと同値)。大きくすると両者が離れる */
+		gap: 0.35rem;
+ /* 持ち物ボタンのアイコンと文字の間隔(育成タブと同値)。大きくすると両者が離れる */
 		width: 100%;
 		min-height: var(--damage-detail-build-control-height);
-		padding: 0.42em 0.6em; /* 持ち物ボタンの内側余白(育成タブと同値)。大きくするとボタンが大きくなる */
+		padding: 0.42em 0.6em;
+ /* 持ち物ボタンの内側余白(育成タブと同値)。大きくするとボタンが大きくなる */
 		border: 1px solid var(--damage-detail-border-color);
 		border-radius: var(--damage-detail-radius-sm);
 		background: var(--damage-detail-control-background);
 		cursor: pointer;
 		font-size: var(--damage-detail-font-size-md);
 		font-weight: var(--damage-detail-font-weight-regular);
-		line-height: var(--line-height-snug); /* サジェスト説明の行間。大きくすると複数行が読みやすくなる */
+		line-height: var(--line-height-snug);
+ /* サジェスト説明の行間。大きくすると複数行が読みやすくなる */
 		color: var(--damage-detail-text-color);
 		text-align: left;
 	}
@@ -1026,21 +1097,24 @@ body.box-edit-page {
 		width: 100%;
 		box-sizing: border-box;
 		margin-bottom: var(--damage-detail-space-xs);
-		padding: 0.35em 0.5em; /* 持ち物候補の絞り込み欄の内側余白(育成タブと同値)。大きくすると入力欄が大きくなる */
+		padding: 0.35em 0.5em;
+ /* 持ち物候補の絞り込み欄の内側余白(育成タブと同値)。大きくすると入力欄が大きくなる */
 		font-size: var(--damage-detail-font-size-sm);
 	}
 	#damage-detail-panel-body .damage-build-detail-item-dropdown-list {
 		margin: 0;
 		padding: 0;
 		list-style: none;
-		max-height: 14rem; /* 持ち物候補一覧の最大高さ(育成タブと同値)。大きくすると一度に見える件数が増える */
+		max-height: 14rem;
+ /* 持ち物候補一覧の最大高さ(育成タブと同値)。大きくすると一度に見える件数が増える */
 		overflow-y: auto;
 	}
 	#damage-detail-panel-body .damage-build-detail-item-dropdown-option {
 		display: flex;
 		align-items: center;
 		gap: var(--damage-detail-space-sm);
-		padding: 0.35rem var(--space-2); /* 持ち物候補1件の内側余白(育成タブと同値)。大きくすると候補行が高くなる */
+		padding: 0.35rem var(--space-2);
+ /* 持ち物候補1件の内側余白(育成タブと同値)。大きくすると候補行が高くなる */
 		border-radius: var(--damage-detail-radius-sm);
 		cursor: pointer;
 		font-size: var(--damage-detail-font-size-md);
@@ -1088,7 +1162,8 @@ body.box-edit-page {
 		justify-content: flex-start;
 		gap: var(--damage-detail-space-xs);
 		padding: var(--damage-detail-space-sm);
-		border: 1px solid var(--color-border); /* テラ選択ボタンの枠。太くすると入力欄が目立つ */
+		border: 1px solid var(--color-border);
+ /* テラ選択ボタンの枠。太くすると入力欄が目立つ */
 		border-radius: var(--damage-detail-radius-sm);
 		background: var(--damage-detail-control-background);
 		color: var(--damage-detail-text-color);
@@ -1121,7 +1196,8 @@ body.box-edit-page {
 		top: calc(100% + var(--damage-detail-space-xs));
 		left: 0;
 		right: 0;
-		max-height: 16rem; /* 候補一覧の最大高さ。大きくすると一度に見える件数が増える */
+		max-height: 16rem;
+ /* 候補一覧の最大高さ。大きくすると一度に見える件数が増える */
 		overflow-y: auto;
 		margin: 0;
 		padding: var(--damage-detail-space-xs);

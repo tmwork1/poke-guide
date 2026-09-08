@@ -27,15 +27,6 @@ import '../../styles/stat-adjustment-panel.css';
 			<button id="damage-detail-panel-close" class="btn-ghost damage-detail-panel-close" type="button" aria-label="詳細設定を閉じる" title="閉じる">×</button>
 		</div>
 		<div id="damage-detail-panel-tabs" class="damage-detail-panel-tabs" role="tablist" aria-label="ダメージ詳細の表示切り替え" hidden></div>
-		<footer id="damage-detail-panel-footer" class="damage-detail-panel-footer" hidden>
-			<div id="damage-detail-panel-matchup" class="damage-detail-panel-matchup"></div>
-			{/* A-2: 対面アイコンと計算結果の間に、選択中の技カードの技名(複数なら「 + 」区切り)を
-			    表示する受け皿。中身はdamage-detail-panel.tsのrefreshDetailPanelFooterが書き換える。 */}
-			<div id="damage-detail-panel-move-names" class="damage-detail-panel-move-names"></div>
-			<div id="damage-detail-panel-total" class="damage-detail-panel-total" data-severity="none">
-				<p id="damage-detail-panel-total-result" class="damage-detail-panel-total-result tnum" data-severity="none"></p>
-			</div>
-		</footer>
 		<div id="damage-detail-panel-body" class="damage-detail-panel-body">
 			{/* JS初期化前・失敗時のフォールバックもJS生成側(renderDetailPanelEmpty)と同じ
 			    .damage-detail-panel-body-innerでラップし、margin-block:autoの対象にする。
@@ -49,6 +40,17 @@ import '../../styles/stat-adjustment-panel.css';
 				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
 				ダメージ計算を削除
 			</button>
+		</footer>
+		{/* 共通プレビューは本文・削除操作より後ろに置く。本文は独立したスクロール領域なので、
+		    ここをflex末尾にするだけで、どのタブでも画面下端に固定したままにできる。 */}
+		<footer id="damage-detail-panel-footer" class="damage-detail-panel-footer" hidden>
+			<div id="damage-detail-panel-matchup" class="damage-detail-panel-matchup"></div>
+			{/* A-2: 対面アイコンと計算結果の間に、選択中の技カードの技名(複数なら「 + 」区切り)を
+			    表示する受け皿。中身はdamage-detail-panel.tsのrefreshDetailPanelFooterが書き換える。 */}
+			<div id="damage-detail-panel-move-names" class="damage-detail-panel-move-names"></div>
+			<div id="damage-detail-panel-total" class="damage-detail-panel-total" data-severity="none">
+				<p id="damage-detail-panel-total-result" class="damage-detail-panel-total-result tnum" data-severity="none"></p>
+			</div>
 		</footer>
 	</aside>
 </div>

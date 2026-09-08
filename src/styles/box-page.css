@@ -33,6 +33,11 @@
   bottom: var(--box-page-scroll-bottom, calc(var(--bottom-nav-height) + env(safe-area-inset-bottom) + var(--box-page-card-scroll-inset)));
   left: 0;
   overflow-y: auto;
+  /* 初期は「読み込み中」の一行だけなので縦スクロールバーが無く、取得後にカードが
+     増えるとスクロールバーが現れる。box-gridは固定幅を中央寄せしているため、その時点で
+     利用幅が狭まると左端が半スクロールバー幅だけ動いて見える。最終的に必要になる
+     ガターを初回レイアウトから確保し、カードのサイズ・列数・最終位置は変えずに揺れだけを防ぐ。 */
+  scrollbar-gutter: stable;
   -webkit-overflow-scrolling: touch;
   padding: 0 var(--space-2); /* カード一覧の外側余白。大きくすると画面端から離れる */
   background: var(--color-bg); /* カード一覧の背景色 */

@@ -172,6 +172,23 @@ body.box-edit-page {
 	display: none;
 }
 
+/* 個体詳細の「チーム」に限り、表示中の個体が入る枠を示す。team-mate-cardは
+   /teamなどでも共有するため、状態クラス自体は描画側で付けつつ、見た目はこの一覧内へ
+   閉じ込める。outlineと疑似要素のオーバーレイはレイアウト寸法を変えないので、6枠の
+   グリッドが強調の有無で揺れない。 */
+#pokemon-team-list .team-mate-card.is-current {
+	outline: 2px solid var(--color-primary);
+	outline-offset: -2px;
+}
+
+#pokemon-team-list .team-mate-card.is-current::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	background: color-mix(in srgb, var(--color-primary) 14%, transparent);
+	pointer-events: none;
+}
+
 .mobile-edit-actions {
 	display: flex;
 	flex-wrap: wrap;

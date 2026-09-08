@@ -20,6 +20,7 @@ import { createRankPicker } from "../shared/rank-picker";
 import { kanaIncludes } from "../kana";
 import {
 	applySprite,
+	applyItemImage,
 	scheduleRowCalc,
 	scheduleRowSave,
 	refreshRowConditionChips,
@@ -75,7 +76,10 @@ let detailPanelTotalEl: HTMLElement;
 let detailPanelTotalResultEl: HTMLElement;
 const opponentPreviewStatEls = new WeakMap<DamageRowState, Partial<Record<StatKey, HTMLElement>>>();
 const opponentPreviewIconEls = new WeakMap<DamageRowState, { icon: HTMLImageElement; fallback: HTMLElement }>();
+const previewItemIconEls = new WeakMap<DamageRowState, { self: HTMLImageElement; opponent: HTMLImageElement }>();
 let moveDropdownOutsideClickHandler: ((event: MouseEvent) => void) | null = null;
+let volatileHelpPopoverEl: HTMLElement | null = null;
+let volatileHelpTriggerEl: HTMLButtonElement | null = null;
 const DETAIL_PANEL_SWIPE_THRESHOLD_PX = 64;
 const DETAIL_PANEL_SWIPE_AXIS_RATIO = 1.25;
 
@@ -148,9 +152,33 @@ export function openDetailPanelOverlay(): void {
 	detailBackdropEl.hidden = false;
 }
 export function closeDetailPanelOverlay(): void {
+	closeVolatileHelpPopover();
 	detailPanelEl.classList.remove("is-open");
 	detailPanelEl.setAttribute("aria-modal", "false");
 	detailBackdropEl.hidden = true;
+}
+
+/** 揮発状態の説明は一度に一つだけ表示する。再描画・モーダル閉鎖のどちらからでも安全に片付けられるよう、
+ * ポップオーバー本体とトリガーをモジュール内でまとめて保持する。 */
+function closeVolatileHelpPopover(): void {
+	if (volatileHelpTriggerEl) volatileHelpTriggerEl.removeAttribute("aria-describedby");
+	volatileHelpPopoverEl?.remove();
+	volatileHelpPopoverEl = null;
+	volatileHelpTriggerEl = null;
+}
+
+/** 狭いモーダルでも画面外へ出ないよう、押したボタン単体ではなく同じ状態グリッド内に収める。 */
+function openVolatileHelpPopover(stateGrid: HTMLElement, trigger: HTMLButtonElement, title: string): void {
+	closeVolatileHelpPopover();
+	const popover = document.createElement("div");
+	popover.id = "damage-detail-volatile-help";
+	popover.className = "damage-detail-volatile-help-popover";
+	popover.setAttribute("role", "tooltip");
+	popover.textContent = title;
+	stateGrid.appendChild(popover);
+	trigger.setAttribute("aria-describedby", popover.id);
+	volatileHelpPopoverEl = popover;
+	volatileHelpTriggerEl = trigger;
 }
 
 /** タブを使わない表示へ切り替える際に、タブ帯と計算結果を片付ける。 */
@@ -224,7 +252,12 @@ function setSlideDetailPanelTitle(row: DamageRowState, positionIndex: number): v
 		addTab.title = "わざを追加";
 		addTab.setAttribute("aria-label", "わざを追加");
 		addTab.addEventListener("click", () => {
+			const previousLength = row.attacks.length;
 			addAttackColumn(row);
+			// addAttackColumnは失敗時にも例外を返さないため、長さが実際に増えたことを
+			// 確認してから末尾を選ぶ。追加直後のselectColumnが詳細パネル・タブ帯を再構築する。
+			const newColumn = row.attacks[row.attacks.length - 1];
+			if (row.attacks.length > previousLength && newColumn) selectColumn(row, newColumn);
 		});
 		addTabWrap.appendChild(addTab);
 		detailPanelTabsEl.appendChild(addTabWrap);
@@ -253,6 +286,15 @@ function syncOpponentPreviewIcon(row: DamageRowState): void {
 	void applySprite(iconEls.icon, iconEls.fallback, row.name.trim());
 }
 
+// 共通プレビューは固定フッターなので、相手ビルド・育成タブのいずれを編集しても
+// syncDetailPanelTotalの既存再計算経路から持ち物アイコンまで追随させる。
+function syncPreviewItemIcons(row: DamageRowState): void {
+	const iconEls = previewItemIconEls.get(row);
+	if (!iconEls) return;
+	void applyItemImage(iconEls.self, el<HTMLInputElement>("item").value);
+	void applyItemImage(iconEls.opponent, row.itemName);
+}
+
 function buildSelectionHeadingRow(row: DamageRowState): HTMLElement {
 	const heading = document.createElement("div");
 	heading.className = "damage-detail-selection-heading";
@@ -268,6 +310,17 @@ function buildSelectionHeadingRow(row: DamageRowState): HTMLElement {
 	const selfIconFallback = document.createElement("span");
 	selfIconFallback.className = "damage-detail-selection-icon-fallback";
 	void applySprite(selfIcon, selfIconFallback, selfSpeciesName);
+	const selfItemIcon = document.createElement("img");
+	selfItemIcon.className = "damage-detail-selection-item-icon";
+	selfItemIcon.alt = "";
+	const selfItemSlot = document.createElement("span");
+	selfItemSlot.className = "damage-detail-selection-item-slot";
+	selfItemSlot.appendChild(selfItemIcon);
+	const selfCreature = document.createElement("span");
+	selfCreature.className = "damage-detail-selection-creature";
+	selfCreature.appendChild(selfIcon);
+	selfCreature.appendChild(selfIconFallback);
+	selfCreature.appendChild(selfItemSlot);
 
 	const arrowNs = "http://www.w3.org/2000/svg";
 	const arrow = document.createElementNS(arrowNs, "svg");
@@ -292,6 +345,17 @@ function buildSelectionHeadingRow(row: DamageRowState): HTMLElement {
 	const opponentIconFallback = document.createElement("span");
 	opponentIconFallback.className = "damage-detail-selection-icon-fallback";
 	void applySprite(opponentIcon, opponentIconFallback, row.name.trim());
+	const opponentItemIcon = document.createElement("img");
+	opponentItemIcon.className = "damage-detail-selection-item-icon";
+	opponentItemIcon.alt = "";
+	const opponentItemSlot = document.createElement("span");
+	opponentItemSlot.className = "damage-detail-selection-item-slot";
+	opponentItemSlot.appendChild(opponentItemIcon);
+	const opponentCreature = document.createElement("span");
+	opponentCreature.className = "damage-detail-selection-creature";
+	opponentCreature.appendChild(opponentIcon);
+	opponentCreature.appendChild(opponentIconFallback);
+	opponentCreature.appendChild(opponentItemSlot);
 	const opponentStats = document.createElement("span");
 	opponentStats.className = "damage-detail-opponent-stats";
 	const statKeys: StatKey[] = isSelfAttacking ? ["hp", "def", "spd"] : ["atk", "spa"];
@@ -313,13 +377,18 @@ function buildSelectionHeadingRow(row: DamageRowState): HTMLElement {
 	opponentPreviewStatEls.set(row, statEls);
 	syncOpponentPreviewStats(row);
 	opponentPreviewIconEls.set(row, { icon: opponentIcon, fallback: opponentIconFallback });
+	previewItemIconEls.set(row, { self: selfItemIcon, opponent: opponentItemIcon });
+	syncPreviewItemIcons(row);
 
 	const attackerLabel = isSelfAttacking ? selfName : opponentName;
 	const defenderLabel = isSelfAttacking ? opponentName : selfName;
 	const fullText = `${attackerLabel} → ${defenderLabel}`;
 	heading.title = fullText;
 	heading.setAttribute("aria-label", fullText);
-	heading.append(selfIcon, selfIconFallback, arrow, opponentIcon, opponentIconFallback, opponentStats);
+	heading.appendChild(selfCreature);
+	heading.appendChild(arrow);
+	heading.appendChild(opponentCreature);
+	heading.appendChild(opponentStats);
 	return heading;
 }
 
@@ -349,6 +418,7 @@ export function syncDetailPanelTotal(row: DamageRowState): void {
 	if (detailPanelMoveNamesEl) detailPanelMoveNamesEl.textContent = buildMoveNamesText(row);
 	syncOpponentPreviewStats(row);
 	syncOpponentPreviewIcon(row);
+	syncPreviewItemIcons(row);
 	const source = row.totalResultEl;
 	if (!source) return;
 	detailPanelTotalResultEl.replaceChildren(...Array.from(source.childNodes, (node) => node.cloneNode(true)));
@@ -786,6 +856,7 @@ export function renderStatCardList(view: StatCardListView): void {
 let lastCandidateListRedraw: (() => void) | null = null;
 
 export function renderDetailPanelEmpty(): void {
+	closeVolatileHelpPopover();
 	if (lastCandidateListRedraw) {
 		lastCandidateListRedraw();
 		return;
@@ -1348,6 +1419,46 @@ export function buildSideSection(
 			);
 			optButton.dataset.volatileValue = opt.value;
 			optButton.dataset.volatileLabel = opt.label;
+			if (opt.title) {
+				// press-and-hold.tsはステッパー用の「長押し中に繰り返す」実装であり、
+				// 今回必要な「一度だけ表示して直後のclickを抑止する」操作とは異なる。
+				// そのため、トグルの既存clickを壊さない最小限の専用処理をここに置く。
+				let holdTimer: number | null = null;
+				let suppressNextClick = false;
+				const cancelHold = (): void => {
+					if (holdTimer != null) window.clearTimeout(holdTimer);
+					holdTimer = null;
+				};
+				optButton.addEventListener("pointerdown", (event) => {
+					if (!event.isPrimary || event.button !== 0) return;
+					cancelHold();
+					holdTimer = window.setTimeout(() => {
+						holdTimer = null;
+						suppressNextClick = true;
+						openVolatileHelpPopover(stateGrid, optButton, opt.title!);
+					}, 500);
+				});
+				optButton.addEventListener("pointerup", () => {
+					cancelHold();
+					// pointerup後にブラウザが発火する同一操作のclickだけ抑止する。
+					// clickが来ない取消操作では次回タップまで抑止状態を持ち越さない。
+					if (suppressNextClick) window.setTimeout(() => { suppressNextClick = false; }, 0);
+				});
+				optButton.addEventListener("pointercancel", () => {
+					cancelHold();
+					suppressNextClick = false;
+				});
+				optButton.addEventListener("pointerleave", () => {
+					cancelHold();
+					if (suppressNextClick) window.setTimeout(() => { suppressNextClick = false; }, 0);
+				});
+				optButton.addEventListener("click", (event) => {
+					if (!suppressNextClick) return;
+					suppressNextClick = false;
+					event.preventDefault();
+					event.stopImmediatePropagation();
+				}, true);
+			}
 			stateGrid.appendChild(optButton);
 		}
 	}
@@ -1355,6 +1466,7 @@ export function buildSideSection(
 }
 
 export function renderBuildDetailPanel(row: DamageRowState): void {
+	closeVolatileHelpPopover();
 	detailPanelBodyEl.innerHTML = "";
 	const form = getDamageBuildDetailForm(row);
 	if (!form) {
@@ -1372,6 +1484,7 @@ export function renderBuildDetailPanel(row: DamageRowState): void {
 
 export function renderColumnLevelDetailPanel(row: DamageRowState, column: DamageColumnState): void {
 // 選択中の技がない場合は、表示できる技を優先順位どおりに選ぶ。
+	closeVolatileHelpPopover();
 	detailPanelBodyEl.innerHTML = "";
 	const idx = row.attacks.indexOf(column);
 	if (idx === -1) {
@@ -1898,6 +2011,31 @@ export function initDamageDetailPanel(): void {
 	detailPanelMoveNamesEl = el<HTMLElement>("damage-detail-panel-move-names");
 	detailPanelTotalEl = el<HTMLElement>("damage-detail-panel-total");
 	detailPanelTotalResultEl = el<HTMLElement>("damage-detail-panel-total-result");
+	// damage-calc.tsの候補行は選択後にclickの伝播を止める。そのためバブリングでは
+	// 捕まえられず、ここでcaptureして「候補を押した」ことだけを確認し、同じターンの
+	// 確定処理(input/change)が終わった後にblurする。入力途中には一切作用しない。
+	detailPanelBodyEl.addEventListener("click", (event) => {
+		if (!(event.target instanceof Element)) return;
+		const option = event.target.closest<HTMLElement>(".damage-build-detail-name-dropdown-option");
+		if (!option || option.getAttribute("aria-disabled") === "true") return;
+		const combo = option.closest<HTMLElement>(".damage-build-detail-name-combo");
+		const nameInput = combo?.querySelector<HTMLInputElement>("input");
+		if (nameInput) window.setTimeout(() => nameInput.blur(), 0);
+	}, true);
+	// 育成タブの持ち物入力はこのモジュールの変更経路外なので、プレビューを開いたまま
+	// 持ち物だけ変えた場合も即時に追随させる。相手側は既存の再計算経路で同期される。
+	el<HTMLInputElement>("item").addEventListener("input", () => {
+		const row = getSelectedRow();
+		if (row) syncPreviewItemIcons(row);
+	});
+	document.addEventListener("pointerdown", (event) => {
+		if (!volatileHelpPopoverEl || !(event.target instanceof Node)) return;
+		if (volatileHelpPopoverEl.contains(event.target) || volatileHelpTriggerEl?.contains(event.target)) return;
+		closeVolatileHelpPopover();
+	});
+	document.addEventListener("keydown", (event) => {
+		if (event.key === "Escape") closeVolatileHelpPopover();
+	});
 	el<HTMLButtonElement>("damage-detail-panel-close").addEventListener("click", closeDetailPanelOverlay);
 	el<HTMLButtonElement>("damage-detail-panel-delete").addEventListener("click", () => {
 		const row = getSelectedRow();

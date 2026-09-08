@@ -15,6 +15,7 @@ body.team-edit-page {
 
 	/* ── 8. 寸法 ────────────────────────── */
 	--team-pokemon-tab-suggest-icon-size: calc(var(--space-7) + var(--space-1)); /* おすすめアイコンの正方形サイズ */
+	--team-formation-mobile-suggest-height: calc(var(--team-pokemon-tab-suggest-icon-size) + var(--space-4)); /* 下部固定のおすすめ帯が占める高さ */
 }
 
 /* --------------------------------------------------------------------------
@@ -37,6 +38,24 @@ body.team-edit-page {
 .team-mobile-actions__controls {
 	width: 100%;
 	margin-top: var(--space-5); /* メモと削除ボタンの間隔 */
+}
+/* ポケモンタブの補助操作は同じ幅で横並びにする。狭い画面では最小幅を保ったまま
+   折り返し、タップ対象を小さくして収めることはしない。 */
+.team-overview-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--space-3);
+	margin-block: var(--space-3);
+}
+.team-overview-actions .team-item-redistribute-button {
+	flex: 1 1 10rem;
+	width: auto;
+	margin: 0;
+}
+/* チームのポケモンタブだけで、透過PNGの輪郭に沿った濃い近接影と広い影を重ねる。
+   矩形になるbox-shadowではなくdrop-shadowを使い、背景のポケモン画像から持ち物を分離する。 */
+#team-overview-tab .team-overview-preview-card .pokemon-preview-item img {
+	filter: drop-shadow(0 1px 2px rgb(0 0 0 / 0.9)) drop-shadow(0 3px 6px rgb(0 0 0 / 0.7));
 }
 .team-edit-shell[data-mobile-tab="formation"] #team-overview-tab,
 .team-edit-shell[data-mobile-tab="matchup"] #team-overview-tab {
@@ -84,7 +103,7 @@ body.team-edit-page {
 	border-bottom: 0;
 }
 .team-formation-mobile__suggest {
-	display: flex;
+	display: none;
 	align-items: center;
 	gap: var(--space-3); /* 見出しとおすすめアイコンの間隔 */
 	min-height: calc(var(--space-7) + var(--space-1)); /* おすすめ列の最低の高さ */
@@ -98,10 +117,11 @@ body.team-edit-page {
 }
 .team-formation-mobile__suggest-icons {
 	display: grid;
-	grid-template-columns: repeat(6, minmax(0, 54px)); /* 基準幅412pxから親の左右padding 12px×2・ラベル(約54px)・間隔12pxを除いた約322px÷6。 */
+	grid-template-columns: repeat(6, minmax(0, 1fr)); /* 基準幅では従来と同じ約54px、390px前後では帯の幅に合わせて縮める(アイコン自体のサイズは変えない)。 */
 	justify-content: center;
 	flex: 1;
 	min-width: 0;
+	max-width: 324px;
 }
 .team-formation-suggest-icon {
 	justify-self: center;
@@ -168,6 +188,26 @@ body.team-edit-page {
 .team-edit-shell[data-mobile-tab="matchup"] .team-matchup-mobile__results {
 	flex: 1 1 auto;
 	min-height: 0;
+}
+/* おすすめは編成タブだけで下部ナビ直上へ固定する。ボックス一覧だけをスクロール領域に
+   しているため、ここをfixedにしても編成枠・検索バーは動かず、他タブにも残らない。 */
+.team-edit-shell[data-mobile-tab="formation"] #team-formation-mobile > .team-formation-mobile__suggest {
+	position: fixed;
+	right: 0;
+	bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom));
+	left: 0;
+	z-index: 10;
+	display: flex;
+	min-height: var(--team-formation-mobile-suggest-height);
+	background: var(--color-surface);
+	border-top: 1px solid var(--color-border);
+	box-shadow: var(--shadow-md);
+}
+/* 固定帯は通常フローから外れるので、一覧末尾のカードが帯の裏へ隠れない分だけ
+   スクロール領域の終端とスクロール先の余白を追加する。 */
+.team-edit-shell[data-mobile-tab="formation"] .team-formation-mobile__box {
+	padding-block-end: calc(var(--team-pokemon-tab-card-scroll-inset) + var(--team-formation-mobile-suggest-height));
+	scroll-padding-block-end: calc(var(--team-pokemon-tab-card-scroll-inset) + var(--team-formation-mobile-suggest-height));
 }
 /* global.css の .status-text が display を指定しているため、hidden 属性だけでは
 	空の状態表示が消えず、段落の上下マージンがカード前の隙間として残る。 */
