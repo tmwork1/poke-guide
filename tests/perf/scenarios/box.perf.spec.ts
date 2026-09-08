@@ -68,7 +68,7 @@ test("バトルデータを表示", async ({ page }, testInfo) => {
       label: "バトルデータを表示",
       category: "page-load",
       targetMs: 1500,
-      note: "既知の未解決bug: /api/opgg-usage系が同時リクエストでdevサーバー側に詰まる(backlog, 2026-08-31)",
+      note: "wrangler.jsonc の OPGG_USAGE KVを remote: false に変更し、旧既知バグ(/api/opgg-usage系の同時リクエスト詰まり、backlog 2026-08-31)は解消済み(2026-09-08)。",
     },
     () => timeNav(page, `/box/data?pokemon=${encodeURIComponent(ownedPokemonId)}`, "#mobile-training-ui"),
   );
@@ -82,12 +82,13 @@ test("相性チェックを表示", async ({ page }, testInfo) => {
       label: "相性チェックを表示",
       category: "page-load",
       targetMs: 1500,
+      note: "ローカルdev(remote: falseのOPGG_USAGE)では集計データが空のため「集計データがまだありません。」の空状態表示になる。カード描画・空状態表示のどちらかを読み込み完了とみなす。",
     },
     () =>
       timeNav(
         page,
         `/box/matchup?pokemon=${encodeURIComponent(ownedPokemonId)}`,
-        "#box-matchup-list:not([aria-busy])",
+        "#box-matchup-list:not([aria-busy]) .team-matchup-card, #box-matchup-status:not([hidden])",
       ),
   );
 });

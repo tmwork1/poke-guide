@@ -42,7 +42,7 @@ test("バトルデータを表示する", async ({ page }, testInfo) => {
 				label: "バトルデータ",
 				category: "page-load",
 				targetMs: 1500,
-				note: "既知の未解決bug: /api/opgg-usage系が同時リクエストでdevサーバー側に詰まる(backlog, 2026-08-31)",
+				note: "wrangler.jsonc の OPGG_USAGE KVを remote: true から false(ローカルエミュレーション)に変更し、devサーバー起動のたびに発生していたリモートKVプロキシ接続待ちを解消(2026-09-08)。以前の既知バグ(/api/opgg-usage系が同時リクエストで詰まる、backlog 2026-08-31)は解消済み。",
 			},
 		() => timeNav(page, "/data", "[data-data-hub-scroll]"),
 	);
@@ -68,7 +68,7 @@ test("データ画面の上位チームを表示する", async ({ page }, testIn
 				label: "データ: 上位チーム",
 				category: "page-load",
 				targetMs: 1500,
-				note: "既知の未解決bug: /api/opgg-usage系が同時リクエストでdevサーバー側に詰まる(backlog, 2026-08-31)",
+				note: "wrangler.jsonc の OPGG_USAGE KVを remote: true から false(ローカルエミュレーション)に変更し、devサーバー起動のたびに発生していたリモートKVプロキシ接続待ちを解消(2026-09-08)。以前の既知バグ(/api/opgg-usage系が同時リクエストで詰まる、backlog 2026-08-31)は解消済み。",
 			},
 		() => timeNav(page, "/data/top-builds", ".top-builds-list"),
 	);

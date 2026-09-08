@@ -20,6 +20,16 @@ async function timeLoadUntilLoadingHidden(page: Page, url: string, loadingSelect
   });
 }
 
+/**
+ * チーム詳細はSSRで初期データを描画するため、実在する編集レイアウトが表示された時点までを計測する。
+ */
+async function timeLoadUntilTeamLayoutVisible(page: Page, url: string): Promise<number> {
+  return timeAction(async () => {
+    await page.goto(url, { waitUntil: "load" });
+    await page.locator("#team-edit-layout").waitFor({ state: "visible" });
+  });
+}
+
 async function getExistingTeamId(page: Page): Promise<string | undefined> {
   const response = await page.request.get("/api/teams");
   expect(response.ok()).toBeTruthy();
@@ -73,7 +83,7 @@ test("チーム詳細の読み込み", async ({ page }, testInfo) => {
     ...(existingTeamId ? {} : { note: "既存チームがないため、新規チームの空表示を計測" }),
   };
 
-  await perfScenario(testInfo, meta, () => timeLoadUntilLoadingHidden(page, url, "#select-loading-message"));
+  await perfScenario(testInfo, meta, () => timeLoadUntilTeamLayoutVisible(page, url));
 });
 
 test("上位チームの読み込み", async ({ page }, testInfo) => {
@@ -82,7 +92,7 @@ test("上位チームの読み込み", async ({ page }, testInfo) => {
     label: "上位チームの表示",
     category: "page-load",
     targetMs: 1500,
-    note: "/ranked-teams から /data/top-builds へのリダイレクト後を計測。既知の未解決bug: /api/opgg-usage系が同時リクエストでdevサーバー側に詰まる(backlog, 2026-08-31)",
+    note: "/ranked-teams から /data/top-builds へのリダイレクト後を計測。wrangler.jsonc の OPGG_USAGE KVを remote: false に変更し、旧既知バグ(/api/opgg-usage系の同時リクエスト詰まり、backlog 2026-08-31)は解消済み(2026-09-08)。",
   };
 
   await perfScenario(testInfo, meta, () => timeLoadUntilLoadingHidden(page, "/ranked-teams", "#top-builds-loading"));
@@ -93,7 +103,16 @@ test("チームのもちもの表示を閉じる", async ({ page }, testInfo) =>
   test.skip(!existingTeamId, "既存チームがないため、既存フィクスチャを変更しない開閉計測を実行できない");
 
   await page.goto(`/team/${encodeURIComponent(existingTeamId!)}`, { waitUntil: "load" });
-  await page.waitForFunction((selector) => document.querySelector<HTMLElement>(selector)?.hidden === true, "#select-loading-message");
+  await page.locator("#team-edit-layout").waitFor({ state: "visible" });
+
+  const teamUpdateRequests: string[] = [];
+  const teamUpdateUrl = `/api/teams/${encodeURIComponent(existingTeamId!)}`;
+  const onRequest = (request: { method(): string; url(): string }) => {
+    if (request.method() === "PUT" && request.url().includes(teamUpdateUrl)) {
+      teamUpdateRequests.push(request.url());
+    }
+  };
+  page.on("request", onRequest);
 
   await page.locator("#team-item-redistribute-button").click();
   const dialog = page.locator("#team-item-redistribute-dialog");
@@ -107,12 +126,20 @@ test("チームのもちもの表示を閉じる", async ({ page }, testInfo) =>
     note: "開閉は自動保存を呼ばないことを実装で確認済み。既存チームでは選択・変更を行わない。",
   };
 
-  await perfScenario(testInfo, meta, () =>
-    timeAction(async () => {
-      await page.locator("#team-item-redistribute-close").click();
-      await dialog.waitFor({ state: "hidden" });
-    }),
-  );
+  try {
+    await perfScenario(testInfo, meta, () =>
+      timeAction(async () => {
+        await page.locator("#team-item-redistribute-close").click();
+        await dialog.waitFor({ state: "hidden" });
+      }),
+    );
+
+    // 700ms の自動保存デバウンスを越えても、開閉だけでは既存チームへの PUT がないことを確認する。
+    await page.waitForTimeout(800);
+    expect(teamUpdateRequests).toEqual([]);
+  } finally {
+    page.off("request", onRequest);
+  }
 });
 
 test("使い捨てチームのメモを編集して自動保存を完了する", async ({ page }, testInfo) => {
