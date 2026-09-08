@@ -12,6 +12,7 @@ import { getFieldState, getOpponentBuild, getOpponentState, getSelfBuilds, getSe
 
 type DamageCell = { range: string; lethal: string };
 type DamageRow = { moveName: string; cells: DamageCell[] };
+type PopularAbilityOption = { value: string; ratio: number };
 /** 1枚の対面カード(自分側1体ぶん)のDOM参照。テンプレートを複製するたびにこの形で1組作る。 */
 type CardRefs = {
   selfArtwork: HTMLElement;
@@ -23,6 +24,7 @@ type CardRefs = {
   opponentName: HTMLElement;
   opponentItemIcon: HTMLImageElement;
   opponentItemNoneIcon: Element;
+  opponentAbilityButton: HTMLButtonElement;
   status: HTMLElement;
   speed: HTMLElement;
   attackTable: HTMLElement;
@@ -63,6 +65,7 @@ function applySpeedItemModifier(speed: number, itemName: string | null | undefin
 let timer: number | undefined;
 let requestId = 0;
 let opponentMovesCache = new Map<string, Promise<PopularMoveOption[]>>();
+let opponentAbilitiesCache = new Map<string, Promise<PopularAbilityOption[]>>();
 
 function byId<T extends HTMLElement>(id: string): T {
   return document.getElementById(id) as T;
@@ -146,7 +149,7 @@ function opponentSpec(build: OpponentBuild, moveNames: string[], nature: string,
     name: build.speciesName || getDefaultOpponentName(),
     level: 50,
     nature,
-    abilityName: "",
+    abilityName: build.abilityName ?? "",
     itemName: build.itemName ?? "",
     moveNames,
     teraType: state.teraType || null,
@@ -204,6 +207,27 @@ async function fetchOpponentMoveOptions(speciesName: string): Promise<PopularMov
   return cached;
 }
 
+async function fetchOpponentAbilityOptions(speciesName: string): Promise<PopularAbilityOption[]> {
+  let cached = opponentAbilitiesCache.get(speciesName);
+  if (!cached) {
+    cached = fetch(`/api/opgg-usage?species=${encodeURIComponent(speciesName)}&category=abilities`)
+      .then(async (response) => {
+        if (!response.ok) throw new Error(`相手特性の使用率取得に失敗しました (${response.status})`);
+        const body = await response.json() as { options?: { name: string; usageRate: number | null }[] };
+        return (body.options ?? [])
+          .filter((option) => option.usageRate != null && option.usageRate >= 10)
+          .map((option) => ({ value: option.name, ratio: (option.usageRate ?? 0) / 100 }))
+          .sort((a, b) => b.ratio - a.ratio);
+      })
+      .catch((error: unknown) => {
+        opponentAbilitiesCache.delete(speciesName);
+        throw error;
+      });
+    opponentAbilitiesCache.set(speciesName, cached);
+  }
+  return cached;
+}
+
 function setStatus(status: HTMLElement, message: string | null, isError = false): void {
   status.hidden = message === null;
   status.textContent = message ?? "";
@@ -256,6 +280,11 @@ function createCard(index: number): { root: HTMLElement; refs: CardRefs } {
   const root = fragment.firstElementChild as HTMLElement;
   root.dataset.damageCalcCardIndex = String(index);
   const selfItemButton = root.querySelector<HTMLButtonElement>('[data-damage-calc-item-side="self"]') as HTMLButtonElement;
+  const opponentAbilityButton = document.createElement("button");
+  opponentAbilityButton.type = "button";
+  opponentAbilityButton.className = "damage-calc-matchup-card__opponent-ability";
+  opponentAbilityButton.hidden = true;
+  role<HTMLElement>(root, "opponent-artwork").parentElement?.append(opponentAbilityButton);
   selfItemButton.dataset.damageCalcCardIndex = String(index);
   const refs: CardRefs = {
     selfArtwork: role(root, "self-artwork"),
@@ -267,6 +296,7 @@ function createCard(index: number): { root: HTMLElement; refs: CardRefs } {
     opponentName: role(root, "opponent-name"),
     opponentItemIcon: role(root, "opponent-item-icon"),
     opponentItemNoneIcon: role(root, "opponent-item-none-icon"),
+    opponentAbilityButton,
     status: role(root, "matchup-status"),
     speed: role(root, "matchup-speed"),
     attackTable: role(root, "matchup-attack-table"),
@@ -277,7 +307,24 @@ function createCard(index: number): { root: HTMLElement; refs: CardRefs } {
   refs.selfArtwork.addEventListener("click", () => openBoxSelectDialog());
   // 相手側の立ち絵タップはメガシンカフォルムの循環切り替え(カードが何枚あっても相手は共通)。
   refs.opponentArtwork.addEventListener("click", () => void cycleOpponentForm());
+  opponentAbilityButton.addEventListener("click", () => {
+    const abilities = (opponentAbilityButton.dataset.abilities ?? "").split("\u001f").filter(Boolean);
+    if (abilities.length === 0) return;
+    const current = getOpponentBuild();
+    const nextIndex = (abilities.indexOf(current.abilityName) + 1) % abilities.length;
+    setOpponentBuild({ ...current, abilityName: abilities[nextIndex] });
+    emitChange("opponent-ability");
+  });
   return { root, refs };
+}
+
+function renderOpponentAbility(refs: CardRefs, abilityOptions: readonly PopularAbilityOption[], abilityName: string): void {
+  const abilityNames = abilityOptions.map((option) => option.value);
+  const button = refs.opponentAbilityButton;
+  button.hidden = abilityNames.length === 0;
+  button.dataset.abilities = abilityNames.join("\u001f");
+  button.textContent = abilityName;
+  button.ariaLabel = `相手の特性: ${abilityName}。タップで切り替え`;
 }
 
 function renderIdentity(refs: CardRefs, self: SelfBuild, opponent: OpponentBuild, currentRequestId: number): void {
@@ -460,15 +507,26 @@ async function run(): Promise<void> {
   // (1枚だった頃と同じ「即座にカードが差し込まれる」体験を保つ。計算中である旨のテキストは出さない)。
   byId<HTMLElement>("damage-calc-summary-list").replaceChildren(...cards.map((card) => card.root));
   try {
-    const [moveDetails, usageOptions] = await Promise.all([loadMoveDetailMap(), fetchOpponentMoveOptions(opponent.speciesName)]);
+    const [moveDetails, usageOptions, abilityOptions] = await Promise.all([
+      loadMoveDetailMap(),
+      fetchOpponentMoveOptions(opponent.speciesName),
+      fetchOpponentAbilityOptions(opponent.speciesName),
+    ]);
     if (currentRequestId !== requestId) return;
+    const abilityNames = abilityOptions.map((option) => option.value);
+    const abilityName = abilityNames.includes(opponent.abilityName) ? opponent.abilityName : (abilityNames[0] ?? "");
+    const opponentWithAbility = { ...opponent, abilityName };
+    if (getOpponentBuild().speciesName === opponent.speciesName && getOpponentBuild().abilityName !== abilityName) {
+      setOpponentBuild({ ...getOpponentBuild(), abilityName });
+    }
+    for (const card of cards) renderOpponentAbility(card.refs, abilityOptions, abilityName);
     const categoryOf = (moveName: string): MoveCategory => moveDetails.get(moveName)?.category ?? "status";
     const isAttackMove = (moveName: string): boolean => categoryOf(moveName) !== "status";
     const opponentMoveNames = pickOpponentDefenseMoves(usageOptions, isAttackMove);
     registerOfflineCache();
     await initEngine();
     if (currentRequestId !== requestId) return;
-    const speedSpecs = opponentPatterns(opponent, [], "spe");
+    const speedSpecs = opponentPatterns(opponentWithAbility, [], "spe");
     const opponentSpeeds: number[] = [];
     for (const spec of speedSpecs) opponentSpeeds.push((await calcStats(spec)).stats.spe);
     await Promise.all(cards.map(async (card) => {
@@ -479,8 +537,8 @@ async function run(): Promise<void> {
       if (currentRequestId !== requestId) return;
       renderSpeed(card.refs.speed, displayedSelfSpeed, opponentSpeeds);
       const categories = new Map<string, MoveCategory>([...selfMoveNames, ...opponentMoveNames].map((name) => [name, categoryOf(name)]));
-      const attackRows = self ? await calculateAttackRows(self, opponent, selfMoveNames, categories) : [];
-      const defenseRows = self ? await calculateDefenseRows(self, opponent, opponentMoveNames, categories) : opponentMoveNames.map((moveName) => ({ moveName, cells: PATTERN_LABELS.map(() => ({ range: "-", lethal: "" })) }));
+      const attackRows = self ? await calculateAttackRows(self, opponentWithAbility, selfMoveNames, categories) : [];
+      const defenseRows = self ? await calculateDefenseRows(self, opponentWithAbility, opponentMoveNames, categories) : opponentMoveNames.map((moveName) => ({ moveName, cells: PATTERN_LABELS.map(() => ({ range: "-", lethal: "" })) }));
       if (currentRequestId !== requestId) return;
       renderTable(card.refs.attackTable, "攻", attackRows);
       renderTable(card.refs.defenseTable, "守", defenseRows);

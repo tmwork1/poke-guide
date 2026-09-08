@@ -856,9 +856,12 @@ input[type="range"]:focus-visible::-moz-range-thumb {
   /* 共有の number input 枠を打ち消し、外周ひとつの操作部にする。 */
   border: 0 !important;
   border-radius: 0 !important;
-  background: transparent !important;
+  background: transparent;
   box-shadow: none !important;
-  appearance: textfield;
+  /* ボタンにも使う数値表示欄はネイティブ外観を無効化し、状態別背景を確実に描画する。 */
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
 }
 
 .number-stepper > .number-stepper-value {

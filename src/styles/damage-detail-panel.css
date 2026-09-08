@@ -987,7 +987,8 @@ body.box-edit-page {
 		margin-inline-end: var(--damage-detail-space-sm);
 	}
 	#damage-detail-panel-body .damage-detail-rank-field .number-stepper-value.is-nonzero {
-		background: var(--damage-detail-primary-soft-color);
+		/* 共通ステッパーの透明背景指定を上書きし、非ゼロのランクを面で強調する。 */
+		background: var(--damage-detail-primary-soft-color) !important;
 	}
 	/* 天候・フィールド・状態異常は選択時に既存の色に加えて輪郭も強調する。 */
 	#damage-detail-panel-body .damage-detail-icon-group.is-row4 .damage-detail-icon-btn[aria-pressed="true"] {

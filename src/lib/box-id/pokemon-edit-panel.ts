@@ -1350,7 +1350,8 @@ if (form) {
 			const min = Number(rangeInput.min) || 0;
 			const max = Number(rangeInput.max) || 32;
 			const current = Number(rangeInput.value) || 0;
-			const next = Math.min(max, Math.max(min, current + step));
+			// 上限で＋、下限で−を押したら反対端へ回す(他の数値ステッパーと同じ循環式)。
+			const next = wrapToRange(current + step, min, max);
 			if (next === current) return false;
 			rangeInput.value = String(next);
 			rangeInput.dispatchEvent(new Event("input", { bubbles: true }));

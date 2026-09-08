@@ -79,20 +79,22 @@
 .damage-calc-matchup-card__item-icon { display: block; flex: none; width: var(--damage-calc-card-item-size); height: var(--damage-calc-card-item-size); object-fit: contain; }
 .damage-calc-matchup-card__item-icon[hidden] { display: none; }
 /* もちものなしのときに出す○＋斜線アイコン(もちもの選択モーダルの「なし」と同じ形)。 */
-.damage-calc-matchup-card__item-none-icon { display: block; flex: none; width: var(--damage-calc-card-item-size); height: var(--damage-calc-card-item-size); color: var(--color-text-muted); fill: none; stroke: currentColor; stroke-width: 2; }
+.damage-calc-matchup-card__item-none-icon { display: block; flex: none; width: var(--damage-calc-card-item-size); height: var(--damage-calc-card-item-size); color: var(--color-text-muted); opacity: .65; fill: none; stroke: currentColor; stroke-width: 2; }
 .damage-calc-matchup-card__item-none-icon[hidden] { display: none; }
 .damage-calc-matchup-card__item-button:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
 /* もちものは立ち絵と下端を揃え(下端からの距離を立ち絵と同じ式で揃える)、
  * 立ち絵のすぐ隣(--damage-calc-card-item-gap ぶん)に寄せる。 */
 .damage-calc-matchup-card__pokemon--self .damage-calc-matchup-card__item-button { bottom: calc(50% - var(--damage-calc-card-artwork-size) / 2); left: calc(50% - (var(--damage-calc-card-artwork-size) + var(--damage-calc-card-item-gap) + var(--damage-calc-card-item-size)) / 2 + var(--damage-calc-card-artwork-size) + var(--damage-calc-card-item-gap)); }
 .damage-calc-matchup-card__pokemon--opponent .damage-calc-matchup-card__item-button { bottom: calc(50% - var(--damage-calc-card-artwork-size) / 2); right: calc(50% - (var(--damage-calc-card-artwork-size) + var(--damage-calc-card-item-gap) + var(--damage-calc-card-item-size)) / 2 + var(--damage-calc-card-artwork-size) + var(--damage-calc-card-item-gap)); }
+.damage-calc-matchup-card__opponent-ability { position: absolute; z-index: 2; top: var(--space-2); left: var(--space-2); max-width: calc(100% - var(--space-4)); overflow: hidden; padding: 0; border: 0; background: transparent; color: var(--color-text-muted); font: inherit; font-size: var(--font-size-sm3); font-weight: var(--font-weight-normal); line-height: var(--line-height-tight); text-align: left; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
+.damage-calc-matchup-card__opponent-ability:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
 .damage-calc-matchup-card__versus { position: absolute; z-index: 3; top: 50%; left: 50%; transform: translate(-50%, -50%); color: var(--color-text-muted); font-size: var(--font-size-sm2); font-weight: var(--font-weight-bold); letter-spacing: .08em; }
 .damage-calc-matchup-card__status { margin: var(--space-2); color: var(--color-text-muted); font-size: var(--font-size-sm3); text-align: center; }
 .damage-calc-matchup-card__status[data-state="error"] { color: var(--color-danger-strong); }
 /* ポケモン表示領域と攻撃テーブルの間のすばやさ表示。自分側は実数値1つ、相手側は
    無振り/準速/最速の3水準を、それぞれ左右のポケモンの下に揃えて並べる。 */
-.damage-calc-matchup-card__speed { display: grid; grid-template-columns: 1fr 1fr; align-items: flex-start; gap: var(--space-3); padding: var(--space-2); background: var(--color-bg); }
-.damage-calc-matchup-card__speed-group { display: flex; justify-content: center; gap: var(--space-3); }
+.damage-calc-matchup-card__speed { display: grid; grid-template-columns: 1fr 1fr; align-items: flex-start; gap: 0; padding: 0; background: linear-gradient(to right, var(--color-primary-soft) 0 50%, var(--color-danger-soft) 50% 100%); }
+.damage-calc-matchup-card__speed-group { display: flex; justify-content: center; gap: var(--space-3); padding: var(--space-2); }
 .damage-calc-matchup-card__speed-item { display: grid; gap: 1px; text-align: center; }
 .damage-calc-matchup-card__speed-label { color: var(--color-text-muted); font-size: var(--font-size-sm3); line-height: var(--line-height-tight); }
 .damage-calc-matchup-card__speed-value { font-size: var(--font-size-sm2); line-height: var(--line-height-tight); }

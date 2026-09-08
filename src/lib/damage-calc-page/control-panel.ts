@@ -1,5 +1,5 @@
 import { DAMAGE_AILMENTS, DAMAGE_TERRAINS, DAMAGE_WEATHERS, clampInt } from "../box-id/damage-calc";
-import { DEFAULT_FIELD_STATE, DEFAULT_OPPONENT_STATE, DEFAULT_SELF_STATE, getFieldState, getOpponentState, getSelfBuilds, getSelfState, setFieldState, setOpponentState, setSelfState } from "./shared-core";
+import { DEFAULT_FIELD_STATE, DEFAULT_OPPONENT_STATE, DEFAULT_SELF_STATE, getFieldState, getOpponentBuild, getOpponentState, getSelfBuilds, getSelfState, setFieldState, setOpponentState, setSelfState } from "./shared-core";
 import { teraTypeIconUrl } from "../sprite-urls";
 import { createTeraSelectDialog } from "../tera-select-dialog";
 import { createRankPicker } from "../shared/rank-picker";
@@ -98,6 +98,7 @@ export function initControlPanel(): void {
     opponent: teraButtons.opponent.querySelector<HTMLImageElement>(".damage-calc-tera-icon"),
   };
   const rankRoots = Array.from(document.querySelectorAll<HTMLElement>(".damage-calc-ranks"));
+  let previousOpponentSpecies = getOpponentBuild().speciesName;
   const rankControlBySide = new Map<"self" | "opponent", { stepper: RankStepper; statIndex: number }>();
   rankRoots.forEach((root) => {
     const side: "self" | "opponent" = root.dataset.side === "self" ? "self" : "opponent";
@@ -213,5 +214,13 @@ export function initControlPanel(): void {
     emit();
   });
   teraButtons.opponent.addEventListener("click", opponentTeraDialog.open);
-  document.addEventListener("damage-calc:change", render); render();
+  document.addEventListener("damage-calc:change", () => {
+    const opponentSpecies = getOpponentBuild().speciesName;
+    if (opponentSpecies !== previousOpponentSpecies) {
+      previousOpponentSpecies = opponentSpecies;
+      setOpponentState({ ...DEFAULT_OPPONENT_STATE, boosts: [...DEFAULT_OPPONENT_STATE.boosts] });
+    }
+    render();
+  });
+  render();
 }

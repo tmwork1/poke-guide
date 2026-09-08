@@ -257,14 +257,13 @@ export function initOwnedPanel(ctx: OwnedPanelContext): OwnedPanelController {
     itemToggle.checked = itemHasSpeedContribution;
   }
   const clampRank = (value: number): number => Math.max(-6, Math.min(6, Math.trunc(value)));
+  const wrapRank = (value: number): number => value > 6 ? -6 : value < -6 ? 6 : value;
   const updateRankControls = (rank: number): void => {
 	 rankPicker?.classList.toggle('is-nonzero', rank !== 0);
 	 if (rankPicker) rankPicker.textContent = rank > 0 ? `+${rank}` : String(rank);
 	 if (rankOptions) for (const option of rankOptions.querySelectorAll<HTMLButtonElement>('[data-rank-value]')) {
 		option.setAttribute('aria-current', String(Number(option.dataset.rankValue) === rank));
 	 }
-    if (rankIncrement) rankIncrement.disabled = rank >= 6;
-    if (rankDecrement) rankDecrement.disabled = rank <= -6;
   };
 	 const closeRankPicker = (): void => {
 		if (!rankOptions || !rankPicker) return;
@@ -315,12 +314,12 @@ export function initOwnedPanel(ctx: OwnedPanelContext): OwnedPanelController {
 	 });
   rankIncrement?.addEventListener('click', () => {
     if (!rankInput) return;
-    rankInput.value = String(clampRank((Number(rankInput.value) || 0) + 1));
+    rankInput.value = String(wrapRank((Number(rankInput.value) || 0) + 1));
     commitRank(true);
   });
   rankDecrement?.addEventListener('click', () => {
     if (!rankInput) return;
-    rankInput.value = String(clampRank((Number(rankInput.value) || 0) - 1));
+    rankInput.value = String(wrapRank((Number(rankInput.value) || 0) - 1));
     commitRank(true);
   });
   abilityToggle?.addEventListener('change', () => {

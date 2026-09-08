@@ -39,6 +39,7 @@ import {
 	deleteDamageColumn,
 	refreshDamageColumnDisplay,
 	natureNameFromBoosts,
+	wrapToRange,
 	type DamageRowState,
 	type DamageColumnState,
 } from "./shared-core";
@@ -1260,27 +1261,19 @@ export function buildSideSection(
 		pickerButton.textContent = formatRank(Number.isFinite(n) ? clampInt(n, -6, 6) : 0);
 		rankPicker.setSelectedValue(n);
 	};
-	const updateStepperState = () => {
-		const n = currentRank;
-		const current = Number.isFinite(n) ? clampInt(n, -6, 6) : 0;
-		decrementButton.disabled = current <= -6;
-		incrementButton.disabled = current >= 6;
-	};
 	updateEmphasis();
-	updateStepperState();
 	const commitRank = (value: number): void => {
 		const clamped = clampInt(value, -6, 6);
 		currentRank = clamped;
 		onRankChange(clamped);
 		updateEmphasis();
-		updateStepperState();
 		scheduleRowCalc(row);
 		scheduleRowSave(row);
 		refreshRowConditionChips(row);
 	};
 	const stepRank = (delta: -1 | 1): void => {
 		const current = Number.isFinite(currentRank) ? currentRank : 0;
-		commitRank(current + delta);
+		commitRank(wrapToRange(current + delta, -6, 6));
 	};
 	decrementButton.addEventListener("click", () => stepRank(-1));
 	incrementButton.addEventListener("click", () => stepRank(1));
