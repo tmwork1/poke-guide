@@ -40,6 +40,8 @@
  *   --fill <sel=value>  入力欄を埋める
  *   --press <sel=Key>   キー送出(例 `input.search=Enter`)。`sel=` を省くとページ全体へ
  *   --hover <sel>       ホバー
+ *   --hold <sel=ms>     マウスで長押し(押下→ms待つ→離す)。長押しUIの検証用
+ *   --hold-touch <sel=ms>  指(タッチ)で長押し。実機の挙動に近いのはこちら
  *   --scroll <sel|px>   要素までスクロール、または縦に指定px
  *   --wait <sel>        その要素が出るまで待つ
  *   --wait-ms <n>       n ミリ秒待つ
@@ -51,7 +53,7 @@
  *   --html <sel>            outerHTML(既定1000字で切る。--html-len で変更)
  *   --count <sel>           一致件数だけ
  *   --overflow              横スクロールの有無と、はみ出している要素の一覧
- *   --eval <js>             ページ内で式を評価(JSONで返せる値のみ)
+ *   --eval <js>             ページ内で式を評価(JSONで返せる値のみ。Promiseを返せばawaitする)
  *   --limit <n>             セレクタごとの最大報告件数。既定 10
  *   --json                  JSONだけを出す(既定は人が読めるサマリ + JSON)
  */
@@ -73,7 +75,8 @@ const USAGE = [
 	"  対象  --page box/<id> [--theme dark] [--size 390x844]",
 	"  操作  --click <sel> / --drag <sel=dx,dy> / --swipe <sel=dx,dy>",
 	"        --fill <sel=値> / --press <sel=Key> / --hover <sel>",
-	"        --scroll <sel|px> / --wait <sel> / --wait-ms <n>   ※指定順に実行",
+	"        --hold <sel=ms> / --hold-touch <sel=ms>",
+		"        --scroll <sel|px> / --wait <sel> / --wait-ms <n>   ※指定順に実行",
 	"  実測  --rect <sel> / --style <sel:prop,...> / --text <sel> / --html <sel>",
 	"        --count <sel> / --overflow / --eval <js> / --limit <n> / --json",
 	"",
@@ -137,6 +140,8 @@ function parseArgs(argv) {
 			case "--fill":
 			case "--press":
 			case "--hover":
+			case "--hold":
+			case "--hold-touch":
 			case "--scroll":
 			case "--wait":
 			case "--wait-ms":
@@ -227,6 +232,33 @@ async function runAction(page, action) {
 						touchPoints: touch(startX + (dx * step) / 10, startY + (dy * step) / 10),
 					});
 				}
+				await client.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+				await client.detach();
+			}
+			break;
+		}
+		// 長押し。指を置いたまま動かさずに離す操作(揮発状態の効果説明ポップオーバー等)を
+		// 実測するためのもの。合成PointerEventのdispatchでは「本物の押下で起きること」
+		// (contextmenu・テキスト選択・pointercancel)が再現できず、動くように見えて
+		// 実機で動かない見落としが出るため、本物の入力として送る。
+		// `--hold ".sel=700"` で700ms押し続ける。`kind` が hold-touch なら指(CDPタッチ)で行う。
+		case "hold":
+		case "hold-touch": {
+			const [sel, ms] = splitPair(value, `--${kind}`);
+			const box = await resolveLocator(page, sel).first().boundingBox({ timeout: 30_000 });
+			if (!box) throw new Error(`--${kind}: 要素の位置を取得できません: ${sel}`);
+			const x = box.x + box.width / 2;
+			const y = box.y + box.height / 2;
+			if (kind === "hold") {
+				await page.mouse.move(x, y);
+				await page.mouse.down();
+				await page.waitForTimeout(Number(ms));
+				await page.mouse.up();
+			} else {
+				const client = await page.context().newCDPSession(page);
+				const touch = [{ x, y, radiusX: 5, radiusY: 5, force: 1 }];
+				await client.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: touch });
+				await page.waitForTimeout(Number(ms));
 				await client.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
 				await client.detach();
 			}
@@ -326,10 +358,13 @@ async function runProbe(page, probe, opts) {
 		return { kind, selector: value, count };
 	}
 	if (kind === "eval") {
-		const result = await page.evaluate((expr) => {
+		const result = await page.evaluate(async (expr) => {
 			// 検証用に任意の式を1発だけ評価する(繋ぎ先はローカルのdev serverだけ)。
+			// 長押し・遅延描画のように「待ってから測る」検証があるため、式がPromiseを
+			// 返したらawaitしてから直列化する(awaitしないとJSON.stringify(Promise)が
+			// 常に {} になり、非同期の観測結果が全部消える)。
 			// eslint-disable-next-line no-eval
-			const out = eval(expr);
+			const out = await eval(expr);
 			return out === undefined ? null : JSON.parse(JSON.stringify(out));
 		}, value);
 		return { kind, expr: value, result };

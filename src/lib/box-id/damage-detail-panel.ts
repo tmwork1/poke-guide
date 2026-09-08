@@ -1425,33 +1425,46 @@ export function buildSideSection(
 				// そのため、トグルの既存clickを壊さない最小限の専用処理をここに置く。
 				let holdTimer: number | null = null;
 				let suppressNextClick = false;
+				let holdOrigin: { x: number; y: number } | null = null;
 				const cancelHold = (): void => {
 					if (holdTimer != null) window.clearTimeout(holdTimer);
 					holdTimer = null;
+					holdOrigin = null;
 				};
 				optButton.addEventListener("pointerdown", (event) => {
 					if (!event.isPrimary || event.button !== 0) return;
 					cancelHold();
+					// 抑止フラグの解除はここ(次の押下)だけで行う。pointerupで解除すると、
+					// タッチ操作ではブラウザのclickがpointerupより後に来るため解除が先に走り、
+					// 長押しで説明を出したのにトグルまでONになる(実測)。
+					suppressNextClick = false;
+					holdOrigin = { x: event.clientX, y: event.clientY };
+					// 指を置いたままにする操作なので、押している間はポインタをこのボタンに固定する。
+					// 捕捉しないと、実機のわずかな指の揺れでpointerleaveが飛んで長押しが途切れる。
+					optButton.setPointerCapture?.(event.pointerId);
 					holdTimer = window.setTimeout(() => {
 						holdTimer = null;
 						suppressNextClick = true;
 						openVolatileHelpPopover(stateGrid, optButton, opt.title!);
 					}, 500);
 				});
-				optButton.addEventListener("pointerup", () => {
+				// 実機の指は完全に静止しないため、pointerleaveでの取り消しはやめ、
+				// 「スクロールするつもりだった」と分かる距離(10px)を超えたときだけ取り消す。
+				optButton.addEventListener("pointermove", (event) => {
+					if (!holdOrigin || holdTimer == null) return;
+					if (Math.hypot(event.clientX - holdOrigin.x, event.clientY - holdOrigin.y) <= 10) return;
 					cancelHold();
-					// pointerup後にブラウザが発火する同一操作のclickだけ抑止する。
-					// clickが来ない取消操作では次回タップまで抑止状態を持ち越さない。
-					if (suppressNextClick) window.setTimeout(() => { suppressNextClick = false; }, 0);
 				});
+				optButton.addEventListener("pointerup", cancelHold);
 				optButton.addEventListener("pointercancel", () => {
 					cancelHold();
 					suppressNextClick = false;
 				});
-				optButton.addEventListener("pointerleave", () => {
-					cancelHold();
-					if (suppressNextClick) window.setTimeout(() => { suppressNextClick = false; }, 0);
-				});
+				optButton.addEventListener("lostpointercapture", cancelHold);
+				// 実機(Android Chrome / iOS Safari)は長押しでテキスト選択・コンテキストメニューを
+				// 出そうとし、その時点でpointercancelが飛んで説明が一度も出ない。CSS側の
+				// user-select/-webkit-touch-calloutと合わせて、ここでもネイティブの長押しを止める。
+				optButton.addEventListener("contextmenu", (event) => event.preventDefault());
 				optButton.addEventListener("click", (event) => {
 					if (!suppressNextClick) return;
 					suppressNextClick = false;

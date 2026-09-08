@@ -12,7 +12,7 @@
 // モバイルではclickを待たず、最初に届くpointerdownで実行する。clickはキーボード操作
 // (Enter/Space)のフォールバックとして残す(.pokemon-preview-sprite-wrap/
 // mega-preview-toggle.ts、#pokemon-preview-stats-trigger/stat-adjustment-dialog.tsと同じ方針)。
-import { bindSettingsModalTrigger } from "./settings-modal";
+import { bindSettingsModalTrigger, requestSettingsModal } from "./settings-modal";
 
 // 種族名・タイプ → 種族選択モーダル(#species-select-trigger-button、
 // SpeciesSelectDialog.astro/species-select-dialog.ts)をそのまま開く。
@@ -36,4 +36,56 @@ for (const trigger of moveTriggers) {
 const itemTrigger = document.getElementById("pokemon-preview-item-trigger");
 if (itemTrigger) {
   bindSettingsModalTrigger(itemTrigger, { kind: "item" });
+}
+
+// ポケモン未指定(種族名が空)のときは、プレビューのどこをタップしても種族選択モーダルを開く。
+// 個体を新規追加した直後は種族名・特性・技・もちものが全て「-」で、どこを押せば選べるのかが
+// 分からない状態になるため、種族が決まるまではプレビュー全体を1枚の「ポケモンを選ぶ」ボタンとして
+// 扱う(種族が決まったあとは、上で配線した項目ごとの入口に戻す)。
+//
+// 判定は#species-name(育成フォームの実体。プレビューの表示テキストはこれのミラー)を
+// 都度読む。種族選択後に配線し直す必要がないよう、状態は保持せずイベントのたびに評価する。
+const previewRoot = document.querySelector<HTMLElement>(".pokemon-preview");
+if (previewRoot) {
+  const speciesNameInput = document.getElementById("species-name") as HTMLInputElement | null;
+  const isSpeciesUnset = (): boolean => {
+    if (!speciesNameInput) return false;
+    return speciesNameInput.value.trim() === "";
+  };
+  // 項目ごとのトリガー(上でbindSettingsModalTriggerを付けた要素)より先に横取りするため、
+  // キャプチャ段階で受けて伝播を止める。止めないと種族モーダルを開いた直後に
+  // もちもの/ステータスのモーダルも開こうとして二重に発火する。
+  const interceptUnset = (event: Event): void => {
+    if (!isSpeciesUnset()) return;
+    event.preventDefault();
+    event.stopPropagation();
+    requestSettingsModal({ kind: "species" });
+  };
+  previewRoot.addEventListener("pointerdown", interceptUnset, { capture: true });
+  previewRoot.addEventListener(
+    "click",
+    (event) => {
+      // pointerdown経由で開いた同じタップのclickは、bindSettingsModalTriggerと同じ理由
+      // (開いた直後のモーダルへ届くゴーストクリック)で握りつぶすだけにする。
+      if (!isSpeciesUnset()) return;
+      event.preventDefault();
+      event.stopPropagation();
+    },
+    { capture: true },
+  );
+  previewRoot.addEventListener(
+    "keydown",
+    (event) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      interceptUnset(event);
+    },
+    { capture: true },
+  );
+  // 未指定のあいだは「プレビュー全体が押せる」ことを見た目でも示す。
+  const syncUnsetState = (): void => {
+    previewRoot.classList.toggle("is-species-unset", isSpeciesUnset());
+  };
+  syncUnsetState();
+  speciesNameInput?.addEventListener("input", syncUnsetState);
+  speciesNameInput?.addEventListener("change", syncUnsetState);
 }
