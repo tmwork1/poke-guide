@@ -195,6 +195,9 @@
 	font-size: var(--font-size-sm1); /* 努力値の数値入力。大きくすると数字が読みやすくなる */
 	padding: var(--stat-number-input-padding);
 }
+.stat-row .stat-ev-stepper > .number-stepper-value.is-nonzero {
+	color: var(--color-primary-strong);
+}
 .stat-row input[type="range"] { width: 100%; }
 .stat-row input[type="range"]:focus { outline: none; }
 .stat-row input[type="range"]:focus-visible::-webkit-slider-thumb { outline: none; }

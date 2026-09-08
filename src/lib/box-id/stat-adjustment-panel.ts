@@ -98,7 +98,10 @@ export function buildStatAdjustmentPanel(options: StatAdjustmentPanelOptions): S
 		if (numberInput) numberInput.value = String(next);
 		const pickerButton = pickerButtons.get(key);
 		const picker = pickers.get(key);
-		if (pickerButton) pickerButton.textContent = String(next);
+		if (pickerButton) {
+			pickerButton.textContent = String(next);
+			pickerButton.classList.toggle("is-nonzero", next !== 0);
+		}
 		if (picker) for (const option of picker.querySelectorAll<HTMLButtonElement>("[data-ev-value]")) {
 			option.setAttribute("aria-current", String(Number(option.dataset.evValue) === next));
 		}
@@ -314,7 +317,10 @@ export function buildStatAdjustmentPanel(options: StatAdjustmentPanelOptions): S
 			const picker = pickers.get(key);
 			const range = rangeInputs.get(key);
 			if (number && document.activeElement !== number) number.value = String(ev);
-			if (pickerButton) pickerButton.textContent = String(ev);
+			if (pickerButton) {
+				pickerButton.textContent = String(ev);
+				pickerButton.classList.toggle("is-nonzero", ev !== 0);
+			}
 			if (picker) for (const option of picker.querySelectorAll<HTMLButtonElement>("[data-ev-value]")) {
 				option.setAttribute("aria-current", String(Number(option.dataset.evValue) === ev));
 			}

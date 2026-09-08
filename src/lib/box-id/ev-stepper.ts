@@ -141,6 +141,7 @@ export function createEvStepper({ label, min, max, getValue, setValue }: EvStepp
 	function sync(): void {
 		const value = getValue();
 		valueButton.textContent = String(value);
+		valueButton.classList.toggle("is-nonzero", value !== 0);
 		for (const option of picker.querySelectorAll<HTMLButtonElement>("[data-ev-value]")) {
 			option.setAttribute("aria-current", String(Number(option.dataset.evValue) === value));
 		}

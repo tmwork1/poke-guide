@@ -268,7 +268,7 @@ export const DAMAGE_DEFENDER_AILMENTS = DAMAGE_AILMENTS.filter((a) =>
 // を確認して書いた説明文。数値(割合・倍率)を変更する場合は必ずjpoke skill(.claude/skills/jpoke)
 // 経由で実装を確認し直すこと(ダメージ計算に影響する数値のため誤記厳禁)。
 export const DAMAGE_ATTACKER_VOLATILES = [
-	{ value: "じゅうでん", label: "じゅうでん", title: "次のでんき技の威力2倍(1回で解除)" },
+	{ value: "じゅうでん", label: "じゅうでん", title: "でんき技の威力2倍(毎ターン適用)" },
 ];
 // 説明文は「その状態のポケモンのHPがどう増減するか/受けるダメージがどう変わるか」だけを書く。
 // 命中率や相手側のHP回復のように、この画面のダメージ計算結果に現れない効果は書かない
@@ -1712,17 +1712,37 @@ if (opponentNotesSection) {
 			// buildSequenceInputs()(上で定義)に切り出した(耐久調整ブリッジと共通化するため。
 			// 詳細は同関数のコメント参照)。
 			const { attackerSpec, defenderSpec, safeAttacks, options } = buildSequenceInputs(row, attacks);
-			const [seqResult, statsResult] = await Promise.all([
+			const chargedAttackIndexes = safeAttacks
+				.map((attack, index) => attack.attackerVolatiles?.includes("じゅうでん") ? index : -1)
+				.filter((index) => index !== -1);
+			const [seqResult, statsResult, chargedRepeatResults] = await Promise.all([
 				calcLethalSequence(attackerSpec, defenderSpec, safeAttacks, options),
 				calcStats(defenderSpec),
+				Promise.all(chargedAttackIndexes.map((index) => {
+					const attack = safeAttacks[index];
+					if (!attack) return Promise.resolve(null);
+					// jpokeはじゅうでんを技使用後に消費する。同じ技を連発する確定n発表示だけは、
+					// 各攻撃を独立したBattleで計算するこの経路を使い、毎ターン状態を付与し直す。
+					return calcLethalSequence(
+						attackerSpec,
+						defenderSpec,
+						Array.from({ length: 10 }, () => ({ ...attack })),
+						{ ...options, sequentialOnly: true },
+					);
+				})),
 			]);
+			const perAttackLethal = [...seqResult.perAttackLethal];
+			chargedRepeatResults.forEach((repeatResult, resultIndex) => {
+				const attackIndex = chargedAttackIndexes[resultIndex];
+				if (repeatResult && attackIndex !== undefined) perAttackLethal[attackIndex] = repeatResult.lethal;
+			});
 			row.clientResult = {
 				// 累計致死率は先頭の有効技列から始まるため、カード単位の表示分母も
 				// その列のステルスロック適用後HPに揃える。OFFなら最大HPと同値。
 				defenderHp: seqResult.defenderHp || statsResult.stats.hp,
 				perAttackDamages: seqResult.perAttackDamages,
 				lethal: seqResult.lethal,
-				perAttackLethal: seqResult.perAttackLethal,
+				perAttackLethal,
 				cumulativeDamage: seqResult.cumulativeDamage,
 			};
 			renderColumnDisplays(row);

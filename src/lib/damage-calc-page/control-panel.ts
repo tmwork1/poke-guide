@@ -1,5 +1,5 @@
 import { DAMAGE_AILMENTS, DAMAGE_TERRAINS, DAMAGE_WEATHERS, clampInt } from "../box-id/damage-calc";
-import { DEFAULT_FIELD_STATE, DEFAULT_OPPONENT_STATE, DEFAULT_SELF_STATE, getFieldState, getOpponentState, getSelfState, setFieldState, setOpponentState, setSelfState } from "./shared-core";
+import { DEFAULT_FIELD_STATE, DEFAULT_OPPONENT_STATE, DEFAULT_SELF_STATE, getFieldState, getOpponentState, getSelfBuilds, getSelfState, setFieldState, setOpponentState, setSelfState } from "./shared-core";
 import { teraTypeIconUrl } from "../sprite-urls";
 import { createTeraSelectDialog } from "../tera-select-dialog";
 import { createRankPicker } from "../shared/rank-picker";
@@ -152,22 +152,21 @@ export function initControlPanel(): void {
     () => getFieldState().terrain,
     (terrain) => setFieldState({ ...getFieldState(), terrain }),
   );
-  const teraDialogs = (['self', 'opponent'] as const).map((side) => {
-    const prefix = `damage-calc-${side}-tera-select-`;
-    const triggerButton = teraButtons[side];
+  const opponentTeraDialog = (() => {
+    const prefix = "damage-calc-opponent-tera-select-";
     return createTeraSelectDialog({
       backdrop: document.getElementById(`${prefix}backdrop`) as HTMLElement,
       dialog: document.getElementById(`${prefix}dialog`) as HTMLElement,
       closeButton: document.getElementById(`${prefix}close-button`) as HTMLButtonElement,
       grid: document.getElementById(`${prefix}grid`) as HTMLElement,
-    }, triggerButton,
-    () => side === 'self' ? getSelfState().teraType : getOpponentState().teraType,
+    }, teraButtons.opponent,
+    () => getOpponentState().teraType,
     (teraType) => {
-      if (side === 'self') setSelfState({ ...getSelfState(), teraType });
-      else setOpponentState({ ...getOpponentState(), teraType });
+      setOpponentState({ ...getOpponentState(), teraType });
       emit();
     });
-  });
+  })();
+  const getSelfTeraType = (): string => getSelfBuilds()[0]?.tera_type ?? "";
   const render = () => {
     const self = getSelfState(), opponent = getOpponentState(), field = getFieldState();
     (["self", "opponent"] as const).forEach((side) => {
@@ -186,8 +185,14 @@ export function initControlPanel(): void {
     });
     (["self", "opponent"] as const).forEach((side) => {
       const button = teraButtons[side];
-      const teraType = side === "self" ? self.teraType : opponent.teraType;
-      button.classList.toggle("is-active", teraType !== ""); button.setAttribute("aria-pressed", String(teraType !== ""));
+      const active = side === "self" ? self.teraType !== "" : opponent.teraType !== "";
+      const teraType = side === "self" ? (active ? getSelfTeraType() : "") : opponent.teraType;
+      const hasTeraType = side === "self" ? getSelfTeraType() !== "" : true;
+      button.classList.toggle("is-active", active); button.setAttribute("aria-pressed", String(active));
+      button.disabled = !hasTeraType;
+      button.ariaLabel = side === "self"
+        ? (hasTeraType ? `テラスタル: ${active ? "ON" : "OFF"}` : "テラスタル: テラスタイプが未設定")
+        : "テラスタルタイプを選択";
       const icon = teraIcons[side];
       const iconUrl = teraTypeIconUrl(teraType);
       if (icon) { icon.hidden = false; icon.src = iconUrl ?? GENERIC_TERA_ICON_URL; }
@@ -201,9 +206,12 @@ export function initControlPanel(): void {
     setFieldState({ ...DEFAULT_FIELD_STATE, selfSideFields: [], opponentSideFields: [] });
     emit();
   });
-  teraDialogs.forEach((dialog, index) => {
-    const side = index === 0 ? "self" : "opponent";
-    teraButtons[side].addEventListener("click", dialog.open);
+  teraButtons.self.addEventListener("click", () => {
+    const teraType = getSelfTeraType();
+    if (!teraType) return;
+    setSelfState({ ...getSelfState(), teraType: getSelfState().teraType === "" ? teraType : "" });
+    emit();
   });
+  teraButtons.opponent.addEventListener("click", opponentTeraDialog.open);
   document.addEventListener("damage-calc:change", render); render();
 }

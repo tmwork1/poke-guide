@@ -925,6 +925,10 @@ body.box-edit-page {
 	#damage-detail-panel-body .stat-adjustment-section .stat-ev-stepper > .number-stepper-value {
 		background: var(--damage-detail-control-background) !important;
 	}
+	/* 努力値は0以外だけ文字色で強調する。外寸や背景は既存のまま維持する。 */
+	#damage-detail-panel-body .stat-adjustment-section .stat-ev-stepper > .number-stepper-value.is-nonzero {
+		color: var(--color-primary-strong);
+	}
 	#damage-detail-panel-body .stat-adjustment-section .stat-ev-stepper > .stat-ev-step-button {
 		box-shadow: none;
 	}
@@ -976,7 +980,27 @@ body.box-edit-page {
 		grid-column: 2;
 		justify-self: start;
 		gap: var(--damage-detail-space-sm);
-		margin-inline-start: 0;
+		margin-inline-start: var(--damage-detail-space-sm);
+	}
+	/* ラベルとランク操作の間、および非ゼロの数値領域を明確にする。 */
+	#damage-detail-panel-body .damage-detail-rank-field > label {
+		margin-inline-end: var(--damage-detail-space-sm);
+	}
+	#damage-detail-panel-body .damage-detail-rank-field .number-stepper-value.is-nonzero {
+		background: var(--damage-detail-primary-soft-color);
+	}
+	/* 天候・フィールド・状態異常は選択時に既存の色に加えて輪郭も強調する。 */
+	#damage-detail-panel-body .damage-detail-icon-group.is-row4 .damage-detail-icon-btn[aria-pressed="true"] {
+		outline: 1px solid var(--color-primary);
+		outline-offset: -1px;
+	}
+	/* 30pxのボタンは行ごとの既定line-height差を使わず、文字を縦中央に揃える。 */
+	#damage-detail-panel-body .damage-detail-toggle-row.damage-detail-chip-row > .damage-detail-icon-btn,
+	#damage-detail-panel-body .damage-detail-volatile-group > .damage-detail-icon-btn {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		line-height: 1;
 	}
 	#damage-detail-panel-body .damage-build-detail-field input,
 	#damage-detail-panel-body .damage-build-detail-field select,

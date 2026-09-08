@@ -686,3 +686,6 @@
 		flex: 0 0 var(--stat-number-input-width);
 		width: var(--stat-number-input-width);
 	}
+	#stat-adjustment-section .stat-row .stat-ev-stepper:has(> .number-stepper-picker > [data-ev-value]:not([data-ev-value="0"])[aria-current="true"]) > .number-stepper-value {
+		color: var(--color-primary-strong);
+	}

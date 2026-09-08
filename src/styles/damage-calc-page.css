@@ -176,6 +176,7 @@
 .damage-calc-ailment-field { flex: 1; min-width: 0; }
 .damage-calc-ailment-field select { width: 100%; font-size: var(--font-size-sm2); min-height: var(--tap-target-min); }
 .damage-calc-ailment-field select.is-placeholder { color: var(--color-text-muted); }
+.damage-calc-ailment-field select:not(.is-placeholder) { border-color: var(--color-primary); background: var(--color-primary-soft); color: var(--color-primary-strong); font-weight: var(--font-weight-bold); }
 .damage-calc-reset-button { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2); width: 100%; min-height: 2.25rem; border: 1px solid var(--color-border); border-radius: 0; background: var(--color-surface); color: var(--color-text-muted); box-shadow: var(--shadow-sm); font: inherit; font-size: var(--font-size-sm2); }
 .damage-calc-reset-button:hover { border-color: var(--color-primary); color: var(--color-primary-strong); }
 .damage-calc-reset-button svg { width: 1.1em; height: 1.1em; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
@@ -183,18 +184,20 @@
 .damage-calc-rank-row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); color: var(--color-text-muted); font-size: var(--font-size-sm3); }
 .damage-calc-rank-row .number-stepper { --number-stepper-size: var(--tap-target-min); --number-stepper-input-width: 2.4em; }
 .damage-calc-rank-row output { text-align: center; font-variant-numeric: tabular-nums; }
+.damage-calc-rank-row .number-stepper-value.is-nonzero { color: var(--color-primary-strong); border-color: var(--color-primary-strong); background: var(--color-primary-soft); font-weight: var(--font-weight-bold); }
 /* 角丸・影とも、ランクステッパー(number-stepper、global.css)と同じ見た目に揃える。 */
 .damage-calc-icon-group { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); overflow: hidden; border: 1px solid var(--color-border); border-radius: var(--radius-zero); box-shadow: var(--shadow-sm); }
 .damage-calc-icon-btn { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: var(--tap-target-min); padding: var(--space-1); color: var(--color-text-muted); background: var(--color-surface); border: 0; border-radius: 0; appearance: none; -webkit-appearance: none; font: inherit; font-size: var(--font-size-sm1); }
 .damage-calc-icon-btn svg { flex: none; width: 17px; height: 17px; }
 .damage-calc-icon-btn-label { font-size: var(--font-size-sm4); line-height: 1; }
 .damage-calc-icon-btn:not(:first-child) { border-left: 1px solid var(--color-border); }
-.damage-calc-icon-btn[aria-pressed="true"] { color: var(--color-primary-strong); background: var(--color-primary-soft); }
+.damage-calc-icon-btn[aria-pressed="true"] { position: relative; z-index: 1; color: var(--color-primary-strong); background: var(--color-primary-soft); outline: 1px solid var(--color-primary); outline-offset: -1px; font-weight: var(--font-weight-bold); }
 .damage-calc-tera-toggle { inline-size: var(--tap-target-min); block-size: var(--tap-target-min); padding: 3px; border: 0; border-radius: 50%; background: transparent; color: var(--color-text-muted); cursor: pointer; font: inherit; font-weight: var(--font-weight-bold); appearance: none; -webkit-appearance: none; }
 .damage-calc-tera-icon-wrap { display: grid; inline-size: 100%; block-size: 100%; place-items: center; border-radius: 50%; }
 .damage-calc-tera-icon { display: block; inline-size: 80%; block-size: 80%; object-fit: contain; filter: grayscale(1) opacity(.45); transition: filter .15s ease; }
 .damage-calc-tera-icon[hidden] { display: none; }
 .damage-calc-tera-toggle.is-active .damage-calc-tera-icon { filter: none; }
+.damage-calc-tera-toggle:disabled { cursor: not-allowed; opacity: .7; }
 .damage-calc-tera-toggle:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
 @media (max-width: 600px) {
   .damage-calc-matchup-card__table-wrap { overflow: visible; }
