@@ -33,12 +33,25 @@ export function recordPerf(testInfo: TestInfo, meta: PerfMeta, ms: number): void
   });
 }
 
-/** ページ遷移の所要時間を計測する。readySelectorを渡すと「その要素が見えるまで」を終点にする。 */
-export async function timeNav(page: Page, url: string, readySelector?: string): Promise<number> {
+/**
+ * ページ遷移の所要時間を計測する。第3引数で終点を指定する。
+ *
+ * - 文字列を渡すと「その要素が見えるまで」を終点にする。
+ * - 関数を渡すと「そのPromiseが解決するまで」を終点にする。SSR済みの要素は `load` の時点で
+ *   既に存在するため、セレクタ指定では「JSが動いて画面が使える状態になった」ことを判定できない。
+ *   実数値の算出など、クライアント処理の完了でしか変わらない状態を待ちたい場合に使う。
+ */
+export async function timeNav(
+  page: Page,
+  url: string,
+  ready?: string | ((page: Page) => Promise<unknown>),
+): Promise<number> {
   const start = Date.now();
   await page.goto(url, { waitUntil: "load" });
-  if (readySelector) {
-    await page.waitForSelector(readySelector, { state: "visible" });
+  if (typeof ready === "string") {
+    await page.waitForSelector(ready, { state: "visible" });
+  } else if (ready) {
+    await ready(page);
   }
   return Date.now() - start;
 }

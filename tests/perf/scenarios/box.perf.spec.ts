@@ -54,9 +54,16 @@ test("個体詳細を表示", async ({ page }, testInfo) => {
       label: "個体詳細を表示",
       category: "page-load",
       targetMs: 5000,
-      note: "Pyodide のダメージ計算エンジン初期化を含む",
+      note:
+        "実数値6値が算出されるまでを終点にする。#edit-shell はSSR済みで load 時点に存在するため終点にならない。" +
+        "Pyodideのプリフェッチは表示3秒後に始まるので load より後であり、この値には含まれない。",
     },
-    () => timeNav(page, `/box/${encodeURIComponent(ownedPokemonId)}`, "#edit-shell"),
+    () =>
+      timeNav(page, `/box/${encodeURIComponent(ownedPokemonId)}`, (target) =>
+        // 実数値は種族値マスタ(pokemon-core.json)の取得後に recalcStats() が書き込む。
+        // 「編集画面が使える状態になった」ことを、production/dev どちらでも同じ基準で判定できる。
+        target.waitForFunction(() => /^\d+$/.test(document.getElementById("stat-hp")?.textContent?.trim() ?? "")),
+      ),
   );
 });
 
@@ -159,7 +166,13 @@ test("使い捨て個体のもちものを選択して自動保存する", async
         label: "もちもの選択の自動保存",
         category: "interaction",
         targetMs: 800,
-        note: "使い捨ての空個体に限定。700msの保存デバウンスとPUT完了を含む。主因はopgg-usage同時リクエストではなく、ページ表示直後に開始するPyodide/jpokeエンジンのバックグラウンド初期化がメインスレッドを塞ぎ保存処理と競合すること(2026-09-01調査)。pyodide-engine.tsのENGINE_PREFETCH_FLOOR_MSを1500ms→3000msに引き上げ、本シナリオの一連の流れ(表示〜保存完了、概ね2秒)とプリフェッチ開始が重ならないようにした結果、2672ms→966ms前後まで改善(🔴→🟡)。根本対応にはPyodide初期化のWorker化等が必要(follow-up)",
+        note:
+          "使い捨ての空個体に限定。700msの保存デバウンスとPUT完了を含む。" +
+          "2026-09-01〜09-08は「表示直後に始まるPyodideのバックグラウンド初期化が保存と競合する」ことが主因で、" +
+          "ENGINE_PREFETCH_FLOOR_MSを1500ms→3000msに引き上げて2672ms→966msまで改善させていた。" +
+          "2026-09-09にプリフェッチ自体を廃止し、育成タブではPyodideを一切取得しなくなった" +
+          "(実測で6秒待ってもCDN/wheelへのリクエスト0件)ため、この説明はもう当てはまらない。" +
+          "残っているのはデバウンス700ms+PUTの往復で、超過分の切り分けは未了(follow-up)",
       },
       () =>
         timeAction(async () => {

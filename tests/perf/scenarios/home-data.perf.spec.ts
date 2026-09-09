@@ -53,8 +53,16 @@ test("バトルデータを表示する", async ({ page }, testInfo) => {
 test("データ画面のすばやさ表を表示する", async ({ page }, testInfo) => {
 	await perfScenario(
 		testInfo,
-		{ id: "data-speed-chart-load", label: "データ: すばやさ表", category: "page-load", targetMs: 1500 },
-		() => timeNav(page, "/data/speed-chart", "#speed-chart-rows"),
+		{
+			id: "data-speed-chart-load",
+			label: "データ: すばやさ表",
+			category: "page-load",
+			targetMs: 1500,
+			// #speed-chart-rows はSSR済みの空の器で、行はマスタデータ取得後にJSが積む。
+			// 器ではなく1行目が出るまでを終点にしないと、この画面の本体を計測できない。
+			note: "行が1件以上描画されるまでを計測する(#speed-chart-rows 自体はSSR済みの空の器)。",
+		},
+		() => timeNav(page, "/data/speed-chart", "#speed-chart-rows-body > *"),
 	);
 
 	await expect(page.locator("#speed-chart-rows")).toBeVisible();
@@ -79,8 +87,14 @@ test("データ画面の上位チームを表示する", async ({ page }, testIn
 test("すばやさ表を表示する", async ({ page }, testInfo) => {
 	await perfScenario(
 		testInfo,
-		{ id: "speed-chart-load", label: "すばやさ表", category: "page-load", targetMs: 1500 },
-		() => timeNav(page, "/speed-chart", "#speed-chart-rows"),
+		{
+			id: "speed-chart-load",
+			label: "すばやさ表",
+			category: "page-load",
+			targetMs: 1500,
+			note: "行が1件以上描画されるまでを計測する(#speed-chart-rows 自体はSSR済みの空の器)。",
+		},
+		() => timeNav(page, "/speed-chart", "#speed-chart-rows-body > *"),
 	);
 
 	await expect(page.locator("#speed-chart-rows")).toBeVisible();
