@@ -8,8 +8,8 @@
 // damage-calc-poc (動作確認ページ) はDOM入力フォーム経由でしか
 // 計算を実行できず、努力値・特性・持ち物・フィールド状態などを網羅的に
 // スクリプトから叩けない。このページは `src/lib/pyodide-engine.ts` の
-// `initEngine()` / `calcDamages()` / `calcStats()` / `calcLethalSequence()` を
-// そのまま `window` に晒すだけの薄いラッパーで、Playwright は `page.evaluate()` で
+// `initEngine()` / `calcDamages()` / `calcStats()` / `calcLethalSequence()` と
+// `setupMegaPreviewToggle()` をそのまま `window` に晒すだけの薄いラッパーで、Playwright は `page.evaluate()` で
 // 直接これらの関数を呼び出し、任意の PokemonSpec / FieldSpec / CalcDamagesOptions /
 // SequenceAttack を渡してブラウザ内Pyodide経由の計算結果を取得する。
 //
@@ -37,6 +37,7 @@ import AppLayout from '../../layouts/AppLayout.astro';
 				isEngineReady,
 				getEngineProgress,
 			} from "../../lib/pyodide-engine";
+			import { setupMegaPreviewToggle } from "../../lib/box-id/mega-preview-toggle";
 			import type {
 				PokemonSpec,
 				CalcDamagesOptions,
@@ -70,6 +71,9 @@ import AppLayout from '../../layouts/AppLayout.astro';
 						) => Promise<CalcLethalSequenceResult>;
 						isReady: () => boolean;
 					};
+					__megaPreviewToggle__: {
+						setup: () => void;
+					};
 				}
 			}
 
@@ -90,6 +94,9 @@ import AppLayout from '../../layouts/AppLayout.astro';
 				calcLethalSequence: (attacker, defender, attacks, options) =>
 					calcLethalSequence(attacker, defender, attacks, options ?? {}),
 				isReady: () => isEngineReady(),
+			};
+			window.__megaPreviewToggle__ = {
+				setup: () => setupMegaPreviewToggle(),
 			};
 
 			const readyEl = document.getElementById("harness-ready") as HTMLElement;

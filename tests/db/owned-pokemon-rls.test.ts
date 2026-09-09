@@ -149,10 +149,12 @@ describe('owned_pokemon / opponent_notes の RLS (本人限定ポリシー)', { 
     }
 
     // 実際に更新されていないことをuserA視点でも確認する。
+    // 期待値は「INSERTした値のまま」であって null ではない(この行はひとつ上の
+    // INSERT/SELECTテストが 'ピカチュウ' で作ったもの)。
     const asA = await clientAs(userA);
     try {
       const res = await asA.query('SELECT species_name FROM owned_pokemon WHERE id = $1', [ownedPokemonId]);
-      assert.equal(res.rows[0].species_name, null);
+      assert.equal(res.rows[0].species_name, 'ピカチュウ');
     } finally {
       await asA.end();
     }
