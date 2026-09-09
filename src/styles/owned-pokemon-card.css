@@ -90,6 +90,17 @@
 .box-grid .team-slot-number {
   font-size: var(--font-size-lg1);
 }
+/* おすすめ種族: 一覧の順番を変えず、カード全体の枠と面の色で見つけやすくする。
+   --color-primary-soft は半透明のため、暗いページ地色が透けて通常カードより
+   沈んで見える。ホバー/フォーカスと同じ color-mix 方式で不透明に持ち上げる。 */
+.box-grid .box-card.is-recommended {
+  border-color: var(--color-primary);
+  --box-card-background: color-mix(
+    in srgb,
+    var(--color-surface) 82%,
+    var(--color-primary) 18%
+  );
+}
 .box-grid .box-card:focus-within {
   /* global.css の button:hover:not(:disabled) は .card:hover より詳細度が高い。
      カード共通の hover/focus 背景をここで所有し、要素種別に依存させない。 */
@@ -315,12 +326,6 @@
 }
 .box-grid .box-card .card-item-badge[hidden] {
   display: none;
-}
-
-/* おすすめ種族: バッジは付けず、種族名の文字色と太さで示す。 */
-.box-grid .box-card .card-name.is-recommended {
-  color: var(--color-primary-strong);
-  font-weight: var(--font-weight-medium);
 }
 
 /* カード下部に4行並ぶ技一覧 */

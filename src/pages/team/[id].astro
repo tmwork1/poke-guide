@@ -1704,7 +1704,6 @@ if (!isGuestNewMode) {
 				formationMobileBoxGrid.replaceChildren();
 				const term = formationMobileSearchInput.value.trim();
 				const candidates = sortFormationMobilePokemon(allPokemon.filter((candidate) => !isCurrentMember(candidate.id) && matchesSearch(candidate, term)));
-				candidates.sort((a, b) => Number(suggestionSpeciesRanks.has(b.species_name)) - Number(suggestionSpeciesRanks.has(a.species_name)));
 				for (const p of candidates) {
 					const card = document.createElement("button");
 					card.type = "button";
@@ -1742,11 +1741,9 @@ if (!isGuestNewMode) {
 					});
 					if (selectedCandidatePokemon?.id === p.id) card.classList.add("is-selected");
 					if (suggestionSpeciesRanks.has(p.species_name)) {
-						const nameEl = card.querySelector<HTMLElement>(".card-name");
-						if (nameEl) {
-							nameEl.classList.add("is-recommended");
-							nameEl.title = "おすすめ";
-						}
+						// おすすめは一覧の順番を変えず、カード全体で見つけやすくする。
+						card.classList.add("is-recommended");
+						card.title = "おすすめ";
 					}
 					formationMobileBoxGrid.appendChild(card);
 				}
@@ -1927,12 +1924,6 @@ if (!isGuestNewMode) {
 					return new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime();
 				};
 				return [...list].sort((a, b) => {
-					const aSuggestionRank = suggestionSpeciesRanks.get(a.species_name);
-					const bSuggestionRank = suggestionSpeciesRanks.get(b.species_name);
-					const aIsTopSuggestion = aSuggestionRank !== undefined && aSuggestionRank < 3;
-					const bIsTopSuggestion = bSuggestionRank !== undefined && bSuggestionRank < 3;
-					if (aIsTopSuggestion !== bIsTopSuggestion) return aIsTopSuggestion ? -1 : 1;
-					if (aIsTopSuggestion && bIsTopSuggestion) return aSuggestionRank! - bSuggestionRank!;
 					if (sort === "dex_no") {
 						const aDex = resolveDexNo(a.species_name);
 						const bDex = resolveDexNo(b.species_name);
