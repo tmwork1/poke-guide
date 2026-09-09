@@ -305,7 +305,7 @@ if (!isGuestNewMode) {
 		// 自動保存のデバウンス方式は box/[id].astro と同じ(700ms・保存ボタンは作らない・
 		// topbar-statusスロットで状態表示)。初期表示データ(SSR取得済みのチーム)は
 		// #team-edit-layout の data-initial-team から読む(fetch往復を待たずに6枠を描ける)。
-		import { loadImageIdMap, officialArtworkUrl, championSpriteUrl, loadBaseStatsMap, loadMoveDetailMap, loadMegaStoneMap } from "../../lib/pokemon-master-data";
+		import { loadImageIdMap, officialArtworkUrl, championSpriteIconUrl, championSpriteUrl, loadBaseStatsMap, loadMoveDetailMap, loadMegaStoneMap } from "../../lib/pokemon-master-data";
 		import { itemIconUrl } from "../../lib/sprite-urls";
 		import { DEFAULT_TYPE_COLOR, TYPE_COLORS } from "../../lib/type-colors";
 		import { resolveDexNo, resolveSpeciesTypes } from "../../lib/species-dex";
@@ -626,7 +626,7 @@ if (!isGuestNewMode) {
 					selectedSlot: null,
 					onSlotTap: onRedistributionMemberTap,
 					onSlotLongPress: clearRedistributedItem,
-					applySprite,
+					applySprite: (imgEl, fallbackEl, name) => applySprite(imgEl, fallbackEl, name, true),
 					applyItemIcon,
 					showItem: false,
 				});
@@ -828,6 +828,7 @@ if (!isGuestNewMode) {
 				imgEl: HTMLImageElement,
 				fallbackEl: HTMLElement,
 				name: string,
+				useIcon = false,
 			): Promise<void> {
 				// 画像の可否が決まるまでフォールバック文字(種族名の先頭)を出さない。
 				// 出したままにすると、カード再描画のたびに文字が一瞬見え、
@@ -840,8 +841,14 @@ if (!isGuestNewMode) {
 					fallbackEl.textContent = name ? name.charAt(0) : "?";
 					return;
 				}
+				let triedPngFallback = false;
 				let triedArtworkFallback = false;
 				imgEl.onerror = () => {
+					if (useIcon && !triedPngFallback) {
+						triedPngFallback = true;
+						imgEl.src = championSpriteUrl(imageId);
+						return;
+					}
 					if (!triedArtworkFallback) {
 						triedArtworkFallback = true;
 						imgEl.src = officialArtworkUrl(imageId);
@@ -855,7 +862,7 @@ if (!isGuestNewMode) {
 					imgEl.style.display = "";
 					fallbackEl.style.display = "none";
 				};
-				imgEl.src = championSpriteUrl(imageId);
+				imgEl.src = useIcon ? championSpriteIconUrl(imageId) : championSpriteUrl(imageId);
 			}
 
 			// 持ち物アイコン(アイコン+名前、R-8)。アイコンが解決できない/読み込み失敗のときも
@@ -1032,7 +1039,7 @@ if (!isGuestNewMode) {
 				img.alt = "";
 				const fallback = document.createElement("span");
 				button.appendChild(img);
-				void applySprite(img, fallback, suggestion.speciesName);
+				void applySprite(img, fallback, suggestion.speciesName, true);
 				if (owned) {
 					const label = owned.species_name;
 					button.title = `手持ちの${label}を入れる`;
@@ -1666,7 +1673,7 @@ if (!isGuestNewMode) {
 					onSlotTap: onFormationSlotTap,
 					onSlotDoubleTap: onFormationSlotDoubleTap,
 					onSlotLongPress: onFormationSlotLongPress,
-					applySprite,
+					applySprite: (imgEl, fallbackEl, name) => applySprite(imgEl, fallbackEl, name, true),
 					applyItemIcon,
 				});
 				renderTeamMateSlots({
@@ -1677,7 +1684,7 @@ if (!isGuestNewMode) {
 					onSlotTap: onFormationSlotTap,
 					onSlotDoubleTap: onFormationSlotDoubleTap,
 					onSlotLongPress: onFormationSlotLongPress,
-					applySprite,
+					applySprite: (imgEl, fallbackEl, name) => applySprite(imgEl, fallbackEl, name, true),
 					applyItemIcon,
 				});
 				renderTeamMateSlots({
@@ -1688,7 +1695,7 @@ if (!isGuestNewMode) {
 					onSlotTap: onFormationSlotTap,
 					onSlotDoubleTap: onFormationSlotDoubleTap,
 					onSlotLongPress: onFormationSlotLongPress,
-					applySprite,
+					applySprite: (imgEl, fallbackEl, name) => applySprite(imgEl, fallbackEl, name, true),
 					applyItemIcon,
 				});
 

@@ -12,7 +12,7 @@ import {
   usageRateLabel,
   type SingleFormatData,
 } from '../../lib/battle-data-card';
-import { championSpriteUrl, officialArtworkUrl } from '../../lib/pokemon-master-data';
+import { championSpriteIconUrl, championSpriteUrl, officialArtworkUrl } from '../../lib/pokemon-master-data';
 import { itemIconUrl } from '../../lib/sprite-urls';
 import { DEFAULT_TYPE_COLOR, TYPE_COLORS } from '../../lib/type-colors';
 
@@ -63,7 +63,7 @@ const teammates = single?.teammates ?? [];
   <div class="trend-detail-cell">
     <span>同時採用</span>
     <div class="trend-cell-body">
-      {teammates.length ? <ul class="trend-rank-list">{teammates.map((row, index) => { const imageId = imageIdByName(row.name); return <li class:list={['trend-rank-row', imageId !== null ? 'trend-rank-row--rank-icon3' : 'trend-rank-row--rank-name2']}><span class="trend-rank-order" aria-label={`${index + 1}位`}>{index + 1}</span>{imageId !== null && <span class="trend-rank-icon"><img class="trend-rank-icon--pokemon" src={championSpriteUrl(imageId)} onerror={`this.onerror=null;this.src='${officialArtworkUrl(imageId)}';`} alt="" loading="lazy" /></span>}<span class="trend-rank-name">{row.name}</span></li>; })}</ul> : <strong>データなし</strong>}
+      {teammates.length ? <ul class="trend-rank-list">{teammates.map((row, index) => { const imageId = imageIdByName(row.name); return <li class:list={['trend-rank-row', imageId !== null ? 'trend-rank-row--rank-icon3' : 'trend-rank-row--rank-name2']}><span class="trend-rank-order" aria-label={`${index + 1}位`}>{index + 1}</span>{imageId !== null && <span class="trend-rank-icon"><img class="trend-rank-icon--pokemon" src={championSpriteIconUrl(imageId)} onerror={`this.onerror=()=>{this.onerror=()=>{this.onerror=null;this.src='${officialArtworkUrl(imageId)}';};this.src='${championSpriteUrl(imageId)}';};`} alt="" loading="lazy" /></span>}<span class="trend-rank-name">{row.name}</span></li>; })}</ul> : <strong>データなし</strong>}
     </div>
   </div>
 </div>

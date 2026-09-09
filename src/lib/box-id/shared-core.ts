@@ -45,6 +45,7 @@ import {
 	loadBaseStatsMap,
 	loadMegaStoneMap,
 	officialArtworkUrl,
+	championSpriteIconUrl,
 	championSpriteUrl,
 } from "../pokemon-master-data";
 import { loadItemSpriteMap, itemIconUrl, teraTypeIconUrl } from "../sprite-urls";
@@ -193,12 +194,13 @@ export function flashAutofillHint(inputEl: HTMLInputElement, revertTitle: () => 
 	}, 1400);
 }
 
-// UI刷新: <img>にChampions用スプライトを表示する。対応していない種族では404になるため、
-// 取得失敗時は公式絵へフォールバックし、それも取得できない場合だけ頭文字へ退避する。
+// UI刷新: <img>にChampions用スプライトを表示する。アイコン表示だけは小さいWebPを優先し、
+// 取得失敗時は320px PNG、公式絵、頭文字の順に退避する。
 export async function applySprite(
 	imgEl: HTMLImageElement,
 	fallbackEl: HTMLElement,
 	name: string,
+	useIcon = false,
 ): Promise<void> {
 	const imageId = name ? (await imageIdMapPromise).get(name) : undefined;
 	if (imageId == null) {
@@ -207,8 +209,14 @@ export async function applySprite(
 		fallbackEl.textContent = name ? name.charAt(0) : "?";
 		return;
 	}
+	let triedPngFallback = false;
 	let triedArtworkFallback = false;
 	imgEl.onerror = () => {
+		if (useIcon && !triedPngFallback) {
+			triedPngFallback = true;
+			imgEl.src = championSpriteUrl(imageId);
+			return;
+		}
 		if (!triedArtworkFallback) {
 			triedArtworkFallback = true;
 			imgEl.src = officialArtworkUrl(imageId);
@@ -222,7 +230,7 @@ export async function applySprite(
 		imgEl.style.display = "";
 		fallbackEl.style.display = "none";
 	};
-	imgEl.src = championSpriteUrl(imageId);
+	imgEl.src = useIcon ? championSpriteIconUrl(imageId) : championSpriteUrl(imageId);
 }
 
 // UI刷新(Pokemon.png): テラスタイプ画像(select横)。呼び出し元は育成パネルの読み取り専用画像

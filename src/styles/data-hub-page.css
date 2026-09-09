@@ -187,6 +187,9 @@ body.data-hub-page .app-main > .second-header {
   flex-direction: column;
   gap: 4px; /* ポケモン見出しとバトルデータカードの隙間。 */
   scroll-margin-top: calc(var(--header-height) + var(--app-header-height) + var(--second-header-height) + var(--space-3));
+  /* 235件のカードは画面外で描画不要。実測した通常1件分の高さを予約してアンカー位置を保つ。 */
+  content-visibility: auto;
+  contain-intrinsic-size: 522px;
 }
 .battle-data-entry[hidden] { display: none; }
 

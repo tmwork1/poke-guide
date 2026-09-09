@@ -19,6 +19,7 @@
 		"generate:type-icons": "python scripts/type-icons/generate_type_icons.py",
 		"generate:pokemon-artwork": "python scripts/pokemon-artwork/generate_pokemon_artwork.py",
 		"generate:pokemon-champion-sprites": "python scripts/pokemon-champion-sprites/generate_pokemon_champion_sprites.py",
+		"generate:pokemon-champion-sprite-icons": "python scripts/pokemon-champion-sprites/generate_pokemon_champion_sprite_icons.py",
 		"build": "npm run build:master-data && astro build",
 		"preview": "npm run build && astro preview",
 		"astro": "astro",

@@ -69,6 +69,12 @@ export function championSpriteUrl(imageId: number): string {
   return `/pokemon-champion-sprites/${imageId}.png`;
 }
 
+// Champions スプライトの小表示用派生画像。320px PNG は大きいプレビューに残し、
+// 一覧やレールでは転送量を抑えた96px WebPを優先する。
+export function championSpriteIconUrl(imageId: number): string {
+  return `/pokemon-champion-sprites/icon/${imageId}.webp`;
+}
+
 interface PokemonDetailEntry {
   name: string;
   baseStats: number[];

@@ -9,7 +9,7 @@ import { getOpggUsageList, getOpggUsageManifest, sortOpggSeasons, type OpggUsage
 import { listRankedSeasons } from '../../lib/ranked-teams';
 import { resolveDefaultSeason } from '../../lib/ranked-teams-validation';
 import { getSupabasePublicClient } from '../../lib/supabase';
-import { championSpriteUrl, officialArtworkUrl } from '../../lib/pokemon-master-data';
+import { championSpriteIconUrl, championSpriteUrl, officialArtworkUrl } from '../../lib/pokemon-master-data';
 import pokemonMasterRaw from '../../../public/master-data/autocomplete/pokemon.json';
 import { env } from 'cloudflare:workers';
 import '../../styles/data-hub-page.css';
@@ -161,7 +161,7 @@ if (seasonList?.pokemon) {
 						<nav class="battle-data-rail" aria-label="ポケモン一覧へジャンプ">
 							{entries.map((entry) => (
 								<a class="battle-data-rail-item" href={`#${entry.elementId}`} data-battle-data-rail-item data-species-name={entry.name} aria-label={entry.name}>
-									{entry.imageId !== null && <img src={championSpriteUrl(entry.imageId)} onerror={`this.onerror=null;this.src='${officialArtworkUrl(entry.imageId)}';`} alt="" width="36" height="36" style="width:36px;height:36px;object-fit:contain;" loading="eager" />}
+									{entry.imageId !== null && <img src={championSpriteIconUrl(entry.imageId)} onerror={`this.onerror=()=>{this.onerror=()=>{this.onerror=null;this.src='${officialArtworkUrl(entry.imageId)}';};this.src='${championSpriteUrl(entry.imageId)}';};`} alt="" width="36" height="36" style="width:36px;height:36px;object-fit:contain;" loading="lazy" />}
 								</a>
 							))}
 						</nav>
@@ -181,7 +181,7 @@ if (seasonList?.pokemon) {
 								>
 									<header class="battle-data-entry-header">
 										<span class="badge battle-data-entry-rank" aria-label={`使用率順位 ${entry.rank}位`}>{entry.rank}</span>
-										{entry.imageId !== null && <img class="battle-data-entry-icon" src={championSpriteUrl(entry.imageId)} onerror={`this.onerror=null;this.src='${officialArtworkUrl(entry.imageId)}';`} alt="" loading="lazy" />}
+										{entry.imageId !== null && <img class="battle-data-entry-icon" src={championSpriteIconUrl(entry.imageId)} onerror={`this.onerror=()=>{this.onerror=()=>{this.onerror=null;this.src='${officialArtworkUrl(entry.imageId)}';};this.src='${championSpriteUrl(entry.imageId)}';};`} alt="" loading="lazy" />}
 										<span class="battle-data-entry-name">{entry.name}</span>
 									</header>
 									<BattleDataCard single={entry.single} />
@@ -371,7 +371,7 @@ if (seasonList?.pokemon) {
 		import type { RankedTeam } from '../../lib/ranked-teams';
 		import { matchesSpeciesSearch, RANKED_TEAMS_PAGE_SIZE } from '../../lib/ranked-teams-validation';
 		import { renderTopBuildCard } from '../../lib/ranked-teams/card';
-		import { loadImageIdMap, officialArtworkUrl, championSpriteUrl } from '../../lib/pokemon-master-data';
+		import { loadImageIdMap, officialArtworkUrl, championSpriteIconUrl, championSpriteUrl } from '../../lib/pokemon-master-data';
 		import { itemIconUrl } from '../../lib/sprite-urls';
 		import { renderTeamMateSlots, type TeamMateCardPokemon } from '../../lib/team-mate-card';
 
@@ -398,7 +398,7 @@ if (seasonList?.pokemon) {
 
 			const imageIdMapPromise = loadImageIdMap();
 
-			// team/index.astro の圧縮表示と同じ、championSpriteUrl→officialArtworkUrl→頭文字の
+			// team/index.astro の圧縮表示と同じ、icon WebP→championSpriteUrl→officialArtworkUrl→頭文字の
 			// フォールバック順で描画する(/team一覧の compressed 表示と統一)。
 			async function applySprite(
 				imgEl: HTMLImageElement,
@@ -412,8 +412,14 @@ if (seasonList?.pokemon) {
 					fallbackEl.textContent = name ? name.charAt(0) : '?';
 					return;
 				}
+				let triedPngFallback = false;
 				let triedArtworkFallback = false;
 				imgEl.onerror = () => {
+					if (!triedPngFallback) {
+						triedPngFallback = true;
+						imgEl.src = championSpriteUrl(imageId);
+						return;
+					}
 					if (!triedArtworkFallback) {
 						triedArtworkFallback = true;
 						imgEl.src = officialArtworkUrl(imageId);
@@ -427,7 +433,7 @@ if (seasonList?.pokemon) {
 					imgEl.style.display = '';
 					fallbackEl.style.display = 'none';
 				};
-				imgEl.src = championSpriteUrl(imageId);
+				imgEl.src = championSpriteIconUrl(imageId);
 			}
 
 			function applyItemIcon(

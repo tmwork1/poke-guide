@@ -123,7 +123,7 @@ import SecondHeader from '../../components/SecondHeader.astro';
 	<script>
 		// チームカードは外枠から6枠まで共用し、1枠の実体はその中から /box のカード描画へ委譲する。
 		import { kanaIncludes } from "../../lib/kana";
-		import { loadImageIdMap, officialArtworkUrl, championSpriteUrl } from "../../lib/pokemon-master-data";
+		import { loadImageIdMap, officialArtworkUrl, championSpriteIconUrl, championSpriteUrl } from "../../lib/pokemon-master-data";
 		import { itemIconUrl } from "../../lib/sprite-urls";
 		import { renderTeamCard } from "../../lib/team-card";
 		import { renderTeamMateSlots } from "../../lib/team-mate-card";
@@ -169,8 +169,14 @@ import SecondHeader from '../../components/SecondHeader.astro';
 				fallbackEl.textContent = name ? name.charAt(0) : "?";
 				return;
 			}
+			let triedPngFallback = false;
 			let triedArtworkFallback = false;
 			imgEl.onerror = () => {
+				if (!triedPngFallback) {
+					triedPngFallback = true;
+					imgEl.src = championSpriteUrl(imageId);
+					return;
+				}
 				if (!triedArtworkFallback) {
 					triedArtworkFallback = true;
 					imgEl.src = officialArtworkUrl(imageId);
@@ -184,7 +190,7 @@ import SecondHeader from '../../components/SecondHeader.astro';
 				imgEl.style.display = "";
 				fallbackEl.style.display = "none";
 			};
-			imgEl.src = championSpriteUrl(imageId);
+			imgEl.src = championSpriteIconUrl(imageId);
 		}
 
 		function applyItemIcon(

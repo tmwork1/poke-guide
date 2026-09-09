@@ -2579,7 +2579,7 @@ if (opponentNotesSection) {
 				const fallback = document.createElement("span");
 				fallback.className = "damage-build-detail-name-dropdown-option-fallback";
 				fallback.setAttribute("aria-hidden", "true");
-				void applySprite(icon, fallback, candidateName);
+				void applySprite(icon, fallback, candidateName, true);
 				const text = document.createElement("span");
 				text.className = "damage-build-detail-name-dropdown-option-text";
 				text.textContent = candidateName;
