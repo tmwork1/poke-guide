@@ -92,7 +92,7 @@ const hasData = hasSingleBattleData(opgg);
     type EvRankedRow,
     type SingleFormatData,
   } from '../../lib/battle-data-card';
-  import { championSpriteUrl, officialArtworkUrl } from '../../lib/pokemon-master-data';
+  import { championSpriteIconUrl, championSpriteUrl, officialArtworkUrl } from '../../lib/pokemon-master-data';
   import { itemIconUrl } from '../../lib/sprite-urls';
   import { DEFAULT_TYPE_COLOR, TYPE_COLORS } from '../../lib/type-colors';
   const main = document.querySelector<HTMLElement>('.box-data-main');
@@ -179,10 +179,16 @@ const hasData = hasSingleBattleData(opgg);
       if (imageId !== null) {
         const image = document.createElement('img');
         image.className = 'trend-rank-icon--pokemon';
-        image.src = championSpriteUrl(imageId);
+        // 22〜28px表示なので96pxのWebPを優先し、失敗時に320px PNG→公式絵へ退避する。
+        image.src = championSpriteIconUrl(imageId);
         image.alt = '';
         image.loading = 'lazy';
-        image.onerror = () => { image.onerror = null; image.src = officialArtworkUrl(imageId); };
+        let triedPng = false;
+        image.onerror = () => {
+          if (!triedPng) { triedPng = true; image.src = championSpriteUrl(imageId); return; }
+          image.onerror = null;
+          image.src = officialArtworkUrl(imageId);
+        };
         item.appendChild(Object.assign(document.createElement('span'), { className: 'trend-rank-icon' }));
         item.lastElementChild!.appendChild(image);
       }

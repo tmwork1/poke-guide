@@ -626,7 +626,7 @@ if (!isGuestNewMode) {
 					selectedSlot: null,
 					onSlotTap: onRedistributionMemberTap,
 					onSlotLongPress: clearRedistributedItem,
-					applySprite: (imgEl, fallbackEl, name) => applySprite(imgEl, fallbackEl, name, true),
+					applySprite: (imgEl, fallbackEl, name) => applySprite(imgEl, fallbackEl, name, "icon"),
 					applyItemIcon,
 					showItem: false,
 				});
@@ -1039,7 +1039,7 @@ if (!isGuestNewMode) {
 				img.alt = "";
 				const fallback = document.createElement("span");
 				button.appendChild(img);
-				void applySprite(img, fallback, suggestion.speciesName, true);
+				void applySprite(img, fallback, suggestion.speciesName, "icon");
 				if (owned) {
 					const label = owned.species_name;
 					button.title = `手持ちの${label}を入れる`;
@@ -1673,7 +1673,7 @@ if (!isGuestNewMode) {
 					onSlotTap: onFormationSlotTap,
 					onSlotDoubleTap: onFormationSlotDoubleTap,
 					onSlotLongPress: onFormationSlotLongPress,
-					applySprite: (imgEl, fallbackEl, name) => applySprite(imgEl, fallbackEl, name, true),
+					applySprite: (imgEl, fallbackEl, name) => applySprite(imgEl, fallbackEl, name, "icon"),
 					applyItemIcon,
 				});
 				renderTeamMateSlots({
@@ -1684,7 +1684,7 @@ if (!isGuestNewMode) {
 					onSlotTap: onFormationSlotTap,
 					onSlotDoubleTap: onFormationSlotDoubleTap,
 					onSlotLongPress: onFormationSlotLongPress,
-					applySprite: (imgEl, fallbackEl, name) => applySprite(imgEl, fallbackEl, name, true),
+					applySprite: (imgEl, fallbackEl, name) => applySprite(imgEl, fallbackEl, name, "icon"),
 					applyItemIcon,
 				});
 				renderTeamMateSlots({
@@ -1695,7 +1695,7 @@ if (!isGuestNewMode) {
 					onSlotTap: onFormationSlotTap,
 					onSlotDoubleTap: onFormationSlotDoubleTap,
 					onSlotLongPress: onFormationSlotLongPress,
-					applySprite: (imgEl, fallbackEl, name) => applySprite(imgEl, fallbackEl, name, true),
+					applySprite: (imgEl, fallbackEl, name) => applySprite(imgEl, fallbackEl, name, "icon"),
 					applyItemIcon,
 				});
 

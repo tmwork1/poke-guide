@@ -75,6 +75,12 @@ export function championSpriteIconUrl(imageId: number): string {
   return `/pokemon-champion-sprites/icon/${imageId}.webp`;
 }
 
+// 64〜128px表示(カード・プレビュー・相性グリッド等)用の派生画像。
+// 320px PNG(平均74KB)に対して192px WebPは平均約10KBで、実機の表示解像度には十分。
+export function championSpriteMediumUrl(imageId: number): string {
+  return `/pokemon-champion-sprites/medium/${imageId}.webp`;
+}
+
 export interface PokemonCoreDetailEntry {
   name: string;
   types: string[];

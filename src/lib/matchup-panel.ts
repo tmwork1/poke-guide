@@ -1,4 +1,5 @@
 import {
+	championSpriteMediumUrl,
 	championSpriteUrl,
 	loadImageIdMap,
 	loadMoveDetailMap,
@@ -141,8 +142,14 @@ async function applySprite(imgEl: HTMLImageElement, fallbackEl: HTMLElement, nam
 		fallbackEl.textContent = name ? name.charAt(0) : '?';
 		return;
 	}
+	let triedPngFallback = false;
 	let triedArtworkFallback = false;
 	imgEl.onerror = () => {
+		if (!triedPngFallback) {
+			triedPngFallback = true;
+			imgEl.src = championSpriteUrl(imageId);
+			return;
+		}
 		if (!triedArtworkFallback) {
 			triedArtworkFallback = true;
 			imgEl.src = officialArtworkUrl(imageId);
@@ -156,7 +163,8 @@ async function applySprite(imgEl: HTMLImageElement, fallbackEl: HTMLElement, nam
 		imgEl.style.display = '';
 		fallbackEl.style.display = 'none';
 	};
-	imgEl.src = championSpriteUrl(imageId);
+	// 93px表示なので192pxのWebPで足りる。取得できなければ320px PNGへ退避する。
+	imgEl.src = championSpriteMediumUrl(imageId);
 }
 
 export interface MatchupPanelOptions {

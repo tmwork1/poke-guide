@@ -107,7 +107,7 @@ const shouldRenderItemIcon = activeTab === 'training' || itemName !== '';
     </div>
     <div class="pokemon-preview-identity">
       <button type="button" class="pokemon-preview-sprite-wrap" aria-label="ポケモンプレビュー">
-        <img id="pokemon-preview-species-sprite" width="112" height="112" src={preview.championSpriteUrl} onerror={preview.officialArtworkUrl ? `this.onerror=null;this.src='${preview.officialArtworkUrl}';` : undefined} alt={preview.speciesName} hidden={!preview.championSpriteUrl} />
+        <img id="pokemon-preview-species-sprite" width="112" height="112" src={preview.championSpriteUrl} onerror={preview.officialArtworkUrl ? `this.onerror=()=>{this.onerror=null;this.src='${preview.officialArtworkUrl}';};this.src='${preview.championSpriteFullUrl}';` : undefined} alt={preview.speciesName} hidden={!preview.championSpriteUrl} />
         <span id="pokemon-preview-species-sprite-fallback" hidden={!preview.speciesName || Boolean(preview.championSpriteUrl)}>{preview.speciesName.slice(0, 1)}</span>
       </button>
     </div>

@@ -219,7 +219,7 @@ function buildSuggestionCard(suggestion: DamageCalcSuggestion): HTMLElement {
 	const spriteFallback = document.createElement("span");
 	spriteFallback.className = "damage-suggest-sprite-fallback";
 	spriteEl.append(spriteImg, spriteFallback);
-	void applySprite(spriteImg, spriteFallback, suggestion.opponentName, true);
+	void applySprite(spriteImg, spriteFallback, suggestion.opponentName, "icon");
 	left.appendChild(spriteEl);
 	body.appendChild(left);
 

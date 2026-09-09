@@ -46,6 +46,7 @@ import {
 	loadMegaStoneMap,
 	officialArtworkUrl,
 	championSpriteIconUrl,
+	championSpriteMediumUrl,
 	championSpriteUrl,
 } from "../pokemon-master-data";
 import { loadItemSpriteMap, itemIconUrl, teraTypeIconUrl } from "../sprite-urls";
@@ -194,13 +195,14 @@ export function flashAutofillHint(inputEl: HTMLInputElement, revertTitle: () => 
 	}, 1400);
 }
 
-// UI刷新: <img>にChampions用スプライトを表示する。アイコン表示だけは小さいWebPを優先し、
+// UI刷新: <img>にChampions用スプライトを表示する。表示サイズ帯に合わせた派生WebPを優先し、
 // 取得失敗時は320px PNG、公式絵、頭文字の順に退避する。
+// このアプリはモバイル専用で、スプライトの表示は大きくても142pxなので既定は medium(192px)。
 export async function applySprite(
 	imgEl: HTMLImageElement,
 	fallbackEl: HTMLElement,
 	name: string,
-	useIcon = false,
+	variant: "icon" | "medium" | "full" = "medium",
 ): Promise<void> {
 	const imageId = name ? (await imageIdMapPromise).get(name) : undefined;
 	if (imageId == null) {
@@ -212,7 +214,7 @@ export async function applySprite(
 	let triedPngFallback = false;
 	let triedArtworkFallback = false;
 	imgEl.onerror = () => {
-		if (useIcon && !triedPngFallback) {
+		if (variant !== "full" && !triedPngFallback) {
 			triedPngFallback = true;
 			imgEl.src = championSpriteUrl(imageId);
 			return;
@@ -230,7 +232,11 @@ export async function applySprite(
 		imgEl.style.display = "";
 		fallbackEl.style.display = "none";
 	};
-	imgEl.src = useIcon ? championSpriteIconUrl(imageId) : championSpriteUrl(imageId);
+	imgEl.src = variant === "icon"
+		? championSpriteIconUrl(imageId)
+		: variant === "medium"
+			? championSpriteMediumUrl(imageId)
+			: championSpriteUrl(imageId);
 }
 
 // UI刷新(Pokemon.png): テラスタイプ画像(select横)。呼び出し元は育成パネルの読み取り専用画像

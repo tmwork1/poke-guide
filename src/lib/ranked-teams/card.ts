@@ -1,5 +1,6 @@
 import type { RankedTeam } from '../ranked-teams';
-import { championSpriteUrl, officialArtworkUrl } from '../pokemon-master-data';
+import { championSpriteMediumUrl,
+  championSpriteUrl, officialArtworkUrl } from '../pokemon-master-data';
 import { itemIconUrl, typeIconUrl } from '../sprite-urls';
 import { renderTeamCard } from '../team-card';
 
@@ -99,7 +100,8 @@ export function renderRankedTeamCard(
         image.remove();
         imageWrap.append(element('span', 'ranked-team-image-fallback', displayName.charAt(0) || '?'));
       };
-      image.src = championSpriteUrl(imageId);
+      // カードの絵は最大でも約98px表示なので192pxのWebPで足りる。
+      image.src = championSpriteMediumUrl(imageId);
       image.alt = displayName;
       image.loading = 'lazy';
       image.decoding = 'async';

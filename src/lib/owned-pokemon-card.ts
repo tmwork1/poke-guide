@@ -2,6 +2,7 @@ import {
 	loadBaseStatsMap,
 	loadImageIdMap,
 	loadMoveTypeMap,
+	championSpriteMediumUrl,
 	championSpriteUrl,
 	officialArtworkUrl,
 } from "./pokemon-master-data";
@@ -75,8 +76,14 @@ async function applyCardArtwork(
 	const imageId = name ? (await imageIdMapPromise).get(name) : undefined;
 	if (imageId == null) return;
 	artwork.hidden = false;
+	let triedPngFallback = false;
 	let triedArtworkFallback = false;
 	imgEl.onerror = () => {
+		if (!triedPngFallback) {
+			triedPngFallback = true;
+			imgEl.src = championSpriteUrl(imageId);
+			return;
+		}
 		if (!triedArtworkFallback) {
 			triedArtworkFallback = true;
 			imgEl.src = officialArtworkUrl(imageId);
@@ -84,7 +91,8 @@ async function applyCardArtwork(
 		}
 		artwork.hidden = true;
 	};
-	imgEl.src = championSpriteUrl(imageId);
+	// カードの絵は最大でも約98px表示なので192pxのWebPで足りる。
+	imgEl.src = championSpriteMediumUrl(imageId);
 }
 
 // 公式絵に重ねる持ち物バッジ。アイテム名が空/画像読み込みに失敗した場合はバッジごと隠す

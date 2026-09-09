@@ -1,5 +1,5 @@
 import type { OwnedPokemonRecord } from '../owned-pokemon';
-import { championSpriteUrl, officialArtworkUrl } from '../pokemon-master-data';
+import { championSpriteMediumUrl, championSpriteUrl, officialArtworkUrl } from '../pokemon-master-data';
 import { itemIconUrl, typeIconUrl } from '../sprite-urls';
 import { NATURE_STAT_MODIFIERS, STAT_KEYS, type NatureStatModifier, type StatKey, calcHpStat, calcOtherStat } from '../stats';
 import { DEFAULT_TYPE_COLOR, TYPE_COLORS, TYPE_COLOR_CSS_VARIABLES } from '../type-colors';
@@ -35,6 +35,7 @@ export interface PokemonPreviewViewModel {
   stats: Array<number | null>;
   imageId: number | undefined;
   championSpriteUrl: string | undefined;
+  championSpriteFullUrl: string | undefined;
   officialArtworkUrl: string | undefined;
   types: string[];
   typeIcons: Array<{ name: string; url: string | null; fallbackColor: string }>;
@@ -98,7 +99,9 @@ export function buildPokemonPreviewViewModel(
     evLabels: evs.map((ev) => ev ? `+${ev}` : '-'),
     stats,
     imageId,
-    championSpriteUrl: imageId === undefined ? undefined : championSpriteUrl(imageId),
+    // 表示は112pxなので192pxのWebPで足り、320px PNGは取得失敗時のフォールバックに回す。
+    championSpriteUrl: imageId === undefined ? undefined : championSpriteMediumUrl(imageId),
+    championSpriteFullUrl: imageId === undefined ? undefined : championSpriteUrl(imageId),
     officialArtworkUrl: imageId === undefined ? undefined : officialArtworkUrl(imageId),
     types,
     typeIcons: types.map((name) => ({

@@ -30,7 +30,7 @@ import {
 import { calcOtherStat, NATURE_STAT_MODIFIERS } from '../stats';
 import { validateSpeedChartApplyPayload } from '../speed-chart-validation';
 import type { OwnedPokemonRecord } from '../owned-pokemon';
-import { championSpriteUrl, officialArtworkUrl } from '../pokemon-master-data';
+import { championSpriteMediumUrl, championSpriteUrl, officialArtworkUrl } from '../pokemon-master-data';
 import { itemIconUrl } from '../sprite-urls';
 
 export const OWNED_CURRENT_VALUE_EVENT = 'speed-chart:owned-current-changed';
@@ -180,8 +180,11 @@ export function initOwnedPanel(ctx: OwnedPanelContext): OwnedPanelController {
     const spriteEl = document.getElementById(SUMMARY_SPRITE_ID) as HTMLImageElement | null;
     if (spriteEl) {
       if (ctx.spriteImageId != null) {
-        spriteEl.src = championSpriteUrl(ctx.spriteImageId);
+        // 調整パネルの絵は小さいので192pxのWebPで足りる。失敗時は320px PNG→公式絵。
+        spriteEl.src = championSpriteMediumUrl(ctx.spriteImageId);
+        let triedPng = false;
         spriteEl.onerror = () => {
+          if (!triedPng) { triedPng = true; spriteEl.src = championSpriteUrl(ctx.spriteImageId!); return; }
           spriteEl.onerror = null;
           spriteEl.src = officialArtworkUrl(ctx.spriteImageId!);
         };

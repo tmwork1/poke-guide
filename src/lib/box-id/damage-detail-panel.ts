@@ -300,7 +300,7 @@ function syncOpponentPreviewStats(row: DamageRowState): void {
 function syncOpponentPreviewIcon(row: DamageRowState): void {
 	const iconEls = opponentPreviewIconEls.get(row);
 	if (!iconEls) return;
-	void applySprite(iconEls.icon, iconEls.fallback, row.name.trim(), true);
+	void applySprite(iconEls.icon, iconEls.fallback, row.name.trim(), "icon");
 }
 
 // 共通プレビューは固定フッターなので、相手ビルド・育成タブのいずれを編集しても
@@ -326,7 +326,7 @@ function buildSelectionHeadingRow(row: DamageRowState): HTMLElement {
 	selfIcon.style.display = "none";
 	const selfIconFallback = document.createElement("span");
 	selfIconFallback.className = "damage-detail-selection-icon-fallback";
-	void applySprite(selfIcon, selfIconFallback, selfSpeciesName, true);
+	void applySprite(selfIcon, selfIconFallback, selfSpeciesName, "icon");
 	const selfItemIcon = document.createElement("img");
 	selfItemIcon.className = "damage-detail-selection-item-icon";
 	selfItemIcon.alt = "";
@@ -361,7 +361,7 @@ function buildSelectionHeadingRow(row: DamageRowState): HTMLElement {
 	opponentIcon.style.display = "none";
 	const opponentIconFallback = document.createElement("span");
 	opponentIconFallback.className = "damage-detail-selection-icon-fallback";
-	void applySprite(opponentIcon, opponentIconFallback, row.name.trim(), true);
+	void applySprite(opponentIcon, opponentIconFallback, row.name.trim(), "icon");
 	const opponentItemIcon = document.createElement("img");
 	opponentItemIcon.className = "damage-detail-selection-item-icon";
 	opponentItemIcon.alt = "";

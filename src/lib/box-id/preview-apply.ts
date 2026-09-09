@@ -98,7 +98,13 @@ export function applyPokemonPreview(
         fallback.textContent = view.speciesName.slice(0, 1);
       } else {
         sprite.src = view.championSpriteUrl;
+        let triedFull = false;
         sprite.onerror = () => {
+          if (!triedFull && view.championSpriteFullUrl) {
+            triedFull = true;
+            sprite.src = view.championSpriteFullUrl;
+            return;
+          }
           sprite.onerror = null;
           if (view.officialArtworkUrl) sprite.src = view.officialArtworkUrl;
         };
