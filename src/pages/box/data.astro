@@ -82,119 +82,14 @@ const hasData = hasSingleBattleData(opgg);
   import { hydrateGuestMobilePreview } from '../../lib/box-id/mobile-preview-hydrate';
   import { getGuestPokemon } from '../../lib/data/guest-store';
   import { isGuestMode } from '../../lib/data/guest-mode';
-  import {
-    evSpreadLabel,
-    imageIdByName,
-    moveTypeByName,
-    natureModifierStats,
-    usageRateLabel,
-    type RankedRow,
-    type EvRankedRow,
-    type SingleFormatData,
-  } from '../../lib/battle-data-card';
-  import { championSpriteIconUrl, championSpriteUrl, officialArtworkUrl } from '../../lib/pokemon-master-data';
-  import { itemIconUrl } from '../../lib/sprite-urls';
-  import { DEFAULT_TYPE_COLOR, TYPE_COLORS } from '../../lib/type-colors';
+  import { renderBattleDataCardHtml } from '../../lib/battle-data-card-html';
+  import type { SingleFormatData } from '../../lib/battle-data-card';
   const main = document.querySelector<HTMLElement>('.box-data-main');
-
-  function setEmpty(cell: Element): void {
-    const body = cell.querySelector<HTMLElement>('.trend-cell-body');
-    if (body) body.replaceChildren(Object.assign(document.createElement('strong'), { textContent: 'データなし' }));
-  }
-
-  function renderRows(cell: Element, rows: RankedRow[] | undefined, render: (row: RankedRow, index: number) => HTMLElement): void {
-    const body = cell.querySelector<HTMLElement>('.trend-cell-body');
-    if (!body) return;
-    if (!rows?.length) return setEmpty(cell);
-    const list = document.createElement('ul');
-    list.className = 'trend-rank-list';
-    rows.forEach((row, index) => list.appendChild(render(row, index)));
-    body.replaceChildren(list);
-  }
-
-  function baseRow(row: RankedRow, className: string): HTMLLIElement {
-    const item = document.createElement('li');
-    item.className = `trend-rank-row ${className}`;
-    return item;
-  }
 
   function renderBattleDataCard(single: SingleFormatData): void {
     const card = document.querySelector<HTMLElement>('[data-battle-data-card]');
     if (!card) return;
-    const cells = Array.from(card.children);
-    renderRows(cells[0], single.abilities, (row) => {
-      const item = baseRow(row, 'trend-rank-row--text2');
-      item.append(Object.assign(document.createElement('span'), { className: 'trend-rank-name', textContent: row.name }), Object.assign(document.createElement('span'), { className: 'trend-rank-rate', textContent: usageRateLabel(row.usageRate) }));
-      return item;
-    });
-    renderRows(cells[1], single.natures, (row) => {
-      const item = baseRow(row, 'trend-rank-row--nature3');
-      const modifier = natureModifierStats(row.name);
-      const modifierEl = document.createElement('span');
-      modifierEl.className = 'trend-nature-modifier';
-      if (modifier) {
-        modifierEl.setAttribute('aria-label', `${modifier.up}↑ ${modifier.down}↓`);
-        modifierEl.append(Object.assign(document.createElement('span'), { className: 'trend-nature-modifier-up', textContent: `${modifier.up}↑` }), document.createTextNode(' '), Object.assign(document.createElement('span'), { className: 'trend-nature-modifier-down', textContent: `${modifier.down}↓` }));
-      }
-      item.append(Object.assign(document.createElement('span'), { className: 'trend-rank-name', textContent: row.name }), modifierEl, Object.assign(document.createElement('span'), { className: 'trend-rank-rate', textContent: usageRateLabel(row.usageRate) }));
-      return item;
-    });
-    renderRows(cells[2], single.items, (row) => {
-      const item = baseRow(row, 'trend-rank-row--icon3');
-      const icon = document.createElement('img');
-      icon.src = itemIconUrl(row.name);
-      icon.alt = '';
-      icon.loading = 'lazy';
-      icon.onerror = () => item.classList.replace('trend-rank-row--icon3', 'trend-rank-row--text2');
-      const iconWrap = Object.assign(document.createElement('span'), { className: 'trend-rank-icon' });
-      iconWrap.appendChild(icon);
-      item.append(iconWrap, Object.assign(document.createElement('span'), { className: 'trend-rank-name', textContent: row.name }), Object.assign(document.createElement('span'), { className: 'trend-rank-rate', textContent: usageRateLabel(row.usageRate) }));
-      return item;
-    });
-    renderRows(cells[3], single.moves, (row) => {
-      const type = moveTypeByName(row.name);
-      const item = baseRow(row, type ? 'trend-rank-row--type3' : 'trend-rank-row--text2');
-      if (type) item.appendChild(Object.assign(document.createElement('span'), { className: 'trend-rank-type-bar', title: type, ariaLabel: `${type}タイプ` }, { style: `--trend-move-type-color: ${TYPE_COLORS[type] ?? DEFAULT_TYPE_COLOR}` }));
-      item.append(Object.assign(document.createElement('span'), { className: 'trend-rank-name', textContent: row.name }), Object.assign(document.createElement('span'), { className: 'trend-rank-rate', textContent: usageRateLabel(row.usageRate) }));
-      return item;
-    });
-    const evRows = single.evs;
-    const evBody = cells[4]?.querySelector<HTMLElement>('.trend-cell-body');
-    if (!evRows?.length) setEmpty(cells[4]);
-    else if (evBody) {
-      const list = document.createElement('ul');
-      list.className = 'trend-rank-list';
-      evRows.forEach((row: EvRankedRow) => list.append(Object.assign(document.createElement('li'), { className: 'trend-rank-row trend-rank-row--text2' }, { innerHTML: `<span class="trend-rank-name"></span><span class="trend-rank-rate"></span>` })));
-      Array.from(list.children).forEach((item, index) => {
-        const row = evRows[index];
-        item.querySelector('.trend-rank-name')!.textContent = evSpreadLabel(row.values);
-        item.querySelector('.trend-rank-rate')!.textContent = usageRateLabel(row.usageRate);
-      });
-      evBody.replaceChildren(list);
-    }
-    renderRows(cells[5], single.teammates, (row, index) => {
-      const imageId = imageIdByName(row.name);
-      const item = baseRow(row, imageId === null ? 'trend-rank-row--rank-name2' : 'trend-rank-row--rank-icon3');
-      item.appendChild(Object.assign(document.createElement('span'), { className: 'trend-rank-order', textContent: String(index + 1), ariaLabel: `${index + 1}位` }));
-      if (imageId !== null) {
-        const image = document.createElement('img');
-        image.className = 'trend-rank-icon--pokemon';
-        // 22〜28px表示なので96pxのWebPを優先し、失敗時に320px PNG→公式絵へ退避する。
-        image.src = championSpriteIconUrl(imageId);
-        image.alt = '';
-        image.loading = 'lazy';
-        let triedPng = false;
-        image.onerror = () => {
-          if (!triedPng) { triedPng = true; image.src = championSpriteUrl(imageId); return; }
-          image.onerror = null;
-          image.src = officialArtworkUrl(imageId);
-        };
-        item.appendChild(Object.assign(document.createElement('span'), { className: 'trend-rank-icon' }));
-        item.lastElementChild!.appendChild(image);
-      }
-      item.appendChild(Object.assign(document.createElement('span'), { className: 'trend-rank-name', textContent: row.name }));
-      return item;
-    });
+    card.outerHTML = renderBattleDataCardHtml(single);
   }
 
   // SSRの空プレビューをlocalStorageの個体で置き換え、種族名だけを使う公開APIから

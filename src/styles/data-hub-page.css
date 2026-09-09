@@ -191,6 +191,8 @@ body.data-hub-page .app-main > .second-header {
   content-visibility: auto;
   contain-intrinsic-size: 522px;
 }
+/* 遅延カードはヘッダだけでは短すぎるため、予約高でレールとの順位対応を維持する。 */
+.battle-data-entry[data-battle-data-pending] { min-height: 522px; }
 .battle-data-entry[hidden] { display: none; }
 
 /* 順位・ポケモンアイコン・名前を並べるカード見出し */

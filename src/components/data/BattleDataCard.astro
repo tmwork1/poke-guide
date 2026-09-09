@@ -1,69 +1,16 @@
 ---
 // バトルデータカード(特性/性格/アイテム/わざ/努力値/同時採用ポケモンの2x3グリッド、
 // docs/ui/mobile/7.png)。/box/data(個体ごと)と /data のバトルデータタブ(全体
-// ランキング)でマークアップを完全に一致させるため、実装をここへ一本化する。
+// ランキング)、および /data の遅延描画で同じマークアップを使う。
 // スタイルは src/styles/battle-data-card.css(利用側ページが各自import)。
-import {
-  imageIdByName,
-  moveTypeByName,
-  natureModifierLabel,
-  natureModifierStats,
-  evSpreadLabel,
-  usageRateLabel,
-  type SingleFormatData,
-} from '../../lib/battle-data-card';
-import { championSpriteIconUrl, championSpriteUrl, officialArtworkUrl } from '../../lib/pokemon-master-data';
-import { itemIconUrl } from '../../lib/sprite-urls';
-import { DEFAULT_TYPE_COLOR, TYPE_COLORS } from '../../lib/type-colors';
+import { renderBattleDataCardHtml } from '../../lib/battle-data-card-html';
+import type { SingleFormatData } from '../../lib/battle-data-card';
 
 interface Props {
   single: SingleFormatData | null | undefined;
 }
 
 const { single } = Astro.props;
-const abilities = single?.abilities ?? [];
-const natures = single?.natures ?? [];
-const items = single?.items ?? [];
-const moves = single?.moves ?? [];
-const evs = single?.evs ?? [];
-const teammates = single?.teammates ?? [];
 ---
 
-<div class="trend-detail-card" data-battle-data-card>
-  <div class="trend-detail-cell">
-    <span>特性</span>
-    <div class="trend-cell-body">
-      {abilities.length ? <ul class="trend-rank-list">{abilities.map((row) => <li class="trend-rank-row trend-rank-row--text2"><span class="trend-rank-name">{row.name}</span><span class="trend-rank-rate">{usageRateLabel(row.usageRate)}</span></li>)}</ul> : <strong>データなし</strong>}
-    </div>
-  </div>
-  <div class="trend-detail-cell">
-    <span>性格</span>
-    <div class="trend-cell-body">
-      {natures.length ? <ul class="trend-rank-list">{natures.map((row) => { const modifier = natureModifierStats(row.name); return <li class="trend-rank-row trend-rank-row--nature3"><span class="trend-rank-name">{row.name}</span><span class="trend-nature-modifier" aria-label={modifier ? natureModifierLabel(row.name) : undefined}>{modifier && <><span class="trend-nature-modifier-up">{modifier.up}↑</span>{' '}<span class="trend-nature-modifier-down">{modifier.down}↓</span></>}</span><span class="trend-rank-rate">{usageRateLabel(row.usageRate)}</span></li>; })}</ul> : <strong>データなし</strong>}
-    </div>
-  </div>
-  <div class="trend-detail-cell">
-    <span>もちもの</span>
-    <div class="trend-cell-body">
-      {items.length ? <ul class="trend-rank-list">{items.map((row) => <li class="trend-rank-row trend-rank-row--icon3"><span class="trend-rank-icon"><img src={itemIconUrl(row.name)} onerror="this.closest('.trend-rank-row').classList.replace('trend-rank-row--icon3','trend-rank-row--text2');this.parentElement.remove()" alt="" loading="lazy" /></span><span class="trend-rank-name">{row.name}</span><span class="trend-rank-rate">{usageRateLabel(row.usageRate)}</span></li>)}</ul> : <strong>データなし</strong>}
-    </div>
-  </div>
-  <div class="trend-detail-cell">
-    <span>わざ</span>
-    <div class="trend-cell-body">
-      {moves.length ? <ul class="trend-rank-list">{moves.map((row) => { const type = moveTypeByName(row.name); return <li class:list={['trend-rank-row', type ? 'trend-rank-row--type3' : 'trend-rank-row--text2']}>{type && <span class="trend-rank-type-bar" style={`--trend-move-type-color: ${TYPE_COLORS[type] ?? DEFAULT_TYPE_COLOR};`} title={type} aria-label={`${type}タイプ`} />}<span class="trend-rank-name">{row.name}</span><span class="trend-rank-rate">{usageRateLabel(row.usageRate)}</span></li>; })}</ul> : <strong>データなし</strong>}
-    </div>
-  </div>
-  <div class="trend-detail-cell">
-    <span>努力値</span>
-    <div class="trend-cell-body">
-      {evs.length ? <ul class="trend-rank-list">{evs.map((row) => <li class="trend-rank-row trend-rank-row--text2"><span class="trend-rank-name">{evSpreadLabel(row.values)}</span><span class="trend-rank-rate">{usageRateLabel(row.usageRate)}</span></li>)}</ul> : <strong>データなし</strong>}
-    </div>
-  </div>
-  <div class="trend-detail-cell">
-    <span>同時採用</span>
-    <div class="trend-cell-body">
-      {teammates.length ? <ul class="trend-rank-list">{teammates.map((row, index) => { const imageId = imageIdByName(row.name); return <li class:list={['trend-rank-row', imageId !== null ? 'trend-rank-row--rank-icon3' : 'trend-rank-row--rank-name2']}><span class="trend-rank-order" aria-label={`${index + 1}位`}>{index + 1}</span>{imageId !== null && <span class="trend-rank-icon"><img class="trend-rank-icon--pokemon" src={championSpriteIconUrl(imageId)} onerror={`this.onerror=()=>{this.onerror=()=>{this.onerror=null;this.src='${officialArtworkUrl(imageId)}';};this.src='${championSpriteUrl(imageId)}';};`} alt="" loading="lazy" /></span>}<span class="trend-rank-name">{row.name}</span></li>; })}</ul> : <strong>データなし</strong>}
-    </div>
-  </div>
-</div>
+<Fragment set:html={renderBattleDataCardHtml(single)} />

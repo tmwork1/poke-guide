@@ -86,6 +86,14 @@ if (seasonList?.pokemon) {
     });
   }
 }
+
+// 初期表示に必要な分だけSSRし、残りはカードを開く直前に共有レンダラーで差し込む。
+// article自体は全件残すため、検索・ジャンプレールの対象と順序は従来どおりになる。
+const BATTLE_DATA_SSR_CARD_COUNT = 8;
+const battleDataPayload = Object.fromEntries(
+  entries.slice(BATTLE_DATA_SSR_CARD_COUNT).map((entry) => [entry.elementId, entry.single]),
+);
+const battleDataPayloadJson = JSON.stringify(battleDataPayload).replace(/</g, '\\u003c');
 ---
 
 <AppLayout title="データ" current="data" bodyClass="data-hub-page">
@@ -171,6 +179,7 @@ if (seasonList?.pokemon) {
 									class="battle-data-entry"
 									id={entry.elementId}
 									data-battle-data-entry
+									data-battle-data-pending={entry.rank > BATTLE_DATA_SSR_CARD_COUNT ? '' : undefined}
 									data-species-name={entry.name}
 									data-search-text={[
 										entry.name,
@@ -184,10 +193,11 @@ if (seasonList?.pokemon) {
 										{entry.imageId !== null && <img class="battle-data-entry-icon" src={championSpriteIconUrl(entry.imageId)} onerror={`this.onerror=()=>{this.onerror=()=>{this.onerror=null;this.src='${officialArtworkUrl(entry.imageId)}';};this.src='${championSpriteUrl(entry.imageId)}';};`} alt="" loading="lazy" />}
 										<span class="battle-data-entry-name">{entry.name}</span>
 									</header>
-									<BattleDataCard single={entry.single} />
+									{entry.rank <= BATTLE_DATA_SSR_CARD_COUNT && <BattleDataCard single={entry.single} />}
 								</article>
 							))}
 						</div>
+						{entries.length > BATTLE_DATA_SSR_CARD_COUNT && <script type="application/json" id="battle-data-payload" set:html={battleDataPayloadJson} />}
 					</div>
 				) : (
 					<div class="empty-state">
@@ -230,6 +240,8 @@ if (seasonList?.pokemon) {
 
 	<script>
 		import { kanaIncludes } from '../../lib/kana';
+		import { renderBattleDataCardHtml } from '../../lib/battle-data-card-html';
+		import type { SingleFormatData } from '../../lib/battle-data-card';
 
 		const list = document.querySelector<HTMLElement>('#battle-data-list');
 		const scrollContainer = document.querySelector<HTMLElement>('[data-data-hub-scroll]');
@@ -247,6 +259,68 @@ if (seasonList?.pokemon) {
 		let visibleRailItems = railItems;
 		let expectedRailScrollTop: number | null = null;
 		let expectedCardScrollTop: number | null = null;
+		const payloadScript = document.querySelector<HTMLScriptElement>('#battle-data-payload');
+		let deferredCards: Record<string, SingleFormatData> | null = null;
+		let cardObserver: IntersectionObserver | null = null;
+
+		function loadDeferredCards(): Record<string, SingleFormatData> {
+			if (deferredCards) return deferredCards;
+			try {
+				deferredCards = JSON.parse(payloadScript?.textContent ?? '{}') as Record<string, SingleFormatData>;
+			} catch (error) {
+				console.error('[data] deferred battle data parsing failed:', error);
+				deferredCards = {};
+			}
+			return deferredCards;
+		}
+
+		function renderDeferredCard(entry: HTMLElement): void {
+			const payload = loadDeferredCards();
+			const single = payload[entry.id];
+			if (!single) return;
+			entry.insertAdjacentHTML('beforeend', renderBattleDataCardHtml(single));
+			entry.removeAttribute('data-battle-data-pending');
+			cardObserver?.unobserve(entry);
+			delete payload[entry.id];
+			if (Object.keys(payload).length === 0) {
+				deferredCards = null;
+				payloadScript?.remove();
+			}
+		}
+
+		function renderCardRange(center: HTMLElement, radius = 2): void {
+			const index = entries.indexOf(center);
+			if (index < 0) return;
+			for (let itemIndex = Math.max(0, index - radius); itemIndex <= Math.min(entries.length - 1, index + radius); itemIndex += 1) {
+				renderDeferredCard(entries[itemIndex]);
+			}
+		}
+
+		function renderCardAtScrollPosition(): void {
+			if (visibleEntries.length === 0 || !scrollContainer || !list) return;
+			const position = scrollContainer.scrollTop - listTopInScrollContainer();
+			let index = 0;
+			while (index < visibleEntries.length - 1 && visibleEntries[index + 1].offsetTop <= position) index += 1;
+			renderCardRange(visibleEntries[index]);
+		}
+
+		if (scrollContainer && entries.some((entry) => entry.hasAttribute('data-battle-data-pending'))) {
+			if ('IntersectionObserver' in window) {
+				cardObserver = new IntersectionObserver((observedEntries) => {
+					for (const observed of observedEntries) {
+						if (observed.isIntersecting) renderDeferredCard(observed.target as HTMLElement);
+					}
+				}, { root: scrollContainer, rootMargin: '1200px 0px' });
+				for (const entry of entries) {
+					if (entry.hasAttribute('data-battle-data-pending')) cardObserver.observe(entry);
+				}
+			} else {
+				for (const entry of entries) renderDeferredCard(entry);
+			}
+			// 通常はアイドル中にJSONを先読みし、Observerの初回発火とレール操作の両方を待たせない。
+			if ('requestIdleCallback' in window) window.requestIdleCallback(() => loadDeferredCards());
+			else setTimeout(() => loadDeferredCards(), 0);
+		}
 
 		function markActiveRail(item: HTMLAnchorElement): void {
 			if (activeRailItem === item) return;
@@ -320,6 +394,8 @@ if (seasonList?.pokemon) {
 			}
 			visibleEntries = entries.filter((entry) => !entry.hidden);
 			visibleRailItems = railItems.filter((item) => !item.hidden);
+			// 絞り込み直後にも表示位置の結果カードが空にならないよう、Observerを待たずに描画する。
+			renderCardAtScrollPosition();
 			requestRailSync();
 		}
 
@@ -332,6 +408,8 @@ if (seasonList?.pokemon) {
 				if (!target) return;
 				event.preventDefault();
 				setActiveRail(item.dataset.speciesName ?? '');
+				// Observerはスクロール後に非同期で発火するため、ジャンプ先を先に埋める。
+				renderCardRange(target);
 				// 横スワイプ用のスクロール領域へ、カードの座標を直接指定する。
 				// scrollIntoView() ではページ側へスクロールが逃げることがある。
 				if (!scrollContainer) return;
