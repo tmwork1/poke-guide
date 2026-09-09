@@ -201,15 +201,16 @@
 	text-shadow: 0 1px 1px rgb(0 0 0 / 0.45);
 }
 
-/* わざ名の先頭に出すタイプカラーの長方形(タイプ判明までhiddenで非表示)。 */
+/* わざ名の先頭に出すタイプカラーの長方形(タイプ判明までは透明)。 */
 
 .team-overview-preview-card .pokemon-preview-moves .move-type-color {
 	flex: 0 0 var(--pokemon-preview-move-type-bar-width);
 	width: var(--pokemon-preview-move-type-bar-width);
+	background-color: transparent;
 	height: var(--pokemon-preview-move-type-bar-height);
 }
 
-.team-overview-preview-card .pokemon-preview-moves .move-type-color[hidden] {
+.team-overview-preview-card .pokemon-preview-moves .move-type-color--empty {
 	display: none;
 }
 

@@ -357,12 +357,13 @@
 .box-grid .box-card .card-move-type-bar {
   flex: 0 0 var(--box-card-move-type-bar-width);
   width: var(--box-card-move-type-bar-width);
+  background-color: transparent;
   height: var(--font-size-sm3); /* 技タイプバーの高さ。技名の文字サイズに合わせた寸法 */
 }
 .box-grid .box-card .card-move-type-bar--empty {
   background-color: #000; /* 技が空欄の行に表示するタイプバーの塗り色 */
 }
-.box-grid .box-card .card-move-type-bar[hidden] {
+.box-grid .box-card .card-move-type-bar--placeholder {
   display: none;
 }
 .box-grid .box-card .card-move-chip-text {

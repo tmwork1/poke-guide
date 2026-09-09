@@ -4,7 +4,7 @@
 // 編集フォームがある育成タブ(pokemon-edit-panel.ts)と、フォームを持たない読み取り専用タブ
 // (バトルデータ/上位チーム/相性、MobilePokemonPreview.astroの<script>から直接呼ぶ)の両方から
 // 共有する。以前は育成パネル側にだけこの処理があり、読み取り専用タブでは技名の左のバーが
-// 常にhiddenのまま塗られなかった。
+// 常に透明のまま塗られなかった。
 import { loadMoveTypeMap } from "../pokemon-master-data";
 import { TYPE_COLORS, DEFAULT_TYPE_COLOR } from "../type-colors";
 
@@ -17,15 +17,15 @@ const moveTypeMapPromise = loadMoveTypeMap();
 export function applyPreviewMoveTypeBar(slot: number, moveName: string, isStale?: () => boolean): void {
 	const bar = document.getElementById(`pokemon-preview-move-type-${slot}`) as HTMLElement | null;
 	if (!bar) return;
-	bar.hidden = true;
+	const normalizedMoveName = moveName.trim();
+	bar.classList.toggle("pokemon-preview-move-type-bar--empty", normalizedMoveName === "" || normalizedMoveName === "-");
 	bar.style.removeProperty("background-color");
-	if (!moveName) return;
+	if (normalizedMoveName === "" || normalizedMoveName === "-") return;
 	void moveTypeMapPromise.then((moveTypeMap) => {
 		if (isStale?.()) return;
-		const type = moveTypeMap.get(moveName);
+		const type = moveTypeMap.get(normalizedMoveName);
 		if (!type) return;
 		bar.style.backgroundColor = TYPE_COLORS[type] ?? DEFAULT_TYPE_COLOR;
-		bar.hidden = false;
 	});
 }
 

@@ -2136,7 +2136,6 @@ if (opponentNotesSection) {
 			moveIdentity.className = "damage-column-move-identity";
 			const moveTypeBar = document.createElement("span");
 			moveTypeBar.className = "damage-column-move-type-bar";
-			moveTypeBar.hidden = true;
 			const moveText = document.createElement("span");
 			moveText.className = "damage-column-move-text";
 			moveIdentity.append(moveTypeBar, moveText);
@@ -2153,7 +2152,8 @@ if (opponentNotesSection) {
 				moveText.textContent = name || "技未設定";
 				moveText.classList.toggle("is-placeholder", name === "");
 				const type = moveDetailMapCache?.get(name)?.type ?? null;
-				moveTypeBar.hidden = type === null;
+				moveTypeBar.classList.toggle("damage-column-move-type-bar--empty", name === "" || name === "-");
+				moveTypeBar.style.removeProperty("background-color");
 				if (type !== null) moveTypeBar.style.backgroundColor = TYPE_COLORS[type] ?? DEFAULT_TYPE_COLOR;
 				hitText.hidden = true;
 				if (!name) {

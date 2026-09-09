@@ -253,7 +253,7 @@ export function renderBoxPokemonCard<T extends HTMLElement>(
 	nameRow.appendChild(nameEl);
 	body.appendChild(nameRow);
 
-	// 下段は技の縦リスト。空文字の技スロットは描画せず、不明タイプのアイコンはhiddenのままにする。
+	// 下段は技の縦リスト。空文字の技スロットは描画せず、不明タイプのバーは透明のままにする。
 	const movesGrid = document.createElement("div");
 	movesGrid.className = "card-moves-grid";
 	for (let i = 0; i < MOVE_SLOT_COUNT; i++) {
@@ -263,20 +263,24 @@ export function renderBoxPokemonCard<T extends HTMLElement>(
 		const moveTypeBar = document.createElement("span");
 		moveTypeBar.className = "card-move-type-bar";
 		moveEl.appendChild(moveTypeBar);
-		if (moveName) {
-			moveTypeBar.hidden = true;
+		if (moveName && moveName !== "-") {
 			void moveTypeMapPromise.then((moveTypeMap) => {
 				const moveType = moveTypeMap.get(moveName);
 				if (!moveType) return;
 				moveTypeBar.style.backgroundColor = TYPE_COLORS[moveType] ?? DEFAULT_TYPE_COLOR;
-				moveTypeBar.hidden = false;
 			});
 			const moveTextEl = document.createElement("span");
 			moveTextEl.className = "card-move-chip-text";
 			moveTextEl.textContent = moveName;
 			moveEl.appendChild(moveTextEl);
-		} else {
+		} else if (!moveName) {
 			moveTypeBar.classList.add("card-move-type-bar--empty");
+		} else {
+			moveTypeBar.classList.add("card-move-type-bar--placeholder");
+			const moveTextEl = document.createElement("span");
+			moveTextEl.className = "card-move-chip-text";
+			moveTextEl.textContent = moveName;
+			moveEl.appendChild(moveTextEl);
 		}
 		movesGrid.appendChild(moveEl);
 	}

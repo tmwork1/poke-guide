@@ -897,7 +897,6 @@ if (!isGuestNewMode) {
 					const type = detailMap.get(moveName)?.type;
 					if (!type) continue;
 					colorEl.style.backgroundColor = TYPE_COLORS[type] ?? DEFAULT_TYPE_COLOR;
-					colorEl.hidden = false;
 				}
 			}
 
@@ -1002,9 +1001,6 @@ if (!isGuestNewMode) {
 					return;
 				}
 				button.disabled = true;
-				// 登録失敗時に鉛筆アイコンを含む元の表示を復元する。
-				const originalContent = Array.from(button.childNodes, (node) => node.cloneNode(true));
-				button.textContent = "登録中…";
 				try {
 					const { id } = await createOwnedPokemon({
 						species_name: suggestion.speciesName,
@@ -1023,7 +1019,6 @@ if (!isGuestNewMode) {
 				} catch (err) {
 					console.error(err);
 					button.disabled = false;
-					button.replaceChildren(...originalContent);
 					window.alert("ポケモンを登録できませんでした。時間をおいて再度お試しください。");
 				}
 			}
@@ -1523,7 +1518,7 @@ if (!isGuestNewMode) {
 						const move = document.createElement("li");
 						const typeColor = document.createElement("span");
 						typeColor.className = "move-type-color";
-						typeColor.hidden = true;
+						typeColor.classList.toggle("move-type-color--empty", !moveName?.trim() || moveName?.trim() === "-");
 						const text = document.createElement("span");
 						text.textContent = moveName?.trim() || "-";
 						move.append(typeColor, text);

@@ -1226,10 +1226,11 @@ body.box-edit-page {
 #opponent-notes-section .damage-column-move-type-bar {
   width: var(--damage-card-move-type-bar-width);
   height: 1em;
-  flex: none;
+  flex: 0 0 var(--damage-card-move-type-bar-width);
+  background-color: transparent;
 }
 
-#opponent-notes-section .damage-column-move-type-bar[hidden] {
+#opponent-notes-section .damage-column-move-type-bar--empty {
   display: none;
 }
 
@@ -2654,11 +2655,8 @@ body:has(#stat-adjust-sheet.is-expanded) #damage-suggest-section {
 #opponent-notes-section .damage-suggest-move-type-bar {
   width: var(--damage-card-move-type-bar-width);
   height: 1em;
-  flex: none;
-}
-
-#opponent-notes-section .damage-suggest-move-type-bar[hidden] {
-  display: none;
+  flex: 0 0 var(--damage-card-move-type-bar-width);
+  background-color: transparent;
 }
 
 #opponent-notes-section .damage-suggest-move {

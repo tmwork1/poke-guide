@@ -197,9 +197,10 @@
 }
 
 .pokemon-preview-move-type-bar {
-  flex: 0 0 var(--space-1);
-  width: var(--space-1);
+  flex: 0 0 var(--pokemon-preview-move-type-bar-width);
+  width: var(--pokemon-preview-move-type-bar-width);
   height: var(--pokemon-preview-move-type-bar-height);
+  background-color: transparent;
 }
 
 .pokemon-preview-icon-text img {
@@ -221,7 +222,7 @@
   flex-shrink: 0;
 }
 
-.pokemon-preview-move-type-bar[hidden] {
+.pokemon-preview-move-type-bar--empty {
   display: none;
 }
 

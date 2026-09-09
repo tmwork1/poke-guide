@@ -258,13 +258,11 @@ function buildSuggestionCard(suggestion: DamageCalcSuggestion): HTMLElement {
 	moveRow.className = "damage-suggest-move-row";
 	const moveIdentity = document.createElement("span");
 	moveIdentity.className = "damage-suggest-move-identity";
-	// 技カードと同じタイプカラーのバーを技名の左に置く。タイプ判明までは隠す。
+	// 技カードと同じタイプカラーのバーを技名の左に置く。タイプ判明までは透明にする。
 	const moveTypeBar = document.createElement("span");
 	moveTypeBar.className = "damage-suggest-move-type-bar";
-	moveTypeBar.hidden = true;
 	void moveDetailMapPromise.then((details) => {
 		const type = details.get(suggestion.moveName)?.type ?? null;
-		moveTypeBar.hidden = type === null;
 		if (type !== null) moveTypeBar.style.backgroundColor = TYPE_COLORS[type] ?? DEFAULT_TYPE_COLOR;
 	});
 	const moveEl = document.createElement("span");

@@ -1296,7 +1296,8 @@ body.box-edit-page {
 		object-fit: contain;
 	}
 	#damage-detail-panel-body .damage-detail-move-type-icon[hidden] {
-		display: none;
+		display: block;
+		visibility: hidden;
 	}
 	/* --------------------------------------------------------------------------
 		実数値・努力値の編集
