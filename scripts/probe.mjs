@@ -46,6 +46,9 @@
  *   --scroll <sel|px>   要素までスクロール、または縦に指定px
  *   --wait <sel>        その要素が出るまで待つ
  *   --wait-ms <n>       n ミリ秒待つ
+ *   --mark <label>      --cls の計測をここで区切る(以降の揺れを別フェーズとして集計)。
+ *                       例: 初期表示 → --mark tab-damage → --click ... で、タブ切替後の
+ *                       揺れだけを取り出せる。操作自体は何もしない
  *
  * 実測(いずれも複数指定可。指定が1つも無ければ `--overflow` 相当のサマリだけ出す):
  *   --rect <sel>            位置・サイズ・可視性・はみ出しを実測
@@ -58,8 +61,15 @@
  *   --limit <n>             セレクタごとの最大報告件数。既定 10
  *   --json                  JSONだけを出す(既定は人が読めるサマリ + JSON)
  *
- * 追加観測: --from は遷移元画面、--guest は開発用ゲストCookie、--cls は初期レイアウトシフト、--timing は Navigation/Paint Timing、
+ * 追加観測: --from は遷移元画面、--guest は開発用ゲストCookie、--cls はレイアウトシフト(揺れ)、--timing は Navigation/Paint Timing、
  * --repeat <n> は各観測を独立 context で n 回実行して中央値も出力する。
+ *
+ * 【--cls の読み方】
+ *   total   : 入力起因(hadRecentInput)を除いた合計。Web VitalsのCLSと同じ定義
+ *   totalAll: 入力起因も含めた合計。**操作後の揺れはこちらを見る**(タップ直後の再描画は
+ *             hadRecentInputが立ち total から落ちるため、total だけ見ると揺れを見逃す)
+ *   phases  : --mark で区切ったフェーズごとの合計。区切りが無ければ load フェーズ1つ
+ *   各shiftのselector/dx/dy/dw/dh が犯人と動いた量。startTimeで発生タイミングが分かる
  */
 
 import { chromium } from "@playwright/test";
@@ -75,7 +85,7 @@ import {
 } from "./lib/page-session.mjs";
 
 const USAGE = [
-	"  --from <path> / --guest / --cls / --timing / --repeat <n>",
+	"  --from <path> / --guest / --cls / --mark <label> / --timing / --repeat <n>",
 	"使い方: npm run probe -- --page <path> [操作] [実測]",
 	"",
 	"  対象  --page box/<id> [--theme dark] [--size 390x844]",
@@ -171,6 +181,7 @@ function parseArgs(argv) {
 			case "--scroll":
 			case "--wait":
 			case "--wait-ms":
+			case "--mark":
 				opts.actions.push({ kind: arg.slice(2), value: next() });
 				break;
 			case "--rect":
@@ -323,6 +334,13 @@ async function runAction(page, action) {
 		case "wait-ms":
 			await page.waitForTimeout(Number(value));
 			break;
+		// --cls のフェーズ区切り。画面には何もせず、この時点の時刻にラベルを打つだけ。
+		// 以降に起きたレイアウトシフトは、集計時にこのラベルのフェーズへ振り分けられる。
+		case "mark":
+			await page.evaluate((label) => {
+				(window.__probeClsMarks ??= []).push({ label, time: performance.now() });
+			}, value);
+			break;
 		default:
 			throw new Error(`不明な操作: ${kind}`);
 	}
@@ -466,6 +484,7 @@ async function installNavigationObservers(page) {
 		};
 		const rectFor = (rect) => rect ? { x: rect.x, y: rect.y, width: rect.width, height: rect.height } : null;
 		window.__probeLayoutShifts = [];
+		window.__probeClsMarks = [];
 		window.__probeLcp = null;
 		try {
 			new PerformanceObserver((list) => {
@@ -499,22 +518,39 @@ function median(values) {
 	return ordered.length % 2 ? ordered[middle] : (ordered[middle - 1] + ordered[middle]) / 2;
 }
 
-async function collectNavigationMetrics(page, includeCls, includeTiming) {
-	return page.evaluate(({ includeCls, includeTiming }) => {
+async function collectNavigationMetrics(page, includeCls, includeTiming, limit) {
+	return page.evaluate(({ includeCls, includeTiming, limit }) => {
 		const round = (value) => Number.isFinite(value) ? Math.round(value * 100) / 100 : null;
 		const shifts = includeCls ? (window.__probeLayoutShifts ?? []) : [];
+		const marks = includeCls ? (window.__probeClsMarks ?? []) : [];
+		// --mark で打った時刻でフェーズに区切る。区切りが無ければ load フェーズ1つ。
+		const phaseBounds = [{ label: "load", from: 0 }, ...marks.map((mark) => ({ label: mark.label, from: mark.time }))];
+		const phaseOf = (startTime) => {
+			let label = phaseBounds[0].label;
+			for (const bound of phaseBounds) if (startTime >= bound.from) label = bound.label;
+			return label;
+		};
+		const describe = (shift) => {
+			const source = shift.sources[0] ?? { selector: "unknown", prevRect: null, currRect: null };
+			const prev = source.prevRect;
+			const curr = source.currRect;
+			return {
+				value: round(shift.value), hadRecentInput: shift.hadRecentInput, startTime: round(shift.startTime),
+				phase: phaseOf(shift.startTime), selector: source.selector,
+				dx: round((curr?.x ?? 0) - (prev?.x ?? 0)), dy: round((curr?.y ?? 0) - (prev?.y ?? 0)),
+				dw: round((curr?.width ?? 0) - (prev?.width ?? 0)), dh: round((curr?.height ?? 0) - (prev?.height ?? 0)),
+			};
+		};
+		const sum = (list) => round(list.reduce((total, shift) => total + shift.value, 0));
 		const cls = includeCls ? {
-			total: round(shifts.filter((shift) => !shift.hadRecentInput).reduce((total, shift) => total + shift.value, 0)),
-			shifts: [...shifts].sort((a, b) => b.value - a.value).slice(0, 10).map((shift) => {
-				const source = shift.sources[0] ?? { selector: "unknown", prevRect: null, currRect: null };
-				const prev = source.prevRect;
-				const curr = source.currRect;
-				return {
-					value: round(shift.value), hadRecentInput: shift.hadRecentInput, startTime: round(shift.startTime), selector: source.selector,
-					dx: round((curr?.x ?? 0) - (prev?.x ?? 0)), dy: round((curr?.y ?? 0) - (prev?.y ?? 0)),
-					dw: round((curr?.width ?? 0) - (prev?.width ?? 0)), dh: round((curr?.height ?? 0) - (prev?.height ?? 0)),
-				};
+			// total は Web Vitals と同じ定義(入力起因を除く)。操作後の揺れは totalAll を見る。
+			total: sum(shifts.filter((shift) => !shift.hadRecentInput)),
+			totalAll: sum(shifts),
+			phases: phaseBounds.map((bound) => {
+				const inPhase = shifts.filter((shift) => phaseOf(shift.startTime) === bound.label);
+				return { label: bound.label, from: round(bound.from), total: sum(inPhase), count: inPhase.length };
 			}),
+			shifts: [...shifts].sort((a, b) => b.value - a.value).slice(0, limit).map(describe),
 		} : undefined;
 		if (!includeTiming) return { cls };
 		const nav = performance.getEntriesByType("navigation")[0];
@@ -532,7 +568,7 @@ async function collectNavigationMetrics(page, includeCls, includeTiming) {
 				resources: { count: resourceRows.length, transferSize: resourceRows.reduce((total, entry) => total + entry.transferSize, 0), largest: resourceRows.slice(0, 10) },
 			},
 		};
-	}, { includeCls, includeTiming });
+	}, { includeCls, includeTiming, limit });
 }
 
 async function measureWithObservers(browser, opts, viewport, pagePath) {
@@ -559,9 +595,9 @@ async function measureWithObservers(browser, opts, viewport, pagePath) {
 		await page.evaluate(() => document.fonts?.ready);
 		if (opts.cls || opts.timing) await page.waitForTimeout(500);
 		for (const action of opts.actions) await runAction(page, action);
-		if (opts.actions.length > 0) await page.waitForTimeout(250);
+		if (opts.actions.length > 0) await page.waitForTimeout(opts.cls ? 1000 : 250);
 		for (const probe of opts.probes) report.probes.push(await runProbe(page, probe, opts));
-		if (opts.cls || opts.timing) Object.assign(report, await collectNavigationMetrics(page, opts.cls, opts.timing));
+		if (opts.cls || opts.timing) Object.assign(report, await collectNavigationMetrics(page, opts.cls, opts.timing, opts.limit));
 	} finally {
 		await context.close();
 	}
@@ -570,7 +606,7 @@ async function measureWithObservers(browser, opts, viewport, pagePath) {
 
 function timingMedian(reports, opts) {
 	const result = {};
-	if (opts.cls) result.cls = { total: median(reports.map((report) => report.cls?.total)) };
+	if (opts.cls) result.cls = { total: median(reports.map((report) => report.cls?.total)), totalAll: median(reports.map((report) => report.cls?.totalAll)) };
 	if (opts.timing) {
 		const names = ["ttfb", "responseEnd", "domInteractive", "domContentLoadedEventEnd", "loadEventEnd", "transferSize", "decodedBodySize", "fcp", "lcp"];
 		result.timing = Object.fromEntries(names.map((name) => [name, median(reports.map((report) => report.timing?.[name]))]));
@@ -598,8 +634,11 @@ async function runNewMeasurement(opts) {
 	if (!opts.json) {
 		const lines = ["", `=== ${report.url} (${opts.theme}, ${viewport.width}x${viewport.height}) HTTP ${report.status} ===`];
 		if (report.cls) {
-			lines.push(`CLS: ${report.cls.total}`);
-			for (const shift of report.cls.shifts) lines.push(`  ${shift.value} @ ${shift.startTime}ms ${shift.selector} dx=${shift.dx} dy=${shift.dy} dw=${shift.dw} dh=${shift.dh}${shift.hadRecentInput ? " (input)" : ""}`);
+			lines.push(`CLS: ${report.cls.total} (入力起因を含む合計 ${report.cls.totalAll})`);
+			if (report.cls.phases.length > 1) {
+				for (const phase of report.cls.phases) lines.push(`  [${phase.label}] ${phase.total} (${phase.count}件, ${phase.from}ms〜)`);
+			}
+			for (const shift of report.cls.shifts) lines.push(`  ${shift.value} @ ${shift.startTime}ms [${shift.phase}] ${shift.selector} dx=${shift.dx} dy=${shift.dy} dw=${shift.dw} dh=${shift.dh}${shift.hadRecentInput ? " (input)" : ""}`);
 		}
 		if (report.timing) {
 			const timing = report.timing;
