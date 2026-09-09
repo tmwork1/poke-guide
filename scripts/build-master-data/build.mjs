@@ -140,6 +140,9 @@ function buildPokemonLearnsets() {
 
 // WorkersのアセットマニフェストはURIエンコード済みのパスしか受け付けず(code 10304)、%や括弧を含む名前でデプロイが落ちた。
 // master-dataの生成物はASCII名で足りるため、次の生成で同じ事故をデプロイ前に止める。
+// なお Workers Builds のキューは滞留するので、修正をpushした後でも「壊れていた頃のコミット」の
+// ビルドが遅れて走って同じ10304で落ちることがある(2026-09-09に7f71804のビルドが25分遅れで失敗した)。
+// 落ちたビルドを見たら、まずそのビルドが**どのコミットのものか**を確認すること。
 function assertMasterDataFilenamesAreUrlSafe() {
   const masterDataDir = path.join(repoRoot, 'public', 'master-data');
   const pendingDirs = [masterDataDir];
