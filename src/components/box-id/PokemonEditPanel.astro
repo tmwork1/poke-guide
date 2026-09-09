@@ -7,6 +7,10 @@
 // 副作用importする(共有コア関数は src/lib/box-id/shared-core.ts 経由で pokemon-edit-panel.ts が使う)。
 import type { OwnedPokemonRecord } from '../../lib/owned-pokemon';
 import { TERA_TYPES } from '../../lib/tera-types';
+import pokemonMasterRaw from '../../../public/master-data/autocomplete/pokemon.json';
+import { buildPokemonPreviewViewModel, type PreviewPokemonMasterEntry } from '../../lib/box-id/preview-view-model';
+import { teraTypeIconUrl } from '../../lib/sprite-urls';
+import { DEFAULT_TYPE_COLOR, TYPE_COLORS } from '../../lib/type-colors';
 import '../../styles/move-picker-dialog.css';
 import '../../styles/team-card.css';
 import '../../styles/team-mate-card.css';
@@ -16,6 +20,12 @@ interface Props {
 	pokemon: OwnedPokemonRecord;
 }
 const { pokemon } = Astro.props;
+const master = (pokemonMasterRaw as PreviewPokemonMasterEntry[]).find((entry) => entry.name === pokemon.species_name);
+const preview = buildPokemonPreviewViewModel(pokemon, { species: master });
+const itemName = preview.itemName;
+const teraName = pokemon.tera_type ?? '';
+const teraIconUrl = teraTypeIconUrl(teraName);
+const teraFallbackColor = TYPE_COLORS[teraName] ?? DEFAULT_TYPE_COLOR;
 
 // 能力値ラベルは全角表記(「素早さ」等)だとラベル列(最大幅)がスライダー列(最狭・操作対象)を
 // 圧迫するため、表示上はH/A/B/C/D/Sの1文字表記に統一する(相手ビルド箱・/box一覧の
@@ -55,8 +65,8 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 			    自動的に回避する。 */}
 			<div class="top-block-icon">
 				<div id="species-icon-box" class="species-icon-box">
-					<img id="species-sprite" class="species-sprite-img" width="72" height="72" alt="" style="display:none;" />
-					<span id="species-sprite-fallback" class="sprite-fallback species-sprite-fallback-lg"></span>
+					<img id="species-sprite" class="species-sprite-img" width="72" height="72" src={preview.championSpriteUrl} onerror={preview.officialArtworkUrl ? `this.onerror=()=>{this.onerror=null;this.src='${preview.officialArtworkUrl}';};this.src='${preview.championSpriteFullUrl}';` : undefined} alt={preview.speciesName} hidden={!preview.championSpriteUrl} />
+					<span id="species-sprite-fallback" class="sprite-fallback species-sprite-fallback-lg" hidden={Boolean(preview.championSpriteUrl)} style={preview.championSpriteUrl ? undefined : "display:flex;"}>{preview.speciesName ? preview.speciesName.slice(0, 1) : '?'}</span>
 				</div>
 				<div class="top-block-icon-corner">
 					{/* <script>のapplyTypeBadge()がtypes全件ぶんの<img>をこの空コンテナに動的に
@@ -64,7 +74,9 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 					    片方のタイプが欠落する。タイプ数は種族によって1〜2件で可変のため、
 					    静的に<img>を並べず空コンテナにした)。.type-badge-inlineは
 					    position:staticにするクラス。 */}
-					<span id="species-type-badge" class="type-badge type-badge-multi type-badge-inline"></span>
+					<span id="species-type-badge" class="type-badge type-badge-multi type-badge-inline">{preview.typeIcons.map(({ name, url, fallbackColor }) => url ? (
+						<><img class="type-badge-img" width="20" height="20" src={url} alt={name} title={name} onerror={`this.hidden=true;const fallback=this.nextElementSibling;if(fallback instanceof HTMLElement){fallback.hidden=false;fallback.style.display='block';fallback.style.backgroundColor='${fallbackColor}';}`} /><span class="type-badge-fallback" hidden></span></>
+					) : <span class="type-badge-fallback" style={`display:block;background-color:${fallbackColor};`}></span>)}</span>
 					{/* #item-name-displayは読み取り専用の<span>で、#itemの値をそのまま反映する
 					    だけ(保存経路は#item自体、buildPayloadは変えない。<script>の
 					    updateItemNameDisplay参照)。item-image-badgeは通常フローの1項目として
@@ -73,17 +85,17 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 					    画像(読み取り専用、下記#top-block-tera-image参照)」の縦2段構成。 */}
 					<div class="top-block-icon-info">
 						<div class="top-block-item-display">
-							<span id="item-image-badge" class="item-image-badge" hidden>
-								<img id="item-image" class="item-image" width="30" height="30" alt="" style="display:none;" />
+							<span id="item-image-badge" class="item-image-badge" hidden={!preview.itemIconUrl}>
+								<img id="item-image" class="item-image" width="30" height="30" src={preview.itemIconUrl} alt="" hidden={!preview.itemIconUrl} onerror="this.hidden=true;const badge=this.closest('.item-image-badge');if(badge instanceof HTMLElement)badge.hidden=true;" />
 							</span>
-							<span id="item-name-display" class="item-name-display"></span>
+							<span id="item-name-display" class:list={["item-name-display", { "is-empty": !itemName }]} title={itemName}>{itemName || "もちものなし"}</span>
 						</div>
 						{/* 読み取り専用の<img>(クリックしても開かない。値の選択はテラスタル選択
 						    ボックス側で行う)。表示ロジックはapplyTeraImage()を再利用する
 						    (<script>のrefreshTopBlockTeraImage参照。テラス未設定時は画像・
 						    フォールバックとも隠れ、高さも詰まる)。 */}
-						<img id="top-block-tera-image" class="top-block-tera-image" alt="" style="display:none;" />
-						<span id="top-block-tera-image-fallback" class="top-block-tera-image-fallback" style="display:none;"></span>
+						<img id="top-block-tera-image" class="top-block-tera-image" src={teraIconUrl ?? undefined} alt={teraName} title={teraName} hidden={!teraIconUrl} onerror={`this.hidden=true;const fallback=document.getElementById('top-block-tera-image-fallback');if(fallback instanceof HTMLElement){fallback.hidden=false;fallback.style.backgroundColor='${teraFallbackColor}';}`} />
+						<span id="top-block-tera-image-fallback" class="top-block-tera-image-fallback" hidden></span>
 					</div>
 				</div>
 			</div>
@@ -121,11 +133,12 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 						<button
 							type="button"
 							id="item-dropdown-button"
-							class="item-dropdown-button"
+							class:list={["item-dropdown-button", { "is-item-unselected": !itemName }]}
 							aria-haspopup="dialog"
+							aria-label={itemName ? `もちもの: ${itemName}` : "もちもの: 未選択"}
 						>
-							<img id="item-dropdown-image" class="item-dropdown-image" alt="" style="display:none;" />
-							<span id="item-dropdown-placeholder" class="item-dropdown-placeholder">もちものなし</span>
+							<img id="item-dropdown-image" class="item-dropdown-image" src={preview.itemIconUrl} alt="" hidden={!preview.itemIconUrl} onerror="this.hidden=true;" />
+							<span id="item-dropdown-placeholder" class:list={["item-dropdown-placeholder", { "is-item-value-text": Boolean(itemName) }]}>{itemName || "もちものなし"}</span>
 						</button>
 					</div>
 				</div>
@@ -141,11 +154,12 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 						<button
 							type="button"
 							id="tera-dropdown-button"
-							class="tera-dropdown-button"
+							class:list={["tera-dropdown-button", { "is-tera-unselected": !teraName }]}
 							aria-haspopup="dialog"
+							aria-label={teraName ? `テラスタイプ: ${teraName}` : "テラスタイプ: 未選択"}
 						>
-							<img id="tera-dropdown-image" class="tera-dropdown-image" alt="" style="display:none;" />
-							<span id="tera-dropdown-placeholder" class="tera-dropdown-placeholder">テラスタルなし</span>
+							<img id="tera-dropdown-image" class="tera-dropdown-image" src={teraIconUrl ?? undefined} alt={teraName} hidden={!teraIconUrl} onerror="this.hidden=true;" />
+							<span id="tera-dropdown-placeholder" class:list={["tera-dropdown-placeholder", { "is-tera-value-text": Boolean(teraName) }]}>{teraName || "テラスタルなし"}</span>
 						</button>
 					</div>
 				</div>

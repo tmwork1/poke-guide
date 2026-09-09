@@ -198,6 +198,14 @@ export function flashAutofillHint(inputEl: HTMLInputElement, revertTitle: () => 
 // UI刷新: <img>にChampions用スプライトを表示する。表示サイズ帯に合わせた派生WebPを優先し、
 // 取得失敗時は320px PNG、公式絵、頭文字の順に退避する。
 // このアプリはモバイル専用で、スプライトの表示は大きくても142pxなので既定は medium(192px)。
+// 頭文字バッジ・色ボックスのフォールバックは、表示するときにインラインの display を書き込む
+// (`.sprite-fallback` の既定が display:none のため)。隠すときに hidden だけを立てても
+// インライン指定が勝って消えないので、必ずこの関数を通して両方を戻す。
+function hideFallback(fallbackEl: HTMLElement): void {
+	fallbackEl.hidden = true;
+	fallbackEl.style.display = "none";
+}
+
 export async function applySprite(
 	imgEl: HTMLImageElement,
 	fallbackEl: HTMLElement,
@@ -206,11 +214,16 @@ export async function applySprite(
 ): Promise<void> {
 	const imageId = name ? (await imageIdMapPromise).get(name) : undefined;
 	if (imageId == null) {
-		imgEl.style.display = "none";
+		imgEl.hidden = true;
+		fallbackEl.hidden = false;
 		fallbackEl.style.display = "flex";
 		fallbackEl.textContent = name ? name.charAt(0) : "?";
 		return;
 	}
+	imgEl.hidden = false;
+	// フォールバックは表示のたびにインラインの display を書き込むため、hidden だけでは
+	// 消えない(インライン指定が [hidden] の display:none に勝つ)。両方を戻す。
+	hideFallback(fallbackEl);
 	let triedPngFallback = false;
 	let triedArtworkFallback = false;
 	imgEl.onerror = () => {
@@ -224,13 +237,10 @@ export async function applySprite(
 			imgEl.src = officialArtworkUrl(imageId);
 			return;
 		}
-		imgEl.style.display = "none";
+		imgEl.hidden = true;
+		fallbackEl.hidden = false;
 		fallbackEl.style.display = "flex";
 		fallbackEl.textContent = name.charAt(0);
-	};
-	imgEl.onload = () => {
-		imgEl.style.display = "";
-		fallbackEl.style.display = "none";
 	};
 	imgEl.src = variant === "icon"
 		? championSpriteIconUrl(imageId)
@@ -252,11 +262,12 @@ export async function applyTeraImage(imgEl: HTMLImageElement, fallbackEl: HTMLEl
 	imgEl.alt = teraName;
 	imgEl.title = teraName;
 	function showColorFallback(): void {
-		imgEl.style.display = "none";
+		imgEl.hidden = true;
 		if (!teraName) {
-			fallbackEl.style.display = "none";
+			hideFallback(fallbackEl);
 			return;
 		}
+		fallbackEl.hidden = false;
 		fallbackEl.style.display = "block";
 		fallbackEl.style.backgroundColor = TYPE_COLORS[teraName] || DEFAULT_TYPE_COLOR;
 	}
@@ -265,11 +276,9 @@ export async function applyTeraImage(imgEl: HTMLImageElement, fallbackEl: HTMLEl
 		showColorFallback();
 		return;
 	}
+	imgEl.hidden = false;
+	hideFallback(fallbackEl);
 	imgEl.onerror = showColorFallback;
-	imgEl.onload = () => {
-		imgEl.style.display = "";
-		fallbackEl.style.display = "none";
-	};
 	imgEl.src = url;
 }
 
@@ -285,7 +294,7 @@ export function applyItemImage(imgEl: HTMLImageElement, name: string): void {
 	// 呼ばれる共有処理のため、新規に別関数を作らずセレクタを1つ足すだけにとどめる)。
 	const badgeEl = imgEl.closest<HTMLElement>(".damage-item-badge, .item-image-badge");
 	const hideBadge = (): void => {
-		imgEl.style.display = "none";
+		imgEl.hidden = true;
 		imgEl.removeAttribute("src");
 		if (badgeEl) badgeEl.hidden = true;
 	};
@@ -294,11 +303,9 @@ export function applyItemImage(imgEl: HTMLImageElement, name: string): void {
 		hideBadge();
 		return;
 	}
+	imgEl.hidden = false;
+	if (badgeEl) badgeEl.hidden = false;
 	imgEl.onerror = hideBadge;
-	imgEl.onload = () => {
-		if (badgeEl) badgeEl.hidden = false;
-		imgEl.style.display = "";
-	};
 	imgEl.src = itemIconUrl(trimmed);
 }
 

@@ -575,15 +575,16 @@
 			white-space: nowrap;
 		}
 		.item-name-display.is-empty { color: var(--color-text-muted); }
-		.top-block-tera-image { width: 20px; height: 20px; object-fit: contain; display: none; }
+		.top-block-tera-image { width: 20px; height: 20px; object-fit: contain; }
 		.top-block-tera-image[hidden] { display: none; }
 		.top-block-tera-image-fallback {
-			display: none !important;
+			display: block;
 			width: 20px;
 			height: 20px;
 			border-radius: 50%;
 			border: 1px solid var(--color-border);
 		}
+		.top-block-tera-image-fallback[hidden] { display: none; }
 		@media (max-width: 480px) {
 			.top-block-icon { flex-direction: column; }
 			.top-block-icon-corner { position: static; width: auto; max-width: 100%; align-items: center; }
@@ -607,12 +608,13 @@
 			filter: drop-shadow(0 0 1px var(--color-surface));
 		}
 		.type-badge-fallback {
-			display: none;
+			display: block;
 			width: 20px;
 			height: 20px;
 			border-radius: 50%;
 			border: 1px solid var(--color-border);
 		}
+		.type-badge-fallback[hidden] { display: none; }
 		.type-badge-multi {
 			flex-direction: row;
 			align-items: center;

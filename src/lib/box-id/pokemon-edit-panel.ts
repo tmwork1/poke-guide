@@ -104,11 +104,16 @@ async function applyTypeBadge(container: HTMLElement, name: string): Promise<voi
 		imgEl.height = 20;
 		imgEl.alt = t;
 		imgEl.title = t;
-		imgEl.style.display = "none";
+		imgEl.hidden = true;
 		const fallbackEl = document.createElement("span");
 		fallbackEl.className = "type-badge-fallback";
+		fallbackEl.hidden = true;
 		function showColorFallback(): void {
-			imgEl.style.display = "none";
+			imgEl.hidden = true;
+			fallbackEl.hidden = false;
+			// #species-type-badge .type-badge-fallback(box-damage-card.css)がID詳細度で
+			// display:none を当てているため、hiddenを外すだけでは出てこない。表示は
+			// インライン指定で行う(従来と同じ)。
 			fallbackEl.style.display = "block";
 			fallbackEl.style.backgroundColor = TYPE_COLORS[t] || DEFAULT_TYPE_COLOR;
 		}
@@ -116,11 +121,8 @@ async function applyTypeBadge(container: HTMLElement, name: string): Promise<voi
 		if (!url) {
 			showColorFallback();
 		} else {
+			imgEl.hidden = false;
 			imgEl.onerror = showColorFallback;
-			imgEl.onload = () => {
-				imgEl.style.display = "";
-				fallbackEl.style.display = "none";
-			};
 			imgEl.src = url;
 		}
 		container.append(imgEl, fallbackEl);
@@ -844,7 +846,7 @@ if (form) {
 		itemDropdownButton.setAttribute("aria-label", value ? `もちもの: ${value}` : "もちもの: 未選択");
 		itemDropdownPlaceholder.classList.toggle("is-item-value-text", !isUnselected);
 		if (isUnselected) {
-			itemDropdownImage.style.display = "none";
+			itemDropdownImage.hidden = true;
 			itemDropdownPlaceholder.textContent = "もちものなし";
 			return;
 		}
@@ -1086,22 +1088,20 @@ if (form) {
 		teraDropdownPlaceholder.classList.toggle("is-tera-value-text", !isUnselected);
 		teraDropdownPlaceholder.hidden = false;
 		if (isUnselected) {
-			teraDropdownImage.style.display = "none";
+			teraDropdownImage.hidden = true;
 			teraDropdownPlaceholder.textContent = "テラスタルなし";
 			return;
 		}
 		teraDropdownPlaceholder.textContent = value;
 		const url = teraTypeIconUrl(value);
 		if (!url) {
-			teraDropdownImage.style.display = "none";
+			teraDropdownImage.hidden = true;
 			return;
 		}
+		teraDropdownImage.hidden = false;
 		teraDropdownImage.alt = value;
-		teraDropdownImage.onload = () => {
-			teraDropdownImage.style.display = "";
-		};
 		teraDropdownImage.onerror = () => {
-			teraDropdownImage.style.display = "none";
+			teraDropdownImage.hidden = true;
 		};
 		teraDropdownImage.src = url;
 	}
