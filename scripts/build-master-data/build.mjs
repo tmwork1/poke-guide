@@ -46,6 +46,7 @@ const jpokePython = process.env.JPOKE_PYTHON ?? (existsSync(venvPython) ? venvPy
 
 const autocompleteOutDir = path.join(repoRoot, 'public', 'master-data', 'autocomplete');
 const detailOutDir = path.join(repoRoot, 'public', 'master-data', 'detail');
+const learnsetOutDir = path.join(detailOutDir, 'learnset');
 const wheelOutDir = path.join(repoRoot, 'public', 'master-data', 'pyodide', 'wheels');
 // UI改善ラウンド22 22-E-3: wheelのファイル名(バージョン番号を含む)を1箇所(ここ)でしか
 // 書かない。src/lib/pyodide-engine.ts はこのJSONをビルド時にVite静的import(src/pages/api/search.ts
@@ -106,6 +107,64 @@ function buildPokemonCoreDetail() {
   const sourceBytes = readFileSync(sourcePath).length;
   const coreBytes = readFileSync(corePath).length;
   console.log(`wrote ${corePath} (${coreBytes}B / 元の ${sourceBytes}B)`);
+}
+
+// Windowsでファイル名に使えない文字だけを%+Unicodeコードポイントへ置換する。通常の日本語名は
+// そのまま残し、変換後名の重複は下で検出して静かに別種族のデータを上書きしないようにする。
+function learnsetFilename(name) {
+  return name.replace(/[<>:"/\\\\|?*]/g, (char) => `%${char.codePointAt(0).toString(16).toUpperCase()}`);
+}
+
+// 詳細データから覚え技だけを種族ごとの配列へ分け、ブラウザが必要な1種族ぶんだけ取得できるようにする。
+function buildPokemonLearnsets() {
+  console.log('\n=== 4. 種族ごとの覚え技 detail JSON を生成 ===');
+  const sourcePath = path.join(detailOutDir, 'pokemon.json');
+  assertExists(sourcePath, '先に detail/pokemon.json を生成してください。');
+  const entries = JSON.parse(readFileSync(sourcePath, 'utf-8'));
+  const outputNames = entries.map((entry) => learnsetFilename(entry.name));
+  if (new Set(outputNames).size !== outputNames.length) {
+    throw new Error('種族名のファイル名変換が重複しました。変換規則を見直してください。');
+  }
+
+  rmSync(learnsetOutDir, { recursive: true, force: true });
+  mkdirSync(learnsetOutDir, { recursive: true });
+  const outputSizes = [];
+  for (const { name, learnset } of entries) {
+    if (!learnset || learnset.length === 0) continue;
+    const outputPath = path.join(learnsetOutDir, `${learnsetFilename(name)}.json`);
+    writeFileSync(outputPath, JSON.stringify(learnset), 'utf-8');
+    outputSizes.push(readFileSync(outputPath).length);
+  }
+  const totalBytes = outputSizes.reduce((sum, bytes) => sum + bytes, 0);
+  const averageBytes = outputSizes.length === 0 ? 0 : totalBytes / outputSizes.length;
+  const maxBytes = outputSizes.length === 0 ? 0 : Math.max(...outputSizes);
+  console.log(`wrote ${outputSizes.length} files (${totalBytes}B total / ${averageBytes.toFixed(1)}B average / ${maxBytes}B max)`);
+}
+
+// 種族選択ダイアログは入力した技名で全種族を横断検索するため、個別JSONを全件取得せず
+// learnsetだけをまとめた1ファイルを使う。すばやさ早見表用には、同じ元データから
+// speed-modifiers.json の moves にある技だけを残した、さらに小さい派生ファイルも出す。
+function buildLearnsetLookupDetails() {
+  console.log('\n=== 5. 覚え技検索用 detail JSON を生成 ===');
+  const sourcePath = path.join(detailOutDir, 'pokemon.json');
+  const speedModifiersPath = path.join(detailOutDir, 'speed-modifiers.json');
+  assertExists(sourcePath, '先に detail/pokemon.json を生成してください。');
+  assertExists(speedModifiersPath, '先に detail/speed-modifiers.json を生成してください。');
+  const entries = JSON.parse(readFileSync(sourcePath, 'utf-8'));
+  const speedModifierMoves = new Set(Object.keys(JSON.parse(readFileSync(speedModifiersPath, 'utf-8')).moves));
+  const learnsets = Object.fromEntries(entries.map(({ name, learnset }) => [name, learnset ?? []]));
+  const speedModifierLearnsets = Object.fromEntries(
+    entries.flatMap(({ name, learnset }) => {
+      const moves = (learnset ?? []).filter((move) => speedModifierMoves.has(move));
+      return moves.length > 0 ? [[name, moves]] : [];
+    }),
+  );
+  const learnsetsPath = path.join(detailOutDir, 'learnsets.json');
+  const speedModifierLearnsetsPath = path.join(detailOutDir, 'speed-modifier-learnset.json');
+  writeFileSync(learnsetsPath, JSON.stringify(learnsets), 'utf-8');
+  writeFileSync(speedModifierLearnsetsPath, JSON.stringify(speedModifierLearnsets), 'utf-8');
+  console.log(`wrote ${learnsetsPath} (${readFileSync(learnsetsPath).length}B)`);
+  console.log(`wrote ${speedModifierLearnsetsPath} (${readFileSync(speedModifierLearnsetsPath).length}B / ${speedModifierMoves.size} moves)`);
 }
 
 function buildPyodideWheel() {
@@ -183,6 +242,8 @@ function main() {
 
   buildAutocomplete();
   buildPokemonCoreDetail();
+  buildPokemonLearnsets();
+  buildLearnsetLookupDetails();
   buildPyodideWheel();
 
   console.log('\n完了: public/master-data/ 配下にマスタデータを生成しました。');

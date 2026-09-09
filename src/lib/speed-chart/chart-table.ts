@@ -37,7 +37,7 @@ import {
   type SpeedModifiersData,
   type SpeedSpreadKind,
 } from '../speed-chart';
-import { championSpriteIconUrl, championSpriteUrl, loadFullDetailList, officialArtworkUrl } from '../pokemon-master-data';
+import { championSpriteIconUrl, championSpriteUrl, loadCoreDetailList, officialArtworkUrl } from '../pokemon-master-data';
 import { kanaIncludes } from '../kana';
 import {
   initOwnedPanel,
@@ -58,6 +58,7 @@ interface PokemonDetailEntry {
   name: string;
   baseStats: number[];
   abilities: string[];
+  /** すばやさ補正になる技のうち、この種族が覚えるもの。 */
   learnset: string[];
 }
 interface MegaStoneEntry {
@@ -772,15 +773,19 @@ function readEmbeddedJson<T>(elementId: string): T | null {
 }
 
 async function loadMasterData(): Promise<MasterData> {
-  const [pokemonAutocomplete, pokemonDetail, megaStones, itemAutocomplete, speedModifiers] = await Promise.all([
+  const [pokemonAutocomplete, pokemonCoreDetail, speedModifierLearnsets, megaStones, itemAutocomplete, speedModifiers] = await Promise.all([
     fetch('/master-data/autocomplete/pokemon.json').then((r) => r.json() as Promise<PokemonAutocompleteEntry[]>),
-    // この画面は learnset まで使うのでフルの detail/pokemon.json が要る。
-    // 独自fetchはやめ、アプリ内で1回だけparseされる共有ローダーを使う。
-    loadFullDetailList() as Promise<PokemonDetailEntry[]>,
+    loadCoreDetailList(),
+    fetch('/master-data/detail/speed-modifier-learnset.json').then((r) => r.json() as Promise<Record<string, string[]>>),
     fetch('/master-data/autocomplete/mega-stones.json').then((r) => r.json() as Promise<MegaStoneEntry[]>),
     fetch('/master-data/autocomplete/items.json').then((r) => r.json() as Promise<ItemAutocompleteEntry[]>),
     fetch('/master-data/detail/speed-modifiers.json').then((r) => r.json() as Promise<SpeedModifiersData>),
   ]);
+  // この画面はすばやさ補正技だけを照合するため、全技一覧ではなく絞り込み済みの派生ファイルを結合する。
+  const pokemonDetail: PokemonDetailEntry[] = pokemonCoreDetail.map((detail) => ({
+    ...detail,
+    learnset: speedModifierLearnsets[detail.name] ?? [],
+  }));
   return { pokemonAutocomplete, pokemonDetail, megaStones, itemAutocomplete, speedModifiers };
 }
 

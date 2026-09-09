@@ -11,7 +11,8 @@
 //     (scripts/build-master-data/extract_autocomplete.py の build_speed_modifiers が生成)
 //   - src/config/speed-chart.json … 上の全件に対する採否(手動)。抽出(自動)と分離されている(U-1)
 //   - public/master-data/autocomplete/pokemon.json … 各要素の regulations でレギュレーション別に絞る
-//   - public/master-data/detail/pokemon.json … 種族値・特性・技(learnset)
+//   - public/master-data/detail/pokemon-core.json … 種族値・特性
+//   - public/master-data/detail/speed-modifier-learnset.json … 種族ごとのすばやさ補正技
 //   - public/master-data/autocomplete/mega-stones.json … メガ種族の母集団を組み立てるのに使う
 //   - public/master-data/autocomplete/items.json … メガストーンの regulations 判定に使う
 //
@@ -30,12 +31,13 @@ export interface SpeedChartPokemonMasterEntry {
   regulations: string[];
 }
 
-/** public/master-data/detail/pokemon.json の要素のうち、この画面が使うフィールド。 */
+/** 軽量の種族詳細と種族ごとのすばやさ補正技を結合した、この画面用のフィールド。 */
 export interface SpeedChartPokemonDetailEntry {
   name: string;
   /** [HP, 攻撃, 防御, 特攻, 特防, 素早さ] の順(index5がすばやさ種族値)。 */
   baseStats: number[];
   abilities: string[];
+  /** すばやさ補正になる技のうち、この種族が覚えるもの。 */
   learnset: string[];
 }
 
