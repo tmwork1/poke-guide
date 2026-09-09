@@ -11,6 +11,7 @@ import { isGuestMode } from "./data/guest-mode";
 import { NATURE_STAT_MODIFIERS, STAT_KEYS, calcHpStat, calcOtherStat } from "./stats";
 import { DEFAULT_TYPE_COLOR, TYPE_COLORS } from "./type-colors";
 import { splitBoxCardDisplayName } from "./box-card-display-name";
+import { prefetch } from "astro:prefetch";
 
 // このカードは /box と team編成タブで共有している。片方だけ直すと表示が食い違うので、
 // カード内部のDOM・ツールチップ・付属ボタンを変更するときは必ずこのファイルで行う。
@@ -165,6 +166,17 @@ export function renderBoxPokemonCard<T extends HTMLElement>(
 	const { root: card, pokemon, displayName, ariaLabel, onDelete } = options;
 	card.className = "card box-card card-pokemon";
 	card.setAttribute("aria-label", ariaLabel);
+	// /box一覧で動的に作る編集リンクは、モバイルのpointerdown時にだけ先読みする。
+	// 一覧全体を先読みすると数十件のSSRを同時取得してしまうため、遷移直前に絞る。
+	if (card instanceof HTMLAnchorElement && card.pathname.startsWith("/box/")) {
+		card.setAttribute("data-astro-prefetch", "tap");
+		// JS生成後の属性だけではAstroのprefetchランタイムがページへ載らないため、
+		// タップ開始時にAPIを直接呼ぶ。削除ボタンの押下では不要な先読みを避ける。
+		card.addEventListener("pointerdown", (event) => {
+			if (event.target instanceof Element && event.target.closest("button")) return;
+			prefetch(card.href, { ignoreSlowConnection: true });
+		});
+	}
 
 	if (onDelete) {
 		// .card-actionsは右上の削除ボタン1個だけを持つ箱として維持する。

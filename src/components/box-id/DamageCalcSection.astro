@@ -2,15 +2,13 @@
 interface Props {
 
 	pokemonId: string;
-	moveAdoptionBySpecies: Record<string, Record<string, Record<string, number>>>;
 
 }
 
-const { pokemonId, moveAdoptionBySpecies } = Astro.props;
+const { pokemonId } = Astro.props;
 import '../../styles/box-damage-page.css';
 import '../../styles/box-add-button.css';
 import '../../styles/box-damage-card.css';
-import { toJsonScriptContent } from '../../lib/json-script';
 ---
 
 
@@ -59,10 +57,6 @@ import { toJsonScriptContent } from '../../lib/json-script';
 	</section>
 
 </section>
-
-
-
-<script type="application/json" id="damage-calc-move-adoption-data" set:html={toJsonScriptContent(moveAdoptionBySpecies)} />
 
 
 

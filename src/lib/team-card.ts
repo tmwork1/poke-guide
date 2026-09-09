@@ -4,6 +4,7 @@ import {
 } from "./owned-pokemon-card";
 import { playCardDeleteExitEffect } from "./card-delete-mode";
 import { isGuestMode } from "./data/guest-mode";
+import { prefetch } from "astro:prefetch";
 
 export interface TeamMemberCardContent {
 	pokemon: BoxPokemonCardPokemon;
@@ -93,7 +94,21 @@ export function renderTeamCard<M>(options: RenderTeamCardOptions<M>): HTMLElemen
 	const card = document.createElement(options.href === undefined ? "article" : "a");
 	card.className = "card-team";
 	if (options.headerVariant === "inline") card.classList.add("card-team--top-build");
-	if (options.href !== undefined) (card as HTMLAnchorElement).href = options.href;
+	if (options.href !== undefined) {
+		const link = card as HTMLAnchorElement;
+		link.href = options.href;
+		// /team一覧の編集リンクも、モバイルで押し始めた時だけ先読みする。
+		// viewport先読みでは一覧の全チームを取得してしまうため使わない。
+		if (link.pathname.startsWith("/team/")) {
+			link.setAttribute("data-astro-prefetch", "tap");
+			// JS生成後の属性だけではAstroのprefetchランタイムがページへ載らないため、
+			// タップ開始時にAPIを直接呼ぶ。削除ボタンの押下では不要な先読みを避ける。
+			link.addEventListener("pointerdown", (event) => {
+				if (event.target instanceof Element && event.target.closest("button")) return;
+				prefetch(link.href, { ignoreSlowConnection: true });
+			});
+		}
+	}
 	if (options.ariaLabel !== undefined) card.setAttribute("aria-label", options.ariaLabel);
 
 	// 右上の外部記事リンクは通常カードだけに置く。inline見出しの場合は下で見出し内に置く。

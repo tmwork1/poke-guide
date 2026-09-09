@@ -341,24 +341,26 @@ function loadOpponentBuildPreset(speciesName: string, direction: "attack" | "def
 	}
 }
 
-// box/[id].astro(SSR)がDamageCalcSection.astro経由で埋め込んだJSON
-// (<script type="application/json" id="damage-calc-move-adoption-data">)を読むヘルパー。
-// src/lib/speed-chart/chart-table.tsのreadEmbeddedJson(小さな汎用ヘルパー)と同じロジックだが、
-// importできないファイルのため自前実装している。
-function readEmbeddedJson<T>(elementId: string): T | null {
-	const el = document.getElementById(elementId);
-	if (!el || !el.textContent) return null;
-	try {
-		return JSON.parse(el.textContent) as T;
-	} catch {
-		return null;
-	}
+type MoveAdoptionBySpecies = Record<string, Record<string, Record<string, number>>>;
+
+// 相手技候補の採用率は全ユーザー共通なので、SSRペイロードに埋め込まず共有キャッシュされる
+// APIからダメージタブを開く時に1回だけ読む。失敗時は空のままとして既存の技順へフォールバックする。
+let moveAdoptionBySpecies: MoveAdoptionBySpecies = {};
+let moveAdoptionPromise: Promise<void> | null = null;
+
+function loadMoveAdoption(): Promise<void> {
+	if (moveAdoptionPromise) return moveAdoptionPromise;
+	moveAdoptionPromise = fetch("/api/move-adoption")
+		.then(async (response) => {
+			if (!response.ok) throw new Error(`Failed to fetch move adoption data: ${response.status}`);
+			moveAdoptionBySpecies = await response.json() as MoveAdoptionBySpecies;
+		})
+		.catch((error) => {
+			// eslint-disable-next-line no-console
+			console.error("[damage-calc] failed to load move adoption data", error);
+		});
+	return moveAdoptionPromise;
 }
-// モジュール冒頭付近で1回だけ読み込みキャッシュする(埋め込みJSONはページ読み込み時に
-// 確定しており、実行中に変わらない)。形は { [種族名]: { [レギュレーションキー
-// (全レギュレーション横断は"all")]: { [技名]: ratio } } }。
-const moveAdoptionBySpecies =
-	readEmbeddedJson<Record<string, Record<string, Record<string, number>>>>("damage-calc-move-adoption-data") ?? {};
 
 // テラスタイプ選択ボックスはPokemonEditPanel.astro
 // 226〜249行目・pokemon-edit-panel.ts 500〜613行目の#tera-dropdown-button/#tera-dropdown-list
@@ -1986,10 +1988,10 @@ if (opponentNotesSection) {
 
 	// 上のSELF_FIRST_MOVE_DATALIST_ID(攻撃側=自分の技1〜4を最上位にする)と
 	// 対になる、防御側(row.direction === "defense"、相手が攻撃してくる技を入力する列)専用の
-	// datalist。#move-list(覚え技優先の並び)のoptionsをベースに、モジュール冒頭で読み込んだ
-	// moveAdoptionBySpecies(box/[id].astroがSSRで埋め込んだsuggestions由来の使用率)で
-	// 安定ソートし直す。
+	// datalist。#move-list(覚え技優先の並び)のoptionsをベースに、共有APIから取得した
+	// moveAdoptionBySpeciesの使用率で安定ソートし直す。
 	const OPPONENT_POPULARITY_MOVE_DATALIST_ID = "move-list-opponent-popularity";
+	let opponentPopularityMoveDatalistSpeciesName: string | null = null;
 	function ensureOpponentPopularityMoveDatalist(): HTMLDataListElement {
 		let list = document.getElementById(OPPONENT_POPULARITY_MOVE_DATALIST_ID) as HTMLDataListElement | null;
 		if (!list) {
@@ -2003,6 +2005,16 @@ if (opponentNotesSection) {
 	// currentIndividualRegulation()参照)から最新の候補順を作り直す(技名inputに
 	// フォーカスするたび=編集を始める直前に呼べば十分新しい)。
 	function refreshOpponentPopularityMoveDatalist(speciesName: string): void {
+		opponentPopularityMoveDatalistSpeciesName = speciesName;
+		// 採用率は初回だけAPIから取りに行く。到着前は覚え技優先の順で先に出し、
+		// 到着後にこの関数を呼び直して並べ替える(=候補が出るまで待たせない)。
+		if (!moveAdoptionPromise) {
+			void loadMoveAdoption().then(() => {
+				if (opponentPopularityMoveDatalistSpeciesName !== null) {
+					refreshOpponentPopularityMoveDatalist(opponentPopularityMoveDatalistSpeciesName);
+				}
+			});
+		}
 		const list = ensureOpponentPopularityMoveDatalist();
 		const baseList = document.getElementById("move-list") as HTMLDataListElement | null;
 		// 変化技はダメージが出ないので候補から外す(上のwithoutStatusMoves参照)。
