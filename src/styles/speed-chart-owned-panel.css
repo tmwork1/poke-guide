@@ -19,7 +19,7 @@
 	--speed-chart-owned-option-gap: var(--space-1); /* 行内の個体候補どうしの間隔。大きくすると候補が離れる */
 
 	/* ── 8. 寸法 ─────────────────────── */
-	--speed-chart-owned-sprite-size: 62px; /* 個体アイコンの寸法。大きくするとアイコンが目立つ */
+	--speed-chart-owned-sprite-size: 78px; /* 個体アイコンの寸法。大きくするとアイコンが目立つ */
 }
 
 /* --------------------------------------------------------------------------
@@ -90,7 +90,7 @@
 		background: var(--color-surface);
 		border-radius: var(--speed-chart-owned-profile-radius);
 	}
-	/* アイコン段(1段目)。48〜56pxの正方形。中央寄せは親の.speed-chart-owned-summary-header
+	/* アイコン段(1段目)。--speed-chart-owned-sprite-size の正方形。中央寄せは親の.speed-chart-owned-summary-header
 		側(align-self: center)で行うため、画像自体には左右位置の指定を持たせない。src/hiddenの
 		出し分けはowned-panel.tsが行う(spriteImageIdが無い個体はhiddenのまま=何も表示しない)。 */
 	.speed-chart-owned-summary-sprite {

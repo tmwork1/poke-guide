@@ -243,6 +243,10 @@ async function shootOne(context, opts, pagePath, theme, viewport) {
 		const locator = page.locator(opts.clip).first();
 		await locator.waitFor({ timeout: 30_000 });
 		if (opts.clipPad > 0) {
+			// boundingBox() はビューポート座標を返すため、画面外の要素だと y が負になり
+			// Math.max(0, ...) で頭を切られて「まったく別の場所」を撮ってしまう。
+			// locator.screenshot() 側は自動でスクロールするので、pad ありの経路だけ明示的に揃える。
+			await locator.scrollIntoViewIfNeeded();
 			const box = await locator.boundingBox();
 			if (!box) throw new Error(`--clip の要素が可視ではありません: ${opts.clip}`);
 			const pad = opts.clipPad;
