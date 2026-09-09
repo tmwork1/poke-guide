@@ -4,8 +4,8 @@ export const prerender = false;
 
 import AppLayout from '../../layouts/AppLayout.astro';
 import BattleDataCard from '../../components/data/BattleDataCard.astro';
-import { hasSingleBattleData, type SingleFormatData } from '../../lib/battle-data-card';
-import { getOpggUsageList, getOpggUsageManifest, sortOpggSeasons, type OpggUsageSeason } from '../../lib/opgg-usage';
+import type { SingleFormatData } from '../../lib/battle-data-card';
+import { getOpggUsageBattleDataList, getOpggUsageManifest, sortOpggSeasons } from '../../lib/opgg-usage';
 import { listRankedSeasons } from '../../lib/ranked-teams';
 import { resolveDefaultSeason } from '../../lib/ranked-teams-validation';
 import { getSupabasePublicClient } from '../../lib/supabase';
@@ -57,8 +57,7 @@ if (requestedSeason && season && requestedSeason !== season) {
 
 const seasonEntry = manifestSeasons.find((entry) => entry.id === season);
 
-// `:list` はsingleだけをランキング順に集約した /data 専用のキー。
-const seasonList = seasonEntry ? await getOpggUsageList(env.OPGG_USAGE, seasonEntry as OpggUsageSeason) : null;
+const battleDataList = seasonEntry ? await getOpggUsageBattleDataList(env.OPGG_USAGE, seasonEntry) : [];
 
 const masterByName = new Map(
   (pokemonMasterRaw as Array<{ name: string; imageId: number }>).map((entry) => [entry.name, entry.imageId]),
@@ -73,27 +72,20 @@ interface BattleDataEntry {
 }
 
 const entries: BattleDataEntry[] = [];
-if (seasonList?.pokemon) {
-	for (const item of seasonList.pokemon) {
-		if (!hasSingleBattleData({ formats: { single: item.single } })) continue;
-		const rank = entries.length + 1;
-		entries.push({
+for (const item of battleDataList) {
+	const rank = entries.length + 1;
+	entries.push({
       rank,
       name: item.name,
       imageId: masterByName.get(item.name) ?? null,
       elementId: `battle-data-entry-${rank}`,
-			single: item.single,
+		single: item.single,
     });
-  }
 }
 
 // 初期表示に必要な分だけSSRし、残りはカードを開く直前に共有レンダラーで差し込む。
 // article自体は全件残すため、検索・ジャンプレールの対象と順序は従来どおりになる。
 const BATTLE_DATA_SSR_CARD_COUNT = 8;
-const battleDataPayload = Object.fromEntries(
-  entries.slice(BATTLE_DATA_SSR_CARD_COUNT).map((entry) => [entry.elementId, entry.single]),
-);
-const battleDataPayloadJson = JSON.stringify(battleDataPayload).replace(/</g, '\\u003c');
 ---
 
 <AppLayout title="データ" current="data" bodyClass="data-hub-page">
@@ -197,7 +189,6 @@ const battleDataPayloadJson = JSON.stringify(battleDataPayload).replace(/</g, '\
 								</article>
 							))}
 						</div>
-						{entries.length > BATTLE_DATA_SSR_CARD_COUNT && <script type="application/json" id="battle-data-payload" set:html={battleDataPayloadJson} />}
 					</div>
 				) : (
 					<div class="empty-state">
@@ -259,32 +250,56 @@ const battleDataPayloadJson = JSON.stringify(battleDataPayload).replace(/</g, '\
 		let visibleRailItems = railItems;
 		let expectedRailScrollTop: number | null = null;
 		let expectedCardScrollTop: number | null = null;
-		const payloadScript = document.querySelector<HTMLScriptElement>('#battle-data-payload');
 		let deferredCards: Record<string, SingleFormatData> | null = null;
+		let deferredCardsPromise: Promise<void> | null = null;
+		const pendingCardEntries = new Set<HTMLElement>();
 		let cardObserver: IntersectionObserver | null = null;
 
-		function loadDeferredCards(): Record<string, SingleFormatData> {
-			if (deferredCards) return deferredCards;
-			try {
-				deferredCards = JSON.parse(payloadScript?.textContent ?? '{}') as Record<string, SingleFormatData>;
-			} catch (error) {
-				console.error('[data] deferred battle data parsing failed:', error);
-				deferredCards = {};
-			}
-			return deferredCards;
+		function loadDeferredCards(): void {
+			if (deferredCards || deferredCardsPromise) return;
+			// URLSearchParams.size は Safari 17 以降にしか無く、未対応環境では常に false 側へ落ちて
+			// season 無しで取得してしまう(既定シーズン以外を選んでいると別シーズンのカードが入る)。
+			// 文字列化した結果で判定して、対応環境を問わず選択中のシーズンを必ず付ける。
+			const params = new URLSearchParams();
+			if (seasonSelect?.value) params.set('season', seasonSelect.value);
+			const query = params.toString();
+			const url = `/api/opgg-usage-list${query ? `?${query}` : ''}`;
+			deferredCardsPromise = fetch(url)
+				.then(async (response) => {
+					if (!response.ok) throw new Error(`HTTP ${response.status}`);
+					return await response.json() as Record<string, SingleFormatData>;
+				})
+				.then((payload) => {
+					deferredCards = payload;
+					const pendingEntries = [...pendingCardEntries];
+					pendingCardEntries.clear();
+					for (const entry of pendingEntries) renderDeferredCard(entry);
+					// 取得中に検索やスクロール位置が変わっていても、現在地のカードを埋める。
+					renderCardAtScrollPosition();
+				})
+				.catch((error) => {
+					console.error('[data] deferred battle data loading failed:', error);
+					// 次のObserver発火や検索・ジャンプ操作で再取得できるよう、失敗結果を保持しない。
+					deferredCards = null;
+				})
+				.finally(() => {
+					deferredCardsPromise = null;
+				});
 		}
 
 		function renderDeferredCard(entry: HTMLElement): void {
-			const payload = loadDeferredCards();
-			const single = payload[entry.id];
-			if (!single) return;
+			if (!entry.hasAttribute('data-battle-data-pending')) return;
+			const single = deferredCards?.[entry.dataset.speciesName ?? ''];
+			if (!single) {
+				pendingCardEntries.add(entry);
+				loadDeferredCards();
+				return;
+			}
 			entry.insertAdjacentHTML('beforeend', renderBattleDataCardHtml(single));
 			entry.removeAttribute('data-battle-data-pending');
 			cardObserver?.unobserve(entry);
-			delete payload[entry.id];
-			if (Object.keys(payload).length === 0) {
+			if (!entries.some((item) => item.hasAttribute('data-battle-data-pending'))) {
 				deferredCards = null;
-				payloadScript?.remove();
 			}
 		}
 
@@ -317,9 +332,8 @@ const battleDataPayloadJson = JSON.stringify(battleDataPayload).replace(/</g, '\
 			} else {
 				for (const entry of entries) renderDeferredCard(entry);
 			}
-			// 通常はアイドル中にJSONを先読みし、Observerの初回発火とレール操作の両方を待たせない。
-			if ('requestIdleCallback' in window) window.requestIdleCallback(() => loadDeferredCards());
-			else setTimeout(() => loadDeferredCards(), 0);
+			// 埋め込みJSONと違ってネットワーク待ちになるため、表示直後から共有キャッシュの取得を始める。
+			loadDeferredCards();
 		}
 
 		function markActiveRail(item: HTMLAnchorElement): void {

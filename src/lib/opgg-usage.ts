@@ -1,4 +1,4 @@
-import type { EvRankedRow, RankedRow, SingleFormatData } from './battle-data-card';
+import { hasSingleBattleData, type EvRankedRow, type RankedRow, type SingleFormatData } from './battle-data-card.ts';
 import { normalizeDigits } from './text-normalize.ts';
 import pokemonMasterRaw from '../../public/master-data/autocomplete/pokemon.json' with { type: 'json' };
 
@@ -45,6 +45,11 @@ export interface OpggUsageList {
 	schemaVersion: 1;
 	fetchedAt: string;
 	pokemon: Array<{ slug: string; name: string; single: SingleFormatData }>;
+}
+
+export interface OpggUsageBattleDataEntry {
+	name: string;
+	single: SingleFormatData;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -121,6 +126,18 @@ export async function getOpggUsageList(kv: KVNamespace, season: OpggUsageSeason)
 			single: normalizeSingleFormatData(entry.single),
 		})),
 	};
+}
+
+// /data のSSRと共有APIで同じ種族・ランキング順を使い、遅延描画時に別のカードを対応付けない。
+export async function getOpggUsageBattleDataList(
+	kv: KVNamespace,
+	season: OpggUsageSeason,
+): Promise<OpggUsageBattleDataEntry[]> {
+	const list = await getOpggUsageList(kv, season);
+	if (!list?.pokemon) return [];
+	return list.pokemon
+		.filter((item) => hasSingleBattleData({ formats: { single: item.single } }))
+		.map((item) => ({ name: item.name, single: item.single }));
 }
 
 export async function getOpggUsagePokemon(
