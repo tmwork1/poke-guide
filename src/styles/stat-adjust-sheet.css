@@ -2,7 +2,7 @@
 	チューニング変数
 	=========================================================================== */
 #stat-adjust-sheet {
-	--stat-adjust-sheet-background: color-mix(in srgb, var(--color-surface) 85%, var(--color-chrome) 15%);
+	--stat-adjust-sheet-background: color-mix(in srgb, var(--color-surface) 97%, white 3%);
 	--stat-adjust-sheet-button-background: color-mix(in srgb, var(--stat-adjust-sheet-background) 70%, var(--color-chrome) 30%);
 	--stat-adjust-sheet-border-color: var(--color-border);
 }
@@ -24,12 +24,6 @@
 	box-shadow: var(--shadow-md);
 }
 #stat-adjust-sheet[hidden] { display: none; }
-
-@media (prefers-color-scheme: dark) {
-	#stat-adjust-sheet {
-		--stat-adjust-sheet-background: color-mix(in srgb, var(--color-surface) 97%, white 3%);
-	}
-}
 
 .stat-adjust-sheet-toggle {
 	display: flex;
