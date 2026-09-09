@@ -34,8 +34,9 @@ import { kanaIncludes } from "../kana";
 import { classifyArchetype, type ArchetypeKey } from "../archetype";
 import { renderTeamCard } from "../team-card";
 import type { Team } from "../team";
-import { getGuestPokemon, listGuestTeams } from "../data/guest-store";
+import { listGuestTeams } from "../data/guest-store";
 import { isGuestMode } from "../data/guest-mode";
+import { hydrateGuestPagePokemon } from "../data/guest-page-hydration";
 import { createOwnedPokemon, deleteOwnedPokemon, updateOwnedPokemon } from "../data/pokemon-repo";
 import {
 	attachKanaTypeAhead,
@@ -578,18 +579,14 @@ let hasBaseStatsForDurabilityIndex = false;
 const form = typeof document === "undefined" ? null : document.getElementById("edit-form") as HTMLFormElement | null;
 if (form) {
 	const guestPokemonIdForHydration = form.dataset.id ?? "";
-	const shouldHydrateGuestPokemon = isGuestMode() && guestPokemonIdForHydration !== "";
-	if (shouldHydrateGuestPokemon) {
-		const guestPokemon = getGuestPokemon(guestPokemonIdForHydration);
-		if (!guestPokemon) {
-			window.location.href = "/box";
-		} else {
-			// レベル・タグ・性格は直接の入力UIが無いため、buildPayload()/性格初期化より先に
-			// SSR用data属性を実データへ差し替える。
-			form.dataset.level = guestPokemon.level == null ? "" : String(guestPokemon.level);
-			form.dataset.tags = JSON.stringify(guestPokemon.tags);
-			form.dataset.nature = guestPokemon.nature ?? "";
-		}
+	const guestPokemonForHydration = hydrateGuestPagePokemon(guestPokemonIdForHydration);
+	const shouldHydrateGuestPokemon = guestPokemonForHydration !== null;
+	if (guestPokemonForHydration) {
+		// レベル・タグ・性格は直接の入力UIが無いため、buildPayload()/性格初期化より先に
+		// SSR用data属性を実データへ差し替える。
+		form.dataset.level = guestPokemonForHydration.level == null ? "" : String(guestPokemonForHydration.level);
+		form.dataset.tags = JSON.stringify(guestPokemonForHydration.tags);
+		form.dataset.nature = guestPokemonForHydration.nature ?? "";
 	}
 	let isGuestHydrating = false;
 	/** Keep the mobile training preview synchronized with the training form. */
@@ -1514,11 +1511,8 @@ if (form) {
 
 	async function hydrateGuestPokemon(): Promise<void> {
 		if (!shouldHydrateGuestPokemon) return;
-		const guestPokemon = getGuestPokemon(guestPokemonIdForHydration);
-		if (!guestPokemon) {
-			window.location.href = "/box";
-			return;
-		}
+		const guestPokemon = guestPokemonForHydration;
+		if (!guestPokemon) return;
 
 		isGuestHydrating = true;
 		try {

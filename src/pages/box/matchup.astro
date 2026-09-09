@@ -65,9 +65,7 @@ const canRenderSelectedPokemon = result?.ok || (!user && selectedId !== null);
 
 <script>
   import { createMatchupPanel, type MatchupPanelMember } from '../../lib/matchup-panel';
-  import { hydrateGuestMobilePreview } from '../../lib/box-id/mobile-preview-hydrate';
-  import { getGuestPokemon } from '../../lib/data/guest-store';
-  import { isGuestMode } from '../../lib/data/guest-mode';
+  import { hydrateGuestPagePokemon } from '../../lib/data/guest-page-hydration';
 
   const main = document.querySelector<HTMLElement>('#box-matchup-main');
   const listElement = document.querySelector<HTMLElement>('#box-matchup-list');
@@ -76,16 +74,8 @@ const canRenderSelectedPokemon = result?.ok || (!user && selectedId !== null);
 
   if (listElement && statusElement && pokemonJson) {
     let pokemon = JSON.parse(pokemonJson) as MatchupPanelMember;
-    if (isGuestMode() && main?.dataset.guestPokemonId) {
-      const guestPokemon = getGuestPokemon(main.dataset.guestPokemonId);
-      if (!guestPokemon) {
-        window.location.replace('/box');
-      } else {
-        pokemon = guestPokemon;
-        // プレビュー用マスターデータの読み込みに失敗しても、公開の相性計算は継続する。
-        void hydrateGuestMobilePreview(main.dataset.guestPokemonId).catch((error) => console.error(error));
-      }
-    }
+    const guestPokemon = hydrateGuestPagePokemon(main?.dataset.guestPokemonId ?? '');
+    if (guestPokemon) pokemon = guestPokemon;
     const matchupPanel = createMatchupPanel({
       listElement,
       statusElement,

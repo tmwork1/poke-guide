@@ -79,9 +79,7 @@ const hasData = hasSingleBattleData(opgg);
 </AppLayout>
 
 <script>
-  import { hydrateGuestMobilePreview } from '../../lib/box-id/mobile-preview-hydrate';
-  import { getGuestPokemon } from '../../lib/data/guest-store';
-  import { isGuestMode } from '../../lib/data/guest-mode';
+  import { hydrateGuestPagePokemon } from '../../lib/data/guest-page-hydration';
   import { renderBattleDataCardHtml } from '../../lib/battle-data-card-html';
   import type { SingleFormatData } from '../../lib/battle-data-card';
   const main = document.querySelector<HTMLElement>('.box-data-main');
@@ -94,12 +92,9 @@ const hasData = hasSingleBattleData(opgg);
 
   // SSRの空プレビューをlocalStorageの個体で置き換え、種族名だけを使う公開APIから
   // バトルデータを読む。個体の育成内容はサーバーへ送らない。
-  if (isGuestMode() && main?.dataset.guestPokemonId) {
-    const guestPokemon = getGuestPokemon(main.dataset.guestPokemonId);
-    if (!guestPokemon) window.location.replace('/box');
-    else {
+  const guestPokemon = hydrateGuestPagePokemon(main?.dataset.guestPokemonId ?? '');
+  if (guestPokemon) {
       // プレビュー用マスターデータの読み込みに失敗しても、公開バトルデータは取得する。
-      void hydrateGuestMobilePreview(main.dataset.guestPokemonId).catch((error) => console.error(error));
       const response = await fetch(`/api/opgg-usage?species=${encodeURIComponent(guestPokemon.species_name)}&category=all`);
       const body = await response.json().catch(() => ({})) as { single?: SingleFormatData | null };
       const single = body.single;
@@ -113,7 +108,6 @@ const hasData = hasSingleBattleData(opgg);
         document.querySelector('.data-panel')?.classList.add('data-panel--has-data');
         renderBattleDataCard(single);
       }
-    }
   }
 
 </script>

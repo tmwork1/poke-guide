@@ -1,8 +1,6 @@
 // データ系ページではSSR中にlocalStorageを読めないため、MobilePokemonPreview.astroが出力した
 // 空のプレビューをクライアントで実データへ置き換える。
 import type { OwnedPokemonRecord } from '../owned-pokemon';
-import { getGuestPokemon } from '../data/guest-store';
-import { isGuestMode } from '../data/guest-mode';
 import { loadBaseStatsMap, loadPokemonMasterList } from '../pokemon-master-data';
 import { applyPokemonPreview } from './preview-apply';
 import { buildPokemonPreviewViewModel, type PreviewPokemonDetailEntry } from './preview-view-model';
@@ -21,12 +19,4 @@ export async function applyPokemonToMobilePreview(pokemon: OwnedPokemonRecord): 
     species,
     detail: baseStats ? { name: pokemon.species_name, baseStats } satisfies PreviewPokemonDetailEntry : undefined,
   }), { applyContent: false });
-}
-
-/** Read one guest record and apply it to the mobile preview. Returns null when it no longer exists. */
-export async function hydrateGuestMobilePreview(id: string): Promise<OwnedPokemonRecord | null> {
-  if (!isGuestMode() || !id) return null;
-  const pokemon = getGuestPokemon(id);
-  if (pokemon) await applyPokemonToMobilePreview(pokemon);
-  return pokemon;
 }

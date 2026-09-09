@@ -122,6 +122,9 @@
   display: flex;
   align-items: center;
   gap: var(--space-1);
+  /* SSRのゲストプレビューにはタイプアイコンが無い。実データのアイコンと同じ行高を
+     先に確保し、hydrationで特性行以下が押し下がらないようにする。 */
+  min-height: var(--pokemon-preview-type-icon-size);
   min-width: 0;
 }
 
@@ -284,6 +287,10 @@
   color: var(--color-text-muted);
 }
 
+/* この要素に hidden 時の寸法予約(display/width/heightの指定)を足してはいけない。
+   .pokemon-preview-sprite-wrap のflex項目なので、hidden中も箱を持つと公式絵が
+   26.2px左へずれる(実測)。スプライトと頭文字は排他表示なので予約は不要。 */
+
 /* 持ち物と能力値 */
 
 .pokemon-preview-item {
@@ -359,7 +366,12 @@
 }
 
 .pokemon-preview-stats td:last-child {
-  min-width: 3ch;
+  /* 努力値は「-」から最大の「+32」(チャンピオンズルールの上限)へ変わる。値が入って
+     から列が広がるとゲストのhydrationで表全体が横に伸びるため、最大表示の幅を最初から
+     確保する。box-sizingがborder-boxなので、この値には`td + td`の padding-left 15px も
+     含まれる(「+32」の実描画幅は約3.2ch。15px + 3.2ch を満たす最小の切りのいい値が5ch)。
+     実測: プレースホルダ・実データとも列幅42.15pxで一致する。 */
+  min-width: 5ch;
   color: var(--color-text-muted);
   font-size: var(--font-size-sm2);
 }

@@ -82,8 +82,7 @@ if (pokemon) {
   import { renderTopBuildCard } from '../../lib/ranked-teams/card';
   import type { RankedTeam } from '../../lib/ranked-teams';
   import { reloadOnBfcacheRestore } from '../../lib/shared/reload-on-bfcache-restore';
-  import { hydrateGuestMobilePreview } from '../../lib/box-id/mobile-preview-hydrate';
-  import { isGuestMode } from '../../lib/data/guest-mode';
+  import { hydrateGuestPagePokemon } from '../../lib/data/guest-page-hydration';
 
   const main = document.querySelector<HTMLElement>('.box-data-main');
   const panel = document.querySelector<HTMLElement>('#ranked-data-panel');
@@ -198,13 +197,9 @@ if (pokemon) {
     }
   }
 
-  async function hydrateGuestRankedPokemon(): Promise<void> {
-    if (!isGuestMode() || !main?.dataset.guestPokemonId) return;
-    const pokemon = await hydrateGuestMobilePreview(main.dataset.guestPokemonId);
-    if (!pokemon) {
-      window.location.replace('/box');
-      return;
-    }
+  function hydrateGuestRankedPokemon(): void {
+    const pokemon = hydrateGuestPagePokemon(main?.dataset.guestPokemonId ?? '');
+    if (!pokemon) return;
     pokemonBuildJson = JSON.stringify({
       species_name: pokemon.species_name,
       ability_name: pokemon.ability_name,
@@ -213,6 +208,7 @@ if (pokemon) {
     });
   }
 
-  void hydrateGuestRankedPokemon().then(() => void loadRankedBuilds(true));
+  hydrateGuestRankedPokemon();
+  void loadRankedBuilds(true);
   reloadOnBfcacheRestore(() => void loadRankedBuilds(true));
 </script>
