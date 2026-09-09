@@ -644,8 +644,11 @@ if (form) {
 			const previewStat = document.getElementById(`pokemon-preview-stat-${key}`);
 			if (previewStat) {
 				previewStat.textContent = sourceStat?.textContent?.trim() || "-";
-				if (sourceStat?.dataset.mod) previewStat.dataset.mod = sourceStat.dataset.mod;
-				else delete previewStat.dataset.mod;
+				// 補正の向きは editNatureUp/editNatureDown が唯一の情報源。以前は転記元の
+				// #stat-${key} の data-mod を見ていたが、そこに data-mod を書く処理はどこにも
+				// 無く(付けているのは #nature-label-${key} だけ)、同期のたびにプレビューの
+				// 補正色が消えていた=性格を変えても追従しない、という不具合になっていた。
+				applyPreviewNatureMod(previewStat, key);
 			}
 			const ev = inputValue(`ev-${key}`);
 			setText(`pokemon-preview-ev-${key}`, ev && Number(ev) !== 0 ? `+${ev}` : "-");
@@ -1157,6 +1160,21 @@ if (form) {
 		};
 	}
 
+	/**
+	 * プレビューの実数値セル(td)と、その左の見出し(th)に性格補正の向きを反映する。
+	 * SSR(MobilePokemonPreview.astro)が th/td の両方に data-mod を出しているので、
+	 * クライアント側でも両方そろえる。
+	 */
+	function applyPreviewNatureMod(previewStat: HTMLElement, key: (typeof STAT_KEYS)[number]): void {
+		const mod = editNatureUp === key ? "up" : editNatureDown === key ? "down" : undefined;
+		const previewHead = previewStat.previousElementSibling as HTMLElement | null;
+		for (const target of [previewStat, previewHead]) {
+			if (!target) continue;
+			if (mod) target.dataset.mod = mod;
+			else delete target.dataset.mod;
+		}
+	}
+
 	function refreshNatureButtons(): void {
 		// NATURE_TOGGLE_KEYS(下方で const 宣言)はこの関数がページ表示直後に呼ばれる
 		// (TDZでまだ初期化されていない)ため、ここではSTAT_KEYSから都度フィルタする。
@@ -1178,7 +1196,19 @@ if (form) {
 			}
 		}
 		const natureReadoutEl = document.getElementById("nature-readout-value");
-		if (natureReadoutEl) natureReadoutEl.textContent = currentEditNature();
+		const natureName = currentEditNature();
+		if (natureReadoutEl) natureReadoutEl.textContent = natureName;
+
+		// 性格補正ボタンにはchangeイベントが無く、syncPokemonPreview()を呼ぶ経路(フォームの
+		// change / MutationObserver)に乗らないため、プレビュー側の補正表示だけが取り残されて
+		// いた(性格を変えても▲▼と色が古いまま)。実数値そのものはrecalcStats()経由で追従する
+		// ので、ここでは補正の向き(data-mod)と性格名だけを同期する。
+		const previewEl = document.querySelector<HTMLElement>(".pokemon-preview");
+		if (previewEl) previewEl.dataset.nature = natureName;
+		for (const key of STAT_KEYS) {
+			const previewStat = document.getElementById(`pokemon-preview-stat-${key}`);
+			if (previewStat) applyPreviewNatureMod(previewStat, key);
+		}
 	}
 
 	function updateEvRemaining(): void {

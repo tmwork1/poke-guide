@@ -34,6 +34,9 @@
  *   --keep-toolbar      Astro開発ツールバーを消さずに見る
  *   --no-js             JSを無効にして開く。SSRだけの寸法が見えるので、`--rect` の結果を
  *                       JS有効時と見比べれば「JSが入って何px動くか」= 揺れの正体が分かる
+ *   --watch <sel>       その要素の内側で起きたDOM変更(テキスト・属性・子要素の増減)を
+ *                       起きた順に記録する。--cls が出す「どの要素が動いたか」の次に要る
+ *                       「誰が動かしたか」を出すためのもの。--cls と併用する
  *
  * 操作(**指定した順に**実行される。DBを汚しうる。上記の注意を読むこと):
  *   --click <sel>       クリック。`text=xxx` で完全一致テキスト
@@ -87,7 +90,7 @@ import {
 } from "./lib/page-session.mjs";
 
 const USAGE = [
-	"  --from <path> / --guest / --cls / --mark <label> / --timing / --repeat <n>",
+	"  --from <path> / --guest / --cls / --mark <label> / --watch <sel> / --no-js / --timing / --repeat <n>",
 	"使い方: npm run probe -- --page <path> [操作] [実測]",
 	"",
 	"  対象  --page box/<id> [--theme dark] [--size 390x844]",
@@ -111,6 +114,7 @@ function parseArgs(argv) {
 		timeout: 300_000,
 		keepToolbar: false,
 		noJs: false,
+		watch: null,
 		htmlLen: 1000,
 		limit: 10,
 		json: false,
@@ -154,6 +158,9 @@ function parseArgs(argv) {
 				break;
 			case "--no-js":
 				opts.noJs = true;
+				break;
+			case "--watch":
+				opts.watch = next();
 				break;
 			case "--html-len":
 				opts.htmlLen = Number(next());
@@ -478,8 +485,8 @@ async function runProbe(page, probe, opts) {
  * addInitScript は page.goto より前に評価される。後から Observer を付けると、初期描画で起きる
  * シフトと LCP を取り逃すため、計測指定時だけここで登録する。
  */
-async function installNavigationObservers(page) {
-	await page.addInitScript(() => {
+async function installNavigationObservers(page, watchSelector) {
+	await page.addInitScript((watchSelector) => {
 		const selectorFor = (node) => {
 			if (!(node instanceof Element)) return "unknown";
 			let selector = node.tagName.toLowerCase();
@@ -491,7 +498,40 @@ async function installNavigationObservers(page) {
 		const rectFor = (rect) => rect ? { x: rect.x, y: rect.y, width: rect.width, height: rect.height } : null;
 		window.__probeLayoutShifts = [];
 		window.__probeClsMarks = [];
+		window.__probeMutations = [];
 		window.__probeLcp = null;
+		// --watch: 指定した要素の内側で起きたDOM変更を、起きた順に記録する。
+		// 「どの要素が動いたか」(layout-shiftのsources)までは分かっても「誰が動かしたか」は
+		// 分からない、という揺れ調査の詰まりどころを埋めるためのもの。
+		if (watchSelector) {
+			const record = (entry) => {
+				if (window.__probeMutations.length >= 400) return;
+				window.__probeMutations.push({ time: Math.round(performance.now() * 100) / 100, ...entry });
+			};
+			const inWatch = (node) => {
+				const element = node instanceof Element ? node : node?.parentElement;
+				try { return Boolean(element?.closest(watchSelector)); } catch { return false; }
+			};
+			const trim = (text) => (text ?? "").trim().slice(0, 40);
+			new MutationObserver((records) => {
+				for (const record_ of records) {
+					if (!inWatch(record_.target)) continue;
+					if (record_.type === "attributes") {
+						record({
+							kind: `attr:${record_.attributeName}`, selector: selectorFor(record_.target),
+							from: trim(record_.oldValue), to: trim(record_.target.getAttribute(record_.attributeName)),
+						});
+					} else if (record_.type === "characterData") {
+						record({ kind: "text", selector: selectorFor(record_.target.parentElement), from: trim(record_.oldValue), to: trim(record_.target.data) });
+					} else {
+						record({
+							kind: "childList", selector: selectorFor(record_.target),
+							from: `-${record_.removedNodes.length}`, to: `+${record_.addedNodes.length}`,
+						});
+					}
+				}
+			}).observe(document, { subtree: true, childList: true, attributes: true, attributeOldValue: true, characterData: true, characterDataOldValue: true });
+		}
 		try {
 			new PerformanceObserver((list) => {
 				for (const entry of list.getEntries()) {
@@ -514,7 +554,7 @@ async function installNavigationObservers(page) {
 		} catch {
 			// 古いブラウザでは対応しない entry type だけを欠損として扱い、通常の probe は継続する。
 		}
-	});
+	}, watchSelector ?? null);
 }
 
 function median(values) {
@@ -597,7 +637,7 @@ async function measureWithObservers(browser, opts, viewport, pagePath) {
 			await page.waitForLoadState("networkidle").catch(() => {});
 			await page.waitForTimeout(300);
 		}
-		if (opts.cls || opts.timing) await installNavigationObservers(page);
+		if (opts.cls || opts.timing || opts.watch) await installNavigationObservers(page, opts.watch);
 		const response = await page.goto(report.url, { waitUntil: "domcontentloaded", timeout: 60_000 });
 		report.status = response?.status() ?? 0;
 		if (!opts.keepToolbar && !opts.noJs) await hideDevToolbar(page);
@@ -608,11 +648,12 @@ async function measureWithObservers(browser, opts, viewport, pagePath) {
 		}
 		await page.waitForLoadState("networkidle").catch(() => {});
 		await page.evaluate(() => document.fonts?.ready);
-		if (opts.cls || opts.timing) await page.waitForTimeout(500);
+		if (opts.cls || opts.timing || opts.watch) await page.waitForTimeout(500);
 		for (const action of opts.actions) await runAction(page, action);
 		if (opts.actions.length > 0) await page.waitForTimeout(opts.cls ? 1000 : 250);
 		for (const probe of opts.probes) report.probes.push(await runProbe(page, probe, opts));
 		if (opts.cls || opts.timing) Object.assign(report, await collectNavigationMetrics(page, opts.cls, opts.timing, opts.limit));
+		if (opts.watch) report.mutations = await page.evaluate(() => window.__probeMutations ?? []);
 	} finally {
 		await context.close();
 	}
@@ -658,6 +699,10 @@ async function runNewMeasurement(opts) {
 				for (const source of shift.sources.slice(1)) lines.push(`      + ${source.selector} dx=${source.dx} dy=${source.dy} dw=${source.dw} dh=${source.dh}`);
 			}
 		}
+		if (report.mutations) {
+			lines.push(`DOM変更 (${report.mutations.length}件${report.mutations.length >= 400 ? "、上限で打ち切り" : ""}): ${opts.watch} の内側`);
+			for (const mutation of report.mutations) lines.push(`  ${mutation.time}ms ${mutation.selector} ${mutation.kind} "${mutation.from}" → "${mutation.to}"`);
+		}
 		if (report.timing) {
 			const timing = report.timing;
 			lines.push(`Timing: TTFB ${timing.ttfb}ms / responseEnd ${timing.responseEnd}ms / DOM interactive ${timing.domInteractive}ms / DCL ${timing.domContentLoadedEventEnd}ms / load ${timing.loadEventEnd}ms / FCP ${timing.fcp}ms / LCP ${timing.lcp}ms`);
@@ -677,7 +722,7 @@ async function main() {
 		process.exitCode = opts.help ? 0 : 1;
 		return;
 	}
-	if (opts.from || opts.guest || opts.cls || opts.timing || opts.repeat !== 1) {
+	if (opts.from || opts.guest || opts.cls || opts.timing || opts.watch || opts.repeat !== 1) {
 		await runNewMeasurement(opts);
 		return;
 	}

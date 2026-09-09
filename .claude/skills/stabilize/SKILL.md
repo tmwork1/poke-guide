@@ -73,6 +73,23 @@ npm run probe -- --page box/<id> --size 390x844 --theme dark         --rect ".po
 | 0 | 違う | JSが最終形を作っている。SSR側にその寸法を先に確保させる(パターンC/E) |
 | 0でない | — | CSS・画像・フォント側の問題(パターンD/G/H)。JSは無関係 |
 
+**ただし「JSが描き直しているだけ」の大半は、アプリのJSではなく Vite の dev client。**
+Astro dev はCSSを `<style>` で埋め込むが、JS起動後に dev client がその中身を全部入れ替え、
+ページが一度リフローする(本番ビルドでは起きない)。`--watch "head"` を付けて
+`style childList "-1" → "+1"` が一斉に並ぶ時刻の直後にシフトが立っていたら、**それは偽物**。
+詳しくは `references/fix-patterns.md` の冒頭。**この確認を飛ばすと存在しないバグを追うことになる。**
+
+```bash
+npm run probe -- --page box/<id> --size 390x844 --theme dark --cls --watch "head"
+```
+
+### `--watch <sel>` で「誰が動かしたか」を出す
+
+`--cls` は「どの要素が動いたか」までしか分からない。`--watch <sel>` を付けると、その要素の内側で
+起きたDOM変更(テキスト・属性・子要素の増減)が時刻付きで並ぶので、シフトの時刻と突き合わせれば
+書き換えた張本人が分かる。**シフトの時刻に該当要素内のDOM変更が無ければ、原因は外側**
+(祖先のクラス変更・CSSの入れ替え・フォント)にある。
+
 **⚠️ `--click` 等の操作オプションは `/box/[id]` `/team/[id]` の自動保存を誘発して実データを壊しうる。** 操作系を使うときは `.claude/skills/ui/references/pitfalls.md`「自動保存があるので、検証クリックがデータを壊す」を読み、保存が走らないと確認済みの要素に限ること。
 
 **⚠️ dev serverは認証をバイパスする。** 未ログイン/ゲストでの揺れを見るときは `npm run preview` を使うか `--guest` を付ける。
