@@ -1,12 +1,13 @@
 import { describeStandaloneLethal } from "../box-id/damage-calc-helpers";
 import { splitBoxCardDisplayName } from "../box-card-display-name";
-import { championSpriteMediumUrl, championSpriteUrl, loadImageIdMap, loadMegaStoneMap, loadMoveDetailMap, loadPokemonMasterList, officialArtworkUrl, type MoveCategory, type PokemonMasterEntry } from "../pokemon-master-data";
+import { championSpriteMediumUrl, championSpriteUrl, loadAbilitiesMap, loadImageIdMap, loadMegaStoneMap, loadMoveDetailMap, loadPokemonMasterList, officialArtworkUrl, type MoveCategory, type PokemonMasterEntry } from "../pokemon-master-data";
 import { calcDamages, calcStats, initEngine, registerOfflineCache, type PokemonSpec } from "../pyodide-engine";
 import { loadItemSpriteMap } from "../sprite-urls";
 import { NATURE_STAT_MODIFIERS, STAT_KEYS, type StatKey } from "../stats";
 import type { PopularMoveOption } from "../team-matchup";
 import { openBoxSelectDialog } from "./box-select-dialog";
 import { renderItemIcon } from "./item-select-dialog";
+import { openOpponentAbilitySelectDialog } from "./opponent-ability-select-dialog";
 import { readJsonScriptStringArray } from "../json-script";
 import { getFieldState, getOpponentBuild, getOpponentState, getSelfBuilds, getSelfState, setOpponentBuild, type OpponentBuild, type SelfBuild } from "./shared-core";
 
@@ -64,6 +65,8 @@ function applySpeedItemModifier(speed: number, itemName: string | null | undefin
 }
 let timer: number | undefined;
 let requestId = 0;
+// 空文字は種族を選んだ直後の「未決定」と「特性なしを明示選択」の両方で使うため、後者だけ種族名とともに保持する。
+let explicitNoOpponentAbilitySpeciesName: string | null = null;
 let opponentMovesCache = new Map<string, Promise<PopularMoveOption[]>>();
 let opponentAbilitiesCache = new Map<string, Promise<PopularAbilityOption[]>>();
 
@@ -124,14 +127,20 @@ function evsWith(stat: StatKey, amount: number): number[] {
   return evs;
 }
 
-function selfSpec(build: SelfBuild): PokemonSpec {
+function selfSpec(build: SelfBuild, master: readonly PokemonMasterEntry[], abilitiesBySpecies: ReadonlyMap<string, string[]>): PokemonSpec {
   const state = getSelfState();
   const moveNames = build.move_names.map((name) => name.trim()).filter(Boolean).slice(0, 4);
+  const masterEntry = master.find((entry) => entry.name === build.species_name);
+  // メガシンカ後は特性も種族固有のものへ変わるため、ボックスに保存された進化前の特性ではなく
+  // マスターデータのメガシンカ種族の特性を計算に渡す。
+  const abilityName = masterEntry && isMegaEntry(masterEntry)
+    ? (abilitiesBySpecies.get(build.species_name)?.[0] ?? build.ability_name ?? "")
+    : (build.ability_name ?? "");
   return {
     name: build.species_name,
     level: build.level ?? 50,
     nature: build.nature ?? "まじめ",
-    abilityName: build.ability_name ?? "",
+    abilityName,
     itemName: build.item_name ?? "",
     moveNames,
     teraType: state.teraType || build.tera_type || null,
@@ -210,7 +219,13 @@ async function fetchOpponentMoveOptions(speciesName: string): Promise<PopularMov
 async function fetchOpponentAbilityOptions(speciesName: string): Promise<PopularAbilityOption[]> {
   let cached = opponentAbilitiesCache.get(speciesName);
   if (!cached) {
-    cached = fetch(`/api/opgg-usage?species=${encodeURIComponent(speciesName)}&category=abilities`)
+    cached = loadPokemonMasterList().then(async (master) => {
+      const masterEntry = master.find((entry) => entry.name === speciesName);
+      if (masterEntry && isMegaEntry(masterEntry)) {
+        // OP.GGにはメガシンカ後の使用率がないため、種族別に持つマスターデータの特性を使う。
+        return (await loadAbilitiesMap()).get(speciesName)?.map((value) => ({ value, ratio: 1 })) ?? [];
+      }
+      return fetch(`/api/opgg-usage?species=${encodeURIComponent(speciesName)}&category=abilities`)
       .then(async (response) => {
         if (!response.ok) throw new Error(`相手特性の使用率取得に失敗しました (${response.status})`);
         const body = await response.json() as { options?: { name: string; usageRate: number | null }[] };
@@ -218,7 +233,8 @@ async function fetchOpponentAbilityOptions(speciesName: string): Promise<Popular
           .filter((option) => option.usageRate != null && option.usageRate >= 10)
           .map((option) => ({ value: option.name, ratio: (option.usageRate ?? 0) / 100 }))
           .sort((a, b) => b.ratio - a.ratio);
-      })
+      });
+    })
       .catch((error: unknown) => {
         opponentAbilitiesCache.delete(speciesName);
         throw error;
@@ -287,11 +303,7 @@ function createCard(index: number): { root: HTMLElement; refs: CardRefs } {
   const root = fragment.firstElementChild as HTMLElement;
   root.dataset.damageCalcCardIndex = String(index);
   const selfItemButton = root.querySelector<HTMLButtonElement>('[data-damage-calc-item-side="self"]') as HTMLButtonElement;
-  const opponentAbilityButton = document.createElement("button");
-  opponentAbilityButton.type = "button";
-  opponentAbilityButton.className = "damage-calc-matchup-card__opponent-ability";
-  opponentAbilityButton.hidden = true;
-  role<HTMLElement>(root, "opponent-artwork").parentElement?.append(opponentAbilityButton);
+  const opponentAbilityButton = role<HTMLButtonElement>(root, "opponent-ability");
   selfItemButton.dataset.damageCalcCardIndex = String(index);
   const refs: CardRefs = {
     selfArtwork: role(root, "self-artwork"),
@@ -316,11 +328,7 @@ function createCard(index: number): { root: HTMLElement; refs: CardRefs } {
   refs.opponentArtwork.addEventListener("click", () => void cycleOpponentForm());
   opponentAbilityButton.addEventListener("click", () => {
     const abilities = (opponentAbilityButton.dataset.abilities ?? "").split("\u001f").filter(Boolean);
-    if (abilities.length === 0) return;
-    const current = getOpponentBuild();
-    const nextIndex = (abilities.indexOf(current.abilityName) + 1) % abilities.length;
-    setOpponentBuild({ ...current, abilityName: abilities[nextIndex] });
-    emitChange("opponent-ability");
+    openOpponentAbilitySelectDialog(opponentAbilityButton, abilities);
   });
   return { root, refs };
 }
@@ -328,10 +336,10 @@ function createCard(index: number): { root: HTMLElement; refs: CardRefs } {
 function renderOpponentAbility(refs: CardRefs, abilityOptions: readonly PopularAbilityOption[], abilityName: string): void {
   const abilityNames = abilityOptions.map((option) => option.value);
   const button = refs.opponentAbilityButton;
-  button.hidden = abilityNames.length === 0;
+  button.hidden = false;
   button.dataset.abilities = abilityNames.join("\u001f");
-  button.textContent = abilityName;
-  button.ariaLabel = `相手の特性: ${abilityName}。タップで切り替え`;
+  button.textContent = abilityName || "特性なし";
+  button.ariaLabel = `相手の特性: ${abilityName || "特性なし"}。タップで選択`;
 }
 
 function renderIdentity(refs: CardRefs, self: SelfBuild, opponent: OpponentBuild, currentRequestId: number): void {
@@ -514,14 +522,18 @@ async function run(): Promise<void> {
   // (1枚だった頃と同じ「即座にカードが差し込まれる」体験を保つ。計算中である旨のテキストは出さない)。
   byId<HTMLElement>("damage-calc-summary-list").replaceChildren(...cards.map((card) => card.root));
   try {
-    const [moveDetails, usageOptions, abilityOptions] = await Promise.all([
+    const [moveDetails, usageOptions, abilityOptions, master, abilitiesBySpecies] = await Promise.all([
       loadMoveDetailMap(),
       fetchOpponentMoveOptions(opponent.speciesName),
       fetchOpponentAbilityOptions(opponent.speciesName),
+      loadPokemonMasterList(),
+      loadAbilitiesMap(),
     ]);
     if (currentRequestId !== requestId) return;
     const abilityNames = abilityOptions.map((option) => option.value);
-    const abilityName = abilityNames.includes(opponent.abilityName) ? opponent.abilityName : (abilityNames[0] ?? "");
+    const abilityName = explicitNoOpponentAbilitySpeciesName === opponent.speciesName && opponent.abilityName === ""
+      ? ""
+      : (abilityNames.includes(opponent.abilityName) ? opponent.abilityName : (abilityNames[0] ?? ""));
     const opponentWithAbility = { ...opponent, abilityName };
     if (getOpponentBuild().speciesName === opponent.speciesName && getOpponentBuild().abilityName !== abilityName) {
       setOpponentBuild({ ...getOpponentBuild(), abilityName });
@@ -538,7 +550,7 @@ async function run(): Promise<void> {
     for (const spec of speedSpecs) opponentSpeeds.push((await calcStats(spec)).stats.spe);
     await Promise.all(cards.map(async (card) => {
       const selfMoveNames = card.build.move_names.map((name) => name.trim()).filter(Boolean).slice(0, 4).filter(isAttackMove);
-      const self = isSelectedSelf(card.build) ? selfSpec(card.build) : null;
+      const self = isSelectedSelf(card.build) ? selfSpec(card.build, master, abilitiesBySpecies) : null;
       const selfSpeed = self ? (await calcStats(self)).stats.spe : null;
       const displayedSelfSpeed = selfSpeed != null ? applySpeedItemModifier(selfSpeed, card.build.item_name) : null;
       if (currentRequestId !== requestId) return;
@@ -559,7 +571,11 @@ async function run(): Promise<void> {
 }
 
 export function initMatchupCardList(): void {
-  document.addEventListener(CHANGE_EVENT, () => {
+  document.addEventListener(CHANGE_EVENT, (event) => {
+    const detail = (event as CustomEvent<{ reason?: string; abilityName?: string }>).detail;
+    if (detail.reason === "opponent-ability") {
+      explicitNoOpponentAbilitySpeciesName = detail.abilityName === "" ? getOpponentBuild().speciesName : null;
+    }
     window.clearTimeout(timer);
     timer = window.setTimeout(() => void run(), 700);
   });

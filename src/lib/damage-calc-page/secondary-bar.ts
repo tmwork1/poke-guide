@@ -66,7 +66,8 @@ export function initSecondaryBar(): void {
           ...loadOpponentHistory().filter((name) => orderedNames.includes(name)),
           ...orderedNames,
         ];
-      const visibleNames = [...new Set(matchingNames)].slice(0, 24);
+      // レールは縦スクロールできるため、主要候補に加えて環境外のポケモンも選べるよう60件まで表示する。
+      const visibleNames = [...new Set(matchingNames)].slice(0, 60);
       rail.replaceChildren(...visibleNames.map((name) => {
         const item = document.createElement("button"); item.type = "button"; item.className = "damage-calc-summary-rail-item"; item.ariaLabel = name;
         const imageId = imageIds.get(name);

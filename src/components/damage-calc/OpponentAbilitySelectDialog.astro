@@ -1,0 +1,32 @@
+---
+import '../../styles/item-select-dialog.css';
+---
+
+<div id="damage-calc-opponent-ability-select-backdrop" class="item-select-backdrop" hidden></div>
+<div
+  id="damage-calc-opponent-ability-select-dialog"
+  class="item-select-dialog"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="damage-calc-opponent-ability-select-dialog-title"
+  tabindex="-1"
+  hidden
+>
+  <div class="item-select-header">
+    <h2 id="damage-calc-opponent-ability-select-dialog-title" class="item-select-title">相手の特性を選択</h2>
+    <button type="button" id="damage-calc-opponent-ability-select-close-button" class="btn-ghost item-select-close" aria-label="閉じる">×</button>
+  </div>
+  <div class="item-select-search-row">
+    <div class="search-input-wrap item-select-search-wrap">
+      <svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="11" cy="11" r="7" />
+        <line x1="21" y1="21" x2="16.65" y2="16.65" />
+      </svg>
+      <input type="text" id="damage-calc-opponent-ability-select-search-input" class="item-select-search-input field-control" placeholder="特性を検索" aria-label="特性を検索" autocomplete="off" />
+    </div>
+  </div>
+  <div class="item-select-grid-wrap">
+    <div id="damage-calc-opponent-ability-select-grid" class="item-select-grid" role="listbox" aria-label="相手の特性を選択"></div>
+    <p id="damage-calc-opponent-ability-select-empty" class="item-select-empty" hidden>該当する特性がありません</p>
+  </div>
+</div>

@@ -6,6 +6,7 @@ import AppHeader from "../../components/AppHeader.astro";
 import SecondaryBar from "../../components/damage-calc/SecondaryBar.astro";
 import MatchupCardList from "../../components/damage-calc/MatchupCardList.astro";
 import ItemSelectDialog from "../../components/damage-calc/ItemSelectDialog.astro";
+import OpponentAbilitySelectDialog from "../../components/damage-calc/OpponentAbilitySelectDialog.astro";
 import BoxSelectDialog from "../../components/damage-calc/BoxSelectDialog.astro";
 import TeamSelectDialog from "../../components/damage-calc/TeamSelectDialog.astro";
 import ControlPanel from "../../components/damage-calc/ControlPanel.astro";
@@ -44,6 +45,7 @@ try {
   </main>
   <ControlPanel />
   <ItemSelectDialog />
+  <OpponentAbilitySelectDialog />
   <BoxSelectDialog />
   <TeamSelectDialog />
   <script type="application/json" id="damage-calc-opgg-ranked-species" set:html={toJsonScriptContent(opggRankedSpeciesNames)}></script>
@@ -51,12 +53,14 @@ try {
     import { initSecondaryBar } from "../../lib/damage-calc-page/secondary-bar";
     import { initControlPanel } from "../../lib/damage-calc-page/control-panel";
     import { initItemSelectDialog } from "../../lib/damage-calc-page/item-select-dialog";
+    import { initOpponentAbilitySelectDialog } from "../../lib/damage-calc-page/opponent-ability-select-dialog";
     import { initBoxSelectDialog } from "../../lib/damage-calc-page/box-select-dialog";
     import { findTeamById, initTeamSelectDialog, selectTeam } from "../../lib/damage-calc-page/team-select-dialog";
     import { initMatchupCardList } from "../../lib/damage-calc-page/matchup-card";
     initSecondaryBar();
     initControlPanel();
     initItemSelectDialog();
+    initOpponentAbilitySelectDialog();
     initBoxSelectDialog();
     initTeamSelectDialog();
     initMatchupCardList();
