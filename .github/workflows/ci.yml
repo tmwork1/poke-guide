@@ -95,7 +95,7 @@ jobs:
             END $$;
 
             CREATE OR REPLACE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $$ SELECT NULL::uuid $$;
-SQL
+          SQL
       - name: Apply migrations to a fresh database
         run: npm run migrate
         env:
