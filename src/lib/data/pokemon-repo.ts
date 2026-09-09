@@ -148,7 +148,7 @@ export async function createOwnedPokemon(payload: OwnedPokemonRequestBody): Prom
 export async function updateOwnedPokemon(id: string, payload: OwnedPokemonRequestBody): Promise<void> {
   if (isGuestMode()) {
     if (!updateGuestPokemon(id, payload)) {
-      throw new Error('更新に失敗しました (指定された個体が見つかりません)');
+      throw new Error('更新できませんでした (指定されたポケモンが見つかりません)');
     }
     return;
   }

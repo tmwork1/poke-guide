@@ -141,6 +141,9 @@ export function notifyDetailAbilityChanged(row: DamageRowState, abilityName: str
 // app-header-swipe.tsがこれを見て、パネル内で始まったフリックを背後ページの
 // タブ切り替えから除外できるようにする。
 export function openDetailPanelOverlay(): void {
+	// 背後のダメージカードにフォーカスが残ると、オーバーレイ表示中もフォーカス由来の見た目が残るため外す。
+	const activeElement = document.activeElement;
+	if (activeElement instanceof HTMLElement && !detailPanelEl.contains(activeElement)) activeElement.blur();
 	detailPanelEl.classList.add("is-open");
 	detailPanelEl.setAttribute("aria-modal", "true");
 	detailBackdropEl.hidden = false;

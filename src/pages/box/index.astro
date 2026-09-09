@@ -65,8 +65,8 @@ import '../../styles/guest-login-dialog.css';
 								<select id="sort-select" class="field-control" aria-label="並べ替え">
 									<option value="updated_at">更新順</option>
 									<option value="dex_no">図鑑番号順</option>
-									<option value="type">タイプ順</option>
 									<option value="species_name">名前順</option>
+									<option value="type">タイプ順</option>
 								</select>
 							</div>
 						</div>
@@ -131,7 +131,7 @@ import '../../styles/guest-login-dialog.css';
 						    (#empty-message)とはメッセージを変え、こちらはカード見た目(アイコン付き)を維持する。 */}
 						<div id="no-match-message" class="empty-state" hidden>
 							<p class="empty-state-icon" aria-hidden="true">🔍</p>
-							<p class="empty-state-title">条件に一致する個体がありません</p>
+							<p class="empty-state-title">条件に一致するポケモンがありません</p>
 							<p class="empty-state-hint">条件を変更してください。</p>
 						</div>
 					</div>
@@ -338,7 +338,7 @@ import '../../styles/guest-login-dialog.css';
 					renderList();
 				} catch (err) {
 					console.error(err);
-					window.alert("個体を削除できませんでした。時間をおいて再度お試しください。");
+					window.alert("ポケモンを削除できませんでした。時間をおいて再度お試しください。");
 				}
 			}
 
@@ -370,7 +370,7 @@ import '../../styles/guest-login-dialog.css';
 					console.error(err);
 					loadingMessage.hidden = true;
 					errorMessage.hidden = false;
-					errorMessage.textContent = "個体一覧を読み込めませんでした。時間をおいて再度お試しください。";
+					errorMessage.textContent = "ポケモン一覧を読み込めませんでした。時間をおいて再度お試しください。";
 				} finally {
 					loadingMore = false;
 					if (hasMorePokemon && loadedNextBatch) {

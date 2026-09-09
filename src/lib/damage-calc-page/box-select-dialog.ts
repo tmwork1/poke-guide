@@ -112,7 +112,7 @@ export function initBoxSelectDialog(): void {
       .catch((cause: unknown) => {
         console.error(cause);
         error.textContent =
-          "個体一覧を読み込めませんでした。時間をおいて再度お試しください。";
+          "ポケモン一覧を読み込めませんでした。時間をおいて再度お試しください。";
         error.hidden = false;
       })
       .finally(() => {

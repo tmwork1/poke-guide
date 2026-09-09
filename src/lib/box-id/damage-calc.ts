@@ -2686,8 +2686,8 @@ if (opponentNotesSection) {
 			detailAttackOption.setAttribute("aria-checked", String(selfAttacks));
 			detailDefenseOption.setAttribute("aria-checked", String(!selfAttacks));
 			root.dataset.direction = selfAttacks ? "attack" : "defense";
-			const attackDetail = "この個体の技で相手を攻撃する計算です。";
-			const defenseDetail = "相手の技をこの個体が受ける計算です。";
+			const attackDetail = "このポケモンの技で相手を攻撃する計算です。";
+			const defenseDetail = "相手の技をこのポケモンが受ける計算です。";
 			attackOption.title = attackDetail;
 			attackOption.setAttribute("aria-label", `攻撃。${attackDetail}`);
 			defenseOption.title = defenseDetail;

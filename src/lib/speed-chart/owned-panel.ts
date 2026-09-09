@@ -256,7 +256,7 @@ export function initOwnedPanel(ctx: OwnedPanelContext): OwnedPanelController {
     // 装備している)個体はトグル自体を無効化する
     // (abilityToggleが特性補正の無い特性のとき無効化するのと同じパターン)。
     itemToggle.disabled = !itemHasSpeedContribution;
-    itemToggle.title = itemHasSpeedContribution ? '' : 'この個体の持ち物にすばやさ補正はありません';
+    itemToggle.title = itemHasSpeedContribution ? '' : 'このポケモンのもちものにすばやさ補正はありません';
     itemToggle.checked = itemHasSpeedContribution;
   }
   const clampRank = (value: number): number => Math.max(-6, Math.min(6, Math.trunc(value)));

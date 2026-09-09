@@ -1374,14 +1374,14 @@ if (form) {
 	copyButton.addEventListener("click", () => {
 		void (async () => {
 			if (!ownedPokemonId) return;
-			if (!window.confirm("この個体を複製します。よろしいですか?")) return;
+			if (!window.confirm("このポケモンを複製します。よろしいですか?")) return;
 			copyButton.disabled = true;
 			try {
 				const { id } = await createOwnedPokemon(buildPayload());
 				window.location.href = `/box/${encodeURIComponent(id)}`;
 			} catch (err) {
 				console.error(err);
-				window.alert("個体を複製できませんでした。時間をおいて再度お試しください。");
+				window.alert("ポケモンを複製できませんでした。時間をおいて再度お試しください。");
 				copyButton.disabled = false;
 			}
 		})();
@@ -1390,7 +1390,7 @@ if (form) {
 	deleteButton.addEventListener("click", () => {
 		void (async () => {
 			if (!ownedPokemonId) return;
-			if (!window.confirm("この個体を削除します。よろしいですか?")) return;
+			if (!window.confirm("このポケモンを削除します。よろしいですか?")) return;
 			deleteButton.disabled = true;
 			try {
 				await deleteOwnedPokemon(ownedPokemonId);

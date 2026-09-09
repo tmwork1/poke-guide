@@ -78,7 +78,7 @@ export async function PUT({ request, cookies, params }: APIContext): Promise<Res
   const result = await replaceTeam(user.id, id, validation.value, supabase);
   if (!result.ok) {
     if (result.violation === 'forbidden') {
-      return badRequest('他人の個体を編成に含めることはできません');
+      return badRequest('他人のポケモンを編成に含めることはできません');
     }
     return jsonResponse({ error: result.error }, 500);
   }

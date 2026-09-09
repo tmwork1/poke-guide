@@ -95,7 +95,7 @@ const opggRankedSpeciesNames = await opggRankedSpeciesNamesPromise;
 
 // pageTitleは<title>タグ(ブラウザタブ)に使われる。
 // ヘッダー表示は種族名固定。
-const pageTitle = pokemon && pokemon.species_name ? pokemon.species_name : "個体編集";
+const pageTitle = pokemon && pokemon.species_name ? pokemon.species_name : "ポケモン編集";
 const bodyClass = pokemon ? "box-edit-page" : undefined;
 // クエリ指定時も最初のHTMLからヘッダーと本文の表示状態をそろえる。
 // クライアント初期化まで待つと、特に復帰表示時に「育成」が一瞬選択されたままになる。
@@ -153,13 +153,13 @@ const initialMobileTab = !isNewMode && Astro.url.searchParams.get('tab') === 'da
 		) : loadError ? (
 			<section class="panel">
 				<div class="panel-content">
-					<p>個体情報を読み込めませんでした。時間をおいて再度お試しください。</p>
+					<p>ポケモン情報を読み込めませんでした。時間をおいて再度お試しください。</p>
 				</div>
 			</section>
 		) : !pokemon ? (
 			<section class="panel">
 				<div class="panel-content">
-					<p>指定された個体が見つかりませんでした(削除された、または他のアカウントの個体である可能性があります)。</p>
+					<p>指定されたポケモンが見つかりませんでした(削除された、または他のアカウントのポケモンである可能性があります)。</p>
 				</div>
 			</section>
 		) : (

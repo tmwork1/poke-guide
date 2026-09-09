@@ -237,10 +237,11 @@ body.data-hub-page .app-main > .second-header {
   position: sticky;
   top: 0;
   align-self: flex-start;
-  max-height: 100%;
+  /* sticky で貼り付く先である .data-hub-scroll の可視高さに収め、レール自身をスクロール可能にする
+     (中身なりの高さだと scrollHeight === clientHeight になり、レールが動かせない)。 */
+  max-height: calc(100dvh - var(--header-height) - var(--app-header-height) - var(--second-header-height) - var(--bottom-nav-height) - var(--data-hub-card-scroll-inset) * 2);
   z-index: 15;
   width: var(--battle-data-rail-width);
-  max-height: none;
   display: flex;
   flex-direction: column;
   align-items: center;
