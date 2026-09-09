@@ -18,6 +18,7 @@ import { bindModalDismissal } from "../modal-dismiss";
 import { typeIconUrl } from "../sprite-urls";
 import { createRankPicker } from "../shared/rank-picker";
 import { kanaIncludes } from "../kana";
+import { loadMoveDetailMap } from "../pokemon-master-data";
 import {
 	applySprite,
 	applyItemImage,
@@ -93,16 +94,7 @@ type AutoInputState = {
 	automaticTerrain?: string;
 };
 const autoInputLocks = new WeakMap<DamageColumnState, AutoInputState>();
-type MoveAutoInputDetail = { critRatio: number; type: string | null };
-const moveAutoInputDetailsPromise: Promise<Map<string, MoveAutoInputDetail>> = fetch("/master-data/detail/moves.json")
-	.then((response) => response.json())
-	.then((moves: Array<{ name: string; critRatio?: number; type?: string | null }>) =>
-		new Map(moves.map((move) => [move.name, { critRatio: move.critRatio ?? 0, type: move.type ?? null }])),
-	)
-	.catch((error) => {
-		console.warn("技の急所・タイプ情報の読み込みに失敗しました", error);
-		return new Map<string, MoveAutoInputDetail>();
-	});
+const moveAutoInputDetailsPromise = loadMoveDetailMap();
 const abilityFieldMap: Record<string, { key: "weather" | "terrain"; value: string }> = {
 	あめふらし: { key: "weather", value: "あめ" },
 	ひでり: { key: "weather", value: "はれ" },

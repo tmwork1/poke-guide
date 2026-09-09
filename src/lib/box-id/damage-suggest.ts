@@ -73,17 +73,6 @@ let loadedSubjectKey: string | null = null;
 let loadToken = 0;
 let reloadTimer: ReturnType<typeof setTimeout> | undefined;
 
-// C-4: 技のタイプアイコン用に技名→タイプを引く。damage-detail-panel.ts(moveAutoInputDetailsPromise)と
-// 同じ考え方だが、このファイルからあちらへの依存を増やさないため(相互import増加を避ける
-// 既存方針)、独自に同じ /master-data/detail/moves.json を取得してキャッシュする。
-const moveTypeDetailsPromise: Promise<Map<string, string | null>> = fetch("/master-data/detail/moves.json")
-	.then((response) => response.json())
-	.then((moves: Array<{ name: string; type?: string | null }>) => new Map(moves.map((move) => [move.name, move.type ?? null])))
-	.catch((error) => {
-		console.warn("技のタイプ情報の読み込みに失敗しました", error);
-		return new Map<string, string | null>();
-	});
-
 /** いま編集中の値から型を判定する(pokemon-edit-panel.ts の currentArchetype と同じ入力・同じ分類器)。 */
 async function currentArchetype(): Promise<{ speciesName: string; archetype: ArchetypeKey | null }> {
 	// buildAttackerSpec() は育成パネルの現在値(性格・持ち物・テラス・努力値・技)を
@@ -273,8 +262,8 @@ function buildSuggestionCard(suggestion: DamageCalcSuggestion): HTMLElement {
 	const moveTypeBar = document.createElement("span");
 	moveTypeBar.className = "damage-suggest-move-type-bar";
 	moveTypeBar.hidden = true;
-	void moveTypeDetailsPromise.then((types) => {
-		const type = types.get(suggestion.moveName) ?? null;
+	void moveDetailMapPromise.then((details) => {
+		const type = details.get(suggestion.moveName)?.type ?? null;
 		moveTypeBar.hidden = type === null;
 		if (type !== null) moveTypeBar.style.backgroundColor = TYPE_COLORS[type] ?? DEFAULT_TYPE_COLOR;
 	});

@@ -242,11 +242,13 @@ export interface MoveDetail {
   power: number | null;
   accuracy: number | null;
   pp: number;
+  critRatio: number;
+  // JSONには priority / target も含まれるが、現状の利用者がいないため型には出していない。
 }
 
 let moveDetailCache: Promise<Map<string, MoveDetail>> | null = null;
 
-// 技名 -> 詳細情報(タイプ/分類/威力/命中/PP)。全716件。
+// 技名 -> 詳細情報(タイプ/分類/威力/命中/PP/急所ランク)。全716件。
 export function loadMoveDetailMap(): Promise<Map<string, MoveDetail>> {
   if (!moveDetailCache) {
     moveDetailCache = fetch("/master-data/detail/moves.json")

@@ -42,6 +42,9 @@ import type {
 import {
 	loadMultiHitMoveMap,
 	loadAbilitiesMap,
+	loadMoveDetailMap,
+	type MoveDetail,
+	type MoveCategory,
 } from "../pokemon-master-data";
 import { type StatKey, STAT_KEYS, NATURE_STAT_MODIFIERS, calcHpStat, calcOtherStat } from "../stats";
 import { TERA_TYPES } from "../tera-types";
@@ -146,43 +149,18 @@ import {
 	setResultVerdict,
 } from "./damage-calc-helpers";
 
-// public/master-data/detail/moves.json を技名でMap化するローダー。下のgetMoveCategory()
-// (壁・ランク補正の自動判定に技の物理/特殊/変化区分を使う)が参照しているため、
-// ローダー自体とMoveDetailEntry型を保持している。
-interface MoveDetailEntry {
-	name: string;
-	type: string | null;
-	category: "physical" | "special" | "status";
-	power: number | null;
-	accuracy: number | null;
-	pp: number;
-}
-let moveDetailMapPromise: Promise<Map<string, MoveDetailEntry>> | null = null;
-function loadMoveDetailMap(): Promise<Map<string, MoveDetailEntry>> {
-	if (!moveDetailMapPromise) {
-		moveDetailMapPromise = fetch("/master-data/detail/moves.json")
-			.then((res) => res.json())
-			.then((raw: Record<string, MoveDetailEntry>) => new Map(Object.values(raw).map((m) => [m.name, m])))
-			.catch((err) => {
-				console.warn("技データの読み込みに失敗しました", err);
-				moveDetailMapPromise = null;
-				return new Map<string, MoveDetailEntry>();
-			});
-	}
-	return moveDetailMapPromise;
-}
 void loadMoveDetailMap(); // 表示直後に一度だけfetchしておく(imageIdMapPromise等と同じ方針)
 
-// 技名から物理/特殊/変化を同期的に引けるキャッシュ。moveDetailMapPromiseは非同期のため、
+// 技名から物理/特殊/変化を同期的に引けるキャッシュ。loadMoveDetailMap()は非同期のため、
 // 入力のたびに壁・ランクの派生値(resolveColumnDerivedFields)を即座に再計算したい
 // UI操作からは同期関数として使いたい。ローカルの静的JSONなので、ページ表示直後の
 // void loadMoveDetailMap()呼び出しからほぼ即座に解決し、実運用上ユーザーが
 // ダメージ計算カードを操作する時点には解決済みになっている。
-let moveDetailMapCache: Map<string, MoveDetailEntry> | null = null;
+let moveDetailMapCache: Map<string, MoveDetail> | null = null;
 loadMoveDetailMap().then((m) => {
 	moveDetailMapCache = m;
 });
-function getMoveCategory(name: string): MoveDetailEntry["category"] | null {
+function getMoveCategory(name: string): MoveCategory | null {
 	const trimmed = name.trim();
 	if (!trimmed || !moveDetailMapCache) return null;
 	return moveDetailMapCache.get(trimmed)?.category ?? null;
