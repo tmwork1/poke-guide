@@ -3528,15 +3528,23 @@ if (opponentNotesSection) {
 		}
 	}
 
-	// UI刷新: このページに限り、表示直後にアイドル時間を使ってバックグラウンドでPyodideを
-	// プリフェッチする(全ページ共通の「ボタンを押すまで遅延初期化」方針への例外、
-	// プロダクトオーナー承認済み)。ユーザー操作はブロックしない(scheduleEnginePrefetch側で
-	// 表示直後の操作と衝突しないよう間隔を空けている。詳細はpyodide-engine.ts参照)。
-	scheduleEnginePrefetch(() => {
+	function startDamageEngine(): void {
 		initEngine(combinedDamageEngineProgress).catch((err) => {
 			console.error(err);
 		});
-	});
+	}
+
+	if (new URLSearchParams(location.search).get("tab") === "damage") {
+		// ダメージタブを初期表示する場合だけ、表示直後の操作と衝突しない間隔を空けて
+		// バックグラウンドでプリフェッチする(詳細はpyodide-engine.ts参照)。
+		scheduleEnginePrefetch(startDamageEngine);
+	} else {
+		// 育成タブでは約5.5MBのPyodideを先読みしない。ダメージタブへ切り替える意思が
+		// 確定したpointerdownで開始し、clickを待たずタブ切替中にロードを進める。
+		document
+			.querySelector<HTMLButtonElement>('button[data-mobile-tab="damage"]')
+			?.addEventListener("pointerdown", startDamageEngine, { once: true });
+	}
 
 	// loadAutocomplete()の呼び出しは11-4対応で育成パネル(pokemon-edit-panel.ts)の
 	// autocompleteReadyPromiseへ移動した(二重に呼ぶとdatalistの候補が重複するため

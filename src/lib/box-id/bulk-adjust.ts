@@ -25,12 +25,11 @@ import {
 	type BulkAdjustRowSnapshot,
 } from "./shared-core";
 import {
-	isEngineReady,
 	initEngine,
-	scheduleEnginePrefetch,
 	calcLethalSequence,
 	isEngineFatal,
 	resetEngine,
+	type EngineProgress,
 } from "../pyodide-engine";
 import type { PokemonSpec } from "../pyodide-engine";
 import { STAT_KEYS, NATURE_STAT_MODIFIERS, type StatKey } from "../stats";
@@ -107,7 +106,7 @@ function setButtonLabel(text: string): void {
 	else bulkAdjustButton.textContent = text;
 }
 
-// ダイアログを開いていない間だけ、「エンジン準備済み・防御カード1枚以上」で有効化する。
+// ダイアログを開いていない間だけ、防御カードが1枚以上なら有効化する。
 // BulkAdjustBridgeには行の増減・名前変更を通知する購読機構が無く、
 // かつ相手ポケモン名や技名の入力(input.valueの変更)はDOM属性の変化を伴わずMutationObserverでは
 // 拾えないため、軽い間隔ポーリングで最新状態に追随させる(600ms間隔。getDefenseRows()は
@@ -115,14 +114,11 @@ function setButtonLabel(text: string): void {
 function updateBulkAdjustButtonReadyState(): void {
 	if (isDialogOpen || isComputing) return;
 	const bridge = getBulkAdjustBridge();
-	const ready = isEngineReady() && !!bridge && bridge.getDefenseRows().length > 0;
+	const ready = !!bridge && bridge.getDefenseRows().length > 0;
 	bulkAdjustButton.disabled = !ready;
 }
-// damage-calc.ts と同じscheduleEnginePrefetch()を使う。initEngine()はシングルトンで
-// 最初の呼び出しが実際のロードを開始してしまうため、ここも即時呼び出しにすると
-// damage-calc.ts側の遅延プリフェッチ方針(表示直後の操作と衝突しないタイミング)を
-// 無効化してしまう(perf計測で確認)。
-scheduleEnginePrefetch(() => initEngine(() => updateBulkAdjustButtonReadyState()));
+// 耐久調整ボタンは現在非表示にしている。表示していないボタンのために初回訪問で
+// Pyodide約5.5MBを取得しないよう、再表示した場合も実際に押された時点で初期化する。
 updateBulkAdjustButtonReadyState();
 window.setInterval(updateBulkAdjustButtonReadyState, 600);
 
@@ -265,12 +261,33 @@ function closeDialog(): void {
 	bulkAdjustButton.focus();
 }
 
+function renderEnginePreparationProgress(progress: EngineProgress): void {
+	if (!isDialogOpen) return;
+	if (progress.status === "ready") {
+		progressTextEl.textContent = "";
+	} else if (progress.status === "error") {
+		progressTextEl.textContent = "";
+		dialogStatusEl.textContent = "計算エンジンを準備できませんでした";
+	} else {
+		progressTextEl.textContent = "計算エンジンを準備中…";
+	}
+}
+
+function prepareEngine(): Promise<void> {
+	return initEngine(renderEnginePreparationProgress).then(() => undefined);
+}
+
 bulkAdjustButton.addEventListener("click", () => {
 	if (isComputing) return;
 	if (isDialogOpen) {
 		void runCompute();
 	} else {
 		openDialog();
+		void prepareEngine().catch((err) => {
+			// 計算を押した場合はrunCompute()側でも同じ失敗を表示する。ここは
+			// ダイアログを開いただけの場合の未処理rejectionを防ぐための受け口。
+			console.error(err);
+		});
 	}
 });
 // 外部トリガー(#bulk-adjust-button、ダイアログを開いている間は「ステータスを計算」実行
@@ -365,9 +382,12 @@ async function runCompute(): Promise<void> {
 	const controller = new AbortController();
 	activeAbortController = controller;
 	setComputingState(true);
-	// 進行中表示は画面全体の表記規約に合わせて三点リーダーを使う。
-	progressTextEl.textContent = "計算を準備しています…";
+	// エンジン未準備ならここでロードを待つ。準備済みの場合もシングルトンのPromiseを
+	// そのまま待つだけなので、計算経路を分けずに済む。
+	progressTextEl.textContent = "計算エンジンを準備中…";
 	try {
+		await prepareEngine();
+		progressTextEl.textContent = "計算を準備しています…";
 		const result: SolveResult = await solveDurability(requirements, {
 			engine: { calcLethalSequence, isEngineFatal, resetEngine },
 			baseStats,

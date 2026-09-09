@@ -1166,6 +1166,14 @@ const ENGINE_PREFETCH_FLOOR_MS = 3000;
  * 専用のヘルパー。
  */
 export function scheduleEnginePrefetch(callback: () => void): void {
+  // connection未対応ブラウザではundefinedとなり、従来どおり先読みする。
+  const connection = (navigator as Navigator & {
+    connection?: { saveData?: boolean; effectiveType?: string };
+  }).connection;
+  if (connection?.saveData || connection?.effectiveType === "slow-2g" || connection?.effectiveType === "2g") {
+    // 先読みを見送るだけで、必要になった時点のinitEngine()は従来どおり初期化を開始する。
+    return;
+  }
   const runIdle = (): void => {
     if (typeof window.requestIdleCallback === "function") {
       window.requestIdleCallback(() => callback());
