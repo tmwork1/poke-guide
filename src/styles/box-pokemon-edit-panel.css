@@ -175,11 +175,28 @@
 	#stat-adjustment-section .stat-row-base { color: var(--color-text-muted); text-align: right; }
 	#stat-adjustment-section .stat-row-real-wrap { display: contents; align-items: center; justify-content: center; gap: var(--space-1); min-width: 0; }
 	#stat-adjustment-section .stat-row-real {
+		min-width: 3ch;
 		padding-inline-end: var(--space-1);
 		text-align: right;
 		font-size: var(--font-size-base);
+		font-variant-numeric: tabular-nums;
 		margin-top: 0;
 	}
+	/* 初期値が空でも「残り66」と同じ行高・幅を確保する。後から文字列を入れても
+	   下の能力値行を押し下げない。 */
+	#stat-adjustment-section #ev-remaining {
+		display: inline-block;
+		min-width: 4ch;
+		min-height: 1em;
+		font-variant-numeric: tabular-nums;
+	}
+	#stat-adjustment-section #hp-16n-indicator {
+		display: inline-block;
+		min-width: 5ch;
+		min-height: 1em;
+		font-variant-numeric: tabular-nums;
+	}
+	#stat-adjustment-section .ev-remaining:empty { display: inline-block; }
 	.hp-fixed-note {
 		margin: var(--space-1) 0 0;
 		font-size: var(--font-size-sm3);

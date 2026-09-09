@@ -53,8 +53,25 @@ npm run probe -- --page team/<id> --size 390x844 --theme dark --cls \
 読み方:
 
 - `[load] 0.08 (4件, 0ms〜)` — フェーズごとの合計と件数。`--mark` を打った数だけフェーズが増える
-- `0.07 @ 1348ms [load] div.edit-layout-training dx=0 dy=-52.6 dw=0 dh=52.6` — **犯人のセレクタと動いた量**。`startTime` から「何の完了に引きずられたか」を推測する
+- `0.07 @ 1348ms [load] div.edit-layout-training dx=0 dy=-52.6 dw=0 dh=52.6` — **押された側**のセレクタと動いた量。`startTime` から「何の完了に引きずられたか」を推測する
+- その下の `+ ...` 行は**同じシフトで動いた他の要素**。**押した側(縮んだ/伸びた要素)はたいていここに出る**ので、先頭行だけ見て犯人を決めない
 - `--repeat 3` を付けると中央値も出る。**判定は必ず `--repeat 3` の中央値で行う**(dev serverの初回コンパイルで1回目だけ極端に悪く出る)
+
+### `--no-js` で「SSRの寸法」と「JS適用後の寸法」を突き合わせる
+
+```bash
+# 同じ --rect を JS無効/有効で2回叩いて見比べる
+npm run probe -- --page box/<id> --size 390x844 --theme dark --no-js --rect ".pokemon-preview" --rect "ol.pokemon-preview-moves"
+npm run probe -- --page box/<id> --size 390x844 --theme dark         --rect ".pokemon-preview" --rect "ol.pokemon-preview-moves"
+```
+
+これで揺れを3つに切り分けられる。**原因の切り分けはここから始める。**
+
+| `--no-js` のCLS | 最終レイアウト(JS有無の比較) | 何が起きているか |
+|---|---|---|
+| 0 | 一致する | **JSが一度描き直しているだけ。** SSRの寸法は正しい。SSR済みの値と同じなら書き換えない作りにするのが筋 |
+| 0 | 違う | JSが最終形を作っている。SSR側にその寸法を先に確保させる(パターンC/E) |
+| 0でない | — | CSS・画像・フォント側の問題(パターンD/G/H)。JSは無関係 |
 
 **⚠️ `--click` 等の操作オプションは `/box/[id]` `/team/[id]` の自動保存を誘発して実データを壊しうる。** 操作系を使うときは `.claude/skills/ui/references/pitfalls.md`「自動保存があるので、検証クリックがデータを壊す」を読み、保存が走らないと確認済みの要素に限ること。
 

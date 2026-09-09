@@ -32,6 +32,8 @@
  *   --size 390x844      ビューポート。既定 1920x1080
  *   --timeout <ms>      Pyodide待ちのタイムアウト。既定 300000
  *   --keep-toolbar      Astro開発ツールバーを消さずに見る
+ *   --no-js             JSを無効にして開く。SSRだけの寸法が見えるので、`--rect` の結果を
+ *                       JS有効時と見比べれば「JSが入って何px動くか」= 揺れの正体が分かる
  *
  * 操作(**指定した順に**実行される。DBを汚しうる。上記の注意を読むこと):
  *   --click <sel>       クリック。`text=xxx` で完全一致テキスト
@@ -108,6 +110,7 @@ function parseArgs(argv) {
 		size: "1920x1080",
 		timeout: 300_000,
 		keepToolbar: false,
+		noJs: false,
 		htmlLen: 1000,
 		limit: 10,
 		json: false,
@@ -148,6 +151,9 @@ function parseArgs(argv) {
 				break;
 			case "--keep-toolbar":
 				opts.keepToolbar = true;
+				break;
+			case "--no-js":
+				opts.noJs = true;
 				break;
 			case "--html-len":
 				opts.htmlLen = Number(next());
@@ -493,7 +499,7 @@ async function installNavigationObservers(page) {
 						value: entry.value,
 						hadRecentInput: entry.hadRecentInput,
 						startTime: entry.startTime,
-						sources: (entry.sources ?? []).map((source) => ({
+						sources: (entry.sources ?? []).slice(0, 10).map((source) => ({
 							selector: selectorFor(source.node),
 							prevRect: rectFor(source.previousRect),
 							currRect: rectFor(source.currentRect),
@@ -530,15 +536,22 @@ async function collectNavigationMetrics(page, includeCls, includeTiming, limit) 
 			for (const bound of phaseBounds) if (startTime >= bound.from) label = bound.label;
 			return label;
 		};
-		const describe = (shift) => {
-			const source = shift.sources[0] ?? { selector: "unknown", prevRect: null, currRect: null };
+		const describeSource = (source) => {
 			const prev = source.prevRect;
 			const curr = source.currRect;
 			return {
-				value: round(shift.value), hadRecentInput: shift.hadRecentInput, startTime: round(shift.startTime),
-				phase: phaseOf(shift.startTime), selector: source.selector,
+				selector: source.selector,
 				dx: round((curr?.x ?? 0) - (prev?.x ?? 0)), dy: round((curr?.y ?? 0) - (prev?.y ?? 0)),
 				dw: round((curr?.width ?? 0) - (prev?.width ?? 0)), dh: round((curr?.height ?? 0) - (prev?.height ?? 0)),
+			};
+		};
+		const describe = (shift) => {
+			// 1件のシフトには複数のsource(動いた要素)が入る。先頭だけ見ると「押された側」しか
+			// 分からず、押した側(縮んだ/伸びた要素)を取り逃がすので全部返す。
+			const sources = (shift.sources.length ? shift.sources : [{ selector: "unknown", prevRect: null, currRect: null }]).map(describeSource);
+			return {
+				value: round(shift.value), hadRecentInput: shift.hadRecentInput, startTime: round(shift.startTime),
+				phase: phaseOf(shift.startTime), ...sources[0], sources,
 			};
 		};
 		const sum = (list) => round(list.reduce((total, shift) => total + shift.value, 0));
@@ -572,7 +585,7 @@ async function collectNavigationMetrics(page, includeCls, includeTiming, limit) 
 }
 
 async function measureWithObservers(browser, opts, viewport, pagePath) {
-	const context = await browser.newContext({ viewport, hasTouch: true });
+	const context = await browser.newContext({ viewport, hasTouch: true, javaScriptEnabled: !opts.noJs });
 	if (opts.guest) await applyGuestCookie(context, opts.base);
 	const page = await context.newPage();
 	const report = { url: `${opts.base}${pagePath}`, theme: opts.theme, viewport, probes: [] };
@@ -587,10 +600,12 @@ async function measureWithObservers(browser, opts, viewport, pagePath) {
 		if (opts.cls || opts.timing) await installNavigationObservers(page);
 		const response = await page.goto(report.url, { waitUntil: "domcontentloaded", timeout: 60_000 });
 		report.status = response?.status() ?? 0;
-		if (!opts.keepToolbar) await hideDevToolbar(page);
-		await page.evaluate(`window.collectElementsInPage = ${collectElements.toString()}`);
-		const pyodide = await waitForPyodideIfPresent(page, opts.timeout);
-		report.pyodideWaited = pyodide !== null;
+		if (!opts.keepToolbar && !opts.noJs) await hideDevToolbar(page);
+		if (!opts.noJs) {
+			await page.evaluate(`window.collectElementsInPage = ${collectElements.toString()}`);
+			const pyodide = await waitForPyodideIfPresent(page, opts.timeout);
+			report.pyodideWaited = pyodide !== null;
+		}
 		await page.waitForLoadState("networkidle").catch(() => {});
 		await page.evaluate(() => document.fonts?.ready);
 		if (opts.cls || opts.timing) await page.waitForTimeout(500);
@@ -638,7 +653,10 @@ async function runNewMeasurement(opts) {
 			if (report.cls.phases.length > 1) {
 				for (const phase of report.cls.phases) lines.push(`  [${phase.label}] ${phase.total} (${phase.count}件, ${phase.from}ms〜)`);
 			}
-			for (const shift of report.cls.shifts) lines.push(`  ${shift.value} @ ${shift.startTime}ms [${shift.phase}] ${shift.selector} dx=${shift.dx} dy=${shift.dy} dw=${shift.dw} dh=${shift.dh}${shift.hadRecentInput ? " (input)" : ""}`);
+			for (const shift of report.cls.shifts) {
+				lines.push(`  ${shift.value} @ ${shift.startTime}ms [${shift.phase}] ${shift.selector} dx=${shift.dx} dy=${shift.dy} dw=${shift.dw} dh=${shift.dh}${shift.hadRecentInput ? " (input)" : ""}`);
+				for (const source of shift.sources.slice(1)) lines.push(`      + ${source.selector} dx=${source.dx} dy=${source.dy} dw=${source.dw} dh=${source.dh}`);
+			}
 		}
 		if (report.timing) {
 			const timing = report.timing;

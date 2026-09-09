@@ -316,6 +316,12 @@
 	display: contents;
 }
 
+/* 実数値は非同期計算後に差し替えるが、3行×6列のセルは先に置く。
+	計算待ちの間も技一覧の最終位置を保ち、カードの高さを変えない。 */
+.team-overview-preview-card .pokemon-preview-stats.is-pending {
+	visibility: hidden;
+}
+
 .team-overview-preview-card .pokemon-preview-stat-key,
 .team-overview-preview-card .pokemon-preview-stat-ev,
 .team-overview-preview-card .pokemon-preview-stat-value {
