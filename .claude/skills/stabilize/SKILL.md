@@ -83,6 +83,19 @@ Astro dev はCSSを `<style>` で埋め込むが、JS起動後に dev client が
 npm run probe -- --page box/<id> --size 390x844 --theme dark --cls --watch "head"
 ```
 
+### `--block <部分文字列>` で「その通信が来なかったら」を測る
+
+原因の候補が外部リソース(Webフォント・外部画像)なら、**それを落として測り直すのが一番早い**。
+シフトが消えればその通信が原因だと断定できる。
+
+```bash
+# Webフォントの差し替えが原因かを確かめる
+npm run probe -- --page data/speed-chart --size 390x844 --theme dark --cls --repeat 3   --block fonts.gstatic.com --block fonts.googleapis.com
+```
+
+**「テキストが dx だけ 4〜7px 動く」「遅れて届くデータが無い静的なページでも起きる」**なら
+まずWebフォントを疑う(2026-09-10 にほぼ全ページで観測。→ `docs/stabilize/dashboard.md`)。
+
 ### `--watch <sel>` で「誰が動かしたか」を出す
 
 `--cls` は「どの要素が動いたか」までしか分からない。`--watch <sel>` を付けると、その要素の内側で

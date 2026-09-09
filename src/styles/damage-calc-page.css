@@ -1,5 +1,18 @@
 /* /damage-calc 専用。動的に生成するカードにも適用されるよう scoped style は使わない。 */
-.damage-calc-page { --header-height: 0px; --damage-calc-control-bar-height: 0px; }
+.damage-calc-page {
+  --header-height: 0px;
+  /* 折りたたみ時の操作バーの高さ(つまみ42px + 上ボーダー1px)。control-panel.tsの
+     syncControlBarHeight()がResizeObserverで実寸を書き戻すが、初期値を0pxにしておくと
+     .damage-calc-shellの下端が43pxずれた状態で一度描画され、JSが走った瞬間に跳ねる
+     (2026-09-10 実測。320〜768pxのどの幅でも43pxで一定)。 */
+  --damage-calc-control-bar-height: 43px;
+  /* この画面のセカンドヘッダー(.damage-calc-secondary-bar)の高さ。素のセカンドヘッダー用の
+     --second-header-height(52px)は想定値で、この画面は内容を折り返すぶん4.06px高い。
+     control-panel.tsのsyncContentTop()が実測値を--damage-calc-content-topへ書き戻すまでの
+     フォールバックにこの値を使うことで、初期描画とJS適用後で上端がずれない
+     (2026-09-10 実測。320〜768pxのどの幅でも56.0625pxで一定)。 */
+  --damage-calc-secondary-bar-height: 56.0625px;
+}
 /* box-content(box-page.css)と同じ「セカンドヘッダー〜下部固定パネルの間だけを
    position:fixedの領域にしてoverflow-y:autoで自前スクロールさせる」パターン。
    SecondaryBar/ControlPanelは(index.astro側で).damage-calc-shellの外側の兄弟に
@@ -7,7 +20,7 @@
    スクロールコンテナの子孫にならず、他ページのAppHeader/SecondHeaderと同じ
    「documentが動かないので実質固定表示」になる(sticky計算がshellのスクロールと
    絡んで見た目上スクロール領域に含まれてしまう不具合を避ける)。 */
-.damage-calc-shell { position: fixed; top: var(--damage-calc-content-top, calc(var(--header-height) + var(--app-header-height) + var(--second-header-height))); right: 0; bottom: calc(var(--damage-calc-control-bar-height) + var(--bottom-nav-height) + env(safe-area-inset-bottom)); left: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; min-width: 0; background: var(--color-bg); }
+.damage-calc-shell { position: fixed; top: var(--damage-calc-content-top, calc(var(--header-height) + var(--app-header-height) + var(--damage-calc-secondary-bar-height))); right: 0; bottom: calc(var(--damage-calc-control-bar-height) + var(--bottom-nav-height) + env(safe-area-inset-bottom)); left: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; min-width: 0; background: var(--color-bg); }
 .damage-calc-secondary-bar .second-header__content { flex-wrap: wrap; }
 .damage-calc-secondary-actions { display: flex; align-items: center; gap: var(--space-2); flex: 0 1 auto; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
 .damage-calc-secondary-actions::-webkit-scrollbar { display: none; }
@@ -131,7 +144,7 @@
    クリップ境界の外側に余白を確保する。
    -webkit-overflow-scrolling/overscroll-behaviorは、モバイルでの慣性スクロール中に
    レール内アイコンがoverflowの境界をはみ出して見える描画の乱れを防ぐ。 */
-.damage-calc-summary-rail { --damage-calc-rail-gap: var(--space-3); position: fixed; top: calc(var(--damage-calc-content-top, calc(var(--header-height) + var(--app-header-height) + var(--second-header-height))) + var(--damage-calc-rail-gap)); bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom) + var(--damage-calc-rail-gap)); right: var(--damage-calc-rail-gutter, var(--space-3)); width: 2.5rem; z-index: 5; display: flex; flex-direction: column; align-items: center; gap: var(--space-2); overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; scrollbar-width: none; background: var(--color-bg); }
+.damage-calc-summary-rail { --damage-calc-rail-gap: var(--space-3); position: fixed; top: calc(var(--damage-calc-content-top, calc(var(--header-height) + var(--app-header-height) + var(--damage-calc-secondary-bar-height))) + var(--damage-calc-rail-gap)); bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom) + var(--damage-calc-rail-gap)); right: var(--damage-calc-rail-gutter, var(--space-3)); width: 2.5rem; z-index: 5; display: flex; flex-direction: column; align-items: center; gap: var(--space-2); overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; scrollbar-width: none; background: var(--color-bg); }
 .damage-calc-summary-rail::-webkit-scrollbar { display: none; }
 .damage-calc-summary-rail-item { flex: 0 0 auto; width: 2.5rem; height: 2.5rem; min-height: 2.5rem; padding: 0; overflow: hidden; border: 0; border-radius: 50%; background: transparent; font-size: var(--font-size-sm2); }
 .damage-calc-summary-rail-item img { display: block; width: 100%; height: 100%; object-fit: contain; }

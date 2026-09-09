@@ -32,6 +32,9 @@
  *   --size 390x844      ビューポート。既定 1920x1080
  *   --timeout <ms>      Pyodide待ちのタイムアウト。既定 300000
  *   --keep-toolbar      Astro開発ツールバーを消さずに見る
+ *   --block <部分文字列> そのURLを含むリクエストを落として開く(複数指定可)。「この通信が
+ *                       来なかったらどうなるか」を実測して原因を切り分ける。例:
+ *                       `--block fonts.gstatic.com` でWebフォント抜きのレイアウトを見る
  *   --no-js             JSを無効にして開く。SSRだけの寸法が見えるので、`--rect` の結果を
  *                       JS有効時と見比べれば「JSが入って何px動くか」= 揺れの正体が分かる
  *   --watch <sel>       その要素の内側で起きたDOM変更(テキスト・属性・子要素の増減)を
@@ -114,6 +117,7 @@ function parseArgs(argv) {
 		timeout: 300_000,
 		keepToolbar: false,
 		noJs: false,
+		block: [],
 		watch: null,
 		htmlLen: 1000,
 		limit: 10,
@@ -173,6 +177,9 @@ function parseArgs(argv) {
 				break;
 			case "--guest":
 				opts.guest = true;
+				break;
+			case "--block":
+				opts.block.push(next());
 				break;
 			case "--cls":
 				opts.cls = true;
@@ -624,9 +631,21 @@ async function collectNavigationMetrics(page, includeCls, includeTiming, limit) 
 	}, { includeCls, includeTiming, limit });
 }
 
+// --block で指定した部分文字列を含むURLのリクエストを落とす。Webフォントや外部画像が
+// 「来なかった場合」のレイアウトを実測して、揺れの原因がその通信かどうかを切り分けるためのもの。
+async function applyBlockRules(context, patterns) {
+	if (!patterns || patterns.length === 0) return;
+	await context.route("**/*", (route) => {
+		const url = route.request().url();
+		if (patterns.some((pattern) => url.includes(pattern))) return route.abort();
+		return route.continue();
+	});
+}
+
 async function measureWithObservers(browser, opts, viewport, pagePath) {
 	const context = await browser.newContext({ viewport, hasTouch: true, javaScriptEnabled: !opts.noJs });
 	if (opts.guest) await applyGuestCookie(context, opts.base);
+	await applyBlockRules(context, opts.block);
 	const page = await context.newPage();
 	const report = { url: `${opts.base}${pagePath}`, theme: opts.theme, viewport, probes: [] };
 	try {
@@ -742,6 +761,7 @@ async function main() {
 	const browser = await chromium.launch();
 	// --swipe(タッチ)を使えるよう、コンテキストは常にタッチ有効で作る。
 		const context = await browser.newContext({ viewport, hasTouch: true });
+	await applyBlockRules(context, opts.block);
 	const page = await context.newPage();
 	const consoleErrors = [];
 	const pageErrors = [];

@@ -31,7 +31,7 @@
 | 🔴 | P-12 | データハブ | 0.09 | 40 | 2026-09-10 | 0.09はdev serverの偽物(styleの入れ替え493〜497ms→シフト536ms)。`.trend-rank-rate` 5.8pxはWebフォント |
 | 🔴 | P-13 | すばやさ早見表 | 0 | 6.3 | 2026-09-10 | `.speed-chart-spread-badge` 6.3px。Webフォント(下記・未対応) |
 | 🟢 | P-14 | 上位ビルド | 0.01 | 8 | 2026-09-10 | 8pxはdev serverの偽物(`.panel` dy=8 dh=-8 の定型) |
-| 🟡 | P-15 | ダメージ計算 | 0 | 47.1 | 2026-09-10 | `main.damage-calc-shell` の高さが47px縮む(value 0。画面内の見える要素は4.1pxのみ)。要追調査 |
+| 🟢 | P-15 | ダメージ計算 | 0 | 0 | 2026-09-10 | 47.1px→0。CSS変数の初期値を実測値に合わせた(下記) |
 | 🟢 | P-16 | 検索 | 0 | 0 | 2026-09-10 | |
 | — | P-17 | 共有ページ | 未計測 | — | — | |
 | — | P-18 | ボックス一覧(ゲスト) | 未計測 | — | — | |
@@ -53,12 +53,15 @@
   ⚠️ `#species-type-badge .type-badge-fallback` は `box-damage-card.css` がID詳細度で `display:none` を当てているので、こちらも `hidden` だけでは出てこない。
 - **`/team/<id>` のポケモンカードの実数値18セルを非同期計算の完了後に追加していた**(2026-09-10、パターンC)。セルを先に置き、計算待ちは `visibility: hidden` にした。技一覧が41px上へ動く揺れが消えた
 
+- **`/damage-calc` の固定領域の初期値が実際の描画と 47px ずれていた**(2026-09-10、パターンC)。`.damage-calc-shell` / 相手選択レールは `position: fixed` で、上端を `--damage-calc-content-top`、下端を `--damage-calc-control-bar-height` から決めている。どちらもJS(`control-panel.ts` の `syncContentTop` / `syncControlBarHeight`)が実測値を書き戻すまでのフォールバックが実際とずれていた: 下端の初期値が `0px` なのに実寸は `43px`、上端のフォールバックが `--second-header-height`(52px)なのにこの画面のセカンドヘッダーは内容が折り返して `56.0625px`。合計 47.06px ぶん、JSが走った瞬間に跳ねていた。CSS側の初期値を実測値(320〜768pxのどの幅でも一定)に合わせて解消。**スクリーンショットはバイト単位で同一。**
+
 ### 未対応(別途判断が要るもの)
 
 - **Webフォント `M PLUS Rounded 1c`(`display=swap`)の差し替えで、ほぼ全ページのテキストが 4.5〜7.2px 横へ動く**(2026-09-10 の総点検で実測)。**現時点で最大の未対応課題。**
   観測箇所: `/box/<id>` `.stat-row-real` 3.9〜5.8px / `/box/<id>?tab=damage` `.damage-result-detail` 6.9px /
   `/data/speed-chart` `.speed-chart-spread-badge` 6.3px / `/team/<id>?tab=data` `.card-team-name` 6.8px /
   `/data` `/box/data` `.trend-rank-rate` 5.8〜7.2px / `/box/ranked` 6.0px / `/box/matchup` 4.3px。
+  **`npm run probe -- --block fonts.gstatic.com --block fonts.googleapis.com` でフォントを落として測ると、これらのシフトは1件残らず消える**(2026-09-10 に確認。すばやさ早見表・チーム詳細(データ)・ポケモン編集(ダメージ)のいずれもシフト0件)。原因の断定はこの実測による。
   いずれも **dx だけが動く横ズレで、発生は 550〜950ms、遅れて届くデータが無い静的なページでも起きる**(= 内容ではなく文字の送り幅が変わっている)。`ch` 指定の予約幅(`.stat-row-real` の `min-width: 3ch`)もフォントの文字送りで決まるため一緒に変わる。
   `/box/<id>` の `.stat-row-real`(`min-width: 3ch`)が 3.9〜5.8px 伸びる。`ch` は実際のフォントの文字送りで決まるので、フォールバックフォントで描いているあいだの予約幅と、Webフォント適用後の予約幅が一致しない。
   **本番ビルドでも起きる本物。** 影響は全画面に及ぶため、`font-display: optional` かフォールバック側の `size-adjust` 調整のどちらを採るかをユーザーと決めてから着手する。
