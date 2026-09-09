@@ -1,24 +1,16 @@
-import { loadPokemonMasterList, type PokemonMasterEntry } from '../pokemon-master-data';
+import { loadPokemonCoreDetailMap, loadPokemonMasterList, type PokemonMasterEntry } from '../pokemon-master-data';
 import { applyPokemonPreview } from './preview-apply';
-import { buildPokemonPreviewViewModel, type PreviewPokemonDetailEntry } from './preview-view-model';
+import { buildPokemonPreviewViewModel } from './preview-view-model';
 
 interface MegaStoneEntry {
   species: string;
   item: string;
 }
 
-interface PokemonDetailEntry extends PreviewPokemonDetailEntry {
-  abilities: string[];
-}
-
-let pokemonDetailByNamePromise: Promise<Map<string, PokemonDetailEntry>> | undefined;
-
-function loadPokemonDetailByName(): Promise<Map<string, PokemonDetailEntry>> {
-  pokemonDetailByNamePromise ??= fetch('/master-data/detail/pokemon.json')
-    .then((response) => response.json() as Promise<PokemonDetailEntry[]>)
-    .then((details) => new Map(details.map((detail) => [detail.name, detail])));
-  return pokemonDetailByNamePromise;
-}
+// 種族値と特性しか使わないので、learnsetを含まない軽量マスタ(pokemon-master-data.ts が
+// アプリ内で1回だけfetch+parseして共有する)を使う。以前はこのファイルが独自に
+// detail/pokemon.json(1.6MB)をfetchしており、同じJSONを二重にparseしていた。
+const loadPokemonDetailByName = loadPokemonCoreDetailMap;
 
 function parseStatValues(value: string | undefined, fallback: number[]): number[] {
   if (!value) return fallback;

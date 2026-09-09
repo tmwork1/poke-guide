@@ -75,70 +75,76 @@ export function championSpriteIconUrl(imageId: number): string {
   return `/pokemon-champion-sprites/icon/${imageId}.webp`;
 }
 
-interface PokemonDetailEntry {
+export interface PokemonCoreDetailEntry {
   name: string;
+  types: string[];
   baseStats: number[];
-  learnset: string[];
   abilities: string[];
 }
 
-let baseStatsCache: Promise<Map<string, number[]>> | null = null;
+export interface PokemonDetailEntry extends PokemonCoreDetailEntry {
+  learnset: string[];
+}
+
+// detail/pokemon.json は learnset が全体の約79%(1.6MB中)を占める。種族値・タイプ・特性しか
+// 要らない画面の方が多いので、learnset を落とした detail/pokemon-core.json(約215KB、
+// scripts/build-master-data/build.mjs が生成)を既定の取得先にする。
+//
+// どちらのファイルも「1回だけ fetch + JSON.parse して共有する」。以前は
+// loadBaseStatsMap / loadLearnsetMap / loadAbilitiesMap が別々にfetchしており、
+// HTTPキャッシュが効いても1.6MBのJSON.parseが用途の数だけ走っていた。
+let coreDetailCache: Promise<PokemonCoreDetailEntry[]> | null = null;
+let fullDetailCache: Promise<PokemonDetailEntry[]> | null = null;
+
+export function loadCoreDetailList(): Promise<PokemonCoreDetailEntry[]> {
+  if (!coreDetailCache) {
+    coreDetailCache = fetch("/master-data/detail/pokemon-core.json")
+      .then((res) => res.json() as Promise<PokemonCoreDetailEntry[]>)
+      .catch((err) => {
+        console.warn("種族データ(軽量版)の読み込みに失敗しました", err);
+        coreDetailCache = null;
+        return [] as PokemonCoreDetailEntry[];
+      });
+  }
+  return coreDetailCache;
+}
+
+export function loadFullDetailList(): Promise<PokemonDetailEntry[]> {
+  if (!fullDetailCache) {
+    fullDetailCache = fetch("/master-data/detail/pokemon.json")
+      .then((res) => res.json() as Promise<PokemonDetailEntry[]>)
+      .catch((err) => {
+        console.warn("種族データの読み込みに失敗しました", err);
+        fullDetailCache = null;
+        return [] as PokemonDetailEntry[];
+      });
+  }
+  return fullDetailCache;
+}
+
+/** 種族名 -> 種族値・タイプ・特性。learnset を含まない軽量ファイルから引く。 */
+export function loadPokemonCoreDetailMap(): Promise<Map<string, PokemonCoreDetailEntry>> {
+  return loadCoreDetailList().then((list) => new Map(list.map((p) => [p.name, p])));
+}
 
 export function loadBaseStatsMap(): Promise<Map<string, number[]>> {
-  if (!baseStatsCache) {
-    baseStatsCache = fetch("/master-data/detail/pokemon.json")
-      .then((res) => res.json())
-      .then((list: PokemonDetailEntry[]) => new Map(list.map((p) => [p.name, p.baseStats])))
-      .catch((err) => {
-        console.warn("種族値データの読み込みに失敗しました", err);
-        baseStatsCache = null;
-        return new Map<string, number[]>();
-      });
-  }
-  return baseStatsCache;
+  return loadCoreDetailList().then((list) => new Map(list.map((p) => [p.name, p.baseStats])));
 }
-
-let learnsetCache: Promise<Map<string, string[]>> | null = null;
 
 // 種族名 -> 覚え技一覧(learnset)。box/[id].astro の技名オートコンプリート(#move-list)を
-// その種族の覚え技優先で並べ替えるために使う(loadBaseStatsMapと同じdetail/pokemon.jsonを
-// ソースにしているが、キャッシュ済みPromiseパターンをloadMultiHitMoveMap等と揃えるため
-// あえて別関数・別キャッシュにしている)。
+// その種族の覚え技優先で並べ替えるために使う。learnset を使う唯一の用途なので、
+// ここだけが重い detail/pokemon.json を読む。
 export function loadLearnsetMap(): Promise<Map<string, string[]>> {
-  if (!learnsetCache) {
-    learnsetCache = fetch("/master-data/detail/pokemon.json")
-      .then((res) => res.json())
-      .then((list: PokemonDetailEntry[]) => new Map(list.map((p) => [p.name, p.learnset])))
-      .catch((err) => {
-        console.warn("覚え技データの読み込みに失敗しました", err);
-        learnsetCache = null;
-        return new Map<string, string[]>();
-      });
-  }
-  return learnsetCache;
+  return loadFullDetailList().then((list) => new Map(list.map((p) => [p.name, p.learnset])));
 }
 
-let abilitiesCache: Promise<Map<string, string[]>> | null = null;
-
-// 種族名 -> その種族が持ちうる特性名の配列(loadBaseStatsMap/loadLearnsetMapと同じ
-// detail/pokemon.jsonをソースにしているが、キャッシュ済みPromiseパターンを揃えるため
-// あえて別関数・別キャッシュにしている)。box/[id].astro 左パネルの特性selectを、
+// 種族名 -> その種族が持ちうる特性名の配列。box/[id].astro 左パネルの特性selectを、
 // 種族に属する特性だけに絞り込むために使う(21-L5)。
 // 隠れ特性(夢特性)の区別データは存在しない。abilities は単なるフラット配列で、
 // どれが隠れ特性かを示すキーは vendor/jpoke の生データ(ps-champ-ja/pokedex.json)の
 // 時点で既に失われている。区別しようとしないこと。
 export function loadAbilitiesMap(): Promise<Map<string, string[]>> {
-  if (!abilitiesCache) {
-    abilitiesCache = fetch("/master-data/detail/pokemon.json")
-      .then((res) => res.json())
-      .then((list: PokemonDetailEntry[]) => new Map(list.map((p) => [p.name, p.abilities])))
-      .catch((err) => {
-        console.warn("特性データの読み込みに失敗しました", err);
-        abilitiesCache = null;
-        return new Map<string, string[]>();
-      });
-  }
-  return abilitiesCache;
+  return loadCoreDetailList().then((list) => new Map(list.map((p) => [p.name, p.abilities])));
 }
 
 // autocomplete/moves.json の各レコードが持ちうる "hits" キー([最小ヒット数, 最大ヒット数])。

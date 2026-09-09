@@ -37,7 +37,7 @@ import {
   type SpeedModifiersData,
   type SpeedSpreadKind,
 } from '../speed-chart';
-import { championSpriteUrl, officialArtworkUrl } from '../pokemon-master-data';
+import { championSpriteUrl, loadFullDetailList, officialArtworkUrl } from '../pokemon-master-data';
 import { kanaIncludes } from '../kana';
 import {
   initOwnedPanel,
@@ -774,7 +774,9 @@ function readEmbeddedJson<T>(elementId: string): T | null {
 async function loadMasterData(): Promise<MasterData> {
   const [pokemonAutocomplete, pokemonDetail, megaStones, itemAutocomplete, speedModifiers] = await Promise.all([
     fetch('/master-data/autocomplete/pokemon.json').then((r) => r.json() as Promise<PokemonAutocompleteEntry[]>),
-    fetch('/master-data/detail/pokemon.json').then((r) => r.json() as Promise<PokemonDetailEntry[]>),
+    // この画面は learnset まで使うのでフルの detail/pokemon.json が要る。
+    // 独自fetchはやめ、アプリ内で1回だけparseされる共有ローダーを使う。
+    loadFullDetailList() as Promise<PokemonDetailEntry[]>,
     fetch('/master-data/autocomplete/mega-stones.json').then((r) => r.json() as Promise<MegaStoneEntry[]>),
     fetch('/master-data/autocomplete/items.json').then((r) => r.json() as Promise<ItemAutocompleteEntry[]>),
     fetch('/master-data/detail/speed-modifiers.json').then((r) => r.json() as Promise<SpeedModifiersData>),

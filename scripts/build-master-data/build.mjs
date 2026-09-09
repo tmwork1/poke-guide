@@ -5,6 +5,7 @@
  *
  *   1. オートコンプリート用軽量 JSON: public/master-data/autocomplete/*.json
  *   2. 検索結果の詳細表示用 JSON:     public/master-data/detail/*.json (Phase 4-1)
+ *      (+ learnset を落とした軽量版 detail/pokemon-core.json)
  *   3. Pyodide 実行用 wheel:          public/master-data/pyodide/wheels/*.whl
  *
  * 実行: npm run build:master-data
@@ -90,6 +91,23 @@ function buildAutocomplete() {
   run(jpokePython, [extractScript, jpokeSrcDir, autocompleteOutDir, detailOutDir]);
 }
 
+// detail/pokemon.json は learnset(覚え技)が全体の約79%を占めて1.6MBあるが、
+// 種族値・タイプ・特性しか要らない画面(プレビュー・すばやさ表・特性select等)の方が多い。
+// learnset を落とした派生 detail/pokemon-core.json を出し、そちらを既定の取得先にする。
+// Python側(extract_autocomplete.py)には手を入れず、生成済みJSONからの後処理として作る。
+function buildPokemonCoreDetail() {
+  console.log('\n=== 3. 種族値・タイプ・特性だけの軽量 detail JSON を生成 ===');
+  const sourcePath = path.join(detailOutDir, 'pokemon.json');
+  assertExists(sourcePath, '先に detail/pokemon.json を生成してください。');
+  const entries = JSON.parse(readFileSync(sourcePath, 'utf-8'));
+  const core = entries.map(({ learnset, ...rest }) => rest);
+  const corePath = path.join(detailOutDir, 'pokemon-core.json');
+  writeFileSync(corePath, JSON.stringify(core), 'utf-8');
+  const sourceBytes = readFileSync(sourcePath).length;
+  const coreBytes = readFileSync(corePath).length;
+  console.log(`wrote ${corePath} (${coreBytes}B / 元の ${sourceBytes}B)`);
+}
+
 function buildPyodideWheel() {
   console.log('\n=== 2. Pyodide 実行用 wheel をビルド ===');
   assertExists(jpokeDir, 'JPOKE_DIR 環境変数で jpoke リポジトリの場所を指定してください。');
@@ -164,6 +182,7 @@ function main() {
   console.log(`jpoke python: ${jpokePython}`);
 
   buildAutocomplete();
+  buildPokemonCoreDetail();
   buildPyodideWheel();
 
   console.log('\n完了: public/master-data/ 配下にマスタデータを生成しました。');

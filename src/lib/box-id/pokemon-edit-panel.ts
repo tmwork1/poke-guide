@@ -78,7 +78,22 @@ const autocompleteReadyPromise = typeof document === "undefined" ? Promise.resol
 const typesMapPromise = loadTypesMap();
 const moveTypeMapPromise = loadMoveTypeMap();
 const moveDetailMapPromise = loadMoveDetailMap();
-const learnsetMapPromise = loadLearnsetMap();
+// learnset入りの detail/pokemon.json は1.6MBあり、このモジュールで唯一の利用先が
+// 「技名の候補をその種族の覚え技優先に並べ替える」処理。初期表示には要らないので、
+// 実際に必要になった時点まで取得を遅らせる(共有ローダー側で1回だけparseされる)。
+// 初期表示の邪魔をしない範囲で、後回しにした処理を走らせる。
+// requestIdleCallback が無いブラウザでは load 後の次のタスクへ落とす。
+function whenIdle(run: () => void): void {
+	const idle = (window as unknown as { requestIdleCallback?: (cb: () => void, options?: { timeout: number }) => number }).requestIdleCallback;
+	if (idle) idle(run, { timeout: 2000 });
+	else if (document.readyState === "complete") setTimeout(run, 0);
+	else window.addEventListener("load", () => setTimeout(run, 0), { once: true });
+}
+
+let learnsetMapPromise: ReturnType<typeof loadLearnsetMap> | null = null;
+function getLearnsetMap(): ReturnType<typeof loadLearnsetMap> {
+	return (learnsetMapPromise ??= loadLearnsetMap());
+}
 
 // タイプ数は可変なのでバッジを動的に追加し、画像を取得できない場合は色表現へフォールバックする。
 async function applyTypeBadge(container: HTMLElement, name: string): Promise<void> {
@@ -683,7 +698,7 @@ if (form) {
 	let moveListRequestToken = 0;
 	async function rebuildMoveListForSpecies(name: string): Promise<void> {
 		const token = ++moveListRequestToken;
-		const [learnsetMap, allMoveNames] = await Promise.all([learnsetMapPromise, getAllMoveNames()]);
+		const [learnsetMap, allMoveNames] = await Promise.all([getLearnsetMap(), getAllMoveNames()]);
 		if (token !== moveListRequestToken) return; // より新しい呼び出しに追い越された
 		const learnset = name ? learnsetMap.get(name) : undefined;
 		let ordered: string[];
@@ -774,7 +789,13 @@ if (form) {
 		void rebuildMoveListForSpecies(name);
 	}
 	speciesInput.addEventListener("input", updateSpeciesDisplay);
-	updateSpeciesDisplay();
+	// 初期表示では技候補(#move-list)の構築だけ後回しにする。中身の並べ替えに
+	// learnset入りの detail/pokemon.json(1.6MB)が要るためで、実際に技欄へ触るまでは
+	// 見えない。画像・タイプ・種族値は従来どおり即座に反映する。
+	void applySprite(speciesSpriteImg, speciesSpriteFallback, speciesInput.value.trim());
+	void applyTypeBadge(speciesTypeBadge, speciesInput.value.trim());
+	void applyBaseStats(speciesInput.value.trim());
+	whenIdle(() => void rebuildMoveListForSpecies(speciesInput.value.trim()));
 	void recalcStats();
 
 	// UI刷新(Pokemon.png): アイテム画像(入力の横)。アイテム名が変わるたびに差し替える。
@@ -2074,7 +2095,7 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 		await ensureAllMovesLoaded();
 		const speciesName = speciesInput.value.trim();
 		if (learnsetOnly && speciesName) {
-			const learnsetMap = await learnsetMapPromise;
+			const learnsetMap = await getLearnsetMap();
 			const learnset = learnsetMap.get(speciesName);
 			if (learnset && learnset.length > 0) {
 				const learnsetSet = new Set(learnset);
