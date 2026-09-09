@@ -3,9 +3,8 @@ import AppHeader from '../AppHeader.astro';
 import type { OwnedPokemonRecord } from '../../lib/owned-pokemon';
 import pokemonMasterRaw from '../../../public/master-data/autocomplete/pokemon.json';
 import pokemonDetailRaw from '../../../public/master-data/detail/pokemon.json';
-import { NATURE_STAT_MODIFIERS, calcHpStat, calcOtherStat, type StatKey } from '../../lib/stats';
-import { championSpriteUrl, officialArtworkUrl } from '../../lib/pokemon-master-data';
-import { itemIconUrl } from '../../lib/sprite-urls';
+import { createMobilePreviewPlaceholder } from '../../lib/box-id/mobile-preview-placeholder';
+import { buildPokemonPreviewViewModel, type PreviewPokemonDetailEntry, type PreviewPokemonMasterEntry } from '../../lib/box-id/preview-view-model';
 import '../../styles/mobile-pokemon-preview.css';
 import '../../styles/app-header.css';
 
@@ -16,25 +15,16 @@ interface Props {
 
 const { pokemon, activeTab = 'training' } = Astro.props;
 const hasPokemon = pokemon !== null;
-const previewPokemon: OwnedPokemonRecord = pokemon ?? {
-  id: '', user_id: '', guest_local_id: null, species_name: '', level: null, nature: null,
-  ability_name: null, item_name: null, tera_type: null, evs: [0, 0, 0, 0, 0, 0],
-  ivs: [31, 31, 31, 31, 31, 31], move_names: [], memo: null, tags: [], source_build_slug: null,
-  share_slug: null, is_public: false, created_at: '', updated_at: '', last_used_at: null,
-  collection_opt_out_until: null, archetype_id: null,
-};
+const previewPokemon: OwnedPokemonRecord = pokemon ?? createMobilePreviewPlaceholder('');
 const isNew = !previewPokemon.id;
-const moves = previewPokemon.move_names ?? [];
-const itemName = previewPokemon.item_name?.trim() ?? '';
+const master = (pokemonMasterRaw as PreviewPokemonMasterEntry[]).find((entry) => entry.name === previewPokemon.species_name);
+const detail = (pokemonDetailRaw as PreviewPokemonDetailEntry[]).find((entry) => entry.name === previewPokemon.species_name);
+const preview = buildPokemonPreviewViewModel(previewPokemon, { species: master, detail });
+const itemName = preview.itemName;
 // データ系タブのプレビューは編集フォームと同期しないため、持ち物がなければ
 // アイコン用の要素そのものを出さない。育成タブは入力中にアイコンを差し替えるので
 // 常に要素を保持する。
 const shouldRenderItemIcon = activeTab === 'training' || itemName !== '';
-const master = (pokemonMasterRaw as Array<{name:string;imageId:number}>).find((entry) => entry.name === previewPokemon.species_name);
-const detail = (pokemonDetailRaw as Array<{name:string;baseStats:number[]}>).find((entry) => entry.name === previewPokemon.species_name);
-const statKeys: StatKey[] = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'];
-const nature = NATURE_STAT_MODIFIERS[previewPokemon.nature ?? ''] ?? { up: null, down: null };
-const previewStats = detail ? statKeys.map((key, index) => index === 0 ? calcHpStat(previewPokemon.level ?? 50, detail.baseStats[index], previewPokemon.ivs[index] ?? 31, previewPokemon.evs[index] ?? 0) : calcOtherStat(previewPokemon.level ?? 50, detail.baseStats[index], previewPokemon.ivs[index] ?? 31, previewPokemon.evs[index] ?? 0, nature.up === key ? 1.1 : nature.down === key ? 0.9 : 1)) : [];
 ---
 
 <style is:inline>#mobile-training-ui { visibility: hidden; }</style>
@@ -84,10 +74,11 @@ const previewStats = detail ? statKeys.map((key, index) => index === 0 ? calcHpS
     aria-label="ポケモンプレビュー"
     data-species-name={previewPokemon.species_name}
     data-item-name={itemName}
-    data-level={previewPokemon.level ?? 50}
-    data-nature={previewPokemon.nature ?? ''}
-    data-ivs={JSON.stringify(previewPokemon.ivs ?? [31, 31, 31, 31, 31, 31])}
-    data-evs={JSON.stringify(previewPokemon.evs ?? [0, 0, 0, 0, 0, 0])}
+    data-level={preview.level}
+    data-nature={preview.natureName}
+    data-ivs={JSON.stringify(preview.ivs)}
+    data-evs={JSON.stringify(preview.evs)}
+    style={preview.background ? `--pokemon-preview-background: ${preview.background}` : undefined}
   >
     <div class="pokemon-preview-main">
     <div class="pokemon-preview-left">
@@ -96,10 +87,12 @@ const previewStats = detail ? statKeys.map((key, index) => index === 0 ? calcHpS
             他のタップ起点(ステータス調整・もちもの)と同じくpreview-quick-open.tsが配線し、
             対象ボタンが存在しない他ページ(battle-data/ranked-teams/matchup)では安全にno-opにする。 */}
         <div class="pokemon-preview-species-line" id="pokemon-preview-species-trigger" role="button" tabindex="0" aria-haspopup="dialog" aria-label="ポケモンを選択">
-          <div id="pokemon-preview-species-name">{previewPokemon.species_name || '-'}</div>
-          <span class="pokemon-preview-type-icons" id="pokemon-preview-type-icons" aria-label="タイプ"></span>
+          <div id="pokemon-preview-species-name">{preview.speciesName || '-'}</div>
+          <span class="pokemon-preview-type-icons" id="pokemon-preview-type-icons" aria-label="タイプ">{preview.typeIcons.map((type) => (
+            <img class="type-badge-img" width="20" height="20" src={type.url ?? ''} alt={type.name} title={type.name} />
+          ))}</span>
         </div>
-        <div id="pokemon-preview-ability">{previewPokemon.ability_name || '-'}</div>
+        <div id="pokemon-preview-ability">{preview.abilityName || '-'}</div>
       </div>
       {/* 各行タップで、その技スロットのわざ選択(#move-${slot}へのfocusで開く、
           pokemon-edit-panel.tsのopenPicker参照)を開く。preview-quick-open.tsが配線する。 */}
@@ -107,21 +100,21 @@ const previewStats = detail ? statKeys.map((key, index) => index === 0 ? calcHpS
         {[0, 1, 2, 3].map((index) => (
           <li class="pokemon-preview-move-trigger" data-move-slot={index + 1} role="button" tabindex="0" aria-label={`技${index + 1}を選択`}>
             <span class="pokemon-preview-move-type-bar" id={`pokemon-preview-move-type-${index + 1}`} hidden></span>
-            <span id={`pokemon-preview-move-${index + 1}`}>{moves[index] || '-'}</span>
+            <span id={`pokemon-preview-move-${index + 1}`}>{preview.moves[index] || '-'}</span>
           </li>
         ))}
       </ol>
     </div>
     <div class="pokemon-preview-identity">
       <button type="button" class="pokemon-preview-sprite-wrap" aria-label="ポケモンプレビュー">
-        <img id="pokemon-preview-species-sprite" width="112" height="112" src={master ? championSpriteUrl(master.imageId) : undefined} onerror={master ? `this.onerror=null;this.src='${officialArtworkUrl(master.imageId)}';` : undefined} alt={previewPokemon.species_name} hidden={!master} />
-        <span id="pokemon-preview-species-sprite-fallback" hidden={!previewPokemon.species_name || Boolean(master)}>{previewPokemon.species_name.slice(0, 1)}</span>
+        <img id="pokemon-preview-species-sprite" width="112" height="112" src={preview.championSpriteUrl} onerror={preview.officialArtworkUrl ? `this.onerror=null;this.src='${preview.officialArtworkUrl}';` : undefined} alt={preview.speciesName} hidden={!preview.championSpriteUrl} />
+        <span id="pokemon-preview-species-sprite-fallback" hidden={!preview.speciesName || Boolean(preview.championSpriteUrl)}>{preview.speciesName.slice(0, 1)}</span>
       </button>
     </div>
     <div class="pokemon-preview-right">
       {/* タップでもちもの選択モーダル(#item-dropdown-button、PokemonEditPanel.astro)を開く。 */}
       <div class="pokemon-preview-item pokemon-preview-icon-text" id="pokemon-preview-item-trigger" role="button" tabindex="0" aria-haspopup="dialog" aria-label="もちものを選択">
-        {shouldRenderItemIcon && <img id="pokemon-preview-item-image" src={itemName ? itemIconUrl(itemName) : undefined} alt="" class={itemName ? 'pokemon-preview-item-image' : 'pokemon-preview-item-image-hidden'} onerror="this.style.display='none'" />}
+        {shouldRenderItemIcon && <img id="pokemon-preview-item-image" src={preview.itemIconUrl} alt="" class={itemName ? 'pokemon-preview-item-image' : 'pokemon-preview-item-image-hidden'} onerror="this.style.display='none'" />}
         <span id="pokemon-preview-item" data-empty={itemName ? undefined : 'true'}>{itemName || 'もちものなし'}</span>
       </div>
       {/* この表をタップすると育成タブのステータス調整欄(#stat-adjustment-section、
@@ -144,9 +137,9 @@ const previewStats = detail ? statKeys.map((key, index) => index === 0 ? calcHpS
           <tbody>
             {[['hp', 'H'], ['atk', 'A'], ['def', 'B'], ['spa', 'C'], ['spd', 'D'], ['spe', 'S']].map(([key, label], index) => (
               <tr>
-                <th data-mod={nature.up === key ? 'up' : nature.down === key ? 'down' : undefined}>{label}</th>
-                <td id={`pokemon-preview-stat-${key}`} data-mod={nature.up === key ? 'up' : nature.down === key ? 'down' : undefined}>{previewStats[index] ?? '-'}</td>
-                <td id={`pokemon-preview-ev-${key}`}>{previewPokemon.evs[index] ? `+${previewPokemon.evs[index]}` : '-'}</td>
+                <th data-mod={preview.nature.up === key ? 'up' : preview.nature.down === key ? 'down' : undefined}>{label}</th>
+                <td id={`pokemon-preview-stat-${key}`} data-mod={preview.nature.up === key ? 'up' : preview.nature.down === key ? 'down' : undefined}>{preview.stats[index] ?? '-'}</td>
+                <td id={`pokemon-preview-ev-${key}`}>{preview.evLabels[index]}</td>
               </tr>
             ))}
           </tbody>

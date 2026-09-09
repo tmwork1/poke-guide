@@ -21,6 +21,7 @@ import StatAdjustSheet from '../../components/box-id/StatAdjustSheet.astro';
 import BulkAdjustDialog from '../../components/box-id/BulkAdjustDialog.astro';
 import SpeedAdjustDialog from '../../components/box-id/SpeedAdjustDialog.astro';
 import MobilePokemonPreview from '../../components/box-id/MobilePokemonPreview.astro';
+import { createMobilePreviewPlaceholder } from '../../lib/box-id/mobile-preview-placeholder';
 import '../../styles/box-edit-page.css';
 import { getSupabaseAdminClient } from '../../lib/supabase';
 import { getOwnedPokemon, type OwnedPokemonRecord } from '../../lib/owned-pokemon';
@@ -36,53 +37,9 @@ let pokemon: OwnedPokemonRecord | null = null;
 let loadError = false;
 
 if (!user && !isNewMode) {
-	pokemon = {
-		id: isNewMode ? '' : (id ?? ''),
-		user_id: '',
-		species_name: '',
-		level: null,
-		nature: null,
-		ability_name: null,
-		item_name: null,
-		tera_type: null,
-		evs: [0, 0, 0, 0, 0, 0],
-		ivs: [31, 31, 31, 31, 31, 31],
-		move_names: [],
-		memo: null,
-		tags: [],
-		source_build_slug: null,
-		share_slug: null,
-		is_public: false,
-		created_at: new Date().toISOString(),
-		updated_at: new Date().toISOString(),
-		last_used_at: null,
-		collection_opt_out_until: null,
-		archetype_id: null,
-	};
+	pokemon = createMobilePreviewPlaceholder(id ?? '');
 } else if (user && isNewMode) {
-	pokemon = {
-		id: '',
-		user_id: user.id,
-		species_name: '',
-		level: null,
-		nature: null,
-		ability_name: null,
-		item_name: null,
-		tera_type: null,
-		evs: [0, 0, 0, 0, 0, 0],
-		ivs: [31, 31, 31, 31, 31, 31],
-		move_names: [],
-		memo: null,
-		tags: [],
-		source_build_slug: null,
-		share_slug: null,
-		is_public: false,
-		created_at: new Date().toISOString(),
-		updated_at: new Date().toISOString(),
-		last_used_at: null,
-		collection_opt_out_until: null,
-		archetype_id: null,
-	};
+	pokemon = { ...createMobilePreviewPlaceholder(''), user_id: user.id };
 } else if (user && id) {
 	const supabase = await getSupabaseAdminClient();
 	const result = await getOwnedPokemon(user.id, id, supabase);
