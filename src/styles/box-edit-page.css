@@ -197,6 +197,12 @@ body.box-edit-page {
 	gap: var(--space-3); /* モバイル操作ボタン同士の間隔 */
 }
 
+/* Keep the SSR staging position from reserving a line above the mobile header.
+   mobile-edit-tabs.ts moves this element into #mobile-edit-actions on startup. */
+.app-main > #autosave-status {
+	display: none;
+}
+
 /* #autosave-status/#opponent-notes-save-alertは通常時どちらも見た目上は空(前者は
 	data-state="error"のときだけ、後者はhidden属性が外れたときだけ内容を持つ)。
 	この箱自体に常時余白を持たせると、削除ボタンの下と画面下部ナビの間に常に
