@@ -523,7 +523,10 @@
 		gap: var(--space-1);
 		font-size: var(--font-size-sm3);
 		border-radius: 999px; /* ポケモンチップの角丸。小さくすると角張る */
-		padding: var(--space-1) var(--space-2) var(--space-1) var(--space-3); /* ポケモンチップの内側余白。大きくするとチップが大きくなる */
+		/* 左右の余白は「ポケモンどうしの左右間隔」そのものになる(チップに背景が無く、
+			隣のチップとの間はここの余白+chips-rowのgapで決まる)。チップはspanで
+			タップ対象ではないため、間隔を詰めるときはgapではなくここを一段ずつ縮める。 */
+		padding: var(--space-1) var(--space-1) var(--space-1) var(--space-2); /* ポケモンチップの内側余白。大きくするとチップが大きくなる */
 	}
 	.speed-chart-table .speed-chart-chip-icon {
 		width: var(--speed-chart-chip-icon-size);
