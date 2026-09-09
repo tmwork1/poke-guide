@@ -27,6 +27,7 @@ import { createHash } from 'node:crypto';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import { LEARNSET_SHARD_COUNT, learnsetShardFilename } from '../../src/lib/learnset-shard.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '..', '..');
@@ -109,36 +110,48 @@ function buildPokemonCoreDetail() {
   console.log(`wrote ${corePath} (${coreBytes}B / 元の ${sourceBytes}B)`);
 }
 
-// Windowsでファイル名に使えない文字だけを%+Unicodeコードポイントへ置換する。通常の日本語名は
-// そのまま残し、変換後名の重複は下で検出して静かに別種族のデータを上書きしないようにする。
-function learnsetFilename(name) {
-  return name.replace(/[<>:"/\\\\|?*]/g, (char) => `%${char.codePointAt(0).toString(16).toUpperCase()}`);
-}
-
-// 詳細データから覚え技だけを種族ごとの配列へ分け、ブラウザが必要な1種族ぶんだけ取得できるようにする。
+// 詳細データから覚え技だけを種族名ハッシュの64シャードへ分け、ブラウザが必要な1枚だけ取得できるようにする。
+// 種族名はJSONのキーに残し、URLのファイル名にはASCIIのシャード番号だけを使う。
 function buildPokemonLearnsets() {
   console.log('\n=== 4. 種族ごとの覚え技 detail JSON を生成 ===');
   const sourcePath = path.join(detailOutDir, 'pokemon.json');
   assertExists(sourcePath, '先に detail/pokemon.json を生成してください。');
   const entries = JSON.parse(readFileSync(sourcePath, 'utf-8'));
-  const outputNames = entries.map((entry) => learnsetFilename(entry.name));
-  if (new Set(outputNames).size !== outputNames.length) {
-    throw new Error('種族名のファイル名変換が重複しました。変換規則を見直してください。');
-  }
-
   rmSync(learnsetOutDir, { recursive: true, force: true });
   mkdirSync(learnsetOutDir, { recursive: true });
-  const outputSizes = [];
+  const shards = Array.from({ length: LEARNSET_SHARD_COUNT }, () => ({}));
   for (const { name, learnset } of entries) {
-    if (!learnset || learnset.length === 0) continue;
-    const outputPath = path.join(learnsetOutDir, `${learnsetFilename(name)}.json`);
-    writeFileSync(outputPath, JSON.stringify(learnset), 'utf-8');
+    shards[Number(learnsetShardFilename(name))][name] = learnset ?? [];
+  }
+
+  const outputSizes = [];
+  for (let shardIndex = 0; shardIndex < LEARNSET_SHARD_COUNT; shardIndex += 1) {
+    const filename = String(shardIndex).padStart(2, '0');
+    const outputPath = path.join(learnsetOutDir, `${filename}.json`);
+    writeFileSync(outputPath, JSON.stringify(shards[shardIndex]), 'utf-8');
     outputSizes.push(readFileSync(outputPath).length);
   }
   const totalBytes = outputSizes.reduce((sum, bytes) => sum + bytes, 0);
   const averageBytes = outputSizes.length === 0 ? 0 : totalBytes / outputSizes.length;
+  const minBytes = outputSizes.length === 0 ? 0 : Math.min(...outputSizes);
   const maxBytes = outputSizes.length === 0 ? 0 : Math.max(...outputSizes);
-  console.log(`wrote ${outputSizes.length} files (${totalBytes}B total / ${averageBytes.toFixed(1)}B average / ${maxBytes}B max)`);
+  console.log(`wrote ${outputSizes.length} shards (${totalBytes}B total / ${minBytes}B min / ${averageBytes.toFixed(1)}B average / ${maxBytes}B max)`);
+}
+
+// WorkersのアセットマニフェストはURIエンコード済みのパスしか受け付けず(code 10304)、%や括弧を含む名前でデプロイが落ちた。
+// master-dataの生成物はASCII名で足りるため、次の生成で同じ事故をデプロイ前に止める。
+function assertMasterDataFilenamesAreUrlSafe() {
+  const masterDataDir = path.join(repoRoot, 'public', 'master-data');
+  const pendingDirs = [masterDataDir];
+  while (pendingDirs.length > 0) {
+    const currentDir = pendingDirs.pop();
+    for (const entry of readdirSync(currentDir, { withFileTypes: true })) {
+      if (!/^[A-Za-z0-9._-]+$/.test(entry.name)) {
+        throw new Error(`URL安全でない master-data のファイル名です: ${path.relative(masterDataDir, path.join(currentDir, entry.name))}\nCloudflare Workers のアセットマニフェストは URIエンコード済みのパスしか受け付けず(code 10304)、% や括弧を含む名前でデプロイが落ちます。`);
+      }
+      if (entry.isDirectory()) pendingDirs.push(path.join(currentDir, entry.name));
+    }
+  }
 }
 
 // 種族選択ダイアログは入力した技名で全種族を横断検索するため、個別JSONを全件取得せず
@@ -245,6 +258,7 @@ function main() {
   buildPokemonLearnsets();
   buildLearnsetLookupDetails();
   buildPyodideWheel();
+  assertMasterDataFilenamesAreUrlSafe();
 
   console.log('\n完了: public/master-data/ 配下にマスタデータを生成しました。');
 }

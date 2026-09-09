@@ -1,6 +1,8 @@
+import { learnsetShardFilename } from './learnset-shard.mjs';
+
 // 個体編集ページ(box/[id].astro)でポケモン名からスプライト・タイプ・種族値を引く
 // ブラウザ専用モジュール。autocomplete/pokemon.jsonと軽量なdetail/pokemon-core.jsonを共有し、
-// 覚え技は用途に応じて detail/learnsets.json または種族ごとのJSONを取得する。
+// 覚え技は用途に応じて detail/learnsets.json または種族名ハッシュのシャードJSONを取得する。
 //
 // 画像取得には dexNo(本来の全国図鑑番号)ではなく imageId(PokeAPIの画像ID)を使う。
 // メガシンカ/キョダイマックス等の特殊フォルムは、scripts/build-master-data/extract_autocomplete.py が
@@ -94,10 +96,10 @@ export interface PokemonDetailEntry extends PokemonCoreDetailEntry {
 
 // detail/pokemon.json は learnset が全体の約79%(1.6MB中)を占める。種族値・タイプ・特性には
 // learnset を落とした detail/pokemon-core.json を使い、覚え技は全種族検索用と種族別取得用を分ける。
-// コア詳細と全種族learnsetは1回だけ共有し、種族別learnsetも種族名ごとの Promise をキャッシュする。
+// コア詳細と全種族learnsetは1回だけ共有し、種族別learnsetはシャードごとの Promise をキャッシュする。
 let coreDetailCache: Promise<PokemonCoreDetailEntry[]> | null = null;
 let learnsetMapCache: Promise<Map<string, string[]>> | null = null;
-const learnsetCache = new Map<string, Promise<string[]>>();
+const learnsetShardCache = new Map<string, Promise<Record<string, string[]>>>();
 
 export function loadCoreDetailList(): Promise<PokemonCoreDetailEntry[]> {
   if (!coreDetailCache) {
@@ -140,32 +142,24 @@ export function loadLearnsetMap(): Promise<Map<string, string[]>> {
   return learnsetMapCache;
 }
 
-// 種族名を日本語ファイル名へ対応付けるURL規則はここに集約する。Windowsで使えない文字だけを
-// %+Unicodeコードポイントへ置換し、空learnsetの404は全技候補への既存フォールバックに使う。
-function learnsetFilename(speciesName: string): string {
-  return speciesName.replace(/[<>:"/\\\\|?*]/g, (char) => `%${char.codePointAt(0)!.toString(16).toUpperCase()}`);
-}
-
-function learnsetUrl(speciesName: string): string {
-  return `/master-data/detail/learnset/${encodeURIComponent(learnsetFilename(speciesName))}.json`;
-}
-
+// 種族名ハッシュで決まる64分割の覚え技JSONを使い、同じシャードの別種族は追加取得しない。
 export function loadLearnsetFor(speciesName: string): Promise<string[]> {
   if (!speciesName) return Promise.resolve([]);
-  const cached = learnsetCache.get(speciesName);
-  if (cached) return cached;
-  const request = fetch(learnsetUrl(speciesName))
+  const shardFilename = learnsetShardFilename(speciesName);
+  const cached = learnsetShardCache.get(shardFilename);
+  if (cached) return cached.then((shard) => shard[speciesName] ?? []);
+  const request = fetch(`/master-data/detail/learnset/${shardFilename}.json`)
     .then((res) => {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      return res.json() as Promise<string[]>;
+      return res.json() as Promise<Record<string, string[]>>;
     })
     .catch((err) => {
       console.warn("覚え技データの読み込みに失敗しました", err);
-      learnsetCache.delete(speciesName);
-      return [] as string[];
+      learnsetShardCache.delete(shardFilename);
+      return {} as Record<string, string[]>;
     });
-  learnsetCache.set(speciesName, request);
-  return request;
+  learnsetShardCache.set(shardFilename, request);
+  return request.then((shard) => shard[speciesName] ?? []);
 }
 
 // 種族名 -> その種族が持ちうる特性名の配列。box/[id].astro 左パネルの特性selectを、
