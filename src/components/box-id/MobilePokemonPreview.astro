@@ -39,7 +39,9 @@ const shouldRenderItemIcon = activeTab === 'training' || itemName !== '';
       ) : (
         <a class="app-header__item" href={`/box/${encodeURIComponent(previewPokemon.id)}`}><span>ポケモン</span></a>
       )}
-		{!hasPokemon ? (
+		{/* 新規個体は保存後にID付き画面へ遷移する。先に全タブの幅を確保しておくことで、
+		    種族選択直後にヘッダーが増えて画面全体が描画し直されるのを防ぐ。 */}
+		{(!hasPokemon || isNew) ? (
 			<>
 				<span class="app-header__item" aria-disabled="true"><span>ダメージ</span></span>
 				{activeTab === 'battle-data' ? <button type="button" class="app-header__item" data-active="true" aria-current="page"><span>バトルデータ</span></button> : <span class="app-header__item" aria-disabled="true"><span>バトルデータ</span></span>}
