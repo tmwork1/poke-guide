@@ -21,6 +21,11 @@ jobs:
         # vendor/jpoke (scripts/build-master-data) の wheel ビルドに `python -m build` を使う。
         run: pip install build
       - run: npm ci
+      # public/master-data/ は .gitignore 対象で、build:master-data が生成する。
+      # tests/battle-data-card.test.ts や src/lib/opgg-usage.ts のように、そこにある
+      # JSONを静的importするテスト・モジュールがあるため、npm test より先に生成する
+      # (この順序が逆だったため、CI復旧後の初回実行で ERR_MODULE_NOT_FOUND / ENOENT が7件出た)。
+      - run: npm run build:master-data
       - run: npm test
       - run: npm run build
 
