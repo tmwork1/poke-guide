@@ -57,19 +57,16 @@
 
 /* 中央の編集領域だけをスクロールさせるため、ナビゲーションとプレビューはビューポートに固定する。 */
 .mobile-training-ui {
-  position: fixed;
-  top: var(--header-height);
-  right: 0;
-  left: 0;
+  position: static;
   z-index: var(--pokemon-preview-z-index);
   display: block;
+  flex: none;
 }
 
 /* 画面上部に固定するポケモンプレビュー */
 
 .pokemon-preview {
-  position: sticky;
-  top: calc(var(--header-height) + var(--app-header-height));
+  position: static;
   z-index: var(--pokemon-preview-z-index);
   overflow: hidden;
   /* 種族タイプ由来のグラデーションは種族ごとに値が変わるため、値だけを

@@ -23,6 +23,7 @@ import SpeedAdjustDialog from '../../components/box-id/SpeedAdjustDialog.astro';
 import MobilePokemonPreview from '../../components/box-id/MobilePokemonPreview.astro';
 import { createMobilePreviewPlaceholder } from '../../lib/box-id/mobile-preview-placeholder';
 import '../../styles/box-edit-page.css';
+import '../../styles/box-damage-page.css';
 import { getSupabaseAdminClient } from '../../lib/supabase';
 import { getOwnedPokemon, type OwnedPokemonRecord } from '../../lib/owned-pokemon';
 import { getOpggUsageList, getOpggUsageManifest, sortOpggSeasons } from '../../lib/opgg-usage';
@@ -259,38 +260,9 @@ const initialMobileTab = !isNewMode && Astro.url.searchParams.get('tab') === 'da
 	</div>
 
 	<script>
-		const editShell = document.querySelector<HTMLElement>("#edit-shell");
-		const mobileTrainingBar = document.querySelector<HTMLElement>("#mobile-training-bar");
-		const pokemonPreview = document.querySelector<HTMLElement>(".pokemon-preview");
-		const bottomNav = document.querySelector<HTMLElement>(".app-bottom-nav");
 
 		/* ダメージタブのカード領域は、実際のタブバーと下部ナビの座標から決める。
 		   固定値の高さがずれても、両端に左右余白と同じガード帯を残す。 */
-		function syncEditScrollViewport(): void {
-			if (!editShell || !mobileTrainingBar) return;
-			const scrollAnchor = pokemonPreview?.getClientRects().length ? pokemonPreview : mobileTrainingBar;
-			const scrollTop = `calc(${scrollAnchor.getBoundingClientRect().bottom}px + var(--box-damage-card-scroll-inset))`;
-			editShell.style.setProperty("--box-edit-scroll-top", scrollTop);
-			editShell.style.setProperty(
-				"--box-damage-scroll-top",
-				scrollTop,
-			);
-			if (bottomNav) {
-				const scrollBottom = `calc(${window.innerHeight - bottomNav.getBoundingClientRect().top}px + var(--box-damage-card-scroll-inset))`;
-				editShell.style.setProperty("--box-edit-scroll-bottom", scrollBottom);
-				editShell.style.setProperty(
-					"--box-damage-scroll-bottom",
-					scrollBottom,
-				);
-			}
-		}
-
-		syncEditScrollViewport();
-		window.addEventListener("resize", syncEditScrollViewport);
-		document.querySelectorAll<HTMLElement>("[data-mobile-tab]").forEach((tab) => {
-			tab.addEventListener("click", () => requestAnimationFrame(syncEditScrollViewport));
-		});
-		if (pokemonPreview) new ResizeObserver(syncEditScrollViewport).observe(pokemonPreview);
 	</script>
 
 	{/* 提案図(docs/ui_proposal/mobile/ の ui_mobile_box_個体編集_*.png)はどれも画面上端が

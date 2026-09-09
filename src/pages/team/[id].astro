@@ -148,7 +148,18 @@ if (!isGuestNewMode) {
 				<div class="team-edit-shell" id="team-edit-layout" data-team-id={team.id} data-initial-team={initialTeamJson} data-mobile-tab={initialMobileTab} data-ranked-season={rankedSeason ?? ''}>
 					<section id="team-overview-tab" class="panel">
 						<div class="panel-content">
-							<div id="team-overview-grid" class="team-overview-thumb-grid" aria-label="チームメンバーのプレビュー"></div>
+							{/* 6枠はJS(renderOverviewGrid)が描き直すが、SSRで空だと初回描画から
+							    JS描画までの間だけグリッドの高さが0になり、下のボタン列とメモ欄が
+							    600px近く飛ぶ(実測CLS 0.27)。空き枠と実カードは同じ
+							    .box-card(aspect-ratio 1/1)なので、同じ枠をSSRで出しておけば
+							    差し替わっても高さが変わらない。 */}
+							<div id="team-overview-grid" class="team-overview-thumb-grid" aria-label="チームメンバーのプレビュー">
+								{[1, 2, 3, 4, 5, 6].map((slot) => (
+									<button type="button" class="card box-card card-team-empty-slot" aria-label={`${slot}番目の空き枠を選択`} aria-pressed="false">
+										<span class="team-slot-number">{slot}</span>
+									</button>
+								))}
+							</div>
 							<div class="team-overview-actions">
 								<button type="button" id="team-item-redistribute-button" class="btn-control team-item-redistribute-button" aria-haspopup="dialog">
 									<span class="team-item-redistribute-button-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg></span>
@@ -168,7 +179,7 @@ if (!isGuestNewMode) {
 								placeholder="メモ"
 								aria-label="メモ"
 								autocomplete="off"
-								rows="3">{team.memo ?? ''}</textarea>
+								rows={Math.max(3, (team.memo ?? '').split('\n').length)}>{team.memo ?? ''}</textarea>
 							{!isNewMode && (
 								<div class="team-mobile-actions__controls training-delete-actions">
 									<button id="copy-button" class="btn-control" type="button" disabled={!user} title={!user ? "ログインするとコピーできます" : undefined}>
@@ -446,7 +457,8 @@ if (!isGuestNewMode) {
 				const query = new URLSearchParams({ team: teamId });
 				window.location.assign(`/damage-calc?${query.toString()}`);
 			});
-			autosizeTextarea(memoInput);
+			// SSR時点のrows/field-sizingで高さを確定しているため、初回だけJSの再計算を省く。
+			autosizeTextarea(memoInput, { resizeInitially: false });
 			const itemRedistributeBackdrop = el<HTMLElement>("team-item-redistribute-backdrop");
 			const itemRedistributeDialog = el<HTMLElement>("team-item-redistribute-dialog");
 			const itemRedistributeClose = el<HTMLButtonElement>("team-item-redistribute-close");

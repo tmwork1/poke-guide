@@ -1033,6 +1033,12 @@ input[type="checkbox"].toggle-switch-input {
   gap: 0.4em;
 }
 
+/* display指定はhidden属性より強いので、hiddenを付けたまま表示され続けるのを防ぐ
+   (box/rankedなど、保存状態を使わないページの#autosave-statusが露出していた)。 */
+.status-text[hidden] {
+  display: none;
+}
+
 .status-text[data-state="saving"],
 .status-text[data-state="loading"] {
   color: var(--color-warning-strong);

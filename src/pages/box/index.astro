@@ -161,28 +161,9 @@ import '../../styles/guest-login-dialog.css';
 		import { reloadOnBfcacheRestore } from "../../lib/shared/reload-on-bfcache-restore";
 		import { initializeSortDirectionToggle } from "../../lib/shared/sort-direction-toggle";
 
+		/* 「本当に0件」の状態クラス(.is-truly-empty)と圧縮表示(.is-compact)を
+		   付け外しする対象。レイアウトはCSSだけで組んでいるので、寸法の実測はしない。 */
 		const boxContent = document.querySelector<HTMLElement>(".box-content");
-		const boxSecondHeader = document.querySelector<HTMLElement>(".box-second-header");
-		const bottomNav = document.querySelector<HTMLElement>(".app-bottom-nav");
-
-		/* CSSトークンの想定高さではなく、実際に描画された固定UIの座標を使う。
-		   検索帯が内容で伸縮しても、一覧の上端/下端に左右余白と同じガード帯を残す。 */
-		function syncBoxScrollViewport(): void {
-			if (!boxContent || !boxSecondHeader) return;
-			boxContent.style.setProperty(
-				"--box-page-scroll-top",
-				`calc(${boxSecondHeader.getBoundingClientRect().bottom}px + var(--box-page-card-scroll-inset))`,
-			);
-			if (bottomNav) {
-				boxContent.style.setProperty(
-					"--box-page-scroll-bottom",
-					`calc(${window.innerHeight - bottomNav.getBoundingClientRect().top}px + var(--box-page-card-scroll-inset))`,
-				);
-			}
-		}
-
-		syncBoxScrollViewport();
-		window.addEventListener("resize", syncBoxScrollViewport);
 
 		interface OwnedPokemon {
 			id: string;

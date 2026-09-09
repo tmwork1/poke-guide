@@ -18,6 +18,15 @@
   /* ── 7. 余白 ────────────────────────── */
   --box-page-card-scroll-inset: var(--list-grid-edge-gap); /* カード一覧の左右余白と共通にする上下ガード帯 */
 
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+.app-main:has(> .box-shell) {
+  height: 100dvh;
+  min-height: 0;
 }
 
 /* --------------------------------------------------------------------------
@@ -26,12 +35,8 @@
 
 /* カード一覧の余白: .box-content（上下左右を共通の edge gap にする） */
 .box-content {
-  position: fixed;
-  /* ヘッダーの実高は表示内容で変化しうるため、JSで実測した下端を優先する。 */
-  top: var(--box-page-scroll-top, calc(var(--header-height) + var(--app-header-height) + var(--second-header-height) + var(--box-page-card-scroll-inset)));
-  right: 0;
-  bottom: var(--box-page-scroll-bottom, calc(var(--bottom-nav-height) + env(safe-area-inset-bottom) + var(--box-page-card-scroll-inset)));
-  left: 0;
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
   /* 初期は「読み込み中」の一行だけなので縦スクロールバーが無く、取得後にカードが
      増えるとスクロールバーが現れる。box-gridは固定幅を中央寄せしているため、その時点で
@@ -39,7 +44,7 @@
      ガターを初回レイアウトから確保し、カードのサイズ・列数・最終位置は変えずに揺れだけを防ぐ。 */
   scrollbar-gutter: stable;
   -webkit-overflow-scrolling: touch;
-  padding: 0 var(--space-2); /* カード一覧の外側余白。大きくすると画面端から離れる */
+  padding: var(--box-page-card-scroll-inset) var(--space-2); /* カード一覧の外側余白。大きくすると画面端から離れる */
   background: var(--color-bg); /* カード一覧の背景色 */
   scroll-padding-block: var(--box-page-card-scroll-inset);
 }

@@ -152,7 +152,7 @@ if (seasonList?.pokemon) {
 	</SecondHeader>
 	)}
 
-	<div class="data-hub-scroll" data-data-hub-scroll style="visibility: hidden">
+	<div class="data-hub-scroll" data-data-hub-scroll>
 		{!isTopBuilds && (
 		<section class="panel data-hub-panel battle-data-panel" data-tab="battle-data">
 			<div class="panel-content">
@@ -226,23 +226,7 @@ if (seasonList?.pokemon) {
 
 		const scrollContainer = document.querySelector<HTMLElement>('[data-data-hub-scroll]');
 		setupAppHeaderSwipe(document.querySelector<HTMLElement>('.app-header'), scrollContainer);
-		const activeHeader = document.querySelector<HTMLElement>('.battle-data-second-header, .top-builds-second-header');
-		const bottomNav = document.querySelector<HTMLElement>('.app-bottom-nav');
-		const syncScrollViewport = () => {
-			if (!scrollContainer || !activeHeader) return;
-			scrollContainer.style.setProperty('--data-hub-scroll-top', `calc(${activeHeader.getBoundingClientRect().bottom}px + var(--data-hub-card-scroll-inset))`);
-			if (bottomNav) scrollContainer.style.setProperty('--data-hub-scroll-bottom', `calc(${window.innerHeight - bottomNav.getBoundingClientRect().top}px + var(--data-hub-card-scroll-inset))`);
-		};
-		syncScrollViewport();
-		window.addEventListener('resize', syncScrollViewport);
-		new ResizeObserver(syncScrollViewport).observe(activeHeader);
-		// ページ固有のスタイルと固定スクロール領域の計算が済む前に、カード内容だけが
-		// 一瞬未整形で見えるのを防ぐ。2フレーム待つことで、遷移直後も整った状態から表示する。
-		requestAnimationFrame(() => {
-			requestAnimationFrame(() => scrollContainer?.style.removeProperty('visibility'));
-		});
 	</script>
-	<noscript><style is:inline>[data-data-hub-scroll] { visibility: visible !important; }</style></noscript>
 
 	<script>
 		import { kanaIncludes } from '../../lib/kana';

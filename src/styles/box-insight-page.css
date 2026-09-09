@@ -37,10 +37,10 @@ body.data-page {
 /* 個別データ・上位チームページの外枠 */
 .box-data-page {
   max-width: 760px; /* ページ全体の最大幅。大きくすると広い画面で横に伸びる */
-  padding-bottom: calc(64px + env(safe-area-inset-bottom));
   display: flex;
   flex-direction: column;
-  height: calc(100dvh - var(--header-height));
+  height: 100%;
+  min-height: 0;
 }
 /* /box/ranked は長いカード一覧が親の固定高からオーバーフローすると、sticky の
    包含ブロックが途中で終わる。ページ自身を内容高まで伸ばし、プレビューの sticky を
@@ -221,22 +221,19 @@ body.data-page {
 
 /* MobilePokemonPreview は固定配置のため通常フローの高さを持たない。実測した上下端を
      使い、データだけをプレビューと下部ナビの間に固定する。 */
+.app-main:has(> .box-data-page) {
+  height: 100dvh;
+  min-height: 0;
+}
+
 .box-data-page {
-  position: fixed;
-  inset: var(--header-height) 0 0;
-  height: auto;
-  padding-bottom: 0;
   overflow: hidden;
   background: var(--color-bg);
 }
 
 .box-data-page .box-data-main {
-  position: fixed;
-  top: var(--box-data-scroll-top, calc(var(--header-height) + var(--app-header-height) + var(--pokemon-preview-height) + 1px));
-  right: 0;
-  bottom: var(--box-data-scroll-bottom, calc(var(--bottom-nav-height) + env(safe-area-inset-bottom)));
-  left: 0;
-  flex: none;
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 /* box/ranked.astro(上位チーム)は renderTopBuildCard + team-card.css で /team 一覧と

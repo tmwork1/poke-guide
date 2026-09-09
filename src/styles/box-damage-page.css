@@ -118,41 +118,38 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .damage-rows-li
   --box-damage-card-scroll-inset: var(--list-grid-edge-gap);
   display: flex;
   flex-direction: column;
-  position: fixed;
-  inset: var(--header-height) 0 0;
-  height: auto;
+  height: 100%;
+  min-height: 0;
   overflow: hidden;
   background: var(--color-bg);
 }
+.app-main:has(> .edit-shell) {
+  height: 100dvh;
+  min-height: 0;
+}
 .edit-shell .edit-layout {
   display: flex;
-  flex: 1;
+  flex: 1 1 auto;
+  flex-direction: column;
   min-height: 0;
 }
 .edit-shell .edit-layout-damage {
-  position: fixed;
-  top: var(--box-damage-scroll-top, calc(var(--app-header-height) + var(--box-damage-card-scroll-inset)));
-  right: 0;
-  bottom: var(--box-damage-scroll-bottom, calc(var(--bottom-nav-height) + env(safe-area-inset-bottom) + var(--box-damage-card-scroll-inset)));
-  left: 0;
-  flex: 1;
+  flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior-y: contain;
   background: var(--color-bg);
+  padding-block: var(--box-damage-card-scroll-inset);
   scroll-padding-block: var(--box-damage-card-scroll-inset);
 }
 
 .edit-shell .edit-layout-training {
-  position: fixed;
-  top: var(--box-edit-scroll-top, calc(var(--app-header-height) + var(--box-damage-card-scroll-inset)));
-  right: 0;
-  bottom: var(--box-edit-scroll-bottom, calc(var(--bottom-nav-height) + env(safe-area-inset-bottom) + var(--box-damage-card-scroll-inset)));
-  left: 0;
+  flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior-y: contain;
   background: var(--color-bg);
+  padding-block: var(--box-damage-card-scroll-inset);
   scroll-padding-block: var(--box-damage-card-scroll-inset);
 }
 

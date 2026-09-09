@@ -2,11 +2,11 @@
 // 保ったまま、内容に応じて高さを伸ばす(手動リサイズは不要になるため呼び出し側でresizeも
 // 外すこと)。border-boxのpaddingはscrollHeightに含まれるため、height:autoで一旦畳んでから
 // scrollHeightを読み直す(畳まないと縮む方向の変化=行削除に追従できない)。
-export function autosizeTextarea(el: HTMLTextAreaElement): void {
+export function autosizeTextarea(el: HTMLTextAreaElement, { resizeInitially = true }: { resizeInitially?: boolean } = {}): void {
 	const resize = (): void => {
 		el.style.height = "auto";
 		el.style.height = `${el.scrollHeight}px`;
 	};
 	el.addEventListener("input", resize);
-	resize();
+	if (resizeInitially) resize();
 }
