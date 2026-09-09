@@ -703,6 +703,27 @@
 		flex: 0 0 var(--stat-number-input-width);
 		width: var(--stat-number-input-width);
 	}
+	/* 努力値が非ゼロの行は、中央の数値ボックスだけを塗って「振ってある」ことを一目で分かるようにする。
+		文字色だけだと、行が6つ並んだときに振り分け済みの能力がすぐ拾えなかった(UI改修依頼)。
+		両脇の −/+ ボタンは操作部品なので塗らない。 */
 	#stat-adjustment-section .stat-row .stat-ev-stepper:has(> .number-stepper-picker > [data-ev-value]:not([data-ev-value="0"])[aria-current="true"]) > .number-stepper-value {
 		color: var(--color-primary-strong);
+		background: var(--color-primary-soft); /* 努力値を振ってある数値ボックスの下地。濃くすると強調が増す */
+	}
+	/* 性格補正の上昇/下降は、中の▲▼だけでなく枠もその色にする。1pxの既定枠のままだと
+		どの能力に補正が乗っているかが遠目に分からない(UI改修依頼)。
+		box-sizing: border-box なので太くしてもボタンの寸法は変わらない。
+		⚠️ stat-adjustment-panel.css にも同じ狙いのルールがあるが、あちらのトークン
+		(--stat-up-color/--stat-down-color)は #damage-detail-panel-body 配下でしか定義されず、
+		育成タブの #stat-adjustment-section では解決できない。ここでは global.css の
+		--color-stat-up/--color-stat-down を直接使う。 */
+	#stat-adjustment-section .stat-nature-btn[data-nature-state="up"],
+	#stat-adjustment-section .stat-nature-btn[data-nature-state="down"] {
+		border-width: 2px; /* 性格補正が乗っている能力の枠の太さ。太くすると補正が目立つ */
+	}
+	#stat-adjustment-section .stat-nature-btn[data-nature-state="up"] {
+		border-color: var(--color-stat-up);
+	}
+	#stat-adjustment-section .stat-nature-btn[data-nature-state="down"] {
+		border-color: var(--color-stat-down);
 	}

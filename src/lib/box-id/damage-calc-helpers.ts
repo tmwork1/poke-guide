@@ -17,7 +17,7 @@
 import type { LethalResult } from "../pyodide-engine";
 import type { OpponentClientResultInput } from "../opponent-notes-validation";
 import { STAT_KEYS, type StatKey } from "../stats";
-import { MAX_STANDALONE_ATTACKS, TEN_OR_MORE_LABEL } from "../damage-summary";
+import { MAX_STANDALONE_ATTACKS, TEN_OR_MORE_LABEL, ZERO_DAMAGE_LABEL, hasOnlyZeroDamages } from "../damage-summary";
 
 /** 確N判定の重み。severity-bar[data-severity](global.css)の値と対応する。 */
 export type DamageSeverity = "lethal" | "risky" | "safe" | "none";
@@ -101,6 +101,7 @@ export function describeStandaloneLethal(damages: number[] | undefined, defender
 	if (!damages || damages.length === 0 || !defenderHp || defenderHp <= 0) {
 		return { label: "-", severity: "none" };
 	}
+	if (hasOnlyZeroDamages([damages])) return { label: ZERO_DAMAGE_LABEL, severity: "safe" };
 	let dist = new Map<number, number>([[defenderHp, 1]]);
 	for (let attack = 1; attack <= MAX_STANDALONE_ATTACKS; attack += 1) {
 		const next = new Map<number, number>();
@@ -137,6 +138,9 @@ export function describeExtendedTotalVerdict(
 	validAttackCount: number,
 	result: OpponentClientResultInput,
 ): DamageVerdict {
+	if (hasOnlyZeroDamages(result.perAttackDamages)) {
+		return { label: ZERO_DAMAGE_LABEL, severity: "safe" };
+	}
 	// 有効な攻撃列が1件だけの行は、エンジンが返す perAttackLethal[0](その技を
 	// 最大10回連発した場合の厳密な確定数系列。たべのこし等のターン終了時処理も
 	// 反映済み)がそのまま「攻撃列を繰り返し当て続けた場合」と一致するため、

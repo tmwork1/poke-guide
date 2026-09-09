@@ -479,3 +479,18 @@ test('summarizeOpponentNote: テラスタイプはそのまま返す(未設定�
 	assert.equal(summarizeOpponentNote(NOTE_KAIRYU, categoryOf).teraType, 'ノーマル');
 	assert.equal(summarizeOpponentNote(NOTE_KAMEX, categoryOf).teraType, '');
 });
+
+test('describeNoteVerdict: all-zero damage is labeled as invalid', () => {
+	const attacks = normalizeNoteAttacks({ attacks: [{ moveName: 'zero-damage-move' }] }, null);
+	const result = {
+		lethal: [{ attackCount: 1, probability: 0 }],
+		defenderHp: 200,
+		cumulativeDamage: { min: 0, max: 0 },
+		perAttackLethal: [[{ attackCount: 1, probability: 0 }]],
+		perAttackDamages: [[0]],
+	};
+	const v = describeNoteVerdict(attacks, result, () => 'physical');
+	assert.equal(v.label, '無効');
+	assert.equal(v.detail, '0〜0 (0.0%)');
+	assert.equal(v.severity, 'safe');
+});

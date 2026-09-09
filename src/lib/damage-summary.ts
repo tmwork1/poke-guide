@@ -65,6 +65,14 @@ export type DamageSeverity = 'lethal' | 'risky' | 'safe' | 'none';
 // 10発当てても全乱数分岐が致死に至らない場合は確定数を出さない(42-D3)。
 export const MAX_STANDALONE_ATTACKS = 10;
 export const TEN_OR_MORE_LABEL = `${MAX_STANDALONE_ATTACKS}発以上`;
+export const ZERO_DAMAGE_LABEL = '無効';
+
+/** 実ダメージがすべて0の技列だけを、タイプ相性による無効として扱う。 */
+export function hasOnlyZeroDamages(damageSets: number[][] | undefined): boolean {
+	return Array.isArray(damageSets) && damageSets.length > 0 && damageSets.every(
+		(damages) => Array.isArray(damages) && damages.length > 0 && damages.every((damage) => damage === 0),
+	);
+}
 
 // 一撃必殺技・はきだす・変化技の断り書き。damage-calc.ts もここからimportして使う。
 export const OHKO_MOVE_NAMES: ReadonlySet<string> = new Set(['じわれ', 'ハサミギロチン', 'ぜったいれいど', 'つのドリル']);
@@ -240,6 +248,7 @@ function describeExtendedNoLethalLabel(
 	validAttackCount: number,
 	result: OpponentClientResultInput,
 ): string {
+	if (hasOnlyZeroDamages(result.perAttackDamages)) return ZERO_DAMAGE_LABEL;
 	if (validAttackCount === 1 && Array.isArray(result.perAttackLethal?.[0])) {
 		return describeSeriesVerdict(result.perAttackLethal[0], TEN_OR_MORE_LABEL).label;
 	}
@@ -355,10 +364,15 @@ export function describeNoteVerdict(
 	}
 
 	const damageText = formatCumulativeDamage(valid.length, result);
-	const { label, severity } = describeSeriesVerdict(
+	const noLethalLabel = describeExtendedNoLethalLabel(valid.length, result);
+	const seriesVerdict = describeSeriesVerdict(
 		result.lethal,
-		describeExtendedNoLethalLabel(valid.length, result),
+		noLethalLabel,
 	);
+	const label = seriesVerdict.label === '-' && noLethalLabel === ZERO_DAMAGE_LABEL
+		? ZERO_DAMAGE_LABEL
+		: seriesVerdict.label;
+	const severity = label === ZERO_DAMAGE_LABEL ? 'safe' : seriesVerdict.severity;
 	const notes: string[] = [];
 	if (valid.some((a) => OHKO_MOVE_NAMES.has(a.moveName))) notes.push(OHKO_NOTE);
 	if (hasUnsupported) notes.push(UNSUPPORTED_LETHAL_TOTAL_NOTE_SOME);

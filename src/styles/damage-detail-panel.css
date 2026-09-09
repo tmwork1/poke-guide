@@ -792,6 +792,14 @@ body.box-edit-page {
 		width: 75%;
 		grid-template-columns: repeat(3, minmax(0, 1fr));
 	}
+	/* 状態異常の選択背景を、外枠と同じ角丸まで届かせる。外枠は既存の
+		overflow: hiddenで切り抜いているため、ここではフォーカス輪郭の扱いを変えない。 */
+	#damage-detail-panel-body .damage-detail-ailment-group .damage-detail-icon-btn:first-child {
+		border-radius: var(--damage-detail-icon-button-radius) 0 0 var(--damage-detail-icon-button-radius);
+	}
+	#damage-detail-panel-body .damage-detail-ailment-group .damage-detail-icon-btn:last-child {
+		border-radius: 0 var(--damage-detail-icon-button-radius) var(--damage-detail-icon-button-radius) 0;
+	}
 	#damage-detail-panel-body .damage-detail-rank-ailment-row {
 		/* 状態異常の直後へテラスタルを置き、余白は右端へ逃がす。 */
 		display: grid;

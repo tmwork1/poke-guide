@@ -197,6 +197,7 @@
 }
 .stat-row .stat-ev-stepper > .number-stepper-value.is-nonzero {
 	color: var(--color-primary-strong);
+	background: var(--color-primary-soft);
 }
 .stat-row input[type="range"] { width: 100%; }
 .stat-row input[type="range"]:focus { outline: none; }

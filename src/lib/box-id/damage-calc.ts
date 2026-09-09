@@ -125,9 +125,11 @@ import {
 	STATUS_AND_UNSUPPORTED_TOTAL_NOTE_ALL,
 	STATUS_MOVE_TOTAL_NOTE_ALL,
 	TEN_OR_MORE_LABEL,
+	ZERO_DAMAGE_LABEL,
 	UNSUPPORTED_LETHAL_TOTAL_NOTE_ALL,
 	UNSUPPORTED_LETHAL_TOTAL_NOTE_SOME,
 	computeCumulativeDamage,
+	hasOnlyZeroDamages,
 	isUnsupportedLethalMove,
 	type CumulativeDamage,
 } from "../damage-summary";
@@ -1377,8 +1379,9 @@ if (opponentNotesSection) {
 			// 技ごとの判定はエンジンが返す perAttackLethal(その技だけを連発した場合の
 			// 確定数系列)を使う。無い場合(古いスナップショット)だけTS側で概算する。
 			const series = result.perAttackLethal?.[validPos - 1];
+			const noLethalLabel = hasOnlyZeroDamages([damages]) ? ZERO_DAMAGE_LABEL : TEN_OR_MORE_LABEL;
 			const { label, severity } = Array.isArray(series)
-				? describeSeriesVerdict(series, TEN_OR_MORE_LABEL)
+				? describeSeriesVerdict(series, noLethalLabel)
 				: describeStandaloneLethal(damages, result.defenderHp);
 			setResultVerdict(target, rangeText, label);
 			target.dataset.severity = severity;
@@ -1502,7 +1505,7 @@ if (opponentNotesSection) {
 		// (そうしないと確2が3発以上と同じ通常文字色になり、ダークテーマでほぼ白く見える)。
 		const extended = describeExtendedTotalVerdict(validAttacksOf(row).length, result);
 		const primary = describeSeriesVerdict(result.lethal, extended.label);
-		const label = primary.label;
+		const label = extended.label === ZERO_DAMAGE_LABEL ? extended.label : primary.label;
 		const severity = label === extended.label ? extended.severity : primary.severity;
 		if (hasUnsupported) {
 			// 数値自体は「算出できる技だけを合算した値」として意味があるため隠さず表示し、
