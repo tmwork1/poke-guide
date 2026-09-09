@@ -28,7 +28,7 @@
  * 主なオプション:
  *   --page <path>       撮る画面。複数指定可 / カンマ区切り可。`home` は `/` の別名。(必須)
  *   --base <url>        省略時は `astro dev status` から自動検出(既定 http://localhost:4321)
- *   --theme light|dark|both   既定 both
+ *   --theme light|dark|both   既定 dark(2026-09-10にダークモードへ一本化したため)
  *   --size 1920x1080    ビューポート。既定 1920x1080
  *   --scale <n>         deviceScaleFactor。細部を見るときは 3。既定 1
  *   --full              ページ全体(スクロール分を含む)を撮る
@@ -72,7 +72,7 @@ function parseArgs(argv) {
 	const opts = {
 		pages: [],
 		base: null,
-		theme: "both",
+		theme: "dark",
 		size: "1920x1080",
 		scale: 1,
 		full: false,
@@ -293,7 +293,7 @@ async function main() {
 				"",
 				"  --page box --page box/<id>          複数指定可(カンマ区切りも可)",
 				"                                      ※Git Bashでは先頭スラッシュを付けない",
-				"  --theme light|dark|both             既定 both",
+				"  --theme light|dark|both             既定 dark",
 				"  --size 1920x1080                    既定 1920x1080",
 				"  --scale 3                           細部を見るときの拡大率",
 				"  --clip <selector> [--clip-pad 24]   その要素だけを撮る",
