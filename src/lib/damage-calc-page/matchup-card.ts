@@ -7,9 +7,9 @@ import { NATURE_STAT_MODIFIERS, STAT_KEYS, type StatKey } from "../stats";
 import type { PopularMoveOption } from "../team-matchup";
 import { openBoxSelectDialog } from "./box-select-dialog";
 import { renderItemIcon } from "./item-select-dialog";
-import { openOpponentAbilitySelectDialog } from "./opponent-ability-select-dialog";
+import { openAbilitySelectPopover } from "./ability-select-popover";
 import { readJsonScriptStringArray } from "../json-script";
-import { getFieldState, getOpponentBuild, getOpponentState, getSelfBuilds, getSelfState, setOpponentBuild, type OpponentBuild, type SelfBuild } from "./shared-core";
+import { getFieldState, getOpponentBuild, getOpponentState, getSelfBuilds, getSelfState, setOpponentBuild, setSelfBuildAt, type OpponentBuild, type SelfBuild } from "./shared-core";
 
 type DamageCell = { range: string; lethal: string };
 type DamageRow = { moveName: string; cells: DamageCell[] };
@@ -17,7 +17,7 @@ type PopularAbilityOption = { value: string; ratio: number };
 /** 1枚の対面カード(自分側1体ぶん)のDOM参照。テンプレートを複製するたびにこの形で1組作る。 */
 type CardRefs = {
   selfArtwork: HTMLElement;
-  selfAbility: HTMLElement;
+  selfAbility: HTMLButtonElement;
   matchupTitle: HTMLElement;
   selfItemButton: HTMLButtonElement;
   selfItemIcon: HTMLImageElement;
@@ -36,7 +36,8 @@ type CardRefs = {
 type Card = { build: SelfBuild; root: HTMLElement; refs: CardRefs };
 
 const CHANGE_EVENT = "damage-calc:change";
-const emitChange = (reason: string) => document.dispatchEvent(new CustomEvent(CHANGE_EVENT, { detail: { reason } }));
+const emitChange = (reason: string, extra?: Record<string, unknown>) =>
+  document.dispatchEvent(new CustomEvent(CHANGE_EVENT, { detail: { reason, ...extra } }));
 /** デフォルトの相手はopgg採用率1位のポケモン(index.astroが埋め込むJSONの先頭)。
  * データが読めない場合のみ固定名にフォールバックする。 */
 let defaultOpponentCache: string | null = null;
@@ -315,11 +316,12 @@ function createCard(index: number): { root: HTMLElement; refs: CardRefs } {
   const root = fragment.firstElementChild as HTMLElement;
   root.dataset.damageCalcCardIndex = String(index);
   const selfItemButton = root.querySelector<HTMLButtonElement>('[data-damage-calc-item-side="self"]') as HTMLButtonElement;
+  const selfAbility = role<HTMLButtonElement>(root, "self-ability");
   const opponentAbilityButton = role<HTMLButtonElement>(root, "opponent-ability");
   selfItemButton.dataset.damageCalcCardIndex = String(index);
   const refs: CardRefs = {
     selfArtwork: role(root, "self-artwork"),
-    selfAbility: role(root, "self-ability"),
+    selfAbility,
     matchupTitle: role(root, "matchup-title"),
     selfItemButton,
     selfItemIcon: role(root, "self-item-icon"),
@@ -339,9 +341,28 @@ function createCard(index: number): { root: HTMLElement; refs: CardRefs } {
   refs.selfArtwork.addEventListener("click", () => openBoxSelectDialog());
   // 相手側の立ち絵タップはメガシンカフォルムの循環切り替え(カードが何枚あっても相手は共通)。
   refs.opponentArtwork.addEventListener("click", () => void cycleOpponentForm());
+  selfAbility.addEventListener("click", () => {
+    const build = getSelfBuilds()[index];
+    if (!build?.species_name) return;
+    void loadAbilitiesMap().then((abilitiesBySpecies) => {
+      const options = (abilitiesBySpecies.get(build.species_name) ?? []).map((value) => ({ value, label: value }));
+      openAbilitySelectPopover(selfAbility, options, build.ability_name ?? "", (abilityName) => {
+        setSelfBuildAt(index, { ...build, ability_name: abilityName });
+        emitChange("self");
+      });
+    });
+  });
   opponentAbilityButton.addEventListener("click", () => {
     const abilities = (opponentAbilityButton.dataset.abilities ?? "").split("\u001f").filter(Boolean);
-    openOpponentAbilitySelectDialog(opponentAbilityButton, abilities);
+    openAbilitySelectPopover(
+      opponentAbilityButton,
+      [{ value: "", label: "特性なし" }, ...abilities.map((value) => ({ value, label: value }))],
+      getOpponentBuild().abilityName ?? "",
+      (abilityName) => {
+        setOpponentBuild({ ...getOpponentBuild(), abilityName });
+        emitChange("opponent-ability", { abilityName });
+      },
+    );
   });
   return { root, refs };
 }
@@ -364,6 +385,7 @@ function renderIdentity(refs: CardRefs, self: SelfBuild, opponent: OpponentBuild
   refs.selfItemButton.hidden = !selfSelected;
   refs.selfAbility.hidden = !selfSelected;
   refs.selfAbility.textContent = selfSelected ? (self.ability_name?.trim() || "特性なし") : "";
+  refs.selfAbility.ariaLabel = `自分の特性: ${self.ability_name?.trim() || "特性なし"}。タップで選択`;
   if (selfSelected) renderItemIcon(refs.selfItemIcon, refs.selfItemNoneIcon, self.item_name ?? "");
   else {
     refs.selfItemIcon.hidden = true;
