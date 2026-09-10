@@ -2,6 +2,8 @@
 // カード内部のDOMを変更するときは必ずこのファイルで行う。
 
 /** チームメイト6枠の描画に必要な、OwnedPokemonRecordの構造的部分型。 */
+import { applyCompactItemIcon, applyCompactPokemonSprite } from "./compact-pokemon-sprite";
+
 export interface TeamMateCardPokemon {
 	species_name: string;
 	item_name: string | null;
@@ -16,15 +18,41 @@ export interface TeamMateSlotsOptions<T extends TeamMateCardPokemon> {
 	onSlotTap?: (slot: number) => void;
 	onSlotDoubleTap?: (slot: number) => void;
 	onSlotLongPress?: (slot: number) => void;
-	applySprite: (imgEl: HTMLImageElement, fallbackEl: HTMLElement, name: string) => void | Promise<void>;
-	applyItemIcon: (imgEl: HTMLImageElement, itemName: string, visibilityEl?: HTMLElement) => void | Promise<void>;
 	/** falseならアイコン右下の持ち物オーバーレイを描かない(もちもの入替モーダルは別行でアイテムを表示するため)。省略時true。 */
 	showItem?: boolean;
 }
 
+/** 6列コンパクトタイルの視覚部分を組み立てる。 */
+export function CompactPokemonTile(
+	container: HTMLElement,
+	member: TeamMateCardPokemon,
+	showItem = true,
+): void {
+	const sprite = document.createElement("img");
+	sprite.className = "team-mate-card__art";
+	sprite.alt = "";
+	sprite.draggable = false;
+	const fallback = document.createElement("span");
+	fallback.className = "team-mate-card__fallback";
+	container.append(sprite, fallback);
+	void applyCompactPokemonSprite(sprite, fallback, member.species_name);
+
+	const itemName = member.item_name?.trim() ?? "";
+	if (!showItem || !itemName) return;
+
+	const item = document.createElement("span");
+	item.className = "team-mate-card__item";
+	const itemImg = document.createElement("img");
+	itemImg.alt = "";
+	itemImg.draggable = false;
+	item.appendChild(itemImg);
+	container.appendChild(item);
+	void applyCompactItemIcon(itemImg, itemName, item);
+}
+
 /** 編成タブと相性タブで共通のチームメイト6枠を描画する。 */
 export function renderTeamMateSlots<T extends TeamMateCardPokemon>(options: TeamMateSlotsOptions<T>): void {
-	const { root, membersBySlot, displayName, selectedSlot = null, onSlotClick, onSlotTap, onSlotDoubleTap, onSlotLongPress, applySprite, applyItemIcon, showItem = true } = options;
+	const { root, membersBySlot, displayName, selectedSlot = null, onSlotClick, onSlotTap, onSlotDoubleTap, onSlotLongPress, showItem = true } = options;
 	root.innerHTML = "";
 
 	for (let slot = 1; slot <= 6; slot += 1) {
@@ -91,26 +119,7 @@ export function renderTeamMateSlots<T extends TeamMateCardPokemon>(options: Team
 				"aria-label",
 				(onSlotClick || onSlotTap) ? `${displayName(member)}、${slot}番目の枠を選択` : `${displayName(member)}、${slot}番目の枠`,
 			);
-			const sprite = document.createElement("img");
-			sprite.className = "team-mate-card__art";
-			sprite.alt = "";
-			sprite.draggable = false;
-			const fallback = document.createElement("span");
-			fallback.className = "team-mate-card__fallback";
-			card.append(sprite, fallback);
-			void applySprite(sprite, fallback, member.species_name);
-
-			const itemName = member.item_name?.trim() ?? "";
-			if (showItem && itemName) {
-				const item = document.createElement("span");
-				item.className = "team-mate-card__item";
-				const itemImg = document.createElement("img");
-				itemImg.alt = "";
-				itemImg.draggable = false;
-				item.appendChild(itemImg);
-				card.appendChild(item);
-				void applyItemIcon(itemImg, itemName, item);
-			}
+			CompactPokemonTile(card, member, showItem);
 		}
 
 		root.appendChild(card);

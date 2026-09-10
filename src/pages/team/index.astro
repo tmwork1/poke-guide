@@ -123,7 +123,6 @@ import SecondHeader from '../../components/SecondHeader.astro';
 	<script>
 		// チームカードは外枠から6枠まで共用し、1枠の実体はその中から /box のカード描画へ委譲する。
 		import { kanaIncludes } from "../../lib/kana";
-		import { applyCompactItemIcon, applyCompactPokemonSprite } from "../../lib/compact-pokemon-sprite";
 		import { renderTeamCard } from "../../lib/team-card";
 		import { renderTeamMateSlots } from "../../lib/team-mate-card";
 		import { initializeCardDeleteMode } from "../../lib/card-delete-mode";
@@ -153,9 +152,6 @@ import SecondHeader from '../../components/SecondHeader.astro';
 			if (!found) throw new Error(`要素が見つかりません: #${id}`);
 			return found as T;
 		}
-
-		const applySprite = applyCompactPokemonSprite;
-		const applyItemIcon = applyCompactItemIcon;
 
 		const listRoot = document.getElementById("team-list");
 		if (listRoot instanceof HTMLElement) {
@@ -247,8 +243,6 @@ import SecondHeader from '../../components/SecondHeader.astro';
 									root: container,
 									membersBySlot: mateMembersBySlot,
 									displayName: (p) => p.species_name || "ポケモン",
-									applySprite,
-									applyItemIcon,
 								});
 							}
 						: undefined,

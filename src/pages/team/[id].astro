@@ -624,8 +624,6 @@ if (!isGuestNewMode) {
 					selectedSlot: null,
 					onSlotTap: onRedistributionMemberTap,
 					onSlotLongPress: clearRedistributedItem,
-					applySprite: (imgEl, fallbackEl, name) => applySprite(imgEl, fallbackEl, name, "icon"),
-					applyItemIcon,
 					showItem: false,
 				});
 				renderRedistributionItemRow(effective);
@@ -1619,8 +1617,6 @@ if (!isGuestNewMode) {
 					onSlotTap: onFormationSlotTap,
 					onSlotDoubleTap: onFormationSlotDoubleTap,
 					onSlotLongPress: onFormationSlotLongPress,
-					applySprite: (imgEl, fallbackEl, name) => applySprite(imgEl, fallbackEl, name, "icon"),
-					applyItemIcon,
 				});
 				renderTeamMateSlots({
 					root: matchupMobileSlotsRoot,
@@ -1630,8 +1626,6 @@ if (!isGuestNewMode) {
 					onSlotTap: onFormationSlotTap,
 					onSlotDoubleTap: onFormationSlotDoubleTap,
 					onSlotLongPress: onFormationSlotLongPress,
-					applySprite: (imgEl, fallbackEl, name) => applySprite(imgEl, fallbackEl, name, "icon"),
-					applyItemIcon,
 				});
 				renderTeamMateSlots({
 					root: teamDataMobileSlotsRoot,
@@ -1641,8 +1635,6 @@ if (!isGuestNewMode) {
 					onSlotTap: onFormationSlotTap,
 					onSlotDoubleTap: onFormationSlotDoubleTap,
 					onSlotLongPress: onFormationSlotLongPress,
-					applySprite: (imgEl, fallbackEl, name) => applySprite(imgEl, fallbackEl, name, "icon"),
-					applyItemIcon,
 				});
 
 				formationMobileBoxGrid.replaceChildren();

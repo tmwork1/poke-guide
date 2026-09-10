@@ -463,7 +463,6 @@ const BATTLE_DATA_SSR_CARD_COUNT = 8;
 		import type { RankedTeam } from '../../lib/ranked-teams';
 		import { matchesTopBuildSearch, RANKED_TEAMS_PAGE_SIZE } from '../../lib/ranked-teams-validation';
 		import { renderTopBuildCard } from '../../lib/ranked-teams/card';
-		import { applyCompactItemIcon, applyCompactPokemonSprite } from '../../lib/compact-pokemon-sprite';
 		import { renderTeamMateSlots, type TeamMateCardPokemon } from '../../lib/team-mate-card';
 
 		interface RankedTeamsResponse { season: string; teams: RankedTeam[]; hasMore: boolean; }
@@ -508,9 +507,6 @@ const BATTLE_DATA_SSR_CARD_COUNT = 8;
 
 			let displayMode: TopBuildsDisplayMode = loadDisplayMode();
 
-			const applySprite = applyCompactPokemonSprite;
-			const applyItemIcon = applyCompactItemIcon;
-
 			const DENSITY_ICON_EXPANDED = `<svg class="density-toggle-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="4" width="5" height="5" rx="1"/><rect x="10" y="4" width="5" height="5" rx="1"/><rect x="18" y="4" width="5" height="5" rx="1"/><rect x="2" y="12" width="5" height="5" rx="1"/><rect x="10" y="12" width="5" height="5" rx="1"/><rect x="18" y="12" width="5" height="5" rx="1"/></svg>`;
 			const DENSITY_ICON_COMPRESSED = `<svg class="density-toggle-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="10" width="5" height="5" rx="1"/><rect x="10" y="10" width="5" height="5" rx="1"/><rect x="18" y="10" width="5" height="5" rx="1"/></svg>`;
 
@@ -548,8 +544,6 @@ const BATTLE_DATA_SSR_CARD_COUNT = 8;
 									root: container,
 									membersBySlot: mateMembersBySlot,
 									displayName: (p) => p.species_name || 'ポケモン',
-									applySprite,
-									applyItemIcon,
 								});
 							}
 						: undefined,

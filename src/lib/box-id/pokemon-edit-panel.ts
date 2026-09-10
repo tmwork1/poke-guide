@@ -24,7 +24,6 @@ import {
 	type MoveCategory,
 } from "../pokemon-master-data";
 import { typeIconUrl, teraTypeIconUrl } from "../sprite-urls";
-import { applyCompactItemIcon, applyCompactPokemonSprite } from "../compact-pokemon-sprite";
 import { renderTeamMateSlots } from "../team-mate-card";
 import { TYPE_COLORS, DEFAULT_TYPE_COLOR } from "../type-colors";
 import { applyPreviewMoveTypeBar } from "./preview-move-type-bar";
@@ -1635,8 +1634,6 @@ if (form) {
 	void hydrateGuestPokemon();
 }
 
-const applyItemIcon = applyCompactItemIcon;
-
 // メモ欄の下に、この個体が所属しているチーム一覧を表示する(読み取り専用。カードクリックで
 // /team/[id]へ遷移するだけで、このパネルからチーム編集はしない)。GET /api/teamsはログイン中
 // ユーザーの全チーム(members込み)を返すため、members[].owned_pokemon.id(TeamMemberの型、
@@ -1692,8 +1689,6 @@ async function loadOwnedPokemonTeams(): Promise<void> {
 						root: container,
 						membersBySlot: mateMembersBySlot,
 						displayName: (p) => p.species_name || "ポケモン",
-						applySprite: applyCompactPokemonSprite,
-						applyItemIcon,
 					});
 					// renderTeamMateSlotsは編集・閲覧画面で共有しているため、現在の個体を
 					// 示す文脈依存の見た目を共通コンポーネントへ持ち込まない。描画済みの
