@@ -7,6 +7,14 @@ interface MegaStoneEntry {
   item: string;
 }
 
+const PREVIEW_FORM_TOGGLE_SOURCE = 'pokemon-preview-form-toggle';
+
+export function isPreviewFormToggleChangeEvent(event: Event): boolean {
+  return typeof CustomEvent !== 'undefined'
+    && event instanceof CustomEvent
+    && event.detail?.source === PREVIEW_FORM_TOGGLE_SOURCE;
+}
+
 // 種族値と特性しか使わないので、learnsetを含まない軽量マスタ(pokemon-master-data.ts が
 // アプリ内で1回だけfetch+parseして共有する)を使う。以前はこのファイルが独自に
 // detail/pokemon.json(1.6MB)をfetchしており、同じJSONを二重にparseしていた。
@@ -121,7 +129,13 @@ export function setupMegaPreviewToggle(): void {
         // 入力イベントを経由して編集フォームの選択肢・特性・技を同じ順序で更新する。
         sourceSpeciesInput.value = target.name;
         sourceSpeciesInput.dispatchEvent(new Event('input', { bubbles: true }));
-        sourceSpeciesInput.dispatchEvent(new Event('change', { bubbles: true }));
+        // A form toggle is not a new build selection. Consumers still need the
+        // change event for ability/stat rebuilding, but must not replace the
+        // held item, nature, EVs, or moves with usage-based defaults.
+        sourceSpeciesInput.dispatchEvent(new CustomEvent('change', {
+          bubbles: true,
+          detail: { source: PREVIEW_FORM_TOGGLE_SOURCE },
+        }));
         return;
       }
       sourceSpecies = target.name;

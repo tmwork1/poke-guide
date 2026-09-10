@@ -58,6 +58,17 @@ test('メガストーン所持時にプレビューだけメガシンカ前後�
     </section>
   `);
   await page.waitForFunction(() => typeof window.__megaPreviewToggle__ !== 'undefined');
+  // The real edit panel applies a popular build on ordinary species changes.
+  // Preview form toggles must be distinguishable so that the Mega Stone and
+  // the rest of the current build survive a round trip.
+  await page.evaluate(() => {
+    const species = document.getElementById('species-name') as HTMLInputElement;
+    const item = document.getElementById('item') as HTMLInputElement;
+    species.addEventListener('change', (event) => {
+      const source = event instanceof CustomEvent ? event.detail?.source : undefined;
+      if (source !== 'pokemon-preview-form-toggle') item.value = 'いのちのたま';
+    });
+  });
   await page.evaluate(() => window.__megaPreviewToggle__.setup());
 
   // スプライトのボタンは常に表示されているので、toBeVisible()だけでは
@@ -70,6 +81,9 @@ test('メガストーン所持時にプレビューだけメガシンカ前後�
   await expect(page.locator('#pokemon-preview-species-name')).toHaveText('メガリザードンX');
   await toggle.tap();
   await expect(page.locator('#pokemon-preview-species-name')).toHaveText('リザードン');
+  await expect(page.locator('#item')).toHaveValue('リザードナイトX');
+  await toggle.tap();
+  await expect(page.locator('#pokemon-preview-species-name')).toHaveText('メガリザードンX');
 });
 
 test('メガストーンを持っていなければプレビューを切り替えられない', async ({ page }) => {

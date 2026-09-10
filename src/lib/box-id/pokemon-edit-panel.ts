@@ -27,6 +27,7 @@ import { typeIconUrl, teraTypeIconUrl } from "../sprite-urls";
 import { renderTeamMateSlots } from "../team-mate-card";
 import { TYPE_COLORS, DEFAULT_TYPE_COLOR } from "../type-colors";
 import { applyPreviewMoveTypeBar } from "./preview-move-type-bar";
+import { isPreviewFormToggleChangeEvent } from "./mega-preview-toggle";
 import { bindPressAndHold } from "../press-and-hold";
 import { autosizeTextarea } from "../shared/autosize-textarea";
 import { type StatKey, STAT_KEYS, NATURE_STAT_MODIFIERS } from "../stats";
@@ -1049,11 +1050,14 @@ if (form) {
 		suggestionReloadTimer = setTimeout(reloadPopularBuildSuggestions, 200);
 	}
 
-	speciesInput.addEventListener("change", () => {
+	speciesInput.addEventListener("change", (event) => {
 		const speciesName = speciesInput.value.trim();
 		// ゲスト個体のhydrationでは保存済みの構成を復元するため、種族選択時の
-		// 人気構成による自動入力を行わない。通常のユーザー操作は従来どおり自動入力する。
-		const shouldAutoFill = !isGuestHydrating;
+		// 人気構成による自動入力を行わない。立ち絵タップのフォルム切り替えも既存の
+		// 育成内容を保持し、特性だけを切り替え先の候補へ再構築する。
+		const isFormToggle = isPreviewFormToggleChangeEvent(event);
+		const shouldAutoFill = !isGuestHydrating && !isFormToggle;
+		if (isFormToggle) void rebuildAbilityOptions(speciesName);
 		// 種族を確定したときだけ、OP.GG採用率の最上位構成を初期値として反映する。
 		void reloadPopularBuildSuggestions(shouldAutoFill).then(() => {
 			if (shouldAutoFill && speciesInput.value.trim() === speciesName) return applyLeftMegaStoneAutofill(speciesName);
