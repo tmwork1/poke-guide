@@ -494,6 +494,15 @@ function percentageOnly(damages: number[], hp: number): string {
   return min === max ? `${min}%` : `${min}〜${max}%`;
 }
 
+// calcDamages/calcStatsはPyodide(Wasm)の同期呼び出しをasync関数で包んだだけで、
+// 呼び出し中はメインスレッドを占有する。行ごとにawaitで区切っても、setTimeout等の
+// マクロタスク境界を挟まない限りブラウザはペイントできず、技数×守備パターン数ぶんの
+// 計算が実質1フレームにまとまって「画面が静止する」体感になる(2026-09-11に再発報告)。
+// 1行ごとにこのyieldを挟むことで、行が埋まるたびに実際に描画させる。
+function yieldToBrowser(): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, 0));
+}
+
 async function calculateAttackRows(self: PokemonSpec, opponent: OpponentBuild, moveNames: string[], categories: Map<string, MoveCategory>, onRow: (rowIndex: number, row: DamageRow) => void): Promise<void> {
   const fieldState = getFieldState();
   const defenderStats = new Map<string, Promise<number>>();
@@ -516,6 +525,7 @@ async function calculateAttackRows(self: PokemonSpec, opponent: OpponentBuild, m
       cells.push({ range: percentageOnly(result.damages, defenderHp), lethal: describeStandaloneLethal(result.damages, defenderHp).label });
     }
     onRow(rowIndex, { moveName, cells });
+    await yieldToBrowser();
   }
 }
 
@@ -532,6 +542,7 @@ async function calculateDefenseRows(self: PokemonSpec, opponent: OpponentBuild, 
       cells.push({ range: percentageOnly(result.damages, selfHp), lethal: describeStandaloneLethal(result.damages, selfHp).label });
     }
     onRow(rowIndex, { moveName, cells });
+    await yieldToBrowser();
   }
 }
 
