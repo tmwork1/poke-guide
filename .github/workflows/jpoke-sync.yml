@@ -2,7 +2,9 @@ name: Sync vendor/jpoke
 
 # 上流 tmwork1/jpoke を毎日チェックし、差分があれば vendor/jpoke に取り込んで
 # npm run build:master-data / npm test / npm run build まで自動実行する。
-# 全て成功した場合のみ Pull Request を作成する(commitのマージは人間が確認してから行う)。
+# 全て成功した場合のみ main に直接commit&pushする(2026-09-11: リスク承知の上でPRレビューを
+# 経由せず自動反映する方針に変更。Cloudflareはmainへのpushで本番へ自動デプロイされる)。
+# 失敗した場合は何もpushせずワークフロー失敗として終わる。
 # 更新手順の正: vendor/jpoke/VENDORING.md
 
 on:
@@ -12,9 +14,12 @@ on:
     - cron: '0 20 * * *'
   workflow_dispatch:
 
+concurrency:
+  group: jpoke-sync
+  cancel-in-progress: false
+
 permissions:
   contents: write
-  pull-requests: write
 
 jobs:
   sync:
@@ -105,24 +110,15 @@ jobs:
           echo "sha=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
           echo "subject=$(git log -1 --format=%s)" >> "$GITHUB_OUTPUT"
 
-      - name: Create Pull Request
+      - name: Commit and push to main
         if: steps.diff.outputs.changed == 'true'
-        uses: peter-evans/create-pull-request@v6
-        with:
-          path: poke-guide
-          branch: chore/jpoke-sync
-          commit-message: |
-            chore(vendor): sync jpoke to tmwork1/jpoke@${{ steps.upstream.outputs.sha }}
-
-            Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
-          title: "chore(vendor): jpoke 自動同期 (${{ steps.upstream.outputs.sha }})"
-          body: |
-            上流 [tmwork1/jpoke@${{ steps.upstream.outputs.sha }}](https://github.com/tmwork1/jpoke/commit/${{ steps.upstream.outputs.sha }}) (`${{ steps.upstream.outputs.subject }}`) を `vendor/jpoke` に自動同期しました。
-
-            このワークフロー内で以下がすべて成功しています。
-            - `npm run build:master-data`
-            - `npm test`
-            - `npm run build`
-
-            マージ前に差分内容とテスト結果を確認してください。手動更新手順は `vendor/jpoke/VENDORING.md` を参照(特に「画像URL組み立て周りの追加確認事項」はこのワークフローでは自動チェックしていません)。
-          labels: jpoke-sync
+        working-directory: poke-guide
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add vendor/jpoke
+          git commit -m "chore(vendor): sync jpoke to tmwork1/jpoke@${{ steps.upstream.outputs.sha }}" \
+            -m "${{ steps.upstream.outputs.subject }}" \
+            -m "npm run build:master-data / npm test / npm run build が全て成功したため自動push。手動更新手順は vendor/jpoke/VENDORING.md 参照(画像URL組み立て周りの追加確認事項は自動チェック対象外)。" \
+            -m "Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
+          git push origin HEAD:main

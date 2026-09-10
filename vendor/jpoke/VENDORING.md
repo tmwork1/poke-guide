@@ -15,13 +15,15 @@ vendoring し、更新は回帰テスト付きで取り込む」に基づき、C
 
 `.github/workflows/jpoke-sync.yml` が毎日 `tmwork1/jpoke` の `src/`・`pyproject.toml` を
 このディレクトリと diff し、差分があれば取り込み・`npm run build:master-data`・`npm test`・
-`npm run build` まで自動実行する。**全て成功した場合のみ** Pull Request (`chore/jpoke-sync`
-ブランチ)を作成する。commit をマージするかどうかは人間が確認してから判断する(自動merge
-はしない)。失敗した場合はPRを作らずワークフロー失敗として終わる。
+`npm run build` まで自動実行する。**全て成功した場合のみ** `main` に直接 commit & push する
+(2026-09-11: learnset等を早急に反映したいというユーザー判断により、PRレビューを経由せず
+自動反映する方針に変更。リスク承知の上での運用)。Cloudflareは `main` への push を検知して
+本番へ自動デプロイされる想定のため、**このワークフローの成功 = 本番反映**になる。失敗した
+場合は何もpushせずワークフロー失敗として終わる(mainは変更されない)。
 
 このワークフローが自動チェックするのは手順1〜4相当のみ。下記「画像URL組み立て周りの
-追加確認事項」(手順6〜8)は対象外のため、`chore/jpoke-sync` のPRをマージする前に
-手動で確認すること。
+追加確認事項」(手順6〜8)は対象外。ここに影響する上流変更があっても自動pushされてしまう
+ため、問題が起きた場合は該当commitを `git revert` して復旧する。
 
 ## 更新手順(手動)
 
