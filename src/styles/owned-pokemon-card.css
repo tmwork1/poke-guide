@@ -97,8 +97,8 @@
   border-color: var(--color-border);
   --box-card-background: color-mix(
     in srgb,
-    var(--color-surface) 94%,
-    var(--color-primary) 6%
+    var(--color-surface) 88%,
+    var(--color-primary) 12%
   );
 }
 .box-grid .box-card:focus-within {

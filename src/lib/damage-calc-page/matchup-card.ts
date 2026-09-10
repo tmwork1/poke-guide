@@ -581,6 +581,12 @@ export function initMatchupCardList(): void {
       explicitNoOpponentAbilitySpeciesName = detail.abilityName === "" ? getOpponentBuild().speciesName : null;
     }
     window.clearTimeout(timer);
+    // 自分側の個体選択は、カードのプレースホルダー表示だけでも直ちに更新する。
+    // 連続入力をまとめる必要がある他の操作とは異なり、ここでの700ms待機は体感遅延になる。
+    if (detail.reason === "self") {
+      void run();
+      return;
+    }
     timer = window.setTimeout(() => void run(), 700);
   });
   void run();
