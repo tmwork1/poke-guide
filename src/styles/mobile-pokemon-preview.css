@@ -121,7 +121,7 @@
 .pokemon-preview-species-line {
   display: flex;
   align-items: center;
-  gap: calc(var(--space-1) + var(--space-1) + 4px);
+  gap: var(--space-2);
   /* SSRのゲストプレビューにはタイプアイコンが無い。実データのアイコンと同じ行高を
      先に確保し、hydrationで特性行以下が押し下がらないようにする。 */
   min-height: var(--pokemon-preview-type-icon-size);
