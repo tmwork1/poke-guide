@@ -85,6 +85,13 @@ export function itemImageUrl(spritePath: string): string {
 // として、取得元を高解像度な別ソース(serebii.net)へ一本化している。
 // 以下はその生成済み画像のURL(ルート相対パス)を返す。
 
+// メガストーンはメガシンカ種族ごとに専用画像を用意しているが、素材が未取得のものが
+// ごく一部ある。ユーザー指示により、そうした欠けたメガストーンは他のメガストーンの
+// 画像で代用する(専用画像を用意し次第このマップから外す)。
+const MEGA_STONE_ICON_FALLBACK: Record<string, string> = {
+  "ニャオニクスナイト": "アブソルナイト",
+};
+
 // アイテム和名(items.json の name。例 "こだわりハチマキ")から、見た目の大きさを
 // 正規化したアイテムアイコン画像のURLを返す。画像本体は
 // public/item-icons/{アイテム和名}.png (生成: scripts/item-icons/generate_item_icons.py)。
@@ -93,7 +100,8 @@ export function itemImageUrl(spritePath: string): string {
 // 別ソースからアイコンを追加できるようにするため)。ファイルが存在しない場合の判定は
 // 呼び出し側の<img>のonerrorに委ねる(事前のexistsチェックは行わない)。
 export function itemIconUrl(itemName: string): string {
-  return `/item-icons/${encodeURIComponent(itemName)}.png`;
+  const resolvedName = MEGA_STONE_ICON_FALLBACK[itemName] ?? itemName;
+  return `/item-icons/${encodeURIComponent(resolvedName)}.png`;
 }
 
 // 和名タイプ名から通常タイプバッジ画像URLを返す。未知の型名なら null。
