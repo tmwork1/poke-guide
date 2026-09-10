@@ -55,6 +55,12 @@
 	}
 }
 
+/* チーム/類似チームでは操作帯の上にチームメイト枠が隣接するため、
+   下端(.second-header)だけでなく上端にも同じ区切り線を出して帯の範囲を示す。 */
+.team-similar-second-header {
+	border-top: 1px solid var(--color-border);
+}
+
 /* これら2画面では操作帯自身は固定領域に置き、直後の一覧だけをスクロールさせる。 */
 .box-ranked-page > .ranked-teams-search-header,
 #team-data-mobile > .ranked-teams-search-header {

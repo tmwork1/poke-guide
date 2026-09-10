@@ -35,7 +35,10 @@ export function CompactPokemonTile(
 	const fallback = document.createElement("span");
 	fallback.className = "team-mate-card__fallback";
 	container.append(sprite, fallback);
-	void applyCompactPokemonSprite(sprite, fallback, member.species_name);
+	// 63pxタイルでもDPR2で126px相当が必要で96pxのiconでは足りない。/box圧縮表示の
+	// タイル(owned-pokemon-card.tsのapplyCardArtwork)と同じ見た目を保つため
+	// mediumで揃える。
+	void applyCompactPokemonSprite(sprite, fallback, member.species_name, "medium");
 
 	const itemName = member.item_name?.trim() ?? "";
 	if (!showItem || !itemName) return;

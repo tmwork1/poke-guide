@@ -30,13 +30,14 @@ function showInitialFallback(fallbackEl: HTMLElement, name: string): void {
 /**
  * コンパクト表示用のポケモン画像を適用する。
  *
- * variant は一次URLを選ぶ(既定は6列タイル用の icon WebP)。box-id/shared-core.ts の
+ * variant は一次URLを選ぶ(既定は icon WebP)。box-id/shared-core.ts の
  * applySprite と同じ意味にそろえてあり、"full" だけは Champions PNG が一次なので
  * PNGへの退避段を飛ばす。退避順は 一次URL → Champions PNG → 公式絵 →
  * 頭文字(または hideContainer によるラッパー非表示)。
  *
- * ⚠️ 大きめに表示する画像(個体編集パネルの種族絵、team-overview-preview-card など)へ
- * icon WebP を使うと解像度が足りない。呼び出し側で variant を明示すること。
+ * ⚠️ icon WebP(96px)で足りるのは実表示48px以下の箇所だけ。63pxのコンパクトタイル以上
+ * (ボックスカード・チームメイトタイル・個体編集パネルの種族絵・team-overview-preview-card
+ * など)は Retina で解像度が足りないため、呼び出し側で medium 以上を明示すること。
  */
 export async function applyCompactPokemonSprite(
 	imgEl: HTMLImageElement,

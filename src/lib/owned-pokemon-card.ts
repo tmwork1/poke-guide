@@ -63,12 +63,16 @@ export function ownedPokemonDisplayName(pokemon: OwnedPokemonDisplayNameSource):
 // それも取得できない場合は未設定のままにする(shared-core.tsのapplySprite参照)。
 // 初期display:noneのままloading="lazy"を付けると、画面外扱いでfetch自体が行われず
 // onloadが永久に発火しない(過去に踏んだ不具合、box/[id].astroのapplySprite参照)。
+// variantは"medium"(192px WebP)を使う。通常表示(3列)のカードは--box-card-size-max: 130px
+// まで伸び、立ち絵の枠はその75%=約98px CSSになるため、96pxのicon WebPでは
+// Retina(2倍以上)でぼやける。圧縮表示(6列・63px)側も63px×3倍=189pxで
+// iconでは足りないので、両密度をmediumで揃える。
 function applyCardArtwork(
 	artwork: HTMLElement,
 	imgEl: HTMLImageElement,
 	name: string,
 ): Promise<void> {
-	return applyCompactPokemonSprite(imgEl, null, name, "icon", { hideContainer: artwork });
+	return applyCompactPokemonSprite(imgEl, null, name, "medium", { hideContainer: artwork });
 }
 
 // 公式絵に重ねる持ち物バッジ。アイテム名が空/画像読み込みに失敗した場合はバッジごと隠す
