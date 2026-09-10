@@ -118,6 +118,23 @@
   outline-offset: 2px;
 }
 
+/* 圧縮表示ではルートをカード面にせず、見出しと6枠の容れ物をそれぞれ独立したカード面にする。
+   renderMembers を渡す呼び出しだけに付く状態クラスなので、名前・技を持つ展開表示は従来の一枚構成のまま。 */
+.team-grid .card-team--compressed .card-team-header,
+.team-grid .card-team--compressed .card-team-members {
+  background-color: var(--color-surface);
+  background-image: var(--background-image-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-zero);
+  box-shadow: var(--shadow-sm);
+}
+.team-grid .card-team--compressed .card-team-members {
+  padding: var(--space-1);
+}
+.team-grid .card-team--compressed {
+  overflow: visible;
+}
+
 /* --- ヘッダ帯: タイトル1行を左寄せで置く。
    右側の padding 8rem は、絶対配置の .card-team-meta-row(右48px)と
    右上のアイコンボタン(右8px・32px角)がタイトルに重ならないためのクリアランス。 --- */

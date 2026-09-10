@@ -14,11 +14,11 @@
 	padding: var(--space-1);
 	overflow: hidden;
 	color: var(--color-text);
-	background-color: var(--color-surface);
-	background-image: var(--background-image-surface);
-	border: 1px solid var(--color-border);
+	background-color: transparent;
+	background-image: none;
+	border: 0;
 	border-radius: var(--radius-zero);
-	box-shadow: var(--shadow-sm);
+	box-shadow: none;
 	cursor: pointer;
 	/* 長押しでメガシンカのプレビュー切り替えを行うため、長押し中にテキスト選択や
 	   画像の保存メニュー(iOSのコールアウト)が出ないようにする。 */
@@ -29,7 +29,9 @@
 .team-mate-card:hover,
 .team-mate-card:focus-visible,
 .team-mate-card.is-selected {
-	border-color: var(--color-primary);
+	/* 通常時は border: 0(= border-style: none)なので、色だけ指定しても線は出ない。
+	   shorthand で style ごと戻す。box-sizing: border-box のため寸法は変わらない。 */
+	border: 1px solid var(--color-primary);
 	outline: 2px solid var(--color-primary);
 	outline-offset: -2px;
 }
@@ -37,7 +39,7 @@
 	cursor: default;
 }
 .team-mate-card--readonly:hover {
-	border-color: transparent;
+	border: 0;
 	outline: none;
 }
 .team-mate-card--empty {

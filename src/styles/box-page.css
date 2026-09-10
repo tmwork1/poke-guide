@@ -81,6 +81,22 @@
 .box-content.is-compact .box-grid .box-card .card-body {
   display: none;
 }
+/* 圧縮時の各タイルは絵と持ち物だけを見せる。通常カードの面・枠・影は外すが、
+   focus-visible / is-selected の outline と削除モード内の操作ボタンは下位要素側で維持する。 */
+.box-content.is-compact .box-grid .box-card {
+  background-color: transparent;
+  background-image: none;
+  border: 0;
+  box-shadow: none;
+}
+/* 通常時は border: 0(= border-style: none)なので、色だけ指定しても線は出ない。
+   shorthand で style ごと戻す。box-sizing: border-box のため寸法は変わらない。 */
+.box-content.is-compact .box-grid .box-card:hover,
+.box-content.is-compact .box-grid .box-card:focus-visible {
+  border: 1px solid var(--color-primary);
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
 /* card-artworkはposition:absoluteのため、box-card自身のpaddingは効かない
    (containing blockがpadding boxになるだけで、paddingの内側に収まる保証はない)。
    .team-mate-cardの画像は通常のflow配置でpadding(--space-1)の内側に収まるため、

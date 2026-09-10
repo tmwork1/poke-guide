@@ -94,6 +94,7 @@ export function renderTeamCard<M>(options: RenderTeamCardOptions<M>): HTMLElemen
 	const card = document.createElement(options.href === undefined ? "article" : "a");
 	card.className = "card-team";
 	if (options.headerVariant === "inline") card.classList.add("card-team--top-build");
+	if (options.renderMembers) card.classList.add("card-team--compressed");
 	if (options.href !== undefined) {
 		const link = card as HTMLAnchorElement;
 		link.href = options.href;
@@ -201,6 +202,7 @@ export function renderTeamCard<M>(options: RenderTeamCardOptions<M>): HTMLElemen
 	const memberGrid = document.createElement("div");
 	if (options.renderMembers) {
 		options.renderMembers(memberGrid);
+		memberGrid.classList.add("card-team-members");
 	} else {
 		renderTeamMemberGrid(memberGrid, options);
 	}
