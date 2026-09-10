@@ -23,7 +23,8 @@ import {
 	type MoveDetail,
 	type MoveCategory,
 } from "../pokemon-master-data";
-import { typeIconUrl, teraTypeIconUrl, itemIconUrl } from "../sprite-urls";
+import { typeIconUrl, teraTypeIconUrl } from "../sprite-urls";
+import { applyCompactItemIcon, applyCompactPokemonSprite } from "../compact-pokemon-sprite";
 import { renderTeamMateSlots } from "../team-mate-card";
 import { TYPE_COLORS, DEFAULT_TYPE_COLOR } from "../type-colors";
 import { applyPreviewMoveTypeBar } from "./preview-move-type-bar";
@@ -1634,29 +1635,7 @@ if (form) {
 	void hydrateGuestPokemon();
 }
 
-// 持ち物アイコン(team/[id].astroのapplyItemIconと同じ実装)。renderTeamMateSlotsの
-// applyItemIconはvisibilityElのhidden切り替えを前提とするため、shared-core.tsの
-// applyItemImage(バッジをclosest()で探す実装)とは互換性が無く、ここで個別に持つ。
-function applyItemIcon(
-	imgEl: HTMLImageElement,
-	itemName: string,
-	visibilityEl?: HTMLElement,
-): void {
-	if (!itemName) {
-		imgEl.style.display = "none";
-		if (visibilityEl) visibilityEl.hidden = true;
-		return;
-	}
-	imgEl.onerror = () => {
-		imgEl.style.display = "none";
-		if (visibilityEl) visibilityEl.hidden = true;
-	};
-	imgEl.onload = () => {
-		imgEl.style.display = "";
-		if (visibilityEl) visibilityEl.hidden = false;
-	};
-	imgEl.src = itemIconUrl(itemName);
-}
+const applyItemIcon = applyCompactItemIcon;
 
 // メモ欄の下に、この個体が所属しているチーム一覧を表示する(読み取り専用。カードクリックで
 // /team/[id]へ遷移するだけで、このパネルからチーム編集はしない)。GET /api/teamsはログイン中
@@ -1713,7 +1692,7 @@ async function loadOwnedPokemonTeams(): Promise<void> {
 						root: container,
 						membersBySlot: mateMembersBySlot,
 						displayName: (p) => p.species_name || "ポケモン",
-						applySprite,
+						applySprite: applyCompactPokemonSprite,
 						applyItemIcon,
 					});
 					// renderTeamMateSlotsは編集・閲覧画面で共有しているため、現在の個体を

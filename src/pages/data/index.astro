@@ -122,7 +122,7 @@ const BATTLE_DATA_SSR_CARD_COUNT = 8;
 				<svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 					<circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
 				</svg>
-				<input id="top-builds-search" type="search" class="field-control" placeholder="ポケモン" aria-label="ポケモンを検索" autocomplete="off" />
+				<input id="top-builds-search" type="search" class="field-control" placeholder="ポケモン・もちもの・わざ" aria-label="ポケモン・もちもの・わざを検索" autocomplete="off" />
 			</div>
 		</div>
 		<div class="top-builds-season-field">
@@ -461,10 +461,9 @@ const BATTLE_DATA_SSR_CARD_COUNT = 8;
 
 	<script>
 		import type { RankedTeam } from '../../lib/ranked-teams';
-		import { matchesSpeciesSearch, RANKED_TEAMS_PAGE_SIZE } from '../../lib/ranked-teams-validation';
+		import { matchesTopBuildSearch, RANKED_TEAMS_PAGE_SIZE } from '../../lib/ranked-teams-validation';
 		import { renderTopBuildCard } from '../../lib/ranked-teams/card';
-		import { loadImageIdMap, officialArtworkUrl, championSpriteIconUrl, championSpriteUrl } from '../../lib/pokemon-master-data';
-		import { itemIconUrl } from '../../lib/sprite-urls';
+		import { applyCompactItemIcon, applyCompactPokemonSprite } from '../../lib/compact-pokemon-sprite';
 		import { renderTeamMateSlots, type TeamMateCardPokemon } from '../../lib/team-mate-card';
 
 		interface RankedTeamsResponse { season: string; teams: RankedTeam[]; hasMore: boolean; }
@@ -486,68 +485,31 @@ const BATTLE_DATA_SSR_CARD_COUNT = 8;
 			let isLoadingMore = false;
 			let debounceTimer: ReturnType<typeof setTimeout> | undefined;
 			type TopBuildsDisplayMode = 'expanded' | 'compressed';
-			let displayMode: TopBuildsDisplayMode = 'expanded';
+			const TOP_BUILDS_DISPLAY_DENSITY_STORAGE_KEY = 'poke-guide:top-builds-display-density';
 
-			const imageIdMapPromise = loadImageIdMap();
-
-			// team/index.astro の圧縮表示と同じ、icon WebP→championSpriteUrl→officialArtworkUrl→頭文字の
-			// フォールバック順で描画する(/team一覧の compressed 表示と統一)。
-			async function applySprite(
-				imgEl: HTMLImageElement,
-				fallbackEl: HTMLElement,
-				name: string,
-			): Promise<void> {
-				const imageId = name ? (await imageIdMapPromise).get(name) : undefined;
-				if (imageId == null) {
-					imgEl.style.display = 'none';
-					fallbackEl.style.display = 'flex';
-					fallbackEl.textContent = name ? name.charAt(0) : '?';
-					return;
+			function loadDisplayMode(): TopBuildsDisplayMode {
+				try {
+					return window.localStorage.getItem(TOP_BUILDS_DISPLAY_DENSITY_STORAGE_KEY) === 'compressed'
+						? 'compressed'
+						: 'expanded';
+				} catch {
+					// localStorage が利用できない環境では、従来どおり展開表示を既定にする。
+					return 'expanded';
 				}
-				let triedPngFallback = false;
-				let triedArtworkFallback = false;
-				imgEl.onerror = () => {
-					if (!triedPngFallback) {
-						triedPngFallback = true;
-						imgEl.src = championSpriteUrl(imageId);
-						return;
-					}
-					if (!triedArtworkFallback) {
-						triedArtworkFallback = true;
-						imgEl.src = officialArtworkUrl(imageId);
-						return;
-					}
-					imgEl.style.display = 'none';
-					fallbackEl.style.display = 'flex';
-					fallbackEl.textContent = name.charAt(0);
-				};
-				imgEl.onload = () => {
-					imgEl.style.display = '';
-					fallbackEl.style.display = 'none';
-				};
-				imgEl.src = championSpriteIconUrl(imageId);
 			}
 
-			function applyItemIcon(
-				imgEl: HTMLImageElement,
-				itemName: string,
-				visibilityEl?: HTMLElement,
-			): void {
-				if (!itemName) {
-					imgEl.style.display = 'none';
-					if (visibilityEl) visibilityEl.hidden = true;
-					return;
+			function saveDisplayMode(): void {
+				try {
+					window.localStorage.setItem(TOP_BUILDS_DISPLAY_DENSITY_STORAGE_KEY, displayMode);
+				} catch {
+					// 保存できなくても、現在開いているページでの切り替えは維持する。
 				}
-				imgEl.onerror = () => {
-					imgEl.style.display = 'none';
-					if (visibilityEl) visibilityEl.hidden = true;
-				};
-				imgEl.onload = () => {
-					imgEl.style.display = '';
-					if (visibilityEl) visibilityEl.hidden = false;
-				};
-				imgEl.src = itemIconUrl(itemName);
 			}
+
+			let displayMode: TopBuildsDisplayMode = loadDisplayMode();
+
+			const applySprite = applyCompactPokemonSprite;
+			const applyItemIcon = applyCompactItemIcon;
 
 			const DENSITY_ICON_EXPANDED = `<svg class="density-toggle-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="4" width="5" height="5" rx="1"/><rect x="10" y="4" width="5" height="5" rx="1"/><rect x="18" y="4" width="5" height="5" rx="1"/><rect x="2" y="12" width="5" height="5" rx="1"/><rect x="10" y="12" width="5" height="5" rx="1"/><rect x="18" y="12" width="5" height="5" rx="1"/></svg>`;
 			const DENSITY_ICON_COMPRESSED = `<svg class="density-toggle-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="10" width="5" height="5" rx="1"/><rect x="10" y="10" width="5" height="5" rx="1"/><rect x="18" y="10" width="5" height="5" rx="1"/></svg>`;
@@ -562,7 +524,7 @@ const BATTLE_DATA_SSR_CARD_COUNT = 8;
 			}
 
 			function filteredTeams(): RankedTeam[] {
-				return currentTeams.filter((team) => matchesSpeciesSearch(team.members, search.value));
+				return currentTeams.filter((team) => matchesTopBuildSearch(team.members, search.value));
 			}
 
 			// 圧縮表示のカードをタップすると、そのカードだけ展開表示に切り替える
@@ -612,6 +574,7 @@ const BATTLE_DATA_SSR_CARD_COUNT = 8;
 			densityToggle.addEventListener('click', () => {
 				displayMode = displayMode === 'expanded' ? 'compressed' : 'expanded';
 				tapExpandedTeamIds.clear();
+				saveDisplayMode();
 				updateDensityToggleUi();
 				render();
 			});

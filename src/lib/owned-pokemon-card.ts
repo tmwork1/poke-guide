@@ -1,12 +1,8 @@
 import {
 	loadBaseStatsMap,
-	loadImageIdMap,
 	loadMoveTypeMap,
-	championSpriteMediumUrl,
-	championSpriteUrl,
-	officialArtworkUrl,
 } from "./pokemon-master-data";
-import { itemIconUrl } from "./sprite-urls";
+import { applyCompactItemIcon, applyCompactPokemonSprite } from "./compact-pokemon-sprite";
 import { playCardDeleteExitEffect } from "./card-delete-mode";
 import { isGuestMode } from "./data/guest-mode";
 import { NATURE_STAT_MODIFIERS, STAT_KEYS, calcHpStat, calcOtherStat } from "./stats";
@@ -52,7 +48,6 @@ const MOVE_SLOT_COUNT = 4;
 // 種族名→imageId、種族値、技タイプ、持ち物画像のマップはいずれもローダー側でもキャッシュ
 // されている。カードはこれらを待たず同期的に返し、解決後に画像・titleを個別に流し込む。
 // 一覧の初回表示をマスターデータのfetchで遅らせないため、この非同期挙動を維持すること。
-const imageIdMapPromise = loadImageIdMap();
 const baseStatsMapPromise = loadBaseStatsMap();
 const moveTypeMapPromise = loadMoveTypeMap();
 
@@ -68,48 +63,18 @@ export function ownedPokemonDisplayName(pokemon: OwnedPokemonDisplayNameSource):
 // それも取得できない場合は未設定のままにする(shared-core.tsのapplySprite参照)。
 // 初期display:noneのままloading="lazy"を付けると、画面外扱いでfetch自体が行われず
 // onloadが永久に発火しない(過去に踏んだ不具合、box/[id].astroのapplySprite参照)。
-async function applyCardArtwork(
+function applyCardArtwork(
 	artwork: HTMLElement,
 	imgEl: HTMLImageElement,
 	name: string,
 ): Promise<void> {
-	const imageId = name ? (await imageIdMapPromise).get(name) : undefined;
-	if (imageId == null) return;
-	artwork.hidden = false;
-	let triedPngFallback = false;
-	let triedArtworkFallback = false;
-	imgEl.onerror = () => {
-		if (!triedPngFallback) {
-			triedPngFallback = true;
-			imgEl.src = championSpriteUrl(imageId);
-			return;
-		}
-		if (!triedArtworkFallback) {
-			triedArtworkFallback = true;
-			imgEl.src = officialArtworkUrl(imageId);
-			return;
-		}
-		artwork.hidden = true;
-	};
-	// カードの絵は最大でも約98px表示なので192pxのWebPで足りる。
-	imgEl.src = championSpriteMediumUrl(imageId);
+	return applyCompactPokemonSprite(imgEl, null, name, "icon", { hideContainer: artwork });
 }
 
 // 公式絵に重ねる持ち物バッジ。アイテム名が空/画像読み込みに失敗した場合はバッジごと隠す
 // (box/[id].astroのapplyItemImageと同様、テキストのフォールバックは持たせない)。
 function applyItemBadge(imgEl: HTMLImageElement, badgeEl: HTMLElement, itemName: string): void {
-	const name = itemName.trim();
-	if (!name) {
-		badgeEl.hidden = true;
-		return;
-	}
-	imgEl.onerror = () => {
-		badgeEl.hidden = true;
-	};
-	imgEl.onload = () => {
-		badgeEl.hidden = false;
-	};
-	imgEl.src = itemIconUrl(name);
+	applyCompactItemIcon(imgEl, itemName, badgeEl);
 }
 
 // 実数値DOMは持たないが、title用の計算結果はデータとして維持する。

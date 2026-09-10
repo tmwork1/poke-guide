@@ -305,8 +305,8 @@ if (!isGuestNewMode) {
 		// 自動保存のデバウンス方式は box/[id].astro と同じ(700ms・保存ボタンは作らない・
 		// topbar-statusスロットで状態表示)。初期表示データ(SSR取得済みのチーム)は
 		// #team-edit-layout の data-initial-team から読む(fetch往復を待たずに6枠を描ける)。
-		import { loadImageIdMap, officialArtworkUrl, championSpriteIconUrl, championSpriteUrl, loadBaseStatsMap, loadMoveDetailMap, loadMegaStoneMap } from "../../lib/pokemon-master-data";
-		import { itemIconUrl } from "../../lib/sprite-urls";
+		import { loadBaseStatsMap, loadMoveDetailMap, loadMegaStoneMap } from "../../lib/pokemon-master-data";
+		import { applyCompactItemIcon, applyCompactPokemonSprite } from "../../lib/compact-pokemon-sprite";
 		import { DEFAULT_TYPE_COLOR, TYPE_COLORS } from "../../lib/type-colors";
 		import { resolveDexNo, resolveSpeciesTypes } from "../../lib/species-dex";
 		import { selectionBlockReason, type SelectionCandidate, type TeamRequestBody } from "../../lib/team-validation";
@@ -487,7 +487,6 @@ if (!isGuestNewMode) {
 			const copyTeamButton = document.getElementById("copy-button") as HTMLButtonElement | null;
 			const deleteTeamButton = document.getElementById("delete-team-button") as HTMLButtonElement | null;
 
-			const imageIdMapPromise = loadImageIdMap();
 			const baseStatsMapPromise = loadBaseStatsMap();
 
 			const STAT_LABELS: Record<(typeof STAT_KEYS)[number], string> = {
@@ -598,7 +597,6 @@ if (!isGuestNewMode) {
 						img.className = "team-item-redistribute-item-card__icon";
 						img.alt = "";
 						img.draggable = false;
-						img.style.display = "none";
 						iconWrap.appendChild(img);
 						void applyItemIcon(img, itemName, iconWrap);
 					} else {
@@ -821,72 +819,8 @@ if (!isGuestNewMode) {
 				return null;
 			}
 
-			// 公式絵。取得できない場合は頭文字の丸バッジにフォールバックする
-			// (box/index.astroのapplyCardSpriteと同じ方式。loading="lazy"は付けない
-			// ---display:noneの<img>は遅延読み込みの対象外としてonloadが発火しない)。
-			async function applySprite(
-				imgEl: HTMLImageElement,
-				fallbackEl: HTMLElement,
-				name: string,
-				useIcon = false,
-			): Promise<void> {
-				// 画像の可否が決まるまでフォールバック文字(種族名の先頭)を出さない。
-				// 出したままにすると、カード再描画のたびに文字が一瞬見え、
-				// 画像と横並びになってスプライトが左右にずれて見える。
-				fallbackEl.style.display = "none";
-				const imageId = name ? (await imageIdMapPromise).get(name) : undefined;
-				if (imageId == null) {
-					imgEl.style.display = "none";
-					fallbackEl.style.display = "flex";
-					fallbackEl.textContent = name ? name.charAt(0) : "?";
-					return;
-				}
-				let triedPngFallback = false;
-				let triedArtworkFallback = false;
-				imgEl.onerror = () => {
-					if (useIcon && !triedPngFallback) {
-						triedPngFallback = true;
-						imgEl.src = championSpriteUrl(imageId);
-						return;
-					}
-					if (!triedArtworkFallback) {
-						triedArtworkFallback = true;
-						imgEl.src = officialArtworkUrl(imageId);
-						return;
-					}
-					imgEl.style.display = "none";
-					fallbackEl.style.display = "flex";
-					fallbackEl.textContent = name.charAt(0);
-				};
-				imgEl.onload = () => {
-					imgEl.style.display = "";
-					fallbackEl.style.display = "none";
-				};
-				imgEl.src = useIcon ? championSpriteIconUrl(imageId) : championSpriteUrl(imageId);
-			}
-
-			// 持ち物アイコン(アイコン+名前、R-8)。アイコンが解決できない/読み込み失敗のときも
-			// 名前のテキストは残す(box/index.astroの持ち物行と同じ考え方)。
-			function applyItemIcon(
-				imgEl: HTMLImageElement,
-				itemName: string,
-				visibilityEl?: HTMLElement,
-			): void {
-				if (!itemName) {
-					imgEl.style.display = "none";
-					if (visibilityEl) visibilityEl.hidden = true;
-					return;
-				}
-				imgEl.onerror = () => {
-					imgEl.style.display = "none";
-					if (visibilityEl) visibilityEl.hidden = true;
-				};
-				imgEl.onload = () => {
-					imgEl.style.display = "";
-					if (visibilityEl) visibilityEl.hidden = false;
-				};
-				imgEl.src = itemIconUrl(itemName);
-			}
+			const applySprite = applyCompactPokemonSprite;
+			const applyItemIcon = applyCompactItemIcon;
 
 			async function applyOverviewMoveTypeColors(
 				entries: { colorEl: HTMLElement; moveName: string }[],
@@ -1542,7 +1476,9 @@ if (!isGuestNewMode) {
 					const fallback = document.createElement("span");
 					fallback.textContent = p.species_name.slice(0, 1);
 					spriteWrap.append(img, fallback);
-					void applySprite(img, fallback, p.species_name);
+					// team-overview-preview-cardは6列コンパクトタイルより大きく表示するため、
+					// 一次URLはicon WebPではなくChampions PNG("full")のままにする。
+					void applySprite(img, fallback, p.species_name, "full");
 					identity.appendChild(spriteWrap);
 					const itemName = effectiveItemName(slot, p);
 					// ダメージ詳細パネルのteam-damage-stats/team-damage-stats-line(display:contentsで6列

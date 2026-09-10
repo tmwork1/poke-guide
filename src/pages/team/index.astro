@@ -123,8 +123,7 @@ import SecondHeader from '../../components/SecondHeader.astro';
 	<script>
 		// チームカードは外枠から6枠まで共用し、1枠の実体はその中から /box のカード描画へ委譲する。
 		import { kanaIncludes } from "../../lib/kana";
-		import { loadImageIdMap, officialArtworkUrl, championSpriteIconUrl, championSpriteUrl } from "../../lib/pokemon-master-data";
-		import { itemIconUrl } from "../../lib/sprite-urls";
+		import { applyCompactItemIcon, applyCompactPokemonSprite } from "../../lib/compact-pokemon-sprite";
 		import { renderTeamCard } from "../../lib/team-card";
 		import { renderTeamMateSlots } from "../../lib/team-mate-card";
 		import { initializeCardDeleteMode } from "../../lib/card-delete-mode";
@@ -155,64 +154,8 @@ import SecondHeader from '../../components/SecondHeader.astro';
 			return found as T;
 		}
 
-		const imageIdMapPromise = loadImageIdMap();
-
-		async function applySprite(
-			imgEl: HTMLImageElement,
-			fallbackEl: HTMLElement,
-			name: string,
-		): Promise<void> {
-			const imageId = name ? (await imageIdMapPromise).get(name) : undefined;
-			if (imageId == null) {
-				imgEl.style.display = "none";
-				fallbackEl.style.display = "flex";
-				fallbackEl.textContent = name ? name.charAt(0) : "?";
-				return;
-			}
-			let triedPngFallback = false;
-			let triedArtworkFallback = false;
-			imgEl.onerror = () => {
-				if (!triedPngFallback) {
-					triedPngFallback = true;
-					imgEl.src = championSpriteUrl(imageId);
-					return;
-				}
-				if (!triedArtworkFallback) {
-					triedArtworkFallback = true;
-					imgEl.src = officialArtworkUrl(imageId);
-					return;
-				}
-				imgEl.style.display = "none";
-				fallbackEl.style.display = "flex";
-				fallbackEl.textContent = name.charAt(0);
-			};
-			imgEl.onload = () => {
-				imgEl.style.display = "";
-				fallbackEl.style.display = "none";
-			};
-			imgEl.src = championSpriteIconUrl(imageId);
-		}
-
-		function applyItemIcon(
-			imgEl: HTMLImageElement,
-			itemName: string,
-			visibilityEl?: HTMLElement,
-		): void {
-			if (!itemName) {
-				imgEl.style.display = "none";
-				if (visibilityEl) visibilityEl.hidden = true;
-				return;
-			}
-			imgEl.onerror = () => {
-				imgEl.style.display = "none";
-				if (visibilityEl) visibilityEl.hidden = true;
-			};
-			imgEl.onload = () => {
-				imgEl.style.display = "";
-				if (visibilityEl) visibilityEl.hidden = false;
-			};
-			imgEl.src = itemIconUrl(itemName);
-		}
+		const applySprite = applyCompactPokemonSprite;
+		const applyItemIcon = applyCompactItemIcon;
 
 		const listRoot = document.getElementById("team-list");
 		if (listRoot instanceof HTMLElement) {
