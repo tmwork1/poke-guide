@@ -85,13 +85,6 @@ export function itemImageUrl(spritePath: string): string {
 // として、取得元を高解像度な別ソース(serebii.net)へ一本化している。
 // 以下はその生成済み画像のURL(ルート相対パス)を返す。
 
-// メガストーンはメガシンカ種族ごとに専用画像を用意しているが、素材が未取得のものが
-// ごく一部ある。ユーザー指示により、そうした欠けたメガストーンは他のメガストーンの
-// 画像で代用する(専用画像を用意し次第このマップから外す)。
-const MEGA_STONE_ICON_FALLBACK: Record<string, string> = {
-  "ニャオニクスナイト": "アブソルナイト",
-};
-
 // アイテム和名(items.json の name。例 "こだわりハチマキ")から、見た目の大きさを
 // 正規化したアイテムアイコン画像のURLを返す。画像本体は
 // public/item-icons/{アイテム和名}.png (生成: scripts/item-icons/generate_item_icons.py)。
@@ -100,8 +93,39 @@ const MEGA_STONE_ICON_FALLBACK: Record<string, string> = {
 // 別ソースからアイコンを追加できるようにするため)。ファイルが存在しない場合の判定は
 // 呼び出し側の<img>のonerrorに委ねる(事前のexistsチェックは行わない)。
 export function itemIconUrl(itemName: string): string {
-  const resolvedName = MEGA_STONE_ICON_FALLBACK[itemName] ?? itemName;
-  return `/item-icons/${encodeURIComponent(resolvedName)}.png`;
+  return `/item-icons/${encodeURIComponent(itemName)}.png`;
+}
+
+// メガストーンは今後も新種族の実装が続き、専用画像の生成
+// (scripts/item-icons/generate_item_icons.py の手動再実行が必要)が追いつかないことがある。
+// ユーザー指示により、専用画像が無いメガストーンは他のメガストーンの画像で代用する。
+// 個別のアイテム名を列挙すると新規メガストーン追加のたびに追記が必要になるため、
+// 「読み込みに失敗した画像が /item-icons/ 配下かつ名前がメガストーンの命名規則
+// (〜ナイト/〜ナイトZ)に一致する」ことをランタイムに判定する汎用フォールバックにする
+// (setupItemIconFallback。AppLayout.astro から1回だけ呼ぶ)。
+const MEGA_STONE_NAME_SUFFIXES = ["ナイトZ", "ナイト"];
+const MEGA_STONE_ICON_FALLBACK_NAME = "アブソルナイト";
+const ITEM_ICON_PATH_RE = /\/item-icons\/([^/]+)\.png$/;
+
+function isMegaStoneItemName(itemName: string): boolean {
+  return MEGA_STONE_NAME_SUFFIXES.some((suffix) => itemName.endsWith(suffix));
+}
+
+export function setupItemIconFallback(): void {
+  document.addEventListener(
+    "error",
+    (event) => {
+      const img = event.target;
+      if (!(img instanceof HTMLImageElement) || img.dataset.megaStoneIconFallback) return;
+      const match = img.src.match(ITEM_ICON_PATH_RE);
+      if (!match) return;
+      const itemName = decodeURIComponent(match[1]);
+      if (itemName === MEGA_STONE_ICON_FALLBACK_NAME || !isMegaStoneItemName(itemName)) return;
+      img.dataset.megaStoneIconFallback = "true";
+      img.src = itemIconUrl(MEGA_STONE_ICON_FALLBACK_NAME);
+    },
+    true,
+  );
 }
 
 // 和名タイプ名から通常タイプバッジ画像URLを返す。未知の型名なら null。
