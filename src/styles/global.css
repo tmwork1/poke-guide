@@ -2,6 +2,9 @@
    Google Fonts 経由だとCSS→woff2で2往復かかり初回描画に間に合わず、フォールバックから
    差し替わる瞬間にほぼ全ページでテキストが4.5〜7.2px横へ動いていた(2026-09-10 実測)。 */
 @import './webfont-m-plus-rounded-1c.css';
+/* 同一ファミリ・同一ウェイトで unicode-range が重なる場合は後の @font-face を優先し、
+   preload したコアサブセットを最初に使わせる。 */
+@import './webfont-m-plus-rounded-1c-core.css';
 @import './app-header.css';
 
 :root {

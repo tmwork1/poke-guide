@@ -3,6 +3,7 @@ import '../styles/global.css';
 import '../styles/form-controls.css';
 import '../styles/buttons.css';
 import AppBottomNav from '../components/AppBottomNav.astro';
+import { webfontCorePreloadUrls } from '../lib/webfont-core-preload';
 
 interface Props {
 	title: string;
@@ -35,6 +36,12 @@ const pageTitle = title === "ポケガイド" ? title : `${title} | ポケガイ
 		    つまり画面が出てから150ms以上、アイコンが枠だけの状態が続いていた)。
 		    JSの起動を待たずにHTMLの解析時点で取りにいかせる。 */}
 		<link rel="preload" as="fetch" href="/master-data/autocomplete/pokemon.json" />
+		{/* 初回描画後に必要な unicode-range 分割フォントを待つと字幅が変わるため、画面に出る
+		    文字を集めたコアサブセットを先に取得する。フォント取得は CORS モードなので、同一
+		    オリジンでも crossorigin を付けて CSS 側の取得と共有し、二重取得を防ぐ。 */}
+		{webfontCorePreloadUrls.map((url) => (
+			<link rel="preload" as="font" type="font/woff2" crossorigin href={url} />
+		))}
 		<title>{pageTitle}</title>
 		{description && <meta name="description" content={description} />}
 		<slot name="head" />
