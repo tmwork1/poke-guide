@@ -55,12 +55,16 @@ export function initBoxSelectDialog(): void {
     trigger.focus();
   }
 
-  async function selectPokemon(pokemon: OwnedPokemonRecord, artworkUrl: string): Promise<void> {
+  function selectPokemon(pokemon: OwnedPokemonRecord, artworkUrl: string): void {
     setSelfBuilds([toSelfBuild(pokemon)]);
-    document.dispatchEvent(
-      new CustomEvent("damage-calc:change", { detail: { reason: "self", artworkUrl } }),
-    );
     closeDialog();
+    // 対面カードの初期描画は同期処理を含む。モーダルを先に確実に描画から外してから
+    // 次フレームで通知し、タップ後にモーダルが静止して見える時間をなくす。
+    window.requestAnimationFrame(() => {
+      document.dispatchEvent(
+        new CustomEvent("damage-calc:change", { detail: { reason: "self", artworkUrl } }),
+      );
+    });
   }
 
   function renderList(pokemon: OwnedPokemonRecord[]): void {
@@ -79,7 +83,7 @@ export function initBoxSelectDialog(): void {
           // 一覧カードで既に解決済みの画像をそのまま対面カードへ渡す。
           // マスターデータの取得完了を待たず、選択直後の立ち絵表示を可能にする。
           const artwork = card.querySelector<HTMLImageElement>(".card-artwork img");
-          void selectPokemon(entry, artwork?.currentSrc || artwork?.src || "");
+          selectPokemon(entry, artwork?.currentSrc || artwork?.src || "");
         });
         return card;
       }),
