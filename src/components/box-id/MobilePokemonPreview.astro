@@ -97,10 +97,10 @@ const shouldRenderItemIcon = activeTab === 'training' || itemName !== '';
             <img class="type-badge-img" width="20" height="20" src={type.url ?? ''} alt={type.name} title={type.name} />
           ))}</span>
         </div>
-        <div class="pokemon-preview-ability-line">
-          <div id="pokemon-preview-ability">{preview.abilityName || '-'}</div>
-          <img id="pokemon-preview-tera-icon" class="tera-type-badge-img" width="24" height="24" src={preview.teraTypeIconUrl ?? ''} alt={preview.teraTypeIconUrl ? `テラスタル: ${preview.teraType}` : ''} title={preview.teraTypeIconUrl ? `テラスタル: ${preview.teraType}` : undefined} hidden={!preview.teraTypeIconUrl} />
-        </div>
+      </div>
+      <div class="pokemon-preview-ability-line">
+        <div id="pokemon-preview-ability">{preview.abilityName || '-'}</div>
+        <img id="pokemon-preview-tera-icon" class="tera-type-badge-img" width="24" height="24" src={preview.teraTypeIconUrl ?? ''} alt={preview.teraTypeIconUrl ? `テラスタル: ${preview.teraType}` : ''} title={preview.teraTypeIconUrl ? `テラスタル: ${preview.teraType}` : undefined} hidden={!preview.teraTypeIconUrl} />
       </div>
       {/* 各行タップで、その技スロットのわざ選択(#move-${slot}へのfocusで開く、
           pokemon-edit-panel.tsのopenPicker参照)を開く。preview-quick-open.tsが配線する。 */}

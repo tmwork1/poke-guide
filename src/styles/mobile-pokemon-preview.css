@@ -203,14 +203,12 @@
 }
 
 .pokemon-preview-ability-line {
-  position: absolute;
-  /* 技一覧とは独立して、種族名の直下に固定する。 */
-  top: calc(var(--pokemon-preview-type-icon-size) + var(--space-3));
   display: flex;
   align-items: center;
   gap: var(--space-2);
   min-width: 0;
-  transform: translateY(-50%);
+  /* 種族名と技群の間にある余白を上下へ等分し、常に中間に置く。 */
+  margin-block: auto;
 }
 
 .pokemon-preview-ability-line .tera-type-badge-img {
