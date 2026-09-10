@@ -120,7 +120,9 @@ function buildGridOnce(): void {
 		const img = document.createElement("img");
 		img.className = "species-select-cell-icon";
 		img.alt = "";
-		img.style.display = "none";
+		// applySprite() は imgEl.hidden の切り替えだけで表示に戻す(shared-core.ts)ため、
+		// 初期非表示も hidden 属性で行う(style.display だと [hidden] より優先され消えたままになる)。
+		img.hidden = true;
 		const fallback = document.createElement("span");
 		fallback.className = "sprite-fallback species-select-cell-fallback";
 		cell.append(img, fallback);
