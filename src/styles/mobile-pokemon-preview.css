@@ -211,8 +211,8 @@
 
 .pokemon-preview-type-summary .tera-type-badge-img {
   flex: none;
-  width: calc(var(--pokemon-preview-type-icon-size) + 4px);
-  height: calc(var(--pokemon-preview-type-icon-size) + 4px);
+  width: calc(var(--pokemon-preview-type-icon-size) + 6px);
+  height: calc(var(--pokemon-preview-type-icon-size) + 6px);
   /* テラスタルは丸く切り抜かず、専用アイコンの輪郭を保つ。 */
   object-fit: contain;
 }
