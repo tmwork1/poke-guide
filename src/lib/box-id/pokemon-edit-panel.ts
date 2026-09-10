@@ -1116,6 +1116,19 @@ if (form) {
 	teraSelect.addEventListener("change", refreshTopBlockTeraImage);
 	refreshTopBlockTeraImage();
 
+	function refreshPreviewTeraIcon(): void {
+		const icon = document.getElementById("pokemon-preview-tera-icon") as HTMLImageElement | null;
+		if (!icon) return;
+		const value = teraSelect.value;
+		const url = teraTypeIconUrl(value);
+		icon.hidden = !url;
+		icon.alt = url ? `テラスタル: ${value}` : "";
+		icon.title = icon.alt;
+		if (url) icon.src = url;
+	}
+	teraSelect.addEventListener("change", refreshPreviewTeraIcon);
+	refreshPreviewTeraIcon();
+
 	for (let slot = 1; slot <= 4; slot++) {
 		const input = document.getElementById(`move-${slot}`) as HTMLInputElement | null;
 		if (!input) continue;

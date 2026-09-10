@@ -40,7 +40,8 @@ const speedChartSrc = `/speed-chart?owned=${encodeURIComponent(pokemonId)}&embed
 	function openDialog(trigger: HTMLButtonElement) {
 		if (!dialog || !backdrop || !frame) return;
 		opener = trigger;
-		frame.src = frame.dataset.src ?? "";
+		// アイドル時に読み込み済みのiframeを再代入すると再読込になり、一瞬白く点滅する。
+		if (!frame.getAttribute("src")) frame.src = frame.dataset.src ?? "";
 		backdrop.hidden = false;
 		dialog.hidden = false;
 		dialog.focus();
@@ -50,7 +51,7 @@ const speedChartSrc = `/speed-chart?owned=${encodeURIComponent(pokemonId)}&embed
 	// iframe の初期化は重いため、編集画面の初期描画を妨げないアイドル時間に済ませる。
 	// 一度読み込んだ内容は閉じた後も保持し、二回目以降も即座に開けるようにする。
 	const preload = () => {
-		if (frame && !frame.src) frame.src = frame.dataset.src ?? "";
+		if (frame && !frame.getAttribute("src")) frame.src = frame.dataset.src ?? "";
 	};
 	if ("requestIdleCallback" in window) window.requestIdleCallback(preload, { timeout: 1200 });
 	else window.setTimeout(preload, 300);

@@ -33,17 +33,17 @@ function applyTypeIcons(container: HTMLElement | null, view: PokemonPreviewViewM
     };
     return icon;
   });
-  if (view.teraTypeIconUrl) {
-    const teraIcon = document.createElement('img');
-    teraIcon.className = 'tera-type-badge-img';
-    teraIcon.width = 20;
-    teraIcon.height = 20;
-    teraIcon.src = view.teraTypeIconUrl;
-    teraIcon.alt = `テラスタル: ${view.teraType}`;
-    teraIcon.title = teraIcon.alt;
-    typeIcons.push(teraIcon);
-  }
   container.replaceChildren(...typeIcons);
+}
+
+function applyTeraIcon(view: PokemonPreviewViewModel): void {
+  const icon = document.getElementById('pokemon-preview-tera-icon') as HTMLImageElement | null;
+  if (!icon) return;
+  const hasTera = Boolean(view.teraTypeIconUrl);
+  icon.hidden = !hasTera;
+  icon.alt = hasTera ? `テラスタル: ${view.teraType}` : '';
+  icon.title = icon.alt;
+  if (hasTera) icon.src = view.teraTypeIconUrl!;
 }
 
 function ensureItemImage(item: HTMLElement, itemName: string): HTMLImageElement | null {
@@ -124,6 +124,7 @@ export function applyPokemonPreview(
       }
     }
     applyTypeIcons(document.getElementById('pokemon-preview-type-icons'), view);
+    applyTeraIcon(view);
   }
 
   STAT_KEYS.forEach((key, index) => {

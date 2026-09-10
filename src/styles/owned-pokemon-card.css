@@ -94,11 +94,11 @@
    --color-primary-soft は半透明のため、暗いページ地色が透けて通常カードより
    沈んで見える。ホバー/フォーカスと同じ color-mix 方式で不透明に持ち上げる。 */
 .box-grid .box-card.is-recommended {
-  border-color: var(--color-primary);
+  border-color: var(--color-border);
   --box-card-background: color-mix(
     in srgb,
-    var(--color-surface) 82%,
-    var(--color-primary) 18%
+    var(--color-surface) 94%,
+    var(--color-primary) 6%
   );
 }
 .box-grid .box-card:focus-within {

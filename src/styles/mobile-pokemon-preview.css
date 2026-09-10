@@ -121,7 +121,7 @@
 .pokemon-preview-species-line {
   display: flex;
   align-items: center;
-  gap: calc(var(--space-1) + 2px);
+  gap: calc(var(--space-1) + var(--space-1) + 4px);
   /* SSRのゲストプレビューにはタイプアイコンが無い。実データのアイコンと同じ行高を
      先に確保し、hydrationで特性行以下が押し下がらないようにする。 */
   min-height: var(--pokemon-preview-type-icon-size);
@@ -140,7 +140,6 @@
 }
 
 #pokemon-preview-ability {
-  padding-left: 0;
   font-size: var(--font-size-sm2);
   font-weight: var(--font-weight-medium);
   color: var(--color-text-muted);
@@ -149,7 +148,7 @@
 .pokemon-preview-type-icons {
   display: flex;
   flex: none;
-  gap: var(--space-1);
+  gap: calc(var(--space-1) + var(--space-1));
 }
 
 .pokemon-preview-type-icons img {
@@ -203,7 +202,20 @@
   background-color: transparent;
 }
 
-.pokemon-preview-type-icons .tera-type-badge-img {
+.pokemon-preview-ability-line {
+  position: absolute;
+  top: 50%;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  transform: translateY(-50%);
+}
+
+.pokemon-preview-ability-line .tera-type-badge-img {
+  flex: none;
+  width: calc(var(--pokemon-preview-type-icon-size) + 4px);
+  height: calc(var(--pokemon-preview-type-icon-size) + 4px);
   /* テラスタルは丸く切り抜かず、専用アイコンの輪郭を保つ。 */
   object-fit: contain;
 }
