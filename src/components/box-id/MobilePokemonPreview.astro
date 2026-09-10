@@ -93,9 +93,12 @@ const shouldRenderItemIcon = activeTab === 'training' || itemName !== '';
             対象ボタンが存在しない他ページ(battle-data/ranked-teams/matchup)では安全にno-opにする。 */}
         <div class="pokemon-preview-species-line" id="pokemon-preview-species-trigger" role="button" tabindex="0" aria-haspopup="dialog" aria-label="ポケモンを選択">
           <div id="pokemon-preview-species-name">{preview.speciesName || '-'}</div>
-          <span class="pokemon-preview-type-icons" id="pokemon-preview-type-icons" aria-label="タイプ">{preview.typeIcons.map((type) => (
-            <img class="type-badge-img" width="20" height="20" src={type.url ?? ''} alt={type.name} title={type.name} />
-          ))}</span>
+          <span class="pokemon-preview-type-summary">
+            <span class="pokemon-preview-type-icons" id="pokemon-preview-type-icons" aria-label="タイプ">{preview.typeIcons.map((type) => (
+              <img class="type-badge-img" width="20" height="20" src={type.url ?? ''} alt={type.name} title={type.name} />
+            ))}</span>
+            <img id="pokemon-preview-tera-icon" class="tera-type-badge-img" width="26" height="26" src={preview.teraTypeIconUrl ?? ''} alt={preview.teraTypeIconUrl ? `テラスタル: ${preview.teraType}` : ''} title={preview.teraTypeIconUrl ? `テラスタル: ${preview.teraType}` : undefined} hidden={!preview.teraTypeIconUrl} />
+          </span>
         </div>
         <div id="pokemon-preview-ability">{preview.abilityName || '-'}</div>
       </div>
@@ -114,7 +117,6 @@ const shouldRenderItemIcon = activeTab === 'training' || itemName !== '';
       <button type="button" class="pokemon-preview-sprite-wrap" aria-label="ポケモンプレビュー">
         <img id="pokemon-preview-species-sprite" width="112" height="112" src={preview.championSpriteUrl} onerror={preview.officialArtworkUrl ? `this.onerror=()=>{this.onerror=null;this.src='${preview.officialArtworkUrl}';};this.src='${preview.championSpriteFullUrl}';` : undefined} alt={preview.speciesName} hidden={!preview.championSpriteUrl} />
         <span id="pokemon-preview-species-sprite-fallback" hidden={!preview.speciesName || Boolean(preview.championSpriteUrl)}>{preview.speciesName.slice(0, 1)}</span>
-        <img id="pokemon-preview-tera-icon" class="tera-type-badge-img" width="26" height="26" src={preview.teraTypeIconUrl ?? ''} alt={preview.teraTypeIconUrl ? `テラスタル: ${preview.teraType}` : ''} title={preview.teraTypeIconUrl ? `テラスタル: ${preview.teraType}` : undefined} hidden={!preview.teraTypeIconUrl} />
       </button>
     </div>
     <div class="pokemon-preview-right">
