@@ -34,10 +34,14 @@ class TreeSearchPlayer(Player):
 
     - `evaluate(battle)`: 葉ノードの盤面評価。既定は残りHP割合差。
     - `fallback(battle)`: 探索できない・再入時の代替方策。既定はランダム。
-    - `estimate_opponent(battle)`: 探索の最上位（`choose_command`/`evaluate_commands`）のたびに呼ばれる推定フック。既定は項目別フック `estimate_opponent_team` / `estimate_opponent_selection` に委譲するテンプレートメソッド。
+    - `estimate_opponent(battle)`: 探索の最上位（`choose_command`/`evaluate_commands`）の
+      たびに呼ばれる推定フック。既定は項目別フック `estimate_opponent_team` /
+      `estimate_opponent_selection` に委譲するテンプレートメソッド。
     - `estimate_opponent_team(battle)`: 相手ポケモンのモデル（技・特性・アイテム）に推定値を書き込むフック。既定は何もしない。
     - `estimate_opponent_selection(battle)`: 相手の選出インデックスの推定を返すフック。既定は `None`（推定しない）。
     - `configure_sim(sim)`: 各分岐の `sim.step()` 実行前に呼ばれるフック。既定は何もしない。
+    - `filter_commands(battle, player, commands)`: 探索候補にする合法手を絞り込むフック。
+      既定は絞り込みを行わない（恒等関数）。詳細はメソッドの docstring を参照。
 
     相手の情報が未公開の局面では、相手の合法手が空リストになり探索できない。
     この場合、既定では探索を行わず即座に `fallback` に委譲する。
@@ -165,6 +169,43 @@ class TreeSearchPlayer(Player):
         """
         pass
 
+    def filter_commands(self, battle: Battle, player: Player, commands: list[Command]) -> list[Command]:
+        """探索候補にする合法手を絞り込むフック。既定は絞り込みを行わない。
+
+        `player is self` なら自分側の候補手、そうでなければ相手側（`battle.opponent(self)`）
+        の候補手が渡される。既定実装は恒等関数（渡された `commands` をそのまま返す）で、
+        オーバーライドしない限り探索木は一切変わらない。
+
+        呼び出し箇所は `_toplevel_commands()`（トップレベル探索、自分・相手の双方）と、
+        `_best_command()` の内側再帰ブランチ（`max_plies>=2` の2手目以降、自分・相手の
+        双方）の2箇所で、いずれも探索対象になる直前に適用される。そのため
+        `evaluate_commands()`（デバッグ用の評価一覧）も内部で `_toplevel_commands()` を
+        経由するためフィルタが反映される。
+
+        フィルタ結果が空リストになった場合は、フレームワーク側が絞り込み前の
+        リストにフォールバックする（トップレベルで空になると `fallback()`
+        （ランダム選択）へ、内側plyで空になると `Command.STRUGGLE` + 葉評価へ
+        静かに縮退してしまい、利用者が絞り込みミスに気づけなくなるのを防ぐため）。
+
+        `fallback()` が割り込み交代の再入時に使う合法手取得
+        （`_available_commands_with_recovery`）にはこのフックは適用されない
+        （候補ゼロで例外になるリスクを避けるため）。
+
+        Args:
+            battle: 探索中の Battle（トップレベルでは実対戦の観測、内側plyでは sim）
+            player: 候補手の持ち主。`self` なら自分、そうでなければ相手
+            commands: 絞り込み前の合法手一覧
+
+        Returns:
+            絞り込み後の合法手一覧。既定はそのまま `commands` を返す。
+        """
+        return commands
+
+    def _apply_filter_commands(self, battle: Battle, player: Player, commands: list[Command]) -> list[Command]:
+        """`filter_commands` を適用し、結果が空リストなら絞り込み前にフォールバックする。"""
+        filtered = self.filter_commands(battle, player, commands)
+        return filtered if filtered else commands
+
     def choose_command(self, battle: Battle) -> Command:
         # 割り込み交代はフォールバック方策で即決する。
         if self._searching:
@@ -190,14 +231,49 @@ class TreeSearchPlayer(Player):
             if not my_commands or not opp_commands:
                 return self.fallback(battle), float("nan")
         else:
-            # 2手目以降。sim.step()完了直後の全知シミュレーションかつ新規ターン開始
-            # 直後（中断的な交代は再入した choose_command 側のfallbackで既に解決済み）
-            # であるため、phaseは必ず"action"であり、battle.available_commands()の
-            # phase分岐に委ねてよい。
-            my_commands = battle.available_commands(self)
-            opp_commands = battle.available_commands(opponent)
-            battle.player_states[self].required_command_type = "any"
-            battle.player_states[opponent].required_command_type = "any"
+            # 2手目以降。ここに到達するのは `_evaluate_node` が非終端を確認した
+            # 後、`sim.step()` が完了した直後の局面のみ。`TurnController.step()`
+            # は瀕死交代・ききかいひ・だっしゅつパック等の割り込み交代を全て
+            # 解決してから return する（`_run_end_phase` 末尾の
+            # `run_faint_switch` が最後の交代解決）ため、内側plyで次に選ぶべき
+            # コマンドは常に action フェーズのものである。
+            #
+            # 一方、継承した `battle.phase` は "action" とは限らない。瀕死交代の
+            # 解決は `resolve_command("switch", ...)` が `phase_context("switch")`
+            # の内側で `build_observation()` を呼ぶため、そこで作られる観測コピー
+            # には phase="switch" が凍結される。`phase_context` の `finally` は
+            # 元の battle 側しか復元しないので、この凍結値は以降 `sim.copy()` →
+            # `sim.step()` を何段重ねても引き継がれ続ける。結果、両者のアクティブ
+            # が生存しているのに `available_switch_commands` が呼ばれ、双方の控えが
+            # 全滅した局面では両者とも空リストになり IndexError になっていた。
+            #
+            # そのため継承した phase には依存せず、`phase_context("action")` で
+            # 明示的に action フェーズを宣言してから合法手を取得する（action に
+            # 固定するため switch 復元用の `_available_commands_with_recovery`
+            # は経由しない）。
+            with battle.phase_context("action"):
+                my_commands = battle.available_commands(self)
+                opp_commands = battle.available_commands(opponent)
+                battle.player_states[self].required_command_type = "any"
+                battle.player_states[opponent].required_command_type = "any"
+            # filter_commands は phase_context("action") のブロックを抜けた後、
+            # かつ「合法手が空だったら…」の分岐より前に適用する（ブロック内で
+            # 差し込むと required_command_type の書き戻し前に評価されてしまい、
+            # ブロックより後に差し込むと空リストガードの判定対象からフィルタ後の
+            # 結果が漏れてしまう）。
+            my_commands = self._apply_filter_commands(battle, self, my_commands)
+            opp_commands = self._apply_filter_commands(battle, opponent, opp_commands)
+            if not my_commands or not opp_commands:
+                # action フェーズでは active が生存していれば
+                # `available_action_commands` が最低でも「わるあがき」を
+                # 返す（command_manager.py 参照）ため、通常この分岐には
+                # 到達しない想定。前提が崩れた場合に備えた防御的なガードとして
+                # 残す。このブランチ plies < max_plies の返り値コマンドは
+                # `_evaluate_node` がスコアのみ使い破棄するため、常に非空な
+                # 定数（わるあがき）をプレースホルダとして返す。合法手から
+                # 選ぼうとすると「両者とも空」の場合に IndexError になり、
+                # ガードとして機能しなくなる。
+                return Command.STRUGGLE, self.evaluate(battle)
 
         scores = self._score_commands(
             battle, my_commands, opponent, opp_commands, plies, respect_node_limit=True
@@ -278,6 +354,12 @@ class TreeSearchPlayer(Player):
             for cmd in self._resolve_estimated_commands(battle, opponent):
                 if cmd not in opponent_commands:
                     opponent_commands.append(cmd)
+        my_commands = self._apply_filter_commands(battle, self, my_commands)
+        # opponent_commands は last_available_commands のコピーのため、
+        # フィルタ適用後も新しいリストを返しスナップショット実体は書き換えない
+        # （_apply_filter_commands は filter_commands の戻り値かフォールバック時の
+        # opponent_commands 自体を返すのみで、元のスナップショットには触れない）。
+        opponent_commands = self._apply_filter_commands(battle, opponent, opponent_commands)
         return my_commands, opponent_commands
 
     def _available_commands_with_recovery(self, battle: Battle, player: Player) -> list[Command]:
