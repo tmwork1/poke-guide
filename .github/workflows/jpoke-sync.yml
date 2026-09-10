@@ -1,0 +1,128 @@
+name: Sync vendor/jpoke
+
+# 上流 tmwork1/jpoke を毎日チェックし、差分があれば vendor/jpoke に取り込んで
+# npm run build:master-data / npm test / npm run build まで自動実行する。
+# 全て成功した場合のみ Pull Request を作成する(commitのマージは人間が確認してから行う)。
+# 更新手順の正: vendor/jpoke/VENDORING.md
+
+on:
+  schedule:
+    # 20:00 UTC = JST 5:00。fetch-opgg-champions-usage(19:00 UTC)や
+    # wrangler.jsonc の Cloudflare Cron Trigger(18:00 UTC)と時間帯を分ける。
+    - cron: '0 20 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout poke-guide
+        uses: actions/checkout@v4
+        with:
+          path: poke-guide
+
+      - name: Checkout jpoke (upstream)
+        uses: actions/checkout@v4
+        with:
+          repository: tmwork1/jpoke
+          path: jpoke-upstream
+
+      - name: Check for differences
+        id: diff
+        run: |
+          set +e
+          diff -rq --exclude=__pycache__ --exclude='*.egg-info' \
+            poke-guide/vendor/jpoke/src jpoke-upstream/src > /tmp/src.diff 2>&1
+          src_changed=$?
+          diff -q poke-guide/vendor/jpoke/pyproject.toml jpoke-upstream/pyproject.toml > /dev/null 2>&1
+          pyproject_changed=$?
+          set -e
+          if [ "$src_changed" -eq 0 ] && [ "$pyproject_changed" -eq 0 ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "--- src diff ---"
+            cat /tmp/src.diff || true
+          fi
+
+      - name: Sync vendor/jpoke from upstream
+        if: steps.diff.outputs.changed == 'true'
+        run: |
+          cd poke-guide/vendor/jpoke
+          rm -rf src
+          rsync -a --exclude='__pycache__' --exclude='*.egg-info' ../../../jpoke-upstream/src/ src/
+          cp ../../../jpoke-upstream/pyproject.toml pyproject.toml
+          cp ../../../jpoke-upstream/README.md README.md
+          [ -f ../../../jpoke-upstream/LICENSE ] && cp ../../../jpoke-upstream/LICENSE LICENSE || true
+          [ -f ../../../jpoke-upstream/LICENSE-DATA ] && cp ../../../jpoke-upstream/LICENSE-DATA LICENSE-DATA || true
+
+      - uses: actions/setup-node@v4
+        if: steps.diff.outputs.changed == 'true'
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: poke-guide/package-lock.json
+
+      - uses: actions/setup-python@v5
+        if: steps.diff.outputs.changed == 'true'
+        with:
+          python-version: '3.11'
+
+      - name: Install Python build frontend
+        if: steps.diff.outputs.changed == 'true'
+        # vendor/jpoke (scripts/build-master-data) の wheel ビルドに `python -m build` を使う。
+        run: pip install build
+
+      - name: npm ci
+        if: steps.diff.outputs.changed == 'true'
+        working-directory: poke-guide
+        run: npm ci
+
+      - name: Build master data
+        if: steps.diff.outputs.changed == 'true'
+        working-directory: poke-guide
+        run: npm run build:master-data
+
+      - name: Run unit/regression tests
+        if: steps.diff.outputs.changed == 'true'
+        working-directory: poke-guide
+        run: npm test
+
+      - name: Build (astro build)
+        if: steps.diff.outputs.changed == 'true'
+        working-directory: poke-guide
+        run: npm run build
+
+      - name: Get upstream commit info
+        if: steps.diff.outputs.changed == 'true'
+        id: upstream
+        working-directory: jpoke-upstream
+        run: |
+          echo "sha=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+          echo "subject=$(git log -1 --format=%s)" >> "$GITHUB_OUTPUT"
+
+      - name: Create Pull Request
+        if: steps.diff.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          path: poke-guide
+          branch: chore/jpoke-sync
+          commit-message: |
+            chore(vendor): sync jpoke to tmwork1/jpoke@${{ steps.upstream.outputs.sha }}
+
+            Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+          title: "chore(vendor): jpoke 自動同期 (${{ steps.upstream.outputs.sha }})"
+          body: |
+            上流 [tmwork1/jpoke@${{ steps.upstream.outputs.sha }}](https://github.com/tmwork1/jpoke/commit/${{ steps.upstream.outputs.sha }}) (`${{ steps.upstream.outputs.subject }}`) を `vendor/jpoke` に自動同期しました。
+
+            このワークフロー内で以下がすべて成功しています。
+            - `npm run build:master-data`
+            - `npm test`
+            - `npm run build`
+
+            マージ前に差分内容とテスト結果を確認してください。手動更新手順は `vendor/jpoke/VENDORING.md` を参照(特に「画像URL組み立て周りの追加確認事項」はこのワークフローでは自動チェックしていません)。
+          labels: jpoke-sync
