@@ -621,7 +621,9 @@ function buildItemDropdown(initialValue: string): ItemDropdownHandle {
 	const image = document.createElement("img");
 	image.className = "damage-build-detail-item-dropdown-image";
 	image.alt = "";
-	image.style.display = "none";
+	// applyItemImage() は imgEl.hidden の切り替えだけで表示に戻す(shared-core.ts)ため、
+	// 非表示は style.display ではなく hidden 属性で統一する。
+	image.hidden = true;
 	const placeholder = document.createElement("span");
 	placeholder.className = "damage-build-detail-item-dropdown-placeholder";
 	placeholder.textContent = "もちものなし";
@@ -663,7 +665,7 @@ function buildItemDropdown(initialValue: string): ItemDropdownHandle {
 		button.setAttribute("aria-label", value ? `もちもの: ${value}` : "もちもの: 未選択");
 		placeholder.classList.toggle("is-item-value-text", !isUnselected);
 		if (isUnselected) {
-			image.style.display = "none";
+			image.hidden = true;
 			placeholder.textContent = "もちものなし";
 			return;
 		}
@@ -2402,7 +2404,9 @@ if (opponentNotesSection) {
 		spriteImg.width = 104;
 		spriteImg.height = 104;
 		spriteImg.alt = "";
-		spriteImg.style.display = "none";
+		// applySprite() は imgEl.hidden の切り替えだけで表示に戻す(shared-core.ts)ため、
+		// 初期非表示も hidden 属性で行う(style.display だと [hidden] より優先され消えたままになる)。
+		spriteImg.hidden = true;
 		const spriteFallback = document.createElement("span");
 		spriteFallback.className = "sprite-fallback";
 		spriteBox.append(spriteImg, spriteFallback);

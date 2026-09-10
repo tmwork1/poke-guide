@@ -318,7 +318,9 @@ function buildSelectionHeadingRow(row: DamageRowState): HTMLElement {
 	const selfIcon = document.createElement("img");
 	selfIcon.className = "damage-detail-selection-icon";
 	selfIcon.alt = "";
-	selfIcon.style.display = "none";
+	// applySprite() は imgEl.hidden の切り替えだけで表示に戻す(shared-core.ts)ため、
+	// 初期非表示も hidden 属性で行う(style.display だと [hidden] より優先され消えたままになる)。
+	selfIcon.hidden = true;
 	const selfIconFallback = document.createElement("span");
 	selfIconFallback.className = "damage-detail-selection-icon-fallback";
 	void applySprite(selfIcon, selfIconFallback, selfSpeciesName, "icon");
@@ -353,7 +355,7 @@ function buildSelectionHeadingRow(row: DamageRowState): HTMLElement {
 	const opponentIcon = document.createElement("img");
 	opponentIcon.className = "damage-detail-selection-icon";
 	opponentIcon.alt = "";
-	opponentIcon.style.display = "none";
+	opponentIcon.hidden = true;
 	const opponentIconFallback = document.createElement("span");
 	opponentIconFallback.className = "damage-detail-selection-icon-fallback";
 	void applySprite(opponentIcon, opponentIconFallback, row.name.trim(), "icon");
