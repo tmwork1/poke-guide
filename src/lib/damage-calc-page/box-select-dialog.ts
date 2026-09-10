@@ -55,10 +55,10 @@ export function initBoxSelectDialog(): void {
     trigger.focus();
   }
 
-  async function selectPokemon(pokemon: OwnedPokemonRecord): Promise<void> {
+  async function selectPokemon(pokemon: OwnedPokemonRecord, artworkUrl: string): Promise<void> {
     setSelfBuilds([toSelfBuild(pokemon)]);
     document.dispatchEvent(
-      new CustomEvent("damage-calc:change", { detail: { reason: "self" } }),
+      new CustomEvent("damage-calc:change", { detail: { reason: "self", artworkUrl } }),
     );
     closeDialog();
   }
@@ -75,7 +75,12 @@ export function initBoxSelectDialog(): void {
           displayName,
           ariaLabel: `${displayName}を自分側に設定`,
         });
-        card.addEventListener("click", () => void selectPokemon(entry));
+        card.addEventListener("click", () => {
+          // 一覧カードで既に解決済みの画像をそのまま対面カードへ渡す。
+          // マスターデータの取得完了を待たず、選択直後の立ち絵表示を可能にする。
+          const artwork = card.querySelector<HTMLImageElement>(".card-artwork img");
+          void selectPokemon(entry, artwork?.currentSrc || artwork?.src || "");
+        });
         return card;
       }),
     );

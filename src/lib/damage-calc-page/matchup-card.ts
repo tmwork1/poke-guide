@@ -279,6 +279,17 @@ function renderArtwork(root: HTMLElement, name: string, imageId: number | undefi
   root.append(image);
 }
 
+function renderArtworkUrl(root: HTMLElement, name: string, url: string): void {
+  root.replaceChildren();
+  root.setAttribute("aria-label", name || "?");
+  if (!name || !url) return;
+  root.classList.remove("damage-calc-matchup-card__artwork--placeholder");
+  const image = document.createElement("img");
+  image.src = url;
+  image.alt = name;
+  root.append(image);
+}
+
 function renderName(h2: HTMLElement, name: string): void {
   h2.replaceChildren();
   if (!name) return;
@@ -344,7 +355,7 @@ function renderOpponentAbility(refs: CardRefs, abilityOptions: readonly PopularA
   button.ariaLabel = `相手の特性: ${abilityName || "特性なし"}。タップで選択`;
 }
 
-function renderIdentity(refs: CardRefs, self: SelfBuild, opponent: OpponentBuild, currentRequestId: number): void {
+function renderIdentity(refs: CardRefs, self: SelfBuild, opponent: OpponentBuild, currentRequestId: number, selfArtworkUrl = ""): void {
   const selfSelected = isSelectedSelf(self);
   const selfName = self.species_name.trim();
   const opponentName = opponent.speciesName || getDefaultOpponentName();
@@ -359,6 +370,11 @@ function renderIdentity(refs: CardRefs, self: SelfBuild, opponent: OpponentBuild
     refs.selfItemNoneIcon.setAttribute("hidden", "");
   }
   renderItemIcon(refs.opponentItemIcon, refs.opponentItemNoneIcon, opponent.itemName ?? "");
+  if (selfSelected && selfArtworkUrl) {
+    // ボックス一覧で描画済みの画像を使えば、画像IDマップの解決を待つ必要がない。
+    renderArtworkUrl(refs.selfArtwork, selfName, selfArtworkUrl);
+    refs.selfArtwork.setAttribute("aria-label", `${selfName}をボックスから変更`);
+  }
   void loadImageIdMap().then((imageIds) => {
     if (currentRequestId !== requestId) return;
     renderArtwork(refs.selfArtwork, selfSelected ? selfName : "", selfSelected ? imageIds.get(selfName) : undefined);
@@ -519,7 +535,7 @@ async function calculateDefenseRows(self: PokemonSpec, opponent: OpponentBuild, 
   }
 }
 
-async function run(): Promise<void> {
+async function run(selfArtworkUrl = ""): Promise<void> {
   const currentRequestId = ++requestId;
   const selfBuilds = getSelfBuilds();
   const currentOpponent = getOpponentBuild();
@@ -528,7 +544,7 @@ async function run(): Promise<void> {
   // このrun()呼び出しにつき1回だけ行い、カードの枚数ぶん繰り返さない。
   const cards: Card[] = selfBuilds.map((build, index) => ({ build, ...createCard(index) }));
   for (const card of cards) {
-    renderIdentity(card.refs, card.build, opponent, currentRequestId);
+    renderIdentity(card.refs, card.build, opponent, currentRequestId, selfArtworkUrl);
     renderSpeed(card.refs.speed, null, []);
     renderTable(card.refs.attackTable, "攻", []);
     renderTable(card.refs.defenseTable, "守", []);
@@ -593,7 +609,7 @@ async function run(): Promise<void> {
 
 export function initMatchupCardList(): void {
   document.addEventListener(CHANGE_EVENT, (event) => {
-    const detail = (event as CustomEvent<{ reason?: string; abilityName?: string }>).detail;
+    const detail = (event as CustomEvent<{ reason?: string; abilityName?: string; artworkUrl?: string }>).detail;
     if (detail.reason === "opponent-ability") {
       explicitNoOpponentAbilitySpeciesName = detail.abilityName === "" ? getOpponentBuild().speciesName : null;
     }
@@ -601,7 +617,7 @@ export function initMatchupCardList(): void {
     // 自分側の個体選択は、カードのプレースホルダー表示だけでも直ちに更新する。
     // 連続入力をまとめる必要がある他の操作とは異なり、ここでの700ms待機は体感遅延になる。
     if (detail.reason === "self") {
-      void run();
+      void run(detail.artworkUrl);
       return;
     }
     timer = window.setTimeout(() => void run(), 700);
