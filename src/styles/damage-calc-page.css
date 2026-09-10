@@ -51,7 +51,7 @@
   --damage-calc-card-item-size: 1.75rem; /* もちものアイコンの一辺(.damage-calc-matchup-card__item-buttonのwidth/heightと同じ値) */
   overflow: hidden; border: 1px solid var(--color-border); border-radius: 0; background: var(--color-surface); box-shadow: var(--shadow-sm);
 }
-.damage-calc-matchup-card__header { position: relative; min-height: 6.25rem; overflow: hidden; background: var(--color-surface); }
+.damage-calc-matchup-card__header { position: relative; min-height: 7rem; overflow: hidden; background: var(--color-surface); }
 .damage-calc-matchup-card__pokemon { position: absolute; z-index: 1; }
 .damage-calc-matchup-card__pokemon--self, .damage-calc-matchup-card__pokemon--opponent { top: 0; width: 50%; height: 100%; }
 .damage-calc-matchup-card__pokemon--self { left: 0; }
@@ -99,14 +99,16 @@
  * 立ち絵のすぐ隣(--damage-calc-card-item-gap ぶん)に寄せる。 */
 .damage-calc-matchup-card__pokemon--self .damage-calc-matchup-card__item-button { bottom: calc(50% - var(--damage-calc-card-artwork-size) / 2); left: calc(50% - (var(--damage-calc-card-artwork-size) + var(--damage-calc-card-item-gap) + var(--damage-calc-card-item-size)) / 2 + var(--damage-calc-card-artwork-size) + var(--damage-calc-card-item-gap)); }
 .damage-calc-matchup-card__pokemon--opponent .damage-calc-matchup-card__item-button { bottom: calc(50% - var(--damage-calc-card-artwork-size) / 2); right: calc(50% - (var(--damage-calc-card-artwork-size) + var(--damage-calc-card-item-gap) + var(--damage-calc-card-item-size)) / 2 + var(--damage-calc-card-artwork-size) + var(--damage-calc-card-item-gap)); }
-.damage-calc-matchup-card__opponent-ability { position: absolute; z-index: 2; right: calc(50% - (var(--damage-calc-card-artwork-size) + var(--damage-calc-card-item-gap) + var(--damage-calc-card-item-size)) / 2); bottom: 0; width: var(--damage-calc-card-artwork-size); min-height: 1rem; overflow: hidden; padding: 0; border: 0; background: transparent; color: var(--color-text-muted); font: inherit; font-size: var(--font-size-sm3); font-weight: var(--font-weight-normal); line-height: var(--line-height-tight); text-align: center; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
+.damage-calc-matchup-card__opponent-ability, .damage-calc-matchup-card__self-ability { position: absolute; z-index: 2; bottom: var(--space-2); width: var(--damage-calc-card-artwork-size); min-height: 1rem; overflow: hidden; padding: 0; border: 0; background: transparent; color: var(--color-text-muted); font: inherit; font-size: var(--font-size-sm3); font-weight: var(--font-weight-normal); line-height: var(--line-height-tight); text-align: center; text-overflow: ellipsis; white-space: nowrap; }
+.damage-calc-matchup-card__opponent-ability { right: calc(50% - (var(--damage-calc-card-artwork-size) + var(--damage-calc-card-item-gap) + var(--damage-calc-card-item-size)) / 2); cursor: pointer; }
+.damage-calc-matchup-card__self-ability { left: calc(50% - (var(--damage-calc-card-artwork-size) + var(--damage-calc-card-item-gap) + var(--damage-calc-card-item-size)) / 2); }
 .damage-calc-matchup-card__opponent-ability:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
 .damage-calc-matchup-card__versus { position: absolute; z-index: 3; top: 50%; left: 50%; transform: translate(-50%, -50%); color: var(--color-text-muted); font-size: var(--font-size-sm2); font-weight: var(--font-weight-bold); letter-spacing: .08em; }
 .damage-calc-matchup-card__status { margin: var(--space-2); color: var(--color-text-muted); font-size: var(--font-size-sm3); text-align: center; }
 .damage-calc-matchup-card__status[data-state="error"] { color: var(--color-danger-strong); }
 /* ポケモン表示領域と攻撃テーブルの間のすばやさ表示。自分側は実数値1つ、相手側は
    無振り/準速/最速の3水準を、それぞれ左右のポケモンの下に揃えて並べる。 */
-.damage-calc-matchup-card__speed { display: grid; grid-template-columns: 1fr 1fr; align-items: flex-start; gap: 1px; padding: 0; background: var(--color-bg); }
+.damage-calc-matchup-card__speed { display: grid; grid-template-columns: 1fr 1fr; align-items: flex-start; gap: 0; padding: 0; background: var(--color-bg); }
 .damage-calc-matchup-card__speed-group { display: flex; justify-content: center; gap: var(--space-3); padding: var(--space-1) var(--space-2); background: var(--color-surface-sunken); }
 .damage-calc-matchup-card__speed-item { display: grid; gap: 1px; text-align: center; }
 .damage-calc-matchup-card__speed-label { color: var(--color-text-muted); font-size: var(--font-size-sm3); line-height: var(--line-height-tight); }

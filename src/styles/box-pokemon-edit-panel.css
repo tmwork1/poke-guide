@@ -721,7 +721,7 @@
 		--color-stat-up/--color-stat-down を直接使う。 */
 	#stat-adjustment-section .stat-nature-btn[data-nature-state="up"],
 	#stat-adjustment-section .stat-nature-btn[data-nature-state="down"] {
-		border-width: 2px; /* 性格補正が乗っている能力の枠の太さ。太くすると補正が目立つ */
+		border-width: 1px;
 	}
 	#stat-adjustment-section .stat-nature-btn[data-nature-state="up"] {
 		border-color: var(--color-stat-up);

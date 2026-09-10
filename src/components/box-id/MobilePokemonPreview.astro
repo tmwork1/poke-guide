@@ -95,7 +95,7 @@ const shouldRenderItemIcon = activeTab === 'training' || itemName !== '';
           <div id="pokemon-preview-species-name">{preview.speciesName || '-'}</div>
           <span class="pokemon-preview-type-icons" id="pokemon-preview-type-icons" aria-label="タイプ">{preview.typeIcons.map((type) => (
             <img class="type-badge-img" width="20" height="20" src={type.url ?? ''} alt={type.name} title={type.name} />
-          ))}</span>
+          ))}{preview.teraTypeIconUrl && <img class="tera-type-badge-img" width="20" height="20" src={preview.teraTypeIconUrl} alt={`テラスタル: ${preview.teraType}`} title={`テラスタル: ${preview.teraType}`} />}</span>
         </div>
         <div id="pokemon-preview-ability">{preview.abilityName || '-'}</div>
       </div>

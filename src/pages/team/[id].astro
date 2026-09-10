@@ -1669,8 +1669,7 @@ if (!isGuestNewMode) {
 				if (membersBySlot.has(slot)) removeMemberFromSlot(slot);
 			}
 			function onFormationSlotLongPress(slot: number): void {
-				const member = membersBySlot.get(slot);
-				if (member) navigateToPokemonEdit(member.id);
+				if (membersBySlot.has(slot)) removeMemberFromSlot(slot);
 			}
 
 			function renderFormationMobile(): void {

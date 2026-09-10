@@ -1,6 +1,6 @@
 import type { OwnedPokemonRecord } from '../owned-pokemon';
 import { championSpriteMediumUrl, championSpriteUrl, officialArtworkUrl } from '../pokemon-master-data';
-import { itemIconUrl, typeIconUrl } from '../sprite-urls';
+import { itemIconUrl, teraTypeIconUrl, typeIconUrl } from '../sprite-urls';
 import { NATURE_STAT_MODIFIERS, STAT_KEYS, type NatureStatModifier, type StatKey, calcHpStat, calcOtherStat } from '../stats';
 import { DEFAULT_TYPE_COLOR, TYPE_COLORS, TYPE_COLOR_CSS_VARIABLES } from '../type-colors';
 
@@ -39,6 +39,8 @@ export interface PokemonPreviewViewModel {
   officialArtworkUrl: string | undefined;
   types: string[];
   typeIcons: Array<{ name: string; url: string | null; fallbackColor: string }>;
+  teraType: string;
+  teraTypeIconUrl: string | null;
   background: string | undefined;
   itemIconUrl: string | undefined;
 }
@@ -64,13 +66,14 @@ function backgroundForTypes(types: readonly string[]): string | undefined {
  * マスタの取得元は呼び出し側に任せ、ここでは表示計算だけを行う。
  */
 export function buildPokemonPreviewViewModel(
-  pokemon: Pick<OwnedPokemonRecord, 'species_name' | 'ability_name' | 'item_name' | 'move_names' | 'level' | 'nature' | 'ivs' | 'evs'>,
+  pokemon: Pick<OwnedPokemonRecord, 'species_name' | 'ability_name' | 'item_name' | 'tera_type' | 'move_names' | 'level' | 'nature' | 'ivs' | 'evs'>,
   master: PokemonPreviewMasterData,
 ): PokemonPreviewViewModel {
   const speciesName = pokemon.species_name.trim();
   const itemName = pokemon.item_name?.trim() ?? '';
   const level = pokemon.level ?? 50;
   const natureName = pokemon.nature ?? '';
+  const teraType = pokemon.tera_type?.trim() ?? '';
   const nature = NATURE_STAT_MODIFIERS[natureName] ?? { up: null, down: null };
   const ivs = statValues(pokemon.ivs, 31);
   const evs = statValues(pokemon.evs, 0);
@@ -109,6 +112,8 @@ export function buildPokemonPreviewViewModel(
       url: typeIconUrl(name),
       fallbackColor: TYPE_COLORS[name] ?? DEFAULT_TYPE_COLOR,
     })),
+    teraType,
+    teraTypeIconUrl: teraType ? teraTypeIconUrl(teraType) : null,
     background: backgroundForTypes(types),
     itemIconUrl: itemName ? itemIconUrl(itemName) : undefined,
   };

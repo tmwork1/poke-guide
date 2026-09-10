@@ -17,6 +17,7 @@ type PopularAbilityOption = { value: string; ratio: number };
 /** 1枚の対面カード(自分側1体ぶん)のDOM参照。テンプレートを複製するたびにこの形で1組作る。 */
 type CardRefs = {
   selfArtwork: HTMLElement;
+  selfAbility: HTMLElement;
   matchupTitle: HTMLElement;
   selfItemButton: HTMLButtonElement;
   selfItemIcon: HTMLImageElement;
@@ -307,6 +308,7 @@ function createCard(index: number): { root: HTMLElement; refs: CardRefs } {
   selfItemButton.dataset.damageCalcCardIndex = String(index);
   const refs: CardRefs = {
     selfArtwork: role(root, "self-artwork"),
+    selfAbility: role(root, "self-ability"),
     matchupTitle: role(root, "matchup-title"),
     selfItemButton,
     selfItemIcon: role(root, "self-item-icon"),
@@ -349,6 +351,8 @@ function renderIdentity(refs: CardRefs, self: SelfBuild, opponent: OpponentBuild
   renderName(refs.matchupTitle, selfSelected ? selfName : "");
   renderName(refs.opponentName, opponentName);
   refs.selfItemButton.hidden = !selfSelected;
+  refs.selfAbility.hidden = !selfSelected;
+  refs.selfAbility.textContent = selfSelected ? (self.ability_name?.trim() || "特性なし") : "";
   if (selfSelected) renderItemIcon(refs.selfItemIcon, refs.selfItemNoneIcon, self.item_name ?? "");
   else {
     refs.selfItemIcon.hidden = true;

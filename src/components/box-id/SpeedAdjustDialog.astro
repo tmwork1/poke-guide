@@ -34,7 +34,6 @@ const speedChartSrc = `/speed-chart?owned=${encodeURIComponent(pokemonId)}&embed
 		if (!dialog || !backdrop || !frame) return;
 		dialog.hidden = true;
 		backdrop.hidden = true;
-		frame.removeAttribute("src");
 		opener?.focus();
 	}
 
@@ -48,6 +47,13 @@ const speedChartSrc = `/speed-chart?owned=${encodeURIComponent(pokemonId)}&embed
 	}
 
 	triggers.forEach((trigger) => trigger.addEventListener("click", () => openDialog(trigger)));
+	// iframe の初期化は重いため、編集画面の初期描画を妨げないアイドル時間に済ませる。
+	// 一度読み込んだ内容は閉じた後も保持し、二回目以降も即座に開けるようにする。
+	const preload = () => {
+		if (frame && !frame.src) frame.src = frame.dataset.src ?? "";
+	};
+	if ("requestIdleCallback" in window) window.requestIdleCallback(preload, { timeout: 1200 });
+	else window.setTimeout(preload, 300);
 	if (backdrop && dialog) bindModalDismissal({ backdrop, dialog, isOpen: () => !dialog.hidden, onDismiss: closeDialog });
 	window.addEventListener("message", (event) => {
 		if (event.origin !== window.location.origin) return;

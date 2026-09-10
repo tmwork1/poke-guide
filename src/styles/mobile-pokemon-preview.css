@@ -121,7 +121,7 @@
 .pokemon-preview-species-line {
   display: flex;
   align-items: center;
-  gap: var(--space-1);
+  gap: calc(var(--space-1) + 2px);
   /* SSRのゲストプレビューにはタイプアイコンが無い。実データのアイコンと同じ行高を
      先に確保し、hydrationで特性行以下が押し下がらないようにする。 */
   min-height: var(--pokemon-preview-type-icon-size);
@@ -201,6 +201,11 @@
   width: var(--pokemon-preview-move-type-bar-width);
   height: var(--pokemon-preview-move-type-bar-height);
   background-color: transparent;
+}
+
+.pokemon-preview-type-icons .tera-type-badge-img {
+  /* テラスタルは丸く切り抜かず、専用アイコンの輪郭を保つ。 */
+  object-fit: contain;
 }
 
 .pokemon-preview-icon-text img {

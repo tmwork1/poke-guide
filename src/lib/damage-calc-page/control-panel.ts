@@ -206,6 +206,7 @@ export function initControlPanel(): void {
     setOpponentState({ ...DEFAULT_OPPONENT_STATE, boosts: [...DEFAULT_OPPONENT_STATE.boosts] });
     setFieldState({ ...DEFAULT_FIELD_STATE, selfSideFields: [], opponentSideFields: [] });
     emit();
+    resetButton.blur();
   });
   teraButtons.self.addEventListener("click", () => {
     const teraType = getSelfTeraType();

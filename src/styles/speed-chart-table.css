@@ -434,7 +434,7 @@
 		して「ポケモンが主・要因が補足」という情報の主従を示す。補正なしグループ(素の実数値)には
 		要因が無いため、その場合はこの要素自体を出力しない(chart-table.ts参照)。 */
 	.speed-chart-table .speed-chart-chip-origin {
-		margin-top: -4px;
+		margin-top: -2px;
 		font-size: calc(var(--font-size-sm4) * .9); /* 補正要因の文字サイズ。最小トークンからさらに少し縮小。大きくすると要因が目立つ */
 		font-weight: var(--font-weight-medium);
 		color: var(--color-text-muted); /* 補正要因の文字色。変えると要因の控えめさが変わる */
