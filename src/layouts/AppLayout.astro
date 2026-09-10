@@ -29,6 +29,12 @@ const pageTitle = title === "ポケガイド" ? title : `${title} | ポケガイ
 	<head>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		{/* ポケモンのマスタ(名前→imageId/タイプ)。立ち絵・アイコンを出すJSは、この146KBの
+		    JSONが届くまで<img>のsrcを決められないため、これが画像表示の律速になっている
+		    (/box の実測で 取得完了381ms → 最初の画像リクエスト506ms、初回描画は360ms。
+		    つまり画面が出てから150ms以上、アイコンが枠だけの状態が続いていた)。
+		    JSの起動を待たずにHTMLの解析時点で取りにいかせる。 */}
+		<link rel="preload" as="fetch" href="/master-data/autocomplete/pokemon.json" />
 		<title>{pageTitle}</title>
 		{description && <meta name="description" content={description} />}
 		<slot name="head" />
