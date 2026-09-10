@@ -69,6 +69,39 @@ const TEAM_SELECT = `
   ranked_team_members (slot, species_key, species_name, form_name, item_name, ability, nature, evs, move_names, type1, type2)
 `;
 
+function toRankedTeams(rows: RawTeam[]): RankedTeam[] {
+  return rows.map((row) => {
+    const numericRating = row.rating === null ? null : Number(row.rating);
+    return {
+      id: row.id,
+      season: row.season,
+      rank: row.rank,
+      rating: numericRating !== null && Number.isFinite(numericRating) ? numericRating : null,
+      rule: row.rule,
+      trainerName: row.trainer_name,
+      articleUrl: row.article_url,
+      articleTitle: row.article_title,
+      articleHost: row.article_host,
+      members: (row.ranked_team_members ?? [])
+        .map((member) => ({
+          slot: member.slot,
+          speciesKey: member.species_key,
+          speciesName: member.species_name,
+          formName: member.form_name,
+          itemName: member.item_name,
+          ability: member.ability,
+          nature: member.nature,
+          evs: member.evs,
+          // 記事に技の記載がない NULL は、描画側で反復可能な空配列へ正規化する。
+          moveNames: member.move_names ?? [],
+          type1: member.type1,
+          type2: member.type2,
+        }))
+        .sort((a, b) => a.slot - b.slot),
+    };
+  });
+}
+
 export async function listRankedSeasons(supabase: SupabaseClient): Promise<RankedSeason[]> {
   const { data, error } = await supabase
     .from('ranked_teams')
@@ -85,6 +118,11 @@ export async function listRankedSeasons(supabase: SupabaseClient): Promise<Ranke
     }
   }
   return [...bySeason.values()].sort((a, b) => b.seasonNumber - a.seasonNumber);
+}
+
+function toPage(teams: RankedTeam[], limit: number | undefined): RankedTeam[] | RankedTeamsPage {
+  if (limit === undefined) return teams;
+  return { teams: teams.slice(0, limit), hasMore: teams.length > limit };
 }
 
 export function listRankedTeamsBySeason(
@@ -116,40 +154,33 @@ export async function listRankedTeamsBySeason(
   const { data, error } = await query;
 
   if (error) throw new Error('上位構築を取得できませんでした', { cause: error });
+  return toPage(toRankedTeams((data ?? []) as unknown as RawTeam[]), options?.limit);
+}
 
-  const teams = ((data ?? []) as unknown as RawTeam[]).map((row) => {
-    const numericRating = row.rating === null ? null : Number(row.rating);
-    return {
-      id: row.id,
-      season: row.season,
-      rank: row.rank,
-      rating: numericRating !== null && Number.isFinite(numericRating) ? numericRating : null,
-      rule: row.rule,
-      trainerName: row.trainer_name,
-      articleUrl: row.article_url,
-      articleTitle: row.article_title,
-      articleHost: row.article_host,
-      members: (row.ranked_team_members ?? [])
-        .map((member) => ({
-          slot: member.slot,
-          speciesKey: member.species_key,
-          speciesName: member.species_name,
-          formName: member.form_name,
-          itemName: member.item_name,
-          ability: member.ability,
-          nature: member.nature,
-          evs: member.evs,
-          // 記事に技の記載がない NULL は、描画側で反復可能な空配列へ正規化する。
-          moveNames: member.move_names ?? [],
-          type1: member.type1,
-          type2: member.type2,
-        }))
-        .sort((a, b) => a.slot - b.slot),
-    };
-  });
-  if (options?.limit === undefined) return teams;
-  return {
-    teams: teams.slice(0, options.limit),
-    hasMore: teams.length > options.limit,
-  };
+/** シーズン選択の「すべて」用。新しいシーズン順→シーズン内はrank順で横断取得する。 */
+export function listAllRankedTeams(supabase: SupabaseClient): Promise<RankedTeam[]>;
+export function listAllRankedTeams(
+  supabase: SupabaseClient,
+  options: { limit: number; offset?: number },
+): Promise<RankedTeamsPage>;
+export async function listAllRankedTeams(
+  supabase: SupabaseClient,
+  options?: { limit?: number; offset?: number },
+): Promise<RankedTeam[] | RankedTeamsPage> {
+  let query = supabase
+    .from('ranked_teams')
+    .select(TEAM_SELECT)
+    .order('season_number', { ascending: false })
+    .order('rank', { ascending: true })
+    .order('slot', { foreignTable: 'ranked_team_members', ascending: true });
+
+  if (options?.limit !== undefined) {
+    const offset = options.offset ?? 0;
+    query = query.range(offset, offset + options.limit);
+  }
+
+  const { data, error } = await query;
+
+  if (error) throw new Error('上位構築を取得できませんでした', { cause: error });
+  return toPage(toRankedTeams((data ?? []) as unknown as RawTeam[]), options?.limit);
 }

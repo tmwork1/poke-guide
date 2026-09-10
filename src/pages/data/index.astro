@@ -7,7 +7,7 @@ import BattleDataCard from '../../components/data/BattleDataCard.astro';
 import type { SingleFormatData } from '../../lib/battle-data-card';
 import { getOpggUsageBattleDataList, getOpggUsageManifest, sortOpggSeasons } from '../../lib/opgg-usage';
 import { listRankedSeasons } from '../../lib/ranked-teams';
-import { resolveDefaultSeason } from '../../lib/ranked-teams-validation';
+import { ALL_SEASONS_PARAM, resolveDefaultSeason } from '../../lib/ranked-teams-validation';
 import { getSupabasePublicClient } from '../../lib/supabase';
 import { championSpriteIconUrl, championSpriteUrl, officialArtworkUrl } from '../../lib/pokemon-master-data';
 import pokemonMasterRaw from '../../../public/master-data/autocomplete/pokemon.json';
@@ -128,6 +128,7 @@ const BATTLE_DATA_SSR_CARD_COUNT = 8;
 		<div class="top-builds-season-field">
 			<label for="top-builds-season">シーズン</label>
 			<select id="top-builds-season" class="field-control" disabled={rankedSeasons.length === 0}>
+				<option value={ALL_SEASONS_PARAM}>すべて</option>
 				{rankedSeasons.map((entry) => <option value={entry.season} selected={entry.season === defaultRankedSeason}>{entry.season}</option>)}
 			</select>
 		</div>

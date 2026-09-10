@@ -3,6 +3,7 @@ import type { RankedSeason } from './ranked-teams.ts';
 
 /** 上位チーム一覧・類似チームで共通の段階読み込み単位。 */
 export const RANKED_TEAMS_PAGE_SIZE = 24;
+export const ALL_SEASONS_PARAM = 'all';
 
 export function normalizeSeasonParam(value: unknown): string | null {
   if (typeof value !== 'string') return null;
