@@ -30,9 +30,12 @@ function toSelfBuild(member: TeamMember): SelfBuild {
 // 変換・状態更新・再計算通知が完全に同じ順序になるよう、選択結果の適用はここに集約する。
 export function selectTeam(team: Team): void {
   setSelfBuilds(team.members.map(toSelfBuild));
-  document.dispatchEvent(
-    new CustomEvent("damage-calc:change", { detail: { reason: "self" } }),
-  );
+  // 対面カードの初期描画は同期処理を含むため、次フレームで通知してモーダルを先に描画から外す。
+  window.requestAnimationFrame(() => {
+    document.dispatchEvent(
+      new CustomEvent("damage-calc:change", { detail: { reason: "self" } }),
+    );
+  });
 }
 
 // ゲスト時もlistTeamsPage()がlocalStorageのチームを返すため、URLからの復元でも
@@ -106,8 +109,8 @@ export function initTeamSelectDialog(): void {
           }),
         );
         button.addEventListener("click", () => {
-          selectTeam(team);
           closeDialog();
+          selectTeam(team);
         });
         return button;
       }),

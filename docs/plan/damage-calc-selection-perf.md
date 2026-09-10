@@ -11,7 +11,24 @@
    - 原因: `matchup-card.ts` の `calculateAttackRows()`/`calculateDefenseRows()` 内のループが `await calcDamages(...)` している体裁でも、`calcDamages()`/`calcStats()`(pyodide-engine.ts)の中身は完全に同期実行のPyodide(Wasm)呼び出しであるため、awaitしてもマイクロタスクの連鎖が続くだけでブラウザに制御が返らず、技数×守備パターン数ぶんの計算が1つの長いタスクにまとまっていた(実測: 約740msのlongtask)。以前のコミット(`b637b9b`「Close box selector before matchup refresh」、box-select-dialog.tsで`closeDialog()`を先に呼びrAFを1回挟んでからdispatchEventする対策)だけでは防げていなかった。
    - 対策: 各行の計算後に `await new Promise(resolve => setTimeout(resolve, 0))`(`yieldToBrowser()`)を挿入し、マクロタスク境界を明示的に作ってブラウザに描画機会を与えるようにした。最大フレームギャップは約800ms→約230msに改善(Performance Observerのlongtask + rAFタイミングで実測)。
 
-## fable advisorへの相談結果(未着手・次セッションでの実装対象)
+## 2026-09-11 追記: TODO 1〜4 実装済み(codexへ委任 → Coordinatorが実測検証)
+
+下記「優先順位付きTODO」の1〜4を実装した。実測(Performance Observerのlongtask + rAFフレームギャップ、`npm run probe --eval`、dark/390x844、クリック後8秒窓)の結果:
+
+| 操作 | 最大フレームギャップ | longtask合計 |
+|---|---|---|
+| box選択(1体) 修正前 | 378ms | 854ms |
+| box選択(1体) 修正後 | **274ms** | 818ms |
+| team選択(5体) 修正前 | 981ms | 3978ms |
+| team選択(5体) 修正後 | **267ms** | 3238ms |
+
+発見Aの読みどおり、team選択での効果が圧倒的(981ms→267ms、約73%短縮)。総計算時間(longtask合計)はほぼ変わらず、「1つの長いタスク」が「短いタスクの列」に分割されたことが数値に表れている。
+
+なお修正3(`initEngine()`の並行化)では、requestIdが変わって`await enginePromise`に到達しないケースでunhandled rejectionにならないよう、`enginePromise.catch(() => {})`をCoordinatorが追加した。
+
+**残TODOは5・6・7。**
+
+## fable advisorへの相談結果(1〜4は上記のとおり実装済み)
 
 「さらなる短縮・UX改善」を相談したところ、上記の修正だけでは不十分な箇所が見つかった。特に**発見Aはteam選択(最大6体)で深刻な未修正のフリーズが残っている可能性が高い**ため優先度が高い。
 
@@ -58,10 +75,10 @@ JSはシングルスレッドなので、`Array.prototype.map` は各カード�
 
 ## 優先順位付きTODO(次セッションでcodexへ委任する実装単位)
 
-1. `matchup-card.ts`: `run()`内 `Promise.all(cards.map(async...))` を逐次`for...of`ループに変更(発見A)。team選択の体感を劇的に改善する見込み。
-2. `matchup-card.ts`: プレースホルダーカードDOM挿入直後に`await yieldToBrowser()`を1回追加(発見B)。
-3. `team-select-dialog.ts`: `selectTeam()`にbox同様の「closeDialog()先行+rAF+dispatchEvent」パターンを移植(1とセットで実施)。
-4. `matchup-card.ts`: `initEngine()`の呼び出しタイミングを前倒し(発見C)。
+1. ~~`matchup-card.ts`: `run()`内 `Promise.all(cards.map(async...))` を逐次`for...of`ループに変更(発見A)。~~ **完了(2026-09-11)**
+2. ~~`matchup-card.ts`: プレースホルダーカードDOM挿入直後に`await yieldToBrowser()`を1回追加(発見B)。~~ **完了(2026-09-11)**
+3. ~~`team-select-dialog.ts`: box同様の「closeDialog()先行+rAF+dispatchEvent」パターンを移植。~~ **完了(2026-09-11)**。`selectTeam()`はURL復元経路とも共用のため、`closeDialog()`はダイアログ側のclickハンドラで`selectTeam()`より先に呼び、rAFは`selectTeam()`内のdispatchを包む形にした。
+4. ~~`matchup-card.ts`: `initEngine()`の呼び出しタイミングを前倒し(発見C)。~~ **完了(2026-09-11)**
 5. team選択時のオプティミスティックUI(6体分の立ち絵URL事前抽出、box側の仕組みの横展開)。
 6. 相手側実数値・技カテゴリのrun()横断キャッシュ化。
 7. Web Worker化(中期・大規模投資)。

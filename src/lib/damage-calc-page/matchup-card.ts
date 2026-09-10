@@ -588,7 +588,15 @@ async function run(selfArtworkUrl = ""): Promise<void> {
   // 計算が終わるまで待たず、まずローディング状態のカードN枚を一括で差し込む
   // (1枚だった頃と同じ「即座にカードが差し込まれる」体験を保つ。計算中である旨のテキストは出さない)。
   byId<HTMLElement>("damage-calc-summary-list").replaceChildren(...cards.map((card) => card.root));
+  // プレースホルダーを先に描画してから、重い初期化と計算を始める。
+  await yieldToBrowser();
   try {
+    registerOfflineCache();
+    // Pyodide(wasm)・jpoke wheelのロードは最重量処理なので、技詳細・使用率の取得と並行して始める。
+    const enginePromise = initEngine();
+    // requestIdが変わって下のawaitに到達しなかった場合でもunhandled rejectionにしない
+    // (初期化Promiseはシングルトンなので、次のrun()側のawait enginePromiseでエラーは拾われる)。
+    enginePromise.catch(() => {});
     const [moveDetails, usageOptions, abilityOptions, master, abilitiesBySpecies] = await Promise.all([
       loadMoveDetailMap(),
       fetchOpponentMoveOptions(opponent.speciesName),
@@ -609,13 +617,12 @@ async function run(selfArtworkUrl = ""): Promise<void> {
     const categoryOf = (moveName: string): MoveCategory => moveDetails.get(moveName)?.category ?? "status";
     const isAttackMove = (moveName: string): boolean => categoryOf(moveName) !== "status";
     const opponentMoveNames = pickOpponentDefenseMoves(usageOptions, isAttackMove);
-    registerOfflineCache();
-    await initEngine();
+    await enginePromise;
     if (currentRequestId !== requestId) return;
     const speedSpecs = opponentPatterns(opponentWithAbility, [], "spe");
     const opponentSpeeds: number[] = [];
     for (const spec of speedSpecs) opponentSpeeds.push((await calcStats(spec)).stats.spe);
-    await Promise.all(cards.map(async (card) => {
+    for (const card of cards) {
       const selfMoveNames = card.build.move_names.map((name) => name.trim()).filter(Boolean).slice(0, 4).filter(isAttackMove);
       const self = isSelectedSelf(card.build) ? selfSpec(card.build, master, abilitiesBySpecies) : null;
       const selfSpeed = self ? (await calcStats(self)).stats.spe : null;
@@ -635,7 +642,7 @@ async function run(selfArtworkUrl = ""): Promise<void> {
       }
       if (currentRequestId !== requestId) return;
       setStatus(card.refs.status, null);
-    }));
+    }
   } catch (error) {
     console.error(error);
     if (currentRequestId !== requestId) return;
