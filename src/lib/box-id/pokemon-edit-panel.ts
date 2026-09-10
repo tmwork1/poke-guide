@@ -24,6 +24,7 @@ import {
 	type MoveCategory,
 } from "../pokemon-master-data";
 import { typeIconUrl, teraTypeIconUrl } from "../sprite-urls";
+import { compareTypesByTeraOrder } from "../tera-types";
 import { renderTeamMateSlots } from "../team-mate-card";
 import { TYPE_COLORS, DEFAULT_TYPE_COLOR } from "../type-colors";
 import { applyPreviewMoveTypeBar } from "./preview-move-type-bar";
@@ -2080,7 +2081,7 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 				result = a.name.localeCompare(b.name, "ja");
 				break;
 			case "type":
-				result = (a.type ?? "").localeCompare(b.type ?? "", "ja");
+				result = compareTypesByTeraOrder(a.type ?? "", b.type ?? "");
 				break;
 			case "category":
 				result = CATEGORY_RANK[a.category] - CATEGORY_RANK[b.category];

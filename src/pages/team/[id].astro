@@ -327,6 +327,7 @@ if (!isGuestNewMode) {
 		import type { RankedTeam } from "../../lib/ranked-teams";
 		import { kanaIncludes } from "../../lib/kana";
 		import { initializeSortDirectionToggle } from "../../lib/shared/sort-direction-toggle";
+		import { compareTypeListsByTeraOrder } from "../../lib/tera-types";
 		import { createMatchupPanel } from "../../lib/matchup-panel";
 		import { setupAppHeaderSwipe } from "../../lib/app-header-swipe";
 		import { createItemSelectGrid, sortItemsByUsage, isMegaStoneItemName } from "../../lib/box-id/item-select-dialog";
@@ -1850,11 +1851,11 @@ if (!isGuestNewMode) {
 						return displayName(a).localeCompare(displayName(b), "ja");
 					}
 					if (sort === "type") {
-						const aTypes = resolveSpeciesTypes(a.species_name).join("/");
-						const bTypes = resolveSpeciesTypes(b.species_name).join("/");
-						if (!aTypes && bTypes) return 1;
-						if (aTypes && !bTypes) return -1;
-						const typeResult = aTypes.localeCompare(bTypes, "ja");
+						const aTypes = resolveSpeciesTypes(a.species_name);
+						const bTypes = resolveSpeciesTypes(b.species_name);
+						if (aTypes.length === 0 && bTypes.length > 0) return 1;
+						if (aTypes.length > 0 && bTypes.length === 0) return -1;
+						const typeResult = compareTypeListsByTeraOrder(aTypes, bTypes);
 						return typeResult || displayName(a).localeCompare(displayName(b), "ja");
 					}
 					return new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime();

@@ -160,6 +160,7 @@ import '../../styles/guest-login-dialog.css';
 		import { isGuestMode } from "../../lib/data/guest-mode";
 		import { reloadOnBfcacheRestore } from "../../lib/shared/reload-on-bfcache-restore";
 		import { initializeSortDirectionToggle } from "../../lib/shared/sort-direction-toggle";
+		import { compareTypeListsByTeraOrder } from "../../lib/tera-types";
 
 		/* 「本当に0件」の状態クラス(.is-truly-empty)と圧縮表示(.is-compact)を
 		   付け外しする対象。レイアウトはCSSだけで組んでいるので、寸法の実測はしない。 */
@@ -296,11 +297,11 @@ import '../../styles/guest-login-dialog.css';
 						return displayName(a).localeCompare(displayName(b), "ja");
 					}
 					if (sort === "type") {
-						const aTypes = resolveSpeciesTypes(a.species_name).join("/");
-						const bTypes = resolveSpeciesTypes(b.species_name).join("/");
-						if (!aTypes && bTypes) return 1;
-						if (aTypes && !bTypes) return -1;
-						const typeResult = aTypes.localeCompare(bTypes, "ja");
+						const aTypes = resolveSpeciesTypes(a.species_name);
+						const bTypes = resolveSpeciesTypes(b.species_name);
+						if (aTypes.length === 0 && bTypes.length > 0) return 1;
+						if (aTypes.length > 0 && bTypes.length === 0) return -1;
+						const typeResult = compareTypeListsByTeraOrder(aTypes, bTypes);
 						return typeResult || displayName(a).localeCompare(displayName(b), "ja");
 					}
 					return new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime();

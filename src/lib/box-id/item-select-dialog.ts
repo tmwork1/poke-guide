@@ -5,6 +5,7 @@ import { typeIconUrl } from "../sprite-urls";
 import { applyItemImage } from "./shared-core";
 import { requestSettingsModal } from "./settings-modal";
 import { getItemSuggestionRatio } from "./pokemon-edit-panel";
+import { compareTypesByTeraOrder } from "../tera-types";
 
 type ItemAutocompleteEntry = { name?: unknown; regulations?: unknown };
 
@@ -34,14 +35,8 @@ export function isMegaStoneItemName(name: string): boolean {
 	return /ナイト[XYZ]?$/.test(name);
 }
 
-const TYPE_ORDER = [
-	"ノーマル", "ほのお", "みず", "でんき", "くさ", "こおり", "かくとう", "どく",
-	"じめん", "ひこう", "エスパー", "むし", "いわ", "ゴースト", "ドラゴン", "あく",
-	"はがね", "フェアリー",
-];
-
 function sortByTypeOrder(values: string[], typeOf: Record<string, string>): string[] {
-	return [...values].sort((a, b) => TYPE_ORDER.indexOf(typeOf[a]) - TYPE_ORDER.indexOf(typeOf[b]));
+	return [...values].sort((a, b) => compareTypesByTeraOrder(typeOf[a], typeOf[b]));
 }
 
 // [採用率上位] -> [その他] -> [タイプ強化アイテム(タイプ順)] -> [きのみ] -> [タイプ半減実(タイプ順)] -> [メガストーン]
