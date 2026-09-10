@@ -4,7 +4,7 @@
 
 /* 共用の .box-card はチーム画面でも使うため、ボックス一覧だけで角を丸める。 */
 .box-shell .box-grid .box-card {
-	border-radius: var(--radius-sm);
+	border-radius: var(--card-radius);
 }
 
 /* ===========================================================================
