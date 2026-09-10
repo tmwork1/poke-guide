@@ -68,7 +68,7 @@
 
 
 .second-header-sort #sort-select {
-	width: 7.25em; /* 「図鑑番号順」まで収める並べ替えセレクトの幅。 */
+	width: 7.25em; /* 並べ替えセレクトの幅を固定し、選択肢の切り替えでレイアウトを動かさない。 */
 	padding-left: 2.4em;
 	padding-right: var(--space-2);
 	text-align: left;
