@@ -345,7 +345,10 @@ function createCard(index: number): { root: HTMLElement; refs: CardRefs } {
     const build = getSelfBuilds()[index];
     if (!build?.species_name) return;
     void loadAbilitiesMap().then((abilitiesBySpecies) => {
-      const options = (abilitiesBySpecies.get(build.species_name) ?? []).map((value) => ({ value, label: value }));
+      const options = [
+        { value: "", label: "特性なし" },
+        ...(abilitiesBySpecies.get(build.species_name) ?? []).map((value) => ({ value, label: value })),
+      ];
       openAbilitySelectPopover(selfAbility, options, build.ability_name ?? "", (abilityName) => {
         setSelfBuildAt(index, { ...build, ability_name: abilityName });
         emitChange("self");
