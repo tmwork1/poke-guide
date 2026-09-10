@@ -429,6 +429,21 @@ function renderTable(container: HTMLElement, label: "攻" | "守", rows: DamageR
   container.replaceChildren(wrap);
 }
 
+/** 先に技名だけを置き、計算が完了した行だけを差し替える。待機状態の文言は表示しない。 */
+function renderPendingRows(moveNames: readonly string[]): DamageRow[] {
+  return moveNames.map((moveName) => ({
+    moveName,
+    cells: PATTERN_LABELS.map(() => ({ range: "", lethal: "" })),
+  }));
+}
+
+function replaceTableRow(container: HTMLElement, rowIndex: number, result: DamageRow): void {
+  const row = container.querySelector<HTMLTableRowElement>(`tbody > tr:nth-child(${rowIndex + 1})`);
+  const header = row?.querySelector<HTMLTableCellElement>("th");
+  if (!row || !header) return;
+  row.replaceChildren(header, ...result.cells.map((cell) => makeCell(cell.range, cell.lethal)));
+}
+
 function renderSpeed(container: HTMLElement, selfSpeed: number | null, opponentSpeeds: number[]): void {
   const root = document.createElement("div");
   root.className = "damage-calc-matchup-card__speed";
@@ -463,11 +478,10 @@ function percentageOnly(damages: number[], hp: number): string {
   return min === max ? `${min}%` : `${min}〜${max}%`;
 }
 
-async function calculateAttackRows(self: PokemonSpec, opponent: OpponentBuild, moveNames: string[], categories: Map<string, MoveCategory>): Promise<DamageRow[]> {
+async function calculateAttackRows(self: PokemonSpec, opponent: OpponentBuild, moveNames: string[], categories: Map<string, MoveCategory>, onRow: (rowIndex: number, row: DamageRow) => void): Promise<void> {
   const fieldState = getFieldState();
   const defenderStats = new Map<string, Promise<number>>();
-  const rows: DamageRow[] = [];
-  for (const moveName of moveNames) {
+  for (const [rowIndex, moveName] of moveNames.entries()) {
     const stat = statForCategory(categories.get(moveName) ?? "status", "attack");
     if (!stat) continue;
     const defenders = opponentPatterns(opponent, [], stat);
@@ -485,16 +499,14 @@ async function calculateAttackRows(self: PokemonSpec, opponent: OpponentBuild, m
       ]);
       cells.push({ range: percentageOnly(result.damages, defenderHp), lethal: describeStandaloneLethal(result.damages, defenderHp).label });
     }
-    rows.push({ moveName, cells });
+    onRow(rowIndex, { moveName, cells });
   }
-  return rows;
 }
 
-async function calculateDefenseRows(self: PokemonSpec, opponent: OpponentBuild, moveNames: string[], categories: Map<string, MoveCategory>): Promise<DamageRow[]> {
+async function calculateDefenseRows(self: PokemonSpec, opponent: OpponentBuild, moveNames: string[], categories: Map<string, MoveCategory>, onRow: (rowIndex: number, row: DamageRow) => void): Promise<void> {
   const selfHp = (await calcStats(self)).stats.hp;
   const fieldState = getFieldState();
-  const rows: DamageRow[] = [];
-  for (const moveName of moveNames) {
+  for (const [rowIndex, moveName] of moveNames.entries()) {
     const stat = statForCategory(categories.get(moveName) ?? "status", "defense");
     if (!stat) continue;
     const attackers = opponentPatterns(opponent, moveNames, stat);
@@ -503,9 +515,8 @@ async function calculateDefenseRows(self: PokemonSpec, opponent: OpponentBuild, 
       const result = await calcDamages(attacker, self, moveName, { field: { weather: fieldState.weather || undefined, terrain: fieldState.terrain || undefined, defenderSideFields: fieldState.selfSideFields }, critical: false });
       cells.push({ range: percentageOnly(result.damages, selfHp), lethal: describeStandaloneLethal(result.damages, selfHp).label });
     }
-    rows.push({ moveName, cells });
+    onRow(rowIndex, { moveName, cells });
   }
-  return rows;
 }
 
 async function run(): Promise<void> {
@@ -560,11 +571,17 @@ async function run(): Promise<void> {
       if (currentRequestId !== requestId) return;
       renderSpeed(card.refs.speed, displayedSelfSpeed, opponentSpeeds);
       const categories = new Map<string, MoveCategory>([...selfMoveNames, ...opponentMoveNames].map((name) => [name, categoryOf(name)]));
-      const attackRows = self ? await calculateAttackRows(self, opponentWithAbility, selfMoveNames, categories) : [];
-      const defenseRows = self ? await calculateDefenseRows(self, opponentWithAbility, opponentMoveNames, categories) : opponentMoveNames.map((moveName) => ({ moveName, cells: PATTERN_LABELS.map(() => ({ range: "-", lethal: "" })) }));
+      renderTable(card.refs.attackTable, "攻", self ? renderPendingRows(selfMoveNames) : []);
+      renderTable(card.refs.defenseTable, "守", self ? renderPendingRows(opponentMoveNames) : opponentMoveNames.map((moveName) => ({ moveName, cells: PATTERN_LABELS.map(() => ({ range: "-", lethal: "" })) })));
+      if (self) {
+        await calculateAttackRows(self, opponentWithAbility, selfMoveNames, categories, (rowIndex, row) => {
+          if (currentRequestId === requestId) replaceTableRow(card.refs.attackTable, rowIndex, row);
+        });
+        await calculateDefenseRows(self, opponentWithAbility, opponentMoveNames, categories, (rowIndex, row) => {
+          if (currentRequestId === requestId) replaceTableRow(card.refs.defenseTable, rowIndex, row);
+        });
+      }
       if (currentRequestId !== requestId) return;
-      renderTable(card.refs.attackTable, "攻", attackRows);
-      renderTable(card.refs.defenseTable, "守", defenseRows);
       setStatus(card.refs.status, null);
     }));
   } catch (error) {
