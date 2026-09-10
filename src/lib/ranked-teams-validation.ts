@@ -31,6 +31,28 @@ export function matchesSpeciesSearch(
   );
 }
 
+export function matchesTopBuildSearch(
+  members: ReadonlyArray<{
+    speciesKey: string | null;
+    speciesName: string;
+    itemName: string | null;
+    moveNames: readonly string[];
+  }>,
+  term: string,
+): boolean {
+  // 複数の入力語をAND検索しつつ、各語はチーム内のいずれかのメンバーに一致すればよい。
+  const words = term.trim().split(/[\s、,，・\/／]+/).filter(Boolean);
+  if (words.length === 0) return true;
+  return words.every((word) =>
+    members.some((member) =>
+      kanaIncludes(member.speciesKey ?? '', word)
+      || kanaIncludes(member.speciesName, word)
+      || kanaIncludes(member.itemName ?? '', word)
+      || member.moveNames.some((moveName) => kanaIncludes(moveName, word)),
+    ),
+  );
+}
+
 export function matchesBuildSearch(
   members: ReadonlyArray<{
     ability: string | null;
