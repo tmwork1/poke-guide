@@ -1,0 +1,63 @@
+/* 上位チーム系3画面で共有する、検索・シーズン・表示密度の操作帯。 */
+.ranked-teams-search-header[hidden] {
+	display: none;
+}
+
+/* 操作の最小幅を保ち、狭幅ではタップ領域を縮めず横スクロールで収める。 */
+.ranked-teams-search-header {
+	overflow-x: auto;
+	overscroll-behavior-x: contain;
+}
+
+.ranked-teams-search-header .second-header__content {
+	width: 100%;
+	min-width: 0;
+}
+
+.ranked-teams-search-header .second-header-search {
+	min-width: 0;
+}
+
+/* 360px未満だけは操作を潰さず、内容幅を下限として帯自身を横スクロールさせる。
+   /data/top-builds は共通化前のflex縮小を維持するため、この下限の対象外にする。 */
+@media (max-width: 359px) {
+	.ranked-teams-search-header:not(.top-builds-second-header) .second-header__content {
+		width: max-content;
+		min-width: 100%;
+	}
+
+	.ranked-teams-search-header:not(.top-builds-second-header) .second-header-search {
+		min-width: 12rem;
+	}
+}
+
+.ranked-teams-search-header .search-input-wrap {
+	flex: 1;
+	min-width: 0;
+}
+
+.ranked-teams-season-field {
+	display: flex;
+	flex: 0 0 auto;
+	align-items: center;
+	gap: var(--space-2);
+}
+
+.ranked-teams-season-field label {
+	color: var(--color-text-muted);
+	font-size: var(--font-size-sm2);
+	white-space: nowrap;
+}
+
+@media (max-width: 420px) {
+	.ranked-teams-season-field label {
+		display: none;
+	}
+}
+
+/* これら2画面では操作帯自身は固定領域に置き、直後の一覧だけをスクロールさせる。 */
+.box-ranked-page > .ranked-teams-search-header,
+#team-data-mobile > .ranked-teams-search-header {
+	position: static;
+	flex: 0 0 auto;
+}

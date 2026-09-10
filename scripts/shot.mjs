@@ -27,6 +27,8 @@
  *
  * 主なオプション:
  *   --page <path>       撮る画面。複数指定可 / カンマ区切り可。`home` は `/` の別名。(必須)
+ *   --from <path>       同じcontextで先に開く画面。ゲスト固定データの準備等に使う
+ *   --from-click <sel>  --from 側だけでクリックし、遷移先を静的に撮る(複数指定可)
  *   --base <url>        省略時は `astro dev status` から自動検出(既定 http://localhost:4321)
  *   --theme light|dark|both   既定 dark(2026-09-10にダークモードへ一本化したため)
  *   --size 1920x1080    ビューポート。既定 1920x1080
@@ -43,6 +45,10 @@
  *                       クリックしても安全(自動保存を誘発しない、DBを汚さない)と
  *                       確認済みの要素だけに使うこと。text=から始めると
  *                       `getByText(...).click()` 相当(完全一致)、それ以外は通常のCSSセレクタ。
+ *   --fill <sel=value>  安全と確認済みの入力欄へ文字を入れてから撮る
+ *   --select <sel=value> 安全と確認済みのselectを切り替えてから撮る
+ *   --local-storage <key=value> UIを操作せず、撮影用contextの初期設定を入れる
+ *   --wait-ms <ms>      操作後の非同期描画を待ってから撮る
  *   --wait <selector>   撮る前に待つ要素
  *   --out <dir>         出力先。既定 .tmp-shots
  *   --tag <str>         ファイル名の末尾に付ける識別子
@@ -71,6 +77,8 @@ import {
 function parseArgs(argv) {
 	const opts = {
 		pages: [],
+		from: null,
+		fromClick: [],
 		base: null,
 		theme: "dark",
 		size: "1920x1080",
@@ -81,6 +89,10 @@ function parseArgs(argv) {
 		clone: null,
 		cloneCount: 40,
 		click: [],
+		fill: [],
+		select: [],
+		localStorage: [],
+		waitMs: 0,
 		wait: null,
 		out: ".tmp-shots",
 		tag: null,
@@ -104,6 +116,12 @@ function parseArgs(argv) {
 				break;
 			case "--base":
 				opts.base = next().replace(/\/$/, "");
+				break;
+			case "--from":
+				opts.from = next();
+				break;
+			case "--from-click":
+				opts.fromClick.push(next());
 				break;
 			case "--theme":
 				opts.theme = next();
@@ -132,6 +150,18 @@ function parseArgs(argv) {
 			case "--click":
 				opts.click.push(next());
 				break;
+			case "--fill":
+				opts.fill.push(next());
+				break;
+			case "--select":
+				opts.select.push(next());
+				break;
+			case "--local-storage":
+				opts.localStorage.push(next());
+				break;
+			case "--wait-ms":
+				opts.waitMs = Number(next());
+				break;
 			case "--wait":
 				opts.wait = next();
 				break;
@@ -159,6 +189,24 @@ function parseArgs(argv) {
 		}
 	}
 	return opts;
+}
+
+/** `input[type="search"]=value` のように属性内にも = を含められる形で分割する。 */
+function splitPair(input, optionName) {
+	let depth = 0;
+	let quote = null;
+	for (let index = 0; index < input.length; index += 1) {
+		const character = input[index];
+		if (quote) {
+			if (character === quote) quote = null;
+			continue;
+		}
+		if (character === '"' || character === "'") quote = character;
+		else if (character === '[') depth += 1;
+		else if (character === ']') depth = Math.max(0, depth - 1);
+		else if (character === '=' && depth === 0) return [input.slice(0, index), input.slice(index + 1)];
+	}
+	throw new Error(`${optionName} は <selector>=<value> の形式で指定してください: ${input}`);
 }
 
 /**
@@ -195,6 +243,15 @@ async function shootOne(context, opts, pagePath, theme, viewport) {
 	page.on("pageerror", (err) => pageErrors.push(String(err)));
 
 	await page.emulateMedia({ colorScheme: theme });
+	if (opts.from) {
+		const fromPath = normalizePagePath(opts.from);
+		await page.goto(`${opts.base}${fromPath}`, { waitUntil: "load", timeout: 60_000 });
+		await page.waitForLoadState("networkidle").catch(() => {});
+		for (const selector of opts.fromClick) {
+			await resolveLocator(page, selector).first().click({ timeout: 30_000 });
+		}
+		await page.waitForTimeout(250);
+	}
 	const url = `${opts.base}${pagePath}`;
 	const response = await page.goto(url, { waitUntil: "domcontentloaded", timeout: 60_000 });
 	const status = response?.status() ?? 0;
@@ -210,16 +267,25 @@ async function shootOne(context, opts, pagePath, theme, viewport) {
 	const pyodideWaited = pyodideResult !== null;
 	const engineStatusVisible = pyodideResult?.engineStatusVisible ?? false;
 
+	for (const value of opts.fill) {
+		const [selector, text] = splitPair(value, '--fill');
+		await resolveLocator(page, selector).first().fill(text, { timeout: 30_000 });
+	}
+	for (const value of opts.select) {
+		const [selector, selectedValue] = splitPair(value, '--select');
+		await resolveLocator(page, selector).first().selectOption(selectedValue, { timeout: 30_000 });
+	}
 	for (const selector of opts.click) {
 		await resolveLocator(page, selector).first().click({ timeout: 30_000 });
 	}
-	if (opts.click.length > 0) {
+	if (opts.click.length > 0 || opts.fill.length > 0 || opts.select.length > 0) {
 		await page.mouse.move(0, 0);
 		await page.evaluate(() => {
 			if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
 		});
 		await page.waitForTimeout(250);
 	}
+	if (opts.waitMs > 0) await page.waitForTimeout(opts.waitMs);
 
 	let cloned = null;
 	if (opts.clone) {
@@ -302,7 +368,10 @@ async function main() {
 				"  --scale 3                           細部を見るときの拡大率",
 				"  --clip <selector> [--clip-pad 24]   その要素だけを撮る",
 				"  --clone <selector> --clone-count 40 密度検証用にDOMを複製(DBは汚さない)",
-				"  --click <selector>   安全と確認済みの要素をクリックしてから撮る(複数指定可)",
+				"  --click <selector> / --fill <sel=value> / --select <sel=value>",
+				"  --local-storage <key=value>          UIを触らず撮影状態を準備",
+				"  --wait-ms <ms>                       操作後の非同期描画を待機",
+				"  --from <path> [--from-click <sel>]   同じcontextで遷移元を準備",
 				"  --full / --wait <sel> / --tag <str> / --out <dir> / --keep-toolbar / --guest",
 				"",
 				"詳細はこのファイル冒頭のコメントを参照。",
@@ -333,6 +402,16 @@ async function main() {
 	const results = [];
 	try {
 		if (opts.guest) await applyGuestCookie(context, opts.base);
+		if (opts.localStorage.length > 0) {
+			const entries = opts.localStorage.map((value) => splitPair(value, '--local-storage'));
+			await context.addInitScript((storedEntries) => {
+				try {
+					for (const [key, value] of storedEntries) window.localStorage.setItem(key, value);
+				} catch {
+					// about:blank 等のopaque originでは保存できない。対象ページでは同じscriptが再実行される。
+				}
+			}, entries);
+		}
 		for (const pagePath of pages) {
 			for (const theme of themes) {
 				process.stderr.write(`撮影中: ${pagePath} (${theme}) ...\n`);

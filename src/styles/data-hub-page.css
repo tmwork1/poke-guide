@@ -311,25 +311,3 @@ body.data-hub-page .app-main > .second-header {
   padding: var(--space-6) 0; /* 「もっと見る」周辺の上下余白。大きくすると一覧から離れる */
 }
 .top-builds-load-more-wrap[hidden], #top-builds-load-more[hidden], #top-builds-empty[hidden], .top-builds-list .ranked-team-status[hidden] { display: none; }
-
-/* メインヘッダー直下に固定する、上位チームの検索・シーズン操作バー */
-.top-builds-second-header[hidden] { display: none; }
-/* 上位チーム検索バーのポケモン名検索欄。シーズン選択以外の横幅を使う */
-.top-builds-second-header .search-input-wrap {
-  flex: 1;
-  min-width: 0;
-}
-/* 上位チーム検索バーのシーズンラベルと選択欄 */
-.top-builds-season-field {
-  display: flex;
-  flex: 0 0 auto;
-  align-items: center;
-  gap: var(--space-2); /* シーズンラベルと選択欄の間隔。大きくすると横に離れる */
-}
-/* 上位チームのシーズン選択欄に付く「シーズン」ラベル */
-.top-builds-season-field label {
-  color: var(--data-hub-muted-color);
-  font-size: var(--font-size-sm2); /* シーズン選択ラベル。大きくすると操作内容が分かりやすい */
-  white-space: nowrap;
-}
-@media (max-width: 420px) { .top-builds-season-field label { display: none; } }

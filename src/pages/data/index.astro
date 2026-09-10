@@ -7,7 +7,7 @@ import BattleDataCard from '../../components/data/BattleDataCard.astro';
 import type { SingleFormatData } from '../../lib/battle-data-card';
 import { getOpggUsageBattleDataList, getOpggUsageManifest, sortOpggSeasons } from '../../lib/opgg-usage';
 import { listRankedSeasons } from '../../lib/ranked-teams';
-import { ALL_SEASONS_PARAM, resolveDefaultSeason } from '../../lib/ranked-teams-validation';
+import { resolveDefaultSeason } from '../../lib/ranked-teams-validation';
 import { getSupabasePublicClient } from '../../lib/supabase';
 import { championSpriteIconUrl, championSpriteUrl, officialArtworkUrl } from '../../lib/pokemon-master-data';
 import pokemonMasterRaw from '../../../public/master-data/autocomplete/pokemon.json';
@@ -18,9 +18,11 @@ import '../../styles/team-card.css';
 import '../../styles/team-mate-card.css';
 import '../../styles/app-header.css';
 import '../../styles/second-header.css';
+import '../../styles/ranked-teams-search-header.css';
 import AppHeader from '../../components/AppHeader.astro';
 import SecondHeader from '../../components/SecondHeader.astro';
 import DataHubTabs from '../../components/data/DataHubTabs.astro';
+import RankedTeamsSearchHeader from '../../components/ranked-teams/RankedTeamsSearchHeader.astro';
 
 let rankedSeasons: Awaited<ReturnType<typeof listRankedSeasons>> = [];
 let rankedSeasonsError = '';
@@ -116,41 +118,12 @@ const BATTLE_DATA_SSR_CARD_COUNT = 8;
 	)}
 
 	{isTopBuilds && (
-	<SecondHeader ariaLabel="上位チームを検索・切り替え" class="top-builds-second-header" data-top-builds-header>
-		<div class="second-header-search">
-			<div class="search-input-wrap">
-				<svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-					<circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-				</svg>
-				<input id="top-builds-search" type="search" class="field-control" placeholder="ポケモン・もちもの・わざ" aria-label="ポケモン・もちもの・わざを検索" autocomplete="off" />
-			</div>
-		</div>
-		<div class="top-builds-season-field">
-			<label for="top-builds-season">シーズン</label>
-			<select id="top-builds-season" class="field-control" disabled={rankedSeasons.length === 0}>
-				<option value={ALL_SEASONS_PARAM}>すべて</option>
-				{rankedSeasons.map((entry) => <option value={entry.season} selected={entry.season === defaultRankedSeason}>{entry.season}</option>)}
-			</select>
-		</div>
-		<div class="second-header-density toolbar-item toolbar-density">
-			<button
-				type="button"
-				id="top-builds-display-density-toggle"
-				class="density-toggle btn-control"
-				data-mode="expanded"
-				aria-label="圧縮表示に切り替える"
-			>
-				<svg class="density-toggle-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-					<rect x="2" y="4" width="5" height="5" rx="1" />
-					<rect x="10" y="4" width="5" height="5" rx="1" />
-					<rect x="18" y="4" width="5" height="5" rx="1" />
-					<rect x="2" y="12" width="5" height="5" rx="1" />
-					<rect x="10" y="12" width="5" height="5" rx="1" />
-					<rect x="18" y="12" width="5" height="5" rx="1" />
-				</svg>
-			</button>
-		</div>
-	</SecondHeader>
+		<RankedTeamsSearchHeader
+			idPrefix="top-builds"
+			seasons={rankedSeasons}
+			defaultSeason={defaultRankedSeason}
+			class="top-builds-second-header"
+		/>
 	)}
 
 	<div class="data-hub-scroll" data-data-hub-scroll>
@@ -463,8 +436,7 @@ const BATTLE_DATA_SSR_CARD_COUNT = 8;
 	<script>
 		import type { RankedTeam } from '../../lib/ranked-teams';
 		import { matchesTopBuildSearch, RANKED_TEAMS_PAGE_SIZE } from '../../lib/ranked-teams-validation';
-		import { renderTopBuildCard } from '../../lib/ranked-teams/card';
-		import { renderTeamMateSlots, type TeamMateCardPokemon } from '../../lib/team-mate-card';
+		import { createRankedTeamCardRenderer, setupRankedTeamsSearchHeader } from '../../lib/ranked-teams/search-header';
 
 		interface RankedTeamsResponse { season: string; teams: RankedTeam[]; hasMore: boolean; }
 		interface RankedTeamsCache { teams: RankedTeam[]; hasMore: boolean; }
@@ -476,104 +448,35 @@ const BATTLE_DATA_SSR_CARD_COUNT = 8;
 			const error = document.querySelector<HTMLElement>('#top-builds-error')!;
 			const empty = document.querySelector<HTMLElement>('#top-builds-empty')!;
 			const loadMore = document.querySelector<HTMLButtonElement>('#top-builds-load-more')!;
-			const search = document.querySelector<HTMLInputElement>('#top-builds-search')!;
-			const seasonSelect = document.querySelector<HTMLSelectElement>('#top-builds-season')!;
-			const densityToggle = document.querySelector<HTMLButtonElement>('#top-builds-display-density-toggle')!;
 			const cache = new Map<string, RankedTeamsCache>();
 			let currentTeams: RankedTeam[] = [];
 			let hasMore = false;
 			let isLoadingMore = false;
-			let debounceTimer: ReturnType<typeof setTimeout> | undefined;
-			type TopBuildsDisplayMode = 'expanded' | 'compressed';
-			const TOP_BUILDS_DISPLAY_DENSITY_STORAGE_KEY = 'poke-guide:top-builds-display-density';
-
-			function loadDisplayMode(): TopBuildsDisplayMode {
-				try {
-					return window.localStorage.getItem(TOP_BUILDS_DISPLAY_DENSITY_STORAGE_KEY) === 'compressed'
-						? 'compressed'
-						: 'expanded';
-				} catch {
-					// localStorage が利用できない環境では、従来どおり展開表示を既定にする。
-					return 'expanded';
-				}
-			}
-
-			function saveDisplayMode(): void {
-				try {
-					window.localStorage.setItem(TOP_BUILDS_DISPLAY_DENSITY_STORAGE_KEY, displayMode);
-				} catch {
-					// 保存できなくても、現在開いているページでの切り替えは維持する。
-				}
-			}
-
-			let displayMode: TopBuildsDisplayMode = loadDisplayMode();
-
-			const DENSITY_ICON_EXPANDED = `<svg class="density-toggle-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="4" width="5" height="5" rx="1"/><rect x="10" y="4" width="5" height="5" rx="1"/><rect x="18" y="4" width="5" height="5" rx="1"/><rect x="2" y="12" width="5" height="5" rx="1"/><rect x="10" y="12" width="5" height="5" rx="1"/><rect x="18" y="12" width="5" height="5" rx="1"/></svg>`;
-			const DENSITY_ICON_COMPRESSED = `<svg class="density-toggle-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="10" width="5" height="5" rx="1"/><rect x="10" y="10" width="5" height="5" rx="1"/><rect x="18" y="10" width="5" height="5" rx="1"/></svg>`;
-
-			function updateDensityToggleUi(): void {
-				densityToggle.dataset.mode = displayMode;
-				densityToggle.innerHTML = displayMode === 'expanded' ? DENSITY_ICON_EXPANDED : DENSITY_ICON_COMPRESSED;
-				densityToggle.setAttribute(
-					'aria-label',
-					displayMode === 'expanded' ? '圧縮表示に切り替える' : '展開表示に切り替える',
-				);
-			}
 
 			function filteredTeams(): RankedTeam[] {
-				return currentTeams.filter((team) => matchesTopBuildSearch(team.members, search.value));
-			}
-
-			// 圧縮表示のカードをタップすると、そのカードだけ展開表示に切り替える
-			// (記事リンクのタップは通常どおり遷移させ、展開はしない)。全体トグルを
-			// 押すとリセットする(トグルが「全カードをこの表示にする」操作として機能するように)。
-			const tapExpandedTeamIds = new Set<string>();
-
-			function renderCard(team: RankedTeam): HTMLElement {
-				const isCompressed = displayMode === 'compressed' && !tapExpandedTeamIds.has(team.id);
-				const card = renderTopBuildCard(team, {
-					renderMembers: isCompressed
-						? (container) => {
-								container.className = 'team-mate-grid';
-								const mateMembersBySlot = new Map<number, TeamMateCardPokemon>(
-									team.members.map((member) => [
-										member.slot,
-										{ species_name: member.speciesKey ?? member.speciesName, item_name: member.itemName },
-									]),
-								);
-								renderTeamMateSlots({
-									root: container,
-									membersBySlot: mateMembersBySlot,
-									displayName: (p) => p.species_name || 'ポケモン',
-								});
-							}
-						: undefined,
-				});
-				if (isCompressed) {
-					card.addEventListener('click', (event) => {
-						if (event.target instanceof Element && event.target.closest('.card-team-article-link')) return;
-						tapExpandedTeamIds.add(team.id);
-						render();
-					});
-				}
-				return card;
+				return currentTeams.filter((team) => matchesTopBuildSearch(team.members, header.getSearchValue()));
 			}
 
 			function render(): void {
 				const filtered = filteredTeams();
-				cards.replaceChildren(...filtered.map((team) => renderCard(team)));
+				cards.replaceChildren(...filtered.map((team) => cardRenderer.renderCard(team)));
 				empty.hidden = filtered.length !== 0;
 				loadMore.hidden = !hasMore;
 			}
 
-			densityToggle.addEventListener('click', () => {
-				displayMode = displayMode === 'expanded' ? 'compressed' : 'expanded';
-				tapExpandedTeamIds.clear();
-				saveDisplayMode();
-				updateDensityToggleUi();
-				render();
+			const header = setupRankedTeamsSearchHeader({
+				idPrefix: 'top-builds',
+				onSearchChange: render,
+				onDensityChange: () => {
+					cardRenderer.resetTapExpandedTeams();
+					render();
+				},
+				onSeasonChange: (season) => void selectSeason(season),
 			});
-			updateDensityToggleUi();
+			const cardRenderer = createRankedTeamCardRenderer({
+				getDisplayMode: header.getDisplayMode,
+				onCardExpand: render,
+			});
 
 			async function loadPage(season: string, reset = false): Promise<void> {
 				if (isLoadingMore) return;
@@ -622,15 +525,8 @@ const BATTLE_DATA_SSR_CARD_COUNT = 8;
 				}
 			}
 
-			search.addEventListener('input', () => {
-				if (debounceTimer !== undefined) clearTimeout(debounceTimer);
-				debounceTimer = setTimeout(() => {
-					render();
-				}, 150);
-			});
-			seasonSelect.addEventListener('change', () => void selectSeason(seasonSelect.value));
 			loadMore.addEventListener('click', () => {
-				void loadPage(seasonSelect.value).then(render).catch((cause) => {
+				void loadPage(header.getSeason()).then(render).catch((cause) => {
 					error.textContent = cause instanceof Error ? cause.message : '上位チームを取得できませんでした';
 					error.hidden = false;
 				});
