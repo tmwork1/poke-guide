@@ -130,8 +130,17 @@ body.team-edit-page {
 	justify-content: center;
 	gap: var(--team-matchup-suggest-gap);
 	min-height: var(--team-matchup-suggest-height);
+	/* 帯の外側の余白は上下とも8px。下側は results の scroll inset が同じ8pxを作るので、
+	   ここでは上だけをマージンで足し、アイコンの上下が均等に空くようにする
+	   (一覧側の上マージンは下の .team-matchup-list 上書きで0にする)。 */
+	margin-top: var(--space-2);
 	padding: var(--space-2) var(--space-3);
 	background: var(--color-bg);
+}
+/* .team-matchup-list の上マージンは /box/matchup 用。チームの相性タブでは
+   おすすめ帯との間隔を results の scroll inset だけで作る。 */
+.team-matchup-mobile__results .team-matchup-list {
+	margin-top: 0;
 }
 .team-matchup-suggest__label {
 	flex: 0 0 auto;
