@@ -4,6 +4,7 @@ import {
 	loadImageIdMap,
 	loadMoveDetailMap,
 	loadMultiHitMoveMap,
+	loadTypeChart,
 	loadTypesMap,
 	officialArtworkUrl,
 } from './pokemon-master-data';
@@ -25,10 +26,12 @@ import {
 	pickOpponentAttackMoves,
 	pickTeamAttackMoves,
 	scoreToOpacities,
+	suggestMatchupTypes,
 	type MatchupDirection,
 	type PopularMoveOption,
 } from './team-matchup';
 import { DEFAULT_TYPE_COLOR, TYPE_COLORS } from './type-colors';
+import { typeIconUrl } from './sprite-urls';
 
 /** 相性計算に必要な、所有ポケモンの最小限の情報。 */
 export interface MatchupPanelMember {
@@ -171,6 +174,8 @@ export interface MatchupPanelOptions {
 	listElement: HTMLElement;
 	statusElement: HTMLElement;
 	directionTabsElement?: HTMLElement;
+	/** チーム画面だけが渡すおすすめタイプの表示先。未指定なら既存の相性パネルだけを描画する。 */
+	suggestTypesElement?: HTMLElement;
 	getMembers: () => MatchupPanelMember[];
 	emptyMembersMessage?: string;
 }
@@ -183,7 +188,7 @@ export interface MatchupPanel {
 
 /** 相性結果の取得、計算、進捗表示、カード描画をまとめたクライアント用パネル。 */
 export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
-	const { listElement, statusElement, directionTabsElement, getMembers } = options;
+	const { listElement, statusElement, directionTabsElement, suggestTypesElement, getMembers } = options;
 	let requestId = 0;
 	let timer: number | undefined;
 	let activeDirection: MatchupDirection = 'attack';
@@ -271,6 +276,44 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 		listElement.innerHTML = '';
 		listElement.removeAttribute('aria-busy');
 		cardElements = [];
+	}
+
+	function clearSuggestedTypes(): void {
+		suggestTypesElement?.replaceChildren();
+	}
+
+	function renderSuggestedTypes(
+		targets: MatchupTarget[],
+		scores: (number | null)[],
+		typesMap: Map<string, string[]>,
+		isAttackMove: (moveName: string) => boolean,
+		getMoveType: (moveName: string) => string | null,
+		typeChart: Record<string, Record<string, number>>,
+	): void {
+		if (!suggestTypesElement) return;
+		const opponentAttackMoveTypes = targets.map((target) => [...new Set(
+			pickOpponentAttackMoves(target.moves, isAttackMove)
+				.map(getMoveType)
+				.filter((type): type is string => type !== null),
+		)]);
+		const suggestedTypes = suggestMatchupTypes({
+			direction: activeDirection,
+			targets,
+			targetTypes: typesMap,
+			directionScores: scores,
+			typeChart,
+			opponentAttackMoveTypes,
+		});
+		const icons = suggestedTypes.flatMap((type) => {
+			const url = typeIconUrl(type);
+			if (!url) return [];
+			const icon = document.createElement('img');
+			icon.className = 'team-matchup-suggest__icon';
+			icon.src = url;
+			icon.alt = type;
+			return [icon];
+		});
+		suggestTypesElement.replaceChildren(...icons);
 	}
 
 	function createMatchupCards(
@@ -391,6 +434,7 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 		if (direction === activeDirection) return;
 		activeDirection = direction;
 		closeMovePopover();
+		clearSuggestedTypes();
 		updateDirectionTabs();
 		void run();
 	}
@@ -404,6 +448,7 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 
 	async function run(): Promise<void> {
 		const currentRequestId = (requestId += 1);
+		clearSuggestedTypes();
 		// 対象カードを先に描画し、Pyodide の準備・計算結果は後追いで反映する。
 		// 進捗文が出入りすると一覧の開始位置が動くため、通常の処理中は表示しない。
 		setStatus(null);
@@ -423,7 +468,7 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 			setStatus('集計データがまだありません。');
 			return;
 		}
-		const [typesMap, moveDetails] = await Promise.all([loadTypesMap(), loadMoveDetailMap()]);
+		const [typesMap, moveDetails, typeChart] = await Promise.all([loadTypesMap(), loadMoveDetailMap(), loadTypeChart()]);
 		if (currentRequestId !== requestId) return;
 		const isAttackMove = (moveName: string): boolean => {
 			const detail = moveDetails.get(moveName);
@@ -441,6 +486,7 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 		const cachedDirectionScores = cached?.[activeDirection];
 		if (cachedDirectionScores) {
 			renderMatchupList(targets, cachedDirectionScores, typesMap, isAttackMove, getMoveType, members);
+			renderSuggestedTypes(targets, cachedDirectionScores, typesMap, isAttackMove, getMoveType, typeChart);
 			setStatusForScores(targets, cachedDirectionScores);
 			return;
 		}
@@ -516,6 +562,7 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 		if (currentRequestId !== requestId) return;
 		scores[activeDirection] = directionScores;
 		scoreCache.set(cacheKey, scores);
+		renderSuggestedTypes(targets, directionScores, typesMap, isAttackMove, getMoveType, typeChart);
 		setStatusForScores(targets, directionScores);
 	}
 
@@ -525,6 +572,7 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 			window.clearTimeout(timer);
 			requestId += 1;
 			scoreCache.clear();
+			clearSuggestedTypes();
 			timer = window.setTimeout(() => void run(), delay);
 		},
 		setDirection,

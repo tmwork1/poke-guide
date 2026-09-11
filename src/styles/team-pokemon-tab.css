@@ -123,6 +123,31 @@ body.team-edit-page {
 	min-width: 0;
 	max-width: 324px;
 }
+.team-matchup-suggest {
+	display: flex;
+	align-items: center;
+	gap: var(--space-3);
+	min-height: var(--team-formation-mobile-suggest-height);
+	padding: var(--space-2) var(--space-3);
+	background: var(--color-bg);
+}
+.team-matchup-suggest__label {
+	flex: 0 0 auto;
+	color: var(--color-text-muted);
+	font-size: var(--font-size-sm2);
+}
+.team-matchup-suggest__icons {
+	display: grid;
+	grid-template-columns: repeat(5, var(--team-pokemon-tab-suggest-icon-size));
+	flex: 0 0 auto;
+	width: calc(5 * var(--team-pokemon-tab-suggest-icon-size));
+	margin-left: auto;
+}
+.team-matchup-suggest__icon {
+	width: var(--team-pokemon-tab-suggest-icon-size);
+	height: var(--team-pokemon-tab-suggest-icon-size);
+	object-fit: contain;
+}
 .team-formation-suggest-icon {
 	justify-self: center;
 	width: var(--team-pokemon-tab-suggest-icon-size);
@@ -185,6 +210,9 @@ body.team-edit-page {
 	flex: 0 0 auto;
 }
 .team-edit-shell[data-mobile-tab="matchup"] #team-matchup-mobile > .matchup-direction-tabs {
+	flex: 0 0 auto;
+}
+.team-edit-shell[data-mobile-tab="matchup"] #team-matchup-mobile > .team-matchup-suggest {
 	flex: 0 0 auto;
 }
 .team-edit-shell[data-mobile-tab="formation"] .team-formation-mobile__box,

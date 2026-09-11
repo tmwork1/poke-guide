@@ -284,6 +284,10 @@ if (!isGuestNewMode) {
 						<button type="button" class="matchup-direction-tab" role="tab" aria-selected="true" data-matchup-direction="attack" aria-label="攻撃">攻</button>
 						<button type="button" class="matchup-direction-tab" role="tab" aria-selected="false" data-matchup-direction="defense" aria-label="防御">守</button>
 					</div>
+					<div id="team-matchup-suggest" class="team-matchup-suggest" aria-label="おすすめタイプ">
+						<span class="team-matchup-suggest__label">おすすめ</span>
+						<div id="team-matchup-suggest-icons" class="team-matchup-suggest__icons"></div>
+					</div>
 					<div class="team-matchup-mobile__results">
 						<p id="team-matchup-mobile-status" class="team-matchup-status" hidden></p>
 						<ul id="team-matchup-mobile-list" class="team-matchup-list"></ul>
@@ -1407,6 +1411,7 @@ if (!isGuestNewMode) {
 			const matchupMobileStatusEl = el<HTMLElement>("team-matchup-mobile-status");
 			const matchupMobileListEl = el<HTMLElement>("team-matchup-mobile-list");
 			const matchupDirectionTabsEl = el<HTMLElement>("team-matchup-direction-tabs");
+			const matchupSuggestTypesEl = el<HTMLElement>("team-matchup-suggest-icons");
 			function matchupTeamMembers(): OwnedPokemonRecord[] {
 				const members: OwnedPokemonRecord[] = [];
 				for (let slot = 1; slot <= 6; slot += 1) {
@@ -1420,6 +1425,7 @@ if (!isGuestNewMode) {
 				listElement: matchupMobileListEl,
 				statusElement: matchupMobileStatusEl,
 				directionTabsElement: matchupDirectionTabsEl,
+				suggestTypesElement: matchupSuggestTypesEl,
 				getMembers: matchupTeamMembers,
 			});
 

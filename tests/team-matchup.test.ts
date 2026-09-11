@@ -17,6 +17,7 @@ import {
   pickOpponentAttackMoves,
   pickTeamAttackMoves,
   scoreToOpacities,
+  suggestMatchupTypes,
 } from '../src/lib/team-matchup.ts';
 
 // 実データ(migrations/014 の suggestions.kind='popular_move')に近い形の入力。
@@ -34,6 +35,49 @@ const GARCHOMP_MOVES = [
 
 const STATUS_MOVES = new Set(['ステルスロック', 'つるぎのまい', 'まもる', 'みがわり', 'こうそくいどう']);
 const isAttackMove = (name: string) => !STATUS_MOVES.has(name);
+
+const TEST_TYPE_CHART = {
+  ほのお: { くさ: 2, ほのお: 0.5 },
+  みず: { ほのお: 2, くさ: 0.5 },
+  くさ: { みず: 2, ほのお: 0.5 },
+};
+
+describe('suggestMatchupTypes', () => {
+  it('攻撃で通りにくいくさタイプの相手には、弱点を突けるほのおが上位に来る', () => {
+    const suggested = suggestMatchupTypes({
+      direction: 'attack',
+      targets: [{ speciesName: 'テストくさ' }],
+      targetTypes: new Map([['テストくさ', ['くさ']]]),
+      directionScores: [1],
+      typeChart: TEST_TYPE_CHART,
+      opponentAttackMoveTypes: [[]],
+    });
+    assert.equal(suggested[0], 'ほのお');
+  });
+
+  it('防御でみず技が脅威なら、半減できるくさが上位に来る', () => {
+    const suggested = suggestMatchupTypes({
+      direction: 'defense',
+      targets: [{ speciesName: 'テストみず' }],
+      targetTypes: new Map(),
+      directionScores: [1],
+      typeChart: TEST_TYPE_CHART,
+      opponentAttackMoveTypes: [['みず']],
+    });
+    assert.equal(suggested[0], 'くさ');
+  });
+
+  it('有効な相手がいなければ候補を出さない', () => {
+    assert.deepEqual(suggestMatchupTypes({
+      direction: 'attack',
+      targets: [],
+      targetTypes: new Map(),
+      directionScores: [],
+      typeChart: TEST_TYPE_CHART,
+      opponentAttackMoveTypes: [],
+    }), []);
+  });
+});
 
 describe('OPPONENT_EVS', () => {
   it('ユーザー指示どおりHのみ32振り(チャンピオンズ形式)', () => {

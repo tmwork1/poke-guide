@@ -9,6 +9,8 @@
 // tests/team-matchup.test.ts)。実際のダメージ計算は src/lib/pyodide-engine.ts の
 // calcMaxDamageMatrix()、相手ポケモンの取得は GET /api/matchup-targets が担う。
 //
+import { TYPE_COLORS } from './type-colors.ts';
+
 // =============================================================================
 // 仕様
 // =============================================================================
@@ -57,6 +59,85 @@ export const MATCHUP_MIN_OPACITY = 0.25;
 export const MATCHUP_SCORE_MIN_RANGE = 0.25;
 
 export type MatchupDirection = 'attack' | 'defense';
+
+/** おすすめ候補は通常の18タイプだけ。ステラは通常の相性表に載らない特殊タイプなので除く。 */
+export const MATCHUP_SUGGESTION_TYPES = Object.keys(TYPE_COLORS).filter((type) => type !== 'ステラ');
+
+export interface MatchupTypeSuggestionTarget {
+	speciesName: string;
+}
+
+export interface MatchupTypeSuggestionInput {
+	direction: MatchupDirection;
+	targets: readonly MatchupTypeSuggestionTarget[];
+	targetTypes: ReadonlyMap<string, readonly string[]>;
+	directionScores: readonly (number | null)[];
+	typeChart: Readonly<Record<string, Readonly<Record<string, number>>>>;
+	/** targets と同じ添字の、相手の採用攻撃技から解決した重複なしのタイプ群。 */
+	opponentAttackMoveTypes: readonly (readonly string[])[];
+}
+
+function typeEffectiveness(
+	typeChart: Readonly<Record<string, Readonly<Record<string, number>>>>,
+	attackType: string,
+	defenseTypes: readonly string[],
+): number {
+	return defenseTypes.reduce((effectiveness, defenseType) =>
+		effectiveness * (typeChart[attackType]?.[defenseType] ?? 1), 1);
+}
+
+function log2Effectiveness(effectiveness: number, immunityValue: number): number {
+	return effectiveness === 0 ? immunityValue : Math.log2(effectiveness);
+}
+
+/**
+ * 現在の相性計算で不利だった相手を重く見て、補うべきタイプを順位付けする。
+ *
+ * 攻撃側は「通らない相手」へ弱点を突けるほど加点するため log2(倍率) を使う。倍率は
+ * 0.5 / 1 / 2 の段階なので、2倍=+1・4倍=+2 と複合タイプの強みも自然に加算できる。
+ * 防御側は相手技を受ける倍率の逆向き -log2(倍率) を平均し、技が多い相手だけで順位が
+ * 決まらないよう相手ごとに平均する。無効は4倍相当の寄与に丸め、無限大にしない。
+ */
+export function suggestMatchupTypes(input: MatchupTypeSuggestionInput): string[] {
+	const { direction, targets, targetTypes, directionScores, typeChart, opponentAttackMoveTypes } = input;
+	// 相性表を読めなかったときは全タイプが等倍=同点になり、候補リストの先頭5件が
+	// 「おすすめ」として出てしまう。根拠が無い並びなので何も出さない。
+	if (Object.keys(typeChart).length === 0) return [];
+	const scoredTypes = MATCHUP_SUGGESTION_TYPES.map((type, index) => {
+		let score = 0;
+		let validTargetCount = 0;
+		for (let targetIndex = 0; targetIndex < targets.length; targetIndex += 1) {
+			const disadvantage = directionScores[targetIndex];
+			if (disadvantage === null || disadvantage === undefined) continue;
+			if (direction === 'attack') {
+				const defenseTypes = targetTypes.get(targets[targetIndex].speciesName) ?? [];
+				score += disadvantage * log2Effectiveness(
+					typeEffectiveness(typeChart, type, defenseTypes),
+					-2,
+				);
+				validTargetCount += 1;
+				continue;
+			}
+
+			const moveTypes = opponentAttackMoveTypes[targetIndex] ?? [];
+			if (moveTypes.length === 0) continue;
+			const defenseScore = moveTypes.reduce(
+				(total, moveType) => total + -log2Effectiveness(typeEffectiveness(typeChart, moveType, [type]), -2),
+				0,
+			) / moveTypes.length;
+			score += disadvantage * defenseScore;
+			validTargetCount += 1;
+		}
+		return { type, index, score, validTargetCount };
+	});
+
+	// nullだけの計算途中・空チームには、等倍で並んだ見かけだけの候補を出さない。
+	if (scoredTypes[0]?.validTargetCount === 0) return [];
+	return scoredTypes
+		.sort((a, b) => b.score - a.score || a.index - b.index)
+		.slice(0, 5)
+		.map(({ type }) => type);
+}
 
 /** GET /api/matchup-targets が返す、1つの技の採用率。 */
 export interface PopularMoveOption {

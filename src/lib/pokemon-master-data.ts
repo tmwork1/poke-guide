@@ -51,6 +51,25 @@ export async function loadTypesMap(): Promise<Map<string, string[]>> {
   return new Map([...master].map(([name, entry]) => [name, entry.types]));
 }
 
+/** 攻撃タイプ -> 防御タイプ -> 倍率。未知のタイプは利用側で等倍として扱う。 */
+export type TypeChart = Record<string, Record<string, number>>;
+
+let typeChartCache: Promise<TypeChart> | null = null;
+
+// jpoke.data.type_chart.TYPE_MODIFIER から生成したタイプ相性表を、ページ内では1回だけ読む。
+export function loadTypeChart(): Promise<TypeChart> {
+  if (!typeChartCache) {
+    typeChartCache = fetch('/master-data/detail/type-chart.json')
+      .then((res) => res.json() as Promise<TypeChart>)
+      .catch((err) => {
+        console.warn('タイプ相性表の読み込みに失敗しました', err);
+        typeChartCache = null;
+        return {} as TypeChart;
+      });
+  }
+  return typeChartCache;
+}
+
 // Pokemon.png ワイヤーフレームの「ポケモンアイコン(公式絵)」用。
 // ドット絵と同じく public/pokemon-artwork/ から同一オリジンで配信するが、こちらは原画をそのまま
 // 置いていない。原画は475x475/平均145.8KBで1284件=178.6MBになり、gitにもデプロイにも載らない。

@@ -110,6 +110,27 @@ function buildPokemonCoreDetail() {
   console.log(`wrote ${corePath} (${coreBytes}B / 元の ${sourceBytes}B)`);
 }
 
+// タイプ相性は jpoke の TYPE_MODIFIER を唯一の情報源にし、ブラウザ側ではこの軽量JSONを読む。
+// ここで表を再実装すると世代更新時に Python 側のダメージ計算と食い違うため、Pythonからそのまま
+// 書き出す。ensure_ascii=False にして、ほかの日本語マスターデータと同じく可読なキーを保つ。
+function buildTypeChartDetail() {
+  console.log('\n=== タイプ相性表 detail JSON を生成 ===');
+  assertExists(jpokeDir, 'jpoke リポジトリが見つかりません。JPOKE_DIR 環境変数で jpoke リポジトリのパスを指定してください。');
+  assertPythonUsable();
+  mkdirSync(detailOutDir, { recursive: true });
+
+  const outputPath = path.join(detailOutDir, 'type-chart.json');
+  const extractTypeChart = [
+    'import json, sys',
+    'sys.path.insert(0, sys.argv[1])',
+    'from jpoke.data.type_chart import TYPE_MODIFIER',
+    "with open(sys.argv[2], 'w', encoding='utf-8') as output:",
+    '    json.dump(TYPE_MODIFIER, output, ensure_ascii=False)',
+  ].join('\n');
+  run(jpokePython, ['-c', extractTypeChart, jpokeSrcDir, outputPath]);
+  console.log(`wrote ${outputPath} (${readFileSync(outputPath).length}B)`);
+}
+
 // 詳細データから覚え技だけを種族名ハッシュの64シャードへ分け、ブラウザが必要な1枚だけ取得できるようにする。
 // 種族名はJSONのキーに残し、URLのファイル名にはASCIIのシャード番号だけを使う。
 function buildPokemonLearnsets() {
@@ -258,6 +279,7 @@ function main() {
 
   buildAutocomplete();
   buildPokemonCoreDetail();
+  buildTypeChartDetail();
   buildPokemonLearnsets();
   buildLearnsetLookupDetails();
   buildPyodideWheel();
@@ -266,4 +288,10 @@ function main() {
   console.log('\n完了: public/master-data/ 配下にマスタデータを生成しました。');
 }
 
-main();
+// 全マスターデータの再生成を避け、type-chart.json だけを更新・検証したいときに使う。
+// 通常の npm run build:master-data は従来どおり main() を通る。
+if (process.argv.includes('--type-chart-only')) {
+  buildTypeChartDetail();
+} else {
+  main();
+}
