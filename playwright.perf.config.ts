@@ -13,6 +13,10 @@ import { defineConfig, devices } from "@playwright/test";
 export default defineConfig({
   testDir: "./tests/perf/scenarios",
   testMatch: /.*\.perf\.spec\.ts/,
+  // astro dev はルートごとの初回SSR/モジュールグラフ構築を遅延実行する。これが無いと、
+  // 冷えたスイートで最初に通ったシナリオだけに初回コンパイルのコストが載り、repeatEach の
+  // 中央値でも前後比較できないほどぶれるため、全計測ルートを先に一巡して温める。
+  globalSetup: "./tests/perf/lib/perf-global-setup.ts",
   fullyParallel: false,
   workers: 1,
   retries: 0,
