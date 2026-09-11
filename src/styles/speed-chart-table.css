@@ -23,6 +23,8 @@
 	/* ── 7. 余白 ─────────────────────── */
 	--speed-chart-value-padding-inline: var(--space-2); /* 実数値セルの左右余白。大きくすると数値の周囲が広がる */
 	--speed-chart-badge-padding-inline: 0.55em; /* 配分・倍率バッジの左右余白。倍率バッジを配分に寄せる負マージンにも使う */
+	--speed-chart-meta-gap: 0.35em; /* 族・配分の間隔。大きくすると横に離れる */
+	--speed-chart-magnitude-gap: 0.65em; /* 配分の文字と倍率バッジの縁の見た目上の間隔。大きくすると倍率が離れる */
 	--speed-chart-badge-padding: 0.05em var(--speed-chart-badge-padding-inline); /* 配分・倍率バッジの内側余白。大きくするとバッジが大きくなる */
 
 	/* ── 8. 寸法 ─────────────────────── */
@@ -403,7 +405,7 @@
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
-		gap: 0.35em; /* 種族値・配分の間隔。大きくすると横に離れる */
+		gap: var(--speed-chart-meta-gap);
 		min-width: 0;
 		padding-top: 0;
 		font-size: var(--font-size-sm3); /* 最速などの文字サイズ。大きくすると補足情報が目立つ */
@@ -476,7 +478,7 @@
 	.speed-chart-table .speed-chart-magnitude-badge {
 		display: inline-flex;
 		align-items: center;
-		margin-left: calc(-1 * var(--speed-chart-badge-padding-inline)); /* 配分バッジの右paddingを打ち消し、間隔をmeta-cellのgapだけにする */
+		margin-left: calc(var(--speed-chart-magnitude-gap) - var(--speed-chart-meta-gap) - var(--speed-chart-badge-padding-inline)); /* 配分バッジの右paddingとgapを打ち消し、見た目の間隔を--speed-chart-magnitude-gapにする */
 		padding: var(--speed-chart-badge-padding);
 		border-radius: var(--speed-chart-badge-radius);
 		background: var(--color-surface);
