@@ -231,11 +231,14 @@ body.team-edit-page {
 	flex: 1 1 auto;
 	min-height: 0;
 }
-/* 編成タブのおすすめは検索ツールバー直下の通常フローに置く。 */
+/* 編成タブのおすすめは検索ツールバー直下の通常フローに置く。
+   下側の余白はボックス一覧側の --team-pokemon-tab-card-scroll-inset が持つため、
+   帯自身の下パディングは持たせない(両方持つとアイコンの上下の空きがずれる)。 */
 .team-edit-shell[data-mobile-tab="formation"] .team-formation-mobile__sticky-header > .team-formation-mobile__suggest {
 	display: flex;
 	flex: 0 0 auto;
-	min-height: var(--team-formation-mobile-suggest-height);
+	padding-block: var(--team-pokemon-tab-card-scroll-inset) 0;
+	min-height: calc(var(--team-pokemon-tab-suggest-icon-size) + var(--team-pokemon-tab-card-scroll-inset));
 }
 /* global.css の .status-text が display を指定しているため、hidden 属性だけでは
 	空の状態表示が消えず、段落の上下マージンがカード前の隙間として残る。 */

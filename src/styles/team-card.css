@@ -345,8 +345,12 @@
 .team-grid .card-team .card-pokemon--similar .card-artwork img,
 .team-grid .card-team .team-mate-card.card-pokemon--similar .team-mate-card__art,
 .team-grid .card-team .team-mate-card.card-pokemon--similar .team-mate-card__fallback {
-  /* 小さいタイルでも輪郭を読める最小限の、内側2px + 外側4pxの二段グロー。 */
-  filter: drop-shadow(0 0 2px var(--color-primary)) drop-shadow(0 0 4px var(--color-primary));
+  /* 小さいタイルでも輪郭を読める最小限の、内側2px + 外側4pxの二段グロー。
+     一致の目印であって主役ではないため、--color-primary をそのまま使わず
+     透明側へ寄せて明るさを落とす(値を上げると発光が強くなる)。 */
+  filter:
+    drop-shadow(0 0 2px color-mix(in srgb, var(--color-primary) 50%, transparent))
+    drop-shadow(0 0 4px color-mix(in srgb, var(--color-primary) 28%, transparent));
 }
 
 /* 画像端のグローだけをカード外へ逃がし、通常カードのクリップは維持する。 */
