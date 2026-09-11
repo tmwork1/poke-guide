@@ -195,7 +195,9 @@ export async function initSpeedChartPage(): Promise<void> {
   const usageByRegulation = readEmbeddedJson<Record<string, SpeciesUsageCounts>>('speed-chart-usage-data') ?? {};
   const teamCountByRegulation =
     readEmbeddedJson<Record<string, number>>('speed-chart-team-count-data') ?? {};
-  const ownedRecord = hasOwnedPanel ? readEmbeddedJson<OwnedPokemonRecord>('speed-chart-owned-record') : null;
+  // 埋め込みJSONが初期値だが、iframeとして開かれている間は親(育成パネル)の編集内容が
+  // postMessageで届くため上書きされる。
+  let ownedRecord = hasOwnedPanel ? readEmbeddedJson<OwnedPokemonRecord>('speed-chart-owned-record') : null;
 
   const statusEl = document.getElementById('speed-chart-status');
   const tableEl = document.getElementById('speed-chart-rows');
@@ -655,6 +657,27 @@ export async function initSpeedChartPage(): Promise<void> {
 
   window.addEventListener('resize', () => {
     if (pendingInitialScrollValue !== null) requestInitialScroll(pendingInitialScrollValue);
+  });
+
+  // すばやさ調整モーダル(box/[id]のiframe)として開かれている間、親の育成パネルで編集された
+  // 内容を受け取って表を作り直す。保存(PUT)を待たない「編集中の値」なので、ここでは受け取った
+  // レコードを描画に使うだけ(サーバーへ書き戻すのは owned-panel.ts 側の適用操作のまま)。
+  window.addEventListener('message', (event) => {
+    if (event.origin !== window.location.origin) return;
+    const data = event.data as { type?: string; record?: Partial<OwnedPokemonRecord> } | null;
+    if (data?.type !== 'speed-chart:owned-record-updated' || !data.record || !ownedRecord) return;
+    const patch = data.record;
+    const next: OwnedPokemonRecord = {
+      ...ownedRecord,
+      ...patch,
+      // 育成パネルの未入力は空文字で届くが、埋め込みレコード側はnull。owned-panel.tsは
+      // 「持ち物なし」をnull/空文字のどちらでも扱えるが、表示・比較の基準を揃えておく。
+      ability_name: patch.ability_name ? patch.ability_name : null,
+      item_name: patch.item_name ? patch.item_name : null,
+    };
+    if (JSON.stringify(next) === JSON.stringify(ownedRecord)) return;
+    ownedRecord = next;
+    render(currentRegulation);
   });
 
   function findNearestRowElement(targetValue: number): HTMLElement | null {

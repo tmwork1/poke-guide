@@ -24,6 +24,7 @@ const speedChartSrc = `/speed-chart?owned=${encodeURIComponent(pokemonId)}&embed
 
 <script>
 	import { bindModalDismissal } from "../../lib/modal-dismiss";
+	import { OWNED_EDIT_CHANGED_EVENT, type OwnedEditChangedDetail } from "../../lib/box-id/owned-edit-events";
 	const triggers = document.querySelectorAll<HTMLButtonElement>("[data-speed-adjust-trigger]");
 	const backdrop = document.getElementById("speed-adjust-backdrop");
 	const dialog = document.getElementById("speed-adjust-dialog");
@@ -48,6 +49,34 @@ const speedChartSrc = `/speed-chart?owned=${encodeURIComponent(pokemonId)}&embed
 	}
 
 	triggers.forEach((trigger) => trigger.addEventListener("click", () => openDialog(trigger)));
+
+	// iframeは開いた時点のSSRデータで動くため、育成パネル側で持ち物・特性・性格・努力値・種族を
+	// 変えても中身は古いままになる。編集中の内容をそのまま流し込んで即時反映させる(保存の完了は
+	// 待たない。待つと、保存前に開いたときに古い表を見せてしまう)。
+	let latestEdit: OwnedEditChangedDetail | null = null;
+	let frameLoaded = false;
+	let postTimer: number | undefined;
+
+	function postLatestEdit() {
+		if (!frame || !frameLoaded || !latestEdit) return;
+		frame.contentWindow?.postMessage(
+			{ type: "speed-chart:owned-record-updated", record: latestEdit },
+			window.location.origin,
+		);
+	}
+
+	frame?.addEventListener("load", () => {
+		frameLoaded = true;
+		// 読み込み前に来ていた編集内容は、読み込み完了後に改めて送る。
+		postLatestEdit();
+	});
+
+	document.addEventListener(OWNED_EDIT_CHANGED_EVENT, (event) => {
+		latestEdit = (event as CustomEvent<OwnedEditChangedDetail>).detail;
+		// 持ち物名の手入力など1文字ごとに飛んでくる経路があるため、表の再描画はまとめる。
+		if (postTimer !== undefined) window.clearTimeout(postTimer);
+		postTimer = window.setTimeout(postLatestEdit, 150);
+	});
 	// iframe の初期化は重いため、編集画面の初期描画を妨げないアイドル時間に済ませる。
 	// 一度読み込んだ内容は閉じた後も保持し、二回目以降も即座に開けるようにする。
 	const preload = () => {

@@ -40,6 +40,7 @@ import { listGuestTeams } from "../data/guest-store";
 import { isGuestMode } from "../data/guest-mode";
 import { hydrateGuestPagePokemon } from "../data/guest-page-hydration";
 import { createOwnedPokemon, deleteOwnedPokemon, updateOwnedPokemon } from "../data/pokemon-repo";
+import { OWNED_EDIT_CHANGED_EVENT } from "./owned-edit-events";
 import {
 	attachKanaTypeAhead,
 	applySprite,
@@ -1316,6 +1317,11 @@ if (form) {
 	function scheduleSave(): void {
 		syncPokemonPreview();
 		if (isGuestHydrating) return;
+		// すばやさ調整モーダル(iframe)は開いたページのSSRデータのまま動くため、保存の完了を
+		// 待たずに編集中の内容を流し込む(→ SpeedAdjustDialog.astro が iframe へ中継する)。
+		// 編集の入口はすべてscheduleSave()を通るので、ここ1箇所で持ち物・特性・性格・努力値・
+		// 種族のどれが変わっても伝わる。
+		document.dispatchEvent(new CustomEvent(OWNED_EDIT_CHANGED_EVENT, { detail: buildPayload() }));
 		statusEl.dataset.state = "saving";
 		// 進行中表示は画面内で表記を揃えるため全角の三点リーダーを使う。
 		statusTextEl.textContent = "編集中…";
