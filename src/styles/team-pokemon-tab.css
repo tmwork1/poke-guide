@@ -15,7 +15,7 @@ body.team-edit-page {
 
 	/* ── 8. 寸法 ────────────────────────── */
 	--team-pokemon-tab-suggest-icon-size: calc(var(--space-7) + var(--space-1)); /* おすすめアイコンの正方形サイズ */
-	--team-formation-mobile-suggest-height: calc(var(--team-pokemon-tab-suggest-icon-size) + var(--space-4)); /* 下部固定のおすすめ帯が占める高さ */
+	--team-formation-mobile-suggest-height: calc(var(--team-pokemon-tab-suggest-icon-size) + var(--space-4)); /* 編成タブのおすすめ帯の最低高さ */
 	--team-matchup-suggest-icon-size: 24px; /* 相性タブのおすすめタイプアイコンの正方形サイズ。ポケモンアイコンより小さくする */
 	--team-matchup-suggest-gap: var(--space-3); /* 相性タブのおすすめ帯で、見出しとアイコン・アイコン同士を離す固定間隔 */
 	--team-matchup-suggest-height: calc(var(--team-matchup-suggest-icon-size) + var(--space-4)); /* 相性タブのおすすめ帯が占める高さ */
@@ -231,33 +231,11 @@ body.team-edit-page {
 	flex: 1 1 auto;
 	min-height: 0;
 }
-/* おすすめは編成タブだけで下部ナビ直上へ固定する。ボックス一覧だけをスクロール領域に
-   しているため、ここをfixedにしても編成枠・検索バーは動かず、他タブにも残らない。 */
-.team-edit-shell[data-mobile-tab="formation"] #team-formation-mobile > .team-formation-mobile__suggest {
-	position: fixed;
-	right: 0;
-	bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom));
-	left: 0;
-	z-index: 10;
+/* 編成タブのおすすめは検索ツールバー直下の通常フローに置く。 */
+.team-edit-shell[data-mobile-tab="formation"] .team-formation-mobile__sticky-header > .team-formation-mobile__suggest {
 	display: flex;
+	flex: 0 0 auto;
 	min-height: var(--team-formation-mobile-suggest-height);
-	background: var(--color-surface);
-	border-top: 1px solid var(--color-border);
-	box-shadow: var(--shadow-md);
-}
-/* 編成タブだけは下部固定のおすすめ帯がFABの通常位置を占めるため、その高さぶん上へ退避する。
-	他の .floating-list-add-button は共有の通常位置を維持する。 */
-.team-edit-shell[data-mobile-tab="formation"] #team-formation-mobile {
-	--floating-list-add-bottom: calc(
-		var(--bottom-nav-height) + var(--team-formation-mobile-suggest-height) + var(--space-2)
-		+ env(safe-area-inset-bottom) + 24px + (40px - var(--floating-list-add-control-size)) * 0.5
-	);
-}
-/* 固定帯は通常フローから外れるので、一覧末尾のカードが帯の裏へ隠れない分だけ
-   スクロール領域の終端とスクロール先の余白を追加する。 */
-.team-edit-shell[data-mobile-tab="formation"] .team-formation-mobile__box {
-	padding-block-end: calc(var(--team-pokemon-tab-card-scroll-inset) + var(--team-formation-mobile-suggest-height));
-	scroll-padding-block-end: calc(var(--team-pokemon-tab-card-scroll-inset) + var(--team-formation-mobile-suggest-height));
 }
 /* global.css の .status-text が display を指定しているため、hidden 属性だけでは
 	空の状態表示が消えず、段落の上下マージンがカード前の隙間として残る。 */
