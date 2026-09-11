@@ -52,13 +52,14 @@ function statValues(values: readonly number[] | null | undefined, fallback: numb
 function backgroundForTypes(types: readonly string[]): string | undefined {
   if (types.length === 0) return undefined;
   // メガ切替時に使っていた色式をSSRとクライアントで同一にする。
-  const toMixedColor = (typeName: string): string => {
+  const toMixedColor = (typeName: string, ratio = 26): string => {
     const color = TYPE_COLOR_CSS_VARIABLES[typeName] ?? DEFAULT_TYPE_COLOR;
-    return `color-mix(in srgb, ${color} 26%, var(--color-bg))`;
+    return `color-mix(in srgb, ${color} ${ratio}%, var(--color-bg))`;
   };
+  // 単タイプも2タイプと同じく左から右へ薄くなるグラデーションにする(濃さだけを変える)。
   return types.length >= 2
     ? `linear-gradient(to right, ${toMixedColor(types[0])}, ${toMixedColor(types[1])})`
-    : toMixedColor(types[0] ?? '');
+    : `linear-gradient(to right, ${toMixedColor(types[0] ?? '')}, ${toMixedColor(types[0] ?? '', 12)})`;
 }
 
 /**
