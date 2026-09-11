@@ -5,11 +5,11 @@ import { env } from 'cloudflare:workers';
 import { badRequest, jsonResponse, methodNotAllowed } from './_shared';
 import { getOpggUsageList, getOpggUsageManifest, sortOpggSeasons } from '../../lib/opgg-usage';
 import { resolveDexNo } from '../../lib/species-dex';
-import { MATCHUP_TOP_N, type PopularMoveOption } from '../../lib/team-matchup';
+import { MATCHUP_TARGET_LIMIT, MATCHUP_TOP_N, type PopularMoveOption } from '../../lib/team-matchup';
 
 export const prerender = false;
 
-const MAX_LIMIT = 50;
+const MAX_LIMIT = MATCHUP_TARGET_LIMIT;
 
 interface MatchupTarget {
 	speciesName: string;

@@ -12,6 +12,7 @@ import {
   OPPONENT_MIN_MOVE_RATIO,
   averageRatio,
   damageRatio,
+  extendMatchupScores,
   matchupOpacity,
   matchupDisadvantageScore,
   pickOpponentAttackMoves,
@@ -19,6 +20,21 @@ import {
   scoreToOpacities,
   suggestMatchupTypes,
 } from '../src/lib/team-matchup.ts';
+
+describe('extendMatchupScores', () => {
+  it('既計算のスコアを添字ごと残し、増えたぶんだけ未計算の枠を足す', () => {
+    const scores = [0.2, null, 0.8];
+    const extended = extendMatchupScores(scores, 6);
+
+    assert.deepEqual(extended, [0.2, null, 0.8, undefined, undefined, undefined]);
+    assert.equal(extended[1], null);
+  });
+
+  it('すでに件数が足りていれば既存の配列をそのまま返す', () => {
+    const scores = [0.2, null, 0.8];
+    assert.equal(extendMatchupScores(scores, 2), scores);
+  });
+});
 
 // 実データ(migrations/014 の suggestions.kind='popular_move')に近い形の入力。
 // ガブリアスの実測値(じしん0.932 / ステルスロック0.473 / げきりん0.402 /

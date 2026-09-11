@@ -296,6 +296,7 @@ if (!isGuestNewMode) {
 					<div class="team-matchup-mobile__results">
 						<p id="team-matchup-mobile-status" class="team-matchup-status" hidden></p>
 						<ul id="team-matchup-mobile-list" class="team-matchup-list"></ul>
+						<button id="team-matchup-mobile-more" type="button" class="btn-ghost matchup-more-button" hidden>さらに表示</button>
 					</div>
 				</section>
 				<section id="team-data-mobile" class="floating-list-page" aria-label="類似チーム">
@@ -1429,6 +1430,7 @@ if (!isGuestNewMode) {
 			const matchupPanel = createMatchupPanel({
 				listElement: matchupMobileListEl,
 				statusElement: matchupMobileStatusEl,
+				moreButtonElement: document.querySelector<HTMLButtonElement>("#team-matchup-mobile-more") ?? undefined,
 				directionTabsElement: matchupDirectionTabsEl,
 				suggestTypesElement: matchupSuggestTypesEl,
 				getMembers: matchupTeamMembers,

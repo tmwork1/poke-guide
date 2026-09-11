@@ -63,6 +63,7 @@ const canRenderSelectedPokemon = result?.ok || (!user && selectedId !== null);
             <ul id="box-matchup-list" class="team-matchup-list" aria-busy="true">
               {Array.from({ length: MATCHUP_TOP_N }, () => <li class="team-matchup-card" data-state="pending" aria-hidden="true"></li>)}
             </ul>
+			<button id="box-matchup-more" type="button" class="btn-ghost matchup-more-button" hidden>さらに表示</button>
           </div>
         </section>
       </main>
@@ -77,6 +78,7 @@ const canRenderSelectedPokemon = result?.ok || (!user && selectedId !== null);
   const main = document.querySelector<HTMLElement>('#box-matchup-main');
   const listElement = document.querySelector<HTMLElement>('#box-matchup-list');
   const statusElement = document.querySelector<HTMLElement>('#box-matchup-status');
+  const moreButtonElement = document.querySelector<HTMLButtonElement>('#box-matchup-more');
   const directionTabsElement = document.querySelector<HTMLElement>('.matchup-direction-tabs');
   const pokemonJson = main?.dataset.pokemon;
 
@@ -87,6 +89,7 @@ const canRenderSelectedPokemon = result?.ok || (!user && selectedId !== null);
     const matchupPanel = createMatchupPanel({
       listElement,
       statusElement,
+		moreButtonElement: moreButtonElement ?? undefined,
       directionTabsElement,
       getMembers: () => [pokemon],
     });

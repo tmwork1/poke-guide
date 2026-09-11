@@ -35,8 +35,23 @@ export const OPPONENT_NATURE = 'まじめ';
 /** 防御側の相手が持つ技の最大数(実機の4枠に合わせる)。 */
 export const OPPONENT_MIN_MOVE_RATIO = 0.2;
 
-/** 相性チェックの対象にする使用率上位の体数。 */
+/** 相性チェックで一度に表示する使用率上位の件数。 */
 export const MATCHUP_TOP_N = 30;
+
+/** 段階表示用に一度だけ取得する使用率ランキングの上限。 */
+export const MATCHUP_TARGET_LIMIT = 200;
+
+/**
+ * ランキングの添字と対応するスコアキャッシュを、既計算分を保ったまま拡張する。
+ * `undefined` は未計算、`null` は計算不可を表す。
+ */
+export function extendMatchupScores(
+	scores: (number | null | undefined)[] | undefined,
+	targetCount: number,
+): (number | null | undefined)[] {
+	if (scores && scores.length >= targetCount) return scores;
+	return [...(scores ?? []), ...new Array<number | null | undefined>(targetCount - (scores?.length ?? 0))];
+}
 
 /**
  * アイコンの最小不透明度。0にすると完全に消えてどのポケモンだったか分からなくなるため、

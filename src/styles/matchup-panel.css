@@ -75,6 +75,14 @@
 	justify-content: center;
 	gap: var(--space-1);
 }
+/* カード一覧の続きを出すボタン。意匠は .btn-ghost のまま、一覧の幅に合わせるだけ。 */
+.matchup-more-button {
+	width: 100%;
+	margin-top: var(--space-3);
+}
+.matchup-more-button[hidden] {
+	display: none;
+}
 .team-matchup-card {
 	--matchup-mix: 0%;
 	position: relative;
