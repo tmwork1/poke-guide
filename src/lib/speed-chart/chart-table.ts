@@ -260,18 +260,30 @@ export async function initSpeedChartPage(): Promise<void> {
   // スクロール実体は表示形態で変わる(通常の早見表は .speed-chart-chips-row、
   // すばやさ調整モーダルは .speed-chart-chips-cell)ため、要素名を決め打ちせず
   // 「実際に横へはみ出しているスクロール可能な祖先」を探す。
-  // CSS側は .speed-chart-chips-cell / -row に touch-action: pan-y を与え、縦のページ
+  // チップの並び自体は行の高さに対して薄く、その上の段(族・配分・倍率)や余白は掴んでも
+  // 何も起きなかったため、祖先に無ければ同じ行(.speed-chart-row)内のスクロール実体も
+  // 探して行全体を掴み領域にする(表示は動かさず、スクロールだけをそちらへ流す)。
+  // CSS側は .speed-chart-row / -chips-cell / -row に touch-action: pan-y を与え、縦のページ
   // スクロールはブラウザに、横のジェスチャーはこちらに渡るようにしてある。
   const DRAG_START_THRESHOLD = 6; // これ以上横に動いたらスクロール操作と見なす(px)
 
+  function isHorizontalScroller(node: Element): node is HTMLElement {
+    if (!(node instanceof HTMLElement) || node.scrollWidth <= node.clientWidth + 1) return false;
+    const overflowX = getComputedStyle(node).overflowX;
+    return overflowX === 'auto' || overflowX === 'scroll';
+  }
+
   function findHorizontalScroller(target: EventTarget | null): HTMLElement | null {
-    let node = target instanceof Element ? target : null;
+    const origin = target instanceof Element ? target : null;
+    let node = origin;
     while (node && node !== bodyEl) {
-      if (node instanceof HTMLElement && node.scrollWidth > node.clientWidth + 1) {
-        const overflowX = getComputedStyle(node).overflowX;
-        if (overflowX === 'auto' || overflowX === 'scroll') return node;
-      }
+      if (isHorizontalScroller(node)) return node;
       node = node.parentElement;
+    }
+    const row = origin?.closest('.speed-chart-row');
+    if (!row) return null;
+    for (const candidate of row.querySelectorAll('.speed-chart-chips-row, .speed-chart-chips-cell')) {
+      if (isHorizontalScroller(candidate)) return candidate;
     }
     return null;
   }
