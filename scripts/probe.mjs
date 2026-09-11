@@ -30,6 +30,8 @@
  *   --base <url>        省略時は `astro dev status` から自動検出
  *   --theme light|dark  既定 light
  *   --size 390x844      ビューポート。既定 1920x1080
+ *   --mobile            Android Chrome(Pixel 7)相当のUA・DPR・isMobile・タッチで開く。
+ *                       「PCでは出るがスマホ実機では出ない」の切り分け用。--size は無視される
  *   --timeout <ms>      Pyodide待ちのタイムアウト。既定 300000
  *   --keep-toolbar      Astro開発ツールバーを消さずに見る
  *   --block <部分文字列> そのURLを含むリクエストを落として開く(複数指定可)。「この通信が
@@ -82,7 +84,7 @@
  *   各shiftのselector/dx/dy/dw/dh が犯人と動いた量。startTimeで発生タイミングが分かる
  */
 
-import { chromium } from "@playwright/test";
+import { chromium, devices } from "@playwright/test";
 import {
 	applyGuestCookie,
 	assertServerUp,
@@ -116,6 +118,7 @@ function parseArgs(argv) {
 		base: null,
 		theme: "light",
 		size: "1920x1080",
+		mobile: false,
 		timeout: 300_000,
 		keepToolbar: false,
 		noJs: false,
@@ -155,6 +158,9 @@ function parseArgs(argv) {
 				break;
 			case "--size":
 				opts.size = next();
+				break;
+			case "--mobile":
+				opts.mobile = true;
 				break;
 			case "--timeout":
 				opts.timeout = Number(next());
@@ -653,8 +659,15 @@ async function applyBlockRules(context, patterns) {
 	});
 }
 
+// --mobile はPlaywrightのデバイス定義(Pixel 7)をそのまま使い、UA・DPR・isMobile(viewportメタ解釈)を
+// 実機に寄せる。--size 指定だけではUA分岐やDPR依存の不具合を再現できないため。
+function contextOptions(opts, viewport) {
+	if (opts.mobile) return { ...devices["Pixel 7"], hasTouch: true };
+	return { viewport, hasTouch: true };
+}
+
 async function measureWithObservers(browser, opts, viewport, pagePath) {
-	const context = await browser.newContext({ viewport, hasTouch: true, javaScriptEnabled: !opts.noJs });
+	const context = await browser.newContext({ ...contextOptions(opts, viewport), javaScriptEnabled: !opts.noJs });
 	if (opts.guest) await applyGuestCookie(context, opts.base);
 	await applyBlockRules(context, opts.block);
 	const page = await context.newPage();
@@ -771,7 +784,7 @@ async function main() {
 
 	const browser = await chromium.launch();
 	// --swipe(タッチ)を使えるよう、コンテキストは常にタッチ有効で作る。
-		const context = await browser.newContext({ viewport, hasTouch: true });
+	const context = await browser.newContext(contextOptions(opts, viewport));
 	await applyBlockRules(context, opts.block);
 	const page = await context.newPage();
 	const consoleErrors = [];
