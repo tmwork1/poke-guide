@@ -346,7 +346,8 @@ body.team-edit-page {
 }
 
 /* 自動構築ボタン: 編成タブの操作帯で並べ替えの右隣に置く。
-   文字は置かず再生(▶を丸で囲んだ)マークだけにし、高さは他の操作部品(select)とそろえた正方形にする。 */
+   丸囲み▶のマーク自体がボタンの見た目を兼ねるため、枠線・背景・影は持たせない。
+   当たり判定だけ他の操作部品と同じ44px角を保ち、マークは隣の検索欄・selectと同じ高さにする。 */
 #team-formation-mobile-toolbar .formation-auto-build-button {
 	display: inline-flex;
 	flex: 0 0 auto;
@@ -357,15 +358,15 @@ body.team-edit-page {
 	min-height: var(--tap-target-min);
 	padding: 0;
 	color: var(--color-text);
-	background: var(--color-surface-sunken);
-	border: 1px solid var(--color-border);
+	background: none;
+	border: 0;
 	border-radius: var(--radius-sm);
-	box-shadow: var(--shadow-inset-sunken);
+	box-shadow: none;
 }
 #team-formation-mobile-toolbar .formation-auto-build-button:disabled {
 	opacity: 0.45;
 }
 .formation-auto-build-icon {
-	width: 22px;
-	height: 22px;
+	width: var(--tap-target-min);
+	height: var(--tap-target-min);
 }
