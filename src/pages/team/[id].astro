@@ -278,9 +278,9 @@ if (!isGuestNewMode) {
 					<div class="team-formation-mobile__mates" aria-label="チームメイト">
 						<div id="team-matchup-mobile-slots" class="team-formation-mobile__slot-grid team-mate-grid"></div>
 					</div>
-					<div id="team-matchup-direction-tabs" class="matchup-direction-tabs" role="tablist" aria-label="相性の方向">
-						<button type="button" class="matchup-direction-tab" role="tab" aria-selected="true" data-matchup-direction="attack">攻撃</button>
-						<button type="button" class="matchup-direction-tab" role="tab" aria-selected="false" data-matchup-direction="defense">防御</button>
+					<div id="team-matchup-direction-tabs" class="matchup-direction-tabs" role="tablist" aria-label="相性の方向" data-matchup-active-direction="attack">
+						<button type="button" class="matchup-direction-tab" role="tab" aria-selected="true" data-matchup-direction="attack" aria-label="攻撃">攻</button>
+						<button type="button" class="matchup-direction-tab" role="tab" aria-selected="false" data-matchup-direction="defense" aria-label="防御">守</button>
 					</div>
 					<div class="team-matchup-mobile__results">
 						<p id="team-matchup-mobile-status" class="team-matchup-status" hidden></p>

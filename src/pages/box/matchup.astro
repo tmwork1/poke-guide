@@ -24,9 +24,9 @@ const canRenderSelectedPokemon = result?.ok || (!user && selectedId !== null);
   <div class="page box-data-page box-matchup-page">
     <MobilePokemonPreview pokemon={canRenderSelectedPokemon ? pokemon : null} activeTab="matchup" />
     {canRenderSelectedPokemon && pokemon && (
-      <div class="matchup-direction-tabs" role="tablist" aria-label="相性の方向">
-        <button type="button" class="matchup-direction-tab" role="tab" aria-selected="true" data-matchup-direction="attack">攻撃</button>
-        <button type="button" class="matchup-direction-tab" role="tab" aria-selected="false" data-matchup-direction="defense">防御</button>
+      <div class="matchup-direction-tabs" role="tablist" aria-label="相性の方向" data-matchup-active-direction="attack">
+        <button type="button" class="matchup-direction-tab" role="tab" aria-selected="true" data-matchup-direction="attack" aria-label="攻撃">攻</button>
+        <button type="button" class="matchup-direction-tab" role="tab" aria-selected="false" data-matchup-direction="defense" aria-label="防御">守</button>
       </div>
     )}
     {canRenderSelectedPokemon && pokemon ? <PokemonSettingsModalHost pokemon={pokemon} /> : (

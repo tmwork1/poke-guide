@@ -377,10 +377,14 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 		setStatus(unknownCount > 0 ? `${unknownCount}体は採用技のデータが無いため計算していません(破線の枠)。` : null);
 	}
 
+	// 強調色(攻=赤系 / 守=主要色)はCSS側が data-matchup-active-direction で切り替えるため、
+	// タブ帯とカード一覧の両方へ現在の方向を書き込む。
 	function updateDirectionTabs(): void {
 		for (const tab of directionTabsElement?.querySelectorAll<HTMLButtonElement>('.matchup-direction-tab') ?? []) {
 			tab.setAttribute('aria-selected', String(tab.dataset.matchupDirection === activeDirection));
 		}
+		if (directionTabsElement) directionTabsElement.dataset.matchupActiveDirection = activeDirection;
+		listElement.dataset.matchupActiveDirection = activeDirection;
 	}
 
 	function setDirection(direction: MatchupDirection): void {
