@@ -67,13 +67,13 @@
 	padding: 0;
 	display: grid;
 	/* 相性一覧は常に5列。狭幅ではカード幅を縮め、実効幅の変化で4列へ落ちないようにする。
-	   カード同士は隙間なく並べ、基準幅396pxでは79pxずつになる。立ち絵は
+	   カード同士の隙間は4pxまで詰め、基準幅396pxでは76pxずつになる。立ち絵は
 	   --matchup-sprite-size で据え置き、広がったぶんは背景(相性の強調色)に使う。
 	   68pxは、隙間を詰める前(カード72px・枠線2pxずつ)の中身の幅と同じ。 */
 	--matchup-sprite-size: 68px;
-	grid-template-columns: repeat(5, minmax(0, 79px));
+	grid-template-columns: repeat(5, minmax(0, 76px));
 	justify-content: center;
-	gap: 0;
+	gap: var(--space-1);
 }
 .team-matchup-card {
 	--matchup-mix: 0%;
