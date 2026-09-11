@@ -638,33 +638,48 @@ export async function initSpeedChartPage(): Promise<void> {
     el?.scrollIntoView({ block: 'center', behavior });
   }
 
-  // すばやさ調整モーダルのiframeは hidden のままアイドル時に読み込まれるため、初回描画の
-  // 時点ではビューポート高さが0でスクロールが効かない(スクロール済みフラグだけが立ち、
-  // 開いても現在値に移動しない)。高さが得られるまで初回スクロールを保留し、モーダルが
-  // 開かれてサイズが付いたタイミング(resize)で実行する。表示直後はアニメーションさせず
-  // 最初から現在値の位置で見せたいので、保留分は 'auto' でジャンプする。
+  // すばやさ調整モーダルのiframeは hidden のまま(アイドル時に)読み込まれるので、その間に
+  // scrollIntoView()を呼んでも何も起きない。そこで埋め込み時は初回スクロールを保留し、
+  // 親から「表示した」と知らされた時点で実行する。
+  //
+  // 可視判定にwindow.innerHeightは使えない: 一度表示したあとにhiddenへ戻しても、iframeの
+  // innerHeightは直前の高さ(例:808)のまま残り、resizeも飛ばない(実測)。これを可視と
+  // 誤判定すると、閉じている間に流れてきた編集内容に対して「見えないスクロール」を実行して
+  // しまい、次に開いたとき現在値へ移動しない。
+  const isEmbedded = window.parent !== window;
+
   function requestInitialScroll(value: number): void {
     if (hasScrolledInitially) return;
-    if (window.innerHeight <= 0) {
-      pendingInitialScrollValue = value;
-      return;
-    }
-    hasScrolledInitially = true;
-    const behavior: ScrollBehavior = pendingInitialScrollValue !== null ? 'auto' : 'smooth';
-    pendingInitialScrollValue = null;
-    scrollToValue(value, behavior);
+    pendingInitialScrollValue = value;
+    if (!isEmbedded) flushInitialScroll();
   }
 
-  window.addEventListener('resize', () => {
-    if (pendingInitialScrollValue !== null) requestInitialScroll(pendingInitialScrollValue);
-  });
+  function flushInitialScroll(): void {
+    if (hasScrolledInitially || pendingInitialScrollValue === null) return;
+    if (window.innerHeight <= 0) return;
+    hasScrolledInitially = true;
+    const value = pendingInitialScrollValue;
+    pendingInitialScrollValue = null;
+    // 表示直後はアニメーションさせず、最初から現在値の位置で見せる。
+    scrollToValue(value, isEmbedded ? 'auto' : 'smooth');
+  }
 
   // すばやさ調整モーダル(box/[id]のiframe)として開かれている間、親の育成パネルで編集された
   // 内容を受け取って表を作り直す。保存(PUT)を待たない「編集中の値」なので、ここでは受け取った
   // レコードを描画に使うだけ(サーバーへ書き戻すのは owned-panel.ts 側の適用操作のまま)。
   window.addEventListener('message', (event) => {
     if (event.origin !== window.location.origin) return;
-    const data = event.data as { type?: string; record?: Partial<OwnedPokemonRecord> } | null;
+    const data = event.data as {
+      type?: string;
+      record?: Partial<OwnedPokemonRecord>;
+      visible?: boolean;
+    } | null;
+    // 親がモーダルを開いた(=iframeが見えるようになった)通知。保留していた初回スクロールは
+    // ここで初めて実行できる。表示直後のレイアウト確定を待ってから測るためrAFを1回挟む。
+    if (data?.type === 'speed-chart:shown') {
+      window.requestAnimationFrame(flushInitialScroll);
+      return;
+    }
     if (data?.type !== 'speed-chart:owned-record-updated' || !data.record || !ownedRecord) return;
     const patch = data.record;
     const next: OwnedPokemonRecord = {
@@ -677,7 +692,13 @@ export async function initSpeedChartPage(): Promise<void> {
     };
     if (JSON.stringify(next) === JSON.stringify(ownedRecord)) return;
     ownedRecord = next;
+    // 編集で現在値が動くので、初回スクロールを仕切り直す。表示中なら新しい現在値へ移動し、
+    // hidden(閉じているモーダル)のままなら次に開かれた時点で移動する。
+    hasScrolledInitially = false;
     render(currentRegulation);
+    // 開いたまま編集された場合は、その場で新しい現在値へ移動する(閉じているなら保留のまま、
+    // 次に開かれたときの 'speed-chart:shown' で実行される)。
+    if (data.visible) window.requestAnimationFrame(flushInitialScroll);
   });
 
   function findNearestRowElement(targetValue: number): HTMLElement | null {

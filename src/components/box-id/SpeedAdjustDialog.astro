@@ -46,6 +46,9 @@ const speedChartSrc = `/speed-chart?owned=${encodeURIComponent(pokemonId)}&embed
 		backdrop.hidden = false;
 		dialog.hidden = false;
 		dialog.focus();
+		// 表示されて初めてiframe内でスクロールが効くようになる。保留されている初回スクロール
+		// (現在値への移動)をiframeに実行させる。
+		notifyShown();
 	}
 
 	triggers.forEach((trigger) => trigger.addEventListener("click", () => openDialog(trigger)));
@@ -60,15 +63,22 @@ const speedChartSrc = `/speed-chart?owned=${encodeURIComponent(pokemonId)}&embed
 	function postLatestEdit() {
 		if (!frame || !frameLoaded || !latestEdit) return;
 		frame.contentWindow?.postMessage(
-			{ type: "speed-chart:owned-record-updated", record: latestEdit },
+			{ type: "speed-chart:owned-record-updated", record: latestEdit, visible: !dialog?.hidden },
 			window.location.origin,
 		);
 	}
 
+	function notifyShown() {
+		if (!frame || !frameLoaded) return;
+		frame.contentWindow?.postMessage({ type: "speed-chart:shown" }, window.location.origin);
+	}
+
 	frame?.addEventListener("load", () => {
 		frameLoaded = true;
-		// 読み込み前に来ていた編集内容は、読み込み完了後に改めて送る。
+		// 読み込み前に来ていた編集内容は、読み込み完了後に改めて送る。開いた状態で読み込みが
+		// 完了した場合(初回クリックで開いたときなど)は表示通知も送り直す。
 		postLatestEdit();
+		if (!dialog?.hidden) notifyShown();
 	});
 
 	document.addEventListener(OWNED_EDIT_CHANGED_EVENT, (event) => {
