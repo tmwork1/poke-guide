@@ -426,11 +426,6 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 		if (event.key === 'Escape') closeMovePopover();
 	});
 
-	function setStatusForScores(targets: MatchupTarget[], scores: (number | null)[]): void {
-		const unknownCount = targets.filter((_, index) => scores[index] === null).length;
-		setStatus(unknownCount > 0 ? `${unknownCount}体は採用技のデータが無いため計算していません(破線の枠)。` : null);
-	}
-
 	// 強調色(攻=赤系 / 守=主要色)はCSS側が data-matchup-active-direction で切り替えるため、
 	// タブ帯とカード一覧の両方へ現在の方向を書き込む。
 	function updateDirectionTabs(): void {
@@ -530,7 +525,6 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 		}
 		if (directionScores.every((score) => score !== undefined)) {
 			renderSuggestedTypes(visibleTargets, resolvedScores, typesMap, isAttackMove, getMoveType, typeChart);
-			setStatusForScores(visibleTargets, resolvedScores);
 			updateMoreButton(targets.length, false);
 			return;
 		}
@@ -609,7 +603,6 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 		scoreCache.set(cacheKey, scores);
 		const completedScores = directionScores.map((score) => score ?? null);
 		renderSuggestedTypes(visibleTargets, completedScores, typesMap, isAttackMove, getMoveType, typeChart);
-		setStatusForScores(visibleTargets, completedScores);
 		updateMoreButton(targets.length, false);
 	}
 
