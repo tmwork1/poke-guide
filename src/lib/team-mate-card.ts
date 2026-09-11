@@ -96,10 +96,19 @@ export function renderTeamMateSlots<T extends TeamMateCardPokemon>(options: Team
 						longPressed = false;
 						return;
 					}
+					// ダブルタップを取る呼び出し元が無いときは、単発タップを遅延させない。
+					// ダブルタップを判定するには単発の確定を250ms待つしかなく、その遅延は
+					// 最頻操作であるタップの体感をそのまま悪化させる(CLAUDE.md「長押しとPCでの
+					// 代替操作」がこの250msを悪例として挙げている)。onSlotDoubleTapを
+					// 渡していない呼び出し元まで遅延を負う理由は無い。
+					if (!onSlotDoubleTap) {
+						(onSlotTap ?? onSlotClick)?.(slot);
+						return;
+					}
 					if (tapTimer !== undefined) {
 						window.clearTimeout(tapTimer);
 						tapTimer = undefined;
-						onSlotDoubleTap?.(slot);
+						onSlotDoubleTap(slot);
 						return;
 					}
 					tapTimer = window.setTimeout(() => {

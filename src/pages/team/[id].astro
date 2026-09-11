@@ -1725,9 +1725,11 @@ if (!isGuestNewMode) {
 				selectedCandidatePokemon = null;
 				renderFormationMobile();
 			}
-			function onFormationSlotDoubleTap(slot: number): void {
-				if (membersBySlot.has(slot)) removeMemberFromSlot(slot);
-			}
+			// ダブルタップは割り当てない。枠からの解除は長押し(PCでは右クリック)が担う
+			// (CLAUDE.md「長押しとPCでの代替操作」)。以前は onFormationSlotDoubleTap という
+			// 長押しとまったく同じ処理を渡していたが、ダブルタップを取るためだけに
+			// team-mate-card.ts が単発タップを250ms遅延させており、機能を増やさずに
+			// 最頻操作を鈍らせていた(2026-09-11に削除)。
 			function onFormationSlotLongPress(slot: number): void {
 				if (membersBySlot.has(slot)) removeMemberFromSlot(slot);
 			}
@@ -1741,7 +1743,6 @@ if (!isGuestNewMode) {
 					displayName,
 					selectedSlot: selectedFormationSlot,
 					onSlotTap: onFormationSlotTap,
-					onSlotDoubleTap: onFormationSlotDoubleTap,
 					onSlotLongPress: onFormationSlotLongPress,
 				});
 				renderTeamMateSlots({
@@ -1750,7 +1751,6 @@ if (!isGuestNewMode) {
 					displayName,
 					selectedSlot: selectedFormationSlot,
 					onSlotTap: onFormationSlotTap,
-					onSlotDoubleTap: onFormationSlotDoubleTap,
 					onSlotLongPress: onFormationSlotLongPress,
 				});
 				renderTeamMateSlots({
@@ -1759,7 +1759,6 @@ if (!isGuestNewMode) {
 					displayName,
 					selectedSlot: selectedFormationSlot,
 					onSlotTap: onFormationSlotTap,
-					onSlotDoubleTap: onFormationSlotDoubleTap,
 					onSlotLongPress: onFormationSlotLongPress,
 				});
 
@@ -1916,6 +1915,13 @@ if (!isGuestNewMode) {
 			// モバイル自チーム表示(編成・相性・類似チームの各タブで共通): 自チームカード以外を
 			// タップしたら選択状態を解除する(カード自身のタップはonFormationSlotTap側で
 			// 選択/入れ替え/解除を処理済みのため対象外)。
+			// ⚠️ capture必須。カード自身のタップはバブリング中にrenderTeamMateSlotsを呼び、
+			// root.innerHTML を作り直してタップされたカードをDOMから切り離す。バブリングで
+			// ここに来る頃には target が切り離し済みで、どの root にも contains されないため
+			// 「カード外のタップ」と誤判定して、たった今付けた選択をすぐ消してしまう。
+			// captureなら再描画より前に走るので target はまだ繋がっている。
+			// (2026-09-11まではteam-mate-card.tsが単発タップを250ms遅延させており、
+			//  カード側の処理がこのリスナより後に走っていたため表面化していなかった。)
 			document.addEventListener("click", (event) => {
 				if (selectedFormationSlot === null && selectedCandidatePokemon === null) return;
 				const target = event.target as Node;
@@ -1926,14 +1932,15 @@ if (!isGuestNewMode) {
 				selectedFormationSlot = null;
 				selectedCandidatePokemon = null;
 				renderFormationMobile();
-			});
+			}, { capture: true });
 
+			// こちらも同じ理由でcapture。overviewGridも選択時に作り直される。
 			document.addEventListener("click", (event) => {
 				if (selectedOverviewSlot === null) return;
 				if (overviewGrid.contains(event.target as Node)) return;
 				selectedOverviewSlot = null;
 				updateOverviewSelection();
-			});
+			}, { capture: true });
 
 			// --- 選択バーの描画(R-7・R-10) ---
 			function matchesSearch(p: OwnedPokemonRecord, term: string): boolean {
