@@ -4,3 +4,14 @@
 export function normalizeDigits(name: string): string {
   return name.replace(/[０-９]/g, (char) => String.fromCharCode(char.charCodeAt(0) - 0xfee0));
 }
+
+// OP.GGは技名の英字も全角で表記することがある(例:「ＤＤラリアット」)。数字と同じく
+// マスターデータ側の表記(半角)へ揃える。
+export function normalizeLatin(name: string): string {
+  return name.replace(/[Ａ-Ｚａ-ｚ]/g, (char) => String.fromCharCode(char.charCodeAt(0) - 0xfee0));
+}
+
+/** OP.GG由来の技名・アイテム名・特性名を、マスターデータ側の表記へ揃える。 */
+export function normalizeTermName(name: string): string {
+  return normalizeLatin(normalizeDigits(name));
+}

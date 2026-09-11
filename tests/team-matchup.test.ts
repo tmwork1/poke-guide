@@ -37,16 +37,16 @@ describe('extendMatchupScores', () => {
 });
 
 // 実データ(migrations/014 の suggestions.kind='popular_move')に近い形の入力。
-// ガブリアスの実測値(じしん0.932 / ステルスロック0.473 / げきりん0.402 /
-// スケイルショット0.344 / つるぎのまい0.295 / ドラゴンテール0.222 / がんせきふうじ0.212)。
+// ガブリアスの実測値(採用率はOP.GGと同じパーセント表記。じしん93.2 / ステルスロック47.3 /
+// げきりん40.2 / スケイルショット34.4 / つるぎのまい29.5 / ドラゴンテール22.2 / がんせきふうじ21.2)。
 const GARCHOMP_MOVES = [
-  { value: 'じしん', ratio: 0.932 },
-  { value: 'ステルスロック', ratio: 0.473 },
-  { value: 'げきりん', ratio: 0.402 },
-  { value: 'スケイルショット', ratio: 0.344 },
-  { value: 'つるぎのまい', ratio: 0.295 },
-  { value: 'ドラゴンテール', ratio: 0.222 },
-  { value: 'がんせきふうじ', ratio: 0.212 },
+  { value: 'じしん', ratio: 93.2 },
+  { value: 'ステルスロック', ratio: 47.3 },
+  { value: 'げきりん', ratio: 40.2 },
+  { value: 'スケイルショット', ratio: 34.4 },
+  { value: 'つるぎのまい', ratio: 29.5 },
+  { value: 'ドラゴンテール', ratio: 22.2 },
+  { value: 'がんせきふうじ', ratio: 21.2 },
 ];
 
 const STATUS_MOVES = new Set(['ステルスロック', 'つるぎのまい', 'まもる', 'みがわり', 'こうそくいどう']);
@@ -123,40 +123,40 @@ describe('pickOpponentAttackMoves', () => {
 
   it('攻撃技が4本に満たなければあるだけ返す', () => {
     const few = [
-      { value: 'じしん', ratio: 0.9 },
-      { value: 'まもる', ratio: 0.8 },
-      { value: 'みがわり', ratio: 0.7 },
+      { value: 'じしん', ratio: 90 },
+      { value: 'まもる', ratio: 80 },
+      { value: 'みがわり', ratio: 70 },
     ];
     assert.deepEqual(pickOpponentAttackMoves(few, isAttackMove), ['じしん']);
   });
 
   it('攻撃技が1本も無ければ空(呼び出し側が「データなし」として扱う)', () => {
     const statusOnly = [
-      { value: 'まもる', ratio: 0.9 },
-      { value: 'つるぎのまい', ratio: 0.5 },
+      { value: 'まもる', ratio: 90 },
+      { value: 'つるぎのまい', ratio: 50 },
     ];
     assert.deepEqual(pickOpponentAttackMoves(statusOnly, isAttackMove), []);
   });
 
   it('同じ技が重複して届いても枠を二重に食わない', () => {
     const dup = [
-      { value: 'じしん', ratio: 0.9 },
-      { value: 'じしん', ratio: 0.8 },
-      { value: 'げきりん', ratio: 0.7 },
+      { value: 'じしん', ratio: 90 },
+      { value: 'じしん', ratio: 80 },
+      { value: 'げきりん', ratio: 70 },
     ];
     assert.deepEqual(pickOpponentAttackMoves(dup, isAttackMove), ['じしん', 'げきりん']);
   });
 
   it('4枠では打ち切らない', () => {
-    const many = Array.from({ length: 10 }, (_, i) => ({ value: `技${i}`, ratio: 1 - i * 0.05 }));
+    const many = Array.from({ length: 10 }, (_, i) => ({ value: `技${i}`, ratio: 100 - i * 5 }));
     assert.equal(pickOpponentAttackMoves(many, () => true).length, 10);
-    assert.equal(OPPONENT_MIN_MOVE_RATIO, 0.2);
+    assert.equal(OPPONENT_MIN_MOVE_RATIO, 20);
   });
 
   it('採用率20%未満の攻撃技は選ばない', () => {
     const moves = [
-      { value: 'high', ratio: 0.2 },
-      { value: 'low', ratio: 0.199 },
+      { value: 'high', ratio: 20 },
+      { value: 'low', ratio: 19.9 },
     ];
     assert.deepEqual(pickOpponentAttackMoves(moves, () => true), ['high']);
   });

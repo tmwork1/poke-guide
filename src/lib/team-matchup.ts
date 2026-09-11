@@ -32,8 +32,14 @@ export const OPPONENT_EVS: readonly number[] = [32, 0, 0, 0, 0, 0];
 /** 相手ポケモンの性格。「性格補正なし」= jpoke の無補正性格(src/lib/stats.ts の NATURE_STAT_MODIFIERS 参照)。 */
 export const OPPONENT_NATURE = 'まじめ';
 
-/** 防御側の相手が持つ技の最大数(実機の4枠に合わせる)。 */
-export const OPPONENT_MIN_MOVE_RATIO = 0.2;
+/**
+ * 防御側の相手に持たせる技の、採用率の下限。
+ *
+ * OP.GG の usageRate は**パーセント(0〜100)**で届く(実測: 最大100・最小0.4)。
+ * ここを 0.2 にしていたため実質「0.2%以上」= ほぼ全技が通り、相手が平均10本の
+ * 攻撃技を持つ非現実的な個体になって被ダメージを過大評価していた。20%で揃える。
+ */
+export const OPPONENT_MIN_MOVE_RATIO = 20;
 
 /** 相性チェックで一度に表示する使用率上位の件数。 */
 export const MATCHUP_TOP_N = 30;

@@ -1,5 +1,5 @@
 import { hasSingleBattleData, type EvRankedRow, type RankedRow, type SingleFormatData } from './battle-data-card.ts';
-import { normalizeDigits } from './text-normalize.ts';
+import { normalizeTermName } from './text-normalize.ts';
 import pokemonMasterRaw from '../../public/master-data/autocomplete/pokemon.json' with { type: 'json' };
 
 export const OPGG_USAGE_CACHE_TTL = 60 * 60;
@@ -72,11 +72,61 @@ function isUsagePokemon(value: unknown): value is OpggUsagePokemon {
 	return isRecord(value) && value.schemaVersion === 3 && typeof value.name === 'string' && isRecord(value.formats);
 }
 
-// OP.GGは技名・種族名の数字を全角で表記するため(例:「１０まんボルト」)、
-// マスターデータ側の表記(半角)に揃えてから返す。本アプリ内で表示する名称は
-// すべてこの正規化を経由させ、半角/全角の表記揺れを作らない。
+const MASTER_NAMES = new Set(MASTER_LIST.map((entry) => entry.name));
+
+/** リージョンフォーム。OP.GGは接頭辞、マスターデータは括弧の接尾辞で表す。 */
+const REGION_FORMS = ['アローラ', 'ガラル', 'ヒスイ', 'パルデア'] as const;
+
+/**
+ * OP.GG表記の種族名を、マスターデータ側の表記に読み替える候補を優先順に並べる。
+ *
+ * 実データで確認できたずれは3種類:
+ *   括弧前の空白と接尾辞  「イエッサン (オスのすがた)」→「イエッサン(オス)」
+ *   リージョンの前後      「アローラペルシアン」      →「ペルシアン(アローラ)」
+ *   マスタ側にフォルム無し 「イッカネズミ (3びきかぞく)」→「イッカネズミ」
+ *
+ * 規則で決め打ちすると将来別のフォルムを誤変換しうるので、候補を作るだけにして
+ * 採用の可否はマスターデータに存在するかどうかで決める(normalizeSpeciesName)。
+ */
+function speciesNameCandidates(name: string): string[] {
+	const candidates = [name];
+	const withoutSpace = name.replace(/\s+\(/, '(');
+	candidates.push(withoutSpace);
+	const parsed = withoutSpace.match(/^(.+?)\((.+)\)$/);
+	if (parsed) {
+		const [, base, form] = parsed;
+		candidates.push(`${base}(${form.replace(/(のすがた|なすがた|フェザー)$/, '')})`);
+		candidates.push(base);
+	}
+	for (const region of REGION_FORMS) {
+		if (withoutSpace.startsWith(region) && withoutSpace.length > region.length) {
+			candidates.push(`${withoutSpace.slice(region.length)}(${region})`);
+		}
+	}
+	return candidates;
+}
+
+/**
+ * OP.GG由来の種族名を、マスターデータ(vendor/jpoke由来)の表記へ揃える。
+ * どの候補もマスタに無ければ元の表記のまま返す(知らない名前を勝手に変えない)。
+ */
+export function normalizeSpeciesName(name: string): string {
+	const normalized = normalizeTermName(name);
+	for (const candidate of speciesNameCandidates(normalized)) {
+		if (MASTER_NAMES.has(candidate)) return candidate;
+	}
+	return normalized;
+}
+
+// OP.GGは技名・種族名の数字や英字を全角で表記するため(例:「１０まんボルト」「ＤＤラリアット」)、
+// マスターデータ側の表記(半角)に揃えてから返す。種族名はさらにフォルム表記のずれも吸収する。
+// 本アプリ内で表示する名称はすべてこの正規化を経由させ、表記揺れを作らない。
 function normalizeRankedRows(rows: RankedRow[] | undefined): RankedRow[] | undefined {
-	return rows?.map((row) => ({ ...row, name: normalizeDigits(row.name) }));
+	return rows?.map((row) => ({ ...row, name: normalizeTermName(row.name) }));
+}
+
+function normalizeSpeciesRankedRows(rows: RankedRow[] | undefined): RankedRow[] | undefined {
+	return rows?.map((row) => ({ ...row, name: normalizeSpeciesName(row.name) }));
 }
 
 function normalizeSingleFormatData(single: SingleFormatData): SingleFormatData {
@@ -86,7 +136,8 @@ function normalizeSingleFormatData(single: SingleFormatData): SingleFormatData {
 		natures: normalizeRankedRows(single.natures),
 		items: normalizeRankedRows(single.items),
 		moves: normalizeRankedRows(single.moves),
-		teammates: normalizeRankedRows(single.teammates),
+		// チームメイトは種族名。
+		teammates: normalizeSpeciesRankedRows(single.teammates),
 	};
 }
 
@@ -110,7 +161,7 @@ export async function getOpggUsageManifest(kv: KVNamespace): Promise<OpggUsageSe
 		...manifest,
 		seasons: manifest.seasons.map((season) => ({
 			...season,
-			pokemon: season.pokemon?.map((entry) => ({ ...entry, name: normalizeDigits(entry.name) })),
+			pokemon: season.pokemon?.map((entry) => ({ ...entry, name: normalizeSpeciesName(entry.name) })),
 		})),
 	};
 }
@@ -122,7 +173,7 @@ export async function getOpggUsageList(kv: KVNamespace, season: OpggUsageSeason)
 		...list,
 		pokemon: list.pokemon.map((entry) => ({
 			...entry,
-			name: normalizeDigits(entry.name),
+			name: normalizeSpeciesName(entry.name),
 			single: normalizeSingleFormatData(entry.single),
 		})),
 	};
@@ -149,7 +200,7 @@ export async function getOpggUsagePokemon(
 	if (!isUsagePokemon(pokemon)) return null;
 	return {
 		...pokemon,
-		name: normalizeDigits(pokemon.name),
+		name: normalizeSpeciesName(pokemon.name),
 		formats: { single: normalizeSingleFormatData(pokemon.formats.single) },
 	};
 }
