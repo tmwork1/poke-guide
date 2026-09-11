@@ -72,13 +72,16 @@ test("データ画面の上位チームを表示する", async ({ page }, testIn
 	await perfScenario(
 		testInfo,
 		{
-				id: "data-top-builds-load",
-				label: "データ: 上位チーム",
-				category: "page-load",
-				targetMs: 1500,
-				note: "wrangler.jsonc の OPGG_USAGE KVを remote: true から false(ローカルエミュレーション)に変更し、devサーバー起動のたびに発生していたリモートKVプロキシ接続待ちを解消(2026-09-08)。以前の既知バグ(/api/opgg-usage系が同時リクエストで詰まる、backlog 2026-08-31)は解消済み。",
-			},
-		() => timeNav(page, "/data/top-builds", ".top-builds-list"),
+			id: "data-top-builds-load",
+			label: "データ: 上位チーム",
+			category: "page-load",
+			targetMs: 1500,
+			note:
+				"変更前はSSR済みの空コンテナ .top-builds-list の出現を終点にしており、カード描画を待っていなかった(2026-09-11に修正)。" +
+				"#top-builds-cards のチームカードが1枚以上描画される、または #top-builds-empty の明示的な空状態が表示されるまでを終点にする。" +
+				"通常のページ遷移としてRAIL目安の1500msを目標にする。",
+		},
+		() => timeNav(page, "/data/top-builds", "#top-builds-cards > *, #top-builds-empty:not([hidden])"),
 	);
 
 	await expect(page.locator(".top-builds-list")).toBeVisible();

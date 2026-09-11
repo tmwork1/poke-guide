@@ -2,6 +2,7 @@ import { expect, perfScenario, recordPerf, test, timeAction, timeNav } from "../
 
 let ownedPokemonId: string;
 let dialogOwnedPokemonId: string;
+let ownedPokemonCount: number;
 const disposableOwnedPokemonIds: string[] = [];
 
 test.beforeAll(async ({ request }) => {
@@ -20,6 +21,22 @@ test.beforeAll(async ({ request }) => {
   const dialogSafePokemon = dialogBody.data.find((pokemon) => !/ナイト[XYZ]?$/.test(pokemon.item_name ?? ""));
   expect(dialogSafePokemon).toBeDefined();
   dialogOwnedPokemonId = dialogSafePokemon!.id;
+
+  // box/index.astro の loadList() と同じ48件単位で全件数を事前に取得する。
+  // 一覧画面は hasMorePokemon が false になるまで requestAnimationFrame 経由で loadList() を継続し、
+  // 各バッチ後に renderList() が全リンクを再構築する。この件数までリンクが揃った時点だけが最終描画後である。
+  ownedPokemonCount = 0;
+  let offset = 0;
+  while (true) {
+    const pageResponse = await request.get(`/api/owned-pokemon?limit=48&offset=${offset}`);
+    await expect(pageResponse).toBeOK();
+    const pageBody = (await pageResponse.json()) as { data: Array<{ id: string }>; hasMore: boolean };
+    ownedPokemonCount += pageBody.data.length;
+    if (!pageBody.hasMore) break;
+    // hasMore=trueなのに空配列なら、以降のoffsetが進まず無限ループになるため明示的に失敗させる。
+    expect(pageBody.data.length).toBeGreaterThan(0);
+    offset += pageBody.data.length;
+  }
 });
 
 test.afterAll(async ({ request }) => {
@@ -43,6 +60,31 @@ test("ボックス一覧を表示", async ({ page }, testInfo) => {
       targetMs: 1500,
     },
     () => timeNav(page, "/box", "#owned-pokemon-list a[href^='/box/']"),
+  );
+});
+
+test("ボックス一覧の全件読み込みを完了する", async ({ page }, testInfo) => {
+  await perfScenario(
+    testInfo,
+    {
+      id: "box-index-load-until-settled",
+      label: "ボックス一覧の全件読み込み",
+      category: "page-load",
+      targetMs: 1500,
+      note:
+        "loadList() の自動継続読み込みが hasMorePokemon=false で止まり、最終バッチ後の renderList() が全件を再構築し終えるまでを計測する。" +
+        "この値はローカルDBの所持件数に依存する。件数が1バッチ(48件)以下では box-index-load とほぼ同値になる。" +
+        "通常のページ遷移としてRAIL目安の1500msを目標にする。",
+    },
+    () =>
+      timeNav(page, "/box", (target) =>
+        // loadList() 内部の hasMorePokemon はクロージャーでDOMへ公開されないため、
+        // 事前に取得した全件数と一致するリンク数を最終バッチの描画完了条件にする。
+        target.waitForFunction(
+          (count) => document.querySelectorAll("#owned-pokemon-list a[href^='/box/']").length === count,
+          ownedPokemonCount,
+        ),
+      ),
   );
 });
 
@@ -116,6 +158,109 @@ test("上位チームを表示", async ({ page }, testInfo) => {
         "#ranked-data-panel .box-ranked-results, #ranked-data-status:not([data-state='loading'])",
       ),
   );
+});
+
+test("使い捨て個体のダメージ表を初回表示する", async ({ page, request }, testInfo) => {
+  const createResponse = await request.post("/api/owned-pokemon", {
+    headers: { Origin: "http://localhost:4321" },
+    data: {
+      species_name: "ピカチュウ",
+      level: 50,
+      nature: "おくびょう",
+      ability_name: "せいでんき",
+      item_name: "でんきだま",
+      tera_type: "でんき",
+      evs: [0, 0, 0, 32, 0, 32],
+      ivs: [31, 31, 31, 31, 31, 31],
+      move_names: ["10まんボルト"],
+      memo: null,
+      tags: [],
+    },
+  });
+  await expect(createResponse).toBeOK();
+  const createBody = (await createResponse.json()) as { data: { id: string } };
+  const disposableId = createBody.data.id;
+  disposableOwnedPokemonIds.push(disposableId);
+
+  const opponentNotes = [
+    { name: "カイリュー", nature: "いじっぱり", abilityName: "マルチスケイル", itemName: "こだわりハチマキ", teraType: "ノーマル", moveName: "しんそく" },
+    { name: "パオジアン", nature: "ようき", abilityName: "わざわいのつるぎ", itemName: "きあいのタスキ", teraType: "ゴースト", moveName: "つららおとし" },
+    { name: "サーフゴー", nature: "ひかえめ", abilityName: "おうごんのからだ", itemName: "たべのこし", teraType: "みず", moveName: "ゴールドラッシュ" },
+  ];
+
+  try {
+    for (const [index, opponent] of opponentNotes.entries()) {
+      const { moveName, ...opponentBuild } = opponent;
+      const noteResponse = await request.post("/api/opponent-notes", {
+        headers: { Origin: "http://localhost:4321" },
+        data: {
+          owned_pokemon_id: disposableId,
+          opponent_build: {
+            ...opponentBuild,
+            level: 50,
+            evs: [0, 0, 0, 32, 0, 32],
+            ivs: [31, 31, 31, 31, 31, 31],
+          },
+          field: {
+            direction: "defense",
+            attacks: [{ moveName, hitCount: 1 }],
+            order: index * 1000,
+          },
+          // field.attacks が描画・計算に使うため、トップレベルのmove_nameは不要。
+          // nullならPOST時の匿名二重記録はAPI実装によりスキップされる。
+          move_name: null,
+          client_result: null,
+          memo: null,
+        },
+      });
+      await expect(noteResponse).toBeOK();
+    }
+
+    // 結果描画後の自動保存は、匿名のdamage_calcs/eventsへ副次記録を作る。
+    // 終点は保存開始前に描画される数値なので、使い捨て個体以外へテスト痕跡を残さないよう
+    // このPUTだけを成功応答に差し替える(計算・描画の区間には影響しない)。
+    await page.route("**/api/opponent-notes/*", async (route) => {
+      if (route.request().method() !== "PUT") {
+        await route.continue();
+        return;
+      }
+      await route.fulfill({ contentType: "application/json", body: '{"data":{}}' });
+    });
+
+    await perfScenario(
+      testInfo,
+      {
+        id: "box-damage-load",
+        label: "ダメージ表を初回表示",
+        category: "page-load",
+        targetMs: 5000,
+        note:
+          "使い捨て個体に保存済み相手カードを3枚作成し、各カードの累計ダメージに数値が表示されるまでを計測する。" +
+          "?tab=damage の初期表示で、ページ内のPyodideエンジンは未初期化(3秒後のプリフェッチから開始)という前提の初回表示を測る。" +
+          "Pyodide初期化を伴うpage-loadのRAIL目安に従い5000msを目標にする。",
+      },
+      () =>
+        timeNav(page, `/box/${encodeURIComponent(disposableId)}?tab=damage`, (target) =>
+          target.waitForFunction(() => {
+            const results = Array.from(document.querySelectorAll<HTMLElement>(".damage-row-total-result"));
+            // 初期値の「(計算前)」「(計算エンジンの初期化待ち)」ではなく、
+            // 保存した3カードすべてに数値を含む累計結果が出た時点を終点にする。
+            return results.length >= 3 && results.every((result) => /\d/.test(result.textContent ?? ""));
+          }),
+        ),
+    );
+  } finally {
+    const deleteResponse = await request.delete(`/api/owned-pokemon/${encodeURIComponent(disposableId)}`, {
+      headers: { Origin: "http://localhost:4321" },
+    });
+    await expect(deleteResponse).toBeOK();
+
+    const listResponse = await request.get("/api/owned-pokemon?limit=48&offset=0");
+    await expect(listResponse).toBeOK();
+    const listBody = (await listResponse.json()) as { data: Array<{ id: string }> };
+    // 相手カードは owned_pokemon のON DELETE CASCADEで一緒に後始末される。
+    expect(listBody.data.filter((pokemon) => pokemon.id === disposableId)).toHaveLength(0);
+  }
 });
 
 test("もちもの選択モーダルを閉じる", async ({ page }, testInfo) => {
