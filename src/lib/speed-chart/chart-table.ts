@@ -241,6 +241,7 @@ export async function initSpeedChartPage(): Promise<void> {
   let currentHighlightValue: number | null = null;
   let lastKnownOwnedValue: number | null = null;
   let hasScrolledInitially = false;
+  let pendingInitialScrollValue: number | null = null;
   let currentRows: SpeedChartRow[] = [];
   let sortOrder: 'asc' | 'desc' = orderToggle?.dataset.order === 'asc' ? 'asc' : 'desc';
   // R-12更新: 「個体が到達可能な実数値の集合」はowned-panel.tsが所有する。ここではCustomEvent
@@ -496,15 +497,11 @@ export async function initSpeedChartPage(): Promise<void> {
       const value = ownedController.getCurrentValue();
       lastKnownOwnedValue = value;
       applyHighlight(value);
-      if (!hasScrolledInitially && ownedId) {
-        hasScrolledInitially = true;
-        scrollToValue(value);
-      }
+      if (!hasScrolledInitially && ownedId) requestInitialScroll(value);
     } else if (!hasScrolledInitially) {
       // 調整対象が無い通常表示（または対象が現レギュレーションに存在しない初期表示）は、
       // 長い表の中央付近である実数値200を初回だけ表示する。
-      hasScrolledInitially = true;
-      scrollToValue(200);
+      requestInitialScroll(200);
     }
   }
 
@@ -634,10 +631,31 @@ export async function initSpeedChartPage(): Promise<void> {
     rowElements.get(value)?.forEach((el) => el.classList.add('is-current-row'));
   }
 
-  function scrollToValue(value: number): void {
+  function scrollToValue(value: number, behavior: ScrollBehavior = 'smooth'): void {
     const el = findNearestRowElement(value);
-    el?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    el?.scrollIntoView({ block: 'center', behavior });
   }
+
+  // すばやさ調整モーダルのiframeは hidden のままアイドル時に読み込まれるため、初回描画の
+  // 時点ではビューポート高さが0でスクロールが効かない(スクロール済みフラグだけが立ち、
+  // 開いても現在値に移動しない)。高さが得られるまで初回スクロールを保留し、モーダルが
+  // 開かれてサイズが付いたタイミング(resize)で実行する。表示直後はアニメーションさせず
+  // 最初から現在値の位置で見せたいので、保留分は 'auto' でジャンプする。
+  function requestInitialScroll(value: number): void {
+    if (hasScrolledInitially) return;
+    if (window.innerHeight <= 0) {
+      pendingInitialScrollValue = value;
+      return;
+    }
+    hasScrolledInitially = true;
+    const behavior: ScrollBehavior = pendingInitialScrollValue !== null ? 'auto' : 'smooth';
+    pendingInitialScrollValue = null;
+    scrollToValue(value, behavior);
+  }
+
+  window.addEventListener('resize', () => {
+    if (pendingInitialScrollValue !== null) requestInitialScroll(pendingInitialScrollValue);
+  });
 
   function findNearestRowElement(targetValue: number): HTMLElement | null {
     // スクロール先は「その値の先頭行」で十分(先頭行=グループの一番上)。
