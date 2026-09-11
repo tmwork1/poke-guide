@@ -163,7 +163,7 @@ async function applySprite(imgEl: HTMLImageElement, fallbackEl: HTMLElement, nam
 		imgEl.style.display = '';
 		fallbackEl.style.display = 'none';
 	};
-	// 93px表示なので192pxのWebPで足りる。取得できなければ320px PNGへ退避する。
+	// 72px表示なので192pxのWebPで足りる。取得できなければ320px PNGへ退避する。
 	imgEl.src = championSpriteMediumUrl(imageId);
 }
 
