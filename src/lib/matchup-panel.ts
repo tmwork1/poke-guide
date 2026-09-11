@@ -484,6 +484,9 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 		}
 		loadedTargetCount = targets.length;
 		visibleTargetCount = Math.min(visibleTargetCount, targets.length);
+		// 続きがあることは相手一覧が取れた時点で分かる。計算が終わるまで隠しておくと
+		// 数十秒ボタンが現れないので、ここで出して計算中はdisabledにとどめる。
+		updateMoreButton(loadedTargetCount, true);
 		const [typesMap, moveDetails, typeChart] = await Promise.all([loadTypesMap(), loadMoveDetailMap(), loadTypeChart()]);
 		if (currentRequestId !== requestId) return;
 		const isAttackMove = (moveName: string): boolean => {
