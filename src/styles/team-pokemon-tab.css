@@ -16,6 +16,9 @@ body.team-edit-page {
 	/* ── 8. 寸法 ────────────────────────── */
 	--team-pokemon-tab-suggest-icon-size: calc(var(--space-7) + var(--space-1)); /* おすすめアイコンの正方形サイズ */
 	--team-formation-mobile-suggest-height: calc(var(--team-pokemon-tab-suggest-icon-size) + var(--space-4)); /* 下部固定のおすすめ帯が占める高さ */
+	--team-matchup-suggest-icon-size: 24px; /* 相性タブのおすすめタイプアイコンの正方形サイズ。ポケモンアイコンより小さくする */
+	--team-matchup-suggest-gap: var(--space-3); /* 相性タブのおすすめ帯で、見出しとアイコン・アイコン同士を離す固定間隔 */
+	--team-matchup-suggest-height: calc(var(--team-matchup-suggest-icon-size) + var(--space-4)); /* 相性タブのおすすめ帯が占める高さ */
 }
 
 /* --------------------------------------------------------------------------
@@ -123,11 +126,15 @@ body.team-edit-page {
 	min-width: 0;
 	max-width: 324px;
 }
+/* 相性タブのおすすめタイプ帯。見出しとアイコン列は固定間隔で並べ、その塊を帯の中央に置く。
+   アイコンは計算完了後に差し込まれるため、枠(高さ・アイコン列の幅)は空のときから確定させ、
+   出入りで見出しの位置が動かないようにする。 */
 .team-matchup-suggest {
 	display: flex;
 	align-items: center;
-	gap: var(--space-3);
-	min-height: var(--team-formation-mobile-suggest-height);
+	justify-content: center;
+	gap: var(--team-matchup-suggest-gap);
+	min-height: var(--team-matchup-suggest-height);
 	padding: var(--space-2) var(--space-3);
 	background: var(--color-bg);
 }
@@ -138,14 +145,14 @@ body.team-edit-page {
 }
 .team-matchup-suggest__icons {
 	display: grid;
-	grid-template-columns: repeat(5, var(--team-pokemon-tab-suggest-icon-size));
+	grid-template-columns: repeat(5, var(--team-matchup-suggest-icon-size));
+	gap: var(--team-matchup-suggest-gap);
 	flex: 0 0 auto;
-	width: calc(5 * var(--team-pokemon-tab-suggest-icon-size));
-	margin-left: auto;
+	width: calc(5 * var(--team-matchup-suggest-icon-size) + 4 * var(--team-matchup-suggest-gap));
 }
 .team-matchup-suggest__icon {
-	width: var(--team-pokemon-tab-suggest-icon-size);
-	height: var(--team-pokemon-tab-suggest-icon-size);
+	width: var(--team-matchup-suggest-icon-size);
+	height: var(--team-matchup-suggest-icon-size);
 	object-fit: contain;
 }
 .team-formation-suggest-icon {
