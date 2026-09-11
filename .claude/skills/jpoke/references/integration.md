@@ -1,5 +1,7 @@
 # poke-commons と jpoke の接続面
 
+> ⚠ jpoke v0.4.0 更新(2026-09-11)により未再検証。
+
 **検証時点**: jpoke v0.2.0 (`vendor/jpoke`、上流3dd183ee5相当) / poke-commons `160fb1b` / 2026-07-27(vendor更新は同日中に追加実施)
 
 **2026-07-27追記**: 上流PR#355(`fix/lethal-fixed-damage-moves`)を`vendor/jpoke`に取り込み済み。`calc_lethal`が固定ダメージ技・OHKO技等を正しく計算するようになった詳細は`damage-calc.md`§7を参照。これに伴い`src/pages/box/[id].astro`の`isVariablePowerMove`抑止ロジックを`isUnsupportedLethalMove`(対象は`はきだす`のみ)に縮小した。wheelバージョン文字列(`pyodide-engine.ts`の`0.2.0`)は変更不要だった(`pyproject.toml`のバージョン据え置きのため)。`npm test`・`npm run test:e2e`・上流`tests/test_lethal.py`(139件)は全てパス済み。

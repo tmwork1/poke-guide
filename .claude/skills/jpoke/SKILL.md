@@ -11,10 +11,12 @@ description: ダメージ計算エンジン jpoke の仕様・API・データを
 
 | | パス | 位置づけ |
 |---|---|---|
-| **仕様の正** | `vendor/jpoke/` | **アプリが実際に実行しているのはこちら。v0.2.0。** 配布物は `public/master-data/pyodide/wheels/jpoke-0.2.0-py3-none-any.whl` |
+| **仕様の正** | `vendor/jpoke/` | **アプリが実際に実行しているのはこちら。v0.4.0(2026-09-11更新)。** 配布物は `public/master-data/pyodide/wheels/jpoke-<version>-<hash>-py3-none-any.whl`(ファイル名は `scripts/build-master-data/build_wheel.py` が `vendor/jpoke/pyproject.toml` の version と内容ハッシュから生成) |
 | 上流 | `../jpoke/`(`C:\Users\tmtmp\Documents\pokemon\jpoke`) | 開発リポジトリ。読解の補助にはしてよいが、**食い違ったら `vendor/jpoke` が勝つ** |
 
-**2026-07-27時点の両者の関係(実測)**: `diff -rq` の結果、`src/` の中身は**実質同一**。差分は上流にだけある空ディレクトリ `src/jpoke/utils/type_defs/`(中身0件、どこからも参照なし)のみで、`pyproject.toml` も両方 `version = "0.2.0"`。上流のgit HEAD(`d51e9c96b`)はドキュメントのみの変更だった。
+**2026-09-11: vendor を上流 v0.4.0 (tag `v0.4.0` / `46f739bc3`) に更新済み。** `references/*.md` は v0.2.0 時点の検証結果なので要再検証。v0.4.0 で入った主な変更: レギュレーション `M-C` 追加(`types/literals.py`)、種族ごとの使用禁止技 `data/regulation/move_ban.csv` と `POKEDEX[...].banned_moves` / `get_banned_moves()`(`data/pokedex.py:100`)、`jpoke/text.py`・`players/mixins.py` の新設。e2e fixture(`tests/e2e/fixtures/generate_expected.py` 再生成)に差分なし = ダメージ・実数値の計算結果は不変。
+
+**2026-07-27時点の両者の関係(実測、当時)**: `diff -rq` の結果、`src/` の中身は**実質同一**。差分は上流にだけある空ディレクトリ `src/jpoke/utils/type_defs/`(中身0件、どこからも参照なし)のみで、`pyproject.toml` も両方 `version = "0.2.0"`。上流のgit HEAD(`d51e9c96b`)はドキュメントのみの変更だった。
 
 - つまり**今は乖離していない**。「vendorが古い」という前提で上流を見に行く必要は現時点では無い。
 - ただし**この関係は上流が動けば静かに崩れる**。乖離を疑う根拠にすべきは上流のコミット履歴ではなく、`diff -rq --exclude=__pycache__ --exclude='*.egg-info' vendor/jpoke/src ../jpoke/src` の実行結果。**履歴が進んでいること = ソースが乖離していること、ではない**(実際このドキュメント作成時、上流のコミットが進んでいるのを見て乖離していると誤認した)。

@@ -1,6 +1,6 @@
 # vendor/jpoke について
 
-このディレクトリは [jpoke](https://github.com/tmwork1/jpoke) (v0.2.0時点) の `src/`,
+このディレクトリは [jpoke](https://github.com/tmwork1/jpoke) (v0.4.0時点) の `src/`,
 `pyproject.toml`, `README.md`, `LICENSE`, `LICENSE-DATA` をそのままコピーしたものです。
 
 開発プラン (`docs/plan/開発プラン.md` §4リスク表) の方針「jpoke をバージョン固定で

@@ -1,5 +1,7 @@
 # jpoke ダメージ計算の契約
 
+> ⚠ jpoke v0.4.0 更新(2026-09-11)により未再検証。
+
 **検証時点**: jpoke v0.2.0 (`vendor/jpoke`) / 2026-07-27(§7追記時点でvendor更新済み)。§10は2026-07-30に`resume_from`追加取り込み時点で追記・再検証済み。
 **上流リポジトリの参照コミット**: 3dd183ee5 (`../jpoke`、PR#355 `fix/lethal-fixed-damage-moves` マージ後。vendor/jpokeもこの時点のsrcと完全一致)。2026-07-30時点、上流はCHANGELOG.mdの`[Unreleased]`に`resume_from`追加(バージョン番号は0.2.0のまま据え置き)。
 

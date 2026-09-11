@@ -11,14 +11,22 @@ from __future__ import annotations
 import base64
 import csv
 import hashlib
+import re
 import sys
 import zipfile
 from pathlib import Path
 
 
 NAME = "jpoke"
-VERSION = "0.2.0"
-DIST_INFO = f"{NAME}-{VERSION}.dist-info"
+
+
+def read_version(jpoke_dir: Path) -> str:
+    """vendor/jpoke/pyproject.toml の version をそのまま使う(手で二重管理しない)。"""
+    text = (jpoke_dir / "pyproject.toml").read_text(encoding="utf-8")
+    match = re.search(r'^version\s*=\s*"([^"]+)"', text, re.MULTILINE)
+    if match is None:
+        raise SystemExit(f"version が見つかりません: {jpoke_dir / 'pyproject.toml'}")
+    return match.group(1)
 
 
 def record_hash(contents: bytes) -> str:
@@ -30,15 +38,18 @@ def main() -> None:
     if len(sys.argv) != 3:
         raise SystemExit("usage: build_wheel.py JPOKE_DIR OUTPUT_DIR")
 
-    package_root = Path(sys.argv[1]) / "src"
+    jpoke_dir = Path(sys.argv[1])
+    package_root = jpoke_dir / "src"
+    version = read_version(jpoke_dir)
+    dist_info = f"{NAME}-{version}.dist-info"
     output_dir = Path(sys.argv[2])
     output_dir.mkdir(parents=True, exist_ok=True)
-    wheel_path = output_dir / f"{NAME}-{VERSION}-py3-none-any.whl"
+    wheel_path = output_dir / f"{NAME}-{version}-py3-none-any.whl"
 
     metadata = (
         "Metadata-Version: 2.1\n"
         f"Name: {NAME}\n"
-        f"Version: {VERSION}\n"
+        f"Version: {version}\n"
         "Summary: Event-driven Pokemon Champions single-battle simulation and damage calculation library (unofficial)\n"
         "License: MIT\n"
         "Requires-Python: >=3.11\n"
@@ -61,11 +72,11 @@ def main() -> None:
             records.append((destination, record_hash(contents), str(len(contents))))
 
         for filename, contents in (("METADATA", metadata), ("WHEEL", wheel)):
-            destination = f"{DIST_INFO}/{filename}"
+            destination = f"{dist_info}/{filename}"
             archive.writestr(destination, contents)
             records.append((destination, record_hash(contents), str(len(contents))))
 
-        record_path = f"{DIST_INFO}/RECORD"
+        record_path = f"{dist_info}/RECORD"
         record_contents = "".join(
             ",".join(record) + "\n" for record in [*records, (record_path, "", "")]
         ).encode()
