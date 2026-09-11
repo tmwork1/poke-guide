@@ -36,7 +36,7 @@ export const OPPONENT_NATURE = 'まじめ';
 export const OPPONENT_MIN_MOVE_RATIO = 0.2;
 
 /** 相性チェックの対象にする使用率上位の体数。 */
-export const MATCHUP_TOP_N = 32;
+export const MATCHUP_TOP_N = 30;
 
 /**
  * アイコンの最小不透明度。0にすると完全に消えてどのポケモンだったか分からなくなるため、

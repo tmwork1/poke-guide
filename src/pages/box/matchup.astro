@@ -7,6 +7,7 @@ import PokemonSettingsModalHost from '../../components/box-id/PokemonSettingsMod
 import { getOwnedPokemon } from '../../lib/owned-pokemon';
 import { createMobilePreviewPlaceholder } from '../../lib/box-id/mobile-preview-placeholder';
 import { getSupabaseAdminClient } from '../../lib/supabase';
+import { MATCHUP_TOP_N } from '../../lib/team-matchup';
 import '../../styles/box-insight-page.css';
 import '../../styles/matchup-panel.css';
 import '../../styles/box-matchup-page.css';
@@ -60,7 +61,7 @@ const canRenderSelectedPokemon = result?.ok || (!user && selectedId !== null);
           <div class="box-matchup-page__results">
             <p id="box-matchup-status" class="team-matchup-status" hidden></p>
             <ul id="box-matchup-list" class="team-matchup-list" aria-busy="true">
-              {Array.from({ length: 32 }, () => <li class="team-matchup-card" data-state="pending" aria-hidden="true"></li>)}
+              {Array.from({ length: MATCHUP_TOP_N }, () => <li class="team-matchup-card" data-state="pending" aria-hidden="true"></li>)}
             </ul>
           </div>
         </section>
