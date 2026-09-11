@@ -120,6 +120,10 @@ if (pokemon) {
     if (!panel) return;
     panel.innerHTML = '';
     const status = document.createElement('p');
+    // SSRが出す <p id="ranked-data-status"> を作り直しているので、idも引き継ぐ。
+    // 引き継がないと、クライアント側で状態が一度でも更新された瞬間にDOMからidが消え、
+    // 「読み込みが終わったか」をidで待つ計測シナリオが永久に終点へ到達しなくなる。
+    status.id = 'ranked-data-status';
     status.className = 'box-ranked-status status-text';
     if (state) status.dataset.state = state;
     status.textContent = message;

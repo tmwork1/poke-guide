@@ -281,9 +281,30 @@ test("使い捨てチームのメモを編集して自動保存を完了する",
       id: "team-composition-autosave",
       label: "チームメモ編集と自動保存",
       category: "interaction",
-      targetMs: 800,
-      note: "使い捨てチームでのみメモを変更し、700msデバウンス後のPUT完了までを計測する。",
+      // team/[id].astro の DEBOUNCE_MS = 700 が下限として必ず乗るため、700ms未満の目標は
+      // 原理的に達成できない。box側の「もちもの選択の自動保存」と同じく、PUTの往復に
+      // 500msを見込んで1,200msとする(2026-09-11に800msから変更)。区間を分解して測った
+      // ところPUT往復は138msで、旧目標800msの超過分はほぼ全てデバウンス待ちだった。
+      // この目標を下げたいならデバウンス値そのものを見直すことになる(体感の即応性と
+      // 保存リクエスト数のトレードオフなので、性能だけでは決められない)。
+      targetMs: 1200,
+      note:
+        "使い捨てチームでのみメモを変更し、700msデバウンス後のPUT完了までを計測する。" +
+        "内訳は チームメモ保存のPUT往復(デバウンス後だけ)と併せて読む。" +
+        "2026-09-11に目標を800ms→1200msへ変更(700msのデバウンスが下限として必ず乗るため)。",
     };
+
+    // box側の「もちもの選択の自動保存」と同じ分解を行う。合算値だけでは、超過分が
+    // 700msのデバウンス待ちに載っているのかサーバー側(APIハンドラ・Supabaseへの書き込み)に
+    // 載っているのかが切り分けられない。
+    //
+    // ⚠️ 区間の境目に data-state は使えない。team/[id].astro の scheduleSave() は入力を受けた
+    // 瞬間に #autosave-status を data-state="saving"(表示は「編集中…」)にし、700ms後に走る
+    // saveNow() も同じ "saving" のまま表示だけ「保存中…」に変える(box/[id]の
+    // pokemon-edit-panel.ts とまったく同じ作りであることをコードで確認済み)。属性で待つと
+    // デバウンス発火前のクリック直後に通過してしまう。PUT自体のネットワークタイミング
+    // (Request.timing())なら取りこぼしも計測誤差もないのでそちらを使う。
+    let requestMs = 0;
 
     await perfScenario(testInfo, meta, () =>
       timeAction(async () => {
@@ -291,8 +312,26 @@ test("使い捨てチームのメモを編集して自動保存を完了する",
           response.request().method() === "PUT" && response.url().includes(`/api/teams/${teamId}`) && response.ok(),
         );
         await memo.fill("performance test");
-        await saveResponse;
+        const response = await saveResponse;
+        // finished() を待たずに timing() を読むと responseEnd がまだ -1 で差が負になる。
+        await response.finished();
+        const timing = response.request().timing();
+        requestMs = Math.round(timing.responseEnd - timing.requestStart);
       }),
+    );
+
+    recordPerf(
+      testInfo,
+      {
+        id: "team-memo-autosave-request",
+        label: "チームメモ保存のPUT往復",
+        category: "interaction",
+        targetMs: 500,
+        note:
+          "チームメモ編集と自動保存 の内訳。700msのデバウンス待ちを含まないPUTの往復だけを測る。" +
+          "合算値との差がデバウンス側の実測になる。",
+      },
+      requestMs,
     );
   } finally {
     await deleteDisposableTeamAndVerify(page, teamId);
