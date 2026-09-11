@@ -254,6 +254,14 @@ if (!isGuestNewMode) {
 									<option value="type">タイプ順</option>
 									</select>
 								</div>
+								{/* 自動構築: 空き枠をおすすめ順(サジェストと同じ順)に手持ちで補填して6体に揃える。 */}
+								<button type="button" id="team-formation-auto-build" class="formation-auto-build-button" aria-label="おすすめで自動構築" title="おすすめで自動構築">
+									<svg class="formation-auto-build-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+										<path d="M12 3l1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.6z" />
+										<path d="M18.5 15.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z" />
+									</svg>
+									<span class="formation-auto-build-label">AUTO</span>
+								</button>
 							</div>
 						</div>
 					</div>
@@ -494,6 +502,7 @@ if (!isGuestNewMode) {
 			const formationMobileSortSelect = el<HTMLSelectElement>("team-formation-mobile-sort-select");
 			const formationMobileSortSelectWrap = el<HTMLElement>("team-formation-mobile-sort-select-wrap");
 			const formationMobileSortDirToggle = el<HTMLButtonElement>("team-formation-mobile-sort-dir-toggle");
+			const formationAutoBuildButton = el<HTMLButtonElement>("team-formation-auto-build");
 			const formationMobileAddButton = el<HTMLButtonElement>("team-formation-mobile-add");
 			const formationMobileStatus = el<HTMLElement>("team-formation-mobile-status");
 			const formationMobileBoxGrid = el<HTMLElement>("team-formation-mobile-box-grid");
@@ -1136,6 +1145,19 @@ if (!isGuestNewMode) {
 					.slice(0, 12);
 			}
 
+			// 現在の編成に対するおすすめを1回取得する。描画も重複抑止も行わない純粋な取得処理で、
+			// 表示用の loadSuggestions と、自動構築(autoBuildFormation)の両方から使う。
+			async function fetchSuggestions(memberIds: string[]): Promise<{ suggestions: TeamSuggestion[]; basis: string }> {
+				if (isGuestMode()) {
+					return { suggestions: await loadGuestSuggestions(), basis: "ranked-teams" };
+				}
+				const query = memberIds.length > 0 ? `?member_ids=${encodeURIComponent(memberIds.join(","))}` : "";
+				const res = await fetch(`/api/team-suggestions${query}`, { credentials: "same-origin" });
+				if (!res.ok) throw new Error(`サジェストの取得に失敗しました (status=${res.status})`);
+				const body = (await res.json()) as { data: TeamSuggestion[]; meta?: { basis?: string } };
+				return { suggestions: body.data ?? [], basis: body.meta?.basis ?? "cooccurrence" };
+			}
+
 			async function loadSuggestions(): Promise<void> {
 				const memberIds = currentMemberIds();
 				const key = memberIds.slice().sort().join(",");
@@ -1144,18 +1166,9 @@ if (!isGuestNewMode) {
 
 				const requestId = (suggestRequestId += 1);
 				try {
-					if (isGuestMode()) {
-						const suggestions = await loadGuestSuggestions();
-						if (requestId !== suggestRequestId) return;
-						void renderSuggestions(suggestions, "ranked-teams");
-						return;
-					}
-					const query = memberIds.length > 0 ? `?member_ids=${encodeURIComponent(memberIds.join(","))}` : "";
-					const res = await fetch(`/api/team-suggestions${query}`, { credentials: "same-origin" });
-					if (!res.ok) throw new Error(`サジェストの取得に失敗しました (status=${res.status})`);
-					const body = (await res.json()) as { data: TeamSuggestion[]; meta?: { basis?: string } };
+					const { suggestions, basis } = await fetchSuggestions(memberIds);
 					if (requestId !== suggestRequestId) return; // 編成が変わった。この結果は捨てる
-					void renderSuggestions(body.data ?? [], body.meta?.basis ?? "cooccurrence");
+					void renderSuggestions(suggestions, basis);
 				} catch (err) {
 					console.error(err);
 					if (requestId !== suggestRequestId) return;
@@ -1171,6 +1184,59 @@ if (!isGuestNewMode) {
 				suggestTimer = window.setTimeout(() => {
 					void loadSuggestions();
 				}, 700);
+			}
+
+			// =================================================================================
+			// 自動構築(操作帯のAUTOボタン)
+			// 空き枠を1つずつ、そのつど取り直したおすすめ順(サジェストと同じ並び)で手持ちから
+			// 埋めて6体に揃える。新規の個体は作らず、ボックスにいるポケモンだけを使う。
+			// 1体入れるたびに編成が変わり、次のおすすめも変わるため、6体まとめてではなく
+			// 1体ずつ取得し直す。
+			// =================================================================================
+			let autoBuildRunning = false;
+
+			function updateAutoBuildButtonState(): void {
+				formationAutoBuildButton.disabled = autoBuildRunning || firstEmptySlot() == null;
+			}
+
+			// 次に入れる1体を選ぶ。おすすめのうち手持ちに該当個体がいる最上位を採り、
+			// 1体も該当しなければボックスの表示順(操作帯の並べ替え)の先頭から補う。
+			async function pickAutoBuildCandidate(): Promise<OwnedPokemonRecord | null> {
+				try {
+					const { suggestions } = await fetchSuggestions(currentMemberIds());
+					const filtered = await filterSuggestions(suggestions);
+					for (const suggestion of filtered) {
+						const owned = findOwnedMatch(suggestion);
+						if (owned) return owned;
+					}
+				} catch (err) {
+					// おすすめが取れなくても補填自体は続ける(下のボックス順フォールバック)。
+					console.warn("自動構築: おすすめの取得に失敗しました", err);
+				}
+				const candidates = currentCandidates();
+				const usedSpecies = new Set(Array.from(membersBySlot.values()).map((p) => p.species_name));
+				const rest = sortFormationMobilePokemon(
+					allPokemon.filter((p) => selectionBlockReason(candidateOf(p), candidates) === null),
+				);
+				// 種族の重複自体は許可されている(team-validation.ts)が、自動で埋める分には
+				// まだ入っていない種族を優先する。
+				return rest.find((p) => !usedSpecies.has(p.species_name)) ?? rest[0] ?? null;
+			}
+
+			async function autoBuildFormation(): Promise<void> {
+				if (autoBuildRunning || firstEmptySlot() == null) return;
+				autoBuildRunning = true;
+				updateAutoBuildButtonState();
+				try {
+					while (firstEmptySlot() != null) {
+						const picked = await pickAutoBuildCandidate();
+						if (!picked) break; // 入れられる手持ちが尽きた
+						assignToSlot(picked);
+					}
+				} finally {
+					autoBuildRunning = false;
+					updateAutoBuildButtonState();
+				}
 			}
 
 			// =================================================================================
@@ -1737,6 +1803,7 @@ if (!isGuestNewMode) {
 					formationMobileBoxGrid.appendChild(card);
 				}
 				formationMobileBoxGrid.appendChild(formationMobileAddButton);
+				updateAutoBuildButtonState();
 			}
 
 			function navigateToPokemonEdit(pokemonId: string): void {
@@ -2113,6 +2180,7 @@ if (!isGuestNewMode) {
 			});
 			formationMobileSearchInput.addEventListener("input", renderFormationMobile);
 			formationMobileAddButton.addEventListener("click", () => void createFormationMobilePokemon());
+			formationAutoBuildButton.addEventListener("click", () => void autoBuildFormation());
 
 			// --- 初期化 ---
 			// SSR取得済みのメンバーは fetch を待たずに即描画する(6枠が空でも一瞬も待たせない)。

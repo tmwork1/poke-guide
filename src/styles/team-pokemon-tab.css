@@ -316,3 +316,31 @@ body.team-edit-page {
 	overflow: hidden;
 	resize: none;
 }
+
+/* 自動構築(AUTO)ボタン: 編成タブの操作帯で並べ替えの右隣に置く。
+   幅を稼ぐためにアイコン+短いラベルにとどめ、高さは他の操作部品(select)とそろえる。 */
+#team-formation-mobile-toolbar .formation-auto-build-button {
+	display: inline-flex;
+	flex: 0 0 auto;
+	align-items: center;
+	gap: var(--space-1);
+	min-height: var(--tap-target-min);
+	padding: var(--space-2) var(--space-3);
+	color: var(--color-text);
+	background: var(--color-surface-sunken);
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius-sm);
+	box-shadow: var(--shadow-inset-sunken);
+	font-size: var(--font-size-sm3);
+	font-weight: 700;
+	letter-spacing: 0.04em;
+	white-space: nowrap;
+}
+#team-formation-mobile-toolbar .formation-auto-build-button:disabled {
+	opacity: 0.45;
+}
+.formation-auto-build-icon {
+	width: 1.05em;
+	height: 1.05em;
+	flex: 0 0 auto;
+}
