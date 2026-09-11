@@ -469,7 +469,8 @@
 	.speed-chart-table .speed-chart-spread-badge[data-spread='min'] {
 		color: var(--color-text-muted);
 	}
-	/* 倍率は .badge.badge-muted と同じ配色(凹んだ背景+控えめな文字色)のバッジで示す。
+	/* 倍率は控えめな文字色のバッジで示す。表はページ背景(--color-bg)の上に直接並ぶため、
+		.badge-muted の背景(--color-bg)では同化する。1段明るいカード面の色と枠線で浮かせる。
 		配分バッジには背景が無いため、そのままだと両者のpadding分だけ間が空いて見える。
 		配分バッジの右paddingぶんを負のマージンで打ち消し、倍率バッジを配分の直後に寄せる。 */
 	.speed-chart-table .speed-chart-magnitude-badge {
@@ -478,7 +479,8 @@
 		margin-left: calc(-1 * var(--speed-chart-badge-padding-inline)); /* 配分バッジの右paddingを打ち消し、間隔をmeta-cellのgapだけにする */
 		padding: var(--speed-chart-badge-padding);
 		border-radius: var(--speed-chart-badge-radius);
-		background: var(--color-bg);
+		background: var(--color-surface);
+		box-shadow: inset 0 0 0 1px var(--color-border);
 		font-size: 0.9em;
 		font-weight: var(--font-weight-medium);
 		vertical-align: middle;
