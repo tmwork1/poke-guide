@@ -40,8 +40,14 @@
 /type-icons/*
   Cache-Control: public, max-age=2592000
 
+# マスタデータJSONはURLにハッシュが無く、参照するJS(/_astro/、ハッシュ付き)はデプロイごとに変わる。
+# 30日のブラウザキャッシュを付けていたところ、古いJSONを持ったまま新しいJSを実行して
+# すばやさ早見表が空になる事故が起きた(2026-09-11、Android Chrome。キャッシュ削除で復旧)。
+# 常に ETag で再検証させる(未変更なら 304 で本文は流れない)。/master-data/pyodide/ 配下の
+# wheel はファイル名にバージョンが入り、かつ pyodide-sw.js が cache-first で持つので
+# ここが短くても再取得は起きない。
 /master-data/*
-  Cache-Control: public, max-age=2592000
+  Cache-Control: public, max-age=0, must-revalidate
 
 # Webフォント(scripts/fonts/download-webfont.mjs がGoogle Fontsから取得してコミットしたもの)。
 # ファイル名にGoogle側のコンテンツハッシュが入っていて中身が変われば必ず名前も変わるため、
