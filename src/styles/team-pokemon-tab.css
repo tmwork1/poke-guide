@@ -360,6 +360,8 @@ body.team-edit-page {
 	border-radius: var(--radius-sm);
 	box-shadow: var(--shadow-inset-sunken);
 	font-size: var(--font-size-sm1);
+	/* ボタン既定(buttons.cssの600)を打ち消し、並べ替えselectと同じ太さにそろえる。 */
+	font-weight: 400;
 	letter-spacing: 0.04em;
 	white-space: nowrap;
 }
