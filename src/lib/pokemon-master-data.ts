@@ -282,6 +282,29 @@ export function loadMoveDetailMap(): Promise<Map<string, MoveDetail>> {
   return moveDetailCache;
 }
 
+let itemNameSetCache: Promise<Set<string>> | null = null;
+
+// items.json に存在するアイテム名の集合(= jpoke の ITEMS に実在するアイテム)。
+// loadItemSpriteMap()(sprite-urls.ts)と違い spritePath の有無で絞り込まない。
+// メガストーン名がアプリで有効かどうかの判定にはこちらを使うこと ── 画像は
+// itemIconUrl()の /item-icons/ 側とメガストーン共通フォールバック
+// (setupItemIconFallback)で必ず出るため、spritePath が null であること
+// (例: 「アブソルナイトZ」「ガブリアスナイトZ」)は「そのアイテムが使えない」
+// ことを意味しない。spritePath で弾くと、実在するメガストーンまで無効扱いになる。
+export function loadItemNameSet(): Promise<Set<string>> {
+  if (!itemNameSetCache) {
+    itemNameSetCache = fetch("/master-data/autocomplete/items.json")
+      .then((res) => res.json())
+      .then((list: Array<{ name: string }>) => new Set(list.map((item) => item.name)))
+      .catch((err) => {
+        console.warn("アイテム一覧の読み込みに失敗しました", err);
+        itemNameSetCache = null;
+        return new Set<string>();
+      });
+  }
+  return itemNameSetCache;
+}
+
 // autocomplete/mega-stones.json の各レコード
 // (scripts/build-master-data/extract_autocomplete.py の build_mega_stones を参照)。
 interface MegaStoneAutocompleteEntry {
@@ -296,7 +319,8 @@ let megaStoneCache: Promise<Map<string, string>> | null = null;
 // MEGA_STONES(逆引き)では曖昧になって漏れる「メガニャオニクス(オス)/(メス)」も含む。
 // 「ニャオニクスナイト」自体はjpokeのITEMS(=items.json)に存在しないという
 // 既知の不整合がある(build_mega_stonesのdocstring参照)。呼び出し側は値をそのまま
-// items.json の存在確認なしに信用しないこと。
+// 信用せず、loadItemNameSet()で実在を確認すること(loadItemSpriteMap()ではない。
+// 理由は同関数のコメント参照)。
 // 命名規則("メガXXX"→"XXXナイト")では導出できない例が85件中32件(約38%)あるため、
 // 必ずこの静的JSONを情報源にすること(命名規則から推測しない)。
 export function loadMegaStoneMap(): Promise<Map<string, string>> {

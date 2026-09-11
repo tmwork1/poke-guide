@@ -44,12 +44,13 @@ import {
 	loadImageIdMap,
 	loadBaseStatsMap,
 	loadMegaStoneMap,
+	loadItemNameSet,
 	officialArtworkUrl,
 	championSpriteIconUrl,
 	championSpriteMediumUrl,
 	championSpriteUrl,
 } from "../pokemon-master-data";
-import { loadItemSpriteMap, itemIconUrl, teraTypeIconUrl } from "../sprite-urls";
+import { itemIconUrl, teraTypeIconUrl } from "../sprite-urls";
 import { TYPE_COLORS, DEFAULT_TYPE_COLOR } from "../type-colors";
 import { type StatKey, STAT_KEYS, NATURE_STAT_MODIFIERS, calcHpStat, calcOtherStat } from "../stats";
 import type { OpponentClientResultInput } from "../opponent-notes-validation";
@@ -154,31 +155,36 @@ export function attachKanaTypeAhead(input: HTMLInputElement, datalist: HTMLDataL
 
 // --- 汎用ユーティリティ層(元は <script> 冒頭・if (form) より外側で定義)。
 //     画像用データの一覧はページ表示直後に一度だけfetchしておき、以後は同じPromiseを使い回す。
-//     imageIdMapPromise/itemSpriteMapPromise/megaStoneMapPromiseは共有コア関数(applySprite/
+//     imageIdMapPromise/megaStoneMapPromise/itemNameSetPromiseは共有コア関数(applySprite/
 //     applyItemImage/resolveMegaStoneItem)だけが使うためこのファイルに集約する。
 //     baseStatsMapPromiseは育成パネル(applyBaseStats)・共有コア(recalcStats)・ダメージ計算
 //     (recalcRowStatsOnly)の3箇所から使われるため、同じくここに集約し全箇所からimportする。 ---
 
 export const imageIdMapPromise = loadImageIdMap();
 export const baseStatsMapPromise = loadBaseStatsMap();
-const itemSpriteMapPromise = loadItemSpriteMap();
 const megaStoneMapPromise = loadMegaStoneMap();
+const itemNameSetPromise = loadItemNameSet();
 
 // メガシンカ種族が確定したとき、対応するメガストーン名を返す(該当しなければnull)。
 // ⚠️ loadMegaStoneMap()自体は「メガレックウザ」等メガストーン不要の種族を含まず、
-// 「ニャオニクスナイト」のようにitems.json(=loadItemSpriteMap())に存在しない
+// 「ニャオニクスナイト」のようにitems.json(=jpokeのITEMS)に存在しない
 // アイテム名も含みうる(jpoke側のMEGA_STONES逆引きがオス/メスで曖昧になり登録漏れ
 // している既知の不整合、pokemon-master-data.tsのloadMegaStoneMapコメント参照)。
-// 後者を弾かないと、持ち物画像が出ずダメージ計算にも反映されない「設定できるのに
-// 効かない」UIになるため、items.jsonに実在するかを都度確認する(特定のアイテム名を
-// ハードコードしない。将来jpoke側の不整合が直れば自動的に有効になる)。
+// 後者を弾かないと、ダメージ計算に反映されない「設定できるのに効かない」UIになるため、
+// items.jsonに実在するかを都度確認する(特定のアイテム名をハードコードしない。
+// 将来jpoke側の不整合が直れば自動的に有効になる)。
+// ⚠️ 存在確認は loadItemNameSet()(名前の集合)で行い、loadItemSpriteMap()(spritePathが
+// 解決できたものだけ)は使わない。jpoke v0.4.0で入った「アブソルナイトZ」「ガブリアス
+// ナイトZ」はitems.jsonに実在するがspritePathがnullで、spritePathで弾くと固有アイテム
+// なのにロックされず変更できてしまっていた。画像は/item-icons/とメガストーン共通
+// フォールバック(sprite-urls.tsのsetupItemIconFallback)で出るため支障はない。
 export async function resolveMegaStoneItem(speciesName: string): Promise<string | null> {
 	const trimmed = speciesName.trim();
 	if (!trimmed) return null;
-	const [megaStoneMap, itemSpriteMap] = await Promise.all([megaStoneMapPromise, itemSpriteMapPromise]);
+	const [megaStoneMap, itemNames] = await Promise.all([megaStoneMapPromise, itemNameSetPromise]);
 	const stoneName = megaStoneMap.get(trimmed);
 	if (!stoneName) return null;
-	if (!itemSpriteMap.has(stoneName)) return null;
+	if (!itemNames.has(stoneName)) return null;
 	return stoneName;
 }
 
