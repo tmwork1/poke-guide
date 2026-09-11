@@ -126,19 +126,28 @@ body.data-page {
   .box-data-main { padding: var(--box-data-card-viewport-inset); }
 }
 
-/* データが無いときの案内枠 */
+/* データが無いときは、カード枠を設けず一覧領域内の案内文として表示する。 */
 .data-empty {
-  padding: var(--space-5); /* 空状態の案内枠内側余白。大きくすると案内がゆったりする */
-  border: var(--data-page-border);
-  background: var(--color-surface); /* 空状態の案内枠背景。変えると案内の存在感が変わる */
-  color: var(--data-page-muted-color);
+  max-width: 34rem;
+  color: var(--color-text-muted);
+  text-align: center;
 }
-/* バトルデータが無いことを伝える案内枠の見出し */
+/* バトルデータが無いことを伝える案内文の見出し */
 .data-empty h2 {
-  color: var(--color-text); /* 空状態の見出し色。変えると案内の強さが変わる */
+  color: inherit;
   margin-bottom: var(--space-2); /* 空状態見出しの下余白。大きくすると説明から離れる */
+  font-size: inherit;
+  font-weight: inherit;
 }
 .data-empty p { margin: 0; }
+
+/* 空状態だけのパネルは、カード一覧と同じ表示領域の中央に案内文を置く。 */
+.data-panel:has(> .data-empty) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100%;
+}
 
 .data-panel--has-data {
   display: flex;
@@ -245,15 +254,23 @@ body.data-page {
 /* box/ranked.astro(上位チーム)のロード中/エラー/0件時のステータス文言。/team/[id] の
    .team-data-similar-status(team-data-tab.css)と同じ見た目にして、実カード一覧に
    差し替わる前の枠を揃える。 */
-/* /box/ranked の読み込み・エラー・0件時の状態枠 */
+/* /box/ranked の読み込み・エラー・0件時の状態文 */
 .box-ranked-status {
-  max-width: 34rem; /* 上位チーム状態枠の最大幅。大きくすると案内枠が横に広がる */
-  margin: 0 auto; /* 上位チーム状態枠の外側余白。変えると横位置が変わる */
-  padding: var(--space-4); /* 上位チーム状態枠の内側余白。大きくすると案内がゆったりする */
-  background: var(--color-surface); /* 空状態の案内枠背景。変えると案内の存在感が変わる */
-  border: var(--data-page-border);
-  border-radius: var(--radius-md); /* 上位チーム状態枠の角丸。大きくすると柔らかい印象になる */
+  max-width: 34rem;
+  color: var(--color-text-muted);
   text-align: center;
+}
+/* .status-text の状態別の強調色より、一覧内の控えめな案内色を優先する。 */
+.box-ranked-status.status-text {
+  color: var(--color-text-muted);
+}
+
+/* 初期読み込み時はスケルトングリッドも並ぶため、そのレイアウトはそのまま残す。 */
+#ranked-data-panel:has(> .box-ranked-status):not(:has(> .box-ranked-loading-grid)) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100%;
 }
 
 /* 最初の取得中も、renderTopBuildCard() が出力する見出し＋6枠グリッドと同じ寸法を

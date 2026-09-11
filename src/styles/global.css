@@ -637,24 +637,22 @@ input[type="range"]:focus-visible::-moz-range-thumb {
 
 /* --- 空状態 --- */
 .empty-state {
-  margin-top: var(--space-6);
-  padding: var(--space-7) var(--space-5);
-  border: 1px dashed var(--color-border);
-  border-radius: var(--radius-lg);
+  max-width: 34rem;
+  margin: 0;
+  padding: 0;
   text-align: center;
   color: var(--color-text-muted);
 }
 
 .empty-state-icon {
-  font-size: 2.4rem;
-  margin: 0 0 var(--space-2);
+  display: none;
 }
 
 .empty-state-title {
   margin: 0 0 var(--space-1);
-  font-size: var(--font-size-lg1);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-text);
+  font-size: inherit;
+  font-weight: inherit;
+  color: inherit;
 }
 
 .empty-state-hint {
@@ -663,8 +661,8 @@ input[type="range"]:focus-visible::-moz-range-thumb {
 }
 
 .empty-state.is-compact {
-  margin-top: var(--space-4);
-  padding: var(--space-5) var(--space-3);
+  margin: 0;
+  padding: 0;
 }
 
 .empty-state.is-compact .empty-state-icon {
@@ -672,16 +670,14 @@ input[type="range"]:focus-visible::-moz-range-thumb {
 }
 
 .empty-state.is-compact .empty-state-title {
-  font-size: var(--font-size-sm1);
+  font-size: inherit;
 }
 
 .empty-state.is-compact .empty-state-hint {
-  margin-bottom: var(--space-3);
+  margin: 0;
 }
 
-/* 初期表示(登録0件)専用: カード枠・アイコンを持たず、テキストのみを一覧領域の
-   縦方向中央に配置する。検索結果0件の案内(.empty-state本来の見た目)とは
-   意図的に別扱いにする。 */
+/* 初期表示(登録0件)専用: テキストだけを一覧領域の縦方向中央に配置する。 */
 .empty-state-plain {
   display: flex;
   align-items: center;

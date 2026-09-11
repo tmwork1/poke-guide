@@ -138,7 +138,11 @@
 
 /* 検索結果が0件の場合の空状態: #no-match-message */
 #no-match-message.empty-state {
-  margin-top: var(--space-4); /* 検索結果なしの文の上余白 */
+  margin: auto;
+}
+.box-content:has(> #no-match-message.empty-state:not([hidden])) {
+  display: flex;
+  flex-direction: column;
 }
 
 #empty-message.empty-state-plain {

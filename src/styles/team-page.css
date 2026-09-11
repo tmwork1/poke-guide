@@ -49,7 +49,11 @@ body.team-page {
 		#error-message { color: var(--color-danger-strong); /* エラーメッセージの文字色 */ }
 
 		#no-match-message.empty-state {
-			margin-top: var(--space-4); /* 検索結果なし表示の上側余白 */
+			margin: auto;
+		}
+		.team-content.box-content:has(> #no-match-message.empty-state:not([hidden])) {
+			display: flex;
+			flex-direction: column;
 		}
 
 		/* 登録0件時は、通常の追加導線と同じ操作を一覧領域中央の大きなタイルで示す。

@@ -70,7 +70,18 @@ body.data-hub-page .app-main > .second-header {
   scroll-snap-align: start;
 }
 .data-hub-panel .panel-content { padding: var(--space-5); /* 通常タブ本文の内側余白。大きくすると内容が内側に寄る */ }
-.data-hub-panel .empty-state { margin-top: 0; }
+.data-hub-panel .panel-content:has(.empty-state:not([hidden])) {
+  display: flex;
+  min-height: 100%;
+  align-items: center;
+  justify-content: center;
+}
+.top-builds-list:has(> .empty-state:not([hidden])) {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+}
 .data-hub-panel[inert] { user-select: none; }
 
 /* --------------------------------------------------------------------------
