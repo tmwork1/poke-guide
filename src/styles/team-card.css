@@ -341,15 +341,19 @@
   opacity: 0.58;
 }
 
-.team-grid .card-team .card-pokemon--similar {
-  border-color: var(--color-primary);
-  border-width: 2px;
+/* 一致ポケモンはカード面ではなく、透過PNGの不透明な輪郭だけを穏やかに発光させる。 */
+.team-grid .card-team .card-pokemon--similar .card-artwork img,
+.team-grid .card-team .team-mate-card.card-pokemon--similar .team-mate-card__art,
+.team-grid .card-team .team-mate-card.card-pokemon--similar .team-mate-card__fallback {
+  /* 小さいタイルでも輪郭を読める最小限の、内側2px + 外側4pxの二段グロー。 */
+  filter: drop-shadow(0 0 2px var(--color-primary)) drop-shadow(0 0 4px var(--color-primary));
 }
 
-/* /box の上位チームでは、該当ポケモンのカード全体を淡い青白色でハイライトする。 */
-.team-grid .card-team--top-build .card-pokemon--similar {
-  border: 1px solid color-mix(in srgb, var(--color-primary) 35%, var(--color-border));
-  background: var(--color-primary-soft);
+/* 画像端のグローだけをカード外へ逃がし、通常カードのクリップは維持する。 */
+.team-grid .card-team .box-card.card-pokemon--similar,
+.team-grid .card-team .team-mate-card.card-pokemon--similar {
+  overflow: visible;
+  z-index: 1;
 }
 .card-team-member-popover {
   position: fixed;
