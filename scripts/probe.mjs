@@ -43,6 +43,8 @@
  *
  * 操作(**指定した順に**実行される。DBを汚しうる。上記の注意を読むこと):
  *   --click <sel>       クリック。`text=xxx` で完全一致テキスト
+*   --rclick <sel>      右クリック(contextmenu)。PCでは長押しの代替操作になっているので、
+*                       長押し系UIはこちらでも同じ結果になるかを実測する
  *   --drag <sel=dx,dy>  マウスでドラッグ(スクロールバーを掴めるかの検証)。
  *                       `sel@x,y=dx,dy` で要素内の開始点を指定(負値は右/下端からの相対)
  *   --swipe <sel=dx,dy> 指(タッチ)でフリック。横スクロールが指で動くかの検証
@@ -97,7 +99,7 @@ const USAGE = [
 	"使い方: npm run probe -- --page <path> [操作] [実測]",
 	"",
 	"  対象  --page box/<id> [--theme dark] [--size 390x844]",
-	"  操作  --click <sel> / --drag <sel=dx,dy> / --swipe <sel=dx,dy>",
+	"  操作  --click <sel> / --rclick <sel> / --drag <sel=dx,dy> / --swipe <sel=dx,dy>",
 	"        --fill <sel=値> / --press <sel=Key> / --hover <sel>",
 	"        --hold <sel=ms> / --hold-touch <sel=ms>",
 		"        --scroll <sel|px> / --wait <sel> / --wait-ms <n>   ※指定順に実行",
@@ -191,6 +193,7 @@ function parseArgs(argv) {
 				opts.repeat = Number(next());
 				break;
 			case "--click":
+			case "--rclick":
 			case "--drag":
 			case "--swipe":
 			case "--fill":
@@ -253,6 +256,14 @@ async function runAction(page, action) {
 	switch (kind) {
 		case "click":
 			await resolveLocator(page, value).first().click({ timeout: 30_000 });
+			break;
+		// 右クリック。CLAUDE.md「長押しとPCでの代替操作」でモード/遷移系の長押しに
+		// contextmenu を対で繋いでいるため、--hold と同じ結果になるかを確かめる用。
+		// force を付けるのは、削除モード中のカードが揺れ続けていて Playwright の
+		// 「要素が静止するまで待つ」判定を永久に満たさないため(モードの解除を
+		// 右クリックで確かめられなくなる)。
+		case "rclick":
+			await resolveLocator(page, value).first().click({ button: "right", force: true, timeout: 30_000 });
 			break;
 		case "hover":
 			await resolveLocator(page, value).first().hover({ timeout: 30_000 });

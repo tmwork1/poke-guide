@@ -1764,8 +1764,13 @@ if (!isGuestNewMode) {
 				element.addEventListener("pointerup", clearPress);
 				element.addEventListener("pointercancel", clearPress);
 				element.addEventListener("pointerleave", clearPress);
+				// PCでは右クリックを長押しと同じ扱いにする(CLAUDE.md「長押しとPCでの代替操作」)。
 				element.addEventListener("contextmenu", (event) => {
-					if (pressTimer !== undefined || suppressNextClick) event.preventDefault();
+					event.preventDefault();
+					clearPress();
+					// 右クリックは合成clickを伴わないので、握りつぶし待ちは残さない。
+					suppressNextClick = false;
+					navigateToPokemonEdit(pokemonId);
 				});
 				element.addEventListener("click", (event) => {
 					if (!suppressNextClick) return;

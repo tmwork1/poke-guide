@@ -77,7 +77,18 @@ export function initializeCardDeleteMode(
 	container.addEventListener("pointerup", clearPress);
 	container.addEventListener("pointercancel", clearPress);
 	container.addEventListener("pointerleave", clearPress);
+	// PCでは右クリックを長押しと同じ扱いにする(CLAUDE.md「長押しとPCでの代替操作」)。
+	// ダブルクリックを使わないのは、単発クリックの判定を遅らせないため。
 	container.addEventListener("contextmenu", (event) => {
+		const card = cardFor(event.target);
+		if (card && !isControl(event.target, card)) {
+			event.preventDefault();
+			clearPress();
+			// 右クリックは合成clickを伴わないので、握りつぶし待ちは残さない。
+			suppressNextClick = false;
+			if (isActive) exit(); else enter();
+			return;
+		}
 		if (pressTimer !== undefined || isActive) event.preventDefault();
 	});
 	// iPhoneのホーム画面と同じく、カードではない場所をタップするとモードを抜ける。

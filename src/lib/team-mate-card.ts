@@ -84,6 +84,13 @@ export function renderTeamMateSlots<T extends TeamMateCardPokemon>(options: Team
 				});
 				button.addEventListener("pointerup", cancelLongPress);
 				button.addEventListener("pointercancel", cancelLongPress);
+				// PCでは右クリックを長押しと同じ扱いにする(CLAUDE.md「長押しとPCでの代替操作」)。
+				button.addEventListener("contextmenu", (event) => {
+					if (!member || !onSlotLongPress) return;
+					event.preventDefault();
+					cancelLongPress();
+					onSlotLongPress(slot);
+				});
 				button.addEventListener("click", () => {
 					if (longPressed) {
 						longPressed = false;
