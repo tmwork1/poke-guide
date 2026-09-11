@@ -184,6 +184,9 @@ body.team-edit-page {
 	position: static;
 	flex: 0 0 auto;
 }
+.team-edit-shell[data-mobile-tab="matchup"] #team-matchup-mobile > .matchup-direction-tabs {
+	flex: 0 0 auto;
+}
 .team-edit-shell[data-mobile-tab="formation"] .team-formation-mobile__box,
 .team-edit-shell[data-mobile-tab="matchup"] .team-matchup-mobile__results {
 	flex: 1 1 auto;

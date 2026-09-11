@@ -51,8 +51,8 @@ export interface MatchupTarget {
 }
 
 interface MatchupScoreCacheEntry {
-	attack: (number | null)[];
-	defense: (number | null)[];
+	attack?: (number | null)[];
+	defense?: (number | null)[];
 }
 
 let matchupTargetsPromise: Promise<MatchupTarget[]> | null = null;
@@ -170,6 +170,7 @@ async function applySprite(imgEl: HTMLImageElement, fallbackEl: HTMLElement, nam
 export interface MatchupPanelOptions {
 	listElement: HTMLElement;
 	statusElement: HTMLElement;
+	directionTabsElement?: HTMLElement;
 	getMembers: () => MatchupPanelMember[];
 	emptyMembersMessage?: string;
 }
@@ -177,13 +178,15 @@ export interface MatchupPanelOptions {
 export interface MatchupPanel {
 	run(): Promise<void>;
 	schedule(delay?: number): void;
+	setDirection(direction: MatchupDirection): void;
 }
 
 /** 相性結果の取得、計算、進捗表示、カード描画をまとめたクライアント用パネル。 */
 export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
-	const { listElement, statusElement, getMembers } = options;
+	const { listElement, statusElement, directionTabsElement, getMembers } = options;
 	let requestId = 0;
 	let timer: number | undefined;
+	let activeDirection: MatchupDirection = 'attack';
 	const scoreCache = new Map<string, MatchupScoreCacheEntry>();
 	let cardElements: HTMLLIElement[] = [];
 	let activeMovePopover: HTMLElement | null = null;
@@ -201,6 +204,7 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 		target: MatchupTarget,
 		moveNames: readonly string[],
 		getMoveType: (moveName: string) => string | null,
+		ariaLabel: string,
 	): void {
 		if (activeMovePopoverCard === card) {
 			closeMovePopover();
@@ -211,7 +215,7 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 		const popover = document.createElement('div');
 		popover.className = 'team-matchup-move-popover';
 		popover.setAttribute('role', 'dialog');
-		popover.setAttribute('aria-label', `${target.speciesName}の相性計算で考慮した技`);
+		popover.setAttribute('aria-label', ariaLabel);
 		const moves = document.createElement('ul');
 		moves.className = 'team-matchup-move-popover__list';
 		if (moveNames.length === 0) {
@@ -274,6 +278,7 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 		typesMap: Map<string, string[]>,
 		isAttackMove: (moveName: string) => boolean,
 		getMoveType: (moveName: string) => string | null,
+		teamAttackMoveNames: readonly string[],
 	): void {
 		clearLists();
 		for (const target of targets) {
@@ -284,7 +289,10 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 			card.setAttribute('role', 'button');
 			card.setAttribute('aria-haspopup', 'dialog');
 			card.setAttribute('aria-expanded', 'false');
-			card.setAttribute('aria-label', `${target.speciesName}の相性計算で考慮した技を表示`);
+			const moveAriaLabel = (): string => activeDirection === 'attack'
+				? `${target.speciesName}への攻撃で考慮した技を表示`
+				: `${target.speciesName}の攻撃で考慮した技を表示`;
+			card.setAttribute('aria-label', moveAriaLabel());
 			const img = document.createElement('img');
 			img.className = 'team-matchup-sprite-img';
 			img.alt = '';
@@ -296,12 +304,18 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 			card.title = typeNames ? `${target.speciesName}\n${typeNames}` : target.speciesName;
 			card.addEventListener('click', (event) => {
 				event.stopPropagation();
-				openMovePopover(card, target, pickOpponentAttackMoves(target.moves, isAttackMove), getMoveType);
+				const moveNames = activeDirection === 'attack'
+					? teamAttackMoveNames
+					: pickOpponentAttackMoves(target.moves, isAttackMove);
+				openMovePopover(card, target, moveNames, getMoveType, moveAriaLabel());
 			});
 			card.addEventListener('keydown', (event) => {
 				if (event.key !== 'Enter' && event.key !== ' ') return;
 				event.preventDefault();
-				openMovePopover(card, target, pickOpponentAttackMoves(target.moves, isAttackMove), getMoveType);
+				const moveNames = activeDirection === 'attack'
+					? teamAttackMoveNames
+					: pickOpponentAttackMoves(target.moves, isAttackMove);
+				openMovePopover(card, target, moveNames, getMoveType, moveAriaLabel());
 			});
 			cardElements.push(card);
 			listElement.appendChild(card);
@@ -330,24 +344,23 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 		}
 	}
 
-	/** 攻撃・防御のうち悪いほう(値が大きいほう)を、そのポケモンのスコアとして採用する。 */
-	function worseScore(attack: number | null, defense: number | null): number | null {
-		if (attack === null && defense === null) return null;
-		return Math.max(attack ?? -Infinity, defense ?? -Infinity);
-	}
-
+	/** 選択中の方向だけをカードへ描画し、もう一方の計算結果とは混ぜない。 */
 	function renderMatchupList(
 		targets: MatchupTarget[],
-		scores: MatchupScoreCacheEntry | null,
+		scores: (number | null)[] | null,
 		typesMap: Map<string, string[]>,
 		isAttackMove: (moveName: string) => boolean,
 		getMoveType: (moveName: string) => string | null,
+		members: MatchupPanelMember[],
 	): void {
-		createMatchupCards(targets, typesMap, isAttackMove, getMoveType);
+		const teamAttackMoveNames = [...new Set(members.flatMap((member) =>
+			pickTeamAttackMoves(member.move_names ?? [], isAttackMove),
+		))];
+		createMatchupCards(targets, typesMap, isAttackMove, getMoveType, teamAttackMoveNames);
 		if (!scores) return;
 		const scored = scoreToOpacities(
-			targets.map((target, i) => ({ item: target, score: worseScore(scores.attack[i] ?? null, scores.defense[i] ?? null) })),
-			'attack',
+			targets.map((target, i) => ({ item: target, score: scores[i] ?? null })),
+			activeDirection,
 		);
 		for (let targetIndex = 0; targetIndex < targets.length; targetIndex += 1) {
 			applyMatchupCardResult(targetIndex, scored[targetIndex]?.opacity ?? null);
@@ -358,6 +371,32 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 	document.addEventListener('keydown', (event) => {
 		if (event.key === 'Escape') closeMovePopover();
 	});
+
+	function setStatusForScores(targets: MatchupTarget[], scores: (number | null)[]): void {
+		const unknownCount = targets.filter((_, index) => scores[index] === null).length;
+		setStatus(unknownCount > 0 ? `${unknownCount}体は採用技のデータが無いため計算していません(破線の枠)。` : null);
+	}
+
+	function updateDirectionTabs(): void {
+		for (const tab of directionTabsElement?.querySelectorAll<HTMLButtonElement>('.matchup-direction-tab') ?? []) {
+			tab.setAttribute('aria-selected', String(tab.dataset.matchupDirection === activeDirection));
+		}
+	}
+
+	function setDirection(direction: MatchupDirection): void {
+		if (direction === activeDirection) return;
+		activeDirection = direction;
+		closeMovePopover();
+		updateDirectionTabs();
+		void run();
+	}
+
+	directionTabsElement?.addEventListener('click', (event) => {
+		const tab = (event.target as HTMLElement).closest<HTMLButtonElement>('.matchup-direction-tab');
+		const direction = tab?.dataset.matchupDirection;
+		if (direction === 'attack' || direction === 'defense') setDirection(direction);
+	});
+	updateDirectionTabs();
 
 	async function run(): Promise<void> {
 		const currentRequestId = (requestId += 1);
@@ -389,18 +428,19 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 		const getMoveType = (moveName: string): string | null => moveDetails.get(moveName)?.type ?? null;
 		const members = getMembers().filter((member) => member.species_name?.trim() !== '');
 		if (members.length === 0) {
-			renderMatchupList(targets, null, typesMap, isAttackMove, getMoveType);
+			renderMatchupList(targets, null, typesMap, isAttackMove, getMoveType, members);
 			setStatus(options.emptyMembersMessage ?? 'チームにポケモンを入れると相性を計算します。');
 			return;
 		}
 		const cacheKey = members.map((member) => member.id).sort().join(',');
 		const cached = scoreCache.get(cacheKey);
-		if (cached) {
-			renderMatchupList(targets, cached, typesMap, isAttackMove, getMoveType);
-			setStatus(null);
+		const cachedDirectionScores = cached?.[activeDirection];
+		if (cachedDirectionScores) {
+			renderMatchupList(targets, cachedDirectionScores, typesMap, isAttackMove, getMoveType, members);
+			setStatusForScores(targets, cachedDirectionScores);
 			return;
 		}
-		renderMatchupList(targets, null, typesMap, isAttackMove, getMoveType);
+		renderMatchupList(targets, null, typesMap, isAttackMove, getMoveType, members);
 		registerOfflineCache();
 		try {
 			await initEngine();
@@ -419,10 +459,8 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 			matchupTeamSpec(member, pickTeamAttackMoves(member.move_names ?? [], isAttackMove)),
 		);
 		const teamDefenseSpecs = members.map((member) => matchupTeamSpec(member, []));
-		const scores: MatchupScoreCacheEntry = {
-			attack: new Array(targets.length).fill(null),
-			defense: new Array(targets.length).fill(null),
-		};
+		const scores = cached ?? {};
+		const directionScores: (number | null)[] = new Array(targets.length).fill(null);
 		let engineRestarted = false;
 		for (let i = 0; i < targets.length; i += 1) {
 			await new Promise((resolve) => window.setTimeout(resolve, 0));
@@ -439,10 +477,8 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 						return null;
 					}
 				};
-				const attackResult = await calculateDirection('attack');
-				scores.attack[i] = attackResult?.score ?? null;
-				const defenseResult = await calculateDirection('defense');
-				scores.defense[i] = defenseResult?.score ?? null;
+				const directionResult = await calculateDirection(activeDirection);
+				directionScores[i] = directionResult?.score ?? null;
 			} catch (err) {
 				console.error(err);
 				if (currentRequestId !== requestId) return;
@@ -459,32 +495,34 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 						return;
 					}
 				}
-				scores.attack[i] = null;
-				scores.defense[i] = null;
+				directionScores[i] = null;
 			}
 			if (currentRequestId !== requestId) return;
 			const scoredSoFar = scoreToOpacities(
 				targets.slice(0, i + 1).map((target, targetIndex) => ({
 					item: target,
-					score: worseScore(scores.attack[targetIndex] ?? null, scores.defense[targetIndex] ?? null),
+					score: directionScores[targetIndex] ?? null,
 				})),
-				'attack',
+				activeDirection,
 			);
 			for (let targetIndex = 0; targetIndex <= i; targetIndex += 1) {
 				applyMatchupCardResult(targetIndex, scoredSoFar[targetIndex]?.opacity ?? null);
 			}
 		}
 		if (currentRequestId !== requestId) return;
+		scores[activeDirection] = directionScores;
 		scoreCache.set(cacheKey, scores);
-		const unknownCount = targets.filter((_, i) => scores.attack[i] === null && scores.defense[i] === null).length;
-		setStatus(unknownCount > 0 ? `${unknownCount}体は採用技のデータが無いため計算していません(破線の枠)。` : null);
+		setStatusForScores(targets, directionScores);
 	}
 
 	return {
 		run,
 		schedule(delay = 700) {
 			window.clearTimeout(timer);
+			requestId += 1;
+			scoreCache.clear();
 			timer = window.setTimeout(() => void run(), delay);
 		},
+		setDirection,
 	};
 }

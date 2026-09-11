@@ -23,6 +23,12 @@ const canRenderSelectedPokemon = result?.ok || (!user && selectedId !== null);
 <AppLayout title="相性" description="使用率上位ポケモンとの攻守の相性" current="box" bodyClass="data-page">
   <div class="page box-data-page box-matchup-page">
     <MobilePokemonPreview pokemon={canRenderSelectedPokemon ? pokemon : null} activeTab="matchup" />
+    {canRenderSelectedPokemon && pokemon && (
+      <div class="matchup-direction-tabs" role="tablist" aria-label="相性の方向">
+        <button type="button" class="matchup-direction-tab" role="tab" aria-selected="true" data-matchup-direction="attack">攻撃</button>
+        <button type="button" class="matchup-direction-tab" role="tab" aria-selected="false" data-matchup-direction="defense">防御</button>
+      </div>
+    )}
     {canRenderSelectedPokemon && pokemon ? <PokemonSettingsModalHost pokemon={pokemon} /> : (
       <section class="pokemon-data-preview" aria-labelledby="matchup-preview-title">
         <p class="data-kicker">相性チェック</p>
@@ -70,6 +76,7 @@ const canRenderSelectedPokemon = result?.ok || (!user && selectedId !== null);
   const main = document.querySelector<HTMLElement>('#box-matchup-main');
   const listElement = document.querySelector<HTMLElement>('#box-matchup-list');
   const statusElement = document.querySelector<HTMLElement>('#box-matchup-status');
+  const directionTabsElement = document.querySelector<HTMLElement>('.matchup-direction-tabs');
   const pokemonJson = main?.dataset.pokemon;
 
   if (listElement && statusElement && pokemonJson) {
@@ -79,6 +86,7 @@ const canRenderSelectedPokemon = result?.ok || (!user && selectedId !== null);
     const matchupPanel = createMatchupPanel({
       listElement,
       statusElement,
+      directionTabsElement,
       getMembers: () => [pokemon],
     });
     const loadingTimeout = window.setTimeout(() => {
