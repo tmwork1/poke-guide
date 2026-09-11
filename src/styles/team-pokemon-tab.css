@@ -346,7 +346,7 @@ body.team-edit-page {
 }
 
 /* 自動構築ボタン: 編成タブの操作帯で並べ替えの右隣に置く。
-   文字は置かず自動再生(電源)マークだけにし、高さは他の操作部品(select)とそろえた正方形にする。 */
+   文字は置かず再生(▶を丸で囲んだ)マークだけにし、高さは他の操作部品(select)とそろえた正方形にする。 */
 #team-formation-mobile-toolbar .formation-auto-build-button {
 	display: inline-flex;
 	flex: 0 0 auto;
