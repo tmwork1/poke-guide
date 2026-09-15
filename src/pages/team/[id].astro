@@ -1198,6 +1198,12 @@ if (!isGuestNewMode) {
 			// 1体ずつ取得し直す。
 			// =================================================================================
 			let autoBuildRunning = false;
+			let autoBuildGeneration = 0;
+			// 新規チームは最初の保存完了時に URL を確定するため画面遷移する。自動構築の途中で
+			// それが起きると、後続の await が中断されて途中までの編成だけで再読込されてしまう。
+			// 自動構築中の変更は一つにまとめ、完了後にだけ保存する。
+			let autoBuildSavePending = false;
+			let pendingNewTeamNavigation = false;
 
 			function updateAutoBuildButtonState(): void {
 				formationAutoBuildButton.disabled = autoBuildRunning || firstEmptySlot() == null;
@@ -1230,6 +1236,13 @@ if (!isGuestNewMode) {
 			async function autoBuildFormation(): Promise<void> {
 				if (autoBuildRunning || firstEmptySlot() == null) return;
 				autoBuildRunning = true;
+				autoBuildGeneration += 1;
+				// 開始直前に予約済みだった保存も、途中状態を保存しないようこの実行へまとめる。
+				if (debounceTimer) {
+					clearTimeout(debounceTimer);
+					debounceTimer = undefined;
+					autoBuildSavePending = true;
+				}
 				updateAutoBuildButtonState();
 				try {
 					while (firstEmptySlot() != null) {
@@ -1239,6 +1252,10 @@ if (!isGuestNewMode) {
 					}
 				} finally {
 					autoBuildRunning = false;
+					if (autoBuildSavePending) {
+						autoBuildSavePending = false;
+						scheduleSave();
+					}
 					updateAutoBuildButtonState();
 				}
 			}
@@ -2033,6 +2050,9 @@ if (!isGuestNewMode) {
 					return false;
 				}
 				const payload = buildPayload();
+				// 保存開始後に自動構築が始まったかを、応答時にも判定する。開始前の保存が
+				// 遅れて返るケースでは、その時点で自動構築自体は終わっていることがある。
+				const saveAutoBuildGeneration = autoBuildGeneration;
 				if (!teamId && payload.members.length === 0) {
 					statusEl.dataset.state = "saved";
 					statusTextEl.textContent = "メンバーを追加すると保存されます";
@@ -2052,6 +2072,23 @@ if (!isGuestNewMode) {
 					await updateTeam(saveTeamId, payload);
 					if (!teamId) {
 						teamId = saveTeamId;
+						if (autoBuildRunning || autoBuildGeneration !== saveAutoBuildGeneration) {
+							// 新規チーム作成を伴う保存が既に走っていた場合も、ここで遷移すると
+							// 自動構築が中断される。最終状態の保存は finally 側に委ねる。
+							autoBuildSavePending = true;
+							pendingNewTeamNavigation = true;
+							if (!autoBuildRunning) {
+								autoBuildSavePending = false;
+								scheduleSave();
+							}
+							return false;
+						}
+						const currentTab = layoutRoot.dataset.mobileTab || "formation";
+						window.location.href = `/team/${encodeURIComponent(teamId)}?tab=${encodeURIComponent(currentTab)}`;
+						return true;
+					}
+					if (pendingNewTeamNavigation) {
+						pendingNewTeamNavigation = false;
 						const currentTab = layoutRoot.dataset.mobileTab || "formation";
 						window.location.href = `/team/${encodeURIComponent(teamId)}?tab=${encodeURIComponent(currentTab)}`;
 						return true;
@@ -2067,13 +2104,18 @@ if (!isGuestNewMode) {
 					saving = false;
 					if (pendingRetry) {
 						pendingRetry = false;
-						void saveNow();
+						if (autoBuildRunning) autoBuildSavePending = true;
+						else void saveNow();
 					}
 				}
 				return false;
 			}
 
 			function scheduleSave(): void {
+				if (autoBuildRunning) {
+					autoBuildSavePending = true;
+					return;
+				}
 				statusEl.dataset.state = "saving";
 				statusTextEl.textContent = "編集中…";
 				retryButton.classList.remove("visible");

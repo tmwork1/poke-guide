@@ -264,9 +264,19 @@ export async function GET({ request, cookies, url }: APIContext): Promise<Respon
     else statsBySpecies.set(stat.speciesKey, [stat]);
   }
 
-  const items: SuggestionItem[] = candidates.slice(0, limit).map((candidate) => {
-    const choice = chooseArchetypeForSpecies(statsBySpecies.get(candidate.speciesKey) ?? [], usedItems);
-    return {
+  // 候補は表示順位の順に確定する。先に確定した候補の持ち物も次の選択で使用済みにすることで、
+  // 手動で既に配置していたポケモンだけでなく、このレスポンス内で新たに薦めるポケモン同士も
+  // 持ち物を重複させない。全ての型が既に使われた持ち物と重複する種族は飛ばし、次点種族を
+  // 繰り上げる(chooseArchetypeForSpecies が選べる次点の型を先に返すため、ここで持ち物無しへ
+  // 差し替えることはない)。
+  const selectedItems = new Set(usedItems);
+  const items: SuggestionItem[] = [];
+  for (const candidate of candidates) {
+    const choice = chooseArchetypeForSpecies(statsBySpecies.get(candidate.speciesKey) ?? [], selectedItems);
+    if (choice?.itemConflict) continue;
+    if (choice?.itemName.trim()) selectedItems.add(choice.itemName.trim());
+
+    items.push({
       speciesName: candidate.speciesKey,
       dexNo: resolveDexNo(candidate.speciesKey),
       // 構築記事に特性・努力値が無い種族では型が1件も無い(010のコメント参照)。
@@ -292,8 +302,9 @@ export async function GET({ request, cookies, url }: APIContext): Promise<Respon
             lift: candidate.topSeed.lift,
           }
         : null,
-    };
-  });
+    });
+    if (items.length >= limit) break;
+  }
 
   return jsonResponse(
     {

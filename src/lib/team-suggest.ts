@@ -411,7 +411,9 @@ export function chooseArchetypeForSpecies(
     const pArch = totalArch > 0 ? s.weightedCoArchetype / totalArch : 0;
     const coarse = lambdaCtx * pCtx + (1 - lambdaCtx) * pPrior;
     const share = lambdaArch * pArch + (1 - lambdaArch) * coarse;
-    return { ...s, share, itemConflict: usedItemNames.has(s.itemName) };
+    // API 側では採用済みの型の持ち物をこの集合へ順に足していく。ここでも既存メンバー側と
+    // 同じく空白を除いて比較し、表記ゆれではなく入力時の前後空白で重複を見逃さない。
+    return { ...s, share, itemConflict: usedItemNames.has(s.itemName.trim()) };
   });
 
   scored.sort((a, b) => b.share - a.share || b.teamsTotal - a.teamsTotal);
