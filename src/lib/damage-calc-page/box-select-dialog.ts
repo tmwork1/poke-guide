@@ -5,6 +5,7 @@ import {
 } from "../owned-pokemon-card";
 import { bindModalDismissal } from "../modal-dismiss";
 import type { OwnedPokemonRecord } from "../owned-pokemon";
+import { kanaIncludes } from "../kana";
 import { setSelfBuilds } from "./shared-core";
 
 const PAGE_SIZE = 48;
@@ -46,10 +47,41 @@ export function initBoxSelectDialog(): void {
   const loading = byId<HTMLElement>("damage-calc-box-select-loading");
   const error = byId<HTMLElement>("damage-calc-box-select-error");
   const empty = byId<HTMLElement>("damage-calc-box-select-empty");
+  const searchInput = byId<HTMLInputElement>("damage-calc-box-select-search-input");
   let cachedPokemon: OwnedPokemonRecord[] | null = null;
   let loadingPromise: Promise<void> | null = null;
+  let searchQuery = "";
+  let searchFocusFrame: number | null = null;
+
+  // /box の検索と同じく、半角・全角スペース区切りの語をすべて含むものだけを残す。
+  function filterBySearch(entries: OwnedPokemonRecord[]): OwnedPokemonRecord[] {
+    const tokens = searchQuery.split(/[\s　]+/u).filter((token) => token.length > 0);
+    if (tokens.length === 0) return entries;
+    return entries.filter((entry) => {
+      const name = ownedPokemonDisplayName(entry);
+      return tokens.every((token) => kanaIncludes(name, token));
+    });
+  }
+
+  function cancelScheduledSearchFocus(): void {
+    if (searchFocusFrame !== null) window.cancelAnimationFrame(searchFocusFrame);
+    searchFocusFrame = null;
+  }
+
+  // モーダルの初回レイアウトが確定してからフォーカスする。preventScrollも併用して、
+  // フォーカスに伴う背面・モーダル内スクロール位置の移動を防ぐ。
+  function focusSearchAfterOpen(): void {
+    cancelScheduledSearchFocus();
+    searchFocusFrame = window.requestAnimationFrame(() => {
+      searchFocusFrame = window.requestAnimationFrame(() => {
+        searchFocusFrame = null;
+        if (!dialog.hidden) searchInput.focus({ preventScroll: true });
+      });
+    });
+  }
 
   function closeDialog(): void {
+    cancelScheduledSearchFocus();
     backdrop.hidden = true;
     dialog.hidden = true;
     trigger.focus();
@@ -93,7 +125,7 @@ export function initBoxSelectDialog(): void {
 
   async function loadList(): Promise<void> {
     if (cachedPokemon) {
-      renderList(cachedPokemon);
+      renderList(filterBySearch(cachedPokemon));
       return;
     }
     if (loadingPromise) return loadingPromise;
@@ -116,7 +148,7 @@ export function initBoxSelectDialog(): void {
           );
       }
       cachedPokemon = pokemon;
-      renderList(pokemon);
+      renderList(filterBySearch(pokemon));
     })()
       .catch((cause: unknown) => {
         console.error(cause);
@@ -132,14 +164,21 @@ export function initBoxSelectDialog(): void {
   }
 
   async function openDialog(): Promise<void> {
+    searchQuery = "";
+    searchInput.value = "";
     backdrop.hidden = false;
     dialog.hidden = false;
     dialog.focus();
     await loadList();
+    focusSearchAfterOpen();
   }
 
   trigger.addEventListener("click", () => void openDialog());
   closeButton.addEventListener("click", closeDialog);
+  searchInput.addEventListener("input", () => {
+    searchQuery = searchInput.value.trim();
+    if (cachedPokemon) renderList(filterBySearch(cachedPokemon));
+  });
   bindModalDismissal({
     backdrop,
     dialog,

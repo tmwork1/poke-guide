@@ -39,6 +39,24 @@ let dataPromise: Promise<void> | null = null;
 let gridBuilt = false;
 const cellByName = new Map<string, HTMLButtonElement>();
 let spriteObserver: IntersectionObserver | null = null;
+let searchFocusFrame: number | null = null;
+
+function cancelScheduledSearchFocus(): void {
+	if (searchFocusFrame !== null) window.cancelAnimationFrame(searchFocusFrame);
+	searchFocusFrame = null;
+}
+
+// モーダルの表示とグリッドの初回レイアウト後に検索欄へ移す。preventScrollにより、
+// フォーカス起点で背面またはグリッドのスクロール位置が変わることを防ぐ。
+function focusSearchAfterOpen(): void {
+	cancelScheduledSearchFocus();
+	searchFocusFrame = window.requestAnimationFrame(() => {
+		searchFocusFrame = window.requestAnimationFrame(() => {
+			searchFocusFrame = null;
+			if (!dialogEl.hidden) searchInput.focus({ preventScroll: true });
+		});
+	});
+}
 
 const sortLabels: Record<SortMode, string> = {
 	popularity: "人気",
@@ -221,9 +239,11 @@ async function openDialog(): Promise<void> {
 	backdropEl.hidden = false;
 	dialogEl.hidden = false;
 	renderGrid();
+	focusSearchAfterOpen();
 }
 
 function closeDialog(): void {
+	cancelScheduledSearchFocus();
 	backdropEl.hidden = true;
 	dialogEl.hidden = true;
 	closeAllPopovers();

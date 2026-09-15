@@ -57,6 +57,18 @@
   overflow-y: auto;
   padding: var(--space-4);
 }
+.box-select-search-wrap {
+  position: sticky;
+  top: calc(-1 * var(--space-4));
+  z-index: 1;
+  padding: var(--space-2) 0;
+  background: var(--color-surface);
+}
+.box-select-search-input {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
 /* box/と同じ3列表示スタイルに揃える(モーダル幅はビューポートより狭いため、
    viewport基準のグローバルなラダーではなくここで3列に固定する)。 */
 .box-select-content .box-grid {
@@ -78,4 +90,5 @@
 @media (max-width: 480px) {
   .box-select-dialog { width: 96vw; }
   .box-select-content { padding: var(--space-2); }
+  .box-select-search-wrap { top: calc(-1 * var(--space-2)); }
 }

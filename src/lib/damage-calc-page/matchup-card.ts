@@ -1,8 +1,7 @@
 import { describeStandaloneLethal } from "../box-id/damage-calc-helpers";
 import { splitBoxCardDisplayName } from "../box-card-display-name";
-import { championSpriteMediumUrl, championSpriteUrl, loadAbilitiesMap, loadImageIdMap, loadMegaStoneMap, loadMoveDetailMap, loadPokemonMasterList, officialArtworkUrl, type MoveCategory, type PokemonMasterEntry } from "../pokemon-master-data";
+import { championSpriteMediumUrl, championSpriteUrl, loadAbilitiesMap, loadImageIdMap, loadMoveDetailMap, loadPokemonMasterList, officialArtworkUrl, type MoveCategory, type PokemonMasterEntry } from "../pokemon-master-data";
 import { calcDamages, calcStats, initEngine, registerOfflineCache, type PokemonSpec } from "../pyodide-engine";
-import { loadItemSpriteMap } from "../sprite-urls";
 import { NATURE_STAT_MODIFIERS, STAT_KEYS, type StatKey } from "../stats";
 import type { PopularMoveOption } from "../team-matchup";
 import { openBoxSelectDialog } from "./box-select-dialog";
@@ -88,22 +87,10 @@ function isSelectedSelf(build: SelfBuild): boolean {
 
 const isMegaEntry = (entry: PokemonMasterEntry): boolean => entry.forme?.startsWith("Mega") ?? false;
 
-/** メガシンカ後の種族に対応するメガストーン名を返す(該当しない/items.jsonに実在しないアイテムは
- * null)。box-id/shared-core.tsのresolveMegaStoneItemと同じロジックだが、あちらはbox/[id].astro
- * 専用のDOM前提を持つモジュールのためここでは使わず、pokemon-master-data.ts/sprite-urls.tsから
- * 直接組み立てる(loadMegaStoneMapのコメントにある「items.jsonに存在しないメガストーン名」の
- * 既知の不整合を弾く)。 */
-async function resolveOpponentMegaStoneItem(speciesName: string): Promise<string | null> {
-  const [megaStoneMap, itemSpriteMap] = await Promise.all([loadMegaStoneMap(), loadItemSpriteMap()]);
-  const stoneName = megaStoneMap.get(speciesName);
-  if (!stoneName || !itemSpriteMap.has(stoneName)) return null;
-  return stoneName;
-}
-
 /** 相手の立ち絵タップ: そのポケモンがメガシンカ可能・済みなら、同じ図鑑番号内の
  * 「通常→メガ→(メガX/Yなど複数あれば続けて)…→通常」の順で次のフォルムへ循環させる。
- * メガシンカ不可の種族はタップしても何も起きない。メガへ切り替えた場合は、もちものを
- * 対応するメガストーンに固定する(通常フォルムへ戻すときはもちものを変更しない)。 */
+ * メガシンカ不可の種族はタップしても何も起きない。相手のもちものはこちらで推測せず、
+ * フォルムを変えても手動で選んだ値だけを保つ(メガストーンの自動設定は廃止した)。 */
 async function cycleOpponentForm(): Promise<void> {
   const master = await loadPokemonMasterList();
   const current = getOpponentBuild();
@@ -114,8 +101,8 @@ async function cycleOpponentForm(): Promise<void> {
   if (forms.length <= 1) return;
   const currentIndex = forms.findIndex((entry) => entry.name === currentName);
   const next = forms[(currentIndex + 1) % forms.length];
-  const nextItemName = isMegaEntry(next) ? (await resolveOpponentMegaStoneItem(next.name)) ?? current.itemName : current.itemName;
-  setOpponentBuild({ ...current, speciesName: next.name, abilityName: "", itemName: nextItemName });
+  // 相手のもちものは推測して設定しない。フォーム変更後も、明示的に選んだ値だけを保つ。
+  setOpponentBuild({ ...current, speciesName: next.name, abilityName: "" });
   emitChange("opponent");
 }
 
