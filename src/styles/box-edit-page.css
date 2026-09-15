@@ -172,21 +172,19 @@ body.box-edit-page {
 	display: none;
 }
 
-/* 個体詳細の「チーム」に限り、表示中の個体が入る枠を示す。team-mate-cardは
-   /teamなどでも共有するため、状態クラス自体は描画側で付けつつ、見た目はこの一覧内へ
-   閉じ込める。outlineと疑似要素のオーバーレイはレイアウト寸法を変えないので、6枠の
-   グリッドが強調の有無で揺れない。 */
+/* このポケモンが入る枠は、上位チーム側(.card-pokemon--similar)と同じく、カード枠や
+   面を塗らず公式絵の輪郭だけを二段グローで示す。team-mate-cardは/team等でも共有する
+   ため、見た目はこの一覧内へ閉じ込める。 */
 #pokemon-team-list .team-mate-card.is-current {
-	outline: 1px solid var(--color-primary);
-	outline-offset: -1px;
+	overflow: visible;
+	z-index: 1;
 }
 
-#pokemon-team-list .team-mate-card.is-current::after {
-	content: "";
-	position: absolute;
-	inset: 0;
-	background: color-mix(in srgb, var(--color-primary) 14%, transparent);
-	pointer-events: none;
+#pokemon-team-list .team-mate-card.is-current .team-mate-card__art,
+#pokemon-team-list .team-mate-card.is-current .team-mate-card__fallback {
+	filter:
+		drop-shadow(0 0 3px color-mix(in srgb, var(--color-primary) 36%, transparent))
+		drop-shadow(0 0 7px color-mix(in srgb, var(--color-primary) 20%, transparent));
 }
 
 .mobile-edit-actions {

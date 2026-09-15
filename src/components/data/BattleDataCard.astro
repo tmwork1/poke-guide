@@ -14,3 +14,80 @@ const { single } = Astro.props;
 ---
 
 <Fragment set:html={renderBattleDataCardHtml(single)} />
+
+<script>
+  import { evSpreadLabel } from '../../lib/battle-data-card';
+
+  function textAt(selector: string): string {
+    return document.querySelector(selector)?.textContent?.trim() ?? '';
+  }
+
+  function selectedValues(): Map<string, Set<string>> {
+    const preview = document.querySelector<HTMLElement>('.pokemon-preview');
+    const values = new Map<string, Set<string>>();
+    const add = (kind: string, value: string) => {
+      const trimmed = value.trim();
+      if (!trimmed || trimmed === '-' || trimmed === 'もちものなし') return;
+      const entries = values.get(kind) ?? new Set<string>();
+      entries.add(trimmed);
+      values.set(kind, entries);
+    };
+
+    add('ability', textAt('#pokemon-preview-ability'));
+    add('nature', preview?.dataset.nature ?? '');
+    add('item', textAt('#pokemon-preview-item'));
+    for (let slot = 1; slot <= 4; slot += 1) add('move', textAt(`#pokemon-preview-move-${slot}`));
+
+    try {
+      const keys = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'];
+      const formEvs = keys.map((key) => Number((document.getElementById(`ev-${key}-range`) as HTMLInputElement | null)?.value));
+      const evs = formEvs.every(Number.isFinite)
+        ? formEvs
+        : JSON.parse(preview?.dataset.evs ?? '[]') as number[];
+      if (evs.length === 6) {
+        add('evs', evSpreadLabel({ hp: evs[0], attack: evs[1], defense: evs[2], specialAttack: evs[3], specialDefense: evs[4], speed: evs[5] }));
+      }
+    } catch {
+      // ゲスト用プレビューが差し替わる前の空data属性は選択なしとして扱う。
+    }
+    return values;
+  }
+
+  function syncSelection(): void {
+    const values = selectedValues();
+    for (const row of document.querySelectorAll<HTMLElement>('[data-battle-data-kind][data-battle-data-value]')) {
+      const selected = values.get(row.dataset.battleDataKind ?? '')?.has(row.dataset.battleDataValue ?? '') ?? false;
+      if (row.classList.contains('is-current-selection') === selected) continue;
+      row.classList.toggle('is-current-selection', selected);
+      if (selected) row.dataset.currentSelection = 'true';
+      else delete row.dataset.currentSelection;
+    }
+  }
+
+  let scheduled = false;
+  const scheduleSync = () => {
+    if (scheduled) return;
+    scheduled = true;
+    window.requestAnimationFrame(() => {
+      scheduled = false;
+      syncSelection();
+    });
+  };
+
+  syncSelection();
+  document.addEventListener('input', scheduleSync);
+  document.addEventListener('change', scheduleSync);
+  // 監視対象は「選択値の出どころ(プレビュー)」と「カードを差し替える器」に絞る。
+  // document.body全体を属性まで監視すると、この重いページの全DOM変更が同期処理を叩く。
+  // カード自体は /box/data のゲスト用ハイドレートで outerHTML ごと差し替わるため、
+  // カードではなくその親(.box-data-main / .data-panel)を監視する。
+  const observer = new MutationObserver(scheduleSync);
+  const observed = new Set<Element>();
+  for (const selector of ['.pokemon-preview', '.box-data-main', '.data-panel', '[data-battle-data-card]']) {
+    for (const target of document.querySelectorAll(selector)) {
+      if (observed.has(target) || [...observed].some((seen) => seen.contains(target))) continue;
+      observed.add(target);
+      observer.observe(target, { subtree: true, childList: true, characterData: true, attributes: true });
+    }
+  }
+</script>

@@ -211,6 +211,13 @@
   column-gap: var(--space-1);
 }
 
+/* 現在のポケモンが採用している特性・性格・もちもの・技・努力値を、技選択ダイアログの
+   .move-picker-row.is-selected と同じ主色24%の面で示す。順位や採用率は隠さず、比較対象の
+   行そのものだけを強調する。 */
+.trend-rank-row.is-current-selection {
+  background: color-mix(in srgb, var(--color-primary) 24%, transparent);
+}
+
 .trend-rank-row--icon3 { grid-template-columns: var(--battle-data-card-item-icon-size) minmax(0, 1fr) auto; }
 /* 性格名(固定幅)・能力補正・使用率の3列。名前を固定幅にすることで、
    名前の長さに関わらず補正情報の開始位置を全行で揃える。 */

@@ -27,6 +27,10 @@ function emptyOrList(rows: string[]): string {
   return rows.length ? `<ul class="trend-rank-list">${rows.join('')}</ul>` : '<strong>データなし</strong>';
 }
 
+function selectedRow(kind: string, value: string, className: string, content: string): string {
+  return `<li class="trend-rank-row ${className}" data-battle-data-kind="${kind}" data-battle-data-value="${escapeHtml(value)}">${content}</li>`;
+}
+
 /** /data の遅延挿入と BattleDataCard.astro のSSRで共有するカード本体。 */
 export function renderBattleDataCardHtml(single: SingleFormatData | null | undefined): string {
   const abilities = single?.abilities ?? [];
@@ -37,36 +41,37 @@ export function renderBattleDataCardHtml(single: SingleFormatData | null | undef
   const teammates = single?.teammates ?? [];
 
   const abilitiesHtml = emptyOrList(abilities.map((row) =>
-    `<li class="trend-rank-row trend-rank-row--text2"><span class="trend-rank-name">${escapeHtml(row.name)}</span><span class="trend-rank-rate">${escapeHtml(usageRateLabel(row.usageRate))}</span></li>`,
+    selectedRow('ability', row.name, 'trend-rank-row--text2', `<span class="trend-rank-name">${escapeHtml(row.name)}</span><span class="trend-rank-rate">${escapeHtml(usageRateLabel(row.usageRate))}</span>`),
   ));
   const naturesHtml = emptyOrList(natures.map((row) => {
     const modifier = natureModifierStats(row.name);
     const modifierHtml = modifier
       ? `<span class="trend-nature-modifier" aria-label="${escapeHtml(natureModifierLabel(row.name))}"><span class="trend-nature-modifier-up">${escapeHtml(modifier.up)}↑</span> <span class="trend-nature-modifier-down">${escapeHtml(modifier.down)}↓</span></span>`
       : '<span class="trend-nature-modifier"></span>';
-    return `<li class="trend-rank-row trend-rank-row--nature3"><span class="trend-rank-name">${escapeHtml(row.name)}</span>${modifierHtml}<span class="trend-rank-rate">${escapeHtml(usageRateLabel(row.usageRate))}</span></li>`;
+    return selectedRow('nature', row.name, 'trend-rank-row--nature3', `<span class="trend-rank-name">${escapeHtml(row.name)}</span>${modifierHtml}<span class="trend-rank-rate">${escapeHtml(usageRateLabel(row.usageRate))}</span>`);
   }));
   const itemIconOnerror = "this.closest('.trend-rank-row').classList.replace('trend-rank-row--icon3','trend-rank-row--text2');this.parentElement.remove()";
   const itemsHtml = emptyOrList(items.map((row) =>
-    `<li class="trend-rank-row trend-rank-row--icon3"><span class="trend-rank-icon"><img src="${escapeHtml(itemIconUrl(row.name))}" onerror="${escapeHtml(itemIconOnerror)}" alt="" loading="lazy"></span><span class="trend-rank-name">${escapeHtml(row.name)}</span><span class="trend-rank-rate">${escapeHtml(usageRateLabel(row.usageRate))}</span></li>`,
+    selectedRow('item', row.name, 'trend-rank-row--icon3', `<span class="trend-rank-icon"><img src="${escapeHtml(itemIconUrl(row.name))}" onerror="${escapeHtml(itemIconOnerror)}" alt="" loading="lazy"></span><span class="trend-rank-name">${escapeHtml(row.name)}</span><span class="trend-rank-rate">${escapeHtml(usageRateLabel(row.usageRate))}</span>`),
   ));
   const movesHtml = emptyOrList(moves.map((row) => {
     const type = moveTypeByName(row.name);
     const typeHtml = type
       ? `<span class="trend-rank-type-bar" style="--trend-move-type-color: ${escapeHtml(TYPE_COLORS[type] ?? DEFAULT_TYPE_COLOR)};" title="${escapeHtml(type)}" aria-label="${escapeHtml(`${type}タイプ`)}"></span>`
       : '';
-    return `<li class="trend-rank-row ${type ? 'trend-rank-row--type3' : 'trend-rank-row--text2'}">${typeHtml}<span class="trend-rank-name">${escapeHtml(row.name)}</span><span class="trend-rank-rate">${escapeHtml(usageRateLabel(row.usageRate))}</span></li>`;
+    return selectedRow('move', row.name, type ? 'trend-rank-row--type3' : 'trend-rank-row--text2', `${typeHtml}<span class="trend-rank-name">${escapeHtml(row.name)}</span><span class="trend-rank-rate">${escapeHtml(usageRateLabel(row.usageRate))}</span>`);
   }));
-  const evsHtml = emptyOrList(evs.map((row) =>
-    `<li class="trend-rank-row trend-rank-row--text2"><span class="trend-rank-name">${escapeHtml(evSpreadLabel(row.values))}</span><span class="trend-rank-rate">${escapeHtml(usageRateLabel(row.usageRate))}</span></li>`,
-  ));
+  const evsHtml = emptyOrList(evs.map((row) => {
+    const label = evSpreadLabel(row.values);
+    return selectedRow('evs', label, 'trend-rank-row--text2', `<span class="trend-rank-name">${escapeHtml(label)}</span><span class="trend-rank-rate">${escapeHtml(usageRateLabel(row.usageRate))}</span>`);
+  }));
   const teammatesHtml = emptyOrList(teammates.map((row, index) => {
     const imageId = imageIdByName(row.name);
     const imageHtml = imageId === null ? '' : (() => {
       const onerror = `this.onerror=()=>{this.onerror=()=>{this.onerror=null;this.src='${officialArtworkUrl(imageId)}';};this.src='${championSpriteUrl(imageId)}';};`;
       return `<span class="trend-rank-icon"><img class="trend-rank-icon--pokemon" src="${escapeHtml(championSpriteIconUrl(imageId))}" onerror="${escapeHtml(onerror)}" alt="" loading="lazy"></span>`;
     })();
-    return `<li class="trend-rank-row ${imageId !== null ? 'trend-rank-row--rank-icon3' : 'trend-rank-row--rank-name2'}"><span class="trend-rank-order" aria-label="${index + 1}位">${index + 1}</span>${imageHtml}<span class="trend-rank-name">${escapeHtml(row.name)}</span></li>`;
+    return selectedRow('teammate', row.name, imageId !== null ? 'trend-rank-row--rank-icon3' : 'trend-rank-row--rank-name2', `<span class="trend-rank-order" aria-label="${index + 1}位">${index + 1}</span>${imageHtml}<span class="trend-rank-name">${escapeHtml(row.name)}</span>`);
   }));
 
   return `<div class="trend-detail-card" data-battle-data-card>

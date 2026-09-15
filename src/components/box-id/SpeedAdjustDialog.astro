@@ -48,7 +48,7 @@ const speedChartSrc = `/speed-chart?owned=${encodeURIComponent(pokemonId)}&embed
 		dialog.focus();
 		// 表示されて初めてiframe内でスクロールが効くようになる。保留されている初回スクロール
 		// (現在値への移動)をiframeに実行させる。
-		notifyShown();
+		notifyShownAfterLayout();
 	}
 
 	triggers.forEach((trigger) => trigger.addEventListener("click", () => openDialog(trigger)));
@@ -59,6 +59,7 @@ const speedChartSrc = `/speed-chart?owned=${encodeURIComponent(pokemonId)}&embed
 	let latestEdit: OwnedEditChangedDetail | null = null;
 	let frameLoaded = false;
 	let postTimer: number | undefined;
+	let shownFrame: number | undefined;
 
 	function postLatestEdit() {
 		if (!frame || !frameLoaded || !latestEdit) return;
@@ -68,9 +69,19 @@ const speedChartSrc = `/speed-chart?owned=${encodeURIComponent(pokemonId)}&embed
 		);
 	}
 
-	function notifyShown() {
-		if (!frame || !frameLoaded) return;
-		frame.contentWindow?.postMessage({ type: "speed-chart:shown" }, window.location.origin);
+	function notifyShownAfterLayout() {
+		if (!frame || !frameLoaded || dialog?.hidden) return;
+		if (shownFrame !== undefined) window.cancelAnimationFrame(shownFrame);
+		// hidden解除とiframeのレイアウト確定は別フレームになる。同期postMessageだと子側の
+		// scrollIntoView()が前回の(または0の)スクロール領域を基準に実行され、初回だけ移動を
+		// 取りこぼす。親で2フレーム待ってから通知し、子側のrAFと合わせて確定済みの寸法へ移動する。
+		shownFrame = window.requestAnimationFrame(() => {
+			shownFrame = window.requestAnimationFrame(() => {
+				shownFrame = undefined;
+				if (!frame || !frameLoaded || dialog?.hidden) return;
+				frame.contentWindow?.postMessage({ type: "speed-chart:shown" }, window.location.origin);
+			});
+		});
 	}
 
 	frame?.addEventListener("load", () => {
@@ -78,7 +89,7 @@ const speedChartSrc = `/speed-chart?owned=${encodeURIComponent(pokemonId)}&embed
 		// 読み込み前に来ていた編集内容は、読み込み完了後に改めて送る。開いた状態で読み込みが
 		// 完了した場合(初回クリックで開いたときなど)は表示通知も送り直す。
 		postLatestEdit();
-		if (!dialog?.hidden) notifyShown();
+		if (!dialog?.hidden) notifyShownAfterLayout();
 	});
 
 	document.addEventListener(OWNED_EDIT_CHANGED_EVENT, (event) => {
