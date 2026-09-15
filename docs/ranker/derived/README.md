@@ -124,11 +124,13 @@ LLMが「テラスタイプ」として返してきた値は記事の読み違�
 ```bash
 CACHE=C:\Users\tmtmp\ranker-cache   # 記事HTMLのキャッシュ置き場(リポジトリ外)
 
-# 0. 公式ランキングJSONと記事検索HTMLを取得する(以前は手動でcurl/ブラウザ保存していた)
+# 0-1. 公式ランキングJSON・記事検索HTMLの取得と記事索引の生成
+#      (存在するシーズンを自動判定し、進行中の最新シーズンだけ取り直す)
+npm run ranker:fetch-pokedb
+
+# シーズンを絞りたい / ダブルを取りたいときは個別に叩いてもよい
 npm run ranker:fetch-teams -- --seasons 1,2,3 --rule single
 npm run ranker:fetch-articles -- --seasons 1,2,3 --rule single
-
-# 1. HTMLから記事索引を作る
 python scripts/ranker/extract_articles.py docs/ranker/derived/articles-index.json
 
 # 2. 記事本体を落とす(pokesol.app は .data、それ以外は素のHTML)
@@ -154,6 +156,12 @@ DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres node script
 # 6. サジェストの再集計(母集団に上位チームが入るため、投入後に回す)
 DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres npm run refresh-suggestions
 ```
+
+手順0-1は `.github/workflows/ranker-fetch.yml` が毎日 20:00 UTC(JST 5:00)に実行しており、
+`s{n}_single_ranked_teams.json` と `articles-index.json` の更新は自動でコミットされる。
+検索HTMLは1ページ1.5MBで毎日差分が出るためコミットせず、workflow artifact(`pokedb-html`、14日保持)に置く。
+手順2以降(記事本文のダウンロード〜DB投入)はローカル運用のままなので、
+**新シーズンが増えたら、自動更新されたJSONを元に手順2から手で回す。**
 
 手順4だけがLLMを挟む。0〜3と5は決定的なので、記事キャッシュさえあれば何度でも同じ結果になる。
 `ranked-teams.json` をそのままコミットしてあるのは、**手順4を再実行しなくてもDBを再現できるようにするため**。

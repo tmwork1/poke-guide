@@ -36,7 +36,8 @@ def parse(path):
 if __name__ == '__main__':
     allrows = []
     total_skipped = 0
-    for f in sorted(glob.glob('docs/ranker/pokedb_html/*.html')):
+    html_dir = sys.argv[2] if len(sys.argv) > 2 else 'docs/ranker/pokedb_html'
+    for f in sorted(glob.glob(os.path.join(html_dir, '*.html'))):
         rows, skipped = parse(f)
         print(f, len(rows), 'cards;', sum(1 for r in rows if r['url']), 'with url;', skipped, 'skipped(no season/rank)', file=sys.stderr)
         allrows += rows
