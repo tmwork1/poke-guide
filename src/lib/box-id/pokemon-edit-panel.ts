@@ -1843,6 +1843,12 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 	let sortKey: SortKey = "popularity";
 	let sortDir: SortDir = "desc";
 	const filters = { name: "" };
+	const LONG_PRESS_MS = 600;
+	let isSwapMode = false;
+	let swapSourceSlot: number | null = null;
+	let slotPressTimer: ReturnType<typeof window.setTimeout> | undefined;
+	// 長押し完了時に続けて発生するclickを抑止する。次のpointerdownで必ず解除する。
+	let suppressNextSlotClick = false;
 
 	let allMoves: MoveDetail[] = [];
 	let allMovesReady = false;
@@ -1905,6 +1911,15 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 		event.stopPropagation();
 	});
 	windowEl.appendChild(slotTabsEl);
+
+	const slotTabFor = (target: EventTarget | null): HTMLElement | null => {
+		const tab = target instanceof Element ? target.closest<HTMLElement>(".move-picker-slot-tab") : null;
+		return tab && slotTabsEl.contains(tab) ? tab : null;
+	};
+	const clearSlotPress = (): void => {
+		if (slotPressTimer !== undefined) window.clearTimeout(slotPressTimer);
+		slotPressTimer = undefined;
+	};
 
 	const noteEl = document.createElement("p");
 	noteEl.className = "move-picker-note";
@@ -2015,6 +2030,29 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 		for (const slot of [1, 2, 3, 4]) {
 			const moveName = (document.getElementById(`move-${slot}`) as HTMLInputElement | null)?.value.trim() ?? "";
 			const current = slotTabsEl.querySelector<HTMLElement>(`[data-slot="${slot}"]`);
+			if (isSwapMode) {
+				const button = document.createElement("button");
+				button.type = "button";
+				button.className = "move-picker-slot-tab";
+				button.classList.toggle("is-selected", slot === activeSlot);
+				button.classList.toggle("is-swap-source", slot === swapSourceSlot);
+				button.dataset.slot = String(slot);
+				const type = moveName ? moveTypesByName?.get(moveName) : undefined;
+				const iconUrl = type ? typeIconUrl(type) : undefined;
+				if (type && iconUrl) {
+					const icon = document.createElement("img");
+					icon.className = "move-picker-slot-type-icon";
+					icon.src = iconUrl;
+					icon.alt = "";
+					icon.title = type;
+					button.appendChild(icon);
+				}
+				button.append(moveName || `技${slot}`);
+				button.setAttribute("aria-label", `技${slot}: ${moveName || "未選択"}`);
+				current?.replaceWith(button);
+				if (!current) slotTabsEl.appendChild(button);
+				continue;
+			}
 			if (slot === activeSlot) {
 				if (current instanceof HTMLInputElement && !resetActiveInput) continue;
 				const input = document.createElement("input");
@@ -2023,7 +2061,6 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 				input.dataset.slot = String(slot);
 				input.value = moveName;
 				input.setAttribute("aria-label", `技${slot}を検索`);
-				input.addEventListener("click", () => input.select());
 				input.addEventListener("input", () => {
 					const value = input.value.trim();
 					filters.name = value;
@@ -2062,12 +2099,6 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 			button.type = "button";
 			button.className = "move-picker-slot-tab";
 			button.dataset.slot = String(slot);
-			button.addEventListener("click", () => {
-				activeSlot = slot;
-				filters.name = "";
-				updateSlotTabs(true);
-				renderRows();
-			});
 			current?.replaceWith(button);
 			if (!current) slotTabsEl.appendChild(button);
 			// 作成直後に内容を反映するため、次の呼び出しを待たずここで描画する。
@@ -2208,18 +2239,56 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 		renderRows();
 	}
 
+	function enterSwapMode(): void {
+		isSwapMode = true;
+		swapSourceSlot = null;
+		filters.name = "";
+		slotTabsEl.classList.add("is-swap-mode");
+		updateSlotTabs(true);
+		renderRows();
+	}
+
+	function exitSwapMode(): void {
+		clearSlotPress();
+		if (!isSwapMode) return;
+		isSwapMode = false;
+		swapSourceSlot = null;
+		slotTabsEl.classList.remove("is-swap-mode");
+		updateSlotTabs(true);
+		renderRows();
+	}
+
+	function toggleSwapMode(): void {
+		if (isSwapMode) exitSwapMode();
+		else enterSwapMode();
+	}
+
+	function swapMoveSlots(firstSlot: number, secondSlot: number): void {
+		const firstInput = document.getElementById(`move-${firstSlot}`) as HTMLInputElement | null;
+		const secondInput = document.getElementById(`move-${secondSlot}`) as HTMLInputElement | null;
+		if (!firstInput || !secondInput) return;
+		const firstValue = firstInput.value;
+		firstInput.value = secondInput.value;
+		secondInput.value = firstValue;
+		for (const input of [firstInput, secondInput]) {
+			input.dispatchEvent(new Event("input", { bubbles: true }));
+			input.dispatchEvent(new Event("change", { bubbles: true }));
+		}
+		updateSlotTabs();
+		renderRows();
+	}
+
 	function renderRows(): void {
-		const rows = currentPool.filter(passesFilters).slice().sort(comparator);
+		const selectedMoveNames = new Set(moveInputEls.map((input) => input.value.trim()).filter(Boolean));
+		const rows = currentPool.filter((move) => passesFilters(move) && !selectedMoveNames.has(move.name)).slice().sort(comparator);
 		tbody.innerHTML = "";
 		const fragment = document.createDocumentFragment();
-		const currentValue = activeSlot != null ? (document.getElementById(`move-${activeSlot}`) as HTMLInputElement | null)?.value.trim() : "";
 		for (const m of rows) {
 			const tr = document.createElement("tr");
 			tr.tabIndex = 0;
 			tr.setAttribute("role", "button");
 			tr.className = "move-picker-row";
 			tr.dataset.moveName = m.name;
-			if (m.name === currentValue) tr.classList.add("is-selected");
 
 			const nameTd = document.createElement("td");
 			nameTd.className = "move-picker-cell-name";
@@ -2313,6 +2382,7 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 	}
 
 	function closePicker(): void {
+		exitSwapMode();
 		filters.name = "";
 		windowEl.hidden = true;
 		windowEl.classList.remove("is-mobile-modal");
@@ -2333,6 +2403,62 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 	});
 	windowEl.addEventListener("keydown", (e) => {
 		if (e.key === "Escape") closePicker();
+	});
+	windowEl.addEventListener("pointerdown", (event) => {
+		if (isSwapMode && !slotTabFor(event.target)) exitSwapMode();
+	});
+	slotTabsEl.addEventListener("pointerdown", (event) => {
+		// 長押し後の合成clickを、次の新しい操作開始時に必ず解除する。
+		suppressNextSlotClick = false;
+		if (event.button !== 0 || !slotTabFor(event.target)) return;
+		clearSlotPress();
+		slotPressTimer = window.setTimeout(() => {
+			suppressNextSlotClick = true;
+			toggleSwapMode();
+		}, LONG_PRESS_MS);
+	});
+	slotTabsEl.addEventListener("pointerup", clearSlotPress, true);
+	slotTabsEl.addEventListener("pointercancel", clearSlotPress, true);
+	slotTabsEl.addEventListener("pointerleave", clearSlotPress, true);
+	// PCでは右クリックも長押しと同じモード切替操作にする。
+	slotTabsEl.addEventListener("contextmenu", (event) => {
+		if (!slotTabFor(event.target)) return;
+		event.preventDefault();
+		event.stopPropagation();
+		clearSlotPress();
+		suppressNextSlotClick = false;
+		toggleSwapMode();
+	});
+	slotTabsEl.addEventListener("click", (event) => {
+		const tab = slotTabFor(event.target);
+		if (!tab) return;
+		if (suppressNextSlotClick) {
+			suppressNextSlotClick = false;
+			event.preventDefault();
+			event.stopImmediatePropagation();
+			return;
+		}
+		const slot = Number(tab.dataset.slot);
+		if (!Number.isInteger(slot) || slot < 1 || slot > 4) return;
+		if (isSwapMode) {
+			if (swapSourceSlot == null) swapSourceSlot = slot;
+			else if (swapSourceSlot === slot) swapSourceSlot = null;
+			else {
+				swapMoveSlots(swapSourceSlot, slot);
+				swapSourceSlot = null;
+			}
+			updateSlotTabs();
+			event.preventDefault();
+			return;
+		}
+		if (tab instanceof HTMLInputElement) {
+			tab.select();
+			return;
+		}
+		activeSlot = slot;
+		filters.name = "";
+		updateSlotTabs(true);
+		renderRows();
 	});
 	// リストの外側をクリックしたら閉じる(#tera-dropdown-listと同じ一般的な挙動)。
 	// ただし#move-1〜#move-4のいずれかのクリックは「別スロットへの切り替え」を意味するため

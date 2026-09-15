@@ -251,7 +251,6 @@ body.data-page {
 @media (hover: hover) and (pointer: fine) {
   .move-picker-row:hover { background: color-mix(in srgb, var(--color-surface) 90%, var(--color-primary) 10%); }
 }
-.move-picker-row.is-selected { background: color-mix(in srgb, var(--color-primary) 24%, transparent); }
 /* キーボード操作で選択候補の技行にフォーカスしたときの輪郭 */
 .move-picker-row:focus-visible {
   outline: 2px solid var(--color-primary);
@@ -387,6 +386,16 @@ body .move-picker-slot-input {
 body .move-picker-slot-tab.is-selected {
   background: transparent;
   color: var(--color-text);
+}
+/* スロット入れ替えモード中は、通常の選択タブと入れ替え元を明確に区別する。 */
+body .move-picker-slot-tabs.is-swap-mode .move-picker-slot-tab {
+  background: color-mix(in srgb, var(--color-surface) 78%, var(--color-primary) 22%);
+  color: var(--color-text);
+}
+body .move-picker-slot-tabs.is-swap-mode .move-picker-slot-tab.is-swap-source {
+  outline: 2px solid var(--color-primary-strong);
+  outline-offset: -2px;
+  background: color-mix(in srgb, var(--color-primary) 42%, var(--color-surface));
 }
 body .move-picker-title { font-size: var(--font-size-sm2); }
 body .move-picker-toggle { font-size: var(--font-size-sm3); }
