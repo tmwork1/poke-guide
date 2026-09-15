@@ -99,8 +99,10 @@ export function initializeCardDeleteMode(
 		const card = cardFor(event.target);
 		const isDeleteButton = event.target instanceof Element && event.target.closest(deleteButtonSelector);
 		if (isActive && card && !isDeleteButton) {
-			// 長押し解除で発生する合成clickをここで処理し終える。
+			// 削除モード中のカードタップは、遷移させずにモードだけを解除する。
+			// 長押し解除で発生する合成clickもここで処理し終える。
 			suppressNextClick = false;
+			exit();
 			event.preventDefault();
 			event.stopPropagation();
 			return;

@@ -210,6 +210,9 @@ import '../../styles/guest-login-dialog.css';
 			const densityToggle = el<HTMLButtonElement>("box-display-density-toggle");
 
 			let allPokemon: OwnedPokemon[] = [];
+			// 前回カードとして描画した内容の署名。検索・ソートの結果も各個体の内容も
+			// 変わらない限りDOMを差し替えず、ブラウザバック等で見えているカードを動かさない。
+			let renderedSignature = "";
 			let hasMorePokemon = false;
 			let loadingMore = false;
 			const POKEMON_PAGE_SIZE = 48;
@@ -263,7 +266,7 @@ import '../../styles/guest-login-dialog.css';
 				].join(" ");
 				// AND部分一致(空白区切りの複数語すべてを含む場合のみ一致、育成データ管理計画.md §6.1)
 				return term
-					.split(/\s+/)
+					.split(/[\s\u3000]+/u)
 					.filter((t) => t.length > 0)
 					// AND条件は維持し、各語の比較だけかな表記に依存しないようにする。
 					.every((token) => kanaIncludes(haystack, token));
@@ -339,7 +342,10 @@ import '../../styles/guest-login-dialog.css';
 			function renderList(): void {
 				const filtered = allPokemon.filter((p) => matchesSearch(p, searchInput.value.trim()));
 				const sorted = sortPokemon(filtered);
-				listRoot.innerHTML = "";
+				// 並びだけでなく中身も含めた署名で比較する。IDの並びだけを見ると、
+				// 個体を編集して戻ってきたときに更新内容がカードへ反映されない。
+				const signature = JSON.stringify(sorted);
+				const cardsChanged = signature !== renderedSignature;
 				// 「本当に0件」と「絞り込みで0件」を区別する。#no-match-messageはグリッドの外に
 				// 置く(グリッド内だと縮んだ追加タイルの右横に宙に浮いて見えるため)。
 				// #empty-messageと同じ.empty-stateの見た目に揃える。
@@ -348,10 +354,13 @@ import '../../styles/guest-login-dialog.css';
 				emptyMessage.hidden = !isTrulyEmpty;
 				noMatchMessage.hidden = isTrulyEmpty || sorted.length > 0;
 				updateCountBadge(sorted.length);
-				if (isTrulyEmpty) return;
+				if (!cardsChanged) return;
+				const cards = document.createDocumentFragment();
 				for (const p of sorted) {
-					listRoot.appendChild(renderCard(p));
+					cards.appendChild(renderCard(p));
 				}
+				listRoot.replaceChildren(cards);
+				renderedSignature = signature;
 			}
 
 			async function deletePokemon(p: OwnedPokemon): Promise<void> {
@@ -403,6 +412,32 @@ import '../../styles/guest-login-dialog.css';
 				}
 			}
 
+			// ブラウザバック復帰時の再取得。loadList(true)と違い、全ページを取り切って
+			// から一度だけ差し替えるので、48件ずつの段階描画でカードが踊ることがない。
+			// 内容が前回と同じならrenderList()側で差し替え自体が省かれる。
+			async function refreshListQuietly(): Promise<void> {
+				if (loadingMore) return;
+				loadingMore = true;
+				try {
+					const next: OwnedPokemon[] = [];
+					for (;;) {
+						const body = await listOwnedPokemonPage({
+							limit: POKEMON_PAGE_SIZE,
+							offset: next.length,
+						});
+						next.push(...body.data);
+						if (!body.hasMore || body.data.length === 0) break;
+					}
+					allPokemon = next;
+					hasMorePokemon = false;
+					renderList();
+				} catch (err) {
+					console.error(err);
+				} finally {
+					loadingMore = false;
+				}
+			}
+
 			searchInput.addEventListener("input", renderList);
 			densityToggle.addEventListener("click", () => {
 				displayMode = displayMode === "expanded" ? "compressed" : "expanded";
@@ -423,7 +458,7 @@ import '../../styles/guest-login-dialog.css';
 
 			updateDensityToggleUi();
 			void loadList(true);
-			reloadOnBfcacheRestore(() => void loadList(true));
+			reloadOnBfcacheRestore(() => void refreshListQuietly());
 
 			guestLoginClose.addEventListener("click", () => guestLoginDialog.close());
 		}
