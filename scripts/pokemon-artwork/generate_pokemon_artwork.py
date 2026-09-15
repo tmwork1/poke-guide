@@ -95,9 +95,20 @@ def fetch(image_id: int) -> bytes | None:
 def main() -> None:
     parser = argparse.ArgumentParser(description="公式絵を縮小+WebP変換して public/pokemon-artwork/ に配置する")
     parser.add_argument("--force", action="store_true", help="既に存在する画像も処理し直す")
+    parser.add_argument(
+        "--image-ids",
+        help="処理するimageIdをカンマ区切りで指定する(欠損分だけを追加するとき用)",
+    )
     args = parser.parse_args()
 
     image_ids = load_image_ids()
+    if args.image_ids:
+        requested_ids = {int(value) for value in args.image_ids.split(",") if value.strip()}
+        known_ids = set(image_ids)
+        unknown_ids = requested_ids - known_ids
+        if unknown_ids:
+            parser.error(f"pokemon.json にないimageIdが指定されました: {sorted(unknown_ids)}")
+        image_ids = sorted(requested_ids)
     OUT_DIR.mkdir(parents=True, exist_ok=True)
 
     targets = [i for i in image_ids if args.force or not (OUT_DIR / f"{i}.webp").exists()]

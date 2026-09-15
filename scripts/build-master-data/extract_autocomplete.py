@@ -91,6 +91,9 @@ _IMAGE_ID_OVERRIDES: dict[str, int] = {
     "ニャオニクス(メス)": 10025,  # meowstic-female
     "メガニャオニクス(オス)": 10314,  # meowstic-male-mega
     "メガニャオニクス(メス)": 10326,  # meowstic-female-mega
+    # グソクムシャ / セグレイブ: Legends Z-A で追加されたメガシンカ。
+    "メガグソクムシャ": 10316,  # golisopod-mega
+    "メガセグレイブ": 10325,  # baxcalibur-mega
     # オドリドリ(ふらふらスタイル): oricorio-pau
     "オドリドリ(ふらふら)": 10124,  # oricorio-pau
     # ネクロズマ: necrozma-dusk(たそがれのたてがみ) / necrozma-dawn(あかつきのつばさ)

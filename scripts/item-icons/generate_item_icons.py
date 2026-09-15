@@ -111,6 +111,7 @@ scripts/item-icons/measure 相当の使い捨てコードで実行。再現手�
 """
 from __future__ import annotations
 
+import argparse
 import io
 import json
 import math
@@ -195,6 +196,13 @@ MANUAL_ENGLISH_SLUG: dict[str, str] = {
     "もりのプレート": "meadow-plate",
     "アブソルナイトZ": "absolite",
     "ガブリアスナイトZ": "garchompite",
+}
+
+# Serebii の旧世代フォールバック画像が24pxしかないアイテムのうち、ゲーム内アイコンを
+# 高解像度で配布しているURL。通常のSerebii解決より先に使い、生成後は他アイテムと同じ
+# 96px正規化PNGとしてリポジトリ内に保持する。
+HIGH_RES_SOURCE_URL: dict[str, str] = {
+    "とけないこおり": "https://www.gamerguides.com/assets/media/15/662678/item_0246-3f14402f.png",
 }
 
 STEM_IMG_RE = re.compile(r"/itemdex/sprites/([a-zA-Z0-9\-]+)\.png")
@@ -308,17 +316,37 @@ def load_targets() -> list[tuple[str, str]]:
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser(description="アイテムアイコンを正規化して生成する")
+    parser.add_argument(
+        "--items",
+        help="処理するアイテム名をカンマ区切りで指定する(差し替え時に他の画像を再生成しないため)",
+    )
+    args = parser.parse_args()
     print("serebii.net のカテゴリ一覧ページを取得中...")
     stem_index = build_stem_index()
     print(f"  索引エントリ数: {len(stem_index)}")
 
     targets = load_targets()
+    if args.items:
+        requested_names = {value.strip() for value in args.items.split(",") if value.strip()}
+        known_names = {name for name, _ in targets}
+        unknown_names = requested_names - known_names
+        if unknown_names:
+            parser.error(f"items.json にないアイテム名が指定されました: {sorted(unknown_names)}")
+        targets = [(name, sprite_path) for name, sprite_path in targets if name in requested_names]
     print(f"対象: {len(targets)} 件")
 
     total_bytes = 0
     failures: list[tuple[str, str]] = []
     for i, (name, sprite_path) in enumerate(targets, 1):
-        resolved = resolve_image(sprite_path, stem_index)
+        source_url = HIGH_RES_SOURCE_URL.get(name)
+        # 高解像度ソースを指定したアイテムは、取得不能時に低解像度のSerebii画像へ
+        # 黙って戻さない。再生成で画質劣化を戻してしまうことを防ぐ。
+        resolved = (
+            ((source_data, source_url) if (source_data := fetch_url(source_url)) is not None else None)
+            if source_url
+            else resolve_image(sprite_path, stem_index)
+        )
         if resolved is None:
             failures.append((name, sprite_path))
             print(f"[{i}/{len(targets)}] {name} ({sprite_path}): FAILED - 画像が見つかりませんでした")
