@@ -78,7 +78,14 @@ let detailPanelTotalEl: HTMLElement;
 let detailPanelTotalResultEl: HTMLElement;
 const opponentPreviewStatEls = new WeakMap<DamageRowState, Partial<Record<StatKey, HTMLElement>>>();
 const opponentPreviewIconEls = new WeakMap<DamageRowState, { icon: HTMLImageElement; fallback: HTMLElement }>();
-const previewItemIconEls = new WeakMap<DamageRowState, { self: HTMLImageElement; opponent: HTMLImageElement }>();
+type PreviewItemIcon = {
+	icon: HTMLImageElement;
+	slot: HTMLElement;
+	creature: HTMLElement;
+};
+const previewItemIconEls = new WeakMap<DamageRowState, { self: PreviewItemIcon; opponent: PreviewItemIcon }>();
+type InitialHpDamageSource = "disguise" | "roughSkin" | null;
+const initialHpDamageSources = new WeakMap<DamageColumnState, Exclude<InitialHpDamageSource, null>>();
 let moveDropdownOutsideClickHandler: ((event: MouseEvent) => void) | null = null;
 let detailHintSlotEl: HTMLElement | null = null;
 let detailHintTimer: number | null = null;
@@ -126,8 +133,9 @@ function applyAutomaticField(row: DamageRowState, column: DamageColumnState, abi
 export async function notifyDetailMoveChanged(row: DamageRowState, column: DamageColumnState): Promise<void> {
 	const ratio = (await moveAutoInputDetailsPromise).get(column.moveName.trim())?.critRatio ?? 0;
 	// jpokeの急所ランク3は確率1。技名リストではなくマスターのcritRatioを正とする。
-	if (ratio >= 3 && !autoInputLocks.get(column)?.critical) {
-		column.critical = true;
+	const mustCrit = ratio >= 3;
+	if (column.critical !== mustCrit) {
+		column.critical = mustCrit;
 		scheduleRowCalc(row);
 		scheduleRowSave(row);
 		refreshRowConditionChips(row);
@@ -300,11 +308,18 @@ function syncOpponentPreviewIcon(row: DamageRowState): void {
 
 // 共通プレビューは固定フッターなので、相手ビルド・育成タブのいずれを編集しても
 // syncDetailPanelTotalの既存再計算経路から持ち物アイコンまで追随させる。
+function syncPreviewItemIcon(entry: PreviewItemIcon, itemName: string): void {
+	const hasItem = itemName.trim() !== "";
+	if (hasItem && !entry.slot.isConnected) entry.creature.appendChild(entry.slot);
+	if (!hasItem && entry.slot.isConnected) entry.slot.remove();
+	if (hasItem) void applyItemImage(entry.icon, itemName);
+}
+
 function syncPreviewItemIcons(row: DamageRowState): void {
 	const iconEls = previewItemIconEls.get(row);
 	if (!iconEls) return;
-	void applyItemImage(iconEls.self, el<HTMLInputElement>("item").value);
-	void applyItemImage(iconEls.opponent, row.itemName);
+	syncPreviewItemIcon(iconEls.self, el<HTMLInputElement>("item").value);
+	syncPreviewItemIcon(iconEls.opponent, row.itemName);
 }
 
 function buildSelectionHeadingRow(row: DamageRowState): HTMLElement {
@@ -334,7 +349,6 @@ function buildSelectionHeadingRow(row: DamageRowState): HTMLElement {
 	selfCreature.className = "damage-detail-selection-creature";
 	selfCreature.appendChild(selfIcon);
 	selfCreature.appendChild(selfIconFallback);
-	selfCreature.appendChild(selfItemSlot);
 
 	const arrowNs = "http://www.w3.org/2000/svg";
 	const arrow = document.createElementNS(arrowNs, "svg");
@@ -369,7 +383,6 @@ function buildSelectionHeadingRow(row: DamageRowState): HTMLElement {
 	opponentCreature.className = "damage-detail-selection-creature";
 	opponentCreature.appendChild(opponentIcon);
 	opponentCreature.appendChild(opponentIconFallback);
-	opponentCreature.appendChild(opponentItemSlot);
 	const opponentStats = document.createElement("span");
 	opponentStats.className = "damage-detail-opponent-stats";
 	const statKeys: StatKey[] = isSelfAttacking ? ["hp", "def", "spd"] : ["atk", "spa"];
@@ -391,7 +404,10 @@ function buildSelectionHeadingRow(row: DamageRowState): HTMLElement {
 	opponentPreviewStatEls.set(row, statEls);
 	syncOpponentPreviewStats(row);
 	opponentPreviewIconEls.set(row, { icon: opponentIcon, fallback: opponentIconFallback });
-	previewItemIconEls.set(row, { self: selfItemIcon, opponent: opponentItemIcon });
+	previewItemIconEls.set(row, {
+		self: { icon: selfItemIcon, slot: selfItemSlot, creature: selfCreature },
+		opponent: { icon: opponentItemIcon, slot: opponentItemSlot, creature: opponentCreature },
+	});
 	syncPreviewItemIcons(row);
 
 	const attackerLabel = isSelfAttacking ? selfName : opponentName;
@@ -1830,22 +1846,48 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 	// C-3: 別エージェントが実装済みのDamageColumnState.defenderDisguiseBrokenを使い、
 	// 「ばけのかわ」ボタンをwallButton(かべ)と全く同じ方法(防御側の揮発状態グループへ
 	// 後からappendする既存パターン)で追加する。攻撃側には追加しない。
-	const disguiseBrokenButton = buildToggleButton(
+	const defenderAbilityName = selfIsAttackerForDialog
+		? row.abilityName
+		: el<HTMLSelectElement>("ability").value.trim();
+	let initialHpDamageSource: InitialHpDamageSource = initialHpDamageSources.get(column)
+		?? (column.defenderDisguiseBroken ? (defenderAbilityName === "さめはだ" ? "roughSkin" : "disguise") : null);
+	let disguiseBrokenButton: HTMLButtonElement;
+	let roughSkinButton: HTMLButtonElement;
+	const setInitialHpDamageSource = (source: InitialHpDamageSource): void => {
+		initialHpDamageSource = source;
+		if (source) initialHpDamageSources.set(column, source);
+		else initialHpDamageSources.delete(column);
+		applyToColumnField(() => { column.defenderDisguiseBroken = source !== null; });
+		disguiseBrokenButton.setAttribute("aria-pressed", String(source === "disguise"));
+		roughSkinButton.setAttribute("aria-pressed", String(source === "roughSkin"));
+		if (source) showDetailHint(defenderHintSlot, "初期状態で最大HPの1/8ダメージ");
+		else clearDetailHint();
+	};
+	disguiseBrokenButton = buildToggleButton(
 		"ばけのかわ",
-		column.defenderDisguiseBroken,
+		initialHpDamageSource === "disguise",
 		(pressed) => {
-			applyToColumnField(() => { column.defenderDisguiseBroken = pressed; });
-			if (pressed) showDetailHint(defenderHintSlot, "初期状態で最大HPの1/8ダメージ");
-			else clearDetailHint();
+			setInitialHpDamageSource(pressed ? "disguise" : null);
 		},
 		{ title: "「ばけのかわ」が最初の1発で消費済みという想定で、防御側の初期HPを最大HPの1/8減らして計算する" },
 	);
+	// さめはだも接触後のHP減少を見込む場合は、既存の「初期HPを最大HPの1/8減らす」
+	// 計算経路を使う。同時に有効になる特性ではないため、ばけのかわと同じboolで表現する。
+	roughSkinButton = buildToggleButton(
+		"さめはだ",
+		initialHpDamageSource === "roughSkin",
+		(pressed) => {
+			setInitialHpDamageSource(pressed ? "roughSkin" : null);
+		},
+		{ title: "接触で受ける「さめはだ」ダメージを見込み、防御側の初期HPを最大HPの1/8減らして計算する" },
+	);
+	roughSkinButton.classList.add("damage-detail-initial-hp-toggle");
 
 	const defenderVolatileGroup = defenderSide.querySelector<HTMLElement>(".damage-detail-volatile-group");
 	if (defenderVolatileGroup) {
 		// 「かべ」は揮発状態ではなく場に張るものなので、設置物(ステルスロック/まきびし)と
 		// 同じ行へ移した(下のhazardsControlsで先頭に足す)。ここには足さない。
-		defenderVolatileGroup.append(disguiseBrokenButton);
+		defenderVolatileGroup.append(disguiseBrokenButton, roughSkinButton);
 		// C-3: DAMAGE_DEFENDER_VOLATILES(damage-calc.ts、担当外)自体の並び順は五十音順ではない
 		// ため、配列は変えずDOM上の見た目の並びだけを五十音順(「ばけのかわ」を含む)に揃える。
 		const volatileGojuonOrder = [
@@ -1860,7 +1902,7 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 		// 防御側に出す。かべはhazardsControls側に入る)。
 		const fallbackRow = document.createElement("div");
 		fallbackRow.className = "damage-detail-toggle-row";
-		fallbackRow.append(disguiseBrokenButton);
+		fallbackRow.append(disguiseBrokenButton, roughSkinButton);
 		defenderSide.appendChild(fallbackRow);
 	}
 

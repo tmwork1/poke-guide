@@ -442,13 +442,12 @@ body.box-edit-page {
 	.damage-detail-panel .damage-detail-selection-heading {
 		gap: var(--damage-detail-space-md);
 	}
-	/* ポケモン+もちものを一つの同幅グループにする。アイテム未設定時も空のスロットを
-		維持するため、片側だけのアイテム有無で対面アイコンや矢印が横にずれない。 */
+	/* ポケモンと設定済みのもちものだけをまとめる。未設定ならスロット自体をDOMから外すため、
+	空のアイコン枠やプレースホルダは表示しない。 */
 	.damage-detail-panel .damage-detail-selection-creature {
 		display: inline-flex;
 		align-items: flex-end;
 		gap: var(--damage-detail-space-xs);
-		min-width: calc(var(--damage-detail-selection-icon-size) + var(--damage-detail-item-dropdown-icon-size) + var(--damage-detail-space-xs));
 	}
 	.damage-detail-panel .damage-detail-selection-item-slot {
 		display: inline-flex;
@@ -463,6 +462,11 @@ body.box-edit-page {
 		width: var(--damage-detail-item-dropdown-icon-size);
 		height: var(--damage-detail-item-dropdown-icon-size);
 		object-fit: contain;
+	}
+	/* さめはだは既存の初期HP減少トグルと同じチップ列へ追加する。タップ時に
+	   ラベルが折れず、既存のトグルと同じ最小操作領域を保つ。 */
+	#damage-detail-panel-body .damage-detail-initial-hp-toggle {
+		min-inline-size: max-content;
 	}
 	.damage-detail-panel .damage-detail-opponent-stats {
 		display: flex;
