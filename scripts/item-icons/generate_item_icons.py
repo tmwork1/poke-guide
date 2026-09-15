@@ -203,6 +203,7 @@ MANUAL_ENGLISH_SLUG: dict[str, str] = {
 # 96px正規化PNGとしてリポジトリ内に保持する。
 HIGH_RES_SOURCE_URL: dict[str, str] = {
     "とけないこおり": "https://www.gamerguides.com/assets/media/15/662678/item_0246-3f14402f.png",
+    "おうじゃのしるし": "https://www.gamerguides.com/assets/media/15/1988/item_0221.png",
 }
 
 STEM_IMG_RE = re.compile(r"/itemdex/sprites/([a-zA-Z0-9\-]+)\.png")
