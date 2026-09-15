@@ -1434,6 +1434,9 @@ if (form) {
 			await recalcStats();
 			scheduleSave();
 			schedulePopularBuildSuggestionsReload();
+			// 性格補正は実数値を変えるので、ダメージカードも全件引き直す。
+			// 努力値ステッパー(pairEvSlider)と同じ扱い。
+			scheduleAllRowsCalc();
 		});
 	}
 

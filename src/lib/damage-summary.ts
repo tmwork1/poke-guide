@@ -287,12 +287,50 @@ export interface CumulativeDamage {
 	pctMax?: number;
 }
 
+/** 加算ダメージ表示にだけ反映する、各攻撃後の回復量。 */
+export interface CumulativeDamageOptions {
+	endOfTurnRecovery?: number;
+}
+
+/**
+ * 回復は各攻撃の「あと」のターン終了時に入り、残りHPが最大HPを超えない(=累計ダメージが
+ * マイナスにならない)。したがって合計ダメージから回復量を一括で引くのではなく、
+ * 最小乱数・最大乱数それぞれのターン進行を再現する。
+ * 例: 5ダメージ→10回復→30ダメージなら、見かけの合計は20であって15ではない。
+ * 最後の攻撃のあとの回復は数えない。倒れるかどうかはその攻撃の時点で決まり、
+ * そこへ回復を足すと「あと1発耐える」と誤って見えるため。
+ */
+function cumulativeDamageWithEndOfTurnRecovery(
+	validAttackCount: number,
+	perAttackDamages: number[][] | undefined,
+	endOfTurnRecovery: number,
+): { min: number; max: number } | null {
+	if (!Array.isArray(perAttackDamages) || perAttackDamages.length < validAttackCount) return null;
+	let min = 0;
+	let max = 0;
+	for (let i = 0; i < validAttackCount; i += 1) {
+		const damages = perAttackDamages[i];
+		if (!Array.isArray(damages) || damages.length === 0) return null;
+		if (i > 0) {
+			min = Math.max(0, min - endOfTurnRecovery);
+			max = Math.max(0, max - endOfTurnRecovery);
+		}
+		min += Math.min(...damages);
+		max += Math.max(...damages);
+	}
+	return { min, max };
+}
+
 /**
  * 累計ダメージの本体。個体編集画面(damage-calc.ts)はHP比の数値も使う(severity barの
  * 描画に生の%が要る)ため、文字列だけでなく pctMin/pctMax も返す形をこちらに置き、
  * 圧縮表示用の formatCumulativeDamage はその text を取り出すだけの薄い層にしている。
  */
-export function computeCumulativeDamage(validAttackCount: number, result: OpponentClientResultInput): CumulativeDamage {
+export function computeCumulativeDamage(
+	validAttackCount: number,
+	result: OpponentClientResultInput,
+	options: CumulativeDamageOptions = {},
+): CumulativeDamage {
 	const exact = result.cumulativeDamage;
 	let min: number;
 	let max: number;
@@ -309,6 +347,20 @@ export function computeCumulativeDamage(validAttackCount: number, result: Oppone
 			if (!Array.isArray(damages) || damages.length === 0) return { text: '' };
 			min += Math.min(...damages);
 			max += Math.max(...damages);
+		}
+	}
+	const endOfTurnRecovery = Math.max(0, Math.floor(options.endOfTurnRecovery ?? 0));
+	if (endOfTurnRecovery > 0) {
+		const recovered = cumulativeDamageWithEndOfTurnRecovery(validAttackCount, result.perAttackDamages, endOfTurnRecovery);
+		if (recovered) {
+			min = recovered.min;
+			max = recovered.max;
+		} else {
+			// 古いスナップショットなどで技ごとの乱数列が無い場合の安全なフォールバック。
+			// 回復が入るのは攻撃と攻撃の間だけなので、回数は攻撃数-1。
+			const totalRecovery = endOfTurnRecovery * Math.max(0, validAttackCount - 1);
+			min = Math.max(0, min - totalRecovery);
+			max = Math.max(0, max - totalRecovery);
 		}
 	}
 	const hp = result.defenderHp;
