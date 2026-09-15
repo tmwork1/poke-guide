@@ -712,6 +712,13 @@
 		color: var(--color-primary-strong);
 		background: var(--color-primary-soft); /* 努力値を振ってある数値ボックスの下地。濃くすると強調が増す */
 	}
+	/* 努力値カレンダーでは、選択した場合の実数値が11の倍数になる候補を青字にする。
+	   選択中・ホバー・キーボードフォーカス時はglobal.cssの反転表示を優先し、既存の
+	   強調と文字色が競合しないようにする。 */
+	.number-stepper-picker [data-ev-value].is-stat-multiple-of-11:not(:hover):not(:focus-visible):not([aria-current="true"]) {
+		color: var(--color-primary-strong);
+		font-weight: var(--font-weight-medium);
+	}
 	/* 性格補正の上昇/下降は、中の▲▼だけでなく枠もその色にする。1pxの既定枠のままだと
 		どの能力に補正が乗っているかが遠目に分からない(UI改修依頼)。
 		box-sizing: border-box なので太くしてもボタンの寸法は変わらない。

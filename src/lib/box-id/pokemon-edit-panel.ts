@@ -31,7 +31,13 @@ import { applyPreviewMoveTypeBar } from "./preview-move-type-bar";
 import { isPreviewFormToggleChangeEvent } from "./mega-preview-toggle";
 import { bindPressAndHold } from "../press-and-hold";
 import { autosizeTextarea } from "../shared/autosize-textarea";
-import { type StatKey, STAT_KEYS, NATURE_STAT_MODIFIERS } from "../stats";
+import {
+	type StatKey,
+	STAT_KEYS,
+	NATURE_STAT_MODIFIERS,
+	calcHpStat,
+	calcOtherStat,
+} from "../stats";
 import { kanaIncludes } from "../kana";
 import { classifyArchetype, type ArchetypeKey } from "../archetype";
 import { renderTeamCard } from "../team-card";
@@ -677,6 +683,33 @@ if (form) {
 		if (hpFixedNoteEl) hpFixedNoteEl.hidden = !(base && base[0] === 1);
 		hasBaseStatsForDurabilityIndex = !!base;
 		updateDurabilityIndexButtonEnabled();
+		void updateEvCalendarHighlights();
+	}
+
+	// 努力値カレンダーは、表示中の種族・性格で各値を選んだ場合の実数値を示す。
+	// 実数値の通常表示(recalcStats)と同じチャンピオンズ規則(Lv50・個体値31)を
+	// stats.ts の既存関数で計算し、11の倍数になる候補だけを強調する。
+	let evCalendarHighlightToken = 0;
+	async function updateEvCalendarHighlights(): Promise<void> {
+		const speciesName = speciesInput.value.trim();
+		const token = ++evCalendarHighlightToken;
+		const base = speciesName ? (await baseStatsMapPromise).get(speciesName) : undefined;
+		// 非同期の種族値取得中に種族が切り替わった場合、古い結果を反映しない。
+		if (token !== evCalendarHighlightToken || speciesInput.value.trim() !== speciesName) return;
+		const nature = NATURE_STAT_MODIFIERS[currentEditNature()] ?? { up: null, down: null };
+		for (let index = 0; index < STAT_KEYS.length; index++) {
+			const key = STAT_KEYS[index];
+			const picker = document.getElementById(`ev-${key}-options`);
+			for (const option of picker?.querySelectorAll<HTMLButtonElement>("[data-ev-value]") ?? []) {
+				const ev = Number(option.dataset.evValue);
+				const stat = base && Number.isFinite(ev)
+					? key === "hp"
+						? calcHpStat(50, base[index], 31, ev)
+						: calcOtherStat(50, base[index], 31, ev, nature.up === key ? 1.1 : nature.down === key ? 0.9 : 1.0)
+					: NaN;
+				option.classList.toggle("is-stat-multiple-of-11", Number.isFinite(stat) && stat % 11 === 0);
+			}
+		}
 	}
 
 	const moveListEl = el<HTMLDataListElement>("move-list");
@@ -785,6 +818,7 @@ if (form) {
 		void applyTypeBadge(speciesTypeBadge, name);
 		void applyBaseStats(name);
 		void rebuildMoveListForSpecies(name);
+		void updateEvCalendarHighlights();
 	}
 	speciesInput.addEventListener("input", updateSpeciesDisplay);
 	// 初期表示では技候補(#move-list)の構築だけ後回しにする。種族ごとの覚え技取得と
@@ -792,6 +826,7 @@ if (form) {
 	void applySprite(speciesSpriteImg, speciesSpriteFallback, speciesInput.value.trim());
 	void applyTypeBadge(speciesTypeBadge, speciesInput.value.trim());
 	void applyBaseStats(speciesInput.value.trim());
+	void updateEvCalendarHighlights();
 	whenIdle(() => void rebuildMoveListForSpecies(speciesInput.value.trim()));
 	void recalcStats();
 
@@ -972,6 +1007,9 @@ if (form) {
 			.map((option) => option.value)
 			.filter((name, index, names) => name !== "" && names.indexOf(name) === index)
 			.slice(0, 4);
+		// 使用率データが無い種族では、空配列を既存の技4枠へ書き戻してはいけない。
+		// 種族選択時に先に反映された既定構成を、遅れて解決した空レスポンスが消す原因だった。
+		if (moveNames.length === 0) return;
 		for (let slot = 1; slot <= 4; slot++) {
 			const input = document.getElementById(`move-${slot}`) as HTMLInputElement | null;
 			if (!input) continue;
@@ -1013,6 +1051,7 @@ if (form) {
 			editNatureDown = natureModifier.down;
 			refreshNatureButtons();
 		}
+		void updateEvCalendarHighlights();
 
 		if (evValues) {
 			for (const key of STAT_KEYS) {
@@ -1391,6 +1430,7 @@ if (form) {
 			editNatureDown = next.down;
 			nextEditNatureNeutralAssignment = next.nextNeutralAssignment;
 			refreshNatureButtons();
+			void updateEvCalendarHighlights();
 			await recalcStats();
 			scheduleSave();
 			schedulePopularBuildSuggestionsReload();
@@ -2067,21 +2107,18 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 		let result = 0;
 		switch (sortKey) {
 			case "popularity": {
-				// getMovePopularityRatio(pokemon-edit-panel.ts上部、モジュールスコープ)は種族確定時に
-				// loadPopularBuildSuggestionsが更新するlastMoveSuggestionを直接読む。データが
-				// 無い技はpower/accuracyと同じ慣習(?? -1)で扱う——asc(小さい順)なら先頭、
-				// desc(大きい順、既定)なら末尾に集まる。
+				// 初期順は採用率の降順を第一キー、既存テラスタイプ順を第二キーにする。
+				// 採用率が無い技は最後尾にまとめ、同率・データ無し同士はタイプ順、最後に技名順で
+				// 安定させる。人気順ボタンは従来どおり降順固定なので、第二キーは常に昇順とする。
 				const ra = getMovePopularityRatio(a.name);
 				const rb = getMovePopularityRatio(b.name);
-				if (ra == null && rb == null) {
-					// 両方データ無し: 名前のあいうえお順で安定させる。sortDirの符号反転
-					// (下のreturn文)を打ち消して、desc(既定)でも常にあ→ん順を保つ。
-					const alpha = a.name.localeCompare(b.name, "ja");
-					result = sortDir === "desc" ? -alpha : alpha;
-				} else {
-					result = (ra ?? -1) - (rb ?? -1);
+				if (ra != null || rb != null) {
+					if (ra == null) return 1;
+					if (rb == null) return -1;
+					if (ra !== rb) return rb - ra;
 				}
-				break;
+				return compareTypesByTeraOrder(a.type ?? "", b.type ?? "")
+					|| a.name.localeCompare(b.name, "ja");
 			}
 			case "name":
 				result = a.name.localeCompare(b.name, "ja");
