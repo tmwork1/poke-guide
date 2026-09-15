@@ -1612,6 +1612,9 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 					event.stopPropagation();
 					moveSelectInput.value = candidateName;
 					moveSelectInput.dispatchEvent(new Event("input", { bubbles: true }));
+					// 候補はマウスダウン時に入力欄のフォーカスを維持しているため、確定後に
+					// 明示的に外す。背面へのfocus()は行わず、スクロール位置を変えない。
+					moveSelectInput.blur();
 					closeMoveDropdown();
 				});
 				fragment.appendChild(option);

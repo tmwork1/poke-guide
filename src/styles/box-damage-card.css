@@ -1101,7 +1101,6 @@ body.box-edit-page {
   flex-direction: column;
   flex: 1 1 0;
   min-width: 140px; /* 技一覧領域の最小幅 */
-  overflow-x: auto; /* max-contentの操作部は縮めず、この領域だけ横スクロールする */
   display: flex;
 }
 

@@ -2026,6 +2026,52 @@ if (opponentNotesSection) {
 		}
 	}
 
+	// 相手の技を自動入力するときだけ、使用率順の上位候補から最大乱数ダメージが最大の技を選ぶ。
+	// 全覚え技をPyodideへ渡すと待ち時間が大きくなるため、使用率順（データ未到着時は覚え技順）
+	// の先頭8件に限定する。手動入力後はcolumn.moveNameが初期候補から変わるため、非同期計算の
+	// 結果が到着しても上書きしない。
+	const OPPONENT_MAX_DAMAGE_CANDIDATE_LIMIT = 8;
+	const automaticOpponentMoveNames = new WeakMap<DamageColumnState, string>();
+	async function selectOpponentMaximumDamageMove(row: DamageRowState, column: DamageColumnState): Promise<void> {
+		if (row.direction !== "defense" || !isEngineReady()) return;
+		refreshOpponentPopularityMoveDatalist(row.name);
+		const candidateNames = Array.from(ensureOpponentPopularityMoveDatalist().options, (option) => option.value)
+			.slice(0, OPPONENT_MAX_DAMAGE_CANDIDATE_LIMIT);
+		const automaticMoveName = automaticOpponentMoveNames.get(column) ?? column.moveName;
+		if (automaticMoveName === "" || candidateNames.length === 0) return;
+
+		const scores = await Promise.all(candidateNames.map(async (moveName) => {
+			const candidateColumn: DamageColumnState = {
+				...column,
+				moveName,
+				attackerBoosts: [...column.attackerBoosts],
+				defenderBoosts: [...column.defenderBoosts],
+				defenderSideFields: [...column.defenderSideFields],
+				attackerVolatiles: [...column.attackerVolatiles],
+				defenderVolatiles: [...column.defenderVolatiles],
+			};
+			resolveColumnDerivedFields(candidateColumn);
+			const attack = validAttacksOf({ ...row, attacks: [candidateColumn] })[0];
+			if (!attack) return { moveName, maximumDamage: Number.NEGATIVE_INFINITY };
+			const { attackerSpec, defenderSpec, safeAttacks, options } = buildSequenceInputs(row, [attack]);
+			const result = await calcLethalSequence(attackerSpec, defenderSpec, safeAttacks, options);
+			return {
+				moveName,
+				maximumDamage: Math.max(...(result.perAttackDamages[0] ?? [Number.NEGATIVE_INFINITY])),
+			};
+		}));
+		const best = scores.reduce((current, score) => score.maximumDamage > current.maximumDamage ? score : current);
+		// 攻守の再切替・技の手動入力・列の削除より古い非同期結果は捨てる。
+		if (row.direction !== "defense" || !row.attacks.includes(column) || column.moveName !== automaticMoveName) return;
+		if (!Number.isFinite(best.maximumDamage) || best.moveName === automaticMoveName) return;
+		column.moveName = best.moveName;
+		automaticOpponentMoveNames.set(column, best.moveName);
+		resolveColumnDerivedFields(column);
+		renderColumns(row);
+		scheduleRowCalc(row);
+		scheduleRowSave(row);
+	}
+
 	// 新規カード・新規列と、空欄のまま攻守を切り替えた列だけ候補先頭を初期値にする。
 	// 復元処理では呼ばないため、保存済みの空欄を勝手に書き換えない。
 	function fillFirstMoveCandidate(row: DamageRowState, column: DamageColumnState, overwrite = false, candidateIndex = 0): void {
@@ -2036,6 +2082,12 @@ if (opponentNotesSection) {
 		// 複数のわざ列がある場合は、1列目=候補1位、2列目=候補2位…とする。
 		// 候補数が足りないときだけ先頭へフォールバックする。
 		column.moveName = list.options[candidateIndex]?.value ?? list.options[0]?.value ?? "";
+		if (row.direction === "defense") {
+			automaticOpponentMoveNames.set(column, column.moveName);
+			void selectOpponentMaximumDamageMove(row, column).catch(console.error);
+		} else {
+			automaticOpponentMoveNames.delete(column);
+		}
 	}
 
 	// 技列(加算条件)を1つ追加する処理を共通関数にまとめる。
@@ -3532,6 +3584,9 @@ if (opponentNotesSection) {
 			void recalcStats();
 			for (const row of rows) {
 				void recalcRow(row);
+				for (const column of row.attacks) {
+					if (automaticOpponentMoveNames.has(column)) void selectOpponentMaximumDamageMove(row, column).catch(console.error);
+				}
 			}
 		}
 	}
