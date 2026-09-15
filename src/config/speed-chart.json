@@ -6,43 +6,23 @@
     "disabled に載っていないものは全てON(既定でON)。無効化したいものだけを列挙する。",
     "disabled に書いた名前は speed-modifiers.json に実在しなければならない",
     "(tests/speed-chart.test.ts がテストで検知する。打ち間違い・jpoke側の改名対策)。",
-    "adoptionRate: こだわりスカーフ等の持ち物・技を、種族ごとの実際の採用率(suggestionsテーブル)で",
-    "絞り込むかどうかの設定。abilities は対象外(採用率データが特性を集計していないため)。",
-    "  enabled: 採用率フィルタを使うかどうか(falseなら全フォルムにその補正行を出す)",
-    "  threshold: この採用率(ratio)以上のときだけ補正行を出す(0.10 = 10%)",
-    "  minSampleSize: サンプル数がこれ未満の種族は『データなし』として出さない(k-匿名性)",
-    "  appliesTo: 採用率フィルタの対象種別。items/moves の両方に効かせる(ユーザー指示",
-    "    2026-08-01「くさわけ・こうそくいどうを手動除外リストで弾くのではなく、技の使用率で",
-    "    制御すべき」)。",
-    "    以前は技(moves)を対象外にしていた: suggestions の popular_move が種族ごと上位5技しか",
-    "    保存しない(旧 top_n の既定値)ため、実際には採用率10%以上ある技まで切り捨てられており、",
-    "    採用率フィルタを技にかけると本来残るべき技まで消えてしまっていた。",
-    "    migrations/014 で popular_move だけ上位20件(move_top_n)まで保存するようにしたことで",
-    "    この切り捨てが解消し、技にも採用率フィルタをかけられるようになった。",
-    "speciesAdoptionRate: レギュレーション内の総チーム数に対する各フォルムのチーム採用率で、",
-    "  早見表に表示する母集団を足切りする独立設定。adoptionRate(持ち物・技)とは別に調整する。",
-    "  threshold: このチーム採用率以上のフォルムを表示する(0.005 = 0.5%)。",
-    "  minSampleSize: 総チーム数がこれ未満のレギュレーションでは足切りしない(k-匿名性)。",
-    "  enabled: falseならチーム採用率による母集団の足切りを行わない。"
-    ,"minSpreadAdoptionRate: 最遅を、popular_natureでS下降性格の合計採用率がある種族だけに出す設定。",
-    "  enabled: falseなら採用実績を問わず最遅を出す。threshold: 合計採用率の下限(0.1 = 10%)。",
-    "  minSampleSize: 性格のサンプル数がこれ未満なら最遅を出さない(k-匿名性)。努力値は集計に無いため判定しない。"
+    "population.topN: 該当シーズンのOP.GG使用率順位で母集団に入れる基本フォルムの件数。",
+    "adoptionRate: 持ち物・技・特性を、その種族のOP.GG採用率で絞る設定。",
+    "  threshold: usageRateがこの比率以上のときだけ補正行を出す(0.2 = 20%)。",
+    "  appliesTo: 採用率判定する補正種別。OP.GGには全3種別があるためすべてを対象にする。",
+    "spreadConditions: OP.GGの努力値・性格補正の周辺分布から振り方を判定する閾値。",
+    "  evRateThreshold / natureRateThreshold: usageRateの合計を比率で比較する(0.2 = 20%)。"
   ],
   "adoptionRate": {
-    "enabled": true,
-    "threshold": 0.1,
-    "minSampleSize": 5,
-    "appliesTo": ["items", "moves"]
+    "threshold": 0.2,
+    "appliesTo": ["items", "moves", "abilities"]
   },
-  "speciesAdoptionRate": {
-    "enabled": true,
-    "threshold": 0.005,
-    "minSampleSize": 50
+  "population": {
+    "topN": 100
   },
-  "minSpreadAdoptionRate": {
-    "enabled": true,
-    "threshold": 0.1,
-    "minSampleSize": 5
+  "spreadConditions": {
+    "evRateThreshold": 0.2,
+    "natureRateThreshold": 0.2
   },
   "_disabled_readme": [
     "disabled は『使用率では表現できない例外』のための最後の手段。通常はまず adoptionRate",

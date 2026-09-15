@@ -1,16 +1,8 @@
 ---
-// すばやさ早見表(/speed-chart)。オーケストレーター。
-// 仕様の出典: docs/plan/pages/speed-chart.md(P1〜P3、設計レビューR-1〜R-15、P3追補U-1/U-2)。
-//
-// SSRで行うのは (1) ?reg=/?owned= の解決 (2) ログインユーザーの個体取得
-// (3) U-2の採用率データを1クエリで取得 の3つだけ。早見表本体の母集団・行の組み立ては
-// すべてブラウザ側(ChartTable.astro → src/lib/speed-chart/chart-table.ts)で行う
-// (public/master-data/ 配下は各フォルムの regulations を自身で持つため、レギュレーション
-// 切替時に追加のSSR/APIアクセスなしで再計算できる。R-12の「変更時にURLをhistory.replaceState
-// で書き換える」がページ遷移を伴わないことを前提にした設計)。
-//
+// /speed-chart は個体調整モーダルでは常に現シーズン、それ以外は指定シーズンをSSRする。
 export const prerender = false;
 
+import { env } from 'cloudflare:workers';
 import AppLayout from '../../layouts/AppLayout.astro';
 import AppHeader from '../../components/AppHeader.astro';
 import SecondHeader from '../../components/SecondHeader.astro';
@@ -19,239 +11,37 @@ import '../../styles/speed-adjust-dialog.css';
 import '../../styles/speed-chart-page.css';
 import '../../styles/app-header.css';
 import '../../styles/second-header.css';
-// 既定値の解決は REGULATIONS の末尾が最新であることに依存するため、表示順だけ別配列を使う。
-import { REGULATIONS } from '../../lib/regulations';
-import { getSupabaseAdminClient, getSupabasePublicClient } from '../../lib/supabase';
+import { getSupabaseAdminClient } from '../../lib/supabase';
 import { getOwnedPokemon, type OwnedPokemonRecord } from '../../lib/owned-pokemon';
 import { toJsonScriptContent } from '../../lib/json-script';
-import { parseOwnedQueryParam, resolveSpeedChartRegulation } from '../../lib/speed-chart-validation';
-import type { AdoptionRateBucket, AdoptionRateData } from '../../lib/speed-chart';
-// src/config/speed-chart.json はこのページが唯一importする「採否設定」(U-1)。手で編集する
-// 唯一のファイルであり、src/lib/speed-chart.ts 側は編集禁止(基盤担当が確定済み)。
+import { parseOwnedQueryParam } from '../../lib/speed-chart-validation';
+import { loadSpeedChartSsr } from '../../lib/speed-chart/ssr';
 import speedChartConfig from '../../config/speed-chart.json';
 
-const user = Astro.locals.user;
 const embedded = Astro.url.searchParams.get('embed') === '1';
-
-// ?owned= の形式検証(UUIDかどうかだけ。所有者チェックはこの後のgetOwnedPokemonが行う)。
 const ownedId = parseOwnedQueryParam(Astro.url.searchParams.get('owned'));
-
 let ownedRecord: OwnedPokemonRecord | null = null;
-if (ownedId && user) {
-	const adminClient = await getSupabaseAdminClient();
-	const result = await getOwnedPokemon(user.id, ownedId, adminClient);
-	// 未ログイン/他人の個体/存在しないIDのいずれも「右カラムを出さない」だけで、表自体は
-	// 表示する(強制リダイレクトしない。/box/[id] と同じ方針)。result.ok=falseの場合も
-	// 同様にownedRecord=nullのまま進める(500にはしない)。
+if (ownedId && Astro.locals.user) {
+	const result = await getOwnedPokemon(Astro.locals.user.id, ownedId, await getSupabaseAdminClient());
 	if (result.ok) ownedRecord = result.data;
 }
-
 const hasOwnedPanel = ownedRecord !== null;
-
-// レギュレーション決定順序(P1確定仕様): ?reg= → 連携個体のregulation → REGULATIONSの末尾(最新)。
-// REGULATIONSは常に非空(vendor/jpokeが最低1つのレギュレーションを持つ)前提のため、
-// フォールバックのみ非nullを明示しておく(「レギュレーション未指定は許さない」)。
-// owned_pokemonからregulation列が廃止され個体側にレギュレーションを持たなくなったため、
-// resolveSpeedChartRegulationの第2引数(連携個体のregulationヒント)は常にnullを渡す。
-const requestedRegulation = Astro.url.searchParams.get('reg');
-const resolvedRegulation =
-	requestedRegulation === 'all'
-		? 'all'
-		: (resolveSpeedChartRegulation(requestedRegulation, null, REGULATIONS) ??
-			REGULATIONS[REGULATIONS.length - 1] ??
-			'');
-
-// ハリボテUI(2026-08-22): シーズン別母集団の本実装はdocs/plan/すばやさ早見表_シーズン別集計調査.md
-// に切り出し済み(DBマイグレーション等バックエンド改修を要する別タスク)。ここでは見た目だけ
-// 「シーズン選択」に見せるため、実際の絞り込みは引き続きレギュレーション単位のまま、
-// 選択肢の表示ラベルだけをシーズン風にした静的テーブルを使う。値(value)は既存のレギュレーション
-// コードのままなので、既存のURLパラメータ・chart-table.ts側のロジックには一切影響しない。
-const SPEED_CHART_SEASON_FACADE: Array<{ season: string; regulation: string }> = [
-	{ season: 'M-5', regulation: 'M-B' },
-	{ season: 'M-4', regulation: 'M-B' },
-	{ season: 'M-3', regulation: 'M-B' },
-	{ season: 'M-2', regulation: 'M-A' },
-	{ season: 'M-1', regulation: 'M-A' },
-];
-
-let matchedSeasonFacade = false;
-const speedChartSeasonFacadeOptions = SPEED_CHART_SEASON_FACADE.map((entry) => {
-	const selected = !matchedSeasonFacade && entry.regulation === resolvedRegulation;
-	if (selected) matchedSeasonFacade = true;
-	return { ...entry, selected };
-});
-
-// U-2: 採用率データを1クエリで取得する(種族ごとにfetchしない)。suggestionsテーブルの
-// レギュレーション別の行(subject_key = "種族名|レギュレーション"、migrations/013由来)だけを
-// 対象にする。全レギュレーション分をまとめて取得しておくことで、ブラウザ側のレギュレーション
-// 切替(chart-table.ts)が追加のfetchなしで再計算できる。
-interface SuggestionRow {
-	kind: string;
-	subject_key: string;
-	payload: { sample_size?: number; options?: Array<{ value: string; ratio: number }> } | null;
-}
-
-const adoptionByRegulation: Record<string, AdoptionRateData> = {};
-try {
-	const publicClient = await getSupabasePublicClient();
-	const { data, error } = await publicClient
-		.from('suggestions')
-		.select('kind, subject_key, payload')
-		.in('kind', ['popular_item', 'popular_move', 'popular_nature'])
-		.like('subject_key', '%|%');
-
-	if (error) {
-		// eslint-disable-next-line no-console
-		console.error('[speed-chart] failed to load adoption rate data', error);
-	} else if (data) {
-		for (const row of data as SuggestionRow[]) {
-			const sep = row.subject_key.lastIndexOf('|');
-			if (sep === -1) continue;
-			const species = row.subject_key.slice(0, sep);
-			const reg = row.subject_key.slice(sep + 1);
-			const category = row.kind === 'popular_item' ? 'items' : row.kind === 'popular_move' ? 'moves' : row.kind === 'popular_nature' ? 'natures' : null;
-			if (!category || !row.payload || !Array.isArray(row.payload.options)) continue;
-
-			const bucket: AdoptionRateBucket = {
-				sampleSize: row.payload.sample_size ?? 0,
-				options: Object.fromEntries(row.payload.options.map((o) => [o.value, o.ratio])),
-			};
-			const byReg = (adoptionByRegulation[reg] ??= {});
-			const bySpecies = (byReg[species] ??= {});
-			bySpecies[category] = bucket;
-		}
-	}
-} catch (err) {
-	// eslint-disable-next-line no-console
-	console.error('[speed-chart] failed to load adoption rate data', err);
-}
-
-// 「レギュレーション別の種族使用率」を集計済みRPC combined_species_usage()(migrations/021)
-// から取る。suggestions(持ち物・技の種族"内"採用率、上のadoptionByRegulation)とは別の指標。
-// 分母(teamCountByRegulation)は021が返す team_equivalents = ランキングの実チーム数 +
-// アプリ個体数÷6。ランキングだけのときは実チーム数そのものになるため、
-// src/config/speed-chart.json の speciesAdoptionRate(threshold 0.005 / minSampleSize 50)は
-// 従来と同じ尺度のまま使える。
-// 返る行数は「(レギュレーション数+1) × k-匿名性を満たす種族数」で実測295行だが、
-// 将来 max_rows(1000)を超えても欠落しないようページングは残す。
-interface CombinedSpeciesUsageRow {
-	regulation: string;
-	species_key: string;
-	pokemon: number;
-	total_pokemon: number;
-	team_equivalents: number;
-}
-
-const speciesUsageByRegulation: Record<string, Record<string, number>> = {};
-const teamCountByRegulation: Record<string, number> = {};
-try {
-	const publicClient = await getSupabasePublicClient();
-
-	const PAGE_SIZE = 1000;
-	const usageRows: CombinedSpeciesUsageRow[] = [];
-	// p_regulation は渡さない(NULL = 横断 '' とレギュレーション別の全スコープ)。
-	// 横断スコープ('')はレギュレーション選択の「すべて」で使う。レギュレーション別の合計では
-	// 代用できない ── レギュレーションが未設定の登録個体やシーズン対応が未登録の
-	// ランキングチームは 013/014 の規則どおり横断スコープにしか入らないため。
-	const first = await publicClient
-		.rpc('combined_species_usage', {}, { count: 'exact' })
-		.range(0, PAGE_SIZE - 1);
-	if (first.error) throw first.error;
-	usageRows.push(...((first.data ?? []) as CombinedSpeciesUsageRow[]));
-	const total = first.count ?? usageRows.length;
-
-	if (total > PAGE_SIZE) {
-		const pageStarts: number[] = [];
-		for (let from = PAGE_SIZE; from < total; from += PAGE_SIZE) pageStarts.push(from);
-		const pages = await Promise.all(
-			pageStarts.map((from) =>
-				publicClient.rpc('combined_species_usage', {}).range(from, from + PAGE_SIZE - 1),
-			),
-		);
-		for (const page of pages) {
-			if (page.error) throw page.error;
-			usageRows.push(...((page.data ?? []) as CombinedSpeciesUsageRow[]));
-		}
-	}
-
-	// 横断スコープは '' をそのままキーにして埋め込む(chart-table.ts の CROSS_REGULATION_KEY)。
-	// レギュレーション別の値は既定のレギュレーション選択に、'' は「すべて」に対応する。
-	for (const row of usageRows) {
-		const bucket = (speciesUsageByRegulation[row.regulation] ??= {});
-		bucket[row.species_key] = row.pokemon;
-		teamCountByRegulation[row.regulation] = row.team_equivalents;
-	}
-} catch (err) {
-	// eslint-disable-next-line no-console
-	console.error('[speed-chart] failed to load species usage data', err);
-}
+const chart = await loadSpeedChartSsr(env.OPGG_USAGE, Astro.url.searchParams.get('season'), embedded);
 ---
-<AppLayout
-	title="すばやさ"
-	description="レギュレーション別のすばやさ実数値早見表"
-	current="speed-chart"
-	bodyClass="speed-chart-page"
-	chrome={embedded ? "public" : "app"}
->
-	{embedded && <div class="speed-chart-embed-toolbar">
-		<strong class="speed-chart-embed-title">すばやさ調整</strong>
-		<button type="button" class="btn-ghost speed-chart-embed-close" aria-label="すばやさ調整を閉じる">×</button>
-	</div>}
+<AppLayout title="すばやさ" description="OP.GG使用率上位のすばやさ実数値早見表" current="speed-chart" bodyClass="speed-chart-page" chrome={embedded ? "public" : "app"}>
+	{embedded && <div class="speed-chart-embed-toolbar"><strong class="speed-chart-embed-title">すばやさ調整</strong><button type="button" class="btn-ghost speed-chart-embed-close" aria-label="すばやさ調整を閉じる">×</button></div>}
 	{!embedded && <>
-		<AppHeader>
-			<h1 class="app-header-title">すばやさ</h1>
-		</AppHeader>
+		<AppHeader><h1 class="app-header-title">すばやさ</h1></AppHeader>
 		<SecondHeader ariaLabel="すばやさ早見表の操作" class="speed-chart-second-header">
-			{/* 可視ラベルとselectをfor/idで結び、操作バー上でも選択対象を明確にする。 */}
-			<div class="toolbar-item">
-				<label class="speed-chart-regulation-label" for="speed-chart-regulation-select">シーズン</label>
-				<select id="speed-chart-regulation-select" aria-label="シーズン">
-					<option value="all" selected={resolvedRegulation === 'all'}>すべて</option>
-					{speedChartSeasonFacadeOptions.map((entry) => (
-						<option value={entry.regulation} selected={entry.selected}>{entry.season}</option>
-					))}
-				</select>
-			</div>
+			<div class="toolbar-item"><label class="speed-chart-regulation-label" for="speed-chart-regulation-select">シーズン</label><select id="speed-chart-regulation-select" aria-label="シーズン">{chart.seasons.map((season) => <option value={season.id} selected={season.id === chart.selectedSeasonId}>{season.label ?? season.id}</option>)}</select></div>
 			<input type="number" id="speed-chart-jump-input" placeholder="実数値" aria-label="実数値" />
-			{/* 実数値の並び順は、現在の状態を示す単一ボタンで切り替える。 */}
-			<div class="speed-chart-order-select-wrap">
-				<button id="speed-chart-order-select" class="sort-dir-toggle" type="button" data-order="desc" aria-label="実数値の並び順: 速い順" aria-pressed="false">
-					<svg class="sort-dir-toggle-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-						<path d="M12 20V4" />
-						<path d="M6 10l6-6 6 6" />
-					</svg>
-					<span class="sort-dir-toggle-label">速い順</span>
-				</button>
-			</div>
-			{hasOwnedPanel && <label class="speed-chart-reachable-toggle">
-				<span class="toggle-switch">
-					<input type="checkbox" id="speed-chart-reachable-only-toggle" class="toggle-switch-input" aria-label="すべて表示" />
-					<span class="toggle-switch-track" aria-hidden="true"><span class="toggle-switch-thumb"></span></span>
-				</span>
-				<span>すべて表示</span>
-			</label>}
+			<div class="speed-chart-order-select-wrap"><button id="speed-chart-order-select" class="sort-dir-toggle" type="button" data-order="desc" aria-label="実数値の並び順: 速い順" aria-pressed="false"><span class="sort-dir-toggle-label">速い順</span></button></div>
+			{hasOwnedPanel && <label class="speed-chart-reachable-toggle"><span class="toggle-switch"><input type="checkbox" id="speed-chart-reachable-only-toggle" class="toggle-switch-input" aria-label="すべて表示" /><span class="toggle-switch-track" aria-hidden="true"><span class="toggle-switch-thumb"></span></span></span><span>すべて表示</span></label>}
 		</SecondHeader>
 	</>}
-	<ChartTable
-		regulation={resolvedRegulation}
-		ownedId={ownedId}
-		hasOwnedPanel={hasOwnedPanel}
-		embedded={embedded}
-	/>
-
-	{/* R-1: 取得したOwnedPokemonRecord全体を<script type="application/json">で埋め込む
-	    (ivs/evs/move_names/tagsが配列のためdata-*属性化に向かない)。owned-panel.tsは
-	    このレコード全体をspreadしてからnature/evs/item_nameの3項目だけ上書きしてPUTする。 */}
+	<ChartTable regulation={chart.selectedSeasonId ?? ''} ownedId={ownedId} hasOwnedPanel={hasOwnedPanel} embedded={embedded} />
 	<script type="application/json" id="speed-chart-config" set:html={toJsonScriptContent(speedChartConfig)} />
-	<script type="application/json" id="speed-chart-adoption-data" set:html={toJsonScriptContent(adoptionByRegulation)} />
-	<script type="application/json" id="speed-chart-usage-data" set:html={toJsonScriptContent(speciesUsageByRegulation)} />
-	<script type="application/json" id="speed-chart-team-count-data" set:html={toJsonScriptContent(teamCountByRegulation)} />
-	{hasOwnedPanel && (
-		<script type="application/json" id="speed-chart-owned-record" set:html={toJsonScriptContent(ownedRecord)} />
-	)}
-	{embedded && <script>
-		document.querySelector<HTMLButtonElement>(".speed-chart-embed-close")?.addEventListener("click", () => {
-			window.parent.postMessage({ type: "speed-chart:close" }, window.location.origin);
-		});
-	</script>}
+	<script type="application/json" id="speed-chart-rows-data" set:html={toJsonScriptContent(chart.rows)} />
+	{hasOwnedPanel && <script type="application/json" id="speed-chart-owned-record" set:html={toJsonScriptContent(ownedRecord)} />}
+	{embedded && <script>document.querySelector<HTMLButtonElement>('.speed-chart-embed-close')?.addEventListener('click', () => window.parent.postMessage({ type: 'speed-chart:close' }, window.location.origin));</script>}
 </AppLayout>

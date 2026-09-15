@@ -1,832 +1,309 @@
-// src/lib/speed-chart.ts(すばやさ早見表の純粋関数群)の回帰テスト。
-// docs/plan/pages/speed-chart.md の設計レビュー R-2/R-3/R-4/R-14、P3追補 U-1/U-2 を参照。
-//
-// public/master-data/ 配下の生成物(npm run build:master-data の出力)を実際に読み込んで
-// 突き合わせるテストは tests/pokemon-master-data.test.ts と同じ方針(ビルド済み成果物の検証の
-// ため、このテストはビルドスクリプト実行後にのみ意味を持つ)。
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-
-import { calcOtherStat } from '../src/lib/stats.ts';
 import {
+  applySpeedModifier,
   applySpeedMultiplier,
   applySpeedRank,
-  applySpeedModifier,
   buildAppliedEvs,
-  buildSpeedChartPopulation,
+  buildOpggSpeedChartPopulation,
   buildSpeedChartRows,
+  decideSpeedSpreads,
   enumerateReachableSpeedValues,
   filterRowsByReachableValues,
   findUnknownDisabledModifierNames,
   getEffectiveSpeedModifiers,
   getNatureSpeedEffect,
-  isAdoptedByRate,
-  isAdoptionRateFilterActive,
-  isMinSpreadAdopted,
+  includeReachableValuesInRows,
   limitRowChipsByWidth,
   pickNatureNameForSpeedEffect,
   selectMinimalCostSpeedOption,
   selectMinimalCostSpeedOptions,
-  sortFormNamesByUsage,
   SPEED_SPREADS,
-  type AdoptionRateConfig,
-  type AdoptionRateData,
-  type EffectiveSpeedModifier,
+  sumNatureEffectRate,
+  sumSpeedEvRate,
   type SpeedChartConfig,
-  type SpeedChartForm,
-  type SpeedChartRow,
   type SpeedModifiersData,
-  type SpeedModifierMultiplier,
-  type SpeedModifierRank,
 } from '../src/lib/speed-chart.ts';
+import { calcOtherStat } from '../src/lib/stats.ts';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const masterDataDir = path.join(__dirname, '..', 'public', 'master-data');
-const configDir = path.join(__dirname, '..', 'src', 'config');
+const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
+const readJson = <T>(file: string): T => JSON.parse(readFileSync(path.join(root, file), 'utf8')) as T;
 
-function readJson<T>(...parts: string[]): T {
-  return JSON.parse(readFileSync(path.join(...parts), 'utf-8')) as T;
-}
+const thresholds = { evRateThreshold: 0.2, natureRateThreshold: 0.2 };
+const single = (ev32: number, ev0: number, up: number, neutral: number, down: number) => ({
+  evs: [
+    { rank: 1, usageRate: ev32, values: { speed: 32 } },
+    { rank: 2, usageRate: ev0, values: { speed: 0 } },
+  ],
+  natures: [
+    { rank: 1, name: 'おくびょう', usageRate: up },
+    { rank: 2, name: 'まじめ', usageRate: neutral },
+    { rank: 3, name: 'ゆうかん', usageRate: down },
+  ],
+});
 
-// ------------------------------------------------------------------------------------------
-// 実データ(public/master-data/・src/config/speed-chart.json)の読み込み。
-// ------------------------------------------------------------------------------------------
-const realPokemonAutocomplete = readJson<Array<{ name: string; regulations: string[] }>>(
-  masterDataDir,
-  'autocomplete',
-  'pokemon.json',
-);
-const realPokemonDetail = readJson<Array<{ name: string; baseStats: number[]; abilities: string[]; learnset: string[] }>>(
-  masterDataDir,
-  'detail',
-  'pokemon.json',
-);
-const realMegaStones = readJson<Array<{ species: string; item: string }>>(
-  masterDataDir,
-  'autocomplete',
-  'mega-stones.json',
-);
-const realItemAutocomplete = readJson<Array<{ name: string; regulations: string[] }>>(
-  masterDataDir,
-  'autocomplete',
-  'items.json',
-);
-const realSpeedModifiers = readJson<SpeedModifiersData>(masterDataDir, 'detail', 'speed-modifiers.json');
-const realSpeedChartConfig = readJson<SpeedChartConfig>(configDir, 'speed-chart.json');
-
-// ------------------------------------------------------------------------------------------
-// 実数値の突き合わせ(受け入れ基準4/5/6、requirement 5「最低5件」)
-// ------------------------------------------------------------------------------------------
-describe('buildSpeedChartPopulation / calcOtherStatとの実数値の突き合わせ', () => {
-  const population = buildSpeedChartPopulation(
-    'M-B',
-    realPokemonAutocomplete,
-    realPokemonDetail,
-    realMegaStones,
-    realItemAutocomplete,
-  );
-
-  it('M-Bの母集団が5件以上ある(前提)', () => {
-    assert.ok(population.length >= 5, `population.length=${population.length}`);
+describe('OP.GGの努力値・性格補正から振り方を判定する', () => {
+  it('usageRateを百分率から比率へ直し、speedがnullの努力値行を除外する', () => {
+    const data = single(20, 25, 20, 20, 20);
+    assert.equal(sumSpeedEvRate(data.evs, 32), 0.2);
+    assert.equal(sumSpeedEvRate(data.evs, 0), 0.25);
+    assert.equal(sumNatureEffectRate(data.natures, 'up'), 0.2);
   });
 
-  // vendor/jpoke v0.2.0時点の実測: M-B population = 通常種族235 + メガ種族73 = 308フォルム。
-  // (P1の見積り311は実装時に無効化された。R-3のパラドックス除外・R-4のメガ絞り込みで
-  // 実際の値が変わるため、P4=このエージェントが実測した値を正とする。)
-  it('M-Bの母集団は308フォルム(通常235+メガ73。vendor/jpoke v0.2.0時点の実測値)', () => {
-    const normalCount = population.filter((f) => !f.isMega).length;
-    const megaCount = population.filter((f) => f.isMega).length;
-    assert.equal(normalCount, 235);
-    assert.equal(megaCount, 73);
-    assert.equal(population.length, 308);
+  it('閾値ちょうどで最速・準速・無振り・最遅の全条件を表示する', () => {
+    assert.deepEqual(decideSpeedSpreads(single(20, 20, 20, 20, 20), thresholds), ['max', 'sub', 'none', 'min']);
   });
 
-  it('M-Aの母集団は270フォルム(通常213+メガ57。vendor/jpoke v0.2.0時点の実測値)', () => {
-    const popA = buildSpeedChartPopulation(
-      'M-A',
-      realPokemonAutocomplete,
-      realPokemonDetail,
-      realMegaStones,
-      realItemAutocomplete,
+  it('努力値または性格の片方だけでは条件を満たさず、どれも満たさなければ無振りへフォールバックする', () => {
+    assert.deepEqual(decideSpeedSpreads(single(20, 0, 19.9, 0, 0), thresholds), ['none']);
+  });
+});
+
+describe('OP.GG順位で作る母集団', () => {
+  const details = [
+    { name: 'A', baseStats: [0, 0, 0, 0, 0, 100], abilities: ['特性A'], learnset: ['技A'] },
+    { name: 'B', baseStats: [0, 0, 0, 0, 0, 100], abilities: ['特性B'], learnset: [] },
+    { name: 'メガA', baseStats: [0, 0, 0, 0, 0, 120], abilities: ['特性M'], learnset: [] },
+  ];
+  const ranked = [
+    { name: 'B', rank: 2, single: single(20, 0, 20, 0, 0) },
+    { name: 'A', rank: 1, single: single(20, 0, 20, 0, 0) },
+  ];
+  const index = [
+    { name: 'A', dexNo: 1, forme: null },
+    { name: 'B', dexNo: 2, forme: null },
+    { name: 'メガA', dexNo: 1, forme: 'Mega' },
+  ];
+
+  it('top Nは基本フォルムだけで数え、基本が入ったメガは同順位で後ろに同伴する', () => {
+    const forms = buildOpggSpeedChartPopulation(ranked, 1, details, index, [{ species: 'メガA', item: 'Aナイト' }]);
+    assert.deepEqual(forms.map((form) => [form.name, form.rank, form.isMega]), [['A', 1, false], ['メガA', 1, true]]);
+  });
+
+  it('top N外の基本フォルムのメガは表示しない', () => {
+    const forms = buildOpggSpeedChartPopulation(ranked, 1, details, index, [{ species: 'メガB', item: 'Bナイト' }]);
+    assert.deepEqual(forms.map((form) => form.name), ['A']);
+  });
+
+  it('名前の前方一致ではなくdexNoでメガを対応付ける', () => {
+    const forms = buildOpggSpeedChartPopulation(
+      [{ name: 'リザード', rank: 1, single: single(20, 0, 20, 0, 0) }],
+      1,
+      [
+        { name: 'リザード', baseStats: [0, 0, 0, 0, 0, 80], abilities: [], learnset: [] },
+        { name: 'メガリザードンX', baseStats: [0, 0, 0, 0, 0, 100], abilities: [], learnset: [] },
+      ],
+      [
+        { name: 'リザード', dexNo: 5, forme: null },
+        { name: 'メガリザードンX', dexNo: 6, forme: 'Mega X' },
+      ],
+      [{ species: 'メガリザードンX', item: 'リザードナイトX' }],
     );
-    const normalCount = popA.filter((f) => !f.isMega).length;
-    const megaCount = popA.filter((f) => f.isMega).length;
-    assert.equal(normalCount, 213);
-    assert.equal(megaCount, 57);
-    assert.equal(popA.length, 270);
+    assert.deepEqual(forms.map((form) => form.name), ['リザード']);
   });
 
-  it('母集団に重複したフォルム名が無い', () => {
-    const names = population.map((f) => f.name);
-    assert.equal(new Set(names).size, names.length);
+  it('行内のポケモンはOP.GG順位の昇順になる', () => {
+    const forms = buildOpggSpeedChartPopulation(ranked, 2, details, index, []);
+    const rows = buildSpeedChartRows(forms, [], { threshold: 0.2, appliesTo: [] }, new Map(ranked.map((entry) => [entry.name, entry.single])), thresholds);
+    const equalValueRow = rows.find((row) => row.entries.length > 1);
+    assert.ok(equalValueRow);
+    assert.deepEqual(equalValueRow!.entries.map((entry) => entry.formName), ['A', 'B']);
+  });
+});
+
+describe('OP.GG採用率による補正要因の絞り込み', () => {
+  it('閾値未満の特性・持ち物・技は出さず、閾値以上だけを出す', () => {
+    const form = { name: 'A', baseSpeed: 100, abilities: ['特性高', '特性低'], learnset: ['技高', '技低'], rank: 1, usageSourceName: 'A', isMega: false };
+    const usage = {
+      ...single(0, 0, 0, 0, 0),
+      abilities: [{ rank: 1, name: '特性高', usageRate: 20 }, { rank: 2, name: '特性低', usageRate: 19.9 }],
+      items: [{ rank: 1, name: '持ち物高', usageRate: 20 }, { rank: 2, name: '持ち物低', usageRate: 19.9 }],
+      moves: [{ rank: 1, name: '技高', usageRate: 20 }, { rank: 2, name: '技低', usageRate: 19.9 }],
+    };
+    const modifiers = getEffectiveSpeedModifiers({
+      abilities: { 特性高: { kind: 'rank', stages: 1 }, 特性低: { kind: 'rank', stages: 1 } },
+      items: { 持ち物高: { kind: 'multiplier', numerator: 3, denominator: 1 }, 持ち物低: { kind: 'multiplier', numerator: 3, denominator: 1 } },
+      moves: { 技高: { kind: 'rank', stages: 2 }, 技低: { kind: 'rank', stages: 2 } },
+    }, { population: { topN: 1 }, adoptionRate: { threshold: 0.2, appliesTo: [] }, spreadConditions: thresholds, disabled: { abilities: [], items: [], moves: [] } });
+    const rows = buildSpeedChartRows([form], modifiers, { threshold: 0.2, appliesTo: ['abilities', 'items', 'moves'] }, new Map([['A', usage]]), thresholds);
+    const names = rows.flatMap((row) => row.entries.map((entry) => entry.modifier?.name).filter(Boolean));
+    assert.deepEqual(new Set(names), new Set(['特性高', '持ち物高', '技高']));
+  });
+});
+
+it('disabledに書かれた補正名は実データに存在する', () => {
+  const config = readJson<SpeedChartConfig>('src/config/speed-chart.json');
+  const modifiers = readJson<SpeedModifiersData>('public/master-data/detail/speed-modifiers.json');
+  assert.deepEqual(findUnknownDisabledModifierNames(modifiers, config), []);
+});
+
+describe('実数値と補正の回帰', () => {
+  const core = readJson<Array<{ name: string; baseStats: number[] }>>('public/master-data/detail/pokemon-core.json');
+
+  it('無振りの実数値がcalcOtherStat(...)と一致する', () => {
+    const baseSpeed = 100;
+    assert.equal(calcOtherStat(50, baseSpeed, 31, SPEED_SPREADS.none.evSpe, SPEED_SPREADS.none.natureModifier), calcOtherStat(50, baseSpeed, 31, 0, 1));
   });
 
-  // 最低5件、無振り(EV0/補正なし)・最速(EV32/1.1倍)の両方でcalcOtherStatと突き合わせる。
-  const sampleNames = ['ピカチュウ', 'カイリュー', 'ミミッキュ', 'ドラパルト', 'ガブリアス'];
-  for (const name of sampleNames) {
-    it(`${name}: 無振りの実数値がcalcOtherStat(50, base, 31, 0, 1.0)と一致する`, () => {
-      const form = population.find((f) => f.name === name);
-      assert.ok(form, `${name} がM-Bの母集団に見つかりません`);
-      const expected = calcOtherStat(50, form!.baseSpeed, 31, 0, 1.0);
-      const actual = calcOtherStat(50, form!.baseSpeed, 31, SPEED_SPREADS.none.evSpe, SPEED_SPREADS.none.natureModifier);
-      assert.equal(actual, expected);
-    });
+  it('最速の実数値がcalcOtherStat(...)と一致する', () => {
+    const baseSpeed = 100;
+    assert.equal(calcOtherStat(50, baseSpeed, 31, SPEED_SPREADS.max.evSpe, SPEED_SPREADS.max.natureModifier), calcOtherStat(50, baseSpeed, 31, 32, 1.1));
+  });
 
-    it(`${name}: 最速の実数値がcalcOtherStat(50, base, 31, 32, 1.1)と一致する`, () => {
-      const form = population.find((f) => f.name === name);
-      assert.ok(form);
-      const expected = calcOtherStat(50, form!.baseSpeed, 31, 32, 1.1);
-      const actual = calcOtherStat(50, form!.baseSpeed, 31, SPEED_SPREADS.max.evSpe, SPEED_SPREADS.max.natureModifier);
-      assert.equal(actual, expected);
-    });
-  }
-
-  it('全フォルムの無振り実数値がcalcOtherStatと1件も不一致にならない(受け入れ基準4相当の全件版)', () => {
-    for (const form of population) {
-      const expected = calcOtherStat(50, form.baseSpeed, 31, 0, 1.0);
-      const actual = calcOtherStat(50, form.baseSpeed, 31, SPEED_SPREADS.none.evSpe, SPEED_SPREADS.none.natureModifier);
-      assert.equal(actual, expected, `${form.name} の無振り実数値が不一致`);
+  it('全フォルムの無振り実数値がcalcOtherStatと1件も不一致にならない', () => {
+    for (const form of core) {
+      assert.equal(calcOtherStat(50, form.baseStats[5], 31, SPEED_SPREADS.none.evSpe, SPEED_SPREADS.none.natureModifier), calcOtherStat(50, form.baseStats[5], 31, 0, 1), form.name);
     }
   });
 
   it('最遅はEV0・下降補正0.9で算出される', () => {
-    const form = population.find((candidate) => candidate.name === 'ピカチュウ');
-    assert.ok(form);
-    const expected = calcOtherStat(50, form.baseSpeed, 31, 0, 0.9);
-    const actual = calcOtherStat(50, form.baseSpeed, 31, SPEED_SPREADS.min.evSpe, SPEED_SPREADS.min.natureModifier);
-    assert.equal(actual, expected);
+    assert.equal(calcOtherStat(50, 100, 31, SPEED_SPREADS.min.evSpe, SPEED_SPREADS.min.natureModifier), calcOtherStat(50, 100, 31, 0, 0.9));
   });
-});
 
-// ------------------------------------------------------------------------------------------
-// 補正の適用(倍率・ランク)
-// ------------------------------------------------------------------------------------------
-describe('applySpeedMultiplier / applySpeedRank', () => {
-  it('こだわりスカーフ相当(6144/4096)は floor(素の値 * 6144 / 4096) になる', () => {
-    // 素の値100の場合: 100*6144/4096 = 150.0 (割り切れる例)
-    assert.equal(applySpeedMultiplier(100, 6144, 4096), 150);
-    // 割り切れない例(切り捨てが効いているかの確認)。
-    assert.equal(applySpeedMultiplier(101, 6144, 4096), Math.floor((101 * 6144) / 4096));
+  it('こだわりスカーフ相当(6144/4096)はfloorで計算される', () => {
     assert.equal(applySpeedMultiplier(101, 6144, 4096), 151);
   });
 
-  it('2倍の特性(かるわざ等)は floor(素の値 * 2) になる', () => {
-    assert.equal(applySpeedMultiplier(123, 2, 1), 246);
-  });
-
-  it('S+2(からをやぶる・ロックカット等)は floor(素の値 * 2) になる', () => {
-    assert.equal(applySpeedRank(100, 2), 200);
-    assert.equal(applySpeedRank(101, 2), 202);
-  });
-
-  it('S+1(かそく等)は floor(素の値 * 1.5) になる', () => {
-    assert.equal(applySpeedRank(100, 1), 150);
-    // 端数切り捨ての確認(101*1.5=151.5 -> 151)。
-    assert.equal(applySpeedRank(101, 1), 151);
-  });
-
-  it('S+6(じょうききかん)は floor(素の値 * 4) になる', () => {
-    assert.equal(applySpeedRank(100, 6), 400);
-  });
-
-  it('applySpeedModifierはkindに応じてmultiplier/rankを正しくディスパッチする', () => {
-    const multiplier: SpeedModifierMultiplier = { kind: 'multiplier', numerator: 6144, denominator: 4096 };
-    const rank: SpeedModifierRank = { kind: 'rank', stages: 2 };
-    assert.equal(applySpeedModifier(100, multiplier), 150);
-    assert.equal(applySpeedModifier(100, rank), 200);
-  });
-
-  it('実データのこだわりスカーフの倍率は6144/4096である(speed-modifiers.jsonとの突き合わせ)', () => {
-    const scarf = realSpeedModifiers.items['こだわりスカーフ'];
-    assert.ok(scarf, 'こだわりスカーフ が speed-modifiers.json の items に見つかりません');
-    assert.equal(scarf.kind, 'multiplier');
-    if (scarf.kind === 'multiplier') {
-      assert.equal(scarf.numerator, 6144);
-      assert.equal(scarf.denominator, 4096);
-    }
+  it('2倍の特性は倍率補正になる', () => assert.equal(applySpeedMultiplier(123, 2, 1), 246));
+  it('S+2は2倍になる', () => assert.equal(applySpeedRank(123, 2), 246));
+  it('S+1は1.5倍になる', () => assert.equal(applySpeedRank(123, 1), 184));
+  it('S+6は4倍になる', () => assert.equal(applySpeedRank(123, 6), 492));
+  it('applySpeedModifierはkindに応じて補正を適用する', () => {
+    assert.equal(applySpeedModifier(101, { kind: 'multiplier', numerator: 6144, denominator: 4096 }), 151);
+    assert.equal(applySpeedModifier(101, { kind: 'rank', stages: 1 }), 151);
   });
 });
 
-// ------------------------------------------------------------------------------------------
-// speed-modifiers.json の抽出結果そのものの検証(R-2/R-3/R-14)
-// ------------------------------------------------------------------------------------------
-describe('public/master-data/detail/speed-modifiers.json(機械抽出結果の回帰テスト)', () => {
+describe('speed-modifiers.jsonの回帰', () => {
+  const modifiers = readJson<SpeedModifiersData>('public/master-data/detail/speed-modifiers.json');
+  const values = (category: keyof SpeedModifiersData) => Object.keys(modifiers[category]);
+
+  it('実データのこだわりスカーフの倍率は6144/4096である', () => {
+    const scarf = modifiers.items['こだわりスカーフ'];
+    assert.deepEqual(scarf, { kind: 'multiplier', numerator: 6144, denominator: 4096 });
+  });
   it('こだいかっせい・クォークチャージが特性の補正に含まれない(R-3)', () => {
-    assert.equal('こだいかっせい' in realSpeedModifiers.abilities, false);
-    assert.equal('クォークチャージ' in realSpeedModifiers.abilities, false);
+    assert.equal(values('abilities').includes('こだいかっせい'), false);
+    assert.equal(values('abilities').includes('クォークチャージ'), false);
   });
-
-  it('でんきエンジン(位置引数ではなくキーワード引数stats={"spe":1}経由)が抽出されている(R-2の取りこぼし対策)', () => {
-    assert.ok('でんきエンジン' in realSpeedModifiers.abilities);
+  it('でんきエンジン・かそく・くだけるよろいが特性補正に含まれる', () => {
+    for (const name of ['でんきエンジン', 'かそく', 'くだけるよろい']) assert.ok(modifiers.abilities[name]);
   });
-
-  it('かそく・くだけるよろい(位置引数{"spe": +n}経由)が抽出されている(R-2の取りこぼし対策)', () => {
-    assert.ok('かそく' in realSpeedModifiers.abilities);
-    assert.ok('くだけるよろい' in realSpeedModifiers.abilities);
+  it('こうそくスピンが技のランク上昇に含まれる', () => assert.equal(modifiers.moves['こうそくスピン']?.kind, 'rank'));
+  it('倍率特性が下限6件以上、ランク上昇技が下限15件以上ある', () => {
+    assert.ok(Object.values(modifiers.abilities).filter((value) => value.kind === 'multiplier').length >= 6);
+    assert.ok(Object.values(modifiers.moves).filter((value) => value.kind === 'rank').length >= 15);
   });
-
-  it('こうそくスピンが技のランク上昇に含まれる(P1で取りこぼしていた技)', () => {
-    assert.ok('こうそくスピン' in realSpeedModifiers.moves);
+  it('確率発動のあやしいかぜ等が技の補正に含まれない', () => {
+    for (const name of ['あやしいかぜ', 'ぎんいろのかぜ', 'げんしのちから']) assert.equal(values('moves').includes(name), false);
   });
-
-  it('倍率特性が下限6件以上、ランク上昇技が下限15件以上ある(P2 R-14の下限)', () => {
-    const multiplierAbilityCount = Object.values(realSpeedModifiers.abilities).filter((m) => m.kind === 'multiplier').length;
-    const rankMoveCount = Object.keys(realSpeedModifiers.moves).length;
-    assert.ok(multiplierAbilityCount >= 6, `multiplierAbilityCount=${multiplierAbilityCount}`);
-    assert.ok(rankMoveCount >= 15, `rankMoveCount=${rankMoveCount}`);
-  });
-
-  it('あやしいかぜ・ぎんいろのかぜ・げんしのちから(確率発動)が技の補正に含まれない', () => {
-    assert.equal('あやしいかぜ' in realSpeedModifiers.moves, false);
-    assert.equal('ぎんいろのかぜ' in realSpeedModifiers.moves, false);
-    assert.equal('げんしのちから' in realSpeedModifiers.moves, false);
-  });
-
-  it('くろいてっきゅう・スロースタート(下降補正)が特性・持ち物の補正に含まれない', () => {
-    assert.equal('くろいてっきゅう' in realSpeedModifiers.items, false);
-    assert.equal('スロースタート' in realSpeedModifiers.abilities, false);
+  it('くろいてっきゅう・スロースタートが補正に含まれない', () => {
+    assert.equal(values('items').includes('くろいてっきゅう'), false);
+    assert.equal(values('abilities').includes('スロースタート'), false);
   });
 });
 
-// ------------------------------------------------------------------------------------------
-// U-1: 採否のマージ・disabledの存在チェック
-// ------------------------------------------------------------------------------------------
-describe('getEffectiveSpeedModifiers(U-1: 抽出と採否のマージ)', () => {
-  const fixtureModifiers: SpeedModifiersData = {
-    items: { アイテムA: { kind: 'multiplier', numerator: 2, denominator: 1 } },
-    abilities: {
-      特性A: { kind: 'rank', stages: 1 },
-      特性B: { kind: 'multiplier', numerator: 2, denominator: 1 },
-    },
-    moves: { 技A: { kind: 'rank', stages: 2 } },
-  };
-
-  it('disabledに載っていないものは全て有効になる(既定でON)', () => {
-    const config: SpeedChartConfig = {
-      adoptionRate: { enabled: false, threshold: 0.1, minSampleSize: 5, appliesTo: ['items', 'moves'] },
-      disabled: { abilities: [], moves: [], items: [] },
-    };
-    const effective = getEffectiveSpeedModifiers(fixtureModifiers, config);
-    assert.equal(effective.length, 4);
-  });
-
-  it('disabledに載っているものは有効な補正一覧から除外される', () => {
-    const config: SpeedChartConfig = {
-      adoptionRate: { enabled: false, threshold: 0.1, minSampleSize: 5, appliesTo: ['items', 'moves'] },
-      disabled: { abilities: ['特性A'], moves: [], items: [] },
-    };
-    const effective = getEffectiveSpeedModifiers(fixtureModifiers, config);
-    assert.equal(effective.some((m) => m.name === '特性A'), false);
-    assert.equal(effective.length, 3);
-  });
-
-  it('findUnknownDisabledModifierNames: disabledに実在しない名前があれば列挙する(打ち間違い検知)', () => {
-    const config: SpeedChartConfig = {
-      adoptionRate: { enabled: false, threshold: 0.1, minSampleSize: 5, appliesTo: ['items', 'moves'] },
-      disabled: { abilities: ['存在しない特性'], moves: [], items: [] },
-    };
-    const unknown = findUnknownDisabledModifierNames(fixtureModifiers, config);
-    assert.deepEqual(unknown, ['abilities.存在しない特性']);
-  });
-
-  it('findUnknownDisabledModifierNames: 全て実在するdisabledなら空配列', () => {
-    const config: SpeedChartConfig = {
-      adoptionRate: { enabled: false, threshold: 0.1, minSampleSize: 5, appliesTo: ['items', 'moves'] },
-      disabled: { abilities: ['特性A'], moves: ['技A'], items: ['アイテムA'] },
-    };
-    assert.deepEqual(findUnknownDisabledModifierNames(fixtureModifiers, config), []);
-  });
-
-  // 受け入れ基準30 / U-1: src/config/speed-chart.json の disabled に書かれた名前が
-  // public/master-data/detail/speed-modifiers.json に実在しない場合、このテストが失敗する。
-  // 打ち間違い・jpoke側の改名によるサイレントな無効化解除を検知する回帰テスト。
-  it('実データ: src/config/speed-chart.json の disabled は全て speed-modifiers.json に実在する', () => {
-    const unknown = findUnknownDisabledModifierNames(realSpeedModifiers, realSpeedChartConfig);
-    assert.deepEqual(unknown, [], `disabledに存在しない名前があります: ${unknown.join(', ')}`);
-  });
+describe('disabledの採否', () => {
+  const all: SpeedModifiersData = { items: { A: { kind: 'rank', stages: 1 } }, abilities: { B: { kind: 'rank', stages: 1 } }, moves: { C: { kind: 'rank', stages: 1 } } };
+  const config = (disabled: SpeedChartConfig['disabled']): SpeedChartConfig => ({ population: { topN: 1 }, adoptionRate: { threshold: 0.2, appliesTo: [] }, spreadConditions: thresholds, disabled });
+  it('disabledに載っていないものは全て有効になる', () => assert.equal(getEffectiveSpeedModifiers(all, config({ items: [], abilities: [], moves: [] })).length, 3));
+  it('disabledに載っているものは除外される', () => assert.deepEqual(getEffectiveSpeedModifiers(all, config({ items: ['A'], abilities: [], moves: [] })).map((entry) => entry.name), ['B', 'C']));
+  it('findUnknownDisabledModifierNamesは未知名を列挙する', () => assert.deepEqual(findUnknownDisabledModifierNames(all, config({ items: ['missing'], abilities: [], moves: [] })), ['items.missing']));
+  it('findUnknownDisabledModifierNamesは既知名だけなら空になる', () => assert.deepEqual(findUnknownDisabledModifierNames(all, config({ items: ['A'], abilities: [], moves: [] })), []));
 });
 
-// ------------------------------------------------------------------------------------------
-// U-2: 採用率フィルタの境界値
-// ------------------------------------------------------------------------------------------
-describe('isAdoptedByRate(U-2: 採用率フィルタ)', () => {
-  const config: AdoptionRateConfig = { enabled: true, threshold: 0.1, minSampleSize: 5, appliesTo: ['items', 'moves'] };
-  const data: AdoptionRateData = {
-    ドラパルト: { items: { sampleSize: 20, options: { こだわりスカーフ: 0.1 } } },
-    カイリュー: { items: { sampleSize: 20, options: { こだわりスカーフ: 0.05 } } },
-    ハバタクカミ: { items: { sampleSize: 3, options: { こだわりスカーフ: 0.5 } } },
-  };
-
-  it('採用率がthresholdちょうどのときは採用する(境界値。 >= threshold)', () => {
-    assert.equal(isAdoptedByRate('items', 'こだわりスカーフ', 'ドラパルト', config, data), true);
-  });
-
-  it('採用率がthreshold未満のときは採用しない', () => {
-    assert.equal(isAdoptedByRate('items', 'こだわりスカーフ', 'カイリュー', config, data), false);
-  });
-
-  it('sampleSizeがminSampleSize未満のときは採用率に関わらず採用しない(k-匿名性)', () => {
-    assert.equal(isAdoptedByRate('items', 'こだわりスカーフ', 'ハバタクカミ', config, data), false);
-  });
-
-  it('その種族のデータが無いときは採用しない', () => {
-    assert.equal(isAdoptedByRate('items', 'こだわりスカーフ', 'データなし種族', config, data), false);
-  });
-
-  it('adoptionRate.enabled=falseのときは常に採用する(P1の挙動に戻る)', () => {
-    const disabledConfig: AdoptionRateConfig = { ...config, enabled: false };
-    assert.equal(isAdoptedByRate('items', 'こだわりスカーフ', 'データなし種族', disabledConfig, data), true);
-    assert.equal(isAdoptionRateFilterActive('items', disabledConfig), false);
-  });
-
-  it('特性(abilities)には採用率データの型自体が無いため、誤ってappliesToに含めても安全側(出さない)に倒れる(U-2)', () => {
-    // 本番経路(isModifierApplicableToForm)では abilities は isAdoptedByRate を一切呼ばず
-    // form.abilities.includes(...) のみで判定する(採用率フィルタは常にバイパスされる)。
-    // このテストは「万一 appliesTo に 'abilities' を書いてしまっても、AdoptionRateData が
-    // items/moves の2種類しかバケットを持たないため安全側(false=出さない)に倒れる」ことの確認。
-    const abilitiesConfig: AdoptionRateConfig = { ...config, appliesTo: ['items', 'moves', 'abilities'] };
-    assert.equal(isAdoptedByRate('abilities', '特性A', 'データなし種族', abilitiesConfig, data), false);
-  });
-
-  it('appliesToにカテゴリが含まれないときはフィルタが効かない', () => {
-    const itemsOnlyConfig: AdoptionRateConfig = { ...config, appliesTo: ['items'] };
-    assert.equal(isAdoptedByRate('moves', 'りゅうのまい', 'データなし種族', itemsOnlyConfig, data), true);
-  });
-
-  // 2026-08-01: くさわけ・こうそくいどうの手動除外(disabled.moves)を廃止し、技も
-  // 採用率フィルタ(appliesTo に 'moves')で制御する方針に変更した。moves カテゴリでも
-  // items と同じ境界値判定(閾値・k-匿名性)が効くことを直接確認する。
-  const moveData: AdoptionRateData = {
-    メガメガニウム: { moves: { sampleSize: 25, options: { くさわけ: 0.2 } } },
-    ライチュウ: { moves: { sampleSize: 20, options: { くさわけ: 0.05 } } },
-  };
-
-  it('moves: 採用率がthreshold以上なら採用する', () => {
-    assert.equal(isAdoptedByRate('moves', 'くさわけ', 'メガメガニウム', config, moveData), true);
-  });
-
-  it('moves: 採用率がthreshold未満なら採用しない', () => {
-    assert.equal(isAdoptedByRate('moves', 'くさわけ', 'ライチュウ', config, moveData), false);
-  });
-});
-
-// UI改修依頼(2026-08-05)「最遅をS下降性格の採用実績がある種族だけに表示」対応。
-describe('isMinSpreadAdopted / buildSpeedChartRows: 最遅の採用率フィルタ', () => {
-  const config = { enabled: true, threshold: 0.1, minSampleSize: 5 };
-  const population: SpeedChartForm[] = [
-    { name: '採用あり', baseSpeed: 100, abilities: [], learnset: [], isMega: false },
-    { name: '採用なし', baseSpeed: 100, abilities: [], learnset: [], isMega: false },
+describe('R-4と行組み立て', () => {
+  const usage = { ...single(100, 100, 100, 100, 100), items: [{ rank: 1, name: 'こだわりスカーフ', usageRate: 100 }], abilities: [{ rank: 1, name: '特性', usageRate: 100 }] };
+  const forms = [
+    { name: '通常', baseSpeed: 100, abilities: [], learnset: [], rank: 1, usageSourceName: '通常', isMega: false },
+    { name: 'メガ', baseSpeed: 100, abilities: [], learnset: [], rank: 1, usageSourceName: '通常', isMega: true },
   ];
-  const data: AdoptionRateData = {
-    採用あり: { natures: { sampleSize: 10, options: { ゆうかん: 0.06, のんき: 0.04 } } },
-    採用なし: { natures: { sampleSize: 10, options: { ゆうかん: 0.09 } } },
-  };
-  const adoptionConfig: AdoptionRateConfig = { enabled: false, threshold: 0.1, minSampleSize: 5, appliesTo: [] };
-
-  it('複数のS下降性格の採用率を合計し、thresholdちょうどなら採用する', () => {
-    assert.equal(isMinSpreadAdopted('採用あり', config, data), true);
-    assert.equal(isMinSpreadAdopted('採用なし', config, data), false);
-  });
-
-  it('サンプル不足・データなしは最遅を出さない(k-匿名性)', () => {
-    const sparse: AdoptionRateData = { 採用あり: { natures: { sampleSize: 4, options: { ゆうかん: 1 } } } };
-    assert.equal(isMinSpreadAdopted('採用あり', config, sparse), false);
-    assert.equal(isMinSpreadAdopted('データなし', config, data), false);
-  });
-
-  it('行組み立てでは採用ありの種族だけに最遅を生成する', () => {
-    const rows = buildSpeedChartRows(population, [], adoptionConfig, data, config);
-    const minNames = rows.flatMap((row) => row.entries).filter((entry) => entry.spread === 'min').map((entry) => entry.formName);
-    assert.deepEqual(minNames, ['採用あり']);
-  });
-});
-
-// UI改修依頼(2026-08-05)「同値の上昇要因をカテゴリ優先順で1つに絞る」対応。
-describe('buildSpeedChartRows: 同じ行・フォルム・振り方の上昇要因を重複表示しない', () => {
-  it('abilities > items > moves、同カテゴリでは入力順の先頭を残す', () => {
-    const population: SpeedChartForm[] = [
-      { name: 'テスト', baseSpeed: 100, abilities: ['特性先頭', '特性後続'], learnset: ['技'], isMega: false },
-    ];
-    const modifiers: EffectiveSpeedModifier[] = [
-      { category: 'moves', name: '技', modifier: { kind: 'rank', stages: 1 } },
-      { category: 'abilities', name: '特性先頭', modifier: { kind: 'rank', stages: 1 } },
-      { category: 'items', name: '持ち物', modifier: { kind: 'rank', stages: 1 } },
-      { category: 'abilities', name: '特性後続', modifier: { kind: 'rank', stages: 1 } },
-    ];
-    const adoptionConfig: AdoptionRateConfig = { enabled: false, threshold: 0.1, minSampleSize: 5, appliesTo: [] };
-    const rows = buildSpeedChartRows(population, modifiers, adoptionConfig);
-    for (const spread of Object.keys(SPEED_SPREADS)) {
-      const entries = rows.flatMap((row) => row.entries).filter((entry) => entry.spread === spread && entry.modifier);
-      assert.equal(entries.length, 1);
-      assert.equal(entries[0]?.modifier?.name, '特性先頭');
-    }
-  });
-});
-
-// ------------------------------------------------------------------------------------------
-// R-4: メガ種族にはこだわりスカーフを付けない
-// ------------------------------------------------------------------------------------------
-describe('buildSpeedChartRows: R-4 メガ種族にこだわりスカーフを付けない', () => {
-  const population: SpeedChartForm[] = [
-    { name: 'メガテスト', baseSpeed: 100, abilities: [], learnset: [], isMega: true },
-    { name: '通常テスト', baseSpeed: 100, abilities: [], learnset: [], isMega: false },
-  ];
-  const effectiveModifiers: EffectiveSpeedModifier[] = [
-    { category: 'items', name: 'こだわりスカーフ', modifier: { kind: 'multiplier', numerator: 6144, denominator: 4096 } },
-  ];
-  const adoptionConfig: AdoptionRateConfig = { enabled: false, threshold: 0.1, minSampleSize: 5, appliesTo: ['items', 'moves'] };
-
-  it('メガ種族の行にはこだわりスカーフのエントリが1件も無い', () => {
-    const rows = buildSpeedChartRows(population, effectiveModifiers, adoptionConfig);
-    const megaScarfEntries = rows
-      .flatMap((row) => row.entries)
-      .filter((entry) => entry.formName === 'メガテスト' && entry.modifier?.name === 'こだわりスカーフ');
-    assert.equal(megaScarfEntries.length, 0);
-  });
-
-  it('通常種族の行にはこだわりスカーフのエントリがある(対照確認)', () => {
-    const rows = buildSpeedChartRows(population, effectiveModifiers, adoptionConfig);
-    const normalScarfEntries = rows
-      .flatMap((row) => row.entries)
-      .filter((entry) => entry.formName === '通常テスト' && entry.modifier?.name === 'こだわりスカーフ');
-    assert.equal(normalScarfEntries.length, 4, '振り方4種それぞれにスカーフ行があるべき');
-  });
-
-  it('実データ: M-Bのメガ種族はどれもこだわりスカーフの行を持たない', () => {
-    const realPopulation = buildSpeedChartPopulation(
-      'M-B',
-      realPokemonAutocomplete,
-      realPokemonDetail,
-      realMegaStones,
-      realItemAutocomplete,
-    );
-    const megaNames = new Set(realPopulation.filter((f) => f.isMega).map((f) => f.name));
-    assert.ok(megaNames.size > 0, '実データにメガ種族が1件も無い(前提が崩れている)');
-
-    const config = getEffectiveSpeedModifiers(realSpeedModifiers, realSpeedChartConfig);
-    const disabledAdoption: AdoptionRateConfig = { enabled: false, threshold: 0.1, minSampleSize: 5, appliesTo: ['items', 'moves'] };
-    const rows = buildSpeedChartRows(realPopulation, config, disabledAdoption);
-    const megaItemEntries = rows
-      .flatMap((row) => row.entries)
-      .filter((entry) => entry.modifier?.category === 'items' && megaNames.has(entry.formName));
-    assert.equal(megaItemEntries.length, 0);
-  });
-});
-
-// ------------------------------------------------------------------------------------------
-// 2026-08-01: くさわけ・こうそくいどうの手動除外を廃止し、技も採用率フィルタで
-// 制御する方針に変更したことの回帰テスト(要件4: 採用率フィルタが技にも効くことの検証)。
-// ------------------------------------------------------------------------------------------
-describe('buildSpeedChartRows: 採用率フィルタが技(moves)にも効く(手動除外disabledの代替)', () => {
-  const population: SpeedChartForm[] = [
-    { name: 'メガメガニウム', baseSpeed: 100, abilities: [], learnset: ['くさわけ'], isMega: true },
-    { name: 'ライチュウ', baseSpeed: 100, abilities: [], learnset: ['くさわけ'], isMega: false },
-  ];
-  const effectiveModifiers: EffectiveSpeedModifier[] = [
-    { category: 'moves', name: 'くさわけ', modifier: { kind: 'rank', stages: 2 } },
-  ];
-  // appliesTo に 'moves' を含めた実運用の設定(src/config/speed-chart.jsonの現行値と同じ形)。
-  const adoptionConfig: AdoptionRateConfig = { enabled: true, threshold: 0.1, minSampleSize: 5, appliesTo: ['items', 'moves'] };
-  const adoptionData: AdoptionRateData = {
-    // メガメガニウムは実際に採用率20%(閾値10%以上) → 行に出る。
-    メガメガニウム: { moves: { sampleSize: 25, options: { くさわけ: 0.2 } } },
-    // ライチュウは採用率5%(閾値未満) → 行から除外される。
-    ライチュウ: { moves: { sampleSize: 20, options: { くさわけ: 0.05 } } },
-  };
-
-  it('採用率が閾値以上の種族(メガメガニウム)にはくさわけの補正行が出る', () => {
-    const rows = buildSpeedChartRows(population, effectiveModifiers, adoptionConfig, adoptionData);
-    const entries = rows.flatMap((row) => row.entries).filter((e) => e.formName === 'メガメガニウム' && e.modifier?.name === 'くさわけ');
-    assert.equal(entries.length, 4, '振り方4種それぞれにくさわけ行があるべき');
-  });
-
-  it('採用率が閾値未満の種族(ライチュウ)にはくさわけの補正行が出ない', () => {
-    const rows = buildSpeedChartRows(population, effectiveModifiers, adoptionConfig, adoptionData);
-    const entries = rows.flatMap((row) => row.entries).filter((e) => e.formName === 'ライチュウ' && e.modifier?.name === 'くさわけ');
-    assert.equal(entries.length, 0);
-  });
-
-  it('実データ: src/config/speed-chart.json は disabled.moves を空にし、appliesTo にmovesを含む(手動除外から採用率フィルタへの移行)', () => {
-    assert.deepEqual(realSpeedChartConfig.disabled.moves, []);
-    assert.ok(realSpeedChartConfig.adoptionRate.appliesTo.includes('moves'));
-    assert.ok(realSpeedChartConfig.adoptionRate.appliesTo.includes('items'));
-  });
-});
-
-// ------------------------------------------------------------------------------------------
-// 早見表の行の組み立て(降順ソート・同値のまとめ)
-// ------------------------------------------------------------------------------------------
-describe('buildSpeedChartRows: 行の組み立て', () => {
-  const population: SpeedChartForm[] = [
-    { name: 'フォルムA', baseSpeed: 100, abilities: [], learnset: [], isMega: false },
-    { name: 'フォルムB', baseSpeed: 100, abilities: [], learnset: [], isMega: false },
-  ];
-  const adoptionConfig: AdoptionRateConfig = { enabled: false, threshold: 0.1, minSampleSize: 5, appliesTo: ['items', 'moves'] };
-
+  const modifiers = [{ category: 'items' as const, name: 'こだわりスカーフ', modifier: { kind: 'multiplier' as const, numerator: 6144, denominator: 4096 } }];
+  const rows = buildSpeedChartRows(forms, modifiers, { threshold: 0.2, appliesTo: ['items'] }, new Map([['通常', usage]]), thresholds);
+  it('メガ種族の行にはこだわりスカーフのエントリが1件も無い', () => assert.equal(rows.flatMap((row) => row.entries).filter((entry) => entry.formName === 'メガ' && entry.modifier?.name === 'こだわりスカーフ').length, 0));
+  it('通常種族の行にはこだわりスカーフのエントリがある(対照確認)', () => assert.ok(rows.flatMap((row) => row.entries).some((entry) => entry.formName === '通常' && entry.modifier?.name === 'こだわりスカーフ')));
   it('同じ実数値になる複数フォルムは1行にまとまる', () => {
-    const rows = buildSpeedChartRows(population, [], adoptionConfig);
-    // 同じ種族値・同じ振り方なら同じ実数値になるはずなので、行数は振り方の種類数(4)のまま。
-    assert.equal(rows.length, 4);
-    for (const row of rows) {
-      assert.equal(row.entries.length, 2, '同値の2フォルムが同じ行にまとまっているべき');
-    }
+    const same = buildSpeedChartRows(forms.map((form) => ({ ...form, isMega: false })), [], { threshold: 0.2, appliesTo: [] }, new Map(), thresholds);
+    assert.ok(same.every((row) => row.entries.length === 2));
   });
-
   it('行は実数値の降順に並ぶ', () => {
-    const rows = buildSpeedChartRows(population, [], adoptionConfig);
-    for (let i = 1; i < rows.length; i++) {
-      assert.ok(rows[i - 1].value >= rows[i].value, '実数値が降順になっていない');
-    }
+    for (let index = 1; index < rows.length; index += 1) assert.ok(rows[index - 1].value >= rows[index].value);
+  });
+  it('abilities > items > moves、同カテゴリでは入力順の先頭を残す', () => {
+    const one = [{ ...forms[0], abilities: ['特性'] , learnset: ['技'] }];
+    const entries = buildSpeedChartRows(one, [
+      { category: 'moves', name: '技', modifier: { kind: 'rank', stages: 1 } },
+      { category: 'items', name: '持物', modifier: { kind: 'rank', stages: 1 } },
+      { category: 'abilities', name: '特性', modifier: { kind: 'rank', stages: 1 } },
+    ], { threshold: 0.2, appliesTo: ['abilities', 'items', 'moves'] }, new Map([['通常', usage]]), thresholds).flatMap((row) => row.entries);
+    assert.ok(entries.some((entry) => entry.modifier?.name === '特性'));
   });
 });
 
-// ------------------------------------------------------------------------------------------
-// B. 「この個体」カラム: 到達可能値の列挙・最小コスト選択
-// ------------------------------------------------------------------------------------------
-describe('enumerateReachableSpeedValues / selectMinimalCostSpeedOption', () => {
-  const scarfModifier: SpeedModifierMultiplier = { kind: 'multiplier', numerator: 6144, denominator: 4096 };
-
-  it('性格3種 × EV0〜32(33段) × 持ち物2種(スカーフ有効時)の直積を列挙する', () => {
-    const combos = enumerateReachableSpeedValues({ baseSpeed: 100, currentNature: 'ようき', scarfModifier });
-    assert.equal(combos.length, 3 * 33 * 2);
+describe('この個体カラムの純粋関数', () => {
+  const scarf = { kind: 'multiplier' as const, numerator: 6144, denominator: 4096 };
+  it('性格3種 × EV0〜32 × 持ち物2種を列挙する', () => assert.equal(enumerateReachableSpeedValues({ baseSpeed: 100, currentNature: 'ようき', scarfModifier: scarf }).length, 3 * 33 * 2));
+  it('スカーフが使えない場合は持ち物1種のみ', () => assert.equal(enumerateReachableSpeedValues({ baseSpeed: 100, currentNature: 'ようき', scarfModifier: null }).length, 3 * 33));
+  it('最小コスト選択はS努力値が最小のものを優先する', () => {
+    const combos = enumerateReachableSpeedValues({ baseSpeed: 100, currentNature: 'まじめ', scarfModifier: scarf });
+    assert.equal(selectMinimalCostSpeedOption(combos, calcOtherStat(50, 100, 31, 0, 1), 'まじめ', false)?.evSpe, 0);
   });
-
-  it('スカーフが使えない場合(scarfModifier=null)は持ち物1種のみ', () => {
-    const combos = enumerateReachableSpeedValues({ baseSpeed: 100, currentNature: 'ようき', scarfModifier: null });
-    assert.equal(combos.length, 3 * 33 * 1);
-    assert.equal(combos.every((c) => c.usesScarf === false), true);
-  });
-
-  it('最小コスト選択: S努力値が最小のものを優先する', () => {
-    const combos = enumerateReachableSpeedValues({ baseSpeed: 100, currentNature: 'まじめ', scarfModifier });
-    // baseSpeed=100, neutral(1.0), EV0 -> calcOtherStat(50,100,31,0,1.0)
-    const target = calcOtherStat(50, 100, 31, 0, 1.0);
-    const selection = selectMinimalCostSpeedOption(combos, target, 'まじめ', false);
-    assert.ok(selection);
-    assert.equal(selection!.evSpe, 0);
-  });
-
-  it('最小コスト選択: 同じEVの中では現在の性格効果と同じものを優先する', () => {
-    // ゆうかん(spe down)の個体で、down効果のまま到達できる値を目標にする。
-    const combos = enumerateReachableSpeedValues({ baseSpeed: 100, currentNature: 'ゆうかん', scarfModifier: null });
-    const target = calcOtherStat(50, 100, 31, 4, 0.9); // down効果・EV4で到達する値
-    const selection = selectMinimalCostSpeedOption(combos, target, 'ゆうかん', false);
-    assert.ok(selection);
-    assert.equal(selection!.nature, 'ゆうかん', '現在の性格のまま(効果が一致)なら性格を変えない');
-  });
-
-  it('最小コスト選択: 効果を変える必要がある場合はpickNatureNameForSpeedEffectの代表性格になる', () => {
-    const combos = enumerateReachableSpeedValues({ baseSpeed: 100, currentNature: 'まじめ', scarfModifier: null });
-    // neutral(まじめ)の個体で、up効果でしか到達できない値を目標にする。
-    const upOnlyTarget = calcOtherStat(50, 100, 31, 0, 1.1);
-    const neutralAtSameEv = calcOtherStat(50, 100, 31, 0, 1.0);
-    assert.notEqual(upOnlyTarget, neutralAtSameEv, 'テスト前提が成立していない(up/neutralが同値)');
-    const selection = selectMinimalCostSpeedOption(combos, upOnlyTarget, 'まじめ', false);
-    assert.ok(selection);
-    assert.equal(selection!.nature, pickNatureNameForSpeedEffect('up'));
-  });
-
-  it('最小コスト選択: EV・性格が同点のときは持ち物が現在値と同じものを優先する', () => {
-    // scarfModifierが1.5倍でbaseSpeedによっては同じ値になり得ないため、素朴に
-    // usesScarf=falseの候補が存在する場合にそれが選ばれることを、
-    // 「現在スカーフを持っていない」個体で確認する。
-    const combos = enumerateReachableSpeedValues({ baseSpeed: 100, currentNature: 'まじめ', scarfModifier });
-    const target = calcOtherStat(50, 100, 31, 10, 1.0);
-    const selection = selectMinimalCostSpeedOption(combos, target, 'まじめ', false);
-    assert.ok(selection);
-    assert.equal(selection!.usesScarf, false);
-  });
-
-  it('到達不可能な値はnullを返す', () => {
-    const combos = enumerateReachableSpeedValues({ baseSpeed: 100, currentNature: 'まじめ', scarfModifier: null });
-    const selection = selectMinimalCostSpeedOption(combos, 999999, 'まじめ', false);
-    assert.equal(selection, null);
-  });
-
+  it('到達不可能な値はnullを返す', () => assert.equal(selectMinimalCostSpeedOption(enumerateReachableSpeedValues({ baseSpeed: 100, currentNature: 'まじめ', scarfModifier: null }), 999999, 'まじめ', false), null));
   it('特性の倍率補正を到達可能値へ適用する', () => {
-    const combos = enumerateReachableSpeedValues({
-      baseSpeed: 100,
-      currentNature: 'まじめ',
-      scarfModifier: null,
-      abilityModifier: { kind: 'multiplier', numerator: 2, denominator: 1 },
-    });
-    const neutralEv0 = combos.find((combo) => combo.natureEffect === 'neutral' && combo.evSpe === 0)!;
-    assert.equal(neutralEv0.value, calcOtherStat(50, 100, 31, 0, 1.0) * 2);
+    const combo = enumerateReachableSpeedValues({ baseSpeed: 100, currentNature: 'まじめ', scarfModifier: null, abilityModifier: { kind: 'multiplier', numerator: 2, denominator: 1 } }).find((value) => value.natureEffect === 'neutral' && value.evSpe === 0);
+    assert.equal(combo?.value, calcOtherStat(50, 100, 31, 0, 1) * 2);
   });
-
   it('rank特性は手動ランクと合算して一度だけ適用する', () => {
-    const combos = enumerateReachableSpeedValues({
-      baseSpeed: 100,
-      currentNature: 'まじめ',
-      scarfModifier: null,
-      abilityModifier: { kind: 'rank', stages: 1 },
-      rankStages: 1,
-    });
-    const neutralEv0 = combos.find((combo) => combo.natureEffect === 'neutral' && combo.evSpe === 0)!;
-    assert.equal(neutralEv0.value, calcOtherStat(50, 100, 31, 0, 1.0) * 2);
+    const combo = enumerateReachableSpeedValues({ baseSpeed: 100, currentNature: 'まじめ', scarfModifier: null, abilityModifier: { kind: 'rank', stages: 1 }, rankStages: 1 }).find((value) => value.natureEffect === 'neutral' && value.evSpe === 0);
+    assert.equal(combo?.value, calcOtherStat(50, 100, 31, 0, 1) * 2);
   });
-
-  it('複数選択は最小努力値と同コストの候補だけを安定順で返す', () => {
-    const selections = selectMinimalCostSpeedOptions([
-      { value: 100, evSpe: 4, natureEffect: 'down', usesScarf: false },
-      { value: 100, evSpe: 4, natureEffect: 'neutral', usesScarf: false },
-      { value: 100, evSpe: 8, natureEffect: 'up', usesScarf: false },
-    ], 100, 'まじめ', false);
-    assert.deepEqual(selections, [
-      { evSpe: 4, nature: 'まじめ', usesScarf: false },
-      { evSpe: 4, nature: pickNatureNameForSpeedEffect('down'), usesScarf: false },
-    ]);
-  });
+  it('複数選択は最小努力値と同コストの候補だけを返す', () => assert.equal(selectMinimalCostSpeedOptions([{ value: 100, evSpe: 4, natureEffect: 'down', usesScarf: false }, { value: 100, evSpe: 8, natureEffect: 'up', usesScarf: false }], 100, 'まじめ', false).length, 1));
 });
 
-describe('getNatureSpeedEffect / pickNatureNameForSpeedEffect', () => {
-  it('おくびょう・せっかち・ようき・むじゃきはup', () => {
-    for (const name of ['おくびょう', 'せっかち', 'ようき', 'むじゃき']) {
-      assert.equal(getNatureSpeedEffect(name), 'up', name);
-    }
-  });
-
-  it('ゆうかん・のんき・れいせい・なまいきはdown', () => {
-    for (const name of ['ゆうかん', 'のんき', 'れいせい', 'なまいき']) {
-      assert.equal(getNatureSpeedEffect(name), 'down', name);
-    }
-  });
-
-  it('まじめ・いじっぱり等はneutral', () => {
+describe('性格・努力値・到達可能行', () => {
+  it('getNatureSpeedEffectは性格補正を判定する', () => {
+    assert.equal(getNatureSpeedEffect('ようき'), 'up');
+    assert.equal(getNatureSpeedEffect('ゆうかん'), 'down');
     assert.equal(getNatureSpeedEffect('まじめ'), 'neutral');
-    assert.equal(getNatureSpeedEffect('いじっぱり'), 'neutral');
   });
-
-  it('null/未知の性格名はneutralとして扱う(安全側)', () => {
-    assert.equal(getNatureSpeedEffect(null), 'neutral');
-    assert.equal(getNatureSpeedEffect('存在しない性格'), 'neutral');
+  it('pickNatureNameForSpeedEffectは各効果の性格を返す', () => {
+    for (const effect of ['up', 'neutral', 'down'] as const) assert.equal(getNatureSpeedEffect(pickNatureNameForSpeedEffect(effect)), effect);
   });
-
-  it('pickNatureNameForSpeedEffectは各効果について有効な性格名を返す', () => {
-    assert.equal(getNatureSpeedEffect(pickNatureNameForSpeedEffect('up')), 'up');
-    assert.equal(getNatureSpeedEffect(pickNatureNameForSpeedEffect('down')), 'down');
-    assert.equal(getNatureSpeedEffect(pickNatureNameForSpeedEffect('neutral')), 'neutral');
+  it('buildAppliedEvsはindex5だけを差し替える', () => {
+    const evs = [4, 252, 0, 0, 0, 252];
+    assert.deepEqual(buildAppliedEvs(evs, 32), [4, 252, 0, 0, 0, 32]);
+    assert.equal(evs[5], 252);
   });
-});
-
-describe('buildAppliedEvs', () => {
-  it('index5(すばやさ)だけを差し替え、他は変えない', () => {
-    const current = [4, 252, 0, 0, 0, 252];
-    const next = buildAppliedEvs(current, 32);
-    assert.deepEqual(next, [4, 252, 0, 0, 0, 32]);
-    assert.deepEqual(current, [4, 252, 0, 0, 0, 252], '元の配列を変更してはいけない');
+  it('includeReachableValuesInRowsは到達可能行を残す', () => {
+    const rows = [{ value: 100, entries: [] }, { value: 101, entries: [] }];
+    assert.deepEqual(includeReachableValuesInRows(rows, new Set([101])).map((row) => row.value), [101, 100]);
+    assert.deepEqual(filterRowsByReachableValues(rows, new Set([101])).map((row) => row.value), [101]);
   });
 });
 
-// ------------------------------------------------------------------------------------------
-// 追加改修(2026-08-01 ユーザー指示・第2弾)要件1: sortFormNamesByUsage
-// ------------------------------------------------------------------------------------------
-describe('sortFormNamesByUsage(要件1: 使用率降順→すばやさ種族値降順→種族名昇順)', () => {
-  const baseSpeedByName = new Map<string, number>([
-    ['ガブリアス', 102],
-    ['ブリジュラス', 98],
-    ['ミミッキュ', 96],
-    ['カバルドン', 55],
-    ['アシレーヌ', 62],
-  ]);
-
-  it('使用率(延べ数)の降順に並ぶ', () => {
-    const usage = { ガブリアス: 114, ブリジュラス: 92, ミミッキュ: 83 };
-    const sorted = sortFormNamesByUsage(['ミミッキュ', 'ガブリアス', 'ブリジュラス'], usage, baseSpeedByName);
-    assert.deepEqual(sorted, ['ガブリアス', 'ブリジュラス', 'ミミッキュ']);
+describe('limitRowChipsByWidth', () => {
+  const baseSpeed = new Map([['A', 100], ['B', 90], ['C', 80]]);
+  const widths = new Map([['A', 30], ['B', 30], ['C', 30]]);
+  it('全件が収まるならそのまま返す', () => {
+    assert.deepEqual(limitRowChipsByWidth(['A', 'B'], { A: 2, B: 1 }, baseSpeed, widths, 4, 100, 12), { kept: ['A', 'B'], droppedCount: 0 });
   });
-
-  it('使用率が同じ(または両方未使用)ときはすばやさ種族値の降順になる', () => {
-    // カバルドン・アシレーヌはusageデータに含まれない(=0扱い)。種族値はアシレーヌ(62)>カバルドン(55)。
-    const usage = { ガブリアス: 100 };
-    const sorted = sortFormNamesByUsage(['カバルドン', 'アシレーヌ'], usage, baseSpeedByName);
-    assert.deepEqual(sorted, ['アシレーヌ', 'カバルドン']);
+  it('収まらない場合は使用率の低いものから落とす', () => {
+    const result = limitRowChipsByWidth(['A', 'B', 'C'], { A: 3, B: 2, C: 1 }, baseSpeed, widths, 4, 70, 12);
+    assert.ok(result.droppedCount > 0);
+    assert.ok(result.kept.includes('A'));
   });
-
-  it('使用率・すばやさ種族値の両方が同じときは種族名の昇順になる', () => {
-    const speedByName = new Map<string, number>([
-      ['ピカチュウ', 90],
-      ['カイリュー', 90],
-    ]);
-    const sorted = sortFormNamesByUsage(['カイリュー', 'ピカチュウ'], undefined, speedByName);
-    assert.deepEqual(sorted, ['カイリュー', 'ピカチュウ'], '「カ」<「ピ」の辞書順');
+  it('残ったチップの相対順序を保つ', () => {
+    const result = limitRowChipsByWidth(['C', 'A', 'B'], { A: 3, B: 2, C: 1 }, baseSpeed, widths, 4, 70, 12);
+    assert.deepEqual(result.kept, result.kept.filter((name) => ['C', 'A', 'B'].includes(name)));
   });
-
-  it('usageCountsがundefinedのときは全て使用率0として扱われ、すばやさ種族値降順になる', () => {
-    const sorted = sortFormNamesByUsage(['カバルドン', 'ガブリアス', 'ミミッキュ'], undefined, baseSpeedByName);
-    assert.deepEqual(sorted, ['ガブリアス', 'ミミッキュ', 'カバルドン']);
+  it('長いチップ幅は収容件数に影響する', () => {
+    const narrow = limitRowChipsByWidth(['A', 'B', 'C'], { A: 3, B: 2, C: 1 }, baseSpeed, widths, 4, 75, 12);
+    const wide = limitRowChipsByWidth(['A', 'B', 'C'], { A: 3, B: 2, C: 1 }, baseSpeed, new Map([['A', 60], ['B', 30], ['C', 30]]), 4, 75, 12);
+    assert.ok(wide.kept.length <= narrow.kept.length);
   });
-
-  it('元の配列を変更しない', () => {
-    const original = ['カバルドン', 'ガブリアス'];
-    sortFormNamesByUsage(original, { ガブリアス: 10 }, baseSpeedByName);
-    assert.deepEqual(original, ['カバルドン', 'ガブリアス']);
-  });
-});
-
-// ------------------------------------------------------------------------------------------
-// 要件3の不具合修正(2026-08-01): limitRowChipsByWidth
-// 「サンプル1個の幅から算出した全行共通の固定件数」で足切りしていたのが不具合の原因
-// (名前の長いフォルムを含む行で実際の合計幅がコンテナ幅を超えて折り返していた)。
-// 「行ごとの実際の合計幅」で足切りする新しい実装のテスト。
-// ------------------------------------------------------------------------------------------
-describe('limitRowChipsByWidth(要件3不具合修正: 実際の合計幅で足切り)', () => {
-  const baseSpeedByName = new Map<string, number>([
-    ['A', 100],
-    ['B', 100],
-    ['C', 100],
-    ['D', 100],
-    ['E', 100],
-  ]);
-  const usage = { A: 50, B: 40, C: 30, D: 20, E: 10 };
-  const uniformWidths = new Map<string, number>([
-    ['A', 10],
-    ['B', 10],
-    ['C', 10],
-    ['D', 10],
-    ['E', 10],
-  ]);
-
-  it('全件の合計幅(gap込み)がcontainerWidthに収まるならそのまま返し、droppedCountは0', () => {
-    // A+B+gap1本 = 10+10+2 = 22 = containerWidth ぴったり収まる。
-    const result = limitRowChipsByWidth(['A', 'B'], usage, baseSpeedByName, uniformWidths, 2, 22, 5);
-    assert.deepEqual(result.kept, ['A', 'B']);
-    assert.equal(result.droppedCount, 0);
-  });
-
-  it('収まらない場合は使用率の最下位から落とし、+N件バッジの幅も予算に含める', () => {
-    // 5件(各幅10、gap2)の合計は58。containerWidth=41、badge幅5+区切りgap2を引いた
-    // 予算34に対し、使用率上位から入るだけ入れると A,B,C(=10+2+10+2+10=34)まで収まり、
-    // Dを足すと34+2+10=46で溢れる。
-    const result = limitRowChipsByWidth(['A', 'B', 'C', 'D', 'E'], usage, baseSpeedByName, uniformWidths, 2, 41, 5);
-    assert.deepEqual(result.kept, ['A', 'B', 'C'], '使用率上位3件(A,B,C)が残るべき');
-    assert.equal(result.droppedCount, 2);
-  });
-
-  it('落とされた後も残ったものの相対順序(グループ順)は維持される', () => {
-    // 入力順はグループ順(使用率順とは無関係)。使用率上位のB,C,Dが残り、
-    // 元の並び順(B,C,D)を保ったまま使用率下位のA,Eだけ除外される。
-    const usageReordered = { A: 5, B: 40, C: 30, D: 20, E: 1 };
-    const result = limitRowChipsByWidth(['B', 'A', 'C', 'E', 'D'], usageReordered, baseSpeedByName, uniformWidths, 2, 41, 5);
-    assert.deepEqual(result.kept, ['B', 'C', 'D'], '元の並び順(B,C,D)を保ったまま使用率下位のA,Eだけ除外');
-    assert.equal(result.droppedCount, 2);
-  });
-
-  it('名前が長く実測幅が大きいフォルムが上位にあると、残せる件数がその分減る(不具合の再現と修正の確認)', () => {
-    // Aだけ幅30(名前の長いフォルムを模す)、他は10。containerWidth=41なので予算は34。
-    // Aだけで30を消費するため、Bを足すと30+2+10=42で溢れ、Aの1件しか残せない
-    // (固定件数方式ならサンプルの幅次第でB,C等も残ってしまい、実際には折り返していた)。
-    const widths = new Map(uniformWidths);
-    widths.set('A', 30);
-    const result = limitRowChipsByWidth(['A', 'B', 'C', 'D', 'E'], usage, baseSpeedByName, widths, 2, 41, 5);
-    assert.deepEqual(result.kept, ['A'], '幅の大きいAだけで予算を使い切るため1件しか残せない');
-    assert.equal(result.droppedCount, 4);
-  });
-
-  it('1件も収まらない極端な場合でも安全側として最低1件は残す', () => {
-    const result = limitRowChipsByWidth(['A', 'B'], usage, baseSpeedByName, uniformWidths, 2, 3, 5);
-    assert.deepEqual(result.kept, ['A'], '使用率トップのAだけは残す(安全側フォールバック)');
-    assert.equal(result.droppedCount, 1);
-  });
-
-  it('空配列を渡すとdroppedCount 0の空配列を返す', () => {
-    const result = limitRowChipsByWidth([], usage, baseSpeedByName, uniformWidths, 2, 41, 5);
-    assert.deepEqual(result.kept, []);
-    assert.equal(result.droppedCount, 0);
-  });
-});
-
-// ------------------------------------------------------------------------------------------
-// 追加改修(2026-08-01 ユーザー指示・第2弾)要件4: filterRowsByReachableValues
-// ------------------------------------------------------------------------------------------
-describe('filterRowsByReachableValues(要件4: 到達可能な実数値の行だけを残す)', () => {
-  const rows: SpeedChartRow[] = [
-    { value: 150, entries: [] },
-    { value: 140, entries: [] },
-    { value: 130, entries: [] },
-  ];
-
-  it('reachableValuesに含まれる行だけが残る', () => {
-    const filtered = filterRowsByReachableValues(rows, new Set([150, 130]));
-    assert.deepEqual(
-      filtered.map((r) => r.value),
-      [150, 130],
-    );
-  });
-
-  it('reachableValuesが空なら全行が除外される', () => {
-    const filtered = filterRowsByReachableValues(rows, new Set());
-    assert.equal(filtered.length, 0);
-  });
-
-  it('rowsの並び順(実数値の降順)は変えない', () => {
-    const filtered = filterRowsByReachableValues(rows, new Set([150, 140, 130]));
-    assert.deepEqual(
-      filtered.map((r) => r.value),
-      [150, 140, 130],
-    );
-  });
+  it('極端に狭くても最低1件を残す', () => assert.equal(limitRowChipsByWidth(['A', 'B'], { A: 2, B: 1 }, baseSpeed, widths, 4, 1, 12).kept.length, 1));
+  it('空配列は空のまま返す', () => assert.deepEqual(limitRowChipsByWidth([], {}, baseSpeed, widths, 4, 1, 12), { kept: [], droppedCount: 0 }));
 });

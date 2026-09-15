@@ -319,7 +319,8 @@ async function main() {
       teammates: rankedRows(shuffled(speciesNames.filter((name) => name !== entry.name), random), ROWS.teammates, random),
     };
     pairs.push([`${version}:season:${directory}:pokemon:${slug}`, { schemaVersion: 3, fetchedAt, name: entry.name, formats: { single } }]);
-    listPokemon.push({ slug, name: entry.name, single });
+    // 本番のtier順位と同じく、合成データでも母集団の唯一の順序はrankで持つ。
+    listPokemon.push({ slug, name: entry.name, rank: index + 1, single });
   }
 
   pairs.push([`${version}:season:${directory}:list`, { schemaVersion: 1, fetchedAt, pokemon: listPokemon }]);
@@ -334,7 +335,7 @@ async function main() {
       isCurrent: true,
       collectionMode: 'current-snapshot',
       version,
-      pokemon: listPokemon.map(({ slug, name }) => ({ slug, name })),
+      pokemon: listPokemon.map(({ slug, name, rank }) => ({ slug, name, rank })),
     }],
   }]);
   // current の差し替えが最後。これが入るまで opgg-usage.ts からは何も見えない。

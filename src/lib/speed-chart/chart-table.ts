@@ -20,14 +20,8 @@
 // ビルド後の静的アセットとしてfetchする)に揃えるため。src/lib/speed-chart.ts はSSR/ブラウザ
 // 両対応の純粋関数のみを提供し、データの読み込み自体は呼び出し側の責務(ファイル冒頭コメント参照)。
 import {
-  buildSpeedChartPopulation,
-  buildSpeedChartRows,
   includeReachableValuesInRows,
-  getEffectiveSpeedModifiers,
-  sortFormNamesByUsage,
   SPEED_SPREADS,
-  type AdoptionRateData,
-  type SpeciesUsageCounts,
   type SpeedChartConfig,
   type SpeedChartEntry,
   type SpeedChartForm,
@@ -61,108 +55,13 @@ interface PokemonDetailEntry {
   /** すばやさ補正になる技のうち、この種族が覚えるもの。 */
   learnset: string[];
 }
-interface MegaStoneEntry {
-  species: string;
-  item: string;
-}
-interface ItemAutocompleteEntry {
-  name: string;
-  regulations: string[];
-}
-
 interface MasterData {
   pokemonAutocomplete: PokemonAutocompleteEntry[];
   pokemonDetail: PokemonDetailEntry[];
-  megaStones: MegaStoneEntry[];
-  itemAutocomplete: ItemAutocompleteEntry[];
   speedModifiers: SpeedModifiersData;
 }
 
 const ROOT_SELECTOR = '.speed-chart-table';
-const ALL_REGULATIONS_VALUE = 'all';
-// 全規制表示でも性格率を加重平均する。
-const ADOPTION_CATEGORIES = ['items', 'moves', 'natures'] as const;
-
-function getKnownRegulations(regSelect: HTMLSelectElement | null): string[] {
-  if (!regSelect) return [];
-  return Array.from(regSelect.options, (option) => option.value).filter((value) => value !== ALL_REGULATIONS_VALUE);
-}
-
-function mergeAdoptionRateData(
-  adoptionByRegulation: Record<string, AdoptionRateData>,
-  regulations: string[],
-): AdoptionRateData {
-  const merged: AdoptionRateData = {};
-  const speciesNames = new Set<string>();
-  for (const regulation of regulations) {
-    for (const speciesName of Object.keys(adoptionByRegulation[regulation] ?? {})) {
-      speciesNames.add(speciesName);
-    }
-  }
-
-  for (const speciesName of speciesNames) {
-    const mergedCategories: AdoptionRateData[string] = {};
-    for (const category of ADOPTION_CATEGORIES) {
-      let hasBucket = false;
-      let sampleSize = 0;
-      const weightedRatios = new Map<string, number>();
-      for (const regulation of regulations) {
-        const bucket = adoptionByRegulation[regulation]?.[speciesName]?.[category];
-        if (!bucket) continue;
-        hasBucket = true;
-        sampleSize += bucket.sampleSize;
-        for (const [option, ratio] of Object.entries(bucket.options)) {
-          weightedRatios.set(option, (weightedRatios.get(option) ?? 0) + ratio * bucket.sampleSize);
-        }
-      }
-      if (!hasBucket) continue;
-
-      const options: Record<string, number> = {};
-      if (sampleSize > 0) {
-        for (const [option, weightedRatio] of weightedRatios) {
-          options[option] = weightedRatio / sampleSize;
-        }
-      }
-      mergedCategories[category] = { sampleSize, options };
-    }
-    if (Object.keys(mergedCategories).length > 0) merged[speciesName] = mergedCategories;
-  }
-  return merged;
-}
-
-// 種族使用率の横断スコープ(migrations/021 の combined_species_usage が返す regulation = '')。
-// index.astro はこのキーで横断集計を埋め込む。
-const CROSS_REGULATION_KEY = '';
-
-// レギュレーション選択が「すべて」のときの使用数。横断スコープが埋め込まれていればそれを使う。
-// レギュレーション別の単純合計では、レギュレーションが未設定の登録個体とシーズン対応が
-// 未登録のランキングチーム(どちらも 013/014 の規則で横断スコープにしか入らない)が
-// 落ちてしまうため。集計が取れなかったときだけ従来どおり合計へ退く。
-function mergeSpeciesUsageCounts(
-  usageByRegulation: Record<string, SpeciesUsageCounts>,
-  regulations: string[],
-): SpeciesUsageCounts {
-  const crossScope = usageByRegulation[CROSS_REGULATION_KEY];
-  if (crossScope && Object.keys(crossScope).length > 0) return crossScope;
-  const merged: SpeciesUsageCounts = {};
-  for (const regulation of regulations) {
-    for (const [speciesName, count] of Object.entries(usageByRegulation[regulation] ?? {})) {
-      merged[speciesName] = (merged[speciesName] ?? 0) + count;
-    }
-  }
-  return merged;
-}
-
-// 上と対になる分母(チーム相当数)。横断スコープが無いときだけ合計へ退く。
-function resolveTotalTeamCount(
-  teamCountByRegulation: Record<string, number>,
-  regulations: string[],
-): number {
-  const crossScope = teamCountByRegulation[CROSS_REGULATION_KEY];
-  if (crossScope) return crossScope;
-  return regulations.reduce((total, regulation) => total + (teamCountByRegulation[regulation] ?? 0), 0);
-}
-
 /** hiddenEntries.rules の1件。「指定された項目がすべて一致するエントリを消す」の意味。 */
 interface HiddenEntryRule {
   /** 省略時は振り方を問わない。src/lib/speed-chart.ts の SPEED_SPREADS のキー。 */
@@ -173,11 +72,6 @@ interface HiddenEntryRule {
   reason?: string;
 }
 type SpeedChartPageConfig = SpeedChartConfig & {
-  speciesAdoptionRate?: {
-    enabled: boolean;
-    threshold: number;
-    minSampleSize: number;
-  };
   hiddenEntries?: { rules?: HiddenEntryRule[] };
   hiddenPokemon?: { names?: string[] };
 };
@@ -191,10 +85,7 @@ export async function initSpeedChartPage(): Promise<void> {
   const hasOwnedPanel = root.dataset.hasOwnedPanel === 'true';
 
   const config = readEmbeddedJson<SpeedChartPageConfig>('speed-chart-config');
-  const adoptionByRegulation = readEmbeddedJson<Record<string, AdoptionRateData>>('speed-chart-adoption-data') ?? {};
-  const usageByRegulation = readEmbeddedJson<Record<string, SpeciesUsageCounts>>('speed-chart-usage-data') ?? {};
-  const teamCountByRegulation =
-    readEmbeddedJson<Record<string, number>>('speed-chart-team-count-data') ?? {};
+  const initialRows = readEmbeddedJson<SpeedChartRow[]>('speed-chart-rows-data') ?? [];
   // 埋め込みJSONが初期値だが、iframeとして開かれている間は親(育成パネル)の編集内容が
   // postMessageで届くため上書きされる。
   let ownedRecord = hasOwnedPanel ? readEmbeddedJson<OwnedPokemonRecord>('speed-chart-owned-record') : null;
@@ -203,7 +94,6 @@ export async function initSpeedChartPage(): Promise<void> {
   const tableEl = document.getElementById('speed-chart-rows');
   const bodyEl = document.getElementById('speed-chart-rows-body');
   const regSelect = document.getElementById('speed-chart-regulation-select') as HTMLSelectElement | null;
-  const knownRegulations = getKnownRegulations(regSelect);
   const jumpInput = document.getElementById('speed-chart-jump-input') as HTMLInputElement | null;
   const orderToggle = document.getElementById('speed-chart-order-select') as HTMLButtonElement | null;
   const backButton = document.getElementById('speed-chart-owned-jump-button');
@@ -228,7 +118,6 @@ export async function initSpeedChartPage(): Promise<void> {
     return;
   }
 
-  const effectiveModifiers = getEffectiveSpeedModifiers(masterData.speedModifiers, config);
   const scarfEntry = findScarfItemEntry(masterData.speedModifiers.items);
   const imageIdByName = new Map(masterData.pokemonAutocomplete.map((p) => [p.name, p.imageId]));
   const pokemonDetailByName = new Map(masterData.pokemonDetail.map((p) => [p.name, p]));
@@ -409,112 +298,51 @@ export async function initSpeedChartPage(): Promise<void> {
 
   function render(regulation: string): void {
     currentRegulation = regulation;
-    let population =
-      regulation === ALL_REGULATIONS_VALUE
-        ? Array.from(
-            knownRegulations.reduce((formsByName, knownRegulation) => {
-              for (const form of buildSpeedChartPopulation(
-                knownRegulation,
-                masterData.pokemonAutocomplete,
-                masterData.pokemonDetail,
-                masterData.megaStones,
-                masterData.itemAutocomplete,
-              )) {
-                if (!formsByName.has(form.name)) formsByName.set(form.name, form);
-              }
-              return formsByName;
-            }, new Map<string, SpeedChartForm>()).values(),
-          )
-        : buildSpeedChartPopulation(
-            regulation,
-            masterData.pokemonAutocomplete,
-            masterData.pokemonDetail,
-            masterData.megaStones,
-            masterData.itemAutocomplete,
-          );
-    const speciesUsage =
-      regulation === ALL_REGULATIONS_VALUE
-        ? mergeSpeciesUsageCounts(usageByRegulation, knownRegulations)
-        : usageByRegulation[regulation] ?? {};
-    const teamCount =
-      regulation === ALL_REGULATIONS_VALUE
-        ? resolveTotalTeamCount(teamCountByRegulation, knownRegulations)
-        : teamCountByRegulation[regulation] ?? 0;
-    const speciesAdoptionRate = config!.speciesAdoptionRate;
-    if (speciesAdoptionRate?.enabled && teamCount >= speciesAdoptionRate.minSampleSize) {
-      population = population.filter(
-        (form) => (speciesUsage[form.name] ?? 0) / teamCount >= speciesAdoptionRate.threshold,
-      );
-    }
-    formsByName.clear();
-    for (const form of population) formsByName.set(form.name, form);
-
-    const adoptionData =
-      regulation === ALL_REGULATIONS_VALUE
-        ? mergeAdoptionRateData(adoptionByRegulation, knownRegulations)
-        : adoptionByRegulation[regulation];
+    // 母集団・振り方・採用率判定はSSRで完了している。全シーズン分の生データをブラウザへ
+    // 渡して再計算しないことで、選択中シーズンだけを確実に表示する。
     currentRows = filterRowsByHiddenPokemon(
-      filterRowsByHiddenEntries(
-        buildSpeedChartRows(population, effectiveModifiers, config!.adoptionRate, adoptionData, config!.minSpreadAdoptionRate),
-        config!.hiddenEntries?.rules ?? [],
-      ),
+      filterRowsByHiddenEntries(initialRows, config!.hiddenEntries?.rules ?? []),
       config!.hiddenPokemon?.names ?? [],
     );
-
-    ownedController = null;
-    if (hasOwnedPanel && ownedRecord) {
-      const ownedName = ownedRecord.species_name;
-      const ownedDetail = pokemonDetailByName.get(ownedName);
-      // 「この個体」の調整は、早見表へ表示するレギュレーション所属や使用率とは無関係に行う。
-      // formsByName は speciesAdoptionRate の足切り後の母集団なので、そこに無い場合だけ全件の
-      // 詳細マスターから補う。これにより早見表の行には出ない種族でも調整パネルは出るが、この
-      // 非対称は意図的であり、buildSpeedChartRows に渡す早見表自体の母集団は今回変更しない。
-      const ownedForm =
-        formsByName.get(ownedName) ??
-        (ownedDetail
-          ? {
-              name: ownedName,
-              baseSpeed: ownedDetail.baseStats[5],
-              abilities: ownedDetail.abilities,
-              learnset: ownedDetail.learnset,
-              isMega: masterData.megaStones.some((mega) => mega.species === ownedName),
-            }
-          : null);
-      if (ownedForm) {
-        // 調整候補はレギュレーション非依存。ただしメガシンカ個体がスカーフを持てない制約は残す。
-        const scarfUsable = !ownedForm.isMega && !!scarfEntry;
-        ownedController = initOwnedPanel({
-          ownedRecord,
-          baseSpeed: ownedForm.baseSpeed,
-          scarfModifier: scarfUsable ? scarfEntry!.modifier : null,
-          scarfItemName: scarfUsable ? scarfEntry!.name : null,
-          abilityModifier: ownedRecord.ability_name
-            ? masterData.speedModifiers.abilities[ownedRecord.ability_name] ?? null
-            : null,
-          spriteImageId: imageIdByName.get(ownedName) ?? null,
+    formsByName.clear();
+    for (const entry of currentRows.flatMap((row) => row.entries)) {
+      const detail = pokemonDetailByName.get(entry.formName);
+      if (detail && !formsByName.has(entry.formName)) {
+        formsByName.set(entry.formName, {
+          name: entry.formName,
+          baseSpeed: detail.baseStats[5],
+          abilities: detail.abilities,
+          learnset: detail.learnset,
+          rank: entry.rank,
+          usageSourceName: entry.formName,
+          isMega: entry.isMega,
         });
       }
     }
-    // pokemonDetailにも種族が無いと、上でownedControllerがnullのままになる。この場合
-    // owned-panel.ts側のupdateSummary()が一度も呼ばれず#speed-chart-owned-summaryが
-    // 空箱のまま残ってしまう(「データ破損に見える空箱」を防ぐpitfalls.mdの方針)ため、
-    // controllerの有無に応じてサマリ本体/注記のhiddenを出し分ける。render()はレギュレーション
-    // 切替のたびに呼ばれるので、切替で母集団に入った/出たケースもここで毎回再評価される。
+    ownedController = null;
+    if (hasOwnedPanel && ownedRecord) {
+      const ownedDetail = pokemonDetailByName.get(ownedRecord.species_name);
+      if (ownedDetail) {
+        const ownedForm = formsByName.get(ownedRecord.species_name);
+        const scarfUsable = !ownedForm?.isMega && !!scarfEntry;
+        ownedController = initOwnedPanel({
+          ownedRecord,
+          baseSpeed: ownedDetail.baseStats[5],
+          scarfModifier: scarfUsable ? scarfEntry!.modifier : null,
+          scarfItemName: scarfUsable ? scarfEntry!.name : null,
+          abilityModifier: ownedRecord.ability_name ? masterData.speedModifiers.abilities[ownedRecord.ability_name] ?? null : null,
+          spriteImageId: imageIdByName.get(ownedRecord.species_name) ?? null,
+        });
+      }
+    }
     applyOwnedPanelAvailability(ownedController !== null);
-
     renderVisibleRows();
-
-    // R-6/R-8: 初期表示時だけ現在地へ自動スクロールする(以後のレギュレーション切替では
-    // スクロールしない。ownedController.getCurrentValue() は panel が所有する値をここで
-    // 直接読むだけで、panel側の内部変数へは踏み込まない)。
     if (ownedController) {
       const value = ownedController.getCurrentValue();
       lastKnownOwnedValue = value;
       applyHighlight(value);
       if (!hasScrolledInitially && ownedId) requestInitialScroll(value);
     } else if (!hasScrolledInitially) {
-      // 調整対象が無い通常表示（または対象が現レギュレーションに存在しない初期表示）は、
-      // 長い表の中央付近である実数値200を初回だけ表示する。
       requestInitialScroll(200);
     }
   }
@@ -545,11 +373,6 @@ export async function initSpeedChartPage(): Promise<void> {
     const baseSpeedByName = new Map<string, number>();
     for (const [name, form] of formsByName) baseSpeedByName.set(name, form.baseSpeed);
 
-    const usageCounts =
-      currentRegulation === ALL_REGULATIONS_VALUE
-        ? mergeSpeciesUsageCounts(usageByRegulation, knownRegulations)
-        : usageByRegulation[currentRegulation];
-
     for (const row of rows) {
       if (row.entries.length === 0) {
         const rowEl = document.createElement('div');
@@ -575,7 +398,7 @@ export async function initSpeedChartPage(): Promise<void> {
 
       // 実数値1件ぶんのentriesを「振り方+補正」のグループへ分け、族(baseSpeed)降順の
       // フラットな配列として、グループごとに独立した物理行を作る(要件2)。
-      const groups = groupEntriesIntoRowGroups(row.entries, baseSpeedByName, usageCounts);
+      const groups = groupEntriesIntoRowGroups(row.entries, baseSpeedByName);
       const elementsForValue: HTMLElement[] = [];
 
       groups.forEach((group, groupIndex) => {
@@ -756,11 +579,11 @@ export async function initSpeedChartPage(): Promise<void> {
   regSelect?.addEventListener('change', () => {
     const next = regSelect.value;
     if (!next || next === currentRegulation) return;
-    render(next);
-    // 要件11: 変更時にURLの?regをhistory.replaceStateで書き換える(ページ遷移はしない)。
+    // 母集団はSSRのOP.GGデータで決まるため、クライアント再計算ではなくページ遷移する。
     const url = new URL(window.location.href);
-    url.searchParams.set('reg', next);
-    window.history.replaceState(null, '', url);
+    url.searchParams.set('season', next);
+    url.searchParams.delete('reg');
+    window.location.assign(url);
   });
 
   // UI改修: 実数値専用だった検索欄を「ポケモン・すばやさ実数値」の汎用検索にする。
@@ -847,20 +670,13 @@ function readEmbeddedJson<T>(elementId: string): T | null {
 }
 
 async function loadMasterData(): Promise<MasterData> {
-  const [pokemonAutocomplete, pokemonCoreDetail, speedModifierLearnsets, megaStones, itemAutocomplete, speedModifiers] = await Promise.all([
+  const [pokemonAutocomplete, pokemonCoreDetail, speedModifiers] = await Promise.all([
     fetch('/master-data/autocomplete/pokemon.json').then((r) => r.json() as Promise<PokemonAutocompleteEntry[]>),
     loadCoreDetailList(),
-    fetch('/master-data/detail/speed-modifier-learnset.json').then((r) => r.json() as Promise<Record<string, string[]>>),
-    fetch('/master-data/autocomplete/mega-stones.json').then((r) => r.json() as Promise<MegaStoneEntry[]>),
-    fetch('/master-data/autocomplete/items.json').then((r) => r.json() as Promise<ItemAutocompleteEntry[]>),
     fetch('/master-data/detail/speed-modifiers.json').then((r) => r.json() as Promise<SpeedModifiersData>),
   ]);
-  // この画面はすばやさ補正技だけを照合するため、全技一覧ではなく絞り込み済みの派生ファイルを結合する。
-  const pokemonDetail: PokemonDetailEntry[] = pokemonCoreDetail.map((detail) => ({
-    ...detail,
-    learnset: speedModifierLearnsets[detail.name] ?? [],
-  }));
-  return { pokemonAutocomplete, pokemonDetail, megaStones, itemAutocomplete, speedModifiers };
+  const pokemonDetail: PokemonDetailEntry[] = pokemonCoreDetail.map((detail) => ({ ...detail, learnset: [] }));
+  return { pokemonAutocomplete, pokemonDetail, speedModifiers };
 }
 
 // U-2/R-4: 「こだわりスカーフ」という名前をハードコードせず、items内で kind==='multiplier' の
@@ -888,6 +704,7 @@ function buildDashCell(): HTMLElement {
 /** 3列目に描くチップ1個ぶん(ポケモン+その補正要因の組)。 */
 interface RowGroupEntry {
   formName: string;
+  rank: number;
   /** null = 補正なし(素の実数値)。特性名/わざ名/持ち物名。 */
   originName: string | null;
 }
@@ -903,7 +720,6 @@ interface RowGroup {
 function groupEntriesIntoRowGroups(
   entries: SpeedChartEntry[],
   baseSpeedByName: Map<string, number>,
-  usageCounts: SpeciesUsageCounts | undefined,
 ): RowGroup[] {
   const groups = new Map<string, RowGroup>();
   for (const entry of entries) {
@@ -918,7 +734,7 @@ function groupEntriesIntoRowGroups(
     const originName = entry.modifier?.name ?? null;
     const existingEntry = group.entries.find((groupEntry) => groupEntry.formName === entry.formName);
     if (!existingEntry) {
-      group.entries.push({ formName: entry.formName, originName });
+      group.entries.push({ formName: entry.formName, rank: entry.rank, originName });
     } else if (
       existingEntry.originName &&
       originName &&
@@ -929,13 +745,7 @@ function groupEntriesIntoRowGroups(
   }
 
   const orderedGroups = Array.from(groups.values(), (group) => {
-    const uniqueFormNames = Array.from(new Set(group.entries.map((e) => e.formName)));
-    const rankByName = new Map(
-      sortFormNamesByUsage(uniqueFormNames, usageCounts, baseSpeedByName).map((name, index) => [name, index]),
-    );
-    const sortedEntries = [...group.entries].sort(
-      (a, b) => (rankByName.get(a.formName) ?? 0) - (rankByName.get(b.formName) ?? 0),
-    );
+    const sortedEntries = [...group.entries].sort((a, b) => a.rank - b.rank || a.formName.localeCompare(b.formName, 'ja'));
     return { ...group, entries: sortedEntries };
   });
 

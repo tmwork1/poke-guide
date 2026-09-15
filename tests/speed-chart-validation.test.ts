@@ -5,8 +5,8 @@ import assert from 'node:assert/strict';
 
 import {
   parseOwnedQueryParam,
-  resolveSpeedChartRegulation,
-  validateRegulationQueryParam,
+  resolveSpeedChartSeason,
+  validateSeasonQueryParam,
   validateSpeedChartApplyPayload,
 } from '../src/lib/speed-chart-validation.ts';
 
@@ -38,45 +38,45 @@ describe('parseOwnedQueryParam', () => {
   });
 });
 
-describe('validateRegulationQueryParam', () => {
+describe('validateSeasonQueryParam', () => {
   const known = ['M-A', 'M-B'];
 
   it('既知のレギュレーション名はそのまま返す', () => {
-    assert.equal(validateRegulationQueryParam('M-A', known), 'M-A');
-    assert.equal(validateRegulationQueryParam('M-B', known), 'M-B');
+    assert.equal(validateSeasonQueryParam('M-A', known), 'M-A');
+    assert.equal(validateSeasonQueryParam('M-B', known), 'M-B');
   });
 
   it('未知の値・空文字・nullはnullに正規化する', () => {
-    assert.equal(validateRegulationQueryParam('M-Z', known), null);
-    assert.equal(validateRegulationQueryParam('', known), null);
-    assert.equal(validateRegulationQueryParam(null, known), null);
-    assert.equal(validateRegulationQueryParam(undefined, known), null);
+    assert.equal(validateSeasonQueryParam('M-Z', known), null);
+    assert.equal(validateSeasonQueryParam('', known), null);
+    assert.equal(validateSeasonQueryParam(null, known), null);
+    assert.equal(validateSeasonQueryParam(undefined, known), null);
   });
 });
 
-describe('resolveSpeedChartRegulation(P1確定仕様: ?reg= → 連携個体のregulation → REGULATIONSの末尾)', () => {
+describe('resolveSpeedChartSeason(?season= → currentSeasonId → 表示順先頭)', () => {
   const known = ['M-A', 'M-B'];
 
   it('?reg=が有効ならそれを最優先する(連携個体のregulationより優先)', () => {
-    assert.equal(resolveSpeedChartRegulation('M-A', 'M-B', known), 'M-A');
+    assert.equal(resolveSpeedChartSeason('M-A', 'M-B', known), 'M-A');
   });
 
   it('?reg=が無い/無効なら連携個体のregulationを使う', () => {
-    assert.equal(resolveSpeedChartRegulation(null, 'M-A', known), 'M-A');
-    assert.equal(resolveSpeedChartRegulation('M-Z', 'M-A', known), 'M-A');
+    assert.equal(resolveSpeedChartSeason(null, 'M-A', known), 'M-A');
+    assert.equal(resolveSpeedChartSeason('M-Z', 'M-A', known), 'M-A');
   });
 
   it('?reg=も連携個体のregulationも無ければ、REGULATIONSの末尾(最新)を使う', () => {
-    assert.equal(resolveSpeedChartRegulation(null, null, known), 'M-B');
+    assert.equal(resolveSpeedChartSeason(null, null, known), 'M-A');
   });
 
   it('レギュレーション未指定は許さない: knownRegulationsが非空なら必ず何らかの文字列を返す', () => {
-    const resolved = resolveSpeedChartRegulation(undefined, undefined, known);
+    const resolved = resolveSpeedChartSeason(undefined, undefined, known);
     assert.notEqual(resolved, null);
   });
 
   it('knownRegulationsが空(異常系)のときのみnullを返す', () => {
-    assert.equal(resolveSpeedChartRegulation(null, null, []), null);
+    assert.equal(resolveSpeedChartSeason(null, null, []), null);
   });
 });
 

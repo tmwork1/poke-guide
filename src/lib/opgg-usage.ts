@@ -19,7 +19,7 @@ export interface OpggUsageSeason {
 	isCurrent?: boolean;
 	collectionMode?: string;
 	version: string;
-	pokemon?: Array<{ slug: string; name: string }>;
+	pokemon?: Array<{ slug: string; name: string; rank?: number }>;
 }
 
 export interface OpggUsageSeasonManifest {
@@ -44,7 +44,7 @@ export interface OpggUsagePokemon {
 export interface OpggUsageList {
 	schemaVersion: 1;
 	fetchedAt: string;
-	pokemon: Array<{ slug: string; name: string; single: SingleFormatData }>;
+	pokemon: Array<{ slug: string; name: string; rank?: number; single: SingleFormatData }>;
 }
 
 export interface OpggUsageBattleDataEntry {
@@ -161,7 +161,7 @@ export async function getOpggUsageManifest(kv: KVNamespace): Promise<OpggUsageSe
 		...manifest,
 		seasons: manifest.seasons.map((season) => ({
 			...season,
-			pokemon: season.pokemon?.map((entry) => ({ ...entry, name: normalizeSpeciesName(entry.name) })),
+			pokemon: season.pokemon?.map((entry, index) => ({ ...entry, rank: entry.rank ?? index + 1, name: normalizeSpeciesName(entry.name) })),
 		})),
 	};
 }
@@ -171,8 +171,9 @@ export async function getOpggUsageList(kv: KVNamespace, season: OpggUsageSeason)
 	if (!isUsageList(list)) return null;
 	return {
 		...list,
-		pokemon: list.pokemon.map((entry) => ({
+		pokemon: list.pokemon.map((entry, index) => ({
 			...entry,
+			rank: entry.rank ?? index + 1,
 			name: normalizeSpeciesName(entry.name),
 			single: normalizeSingleFormatData(entry.single),
 		})),

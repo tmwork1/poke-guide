@@ -77,6 +77,18 @@ function parse(html, nameMap) {
 }
 function name(html) { return text(html.match(/<h1\b[^>]*>([\s\S]*?)<\/h1>/)?.[1] ?? '').replace(/^#\d+\s*/, '') || null; }
 function slugs(html) { const re = new RegExp(BASE.replaceAll('/', '\\/') + '\\/pokedex\\/([^"?#/]+)', 'g'); return [...new Set([...html.matchAll(re)].map((match) => match[1]))]; }
+// tierページの埋め込みJSON(seasons[].formats.single.rankings[])から順位を読む。
+// 詳細ページへのリンク出現順は順位の契約ではないため、ここで得たrankを唯一の並び基準にする。
+function tierRankings(html) {
+  const payload = html.replaceAll('\\"', '"');
+  const rankings = new Map();
+  for (const match of payload.matchAll(/"rank":(\d+),"key":"([^"]+)"/g)) {
+    const rank = Number(match[1]);
+    const slug = match[2];
+    if (Number.isInteger(rank) && rank > 0 && !rankings.has(slug)) rankings.set(slug, rank);
+  }
+  return rankings;
+}
 function seasons(html) {
   const payload = html.replaceAll('\\"', '"');
   const idsMatch = payload.match(/"seasonOptionIds":(\[[^\]]+\])/);
@@ -128,7 +140,12 @@ async function main() {
   const tier = await get(ORIGIN + BASE + '/tier'); const available = seasons(tier);
   config.season ??= available.currentId;
   if (!available.ids.includes(config.season)) throw new Error('--season must be an OP.GG season id from the current tier payload.');
-  const found = slugs(tier).slice(0, config.limit); if (!found.length) throw new Error('No Pokemon detail URLs found.');
+  const rankings = tierRankings(tier);
+  const found = slugs(tier)
+    .filter((slug) => rankings.has(slug))
+    .sort((a, b) => rankings.get(a) - rankings.get(b))
+    .slice(0, config.limit);
+  if (!found.length) throw new Error('No ranked Pokemon detail URLs found.');
   const directory = seasonDir(config.season); const pendingKey = 'pending:season:' + directory;
   const current = await storage.getJson('current'); const currentManifest = current?.manifestVersion ? await storage.getJson(current.manifestVersion + ':seasons') : null;
   const publishedVersion = currentManifest?.seasons?.find((entry) => entry?.id === config.season)?.version;
@@ -151,11 +168,11 @@ async function main() {
   }
   if (failures.length) throw new Error(failures.length + ' Pokemon could not be staged. Retry to resume ' + pending.version + '. Failed slugs: ' + failures.map(({ slug }) => slug).join(', '));
   const listPokemon = [];
-  for (const slug of found) { const value = await storage.getJson(pending.version + ':season:' + directory + ':pokemon:' + slug); if (value?.schemaVersion !== 3 || !value?.formats?.single) throw new Error('Staged data is missing for ' + slug); listPokemon.push({ slug, name: value.name, single: value.formats.single }); }
+  for (const slug of found) { const value = await storage.getJson(pending.version + ':season:' + directory + ':pokemon:' + slug); if (value?.schemaVersion !== 3 || !value?.formats?.single) throw new Error('Staged data is missing for ' + slug); listPokemon.push({ slug, name: value.name, rank: rankings.get(slug), single: value.formats.single }); }
   const publishedAt = new Date().toISOString();
   await storage.putJson(pending.version + ':season:' + directory + ':list', { schemaVersion: 1, fetchedAt: publishedAt, pokemon: listPokemon });
   const old = Array.isArray(currentManifest?.seasons) ? currentManifest.seasons : [];
-  const season = { id: config.season, label: available.labels.get(config.season) ?? config.season, directory, version: pending.version, fetchedAt: publishedAt, isCurrent: config.season === available.currentId, collectionMode: 'current-snapshot', pokemon: listPokemon.map(({ slug, name }) => ({ slug, name })) };
+  const season = { id: config.season, label: available.labels.get(config.season) ?? config.season, directory, version: pending.version, fetchedAt: publishedAt, isCurrent: config.season === available.currentId, collectionMode: 'current-snapshot', pokemon: listPokemon.map(({ slug, name, rank }) => ({ slug, name, rank })) };
   const manifest = { schemaVersion: 2, currentSeasonId: available.currentId, seasons: [...old.filter((entry) => entry?.id !== config.season), season].map((entry) => ({ ...entry, isCurrent: entry.id === available.currentId })) };
   await storage.putJson(pending.version + ':seasons', manifest);
   // The final pointer swap is the atomic commit; older versions remain for rollback.

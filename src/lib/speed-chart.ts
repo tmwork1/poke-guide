@@ -20,17 +20,13 @@
 // owned-panel.ts)の責務。このファイルはデータを引数で受け取るだけの純粋関数のみを提供する。
 
 import { calcOtherStat, NATURE_STAT_MODIFIERS } from './stats.ts';
+import type { EvRankedRow, RankedRow, SingleFormatData } from './battle-data-card.ts';
 
 // ============================================================================
 // 型: マスターデータ(呼び出し側が読み込んで渡す。フィールドは実際に使うものだけ)
 // ============================================================================
 
 /** public/master-data/autocomplete/pokemon.json の要素のうち、この画面が使うフィールド。 */
-export interface SpeedChartPokemonMasterEntry {
-  name: string;
-  regulations: string[];
-}
-
 /** 軽量の種族詳細と種族ごとのすばやさ補正技を結合した、この画面用のフィールド。 */
 export interface SpeedChartPokemonDetailEntry {
   name: string;
@@ -48,9 +44,10 @@ export interface SpeedChartMegaStoneEntry {
 }
 
 /** public/master-data/autocomplete/items.json の要素のうち、この画面が使うフィールド。 */
-export interface SpeedChartItemMasterEntry {
+export interface SpeedChartPokemonIndexEntry {
   name: string;
-  regulations: string[];
+  dexNo: number;
+  forme: string | null;
 }
 
 // ============================================================================
@@ -80,22 +77,20 @@ export interface SpeedModifiersData {
 }
 
 export interface AdoptionRateConfig {
-  enabled: boolean;
   threshold: number;
-  minSampleSize: number;
   appliesTo: SpeedModifierCategory[];
 }
 
-export interface MinSpreadAdoptionRateConfig {
-  enabled: boolean;
-  threshold: number;
-  minSampleSize: number;
+export interface SpeedSpreadConditions {
+  evRateThreshold: number;
+  natureRateThreshold: number;
 }
 
 /** src/config/speed-chart.json の形(`_readme` は無視してよい説明用キー)。 */
 export interface SpeedChartConfig {
+  population: { topN: number };
   adoptionRate: AdoptionRateConfig;
-  minSpreadAdoptionRate?: MinSpreadAdoptionRateConfig;
+  spreadConditions: SpeedSpreadConditions;
   disabled: {
     abilities: string[];
     moves: string[];
@@ -161,60 +156,51 @@ export interface SpeedChartForm {
   baseSpeed: number;
   abilities: string[];
   learnset: string[];
+  /** OP.GG tierの順位。小さいほど使用率が高い。メガは基本フォルムの順位を継承する。 */
+  rank: number;
+  /** OP.GG使用率を参照する名前。メガは対応する基本フォーム名を保持する。 */
+  usageSourceName: string;
   /** メガシンカ種族かどうか(R-4: メガにはこだわりスカーフを付けない判定に使う)。 */
   isMega: boolean;
 }
 
-/**
- * 指定レギュレーションで使える全フォルム(通常種族 + メガ種族)の母集団を組み立てる。
- *
- * - 通常種族: pokemonAutocomplete の各要素の regulations にレギュレーションが含まれるもの
- *   (jpoke の regulation/pokemon.csv 由来。メガ・原始回帰フォルムはここに含まれない)。
- * - メガ種族: megaStones の各要素(species/item)のうち、対応する item の regulations に
- *   レギュレーションが含まれるもの(jpoke の regulation/item.csv 由来。メガ種族自体は
- *   pokemon.csv に行を持たないため、この経路でしか母集団に入らない)。
- *
- * pokemonDetail に対応するエントリが無い名前(データ欠損)は無視する(壊れた行を作らない)。
- */
-export function buildSpeedChartPopulation(
-  regulation: string,
-  pokemonAutocomplete: SpeedChartPokemonMasterEntry[],
+export interface OpggRankedPokemon {
+  name: string;
+  /** 旧KVでは未保存なので、呼び出し側が配列順の順位を渡せるようoptionalにする。 */
+  rank?: number;
+  single: SingleFormatData;
+}
+
+/** OP.GGの上位N基本フォルムと、それに対応するメガフォルムだけを母集団にする。 */
+export function buildOpggSpeedChartPopulation(
+  rankedPokemon: OpggRankedPokemon[],
+  topN: number,
   pokemonDetail: SpeedChartPokemonDetailEntry[],
+  pokemonIndex: SpeedChartPokemonIndexEntry[],
   megaStones: SpeedChartMegaStoneEntry[],
-  itemAutocomplete: SpeedChartItemMasterEntry[],
+  speedModifierLearnsets: ReadonlyMap<string, string[]> = new Map(),
 ): SpeedChartForm[] {
   const detailByName = new Map(pokemonDetail.map((entry) => [entry.name, entry]));
-  const itemRegulationsByName = new Map(itemAutocomplete.map((entry) => [entry.name, entry.regulations]));
+  const indexByName = new Map(pokemonIndex.map((entry) => [entry.name, entry]));
+  const baseNames = rankedPokemon
+    .map((entry, index) => ({ name: entry.name, rank: entry.rank ?? index + 1 }))
+    .sort((a, b) => a.rank - b.rank)
+    .slice(0, topN);
   const forms: SpeedChartForm[] = [];
-
-  for (const entry of pokemonAutocomplete) {
-    if (!entry.regulations.includes(regulation)) continue;
-    const detail = detailByName.get(entry.name);
+  for (const base of baseNames) {
+    const detail = detailByName.get(base.name);
     if (!detail) continue;
-    forms.push({
-      name: entry.name,
-      baseSpeed: detail.baseStats[5],
-      abilities: detail.abilities,
-      learnset: detail.learnset,
-      isMega: false,
-    });
+    forms.push({ ...detail, baseSpeed: detail.baseStats[5], learnset: speedModifierLearnsets.get(base.name) ?? detail.learnset, rank: base.rank, usageSourceName: base.name, isMega: false });
+    const baseIndex = indexByName.get(base.name);
+    if (!baseIndex) continue;
+    for (const mega of megaStones) {
+      const megaDetail = detailByName.get(mega.species);
+      const megaIndex = indexByName.get(mega.species);
+      if (!megaDetail || !megaIndex || !megaIndex.forme?.startsWith('Mega') || megaIndex.dexNo !== baseIndex.dexNo) continue;
+      forms.push({ ...megaDetail, baseSpeed: megaDetail.baseStats[5], learnset: speedModifierLearnsets.get(mega.species) ?? megaDetail.learnset, rank: base.rank, usageSourceName: base.name, isMega: true });
+    }
   }
-
-  for (const mega of megaStones) {
-    const itemRegulations = itemRegulationsByName.get(mega.item);
-    if (!itemRegulations || !itemRegulations.includes(regulation)) continue;
-    const detail = detailByName.get(mega.species);
-    if (!detail) continue;
-    forms.push({
-      name: mega.species,
-      baseSpeed: detail.baseStats[5],
-      abilities: detail.abilities,
-      learnset: detail.learnset,
-      isMega: true,
-    });
-  }
-
-  return forms;
+  return forms.sort((a, b) => a.rank - b.rank || Number(a.isMega) - Number(b.isMega) || a.name.localeCompare(b.name, 'ja'));
 }
 
 // ============================================================================
@@ -258,79 +244,37 @@ export function applySpeedModifier(value: number, modifier: SpeedModifierEntry):
 }
 
 // ============================================================================
-// U-2: 採用率フィルタ(持ち物・技のみ。特性は対象外)
+// OP.GG種族別採用率と振り方の判定
 // ============================================================================
 
-export interface AdoptionRateBucket {
-  sampleSize: number;
-  /** 名前(持ち物名/技名) -> 採用率(0〜1)。 */
-  options: Record<string, number>;
+/** OP.GGのusageRate(42.5 = 42.5%)を設定値の比率(0.2 = 20%)に直して加算する。 */
+function sumRate<T extends { usageRate: number | null | undefined }>(rows: readonly T[], matches: (row: T) => boolean): number {
+  return rows.reduce((sum, row) => sum + (matches(row) ? (row.usageRate ?? 0) / 100 : 0), 0);
 }
 
-/**
- * 種族名 -> カテゴリ("items"|"moves") -> 採用率バケット。
- * suggestions テーブル(kind='popular_item'|'popular_move', subject_key='<種族名>|<レギュレーション>')
- * の payload をこの形に畳んだもの(畳む処理自体はSSR側=index.astroの責務。U-2参照)。
- */
-export type AdoptionRateData = Record<string, Partial<Record<'items' | 'moves' | 'natures', AdoptionRateBucket>>>;
-
-/**
- * 「最遅」を表示できるだけのS下降性格の採用実績があるかを判定する。
- * 性格名はハードコードせず、既存の性格定義からS下降のものを機械的に抽出する。
- * suggestions の popular_nature には努力値が無いため、S=0は判定に含めず下降性格の合計率で近似する。
- */
-export function isMinSpreadAdopted(
-  speciesName: string,
-  config: MinSpreadAdoptionRateConfig,
-  data: AdoptionRateData | undefined,
-): boolean {
-  if (!config.enabled) return true;
-  const bucket = data?.[speciesName]?.natures;
-  if (!bucket || bucket.sampleSize < config.minSampleSize) return false;
-  const downNatureRate = Object.entries(NATURE_STAT_MODIFIERS)
-    .filter(([, modifier]) => modifier.down === 'spe')
-    .reduce((sum, [natureName]) => sum + (bucket.options[natureName] ?? 0), 0);
-  return downNatureRate >= config.threshold;
+export function sumSpeedEvRate(evs: EvRankedRow[] | undefined, evValue: number): number {
+  return sumRate(evs ?? [], (row) => row.values?.speed === evValue);
 }
 
-/** そのカテゴリに採用率フィルタが効くかどうか(enabled かつ appliesTo に含まれる)。 */
-export function isAdoptionRateFilterActive(
-  category: SpeedModifierCategory,
-  config: AdoptionRateConfig,
-): boolean {
-  return config.enabled && config.appliesTo.includes(category);
+export function sumNatureEffectRate(natures: RankedRow[] | undefined, effect: NatureSpeedEffect): number {
+  return sumRate(natures ?? [], (row) => getNatureSpeedEffect(row.name) === effect);
 }
 
-/**
- * 指定の(カテゴリ, 名前, 種族)が採用率フィルタを通るかどうかを判定する(U-2判定ルール表)。
- *
- * - フィルタが効かないカテゴリ(既定の appliesTo=["items","moves"] では abilities。
- *   または enabled=false)は常に通す。
- * - 種族の集計データが無い(k-匿名性の閾値未満・実績なし)場合は出さない。
- * - sampleSize が minSampleSize 未満なら出さない。
- * - 採用率が threshold 以上なら出す、未満なら出さない。
- *
- * 注意: AdoptionRateData は items/moves の2種類しかバケットの型を持たない(U-2: 特性の
- * 採用率データはsuggestionsテーブルに存在しないため)。abilities は本番経路
- * (isModifierApplicableToForm)では常にこの関数を呼ばず form.abilities.includes(...) のみで
- * 判定するが、万一 appliesTo に 'abilities' を書いてこの関数を直接呼んだ場合は
- * バケットが常に見つからず false(出さない)側に倒れる(「常に通す」ではない安全側フォールバック)。
- */
-export function isAdoptedByRate(
-  category: SpeedModifierCategory,
-  name: string,
-  speciesName: string,
-  config: AdoptionRateConfig,
-  data: AdoptionRateData | undefined,
-): boolean {
-  if (!isAdoptionRateFilterActive(category, config)) return true;
-  // items/moves 以外(=abilities)はそもそもバケットの型に無いが、念のため安全に弾く。
-  const bucket = category === 'items' || category === 'moves' ? data?.[speciesName]?.[category] : undefined;
-  if (!bucket) return false;
-  if (bucket.sampleSize < config.minSampleSize) return false;
-  const ratio = bucket.options[name];
-  if (ratio === undefined) return false;
-  return ratio >= config.threshold;
+export function decideSpeedSpreads(single: SingleFormatData, thresholds: SpeedSpreadConditions): SpeedSpreadKind[] {
+  const ev32 = sumSpeedEvRate(single.evs, 32) >= thresholds.evRateThreshold;
+  const ev0 = sumSpeedEvRate(single.evs, 0) >= thresholds.evRateThreshold;
+  const nature = (effect: NatureSpeedEffect) => sumNatureEffectRate(single.natures, effect) >= thresholds.natureRateThreshold;
+  const spreads: SpeedSpreadKind[] = [];
+  if (ev32 && nature('up')) spreads.push('max');
+  if (ev32 && nature('neutral')) spreads.push('sub');
+  if (ev0 && nature('neutral')) spreads.push('none');
+  if (ev0 && nature('down')) spreads.push('min');
+  return spreads.length ? spreads : ['none'];
+}
+
+/** OP.GGの同一種族・同一カテゴリの行が閾値以上か。行が無ければ採用しない。 */
+export function isAdoptedByOpggRate(rows: RankedRow[] | undefined, name: string, threshold: number): boolean {
+  return Boolean(rows?.some((row) => row.name === name && (row.usageRate ?? 0) / 100 >= threshold));
 }
 
 // ============================================================================
@@ -340,6 +284,7 @@ export function isAdoptedByRate(
 export interface SpeedChartEntry {
   formName: string;
   isMega: boolean;
+  rank: number;
   spread: SpeedSpreadKind;
   /** null = 補正なし(素の実数値)。素の行は採用率フィルタの対象外(常に出す)。 */
   modifier: EffectiveSpeedModifier | null;
@@ -355,53 +300,55 @@ function isModifierApplicableToForm(
   modifier: EffectiveSpeedModifier,
   form: SpeedChartForm,
   adoptionConfig: AdoptionRateConfig,
-  adoptionData: AdoptionRateData | undefined,
+  single: SingleFormatData,
 ): boolean {
+  if (!adoptionConfig.appliesTo.includes(modifier.category)) return false;
   if (modifier.category === 'items') {
     // R-4: メガシンカ種族は持ち物がメガストーンに固定されるため、他の持ち物補正
     // (こだわりスカーフ等)を同時に持てない。
     if (form.isMega) return false;
-    return isAdoptedByRate('items', modifier.name, form.name, adoptionConfig, adoptionData);
+    return isAdoptedByOpggRate(single.items, modifier.name, adoptionConfig.threshold);
   }
   if (modifier.category === 'abilities') {
-    // 特性は「持てるフォルムにだけ付ける」が必要十分条件(採用率フィルタは掛からない。U-2)。
-    return form.abilities.includes(modifier.name);
+    return form.abilities.includes(modifier.name) && isAdoptedByOpggRate(single.abilities, modifier.name, adoptionConfig.threshold);
   }
   // moves: 「持てるフォルムにだけ付ける」は必要条件に格下げ(U-1/U-2)。採用率も満たす必要がある。
   if (!form.learnset.includes(modifier.name)) return false;
-  return isAdoptedByRate('moves', modifier.name, form.name, adoptionConfig, adoptionData);
+  return isAdoptedByOpggRate(single.moves, modifier.name, adoptionConfig.threshold);
 }
 
 /**
  * 早見表の行を組み立てる。population の各フォルム × 振り方(4種) × (補正なし + 適用可能な
  * 各補正)で実数値を算出し、同じ実数値のエントリを1行にまとめて実数値の降順に並べる。
  *
- * adoptionConfig/adoptionData を渡さない場合は「採用率フィルタなし」として扱いたい呼び出し側は
- * adoptionConfig.enabled=false を渡すこと(このファイル側では既定値を持たない。設定の所在は
- * 呼び出し側=src/config/speed-chart.json に一元化する)。
+ * usageByName はOP.GGの基本フォーム名をキーにする。メガは population が保持する
+ * usageSourceName を通じて、対応する基本フォームの統計を参照する。
  */
 export function buildSpeedChartRows(
   population: SpeedChartForm[],
   effectiveModifiers: EffectiveSpeedModifier[],
   adoptionConfig: AdoptionRateConfig,
-  adoptionData?: AdoptionRateData,
-  minSpreadConfig?: MinSpreadAdoptionRateConfig,
+  usageByName: ReadonlyMap<string, SingleFormatData>,
+  spreadConditions: SpeedSpreadConditions,
 ): SpeedChartRow[] {
   const entries: SpeedChartEntry[] = [];
   // 表示・生成順も「最速→準速→無振り→最遅」に固定し、同値集約時の順序を安定させる。
   const spreadKinds: SpeedSpreadKind[] = ['max', 'sub', 'none', 'min'];
 
   for (const form of population) {
+    const single = usageByName.get(form.usageSourceName);
+    if (!single) continue;
+    const displayedSpreads = new Set(decideSpeedSpreads(single, spreadConditions));
     for (const spreadKind of spreadKinds) {
-      if (spreadKind === 'min' && minSpreadConfig && !isMinSpreadAdopted(form.name, minSpreadConfig, adoptionData)) continue;
+      if (!displayedSpreads.has(spreadKind)) continue;
       const spread = SPEED_SPREADS[spreadKind];
       const baseValue = calcOtherStat(50, form.baseSpeed, 31, spread.evSpe, spread.natureModifier);
-      entries.push({ formName: form.name, isMega: form.isMega, spread: spreadKind, modifier: null, value: baseValue });
+      entries.push({ formName: form.name, isMega: form.isMega, rank: form.rank, spread: spreadKind, modifier: null, value: baseValue });
 
       for (const modifier of effectiveModifiers) {
-        if (!isModifierApplicableToForm(modifier, form, adoptionConfig, adoptionData)) continue;
+        if (!isModifierApplicableToForm(modifier, form, adoptionConfig, single)) continue;
         const value = applySpeedModifier(baseValue, modifier.modifier);
-        entries.push({ formName: form.name, isMega: form.isMega, spread: spreadKind, modifier, value });
+        entries.push({ formName: form.name, isMega: form.isMega, rank: form.rank, spread: spreadKind, modifier, value });
       }
     }
   }
@@ -629,8 +576,6 @@ export function buildAppliedEvs(currentEvs: number[], evSpe: number): number[] {
  * suggestions(持ち物・技の種族"内"採用率)とは別の指標。使用実績が無いフォルムはキー自体が
  * 存在しない(=使用率0として扱う。要件1)。呼び出し側(index.astro)がSSRで集計して渡す。
  */
-export type SpeciesUsageCounts = Record<string, number>;
-
 /**
  * 要件1/3で共有する比較関数: 使用率(延べ数)降順 → すばやさ種族値降順 → 種族名昇順。
  * 使用率0のフォルムが名前順で固まるのを避けるため種族値を第2キーにする(要件1確定仕様)。
@@ -638,7 +583,7 @@ export type SpeciesUsageCounts = Record<string, number>;
 function compareByUsageThenBaseSpeedThenName(
   a: string,
   b: string,
-  usageCounts: SpeciesUsageCounts | undefined,
+  usageCounts: Record<string, number> | undefined,
   baseSpeedByName: Map<string, number>,
 ): number {
   const usageA = usageCounts?.[a] ?? 0;
@@ -655,14 +600,6 @@ function compareByUsageThenBaseSpeedThenName(
  * すばやさ種族値降順→種族名昇順で並び替える(行そのものの並び=実数値の降順は変えない。
  * 適用範囲はあくまで行内のチップの並びだけ)。
  */
-export function sortFormNamesByUsage(
-  formNames: string[],
-  usageCounts: SpeciesUsageCounts | undefined,
-  baseSpeedByName: Map<string, number>,
-): string[] {
-  return [...formNames].sort((a, b) => compareByUsageThenBaseSpeedThenName(a, b, usageCounts, baseSpeedByName));
-}
-
 export interface RowChipLimitResult {
   /** 残すフォルム名(orderedFormNamesの元の順序=グループ順+グループ内使用率順を維持)。 */
   kept: string[];
@@ -693,7 +630,7 @@ export interface RowChipLimitResult {
  */
 export function limitRowChipsByWidth(
   orderedFormNames: string[],
-  usageCounts: SpeciesUsageCounts | undefined,
+  usageCounts: Record<string, number> | undefined,
   baseSpeedByName: Map<string, number>,
   chipWidthByName: ReadonlyMap<string, number>,
   gapWidth: number,

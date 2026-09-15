@@ -47,16 +47,16 @@ export function parseOwnedQueryParam(value: string | null | undefined): string |
 }
 
 // ============================================================================
-// `?reg=` の検証・レギュレーションの解決
+// `?season=` の検証・シーズンの解決
 // ============================================================================
 
 // src/lib/regulations.ts の normalizeRegulation と同じ正規化規則(空文字・空白・未知の値は
 // null に倒す)を、knownRegulations を引数で受け取る形で再実装したもの。
-function normalizeRegulationValue(value: string | null | undefined, knownRegulations: readonly string[]): string | null {
+function normalizeSeasonValue(value: string | null | undefined, knownSeasons: readonly string[]): string | null {
   if (typeof value !== 'string') return null;
   const trimmed = value.trim();
   if (trimmed === '') return null;
-  return knownRegulations.includes(trimmed) ? trimmed : null;
+  return knownSeasons.includes(trimmed) ? trimmed : null;
 }
 
 /**
@@ -64,11 +64,11 @@ function normalizeRegulationValue(value: string | null | undefined, knownRegulat
  * null/undefined はすべて null に正規化する(src/lib/regulations.ts の normalizeRegulation と
  * 同じ規則。呼び出し側は REGULATIONS をそのまま knownRegulations に渡せばよい)。
  */
-export function validateRegulationQueryParam(
+export function validateSeasonQueryParam(
   value: string | null | undefined,
-  knownRegulations: readonly string[],
+  knownSeasons: readonly string[],
 ): string | null {
-  return normalizeRegulationValue(value, knownRegulations);
+  return normalizeSeasonValue(value, knownSeasons);
 }
 
 /**
@@ -76,16 +76,16 @@ export function validateRegulationQueryParam(
  * REGULATIONS の末尾(最新)。「レギュレーション未指定は許さない」ため、knownRegulations が
  * 空でない限り必ず何らかの文字列を返す(空なら null。マスターデータ自体が壊れている異常系)。
  */
-export function resolveSpeedChartRegulation(
-  queryReg: string | null | undefined,
-  ownedRegulation: string | null | undefined,
-  knownRegulations: readonly string[],
+export function resolveSpeedChartSeason(
+  querySeason: string | null | undefined,
+  currentSeasonId: string | null | undefined,
+  knownSeasons: readonly string[],
 ): string | null {
-  const fromQuery = normalizeRegulationValue(queryReg, knownRegulations);
+  const fromQuery = normalizeSeasonValue(querySeason, knownSeasons);
   if (fromQuery) return fromQuery;
-  const fromOwned = normalizeRegulationValue(ownedRegulation, knownRegulations);
-  if (fromOwned) return fromOwned;
-  return knownRegulations.length > 0 ? knownRegulations[knownRegulations.length - 1] : null;
+  const current = normalizeSeasonValue(currentSeasonId, knownSeasons);
+  if (current) return current;
+  return knownSeasons[0] ?? null;
 }
 
 // ============================================================================
