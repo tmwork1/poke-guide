@@ -1,6 +1,6 @@
 import { createItemSelectGrid, sortItemsByUsage } from "../box-id/item-select-dialog";
 import { bindModalDismissal } from "../modal-dismiss";
-import { itemIconUrl } from "../sprite-urls";
+import { applyItemIconWithFallback } from "../sprite-urls";
 import { getOpponentBuild, getSelfBuilds, setOpponentBuild, setSelfBuildAt } from "./shared-core";
 
 type Side = "self" | "opponent";
@@ -21,7 +21,7 @@ export function renderItemIcon(iconEl: HTMLImageElement, noneIconEl: Element, it
   iconEl.hidden = itemName === "";
   noneIconEl.toggleAttribute("hidden", itemName !== "");
   iconEl.alt = itemName;
-  if (itemName) iconEl.src = itemIconUrl(itemName);
+  if (itemName) applyItemIconWithFallback(iconEl, itemName, () => { iconEl.hidden = true; });
 }
 
 async function fetchItemUsageRatios(speciesName: string): Promise<Map<string, number>> {

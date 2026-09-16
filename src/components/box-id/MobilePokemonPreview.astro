@@ -122,7 +122,7 @@ const shouldRenderItemIcon = activeTab === 'training' || itemName !== '';
     <div class="pokemon-preview-right">
       {/* タップでもちもの選択モーダル(#item-dropdown-button、PokemonEditPanel.astro)を開く。 */}
       <div class="pokemon-preview-item pokemon-preview-icon-text" id="pokemon-preview-item-trigger" role="button" tabindex="0" aria-haspopup="dialog" aria-label="もちものを選択">
-        {shouldRenderItemIcon && <img id="pokemon-preview-item-image" src={preview.itemIconUrl} alt="" class={itemName ? 'pokemon-preview-item-image' : 'pokemon-preview-item-image-hidden'} onerror="this.style.display='none'" />}
+        {shouldRenderItemIcon && <img id="pokemon-preview-item-image" src={preview.itemIconUrl} data-item-icon-name={itemName} alt="" class={itemName ? 'pokemon-preview-item-image' : 'pokemon-preview-item-image-hidden'} />}
         <span id="pokemon-preview-item" data-empty={itemName ? undefined : 'true'}>{itemName || 'もちものなし'}</span>
       </div>
       {/* この表をタップすると育成タブのステータス調整欄(#stat-adjustment-section、

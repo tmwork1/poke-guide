@@ -6,6 +6,7 @@ import {
 import { bindModalDismissal } from "../modal-dismiss";
 import type { OwnedPokemonRecord } from "../owned-pokemon";
 import { kanaIncludes } from "../kana";
+import { splitSearchTokens } from "../search-tokens";
 import { setSelfBuilds } from "./shared-core";
 
 const PAGE_SIZE = 48;
@@ -55,7 +56,7 @@ export function initBoxSelectDialog(): void {
 
   // /box の検索と同じく、半角・全角スペース区切りの語をすべて含むものだけを残す。
   function filterBySearch(entries: OwnedPokemonRecord[]): OwnedPokemonRecord[] {
-    const tokens = searchQuery.split(/[\s　]+/u).filter((token) => token.length > 0);
+    const tokens = splitSearchTokens(searchQuery);
     if (tokens.length === 0) return entries;
     return entries.filter((entry) => {
       const name = ownedPokemonDisplayName(entry);

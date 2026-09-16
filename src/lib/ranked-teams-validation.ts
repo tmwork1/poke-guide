@@ -1,4 +1,5 @@
 import { kanaIncludes } from './kana.ts';
+import { splitSearchTokens } from './search-tokens.ts';
 import type { RankedSeason } from './ranked-teams.ts';
 
 /** 上位チーム一覧・類似チームで共通の段階読み込み単位。 */
@@ -23,7 +24,7 @@ export function matchesSpeciesSearch(
   term: string,
 ): boolean {
   // 複数の入力方法を許容しつつ、各語がチーム内のいずれかに一致する AND 条件は維持する。
-  const words = term.trim().split(/[\s、,，・\/／]+/).filter(Boolean);
+  const words = splitSearchTokens(term);
   if (words.length === 0) return true;
   return words.every((word) =>
     members.some((member) =>
@@ -42,7 +43,7 @@ export function matchesTopBuildSearch(
   term: string,
 ): boolean {
   // 複数の入力語をAND検索しつつ、各語はチーム内のいずれかのメンバーに一致すればよい。
-  const words = term.trim().split(/[\s、,，・\/／]+/).filter(Boolean);
+  const words = splitSearchTokens(term);
   if (words.length === 0) return true;
   return words.every((word) =>
     members.some((member) =>
@@ -63,7 +64,7 @@ export function matchesBuildSearch(
   term: string,
 ): boolean {
   // 特性・アイテム・技を横断し、区切った各語は別メンバーに一致してもよい。
-  const words = term.trim().split(/[\s、,，・\/／]+/).filter(Boolean);
+  const words = splitSearchTokens(term);
   if (words.length === 0) return true;
   return words.every((word) =>
     members.some((member) =>

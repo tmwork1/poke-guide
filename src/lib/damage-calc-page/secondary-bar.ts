@@ -1,5 +1,6 @@
 import { championSpriteIconUrl, championSpriteUrl, loadPokemonMasterList, officialArtworkUrl } from "../pokemon-master-data";
 import { normalizeForSearch } from "../kana";
+import { splitSearchTokens } from "../search-tokens";
 import { getOpponentBuild, setOpponentBuild } from "./shared-core";
 import { readJsonScriptStringArray } from "../json-script";
 import { orderPokemonEntriesForDatalist } from "../owned-pokemon-form";
@@ -59,9 +60,12 @@ export function initSecondaryBar(): void {
     };
     selectOpponent(getOpponentBuild().speciesName || opggRankedSpeciesNames[0] || "サーフゴー");
     function renderRail(): void {
-      const query = normalizeForSearch(opponentSearch.value);
-      const matchingNames = query
-        ? orderedNames.filter((name) => normalizeForSearch(name).includes(query))
+      const tokens = splitSearchTokens(opponentSearch.value).map(normalizeForSearch);
+      const matchingNames = tokens.length > 0
+        ? orderedNames.filter((name) => {
+          const normalizedName = normalizeForSearch(name);
+          return tokens.every((token) => normalizedName.includes(token));
+        })
         : [
           ...loadOpponentHistory().filter((name) => orderedNames.includes(name)),
           ...orderedNames,

@@ -123,6 +123,7 @@ import SecondHeader from '../../components/SecondHeader.astro';
 	<script>
 		// チームカードは外枠から6枠まで共用し、1枠の実体はその中から /box のカード描画へ委譲する。
 		import { kanaIncludes } from "../../lib/kana";
+		import { splitSearchTokens } from "../../lib/search-tokens";
 		import { renderTeamCard } from "../../lib/team-card";
 		import { renderTeamMateSlots } from "../../lib/team-mate-card";
 		import { initializeCardDeleteMode } from "../../lib/card-delete-mode";
@@ -196,9 +197,7 @@ import SecondHeader from '../../components/SecondHeader.astro';
 					...t.members.map((m) => m.owned_pokemon.item_name ?? ""),
 					...t.members.flatMap((m) => m.owned_pokemon.move_names ?? []),
 				].join(" ");
-				return term
-					.split(/\s+/)
-					.filter((tok) => tok.length > 0)
+				return splitSearchTokens(term)
 					// 複数語ANDの仕様はそのまま、各語だけかな表記を揃えて比較する。
 					.every((tok) => kanaIncludes(haystack, tok));
 			}

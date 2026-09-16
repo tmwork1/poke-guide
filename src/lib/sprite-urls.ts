@@ -111,18 +111,62 @@ function isMegaStoneItemName(itemName: string): boolean {
   return MEGA_STONE_NAME_SUFFIXES.some((suffix) => itemName.endsWith(suffix));
 }
 
+/** Set an item icon and retry once with the shared Mega Stone icon on failure. */
+export function applyItemIconWithFallback(
+  img: HTMLImageElement,
+  itemName: string,
+  onFinalError?: () => void,
+): void {
+  const name = itemName.trim();
+  let usedFallback = false;
+  img.onerror = () => {
+    if (!usedFallback && isMegaStoneItemName(name) && name !== MEGA_STONE_ICON_FALLBACK_NAME) {
+      usedFallback = true;
+      img.src = itemIconUrl(MEGA_STONE_ICON_FALLBACK_NAME);
+      return;
+    }
+    img.onerror = null;
+    onFinalError?.();
+  };
+  img.src = itemIconUrl(name);
+}
+
+// SSR で描画されたアイテム画像(個別の onerror を持たない <img>)が最終的に読み込めなかった
+// ときの後始末。以前は各テンプレートの inline onerror が担っていたが、メガストーンの
+// フォールバック差し替え後にも inline onerror が走って代替画像まで隠してしまうため、
+// 失敗時の非表示処理もここに集約する。
+function hideFailedSsrItemIcon(img: HTMLImageElement): void {
+  // バトルデータカードのアイテム行: アイコン列を落として2列レイアウトに切り替える
+  // (battle-data-card-html.ts の trend-rank-row--icon3 / --text2)。
+  const trendRow = img.closest<HTMLElement>(".trend-rank-row");
+  if (trendRow) {
+    trendRow.classList.replace("trend-rank-row--icon3", "trend-rank-row--text2");
+    img.parentElement?.remove();
+    return;
+  }
+  img.hidden = true;
+  // class 側で display を持つ画像(プレビューのもちもの画像など)は hidden だけでは消えない。
+  img.style.setProperty("display", "none");
+  const badge = img.closest<HTMLElement>(".item-image-badge");
+  if (badge) badge.hidden = true;
+}
+
 export function setupItemIconFallback(): void {
   document.addEventListener(
     "error",
     (event) => {
       const img = event.target;
-      if (!(img instanceof HTMLImageElement) || img.dataset.megaStoneIconFallback) return;
+      // applyItemIconWithFallback() で個別の onerror を持つ画像はそちらに任せる。
+      if (!(img instanceof HTMLImageElement) || img.onerror) return;
       const match = img.src.match(ITEM_ICON_PATH_RE);
       if (!match) return;
       const itemName = decodeURIComponent(match[1]);
-      if (itemName === MEGA_STONE_ICON_FALLBACK_NAME || !isMegaStoneItemName(itemName)) return;
-      img.dataset.megaStoneIconFallback = "true";
-      img.src = itemIconUrl(MEGA_STONE_ICON_FALLBACK_NAME);
+      if (!img.dataset.megaStoneIconFallback && itemName !== MEGA_STONE_ICON_FALLBACK_NAME && isMegaStoneItemName(itemName)) {
+        img.dataset.megaStoneIconFallback = "true";
+        img.src = itemIconUrl(MEGA_STONE_ICON_FALLBACK_NAME);
+        return;
+      }
+      hideFailedSsrItemIcon(img);
     },
     true,
   );

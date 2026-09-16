@@ -195,6 +195,10 @@
 	color: var(--color-primary-strong);
 	background: var(--color-primary-soft);
 }
+.stat-adjustment-section .number-stepper-picker [data-ev-value].is-stat-multiple-of-11:not(:hover):not(:focus-visible):not([aria-current="true"]) {
+	color: var(--color-primary-strong);
+	font-weight: var(--font-weight-medium);
+}
 .stat-row input[type="range"] { width: 100%; }
 .stat-row input[type="range"]:focus { outline: none; }
 .stat-row input[type="range"]:focus-visible::-webkit-slider-thumb { outline: none; }

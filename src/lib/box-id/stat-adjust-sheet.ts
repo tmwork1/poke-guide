@@ -97,6 +97,9 @@ function buildDamageStatAdjustmentSheet(): void {
 			label: shortLabel,
 			min: EV_MIN,
 			max: EV_MAX,
+			// This mirrored sheet has only the source EV input; species base stats and
+			// nature-up state are not available here, so it intentionally has no cue.
+			shouldHighlightValue: () => false,
 			getValue: () => Number(sourceRange?.value) || 0,
 			setValue: (next) => {
 				if (!sourceRange) return;

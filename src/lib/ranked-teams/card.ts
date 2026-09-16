@@ -1,7 +1,7 @@
 import type { RankedTeam } from '../ranked-teams';
 import { championSpriteMediumUrl,
   championSpriteUrl, officialArtworkUrl } from '../pokemon-master-data';
-import { itemIconUrl, typeIconUrl } from '../sprite-urls';
+import { applyItemIconWithFallback, typeIconUrl } from '../sprite-urls';
 import { renderTeamCard } from '../team-card';
 import { getAppBandRect } from '../app-band';
 
@@ -114,10 +114,9 @@ export function renderRankedTeamCard(
       const badge = element('span', 'ranked-team-item-badge');
       badge.title = member.itemName;
       const itemImage = element('img');
-      itemImage.src = itemIconUrl(member.itemName);
       itemImage.alt = member.itemName;
       itemImage.loading = 'lazy';
-      itemImage.addEventListener('error', () => badge.remove(), { once: true });
+      applyItemIconWithFallback(itemImage, member.itemName, () => badge.remove());
       badge.append(itemImage);
       imageWrap.append(badge);
     }

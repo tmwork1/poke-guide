@@ -88,7 +88,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 					<div class="top-block-icon-info">
 						<div class="top-block-item-display">
 							<span id="item-image-badge" class="item-image-badge" hidden={!preview.itemIconUrl}>
-								<img id="item-image" class="item-image" width="30" height="30" src={preview.itemIconUrl} alt="" hidden={!preview.itemIconUrl} onerror="this.hidden=true;const badge=this.closest('.item-image-badge');if(badge instanceof HTMLElement)badge.hidden=true;" />
+								<img id="item-image" class="item-image" width="30" height="30" src={preview.itemIconUrl} data-item-icon-name={itemName} alt="" hidden={!preview.itemIconUrl} />
 							</span>
 							<span id="item-name-display" class:list={["item-name-display", { "is-empty": !itemName }]} title={itemName}>{itemName || "もちものなし"}</span>
 						</div>
@@ -139,7 +139,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 							aria-haspopup="dialog"
 							aria-label={itemName ? `もちもの: ${itemName}` : "もちもの: 未選択"}
 						>
-							<img id="item-dropdown-image" class="item-dropdown-image" src={preview.itemIconUrl} alt="" hidden={!preview.itemIconUrl} onerror="this.hidden=true;" />
+							<img id="item-dropdown-image" class="item-dropdown-image" src={preview.itemIconUrl} data-item-icon-name={itemName} alt="" hidden={!preview.itemIconUrl} />
 							<span id="item-dropdown-placeholder" class:list={["item-dropdown-placeholder", { "is-item-value-text": Boolean(itemName) }]}>{itemName || "もちものなし"}</span>
 						</button>
 					</div>

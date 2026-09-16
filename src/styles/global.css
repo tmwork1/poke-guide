@@ -110,6 +110,7 @@
   --modal-header-padding-x: var(--space-5); /* モーダル見出し行の左右内側余白。タイトル側の基準値で、閉じるボタン側は --modal-close-margin で個別に揃える。 */
   --modal-header-padding: var(--space-1) var(--modal-header-padding-x); /* モーダル見出し行の内側余白。縦は最小限、横は他の余白と揃える。全モーダル共通。 */
   --modal-header-min-height: 2.5rem; /* モーダル見出し行の最小高さ。全モーダル共通の基準値。 */
+  --fab-primary-size: 68px; /* 右下の主FAB(追加ボタン)の直径。/box・/team・/team/[id]・/box/[id] のダメージ計算追加で共通。 */
   --modal-header-gap: var(--space-3); /* モーダル見出し行の要素間隔。全モーダル共通。 */
   --modal-title-font-size: var(--font-size-base); /* モーダル見出しの文字サイズ。全モーダル共通の基準値(基準実装: species-select-dialog.css)。 */
   --modal-title-font-weight: var(--font-weight-normal); /* モーダル見出しの太さ。全モーダル共通の基準値。 */
@@ -1161,7 +1162,7 @@ dd {
   --card-delete-button-shadow: var(--shadow-sm); /* 削除ボタンをカード面から少し浮かせて見せる影 */
 
   /* ── 8. 寸法 ──────────────────────────────────────────── */
-  --card-delete-button-size: 28px; /* 削除ボタンの直径 */
+  --card-delete-button-size: 34px; /* 削除ボタンの直径 */
 
   /* ── 9. その他 ────────────────────────────────────────── */
   --card-delete-button-transition-duration: 0.15s; /* 削除ボタンの表示・配色が切り替わるアニメーション時間 */

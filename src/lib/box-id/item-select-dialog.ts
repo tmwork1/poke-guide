@@ -1,5 +1,6 @@
 import { el } from "../owned-pokemon-form";
 import { kanaIncludes } from "../kana";
+import { splitSearchTokens } from "../search-tokens";
 import { bindModalDismissal } from "../modal-dismiss";
 import { typeIconUrl } from "../sprite-urls";
 import { applyItemImage } from "./shared-core";
@@ -201,7 +202,8 @@ export function createItemSelectGrid(options: ItemSelectGridOptions): ItemSelect
 		let restValues = Array.from(cellByValue.keys()).filter((value) => value !== "");
 		if (options.sortRest) restValues = options.sortRest(restValues);
 		const rest = restValues.map((value) => [value, cellByValue.get(value)!] as const);
-		const matches = (label: string) => !searchQuery || kanaIncludes(label, searchQuery);
+		const tokens = splitSearchTokens(searchQuery);
+		const matches = (label: string) => tokens.every((token) => kanaIncludes(label, token));
 		const activeValue = options.getActiveValue() ?? "__none_selected__";
 		const visible: HTMLButtonElement[] = [];
 		if (noneCell && (matches("なし") || matches("もちものなし"))) {

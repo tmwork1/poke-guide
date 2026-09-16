@@ -24,14 +24,10 @@
   --floating-list-controls-edge-offset: var(--space-5); /* 追加ボタン右端の画面端余白。大きくすると内側へ寄る。 */
 
   /* ── 8. 寸法 ──────────────────────────────────────────── */
-  --floating-list-add-control-size: 60px; /* 丸い追加ボタンの直径。box-add-button.cssの追加ボタンと同じ直径にそろえる。大きくすると右下ボタンが拡大する。 */
+  --floating-list-add-control-size: var(--fab-primary-size); /* 丸い追加ボタンの直径。box-add-button.cssの追加ボタンと同じ直径にそろえる。大きくすると右下ボタンが拡大する。 */
 }
 
-/* /box は読み取りFABも並ぶため、追加FABだけ少し大きくして操作対象を確保する。/team は60pxのまま。 */
-.box-shell.floating-list-page {
-	--floating-list-add-control-size: 68px;
-}
-
+/* 主FAB(/box・/team・/team/[id]・/box/[id] のダメージ計算追加)は --fab-primary-size で同じ直径にそろえる。/box の読取(カメラ)FABだけ補助操作として小さいまま。 */
 /* ===========================================================================
    ここから下は構造(レイアウトの組み立て)。通常は触らない。
    =========================================================================== */

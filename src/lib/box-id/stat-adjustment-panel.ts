@@ -13,6 +13,7 @@ import {
 import { bindPressAndHold } from "../press-and-hold";
 import { markModalPortal } from "../modal-dismiss";
 import { clampToAppBand } from "../app-band";
+import { shouldHighlightEvCalendarValue } from "../ev-calendar-highlight";
 
 export interface StatAdjustmentPanelOptions {
 	baseStats: number[];
@@ -324,6 +325,12 @@ export function buildStatAdjustmentPanel(options: StatAdjustmentPanelOptions): S
 			}
 			if (picker) for (const option of picker.querySelectorAll<HTMLButtonElement>("[data-ev-value]")) {
 				option.setAttribute("aria-current", String(Number(option.dataset.evValue) === ev));
+				option.classList.toggle("is-stat-multiple-of-11", shouldHighlightEvCalendarValue({
+					statKey: key,
+					baseStat: options.baseStats[index],
+					natureUp: options.natureUp,
+					ev: Number(option.dataset.evValue),
+				}));
 			}
 			if (range) {
 				range.value = String(ev);

@@ -9,6 +9,7 @@ import {
 	type PokemonMasterEntry,
 } from "../pokemon-master-data";
 import { kanaIncludes } from "../kana";
+import { splitSearchTokens } from "../search-tokens";
 import { bindModalDismissal } from "../modal-dismiss";
 import { applySprite } from "./shared-core";
 import { requestSettingsModal } from "./settings-modal";
@@ -165,12 +166,12 @@ async function ensureData(): Promise<void> {
 }
 
 function matchesSearch(entry: PokemonMasterEntry): boolean {
-	if (searchQuery === "") return true;
-	if (kanaIncludes(entry.name, searchQuery)) return true;
-	if (entry.types.some((type) => kanaIncludes(type, searchQuery))) return true;
-	if ((abilitiesMap?.get(entry.name) ?? []).some((ability) => kanaIncludes(ability, searchQuery))) return true;
-	if ((learnsetMap?.get(entry.name) ?? []).some((move) => kanaIncludes(move, searchQuery))) return true;
-	return false;
+	return splitSearchTokens(searchQuery).every((token) =>
+		kanaIncludes(entry.name, token)
+		|| entry.types.some((type) => kanaIncludes(type, token))
+		|| (abilitiesMap?.get(entry.name) ?? []).some((ability) => kanaIncludes(ability, token))
+		|| (learnsetMap?.get(entry.name) ?? []).some((move) => kanaIncludes(move, token)),
+	);
 }
 
 function renderGrid(): void {

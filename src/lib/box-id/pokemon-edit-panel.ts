@@ -38,10 +38,9 @@ import {
 	type StatKey,
 	STAT_KEYS,
 	NATURE_STAT_MODIFIERS,
-	calcHpStat,
-	calcOtherStat,
 } from "../stats";
 import { kanaIncludes } from "../kana";
+import { shouldHighlightEvCalendarValue } from "../ev-calendar-highlight";
 import { classifyArchetype, type ArchetypeKey } from "../archetype";
 import { renderTeamCard } from "../team-card";
 import type { Team } from "../team";
@@ -706,12 +705,12 @@ if (form) {
 			const picker = document.getElementById(`ev-${key}-options`);
 			for (const option of picker?.querySelectorAll<HTMLButtonElement>("[data-ev-value]") ?? []) {
 				const ev = Number(option.dataset.evValue);
-				const stat = base && Number.isFinite(ev)
-					? key === "hp"
-						? calcHpStat(50, base[index], 31, ev)
-						: calcOtherStat(50, base[index], 31, ev, nature.up === key ? 1.1 : nature.down === key ? 0.9 : 1.0)
-					: NaN;
-				option.classList.toggle("is-stat-multiple-of-11", Number.isFinite(stat) && stat % 11 === 0);
+				option.classList.toggle("is-stat-multiple-of-11", shouldHighlightEvCalendarValue({
+					statKey: key,
+					baseStat: base?.[index],
+					natureUp: nature.up,
+					ev,
+				}));
 			}
 		}
 	}

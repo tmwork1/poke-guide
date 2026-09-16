@@ -24,6 +24,10 @@
 	box-shadow: var(--shadow-md);
 }
 #stat-adjust-sheet[hidden] { display: none; }
+.damage-stat-adjustment-stepper > .number-stepper-picker [data-ev-value].is-stat-multiple-of-11:not(:hover):not(:focus-visible):not([aria-current="true"]) {
+	color: var(--color-primary-strong);
+	font-weight: var(--font-weight-medium);
+}
 
 /* 展開時のつまみ行。左右を同じ幅の列にして、つまみ(中央列)が画面中央に来るようにする
    (flexで残り幅を渡すと「残りXX」と「耐久調整」の幅差ぶんだけつまみが左右にずれる)。 */

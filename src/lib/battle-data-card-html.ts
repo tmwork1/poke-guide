@@ -50,9 +50,8 @@ export function renderBattleDataCardHtml(single: SingleFormatData | null | undef
       : '<span class="trend-nature-modifier"></span>';
     return selectedRow('nature', row.name, 'trend-rank-row--nature3', `<span class="trend-rank-name">${escapeHtml(row.name)}</span>${modifierHtml}<span class="trend-rank-rate">${escapeHtml(usageRateLabel(row.usageRate))}</span>`);
   }));
-  const itemIconOnerror = "this.closest('.trend-rank-row').classList.replace('trend-rank-row--icon3','trend-rank-row--text2');this.parentElement.remove()";
   const itemsHtml = emptyOrList(items.map((row) =>
-    selectedRow('item', row.name, 'trend-rank-row--icon3', `<span class="trend-rank-icon"><img src="${escapeHtml(itemIconUrl(row.name))}" onerror="${escapeHtml(itemIconOnerror)}" alt="" loading="lazy"></span><span class="trend-rank-name">${escapeHtml(row.name)}</span><span class="trend-rank-rate">${escapeHtml(usageRateLabel(row.usageRate))}</span>`),
+    selectedRow('item', row.name, 'trend-rank-row--icon3', `<span class="trend-rank-icon"><img src="${escapeHtml(itemIconUrl(row.name))}" data-item-icon-name="${escapeHtml(row.name)}" alt="" loading="lazy"></span><span class="trend-rank-name">${escapeHtml(row.name)}</span><span class="trend-rank-rate">${escapeHtml(usageRateLabel(row.usageRate))}</span>`),
   ));
   const movesHtml = emptyOrList(moves.map((row) => {
     const type = moveTypeByName(row.name);

@@ -50,7 +50,7 @@ import {
 	championSpriteMediumUrl,
 	championSpriteUrl,
 } from "../pokemon-master-data";
-import { itemIconUrl, teraTypeIconUrl } from "../sprite-urls";
+import { applyItemIconWithFallback, teraTypeIconUrl } from "../sprite-urls";
 import { TYPE_COLORS, DEFAULT_TYPE_COLOR } from "../type-colors";
 import { type StatKey, STAT_KEYS, NATURE_STAT_MODIFIERS, calcHpStat, calcOtherStat } from "../stats";
 import type { OpponentClientResultInput } from "../opponent-notes-validation";
@@ -314,8 +314,7 @@ export function applyItemImage(imgEl: HTMLImageElement, name: string): void {
 	}
 	imgEl.hidden = false;
 	if (badgeEl) badgeEl.hidden = false;
-	imgEl.onerror = hideBadge;
-	imgEl.src = itemIconUrl(trimmed);
+	applyItemIconWithFallback(imgEl, trimmed, hideBadge);
 }
 
 // UI刷新: 性格による実数値の上昇/下降ステータスの判定テーブル

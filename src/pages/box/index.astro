@@ -163,6 +163,7 @@ import '../../styles/guest-login-dialog.css';
 			renderBoxPokemonCard,
 		} from "../../lib/owned-pokemon-card";
 		import { kanaIncludes } from "../../lib/kana";
+		import { splitSearchTokens } from "../../lib/search-tokens";
 		import { resolveDexNo, resolveSpeciesTypes } from "../../lib/species-dex";
 		import { initializeCardDeleteMode } from "../../lib/card-delete-mode";
 		import { deleteOwnedPokemon, listOwnedPokemonPage } from "../../lib/data/pokemon-repo";
@@ -275,9 +276,7 @@ import '../../styles/guest-login-dialog.css';
 					...p.move_names,
 				].join(" ");
 				// AND部分一致(空白区切りの複数語すべてを含む場合のみ一致、育成データ管理計画.md §6.1)
-				return term
-					.split(/[\s\u3000]+/u)
-					.filter((t) => t.length > 0)
+				return splitSearchTokens(term)
 					// AND条件は維持し、各語の比較だけかな表記に依存しないようにする。
 					.every((token) => kanaIncludes(haystack, token));
 			}

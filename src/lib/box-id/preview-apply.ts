@@ -1,6 +1,7 @@
 import { DEFAULT_TYPE_COLOR, TYPE_COLORS } from '../type-colors';
 import { applyPreviewMoveTypeBar } from './preview-move-type-bar';
 import { STAT_KEYS, type PokemonPreviewViewModel } from './preview-view-model';
+import { applyItemIconWithFallback } from '../sprite-urls';
 
 function setText(id: string, value: string): void {
   const element = document.getElementById(id);
@@ -53,7 +54,6 @@ function ensureItemImage(item: HTMLElement, itemName: string): HTMLImageElement 
     image.id = 'pokemon-preview-item-image';
     image.alt = '';
     image.className = 'pokemon-preview-item-image';
-    image.onerror = () => { image?.style.setProperty('display', 'none'); };
     item.parentElement?.insertBefore(image, item);
   }
   return image;
@@ -93,7 +93,8 @@ export function applyPokemonPreview(
       item.dataset.empty = String(view.itemName === '');
       const itemImage = ensureItemImage(item, view.itemName);
       if (itemImage) {
-        itemImage.src = view.itemIconUrl ?? '';
+        if (view.itemName) applyItemIconWithFallback(itemImage, view.itemName, () => itemImage.style.setProperty('display', 'none'));
+        else itemImage.removeAttribute('src');
         itemImage.classList.toggle('pokemon-preview-item-image-hidden', view.itemName === '');
         itemImage.style.removeProperty('display');
       }

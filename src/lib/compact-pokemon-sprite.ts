@@ -5,7 +5,7 @@ import {
 	loadImageIdMap,
 	officialArtworkUrl,
 } from "./pokemon-master-data";
-import { itemIconUrl } from "./sprite-urls";
+import { applyItemIconWithFallback } from "./sprite-urls";
 
 const imageIdMapPromise = loadImageIdMap();
 
@@ -114,10 +114,9 @@ export function applyCompactItemIcon(
 	}
 	imgEl.hidden = true;
 	if (visibilityEl) visibilityEl.hidden = true;
-	imgEl.onerror = hide;
 	imgEl.onload = () => {
 		imgEl.hidden = false;
 		if (visibilityEl) visibilityEl.hidden = false;
 	};
-	imgEl.src = itemIconUrl(name);
+	applyItemIconWithFallback(imgEl, name, hide);
 }

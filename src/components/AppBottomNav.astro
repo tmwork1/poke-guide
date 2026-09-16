@@ -1,5 +1,6 @@
 ---
 import '../styles/app-bottom-nav.css';
+import CalculatorIcon from './icons/CalculatorIcon.astro';
 interface Props {
 	current?: "home" | "box" | "team" | "dev" | "speed-chart" | "data" | "damage-calc";
 }
@@ -26,7 +27,7 @@ const { current } = Astro.props;
 			<span>データ</span>
 		</a>
 		<a class="app-bottom-nav-item" href="/damage-calc" data-active={current === "damage-calc" ? "true" : undefined} aria-current={current === "damage-calc" ? "page" : undefined}>
-			<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.05" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M7 7h10M7 12h3m4 0h3M7 17h3m4 0h3"/></svg>
+			<CalculatorIcon width="22" height="22" />
 			<span>ダメージ</span>
 		</a>
 	</div>

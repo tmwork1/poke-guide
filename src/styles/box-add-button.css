@@ -19,7 +19,7 @@
    .box-add-button に定義すると兄弟要素へ継承が届かないため。 */
 #opponent-notes-section {
   /* ── 8. 寸法 ─────────────────────────── */
-  --box-add-button-size: 60px; /* 追加ボタンの直径。大きくするとボタンが太くなり、右下の操作列もその分だけ左へ寄る */
+  --box-add-button-size: var(--fab-primary-size); /* 追加ボタンの直径。大きくするとボタンが太くなり、右下の操作列もその分だけ左へ寄る */
 }
 
 /* --------------------------------------------------------------------------
@@ -29,9 +29,9 @@
 /* 右下に配置する丸い追加ボタン */
 .box-add-button {
   isolation: isolate;
-  width: var(--box-add-button-size, 60px);
-  height: var(--box-add-button-size, 60px);
-  min-height: var(--box-add-button-size, 60px);
+  width: var(--box-add-button-size, 68px);
+  height: var(--box-add-button-size, 68px);
+  min-height: var(--box-add-button-size, 68px);
   padding: 0;
   aspect-ratio: 1 / 1;
   color: var(--color-primary-contrast); /* ボタン内の文字・アイコンの色 */

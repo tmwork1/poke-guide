@@ -11,6 +11,7 @@ export const prerender = false;
 
 import AppLayout from '../../layouts/AppLayout.astro';
 import AppHeader from '../../components/AppHeader.astro';
+import CalculatorIcon from '../../components/icons/CalculatorIcon.astro';
 import RankedTeamsSearchHeader from '../../components/ranked-teams/RankedTeamsSearchHeader.astro';
 import { getSupabaseAdminClient, getSupabasePublicClient } from '../../lib/supabase';
 import { getTeam, type Team } from '../../lib/team';
@@ -172,7 +173,7 @@ if (!isGuestNewMode) {
 								</button>
 								{!isNewMode && (
 									<button type="button" id="team-damage-calc-button" class="btn-control team-item-redistribute-button">
-										<span class="team-item-redistribute-button-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M7 7h10M7 12h3m4 0h3M7 17h3m4 0h3"/></svg></span>
+										<span class="team-item-redistribute-button-icon" aria-hidden="true"><CalculatorIcon width="16" height="16" /></span>
 										<span>ダメージ計算</span>
 									</button>
 								)}
@@ -354,6 +355,7 @@ if (!isGuestNewMode) {
 		import { matchesTopBuildSearch } from "../../lib/ranked-teams-validation";
 		import { createRankedTeamCardRenderer, setupRankedTeamsSearchHeader } from "../../lib/ranked-teams/search-header";
 		import { kanaIncludes } from "../../lib/kana";
+		import { splitSearchTokens } from "../../lib/search-tokens";
 		import { initializeSortDirectionToggle } from "../../lib/shared/sort-direction-toggle";
 		import { compareTypeListsByTeraOrder } from "../../lib/tera-types";
 		import { createMatchupPanel } from "../../lib/matchup-panel";
@@ -1964,9 +1966,7 @@ if (!isGuestNewMode) {
 				if (!term) return true;
 				// ボックス一覧と同じ対象を空白連結し、複数語ANDのかな部分一致で探す。
 				const haystack = [p.species_name, p.ability_name ?? "", p.item_name ?? "", p.tera_type ?? "", ...p.move_names].join(" ");
-				return term
-					.split(/\s+/)
-					.filter((t) => t.length > 0)
+				return splitSearchTokens(term)
 					// 既存の複数語ANDを保ち、各語のかな表記だけを正規化して比較する。
 					.every((token) => kanaIncludes(haystack, token));
 			}

@@ -19,6 +19,8 @@ export interface EvStepperOptions {
 	getValue: () => number;
 	/** 値の確定。呼び出し側が保持先を更新し、必要なら sync() を呼び戻す */
 	setValue: (next: number) => void;
+	/** Optional predicate for visually emphasizing individual picker values. */
+	shouldHighlightValue?: (value: number) => boolean;
 }
 
 export interface EvStepper {
@@ -27,7 +29,7 @@ export interface EvStepper {
 	sync: () => void;
 }
 
-export function createEvStepper({ label, min, max, getValue, setValue }: EvStepperOptions): EvStepper {
+export function createEvStepper({ label, min, max, getValue, setValue, shouldHighlightValue }: EvStepperOptions): EvStepper {
 	const root = document.createElement("span");
 	root.className = "number-stepper";
 
@@ -63,6 +65,7 @@ export function createEvStepper({ label, min, max, getValue, setValue }: EvStepp
 		option.className = "tnum";
 		option.dataset.evValue = String(value);
 		option.textContent = String(value);
+		option.classList.toggle("is-stat-multiple-of-11", shouldHighlightValue?.(value) ?? false);
 		picker.appendChild(option);
 	}
 
