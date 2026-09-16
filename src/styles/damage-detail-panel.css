@@ -1178,6 +1178,16 @@ body.box-edit-page {
 		background: var(--damage-detail-control-background);
 		border-color: var(--damage-detail-control-border-color);
 	}
+	/* 相手タブの攻守切替(非選択側)・性格ボタン・努力値±・配分バッジ・タイプ上書きリセットも、
+	   種族名入力欄と同じ沈んだ背景(--damage-detail-control-background)に揃える。選択状態の色は変えない。 */
+	#damage-detail-panel-body .damage-build-detail-direction-toggle .damage-row-direction-option:not([aria-checked="true"]),
+	#damage-detail-panel-body .stat-adjustment-section .stat-nature-btn,
+	#damage-detail-panel-body .stat-adjustment-section .stat-ev-stepper > .stat-ev-step-button,
+	#damage-detail-panel-body .ev-preset-badge,
+	#damage-detail-panel-body .damage-detail-type-reset {
+		background: var(--damage-detail-control-background);
+		border-color: var(--damage-detail-control-border-color);
+	}
 	#damage-detail-panel-body .damage-detail-move-input,
 	#damage-detail-panel-body .damage-detail-ailment-select,
 	#damage-detail-panel-body .damage-detail-spikes-select {

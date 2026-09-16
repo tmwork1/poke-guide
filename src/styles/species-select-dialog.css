@@ -183,7 +183,8 @@ body.data-page {
 	position: absolute;
 	top: var(--space-1);
 	left: var(--space-1);
-	color: var(--color-text-muted);
+	/* 立ち絵の背後に置く補助情報なので、muted よりさらに落とした色にする。 */
+	color: color-mix(in srgb, var(--color-text-muted) 55%, transparent);
 	font-size: var(--font-size-sm4);
 	font-variant-numeric: tabular-nums;
 	z-index: 0;
