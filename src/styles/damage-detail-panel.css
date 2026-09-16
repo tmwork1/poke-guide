@@ -38,9 +38,6 @@ body.box-edit-page {
 
 	--damage-detail-surface-background: var(--color-surface); /* パネルや入力部品の背景色。変えると主要な面の色がまとめて変わる */
 	--damage-detail-page-background: var(--color-bg); /* 集計欄や候補カードの背景色。変えるとパネル本体との明暗差が変わる */
-	/* モーダル本体より一段明るい操作面。ライト・ダークの両方で入力箇所を
-	   判別しやすくするため、surfaceトークンを使う。 */
-	--damage-detail-control-background: color-mix(in srgb, var(--damage-detail-surface-background) 60%, var(--damage-detail-page-background) 40%);
 	--damage-detail-primary-soft-color: var(--color-primary-soft); /* 選択中の薄い背景色。濃くすると選択面が目立つ */
 
 	--damage-detail-risky-soft-color: var(--color-risky-soft); /* 注意判定と省略通知の背景色。濃くすると注意領域が目立つ */
@@ -108,7 +105,7 @@ body.box-edit-page {
 		振る舞いのため、無理に.panel基底へ寄せずこのスコープドスタイルに残す。 */
 	.damage-detail-panel {
 		/* 攻防スイッチの未選択面も、モーダル内の他の操作面と揃える。 */
-		--damage-card-direction-background: var(--damage-detail-control-background);
+		--damage-card-direction-background: var(--color-surface);
 		position: fixed;
 		top: var(--modal-top-offset);
 		left: 50%;
@@ -426,7 +423,7 @@ body.box-edit-page {
 			z-index: auto;
 			border: 1px solid var(--color-border);
  /* カード列内表示の外枠。太くすると一覧内で目立つ */
-			border-radius: var(--damage-detail-radius-md);
+			border-radius: var(--radius-zero);
 		}
 		.damage-detail-panel.is-mobile-inline .damage-detail-panel-body {
 			overflow-y: visible;
@@ -554,7 +551,7 @@ body.box-edit-page {
  /* 候補カード内の行間。大きくすると数値や注意書きが離れる */
 		border: 1px solid var(--color-border);
  /* 候補カードの枠。太くすると境界が強くなる */
-		border-radius: var(--damage-detail-radius-md);
+		border-radius: var(--radius-zero);
 		padding: var(--damage-detail-space-sm) var(--damage-detail-space-md);
 		background: var(--damage-detail-page-background);
 		text-align: left;
@@ -875,7 +872,8 @@ body.box-edit-page {
 		padding: 4px;
 		border: 1px solid var(--damage-detail-border-color);
 		border-radius: var(--damage-detail-radius-sm);
-		background: var(--damage-detail-control-background);
+		background: var(--color-surface-sunken);
+		box-shadow: var(--shadow-inset-sunken);
 		cursor: pointer;
 	}
 	#damage-detail-panel-body .damage-detail-type-box-icons {
@@ -917,7 +915,7 @@ body.box-edit-page {
 		margin: 0;
 		padding: var(--damage-detail-space-sm);
 		list-style: none;
-		background: var(--damage-detail-control-background);
+		background: var(--color-surface);
 		border: var(--damage-detail-tera-list-border);
 		border-radius: var(--damage-detail-radius-md);
 		box-shadow: var(--damage-detail-shadow-md);
@@ -1030,13 +1028,13 @@ body.box-edit-page {
 	}
 	#damage-detail-panel-body .damage-detail-rank-field .number-stepper,
 	#damage-detail-panel-body .damage-detail-rank-stepper {
-		background: var(--damage-detail-control-background);
+		background: var(--color-surface);
 	}
 	#damage-detail-panel-body .stat-adjustment-section .number-stepper {
-		background: var(--damage-detail-control-background);
+		background: var(--color-surface);
 	}
 	#damage-detail-panel-body .stat-adjustment-section .stat-ev-stepper > .number-stepper-value {
-		background: var(--damage-detail-control-background) !important;
+		background: var(--color-surface) !important;
 	}
 	/* 努力値は0以外だけ文字色で強調する。外寸や背景は既存のまま維持する。 */
 	#damage-detail-panel-body .stat-adjustment-section .stat-ev-stepper > .number-stepper-value.is-nonzero {
@@ -1126,25 +1124,31 @@ body.box-edit-page {
 	#damage-detail-panel-body .damage-build-detail-field select {
 		box-sizing: border-box;
 		min-height: var(--damage-detail-build-control-height);
-		background: var(--damage-detail-control-background);
+		background: var(--color-surface-sunken);
+		box-shadow: var(--shadow-inset-sunken);
 		/* font-size未指定だとブラウザ既定サイズになり、同じ行のアイテム・テラスタイプ
 		   選択ボタン(font-size-md)より特性selectだけ大きく見えていた。明示してそろえる。 */
 		font-size: var(--damage-detail-font-size-md);
 	}
 	/* わざタブも含め、通常状態の操作面はモーダル本体より明るくする。 */
 	#damage-detail-panel-body {
-		--damage-detail-icon-button-background: var(--damage-detail-control-background);
-		--damage-card-dropdown-background: var(--damage-detail-control-background);
+		--damage-detail-icon-button-background: var(--color-surface);
+		--damage-card-dropdown-background: var(--color-surface);
 		--damage-detail-control-min-height: 40px;
 		--damage-detail-rank-stepper-size: 40px;
 	}
-	#damage-detail-panel-body .damage-detail-icon-btn,
+	#damage-detail-panel-body .damage-detail-icon-btn {
+		box-sizing: border-box;
+		min-height: var(--damage-detail-control-min-height);
+		background: var(--color-surface);
+	}
 	#damage-detail-panel-body .damage-detail-move-input,
 	#damage-detail-panel-body .damage-detail-ailment-select,
 	#damage-detail-panel-body .damage-detail-spikes-select {
 		box-sizing: border-box;
 		min-height: var(--damage-detail-control-min-height);
-		background: var(--damage-detail-control-background);
+		background: var(--color-surface-sunken);
+		box-shadow: var(--shadow-inset-sunken);
 	}
 	#damage-detail-panel-body .damage-build-detail-form input.is-autofilled {
 		border-color: var(--damage-detail-primary-color);
@@ -1171,7 +1175,8 @@ body.box-edit-page {
  /* 持ち物ボタンの内側余白(育成タブと同値)。大きくするとボタンが大きくなる */
 		border: 1px solid var(--damage-detail-border-color);
 		border-radius: var(--damage-detail-radius-sm);
-		background: var(--damage-detail-control-background);
+		background: var(--color-surface-sunken);
+		box-shadow: var(--shadow-inset-sunken);
 		cursor: pointer;
 		font-size: var(--damage-detail-font-size-md);
 		font-weight: var(--damage-detail-font-weight-regular);
@@ -1309,7 +1314,8 @@ body.box-edit-page {
 		border: 1px solid var(--color-border);
  /* テラ選択ボタンの枠。太くすると入力欄が目立つ */
 		border-radius: var(--damage-detail-radius-sm);
-		background: var(--damage-detail-control-background);
+		background: var(--color-surface-sunken);
+		box-shadow: var(--shadow-inset-sunken);
 		color: var(--damage-detail-text-color);
 		font-size: var(--damage-detail-font-size-md);
 		font-weight: var(--damage-detail-font-weight-regular);
@@ -1346,7 +1352,7 @@ body.box-edit-page {
 		margin: 0;
 		padding: var(--damage-detail-space-xs);
 		list-style: none;
-		background: var(--damage-detail-control-background);
+		background: var(--color-surface);
 		border: var(--damage-detail-tera-list-border);
 		border-radius: var(--damage-detail-radius-md);
 		box-shadow: var(--damage-detail-shadow-md);
@@ -1423,7 +1429,8 @@ body.box-edit-page {
 		min-width: var(--damage-detail-rank-input-width);
 		min-height: var(--damage-detail-control-min-height);
 		font-size: var(--damage-detail-font-size-sm);
-		background: var(--damage-detail-control-background);
+		background: var(--color-surface-sunken);
+		box-shadow: var(--shadow-inset-sunken);
 		flex: none;
 		padding: var(--damage-detail-ailment-padding);
 		text-align: center;

@@ -485,7 +485,8 @@ body.box-edit-page {
 #opponent-notes-section .tera-dropdown-button {
   border: 1px solid var(--color-border); /* テラスタイプ選択ボタンの枠線 */
   border-radius: var(--radius-sm); /* テラスタイプ選択ボタンの角丸 */
-  background: var(--color-surface); /* テラスタイプ選択ボタンの背景色 */
+  background: var(--color-surface-sunken); /* テラスタイプ選択ボタンの背景色 */
+  box-shadow: var(--shadow-inset-sunken);
   cursor: pointer;
   width: 100%;
   color: var(--color-text); /* 選択済みテラスタイプの文字色 */
@@ -554,7 +555,6 @@ body.box-edit-page {
 
 /* 相手ポケモンのアイコン画像を置く正方形 */
 #opponent-notes-section .damage-sprite-box {
-  border-radius: var(--radius-md); /* 相手ポケモン画像枠の角丸 */
   background: none;
   flex-shrink: 0;
   justify-content: center;
@@ -2380,7 +2380,7 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .d
 
 body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-sprite-box {
   flex: none;
-  /* 通常表示と同じ40px・角丸を維持し、シート開閉で立ち絵だけが縮小しないようにする。 */
+  /* 通常表示と同じ40pxを維持し、シート開閉で立ち絵だけが縮小しないようにする。 */
   width: var(--damage-card-sprite-size);
   height: var(--damage-card-sprite-size);
 }

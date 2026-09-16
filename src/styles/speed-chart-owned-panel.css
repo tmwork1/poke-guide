@@ -31,7 +31,7 @@
 		これらの要素とは別)。
 		幅260pxのサイドバー(ChartTable.astroの.speed-chart-side、gap: var(--space-4)で
 		縦に項目を積む)最下段のカードとして、自己完結する角丸カード(.cardと同じ
-		--radius-md、背景は.speed-chart-side自体の背景(--color-surface)に対して
+		--radius-zero、背景は.speed-chart-side自体の背景(--color-surface)に対して
 		区別が付くよう--color-bgへ交互に切り替える。 */
 	.speed-chart-owned-panel-static {
 		display: flex;
@@ -39,11 +39,8 @@
 		gap: var(--space-2); /* サマリカード内の項目間隔。大きくすると縦に離れる */
 		padding: var(--space-3); /* サマリカードの内側余白。大きくすると内容が内側に寄る */
 		background: var(--color-bg); /* サマリカードの背景色。変えると右パネルとのコントラストが変わる */
-		border-radius: var(--radius-md); /* サマリカードの角丸。大きくすると角が丸くなる */
+		border-radius: var(--radius-zero); /* サマリカードの角丸。大きくすると角が丸くなる */
 		font-size: var(--font-size-sm2); /* サマリ全体の文字サイズ。大きくすると情報が読みやすくなる */
-	}
-	.speed-chart-table[data-embedded='true'] .speed-chart-owned-panel-static {
-		border-radius: var(--radius-zero);
 	}
 	/* hasOwnedPanel=falseのときは子要素が一切描画されず空になる。空の背景ボックスだけが
 		サイドバーに残らないよう、空のときはこの要素自体を消す。 */

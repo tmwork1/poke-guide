@@ -182,8 +182,7 @@ body.data-page {
 	/* わざ選択ボタンの実背景色と揃える(box-edit-page.cssの.edit-layout-training .stat-nature-btnと同じ)。 */
 	background: var(--color-surface);
 	border: 1px solid var(--color-border);
-	border-radius: var(--radius-zero);
-	box-shadow: var(--shadow-sm);
+	border-radius: var(--radius-sm);
 	cursor: pointer;
 	flex-shrink: 0;
 }

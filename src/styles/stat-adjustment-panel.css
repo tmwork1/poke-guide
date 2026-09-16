@@ -34,17 +34,14 @@
 
 	--stat-button-radius: var(--control-button-radius); /* 操作ボタンの角丸。大きくするとボタンが丸くなる */
 
-	/* ── 6. 影 ────────────────────────────────────────────── */
-	--stat-button-shadow: var(--control-button-shadow); /* 操作ボタンの影。強くするとボタンが浮いて見える */
-
-	/* ── 7. 余白 ──────────────────────────────────────────── */
+	/* ── 6. 余白 ──────────────────────────────────────────── */
 
 	--stat-control-gap: var(--space-1); /* 努力値操作部の間隔。大きくするとボタンと入力欄が離れる */
 	--stat-number-input-padding: 0.3em 0.5em; /* 数値入力の内側余白。大きくすると入力欄が厚くなる */
 
 	--stat-icon-size: 1.25em; /* 端点ボタン内の矢印サイズ */
 
-	/* ── 8. 寸法 ──────────────────────────────────────────── */
+	/* ── 7. 寸法 ──────────────────────────────────────────── */
 	--stat-range-min-width: 3.5rem; /* 横長スライダーの最小幅。大きくすると狭い場所で縮みにくい */
 	--stat-endpoint-button-size: 36px; /* スライダー端へ移動するボタン。大きくすると押しやすくなる */
 	--stat-step-button-size: 24px; /* 努力値を増減するボタン。大きくすると押しやすくなる */
@@ -55,7 +52,7 @@
 	--stat-nature-arrow-border-block: 10px; /* 性格補正三角形の上下幅 */
 	--stat-nature-dot-size: 6px; /* 性格補正が未設定のときに表示する●の直径 */
 
-	/* ── 9. その他 ────────────────────────────────────────── */
+	/* ── 8. その他 ────────────────────────────────────────── */
 
 }
 
@@ -186,7 +183,6 @@
 	background: var(--stat-button-background);
 	border: 0;
 	border-radius: var(--stat-button-radius);
-	box-shadow: var(--stat-button-shadow);
 	font-size: var(--font-size-sm1); /* モバイルの努力値操作ボタン。大きくすると記号が目立つ */
 	font-weight: var(--stat-value-font-weight);
 }
@@ -240,7 +236,6 @@
 	background: var(--stat-button-background);
 	border: var(--control-button-border); /* 操作ボタンの枠線。濃くするとボタンの輪郭が強くなる */
 	border-radius: var(--stat-button-radius);
-	box-shadow: var(--stat-button-shadow);
 	cursor: pointer;
 	flex-shrink: 0;
 }
@@ -302,7 +297,7 @@
 #damage-detail-panel-body .stat-adjustment-section {
 	/* 育成タブと共有する表構造を保ちつつ、モーダル内では操作面だけを
 	   一段沈めて入力箇所を見分けやすくする。 */
-	--stat-button-background: var(--damage-detail-control-background);
+	--stat-button-background: var(--color-surface);
 	--stat-grid-template-columns:
 		minmax(1.5rem, 0.4fr)
 		minmax(2.75rem, 0.6fr)

@@ -621,7 +621,7 @@ input[type="range"]:focus-visible::-moz-range-thumb {
   justify-content: center;
   min-height: 8rem;
   border: 2px dashed var(--color-border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-zero);
   background: transparent;
   color: var(--color-text-muted);
   font-weight: var(--font-weight-semibold);
@@ -771,8 +771,7 @@ input[type="range"]:focus-visible::-moz-range-thumb {
   color: var(--color-text-muted);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-zero);
-  box-shadow: var(--shadow-sm);
+  border-radius: var(--radius-sm);
 }
 
 .number-stepper > button {
@@ -790,6 +789,11 @@ input[type="range"]:focus-visible::-moz-range-thumb {
   border: none;
   border-radius: 0;
 }
+
+/* 外枠の角丸に合わせて両端の±ボタンだけ片側を丸める。末尾には .number-stepper-picker(div)が
+   並ぶため :last-child ではなく :last-of-type で増側ボタンを拾う。 */
+.number-stepper > button:first-of-type { border-radius: var(--radius-sm) 0 0 var(--radius-sm); }
+.number-stepper > button:last-of-type { border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
 
 .number-stepper > input:not([type="hidden"]),
 .number-stepper > .number-stepper-value {
