@@ -286,3 +286,31 @@ export function mergeGameScreenOcrResults(passes: GameScreenOcrResult[], data: G
 	const ability = selectName((pass) => pass.ability, (pass) => pass.confidence.ability);
 	return { species, nature: nature.nature, stats, moves, ability, confidence: passes[0].confidence };
 }
+
+/** 登録済みポケモンとの同一判定に使う最小限の項目(owned_pokemon の列名に合わせる)。 */
+export interface OwnedPokemonLike {
+	species_name: string;
+	nature: string | null;
+	ability_name: string | null;
+	evs: number[];
+	move_names: string[];
+}
+
+/**
+ * OCR結果が登録済みのポケモンと同一個体とみなせるか。
+ * 種族・性格・努力値6値・わざ(順不同)が一致すれば同一。特性は両方読めているときだけ比較する
+ * (特性の読み取りは落ちやすく、null で不一致扱いにすると再登録されてしまうため)。
+ * わざは4つとも読めていることを条件にし、1つでも欠けていれば別個体の可能性を残して一致させない。
+ */
+export function isSameOwnedPokemon(result: GameScreenOcrResult, owned: OwnedPokemonLike): boolean {
+	if (!result.species || result.species !== owned.species_name) return false;
+	if (result.nature !== (owned.nature ?? "")) return false;
+	// 読めなかった努力値はフォームに入れず 0 のまま保存されるので、比較でも 0 として扱う(前回の保存値と揃える)
+	if (result.stats.some((stat, index) => (stat.ev ?? 0) !== (owned.evs[index] ?? 0))) return false;
+	const moves = result.moves.filter((move): move is string => move !== null);
+	if (moves.length !== 4) return false;
+	const ownedMoves = owned.move_names.filter((move) => move !== "");
+	if (ownedMoves.length !== 4 || [...moves].sort().join("/") !== [...ownedMoves].sort().join("/")) return false;
+	if (result.ability && owned.ability_name && result.ability !== owned.ability_name) return false;
+	return true;
+}

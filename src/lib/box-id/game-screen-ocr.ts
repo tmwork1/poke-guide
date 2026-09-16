@@ -1,6 +1,7 @@
 import { bindModalDismissal } from "../modal-dismiss";
 import { loadAbilitiesMap, loadBaseStatsMap, loadLearnsetFor, loadPokemonMasterList } from "../pokemon-master-data";
-import { mergeGameScreenOcrResults, parseGameScreenLines, type GameScreenOcrResult } from "../game-screen-ocr-parse";
+import { isSameOwnedPokemon, mergeGameScreenOcrResults, parseGameScreenLines, type GameScreenOcrResult } from "../game-screen-ocr-parse";
+import { listOwnedPokemonPage } from "../data/pokemon-repo";
 import { preprocessGameScreenImage } from "../game-screen-ocr-image";
 
 // 「カメラで撮影」は capture 付き、「写真を選ぶ」(カメラロール)は capture なしの file input をそれぞれ開く。
@@ -149,6 +150,17 @@ async function applyResult(result: GameScreenOcrResult): Promise<void> {
 	}
 }
 
+/** 同じ個体(種族・性格・努力値・わざが一致)が既に登録済みならそのIDを返す。一覧は更新順なので最新の1件。 */
+async function findRegisteredPokemonId(result: GameScreenOcrResult): Promise<string | null> {
+	const PAGE_SIZE = 48;
+	for (let offset = 0; ; offset += PAGE_SIZE) {
+		const page = await listOwnedPokemonPage({ limit: PAGE_SIZE, offset });
+		const found = page.data.find((owned) => isSameOwnedPokemon(result, owned));
+		if (found) return found.id;
+		if (!page.hasMore || page.data.length === 0) return null;
+	}
+}
+
 async function readFile(input: HTMLInputElement): Promise<void> {
 	const file = input.files?.[0];
 	input.value = "";
@@ -159,6 +171,13 @@ async function readFile(input: HTMLInputElement): Promise<void> {
 	try {
 		const result = await recognize(file);
 		if (!result.species) throw new Error("species not found");
+		// 撮った個体が登録済みなら、新規に作らずそのポケモンの編集画面へ移る(busy のまま遷移するので閉じる操作は効かない)
+		setProgress("登録済みのポケモンを確認中…");
+		const registeredId = await findRegisteredPokemonId(result);
+		if (registeredId) {
+			window.location.href = `/box/${encodeURIComponent(registeredId)}`;
+			return;
+		}
 		await applyResult(result);
 		busy = false;
 		closeDialog();

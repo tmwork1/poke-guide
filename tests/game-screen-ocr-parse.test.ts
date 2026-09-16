@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { mergeGameScreenOcrResults, nearestName, parseGameScreenLines } from "../src/lib/game-screen-ocr-parse.ts";
+import { isSameOwnedPokemon, mergeGameScreenOcrResults, nearestName, parseGameScreenLines } from "../src/lib/game-screen-ocr-parse.ts";
 
 const lines = [
 	"カイリュー", // ニックネーム
@@ -85,4 +85,28 @@ test("短い候補が部分一致で勝っても、行に文字が余ってい�
 	assert.equal(nearestName("「移1 かみなりバンチ 16", candidates), "かみなりパンチ");
 	// 本当に短い名前の行は長い候補へ伸びない
 	assert.equal(nearestName("かみなり 10", candidates), "かみなり");
+});
+
+test("登録済み判定は種族・性格・努力値・わざ(順不同)の一致で同一とみなし、特性は読めたときだけ比べる", () => {
+	const result = {
+		species: "カイリュー",
+		nature: "いじっぱり",
+		stats: [1, 32, 1, 0, 0, 32].map((ev, i) => ({ key: ["hp", "atk", "def", "spa", "spd", "spe"][i] as never, actual: null, ev, verified: true })),
+		moves: ["スケイルショット", "じしん", "かみなりパンチ", "しんそく"],
+		ability: null,
+		confidence: { species: 1, stats: { hp: 1, atk: 1, def: 1, spa: 1, spd: 1, spe: 1 }, moves: [1, 1, 1, 1], ability: 0 },
+	};
+	const owned = {
+		species_name: "カイリュー",
+		nature: "いじっぱり",
+		ability_name: "マルチスケイル",
+		evs: [1, 32, 1, 0, 0, 32],
+		move_names: ["しんそく", "じしん", "スケイルショット", "かみなりパンチ"],
+	};
+	assert.equal(isSameOwnedPokemon(result, owned), true);
+	assert.equal(isSameOwnedPokemon({ ...result, ability: "せいしんりょく" }, owned), false);
+	assert.equal(isSameOwnedPokemon({ ...result, nature: "ようき" }, owned), false);
+	assert.equal(isSameOwnedPokemon(result, { ...owned, evs: [1, 32, 1, 0, 1, 31] }), false);
+	assert.equal(isSameOwnedPokemon({ ...result, moves: ["スケイルショット", "じしん", "かみなりパンチ", null] }, owned), false);
+	assert.equal(isSameOwnedPokemon(result, { ...owned, move_names: ["しんそく", "じしん", "スケイルショット", "りゅうのまい"] }), false);
 });
