@@ -50,3 +50,10 @@ export function isTerastalRegulation(regulation: string | null | undefined): boo
   if (regulation == null || regulation === '') return true; // 未指定 = 従来どおり表示
   return regulation.startsWith('T-');
 }
+
+// vendor/jpoke/src/jpoke/data/regulation/item.csv では M-A / M-B / M-C のすべてで
+// メガストーンが使用可能。未指定時は従来の表示・選択を維持するため使用可として扱う。
+export function isMegaRegulation(regulation: string | null | undefined): boolean {
+  if (regulation == null || regulation === '') return true;
+  return regulation.startsWith('M-');
+}

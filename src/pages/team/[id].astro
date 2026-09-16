@@ -90,6 +90,9 @@ const initialTeamJson = team
 	? JSON.stringify({
 			id: team.id,
 			memo: team.memo,
+			// teams.regulation を含むSSRデータでは自動構築のレギュレーション判定に使う。
+			// 現行スキーマには列がないため、未指定時は null として従来どおり扱う。
+			regulation: (team as Team & { regulation?: string | null }).regulation ?? null,
 			members: team.members,
 		})
 	: '';
@@ -361,6 +364,7 @@ if (!isGuestNewMode) {
 		import { createMatchupPanel } from "../../lib/matchup-panel";
 		import { setupAppHeaderSwipe } from "../../lib/app-header-swipe";
 		import { createItemSelectGrid, sortItemsByUsage, isMegaStoneItemName } from "../../lib/box-id/item-select-dialog";
+		import { isMegaRegulation } from "../../lib/regulations";
 
 		interface OwnedPokemonRecord {
 			id: string;
@@ -399,6 +403,7 @@ if (!isGuestNewMode) {
 		interface InitialTeam {
 			id: string;
 			memo: string | null;
+			regulation?: string | null;
 			members: TeamMemberData[];
 		}
 
@@ -464,6 +469,7 @@ if (!isGuestNewMode) {
 				}
 				initialTeam = guestTeam;
 			}
+			const teamRegulation = initialTeam.regulation ?? null;
 
 			function el<T extends HTMLElement>(id: string): T {
 				const found = document.getElementById(id);
@@ -707,7 +713,7 @@ if (!isGuestNewMode) {
 
 			function setRedistributedItem(slot: number, itemName: string): void {
 				const p = membersBySlot.get(slot);
-				if (!p) return;
+				if (!p || isRedistributionSlotLocked(slot)) return;
 				const normalized = itemName.trim();
 				itemOverridesBySlot.set(slot, normalized && normalized === (p.item_name ?? "").trim() ? null : normalized);
 				if (normalized) {
@@ -721,7 +727,7 @@ if (!isGuestNewMode) {
 			function swapRedistributedItems(firstSlot: number, secondSlot: number): void {
 				const first = membersBySlot.get(firstSlot);
 				const second = membersBySlot.get(secondSlot);
-				if (!first || !second) return;
+				if (!first || !second || isRedistributionSlotLocked(firstSlot) || isRedistributionSlotLocked(secondSlot)) return;
 				const firstItem = effectiveItemName(firstSlot, first);
 				const secondItem = effectiveItemName(secondSlot, second);
 				itemOverridesBySlot.set(firstSlot, secondItem && secondItem === (first.item_name ?? "").trim() ? null : secondItem);
@@ -1211,16 +1217,35 @@ if (!isGuestNewMode) {
 				formationAutoBuildButton.disabled = autoBuildRunning || firstEmptySlot() == null;
 			}
 
+			function currentMegaMemberCount(megaSpecies: Set<string>): number {
+				return Array.from(membersBySlot.values()).filter((p) => megaSpecies.has(p.species_name)).length;
+			}
+
+			// メガ可レギュレーションでは2体に届くまでメガ種族を優先し、2体以降は除外する。
+			// メガ不可レギュレーションでは最初からメガ種族を候補にしない。
+			function prioritizeAutoBuildCandidates(
+				candidates: OwnedPokemonRecord[],
+				megaSpecies: Set<string>,
+			): OwnedPokemonRecord[] {
+				const megaCandidates = candidates.filter((p) => megaSpecies.has(p.species_name));
+				const nonMegaCandidates = candidates.filter((p) => !megaSpecies.has(p.species_name));
+				if (!isMegaRegulation(teamRegulation)) return nonMegaCandidates;
+				return currentMegaMemberCount(megaSpecies) < 2
+					? [...megaCandidates, ...nonMegaCandidates]
+					: nonMegaCandidates;
+			}
+
 			// 次に入れる1体を選ぶ。おすすめのうち手持ちに該当個体がいる最上位を採り、
 			// 1体も該当しなければボックスの表示順(操作帯の並べ替え)の先頭から補う。
 			async function pickAutoBuildCandidate(): Promise<OwnedPokemonRecord | null> {
+				const megaSpecies = await loadMegaSpeciesSet();
 				try {
 					const { suggestions } = await fetchSuggestions(currentMemberIds());
-					const filtered = await filterSuggestions(suggestions);
-					for (const suggestion of filtered) {
-						const owned = findOwnedMatch(suggestion);
-						if (owned) return owned;
-					}
+					const ownedSuggestions = suggestions
+						.map(findOwnedMatch)
+						.filter((owned): owned is OwnedPokemonRecord => owned !== null);
+					const prioritized = prioritizeAutoBuildCandidates(ownedSuggestions, megaSpecies);
+					if (prioritized[0]) return prioritized[0];
 				} catch (err) {
 					// おすすめが取れなくても補填自体は続ける(下のボックス順フォールバック)。
 					console.warn("自動構築: おすすめの取得に失敗しました", err);
@@ -1230,9 +1255,10 @@ if (!isGuestNewMode) {
 				const rest = sortFormationMobilePokemon(
 					allPokemon.filter((p) => selectionBlockReason(candidateOf(p), candidates) === null),
 				);
+				const eligible = prioritizeAutoBuildCandidates(rest, megaSpecies);
 				// 種族の重複自体は許可されている(team-validation.ts)が、自動で埋める分には
 				// まだ入っていない種族を優先する。
-				return rest.find((p) => !usedSpecies.has(p.species_name)) ?? rest[0] ?? null;
+				return eligible.find((p) => !usedSpecies.has(p.species_name)) ?? eligible[0] ?? null;
 			}
 
 			async function autoBuildFormation(): Promise<void> {
@@ -2206,24 +2232,22 @@ if (!isGuestNewMode) {
 				selectedRedistributionItem = null;
 				itemRedistributeButton.focus();
 			}
-			function openItemRedistributeDialog(): void {
-				void redistributionItemGrid.ensureBuilt().then(() => {
-					redistributionSearchQuery = "";
-					itemRedistributeSearch.value = "";
-					renderRedistributionMembers();
-					renderRedistributionItems();
-					itemRedistributeBackdrop.hidden = false;
-					itemRedistributeDialog.hidden = false;
-					itemRedistributeDialog.focus();
-					// チームの合計採用率はネットワーク取得を伴うため、ダイアログ表示自体は
-					// 待たせず、届き次第もちもの一覧の並び順だけ更新する。
-					void loadTeamItemUsageTotals().then(() => renderRedistributionItems());
-					// メガストーン対応表も同様に非同期取得し、届き次第ロック表示を反映する。
-					void loadRedistributionLocks().then(() => renderRedistributionMembers());
-				});
+			async function openItemRedistributeDialog(): Promise<void> {
+				await redistributionItemGrid.ensureBuilt();
+				await loadRedistributionLocks();
+				redistributionSearchQuery = "";
+				itemRedistributeSearch.value = "";
+				renderRedistributionMembers();
+				renderRedistributionItems();
+				itemRedistributeBackdrop.hidden = false;
+				itemRedistributeDialog.hidden = false;
+				itemRedistributeDialog.focus();
+				// チームの合計採用率はネットワーク取得を伴うため、ダイアログ表示自体は
+				// 待たせず、届き次第もちもの一覧の並び順だけ更新する。
+				void loadTeamItemUsageTotals().then(() => renderRedistributionItems());
 			}
 			itemRedistributeButton.addEventListener("click", () => {
-				openItemRedistributeDialog();
+				void openItemRedistributeDialog();
 			});
 			itemRedistributeClose.addEventListener("click", closeRedistributionDialog);
 			itemRedistributeBackdrop.addEventListener("click", closeRedistributionDialog);
