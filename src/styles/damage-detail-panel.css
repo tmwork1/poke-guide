@@ -806,6 +806,8 @@ body.box-edit-page {
 	}
 	#damage-detail-panel-body .damage-detail-rank-ailment-row {
 		/* 状態異常の直後へテラスタルを置き、余白は右端へ逃がす。 */
+		/* タイプ選択リスト(.damage-detail-type-list)の基準にもする(行の直下・行幅の中央へ出す)。 */
+		position: relative;
 		display: grid;
 		grid-template-columns: auto auto minmax(0, 1fr);
 		align-items: center;
@@ -864,9 +866,6 @@ body.box-edit-page {
 		outline: var(--damage-detail-focus-outline);
 		outline-offset: 2px;
 	}
-	#damage-detail-panel-body .damage-detail-type-field {
-		position: relative;
-	}
 	#damage-detail-panel-body .damage-detail-type-box {
 		min-width: 40px;
 		height: 40px;
@@ -906,9 +905,12 @@ body.box-edit-page {
 	#damage-detail-panel-body .damage-detail-type-list {
 		position: absolute;
 		z-index: 6;
+		/* 単タイプの枠は狭く右揃えだと左端が見切れるため、行幅の中央へ固定する。 */
 		top: calc(100% + var(--damage-detail-space-xs));
-		right: 0;
+		left: 50%;
+		transform: translateX(-50%);
 		width: 15.5rem;
+		max-width: 100%;
 		display: grid;
 		grid-template-columns: repeat(6, minmax(0, 1fr));
 		gap: var(--damage-detail-space-sm);
@@ -941,6 +943,24 @@ body.box-edit-page {
 	#damage-detail-panel-body .damage-detail-type-option.is-active {
 		border-color: var(--color-primary);
 		background: var(--damage-detail-primary-soft-color);
+	}
+	/* 最下行の全幅リセット。上書きが無いときは押せないので薄くする。 */
+	#damage-detail-panel-body .damage-detail-type-reset-item {
+		grid-column: 1 / -1;
+	}
+	#damage-detail-panel-body .damage-detail-type-reset {
+		width: 100%;
+		min-height: 36px;
+		border: 1px solid var(--damage-detail-border-color);
+		border-radius: var(--damage-detail-radius-sm);
+		background: transparent;
+		color: inherit;
+		font: inherit;
+		cursor: pointer;
+	}
+	#damage-detail-panel-body .damage-detail-type-reset:disabled {
+		opacity: 0.4;
+		cursor: default;
 	}
 	/* 攻撃側・防御側の見出しに添える所属表示。見出しより控えめにする。 */
 	#damage-detail-panel-body .damage-detail-section-heading .damage-detail-side-badge {

@@ -1282,6 +1282,7 @@ function buildCurrentTypeBox(
 			option.classList.toggle("is-active", selected);
 			option.setAttribute("aria-selected", String(selected));
 		}
+		resetButton.disabled = value.length === 0;
 	};
 	for (const type of CURRENT_TYPE_NAMES) {
 		const option = document.createElement("li");
@@ -1302,6 +1303,23 @@ function buildCurrentTypeBox(
 		optionEls.set(type, option);
 		list.appendChild(option);
 	}
+	// 最下行: 上書きを全解除して種族本来のタイプへ戻す。上書きが無いときは押せない。
+	const resetItem = document.createElement("li");
+	resetItem.className = "damage-detail-type-reset-item";
+	resetItem.setAttribute("role", "none");
+	const resetButton = document.createElement("button");
+	resetButton.type = "button";
+	resetButton.className = "damage-detail-type-reset";
+	resetButton.textContent = "リセット";
+	resetButton.setAttribute("aria-label", `${ariaSideLabel}のタイプ上書きを解除する`);
+	resetButton.addEventListener("click", () => {
+		if (value.length === 0) return;
+		value = [];
+		onChange([]);
+		update();
+	});
+	resetItem.appendChild(resetButton);
+	list.appendChild(resetItem);
 	const closeList = (): void => {
 		list.hidden = true;
 		button.setAttribute("aria-expanded", "false");
