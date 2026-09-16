@@ -156,7 +156,6 @@ import {
 
 export interface DamageRowForShare {
 	id: string;
-	label: string;
 	root: HTMLElement;
 }
 
@@ -3267,11 +3266,8 @@ if (opponentNotesSection) {
 	let rows: DamageRowState[] = [];
 	readDamageRowsForShare = () => rows.flatMap((row) => {
 		if (!row.root) return [];
-		const name = row.name.trim() || "相手ポケモン未設定";
-		const moves = row.attacks.map((attack) => attack.moveName.trim()).filter(Boolean);
 		return [{
 			id: row.id || `share-${rows.indexOf(row)}`,
-			label: moves.length > 0 ? `${name}（${moves.join("、")}）` : name,
 			root: row.root,
 		}];
 	});

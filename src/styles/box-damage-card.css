@@ -4,6 +4,9 @@
    画面のどこ: ボックス詳細 → ダメージ計算タブ → 相手ポケモンごとのカード
    見た目を変えたいとき: 下の「チューニング変数」だけ触ればよい。
                         それより下は構造なので通常はいじらない。
+
+   .damage-card-scope(+.is-compact)は画像化モーダル/撮影用ラッパーで、カードのクローンへ
+   同じスタイルを当てるための別名。
    =========================================================================== */
 
 /* --------------------------------------------------------------------------
@@ -115,7 +118,7 @@ body.box-edit-page {
   --damage-card-delete-offset: var(--space-2); /* 削除ボタンとカード右上端の間隔 */
 }
 
-#opponent-notes-section .card-damage {
+:is(#opponent-notes-section, .damage-card-scope) .card-damage {
   /* ── 4. 背景色 ─────────────────────── */
 
   /* ── 7. 余白 ─────────────────────── */
@@ -129,7 +132,7 @@ body.box-edit-page {
 /* --------------------------------------------------------------------------
    カード外枠と基本入力欄
    -------------------------------------------------------------------------- */
-#opponent-notes-section .card-damage {
+:is(#opponent-notes-section, .damage-card-scope) .card-damage {
   --damage-card-current-background: var(--color-bg); /* カードの通常時の背景色 */
   background-color: var(--damage-card-current-background);
   background-image: linear-gradient(
@@ -149,38 +152,38 @@ body.box-edit-page {
   -webkit-touch-callout: none;
 }
 
-#opponent-notes-section .card-damage input,
-#opponent-notes-section .card-damage textarea {
+:is(#opponent-notes-section, .damage-card-scope) .card-damage input,
+:is(#opponent-notes-section, .damage-card-scope) .card-damage textarea {
   user-select: text;
   -webkit-user-select: text;
 }
 
-#opponent-notes-section .card-damage:focus-within {
+:is(#opponent-notes-section, .damage-card-scope) .card-damage:focus-within {
   box-shadow: var(--damage-card-active-shadow);
   --damage-card-current-background: color-mix(in srgb, var(--damage-card-base-background) 90%, var(--color-primary) 10%);
   border-color: var(--damage-card-active-border-color);
 }
 
 @media (hover: hover) and (pointer: fine) {
-  #opponent-notes-section .card-damage:hover {
+  :is(#opponent-notes-section, .damage-card-scope) .card-damage:hover {
     box-shadow: var(--damage-card-active-shadow);
     --damage-card-current-background: color-mix(in srgb, var(--damage-card-base-background) 90%, var(--color-primary) 10%);
     border-color: var(--damage-card-active-border-color);
   }
 }
 
-#opponent-notes-section .card-damage[data-direction="attack"] {
+:is(#opponent-notes-section, .damage-card-scope) .card-damage[data-direction="attack"] {
   --damage-card-face-background: color-mix(in srgb, var(--color-bg) 84%, var(--color-danger) 16%);
   --damage-card-result-meter-color: var(--color-danger-strong);
 }
 
-#opponent-notes-section .card-damage[data-direction="defense"] {
+:is(#opponent-notes-section, .damage-card-scope) .card-damage[data-direction="defense"] {
   --damage-card-face-background: color-mix(in srgb, var(--color-bg) 84%, var(--color-primary) 16%);
   --damage-card-result-meter-color: var(--color-primary-strong);
 }
 
 /* The outer shell stays neutral; apply the direction highlight to the visible card faces. */
-#opponent-notes-section .card-damage[data-direction] {
+:is(#opponent-notes-section, .damage-card-scope) .card-damage[data-direction] {
   --damage-card-current-background: var(--color-bg);
   --damage-card-build-background: var(--damage-card-face-background);
   --damage-card-column-background: var(--damage-card-face-background);
@@ -190,7 +193,7 @@ body.box-edit-page {
    相手ポケモンの型・名前・特性・持ち物
    -------------------------------------------------------------------------- */
 /* カード本文: 相手情報と技一覧を並べる領域 */
-#opponent-notes-section .damage-row-body {
+:is(#opponent-notes-section, .damage-card-scope) .damage-row-body {
   padding-bottom: var(--space-1); /* カード本文の下余白。大きくすると下端との間が広がる */
   flex-flow: wrap;
   align-items: stretch;
@@ -201,7 +204,7 @@ body.box-edit-page {
 /* 相手ポケモンの型をまとめた情報欄。左列(.damage-row-build-left)=攻守バッジ・相手アイコン、
    右列(.damage-row-build-right)=種族名・特性(上段、.damage-row-build-main)+
    アイテム・実数値(下段、.damage-row-build-fields)の2列構成にする。 */
-#opponent-notes-section .damage-row-build {
+:is(#opponent-notes-section, .damage-card-scope) .damage-row-build {
   border-radius: var(--radius-zero); /* 相手情報欄の角丸。大きくすると角が丸くなる */
   border: 1px solid var(--color-border);
   background-color: var(--damage-card-build-background);
@@ -222,42 +225,42 @@ body.box-edit-page {
 }
 
 /* 選択中の相手情報欄 */
-#opponent-notes-section .damage-row-build.is-selected {
+:is(#opponent-notes-section, .damage-card-scope) .damage-row-build.is-selected {
   box-shadow: 0 0 0 1px var(--color-primary), var(--shadow-sm); /* 選択中の相手情報欄を囲む影 */
 }
 
 /* 左列: 攻守バッジ・相手アイコン(中身は.damage-build-matchup) */
-#opponent-notes-section .damage-row-build-left {
+:is(#opponent-notes-section, .damage-card-scope) .damage-row-build-left {
   display: contents;
 }
 
 /* 右側情報欄: 左列に種族名・実数値、右列に特性・アイテムを2列×2行でそろえる */
-#opponent-notes-section .damage-row-build-right {
+:is(#opponent-notes-section, .damage-card-scope) .damage-row-build-right {
   display: contents;
 }
 
 /* DOM上の行ラッパーを外し、4要素を右列グリッドへ直接参加させる */
-#opponent-notes-section .damage-row-build-main,
-#opponent-notes-section .damage-row-build-fields {
+:is(#opponent-notes-section, .damage-card-scope) .damage-row-build-main,
+:is(#opponent-notes-section, .damage-card-scope) .damage-row-build-fields {
   display: contents;
 }
 
 /* 攻守の向き(directionToggle)と相手アイコン(spriteBox)の対面表示 */
-#opponent-notes-section .damage-build-matchup {
+:is(#opponent-notes-section, .damage-card-scope) .damage-build-matchup {
   display: contents;
 }
 
-#opponent-notes-section .damage-row-direction-toggle {
+:is(#opponent-notes-section, .damage-card-scope) .damage-row-direction-toggle {
   grid-column: 1;
   grid-row: 1 / -1;
 }
 
-#opponent-notes-section .damage-sprite-box {
+:is(#opponent-notes-section, .damage-card-scope) .damage-sprite-box {
   grid-column: 2;
   grid-row: 1 / -1;
 }
 
-#opponent-notes-section .damage-build-readonly-name {
+:is(#opponent-notes-section, .damage-card-scope) .damage-build-readonly-name {
   min-width: 0;
   grid-column: 3;
   grid-row: 1;
@@ -271,7 +274,7 @@ body.box-edit-page {
 
 /* アイテム欄(アイコン+名前)。短い補助情報として特性の下に置き、名前が固定列幅を
    超えるときだけ.damage-build-item-nameのellipsisを効かせる。 */
-#opponent-notes-section .damage-build-item-field {
+:is(#opponent-notes-section, .damage-card-scope) .damage-build-item-field {
   align-items: center;
   gap: var(--damage-card-tera-button-gap);
   min-width: 0;
@@ -280,11 +283,11 @@ body.box-edit-page {
   display: flex;
 }
 
-#opponent-notes-section .damage-build-item-field[hidden] {
+:is(#opponent-notes-section, .damage-card-scope) .damage-build-item-field[hidden] {
   display: none;
 }
 
-#opponent-notes-section .damage-build-item-name {
+:is(#opponent-notes-section, .damage-card-scope) .damage-build-item-name {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -294,12 +297,12 @@ body.box-edit-page {
 }
 
 /* アイテム・実数値は控えめな文字色・サイズで表示する。 */
-#opponent-notes-section .damage-row-build-fields {
+:is(#opponent-notes-section, .damage-card-scope) .damage-row-build-fields {
   color: var(--damage-card-build-detail-color);
   font-size: var(--damage-card-build-detail-font-size);
 }
 
-#opponent-notes-section .damage-build-readonly-field {
+:is(#opponent-notes-section, .damage-card-scope) .damage-build-readonly-field {
   min-width: 0;
   max-width: 100%;
   display: flex;
@@ -308,11 +311,11 @@ body.box-edit-page {
 }
 
 /* 値がない項目は行ごと隠す */
-#opponent-notes-section .damage-build-readonly-field[hidden] {
+:is(#opponent-notes-section, .damage-card-scope) .damage-build-readonly-field[hidden] {
   display: none;
 }
 
-#opponent-notes-section .damage-build-readonly-value {
+:is(#opponent-notes-section, .damage-card-scope) .damage-build-readonly-value {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -322,7 +325,7 @@ body.box-edit-page {
   font-weight: var(--font-weight-normal);
 }
 
-#opponent-notes-section .damage-build-readonly-label {
+:is(#opponent-notes-section, .damage-card-scope) .damage-build-readonly-label {
   flex: none;
   color: var(--color-text-muted); /* 相手情報の補助ラベル色 */
   font-size: inherit;
@@ -332,7 +335,7 @@ body.box-edit-page {
    上段(.damage-row-build-main)へ移動した。従来は下段コンテナのcolor/font-size継承だけで
    控えめな文字にしていたが、上段に移った今はそれに頼れないため、同じ
    --damage-card-build-detail-*系トークンをこの要素自身へ明示する。 */
-#opponent-notes-section .damage-build-readonly-ability-line {
+:is(#opponent-notes-section, .damage-card-scope) .damage-build-readonly-ability-line {
   min-width: 0;
   grid-column: 4;
   grid-row: 1;
@@ -341,7 +344,7 @@ body.box-edit-page {
 }
 
 /* 特性・もちものの両方が未設定なら、空いた4列目を残さず名前の列へ詰める。 */
-#opponent-notes-section .damage-row-build:not(:has(.damage-build-readonly-ability-line:not([hidden]), .damage-build-item-field:not([hidden]))) {
+:is(#opponent-notes-section, .damage-card-scope) .damage-row-build:not(:has(.damage-build-readonly-ability-line:not([hidden]), .damage-build-item-field:not([hidden]))) {
   grid-template-columns: auto auto minmax(0, 1fr);
 }
 
@@ -349,7 +352,7 @@ body.box-edit-page {
    攻撃・防御の切り替え操作
    -------------------------------------------------------------------------- */
 /* 「自分が攻撃」「自分が防御」の2択スイッチ */
-#opponent-notes-section .damage-row-direction-toggle {
+:is(#opponent-notes-section, .damage-card-scope) .damage-row-direction-toggle {
   border: var(--damage-card-direction-border);
   border-radius: var(--damage-card-direction-border-radius);
   flex: 1 1 0;
@@ -360,7 +363,7 @@ body.box-edit-page {
 
 /* 攻撃・防御スイッチの選択肢。カード上ではクリック不可の状態表示専用のため、
    カーソル形状・hover時の反応色は付けない(付けるとクリックできるように見えてしまう)。 */
-#opponent-notes-section .damage-row-direction-option {
+:is(#opponent-notes-section, .damage-card-scope) .damage-row-direction-option {
   background: var(--damage-card-direction-background);
   min-width: 0;
   color: var(--damage-card-direction-color);
@@ -374,21 +377,21 @@ body.box-edit-page {
   transition: background var(--damage-card-transition-duration), color var(--damage-card-transition-duration);
 }
 
-#opponent-notes-section .damage-row-direction-option + .damage-row-direction-option {
+:is(#opponent-notes-section, .damage-card-scope) .damage-row-direction-option + .damage-row-direction-option {
   border-left: 1px solid var(--color-border);
 }
 
-#opponent-notes-section .damage-row-direction-option:focus-visible {
+:is(#opponent-notes-section, .damage-card-scope) .damage-row-direction-option:focus-visible {
   outline: var(--damage-card-control-focus-outline);
   outline-offset: var(--damage-card-direction-focus-offset);
 }
 
-#opponent-notes-section .damage-row-direction-option[data-role="attack"][aria-checked="true"] {
+:is(#opponent-notes-section, .damage-card-scope) .damage-row-direction-option[data-role="attack"][aria-checked="true"] {
   background: var(--damage-card-attack-background);
   color: var(--damage-card-direction-selected-color);
 }
 
-#opponent-notes-section .damage-row-direction-option[data-role="defense"][aria-checked="true"] {
+:is(#opponent-notes-section, .damage-card-scope) .damage-row-direction-option[data-role="defense"][aria-checked="true"] {
   background: var(--damage-card-defense-background);
   color: var(--damage-card-direction-selected-color);
 }
@@ -400,16 +403,16 @@ body.box-edit-page {
    トグル)が.damage-row-techniques-rowの中にインライン表示されてくるケースを
    誤って隠さないため。
    .card-damageを加えているのは、後方の「常時適用」メディアクエリ内にある同詳細度の
-   display: flex 宣言(#opponent-notes-section .card-damage .damage-build-matchup
+   display: flex 宣言(:is(#opponent-notes-section, .damage-card-scope) .card-damage .damage-build-matchup
    .damage-row-direction-option)にソース順で負けて非選択側が隠れないバグがあったため、
    詳細度を1段階上げて確実に上書きするための対策。 */
-#opponent-notes-section .card-damage .damage-build-matchup .damage-row-direction-option[aria-checked="false"] {
+:is(#opponent-notes-section, .damage-card-scope) .card-damage .damage-build-matchup .damage-row-direction-option[aria-checked="false"] {
   display: none;
 }
 
 /* 「相手ポケモン」タブの攻撃/防御切り替え(.damage-build-detail-direction-toggle)は
-   #damage-detail-panel(DamageDetailPanel.astro)側に描画され、#opponent-notes-sectionの外に
-   あるため、上の#opponent-notes-section配下ルールが一切当たらない(枠・角丸・区切り線・
+   #damage-detail-panel(DamageDetailPanel.astro)側に描画され、:is(#opponent-notes-section, .damage-card-scope)の外に
+   あるため、上の:is(#opponent-notes-section, .damage-card-scope)配下ルールが一切当たらない(枠・角丸・区切り線・
    選択色すべて未適用のまま素のボタンとして見えていた)。同じ見た目を独立して与える。 */
 #damage-detail-panel .damage-build-detail-direction-toggle {
   border: var(--damage-card-direction-border);
@@ -473,7 +476,7 @@ body.box-edit-page {
   box-shadow: inset 0 0 0 1px var(--color-primary-strong);
 }
 
-#opponent-notes-section .damage-row-tera-field {
+:is(#opponent-notes-section, .damage-card-scope) .damage-row-tera-field {
   width: 100%;
   position: relative;
 }
@@ -482,7 +485,7 @@ body.box-edit-page {
    テラスタイプ選択と相手ポケモンの画像
    -------------------------------------------------------------------------- */
 /* テラスタイプ選択ボタン */
-#opponent-notes-section .tera-dropdown-button {
+:is(#opponent-notes-section, .damage-card-scope) .tera-dropdown-button {
   border: 1px solid var(--color-border); /* テラスタイプ選択ボタンの枠線 */
   border-radius: var(--radius-sm); /* テラスタイプ選択ボタンの角丸 */
   background: var(--color-surface-sunken); /* テラスタイプ選択ボタンの背景色 */
@@ -503,36 +506,36 @@ body.box-edit-page {
 }
 
 @media (hover: hover) and (pointer: fine) {
-  #opponent-notes-section .tera-dropdown-button:hover {
+  :is(#opponent-notes-section, .damage-card-scope) .tera-dropdown-button:hover {
     border-color: var(--color-primary); /* ボタンへマウスを載せたときの枠線色 */
   }
 }
 
-#opponent-notes-section .tera-dropdown-button:focus-visible {
+:is(#opponent-notes-section, .damage-card-scope) .tera-dropdown-button:focus-visible {
   outline: var(--damage-card-control-focus-outline);
   outline-offset: 1px;
 }
 
-#opponent-notes-section .tera-dropdown-image {
+:is(#opponent-notes-section, .damage-card-scope) .tera-dropdown-image {
   width: var(--damage-card-tera-summary-icon-size);
   height: var(--damage-card-tera-summary-icon-size);
   object-fit: contain;
   flex-shrink: 0;
 }
 
-#opponent-notes-section .tera-dropdown-placeholder {
+:is(#opponent-notes-section, .damage-card-scope) .tera-dropdown-placeholder {
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--color-text-muted);
   overflow: hidden;
 }
 
-#opponent-notes-section .tera-dropdown-placeholder.is-tera-value-text {
+:is(#opponent-notes-section, .damage-card-scope) .tera-dropdown-placeholder.is-tera-value-text {
   color: var(--color-text);
 }
 
 /* テラスタイプ候補のプルダウン */
-#opponent-notes-section .tera-dropdown-list {
+:is(#opponent-notes-section, .damage-card-scope) .tera-dropdown-list {
   z-index: 5;
   padding: var(--damage-card-dropdown-padding);
   background: var(--damage-card-dropdown-background);
@@ -549,12 +552,12 @@ body.box-edit-page {
   overflow-y: auto;
 }
 
-#opponent-notes-section .tera-dropdown-list[hidden] {
+:is(#opponent-notes-section, .damage-card-scope) .tera-dropdown-list[hidden] {
   display: none;
 }
 
 /* 相手ポケモンのアイコン画像を置く正方形 */
-#opponent-notes-section .damage-sprite-box {
+:is(#opponent-notes-section, .damage-card-scope) .damage-sprite-box {
   background: none;
   flex-shrink: 0;
   justify-content: center;
@@ -565,7 +568,7 @@ body.box-edit-page {
   position: relative;
 }
 
-#opponent-notes-section .damage-sprite-box img.sprite-icon {
+:is(#opponent-notes-section, .damage-card-scope) .damage-sprite-box img.sprite-icon {
   object-fit: contain;
   background: none;
   border-radius: 0;
@@ -573,7 +576,7 @@ body.box-edit-page {
   height: 100%;
 }
 
-#opponent-notes-section .damage-sprite-box .sprite-fallback {
+:is(#opponent-notes-section, .damage-card-scope) .damage-sprite-box .sprite-fallback {
   background: none;
   border-radius: 0;
   font-size: 1.1rem; /* 画像がないときの代替文字サイズ */
@@ -582,7 +585,7 @@ body.box-edit-page {
 /* アイテムアイコン。applyItemImage(shared-core.ts)がアイテム名の有無・画像読み込み結果に
    応じてhiddenを自動制御する。以前は相手アイコン右下に重ねる丸バッジ(absolute配置)
    だったが、右列上段のアイテム欄にインラインのアイコンとして表示するよう改修。 */
-#opponent-notes-section .damage-item-badge {
+:is(#opponent-notes-section, .damage-card-scope) .damage-item-badge {
   width: var(--damage-card-item-badge-size);
   height: var(--damage-card-item-badge-size);
   flex-shrink: 0;
@@ -591,11 +594,11 @@ body.box-edit-page {
   justify-content: center;
 }
 
-#opponent-notes-section .damage-item-badge[hidden] {
+:is(#opponent-notes-section, .damage-card-scope) .damage-item-badge[hidden] {
   display: none;
 }
 
-#opponent-notes-section .damage-item-badge img {
+:is(#opponent-notes-section, .damage-card-scope) .damage-item-badge img {
   width: 100%;
   height: 100%;
   object-fit: contain;
@@ -618,7 +621,7 @@ body.box-edit-page {
 }
 
 /* 左側の育成情報フォームと相手カードで共有するテラスタイプ候補 */
-#edit-form .tera-dropdown-option, #opponent-notes-section .tera-dropdown-option {
+#edit-form .tera-dropdown-option, :is(#opponent-notes-section, .damage-card-scope) .tera-dropdown-option {
   border-radius: var(--damage-card-dropdown-option-radius);
   cursor: pointer;
   align-items: center;
@@ -627,30 +630,30 @@ body.box-edit-page {
   display: flex;
 }
 
-#edit-form .tera-dropdown-option:focus-visible, #opponent-notes-section .tera-dropdown-option:focus-visible {
+#edit-form .tera-dropdown-option:focus-visible, :is(#opponent-notes-section, .damage-card-scope) .tera-dropdown-option:focus-visible {
   background: color-mix(in srgb, var(--color-surface) 90%, var(--color-primary) 10%);
   outline: none;
 }
 
 @media (hover: hover) and (pointer: fine) {
-  #edit-form .tera-dropdown-option:hover, #opponent-notes-section .tera-dropdown-option:hover {
+  #edit-form .tera-dropdown-option:hover, :is(#opponent-notes-section, .damage-card-scope) .tera-dropdown-option:hover {
     background: color-mix(in srgb, var(--color-surface) 90%, var(--color-primary) 10%);
     outline: none;
   }
 }
 
-#edit-form .tera-dropdown-option.is-active, #opponent-notes-section .tera-dropdown-option.is-active {
+#edit-form .tera-dropdown-option.is-active, :is(#opponent-notes-section, .damage-card-scope) .tera-dropdown-option.is-active {
   background: var(--color-primary-soft); /* 現在選択中の候補の背景色 */
 }
 
-#edit-form .tera-dropdown-option-image, #opponent-notes-section .tera-dropdown-option-image {
+#edit-form .tera-dropdown-option-image, :is(#opponent-notes-section, .damage-card-scope) .tera-dropdown-option-image {
   width: var(--damage-card-tera-summary-icon-size);
   height: var(--damage-card-tera-summary-icon-size);
   object-fit: contain;
   flex-shrink: 0;
 }
 
-#edit-form .tera-dropdown-option-text, #opponent-notes-section .tera-dropdown-option-text {
+#edit-form .tera-dropdown-option-text, :is(#opponent-notes-section, .damage-card-scope) .tera-dropdown-option-text {
   font-size: var(--damage-card-dropdown-option-font-size);
   color: var(--color-text);
   text-overflow: ellipsis;
@@ -659,7 +662,7 @@ body.box-edit-page {
 }
 
 /* カード上ではテラスタイプを文字で示すため、候補画像は隠す */
-#opponent-notes-section .tera-dropdown-image, #opponent-notes-section .tera-dropdown-option-image {
+:is(#opponent-notes-section, .damage-card-scope) .tera-dropdown-image, :is(#opponent-notes-section, .damage-card-scope) .tera-dropdown-option-image {
   display: none;
 }
 
@@ -667,14 +670,14 @@ body.box-edit-page {
    実数値・努力値と条件チップ
    -------------------------------------------------------------------------- */
 /* 相手ポケモンの6能力を並べる表 */
-#opponent-notes-section .damage-ev-grid {
+:is(#opponent-notes-section, .damage-card-scope) .damage-ev-grid {
   grid-template-columns: 3.4em repeat(6, minmax(0, 1fr)); /* 努力値表の左端ラベル幅。大きくすると数値列が右へ寄る */
   align-items: center;
   display: grid;
 }
 
 /* カード内に1行で並ぶ能力値サマリー */
-#opponent-notes-section .damage-ev-grid-readonly {
+:is(#opponent-notes-section, .damage-card-scope) .damage-ev-grid-readonly {
   grid-column: 3;
   grid-row: 2;
   align-items: baseline;
@@ -683,20 +686,20 @@ body.box-edit-page {
   display: flex;
 }
 
-#opponent-notes-section .damage-row-build {
+:is(#opponent-notes-section, .damage-card-scope) .damage-row-build {
   --damage-card-build-content-column: 3;
 }
 
-#opponent-notes-section .damage-build-readonly-name,
-#opponent-notes-section .damage-ev-grid-readonly {
+:is(#opponent-notes-section, .damage-card-scope) .damage-build-readonly-name,
+:is(#opponent-notes-section, .damage-card-scope) .damage-ev-grid-readonly {
   grid-column: var(--damage-card-build-content-column);
 }
 
-#opponent-notes-section .damage-ev-grid-readonly {
+:is(#opponent-notes-section, .damage-card-scope) .damage-ev-grid-readonly {
   padding-inline-start: .2rem;
 }
 
-#opponent-notes-section .damage-ev-readonly-stat {
+:is(#opponent-notes-section, .damage-card-scope) .damage-ev-readonly-stat {
   align-items: baseline;
   /* 相手情報2段目(.damage-row-build-fields)の一部なので、文字サイズ・色は
      コンテナから継承して他の補助情報(特性・テラス・アイテム)と揃える。 */
@@ -706,17 +709,17 @@ body.box-edit-page {
   display: inline-flex;
 }
 
-#opponent-notes-section .damage-ev-readonly-stat[data-mod="up"] {
+:is(#opponent-notes-section, .damage-card-scope) .damage-ev-readonly-stat[data-mod="up"] {
   color: var(--damage-card-stat-up-color);
 }
 
-#opponent-notes-section .damage-ev-readonly-stat[data-mod="down"] {
+:is(#opponent-notes-section, .damage-card-scope) .damage-ev-readonly-stat[data-mod="down"] {
   color: var(--damage-card-stat-down-color);
 }
 
-#opponent-notes-section .damage-ev-readonly-stat > .damage-ev-col-label,
-#opponent-notes-section .damage-ev-readonly-stat > .damage-stat-value,
-#opponent-notes-section .damage-ev-readonly-stat > .damage-ev-value-readonly {
+:is(#opponent-notes-section, .damage-card-scope) .damage-ev-readonly-stat > .damage-ev-col-label,
+:is(#opponent-notes-section, .damage-card-scope) .damage-ev-readonly-stat > .damage-stat-value,
+:is(#opponent-notes-section, .damage-card-scope) .damage-ev-readonly-stat > .damage-ev-value-readonly {
   color: inherit;
   font-size: inherit;
   font-weight: var(--font-weight-normal);
@@ -725,7 +728,7 @@ body.box-edit-page {
   display: inline;
 }
 
-#opponent-notes-section .damage-ev-col-label {
+:is(#opponent-notes-section, .damage-card-scope) .damage-ev-col-label {
   font-size: inherit;
   font-weight: var(--font-weight-semibold);
   line-height: var(--damage-card-stat-line-height);
@@ -733,19 +736,19 @@ body.box-edit-page {
   color: var(--damage-card-stat-label-color);
 }
 
-#opponent-notes-section .damage-ev-nature-indicator {
+:is(#opponent-notes-section, .damage-card-scope) .damage-ev-nature-indicator {
   line-height: 1;
 }
 
-#opponent-notes-section .damage-ev-col-label[data-mod="up"] {
+:is(#opponent-notes-section, .damage-card-scope) .damage-ev-col-label[data-mod="up"] {
   color: var(--damage-card-stat-up-color);
 }
 
-#opponent-notes-section .damage-ev-col-label[data-mod="down"] {
+:is(#opponent-notes-section, .damage-card-scope) .damage-ev-col-label[data-mod="down"] {
   color: var(--damage-card-stat-down-color);
 }
 
-#opponent-notes-section .damage-ev-grid input[type="number"] {
+:is(#opponent-notes-section, .damage-card-scope) .damage-ev-grid input[type="number"] {
   width: 100%;
   min-width: 0;
   font-size: var(--font-size-sm2); /* 実数値・努力値の文字サイズ */
@@ -755,7 +758,7 @@ body.box-edit-page {
   padding: .08em .1em; /* 努力値入力欄の内側余白 */
 }
 
-#opponent-notes-section .damage-stat-value {
+:is(#opponent-notes-section, .damage-card-scope) .damage-stat-value {
   font-size: inherit;
   line-height: var(--damage-card-stat-line-height);
   text-align: center;
@@ -764,15 +767,15 @@ body.box-edit-page {
   display: block;
 }
 
-#opponent-notes-section .damage-stat-value[data-mod="up"] {
+:is(#opponent-notes-section, .damage-card-scope) .damage-stat-value[data-mod="up"] {
   color: var(--damage-card-stat-up-color);
 }
 
-#opponent-notes-section .damage-stat-value[data-mod="down"] {
+:is(#opponent-notes-section, .damage-card-scope) .damage-stat-value[data-mod="down"] {
   color: var(--damage-card-stat-down-color);
 }
 
-#opponent-notes-section .damage-ev-value-readonly {
+:is(#opponent-notes-section, .damage-card-scope) .damage-ev-value-readonly {
   display: block;
   min-width: 0;
   color: var(--damage-card-stat-label-color);
@@ -784,18 +787,18 @@ body.box-edit-page {
 /* 技に付いた天候・壁・状態異常などの条件チップ。この列自体が折り返すと親の
    .damage-column-conditions側のoverflow-x: autoが効かず縦に伸びてしまうため、
    折り返さず横スクロールに任せる(.damage-column-conditions参照)。 */
-#opponent-notes-section .damage-row-condition-chips {
+:is(#opponent-notes-section, .damage-card-scope) .damage-row-condition-chips {
   gap: var(--space-1); /* 条件チップ同士の間隔 */
   flex-wrap: nowrap;
   align-items: center;
   display: flex;
 }
 
-#opponent-notes-section .damage-row-condition-chips[hidden] {
+:is(#opponent-notes-section, .damage-card-scope) .damage-row-condition-chips[hidden] {
   display: none;
 }
 
-#opponent-notes-section .damage-condition-chip {
+:is(#opponent-notes-section, .damage-card-scope) .damage-condition-chip {
   font-size: var(--damage-card-condition-font-size);
   padding: .1em .5em; /* 条件チップの内側余白 */
   background: color-mix(in srgb, var(--color-surface) 96%, white 4%);
@@ -803,7 +806,7 @@ body.box-edit-page {
   border: 1px solid color-mix(in srgb, var(--color-border) 88%, var(--color-surface) 12%);
 }
 
-#opponent-notes-section .damage-condition-group-label {
+:is(#opponent-notes-section, .damage-card-scope) .damage-condition-group-label {
   font-size: var(--damage-card-condition-font-size);
   color: var(--damage-card-stat-label-color);
   line-height: 1;
@@ -815,7 +818,7 @@ body.box-edit-page {
    累計ダメージゲージ
    -------------------------------------------------------------------------- */
 /* 技を順に当てたときの累計結果 */
-#opponent-notes-section .damage-row-total {
+:is(#opponent-notes-section, .damage-card-scope) .damage-row-total {
   border-radius: var(--radius-zero); /* 累計ゲージの角丸 */
   border: 1px solid var(--color-border);
   padding: var(--space-1); /* 累計ゲージの内側余白 */
@@ -824,16 +827,16 @@ body.box-edit-page {
   position: relative;
 }
 
-#opponent-notes-section .damage-row-total.is-breakdown-available {
+:is(#opponent-notes-section, .damage-card-scope) .damage-row-total.is-breakdown-available {
   cursor: pointer;
 }
 
-#opponent-notes-section .damage-row-total.is-breakdown-available .damage-row-total-result:focus-visible {
+:is(#opponent-notes-section, .damage-card-scope) .damage-row-total.is-breakdown-available .damage-row-total-result:focus-visible {
   outline: 1px solid var(--color-primary);
   outline-offset: 1px;
 }
 
-#opponent-notes-section .damage-row-total-breakdown {
+:is(#opponent-notes-section, .damage-card-scope) .damage-row-total-breakdown {
   position: absolute;
   z-index: 2;
   top: calc(100% + var(--space-1));
@@ -847,17 +850,17 @@ body.box-edit-page {
   color: var(--color-text);
 }
 
-#opponent-notes-section .damage-row-total-breakdown[hidden] {
+:is(#opponent-notes-section, .damage-card-scope) .damage-row-total-breakdown[hidden] {
   display: none;
 }
 
-#opponent-notes-section .damage-row-total-breakdown-list {
+:is(#opponent-notes-section, .damage-card-scope) .damage-row-total-breakdown-list {
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-#opponent-notes-section .damage-row-total-breakdown-item {
+:is(#opponent-notes-section, .damage-card-scope) .damage-row-total-breakdown-item {
   display: flex;
   justify-content: space-between;
   gap: var(--space-2);
@@ -865,24 +868,24 @@ body.box-edit-page {
   line-height: var(--line-height-tight);
 }
 
-#opponent-notes-section .damage-row-total-breakdown-item + .damage-row-total-breakdown-item {
+:is(#opponent-notes-section, .damage-card-scope) .damage-row-total-breakdown-item + .damage-row-total-breakdown-item {
   margin-top: var(--space-1);
 }
 
-#opponent-notes-section .damage-row-total-breakdown-move {
+:is(#opponent-notes-section, .damage-card-scope) .damage-row-total-breakdown-move {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-#opponent-notes-section .damage-row-total-breakdown-value {
+:is(#opponent-notes-section, .damage-card-scope) .damage-row-total-breakdown-value {
   flex: none;
   color: var(--color-text-muted);
 }
 
 /* 倒せる見込みが高い累計範囲 */
-#opponent-notes-section .damage-row-total[data-severity="lethal"] {
+:is(#opponent-notes-section, .damage-card-scope) .damage-row-total[data-severity="lethal"] {
   background: linear-gradient(to right,
     var(--color-danger-soft) 0 var(--gauge-min),
     color-mix(in srgb, var(--color-danger-strong) 35%, var(--color-danger-soft) 65%) var(--gauge-min) var(--gauge-max), /* 倒し切る範囲のゲージ色 */
@@ -891,7 +894,7 @@ body.box-edit-page {
 }
 
 /* 乱数次第で倒せる累計範囲 */
-#opponent-notes-section .damage-row-total[data-severity="risky"] {
+:is(#opponent-notes-section, .damage-card-scope) .damage-row-total[data-severity="risky"] {
   background: linear-gradient(to right,
     var(--color-risky-soft) 0 var(--gauge-min),
     color-mix(in srgb, var(--color-risky-strong) 35%, var(--color-risky-soft) 65%) var(--gauge-min) var(--gauge-max), /* 乱数圏内のゲージ色 */
@@ -900,7 +903,7 @@ body.box-edit-page {
 }
 
 /* 相手が耐える累計範囲 */
-#opponent-notes-section .damage-row-total[data-severity="safe"] {
+:is(#opponent-notes-section, .damage-card-scope) .damage-row-total[data-severity="safe"] {
   background: linear-gradient(to right,
     var(--color-success-soft) 0 var(--gauge-min),
     color-mix(in srgb, var(--color-success-strong) 35%, var(--color-success-soft) 65%) var(--gauge-min) var(--gauge-max), /* 耐える範囲のゲージ色 */
@@ -909,19 +912,19 @@ body.box-edit-page {
 }
 
 /* まだ計算結果がない累計欄 */
-#opponent-notes-section .damage-row-total[data-severity="none"] {
+:is(#opponent-notes-section, .damage-card-scope) .damage-row-total[data-severity="none"] {
   background: var(--color-bg);
   color: var(--color-text-muted);
 }
 
 /* The direction-tinted card is the color cue; the cumulative result uses one meter treatment. */
-#opponent-notes-section .damage-row-total {
+:is(#opponent-notes-section, .damage-card-scope) .damage-row-total {
   background: var(--damage-card-face-background, var(--damage-card-current-background));
 }
 
-#opponent-notes-section .damage-row-total[data-severity="lethal"],
-#opponent-notes-section .damage-row-total[data-severity="risky"],
-#opponent-notes-section .damage-row-total[data-severity="safe"] {
+:is(#opponent-notes-section, .damage-card-scope) .damage-row-total[data-severity="lethal"],
+:is(#opponent-notes-section, .damage-card-scope) .damage-row-total[data-severity="risky"],
+:is(#opponent-notes-section, .damage-card-scope) .damage-row-total[data-severity="safe"] {
   background: linear-gradient(to right,
     var(--damage-card-face-background, var(--damage-card-current-background)) 0 var(--gauge-min),
     color-mix(in srgb, var(--damage-card-face-background, var(--damage-card-current-background)) 55%, var(--damage-card-result-meter-color, var(--color-primary)) 45%) var(--gauge-min) var(--gauge-max),
@@ -929,11 +932,11 @@ body.box-edit-page {
   color: var(--color-text);
 }
 
-#opponent-notes-section .damage-row-total[data-severity="none"] {
+:is(#opponent-notes-section, .damage-card-scope) .damage-row-total[data-severity="none"] {
   background: var(--damage-card-face-background, var(--damage-card-current-background));
 }
 
-#opponent-notes-section .damage-row-total-label {
+:is(#opponent-notes-section, .damage-card-scope) .damage-row-total-label {
   font-size: var(--font-size-sm3); /* 「累計結果」ラベルの文字サイズ */
   font-weight: var(--font-weight-bold);
   line-height: var(--line-height-tight);
@@ -943,7 +946,7 @@ body.box-edit-page {
 }
 
 /* 累計結果の「判定」とダメージ割合 */
-#opponent-notes-section .damage-row-total-result {
+:is(#opponent-notes-section, .damage-card-scope) .damage-row-total-result {
   max-width: var(--damage-card-total-result-max-width);
   font-size: var(--font-size-sm1);
   line-height: var(--line-height-tight);
@@ -955,7 +958,7 @@ body.box-edit-page {
   display: grid;
 }
 
-#opponent-notes-section .damage-row-total-result .damage-result-verdict {
+:is(#opponent-notes-section, .damage-card-scope) .damage-row-total-result .damage-result-verdict {
   font-size: var(--font-size-lg1); /* 「確定1発」など判定部分の文字サイズ */
   font-weight: var(--damage-card-total-verdict-font-weight);
 }
@@ -964,37 +967,37 @@ body.box-edit-page {
    (背景のメーターは.damage-row-total側の既存の表現のまま変えない。文字色だけ
    .damage-row-total-result側で上書きし、継承元の.damage-row-total[data-severity]の
    color: var(--color-text)より優先させる)。 */
-#opponent-notes-section .damage-row-total-result[data-severity="lethal"] {
+:is(#opponent-notes-section, .damage-card-scope) .damage-row-total-result[data-severity="lethal"] {
   color: var(--damage-card-result-confirm1-color);
 }
 
-#opponent-notes-section .damage-row-total-result[data-severity="risky"] {
+:is(#opponent-notes-section, .damage-card-scope) .damage-row-total-result[data-severity="risky"] {
   color: var(--damage-card-result-confirm2-color);
 }
 
-#opponent-notes-section .damage-row-total-result[data-severity="safe"] {
+:is(#opponent-notes-section, .damage-card-scope) .damage-row-total-result[data-severity="safe"] {
   color: var(--damage-card-result-confirm3plus-color);
 }
 
 /* Slightly reduce the visual weight of the KO-count verdict. */
-#opponent-notes-section .damage-row-total-result .damage-result-verdict {
+:is(#opponent-notes-section, .damage-card-scope) .damage-row-total-result .damage-result-verdict {
   font-size: var(--damage-card-move-font-size);
   font-weight: var(--damage-card-total-verdict-font-weight);
 }
 
-#opponent-notes-section .damage-result-probability {
+:is(#opponent-notes-section, .damage-card-scope) .damage-result-probability {
   margin-inline-start: .25em;
   font-weight: var(--font-weight-normal);
 }
 
 /* 累計結果の致死率(乱N xx.xx%の%部分)は、直前の確定数ラベルと同じ太さ・大きさに揃える
    (上の共通ルールのfont-weight-normalのままだと、確定数だけ太く見えて浮いていた)。 */
-#opponent-notes-section .damage-row-total-result .damage-result-probability {
+:is(#opponent-notes-section, .damage-card-scope) .damage-row-total-result .damage-result-probability {
   font-size: inherit;
   font-weight: inherit;
 }
 
-#opponent-notes-section .damage-row-total-result .damage-result-detail {
+:is(#opponent-notes-section, .damage-card-scope) .damage-row-total-result .damage-result-detail {
   font-size: var(--damage-card-total-detail-font-size);
   opacity: .85; /* 詳細部分の濃さ。小さくすると薄くなる */
   text-align: left;
@@ -1005,7 +1008,7 @@ body.box-edit-page {
    カード右上の削除操作と保存状態
    -------------------------------------------------------------------------- */
 /* カード右上に重なる丸型アイコンボタン */
-#opponent-notes-section .damage-row-icon-button {
+:is(#opponent-notes-section, .damage-card-scope) .damage-row-icon-button {
   width: var(--damage-card-action-size);
   height: var(--damage-card-action-size);
   min-height: 0;
@@ -1018,7 +1021,7 @@ body.box-edit-page {
 }
 
 /* 相手カードを削除する×ボタン */
-#opponent-notes-section .damage-row-delete-button {
+:is(#opponent-notes-section, .damage-card-scope) .damage-row-delete-button {
   top: var(--damage-card-delete-offset);
   right: var(--damage-card-delete-offset);
   z-index: 2;
@@ -1032,36 +1035,36 @@ body.box-edit-page {
 }
 
 @media (hover: hover) and (pointer: fine) {
-  #opponent-notes-section .damage-row-delete-button {
+  :is(#opponent-notes-section, .damage-card-scope) .damage-row-delete-button {
     display: inline-flex;
   }
 
-  #opponent-notes-section .card-damage:hover .damage-row-delete-button,
-  #opponent-notes-section .card-damage:focus-within .damage-row-delete-button {
+  :is(#opponent-notes-section, .damage-card-scope) .card-damage:hover .damage-row-delete-button,
+  :is(#opponent-notes-section, .damage-card-scope) .card-damage:focus-within .damage-row-delete-button {
     opacity: 1;
     pointer-events: auto;
   }
 }
 
 @media (hover: hover) and (pointer: fine) {
-  #opponent-notes-section .damage-row-delete-button:hover:not(:disabled) {
+  :is(#opponent-notes-section, .damage-card-scope) .damage-row-delete-button:hover:not(:disabled) {
     background: var(--damage-card-delete-hover-background);
     color: var(--color-primary-contrast); /* 削除ボタンへマウスを載せたときの記号色 */
     border-color: var(--damage-card-delete-hover-background);
   }
 }
 
-#opponent-notes-section .damage-row-delete-button:focus-visible {
+:is(#opponent-notes-section, .damage-card-scope) .damage-row-delete-button:focus-visible {
   outline: var(--damage-card-control-focus-outline);
   outline-offset: 2px;
 }
 
 /* 長押しで入る削除モード中のみ、各カードの削除操作を常に表示する。
    削除モードの単位は「相手ビルド〜結果」の1セット(.card-damage)にひとつだけ。 */
-#opponent-notes-section .damage-rows-list.is-card-delete-mode .card-damage {
+:is(#opponent-notes-section, .damage-card-scope) .damage-rows-list.is-card-delete-mode .card-damage {
   animation: damage-card-delete-wiggle .16s ease-in-out infinite alternate; /* 長押し削除モードでカードが揺れる速さ */
 }
-#opponent-notes-section .damage-rows-list.is-card-delete-mode .damage-row-delete-button {
+:is(#opponent-notes-section, .damage-card-scope) .damage-rows-list.is-card-delete-mode .damage-row-delete-button {
   display: inline-flex;
   opacity: 1;
   pointer-events: auto;
@@ -1073,7 +1076,7 @@ body.box-edit-page {
 
 /* 削除確定タップの瞬間だけ、カードを萎ませる
    (card-delete-mode.tsのplayCardDeleteExitEffectが付与)。 */
-#opponent-notes-section .card-damage.is-card-removing {
+:is(#opponent-notes-section, .damage-card-scope) .card-damage.is-card-removing {
   transform: scale(var(--card-removing-scale));
   opacity: var(--card-removing-opacity);
   transition: transform var(--card-removing-duration) ease-in, opacity var(--card-removing-duration) ease-in;
@@ -1085,10 +1088,10 @@ body.box-edit-page {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  #opponent-notes-section .damage-row-delete-button {
+  :is(#opponent-notes-section, .damage-card-scope) .damage-row-delete-button {
     transition: none;
   }
-  #opponent-notes-section .damage-rows-list.is-card-delete-mode .card-damage {
+  :is(#opponent-notes-section, .damage-card-scope) .damage-rows-list.is-card-delete-mode .card-damage {
     animation: none;
     outline: 2px solid var(--damage-card-delete-mode-color);
     outline-offset: 2px;
@@ -1096,7 +1099,7 @@ body.box-edit-page {
 }
 
 /* 技一覧・追加ボタン・累計結果をまとめる領域 */
-#opponent-notes-section .damage-row-techniques-row {
+:is(#opponent-notes-section, .damage-card-scope) .damage-row-techniques-row {
   gap: var(--space-2); /* 技一覧と累計結果などの間隔 */
   flex-direction: column;
   flex: 1 1 0;
@@ -1108,7 +1111,7 @@ body.box-edit-page {
    技カードとダメージ結果
    -------------------------------------------------------------------------- */
 /* 技カードを縦にまとめる領域 */
-#opponent-notes-section .damage-row-columns-wrap {
+:is(#opponent-notes-section, .damage-card-scope) .damage-row-columns-wrap {
   gap: var(--damage-card-columns-gap);
   flex-direction: column;
   min-width: 0;
@@ -1116,7 +1119,7 @@ body.box-edit-page {
   display: flex;
 }
 
-#opponent-notes-section .damage-row-columns {
+:is(#opponent-notes-section, .damage-card-scope) .damage-row-columns {
   gap: var(--damage-card-columns-gap);
   flex-direction: column;
   min-width: 0;
@@ -1124,7 +1127,7 @@ body.box-edit-page {
 }
 
 /* 技1つと計算結果を表示する横長カード */
-#opponent-notes-section .damage-column {
+:is(#opponent-notes-section, .damage-card-scope) .damage-column {
   border-radius: var(--radius-zero); /* 技カードの角丸 */
   border: 1px solid var(--color-border);
   width: 100%;
@@ -1147,11 +1150,11 @@ body.box-edit-page {
   position: relative;
 }
 
-#opponent-notes-section .damage-column.is-selected {
+:is(#opponent-notes-section, .damage-card-scope) .damage-column.is-selected {
   box-shadow: 0 0 0 1px var(--color-primary); /* 選択中の技カードを囲む線 */
 }
 
-#opponent-notes-section .damage-column input[type="text"], #opponent-notes-section .damage-column input[type="number"] {
+:is(#opponent-notes-section, .damage-card-scope) .damage-column input[type="text"], :is(#opponent-notes-section, .damage-card-scope) .damage-column input[type="number"] {
   width: 100%;
   min-width: 0;
   font-size: var(--damage-card-move-font-size);
@@ -1160,7 +1163,7 @@ body.box-edit-page {
   padding: .28em .35em; /* 技名・回数入力欄の内側余白 */
 }
 
-#opponent-notes-section .damage-column-body {
+:is(#opponent-notes-section, .damage-card-scope) .damage-column-body {
   flex-direction: column;
   flex: 1 1 0;
   gap: var(--damage-card-column-inner-gap);
@@ -1168,7 +1171,7 @@ body.box-edit-page {
   display: flex;
 }
 
-#opponent-notes-section .damage-column-move-and-chips {
+:is(#opponent-notes-section, .damage-card-scope) .damage-column-move-and-chips {
   flex-direction: column;
   gap: var(--damage-card-column-inner-gap);
   margin-block: auto;
@@ -1177,14 +1180,14 @@ body.box-edit-page {
 }
 
 /* 倒し切った後に不要になった後続技 */
-#opponent-notes-section .damage-column.is-overkill {
+:is(#opponent-notes-section, .damage-card-scope) .damage-column.is-overkill {
   opacity: .55; /* 不要になった後続技の濃さ。小さくすると薄くなる */
 }
 
 /* 技カード内の条件チップ領域。.damage-columnは高さが--damage-card-compact-row-heightに
    固定されているため、幅が足りない分は折り返さず横スクロールにして1段に収める
    (damage-detail-panel.cssの.damage-detail-panel-title.is-tab-barと同じパターン)。 */
-#opponent-notes-section .damage-column-conditions {
+:is(#opponent-notes-section, .damage-card-scope) .damage-column-conditions {
   flex: 1 1 auto;
   max-width: 100%;
   min-width: 0;
@@ -1195,18 +1198,18 @@ body.box-edit-page {
   display: flex;
 }
 
-#opponent-notes-section .damage-column-conditions::-webkit-scrollbar {
+:is(#opponent-notes-section, .damage-card-scope) .damage-column-conditions::-webkit-scrollbar {
   display: none;
 }
 
-#opponent-notes-section .damage-column-conditions .damage-row-condition-chips {
+:is(#opponent-notes-section, .damage-card-scope) .damage-column-conditions .damage-row-condition-chips {
   flex: none;
 }
 
 /* 技名・ヒット数(.damage-column-move-identity/.damage-column-hitcount-text)は
    flex: noneで縮まないまま、条件チップ(.damage-column-conditions)側だけが
    横スクロールで幅を吸収するため、この行自体は折り返さない。 */
-#opponent-notes-section .damage-column-move-row {
+:is(#opponent-notes-section, .damage-card-scope) .damage-column-move-row {
   flex-wrap: nowrap;
   align-items: center;
   justify-content: flex-start;
@@ -1218,7 +1221,7 @@ body.box-edit-page {
 /* 技名とタイプバーをまとめる行。技名(.damage-column-move-text)を優先して
    見切れさせないため、伸びも縮みもしない内容量ベースの幅にする(flex: none)。
    幅が足りなければ.damage-column-move-row側で行ごと折り返す。 */
-#opponent-notes-section .damage-column-move-identity {
+:is(#opponent-notes-section, .damage-card-scope) .damage-column-move-identity {
   align-items: center;
   gap: var(--damage-card-columns-gap);
   flex: none;
@@ -1228,20 +1231,20 @@ body.box-edit-page {
   display: flex;
 }
 
-#opponent-notes-section .damage-column-move-type-bar {
+:is(#opponent-notes-section, .damage-card-scope) .damage-column-move-type-bar {
   width: var(--damage-card-move-type-bar-width);
   height: 1em;
   flex: 0 0 var(--damage-card-move-type-bar-width);
   background-color: transparent;
 }
 
-#opponent-notes-section .damage-column-move-type-bar--empty {
+:is(#opponent-notes-section, .damage-card-scope) .damage-column-move-type-bar--empty {
   display: none;
 }
 
 /* 技名は省略記号で切り詰めず、折り返して全文を見せる(ヒット数・条件チップは
    .damage-column-move-row/.damage-column-conditions側の折り返しで対応する)。 */
-#opponent-notes-section .damage-column-move-text {
+:is(#opponent-notes-section, .damage-card-scope) .damage-column-move-text {
   min-width: 0;
   overflow-wrap: break-word;
   color: var(--color-text);
@@ -1250,14 +1253,14 @@ body.box-edit-page {
   line-height: var(--line-height-tight);
 }
 
-#opponent-notes-section .damage-column-move-text.is-placeholder {
+:is(#opponent-notes-section, .damage-card-scope) .damage-column-move-text.is-placeholder {
   color: var(--color-text-muted);
   font-weight: var(--font-weight-medium); /* 未選択の技名表示の文字の太さ */
 }
 
 /* 攻守バッジ(.damage-suggest-direction等)と同じピル形状で、複数回ヒットする技だと
    ひと目で分かるよう強調する(単発技はhidden。ダメージが変わる重要情報のため色で明示)。 */
-#opponent-notes-section .damage-column-hitcount-text {
+:is(#opponent-notes-section, .damage-card-scope) .damage-column-hitcount-text {
   flex: none;
   padding: 0 .35em;
   border-radius: var(--damage-card-direction-badge-radius);
@@ -1268,41 +1271,41 @@ body.box-edit-page {
   line-height: var(--line-height-tight);
 }
 
-#opponent-notes-section .damage-column-hitcount-text[hidden] {
+:is(#opponent-notes-section, .damage-card-scope) .damage-column-hitcount-text[hidden] {
   display: none;
 }
 
-#opponent-notes-section .damage-row-techniques-row {
+:is(#opponent-notes-section, .damage-card-scope) .damage-row-techniques-row {
   container: dmgtech / inline-size;
 }
 
 /* 連続技の命中回数を入力する行 */
-#opponent-notes-section .damage-column-hitcount-row {
+:is(#opponent-notes-section, .damage-card-scope) .damage-column-hitcount-row {
   align-items: center;
   gap: var(--damage-card-columns-gap);
   display: flex;
 }
 
-#opponent-notes-section .damage-column-hitcount-row[hidden] {
+:is(#opponent-notes-section, .damage-card-scope) .damage-column-hitcount-row[hidden] {
   display: none;
 }
 
-#opponent-notes-section .damage-column-hitcount-row input[type="number"] {
+:is(#opponent-notes-section, .damage-card-scope) .damage-column-hitcount-row input[type="number"] {
   flex: none;
   width: 3em;
 }
 
-#opponent-notes-section .damage-column-hitcount-unit {
+:is(#opponent-notes-section, .damage-card-scope) .damage-column-hitcount-unit {
   font-size: var(--damage-card-column-order-font-size);
   color: var(--color-text-muted);
 }
 
-#opponent-notes-section .damage-column-footer {
+:is(#opponent-notes-section, .damage-card-scope) .damage-column-footer {
   padding-top: var(--damage-card-column-inner-gap);
 }
 
 /* 技ごとの「確定数」とダメージ割合 */
-#opponent-notes-section .damage-column-result {
+:is(#opponent-notes-section, .damage-card-scope) .damage-column-result {
   font-size: var(--damage-card-move-font-size);
   line-height: var(--line-height-tight);
   border-radius: 0;
@@ -1314,30 +1317,30 @@ body.box-edit-page {
   display: flex;
 }
 
-#opponent-notes-section .damage-column-result[data-severity] {
+:is(#opponent-notes-section, .damage-card-scope) .damage-column-result[data-severity] {
   background: none;
   border-left: none;
 }
 
-#opponent-notes-section .damage-column-result[data-severity="lethal"] {
+:is(#opponent-notes-section, .damage-card-scope) .damage-column-result[data-severity="lethal"] {
   color: var(--color-danger-strong);
 }
 
-#opponent-notes-section .damage-column-result[data-severity="risky"] {
+:is(#opponent-notes-section, .damage-card-scope) .damage-column-result[data-severity="risky"] {
   color: var(--color-risky-strong);
 }
 
-#opponent-notes-section .damage-column-result[data-severity="safe"] {
+:is(#opponent-notes-section, .damage-card-scope) .damage-column-result[data-severity="safe"] {
   color: var(--color-primary-strong);
 }
 
-#opponent-notes-section .damage-column-result .damage-result-verdict {
+:is(#opponent-notes-section, .damage-card-scope) .damage-column-result .damage-result-verdict {
   font-size: var(--damage-card-move-font-size);
   flex: none;
   font-weight: var(--damage-card-total-verdict-font-weight);
 }
 
-#opponent-notes-section .damage-column-result .damage-result-detail {
+:is(#opponent-notes-section, .damage-card-scope) .damage-column-result .damage-result-detail {
   font-size: var(--damage-card-total-detail-font-size);
   opacity: .85; /* 技ごとの詳細数値の濃さ */
   overflow-wrap: anywhere;
@@ -1348,7 +1351,7 @@ body.box-edit-page {
 /* --------------------------------------------------------------------------
    カード下部の保存状態
    -------------------------------------------------------------------------- */
-#opponent-notes-section .damage-row-footer {
+:is(#opponent-notes-section, .damage-card-scope) .damage-row-footer {
   margin-top: var(--space-1); /* 保存状態欄とカード本文の間隔 */
   padding-top: var(--space-1); /* 保存状態欄の上側内余白 */
   border-top: 1px solid var(--color-border); /* 保存状態欄の上線 */
@@ -1359,24 +1362,24 @@ body.box-edit-page {
   display: flex;
 }
 
-#opponent-notes-section .damage-row-footer[hidden] {
+:is(#opponent-notes-section, .damage-card-scope) .damage-row-footer[hidden] {
   display: none;
 }
 
-#opponent-notes-section .damage-row-save-status {
+:is(#opponent-notes-section, .damage-card-scope) .damage-row-save-status {
   font-size: var(--damage-card-save-font-size);
   line-height: var(--line-height-tight);
   flex: none;
   margin: 0;
 }
 
-#opponent-notes-section .damage-row-retry-button {
+:is(#opponent-notes-section, .damage-card-scope) .damage-row-retry-button {
   font-size: var(--damage-card-save-font-size);
   padding: .2em .5em; /* 再試行ボタンの内側余白 */
   display: none;
 }
 
-#opponent-notes-section .damage-row-retry-button.visible {
+:is(#opponent-notes-section, .damage-card-scope) .damage-row-retry-button.visible {
   display: inline-flex;
 }
 
@@ -1913,14 +1916,14 @@ body.box-edit-page {
    -------------------------------------------------------------------------- */
 /* カードが増えるとページ最下部まで届かないと追加操作ができなくなるため、画面幅を問わず
    常時右下に固定する(#damage-floating-add-button、DamageCalcSection.astro参照)。
-   #opponent-notes-sectionはcontainer: damage-section / inline-sizeでコンテインメントを
+   :is(#opponent-notes-section, .damage-card-scope)はcontainer: damage-section / inline-sizeでコンテインメントを
    張っているが、実測(Playwrightでスクロール前後のgetBoundingClientRectを比較)で
    position:fixedがビューポート基準のまま保たれることを確認済み(モバイル幅の
    .edit-layout-damage内スクロールでも、デスクトップ幅のページスクロールでも座標が
    動かない)。以前はwidth<=899pxのみ、rows.length>0で末尾に挿入されるインラインの
    .box-add-buttonタイル自身をfixed化する実装だったが、カード0枚時(damage-empty-add-tile)
    には効かず、デスクトップ幅でも効かなかった。 */
-#opponent-notes-section .box-add-button {
+:is(#opponent-notes-section, .damage-card-scope) .box-add-button {
   position: fixed;
   right: var(--space-5); /* 右下固定の追加ボタンと右端の間隔 */
   bottom: calc(var(--bottom-nav-height) + var(--space-4) + env(safe-area-inset-bottom)); /* 右下固定の追加ボタンと下ナビの間隔 */
@@ -1928,24 +1931,24 @@ body.box-edit-page {
 }
 
 /* 圧縮中はシートの低いヘッダーを避け、展開中はシートの背後へ送る。 */
-body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .box-add-button {
+:is(body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section, .damage-card-scope.is-compact) .box-add-button {
   z-index: 19;
 }
 
 /* --------------------------------------------------------------------------
    常時使われるコンパクトなカード配置
    -------------------------------------------------------------------------- */
-  #opponent-notes-section .damage-row-body {
+  :is(#opponent-notes-section, .damage-card-scope) .damage-row-body {
     flex-flow: column;
   }
 
-  #opponent-notes-section .damage-row-build {
+  :is(#opponent-notes-section, .damage-card-scope) .damage-row-build {
     flex: none;
     width: 100%;
     max-width: 100%;
   }
 
-  #opponent-notes-section .damage-row-techniques-row {
+  :is(#opponent-notes-section, .damage-card-scope) .damage-row-techniques-row {
     column-gap: var(--space-1);
     row-gap: var(--space-1);
     grid-template-columns: minmax(0, 1fr);
@@ -1955,11 +1958,11 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .box-add-button
     display: grid;
   }
 
-  #opponent-notes-section .damage-row-columns-wrap, #opponent-notes-section .damage-row-columns {
+  :is(#opponent-notes-section, .damage-card-scope) .damage-row-columns-wrap, :is(#opponent-notes-section, .damage-card-scope) .damage-row-columns {
     display: contents;
   }
 
-  #opponent-notes-section .damage-column {
+  :is(#opponent-notes-section, .damage-card-scope) .damage-column {
     width: auto;
     /* 高さは下限のみ固定する。1028行目付近の基本ルールが height/max-height を
        35px固定にしているため、ここで明示的に height: auto; max-height: none;
@@ -1974,39 +1977,39 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .box-add-button
     align-self: start;
   }
 
-  #opponent-notes-section .damage-row-total {
+  :is(#opponent-notes-section, .damage-card-scope) .damage-row-total {
     grid-column: 1 / -1;
   }
 
-  #opponent-notes-section .damage-column {
+  :is(#opponent-notes-section, .damage-card-scope) .damage-column {
     box-shadow: var(--shadow-sm);
   }
 
-  #opponent-notes-section .damage-column:focus-within {
+  :is(#opponent-notes-section, .damage-card-scope) .damage-column:focus-within {
     box-shadow: 0 0 0 1px var(--color-primary), var(--shadow-md);
   }
 
   @media (hover: hover) and (pointer: fine) {
-    #opponent-notes-section .damage-column:hover {
+    :is(#opponent-notes-section, .damage-card-scope) .damage-column:hover {
       box-shadow: 0 0 0 1px var(--color-primary), var(--shadow-md);
     }
   }
 
-  #opponent-notes-section .damage-column.is-selected {
+  :is(#opponent-notes-section, .damage-card-scope) .damage-column.is-selected {
     box-shadow: 0 0 0 1px var(--color-primary), var(--shadow-sm);
   }
 
-  #opponent-notes-section .damage-column.is-selected:focus-within {
+  :is(#opponent-notes-section, .damage-card-scope) .damage-column.is-selected:focus-within {
     box-shadow: 0 0 0 1px var(--color-primary), var(--shadow-md);
   }
 
   @media (hover: hover) and (pointer: fine) {
-    #opponent-notes-section .damage-column.is-selected:hover {
+    :is(#opponent-notes-section, .damage-card-scope) .damage-column.is-selected:hover {
       box-shadow: 0 0 0 1px var(--color-primary), var(--shadow-md);
     }
   }
 
-  #opponent-notes-section .damage-column:active {
+  :is(#opponent-notes-section, .damage-card-scope) .damage-column:active {
     box-shadow: var(--shadow-md);
     background-color: color-mix(in srgb, var(--color-surface) 90%, var(--color-primary) 10%);
     background-image: linear-gradient(
@@ -2017,17 +2020,17 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .box-add-button
   }
 
   /* 技カードの直下へ差し込まれる詳細設定パネル */
-  #opponent-notes-section .damage-detail-panel.is-mobile-inline {
+  :is(#opponent-notes-section, .damage-card-scope) .damage-detail-panel.is-mobile-inline {
     background: var(--color-surface);
     box-shadow: var(--shadow-sm);
   }
 
-  #opponent-notes-section .damage-row-techniques-row > .damage-detail-panel.is-mobile-inline {
+  :is(#opponent-notes-section, .damage-card-scope) .damage-row-techniques-row > .damage-detail-panel.is-mobile-inline {
     grid-column: 1 / -1;
   }
 
   /* 相手情報欄は左列と、種族名・特性・アイテム・実数値の2列×2行グリッドで構成する。 */
-  #opponent-notes-section .card-damage .damage-row-build {
+  :is(#opponent-notes-section, .damage-card-scope) .card-damage .damage-row-build {
     gap: .15rem .4rem; /* コンパクト表示の相手情報内の縦横間隔 */
     padding: .25rem .4rem; /* コンパクト表示の相手情報欄の内側余白 */
   }
@@ -2035,7 +2038,7 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .box-add-button
   /* 攻守は「現在の向きを示す単一のピルバッジ」として見せる(.damage-suggest-direction=
      よく行われるダメージ計算の攻守チップと同じ配色・形)。非選択側は上の
      [aria-checked="false"]ルールで常に隠すため、ここでは選択中の見た目だけを整える。 */
-  #opponent-notes-section .card-damage .damage-build-matchup .damage-row-direction-toggle {
+  :is(#opponent-notes-section, .damage-card-scope) .card-damage .damage-build-matchup .damage-row-direction-toggle {
     border: none;
     border-radius: var(--radius-zero);
     flex: none;
@@ -2043,7 +2046,7 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .box-add-button
     overflow: visible;
   }
 
-  #opponent-notes-section .card-damage .damage-build-matchup .damage-row-direction-option {
+  :is(#opponent-notes-section, .damage-card-scope) .card-damage .damage-build-matchup .damage-row-direction-option {
     align-items: center;
     gap: 0;
     min-height: 0;
@@ -2054,80 +2057,80 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .box-add-button
     display: flex;
   }
 
-  #opponent-notes-section .card-damage .damage-build-matchup .damage-row-direction-option + .damage-row-direction-option {
+  :is(#opponent-notes-section, .damage-card-scope) .card-damage .damage-build-matchup .damage-row-direction-option + .damage-row-direction-option {
     border-left: none;
   }
 
-  #opponent-notes-section .card-damage .damage-build-matchup .damage-row-direction-option[data-role="attack"][aria-checked="true"] {
+  :is(#opponent-notes-section, .damage-card-scope) .card-damage .damage-build-matchup .damage-row-direction-option[data-role="attack"][aria-checked="true"] {
     color: var(--damage-card-attack-badge-color);
     background: var(--damage-card-attack-badge-background);
   }
 
-  #opponent-notes-section .card-damage .damage-build-matchup .damage-row-direction-option[data-role="defense"][aria-checked="true"] {
+  :is(#opponent-notes-section, .damage-card-scope) .card-damage .damage-build-matchup .damage-row-direction-option[data-role="defense"][aria-checked="true"] {
     color: var(--damage-card-defense-badge-color);
     background: var(--damage-card-defense-badge-background);
   }
 
-  #opponent-notes-section .card-damage .damage-column-move-row .damage-row-condition-chips {
+  :is(#opponent-notes-section, .damage-card-scope) .card-damage .damage-column-move-row .damage-row-condition-chips {
     margin-top: 0;
     justify-content: flex-end;
   }
 
-  #opponent-notes-section .card-damage .damage-row-tera-field {
+  :is(#opponent-notes-section, .damage-card-scope) .card-damage .damage-row-tera-field {
     flex: 1 1 0;
     order: 3;
     width: auto;
     min-width: 0;
   }
 
-  #opponent-notes-section .card-damage .tera-dropdown-button {
+  :is(#opponent-notes-section, .damage-card-scope) .card-damage .tera-dropdown-button {
     min-height: 28px; /* 特性・テラスタイプ操作の最小高さ */
   }
 
-  #opponent-notes-section .card-damage .damage-ev-grid {
+  :is(#opponent-notes-section, .damage-card-scope) .card-damage .damage-ev-grid {
     gap: var(--space-1);
     margin-top: 0;
     position: relative;
   }
 
   /* 計算方向に不要な能力値を隠し、必要な耐久・火力だけ残す */
-  #opponent-notes-section .card-damage[data-direction="attack"] .damage-ev-readonly-stat[data-stat="atk"],
-  #opponent-notes-section .card-damage[data-direction="attack"] .damage-ev-readonly-stat[data-stat="spa"],
-  #opponent-notes-section .card-damage[data-direction="attack"] .damage-ev-readonly-stat[data-stat="spe"],
-  #opponent-notes-section .card-damage[data-direction="defense"] .damage-ev-readonly-stat[data-stat="hp"],
-  #opponent-notes-section .card-damage[data-direction="defense"] .damage-ev-readonly-stat[data-stat="def"],
-  #opponent-notes-section .card-damage[data-direction="defense"] .damage-ev-readonly-stat[data-stat="spd"],
-  #opponent-notes-section .card-damage[data-direction="defense"] .damage-ev-readonly-stat[data-stat="spe"] {
+  :is(#opponent-notes-section, .damage-card-scope) .card-damage[data-direction="attack"] .damage-ev-readonly-stat[data-stat="atk"],
+  :is(#opponent-notes-section, .damage-card-scope) .card-damage[data-direction="attack"] .damage-ev-readonly-stat[data-stat="spa"],
+  :is(#opponent-notes-section, .damage-card-scope) .card-damage[data-direction="attack"] .damage-ev-readonly-stat[data-stat="spe"],
+  :is(#opponent-notes-section, .damage-card-scope) .card-damage[data-direction="defense"] .damage-ev-readonly-stat[data-stat="hp"],
+  :is(#opponent-notes-section, .damage-card-scope) .card-damage[data-direction="defense"] .damage-ev-readonly-stat[data-stat="def"],
+  :is(#opponent-notes-section, .damage-card-scope) .card-damage[data-direction="defense"] .damage-ev-readonly-stat[data-stat="spd"],
+  :is(#opponent-notes-section, .damage-card-scope) .card-damage[data-direction="defense"] .damage-ev-readonly-stat[data-stat="spe"] {
     display: none;
   }
 
   /* 残した能力値のまとまりを空白で区切る */
-  #opponent-notes-section .card-damage[data-direction="attack"] .damage-ev-readonly-stat[data-stat="def"]::before,
-  #opponent-notes-section .card-damage[data-direction="attack"] .damage-ev-readonly-stat[data-stat="spd"]::before,
-  #opponent-notes-section .card-damage[data-direction="defense"] .damage-ev-readonly-stat[data-stat="spa"]::before {
+  :is(#opponent-notes-section, .damage-card-scope) .card-damage[data-direction="attack"] .damage-ev-readonly-stat[data-stat="def"]::before,
+  :is(#opponent-notes-section, .damage-card-scope) .card-damage[data-direction="attack"] .damage-ev-readonly-stat[data-stat="spd"]::before,
+  :is(#opponent-notes-section, .damage-card-scope) .card-damage[data-direction="defense"] .damage-ev-readonly-stat[data-stat="spa"]::before {
     content: " ";
     color: var(--color-text-muted);
     margin-right: calc(var(--space-1) / 2);
   }
 
-  #opponent-notes-section .card-damage .damage-row-total-label {
+  :is(#opponent-notes-section, .damage-card-scope) .card-damage .damage-row-total-label {
     display: none;
   }
 
-  #opponent-notes-section .card-damage .damage-ev-col-label, #opponent-notes-section .card-damage .damage-stat-value {
+  :is(#opponent-notes-section, .damage-card-scope) .card-damage .damage-ev-col-label, :is(#opponent-notes-section, .damage-card-scope) .card-damage .damage-stat-value {
     line-height: 1;
   }
 
   /* コンパクト表示では技ごとの結果を隠し、累計結果だけを見せる */
-  #opponent-notes-section .card-damage .damage-column-result {
+  :is(#opponent-notes-section, .damage-card-scope) .card-damage .damage-column-result {
     display: none;
   }
 
-  #opponent-notes-section .card-damage .damage-column-footer {
+  :is(#opponent-notes-section, .damage-card-scope) .card-damage .damage-column-footer {
     display: none;
   }
 
-#opponent-notes-section .card-damage .damage-build-matchup .damage-row-direction-toggle {
+:is(#opponent-notes-section, .damage-card-scope) .card-damage .damage-build-matchup .damage-row-direction-toggle {
   flex: 0 0 auto;
   width: auto;
   min-width: 0;
@@ -2149,7 +2152,7 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .box-add-button
    document.createElement()による動的生成のためscoped<style>は効かない
    (pitfalls.md「JSで生成した要素に効かない」)。
    -------------------------------------------------------------------------- */
-#opponent-notes-section .damage-suggest-list {
+:is(#opponent-notes-section, .damage-card-scope) .damage-suggest-list {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -2165,7 +2168,7 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .box-add-button
    --color-surface)を使う。hoverも--color-surfaceを起点にした配色に揃える
    (--damage-card-active-backgroundは--color-bg起点のため、surface背景から
    ホバーした際に色が不自然に飛んでしまう)。 */
-#opponent-notes-section .damage-suggest-card-button {
+:is(#opponent-notes-section, .damage-card-scope) .damage-suggest-card-button {
   --damage-suggest-card-background: var(--damage-card-build-background);
   width: 100%;
   display: block;
@@ -2186,21 +2189,21 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .box-add-button
   transition: box-shadow .18s ease, background-color .18s ease;
 }
 
-#opponent-notes-section .damage-suggest-card-button:focus-visible {
+:is(#opponent-notes-section, .damage-card-scope) .damage-suggest-card-button:focus-visible {
   box-shadow: var(--shadow-md);
   --damage-suggest-card-background: color-mix(in srgb, var(--color-surface) 90%, var(--color-primary) 10%);
 }
 
-#opponent-notes-section .damage-suggest-card-button[data-direction="attack"] {
+:is(#opponent-notes-section, .damage-card-scope) .damage-suggest-card-button[data-direction="attack"] {
   --damage-suggest-card-background: color-mix(in srgb, var(--color-bg) 84%, var(--color-danger) 16%);
 }
 
-#opponent-notes-section .damage-suggest-card-button[data-direction="defense"] {
+:is(#opponent-notes-section, .damage-card-scope) .damage-suggest-card-button[data-direction="defense"] {
   --damage-suggest-card-background: color-mix(in srgb, var(--color-bg) 84%, var(--color-primary) 16%);
 }
 
 @media (hover: hover) and (pointer: fine) {
-  #opponent-notes-section .damage-suggest-card-button:hover {
+  :is(#opponent-notes-section, .damage-card-scope) .damage-suggest-card-button:hover {
     box-shadow: var(--shadow-md);
     --damage-suggest-card-background: color-mix(in srgb, var(--color-surface) 90%, var(--color-primary) 10%);
   }
@@ -2209,7 +2212,7 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .box-add-button
 /* 左列(攻守+アイコン)・右列(特性/持ち物+技/根拠)の2カラム。ダメージカード一覧の
    相手ビルドカード(.damage-row-build)と同じ考え方(左列=固定幅で縮まない、
    右列=残り幅いっぱい)。 */
-#opponent-notes-section .damage-suggest-body {
+:is(#opponent-notes-section, .damage-card-scope) .damage-suggest-body {
   display: flex;
   align-items: flex-start;
   gap: var(--damage-build-area-gap);
@@ -2217,7 +2220,7 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .box-add-button
 }
 
 /* 左列: 攻守チップ + スプライト。中身は.damage-build-matchupと同じ横並びにする。 */
-#opponent-notes-section .damage-suggest-left {
+:is(#opponent-notes-section, .damage-card-scope) .damage-suggest-left {
   display: flex;
   align-items: center;
   gap: var(--space-1); /* 自分・相手アイコンと攻守矢印の間隔 */
@@ -2226,7 +2229,7 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .box-add-button
 
 /* 右列: 特性・持ち物 / 技・根拠を2列×2行でそろえる。短い補助情報を置く第2列は
    相手ビルドカードと同じ固定幅にし、技名を置く第1列へ残りの幅を配る。 */
-#opponent-notes-section .damage-suggest-right {
+:is(#opponent-notes-section, .damage-card-scope) .damage-suggest-right {
   flex: 1 1 auto;
   min-width: 0;
   grid-template-columns: minmax(0, 1fr) minmax(0, 7.5em); /* 相手情報2列グリッドの特性・アイテム列幅。短い補助情報を右列へまとめ、左列の種族名・実数値表示を広く確保する */
@@ -2238,13 +2241,13 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .box-add-button
 }
 
 /* DOM上の行ラッパーを透過し、4セルの中身を右列グリッドへ直接参加させる。 */
-#opponent-notes-section .damage-suggest-right-main,
-#opponent-notes-section .damage-suggest-move-row {
+:is(#opponent-notes-section, .damage-card-scope) .damage-suggest-right-main,
+:is(#opponent-notes-section, .damage-card-scope) .damage-suggest-move-row {
   display: contents;
 }
 
 /* Match the opponent block used by a damage card: badge, sprite, name/ability, move/item. */
-#opponent-notes-section .damage-suggest-body {
+:is(#opponent-notes-section, .damage-card-scope) .damage-suggest-body {
   display: grid;
   grid-template-columns: auto auto minmax(0, 1.25fr) minmax(0, 1fr);
   grid-template-rows: repeat(2, minmax(0, auto));
@@ -2253,47 +2256,47 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .box-add-button
   padding: .25rem .4rem;
 }
 
-#opponent-notes-section .damage-suggest-left,
-#opponent-notes-section .damage-suggest-right {
+:is(#opponent-notes-section, .damage-card-scope) .damage-suggest-left,
+:is(#opponent-notes-section, .damage-card-scope) .damage-suggest-right {
   display: contents;
 }
 
-#opponent-notes-section .damage-suggest-direction {
+:is(#opponent-notes-section, .damage-card-scope) .damage-suggest-direction {
   grid-column: 1;
   grid-row: 1 / -1;
   margin-inline-start: var(--space-1);
 }
 
-#opponent-notes-section .damage-suggest-sprite {
+:is(#opponent-notes-section, .damage-card-scope) .damage-suggest-sprite {
   grid-column: 2;
   grid-row: 1 / -1;
   width: var(--damage-card-sprite-size);
   height: var(--damage-card-sprite-size);
 }
 
-#opponent-notes-section .damage-suggest-name {
+:is(#opponent-notes-section, .damage-card-scope) .damage-suggest-name {
   grid-column: 3;
   grid-row: 1;
 }
 
-#opponent-notes-section .damage-suggest-ability {
+:is(#opponent-notes-section, .damage-card-scope) .damage-suggest-ability {
   grid-column: 4;
   grid-row: 1;
 }
 
-#opponent-notes-section .damage-suggest-move-identity {
+:is(#opponent-notes-section, .damage-card-scope) .damage-suggest-move-identity {
   grid-column: 3;
   grid-row: 2;
 }
 
-#opponent-notes-section .damage-suggest-item {
+:is(#opponent-notes-section, .damage-card-scope) .damage-suggest-item {
   grid-column: 4;
   grid-row: 2;
 }
 
 /* Direction is conveyed by the card face and badge text; no extra pill highlight. */
-#opponent-notes-section .card-damage .damage-build-matchup .damage-row-direction-option[data-role][aria-checked="true"],
-#opponent-notes-section .damage-suggest-direction[data-direction] {
+:is(#opponent-notes-section, .damage-card-scope) .card-damage .damage-build-matchup .damage-row-direction-option[data-role][aria-checked="true"],
+:is(#opponent-notes-section, .damage-card-scope) .damage-suggest-direction[data-direction] {
   background: transparent;
 }
 
@@ -2304,11 +2307,11 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .box-add-button
    同時に見比べられるよう、カードを操作不可の2行表示へ一時的に圧縮する。
    シートを閉じた瞬間にこの条件は外れ、通常のカード表示へ完全に戻る。
    -------------------------------------------------------------------------- */
-body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage {
+:is(body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section, .damage-card-scope.is-compact) .card-damage {
   pointer-events: none;
 }
 
-body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-row-body {
+:is(body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section, .damage-card-scope.is-compact) .card-damage .damage-row-body {
   display: grid;
   /* 左列を内容量で伸縮させない。攻防・立ち絵・アイテムの内容差で、右列の
      わざとダメージが行ごとに横ずれするのを防ぐ。 */
@@ -2323,7 +2326,7 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .d
 /* 左列は攻守バッジ・立ち絵・持ち物アイコンを、通常表示と同じ横並びのまま1行に置く
    (縦積みにすると通常表示との対応が取れなくなるため、並びは圧縮前から変えない)。
    持ち物はアイコンだけを立ち絵の右に添える。 */
-body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-row-build {
+:is(body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section, .damage-card-scope.is-compact) .card-damage .damage-row-build {
   display: flex;
   flex-flow: row nowrap;
   align-items: center;
@@ -2345,32 +2348,32 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .d
   );
 }
 
-body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-row-build-left,
-body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-row-build-right,
-body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-build-matchup,
-body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-row-build-main,
-body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-row-build-fields {
+:is(body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section, .damage-card-scope.is-compact) .card-damage .damage-row-build-left,
+:is(body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section, .damage-card-scope.is-compact) .card-damage .damage-row-build-right,
+:is(body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section, .damage-card-scope.is-compact) .card-damage .damage-build-matchup,
+:is(body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section, .damage-card-scope.is-compact) .card-damage .damage-row-build-main,
+:is(body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section, .damage-card-scope.is-compact) .card-damage .damage-row-build-fields {
   display: contents;
 }
 
-body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-row-direction-toggle {
+:is(body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section, .damage-card-scope.is-compact) .card-damage .damage-row-direction-toggle {
   flex: none;
 }
 
-body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-sprite-box {
+:is(body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section, .damage-card-scope.is-compact) .card-damage .damage-sprite-box {
   flex: none;
   /* 通常表示と同じ40pxを維持し、シート開閉で立ち絵だけが縮小しないようにする。 */
   width: var(--damage-card-sprite-size);
   height: var(--damage-card-sprite-size);
 }
 
-body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-item-badge {
+:is(body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section, .damage-card-scope.is-compact) .card-damage .damage-item-badge {
   /* 左セルの下端に寄せ、立ち絵より控えめな大きさにする。 */
   width: calc(var(--damage-card-item-badge-size) * 1.2);
   height: calc(var(--damage-card-item-badge-size) * 1.2);
 }
 
-body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-build-item-field {
+:is(body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section, .damage-card-scope.is-compact) .card-damage .damage-build-item-field {
   flex: none;
   gap: 0;
   align-self: flex-end;
@@ -2378,24 +2381,24 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .d
 }
 
 /* 圧縮時は対面の識別に不要な型詳細を外し、残すのは持ち物アイコンだけにする。 */
-body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-build-readonly-name,
-body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-build-readonly-ability-line,
-body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-row-build-fields .damage-build-readonly-field,
-body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-ev-grid-readonly,
-body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-build-item-name,
-body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-row-condition-chips,
-body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-column-conditions,
-body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-column-footer,
-body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-column-result,
-body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-column-hitcount-row,
-body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-row-footer,
-body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-row-icon-button,
-body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-detail-panel.is-mobile-inline {
+:is(body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section, .damage-card-scope.is-compact) .card-damage .damage-build-readonly-name,
+:is(body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section, .damage-card-scope.is-compact) .card-damage .damage-build-readonly-ability-line,
+:is(body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section, .damage-card-scope.is-compact) .card-damage .damage-row-build-fields .damage-build-readonly-field,
+:is(body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section, .damage-card-scope.is-compact) .card-damage .damage-ev-grid-readonly,
+:is(body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section, .damage-card-scope.is-compact) .card-damage .damage-build-item-name,
+:is(body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section, .damage-card-scope.is-compact) .card-damage .damage-row-condition-chips,
+:is(body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section, .damage-card-scope.is-compact) .card-damage .damage-column-conditions,
+:is(body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section, .damage-card-scope.is-compact) .card-damage .damage-column-footer,
+:is(body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section, .damage-card-scope.is-compact) .card-damage .damage-column-result,
+:is(body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section, .damage-card-scope.is-compact) .card-damage .damage-column-hitcount-row,
+:is(body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section, .damage-card-scope.is-compact) .card-damage .damage-row-footer,
+:is(body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section, .damage-card-scope.is-compact) .card-damage .damage-row-icon-button,
+:is(body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section, .damage-card-scope.is-compact) .card-damage .damage-detail-panel.is-mobile-inline {
   display: none;
 }
 
 /* 右列は1行目を全技名の連結、2行目を累計結果だけにし、個別の技カード枠は外す。 */
-body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-row-techniques-row {
+:is(body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section, .damage-card-scope.is-compact) .card-damage .damage-row-techniques-row {
   display: grid;
   grid-column: 2;
   /* 技は上段、フル表記の累計結果は下段に分け、右列の横幅を結果へ全て使えるようにする。 */
@@ -2407,14 +2410,14 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .d
   min-width: 0;
 }
 
-body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-row-columns-wrap {
+:is(body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section, .damage-card-scope.is-compact) .card-damage .damage-row-columns-wrap {
   display: contents;
 }
 
 /* 技名は「A + B」の1行に必ず収める。折り返すと2行目が累計結果の行に重なるため
    nowrap固定にし、はみ出しは技名側のtext-overflowで切る。下の累計結果と頭を
    揃えるため左寄せにする(通常表示の中央寄せをここで打ち消す)。 */
-body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-row-columns {
+:is(body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section, .damage-card-scope.is-compact) .card-damage .damage-row-columns {
   display: flex;
   /* 通常表示のこの器はflex-flow:columnで技カードを縦に積む。圧縮中は技名を
      横一列に連結するので、方向をrowへ明示的に戻す(rowを書かないと技が縦に
@@ -2440,14 +2443,14 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .d
   padding: .16rem .25rem;
 }
 
-body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-column,
-body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-column-body,
-body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-column-move-and-chips,
-body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-column-move-row {
+:is(body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section, .damage-card-scope.is-compact) .card-damage .damage-column,
+:is(body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section, .damage-card-scope.is-compact) .card-damage .damage-column-body,
+:is(body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section, .damage-card-scope.is-compact) .card-damage .damage-column-move-and-chips,
+:is(body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section, .damage-card-scope.is-compact) .card-damage .damage-column-move-row {
   display: contents;
 }
 
-body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-column-move-identity {
+:is(body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section, .damage-card-scope.is-compact) .card-damage .damage-column-move-identity {
   display: flex;
   align-items: center;
   /* 単独の技は右列の余白まで使い、複数技なら等分して省略位置を安定させる。 */
@@ -2456,25 +2459,25 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .d
   min-width: 0;
 }
 
-body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-column:not([hidden]) ~ .damage-column:not([hidden]) .damage-column-move-type-bar {
+:is(body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section, .damage-card-scope.is-compact) .card-damage .damage-column:not([hidden]) ~ .damage-column:not([hidden]) .damage-column-move-type-bar {
   display: none;
 }
 
 /* 圧縮中は型色の長方形を表示せず、技名とダメージ結果に視線を絞る。 */
-body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-column-move-type-bar {
+:is(body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section, .damage-card-scope.is-compact) .card-damage .damage-column-move-type-bar {
   display: none;
 }
 
 /* 「+」は2枚目以降の技の頭に置く(技名の直後に置くと、技名とヒット数の間に
    割り込んで「スケイルショット + 5ヒット はどうだん」の並びになってしまう)。
    前に可視列がある列だけが対象なので、hidden列をまたいでも余分な「+」は出ない。 */
-body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-column:not([hidden]) ~ .damage-column:not([hidden]) .damage-column-move-identity::before {
+:is(body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section, .damage-card-scope.is-compact) .card-damage .damage-column:not([hidden]) ~ .damage-column:not([hidden]) .damage-column-move-identity::before {
   content: "+";
   margin-inline: 2px;
 }
 
 /* ヒット数(「5ヒット」)は技名の直後に添える。 */
-body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-column-hitcount-text {
+:is(body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section, .damage-card-scope.is-compact) .card-damage .damage-column-hitcount-text {
   flex: none;
   align-self: flex-end;
   margin: 0 0 2px 2px;
@@ -2487,7 +2490,7 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .d
   opacity: .8;
 }
 
-body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-column-move-text {
+:is(body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section, .damage-card-scope.is-compact) .card-damage .damage-column-move-text {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -2496,7 +2499,7 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .d
   transform: translateY(2px);
 }
 
-body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-row-total {
+:is(body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section, .damage-card-scope.is-compact) .card-damage .damage-row-total {
   /* ダメージ結果は右列の下段に置き、左列の対面情報と対応させる。 */
   grid-column: 1;
   grid-row: 2;
@@ -2510,13 +2513,13 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .d
 }
 
 /* 圧縮中はメーターを使わず、判定と数値をフラットに比較する。 */
-body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-row-total[data-severity="lethal"],
-body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-row-total[data-severity="risky"],
-body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-row-total[data-severity="safe"] {
+:is(body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section, .damage-card-scope.is-compact) .card-damage .damage-row-total[data-severity="lethal"],
+:is(body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section, .damage-card-scope.is-compact) .card-damage .damage-row-total[data-severity="risky"],
+:is(body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section, .damage-card-scope.is-compact) .card-damage .damage-row-total[data-severity="safe"] {
   background: var(--damage-card-face-background, var(--damage-card-current-background));
 }
 
-body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-row-total-result {
+:is(body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section, .damage-card-scope.is-compact) .card-damage .damage-row-total-result {
   max-width: none;
   min-width: 0;
   height: 100%;
@@ -2533,29 +2536,29 @@ body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .d
 }
 
 /* 判定ラベルと詳細値にも親の14pxを継承させ、片方だけ通常サイズで横幅を消費しないようにする。 */
-body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-row-total-result .damage-result-verdict,
-body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-row-total-result .damage-result-detail {
+:is(body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section, .damage-card-scope.is-compact) .card-damage .damage-row-total-result .damage-result-verdict,
+:is(body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section, .damage-card-scope.is-compact) .card-damage .damage-row-total-result .damage-result-detail {
   font-size: inherit;
 }
 
 /* 結果の判定を先に読ませ、実ダメージ量は補助情報として一段軽くする。 */
-body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-row-total-result .damage-result-detail {
+:is(body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section, .damage-card-scope.is-compact) .card-damage .damage-row-total-result .damage-result-detail {
   font-size: var(--font-size-sm3);
   font-weight: var(--font-weight-normal);
   opacity: .78;
 }
 
 /* 致死率(乱N xx%)は確定数ラベルと同じフォントで読み取れるようにする。 */
-body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .damage-row-total-result .damage-result-probability {
+:is(body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section, .damage-card-scope.is-compact) .card-damage .damage-row-total-result .damage-result-probability {
   font-size: inherit;
   font-weight: var(--damage-card-total-verdict-font-weight);
   opacity: 1;
 }
 
 /* カード内の追加スロットが将来復活しても、圧縮中は操作対象として見せない
-   (右下固定の「ダメージ計算を追加」ボタン#opponent-notes-section .box-add-buttonは
+   (右下固定の「ダメージ計算を追加」ボタン:is(#opponent-notes-section, .damage-card-scope) .box-add-buttonは
    圧縮中も残す。シート背後へ送るz-index調整だけを上方のルールで行っている)。 */
-body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section .card-damage .add-card-tile {
+:is(body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section, .damage-card-scope.is-compact) .card-damage .add-card-tile {
   display: none;
 }
 
@@ -2567,7 +2570,7 @@ body:has(#stat-adjust-sheet.is-expanded) #damage-suggest-section {
 
 /* 特性は相手ビルドカードの特性欄(.damage-build-readonly-ability-line)と同じ、
    控えめな文字色・サイズにする(--damage-card-build-detail-*系トークンを共有)。 */
-#opponent-notes-section .damage-suggest-ability {
+:is(#opponent-notes-section, .damage-card-scope) .damage-suggest-ability {
   grid-column: 1;
   grid-row: 1;
   min-width: 0;
@@ -2579,7 +2582,7 @@ body:has(#stat-adjust-sheet.is-expanded) #damage-suggest-section {
   font-size: var(--damage-card-build-detail-font-size);
 }
 
-#opponent-notes-section .damage-suggest-name {
+:is(#opponent-notes-section, .damage-card-scope) .damage-suggest-name {
   grid-column: 1;
   grid-row: 1;
   min-width: 0;
@@ -2593,13 +2596,13 @@ body:has(#stat-adjust-sheet.is-expanded) #damage-suggest-section {
 }
 
 /* The move replaces the stat row. The ability remains beside the species name. */
-#opponent-notes-section .damage-suggest-reason {
+:is(#opponent-notes-section, .damage-card-scope) .damage-suggest-reason {
   display: none;
 }
 
 /* 攻守チップは相手ビルドカードの攻守バッジ(.card-damage .damage-build-matchup
    .damage-row-direction-option、上のコンパクト表示ルール参照)と同じ配色・角丸にする。 */
-#opponent-notes-section .damage-suggest-direction {
+:is(#opponent-notes-section, .damage-card-scope) .damage-suggest-direction {
   flex: none;
   padding: 0 .35em;
   border-radius: var(--damage-card-direction-badge-radius);
@@ -2607,17 +2610,17 @@ body:has(#stat-adjust-sheet.is-expanded) #damage-suggest-section {
   font-weight: var(--font-weight-semibold);
 }
 
-#opponent-notes-section .damage-suggest-direction[data-direction="attack"] {
+:is(#opponent-notes-section, .damage-card-scope) .damage-suggest-direction[data-direction="attack"] {
   background: var(--damage-card-attack-badge-background);
   color: var(--damage-card-attack-badge-color);
 }
 
-#opponent-notes-section .damage-suggest-direction[data-direction="defense"] {
+:is(#opponent-notes-section, .damage-card-scope) .damage-suggest-direction[data-direction="defense"] {
   background: var(--damage-card-defense-badge-background);
   color: var(--damage-card-defense-badge-color);
 }
 
-#opponent-notes-section .damage-suggest-sprite {
+:is(#opponent-notes-section, .damage-card-scope) .damage-suggest-sprite {
   width: 48px;
   height: 48px;
   flex: none;
@@ -2626,12 +2629,12 @@ body:has(#stat-adjust-sheet.is-expanded) #damage-suggest-section {
   justify-content: center;
 }
 
-#opponent-notes-section .damage-suggest-sprite-img {
+:is(#opponent-notes-section, .damage-card-scope) .damage-suggest-sprite-img {
   max-width: 100%;
   max-height: 100%;
 }
 
-#opponent-notes-section .damage-suggest-sprite-fallback {
+:is(#opponent-notes-section, .damage-card-scope) .damage-suggest-sprite-fallback {
   display: none;
   width: 35px;
   height: 35px;
@@ -2644,7 +2647,7 @@ body:has(#stat-adjust-sheet.is-expanded) #damage-suggest-section {
 }
 
 /* タイプバーと技名を1つのグリッドセルにまとめる。 */
-#opponent-notes-section .damage-suggest-move-identity {
+:is(#opponent-notes-section, .damage-card-scope) .damage-suggest-move-identity {
   grid-column: 1;
   grid-row: 2;
   display: flex;
@@ -2657,14 +2660,14 @@ body:has(#stat-adjust-sheet.is-expanded) #damage-suggest-section {
 }
 
 /* 技カードと同じ寸法のタイプ識別バー。 */
-#opponent-notes-section .damage-suggest-move-type-bar {
+:is(#opponent-notes-section, .damage-card-scope) .damage-suggest-move-type-bar {
   width: var(--damage-card-move-type-bar-width);
   height: 1em;
   flex: 0 0 var(--damage-card-move-type-bar-width);
   background-color: transparent;
 }
 
-#opponent-notes-section .damage-suggest-move {
+:is(#opponent-notes-section, .damage-card-scope) .damage-suggest-move {
   font-size: var(--font-size-sm2);
   font-weight: var(--font-weight-medium);
   min-width: 0;
@@ -2672,7 +2675,7 @@ body:has(#stat-adjust-sheet.is-expanded) #damage-suggest-section {
 }
 
 /* アイコンと名前は不可分の1塊にする(バラで並べると折り返しで分断される)。 */
-#opponent-notes-section .damage-suggest-item {
+:is(#opponent-notes-section, .damage-card-scope) .damage-suggest-item {
   grid-column: 2;
   grid-row: 2;
   display: inline-flex;
@@ -2681,13 +2684,13 @@ body:has(#stat-adjust-sheet.is-expanded) #damage-suggest-section {
   min-width: 0;
 }
 
-#opponent-notes-section .damage-suggest-item-icon {
+:is(#opponent-notes-section, .damage-card-scope) .damage-suggest-item-icon {
   width: 14px;
   height: 14px;
   flex: none;
 }
 
-#opponent-notes-section .damage-suggest-item-name {
+:is(#opponent-notes-section, .damage-card-scope) .damage-suggest-item-name {
   /* 相手ビルドカードのアイテム名(.damage-build-item-name、normal)・同じサジェストカード内の
      特性(.damage-suggest-ability、normal)と役割が同じ「控えめな補助情報」のため、
      太さも揃える(以前はsemiboldで1段だけ強調されていた)。 */
@@ -2698,7 +2701,7 @@ body:has(#stat-adjust-sheet.is-expanded) #damage-suggest-section {
 
 /* 根拠(「x%が計算」)は技名と同じ行の右端に表示する。母集団の実数・主語
    (同じ型/同じポケモン)はtitle属性へ回した。 */
-#opponent-notes-section .damage-suggest-reason {
+:is(#opponent-notes-section, .damage-card-scope) .damage-suggest-reason {
   grid-column: 2;
   grid-row: 2;
   font-size: var(--font-size-sm3);
@@ -2708,21 +2711,21 @@ body:has(#stat-adjust-sheet.is-expanded) #damage-suggest-section {
 }
 
 /* Keep the suggestion's final grid placement identical to a damage card. */
-#opponent-notes-section .damage-suggest-ability {
+:is(#opponent-notes-section, .damage-card-scope) .damage-suggest-ability {
   grid-column: 4;
   grid-row: 1;
 }
 
-#opponent-notes-section .damage-suggest-name,
-#opponent-notes-section .damage-suggest-move-identity {
+:is(#opponent-notes-section, .damage-card-scope) .damage-suggest-name,
+:is(#opponent-notes-section, .damage-card-scope) .damage-suggest-move-identity {
   grid-column: 3;
 }
 
-#opponent-notes-section .damage-suggest-item {
+:is(#opponent-notes-section, .damage-card-scope) .damage-suggest-item {
   grid-column: 4;
   grid-row: 2;
 }
 
-#opponent-notes-section .damage-suggest-direction[data-direction] {
+:is(#opponent-notes-section, .damage-card-scope) .damage-suggest-direction[data-direction] {
   background: transparent;
 }

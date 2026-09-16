@@ -5,7 +5,7 @@ import '../../styles/pokemon-share-image.css';
 <div id="share-image-backdrop" class="share-image-backdrop" hidden></div>
 <div id="share-image-dialog" class="share-image-dialog" role="dialog" aria-modal="true" aria-labelledby="share-image-dialog-title" tabindex="-1" hidden>
 	<div class="share-image-dialog-header">
-		<h2 id="share-image-dialog-title" class="share-image-dialog-title">画像にするダメージ計算を選択</h2>
+		<h2 id="share-image-dialog-title" class="share-image-dialog-title">ポケモンをコピー</h2>
 		<button type="button" id="share-image-dialog-close-button" class="btn-ghost share-image-dialog-close" aria-label="閉じる">×</button>
 	</div>
 	<div class="share-image-dialog-body">
@@ -13,10 +13,16 @@ import '../../styles/pokemon-share-image.css';
 			<button type="button" id="share-image-select-all-button" class="btn-ghost">すべて選択</button>
 			<button type="button" id="share-image-clear-all-button" class="btn-ghost">すべて解除</button>
 		</div>
-		<div id="share-image-row-list" class="share-image-row-list"></div>
+		<div id="share-image-row-list" class="share-image-row-list damage-card-scope is-compact damage-calc-area"></div>
 	</div>
 	<div class="share-image-dialog-footer">
-		<button type="button" id="share-image-dialog-cancel-button" class="btn-ghost">キャンセル</button>
-		<button type="button" id="share-image-dialog-execute-button" class="btn-control">コピー</button>
+		<button type="button" id="share-image-dialog-copy-button" class="btn-control share-image-dialog-action">
+			<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="1"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+			<span class="share-image-dialog-action-label">コピー</span>
+		</button>
+		<button type="button" id="share-image-dialog-download-button" class="btn-control share-image-dialog-action">
+			<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14a2 2 0 0 0 2-2v-3"/><path d="M3 16v3a2 2 0 0 0 2 2"/></svg>
+			<span class="share-image-dialog-action-label">ダウンロード</span>
+		</button>
 	</div>
 </div>
