@@ -687,7 +687,8 @@ body.box-edit-page {
 	#damage-detail-panel-body .damage-build-detail-grid {
 		display: grid;
 		grid-template-columns: repeat(2, minmax(0, 1fr));
-		gap: var(--damage-detail-space-md);
+		/* 攻守|種族名、特性|もちもの、テラスタルの各段で2列の左右間隔を同じ値にそろえる。 */
+		gap: var(--damage-detail-space-xs);
 	}
 	#damage-detail-panel-body .damage-build-detail-fields {
 		/* 攻防・種族名からテラスタルまでの各行を密にそろえる。 */
@@ -701,7 +702,7 @@ body.box-edit-page {
 			2列だけになった(以前は3列目に相手アイコンを置いていた)。 */
 		grid-column: 1 / -1;
 		display: grid;
-		/* 攻守切替と種族名入力は幅を二等分し、左右の間隔は特性/もちもの行より詰める。 */
+		/* 攻守切替と種族名入力は幅を二等分し、左右の間隔は特性/もちもの行と同じにする。 */
 		grid-template-columns: repeat(2, minmax(0, 1fr));
 		align-items: center;
 		gap: var(--damage-detail-space-xs);
@@ -717,6 +718,9 @@ body.box-edit-page {
 			チューニング変数側で値を拡大済み)。 */
 		width: 100%;
  /* 二等分した左列いっぱいに広げ、種族名入力と同じ幅にする。 */
+		/* 角丸は同じ行の種族名入力(radius-sm)に合わせる(box-damage-card.css 側の
+		   --damage-card-direction-border-radius=radius-md は中央カード用の値)。 */
+		--damage-card-direction-border-radius: var(--damage-detail-radius-sm);
 		min-width: 7.4em;
  /* 攻守切り替えの最小横幅。「攻撃」「防御」が折り返さない幅が必要(Cの修正)。文字サイズを周辺欄と揃えたぶん少し広げてある */
 		height: var(--damage-detail-build-control-height);

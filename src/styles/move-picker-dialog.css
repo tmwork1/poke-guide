@@ -249,6 +249,8 @@ body.data-page {
 }
 .move-picker-row { cursor: pointer; }
 .move-picker-row[aria-disabled="true"] { color: var(--color-text-muted); cursor: default; opacity: .7; }
+/* 採用中のわざは入替モードの無効行よりさらに沈めて、候補との区別を一目で付ける。 */
+.move-picker-row.is-already-selected { opacity: .4; }
 @media (hover: hover) and (pointer: fine) {
 	.move-picker-row:hover { background: color-mix(in srgb, var(--color-surface) 90%, var(--color-primary) 10%); }
 	.move-picker-row[aria-disabled="true"]:hover { background: transparent; }
