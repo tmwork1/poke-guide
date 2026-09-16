@@ -8,10 +8,12 @@ import assert from 'node:assert/strict';
 import {
   MATCHUP_MIN_OPACITY,
   MATCHUP_SCORE_MIN_RANGE,
+  MATCHUP_FORM_MIN_RATE,
   OPPONENT_EVS,
   OPPONENT_MIN_MOVE_RATIO,
   averageRatio,
   damageRatio,
+  expandMatchupTargetForms,
   extendMatchupScores,
   matchupOpacity,
   matchupDisadvantageScore,
@@ -20,6 +22,49 @@ import {
   scoreToOpacities,
   suggestMatchupTypes,
 } from '../src/lib/team-matchup.ts';
+
+describe('expandMatchupTargetForms', () => {
+  const base = { speciesName: 'リザードン', dexNo: 6 };
+  const megas = [
+    { speciesName: 'メガリザードンX', dexNo: 6, megaStoneName: 'リザードナイトX' },
+    { speciesName: 'メガリザードンY', dexNo: 6, megaStoneName: 'リザードナイトY' },
+  ];
+
+  it('X 70% / Y 15%なら通常を隠し、Xだけを返す', () => {
+    assert.deepEqual(
+      expandMatchupTargetForms(base, megas, [
+        { name: 'リザードナイトX', usageRate: 70 },
+        { name: 'リザードナイトY', usageRate: 15 },
+      ]),
+      [{ speciesName: 'メガリザードンX', dexNo: 6 }],
+    );
+  });
+
+  it('X 50% / Y 40%なら通常を隠し、両メガを返す', () => {
+    assert.deepEqual(
+      expandMatchupTargetForms(base, megas, [
+        { name: 'リザードナイトX', usageRate: 50 },
+        { name: 'リザードナイトY', usageRate: 40 },
+      ]),
+      [
+        { speciesName: 'メガリザードンX', dexNo: 6 },
+        { speciesName: 'メガリザードンY', dexNo: 6 },
+      ],
+    );
+  });
+
+  it('X 30%なら通常の直後にXを返す', () => {
+    assert.deepEqual(
+      expandMatchupTargetForms(base, megas, [{ name: 'リザードナイトX', usageRate: 30 }]),
+      [base, { speciesName: 'メガリザードンX', dexNo: 6 }],
+    );
+  });
+
+  it('所持率データなしは0%扱いにして通常フォルムだけを返す', () => {
+    assert.deepEqual(expandMatchupTargetForms(base, megas, null), [base]);
+    assert.equal(MATCHUP_FORM_MIN_RATE, 20);
+  });
+});
 
 describe('extendMatchupScores', () => {
   it('既計算のスコアを添字ごと残し、増えたぶんだけ未計算の枠を足す', () => {

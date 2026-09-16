@@ -5,7 +5,16 @@ import { env } from 'cloudflare:workers';
 import { badRequest, jsonResponse, methodNotAllowed } from './_shared';
 import { getOpggUsageList, getOpggUsageManifest, sortOpggSeasons } from '../../lib/opgg-usage';
 import { resolveDexNo } from '../../lib/species-dex';
-import { MATCHUP_TARGET_LIMIT, MATCHUP_TOP_N, type PopularMoveOption } from '../../lib/team-matchup';
+import {
+	expandMatchupTargetForms,
+	MATCHUP_TARGET_LIMIT,
+	MATCHUP_TOP_N,
+	type MatchupMegaForm,
+	type MatchupTargetForm,
+	type PopularMoveOption,
+} from '../../lib/team-matchup';
+import megaStonesRaw from '../../../public/master-data/autocomplete/mega-stones.json';
+import pokemonMasterRaw from '../../../public/master-data/autocomplete/pokemon.json';
 
 export const prerender = false;
 
@@ -15,6 +24,33 @@ interface MatchupTarget {
 	speciesName: string;
 	dexNo: number | null;
 	moves: PopularMoveOption[];
+	forms: MatchupTargetForm[];
+}
+
+interface PokemonMasterEntry {
+	name: string;
+	dexNo: number;
+	forme: string | null;
+}
+
+interface MegaStoneEntry {
+	species: string;
+	item: string;
+}
+
+const MASTER_LIST = pokemonMasterRaw as PokemonMasterEntry[];
+const MEGA_STONE_BY_SPECIES = new Map(
+	(megaStonesRaw as MegaStoneEntry[]).map((entry) => [entry.species, entry.item]),
+);
+
+function megaFormsForDexNo(dexNo: number | null): MatchupMegaForm[] {
+	if (dexNo === null) return [];
+	return MASTER_LIST.flatMap((entry) => {
+		if (!entry.forme?.startsWith('Mega')) return [];
+		if (entry.dexNo !== dexNo) return [];
+		const megaStoneName = MEGA_STONE_BY_SPECIES.get(entry.name);
+		return megaStoneName ? [{ speciesName: entry.name, dexNo: entry.dexNo, megaStoneName }] : [];
+	});
 }
 
 const CACHE_HEADERS = {
@@ -38,13 +74,17 @@ export async function GET({ url }: APIContext): Promise<Response> {
 		if (!seasonList) return jsonResponse({ data: [] }, 200, CACHE_HEADERS);
 
 		// KV の配列順は OP.GG の使用率ランキング順。
-		const data: MatchupTarget[] = seasonList.pokemon.slice(0, limit).map((pokemon) => ({
-			speciesName: pokemon.name,
-			dexNo: resolveDexNo(pokemon.name),
-			moves: (pokemon.single.moves ?? [])
-				.filter((move) => move.usageRate !== null)
-				.map((move) => ({ value: move.name, ratio: move.usageRate! })),
-		}));
+		const data: MatchupTarget[] = seasonList.pokemon.slice(0, limit).map((pokemon) => {
+			const dexNo = resolveDexNo(pokemon.name);
+			const baseForm = { speciesName: pokemon.name, dexNo };
+			return {
+				...baseForm,
+				moves: (pokemon.single.moves ?? [])
+					.filter((move) => move.usageRate !== null)
+					.map((move) => ({ value: move.name, ratio: move.usageRate! })),
+				forms: expandMatchupTargetForms(baseForm, megaFormsForDexNo(dexNo), pokemon.single.items),
+			};
+		});
 
 		return jsonResponse({ data }, 200, CACHE_HEADERS);
 	} catch (error) {

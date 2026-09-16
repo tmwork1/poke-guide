@@ -41,6 +41,14 @@ export const OPPONENT_NATURE = 'まじめ';
  */
 export const OPPONENT_MIN_MOVE_RATIO = 20;
 
+/**
+ * 相性チェックで通常・メガフォルムを候補に残す、メガストーンの所持率(パーセント)の下限。
+ *
+ * OP.GG の usageRate は 0〜100 のパーセント表記。通常フォルムは全メガストーンの
+ * 所持率を 100 から引いた値で判定する。
+ */
+export const MATCHUP_FORM_MIN_RATE = 20;
+
 /** 相性チェックで一度に表示する使用率上位の件数。 */
 export const MATCHUP_TOP_N = 30;
 
@@ -164,6 +172,52 @@ export function suggestMatchupTypes(input: MatchupTypeSuggestionInput): string[]
 export interface PopularMoveOption {
 	value: string;
 	ratio: number;
+}
+
+/** 相性チェックの候補カードに必要な種族情報。 */
+export interface MatchupTargetForm {
+	speciesName: string;
+	dexNo: number | null;
+}
+
+/** メガフォルムと、その唯一の対応情報源であるメガストーン名。 */
+export interface MatchupMegaForm extends MatchupTargetForm {
+	megaStoneName: string;
+}
+
+/** OP.GG の item 使用率。null は未取得として 0% 扱いにする。 */
+export interface MatchupItemUsage {
+	name: string;
+	usageRate: number | null;
+}
+
+/**
+ * OP.GG のベース種族の item 使用率から、表示する通常・メガフォルムを決める。
+ *
+ * メガストーンが items に無い、または usageRate が null の場合は 0% として扱う。
+ * 通常フォルムは先頭、続くメガフォルムは渡された順序のまま返すため、呼び出し側は
+ * MASTER_LIST の順で megaForms を渡す。
+ */
+export function expandMatchupTargetForms(
+	baseForm: MatchupTargetForm,
+	megaForms: readonly MatchupMegaForm[],
+	itemUsage: readonly MatchupItemUsage[] | null | undefined,
+): MatchupTargetForm[] {
+	const usageByItem = new Map<string, number>();
+	for (const item of itemUsage ?? []) {
+		if (item.usageRate === null || !Number.isFinite(item.usageRate)) continue;
+		usageByItem.set(item.name, item.usageRate);
+	}
+	const megaRates = megaForms.map((megaForm) => usageByItem.get(megaForm.megaStoneName) ?? 0);
+	const normalRate = 100 - megaRates.reduce((total, rate) => total + rate, 0);
+	const forms: MatchupTargetForm[] = [];
+	if (normalRate >= MATCHUP_FORM_MIN_RATE) forms.push(baseForm);
+	for (let index = 0; index < megaForms.length; index += 1) {
+		if (megaRates[index] >= MATCHUP_FORM_MIN_RATE) {
+			forms.push({ speciesName: megaForms[index].speciesName, dexNo: megaForms[index].dexNo });
+		}
+	}
+	return forms;
 }
 
 /**
