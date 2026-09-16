@@ -20,7 +20,7 @@
    スクロールコンテナの子孫にならず、他ページのAppHeader/SecondHeaderと同じ
    「documentが動かないので実質固定表示」になる(sticky計算がshellのスクロールと
    絡んで見た目上スクロール領域に含まれてしまう不具合を避ける)。 */
-.damage-calc-shell { position: fixed; top: var(--damage-calc-content-top, calc(var(--header-height) + var(--app-header-height) + var(--damage-calc-secondary-bar-height))); right: 0; bottom: calc(var(--damage-calc-control-bar-height) + var(--bottom-nav-height) + env(safe-area-inset-bottom)); left: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; min-width: 0; background: var(--color-bg); }
+.damage-calc-shell { position: fixed; top: var(--damage-calc-content-top, calc(var(--header-height) + var(--app-header-height) + var(--damage-calc-secondary-bar-height))); right: var(--app-band-inset); bottom: calc(var(--damage-calc-control-bar-height) + var(--bottom-nav-height) + env(safe-area-inset-bottom)); left: var(--app-band-inset); overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; min-width: 0; background: var(--color-bg); }
 .damage-calc-secondary-bar .second-header__content { flex-wrap: wrap; }
 .damage-calc-secondary-actions { display: flex; align-items: center; gap: var(--space-2); flex: 0 1 auto; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
 .damage-calc-secondary-actions::-webkit-scrollbar { display: none; }
@@ -105,7 +105,7 @@
 .damage-calc-matchup-card__opponent-ability { right: calc(50% - (var(--damage-calc-card-artwork-size) + var(--damage-calc-card-item-gap) + var(--damage-calc-card-item-size)) / 2 - var(--damage-calc-card-item-size) / 2); cursor: pointer; }
 .damage-calc-matchup-card__self-ability { left: calc(50% - (var(--damage-calc-card-artwork-size) + var(--damage-calc-card-item-gap) + var(--damage-calc-card-item-size)) / 2 - var(--damage-calc-card-item-size) / 2); cursor: pointer; }
 .damage-calc-matchup-card__opponent-ability:focus-visible, .damage-calc-matchup-card__self-ability:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
-.damage-calc-ability-select-popover { position: fixed; z-index: 102; display: flex; flex-direction: column; gap: var(--space-1); max-width: min(14rem, calc(100vw - var(--space-4))); padding: var(--space-2); border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface); box-shadow: var(--shadow-md); }
+.damage-calc-ability-select-popover { position: fixed; z-index: 102; display: flex; flex-direction: column; gap: var(--space-1); max-width: min(14rem, calc(var(--app-band-width) - var(--space-4))); padding: var(--space-2); border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface); box-shadow: var(--shadow-md); }
 .damage-calc-ability-select-popover__option { min-height: 0; padding: 0.35rem var(--space-2); border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--color-text); cursor: pointer; font: inherit; font-size: var(--font-size-sm2); text-align: left; }
 .damage-calc-ability-select-popover__option:hover, .damage-calc-ability-select-popover__option.is-active { background: color-mix(in srgb, var(--color-primary) 12%, transparent); }
 .damage-calc-ability-select-popover__option:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 1px; }
@@ -152,7 +152,7 @@
    クリップ境界の外側に余白を確保する。
    -webkit-overflow-scrolling/overscroll-behaviorは、モバイルでの慣性スクロール中に
    レール内アイコンがoverflowの境界をはみ出して見える描画の乱れを防ぐ。 */
-.damage-calc-summary-rail { --damage-calc-rail-gap: var(--space-3); position: fixed; top: calc(var(--damage-calc-content-top, calc(var(--header-height) + var(--app-header-height) + var(--damage-calc-secondary-bar-height))) + var(--damage-calc-rail-gap)); bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom) + var(--damage-calc-rail-gap)); right: var(--damage-calc-rail-gutter, var(--space-3)); width: 2.5rem; z-index: 5; display: flex; flex-direction: column; align-items: center; gap: var(--space-2); overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; scrollbar-width: none; background: var(--color-bg); }
+.damage-calc-summary-rail { --damage-calc-rail-gap: var(--space-3); position: fixed; top: calc(var(--damage-calc-content-top, calc(var(--header-height) + var(--app-header-height) + var(--damage-calc-secondary-bar-height))) + var(--damage-calc-rail-gap)); bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom) + var(--damage-calc-rail-gap)); right: calc(var(--app-band-inset) + var(--damage-calc-rail-gutter, var(--space-3))); width: 2.5rem; z-index: 5; display: flex; flex-direction: column; align-items: center; gap: var(--space-2); overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; scrollbar-width: none; background: var(--color-bg); }
 .damage-calc-summary-rail::-webkit-scrollbar { display: none; }
 .damage-calc-summary-rail-item { flex: 0 0 auto; width: 2.5rem; height: 2.5rem; min-height: 2.5rem; padding: 0; overflow: hidden; border: 0; border-radius: 50%; background: transparent; font-size: var(--font-size-sm2); }
 .damage-calc-summary-rail-item img { display: block; width: 100%; height: 100%; object-fit: contain; }
@@ -161,7 +161,7 @@
 .damage-calc-summary-card span, .damage-calc-summary-card small { color: var(--color-text-muted); }
 /* コントロールパネルは引き出しウィンドウ(box/ダメージタブのステータス調整シート
    =stat-adjust-sheet.cssと同じ「閉時はつまみだけを残し他は透明」パターン)。 */
-.damage-calc-control-bar { position: fixed; left: 0; right: 0; bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom)); z-index: 18; display: flex; flex-direction: column; overflow: hidden; border-radius: var(--radius-md) var(--radius-md) 0 0; border: 1px solid var(--color-border); border-bottom: 0; background: var(--color-surface); box-shadow: var(--shadow-md); }
+.damage-calc-control-bar { position: fixed; left: var(--app-band-inset); right: var(--app-band-inset); bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom)); z-index: 18; display: flex; flex-direction: column; overflow: hidden; border-radius: var(--radius-md) var(--radius-md) 0 0; border: 1px solid var(--color-border); border-bottom: 0; background: var(--color-surface); box-shadow: var(--shadow-md); }
 .damage-calc-control-bar:not(.is-expanded) { pointer-events: none; border-color: transparent; background: transparent; box-shadow: none; }
 .damage-calc-control-panel-toggle { display: flex; align-items: center; justify-content: center; flex: none; align-self: center; width: 33.333%; height: 42px; min-height: 0; padding: 0 var(--space-2); line-height: 1; border: 0; background: var(--color-surface); color: var(--color-text-muted); font: inherit; cursor: pointer; }
 .damage-calc-control-bar:not(.is-expanded) .damage-calc-control-panel-toggle { pointer-events: auto; border: 1px solid var(--color-border); border-bottom: 0; border-radius: var(--radius-md) var(--radius-md) 0 0; box-shadow: var(--shadow-md); }
@@ -180,7 +180,6 @@
 .damage-calc-control-panel-body { display: flow-root; max-height: 0; overflow-y: auto; transition: max-height 0.2s ease; }
 .damage-calc-control-bar.is-expanded .damage-calc-control-panel-body { max-height: 24rem; }
 .damage-calc-control-inner { padding: var(--space-2) var(--space-3); }
-@media (width > 412px) { .damage-calc-control-inner { max-width: var(--content-band-max-width); margin-inline: auto; } }
 /* 自分/相手の2列グリッド。「自分」「相手」はランクステッパーと同じ段(1行目)のセル内に
    ラベルとして置き、テラスタルボタンは状態異常と同じ段(2行目)に移す。3行目だけ
    天候(左列)・フィールド(右列)を4つ横並びボタンで表示する。 */
@@ -222,17 +221,15 @@
 .damage-calc-tera-toggle.is-active .damage-calc-tera-icon { filter: none; }
 .damage-calc-tera-toggle:disabled { cursor: not-allowed; opacity: .7; }
 .damage-calc-tera-toggle:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
-@media (max-width: 600px) {
-  .damage-calc-matchup-card__table-wrap { overflow: visible; }
-  .damage-calc-matchup-card__table { min-width: 0; table-layout: fixed; font-size: var(--font-size-sm3); }
-  .damage-calc-matchup-card__move-column { width: 7rem; }
-  .damage-calc-matchup-card__table th, .damage-calc-matchup-card__table td { padding: .42rem .375rem; }
-  .damage-calc-matchup-card__table tbody th { font-size: var(--font-size-sm3); }
-  .damage-calc-matchup-card__table th:first-child { white-space: nowrap; }
-  .damage-calc-matchup-card__table td { font-variant-numeric: tabular-nums; }
-  .damage-calc-matchup-card__table td strong { font-size: var(--font-size-sm2); }
-}
-@media (min-width: 375px) and (max-width: 600px) {
+.damage-calc-matchup-card__table-wrap { overflow: visible; }
+.damage-calc-matchup-card__table { min-width: 0; table-layout: fixed; font-size: var(--font-size-sm3); }
+.damage-calc-matchup-card__move-column { width: 7rem; }
+.damage-calc-matchup-card__table th, .damage-calc-matchup-card__table td { padding: .42rem .375rem; }
+.damage-calc-matchup-card__table tbody th { font-size: var(--font-size-sm3); }
+.damage-calc-matchup-card__table th:first-child { white-space: nowrap; }
+.damage-calc-matchup-card__table td { font-variant-numeric: tabular-nums; }
+.damage-calc-matchup-card__table td strong { font-size: var(--font-size-sm2); }
+@media (min-width: 375px) {
   .damage-calc-matchup-card__move-column { width: 7rem; }
   .damage-calc-matchup-card__table tbody th { font-size: var(--font-size-sm2); }
 }

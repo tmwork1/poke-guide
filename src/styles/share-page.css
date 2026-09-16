@@ -86,10 +86,9 @@ body.share-page {
   border-radius: 50%; /* タイプアイコンの角丸。変えるとアイコンの形が変わる */
 }
 
-@media (max-width: 640px) {
-  /* 狭い画面で画像を詳細欄の横へ寄せない */
-  .share-identity-media { margin-left: 0; }
-}
+/* 狭い画面で画像を詳細欄の横へ寄せない */
+
+.share-identity-media { margin-left: 0; }
 
 /* 能力値を横6列で表示する表 */
 .share-stat-grid {

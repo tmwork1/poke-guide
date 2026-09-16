@@ -53,10 +53,10 @@ body.data-page {
 .species-select-dialog {
 	position: fixed;
 	top: var(--modal-top-offset);
-	left: 50%;
+	left: var(--app-band-center);
 	transform: translateX(-50%);
 	z-index: 71;
-	width: min(640px, 94vw); /* */
+	width: min(640px, calc(var(--app-band-width) * .94)); /* */
 	height: var(--modal-height); /* */
 	display: flex;
 	flex-direction: column;
@@ -214,8 +214,6 @@ body.data-page {
 	box-sizing: border-box;
 }
 /* @media は基本定義より後ろに置く。狭幅時の上書きが先の定義に負けないため。 */
-@media (max-width: 480px) {
-	.species-select-dialog { width: 96vw; }
-	.species-select-search-sort-row { padding-inline: var(--space-3); }
-	.species-select-grid-wrap { padding-inline: var(--space-3); }
-}
+.species-select-dialog { width: 96vw; }
+.species-select-search-sort-row { padding-inline: var(--space-3); }
+.species-select-grid-wrap { padding-inline: var(--space-3); }

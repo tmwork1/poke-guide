@@ -292,31 +292,34 @@ body .move-picker-empty {
   font-size: var(--move-picker-empty-size);
 }
 
-@media (max-width: 899px) {
-  /* 狭い画面では一覧を画面中央のモーダルとして表示する */
-  .move-picker-backdrop {
+/* 狭い画面では一覧を画面中央のモーダルとして表示する */
+
+.move-picker-backdrop {
     position: fixed;
     z-index: 99;
     inset: 0;
     background: var(--color-overlay);
   }
-  body .move-picker-window.is-mobile-modal {
+
+body .move-picker-window.is-mobile-modal {
     z-index: 100;
-    left: 50% !important;
+    left: var(--app-band-center) !important;
     top: var(--modal-top-offset) !important;
-    width: calc(100vw - (var(--move-picker-dialog-inset) * 2)) !important;
+    width: calc(var(--app-band-width) - (var(--move-picker-dialog-inset) * 2)) !important;
     max-width: var(--move-picker-dialog-max-width);
     height: var(--move-picker-dialog-height) !important;
     transform: translateX(-50%);
     border-radius: var(--move-picker-dialog-radius);
   }
-  body .move-picker-slot-tabs {
+
+body .move-picker-slot-tabs {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: var(--space-2); /* モバイルの技スロット間隔。大きくするとボタンが離れる */
     padding: var(--space-2) var(--space-3); /* 技スロット列の内側余白。大きくすると列が厚くなる */
   }
-  body .move-picker-slot-tab {
+
+body .move-picker-slot-tab {
     display: flex;
     align-items: center;
     justify-content: flex-start;
@@ -335,20 +338,22 @@ body .move-picker-empty {
     -webkit-touch-callout: none;
     user-select: none;
   }
-  body .move-picker-slot-input {
+
+body .move-picker-slot-input {
     box-sizing: border-box;
     width: 100%;
     min-width: 0;
     font-size: max(16px, var(--font-size-sm1));
     text-overflow: ellipsis;
   }
-  /* モバイルで現在編集中の技スロットを主色で示す */
-  body .move-picker-slot-tab.is-selected {
+
+/* モバイルで現在編集中の技スロットを主色で示す */
+
+body .move-picker-slot-tab.is-selected {
     border-color: var(--color-primary);
     background: color-mix(in srgb, var(--color-surface) 88%, #000 12%);
     color: var(--color-text);
   }
-}
 
 /*
   PokemonEditPanel.astro にあった後勝ちの定義をここへ集約する。プレビューから開いた
@@ -362,9 +367,9 @@ body .move-picker-empty {
 }
 body .move-picker-window.is-mobile-modal {
   z-index: 100;
-  left: 50% !important;
+  left: var(--app-band-center) !important;
   top: var(--modal-top-offset) !important;
-  width: calc(100vw - (var(--move-picker-dialog-inset) * 2)) !important;
+  width: calc(var(--app-band-width) - (var(--move-picker-dialog-inset) * 2)) !important;
   max-width: var(--move-picker-dialog-max-width);
   height: var(--move-picker-dialog-height) !important;
   transform: translateX(-50%);

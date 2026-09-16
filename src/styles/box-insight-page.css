@@ -120,11 +120,9 @@ body.data-page {
   margin: 0 0 var(--space-3); /* 区画見出しの下余白。大きくすると内容との間が開く */
   font-size: var(--font-size-lg1); /* データ区画の見出し。大きくすると区画の区別が強まる */
 }
-@media (max-width: 420px) {
-  /* 狭い画面の概要と本文 */
-  .pokemon-data-preview { padding: var(--space-4); /* 狭い画面の概要内側余白。大きくすると概要が厚くなる */ }
-  .box-data-main { padding: var(--box-data-card-viewport-inset); }
-}
+/* 狭い画面の概要と本文 */
+.pokemon-data-preview { padding: var(--space-4); /* 狭い画面の概要内側余白。大きくすると概要が厚くなる */ }
+.box-data-main { padding: var(--box-data-card-viewport-inset); }
 
 /* データが無いときは、カード枠を設けず一覧領域内の案内文として表示する。 */
 .data-empty {
@@ -216,8 +214,7 @@ body.data-page {
   min-height: var(--box-battle-data-row1-row-height);
 }
 
-@media (max-width: 420px) {
-  .box-data-page .data-panel--has-data .trend-detail-card {
+.box-data-page .data-panel--has-data .trend-detail-card {
     --box-battle-data-row1-height: round(nearest,
       var(--box-battle-data-row1-padding) +
       var(--battle-data-card-label-row-height) +
@@ -226,7 +223,6 @@ body.data-page {
       var(--box-battle-data-row1-extra-height),
     1px);
   }
-}
 
 /* MobilePokemonPreview は固定配置のため通常フローの高さを持たない。実測した上下端を
      使い、データだけをプレビューと下部ナビの間に固定する。 */

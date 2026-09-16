@@ -1,4 +1,4 @@
-﻿/* ===========================================================================
+/* ===========================================================================
 	耐久調整ポップアップ(/box/[id] で複数の防御条件をまとめて計算する画面)
 
 	画面のどこ: ボックス詳細 → 耐久調整
@@ -53,10 +53,10 @@ body.box-edit-page {
 	.bulk-adjust-dialog {
 		position: fixed;
 		top: var(--modal-top-offset);
-		left: 50%;
+		left: var(--app-band-center);
 		transform: translateX(-50%);
 		z-index: 71;
-		width: min(720px, 94vw); /* ダイアログ横幅。大きくすると横に広がる */
+		width: min(720px, calc(var(--app-band-width) * .94)); /* ダイアログ横幅。大きくすると横に広がる */
 		height: var(--modal-height); /* ダイアログの高さ。本文はこの領域内でスクロールする */
 		display: flex;
 		flex-direction: column;
@@ -227,9 +227,7 @@ body.box-edit-page {
 
 	/* 狭幅端末ではダイアログを画面幅いっぱい近くまで広げる。
 		⚠️ @media は基本定義より後ろに書くこと(このリポジトリで2件実例のある罠)。 */
-	@media (max-width: 480px) {
-		.bulk-adjust-dialog { width: 96vw; }
-	}
+	.bulk-adjust-dialog { width: 96vw; }
 
 	/* 複製カード(buildCardPreview()、damage-calc.ts)は表示専用(内部のinput/select/
 		textarea/buttonは全てdisabled+tabindex=-1済み)だが、×(カード削除ボタン、

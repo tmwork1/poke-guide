@@ -28,10 +28,10 @@
 .game-screen-ocr-dialog {
 	position: fixed;
 	top: var(--modal-top-offset);
-	left: 50%;
+	left: var(--app-band-center);
 	transform: translateX(-50%);
 	z-index: 71;
-	width: min(560px, 94vw); /* ダイアログ横幅。大きくすると横に広がる */
+	width: min(560px, calc(var(--app-band-width) * .94)); /* ダイアログ横幅。大きくすると横に広がる */
 	max-height: var(--modal-height); /* 案内(見本画像)はこの領域内でスクロールする */
 	display: flex;
 	flex-direction: column;

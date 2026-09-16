@@ -154,13 +154,6 @@
   scrollbar-width: none;
 }
 
-/* 基準幅412pxでは既存のタブ幅を保ち、それより広い画面だけを本文帯に揃える。 */
-@media (width > 412px) {
-  .app-header__list {
-    max-width: var(--content-band-max-width);
-    margin-inline: auto;
-  }
-}
 
 /* フリックでのタブ切り替え時、選択ハイライトを旧タブ→新タブへ一度だけスライドさせる
    演出用の要素(app-header-swipe.tsがJSで生成・アニメーションさせる)。
@@ -258,19 +251,17 @@
   display: none;
 }
 
-@media (max-width: 640px) {
-  .app-header__guest-badge-message {
-    display: none;
-  }
+.app-header__guest-badge-message {
+  display: none;
+}
 
-  /* 狭い画面ではツールバー項目を縦に積む */
-  .app-header--toolbar {
-    flex-direction: column;
-    align-items: stretch;
-  }
+/* アプリ帯は412px以下なのでツールバー項目を常に縦に積む。 */
+.app-header--toolbar {
+  flex-direction: column;
+  align-items: stretch;
+}
 
-  .app-header--toolbar .toolbar-item {
-    width: 100%;
-    margin-left: 0;
-  }
+.app-header--toolbar .toolbar-item {
+  width: 100%;
+  margin-left: 0;
 }

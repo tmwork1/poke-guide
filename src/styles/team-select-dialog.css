@@ -14,11 +14,11 @@
 .team-select-dialog {
   position: fixed;
   top: var(--modal-top-offset);
-  left: 50%;
+  left: var(--app-band-center);
   z-index: 71;
   display: flex;
   flex-direction: column;
-  width: min(880px, 94vw);
+  width: min(880px, calc(var(--app-band-width) * .94));
   height: var(--modal-height);
   transform: translateX(-50%);
   overflow: hidden;
@@ -84,11 +84,10 @@
   outline-offset: 2px;
 }
 
-@media (max-width: 480px) {
-  .team-select-dialog {
+.team-select-dialog {
     width: 96vw;
   }
-  .team-select-content {
+
+.team-select-content {
     padding: var(--space-2);
   }
-}

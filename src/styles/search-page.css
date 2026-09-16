@@ -62,15 +62,13 @@ h3 {
    伸びる事故が/boxのツールバーで実際に起きた。.rowはこのページでは常に
    flex-direction: row(columnへの切り替えを持たない)ため実害は無いはずだが、
    将来の回帰に備えて同じガードをここにも置く。 */
-@media (max-width: 640px) {
-  /* 狭い画面では入力欄の基準幅を解除する */
-  #query { flex-basis: auto; }
-}
+/* 狭い画面では入力欄の基準幅を解除する */
+#query { flex-basis: auto; }
 
 /* 以下の2ルールは document.createElement() で生成する要素(検索結果の<a>と
    サジェスト空状態の<p>)に適用する。Astroの scoped style は data-astro-cid-*
    属性が付いた要素にしか効かず、JSで生成した要素には付与されないため、
-   上の scoped <style> に書いても効かない(scopedのまま詳細度を上げても直らない)。
+   上の scoped \3c style> に書いても効かない(scopedのまま詳細度を上げても直らない)。
    このページ内で一意な id (#results-section / #trending-search) を前置し、
    他ページへスコープが漏れないようにする。 */
 /* JavaScriptで生成する検索結果リンク */

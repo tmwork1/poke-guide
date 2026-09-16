@@ -79,12 +79,10 @@
 		padding: var(--space-4) var(--space-5); /* ダメージ詳細パネルの内側余白。大きくすると内容が内側に寄る */
 	}
 	/* 狭幅(1カラム時)は下辺で表と区切る(.panel-border-startの左罫線は縦並びでは意味を持たない)。 */
-	@media (max-width: 1199px) {
-		.speed-chart-side {
+	.speed-chart-side {
 			border-left: 0;
 			border-bottom: 1px solid var(--color-border);
 		}
-	}
 	/* トグルスイッチ本体は複数ページで使うためglobal.cssの共通定義を参照する。 */
 	/* 列構成は「実数値 / 族・配分・倍率 / ポケモン・補正要因」の3列。
 		?owned= 連携時のみ「調整」を4列目として足す。JS生成行(下の is:global 側)が
@@ -308,29 +306,27 @@
 	.speed-chart-table[data-embedded='true'] .speed-chart-rank-field .number-stepper-value {
 		padding: 0 var(--space-1);
 	}
-	@media (max-width: 699px) {
-		.speed-chart-table[data-embedded='true'] .speed-chart-owned-summary {
+	.speed-chart-table[data-embedded='true'] .speed-chart-owned-summary {
 			grid-template-columns: repeat(5, max-content);
 			column-gap: var(--space-2);
 		}
-		/* 699px以下では所持個体サマリーのポケモン画像を一回り小さくする */
-		.speed-chart-table[data-embedded='true'] .speed-chart-owned-summary-sprite {
+	/* 699px以下では所持個体サマリーのポケモン画像を一回り小さくする */
+	.speed-chart-table[data-embedded='true'] .speed-chart-owned-summary-sprite {
 			width: 40px;
 			height: 40px;
 		}
-		.speed-chart-table[data-embedded='true'] .speed-chart-owned-summary > .speed-chart-owned-summary-badges { gap: 2px; }
-		/* 699px以下では性格・特性・持ち物・努力値のバッジを詰めて表示する */
-		.speed-chart-table[data-embedded='true'] .speed-chart-owned-summary > .speed-chart-owned-summary-badges .badge {
+	.speed-chart-table[data-embedded='true'] .speed-chart-owned-summary > .speed-chart-owned-summary-badges { gap: 2px; }
+	/* 699px以下では性格・特性・持ち物・努力値のバッジを詰めて表示する */
+	.speed-chart-table[data-embedded='true'] .speed-chart-owned-summary > .speed-chart-owned-summary-badges .badge {
 			padding: 0.15em 0.35em;
 			font-size: var(--font-size-sm4);
 		}
-		.speed-chart-table[data-embedded='true'] .speed-chart-owned-jump-button {
+	.speed-chart-table[data-embedded='true'] .speed-chart-owned-jump-button {
 			padding: 0.15em 0.3em;
 		}
-		.speed-chart-table[data-embedded='true'] .speed-chart-owned-controls { gap: var(--space-2); }
-		.speed-chart-table[data-embedded='true'] .speed-chart-owned-modifier-toggles { gap: var(--space-2); }
-		.speed-chart-table[data-embedded='true'] .speed-chart-owned-modifier-toggle { gap: var(--space-2); }
-	}
+	.speed-chart-table[data-embedded='true'] .speed-chart-owned-controls { gap: var(--space-2); }
+	.speed-chart-table[data-embedded='true'] .speed-chart-owned-modifier-toggles { gap: var(--space-2); }
+	.speed-chart-table[data-embedded='true'] .speed-chart-owned-modifier-toggle { gap: var(--space-2); }
 
 
 	/* chart-table.ts が再描画ごとに生成する、実数値グループ境界の密度マーカー。 */
@@ -566,21 +562,19 @@
 		与えるだけでよい(grid-auto-flowの既定は1列目側から詰めるため、指定しないと1列目に
 		はみ出す)。列見出し行(.speed-chart-columns-header)は要件Cにより廃止したため、
 		ここで別途非表示にする必要はない。 */
-	@media (max-width: 767px) {
-		.speed-chart-table .speed-chart-row {
+	.speed-chart-table .speed-chart-row {
 			grid-template-columns: 60px minmax(0, 1fr);
 			row-gap: 0.1rem;
 		}
-		.speed-chart-table .speed-chart-meta-cell,
+	.speed-chart-table .speed-chart-meta-cell,
 		.speed-chart-table .speed-chart-chips-cell,
 		.speed-chart-table .speed-chart-owned-cell {
 			grid-column: 2;
 		}
-		/* 実数値セルの左右paddingを詰めて、60px幅でも3桁の実数値(例: 150)が折り返さない
+	/* 実数値セルの左右paddingを詰めて、60px幅でも3桁の実数値(例: 150)が折り返さない
 			余白を確保する(60px - 8px(空白1回分)で残り52pxに対し、太字1.05emの3桁数字は
 			実測30px前後で収まる)。 */
-		.speed-chart-table .speed-chart-value-cell {
+	.speed-chart-table .speed-chart-value-cell {
 			padding-left: var(--space-1);
 			padding-right: var(--space-1);
 		}
-	}

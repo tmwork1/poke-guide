@@ -1,4 +1,4 @@
-﻿/* ===========================================================================
+/* ===========================================================================
    データハブページ(/data)
 
    画面のどこ: 「バトルデータ」と「上位チーム」を横スワイプで切り替えるページ
@@ -144,8 +144,7 @@ body.data-hub-page .app-main > .second-header {
 .battle-data-panel .trend-rank-row {
   min-height: var(--data-battle-data-row-height);
 }
-@media (max-width: 420px) {
-  .battle-data-panel .trend-detail-card {
+.battle-data-panel .trend-detail-card {
     --battle-data-card-row1-height-mobile: round(nearest,
       var(--battle-data-card-cell-padding-mobile) +
       var(--battle-data-card-label-row-height) +
@@ -162,7 +161,6 @@ body.data-hub-page .app-main > .second-header {
     1px);
     --battle-data-card-short-cell-height-mobile: var(--battle-data-card-cell-height-mobile);
   }
-}
 .battle-data-panel .panel-content { padding: 0; }
 .battle-data-second-header[hidden] { display: none; }
 .battle-data-second-header .battle-data-season-field {
@@ -282,7 +280,7 @@ body.data-hub-page .app-main > .second-header {
 }
 .battle-data-rail-item[hidden] { display: none; }
 
-@media (max-width: 420px) { .battle-data-second-header .battle-data-season-field label { display: none; } }
+ .battle-data-second-header .battle-data-season-field label { display: none; }
 
 /* --------------------------------------------------------------------------
    上位チームタブ(セカンドヘッダーの検索・シーズン操作 + チームカード一覧)

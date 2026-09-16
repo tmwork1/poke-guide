@@ -1,4 +1,5 @@
 type AbilityOption = { value: string; label: string };
+import { clampToAppBand } from "../app-band";
 
 let activePopover: HTMLElement | null = null;
 let activeTrigger: HTMLButtonElement | null = null;
@@ -48,9 +49,10 @@ export function openAbilitySelectPopover(
   const showAbove = triggerRect.bottom + popoverRect.height + viewportGutter > window.innerHeight
     && triggerRect.top >= popoverRect.height + viewportGutter;
   const top = showAbove ? triggerRect.top - popoverRect.height - viewportGutter : triggerRect.bottom + viewportGutter;
-  const left = Math.min(
-    Math.max(viewportGutter, triggerRect.left + triggerRect.width / 2 - popoverRect.width / 2),
-    window.innerWidth - popoverRect.width - viewportGutter,
+  const left = clampToAppBand(
+    triggerRect.left + triggerRect.width / 2 - popoverRect.width / 2,
+    popoverRect.width,
+    viewportGutter,
   );
   popover.style.top = `${top}px`;
   popover.style.left = `${left}px`;

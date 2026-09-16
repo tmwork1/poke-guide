@@ -9,6 +9,12 @@
 
 :root {
   color-scheme: dark;
+  /* アプリは常にこのモバイル基準幅で描画する。広いビューポートでは帯の外側を
+     --color-bg のまま残し、fixed 要素も同じ帯に合わせる。 */
+  --app-max-width: 412px;
+  --app-band-inset: max(0px, calc((100vw - var(--app-max-width)) / 2));
+  --app-band-width: min(100vw, var(--app-max-width));
+  --app-band-center: calc(var(--app-band-inset) + var(--app-band-width) / 2);
 
   /* ── 1. 文字サイズ ────────────────────────────────────── */
   --font-size-lg4: 1.9rem; /* 空状態などの大きなアイコン。大きくすると視線を集める表示が拡大する。 */
@@ -149,12 +155,12 @@
   --compact-thumb-card-size-max: 63px;
 
   /* auto-fill は利用可能幅から列数を再計算し、402px端末で3列が2列へ落ちるため使わない。
-     列数は下記ラダーで明示的に切り替え、カードが上限より小さい間だけ幅に追従させる。 */
+     412px上限なので列数は3列/2列で固定する。 */
   --content-band-max-width: calc(
     var(--box-grid-columns) * var(--box-card-size-max)
     + (var(--box-grid-columns) - 1) * var(--space-1)
   );
-  --precision-band-max-width: 412px; /* 基準幅の中身をそのまま中央配置するため、480pxには広げない。 */
+  --precision-band-max-width: var(--app-max-width);
 
   /* ── 9. その他 ────────────────────────────────────────── */
 }
@@ -167,18 +173,7 @@ body.team-edit-page {
   );
 }
 
-/* 3列系は8列・帯幅1068px、2列系は6列・帯幅1204pxで打ち止めにする。
-   各しきい値は「N枚目のカードが130px満杯で収まる幅」(N*130px + (N-1)*space-1 + 左右space-2*2)。
-   これより手前で列数を増やすと、130px未満にカードが圧縮されて縮んで見える。 */
-@media (min-width: 548px) { :root { --box-grid-columns: 4; } }
-@media (min-width: 682px) { :root { --box-grid-columns: 5; } }
-@media (min-width: 816px) { :root { --box-grid-columns: 6; } }
-@media (min-width: 950px) { :root { --box-grid-columns: 7; } }
-@media (min-width: 1084px) { :root { --box-grid-columns: 8; } }
-
-/* 6枠は6の約数だけを用い、2→3→6列に切り替える。 */
-@media (min-width: 620px) { :root { --team-overview-grid-columns: 3; } }
-@media (min-width: 1220px) { :root { --team-overview-grid-columns: 6; } }
+/* 412px上限では3列系/2列系の列数を固定し、カードの基準寸法を保つ。 */
 
 select {
   --select-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1.5 2L6 6.2L10.5 2' fill='none' stroke='%239aa1b0' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); /* セレクト欄の矢印画像。差し替えると選択欄右端の記号が変わる。 */
@@ -199,7 +194,7 @@ body {
 
 body {
   background-color: var(--color-bg);
-  background-image: var(--background-image-page);
+  background-image: none;
   font-family:
     "M PLUS Rounded 1c", -apple-system, BlinkMacSystemFont, "Segoe UI",
     "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
@@ -327,7 +322,7 @@ textarea,
 }
 
 .panel-content {
-  max-width: 1080px;
+  max-width: var(--app-max-width);
 }
 
 .card-hint {
@@ -838,7 +833,7 @@ input[type="range"]:focus-visible::-moz-range-thumb {
   grid-template-columns: repeat(7, minmax(2.5rem, 1fr));
   gap: var(--space-1);
   width: max-content;
-  max-width: min(20rem, calc(100vw - var(--space-4)));
+  max-width: min(20rem, calc(var(--app-band-width) - var(--space-4)));
   padding: var(--space-2);
   overflow: auto;
   color: var(--color-text);
@@ -1130,6 +1125,10 @@ dd {
 
 .app-shell {
   min-height: 100dvh;
+  max-width: var(--app-max-width);
+  margin-inline: auto;
+  background-color: var(--color-bg);
+  background-image: var(--background-image-page);
 }
 
 .app-main {

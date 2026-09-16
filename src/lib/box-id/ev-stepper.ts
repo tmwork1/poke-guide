@@ -9,6 +9,7 @@
 import { bindPressAndHold } from "../press-and-hold";
 import { markModalPortal } from "../modal-dismiss";
 import { wrapToRange } from "./shared-core";
+import { clampToAppBand } from "../app-band";
 
 export interface EvStepperOptions {
 	/** aria-label の組み立てに使う能力値の呼び名(例: "H") */
@@ -77,7 +78,7 @@ export function createEvStepper({ label, min, max, getValue, setValue }: EvStepp
 		const pickerRect = picker.getBoundingClientRect();
 		picker.style.position = "fixed";
 		picker.style.top = `${Math.max(8, Math.min(window.innerHeight - pickerRect.height - 8, anchor.bottom + 4))}px`;
-		picker.style.left = `${Math.max(8, Math.min(window.innerWidth - pickerRect.width - 8, anchor.left + (anchor.width - pickerRect.width) / 2))}px`;
+		picker.style.left = `${clampToAppBand(anchor.left + (anchor.width - pickerRect.width) / 2, pickerRect.width)}px`;
 		valueButton.setAttribute("aria-expanded", "true");
 	}
 

@@ -9,6 +9,14 @@
 
 ユーザーがそのタスクに限って「worktreeを分けて」「今回はcommitしないで」等の指示をした場合は、そちらが優先する。
 
+## 画面幅(レスポンシブ非対応)
+
+**レスポンシブ設計は行わない。アプリは `--app-max-width`(412px)を上限とし、広い画面では412px幅の帯を中央配置する**(2026-09-16に全面移行)。412px未満は幅に追従させる。
+
+- しきい値が412px以上の `@media` 幅クエリ(`min-width: 548px` や `max-width: 480px` など)を新規に書かない。412pxで常に真なら無条件のベーススタイルに、常に偽なら書かない。412px未満向け(`max-width: 359px` 等)と `(hover: hover)` 等の幅以外のクエリは使ってよい。
+- `position: fixed` の要素は `left/right: var(--app-band-inset)` で帯に揃える(ダイアログのバックドロップだけは全画面)。JSで位置を出すときは `src/lib/app-band.ts` の `getAppBandRect` / `clampToAppBand` を使い、`window.innerWidth` を直接使わない。
+- 帯幅を意味する `100vw` は `var(--app-band-width)` を使う。
+
 ## スタイル定義
 
 画面・コンポーネント固有のスタイルは、`owned-pokemon-card.css` や `box-page.css` のように対象ごとの CSS ファイルへ集約することを必須とする。開発者が見た目を調整しやすいよう、テンプレート内の `style` 属性、コンポーネント内の分散した `<style>`、および同一対象のスタイルを複数ファイルへ無秩序に分ける実装は行わない。共有スタイルのみ `global.css` 等の共通スタイルシートに置く。

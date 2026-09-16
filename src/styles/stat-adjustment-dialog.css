@@ -38,10 +38,10 @@ body.data-page {
 .stat-adjustment-dialog {
 	position: fixed;
 	top: var(--modal-top-offset);
-	left: 50%;
+	left: var(--app-band-center);
 	transform: translateX(-50%);
 	z-index: 66;
-	width: min(640px, 94vw);
+	width: min(640px, calc(var(--app-band-width) * .94));
 	/* 調整項目だけのときは内容量に合わせ、低い画面では共通モーダル高を上限にする。 */
 	height: auto;
 	max-height: var(--modal-height);
@@ -94,10 +94,9 @@ body.data-page {
 	padding: var(--space-3) var(--space-5);
 }
 
-@media (max-width: 480px) {
-	.stat-adjustment-dialog { width: 96vw; }
-	.stat-adjustment-dialog-body { padding-inline: var(--space-3); }
-}
+.stat-adjustment-dialog { width: 96vw; }
+
+.stat-adjustment-dialog-body { padding-inline: var(--space-3); }
 
 /* ===========================================================================
 	モーダル内へ移動した #stat-adjustment-section の見た目調整

@@ -35,8 +35,8 @@ body.box-edit-page {
   position: fixed;
   z-index: 101;
   top: var(--modal-top-offset);
-  left: 50%;
-  width: min(1200px, 84vw);
+  left: var(--app-band-center);
+  width: min(1200px, calc(var(--app-band-width) * .84));
   height: var(--modal-height);
   transform: translateX(-50%);
   border: var(--modal-border);
@@ -55,12 +55,10 @@ body.box-edit-page {
   background: var(--color-surface);
 }
 
-@media (max-width: 899px) {
-  .speed-adjust-dialog {
+.speed-adjust-dialog {
     width: 92vw;
     height: var(--modal-height);
   }
-}
 
 /* iframe 内のすばやさ調整画面。ここを調整すれば文字・余白・操作部をまとめて変更できる。 */
 body.speed-chart-page:has(.speed-chart-embed-toolbar) {
@@ -309,17 +307,16 @@ body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-rank
   background: var(--color-primary-soft) !important;
 }
 
-@media (max-width: 699px) {
-  /* 狭い iframe でも見出し行の余白(--speed-adjust-toolbar-padding)はモーダルヘッダー規格のまま変えない(他モーダルに合わせる)。
+/* 狭い iframe でも見出し行の余白(--speed-adjust-toolbar-padding)はモーダルヘッダー規格のまま変えない(他モーダルに合わせる)。
      縮めるのは表エリア・下部サマリーの余白と操作間隔だけ。 */
-  body.speed-chart-page:has(.speed-chart-embed-toolbar) {
+
+body.speed-chart-page:has(.speed-chart-embed-toolbar) {
     --speed-adjust-content-padding: var(--space-2) var(--space-3);
     --speed-adjust-summary-gap: var(--space-1);
     --speed-adjust-control-gap: var(--space-4);
   }
 
-  body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-row.is-current-row {
+body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-row.is-current-row {
     margin-inline: calc(-1 * var(--space-3));
     padding-inline: var(--space-3);
   }
-}

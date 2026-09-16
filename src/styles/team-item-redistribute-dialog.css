@@ -208,8 +208,6 @@ body.team-edit-page {
 	color: var(--color-text-muted);
 }
 
-@media (max-width: 640px) {
-	.team-item-redistribute-members-wrap {
+.team-item-redistribute-members-wrap {
 		padding-inline: var(--space-3);
 	}
-}

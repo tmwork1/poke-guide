@@ -86,12 +86,6 @@
 }
 
 /* 基準幅412pxでは従来の内部幅を保ち、それより広い画面だけを帯幅へ収める。 */
-@media (width > 412px) {
-  .pokemon-preview-main {
-    max-width: min(var(--content-band-max-width), var(--precision-band-max-width));
-    margin-inline: auto;
-  }
-}
 
 .pokemon-preview-left,
 .pokemon-preview-identity,

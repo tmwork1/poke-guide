@@ -108,10 +108,10 @@ body.box-edit-page {
 		--damage-card-direction-background: var(--color-surface);
 		position: fixed;
 		top: var(--modal-top-offset);
-		left: 50%;
+		left: var(--app-band-center);
 		right: auto;
 		bottom: auto;
-		width: min(92vw, 480px);
+		width: min(calc(var(--app-band-width) * .92), 480px);
  /* 横幅。大きくすると入力欄や候補カードが横に広がる */
 		height: var(--modal-height);
  /* タブごとの内容量にかかわらず、画面高の約75%を表示領域に使う */

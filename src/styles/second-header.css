@@ -41,12 +41,6 @@
 }
 
 /* 基準幅412pxでは既存の操作幅を保ち、それより広い画面だけを本文帯に揃える。 */
-@media (width > 412px) {
-	.second-header__content {
-		max-width: var(--content-band-max-width);
-		margin-inline: auto;
-	}
-}
 
 /* 検索欄スロット: 残り幅いっぱいに広がる */
 .second-header-search {

@@ -3,6 +3,7 @@ import { championSpriteMediumUrl,
   championSpriteUrl, officialArtworkUrl } from '../pokemon-master-data';
 import { itemIconUrl, typeIconUrl } from '../sprite-urls';
 import { renderTeamCard } from '../team-card';
+import { getAppBandRect } from '../app-band';
 
 function element<K extends keyof HTMLElementTagNameMap>(
   tag: K,
@@ -297,9 +298,10 @@ export function renderTopBuildCard(team: RankedTeam, options: RenderTopBuildCard
 
       const memberCardRect = memberCard.getBoundingClientRect();
       const popoverRect = popover.getBoundingClientRect();
-      const maxLeft = Math.max(MEMBER_POPOVER_VIEWPORT_GUTTER, window.innerWidth - popoverRect.width - MEMBER_POPOVER_VIEWPORT_GUTTER);
+      const appBand = getAppBandRect();
+      const maxLeft = Math.max(appBand.left + MEMBER_POPOVER_VIEWPORT_GUTTER, appBand.right - popoverRect.width - MEMBER_POPOVER_VIEWPORT_GUTTER);
       const maxTop = Math.max(MEMBER_POPOVER_VIEWPORT_GUTTER, window.innerHeight - popoverRect.height - MEMBER_POPOVER_VIEWPORT_GUTTER);
-      popover.style.left = `${Math.min(Math.max(memberCardRect.left, MEMBER_POPOVER_VIEWPORT_GUTTER), maxLeft)}px`;
+      popover.style.left = `${Math.min(Math.max(memberCardRect.left, appBand.left + MEMBER_POPOVER_VIEWPORT_GUTTER), maxLeft)}px`;
       popover.style.top = `${Math.min(Math.max(memberCardRect.bottom + MEMBER_POPOVER_GAP, MEMBER_POPOVER_VIEWPORT_GUTTER), maxTop)}px`;
       activeMemberPopover = popover;
       activeMemberPopoverCard = memberCard;

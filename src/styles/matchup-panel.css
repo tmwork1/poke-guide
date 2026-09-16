@@ -109,7 +109,7 @@
 .team-matchup-move-popover {
 	position: fixed;
 	z-index: 102;
-	max-width: min(14rem, calc(100vw - 16px));
+	max-width: min(14rem, calc(var(--app-band-width) - 16px));
 	padding: var(--space-2) var(--space-3);
 	border: 1px solid var(--color-border);
 	border-radius: var(--radius-sm);

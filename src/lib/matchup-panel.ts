@@ -34,6 +34,7 @@ import {
 } from './team-matchup';
 import { DEFAULT_TYPE_COLOR, TYPE_COLORS } from './type-colors';
 import { typeIconUrl } from './sprite-urls';
+import { clampToAppBand } from './app-band';
 
 /** 相性計算に必要な、所有ポケモンの最小限の情報。 */
 export interface MatchupPanelMember {
@@ -254,9 +255,10 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 		const viewportGutter = 8;
 		const showAbove = cardRect.top >= popoverRect.height + viewportGutter;
 		const top = showAbove ? cardRect.top - popoverRect.height - 8 : cardRect.bottom + 8;
-		const left = Math.min(
-			Math.max(viewportGutter, cardRect.left + cardRect.width / 2 - popoverRect.width / 2),
-			window.innerWidth - popoverRect.width - viewportGutter,
+		const left = clampToAppBand(
+			cardRect.left + cardRect.width / 2 - popoverRect.width / 2,
+			popoverRect.width,
+			viewportGutter,
 		);
 		popover.style.top = `${top}px`;
 		popover.style.left = `${left}px`;

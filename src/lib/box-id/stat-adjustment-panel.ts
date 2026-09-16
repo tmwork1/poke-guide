@@ -12,6 +12,7 @@ import {
 } from "./shared-core";
 import { bindPressAndHold } from "../press-and-hold";
 import { markModalPortal } from "../modal-dismiss";
+import { clampToAppBand } from "../app-band";
 
 export interface StatAdjustmentPanelOptions {
 	baseStats: number[];
@@ -224,7 +225,7 @@ export function buildStatAdjustmentPanel(options: StatAdjustmentPanelOptions): S
 			const pickerRect = picker.getBoundingClientRect();
 			picker.style.position = "fixed";
 			picker.style.top = `${Math.max(8, Math.min(window.innerHeight - pickerRect.height - 8, anchor.bottom + 4))}px`;
-			picker.style.left = `${Math.max(8, Math.min(window.innerWidth - pickerRect.width - 8, anchor.left + (anchor.width - pickerRect.width) / 2))}px`;
+			picker.style.left = `${clampToAppBand(anchor.left + (anchor.width - pickerRect.width) / 2, pickerRect.width)}px`;
 			pickerButton.setAttribute("aria-expanded", "true");
 		};
 		let holdTimer: number | undefined;

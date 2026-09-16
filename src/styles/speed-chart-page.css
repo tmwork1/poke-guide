@@ -1,4 +1,4 @@
-﻿/* ===========================================================================
+/* ===========================================================================
 	すばやさ順位表ページ全体
 
 	画面のどこ: /speed-chart のトップバーと埋め込み時の操作バー
@@ -62,19 +62,17 @@ body.speed-chart-page {
 	height: 100%;
 	min-height: 0;
 }
-@media (max-width: 699px) {
-	.speed-chart-embed-toolbar {
+.speed-chart-embed-toolbar {
 		gap: var(--space-1);
 	}
-	.speed-chart-embed-toolbar .speed-chart-regulation-label { display: none; }
-	.speed-chart-embed-title { width: 100%; }
-	.speed-chart-embed-close {
+.speed-chart-embed-toolbar .speed-chart-regulation-label { display: none; }
+.speed-chart-embed-title { width: 100%; }
+.speed-chart-embed-close {
 		position: absolute;
 		top: var(--space-2);
 		right: var(--space-2);
 		margin-right: 0; /* デスクトップ用の右余白調整を打ち消し、絶対配置のtop/rightだけで揃える */
 	}
-}
 
 /* SecondHeaderの外枠は共通コンポーネントを使い、内部だけをこの画面の小さな操作群用に組む。 */
 .speed-chart-second-header {

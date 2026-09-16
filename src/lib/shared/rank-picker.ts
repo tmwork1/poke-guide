@@ -1,4 +1,5 @@
 import { markModalPortal } from "../modal-dismiss";
+import { clampToAppBand } from "../app-band";
 
 export type RankPickerPlacement = "above" | "below";
 
@@ -43,7 +44,7 @@ export function createRankPicker({ pickerButton, placement, onSelect, formatValu
 		picker.style.position = "fixed";
 		const desiredTop = placement === "above" ? anchor.top - pickerRect.height - 4 : anchor.bottom + 4;
 		picker.style.top = `${Math.max(8, Math.min(window.innerHeight - pickerRect.height - 8, desiredTop))}px`;
-		picker.style.left = `${Math.max(8, Math.min(window.innerWidth - pickerRect.width - 8, anchor.left + (anchor.width - pickerRect.width) / 2))}px`;
+		picker.style.left = `${clampToAppBand(anchor.left + (anchor.width - pickerRect.width) / 2, pickerRect.width)}px`;
 		pickerButton.setAttribute("aria-expanded", "true");
 	};
 	pickerButton.addEventListener("click", () => {

@@ -34,10 +34,10 @@
 .share-image-dialog {
 	position: fixed;
 	top: var(--modal-top-offset);
-	left: 50%;
+	left: var(--app-band-center);
 	transform: translateX(-50%);
 	z-index: 71;
-	width: min(640px, 94vw);
+	width: min(640px, calc(var(--app-band-width) * .94));
 	max-height: var(--modal-height);
 	display: flex;
 	flex-direction: column;
@@ -146,9 +146,7 @@
 	display: grid;
 	gap: var(--space-3);
 }
-@media (max-width: 480px) {
-	.share-image-dialog { width: 98vw; }
-	/* 圧縮カード(390px幅前提)をなるべく切らずに収めるため、狭幅では一覧側の横余白を最小にする。 */
-	.share-image-dialog-body { padding-inline: var(--space-2); }
-	.share-image-dialog-footer { padding-inline: var(--space-3); }
-}
+.share-image-dialog { width: 98vw; }
+/* 圧縮カード(390px幅前提)をなるべく切らずに収めるため、狭幅では一覧側の横余白を最小にする。 */
+.share-image-dialog-body { padding-inline: var(--space-2); }
+.share-image-dialog-footer { padding-inline: var(--space-3); }

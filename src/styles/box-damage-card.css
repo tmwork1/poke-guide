@@ -1925,7 +1925,7 @@ body.box-edit-page {
    には効かず、デスクトップ幅でも効かなかった。 */
 :is(#opponent-notes-section, .damage-card-scope) .box-add-button {
   position: fixed;
-  right: var(--space-5); /* 右下固定の追加ボタンと右端の間隔 */
+  right: calc(var(--app-band-inset) + var(--space-5)); /* 右下固定の追加ボタンと帯の右端の間隔 */
   bottom: calc(var(--bottom-nav-height) + var(--space-4) + env(safe-area-inset-bottom)); /* 右下固定の追加ボタンと下ナビの間隔 */
   z-index: 21;
 }

@@ -32,6 +32,7 @@ import { validateSpeedChartApplyPayload } from '../speed-chart-validation';
 import type { OwnedPokemonRecord } from '../owned-pokemon';
 import { championSpriteMediumUrl, championSpriteUrl, officialArtworkUrl } from '../pokemon-master-data';
 import { itemIconUrl } from '../sprite-urls';
+import { clampToAppBand } from '../app-band';
 
 export const OWNED_CURRENT_VALUE_EVENT = 'speed-chart:owned-current-changed';
 
@@ -281,7 +282,7 @@ export function initOwnedPanel(ctx: OwnedPanelContext): OwnedPanelController {
 		const pickerRect = rankOptions.getBoundingClientRect();
 		rankOptions.style.position = 'fixed';
 		rankOptions.style.top = `${Math.max(8, Math.min(window.innerHeight - pickerRect.height - 8, anchor.bottom + 4))}px`;
-		rankOptions.style.left = `${Math.max(8, Math.min(window.innerWidth - pickerRect.width - 8, anchor.left + (anchor.width - pickerRect.width) / 2))}px`;
+		rankOptions.style.left = `${clampToAppBand(anchor.left + (anchor.width - pickerRect.width) / 2, pickerRect.width)}px`;
 		rankPicker.setAttribute('aria-expanded', 'true');
 	};
   const commitRank = (fallbackToZeroIfEmpty: boolean): void => {

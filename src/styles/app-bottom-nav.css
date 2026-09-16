@@ -20,8 +20,8 @@
 /* 画面下端に固定するナビ全体 */
 .app-bottom-nav {
   position: fixed;
-  left: 0;
-  right: 0;
+  left: var(--app-band-inset);
+  right: var(--app-band-inset);
   bottom: 0;
   z-index: var(--z-index-app-bottom-nav);
   border-top: 1px solid var(--color-border);
@@ -36,12 +36,6 @@
 }
 
 /* 基準幅412pxでは従来の5等分を保ち、それより広い画面だけを本文帯に揃える。 */
-@media (width > 412px) {
-  .app-bottom-nav-list {
-    max-width: var(--content-band-max-width);
-    margin-inline: auto;
-  }
-}
 
 /* アイコンと項目名を縦に並べる各リンク */
 .app-bottom-nav-item {

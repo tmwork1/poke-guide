@@ -49,11 +49,9 @@
 	white-space: nowrap;
 }
 
-@media (max-width: 420px) {
-	.ranked-teams-season-field label {
+.ranked-teams-season-field label {
 		display: none;
 	}
-}
 
 /* チーム/類似チームでは操作帯の上にチームメイト枠が隣接するため、
    下端(.second-header)だけでなく上端にも同じ区切り線を出して帯の範囲を示す。 */

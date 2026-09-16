@@ -14,6 +14,7 @@ import {
 	readMoveNames,
 } from "../owned-pokemon-form";
 import { bindModalDismissal } from "../modal-dismiss";
+import { clampToAppBand } from "../app-band";
 import {
 	loadTypesMap,
 	loadMoveTypeMap,
@@ -175,7 +176,7 @@ function pairEvSlider(numberId: string, rangeId: string, onSync: () => void): vo
 		const pickerWidth = picker.getBoundingClientRect().width;
 		picker.style.position = "fixed";
 		picker.style.top = `${Math.max(8, Math.min(window.innerHeight - picker.getBoundingClientRect().height - 8, anchor.bottom + 4))}px`;
-		picker.style.left = `${Math.max(8, Math.min(window.innerWidth - pickerWidth - 8, anchor.left + (anchor.width - pickerWidth) / 2))}px`;
+		picker.style.left = `${clampToAppBand(anchor.left + (anchor.width - pickerWidth) / 2, pickerWidth)}px`;
 		pickerButton.setAttribute("aria-expanded", "true");
 	};
 	let holdTimer: number | undefined;

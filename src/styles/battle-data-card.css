@@ -287,17 +287,20 @@
   text-align: left;
 }
 
-@media (max-width: 420px) {
-  /* 狭い画面でのカード内マス */
-  .trend-detail-card {
+/* 狭い画面でのカード内マス */
+
+.trend-detail-card {
     grid-template-rows: var(--battle-data-card-row1-height-mobile) var(--battle-data-card-cell-height-mobile) var(--battle-data-card-short-cell-height-mobile);
   }
-  .trend-detail-cell {
+
+.trend-detail-cell {
     --battle-data-card-cell-current-padding: var(--battle-data-card-cell-padding-mobile);
     --battle-data-card-scrollbar-clearance: calc(var(--space-1) + 4px);
     padding: var(--battle-data-card-cell-padding-mobile);
   }
-  .trend-detail-cell:nth-child(-n+2) { height: var(--battle-data-card-row1-height-mobile); }
-  .trend-detail-cell:nth-child(n+3) { height: var(--battle-data-card-cell-height-mobile); }
-  .trend-detail-cell:nth-child(n+5) { height: var(--battle-data-card-short-cell-height-mobile); }
-}
+
+.trend-detail-cell:nth-child(-n+2) { height: var(--battle-data-card-row1-height-mobile); }
+
+.trend-detail-cell:nth-child(n+3) { height: var(--battle-data-card-cell-height-mobile); }
+
+.trend-detail-cell:nth-child(n+5) { height: var(--battle-data-card-short-cell-height-mobile); }

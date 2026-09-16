@@ -331,28 +331,30 @@
 }
 
 /* 狭い表示用の3.2em上書きも、相手ポケモンタブ内だけは44pxへ揃える。 */
-@media (max-width: 460px) {
-	#damage-detail-panel-body .stat-adjustment-section .stat-row .stat-ev-stepper > .number-stepper-value {
+#damage-detail-panel-body .stat-adjustment-section .stat-row .stat-ev-stepper > .number-stepper-value {
 		flex-basis: 44px;
 		width: 44px;
 	}
-}
 
-@media (max-width: 460px) {
-	/* 狭い画面では見出しを隠し、5列の操作しやすい並びに切り替える */
-	.stat-table-header { display: none; }
-	/* 努力値ボタンは常に固定サイズ(--stat-ev-mobile-button-block-size)を保つため、
+/* 狭い画面では見出しを隠し、5列の操作しやすい並びに切り替える */
+
+.stat-table-header { display: none; }
+
+/* 努力値ボタンは常に固定サイズ(--stat-ev-mobile-button-block-size)を保つため、
 	   列幅がボタンの必要幅を下回る画面では行ごと実数値列へオーバーラップしていた
 	   (minmax(0, 1fr)が列を0まで潰せたため)。列の下限をボタンの実寸(max-content)に
 	   固定して重なりを止め、それでも収まらない極端な狭幅では行を横スクロールさせる
 	   (ボタンを縮めない)。 */
-	.stat-table { overflow-x: auto; }
-	.stat-row {
+
+.stat-table { overflow-x: auto; }
+
+.stat-row {
 		grid-template-columns: 1.4rem 2.8rem 2rem minmax(max-content, 1fr) 2.6rem;
 		row-gap: var(--space-1);
 		min-width: max-content;
 	}
-	.stat-row .stat-input-controls {
+
+.stat-row .stat-input-controls {
 		display: flex;
 		align-items: center;
 		justify-content: flex-end;
@@ -360,22 +362,27 @@
 		min-width: 0;
 		grid-column: 4;
 	}
-	.stat-row .stat-ev-step-button { min-width: var(--stat-ev-mobile-button-block-size); }
-	/* 狭い画面の努力値数値入力を増減ボタンと同じ行に収める */
-	.stat-row .stat-ev-stepper > .number-stepper-value {
+
+.stat-row .stat-ev-step-button { min-width: var(--stat-ev-mobile-button-block-size); }
+
+/* 狭い画面の努力値数値入力を増減ボタンと同じ行に収める */
+
+.stat-row .stat-ev-stepper > .number-stepper-value {
 		flex: 0 0 3.2em;
 		width: 3.2em;
 	}
-	/* 狭い画面で実数値を4列目に置き、右端へ揃える枠 */
-	.stat-row-real-wrap {
+
+/* 狭い画面で実数値を4列目に置き、右端へ揃える枠 */
+
+.stat-row-real-wrap {
 		display: flex;
 		grid-column: 5;
 		justify-content: flex-end;
 		min-width: 0;
 	}
-	.stat-row-real {
+
+.stat-row-real {
 		padding-inline-end: 0;
 		text-align: center;
 		font-weight: var(--font-weight-normal);
 	}
-}
