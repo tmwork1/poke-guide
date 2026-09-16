@@ -1,5 +1,6 @@
 # jpoke ダメージ計算の契約
 
+> ⚠ jpoke v0.5.0 更新(2026-09-16)により、本ファイル冒頭時点(v0.4.0)以前の記述は未再検証。ただし §12 は今回の更新自体の記録として追記済み。
 > ⚠ jpoke v0.4.0 更新(2026-09-11)により未再検証。
 
 **検証時点**: jpoke v0.2.0 (`vendor/jpoke`) / 2026-07-27(§7追記時点でvendor更新済み)。§10は2026-07-30に`resume_from`追加取り込み時点で追記・再検証済み。
@@ -193,6 +194,15 @@
 - **正しい継続方法**: `Battle.calc_lethal(..., resume_from=前回の結果)`を1発ずつ繰り返す(`sequential`側と同じ方法)。`resume_from`経由の`hp_dist`は`_apply_damage`/`_apply_damage_by_branch`が常に`minimum=0`でクランプするため(出典: `lethal.py:442,484,490`)、二重計上・非単調バグのどちらも起きない。実測でこの方法は`Battle.calc_lethal(max_attack=N)`を1回で呼んだ場合(ground truth)と完全に一致することを確認済み。
 - **`calc_lethal(max_attack=N)`を1回で呼ぶだけでは複数ターン分の系列を取り切れない場合がある**: `_lethal_loop`は「HP分布中に1つでもHP=0の分岐が現れたら、他の分岐が生存中でもそこで打ち切る」仕様(§6参照)のため、例えば2発目で一部の乱数だけがKOに達するケースでは、`max_attack=10`と指定しても結果配列が2件で止まり、3発目以降(確率100%に達する地点)が返らない。`max_attack=1`を`resume_from`で1発ずつ繋げば、この早期打ち切りの影響を受けずに最後まで系列を取れる(実測で確認済み: ガブリアスvsヤドキングの例で`max_attack=3`一括呼び出しは2発目で打ち切られ3発目の100%が取れないが、`max_attack=1`×3回のresume_from連鎖なら1→2→3発目まで正しく取れる)。
 - 修正はpoke-guide側(`src/lib/pyodide-engine.ts`の`calc_lethal_sequence_json`内`per_attack_lethal_series`)で行った。jpoke自体に修正は不要(`__add__`はドキュメント通りの実装であり、「同じ技の繰り返し」という用途にはそもそも向かない汎用コンビネータ)。
+
+## 12. `calc_damages`/`roll_damage`が技実行フローの前処理を経るようになった(2026-09-16、v0.5.0取り込み時に追記)
+
+**背景**: v0.4.0まで、`Battle.calc_damages()`は`AttackContext`を組み立てて即座に威力・攻撃・防御の計算へ入り、`MoveExecutor.execute()`が行う前処理(`Move.register_handlers()`によるハンドラ登録、`resolve_move_type()`/`resolve_move_category()`による`ON_MODIFY_MOVE_TYPE`/`ON_MODIFY_MOVE_CATEGORY`の発火)を一切通らなかった。結果、スキン系特性のタイプ変換・ウェザーボールの天候依存タイプ/威力・アクロバットの道具無し2倍・テラバーストの分類切替・かたやぶり系特性の無効化が**外部問い合わせ(`calc_damages`/`roll_damage`/`calc_lethal`)経由では一切ダメージに反映されない**欠落があった([[project_damage_calc_move_effects_jpoke_side]]参照、調査報告は`../jpoke/.internal/plan/calc_damages_move_effect_gap.md`)。
+
+- **修正**: `Battle._prepare_move_for_query()`を新設し、`calc_damages`/`roll_damage`の呼び出し前後に技ハンドラ登録・タイプ/分類解決・`ON_SETUP_MOVE`/`ON_TEARDOWN_MOVE`(かたやぶり系・きんしのちから・メガソーラー・シャドーレイ系の適用/解除)を挟む(出典: `vendor/jpoke/src/jpoke/core/battle.py`、コミット`e1c26dc93`)。`DamageCalculator.roll_damage`を新設し内部実装を集約。技実行中の内部呼び出し(`MoveExecutor`本体・はめつのねがい・みらいよち・こんらん自傷)は前処理済み前提の`damage_calculator`を直呼びして二重登録を回避する。
+- **副作用は無い**: `test_calc_damagesでMoveとハンドラ登録を復元する`(上流テスト)が示す通り、問い合わせ後は`move.type`/`move.category`・イベントハンドラ登録ともに呼び出し前の状態へ戻される(状態を汚さない一回限りの問い合わせとして設計)。
+- **確認済み**: 上流回帰テスト`tests/test_calc_damages_move_effect.py`(21件、スキン系・ウェザーボール・アクロバット・テラバースト・かたやぶり系を網羅)、poke-guide側`npm test`(579件)・`damage-calc.spec.ts`・`stats-lethal-sequence.spec.ts`、いずれも全通過(2026-09-16)。既存fixtureの数値差分は無し(=単純なケースの計算結果自体は不変、今回反映されるようになったのは従来ダメージ0や無変化になっていた技固有効果のみ)。
+- **poke-guide側の対応不要**: 欠落はjpoke側のみで修正済みのため、poke-guideに回避コードを追加する必要は無い(既に無かったことを確認済み)。
 
 ## 未確認(コードで確認できなかった項目)
 

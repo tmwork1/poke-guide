@@ -1,5 +1,6 @@
 # poke-commons と jpoke の接続面
 
+> ⚠ jpoke v0.5.0 更新(2026-09-16)により未再検証。今回の更新内容(`calc_damages`/`roll_damage`が技実行フローの前処理を経るようになった、`references/damage-calc.md`§12)はpoke-commons側の呼び出し方を変える必要のない内部修正で、`pyodide-engine.ts`にjpokeバージョン文字列のハードコードも無い(grep 0件)ことを確認済み。wheelは`wheel-manifest.json`のハッシュ付きファイル名で解決される既存の仕組みのまま。
 > ⚠ jpoke v0.4.0 更新(2026-09-11)により未再検証。
 
 **検証時点**: jpoke v0.2.0 (`vendor/jpoke`、上流3dd183ee5相当) / poke-commons `160fb1b` / 2026-07-27(vendor更新は同日中に追加実施)

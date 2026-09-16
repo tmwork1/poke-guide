@@ -11,10 +11,12 @@ description: ダメージ計算エンジン jpoke の仕様・API・データを
 
 | | パス | 位置づけ |
 |---|---|---|
-| **仕様の正** | `vendor/jpoke/` | **アプリが実際に実行しているのはこちら。v0.4.0(2026-09-11更新)。** 配布物は `public/master-data/pyodide/wheels/jpoke-<version>-<hash>-py3-none-any.whl`(ファイル名は `scripts/build-master-data/build_wheel.py` が `vendor/jpoke/pyproject.toml` の version と内容ハッシュから生成) |
+| **仕様の正** | `vendor/jpoke/` | **アプリが実際に実行しているのはこちら。v0.5.0(2026-09-16更新)。** 配布物は `public/master-data/pyodide/wheels/jpoke-<version>-<hash>-py3-none-any.whl`(ファイル名は `scripts/build-master-data/build_wheel.py` が `vendor/jpoke/pyproject.toml` の version と内容ハッシュから生成) |
 | 上流 | `../jpoke/`(`C:\Users\tmtmp\Documents\pokemon\jpoke`) | 開発リポジトリ。読解の補助にはしてよいが、**食い違ったら `vendor/jpoke` が勝つ** |
 
-**2026-09-11: vendor を上流 v0.4.0 (tag `v0.4.0` / `46f739bc3`) に更新済み。** `references/*.md` は v0.2.0 時点の検証結果なので要再検証。v0.4.0 で入った主な変更: レギュレーション `M-C` 追加(`types/literals.py`)、種族ごとの使用禁止技 `data/regulation/move_ban.csv` と `POKEDEX[...].banned_moves` / `get_banned_moves()`(`data/pokedex.py:100`)、`jpoke/text.py`・`players/mixins.py` の新設。e2e fixture(`tests/e2e/fixtures/generate_expected.py` 再生成)に差分なし = ダメージ・実数値の計算結果は不変。
+**2026-09-16: vendor を上流 v0.5.0 (未タグ、HEAD `8ed477e7a`「chore(release): v0.5.0」) に更新済み。** `references/*.md` は v0.4.0 時点の検証結果なので要再検証。v0.4.0→v0.5.0 で入った主な変更: `Battle.calc_damages`/`roll_damage`(=外部問い合わせ経路)が技実行フローの前処理(`ON_MODIFY_MOVE_TYPE`/`ON_MODIFY_MOVE_CATEGORY`解決・技データのハンドラ登録・かたやぶり系のON_BEGIN/END_MOVE)を経るようになった(コミット `e1c26dc93`)。**これにより [[project_damage_calc_move_effects_jpoke_side]] に記録していた「スキン系特性のタイプ変換・ウェザーボールの天候変化・アクロバット2倍・テラバースト分類切替・かたやぶり無効化がダメ計に出ない」欠落は解消された**(上流回帰テスト `tests/test_calc_damages_move_effect.py` 21件・poke-guide側e2e `damage-calc.spec.ts`/`stats-lethal-sequence.spec.ts` とも全通過、2026-09-16確認)。fixture(`generate_expected.py` 再生成)に差分なし(既存の単純ケースの数値自体は不変)。
+
+**2026-09-11: vendor を上流 v0.4.0 (tag `v0.4.0` / `46f739bc3`) に更新済み。** v0.4.0 で入った主な変更: レギュレーション `M-C` 追加(`types/literals.py`)、種族ごとの使用禁止技 `data/regulation/move_ban.csv` と `POKEDEX[...].banned_moves` / `get_banned_moves()`(`data/pokedex.py:100`)、`jpoke/text.py`・`players/mixins.py` の新設。e2e fixture(`tests/e2e/fixtures/generate_expected.py` 再生成)に差分なし = ダメージ・実数値の計算結果は不変。
 
 **2026-07-27時点の両者の関係(実測、当時)**: `diff -rq` の結果、`src/` の中身は**実質同一**。差分は上流にだけある空ディレクトリ `src/jpoke/utils/type_defs/`(中身0件、どこからも参照なし)のみで、`pyproject.toml` も両方 `version = "0.2.0"`。上流のgit HEAD(`d51e9c96b`)はドキュメントのみの変更だった。
 
