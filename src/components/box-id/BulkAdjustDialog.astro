@@ -35,11 +35,6 @@ import '../../styles/bulk-adjust-dialog.css';
 >
 	<div class="bulk-adjust-dialog-header">
 		<h2 id="bulk-adjust-dialog-title" class="bulk-adjust-dialog-title">耐久調整</h2>
-		{/* 解なし・入力不足・計算失敗を閉じずに伝えられるよう、タイトルと同じ段に共通ステータス領域を置く。 */}
-		<span id="bulk-adjust-dialog-status" class="bulk-adjust-dialog-status" role="status" aria-live="polite"></span>
-		<div class="bulk-adjust-dialog-toolbar">
-			<button type="button" id="bulk-adjust-dialog-compute-button" class="btn-primary bulk-adjust-dialog-compute-button">計算</button>
-		</div>
 		<button type="button" id="bulk-adjust-dialog-close-button" class="btn-ghost bulk-adjust-dialog-close" aria-label="閉じる">×</button>
 	</div>
 	{/* 計算はこのダイアログ内のボタンから実行する。 */}
@@ -48,9 +43,10 @@ import '../../styles/bulk-adjust-dialog.css';
 		    document.createElement()で動的生成してここへ差し込む。 */}
 		<div id="bulk-adjust-dialog-body-inner" class="bulk-adjust-dialog-body-inner"></div>
 	</div>
-	<div id="bulk-adjust-dialog-footer" class="bulk-adjust-dialog-footer" hidden>
-		<button type="button" id="bulk-adjust-cancel-button" class="btn-ghost">中断</button>
+	<div id="bulk-adjust-dialog-footer" class="bulk-adjust-dialog-footer">
 		<span id="bulk-adjust-progress-text" class="bulk-adjust-progress-text tnum" role="status" aria-live="polite"></span>
+		<button type="button" id="bulk-adjust-dialog-compute-button" class="btn-primary bulk-adjust-dialog-compute-button">計算</button>
+		<button type="button" id="bulk-adjust-cancel-button" class="btn-ghost" hidden>中断</button>
 	</div>
 </div>
 

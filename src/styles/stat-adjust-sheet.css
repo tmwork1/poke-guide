@@ -25,13 +25,24 @@
 }
 #stat-adjust-sheet[hidden] { display: none; }
 
+/* 展開時のつまみ行。左右を同じ幅の列にして、つまみ(中央列)が画面中央に来るようにする
+   (flexで残り幅を渡すと「残りXX」と「耐久調整」の幅差ぶんだけつまみが左右にずれる)。 */
+.stat-adjust-sheet-handle-row {
+	display: grid;
+	grid-template-columns: 1fr 1fr 1fr;
+	align-items: center;
+	gap: var(--space-2);
+	padding-inline: var(--space-2);
+}
+.stat-adjust-sheet-handle-row > .stat-adjust-sheet-remaining { justify-self: start; }
+.stat-adjust-sheet-handle-row > .stat-adjust-sheet-bulk-adjust-button { justify-self: end; }
+
 .stat-adjust-sheet-toggle {
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	flex: none;
-	align-self: center;
 	width: 33.333%; /* 閉じたときに見せるつまみの幅。右下FABと重ならない左側1/3だけを操作面にする */
+	margin-inline: auto;
 	height: 42px; /* 旧28pxの約1.5倍。指でつかみやすい高さを確保する */
 	min-height: 0;
 	padding: 0 var(--space-2);
@@ -59,12 +70,13 @@
 	box-shadow: var(--shadow-md);
 }
 
-.stat-adjust-sheet-header-row {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: var(--space-2);
-	margin: 0 var(--space-2) var(--space-1);
+#stat-adjust-sheet:not(.is-expanded) .stat-adjust-sheet-handle-row {
+	display: block;
+	padding: 0;
+}
+#stat-adjust-sheet:not(.is-expanded) .stat-adjust-sheet-remaining,
+#stat-adjust-sheet:not(.is-expanded) .stat-adjust-sheet-bulk-adjust-button {
+	display: none;
 }
 
 /* シート内の先頭行に置く「残りXX」。 */
@@ -79,9 +91,8 @@
 .stat-adjust-sheet-remaining:empty { display: none; }
 
 .stat-adjust-sheet-bulk-adjust-button {
-	height: 26px;
-	min-height: 26px;
-	padding: 2px var(--space-2);
+	min-height: 36px;
+	padding: 0 var(--space-3);
 	font-size: var(--font-size-sm3);
 	line-height: 1;
 	white-space: nowrap;
@@ -104,7 +115,9 @@
 	position: absolute;
 	width: 8px;
 	height: 2px;
-	top: 2px;
+	/* 山形の頂点を箱の中央付近に置く。回転(180deg)は箱の中心まわりなので、
+	   開閉どちらでも山形が縦方向の中央に留まる。 */
+	top: 4px;
 	background: currentColor;
 	border-radius: 999px;
 }
@@ -124,15 +137,10 @@
 	transform: rotate(180deg);
 }
 
-/* 展開後だけ、反転した山形をつまみの内側へ補正する。 */
-#stat-adjust-sheet.is-expanded .stat-adjust-sheet-toggle-icon::before,
-#stat-adjust-sheet.is-expanded .stat-adjust-sheet-toggle-icon::after {
-	top: -5px;
-}
-
 /* 展開中は開閉だけを担うため、閉じたときの大きなつまみ高さを引き継がない。 */
 #stat-adjust-sheet.is-expanded .stat-adjust-sheet-toggle {
-	height: 26px;
+	width: 100%; /* 展開時はつまみ行の中央列いっぱいを操作面にする */
+	height: 40px;
 }
 
 #stat-status-adjust-body {

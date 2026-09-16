@@ -47,9 +47,7 @@ const backdropEl = el<HTMLElement>("bulk-adjust-backdrop");
 const dialogEl = el<HTMLElement>("bulk-adjust-dialog");
 const dialogComputeButton = el<HTMLButtonElement>("bulk-adjust-dialog-compute-button");
 const dialogCloseButton = el<HTMLButtonElement>("bulk-adjust-dialog-close-button");
-const dialogStatusEl = el<HTMLElement>("bulk-adjust-dialog-status");
 const dialogBodyInnerEl = el<HTMLElement>("bulk-adjust-dialog-body-inner");
-const dialogFooterEl = el<HTMLElement>("bulk-adjust-dialog-footer");
 const cancelButton = el<HTMLButtonElement>("bulk-adjust-cancel-button");
 const progressTextEl = el<HTMLElement>("bulk-adjust-progress-text");
 
@@ -83,8 +81,6 @@ function updateComputeButtonDisabled(): void {
 	const hasIncludedRows = includedRowCount() > 0;
 	dialogComputeButton.disabled = isComputing || !hasIncludedRows;
 	dialogComputeButton.title = hasIncludedRows ? "" : "計算対象の攻撃がありません";
-	if (!isComputing && !hasIncludedRows) dialogStatusEl.textContent = "計算対象の攻撃がありません";
-	else if (!isComputing && dialogStatusEl.textContent === "計算対象の攻撃がありません") dialogStatusEl.textContent = "";
 }
 
 // 画面側の確定数表示が最大10発までを扱うため、入力・探索も同じ範囲にそろえる。
@@ -214,7 +210,7 @@ function openDialog(): void {
 	currentRows = bridge.getDefenseRows();
 	rowInputEls.clear();
 	dialogBodyInnerEl.innerHTML = "";
-	dialogStatusEl.textContent = "";
+	progressTextEl.textContent = "";
 	if (currentRows.length === 0) {
 		// 0件のときはポップアップを開かない(ボタンはdisabledのはずだが、行の削除等の
 		// タイミングで開いてしまった場合の防御的フォールバック)。
@@ -238,7 +234,6 @@ function closeDialog(): void {
 	backdropEl.hidden = true;
 	dialogEl.hidden = true;
 	isDialogOpen = false;
-	dialogFooterEl.hidden = true;
 	updateBulkAdjustButtonReadyState();
 	bulkAdjustButton.focus();
 }
@@ -249,7 +244,7 @@ function renderEnginePreparationProgress(progress: EngineProgress): void {
 		progressTextEl.textContent = "";
 	} else if (progress.status === "error") {
 		progressTextEl.textContent = "";
-		dialogStatusEl.textContent = "計算エンジンを準備できませんでした";
+		progressTextEl.textContent = "計算エンジンを準備できませんでした";
 	} else {
 		progressTextEl.textContent = "計算エンジンを準備中…";
 	}
@@ -280,7 +275,8 @@ cancelButton.addEventListener("click", () => {
 // --- 計算 ---
 function setComputingState(computing: boolean): void {
 	isComputing = computing;
-	dialogFooterEl.hidden = !computing;
+	dialogComputeButton.hidden = computing;
+	cancelButton.hidden = !computing;
 	bulkAdjustButton.disabled = computing;
 	updateComputeButtonDisabled();
 	// rowInputElsに残っている行だけが計算対象なので、計算中かどうかだけで入力欄の可否を決める。
@@ -292,25 +288,20 @@ function setComputingState(computing: boolean): void {
 	for (const button of dialogBodyInnerEl.querySelectorAll<HTMLButtonElement>(".bulk-adjust-row-remove")) {
 		button.disabled = computing;
 	}
-	if (!computing) {
-		progressTextEl.textContent = "";
-	}
 }
 
 async function runCompute(): Promise<void> {
 	const bridge = getBulkAdjustBridge();
 	if (!bridge || currentRows.length === 0) {
-		// 共通ステータス領域は入力不足にも使い、モーダルを閉じずに修正を促す。
-		dialogStatusEl.textContent = "計算対象の攻撃がありません";
+		// 対象行が無いときは「計算」ボタン自体がdisabledなので、ここは防御的な早期returnのみ。
 		return;
 	}
-	dialogStatusEl.textContent = "";
+	progressTextEl.textContent = "";
 
 	// ×で外した行はソルバへ渡す前に除外し、ソルバ側の契約を変えない
 	// (判定は「rowInputElsにまだ登録が残っているか」)。
 	const includedRows = currentRows.filter((row) => rowInputEls.has(row.id));
 	if (includedRows.length === 0) {
-		dialogStatusEl.textContent = "計算対象の攻撃がありません";
 		return;
 	}
 	const requirements: DurabilityRequirement[] = includedRows.map((row) => {
@@ -333,7 +324,7 @@ async function runCompute(): Promise<void> {
 
 	const speciesName = el<HTMLInputElement>("species-name").value.trim();
 	if (speciesName === "") {
-		dialogStatusEl.textContent = "種族名が未入力です";
+		progressTextEl.textContent = "種族名が未入力です";
 		return;
 	}
 	let baseStats: number[] | undefined;
@@ -342,11 +333,11 @@ async function runCompute(): Promise<void> {
 	} catch (err) {
 		// マスターデータPromiseの失敗も未処理rejectionにせず、他の失敗と同じ共通領域で知らせる。
 		console.error(err);
-		dialogStatusEl.textContent = "種族値データを取得できませんでした";
+		progressTextEl.textContent = "種族値データを取得できませんでした";
 		return;
 	}
 	if (!baseStats) {
-		dialogStatusEl.textContent = "種族値データを取得できませんでした";
+		progressTextEl.textContent = "種族値データを取得できませんでした";
 		return;
 	}
 	const fixedEvs = { atk: readEv("atk"), spa: readEv("spa"), spe: readEv("spe") };
@@ -375,27 +366,27 @@ async function runCompute(): Promise<void> {
 		});
 		if (result.infeasible) {
 			// 解なしは計算エラーではない。入力値を保持したまま条件を緩めて再計算できるようにする。
-			dialogStatusEl.textContent = "条件を満たす配分がありません";
+			progressTextEl.textContent = "条件を満たす配分がありません";
 			return;
 		}
-		dialogStatusEl.textContent = "";
+		progressTextEl.textContent = "";
 		closeDialog();
 		renderBulkAdjustResults(result, (candidate) => applyCandidateToPokemonEditPanel(candidate));
 		openDetailPanelOverlay();
 	} catch (err) {
 		if (err instanceof DOMException && err.name === "AbortError") {
 			// ユーザーによる中断。ダイアログは開いたままにする(条件を直してやり直せるように)。
-			dialogStatusEl.textContent = "計算を中断しました";
+			progressTextEl.textContent = "計算を中断しました";
 		} else if (err instanceof EngineFatalError) {
 			// 計算エンジンが致命的エラー(WebAssembly.RuntimeError等)で停止し、
 			// resetEngine()での1回のリトライも失敗した状態(bulk-adjust-solver.ts参照)。
 			// AbortErrorと同様ダイアログは開いたままにする(finallyでボタン・入力欄が
 			// 再度有効になるため、条件はそのままで再実行できる)。
 			console.error(err);
-			dialogStatusEl.textContent = err.message;
+			progressTextEl.textContent = err.message;
 		} else {
 			console.error(err);
-			dialogStatusEl.textContent = "計算に失敗しました。時間をおいて再度お試しください";
+			progressTextEl.textContent = "計算に失敗しました。時間をおいて再度お試しください";
 		}
 	} finally {
 		activeAbortController = null;

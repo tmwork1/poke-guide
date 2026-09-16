@@ -3,9 +3,11 @@ import '../../styles/stat-adjust-sheet.css';
 ---
 
 <div id="stat-adjust-sheet" class="stat-adjust-sheet">
-	{/* つまみ。開閉に加えて「残りXX」(努力値の残数)の常設表示を兼ねる。シートを閉じている
-	    間も残数が見えるよう、中身(3行2列の調整表)ではなくここに置く。値の更新は
-	    src/lib/box-id/stat-adjust-sheet.ts の updateRemainingDisplay()。 */}
+	<div class="stat-adjust-sheet-handle-row">
+		<span id="stat-adjust-sheet-remaining" class="stat-adjust-sheet-remaining tnum"></span>
+	{/* つまみ行。展開中は左端に「残りXX」(努力値の残数)、中央につまみ、右端に「耐久調整」を
+	    並べる。閉じている間は中央のつまみだけを見せる(CSS側で左右を display:none)。
+	    残数の更新は src/lib/box-id/stat-adjust-sheet.ts の updateRemainingDisplay()。 */}
 	<button
 		type="button"
 		id="stat-adjust-sheet-toggle"
@@ -16,12 +18,9 @@ import '../../styles/stat-adjust-sheet.css';
 	>
 		<span class="stat-adjust-sheet-toggle-icon" aria-hidden="true">︿</span>
 	</button>
-	<div id="stat-status-adjust-body" class="stat-adjust-sheet-body">
-		<div class="stat-adjust-sheet-header-row">
-			<span id="stat-adjust-sheet-remaining" class="stat-adjust-sheet-remaining tnum"></span>
-			<button type="button" id="bulk-adjust-button" class="btn-control stat-adjust-sheet-bulk-adjust-button" disabled aria-label="守カードを追加すると耐久調整が使えます" title="守カードを追加すると耐久調整が使えます">耐久調整</button>
-		</div>
+		<button type="button" id="bulk-adjust-button" class="btn-control stat-adjust-sheet-bulk-adjust-button" disabled aria-label="守カードを追加すると耐久調整が使えます" title="守カードを追加すると耐久調整が使えます">耐久調整</button>
 	</div>
+	<div id="stat-status-adjust-body" class="stat-adjust-sheet-body"></div>
 </div>
 
 <script>

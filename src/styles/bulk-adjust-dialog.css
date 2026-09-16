@@ -83,17 +83,10 @@ body.box-edit-page {
 		min-width: 0;
 		margin: 0;
 		overflow: hidden;
-		font-size: var(--font-size-base); /* ダイアログ見出し。大きくするとタイトルが目立つ */
+		font-size: var(--modal-title-font-size); /* ダイアログ見出し。大きくするとタイトルが目立つ */
 		font-weight: var(--modal-title-font-weight);
 		text-overflow: ellipsis;
 		white-space: nowrap;
-	}
-	/* 計算対象なし・入力不足・失敗などをタイトルの右側に表示するステータス */
-	.bulk-adjust-dialog-status {
-		flex-shrink: 0;
-		color: var(--bulk-adjust-muted-color);
-		font-size: var(--font-size-sm2); /* 計算状況の文。大きくすると状態が読みやすくなる */
-		min-width: 0;
 	}
 	/* ダイアログ右端の閉じるボタン(×)。モーダルヘッダー規格(global.css)に揃える。 */
 	.bulk-adjust-dialog-close {
@@ -106,12 +99,6 @@ body.box-edit-page {
 		line-height: 1;
 	}
 
-	/* 既存クラスを維持したままタイトル行内のボタン枠として使う。 */
-	.bulk-adjust-dialog-toolbar {
-		display: flex;
-		flex-shrink: 0;
-		min-width: 0;
-	}
 	/* button.btn-primary(詳細度0,1,1)に勝つため要素セレクタを付け、削除ボタン(.bulk-adjust-row-remove、
 		btn-ghost経由でbuttonの既定semibold)と同じ太さを維持する。以前はvar(--font-weight-medium)
 		だったが、これだとダイアログ内で最も目立つはずの主操作が既定semibold(600)の削除ボタンより
@@ -129,6 +116,8 @@ body.box-edit-page {
 		background: var(--color-primary);
 		color: var(--color-primary-contrast);
 	}
+	#bulk-adjust-dialog-compute-button[hidden],
+	#bulk-adjust-cancel-button[hidden] { display: none; }
 
 	.bulk-adjust-dialog-body {
 		flex: 1 1 auto;
@@ -150,9 +139,10 @@ body.box-edit-page {
 		border-top: 1px solid var(--color-border);
 		flex-shrink: 0;
 	}
-	.bulk-adjust-dialog-footer[hidden] { display: none; }
-	/* 計算中にフッターへ表示する進捗件数 */
+	/* 計算中の進捗と、計算後の状態文をフッター左側に表示する。 */
 	.bulk-adjust-progress-text {
+		flex: 1 1 auto;
+		min-width: 0;
 		color: var(--bulk-adjust-muted-color);
 		font-size: var(--font-size-sm2); /* 計算状況の文。大きくすると状態が読みやすくなる */
 	}
@@ -202,13 +192,13 @@ body.box-edit-page {
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
-		gap: var(--space-2) var(--space-3);
+		gap: var(--space-2);
 		font-size: var(--font-size-sm2); /* N発・確率の入力行。大きくすると入力説明が読みやすくなる */
 	}
 	.bulk-adjust-row-inputs label {
 		display: inline-flex;
 		align-items: center;
-		gap: 0.3em;
+		gap: var(--space-2);
 		font-size: inherit;
 		white-space: nowrap;
 	}
@@ -222,8 +212,13 @@ body.box-edit-page {
 		text-align: right;
 	}
 	.bulk-adjust-m-input {
-		width: 4.6em;
+		width: 5.4em; /* 4.6emでは390px幅で"100"の3桁目が欠けた(実測) */
 		text-align: right;
+	}
+	.bulk-adjust-row-inputs input[type="number"] {
+		height: 32px;
+		min-height: 32px;
+		padding-block: 0;
 	}
 
 	/* 480px未満(狭幅端末)では入力欄のwhite-space:nowrapのせいで折り返し先が無く
@@ -233,19 +228,6 @@ body.box-edit-page {
 		⚠️ @media は基本定義より後ろに書くこと(このリポジトリで2件実例のある罠)。 */
 	@media (max-width: 480px) {
 		.bulk-adjust-dialog { width: 96vw; }
-		/* ヘッダーは [タイトル][ステータス][計算ボタン][×] の1行flexで、計算ボタンが
-			min-width:12rem(192px)で縮まないため、390px幅ではステータス文言
-			(「計算対象の攻撃がありません」等)が入った瞬間に行があふれ、×が計算ボタンの
-			下に潜り込んでクリックできなくなる(実測、Playwright:
-			「compute button intercepts pointer events」で×のクリックが失敗)。
-			狭幅では折り返しを許可し、ステータスは独立した行へ落とす。 */
-		.bulk-adjust-dialog-header { flex-wrap: wrap; }
-		/* 狭い画面ではステータスをヘッダー末尾の独立した1行に送る */
-		.bulk-adjust-dialog-status {
-			order: 10;
-			flex: 1 0 100%;
-			margin-left: 0;
-		}
 		button.bulk-adjust-dialog-compute-button { min-width: 8rem; }
 	}
 
@@ -264,4 +246,7 @@ body.box-edit-page {
 		元のカードの×は非表示にならない。 */
 	#opponent-notes-section #bulk-adjust-dialog .damage-row-delete-button {
 		display: none;
+	}
+	#opponent-notes-section #bulk-adjust-dialog .card-damage[data-direction] {
+		--damage-card-face-background: var(--color-bg);
 	}

@@ -8,6 +8,7 @@
 // ラベルは性格補正の切替ボタンを兼ねる(タップで未設定→上昇→下降を循環し、文字色と▲▼で
 // 状態を示す)。性格補正だけの列を持つと2列がシート幅に収まらないため、育成タブのように
 // 独立した三角ボタンは置かない。実数値はラベルの直下に小さく添える。
+// 展開中のシートは、外側をタップすると閉じる。
 import { createEvStepper } from "./ev-stepper";
 
 const sheet = document.getElementById("stat-adjust-sheet");
@@ -54,8 +55,8 @@ export function resetStatAdjustSheet(): void {
 }
 
 function buildDamageStatAdjustmentSheet(): void {
-	// 残り努力値は常設の子要素としてbody内に置く。子要素の有無で判定すると
-	// 初回展開時にも既に生成済みと誤認するため、調整表そのものだけを確認する。
+	// 残り努力値はつまみ行に置き、bodyには調整表だけを追加する。
+	// 初回展開の判定には調整表そのものを使う。
 	if (!body || body.querySelector(".damage-stat-adjustment")) return;
 	const source = document.getElementById("stat-adjustment-section");
 	if (!source) return;
@@ -140,3 +141,13 @@ toggle?.addEventListener("click", () => {
 	toggle.setAttribute("aria-expanded", String(isExpanded));
 	if (isExpanded) buildDamageStatAdjustmentSheet();
 });
+
+document.addEventListener("pointerdown", (event) => {
+	if (!sheet?.classList.contains("is-expanded")) return;
+	const target = event.target;
+	if (!(target instanceof Node)) return;
+	if (sheet.contains(target)) return;
+	if (document.getElementById("bulk-adjust-dialog")?.contains(target)) return;
+	if (document.getElementById("bulk-adjust-backdrop")?.contains(target)) return;
+	resetStatAdjustSheet();
+}, { passive: true });
