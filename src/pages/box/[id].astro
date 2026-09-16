@@ -21,7 +21,6 @@ import StatAdjustSheet from '../../components/box-id/StatAdjustSheet.astro';
 import BulkAdjustDialog from '../../components/box-id/BulkAdjustDialog.astro';
 import SpeedAdjustDialog from '../../components/box-id/SpeedAdjustDialog.astro';
 import MobilePokemonPreview from '../../components/box-id/MobilePokemonPreview.astro';
-import GameScreenOcr from '../../components/box-id/GameScreenOcr.astro';
 import { createMobilePreviewPlaceholder } from '../../lib/box-id/mobile-preview-placeholder';
 import '../../styles/box-edit-page.css';
 import '../../styles/box-damage-page.css';
@@ -109,9 +108,11 @@ const initialMobileTab = !isNewMode && Astro.url.searchParams.get('tab') === 'da
 // 同じ計算式(ミリ秒差をceilして日数化)を使うので、変更する場合は両方揃えること。
 ---
 <AppLayout title={pageTitle} current="box" bodyClass={bodyClass}>
-	{/* ポケモン読み取りモーダル(ゲーム画面の写真をOCRして新規フォームへ反映)。/box のカメラFABから
-	    /box/new?ocr=1 で遷移してくると自動で開く。ログイン済みの新規作成時だけ出す。 */}
-	{isNewMode && user && <GameScreenOcr />}
+	{/* /box のポケモン読み取りモーダルが sessionStorage に置いたOCR結果を、/box/new の登録フォームへ反映する。
+	    Astro の <script> は条件式で囲っても常に束ねられるので、new モード判定はモジュール側で行う。 */}
+	<script>
+		import '../../lib/box-id/game-screen-ocr-apply';
+	</script>
 	<div class="page edit-shell" id="edit-shell" data-mobile-tab={initialMobileTab}>
 	{
 		isGuestNewMode ? (

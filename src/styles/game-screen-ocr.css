@@ -1,4 +1,4 @@
-/* ポケモン読み取りモーダル(/box/new でゲーム画面の写真をOCRして登録フォームへ反映する)。
+/* ポケモン読み取りモーダル(/box でゲーム画面の写真をOCRして、結果を /box/new へ渡す)。
 	マークアップは src/components/box-id/GameScreenOcr.astro、ロジックは src/lib/box-id/game-screen-ocr.ts。
 	クラス名はすべて game-screen-ocr- 接頭辞で他画面と衝突しないようにする。
 	ダイアログの見た目は bulk-adjust-dialog.css のモーダル規格(global.css の --modal-*)に揃える。 */

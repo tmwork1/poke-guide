@@ -24,12 +24,14 @@ export const prerender = false;
 import AppLayout from '../../layouts/AppLayout.astro';
 import AppHeader from '../../components/AppHeader.astro';
 import SecondHeader from '../../components/SecondHeader.astro';
+import GameScreenOcr from '../../components/box-id/GameScreenOcr.astro';
 import '../../styles/box-page.css';
 import '../../styles/app-header.css';
 import '../../styles/second-header.css';
 import '../../styles/guest-login-dialog.css';
 ---
 <AppLayout title="ボックス" description="所持しているポケモンの一覧・検索・並べ替え" current="box">
+	<GameScreenOcr />
 
 	<div class="page box-shell floating-list-page">
 		<AppHeader showGuestLogin={true}>
@@ -114,7 +116,7 @@ import '../../styles/guest-login-dialog.css';
 								<span class="add-card-tile-label">ポケモンを登録</span>
 								<span class="add-card-tile-hint" hidden></span>
 							</button>
-							{/* 追加FABの上に置くカメラFAB。/box/new?ocr=1 へ遷移し、ポケモン読み取りモーダルを開いた状態で始める */}
+							{/* 追加FABの上に置くカメラFAB。ポケモン読み取りモーダルをこのページで開く。 */}
 							<button type="button" class="floating-list-scan-button" id="scan-game-screen-button" aria-label="ポケモン読み取り">
 								<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 									<path d="M4 7h3l1.5-2h7L17 7h3a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2Z" />
@@ -467,7 +469,7 @@ import '../../styles/guest-login-dialog.css';
 					guestLoginDialog.showModal();
 					return;
 				}
-				window.location.href = "/box/new?ocr=1";
+				document.dispatchEvent(new Event("game-screen-ocr:open"));
 			});
 			emptyAddButton.addEventListener("click", goToNewPokemon);
 

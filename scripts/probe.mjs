@@ -59,6 +59,10 @@
  *   --scroll <sel|px>   要素までスクロール、または縦に指定px
  *   --wait <sel>        その要素が出るまで待つ
  *   --wait-ms <n>       n ミリ秒待つ
+ *   --goto <path>       同じ context のまま別画面へ遷移する(sessionStorage/Cookie を持ち越して
+ *                       次画面の挙動を見る用。ゲーム画面OCRの /box → /box/new の受け渡し検証など)
+ *   --run <js>          操作の途中でJSを評価する(戻り値は捨てる)。`--eval` は全操作の後に
+ *                       まとめて評価されるので、--goto の前に sessionStorage を仕込む等はこちら
  *   --mark <label>      --cls の計測をここで区切る(以降の揺れを別フェーズとして集計)。
  *                       例: 初期表示 → --mark tab-damage → --click ... で、タブ切替後の
  *                       揺れだけを取り出せる。操作自体は何もしない
@@ -212,6 +216,8 @@ function parseArgs(argv) {
 			case "--scroll":
 			case "--wait":
 			case "--wait-ms":
+			case "--goto":
+			case "--run":
 			case "--mark":
 				opts.actions.push({ kind: arg.slice(2), value: next() });
 				break;
@@ -378,6 +384,12 @@ async function runAction(page, action) {
 			break;
 		case "wait-ms":
 			await page.waitForTimeout(Number(value));
+			break;
+		case "run":
+			await page.evaluate(value);
+			break;
+		case "goto":
+			await page.goto(new URL(`/${value.replace(/^\//, "")}`, page.url()).href, { waitUntil: "domcontentloaded", timeout: 60_000 });
 			break;
 		// --cls のフェーズ区切り。画面には何もせず、この時点の時刻にラベルを打つだけ。
 		// 以降に起きたレイアウトシフトは、集計時にこのラベルのフェーズへ振り分けられる。

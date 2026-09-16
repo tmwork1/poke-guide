@@ -3,6 +3,7 @@ import { loadAbilitiesMap, loadBaseStatsMap, loadLearnsetFor, loadPokemonMasterL
 import { isSameOwnedPokemon, mergeGameScreenOcrResults, parseGameScreenLines, type GameScreenOcrResult } from "../game-screen-ocr-parse";
 import { listOwnedPokemonPage } from "../data/pokemon-repo";
 import { preprocessGameScreenImage } from "../game-screen-ocr-image";
+import { saveGameScreenOcrResult } from "../game-screen-ocr-transfer";
 
 // 「カメラで撮影」は capture 付き、「写真を選ぶ」(カメラロール)は capture なしの file input をそれぞれ開く。
 const cameraInput = document.getElementById("game-screen-ocr-camera-file") as HTMLInputElement | null;
@@ -14,7 +15,6 @@ const dialog = document.getElementById("game-screen-ocr-dialog") as HTMLElement 
 const closeButton = document.getElementById("game-screen-ocr-close") as HTMLButtonElement | null;
 const picker = document.getElementById("game-screen-ocr-picker") as HTMLElement | null;
 const progress = document.getElementById("game-screen-ocr-progress") as HTMLElement | null;
-const form = document.getElementById("edit-form") as HTMLFormElement | null;
 
 let busy = false;
 
@@ -112,44 +112,6 @@ async function recognize(file: File): Promise<GameScreenOcrResult> {
 	}
 }
 
-/** 対象フォームの入力値を更新し、既存の入力イベント連携も発火させる。 */
-function setInput(id: string, value: string): void {
-	const input = document.getElementById(id) as HTMLInputElement | HTMLSelectElement | null;
-	if (!input) return;
-	input.value = value;
-	input.dispatchEvent(new Event("input", { bubbles: true }));
-	input.dispatchEvent(new Event("change", { bubbles: true }));
-}
-
-/** 推定した性格を編集パネルへ渡す(pokemon-edit-panel.ts の game-screen-ocr:set-nature リスナーが上昇/下降を直接セットする)。 */
-function applyNature(nature: string): void {
-	document.dispatchEvent(new CustomEvent("game-screen-ocr:set-nature", { detail: { nature } }));
-}
-
-/** OCR結果を編集フォームへ反映し、種族変更後に特性を設定する。 */
-async function applyResult(result: GameScreenOcrResult): Promise<void> {
-	if (!result.species || !form) return;
-	form.dataset.gameScreenOcrApplying = "true";
-	try {
-		for (const stat of result.stats) if (stat.ev != null) setInput(`ev-${stat.key}`, String(stat.ev));
-		applyNature(result.nature);
-		for (let slot = 1; slot <= 4; slot++) setInput(`move-${slot}`, result.moves[slot - 1] ?? "");
-		// 種族確定 → pokemon-edit-panel.ts が特性候補を再構築 → ability-options-ready を受けてから特性を入れる。
-		// 種族が既に同じ値のとき(同じ結果を2回適用など)は input イベントが出ず ready が来ないので、タイムアウトで抜ける。
-		const ready = new Promise<void>((resolve) => {
-			const timer = setTimeout(resolve, 3000);
-			document.addEventListener("game-screen-ocr:ability-options-ready", () => { clearTimeout(timer); resolve(); }, { once: true });
-		});
-		document.dispatchEvent(new CustomEvent("game-screen-ocr:select-species", { detail: { name: result.species } }));
-		await ready;
-		if (result.ability) setInput("ability", result.ability);
-		delete form.dataset.gameScreenOcrApplying;
-		document.dispatchEvent(new Event("game-screen-ocr:commit"));
-	} finally {
-		delete form.dataset.gameScreenOcrApplying;
-	}
-}
-
 /** 同じ個体(種族・性格・努力値・わざが一致)が既に登録済みならそのIDを返す。一覧は更新順なので最新の1件。 */
 async function findRegisteredPokemonId(result: GameScreenOcrResult): Promise<string | null> {
 	const PAGE_SIZE = 48;
@@ -178,9 +140,8 @@ async function readFile(input: HTMLInputElement): Promise<void> {
 			window.location.href = `/box/${encodeURIComponent(registeredId)}`;
 			return;
 		}
-		await applyResult(result);
-		busy = false;
-		closeDialog();
+		saveGameScreenOcrResult(result);
+		window.location.href = "/box/new";
 	} catch {
 		busy = false;
 		setProgress("");
@@ -189,17 +150,12 @@ async function readFile(input: HTMLInputElement): Promise<void> {
 	}
 }
 
-if (cameraInput && libraryInput && cameraButton && libraryButton && backdrop && dialog && closeButton && picker && progress && form) {
+if (cameraInput && libraryInput && cameraButton && libraryButton && backdrop && dialog && closeButton && picker && progress) {
 	cameraButton.addEventListener("click", () => cameraInput.click());
 	libraryButton.addEventListener("click", () => libraryInput.click());
 	cameraInput.addEventListener("change", () => void readFile(cameraInput));
 	libraryInput.addEventListener("change", () => void readFile(libraryInput));
 	closeButton.addEventListener("click", closeDialog);
 	bindModalDismissal({ backdrop, dialog, isOpen: () => !dialog.hidden, onDismiss: closeDialog });
-	if (new URLSearchParams(window.location.search).get("ocr") === "1") {
-		openDialog();
-		const url = new URL(window.location.href);
-		url.searchParams.delete("ocr");
-		history.replaceState(history.state, "", `${url.pathname}${url.search}${url.hash}`);
-	}
+	document.addEventListener("game-screen-ocr:open", openDialog);
 }
