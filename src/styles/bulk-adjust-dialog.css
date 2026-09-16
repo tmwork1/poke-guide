@@ -129,7 +129,8 @@ body.box-edit-page {
 		gap: var(--space-2); /* 条件カードどうしの間隔。大きくするとカードが離れる */
 	}
 
-	/* フッターは[状態文(あるときだけ)][全幅の計算/中断ボタン]の縦積み。 */
+	/* フッターは[全幅の計算/中断ボタン][状態文]の縦積み。状態文の行は空でも1行ぶん
+		確保しておき、計算開始時にボタンが上下に動かないようにする。 */
 	.bulk-adjust-dialog-footer {
 		display: flex;
 		flex-direction: column;
@@ -141,11 +142,13 @@ body.box-edit-page {
 	}
 	/* 計算中の進捗と、計算後の状態文をフッター左側に表示する。 */
 	.bulk-adjust-progress-text {
+		order: 1;
 		min-width: 0;
+		min-height: calc(var(--font-size-sm2) * var(--line-height-tight, 1.3));
+		line-height: var(--line-height-tight, 1.3);
 		color: var(--bulk-adjust-muted-color);
 		font-size: var(--font-size-sm2); /* 計算状況の文。大きくすると状態が読みやすくなる */
 	}
-	.bulk-adjust-progress-text:empty { display: none; }
 
 	/* カード1枚(圧縮表示の複製)+N/M入力欄の組。カード右上の削除ボタン(×)の
 		絶対配置の基準としてposition:relativeを持たせる。 */
@@ -246,4 +249,25 @@ body.box-edit-page {
 	}
 	#opponent-notes-section #bulk-adjust-dialog .card-damage[data-direction] {
 		--damage-card-face-background: var(--color-bg);
+	}
+
+	/* 複製カードは守カードしか来ないため攻守バッジは出さず、立ち絵を左端へ寄せる。
+		左列の固定幅(--damage-card-compact-build-width)も内容幅にして右列へ譲る。
+		圧縮表示のルール(body:has(#stat-adjust-sheet.is-expanded) …、box-damage-card.css)より
+		詳細度を上げるため、同じ前置きに#bulk-adjust-dialogを足す。 */
+	body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section #bulk-adjust-dialog .card-damage .damage-row-direction-toggle {
+		display: none;
+	}
+	body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section #bulk-adjust-dialog .card-damage .damage-row-body {
+		grid-template-columns: auto minmax(0, 1fr);
+	}
+	/* 現在のダメージ結果の確定数(「乱2 1.95%」)は、これから調整する前提の参考値なので
+		詳細値と同じ太さ・大きさに落として目立たせない。 */
+	body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section #bulk-adjust-dialog .card-damage .damage-row-total-result .damage-result-verdict,
+	body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section #bulk-adjust-dialog .card-damage .damage-row-total-result .damage-result-probability {
+		font-size: var(--font-size-sm3);
+		font-weight: var(--font-weight-normal);
+	}
+	body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section #bulk-adjust-dialog .card-damage .damage-row-total-result .damage-result-verdict {
+		opacity: .78;
 	}
