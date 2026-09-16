@@ -27,6 +27,11 @@
   --floating-list-add-control-size: 60px; /* 丸い追加ボタンの直径。box-add-button.cssの追加ボタンと同じ直径にそろえる。大きくすると右下ボタンが拡大する。 */
 }
 
+/* /box は読み取りFABも並ぶため、追加FABだけ少し大きくして操作対象を確保する。/team は60pxのまま。 */
+.box-shell.floating-list-page {
+	--floating-list-add-control-size: 68px;
+}
+
 /* ===========================================================================
    ここから下は構造(レイアウトの組み立て)。通常は触らない。
    =========================================================================== */
@@ -76,27 +81,25 @@
   display: none;
 }
 
-/* /box 専用の読み取り導線。主FABより一段小さくして、登録操作との優先度を分ける。 */
+/* /box 専用の読み取り導線(カメラFAB)。主FABより一段小さくして、登録操作との優先度を分ける。
+   主FABと中心線を揃えるため、右端は主FABの right に直径差の半分を足した位置に置く。 */
 .floating-list-page .floating-list-scan-button {
+  --floating-list-scan-control-size: 48px; /* カメラFABの直径。主FAB(--floating-list-add-control-size)より小さくする */
   position: fixed;
-  right: max(
-    var(--floating-list-controls-edge-offset),
-    calc(
-      (100vw - var(--content-band-max-width)) / 2 +
-        var(--floating-list-controls-edge-offset)
-    )
+  right: calc(
+    max(
+      var(--floating-list-controls-edge-offset),
+      calc((100vw - var(--content-band-max-width)) / 2 + var(--floating-list-controls-edge-offset))
+    ) + (var(--floating-list-add-control-size) - var(--floating-list-scan-control-size)) / 2
   );
-  bottom: calc(
-    var(--floating-list-add-bottom) + var(--floating-list-add-control-size) +
-      var(--space-2)
-  );
+  bottom: calc(var(--floating-list-add-bottom) + var(--floating-list-add-control-size) + var(--space-4)); /* 主FABの上端 + 間隔 */
   z-index: 17;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 48px;
-  height: 48px;
-  min-height: 48px;
+  width: var(--floating-list-scan-control-size);
+  height: var(--floating-list-scan-control-size);
+  min-height: var(--floating-list-scan-control-size);
   padding: 0;
   color: var(--color-primary-contrast);
   background: var(--color-primary);
