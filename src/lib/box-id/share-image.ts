@@ -22,6 +22,7 @@ export function initializePokemonShareImage(): void {
 	let availableRows: DamageRowForShare[] = [];
 	let selectedRows: DamageRowForShare[] = [];
 	let isRunning = false;
+	let runningAction: ShareAction | null = null;
 
 	const clipboardSupported = (): boolean => (
 		typeof ClipboardItem !== "undefined"
@@ -52,6 +53,13 @@ export function initializePokemonShareImage(): void {
 			copyButton.removeAttribute("title");
 		}
 		downloadButton.disabled = isRunning;
+		// 実行中は押したボタンのアイコンをスピナーに差し替える。
+		for (const action of ["copy", "save"] as const) {
+			const button = actionButtons[action];
+			const spinning = isRunning && runningAction === action;
+			button.querySelector<HTMLElement>(".share-image-dialog-action-spinner")!.hidden = !spinning;
+			button.querySelector<SVGElement>("svg")!.toggleAttribute("hidden", spinning);
+		}
 	};
 	const closeDialog = (): void => {
 		backdrop.hidden = true;
@@ -101,6 +109,7 @@ export function initializePokemonShareImage(): void {
 	};
 	const run = async (action: ShareAction): Promise<void> => {
 		isRunning = true;
+		runningAction = action;
 		syncButtons();
 		try {
 			if (action === "copy") {
@@ -118,6 +127,7 @@ export function initializePokemonShareImage(): void {
 			showFeedback(action, false);
 		} finally {
 			isRunning = false;
+			runningAction = null;
 			syncButtons();
 		}
 	};

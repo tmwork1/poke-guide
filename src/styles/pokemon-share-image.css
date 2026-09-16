@@ -9,8 +9,17 @@
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	gap: var(--space-1);
+	gap: var(--space-2);
 	min-width: 0;
+}
+/* 文字はわざ選択ボタン(.mobile-move-toggle、box-pokemon-edit-panel.css)と同じ太さ・行送り・余白に揃える。 */
+.pokemon-share-image-action,
+.share-image-dialog-action {
+	font: inherit;
+	font-size: var(--font-size-base);
+	font-weight: var(--font-weight-normal);
+	line-height: 1;
+	padding: 0.42em 0.6em;
 }
 .pokemon-share-image-action svg { flex: 0 0 auto; }
 
@@ -77,6 +86,9 @@
 	font-weight: var(--font-weight-semibold);
 }
 #share-image-row-list.damage-card-scope {
+	/* 圧縮カードの器(.damage-row-body)は2行分より高い下限を持ち、カード下端に暗い帯として残る。
+	   モーダルでは行2本分ちょうどの高さに詰める。 */
+	--damage-card-compact-height: calc(var(--damage-card-compact-sheet-row-height) * 2);
 	padding: 0;
 	background: transparent;
 	container: normal;
@@ -85,7 +97,7 @@
 .share-image-row-option {
 	display: flex;
 	align-items: center;
-	gap: var(--space-1);
+	gap: var(--space-3); /* チェックボックスとカードの間隔 */
 	/* 圧縮カードは390px幅前提の寸法なので、チェックボックス分以外の横余白を最小にして結果欄の省略を減らす。 */
 	padding: var(--space-1) var(--space-1) var(--space-1) var(--space-2);
 	cursor: pointer;
@@ -100,9 +112,16 @@
 	border-top: 1px solid var(--color-border);
 }
 .share-image-dialog-action {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: var(--space-2);
 	min-width: 0;
 }
-.share-image-dialog-action svg { flex: 0 0 auto; }
+.share-image-dialog-action svg,
+.share-image-dialog-action-spinner { flex: 0 0 auto; }
+.share-image-dialog-action svg[hidden],
+.share-image-dialog-action-spinner[hidden] { display: none; }
 
 /* html-to-image用。元のDOMには手を加えず、複製だけを画面外で縦に並べる。
    横paddingは付けない(プレビューは画面と同じ全幅で撮る)。カードは画面と同じく左右16pxだけ内側に置き、
