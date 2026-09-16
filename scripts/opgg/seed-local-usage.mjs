@@ -329,7 +329,7 @@ async function main() {
     currentSeasonId: seasonId,
     seasons: [{
       id: seasonId,
-      label: 'ローカル検証用シーズン',
+      label: '検証S1',
       directory,
       fetchedAt,
       isCurrent: true,
