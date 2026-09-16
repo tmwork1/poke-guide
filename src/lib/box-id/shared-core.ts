@@ -89,6 +89,8 @@ export interface DamageColumnState {
 	attackerBoosts: number[];
 	attackerAilment: string;
 	attackerTerastallized: boolean;
+	// 技カードごとの現在タイプ上書き。空配列は種族本来のタイプを使う。
+	attackerTypes: string[];
 	// 技カードごとに、育成タブで確定した本来のテラスタイプ(#tera/DBのtera_type)とは別の
 	// 仮想テラスタイプを試すための上書き値。空文字列は「上書きなし(本来のテラスタイプを使う)」
 	// を意味する(src/lib/opponent-notes-validation.tsの同名フィールドと同じ方針)。
@@ -97,6 +99,7 @@ export interface DamageColumnState {
 	defenderBoosts: number[];
 	defenderAilment: string;
 	defenderTerastallized: boolean;
+	defenderTypes: string[];
 	defenderTeraType: string;
 	defenderVolatiles: string[];
 }

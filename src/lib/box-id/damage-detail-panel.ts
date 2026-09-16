@@ -18,7 +18,8 @@ import { bindModalDismissal } from "../modal-dismiss";
 import { typeIconUrl } from "../sprite-urls";
 import { createRankPicker } from "../shared/rank-picker";
 import { kanaIncludes } from "../kana";
-import { loadMoveDetailMap } from "../pokemon-master-data";
+import { loadMoveDetailMap, loadTypesMap } from "../pokemon-master-data";
+import { TERA_TYPES } from "../tera-types";
 import {
 	applySprite,
 	applyItemImage,
@@ -102,6 +103,19 @@ type AutoInputState = {
 };
 const autoInputLocks = new WeakMap<DamageColumnState, AutoInputState>();
 const moveAutoInputDetailsPromise = loadMoveDetailMap();
+const speciesTypesPromise = loadTypesMap();
+const CURRENT_TYPE_NAMES: readonly string[] = TERA_TYPES.filter((type) => type !== "ステラ");
+const typeChangingAbilities = new Set(["へんげんじざい", "リベロ"]);
+// 現在タイプ枠(buildCurrentTypeBox)の「外側クリックで閉じる」をまとめて処理する台帳。
+// パネル再描画で捨てられた枠は isConnected で見分けてその場で外す。
+const typeBoxRegistry = new Map<HTMLElement, () => void>();
+document.addEventListener("click", (event) => {
+	const target = event.target as Node;
+	for (const [wrap, closeList] of typeBoxRegistry) {
+		if (!wrap.isConnected) typeBoxRegistry.delete(wrap);
+		else if (!wrap.contains(target)) closeList();
+	}
+});
 const abilityFieldMap: Record<string, { key: "weather" | "terrain"; value: string }> = {
 	あめふらし: { key: "weather", value: "あめ" },
 	ひでり: { key: "weather", value: "はれ" },
@@ -140,9 +154,29 @@ export async function notifyDetailMoveChanged(row: DamageRowState, column: Damag
 		scheduleRowSave(row);
 		refreshRowConditionChips(row);
 	}
+	// わざ1の技タイプは、へんげんじざい/リベロの攻撃側タイプ(全技カード共通)の元になる。
+	// 攻撃側の特性は、相手が攻撃する行なら相手(row)、自分が攻撃する行なら育成タブから引く。
+	// 呼び出し側の .then(表示更新) が追従結果を拾えるよう await する。
+	if (row.attacks[0] === column) {
+		const abilityName = row.direction === "defense"
+			? row.abilityName
+			: el<HTMLSelectElement>("ability").value;
+		await applyAutomaticAttackerTypes(row, abilityName, true);
+	}
 }
-export function notifyDetailAbilityChanged(row: DamageRowState, abilityName: string): void {
+/** へんげんじざい/リベロの攻撃側だけ、わざ1の技タイプを全技カードの攻撃側タイプへ同期する。 */
+async function applyAutomaticAttackerTypes(row: DamageRowState, abilityName: string, isAttacker: boolean): Promise<void> {
+	if (!isAttacker || !typeChangingAbilities.has(abilityName)) return;
+	const moveType = (await moveAutoInputDetailsPromise).get(row.attacks[0]?.moveName.trim() ?? "")?.type;
+	if (!moveType || !row.attacks.some((column) => column.attackerTypes.length !== 1 || column.attackerTypes[0] !== moveType)) return;
+	for (const column of row.attacks) column.attackerTypes = [moveType];
+	scheduleRowCalc(row);
+	scheduleRowSave(row);
+	refreshRowConditionChips(row);
+}
+export function notifyDetailAbilityChanged(row: DamageRowState, abilityName: string, isAttacker = false): void {
 	for (const column of row.attacks) applyAutomaticField(row, column, abilityName);
+	void applyAutomaticAttackerTypes(row, abilityName, isAttacker);
 }
 
 // 詳細パネルは常にオーバーレイとして開閉する。aria-modalも開閉に連動させ、
@@ -1204,7 +1238,107 @@ export function buildToggleButton(
 	return button;
 }
 
-// テラスタイプは攻撃側・防御側それぞれの実値を渡す。
+function buildCurrentTypeBox(
+	speciesName: string,
+	initialTypes: string[],
+	ariaSideLabel: string,
+	onChange: (value: string[]) => void,
+): { wrap: HTMLElement; setDisabled: (disabled: boolean) => void; setValue: (types: string[]) => void } {
+	const wrap = document.createElement("div");
+	wrap.className = "damage-detail-type-field";
+	const button = document.createElement("button");
+	button.type = "button";
+	button.className = "damage-detail-type-box";
+	button.setAttribute("aria-haspopup", "listbox");
+	button.setAttribute("aria-expanded", "false");
+	const icons = document.createElement("span");
+	icons.className = "damage-detail-type-box-icons";
+	button.appendChild(icons);
+	const list = document.createElement("ul");
+	list.className = "damage-detail-type-list";
+	list.setAttribute("role", "listbox");
+	list.setAttribute("aria-label", `${ariaSideLabel}の現在のタイプを選択`);
+	list.setAttribute("aria-multiselectable", "true");
+	list.hidden = true;
+	wrap.append(button, list);
+	let value = [...new Set(initialTypes.filter((type) => CURRENT_TYPE_NAMES.includes(type)))];
+	let speciesTypes: string[] = [];
+	const optionEls = new Map<string, HTMLLIElement>();
+
+	const update = (): void => {
+		const shownTypes = value.length > 0 ? value : speciesTypes;
+		icons.replaceChildren();
+		for (const type of shownTypes) {
+			const icon = document.createElement("img");
+			icon.alt = type;
+			icon.src = typeIconUrl(type) ?? "";
+			icons.appendChild(icon);
+		}
+		button.classList.toggle("is-overridden", value.length > 0);
+		button.setAttribute("aria-label", `${ariaSideLabel}の現在のタイプ: ${shownTypes.join("/") || "未設定"}${value.length > 0 ? " (上書き中)" : ""}`);
+		button.title = value.length > 0 ? `現在のタイプ: ${shownTypes.join("/")} (上書き中)` : `現在のタイプ: ${shownTypes.join("/") || "未設定"}`;
+		for (const [type, option] of optionEls) {
+			const selected = value.includes(type);
+			option.classList.toggle("is-active", selected);
+			option.setAttribute("aria-selected", String(selected));
+		}
+	};
+	for (const type of CURRENT_TYPE_NAMES) {
+		const option = document.createElement("li");
+		option.className = "damage-detail-type-option";
+		option.setAttribute("role", "option");
+		option.tabIndex = -1;
+		option.setAttribute("aria-label", type);
+		const icon = document.createElement("img");
+		icon.alt = type;
+		icon.src = typeIconUrl(type) ?? "";
+		option.appendChild(icon);
+		option.addEventListener("click", () => {
+			const next = value.includes(type) ? value.filter((current) => current !== type) : [...value, type];
+			value = next;
+			onChange(next);
+			update();
+		});
+		optionEls.set(type, option);
+		list.appendChild(option);
+	}
+	const closeList = (): void => {
+		list.hidden = true;
+		button.setAttribute("aria-expanded", "false");
+	};
+	button.addEventListener("click", () => {
+		if (button.disabled) return;
+		if (list.hidden) {
+			list.hidden = false;
+			button.setAttribute("aria-expanded", "true");
+		} else closeList();
+	});
+	// 外側タップで閉じる。パネルは開くたびに作り直されるため、枠ごとにdocumentへ
+	// リスナーを積まず、モジュールで1本だけ持つ外側クリック処理に登録する。
+	typeBoxRegistry.set(wrap, closeList);
+	button.addEventListener("keydown", (event) => {
+		if (event.key === "Escape") closeList();
+	});
+	void speciesTypesPromise.then((types) => {
+		speciesTypes = types.get(speciesName.trim()) ?? [];
+		update();
+	});
+	update();
+	return {
+		wrap,
+		setDisabled: (disabled) => {
+			button.disabled = disabled;
+			if (disabled) closeList();
+		},
+		// へんげんじざい/リベロの自動追従など、枠の外で値が書き換わったときの表示同期用。
+		setValue: (types) => {
+			value = [...new Set(types.filter((type) => CURRENT_TYPE_NAMES.includes(type)))];
+			update();
+		},
+	};
+}
+
+// テラスタイプ・現在のタイプは攻撃側・防御側それぞれの実値を渡す。
 export function buildSideSection(
 	parentEl: HTMLElement,
 	row: DamageRowState,
@@ -1215,6 +1349,9 @@ export function buildSideSection(
 	ailmentOptions: { value: string; label: string }[],
 	terastallized: boolean,
 	teraTypeValue: string,
+	currentTypes: string[],
+	speciesName: string,
+	onTypesChange: (value: string[]) => void,
 	onRankChange: (value: number) => void,
 	onAilmentChange: (value: string) => void,
 	onTeraChange: (value: boolean) => void,
@@ -1229,7 +1366,7 @@ export function buildSideSection(
 	// テラスタイプ選択時に呼ばれる。書き込み先(row.teraTypeか、
 	// column.attacker/defenderTeraTypeか)は呼び出し側が決める。
 	onTeraTypeChange: (value: string) => void,
-): HTMLElement | null {
+): { chipRow: HTMLElement | null; setCurrentTypes: (types: string[]) => void } {
 	const rankAilmentGroup = document.createElement("div");
 	rankAilmentGroup.className = "damage-detail-group";
 	parentEl.appendChild(rankAilmentGroup);
@@ -1248,8 +1385,6 @@ export function buildSideSection(
 
 	const rankField = document.createElement("div");
 	rankField.className = "rank-field damage-detail-rank-field";
-	const rankLabel = document.createElement("label");
-	rankLabel.textContent = "ランク";
 	const formatRank = (value: number): string => value > 0 ? `+${value}` : String(value);
 	let currentRank = rank;
 	const pickerButton = document.createElement("button");
@@ -1293,7 +1428,7 @@ export function buildSideSection(
 	const stepperGroup = document.createElement("span");
 	stepperGroup.className = "rank-stepper-group number-stepper";
 	stepperGroup.append(decrementButton, pickerButton, incrementButton, rankPicker.picker);
-	rankField.append(rankLabel, stepperGroup);
+	rankField.appendChild(stepperGroup);
 	rankAilmentGroup.appendChild(headingRow);
 
 	const ailmentSelect = document.createElement("select");
@@ -1367,6 +1502,12 @@ export function buildSideSection(
 	const teraRow = document.createElement("div");
 	teraRow.className = "damage-detail-toggle-row damage-detail-tera-row";
 	rankAilmentRow.appendChild(teraRow);
+	const typeBox = buildCurrentTypeBox(speciesName, currentTypes, ariaSideLabel, (value) => {
+		onTypesChange(value);
+		scheduleRowCalc(row);
+		scheduleRowSave(row);
+		refreshRowConditionChips(row);
+	});
 
 	// レギュレーションでテラスタルが使える場合のみ、育成タブと同じテラスタイプ選択UIを
 	// 出す(「テラスタルなし」を選べば非発動として扱う)。相手側・自分側とも同じ
@@ -1409,6 +1550,8 @@ export function buildSideSection(
 				? `${ariaSideLabel}のテラスタル: ${teraActive ? "ON" : "OFF"}`
 				: `${ariaSideLabel}のテラスタル: テラスタイプを設定してください`);
 			teraToggle.title = hasTeraType ? "テラスタルをON/OFFする" : "テラスタイプを設定するとONにできます";
+			// テラスタル中はjpokeがテラタイプを優先しタイプ上書きを無視するため、枠も無効化する。
+			typeBox.setDisabled(teraActive);
 		};
 		syncTeraToggle();
 		teraToggle.addEventListener("click", () => {
@@ -1421,9 +1564,8 @@ export function buildSideSection(
 			refreshRowConditionChips(row);
 		});
 		teraRow.appendChild(teraToggle);
-	} else {
-		teraRow.hidden = true;
 	}
+	teraRow.appendChild(typeBox.wrap);
 
 	const stateGrid = document.createElement("div");
 	stateGrid.className = "damage-detail-chip-row damage-detail-state-grid damage-detail-volatile-group";
@@ -1457,7 +1599,7 @@ export function buildSideSection(
 			stateGrid.appendChild(optButton);
 		}
 	}
-	return mergeVolatileIntoChipRow ? stateGrid : null;
+	return { chipRow: mergeVolatileIntoChipRow ? stateGrid : null, setCurrentTypes: typeBox.setValue };
 }
 
 export function renderBuildDetailPanel(row: DamageRowState): void {
@@ -1541,8 +1683,12 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 	refreshDetailPanelFooter(row);
 
 	const { field: criticalField, checkbox: criticalCheckbox } = buildCriticalField();
+	// 攻撃側セクションのタイプ枠。技変更によるへんげんじざい/リベロの自動追従結果を
+	// 枠の表示にも反映するため、buildSideSection後に差し込む。
+	let syncAttackerTypeBox: ((types: string[]) => void) | null = null;
 	const refreshMoveEditorDisplay = (): void => {
 		criticalCheckbox.checked = column.critical;
+		syncAttackerTypeBox?.(column.attackerTypes);
 	};
 	const moveSelectInput = document.createElement("input");
 	moveSelectInput.type = "text";
@@ -1770,10 +1916,11 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 	contentWrap.appendChild(sidesWrap);
 
 	const selfIsAttackerForDialog = row.direction !== "defense";
-// テラスタイプは攻撃側・防御側それぞれの実値を渡す。
+	// テラスタイプ・現在のタイプは攻撃側・防御側それぞれの実値を渡す。
 	const selfTeraTypeValue = el<HTMLSelectElement>("tera").value;
 	const opponentTeraTypeValue = row.teraType;
-	buildSideSection(
+	const selfSpeciesName = el<HTMLInputElement>("species-name").value;
+	const attackerSection = buildSideSection(
 		attackerSide,
 		row,
 		"攻撃側",
@@ -1785,6 +1932,9 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 		selfIsAttackerForDialog
 			? (column.attackerTeraType || (column.attackerTerastallized ? selfTeraTypeValue : ""))
 			: opponentTeraTypeValue,
+		column.attackerTypes,
+		selfIsAttackerForDialog ? selfSpeciesName : row.name,
+		(value) => { column.attackerTypes = value; },
 		(value) => { column.attackerRank = value; },
 		(value) => { column.attackerAilment = value; },
 		(value) => { column.attackerTerastallized = value; },
@@ -1798,6 +1948,7 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 			? (value) => { column.attackerTeraType = value; }
 			: (value) => { row.teraType = value; },
 	);
+	syncAttackerTypeBox = attackerSection.setCurrentTypes;
 	buildSideSection(
 		defenderSide,
 		row,
@@ -1810,6 +1961,9 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 		!selfIsAttackerForDialog
 			? (column.defenderTeraType || (column.defenderTerastallized ? selfTeraTypeValue : ""))
 			: opponentTeraTypeValue,
+		column.defenderTypes,
+		selfIsAttackerForDialog ? row.name : selfSpeciesName,
+		(value) => { column.defenderTypes = value; },
 		(value) => { column.defenderRank = value; },
 		(value) => { column.defenderAilment = value; },
 		(value) => { column.defenderTerastallized = value; },

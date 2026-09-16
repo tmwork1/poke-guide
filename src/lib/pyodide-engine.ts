@@ -227,6 +227,8 @@ export interface SequenceAttack {
   attackerTerastallized?: boolean;
   /** この攻撃時点で攻撃側に適用するテラスタイプ(空文字列でない場合、attackerSpec.teraTypeより優先される)。省略時は attackerSpec.teraType にフォールバックする */
   attackerTeraType?: string;
+  /** この攻撃時点で攻撃側の現在タイプを上書きする配列。空配列・省略時は種族本来のタイプを使う */
+  attackerTypes?: string[];
   /** この攻撃時点での防御側ランク補正。省略時は defenderSpec.boosts にフォールバックする */
   defenderBoosts?: number[];
   /** この攻撃時点での防御側状態異常。省略時は defenderSpec.ailment にフォールバックする */
@@ -235,6 +237,8 @@ export interface SequenceAttack {
   defenderTerastallized?: boolean;
   /** この攻撃時点で防御側に適用するテラスタイプ(空文字列でない場合、defenderSpec.teraTypeより優先される)。省略時は defenderSpec.teraType にフォールバックする */
   defenderTeraType?: string;
+  /** この攻撃時点で防御側の現在タイプを上書きする配列。空配列・省略時は種族本来のタイプを使う */
+  defenderTypes?: string[];
   /** この攻撃時点での攻撃側の揮発性状態名一覧。省略時は attackerSpec.volatiles にフォールバックする */
   attackerVolatiles?: string[];
   /** この攻撃時点での防御側の揮発性状態名一覧。省略時は defenderSpec.volatiles にフォールバックする */
@@ -532,6 +536,13 @@ def _build_pokemon(spec, fallback_move_name):
         for i, stat in enumerate(STATS[1:6], start=1):
             pokemon.boosts[stat] = _clamp_boost(boosts[i])
 
+    # move_override_types はテラスタル中の active_tera_type より優先順位が低く、
+    # へんげんじざい/リベロが設定する ability_override_type より高い。よって手動上書きは
+    # テラスタル中には無視され、通常時は特性によるタイプ変更より優先される。
+    override_types = spec.get("types")
+    if override_types:
+        pokemon.move_override_types = list(override_types)
+
     return pokemon
 
 
@@ -726,12 +737,12 @@ def _resolve_attack_override(card_common_value, per_attack_value):
     return per_attack_value if per_attack_value is not None else card_common_value
 
 
-def _build_per_attack_spec(base_spec, boosts_key, ailment_key, tera_key, volatiles_key, tera_type_key, attack):
+def _build_per_attack_spec(base_spec, boosts_key, ailment_key, tera_key, volatiles_key, tera_type_key, types_key, attack):
     """base_spec(攻撃側/防御側どちらかのカード共通PokemonSpec dict)に、attack(1攻撃分の
-    dict)側のper-attackキー(boosts_key/ailment_key/tera_key/volatiles_key/tera_type_key。
+    dict)側のper-attackキー(boosts_key/ailment_key/tera_key/volatiles_key/tera_type_key/types_key。
     呼び出し側が'attackerBoosts'/'attackerAilment'/'attackerTerastallized'/
-    'attackerVolatiles'/'attackerTeraType' か 'defenderBoosts'/'defenderAilment'/
-    'defenderTerastallized'/'defenderVolatiles'/'defenderTeraType' の
+    'attackerVolatiles'/'attackerTeraType'/'attackerTypes' か 'defenderBoosts'/'defenderAilment'/
+    'defenderTerastallized'/'defenderVolatiles'/'defenderTeraType'/'defenderTypes' の
     いずれかを渡す)をマージした新しいdictを返す。base_specへの副作用を避けるため
     dict(base_spec)で浅いコピーを作ってから上書きする。
     """
@@ -741,6 +752,7 @@ def _build_per_attack_spec(base_spec, boosts_key, ailment_key, tera_key, volatil
     spec["terastallized"] = _resolve_attack_override(base_spec.get("terastallized"), attack.get(tera_key))
     spec["volatiles"] = _resolve_attack_override(base_spec.get("volatiles"), attack.get(volatiles_key))
     spec["teraType"] = _resolve_attack_override(base_spec.get("teraType"), attack.get(tera_type_key))
+    spec["types"] = attack.get(types_key)
     return spec
 
 
@@ -879,11 +891,11 @@ def calc_lethal_sequence_json(attacker_spec, defender_spec, attacks, seed, criti
     
             attacker_spec_for_attack = _build_per_attack_spec(
                 attacker_spec, "attackerBoosts", "attackerAilment", "attackerTerastallized",
-                "attackerVolatiles", "attackerTeraType", attack
+                "attackerVolatiles", "attackerTeraType", "attackerTypes", attack
             )
             defender_spec_for_attack = _build_per_attack_spec(
                 defender_spec, "defenderBoosts", "defenderAilment", "defenderTerastallized",
-                "defenderVolatiles", "defenderTeraType", attack
+                "defenderVolatiles", "defenderTeraType", "defenderTypes", attack
             )
             # field_spec(カード共通)にattack側のper-attack上書きをマージする。
             # weather/terrain/defenderSideFieldsのいずれも、このBattle専用の

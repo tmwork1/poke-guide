@@ -152,6 +152,8 @@ import {
 	setResultVerdict,
 } from "./damage-calc-helpers";
 
+const CURRENT_TYPE_NAMES: ReadonlySet<string> = new Set(TERA_TYPES.filter((type) => type !== "ステラ"));
+
 void loadMoveDetailMap(); // 表示直後に一度だけfetchしておく(imageIdMapPromise等と同じ方針)
 
 // 技名から物理/特殊/変化を同期的に引けるキャッシュ。loadMoveDetailMap()は非同期のため、
@@ -1013,11 +1015,13 @@ if (opponentNotesSection) {
 			attackerAilment: "",
 			attackerTerastallized: false,
 			attackerTeraType: "",
+			attackerTypes: [],
 			attackerVolatiles: [],
 			defenderBoosts: STAT_KEYS.map(() => 0),
 			defenderAilment: "",
 			defenderTerastallized: false,
 			defenderTeraType: "",
+			defenderTypes: [],
 			defenderVolatiles: [],
 			...legacy,
 		};
@@ -1045,11 +1049,13 @@ if (opponentNotesSection) {
 			attackerAilment: previous.attackerAilment,
 			attackerTerastallized: previous.attackerTerastallized,
 			attackerTeraType: previous.attackerTeraType,
+			attackerTypes: [...previous.attackerTypes],
 			attackerVolatiles: [...previous.attackerVolatiles],
 			defenderBoosts: [...previous.defenderBoosts],
 			defenderAilment: previous.defenderAilment,
 			defenderTerastallized: previous.defenderTerastallized,
 			defenderTeraType: previous.defenderTeraType,
+			defenderTypes: [...previous.defenderTypes],
 			defenderVolatiles: [...previous.defenderVolatiles],
 		};
 	}
@@ -1126,6 +1132,17 @@ if (opponentNotesSection) {
 	// という不整合を防ぐ)。
 	function sanitizeColumnChoices(column: DamageColumnState): boolean {
 		let changed = false;
+		const sanitizeTypes = (types: string[]): string[] => [...new Set(types.filter((type) => CURRENT_TYPE_NAMES.has(type)))];
+		const attackerTypes = sanitizeTypes(column.attackerTypes);
+		if (attackerTypes.length !== column.attackerTypes.length || attackerTypes.some((type, index) => type !== column.attackerTypes[index])) {
+			column.attackerTypes = attackerTypes;
+			changed = true;
+		}
+		const defenderTypes = sanitizeTypes(column.defenderTypes);
+		if (defenderTypes.length !== column.defenderTypes.length || defenderTypes.some((type, index) => type !== column.defenderTypes[index])) {
+			column.defenderTypes = defenderTypes;
+			changed = true;
+		}
 		if (column.weather !== "" && !DAMAGE_WEATHERS.some((w) => w.value === column.weather)) {
 			column.weather = "";
 			changed = true;
@@ -1198,10 +1215,12 @@ if (opponentNotesSection) {
 			attackerAilment: field.attackerAilment ?? "",
 			attackerTerastallized: field.attackerTerastallized ?? false,
 			attackerTeraType: field.attackerTeraType ?? "",
+			attackerTypes: [],
 			defenderBoosts: field.defenderBoosts ?? STAT_KEYS.map(() => 0),
 			defenderAilment: field.defenderAilment ?? "",
 			defenderTerastallized: field.defenderTerastallized ?? false,
 			defenderTeraType: field.defenderTeraType ?? "",
+			defenderTypes: [],
 		};
 		// 後方互換: 壁は「個別の3フラグのどれか1つでも
 		// 立っていればON」、ランクは「該当する2能力(atk/spa、def/spd)のうち
@@ -1232,11 +1251,13 @@ if (opponentNotesSection) {
 			if (attack.attackerAilment !== undefined) column.attackerAilment = attack.attackerAilment;
 			if (attack.attackerTerastallized !== undefined) column.attackerTerastallized = attack.attackerTerastallized;
 			if (attack.attackerTeraType !== undefined) column.attackerTeraType = attack.attackerTeraType;
+			if (attack.attackerTypes !== undefined) column.attackerTypes = attack.attackerTypes;
 			if (attack.attackerVolatiles !== undefined) column.attackerVolatiles = attack.attackerVolatiles;
 			if (attack.defenderBoosts !== undefined) column.defenderBoosts = attack.defenderBoosts;
 			if (attack.defenderAilment !== undefined) column.defenderAilment = attack.defenderAilment;
 			if (attack.defenderTerastallized !== undefined) column.defenderTerastallized = attack.defenderTerastallized;
 			if (attack.defenderTeraType !== undefined) column.defenderTeraType = attack.defenderTeraType;
+			if (attack.defenderTypes !== undefined) column.defenderTypes = attack.defenderTypes;
 			if (attack.defenderVolatiles !== undefined) column.defenderVolatiles = attack.defenderVolatiles;
 			deriveScalarsFromArrays(column);
 			if (sanitizeColumnChoices(column)) needsResave = true;
@@ -1283,11 +1304,13 @@ if (opponentNotesSection) {
 				attackerAilment: a.attackerAilment,
 				attackerTerastallized: a.attackerTerastallized,
 				attackerTeraType: a.attackerTeraType,
+				attackerTypes: a.attackerTypes,
 				attackerVolatiles: a.attackerVolatiles,
 				defenderBoosts: a.defenderBoosts,
 				defenderAilment: a.defenderAilment,
 				defenderTerastallized: a.defenderTerastallized,
 				defenderTeraType: a.defenderTeraType,
+				defenderTypes: a.defenderTypes,
 				defenderVolatiles: a.defenderVolatiles,
 			}));
 	}
@@ -2347,6 +2370,7 @@ if (opponentNotesSection) {
 			const teraType = a.attackerTeraType || attackerFallbackTeraType;
 			attacker.push(teraType ? `${teraType}テラスタル` : "テラスタル");
 		}
+		if (a.attackerTypes.length > 0) attacker.push(`タイプ:${a.attackerTypes.join("/")}`);
 		if (a.wallEnabled) defender.push("壁");
 		if (a.stealthRock) defender.push("ステルスロック");
 		const spikes = clampInt(a.spikes, 0, 3);
@@ -2356,6 +2380,7 @@ if (opponentNotesSection) {
 			const teraType = a.defenderTeraType || defenderFallbackTeraType;
 			defender.push(teraType ? `${teraType}テラスタル` : "テラスタル");
 		}
+		if (a.defenderTypes.length > 0) defender.push(`タイプ:${a.defenderTypes.join("/")}`);
 		if (a.weather) field.push(a.weather);
 		if (a.terrain) field.push(a.terrain);
 		if (a.attackerRank !== 0) attacker.push(`ランク${a.attackerRank > 0 ? "+" : ""}${a.attackerRank}`);
@@ -2728,7 +2753,7 @@ if (opponentNotesSection) {
 			refreshSprite();
 			void rebuildRowAbilityOptions(nameInput.value.trim()).then(() => {
 				// ユーザーの種族確定に伴うJS側の特性フォールバックも自動入力対象。
-				notifyDetailAbilityChanged(row, row.abilityName);
+				notifyDetailAbilityChanged(row, row.abilityName, row.direction === "defense");
 			});
 			void applyRowMegaStoneAutofill(nameInput.value.trim());
 			void refreshRowItemPopularity(nameInput.value.trim());
@@ -2888,7 +2913,7 @@ if (opponentNotesSection) {
 			syncAbilityUnselectedState();
 			row.abilityName = abilitySelect.value;
 			// 今回の要件: 相手特性変更時だけ、各技列の天候・フィールド自動入力を試す。
-			notifyDetailAbilityChanged(row, row.abilityName);
+			notifyDetailAbilityChanged(row, row.abilityName, row.direction === "defense");
 			abilitySelect.title = abilitySelect.value;
 			onFieldInput();
 			refreshAbilityCycleButton();
@@ -3091,7 +3116,7 @@ if (opponentNotesSection) {
 			syncAbilityUnselectedState();
 			abilitySelect.title = row.abilityName;
 			refreshAbilityCycleButton();
-			notifyDetailAbilityChanged(row, row.abilityName);
+			notifyDetailAbilityChanged(row, row.abilityName, row.direction === "defense");
 
 			itemInput.value = row.itemName;
 			itemInput.title = row.itemName;
@@ -3218,9 +3243,11 @@ if (opponentNotesSection) {
 	let rows: DamageRowState[] = [];
 	// 今回の要件: 自分の特性変更時は全カードの全技列を対象にする。rowsを所有するこの層で
 	// 配線し、ダメージ詳細パネル側には特性名と対象行だけを渡して状態管理の二重化を避ける。
+	// 第3引数(自分が攻撃側か)は、へんげんじざい/リベロのタイプ自動追従を攻撃側の行に限るため。
+	// わざ1(技カード先頭)の変更側の追従は damage-detail-panel.ts の notifyDetailMoveChanged が担う。
 	el<HTMLSelectElement>("ability").addEventListener("change", (event) => {
 		const abilityName = (event.currentTarget as HTMLSelectElement).value;
-		for (const row of rows) notifyDetailAbilityChanged(row, abilityName);
+		for (const row of rows) notifyDetailAbilityChanged(row, abilityName, row.direction !== "defense");
 		scheduleAllRowsCalc();
 	});
 	// 自分が防御側のとき、たべのこしの有無は加算表示にも直接効く。持ち物選択は
@@ -3235,7 +3262,7 @@ if (opponentNotesSection) {
 		if (!selfAbilitySelect) return;
 		const observer = new MutationObserver(() => {
 			observer.disconnect();
-			for (const row of rows) notifyDetailAbilityChanged(row, selfAbilitySelect.value);
+			for (const row of rows) notifyDetailAbilityChanged(row, selfAbilitySelect.value, row.direction !== "defense");
 		});
 		observer.observe(selfAbilitySelect, { childList: true });
 	});

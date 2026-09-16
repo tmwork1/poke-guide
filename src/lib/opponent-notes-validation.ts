@@ -44,6 +44,8 @@ export interface OpponentAttackInput {
   attackerBoosts?: number[];
   attackerAilment?: string;
   attackerTerastallized?: boolean;
+  // 技カードごとの現在タイプ上書き。空配列は種族本来のタイプを使う。
+  attackerTypes?: string[];
   // attackerTeraType/defenderTeraType: 自分側の技カードごとに、育成タブで確定した本来の
   // テラスタイプとは別の仮想テラスタイプを試せるようにするための上書き値。相手側は
   // row.teraTypeを技ごとにON/OFFするだけで足りるが、自分側は本来のテラスタイプが
@@ -60,6 +62,7 @@ export interface OpponentAttackInput {
   defenderBoosts?: number[];
   defenderAilment?: string;
   defenderTerastallized?: boolean;
+  defenderTypes?: string[];
   defenderTeraType?: string;
   defenderVolatiles?: string[];
   defenderSideFields?: string[];
@@ -212,6 +215,16 @@ const OPPONENT_FIELD_KEYS = new Set([
   'order',
 ]);
 
+// 現在タイプ上書きはテラスタイプの「ステラ」を含めない通常の18タイプだけを受け入れる。
+const CURRENT_TYPE_NAMES = new Set([
+  'ノーマル', 'ほのお', 'みず', 'でんき', 'くさ', 'こおり', 'かくとう', 'どく', 'じめん',
+  'ひこう', 'エスパー', 'むし', 'いわ', 'ゴースト', 'ドラゴン', 'あく', 'はがね', 'フェアリー',
+]);
+
+function normalizeCurrentTypes(types: string[]): string[] {
+  return [...new Set(types.filter((type) => CURRENT_TYPE_NAMES.has(type)))];
+}
+
 function isNonEmptyString(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0;
 }
@@ -253,11 +266,13 @@ function isAttacksArray(value: unknown): value is OpponentAttackInput[] {
     if (v.attackerAilment !== undefined && typeof v.attackerAilment !== 'string') return false;
     if (v.attackerTerastallized !== undefined && typeof v.attackerTerastallized !== 'boolean') return false;
     if (v.attackerTeraType !== undefined && typeof v.attackerTeraType !== 'string') return false;
+    if (v.attackerTypes !== undefined && !isStringArray(v.attackerTypes)) return false;
     if (v.attackerVolatiles !== undefined && !isStringArray(v.attackerVolatiles)) return false;
     if (v.defenderBoosts !== undefined && !isBoostArray(v.defenderBoosts)) return false;
     if (v.defenderAilment !== undefined && typeof v.defenderAilment !== 'string') return false;
     if (v.defenderTerastallized !== undefined && typeof v.defenderTerastallized !== 'boolean') return false;
     if (v.defenderTeraType !== undefined && typeof v.defenderTeraType !== 'string') return false;
+    if (v.defenderTypes !== undefined && !isStringArray(v.defenderTypes)) return false;
     if (v.defenderVolatiles !== undefined && !isStringArray(v.defenderVolatiles)) return false;
     if (v.defenderSideFields !== undefined && !isStringArray(v.defenderSideFields)) return false;
     if (v.weather !== undefined && typeof v.weather !== 'string') return false;
@@ -442,11 +457,13 @@ function validateOpponentField(value: unknown): { ok: true; value: OpponentField
       if (attack.attackerAilment !== undefined) normalized.attackerAilment = attack.attackerAilment;
       if (attack.attackerTerastallized !== undefined) normalized.attackerTerastallized = attack.attackerTerastallized;
       if (attack.attackerTeraType !== undefined) normalized.attackerTeraType = attack.attackerTeraType;
+      if (attack.attackerTypes !== undefined) normalized.attackerTypes = normalizeCurrentTypes(attack.attackerTypes);
       if (attack.attackerVolatiles !== undefined) normalized.attackerVolatiles = attack.attackerVolatiles;
       if (attack.defenderBoosts !== undefined) normalized.defenderBoosts = attack.defenderBoosts;
       if (attack.defenderAilment !== undefined) normalized.defenderAilment = attack.defenderAilment;
       if (attack.defenderTerastallized !== undefined) normalized.defenderTerastallized = attack.defenderTerastallized;
       if (attack.defenderTeraType !== undefined) normalized.defenderTeraType = attack.defenderTeraType;
+      if (attack.defenderTypes !== undefined) normalized.defenderTypes = normalizeCurrentTypes(attack.defenderTypes);
       if (attack.defenderVolatiles !== undefined) normalized.defenderVolatiles = attack.defenderVolatiles;
       if (attack.defenderSideFields !== undefined) normalized.defenderSideFields = attack.defenderSideFields;
       if (attack.weather !== undefined) normalized.weather = attack.weather;

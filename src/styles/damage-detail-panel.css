@@ -828,6 +828,9 @@ body.box-edit-page {
 		grid-column: 3;
 		justify-self: start;
 	}
+	#damage-detail-panel-body .damage-detail-rank-field {
+		margin-bottom: 0;
+	}
 	#damage-detail-panel-body .damage-detail-tera-toggle {
 		inline-size: 40px;
 		block-size: 40px;
@@ -860,6 +863,87 @@ body.box-edit-page {
 	#damage-detail-panel-body .damage-detail-tera-toggle:focus-visible {
 		outline: var(--damage-detail-focus-outline);
 		outline-offset: 2px;
+	}
+	#damage-detail-panel-body .damage-detail-type-field {
+		position: relative;
+	}
+	#damage-detail-panel-body .damage-detail-type-box {
+		min-width: 40px;
+		height: 40px;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		padding: 4px;
+		border: 1px solid var(--damage-detail-border-color);
+		border-radius: var(--damage-detail-radius-sm);
+		background: var(--damage-detail-control-background);
+		cursor: pointer;
+	}
+	#damage-detail-panel-body .damage-detail-type-box-icons {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 2px;
+	}
+	#damage-detail-panel-body .damage-detail-type-box-icons img {
+		width: 28px;
+		height: 28px;
+		object-fit: contain;
+	}
+	#damage-detail-panel-body .damage-detail-type-box-icons img + img {
+		margin-left: -12px;
+	}
+	#damage-detail-panel-body .damage-detail-type-box.is-overridden {
+		border-color: var(--color-primary);
+		box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-primary) 45%, transparent);
+	}
+	#damage-detail-panel-body .damage-detail-type-box:disabled {
+		cursor: not-allowed;
+		filter: grayscale(1);
+		opacity: 0.45;
+	}
+	#damage-detail-panel-body .damage-detail-type-box:focus-visible {
+		outline: var(--damage-detail-focus-outline);
+		outline-offset: 2px;
+	}
+	#damage-detail-panel-body .damage-detail-type-list {
+		position: absolute;
+		z-index: 6;
+		top: calc(100% + var(--damage-detail-space-xs));
+		right: 0;
+		width: 12rem;
+		display: grid;
+		grid-template-columns: repeat(6, minmax(0, 1fr));
+		gap: var(--damage-detail-space-xs);
+		margin: 0;
+		padding: var(--damage-detail-space-xs);
+		list-style: none;
+		background: var(--damage-detail-control-background);
+		border: var(--damage-detail-tera-list-border);
+		border-radius: var(--damage-detail-radius-md);
+		box-shadow: var(--damage-detail-shadow-md);
+	}
+	#damage-detail-panel-body .damage-detail-type-list[hidden] {
+		display: none;
+	}
+	#damage-detail-panel-body .damage-detail-type-option {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		min-height: 30px;
+		padding: 2px;
+		border: 1px solid transparent;
+		border-radius: var(--damage-detail-radius-sm);
+		cursor: pointer;
+	}
+	#damage-detail-panel-body .damage-detail-type-option img {
+		width: 28px;
+		height: 28px;
+		object-fit: contain;
+	}
+	#damage-detail-panel-body .damage-detail-type-option.is-active {
+		border-color: var(--color-primary);
+		background: var(--damage-detail-primary-soft-color);
 	}
 	/* 攻撃側・防御側の見出しに添える所属表示。見出しより控えめにする。 */
 	#damage-detail-panel-body .damage-detail-section-heading .damage-detail-side-badge {

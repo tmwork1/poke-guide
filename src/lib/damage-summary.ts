@@ -109,6 +109,8 @@ export interface NormalizedNoteAttack {
 	defenderAilment: string;
 	attackerTerastallized: boolean;
 	defenderTerastallized: boolean;
+	attackerTypes: string[];
+	defenderTypes: string[];
 	/** 攻撃側のランク補正。物理ならA、特殊ならCのうち最初に非ゼロの値(damage-calc.ts の rankFromLegacyBoosts と同じ)。 */
 	attackerRank: number;
 	/** 防御側のランク補正。物理ならB、特殊ならDのうち最初に非ゼロの値。 */
@@ -156,6 +158,8 @@ export function normalizeNoteAttacks(
 			defenderAilment: attack.defenderAilment ?? f.defenderAilment ?? '',
 			attackerTerastallized: attack.attackerTerastallized ?? f.attackerTerastallized ?? false,
 			defenderTerastallized: attack.defenderTerastallized ?? f.defenderTerastallized ?? false,
+			attackerTypes: attack.attackerTypes ?? [],
+			defenderTypes: attack.defenderTypes ?? [],
 			attackerRank: rankFrom(attackerBoosts, 'atk', 'spa'),
 			defenderRank: rankFrom(defenderBoosts, 'def', 'spd'),
 		};
@@ -197,6 +201,8 @@ export function collectNoteConditionChips(attack: NormalizedNoteAttack, category
 	if (attack.defenderAilment) chips.push(`防御側${attack.defenderAilment}`);
 	if (attack.attackerTerastallized) chips.push('攻撃側テラスタル');
 	if (attack.defenderTerastallized) chips.push('防御側テラスタル');
+	if (attack.attackerTypes.length > 0) chips.push(`攻撃側タイプ:${attack.attackerTypes.join('/')}`);
+	if (attack.defenderTypes.length > 0) chips.push(`防御側タイプ:${attack.defenderTypes.join('/')}`);
 	const atkLabel = category === 'special' ? '特攻' : '攻撃';
 	const defLabel = category === 'special' ? '特防' : '防御';
 	if (attack.attackerRank !== 0) chips.push(`攻撃側${atkLabel}${attack.attackerRank > 0 ? '+' : ''}${attack.attackerRank}`);

@@ -288,6 +288,25 @@ describe('validateOpponentNoteRequestBody', () => {
     assert.equal(invalid.ok, false);
   });
 
+  it('attacksの現在タイプ上書きは18タイプだけを選択順のまま残し、重複を除去する', () => {
+    const result = validateOpponentNoteRequestBody({
+      owned_pokemon_id: VALID_UUID,
+      opponent_build: { name: 'カイリュー' },
+      field: {
+        attacks: [{
+          moveName: 'じしん',
+          attackerTypes: ['みず', 'ひこう', 'みず', 'ステラ', '未知のタイプ'],
+          defenderTypes: ['ほのお', 'ほのお'],
+        }],
+      },
+    }, { requireOwnedPokemonId: true });
+    assert.equal(result.ok, true);
+    if (result.ok) {
+      assert.deepEqual(result.value.field.attacks?.[0].attackerTypes, ['みず', 'ひこう']);
+      assert.deepEqual(result.value.field.attacks?.[0].defenderTypes, ['ほのお']);
+    }
+  });
+
   it('field.attackerBoostsの長さが6でない場合は拒否する', () => {
     const result = validateOpponentNoteRequestBody(
       {
