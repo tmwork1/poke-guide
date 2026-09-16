@@ -132,6 +132,11 @@ import SecondHeader from '../../components/SecondHeader.astro';
 		import { deleteTeam, listTeamsPage } from "../../lib/data/team-repo";
 		import { reloadOnBfcacheRestore } from "../../lib/shared/reload-on-bfcache-restore";
 		import { isGuestMode } from "../../lib/data/guest-mode";
+		import {
+			toggleDensityMode,
+			updateDensityToggleButton,
+			type DisplayDensityMode,
+		} from "../../lib/display-density-toggle";
 
 		// GET /api/teams が返す1メンバーの owned_pokemon。表示に必要な列だけを持つ
 		// (src/lib/team.ts の TeamMember/OwnedPokemonRecord のサブセット)。
@@ -174,19 +179,10 @@ import SecondHeader from '../../components/SecondHeader.astro';
 			const TEAM_PAGE_SIZE = 24;
 			let hasMoreTeams = false;
 			let isLoadingMore = false;
-			type TeamDisplayMode = "expanded" | "compressed";
-			let displayMode: TeamDisplayMode = "expanded";
-
-			const DENSITY_ICON_EXPANDED = `<svg class="density-toggle-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="4" width="5" height="5" rx="1"/><rect x="10" y="4" width="5" height="5" rx="1"/><rect x="18" y="4" width="5" height="5" rx="1"/><rect x="2" y="12" width="5" height="5" rx="1"/><rect x="10" y="12" width="5" height="5" rx="1"/><rect x="18" y="12" width="5" height="5" rx="1"/></svg>`;
-			const DENSITY_ICON_COMPRESSED = `<svg class="density-toggle-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="10" width="5" height="5" rx="1"/><rect x="10" y="10" width="5" height="5" rx="1"/><rect x="18" y="10" width="5" height="5" rx="1"/></svg>`;
+			let displayMode: DisplayDensityMode = "expanded";
 
 			function updateDensityToggleUi(): void {
-				densityToggle.dataset.mode = displayMode;
-				densityToggle.innerHTML = displayMode === "expanded" ? DENSITY_ICON_EXPANDED : DENSITY_ICON_COMPRESSED;
-				densityToggle.setAttribute(
-					"aria-label",
-					displayMode === "expanded" ? "圧縮表示に切り替える" : "展開表示に切り替える",
-				);
+				updateDensityToggleButton(densityToggle, displayMode);
 			}
 
 			// メンバーの種族名・アイテム・わざを対象にするAND部分一致検索。
@@ -332,7 +328,7 @@ import SecondHeader from '../../components/SecondHeader.astro';
 			addButton.addEventListener("click", goToNewTeam);
 			emptyAddButton.addEventListener("click", goToNewTeam);
 			densityToggle.addEventListener("click", () => {
-				displayMode = displayMode === "expanded" ? "compressed" : "expanded";
+				displayMode = toggleDensityMode(displayMode);
 				updateDensityToggleUi();
 				renderList();
 			});

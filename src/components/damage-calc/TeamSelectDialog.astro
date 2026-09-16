@@ -12,6 +12,45 @@
     <h2 id="damage-calc-team-select-dialog-title" class="team-select-title">チームから選択</h2>
     <button type="button" id="damage-calc-team-select-close-button" class="btn-ghost team-select-close" aria-label="閉じる">×</button>
   </div>
+  {/* 見出し直下の固定ツールバー。検索欄と3・6列切替は /team 一覧のセカンドヘッダーを踏襲する
+      (検索方式・placeholder・アイコン・ボタンとも同じ)。一覧と一緒にスクロールしない。 */}
+  <div class="team-select-toolbar">
+    <div class="team-select-search-wrap toolbar-item toolbar-search">
+      <div class="search-input-wrap">
+        <svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="11" cy="11" r="7" />
+          <line x1="21" y1="21" x2="16.65" y2="16.65" />
+        </svg>
+        <input
+          id="damage-calc-team-select-search-input"
+          class="team-select-search-input field-control"
+          type="search"
+          inputmode="search"
+          placeholder="ポケモン・もちもの・わざ"
+          aria-label="検索"
+          autocomplete="off"
+        />
+      </div>
+    </div>
+    <div class="toolbar-item toolbar-density">
+      <button
+        type="button"
+        id="damage-calc-team-select-density-toggle"
+        class="density-toggle btn-control"
+        data-mode="expanded"
+        aria-label="圧縮表示に切り替える"
+      >
+        <svg class="density-toggle-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="2" y="4" width="5" height="5" rx="1" />
+          <rect x="10" y="4" width="5" height="5" rx="1" />
+          <rect x="18" y="4" width="5" height="5" rx="1" />
+          <rect x="2" y="12" width="5" height="5" rx="1" />
+          <rect x="10" y="12" width="5" height="5" rx="1" />
+          <rect x="18" y="12" width="5" height="5" rx="1" />
+        </svg>
+      </button>
+    </div>
+  </div>
   <div class="team-select-content">
     <p id="damage-calc-team-select-loading" class="team-select-message">読み込み中…</p>
     <p id="damage-calc-team-select-error" class="team-select-message team-select-message--error" hidden></p>

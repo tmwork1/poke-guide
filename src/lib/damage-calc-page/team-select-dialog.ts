@@ -1,7 +1,15 @@
 import { listTeamsPage } from "../data/team-repo";
 import { bindModalDismissal } from "../modal-dismiss";
 import { renderTeamCard } from "../team-card";
+import { renderTeamMateSlots } from "../team-mate-card";
 import type { Team, TeamMember } from "../team";
+import { kanaIncludes } from "../kana";
+import { splitSearchTokens } from "../search-tokens";
+import {
+  toggleDensityMode,
+  updateDensityToggleButton,
+  type DisplayDensityMode,
+} from "../display-density-toggle";
 import { setSelfBuilds, type SelfBuild } from "./shared-core";
 
 const PAGE_SIZE = 48;
@@ -65,13 +73,39 @@ export function initTeamSelectDialog(): void {
   const loading = byId<HTMLElement>("damage-calc-team-select-loading");
   const error = byId<HTMLElement>("damage-calc-team-select-error");
   const empty = byId<HTMLElement>("damage-calc-team-select-empty");
+  const searchInput = byId<HTMLInputElement>("damage-calc-team-select-search-input");
+  const densityToggle = byId<HTMLButtonElement>("damage-calc-team-select-density-toggle");
   let cachedTeams: Team[] | null = null;
   let loadingPromise: Promise<void> | null = null;
+  let searchQuery = "";
+  let displayMode: DisplayDensityMode = "expanded";
 
   function closeDialog(): void {
     backdrop.hidden = true;
     dialog.hidden = true;
     trigger.focus();
+  }
+
+  // /team 一覧と同じく、メンバーの種族名・もちもの・わざを対象にしたAND部分一致検索。
+  function filterBySearch(teams: Team[]): Team[] {
+    const tokens = splitSearchTokens(searchQuery);
+    if (tokens.length === 0) return teams;
+    return teams.filter((team) => {
+      const haystack = [
+        ...team.members.map((m) => m.owned_pokemon.species_name ?? ""),
+        ...team.members.map((m) => m.owned_pokemon.item_name ?? ""),
+        ...team.members.flatMap((m) => m.owned_pokemon.move_names ?? []),
+      ].join(" ");
+      return tokens.every((token) => kanaIncludes(haystack, token));
+    });
+  }
+
+  function renderCurrentList(): void {
+    if (cachedTeams) renderList(filterBySearch(cachedTeams));
+  }
+
+  function updateDensityToggleUi(): void {
+    updateDensityToggleButton(densityToggle, displayMode);
   }
 
   function renderList(teams: Team[]): void {
@@ -106,6 +140,22 @@ export function initTeamSelectDialog(): void {
                 ariaLabel: pokemonName,
               };
             },
+            // 圧縮表示は /team 一覧と同じ6枠ミニサムネイル(.team-mate-grid)。
+            // item_overrideがあれば個体登録値より優先して表示する。
+            renderMembers: displayMode === "compressed"
+              ? (container) => {
+                  container.className = "team-mate-grid";
+                  const mateMembersBySlot = new Map(team.members.map((m) => {
+                    const itemName = (m.item_override ?? m.owned_pokemon.item_name ?? "").trim();
+                    return [m.slot, { ...m.owned_pokemon, item_name: itemName || null }];
+                  }));
+                  renderTeamMateSlots({
+                    root: container,
+                    membersBySlot: mateMembersBySlot,
+                    displayName: (p) => p.species_name || "ポケモン",
+                  });
+                }
+              : undefined,
           }),
         );
         button.addEventListener("click", () => {
@@ -120,7 +170,7 @@ export function initTeamSelectDialog(): void {
 
   async function loadList(): Promise<void> {
     if (cachedTeams) {
-      renderList(cachedTeams);
+      renderCurrentList();
       return;
     }
     if (loadingPromise) return loadingPromise;
@@ -144,7 +194,7 @@ export function initTeamSelectDialog(): void {
         }
       }
       cachedTeams = teams;
-      renderList(teams);
+      renderCurrentList();
     })()
       .catch((cause: unknown) => {
         console.error(cause);
@@ -160,6 +210,8 @@ export function initTeamSelectDialog(): void {
   }
 
   async function openDialog(): Promise<void> {
+    searchQuery = "";
+    searchInput.value = "";
     backdrop.hidden = false;
     dialog.hidden = false;
     dialog.focus();
@@ -168,6 +220,16 @@ export function initTeamSelectDialog(): void {
 
   trigger.addEventListener("click", () => void openDialog());
   closeButton.addEventListener("click", closeDialog);
+  searchInput.addEventListener("input", () => {
+    searchQuery = searchInput.value.trim();
+    renderCurrentList();
+  });
+  densityToggle.addEventListener("click", () => {
+    displayMode = toggleDensityMode(displayMode);
+    updateDensityToggleUi();
+    renderCurrentList();
+  });
+  updateDensityToggleUi();
   bindModalDismissal({
     backdrop,
     dialog,

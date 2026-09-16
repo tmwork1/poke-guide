@@ -171,10 +171,20 @@ import '../../styles/guest-login-dialog.css';
 		import { reloadOnBfcacheRestore } from "../../lib/shared/reload-on-bfcache-restore";
 		import { initializeSortDirectionToggle } from "../../lib/shared/sort-direction-toggle";
 		import { compareTypeListsByTeraOrder } from "../../lib/tera-types";
+		import {
+			BOX_DISPLAY_DENSITY_STORAGE_KEY,
+			loadDensityMode,
+			saveDensityMode,
+			toggleDensityMode,
+			updateDensityToggleButton,
+			type DisplayDensityMode,
+		} from "../../lib/display-density-toggle";
 
-		/* 「本当に0件」の状態クラス(.is-truly-empty)と圧縮表示(.is-compact)を
-		   付け外しする対象。レイアウトはCSSだけで組んでいるので、寸法の実測はしない。 */
+		/* 「本当に0件」の状態クラス(.is-truly-empty)を付け外しする対象。圧縮表示(.is-compact)は
+		   .box-grid側に付ける(owned-pokemon-card.cssでモーダルと共用)。
+		   レイアウトはCSSだけで組んでいるので、寸法の実測はしない。 */
 		const boxContent = document.querySelector<HTMLElement>(".box-content");
+		const boxGrid = boxContent?.querySelector<HTMLElement>(".box-grid") ?? null;
 
 		interface OwnedPokemon {
 			id: string;
@@ -227,41 +237,11 @@ import '../../styles/guest-login-dialog.css';
 			let hasMorePokemon = false;
 			let loadingMore = false;
 			const POKEMON_PAGE_SIZE = 48;
-			type BoxDisplayMode = "expanded" | "compressed";
-			const BOX_DISPLAY_DENSITY_STORAGE_KEY = "poke-guide:box-display-density";
-
-			function loadDisplayMode(): BoxDisplayMode {
-				try {
-					return window.localStorage.getItem(BOX_DISPLAY_DENSITY_STORAGE_KEY) === "compressed"
-						? "compressed"
-						: "expanded";
-				} catch {
-					// localStorage が利用できない環境では、従来どおり展開表示を既定にする。
-					return "expanded";
-				}
-			}
-
-			function saveDisplayMode(): void {
-				try {
-					window.localStorage.setItem(BOX_DISPLAY_DENSITY_STORAGE_KEY, displayMode);
-				} catch {
-					// 保存できなくても、現在開いているページでの切り替えは維持する。
-				}
-			}
-
-			let displayMode: BoxDisplayMode = loadDisplayMode();
-
-			const DENSITY_ICON_EXPANDED = `<svg class="density-toggle-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="4" width="5" height="5" rx="1"/><rect x="10" y="4" width="5" height="5" rx="1"/><rect x="18" y="4" width="5" height="5" rx="1"/><rect x="2" y="12" width="5" height="5" rx="1"/><rect x="10" y="12" width="5" height="5" rx="1"/><rect x="18" y="12" width="5" height="5" rx="1"/></svg>`;
-			const DENSITY_ICON_COMPRESSED = `<svg class="density-toggle-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="10" width="5" height="5" rx="1"/><rect x="10" y="10" width="5" height="5" rx="1"/><rect x="18" y="10" width="5" height="5" rx="1"/></svg>`;
+			let displayMode: DisplayDensityMode = loadDensityMode(BOX_DISPLAY_DENSITY_STORAGE_KEY);
 
 			function updateDensityToggleUi(): void {
-				boxContent?.classList.toggle("is-compact", displayMode === "compressed");
-				densityToggle.dataset.mode = displayMode;
-				densityToggle.innerHTML = displayMode === "expanded" ? DENSITY_ICON_EXPANDED : DENSITY_ICON_COMPRESSED;
-				densityToggle.setAttribute(
-					"aria-label",
-					displayMode === "expanded" ? "圧縮表示に切り替える" : "展開表示に切り替える",
-				);
+				boxGrid?.classList.toggle("is-compact", displayMode === "compressed");
+				updateDensityToggleButton(densityToggle, displayMode);
 			}
 
 			// カードの表示にはタイプ・特性・持ち物・テラスタイプ・技を出さないが、検索対象は
@@ -449,8 +429,8 @@ import '../../styles/guest-login-dialog.css';
 
 			searchInput.addEventListener("input", renderList);
 			densityToggle.addEventListener("click", () => {
-				displayMode = displayMode === "expanded" ? "compressed" : "expanded";
-				saveDisplayMode();
+				displayMode = toggleDensityMode(displayMode);
+				saveDensityMode(BOX_DISPLAY_DENSITY_STORAGE_KEY, displayMode);
 				updateDensityToggleUi();
 				renderList();
 			});

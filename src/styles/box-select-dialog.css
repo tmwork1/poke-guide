@@ -51,27 +51,39 @@
   font-size: var(--modal-close-font-size);
   line-height: 1;
 }
-.box-select-content {
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow-y: auto;
-  padding: var(--space-4);
+/* 見出し直下の固定ツールバー(検索欄+3・6列切替)。/box一覧のセカンドヘッダー
+   (.second-header__content)と同じ並び・余白にし、一覧と一緒にスクロールしない。 */
+.box-select-toolbar {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-chrome);
+  border-bottom: 1px solid var(--color-border);
 }
 .box-select-search-wrap {
-  position: sticky;
-  top: calc(-1 * var(--space-4));
-  z-index: 1;
-  padding: var(--space-2) 0;
-  background: var(--color-surface);
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.box-select-search-wrap .search-input-wrap {
+  width: 100%;
 }
 .box-select-search-input {
   width: 100%;
   min-width: 0;
   box-sizing: border-box;
 }
+.box-select-content {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-4);
+}
 /* box/と同じ3列表示スタイルに揃える(モーダル幅はビューポートより狭いため、
-   viewport基準のグローバルなラダーではなくここで3列に固定する)。 */
-.box-select-content .box-grid {
+   viewport基準のグローバルなラダーではなくここで3列に固定する)。
+   圧縮表示(.is-compact、owned-pokemon-card.cssで6列固定)のときは上書きしない。 */
+.box-select-content .box-grid:not(.is-compact) {
   --box-grid-columns: 3;
 }
 .box-select-message {
@@ -90,5 +102,3 @@
 .box-select-dialog { width: 96vw; }
 
 .box-select-content { padding: var(--space-2); }
-
-.box-select-search-wrap { top: calc(-1 * var(--space-2)); }

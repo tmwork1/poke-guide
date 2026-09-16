@@ -12,17 +12,46 @@
     <h2 id="damage-calc-box-select-dialog-title" class="box-select-title">ボックスから選択</h2>
     <button type="button" id="damage-calc-box-select-close-button" class="btn-ghost box-select-close" aria-label="閉じる">×</button>
   </div>
-  <div class="box-select-content">
-    <div class="box-select-search-wrap">
-      <input
-        id="damage-calc-box-select-search-input"
-        class="box-select-search-input"
-        type="search"
-        inputmode="search"
-        placeholder="ポケモンを検索"
-        aria-label="ボックスのポケモンを検索"
-      />
+  {/* 見出し直下の固定ツールバー。検索欄と3・6列切替は /box 一覧のセカンドヘッダーを踏襲する
+      (検索方式・placeholder・アイコン・ボタンとも同じ)。一覧と一緒にスクロールしない。 */}
+  <div class="box-select-toolbar">
+    <div class="box-select-search-wrap toolbar-item toolbar-search">
+      <div class="search-input-wrap">
+        <svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="11" cy="11" r="7" />
+          <line x1="21" y1="21" x2="16.65" y2="16.65" />
+        </svg>
+        <input
+          id="damage-calc-box-select-search-input"
+          class="box-select-search-input field-control"
+          type="search"
+          inputmode="search"
+          placeholder="ポケモン・もちもの・わざ"
+          aria-label="検索"
+          autocomplete="off"
+        />
+      </div>
     </div>
+    <div class="toolbar-item toolbar-density">
+      <button
+        type="button"
+        id="damage-calc-box-select-density-toggle"
+        class="density-toggle btn-control"
+        data-mode="expanded"
+        aria-label="圧縮表示に切り替える"
+      >
+        <svg class="density-toggle-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="2" y="4" width="5" height="5" rx="1" />
+          <rect x="10" y="4" width="5" height="5" rx="1" />
+          <rect x="18" y="4" width="5" height="5" rx="1" />
+          <rect x="2" y="12" width="5" height="5" rx="1" />
+          <rect x="10" y="12" width="5" height="5" rx="1" />
+          <rect x="18" y="12" width="5" height="5" rx="1" />
+        </svg>
+      </button>
+    </div>
+  </div>
+  <div class="box-select-content">
     <p id="damage-calc-box-select-loading" class="box-select-message">読み込み中…</p>
     <p id="damage-calc-box-select-error" class="box-select-message box-select-message--error" hidden></p>
     <p id="damage-calc-box-select-empty" class="box-select-message" hidden>登録済みのポケモンがありません。</p>

@@ -8,6 +8,14 @@ import type { OwnedPokemonRecord } from "../owned-pokemon";
 import { kanaIncludes } from "../kana";
 import { splitSearchTokens } from "../search-tokens";
 import { setSelfBuilds } from "./shared-core";
+import {
+  BOX_DISPLAY_DENSITY_STORAGE_KEY,
+  loadDensityMode,
+  saveDensityMode,
+  toggleDensityMode,
+  updateDensityToggleButton,
+  type DisplayDensityMode,
+} from "../display-density-toggle";
 
 const PAGE_SIZE = 48;
 
@@ -49,19 +57,34 @@ export function initBoxSelectDialog(): void {
   const error = byId<HTMLElement>("damage-calc-box-select-error");
   const empty = byId<HTMLElement>("damage-calc-box-select-empty");
   const searchInput = byId<HTMLInputElement>("damage-calc-box-select-search-input");
+  const densityToggle = byId<HTMLButtonElement>("damage-calc-box-select-density-toggle");
   let cachedPokemon: OwnedPokemonRecord[] | null = null;
   let loadingPromise: Promise<void> | null = null;
   let searchQuery = "";
   let searchFocusFrame: number | null = null;
+  // 3・6列切替は /box 一覧と同じ保存キーを共有し、どちらで切り替えても同じ密度で開く。
+  let displayMode: DisplayDensityMode = loadDensityMode(BOX_DISPLAY_DENSITY_STORAGE_KEY);
 
-  // /box の検索と同じく、半角・全角スペース区切りの語をすべて含むものだけを残す。
+  // /box の検索と同じく、種族名・特性・もちもの・テラスタイプ・わざを対象に、
+  // 半角・全角スペース区切りの語をすべて含むものだけを残す。
   function filterBySearch(entries: OwnedPokemonRecord[]): OwnedPokemonRecord[] {
     const tokens = splitSearchTokens(searchQuery);
     if (tokens.length === 0) return entries;
     return entries.filter((entry) => {
-      const name = ownedPokemonDisplayName(entry);
-      return tokens.every((token) => kanaIncludes(name, token));
+      const haystack = [
+        ownedPokemonDisplayName(entry),
+        entry.ability_name ?? "",
+        entry.item_name ?? "",
+        entry.tera_type ?? "",
+        ...entry.move_names,
+      ].join(" ");
+      return tokens.every((token) => kanaIncludes(haystack, token));
     });
+  }
+
+  function updateDensityToggleUi(): void {
+    grid.classList.toggle("is-compact", displayMode === "compressed");
+    updateDensityToggleButton(densityToggle, displayMode);
   }
 
   function cancelScheduledSearchFocus(): void {
@@ -167,6 +190,9 @@ export function initBoxSelectDialog(): void {
   async function openDialog(): Promise<void> {
     searchQuery = "";
     searchInput.value = "";
+    // /box 側で切り替えた密度をモーダルを開くたびに反映する。
+    displayMode = loadDensityMode(BOX_DISPLAY_DENSITY_STORAGE_KEY);
+    updateDensityToggleUi();
     backdrop.hidden = false;
     dialog.hidden = false;
     dialog.focus();
@@ -176,6 +202,11 @@ export function initBoxSelectDialog(): void {
 
   trigger.addEventListener("click", () => void openDialog());
   closeButton.addEventListener("click", closeDialog);
+  densityToggle.addEventListener("click", () => {
+    displayMode = toggleDensityMode(displayMode);
+    saveDensityMode(BOX_DISPLAY_DENSITY_STORAGE_KEY, displayMode);
+    updateDensityToggleUi();
+  });
   searchInput.addEventListener("input", () => {
     searchQuery = searchInput.value.trim();
     if (cachedPokemon) renderList(filterBySearch(cachedPokemon));

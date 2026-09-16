@@ -385,3 +385,66 @@
   outline: 2px solid var(--color-primary-strong);
   outline-offset: -2px;
 }
+
+/* ===========================================================================
+   圧縮表示(.box-grid.is-compact): /box一覧とダメ計「ボックスから選択」モーダルの
+   3・6列切替で共有する。画面幅にかかわらず6列へ固定し、カード上限サイズも
+   チーム編成のメイト枠(.team-mate-grid)と同じ値に揃える。通常表示時のglobal.cssの
+   列数トークンは、この状態クラスがない限り従来どおり利用する。
+   =========================================================================== */
+.box-grid.is-compact {
+  --box-grid-columns: 6;
+  --box-card-size-max: var(--compact-thumb-card-size-max);
+}
+
+/* 圧縮表示はチーム一覧(/team、カード圧縮表示時の.team-mate-grid/.team-mate-card。
+   src/styles/team-mate-card.css)と同じ「公式絵を正方形いっぱいに中央表示+持ち物バッジを
+   右下44%」の見た目に揃える。DOM構造(box-card、削除ボタン・aタグでのリンク遷移・
+   長押し削除モード)はそのまま流用し、position:absoluteの寸法だけ上書きする
+   (renderTeamMateSlotsは6枠固定・スロット番号ベースの設計で、ページングされる可変長の
+   /box一覧にはそのまま使えないため、DOM生成ロジック自体は共用せず見た目だけ揃える)。
+   名前・技(.card-body、display:contentsで子がグリッド行を占有)を隠しても、
+   公式絵(.card-artwork)・持ち物バッジ(.card-item-badge)はposition:absoluteで
+   独立しているため表示され続ける。 */
+.box-grid.is-compact .box-card .card-body {
+  display: none;
+}
+/* 圧縮時の各タイルは絵と持ち物だけを見せる。通常カードの面・枠・影は外すが、
+   focus-visible / is-selected の outline と削除モード内の操作ボタンは下位要素側で維持する。 */
+.box-grid.is-compact .box-card {
+  background-color: transparent;
+  background-image: none;
+  border: 0;
+  box-shadow: none;
+}
+/* 通常時は border: 0(= border-style: none)なので、色だけ指定しても線は出ない。
+   shorthand で style ごと戻す。box-sizing: border-box のため寸法は変わらない。 */
+.box-grid.is-compact .box-card:hover,
+.box-grid.is-compact .box-card:focus-visible {
+  border: 1px solid var(--color-primary);
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+/* card-artworkはposition:absoluteのため、box-card自身のpaddingは効かない
+   (containing blockがpadding boxになるだけで、paddingの内側に収まる保証はない)。
+   .team-mate-cardの画像は通常のflow配置でpadding(--space-1)の内側に収まるため、
+   ここでは同じ見た目にするためinset自体をpadding相当の値にする
+   (width/height:100%は指定せず、insetとaspect-ratio: 1/1に正方形を任せる)。 */
+.box-grid.is-compact .box-card .card-artwork {
+  inset-inline-start: var(--space-1);
+  inset-block-start: var(--space-1);
+  inset-inline-end: auto;
+  inset-block-end: auto;
+  width: calc(100% - 2 * var(--space-1));
+  height: calc(100% - 2 * var(--space-1));
+}
+.box-grid.is-compact .box-card .card-artwork img {
+  mask-image: none;
+  -webkit-mask-image: none;
+}
+.box-grid.is-compact .box-card .card-item-badge {
+  width: 44%;
+  height: 44%;
+  inset-inline-end: 0;
+  inset-block-end: 0;
+}
