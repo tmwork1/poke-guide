@@ -1,5 +1,5 @@
 ---
-// トップバーの #bulk-adjust-button(box/[id].astro側の静的マークアップ、実装済み)を押すと
+// ダメージタブ下部のステータス調整シートにある #bulk-adjust-button を押すと
 // 開く「耐久調整ポップアップ」の器(マークアップ+スタイル)。中身(表示専用の防御方向の
 // ダメージ計算カードの複製・N/M入力欄・進捗表示)はすべて src/lib/box-id/bulk-adjust.ts が
 // document.createElement()で動的生成する。
@@ -42,11 +42,7 @@ import '../../styles/bulk-adjust-dialog.css';
 		</div>
 		<button type="button" id="bulk-adjust-dialog-close-button" class="btn-ghost bulk-adjust-dialog-close" aria-label="閉じる">×</button>
 	</div>
-	{/* ダイアログ外のトリガーボタン(#bulk-adjust-button、box/[id].astro側)は、ダイアログを
-	    開いている間だけ「ステータスを計算」ラベルに変わり実行ボタンを兼ねているが、
-	    トップバーの操作ボタン列に埋まっていて見つけにくい。ダイアログ内のタイトル行から直接計算できる
-	    ボタンを置く。クリック時の処理(bulk-adjust.ts)は外部トリガーと
-	    完全に同じ共通関数runCompute()を呼ぶだけで、実行ロジックを二重に持たない。 */}
+	{/* 計算はこのダイアログ内のボタンから実行する。 */}
 	<div id="bulk-adjust-dialog-body" class="bulk-adjust-dialog-body">
 		{/* 中身(圧縮表示カード+N/M入力欄の組、または空状態メッセージ)はbulk-adjust.tsが
 		    document.createElement()で動的生成してここへ差し込む。 */}

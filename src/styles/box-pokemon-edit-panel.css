@@ -228,24 +228,13 @@
 	}
 	/* わざ選択ボタンと同じ.btn-controlを付与しているため、背景・枠線・文字色・ホバー色は
 	   共通ルール(src/styles/buttons.css)から同じ算出値になる。 */
-	/* box/[id].astroのトップバーにあった#bulk-adjust-buttonが持っていた「アイコンspan+ラベルspanを
-	   inline-flexで縦位置中央揃えにする」パターン(インラインSVGは既定でbaseline基準の余白が乗り、
-	   隣のラベルテキストと縦位置がズレるための対策)を、新設の.stat-adjust-action-iconにも同じ
-	   考え方で適用する。.bulk-adjust-button-icon(既存クラス、bulk-adjust.ts参照)はここへ移設した
-	   ことで見た目の親(.stat-adjust-action-button)が変わるため、同じ整列ルールをここでも定義する
-	   (box/[id].astro側の定義はそちらのファイルのスコープにしか効かないため引き継がれない)。 */
-	.stat-adjust-action-icon,
-	.bulk-adjust-button-icon {
+	/* アイコン付きのステータス調整操作を縦方向中央に揃える。 */
+	.stat-adjust-action-icon {
 		display: inline-flex;
 		align-items: center;
 	}
 	/* 実図形に詰めた横長viewBoxでは隣の正方形アイコンより間延びして見えるため、
 	   図形自体が正方形の枠を縦にも使うゲージにし、3つの操作アイコンの大きさを揃える。 */
-	.bulk-adjust-button-icon svg {
-		width: 16px;
-		height: 16px;
-		vertical-align: middle;
-	}
 	/* モバイル専用では、このテンプレート上の操作群はJSがツールバーへ再配置するため常時非表示にする。 */
 	.stat-adjust-actions { display: none; }
 

@@ -1,8 +1,8 @@
-﻿// トップバーの #bulk-adjust-button(box/[id].astro側の静的マークアップ、元は
-// disabled)を押すと、防御方向(相手→自分)のダメージ計算カードだけを圧縮表示した
+// ダメージタブ下部のステータス調整シートにある #bulk-adjust-button を押すと、防御方向
+// (相手→自分)のダメージ計算カードだけを圧縮表示した
 // ポップアップ(src/components/box-id/BulkAdjustDialog.astro)を開く。カードごとに
-// 「N発をM%以上の確率で耐える」の N・M を入力し、同じボタン(このとき「ステータスを計算」に
-// ラベルが変わる)を押すと src/lib/box-id/bulk-adjust-solver.ts の solveDurability() で
+// 「N発をM%以上の確率で耐える」の N・M を入力し、ダイアログ内の「計算」ボタンを押すと
+// src/lib/box-id/bulk-adjust-solver.ts の solveDurability() で
 // 条件を満たす性格・努力値(H/B/D)の組み合わせを探索する。結果はダメージ詳細パネル
 // (src/lib/box-id/damage-detail-panel.ts の renderBulkAdjustResults)に一覧表示し、一覧をクリックすると
 // 育成パネルの性格・努力値を実際に書き換える。
@@ -43,7 +43,6 @@ import {
 import { renderBulkAdjustResults, openDetailPanelOverlay } from "./damage-detail-panel";
 
 const bulkAdjustButton = el<HTMLButtonElement>("bulk-adjust-button");
-const bulkAdjustButtonLabelEl = bulkAdjustButton.querySelector<HTMLElement>(".bulk-adjust-button-label");
 const backdropEl = el<HTMLElement>("bulk-adjust-backdrop");
 const dialogEl = el<HTMLElement>("bulk-adjust-dialog");
 const dialogComputeButton = el<HTMLButtonElement>("bulk-adjust-dialog-compute-button");
@@ -101,11 +100,6 @@ function currentConfirmedCount(preview: HTMLElement | null): number | null {
 	return Number.isInteger(n) && n >= 1 && n <= MAX_ATTACK_COUNT ? n : null;
 }
 
-function setButtonLabel(text: string): void {
-	if (bulkAdjustButtonLabelEl) bulkAdjustButtonLabelEl.textContent = text;
-	else bulkAdjustButton.textContent = text;
-}
-
 // ダイアログを開いていない間だけ、防御カードが1枚以上なら有効化する。
 // BulkAdjustBridgeには行の増減・名前変更を通知する購読機構が無く、
 // かつ相手ポケモン名や技名の入力(input.valueの変更)はDOM属性の変化を伴わずMutationObserverでは
@@ -116,9 +110,10 @@ function updateBulkAdjustButtonReadyState(): void {
 	const bridge = getBulkAdjustBridge();
 	const ready = !!bridge && bridge.getDefenseRows().length > 0;
 	bulkAdjustButton.disabled = !ready;
+	bulkAdjustButton.title = ready ? "耐久調整(守カードの条件を満たす努力値配分を探す)" : "守カードを追加すると耐久調整が使えます";
+	bulkAdjustButton.setAttribute("aria-label", ready ? "耐久調整" : "守カードを追加すると耐久調整が使えます");
 }
-// 耐久調整ボタンは現在非表示にしている。表示していないボタンのために初回訪問で
-// Pyodide約5.5MBを取得しないよう、再表示した場合も実際に押された時点で初期化する。
+// Pyodide約5.5MBは、実際にボタンを押した時点で初期化する。
 updateBulkAdjustButtonReadyState();
 window.setInterval(updateBulkAdjustButtonReadyState, 600);
 
@@ -229,21 +224,9 @@ function openDialog(): void {
 		dialogBodyInnerEl.appendChild(buildRowEl(bridge, row));
 	}
 	updateComputeButtonDisabled();
-	// ⚠️ 実装時に踏んだ罠: 背景オーバーレイ(#bulk-adjust-backdrop)のtopはCSSで
-	// var(--header-height)固定にしていたが、狭幅(390px等)ではトップバーの操作ボタン列
-	// (.app-header-actions)が折り返して2行以上になることがあり、実際のトップバー高さが
-	// この固定値を超えてボタン(#bulk-adjust-button)自身が覆われクリック不能になる
-	// (Playwright実機検証で再現)。z-indexで前面に出す対策は.app-header自身が独自の
-	// スタッキングコンテキスト(position:sticky+z-index:20、global.css)を持つため効かなかった
-	// (子要素のz-indexは外の要素と比較されない)。開くたびに実際のトップバー下端を測って
-	// backdropのtopへ反映することで、折り返しの有無・段数によらず常にボタンの真下から
-	// 覆うようにする。
-	const topbarEl = document.querySelector<HTMLElement>(".app-header");
-	backdropEl.style.top = topbarEl ? `${topbarEl.getBoundingClientRect().bottom}px` : "";
 	backdropEl.hidden = false;
 	dialogEl.hidden = false;
 	isDialogOpen = true;
-	setButtonLabel("ステータスを計算");
 	bulkAdjustButton.disabled = false;
 	dialogEl.focus();
 }
@@ -255,7 +238,6 @@ function closeDialog(): void {
 	backdropEl.hidden = true;
 	dialogEl.hidden = true;
 	isDialogOpen = false;
-	setButtonLabel("耐久調整");
 	dialogFooterEl.hidden = true;
 	updateBulkAdjustButtonReadyState();
 	bulkAdjustButton.focus();
@@ -278,21 +260,13 @@ function prepareEngine(): Promise<void> {
 }
 
 bulkAdjustButton.addEventListener("click", () => {
-	if (isComputing) return;
-	if (isDialogOpen) {
-		void runCompute();
-	} else {
-		openDialog();
-		void prepareEngine().catch((err) => {
-			// 計算を押した場合はrunCompute()側でも同じ失敗を表示する。ここは
-			// ダイアログを開いただけの場合の未処理rejectionを防ぐための受け口。
-			console.error(err);
-		});
-	}
+	if (isComputing || isDialogOpen) return;
+	openDialog();
+	void prepareEngine().catch((err) => {
+		console.error(err);
+	});
 });
-// 外部トリガー(#bulk-adjust-button、ダイアログを開いている間は「ステータスを計算」実行
-// ボタンを兼ねる)と完全に同じ共通関数runCompute()を呼ぶだけで、実行ロジックは二重に
-// 持たない(closeDialog()→renderBulkAdjustResults()のフローもrunCompute()内に閉じている)。
+// ダイアログ内の「計算」が唯一の計算実行ボタン。
 dialogComputeButton.addEventListener("click", () => {
 	if (isComputing) return;
 	void runCompute();

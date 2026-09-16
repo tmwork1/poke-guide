@@ -189,11 +189,10 @@ const initialMobileTab = !isNewMode && Astro.url.searchParams.get('tab') === 'da
 			{!isNewMode && <DamageDetailPanel />}
 			</div>
 
-			{/* 「耐久調整」機能のポップアップ本体。トップバーの#bulk-adjust-button
-			    (上のFragment slot="topbar-actions"参照)から開く。マークアップ・スタイルは
+			{/* 「耐久調整」機能のポップアップ本体。ダメージタブ下部のステータス調整シートから開く。マークアップ・スタイルは
 			    BulkAdjustDialog.astro、ロジックはsrc/lib/box-id/bulk-adjust.tsに実装済み
 			    (このページ側はimportと配置のみ)。 */}
-			{!isNewMode && user && <BulkAdjustDialog />}
+			{!isNewMode && <BulkAdjustDialog />}
 			{!isNewMode && <SpeedAdjustDialog pokemonId={pokemon.id} />}
 			</>
 		)

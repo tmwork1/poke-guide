@@ -59,16 +59,33 @@
 	box-shadow: var(--shadow-md);
 }
 
-/* つまみに並べる「残りXX」。シートを閉じている間も残数が見えるようにここへ置く。 */
+.stat-adjust-sheet-header-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--space-2);
+	margin: 0 var(--space-2) var(--space-1);
+}
+
+/* シート内の先頭行に置く「残りXX」。 */
 .stat-adjust-sheet-remaining {
 	display: block;
-	margin: 0 0 var(--space-1) var(--space-2);
+	margin: 0;
 	font-size: var(--font-size-sm3); /* 「残りXX」の文字サイズ。大きくすると目立つ */
 	color: var(--color-text-muted); /* 「残りXX」の文字色。濃くすると目立つ */
 	line-height: 1;
 	white-space: nowrap;
 }
 .stat-adjust-sheet-remaining:empty { display: none; }
+
+.stat-adjust-sheet-bulk-adjust-button {
+	height: 26px;
+	min-height: 26px;
+	padding: 2px var(--space-2);
+	font-size: var(--font-size-sm3);
+	line-height: 1;
+	white-space: nowrap;
+}
 
 .stat-adjust-sheet-toggle-icon {
 	display: inline-flex;
