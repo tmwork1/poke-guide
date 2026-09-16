@@ -114,6 +114,12 @@ import '../../styles/guest-login-dialog.css';
 								<span class="add-card-tile-label">ポケモンを登録</span>
 								<span class="add-card-tile-hint" hidden></span>
 							</button>
+							<button type="button" class="floating-list-scan-button" id="scan-game-screen-button" aria-label="ゲーム画面から読み取る">
+								<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+									<path d="M4 7h3l1.5-2h7L17 7h3a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2Z" />
+									<circle cx="12" cy="13" r="3.5" />
+								</svg>
+							</button>
 							<div id="owned-pokemon-list"></div>
 						</div>
 
@@ -206,6 +212,7 @@ import '../../styles/guest-login-dialog.css';
 			const guestLoginClose = el<HTMLButtonElement>("guest-login-close");
 			const searchInput = el<HTMLInputElement>("search-input");
 			const addButton = el<HTMLButtonElement>("add-pokemon-button");
+			const scanButton = el<HTMLButtonElement>("scan-game-screen-button");
 			const emptyAddButton = el<HTMLButtonElement>("empty-add-pokemon-button");
 			const densityToggle = el<HTMLButtonElement>("box-display-density-toggle");
 
@@ -454,6 +461,13 @@ import '../../styles/guest-login-dialog.css';
 				window.location.href = "/box/new";
 			}
 			addButton.addEventListener("click", goToNewPokemon);
+			scanButton.addEventListener("click", () => {
+				if (isGuestMode()) {
+					guestLoginDialog.showModal();
+					return;
+				}
+				window.location.href = "/box/scan";
+			});
 			emptyAddButton.addEventListener("click", goToNewPokemon);
 
 			updateDensityToggleUi();

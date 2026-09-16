@@ -108,6 +108,11 @@ const initialMobileTab = !isNewMode && Astro.url.searchParams.get('tab') === 'da
 // 同じ計算式(ミリ秒差をceilして日数化)を使うので、変更する場合は両方揃えること。
 ---
 <AppLayout title={pageTitle} current="box" bodyClass={bodyClass}>
+	{isNewMode && user && (
+		<script>
+			import '../../lib/box-id/game-screen-ocr-apply';
+		</script>
+	)}
 	<div class="page edit-shell" id="edit-shell" data-mobile-tab={initialMobileTab}>
 	{
 		isGuestNewMode ? (
@@ -139,7 +144,7 @@ const initialMobileTab = !isNewMode && Astro.url.searchParams.get('tab') === 'da
 			    src/lib/box-id/pokemon-edit-panel.ts へ切り出した(見た目・ロジックは一切変更していない)。
 			    SSRで取得済みのpokemon(この分岐では非null)だけをpropsで渡す。 */}
 			{/* 育成・閲覧タブで共有するポケモン設定モーダルホスト。ここでは編集フォームも表示する。 */}
-			<PokemonSettingsModalHost pokemon={pokemon} showForm={true} showGameScreenOcr={isNewMode && !!user} opggRankedSpeciesNames={opggRankedSpeciesNames} />
+			<PokemonSettingsModalHost pokemon={pokemon} showForm={true} opggRankedSpeciesNames={opggRankedSpeciesNames} />
 			{/* 保存状態とダメージ計算の保存失敗件数は、最終表示位置にSSRする。新規作成直後は
 			    localStorageのゲスト個体を復元して保存済みへ変わる場合があるため、復元前だけ
 			    「入力すると保存されます」の領域を出すと高さが揺れる。通常時と同じsavedで

@@ -51,6 +51,7 @@
  *                       `sel@x,y=dx,dy` で要素内の開始点を指定(負値は右/下端からの相対)
  *   --swipe <sel=dx,dy> 指(タッチ)でフリック。横スクロールが指で動くかの検証
  *   --fill <sel=value>  入力欄を埋める
+ *   --file <sel=path>   file input にローカルファイルを渡す(change が飛ぶ。ゲーム画面OCRの検証用)
  *   --press <sel=Key>   キー送出(例 `input.search=Enter`)。`sel=` を省くとページ全体へ
  *   --hover <sel>       ホバー
  *   --hold <sel=ms>     マウスで長押し(押下→ms待つ→離す)。長押しUIの検証用
@@ -102,7 +103,7 @@ const USAGE = [
 	"",
 	"  対象  --page box/<id> [--theme dark] [--size 390x844]",
 	"  操作  --click <sel> / --rclick <sel> / --drag <sel=dx,dy> / --swipe <sel=dx,dy>",
-	"        --fill <sel=値> / --press <sel=Key> / --hover <sel>",
+	"        --fill <sel=値> / --file <sel=path> / --press <sel=Key> / --hover <sel>",
 	"        --hold <sel=ms> / --hold-touch <sel=ms>",
 		"        --scroll <sel|px> / --wait <sel> / --wait-ms <n>   ※指定順に実行",
 	"  実測  --rect <sel> / --style <sel:prop,...> / --text <sel> / --html <sel>",
@@ -203,6 +204,7 @@ function parseArgs(argv) {
 			case "--drag":
 			case "--swipe":
 			case "--fill":
+			case "--file":
 			case "--press":
 			case "--hover":
 			case "--hold":
@@ -341,6 +343,12 @@ async function runAction(page, action) {
 		case "fill": {
 			const [sel, text] = splitPair(value, "--fill");
 			await resolveLocator(page, sel).first().fill(text, { timeout: 30_000 });
+			break;
+		}
+		// 視覚的に隠した file input(clip で1px化)にも渡せるよう、クリックせず直接ファイルを載せる。
+		case "file": {
+			const [sel, filePath] = splitPair(value, "--file");
+			await resolveLocator(page, sel).first().setInputFiles(filePath, { timeout: 30_000 });
 			break;
 		}
 		case "press": {

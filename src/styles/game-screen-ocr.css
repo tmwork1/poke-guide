@@ -1,13 +1,10 @@
-/* ゲーム画面OCR(/box/new の「ゲーム画面から読み込む」ボタンと読み取り結果の確認ダイアログ)。
+/* ゲーム画面OCRの読み取り結果の確認ダイアログ(/box/scan で使う。ページ本体の見た目は game-screen-scan-page.css)。
 	マークアップは src/components/box-id/GameScreenOcr.astro、ロジックは src/lib/box-id/game-screen-ocr.ts。
 	結果一覧はJSで生成するため、Astroのscoped styleでなくこの外部CSSに置く(pitfalls.md参照)。
 	クラス名はすべて game-screen-ocr- 接頭辞で他画面と衝突しないようにする。
 	ダイアログの見た目は bulk-adjust-dialog.css のモーダル規格(global.css の --modal-*)に揃える。 */
 
-.game-screen-ocr {
-	margin: 0 0 var(--space-3); /* ボタンとその下の種族欄との間隔 */
-}
-/* file inputはボタンから間接的に開くので、視覚的には隠しつつアクセシビリティツリーには残す */
+/* file input(カメラ/カメラロール)はページのボタンから間接的に開くので、視覚的には隠しつつアクセシビリティツリーには残す */
 .game-screen-ocr-file {
 	position: absolute;
 	inline-size: 1px;
@@ -17,10 +14,6 @@
 	clip-path: inset(50%);
 	white-space: nowrap;
 }
-.game-screen-ocr-button {
-	inline-size: 100%; /* 新規登録画面の先頭に置く主導線なので全幅にする */
-}
-
 /* 背景オーバーレイ・ダイアログ本体とも、bulk-adjust-dialog.css と同じ z-index 帯(70/71)を使う。
 	同じ画面で同時に開くモーダルは無い。 */
 .game-screen-ocr-backdrop {

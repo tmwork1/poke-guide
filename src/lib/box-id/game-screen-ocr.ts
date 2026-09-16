@@ -3,9 +3,11 @@ import { loadAbilitiesMap, loadBaseStatsMap, loadLearnsetFor, loadPokemonMasterL
 import { STAT_KEYS, type StatKey } from "../stats";
 import { mergeGameScreenOcrResults, parseGameScreenLines, type GameScreenOcrResult } from "../game-screen-ocr-parse";
 import { preprocessGameScreenImage } from "../game-screen-ocr-image";
+import { saveGameScreenOcrResult } from "../game-screen-ocr-transfer";
 
-const fileInput = document.getElementById("game-screen-ocr-file") as HTMLInputElement | null;
-const button = document.getElementById("game-screen-ocr-button") as HTMLButtonElement | null;
+// /box/scan の「カメラで撮影」(capture付き)と「カメラロールから選ぶ」(captureなし)。どちらも同じ認識処理に流す。
+const cameraInput = document.getElementById("game-screen-ocr-camera-file") as HTMLInputElement | null;
+const libraryInput = document.getElementById("game-screen-ocr-library-file") as HTMLInputElement | null;
 const backdrop = document.getElementById("game-screen-ocr-backdrop") as HTMLElement | null;
 const dialog = document.getElementById("game-screen-ocr-dialog") as HTMLElement | null;
 const closeButton = document.getElementById("game-screen-ocr-close") as HTMLButtonElement | null;
@@ -13,7 +15,6 @@ const cancelButton = document.getElementById("game-screen-ocr-cancel") as HTMLBu
 const applyButton = document.getElementById("game-screen-ocr-apply") as HTMLButtonElement | null;
 const progress = document.getElementById("game-screen-ocr-progress") as HTMLElement | null;
 const resultEl = document.getElementById("game-screen-ocr-result") as HTMLElement | null;
-const form = document.getElementById("edit-form") as HTMLFormElement | null;
 
 let parsedResult: GameScreenOcrResult | null = null;
 
@@ -155,54 +156,10 @@ async function recognize(file: File): Promise<GameScreenOcrResult> {
 	}
 }
 
-/** 対象フォームの入力値を更新し、既存の入力イベント連携も発火させる。 */
-function setInput(id: string, value: string): void {
-	const input = document.getElementById(id) as HTMLInputElement | HTMLSelectElement | null;
-	if (!input) return;
-	input.value = value;
-	input.dispatchEvent(new Event("input", { bubbles: true }));
-	input.dispatchEvent(new Event("change", { bubbles: true }));
-}
-
-/** 推定した性格を編集パネルへ渡す(pokemon-edit-panel.ts の game-screen-ocr:set-nature リスナーが上昇/下降を直接セットする)。 */
-function applyNature(nature: string): void {
-	document.dispatchEvent(new CustomEvent("game-screen-ocr:set-nature", { detail: { nature } }));
-}
-
-/** OCR結果を編集フォームへ反映し、種族変更後に特性を設定する。 */
-async function applyResult(): Promise<void> {
-	if (!parsedResult?.species || !form) return;
-	applyButton && (applyButton.disabled = true);
-	form.dataset.gameScreenOcrApplying = "true";
-	try {
-		for (const stat of parsedResult.stats) if (stat.ev != null) setInput(`ev-${stat.key}`, String(stat.ev));
-		applyNature(parsedResult.nature);
-		for (let slot = 1; slot <= 4; slot++) {
-			setInput(`move-${slot}`, parsedResult.moves[slot - 1] ?? "");
-		}
-		// 種族確定 → pokemon-edit-panel.ts が特性候補を再構築 → ability-options-ready を受けてから特性を入れる。
-		// 種族が既に同じ値のとき(同じ結果を2回適用など)は input イベントが出ず ready が来ないので、タイムアウトで抜ける。
-		const ready = new Promise<void>((resolve) => {
-			const timer = setTimeout(resolve, 3000);
-			document.addEventListener("game-screen-ocr:ability-options-ready", () => { clearTimeout(timer); resolve(); }, { once: true });
-		});
-		document.dispatchEvent(new CustomEvent("game-screen-ocr:select-species", { detail: { name: parsedResult.species } }));
-		await ready;
-		if (parsedResult.ability) setInput("ability", parsedResult.ability);
-		closeDialog();
-		delete form.dataset.gameScreenOcrApplying;
-		document.dispatchEvent(new Event("game-screen-ocr:commit"));
-	} finally {
-		delete form.dataset.gameScreenOcrApplying;
-		if (applyButton) applyButton.disabled = false;
-	}
-}
-
-if (fileInput && button && backdrop && dialog && closeButton && cancelButton && applyButton) {
-	button.addEventListener("click", () => fileInput.click());
-	fileInput.addEventListener("change", () => {
-		const file = fileInput.files?.[0];
-		fileInput.value = "";
+if (cameraInput && libraryInput && backdrop && dialog && closeButton && cancelButton && applyButton) {
+	const readFile = (input: HTMLInputElement): void => {
+		const file = input.files?.[0];
+		input.value = "";
 		if (!file) return;
 		openDialog();
 		setProgress("読み取りを開始します…");
@@ -211,10 +168,18 @@ if (fileInput && button && backdrop && dialog && closeButton && cancelButton && 
 			setProgress("");
 			renderResult(result);
 		}).catch((error: unknown) => setProgress(error instanceof Error ? error.message : "読み取りに失敗しました。"));
-	});
+	};
+	cameraInput.addEventListener("change", () => readFile(cameraInput));
+	libraryInput.addEventListener("change", () => readFile(libraryInput));
 	closeButton.addEventListener("click", closeDialog);
 	cancelButton.addEventListener("click", closeDialog);
-	applyButton.addEventListener("click", () => void applyResult());
+	// 適用先のフォームは /box/new にある。写真は持ち回らず、確認済みの解析値だけを sessionStorage 経由で渡し、
+	// 向こうの game-screen-ocr-apply.ts が読み込み時に反映する。
+	applyButton.addEventListener("click", () => {
+		if (!parsedResult?.species) return;
+		saveGameScreenOcrResult(parsedResult);
+		window.location.assign("/box/new?ocr=1");
+	});
 	bindModalDismissal({ backdrop, dialog, isOpen: () => !dialog.hidden, onDismiss: closeDialog });
 	(window as typeof window & { openGameScreenOcrDemo?: () => void }).openGameScreenOcrDemo = () => {
 		parsedResult = {
