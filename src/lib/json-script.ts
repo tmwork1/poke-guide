@@ -40,3 +40,33 @@ export function readJsonScriptStringArray(elementId: string): string[] {
     return [];
   }
 }
+
+// OP.GG\u9806\u4f4d\u4ed8\u304d\u306e\u7a2e\u65cf\u4e00\u89a7(box/[id].astro \u306e #box-opgg-ranked-species)\u3002OP.GG \u306f\u7a2e\u65cf\u5358\u4f4d\u306e
+// \u4f7f\u7528\u7387\u3092\u516c\u958b\u3057\u3066\u3044\u306a\u3044\u305f\u3081\u3001\u9806\u4f4d(rank)\u3092\u8868\u793a\u7528\u306b\u6301\u3064\u3002
+export interface RankedSpeciesEntry {
+  name: string;
+  rank: number | null;
+}
+
+// \u7a2e\u65cf\u540d\u306e\u6587\u5b57\u5217\u914d\u5217(damage-calc/index.astro \u7b49)\u3068 {name, rank} \u30aa\u30d6\u30b8\u30a7\u30af\u30c8\u914d\u5217
+// (box/[id].astro)\u306e\u4e21\u65b9\u3092\u53d7\u3051\u4ed8\u3051\u3001opgg\u9806\u306b\u4e26\u3093\u3060 RankedSpeciesEntry[] \u306b\u6b63\u898f\u5316\u3059\u308b\u3002
+// \u57cb\u3081\u8fbc\u307f\u5074\u306e\u5f62\u5f0f\u304c\u7247\u65b9\u3060\u3051\u5909\u308f\u3063\u3066\u3082\u3001\u4e26\u3073\u9806\u3092\u6c7a\u3081\u308b\u5074(owned-pokemon-form.ts \u306e
+// pokemon-list / species-select-dialog.ts)\u304c\u6587\u5b57\u5217\u5c02\u7528\u306e\u8aad\u307f\u51fa\u3057\u3067\u7a7a\u914d\u5217\u306b\u306a\u308a
+// \u56f3\u9451\u756a\u53f7\u9806\u3078\u9000\u5316\u3059\u308b\u4e8b\u6545\u3092\u9632\u3050\u305f\u3081\u3001\u9806\u4f4d\u4ed8\u304d\u7a2e\u65cf\u306e\u8aad\u307f\u51fa\u3057\u306f\u3053\u3053\u3078\u4e00\u672c\u5316\u3059\u308b\u3002
+export function readJsonScriptRankedSpecies(elementId: string): RankedSpeciesEntry[] {
+  const script = document.getElementById(elementId);
+  if (!script) return [];
+  try {
+    const parsed: unknown = JSON.parse(script.textContent ?? '[]');
+    if (!Array.isArray(parsed)) return [];
+    return parsed.flatMap((entry): RankedSpeciesEntry[] => {
+      if (typeof entry === 'string') return [{ name: entry, rank: null }];
+      if (!entry || typeof entry !== 'object') return [];
+      const { name, rank } = entry as { name?: unknown; rank?: unknown };
+      return typeof name === 'string' ? [{ name, rank: typeof rank === 'number' ? rank : null }] : [];
+    });
+  } catch (error) {
+    console.warn(`[json-script] #${elementId} \u306e\u57cb\u3081\u8fbc\u307fJSON\u3092\u89e3\u6790\u3067\u304d\u307e\u305b\u3093\u3067\u3057\u305f`, error);
+    return [];
+  }
+}

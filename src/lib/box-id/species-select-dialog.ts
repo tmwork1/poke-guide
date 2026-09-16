@@ -13,7 +13,7 @@ import { splitSearchTokens } from "../search-tokens";
 import { bindModalDismissal } from "../modal-dismiss";
 import { applySprite } from "./shared-core";
 import { requestSettingsModal } from "./settings-modal";
-import { readJsonScriptStringArray } from "../json-script";
+import { readJsonScriptRankedSpecies, type RankedSpeciesEntry } from "../json-script";
 
 type SortMode = "popularity" | "dex" | "kana";
 
@@ -44,25 +44,9 @@ let searchFocusFrame: number | null = null;
 let opggRankByName: Map<string, number | null> | null = null;
 
 // OP.GG は種族単位の使用率を公開していないため、順位(rank)を表示用に持つ(box/[id].astro 参照)。
-type RankedSpecies = { name: string; rank: number | null };
-
-function readRankedSpecies(): RankedSpecies[] {
-	const script = document.getElementById("box-opgg-ranked-species");
-	if (!script?.textContent) return [];
-	try {
-		const parsed: unknown = JSON.parse(script.textContent);
-		if (!Array.isArray(parsed)) return [];
-		return parsed.flatMap((entry) => {
-			if (typeof entry === "string") return [{ name: entry, rank: null }];
-			if (!entry || typeof entry !== "object") return [];
-			const { name, rank } = entry as { name?: unknown; rank?: unknown };
-			return typeof name === "string"
-				? [{ name, rank: typeof rank === "number" ? rank : null }]
-				: [];
-		});
-	} catch {
-		return [];
-	}
+// 読み出しは owned-pokemon-form.ts の pokemon-list と共通の readJsonScriptRankedSpecies に一本化。
+function readRankedSpecies(): RankedSpeciesEntry[] {
+	return readJsonScriptRankedSpecies("box-opgg-ranked-species");
 }
 
 function getOpggRankByName(): Map<string, number | null> {
@@ -230,10 +214,7 @@ function renderGrid(): void {
 	if (sortMode === "kana") {
 		sortedNonMega = [...nonMegaEntries].sort((a, b) => a.name.localeCompare(b.name, "ja"));
 	} else if (sortMode === "popularity") {
-		const rankedSpecies = readRankedSpecies();
-		const rankedNames = rankedSpecies.length > 0
-			? rankedSpecies.map(({ name }) => name)
-			: readJsonScriptStringArray("box-opgg-ranked-species");
+		const rankedNames = readRankedSpecies().map(({ name }) => name);
 		const orderedNames = orderPokemonEntriesForDatalist(filtered, rankedNames);
 		const entryByName = new Map(filtered.map((entry) => [entry.name, entry]));
 		const orderedButtons = orderedNames.flatMap((name) => {

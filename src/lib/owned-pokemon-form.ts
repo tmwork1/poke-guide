@@ -5,7 +5,7 @@
 // IVは「チャンピオンズ」ルールで常に31固定のため readIv は廃止済み(呼び出し元は常に31を直接送る)。
 // SSR環境(Astroのフロントマター)からは呼び出さないこと(document/fetchに依存する)。
 
-import { readJsonScriptStringArray } from './json-script.ts';
+import { readJsonScriptRankedSpecies } from './json-script.ts';
 
 export const STAT_KEYS = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'] as const;
 export const MOVE_SLOTS = [1, 2, 3, 4];
@@ -116,7 +116,9 @@ async function fillDatalist(res: Response, datalistId: string): Promise<void> {
   if (datalistId === 'pokemon-list') {
     const list = (await res.json()) as Array<{ name: string; dexNo?: number; forme?: string | null }>;
     const entries = list.map(({ name, dexNo, forme }) => ({ name, dexNo: dexNo ?? 0, forme: forme ?? null }));
-    const rankedNames = readJsonScriptStringArray('box-opgg-ranked-species');
+    // box/[id].astro は {name, rank} 形式で埋め込むため、文字列専用の
+    // readJsonScriptStringArray では全件落ちて図鑑順に退化する(過去に発生)。
+    const rankedNames = readJsonScriptRankedSpecies('box-opgg-ranked-species').map(({ name }) => name);
     replaceDatalistOptions(datalist, orderPokemonEntriesForDatalist(entries, rankedNames));
     return;
   }
