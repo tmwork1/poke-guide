@@ -2444,16 +2444,20 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 	}
 
 	function renderRows(): void {
+		// 採用中のわざも一覧から消さず、選べない行として残す(どこに何があるかを表の中で追えるようにする)。
 		const selectedMoveNames = new Set(moveInputEls.map((input) => input.value.trim()).filter(Boolean));
-		const rows = currentPool.filter((move) => passesFilters(move) && !selectedMoveNames.has(move.name)).slice().sort(comparator);
+		const rows = currentPool.filter((move) => passesFilters(move)).slice().sort(comparator);
 		tbody.innerHTML = "";
 		const fragment = document.createDocumentFragment();
 		for (const m of rows) {
+			const isAlreadySelected = selectedMoveNames.has(m.name);
+			const isRowDisabled = isSwapMode || isAlreadySelected;
 			const tr = document.createElement("tr");
-			tr.tabIndex = isSwapMode ? -1 : 0;
+			tr.tabIndex = isRowDisabled ? -1 : 0;
 			tr.setAttribute("role", "button");
-			tr.setAttribute("aria-disabled", String(isSwapMode));
+			tr.setAttribute("aria-disabled", String(isRowDisabled));
 			tr.className = "move-picker-row";
+			tr.classList.toggle("is-already-selected", isAlreadySelected);
 			tr.dataset.moveName = m.name;
 
 			const nameTd = document.createElement("td");
@@ -2506,13 +2510,15 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 			ppTd.textContent = String(m.pp);
 			tr.appendChild(ppTd);
 
-			tr.addEventListener("click", () => choose(m));
-			tr.addEventListener("keydown", (e) => {
-				if (e.key === "Enter" || e.key === " ") {
-					e.preventDefault();
-					choose(m);
-				}
-			});
+			if (!isAlreadySelected) {
+				tr.addEventListener("click", () => choose(m));
+				tr.addEventListener("keydown", (e) => {
+					if (e.key === "Enter" || e.key === " ") {
+						e.preventDefault();
+						choose(m);
+					}
+				});
+			}
 
 			fragment.appendChild(tr);
 		}
