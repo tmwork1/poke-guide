@@ -43,9 +43,19 @@ import {
 	loadMultiHitMoveMap,
 	loadAbilitiesMap,
 	loadMoveDetailMap,
+	loadPokemonMasterList,
 	type MoveDetail,
 	type MoveCategory,
 } from "../pokemon-master-data";
+// メガシンカ種族の状態でメガストーン以外のもちものを選んだ際に基本フォルムへ戻す補正
+// (下のapplyRowMegaStoneAutofill周辺)で、育成パネル(pokemon-edit-panel.ts)と同じ
+// 判定・解決ロジックを共用するため、mega-preview-toggle.tsからexportされた関数を使う。
+import {
+	isMegaForm,
+	baseForMega,
+	PREVIEW_FORM_TOGGLE_SOURCE,
+	isPreviewFormToggleChangeEvent,
+} from "./mega-preview-toggle";
 import { type StatKey, STAT_KEYS, NATURE_STAT_MODIFIERS, calcHpStat, calcOtherStat } from "../stats";
 import { TERA_TYPES } from "../tera-types";
 // テラス選択ボックスを育成パネルと共通化するために使う。shared-core.tsは"../sprite-urls"から
@@ -2809,10 +2819,16 @@ if (opponentNotesSection) {
 		// abilities[0]へフォールバック)・applyRowMegaStoneAutofill(row.itemNameが
 		// 非空なら何もしない)の判定に、プリセットで設定した値がそのまま使われる
 		// (=プリセットの特性/持ち物が、既存の自動候補選定で上書きされない)。
-		nameInput.addEventListener("change", () => {
+		nameInput.addEventListener("change", (event) => {
 			const nextSpeciesName = nameInput.value.trim();
 			const speciesChanged = nextSpeciesName !== presetSpeciesName;
-			if (speciesChanged) saveCurrentOpponentBuildPreset(row, presetSpeciesName);
+			// 「メガ種族+ストーン以外のもちもの」の不整合を基本フォルムへ戻す補正
+			// (下のitemInputのchangeリスナー参照)から呼ばれた種族変更は、通常の種族
+			// 変更とは違い今のビルド(性格・努力値・技・持ち物)をそのまま保つ必要が
+			// あるため、種族ごとのローカルプリセットへの退避・復元(saveCurrentOpponentBuildPreset/
+			// applyOpponentBuildPreset)をスキップする(育成パネルのisFormToggleと同じ考え方)。
+			const isFormToggle = isPreviewFormToggleChangeEvent(event);
+			if (speciesChanged && !isFormToggle) saveCurrentOpponentBuildPreset(row, presetSpeciesName);
 			row.name = nextSpeciesName;
 			presetSpeciesName = nextSpeciesName;
 			refreshSprite();
@@ -2822,7 +2838,7 @@ if (opponentNotesSection) {
 			});
 			void applyRowMegaStoneAutofill(nameInput.value.trim());
 			void refreshRowItemPopularity(nameInput.value.trim());
-			if (speciesChanged) applyOpponentBuildPreset(nextSpeciesName);
+			if (speciesChanged && !isFormToggle) applyOpponentBuildPreset(nextSpeciesName);
 			else onFieldInput();
 		});
 
@@ -3018,24 +3034,17 @@ if (opponentNotesSection) {
 		teraField.classList.add("damage-build-detail-tera-field");
 		selectsRow.appendChild(teraField);
 
-		const megaStoneLockedTitle = "メガシンカ中はもちものをメガストーンに固定します";
 		let rowMegaStoneAutofillToken = 0;
-		// メガストーン固定中はドロップダウンの選択操作自体を無効化する(旧itemInput.disabledの役割)。
-		function syncItemLock(locked: boolean): void {
-			itemDropdown.setDisabled(locked);
-		}
 		async function applyRowMegaStoneAutofill(speciesName: string): Promise<void> {
 			const token = ++rowMegaStoneAutofillToken;
 			const stoneName = await resolveMegaStoneItem(speciesName);
 			if (token !== rowMegaStoneAutofillToken) return; // より新しい呼び出しに追い越された
 			if (!stoneName) {
 				itemInput.title = row.itemName;
-				syncItemLock(false);
 				return;
 			}
 			if (row.itemName.trim() === stoneName) {
-				itemInput.title = megaStoneLockedTitle;
-				syncItemLock(true);
+				itemInput.title = row.itemName;
 				return;
 			}
 			row.itemName = stoneName;
@@ -3046,15 +3055,45 @@ if (opponentNotesSection) {
 			teraDropdown.setValue(row.teraType);
 			onFieldInput();
 			flashAutofillHint(itemInput, () => {
-				itemInput.title = megaStoneLockedTitle;
+				itemInput.title = row.itemName;
 			});
 			itemDropdown.flashAutofill();
-			syncItemLock(true);
 		}
 		// 初期描画時点(保存済みメモの復元)で既にrow.nameがメガシンカ種族なら、保存済みの
-		// 持ち物が誤っていても正しいメガストーンへ補正しロックする(rebuildRowAbilityOptionsと
+		// 持ち物が誤っていても正しいメガストーンへ補正する(rebuildRowAbilityOptionsと
 		// 同じ考え方)。
 		void applyRowMegaStoneAutofill(row.name);
+
+		// メガシンカ種族の状態でメガストーン以外のもちものを選んだら、種族を基本フォルムへ
+		// 自動で戻す(育成パネル、pokemon-edit-panel.tsのrevertMegaSpeciesIfItemMismatchと
+		// 同じ補正)。以前はここも「メガシンカ中はもちものをメガストーンに固定する」片方向
+		// ロックだったが、基本種族+メガストーンの組み合わせは正規の状態として許容しており
+		// 矛盾していたため、ロックは撤廃しこの補正へ一本化した。
+		async function revertRowMegaSpeciesIfItemMismatch(): Promise<void> {
+			const speciesName = nameInput.value.trim();
+			const master = await loadPokemonMasterList();
+			const current = master.find((entry) => entry.name === speciesName);
+			if (!current || !isMegaForm(current)) return;
+			const stoneName = await resolveMegaStoneItem(speciesName);
+			if (!stoneName) return; // このメガ種族には対応ストーンが無い(自動補完の対象外だった種族と同じ扱い)
+			const itemName = itemInput.value.trim();
+			if (itemName === stoneName) return;
+			// 非同期待機中に種族・もちものが変わっていたら何もしない。
+			if (nameInput.value.trim() !== speciesName || itemInput.value.trim() !== itemName) return;
+			const base = baseForMega(current, master);
+			if (!base || base.name === speciesName) return;
+			// mega-preview-toggle.tsのtoggleSpeciesと同じ方法(input発火→
+			// detail.source=PREVIEW_FORM_TOGGLE_SOURCE付きのchange発火)で切り替える。
+			// nameInputのchangeハンドラ(上方)のisFormToggle判定でローカルプリセットの
+			// 退避・復元がスキップされ、既存の性格・努力値・技がそのまま保たれる。
+			nameInput.value = base.name;
+			nameInput.dispatchEvent(new Event("input", { bubbles: true }));
+			nameInput.dispatchEvent(new CustomEvent("change", {
+				bubbles: true,
+				detail: { source: PREVIEW_FORM_TOGGLE_SOURCE },
+			}));
+		}
+		itemInput.addEventListener("change", () => void revertRowMegaSpeciesIfItemMismatch());
 
 		// アイテムの使用率順(popular_item)は技のような埋め込みデータが無いため、種族名が
 		// 確定するたびlive fetchし直す(fetchPopularItemSuggestion、上で定義)。

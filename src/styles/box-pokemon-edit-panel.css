@@ -446,15 +446,6 @@
 		outline: 2px solid var(--color-primary);
 		outline-offset: 1px;
 	}
-	/* メガシンカ中は持ち物をメガストーンに固定するため操作不能にする(applyLeftMegaStoneAutofill
-	   参照)。button:disabled(global.css)のopacityはそのまま使い、cursorだけ上書きする
-	   (#edit-form .item-dropdown-buttonのcursor:pointerの方が詳細度が高く上書きされてしまうため)。 */
-	#edit-form .item-dropdown-button:disabled {
-		cursor: not-allowed;
-	}
-	@media (hover: hover) and (pointer: fine) {
-		#edit-form .item-dropdown-button:disabled:hover { border-color: var(--color-border); }
-	}
 	#edit-form .item-dropdown-button.is-autofilled {
 		border-color: var(--color-primary);
 		box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 30%, transparent);

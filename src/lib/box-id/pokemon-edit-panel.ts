@@ -21,6 +21,7 @@ import {
 	loadLearnsetFor,
 	loadAbilitiesMap,
 	loadMoveDetailMap,
+	loadPokemonMasterList,
 	type MoveDetail,
 	type MoveCategory,
 } from "../pokemon-master-data";
@@ -29,7 +30,12 @@ import { compareTypesByTeraOrder } from "../tera-types";
 import { renderTeamMateSlots } from "../team-mate-card";
 import { TYPE_COLORS, DEFAULT_TYPE_COLOR } from "../type-colors";
 import { applyPreviewMoveTypeBar } from "./preview-move-type-bar";
-import { isPreviewFormToggleChangeEvent } from "./mega-preview-toggle";
+import {
+	isPreviewFormToggleChangeEvent,
+	isMegaForm,
+	baseForMega,
+	PREVIEW_FORM_TOGGLE_SOURCE,
+} from "./mega-preview-toggle";
 import { bindPressAndHold } from "../press-and-hold";
 import { buildEvPresetBadges } from "./ev-preset-badges";
 import { autosizeTextarea } from "../shared/autosize-textarea";
@@ -920,6 +926,41 @@ if (form) {
 	itemInput.addEventListener("input", updateItemDropdownButton);
 	updateItemDropdownButton();
 
+	// メガシンカ種族の状態でメガストーン以外のもちものを選んだら、種族を基本フォルムへ
+	// 自動で戻す。以前は逆に「メガ種族の間はもちものをメガストーンにロックする」実装
+	// だったが、基本種族+メガストーンという組み合わせは正規の状態として許容しており
+	// (立ち絵タップでメガ⇔基本を相互に切り替えられる、mega-preview-toggle.ts参照)、
+	// 片方向だけロックするのは矛盾していた。そのためロックは撤廃し、この補正に一本化する。
+	// 種族切替はmega-preview-toggle.tsのtoggleSpeciesと同じ方法(speciesInput.value書き換え
+	// →input発火→detail.source=PREVIEW_FORM_TOGGLE_SOURCE付きのchange発火)で行い、
+	// speciesInputのchangeハンドラ(下方)のisFormToggle判定でOP.GG人気構成の自動入力を
+	// スキップさせ、既存の努力値・性格・技を保持する。
+	async function revertMegaSpeciesIfItemMismatch(): Promise<void> {
+		// OP.GG人気構成の自動反映中(isApplyingTopOpggBuild)は、その完了後に
+		// applyLeftMegaStoneAutofillがストーンへ補正し直すため、ここでは何もしない
+		// (二重に種族を切り替えてしまうのを避ける)。
+		if (isApplyingTopOpggBuild) return;
+		const speciesName = speciesInput.value.trim();
+		const master = await loadPokemonMasterList();
+		const current = master.find((entry) => entry.name === speciesName);
+		if (!current || !isMegaForm(current)) return;
+		const stoneName = await resolveMegaStoneItem(speciesName);
+		if (!stoneName) return; // このメガ種族には対応ストーンが無い(ロック対象外だった種族と同じ扱い)
+		const itemName = itemInput.value.trim();
+		if (itemName === stoneName) return;
+		// 非同期待機中に種族・もちものが変わっていたら何もしない。
+		if (speciesInput.value.trim() !== speciesName || itemInput.value.trim() !== itemName) return;
+		const base = baseForMega(current, master);
+		if (!base || base.name === speciesName) return;
+		speciesInput.value = base.name;
+		speciesInput.dispatchEvent(new Event("input", { bubbles: true }));
+		speciesInput.dispatchEvent(new CustomEvent("change", {
+			bubbles: true,
+			detail: { source: PREVIEW_FORM_TOGGLE_SOURCE },
+		}));
+	}
+	itemInput.addEventListener("change", () => void revertMegaSpeciesIfItemMismatch());
+
 	const abilitySelectEl = el<HTMLSelectElement>("ability");
 	let abilityRequestToken = 0;
 	async function rebuildAbilityOptions(name: string): Promise<void> {
@@ -975,24 +1016,13 @@ if (form) {
 	onAbilitySuggestionUpdated = () => {
 		void rebuildAbilityOptions(speciesInput.value.trim());
 	};
-	const megaStoneLockedTitle = "メガシンカ中はもちものをメガストーンに固定します";
-	function setItemLocked(locked: boolean): void {
-		itemDropdownButton.disabled = locked;
-		itemDropdownButton.title = locked ? megaStoneLockedTitle : "";
-	}
 	let megaStoneAutofillToken = 0;
 	async function applyLeftMegaStoneAutofill(speciesName: string): Promise<void> {
 		const token = ++megaStoneAutofillToken;
 		const stoneName = await resolveMegaStoneItem(speciesName);
 		if (token !== megaStoneAutofillToken) return; // より新しい呼び出しに追い越された
-		if (!stoneName) {
-			setItemLocked(false);
-			return;
-		}
-		if (itemInput.value.trim() === stoneName) {
-			setItemLocked(true);
-			return;
-		}
+		if (!stoneName) return;
+		if (itemInput.value.trim() === stoneName) return;
 		itemInput.value = stoneName;
 		updateItemImage();
 		updateItemTitle();
@@ -1005,7 +1035,6 @@ if (form) {
 		flashAutofillHint(itemInput, () => updateItemTitle());
 		itemDropdownButton.classList.add("is-autofilled");
 		window.setTimeout(() => itemDropdownButton.classList.remove("is-autofilled"), 1400);
-		setItemLocked(true);
 	}
 	async function currentArchetype(): Promise<ArchetypeKey | null> {
 		// IV=31・Lv50は本アプリの育成ルール。現在の編集値を分類器へそのまま渡す。

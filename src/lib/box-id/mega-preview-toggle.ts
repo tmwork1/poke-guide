@@ -7,7 +7,10 @@ interface MegaStoneEntry {
   item: string;
 }
 
-const PREVIEW_FORM_TOGGLE_SOURCE = 'pokemon-preview-form-toggle';
+// 種族<input>のchangeイベントが「フォーム切替」(立ち絵タップでのメガ⇔基本切替、
+// またはメガ種族へのもちもの不整合補正による基本フォルムへの自動切替)由来かを示す
+// 目印。pokemon-edit-panel.ts/damage-calc.tsからも参照するためexportする。
+export const PREVIEW_FORM_TOGGLE_SOURCE = 'pokemon-preview-form-toggle';
 
 export function isPreviewFormToggleChangeEvent(event: Event): boolean {
   return typeof CustomEvent !== 'undefined'
@@ -32,8 +35,18 @@ function parseStatValues(value: string | undefined, fallback: number[]): number[
   }
 }
 
-function isMegaForm(entry: PokemonMasterEntry): boolean {
+// メガシンカ種族(フォルム名が"Mega"を含む)かどうか。pokemon-edit-panel.ts/
+// damage-calc.tsの「メガ種族+ストーン以外のもちもの」補正でも同じ判定を使うためexportする。
+export function isMegaForm(entry: PokemonMasterEntry): boolean {
   return entry.forme?.includes('Mega') ?? false;
+}
+
+// メガ種族から基礎フォルムへ戻す解決。性別フォームでは名前の「メガ」を外すと
+// 一意に基礎形へ戻せる。名前一致が無ければ同じdexNoでforme===nullの種族を使う。
+// pokemon-edit-panel.ts/damage-calc.tsの種族確定処理と重複実装しないよう、ここに集約する。
+export function baseForMega(mega: PokemonMasterEntry, master: PokemonMasterEntry[]): PokemonMasterEntry | undefined {
+  const nameMatchedBase = master.find((entry) => entry.name === mega.name.replace(/^メガ/, ''));
+  return nameMatchedBase ?? master.find((entry) => entry.dexNo === mega.dexNo && entry.forme === null);
 }
 
 /**
@@ -57,15 +70,10 @@ export function setupMegaPreviewToggle(): void {
     fetch('/master-data/autocomplete/mega-stones.json').then((response) => response.json() as Promise<MegaStoneEntry[]>),
   ]).then(([master, megaStones]) => {
     const byName = new Map(master.map((entry) => [entry.name, entry]));
-    const baseForMega = (mega: PokemonMasterEntry): PokemonMasterEntry | undefined => {
-      // 性別フォームでは名前の「メガ」を外すと一意に基礎形へ戻せる。
-      const nameMatchedBase = byName.get(mega.name.replace(/^メガ/, ''));
-      return nameMatchedBase ?? master.find((entry) => entry.dexNo === mega.dexNo && entry.forme === null);
-    };
     const targetFor = (speciesName: string, itemName: string): PokemonMasterEntry | undefined => {
       const current = byName.get(speciesName);
       if (!current) return undefined;
-      if (isMegaForm(current)) return baseForMega(current);
+      if (isMegaForm(current)) return baseForMega(current, master);
       return megaStones
         .filter((mega) => mega.item === itemName)
         .map((mega) => byName.get(mega.species))
