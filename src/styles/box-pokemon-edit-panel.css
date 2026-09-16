@@ -526,7 +526,11 @@
 	/* 所属チーム一覧(team-card.cssの.team-grid/.card-teamをそのまま使う)。
 	   [hidden]はteam-card.cssの`.team-grid { display: grid; }`に詳細度で負けるため明示する
 	   (pitfalls.md「[hidden]が効かない」)。 */
-	.pokemon-team-section { margin: var(--space-5) 0; padding-block: var(--space-2); border-top: 1px solid var(--color-border); border-bottom: 1px solid var(--color-border); }
+	/* 区切り線の外側(前後要素との間隔)と内側(線と見出し/ボタンの間隔)を同じ --space-5 にそろえる。
+	   後続の削除/コピー行(box-edit-page.css の .training-delete-actions は margin-top: --space-8)も
+	   チーム欄が表示されているときだけ同じ間隔へ寄せる。 */
+	.pokemon-team-section { margin: var(--space-5) 0; padding-block: var(--space-5); border-top: 1px solid var(--color-border); border-bottom: 1px solid var(--color-border); }
+	#edit-form .pokemon-team-section:not([hidden]) + .training-delete-actions { margin-top: var(--space-5); }
 	.pokemon-team-section[hidden] { display: none; }
 	#edit-form .pokemon-team-heading { margin: 0 0 var(--space-1); padding: 0; color: var(--color-text-muted); font-size: var(--font-size-sm1); font-weight: var(--font-weight-normal); line-height: var(--line-height-snug); text-align: left; border-bottom: 0; }
 	.pokemon-team-list { margin: 0; }
