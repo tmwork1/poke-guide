@@ -188,13 +188,13 @@
 	}
 	.speed-chart-table[data-embedded='true'] .speed-chart-owned-summary {
 		display: grid;
-		grid-template-columns: repeat(5, max-content);
+		grid-template-columns: repeat(4, max-content) 1fr;
 		grid-template-areas: 'nature evs speed adjusted jump';
 		grid-template-rows: auto auto;
 		align-items: center;
 		justify-items: center;
-		justify-content: space-between;
-		column-gap: var(--space-2);
+		justify-content: start;
+		column-gap: var(--space-3);
 		row-gap: var(--space-2);
 		width: 100%;
 	}
@@ -249,7 +249,7 @@
 	}
 	.speed-chart-table[data-embedded='true'] .speed-chart-owned-jump-button {
 		grid-area: jump;
-		justify-self: center;
+		justify-self: end;
 		align-self: center;
 		width: 32px;
 		height: 32px;
@@ -292,8 +292,8 @@
 		padding: 0 var(--space-1);
 	}
 	.speed-chart-table[data-embedded='true'] .speed-chart-owned-summary {
-			grid-template-columns: repeat(5, max-content);
-			column-gap: var(--space-2);
+			grid-template-columns: repeat(4, max-content) 1fr;
+			column-gap: var(--space-3);
 		}
 	/* 699px以下では所持個体サマリーのポケモン画像を一回り小さくする */
 	.speed-chart-table[data-embedded='true'] .speed-chart-owned-summary-sprite {
