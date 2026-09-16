@@ -883,15 +883,12 @@ body.box-edit-page {
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		gap: 2px;
+		gap: 6px;
 	}
 	#damage-detail-panel-body .damage-detail-type-box-icons img {
 		width: 28px;
 		height: 28px;
 		object-fit: contain;
-	}
-	#damage-detail-panel-body .damage-detail-type-box-icons img + img {
-		margin-left: -12px;
 	}
 	#damage-detail-panel-body .damage-detail-type-box.is-overridden {
 		border-color: var(--color-primary);
@@ -911,12 +908,12 @@ body.box-edit-page {
 		z-index: 6;
 		top: calc(100% + var(--damage-detail-space-xs));
 		right: 0;
-		width: 12rem;
+		width: 15.5rem;
 		display: grid;
 		grid-template-columns: repeat(6, minmax(0, 1fr));
-		gap: var(--damage-detail-space-xs);
+		gap: var(--damage-detail-space-sm);
 		margin: 0;
-		padding: var(--damage-detail-space-xs);
+		padding: var(--damage-detail-space-sm);
 		list-style: none;
 		background: var(--damage-detail-control-background);
 		border: var(--damage-detail-tera-list-border);
