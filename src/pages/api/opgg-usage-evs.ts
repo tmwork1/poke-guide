@@ -22,10 +22,16 @@ export async function GET({ request }: APIContext): Promise<Response> {
   const species = url.searchParams.get('species')?.trim();
   if (!species) return badRequest('species is required');
 
+  // Preserve the top-row values field while also exposing all OP.GG EV ranked rows.
   const rows = await getOpggUsageCategory(env.OPGG_USAGE, species, 'evs');
   const top = rows?.[0] ?? null;
   return jsonResponse(
-    { values: top?.values ?? null },
+    {
+      // Keep the existing top-row shape for current consumers.
+      values: top?.values ?? null,
+      // The preset UI chooses its display limit client-side.
+      rows: (rows ?? []).map(({ usageRate, values }) => ({ usageRate, values })),
+    },
     200,
     { 'Cache-Control': 'public, max-age=300, s-maxage=86400, stale-while-revalidate=86400' },
   );

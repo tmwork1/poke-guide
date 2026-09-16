@@ -97,6 +97,7 @@ import {
 	type StatAdjustmentPanel,
 	type StatAdjustmentPanelOptions,
 } from "./stat-adjustment-panel";
+import { buildEvPresetBadges, type EvPresetBadges } from "./ev-preset-badges";
 import {
 	deselectRowIfCurrent,
 	renderDetailPanelEmpty,
@@ -845,6 +846,7 @@ if (opponentNotesSection) {
 	const rowStatAdjustmentPanels = new WeakMap<DamageRowState, {
 		panel: StatAdjustmentPanel;
 		options: StatAdjustmentPanelOptions;
+		badges: EvPresetBadges;
 	}>();
 	// 通常追加したカードへ使用率1位を後から入れる際も、現在描画中の入力欄を経由して
 	// 種族確定時の既存イベントを動かす。行の再描画で入力欄が差し替わるため、DOM検索結果を
@@ -1588,6 +1590,7 @@ if (opponentNotesSection) {
 			panelState.options.natureDown = row.natureDown;
 			panelState.options.baseStats.splice(0, panelState.options.baseStats.length, ...(base ?? []));
 			panelState.panel.refresh();
+			panelState.badges.syncCurrent(row.evs);
 		}
 		if (!base) {
 			for (const key of STAT_KEYS) {
@@ -3061,11 +3064,25 @@ if (opponentNotesSection) {
 				row.natureUp = statPanelOptions.natureUp;
 				row.natureDown = statPanelOptions.natureDown;
 				refreshRowNatureButtons(row);
+				evPresetBadges.syncCurrent(row.evs);
 				onFieldInput();
 			},
 		};
 		const statPanel = buildStatAdjustmentPanel(statPanelOptions);
-		rowStatAdjustmentPanels.set(row, { panel: statPanel, options: statPanelOptions });
+		const evPresetBadges = buildEvPresetBadges({
+			onSelect: (evs) => {
+				row.evs.splice(0, row.evs.length, ...evs);
+				statPanelOptions.evs = row.evs;
+				statPanel.refresh();
+				refreshRowNatureButtons(row);
+				evPresetBadges.syncCurrent(row.evs);
+				onFieldInput();
+			},
+		});
+		statPanel.root.querySelector(".stat-table")?.after(evPresetBadges.root);
+		rowStatAdjustmentPanels.set(row, { panel: statPanel, options: statPanelOptions, badges: evPresetBadges });
+		void evPresetBadges.load(row.name);
+		evPresetBadges.syncCurrent(row.evs);
 		detailStats.appendChild(statPanel.root);
 		detailForm.appendChild(detailStats);
 
@@ -3098,6 +3115,8 @@ if (opponentNotesSection) {
 			statPanelOptions.natureUp = row.natureUp;
 			statPanelOptions.natureDown = row.natureDown;
 			statPanel.refresh();
+			evPresetBadges.syncCurrent(row.evs);
+			void evPresetBadges.load(trimmed);
 
 			refreshRowNatureButtons(row);
 

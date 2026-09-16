@@ -15,6 +15,7 @@ import '../../styles/move-picker-dialog.css';
 import '../../styles/team-card.css';
 import '../../styles/team-mate-card.css';
 import '../../styles/box-pokemon-edit-panel.css';
+import '../../styles/ev-preset-badges.css';
 
 interface Props {
 	pokemon: OwnedPokemonRecord;
@@ -284,6 +285,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 				</div>
 			))}
 		</div>
+		<div id="ev-preset-badges" class="ev-preset-badges" hidden></div>
 		<p id="hp-fixed-note" class="hp-fixed-note" hidden>
 			H(種族値1で固定): このポケモンはHPの種族値が1のため、努力値を振っても実数値は常に1のままです。
 		</p>

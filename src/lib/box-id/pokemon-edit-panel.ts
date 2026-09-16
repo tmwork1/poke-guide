@@ -30,6 +30,7 @@ import { TYPE_COLORS, DEFAULT_TYPE_COLOR } from "../type-colors";
 import { applyPreviewMoveTypeBar } from "./preview-move-type-bar";
 import { isPreviewFormToggleChangeEvent } from "./mega-preview-toggle";
 import { bindPressAndHold } from "../press-and-hold";
+import { buildEvPresetBadges } from "./ev-preset-badges";
 import { autosizeTextarea } from "../shared/autosize-textarea";
 import {
 	type StatKey,
@@ -801,6 +802,18 @@ if (form) {
 
 	let ownedPokemonId = form.dataset.id ?? "";
 	const speciesInput = el<HTMLInputElement>("species-name");
+	const evPresetBadges = buildEvPresetBadges({
+		onSelect: (evs) => {
+			for (const [index, key] of STAT_KEYS.entries()) {
+				const input = document.getElementById(`ev-${key}`) as HTMLInputElement | null;
+				if (!input) continue;
+				input.value = String(evs[index] ?? 0);
+				input.dispatchEvent(new Event("input", { bubbles: true }));
+				input.dispatchEvent(new Event("change", { bubbles: true }));
+			}
+		},
+	});
+	document.getElementById("ev-preset-badges")?.replaceWith(evPresetBadges.root);
 	const statusEl = el<HTMLElement>("autosave-status");
 	const statusTextEl = el<HTMLElement>("autosave-status-text");
 	const retryButton = el<HTMLButtonElement>("retry-button");
@@ -1093,6 +1106,7 @@ if (form) {
 
 	speciesInput.addEventListener("change", (event) => {
 		const speciesName = speciesInput.value.trim();
+		void evPresetBadges.load(speciesName);
 		// ゲスト個体のhydrationでは保存済みの構成を復元するため、種族選択時の
 		// 人気構成による自動入力を行わない。立ち絵タップのフォルム切り替えも既存の
 		// 育成内容を保持し、特性だけを切り替え先の候補へ再構築する。
@@ -1111,6 +1125,8 @@ if (form) {
 	// 匿名集計サジェスト機能・第5段階: ページ初期化時(SSRで埋め込まれた現在の種族名)にも
 	// 1回呼ぶ。
 	reloadPopularBuildSuggestions();
+	void evPresetBadges.load(speciesInput.value.trim());
+	evPresetBadges.syncCurrent(STAT_KEYS.map((key) => readEv(key)));
 
 	const teraSelect = el<HTMLSelectElement>("tera");
 	const teraDropdownButton = el<HTMLButtonElement>("tera-dropdown-button");
@@ -1382,7 +1398,10 @@ if (form) {
 		target.addEventListener("input", scheduleSave);
 	}
 	for (const id of STAT_KEYS.map((key) => `ev-${key}`)) {
-		document.getElementById(id)?.addEventListener("input", scheduleAllRowsCalc);
+		document.getElementById(id)?.addEventListener("input", () => {
+			scheduleAllRowsCalc();
+			evPresetBadges.syncCurrent(STAT_KEYS.map((key) => readEv(key)));
+		});
 	}
 	const memoInput = document.getElementById("memo") as HTMLTextAreaElement | null;
 	if (memoInput) autosizeTextarea(memoInput);
