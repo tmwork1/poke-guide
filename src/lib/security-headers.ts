@@ -1,12 +1,14 @@
 // 静的アセットは Cloudflare Workers Static Assets が public/_headers を読み取って配信する一方、SSRレスポンスは
 // Worker が動的に返すため、この定義を middleware からも付与する。public/_headers の /* ブロックと完全に同じ内容を
 // 保つこと。片方だけを変更すると静的アセットとSSRページで防御内容が食い違うため、必ず両方を更新する。
+// worker-src の blob: は tesseract.js(ゲーム画面OCR、src/lib/box-id/game-screen-ocr.ts)のため。同一オリジンの
+// /tesseract/worker.min.js を渡しても、tesseract.js は内部で Blob URL 経由の Worker を生成するので blob: が要る。
 export const SECURITY_HEADERS = {
 	'X-Content-Type-Options': 'nosniff',
 	'Referrer-Policy': 'strict-origin-when-cross-origin',
 	'X-Frame-Options': 'DENY',
 	'Content-Security-Policy':
-		"default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: https://raw.githubusercontent.com https://img.gamewith.jp; connect-src 'self' https://cdn.jsdelivr.net; worker-src 'self'",
+		"default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: https://raw.githubusercontent.com https://img.gamewith.jp; connect-src 'self' https://cdn.jsdelivr.net; worker-src 'self' blob:",
 } as const;
 
 // /speed-chart, /data/speed-chart はボックス編集画面のすばやさ調整モーダルが同一オリジンiframeとして

@@ -16,11 +16,13 @@ import '../../styles/team-card.css';
 import '../../styles/team-mate-card.css';
 import '../../styles/box-pokemon-edit-panel.css';
 import '../../styles/ev-preset-badges.css';
+import GameScreenOcr from './GameScreenOcr.astro';
 
 interface Props {
 	pokemon: OwnedPokemonRecord;
+	showGameScreenOcr?: boolean;
 }
-const { pokemon } = Astro.props;
+const { pokemon, showGameScreenOcr = false } = Astro.props;
 const master = (pokemonMasterRaw as PreviewPokemonMasterEntry[]).find((entry) => entry.name === pokemon.species_name);
 const preview = buildPokemonPreviewViewModel(pokemon, { species: master });
 const itemName = preview.itemName;
@@ -55,6 +57,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 	data-nature={pokemon.nature ?? ""}
 >
 	<section class="panel panel-edit panel-border-end">
+		{showGameScreenOcr && <GameScreenOcr />}
 		<div class="top-block">
 			{/* 画像はいずれも初期状態が display:none で、読み込み成功時(onload)に表示する方式。
 			    そのため loading="lazy" を付けてはいけない — display:none の画像は遅延読み込みの

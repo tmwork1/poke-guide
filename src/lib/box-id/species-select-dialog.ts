@@ -114,7 +114,7 @@ function togglePopover(panel: HTMLElement, button: HTMLButtonElement): void {
 	button.setAttribute("aria-expanded", "true");
 }
 
-function selectSpecies(name: string): void {
+export function selectSpecies(name: string): void {
 	if (speciesInput.value !== name) {
 		speciesInput.value = name;
 		speciesInput.dispatchEvent(new Event("input"));
@@ -241,6 +241,11 @@ async function openDialog(): Promise<void> {
 	renderGrid();
 	focusSearchAfterOpen();
 }
+
+document.addEventListener("game-screen-ocr:select-species", (event) => {
+	const name = (event as CustomEvent<{ name?: string }>).detail?.name;
+	if (name) selectSpecies(name);
+});
 
 function closeDialog(): void {
 	cancelScheduledSearchFocus();

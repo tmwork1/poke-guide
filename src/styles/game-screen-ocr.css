@@ -1,0 +1,139 @@
+/* ゲーム画面OCR(/box/new の「ゲーム画面から読み込む」ボタンと読み取り結果の確認ダイアログ)。
+	マークアップは src/components/box-id/GameScreenOcr.astro、ロジックは src/lib/box-id/game-screen-ocr.ts。
+	結果一覧はJSで生成するため、Astroのscoped styleでなくこの外部CSSに置く(pitfalls.md参照)。
+	クラス名はすべて game-screen-ocr- 接頭辞で他画面と衝突しないようにする。
+	ダイアログの見た目は bulk-adjust-dialog.css のモーダル規格(global.css の --modal-*)に揃える。 */
+
+.game-screen-ocr {
+	margin: 0 0 var(--space-3); /* ボタンとその下の種族欄との間隔 */
+}
+/* file inputはボタンから間接的に開くので、視覚的には隠しつつアクセシビリティツリーには残す */
+.game-screen-ocr-file {
+	position: absolute;
+	inline-size: 1px;
+	block-size: 1px;
+	overflow: hidden;
+	clip: rect(0 0 0 0);
+	clip-path: inset(50%);
+	white-space: nowrap;
+}
+.game-screen-ocr-button {
+	inline-size: 100%; /* 新規登録画面の先頭に置く主導線なので全幅にする */
+}
+
+/* 背景オーバーレイ・ダイアログ本体とも、bulk-adjust-dialog.css と同じ z-index 帯(70/71)を使う。
+	同じ画面で同時に開くモーダルは無い。 */
+.game-screen-ocr-backdrop {
+	position: fixed;
+	inset: 0;
+	z-index: 70;
+	background: var(--color-overlay);
+}
+/* ⚠️ [hidden]は詳細度で負ける既知の罠。display を持つクラスには必ず対応する[hidden]規則を併記する。 */
+.game-screen-ocr-backdrop[hidden] { display: none; }
+
+.game-screen-ocr-dialog {
+	position: fixed;
+	top: var(--modal-top-offset);
+	left: 50%;
+	transform: translateX(-50%);
+	z-index: 71;
+	width: min(560px, 94vw); /* ダイアログ横幅。大きくすると横に広がる */
+	max-height: var(--modal-height); /* 本文はこの領域内でスクロールする */
+	display: flex;
+	flex-direction: column;
+	background: var(--color-surface);
+	border: var(--modal-border);
+	border-radius: var(--radius-lg);
+	box-shadow: var(--shadow-lg);
+	color: var(--color-text);
+}
+.game-screen-ocr-dialog[hidden] { display: none; }
+
+.game-screen-ocr-dialog-header {
+	display: flex;
+	align-items: center;
+	gap: var(--modal-header-gap);
+	padding: var(--modal-header-padding);
+	min-height: var(--modal-header-min-height);
+	border-bottom: 1px solid var(--color-border);
+	flex-shrink: 0;
+}
+.game-screen-ocr-dialog-title {
+	flex: 1 1 auto;
+	min-width: 0;
+	margin: 0;
+	font-size: var(--modal-title-font-size);
+	font-weight: var(--modal-title-font-weight);
+}
+.game-screen-ocr-close {
+	flex-shrink: 0;
+	min-width: var(--modal-close-size);
+	min-height: var(--modal-close-size);
+	padding: 0.1em 0.45em;
+	margin-right: calc(var(--modal-close-margin) - var(--modal-header-padding-x));
+	font-size: var(--modal-close-font-size);
+	line-height: 1;
+}
+
+/* 進行状況(言語データ読み込み中/認識中 n/3 xx%)。空でも1行ぶん確保して結果表示時に高さが揺れないようにする */
+.game-screen-ocr-progress {
+	min-height: 1.5em;
+	margin: 0;
+	padding: var(--space-3) var(--space-3) 0;
+	color: var(--color-text-muted);
+}
+
+/* 読み取り結果の一覧(JS生成)。種族/性格/特性は dl、ステータスは6枠のグリッド、わざは箇条書き */
+.game-screen-ocr-result {
+	flex: 1 1 auto;
+	min-height: 0;
+	overflow-y: auto;
+	display: grid;
+	gap: var(--space-3);
+	padding: var(--space-3);
+}
+.game-screen-ocr-result[hidden] { display: none; }
+.game-screen-ocr-result dl {
+	display: grid;
+	grid-template-columns: max-content 1fr;
+	gap: var(--space-1) var(--space-3);
+	margin: 0;
+}
+.game-screen-ocr-result dt { color: var(--color-text-muted); }
+.game-screen-ocr-result dd { margin: 0; }
+.game-screen-ocr-stats {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: var(--space-1);
+}
+/* 1ステータス = [ラベル] / [実数値(大きめ)] / [努力値 ○×] の縦3行 */
+.game-screen-ocr-stat {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	padding: var(--space-1) var(--space-2);
+	border-radius: var(--radius-sm);
+	background: var(--color-surface-sunken);
+	font-size: 0.8rem;
+	line-height: 1.3;
+}
+.game-screen-ocr-stat-label { color: var(--color-text-muted); }
+.game-screen-ocr-stat-actual {
+	font-size: 1.1rem;
+	font-weight: var(--font-weight-semibold);
+	font-variant-numeric: tabular-nums;
+}
+.game-screen-ocr-warning .game-screen-ocr-stat-label { color: inherit; }
+/* 実数値と一致しない・照合できず空欄になった項目 */
+.game-screen-ocr-warning { color: var(--color-risky-strong); } /* 「注意」の色。--color-warning は進行中表示用で警告色ではない */
+
+.game-screen-ocr-actions {
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: var(--space-2);
+	padding: var(--space-3);
+	border-top: 1px solid var(--color-border);
+	flex-shrink: 0;
+}

@@ -48,6 +48,10 @@
  *   --fill <sel=value>  安全と確認済みの入力欄へ文字を入れてから撮る
  *   --select <sel=value> 安全と確認済みのselectを切り替えてから撮る
  *   --local-storage <key=value> UIを操作せず、撮影用contextの初期設定を入れる
+ *   --eval <js>         --click 等の操作後、撮る前にページ内で式を評価する(複数指定可、指定順。
+ *                       Promiseを返せばawaitする)。ファイル選択のようにクリックでは到達できない
+ *                       UI状態(例: OCR結果ダイアログをダミー結果で開く window.openGameScreenOcrDemo())
+ *                       を撮るためのオプトイン。--click と同じく安全と確認済みの処理だけに使うこと。
  *   --wait-ms <ms>      操作後の非同期描画を待ってから撮る
  *   --wait <selector>   撮る前に待つ要素
  *   --out <dir>         出力先。既定 .tmp-shots
@@ -92,6 +96,7 @@ function parseArgs(argv) {
 		fill: [],
 		select: [],
 		localStorage: [],
+		eval: [],
 		waitMs: 0,
 		wait: null,
 		out: ".tmp-shots",
@@ -158,6 +163,9 @@ function parseArgs(argv) {
 				break;
 			case "--local-storage":
 				opts.localStorage.push(next());
+				break;
+			case "--eval":
+				opts.eval.push(next());
 				break;
 			case "--wait-ms":
 				opts.waitMs = Number(next());
@@ -278,7 +286,10 @@ async function shootOne(context, opts, pagePath, theme, viewport) {
 	for (const selector of opts.click) {
 		await resolveLocator(page, selector).first().click({ timeout: 30_000 });
 	}
-	if (opts.click.length > 0 || opts.fill.length > 0 || opts.select.length > 0) {
+	for (const expression of opts.eval) {
+		await page.evaluate((code) => Promise.resolve((0, eval)(code)), expression);
+	}
+	if (opts.click.length > 0 || opts.fill.length > 0 || opts.select.length > 0 || opts.eval.length > 0) {
 		await page.mouse.move(0, 0);
 		await page.evaluate(() => {
 			if (document.activeElement instanceof HTMLElement) document.activeElement.blur();

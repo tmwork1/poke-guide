@@ -11,10 +11,11 @@ import '../../styles/pokemon-settings-modal-host.css';
 interface Props {
 	pokemon: OwnedPokemonRecord;
 	showForm?: boolean;
+	showGameScreenOcr?: boolean;
 	opggRankedSpeciesNames?: string[];
 }
 
-const { pokemon, showForm = false, opggRankedSpeciesNames = [] } = Astro.props;
+const { pokemon, showForm = false, showGameScreenOcr = false, opggRankedSpeciesNames = [] } = Astro.props;
 ---
 
 {/* 閲覧タブでも編集フォームとモーダル実装を共用する。通常の編集パネルだけを隠す。 */}
@@ -25,7 +26,7 @@ const { pokemon, showForm = false, opggRankedSpeciesNames = [] } = Astro.props;
 			<button id="retry-button" type="button">再試行</button>
 		</p>
 	)}
-	<PokemonEditPanel pokemon={pokemon} />
+	<PokemonEditPanel pokemon={pokemon} showGameScreenOcr={showGameScreenOcr} />
 	<SpeciesSelectDialog />
 	<ItemSelectDialog />
 	<TeraSelectDialog />

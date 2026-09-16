@@ -1107,13 +1107,20 @@ if (form) {
 
 	speciesInput.addEventListener("change", (event) => {
 		const speciesName = speciesInput.value.trim();
+		const isGameScreenOcrApplying = form.dataset.gameScreenOcrApplying === "true";
 		void evPresetBadges.load(speciesName);
 		// ゲスト個体のhydrationでは保存済みの構成を復元するため、種族選択時の
 		// 人気構成による自動入力を行わない。立ち絵タップのフォルム切り替えも既存の
 		// 育成内容を保持し、特性だけを切り替え先の候補へ再構築する。
 		const isFormToggle = isPreviewFormToggleChangeEvent(event);
-		const shouldAutoFill = !isGuestHydrating && !isFormToggle;
-		if (isFormToggle) void rebuildAbilityOptions(speciesName);
+		const shouldAutoFill = !isGuestHydrating && !isFormToggle && !isGameScreenOcrApplying;
+		if (isFormToggle || isGameScreenOcrApplying) {
+			void rebuildAbilityOptions(speciesName).then(() => {
+				if (isGameScreenOcrApplying && speciesInput.value.trim() === speciesName) {
+					document.dispatchEvent(new CustomEvent("game-screen-ocr:ability-options-ready", { detail: { species: speciesName } }));
+				}
+			});
+		}
 		// 種族を確定したときだけ、OP.GG採用率の最上位構成を初期値として反映する。
 		void reloadPopularBuildSuggestions(shouldAutoFill).then(() => {
 			if (shouldAutoFill && speciesInput.value.trim() === speciesName) return applyLeftMegaStoneAutofill(speciesName);
@@ -1372,6 +1379,8 @@ if (form) {
 
 	function scheduleSave(): void {
 		syncPokemonPreview();
+		// OCR適用中は各入力イベントでは保存せず、全項目の反映後のcommitイベントで1回だけ保存する。
+		if (form.dataset.gameScreenOcrApplying === "true") return;
 		if (isGuestHydrating) return;
 		// すばやさ調整モーダル(iframe)は開いたページのSSRデータのまま動くため、保存の完了を
 		// 待たずに編集中の内容を流し込む(→ SpeedAdjustDialog.astro が iframe へ中継する)。
@@ -1391,6 +1400,7 @@ if (form) {
 	retryButton.addEventListener("click", () => {
 		void saveNow();
 	});
+	document.addEventListener("game-screen-ocr:commit", () => scheduleSave());
 
 	const textInputIds = ["species-name", "item", "memo", ...STAT_KEYS.map((k) => `ev-${k}`), "move-1", "move-2", "move-3", "move-4"];
 	for (const id of textInputIds) {
@@ -1469,6 +1479,21 @@ if (form) {
 			scheduleAllRowsCalc();
 		});
 	}
+
+	// ゲーム画面OCR(game-screen-ocr.ts)が推定した性格を一発で反映する経路。性格補正ボタンの
+	// クリックを外から再現しようとすると nextEditNatureNeutralAssignment の内部状態に依存して
+	// ズレるため、上昇/下降を直接セットして表示と実数値だけ更新する(保存はOCR側のcommitイベントで行う)。
+	document.addEventListener("game-screen-ocr:set-nature", (event) => {
+		const nature = (event as CustomEvent<{ nature?: string }>).detail?.nature ?? "";
+		const modifier = NATURE_STAT_MODIFIERS[nature];
+		if (!modifier) return;
+		editNatureUp = modifier.up;
+		editNatureDown = modifier.down;
+		nextEditNatureNeutralAssignment = "down";
+		refreshNatureButtons();
+		void updateEvCalendarHighlights();
+		void recalcStats();
+	});
 
 	for (const k of STAT_KEYS) {
 		pairEvSlider(`ev-${k}`, `ev-${k}-range`, () => {

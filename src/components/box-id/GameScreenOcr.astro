@@ -1,0 +1,26 @@
+---
+import '../../styles/game-screen-ocr.css';
+---
+
+<section class="game-screen-ocr">
+	<input id="game-screen-ocr-file" class="game-screen-ocr-file" type="file" accept="image/*" capture="environment" />
+	<button id="game-screen-ocr-button" class="btn-control game-screen-ocr-button" type="button">ゲーム画面から読み込む</button>
+</section>
+
+<div id="game-screen-ocr-backdrop" class="game-screen-ocr-backdrop" hidden></div>
+<div id="game-screen-ocr-dialog" class="game-screen-ocr-dialog" role="dialog" aria-modal="true" aria-labelledby="game-screen-ocr-title" tabindex="-1" hidden>
+	<div class="game-screen-ocr-dialog-header">
+		<h2 id="game-screen-ocr-title" class="game-screen-ocr-dialog-title">ゲーム画面を読み取り</h2>
+		<button id="game-screen-ocr-close" class="btn-ghost game-screen-ocr-close" type="button" aria-label="閉じる">×</button>
+	</div>
+	<p id="game-screen-ocr-progress" class="game-screen-ocr-progress" role="status" aria-live="polite"></p>
+	<div id="game-screen-ocr-result" class="game-screen-ocr-result" hidden></div>
+	<div class="game-screen-ocr-actions">
+		<button id="game-screen-ocr-cancel" class="btn-ghost" type="button">キャンセル</button>
+		<button id="game-screen-ocr-apply" class="btn-primary" type="button" hidden>適用</button>
+	</div>
+</div>
+
+<script>
+	import '../../lib/box-id/game-screen-ocr';
+</script>
