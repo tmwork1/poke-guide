@@ -44,6 +44,7 @@ import { classifyArchetype, type ArchetypeKey } from "../archetype";
 import { renderTeamCard } from "../team-card";
 import type { Team } from "../team";
 import { listGuestTeams } from "../data/guest-store";
+import { createTeam, updateTeam } from "../data/team-repo";
 import { isGuestMode } from "../data/guest-mode";
 import { hydrateGuestPagePokemon } from "../data/guest-page-hydration";
 import { createOwnedPokemon, deleteOwnedPokemon, updateOwnedPokemon } from "../data/pokemon-repo";
@@ -1634,6 +1635,7 @@ if (form) {
 	syncPokemonPreview();
 
 	void loadOwnedPokemonTeams();
+	setupCreateTeamButton();
 
 	async function hydrateGuestPokemon(): Promise<void> {
 		if (!shouldHydrateGuestPokemon) return;
@@ -1739,11 +1741,8 @@ async function loadOwnedPokemonTeams(): Promise<void> {
 		const teams = allTeams.filter((t) =>
 			t.members.some((m) => m.owned_pokemon.id === ownedPokemonId),
 		);
+		// 所属チームが0件でも「チームを作成」ボタンは出すので、セクションは隠さず一覧だけ空にする。
 		listEl.replaceChildren();
-		if (teams.length === 0) {
-			sectionEl.hidden = true;
-			return;
-		}
 		for (const t of teams) {
 			const membersBySlot = new Map(t.members.map((m) => [m.slot, m]));
 			const memoText = (t.memo ?? "").trim();
@@ -1790,6 +1789,32 @@ async function loadOwnedPokemonTeams(): Promise<void> {
 	} catch (err) {
 		console.error(err);
 	}
+}
+
+// 「チームを作成」: このポケモンを1枠目に入れた新規チームを作り、/team/[id]の編成タブへ遷移する。
+// 作成手順はteam/[id].astroのチームコピー(createTeam → updateTeam(members))と同じ。ゲストは
+// createTeamが失敗するので、SSR側(PokemonEditPanel.astro)でdisabledにしてある。
+function setupCreateTeamButton(): void {
+	const button = document.getElementById("create-team-button") as HTMLButtonElement | null;
+	const ownedPokemonId = (document.getElementById("edit-form") as HTMLFormElement | null)?.dataset.id ?? "";
+	if (!button || !ownedPokemonId) return;
+	button.addEventListener("click", () => {
+		void (async () => {
+			button.disabled = true;
+			try {
+				const { id } = await createTeam();
+				await updateTeam(id, {
+					memo: null,
+					members: [{ slot: 1, owned_pokemon_id: ownedPokemonId, item_override: null }],
+				});
+				window.location.href = `/team/${encodeURIComponent(id)}?tab=formation`;
+			} catch (err) {
+				console.error(err);
+				window.alert("チームを作成できませんでした。時間をおいて再度お試しください。");
+				button.disabled = false;
+			}
+		})();
+	});
 }
 
 function setupMoveReorderDrag(): void {

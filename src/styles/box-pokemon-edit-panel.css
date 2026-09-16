@@ -533,6 +533,8 @@
 	.pokemon-team-section[hidden] { display: none; }
 	#edit-form .pokemon-team-heading { margin: 0 0 var(--space-2); font-size: var(--font-size-base); font-weight: var(--font-weight-bold); text-align: left; border-bottom: 0; }
 	.pokemon-team-list { margin: 0; }
+	/* 「チームを作成」: 削除/コピーと同じbtn-controlを、一覧の下に横幅いっぱいで置く。 */
+	#edit-form .pokemon-team-create-button { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-1); width: 100%; margin-top: var(--space-2); }
 	@media (max-width: 520px) {
 		#edit-form .field-grid { grid-template-columns: 1fr; }
 	}

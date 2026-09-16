@@ -326,12 +326,20 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		<textarea id="memo" class="memo-input" rows="3" placeholder="メモ" aria-label="メモ">{pokemon.memo ?? ""}</textarea>
 
 		{/* メモ欄の下に、この個体が所属しているチームの一覧を表示する(読み取り専用、
-		    カードクリックで/team/[id]へ遷移するだけ)。所属チームが無ければ何も表示しない
-		    (<script>のpokemon-edit-panel.ts loadOwnedPokemonTeams参照)。既存のteam-card.cssの
-		    標準6枠チームカード(team/index.astroと同じrenderTeamCard)をそのまま使う。 */}
-		<section id="pokemon-team-section" class="pokemon-team-section" hidden aria-labelledby="pokemon-team-heading">
+		    カードクリックで/team/[id]へ遷移するだけ)。一覧は<script>のpokemon-edit-panel.ts
+		    loadOwnedPokemonTeamsが流し込む。既存のteam-card.cssの標準6枠チームカード
+		    (team/index.astroと同じrenderTeamCard)をそのまま使う。
+		    一覧の下の「チームを作成」は、このポケモンを1枠目に入れた新規チームを作って
+		    /team/[id]の編成タブへ遷移する(同ファイルのsetupCreateTeamButton参照)。所属チームが
+		    無くてもボタンは出すため、セクション自体は保存済みポケモンなら常に表示する
+		    (新規ポケモンは保存後にID付き画面へ遷移するので非表示のままでよい)。 */}
+		<section id="pokemon-team-section" class="pokemon-team-section" hidden={!pokemon.id} aria-labelledby="pokemon-team-heading">
 			<h2 id="pokemon-team-heading" class="pokemon-team-heading">チーム</h2>
 			<div id="pokemon-team-list" class="team-grid pokemon-team-list"></div>
+			<button id="create-team-button" class="btn-control pokemon-team-create-button" type="button" disabled={!Astro.locals.user} title={!Astro.locals.user ? "ログインするとチームを作成できます" : undefined}>
+				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+				チームを作成
+			</button>
 		</section>
 
 		{/* 削除ボタン。以前はbox/[id].astro側でSSRし、mobile-edit-tabs.tsがJSで
