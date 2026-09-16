@@ -24,9 +24,9 @@
 .damage-calc-secondary-bar .second-header__content { flex-wrap: wrap; }
 .damage-calc-secondary-actions { display: flex; align-items: center; gap: var(--space-2); flex: 0 1 auto; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
 .damage-calc-secondary-actions::-webkit-scrollbar { display: none; }
-.damage-calc-secondary-button { display: inline-flex; flex: none; align-items: center; gap: .4em; min-height: 2.35rem; padding: 0.42em 0.65em; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-surface); color: var(--color-text); font-size: var(--font-size-sm1); font-weight: var(--font-weight-normal); line-height: var(--line-height-snug); white-space: nowrap; }
+.damage-calc-secondary-button { display: inline-flex; flex: none; align-items: center; gap: .4em; min-height: 2.35rem; padding: 0.42em 0.65em; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-surface-sunken); color: var(--color-text); font-size: var(--font-size-sm1); font-weight: var(--font-weight-normal); line-height: var(--line-height-snug); white-space: nowrap; }
 .damage-calc-secondary-button svg { width: 1.1em; height: 1.1em; }
-.damage-calc-secondary-button:hover:not(:disabled) { border-color: var(--color-primary); background: var(--color-surface); color: var(--color-text); }
+.damage-calc-secondary-button:hover:not(:disabled) { border-color: var(--color-primary); background: var(--color-surface-sunken); color: var(--color-text); }
 .damage-calc-opponent-search-wrap { position: relative; display: flex; align-items: center; flex: 0 1 11rem; min-width: 0; }
 .damage-calc-opponent-search-wrap .search-icon { position: absolute; left: .7em; top: 50%; transform: translateY(-50%); line-height: 0; color: var(--color-text-muted); pointer-events: none; }
 #damage-calc-opponent-search { width: 100%; min-width: 0; min-height: 2.35rem; padding: .42em .7rem .42em 2.1em; color: var(--color-text); font: inherit; font-size: var(--font-size-sm1); }
@@ -199,17 +199,17 @@
 .damage-calc-ailment-field select { width: 100%; font-size: var(--font-size-sm2); min-height: var(--tap-target-min); }
 .damage-calc-ailment-field select.is-placeholder { color: var(--color-text-muted); }
 .damage-calc-ailment-field select:not(.is-placeholder) { border-color: var(--color-primary); background: var(--color-primary-soft); color: var(--color-primary-strong); font-weight: var(--font-weight-bold); }
-.damage-calc-reset-button { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2); width: 100%; min-height: 2.25rem; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-surface); color: var(--color-text-muted); font: inherit; font-size: var(--font-size-sm2); }
+.damage-calc-reset-button { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2); width: 100%; min-height: 2.25rem; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-surface-sunken); color: var(--color-text-muted); font: inherit; font-size: var(--font-size-sm2); }
 .damage-calc-reset-button:hover { border-color: var(--color-primary); color: var(--color-primary-strong); }
 .damage-calc-reset-button svg { width: 1.1em; height: 1.1em; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .damage-calc-ranks { display: grid; gap: var(--space-1); min-width: 0; }
 .damage-calc-rank-row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); color: var(--color-text-muted); font-size: var(--font-size-sm3); }
-.damage-calc-rank-row .number-stepper { --number-stepper-size: var(--tap-target-min); --number-stepper-input-width: 2.4em; }
+.damage-calc-rank-row .number-stepper { --number-stepper-size: var(--tap-target-min); --number-stepper-input-width: 2.4em; background: var(--color-surface-sunken); }
 .damage-calc-rank-row output { text-align: center; font-variant-numeric: tabular-nums; }
 .damage-calc-rank-row .number-stepper-value.is-nonzero { color: var(--color-primary-strong); border-color: var(--color-primary-strong); background: var(--color-primary-soft); font-weight: var(--font-weight-bold); }
 /* セグメント切替は面に接するため四角とし、丸角のnumber-stepperとは別扱いにする。 */
 .damage-calc-icon-group { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); overflow: hidden; border: 1px solid var(--color-border); border-radius: var(--radius-zero); box-shadow: var(--shadow-sm); }
-.damage-calc-icon-btn { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: var(--tap-target-min); padding: var(--space-1); color: var(--color-text-muted); background: var(--color-surface); border: 0; border-radius: 0; appearance: none; -webkit-appearance: none; font: inherit; font-size: var(--font-size-sm1); }
+.damage-calc-icon-btn { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: var(--tap-target-min); padding: var(--space-1); color: var(--color-text-muted); background: var(--color-surface-sunken); border: 0; border-radius: 0; appearance: none; -webkit-appearance: none; font: inherit; font-size: var(--font-size-sm1); }
 .damage-calc-icon-btn svg { flex: none; width: 17px; height: 17px; }
 .damage-calc-icon-btn-label { font-size: var(--font-size-sm4); line-height: 1; }
 .damage-calc-icon-btn:not(:first-child) { border-left: 1px solid var(--color-border); }
