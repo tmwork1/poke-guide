@@ -208,7 +208,7 @@
 .damage-calc-rank-row output { text-align: center; font-variant-numeric: tabular-nums; }
 .damage-calc-rank-row .number-stepper-value.is-nonzero { color: var(--color-primary-strong); border-color: var(--color-primary-strong); background: var(--color-primary-soft); font-weight: var(--font-weight-bold); }
 /* セグメント切替は面に接するため四角とし、丸角のnumber-stepperとは別扱いにする。 */
-.damage-calc-icon-group { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); overflow: hidden; border: 1px solid var(--color-border); border-radius: var(--radius-zero); box-shadow: var(--shadow-sm); }
+.damage-calc-icon-group { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); overflow: hidden; border: 1px solid var(--color-border); border-radius: var(--radius-sm); /* 四隅は検索欄(form-controls.css)と同じ角丸。内側ボタンは角丸0のままoverflow:hiddenで切り抜く */ box-shadow: var(--shadow-sm); }
 .damage-calc-icon-btn { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: var(--tap-target-min); padding: var(--space-1); color: var(--color-text-muted); background: var(--color-surface-sunken); border: 0; border-radius: 0; appearance: none; -webkit-appearance: none; font: inherit; font-size: var(--font-size-sm1); }
 .damage-calc-icon-btn svg { flex: none; width: 17px; height: 17px; }
 .damage-calc-icon-btn-label { font-size: var(--font-size-sm4); line-height: 1; }
