@@ -248,8 +248,10 @@ body.data-page {
   vertical-align: middle;
 }
 .move-picker-row { cursor: pointer; }
+.move-picker-row[aria-disabled="true"] { color: var(--color-text-muted); cursor: default; opacity: .7; }
 @media (hover: hover) and (pointer: fine) {
-  .move-picker-row:hover { background: color-mix(in srgb, var(--color-surface) 90%, var(--color-primary) 10%); }
+	.move-picker-row:hover { background: color-mix(in srgb, var(--color-surface) 90%, var(--color-primary) 10%); }
+	.move-picker-row[aria-disabled="true"]:hover { background: transparent; }
 }
 /* キーボード操作で選択候補の技行にフォーカスしたときの輪郭 */
 .move-picker-row:focus-visible {

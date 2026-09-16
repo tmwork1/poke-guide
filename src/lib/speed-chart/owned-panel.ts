@@ -477,7 +477,15 @@ export function initOwnedPanel(ctx: OwnedPanelContext): OwnedPanelController {
     // 通常表示では従来どおり個体編集画面へ戻る。個体編集モーダル内(iframe)では親へ
     // 保存完了を通知して親画面を更新させる。iframe自身を /box/:id へ遷移させない。
     if (window.parent !== window) {
-      window.parent.postMessage({ type: 'speed-chart:applied', ownedId: ctx.ownedRecord.id }, window.location.origin);
+      window.parent.postMessage({
+        type: 'speed-chart:applied',
+        ownedId: ctx.ownedRecord.id,
+        detail: {
+          nature: payload.nature,
+          evs: payload.evs,
+          item_name: payload.item_name,
+        },
+      }, window.location.origin);
       return;
     }
     window.location.href = `/box/${ctx.ownedRecord.id}`;

@@ -12,7 +12,7 @@ import '../../styles/pokemon-settings-modal-host.css';
 interface Props {
 	pokemon: OwnedPokemonRecord;
 	showForm?: boolean;
-	opggRankedSpeciesNames?: string[];
+	opggRankedSpeciesNames?: Array<{ name: string; rank: number | null }>;
 }
 
 const { pokemon, showForm = false, opggRankedSpeciesNames = [] } = Astro.props;

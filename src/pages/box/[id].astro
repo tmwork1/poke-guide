@@ -40,14 +40,20 @@ let loadError = false;
 // 種族選択モーダルの並び順に使うOP.GGランキング。個体の取得結果に依存しないので、
 // ログイン中の個体取得とは並列に待つ(ゲスト・新規でも同じ並び順にするため常に取得する)。
 // 失敗しても編集画面は従来どおり表示できるよう、空配列へフォールバックする。
-const opggRankedSpeciesNamesPromise = (async () => {
+const opggRankedSpeciesPromise = (async () => {
 	try {
 		const manifest = await getOpggUsageManifest(env.OPGG_USAGE);
 		const currentSeason = sortOpggSeasons(manifest)[0];
 		const seasonList = currentSeason
 			? await getOpggUsageList(env.OPGG_USAGE, currentSeason)
 			: null;
-		return seasonList?.pokemon.map((entry) => entry.name) ?? [];
+		// OP.GG は種族単位の使用率(%)を公開しておらず、tierページの順位(rank)だけが取れる
+		// (scripts/opgg/fetch-champions-usage.mjs の tierRankings)。種族選択モーダルの
+		// 立ち絵左上にはこの順位を小さく出す。
+		return seasonList?.pokemon.map((entry) => ({
+			name: entry.name,
+			rank: typeof entry.rank === "number" ? entry.rank : null,
+		})) ?? [];
 	} catch (err) {
 		// eslint-disable-next-line no-console
 		console.error('[box/[id]] failed to load OP.GG species ranking', err);
@@ -72,7 +78,7 @@ if (!user && !isNewMode) {
 	}
 }
 
-const opggRankedSpeciesNames = await opggRankedSpeciesNamesPromise;
+const opggRankedSpeciesNames = await opggRankedSpeciesPromise;
 
 // UI刷新(第4弾): 性格の選択UI(<select>)は要件により廃止した。性格はステータス補正にしか
 // 影響しないため、能力値ラベルのクリックで上昇/下降(HP以外)を選び、性格名は<script>側で

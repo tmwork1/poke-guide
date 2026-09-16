@@ -25,6 +25,7 @@ const speedChartSrc = `/speed-chart?owned=${encodeURIComponent(pokemonId)}&embed
 <script>
 	import { bindModalDismissal } from "../../lib/modal-dismiss";
 	import { OWNED_EDIT_CHANGED_EVENT, type OwnedEditChangedDetail } from "../../lib/box-id/owned-edit-events";
+	import { applySpeedChartOwnedEditToForm, type SpeedChartAppliedDetail } from "../../lib/box-id/pokemon-edit-panel";
 	const triggers = document.querySelectorAll<HTMLButtonElement>("[data-speed-adjust-trigger]");
 	const backdrop = document.getElementById("speed-adjust-backdrop");
 	const dialog = document.getElementById("speed-adjust-dialog");
@@ -108,8 +109,11 @@ const speedChartSrc = `/speed-chart?owned=${encodeURIComponent(pokemonId)}&embed
 	if (backdrop && dialog) bindModalDismissal({ backdrop, dialog, isOpen: () => !dialog.hidden, onDismiss: closeDialog });
 	window.addEventListener("message", (event) => {
 		if (event.origin !== window.location.origin) return;
-		const data = event.data as { type?: string } | null;
+		const data = event.data as { type?: string; detail?: SpeedChartAppliedDetail } | null;
 		if (data?.type === "speed-chart:close") closeDialog();
-		if (data?.type === "speed-chart:applied") window.location.reload();
+		if (data?.type === "speed-chart:applied" && data.detail) {
+			applySpeedChartOwnedEditToForm(data.detail);
+			closeDialog();
+		}
 	});
 </script>

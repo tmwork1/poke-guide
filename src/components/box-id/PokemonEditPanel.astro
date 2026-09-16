@@ -356,7 +356,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		<div class="training-delete-actions">
 			<button id="copy-button" class="btn-control" type="button" hidden={!pokemon.id} disabled={!Astro.locals.user && !!pokemon.id} title={!Astro.locals.user && pokemon.id ? "ログインするとコピーできます" : undefined}>
 				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="1"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-				コピー
+				コピーを作成
 			</button>
 			<button id="delete-button" class="btn-danger" type="button" hidden={!pokemon.id} disabled={!Astro.locals.user && !!pokemon.id} title={!Astro.locals.user && pokemon.id ? "ログインすると削除できます" : undefined}>
 				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>

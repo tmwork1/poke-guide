@@ -100,7 +100,7 @@ export function buildPokemonPreviewViewModel(
     nature,
     ivs,
     evs,
-    evLabels: evs.map((ev) => ev ? `+${ev}` : '-'),
+    evLabels: evs.map((ev) => ev ? `+${ev}` : ''),
     stats,
     imageId,
     // 表示は112pxなので192pxのWebPで足り、320px PNGは取得失敗時のフォールバックに回す。

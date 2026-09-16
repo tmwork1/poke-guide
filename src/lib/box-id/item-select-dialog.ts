@@ -156,6 +156,10 @@ export function createItemSelectGrid(options: ItemSelectGridOptions): ItemSelect
 		cell.setAttribute("role", "option");
 		cell.setAttribute("aria-label", label);
 		cell.title = label;
+		const usageEl = document.createElement("span");
+		usageEl.className = "item-select-cell-usage tnum";
+		usageEl.hidden = true;
+		cell.appendChild(usageEl);
 		if (value) {
 			const iconWrap = document.createElement("span");
 			iconWrap.className = "item-select-cell-icon-wrap";
@@ -211,6 +215,13 @@ export function createItemSelectGrid(options: ItemSelectGridOptions): ItemSelect
 			visible.push(noneCell);
 		}
 		for (const [value, cell] of rest) {
+			const usageEl = cell.querySelector<HTMLElement>(".item-select-cell-usage");
+			const usageRate = getItemSuggestionRatio(value);
+			if (usageEl) {
+				// getItemSuggestionRatio は 0〜1 の比率(OP.GG の usageRate / 100)を返す。
+				usageEl.textContent = usageRate != null ? `${(usageRate * 100).toFixed(1)}%` : "";
+				usageEl.hidden = usageRate == null;
+			}
 			if (!matches(value)) continue;
 			cell.classList.toggle("is-active", activeValue === value);
 			visible.push(cell);

@@ -49,7 +49,7 @@ import { createTeam, updateTeam } from "../data/team-repo";
 import { isGuestMode } from "../data/guest-mode";
 import { hydrateGuestPagePokemon } from "../data/guest-page-hydration";
 import { createOwnedPokemon, deleteOwnedPokemon, updateOwnedPokemon } from "../data/pokemon-repo";
-import { OWNED_EDIT_CHANGED_EVENT } from "./owned-edit-events";
+import { OWNED_EDIT_CHANGED_EVENT, type OwnedEditChangedDetail } from "./owned-edit-events";
 import {
 	attachKanaTypeAhead,
 	applySprite,
@@ -65,6 +65,15 @@ import {
 	scheduleAllRowsCalc,
 	wrapToRange,
 } from "./shared-core";
+
+export type SpeedChartAppliedDetail = Pick<OwnedEditChangedDetail, "nature" | "evs" | "item_name">;
+
+let applySpeedChartOwnedEdit: ((detail: SpeedChartAppliedDetail) => void) | null = null;
+
+/** すばやさ調整モーダルでPUT済みの値だけを、再保存せず編集フォームへ反映する。 */
+export function applySpeedChartOwnedEditToForm(detail: SpeedChartAppliedDetail): void {
+	applySpeedChartOwnedEdit?.(detail);
+}
 // 「耐久指数最大化」ボタン(ステータス表の下、#durability-index-button)の配線。
 // 計算(純JS、Pyodide不要)はdurability-index.ts、一覧表示はdamage-detail-panel.tsの
 // renderCandidateList()(耐久調整ポップアップと共用の汎用レンダラ)に委譲し、このファイルは
@@ -665,7 +674,8 @@ if (form) {
 				applyPreviewNatureMod(previewStat, key);
 			}
 			const ev = inputValue(`ev-${key}`);
-			setText(`pokemon-preview-ev-${key}`, ev && Number(ev) !== 0 ? `+${ev}` : "-");
+			const evPreview = document.getElementById(`pokemon-preview-ev-${key}`);
+			if (evPreview) evPreview.textContent = ev && Number(ev) !== 0 ? `+${ev}` : "";
 		}
 	}
 	const durabilityIndexButton = el<HTMLButtonElement>("durability-index-button");
@@ -1101,6 +1111,17 @@ if (form) {
 		}
 	}
 	let suggestionReloadTimer: ReturnType<typeof setTimeout> | undefined;
+	let isApplyingTopOpggBuild = false;
+	let opggAutoFillToken = 0;
+	function beginTopOpggBuild(): number {
+		isApplyingTopOpggBuild = true;
+		return ++opggAutoFillToken;
+	}
+	function finishTopOpggBuild(token: number): void {
+		if (token !== opggAutoFillToken) return;
+		isApplyingTopOpggBuild = false;
+		scheduleSave();
+	}
 	function schedulePopularBuildSuggestionsReload(): void {
 		// スライダーや文字入力の連続操作ごとにAPIを叩かず、確定に近い最新値だけで型を再判定する。
 		if (suggestionReloadTimer) clearTimeout(suggestionReloadTimer);
@@ -1116,6 +1137,13 @@ if (form) {
 		// 育成内容を保持し、特性だけを切り替え先の候補へ再構築する。
 		const isFormToggle = isPreviewFormToggleChangeEvent(event);
 		const shouldAutoFill = !isGuestHydrating && !isFormToggle && !isGameScreenOcrApplying;
+		// 種族モーダルは input→change の順で発火し、input に付いた保存リスナーが700msの
+		// 保存予約を先に入れている。OP.GG取得が700msを超えても途中状態を保存しないよう、
+		// ここで予約を取り消して一括適用フラグを立て、全項目の反映後に1回だけ保存する。
+		const autoFillToken = shouldAutoFill
+			? (isApplyingTopOpggBuild ? opggAutoFillToken : beginTopOpggBuild())
+			: 0;
+		if (shouldAutoFill) cancelScheduledSave();
 		if (isFormToggle || isGameScreenOcrApplying) {
 			void rebuildAbilityOptions(speciesName).then(() => {
 				if (isGameScreenOcrApplying && speciesInput.value.trim() === speciesName) {
@@ -1124,9 +1152,13 @@ if (form) {
 			});
 		}
 		// 種族を確定したときだけ、OP.GG採用率の最上位構成を初期値として反映する。
-		void reloadPopularBuildSuggestions(shouldAutoFill).then(() => {
-			if (shouldAutoFill && speciesInput.value.trim() === speciesName) return applyLeftMegaStoneAutofill(speciesName);
-		});
+		void reloadPopularBuildSuggestions(shouldAutoFill)
+			.then(() => {
+				if (shouldAutoFill && speciesInput.value.trim() === speciesName) return applyLeftMegaStoneAutofill(speciesName);
+			})
+			.finally(() => {
+				if (shouldAutoFill) finishTopOpggBuild(autoFillToken);
+			});
 	});
 	void rebuildAbilityOptions(speciesInput.value.trim());
 	// ページ初期表示時点(SSRで埋め込まれた現在の種族名)で既にメガシンカ種族の場合、
@@ -1335,9 +1367,11 @@ if (form) {
 	let debounceTimer: ReturnType<typeof setTimeout> | undefined;
 	let saving = false;
 	let pendingRetry = false;
+	let isNavigatingAfterCreate = false;
+	let isApplyingSpeedChartEdit = false;
 
 	async function saveNow(): Promise<void> {
-		if (isGuestHydrating) return;
+		if (isGuestHydrating || isNavigatingAfterCreate) return;
 		if (saving) {
 			pendingRetry = true;
 			return;
@@ -1359,6 +1393,10 @@ if (form) {
 		try {
 			if (!ownedPokemonId) {
 				const { id } = await createOwnedPokemon(payload);
+				ownedPokemonId = id;
+				isNavigatingAfterCreate = true;
+				pendingRetry = false;
+				if (debounceTimer) clearTimeout(debounceTimer);
 				window.location.href = `/box/${encodeURIComponent(id)}`;
 				return;
 			}
@@ -1379,16 +1417,24 @@ if (form) {
 		}
 	}
 
+	function cancelScheduledSave(): void {
+		if (debounceTimer) clearTimeout(debounceTimer);
+		debounceTimer = undefined;
+	}
+
 	function scheduleSave(): void {
 		syncPokemonPreview();
 		// OCR適用中は各入力イベントでは保存せず、全項目の反映後のcommitイベントで1回だけ保存する。
 		if (form.dataset.gameScreenOcrApplying === "true") return;
-		if (isGuestHydrating) return;
+		if (isGuestHydrating || isNavigatingAfterCreate) return;
 		// すばやさ調整モーダル(iframe)は開いたページのSSRデータのまま動くため、保存の完了を
 		// 待たずに編集中の内容を流し込む(→ SpeedAdjustDialog.astro が iframe へ中継する)。
 		// 編集の入口はすべてscheduleSave()を通るので、ここ1箇所で持ち物・特性・性格・努力値・
 		// 種族のどれが変わっても伝わる。
 		document.dispatchEvent(new CustomEvent(OWNED_EDIT_CHANGED_EVENT, { detail: buildPayload() }));
+		// OP.GG・すばやさ調整の一括適用中は、プレビューとiframeへの編集通知だけは従来どおり行い、
+		// 保存予約は全項目が反映された時点にまとめる。
+		if (isApplyingTopOpggBuild || isApplyingSpeedChartEdit) return;
 		statusEl.dataset.state = "saving";
 		// 進行中表示は画面内で表記を揃えるため全角の三点リーダーを使う。
 		statusTextEl.textContent = "編集中…";
@@ -1403,6 +1449,43 @@ if (form) {
 		void saveNow();
 	});
 	document.addEventListener("game-screen-ocr:commit", () => scheduleSave());
+
+	applySpeedChartOwnedEdit = (detail) => {
+		if (debounceTimer) clearTimeout(debounceTimer);
+		isApplyingSpeedChartEdit = true;
+		try {
+			const itemInput = el<HTMLInputElement>("item");
+			if (itemInput.value !== detail.item_name) {
+				itemInput.value = detail.item_name;
+				itemInput.dispatchEvent(new Event("input", { bubbles: true }));
+				itemInput.dispatchEvent(new Event("change", { bubbles: true }));
+			}
+			for (const [index, key] of STAT_KEYS.entries()) {
+				const input = document.getElementById(`ev-${key}`) as HTMLInputElement | null;
+				const value = String(detail.evs[index] ?? 0);
+				if (!input || input.value === value) continue;
+				input.value = value;
+				input.dispatchEvent(new Event("input", { bubbles: true }));
+				input.dispatchEvent(new Event("change", { bubbles: true }));
+			}
+			const modifier = detail.nature ? NATURE_STAT_MODIFIERS[detail.nature] : undefined;
+			if (modifier) {
+				editNatureUp = modifier.up;
+				editNatureDown = modifier.down;
+				nextEditNatureNeutralAssignment = "down";
+				refreshNatureButtons();
+			}
+			void updateEvCalendarHighlights();
+			void recalcStats().then(() => {
+				syncPokemonPreview();
+				statusEl.dataset.state = "saved";
+				statusTextEl.textContent = "保存済み";
+				retryButton.classList.remove("visible");
+			});
+		} finally {
+			isApplyingSpeedChartEdit = false;
+		}
+	};
 
 	const textInputIds = ["species-name", "item", "memo", ...STAT_KEYS.map((k) => `ev-${k}`), "move-1", "move-2", "move-3", "move-4"];
 	for (const id of textInputIds) {
@@ -2115,7 +2198,6 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 				const button = document.createElement("button");
 				button.type = "button";
 				button.className = "move-picker-slot-tab";
-				button.classList.toggle("is-selected", slot === activeSlot);
 				button.classList.toggle("is-swap-source", slot === swapSourceSlot);
 				button.dataset.slot = String(slot);
 				const type = moveName ? moveTypesByName?.get(moveName) : undefined;
@@ -2289,7 +2371,7 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 	}
 
 	function choose(move: MoveDetail): void {
-		if (activeSlot == null) return;
+		if (isSwapMode || activeSlot == null) return;
 		const targetInput = document.getElementById(`move-${activeSlot}`) as HTMLInputElement | null;
 		if (!targetInput) return;
 		targetInput.value = move.name;
@@ -2320,9 +2402,9 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 		renderRows();
 	}
 
-	function enterSwapMode(): void {
+	function enterSwapMode(sourceSlot?: number): void {
 		isSwapMode = true;
-		swapSourceSlot = null;
+		swapSourceSlot = sourceSlot ?? null;
 		filters.name = "";
 		slotTabsEl.classList.add("is-swap-mode");
 		updateSlotTabs(true);
@@ -2339,9 +2421,9 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 		renderRows();
 	}
 
-	function toggleSwapMode(): void {
+	function toggleSwapMode(sourceSlot?: number): void {
 		if (isSwapMode) exitSwapMode();
-		else enterSwapMode();
+		else enterSwapMode(sourceSlot);
 	}
 
 	function swapMoveSlots(firstSlot: number, secondSlot: number): void {
@@ -2366,8 +2448,9 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 		const fragment = document.createDocumentFragment();
 		for (const m of rows) {
 			const tr = document.createElement("tr");
-			tr.tabIndex = 0;
+			tr.tabIndex = isSwapMode ? -1 : 0;
 			tr.setAttribute("role", "button");
+			tr.setAttribute("aria-disabled", String(isSwapMode));
 			tr.className = "move-picker-row";
 			tr.dataset.moveName = m.name;
 
@@ -2491,11 +2574,13 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 	slotTabsEl.addEventListener("pointerdown", (event) => {
 		// 長押し後の合成clickを、次の新しい操作開始時に必ず解除する。
 		suppressNextSlotClick = false;
-		if (event.button !== 0 || !slotTabFor(event.target)) return;
+		const tab = slotTabFor(event.target);
+		if (event.button !== 0 || !tab) return;
+		const sourceSlot = Number(tab.dataset.slot);
 		clearSlotPress();
 		slotPressTimer = window.setTimeout(() => {
 			suppressNextSlotClick = true;
-			toggleSwapMode();
+			toggleSwapMode(sourceSlot);
 		}, LONG_PRESS_MS);
 	});
 	slotTabsEl.addEventListener("pointerup", clearSlotPress, true);
@@ -2508,7 +2593,8 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 		event.stopPropagation();
 		clearSlotPress();
 		suppressNextSlotClick = false;
-		toggleSwapMode();
+		const tab = slotTabFor(event.target);
+		toggleSwapMode(tab ? Number(tab.dataset.slot) : undefined);
 	});
 	slotTabsEl.addEventListener("click", (event) => {
 		const tab = slotTabFor(event.target);

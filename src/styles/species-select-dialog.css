@@ -164,6 +164,7 @@ body.data-page {
 }
 .species-select-grid[hidden] { display: none; }
 .species-select-cell {
+	position: relative;
 	display: flex;
 	flex-direction: column;
 	align-items: center;
@@ -177,6 +178,15 @@ body.data-page {
 	color: var(--color-text);
 	cursor: pointer;
 	font: inherit;
+}
+.species-select-cell-usage {
+	position: absolute;
+	top: var(--space-1);
+	left: var(--space-1);
+	color: var(--color-text-muted);
+	font-size: var(--font-size-sm4);
+	font-variant-numeric: tabular-nums;
+	pointer-events: none;
 }
 .species-select-cell:hover { border-color: var(--color-primary); }
 .species-select-cell-icon,
