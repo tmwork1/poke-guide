@@ -536,12 +536,9 @@ def _build_pokemon(spec, fallback_move_name):
         for i, stat in enumerate(STATS[1:6], start=1):
             pokemon.boosts[stat] = _clamp_boost(boosts[i])
 
-    # move_override_types はテラスタル中の active_tera_type より優先順位が低く、
-    # へんげんじざい/リベロが設定する ability_override_type より高い。よって手動上書きは
-    # テラスタル中には無視され、通常時は特性によるタイプ変更より優先される。
-    override_types = spec.get("types")
-    if override_types:
-        pokemon.move_override_types = list(override_types)
+    # 現在タイプの上書き(spec["types"])はここでは設定しない。move_override_types は
+    # memory["switch"] に載る値で、Battle.start()の登場処理(reset_on_switch_in)で
+    # 丸ごと消えるため、_apply_battle_only_state()で開始後に設定する。
 
     return pokemon
 
@@ -578,6 +575,15 @@ def _apply_battle_only_state(battle, mon, spec):
     # やり直す意味がない)。
     for volatile_name in (spec.get("volatiles") or []):
         battle.set_volatile(mon, volatile_name)
+
+    # 現在タイプの上書き(UIの技カードごとの attackerTypes/defenderTypes)。
+    # move_override_types は memory["switch"] に載るため、Battle.start()の登場処理で
+    # 消えないようここ(開始後)で設定する。Pokemon.types の優先順位は
+    # active_tera_type > move_override_types > ability_override_type なので、
+    # テラスタル中は無視され、通常時はへんげんじざい/リベロの自動変更より優先される。
+    override_types = spec.get("types")
+    if override_types:
+        mon.move_override_types = list(override_types)
 
 
 def _apply_stealth_rock(battle, defender, enabled):

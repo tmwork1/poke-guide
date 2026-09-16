@@ -201,8 +201,8 @@ export function collectNoteConditionChips(attack: NormalizedNoteAttack, category
 	if (attack.defenderAilment) chips.push(`防御側${attack.defenderAilment}`);
 	if (attack.attackerTerastallized) chips.push('攻撃側テラスタル');
 	if (attack.defenderTerastallized) chips.push('防御側テラスタル');
-	if (attack.attackerTypes.length > 0) chips.push(`攻撃側タイプ:${attack.attackerTypes.join('/')}`);
-	if (attack.defenderTypes.length > 0) chips.push(`防御側タイプ:${attack.defenderTypes.join('/')}`);
+	if (attack.attackerTypes.length > 0) chips.push(`攻撃側${attack.attackerTypes.join('・')}タイプ`);
+	if (attack.defenderTypes.length > 0) chips.push(`防御側${attack.defenderTypes.join('・')}タイプ`);
 	const atkLabel = category === 'special' ? '特攻' : '攻撃';
 	const defLabel = category === 'special' ? '特防' : '防御';
 	if (attack.attackerRank !== 0) chips.push(`攻撃側${atkLabel}${attack.attackerRank > 0 ? '+' : ''}${attack.attackerRank}`);

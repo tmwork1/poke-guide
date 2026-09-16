@@ -2370,7 +2370,7 @@ if (opponentNotesSection) {
 			const teraType = a.attackerTeraType || attackerFallbackTeraType;
 			attacker.push(teraType ? `${teraType}テラスタル` : "テラスタル");
 		}
-		if (a.attackerTypes.length > 0) attacker.push(`タイプ:${a.attackerTypes.join("/")}`);
+		if (a.attackerTypes.length > 0) attacker.push(`${a.attackerTypes.join("・")}タイプ`);
 		if (a.wallEnabled) defender.push("壁");
 		if (a.stealthRock) defender.push("ステルスロック");
 		const spikes = clampInt(a.spikes, 0, 3);
@@ -2380,7 +2380,7 @@ if (opponentNotesSection) {
 			const teraType = a.defenderTeraType || defenderFallbackTeraType;
 			defender.push(teraType ? `${teraType}テラスタル` : "テラスタル");
 		}
-		if (a.defenderTypes.length > 0) defender.push(`タイプ:${a.defenderTypes.join("/")}`);
+		if (a.defenderTypes.length > 0) defender.push(`${a.defenderTypes.join("・")}タイプ`);
 		if (a.weather) field.push(a.weather);
 		if (a.terrain) field.push(a.terrain);
 		if (a.attackerRank !== 0) attacker.push(`ランク${a.attackerRank > 0 ? "+" : ""}${a.attackerRank}`);
