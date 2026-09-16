@@ -1,7 +1,11 @@
 .ev-preset-badges { display: flex; gap: var(--space-2); margin-top: var(--space-2); overflow-x: auto; flex-wrap: nowrap; padding-block: var(--space-1); -webkit-overflow-scrolling: touch; }
-.ev-preset-badge { display: inline-flex; flex: 0 0 auto; align-items: center; gap: var(--space-1); min-height: 40px; padding: var(--space-1) var(--space-2); color: var(--color-text); background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-sm); box-shadow: var(--shadow-sm); font: inherit; font-size: var(--font-size-sm1); white-space: nowrap; cursor: pointer; }
+.ev-preset-badge { display: inline-flex; flex: 0 0 auto; align-items: center; gap: var(--space-1); min-height: 32px; padding: 2px var(--space-2); color: var(--color-text); background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-sm); box-shadow: var(--shadow-sm); font: inherit; font-size: var(--font-size-sm2); white-space: nowrap; cursor: pointer; }
 .ev-preset-badge:hover { border-color: var(--color-primary); }
 .ev-preset-badge:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
 .ev-preset-badge[aria-current="true"] { color: var(--color-primary-strong); background: var(--color-primary-soft); border-color: var(--color-primary); }
 .ev-preset-badge-rate { color: var(--color-text-muted); font-size: var(--font-size-sm3); }
 .ev-preset-badge[aria-current="true"] .ev-preset-badge-rate { color: inherit; opacity: 0.72; }
+/* ダメ計詳細モーダルは面の色が --color-surface と同じで、バッジが背景に溶ける。
+   同モーダル内の努力値ステッパー(damage-detail-panel.css)と同じ暗い面色に揃える。 */
+#damage-detail-panel-body .ev-preset-badge { background: var(--damage-detail-control-background); box-shadow: none; }
+#damage-detail-panel-body .ev-preset-badge[aria-current="true"] { background: var(--color-primary-soft); }

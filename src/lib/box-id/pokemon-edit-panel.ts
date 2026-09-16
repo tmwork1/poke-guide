@@ -1398,10 +1398,20 @@ if (form) {
 		target.addEventListener("input", scheduleSave);
 	}
 	for (const id of STAT_KEYS.map((key) => `ev-${key}`)) {
-		document.getElementById(id)?.addEventListener("input", () => {
-			scheduleAllRowsCalc();
-			evPresetBadges.syncCurrent(STAT_KEYS.map((key) => readEv(key)));
-		});
+		document.getElementById(id)?.addEventListener("input", scheduleAllRowsCalc);
+	}
+	// プリセットバッジの一致表示は、hidden入力(#ev-*)へのプログラム書き込み(バッジ・耐久調整)と
+	// ステッパー/ピッカー操作(range入力のinputだけが飛び、pairEvSliderがhidden入力へ直接書く)の
+	// 両方で更新する必要があるため、hidden側とrange側の両方を監視する。
+	// range側はこのリスナーがpairEvSlider(後段で登録)より先に走りhidden入力がまだ古いので、
+	// range入力の値をそのまま読む。
+	const syncEvPresetBadges = (): void => evPresetBadges.syncCurrent(STAT_KEYS.map((key) => {
+		const range = document.getElementById(`ev-${key}-range`) as HTMLInputElement | null;
+		return range ? Number(range.value) || 0 : readEv(key);
+	}));
+	for (const key of STAT_KEYS) {
+		document.getElementById(`ev-${key}`)?.addEventListener("input", () => evPresetBadges.syncCurrent(STAT_KEYS.map((k) => readEv(k))));
+		document.getElementById(`ev-${key}-range`)?.addEventListener("input", syncEvPresetBadges);
 	}
 	const memoInput = document.getElementById("memo") as HTMLTextAreaElement | null;
 	if (memoInput) autosizeTextarea(memoInput);
