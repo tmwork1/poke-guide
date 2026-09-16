@@ -709,6 +709,13 @@ body.box-edit-page {
   display: inline-flex;
 }
 
+/* 計算に関与しない能力値は damage-calc.ts の refreshOpponentStatVisibility() が hidden を付ける
+   (自分攻撃: H + 物理技ならB/特殊技ならD、相手攻撃: 物理技ならA/特殊技ならC)。
+   上の display 指定に負けないよう明示する。 */
+:is(#opponent-notes-section, .damage-card-scope) .damage-ev-readonly-stat[hidden] {
+  display: none;
+}
+
 :is(#opponent-notes-section, .damage-card-scope) .damage-ev-readonly-stat[data-mod="up"] {
   color: var(--damage-card-stat-up-color);
 }
@@ -2091,26 +2098,6 @@ body.box-edit-page {
     gap: var(--space-1);
     margin-top: 0;
     position: relative;
-  }
-
-  /* 計算方向に不要な能力値を隠し、必要な耐久・火力だけ残す */
-  :is(#opponent-notes-section, .damage-card-scope) .card-damage[data-direction="attack"] .damage-ev-readonly-stat[data-stat="atk"],
-  :is(#opponent-notes-section, .damage-card-scope) .card-damage[data-direction="attack"] .damage-ev-readonly-stat[data-stat="spa"],
-  :is(#opponent-notes-section, .damage-card-scope) .card-damage[data-direction="attack"] .damage-ev-readonly-stat[data-stat="spe"],
-  :is(#opponent-notes-section, .damage-card-scope) .card-damage[data-direction="defense"] .damage-ev-readonly-stat[data-stat="hp"],
-  :is(#opponent-notes-section, .damage-card-scope) .card-damage[data-direction="defense"] .damage-ev-readonly-stat[data-stat="def"],
-  :is(#opponent-notes-section, .damage-card-scope) .card-damage[data-direction="defense"] .damage-ev-readonly-stat[data-stat="spd"],
-  :is(#opponent-notes-section, .damage-card-scope) .card-damage[data-direction="defense"] .damage-ev-readonly-stat[data-stat="spe"] {
-    display: none;
-  }
-
-  /* 残した能力値のまとまりを空白で区切る */
-  :is(#opponent-notes-section, .damage-card-scope) .card-damage[data-direction="attack"] .damage-ev-readonly-stat[data-stat="def"]::before,
-  :is(#opponent-notes-section, .damage-card-scope) .card-damage[data-direction="attack"] .damage-ev-readonly-stat[data-stat="spd"]::before,
-  :is(#opponent-notes-section, .damage-card-scope) .card-damage[data-direction="defense"] .damage-ev-readonly-stat[data-stat="spa"]::before {
-    content: " ";
-    color: var(--color-text-muted);
-    margin-right: calc(var(--space-1) / 2);
   }
 
   :is(#opponent-notes-section, .damage-card-scope) .card-damage .damage-row-total-label {

@@ -780,18 +780,32 @@ body.box-edit-page {
 			border-left-color: var(--damage-detail-border-color);
 		}
 	}
-	/* 状態異常は天候・フィールドと同じセグメントの見た目を保ちつつ、
-		攻撃側・防御側それぞれの選択肢数だけを並べる。列の幅自体は天候・フィールドの
-		4列グリッド(1列=全幅の1/4)と揃え、行全体の幅だけを列数に応じて縮める
-		(grid-template-columnsをautoにすると、ボタン数が少ないときラベルの文字幅まで
-		縮んでしまい、天候・フィールドの列とサイズが揃わなかった)。 */
-	#damage-detail-panel-body .damage-detail-icon-group.is-row4.damage-detail-ailment-group {
-		width: 50%;
+	/* 状態異常は専用の3列セグメントにする。2択でも全幅を3分割したままなので、
+		ボタン幅は常に3列基準で、残り1列は意図した空きとして残る。 */
+	#damage-detail-panel-body .damage-detail-icon-group.damage-detail-ailment-group {
+		width: 100%;
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+		gap: 0;
+		margin-bottom: 0;
+		border: var(--damage-detail-icon-button-border);
+		border-radius: var(--damage-detail-icon-button-radius);
+		overflow: hidden;
+	}
+	/* 2択(攻撃側)は外枠ごと2列ぶんに縮め、3列目は枠の外の空きにする(枠だけ伸びた空セルに見せない)。 */
+	#damage-detail-panel-body .damage-detail-icon-group.damage-detail-ailment-group.is-ailment-count-2 {
+		width: calc(100% * 2 / 3);
 		grid-template-columns: repeat(2, minmax(0, 1fr));
 	}
-	#damage-detail-panel-body .damage-detail-icon-group.is-row4.damage-detail-ailment-group.is-ailment-count-3 {
-		width: 75%;
-		grid-template-columns: repeat(3, minmax(0, 1fr));
+	#damage-detail-panel-body .damage-detail-ailment-group .damage-detail-icon-btn {
+		min-height: 30px;
+		height: 30px;
+		padding: var(--damage-detail-space-xs);
+		border: none;
+		border-radius: 0;
+		font-size: var(--damage-detail-font-size-xs);
+	}
+	#damage-detail-panel-body .damage-detail-ailment-group .damage-detail-icon-btn + .damage-detail-icon-btn {
+		border-left: 1px solid var(--damage-detail-border-color);
 	}
 	/* 状態異常の選択背景を、外枠と同じ角丸まで届かせる。外枠は既存の
 		overflow: hiddenで切り抜いているため、ここではフォーカス輪郭の扱いを変えない。 */
@@ -978,11 +992,12 @@ body.box-edit-page {
 	/* 状態異常(is-row4、margin-bottom:0)の直後に来る区画との間隔を確保する。
 		防御側は状態異常のすぐ下に設置物(.damage-detail-toggle-row、ステルスロック等)が
 		挟まるため、揮発状態グリッド(.damage-detail-state-grid)だけでなくこちらにも要る。 */
-	#damage-detail-panel-body .damage-detail-icon-group.is-row4 + .damage-detail-toggle-row,
-	#damage-detail-panel-body .damage-detail-icon-group.is-row4 + .damage-detail-state-grid {
+	#damage-detail-panel-body .damage-detail-ailment-group + .damage-detail-toggle-row,
+	#damage-detail-panel-body .damage-detail-ailment-group + .damage-detail-state-grid {
 		margin-top: var(--damage-detail-chip-gap);
 	}
-	#damage-detail-panel-body .damage-detail-chip-row.damage-detail-state-grid {
+	#damage-detail-panel-body .damage-detail-chip-row.damage-detail-state-grid,
+	#damage-detail-panel-body .damage-detail-defender-state-grid {
 		display: grid;
 		grid-template-columns: repeat(3, minmax(0, 1fr));
 		gap: var(--damage-detail-space-xs);
@@ -990,7 +1005,9 @@ body.box-edit-page {
 			下側が詰まって見えやすい。 */
 		margin-bottom: var(--damage-detail-chip-gap);
 	}
-	#damage-detail-panel-body .damage-detail-state-grid > .damage-detail-icon-btn {
+	#damage-detail-panel-body .damage-detail-state-grid > .damage-detail-icon-btn,
+	#damage-detail-panel-body .damage-detail-defender-state-grid > .damage-detail-icon-btn,
+	#damage-detail-panel-body .damage-detail-defender-state-grid > .damage-detail-spikes-select {
 		width: 100%;
 		min-width: 0;
 		height: 30px;
@@ -1002,6 +1019,16 @@ body.box-edit-page {
 		font-size: var(--damage-detail-font-size-xs);
 		padding: var(--damage-detail-space-xs) var(--damage-detail-space-xs);
 		white-space: nowrap;
+	}
+	#damage-detail-panel-body .damage-detail-defender-state-grid > .damage-detail-spikes-select {
+		font-size: var(--damage-detail-font-size-xs);
+		font-weight: var(--damage-detail-font-weight-semibold);
+		text-align: center;
+		text-align-last: center;
+	}
+	#damage-detail-panel-body .damage-detail-defender-state-empty {
+		min-width: 0;
+		min-height: 30px;
 	}
 	/* 状態異常の直下に常設する説明欄(damage-detail-panel.ts の showDetailHint)。
 		揮発状態・かべ・設置物を選んだときだけ数秒表示する。空でも1行ぶんの高さを保つので、
@@ -1102,7 +1129,8 @@ body.box-edit-page {
 		background: var(--damage-detail-primary-soft-color) !important;
 	}
 	/* 天候・フィールド・状態異常は選択時に既存の色に加えて輪郭も強調する。 */
-	#damage-detail-panel-body .damage-detail-icon-group.is-row4 .damage-detail-icon-btn[aria-pressed="true"] {
+	#damage-detail-panel-body .damage-detail-icon-group.is-row4 .damage-detail-icon-btn[aria-pressed="true"],
+	#damage-detail-panel-body .damage-detail-ailment-group .damage-detail-icon-btn[aria-pressed="true"] {
 		outline: 1px solid var(--color-primary);
 		outline-offset: -1px;
 	}

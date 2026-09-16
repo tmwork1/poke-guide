@@ -209,6 +209,7 @@
   min-height: var(--battle-data-card-row-height);
   min-width: 0;
   column-gap: var(--space-1);
+  padding-inline: var(--space-1);
 }
 
 /* 現在のポケモンが採用している特性・性格・もちもの・技・努力値を、技選択ダイアログの

@@ -2039,6 +2039,14 @@ if (opponentNotesSection) {
 			void loadMoveAdoption().then(() => {
 				if (opponentPopularityMoveDatalistSpeciesName !== null) {
 					refreshOpponentPopularityMoveDatalist(opponentPopularityMoveDatalistSpeciesName);
+					// 到着前の覚え技順で自動選択した行だけ、使用率順の候補セットから選び直す。
+					// rows は非同期コールバック実行時には初期化済みで、手入力済み列は
+					// refreshOpponentAutomaticMoves() 内の判定でそのまま保たれる。
+					for (const row of rows) {
+						if (row.direction === "defense" && row.name === opponentPopularityMoveDatalistSpeciesName) {
+							refreshOpponentAutomaticMoves(row, row.attacks, true);
+						}
+					}
 				}
 			});
 		}
@@ -2071,7 +2079,19 @@ if (opponentNotesSection) {
 	// 結果が到着しても上書きしない。
 	const OPPONENT_MAX_DAMAGE_CANDIDATE_LIMIT = 8;
 	const automaticOpponentMoveNames = new WeakMap<DamageColumnState, string>();
-	async function selectOpponentMaximumDamageMove(row: DamageRowState, column: DamageColumnState): Promise<void> {
+	// 候補の並び順が使用率データ到着で変わる場合など、同じ列に対する古い非同期計算結果を
+	// 捨てるための世代。攻守再切替・候補の再投入のたびに進める。
+	const automaticOpponentMoveGenerations = new WeakMap<DamageColumnState, number>();
+	function nextAutomaticOpponentMoveGeneration(column: DamageColumnState): number {
+		const generation = (automaticOpponentMoveGenerations.get(column) ?? 0) + 1;
+		automaticOpponentMoveGenerations.set(column, generation);
+		return generation;
+	}
+	async function selectOpponentMaximumDamageMove(
+		row: DamageRowState,
+		column: DamageColumnState,
+		generation: number,
+	): Promise<void> {
 		if (row.direction !== "defense" || !isEngineReady()) return;
 		refreshOpponentPopularityMoveDatalist(row.name);
 		const candidateNames = Array.from(ensureOpponentPopularityMoveDatalist().options, (option) => option.value)
@@ -2101,7 +2121,12 @@ if (opponentNotesSection) {
 		}));
 		const best = scores.reduce((current, score) => score.maximumDamage > current.maximumDamage ? score : current);
 		// 攻守の再切替・技の手動入力・列の削除より古い非同期結果は捨てる。
-		if (row.direction !== "defense" || !row.attacks.includes(column) || column.moveName !== automaticMoveName) return;
+		if (
+			row.direction !== "defense"
+			|| !row.attacks.includes(column)
+			|| column.moveName !== automaticMoveName
+			|| automaticOpponentMoveGenerations.get(column) !== generation
+		) return;
 		if (!Number.isFinite(best.maximumDamage) || best.moveName === automaticMoveName) return;
 		column.moveName = best.moveName;
 		automaticOpponentMoveNames.set(column, best.moveName);
@@ -2109,6 +2134,30 @@ if (opponentNotesSection) {
 		renderColumns(row);
 		scheduleRowCalc(row);
 		scheduleRowSave(row);
+	}
+
+	// 相手が攻撃側の列だけ、使用率順の先頭候補を入れた上で最大ダメージ技を自動選択する。
+	// 使用率データの到着後もここを通すことで、到着前の覚え技順で選んだ結果を残さない。
+	function refreshOpponentAutomaticMoves(
+		row: DamageRowState,
+		columns: readonly DamageColumnState[] = row.attacks,
+		resetCandidates = false,
+	): void {
+		if (row.direction !== "defense") return;
+		refreshOpponentPopularityMoveDatalist(row.name);
+		const candidates = Array.from(ensureOpponentPopularityMoveDatalist().options, (option) => option.value);
+		for (const column of columns) {
+			// 手入力済みの列は使用率データ到着後にも上書きしない。
+			if (automaticOpponentMoveNames.get(column) !== column.moveName) continue;
+			if (resetCandidates) {
+				const index = Math.max(0, row.attacks.indexOf(column));
+				column.moveName = candidates[index] ?? candidates[0] ?? "";
+				automaticOpponentMoveNames.set(column, column.moveName);
+				resolveColumnDerivedFields(column);
+			}
+			const generation = nextAutomaticOpponentMoveGeneration(column);
+			void selectOpponentMaximumDamageMove(row, column, generation).catch(console.error);
+		}
 	}
 
 	// 新規カード・新規列と、空欄のまま攻守を切り替えた列だけ候補先頭を初期値にする。
@@ -2123,7 +2172,6 @@ if (opponentNotesSection) {
 		column.moveName = list.options[candidateIndex]?.value ?? list.options[0]?.value ?? "";
 		if (row.direction === "defense") {
 			automaticOpponentMoveNames.set(column, column.moveName);
-			void selectOpponentMaximumDamageMove(row, column).catch(console.error);
 		} else {
 			automaticOpponentMoveNames.delete(column);
 		}
@@ -2137,6 +2185,7 @@ if (opponentNotesSection) {
 		const column = createEmptyColumn(previousColumn ? inheritedColumnDetailDefaults(previousColumn) : undefined);
 		fillFirstMoveCandidate(row, column);
 		row.attacks.push(column);
+		refreshOpponentAutomaticMoves(row, [column]);
 		renderColumns(row);
 		scheduleRowCalc(row);
 		scheduleRowSave(row);
@@ -2147,6 +2196,7 @@ if (opponentNotesSection) {
 		const index = row.attacks.indexOf(column);
 		if (index === -1 || row.attacks.length <= 1) return;
 		row.attacks.splice(index, 1);
+		refreshOpponentAutomaticMoves(row);
 		// 選択中の技を消す場合は、列を再描画する前に隣の残存列へ選択を移す。
 		// これをしないとrenderColumnsが削除済みのselectedColumnを検出してclearSelection()
 		// → renderDetailPanelEmpty()へ進み、ブリッジが詳細モーダルを閉じてしまう。
@@ -2160,9 +2210,11 @@ if (opponentNotesSection) {
 	}
 
 	const columnDisplayRefreshers = new WeakMap<DamageColumnState, () => void>();
+	const opponentStatVisibilityRefreshers = new WeakMap<DamageRowState, () => void>();
 
-	function refreshColumnDisplay(_row: DamageRowState, column: DamageColumnState): void {
+	function refreshColumnDisplay(row: DamageRowState, column: DamageColumnState): void {
 		columnDisplayRefreshers.get(column)?.();
+		opponentStatVisibilityRefreshers.get(row)?.();
 	}
 
 	function configureColumnMoveInput(
@@ -2212,6 +2264,7 @@ if (opponentNotesSection) {
 	// --- 列(攻撃)のDOM構築 ---
 	function renderColumns(row: DamageRowState): void {
 		if (!row.columnsEl) return;
+		opponentStatVisibilityRefreshers.get(row)?.();
 		row.columnsEl.innerHTML = "";
 		row.columnResultEls = [];
 		row.columnChipEls = [];
@@ -2806,6 +2859,7 @@ if (opponentNotesSection) {
 			detailAttackOption.setAttribute("aria-label", `攻撃。${attackDetail}`);
 			detailDefenseOption.title = defenseDetail;
 			detailDefenseOption.setAttribute("aria-label", `防御。${defenseDetail}`);
+			refreshOpponentStatVisibility();
 		}
 		function setDirection(next: "attack" | "defense"): void {
 			// 切替先を読み込む前に、表示中の向きの値を同期保存する。自動保存の
@@ -2815,6 +2869,7 @@ if (opponentNotesSection) {
 			// 攻守を選ぶたびに、選択した攻撃側の先頭の攻撃技を初期値として反映する。
 			// 攻撃は自分の1つ目の攻撃技、防御は相手の採用率1位の攻撃技になる。
 			row.attacks.forEach((column, index) => fillFirstMoveCandidate(row, column, true, index));
+			refreshOpponentAutomaticMoves(row, row.attacks, true);
 			refreshDirectionUi();
 			// 技列のplaceholder/aria-label(「技」⇄「相手の技」)も向きで変わるため作り直す。
 			// renderColumns()自身が末尾でselectedRow===rowなら
@@ -3047,6 +3102,23 @@ if (opponentNotesSection) {
 		});
 		rowReadonlyNatureLabelEls.set(row, readonlyNatureLabels);
 		row.statValueEls = readonlyStatValueEls;
+		function refreshOpponentStatVisibility(): void {
+			// マスター未ロード中は、従来どおり分類ごとの両方を見せて情報欠落を避ける。
+			const categories = row.attacks
+				.filter((column) => column.moveName.trim() !== "")
+				.map((column) => getMoveCategory(column.moveName));
+			const categoryUnknown = moveDetailMapCache === null;
+			const hasPhysical = categoryUnknown || categories.includes("physical");
+			const hasSpecial = categoryUnknown || categories.includes("special");
+			for (const stat of readonlyEvGrid.querySelectorAll<HTMLElement>(".damage-ev-readonly-stat")) {
+				const key = stat.dataset.stat;
+				const visible = row.direction === "defense"
+					? (key === "atk" && hasPhysical) || (key === "spa" && hasSpecial)
+					: key === "hp" || (key === "def" && hasPhysical) || (key === "spd" && hasSpecial);
+				stat.hidden = !visible;
+			}
+		}
+		opponentStatVisibilityRefreshers.set(row, refreshOpponentStatVisibility);
 		refreshReadonlyEvs = () => {
 			readonlyEvValueEls.forEach((value, i) => {
 				const ev = row.evs[i] ?? 0;
@@ -3264,6 +3336,8 @@ if (opponentNotesSection) {
 
 	// --- 行一覧の状態・取得・追加 ---
 	let rows: DamageRowState[] = [];
+	// 初期描画時に技マスターが未到着なら従来どおり両分類を表示し、到着時だけ分類に応じて絞る。
+	void loadMoveDetailMap().then(() => rows.forEach((row) => opponentStatVisibilityRefreshers.get(row)?.()));
 	readDamageRowsForShare = () => rows.flatMap((row) => {
 		if (!row.root) return [];
 		return [{
@@ -3641,9 +3715,7 @@ if (opponentNotesSection) {
 			void recalcStats();
 			for (const row of rows) {
 				void recalcRow(row);
-				for (const column of row.attacks) {
-					if (automaticOpponentMoveNames.has(column)) void selectOpponentMaximumDamageMove(row, column).catch(console.error);
-				}
+				refreshOpponentAutomaticMoves(row);
 			}
 		}
 	}

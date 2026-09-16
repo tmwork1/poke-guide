@@ -1503,7 +1503,7 @@ export function buildSideSection(
 		scheduleRowSave(row);
 		refreshRowConditionChips(row);
 	}, `${ariaSideLabel}の状態異常`);
-	ailmentGroup.classList.add("is-row4", "damage-detail-ailment-group", `is-ailment-count-${ailmentOptions.length}`);
+	ailmentGroup.classList.add("damage-detail-ailment-group", `is-ailment-count-${ailmentOptions.length}`);
 	rankAilmentGroup.appendChild(ailmentGroup);
 
 	// 状態異常の直下に説明テキスト用の行を常に確保する。ここへ、揮発状態や設置物を
@@ -2060,32 +2060,13 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 
 	const defenderVolatileGroup = defenderSide.querySelector<HTMLElement>(".damage-detail-volatile-group");
 	if (defenderVolatileGroup) {
-		// 「かべ」は揮発状態ではなく場に張るものなので、設置物(ステルスロック/まきびし)と
-		// 同じ行へ移した(下のhazardsControlsで先頭に足す)。ここには足さない。
+		// 防御側の状態は、設置物・初期HP条件・揮発状態を含めた固定3列グリッドへまとめる。
+		// 各ボタン自体は既存ノードを移動するだけなので、イベントと状態同期は維持される。
+		defenderVolatileGroup.classList.add("damage-detail-defender-state-grid");
 		defenderVolatileGroup.append(disguiseBrokenButton, roughSkinButton);
-		// C-3: DAMAGE_DEFENDER_VOLATILES(damage-calc.ts、担当外)自体の並び順は五十音順ではない
-		// ため、配列は変えずDOM上の見た目の並びだけを五十音順(「ばけのかわ」を含む)に揃える。
-		const volatileGojuonOrder = [
-			"アクアリング", "しおづけ", "ちいさくなる", "ねをはる", "のろい", "バインド", "ばけのかわ", "やどりぎのタネ",
-		];
-		Array.from(defenderVolatileGroup.querySelectorAll<HTMLButtonElement>("button"))
-			.sort((a, b) => volatileGojuonOrder.indexOf(a.dataset.volatileLabel ?? a.textContent ?? "") - volatileGojuonOrder.indexOf(b.dataset.volatileLabel ?? b.textContent ?? ""))
-			.forEach((button) => defenderVolatileGroup.appendChild(button));
-	} else {
-		// DAMAGE_DEFENDER_VOLATILESは通常1件以上を持つためここには来ないが、
-		// 将来の変更に備えてフォールバックを用意する(ばけのかわチップ自体は必ず
-		// 防御側に出す。かべはhazardsControls側に入る)。
-		const fallbackRow = document.createElement("div");
-		fallbackRow.className = "damage-detail-toggle-row";
-		fallbackRow.append(disguiseBrokenButton, roughSkinButton);
-		defenderSide.appendChild(fallbackRow);
 	}
 
-	// UI改修: 「設置物」の独立区画(見出し+箱)は廃止し、ステルスロック/まきびしは
-	// 防御側セクションの通常の設定項目として(見出しなしで)扱う。挿入位置は従来どおり
-	// defenderVolatileGroupの直前(下の挿入処理を参照)。
-	const hazardsControls = document.createElement("div");
-	hazardsControls.className = "damage-detail-toggle-row damage-detail-chip-row";
+	// 設置物も、防御側の固定状態グリッドへ他の状態と同列に置く。
 	const stealthRockButton = buildToggleButton(
 		"ステルスロック",
 		column.stealthRock,
@@ -2137,22 +2118,37 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 		if (clamped === 0) clearDetailHint();
 		else showDetailHint(defenderHintSlot, spikesHintByLayer[clamped] ?? "");
 	});
-	// 「かべ」はステルスロックの左に置く(いずれも場に対する設定で、揮発状態とは別物)。
-	hazardsControls.append(wallButton, stealthRockButton, spikesSelect);
-	// B-3: 「設置物」(ステルスロック/まきびし)は、sidesWrap直下の独立区画ではなく、
-	// 防御側セクション内・揮発状態グループ(defenderVolatileGroup)の直前に移動する
-	// (相手の設置物依存の状況を「防御側」の設定としてまとめて見せるため)。
-	// defenderVolatileGroupが取れない場合(DAMAGE_DEFENDER_VOLATILESが空になる将来の変更時)は
-	// 防御側セクションの末尾に足す。
-	if (defenderVolatileGroup) {
-		defenderVolatileGroup.before(hazardsControls);
-	} else {
-		defenderSide.appendChild(hazardsControls);
+	// 防御側の状態は指定順の単一3列グリッドにする。空セルもDOM上に置くことで、
+	// 将来選択肢が欠けても各行の列位置を変えない。
+	const defenderStateGrid = defenderVolatileGroup ?? document.createElement("div");
+	if (!defenderVolatileGroup) {
+		defenderStateGrid.className = "damage-detail-chip-row damage-detail-state-grid damage-detail-volatile-group damage-detail-defender-state-grid";
+		defenderStateGrid.setAttribute("role", "group");
+		defenderStateGrid.setAttribute("aria-label", "防御側の状態");
+		defenderSide.appendChild(defenderStateGrid);
 	}
+	const volatileButtonByLabel = new Map(
+		Array.from(defenderStateGrid.querySelectorAll<HTMLButtonElement>("button[data-volatile-label]"))
+			.map((button) => [button.dataset.volatileLabel ?? "", button]),
+	);
+	const emptyDefenderStateCell = (): HTMLSpanElement => {
+		const cell = document.createElement("span");
+		cell.className = "damage-detail-defender-state-empty";
+		cell.setAttribute("aria-hidden", "true");
+		return cell;
+	};
+	const volatileButton = (label: string): HTMLButtonElement | HTMLSpanElement =>
+		volatileButtonByLabel.get(label) ?? emptyDefenderStateCell();
+	defenderStateGrid.replaceChildren(
+		stealthRockButton, spikesSelect, emptyDefenderStateCell(),
+		roughSkinButton, disguiseBrokenButton, emptyDefenderStateCell(),
+		wallButton, volatileButton("ちいさくなる"), emptyDefenderStateCell(),
+		volatileButton("アクアリング"), volatileButton("しおづけ"), volatileButton("ねをはる"),
+		volatileButton("のろい"), volatileButton("バインド"), volatileButton("やどりぎのタネ"),
+	);
 
 	// UI改修: 「場の効果」の見出しテキストは廃止し、天候・フィールドをまとめる区画
-	// (fieldEffectsGroup)自体は残す(見出しなしで直接コントロールを並べる。
-	// 「設置物」(hazardsControls)と同じ考え方)。
+	// (fieldEffectsGroup)自体は残す(見出しなしで直接コントロールを並べる)。
 	const fieldEffectsGroup = document.createElement("div");
 	fieldEffectsGroup.className = "damage-detail-group";
 
