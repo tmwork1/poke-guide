@@ -65,18 +65,16 @@
 	overflow-y: auto;
 	padding: var(--space-3) var(--space-5);
 }
-.share-image-dialog-selection-actions {
-	display: flex;
-	gap: var(--space-2);
-	margin-bottom: var(--space-2);
-}
-.share-image-dialog-selection-actions .btn-ghost { padding-inline: var(--space-2); }
 .share-image-row-list {
 	display: grid;
-	gap: 1px;
-	border: 1px solid var(--color-border);
-	border-radius: var(--radius-sm);
-	overflow: hidden;
+	gap: var(--space-1);
+}
+.share-image-row-list[hidden],
+.share-image-row-all[hidden] { display: none; }
+/* 一覧の先頭に置く「すべて」行。チェックで全行の選択/解除を交互に切り替える。 */
+.share-image-row-all {
+	margin-bottom: var(--space-1);
+	font-weight: var(--font-weight-semibold);
 }
 #share-image-row-list.damage-card-scope {
 	padding: 0;
@@ -90,11 +88,8 @@
 	gap: var(--space-1);
 	/* 圧縮カードは390px幅前提の寸法なので、チェックボックス分以外の横余白を最小にして結果欄の省略を減らす。 */
 	padding: var(--space-1) var(--space-1) var(--space-1) var(--space-2);
-	background: var(--color-surface);
 	cursor: pointer;
 }
-.share-image-row-option + .share-image-row-option { border-top: 1px solid var(--color-border); }
-.share-image-row-option:hover { background: color-mix(in srgb, var(--color-surface) 90%, var(--color-primary) 10%); }
 .share-image-row-option input { flex: 0 0 auto; }
 .share-image-row-card { flex: 1 1 auto; min-width: 0; }
 .share-image-dialog-footer {

@@ -5,14 +5,14 @@ import '../../styles/pokemon-share-image.css';
 <div id="share-image-backdrop" class="share-image-backdrop" hidden></div>
 <div id="share-image-dialog" class="share-image-dialog" role="dialog" aria-modal="true" aria-labelledby="share-image-dialog-title" tabindex="-1" hidden>
 	<div class="share-image-dialog-header">
-		<h2 id="share-image-dialog-title" class="share-image-dialog-title">ポケモンをコピー</h2>
+		<h2 id="share-image-dialog-title" class="share-image-dialog-title">ポケモン画像をコピー</h2>
 		<button type="button" id="share-image-dialog-close-button" class="btn-ghost share-image-dialog-close" aria-label="閉じる">×</button>
 	</div>
 	<div class="share-image-dialog-body">
-		<div class="share-image-dialog-selection-actions">
-			<button type="button" id="share-image-select-all-button" class="btn-ghost">すべて選択</button>
-			<button type="button" id="share-image-clear-all-button" class="btn-ghost">すべて解除</button>
-		</div>
+		<label id="share-image-all-row" class="share-image-row-option share-image-row-all" hidden>
+			<input type="checkbox" id="share-image-all-checkbox">
+			<span class="share-image-row-all-label">すべて</span>
+		</label>
 		<div id="share-image-row-list" class="share-image-row-list damage-card-scope is-compact damage-calc-area"></div>
 	</div>
 	<div class="share-image-dialog-footer">

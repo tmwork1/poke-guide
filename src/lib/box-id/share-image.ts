@@ -11,10 +11,10 @@ export function initializePokemonShareImage(): void {
 	const closeButton = document.getElementById("share-image-dialog-close-button") as HTMLButtonElement | null;
 	const copyButton = document.getElementById("share-image-dialog-copy-button") as HTMLButtonElement | null;
 	const downloadButton = document.getElementById("share-image-dialog-download-button") as HTMLButtonElement | null;
-	const selectAllButton = document.getElementById("share-image-select-all-button") as HTMLButtonElement | null;
-	const clearAllButton = document.getElementById("share-image-clear-all-button") as HTMLButtonElement | null;
+	const allRow = document.getElementById("share-image-all-row");
+	const allCheckbox = document.getElementById("share-image-all-checkbox") as HTMLInputElement | null;
 	const rowList = document.getElementById("share-image-row-list");
-	if (!saveButton || !speciesInput || !backdrop || !dialog || !closeButton || !copyButton || !downloadButton || !selectAllButton || !clearAllButton || !rowList) return;
+	if (!saveButton || !speciesInput || !backdrop || !dialog || !closeButton || !copyButton || !downloadButton || !allRow || !allCheckbox || !rowList) return;
 
 	const actionButtons: Record<ShareAction, HTMLButtonElement> = { copy: copyButton, save: downloadButton };
 	const originalLabels: Record<ShareAction, string> = { copy: "コピー", save: "ダウンロード" };
@@ -33,6 +33,8 @@ export function initializePokemonShareImage(): void {
 	};
 	const syncSelectedRows = (): void => {
 		selectedRows = availableRows.filter((row) => rowList.querySelector<HTMLInputElement>(`input[value="${CSS.escape(row.id)}"]`)?.checked);
+		// 「すべて」は全行チェック済みのときだけチェック状態にする(1行でも外れたら外す)。
+		allCheckbox.checked = availableRows.length > 0 && selectedRows.length === availableRows.length;
 	};
 	const syncButtons = (): void => {
 		const hasSpecies = speciesName() !== "";
@@ -59,6 +61,8 @@ export function initializePokemonShareImage(): void {
 		availableRows = rows;
 		selectedRows = rows.slice();
 		rowList.hidden = rows.length === 0;
+		allRow.hidden = rows.length === 0;
+		allCheckbox.checked = rows.length > 0;
 		const fragment = document.createDocumentFragment();
 		for (const row of rows) {
 			const label = document.createElement("label");
@@ -123,8 +127,7 @@ export function initializePokemonShareImage(): void {
 	});
 	speciesInput.addEventListener("input", syncButtons);
 	closeButton.addEventListener("click", closeDialog);
-	selectAllButton.addEventListener("click", () => setAllRowsChecked(true));
-	clearAllButton.addEventListener("click", () => setAllRowsChecked(false));
+	allCheckbox.addEventListener("change", () => setAllRowsChecked(allCheckbox.checked));
 	copyButton.addEventListener("click", () => {
 		if (!copyButton.disabled) void run("copy");
 	});
