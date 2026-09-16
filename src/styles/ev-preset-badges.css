@@ -3,8 +3,8 @@
 .ev-preset-badge:hover { border-color: var(--color-primary); }
 .ev-preset-badge:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
 .ev-preset-badge[aria-current="true"] { color: var(--color-primary-strong); background: var(--color-primary-soft); border-color: var(--color-primary); }
-.ev-preset-badge-rate { color: var(--color-text-muted); font-size: var(--font-size-sm3); }
+.ev-preset-badge-rate { color: var(--color-text-muted); font-size: var(--font-size-sm4); }
 .ev-preset-badge[aria-current="true"] .ev-preset-badge-rate { color: inherit; opacity: 0.72; }
-/* ダメ計詳細モーダル内のバッジも、操作ボタンと同じ凸面にする。 */
-#damage-detail-panel-body .ev-preset-badge { background: var(--color-surface); box-shadow: none; }
+/* ダメ計詳細モーダル内のバッジは、種族名入力欄など他の操作面と同じ沈んだ背景にする。 */
+#damage-detail-panel-body .ev-preset-badge { background: var(--color-surface-sunken); box-shadow: none; }
 #damage-detail-panel-body .ev-preset-badge[aria-current="true"] { background: var(--color-primary-soft); }

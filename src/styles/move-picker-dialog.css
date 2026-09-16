@@ -416,9 +416,11 @@ body .move-picker-note {
   font-size: var(--font-size-sm3);
 }
 body .move-picker-table { font-size: var(--font-size-sm2); }
+/* 上下余白は見出しセルの高さを変えずに(上0+下0.35rem→上下0.175rem)等分し、
+   並べ替えボタン・記号をセルの縦中央に置く。 */
 body .move-picker-table thead th {
-  padding: 0 0.4rem 0.35rem;
-  vertical-align: top;
+  padding: calc(var(--move-picker-table-header-padding-block) / 2) var(--move-picker-table-header-padding-inline);
+  vertical-align: middle;
 }
 body .move-picker-th { align-items: center; }
 body .move-picker-sort-btn { font-size: var(--font-size-sm3); }

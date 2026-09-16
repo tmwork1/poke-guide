@@ -1028,6 +1028,16 @@ body.box-edit-page {
 		font-weight: var(--damage-detail-font-weight-semibold);
 		text-align: center;
 		text-align-last: center;
+		/* box-damage-card.css の .damage-detail-toggle-row 配下の文字色ルールは、防御側状態を
+		   .damage-detail-defender-state-grid に移した後は当たらず、global.css の select 既定色
+		   (--color-text)が出て同じ行のトグルより明るく見えていた。未選択=muted、選択=primary で揃える。 */
+		color: var(--color-text-muted);
+	}
+	#damage-detail-panel-body .damage-detail-defender-state-grid > .damage-detail-spikes-select:not(.is-spikes-unselected) {
+		border-color: var(--color-primary);
+		background: var(--color-primary-soft);
+		color: var(--color-primary-strong);
+		font-weight: var(--font-weight-bold);
 	}
 	#damage-detail-panel-body .damage-detail-defender-state-empty {
 		min-width: 0;
