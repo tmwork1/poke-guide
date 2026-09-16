@@ -124,6 +124,7 @@ body.data-page {
 	color: var(--color-text-muted);
 	font-size: var(--font-size-sm4);
 	font-variant-numeric: tabular-nums;
+	z-index: 0;
 	pointer-events: none;
 }
 .item-select-cell:hover { border-color: var(--color-primary); }
@@ -143,9 +144,12 @@ body.data-page {
 	width: 28px;
 	height: 28px;
 	flex-shrink: 0;
+	z-index: 1;
 }
 .item-select-cell-image,
 .item-select-cell-none-icon {
+	position: relative;
+	z-index: 1;
 	width: 28px;
 	height: 28px;
 	object-fit: contain;

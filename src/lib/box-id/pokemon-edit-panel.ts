@@ -2008,6 +2008,8 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 	let sortDir: SortDir = "desc";
 	const filters = { name: "" };
 	const LONG_PRESS_MS = 600;
+	let lastSlotPointerType = "";
+	let slotLongPressFiredAt = 0;
 	let isSwapMode = false;
 	let swapSourceSlot: number | null = null;
 	let slotPressTimer: ReturnType<typeof window.setTimeout> | undefined;
@@ -2578,8 +2580,10 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 		if (event.button !== 0 || !tab) return;
 		const sourceSlot = Number(tab.dataset.slot);
 		clearSlotPress();
+		lastSlotPointerType = event.pointerType;
 		slotPressTimer = window.setTimeout(() => {
 			suppressNextSlotClick = true;
+			slotLongPressFiredAt = Date.now();
 			toggleSwapMode(sourceSlot);
 		}, LONG_PRESS_MS);
 	});
@@ -2587,14 +2591,26 @@ function setupMovePickerWindow(speciesInput: HTMLInputElement): void {
 	slotTabsEl.addEventListener("pointercancel", clearSlotPress, true);
 	slotTabsEl.addEventListener("pointerleave", clearSlotPress, true);
 	// PCでは右クリックも長押しと同じモード切替操作にする。
+	// Android Chrome はタッチ長押しでも contextmenu を発火する(タイミングは端末依存で、
+	// 上の長押しタイマーの前後どちらにも来る)。タイマーが先に入替モードへ入った直後に
+	// contextmenu でトグルし直すと即座に解除されてしまうため、タッチ由来の contextmenu は
+	// 「タイマーがまだ発火していなければ長押し確定として扱い、発火済みなら無視する」。
 	slotTabsEl.addEventListener("contextmenu", (event) => {
-		if (!slotTabFor(event.target)) return;
+		const tab = slotTabFor(event.target);
+		if (!tab) return;
 		event.preventDefault();
 		event.stopPropagation();
+		const timerWasPending = slotPressTimer !== undefined;
 		clearSlotPress();
+		if (lastSlotPointerType === "touch") {
+			if (!timerWasPending || Date.now() - slotLongPressFiredAt < 1000) return;
+			suppressNextSlotClick = true;
+			slotLongPressFiredAt = Date.now();
+			toggleSwapMode(Number(tab.dataset.slot));
+			return;
+		}
 		suppressNextSlotClick = false;
-		const tab = slotTabFor(event.target);
-		toggleSwapMode(tab ? Number(tab.dataset.slot) : undefined);
+		toggleSwapMode(Number(tab.dataset.slot));
 	});
 	slotTabsEl.addEventListener("click", (event) => {
 		const tab = slotTabFor(event.target);

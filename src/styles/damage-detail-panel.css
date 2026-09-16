@@ -37,6 +37,8 @@ body.box-edit-page {
 	/* ── 4. 背景色 ─────────────────────── */
 
 	--damage-detail-surface-background: var(--color-surface); /* パネルや入力部品の背景色。変えると主要な面の色がまとめて変わる */
+	--damage-detail-control-background: var(--color-surface-sunken);
+	--damage-detail-control-border-color: var(--color-border);
 	--damage-detail-page-background: var(--color-bg); /* 集計欄や候補カードの背景色。変えるとパネル本体との明暗差が変わる */
 	--damage-detail-primary-soft-color: var(--color-primary-soft); /* 選択中の薄い背景色。濃くすると選択面が目立つ */
 
@@ -848,9 +850,9 @@ body.box-edit-page {
 		inline-size: 40px;
 		block-size: 40px;
 		padding: 3px;
-		border: 0;
+		border: 1px solid var(--damage-detail-control-border-color);
 		border-radius: 50%;
-		background: transparent;
+		background: var(--damage-detail-control-background);
 		cursor: pointer;
 	}
 	#damage-detail-panel-body .damage-detail-tera-toggle img {
@@ -1055,13 +1057,15 @@ body.box-edit-page {
 	}
 	#damage-detail-panel-body .damage-detail-rank-field .number-stepper,
 	#damage-detail-panel-body .damage-detail-rank-stepper {
-		background: var(--color-surface);
+		background: var(--damage-detail-control-background);
+		border-color: var(--damage-detail-control-border-color);
 	}
 	#damage-detail-panel-body .stat-adjustment-section .number-stepper {
-		background: var(--color-surface);
+		background: var(--damage-detail-control-background);
+		border-color: var(--damage-detail-control-border-color);
 	}
 	#damage-detail-panel-body .stat-adjustment-section .stat-ev-stepper > .number-stepper-value {
-		background: var(--color-surface) !important;
+		background: var(--damage-detail-control-background) !important;
 	}
 	/* 努力値は0以外だけ文字色で強調する。外寸や背景は既存のまま維持する。 */
 	#damage-detail-panel-body .stat-adjustment-section .stat-ev-stepper > .number-stepper-value.is-nonzero {
@@ -1160,15 +1164,18 @@ body.box-edit-page {
 	}
 	/* わざタブも含め、通常状態の操作面はモーダル本体より明るくする。 */
 	#damage-detail-panel-body {
-		--damage-detail-icon-button-background: var(--color-surface);
-		--damage-card-dropdown-background: var(--color-surface);
+		--damage-detail-icon-button-background: var(--damage-detail-control-background);
+		--damage-card-dropdown-background: var(--damage-detail-control-background);
 		--damage-detail-control-min-height: 40px;
 		--damage-detail-rank-stepper-size: 40px;
 	}
 	#damage-detail-panel-body .damage-detail-icon-btn {
 		box-sizing: border-box;
 		min-height: var(--damage-detail-control-min-height);
-		background: var(--color-surface);
+	}
+	#damage-detail-panel-body .damage-detail-icon-btn:not([aria-pressed="true"]) {
+		background: var(--damage-detail-control-background);
+		border-color: var(--damage-detail-control-border-color);
 	}
 	#damage-detail-panel-body .damage-detail-move-input,
 	#damage-detail-panel-body .damage-detail-ailment-select,

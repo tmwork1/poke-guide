@@ -176,10 +176,11 @@ function buildGridOnce(): void {
 		if (rank != null) {
 			const usageEl = document.createElement("span");
 			usageEl.className = "species-select-cell-usage tnum";
-			usageEl.textContent = `#${rank}`;
-			cell.appendChild(usageEl);
+			usageEl.textContent = String(rank);
+			cell.append(img, fallback, usageEl);
+		} else {
+			cell.append(img, fallback);
 		}
-		cell.append(img, fallback);
 		cell.addEventListener("click", () => selectSpecies(entry.name));
 		cellByName.set(entry.name, cell);
 		getSpriteObserver().observe(cell);

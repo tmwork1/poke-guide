@@ -186,11 +186,14 @@ body.data-page {
 	color: var(--color-text-muted);
 	font-size: var(--font-size-sm4);
 	font-variant-numeric: tabular-nums;
+	z-index: 0;
 	pointer-events: none;
 }
 .species-select-cell:hover { border-color: var(--color-primary); }
 .species-select-cell-icon,
 .species-select-cell-fallback {
+	position: relative;
+	z-index: 1;
 	width: 100%;
 	max-width: 72px;
 	aspect-ratio: 1 / 1;

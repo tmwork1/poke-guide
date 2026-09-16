@@ -159,7 +159,6 @@ export function createItemSelectGrid(options: ItemSelectGridOptions): ItemSelect
 		const usageEl = document.createElement("span");
 		usageEl.className = "item-select-cell-usage tnum";
 		usageEl.hidden = true;
-		cell.appendChild(usageEl);
 		if (value) {
 			const iconWrap = document.createElement("span");
 			iconWrap.className = "item-select-cell-icon-wrap";
@@ -169,14 +168,14 @@ export function createItemSelectGrid(options: ItemSelectGridOptions): ItemSelect
 			void applyItemImage(img, value);
 			iconWrap.appendChild(img);
 			decorateItemTypeBadge(iconWrap, value);
-			cell.appendChild(iconWrap);
+			cell.append(iconWrap, usageEl);
 		} else {
 			const icon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
 			icon.classList.add("item-select-cell-none-icon");
 			icon.setAttribute("viewBox", "0 0 24 24");
 			icon.setAttribute("aria-hidden", "true");
 			icon.innerHTML = '<circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M6 6l12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>';
-			cell.appendChild(icon);
+			cell.append(icon, usageEl);
 		}
 		const textEl = document.createElement("span");
 		textEl.className = "item-select-cell-text";
@@ -219,7 +218,7 @@ export function createItemSelectGrid(options: ItemSelectGridOptions): ItemSelect
 			const usageRate = getItemSuggestionRatio(value);
 			if (usageEl) {
 				// getItemSuggestionRatio は 0〜1 の比率(OP.GG の usageRate / 100)を返す。
-				usageEl.textContent = usageRate != null ? `${(usageRate * 100).toFixed(1)}%` : "";
+				usageEl.textContent = usageRate != null ? `${Math.ceil(usageRate * 100)}%` : "";
 				usageEl.hidden = usageRate == null;
 			}
 			if (!matches(value)) continue;
