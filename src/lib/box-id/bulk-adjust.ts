@@ -1,7 +1,7 @@
 // ダメージタブ下部のステータス調整シートにある #bulk-adjust-button を押すと、防御方向
 // (相手→自分)のダメージ計算カードだけを圧縮表示した
 // ポップアップ(src/components/box-id/BulkAdjustDialog.astro)を開く。カードごとに
-// 「N発をM%以上の確率で耐える」の N・M を入力し、ダイアログ内の「計算」ボタンを押すと
+// 「N発(加算計算の行はNセット)をM%以上の確率で耐える」の N・M を入力し、ダイアログ内の「計算」ボタンを押すと
 // src/lib/box-id/bulk-adjust-solver.ts の solveDurability() で
 // 条件を満たす性格・努力値(H/B/D)の組み合わせを探索する。結果はダメージ詳細パネル
 // (src/lib/box-id/damage-detail-panel.ts の renderBulkAdjustResults)に一覧表示し、一覧をクリックすると
@@ -83,11 +83,11 @@ function updateComputeButtonDisabled(): void {
 	dialogComputeButton.title = hasIncludedRows ? "" : "計算対象の攻撃がありません";
 }
 
-// 画面側の確定数表示が最大10発までを扱うため、入力・探索も同じ範囲にそろえる。
+// 画面側の確定数表示が最大10発(加算計算なら10セット)までを扱うため、入力・探索も同じ範囲にそろえる。
 const MAX_ATTACK_COUNT = 10;
 
-// 現在のカードに表示済みの累計確定数(「確N」)を初期値に使う。計算前・10発以上・
-// エラー表示など数値を取り出せない場合だけ、従来値1へフォールバックする。
+// 現在のカードに表示済みの累計確定数(「確N」。加算計算の行ではセット数)を初期値に使う。
+// 計算前・10発以上・エラー表示など数値を取り出せない場合だけ、従来値1へフォールバックする。
 function currentConfirmedCount(preview: HTMLElement | null): number | null {
 	const text = preview?.querySelector<HTMLElement>(".damage-row-total-result .damage-result-verdict")?.textContent?.trim();
 	const match = text?.match(/^確(\d+)$/);
@@ -168,6 +168,9 @@ function buildRowEl(bridge: NonNullable<ReturnType<typeof getBulkAdjustBridge>>,
 	// 誰の攻撃かは直上のカード(ドット絵+特性+実数値)で分かるので種族名は省く。
 	// aria-labelは読み上げだけが頼りなので、種族名を含めたままにする。
 	nLabelTextBefore.textContent = "攻撃";
+	// 技が2つ以上(加算計算)の行は、確定数を技列1巡=1セット単位で数える
+	// (bulk-adjust-solver.ts の DurabilityRequirement.n 参照)ため、単位を「セット」と表記する。
+	const unit = row.attacks.length >= 2 ? "セット" : "発";
 	const nInput = document.createElement("input");
 	nInput.type = "number";
 	nInput.className = "bulk-adjust-n-input tnum";
@@ -177,9 +180,9 @@ function buildRowEl(bridge: NonNullable<ReturnType<typeof getBulkAdjustBridge>>,
 	nInput.inputMode = "numeric";
 	// 開く時点の努力値配分に対する確定数を優先し、努力値変更後に古い入力値を持ち越さない。
 	nInput.value = String(currentConfirmedCount(preview) ?? 1);
-	nInput.setAttribute("aria-label", `${row.name}の攻撃を何発耐えるか(発)`);
+	nInput.setAttribute("aria-label", `${row.name}の攻撃を何${unit}耐えるか(${unit})`);
 	const nLabelTextAfter = document.createElement("span");
-	nLabelTextAfter.textContent = "発を";
+	nLabelTextAfter.textContent = `${unit}を`;
 	nLabel.append(nLabelTextBefore, nInput, nLabelTextAfter);
 
 	const mLabel = document.createElement("label");

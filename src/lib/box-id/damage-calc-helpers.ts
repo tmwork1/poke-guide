@@ -128,6 +128,7 @@ export function describeStandaloneLethal(damages: number[] | undefined, defender
 /**
  * 技列を繰り返し当て続けた場合の確定数ラベルとseverity。
  * validAttackCount は技名が設定済みの攻撃列の件数(呼び出し側が数えて渡す)。
+ * 2件以上なら確定数はセット(技列1巡)単位になる。
  *
  * severityも返すのは、これがdescribeSeriesVerdictのnoLethalLabel(=技列1巡では
  * 落ちなかったときのラベル)として使われるため。呼び出し側のdescribeSeriesVerdictは
@@ -153,23 +154,28 @@ export function describeExtendedTotalVerdict(
 	if (!Array.isArray(per) || per.length === 0 || !hp || hp <= 0) {
 		return { label: TEN_OR_MORE_LABEL, severity: "safe" };
 	}
+	// 複数技の確定数はセット(技列1巡=per.length発)単位で数える(damage-summary.ts の
+	// toSetSeries と同じ取り決め)。最大 MAX_STANDALONE_ATTACKS セットまで、各セットの
+	// 最後の技を当て終えた時点の致死率を系列にする。
 	const extendedSeries: LethalResult[] = [];
 	let dist = new Map<number, number>([[hp, 1]]);
-	for (let attack = 1; attack <= MAX_STANDALONE_ATTACKS; attack += 1) {
+	for (let attack = 1; attack <= MAX_STANDALONE_ATTACKS * per.length; attack += 1) {
 		const damages = per[(attack - 1) % per.length];
-		if (!Array.isArray(damages) || damages.length === 0) continue;
-		const next = new Map<number, number>();
-		for (const [remain, freq] of dist) {
-			for (const d of damages) {
-				const value = Math.max(0, remain - d);
-				next.set(value, (next.get(value) ?? 0) + freq);
+		if (Array.isArray(damages) && damages.length > 0) {
+			const next = new Map<number, number>();
+			for (const [remain, freq] of dist) {
+				for (const d of damages) {
+					const value = Math.max(0, remain - d);
+					next.set(value, (next.get(value) ?? 0) + freq);
+				}
 			}
+			dist = next;
 		}
-		dist = next;
+		if (attack % per.length !== 0) continue;
 		let total = 0;
 		for (const freq of dist.values()) total += freq;
 		const zero = dist.get(0) ?? 0;
-		extendedSeries.push({ attackCount: attack, probability: total > 0 ? zero / total : 0 });
+		extendedSeries.push({ attackCount: attack / per.length, probability: total > 0 ? zero / total : 0 });
 	}
 	return describeSeriesVerdict(extendedSeries, TEN_OR_MORE_LABEL);
 }

@@ -133,6 +133,7 @@ import {
 	computeCumulativeDamage,
 	hasOnlyZeroDamages,
 	isUnsupportedLethalMove,
+	toSetSeries,
 	type CumulativeDamage,
 } from "../damage-summary";
 // #opponent-notes-sectionのブロック内クロージャに閉じていた純粋関数を切り出したもの。
@@ -1534,8 +1535,10 @@ if (opponentNotesSection) {
 		// "safe"固定になる。技が1枚だけの行の「確2」などがこの経路に入るため、
 		// fallbackのラベルを採用したときはextended側で算出したseverityを使う
 		// (そうしないと確2が3発以上と同じ通常文字色になり、ダークテーマでほぼ白く見える)。
-		const extended = describeExtendedTotalVerdict(validAttacksOf(row).length, result);
-		const primary = describeSeriesVerdict(result.lethal, extended.label);
+		// 技が2枚以上の行(加算計算)の確定数はセット(技列1巡)単位で数えるため、
+		// result.lethal は toSetSeries でセット1件ぶんに丸めてから渡す(extended側も同じ単位)。
+		const extended = describeExtendedTotalVerdict(validAttacks.length, result);
+		const primary = describeSeriesVerdict(toSetSeries(result.lethal, validAttacks.length), extended.label);
 		const label = extended.label === ZERO_DAMAGE_LABEL ? extended.label : primary.label;
 		const severity = label === extended.label ? extended.severity : primary.severity;
 		if (hasUnsupported) {

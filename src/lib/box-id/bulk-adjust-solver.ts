@@ -93,7 +93,10 @@ export interface DurabilityRequirement {
 	/** 技列。BulkAdjustRowSnapshot.attacks(=recalcRowのsafeAttacks)をそのまま渡す */
 	attacks: SequenceAttack[];
 	seed?: number;
-	/** 何発耐えるか(1以上の整数) */
+	/**
+	 * 何セット耐えるか(1以上の整数)。1セット = attacks を先頭から1巡(attacks.length 発)。
+	 * 技が1つだけなら従来どおり「何発耐えるか」と同じ意味になる。
+	 */
 	n: number;
 	/** 耐える確率の下限(%)。0 < m <= 100 */
 	m: number;
@@ -186,26 +189,28 @@ export class EngineFatalError extends Error {
 	}
 }
 
-/** attacks を先頭から繰り返して長さnの配列にする(N発分の攻撃列を累計評価するため)。 */
+/** attacks をn巡ぶん(n × attacks.length 発)繰り返した攻撃列にする(Nセット分を累計評価するため)。 */
 function expandAttacksToN(attacks: SequenceAttack[], n: number): SequenceAttack[] {
 	// UI側の検証をすり抜けても、空配列や巨大配列をPyodideへ渡して計算失敗にしないため、ソルバー境界でも契約を検証する。
 	if (attacks.length === 0) throw new RangeError("攻撃が1件も指定されていません。");
-	if (!Number.isInteger(n) || n < 1 || n > 10) throw new RangeError("攻撃回数は1〜10で指定してください。");
+	if (!Number.isInteger(n) || n < 1 || n > 10) throw new RangeError("セット数は1〜10で指定してください。");
 	const result: SequenceAttack[] = [];
-	for (let i = 0; i < n; i++) {
-		result.push(attacks[i % attacks.length]);
+	for (let set = 0; set < n; set++) {
+		result.push(...attacks);
 	}
 	return result;
 }
 
 /**
- * calcLethalSequence() の戻り値からN発目時点の致死率を取り出す。
+ * calcLethalSequence() の戻り値から、Nセット目(= n × setSize 発目)を当て終えた時点の
+ * 致死率を取り出す。
  * ⚠️ lethal は確率が100%に達した時点で打ち切られ attacks より短くなり得る
- * (pyodide-engine.ts:223-241)。lethal.length < n のときは「途中で確定致死になった」
- * = 致死率1.0として扱う(lethal[n-1]は単純に読むとundefinedになるため)。
+ * (pyodide-engine.ts:223-241)。lethal.length < 該当位置 のときは「途中で確定致死に
+ * なった」= 致死率1.0として扱う(単純に添字で読むとundefinedになるため)。
  */
-function lethalProbabilityAtN(result: CalcLethalSequenceResult, n: number): number {
-	if (result.lethal.length >= n) return result.lethal[n - 1].probability;
+function lethalProbabilityAtN(result: CalcLethalSequenceResult, n: number, setSize: number): number {
+	const attackCount = n * setSize;
+	if (result.lethal.length >= attackCount) return result.lethal[attackCount - 1].probability;
 	return 1.0;
 }
 
@@ -527,7 +532,7 @@ export async function solveDurability(
 			seed: req.seed,
 			sequentialOnly: true,
 		});
-		const lethal = lethalProbabilityAtN(result, req.n);
+		const lethal = lethalProbabilityAtN(result, req.n, req.attacks.length);
 		const surviveProbability = 1 - lethal;
 		const pass = surviveProbability >= req.m / 100 - 1e-9;
 		memo.record(point, pass);

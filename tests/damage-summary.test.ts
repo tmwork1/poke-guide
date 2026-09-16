@@ -354,8 +354,9 @@ test('describeNoteVerdict: 複数技で確殺しない場合は perAttackDamages
 	const v = describeNoteVerdict(attacks, NOTE_KAIRYU.client_result, categoryOf);
 	// 攻撃列(スケイルショット→フレアドライブ)を先頭から繰り返し当てると、
 	// 残りHPは 73〜91 → 51〜72 と減り、3発目(スケイルショット75〜93)で全分岐が致死。
-	assert.equal(v.label, '確3');
-	assert.equal(v.severity, 'safe');
+	// 複数技の確定数はセット(技列1巡=2発)単位なので、3発目=2セット目 → 確2。
+	assert.equal(v.label, '確2');
+	assert.equal(v.severity, 'risky');
 	assert.equal(v.detail, '113〜138 (68.1〜83.1%)');
 });
 

@@ -230,6 +230,30 @@ export function formatNoteConditionLine(
 	return groups.map((g) => (showIndex ? `${g.index}: ${g.chips.join('・')}` : g.chips.join('・'))).join(' ｜ ');
 }
 
+/**
+ * 攻撃1件ごとの累計致死率系列を「セット」(技列1巡=setSize件)単位に丸める。
+ * 加算計算(技が2つ以上)の確定数は「技の総発動回数」ではなく「技列を何巡したか」で
+ * 数える取り決めのため、セットの最後の攻撃を当て終えた時点の致死率だけを残し、
+ * attackCount をセット番号(1始まり)に振り直す。setSize が 1 ならそのまま返す。
+ *
+ * エンジンの lethal は確率100%に達した時点で打ち切られ setSize の倍数より短くなり得る
+ * (pyodide-engine.ts の CalcLethalSequenceResult.lethal 参照)。その場合、最後の
+ * セットは打ち切り位置の値(=100%)で代表させる(セットの途中で確定致死になった=
+ * そのセットで確定致死、という意味になる)。damage-calc-helpers.ts もこれを使う。
+ */
+export function toSetSeries<T extends { attackCount: number; probability: number }>(
+	series: T[] | undefined,
+	setSize: number,
+): T[] | undefined {
+	if (!Array.isArray(series) || setSize <= 1) return series;
+	const sets: T[] = [];
+	for (let start = 0; start < series.length; start += setSize) {
+		const last = series[Math.min(start + setSize, series.length) - 1];
+		sets.push({ ...last, attackCount: sets.length + 1 });
+	}
+	return sets;
+}
+
 /** 累計致死率の系列から「確N」を求める。全乱数分岐が致死(probability≒1)になる最初の位置だけを採る。 */
 function describeSeriesVerdict(
 	series: Array<{ attackCount: number; probability: number }> | undefined,
@@ -248,38 +272,42 @@ function describeSeriesVerdict(
  * 攻撃列の範囲内で確殺に届かなかったときの延長見積り。
  * 有効な攻撃列が1件だけなら perAttackLethal[0](エンジンの厳密値)をそのまま使い、
  * それ以外は perAttackDamages を先頭から繰り返し当てたHP分布で近似する
- * (damage-calc.ts の describeExtendedTotalNoLethalLabel と同じ)。
+ * (damage-calc-helpers.ts の describeExtendedTotalVerdict と同じ)。
+ * 複数技のときの確定数はセット(技列1巡)単位(toSetSeries 参照)。最大
+ * MAX_STANDALONE_ATTACKS セットまで見る。
  */
-function describeExtendedNoLethalLabel(
+function describeExtendedNoLethalVerdict(
 	validAttackCount: number,
 	result: OpponentClientResultInput,
-): string {
-	if (hasOnlyZeroDamages(result.perAttackDamages)) return ZERO_DAMAGE_LABEL;
+): { label: string; severity: DamageSeverity } {
+	if (hasOnlyZeroDamages(result.perAttackDamages)) return { label: ZERO_DAMAGE_LABEL, severity: 'safe' };
 	if (validAttackCount === 1 && Array.isArray(result.perAttackLethal?.[0])) {
-		return describeSeriesVerdict(result.perAttackLethal[0], TEN_OR_MORE_LABEL).label;
+		return describeSeriesVerdict(result.perAttackLethal[0], TEN_OR_MORE_LABEL);
 	}
 	const per = result.perAttackDamages;
 	const hp = result.defenderHp;
-	if (!Array.isArray(per) || per.length === 0 || !hp || hp <= 0) return TEN_OR_MORE_LABEL;
+	if (!Array.isArray(per) || per.length === 0 || !hp || hp <= 0) return { label: TEN_OR_MORE_LABEL, severity: 'safe' };
 	const extended: Array<{ attackCount: number; probability: number }> = [];
 	let dist = new Map<number, number>([[hp, 1]]);
-	for (let attack = 1; attack <= MAX_STANDALONE_ATTACKS; attack += 1) {
+	for (let attack = 1; attack <= MAX_STANDALONE_ATTACKS * per.length; attack += 1) {
 		const damages = per[(attack - 1) % per.length];
-		if (!Array.isArray(damages) || damages.length === 0) continue;
-		const next = new Map<number, number>();
-		for (const [remain, freq] of dist) {
-			for (const d of damages) {
-				const value = Math.max(0, remain - d);
-				next.set(value, (next.get(value) ?? 0) + freq);
+		if (Array.isArray(damages) && damages.length > 0) {
+			const next = new Map<number, number>();
+			for (const [remain, freq] of dist) {
+				for (const d of damages) {
+					const value = Math.max(0, remain - d);
+					next.set(value, (next.get(value) ?? 0) + freq);
+				}
 			}
+			dist = next;
 		}
-		dist = next;
+		if (attack % per.length !== 0) continue;
 		let total = 0;
 		for (const freq of dist.values()) total += freq;
 		const zero = dist.get(0) ?? 0;
-		extended.push({ attackCount: attack, probability: total > 0 ? zero / total : 0 });
+		extended.push({ attackCount: attack / per.length, probability: total > 0 ? zero / total : 0 });
 	}
-	return describeSeriesVerdict(extended, TEN_OR_MORE_LABEL).label;
+	return describeSeriesVerdict(extended, TEN_OR_MORE_LABEL);
 }
 
 /**
@@ -422,15 +450,19 @@ export function describeNoteVerdict(
 	}
 
 	const damageText = formatCumulativeDamage(valid.length, result);
-	const noLethalLabel = describeExtendedNoLethalLabel(valid.length, result);
+	const extended = describeExtendedNoLethalVerdict(valid.length, result);
+	// 複数技の行は lethal(技列1巡ぶん)をセット1件に丸めてから判定する(toSetSeries)。
 	const seriesVerdict = describeSeriesVerdict(
-		result.lethal,
-		noLethalLabel,
+		toSetSeries(result.lethal, valid.length),
+		extended.label,
 	);
-	const label = seriesVerdict.label === '-' && noLethalLabel === ZERO_DAMAGE_LABEL
+	const label = seriesVerdict.label === '-' && extended.label === ZERO_DAMAGE_LABEL
 		? ZERO_DAMAGE_LABEL
 		: seriesVerdict.label;
-	const severity = label === ZERO_DAMAGE_LABEL ? 'safe' : seriesVerdict.severity;
+	// 延長見積りのラベルを採ったときは、その確定数に対応するseverityを使う
+	// (describeSeriesVerdictはfallback時にseverityを'safe'固定で返すため。damage-calc.ts の
+	// renderTotalDisplay と同じ扱い)。
+	const severity = label === extended.label ? extended.severity : seriesVerdict.severity;
 	const notes: string[] = [];
 	if (valid.some((a) => OHKO_MOVE_NAMES.has(a.moveName))) notes.push(OHKO_NOTE);
 	if (hasUnsupported) notes.push(UNSUPPORTED_LETHAL_TOTAL_NOTE_SOME);

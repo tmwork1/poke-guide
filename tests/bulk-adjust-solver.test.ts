@@ -70,7 +70,8 @@ class FakeEngine implements SolverEngine {
   async resetEngine() {}
 }
 
-function requirement(rowId: string, attacks: ModelAttack[], n = attacks.length, m = 100): DurabilityRequirement {
+// n はセット数(技列1巡=1セット)。既定の1セットは技列を1回ずつ当てる意味。
+function requirement(rowId: string, attacks: ModelAttack[], n = 1, m = 100): DurabilityRequirement {
   return { rowId, attackerSpec: { name: 'fake-attacker' }, attacks, n, m };
 }
 
@@ -88,8 +89,9 @@ function options(engine: SolverEngine, extra: Partial<SolveOptions> = {}): Solve
 
 function passes(req: DurabilityRequirement, nature: string, hp: number, def: number, spd: number): boolean {
   const spec = { name: 'fake-defender', nature, evs: [hp, 0, def, 0, spd, 0] };
-  const attacks = Array.from({ length: req.n }, (_, i) => req.attacks[i % req.attacks.length]) as ModelAttack[];
-  const probability = model(spec, attacks).lethal[req.n - 1].probability;
+  const attackCount = req.n * req.attacks.length;
+  const attacks = Array.from({ length: attackCount }, (_, i) => req.attacks[i % req.attacks.length]) as ModelAttack[];
+  const probability = model(spec, attacks).lethal[attackCount - 1].probability;
   return 1 - probability >= req.m / 100 - 1e-9;
 }
 
