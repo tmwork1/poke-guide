@@ -16,6 +16,7 @@ import '../../styles/team-card.css';
 import '../../styles/team-mate-card.css';
 import '../../styles/box-pokemon-edit-panel.css';
 import '../../styles/ev-preset-badges.css';
+import '../../styles/pokemon-share-image.css';
 
 interface Props {
 	pokemon: OwnedPokemonRecord;
@@ -321,6 +322,16 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		    既存の値が消える。そのためSSRで読んだ値を data 属性に持たせ、自動保存の
 		    ペイロードにそのまま載せ直す(下の <script> の buildPayload を参照)。 */}
 		<textarea id="memo" class="memo-input" rows="3" placeholder="メモ" aria-label="メモ">{pokemon.memo ?? ""}</textarea>
+		<div class="pokemon-share-image-actions" aria-label="SNS投稿用画像">
+			<button id="pokemon-share-image-copy-button" class="btn-ghost pokemon-share-image-action" type="button" disabled={!pokemon.species_name} title={!pokemon.species_name ? "ポケモンを選択すると画像をコピーできます" : undefined}>
+				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="1"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+				<span class="pokemon-share-image-action-label">画像をコピー</span>
+			</button>
+			<button id="pokemon-share-image-save-button" class="btn-ghost pokemon-share-image-action" type="button" disabled={!pokemon.species_name} title={!pokemon.species_name ? "ポケモンを選択すると画像を保存できます" : undefined}>
+				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14a2 2 0 0 0 2-2v-3"/><path d="M3 16v3a2 2 0 0 0 2 2"/></svg>
+				<span class="pokemon-share-image-action-label">画像を保存</span>
+			</button>
+		</div>
 
 		{/* メモ欄の下に、この個体が所属しているチームの一覧を表示する(読み取り専用、
 		    カードクリックで/team/[id]へ遷移するだけ)。一覧は<script>のpokemon-edit-panel.ts

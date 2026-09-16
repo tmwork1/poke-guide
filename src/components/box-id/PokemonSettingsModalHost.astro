@@ -5,6 +5,7 @@ import PokemonEditPanel from './PokemonEditPanel.astro';
 import SpeciesSelectDialog from './SpeciesSelectDialog.astro';
 import ItemSelectDialog from './ItemSelectDialog.astro';
 import TeraSelectDialog from './TeraSelectDialog.astro';
+import ShareImageDialog from './ShareImageDialog.astro';
 import StatAdjustmentDialog from './StatAdjustmentDialog.astro';
 import '../../styles/pokemon-settings-modal-host.css';
 
@@ -29,6 +30,7 @@ const { pokemon, showForm = false, opggRankedSpeciesNames = [] } = Astro.props;
 	<SpeciesSelectDialog />
 	<ItemSelectDialog />
 	<TeraSelectDialog />
+	<ShareImageDialog />
 	<StatAdjustmentDialog />
 	<datalist id="pokemon-list"></datalist>
 	<datalist id="move-list"></datalist>

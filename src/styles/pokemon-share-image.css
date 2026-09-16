@@ -1,0 +1,126 @@
+/* SNS投稿用画像の操作と、ダメージ計算選択モーダル。 */
+.pokemon-share-image-actions {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: var(--space-2);
+	margin: 0 0 var(--space-5);
+}
+.pokemon-share-image-action {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: var(--space-1);
+	min-width: 0;
+}
+.pokemon-share-image-action svg { flex: 0 0 auto; }
+
+.share-image-backdrop {
+	position: fixed;
+	inset: 0;
+	z-index: 70;
+	background: var(--color-overlay);
+}
+.share-image-backdrop[hidden],
+.share-image-dialog[hidden] { display: none; }
+.share-image-dialog {
+	position: fixed;
+	top: var(--modal-top-offset);
+	left: 50%;
+	transform: translateX(-50%);
+	z-index: 71;
+	width: min(640px, 94vw);
+	max-height: var(--modal-height);
+	display: flex;
+	flex-direction: column;
+	background: var(--color-surface);
+	border: var(--modal-border);
+	border-radius: var(--radius-lg);
+	box-shadow: var(--shadow-lg);
+}
+.share-image-dialog-header {
+	display: flex;
+	align-items: center;
+	gap: var(--modal-header-gap);
+	min-height: var(--modal-header-min-height);
+	padding: var(--modal-header-padding);
+	border-bottom: 1px solid var(--color-border);
+}
+.share-image-dialog-title {
+	flex: 1 1 auto;
+	min-width: 0;
+	margin: 0;
+	font-size: var(--modal-title-font-size);
+	font-weight: var(--modal-title-font-weight);
+}
+.share-image-dialog-close {
+	flex: 0 0 auto;
+	min-width: var(--modal-close-size);
+	min-height: var(--modal-close-size);
+	padding: 0.1em 0.45em;
+	font-size: var(--modal-close-font-size);
+	line-height: 1;
+}
+.share-image-dialog-body {
+	min-height: 0;
+	overflow-y: auto;
+	padding: var(--space-3) var(--space-5);
+}
+.share-image-dialog-selection-actions {
+	display: flex;
+	gap: var(--space-2);
+	margin-bottom: var(--space-2);
+}
+.share-image-dialog-selection-actions .btn-ghost { padding-inline: var(--space-2); }
+.share-image-row-list {
+	display: grid;
+	gap: 1px;
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius-sm);
+	overflow: hidden;
+}
+.share-image-row-option {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	min-height: 44px;
+	padding: var(--space-2) var(--space-3);
+	background: var(--color-surface);
+	cursor: pointer;
+}
+.share-image-row-option + .share-image-row-option { border-top: 1px solid var(--color-border); }
+.share-image-row-option:hover { background: color-mix(in srgb, var(--color-surface) 90%, var(--color-primary) 10%); }
+.share-image-row-option input { flex: 0 0 auto; }
+.share-image-row-option-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.share-image-dialog-footer {
+	display: flex;
+	justify-content: flex-end;
+	gap: var(--space-2);
+	padding: var(--space-3) var(--space-5);
+	border-top: 1px solid var(--color-border);
+}
+
+/* html-to-image用。元のDOMには手を加えず、複製だけを画面外で縦に並べる。
+   横paddingは付けない(プレビューは画面と同じ全幅で撮る)。カードは画面と同じく左右16pxだけ内側に置き、
+   本物の#opponent-notes-sectionが持つ浮いた追加ボタン用の下余白は付けない。 */
+.pokemon-share-image-capture {
+	position: fixed;
+	left: -10000px;
+	top: 0;
+	display: grid;
+	gap: var(--space-3);
+	padding: var(--space-4) 0;
+	pointer-events: none;
+}
+/* box-damage-page.cssの `#opponent-notes-section { padding-bottom: ... }` (id指定)に勝つためidで書く。 */
+.pokemon-share-image-capture #opponent-notes-section {
+	padding: 0 var(--space-4);
+}
+.pokemon-share-image-damage-list {
+	display: grid;
+	gap: var(--space-3);
+}
+@media (max-width: 480px) {
+	.share-image-dialog { width: 96vw; }
+	.share-image-dialog-body,
+	.share-image-dialog-footer { padding-inline: var(--space-3); }
+}

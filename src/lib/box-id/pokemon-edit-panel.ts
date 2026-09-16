@@ -32,6 +32,7 @@ import { isPreviewFormToggleChangeEvent } from "./mega-preview-toggle";
 import { bindPressAndHold } from "../press-and-hold";
 import { buildEvPresetBadges } from "./ev-preset-badges";
 import { autosizeTextarea } from "../shared/autosize-textarea";
+import { initializePokemonShareImage } from "./share-image";
 import {
 	type StatKey,
 	STAT_KEYS,
@@ -820,6 +821,7 @@ if (form) {
 	const retryButton = el<HTMLButtonElement>("retry-button");
 	const copyButton = el<HTMLButtonElement>("copy-button");
 	const deleteButton = el<HTMLButtonElement>("delete-button");
+	initializePokemonShareImage();
 
 	const speciesSpriteImg = el<HTMLImageElement>("species-sprite");
 	const speciesSpriteFallback = el<HTMLElement>("species-sprite-fallback");

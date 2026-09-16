@@ -154,6 +154,18 @@ import {
 	setResultVerdict,
 } from "./damage-calc-helpers";
 
+export interface DamageRowForShare {
+	id: string;
+	label: string;
+	root: HTMLElement;
+}
+
+let readDamageRowsForShare: () => DamageRowForShare[] = () => [];
+
+export function getDamageRowsForShare(): DamageRowForShare[] {
+	return readDamageRowsForShare();
+}
+
 const CURRENT_TYPE_NAMES: ReadonlySet<string> = new Set(TERA_TYPES.filter((type) => type !== "ステラ"));
 
 void loadMoveDetailMap(); // 表示直後に一度だけfetchしておく(imageIdMapPromise等と同じ方針)
@@ -3253,6 +3265,16 @@ if (opponentNotesSection) {
 
 	// --- 行一覧の状態・取得・追加 ---
 	let rows: DamageRowState[] = [];
+	readDamageRowsForShare = () => rows.flatMap((row) => {
+		if (!row.root) return [];
+		const name = row.name.trim() || "相手ポケモン未設定";
+		const moves = row.attacks.map((attack) => attack.moveName.trim()).filter(Boolean);
+		return [{
+			id: row.id || `share-${rows.indexOf(row)}`,
+			label: moves.length > 0 ? `${name}（${moves.join("、")}）` : name,
+			root: row.root,
+		}];
+	});
 	// 今回の要件: 自分の特性変更時は全カードの全技列を対象にする。rowsを所有するこの層で
 	// 配線し、ダメージ詳細パネル側には特性名と対象行だけを渡して状態管理の二重化を避ける。
 	// 第3引数(自分が攻撃側か)は、へんげんじざい/リベロのタイプ自動追従を攻撃側の行に限るため。
