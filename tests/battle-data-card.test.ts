@@ -30,6 +30,12 @@ describe('usageRateLabel', () => {
   it('usageRateがnullなら「使用率非公開」にする', () => {
     assert.equal(usageRateLabel(null), '使用率非公開');
   });
+
+  it('0.5%未満は「<1%」、0は「0%」にする', () => {
+    assert.equal(usageRateLabel(0.3), '<1%');
+    assert.equal(usageRateLabel(0), '0%');
+    assert.equal(usageRateLabel(0.5), '1%');
+  });
 });
 
 describe('moveTypeByName', () => {

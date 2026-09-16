@@ -57,7 +57,8 @@ function cards(html) {
   while ((match = re.exec(html))) { const card = divAt(html, match.index); result.push(card); re.lastIndex = match.index + card.length; }
   return result;
 }
-function rankRate(card) { const value = text(card); return { rank: Number(value.match(/^(\d+)\s/)?.[1]) || null, usageRate: Number(value.match(/(\d+(?:\.\d+)?)%/)?.[1]) || null }; }
+// OP.GGは0.05%未満を「0%」と表示する。0 は「非公開」ではなく実測値なので、`|| null` で潰さず match 失敗時のみ null にする。
+function rankRate(card) { const value = text(card); const rate = value.match(/(\d+(?:\.\d+)?)%/)?.[1]; return { rank: Number(value.match(/^(\d+)\s/)?.[1]) || null, usageRate: rate === undefined ? null : Number(rate) }; }
 function label(card) { const match = card.match(/<span\b[^>]*class="[^"]*\btruncate\b[^"]*\bfont-semibold\b[^"]*"[^>]*>([^<]+)<\/span>/); return match ? text(match[1]) : null; }
 // 選出ポケモン(teammates)カードは対象の /pokedex/<slug> へのリンクを持つ。moves/items等のカードは持たないため slug は null になる。
 function cardSlug(card) { const match = card.match(new RegExp(BASE.replaceAll('/', '\\/') + '\\/pokedex\\/([^"?#/]+)')); return match ? match[1] : null; }

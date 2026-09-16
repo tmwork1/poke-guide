@@ -68,9 +68,11 @@ export function hasSingleBattleData(value: { formats?: { single?: SingleFormatDa
   );
 }
 
+// null は取得時に%表記を読めなかった場合のみ。OP.GG が「0%」と出す 0.05% 未満は 0 として届くので「非公開」にしない。
 export function usageRateLabel(usageRate: number | null): string {
-  if (usageRate !== null) return `${usageRate.toFixed(0)}%`;
-  return usageRate === null ? '使用率非公開' : `${usageRate}%`;
+  if (usageRate === null) return '使用率非公開';
+  if (usageRate > 0 && usageRate < 0.5) return '<1%';
+  return `${usageRate.toFixed(0)}%`;
 }
 
 /** 性格名の能力補正を「A↑ C↓」形式で表示する。無補正・未知の性格は空文字列。 */
