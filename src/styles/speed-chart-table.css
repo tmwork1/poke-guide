@@ -153,6 +153,9 @@
 	}
 	/* 個体の更新操作は、対象の実数値と対応づけて読めるよう実数値セルの直下へ置く。 */
 	.speed-chart-table[data-embedded='true'] .speed-chart-row {
+		/* 1列目は実数値の直下に更新ボタン(「性格 努力値」を1行、例「おだやか 20」)を置くため、
+		   通常の60pxでは足りない。ボタンが省略記号にならない幅まで広げ、残りをチップ側へ渡す。 */
+		grid-template-columns: 100px minmax(0, 1fr);
 		grid-template-rows: auto auto;
 		row-gap: 0;
 	}
@@ -175,31 +178,13 @@
 		line-height: 1.15;
 	}
 	.speed-chart-table[data-embedded='true'] .speed-chart-apply-label {
-		display: grid;
-		gap: 2px;
+		display: block;
 		width: 100%;
 		min-width: 0;
-		justify-items: center;
+		text-align: center;
 		white-space: nowrap;
-	}
-	.speed-chart-table[data-embedded='true'] .speed-chart-apply-label > * {
-		max-width: 100%;
 		overflow: hidden;
 		text-overflow: ellipsis;
-	}
-	/* 性格名だけは5文字まで収まるよう横方向を圧縮する。 */
-	.speed-chart-table[data-embedded='true'] .speed-chart-apply-label > :first-child {
-		width: 130%;
-		max-width: 130%;
-		letter-spacing: -0.05em;
-		transform: scaleX(0.77);
-	}
-	.speed-chart-table[data-embedded='true'] .speed-chart-apply-label > :nth-child(2) {
-		justify-self: center;
-		text-align: center;
-	}
-	.speed-chart-table[data-embedded='true'] .speed-chart-apply-label > :first-child {
-		font-size: var(--font-size-sm4);
 	}
 	.speed-chart-table[data-embedded='true'] .speed-chart-owned-summary {
 		display: grid;
@@ -375,11 +360,13 @@
 	.speed-chart-table .speed-chart-row.is-current-row {
 		background: var(--color-success-soft); /* 現在地の行の背景色。変えると現在地の強調色が変わる */
 	}
-	.speed-chart-table .speed-chart-row.is-opgg-spread {
-		box-shadow: inset var(--space-1) 0 0 var(--color-primary);
+	.speed-chart-table .speed-chart-row.is-opgg-spread .speed-chart-apply-button {
+		color: var(--color-stat-up);
+		border-color: var(--color-danger);
 	}
-	.speed-chart-table .speed-chart-row.is-opgg-spread .speed-chart-spread-badge {
-		box-shadow: inset 0 0 0 1px var(--color-primary);
+	.speed-chart-table .speed-chart-row.is-opgg-spread .speed-chart-apply-button:hover:not(:disabled) {
+		background: var(--color-danger-soft);
+		color: var(--color-danger-strong);
 	}
 	/* すばやさ調整モーダルでは現在行をほかの行と同じ見た目にする。 */
 	.speed-chart-table[data-embedded='true'] .speed-chart-row.is-current-row {

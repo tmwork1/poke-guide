@@ -255,6 +255,8 @@
 		min-height: 1.6em;
 	}
 	.speed-chart-owned .speed-chart-owned-current {
+		align-self: center;
+		width: max-content;
 		background: var(--color-success-soft);
 		color: var(--color-success-strong);
 		font-weight: var(--font-weight-bold);
@@ -297,6 +299,7 @@
 	/* flex直下のテキストでは省略記号が出ないため、
 		owned-panel.tsが生成するラベルspan側で一行省略する。 */
 	.speed-chart-owned .speed-chart-apply-label {
+		display: block;
 		min-width: 0;
 		overflow: hidden;
 		text-overflow: ellipsis;

@@ -93,6 +93,9 @@ const SUMMARY_EVS_ID = 'speed-chart-owned-summary-evs';
 const SUMMARY_VALUE_ID = 'speed-chart-owned-summary-value';
 const SUMMARY_RAW_VALUE_ID = 'speed-chart-owned-summary-raw-value';
 const ERROR_BANNER_ID = 'speed-chart-owned-error';
+// 親画面の編集通知で表を再描画すると、このパネルは同じDOMへ再初期化される。
+// 古いハンドラを残すとランクの+-が再初期化回数分だけ実行されるため、常に置き換える。
+let ownedPanelListeners: AbortController | null = null;
 
 const NATURE_EFFECT_MODIFIER: Record<'up' | 'neutral' | 'down', number> = {
   up: 1.1,
@@ -123,6 +126,9 @@ function pickReplacementNature(effect: 'up' | 'neutral' | 'down', currentNature:
 }
 
 export function initOwnedPanel(ctx: OwnedPanelContext): OwnedPanelController {
+  ownedPanelListeners?.abort();
+  const listeners = new AbortController();
+  ownedPanelListeners = listeners;
   const currentNature: string | null = ctx.ownedRecord.nature;
   const currentEvs: number[] = [...ctx.ownedRecord.evs];
   const currentItem: string | null = ctx.ownedRecord.item_name;
@@ -302,7 +308,7 @@ export function initOwnedPanel(ctx: OwnedPanelContext): OwnedPanelController {
     dispatchReachableValuesChanged();
     dispatchCurrentValueChanged(true);
   };
-	 rankPicker?.addEventListener('click', () => rankOptions?.hidden ? openRankPicker() : closeRankPicker());
+	 rankPicker?.addEventListener('click', () => rankOptions?.hidden ? openRankPicker() : closeRankPicker(), { signal: listeners.signal });
 	 rankOptions?.addEventListener('click', (event) => {
 		const option = (event.target as Element).closest<HTMLButtonElement>('[data-rank-value]');
 		if (!option || !rankInput) return;
@@ -310,29 +316,29 @@ export function initOwnedPanel(ctx: OwnedPanelContext): OwnedPanelController {
 		commitRank(true);
 		closeRankPicker();
 		rankPicker?.focus();
-	 });
+	 }, { signal: listeners.signal });
 	 document.addEventListener('pointerdown', (event) => {
 		if (!rankOptions || rankOptions.hidden || rankOptions.contains(event.target as Node) || rankPicker?.contains(event.target as Node)) return;
 		closeRankPicker();
-	 });
+	 }, { signal: listeners.signal });
   rankIncrement?.addEventListener('click', () => {
     if (!rankInput) return;
     rankInput.value = String(wrapRank((Number(rankInput.value) || 0) + 1));
     commitRank(true);
-  });
+  }, { signal: listeners.signal });
   rankDecrement?.addEventListener('click', () => {
     if (!rankInput) return;
     rankInput.value = String(wrapRank((Number(rankInput.value) || 0) - 1));
     commitRank(true);
-  });
+  }, { signal: listeners.signal });
   abilityToggle?.addEventListener('change', () => {
     considerAbility = abilityToggle.checked && !!ctx.abilityModifier;
     recalculate();
-  });
+  }, { signal: listeners.signal });
   itemToggle?.addEventListener('change', () => {
     considerItem = itemToggle.checked;
     recalculate();
-  });
+  }, { signal: listeners.signal });
   updateRankControls(0);
 
   function showError(message: string): void {
@@ -410,15 +416,10 @@ export function initOwnedPanel(ctx: OwnedPanelContext): OwnedPanelController {
       const button = document.createElement('button');
       button.type = 'button';
       button.className = 'btn-primary speed-chart-apply-button';
-      const buttonParts = [selection.nature, `努力値 ${selection.evSpe}`];
-      const buttonLabel = buttonParts.join(' / ');
+      const buttonLabel = `${selection.nature} ${selection.evSpe}`;
       const label = document.createElement('span');
       label.className = 'speed-chart-apply-label';
-      const natureLabel = document.createElement('span');
-      natureLabel.textContent = selection.nature;
-      const evLabel = document.createElement('span');
-      evLabel.textContent = `+${selection.evSpe}`;
-      label.append(natureLabel, evLabel);
+      label.textContent = buttonLabel;
       button.title = selection.usesScarf && ctx.scarfItemName
         ? `${buttonLabel} / ${ctx.scarfItemName}を使用`
         : `${buttonLabel} / すばやさ補正もちものなし`;

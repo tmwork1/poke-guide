@@ -549,7 +549,9 @@ export function selectMinimalCostSpeedOptions(
         : pickNatureNameForSpeedEffect(combo.natureEffect),
       usesScarf: combo.usesScarf,
     };
-    selections.set(`${selection.nature}\u0000${selection.evSpe}\u0000${selection.usesScarf}`, selection);
+    const key = [selection.nature, String(selection.usesScarf)].join(String.fromCharCode(0));
+    const existing = selections.get(key);
+    if (!existing || selection.evSpe < existing.evSpe) selections.set(key, selection);
   }
 
   return [...selections.values()].sort((a, b) => {

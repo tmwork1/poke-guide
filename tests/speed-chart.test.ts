@@ -251,6 +251,7 @@ describe('この個体カラムの純粋関数', () => {
       { value: 100, evSpe: 8, natureEffect: 'up', usesScarf: false },
       { value: 100, evSpe: 4, natureEffect: 'neutral', usesScarf: true },
       { value: 100, evSpe: 12, natureEffect: 'neutral', usesScarf: false },
+      { value: 100, evSpe: 20, natureEffect: 'neutral', usesScarf: false },
       { value: 100, evSpe: 4, natureEffect: 'neutral', usesScarf: true },
     ], 100, currentNature, false);
     assert.deepEqual(selections, [
