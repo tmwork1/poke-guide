@@ -591,6 +591,23 @@ if (!isGuestNewMode) {
 				return redistributionLockedSlots.has(slot);
 			}
 
+			// モーダルを開く時点で重複しているもちものは、枠順で最初の1つだけを残す。
+			// ロック枠も重複判定には含めるが、その枠自体のもちものは変更しない。
+			function clearDuplicateRedistributedItems(): boolean {
+				const seenItems = new Set<string>();
+				let cleared = false;
+				for (const [slot, p] of Array.from(membersBySlot).sort(([a], [b]) => a - b)) {
+					const itemName = effectiveItemName(slot, p);
+					if (!itemName) continue;
+					if (seenItems.has(itemName) && !isRedistributionSlotLocked(slot)) {
+						itemOverridesBySlot.set(slot, "");
+						cleared = true;
+					}
+					seenItems.add(itemName);
+				}
+				return cleared;
+			}
+
 			function renderRedistributionItems(): void {
 				redistributionItemGrid.render(redistributionSearchQuery);
 			}
@@ -2235,10 +2252,15 @@ if (!isGuestNewMode) {
 			async function openItemRedistributeDialog(): Promise<void> {
 				await redistributionItemGrid.ensureBuilt();
 				await loadRedistributionLocks();
+				const clearedDuplicateItems = clearDuplicateRedistributedItems();
 				redistributionSearchQuery = "";
 				itemRedistributeSearch.value = "";
-				renderRedistributionMembers();
-				renderRedistributionItems();
+				// 重複解除は背後の編成表示にも反映するので、手動解除と同じ更新経路(保存予約込み)を通す。
+				if (clearedDuplicateItems) refreshEffectiveItemViews();
+				else {
+					renderRedistributionMembers();
+					renderRedistributionItems();
+				}
 				itemRedistributeBackdrop.hidden = false;
 				itemRedistributeDialog.hidden = false;
 				itemRedistributeDialog.focus();
