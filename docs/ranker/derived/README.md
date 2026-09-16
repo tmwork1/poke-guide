@@ -121,47 +121,10 @@ LLMが「テラスタイプ」として返してきた値は記事の読み違�
 
 ## 再生成
 
-```bash
-CACHE=C:\Users\tmtmp\ranker-cache   # 記事HTMLのキャッシュ置き場(リポジトリ外)
-
-# 0-1. 公式ランキングJSON・記事検索HTMLの取得と記事索引の生成
-#      (存在するシーズンを自動判定し、進行中の最新シーズンだけ取り直す)
-npm run ranker:fetch-pokedb
-
-# シーズンを絞りたい / ダブルを取りたいときは個別に叩いてもよい
-npm run ranker:fetch-teams -- --seasons 1,2,3 --rule single
-npm run ranker:fetch-articles -- --seasons 1,2,3 --rule single
-python scripts/ranker/extract_articles.py docs/ranker/derived/articles-index.json
-
-# 2. 記事本体を落とす(pokesol.app は .data、それ以外は素のHTML)
-python scripts/ranker/download_articles.py docs/ranker/derived/articles-index.json $CACHE
-python scripts/ranker/refetch_naver.py docs/ranker/derived/articles-index.json $CACHE  # naverは本文がiframe
-
-# 3. pokesol.app を機械抽出 / 残りをテキスト化してLLM用タスクに割る
-python scripts/ranker/build_pokesol.py $CACHE $CACHE/pokesol.json
-python scripts/ranker/html2text.py $CACHE $CACHE/text
-python scripts/ranker/make_tasks.py $CACHE docs/ranker $CACHE/tasks --target-per-batch 20
-
-# 4. $CACHE/tasks/*.md を Haiku subagent に配って $CACHE/llm/<KEY>.json を書かせる
-#    (仕様は scripts/ranker/EXTRACTION_SPEC.md。バッチ割りは $CACHE/tasks/_batches.json)
-#    表記ゆれ辞書 scripts/ranker/name-aliases.json も、build_ranked_teams.py が出す
-#    extraction-report.json の rejected_by_validation を入力にして同様にLLMで作る。
-#    値は必ず語彙リストに実在する文字列でなければ採用されないので、誤りは通り抜けない。
-
-# 5. 統合してDBへ
-python scripts/ranker/build_ranked_teams.py --cache $CACHE
-DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres npm run migrate
-DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres node scripts/db/seed-ranked-teams.mjs
-
-# 6. サジェストの再集計(母集団に上位チームが入るため、投入後に回す)
-DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres npm run refresh-suggestions
-```
-
-手順0-1は `.github/workflows/ranker-fetch.yml` が毎日 20:00 UTC(JST 5:00)に実行しており、
+新シーズン追加時の実行手順は `.claude/skills/ranker/SKILL.md` を参照(`/ranker` で起動)。
+公式ランキングJSON・記事検索HTMLの取得(README冒頭「手順0-1」相当)は
+`.github/workflows/ranker-fetch.yml` が毎日 20:00 UTC(JST 5:00)に自動実行しており、
 `s{n}_single_ranked_teams.json` と `articles-index.json` の更新は自動でコミットされる。
 検索HTMLは1ページ1.5MBで毎日差分が出るためコミットせず、workflow artifact(`pokedb-html`、14日保持)に置く。
-手順2以降(記事本文のダウンロード〜DB投入)はローカル運用のままなので、
-**新シーズンが増えたら、自動更新されたJSONを元に手順2から手で回す。**
 
-手順4だけがLLMを挟む。0〜3と5は決定的なので、記事キャッシュさえあれば何度でも同じ結果になる。
-`ranked-teams.json` をそのままコミットしてあるのは、**手順4を再実行しなくてもDBを再現できるようにするため**。
+`ranked-teams.json` をそのままコミットしてあるのは、**LLM抽出を再実行しなくてもDBを再現できるようにするため**。
