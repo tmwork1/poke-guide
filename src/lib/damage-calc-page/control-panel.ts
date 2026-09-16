@@ -84,8 +84,8 @@ export function initControlPanel(): void {
   initControlPanelToggle();
   syncControlBarHeight();
   syncContentTop();
-  const selfAilmentSelect = document.getElementById("damage-calc-self-ailment") as HTMLSelectElement;
-  const opponentAilmentSelect = document.getElementById("damage-calc-opponent-ailment") as HTMLSelectElement;
+  const selfAilmentButtons = document.getElementById("damage-calc-self-ailment") as HTMLElement;
+  const opponentAilmentButtons = document.getElementById("damage-calc-opponent-ailment") as HTMLElement;
   const weatherButtons = document.getElementById("damage-calc-weather-buttons") as HTMLElement;
   const terrainButtons = document.getElementById("damage-calc-terrain-buttons") as HTMLElement;
   const resetButton = document.getElementById("damage-calc-reset-button") as HTMLButtonElement | null;
@@ -115,26 +115,20 @@ export function initControlPanel(): void {
     root.replaceChildren(stepper.row);
     rankControlBySide.set(side, { stepper, statIndex: group.indices[0] });
   });
-  const fillSelect = (select: HTMLSelectElement, options: readonly { value: string; label: string }[]) => {
-    select.replaceChildren(...options.map((option) => new Option(option.label, option.value)));
-  };
-  // 共有配列DAMAGE_AILMENTSの空値ラベルは他画面向けの「なし」のまま保ち、
-  // このページの表示だけ「状態異常」に差し替える(プレースホルダーとして何のセレクトか分かるように)。
-  const ailmentOptions = DAMAGE_AILMENTS.map((option) => (option.value === "" ? { ...option, label: "状態異常" } : option));
-  fillSelect(selfAilmentSelect, ailmentOptions); fillSelect(opponentAilmentSelect, ailmentOptions);
   // ダメージ計算詳細設定モーダル(box-id/damage-detail-panel.ts の buildIconToggleGroup)とは異なり、
   // このパネルはアイコン+ラベルの2段組にする(「なし」用のボタンは置かず、選択中のボタンを
   // 再度押すと解除する)。ラベルはボタンの可視テキストになるので、冗長なtitle/ariaLabelは付けない。
   const renderChoiceGroup = (
     root: HTMLElement,
-    options: readonly { value: string; label: string; icon: string }[],
+    options: readonly { value: string; label: string; icon?: string }[],
     getValue: () => string,
     setValue: (value: string) => void,
   ) => {
     root.replaceChildren(...options.map((option) => {
       const button = document.createElement("button"); button.type = "button"; button.className = "damage-calc-icon-btn"; button.dataset.value = option.value;
       const label = document.createElement("span"); label.className = "damage-calc-icon-btn-label"; label.textContent = option.label;
-      button.innerHTML = option.icon; button.append(label);
+      if (option.icon) button.innerHTML = option.icon;
+      button.append(label);
       button.addEventListener("click", () => {
         setValue(getValue() === option.value ? "" : option.value);
         emit();
@@ -152,6 +146,16 @@ export function initControlPanel(): void {
   renderChoiceGroup(terrainButtons, DAMAGE_TERRAINS,
     () => getFieldState().terrain,
     (terrain) => setFieldState({ ...getFieldState(), terrain }),
+  );
+  // 状態異常はダメージ計算で頻用する3種のみ表示し、選択済みのボタンを再度押すと解除する。
+  const ailmentOptions = DAMAGE_AILMENTS.filter((option) => ["どく", "まひ", "やけど"].includes(option.value));
+  renderChoiceGroup(selfAilmentButtons, ailmentOptions,
+    () => getSelfState().ailment,
+    (ailment) => setSelfState({ ...getSelfState(), ailment }),
+  );
+  renderChoiceGroup(opponentAilmentButtons, ailmentOptions,
+    () => getOpponentState().ailment,
+    (ailment) => setOpponentState({ ...getOpponentState(), ailment }),
   );
   const opponentTeraDialog = (() => {
     const prefix = "damage-calc-opponent-tera-select-";
@@ -175,10 +179,11 @@ export function initControlPanel(): void {
       const control = rankControlBySide.get(side);
       control?.stepper.setValue(state.boosts[control.statIndex]);
     });
-    selfAilmentSelect.value = self.ailment;
-    opponentAilmentSelect.value = opponent.ailment;
-    selfAilmentSelect.classList.toggle("is-placeholder", self.ailment === "");
-    opponentAilmentSelect.classList.toggle("is-placeholder", opponent.ailment === "");
+    (["self", "opponent"] as const).forEach((side) => {
+      const value = side === "self" ? self.ailment : opponent.ailment;
+      const root = side === "self" ? selfAilmentButtons : opponentAilmentButtons;
+      root.querySelectorAll<HTMLButtonElement>("button").forEach((button) => button.setAttribute("aria-pressed", String(button.dataset.value === value)));
+    });
     (["weather", "terrain"] as const).forEach((kind) => {
       const value = kind === "weather" ? field.weather : field.terrain;
       const root = kind === "weather" ? weatherButtons : terrainButtons;
@@ -199,8 +204,6 @@ export function initControlPanel(): void {
       if (icon) { icon.hidden = false; icon.src = iconUrl ?? GENERIC_TERA_ICON_URL; }
     });
   };
-  selfAilmentSelect.addEventListener("change", (event) => { setSelfState({ ...getSelfState(), ailment: (event.target as HTMLSelectElement).value }); emit(); });
-  opponentAilmentSelect.addEventListener("change", (event) => { setOpponentState({ ...getOpponentState(), ailment: (event.target as HTMLSelectElement).value }); emit(); });
   resetButton?.addEventListener("click", () => {
     setSelfState({ ...DEFAULT_SELF_STATE, boosts: [...DEFAULT_SELF_STATE.boosts] });
     setOpponentState({ ...DEFAULT_OPPONENT_STATE, boosts: [...DEFAULT_OPPONENT_STATE.boosts] });

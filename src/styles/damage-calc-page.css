@@ -163,7 +163,11 @@
    =stat-adjust-sheet.cssと同じ「閉時はつまみだけを残し他は透明」パターン)。 */
 .damage-calc-control-bar { position: fixed; left: var(--app-band-inset); right: var(--app-band-inset); bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom)); z-index: 18; display: flex; flex-direction: column; overflow: hidden; border-radius: var(--radius-md) var(--radius-md) 0 0; border: 1px solid var(--color-border); border-bottom: 0; background: var(--color-surface); box-shadow: var(--shadow-md); }
 .damage-calc-control-bar:not(.is-expanded) { pointer-events: none; border-color: transparent; background: transparent; box-shadow: none; }
-.damage-calc-control-panel-toggle { display: flex; align-items: center; justify-content: center; flex: none; align-self: center; width: 33.333%; height: 42px; min-height: 0; padding: 0 var(--space-2); line-height: 1; border: 0; background: var(--color-surface); color: var(--color-text-muted); font: inherit; cursor: pointer; }
+.damage-calc-control-panel-head { position: relative; display: flex; align-items: center; justify-content: space-between; flex: none; }
+.damage-calc-control-panel-head .damage-calc-control-label { position: absolute; inset-inline-start: var(--space-3); }
+.damage-calc-control-panel-head .damage-calc-control-label:last-child { inset-inline-start: auto; inset-inline-end: var(--space-3); }
+.damage-calc-control-bar:not(.is-expanded) .damage-calc-control-panel-head .damage-calc-control-label { visibility: hidden; }
+.damage-calc-control-panel-toggle { display: flex; align-items: center; justify-content: center; flex: none; width: 33.333%; height: 42px; min-height: 0; margin-inline: auto; padding: 0 var(--space-2); line-height: 1; border: 0; background: var(--color-surface); color: var(--color-text-muted); font: inherit; cursor: pointer; }
 .damage-calc-control-bar:not(.is-expanded) .damage-calc-control-panel-toggle { pointer-events: auto; border: 1px solid var(--color-border); border-bottom: 0; border-radius: var(--radius-md) var(--radius-md) 0 0; box-shadow: var(--shadow-md); }
 /* 展開中はつまみの表示位置を少し上へずらす。margin-topだとフレックスの流れの高さが
    縮み、下端固定のバーはその分だけ上端が下がって画面上の位置が相殺されてしまうため、
@@ -180,9 +184,8 @@
 .damage-calc-control-panel-body { display: flow-root; max-height: 0; overflow-y: auto; transition: max-height 0.2s ease; }
 .damage-calc-control-bar.is-expanded .damage-calc-control-panel-body { max-height: 24rem; }
 .damage-calc-control-inner { padding: var(--space-2) var(--space-3); }
-/* 自分/相手の2列グリッド。「自分」「相手」はランクステッパーと同じ段(1行目)のセル内に
-   ラベルとして置き、テラスタルボタンは状態異常と同じ段(2行目)に移す。3行目だけ
-   天候(左列)・フィールド(右列)を4つ横並びボタンで表示する。 */
+/* 自分/相手の2列グリッド。1行目は外側にランクステッパー、内側にテラスタルボタンを置く。
+   2行目は状態異常、3行目は天候(左列)・フィールド(右列)を横並びボタンで表示する。 */
 .damage-calc-control-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: var(--space-3); row-gap: var(--space-2); align-items: center; }
 .damage-calc-control-label { flex: none; color: var(--color-text-muted); font-size: var(--font-size-sm3); }
 .damage-calc-control-cell[data-side="self"] { grid-column: 1; }
@@ -192,13 +195,7 @@
 .damage-calc-control-row-3 { grid-row: 3; }
 .damage-calc-control-reset { grid-column: 1 / -1; grid-row: 4; }
 .damage-calc-control-cell { display: flex; align-items: center; justify-content: space-between; gap: var(--space-1); min-width: 0; }
-.damage-calc-control-cell[data-side="self"] .damage-calc-control-label { margin-left: var(--space-2); }
-.damage-calc-control-cell[data-side="opponent"] .damage-calc-control-label { margin-right: var(--space-2); }
 .damage-calc-control-cell--field { flex-direction: column; align-items: stretch; gap: var(--space-1); }
-.damage-calc-ailment-field { flex: 1; min-width: 0; }
-.damage-calc-ailment-field select { width: 100%; font-size: var(--font-size-sm2); min-height: var(--tap-target-min); }
-.damage-calc-ailment-field select.is-placeholder { color: var(--color-text-muted); }
-.damage-calc-ailment-field select:not(.is-placeholder) { border-color: var(--color-primary); background: var(--color-primary-soft); color: var(--color-primary-strong); font-weight: var(--font-weight-bold); }
 .damage-calc-reset-button { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2); width: 100%; min-height: 2.25rem; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-surface-sunken); color: var(--color-text-muted); font: inherit; font-size: var(--font-size-sm2); }
 .damage-calc-reset-button:hover { border-color: var(--color-primary); color: var(--color-primary-strong); }
 .damage-calc-reset-button svg { width: 1.1em; height: 1.1em; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
@@ -209,9 +206,11 @@
 .damage-calc-rank-row .number-stepper-value.is-nonzero { color: var(--color-primary-strong); border-color: var(--color-primary-strong); background: var(--color-primary-soft); font-weight: var(--font-weight-bold); }
 /* セグメント切替は面に接するため四角とし、丸角のnumber-stepperとは別扱いにする。 */
 .damage-calc-icon-group { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); overflow: hidden; border: 1px solid var(--color-border); border-radius: var(--radius-sm); /* 四隅は検索欄(form-controls.css)と同じ角丸。内側ボタンは角丸0のままoverflow:hiddenで切り抜く */ box-shadow: var(--shadow-sm); }
+.damage-calc-icon-group--text { grid-template-columns: repeat(3, minmax(0, 1fr)); flex: 1; min-width: 0; }
 .damage-calc-icon-btn { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: var(--tap-target-min); padding: var(--space-1); color: var(--color-text-muted); background: var(--color-surface-sunken); border: 0; border-radius: 0; appearance: none; -webkit-appearance: none; font: inherit; font-size: var(--font-size-sm1); }
 .damage-calc-icon-btn svg { flex: none; width: 17px; height: 17px; }
 .damage-calc-icon-btn-label { font-size: var(--font-size-sm4); line-height: 1; }
+.damage-calc-icon-group--text .damage-calc-icon-btn-label { font-size: var(--font-size-sm2); }
 .damage-calc-icon-btn:not(:first-child) { border-left: 1px solid var(--color-border); }
 .damage-calc-icon-btn[aria-pressed="true"] { position: relative; z-index: 1; color: var(--color-primary-strong); background: var(--color-primary-soft); outline: 1px solid var(--color-primary); outline-offset: -1px; font-weight: var(--font-weight-bold); }
 .damage-calc-tera-toggle { inline-size: var(--tap-target-min); block-size: var(--tap-target-min); padding: 3px; border: 0; border-radius: 50%; background: transparent; color: var(--color-text-muted); cursor: pointer; font: inherit; font-weight: var(--font-weight-bold); appearance: none; -webkit-appearance: none; }
