@@ -108,9 +108,7 @@ body.box-edit-page {
 		background: var(--color-surface);
 		color: var(--color-primary-strong);
 		border: 2px solid var(--color-primary);
-		/* 操作の主目的だと分かる幅を確保するため、トークンにない必要最小限の幅だけ生値にする。 */
-		min-width: 12rem; /* 計算ボタンの最小幅。大きくすると主操作が目立つ */
-		max-width: 100%;
+		width: 100%; /* 主操作なのでフッター全幅にする */
 	}
 	button.bulk-adjust-dialog-compute-button:hover:not(:disabled) {
 		background: var(--color-primary);
@@ -123,30 +121,31 @@ body.box-edit-page {
 		flex: 1 1 auto;
 		min-height: 0;
 		overflow-y: auto;
-		padding: var(--space-4) var(--space-5); /* 本文内側の余白。大きくすると内容が内側に寄る */
+		padding: var(--space-2); /* 本文内側の余白。条件カードは詰めて並べ、余白はカードの内側に取る */
 	}
 	.bulk-adjust-dialog-body-inner {
 		display: flex;
 		flex-direction: column;
-		gap: var(--space-4); /* 条件カードどうしの間隔。大きくするとカードが離れる */
+		gap: var(--space-2); /* 条件カードどうしの間隔。大きくするとカードが離れる */
 	}
 
+	/* フッターは[状態文(あるときだけ)][全幅の計算/中断ボタン]の縦積み。 */
 	.bulk-adjust-dialog-footer {
 		display: flex;
-		align-items: center;
-		gap: var(--space-3);
-		padding: var(--space-3) var(--space-5); /* フッター内側の余白。大きくすると下部が厚くなる */
+		flex-direction: column;
+		align-items: stretch;
+		gap: var(--space-2);
+		padding: var(--space-3); /* フッター内側の余白。大きくすると下部が厚くなる */
 		border-top: 1px solid var(--color-border);
 		flex-shrink: 0;
 	}
 	/* 計算中の進捗と、計算後の状態文をフッター左側に表示する。 */
 	.bulk-adjust-progress-text {
-		flex: 1 1 auto;
 		min-width: 0;
 		color: var(--bulk-adjust-muted-color);
 		font-size: var(--font-size-sm2); /* 計算状況の文。大きくすると状態が読みやすくなる */
 	}
-
+	.bulk-adjust-progress-text:empty { display: none; }
 
 	/* カード1枚(圧縮表示の複製)+N/M入力欄の組。カード右上の削除ボタン(×)の
 		絶対配置の基準としてposition:relativeを持たせる。 */
@@ -157,7 +156,7 @@ body.box-edit-page {
 		gap: var(--space-2); /* 条件カード内の行間。大きくすると入力欄とプレビューが離れる */
 		border: 1px solid var(--color-border); /* 条件カードの枠線。濃くするとカードの区切りが強くなる */
 		border-radius: var(--radius-md); /* 条件カードの角丸。大きくすると各カードが丸くなる */
-		padding: var(--space-3); /* 条件カード内側の余白。大きくするとカードが大きくなる */
+		padding: var(--space-3) var(--space-4); /* 条件カード内側の余白。大きくするとカードが大きくなる */
 		background: var(--color-bg); /* 条件カードの下地。変えると各カードの面色が変わる */
 	}
 	/* 削除ボタン(×)。ダメージカード側の削除ボタン(.damage-row-delete-button)と同じ
@@ -203,32 +202,30 @@ body.box-edit-page {
 		white-space: nowrap;
 	}
 	/* ⚠️ 実装時に踏んだ罠: type="number"はネイティブの増減スピナーぶんの横幅を内側に
-		確保する。width: 4.2emだと既定値100(M入力欄)の3桁目がスピナーの下に隠れて
-		見えなくなる(値自体は"100"のままでDOM上は正しいが、視覚的に"10"に見えて
-		誤読を招く。Playwrightのinputvalue()と実際の見た目を突き合わせて発覚)。
-		3桁+スピナーが確実に収まる幅へ広げる。 */
-	.bulk-adjust-n-input {
-		width: 3.6em;
-		text-align: right;
-	}
-	.bulk-adjust-m-input {
-		width: 5.4em; /* 4.6emでは390px幅で"100"の3桁目が欠けた(実測) */
-		text-align: right;
-	}
+		確保し、桁が欠けて見える("100"が"10"に見える)。幅を内容(N=2桁・M=3桁)に
+		合わせるため、スピナー自体を消してからchで幅を決める。 */
 	.bulk-adjust-row-inputs input[type="number"] {
+		box-sizing: content-box;
 		height: 32px;
 		min-height: 32px;
 		padding-block: 0;
+		padding-inline: var(--space-2);
+		text-align: center;
+		-moz-appearance: textfield;
+		appearance: textfield;
 	}
+	.bulk-adjust-row-inputs input[type="number"]::-webkit-outer-spin-button,
+	.bulk-adjust-row-inputs input[type="number"]::-webkit-inner-spin-button {
+		-webkit-appearance: none;
+		margin: 0;
+	}
+	.bulk-adjust-n-input { width: 2ch; } /* 確定数は最大2桁(MAX_ATTACK_COUNT=10) */
+	.bulk-adjust-m-input { width: 3ch; } /* 致死率は最大3桁(100) */
 
-	/* 480px未満(狭幅端末)では入力欄のwhite-space:nowrapのせいで折り返し先が無く
-		1文字ずつ縦に潰れる事故(このリポジトリで実例あり)を避けるため、行自体を
-		折り返し可能にする(上のflex-wrap:wrapは既に効くが、labelの内部は
-		white-space:nowrapのままにして「◯発を」がラベル内で分断されないようにする)。
+	/* 狭幅端末ではダイアログを画面幅いっぱい近くまで広げる。
 		⚠️ @media は基本定義より後ろに書くこと(このリポジトリで2件実例のある罠)。 */
 	@media (max-width: 480px) {
 		.bulk-adjust-dialog { width: 96vw; }
-		button.bulk-adjust-dialog-compute-button { min-width: 8rem; }
 	}
 
 	/* 複製カード(buildCardPreview()、damage-calc.ts)は表示専用(内部のinput/select/
