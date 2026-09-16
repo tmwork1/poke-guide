@@ -103,11 +103,20 @@
 	gap: var(--space-2);
 }
 /* 狭幅(390px級)でも「カメラロールから選ぶ」を1行に収めるため、横paddingを詰めて折り返しを禁止する */
-.game-screen-ocr-picker-actions > button {
+.game-screen-ocr-picker-button {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: var(--space-2); /* アイコンと文字の間隔 */
 	padding-inline: var(--space-2);
 	white-space: nowrap;
 	font-size: var(--font-size-sm1); /* ボタン文字は既定(太字16px)より控えめにする */
 	font-weight: var(--font-weight-medium);
+}
+.game-screen-ocr-picker-icon {
+	flex: none;
+	width: 1.25em; /* 文字サイズに追従するアイコンの大きさ */
+	height: 1.25em;
 }
 
 /* 読み取り開始・言語データ読み込み中/認識中 n/3 xx%。認識中だけ表示して結果画面を増やさない。 */
