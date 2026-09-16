@@ -3,7 +3,7 @@ import { loadAbilitiesMap, loadBaseStatsMap, loadLearnsetFor, loadPokemonMasterL
 import { mergeGameScreenOcrResults, parseGameScreenLines, type GameScreenOcrResult } from "../game-screen-ocr-parse";
 import { preprocessGameScreenImage } from "../game-screen-ocr-image";
 
-// カメラでは capture 付き、カメラロールでは capture なしの入力をそれぞれ開く。
+// 「カメラで撮影」は capture 付き、「写真を選ぶ」(カメラロール)は capture なしの file input をそれぞれ開く。
 const cameraInput = document.getElementById("game-screen-ocr-camera-file") as HTMLInputElement | null;
 const libraryInput = document.getElementById("game-screen-ocr-library-file") as HTMLInputElement | null;
 const cameraButton = document.getElementById("game-screen-ocr-camera-button") as HTMLButtonElement | null;

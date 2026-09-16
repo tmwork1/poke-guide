@@ -41,6 +41,8 @@
 	border-radius: var(--radius-lg);
 	box-shadow: var(--shadow-lg);
 	color: var(--color-text);
+	/* 開いた直後に dialog.focus() する際のブラウザ既定の白い輪郭を、モーダルの枠線として見せない(item-select-dialog.css と同じ) */
+	outline: none;
 }
 .game-screen-ocr-dialog[hidden] { display: none; }
 
@@ -81,7 +83,12 @@
 	padding: var(--space-3);
 }
 .game-screen-ocr-picker[hidden] { display: none; }
-.game-screen-ocr-description { margin: 0; }
+/* 説明は1文だけなので、見出しより一段控えめな注記の扱いにする */
+.game-screen-ocr-description {
+	margin: 0;
+	font-size: var(--font-size-sm2);
+	color: var(--color-text-muted);
+}
 .game-screen-ocr-guide {
 	display: block;
 	width: min(100%, 280px); /* 見本画像の幅。大きくすると縦にも伸びてスクロールが増える */
@@ -99,6 +106,8 @@
 .game-screen-ocr-picker-actions > button {
 	padding-inline: var(--space-2);
 	white-space: nowrap;
+	font-size: var(--font-size-sm1); /* ボタン文字は既定(太字16px)より控えめにする */
+	font-weight: var(--font-weight-medium);
 }
 
 /* 読み取り開始・言語データ読み込み中/認識中 n/3 xx%。認識中だけ表示して結果画面を増やさない。 */
