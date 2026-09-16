@@ -203,6 +203,15 @@ body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-owne
   flex-direction: column;
   flex-wrap: nowrap;
   align-items: stretch;
+	width: 100%;
+}
+
+body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-owned-cell {
+	justify-self: stretch;
+}
+
+body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-owned {
+	align-items: stretch;
 }
 
 body.speed-chart-page .speed-chart-table[data-embedded='true'] .speed-chart-owned-option .speed-chart-apply-button {

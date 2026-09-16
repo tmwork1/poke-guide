@@ -245,6 +245,20 @@ describe('R-4と行組み立て', () => {
 
 describe('この個体カラムの純粋関数', () => {
   const scarf = { kind: 'multiplier' as const, numerator: 6144, denominator: 4096 };
+  it('複数選択は到達可能な全候補を重複なく返す', () => {
+    const currentNature = pickNatureNameForSpeedEffect('neutral');
+    const selections = selectMinimalCostSpeedOptions([
+      { value: 100, evSpe: 8, natureEffect: 'up', usesScarf: false },
+      { value: 100, evSpe: 4, natureEffect: 'neutral', usesScarf: true },
+      { value: 100, evSpe: 12, natureEffect: 'neutral', usesScarf: false },
+      { value: 100, evSpe: 4, natureEffect: 'neutral', usesScarf: true },
+    ], 100, currentNature, false);
+    assert.deepEqual(selections, [
+      { nature: currentNature, evSpe: 12, usesScarf: false },
+      { nature: currentNature, evSpe: 4, usesScarf: true },
+      { nature: pickNatureNameForSpeedEffect('up'), evSpe: 8, usesScarf: false },
+    ]);
+  });
   it('性格3種 × EV0〜32 × 持ち物2種を列挙する', () => assert.equal(enumerateReachableSpeedValues({ baseSpeed: 100, currentNature: 'ようき', scarfModifier: scarf }).length, 3 * 33 * 2));
   it('スカーフが使えない場合は持ち物1種のみ', () => assert.equal(enumerateReachableSpeedValues({ baseSpeed: 100, currentNature: 'ようき', scarfModifier: null }).length, 3 * 33));
   it('最小コスト選択はS努力値が最小のものを優先する', () => {
@@ -260,7 +274,7 @@ describe('この個体カラムの純粋関数', () => {
     const combo = enumerateReachableSpeedValues({ baseSpeed: 100, currentNature: 'まじめ', scarfModifier: null, abilityModifier: { kind: 'rank', stages: 1 }, rankStages: 1 }).find((value) => value.natureEffect === 'neutral' && value.evSpe === 0);
     assert.equal(combo?.value, calcOtherStat(50, 100, 31, 0, 1) * 2);
   });
-  it('複数選択は最小努力値と同コストの候補だけを返す', () => assert.equal(selectMinimalCostSpeedOptions([{ value: 100, evSpe: 4, natureEffect: 'down', usesScarf: false }, { value: 100, evSpe: 8, natureEffect: 'up', usesScarf: false }], 100, 'まじめ', false).length, 1));
+  it('複数選択は努力値が異なる候補もすべて返す', () => assert.equal(selectMinimalCostSpeedOptions([{ value: 100, evSpe: 4, natureEffect: 'down', usesScarf: false }, { value: 100, evSpe: 8, natureEffect: 'up', usesScarf: false }], 100, 'まじめ', false).length, 2));
 });
 
 describe('性格・努力値・到達可能行', () => {

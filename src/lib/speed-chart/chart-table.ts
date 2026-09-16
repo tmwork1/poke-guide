@@ -405,6 +405,9 @@ export async function initSpeedChartPage(): Promise<void> {
         const isLastGroup = groupIndex === groups.length - 1;
         const rowEl = document.createElement('div');
         rowEl.className = 'speed-chart-row';
+        if (ownedRecord && group.entries.some((entry) => entry.formName === ownedRecord.species_name)) {
+          rowEl.classList.add('is-opgg-spread');
+        }
         // 1段だけの実数値グループは、補正要因があっても先頭2列を垂直中央に置く。
         if (groups.length === 1) rowEl.classList.add('speed-chart-row-single-group');
         // 同じ実数値内の行同士は境界線を軽くし(is-value-group-end無し)、

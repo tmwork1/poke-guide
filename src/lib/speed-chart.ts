@@ -529,35 +529,39 @@ export function selectMinimalCostSpeedOption(
   return { evSpe: best.evSpe, nature, usesScarf: best.usesScarf };
 }
 
-/** 目標値を最小努力値で作れる、性格補正×アイテム状態の候補をすべて返す。 */
+/** 目標値を作れる性格補正×S努力値×アイテム状態の全候補を、現在の設定を優先して返す。 */
 export function selectMinimalCostSpeedOptions(
   combos: ReachableSpeedCombo[],
   targetValue: number,
   currentNature: string | null,
   currentUsesScarf: boolean,
 ): SpeedTargetSelection[] {
+  // 到達可能な組合せはすべて残し、同一の選択内容だけを重複除去する。
   const currentEffect = getNatureSpeedEffect(currentNature);
   const matches = combos.filter((combo) => combo.value === targetValue);
   if (matches.length === 0) return [];
-  const minimumEv = Math.min(...matches.map((combo) => combo.evSpe));
-  return matches
-    .filter((combo) => combo.evSpe === minimumEv)
-    .map((combo) => ({
+  const selections = new Map<string, SpeedTargetSelection>();
+  for (const combo of matches) {
+    const selection = {
       evSpe: combo.evSpe,
       nature: combo.natureEffect === currentEffect && currentNature
         ? currentNature
         : pickNatureNameForSpeedEffect(combo.natureEffect),
       usesScarf: combo.usesScarf,
-    }))
-    .sort((a, b) => {
-      const aNatureSame = a.nature === currentNature ? 0 : 1;
-      const bNatureSame = b.nature === currentNature ? 0 : 1;
-      if (aNatureSame !== bNatureSame) return aNatureSame - bNatureSame;
-      const aItemSame = a.usesScarf === currentUsesScarf ? 0 : 1;
-      const bItemSame = b.usesScarf === currentUsesScarf ? 0 : 1;
-      if (aItemSame !== bItemSame) return aItemSame - bItemSame;
-      return a.nature.localeCompare(b.nature, 'ja');
-    });
+    };
+    selections.set(`${selection.nature}\u0000${selection.evSpe}\u0000${selection.usesScarf}`, selection);
+  }
+
+  return [...selections.values()].sort((a, b) => {
+    const aNatureSame = a.nature === currentNature ? 0 : 1;
+    const bNatureSame = b.nature === currentNature ? 0 : 1;
+    if (aNatureSame !== bNatureSame) return aNatureSame - bNatureSame;
+    const aItemSame = a.usesScarf === currentUsesScarf ? 0 : 1;
+    const bItemSame = b.usesScarf === currentUsesScarf ? 0 : 1;
+    if (aItemSame !== bItemSame) return aItemSame - bItemSame;
+    if (a.evSpe !== b.evSpe) return a.evSpe - b.evSpe;
+    return a.nature.localeCompare(b.nature, 'ja');
+  });
 }
 
 /**

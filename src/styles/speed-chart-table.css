@@ -375,6 +375,12 @@
 	.speed-chart-table .speed-chart-row.is-current-row {
 		background: var(--color-success-soft); /* 現在地の行の背景色。変えると現在地の強調色が変わる */
 	}
+	.speed-chart-table .speed-chart-row.is-opgg-spread {
+		box-shadow: inset var(--space-1) 0 0 var(--color-primary);
+	}
+	.speed-chart-table .speed-chart-row.is-opgg-spread .speed-chart-spread-badge {
+		box-shadow: inset 0 0 0 1px var(--color-primary);
+	}
 	/* すばやさ調整モーダルでは現在行をほかの行と同じ見た目にする。 */
 	.speed-chart-table[data-embedded='true'] .speed-chart-row.is-current-row {
 		margin-inline: 0;
