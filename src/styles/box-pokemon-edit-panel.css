@@ -526,13 +526,13 @@
 	/* 所属チーム一覧(team-card.cssの.team-grid/.card-teamをそのまま使う)。
 	   [hidden]はteam-card.cssの`.team-grid { display: grid; }`に詳細度で負けるため明示する
 	   (pitfalls.md「[hidden]が効かない」)。 */
-	/* 区切り線の外側(前後要素との間隔)と内側(線と見出し/ボタンの間隔)を同じ --space-5 にそろえる。
+	/* チーム欄は区切り線を引かず、前後の要素との隙間(--space-6)だけで区切る。
 	   後続の削除/コピー行(box-edit-page.css の .training-delete-actions は margin-top: --space-8)も
-	   チーム欄が表示されているときだけ同じ間隔へ寄せる。 */
-	.pokemon-team-section { margin: var(--space-5) 0; padding-block: var(--space-5); border-top: 1px solid var(--color-border); border-bottom: 1px solid var(--color-border); }
-	#edit-form .pokemon-team-section:not([hidden]) + .training-delete-actions { margin-top: var(--space-5); }
+	   チーム欄が表示されているときは同じ隙間にそろえる。 */
+	.pokemon-team-section { margin: var(--space-6) 0; }
+	#edit-form .pokemon-team-section:not([hidden]) + .training-delete-actions { margin-top: var(--space-6); }
 	.pokemon-team-section[hidden] { display: none; }
-	#edit-form .pokemon-team-heading { margin: 0 0 var(--space-1); padding: 0; color: var(--color-text-muted); font-size: var(--font-size-sm1); font-weight: var(--font-weight-normal); line-height: var(--line-height-snug); text-align: left; border-bottom: 0; }
+	#edit-form .pokemon-team-heading { margin: 0 0 var(--space-2); padding: 0; color: var(--color-text-muted); font-size: var(--font-size-sm1); font-weight: var(--font-weight-normal); line-height: var(--line-height-snug); text-align: left; border-bottom: 0; }
 	.pokemon-team-list { margin: 0; }
 	/* 「チームを作成」: 削除/コピーと同じbtn-controlを、一覧の下に横幅いっぱいで置く。 */
 	#edit-form .pokemon-team-create-button { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-1); width: 100%; margin-top: var(--space-2); }

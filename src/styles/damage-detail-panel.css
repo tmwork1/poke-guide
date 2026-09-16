@@ -850,9 +850,10 @@ body.box-edit-page {
 		inline-size: 40px;
 		block-size: 40px;
 		padding: 3px;
-		border: 1px solid var(--damage-detail-control-border-color);
+		/* テラスタルは画像そのものの発光で状態を示すため、枠と背景は持たない。 */
+		border: 0;
 		border-radius: 50%;
-		background: var(--damage-detail-control-background);
+		background: transparent;
 		cursor: pointer;
 	}
 	#damage-detail-panel-body .damage-detail-tera-toggle img {

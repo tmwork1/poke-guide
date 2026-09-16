@@ -173,8 +173,8 @@
 		box-sizing: border-box;
 		display: grid;
 		min-width: 64px; /* 適用ボタンの最小幅。大きくするとボタンが横に広がる */
-		min-height: 38px; /* 適用ボタンの最小高。大きくするとボタンが縦に大きくなる */
-		padding: var(--space-1) var(--space-2); /* 適用ボタンの内側余白。大きくするとボタンが大きくなる */
+		min-height: 30px; /* 適用ボタンの最小高。大きくするとボタンが縦に大きくなる */
+		padding: 2px var(--space-2); /* 適用ボタンの内側余白。大きくするとボタンが大きくなる */
 		line-height: 1.15;
 	}
 	.speed-chart-table[data-embedded='true'] .speed-chart-apply-label {

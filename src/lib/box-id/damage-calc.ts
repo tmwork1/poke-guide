@@ -107,6 +107,7 @@ import {
 	closeDetailPanelOverlay,
 	initDamageDetailPanel,
 	notifyDetailAbilityChanged,
+	notifyDetailMoveChanged,
 	syncDetailPanelTotal,
 } from "./damage-detail-panel";
 // ダメージ計算のサジェスト。描画はダメージ詳細パネル側(damage-suggest.ts)に
@@ -2131,6 +2132,10 @@ if (opponentNotesSection) {
 		column.moveName = best.moveName;
 		automaticOpponentMoveNames.set(column, best.moveName);
 		resolveColumnDerivedFields(column);
+		// 手入力の input イベントと同じ追従(必ず急所になる技の急所ON、へんげんじざいのタイプ同期)を
+		// 自動選択でも通す。列の再描画はその結果を反映してから行う。
+		await notifyDetailMoveChanged(row, column);
+		if (automaticOpponentMoveGenerations.get(column) !== generation || column.moveName !== best.moveName) return;
 		renderColumns(row);
 		scheduleRowCalc(row);
 		scheduleRowSave(row);

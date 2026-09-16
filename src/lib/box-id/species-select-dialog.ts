@@ -155,6 +155,15 @@ export function selectSpecies(name: string): void {
 function buildGridOnce(): void {
 	if (gridBuilt || !masterList) return;
 	gridBuilt = true;
+	// OP.GG の順位は基本フォルム名でしか付かない(メガシンカは基本フォルムの統計に含まれる)ため、
+	// メガシンカのセルには同じ図鑑番号の基本フォルムの順位を出す。
+	const rankByName = getOpggRankByName();
+	const baseRankByDex = new Map<number, number>();
+	for (const entry of masterList) {
+		if (entry.forme?.startsWith("Mega")) continue;
+		const rank = rankByName.get(entry.name);
+		if (rank != null && !baseRankByDex.has(entry.dexNo)) baseRankByDex.set(entry.dexNo, rank);
+	}
 	for (const entry of masterList) {
 		const cell = document.createElement("button");
 		cell.type = "button";
@@ -172,7 +181,7 @@ function buildGridOnce(): void {
 		img.hidden = true;
 		const fallback = document.createElement("span");
 		fallback.className = "sprite-fallback species-select-cell-fallback";
-		const rank = getOpggRankByName().get(entry.name);
+		const rank = rankByName.get(entry.name) ?? (entry.forme?.startsWith("Mega") ? baseRankByDex.get(entry.dexNo) : undefined);
 		if (rank != null) {
 			const usageEl = document.createElement("span");
 			usageEl.className = "species-select-cell-usage tnum";
