@@ -28,9 +28,10 @@ function createExternalLinkIcon(className?: string): SVGSVGElement {
   icon.setAttribute('stroke-linejoin', 'round');
   icon.setAttribute('aria-hidden', 'true');
   const box = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-  box.setAttribute('d', 'M15 5H6a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-9');
+  // 箱の右上を大きく切り欠き、矢印(線・矢頭)が箱の線に触れないようにする。
+  box.setAttribute('d', 'M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6');
   const arrow = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-  arrow.setAttribute('d', 'M13 3h8v8M10 14 21 3');
+  arrow.setAttribute('d', 'M15 3h6v6M10 14 21 3');
   icon.append(box, arrow);
   return icon;
 }
