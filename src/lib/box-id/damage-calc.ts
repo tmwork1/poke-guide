@@ -973,15 +973,14 @@ if (opponentNotesSection) {
 	const TOTAL_RESULT_HINT =
 		"自分が防御側でたべのこしを持つ場合、ダメージ量から各ターン終了時の回復を差し引いています。" +
 		"どく・やけどなどの継続ダメージは含みません。確Nの判定はそれらも反映した実際の致死率です。";
-	// 技列(加算条件)は最大3つまでしか追加できない(カードの高さを技列3つぶんでちょうど
-	// 収まるようにするため)。この上限は「追加」操作にのみ効く上限であり、既存データを
-	// 削らない: 過去に保存されたメモが4件以上のattacksを持っていても(サーバ側
-	// opponent-notes-validation.ts のMAX_ATTACK_COUNT=6までは元々許容されている)、
-	// renderColumnsはrow.attacksを全件そのまま描画する(=表示はする)。「＋」ボタンを
-	// row.attacks.length>=3で無効化するだけなので、4件以上の既存行はカードが少し縦に
+	// 技列(加算条件)は最大2つまでしか追加できない(以前は3つまでだったが、3本目の
+	// 加算はほぼ使われないため廃止)。この上限は「追加」操作にのみ効く上限であり、
+	// 既存データを削らない: 過去に保存されたメモが3件以上のattacksを持っていても
+	// (サーバ側 opponent-notes-validation.ts のMAX_ATTACK_COUNT=6までは元々許容されている)、
+	// renderColumnsはrow.attacksを全件そのまま描画する(=表示はする)。追加操作を
+	// row.attacks.length>=2で止めるだけなので、3件以上の既存行はカードが少し縦に
 	// 伸びるが、データが消えたり保存が壊れたりすることはない。
-	// 追加操作はこの本数までに制限する。既存データは削らない。
-	const MAX_COLUMNS_TO_ADD_NARROW = 3;
+	const MAX_COLUMNS_TO_ADD_NARROW = 2;
 	function currentMaxColumnsToAdd(): number {
 		return MAX_COLUMNS_TO_ADD_NARROW;
 	}
@@ -2301,17 +2300,8 @@ if (opponentNotesSection) {
 
 			row.columnsEl!.appendChild(col);
 		});
-		// 詳細パネルの既存「＋」は2本目を足すための導線として残す。残り1本になった
-		// ときだけカード内に同じ追加操作を出せば、上限値をここへ重ね書きせず3本目まで
-		// 追加できる。上限は currentMaxColumnsToAdd() の一箇所で管理する。
-		if (row.attacks.length === currentMaxColumnsToAdd() - 1) {
-			const addButton = document.createElement("button");
-			addButton.type = "button";
-			addButton.className = "damage-column-add-button";
-			addButton.textContent = "次の技を追加";
-			addButton.addEventListener("click", () => addAttackColumnForCurrentCard(row));
-			row.columnsEl.appendChild(addButton);
-		}
+		// 技の追加導線は詳細パネルの「＋」(技が1本のときだけ表示)のみ。カード内に
+		// 3本目用の「次の技を追加」ボタンを置いていた時期があったが廃止した。
 
 		renderColumnDisplays(row);
 		// 列を作り直すと条件チップの器(.damage-row-condition-chips)も作り直されるため、

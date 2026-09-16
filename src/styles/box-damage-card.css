@@ -1123,27 +1123,6 @@ body.box-edit-page {
   display: flex;
 }
 
-/* 2本目までを詳細パネルで追加した後に出す、3本目用の導線。本文幅より縮めず、
-   狭い画面でも既存の操作領域と同じ最小タップ領域を保つ。 */
-#opponent-notes-section .damage-column-add-button {
-  min-width: max-content;
-  min-height: 44px;
-  align-self: flex-start;
-  padding-inline: var(--space-3);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: var(--color-surface);
-  color: var(--color-primary-strong);
-  cursor: pointer;
-  font: inherit;
-  font-weight: var(--font-weight-semibold);
-}
-
-#opponent-notes-section .damage-column-add-button:focus-visible {
-  outline: var(--damage-card-control-focus-outline);
-  outline-offset: 2px;
-}
-
 /* 技1つと計算結果を表示する横長カード */
 #opponent-notes-section .damage-column {
   border-radius: var(--radius-zero); /* 技カードの角丸 */
