@@ -1425,7 +1425,7 @@ if (opponentNotesSection) {
 				return;
 			}
 			if (!result || !Array.isArray(result.perAttackDamages)) {
-				setResultPlain(target, isEngineReady() ? "(計算前)" : "(計算エンジンの初期化待ち)");
+				setResultPlain(target, isEngineReady() ? "(計算前)" : "計算中…");
 				target.dataset.severity = "none";
 				return;
 			}
@@ -1546,7 +1546,7 @@ if (opponentNotesSection) {
 		// 確率が一瞬表示されてしまう(実例: ヤドキング(たべのこし)へガブリアスの
 		// じしんを2枚目として追加した直後、正しい1.95%の前に42.36%が一瞬出る)。
 		if (!result || !Array.isArray(result.perAttackDamages) || result.perAttackDamages.length !== validAttacks.length) {
-			setResultPlain(target, isEngineReady() ? "(計算前)" : "(計算エンジンの初期化待ち)");
+			setResultPlain(target, isEngineReady() ? "(計算前)" : "計算中…");
 			setSeverity("none");
 			return;
 		}
@@ -3724,7 +3724,7 @@ if (opponentNotesSection) {
 			damageRowsListEl.innerHTML = "";
 			const errP = document.createElement("p");
 			errP.className = "card-hint";
-			errP.textContent = "ダメージ計算カードの取得に失敗しました。時間をおいて再度お試しください。";
+			errP.textContent = "ダメージ計算カードを読み込めませんでした";
 			damageRowsListEl.appendChild(errP);
 		}
 	}
@@ -3743,10 +3743,10 @@ if (opponentNotesSection) {
 			engineStatusTextEl.textContent = "計算エンジンの準備ができました。";
 			engineReloadButton.hidden = true;
 		} else if (progress.status === "idle") {
-			engineStatusTextEl.textContent = "計算エンジンを準備しています(自動で開始します)…";
+			engineStatusTextEl.textContent = "計算中…";
 			engineReloadButton.hidden = true;
 		} else if (progress.status === "error") {
-			engineStatusTextEl.textContent = "ダメージ計算エンジンの読み込みに失敗しました。";
+			engineStatusTextEl.textContent = "ダメージ計算を読み込めませんでした";
 			engineReloadButton.hidden = false;
 		} else {
 			engineStatusTextEl.textContent = progress.message;

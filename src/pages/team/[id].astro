@@ -1064,7 +1064,7 @@ if (!isGuestNewMode) {
 						}
 					});
 				}
-				renderFormationMobile();
+				applySuggestionHighlights();
 
 				if (shouldShowFormationSuggestions) {
 					filtered.slice(0, 6).forEach((s) => formationMobileSuggestIcons.appendChild(buildSuggestIcon(s)));
@@ -1862,6 +1862,9 @@ if (!isGuestNewMode) {
 						displayName: name,
 						ariaLabel: `${name}を編成`,
 					});
+					// おすすめ反映用の軽量再描画(applySuggestionHighlights)がカードを
+					// species_name で引けるようにする。一覧全体の再生成を伴わない。
+					card.dataset.speciesName = p.species_name;
 					if (selectedCandidatePokemon?.id === p.id) card.classList.add("is-selected");
 					if (suggestionSpeciesRanks.has(p.species_name)) {
 						// おすすめは一覧の順番を変えず、カード全体で見つけやすくする。
@@ -1872,6 +1875,24 @@ if (!isGuestNewMode) {
 				}
 				formationMobileBoxGrid.appendChild(formationMobileAddButton);
 				updateAutoBuildButtonState();
+			}
+
+			// おすすめ(suggestionSpeciesRanks)の反映だけを行う軽量再描画。renderFormationMobile()を
+			// 丸ごと呼ぶとチーム枠3タブとボックス候補一覧全体を作り直してしまい、一覧のちらつきや
+			// スクロール位置・選択状態のリセットを招くため、既存の候補カードDOMを走査して
+			// is-recommended クラスとtitleの付け外しだけ行う(renderSuggestions専用)。
+			function applySuggestionHighlights(): void {
+				for (const child of Array.from(formationMobileBoxGrid.children)) {
+					if (!(child instanceof HTMLElement)) continue;
+					const speciesName = child.dataset.speciesName;
+					const isRecommended = speciesName != null && suggestionSpeciesRanks.has(speciesName);
+					child.classList.toggle("is-recommended", isRecommended);
+					if (isRecommended) {
+						child.title = "おすすめ";
+					} else if (child.title === "おすすめ") {
+						child.title = "";
+					}
+				}
 			}
 
 			function navigateToPokemonEdit(pokemonId: string): void {

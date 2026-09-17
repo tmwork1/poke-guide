@@ -6,6 +6,24 @@
 }
 .team-matchup-status[hidden] { display: none; }
 
+/* 相性カード一覧の領域に重ねる「計算中…」。1匹目の結果が描画されるまでの
+   進捗表示で、JS(matchup-panel.ts)が動的に生成・着脱する。 */
+.team-matchup-list-container {
+	position: relative;
+}
+.team-matchup-calculating {
+	position: absolute;
+	inset: 0;
+	z-index: 1;
+	display: grid;
+	place-items: center;
+	background: color-mix(in srgb, var(--color-bg) 60%, transparent);
+	color: var(--color-text-muted);
+	font-size: var(--font-size-sm3);
+	line-height: var(--line-height-snug);
+	text-align: center;
+}
+
 /* 攻/守の切り替えタブと相手カード一覧は、選択中の方向で強調色を変える。
    攻(こちらから殴る側)は赤系、守(相手から殴られる側)は既定の主要色。
    方向は JS が data-matchup-active-direction を付け替えて切り替える

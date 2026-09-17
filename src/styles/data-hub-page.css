@@ -29,7 +29,7 @@ body.data-hub-page {
   /* ── 8. 寸法 ──────────────────────────────────────────── */
   --data-hub-entry-width: 360px; /* 1ポケモン分のバトルデータカード幅。広い画面ではこの幅のまま横に並べる */
   --data-hub-entry-icon-size: 32px; /* 一覧見出しのポケモンアイコンサイズ。大きくするとアイコンが目立つ */
-  --data-hub-rail-item-size: 40px; /* 左アイコン列のポケモン画像サイズ。大きくすると見やすくなる */
+  --data-hub-rail-item-size: 40px; /* 右アイコン列のポケモン画像サイズ。大きくすると見やすくなる */
 }
 
 body.data-hub-page .app-main {
@@ -85,12 +85,12 @@ body.data-hub-page .app-main > .second-header {
 .data-hub-panel[inert] { user-select: none; }
 
 /* --------------------------------------------------------------------------
-   バトルデータタブ(検索セカンドヘッダー + 左アイコン列 + カード一覧)
+   バトルデータタブ(検索セカンドヘッダー + カード一覧 + 右アイコン列)
    -------------------------------------------------------------------------- */
-/* 検索・シーズン選択は共通のセカンドヘッダーに置き、その下を左のポケモン
-   アイコン列と右のデータカード列に分ける。カード本体は battle-data-card.css 側。 */
+/* 検索・シーズン選択は共通のセカンドヘッダーに置き、その下を左のデータカード
+   列と右のポケモンアイコン列に分ける。カード本体は battle-data-card.css 側。 */
 .data-hub-panel.battle-data-panel {
-  --battle-data-rail-width: 48px; /* 左側ポケモンレールの幅。小さくするとカードの横幅が広がる */
+  --battle-data-rail-width: 48px; /* 右側ポケモンレールの幅。小さくするとカードの横幅が広がる */
   padding: 0;
   background: var(--color-bg);
 }
@@ -176,14 +176,15 @@ body.data-hub-page .app-main > .second-header {
 }
 .battle-data-body {
   display: grid;
-  grid-template-columns: var(--battle-data-rail-width) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) var(--battle-data-rail-width);
   align-items: start;
   gap: var(--space-1);
   padding: 0;
 }
 /* 使用率順位ごとのポケモンカード。狭い画面では1列、広い画面ではカード幅を保って横に並べる。 */
 .battle-data-list {
-  grid-column: 2;
+  grid-column: 1;
+  grid-row: 1; /* レール(2列目)と同じ1行目に置く。省略すると自動配置でレールが1行目・一覧が2行目に分かれてしまう */
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--data-hub-entry-width)), var(--data-hub-entry-width)));
   justify-content: start;
@@ -241,8 +242,10 @@ body.data-hub-page .app-main > .second-header {
   white-space: nowrap;
 }
 
-/* カード一覧の左に追従する、ポケモンへのジャンプアイコン列 */
+/* カード一覧の右に追従する、ポケモンへのジャンプアイコン列 */
 .battle-data-rail {
+  grid-column: 2;
+  grid-row: 1;
   position: sticky;
   top: 0;
   align-self: flex-start;
@@ -254,10 +257,10 @@ body.data-hub-page .app-main > .second-header {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--space-2); /* 左アイコン列内のアイコン間隔。少し離して押しやすくする */
+  gap: var(--space-2); /* 右アイコン列内のアイコン間隔。少し離して押しやすくする */
   overflow-y: auto;
   padding: 0; /* レール内の先頭・末尾もカード一覧と同じ境界から並べる */
-  background: var(--color-bg); /* 左側のポケモンレール背景。変えると本文との区別が変わる */
+  background: var(--color-bg); /* 右側のポケモンレール背景。変えると本文との区別が変わる */
   scrollbar-width: none;
 }
 .battle-data-rail::-webkit-scrollbar { display: none; }

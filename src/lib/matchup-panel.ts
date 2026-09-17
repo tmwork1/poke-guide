@@ -214,6 +214,25 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 	let activeMovePopover: HTMLElement | null = null;
 	let activeMovePopoverCard: HTMLElement | null = null;
 
+	// カード一覧の領域(listElement の親要素)に「計算中…」を重ねる。1匹目の
+	// 相性結果が実際に描画されるまでの間だけ表示し、以後はDOMから外して再利用する。
+	const calculatingOverlayContainer = listElement.parentElement ?? listElement;
+	calculatingOverlayContainer.classList.add('team-matchup-list-container');
+	let calculatingOverlayEl: HTMLDivElement | null = null;
+
+	function showCalculatingOverlay(): void {
+		if (!calculatingOverlayEl) {
+			calculatingOverlayEl = document.createElement('div');
+			calculatingOverlayEl.className = 'team-matchup-calculating';
+			calculatingOverlayEl.textContent = '計算中…';
+		}
+		if (!calculatingOverlayEl.isConnected) calculatingOverlayContainer.appendChild(calculatingOverlayEl);
+	}
+
+	function hideCalculatingOverlay(): void {
+		calculatingOverlayEl?.remove();
+	}
+
 	function closeMovePopover(): void {
 		activeMovePopover?.remove();
 		activeMovePopoverCard?.setAttribute('aria-expanded', 'false');
@@ -284,6 +303,8 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 			statusElement.hidden = true;
 			statusElement.textContent = '';
 		} else {
+			// メッセージ表示時に「計算中…」を重ねない。
+			hideCalculatingOverlay();
 			statusElement.textContent = message;
 			statusElement.hidden = false;
 		}
@@ -467,6 +488,9 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 
 	async function run(appendFrom?: number): Promise<void> {
 		const currentRequestId = (requestId += 1);
+		// 「さらに表示」による追加読み込みは既存カードが見えているので対象外。
+		// 新規/再計算のときだけ、1匹目の結果が出るまで「計算中…」を重ねる。
+		if (appendFrom === undefined) showCalculatingOverlay();
 		updateMoreButton(loadedTargetCount, true);
 		clearSuggestedTypes();
 		// 対象カードを先に描画し、Pyodide の準備・計算結果は後追いで反映する。
@@ -541,6 +565,9 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 			renderMatchupList(visibleFormTargets, resolvedScores, typesMap, isAttackMove, getMoveType, members);
 		}
 		if (directionScores.every((score) => score !== undefined)) {
+			// 全対象がキャッシュ済み。上のrenderMatchupList/appendMatchupCardsで
+			// 既に実際の結果を描画し終えているので、ここで確実に隠す。
+			hideCalculatingOverlay();
 			renderSuggestedTypes(visibleFormTargets, resolvedScores, typesMap, isAttackMove, getMoveType, typeChart);
 			updateMoreButton(targets.length, false);
 			return;
@@ -614,6 +641,9 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 				if (directionScores[targetIndex] === undefined) continue;
 				applyMatchupCardResult(targetIndex, scoredSoFar[targetIndex]?.opacity ?? null);
 			}
+			// このループの最初の1周で1匹目の実際の結果が描画されている
+			// (以降は既に隠れているため呼んでも何もしない)。
+			hideCalculatingOverlay();
 		}
 		if (currentRequestId !== requestId) return;
 		scores[activeDirection] = directionScores;
