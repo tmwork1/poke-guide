@@ -28,6 +28,8 @@ def season_exists(season, rule):
     if r.status_code == 405:  # HEAD非対応なら本体を取って判定する
         r = requests.get(url, headers=HEADERS, timeout=30, stream=True)
         r.close()
+    if r.status_code not in (200, 404):
+        print(f'season={season} rule={rule}: HTTP {r.status_code} url={r.url} server={r.headers.get("server")}', flush=True)
     return r.status_code == 200
 
 
