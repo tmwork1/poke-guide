@@ -1,8 +1,8 @@
 """champs.pokedb.tokyo から公式ランキングJSONと構築記事検索HTMLを取り、記事索引を作り直す。
 
 `docs/ranker/derived/README.md` の再生成手順のうち、外部サイト(記事本文)に触らず
-pokedb だけで完結する 0〜1 をまとめたもの。GitHub Actions (.github/workflows/ranker-fetch.yml)
-から毎日叩く前提なので、シーズン番号は引数で与えずに opendata の存在で自動判定する。
+pokedb だけで完結する 0〜1 をまとめたもの。シーズン番号は引数で与えずに opendata の存在で自動判定する。
+GitHub Actions では回せない(champs.pokedb.tokyo がホストランナーのIPを403で弾く)ので、ローカルから叩く。
 
 進行中の最新シーズンは日々順位が増えるため必ず取り直し(force)、確定済みの過去シーズンは
 キャッシュ(=リポジトリにコミット済みのファイル)をそのまま使う。

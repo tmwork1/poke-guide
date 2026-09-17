@@ -122,9 +122,11 @@ LLMが「テラスタイプ」として返してきた値は記事の読み違�
 ## 再生成
 
 新シーズン追加時の実行手順は `.claude/skills/ranker/SKILL.md` を参照(`/ranker` で起動)。
-公式ランキングJSON・記事検索HTMLの取得(README冒頭「手順0-1」相当)は
-`.github/workflows/ranker-fetch.yml` が毎日 20:00 UTC(JST 5:00)に自動実行しており、
-`s{n}_single_ranked_teams.json` と `articles-index.json` の更新は自動でコミットされる。
-検索HTMLは1ページ1.5MBで毎日差分が出るためコミットせず、workflow artifact(`pokedb-html`、14日保持)に置く。
+公式ランキングJSON・記事検索HTMLの取得(手順0-1)は `npm run ranker:fetch-pokedb` でローカルから行う。
+**GitHub Actions では回せない**: champs.pokedb.tokyo は GitHub ホストランナーのIPからのアクセスを
+トップページ含め全て 403 で弾く(2026-09-17 に確認。UA・Referer を変えても不変)。
+一度 `.github/workflows/ranker-fetch.yml` として日次化したが、この理由で撤去した。
+検索HTML(`docs/ranker/pokedb_html/`)は確定済みシーズンのキャッシュとしてコミットする(スクリプトは最新シーズン以外を取り直さない)。
+進行中シーズンのものは毎回差分が出るので、シーズン確定後にまとめてコミットする。
 
 `ranked-teams.json` をそのままコミットしてあるのは、**LLM抽出を再実行しなくてもDBを再現できるようにするため**。

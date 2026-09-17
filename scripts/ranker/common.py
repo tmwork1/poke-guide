@@ -3,6 +3,7 @@
 UA = ('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
       '(KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36')
 # champs.pokedb.tokyo はブラウザ以外のUAを403で弾くため、必ずこのUAを使う。
+# GitHub Actions のホストランナーIPはUAに関係なく403(2026-09-17確認)なのでCIからは叩けない。
 HEADERS = {'User-Agent': UA, 'Accept-Language': 'ja,en;q=0.8'}
 
 

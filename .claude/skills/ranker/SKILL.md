@@ -5,7 +5,7 @@ description: 新シーズンの公式ランキングJSON(docs/ranker/s{n}_single
 
 # 上位入賞チーム データ更新パイプライン
 
-`docs/ranker/derived/README.md`「再生成」節の手順2〜6(記事ダウンロード〜サジェスト再集計)を、新シーズン追加のたびに一気通貫で回す。手順0-1(公式ランキングJSON・記事検索HTMLの取得)は `.github/workflows/ranker-fetch.yml` が毎日自動実行しているので、通常はこのskillの対象外(P0で未取得と分かった場合のみ手動で叩く)。
+`docs/ranker/derived/README.md`「再生成」節の手順2〜6(記事ダウンロード〜サジェスト再集計)を、新シーズン追加のたびに一気通貫で回す。手順0-1(公式ランキングJSON・記事検索HTMLの取得)もP1冒頭で `npm run ranker:fetch-pokedb` により行う(champs.pokedb.tokyo は GitHub Actions のランナーIPを403で弾くため、CIには載せられない。→README「再生成」節)。
 
 **特に指示のない限り `main` で直接作業する**(→ルートの `CLAUDE.md`「作業方針」)。**作業が一区切りついたら Coordinator が `git commit` する**(`git push` はしない)。
 
@@ -26,18 +26,18 @@ description: 新シーズンの公式ランキングJSON(docs/ranker/s{n}_single
 ### P0. 対象シーズンを判定する
 
 1. `docs/ranker/derived/README.md` を読む(生成物の意味・既知の罠を把握)。
-2. `docs/ranker/s*_single_ranked_teams.json` の一覧と `docs/ranker/derived/ranked-teams.json` の `sources.ranking` を比較し、未取り込みのシーズンを特定する。
-3. 未取り込みシーズンが無ければ、ユーザーに「新シーズンなし」と報告して終了する。
-4. `docs/ranker/derived/articles-index.json` の該当シーズン件数が、対象の `s{n}_single_ranked_teams.json` のチーム数と一致するか確認する(一致しなければP1から手動で回す必要がある)。
+2. `npm run ranker:fetch-pokedb` を実行し、存在するシーズンのランキングJSON・記事検索HTML・記事索引を最新化する(進行中の最新シーズンだけ取り直す)。
+3. `docs/ranker/s*_single_ranked_teams.json` の一覧と `docs/ranker/derived/ranked-teams.json` の `sources.ranking` を比較し、未取り込みのシーズンを特定する。
+4. 未取り込みシーズンが無ければ、ユーザーに「新シーズンなし」と報告して終了する。
 5. 記事HTMLキャッシュ用の `$CACHE` ディレクトリ(リポジトリ外)をユーザーに確認する。過去の実行例は `C:\Users\tmtmp\ranker-cache`。
 
 ### P1. 記事索引・記事本文を取得する
 
-`.github/workflows/ranker-fetch.yml` が既に対象シーズンのランキングJSON/記事索引を作っているのが通常。P0-4で不一致が見つかった場合のみ:
+P0-2 でランキングJSON/記事索引は取得済み。`docs/ranker/derived/articles-index.json` の対象シーズン件数が `s{n}_single_ranked_teams.json` のチーム数と一致しない場合のみ個別に取り直す:
 
 ```bash
-npm run ranker:fetch-teams -- --seasons <n> --rule single
-npm run ranker:fetch-articles -- --seasons <n> --rule single
+npm run ranker:fetch-teams -- --seasons <n> --rule single --force
+npm run ranker:fetch-articles -- --seasons <n> --rule single --force
 npm run ranker:index -- docs/ranker/derived/articles-index.json
 ```
 
