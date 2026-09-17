@@ -53,13 +53,13 @@ function defenseNote(speciesName: string, opponentBuild: OpponentBuildInput, mov
 export const ANONYMOUS_STARTER_OPPONENT_NOTES: StarterOpponentNote[] = [
   attackNote('フシギバナ', STARTER_OPPONENTS.garchomp, ['ヘドロばくだん']), defenseNote('フシギバナ', STARTER_OPPONENTS.garchomp, ['じしん', 'ドラゴンテール']),
   attackNote('リザードン', STARTER_OPPONENTS.gholdengo, ['かえんほうしゃ']), defenseNote('リザードン', STARTER_OPPONENTS.gholdengo, ['10まんボルト', 'シャドーボール']),
-  attackNote('カメックス', STARTER_OPPONENTS.incineroar, ['ハイドロポンプ']), defenseNote('カメックス', STARTER_OPPONENTS.incineroar, ['ドレインパンチ', 'ドレインパンチ']),
+  attackNote('カメックス', STARTER_OPPONENTS.incineroar, ['ハイドロポンプ']), defenseNote('カメックス', STARTER_OPPONENTS.incineroar, ['ねこだまし', 'ドレインパンチ']),
   attackNote('ジュカイン', STARTER_OPPONENTS.swampert, ['リーフストーム']), defenseNote('ジュカイン', STARTER_OPPONENTS.swampert, ['れいとうパンチ', 'ウェーブタックル']),
-  attackNote('バシャーモ', STARTER_OPPONENTS.corviknight, ['フレアドライブ']), defenseNote('バシャーモ', STARTER_OPPONENTS.corviknight, ['ブレイブバード', 'ブレイブバード']),
+  attackNote('バシャーモ', STARTER_OPPONENTS.corviknight, ['フレアドライブ']), defenseNote('バシャーモ', STARTER_OPPONENTS.corviknight, ['ブレイブバード', 'アイアンヘッド']),
   attackNote('ラグラージ', STARTER_OPPONENTS.garchomp, ['じしん']), defenseNote('ラグラージ', STARTER_OPPONENTS.garchomp, ['じしん', 'ドラゴンテール']),
   attackNote('メガニウム', STARTER_OPPONENTS.garchomp, ['タネマシンガン']), defenseNote('メガニウム', STARTER_OPPONENTS.garchomp, ['じしん', 'ドラゴンテール']),
   attackNote('バクフーン', STARTER_OPPONENTS.gholdengo, ['かえんほうしゃ']), defenseNote('バクフーン', STARTER_OPPONENTS.gholdengo, ['シャドーボール', 'ゴールドラッシュ']),
-  attackNote('オーダイル', STARTER_OPPONENTS.incineroar, ['たきのぼり']), defenseNote('オーダイル', STARTER_OPPONENTS.incineroar, ['ドレインパンチ', 'ドレインパンチ']),
+  attackNote('オーダイル', STARTER_OPPONENTS.incineroar, ['たきのぼり']), defenseNote('オーダイル', STARTER_OPPONENTS.incineroar, ['ねこだまし', 'ドレインパンチ']),
 ];
 
 const initializedUserIds = new Set<string>();
