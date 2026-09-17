@@ -130276,7 +130276,6 @@
      "nature": "ようき",
      "ability": "どんかん",
      "move_names": [
-      "つきのひかり",
       "げきりん",
       "こうそくいどう"
      ],
@@ -143662,7 +143661,6 @@
      "nature": null,
      "ability": null,
      "move_names": [
-      "はじけるほのお",
       "げんしのちから",
       "サイコショック",
       "サイコキネシス"
@@ -157367,7 +157365,6 @@
      "move_names": [
       "かえんほうしゃ",
       "わるだくみ",
-      "でんきショック",
       "くさむすび"
      ],
      "evs": null,
@@ -158028,7 +158025,7 @@
      "move_names": [
       "ハイドロポンプ",
       "あくのはどう",
-      "シェルブレード"
+      "からをやぶる"
      ],
      "evs": null,
      "extraction_source": "llm",
@@ -182815,7 +182812,6 @@
      "nature": "ひかえめ",
      "ability": "もうか",
      "move_names": [
-      "でんきショック",
       "みがわり"
      ],
      "evs": [
@@ -182827,7 +182823,7 @@
       29
      ],
      "extraction_source": "llm",
-     "extraction_confidence": "low",
+     "extraction_confidence": "high",
      "extraction_issues": []
     },
     {
@@ -192116,7 +192112,6 @@
      "nature": null,
      "ability": null,
      "move_names": [
-      "はじけるほのお",
       "げんしのちから",
       "サイコショック",
       "なまける"
@@ -235109,8 +235104,7 @@
      "nature": null,
      "ability": null,
      "move_names": [
-      "どくびし",
-      "つきのひかり"
+      "どくびし"
      ],
      "evs": null,
      "extraction_source": "llm",
@@ -235227,27 +235221,30 @@
      "tera_type": null,
      "nature": null,
      "ability": null,
-     "move_names": [
-      "つきのひかり"
-     ],
+     "move_names": null,
      "evs": null,
-     "extraction_source": "llm",
-     "extraction_confidence": "low",
+     "extraction_source": null,
+     "extraction_confidence": null,
      "extraction_issues": [
       {
        "field": "nature",
        "reason_code": "extraction_incomplete",
-       "detail": null
+       "detail": "LLM候補との割当なし"
       },
       {
        "field": "ability",
        "reason_code": "extraction_incomplete",
-       "detail": null
+       "detail": "LLM候補との割当なし"
+      },
+      {
+       "field": "moves",
+       "reason_code": "extraction_incomplete",
+       "detail": "LLM候補との割当なし"
       },
       {
        "field": "evs",
        "reason_code": "extraction_incomplete",
-       "detail": null
+       "detail": "LLM候補との割当なし"
       }
      ]
     },
@@ -238584,7 +238581,7 @@
      "ability": null,
      "move_names": [
       "おにび",
-      "どろばくだん",
+      "ハイドロポンプ",
       "ボルトチェンジ",
       "いたみわけ"
      ],
@@ -256173,7 +256170,7 @@
      "ability": null,
      "move_names": [
       "おにび",
-      "どろばくだん",
+      "ハイドロポンプ",
       "ボルトチェンジ",
       "いたみわけ"
      ],
