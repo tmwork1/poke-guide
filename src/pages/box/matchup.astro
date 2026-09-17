@@ -19,7 +19,7 @@ const result = user && selectedId
 const pokemon = result?.ok ? result.data : null;
 ---
 
-<AppLayout title="相性" description="使用率上位ポケモンとの攻守の相性" current="box" bodyClass="data-page">
+<AppLayout title="相性" description="使用率上位との攻守の相性" current="box" bodyClass="data-page">
   <div class="page box-data-page box-matchup-page">
     <MobilePokemonPreview pokemon={pokemon} activeTab="matchup" />
     {pokemon && (

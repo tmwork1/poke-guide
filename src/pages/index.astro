@@ -20,7 +20,7 @@ const isAuthenticatedUser = !!user && !user.isAnonymous;
 const userEmail = user?.email ?? '';
 ---
 
-<AppLayout title="ポケガイド" description="ポケモン育成を管理するためのホーム画面" current="home" bodyClass="home-page">
+<AppLayout title="ポケガイド" description="ポケモン育成管理アプリ" current="home" bodyClass="home-page">
 	<link slot="head" rel="stylesheet" href={homePageStylesheet} />
 	<link slot="head" rel="stylesheet" href={appHeaderStylesheet} />
 	<div class="page home-page">
