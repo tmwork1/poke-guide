@@ -1,0 +1,15 @@
+name: tmp-diag
+on: workflow_dispatch
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          U=https://champs.pokedb.tokyo/opendata/s1_single_ranked_teams.json
+          for ua in "" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0 Safari/537.36" "curl/8" "python-requests/2.34"; do
+            echo "== UA=[$ua]"; curl -sS -o /tmp/b -w '%{http_code}\n' -A "$ua" "$U"; head -c 400 /tmp/b; echo
+          done
+          echo "== with Accept-Language + Referer"
+          curl -sS -o /tmp/b -w '%{http_code}\n' -A "Mozilla/5.0" -H 'Accept-Language: ja' -H 'Referer: https://champs.pokedb.tokyo/' "$U"; head -c 400 /tmp/b; echo
+          echo "== top page"; curl -sS -o /tmp/b -w '%{http_code}\n' -A "Mozilla/5.0" https://champs.pokedb.tokyo/; head -c 300 /tmp/b; echo
+          echo "== IP"; curl -s https://api.ipify.org; echo
