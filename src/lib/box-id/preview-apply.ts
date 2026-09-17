@@ -141,7 +141,9 @@ export function applyPokemonPreview(
       if (mod) statHeader.dataset.mod = mod;
       else delete statHeader.dataset.mod;
     }
-    setText(`pokemon-preview-ev-${key}`, view.evLabels[index] === '-' ? '' : view.evLabels[index]);
+    // 努力値0はSSR(MobilePokemonPreview.astro)と同じく空欄にする。setTextは空を'-'へ置き換えるため使わない。
+    const ev = document.getElementById(`pokemon-preview-ev-${key}`);
+    if (ev) ev.textContent = view.evLabels[index];
   });
   if (applyContent) preview.dispatchEvent(new CustomEvent('pokemonpreviewchange'));
 }
