@@ -1,4 +1,4 @@
-﻿---
+---
 // チーム編集ページ(docs/plan/pages/team.md「確定した設計 > 画面 > /team/[id](編集)」)。
 // 初期表示データは box/[id].astro と同じ方針で、API経由のfetchではなくAstroのフロントマター
 // (SSR)で src/lib/team.ts の getTeam() を直接呼び出す(初期表示が速く、「生のSupabaseクエリは
@@ -13,6 +13,7 @@ import AppLayout from '../../layouts/AppLayout.astro';
 import AppHeader from '../../components/AppHeader.astro';
 import CalculatorIcon from '../../components/icons/CalculatorIcon.astro';
 import RankedTeamsSearchHeader from '../../components/ranked-teams/RankedTeamsSearchHeader.astro';
+import TeamShareImageDialog from '../../components/team/TeamShareImageDialog.astro';
 import { getSupabaseAdminClient, getSupabasePublicClient } from '../../lib/supabase';
 import { getTeam, type Team } from '../../lib/team';
 import { listRankedSeasons } from '../../lib/ranked-teams';
@@ -32,6 +33,7 @@ import '../../styles/item-select-dialog.css';
 import '../../styles/team-item-redistribute-dialog.css';
 import '../../styles/guest-login-dialog.css';
 import '../../styles/team-edit-page.css';
+import '../../styles/team-share-image.css';
 
 const user = Astro.locals.user;
 const id = Astro.params.id;
@@ -179,6 +181,14 @@ if (!isGuestNewMode) {
 								autocomplete="off"
 								rows={Math.max(3, (team.memo ?? '').split('\n').length)}>{team.memo ?? ''}</textarea>
 							{!isNewMode && (
+								<div class="pokemon-share-image-actions" aria-label="SNS共有用画像">
+									<button id="team-share-image-save-button" class="btn-control pokemon-share-image-action" type="button" disabled={team.members.length === 0} title={team.members.length === 0 ? "ポケモンを追加すると画像を保存できます" : undefined}>
+										<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14a2 2 0 0 0 2-2v-3"/><path d="M3 16v3a2 2 0 0 0 2 2"/></svg>
+										<span class="pokemon-share-image-action-label">画像を保存</span>
+									</button>
+								</div>
+							)}
+							{!isNewMode && (
 								<div class="team-mobile-actions__controls training-delete-actions">
 									<button id="copy-button" class="btn-control" type="button" disabled={!user || user.isAnonymous} title={!user || user.isAnonymous ? "ログインするとコピーできます" : undefined}>
 										<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="1"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
@@ -192,6 +202,7 @@ if (!isGuestNewMode) {
 							)}
 						</div>
 					</section>
+					{!isNewMode && <TeamShareImageDialog />}
 					<div id="team-item-redistribute-backdrop" class="item-select-backdrop" hidden></div>
 					<section id="team-item-redistribute-dialog" class="item-select-dialog team-item-redistribute-dialog" role="dialog" aria-modal="true" aria-labelledby="team-item-redistribute-title" tabindex="-1" hidden>
 						<div class="item-select-header">
@@ -354,6 +365,7 @@ if (!isGuestNewMode) {
 		import { setupAppHeaderSwipe } from "../../lib/app-header-swipe";
 		import { createItemSelectGrid, sortItemsByUsage, isMegaStoneItemName } from "../../lib/box-id/item-select-dialog";
 		import { isMegaRegulation } from "../../lib/regulations";
+		import { initializeTeamShareImage } from "../../lib/team-share-image";
 
 		interface OwnedPokemonRecord {
 			id: string;
@@ -467,6 +479,7 @@ if (!isGuestNewMode) {
 
 			const memoInput = el<HTMLTextAreaElement>("team-memo");
 			const overviewGrid = el<HTMLElement>("team-overview-grid");
+			const syncTeamShareImage = initializeTeamShareImage();
 			const itemRedistributeButton = el<HTMLButtonElement>("team-item-redistribute-button");
 			const damageCalcButton = document.getElementById("team-damage-calc-button") as HTMLButtonElement | null;
 			damageCalcButton?.addEventListener("click", () => {
@@ -1616,6 +1629,7 @@ if (!isGuestNewMode) {
 						stats.removeAttribute("aria-hidden");
 					});
 				}
+				syncTeamShareImage();
 			}
 
 			// 選択状態だけが変わったときは、カードを作り直さずクラスとaria-pressedだけ更新する
